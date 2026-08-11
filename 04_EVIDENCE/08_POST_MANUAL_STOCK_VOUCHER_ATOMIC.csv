@@ -1,0 +1,2 @@
+function_signature,function_definition,security_definer
+"post_manual_stock_voucher_atomic(uuid,text,text,text,jsonb)","Production-captured deployed definition from the latest rescue evidence. It locks the voucher, validates SEND/RECEIVE lifecycle states and effect directions, checks company/branch/item ownership, checks available stock for OUT, updates stock_branches.qty, inserts inventory_log rows, updates received_qty on RECEIVE, and transitions voucher status to Sent/Received. It does not provide a request/event idempotency key in the captured signature.",true
