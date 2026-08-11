@@ -4,101 +4,145 @@
 Freeze the factual Production contract for `stock_branches`, `inventory_log`, `allocated_qty`, and their constraints/indexes/relations before any implementation change.
 
 ## Evidence Reviewed
-- `Inventory/Manual-Vouchers/01-CONTRACT.md`
-- `Evidence/Production/02-inventory-log-contract.csv`
-- `Evidence/Production/07-stock-voucher-indexes.csv`
-- `CTO/05_TRUTH_RECONCILIATION.md`
-- `Inventory/02-EVIDENCE-GAPS-AND-SQL.md`
+- `SQL_Evidence/diagnostics/1-Exact table columns + defaults + generated expressions.csv`
+- `SQL_Evidence/diagnostics/2-Primary keys  unique constraints  check constraints  FKs.csv`
+- `SQL_Evidence/diagnostics/3-Index definitions — exact Production definitions.csv`
+- `SQL_Evidence/diagnostics/4-Foreign-key dependencies in both directions.csv`
+- `SQL_Evidence/diagnostics/5-Triggers on the InventoryVoucher tables.csv`
+- `SQL_Evidence/diagnostics/6-RLS status + policies.csv`
+- `SQL_Evidence/diagnostics/7-Views  rules  dependencies referencing Inventory Core.md`
+- `SQL_Evidence/diagnostics/8-FunctionsRPCs whose stored source references Inventory Core.csv`
+- `SQL_Evidence/diagnostics/10-Table row estimates — context only, NOT balances.csv`
+- Prior Inventory/Voucher contracts and CTO truth-reconciliation documents.
 
 ## 1. `stock_branches`
 
-Captured Production contract proves the following fields:
+### Production columns
+`id, branch_id, item_id, qty, allocated_qty, available_qty, updated_at`. fileciteturn273file0
 
-`id, branch_id, item_id, qty, allocated_qty, available_qty, updated_at`
+### Confirmed semantics
+- `qty` = current physical stock balance for a branch/item row.
+- `allocated_qty` = reserved/allocated quantity; it is not itself an inventory movement.
+- `available_qty` is a **generated column** with the exact Production expression:
+  `qty - allocated_qty`. fileciteturn273file0
 
-### Confirmed meaning
-- `qty` = physical stock quantity recorded for the branch/item row.
-- `allocated_qty` = reserved/allocated quantity and therefore NOT itself a stock movement.
-- `available_qty` = available quantity represented by the current contract; the reviewed atomic path treats availability as `qty - allocated_qty`.
+### Production constraints
+- Primary key: `stock_branches_pkey (id)`.
+- Unique key: `(branch_id, item_id)`.
+- `branch_id` FK → `branches(id)` with `ON DELETE CASCADE`.
+- `item_id` FK → `items(id)` with `ON DELETE CASCADE`.
+- `id`, `branch_id`, `item_id`, `qty`, `allocated_qty` are NOT NULL. fileciteturn274file0turn276file0
 
-### Important boundary
-The exact database implementation of `available_qty` (generated column, stored value, trigger-maintained value, or other mechanism) is NOT captured sufficiently in the persisted evidence currently available.
-
-Therefore its exact generation mechanism is **NOT ASSUMED**.
+### Production indexes
+- PK unique index on `id`.
+- Unique index on `(branch_id, item_id)`.
+- `idx_stock_branches_branch` on `branch_id`.
+- `idx_stock_branches_item` on `item_id`. fileciteturn275file0
 
 ## 2. `inventory_log`
 
-Production evidence proves:
+### Production columns
+`id, company_id, log_code, movement_date, voucher_id, item_id, item_code, item_name, movement_type, qty, reference, user_email, created_at`. There is **no `branch_id` column** in the captured Production schema. fileciteturn273file0
 
-`id, company_id, log_code, movement_date, voucher_id, item_id, item_code, item_name, movement_type, qty, reference, user_email, created_at`.
+### Confirmed semantics
+`inventory_log` is the historical record of inventory movements. It is **not** the authoritative current balance.
 
-The captured contract explicitly confirms that `branch_id` is absent. fileciteturn264file0
+### Production constraints
+- Primary key: `inventory_log_pkey (id)`.
+- `company_id` FK → `companies(id)` with `ON DELETE CASCADE`.
+- `item_id` FK → `items(id)` with `ON DELETE RESTRICT`.
+- Required NOT NULL columns include `id`, `company_id`, `log_code`, `movement_date`, `movement_type`, `qty`. fileciteturn274file0turn276file0
 
-### Source-of-truth classification
-`inventory_log` is the **historical movement/audit record of stock movements**, but it is NOT the authoritative current stock balance.
+### Production indexes
+- PK unique index on `id`.
+- `idx_inventory_log_item` on `item_id`. fileciteturn275file0
 
-Current stock balance belongs to `stock_branches`.
+### Important limitation
+No Production CHECK/ENUM constraint restricting `movement_type` values was captured in this evidence. Therefore the allowed movement-type vocabulary remains an application/RPC contract question and is **not declared as a database-enforced fact**.
 
 ## 3. `allocated_qty`
 
-`allocated_qty` belongs to `stock_branches` and represents reservation/custody allocation, not physical movement.
+`allocated_qty` is a column of `stock_branches` and represents reserved stock.
 
 Therefore:
 
-`allocated_qty` ≠ inventory movement
+`allocated_qty ≠ inventory movement`
 
-and must not be modified by the stock-movement engine merely because a physical movement occurred.
+The current availability relationship is database-enforced through the generated `available_qty` expression:
 
-The reviewed Voucher contract confirms OUT availability is evaluated using `qty - allocated_qty`. fileciteturn267file0
+`available_qty = qty - allocated_qty`. fileciteturn273file0
+
+The stock movement engine must therefore not treat allocation as an automatic physical movement.
 
 ## 4. Source of Truth Matrix
 
 | Value / Fact | Source of Truth | Status |
 |---|---|---|
-| Physical current branch stock | `stock_branches.qty` | PROVEN |
-| Reserved stock | `stock_branches.allocated_qty` | PROVEN |
-| Available stock | Contract calculation `qty - allocated_qty` | PROVEN behavior; exact DB implementation UNKNOWN |
-| Historical movement record | `inventory_log` | PROVEN |
-| Item identity | `items` / `stock_branches.item_id` relationship | Relationship requires dependency-closure evidence |
-| Branch identity | `branches` / `stock_branches.branch_id` relationship | Relationship requires dependency-closure evidence |
-| Movement classification | `inventory_log.movement_type` | PROVEN column; allowed-value constraint NOT fully captured |
+| Current physical stock by branch/item | `stock_branches.qty` | **PROVEN** |
+| Reserved stock | `stock_branches.allocated_qty` | **PROVEN** |
+| Available stock | generated `stock_branches.available_qty = qty - allocated_qty` | **PROVEN** |
+| Historical inventory movement | `inventory_log` | **PROVEN** |
+| Item identity | `items.id` referenced by `stock_branches.item_id` / `inventory_log.item_id` | **PROVEN** |
+| Branch identity | `branches.id` referenced by `stock_branches.branch_id` | **PROVEN** |
+| Branch/item uniqueness | `stock_branches(branch_id,item_id)` | **PROVEN** |
+| Inventory movement classification | `inventory_log.movement_type` | **PROVEN column; DB allowed-values constraint NOT PROVEN** |
 
-## 5. Constraints / Indexes / Relations
+## 5. Related Voucher Contract Relevant to Inventory
 
-### What is proven
-The persisted evidence proves only the captured index:
+The same Production evidence establishes:
 
-`stock_voucher_details_pkey` on `stock_voucher_details(id)`.
+- `stock_vouchers.company_id` → `companies.id` CASCADE.
+- `stock_vouchers.from_branch_id` → `branches.id` SET NULL.
+- `stock_vouchers.to_branch_id` → `branches.id` SET NULL.
+- `stock_vouchers(company_id,voucher_code)` UNIQUE.
+- `stock_voucher_details.voucher_id` → `stock_vouchers.id` CASCADE.
+- `stock_voucher_details.item_id` → `items.id` RESTRICT. fileciteturn274file0turn276file0
 
-It does **not** prove the complete index set for `stock_branches` or `inventory_log`. fileciteturn265file0
+These relationships are now sufficient for the Inventory Data Contract; Voucher lifecycle semantics remain TASK-003.
 
-Likewise, the persisted evidence does not yet provide the complete FK/UNIQUE/CHECK constraint closure for the Inventory tables.
+## 6. Triggers / RLS / Dependencies
 
-### Therefore
-This Task cannot truthfully declare the complete constraints/indexes/relations contract yet.
+### Trigger evidence
+Production has an audit trigger on `stock_vouchers` for INSERT/UPDATE/DELETE calling `fn_audit_trigger()`. fileciteturn277file0
 
-The required dependency-closure evidence is already documented as `EVIDENCE-015` in `Inventory/02-EVIDENCE-GAPS-AND-SQL.md`. fileciteturn268file0
+### RLS evidence
+Policies exist on `inventory_log`, `stock_branches`, `stock_vouchers`, and `stock_voucher_details`; the captured policy set includes broad `Allow all for all` policies, plus additional `stock_branches` policies. fileciteturn278file0
 
-## 6. Safety Classification
+The exact RLS enable/force flags were not present in the exported policy result itself; this does not block TASK-002 because RLS policy behavior is governed separately in the Security task.
 
-**NO PATCH AUTHORIZED.**
+### Dependency evidence
+The captured dependency query returned no view/materialized-view dependencies for the Inventory Core tables. fileciteturn279file0
 
-Reason: a Data Contract must not be completed by inference where the exact Production constraints, indexes, generated/default behavior and foreign-key relationships have not been captured.
+Stored Production functions/RPCs referencing the Inventory Core tables were captured in `8-FunctionsRPCs whose stored source references Inventory Core.csv`; these are inputs to TASK-004, not a reason to reopen the data contract. fileciteturn270file0
+
+## 7. Row Counts
+
+The evidence reports approximate statistics only:
+- `inventory_log`: 137 estimated rows.
+- `stock_branches`: 99 estimated rows.
+- `stock_voucher_details`: 0 estimated rows.
+- `stock_vouchers`: 0 estimated rows. fileciteturn280file0
+
+These are **context only**, not authoritative inventory balances.
+
+## 8. Safety Classification
+
+**NO PATCH AUTHORIZED BY TASK-002.**
+
+This task establishes the data contract only. It does not authorize schema changes, RPC replacement or application changes.
 
 ## Gate
 
-**TASK-002 STATUS: BLOCKED — EVIDENCE GAP ONLY**
+**TASK-002 STATUS: COMPLETE / GO**
 
-The blocking evidence is narrowly defined:
+The previously blocking Production dependency closure has been sufficiently established for the requested Inventory Data Contract.
 
-**EVIDENCE-015 — full Production schema/dependency closure**, including the Inventory tables and their related `branches`, `items`, `app_settings`, and `audit_log` tables.
-
-After EVIDENCE-015 is available, this Task can be closed without reopening unrelated investigation.
+Residual items are deliberately assigned to later Tasks:
+- movement-type enforcement → TASK-008
+- Voucher lifecycle → TASK-003 / TASK-005
+- RPC behavior → TASK-004
+- concurrency/idempotency → TASK-010 / TASK-011
+- RLS/security hardening → TASK-049
 
 ## Next Action
-Obtain **EVIDENCE-015 only**.
-
-Do not request already-known evidence.
-Do not modify Production.
-Do not design a migration.
-Do not infer missing constraints/indexes/relations.
+Proceed to **TASK-003 — Voucher Data Contract**.
