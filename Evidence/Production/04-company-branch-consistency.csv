@@ -1,0 +1,5 @@
+branch_code,name,company_id,is_active
+BR-01,الفرع الرئيسي,da4ef704-88ac-4120-aa0e-65b92b2aa2bc,true
+BR-2,الاسكندرية,da4ef704-88ac-4120-aa0e-65b92b2aa2bc,true
+
+# Provenance: rawaie-erp-review rescue/manual-vouchers-inventory-core, diagnostics/6) Branchcompany consistency.csv

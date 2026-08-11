@@ -1,0 +1,25 @@
+table_schema,table_name,column_name,data_type,is_nullable,column_default
+public,stock_vouchers,id,uuid,NO,gen_random_uuid()
+public,stock_vouchers,company_id,uuid,NO,null
+public,stock_vouchers,voucher_code,character varying,NO,null
+public,stock_vouchers,voucher_date,date,NO,CURRENT_DATE
+public,stock_vouchers,type,character varying,NO,null
+public,stock_vouchers,status,character varying,YES,'Draft'::character varying
+public,stock_vouchers,from_branch_id,uuid,YES,null
+public,stock_vouchers,to_branch_id,uuid,YES,null
+public,stock_vouchers,from_type,character varying,YES,null
+public,stock_vouchers,from_id,uuid,YES,null
+public,stock_vouchers,to_type,character varying,YES,null
+public,stock_vouchers,to_id,uuid,YES,null
+public,stock_vouchers,reference,character varying,YES,null
+public,stock_vouchers,notes,text,YES,null
+public,stock_vouchers,created_by,character varying,YES,null
+public,stock_vouchers,sent_date,timestamp with time zone,YES,null
+public,stock_vouchers,received_date,timestamp with time zone,YES,null
+public,stock_vouchers,completed_at,timestamp with time zone,YES,null
+public,stock_vouchers,created_at,timestamp with time zone,YES,now()
+public,stock_vouchers,updated_at,timestamp with time zone,YES,now()
+public,stock_vouchers,source,text,YES,'Manual'::text
+
+# Provenance: rawaie-erp-review rescue/manual-vouchers-inventory-core, SQL_Evidence/diagnostics/1) Production schema.csv
+# Important: this is a captured evidence snapshot, not a live database connection.

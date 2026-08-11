@@ -1,0 +1,5 @@
+indexname,indexdef
+stock_voucher_details_pkey,CREATE UNIQUE INDEX stock_voucher_details_pkey ON public.stock_voucher_details USING btree (id)
+
+# Provenance: rawaie-erp-review rescue/manual-vouchers-inventory-core, diagnostics/الفهارس الفعلية.csv
+# Interpretation: this evidence proves the captured index shown; it does not prove absence of all other indexes unless the source query was exhaustive.

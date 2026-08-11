@@ -1,0 +1,6 @@
+branch_code,name,stock_rows,qty_total,allocated_total,available_total
+BR-01,الفرع الرئيسي,50,8624.0000,0.0000,8624.0000
+BR-2,الاسكندرية,49,0.0000,0.0000,0.0000
+
+# Provenance: rawaie-erp-review rescue/manual-vouchers-inventory-core, diagnostics/8) Stock availability by branch.csv
+# This is a point-in-time evidence snapshot; do not treat it as current live balance without a fresh query.
