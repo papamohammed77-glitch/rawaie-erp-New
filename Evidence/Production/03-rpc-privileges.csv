@@ -1,0 +1,8 @@
+function_signature,current_user_can_execute
+"cancel_manual_stock_voucher_atomic(uuid,text,text)",true
+"complete_manual_stock_voucher_atomic(uuid,text,text)",true
+"create_manual_stock_voucher_atomic(uuid,text,text,text,uuid,text,uuid,text,text,jsonb)",true
+"post_manual_stock_voucher_atomic(uuid,text,text,text,jsonb)",true
+
+# Provenance: rawaie-erp-review rescue/manual-vouchers-inventory-core, diagnostics/3) RPC privileges.csv
+# This evidence does not by itself prove the full GRANT matrix; it proves the captured execution-context result.
