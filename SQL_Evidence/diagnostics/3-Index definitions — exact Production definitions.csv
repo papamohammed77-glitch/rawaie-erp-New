@@ -1,0 +1,10 @@
+schemaname,tablename,indexname,indexdef
+public,inventory_log,idx_inventory_log_item,CREATE INDEX idx_inventory_log_item ON public.inventory_log USING btree (item_id)
+public,inventory_log,inventory_log_pkey,CREATE UNIQUE INDEX inventory_log_pkey ON public.inventory_log USING btree (id)
+public,stock_branches,idx_stock_branches_branch,CREATE INDEX idx_stock_branches_branch ON public.stock_branches USING btree (branch_id)
+public,stock_branches,idx_stock_branches_item,CREATE INDEX idx_stock_branches_item ON public.stock_branches USING btree (item_id)
+public,stock_branches,stock_branches_branch_id_item_id_key,"CREATE UNIQUE INDEX stock_branches_branch_id_item_id_key ON public.stock_branches USING btree (branch_id, item_id)"
+public,stock_branches,stock_branches_pkey,CREATE UNIQUE INDEX stock_branches_pkey ON public.stock_branches USING btree (id)
+public,stock_voucher_details,stock_voucher_details_pkey,CREATE UNIQUE INDEX stock_voucher_details_pkey ON public.stock_voucher_details USING btree (id)
+public,stock_vouchers,stock_vouchers_company_id_voucher_code_key,"CREATE UNIQUE INDEX stock_vouchers_company_id_voucher_code_key ON public.stock_vouchers USING btree (company_id, voucher_code)"
+public,stock_vouchers,stock_vouchers_pkey,CREATE UNIQUE INDEX stock_vouchers_pkey ON public.stock_vouchers USING btree (id)

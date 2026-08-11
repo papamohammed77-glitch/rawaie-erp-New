@@ -1,0 +1,43 @@
+table_schema,table_name,constraint_name,constraint_type,column_name,ordinal_position,referenced_schema,referenced_table,referenced_column,check_clause
+public,inventory_log,2200_20631_10_not_null,CHECK,null,null,null,null,null,qty IS NOT NULL
+public,inventory_log,2200_20631_1_not_null,CHECK,null,null,null,null,null,id IS NOT NULL
+public,inventory_log,2200_20631_2_not_null,CHECK,null,null,null,null,null,company_id IS NOT NULL
+public,inventory_log,2200_20631_3_not_null,CHECK,null,null,null,null,null,log_code IS NOT NULL
+public,inventory_log,2200_20631_4_not_null,CHECK,null,null,null,null,null,movement_date IS NOT NULL
+public,inventory_log,2200_20631_9_not_null,CHECK,null,null,null,null,null,movement_type IS NOT NULL
+public,inventory_log,inventory_log_company_id_fkey,FOREIGN KEY,company_id,1,public,companies,id,null
+public,inventory_log,inventory_log_item_id_fkey,FOREIGN KEY,item_id,1,public,items,id,null
+public,inventory_log,inventory_log_pkey,PRIMARY KEY,id,1,public,inventory_log,id,null
+public,stock_branches,2200_20357_1_not_null,CHECK,null,null,null,null,null,id IS NOT NULL
+public,stock_branches,2200_20357_2_not_null,CHECK,null,null,null,null,null,branch_id IS NOT NULL
+public,stock_branches,2200_20357_3_not_null,CHECK,null,null,null,null,null,item_id IS NOT NULL
+public,stock_branches,2200_20357_4_not_null,CHECK,null,null,null,null,null,qty IS NOT NULL
+public,stock_branches,2200_20357_5_not_null,CHECK,null,null,null,null,null,allocated_qty IS NOT NULL
+public,stock_branches,stock_branches_branch_id_fkey,FOREIGN KEY,branch_id,1,public,branches,id,null
+public,stock_branches,stock_branches_branch_id_item_id_key,UNIQUE,branch_id,1,public,stock_branches,branch_id,null
+public,stock_branches,stock_branches_branch_id_item_id_key,UNIQUE,branch_id,1,public,stock_branches,item_id,null
+public,stock_branches,stock_branches_branch_id_item_id_key,UNIQUE,item_id,2,public,stock_branches,item_id,null
+public,stock_branches,stock_branches_branch_id_item_id_key,UNIQUE,item_id,2,public,stock_branches,branch_id,null
+public,stock_branches,stock_branches_item_id_fkey,FOREIGN KEY,item_id,1,public,items,id,null
+public,stock_branches,stock_branches_pkey,PRIMARY KEY,id,1,public,stock_branches,id,null
+public,stock_voucher_details,2200_20680_1_not_null,CHECK,null,null,null,null,null,id IS NOT NULL
+public,stock_voucher_details,2200_20680_2_not_null,CHECK,null,null,null,null,null,voucher_id IS NOT NULL
+public,stock_voucher_details,2200_20680_3_not_null,CHECK,null,null,null,null,null,item_id IS NOT NULL
+public,stock_voucher_details,2200_20680_7_not_null,CHECK,null,null,null,null,null,qty IS NOT NULL
+public,stock_voucher_details,stock_voucher_details_item_id_fkey,FOREIGN KEY,item_id,1,public,items,id,null
+public,stock_voucher_details,stock_voucher_details_pkey,PRIMARY KEY,id,1,public,stock_voucher_details,id,null
+public,stock_voucher_details,stock_voucher_details_voucher_id_fkey,FOREIGN KEY,voucher_id,1,public,stock_vouchers,id,null
+public,stock_vouchers,2200_20651_1_not_null,CHECK,null,null,null,null,null,id IS NOT NULL
+public,stock_vouchers,2200_20651_2_not_null,CHECK,null,null,null,null,null,company_id IS NOT NULL
+public,stock_vouchers,2200_20651_3_not_null,CHECK,null,null,null,null,null,voucher_code IS NOT NULL
+public,stock_vouchers,2200_20651_4_not_null,CHECK,null,null,null,null,null,voucher_date IS NOT NULL
+public,stock_vouchers,2200_20651_5_not_null,CHECK,null,null,null,null,null,type IS NOT NULL
+public,stock_vouchers,stock_vouchers_company_id_fkey,FOREIGN KEY,company_id,1,public,companies,id,null
+public,stock_vouchers,stock_vouchers_company_id_voucher_code_key,UNIQUE,company_id,1,public,stock_vouchers,voucher_code,null
+public,stock_vouchers,stock_vouchers_company_id_voucher_code_key,UNIQUE,company_id,1,public,stock_vouchers,company_id,null
+public,stock_vouchers,stock_vouchers_company_id_voucher_code_key,UNIQUE,voucher_code,2,public,stock_vouchers,company_id,null
+public,stock_vouchers,stock_vouchers_company_id_voucher_code_key,UNIQUE,voucher_code,2,public,stock_vouchers,voucher_code,null
+public,stock_vouchers,stock_vouchers_from_branch_id_fkey,FOREIGN KEY,from_branch_id,1,public,branches,id,null
+public,stock_vouchers,stock_vouchers_pkey,PRIMARY KEY,id,1,public,stock_vouchers,id,null
+public,stock_vouchers,stock_vouchers_source_check,CHECK,null,null,public,stock_vouchers,source,"(source = ANY (ARRAY['Auto'::text, 'Manual'::text]))"
+public,stock_vouchers,stock_vouchers_to_branch_id_fkey,FOREIGN KEY,to_branch_id,1,public,branches,id,null

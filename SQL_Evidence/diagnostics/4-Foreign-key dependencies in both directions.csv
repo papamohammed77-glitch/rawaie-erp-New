@@ -1,0 +1,10 @@
+constraint_name,table_schema,table_name,column_name,referenced_schema,referenced_table,referenced_column,constraint_definition
+inventory_log_company_id_fkey,public,inventory_log,company_id,public,companies,id,FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+inventory_log_item_id_fkey,public,inventory_log,item_id,public,items,id,FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT
+stock_branches_branch_id_fkey,public,stock_branches,branch_id,public,branches,id,FOREIGN KEY (branch_id) REFERENCES branches(id) ON DELETE CASCADE
+stock_branches_item_id_fkey,public,stock_branches,item_id,public,items,id,FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
+stock_voucher_details_item_id_fkey,public,stock_voucher_details,item_id,public,items,id,FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE RESTRICT
+stock_voucher_details_voucher_id_fkey,public,stock_voucher_details,voucher_id,public,stock_vouchers,id,FOREIGN KEY (voucher_id) REFERENCES stock_vouchers(id) ON DELETE CASCADE
+stock_vouchers_company_id_fkey,public,stock_vouchers,company_id,public,companies,id,FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+stock_vouchers_from_branch_id_fkey,public,stock_vouchers,from_branch_id,public,branches,id,FOREIGN KEY (from_branch_id) REFERENCES branches(id) ON DELETE SET NULL
+stock_vouchers_to_branch_id_fkey,public,stock_vouchers,to_branch_id,public,branches,id,FOREIGN KEY (to_branch_id) REFERENCES branches(id) ON DELETE SET NULL

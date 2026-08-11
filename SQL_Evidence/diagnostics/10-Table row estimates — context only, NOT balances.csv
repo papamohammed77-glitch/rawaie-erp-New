@@ -1,0 +1,5 @@
+schemaname,table_name,estimated_rows,last_analyze,last_autoanalyze
+public,inventory_log,137,null,2026-07-24 21:33:58.603722+00
+public,stock_branches,99,null,2026-07-24 20:43:57.619877+00
+public,stock_voucher_details,0,null,null
+public,stock_vouchers,0,null,null

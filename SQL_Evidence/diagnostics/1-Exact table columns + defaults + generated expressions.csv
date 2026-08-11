@@ -1,0 +1,53 @@
+table_schema,table_name,ordinal_position,column_name,data_type,udt_schema,udt_name,is_nullable,column_default,is_identity,identity_generation,is_generated,generation_expression
+public,inventory_log,1,id,uuid,pg_catalog,uuid,NO,gen_random_uuid(),NO,null,NEVER,null
+public,inventory_log,2,company_id,uuid,pg_catalog,uuid,NO,null,NO,null,NEVER,null
+public,inventory_log,3,log_code,character varying,pg_catalog,varchar,NO,null,NO,null,NEVER,null
+public,inventory_log,4,movement_date,date,pg_catalog,date,NO,CURRENT_DATE,NO,null,NEVER,null
+public,inventory_log,5,voucher_id,character varying,pg_catalog,varchar,YES,null,NO,null,NEVER,null
+public,inventory_log,6,item_id,uuid,pg_catalog,uuid,YES,null,NO,null,NEVER,null
+public,inventory_log,7,item_code,character varying,pg_catalog,varchar,YES,null,NO,null,NEVER,null
+public,inventory_log,8,item_name,character varying,pg_catalog,varchar,YES,null,NO,null,NEVER,null
+public,inventory_log,9,movement_type,character varying,pg_catalog,varchar,NO,null,NO,null,NEVER,null
+public,inventory_log,10,qty,numeric,pg_catalog,numeric,NO,null,NO,null,NEVER,null
+public,inventory_log,11,reference,text,pg_catalog,text,YES,null,NO,null,NEVER,null
+public,inventory_log,12,user_email,character varying,pg_catalog,varchar,YES,null,NO,null,NEVER,null
+public,inventory_log,13,created_at,timestamp with time zone,pg_catalog,timestamptz,YES,now(),NO,null,NEVER,null
+public,stock_branches,1,id,uuid,pg_catalog,uuid,NO,gen_random_uuid(),NO,null,NEVER,null
+public,stock_branches,2,branch_id,uuid,pg_catalog,uuid,NO,null,NO,null,NEVER,null
+public,stock_branches,3,item_id,uuid,pg_catalog,uuid,NO,null,NO,null,NEVER,null
+public,stock_branches,4,qty,numeric,pg_catalog,numeric,NO,0,NO,null,NEVER,null
+public,stock_branches,5,allocated_qty,numeric,pg_catalog,numeric,NO,0,NO,null,NEVER,null
+public,stock_branches,6,available_qty,numeric,pg_catalog,numeric,YES,null,NO,null,ALWAYS,(qty - allocated_qty)
+public,stock_branches,7,updated_at,timestamp with time zone,pg_catalog,timestamptz,YES,now(),NO,null,NEVER,null
+public,stock_voucher_details,1,id,uuid,pg_catalog,uuid,NO,gen_random_uuid(),NO,null,NEVER,null
+public,stock_voucher_details,2,voucher_id,uuid,pg_catalog,uuid,NO,null,NO,null,NEVER,null
+public,stock_voucher_details,3,item_id,uuid,pg_catalog,uuid,NO,null,NO,null,NEVER,null
+public,stock_voucher_details,4,item_code,character varying,pg_catalog,varchar,YES,null,NO,null,NEVER,null
+public,stock_voucher_details,5,item_name,character varying,pg_catalog,varchar,YES,null,NO,null,NEVER,null
+public,stock_voucher_details,6,unit,character varying,pg_catalog,varchar,YES,null,NO,null,NEVER,null
+public,stock_voucher_details,7,qty,numeric,pg_catalog,numeric,NO,null,NO,null,NEVER,null
+public,stock_voucher_details,8,unit_price,numeric,pg_catalog,numeric,YES,0,NO,null,NEVER,null
+public,stock_voucher_details,9,received_qty,numeric,pg_catalog,numeric,YES,null,NO,null,NEVER,null
+public,stock_voucher_details,10,notes,text,pg_catalog,text,YES,null,NO,null,NEVER,null
+public,stock_voucher_details,11,created_at,timestamp with time zone,pg_catalog,timestamptz,YES,now(),NO,null,NEVER,null
+public,stock_vouchers,1,id,uuid,pg_catalog,uuid,NO,gen_random_uuid(),NO,null,NEVER,null
+public,stock_vouchers,2,company_id,uuid,pg_catalog,uuid,NO,null,NO,null,NEVER,null
+public,stock_vouchers,3,voucher_code,character varying,pg_catalog,varchar,NO,null,NO,null,NEVER,null
+public,stock_vouchers,4,voucher_date,date,pg_catalog,date,NO,CURRENT_DATE,NO,null,NEVER,null
+public,stock_vouchers,5,type,character varying,pg_catalog,varchar,NO,null,NO,null,NEVER,null
+public,stock_vouchers,6,status,character varying,pg_catalog,varchar,YES,'Draft'::character varying,NO,null,NEVER,null
+public,stock_vouchers,7,from_branch_id,uuid,pg_catalog,uuid,YES,null,NO,null,NEVER,null
+public,stock_vouchers,8,to_branch_id,uuid,pg_catalog,uuid,YES,null,NO,null,NEVER,null
+public,stock_vouchers,9,from_type,character varying,pg_catalog,varchar,YES,null,NO,null,NEVER,null
+public,stock_vouchers,10,from_id,uuid,pg_catalog,uuid,YES,null,NO,null,NEVER,null
+public,stock_vouchers,11,to_type,character varying,pg_catalog,varchar,YES,null,NO,null,NEVER,null
+public,stock_vouchers,12,to_id,uuid,pg_catalog,uuid,YES,null,NO,null,NEVER,null
+public,stock_vouchers,13,reference,character varying,pg_catalog,varchar,YES,null,NO,null,NEVER,null
+public,stock_vouchers,14,notes,text,pg_catalog,text,YES,null,NO,null,NEVER,null
+public,stock_vouchers,15,created_by,character varying,pg_catalog,varchar,YES,null,NO,null,NEVER,null
+public,stock_vouchers,16,sent_date,timestamp with time zone,pg_catalog,timestamptz,YES,null,NO,null,NEVER,null
+public,stock_vouchers,17,received_date,timestamp with time zone,pg_catalog,timestamptz,YES,null,NO,null,NEVER,null
+public,stock_vouchers,18,completed_at,timestamp with time zone,pg_catalog,timestamptz,YES,null,NO,null,NEVER,null
+public,stock_vouchers,19,created_at,timestamp with time zone,pg_catalog,timestamptz,YES,now(),NO,null,NEVER,null
+public,stock_vouchers,20,updated_at,timestamp with time zone,pg_catalog,timestamptz,YES,now(),NO,null,NEVER,null
+public,stock_vouchers,21,source,text,pg_catalog,text,YES,'Manual'::text,NO,null,NEVER,null

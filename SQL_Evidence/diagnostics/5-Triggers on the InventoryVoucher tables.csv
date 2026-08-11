@@ -1,0 +1,2 @@
+table_schema,table_name,trigger_name,trigger_definition,trigger_function
+public,stock_vouchers,trg_audit_stock_vouchers,CREATE TRIGGER trg_audit_stock_vouchers AFTER INSERT OR DELETE OR UPDATE ON stock_vouchers FOR EACH ROW EXECUTE FUNCTION fn_audit_trigger(),fn_audit_trigger
