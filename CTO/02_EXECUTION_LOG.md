@@ -268,3 +268,63 @@ The target design explicitly requires, before implementation: mapping all stock-
 ### Decision
 **TASK-013 CLOSED / GO TO TASK-014.**
 The Target Inventory Engine boundary is now fixed before coding. Any later implementation must conform to this design and must be separately verified in the actual target system.
+
+---
+
+## TASK-014 — Stock Engine Implementation
+**Status: IN_PROGRESS — PRODUCTION EXECUTION REQUIRED.**
+
+### Implementation artifact
+Created:
+`supabase/migrations/20260812_task014_post_stock_movement.sql`
+
+Commit:
+`170df08da029bf84c6fdf7a6743404e67bb0452c0`
+
+### Implementation boundary
+The artifact creates a new Production RPC with exact signature:
+`public.post_stock_movement(uuid,text,uuid,uuid,uuid,numeric,text,text,text)`
+
+The implementation is deliberately independent of the existing Voucher RPC consumers. It does **not** replace or modify `send_stock_voucher_atomic` or `post_manual_stock_voucher_atomic` and it does not alter schema.
+
+### Production schema basis used
+Persisted Production evidence confirms:
+- `stock_branches(branch_id,item_id)` unique key.
+- `stock_branches.qty` physical quantity.
+- `stock_branches.allocated_qty` reservation quantity.
+- generated `available_qty = qty - allocated_qty`.
+- `inventory_log` fields used by the engine: `company_id`, `log_code`, `movement_date`, `voucher_id`, `item_id`, `item_code`, `item_name`, `movement_type`, `qty`, `reference`, `user_email`.
+
+### Supported movement types in TASK-014
+The implementation currently supports only movement semantics already unambiguous in the Target design:
+- `PurchaseIn`
+- `TransferOut`
+- `TransferIn`
+- `POSSale`
+- `VanSale`
+- `SalesReturn`
+- `PurchaseReturn`
+- `InventoryIncrease`
+- `InventoryDecrease`
+
+`Loading`, `Unloading`, and `Adjustment` are intentionally rejected until their separate event semantics are closed by their designated contracts. This is a safety boundary, not an inferred implementation.
+
+### Engine invariants implemented
+- Positive quantity only.
+- Closed movement vocabulary.
+- Company-context validation for branches and item.
+- Required source/target branch validation by movement type.
+- Source availability uses `qty - allocated_qty`.
+- `allocated_qty` is never mutated.
+- Stock row is locked with `FOR UPDATE`.
+- Stock write uses conditional/CAS predicates.
+- Exactly one corresponding `inventory_log` row is written per successful engine call.
+- Stock mutation and inventory log are in the same database transaction boundary.
+- `SECURITY DEFINER` with `search_path = public`.
+
+### Current status
+**NOT YET PRODUCTION-EXECUTED.**
+Repository artifact exists; Production implementation is not considered complete until the SQL migration is actually executed against the target database and the embedded transactional verification returns successfully.
+
+### Next required action
+Execute the migration against the actual target database using the exact artifact, then return the final verification result. No Edge Function consumer is to be rewired until TASK-014 Production verification is PASS.
