@@ -15,7 +15,7 @@ No task may silently overwrite a previous conclusion. Corrections must be append
   - TASK-003 Voucher Data Contract
   - TASK-004 Production RPC Contract — COMPLETE / GO
 - Phase B — Movement Understanding
-  - TASK-005 Voucher State Machine
+  - TASK-005 Voucher State Machine — COMPLETE / GO
   - TASK-006 Inventory Movement Matrix
   - TASK-007 Custody Matrix
   - TASK-008 Movement Types Contract
@@ -114,8 +114,6 @@ Residual items are intentionally deferred:
 - voucher id `a0974ec8-a5d0-4339-a5fb-7d2d0cee1d64`
 - reference `TEST-004-PERSISTENT`
 
-The earlier rollback-scoped fixture `4062e2c6-f683-4a9c-bdc9-89705dbc7a7e` was confirmed absent before the persistent fixture was recreated.
-
 ### TEST-004
 **CREATE → SEND → COMPLETE → FINAL VERIFICATION = PASS**
 
@@ -136,13 +134,57 @@ The controlled lifecycle assigned to TEST-004 is empirically proven. Broader unr
 
 No Production patch was approved or applied by TASK-004.
 
+## TASK-005 — Voucher State Machine
+**Status: COMPLETE / GO.**
+
+### Production evidence
+Final lifecycle RPC definitions were captured for:
+- `create_manual_stock_voucher_atomic`
+- `post_manual_stock_voucher_atomic`
+- `send_stock_voucher_atomic`
+- `complete_manual_stock_voucher_atomic`
+- `cancel_manual_stock_voucher_atomic`
+
+### Confirmed state machine
+```text
+CREATE → Draft
+
+Draft ──CANCEL──> Cancelled
+  │
+  └──SEND──> Sent
+              ├── DirectSale / SupplierReturn ──COMPLETE──> Completed
+              └── Transfer / DirectReturn ──RECEIVE──>
+                    ├── partial → Sent (received_qty increases)
+                    └── complete → Received ──COMPLETE──> Completed
+```
+
+### Confirmed transition rules
+- CREATE accepts `Transfer`, `DirectSale`, `DirectReturn`, `SupplierReturn` and creates status `Draft`.
+- SEND requires `Draft`.
+- `post_manual_stock_voucher_atomic` SEND accepts `Transfer`, `DirectSale`, `SupplierReturn` and performs an outbound stock effect from the voucher source branch before setting `Sent`.
+- RECEIVE accepts `Transfer`, `DirectReturn`, requires `Sent`, and rejects over-receive above the remaining detail quantity.
+- Partial RECEIVE leaves status `Sent` and increments `received_qty`; full RECEIVE changes status to `Received` and populates `received_date`.
+- COMPLETE requires `Sent` for `DirectSale`/`SupplierReturn` or `Received` for `Transfer`/`DirectReturn`; it sets `Completed`, `completed_at`, `completed_by` and performs no stock mutation.
+- CANCEL requires `Draft`; it changes status to `Cancelled` and performs no stock mutation. It does not reverse a completed/sent movement.
+
+### State / mutation boundary
+- Outbound physical stock movement occurs during SEND.
+- Inbound physical stock movement occurs during RECEIVE.
+- `allocated_qty` is not modified by the captured voucher lifecycle RPCs.
+- COMPLETE is administrative closure only.
+- CANCEL is administrative cancellation only while Draft.
+- Partial Receive idempotency and concurrency are intentionally deferred to TASK-009/010/011.
+
+### TASK-005 Gate
+**TASK-005 CLOSED / GO TO TASK-006.**
+
 ## Evidence
 EVIDENCE-015 — Full Production Schema Dependency Closure.
 Status: REVIEWED / ACCEPTED for TASK-002.
 Result files are stored under `SQL_Evidence/diagnostics/` as split result sets 1–10 where available.
 
 ## Next Task
-**TASK-005 — Voucher State Machine**
+**TASK-006 — Inventory Movement Matrix**
 
 ## Event Log
 2026-08-11 — TASK-001 completed; Project Baseline established.
@@ -156,3 +198,5 @@ Result files are stored under `SQL_Evidence/diagnostics/` as split result sets 1
 2026-08-12 — TEST-004 Stage 3 COMPLETE passed.
 2026-08-12 — TEST-004 Stage 4 final verification passed.
 2026-08-12 — TASK-004 CLOSED / GO TO TASK-005.
+2026-08-12 — TASK-005 Production State Machine evidence captured; CREATE/SEND/RECEIVE/COMPLETE/CANCEL transitions proven.
+2026-08-12 — TASK-005 CLOSED / GO TO TASK-006.
