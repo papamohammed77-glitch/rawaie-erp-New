@@ -10,7 +10,7 @@ No task is considered complete unless its evidence, decision, implementation sta
 
 ## TASK-004 — Production RPC Contract / Manual Voucher Send Path
 
-**Status:** IN PROGRESS — STAGE 4 NEXT
+**Status:** IN PROGRESS — STAGE 4 PASS
 
 ### Confirmed evidence captured
 - `create_manual_stock_voucher_atomic(uuid,text,text,text,uuid,text,uuid,text,text,jsonb)` is `SECURITY DEFINER` and creates a `Draft` Manual Voucher.
@@ -45,12 +45,32 @@ No task is considered complete unless its evidence, decision, implementation sta
 
 ### STAGE 3 — COMPLETE
 **Result: PASS**
-- Full verification returned `STAGE 3 PASS`.
+- COMPLETE verification returned `STAGE 3 PASS`.
 - COMPLETE did not create an additional inventory-log row; total remained `1`.
-- The tested lifecycle reached the expected completed state under the stage verification.
+
+### STAGE 4 — FINAL VERIFICATION
+**Result: PASS**
+- `IN-1` status: `Completed`.
+- `completed_by`: `test-operator@rawaea.local`.
+- `completed_at`: `2026-08-12 16:47:45.437064+00`.
+- BR-01 item 1004 stock: `qty=205`, `allocated_qty=0`, `available_qty=205`.
+- Voucher detail: item `1004`, `qty=1`, `received_qty=0`.
+- Inventory log: exactly one row, `DirectSale`, quantity `1`, user `test-operator@rawaea.local`.
+- Final summary returned `STAGE 4 PASS`.
+
+### TEST-004 RESULT
+**CREATE → SEND → COMPLETE → FINAL VERIFICATION = PASS**
 
 ### Current Gate
-Proceed immediately to **STAGE 4** for the next verification required by TEST-004.
+The controlled lifecycle execution for the persistent fixture is complete and passed.
+TASK-004 is not yet marked COMPLETE/GO because the broader Production RPC Contract still requires reconciliation of the two SEND RPC paths and their actual consumers before final task closure.
+
+### Persistent test fixture
+The fixture remains intentionally present for subsequent controlled verification:
+- voucher `IN-1`
+- voucher_id `a0974ec8-a5d0-4339-a5fb-7d2d0cee1d64`
+
+No automatic cleanup was performed.
 
 ### No production patch approved
 None.
