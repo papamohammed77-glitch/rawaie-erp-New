@@ -52,7 +52,6 @@ Do not subdivide a Stage into artificial sub-stages merely to make an already-sm
 ---
 
 ## TASK-004 — Production RPC Contract / Manual Voucher Send Path
-
 **Status: COMPLETE — GO TO TASK-005**
 
 ### Confirmed evidence captured
@@ -230,3 +229,42 @@ The invalid RECEIVE attempted to exceed the remaining quantity. The transaction 
 
 ### Gate
 **Next: TASK-013 — Stock Engine Design.**
+
+---
+
+## TASK-013 — Stock Engine Design
+**Status: COMPLETE — GO TO TASK-014.**
+
+### Target Design Authority
+The approved/active target design baseline is:
+`TARGET — RAWAEA CENTRAL INVENTORY & STOCK MOVEMENT DESIGN`.
+It explicitly establishes a single central Inventory Business Core represented by `post_stock_movement` as the authoritative physical stock posting boundary.
+
+### Design contract confirmed
+- Inventory movement is a domain operation and is not UI-owned.
+- Applications express business intent; they do not implement independent stock mutation rules.
+- `stock_branches.qty` is the physical stock truth.
+- `stock_branches.allocated_qty` is reservation state and is separate from physical movement.
+- `available_qty` is derived availability.
+- `inventory_log` is the authoritative posted-movement history.
+- Manual Voucher header and detail truth are `stock_vouchers` and `stock_voucher_details`.
+- The central movement engine owns movement validation, availability checks, physical quantity mutations, movement logging, movement semantics, locking, and atomicity.
+- Reservation is a separate operation and must not be folded into physical movement posting.
+- Accounting remains a separate domain engine; this design does not invent Journal/Chart mappings.
+- Runsheet remains a separate domain and does not own Manual Voucher semantics.
+- `DirectSale` is custody loading to vehicle/representative, not the customer sale; `VanSale` consumes that custody; `DirectReturn` returns custody to warehouse.
+- Each physical movement has one authoritative posting path and must generate exactly its corresponding inventory history record.
+- `Complete` is administrative closure and must not cause a second physical stock mutation.
+
+### Target movement boundary
+The design freezes the central physical posting interface as the `post_stock_movement` boundary. It deliberately leaves `allocated_qty`, Accounting details, detailed Runsheet behavior, and unresolved Loading/Unloading semantics outside the engine contract where separate contracts are required.
+
+### Implementation gate checked
+The target design explicitly requires, before implementation: mapping all stock-writing Edge Functions, separating `qty` from `allocated_qty` writers, mapping `inventory_log` writers, mapping Voucher lifecycle functions, proving DirectSale/DirectReturn end-to-end, proving VanSale custody consumption separately, separating Runsheet ownership, mapping accounting effects, and verifying Atomicity/Concurrency. TASK-011 and TASK-012 now provide the Production evidence for the last two prerequisite contracts.
+
+### Production / implementation status
+**No production implementation was performed by TASK-013.** This Task is a design contract. No Schema, RPC, Edge Function, or PWA was modified by the task itself.
+
+### Decision
+**TASK-013 CLOSED / GO TO TASK-014.**
+The Target Inventory Engine boundary is now fixed before coding. Any later implementation must conform to this design and must be separately verified in the actual target system.
