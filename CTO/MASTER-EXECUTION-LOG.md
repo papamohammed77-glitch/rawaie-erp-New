@@ -16,7 +16,7 @@ No task may silently overwrite a previous conclusion. Corrections must be append
   - TASK-004 Production RPC Contract — COMPLETE / GO
 - Phase B — Movement Understanding
   - TASK-005 Voucher State Machine — COMPLETE / GO
-  - TASK-006 Inventory Movement Matrix
+  - TASK-006 Inventory Movement Matrix — COMPLETE / GO
   - TASK-007 Custody Matrix
   - TASK-008 Movement Types Contract
 - Phase C — Critical Risks
@@ -178,13 +178,45 @@ Draft ──CANCEL──> Cancelled
 ### TASK-005 Gate
 **TASK-005 CLOSED / GO TO TASK-006.**
 
+## TASK-006 — Inventory Movement Matrix
+**Status: COMPLETE / GO.**
+
+### Matrix conclusion
+The movement matrix is frozen at the highest evidence level available. The following are PROVEN or explicitly classified without inference:
+
+| Movement | Source | Target | Physical Stock | allocated_qty | inventory_log | Voucher/Operational Effect | Accounting | Classification |
+|---|---|---|---|---|---|---|---|---|
+| Purchase Receipt | Supplier | Branch | Branch qty + | No proven mutation | Yes | Purchase/receiving lifecycle | Journal/Lines explicitly listed | PROVEN |
+| Transfer SEND | Branch | Branch | Source qty - | No | Yes | Draft → Sent | No accounting effect proven in SEND RPC | PROVEN |
+| Transfer RECEIVE | Branch | Branch | Target qty + | No | Yes | received_qty +; Sent → Received when full | No accounting effect proven in RECEIVE RPC | PROVEN |
+| DirectSale SEND | Voucher source Branch; current voucher target is Branch-typed | Branch-typed target in current RPC | Source qty - | No | Yes, DirectSale | Draft → Sent → Completed | No accounting effect proven in voucher RPC | PROVEN for movement; custody semantics deferred |
+| DirectReturn RECEIVE | Branch-typed voucher path | Branch | Target qty + | No | Yes, DirectReturn | received_qty +; full → Received | No accounting effect proven in voucher RPC | PROVEN for movement; custody semantics deferred |
+| SupplierReturn SEND | Branch | Supplier | Source qty - | No | Yes, SupplierReturn | Draft → Sent → Completed | No accounting effect proven in voucher RPC | PROVEN |
+| Loading | Warehouse/branch operational flow | Loaded operational custody | qty ↓ and allocated_qty ↓ explicitly listed for complete-loading | allocated_qty ↓ | Yes | Runsheet loading | Journal/Lines explicitly listed | STATIC ONLY |
+| Unloading | Loaded operational custody | Branch/stock | Stock re-added explicitly described for unload-runsheet | Not proven | Yes | Runsheet unload | UNKNOWN | STATIC ONLY |
+| POS/direct sale outside Voucher | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | Historical delivery path lists inventory_log touch; stock mutation authority not closed | UNKNOWN | UNKNOWN | UNKNOWN / later task |
+| VanSale | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN in closed Production definitions for this matrix | UNKNOWN | UNKNOWN | TARGET/CONTRACT REQUIRED |
+| Inventory Count/Adjustment | Count workflow exists; exact mutation authority not proven | UNKNOWN | UNKNOWN | UNKNOWN | Inventory count tables/flow exist | UNKNOWN | UNKNOWN | TARGET/CONTRACT REQUIRED |
+
+### Central boundaries
+- `stock_branches.qty` = current physical stock state.
+- `stock_branches.allocated_qty` = reservation, not movement.
+- `stock_branches.available_qty` = derived available quantity.
+- `inventory_log` = movement history.
+- Voucher SEND/RECEIVE are the proven physical movement points for the captured voucher path.
+- COMPLETE and Draft-only CANCEL are administrative lifecycle actions, not stock mutations.
+
+### TASK-006 Gate
+**TASK-006 CLOSED / GO TO TASK-007.**
+Movements marked UNKNOWN are intentionally not invented; they remain assigned to their designated later custody/sales/movement contracts.
+
 ## Evidence
 EVIDENCE-015 — Full Production Schema Dependency Closure.
 Status: REVIEWED / ACCEPTED for TASK-002.
 Result files are stored under `SQL_Evidence/diagnostics/` as split result sets 1–10 where available.
 
 ## Next Task
-**TASK-006 — Inventory Movement Matrix**
+**TASK-007 — Custody Matrix**
 
 ## Event Log
 2026-08-11 — TASK-001 completed; Project Baseline established.
@@ -200,3 +232,4 @@ Result files are stored under `SQL_Evidence/diagnostics/` as split result sets 1
 2026-08-12 — TASK-004 CLOSED / GO TO TASK-005.
 2026-08-12 — TASK-005 Production State Machine evidence captured; CREATE/SEND/RECEIVE/COMPLETE/CANCEL transitions proven.
 2026-08-12 — TASK-005 CLOSED / GO TO TASK-006.
+2026-08-12 — TASK-006 Inventory Movement Matrix frozen and CLOSED / GO TO TASK-007.
