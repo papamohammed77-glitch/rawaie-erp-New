@@ -30,25 +30,29 @@ No task may silently overwrite a previous conclusion. Corrections must be append
   - TASK-015 Stock Engine Tests — CLOSED / GO
   - TASK-016 Stock Engine Gate — CLOSED / GO
 - Phase E — Manual Vouchers
-  - TASK-017 — CLOSED / GO
-  - TASK-018 — CLOSED / GO
-  - TASK-019 — CLOSED / GO
-  - TASK-020 — CLOSED / GO
-  - TASK-021 — CLOSED / GO
-  - TASK-022 — CLOSED / GO
-  - TASK-023 through TASK-024 — PENDING
+  - TASK-017 Voucher Contract — CLOSED / GO
+  - TASK-018 Send Voucher — CLOSED / GO
+  - TASK-019 Receive Voucher — CLOSED / GO
+  - TASK-020 Partial Receive — CLOSED / GO
+  - TASK-021 Complete — CLOSED / GO
+  - TASK-022 Cancel — CLOSED / GO
+  - TASK-023 Voucher Integration Tests — CLOSED / GO
+  - TASK-024 Voucher Gate — CLOSED / GO
 - Phase F — vouchers.html
-  - TASK-025 through TASK-027 — PENDING
+  - STAGE-25 = TASK-025 + TASK-026 + TASK-027 — IN PROGRESS
 - Phase G — Loading / Unloading
-  - TASK-028 through TASK-032 — PENDING
+  - STAGE-28 = TASK-028 + TASK-029 + TASK-030 + TASK-031 + TASK-032 — PENDING
 - Phase H — Van Sales
-  - TASK-033 through TASK-038 — PENDING
+  - STAGE-33 = TASK-033 + TASK-034 + TASK-035 + TASK-036 + TASK-037 + TASK-038 — PENDING
 - Phase I — Edge Functions
-  - TASK-039 through TASK-044 — PENDING
+  - STAGE-39 = TASK-039 + TASK-040 + TASK-041 + TASK-042 + TASK-043 + TASK-044 — PENDING
 - Phase J — Accounting / Audit / Security
-  - TASK-045 through TASK-049 — PENDING
+  - STAGE-45 = TASK-045 + TASK-046 + TASK-047 + TASK-048 + TASK-049 — PENDING
 - Phase K — Final Verification / Production
-  - TASK-050 through TASK-055 — PENDING
+  - STAGE-50 = TASK-050 + TASK-051 + TASK-052 — PENDING
+  - STAGE-53 = TASK-053 — PENDING
+  - STAGE-54 = TASK-054 — PENDING
+  - STAGE-55 = TASK-055 — PENDING
 
 ## CTO Working Method
 - One Stage = one coherent execution unit → one comprehensive verification → one decision → next Stage.
@@ -82,6 +86,7 @@ No task may silently overwrite a previous conclusion. Corrections must be append
 16. Protect the business first, simplify operational work second, and never sacrifice one for the other.
 17. Anti-loop: do not create documentation or analysis cycles after a decision is sufficiently proven; move to execution.
 18. **Production Reality Gate:** No task may be called implemented unless the actual target system was changed/executed and direct evidence verifies the result. GitHub files, reports, migrations, or candidate designs alone are never sufficient.
+19. **Merged Stage Rule:** When several tasks form one coherent implementation boundary, execute them as one Stage while retaining the original Task IDs for traceability. Do not split a Stage unless a real safety, evidence, concurrency, or dependency boundary requires it.
 
 ## Current Execution State
 
@@ -130,5 +135,29 @@ Production PASS. DirectSale: Sent → Completed. Transfer: Received → Complete
 Status: **CLOSED / GO.**
 Production PASS. Draft → Cancelled succeeded with no stock or inventory_log mutation. Cancel after Send was rejected and voucher remained Sent.
 
-## Next Task
-**TASK-023 — Voucher Integration Tests**
+### TASK-023 — Voucher Integration Tests
+Status: **CLOSED / GO.**
+Production integration pass covering Draft → Cancelled, DirectSale Create → Send → Complete, and Transfer Create → Send → Partial Receive → Full Receive → Complete. Test data rolled back.
+
+### TASK-024 — Voucher Gate
+Status: **CLOSED / GO.**
+Production Gate PASS. Voucher lifecycle RPC chain, central stock ownership, lifecycle boundary, and SECURITY DEFINER contracts verified.
+
+### STAGE-25 — vouchers.html Contract + Implementation + E2E
+Status: **IN PROGRESS — SOURCE IMPLEMENTED / PRODUCTION DEPLOYMENT NOT YET VERIFIED.**
+
+The original PWA `PWA/warehouse/vouchers.html` was reconciled against the Voucher Core. The updated rescue-branch implementation:
+- removes direct calls to legacy `RW_API.call('send-stock-voucher' / 'receive-stock-voucher' / 'complete-stock-voucher')` for Voucher lifecycle actions;
+- routes Create / Send / Receive / Complete / Cancel through the verified Production RPCs;
+- preserves the existing login, pending/completed/account views, search, item search, cart, voucher details, and role gate;
+- changes Receive UI from an empty `receivedItems: []` request to an explicit cumulative Partial Receive interface with required / received / remaining quantities;
+- exposes Draft Cancel and Received Complete actions while preserving existing lifecycle controls;
+- keeps business stock mutation outside the UI.
+
+Implementation commit on rescue branch:
+`c093e2f79c81e3a03f5dbb04ce2f22ce7226e737`
+
+Production Reality Gate remains open for STAGE-25 until the updated PWA file is deployed to the actual target application and runtime evidence verifies Create / Send / Partial Receive / Complete / Cancel through the live UI.
+
+### Next Execution Boundary
+**STAGE-25 — Production deployment + runtime E2E verification of vouchers.html**
