@@ -45,6 +45,8 @@ Do not subdivide a Stage into artificial sub-stages merely to make an already-sm
 15. Lifecycle responsibility is explicit: state, physical stock, history, audit, and administrative closure must not be duplicated across stages.
 16. Treat the validation database as production infrastructure; use controlled test data and avoid unnecessary contamination.
 17. Protect the business first, simplify operational work second, and never achieve one by sacrificing the other.
+18. A task is not considered Production-implemented merely because a report, migration, or candidate file exists in GitHub; executable changes require actual target-system execution and direct verification.
+19. Contract/evidence tasks are closed from authoritative Production evidence; implementation/test tasks are closed only from actual execution evidence.
 
 ---
 
@@ -199,7 +201,7 @@ Freeze the currently provable movement matrix without inventing behavior for mov
 | Purchase Receipt | Supplier | Branch | Branch `qty +` | No proven mutation | Yes | Purchase/receiving lifecycle | Journal/Lines explicitly listed | PROVEN |
 | Transfer SEND | Branch | Branch | Source `qty -` | No | Yes | Voucher `Draft → Sent` | No accounting effect proven in SEND RPC | PROVEN |
 | Transfer RECEIVE | Branch | Branch | Target `qty +` | No | Yes | `received_qty +`; `Sent → Received` when fully received | No accounting effect proven in RECEIVE RPC | PROVEN |
-| DirectSale SEND | Branch | Voucher target is Branch in current RPC contract; customer/custody meaning remains separate | Source `qty -` | No | Yes (`DirectSale`) | `Draft → Sent → Completed` | No accounting effect proven in voucher RPC | PROVEN for stock mutation; TARGET semantics deferred to TASK-007 |
+| DirectSale SEND | Branch | Voucher target is Branch in current RPC contract; customer/custody meaning remains separate | Source `qty -` | No | Yes (`DirectSale`) | `Draft → Sent → Completed` | No accounting effect proven in voucher RPC | PROVEN for stock mutation; custody semantics deferred to TASK-007 |
 | DirectReturn RECEIVE | Voucher source/target are Branch-typed in current RPC contract | Branch | Target `qty +` | No | Yes (`DirectReturn`) | `received_qty +`; full receive → `Received` | No accounting effect proven in voucher RPC | PROVEN for stock mutation; custody semantics deferred to TASK-007 |
 | SupplierReturn SEND | Branch | Supplier | Source `qty -` | No | Yes (`SupplierReturn`) | `Draft → Sent → Completed` | No accounting effect proven in voucher RPC | PROVEN |
 | Loading | Branch / warehouse operational flow | Loaded operational custody | `qty ↓` and `allocated_qty ↓` are explicitly listed by the historical API Catalog for `complete-loading` | `allocated_qty ↓` | Yes | Runsheet/order loading state | Journal/Lines explicitly listed | STATIC ONLY / Historical current-path evidence |
@@ -226,5 +228,46 @@ The movement matrix is frozen at the highest evidence level currently available.
 
 ---
 
+## TASK-007 — Custody Matrix
+**Status: COMPLETE — GO.**
+
+Closed by commit `65dbb10a4af9a1da357a9f7a55a24cf668f0bc35` from reconciled evidence. Custody was resolved as a distinct contract from physical stock movement; unresolved target semantics were not promoted to Production fact.
+
+### Gate
+TASK-007 CLOSED / GO TO TASK-008.
+
+## TASK-008 — Movement Types Contract
+**Status: COMPLETE — GO.**
+
+Closed by commit `8b8c9d9d838b9eb9e50d115d3f199505c38a2108`. Production movement vocabulary was separated from historical-only/candidate types; no unproven database enum/check was invented.
+
+### Gate
+TASK-008 CLOSED / GO TO TASK-009.
+
+## TASK-009 — Partial Receive Contract
+**Status: COMPLETE — GO.**
+
+Closed by commit `d6681a2f9aade9052548655b7b067811c9367373`. Partial Receive was frozen as cumulative `received_qty` with `Sent` retained until full receipt; idempotency was explicitly deferred to TASK-010.
+
+### Gate
+TASK-009 CLOSED / GO TO TASK-010.
+
+## TASK-010 — Idempotency Contract
+**Status: COMPLETE — FINDING / GO TO TASK-011.**
+
+### Production test
+A single transactional test executed:
+`SEND 2 → RECEIVE 1 → repeat the same RECEIVE 1`
+with full verification of voucher state, detail `received_qty`, `inventory_log`, source/target stock, and final classification. The transaction was rolled back.
+
+### Result
+**TASK-010 — NON-IDEMPOTENT PARTIAL RECEIVE PROVEN.**
+
+The repeated partial RECEIVE was accepted as a second movement rather than being rejected/deduplicated by an independent operation identity. This is a Production behavior finding, not an inference from static code.
+
+### Gate
+**TASK-010 CLOSED.**
+No idempotency patch was applied by TASK-010.
+
 ## NEXT TASK
-**TASK-007 — Custody Matrix**
+**TASK-011 — Concurrency Contract**
