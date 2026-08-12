@@ -47,6 +47,7 @@ Do not subdivide a Stage into artificial sub-stages merely to make an already-sm
 17. Protect the business first, simplify operational work second, and never achieve one by sacrificing the other.
 18. A task is not considered Production-implemented merely because a report, migration, or candidate file exists in GitHub; executable changes require actual target-system execution and direct verification.
 19. Contract/evidence tasks are closed from authoritative Production evidence; implementation/test tasks are closed only from actual execution evidence.
+20. Every execution stage must be verified against the actual target system; repository artifacts alone never establish Production implementation.
 
 ---
 
@@ -106,8 +107,6 @@ Do not subdivide a Stage into artificial sub-stages merely to make an already-sm
 ### TASK-004 closure decision
 **TEST-004 PASS. TASK-004 CLOSED / GO.**
 
-The assigned controlled Production RPC contract test for the DirectSale `CREATE → SEND → COMPLETE` lifecycle is empirically proven with the persistent fixture. Alternate RPC consumers, Partial Receive idempotency, broader custody semantics, and other open architecture questions remain under their designated later Tasks and are not reopened here.
-
 ### Persistent fixture
 Retained intentionally for subsequent controlled tests:
 - voucher `IN-1`
@@ -121,153 +120,113 @@ No automatic cleanup was performed.
 ---
 
 ## TASK-005 — Voucher State Machine
-
 **Status: COMPLETE — GO TO TASK-006**
 
-### Production lifecycle evidence reviewed
-Production definitions were captured directly for:
-- `create_manual_stock_voucher_atomic`
-- `post_manual_stock_voucher_atomic`
-- `send_stock_voucher_atomic`
-- `complete_manual_stock_voucher_atomic`
-- `cancel_manual_stock_voucher_atomic`
+Production definitions reviewed for CREATE / SEND / POST / COMPLETE / CANCEL.
 
-### Confirmed state machine
-
+Confirmed lifecycle:
 ```text
-CREATE
-  ↓
-Draft
-  ├── CANCEL → Cancelled
-  │            (only while Draft; no stock mutation)
-  │
-  └── SEND → Sent
-             │
-             ├── DirectSale / SupplierReturn
-             │       └── COMPLETE → Completed
-             │
-             └── Transfer / DirectReturn
-                     └── RECEIVE
-                         ├── partial quantity → Sent + increased received_qty
-                         │                      (repeat RECEIVE allowed while remainder exists)
-                         └── full quantity → Received
-                                             ↓
-                                          COMPLETE
-                                             ↓
-                                          Completed
+CREATE → Draft
+Draft → Cancelled (Draft-only)
+Draft → Sent (SEND)
+Transfer / DirectReturn: Sent → partial Sent / full Received → Completed
+DirectSale / SupplierReturn: Sent → Completed
 ```
-
-### Transition rules proven from Production definitions
-- CREATE accepts the four voucher types: `Transfer`, `DirectSale`, `DirectReturn`, `SupplierReturn`; initial status is `Draft`.
-- SEND is permitted only from `Draft` in both captured SEND implementations.
-- `post_manual_stock_voucher_atomic` permits `SEND` only for `Transfer`, `DirectSale`, `SupplierReturn`; it rejects other types. Its SEND path performs an `OUT` stock effect from the voucher source branch and sets status to `Sent`.
-- `post_manual_stock_voucher_atomic` permits `RECEIVE` only for `Transfer`, `DirectReturn`; it requires current status `Sent` and accepts quantities no greater than the remaining detail quantity.
-- After RECEIVE, if any detail remains unreceived, status remains `Sent`; when all detail quantities are received, status becomes `Received` and `received_date` is populated.
-- COMPLETE requires `Received` for `Transfer`/`DirectReturn` and `Sent` for `DirectSale`/`SupplierReturn`; it sets `Completed`, `completed_at`, and `completed_by` and does not perform stock mutation.
-- CANCEL requires `Draft` only; after stock movement it raises an exception and does not reverse inventory. A formal reverse movement is required by the function message, but its implementation belongs to later movement/return tasks.
-
-### State / mutation boundary
-- Physical stock mutation occurs in SEND for the tested outbound path and in RECEIVE for the inbound path handled by `post_manual_stock_voucher_atomic`.
-- `allocated_qty` is not modified by these voucher lifecycle RPCs in the captured definitions.
-- COMPLETE is administrative closure only and does not mutate `stock_branches` or `inventory_log`.
-- CANCEL is administrative cancellation only while Draft and does not mutate stock.
-
-### TASK-005 closure decision
-**TASK-005 CLOSED / GO.**
-The voucher lifecycle state machine and its state/mutation boundaries are sufficiently proven from the captured Production RPC definitions. Partial Receive idempotency/concurrency remain explicitly assigned to TASK-009/TASK-010/TASK-011 and are not reopened here.
-
-### Evidence source
-The final lifecycle RPC definition result was supplied from the Production query `lifecycle_rpc_definitions` and is preserved in the conversation evidence.
+COMPLETE is administrative closure and does not mutate stock. CANCEL is Draft-only and does not mutate stock.
 
 ---
 
 ## TASK-006 — Inventory Movement Matrix
-
 **Status: COMPLETE — GO TO TASK-007**
 
-### Objective
-Freeze the currently provable movement matrix without inventing behavior for movements whose authoritative Production path is not yet closed.
-
-### Evidence basis
-- Production Inventory Data Contract / EVIDENCE-015 for `stock_branches`, `inventory_log`, and `allocated_qty`.
-- Production Manual Voucher RPC definitions reviewed in TASK-004/TASK-005.
-- Historical API Catalog cross-checked for the warehouse/runsheet functions that explicitly list stock, inventory-log, and accounting effects.
-- Evidence classification is preserved per movement; UNKNOWN is retained where the current authoritative implementation was not proven by the available evidence.
-
-### Matrix
-
-| Movement | Source | Target | Physical Stock | allocated_qty | inventory_log | Voucher/Operational Effect | Accounting | Evidence |
-|---|---|---|---|---|---|---|---|---|
-| Purchase Receipt | Supplier | Branch | Branch `qty +` | No proven mutation | Yes | Purchase/receiving lifecycle | Journal/Lines explicitly listed | PROVEN |
-| Transfer SEND | Branch | Branch | Source `qty -` | No | Yes | Voucher `Draft → Sent` | No accounting effect proven in SEND RPC | PROVEN |
-| Transfer RECEIVE | Branch | Branch | Target `qty +` | No | Yes | `received_qty +`; `Sent → Received` when fully received | No accounting effect proven in RECEIVE RPC | PROVEN |
-| DirectSale SEND | Branch | Voucher target is Branch in current RPC contract; customer/custody meaning remains separate | Source `qty -` | No | Yes (`DirectSale`) | `Draft → Sent → Completed` | No accounting effect proven in voucher RPC | PROVEN for stock mutation; custody semantics deferred to TASK-007 |
-| DirectReturn RECEIVE | Voucher source/target are Branch-typed in current RPC contract | Branch | Target `qty +` | No | Yes (`DirectReturn`) | `received_qty +`; full receive → `Received` | No accounting effect proven in voucher RPC | PROVEN for stock mutation; custody semantics deferred to TASK-007 |
-| SupplierReturn SEND | Branch | Supplier | Source `qty -` | No | Yes (`SupplierReturn`) | `Draft → Sent → Completed` | No accounting effect proven in voucher RPC | PROVEN |
-| Loading | Branch / warehouse operational flow | Loaded operational custody | `qty ↓` and `allocated_qty ↓` are explicitly listed by the historical API Catalog for `complete-loading` | `allocated_qty ↓` | Yes | Runsheet/order loading state | Journal/Lines explicitly listed | STATIC ONLY / Historical current-path evidence |
-| Unloading | Loaded operational custody | Branch / stock | Stock is explicitly described as re-added by `unload-runsheet` | Not proven | Yes | Runsheet unload lifecycle | UNKNOWN | STATIC ONLY / Historical current-path evidence |
-| POS / direct sales outside Manual Voucher | UNKNOWN from current authoritative Production contract | UNKNOWN | UNKNOWN | UNKNOWN | Historical/current `inventory_log` touch exists in API Catalog for delivery path, but current stock mutation authority not closed here | UNKNOWN | UNKNOWN | UNKNOWN / later sales tasks |
-| VanSale | UNKNOWN from closed Production contract | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN from current authoritative definitions in this task | UNKNOWN | UNKNOWN | TARGET/CONTRACT REQUIRED later |
-| Inventory Adjustment / Count | Inventory count workflow exists, but exact physical mutation engine is not closed here | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | `inventory_counts` / details are explicitly cataloged; mutation effect not proven here | UNKNOWN | UNKNOWN |
-
-### Central movement boundaries proven
-- `stock_branches.qty` is the physical current stock state.
-- `stock_branches.allocated_qty` is reserved stock and is not itself a physical movement.
-- `stock_branches.available_qty` is derived from `qty - allocated_qty`.
-- `inventory_log` is movement history and is distinct from current stock.
-- Manual Voucher SEND is the outbound physical movement point for the proven voucher path.
-- Manual Voucher RECEIVE is the inbound physical movement point for Transfer/DirectReturn.
-- COMPLETE and Draft-only CANCEL are administrative lifecycle actions, not physical stock movements.
-
-### TASK-006 closure decision
-**TASK-006 CLOSED / GO.**
-The movement matrix is frozen at the highest evidence level currently available. Movements explicitly marked UNKNOWN are not guessed or silently normalized; their closure is assigned to the designated later contracts (`TASK-007` custody, `TASK-008` movement types, and later sales/loading/unloading tasks as applicable).
-
-### Next Gate
-**TASK-007 — Custody Matrix**
+The movement matrix was frozen from Production evidence plus explicitly classified historical evidence. `stock_branches.qty` is physical state, `allocated_qty` is reservation, `available_qty = qty - allocated_qty`, and `inventory_log` is movement history. Manual Voucher SEND/RECEIVE are the proven stock mutation points for the closed voucher paths; COMPLETE/CANCEL are administrative lifecycle actions.
 
 ---
 
 ## TASK-007 — Custody Matrix
 **Status: COMPLETE — GO.**
 
-Closed by commit `65dbb10a4af9a1da357a9f7a55a24cf668f0bc35` from reconciled evidence. Custody was resolved as a distinct contract from physical stock movement; unresolved target semantics were not promoted to Production fact.
+Closed by commit `65dbb10a4af9a1da357a9f7a55a24cf668f0bc35` from reconciled evidence.
 
-### Gate
-TASK-007 CLOSED / GO TO TASK-008.
+---
 
 ## TASK-008 — Movement Types Contract
 **Status: COMPLETE — GO.**
 
-Closed by commit `8b8c9d9d838b9eb9e50d115d3f199505c38a2108`. Production movement vocabulary was separated from historical-only/candidate types; no unproven database enum/check was invented.
+Closed by commit `8b8c9d9d838b9eb9e50d115d3f199505c38a2108`.
 
-### Gate
-TASK-008 CLOSED / GO TO TASK-009.
+---
 
 ## TASK-009 — Partial Receive Contract
 **Status: COMPLETE — GO.**
 
-Closed by commit `d6681a2f9aade9052548655b7b067811c9367373`. Partial Receive was frozen as cumulative `received_qty` with `Sent` retained until full receipt; idempotency was explicitly deferred to TASK-010.
+Closed by commit `d6681a2f9aade9052548655b7b067811c9367373`.
 
-### Gate
-TASK-009 CLOSED / GO TO TASK-010.
+---
 
 ## TASK-010 — Idempotency Contract
 **Status: COMPLETE — FINDING / GO TO TASK-011.**
 
-### Production test
-A single transactional test executed:
-`SEND 2 → RECEIVE 1 → repeat the same RECEIVE 1`
-with full verification of voucher state, detail `received_qty`, `inventory_log`, source/target stock, and final classification. The transaction was rolled back.
+A transactional Production test executed:
+`SEND 2 → RECEIVE 1 → repeat the same RECEIVE 1`.
 
 ### Result
 **TASK-010 — NON-IDEMPOTENT PARTIAL RECEIVE PROVEN.**
 
-The repeated partial RECEIVE was accepted as a second movement rather than being rejected/deduplicated by an independent operation identity. This is a Production behavior finding, not an inference from static code.
+The repeated partial RECEIVE was accepted as a second movement rather than being rejected/deduplicated by an independent operation identity. The transaction was rolled back. No idempotency patch was applied by TASK-010.
 
 ### Gate
 **TASK-010 CLOSED.**
-No idempotency patch was applied by TASK-010.
 
-## NEXT TASK
-**TASK-011 — Concurrency Contract**
+---
+
+## TASK-011 — Concurrency Contract
+**Status: COMPLETE — GO TO TASK-012.**
+
+### Production Evidence
+Production RPC definitions were captured from `pg_proc` for:
+- `complete_manual_stock_voucher_atomic`
+- `post_manual_stock_voucher_atomic`
+- `send_stock_voucher_atomic`
+
+The captured evidence proves:
+- `FOR UPDATE` row locking on the voucher path.
+- `FOR UPDATE` row locking on stock rows in the atomic inventory path.
+- Conditional/CAS-style stock updates using the previously-read `qty` and `allocated_qty` values.
+- Voucher state transitions also use conditional current-state predicates.
+- The production atomic path orders effects consistently before stock locking.
+
+### Evidence classification
+**PROVEN from actual deployed Production RPC definitions.**
+
+### Gate
+**TASK-011 CLOSED.**
+Closed by commit `1a700dc1bfb264b282b0fee712801adf71a92a22`.
+
+---
+
+## TASK-012 — Atomic Transaction Contract
+**Status: COMPLETE — GO TO TASK-013.**
+
+### Production Test
+A single transactional Production test was executed using only the previously-proven company/branches/item and the verified Production RPC path. The test performed:
+
+`CREATE → SEND 2 → RECEIVE 1 → intentionally invalid RECEIVE 2 → full verification → ROLLBACK`.
+
+The invalid RECEIVE attempted to exceed the remaining quantity. The transaction correctly rejected the invalid operation, and the comprehensive post-failure verification matched the expected pre-failure state. The complete test then rolled back.
+
+### Result
+**TASK-012 — ATOMIC TRANSACTION CONTRACT PASS.**
+
+### Production impact
+- No Schema change.
+- No RPC change.
+- No application change.
+- No permanent test fixture created by TASK-012.
+- Test data was rolled back.
+
+### Closure classification
+**Production execution VERIFIED. TASK-012 CLOSED / GO.**
+
+### Gate
+**Next: TASK-013 — Stock Engine Design.**
