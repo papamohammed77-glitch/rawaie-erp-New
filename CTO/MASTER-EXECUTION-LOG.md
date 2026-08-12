@@ -22,27 +22,33 @@ No task may silently overwrite a previous conclusion. Corrections must be append
 - Phase C — Critical Risks
   - TASK-009 Partial Receive Contract — COMPLETE / GO
   - TASK-010 Idempotency Contract — COMPLETE / FINDING / GO TO TASK-011
-  - TASK-011 Concurrency Contract
-  - TASK-012 Atomic Transaction Contract
+  - TASK-011 Concurrency Contract — CLOSED / GO
+  - TASK-012 Atomic Transaction Contract — CLOSED / GO
 - Phase D — Inventory Core
-  - TASK-013 Stock Engine Design
-  - TASK-014 Stock Engine Implementation
-  - TASK-015 Stock Engine Tests
-  - TASK-016 Stock Engine Gate
+  - TASK-013 Stock Engine Design — CLOSED / GO
+  - TASK-014 Stock Engine Implementation — CLOSED / GO
+  - TASK-015 Stock Engine Tests — CLOSED / GO
+  - TASK-016 Stock Engine Gate — CLOSED / GO
 - Phase E — Manual Vouchers
-  - TASK-017 through TASK-024
+  - TASK-017 — CLOSED / GO
+  - TASK-018 — CLOSED / GO
+  - TASK-019 — CLOSED / GO
+  - TASK-020 — CLOSED / GO
+  - TASK-021 — CLOSED / GO
+  - TASK-022 — CLOSED / GO
+  - TASK-023 through TASK-024 — PENDING
 - Phase F — vouchers.html
-  - TASK-025 through TASK-027
+  - TASK-025 through TASK-027 — PENDING
 - Phase G — Loading / Unloading
-  - TASK-028 through TASK-032
+  - TASK-028 through TASK-032 — PENDING
 - Phase H — Van Sales
-  - TASK-033 through TASK-038
+  - TASK-033 through TASK-038 — PENDING
 - Phase I — Edge Functions
-  - TASK-039 through TASK-044
+  - TASK-039 through TASK-044 — PENDING
 - Phase J — Accounting / Audit / Security
-  - TASK-045 through TASK-049
+  - TASK-045 through TASK-049 — PENDING
 - Phase K — Final Verification / Production
-  - TASK-050 through TASK-055
+  - TASK-050 through TASK-055 — PENDING
 
 ## CTO Working Method
 - One Stage = one coherent execution unit → one comprehensive verification → one decision → next Stage.
@@ -77,35 +83,52 @@ No task may silently overwrite a previous conclusion. Corrections must be append
 17. Anti-loop: do not create documentation or analysis cycles after a decision is sufficiently proven; move to execution.
 18. **Production Reality Gate:** No task may be called implemented unless the actual target system was changed/executed and direct evidence verifies the result. GitHub files, reports, migrations, or candidate designs alone are never sufficient.
 
-## Current State
-### TASK-001 → TASK-006
-Previously closed and recorded above.
-
-### TASK-007
-Status: **COMPLETE / GO.**
-Closed by commit `65dbb10a4af9a1da357a9f7a55a24cf668f0bc35` from reconciled evidence. Custody was treated as a separate contract from physical stock movement; unresolved target semantics were not promoted to Production truth.
-
-### TASK-008
-Status: **COMPLETE / GO.**
-Closed by commit `8b8c9d9d838b9eb9e50d115d3f199505c38a2108`. Production movement vocabulary was separated from historical-only/candidate types; no unproven DB enum/check was invented.
-
-### TASK-009
-Status: **COMPLETE / GO.**
-Closed by commit `d6681a2f9aade9052548655b7b067811c9367373`. Partial Receive was frozen as cumulative `received_qty` with `Sent` retained until full receipt; idempotency was explicitly deferred to TASK-010.
+## Current Execution State
 
 ### TASK-010 — Idempotency Contract
 Status: **COMPLETE / FINDING / GO TO TASK-011.**
+Production test proved non-idempotent repeated logical partial RECEIVE; no patch applied at TASK-010.
 
-Production test executed as one transactional unit:
-`SEND 2 → RECEIVE 1 → repeat the same RECEIVE 1`.
-The transaction was rolled back after complete verification.
+### TASK-013 / TASK-014 — Inventory Core
+Status: **CLOSED / GO.**
+`public.post_stock_movement(...)` was deployed in Production and passed transactional implementation verification.
 
-Result:
-**TASK-010 — NON-IDEMPOTENT PARTIAL RECEIVE PROVEN.**
+### TASK-015 — Stock Engine Tests
+Status: **CLOSED / GO.**
+Comprehensive Production test passed all supported movement paths and boundary rejection; test data rolled back.
 
-The same logical partial RECEIVE was accepted again as a new movement rather than being deduplicated by an independent operation identity. This is a direct Production behavior finding, not a static-code inference.
+### TASK-016 — Stock Engine Gate
+Status: **CLOSED / GO.**
+Production Gate PASS; deployed engine, security contract, central mutation, reservation boundary, CAS, and movement vocabulary verified.
 
-No patch was applied by TASK-010. The finding is carried forward to the concurrency/idempotency design and later Inventory Core implementation.
+### TASK-017 — Voucher Contract
+Status: **CLOSED / GO.**
+Manual Voucher lifecycle contract established against Production RPCs before execution.
 
-### Next Task
-**TASK-011 — Concurrency Contract**
+### TASK-018 — Send Voucher
+Status: **CLOSED / GO.**
+Production PASS. SEND adapter and central movement path verified.
+
+### TASK-019 — Receive Voucher
+Status: **CLOSED / GO.**
+Production PASS. Corrected mapping is:
+- Transfer SEND → TransferOut
+- Transfer RECEIVE → TransferIn
+- DirectReturn RECEIVE → DirectReturn
+Partial Receive remained Sent until full quantity and cumulative `received_qty` was verified.
+Production schema correction: `received_by` is not a column on `stock_vouchers`; final implementation uses `received_date` only.
+
+### TASK-020 — Partial Receive
+Status: **CLOSED / GO.**
+Production PASS using 100-unit fixture: receive 60 → remaining 40 → over-receive rejected → receive 40 → Received. Every partial RECEIVE generated its own inventory movement; completed vouchers rejected further RECEIVE. Test data rolled back.
+
+### TASK-021 — Complete
+Status: **CLOSED / GO.**
+Production PASS. DirectSale: Sent → Completed. Transfer: Received → Completed. `completed_by` and `completed_at` verified. COMPLETE created no additional inventory movement.
+
+### TASK-022 — Cancel
+Status: **CLOSED / GO.**
+Production PASS. Draft → Cancelled succeeded with no stock or inventory_log mutation. Cancel after Send was rejected and voucher remained Sent.
+
+## Next Task
+**TASK-023 — Voucher Integration Tests**
