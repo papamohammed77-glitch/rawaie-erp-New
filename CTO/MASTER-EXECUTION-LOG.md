@@ -71,6 +71,41 @@ Residual items are intentionally deferred:
 - concurrency/idempotency → TASK-010 / TASK-011
 - RLS/security hardening → TASK-049
 
+## TASK-004 — Production RPC Contract
+**Status:** IN PROGRESS — STAGE 3 NEXT
+
+### STAGE 1 — CREATE
+**PASS**
+A persistent test fixture was created successfully using the confirmed Production CREATE RPC.
+- company `da4ef704-88ac-4120-aa0e-65b92b2aa2bc`
+- source `BR-01` / `151e5cd7-ac4a-4fc3-b703-d73a0dbb0dc6`
+- target `BR-2` / `a08568e5-40a7-4b15-85b4-ced8ebf9971d`
+- item `1004` / `ef864b14-ec62-4b9f-9932-17da041b6e42`
+- quantity `1`
+- voucher `IN-1`
+- voucher id `a0974ec8-a5d0-4339-a5fb-7d2d0cee1d64`
+- reference `TEST-004-PERSISTENT`
+
+The earlier rollback-scoped fixture `4062e2c6-f683-4a9c-bdc9-89705dbc7a7e` was confirmed absent before the persistent fixture was recreated.
+
+### STAGE 2 — SEND
+**PASS**
+The persistent fixture was sent through `post_manual_stock_voucher_atomic(..., 'SEND', ...)` using an explicit OUT effect from BR-01 for item 1004 quantity 1.
+
+Observed result:
+- voucher status: `Sent`
+- `sent_date` populated
+- BR-01 item 1004 qty: `206` → `205`
+- `allocated_qty`: remained `0`
+- `available_qty`: `205`
+- `inventory_log`: one `DirectSale` movement, qty `1`, voucher `IN-1`, user `test-operator@rawaea.local`
+
+### Current Gate
+Proceed immediately to **STAGE 3 — COMPLETE** using the same persistent fixture.
+
+### No production patch approved
+None.
+
 ## Evidence
 EVIDENCE-015 — Full Production Schema Dependency Closure.
 Status: REVIEWED / ACCEPTED for TASK-002.
@@ -80,7 +115,7 @@ Result files are stored under `SQL_Evidence/diagnostics/` as split result sets 1
 TASK-002 closed. No Production patch or migration was authorized by this task.
 
 ## Next Safe Step
-Proceed to TASK-003 — Voucher Data Contract.
+TASK-004 STAGE 3 — COMPLETE.
 
 ## Event Log
 2026-08-11 — TASK-001 completed; Project Baseline established.
@@ -89,4 +124,6 @@ Proceed to TASK-003 — Voucher Data Contract.
 2026-08-11 — EVIDENCE-015 SQL prepared for user execution.
 2026-08-11 — EVIDENCE-015 result set reviewed from `SQL_Evidence/diagnostics/`.
 2026-08-11 — TASK-002 closed COMPLETE / GO. Inventory Data Contract frozen from Production Evidence.
-2026-08-11 — Next Task: TASK-003 — Voucher Data Contract.
+2026-08-12 — TASK-004 STAGE 1 persistent fixture created successfully; voucher `IN-1`, id `a0974ec8-a5d0-4339-a5fb-7d2d0cee1d64`.
+2026-08-12 — TASK-004 STAGE 2 SEND passed; status `Sent`, BR-01 qty reduced `206` → `205`, one DirectSale inventory log recorded.
+2026-08-12 — Next: TASK-004 STAGE 3 COMPLETE.
