@@ -118,5 +118,66 @@ No automatic cleanup was performed.
 
 ---
 
+## TASK-005 — Voucher State Machine
+
+**Status: COMPLETE — GO TO TASK-006**
+
+### Production lifecycle evidence reviewed
+Production definitions were captured directly for:
+- `create_manual_stock_voucher_atomic`
+- `post_manual_stock_voucher_atomic`
+- `send_stock_voucher_atomic`
+- `complete_manual_stock_voucher_atomic`
+- `cancel_manual_stock_voucher_atomic`
+
+### Confirmed state machine
+
+```text
+CREATE
+  ↓
+Draft
+  ├── CANCEL → Cancelled
+  │            (only while Draft; no stock mutation)
+  │
+  └── SEND → Sent
+             │
+             ├── DirectSale / SupplierReturn
+             │       └── COMPLETE → Completed
+             │
+             └── Transfer / DirectReturn
+                     └── RECEIVE
+                         ├── partial quantity → Sent + increased received_qty
+                         │                      (repeat RECEIVE allowed while remainder exists)
+                         └── full quantity → Received
+                                             ↓
+                                          COMPLETE
+                                             ↓
+                                          Completed
+```
+
+### Transition rules proven from Production definitions
+- CREATE accepts the four voucher types: `Transfer`, `DirectSale`, `DirectReturn`, `SupplierReturn`; initial status is `Draft`.
+- SEND is permitted only from `Draft` in both captured SEND implementations.
+- `post_manual_stock_voucher_atomic` permits `SEND` only for `Transfer`, `DirectSale`, `SupplierReturn`; it rejects other types. Its SEND path performs an `OUT` stock effect from the voucher source branch and sets status to `Sent`.
+- `post_manual_stock_voucher_atomic` permits `RECEIVE` only for `Transfer`, `DirectReturn`; it requires current status `Sent` and accepts quantities no greater than the remaining detail quantity.
+- After RECEIVE, if any detail remains unreceived, status remains `Sent`; when all detail quantities are received, status becomes `Received` and `received_date` is populated.
+- COMPLETE requires `Received` for `Transfer`/`DirectReturn` and `Sent` for `DirectSale`/`SupplierReturn`; it sets `Completed`, `completed_at`, and `completed_by` and does not perform stock mutation.
+- CANCEL requires `Draft` only; after stock movement it raises an exception and does not reverse inventory. A formal reverse movement is required by the function message, but its implementation belongs to later movement/return tasks.
+
+### State / mutation boundary
+- Physical stock mutation occurs in SEND for the tested outbound path and in RECEIVE for the inbound path handled by `post_manual_stock_voucher_atomic`.
+- `allocated_qty` is not modified by these voucher lifecycle RPCs in the captured definitions.
+- COMPLETE is administrative closure only and does not mutate `stock_branches` or `inventory_log`.
+- CANCEL is administrative cancellation only while Draft and does not mutate stock.
+
+### TASK-005 closure decision
+**TASK-005 CLOSED / GO.**
+The voucher lifecycle state machine and its state/mutation boundaries are sufficiently proven from the captured Production RPC definitions. Partial Receive idempotency/concurrency remain explicitly assigned to TASK-009/TASK-010/TASK-011 and are not reopened here.
+
+### Evidence source
+The final lifecycle RPC definition result was supplied from the Production query `lifecycle_rpc_definitions` and is preserved in the conversation evidence.
+
+---
+
 ## NEXT TASK
-**TASK-005 — Voucher State Machine**
+**TASK-006 — Inventory Movement Matrix**
