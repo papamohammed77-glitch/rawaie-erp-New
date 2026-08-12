@@ -39,7 +39,7 @@ No task may silently overwrite a previous conclusion. Corrections must be append
   - TASK-023 Voucher Integration Tests — CLOSED / GO
   - TASK-024 Voucher Gate — CLOSED / GO
 - Phase F — vouchers.html
-  - STAGE-25 = TASK-025 + TASK-026 + TASK-027 — IN PROGRESS
+  - STAGE-25 = TASK-025 + TASK-026 + TASK-027 — IN PROGRESS / CANDIDATE QUARANTINED
 - Phase G — Loading / Unloading
   - STAGE-28 = TASK-028 + TASK-029 + TASK-030 + TASK-031 + TASK-032 — PENDING
 - Phase H — Van Sales
@@ -85,37 +85,38 @@ No task may silently overwrite a previous conclusion. Corrections must be append
 15. Treat validation infrastructure as Production infrastructure; control test data deliberately.
 16. Protect the business first, simplify operational work second, and never sacrifice one for the other.
 17. Anti-loop: do not create documentation or analysis cycles after a decision is sufficiently proven; move to execution.
-18. **Production Reality Gate:** No task may be called implemented unless the actual target system was changed/executed and direct evidence verifies the result. GitHub files, reports, migrations, or candidate designs alone are never sufficient.
-19. **Merged Stage Rule:** When several tasks form one coherent implementation boundary, execute them as one Stage while retaining the original Task IDs for traceability. Do not split a Stage unless a real safety, evidence, concurrency, or dependency boundary requires it.
+18. Production Reality Gate: No task may be called implemented unless the actual target system was changed/executed and direct evidence verifies the result. GitHub files, reports, migrations, or candidate designs alone are never sufficient.
+19. Merged Stage Rule: When several tasks form one coherent implementation boundary, execute them as one Stage while retaining the original Task IDs for traceability. Do not split a Stage unless a real safety, evidence, concurrency, or dependency boundary requires it.
+20. Gold UI Rule: No application file may be called Gold/Diamond/Production-ready until the original feature set, owner goals, target contracts, security/authorization behavior, error/loading behavior, and reference-quality UX patterns have been reconciled and the resulting parity matrix is closed.
 
 ## Current Execution State
 
 ### TASK-010 — Idempotency Contract
-Status: **COMPLETE / FINDING / GO TO TASK-011.**
+Status: COMPLETE / FINDING / GO TO TASK-011.
 Production test proved non-idempotent repeated logical partial RECEIVE; no patch applied at TASK-010.
 
 ### TASK-013 / TASK-014 — Inventory Core
-Status: **CLOSED / GO.**
+Status: CLOSED / GO.
 `public.post_stock_movement(...)` was deployed in Production and passed transactional implementation verification.
 
 ### TASK-015 — Stock Engine Tests
-Status: **CLOSED / GO.**
+Status: CLOSED / GO.
 Comprehensive Production test passed all supported movement paths and boundary rejection; test data rolled back.
 
 ### TASK-016 — Stock Engine Gate
-Status: **CLOSED / GO.**
+Status: CLOSED / GO.
 Production Gate PASS; deployed engine, security contract, central mutation, reservation boundary, CAS, and movement vocabulary verified.
 
 ### TASK-017 — Voucher Contract
-Status: **CLOSED / GO.**
+Status: CLOSED / GO.
 Manual Voucher lifecycle contract established against Production RPCs before execution.
 
 ### TASK-018 — Send Voucher
-Status: **CLOSED / GO.**
+Status: CLOSED / GO.
 Production PASS. SEND adapter and central movement path verified.
 
 ### TASK-019 — Receive Voucher
-Status: **CLOSED / GO.**
+Status: CLOSED / GO.
 Production PASS. Corrected mapping is:
 - Transfer SEND → TransferOut
 - Transfer RECEIVE → TransferIn
@@ -124,40 +125,41 @@ Partial Receive remained Sent until full quantity and cumulative `received_qty` 
 Production schema correction: `received_by` is not a column on `stock_vouchers`; final implementation uses `received_date` only.
 
 ### TASK-020 — Partial Receive
-Status: **CLOSED / GO.**
+Status: CLOSED / GO.
 Production PASS using 100-unit fixture: receive 60 → remaining 40 → over-receive rejected → receive 40 → Received. Every partial RECEIVE generated its own inventory movement; completed vouchers rejected further RECEIVE. Test data rolled back.
 
 ### TASK-021 — Complete
-Status: **CLOSED / GO.**
+Status: CLOSED / GO.
 Production PASS. DirectSale: Sent → Completed. Transfer: Received → Completed. `completed_by` and `completed_at` verified. COMPLETE created no additional inventory movement.
 
 ### TASK-022 — Cancel
-Status: **CLOSED / GO.**
+Status: CLOSED / GO.
 Production PASS. Draft → Cancelled succeeded with no stock or inventory_log mutation. Cancel after Send was rejected and voucher remained Sent.
 
 ### TASK-023 — Voucher Integration Tests
-Status: **CLOSED / GO.**
+Status: CLOSED / GO.
 Production integration pass covering Draft → Cancelled, DirectSale Create → Send → Complete, and Transfer Create → Send → Partial Receive → Full Receive → Complete. Test data rolled back.
 
 ### TASK-024 — Voucher Gate
-Status: **CLOSED / GO.**
+Status: CLOSED / GO.
 Production Gate PASS. Voucher lifecycle RPC chain, central stock ownership, lifecycle boundary, and SECURITY DEFINER contracts verified.
 
 ### STAGE-25 — vouchers.html Contract + Implementation + E2E
-Status: **IN PROGRESS — SOURCE IMPLEMENTED / PRODUCTION DEPLOYMENT NOT YET VERIFIED.**
+Status: OPEN — CANDIDATE QUARANTINED — NOT READY FOR PRODUCTION.
 
-The original PWA `PWA/warehouse/vouchers.html` was reconciled against the Voucher Core. The updated rescue-branch implementation:
-- removes direct calls to legacy `RW_API.call('send-stock-voucher' / 'receive-stock-voucher' / 'complete-stock-voucher')` for Voucher lifecycle actions;
-- routes Create / Send / Receive / Complete / Cancel through the verified Production RPCs;
-- preserves the existing login, pending/completed/account views, search, item search, cart, voucher details, and role gate;
-- changes Receive UI from an empty `receivedItems: []` request to an explicit cumulative Partial Receive interface with required / received / remaining quantities;
-- exposes Draft Cancel and Received Complete actions while preserving existing lifecycle controls;
-- keeps business stock mutation outside the UI.
+A candidate UI was produced in rescue branch commit `c093e2f79c81e3a03f5dbb04ce2f22ce7226e737` and routed Voucher lifecycle calls to the verified RPC layer. The candidate also added true Partial Receive UI and Draft Cancel UI.
 
-Implementation commit on rescue branch:
-`c093e2f79c81e3a03f5dbb04ce2f22ce7226e737`
+A subsequent Gold review found that the candidate was created before a complete original-feature inventory and owner-goal reconciliation had been closed. In particular:
+- DirectReturn source/target semantics were altered at the UI boundary and require reconciliation with the original behavior and Production custody contract.
+- SupplierReturn / branch-resolution semantics were partially encoded in UI helpers rather than being derived from a finalized business contract.
+- Read-side queries and company scoping were not fully reconciled against the original page and Production RLS behavior.
+- Runtime feature parity with the original page has not yet been proven.
+- Gold-quality operational patterns from `returns.html` and `picker.html` have been reviewed as references, but candidate parity has not been demonstrated.
 
-Production Reality Gate remains open for STAGE-25 until the updated PWA file is deployed to the actual target application and runtime evidence verifies Create / Send / Partial Receive / Complete / Cancel through the live UI.
+The full findings are preserved in:
+`CTO/TASKS/STAGE-25-VOUCHERS-GOLD-REVIEW.md`
+
+The candidate must not be deployed to Production until the feature parity matrix is closed and runtime E2E confirms preservation of all original capabilities while routing business operations through the new Voucher Core.
 
 ### Next Execution Boundary
-**STAGE-25 — Production deployment + runtime E2E verification of vouchers.html**
+**STAGE-25 — Original/Target/Gold reconciliation → corrected candidate → static feature parity → runtime E2E → Production deployment → Gate**
