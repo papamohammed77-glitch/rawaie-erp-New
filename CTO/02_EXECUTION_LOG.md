@@ -179,5 +179,52 @@ The final lifecycle RPC definition result was supplied from the Production query
 
 ---
 
+## TASK-006 — Inventory Movement Matrix
+
+**Status: COMPLETE — GO TO TASK-007**
+
+### Objective
+Freeze the currently provable movement matrix without inventing behavior for movements whose authoritative Production path is not yet closed.
+
+### Evidence basis
+- Production Inventory Data Contract / EVIDENCE-015 for `stock_branches`, `inventory_log`, and `allocated_qty`.
+- Production Manual Voucher RPC definitions reviewed in TASK-004/TASK-005.
+- Historical API Catalog cross-checked for the warehouse/runsheet functions that explicitly list stock, inventory-log, and accounting effects.
+- Evidence classification is preserved per movement; UNKNOWN is retained where the current authoritative implementation was not proven by the available evidence.
+
+### Matrix
+
+| Movement | Source | Target | Physical Stock | allocated_qty | inventory_log | Voucher/Operational Effect | Accounting | Evidence |
+|---|---|---|---|---|---|---|---|---|
+| Purchase Receipt | Supplier | Branch | Branch `qty +` | No proven mutation | Yes | Purchase/receiving lifecycle | Journal/Lines explicitly listed | PROVEN |
+| Transfer SEND | Branch | Branch | Source `qty -` | No | Yes | Voucher `Draft → Sent` | No accounting effect proven in SEND RPC | PROVEN |
+| Transfer RECEIVE | Branch | Branch | Target `qty +` | No | Yes | `received_qty +`; `Sent → Received` when fully received | No accounting effect proven in RECEIVE RPC | PROVEN |
+| DirectSale SEND | Branch | Voucher target is Branch in current RPC contract; customer/custody meaning remains separate | Source `qty -` | No | Yes (`DirectSale`) | `Draft → Sent → Completed` | No accounting effect proven in voucher RPC | PROVEN for stock mutation; TARGET semantics deferred to TASK-007 |
+| DirectReturn RECEIVE | Voucher source/target are Branch-typed in current RPC contract | Branch | Target `qty +` | No | Yes (`DirectReturn`) | `received_qty +`; full receive → `Received` | No accounting effect proven in voucher RPC | PROVEN for stock mutation; custody semantics deferred to TASK-007 |
+| SupplierReturn SEND | Branch | Supplier | Source `qty -` | No | Yes (`SupplierReturn`) | `Draft → Sent → Completed` | No accounting effect proven in voucher RPC | PROVEN |
+| Loading | Branch / warehouse operational flow | Loaded operational custody | `qty ↓` and `allocated_qty ↓` are explicitly listed by the historical API Catalog for `complete-loading` | `allocated_qty ↓` | Yes | Runsheet/order loading state | Journal/Lines explicitly listed | STATIC ONLY / Historical current-path evidence |
+| Unloading | Loaded operational custody | Branch / stock | Stock is explicitly described as re-added by `unload-runsheet` | Not proven | Yes | Runsheet unload lifecycle | UNKNOWN | STATIC ONLY / Historical current-path evidence |
+| POS / direct sales outside Manual Voucher | UNKNOWN from current authoritative Production contract | UNKNOWN | UNKNOWN | UNKNOWN | Historical/current `inventory_log` touch exists in API Catalog for delivery path, but current stock mutation authority not closed here | UNKNOWN | UNKNOWN | UNKNOWN / later sales tasks |
+| VanSale | UNKNOWN from closed Production contract | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN from current authoritative definitions in this task | UNKNOWN | UNKNOWN | TARGET/CONTRACT REQUIRED later |
+| Inventory Adjustment / Count | Inventory count workflow exists, but exact physical mutation engine is not closed here | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | `inventory_counts` / details are explicitly cataloged; mutation effect not proven here | UNKNOWN | UNKNOWN |
+
+### Central movement boundaries proven
+- `stock_branches.qty` is the physical current stock state.
+- `stock_branches.allocated_qty` is reserved stock and is not itself a physical movement.
+- `stock_branches.available_qty` is derived from `qty - allocated_qty`.
+- `inventory_log` is movement history and is distinct from current stock.
+- Manual Voucher SEND is the outbound physical movement point for the proven voucher path.
+- Manual Voucher RECEIVE is the inbound physical movement point for Transfer/DirectReturn.
+- COMPLETE and Draft-only CANCEL are administrative lifecycle actions, not physical stock movements.
+
+### TASK-006 closure decision
+**TASK-006 CLOSED / GO.**
+The movement matrix is frozen at the highest evidence level currently available. Movements explicitly marked UNKNOWN are not guessed or silently normalized; their closure is assigned to the designated later contracts (`TASK-007` custody, `TASK-008` movement types, and later sales/loading/unloading tasks as applicable).
+
+### Next Gate
+**TASK-007 — Custody Matrix**
+
+---
+
 ## NEXT TASK
-**TASK-006 — Inventory Movement Matrix**
+**TASK-007 — Custody Matrix**
