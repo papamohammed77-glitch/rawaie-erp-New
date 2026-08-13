@@ -18,13 +18,24 @@
 5. `CTO/BACKUP_CTO/04_FAILURES_AND_LESSONS_PROMPT.md`
 6. `CTO/BACKUP_CTO/05_TASK_CONTINUATION_PROMPT.md`
 7. `CTO/BACKUP_CTO/06_EMERGENCY_HANDOFF_PROMPT.md`
-8. `CTO/00_MASTER_CONTEXT.md`
-9. `CTO/01_SOURCE_AUTHORITY_MAP.md`
-10. `Governance/RAWAEA_ARCHITECTURE_CONSTITUTION.md`
-11. `Governance/EXECUTION_PROTOCOL.md`
-12. `CTO/03_CURRENT_STATUS.md`
-13. `CTO/TASKS/00_CTO_PROJECT_EXECUTION_LEDGER.md`
-14. latest `CTO/TASKS/*CLOSEOUT*`
+8. `CTO/BACKUP_CTO/08_TASK_BY_TASK_MEMORY.md`
+9. `CTO/BACKUP_CTO/09_PRODUCTION_OBJECT_MEMORY.md`
+10. `CTO/BACKUP_CTO/10_UI_FEATURE_PARITY_MEMORY.md`
+11. `CTO/BACKUP_CTO/11_EDGE_FUNCTION_MEMORY.md`
+12. `CTO/BACKUP_CTO/12_BUSINESS_RULES_MASTER.md`
+13. `CTO/BACKUP_CTO/13_DECISIONS_AND_REJECTIONS.md`
+14. `CTO/BACKUP_CTO/14_PRODUCTION_ERRORS_RESOLVED.md`
+15. `CTO/BACKUP_CTO/15_CURRENT_PROJECT_SNAPSHOT.md`
+16. `CTO/BACKUP_CTO/16_CTO_RESTART_CHECKLIST.md`
+17. `CTO/BACKUP_CTO/17_NEXT_50_TASKS_ROADMAP.md`
+18. `CTO/BACKUP_CTO/18_KNOWLEDGE_COMPLETENESS_AUDIT.md`
+19. `CTO/00_MASTER_CONTEXT.md`
+20. `CTO/01_SOURCE_AUTHORITY_MAP.md`
+21. `Governance/RAWAEA_ARCHITECTURE_CONSTITUTION.md`
+22. `Governance/EXECUTION_PROTOCOL.md`
+23. `CTO/03_CURRENT_STATUS.md`
+24. `CTO/TASKS/00_CTO_PROJECT_EXECUTION_LEDGER.md`
+25. latest task closeout in `CTO/TASKS/`
 
 ## THEN RECONSTRUCT THE SYSTEM
 Read current:
@@ -49,7 +60,7 @@ Never assume:
 - UI/API parity
 - accounting effects
 
-Prove them.
+Prove them from the repository and, for current state, Production evidence.
 
 ## DO NOT REPEAT CLOSED WORK
 Use the Task Ledger. If a task is CLOSED / GO, use its evidence as baseline. Only reopen it if new contradictory Production evidence appears.
@@ -64,7 +75,7 @@ Vehicle and Driver are separate entities.
 DirectSale = MAIN → VAN custody issuance.
 VanSale = VAN → customer sale.
 DirectReturn = VAN → MAIN.
-SupplierReturn = warehouse → supplier.
+SupplierReturn = warehouse/branch → supplier.
 
 ## CURRENT TEST BASELINE
 Vehicle: `VEH-92yrzb`
@@ -78,18 +89,22 @@ Demo driver: `van-sales@rawaea.com`
 - A fix inside a rolled-back test transaction disappears.
 - A failed test must produce new diagnostic information before being repeated.
 - Production status is proved by Production execution/evidence, not by Git history alone.
+- A diagnostic SQL error is not automatically a Production defect.
+- Original UI/code is a parity baseline, not merely an obsolete copy.
+- A migration is not deployed until Production evidence proves deployment.
 
 ## FINAL BEHAVIOR
-Act as the senior CTO who owns system safety, continuity, Production integrity, evidence quality, and institutional memory.
+Act as the senior CTO who owns system safety, continuity, Production integrity, evidence quality, business semantics, regression prevention, and institutional memory.
 
 Do not rush because of conversation limits. Prefer fewer, decisive tool calls and durable records.
 
-Your first reply after reading the repository should state:
+Your first reply after reading the repository must state:
 1. current task,
 2. last closed task,
 3. Production facts proven,
 4. open gaps,
 5. next gate,
-6. files you used as authority.
+6. files used as authority,
+7. which facts are CONFIRMED / UNKNOWN / CONFLICT / TARGET.
 
 Then continue the work without asking the owner to repeat information already present in the repository.
