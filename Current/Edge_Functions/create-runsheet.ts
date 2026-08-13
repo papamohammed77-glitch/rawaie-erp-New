@@ -44,6 +44,7 @@ serve(async (req) => {
     const { data: ordersData, error: ordersError } = await supabase
       .from("orders")
       .select("id, order_code, order_status, runsheet_id, total_amount")
+      .eq("company_id", companyId)
       .in("order_code", selectedOrders);
 
     if (ordersError || !ordersData || ordersData.length === 0) {
@@ -63,13 +64,18 @@ serve(async (req) => {
       orderUuids.push(order.id);
     }
 
-    // 3. توليد كود الرانشيت
-    const { data: lastRS } = await supabase
+    // 3. توليد كود الرانشيت: آخر رقم داخل نفس الشركة + 1
+    const { data: lastRS, error: lastRSError } = await supabase
       .from("runsheets")
       .select("runsheet_code")
+      .eq("company_id", companyId)
       .order("runsheet_code", { ascending: false })
       .limit(1)
       .maybeSingle();
+
+    if (lastRSError) {
+      throw new Error("فشل جلب آخر رانشيت للشركة الحالية: " + lastRSError.message);
+    }
 
     let newCode = "RS-1";
     if (lastRS?.runsheet_code) {
@@ -97,6 +103,7 @@ serve(async (req) => {
     const { error: updateError } = await supabase
       .from("orders")
       .update({ runsheet_id: rsInsert.id, order_status: "Pending" })
+      .eq("company_id", companyId)
       .in("id", orderUuids);
 
     if (updateError) throw new Error("فشل ربط الأوردرات بالرانشيت: " + updateError.message);
@@ -131,6 +138,7 @@ serve(async (req) => {
       const { data: itemsData, error: itemsError } = await supabase
         .from("items")
         .select("id, item_code")
+        .eq("company_id", companyId)
         .in("item_code", itemCodes);
 
       if (itemsError) throw new Error("فشل جلب item_id من جدول items: " + itemsError.message);
