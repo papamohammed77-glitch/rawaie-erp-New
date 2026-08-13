@@ -5523,6 +5523,52 @@ var RW_Runsheets = (function() {
     function _fmtNum(n) { return Number(n || 0).toLocaleString(); }
 
     async function loadHelpers() {
+    try {
+        var settingsRes = await supabase
+            .from('app_settings')
+            .select('company_id')
+            .single();
+
+        if (settingsRes.error || !settingsRes.data || !settingsRes.data.company_id) {
+            throw new Error('سياق الشركة غير محدد بشكل صحيح في إعدادات النظام');
+        }
+
+        var companyId = settingsRes.data.company_id;
+
+        var dRes = await supabase
+            .from('users')
+            .select('id, email, name, role, company_id')
+            .in('role', ['driver', 'سائق', 'مندوب', 'مندوب بيع مباشر'])
+            .eq('status', 'Active')
+            .eq('company_id', companyId)
+            .order('name', { ascending: true });
+
+        if (dRes.error) {
+            throw new Error('فشل تحميل قائمة المناديب: ' + dRes.error.message);
+        }
+
+        driversCache = dRes.data || [];
+
+        var vRes = await supabase
+            .from('vehicles')
+            .select('id, license_plate, model')
+            .eq('company_id', companyId)
+            .eq('status', 'Active')
+            .order('license_plate', { ascending: true });
+
+        if (vRes.error) {
+            throw new Error('فشل تحميل قائمة المركبات: ' + vRes.error.message);
+        }
+
+        vehiclesCache = vRes.data || [];
+
+    } catch (e) {
+        driversCache = [];
+        vehiclesCache = [];
+        console.error('RW_Runsheets.loadHelpers:', e);
+        showToast(e.message || 'فشل تحميل بيانات المناديب والمركبات', 'error');
+    }
+} {
         try {
             var dRes = await supabase.from('users').select('id, email, name, role, company_id').in('role', ['driver','سائق','مندوب','مندوب بيع مباشر']).eq('status', 'Active').eq('company_id', 'da4ef704-88ac-4120-aa0e-65b92b2aa2bc');
             driversCache = dRes.data || [];
