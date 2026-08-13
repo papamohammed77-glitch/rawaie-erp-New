@@ -28,6 +28,18 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("جلسة غير صالحة");
 
+    // 0. مصدر سياق الشركة الوحيد = إعدادات النظام
+    const { data: settingsData, error: settingsError } = await supabase
+      .from("app_settings")
+      .select("company_id")
+      .single();
+
+    if (settingsError || !settingsData?.company_id) {
+      throw new Error("سياق الشركة غير محدد بشكل صحيح في إعدادات النظام");
+    }
+
+    const companyId = settingsData.company_id;
+
     // 1. جلب UUIDs للأوردرات المحددة
     const { data: ordersData, error: ordersError } = await supabase
       .from("orders")
@@ -74,7 +86,7 @@ serve(async (req) => {
         total_amount: totalAmount,
         status: "Open",
         created_by: user.email,
-        company_id: "00000000-0000-0000-0000-000000000001"
+        company_id: companyId
       })
       .select("id")
       .single();
