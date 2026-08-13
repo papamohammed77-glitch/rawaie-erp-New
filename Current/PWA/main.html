@@ -5568,14 +5568,6 @@ var RW_Runsheets = (function() {
         console.error('RW_Runsheets.loadHelpers:', e);
         showToast(e.message || 'فشل تحميل بيانات المناديب والمركبات', 'error');
     }
-} {
-        try {
-            var dRes = await supabase.from('users').select('id, email, name, role, company_id').in('role', ['driver','سائق','مندوب','مندوب بيع مباشر']).eq('status', 'Active').eq('company_id', 'da4ef704-88ac-4120-aa0e-65b92b2aa2bc');
-            driversCache = dRes.data || [];
-            var vRes = await supabase.from('vehicles').select('id, license_plate, model');
-            vehiclesCache = vRes.data || [];
-        } catch(e) { console.error(e); }
-    }
 
     async function render() {
         var c = byId('rw-page-container');
