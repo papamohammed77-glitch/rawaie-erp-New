@@ -1,84 +1,85 @@
 # 48 — TASK-028 SURGICAL TEST MATRIX
 ## Date: 2026-08-14
 ## Branch: `task-028-loading-unloading-refactor`
-## Mode: STATIC / PRE-DEPLOYMENT QA — NO PRODUCTION EXECUTION
+## Mode: STATIC / NON-PRODUCTION QA — NO PRODUCTION EXECUTION
 
-## FACT
+## REQUIRED GATE ORDER
 
-The Current branch now contains:
+```text
+Responsibility Audit
+-> P0 Idempotency
+-> Lifecycle Compatibility
+-> Static Validation
+-> Staging Migration
+-> Runtime Matrix
+```
 
-- atomic Loading Core RPC;
-- atomic Unloading inverse RPC;
-- thin `complete-loading` wrapper;
-- thin `unload-runsheet` wrapper;
-- fulfillment Backorder ledger migration.
-
-## STATIC ACCEPTANCE
+## RUNTIME TESTS
 
 | Test | Expected |
 |---|---|
-| Full loading | MAIN decreases; VAN increases by exact loaded quantity; one Loading log; Runsheet `Loaded` |
-| Partial loading | Only loaded quantity transfers; each order line never exceeds picked capacity; remaining quantity recorded in Backorder ledger |
-| Zero/negative load | Entire transaction rejected; no stock or log change |
-| Item absent | Entire transaction rejected; no partial effects |
-| Missing MAIN stock row | Entire transaction rejected |
-| Missing VAN stock row | Entire transaction rejected |
-| Insufficient MAIN available stock | Entire transaction rejected |
-| Loaded > picked capacity | Entire transaction rejected |
-| Retry after successful Loading | `Loaded` state rejects request; no second stock movement |
-| Concurrent Loading for same Runsheet | Runsheet row lock allows one winner; second call rejects on state |
-| Full Unloading | VAN decreases by persisted `qty_loaded`; MAIN increases same amount; Runsheet `Picked` |
-| Unloading with missing VAN stock | Entire transaction rejected; no MAIN addition |
-| Retry after successful Unloading | `Picked` state rejects request; no second reversal |
-| Order-detail authority | `order_details.qty_loaded` is the only fulfillment quantity written by Core; trigger derives `run_sheet_details` |
-| Trigger consistency | Aggregate `run_sheet_details.qty_loaded` equals sum of linked `order_details.qty_loaded` |
-| Allocation release | MAIN `allocated_qty` decreases by no more than requested loaded quantity |
-| Generated available quantity | No direct write to `available_qty` |
-| Accounting | No journal entry created by Loading/Unloading Core |
-| Backorder deduplication | Unique `(order_detail_id, runsheet_id)` prevents duplicate ledger rows |
-| Unloading Backorder reversal | Pending rows for the reversed Runsheet become `Cancelled` |
-| Inventory-log cardinality | One deterministic Loading/Unloading log per item per Runsheet operation |
-| Company isolation | Runsheet, Vehicle, Item, Branch and settings must all belong to same company |
+| Full loading | MAIN qty decreases; MAIN allocated decreases; VAN qty increases; Runsheet `Loaded` |
+| Partial loading 6/10 | MAIN -6; allocated -6; VAN +6; `qty_loaded=6`; remaining=4 |
+| Second legitimate partial load 4/10 | accepted as a new event with a different payload hash/key |
+| Exact retry of prior load | duplicate event, no second stock effect, no second inventory log |
+| Retry with same key but different qty/type | idempotency conflict, no stock effect |
+| Concurrent exact duplicate | one physical effect; duplicate winner/loser is deterministic; no second log |
+| Full unloading | VAN decreases persisted `qty_loaded`; MAIN increases same amount; MAIN allocated increases same amount; Runsheet `Picked` |
+| Exact retry of unloading | duplicate/no second reversal; state gate also prevents second lifecycle execution |
+| Missing MAIN stock row | full rollback |
+| Missing VAN stock row | full rollback |
+| Insufficient picked reservation | full rollback |
+| Loaded > picked | full rollback |
+| Failure after stock mutation | full transaction rollback: stock/log/orders/backorder/state return to baseline |
+| Backorder deduplication | unique `(order_detail_id, runsheet_id)` prevents duplicate ledger rows |
+| Unloading backorder reversal | Pending rows belonging to the reversed Runsheet become `Cancelled` |
+| Trigger consistency | `run_sheet_details` equals aggregation of authoritative `order_details` |
+| Generated availability | no direct write to `available_qty` |
+| Accounting boundary | no COGS/journal created at Loading or Unloading |
+| Company isolation | every Runsheet/Vehicle/Item/Branch resolves within company context |
+| Reopen-loading lifecycle | must use VAN->MAIN reversal, restore MAIN allocation, preserve loaded quantities, and return to `Loading` |
 
 ## DATABASE INVARIANTS
 
 ```text
 0 <= qty_loaded <= qty_picked <= qty
 
-MAIN_after = MAIN_before - loaded_qty
-VAN_after  = VAN_before  + loaded_qty
+LOADING:
+MAIN.qty            -= loaded_qty
+MAIN.allocated_qty  -= loaded_qty
+VAN.qty             += loaded_qty
 
-UNLOAD:
-VAN_after  = VAN_before  - persisted_qty_loaded
-MAIN_after = MAIN_before + persisted_qty_loaded
+UNLOADING:
+VAN.qty             -= persisted_qty_loaded
+MAIN.qty            += persisted_qty_loaded
+MAIN.allocated_qty  += persisted_qty_loaded
 
-No COGS at Loading/Unloading.
+No COGS at Loading/Unloading/Reopen-Loading.
 ```
 
-## REVIEW CHECKS
+## IDEMPOTENCY REQUIREMENTS
 
-1. Confirm migration is not executed against Production.
-2. Confirm no `Original/` file changed in branch diff.
-3. Confirm no direct `stock_branches` mutation remains in the two wrapper functions.
-4. Confirm wrappers do not write `inventory_log`, `journal_entries`, `journal_lines`, `run_sheet_details`, or Backorder rows directly.
-5. Confirm Core RPCs are `SECURITY DEFINER` and use `SET search_path = public`.
-6. Confirm Core RPCs are transaction-scoped by PostgreSQL function execution.
-7. Confirm deterministic log IDs are derived from Runsheet + item, not timestamps/randomness.
-8. Confirm `sync_run_sheet_details()` remains the aggregation boundary.
-9. Confirm no legacy `remaining_qty` column is referenced by the new Current implementation.
-10. Confirm Production deployment has not occurred.
+The test must validate **event-level idempotency**, not only state gating:
+
+- `inventory_log.idempotency_key` is persisted;
+- `(company_id, idempotency_key)` is unique;
+- Loading identity includes Runsheet cycle markers plus normalized operation payload hash plus item;
+- Unloading identity includes Runsheet cycle markers plus persisted payload hash plus item;
+- random `log_code` is never treated as the event identity.
+
+## STATIC REVIEW CHECKS
+
+1. `Original/` unchanged.
+2. Production unchanged.
+3. Thin wrappers contain no direct stock/log/accounting/backorder writes.
+4. Core functions are `SECURITY DEFINER` with `SET search_path=public`.
+5. `order_details` is authoritative; trigger derives `run_sheet_details`.
+6. Generated `available_qty` is never written.
+7. Backorder table has company/order/detail/runsheet/item FKs and uniqueness.
+8. No stale `remaining_qty` field is referenced.
+9. No obsolete competing TASK-028 migration remains.
+10. `reopen-loading` compatibility is resolved before staging execution.
 
 ## DEPLOYMENT GATE
 
-This branch is **NOT** a Production deployment.
-
-Before Production:
-
-```text
-Static review
--> Dev/Staging execution
--> Full test matrix
--> Deployment approval
--> Production verification
--> Implementation Reality Matrix update
-```
+No Production deployment is permitted until the full matrix passes in non-production and the Implementation Reality Matrix is updated.
