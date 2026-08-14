@@ -1,8 +1,35 @@
--- TASK-028 v2: central stock engine rewire
--- Final target: post_stock_movement is the single stock_branches mutation point.
--- This migration is repository-only and has not been executed on Production.
+-- TASK-028 v2 FINAL CURRENT-ONLY MIGRATION
+-- Production has NOT been touched by this commit.
+-- Loading consumes the picked reservation; Unloading restores it.
 
 BEGIN;
+
+CREATE TABLE IF NOT EXISTS public.fulfillment_backorders (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id uuid NOT NULL,
+    order_id uuid NOT NULL,
+    order_detail_id uuid NOT NULL,
+    runsheet_id uuid NOT NULL,
+    item_id uuid NOT NULL,
+    item_code varchar,
+    remaining_qty numeric NOT NULL CHECK (remaining_qty > 0),
+    status varchar NOT NULL DEFAULT 'Pending'
+        CHECK (status IN ('Pending','Cancelled','Consumed')),
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (order_detail_id, runsheet_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_fulfillment_backorders_order
+    ON public.fulfillment_backorders(order_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_fulfillment_backorders_runsheet
+    ON public.fulfillment_backorders(runsheet_id, status);
+
+ALTER TABLE public.fulfillment_backorders ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.fulfillment_backorders FROM PUBLIC;
+REVOKE ALL ON TABLE public.fulfillment_backorders FROM anon;
+GRANT ALL ON TABLE public.fulfillment_backorders TO service_role;
 
 CREATE OR REPLACE FUNCTION public.post_stock_movement(
     p_company_id uuid,
@@ -33,65 +60,41 @@ DECLARE
     v_branch_company uuid;
     v_log_code text;
 BEGIN
-    IF p_company_id IS NULL THEN
-        RAISE EXCEPTION 'company_id is required';
-    END IF;
-
-    IF p_movement_type IS NULL THEN
-        RAISE EXCEPTION 'movement_type is required';
-    END IF;
-
-    IF p_qty IS NULL OR p_qty <= 0 THEN
-        RAISE EXCEPTION 'quantity must be greater than zero';
-    END IF;
+    IF p_company_id IS NULL THEN RAISE EXCEPTION 'company_id is required'; END IF;
+    IF p_movement_type IS NULL THEN RAISE EXCEPTION 'movement_type is required'; END IF;
+    IF p_qty IS NULL OR p_qty <= 0 THEN RAISE EXCEPTION 'quantity must be greater than zero'; END IF;
 
     IF p_movement_type NOT IN (
-        'PurchaseIn',
-        'TransferOut',
-        'TransferIn',
-        'DirectSale',
-        'DirectReturn',
-        'SupplierReturn',
-        'POSSale',
-        'VanSale',
-        'SalesReturn',
-        'PurchaseReturn',
-        'InventoryIncrease',
-        'InventoryDecrease',
-        'Loading',
-        'Unloading'
+        'PurchaseIn','TransferOut','TransferIn','DirectSale','DirectReturn',
+        'SupplierReturn','POSSale','VanSale','SalesReturn','PurchaseReturn',
+        'InventoryIncrease','InventoryDecrease','Loading','Unloading'
     ) THEN
         RAISE EXCEPTION 'movement type is not supported by central inventory engine: %', p_movement_type;
     END IF;
 
     v_source_required := p_movement_type IN (
-        'TransferOut', 'DirectSale', 'SupplierReturn', 'POSSale',
-        'VanSale', 'PurchaseReturn', 'InventoryDecrease', 'Loading', 'Unloading'
+        'TransferOut','DirectSale','SupplierReturn','POSSale',
+        'VanSale','PurchaseReturn','InventoryDecrease','Loading','Unloading'
     );
 
     v_target_required := p_movement_type IN (
-        'PurchaseIn', 'TransferIn', 'DirectReturn', 'SalesReturn',
-        'InventoryIncrease', 'Loading', 'Unloading'
+        'PurchaseIn','TransferIn','DirectReturn','SalesReturn',
+        'InventoryIncrease','Loading','Unloading'
     );
 
     IF v_source_required AND p_source_branch_id IS NULL THEN
-        RAISE EXCEPTION 'source branch is required for movement type %', p_movement_type;
+        RAISE EXCEPTION 'source branch is required for %', p_movement_type;
     END IF;
-
     IF v_target_required AND p_target_branch_id IS NULL THEN
-        RAISE EXCEPTION 'target branch is required for movement type %', p_movement_type;
+        RAISE EXCEPTION 'target branch is required for %', p_movement_type;
     END IF;
-
-    IF v_source_required AND v_target_required
-       AND p_source_branch_id = p_target_branch_id THEN
+    IF v_source_required AND v_target_required AND p_source_branch_id = p_target_branch_id THEN
         RAISE EXCEPTION 'source and target branch cannot be identical';
     END IF;
 
     IF p_source_branch_id IS NOT NULL THEN
         SELECT company_id INTO v_branch_company
-        FROM public.branches
-        WHERE id = p_source_branch_id;
-
+        FROM public.branches WHERE id = p_source_branch_id;
         IF v_branch_company IS NULL OR v_branch_company <> p_company_id THEN
             RAISE EXCEPTION 'source branch is missing or outside company context';
         END IF;
@@ -99,9 +102,7 @@ BEGIN
 
     IF p_target_branch_id IS NOT NULL THEN
         SELECT company_id INTO v_branch_company
-        FROM public.branches
-        WHERE id = p_target_branch_id;
-
+        FROM public.branches WHERE id = p_target_branch_id;
         IF v_branch_company IS NULL OR v_branch_company <> p_company_id THEN
             RAISE EXCEPTION 'target branch is missing or outside company context';
         END IF;
@@ -114,7 +115,6 @@ BEGIN
         RAISE EXCEPTION 'item is missing or outside company context';
     END IF;
 
-    -- Lock the two balance rows in deterministic branch order.
     PERFORM 1
     FROM public.stock_branches sb
     WHERE sb.item_id = p_item_id
@@ -126,16 +126,18 @@ BEGIN
         SELECT * INTO v_source_stock
         FROM public.stock_branches
         WHERE branch_id = p_source_branch_id AND item_id = p_item_id;
+        IF NOT FOUND THEN RAISE EXCEPTION 'source stock balance row is missing'; END IF;
+        v_source_before := COALESCE(v_source_stock.qty,0);
+        v_source_available := v_source_before - COALESCE(v_source_stock.allocated_qty,0);
 
-        IF NOT FOUND THEN
-            RAISE EXCEPTION 'source stock balance row is missing for branch/item';
-        END IF;
-
-        v_source_before := COALESCE(v_source_stock.qty, 0);
-        v_source_available := v_source_before - COALESCE(v_source_stock.allocated_qty, 0);
-
-        IF v_source_available < p_qty THEN
-            RAISE EXCEPTION 'insufficient available stock';
+        IF p_movement_type = 'Loading' THEN
+            IF v_source_before < p_qty OR COALESCE(v_source_stock.allocated_qty,0) < p_qty THEN
+                RAISE EXCEPTION 'insufficient picked reservation for Loading';
+            END IF;
+        ELSE
+            IF v_source_available < p_qty THEN
+                RAISE EXCEPTION 'insufficient available stock';
+            END IF;
         END IF;
     END IF;
 
@@ -143,12 +145,13 @@ BEGIN
         SELECT * INTO v_target_stock
         FROM public.stock_branches
         WHERE branch_id = p_target_branch_id AND item_id = p_item_id;
-
-        IF NOT FOUND THEN
-            RAISE EXCEPTION 'target stock balance row is missing for branch/item';
+        IF NOT FOUND THEN RAISE EXCEPTION 'target stock balance row is missing'; END IF;
+        v_target_before := COALESCE(v_target_stock.qty,0);
+        IF p_movement_type = 'Unloading'
+           AND COALESCE(v_target_stock.qty,0) < COALESCE(v_target_stock.allocated_qty,0)
+        THEN
+            RAISE EXCEPTION 'target stock reservation state is invalid before Unloading';
         END IF;
-
-        v_target_before := COALESCE(v_target_stock.qty, 0);
     END IF;
 
     IF v_source_required THEN
@@ -156,43 +159,38 @@ BEGIN
         SET qty = v_source_stock.qty - p_qty,
             allocated_qty = CASE
                 WHEN p_movement_type = 'Loading'
-                THEN GREATEST(0, v_source_stock.allocated_qty - p_qty)
+                    THEN v_source_stock.allocated_qty - p_qty
                 ELSE v_source_stock.allocated_qty
             END,
             updated_at = now()
         WHERE id = v_source_stock.id
           AND qty = v_source_stock.qty
           AND allocated_qty = v_source_stock.allocated_qty;
-
-        IF NOT FOUND THEN
-            RAISE EXCEPTION 'stock changed during source posting';
-        END IF;
-
+        IF NOT FOUND THEN RAISE EXCEPTION 'stock changed during source posting'; END IF;
         v_source_after := v_source_stock.qty - p_qty;
     END IF;
 
     IF v_target_required THEN
         UPDATE public.stock_branches
         SET qty = v_target_stock.qty + p_qty,
+            allocated_qty = CASE
+                WHEN p_movement_type = 'Unloading'
+                    THEN v_target_stock.allocated_qty + p_qty
+                ELSE v_target_stock.allocated_qty
+            END,
             updated_at = now()
         WHERE id = v_target_stock.id
           AND qty = v_target_stock.qty
           AND allocated_qty = v_target_stock.allocated_qty;
-
-        IF NOT FOUND THEN
-            RAISE EXCEPTION 'stock changed during target posting';
-        END IF;
-
+        IF NOT FOUND THEN RAISE EXCEPTION 'stock changed during target posting'; END IF;
         v_target_after := v_target_stock.qty + p_qty;
     END IF;
 
-    v_log_code := 'STM-' || replace(gen_random_uuid()::text, '-', '');
-
+    v_log_code := 'STM-' || replace(gen_random_uuid()::text,'-','');
     INSERT INTO public.inventory_log (
         company_id, log_code, movement_date, voucher_id, item_id,
         movement_type, qty, reference, user_email
-    )
-    VALUES (
+    ) VALUES (
         p_company_id, v_log_code, CURRENT_DATE, p_voucher_id, p_item_id,
         p_movement_type, p_qty, p_reference, p_user_email
     );
@@ -213,8 +211,6 @@ BEGIN
 END;
 $$;
 
--- Replace the Core Loading implementation so all physical stock mutation is
--- delegated to post_stock_movement. Order quantities remain authoritative here.
 CREATE OR REPLACE FUNCTION public.complete_runsheet_loading(
     p_company_id uuid,
     p_runsheet_id uuid,
@@ -237,55 +233,24 @@ DECLARE
     v_remaining numeric;
     v_item_id uuid;
     v_od record;
-    v_move jsonb;
     v_loaded_total numeric := 0;
     v_backorder_count integer := 0;
 BEGIN
-    IF p_company_id IS NULL OR p_runsheet_id IS NULL THEN
-        RAISE EXCEPTION 'company_id and runsheet_id are required';
-    END IF;
+    IF p_company_id IS NULL OR p_runsheet_id IS NULL THEN RAISE EXCEPTION 'company_id and runsheet_id are required'; END IF;
+    IF p_items IS NULL OR jsonb_typeof(p_items) <> 'array' OR jsonb_array_length(p_items) = 0 THEN RAISE EXCEPTION 'items array is required'; END IF;
 
-    IF p_items IS NULL OR jsonb_typeof(p_items) <> 'array' OR jsonb_array_length(p_items) = 0 THEN
-        RAISE EXCEPTION 'items array is required';
-    END IF;
+    SELECT * INTO v_rs FROM public.runsheets WHERE id = p_runsheet_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'runsheet not found'; END IF;
+    IF v_rs.company_id <> p_company_id THEN RAISE EXCEPTION 'runsheet is outside company context'; END IF;
+    IF v_rs.status <> 'Loading' THEN RAISE EXCEPTION 'runsheet is not in Loading state: %', v_rs.status; END IF;
+    IF v_rs.vehicle_id IS NULL THEN RAISE EXCEPTION 'runsheet vehicle is required before Loading'; END IF;
 
-    SELECT * INTO v_rs
-    FROM public.runsheets
-    WHERE id = p_runsheet_id
-    FOR UPDATE;
-
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'runsheet not found';
-    END IF;
-
-    IF v_rs.company_id <> p_company_id THEN
-        RAISE EXCEPTION 'runsheet is outside company context';
-    END IF;
-
-    IF v_rs.status <> 'Loading' THEN
-        RAISE EXCEPTION 'runsheet is not in Loading state: %', v_rs.status;
-    END IF;
-
-    IF v_rs.vehicle_id IS NULL THEN
-        RAISE EXCEPTION 'runsheet vehicle is required before Loading';
-    END IF;
-
-    SELECT * INTO v_vehicle
-    FROM public.vehicles
-    WHERE id = v_rs.vehicle_id AND company_id = p_company_id;
-
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'assigned vehicle not found for company';
-    END IF;
+    SELECT * INTO v_vehicle FROM public.vehicles WHERE id = v_rs.vehicle_id AND company_id = p_company_id;
+    IF NOT FOUND THEN RAISE EXCEPTION 'assigned vehicle not found for company'; END IF;
 
     SELECT main_branch_id INTO v_main_branch_id
-    FROM public.app_settings
-    WHERE company_id = p_company_id
-    LIMIT 1;
-
-    IF v_main_branch_id IS NULL THEN
-        RAISE EXCEPTION 'main branch is not configured';
-    END IF;
+    FROM public.app_settings WHERE company_id = p_company_id LIMIT 1;
+    IF v_main_branch_id IS NULL THEN RAISE EXCEPTION 'main branch is not configured'; END IF;
 
     SELECT id INTO v_van_branch_id
     FROM public.branches
@@ -293,14 +258,11 @@ BEGIN
       AND branch_code = 'VAN-' || v_vehicle.vehicle_code
       AND is_active = true
     LIMIT 1;
-
-    IF v_van_branch_id IS NULL THEN
-        RAISE EXCEPTION 'canonical VAN branch not found for vehicle %', v_vehicle.vehicle_code;
-    END IF;
+    IF v_van_branch_id IS NULL THEN RAISE EXCEPTION 'canonical VAN branch not found for vehicle %', v_vehicle.vehicle_code; END IF;
 
     FOR v_item_code, v_requested IN
         SELECT x.item_code, SUM(x.loaded_qty)
-        FROM jsonb_to_recordset(p_items) AS x(item_code text, loaded_qty numeric)
+        FROM jsonb_to_recordset(p_items) x(item_code text, loaded_qty numeric)
         GROUP BY x.item_code
     LOOP
         IF v_item_code IS NULL OR btrim(v_item_code) = '' OR v_requested IS NULL OR v_requested <= 0 THEN
@@ -311,86 +273,60 @@ BEGIN
         FROM public.items
         WHERE company_id = p_company_id AND item_code = v_item_code
         LIMIT 1;
+        IF v_item_id IS NULL THEN RAISE EXCEPTION 'item not found for company: %', v_item_code; END IF;
 
-        IF v_item_id IS NULL THEN
-            RAISE EXCEPTION 'item not found for company: %', v_item_code;
-        END IF;
-
-        SELECT COALESCE(SUM(GREATEST(COALESCE(od.qty_picked,0) - COALESCE(od.qty_loaded,0),0)),0)
+        SELECT COALESCE(SUM(GREATEST(COALESCE(od.qty_picked,0)-COALESCE(od.qty_loaded,0),0)),0)
         INTO v_capacity
         FROM public.order_details od
         JOIN public.orders o ON o.id = od.order_id
         WHERE o.company_id = p_company_id
           AND o.runsheet_id = p_runsheet_id
           AND od.item_code = v_item_code;
-
         IF v_requested > v_capacity THEN
-            RAISE EXCEPTION 'loaded quantity exceeds picked capacity for %: requested %, capacity %',
-                v_item_code, v_requested, v_capacity;
+            RAISE EXCEPTION 'loaded quantity exceeds picked capacity for %: requested %, capacity %', v_item_code, v_requested, v_capacity;
         END IF;
 
-        -- Single source of truth for physical stock mutation.
-        SELECT public.post_stock_movement(
-            p_company_id,
-            'Loading',
-            v_main_branch_id,
-            v_van_branch_id,
-            v_item_id,
-            v_requested,
+        PERFORM public.post_stock_movement(
+            p_company_id,'Loading',v_main_branch_id,v_van_branch_id,v_item_id,v_requested,
             v_rs.runsheet_code,
-            'TASK-028:Loading:' || v_rs.id::text || ':' || v_item_id::text,
+            'TASK-028:Loading:'||v_rs.id::text||':'||v_item_id::text,
             p_user_email
-        ) INTO v_move;
+        );
 
         v_remaining := v_requested;
-
         FOR v_od IN
-            SELECT od.id,
-                   COALESCE(od.qty_picked,0) AS qty_picked,
-                   COALESCE(od.qty_loaded,0) AS qty_loaded
+            SELECT od.id, COALESCE(od.qty_picked,0) AS qty_picked, COALESCE(od.qty_loaded,0) AS qty_loaded
             FROM public.order_details od
             JOIN public.orders o ON o.id = od.order_id
             WHERE o.company_id = p_company_id
               AND o.runsheet_id = p_runsheet_id
               AND od.item_code = v_item_code
-              AND GREATEST(COALESCE(od.qty_picked,0) - COALESCE(od.qty_loaded,0),0) > 0
+              AND GREATEST(COALESCE(od.qty_picked,0)-COALESCE(od.qty_loaded,0),0) > 0
             ORDER BY od.id
             FOR UPDATE OF od
         LOOP
             EXIT WHEN v_remaining <= 0;
-
-            DECLARE
-                v_delta numeric;
+            DECLARE v_delta numeric;
             BEGIN
-                v_delta := LEAST(v_remaining, GREATEST(v_od.qty_picked - v_od.qty_loaded,0));
-
+                v_delta := LEAST(v_remaining,GREATEST(v_od.qty_picked-v_od.qty_loaded,0));
                 IF v_delta > 0 THEN
                     UPDATE public.order_details
-                    SET qty_loaded = COALESCE(qty_loaded,0) + v_delta,
+                    SET qty_loaded = COALESCE(qty_loaded,0)+v_delta,
                         reason_loading = CASE
-                            WHEN COALESCE(qty_picked,0) > COALESCE(qty_loaded,0) + v_delta
-                            THEN 'Partial Loading'
+                            WHEN COALESCE(qty_picked,0) > COALESCE(qty_loaded,0)+v_delta THEN 'Partial Loading'
                             ELSE reason_loading
                         END,
                         updated_at = now()
                     WHERE id = v_od.id;
-
-                    v_remaining := v_remaining - v_delta;
+                    v_remaining := v_remaining-v_delta;
                 END IF;
             END;
         END LOOP;
-
-        IF v_remaining <> 0 THEN
-            RAISE EXCEPTION 'failed to allocate loaded quantity across order lines for %', v_item_code;
-        END IF;
+        IF v_remaining <> 0 THEN RAISE EXCEPTION 'failed to allocate loaded quantity across order lines for %', v_item_code; END IF;
 
         FOR v_od IN
-            SELECT od.id AS order_detail_id,
-                   od.order_id,
-                   od.qty AS ordered_qty,
-                   od.qty_loaded,
-                   od.item_id,
-                   od.item_code
+            SELECT od.id AS order_detail_id, od.order_id, od.qty AS ordered_qty,
+                   od.qty_loaded, od.item_id, od.item_code
             FROM public.order_details od
             JOIN public.orders o ON o.id = od.order_id
             WHERE o.company_id = p_company_id
@@ -402,52 +338,31 @@ BEGIN
             INSERT INTO public.fulfillment_backorders (
                 company_id, order_id, order_detail_id, runsheet_id,
                 item_id, item_code, remaining_qty, status
+            ) VALUES (
+                p_company_id,v_od.order_id,v_od.order_detail_id,p_runsheet_id,
+                v_od.item_id,v_od.item_code,
+                GREATEST(v_od.ordered_qty-COALESCE(v_od.qty_loaded,0),0),'Pending'
             )
-            VALUES (
-                p_company_id, v_od.order_id, v_od.order_detail_id, p_runsheet_id,
-                v_od.item_id, v_od.item_code,
-                GREATEST(v_od.ordered_qty - COALESCE(v_od.qty_loaded,0),0),
-                'Pending'
-            )
-            ON CONFLICT (order_detail_id, runsheet_id)
-            DO UPDATE SET
-                remaining_qty = EXCLUDED.remaining_qty,
-                updated_at = now(),
-                status = 'Pending';
-
-            v_backorder_count := v_backorder_count + 1;
+            ON CONFLICT (order_detail_id,runsheet_id) DO UPDATE
+            SET remaining_qty=EXCLUDED.remaining_qty,status='Pending',updated_at=now();
+            v_backorder_count := v_backorder_count+1;
         END LOOP;
-
-        v_loaded_total := v_loaded_total + v_requested;
+        v_loaded_total := v_loaded_total+v_requested;
     END LOOP;
 
     UPDATE public.runsheets
-    SET status = 'Loaded', loader_end = now(), updated_at = now()
-    WHERE id = p_runsheet_id AND status = 'Loading';
-
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'runsheet state transition to Loaded failed';
-    END IF;
+    SET status='Loaded',loader_end=now(),updated_at=now()
+    WHERE id=p_runsheet_id AND status='Loading';
+    IF NOT FOUND THEN RAISE EXCEPTION 'runsheet state transition to Loaded failed'; END IF;
 
     UPDATE public.orders
-    SET order_status = 'Loaded', updated_at = now()
-    WHERE company_id = p_company_id AND runsheet_id = p_runsheet_id;
+    SET order_status='Loaded',updated_at=now()
+    WHERE company_id=p_company_id AND runsheet_id=p_runsheet_id;
 
-    RETURN jsonb_build_object(
-        'success', true,
-        'runsheet_id', p_runsheet_id,
-        'runsheet_code', v_rs.runsheet_code,
-        'vehicle_id', v_vehicle.id,
-        'vehicle_code', v_vehicle.vehicle_code,
-        'van_branch_id', v_van_branch_id,
-        'loaded_total', v_loaded_total,
-        'backorder_lines', v_backorder_count
-    );
+    RETURN jsonb_build_object('success',true,'runsheet_id',p_runsheet_id,'runsheet_code',v_rs.runsheet_code,'vehicle_id',v_vehicle.id,'vehicle_code',v_vehicle.vehicle_code,'van_branch_id',v_van_branch_id,'loaded_total',v_loaded_total,'backorder_lines',v_backorder_count);
 END;
 $$;
 
--- Replace the inverse Core implementation so all physical stock mutation is
--- delegated to post_stock_movement.
 CREATE OR REPLACE FUNCTION public.complete_runsheet_unloading(
     p_company_id uuid,
     p_runsheet_code text,
@@ -464,114 +379,75 @@ DECLARE
     v_main_branch_id uuid;
     v_van_branch_id uuid;
     v_detail record;
-    v_move jsonb;
     v_unloaded_total numeric := 0;
 BEGIN
     SELECT * INTO v_rs
     FROM public.runsheets
-    WHERE company_id = p_company_id
-      AND runsheet_code = p_runsheet_code
+    WHERE company_id=p_company_id AND runsheet_code=p_runsheet_code
     FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'runsheet not found'; END IF;
+    IF v_rs.status <> 'Loaded' THEN RAISE EXCEPTION 'runsheet is not in Loaded state: %',v_rs.status; END IF;
+    IF v_rs.vehicle_id IS NULL THEN RAISE EXCEPTION 'runsheet vehicle is required for Unloading'; END IF;
 
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'runsheet not found';
-    END IF;
+    SELECT * INTO v_vehicle FROM public.vehicles WHERE id=v_rs.vehicle_id AND company_id=p_company_id;
+    IF NOT FOUND THEN RAISE EXCEPTION 'assigned vehicle not found for company'; END IF;
 
-    IF v_rs.status <> 'Loaded' THEN
-        RAISE EXCEPTION 'runsheet is not in Loaded state: %', v_rs.status;
-    END IF;
-
-    IF v_rs.vehicle_id IS NULL THEN
-        RAISE EXCEPTION 'runsheet vehicle is required for Unloading';
-    END IF;
-
-    SELECT * INTO v_vehicle
-    FROM public.vehicles
-    WHERE id = v_rs.vehicle_id AND company_id = p_company_id;
-
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'assigned vehicle not found for company';
-    END IF;
-
-    SELECT main_branch_id INTO v_main_branch_id
-    FROM public.app_settings
-    WHERE company_id = p_company_id
-    LIMIT 1;
-
-    IF v_main_branch_id IS NULL THEN
-        RAISE EXCEPTION 'main branch is not configured';
-    END IF;
+    SELECT main_branch_id INTO v_main_branch_id FROM public.app_settings WHERE company_id=p_company_id LIMIT 1;
+    IF v_main_branch_id IS NULL THEN RAISE EXCEPTION 'main branch is not configured'; END IF;
 
     SELECT id INTO v_van_branch_id
     FROM public.branches
-    WHERE company_id = p_company_id
-      AND branch_code = 'VAN-' || v_vehicle.vehicle_code
-      AND is_active = true
+    WHERE company_id=p_company_id
+      AND branch_code='VAN-'||v_vehicle.vehicle_code
+      AND is_active=true
     LIMIT 1;
-
-    IF v_van_branch_id IS NULL THEN
-        RAISE EXCEPTION 'canonical VAN branch not found for vehicle %', v_vehicle.vehicle_code;
-    END IF;
+    IF v_van_branch_id IS NULL THEN RAISE EXCEPTION 'canonical VAN branch not found for vehicle %',v_vehicle.vehicle_code; END IF;
 
     FOR v_detail IN
-        SELECT item_id, item_code, qty_loaded
+        SELECT item_id,item_code,qty_loaded
         FROM public.run_sheet_details
-        WHERE runsheet_id = v_rs.id
-          AND COALESCE(qty_loaded,0) > 0
+        WHERE runsheet_id=v_rs.id AND COALESCE(qty_loaded,0)>0
         ORDER BY item_id
     LOOP
-        SELECT public.post_stock_movement(
-            p_company_id,
-            'Unloading',
-            v_van_branch_id,
-            v_main_branch_id,
-            v_detail.item_id,
-            v_detail.qty_loaded,
-            v_rs.runsheet_code,
-            'TASK-028:Unloading:' || v_rs.id::text || ':' || v_detail.item_id::text,
+        PERFORM public.post_stock_movement(
+            p_company_id,'Unloading',v_van_branch_id,v_main_branch_id,
+            v_detail.item_id,v_detail.qty_loaded,v_rs.runsheet_code,
+            'TASK-028:Unloading:'||v_rs.id::text||':'||v_detail.item_id::text,
             p_user_email
-        ) INTO v_move;
-
-        v_unloaded_total := v_unloaded_total + v_detail.qty_loaded;
+        );
+        v_unloaded_total := v_unloaded_total+v_detail.qty_loaded;
     END LOOP;
 
     UPDATE public.order_details od
-    SET qty_loaded = 0,
-        updated_at = now()
+    SET qty_loaded=0,updated_at=now()
     FROM public.orders o
-    WHERE od.order_id = o.id
-      AND o.company_id = p_company_id
-      AND o.runsheet_id = v_rs.id
-      AND COALESCE(od.qty_loaded,0) > 0;
+    WHERE od.order_id=o.id
+      AND o.company_id=p_company_id
+      AND o.runsheet_id=v_rs.id
+      AND COALESCE(od.qty_loaded,0)>0;
 
     UPDATE public.fulfillment_backorders
-    SET status = 'Cancelled', updated_at = now()
-    WHERE runsheet_id = v_rs.id AND status = 'Pending';
+    SET status='Cancelled',updated_at=now()
+    WHERE runsheet_id=v_rs.id AND status='Pending';
 
     UPDATE public.runsheets
-    SET status = 'Picked', loader_end = NULL, updated_at = now()
-    WHERE id = v_rs.id AND status = 'Loaded';
-
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'runsheet state transition to Picked failed';
-    END IF;
+    SET status='Picked',loader_end=NULL,updated_at=now()
+    WHERE id=v_rs.id AND status='Loaded';
+    IF NOT FOUND THEN RAISE EXCEPTION 'runsheet state transition to Picked failed'; END IF;
 
     UPDATE public.orders
-    SET order_status = 'Pending', updated_at = now()
-    WHERE company_id = p_company_id AND runsheet_id = v_rs.id;
+    SET order_status='Pending',updated_at=now()
+    WHERE company_id=p_company_id AND runsheet_id=v_rs.id;
 
-    RETURN jsonb_build_object(
-        'success', true,
-        'runsheet_code', v_rs.runsheet_code,
-        'vehicle_id', v_vehicle.id,
-        'vehicle_code', v_vehicle.vehicle_code,
-        'van_branch_id', v_van_branch_id,
-        'unloaded_total', v_unloaded_total
-    );
+    RETURN jsonb_build_object('success',true,'runsheet_code',v_rs.runsheet_code,'vehicle_id',v_vehicle.id,'vehicle_code',v_vehicle.vehicle_code,'van_branch_id',v_van_branch_id,'unloaded_total',v_unloaded_total);
 END;
 $$;
 
 REVOKE ALL ON FUNCTION public.post_stock_movement(uuid,text,uuid,uuid,uuid,numeric,text,text,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.post_stock_movement(uuid,text,uuid,uuid,uuid,numeric,text,text,text) TO service_role;
+REVOKE ALL ON FUNCTION public.complete_runsheet_loading(uuid,uuid,jsonb,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.complete_runsheet_loading(uuid,uuid,jsonb,text) TO service_role;
+REVOKE ALL ON FUNCTION public.complete_runsheet_unloading(uuid,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.complete_runsheet_unloading(uuid,text,text) TO service_role;
 
 COMMIT;
