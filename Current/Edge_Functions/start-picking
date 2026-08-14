@@ -1,7 +1,149 @@
-// start-picking — recovered from Production v11; company-context surgical correction for TASK-028 canary
+// start-picking — recovered Production baseline with company-context and concurrency-safe surgical corrections
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-const supabase=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
-const corsHeaders={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"}
-serve(async(req)=>{if(req.method==="OPTIONS")return new Response("ok",{headers:corsHeaders});try{const rawBody=await req.text();let body:any={};if(rawBody.trim()){try{body=JSON.parse(rawBody)}catch{throw new Error("صيغة JSON غير صالحة")}}let runsheet_code=body?.runsheet_code;if(!runsheet_code&&body?.body){try{runsheet_code=typeof body.body==='string'?JSON.parse(body.body).runsheet_code:body.body.runsheet_code}catch{}};if(!runsheet_code)throw new Error("رقم الرانشيت مطلوب");const ah=req.headers.get("Authorization");if(!ah)throw new Error("غير مصرح");const {data:{user},error:ae}=await supabase.auth.getUser(ah.replace("Bearer ",""));if(ae||!user)throw new Error("جلسة غير صالحة");const {data:settings,error:se}=await supabase.from("app_settings").select("company_id").limit(1).maybeSingle();if(se||!settings?.company_id)throw new Error("سياق الشركة غير محدد");let {data:pubUser}=await supabase.from("users").select("id").eq("email",user.email).eq("company_id",settings.company_id).maybeSingle();if(!pubUser){const {data:newUser,error:ie}=await supabase.from("users").insert({id:user.id,email:user.email,name:user.user_metadata?.name||user.email,role:user.user_metadata?.role||'مخزني',permissions:user.user_metadata?.permissions||[],company_id:settings.company_id,status:'Active'}).select("id").single();if(ie)throw new Error("فشل إضافة المستخدم: "+ie.message);pubUser=newUser}
-const {data:rs,error:re}=await supabase.from("runsheets").select("id,status").eq("company_id",settings.company_id).eq("runsheet_code",runsheet_code).maybeSingle();if(re||!rs)throw new Error("الرانشيت غير موجود");if(!["Open","Confirmed"].includes(rs.status))throw new Error("لا يمكن بدء التحضير في هذه الحالة");const {error:ue}=await supabase.from("runsheets").update({status:"Picking",picker_id:pubUser.id,picker_start:new Date().toISOString()}).eq("id",rs.id).eq("status",rs.status);if(ue)throw new Error("فشل تحديث قاعدة البيانات: "+ue.message);return new Response(JSON.stringify({success:true,msg:"تم بدء التحضير"}),{headers:{...corsHeaders,"Content-Type":"application/json"}})}catch(error:any){return new Response(JSON.stringify({success:false,msg:error?.message||"فشل بدء التحضير"}),{status:400,headers:{...corsHeaders,"Content-Type":"application/json"}})}})
+
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+)
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+}
+
+async function randomPasswordHash(): Promise<string> {
+  const seed = `${crypto.randomUUID()}:${crypto.randomUUID()}`
+  const bytes = new TextEncoder().encode(seed)
+  const digest = await crypto.subtle.digest("SHA-256", bytes)
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("")
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders })
+  }
+
+  try {
+    const rawBody = await req.text()
+    let body: any = {}
+
+    if (rawBody.trim()) {
+      try {
+        body = JSON.parse(rawBody)
+      } catch {
+        throw new Error("صيغة JSON غير صالحة")
+      }
+    }
+
+    let runsheet_code = body?.runsheet_code
+    if (!runsheet_code && body?.body) {
+      try {
+        runsheet_code = typeof body.body === "string"
+          ? JSON.parse(body.body).runsheet_code
+          : body.body.runsheet_code
+      } catch {
+        // fall through to the required-field error
+      }
+    }
+
+    if (!runsheet_code) throw new Error("رقم الرانشيت مطلوب")
+
+    const authHeader = req.headers.get("Authorization")
+    if (!authHeader) throw new Error("غير مصرح")
+
+    const token = authHeader.replace("Bearer ", "")
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user?.email) throw new Error("جلسة غير صالحة")
+
+    const { data: settings, error: settingsError } = await supabase
+      .from("app_settings")
+      .select("company_id")
+      .limit(1)
+      .maybeSingle()
+
+    if (settingsError || !settings?.company_id) throw new Error("سياق الشركة غير محدد")
+    const companyId = settings.company_id
+
+    let { data: pubUser, error: userLookupError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("email", user.email)
+      .eq("company_id", companyId)
+      .maybeSingle()
+
+    if (userLookupError) throw new Error("فشل قراءة المستخدم: " + userLookupError.message)
+
+    if (!pubUser) {
+      const { data: newUser, error: insertError } = await supabase
+        .from("users")
+        .insert({
+          id: user.id,
+          email: user.email,
+          name: user.user_metadata?.name || user.email,
+          password_hash: await randomPasswordHash(),
+          role: user.user_metadata?.role || "مخزني",
+          permissions: user.user_metadata?.permissions || [],
+          company_id: companyId,
+          status: "Active",
+        })
+        .select("id")
+        .single()
+
+      if (insertError) throw new Error("فشل إضافة المستخدم: " + insertError.message)
+      pubUser = newUser
+    }
+
+    const { data: runsheet, error: runsheetError } = await supabase
+      .from("runsheets")
+      .select("id,status")
+      .eq("company_id", companyId)
+      .eq("runsheet_code", runsheet_code)
+      .maybeSingle()
+
+    if (runsheetError) throw new Error("خطأ في البحث عن الرانشيت: " + runsheetError.message)
+    if (!runsheet) throw new Error("الرانشيت غير موجود")
+    if (!["Open", "Confirmed"].includes(runsheet.status)) {
+      throw new Error("لا يمكن بدء التحضير في هذه الحالة")
+    }
+
+    // Conditional update is the concurrency gate. Exactly one request can move
+    // Open/Confirmed -> Picking; a concurrent retry finds zero matching rows.
+    const { data: updatedRows, error: updateError } = await supabase
+      .from("runsheets")
+      .update({
+        status: "Picking",
+        picker_id: pubUser.id,
+        picker_start: new Date().toISOString(),
+      })
+      .eq("id", runsheet.id)
+      .eq("company_id", companyId)
+      .in("status", ["Open", "Confirmed"])
+      .select("id,status,picker_id,picker_start")
+
+    if (updateError) throw new Error("فشل تحديث قاعدة البيانات: " + updateError.message)
+    if (!updatedRows || updatedRows.length !== 1) {
+      throw new Error("الرانشيت انتقل إلى حالة التحضير بواسطة طلب آخر أو لم يعد صالحًا للبدء")
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      msg: "تم بدء التحضير",
+      runsheet_id: updatedRows[0].id,
+      status: updatedRows[0].status,
+      picker_id: updatedRows[0].picker_id,
+      picker_start: updatedRows[0].picker_start,
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
+  } catch (error: any) {
+    return new Response(JSON.stringify({
+      success: false,
+      msg: error?.message || "فشل بدء التحضير",
+    }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
+  }
+})
