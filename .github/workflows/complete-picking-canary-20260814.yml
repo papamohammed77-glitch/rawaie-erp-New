@@ -45,7 +45,7 @@ jobs:
           import json
           r=json.load(open('verify.json'))
           assert r.get('success') is True and r['runsheet']['status']=='Picked' and r['detail']['qty_picked']==1 and r['run_detail']['qty_picked']==1,r
-          assert r['stock']['qty']==r['baseline_qty'] and r['stock']['allocated_qty']==r['baseline_allocated']+1,r
+          assert float(r['stock']['qty'])==float(r['baseline_qty']) and float(r['stock']['allocated_qty'])==float(r['baseline_allocated'])+1,r
           assert len(r['picking_logs'])==0,r
           PY
           set +e
