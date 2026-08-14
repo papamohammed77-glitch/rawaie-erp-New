@@ -8,12 +8,12 @@ Database Understanding: 97/100
 Historical Understanding: 94/100  
 Production Understanding: 98/100  
 Current Understanding: 99/100  
-Execution Confidence: 94/100
+Execution Confidence: 96/100
 
-Confirmed: 18  
-Unknowns: 3  
+Confirmed: 22  
+Unknowns: 2  
 Conflicts: 1  
-Unverified: 2
+Unverified: 1
 
 Historical Opened: YES  
 Original Opened: YES  
@@ -22,45 +22,118 @@ Current Opened: YES
 Schema Checked: YES  
 Triggers Checked: YES  
 Dependencies Checked: YES  
-Consumers Checked: PARTIAL
+Consumers Checked: YES (static contract verification)
 
 ## STATUS
 
-INCOMPLETE — FUNCTION NOT 100% CLOSED
+INCOMPLETE — FUNCTION NOT YET 100% CLOSED
 
-No code change was made to `complete-loading` in this closure verification pass.
+No code change was made to `complete-loading` during this closure pass. The Current wrapper remained the approved thin capability boundary.
 
 ## CONFIRMED
 
 ### Historical / Original
 
-- `rawaie-erp-review/Edge_Functions/original/03_loading/complete-loading.ts` exists and was opened.
-- `rawaie-erp-New/Original/Edge Functions/complete-loading` exists and was opened.
-- Historical/Original baseline is the legacy multi-responsibility Edge Function family.
+- Historical `rawaie-erp-review/Edge_Functions/original/03_loading/complete-loading.ts` was opened.
+- Active-repository Original `rawaie-erp-New/Original/Edge Functions/complete-loading` was opened; SHA `473280fe29613bb27c8b99677897c91779d828c8`.
+- Historical/Original baseline is the legacy multi-responsibility implementation family.
 
 ### Current
 
-- `Current/Edge_Functions/complete-loading` exists.
-- Current implementation is a thin capability wrapper.
-- It authenticates, resolves company/runsheet context, normalizes payload, invokes `complete_runsheet_loading`, and returns the RPC result.
-- No direct stock mutation or direct inventory-log mutation exists in the Current wrapper.
+- `Current/Edge_Functions/complete-loading` was opened.
+- Current implementation is a thin wrapper: authentication, company/runsheet resolution, payload normalization, RPC invocation, and response/error mapping.
+- No direct stock or inventory-log mutation exists in the wrapper.
 
 ### Production
 
-- Production `complete-loading` is version 10.
-- `verify_jwt = true`.
-- Production package invokes `complete_runsheet_loading` with the same logical request contract as Current.
+- Production `complete-loading` is v10 with JWT verification enabled.
+- The deployed package invokes `complete_runsheet_loading` using the same logical request contract as Current.
 
 ### Database
 
-Dependencies verified include:
+Verified dependencies:
 
-`complete_runsheet_loading` → `post_stock_movement` → `stock_branches` / `inventory_log`  
-`complete_runsheet_loading` → `order_details` / `orders` / `runsheets`  
+`complete-loading` → `complete_runsheet_loading`  
+`complete_runsheet_loading` → `post_stock_movement`  
+`complete_runsheet_loading` → `stock_branches` / `inventory_log`  
+`complete_runsheet_loading` → `orders` / `order_details` / `runsheets`  
 `order_details` → `sync_run_sheet_details` → `run_sheet_details`  
 `complete_runsheet_loading` → `fulfillment_backorders`
 
-Relevant PK/FK/UNIQUE/CHECK constraints were verified in Production.
+Relevant PK/FK/UNIQUE/CHECK constraints were checked.
+
+## APPLICATION CONSUMER
+
+`Current/PWA/main.html` was opened and the actual `complete-loading` invocation was located.
+
+Verified contract:
+
+- endpoint: `/functions/v1/complete-loading`
+- method: `POST`
+- auth: `Authorization: Bearer <session access_token>` obtained from `supabase.auth.getSession()`
+- request: `{ runsheet_code: rsCode, items: result.value }`
+- response: `res.json()`
+- success handling: `compJson.success === true` → success toast + `RW_Runsheets._apply()` refresh
+- failure handling: `compJson.success !== true` → error toast using `compJson.msg`
+- loader/UI state is hidden after the response is processed
+
+Static consumer verification = PASS.
+
+## HTTP E2E — STAGING
+
+A real JWT-authenticated HTTP invocation was executed through an isolated Staging HTTP harness.
+
+The harness:
+
+1. created a temporary Supabase Auth user using the Admin API;
+2. obtained a real access token through Auth;
+3. prepared the dedicated `T028-RS` staging fixture;
+4. invoked `POST /functions/v1/complete-loading` through the Supabase Edge Gateway;
+5. captured the HTTP response and resulting database state;
+6. restored the original fixture and removed the temporary auth user.
+
+The HTTP request returned:
+
+- HTTP status: `200`
+- response success: `true`
+- `loaded_total`: `2`
+- a new `loading_cycle_id` was returned.
+
+Observed DB result during the HTTP test:
+
+- Runsheet: `Loaded`
+- `qty_picked`: `2`
+- `qty_loaded`: `2`
+- MAIN: `qty=90`, `allocated_qty=0`, `available_qty=90`
+- VAN: `qty=10`, `allocated_qty=0`, `available_qty=10`
+
+After verification the fixture was restored to the recorded baseline:
+
+- MAIN: `qty=92`, `allocated_qty=2`, `available_qty=90`
+- VAN: `qty=8`, `allocated_qty=0`, `available_qty=8`
+- Runsheet: original `Loaded` state and original cycle identity
+- `qty_loaded`: restored to `8`
+- no temporary Auth users remained
+- no test Loading logs remained
+
+HTTP E2E = PASS.
+
+## BUSINESS / DB TESTS
+
+Supporting Staging evidence already exists for:
+
+- Full Loading
+- Partial Loading
+- Retry / idempotency
+- Two-session concurrency
+- Reopen → Reload
+- Reopen → Reload → Reopen → Reload
+- Backorder creation and `Consumed / 0` reconciliation
+- Failure rollback
+- Company-scoped item resolution
+- Cycle-scoped Loading/Unloading identity
+
+These remain separate from the HTTP E2E evidence above.
 
 ## PARITY
 
@@ -68,65 +141,41 @@ Relevant PK/FK/UNIQUE/CHECK constraints were verified in Production.
 
 NOT VERIFIED.
 
-The Current Git source and the deployed Supabase Edge package are represented differently by the platforms, so byte-for-byte equality was not claimed.
+The Git source and deployed Edge package are packaged differently, so byte equality was not asserted.
 
 ### Semantic parity
 
-VERIFIED for the Edge contract reviewed:
+VERIFIED for the reviewed responsibility surface:
 
 - JWT authentication
-- POST/OPTIONS contract
-- `runsheet_code` + `items` input
-- server-side `company_id` resolution
-- runsheet lookup scoped by company
-- item field normalization
-- `complete_runsheet_loading` invocation signature
-- error mapping to HTTP 400 JSON response
+- POST/OPTIONS behavior
+- `runsheet_code` / `items` request contract
+- server-side company resolution
+- runsheet lookup scoping
+- item payload normalization
+- `complete_runsheet_loading` invocation
+- HTTP 400 JSON error mapping
 - JSON response propagation
 
-Semantic parity is not a substitute for byte parity; this record explicitly keeps the two classifications separate.
+## PRODUCTION VERIFICATION
 
-## APPLICATION CONSUMER
+Production deployment and current function/DB definitions were verified read-only.
 
-`Current/PWA/main.html` was opened.
-
-The file exists at:
-
-`Current/PWA/main.html`
-
-However, a complete auditable proof of the exact `complete-loading` invocation location, payload construction, auth header generation, response parsing, retry behavior, and UI-state transition was not established from the available repository search surface.
+A production **business mutation smoke was deliberately not executed** because the available production fixture is not a clean isolated tenant/fixture: `RS-1` has an existing cross-company data-integrity conflict. Executing a mutation on real production data would not satisfy the safe-smoke requirement.
 
 Therefore:
 
-`CONSUMER VERIFICATION = INCOMPLETE`
+`PRODUCTION DEPLOY = PASS`  
+`PRODUCTION READ-ONLY VERIFICATION = PASS`  
+`PRODUCTION BUSINESS E2E = NOT VERIFIED — SAFE FIXTURE UNAVAILABLE`
 
-## HTTP E2E
+This is an environment limitation, not a claim of functional failure.
 
-A real JWT-authenticated HTTP invocation of the deployed `complete-loading` Edge Function was not executed in this pass.
+## TEST HARNESS CLEANUP
 
-The available Supabase tool surface exposes Edge Function deployment and source retrieval but no direct function invocation API. Staging also does not have `pg_net` or `http` extensions installed, so DB-side HTTP invocation was unavailable.
+The temporary Staging HTTP harness was retired after the run by deploying an inert `410` version. The temporary `pg_net` extension used only for the Staging harness was removed afterward.
 
-Therefore this is classified as:
-
-`HTTP E2E = NOT VERIFIED`
-
-This is not classified as PASS and is not renamed to DB smoke.
-
-## BUSINESS / DB TESTS
-
-Previously verified on Staging and retained as supporting evidence:
-
-- Full Loading
-- Partial Loading
-- Retry/idempotency
-- Two-session concurrency
-- Reopen → Reload
-- Backorder creation/consumption
-- Failure rollback
-- Company-scoped item lookup
-- Multi-cycle Loading/Unloading identity
-
-These are DB/Core and integration evidence; they do not substitute for the missing Edge HTTP E2E.
+No production harness was created.
 
 ## RELEASE GATE
 
@@ -138,16 +187,17 @@ These are DB/Core and integration evidence; they do not substitute for the missi
 | Current | PASS |
 | Static | PASS |
 | Staging | PASS |
-| Integration | PASS for DB/Core path |
+| Integration | PASS for reviewed DB/Core + HTTP path |
 | Concurrency | PASS |
 | Failure | PASS |
 | Retry | PASS |
-| Production Deploy | PASS |
-| Production Verify | PASS for DB/function definition evidence |
+| HTTP E2E | PASS |
+| Consumer Verification | PASS (static contract) |
 | Semantic Parity | VERIFIED |
 | Byte Parity | NOT VERIFIED |
-| HTTP E2E | NOT VERIFIED |
-| Consumer Verification | INCOMPLETE |
+| Production Deploy | PASS |
+| Production Read-only Verify | PASS |
+| Production Business E2E | NOT VERIFIED |
 | Closeout | INCOMPLETE |
 
 ## DECISION
@@ -155,40 +205,41 @@ These are DB/Core and integration evidence; they do not substitute for the missi
 `complete-loading` remains the active Closure Unit.
 
 Do not move to `reopen-loading`.
-Do not declare 100% CLOSED.
-Do not modify `complete-loading` merely to satisfy the process.
+Do not declare `100% CLOSED` until the final Production business-verification gate and final PR/release governance are completed.
 
 ## SELF-AUDIT FINAL
 
-### What I proved
+### What I Proved
 
-- Original baseline exists in `rawaie-erp-New` and Historical source exists in `rawaie-erp-review`.
-- Current wrapper is thin and contract-focused.
-- Production version is v10 and invokes the expected Core RPC.
-- Database dependencies and constraints are present.
-- Semantic Current/Production Edge contract parity was verified.
+- Historical and active Original baselines are present and were opened.
+- Current `complete-loading` is a thin wrapper and was not unnecessarily modified.
+- Production v10 is deployed and invokes the expected Core RPC.
+- PWA consumer request/auth/response/error/state handling was verified statically.
+- A real JWT-authenticated HTTP E2E call to Staging `complete-loading` succeeded with correct DB effects.
+- Staging fixture was restored to its pre-test state; no temporary auth users or test Loading logs remained.
+- Two-session concurrency and the previously repaired Loading/Reopen/Backorder lifecycle are supported by separate Staging evidence.
 
-### What I did not prove
+### What I Did Not Prove
 
-- Byte-for-byte source/package parity.
-- Full PWA invocation/response/retry/UI transition audit.
-- Real JWT-authenticated HTTP Edge E2E.
+- Byte-for-byte Git source ↔ deployed package parity.
+- A production business mutation smoke using a clean isolated production tenant/fixture.
+- Browser automation of the PWA itself; consumer verification here is source-level contract verification plus the real Edge HTTP E2E.
 
-### What I fixed
+### What I Fixed
 
-Nothing in `complete-loading` during this verification pass. The function did not require another code change merely to generate a report.
+No `complete-loading` code change. I fixed the test process instead by building and retiring a safe Staging HTTP E2E harness and restoring the fixture after execution.
 
-### What I initially missed
+### What I Initially Missed
 
-The first readiness pass overstated the completeness of Original/Consumer evidence before the actual source path and Consumer proof were fully demonstrated.
+The previous closure report incorrectly left HTTP E2E classified as unavailable without exhausting an in-database HTTP harness path. It also failed to explicitly distinguish browser E2E from Edge HTTP E2E.
 
-### What could still be wrong
+### What Could Still Be Wrong
 
-- Current vs deployed package drift outside the reviewed semantic contract.
-- A PWA invocation path may differ from the assumed consumer path.
-- Authentication/session handling may have frontend-specific behavior not covered by DB/Core tests.
+- Production business behavior could still contain environment-specific data conditions not exercised by the safe read-only checks.
+- The deployed package may drift from the canonical Git source despite semantic parity.
+- Browser-specific UI behavior beyond the verified invocation/response code could still regress.
 
-### Final confidence
+### Final Confidence
 
-Execution confidence: 94/100.  
-Release confidence: INCOMPLETE — not a percentage-based release state.
+Execution confidence: `96/100`  
+Release confidence: `INCOMPLETE`
