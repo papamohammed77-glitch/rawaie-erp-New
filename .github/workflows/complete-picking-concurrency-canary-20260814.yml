@@ -1,0 +1,52 @@
+name: complete-picking concurrent HTTP canary
+on:
+  push:
+    branches: [main]
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Concurrent staging canary
+        env:
+          SUPABASE_URL: https://hfzznsiprnwkpayskzhu.supabase.co
+          ANON_KEY: sb_publishable_xd6h0YBpVA1VmNH6A1LCXg_9DhF2ifh
+          EMAIL: cp-canary-20260814@example.invalid
+          PASSWORD: Tmp-CP-20260814-Aa1!
+          AUTH_URL: https://hfzznsiprnwkpayskzhu.supabase.co/functions/v1/cp-auth-canary-20260814?token=CP-AUTH-20260814
+          FIX_URL: https://hfzznsiprnwkpayskzhu.supabase.co/functions/v1/cp-fixture-canary-20260814?token=CP-FIX-20260814
+        run: |
+          set -euo pipefail
+          trap 'curl --silent --show-error --max-time 60 "$FIX_URL&mode=cleanup" >/tmp/cleanup.json || true' EXIT
+          curl --fail-with-body --silent --show-error --max-time 60 "$AUTH_URL" > auth.json
+          curl --fail-with-body --silent --show-error --max-time 60 "$FIX_URL&mode=create&user_id=$(python -c "import json;print(json.load(open('auth.json'))['public_user_id'])")" > fixture.json
+          TOKEN=$(curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" -H "apikey: $ANON_KEY" -H "Content-Type: application/json" --data "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+          RUN=$(python -c "import json;print(json.load(open('fixture.json'))['runsheet_code'])")
+          ITEM=$(python -c "import json;print(json.load(open('fixture.json'))['item_code'])")
+          curl --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/complete-picking" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"runsheet_code\":\"$RUN\",\"items\":[{\"itemCode\":\"$ITEM\",\"pickedQty\":1}]}" > c1.json & P1=$!
+          curl --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/complete-picking" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"runsheet_code\":\"$RUN\",\"items\":[{\"itemCode\":\"$ITEM\",\"pickedQty\":1}]}" > c2.json & P2=$!
+          wait $P1 || true
+          wait $P2 || true
+          python - <<'PY'
+          import json
+          a=json.load(open('c1.json')); b=json.load(open('c2.json'))
+          results=[a,b]
+          assert sum(1 for r in results if r.get('success') is True)==1,results
+          assert sum(1 for r in results if r.get('success') is False)==1,results
+          print(json.dumps(results,indent=2))
+          PY
+          ORDER=$(python -c "import json;print(json.load(open('fixture.json'))['order_id'])")
+          DETAIL=$(python -c "import json;print(json.load(open('fixture.json'))['detail_id'])")
+          RUN=$(python -c "import json;print(json.load(open('fixture.json'))['runsheet_code'])")
+          BQ=$(python -c "import json;print(json.load(open('fixture.json'))['baseline']['qty'])")
+          BA=$(python -c "import json;print(json.load(open('fixture.json'))['baseline']['allocated_qty'])")
+          curl --fail-with-body --silent --show-error --max-time 60 "$FIX_URL&mode=verify&order_id=$ORDER&detail_id=$DETAIL&runsheet_code=$RUN&baseline_qty=$BQ&baseline_allocated=$BA" > verify.json
+          python - <<'PY'
+          import json
+          r=json.load(open('verify.json'))
+          assert r['runsheet']['status']=='Picked',r
+          assert r['detail']['qty_picked']==1,r
+          assert float(r['stock']['qty'])==float(r['baseline_qty']),r
+          assert float(r['stock']['allocated_qty'])==float(r['baseline_allocated'])+1,r
+          assert len(r['picking_logs'])==0,r
+          print(json.dumps(r,indent=2))
+          PY
