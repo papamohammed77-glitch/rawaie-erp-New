@@ -1,0 +1,1 @@
+Temporary trigger marker for start-picking staging closure harness. This file is removed immediately after the test run.
