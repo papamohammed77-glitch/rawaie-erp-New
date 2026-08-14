@@ -1,7 +1,8 @@
-// unload-runsheet — TASK-028 thin capability wrapper
-// Target Core: public.complete_runsheet_unloading(...)
-// IMPORTANT: VAN -> MAIN stock reversal, inventory logging, order reset,
-// backorder cancellation, and Runsheet state change are committed atomically.
+// reopen-loading — TASK-028 transactional capability wrapper
+// Target Core: public.complete_runsheet_reopen_loading(...)
+// Reopen reverses only the physical Loading effect: VAN -> MAIN.
+// qty_loaded is preserved for subsequent Loading edits.
+// operation_id is the persisted deterministic lifecycle event identity.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
@@ -18,50 +19,38 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders })
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
 
   try {
     const authHeader = req.headers.get("Authorization")
     if (!authHeader) throw new Error("غير مصرح")
-
     const token = authHeader.replace("Bearer ", "")
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !user) throw new Error("جلسة غير صالحة")
 
     const body = await req.json()
     const runsheet_code = body?.runsheet_code
-    if (!runsheet_code) throw new Error("رقم الرانشيت مطلوب")
+    const operation_id = body?.operation_id
+    if (!runsheet_code || !operation_id) throw new Error("رقم الرانشيت ومعرف العملية مطلوبان")
 
     const { data: settings, error: settingsError } = await supabase
-      .from("app_settings")
-      .select("company_id")
-      .limit(1)
-      .maybeSingle()
+      .from("app_settings").select("company_id").limit(1).maybeSingle()
+    if (settingsError || !settings?.company_id) throw new Error("سياق الشركة غير محدد")
 
-    if (settingsError || !settings?.company_id) {
-      throw new Error("سياق الشركة غير محدد")
-    }
-
-    const { data, error } = await supabase.rpc("complete_runsheet_unloading", {
+    const { data, error } = await supabase.rpc("complete_runsheet_reopen_loading", {
       p_company_id: settings.company_id,
       p_runsheet_code: runsheet_code,
-      p_user_email: user.email
+      p_user_email: user.email,
+      p_operation_id: operation_id
     })
-
     if (error) throw new Error(error.message)
 
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     })
   } catch (error: any) {
-    console.error("❌ unload-runsheet error:", error?.message || error)
-
-    return new Response(JSON.stringify({
-      success: false,
-      msg: error?.message || "فشل تفريغ الرانشيت"
-    }), {
+    console.error("❌ reopen-loading error:", error?.message || error)
+    return new Response(JSON.stringify({ success: false, msg: error?.message || "فشل إعادة فتح التحميل" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     })

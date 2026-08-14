@@ -1,0 +1,32 @@
+// bulk-stock-adjustment — recovered Production baseline, central movement wrapper
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+
+const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+const corsHeaders={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"}
+
+serve(async(req)=>{
+  if(req.method==="OPTIONS") return new Response("ok",{headers:corsHeaders})
+  try{
+    const body=await req.json().catch(()=>({}))
+    const {branch_id,adjustment_type,voucher_code,reason,items}=body
+    if(!branch_id||!adjustment_type||!voucher_code||!reason||!Array.isArray(items)||!items.length) throw new Error("البيانات غير مكتملة")
+    const ah=req.headers.get("Authorization"); if(!ah) throw new Error("مصادقة مطلوبة")
+    const {data:{user},error:ae}=await supabase.auth.getUser(ah.replace("Bearer ",""))
+    if(ae||!user) throw new Error("جلسة غير صالحة")
+    const {data:settings,error:se}=await supabase.from("app_settings").select("company_id").limit(1).maybeSingle()
+    if(se||!settings?.company_id) throw new Error("سياق الشركة غير محدد")
+    const effects=[]
+    for(const item of items){
+      const qty=Number(item?.qty); if(!item?.item_code||!Number.isFinite(qty)) throw new Error("بيانات الصنف غير صالحة")
+      const {data:i,error:ie}=await supabase.from("items").select("id,item_code").eq("company_id",settings.company_id).eq("item_code",item.item_code).maybeSingle()
+      if(ie||!i) throw new Error("الصنف غير موجود: "+item.item_code)
+      effects.push({item_id:i.id,item_code:i.item_code,qty})
+    }
+    const {data,error}=await supabase.rpc("post_inventory_adjustment_atomic",{p_company_id:settings.company_id,p_branch_id:branch_id,p_adjustment_type:adjustment_type,p_voucher_code:voucher_code,p_reason:reason,p_user_email:user.email,p_items:effects})
+    if(error) throw new Error(error.message)
+    return new Response(JSON.stringify(data),{headers:{...corsHeaders,"Content-Type":"application/json"}})
+  }catch(e){
+    return new Response(JSON.stringify({success:false,msg:e?.message||"فشل تحديث الرصيد"}),{status:400,headers:{...corsHeaders,"Content-Type":"application/json"}})
+  }
+})

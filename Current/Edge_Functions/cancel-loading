@@ -1,8 +1,5 @@
-// unload-runsheet — TASK-028 thin capability wrapper
-// Target Core: public.complete_runsheet_unloading(...)
-// IMPORTANT: VAN -> MAIN stock reversal, inventory logging, order reset,
-// backorder cancellation, and Runsheet state change are committed atomically.
-
+// cancel-loading — TASK-028 capability wrapper
+// State rollback only: Loading -> Picked. No physical stock mutation.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
@@ -18,14 +15,10 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders })
-  }
-
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
   try {
     const authHeader = req.headers.get("Authorization")
     if (!authHeader) throw new Error("غير مصرح")
-
     const token = authHeader.replace("Bearer ", "")
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !user) throw new Error("جلسة غير صالحة")
@@ -35,33 +28,21 @@ serve(async (req) => {
     if (!runsheet_code) throw new Error("رقم الرانشيت مطلوب")
 
     const { data: settings, error: settingsError } = await supabase
-      .from("app_settings")
-      .select("company_id")
-      .limit(1)
-      .maybeSingle()
+      .from("app_settings").select("company_id").limit(1).maybeSingle()
+    if (settingsError || !settings?.company_id) throw new Error("سياق الشركة غير محدد")
 
-    if (settingsError || !settings?.company_id) {
-      throw new Error("سياق الشركة غير محدد")
-    }
-
-    const { data, error } = await supabase.rpc("complete_runsheet_unloading", {
+    const { data, error } = await supabase.rpc("cancel_runsheet_loading", {
       p_company_id: settings.company_id,
       p_runsheet_code: runsheet_code,
       p_user_email: user.email
     })
-
     if (error) throw new Error(error.message)
 
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     })
-  } catch (error: any) {
-    console.error("❌ unload-runsheet error:", error?.message || error)
-
-    return new Response(JSON.stringify({
-      success: false,
-      msg: error?.message || "فشل تفريغ الرانشيت"
-    }), {
+  } catch (error) {
+    return new Response(JSON.stringify({ success: false, msg: error?.message || "فشل إلغاء التحميل" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     })
