@@ -1,0 +1,24 @@
+name: temporary-start-picking-harness
+on:
+  push:
+    branches: [task-028-loading-unloading-refactor]
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke staging harness
+        id: invoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://hfzznsiprnwkpayskzhu.supabase.co/functions/v1/start-picking-closure-harness'
+          echo 'Calling staging harness...'
+          curl --fail-with-body --silent --show-error --request POST "$url" \
+            --header 'Content-Type: application/json' \
+            --data '{}' | tee harness-result.json
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: start-picking-harness-result
+          path: harness-result.json
