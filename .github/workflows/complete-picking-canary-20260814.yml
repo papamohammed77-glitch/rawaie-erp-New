@@ -22,3 +22,4 @@ jobs:
           assert all(a.get(k) is True for k in required), r
           print(json.dumps(r,indent=2))
           PY
+# rerun
