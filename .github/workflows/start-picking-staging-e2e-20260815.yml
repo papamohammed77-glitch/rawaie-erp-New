@@ -12,102 +12,38 @@ jobs:
           ANON_KEY: sb_publishable_xd6h0YBpVA1VmNH6A1LCXg_9DhF2ifh
           FIX_URL: https://hfzznsiprnwkpayskzhu.supabase.co/functions/v1/start-picking-e2e-fixture-20260815?token=SP-E2E-20260815
         run: |
-          set -euo pipefail
-          cleanup() {
-            if [ -n "${RUN_ID:-}" ]; then
-              curl --silent --show-error --max-time 60 "$FIX_URL&mode=cleanup&runsheet_id=$RUN_ID&auth_id=${AUTH_ID:-}&temp_company_id=${TEMP_COMPANY_ID:-}" >/tmp/cleanup.json || true
-            fi
-          }
-          run_case() {
-            local NAME="$1" STATUS="$2" KIND="$3" EXPECT="$4"
-            RUN_ID=""; AUTH_ID=""; TEMP_COMPANY_ID=""
-            trap cleanup RETURN
-            EMAIL="sp-${NAME}-${RANDOM}-$(date +%s)@example.invalid"
-            curl --fail-with-body --silent --show-error --max-time 60 "$FIX_URL&mode=create&status=$STATUS&kind=$KIND&email=$EMAIL" > fixture.json
-            python - <<'PY'
-            import json
-            r=json.load(open('fixture.json')); assert r.get('success') is True,r
-            PY
-            RUN=$(python -c "import json;print(json.load(open('fixture.json'))['runsheet_code'])")
-            RUN_ID=$(python -c "import json;print(json.load(open('fixture.json'))['runsheet_id'])")
-            AUTH_ID=$(python -c "import json;print(json.load(open('fixture.json'))['auth_id'])")
-            TEMP_COMPANY_ID=$(python -c "import json;print(json.load(open('fixture.json')).get('temp_company_id') or '')")
-            TOKEN=$(curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" -H "apikey: $ANON_KEY" -H "Content-Type: application/json" --data "{\"email\":\"$EMAIL\",\"password\":\"Tmp-SP-20260815-Aa1!\"}" | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
-            BODY=$(printf '{"runsheet_code":"%s"}' "$RUN")
-            set +e
-            curl --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/start-picking" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "$BODY" > result.json
-            set -e
-            python - "$EXPECT" <<'PY'
-            import json,sys
-            expect=sys.argv[1]; r=json.load(open('result.json'))
-            ok = r.get('success') is True
-            if expect=='success': assert ok,r
-            else: assert not ok,r
-            print(json.dumps(r,ensure_ascii=False))
-            PY
-            if [ "$EXPECT" = "success" ]; then
-              curl --fail-with-body --silent --show-error --max-time 60 "$FIX_URL&mode=verify&runsheet_id=$RUN_ID&auth_id=$AUTH_ID" > verify.json
-              python - <<'PY'
-              import json
-              r=json.load(open('verify.json'))
-              assert r['success'] is True,r
-              assert r['runsheet']['status']=='Picking',r
-              assert r['runsheet']['picker_id']==r['user']['id'],r
-              assert r['user']['company_id']==r['runsheet']['company_id'],r
-              PY
-            fi
-            trap - RETURN
-            cleanup
-          }
-
-          run_case open Open normal success
-          run_case confirmed Confirmed normal success
-          run_case wrong_company Open wrong-company failure
-          run_case missing_user Open missing-user failure
-          run_case invalid_status Picking normal failure
-
-          # duplicate request
-          RUN_ID=""; AUTH_ID=""; TEMP_COMPANY_ID=""
-          trap cleanup EXIT
-          EMAIL="sp-duplicate-${RANDOM}-$(date +%s)@example.invalid"
-          curl --fail-with-body --silent --show-error --max-time 60 "$FIX_URL&mode=create&status=Open&kind=normal&email=$EMAIL" > fixture.json
-          RUN=$(python -c "import json;print(json.load(open('fixture.json'))['runsheet_code'])")
-          RUN_ID=$(python -c "import json;print(json.load(open('fixture.json'))['runsheet_id'])")
-          AUTH_ID=$(python -c "import json;print(json.load(open('fixture.json'))['auth_id'])")
-          TOKEN=$(curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" -H "apikey: $ANON_KEY" -H "Content-Type: application/json" --data "{\"email\":\"$EMAIL\",\"password\":\"Tmp-SP-20260815-Aa1!\"}" | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
-          BODY=$(printf '{"runsheet_code":"%s"}' "$RUN")
-          curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/start-picking" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "$BODY" > first.json
-          set +e
-          curl --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/start-picking" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "$BODY" > second.json
-          set -e
           python - <<'PY'
-          import json
-          a=json.load(open('first.json')); b=json.load(open('second.json'))
-          assert a.get('success') is True,a
-          assert b.get('success') is False,b
-          print(json.dumps({'first':a,'second':b},ensure_ascii=False))
-          PY
-          cleanup
+          import json, os, time, urllib.request, urllib.parse, urllib.error
+          from concurrent.futures import ThreadPoolExecutor
 
-          # concurrency request
-          RUN_ID=""; AUTH_ID=""; TEMP_COMPANY_ID=""
-          trap cleanup EXIT
-          EMAIL="sp-concurrent-${RANDOM}-$(date +%s)@example.invalid"
-          curl --fail-with-body --silent --show-error --max-time 60 "$FIX_URL&mode=create&status=Open&kind=normal&email=$EMAIL" > fixture.json
-          RUN=$(python -c "import json;print(json.load(open('fixture.json'))['runsheet_code'])")
-          RUN_ID=$(python -c "import json;print(json.load(open('fixture.json'))['runsheet_id'])")
-          AUTH_ID=$(python -c "import json;print(json.load(open('fixture.json'))['auth_id'])")
-          TOKEN=$(curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" -H "apikey: $ANON_KEY" -H "Content-Type: application/json" --data "{\"email\":\"$EMAIL\",\"password\":\"Tmp-SP-20260815-Aa1!\"}" | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
-          BODY=$(printf '{"runsheet_code":"%s"}' "$RUN")
-          curl --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/start-picking" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "$BODY" > c1.json & P1=$!
-          curl --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/start-picking" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "$BODY" > c2.json & P2=$!
-          wait $P1 || true; wait $P2 || true
-          python - <<'PY'
-          import json
-          a=json.load(open('c1.json')); b=json.load(open('c2.json')); rs=[a,b]
-          assert sum(1 for r in rs if r.get('success') is True)==1,rs
-          assert sum(1 for r in rs if r.get('success') is False)==1,rs
-          print(json.dumps(rs,ensure_ascii=False))
+          BASE=os.environ['SUPABASE_URL']; ANON=os.environ['ANON_KEY']; FIX=os.environ['FIX_URL']; PASSWORD='Tmp-SP-20260815-Aa1!'
+          def req(url, method='GET', body=None, headers=None):
+              data=None if body is None else json.dumps(body).encode(); h=headers or {}
+              if body is not None: h={**h,'Content-Type':'application/json'}
+              r=urllib.request.urlopen(urllib.request.Request(url,data=data,method=method,headers=h),timeout=60)
+              return r.status,json.loads(r.read().decode())
+          def start(token, code):
+              try: return req(BASE+'/functions/v1/start-picking','POST',{'runsheet_code':code},{'Authorization':'Bearer '+token})[1]
+              except urllib.error.HTTPError as e: return json.loads(e.read().decode())
+          def create(status='Open', kind='normal'):
+              email=f"sp-{kind}-{status}-{time.time_ns()}@example.invalid"
+              _,f=req(FIX+'&'+urllib.parse.urlencode({'mode':'create','status':status,'kind':kind,'email':email})); assert f['success'],f; return f
+          def login(f):
+              _,a=req(BASE+'/auth/v1/token?grant_type=password','POST',{'email':f['email'],'password':PASSWORD},{'apikey':ANON}); return a['access_token']
+          def verify(f):
+              _,v=req(FIX+'&'+urllib.parse.urlencode({'mode':'verify','runsheet_id':f['runsheet_id'],'auth_id':f['auth_id']})); return v
+          def cleanup(f):
+              req(FIX+'&'+urllib.parse.urlencode({'mode':'cleanup','runsheet_id':f['runsheet_id'],'auth_id':f['auth_id'],'temp_company_id':f.get('temp_company_id') or ''}))
+
+          f=create('Open'); t=login(f); r=start(t,f['runsheet_code']); assert r['success'],r; v=verify(f); assert v['runsheet']['status']=='Picking'; assert v['runsheet']['picker_id']==v['user']['id']; assert v['user']['company_id']==v['runsheet']['company_id']; cleanup(f)
+          f=create('Confirmed'); t=login(f); r=start(t,f['runsheet_code']); assert r['success'],r; v=verify(f); assert v['runsheet']['status']=='Picking'; assert v['runsheet']['picker_id']==v['user']['id']; cleanup(f)
+          f=create('Open','wrong-company'); t=login(f); r=start(t,f['runsheet_code']); assert not r['success'],r; cleanup(f)
+          f=create('Open','missing-user'); t=login(f); r=start(t,f['runsheet_code']); assert not r['success'],r; assert 'المستخدم غير مسجل' in r.get('msg',''); cleanup(f)
+          f=create('Picking'); t=login(f); r=start(t,f['runsheet_code']); assert not r['success'],r; cleanup(f)
+
+          f=create('Open'); t=login(f); r1=start(t,f['runsheet_code']); r2=start(t,f['runsheet_code']); assert r1['success'],r1; assert not r2['success'],r2; cleanup(f)
+          f=create('Open'); t=login(f)
+          with ThreadPoolExecutor(max_workers=2) as ex: a,b=ex.map(lambda _:start(t,f['runsheet_code']),[1,2])
+          assert sum(1 for r in (a,b) if r.get('success') is True)==1,(a,b); assert sum(1 for r in (a,b) if r.get('success') is False)==1,(a,b); v=verify(f); assert v['runsheet']['status']=='Picking'; assert v['runsheet']['picker_id']==v['user']['id']; cleanup(f)
+          print('START_PICKING_STAGING_E2E_PASS')
           PY
-          cleanup
-          echo 'START_PICKING_STAGING_E2E_PASS'
