@@ -10,15 +10,17 @@ jobs:
         env:
           SUPABASE_URL: https://hfzznsiprnwkpayskzhu.supabase.co
           ANON_KEY: sb_publishable_xd6h0YBpVA1VmNH6A1LCXg_9DhF2ifh
-          EMAIL: cp-canary-20260814@example.invalid
           PASSWORD: Tmp-CP-20260814-Aa1!
-          AUTH_URL: https://hfzznsiprnwkpayskzhu.supabase.co/functions/v1/cp-auth-canary-20260814?token=CP-AUTH-20260814
+          AUTH_BASE: https://hfzznsiprnwkpayskzhu.supabase.co/functions/v1/cp-auth-canary-20260814?token=CP-AUTH-20260814
           FIX_URL: https://hfzznsiprnwkpayskzhu.supabase.co/functions/v1/cp-fixture-canary-20260814?token=CP-FIX-20260814
         run: |
           set -euo pipefail
+          EMAIL="cp-concurrent-$(date +%s)-$RANDOM@example.invalid"
+          AUTH_URL="$AUTH_BASE&email=$EMAIL"
           trap 'curl --silent --show-error --max-time 60 "$FIX_URL&mode=cleanup" >/tmp/cleanup.json || true' EXIT
           curl --fail-with-body --silent --show-error --max-time 60 "$AUTH_URL" > auth.json
-          curl --fail-with-body --silent --show-error --max-time 60 "$FIX_URL&mode=create&user_id=$(python -c "import json;print(json.load(open('auth.json'))['public_user_id'])")" > fixture.json
+          USER_ID=$(python -c "import json;print(json.load(open('auth.json'))['public_user_id'])")
+          curl --fail-with-body --silent --show-error --max-time 60 "$FIX_URL&mode=create&user_id=$USER_ID" > fixture.json
           TOKEN=$(curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" -H "apikey: $ANON_KEY" -H "Content-Type: application/json" --data "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
           RUN=$(python -c "import json;print(json.load(open('fixture.json'))['runsheet_code'])")
           ITEM=$(python -c "import json;print(json.load(open('fixture.json'))['item_code'])")
