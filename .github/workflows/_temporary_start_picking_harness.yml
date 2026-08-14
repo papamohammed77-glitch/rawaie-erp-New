@@ -7,16 +7,16 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Invoke staging harness
+      - name: Invoke production harness
         shell: bash
         run: |
           set -euo pipefail
-          url='https://hfzznsiprnwkpayskzhu.supabase.co/functions/v1/start-picking-closure-harness'
+          url='https://fiilmooggumokxanwiyx.supabase.co/functions/v1/start-picking-production-harness'
           curl --fail-with-body --silent --show-error --request POST "$url" \
             --header 'Content-Type: application/json' \
             --data '{}' | tee harness-result.json
       - name: Upload result
         uses: actions/upload-artifact@v4
         with:
-          name: start-picking-harness-result
+          name: start-picking-production-harness-result
           path: harness-result.json
