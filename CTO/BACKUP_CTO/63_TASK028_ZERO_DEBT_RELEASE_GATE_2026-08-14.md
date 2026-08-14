@@ -26,10 +26,10 @@ Important Production Data Integrity Finding:
 PASS — true two-session staging evidence recorded in report 62.
 
 ### Migration Governance
-The active branch contains one TASK-028 cumulative final migration file:
+The active branch contains one TASK-028 cumulative final migration source:
 `supabase/migrations/20260814_task028_FINAL_RELEASE.sql`
 
-Production migration history necessarily contains the original TASK-028 migration followed by the corrective Reopen migration deployed after the lifecycle defect was discovered. The Current final migration represents the cumulative desired end state.
+Production migration history necessarily contains the original TASK-028 deployment followed by the corrective Reopen migration deployed after the lifecycle defect was discovered. The Current final migration represents the cumulative desired end state.
 
 ### Production Definition Verification
 PASS:
@@ -55,4 +55,4 @@ PR #3 remains the sole TASK-028 changeset. Original is unchanged. Current contai
 - Consumer verification: PASS for identified active Current/PWA consumers
 - Closeout record: THIS RECORD
 
-TASK-028 can proceed to final PR merge governance review. No Task-029 advancement is authorized by this record; the next release action is controlled PR merge/deployment reconciliation, followed by the Zero-Debt Sweep for TASK-027 callers.
+TASK-028 is ready for final PR merge governance. No Task-029 advancement is authorized by this record; the next release action is controlled PR merge/deployment reconciliation, followed by the Zero-Debt Sweep for TASK-027 callers.
