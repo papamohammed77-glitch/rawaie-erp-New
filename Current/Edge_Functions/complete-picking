@@ -47,11 +47,17 @@ serve(async (req) => {
 
     if (settingsError || !settings?.company_id) throw new Error("سياق الشركة غير محدد")
 
+    const normalizedItems = items.map((item: any) => ({
+      item_code: item?.item_code ?? item?.itemCode,
+      picked_qty: item?.picked_qty ?? item?.pickedQty,
+      notes: item?.notes ?? null
+    }))
+
     const { data, error } = await supabase.rpc("complete_runsheet_picking", {
       p_company_id: settings.company_id,
       p_runsheet_code: runsheet_code,
       p_user_email: user.email,
-      p_items: items
+      p_items: normalizedItems
     })
 
     if (error) throw new Error(error.message)
