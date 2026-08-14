@@ -13,7 +13,7 @@ jobs:
         run: |
           set -euo pipefail
           url='https://hfzznsiprnwkpayskzhu.supabase.co/functions/v1/start-picking-closure-harness'
-          echo 'Calling staging harness...'
+          echo 'Calling staging harness after boot-fix...'
           curl --fail-with-body --silent --show-error --request POST "$url" \
             --header 'Content-Type: application/json' \
             --data '{}' | tee harness-result.json
