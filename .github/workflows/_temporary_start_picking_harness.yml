@@ -8,12 +8,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Invoke staging harness
-        id: invoke
         shell: bash
         run: |
           set -euo pipefail
           url='https://hfzznsiprnwkpayskzhu.supabase.co/functions/v1/start-picking-closure-harness'
-          echo 'Calling staging harness after boot-fix...'
           curl --fail-with-body --silent --show-error --request POST "$url" \
             --header 'Content-Type: application/json' \
             --data '{}' | tee harness-result.json
