@@ -2,78 +2,62 @@
 ## Date: 2026-08-14
 ## Branch: `task-028-loading-unloading-refactor`
 
-## FACT
+## STATUS
 
-The implementation plan was executed on an isolated Git branch.
+```text
+Current implementation          = ACTIVE
+P0-A idempotency                = CORRECTED IN CURRENT / NOT RUNTIME-VERIFIED
+P0-B responsibility audit       = RECORDED
+Lifecycle compatibility        = BLOCKED by reopen-loading Production contract
+Static validation              = REQUIRES RE-RUN AFTER LATEST CHANGE
+Non-Production runtime         = NOT STARTED
+Production deployment          = NOT EXECUTED
+Production verification        = NOT EXECUTED
+```
 
-### Added
-
-- `CTO/BACKUP_CTO/47_TASK028_TARGET_IMPLEMENTATION_PLAN_2026-08-14.md`
-- `CTO/BACKUP_CTO/48_TASK028_SURGICAL_TEST_MATRIX_2026-08-14.md`
-- `supabase/migrations/20260814_task028_loading_unloading_atomic_core_v1.sql`
-- `supabase/migrations/20260814_task028_central_stock_engine_rewire_v2.sql`
-
-### Modified — Current only
+## CURRENT CHANGESET
 
 - `Current/Edge_Functions/complete-loading`
 - `Current/Edge_Functions/unload-runsheet`
+- `supabase/migrations/20260814_task028_loading_unloading_atomic_core_final.sql`
+- `CTO/BACKUP_CTO/52_TASK028_PRECHANGE_RESPONSIBILITY_MATRIX_2026-08-14.md`
+- `CTO/BACKUP_CTO/53_TASK028_IDEMPOTENCY_CORRECTION_RESULT_2026-08-14.md`
+- `CTO/BACKUP_CTO/54_TASK028_LIFECYCLE_COMPATIBILITY_REVIEW_2026-08-14.md`
 
-### Untouched
+## OBSOLETE CHANGESET REMOVED
 
-- `Original/` — no changes in branch diff.
-- Production Supabase project — no migration execution and no Edge deployment.
+The earlier v1/v2 migration files are removed from the active branch. The branch contains one TASK-028 final migration for the central Loading/Unloading core.
 
-## IMPLEMENTATION REALITY
+## PROTECTED ASSETS
 
-```text
-Target Contract                 = CONFIRMED / AUTHORIZED
-Implementation Plan             = PRESENT
-Current Surgical Patch          = PRESENT ON ISOLATED BRANCH
-Central Stock Mutation Boundary = post_stock_movement
-Loading Core                    = complete_runsheet_loading
-Unloading Core                  = complete_runsheet_unloading
-Backorder Ledger                = fulfillment_backorders
-Runtime Test                    = NOT EXECUTED
-Production Deployment           = NOT EXECUTED
-Production Verification         = NOT EXECUTED
-```
+- `Original/` untouched.
+- Production Supabase untouched.
+- No Production Edge Function deployed.
+- No Production migration executed.
 
-## IMPORTANT DESIGN CORRECTION
-
-The first draft of the Core in `20260814_task028_loading_unloading_atomic_core_v1.sql` contained direct `stock_branches` mutation.
-
-Before treating the branch as final, `20260814_task028_central_stock_engine_rewire_v2.sql` was added so the final effective Core delegates all physical stock mutation to `public.post_stock_movement(...)`.
-
-Therefore the intended final architecture is:
+## CURRENT ARCHITECTURE
 
 ```text
-Edge Function
+Edge wrapper
    -> Core RPC
       -> post_stock_movement
          -> stock_branches
          -> inventory_log
 ```
 
-This preserves the project's central stock-engine boundary.
+`order_details` remains the authoritative fulfillment layer and `sync_run_sheet_details()` remains the aggregation mechanism.
 
-## PRODUCTION SAFETY
+## NEXT GATE
 
-No Production mutation was performed.
+The next gate is **not** Production and is not a broad reconnaissance cycle.
 
-The live Production project was used only for read-only evidence queries during design validation.
-
-## EXPLICIT LIMITATION
-
-The branch has not been executed against a staging/dev database in this turn. Therefore no claim is made that the SQL migration is runtime-proven yet.
-
-## NEXT CONTROLLED GATE
+It is:
 
 ```text
-Static review
--> non-Production execution
--> test matrix PASS
--> deployment approval
--> Production deployment
--> Production verification
--> Implementation Reality Matrix update
+Resolve reopen-loading lifecycle contract
+-> Static Validation
+-> staging migration
+-> full runtime matrix
 ```
+
+No Runtime PASS is claimed.
