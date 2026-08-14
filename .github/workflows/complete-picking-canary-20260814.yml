@@ -1,0 +1,24 @@
+name: complete-picking HTTP canary
+on:
+  push:
+    branches: [main]
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke staging complete-picking canary
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --max-time 180 \
+            'https://hfzznsiprnwkpayskzhu.supabase.co/functions/v1/complete-picking-closure-canary-20260814?token=CP-CANARY-20260814' \
+            | tee result.json
+          python - <<'PY'
+          import json
+          with open('result.json') as f:
+              r=json.load(f)
+          assert r.get('success') is True, r
+          a=r.get('assertions',{})
+          required=['httpOk','success','qtyUnchanged','allocatedIncremented','runsheetPicked','orderDetailPicked','runSheetDetailPicked','noInventoryPickingLog','retryRejected']
+          assert all(a.get(k) is True for k in required), r
+          print(json.dumps(r,indent=2))
+          PY
