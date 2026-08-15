@@ -1,0 +1,43 @@
+name: start-picking real identity staging E2E
+on:
+  push:
+    branches: [main]
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start-picking staging legacy identity matrix
+        env:
+          SUPABASE_URL: https://hfzznsiprnwkpayskzhu.supabase.co
+          ANON_KEY: sb_publishable_xd6h0YBpVA1VmNH6A1LCXg_9DhF2ifh
+          FIX_URL: https://hfzznsiprnwkpayskzhu.supabase.co/functions/v1/start-picking-real-identity-e2e-20260815?token=SP-STAGE-ID-20260815
+          PASSWORD: Tmp-SP-StageId-20260815-Aa1!
+        run: |
+          python - <<'PY'
+          import json, os, time, urllib.request, urllib.parse, urllib.error
+          from concurrent.futures import ThreadPoolExecutor
+          BASE=os.environ['SUPABASE_URL']; ANON=os.environ['ANON_KEY']; FIX=os.environ['FIX_URL']; PASSWORD=os.environ['PASSWORD']
+          def req(url,method='GET',body=None,headers=None):
+              data=None if body is None else json.dumps(body).encode(); h=dict(headers or {})
+              if body is not None: h['Content-Type']='application/json'
+              try:
+                  r=urllib.request.urlopen(urllib.request.Request(url,data=data,method=method,headers=h),timeout=60); return r.status,json.loads(r.read().decode())
+              except urllib.error.HTTPError as e:return e.code,json.loads(e.read().decode())
+          def create(name,status='Open'):
+              email=f'sp-stage-{name}-{time.time_ns()}@example.invalid'; _,f=req(FIX+'&'+urllib.parse.urlencode({'mode':'create','status':status,'email':email})); assert f['success'],f; return f
+          def login(f):
+              code,a=req(BASE+'/auth/v1/token?grant_type=password','POST',{'email':f['email'],'password':PASSWORD},{'apikey':ANON}); assert code==200,a; return a['access_token']
+          def start(token,code):return req(BASE+'/functions/v1/start-picking','POST',{'runsheet_code':code},{'Authorization':'Bearer '+token})[1]
+          def verify(f):return req(FIX+'&'+urllib.parse.urlencode({'mode':'verify','email':f['email'],'runsheet_id':f['runsheet_id']}))[1]
+          def cleanup(f):req(FIX+'&'+urllib.parse.urlencode({'mode':'cleanup','email':f['email'],'auth_id':f['auth_id'],'runsheet_id':f['runsheet_id']}))
+          f=create('open','Open');t=login(f);r=start(t,f['runsheet_code']);assert r['success'],r;v=verify(f);assert v['runsheet']['status']=='Picking';assert v['runsheet']['picker_id']==f['public_user_id'];assert v['user']['id']!=f['auth_id'];assert v['user']['auth_id']==f['auth_id'];assert v['user']['company_id']==v['runsheet']['company_id'];assert v['stock']==f['baseline_stock'];cleanup(f)
+          f=create('confirmed','Confirmed');t=login(f);r=start(t,f['runsheet_code']);assert r['success'],r;v=verify(f);assert v['runsheet']['status']=='Picking';assert v['runsheet']['picker_id']==f['public_user_id'];assert v['stock']==f['baseline_stock'];cleanup(f)
+          f=create('duplicate');t=login(f);r1=start(t,f['runsheet_code']);r2=start(t,f['runsheet_code']);assert r1['success'];assert not r2['success'];cleanup(f)
+          f=create('concurrent');t=login(f)
+          with ThreadPoolExecutor(max_workers=2) as ex:a,b=ex.map(lambda _:start(t,f['runsheet_code']),[1,2])
+          assert sum(1 for r in (a,b) if r.get('success') is True)==1,(a,b);assert sum(1 for r in (a,b) if r.get('success') is False)==1,(a,b);v=verify(f);assert v['runsheet']['status']=='Picking';assert v['runsheet']['picker_id']==f['public_user_id'];assert v['stock']==f['baseline_stock'];cleanup(f)
+          f=create('wrong');t=login(f);r=start(t,'NONEXISTENT-RUNSHEET');assert not r['success'];cleanup(f)
+          f=create('missing');t=login(f);req(FIX+'&'+urllib.parse.urlencode({'mode':'cleanup','email':f['email'],'auth_id':f['auth_id'],'runsheet_id':f['runsheet_id']}));r=start(t,f['runsheet_code']);assert not r.get('success'),r
+          r=start('invalid-token','NONEXISTENT-RUNSHEET');assert r.get('success') is not True,r
+          print('START_PICKING_STAGING_REAL_IDENTITY_E2E_PASS')
+          PY
