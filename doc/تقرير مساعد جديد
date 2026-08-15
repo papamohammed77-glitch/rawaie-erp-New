@@ -1,369 +1,225 @@
-PROJECT AWARENESS REPORT
-RAWAEA ERP — Inventory Rescue / Production Reality
+FORENSIC INVENTORY RESCUE GAP REPORT
+RAWAEA ERP — Production + Git + Current/Original + PostgreSQL + Edge Runtime
 
-Mode: READ-ONLY AWARENESS
-Execution changes in this Awareness pass: NONE
-Production DDL/DML in this Awareness pass: NONE
-Git writes in this Awareness pass: NONE
+Scope: Forensic Discovery Sweep only
+Production modifications: NONE
+Git modifications: NONE
+Supabase migrations/deployments: NONE
 
-هذا التقرير لا يعتبر أي تقرير سابق مصدر حقيقة. ما أمكن إثباته من GitHub وProduction Supabase أُبقي كما هو، وما تعارض أو لم يثبت أبقيته صراحة تحت CONFLICT / UNKNOWN / UNVERIFIED / STALE.
-
-SELF-AUDIT
-Gate	Assessment
-Business Understanding	CONFIRMED — Inventory Rescue scope
-Architecture Understanding	CONFIRMED
-Database Understanding	CONFIRMED — operational schema/core
-Historical Understanding	CONFIRMED
-Production Understanding	HIGH / DIRECTLY VERIFIED
-Current Understanding	HIGH, with documented drift
-Execution Confidence	HIGH for Inventory Rescue; not 100% for entire ERP
+SELF-AUDIT — OPENING
+Dimension	Evidence Grade	Status
+Production project identity	A	Confirmed
+Production Edge inventory	A	Confirmed
+Staging Edge inventory	A	Confirmed
+PostgreSQL Inventory writers	A	Confirmed
+PostgreSQL triggers on stock tables	A	Confirmed: none found
+Current/Original repository structure	A	Confirmed
+Relevant Git branches	A	Confirmed
+Relevant Git commits	A/B	Confirmed where searched
+Migration inventory	A	Confirmed for current main tree
+PWA consumer mapping	B/C	Partially established; full consumer closure still open
+Production ↔ Current parity	B	Function-by-function, not globally closed
+Production ↔ Historical parity	B	Important transitions proven, but not every function
+Global single-writer proof	B	Strong, but not yet absolute
+Governance cleanup	A	Not closed — ACTIVE harness objects remain
 Confirmed Facts
-المشروع له مستودع تنفيذ رسمي rawaie-erp-New ومستودع تاريخي/reference rawaie-erp-review.
-Production Supabase الفعلية هي SMART ERP.
-هناك Core مركزي فعلي للمخزون، وCore منفصل للحجز.
-complete-picking في Production v13، وverify_jwt=true.
-complete_runsheet_picking وreserve_stock هما مسارا Picking/Reservation الأساسيان.
-Production الحالية تحتوي Core Loading/Unloading تستخدم post_stock_movement.
-Current وProduction ليسا متطابقين دائمًا.
-توجد Edge Functions تشغيلية كثيرة، بينها Inventory/Warehouse/Sales/Purchasing/Accounting.
-توجد مخاطر أمنية وGovernance مثبتة في Production.
-Unknowns
-خط Git الكامل القابل لإعادة إنتاج كل migrations المنشورة في Production 1:1.
-الـfull consumer-to-function map لكل PWA دون استثناء.
-الإغلاق الكامل لبعض Accounting boundaries.
-هل كل مؤشرات Runtime القديمة ما زالت صحيحة بعد أحدث migrations.
-الحالة النهائية لكل temporary E2E harness من ناحية Governance.
-بعض تفاصيل production authorization/business contracts خارج Inventory Rescue.
-Conflicts
-PLAN-STATUS-CURRENT.md متأخر عن Execution Ledger.
-بعض تقارير TASK-028 الأقدم تصف Loading كقرار غير محسوم، بينما Production الحالية تنفذ Loading/Unloading كحركة Physical فعلية.
-توجد snapshots متعارضة من Supabase حول حالة RLS لبعض الجداول.
-ظهرت أكثر من قائمة migration حديثة مختلفة قليلًا في أدوات القراءة؛ provenance النهائي يحتاج reconciliation مستقل.
-سجل الفروع الحالي لا يتطابق بالكامل مع أسماء الفروع التي ظهرت في السجلات الأقدم.
-Unverified Claims
-لا أعتبر المشروع كله 100% reconciled.
-لا أعتبر Global Physical Stock Writer Sweep مغلقًا.
-لا أعتبر كل Accounting/Ledger consequences موحدة ومثبتة.
-لا أعتبر كل Production Edge Function parity مع Git مكتملًا.
-1. BUSINESS MODEL
-
-RAWAEA هو ERP لتوزيع FMCG يعتمد على:
-
-Master Data
-    ↓
-Sales / Orders
-    ↓
-Runsheet
-    ↓
-Picking / Reservation
-    ↓
-Loading
-    ↓
-Vehicle / VAN Custody
-    ↓
-Delivery
-    ↓
-Returns
-    ↓
-Settlement / Accounting
-
-وتوجد مسارات أخرى متوازية:
-
-Purchasing
-→ Purchase Order
-→ Receiving
-→ Inventory
-
-
-POS / Sales / Telesales / Online
-→ Orders / Invoices
-→ Inventory / Accounting
-
-النظام ليس Inventory-only؛ Inventory هو قلب تشغيلي يتقاطع مع Sales, Purchasing, Delivery, Returns, Accounting, Driver Settlement.
-
-2. SYSTEM ARCHITECTURE
-
-الـArchitecture Constitution الحالية تحدد صراحة:
-
-Application
-    ↓
-Edge Capability
-    ↓
-Business Core / RPC
-    ↓
-PostgreSQL
-    ↓
-Triggers / Derived Data
-    ↓
-Accounting / Ledger / Fulfillment
 
-كما تمنع:
-
-Business Logic داخل UI.
-Duplicate Business Truth.
-Direct SQL من UI.
-Legacy deletion قبل migration/consumer transition.
-تعطيل RLS كحل بديل.
-
-وتعتبر Production implementation حالة مستقلة عن وجود Migration أو Git commit.
-
-3. INVENTORY MODEL
-Physical
-stock_branches.qty
-
-هو الرصيد الفيزيائي.
-
-Reservation
-stock_branches.allocated_qty
-
-هو الرصيد المحجوز.
-
-Available
-available_qty
-=
-qty - allocated_qty
-
-وهو Generated Column في Production.
-
-هذا مهم جدًا:
-
-Reservation ليست Physical Movement.
-
-وهذا ليس مجرد قرار داخلي؛ المفهوم نفسه متوافق مع نماذج ERP ناضجة. SAP يميز صراحة بين reservation وبين goods issue/stock transfer؛ reservation تحفظ الكمية لغرض لاحق، بينما movement/posting هو الذي ينفذ الحركة الفعلية.
-
-4. FULFILLMENT LIFECYCLE
-
-Production الحالية تحتوي الحقول التي تبني lifecycle واضحًا:
-
-Open
-→ Picking
-→ Picked
-→ Loading
-→ Loaded
-→ Delivery
-→ Delivered
-→ Return / Settlement
-
-والـRunsheet يحوي:
-
-picker
-loader
-deliverer
-return_handler
-vehicle
-driver
-phase timestamps
-loading_cycle_id
-
-وorder_details يحتوي:
-
-qty
-qty_picked
-qty_loaded
-qty_delivered
-qty_refused
-qty_returned
-
-كما توجد:
-
-fulfillment_backorders
-
-لتمثيل fulfillment remainder.
-
-نقطة مهمة
-
-run_sheet_details ليس هو طبقة الحقيقة الأساسية للـorder quantity.
-
-الأدلة الحالية تثبت وجود trigger:
-
-order_details
-→ sync_run_sheet_details()
-→ run_sheet_details
-
-لذلك يجب التعامل مع run_sheet_details كـderived operational aggregate حيث ينطبق ذلك.
-
-5. CUSTODY MODEL
-
-القرارات النافذة المثبتة في سجلات المشروع:
-
-Vehicle ≠ Representative
-
-
-Vehicle
-= mobile stock container / operating unit
-
-
-Representative
-= accountable custodian
-
-والحركات:
-
-DirectSale
-MAIN → VAN
-
-
-VanSale
-VAN → Customer
-
-
-DirectReturn
-VAN → MAIN
-
-
-SupplierReturn
-Branch/Warehouse → Supplier
-
-كما تم تثبيت أن:
-
-Loading ≠ DirectSale
-Unloading ≠ Customer Return
-
-وهذا مهم جدًا لأنه منع historically خطأ double deduction في VAN flow.
-
-6. ACCOUNTING MODEL
-
-Production تحتوي بنية Accounting حقيقية:
-
-chart_of_accounts
-journal_entries
-journal_lines
-treasury
-cash_box
-
-
-customer_ledger
-supplier_ledger
-driver_ledger
-daily_settlements
-
-والـArchitecture Constitution تحدد العلاقة:
-
-Inventory Event
-    ↓
-Accounting Impact
-    ↓
-Ledger
-
-لا العكس.
-
-ما تم إثباته
-
-التاريخ القديم كان يضع Accounting داخل بعض Edge Functions، خصوصًا Loading.
-
-لكن الـProduction Core الحديثة لا تعني تلقائيًا أن كل Accounting boundaries أصبحت موحدة.
-
-لذلك:
-
-Accounting architecture = موجودة ومفهومة بنيويًا، لكن full event-by-event provenance ما زال جزءًا مفتوحًا من مشروع الإنقاذ.
-
-ومن منظور الصناعة، هذا الفصل ليس غريبًا: Odoo مثلًا يربط inventory valuation بالحركات المخزنية، لكن التوقيت المحاسبي يتغير حسب سياسة valuation/accounting configuration؛ أي أن physical stock event وaccounting recognition event ليسا بالضرورة نفس الحدث في كل نظام أو إعداد.
-
-7. APPLICATIONS MAP
-
-المنظومة الحالية تحتوي عائلات تطبيقات تشمل:
-
-Sales
-POS
-Telesales
-Order Taker
-Sales Manager
-Van Sales
-Online Store
-Warehouse
-Picking
-Loading
-Unloading
-Stock Vouchers
-Inventory Count
-Adjustments
-Delivery
-Driver / Delivery
-Runsheet
-Order Delivery
-Returns
-Purchasing
-Buyer / Purchase
-Receiving
-Office
-Accountant
-Supervisor / Manager
-Administration
-Master Data
-Operational applications
-tracking
-warehouse workflows
-management/reporting
-
-Important: القائمة الوظيفية واضحة، لكن consumer mapping الكامل PWA → exact Edge → payload → response لكل تطبيق لم يُغلق على مستوى النظام بالكامل بعد.
-
-8. EDGE FUNCTIONS MAP
-
-Production تضم طبقات واسعة.
-
-Inventory / Voucher
-create-stock-voucher
-send-stock-voucher
-receive-stock-voucher
-complete-stock-voucher
-cancel-stock-voucher
-bulk-stock-adjustment
-save-inventory-count
-seed-stock-branches
-Picking / Runsheet
-create-runsheet
-append-to-runsheet
-start-picking
-complete-picking
-cancel-picking
-reopen-picking
-Loading
-start-loading
-complete-loading
-cancel-loading
-reopen-loading
-Unloading
-unload-runsheet
-cancel-unload
-Delivery
-start-delivery
-complete-delivery
-start-order-delivery
-complete-order-delivery
-cancel-order-delivery
-save-delivery-item
-Returns
-start-return
-complete-return
-cancel-return
-reopen-return
-Sales / Orders
-save-sales-invoice
-confirm-order
-update-order
-delete-order
-submit-online-order
-create-credit-note
-Purchasing
-save-purchase-order
-start-receiving
-receive-purchase
-cancel-receiving
-reopen-receiving
-Accounting
-save-journal-entry
-save-receipt-voucher
-save-payment-voucher
-save-transfer-voucher
-update-driver-ledger
-save-daily-settlement
-
-and reporting functions for trial balance / P&L / balance sheet / cash flow / cost center.
-
-9. CORE BUSINESS ENGINES
-Central Physical Movement
-post_stock_movement
-
-Production implementation currently supports:
+Production Supabase is:
+
+SMART ERP
+ref = fiilmooggumokxanwiyx
+PostgreSQL 17.6.1.121
+eu-west-1
+ACTIVE_HEALTHY
+
+Staging is a separate project:
+
+rawaea-staging
+ref = hfzznsiprnwkpayskzhu
+PostgreSQL 17.6.1.155
+eu-central-1
+ACTIVE_HEALTHY
+
+The current Git repository rawaie-erp-New has these relevant branches:
+
+main
+inventory-rescue-20260815
+inventory-rescue-receive-20260815
+task-028-loading-unloading-refactor
+cto/backup-cto-v1
+cto/curated-baseline-v1
+recovery/cto-curated-baseline
+
+The historical repository rawaie-erp-review has:
+
+main
+agent/inventory-send-stock-voucher-atomic
+rescue/manual-vouchers-inventory-core
+
+The current repository explicitly contains separate Current, Original, Evidence, SQL_Evidence, CTO, Governance, Rescue, and supabase/migrations areas.
+
+Critical Unknowns
+A full consumer matrix for every PWA call has not yet been proven line-by-line.
+A mathematically complete proof that no dynamic SQL or externally-generated SQL can mutate Inventory remains open.
+Full historical-to-production source ancestry for every Inventory-related Edge Function is not closed.
+Git main contains only three current migration files; this does not by itself prove that those three files reproduce all historical Production migrations.
+Critical Conflicts
+Production versions are ahead of some repository source snapshots.
+Historical/current documentation is behind the actual Production runtime in multiple places.
+Production currently contains multiple ACTIVE test/harness/canary functions.
+A Git SHA and Supabase ezbr_sha256 are different evidence types; they must not be conflated.
+1. PRODUCTION REALITY INVENTORY
+1.1 Runsheet / Picking / Loading / Unloading
+Function	Version	Status	Runtime SHA (ezbr_sha256)	JWT
+create-runsheet	22	ACTIVE	8050b2…def6f0	ON
+append-to-runsheet	5	ACTIVE	f567a0…45d520	ON
+start-picking	29	ACTIVE	f630a3…abc3ed	OFF
+complete-picking	13	ACTIVE	ca595c…9ca036**	ON
+cancel-picking	4	ACTIVE	e8013e…cdc5c66	ON
+reopen-picking	7	ACTIVE	0a8f2e…086ad2c	ON
+start-loading	4	ACTIVE	14509f…a3c381	ON
+complete-loading	10	ACTIVE	5caaf1…451116	ON
+cancel-loading	5	ACTIVE	65fdfe…7c0c89	ON
+reopen-loading	2	ACTIVE	89cac4…58350	ON
+unload-runsheet	5	ACTIVE	1fc2d2…d98a0	ON
+cancel-unload	1	ACTIVE	c8558f…80e749	ON
+Purpose
+create-runsheet: creates operational runsheets.
+append-to-runsheet: assigns additional orders/items.
+start-picking: enters picking phase.
+complete-picking: commits picked quantities/reservation through the Picking Core.
+cancel-picking: cancels picking lifecycle.
+reopen-picking: reopens picking state.
+start-loading: opens loading lifecycle.
+complete-loading: completes loading through the Loading Core.
+cancel-loading: cancels loading lifecycle.
+reopen-loading: reverses/reopens loading lifecycle.
+unload-runsheet: completes unloading/reconciliation.
+cancel-unload: cancels unloading lifecycle.
+
+The production complete-picking source confirms that it authenticates the caller, establishes company context, normalizes the item payload, and delegates the operation to:
+
+complete_runsheet_picking
+
+rather than directly manipulating stock_branches.
+
+The same architectural pattern is confirmed in Production complete-loading: the Edge function validates the request and delegates to complete_runsheet_loading. It does not directly update stock_branches.
+
+1.2 Delivery
+Function	Version	Status
+start-delivery	6	ACTIVE
+complete-delivery	3	ACTIVE
+cancel-delivery	5	ACTIVE
+save-delivery-item	4	ACTIVE
+start-order-delivery	1	ACTIVE
+complete-order-delivery	11	ACTIVE
+cancel-order-delivery	5	ACTIVE
+
+Primary responsibilities:
+
+Runsheet delivery lifecycle
+Order delivery lifecycle
+Delivered/refused quantities
+Delivery-level state transitions
+
+These are Inventory-adjacent rather than automatically Inventory writers. The physical stock impact must be proven from their RPC dependencies, not inferred from the name.
+
+1.3 Returns
+Function	Version	Status
+start-return	3	ACTIVE
+complete-return	23	ACTIVE
+cancel-return	2	ACTIVE
+reopen-return	1	ACTIVE
+
+These own the Return lifecycle. Their exact Physical Stock responsibility must be attributed to their invoked Core/RPC, not to the Edge name.
+
+1.4 Stock Vouchers
+Function	Version	Status
+create-stock-voucher	3	ACTIVE
+send-stock-voucher	7	ACTIVE
+receive-stock-voucher	5	ACTIVE
+complete-stock-voucher	3	ACTIVE
+cancel-stock-voucher	3	ACTIVE
+
+Production send-stock-voucher is a thin adapter:
+
+request
+→ auth
+→ company context
+→ send_stock_voucher_atomic
+→ response
+
+It does not directly mutate stock_branches or inventory_log.
+
+Its Production runtime identity is:
+
+version 7
+ACTIVE
+ezbr_sha256 =
+bbaef70911f21a6e301d6ac389ed13484b438bb71cdaf8c3c90bf830394dd1d9
+1.5 Purchasing
+Function	Version	Status
+save-purchase-order	2	ACTIVE
+start-receiving	1	ACTIVE
+receive-purchase	9	ACTIVE
+cancel-receiving	1	ACTIVE
+reopen-receiving	1	ACTIVE
+
+The important Physical Stock boundary is receive-purchase, not save-purchase-order.
+
+1.6 Sales / Orders
+Function	Version	Status
+save-sales-invoice	13	ACTIVE
+confirm-order	3	ACTIVE
+update-order	2	ACTIVE
+delete-order	7	ACTIVE
+submit-online-order	6	ACTIVE
+create-credit-note	1	ACTIVE
+
+save-sales-invoice is a major Inventory-risk function and remains one of the high-priority writer candidates.
+
+1.7 Inventory Adjustment
+Function	Version	Status
+bulk-stock-adjustment	5	ACTIVE
+save-inventory-count	1	ACTIVE
+seed-stock-branches	2	ACTIVE
+setup-van-branch	1	ACTIVE
+
+bulk-stock-adjustment delegates to a Production DB Core:
+
+post_inventory_adjustment_atomic
+→ post_stock_movement
+
+This is a confirmed Central Movement path.
+
+2. GLOBAL PHYSICAL STOCK WRITER SWEEP
+
+I performed the Production PostgreSQL source sweep against actual function definitions.
+
+The exact public functions whose stored source directly references:
+
+stock_branches
+inventory_log
+
+are:
+
+Function	Classification	Evidence
+post_stock_movement	Central Movement	Direct UPDATE stock_branches + INSERT inventory_log
+reserve_stock	Reservation	Direct UPDATE allocated_qty
+release_stock_reservation	Reservation	Direct UPDATE allocated_qty
+post_inventory_adjustment_atomic	Orchestrator	Calls post_stock_movement
+complete_runsheet_reopen_loading	Orchestrator	Calls post_stock_movement('Unloading', …)
+setup_van_stock	Initialization	Inserts missing stock_branches rows
+complete_runsheet_loading / related loading Core references	Central Core path	Production loader delegates into Core chain
+
+The key Production post_stock_movement definition explicitly:
+
+UPDATE public.stock_branches
+...
+INSERT INTO public.inventory_log
+...
+
+and accepts a closed list of movement types including:
 
 PurchaseIn
 TransferOut
@@ -380,595 +236,775 @@ InventoryDecrease
 Loading
 Unloading
 
-مع idempotency key إلزامي لـLoading/Unloading.
+It also performs company-context checks, row locking, availability checks, and idempotency handling.
 
-Reservation
-reserve_stock
-
-ويقوم بالحجز عبر allocated_qty وليس qty.
-
-Picking Core
-complete_runsheet_picking
-
-المسار الحالي:
-
-complete-picking
-→ auth
-→ company context
-→ complete_runsheet_picking
-→ reserve_stock
-→ order_details
-→ derived runsheet details
-Voucher Core
-
-هناك عائلة RPCs لإدارة:
-
-create
-send
-receive
-complete
-cancel
-
-وتوجد عمليات atomic مخصصة لبعض المسارات.
-
-Loading Core
-
-Production الحالية تحتوي:
-
-start_runsheet_loading
-complete_runsheet_loading
-cancel_runsheet_loading
-complete_runsheet_reopen_loading
-Unloading Core
-complete_runsheet_unloading
-
-وهذا هو الوضع الحالي، وليس التقرير التاريخي.
-
-10. SOURCE-OF-TRUTH HIERARCHY
-
-هناك محوران يجب الفصل بينهما:
-
-Business / Intent Authority
-Owner Decision
-→ Active Contract / ADR
-→ Architecture Constitution
-Runtime Authority
-Production DB
-→ Deployed Edge
-→ Runtime Evidence
-→ Current Source
-→ Original / Historical
-→ Reports
-
-السبب:
-
-قد يكون هناك:
-
-Owner intended X
-Production currently does Y
-
-وفي هذه الحالة لا نحذف Y من التاريخ ونقول إن X هو الواقع.
-
-هذا منصوص عليه مباشرة في Constitution.
-
-11. HISTORICAL EVOLUTION
-
-المسار التاريخي الذي يمكن إثباته من Git وCTO records هو تقريبًا:
-
-Legacy Distributed Business Logic
-        ↓
-Inventory forensic analysis
-        ↓
-Central Stock Engine design
-        ↓
-post_stock_movement
-        ↓
-reserve_stock
-        ↓
-Voucher centralization
-        ↓
-DirectSale / VAN custody correction
-        ↓
-Picking Core
-        ↓
-Loading / Unloading Core
-        ↓
-Consumer rewiring
-
-الـGit history نفسه يحتوي checkpoints واضحة:
-
-business semantics forensics
-distributed logic risk map
-historical failure forensics
-historical edge catalog
-TASK-027 implementation reality
-TASK-028 evidence gate
-TASK-028 contract reconciliation
-rescue reconciliation
-send-stock-voucher source alignment
-
-وهذه evolution موثقة في commits متعددة، وليست مستنتجة من اسم المشروع فقط.
-
-12. KNOWN DEFECTS
-Confirmed / Historical
-Distributed inventory writers
-
-كان هناك direct mutation داخل Edge Functions، وأبرز مثال سابقًا:
-
-send-stock-voucher
-
-كان يكتب:
-
-stock_branches.qty
+Important result
+No Production trigger was found on:
+stock_branches
 inventory_log
 
-مباشرة.
+The complete Production non-internal trigger inventory showed no trigger attached to either table.
 
-وهذا تم تصحيحه في Current rescue source، بينما Production كانت بالفعل على Core adapter.
+This is significant:
 
-Double custody risk
+There is currently no hidden stock mutation trigger operating on those tables in Production.
 
-كان هناك خطر:
+The only relevant trigger affecting the warehouse domain found in Production is:
 
-MAIN deduction
-+
-VAN deduction / sale
+order_details
+→ trg_sync_run_sheet_details
+→ sync_run_sheet_details()
 
-وتم تصحيح DirectSale/VAN semantics في TASK-027.
+which is a derived-data synchronization trigger, not a physical stock writer.
 
-Production / Git drift
-
-موجود فعليًا.
-
-Security-definer exposure
-
-Production ما زالت تحتوي مجموعة RPCs مركزية حساسة يمكن استدعاؤها من anon و/أو authenticated حسب الـcurrent grants.
-
-complete_runsheet_picking تحديدًا أصبح حاليًا:
-
-anon             DENIED
-authenticated    DENIED
-service_role     ALLOWED
-
-وهذا Existing Fix، وليس Finding مفتوحًا الآن.
-
-13. EXISTING FIXES
-Confirmed
-complete-picking
-
-Production:
-
-v13
-JWT = enabled
-thin adapter
-
-والـCore مسؤول عن reservation بدل Edge.
-
-send-stock-voucher
-
-تم نقل المسؤوليات من Edge:
-
-stock update
-inventory log
-voucher state
-
-إلى:
-
-send_stock_voucher_atomic
-→ post_stock_movement
-
-والـCurrent rescue branch alignment تم تسجيله في commit حديث.
-
-DirectSale / VAN
-
-تم تثبيت:
-
-MAIN → VAN
-
-مع VAN stock initialization والتصحيح النهائي في TASK-027.
-
-Loading / Unloading
-
-Production الحالية تتضمن Core فعلية تستخدم:
-
+3. CLASSIFICATION OF THE PRODUCTION WRITERS
+3.1 CENTRAL MOVEMENT
 post_stock_movement
 
-وليس الـhistorical direct Edge model.
+Status: Production Core
+Classification: CENTRAL MOVEMENT
 
-complete_runsheet_picking security
+This is the primary physical movement engine.
 
-Current Production grants الآن مقيدة إلى:
+It owns:
 
-service_role
+stock_branches.qty
+stock_branches.allocated_qty
+inventory_log
+idempotency
+company boundary
+availability validation
 
-مع SECURITY DEFINER وsearch_path=public.
+This is exactly the responsibility we wanted centralized.
 
-تنبيه: هذا الإصلاح حدث قبل/أثناء العمل السابق؛ لا أعتبره نتيجة Awareness pass الحالية.
+3.2 RESERVATION
+reserve_stock
+allocated_qty += qty
 
-14. OPEN RISKS
-P0 / Architecture & Governance
-Global Physical Stock Writer proof
+No Physical qty movement.
 
-وجود post_stock_movement لا يثبت وحده أن لا يوجد أي parallel writer آخر في كامل النظام.
+release_stock_reservation
+allocated_qty -= qty
 
-ما زال يحتاج sweep شامل على:
+No Physical qty movement.
 
-RPC
-Edge
-Triggers
-direct SQL
-legacy paths
-Production ↔ Git reproducibility
-
-Production تحتوي migration lineage أكثر تقدمًا من بعض Git snapshots.
-
-لا تزال هناك فجوة provenance.
-
-Temporary E2E harnesses
-
-Production لديها Functions خاصة بالـcanary/harness مع حالات نشر مستقلة، وبعضها يظهر verify_jwt=false.
-
-وجودها الفعلي يعني أن:
-
-حذف workflow من Git ≠ حذف runtime harness من Production.
-
-وهذا Governance debt حقيقي.
-
-Security advisor
-
-Production advisor يرصد:
-
-RLS/user_metadata policy issues.
-SECURITY DEFINER exposure.
-leaked-password protection disabled.
-multiple permissive policies.
-RLS initialization-plan inefficiency.
-
-هذه findings حقيقية، لكن لا تعني أنني سأعالجها الآن؛ Awareness phase هدفها معرفة الصورة.
-
-15. PRODUCTION REALITY
-
-Production SMART ERP على PostgreSQL 17.x.
-
-النظام الحالي يحتوي فعليًا على:
-
-Companies
-Branches
-Users
-Items
-Customers
-Suppliers
-Orders
-Order Details
-Runsheets
-Run Sheet Details
-Stock Branches
-Inventory Log
-Stock Vouchers
-Voucher Details
-Receiving
-Purchase Orders
-Fulfillment Backorders
-Accounting
-Ledgers
-Treasury
-Settlement
-Audit
-Workflow
-
-ويظهر في Production وجود:
-
-company_id
-
-كمحور multi-tenant في غالبية الـdomain tables مع FKs إلى companies.
-
-كما أن users يرتبط بـauth.users عبر auth_id، ويحتوي:
-
-company_id
-role
-role_id
-default_branch_id
-allowed_branch_ids
-
-وهي عناصر رئيسية في authorization/tenant architecture.
-
-16. GIT / PRODUCTION DRIFT
-
-هذه من أهم نتائج Awareness.
-
-Drift #1
-PLAN-STATUS-CURRENT
-≠
-Latest execution ledger
-
-الـPLAN-status القديم STALE.
-
-Drift #2
-Current main receive-stock-voucher
-≠
-Production receive-stock-voucher
-
-Production متقدمة عن main في هذا المسار.
-
-Drift #3
-Historical TASK-028 report
-≠
-Current Production Loading behavior
-
-Production الحالية تنفذ:
-
-MAIN → VAN
-VAN → MAIN
-
-عبر Core.
-
-Drift #4
-
-بعض snapshots السابقة كانت تصف Production functions بإصدارات أقدم من الإصدارات التي تظهرها Production الآن.
-
-خصوصًا start-picking:
-
-Production الحالية التي تم اكتشافها هي v29، وليس الإصدارات الأقدم الواردة في بعض التقارير.
-
-Drift #5
-
-Supabase metadata/advisor snapshots حول RLS ليست متطابقة:
-
-list_tables الأخير يعرض كثيرًا من الجداول بـRLS enabled.
-Security advisor ما زال يرصد بعضها كـRLS disabled.
-
-هذا Conflict حقيقي يجب عدم تسويته بالحدس.
-
-17. DECISIONS ALREADY MADE
-
-هذه لا يجب إعادة فتحها دون evidence أحدث:
-
-Vehicle ≠ Representative
-
-
-Vehicle = mobile stock container
-
-
-Representative = accountable custodian
-
-
-DirectSale = MAIN → VAN
-
-
-VanSale = VAN → Customer
-
-
-DirectReturn = VAN → MAIN
-
-
-SupplierReturn = Branch/Warehouse → Supplier
-
-
-Picking = Reservation
-Picking ≠ Physical Movement
-
-
-Original = immutable reference
-
-
-Current = development source
-
-
-Production = runtime authority
-
-كذلك:
-
-Duplicate Physical Stock Engine = defect.
-
-و:
-
-UI ليس Business Logic owner.
-
-هذه قرارات معمارية ثابتة في Constitution.
-
-18. DECISIONS STILL REQUIRED
-
-ليس لدينا الآن سؤال واحد فقط.
-
-هناك مجموعات قرارات ما زالت تحتاج حسمًا أو provenance:
-
-Loading
-
-Production behavior الحالي واضح:
-
-
-
-
-لكن provenance الدقيق لآخر Owner/ADR authorization لهذا الانتقال يحتاج ربطًا أقوى من التقرير القديم.
-
-Partial Loading
-
-القدرة التنفيذية موجودة، لكن contract الكامل لكل حالات partial/remainder يحتاج إثباتًا موحدًا.
-
-Accounting boundary
-
-خصوصًا:
-
-vs
-VanSale
-vs
-Delivery
-
-متى يكون الحدث المحاسبي recognition boundary؟
-
-Backorder boundary
-
-Production الحالية تنشئ وتحافظ على fulfillment_backorders أثناء Loading.
-
-لكن business contract الكامل لهذا الحدث يجب ألا يُستنتج من code فقط.
-
-Security governance
-
-هل الـRPCs المركزية يجب أن تكون كلها:
-
-
-
-
-أم توجد حالات استثنائية؟ هذا يحتاج contract-level reconciliation، لا مجرد security-linter decision.
-
-19. INDUSTRY BENCHMARK
-
-المعايير الناضجة التي راجعتها تدعم المبادئ الأساسية الموجودة في RAWAEA:
-
-Reservation ≠ Movement
-
-SAP يفرق بوضوح بين Reservation وبين Goods Issue، ويستخدم reservation كوسيلة لحجز/تخطيط الكمية قبل التنفيذ الفعلي.
-
-Transfer ≠ مجرد تغيير حالة
-
-SAP يعامل stock transfer كحركة بين organizational units وقد تكون one-step أو two-step، مع material movement فعلي.
-
-Inventory and Accounting boundaries يجب أن تكون صريحة
-
-Odoo يوثق أن inventory valuation يمكن أن تكون manual/periodic أو automated/perpetual، ما يؤكد أن inventory movement وaccounting recognition timing يجب تعريفهما كسياسة صريحة، لا افتراضهما من وجود حركة مخزنية فقط.
-
-RAWAEA alignment
-
-هذا يدعم معماريًا:
+This cleanly establishes:
 
 Reservation
 ≠
 Physical Movement
+3.3 INITIALIZATION
+setup_van_stock
 
-ويدعم كذلك عدم وضع accounting side-effects اعتباطيًا داخل كل operational event.
+It creates missing zero-balance stock_branches rows for a VAN branch.
 
-20. RECOMMENDED EXECUTION ORDER
+It does not represent a movement event and does not write inventory_log.
 
-بناءً على الحالة الفعلية وليس ترتيب ملفات قديمة:
+Therefore:
 
-1. Finish complete-picking evidence reconciliation
-        ↓
-2. Finalize send-stock-voucher source/runtime parity
-        ↓
-3. receive-stock-voucher
-        ↓
-4. receive-purchase
-        ↓
-5. bulk-stock-adjustment
-        ↓
-6. save-sales-invoice
-        ↓
-7. complete-return
-        ↓
-8. complete-order-delivery
-        ↓
-9. GLOBAL PHYSICAL STOCK WRITER SWEEP
-        ↓
-10. Accounting / Ledger reconciliation
-        ↓
-11. Security / Governance hardening
-        ↓
-12. Final Production closeout
+INITIALIZATION
 
-لكن هذا execution sequence وليس تنفيذًا تم في Awareness.
+not a stock-movement writer.
 
-21. CURRENT PROJECT STATE — EXECUTIVE VIEW
-RAWAEA ERP
-│
-├── Architecture
-│   └── Strong governance foundation
-│
-├── Inventory Core
-│   ├── post_stock_movement
-│   └── reserve_stock
-│
-├── Voucher Core
-│   ├── Create
-│   ├── Send
-│   ├── Receive
-│   ├── Complete
-│   └── Cancel
-│
-├── Fulfillment
-│   ├── Runsheet
-│   ├── Picking
-│   ├── Loading
-│   ├── Unloading
-│   ├── Delivery
-│   └── Return
-│
-├── Sales
-├── Purchasing
-├── Accounting
-├── Ledgers
-├── Treasury
-└── Settlement
+3.4 ORCHESTRATORS
+post_inventory_adjustment_atomic
 
-والفارق الرئيسي الآن ليس:
+It determines:
 
-"هل توجد Architecture؟"
+deduct
+replace
 
-بل:
+then calls:
 
-هل كل Runtime responsibility أصبحت مرتبطة بمصدر واحد قابل لإعادة الإنتاج ومثبت في Production؟
 
-وهنا لا تزال هناك ديون reconciliation.
+
+
+Therefore:
+
+
+
+
+not a competing Physical Stock Engine.
+
+complete_runsheet_reopen_loading
+
+It calls:
+
+
+
+
+Therefore:
+
+
+
+
+not a competing movement engine.
+
+4. IMPORTANT LIMIT OF THE WRITER SWEEP
+
+The PostgreSQL search proves the stored-source functions above.
+
+It does not yet establish a universal mathematical theorem that no external component can issue arbitrary direct SQL against:
+
+inventory_log
+
+outside those stored functions.
+
+That requires a separate application/consumer/security/API sweep.
+
+Therefore the correct status is:
+
+SINGLE-WRITER ARCHITECTURE: STRONGLY PROVEN, NOT YET 100% CLOSED
+
+I will not falsely label this 100%.
+
+5. SOURCE RECONCILIATION
+post_stock_movement
+Historical
+
+Git history proves its central implementation was introduced explicitly by:
+
+TASK-014:
+add central post_stock_movement implementation with transactional verification
+
+Commit:
+
+170df08da029bf84c6fdf7a6743404e67bb0452c
+
+dated August 12, 2026.
+
+Original
+
+The Original application layer contained distributed responsibility in multiple Edge Functions.
+
+That is the problem the rescue architecture was created to remove.
+
+Current
+
+Current architecture contains the Core-driven adapters and supporting rescue sources.
+
+Production
+
+Production contains the actual Core function and it is being called by downstream functions.
+
+Verdict
+Historical → Current → Production
+CENTRALIZATION = IMPLEMENTED
+
+but the final global writer proof remains open.
+
+6. send-stock-voucher
+Historical / Original
+
+The repository contains:
+
+Original/Edge Functions/send-stock-voucher
+
+with SHA:
+
+811f458...
+
+and Current contains:
+
+Current/Edge_Functions/send-stock-voucher
+
+SHA:
+
+
+
+
+The tree also contains:
+
+Current/Edge_Functions/inventory/send-stock-voucher.ts
+
+The Current tree itself therefore shows a transition/reorganization of this capability.
+
+Production
+
+Production v7 calls:
+
+send_stock_voucher_atomic
+
+directly.
+
+Result
+Distributed legacy logic
+        ↓
+Atomic Voucher Core
+        ↓
+post_stock_movement
+Classification
+IMPLEMENTED / PRODUCTION VERIFIED
+
+This is one of the strongest closures in the rescue.
+
+7. complete-picking
+Original
+
+Original implementation:
+
+Original/Edge Functions/complete-picking.ts
+
+size:
+
+
+
+Current
+
+Current implementation is:
+
+Current/Edge_Functions/complete-picking
+
+size:
+
+
+
+
+and is explicitly an adapter to:
+
+
+
+
+This is a measurable responsibility reduction in the Edge layer.
+
+Production
+
+Production:
+
+ACTIVE
+JWT ON
+
+and source matches the thin-adapter pattern.
+
+Verdict
+CENTRALIZATION IMPLEMENTED + PRODUCTION VERIFIED
+
+This is materially stronger than "documented as fixed."
+
+8. LOADING / UNLOADING
+
+The current repository contains:
+
+Current/Edge_Functions/complete-loading
+Current/Edge_Functions/unload-runsheet
+Original/Edge Functions/complete-loading
+Original/Edge Functions/unload-runsheet
+
+with the same historical/current source objects retained for provenance.
+
+Production now has:
+
+unload-runsheet v5
+
+and complete-loading itself delegates to:
+
+
+
+
+Therefore:
+
+Production Loading is already Core-oriented.
+
+This is a critical correction to older historical TASK-028 descriptions.
+
+9. MIGRATION PROVENANCE
+
+The current main migration directory contains exactly three migration files:
+
+20260811_add_stock_voucher_completed_by.sql
+
+
+20260813_task019_receive_manual_stock_voucher_v2.sql
+
+
+20260815_cancel_picking_trigger_and_legacy_branch_fix.sql
+
+The tree is complete and reports truncated=false.
+
+Migration roles
+20260811_add_stock_voucher_completed_by.sql
+
+Purpose:
+
+stock_vouchers.completed_by
+
+This is metadata/audit support, not creation of the central Inventory engine.
+
+20260813_task019_receive_manual_stock_voucher_v2.sql
+
+Purpose:
+
+Core receive path
+
+This belongs to the voucher reconciliation stream.
+
+20260815_cancel_picking_trigger_and_legacy_branch_fix.sql
+
+This is a very important recent reconciliation migration.
+
+Its name proves that the team had to correct both:
+
+legacy branch handling
+
+This is also direct evidence that historical structural debt still existed immediately before/through August 15.
+
+10. FINAL PRODUCTION DB STATE
+
+The final Production state is not derived from migration filenames.
+
+Direct PostgreSQL inspection proves the following live state:
+
+├── qty
+├── allocated_qty
+└── available_qty = qty - allocated_qty
+
+
+inventory_log
+├── movement_type
+├── qty
+├── reference
+└── idempotency_key
+
+Core functions live in public and use SECURITY DEFINER.
+
+The primary movement engine is:
+
+post_stock_movement()
+
+and the primary reservation engines are:
+
+reserve_stock()
+release_stock_reservation()
+
+No direct stock trigger currently operates underneath these tables.
+
+11. GOVERNANCE SWEEP
+
+This produced the clearest open Governance finding.
+
+PRODUCTION — ACTIVE HARNESSES
+
+The following are still ACTIVE in Production:
+
+start-picking-production-harness v3
+cp-prod-auth-canary-20260814 v2
+cp-prod-fixture-canary-20260814 v2
+start-picking-e2e-fixture-20260815 v2
+start-picking-real-identity-e2e-20260815 v3
+
+Some have:
+
+
+
+
+This is not a theoretical concern.
+
+They are present in the current Production Edge inventory.
+
+Therefore:
+
+NOT DELETED
+
+No retired or deleted classification is permitted.
+
+12. STAGING — ACTIVE HARNESSES
+
+Staging additionally contains:
+
+task028-http-e2e-harness-20260814 v8
+start-picking-closure-harness v6
+task-inv-send-voucher-harness v2
+complete-picking-closure-canary-20260814 v3
+cp-auth-canary-20260814 v2
+cp-fixture-canary-20260814 v4
+start-picking-e2e-fixture-20260815 v3
+start-picking-real-identity-e2e-20260815 v2
+
+Several are:
+
+
+
+
+Again:
+
+
+
+
+This is a direct Governance debt register entry.
+
+13. CONSUMER SWEEP
+
+The repository tree proves that the current system has a centralized PWA:
+
+
+
+
+with size approximately:
+
+
+
+
+while Original contains a much broader PWA decomposition:
+
+    delivery/
+    office/
+    purchasing/
+    sales/
+    store/
+    warehouse/
+
+including:
+
+warehouse/loader.html
+warehouse/unloader.html
+warehouse/returns.html
+warehouse/vouchers.html
+sales/pos.html
+sales/van-sales.html
+sales/telesales.html
+sales/order-taker.html
+purchasing/buyer.html
+
+This proves the consumer surface is much larger than one UI file.
+
+What is proven
+
+The system has multiple historical consumers for Inventory/Warehouse capabilities.
+
+What is not yet 100% proven
+
+A full current matrix:
+
+→ exact Edge function
+→ exact endpoint
+→ exact payload
+→ exact expected response
+
+for every Inventory/Warehouse operation.
+
+The repository search index is unavailable for this repository, so I will not fabricate a complete consumer matrix from incomplete search results.
+
+Therefore:
+
+CONSUMER SWEEP = OPEN
+
+but it is a known, bounded gap—not a blocker to continue investigating later.
+
+14. OUTSTANDING DEBT REGISTER
+A. 100% CLOSED
+A1 — Central Physical Movement Core exists
+
+
+
+Evidence: live Production PostgreSQL source.
+
+A2 — Reservation separated from Physical Movement
+release_stock_reservation
+
+Evidence: live Production PostgreSQL source.
+
+A3 — complete-picking Edge responsibility reduced
+
+Current → complete_runsheet_picking.
+
+Evidence: Current Git source + Production v13 source.
+
+A4 — send-stock-voucher Edge responsibility reduced
+
+Production → send_stock_voucher_atomic.
+
+Evidence: Production runtime source.
+
+A5 — No Production stock trigger
+
+No non-internal trigger exists on:
+
+inventory_log
+
+Evidence: direct PostgreSQL catalog inspection.
+
+B. IMPLEMENTED BUT NOT FULLY VERIFIED
+B1 — Global single Physical Stock writer
+
+Strong core evidence exists.
+
+Still requires:
+
+RPC caller sweep
+all historical/current Edge sweep
+consumer sweep
+B2 — All Inventory Adjustments
+
+bulk-stock-adjustment routes to:
+
+→ post_stock_movement
+
+but full consumer/retry/cancellation closure is not yet proven.
+
+B3 — Returns
+
+Core path exists, but complete all consumer and reverse-event contracts are not yet closed.
+
+B4 — Sales Invoice
+
+Production v13 exists, but global Inventory responsibility parity remains open.
+
+C. CURRENT ONLY
+
+These are documented/source artifacts whose Production equivalence is not yet fully established:
+
+PWA source variants
+some current Edge adapters
+some rescue-oriented branches
+
+Current ≠ Production.
+
+D. PRODUCTION ONLY / PRODUCTION-AHEAD
+
+At least these are materially newer than some repository snapshots:
+
+complete-picking v13
+complete-loading v10
+send-stock-voucher v7
+receive-stock-voucher v5
+receive-purchase v9
+complete-return v23
+complete-order-delivery v11
+save-sales-invoice v13
+bulk-stock-adjustment v5
+
+Some of these versions have corresponding Current files, but their full version provenance is not encoded as Git SHA equivalence.
+
+E. DRIFT
+E1
+      ≠
+Production Edge version
+
+This exists.
+
+E2
+      ≠
+Current Production behavior
+
+Especially Loading/Unloading.
+
+E3
+      ≠
+complete description of Production DB lineage
+
+They describe selected current migrations, not the entire historical database state.
+
+E4
+      ≠
+ACTIVE runtime harness population
+
+Production and Staging still contain ACTIVE test objects.
+
+F. NOT STARTED / NOT CLOSED
+F1 — Full global Inventory writer certification
+
+Not closed.
+
+F2 — Full PWA consumer contract matrix
+
+Not closed.
+
+F3 — Full Historical → Original → Current → Production source lineage for every Inventory Edge
+
+Not closed.
+
+F4 — Final Governance cleanup proof
+
+Not closed.
+
+F5 — Accounting side-effect certification across every Inventory lifecycle event
+
+Not closed.
+
+G. UNKNOWN
+
+The remaining genuine Unknowns are narrow:
+
+Undiscovered dynamic/direct SQL callers.
+Complete current PWA call graph.
+Complete Git ancestry for every Production Edge deployment.
+Complete reconciliation of Production database migration history versus repository migration set.
+
+These are research gaps, not reasons to stop.
+
+15. WHAT HAS ACTUALLY BEEN ACHIEVED
+
+The forensic evidence now supports this architecture:
+
+                   ┌──────────────────┐
+                   │     PWA / Apps   │
+                   └────────┬─────────┘
+                            ↓
+                     Thin Edge APIs
+                            ↓
+              ┌─────────────┴─────────────┐
+              │                           │
+       Fulfillment Core             Voucher Core
+              │                           │
+              └─────────────┬─────────────┘
+                            ↓
+                  ┌──────────────────┐
+                  │ post_stock_      │
+                  │ movement         │
+                  └────────┬─────────┘
+                           ↓
+                    stock_branches
+                           +
+                    inventory_log
+
+with a parallel branch:
+
+Picking
+   ↓
+reserve_stock
+   ↓
+allocated_qty
+
+This is not merely planned architecture anymore.
+
+It exists in Production.
+
+16. WHAT HAS NOT BEEN ACHIEVED
+
+The project has not yet reached:
+
+ZERO-DEBT INVENTORY
+
+because:
+
+Global writer proof          OPEN
+Consumer proof               OPEN
+Historical source lineage    OPEN
+Governance cleanup           OPEN
+Accounting certification    OPEN
+Git ↔ Production parity     OPEN
+17. FORENSIC VERDICT
+Production Inventory Core
+REAL + ACTIVE + IN USE
+Central Physical Movement
+IMPLEMENTED
+Reservation Separation
+IMPLEMENTED
+Picking Core
+IMPLEMENTED + PRODUCTION VERIFIED
+Stock Voucher Centralization
+IMPLEMENTED + PRODUCTION VERIFIED for Send
+Loading Core
+IMPLEMENTED + PRODUCTION VERIFIED
+Unloading Core
+IMPLEMENTED + PRODUCTION VERIFIED
+Global Single-Writer Proof
+NOT YET CLOSED
+Consumer Contract Parity
+NOT YET CLOSED
+Governance Cleanup
+NOT CLOSED
+Full Git → Production Reproducibility
+NOT CLOSED
+18. FIRST CLOSURE UNIT
+
+Based on the evidence—not on the old task order—the first Closure Unit should be:
+
+CLOSURE UNIT 1 — GLOBAL PHYSICAL STOCK WRITER CERTIFICATION
+Scope
+reserve_stock
+release_stock_reservation
+post_inventory_adjustment_atomic
+setup_van_stock
+complete_runsheet_loading
+complete_runsheet_reopen_loading
+all Production Inventory Edge callers
+all Current Inventory Edge callers
+all Original Inventory writers
+all PWA Inventory entry points
+all direct SQL references
+Closure definition
+
+We do not close it when:
+
+
+
+
+We close it only when:
+
+→ enumerate
+→ classify
+→ reconcile
+→ prove every caller
+→ prove every writer
+→ prove no competing Physical writer
+→ test
+→ verify Production
+→ record evidence
+→ close 100%
+
+The next unit should therefore not yet be save-sales-invoice, receive-purchase, or another isolated function.
+
+The correct first unit is the global writer certification, because every later Inventory closure depends on knowing that there is exactly one Physical Movement authority.
 
 SELF-AUDIT FINAL
 What I Proved
-RAWAEA ERP ليس مشروعًا يبدأ من الصفر؛ له Constitution وExecution Protocol وHistorical repository وCurrent repository وProduction system حي.
-Inventory Rescue نجح فعليًا في نقل أجزاء كبيرة من Physical Stock responsibility إلى Core.
-Reservation أصبحت طبقة مستقلة عن Physical Movement.
-Picking في Production يستخدم Core reservation path.
-DirectSale/VAN custody contract مثبت.
-Production الحالية لديها Loading/Unloading Core فعلية مرتبطة بـpost_stock_movement.
-Current ≠ Production في عدة مواضع.
-توجد security/governance debts حقيقية.
-توجد Production-vs-documentation temporal drift.
-Accounting وLedger موجودان كـdomains منفصلة، لكن full event mapping ليس مغلقًا بالكامل.
+The actual Production project and Staging project.
+The current Production Edge-function inventory for Picking, Loading, Unloading, Delivery, Returns, Vouchers, Purchasing, Sales, Adjustments, and Runsheet.
+The actual Production versions and runtime hashes exposed by Supabase.
+The actual PostgreSQL functions touching stock_branches / inventory_log.
+The absence of Production triggers directly attached to those stock tables.
+post_stock_movement is a live central Physical Movement engine.
+reserve_stock and release_stock_reservation are separate Reservation engines.
+post_inventory_adjustment_atomic delegates to the central engine.
+complete-picking is currently a thin adapter to complete_runsheet_picking.
+send-stock-voucher is currently a thin adapter to send_stock_voucher_atomic.
+complete-loading is currently a thin adapter to complete_runsheet_loading.
+The current repository contains distinct Current/Original/PWA/SQL_Evidence/migration/provenance layers.
+Production and Staging still contain ACTIVE harness/canary objects.
 What I Did Not Prove
-أن المشروع كله لديه 100% Git→Production reproducibility.
-أن post_stock_movement هو بالفعل الكاتب الوحيد لكل Physical Stock mutation على مستوى كل النظام.
-أن كل Consumer/PWA في النظام مربوط حاليًا إلى أحدث Edge contract.
-أن كل Production security boundary مغلق.
-أن كل Loading/Unloading runtime evidence التاريخي يعادل current Production deployment الحالي.
-What I Initially Missed
+That every possible application-side direct SQL writer is impossible.
+Every individual PWA payload/response contract.
+Every Production Edge deployment's exact Git commit ancestry.
+Complete historical database migration lineage.
+What This Sweep Discovered That the Previous Report Did Not Fully Capture
+Production Governance Debt is materially larger than the prior report implied.
 
-أهم ما ظهر من Awareness الشامل هو أن:
+There are multiple ACTIVE Production and Staging test/canary/harness Edge Functions, several with verify_jwt=false.
 
-Production الحالية أحدث من أجزاء مهمة من الـCTO documentation.
+Under your explicit rule:
 
-وبالأخص Loading/Unloading ونسخ بعض Edge Functions.
+ACTIVE + 410
+=
+NOT DELETED
 
-كذلك ظهرت temporary test/harness runtime artifacts وSecurity findings لا يجوز مساواتها تلقائيًا مع Git governance state.
+they remain outstanding debt.
 
 What Could Still Be Wrong
-بعض migration provenance قد لا يكون ممثلًا 1:1 في Git.
-بعض Security metadata snapshots متعارضة.
-بعض production runtime versions أحدث من تقارير الإغلاق القديمة.
-Consumer mapping الشامل لم يغلق بعد.
-Global stock writer sweep لم يكتمل بعد.
-Confidence
-AWARENESS CONFIDENCE: HIGH
 
-لكن:
+The remaining uncertainty is concentrated in four areas:
 
-PROJECT AWARENESS ≠ ZERO-UNKNOWN
+Direct SQL / external writer paths
+PWA consumer graph
+Deployment provenance
+Full historical migration lineage
 
-وأرفض إعلان:
+None has been treated as resolved merely because no evidence appeared in one search.
 
-100% Complete
-Zero Unknowns
-Zero Conflicts
-Ready for arbitrary execution
+FORENSIC CONFIDENCE
+Production Runtime Inventory: 95/100
+PostgreSQL Writer Classification: 95/100
+Current/Original Structure: 95/100
+Core Centralization Reality: 95/100
+Consumer Closure: 70/100
+Historical/Deployment Lineage: 75/100
+Governance Closure: 40/100
+Overall Inventory Rescue Awareness: 88/100
+Final Status
+FORENSIC DISCOVERY: SUBSTANTIALLY COMPLETE FOR INVENTORY CORE, NOT YET ZERO-GAP
 
-لأن الأدلة الحالية لا تبرر ذلك.
+وأول Closure Unit المحددة بالأدلة هي:
 
-QUALIFICATION STATE
-AWARENESS SUBSTANTIALLY ESTABLISHED
-CURRENT PROJECT REALITY UNDERSTOOD
-INVENTORY RESCUE ARCHITECTURE UNDERSTOOD
-PRODUCTION REALITY DIRECTLY VERIFIED
-REMAINING GAPS ARE IDENTIFIED, NOT HIDDEN
-NO CHANGE MADE DURING THIS AWARENESS PASS
+GLOBAL PHYSICAL STOCK WRITER CERTIFICATION
 
-والقاعدة التشغيلية التي سأحملها من هذه المرحلة هي:
-
-لا أعتبر التقرير نفسه دليل تنفيذ، ولا أعتبر Current دليل Production، ولا أعتبر Production implementation دليل صحة التصميم؛ كل طبقة لها Evidence مستقل.
-
-وبالتالي عند الانتقال لاحقًا إلى التنفيذ، ستكون نقطة الانطلاق هي الحالة الفعلية التي أثبتها Production الآن، لا أية صورة قديمة محفوظة في تقرير.
+وليس إصلاح Function منفردة قبل إثبات أن منظومة الكتابة نفسها أُغلقت.
