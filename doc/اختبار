@@ -1,0 +1,774 @@
+# MASTER CTO QUALIFICATION TEST
+
+## RAWAEA ERP — INVENTORY RESCUE / PRODUCTION READINESS
+
+## الهدف
+
+هذا **اختبار تأهيل إلزامي** للمساعد التنفيذي الجديد.
+
+لا يُسمح له بإجراء أي تعديل أثناء الاختبار.
+
+الغرض هو إثبات أنه:
+
+* يفهم المشروع كمنظومة كاملة.
+* يعرف مصادر الحقيقة وأماكنها.
+* يميز Historical / Original / Current / Production.
+* يفهم خطة إنقاذ Inventory والمحرك المركزي.
+* يعرف الفرق بين Physical Movement وReservation.
+* يفهم Lifecycle الخاص بالـRunsheet.
+* يستطيع اكتشاف التناقضات بنفسه.
+* لا يعتمد على تقارير مساعدين سابقين.
+* لا يتوقف عند نقص معلومة يستطيع الوصول إليها.
+* لا يخلط بين التنفيذ النظري والتنفيذ الفعلي في Production.
+* لا يعلن PASS أو 100% بلا Evidence.
+
+---
+
+# RULE ZERO
+
+ممنوع استخدام تقارير المساعدين السابقين كمصدر حقيقة.
+
+كل ادعاء يجب التحقق منه من:
+
+```text
+GitHub
++
+Historical Repository
++
+Original Repository
++
+Current
++
+Production Supabase
++
+Database
++
+Edge Functions
++
+PWA Consumers
++
+Logs
+```
+
+ولا يجوز كشف أو طلب أو نسخ أي Credentials أو Secrets.
+
+---
+
+# PHASE 1 — SOURCE-OF-TRUTH TEST
+
+أثبت أنك تعرف أين توجد المصادر.
+
+حدد بنفسك المسارات الفعلية لـ:
+
+1. Historical Edge Functions
+2. Historical PWA
+3. Original Edge Functions
+4. Current Edge Functions
+5. Current PWA
+6. Archived Edge Functions
+7. Current migrations
+8. Production Edge Functions
+9. Production PostgreSQL Core
+10. Reports / Architecture / Warning records
+
+يجب ذكر:
+
+```text
+Repository
+Branch
+Path
+SHA
+```
+
+لكل مصدر تستخدمه.
+
+## Trap
+
+إذا قلت:
+
+> Original غير موجود
+
+يجب أن تثبت أنك بحثت في:
+
+```text
+rawaie-erp-New/Original
+rawaie-erp-review/Edge_Functions/original
+rawaie-erp-review/Edge_Functions/current
+archive
+Git history
+Production deployment
+```
+
+---
+
+# PHASE 2 — SYSTEM VISION TEST
+
+أجب دون حفظ نصوص:
+
+### 1
+
+ما المشكلة المعمارية الأساسية التي دفعتنا إلى إنقاذ Inventory؟
+
+### 2
+
+ما معنى:
+
+```text
+Distributed Business Logic
+```
+
+في هذا المشروع؟
+
+### 3
+
+لماذا كان تعدد مصادر تعديل المخزون خطرًا؟
+
+### 4
+
+ما هو العقد المركزي؟
+
+### 5
+
+ما وظيفة:
+
+```text
+post_stock_movement
+```
+
+وما الذي **لا** يجب أن يفعله؟
+
+### 6
+
+ما وظيفة:
+
+```text
+reserve_stock
+```
+
+ولماذا لا يجوز اعتباره Physical Stock Movement؟
+
+### 7
+
+ما وظيفة:
+
+```text
+setup_van_stock
+```
+
+ومتى تصبح خطرًا؟
+
+---
+
+# PHASE 3 — INVENTORY SEMANTICS TEST
+
+اشرح بدقة:
+
+```text
+Picking
+Loading
+VanSale
+Unloading
+Return
+Purchase
+Adjustment
+```
+
+ولكل واحدة حدد:
+
+```text
+Physical qty
+allocated_qty
+inventory_log
+Accounting
+```
+
+يجب أن تكتشف بنفسك:
+
+```text
+Picking ≠ Physical Movement
+```
+
+و:
+
+```text
+Loading = MAIN → VAN
+```
+
+و:
+
+```text
+Unloading = VAN → MAIN
+```
+
+وأن:
+
+```text
+COGS ≠ automatically recognized at Loading
+```
+
+---
+
+# PHASE 4 — RUNSHEET LIFECYCLE TEST
+
+ارسم الدورة الكاملة:
+
+```text
+Open
+→ Confirmed
+→ Picking
+→ Picked
+→ Loading
+→ Loaded
+→ Reopen
+→ Loading
+→ Reload
+→ Loaded
+→ Unloading
+→ Picked
+```
+
+ثم اشرح:
+
+### ماذا يحدث للمخزون في كل انتقال؟
+
+وخاصة:
+
+## Reopen
+
+يجب أن تشرح:
+
+* لماذا هو عكس Loading؟
+* ماذا يحدث لـ`qty_loaded`؟
+* ماذا يحدث لـ`allocated_qty`؟
+* لماذا نحتاج `loading_cycle_id` جديدًا؟
+* لماذا لا يجوز إعادة استخدام Idempotency الخاصة بالدورة السابقة؟
+
+---
+
+# PHASE 5 — HIDDEN DEFECT TEST
+
+أعطيتك هذه المعلومة من المشروع عمدًا:
+
+```text
+users_email_key
+```
+
+ما الخطر إذا كان:
+
+```text
+start-picking
+```
+
+يبحث عن:
+
+```text
+email + company_id
+```
+
+ثم ينشئ User جديدًا إذا لم يجد السجل؟
+
+اشرح لماذا يمكن أن يظهر:
+
+```text
+duplicate key value violates unique constraint "users_email_key"
+```
+
+ثم حدد مصدر `company_id` الصحيح.
+
+---
+
+# PHASE 6 — REAL APPLICATION TEST
+
+افتح فعليًا:
+
+```text
+PWA/warehouse/picker.html
+```
+
+ولا تعتمد على تقرير سابق.
+
+حدد:
+
+* دالة `startPicking`
+* endpoint
+* HTTP method
+* Authorization
+* payload
+* response handling
+* error handling
+
+ثم أجب:
+
+> هل المشكلة التي ظهرت في Picker كانت في `picker.html` أم `start-picking`؟ ولماذا؟
+
+يجب تقديم السطر/المقطع الذي يثبت إجابتك.
+
+---
+
+# PHASE 7 — COMPLETE-PICKING TEST
+
+افتح فعليًا:
+
+```text
+Historical
+Original
+Current
+Production
+Core
+```
+
+وقارن:
+
+```text
+complete-picking
+```
+
+ثم اشرح:
+
+### ما الذي كان داخل Edge تاريخيًا؟
+
+وما الذي أصبح داخل:
+
+```text
+complete_runsheet_picking
+```
+
+وما الذي أصبح داخل:
+
+```text
+reserve_stock
+```
+
+وأثبت أن:
+
+```text
+Picking
+```
+
+لا يسبب Physical Stock deduction.
+
+## Trap
+
+Production وCurrent قد يكونان semantic-equivalent دون byte parity.
+
+يجب أن تعرف الفرق.
+
+---
+
+# PHASE 8 — COMPLETE-LOADING TEST
+
+اشرح العلاقة:
+
+```text
+complete-loading
+→ complete_runsheet_loading
+→ post_stock_movement
+```
+
+ثم حدد:
+
+* Loading idempotency key
+* `loading_cycle_id`
+* Backorder
+* Partial Loading
+* Reopen
+* Reload
+* Unloading
+* COGS boundary
+
+## Trap
+
+`FINAL_RELEASE.sql` قد لا يمثل وحده آخر Database state.
+
+يجب معرفة:
+
+```text
+cumulative migration state
+```
+
+وليس اسم migration فقط.
+
+---
+
+# PHASE 9 — PRODUCTION REALITY TEST
+
+أمامك عدة نتائج:
+
+```text
+Current = Correct
+Staging = PASS
+Production = Old
+```
+
+هل النظام مُصلح؟
+
+الإجابة الصحيحة:
+
+**لا.**
+
+ثم اشرح الفرق بين:
+
+```text
+THEORETICAL
+CURRENT
+STAGING VERIFIED
+PRODUCTION DEPLOYED
+PRODUCTION RUNTIME VERIFIED
+100% CLOSED
+```
+
+---
+
+# PHASE 10 — CENTRAL WRITER TEST
+
+ادخل Production PostgreSQL وابحث بنفسك عن كل Functions التي تلمس:
+
+```text
+stock_branches
+inventory_log
+allocated_qty
+```
+
+ثم صنفها:
+
+```text
+Central Movement
+Reservation
+Initialization
+Orchestrator
+Legacy Parallel Engine
+```
+
+يجب اكتشاف:
+
+```text
+post_stock_movement
+reserve_stock
+setup_van_stock
+```
+
+والتحقق من عدم وجود Physical Stock Engine يتجاوز العقد المركزي.
+
+## Trap
+
+وجود:
+
+```text
+post_manual_stock_voucher_atomic
+```
+
+لا يعني تلقائيًا أنه خطأ.
+
+يجب قراءة تعريفه فعليًا وتحديد هل أصبح Orchestrator أم ما زال Physical Writer.
+
+---
+
+# PHASE 11 — LOSS / GAIN TEST
+
+اختر دالة واحدة تم تحويلها من Legacy Edge Engine إلى Thin Wrapper.
+
+أنشئ جدول:
+
+```text
+Responsibility
+Legacy
+Current
+Core
+Production
+Target
+Final Classification
+```
+
+ويجب أن تستخدم التصنيفات:
+
+```text
+RETAINED
+MOVED
+HARDENED
+ADDED
+INTENTIONALLY REMOVED
+MISSING
+```
+
+## Trap
+
+إذا اختفت مسؤولية من Edge فلا تعلن أنها Lost.
+
+أثبت مكان انتقالها.
+
+وإذا لم تجدها في أي مكان:
+
+```text
+MISSING
+```
+
+---
+
+# PHASE 12 — ORIGINAL / CURRENT TEST
+
+أعطني لكل Function:
+
+```text
+Original Path
+Original SHA
+Current Path
+Current SHA
+Production Version
+Production SHA
+```
+
+ثم أجب:
+
+> هل Current هو Source of Truth للتطوير؟
+
+و:
+
+> هل Production يجب أن يطابق Current قبل أي Release؟
+
+---
+
+# PHASE 13 — ERROR-HANDLING TEST
+
+ماذا تفعل إذا:
+
+```text
+Found defect
+```
+
+؟
+
+الإجابة المرفوضة:
+
+```text
+BLOCKED
+```
+
+الإجابة المطلوبة:
+
+```text
+ROOT CAUSE
+→ HISTORICAL RESEARCH
+→ INDUSTRY BENCHMARK
+→ REPAIR
+→ TEST
+→ DEPLOY
+→ VERIFY
+→ CLOSE
+```
+
+إذا كانت Dependency مكسورة:
+
+**تصلحها.**
+
+إذا كان الملف ناقصًا:
+
+**تستخرجه بنفسك.**
+
+إذا تعذر إجراء إداري:
+
+**تطلب إجراء المالك بدقة وتكمل بقية العمل.**
+
+---
+
+# PHASE 14 — INDUSTRY BENCHMARK TEST
+
+اشرح متى نرجع إلى:
+
+```text
+SAP
+Dynamics 365
+Odoo
+```
+
+ولماذا.
+
+يجب أن تعرف القاعدة:
+
+> **لا نخترع العجلة في المفاهيم المحاسبية والمخزنية المستقرة.**
+
+لكن أيضًا:
+
+> لا ننسخ تصميم المنافسين حرفيًا؛ نأخذ المبدأ ونكيفه مع RAWAEA Contract.
+
+---
+
+# PHASE 15 — SECURITY / DATA INTEGRITY TEST
+
+افحص بنفسك:
+
+* RLS
+* `SECURITY DEFINER`
+* `search_path`
+* tenant isolation
+* unique constraints
+* foreign keys
+* generated `available_qty`
+* item identity
+* company-scoped lookups
+
+ثم اذكر أي خطر حقيقي وجدته.
+
+---
+
+# PHASE 16 — DEPLOYMENT GOVERNANCE TEST
+
+اشرح لماذا:
+
+```text
+ACTIVE + HTTP 410
+```
+
+لا يساوي:
+
+```text
+DELETED
+```
+
+واشرح الفرق بين:
+
+```text
+Deployment
+Verification
+Retirement
+Deletion
+```
+
+---
+
+# PHASE 17 — EXECUTION DISCIPLINE TEST
+
+اشرح ماذا ستفعل إذا كانت:
+
+```text
+Closure Unit A = 95%
+```
+
+وClosure Unit B جاهزة.
+
+الإجابة الصحيحة:
+
+**لا تنتقل إلى B.**
+
+تغلق A أولًا.
+
+---
+
+# PHASE 18 — OWNER VISION TEST
+
+اشرح الهدف النهائي للمشروع:
+
+ليس:
+
+```text
+إصلاح Edge Function
+```
+
+بل:
+
+```text
+ERP متماسك
++
+Single Source of Truth
++
+Central Inventory Engine
++
+Atomic Transactions
++
+Reliable Accounting
++
+Stable Applications
++
+Production Reality
+```
+
+ثم اشرح لماذا كل Closure Unit هي جزء من هذه الرؤية وليست وظيفة منفصلة عن النظام.
+
+---
+
+# PHASE 19 — SELF-AUDIT TEST
+
+في مقدمة إجابتك يجب أن تقدم:
+
+```text
+SELF-AUDIT
+```
+
+بالدرجات الحقيقية.
+
+ثم:
+
+```text
+Confirmed Facts
+Unknowns
+Conflicts
+Unverified Claims
+```
+
+ولا يسمح بأي `100/100` إذا كانت هناك Unknowns.
+
+---
+
+# PHASE 20 — FINAL QUALIFICATION
+
+في النهاية أعطني:
+
+| Domain                 | Score |
+| ---------------------- | ----: |
+| Business Understanding |  /100 |
+| Architecture           |  /100 |
+| Database               |  /100 |
+| Inventory Semantics    |  /100 |
+| Accounting             |  /100 |
+| Historical             |  /100 |
+| Original/Current       |  /100 |
+| Production             |  /100 |
+| Edge Functions         |  /100 |
+| PWA                    |  /100 |
+| Security               |  /100 |
+| Data Integrity         |  /100 |
+| Deployment Governance  |  /100 |
+| Execution Discipline   |  /100 |
+| Self-Audit Integrity   |  /100 |
+
+ثم:
+
+```text
+TOTAL QUALIFICATION
+```
+
+والحكم النهائي يجب أن يكون أحد ثلاثة فقط:
+
+# QUALIFIED
+
+أو
+
+# QUALIFIED WITH RESTRICTIONS
+
+أو
+
+# NOT QUALIFIED
+
+---
+
+# ممنوع أثناء الاختبار
+
+* تعديل Production.
+* تعديل Current.
+* إنشاء Harness.
+* إنشاء Migration.
+* حذف Function.
+* نشر Function.
+* تعديل البيانات.
+* اختلاق Evidence.
+
+هذا **اختبار فهم وتأهيل فقط**.
+
+ولا تبدأ أي تنفيذ بعده حتى يتم تقييم نتيجتك.
+
+# معيار النجاح الحقيقي
+
+لن تنجح لأنك أعطيت إجابات طويلة.
+
+ستنجح فقط إذا أثبتت أنك:
+
+**تعرف أين تبحث، ماذا تقارن، لماذا تقارن، ماذا تعني كل حركة، أين تقع الحقيقة، وكيف تكتشف الكذب أو الانحراف بين Git وDB وProduction، وكيف تغلق المشكلة دون ترك دين.**
