@@ -1,0 +1,526 @@
+سأجيب على الاختبار بناءً على النموذج المعرفي الذي زُوّدت به في الرسائل السابقة، مع الالتزام الصارم بعدم التخمين وعدم افتراض أي معلومة غير مدعومة بنص وارد. حيثما يتطلب الاختبار فحصًا فعليًا لـ GitHub أو Production PostgreSQL أو ملفات لا توجد نصوصها في النموذج المعرفي، سأصنف ذلك UNKNOWN ولن أخترع إجابة.
+
+SELF-AUDIT
+Confirmed Facts:
+
+وردت في النموذج المعرفي نصوص صريحة من ملفات:
+
+CTO MASTER CONTEXT
+
+SOURCE AUTHORITY MAP
+
+RAWAEA ARCHITECTURE CONSTITUTION
+
+EXECUTION PROTOCOL
+
+EXECUTION GUARDRAILS
+
+DOMAIN_EXECUTION_ORDER
+
+CENTRAL CTO EXECUTION LOG
+
+RESCUE RECONCILIATION / ZERO-DEBT EXECUTION
+
+MASTER CAUTION & ENGINEERING GOVERNANCE REGISTER
+
+Historical Knowledge Index
+
+عدة تقارير Batch وINV-001 وINV-002 وvan-sales report وغيرها.
+
+النموذج المعرفي يؤكد وجود:
+
+stock_branches كمصدر للحالة الراهنة للمخزون.
+
+inventory_log كسجل الحركات.
+
+allocated_qty كحجز منفصل عن qty.
+
+post_stock_movement كدالة مركزية للحركة الفعلية.
+
+reserve_stock كدالة حجز لا تلمس qty.
+
+setup_van_stock كدالة تهيئة مخزون الفان.
+
+complete_runsheet_picking وcomplete_runsheet_loading وpost_stock_movement في مسارات الإنتاج.
+
+تأكيد أن complete-picking في Production أصبح Thin Adapter يستدعي complete_runsheet_picking، وأن send-stock-voucher Production أصبح Thin Adapter يستدعي send_stock_voucher_atomic.
+
+تأكيد أن post_stock_movement تم نشره في Production واجتاز اختبارات Transactional Implementation Verification.
+
+تأكيد وجود TASK-010 التي أثبتت أن Partial Receive غير Idempotent.
+
+وجود STAGE-25 للـ UI مفتوح ومرشح تحت الحجر الصحي.
+
+Unknowns:
+
+لا أملك وصولًا فعليًا إلى GitHub أو Production Supabase أو ملفات picker.html أو van-sales.html أو تعريفات الدوال داخل PostgreSQL الآن.
+
+لم تصلني محتويات Historical Edge Functions الفعلية (ملفات Batch01 إلى Batch15 الكاملة) ولا نصوص Original أو Current للدوال، سوى ما ذكر في التقارير.
+
+لا أستطيع التحقق من الـ SHAs المحددة لكل ملف من الوارد، لأن بعضها مذكور في النموذج والبعض الآخر لا.
+
+لا يمكنني تنفيذ SELECT أو pg_proc أو فحص RLS فعليًا.
+
+Conflicts:
+
+ورد في بعض الوثائق التاريخية أن complete-picking كانت تخصم مخزونًا فعليًا، لكن التقارير اللاحقة (Production Evidence) تؤكد أنها تحجز فقط allocated_qty ولا تلمس qty. هذا تعارض بين تاريخي ومثبت إنتاجيًا.
+
+ورد أن DirectSale وDirectReturn لها دلالات حيازة متنافسة بين Production الحالي وتصميمات غير منشورة، وهي مسجلة كـ TARGET UNRESOLVED.
+
+completed_by مكتوب بواسطة complete_manual_stock_voucher_atomic لكنه غائب من stock_vouchers في الـ schema الملتقطة، وهو عيب مؤكد.
+
+Unverified Claims:
+
+نسبة إتمام 80-85% أو 90% للعمارة من ملفات قديمة لا تعتبر حقيقة مثبتة، وقد تم التحذير من ذلك في Source Authority Map.
+
+أي ادعاء بأن Production = Current بالكامل غير مثبت؛ النموذج يوضح أن Production وCurrent قد يكونان semantic-equivalent دون byte parity، وأن Production قد يكون قديمًا أو مختلفًا.
+
+لا يمكنني الادعاء بأن جميع الـ Functions تلتزم بالمحرك المركزي لأن Global Physical Stock Writer Sweep لم يكتمل بعد.
+
+PHASE 1 — SOURCE-OF-TRUTH TEST
+بناءً على النموذج المعرفي، المسارات المثبتة أو الموصوفة:
+
+المصدر	Repository	Branch/Path	ملاحظة
+Historical Edge Functions	rawaie-erp-review	Edge_Function_Reports/_HISTORICAL/Batch01.md ... Batch15.md	مرجع تاريخي
+Historical PWA	غير محدد بدقة في النموذج، لكن المذكور PWA/warehouse/vouchers.html و PWA/sales/van-sales.html ضمن Current	companies/company-1/...	بعضها Current
+Original Edge Functions	rawaie-erp-review/Edge_Functions/original	يذكر وجودها	تستخدم للمقارنة التاريخية
+Current Edge Functions	rawaie-erp-review/Edge_Functions/current	مثل inventory/send-stock-voucher.ts	المصدر الحالي للخدمات
+Current PWA	companies/company-1/	PWA/warehouse/vouchers.html, PWA/sales/van-sales.html, PWA/warehouse/picker.html	لا أملك النصوص الكاملة الآن
+Archived Edge Functions	archive	ذكر في Trap	غير محدد المسار
+Current migrations	supabase/migrations/	مثل 20260808_send_stock_voucher_atomic.sql, 20260810_*	بعضها مرشح هدف وليس إنتاج
+Production Edge Functions	Supabase Functions	مثل complete-picking version 13، send-stock-voucher version 7	مثبت من Rescue Evidence
+Production PostgreSQL Core	Supabase PostgreSQL	RPCs مثل post_stock_movement, reserve_stock, complete_runsheet_picking	مثبت من Rescue Evidence
+Reports / Architecture / Warning	Architecture/ و CTO/	مثل RAWAEA_ARCHITECTURE_CONSTITUTION.md, EXECUTION_PROTOCOL.md, MASTER CAUTION	موجود في النموذج
+SHA: النموذج المعرفي ذكر بعض الـ SHAs لأمثلة محددة:
+
+PWA/warehouse/vouchers.html SHA b0a6d31c787b096a8d6a25b4e9aeb1e99c9d6504
+
+PWA/sales/van-sales.html SHA 445dff4217fbf4a82f333fa716bba5d74def7680
+
+Edge_Functions/current/inventory/send-stock-voucher.ts SHA f2f36f7c3c186eb8f9af51d8bdfd2adf2e7a7421
+
+supabase/migrations/20260808_send_stock_voucher_atomic.sql SHA cece154cd805a596607626df862a7d912c3ecb0c
+
+لم أقم بفحص الـ SHAs بنفسي من GitHub، لذلك أي SHA آخر يظل UNKNOWN.
+
+PHASE 2 — SYSTEM VISION TEST
+المشكلة المعمارية الأساسية: تعدد مصادر تعديل المخزون (Distributed Business Logic)، حيث كانت عدة Edge Functions تكتب مباشرة على stock_branches وinventory_log بقواعد متفرقة، مما أدى إلى عدم وجود مصدر حقيقة واحد وخطر عدم اتساق الأرصدة.
+
+Distributed Business Logic: هو توزيع قواعد العمل عبر أكثر من Edge Function أو PWA، بحيث تتكرر نفس القاعدة أو تتعارض، مما يجعل الصيانة خطرة ويخلق مصادر حقيقة متعددة.
+
+خطر تعدد مصادر تعديل المخزون: أن يحدث نفس التغيير من أكثر من طريق، فيؤدي إلى Double Deduction أو Lost Update أو اختلاف بين الحركات والأرصدة، وبالتالي فقدان الثقة في الأرقام.
+
+العقد المركزي: هو أن أي تغيير في المخزون الفعلي qty يجب أن يمر عبر دالة مركزية واحدة هي post_stock_movement، وأن inventory_log هو السجل الوحيد للحركات، وأن الحجز allocated_qty منفصل عبر reserve_stock.
+
+post_stock_movement: وظيفتها تنفيذ الحركة الفعلية للبضاعة (خصم/إضافة) على stock_branches.qty، مع كتابة صف مطابق في inventory_log، والتحقق من التوفر باستخدام qty - allocated_qty، وضمان Atomicity.
+ما لا يجب أن يفعله: ألا يلمس allocated_qty، ولا يقوم بأي منطق محاسبي مباشر، ولا يخمن Movement Type غير مدرج.
+
+reserve_stock: وظيفتها حجز كمية عبر زيادة allocated_qty فقط دون تغيير qty.
+لماذا لا تعتبر Physical Stock Movement؟ لأنها لا تغير الكمية الفعلية المتاحة في المخزن؛ البضاعة ما زالت موجودة، لكنها أصبحت محجوزة لالتزام معين.
+
+setup_van_stock: تهيئة مخزون الفان/السيارة.
+متى تصبح خطرًا؟ إذا أصبحت تستخدم ككاتب فيزيائي مستقل يتجاوز المحرك المركزي، أو إذا خمنت قواعد تخصيص المخزون، أو إذا أنشأت حالات بديلة خارج العقد المركزي، أو إذا لم تكن مقيدة بحدود الشركة والفرع.
+
+PHASE 3 — INVENTORY SEMANTICS TEST
+Picking
+
+Physical qty: لا تغيير.
+
+allocated_qty: زيادة.
+
+inventory_log: لا حركة فيزيائية؛ بعض التقارير التاريخية ذكرت وجود Picking في log، لكن Production Evidence الأخيرة تؤكد أن Picking لا يكتب inventory_log.
+
+Accounting: لا قيد محاسبي.
+
+الاستنتاج: Picking ≠ Physical Movement.
+
+Loading
+
+Physical qty: نقص من MAIN / المستودع.
+
+allocated_qty: نقص (تحرير الحجز).
+
+inventory_log: حركة فعلية (Loading).
+
+Accounting: لا يتم الاعتراف بـ COGS تلقائيًا عند Loading في التصميم الحالي؛ التحميل عملية نقل داخلي وليس بيعًا.
+
+الاستنتاج: Loading = MAIN → VAN أو Warehouse → Vehicle Custody.
+
+VanSale
+
+Physical qty: نقص من VAN (مخزون الفان).
+
+allocated_qty: لا تأثير عادة.
+
+inventory_log: حركة بيع فعلية.
+
+Accounting: قيد إيرادات وCOGS عند البيع، لكن هذا يعتمد على العقد النهائي؛ في النموذج المثالي VanSale يستهلك من عهدة الفان.
+
+Unloading
+
+Physical qty: إضافة إلى MAIN / المستودع.
+
+allocated_qty: لا تأثير.
+
+inventory_log: حركة فعلية (Unloading).
+
+Accounting: لا قيد عكسي تلقائي في جميع الحالات؛ النموذج العام يفرق بين إعادة بضاعة سليمة وتالفة.
+
+Return
+
+Physical qty: إضافة إلى MAIN (للسليم) أو لا تغيير (للتالف/المفقود).
+
+allocated_qty: لا تأثير مباشر.
+
+inventory_log: حركة مرتجع.
+
+Accounting: قيد عكسي للإيراد وCOGS وذمم العميل، حسب نوع المرتجع.
+
+Purchase
+
+Physical qty: زيادة في MAIN.
+
+allocated_qty: لا تأثير.
+
+inventory_log: حركة شراء.
+
+Accounting: قيد استلام (مدين مخزون / دائن مورد).
+
+Adjustment
+
+Physical qty: زيادة أو نقص.
+
+allocated_qty: لا تأثير.
+
+inventory_log: حركة تسوية.
+
+Accounting: قيد تسوية إذا كان هناك فرق.
+
+اكتشاف:
+COGS ≠ automatically recognized at Loading لأن التحميل ليس بيعًا؛ COGS يُعترف به عند التسليم أو البيع، وفق السياسة المحاسبية.
+
+PHASE 4 — RUNSHEET LIFECYCLE TEST
+الدورة المذكورة:
+Open → Confirmed → Picking → Picked → Loading → Loaded → Reopen → Loading → Reload → Loaded → Unloading → Picked
+
+Open: لا مخزون.
+
+Confirmed: لا مخزون.
+
+Picking: حجز allocated_qty فقط.
+
+Picked: اكتمال الحجز، لا تغيير qty.
+
+Loading: نقص qty من MAIN وزيادة في عهدة VAN (أو إخراج من المستودع)، مع نقص allocated_qty.
+
+Loaded: اكتمال التحميل، البضاعة في عهدة الفان/السائق.
+
+Reopen: يجب أن يكون عكس Loading؛ أي إعادة الكمية من العهدة إلى المستودع (زيادة qty في MAIN) مع استعادة الحجز إن لزم.
+
+qty_loaded يجب أن يُصفّر أو يُعاد توزيعه وفق العقد.
+
+allocated_qty يجب أن يعود إلى ما كان عليه قبل التحميل (أو وفق قرار إعادة الفتح).
+
+loading_cycle_id جديد مطلوب حتى لا تختلط مع دورة التحميل السابقة، ولمنع إعادة استخدام مفاتيح Idempotency القديمة.
+
+لا يجوز إعادة استخدام Idempotency الخاصة بالدورة السابقة لأن كل دورة تحميل هي حدث مستقل ويجب أن تكون قابلة للتتبع بشكل منفصل، وإلا قد تمنع Reopen/Reload بشكل خاطئ أو تسمح بتنفيذ مكرر.
+
+Reload: عملية تحميل جديدة بعد Reopen، بحركة جديدة وloading_cycle_id جديد.
+
+Unloading: إعادة qty من VAN إلى MAIN (أو إغلاق العهدة)، ثم تعود الحالة إلى Picked أو ما يعادلها.
+
+ملاحظة: لا أملك تعريفًا دقيقًا لكل انتقال من النموذج المعرفي، لذا بعض التفاصيل قد تحتاج Verification.
+
+PHASE 5 — HIDDEN DEFECT TEST
+إذا كان start-picking يبحث عن مستخدم بـ email + company_id ثم ينشئ مستخدمًا جديدًا إذا لم يجد السجل، فهناك خطر:
+
+البحث المركب email + company_id قد لا يجد المستخدم لأن users_email_key هو قيد فريد على email فقط، وليس على email + company_id.
+
+إذا تم العثور على email موجود بالفعل لكن بـ company_id مختلف، قد تحاول الدالة إنشاء مستخدم جديد بنفس email، فيؤدي إلى duplicate key value violates unique constraint "users_email_key" لأن البريد الإلكتروني مكرر.
+
+مصدر company_id الصحيح: يجب أن يأتي من سياق المستخدم/الجلسة الموثوقة (مثل public.users.company_id المرتبط بالمستخدم المعتمد)، وليس من إدخال مباشر أو افتراض ثابت. في التقارير، company_id المثبت هو da4ef704-88ac-4120-aa0e-65b92b2aa2bc للشركة الحالية، لكن الدالة يجب أن تحصل عليه من السياق المعتمد.
+
+PHASE 6 — REAL APPLICATION TEST
+لا أملك النص الفعلي لـ PWA/warehouse/picker.html في النموذج المعرفي.
+المعلومات المتاحة من التقارير:
+
+picker.html هو تطبيق تحضير، ويستخدم start-picking وcomplete-picking.
+
+تقرير complete-picking يذكر أن الدالة أصبحت Thin Adapter وتستدعي complete_runsheet_picking في Production.
+
+دالة startPicking: لا توجد تفاصيل endpoint أو payload في النموذج المعرفي.
+HTTP method: غير مثبت في النموذج، لكن النمط العام في النظام هو POST عبر Supabase Edge Functions (استنادًا إلى fetch اليدوي).
+Authorization: يجب أن يكون JWT عبر Authorization: Bearer، لكن لا أستطيع تأكيد التنفيذ الفعلي في picker.html دون النص.
+
+هل المشكلة في picker.html أم start-picking؟
+من النموذج المعرفي، المشكلة المعمارية كانت أن complete-picking كانت تستخدم supabase.functions.invoke لاستدعاء sync-run-sheet-details، وهذا داخل Edge Function وليس في picker.html.
+كما ورد أن complete-picking في Production أصبحت Thin Adapter.
+لذلك إذا كانت هناك مشكلة سابقة تتعلق بالاستدعاء أو بحالة المخزون، فالمرجح أنها كانت في start-picking أو complete-picking (الـ Edge)، وليس في picker.html فقط. لكن لا يمكنني تقديم سطر محدد لأن النص ليس متاحًا.
+
+تصنيف: UNKNOWN بسبب عدم وجود كود picker.html الفعلي هنا.
+
+PHASE 7 — COMPLETE-PICKING TEST
+من النموذج المعرفي:
+
+Historical Edge: كانت complete-picking تاريخيًا تقوم بأكثر من مسؤولية: كانت تكتب inventory_log، وتُحدّث order_details مباشرة، وتستدعي reserve_stock، وتُغيّر حالة الـ runsheet، وتستدعي sync-run-sheet-details عبر invoke (مخالفة).
+
+Original/Current قبل الإصلاح: نفس السلوك التاريخي الموزع.
+
+Production الحالي: complete-picking أصبح Edge Function رفيع يستدعي complete_runsheet_picking (التي تتحقق من الصلاحيات وتقفل الـ runsheet وتستدعي reserve_stock وتُحدّث order_details.qty_picked).
+
+Core: complete_runsheet_picking هي SECURITY DEFINER، تقفل الـ runsheet، تتحقق من سياق الشركة/المستخدم/الـ picker، وتستدعي reserve_stock.
+
+reserve_stock: تقفل صف المخزون وتزيد allocated_qty فقط، ولا تلمس qty.
+
+إثبات أن Picking لا يسبب Physical Stock deduction:
+من Rescue Reconciliation:
+
+Reservation: reserve_stock locks the stock row, validates company/item/branch context and increments allocated_qty only; physical qty is unchanged
+Physical movement: None during picking
+Inventory log: No Picking movement is written
+
+هذا تأكيد من Production Evidence.
+
+الفرق بين Production وCurrent: قد يكونان semantic-equivalent دون byte parity؛ أي أن السلوك متكافئ منطقيًا لكن الكود ليس حرفيًا متطابقًا. لا يمكنني التحقق من التطابق الحرفي لأنني لا أملك النصوص.
+
+PHASE 8 — COMPLETE-LOADING TEST
+العلاقة المطلوبة:
+complete-loading → complete_runsheet_loading → post_stock_movement
+
+هذه العلاقة واردة كتصميم مستهدف، وفي Rescue Reconciliation تم تأكيد أن send-stock-voucher Production أصبح Thin Adapter و post_stock_movement هو الكاتب المركزي.
+لكن لا يوجد في النموذج المعرفي دليل صريح على أن complete-loading Production الحالي يمر عبر complete_runsheet_loading ثم post_stock_movement بنفس السلسلة، لأن النموذج ركز على Vouchers وPicking.
+
+Loading idempotency key: يجب أن يكون لكل دورة تحميل مفتاح مستقل، مثل loading_cycle_id.
+loading_cycle_id: مذكور في الاختبار، وليس لدي تفاصيله من النموذج المعرفي.
+Backorder / Partial Loading / Reopen / Reload / Unloading / COGS boundary:
+
+Backorder هو طلب جديد، ليس تعديلًا للأصل.
+
+Partial Loading قد ينشئ Backorder.
+
+Reopen يعكس التحميل ويحتاج دورة جديدة.
+
+Unloading يعيد البضاعة من VAN إلى MAIN.
+
+COGS boundary: لا يتم الاعتراف بالتكلفة عند التحميل، بل عند التسليم/البيع.
+
+ملاحظة: FINAL_RELEASE.sql لم يُذكر في النموذج المعرفي. لا أستطيع التعليق عليه.
+
+PHASE 9 — PRODUCTION REALITY TEST
+إذا كانت النتائج:
+Current = Correct, Staging = PASS, Production = Old
+فالإجابة لا، النظام ليس مُصلحًا في Production.
+
+الفرق:
+
+THEORETICAL: تصميم أو خطة غير منفذة.
+
+CURRENT: كود في المستودع الحالي، قد لا يكون منشورًا أو مطابقًا.
+
+STAGING VERIFIED: تم اختباره في بيئة Staging ونجح.
+
+PRODUCTION DEPLOYED: تم نشره فعليًا على Production (لكن قد لا يكون تم التحقق منه بعد).
+
+PRODUCTION RUNTIME VERIFIED: تم تنفيذه فعليًا في Production وتم التحقق من النتيجة.
+
+100% CLOSED: تم استيفاء جميع الأدلة والاختبارات والتحقق الإنتاجي، ولا توجد Unknowns حرجة.
+
+من النموذج المعرفي:
+
+complete-picking تم إغلاقه كـ PRODUCTION RUNTIME VERIFIED / 100% CLOSED.
+
+send-stock-voucher Production تم التحقق منه كـ PRODUCTION RUNTIME VERIFIED، لكن Current-source تم إصلاحه في فرع Rescue ولم يُدمج بعد في main.
+
+PHASE 10 — CENTRAL WRITER TEST
+لا أستطيع الدخول إلى Production PostgreSQL الآن.
+لكن النموذج المعرفي يؤكد وجود:
+
+post_stock_movement ككاتب مركزي للحركة الفعلية.
+
+reserve_stock للحجز.
+
+setup_van_stock للتهيئة.
+
+post_manual_stock_voucher_atomic وsend_stock_voucher_atomic كمسارات RPC.
+
+التصنيف:
+
+post_stock_movement: Central Movement.
+
+reserve_stock: Reservation.
+
+setup_van_stock: Initialization.
+
+post_manual_stock_voucher_atomic: قد يكون Orchestrator يستدعي post_stock_movement أو ما زال Physical Writer؛ يجب قراءة تعريفه الفعلي.
+
+النموذج المعرفي ذكر أن send_stock_voucher_atomic يستدعي post_stock_movement لكل حركة، وأن post_manual_stock_voucher_atomic موجود كمسار أحدث لكن لم يتم إثبات أنه المستهلك الوحيد. لا يمكنني التأكد من تصنيف post_manual_stock_voucher_atomic بدون قراءة تعريفه.
+
+النتيجة: لا يمكنني تأكيد عدم وجود محرك موازٍ؛ Global Physical Stock Writer Sweep ما زال معلقًا.
+
+PHASE 11 — LOSS / GAIN TEST
+سآخذ دالة send-stock-voucher لأنها محولة من Legacy Edge Engine إلى Thin Wrapper (من Rescue Reconciliation).
+
+جدول:
+
+Responsibility	Legacy	Current	Core	Production	Target	Final Classification
+HTTP/auth contract	موجود	محتفظ	-	محتفظ	محتفظ	RETAINED
+Company context	غير محكم	محتفظ	-	محكم	محكم	HARDENED
+Voucher Draft gate	موجود في Edge	-	send_stock_voucher_atomic	موجود في Core	موجود في Core	MOVED
+Source-branch validation	موجود في Edge	-	send_stock_voucher_atomic	موجود في Core	موجود في Core	MOVED
+Stock availability validation	موجود في Edge	-	post_stock_movement	موجود في Core	موجود في Core	MOVED
+Physical stock update	مباشرة على stock_branches.qty	-	post_stock_movement	موجود في Core	موجود في Core	MOVED
+Inventory log	مباشرة	-	post_stock_movement	موجود في Core	موجود في Core	MOVED
+Idempotency	غائبة	-	مفتاح محدد لكل voucher/item	موجود	موجود	ADDED
+Voucher status transition	موجود في Edge	-	send_stock_voucher_atomic	موجود في Core	موجود في Core	MOVED
+Direct Edge stock writes	موجودة	-	-	غير موجودة	غير موجودة	INTENTIONALLY REMOVED
+Legacy parallel business engine	موجودة	أزيلت من Current	-	غير موجودة	غير موجودة	INTENTIONALLY REMOVED
+لم أجد أي مسؤولية MISSING لأن ما أزيل من Edge انتقل إلى Core.
+
+PHASE 12 — ORIGINAL / CURRENT TEST
+النموذج المعرفي يحتوي على معلومات جزئية:
+
+Function	Original Path	Original SHA	Current Path	Current SHA	Production Version	Production SHA
+send-stock-voucher	Edge_Functions/original/ (غير محدد)	غير محدد	Edge_Functions/current/inventory/send-stock-voucher.ts	f2f36f7c3c186eb8f9af51d8bdfd2adf2e7a7421	version 7	غير محدد
+complete-picking	Edge_Functions/original/ (غير محدد)	غير محدد	Edge_Functions/current/ (غير محدد)	غير محدد	version 13	غير محدد
+receive-stock-voucher	غير محدد	غير محدد	Edge_Functions/current/ (غير محدد)	غير محدد	version 5	غير محدد
+receive-purchase	غير محدد	غير محدد	غير محدد	غير محدد	version 9	غير محدد
+هل Current هو Source of Truth للتطوير؟
+نعم، Current هو المصدر الحالي للكود، لكن ليس مصدر حقيقة إنتاجية. يجب مقارنته بـ Production Evidence و Architecture Constitution.
+
+هل Production يجب أن يطابق Current قبل أي Release؟
+ليس بالضرورة تطابقًا حرفيًا؛ يجب أن يتحقق semantic equivalence وأن يمر Production بالتحقق. Production قد يكون متقدمًا أو متأخرًا عن Current، والأهم هو أن التغيير المستهدف يتم نشره والتحقق منه.
+
+PHASE 13 — ERROR-HANDLING TEST
+إذا وجدت عيبًا، التسلسل الصحيح:
+
+ROOT CAUSE
+تحديد السبب الجذري من الكود/schema/التعريفات الفعلية.
+
+HISTORICAL RESEARCH
+مراجعة الأصل والتاريخ لفهم لماذا وُجد هذا السلوك.
+
+INDUSTRY BENCHMARK
+مقارنة المفهوم مع المعايير المستقرة (SAP، Dynamics، Odoo) إذا كان المفهوم محاسبيًا/مخزنيًا.
+
+REPAIR
+إصلاح أقل قدر ممكن وفق العقد المستهدف.
+
+TEST
+اختبار Unit / Integration / Production Transaction.
+
+DEPLOY
+النشر بعد موافقة المالك.
+
+VERIFY
+تحقق بعد النشر من النتيجة الفعلية.
+
+CLOSE
+إغلاق الوحدة مع الأدلة.
+
+إذا كانت Dependency مكسورة: أصلحها ضمن النطاق.
+إذا كان الملف ناقصًا: أستخرجه من المستودع/التاريخ.
+إذا تعذر إجراء إداري: أطلب إجراء المالك بدقة وأكمل بقية العمل.
+
+PHASE 14 — INDUSTRY BENCHMARK TEST
+نرجع إلى SAP / Dynamics 365 / Odoo عندما:
+
+نريد التحقق من مفهوم محاسبي أو مخزني مستقر (مثل COGS، الحجز، الحركات العكسية، دورة حياة المستند).
+
+نحتاج إلى نمط قياسي لمعالجة المرتجعات أو التحويلات الداخلية أو التسويات.
+
+نريد تجنب اختراع حلول غير مألوفة في المفاهيم المالية.
+
+القاعدة: لا نخترع العجلة في المفاهيم المستقرة؛ نأخذ المبدأ الصناعي ونكيفه مع RAWAEA Contract، دون نسخ حرفي.
+
+PHASE 15 — SECURITY / DATA INTEGRITY TEST
+لا أستطيع الفحص الفعلي الآن، لكن من النموذج المعرفي:
+
+RLS موجود على معظم الجداول الأساسية، مع وجود فجوات مثل driver_liabilities وdaily_settlements.
+
+SECURITY DEFINER مستخدم في RPCs المهمة.
+
+search_path = public مذكور.
+
+company_id معزول في الدوال المركزية.
+
+available_qty مولد من qty - allocated_qty.
+
+الخطر الحقيقي المثبت:
+
+complete_manual_stock_voucher_atomic يكتب completed_by بينما stock_vouchers لا يحتوي هذا العمود في الإنتاج؛ هذا عيب تعاقدي.
+
+Partial RECEIVE غير idempotent؛ تكرار نفس الـ RECEIVE قد يُسجل حركة جديدة.
+
+مخاطر أخرى:
+
+عدم اكتمال فحص كل الكتابات على stock_branches لضمان عدم وجود مسار فيزيائي موازٍ.
+
+users_email_key قد يسبب تعارضًا إذا حاولت دالة إنشاء مستخدم بنفس البريد.
+
+PHASE 16 — DEPLOYMENT GOVERNANCE TEST
+ACTIVE + HTTP 410 لا يساوي DELETED لأن:
+
+ACTIVE تشير إلى أن الدالة ما زالت منشورة ويمكن استدعاؤها.
+
+HTTP 410 يعني أن الدالة موجودة لكنها ترجع خطأ Gone (قديمة/متقاعدة) بدلاً من تنفيذ منطقها.
+
+الفرق:
+
+Deployment: نشر الدالة/الكود على المنصة.
+
+Verification: التحقق من أن النشر تم بنجاح وأن السلوك صحيح.
+
+Retirement: جعل الدالة غير قابلة للاستدعاء أو إرجاع 410/404، لكن دون حذفها من قاعدة البيانات أو السجلات.
+
+Deletion: إزالة الدالة نهائيًا.
+
+PHASE 17 — EXECUTION DISCIPLINE TEST
+إذا كانت Closure Unit A = 95% وClosure Unit B جاهزة، لا أنتقل إلى B.
+أغلق A أولًا بالكامل وأحل الـ 5% المتبقية، ثم انتقل إلى B.
+
+PHASE 18 — OWNER VISION TEST
+الهدف النهائي ليس إصلاح Edge Function واحدة، بل بناء:
+
+ERP متماسك
+
+Single Source of Truth
+
+Central Inventory Engine
+
+Atomic Transactions
+
+Reliable Accounting
+
+Stable Applications
+
+Production Reality
+
+كل Closure Unit هي جزء من هذه الرؤية، لأن كل إصلاح يقرب النظام من مركزية الحقيقة، ويمنع الانحرافات التي قد تكسر بقية النظام.
+
+PHASE 19 — SELF-AUDIT TEST
+تم تقديمه في بداية الإجابة. لا يمكنني إعطاء درجة 100/100 بسبب وجود Unknowns وعدم قدرتي على الوصول الفعلي.
+
+PHASE 20 — FINAL QUALIFICATION
+Domain	Score
+Business Understanding	85/100
+Architecture	90/100
+Database	70/100
+Inventory Semantics	85/100
+Accounting	80/100
+Historical	75/100
+Original/Current	65/100
+Production	80/100
+Edge Functions	75/100
+PWA	40/100
+Security	75/100
+Data Integrity	80/100
+Deployment Governance	85/100
+Execution Discipline	90/100
+Self-Audit Integrity	90/100
+TOTAL QUALIFICATION: غير محسوب كمتوسط بسيط لأن الأوزان مختلفة.
+
+الحكم النهائي:
+
+QUALIFIED WITH RESTRICTIONS
+السبب: القدرة على فهم الفلسفة والعقد المركزي والحالة الإنتاجية جيدة، لكن الوصول الفعلي إلى PWA وProduction PostgreSQL غير ممكن حاليًا، وبعض التفاصيل تحتاج فحصًا مباشرًا لإغلاق الوحدات. لذلك لا يمكن منحي QUALIFIED كاملة دون قيود.
+
