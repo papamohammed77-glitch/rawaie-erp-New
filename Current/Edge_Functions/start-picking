@@ -49,10 +49,12 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !user?.id) throw new Error("جلسة غير صالحة")
 
+    // public.users.id is the application PK; auth.users.id is linked by users.auth_id.
+    // Resolve the actual application user through the canonical Auth FK.
     const { data: pubUser, error: userLookupError } = await supabase
       .from("users")
       .select("id, company_id")
-      .eq("id", user.id)
+      .eq("auth_id", user.id)
       .maybeSingle()
 
     if (userLookupError) {
