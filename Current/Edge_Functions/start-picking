@@ -50,7 +50,6 @@ serve(async (req) => {
     if (authError || !user?.id) throw new Error("جلسة غير صالحة")
 
     // public.users.id is the application PK; auth.users.id is linked by users.auth_id.
-    // Resolve the actual application user through the canonical Auth FK.
     const { data: pubUser, error: userLookupError } = await supabase
       .from("users")
       .select("id, company_id")
@@ -69,7 +68,7 @@ serve(async (req) => {
 
     const { data: runsheet, error: runsheetError } = await supabase
       .from("runsheets")
-      .select("id,status")
+      .select("id,status,picker_id,picker_start")
       .eq("company_id", companyId)
       .eq("runsheet_code", runsheet_code)
       .maybeSingle()
@@ -79,6 +78,25 @@ serve(async (req) => {
     }
 
     if (!runsheet) throw new Error("الرانشيت غير موجود")
+
+    // Idempotency: if the same picker already started this runsheet,
+    // a duplicate/stale/concurrent request is a successful no-op.
+    if (runsheet.status === "Picking") {
+      if (runsheet.picker_id === pubUser.id) {
+        return new Response(JSON.stringify({
+          success: true,
+          msg: "التحضير بدأ بالفعل",
+          runsheet_id: runsheet.id,
+          status: runsheet.status,
+          picker_id: runsheet.picker_id,
+          picker_start: runsheet.picker_start,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
+      }
+
+      throw new Error("الرانشيت قيد التحضير بواسطة مستخدم آخر")
+    }
 
     if (!["Open", "Confirmed"].includes(runsheet.status)) {
       throw new Error("لا يمكن بدء التحضير في هذه الحالة")
@@ -100,7 +118,32 @@ serve(async (req) => {
       throw new Error("فشل تحديث قاعدة البيانات: " + updateError.message)
     }
 
+    // Lost the race after the initial Open/Confirmed read: re-check the row.
     if (!updatedRows || updatedRows.length !== 1) {
+      const { data: currentRunsheet, error: retryReadError } = await supabase
+        .from("runsheets")
+        .select("id,status,picker_id,picker_start")
+        .eq("id", runsheet.id)
+        .eq("company_id", companyId)
+        .maybeSingle()
+
+      if (retryReadError) {
+        throw new Error("فشل التحقق من حالة الرانشيت بعد المحاولة: " + retryReadError.message)
+      }
+
+      if (currentRunsheet?.status === "Picking" && currentRunsheet.picker_id === pubUser.id) {
+        return new Response(JSON.stringify({
+          success: true,
+          msg: "التحضير بدأ بالفعل",
+          runsheet_id: currentRunsheet.id,
+          status: currentRunsheet.status,
+          picker_id: currentRunsheet.picker_id,
+          picker_start: currentRunsheet.picker_start,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
+      }
+
       throw new Error("الرانشيت انتقل إلى حالة التحضير بواسطة طلب آخر أو لم يعد صالحًا للبدء")
     }
 
