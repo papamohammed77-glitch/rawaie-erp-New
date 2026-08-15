@@ -1,0 +1,475 @@
+CLOSURE UNIT — start-picking
+Self-Audit
+Business Understanding:       100/100
+Architecture Understanding:   100/100
+Database Understanding:      100/100
+Historical Understanding:     100/100
+Production Understanding:    100/100
+Current Understanding:       100/100
+Execution Confidence:         96/100
+
+
+Confirmed Facts:
+- Production v13 had defective user/company resolution.
+- Production v13 attempted automatic public.users creation.
+- Production v13 used app_settings.limit(1) for tenant context.
+- picker.html sends {"runsheet_code": "..."} over authenticated HTTP.
+- Production v14 is ACTIVE and verify_jwt=true.
+- Production HTTP E2E passed.
+- Staging HTTP E2E passed.
+- No stock mutation occurs during start-picking.
+
+
+Unknowns:
+- A visual browser click/rendering of the deployed picker UI itself was not independently automated.
+
+
+Conflicts:
+- User-reported direct Picking inventory_log insertion in complete_runsheet_picking conflicts with the current Production database definition. Production DB inspection found no such INSERT there or in the relevant triggers.
+
+
+Unverified Claims:
+- None concerning the start-picking business path.
+- Browser-rendered UI itself remains unverified.
+1. Historical / Original / Current / Production
+Historical
+
+rawaie-erp-review/Edge_Functions/original/02_picking/start-picking.ts
+
+Original responsibility included:
+
+Auth
+→ company from legacy context
+→ lookup user by email
+→ auto-create public.users if missing
+→ locate Runsheet
+→ Open/Confirmed → Picking
+
+The automatic user creation was retained from the legacy design.
+
+Production v13 — defect reproduced from source
+
+Production v13 contained:
+
+app_settings
+→ limit(1)
+→ company_id
+
+
+users
+→ email + company_id
+
+
+if (!pubUser)
+    INSERT public.users
+
+This is precisely the mechanism capable of producing:
+
+duplicate key value violates unique constraint "users_email_key"
+
+when the global email already exists but the company-scoped lookup fails.
+
+Consumer
+
+PWA/warehouse/picker.html
+
+SHA:
+
+7626ba320021a607854bf219f4bacd81fc3d1d92
+
+Its actual contract is:
+
+fetch(
+  SUPABASE_URL + '/functions/v1/start-picking',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + token
+    },
+    body: JSON.stringify({
+      runsheet_code: code
+    })
+  }
+)
+
+No modification was made to picker.html.
+
+Current
+
+Canonical artifact:
+
+Current/Edge_Functions/start-picking
+
+Current blob SHA:
+
+8148761a71704e2c688510b25b9f171dd022d7df
+
+Git commit containing the surgical artifact:
+
+9d39f4a68ac8d09e431fcab8ef143f8c522c9108
+2. Surgical Fix
+
+The defective logic:
+
+app_settings.limit(1)
++
+email/company lookup
++
+automatic INSERT
+
+was removed.
+
+The new logic is:
+
+Authenticated JWT
+        ↓
+auth.users.id
+        ↓
+public.users.id
+        ↓
+public.users.company_id
+        ↓
+company-scoped Runsheet
+
+Specifically:
+
+select id, company_id
+from users
+where id = authenticated_user.id
+
+Then:
+
+companyId = pubUser.company_id
+
+No automatic public.users creation remains.
+
+No password hashing exists in the new function.
+
+No app_settings.limit(1) exists.
+
+No inventory operation exists.
+
+No reservation is introduced.
+
+3. Lifecycle Contract
+
+The function now performs only:
+
+Open / Confirmed
+        ↓
+Picking
+        +
+picker_id = authenticated public.users.id
+        +
+picker_start
+
+It does not:
+
+post_stock_movement
+reserve_stock
+inventory_log
+stock_branches.qty
+stock_branches.allocated_qty
+
+Therefore:
+
+Physical Stock Movement = NONE
+Reservation = NONE
+
+That is correct for Start Picking.
+
+4. Staging HTTP E2E
+
+The full matrix passed.
+
+Test	Result
+Existing user	✅ PASS
+Open → Picking	✅ PASS
+Confirmed → Picking	✅ PASS
+Wrong company	✅ PASS
+Missing public user	✅ PASS
+Invalid status	✅ PASS
+Duplicate request	✅ PASS
+Concurrent request	✅ PASS
+picker_id correctness	✅ PASS
+company_id correctness	✅ PASS
+Stock unchanged	✅ PASS
+
+The Staging workflow produced:
+
+START_PICKING_STAGING_E2E_PASS
+
+Production/Staging temporary data was subsequently cleaned.
+
+5. Production Deployment
+
+Production:
+
+Function:       start-picking
+Version:        14
+Status:         ACTIVE
+verify_jwt:     true
+
+Production package SHA:
+
+6347cb490e05a9fcf62dfe0fcd43da522e72f19916277ae24061bbdf98078486
+
+Production runtime source was re-read after deployment and confirmed to contain:
+
+users.id = authenticated user.id
+users.company_id = tenant source
+
+and not:
+
+app_settings.limit(1)
+users.insert(...)
+6. Production HTTP E2E
+
+The real Production HTTP path was executed from an external GitHub runner against:
+
+https://fiilmooggumokxanwiyx.supabase.co/functions/v1/start-picking
+
+Using the exact consumer contract:
+
+{
+  "runsheet_code": "..."
+}
+
+Result:
+
+START_PICKING_PRODUCTION_E2E_PASS
+
+Verified:
+
+Existing User                     ✅
+Open → Picking                    ✅
+Confirmed → Picking               ✅
+Wrong Company                     ✅ rejected
+Missing public.users              ✅ rejected
+Invalid Status                    ✅ rejected
+Duplicate                         ✅ one success / one rejection
+Concurrent                        ✅ one success / one rejection
+picker_id                         ✅ correct
+company_id                        ✅ correct
+stock.qty                         ✅ unchanged
+allocated_qty                     ✅ unchanged
+
+Production Edge logs independently show successful v14 requests immediately after deployment, alongside the prior v13 failures. The v13 failures ceased to represent the current runtime path.
+
+7. Production Before / After
+Before
+authenticated user
+       ↓
+email + company_id
+       ↓
+not found
+       ↓
+INSERT users
+       ↓
+users_email_key
+       ↓
+400
+After
+authenticated user.id
+       ↓
+public.users.id
+       ↓
+public.users.company_id
+       ↓
+company-scoped Runsheet
+       ↓
+Picking
+
+No user creation occurs.
+
+This directly removes the Production defect you discovered.
+
+8. Baseline Restoration
+
+The Production test left one temporary Runsheet/user after the automated cleanup sequence.
+
+I detected it instead of declaring success.
+
+The residue was:
+
+Runsheet:
+SP-PROD-E2E-1786743549406
+
+
+User:
+sp-prod-normal-Confirmed-1786743548118345138@example.invalid
+
+I then explicitly removed:
+
+public.runsheets
+public.users
+auth.users
+
+and rechecked Production.
+
+Final result:
+
+canary_users       = 0
+canary_runs        = 0
+canary_companies   = 0
+
+Baseline restored.
+
+9. Static Verification
+
+Production v14 was re-read after deployment.
+
+Confirmed absent:
+
+app_settings.limit(1)
+users.insert(...)
+reserve_stock(...)
+post_stock_movement(...)
+inventory_log
+
+Confirmed present:
+
+users.id = authenticated user.id
+users.company_id
+company-scoped runsheet lookup
+Open / Confirmed validation
+conditional state transition
+10. Git/Test Governance
+
+The temporary GitHub E2E workflows were removed after successful execution.
+
+Deleted:
+
+.github/workflows/start-picking-staging-e2e-20260815.yml
+.github/workflows/start-picking-production-e2e-20260815.yml
+
+The temporary Supabase fixture functions were converted to:
+
+HTTP 410
+Temporary start-picking E2E fixture retired
+
+They are therefore retired, but not physically deleted from the Supabase Edge Function registry because the available Supabase tooling has no Edge Function deletion operation.
+
+This distinction matters:
+
+ACTIVE + 410 Stub ≠ DELETED
+
+So I will not falsely classify those registry objects as deleted.
+
+11. complete-picking Reconciliation
+
+I also re-opened the current Production database because of the additional defect you reported.
+
+The actual Production definition of:
+
+complete_runsheet_picking
+
+currently contains:
+
+inventory_log_pos = 0
+
+reserve_stock also contains no inventory_log write.
+
+Triggers on:
+
+order_details
+runsheets
+stock_branches
+
+do not produce a Picking inventory log.
+
+A Production function sweep found only:
+
+complete_runsheet_reopen_loading
+post_stock_movement
+
+as functions containing inventory_log.
+
+post_stock_movement does not allow:
+
+Picking
+
+as a movement type.
+
+Therefore I did not alter complete_runsheet_picking based solely on the conflicting observation. The current Production database evidence does not support that defect.
+
+That point should remain open for a separate evidence reconciliation rather than a speculative code modification.
+
+FINAL SELF-AUDIT
+What I Proved
+The Production v13 start-picking defect was real.
+Its root cause was the email+company lookup followed by automatic user creation.
+Tenant resolution through app_settings.limit(1) was defective.
+The surgical correction is implemented.
+Current artifact exists in the official Current path.
+Production v14 is deployed and ACTIVE.
+verify_jwt=true.
+Staging HTTP E2E passed.
+Production HTTP E2E passed.
+Existing-user flow works.
+Open/Confirmed lifecycle works.
+Wrong-company isolation works.
+Missing-user rejection works.
+Duplicate and concurrent requests are controlled.
+picker_id and company_id are correct.
+Stock remains unchanged.
+Canary data was restored to zero.
+picker.html was not modified.
+What I Did Not Prove
+
+I did not perform a browser-rendered click inside the actual deployed picker.html UI. I did, however, verify the exact picker.html source contract and execute that exact HTTP/Auth request against Production.
+
+That distinction is deliberate.
+
+What I Fixed
+Production start-picking v13
+→ Production start-picking v14
+
+with:
+
+JWT user
+→ public.users
+→ company_id
+→ company-scoped Runsheet
+
+and no automatic user insertion.
+
+What I Initially Missed
+
+The deeper defect was not merely the duplicate key.
+
+The underlying architectural error was:
+
+tenant resolution ≠ authenticated user context
+
+and the incorrect assumption that:
+
+"not found in this company"
+=
+"user does not exist"
+What Could Still Be Wrong
+
+The only material remaining proof gap is the actual browser/UI rendering and click execution of picker.html.
+
+The Production backend/application contract itself is verified.
+
+Final Confidence
+96/100
+Final Closure Status
+INCOMPLETE
+
+The software defect itself is fixed and Production-verified.
+
+I am deliberately not declaring 100% CLOSED because two governance/proof conditions remain:
+
+The temporary 410 Edge Function registry objects still require actual deletion; the available Supabase tooling does not expose an Edge Function delete operation.
+A browser-rendered picker.html → click → UI response test was not executable with the available runtime tooling.
+
+Therefore the correct status under your strict definition is:
+
+start-picking = FIXED
+start-picking = PRODUCTION VERIFIED
+start-picking = NOT YET 100% CLOSED
+
+I have not advanced to the next Closure Unit.
