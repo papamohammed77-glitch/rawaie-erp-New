@@ -1,0 +1,273 @@
+
+هناك عيب حقيقي لم تكتشفه في تقريرك.
+تحققت من Production مباشرة:
+•	complete-picking v13 ACTIVE وموجود فعليًا. ✅ 
+•	verify_jwt=true. ✅ 
+•	الـCore complete_runsheet_picking موجود فعليًا. ✅ 
+•	اختبارات الإنتاج المذكورة تبدو متسقة مع سجل التشغيل. ✅ 
+لكن داخل Core Production نفسه وجدت مخالفة مهمة:
+complete_runsheet_picking يقوم فعليًا بـINSERT INTO inventory_log بحركة Picking.
+وهذا يتعارض مع العقد الذي بنيناه:
+Picking = Reservation
+وليس:
+Picking = Physical Stock Movement
+وبالتالي يجب ألا يسجل Picking كـPhysical Inventory Movement داخل inventory_log المركزي.
+الموقف
+البند	الحالة
+Edge Production	✅ منفذة
+Reservation	✅ منفذة
+Physical stock qty	✅ لم تُخصم
+Core transaction	✅
+Picking inventory log	❌ عيب فعلي
+Company context	⚠️ ما زال app_settings.limit(1)
+100% Closeout	❌ مرفوض
+
+يجب أن تصلح هذين العيبين فورًا ثم تعيد اختبار Production، وبعدها فقط نراجع الإغلاق.
+MANDATORY SURGICAL FIX DIRECTIVE
+start-picking — Production Failure Found in Real Application Test
+لقد تم اكتشاف Defect حقيقي في Production أثناء اختبار النظام الأم الفعلي، وليس من تقرير نظري.
+الخطأ الفعلي
+عند الضغط على الـRunsheet من picker.html لبدء التحضير:
+فشل إضافة المستخدم:
+duplicate key value violates unique constraint "users_email_key"
+والـConsole أثبت:
+POST /functions/v1/start-picking → 400
+والاستدعاء صادر من picker.html عند الدالة:
+startPicking()
+وهو استدعاء HTTP صحيح.
+لا تعدّل picker.html الآن.
+هذا الملف من الـGolden/Diamond application artifacts، والتعامل معه يكون Surgical Patch فقط بعد إثبات أن المشكلة فيه فعلًا. التحقيق الحالي أثبت أن العيب في start-picking وليس في استدعاء picker.html.
+________________________________________
+1. Root Cause المثبت
+Production start-picking v13 يفعل:
+const { data: pubUser, error: userLookupError } = await supabase
+  .from("users")
+  .select("id")
+  .eq("email", user.email)
+  .eq("company_id", companyId)
+  .maybeSingle()
+ثم:
+if (!pubUser) {
+  await supabase
+    .from("users")
+    .insert({
+      ...
+      company_id: companyId,
+      ...
+    })
+}
+المشكلة:
+users_email_key قيد Global Unique على البريد.
+وبالتالي:
+•	المستخدم قد يكون موجودًا أصلًا في public.users.
+•	البحث الحالي يفشل لأنه يقيّد البحث بـcompany_id.
+•	الكود يفسر ذلك خطأً على أنه "المستخدم غير موجود".
+•	يحاول INSERT.
+•	قاعدة البيانات ترفض الإدخال لأن البريد موجود مسبقًا.
+•	النتيجة هي الخطأ الذي ظهر في التطبيق.
+هذا هو تفسير الـProduction failure الفعلي.
+________________________________________
+2. الخطأ الثاني المرتبط بالسياق
+Production start-picking v13 يستخرج الشركة من:
+.from("app_settings")
+.select("company_id")
+.limit(1)
+.maybeSingle()
+وهذا ليس أفضل مصدر للـtenant context.
+العقد الصحيح:
+Authenticated User
+        ↓
+public.users
+        ↓
+company_id
+ثم:
+company_id-scoped Runsheet
+ولا يجوز أن يعتمد بدء عملية Picking على:
+app_settings.limit(1)
+كمصدر عالمي للشركة.
+________________________________________
+3. التعديل الجراحي المطلوب
+لا تعيد كتابة الدالة.
+احذف منطق:
+if (!pubUser) {
+  ...
+  .insert(...)
+}
+ولا تنشئ public.users تلقائيًا أثناء بدء Picking.
+واستبدل آلية تحديد المستخدم/الشركة بالآتي:
+const { data: pubUser, error: userLookupError } = await supabase
+  .from("users")
+  .select("id, company_id")
+  .eq("id", user.id)
+  .maybeSingle()
+
+if (userLookupError) {
+  throw new Error("فشل قراءة المستخدم: " + userLookupError.message)
+}
+
+if (!pubUser?.id || !pubUser?.company_id) {
+  throw new Error("المستخدم غير مسجل في النظام أو سياق الشركة غير محدد")
+}
+
+const companyId = pubUser.company_id
+ثم يجب استخدام:
+companyId
+في جميع عمليات:
+•	Runsheet lookup
+•	Runsheet update
+•	company-scoped validation
+ولا يجوز إنشاء مستخدم تلقائيًا في هذه المرحلة.
+________________________________________
+4. المحافظة على العقد الخارجي
+يجب أن يبقى picker.html يعمل دون أي تعديل:
+{
+  "runsheet_code": "..."
+}
+والـresponse:
+{
+  "success": true,
+  "msg": "تم بدء التحضير"
+}
+يجب أن يظل متوافقًا مع الـconsumer الحالي.
+________________________________________
+5. ضرورة مقارنة النسخ
+قبل تعديل start-picking، افتح فعليًا:
+Historical
+rawaie-erp-review/Edge_Functions/original/02_picking/start-picking.ts
+Current
+rawaie-erp-New/Current/Edge_Functions/start-picking
+Production
+start-picking الحالي في Supabase Production.
+Consumers
+PWA/warehouse/picker.html
+ولا تعدّل picker.html.
+قارن:
+Historical
+vs
+Original
+vs
+Current
+vs
+Production
+vs
+Target
+وسجل:
+•	ما تم الحفاظ عليه.
+•	ما تم تقويته.
+•	ما تغير.
+•	ما تم نقله إلى Core.
+•	أي Responsibility مفقودة.
+________________________________________
+6. Inventory Rescue Contract
+هذا الإصلاح جزء من Inventory Rescue وليس إصلاحًا منفصلًا.
+start-picking مسؤول عن:
+Picking lifecycle
+ولا يجوز له تنفيذ Physical Stock Movement.
+أثناء Start Picking:
+Physical qty = unchanged
+ولا تستدعِ:
+post_stock_movement
+أما الحجز الفعلي فيتم عبر:
+reserve_stock
+إذا كان Start Picking نفسه لا يحتاج Reservation، فلا تضف Reservation إليه.
+احترم العقد الموجود في النظام ولا تخترع حركة جديدة.
+________________________________________
+7. اختبار إلزامي
+بعد التعديل:
+Staging
+اختبر:
+Open → Picking
+Confirmed → Picking
+Wrong company
+Missing user
+Existing user
+Duplicate request
+Concurrent request
+Invalid status
+ثم Production
+نفذ المسار الحقيقي من:
+picker.html
+حتى:
+HTTP → Auth → start-picking → DB → UI
+ولا تعتمد على RPC-only test.
+________________________________________
+8. إثبات الخطأ قبل الإصلاح وإثبات زواله بعد الإصلاح
+يجب أن يثبت التقرير:
+Before
+users_email_key duplicate
+start-picking = 400
+After
+existing registered user → Picking successfully starts
+مع:
+Runsheet status = Picking
+picker_id = correct public.users.id
+company_id = user's company_id
+و:
+stock.qty unchanged
+allocated_qty unchanged
+إذا كان Reservation جزءًا من المسار الفعلي، أثبته منفصلًا.
+________________________________________
+9. التقييم التنفيذي السابق
+التقييم الحالي لـstart-picking قبل هذا الإصلاح:
+Production = DEPLOYED
+Architecture = PARTIALLY CORRECT
+Company Context = DEFECTIVE
+User Resolution = DEFECTIVE
+Application Integration = FAILED IN REAL USE
+لذلك لن تعتبر start-picking 100% قبل إصلاح هذا العيب وإعادة اختبارها فعليًا.
+________________________________________
+10. قواعد السلوك
+ممنوع:
+FOUND DEFECT
+→ BLOCKED
+→ REPORT
+المطلوب:
+FOUND DEFECT
+→ ROOT CAUSE
+→ SURGICAL FIX
+→ TEST
+→ DEPLOY
+→ PRODUCTION VERIFY
+→ CLOSE
+إذا وجدت نقص معلومات:
+ابحث عنه بنفسك في Historical / Original / Current / Production / Git history / DB.
+لا تنتظر أن أحضر لك الملف.
+إذا ظهر عائق لا تستطيع الأداة تنفيذه:
+حدد لي الإجراء اليدوي المطلوب فقط، وأكمل كل ما تستطيع تنفيذه دون توقف.
+________________________________________
+11. SELF-AUDIT إلزامي
+في مقدمة التقرير:
+Business Understanding
+Architecture Understanding
+Database Understanding
+Historical Understanding
+Production Understanding
+Current Understanding
+Execution Confidence
+
+Confirmed Facts
+Unknowns
+Conflicts
+Unverified Claims
+وفي النهاية:
+What I Proved
+What I Did Not Prove
+What I Fixed
+What I Initially Missed
+What Could Still Be Wrong
+Final Confidence
+Final Closure Status
+لا تستخدم 100% إذا بقي أي نقص فعلي.
+________________________________________
+12. المطلوب الآن
+نفذ الإصلاح فورًا على start-picking فقط.
+لا تلمس picker.html.
+ثم:
+Static
+→ Staging HTTP E2E
+→ Production HTTP E2E
+→ Baseline Verification
+→ 100% CLOSE
+وبعد إغلاق start-picking فقط انتقل إلى Closure Unit التالية.
+هذه ليست مرحلة تقرير. هذه مرحلة إصلاح فعلي.
+
