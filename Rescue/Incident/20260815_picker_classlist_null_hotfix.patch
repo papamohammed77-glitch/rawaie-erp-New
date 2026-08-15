@@ -1,0 +1,64 @@
+*** PATCH TARGET ***
+Original/PWA/warehouse/picker.html
+
+*** ROOT CAUSE ***
+After cancel-picking succeeds, renderPendingTab() replaces #mainContent with a skeleton while asynchronously rebuilding the pending list. The same page contains code paths that directly execute byId('searchDropdown').classList without verifying that the transient DOM node still exists. This creates a client-side race and produces: Cannot read properties of null (reading 'classList').
+
+*** SURGICAL FIX ***
+1. In renderPendingTab(), cancel any pending search debounce before replacing the DOM:
+
+    renderPendingTab: function(){
+        var self = this;
+        if(this.searchTimer){ clearTimeout(this.searchTimer); this.searchTimer = null; }
+        safeHTML(byId('mainContent'),
+            '<div class="mb-6"><div class="skeleton h-14 w-full mb-4"></div><div class="skeleton h-32 w-full mb-3"></div></div>'
+        );
+
+2. In onSearchInput(), guard the dynamically created dropdown:
+
+    onSearchInput: function(query){
+        var self = this;
+        if(this.searchTimer) clearTimeout(this.searchTimer);
+        var dropdown = byId('searchDropdown');
+        if(!query || query.trim().length < 1){
+            if(dropdown) dropdown.classList.add('hidden');
+            return;
+        }
+        this.searchTimer = setTimeout(function(){
+            supabase.from('runsheets').select('runsheet_code, status, run_date, picker_id, run_sheet_details(count)').ilike('runsheet_code', '%' + query.trim() + '%').limit(10).then(function(res){
+                self.searchResults = res.data || []; self.renderSearchDropdown();
+            });
+        }, 300);
+    },
+
+3. In openRunsheet(), guard the same dynamically created dropdown:
+
+    openRunsheet: function(code){
+        var self = this;
+        var dropdown = byId('searchDropdown');
+        if(dropdown) dropdown.classList.add('hidden');
+        safeHTML(byId('mainContent'), '<div class="text-center py-20"><div class="skeleton h-48 w-full mb-4"></div></div>');
+        ...
+
+4. In cancelPicking() success path, clear any stale search debounce before rendering the pending tab:
+
+    if(json && json.success){
+        toast('تم إلغاء التحضير', 'success');
+        db.session.clear();
+        self.session = null;
+        if(self.timerInterval) clearInterval(self.timerInterval);
+        if(self.searchTimer) { clearTimeout(self.searchTimer); self.searchTimer = null; }
+        self.renderPendingTab();
+    }
+
+*** NON-CHANGES ***
+- Do not change the HTTP invocation in picker.html.
+- Do not change start-picking/cancel-picking API contracts.
+- Do not change runsheet state logic.
+- Do not change stock or allocated_qty logic.
+- Do not modify the Golden/Diamond UI beyond these DOM-lifecycle guards.
+
+*** VERIFICATION CONTRACT ***
+The cancellation flow must execute:
+Picker UI -> cancel-picking HTTP -> DB cancellation -> renderPendingTab -> asynchronous list rebuild
+without any direct classList access on a missing #searchDropdown node.
