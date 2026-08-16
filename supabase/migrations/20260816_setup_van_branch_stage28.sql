@@ -50,6 +50,7 @@ BEGIN
   END IF;
 
   INSERT INTO public.stock_branches (
+    id,
     branch_id,
     item_id,
     qty,
@@ -57,6 +58,7 @@ BEGIN
     updated_at
   )
   SELECT
+    gen_random_uuid(),
     p_van_branch_id,
     sb.item_id,
     0,
