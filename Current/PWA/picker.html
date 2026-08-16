@@ -319,9 +319,19 @@ renderPendingTab: function(){
         var code = rs.runsheet_code || '';
         // ✅ استخراج عدد الأصناف
         var itemCount = (rs.run_sheet_details && rs.run_sheet_details.length > 0) ? rs.run_sheet_details[0].count : 0;
-        var statusIcon = isActive ? '🔄' : '📋';
-        var statusLabel = isActive ? 'قيد التحضير' : 'مفتوح';
-        var statusColor = isActive ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600';
+var statusIcon = isActive
+    ? '🔄'
+    : (rs.status === 'Confirmed' ? '✅' : '📋');
+
+var statusLabel = isActive
+    ? 'قيد التحضير'
+    : (rs.status === 'Confirmed' ? 'مؤكد' : 'مفتوح');
+
+var statusColor = isActive
+    ? 'bg-amber-50 text-amber-600'
+    : (rs.status === 'Confirmed'
+        ? 'bg-emerald-50 text-emerald-600'
+        : 'bg-blue-50 text-blue-600');
         var actionBtn = '';
         if(isActive){
             actionBtn = '<button onclick="event.stopPropagation(); App.cancelPicking(\'' + code + '\')" class="btn-danger mt-3 text-xs px-3 py-1.5"><i class="fa-solid fa-xmark ml-1"></i> إلغاء التحضير</button>';
