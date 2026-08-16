@@ -451,9 +451,31 @@ var textColor = isMine
     .eq('runsheet_code', code)
     .maybeSingle()
     .then(function(rsRes){
-            if(!rsRes.data){ toast('الرانشيت غير موجود', 'error'); self.renderPendingTab(); return; }
-            var rs = rsRes.data;
-            supabase.from('run_sheet_details').select('*').eq('runsheet_id', rs.id).then(function(detRes){
+            if(!rsRes.data){ toast('الرانشيت غير موجود', 'error'); self.renderPendingTab(); return; }var rs = rsRes.data;
+
+if(
+    rs.status === 'Picking' &&
+    rs.picker_id !== self.pubUserId
+){
+    toast('الرانشيت قيد التحضير بواسطة موظف آخر', 'warning');
+    self.renderPendingTab();
+    return;
+}
+
+if(
+    rs.status === 'Picked' &&
+    rs.picker_id !== self.pubUserId
+){
+    toast('هذا الرانشيت مكتمل بواسطة موظف آخر', 'warning');
+    self.renderPendingTab();
+    return;
+}
+
+supabase
+    .from('run_sheet_details')
+    .select('*')
+    .eq('runsheet_id', rs.id)
+    .then(function(detRes){
                 var items = detRes.data || [];
                 var itemCount = items.length;
                 if(rs.status === 'Picking' && rs.picker_id === self.pubUserId){
