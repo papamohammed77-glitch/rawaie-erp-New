@@ -1,0 +1,612 @@
+نعم. بعد مراجعة البرومبت 1 + تقرير ج1 + تقييم1 + تقريرج2 ومراجعة ملف:
+
+rawaie-erp-New/Original/PWA/warehouse/picker.html
+
+فالقرار الجراحي الدقيق هو:
+
+التشخيص النهائي
+
+لا تعدّل startPicking() ولا سطر fetch() إطلاقًا.
+
+السطر الخاص بـ:
+
+fetch(SUPABASE_URL + '/functions/v1/start-picking', ...)
+
+صحيح، كما أن تقرير ج1 أثبت أن مشكلة start-picking الأصلية كانت في Backend identity mapping، وقد عولجت بالفعل في Production.
+
+أما العيب الذي يجب إصلاحه الآن داخل picker.html فهو Tenant Isolation:
+
+Authenticated User
+        ↓
+public.users.auth_id
+        ↓
+public.users.company_id
+        ↓
+كل قراءة Runsheet يجب أن تكون company-scoped
+
+تقرير ج2 أكد وجود ستة مسارات تقرأ runsheets بدون company_id.
+
+والـOriginal فعلاً يحتوي هذه الاستعلامات غير المقيدة.
+
+1. التعديل الأول — App state
+
+داخل:
+
+var App = {
+
+ابحث عن:
+
+currentUser: null,
+currentTab: 'pending',
+pubUserId: null,
+session: null,
+
+احذف هذا المقطع بالكامل واستبدله بـ:
+
+currentUser: null,
+currentTab: 'pending',
+pubUserId: null,
+companyId: null,
+session: null,
+2. التعديل الثاني — دالة init
+
+هذا أهم تعديل في الـUI؛ لأنه يبني Company Context الحقيقي.
+
+ابحث داخل:
+
+init: function(){
+
+عن هذا المقطع كاملًا:
+
+supabase.from('users').select('id, name, active_warehouse_role').eq('email', self.currentUser.email).maybeSingle().then(function(uRes){
+    var userData = uRes.data || {};
+    self.pubUserId = userData.id || null;
+    var userName = userData.name || meta.name || self.currentUser.email;
+    var activeRole = userData.active_warehouse_role || meta.active_warehouse_role || '';
+    if(!isOwner && activeRole !== 'تحضير'){
+        Swal.fire({ title: 'تنبيه', text: 'دورك النشط حالياً هو "' + (activeRole || 'غير محدد') + '". الرجاء التواصل مع مشرف المخازن.', icon: 'warning', customClass: { popup: '!rounded-3xl' } });
+        supabase.auth.signOut();
+        return;
+    }
+    safeText(byId('headerUserName'), userName);
+    self.enterApp();
+}).catch(function(){
+    var activeRole = meta.active_warehouse_role || '';
+    if(!isOwner && activeRole !== 'تحضير'){
+        Swal.fire({ title: 'تنبيه', text: 'تعذر التحقق من دورك النشط.', icon: 'warning', customClass: { popup: '!rounded-3xl' } });
+        supabase.auth.signOut();
+        return;
+    }
+    safeText(byId('headerUserName'), meta.name || self.currentUser.email);
+    self.enterApp();
+});
+
+واستبدله بالكامل بهذا:
+
+supabase.from('users')
+    .select('id, name, company_id, active_warehouse_role')
+    .eq('auth_id', self.currentUser.id)
+    .maybeSingle()
+    .then(function(uRes){
+        if(uRes.error){
+            throw uRes.error;
+        }
+
+
+        var userData = uRes.data || {};
+
+
+        if(!userData.id || !userData.company_id){
+            throw new Error('تعذر تحديد المستخدم أو سياق الشركة');
+        }
+
+
+        self.pubUserId = userData.id;
+        self.companyId = userData.company_id;
+
+
+        var userName = userData.name || meta.name || self.currentUser.email;
+        var activeRole = userData.active_warehouse_role || meta.active_warehouse_role || '';
+
+
+        if(!isOwner && activeRole !== 'تحضير'){
+            Swal.fire({
+                title: 'تنبيه',
+                text: 'دورك النشط حالياً هو "' + (activeRole || 'غير محدد') + '". الرجاء التواصل مع مشرف المخازن.',
+                icon: 'warning',
+                customClass: { popup: '!rounded-3xl' }
+            });
+            supabase.auth.signOut();
+            return;
+        }
+
+
+        safeText(byId('headerUserName'), userName);
+        self.enterApp();
+
+
+    })
+    .catch(function(err){
+        console.error('Picker user/company context error:', err);
+
+
+        Swal.fire({
+            title: 'تعذر الدخول',
+            text: 'تعذر تحديد المستخدم أو الشركة المرتبطة بحسابك.',
+            icon: 'error',
+            customClass: { popup: '!rounded-3xl' }
+        });
+
+
+        supabase.auth.signOut();
+    });
+لماذا هذا التغيير ضروري؟
+
+لأن الكود الأصلي يستخدم:
+
+.eq('email', self.currentUser.email)
+
+بينما العقد الإنتاجي المثبت حاليًا هو:
+
+auth.users.id
+        ↓
+public.users.auth_id
+
+وpublic.users.id مستقل عن Auth UUID. هذا مثبت مباشرة في تقرير ج1 وتقريرج2.
+
+والأهم أننا نأخذ:
+
+self.companyId = userData.company_id;
+
+من نفس سجل المستخدم، وليس من app_settings.
+
+3. التعديل الثالث — renderPendingTab
+
+استبدل الدالة كاملة:
+
+renderPendingTab: function(){
+    ...
+}
+
+بالنسخة التالية:
+
+renderPendingTab: function(){
+    var self = this;
+
+
+    safeHTML(
+        byId('mainContent'),
+        '<div class="mb-6">' +
+            '<div class="skeleton h-14 w-full mb-4"></div>' +
+            '<div class="skeleton h-32 w-full mb-3"></div>' +
+        '</div>'
+    );
+
+
+    if(!this.pubUserId || !this.companyId){
+        safeHTML(
+            byId('mainContent'),
+            '<div class="text-center py-20 text-red-400">تعذر تحديد سياق الشركة للمستخدم.</div>'
+        );
+        return;
+    }
+
+
+    // ✅ جميع قراءات Runsheet أصبحت Company-Scoped
+    var p1 = supabase
+        .from('runsheets')
+        .select('runsheet_code, status, run_date, picker_id, run_sheet_details(count)')
+        .eq('company_id', this.companyId)
+        .eq('status', 'Picking')
+        .eq('picker_id', this.pubUserId)
+        .order('run_date', { ascending: false })
+        .limit(20);
+
+
+    var p2 = supabase
+        .from('runsheets')
+        .select('runsheet_code, status, run_date, run_sheet_details(count)')
+        .eq('company_id', this.companyId)
+        .eq('status', 'Open')
+        .order('run_date', { ascending: false })
+        .limit(50);
+
+
+    Promise.all([p1, p2])
+        .then(function(results){
+            var myRunsheets = results[0].data || [];
+            var openRunsheets = results[1].data || [];
+
+
+            self.allRunsheets = myRunsheets.concat(openRunsheets);
+            self.renderRunsheetLists(myRunsheets, openRunsheets);
+        })
+        .catch(function(){
+            safeHTML(
+                byId('mainContent'),
+                '<div class="text-center py-20 text-red-400">فشل تحميل البيانات. تأكد من الاتصال.</div>'
+            );
+        });
+},
+ملاحظة مهمة
+
+قمت أيضًا بإزالة:
+
+this.pubUserId || this.currentUser.email
+
+وأبقيت:
+
+.eq('picker_id', this.pubUserId)
+
+فقط.
+
+هذا صحيح معماريًا لأن runsheets.picker_id يخزن:
+
+public.users.id
+
+وليس البريد ولا Auth UUID. وهذا مثبت في التقريرين.
+
+4. التعديل الرابع — onSearchInput
+
+احذف الدالة الحالية كاملة:
+
+onSearchInput: function(query){
+    ...
+},
+
+واستبدلها بـ:
+
+onSearchInput: function(query){
+    var self = this;
+
+
+    if(this.searchTimer) clearTimeout(this.searchTimer);
+
+
+    if(!query || query.trim().length < 1){
+        byId('searchDropdown').classList.add('hidden');
+        return;
+    }
+
+
+    if(!this.companyId){
+        byId('searchDropdown').classList.add('hidden');
+        return;
+    }
+
+
+    this.searchTimer = setTimeout(function(){
+
+
+        supabase
+            .from('runsheets')
+            .select('runsheet_code, status, run_date, picker_id, run_sheet_details(count)')
+            .eq('company_id', self.companyId)
+            .ilike('runsheet_code', '%' + query.trim() + '%')
+            .limit(10)
+            .then(function(res){
+
+
+                if(res.error){
+                    throw res.error;
+                }
+
+
+                self.searchResults = res.data || [];
+                self.renderSearchDropdown();
+            })
+            .catch(function(err){
+                console.error('Runsheet search error:', err);
+                self.searchResults = [];
+                self.renderSearchDropdown();
+            });
+
+
+    }, 300);
+},
+
+هذا يغلق أحد أوضح مسارات Tenant Leakage المثبتة في التقريرج2.
+
+5. التعديل الخامس — openRunsheet
+
+داخل الدالة:
+
+openRunsheet: function(code){
+
+لا تستبدل الدالة كلها؛ استبدل فقط استعلام runsheets الأول.
+
+احذف:
+
+supabase.from('runsheets').select('*').eq('runsheet_code', code).maybeSingle().then(function(rsRes){
+
+واستبدله بـ:
+
+supabase
+    .from('runsheets')
+    .select('*')
+    .eq('company_id', self.companyId)
+    .eq('runsheet_code', code)
+    .maybeSingle()
+    .then(function(rsRes){
+
+إذن بداية الدالة تصبح:
+
+openRunsheet: function(code){
+    var self = this;
+
+
+    byId('searchDropdown').classList.add('hidden');
+
+
+    safeHTML(
+        byId('mainContent'),
+        '<div class="text-center py-20"><div class="skeleton h-48 w-full mb-4"></div></div>'
+    );
+
+
+    if(!self.companyId){
+        toast('سياق الشركة غير محدد', 'error');
+        self.renderPendingTab();
+        return;
+    }
+
+
+    supabase
+        .from('runsheets')
+        .select('*')
+        .eq('company_id', self.companyId)
+        .eq('runsheet_code', code)
+        .maybeSingle()
+        .then(function(rsRes){
+
+والباقي من الدالة يبقى كما هو.
+
+6. التعديل السادس — renderCompletedTab
+
+استبدل الدالة كاملة:
+
+renderCompletedTab: function(){
+    ...
+},
+
+بالنسخة:
+
+renderCompletedTab: function(){
+    var self = this;
+
+
+    safeHTML(
+        byId('mainContent'),
+        '<div class="text-center py-20"><div class="skeleton h-12 w-3/4 mb-3"></div></div>'
+    );
+
+
+    if(!this.pubUserId || !this.companyId){
+        safeHTML(
+            byId('mainContent'),
+            '<div class="text-center py-20 text-red-400">تعذر تحديد سياق الشركة للمستخدم.</div>'
+        );
+        return;
+    }
+
+
+    supabase
+        .from('runsheets')
+        .select('runsheet_code, run_date, status')
+        .eq('company_id', this.companyId)
+        .eq('status', 'Picked')
+        .eq('picker_id', this.pubUserId)
+        .order('run_date', { ascending: false })
+        .limit(50)
+        .then(function(res){
+
+
+            if(res.error){
+                throw res.error;
+            }
+
+
+            self.completedRunsheets = res.data || [];
+            self.renderCompletedList(self.completedRunsheets);
+
+
+        })
+        .catch(function(){
+            safeHTML(
+                byId('mainContent'),
+                '<div class="text-center py-20 text-red-400">فشل تحميل البيانات</div>'
+            );
+        });
+},
+7. التعديل السابع — reopenPicking
+
+داخل:
+
+reopenPicking: function(code){
+
+استبدل استعلام الـpre-check فقط:
+
+القديم
+supabase.from('runsheets').select('status').eq('runsheet_code', code).maybeSingle().then(function(res){
+الجديد
+supabase
+    .from('runsheets')
+    .select('status, picker_id')
+    .eq('company_id', self.companyId)
+    .eq('runsheet_code', code)
+    .maybeSingle()
+    .then(function(res){
+
+ويجب أن تضيف تحقق الشركة قبل الاستعلام.
+
+الأفضل أن تكون الدالة بهذا الشكل كاملًا:
+
+reopenPicking: function(code){
+    var self = this;
+
+
+    if(!this.pubUserId || !this.companyId){
+        toast('تعذر تحديد المستخدم أو سياق الشركة', 'error');
+        return;
+    }
+
+
+    supabase
+        .from('runsheets')
+        .select('status, picker_id')
+        .eq('company_id', self.companyId)
+        .eq('runsheet_code', code)
+        .maybeSingle()
+        .then(function(res){
+
+
+            if(res.error){
+                throw res.error;
+            }
+
+
+            if(!res.data ||
+               res.data.status !== 'Picked' ||
+               res.data.picker_id !== self.pubUserId){
+
+
+                Swal.fire({
+                    title: 'لا يمكن التعديل',
+                    text: 'الرانشيت لم يعد في حالة مكتمل التحضير أو لا يتبع المستخدم الحالي.',
+                    icon: 'warning',
+                    customClass: { popup: '!rounded-3xl' }
+                });
+
+
+                self.renderCompletedTab();
+                return;
+            }
+
+
+            Swal.fire({
+                title: 'تأكيد التعديل',
+                text: 'سيتم إعادة فتح الرانشيت ' + code + ' للتعديل. سيُفرج عن الحجز. متابعة؟',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'نعم، تعديل',
+                cancelButtonText: 'إلغاء',
+                customClass: {
+                    popup: '!rounded-3xl',
+                    confirmButton: '!rounded-xl !bg-amber-500 !px-8',
+                    cancelButton: '!rounded-xl'
+                }
+            }).then(function(r){
+
+
+                if(!r.isConfirmed) return;
+
+
+                Swal.showLoading();
+
+
+                supabase.auth.getSession().then(function(ses){
+
+
+                    var token = ses.data.session
+                        ? ses.data.session.access_token
+                        : null;
+
+
+                    if(!token){
+                        Swal.close();
+                        toast('انتهت الجلسة', 'error');
+                        return;
+                    }
+
+
+                    return fetch(
+                        SUPABASE_URL + '/functions/v1/reopen-picking',
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + token
+                            },
+                            body: JSON.stringify({ runsheet_code: code })
+                        }
+                    );
+
+
+                }).then(function(res){
+
+
+                    if(!res) return;
+
+
+النتيجة النهائية للجراحة
+
+بعد هذه التعديلات يصبح مسار الـPicker:
+
+Supabase Auth
+     │
+     ▼
+auth.users.id
+     │
+     ▼
+public.users.auth_id
+     │
+     ├── public.users.id
+     │        │
+     │        └── runsheets.picker_id
+     │
+     └── public.users.company_id
+              │
+              ▼
+        ALL runsheets queries
+              │
+              ▼
+        company-scoped only
+
+وبالتالي تصبح الاستعلامات الستة:
+
+المسار	قبل	بعد
+renderPendingTab Picking	بلا شركة	eq('company_id', this.companyId)
+renderPendingTab Open	بلا شركة	eq('company_id', this.companyId)
+onSearchInput	بلا شركة	eq('company_id', self.companyId)
+openRunsheet	بلا شركة	eq('company_id', self.companyId)
+renderCompletedTab	بلا شركة	eq('company_id', this.companyId)
+reopenPicking pre-check	بلا شركة	eq('company_id', self.companyId)
+
+وهذا يتطابق مباشرة مع العيب الذي حدده تقييم1 والتقريرج2.
+
+ما لا يجب تعديله
+
+لا تلمس نهائيًا:
+
+startPicking: function(code){
+
+ولا:
+
+fetch(
+    SUPABASE_URL + '/functions/v1/start-picking',
+
+ولا:
+
+body: JSON.stringify({ runsheet_code: code })
+
+ولا completePicking() ولا cancelPicking() في هذه الجراحة.
+
+الـpayload الخارجي والـHTTP contract صحيحان، والإصلاح الحالي يستهدف Consumer Tenant Isolation فقط، دون إعادة فتح ما تم إصلاحه في Backend. وهذا بالضبط ما طلبه التقييم: عدم كسر الـGolden UI أو workflow أو payload contract.
+
+ملاحظة هندسية مهمة
+
+لا أنصح بإضافة:
+
+.eq('email', ...)
+
+كـfallback بعد:
+
+.eq('auth_id', ...)
+
+ولا باستخدام:
+
+app_settings.limit(1)
+
+للحصول على الشركة. العقد المثبت في Production هو auth_id → users.company_id، وusers.email فريد لكنه ليس Identity Bridge.
+
+هذه هي الجراحة الصحيحة على Original/PWA/warehouse/picker.html.
