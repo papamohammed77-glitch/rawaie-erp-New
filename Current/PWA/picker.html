@@ -271,7 +271,7 @@ renderPendingTab: function(){
         .from('runsheets')
         .select('runsheet_code, status, run_date, run_sheet_details(count)')
         .eq('company_id', this.companyId)
-        .eq('status', 'Open')
+        .in('status', ['Open', 'Confirmed'])
         .order('run_date', { ascending: false })
         .limit(50);
 
