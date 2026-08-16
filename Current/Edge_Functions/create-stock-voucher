@@ -28,16 +28,16 @@ serve(async (req) => {
     if (!authHeader) throw new Error("غير مصرح")
     const token = authHeader.replace("Bearer ", "")
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    if (authError || !user?.email) throw new Error("جلسة غير صالحة")
+    if (authError || !user?.id || !user?.email) throw new Error("جلسة غير صالحة")
 
-    const { data: settings, error: settingsError } = await supabase
-      .from("app_settings")
-      .select("company_id")
-      .limit(1)
+    const { data: publicUser, error: userError } = await supabase
+      .from("users")
+      .select("id, company_id")
+      .eq("auth_id", user.id)
       .maybeSingle()
-    if (settingsError || !settings?.company_id) throw new Error("سياق الشركة غير محدد")
+    if (userError || !publicUser?.company_id) throw new Error("سياق الشركة غير محدد للمستخدم")
 
-    const companyId = settings.company_id
+    const companyId = publicUser.company_id
     const { data: lastVoucher, error: lastError } = await supabase
       .from("stock_vouchers")
       .select("voucher_code")
@@ -54,16 +54,15 @@ serve(async (req) => {
 
     const fromId = body?.fromId || null
     const toId = body?.toId || null
-
-    if (fromId) {
-      const { data: branch, error } = await supabase
-        .from("branches").select("id").eq("id", fromId).eq("company_id", companyId).maybeSingle()
-      if (error || !branch) throw new Error("فرع المصدر غير صالح")
-    }
-    if (toId) {
-      const { data: branch, error } = await supabase
-        .from("branches").select("id").eq("id", toId).eq("company_id", companyId).maybeSingle()
-      if (error || !branch) throw new Error("فرع الوجهة غير صالح")
+    for (const [id, label] of [[fromId, "المصدر"], [toId, "الوجهة"]] as const) {
+      if (!id) continue
+      const { data: branch, error: branchError } = await supabase
+        .from("branches")
+        .select("id")
+        .eq("id", id)
+        .eq("company_id", companyId)
+        .maybeSingle()
+      if (branchError || !branch) throw new Error(`فرع ${label} غير صالح`)
     }
 
     const normalizedItems = []
