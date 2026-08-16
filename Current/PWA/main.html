@@ -6726,8 +6726,9 @@ var RW_Warehouse = (function() {
         if (!result.isConfirmed) return;
         showLoader('جاري الاستلام...');
         var ses = await supabase.auth.getSession(), token = ses.data.session ? ses.data.session.access_token : null;
+        var receiveOperationId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('RCV-' + Date.now() + '-' + Math.random().toString(36).slice(2));
         try {
-            var res = await fetch(RW_SUPABASE_URL + '/functions/v1/receive-stock-voucher', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ voucher_code: voucherCode, receivedItems: result.value }) });
+            var res = await fetch(RW_SUPABASE_URL + '/functions/v1/receive-stock-voucher', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, 'Idempotency-Key': receiveOperationId }, body: JSON.stringify({ voucher_code: voucherCode, receivedItems: result.value, operation_id: receiveOperationId }) });
             var json = await res.json(); hideLoader();
             if (json.success) { showToast(json.msg || 'تم الاستلام', 'success'); loadVouchers(); }
             else showToast(json.error || json.msg || 'فشل الاستلام', 'error');
