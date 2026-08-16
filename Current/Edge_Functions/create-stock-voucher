@@ -1,0 +1,129 @@
+// create-stock-voucher — company-scoped capability wrapper
+// Required by the send-stock-voucher consumer flow.
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+)
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
+  try {
+    const body = await req.json().catch(() => ({}))
+    const type = body?.type
+    const items = body?.items
+    if (!type || !Array.isArray(items) || items.length === 0) {
+      throw new Error("النوع والأصناف مطلوبة")
+    }
+
+    const authHeader = req.headers.get("Authorization")
+    if (!authHeader) throw new Error("غير مصرح")
+    const token = authHeader.replace("Bearer ", "")
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user?.email) throw new Error("جلسة غير صالحة")
+
+    const { data: settings, error: settingsError } = await supabase
+      .from("app_settings")
+      .select("company_id")
+      .limit(1)
+      .maybeSingle()
+    if (settingsError || !settings?.company_id) throw new Error("سياق الشركة غير محدد")
+
+    const companyId = settings.company_id
+    const { data: lastVoucher, error: lastError } = await supabase
+      .from("stock_vouchers")
+      .select("voucher_code")
+      .eq("company_id", companyId)
+      .order("voucher_code", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (lastError) throw new Error(lastError.message)
+
+    let lastNum = 0
+    const match = lastVoucher?.voucher_code?.match(/\d+/)
+    if (match) lastNum = parseInt(match[0], 10)
+    const voucherCode = `IN-${lastNum + 1}`
+
+    const fromId = body?.fromId || null
+    const toId = body?.toId || null
+
+    if (fromId) {
+      const { data: branch, error } = await supabase
+        .from("branches").select("id").eq("id", fromId).eq("company_id", companyId).maybeSingle()
+      if (error || !branch) throw new Error("فرع المصدر غير صالح")
+    }
+    if (toId) {
+      const { data: branch, error } = await supabase
+        .from("branches").select("id").eq("id", toId).eq("company_id", companyId).maybeSingle()
+      if (error || !branch) throw new Error("فرع الوجهة غير صالح")
+    }
+
+    const normalizedItems = []
+    for (const item of items) {
+      const itemCode = String(item?.itemCode || "").trim()
+      const qty = Number(item?.qty)
+      if (!itemCode || !Number.isFinite(qty) || qty <= 0) throw new Error("بيانات الصنف غير صالحة")
+
+      const { data: itemRow, error: itemError } = await supabase
+        .from("items")
+        .select("id,item_code,item_name")
+        .eq("company_id", companyId)
+        .eq("item_code", itemCode)
+        .maybeSingle()
+      if (itemError || !itemRow) throw new Error("الصنف غير موجود: " + itemCode)
+
+      normalizedItems.push({
+        item_id: itemRow.id,
+        item_code: itemRow.item_code,
+        item_name: item.itemName || itemRow.item_name || itemRow.item_code,
+        unit: item.unit || "حبة",
+        qty,
+        unit_price: Number(item.unitPrice) || 0,
+        notes: item.notes || "",
+      })
+    }
+
+    const { data: voucher, error: voucherError } = await supabase
+      .from("stock_vouchers")
+      .insert({
+        voucher_code: voucherCode,
+        voucher_date: new Date().toISOString().split("T")[0],
+        type,
+        status: "Draft",
+        reference: body?.reference || "",
+        from_type: body?.fromType || "Branch",
+        from_id: fromId,
+        to_type: body?.toType || "Branch",
+        to_id: toId,
+        notes: body?.notes || "",
+        created_by: user.email,
+        source: "Manual",
+        company_id: companyId,
+      })
+      .select("id")
+      .single()
+    if (voucherError || !voucher) throw new Error(voucherError?.message || "فشل إنشاء الإذن")
+
+    const { error: detailsError } = await supabase
+      .from("stock_voucher_details")
+      .insert(normalizedItems.map((item) => ({ ...item, voucher_id: voucher.id })))
+    if (detailsError) throw new Error(detailsError.message)
+
+    return new Response(JSON.stringify({ success: true, voucherId: voucherCode }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
+  } catch (error: any) {
+    return new Response(JSON.stringify({ success: false, msg: error?.message || "فشل إنشاء الإذن" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    })
+  }
+})
