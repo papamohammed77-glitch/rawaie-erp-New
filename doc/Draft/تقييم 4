@@ -1,0 +1,747 @@
+اجعت التسلسل كاملًا، وفتحت الملفات الفعلية الموجودة الآن بدل الاعتماد على صياغة المساعد. وهناك ملاحظة أولية مهمة: الروابط التي سميتها حوار 1/2/3 لم تعد موجودة بهذه الأسماء على main؛ الموجود فعليًا هو تقرير 1/2/3 وتقييم 1/2.
+
+الحكم النهائي
+1. receive-stock-voucher
+
+أُنجز فعليًا وأُغلق 100% لهذه الـClosure Unit.
+
+التقرير النهائي مدعوم بأدلة Production HTTP وBaseline Restoration ووجود الـmigration الكانونية. كما أن تقرير التقييم 2 يؤكد أن الـLegacy 5-argument overload حُذف فعليًا ثم أُثبتت الحالة في Production.
+
+2. send-stock-voucher
+
+أُنجز فعليًا ووصل إلى Production.
+
+Production الآن v8، والـEdge يستخرج company_id من المستخدم عبر auth_id، ثم يستدعي send_stock_voucher_atomic.
+
+والـCore الفعلي في Production:
+
+يستدعي post_stock_movement.
+لا يملك Direct Stock Mutation.
+public لا يملك EXECUTE.
+
+إذًا النتيجة الأساسية صحيحة: SEND انتقل فعليًا إلى المحرك المركزي. والـReport 3 يقول أيضًا إن Production HTTP E2E نجح عبر Create→Send→Retry واستعادة الـbaseline.
+
+3. هل عاد للسلوك السابق؟
+
+لا في هاتين الوحدتين.
+
+الأهم أن receive-stock-voucher مرّ بالفعل بمراجعة ثانية، اكتُشفت فيها مشكلة Legacy overload، ثم تم حذفها فعليًا بدل تركها كـ"دين لاحق".
+
+4. لكن هل انتهت خطة إنقاذ الـInventory؟
+
+لا.
+
+المساعد أغلق وحدات بشكل صحيح، لكنه لم يُنهِ الخطة كلها.
+والـmigrations الفعلية في Production تؤكد أن العمل استمر بعد TASK-028 إلى:
+
+Picking transactional core
+Cancel/Reopen Picking
+Reservation fixes
+Inventory execute grants
+إزالة public execute عن orchestrators
+Receive operation_id
+إزالة legacy manual voucher overload
+Send canonical close
+عدة إصلاحات لاحقة لهوية عناصر الـPicking.
+
+هذه ليست نظرية؛ هي موجودة فعليًا كسجل migrations في Production.
+
+أين توقف فعليًا؟
+
+التسلسل الحالي الصحيح هو:
+
+receive-stock-voucher ✅ 100% Closure
+
+→ send-stock-voucher ✅ 100% Closure بحسب الأدلة الحالية
+
+→ التالي: setup-van-branch كما أذن تقرير الإغلاق الأخير.
+
+لكن هذا لا يعني أن كل Inventory Rescue = 100%؛ لا تزال وحدات أخرى مفتوحة لم تُغلق بعد.
+
+الخلاصة العملية
+
+المساعد لم يتوقف هذه المرة عند تقرير نظري.
+هناك تنفيذ حقيقي في Production، واختبارات HTTP فعلية، وإصلاحات قاعدة بيانات ومigrations حقيقية.
+
+سبب التعطيل السابق كان Governance/Provenance debt واكتشاف Legacy overload، وقد تم حل جزء منه فعليًا هذه المرة.
+
+الخطوة التالية الصحيحة الآن: setup-van-branch — وحدة واحدة فقط، بنفس منهج Historical → Original → Current → Production → Core → Consumer → Repair → Staging → Production E2E → Baseline → 100% Close.
+
+# MANDATORY CTO EXECUTION DIRECTIVE
+
+## STAGE 28 — `setup-van-branch`
+
+## ZERO-DEBT / ZERO-BLOCK / FULL PRODUCTION COMPLETION
+
+أنت الآن مطالب بإكمال **Closure Unit واحدة فقط**:
+
+# `setup-van-branch`
+
+ولا يجوز بدء أي Closure Unit أخرى قبل إغلاقها فعليًا بنسبة:
+
+# `100% CLOSED`
+
+هذه ليست مهمة Reconnaissance جديدة، وليست مهمة إعداد تقرير، وليست مرحلة انتظار موافقة عامة.
+
+**هذه مهمة تنفيذ وإصلاح وإغلاق فعلي.**
+
+---
+
+# 1. الهدف
+
+إكمال `setup-van-branch` بما يتوافق مع:
+
+* خطة إنقاذ الـInventory.
+* عقد الـCentral Stock Architecture.
+* نموذج RAWAEA الذي يجعل الـVehicle Mobile Stock Container.
+* Company Isolation.
+* التكامل مع Picking / Loading / Unloading / Van Sales.
+* التصميم المستقر المعتمد في بقية النظام.
+* الوظائف التاريخية التي تم إثباتها.
+* كل القيود الحالية في قاعدة البيانات.
+
+الهدف النهائي:
+
+```text
+Current
+   =
+Target
+   =
+Production
+   =
+Verified Runtime
+```
+
+---
+
+# 2. لا تبدأ بالتعديل قبل PRE-CHANGE SELF-AUDIT
+
+يجب أن يكون أول جزء من تقريرك:
+
+## PRE-CHANGE SELF-AUDIT
+
+```text
+Business Understanding:
+Architecture Understanding:
+Database Understanding:
+Historical Understanding:
+Production Understanding:
+Current Understanding:
+Execution Confidence:
+
+Confirmed Facts:
+Unknowns:
+Conflicts:
+Unverified Claims:
+```
+
+ثم:
+
+```text
+Historical Opened:
+Original Opened:
+Production Opened:
+Current Opened:
+Schema Checked:
+Triggers Checked:
+Dependencies Checked:
+Consumers Checked:
+```
+
+إذا وجدت Unknowns أو Conflicts، **لا تعتبرها سببًا للتوقف**.
+
+ابحث عنها وحلها.
+
+---
+
+# 3. مصادر الحقيقة
+
+يجب عليك البحث بنفسك في جميع المصادر.
+
+## Historical
+
+`papamohammed77-glitch/rawaie-erp-review`
+
+وخاصة:
+
+`Edge_Functions/original/`
+
+وكذلك:
+
+`Edge_Functions/current/`
+
+`Edge_Functions/archive/`
+
+## New Repository
+
+`papamohammed77-glitch/rawaie-erp-New`
+
+وخاصة:
+
+`Original/`
+
+`Current/`
+
+`supabase/migrations/`
+
+## Production
+
+Supabase Production:
+
+* Edge Function
+* PostgreSQL Function
+* Tables
+* Constraints
+* Triggers
+* RLS
+* Logs
+* Current deployed version
+
+## Historical Documentation
+
+افتح كل التقارير التاريخية المرتبطة بـ:
+
+* Van Branch
+* Vehicle Stock
+* Picking
+* Loading
+* Unloading
+* Van Sales
+* Stock Transfers
+* Inventory Core
+* Company Isolation
+
+**إذا لم تجد الملف في مسار واحد، لا تقول Missing قبل البحث في كل المصادر والـcommits.**
+
+---
+
+# 4. افهم الوظيفة قبل لمسها
+
+قبل تعديل `setup-van-branch` يجب أن تقدم تصورًا واضحًا ومثبتًا:
+
+* لماذا توجد الدالة؟
+* من يستدعيها؟
+* متى يتم استدعاؤها؟
+* ما الذي تنشئه؟
+* هل تنشئ Branch فقط؟
+* هل تهيئ `stock_branches`؟
+* هل تنشئ Vehicle/Van relation؟
+* ما علاقة الـBranch بالـVehicle؟
+* هل الـVan Branch يمثل Physical Stock Location؟
+* ما أثرها على Picking؟
+* ما أثرها على Loading؟
+* ما أثرها على Unloading؟
+* ما أثرها على Van Sales؟
+* ما أثرها على Returns؟
+* ما أثرها على Company Isolation؟
+* هل توجد Accounting آثار؟
+* هل توجد Idempotency requirements؟
+* ما الذي يجب أن تبقى عليه مسؤوليتها؟
+* ما الذي لا يجوز أن تقوم به؟
+
+**لا تعتمد على الاسم. افهم دورة الحياة كاملة.**
+
+---
+
+# 5. المقارنة الإلزامية
+
+قارن:
+
+```text
+Historical
+vs
+Original
+vs
+Current
+vs
+Production
+vs
+Target Contract
+```
+
+وأنشئ:
+
+## LOSS / GAIN / RESPONSIBILITY MATRIX
+
+لكل وظيفة ومسؤولية:
+
+```text
+RETAINED
+MOVED
+HARDENED
+ADDED
+INTENTIONALLY REMOVED
+MISSING
+CONFLICT
+```
+
+ممنوع حذف أي وظيفة بدون إثبات مكان انتقال مسؤوليتها.
+
+---
+
+# 6. Inventory Rescue Contract
+
+المبدأ الثابت:
+
+## Physical Stock Movement
+
+```text
+post_stock_movement
+```
+
+هو المحرك المركزي الوحيد.
+
+أما:
+
+```text
+reserve_stock
+```
+
+فهو Reservation فقط.
+
+أما:
+
+```text
+setup_van_stock
+```
+
+فهو Initialization فقط **إذا أثبت الفحص أنه لا يقوم بحركة مخزون تجارية**.
+
+يجب أن تتحقق من العلاقة بين:
+
+```text
+setup-van-branch
+```
+
+و:
+
+```text
+setup_van_stock
+```
+
+ثم:
+
+```text
+start-loading
+complete-loading
+reopen-loading
+unload-runsheet
+VanSale
+Returns
+```
+
+وتثبت أن الدالة الجديدة لا تتجاوز العقد المركزي.
+
+---
+
+# 7. الجراحة التعديلية
+
+استخدم:
+
+# SURGICAL REFACTOR
+
+مع الحفاظ على:
+
+* API contract.
+* Consumers.
+* Application behavior.
+* Existing lifecycle.
+* Existing valid business responsibilities.
+
+ولا تعد كتابة الوظيفة بالكامل بلا ضرورة.
+
+لكن إذا كان إصلاحها الكامل يتطلب تغييرًا أكبر:
+
+**نفذ التغيير المطلوب ولا تستخدم مبدأ الجراحة كذريعة لترك نقص.**
+
+---
+
+# 8. إذا اكتشفت Defect
+
+ممنوع:
+
+```text
+FOUND DEFECT
+→ BLOCKED
+→ REPORT
+→ NEXT TASK
+```
+
+المطلوب:
+
+```text
+FOUND DEFECT
+→ ROOT CAUSE
+→ HISTORICAL / INDUSTRY REVIEW
+→ SURGICAL REPAIR
+→ TEST
+→ DEPLOY
+→ VERIFY
+→ CLOSE
+```
+
+إذا كان الـDefect في Dependency:
+
+**أصلح الـDependency.**
+
+إذا كان Artifact ناقصًا:
+
+**استرجعه بنفسك.**
+
+إذا كانت الـCurrent ناقصة:
+
+**أنشئها بنفسك في المكان الرسمي.**
+
+إذا كان Production مختلفًا:
+
+**صحح الـDrift.**
+
+إذا كانت هناك مشكلة في البيانات أو القيود:
+
+**حلها بالطريقة الصحيحة التي تتوافق مع العقد، وليس Workaround مؤقتًا.**
+
+---
+
+# 9. لا تنتظر مني إطعامك بالمعلومات
+
+أنت مسؤول عن:
+
+* البحث.
+* المقارنة.
+* استرداد الملفات.
+* قراءة الـcommits.
+* قراءة Production.
+* فهم الـDependencies.
+* تصميم الإصلاح.
+* تنفيذ الإصلاح.
+* الاختبار.
+* النشر.
+* التحقق.
+
+إذا احتجت إجراءً **لا تستطيع الأداة تنفيذه** فقط:
+
+1. حدد لي الإجراء اليدوي المطلوب بدقة.
+2. أكمل فورًا كل العمل الممكن.
+3. لا توقف Closure Unit بالكامل بسبب هذا الجزء الوحيد.
+
+---
+
+# 10. اختبارات إلزامية
+
+يجب اختبار `setup-van-branch` فعليًا في Staging ثم Production قدر الإمكان.
+
+على الأقل:
+
+### Normal Creation
+
+إنشاء Van Branch صحيح.
+
+### Duplicate Retry
+
+إعادة نفس الطلب لا تنشئ Branch ثانية.
+
+### Company Isolation
+
+Company A لا تنشئ أو تصل إلى Branch الخاصة بـCompany B.
+
+### Vehicle Identity
+
+تأكد أن:
+
+```text
+Vehicle ≠ Representative
+```
+
+وأن هوية الـVan Branch تعتمد على العقد الصحيح للنظام.
+
+### Existing Branch
+
+إعادة التشغيل على Branch موجودة تعيد النتيجة الصحيحة ولا تنشئ duplicate.
+
+### Stock Initialization
+
+إذا كانت الدالة مسؤولة عن initialization، أثبت:
+
+* لا Physical Movement.
+* لا Inventory Movement Log.
+* لا خصم من MAIN.
+* لا زيادة تجارية في VAN.
+* إنشاء صفوف `stock_branches` المطلوبة فقط إذا كان هذا جزءًا مثبتًا من العقد.
+
+### Loading Compatibility
+
+بعد إنشاء الـVan Branch:
+
+```text
+MAIN → VAN
+```
+
+يجب أن يصبح Loading ممكنًا بالشروط الصحيحة.
+
+### Unloading Compatibility
+
+الـVan Branch يجب أن يعمل مع:
+
+```text
+VAN → MAIN
+```
+
+وفق العقد الحالي.
+
+---
+
+# 11. Production
+
+لا تقبل:
+
+```text
+Current = PASS
+```
+
+ثم تترك Production على نسخة أخرى.
+
+يجب إثبات:
+
+```text
+Current artifact
+=
+deployed Production function
+```
+
+من حيث:
+
+* version
+* source/package identity
+* semantic behavior
+* database dependencies
+
+ولا تدّعي byte parity إذا كان packaging يمنع ذلك.
+
+---
+
+# 12. Baseline Restoration
+
+أي Canary أو Fixture مؤقت يجب:
+
+* إنشاؤه.
+* اختباره.
+* تنظيفه.
+* التحقق من عدم بقاء أثره.
+
+ويجب إثبات:
+
+```text
+Test residue = 0
+```
+
+ولا تعتبر:
+
+```text
+ACTIVE + 410
+```
+
+بديلاً عن الحذف الحقيقي إذا كان الحذف مطلوبًا.
+
+---
+
+# 13. لا تحمل دينًا إلى الأمام
+
+لن تقبل أي عبارة مثل:
+
+```text
+"نغلق هذا لاحقًا"
+```
+
+أو:
+
+```text
+"هذه نقطة مستقلة"
+```
+
+أو:
+
+```text
+"يمكننا العودة إليها بعد إنهاء المهمة"
+```
+
+إذا كانت النقطة تؤثر في `setup-van-branch` أو Dependencies الخاصة بها:
+
+**تُحل الآن.**
+
+---
+
+# 14. تعريف 100%
+
+لا تعلن:
+
+# `100% CLOSED`
+
+إلا بعد إثبات:
+
+```text
+Historical
+Original / Baseline
+Current
+Production
+Core
+Dependencies
+Consumers
+Static Validation
+Staging Runtime
+HTTP E2E
+Production Deployment
+Production Runtime Verification
+Baseline Restoration
+Governance
+```
+
+كلها:
+
+# VERIFIED
+
+---
+
+# 15. التقرير النهائي
+
+عند نهاية Closure Unit فقط قدم:
+
+## FINAL CLOSURE REPORT
+
+### A. Self-Audit
+
+درجات التقييم الذاتي الحقيقة.
+
+### B. Artifact
+
+المسار + SHA + Commit.
+
+### C. Historical / Original
+
+المصادر الفعلية التي تمت مقارنتها.
+
+### D. Production
+
+الإصدار المنشور وحالته.
+
+### E. Loss / Gain
+
+ما فُقد وما أُضيف وما نُقل.
+
+### F. Core
+
+الـRPCs والـdependencies.
+
+### G. Consumers
+
+كل المستهلكين الفعليين.
+
+### H. Tests
+
+الاختبارات الفعلية.
+
+### I. Production Evidence
+
+الاختبارات والنشر الفعلي.
+
+### J. Remaining
+
+يجب أن يكون:
+
+```text
+NONE
+```
+
+---
+
+# 16. SELF-AUDIT FINAL
+
+في نهاية التقرير:
+
+```text
+What I Proved
+What I Did Not Prove
+What I Fixed
+What I Initially Missed
+What Could Still Be Wrong
+Final Confidence
+Final Closure Status
+```
+
+أي ادعاء غير مثبت = `UNVERIFIED`.
+
+---
+
+# 17. قواعد السلوك الإلزامية
+
+ممنوع نهائيًا:
+
+* التوقف عند Readiness.
+* التوقف عند Evidence.
+* استخدام `BLOCKED` كحل.
+* الانتقال لدالة أخرى قبل إغلاق الحالية.
+* تقديم تقرير بدل تنفيذ.
+* إعلان 100% مع نقص.
+* إخفاء Dependency defect.
+* اختراع Artifact.
+* اعتبار تقريرك دليلًا على Production.
+* اعتبار Staging = Production.
+* ترك Production Drift.
+* إنشاء مستودعات أو مجلدات عشوائية.
+* إغراق المشروع في Harnesses غير لازمة.
+* انتظار المالك لإحضار مصادر تستطيع الوصول إليها بنفسك.
+
+---
+
+# 18. ترتيب التنفيذ الآن
+
+نفذ الآن:
+
+# `setup-van-branch`
+
+ثم فقط بعد:
+
+# `100% CLOSED`
+
+انتقل إلى الـClosure Unit التالية.
+
+لا توسع نطاق المهمة إلى "حل كل شيء دفعة واحدة".
+
+وفي الوقت نفسه، **لا تترك شيئًا يؤثر مباشرة على Closure Unit الحالية دون إصلاح.**
+
+---
+
+# 19. معيارك النهائي
+
+كن:
+
+**مفيدًا للمشروع، لا معطلًا له.**
+
+عند وجود عائق:
+
+**حلّه.**
+
+عند وجود نقص:
+
+**استكمله.**
+
+عند وجود Drift:
+
+**صححه.**
+
+عند وجود Legacy:
+
+**حلّل مسؤولياته ثم استبدله بأمان.**
+
+عند وجود خطأ:
+
+**اعثر على السبب الحقيقي وأصلحه.**
+
+ولا تجعل التقرير غاية.
+
+# الغاية هي:
+
+## PRODUCTION VERIFIED TARGET SYSTEM
+
+ثم إغلاق:
+
+# STAGE 28 — ZERO DEBT
