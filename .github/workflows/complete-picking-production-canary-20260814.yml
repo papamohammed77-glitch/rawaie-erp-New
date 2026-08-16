@@ -12,36 +12,47 @@ jobs:
           ANON_KEY: sb_publishable_ZQC-PFJJWDoFh-6ZmaTWeg_UtrzzM71
           EMAIL: cp-prod-canary-20260814@example.invalid
           PASSWORD: Tmp-CP-PROD-20260814-Aa1!
+          AUTH_URL: https://fiilmooggumokxanwiyx.supabase.co/functions/v1/cp-prod-auth-canary-20260814?token=CP-PROD-AUTH-20260814
           FIX_URL: https://fiilmooggumokxanwiyx.supabase.co/functions/v1/cp-prod-fixture-canary-20260814?token=CP-PROD-FIX-20260814
-          SEND_BRANCH_ID: 151e5cd7-ac4a-4fc3-b703-d73a0dbb0dc6
-          SEND_ITEM_CODE: 1003
         run: |
           set -euo pipefail
           trap 'curl --silent --show-error --max-time 60 "$FIX_URL&mode=cleanup" >/tmp/cleanup.json || true' EXIT
-          TOKEN=$(curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" -H "apikey: $ANON_KEY" -H "Content-Type: application/json" --data "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
-          # A temporary SQL cleanup will remove any send test artifacts after the run.
-          RUN_TOKEN="$TOKEN"
-          # SEND-STOCK-VOUCHER production HTTP E2E
-          SEND_REF="TASK-INV-SEND-PROD-${GITHUB_RUN_ID}"
-          CREATE_BODY=$(python - <<PY
-          import json
-          print(json.dumps({"type":"Transfer","reference":"$SEND_REF","fromType":"Branch","fromId":"$SEND_BRANCH_ID","toType":"Branch","toId":"$SEND_BRANCH_ID","items":[{"itemCode":"$SEND_ITEM_CODE","itemName":"TASK-INV-SEND","unit":"حبة","qty":1,"unitPrice":0}],"notes":"$SEND_REF"}))
-          PY
-          )
-          curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/create-stock-voucher" -H "Authorization: Bearer $RUN_TOKEN" -H "Content-Type: application/json" --data "$CREATE_BODY" | tee send_create.json
-          SEND_VOUCHER=$(python -c "import json;print(json.load(open('send_create.json'))['voucherId'])")
-          curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/send-stock-voucher" -H "Authorization: Bearer $RUN_TOKEN" -H "Content-Type: application/json" --data "{\"voucher_code\":\"$SEND_VOUCHER\"}" | tee send_first.json
+          curl --fail-with-body --silent --show-error --max-time 60 "$AUTH_URL" | tee auth.json
           python - <<'PY'
           import json
-          r=json.load(open('send_first.json')); assert r.get('success') is True and r.get('status')=='Sent' and r.get('movement_count')==1,r
+          r=json.load(open('auth.json')); assert r.get('success') is True, r
+          PY
+          curl --fail-with-body --silent --show-error --max-time 60 "$FIX_URL&mode=create&user_id=$(python -c "import json;print(json.load(open('auth.json'))['public_user_id'])")" | tee fixture.json
+          python - <<'PY'
+          import json
+          r=json.load(open('fixture.json')); assert r.get('success') is True, r
+          PY
+          TOKEN=$(curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" -H "apikey: $ANON_KEY" -H "Content-Type: application/json" --data "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+          RUN=$(python -c "import json;print(json.load(open('fixture.json'))['runsheet_code'])")
+          ITEM=$(python -c "import json;print(json.load(open('fixture.json'))['item_code'])")
+          curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/complete-picking" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"runsheet_code\":\"$RUN\",\"items\":[{\"itemCode\":\"$ITEM\",\"pickedQty\":1,\"notes\":\"canary\"}]}" | tee first.json
+          python - <<'PY'
+          import json
+          r=json.load(open('first.json')); assert r.get('success') is True, r
+          PY
+          ORDER=$(python -c "import json;print(json.load(open('fixture.json'))['order_id'])")
+          DETAIL=$(python -c "import json;print(json.load(open('fixture.json'))['detail_id'])")
+          RUN=$(python -c "import json;print(json.load(open('fixture.json'))['runsheet_code'])")
+          BQ=$(python -c "import json;print(json.load(open('fixture.json'))['baseline']['qty'])")
+          BA=$(python -c "import json;print(json.load(open('fixture.json'))['baseline']['allocated_qty'])")
+          curl --fail-with-body --silent --show-error --max-time 60 "$FIX_URL&mode=verify&order_id=$ORDER&detail_id=$DETAIL&runsheet_code=$RUN&baseline_qty=$BQ&baseline_allocated=$BA" | tee verify.json
+          python - <<'PY'
+          import json
+          r=json.load(open('verify.json'))
+          assert r.get('success') is True and r['runsheet']['status']=='Picked' and r['detail']['qty_picked']==1 and r['run_detail']['qty_picked']==1,r
+          assert float(r['stock']['qty'])==float(r['baseline_qty']) and float(r['stock']['allocated_qty'])==float(r['baseline_allocated'])+1,r
+          assert len(r['picking_logs'])==0,r
           PY
           set +e
-          curl --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/send-stock-voucher" -H "Authorization: Bearer $RUN_TOKEN" -H "Content-Type: application/json" --data "{\"voucher_code\":\"$SEND_VOUCHER\"}" | tee send_retry.json
+          curl --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/complete-picking" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"runsheet_code\":\"$RUN\",\"items\":[{\"itemCode\":\"$ITEM\",\"pickedQty\":1}]}" | tee retry.json
           set -e
           python - <<'PY'
           import json
-          r=json.load(open('send_retry.json')); assert r.get('success') is False and 'Draft' in r.get('msg',''),r
+          r=json.load(open('retry.json')); assert r.get('success') is False and ('Picking' in r.get('msg','') or 'state' in r.get('msg','')),r
           PY
-          echo "SEND_VOUCHER=$SEND_VOUCHER"
-          echo "SEND_REF=$SEND_REF"
-          echo '{"success":true,"production_e2e":true,"retry_rejected":true,"send_http_e2e":true}'
+          echo '{"success":true,"production_e2e":true,"retry_rejected":true}'
