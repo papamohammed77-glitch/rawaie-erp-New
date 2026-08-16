@@ -20,32 +20,28 @@ serve(async (req) => {
     if (!rawBody) throw new Error("Body فارغ")
 
     let body: any
-    try {
-      body = JSON.parse(rawBody)
-    } catch {
-      throw new Error("صيغة JSON غير صالحة")
-    }
+    try { body = JSON.parse(rawBody) } catch { throw new Error("صيغة JSON غير صالحة") }
 
     const runsheet_code = body?.runsheet_code
     const items = body?.items
-    if (!runsheet_code || !Array.isArray(items) || !items.length) {
-      throw new Error("البيانات غير مكتملة")
-    }
+    if (!runsheet_code || !Array.isArray(items) || !items.length) throw new Error("البيانات غير مكتملة")
 
     const authHeader = req.headers.get("Authorization")
     if (!authHeader) throw new Error("غير مصرح")
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim()
+    if (!token) throw new Error("جلسة غير صالحة")
 
-    const token = authHeader.replace("Bearer ", "")
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    if (authError || !user?.email) throw new Error("جلسة غير صالحة")
+    if (authError || !user?.id || !user?.email) throw new Error("جلسة غير صالحة")
 
-    const { data: settings, error: settingsError } = await supabase
-      .from("app_settings")
-      .select("company_id")
-      .limit(1)
+    const { data: pubUser, error: userLookupError } = await supabase
+      .from("users")
+      .select("id, company_id, status, email")
+      .eq("auth_id", user.id)
       .maybeSingle()
-
-    if (settingsError || !settings?.company_id) throw new Error("سياق الشركة غير محدد")
+    if (userLookupError) throw new Error("فشل قراءة المستخدم: " + userLookupError.message)
+    if (!pubUser?.id || !pubUser?.company_id) throw new Error("المستخدم غير مسجل في النظام أو سياق الشركة غير محدد")
+    if (pubUser.status && pubUser.status !== "Active") throw new Error("المستخدم غير نشط")
 
     const normalizedItems = items.map((item: any) => ({
       item_code: item?.item_code ?? item?.itemCode,
@@ -54,9 +50,9 @@ serve(async (req) => {
     }))
 
     const { data, error } = await supabase.rpc("complete_runsheet_picking", {
-      p_company_id: settings.company_id,
+      p_company_id: pubUser.company_id,
       p_runsheet_code: runsheet_code,
-      p_user_email: user.email,
+      p_user_email: pubUser.email || user.email,
       p_items: normalizedItems
     })
 
