@@ -1,0 +1,273 @@
+النتيجة التدقيقية
+
+هذه المرة التقرير مدعوم بدرجة كبيرة بواقع Production، لكن ما زال غير مكتمل 100%.
+
+ما تأكدت منه مباشرةً
+العنصر	الواقع
+start-picking	Production v31 ACTIVE ✅
+complete-picking	Production v14 ACTIVE ✅
+reopen-picking	Production v8 ACTIVE ✅
+cancel-picking	Production v4 ACTIVE ✅
+start-picking يستخدم users.auth_id	نعم ✅
+start-picking يستخدم users.company_id	نعم ✅
+إنشاء مستخدم تلقائي أثناء Start	أُزيل ✅
+users_email_key	ما زال Unique عالميًا ✅
+Core Picking RPC	منشور فعليًا ✅
+Production HTTP لـcomplete-picking	موجود ومثبت في Logs ✅
+Production Canary/cleanup	موجود في Logs ✅
+
+هذا يثبت أن الإصلاحات الرئيسية لم تعد نظرية.
+
+سبب الخطأ الذي واجهته أنت
+
+تم إصلاحه من جذره:
+
+auth.users.id
+→ public.users.auth_id
+→ public.users.company_id
+
+بدل البحث بالبريد ثم محاولة إنشاء مستخدم جديد.
+
+وقاعدة البيانات فعلًا تملك:
+
+users_email_key = UNIQUE(email)
+
+لذلك كان الخطأ القديم منطقيًا تمامًا.
+
+ماذا بقي؟
+
+1. picker.html لم يُصلح.
+وهذا صحيح بالنسبة لخطأ الـ400 الحالي، لأن العيب كان في start-picking. لكن التقرير نفسه كشف أن picker.html لديه قراءات غير company-scoped، وهذه ثغرة حقيقية يجب إصلاحها لاحقًا جراحيًا.
+
+2. Browser E2E النهائي من التطبيق نفسه غير مثبت آليًا.
+هذا لا يعني أن الإصلاح نظري؛ الـEdge/Core/DB Production تم تشغيلهم فعليًا، لكن لم يُثبت كامل مسار المتصفح الآلي.
+
+3. لا أقبل 100% نهائيًا بعد.
+لذلك التصنيف الصحيح:
+
+Picking Backend Lifecycle = مُصلح ومنشور فعليًا
+Picker Incident = ROOT CAUSE FIXED
+Complete Closure = INCOMPLETE
+تقييمي لتقرير المساعد
+
+التقرير هذه المرة أفضل بكثير وأكثر صدقًا، وادعاءاته الأساسية عن الإصدارات والإصلاحات المنشورة صحيحة.
+
+لكن لا أقبل إغلاق المهمة لأنه ترك picker.html المكتشف أنه يعاني من Tenant-scope defects، ولم يُثبت Browser E2E النهائي.
+
+MANDATORY FINAL EXECUTION DIRECTIVE
+PICKER INCIDENT — ZERO-DEBT CLOSURE
+
+المهمة الحالية ليست إعداد تقرير.
+المهمة هي إنهاء أزمة Picker بالكامل.
+
+1. ما تم إثباته
+
+Production فعليًا يحتوي:
+
+start-picking v31
+complete-picking v14
+reopen-picking v8
+cancel-picking v4
+
+وتم إصلاح:
+
+auth.users.id → public.users.auth_id → public.users.company_id
+
+وأصبح start-picking لا يقوم بالـauto-provisioning للمستخدم.
+
+لا تُعد فتح الإصلاحات التي ثبت نجاحها.
+
+2. لا تعلن الإغلاق
+
+الحالة الحالية:
+
+INCOMPLETE
+
+ولا يجوز تغييرها إلى 100% قبل إغلاق كل النقص.
+
+3. إصلاح picker.html المكتشف
+
+التحقيق أثبت وجود قراءات لـrunsheets في عدة أماكن بدون company_id.
+
+هذا خلل حقيقي في:
+
+renderPendingTab
+البحث
+openRunsheet
+completed
+reopen pre-check
+وأي مسار آخر يقرأ Runsheets.
+المطلوب
+
+افتح الملف الحالي الفعلي من:
+
+Current/PWA/warehouse/picker.html
+
+وقارنه بالكامل مع:
+
+Original/PWA/warehouse/picker.html
+
+ثم افحص كل استعلام متعلق بـrunsheets.
+
+لا تغيّر الشكل أو الـUI أو العقد الخارجي إلا عند الضرورة.
+
+طبّق Surgical Patch فقط:
+
+authenticated user
+→ company_id
+→ company-scoped query
+
+ويجب أن يكون كل Runsheet ظاهرًا للمستخدم داخل شركته فقط.
+
+4. لا تكسر Golden UI
+
+ممنوع إعادة كتابة picker.html.
+
+ممنوع تغيير:
+
+layout
+workflow
+buttons
+payload contract
+response handling
+
+إلا إذا أثبتت المقارنة أن ذلك ضروري.
+
+5. اختبار إلزامي
+
+بعد الإصلاح:
+
+Staging
+
+اختبر:
+
+Open Runsheet
+Confirmed Runsheet
+Picking
+Partial Picking
+Reopen
+Cancel
+Wrong Company
+Duplicate click
+Concurrent click
+Invalid state
+Production
+
+نفذ عبر النظام الحقيقي والـEdge الحقيقي قدر الإمكان.
+
+يجب إثبات:
+
+picker.html
+→ Auth
+→ start-picking
+→ complete-picking
+→ reopen/cancel
+→ DB
+→ UI
+6. إذا تعذر Browser Automation
+
+لا تتوقف.
+
+استخدم:
+
+الرانشيتات التجريبية الموجودة.
+HTTP Edge الحقيقي.
+Production Canary الآمن.
+أي أدوات HTTP/SQL متاحة.
+اختبار المستخدم فعليًا من النظام عندما يلزم.
+
+إذا احتجت مني فقط لإجراء يدوي لا تستطيع الأداة تنفيذه، حدد الإجراء المحدد، ولكن واصل بقية التنفيذ.
+
+7. لا تترك أي عيب مكتشف
+
+إذا اكتشفت:
+
+Tenant leak
+Identity mismatch
+user lookup defect
+retry defect
+lifecycle defect
+consumer mismatch
+
+أصلحه فورًا.
+
+لا تحوله إلى:
+
+Future Task
+
+إلا بعد إغلاق مهمة Picker بالكامل، وحتى حينها لا يُرحّل عيبًا يؤثر في سلامة النظام.
+
+8. Deployment
+
+أي إصلاح نهائي:
+
+Current
+→ Static Validation
+→ Staging
+→ Production Deployment
+→ Production Verification
+
+ولا يعتبر الإصلاح منجزًا لأنه موجود في Git فقط.
+
+9. Self-Audit
+
+في بداية التقرير:
+
+Business Understanding
+Architecture Understanding
+Database Understanding
+Historical Understanding
+Production Understanding
+Current Understanding
+Execution Confidence
+Confirmed Facts
+Unknowns
+Conflicts
+Unverified Claims
+
+وفي النهاية:
+
+What I Proved
+What I Did Not Prove
+What I Fixed
+What I Initially Missed
+What Could Still Be Wrong
+Final Confidence
+Final Closure Status
+
+ممنوع رفع الدرجات لإخفاء أي نقص.
+
+10. شرط الإغلاق
+
+لا تكتب:
+
+100% CLOSED
+
+إلا عندما تكون:
+
+Root Cause Fixed
++
+Current Final
++
+Production Deployed
++
+Core Verified
++
+Consumer Verified
++
+Company Isolation Verified
++
+Lifecycle Verified
++
+Regression Verified
++
+Production Verified
++
+No Known Defect
++
+No Unresolved Governance Debt
+لا تتوقف.
+لا تؤجل.
+لا تعطِ تقريرًا بدل الإصلاح.
+
+أكمل حتى الإغلاق الحقيقي الكامل، ثم انتقل للمهمة التالية.
