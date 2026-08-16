@@ -406,11 +406,24 @@ onSearchInput: function(query){
             var rs = results[i];
             var itemCount = (rs.run_sheet_details && rs.run_sheet_details.length > 0) ? rs.run_sheet_details[0].count : 0;
             var isMine = (rs.status === 'Picking' && rs.picker_id === this.pubUserId);
-            var isTaken = (rs.status === 'Picking' && !isMine);
-            var icon = isMine ? '🔄' : (isTaken ? '🔒' : '📋');
-            var label = isMine ? 'قيد تحضيرك' : (isTaken ? 'مع زميل آخر' : 'مفتوح');
-            var bg = isMine ? 'bg-amber-50' : (isTaken ? 'bg-red-50' : 'bg-blue-50');
-            var textColor = isMine ? 'text-amber-600' : (isTaken ? 'text-red-500' : 'text-blue-600');
+var isTaken = (rs.status === 'Picking' && !isMine);
+var isConfirmed = (rs.status === 'Confirmed');
+
+var icon = isMine
+    ? '🔄'
+    : (isTaken ? '🔒' : (isConfirmed ? '✅' : '📋'));
+
+var label = isMine
+    ? 'قيد تحضيرك'
+    : (isTaken ? 'مع زميل آخر' : (isConfirmed ? 'مؤكد' : 'مفتوح'));
+
+var bg = isMine
+    ? 'bg-amber-50'
+    : (isTaken ? 'bg-red-50' : (isConfirmed ? 'bg-emerald-50' : 'bg-blue-50'));
+
+var textColor = isMine
+    ? 'text-amber-600'
+    : (isTaken ? 'text-red-500' : (isConfirmed ? 'text-emerald-600' : 'text-blue-600'));
             html += '<div onclick="App.openRunsheet(\'' + rs.runsheet_code + '\')" class="p-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer flex justify-between items-center">';
             html += '<div><span class="font-bold text-slate-700">' + rs.runsheet_code + '</span><br><span class="text-xs text-slate-400">' + (rs.run_date || '') + ' | ' + itemCount + ' صنف</span></div>';
             html += '<span class="px-2 py-0.5 rounded-full text-xs font-bold ' + bg + ' ' + textColor + '">' + icon + ' ' + label + '</span>';
