@@ -160,12 +160,6 @@ var App = {
                     supabase.auth.signOut();
                     return;
                 }
-                supabase.from('items').select('item_code, image_url').then(function(imgRes){
-                    var items = imgRes.data || [];
-                    for(var i = 0; i < items.length; i++){
-                        if(items[i].item_code && items[i].image_url) ITEMS_IMAGE_CACHE[items[i].item_code] = items[i].image_url;
-                    }
-                }).catch(function(){});
                 supabase.from('users')
     .select('id, name, company_id, active_warehouse_role')
     .eq('auth_id', self.currentUser.id)
@@ -184,6 +178,27 @@ var App = {
         self.pubUserId = userData.id;
         self.companyId = userData.company_id;
 
+        supabase
+    .from('items')
+    .select('item_code, image_url')
+    .eq('company_id', self.companyId)
+    .then(function(imgRes){
+        if(imgRes.error){
+            console.error('Picker items/company context error:', imgRes.error);
+            return;
+        }
+
+        var items = imgRes.data || [];
+
+        for(var i = 0; i < items.length; i++){
+            if(items[i].item_code && items[i].image_url){
+                ITEMS_IMAGE_CACHE[items[i].item_code] = items[i].image_url;
+            }
+        }
+    })
+    .catch(function(err){
+        console.error('Picker items cache error:', err);
+    });
         var userName = userData.name || meta.name || self.currentUser.email;
         var activeRole = userData.active_warehouse_role || meta.active_warehouse_role || '';
 
