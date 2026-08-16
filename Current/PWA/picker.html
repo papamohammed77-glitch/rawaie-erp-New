@@ -374,6 +374,7 @@ onSearchInput: function(query){
             .from('runsheets')
             .select('runsheet_code, status, run_date, picker_id, run_sheet_details(count)')
             .eq('company_id', self.companyId)
+            .in('status', ['Open', 'Confirmed', 'Picking'])
             .ilike('runsheet_code', '%' + query.trim() + '%')
             .limit(10)
             .then(function(res){
