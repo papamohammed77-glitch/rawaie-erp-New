@@ -700,45 +700,117 @@ renderCompletedTab: function(){
     },
 
     reopenPicking: function(code){
-        var self = this;
-        if(!this.pubUserId || !this.companyId){
+    var self = this;
+
+    if(!this.pubUserId || !this.companyId){
         toast('تعذر تحديد المستخدم أو سياق الشركة', 'error');
         return;
     }
-        supabase
-    .from('runsheets')
-    .select('status, picker_id')
-    .eq('company_id', self.companyId)
-    .eq('runsheet_code', code)
-    .maybeSingle()
-.then(function(res){
+
+    supabase
+        .from('runsheets')
+        .select('status, picker_id')
+        .eq('company_id', self.companyId)
+        .eq('runsheet_code', code)
+        .maybeSingle()
+        .then(function(res){
 
             if(res.error){
                 throw res.error;
             }
 
-            if(!res.data || res.data.status !== 'Picked'){
-                Swal.fire({ title: 'لا يمكن التعديل', text: 'الرانشيت لم يعد في حالة مكتمل التحضير. قد يكون قيد التحميل.', icon: 'warning', customClass: { popup: '!rounded-3xl' } });
+            if(
+                !res.data ||
+                res.data.status !== 'Picked' ||
+                res.data.picker_id !== self.pubUserId
+            ){
+                Swal.fire({
+                    title: 'لا يمكن التعديل',
+                    text: 'الرانشيت لم يعد في حالة مكتمل التحضير أو لا يتبع المستخدم الحالي.',
+                    icon: 'warning',
+                    customClass: { popup: '!rounded-3xl' }
+                });
+
                 self.renderCompletedTab();
                 return;
             }
-            Swal.fire({ title: 'تأكيد التعديل', text: 'سيتم إعادة فتح الرانشيت ' + code + ' للتعديل. سيُفرج عن الحجز. متابعة؟', icon: 'question', showCancelButton: true, confirmButtonText: 'نعم، تعديل', cancelButtonText: 'إلغاء', customClass: { popup: '!rounded-3xl', confirmButton: '!rounded-xl !bg-amber-500 !px-8', cancelButton: '!rounded-xl' } }).then(function(r){
+
+            Swal.fire({
+                title: 'تأكيد التعديل',
+                text: 'سيتم إعادة فتح الرانشيت ' + code + ' للتعديل. سيُفرج عن الحجز. متابعة؟',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'نعم، تعديل',
+                cancelButtonText: 'إلغاء',
+                customClass: {
+                    popup: '!rounded-3xl',
+                    confirmButton: '!rounded-xl !bg-amber-500 !px-8',
+                    cancelButton: '!rounded-xl'
+                }
+            }).then(function(r){
+
                 if(!r.isConfirmed) return;
+
                 Swal.showLoading();
+
                 supabase.auth.getSession().then(function(ses){
-                    var token = ses.data.session ? ses.data.session.access_token : null;
-                    if(!token){ Swal.close(); toast('انتهت الجلسة', 'error'); return; }
-                    return fetch(SUPABASE_URL + '/functions/v1/reopen-picking', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ runsheet_code: code }) });
+
+                    var token = ses.data.session
+                        ? ses.data.session.access_token
+                        : null;
+
+                    if(!token){
+                        Swal.close();
+                        toast('انتهت الجلسة', 'error');
+                        return;
+                    }
+
+                    return fetch(
+                        SUPABASE_URL + '/functions/v1/reopen-picking',
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + token
+                            },
+                            body: JSON.stringify({
+                                runsheet_code: code
+                            })
+                        }
+                    );
+
                 }).then(function(res){
-                    if(!res) return; if(!res.ok) return res.json().then(function(err){ throw new Error(err.msg || 'خطأ'); }); return res.json();
+
+                    if(!res) return;
+
+                    if(!res.ok){
+                        return res.json().then(function(err){
+                            throw new Error(err.msg || 'خطأ');
+                        });
+                    }
+
+                    return res.json();
+
                 }).then(function(json){
+
                     Swal.close();
-                    if(json && json.success){ toast('تم إعادة فتح الرانشيت للتعديل', 'success'); self.renderPendingTab(); }
-                    else { toast((json && json.msg) || 'فشل', 'error'); self.renderCompletedTab(); }
-                }).catch(function(err){ Swal.close(); toast(err.message || 'فشل الاتصال', 'error'); self.renderCompletedTab(); });
+
+                    if(json && json.success){
+                        toast('تم إعادة فتح الرانشيت للتعديل', 'success');
+                        self.renderPendingTab();
+                    } else {
+                        toast((json && json.msg) || 'فشل', 'error');
+                        self.renderCompletedTab();
+                    }
+
+                }).catch(function(err){
+                    Swal.close();
+                    toast(err.message || 'فشل الاتصال', 'error');
+                    self.renderCompletedTab();
+                });
             });
         });
-    },
+},
 
     // ==================== تبويب حسابي ====================
     renderAccount: function(){
