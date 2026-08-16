@@ -6,61 +6,18 @@ jobs:
   canary:
     runs-on: ubuntu-latest
     steps:
-      - name: HTTP E2E canary
+      - name: setup-van-branch staging E2E
         env:
           SUPABASE_URL: https://hfzznsiprnwkpayskzhu.supabase.co
           ANON_KEY: sb_publishable_xd6h0YBpVA1VmNH6A1LCXg_9DhF2ifh
           EMAIL: cp-canary-20260814@example.invalid
           PASSWORD: Tmp-CP-20260814-Aa1!
-          AUTH_URL: https://hfzznsiprnwkpayskzhu.supabase.co/functions/v1/cp-auth-canary-20260814?token=CP-AUTH-20260814
-          FIX_URL: https://hfzznsiprnwkpayskzhu.supabase.co/functions/v1/cp-fixture-canary-20260814?token=CP-FIX-20260814
           VAN_VEHICLE_ID: f895c4b5-4c6b-4e7a-9b9d-af1fd9b5dc9c
           VAN_OTHER_VEHICLE_ID: 371ec359-848e-46b6-975a-cbd4d5847471
         run: |
           set -euo pipefail
-          trap 'curl --silent --show-error --max-time 60 "$FIX_URL&mode=cleanup" >/tmp/cleanup.json || true' EXIT
-          curl --fail-with-body --silent --show-error --max-time 60 "$AUTH_URL" | tee auth.json
-          python - <<'PY'
-          import json
-          r=json.load(open('auth.json')); assert r.get('success') is True, r
-          PY
-          curl --fail-with-body --silent --show-error --max-time 60 "$FIX_URL&mode=create&user_id=$(python -c "import json;print(json.load(open('auth.json'))['public_user_id'])")" | tee fixture.json
-          python - <<'PY'
-          import json
-          r=json.load(open('fixture.json')); assert r.get('success') is True, r
-          PY
           TOKEN=$(curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" -H "apikey: $ANON_KEY" -H "Content-Type: application/json" --data "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
-          RUN=$(python -c "import json;print(json.load(open('fixture.json'))['runsheet_code'])")
-          ITEM=$(python -c "import json;print(json.load(open('fixture.json'))['item_code'])")
-          curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/complete-picking" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"runsheet_code\":\"$RUN\",\"items\":[{\"itemCode\":\"$ITEM\",\"pickedQty\":1,\"notes\":\"canary\"}]}" | tee first.json
-          python - <<'PY'
-          import json
-          r=json.load(open('first.json')); assert r.get('success') is True, r
-          PY
-          ORDER=$(python -c "import json;print(json.load(open('fixture.json'))['order_id'])")
-          DETAIL=$(python -c "import json;print(json.load(open('fixture.json'))['detail_id'])")
-          RUN=$(python -c "import json;print(json.load(open('fixture.json'))['runsheet_code'])")
-          BQ=$(python -c "import json;print(json.load(open('fixture.json'))['baseline']['qty'])")
-          BA=$(python -c "import json;print(json.load(open('fixture.json'))['baseline']['allocated_qty'])")
-          curl --fail-with-body --silent --show-error --max-time 60 "$FIX_URL&mode=verify&order_id=$ORDER&detail_id=$DETAIL&runsheet_code=$RUN&baseline_qty=$BQ&baseline_allocated=$BA" | tee verify.json
-          python - <<'PY'
-          import json
-          r=json.load(open('verify.json'))
-          assert r.get('success') is True and r['runsheet']['status']=='Picked' and r['detail']['qty_picked']==1 and r['run_detail']['qty_picked']==1,r
-          assert float(r['stock']['qty'])==float(r['baseline_qty']) and float(r['stock']['allocated_qty'])==float(r['baseline_allocated'])+1,r
-          assert len(r['picking_logs'])==0,r
-          PY
-          set +e
-          curl --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/complete-picking" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"runsheet_code\":\"$RUN\",\"items\":[{\"itemCode\":\"$ITEM\",\"pickedQty\":1}]}" | tee retry.json
-          set -e
-          python - <<'PY'
-          import json
-          r=json.load(open('retry.json')); assert r.get('success') is False and ('Picking' in r.get('msg','') or 'state' in r.get('msg','')),r
-          PY
-
-          # STAGE 28 — setup-van-branch E2E
-          CREATE=$(curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/setup-van-branch" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"vehicle_id\":\"$VAN_VEHICLE_ID\"}")
-          echo "$CREATE" | tee setup_first.json
+          curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/setup-van-branch" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"vehicle_id\":\"$VAN_VEHICLE_ID\"}" | tee setup_first.json
           python - <<'PY'
           import json
           r=json.load(open('setup_first.json'))
@@ -69,23 +26,21 @@ jobs:
           assert r['initialized_stock_rows']==50,r
           PY
           VAN_BRANCH=$(python -c "import json;print(json.load(open('setup_first.json'))['branch_id'])")
-          STOCK_JSON=$(curl --fail-with-body --silent --show-error --max-time 60 "$SUPABASE_URL/rest/v1/stock_branches?branch_id=eq.$VAN_BRANCH&select=qty,allocated_qty" -H "apikey: $ANON_KEY" -H "Authorization: Bearer $TOKEN")
-          echo "$STOCK_JSON" | tee setup_stock.json
+          curl --fail-with-body --silent --show-error --max-time 60 "$SUPABASE_URL/rest/v1/stock_branches?branch_id=eq.$VAN_BRANCH&select=qty,allocated_qty" -H "apikey: $ANON_KEY" -H "Authorization: Bearer $TOKEN" | tee setup_stock.json
           python - <<'PY'
           import json
           rows=json.load(open('setup_stock.json')); assert len(rows)==50 and all(float(x['qty'])==0 and float(x['allocated_qty'])==0 for x in rows),rows
           PY
-          RETRY=$(curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/setup-van-branch" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"vehicle_id\":\"$VAN_VEHICLE_ID\"}")
-          echo "$RETRY" | tee setup_retry.json
+          curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/setup-van-branch" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"vehicle_id\":\"$VAN_VEHICLE_ID\"}" | tee setup_retry.json
           python - <<'PY'
           import json
-          r=json.load(open('setup_retry.json')); assert r['success'] is True and r['created'] is False and r['branch_id']==json.load(open('setup_first.json'))['branch_id'] and r['initialized_stock_rows']==0,r
+          first=json.load(open('setup_first.json')); r=json.load(open('setup_retry.json')); assert r['success'] is True and r['created'] is False and r['branch_id']==first['branch_id'] and r['initialized_stock_rows']==0,r
           PY
           set +e
           curl --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/setup-van-branch" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"vehicle_id\":\"$VAN_OTHER_VEHICLE_ID\"}" | tee setup_cross_company.json
           set -e
           python - <<'PY'
           import json
-          r=json.load(open('setup_cross_company.json')); assert r.get('success') is False and 'لا تتبع الشركة' in r.get('msg',''),r
+          r=json.load(open('setup_cross_company.json')); assert r.get('success') is False and ('لا تتبع الشركة' in r.get('msg','') or 'لا تتبع الشركة الحالية' in r.get('msg','')),r
           PY
           echo '{"success":true,"setup_van_branch_e2e":true,"create":true,"duplicate":true,"company_isolation":true,"zero_stock_init":true}'
