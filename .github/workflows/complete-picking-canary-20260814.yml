@@ -14,6 +14,8 @@ jobs:
           PASSWORD: Tmp-CP-20260814-Aa1!
           AUTH_URL: https://hfzznsiprnwkpayskzhu.supabase.co/functions/v1/cp-auth-canary-20260814?token=CP-AUTH-20260814
           FIX_URL: https://hfzznsiprnwkpayskzhu.supabase.co/functions/v1/cp-fixture-canary-20260814?token=CP-FIX-20260814
+          VAN_VEHICLE_ID: f895c4b5-4c6b-4e7a-9b9d-af1fd9b5dc9c
+          VAN_OTHER_VEHICLE_ID: 371ec359-848e-46b6-975a-cbd4d5847471
         run: |
           set -euo pipefail
           trap 'curl --silent --show-error --max-time 60 "$FIX_URL&mode=cleanup" >/tmp/cleanup.json || true' EXIT
@@ -55,4 +57,35 @@ jobs:
           import json
           r=json.load(open('retry.json')); assert r.get('success') is False and ('Picking' in r.get('msg','') or 'state' in r.get('msg','')),r
           PY
-          echo '{"success":true,"e2e":true,"retry_rejected":true}'
+
+          # STAGE 28 — setup-van-branch E2E
+          CREATE=$(curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/setup-van-branch" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"vehicle_id\":\"$VAN_VEHICLE_ID\"}")
+          echo "$CREATE" | tee setup_first.json
+          python - <<'PY'
+          import json
+          r=json.load(open('setup_first.json'))
+          assert r['success'] is True and r['created'] is True and r['vehicle_id']=='f895c4b5-4c6b-4e7a-9b9d-af1fd9b5dc9c',r
+          assert r['branch_code']=='VAN-ST28-VAN-NORMAL',r
+          assert r['initialized_stock_rows']==50,r
+          PY
+          VAN_BRANCH=$(python -c "import json;print(json.load(open('setup_first.json'))['branch_id'])")
+          STOCK_JSON=$(curl --fail-with-body --silent --show-error --max-time 60 "$SUPABASE_URL/rest/v1/stock_branches?branch_id=eq.$VAN_BRANCH&select=qty,allocated_qty" -H "apikey: $ANON_KEY" -H "Authorization: Bearer $TOKEN")
+          echo "$STOCK_JSON" | tee setup_stock.json
+          python - <<'PY'
+          import json
+          rows=json.load(open('setup_stock.json')); assert len(rows)==50 and all(float(x['qty'])==0 and float(x['allocated_qty'])==0 for x in rows),rows
+          PY
+          RETRY=$(curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/setup-van-branch" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"vehicle_id\":\"$VAN_VEHICLE_ID\"}")
+          echo "$RETRY" | tee setup_retry.json
+          python - <<'PY'
+          import json
+          r=json.load(open('setup_retry.json')); assert r['success'] is True and r['created'] is False and r['branch_id']==json.load(open('setup_first.json'))['branch_id'] and r['initialized_stock_rows']==0,r
+          PY
+          set +e
+          curl --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/setup-van-branch" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"vehicle_id\":\"$VAN_OTHER_VEHICLE_ID\"}" | tee setup_cross_company.json
+          set -e
+          python - <<'PY'
+          import json
+          r=json.load(open('setup_cross_company.json')); assert r.get('success') is False and 'لا تتبع الشركة' in r.get('msg',''),r
+          PY
+          echo '{"success":true,"setup_van_branch_e2e":true,"create":true,"duplicate":true,"company_isolation":true,"zero_stock_init":true}'
