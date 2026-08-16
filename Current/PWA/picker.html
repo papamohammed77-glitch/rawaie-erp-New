@@ -395,7 +395,7 @@ onSearchInput: function(query){
         for(var i = 0; i < results.length; i++){
             var rs = results[i];
             var itemCount = (rs.run_sheet_details && rs.run_sheet_details.length > 0) ? rs.run_sheet_details[0].count : 0;
-            var isMine = (rs.status === 'Picking' && (rs.picker_id === this.pubUserId || rs.picker_id === this.currentUser.email));
+            var isMine = (rs.status === 'Picking' && rs.picker_id === this.pubUserId);
             var isTaken = (rs.status === 'Picking' && !isMine);
             var icon = isMine ? '🔄' : (isTaken ? '🔒' : '📋');
             var label = isMine ? 'قيد تحضيرك' : (isTaken ? 'مع زميل آخر' : 'مفتوح');
@@ -432,7 +432,7 @@ onSearchInput: function(query){
             supabase.from('run_sheet_details').select('*').eq('runsheet_id', rs.id).then(function(detRes){
                 var items = detRes.data || [];
                 var itemCount = items.length;
-                if(rs.status === 'Picking' && (rs.picker_id === self.pubUserId || rs.picker_id === self.currentUser.email)){
+                if(rs.status === 'Picking' && rs.picker_id === self.pubUserId){
                     self.session = { runsheet_code: code, runsheet_id: rs.id, start_time: rs.picker_start || new Date().toISOString(), items: [] };
                     for(var i = 0; i < items.length; i++){
                         self.session.items.push({
