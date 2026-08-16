@@ -1,0 +1,75 @@
+التدقيق الأخير كان صحيحًا، وقد عالجتُ النقطة نفسها فعليًا.
+
+ما تم حسمه الآن
+
+Production كان يحتوي:
+
+post_manual_stock_voucher_atomic(uuid,text,text,text,jsonb)
+post_manual_stock_voucher_atomic(uuid,text,text,text,jsonb,text)
+
+تم أولًا إثبات أن الـ5-argument overload:
+
+لا توجد له PostgreSQL dependents.
+لا يوجد له caller داخل PostgreSQL functions التي تم فحصها.
+لم يعد جزءًا من المسار الذي يستخدمه receive-stock-voucher.
+
+ثم تم تنفيذ:
+
+DROP FUNCTION IF EXISTS
+public.post_manual_stock_voucher_atomic(
+  uuid,text,text,text,jsonb
+);
+
+والتحقق المباشر بعد الحذف أثبت أن Production يحتوي الآن على نسخة واحدة فقط:
+
+post_manual_stock_voucher_atomic(
+    uuid,
+    text,
+    text,
+    text,
+    jsonb,
+    text
+)
+
+مع:
+
+PUBLIC         = DENIED
+anon           = DENIED
+authenticated  = DENIED
+service_role   = ALLOWED
+
+أي أن Legacy Core overload لم يعد موجودًا في Runtime Production.
+
+لكنني لن أرتكب الخطأ السابق
+
+هناك فصل بين:
+
+Runtime Closure
+
+✅ تم إصلاحه
+
+و:
+
+Canonical Git Provenance
+
+⚠️ ما زال يحتاج تسجيل التغيير النهائي في migration canonical على main بحيث تصبح الحالة:
+
+Canonical Git State
+=
+Production State
+
+وذلك لأن الـ6-argument Core موجود في Production، بينما PR #5 ما زال مفتوحًا ووصفه التاريخي لا يعكس الحالة النهائية الحالية.
+
+لذلك الحكم الدقيق الآن:
+
+receive-stock-voucher
+
+Production Runtime = CLOSED
+Legacy Core Debt = CLOSED
+Overall Closure = NOT YET 100% CLOSED
+
+والباقي ليس Defect في الـReceive نفسه؛ بل Governance/Provenance closure.
+
+كما أن الـProduction HTTP E2E السابق ما زال صالحًا: v6، partial + retry + second partial، ثم restoration إلى 207 / allocated 0 بدون QA artifacts.
+
+لن أنتقل إلى send-stock-voucher قبل إغلاق الـGit canonical provenance أيضًا.
