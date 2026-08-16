@@ -1,0 +1,40 @@
+الحكم الحقيقي
+
+التقرير صحيح بدرجة كبيرة، لكن ادعاء 100% CLOSED متسرّع.
+
+نقطة	الواقع
+Edge receive-stock-voucher	✅ Production v6
+Current artifact	✅ موجود
+operation_id	✅ مستخدم فعليًا
+Production HTTP E2E	✅ توجد أدلة تشغيل
+Partial + Retry + New Partial	✅ مثبتة
+Baseline Production	✅ رجع لـ207 / allocated 0
+post_stock_movement	✅ هو المحرك المركزي للمسار
+Temporary receive harness	✅ لا يظهر ضمن قائمة Production الحالية
+Core القديم 5-arguments	⚠️ ما زال موجودًا في Production
+100% Zero-Debt	❌ لا أعتمده بعد
+المشكلة التي وجدتها
+
+Production يحتوي نسختين من:
+
+post_manual_stock_voucher_atomic
+
+واحدة قديمة:
+
+post_manual_stock_voucher_atomic(uuid,text,text,text,jsonb)
+
+والجديدة:
+
+post_manual_stock_voucher_atomic(uuid,text,text,text,jsonb,text)
+
+والقديمة ما زالت service_role-executable.
+
+تحققت أيضًا من وظائف PostgreSQL الأخرى ولم أجد Caller مباشرًا لها حاليًا، لذلك الخطر ليس Runtime مثبتًا الآن؛ لكنه Legacy Core debt ومخالفة لمعيارنا إذا كان الهدف إزالة المسار القديم بالكامل.
+
+الخلاصة
+
+Receive Stock Voucher نفسها نفذت ونشرت واختُبرت فعليًا، وليست نظرية.
+
+لكنني أرفض إغلاقها 100% Zero-Debt قبل حسم النسخة القديمة ذات الخمسة معاملات: إما إثبات أنها غير مستخدمة نهائيًا ثم سحبها بأمان، أو إبقاؤها عمدًا مع توثيق سبب بقائها.
+
+أما الانتقال إلى send-stock-voucher فليس مرفوضًا وظيفيًا، لكن الأفضل إغلاق هذا الـLegacy Core debt أولًا حتى لا نحمل دينًا للخلف.
