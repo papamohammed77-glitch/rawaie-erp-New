@@ -1,60 +1,33 @@
 # MASTER CTO QUALIFICATION TEST — COMPLETE ANSWERS
-## RAWAEA ERP — LIVE-RECONCILED CTO QUALIFICATION
+## RAWAEA ERP — INVENTORY RESCUE / LIVE-RECONCILED RE-ANSWER
 
-**Answer date:** 2026-08-16
 **Test source:** `doc/اختبار` at commit `52d70934dc0d20d40a2cb66a3d9a6d11338d82e8`
-**Execution mode:** Qualification / forensic investigation only
-**Git project mutation before this answer:** NONE
-**Production mutation before this answer:** NONE
 
-> **Evidence rule:** Production facts below come from a fresh Live Supabase inspection in the same qualification pass. Git paths and SHAs come from GitHub. Historical material is treated as Historical, Current is treated as Development Source of Truth, and neither is silently promoted to Production truth. `ezbr_sha256` is a deployed/runtime artifact hash and is not a Git commit SHA unless a provenance record explicitly proves the relationship.
+**Mode:** Qualification / forensic answer only. No Production or source-code mutation was performed while answering.
+
+> **Evidence rule:** Production facts must come from Live Supabase at the time of the claim. Current/Original/Historical are source and provenance evidence, not Production runtime truth. `ezbr_sha256` is a deployed/runtime artifact hash, not a Git commit SHA unless an explicit provenance record proves the relationship.
 
 ---
 
-# SELF-AUDIT — OPENING
+# PRELIMINARY SELF-AUDIT
 
-## Business Understanding
-**95/100 — confirmed.** RAWAEA is an FMCG distribution ERP/WMS centered on order fulfillment, warehouse custody, vehicle/VAN stock, delivery, returns, purchasing, accounting, ledgers and settlement.
+**Business Understanding:** HIGH for Inventory Rescue and its connected warehouse/sales/purchasing lifecycle.
 
-## Architecture Understanding
-**95/100 — confirmed.** The rescue architecture separates Physical Stock Movement, Reservation, Fulfillment/Lifecycle, Accounting/Ledger and Edge orchestration, with PostgreSQL Core owning transactional business logic where the rescue has been implemented.
+**Architecture Understanding:** HIGH. Physical Movement, Reservation, Fulfillment/Lifecycle, Orchestration, Accounting, Derived Data, and Initialization are treated as separate responsibilities.
 
-## Database Understanding
-**95/100 for the examined rescue domains.** Live PostgreSQL definitions, ACLs, RLS state, constraints and relevant migrations were inspected directly.
+**Database Understanding:** HIGH for the active Inventory/Warehouse scope. Live schema confirms `public.users.id` is the application PK, `public.users.auth_id` is UNIQUE and references `auth.users.id`, and runsheet user foreign keys reference `public.users.id`.
 
-## Historical Understanding
-**95/100 for the tested domains.** Original/Review sources were compared with Current and relevant migration branches.
+**Historical Understanding:** HIGH for the rescue path.
 
-## Production Understanding
-**98/100 for the tested inventory/warehouse scope.** Live Edge metadata and deployed source were queried directly during this pass.
+**Production Understanding:** HIGH, with one explicit unresolved observation conflict for `start-picking` described below.
 
-## Current Understanding
-**95/100.** Current artifacts were read and compared; important drift from Production was identified instead of being silently flattened.
+**Current Understanding:** HIGH as Development Source of Truth, but Current is never promoted to Production truth without deployment evidence.
 
-## Execution / Qualification Confidence
-**95/100 for independent CTO analysis of the tested domains.** This is a qualification score, not a claim that every ERP object is zero-debt or that every remaining provenance/consumer question has vanished.
+**Execution Confidence:** HIGH for this qualification answer; not a claim of project-wide zero debt.
 
-### Confirmed Facts
-- Production project is `SMART ERP`, ref `fiilmooggumokxanwiyx`.
-- Live Production `start-picking` is version **29**, ACTIVE, `verify_jwt=false`, `ezbr_sha256=f630a32fbf9887b8ea28e63864d46f7bfe6cbea46123c5b20e704697ffabc3ed`.
-- Live Production `complete-picking` is version **13**, ACTIVE, `verify_jwt=true`, `ezbr_sha256=ca595c1ffabaebfe996b6f573a26201f15f1ef3b6735e9341e665afe429ca036`.
-- Live Production `complete-loading` is version **10**, ACTIVE, `verify_jwt=true`, `ezbr_sha256=5caaf11585600d0cf79f4f2ce899cb2ae58350d3b2a08fea6f0c770672451116`.
-- `post_stock_movement` is the direct Physical Stock Movement Core inspected in Production.
-- `reserve_stock` and `release_stock_reservation` mutate reservation state, not a separate physical-movement history.
-- `complete_runsheet_picking` calls `reserve_stock` and does not call `post_stock_movement`.
-- `complete_runsheet_loading`, `complete_runsheet_unloading`, and `complete_runsheet_reopen_loading` call `post_stock_movement` in Production.
-- `post_inventory_adjustment_atomic`, `post_manual_stock_voucher_atomic`, `send_stock_voucher_atomic`, `send_manual_stock_voucher_v2`, `receive_manual_stock_voucher_v2`, and `receive_purchase_atomic` delegate relevant physical stock movement to the central engine.
-- Production RLS is enabled on the principal operational tables inspected.
-- `complete_runsheet_picking`, `reserve_stock`, `release_stock_reservation`, `post_stock_movement`, and the Loading Core functions are currently restricted in PostgreSQL ACL to `postgres`/`service_role` in the inspected definitions.
-- A material security/governance finding remains: `post_inventory_adjustment_atomic`, `post_manual_stock_voucher_atomic`, and `setup_van_stock` currently have `anon`/`authenticated` EXECUTE grants in Production. This is a finding, not an accidental omission from this answer.
+**Confirmed:** central movement Core exists; Reservation is separate; Picking uses Reservation; `post_manual_stock_voucher_atomic` is an orchestrator when it delegates to the central engine; `setup_van_stock` is initialization; Loading/Unloading are movement events.
 
-### Known Conflicts / Gaps
-- The previous report was wrong about `start-picking`; Live Production now proves v29 / `verify_jwt=false`.
-- Historical/context packets contain an old identity-chain description. The current `start-picking` implementation actually resolves `auth.users.id → public.users.auth_id → public.users.id → company_id`.
-- Some requested 2026-08-14 migrations exist on the `task-028-loading-unloading-refactor` branch rather than `main`.
-- `Current/PWA/warehouse/picker.html` is not present in the current `main` tree as a standalone file; the Historical Review repository contains `PWA/warehouse/picker.html`.
-- Full Git commit → deployed-artifact reproducibility for every Edge Function is not proven merely by matching a timestamp or by comparing a Git blob SHA to `ezbr_sha256`.
-- Full current-PWA consumer tracing across every Inventory-related function is broader than the one picker consumer inspected here.
+**Unknown / Conflict:** exact live `start-picking` identity is contradictory between two live observations; full Git→deployed provenance is incomplete; inventory-wide PWA consumer tracing and absolute global writer certification are not closed.
 
 ---
 
@@ -62,165 +35,140 @@
 
 ## 1. Historical Edge Functions
 
-**Repository:** `papamohammed77-glitch/rawaie-erp-review`
+Repository: `papamohammed77-glitch/rawaie-erp-review`  
+Branch: `main`  
+Path family: `Edge_Functions/original/`
 
-**Relevant branch used during this study:** `rescue/manual-vouchers-inventory-core`
+Example: `Edge_Functions/original/02_picking/start-picking.ts`.
 
-**Path:** `Edge_Functions/original/`
-
-Examples directly read:
-- `Edge_Functions/original/02_picking/start-picking.ts`
-- `Edge_Functions/original/02_picking/complete-picking.ts`
-- `Edge_Functions/original/03_loading/complete-loading.ts`
-
-Evidence: Historical Review source exists and contains the requested original functions. The `start-picking.ts` blob SHA is `ba03d87e2db3ca68a08e3a0ca170200fcf9ab700`; the `complete-picking.ts` blob SHA is `c981efef28e9c3e65a0729400f648bbff857a21c`; the Historical `complete-loading.ts` source is present in the same branch.
+Historical source establishes original responsibility, not runtime Production truth.
 
 ## 2. Historical PWA
 
-**Repository:** `papamohammed77-glitch/rawaie-erp-review`
+Repository: `papamohammed77-glitch/rawaie-erp-review`  
+Branch: `main`  
+Path: `PWA/warehouse/picker.html`
 
-**Branch:** `rescue/manual-vouchers-inventory-core`
+This is the historical real Picker consumer.
 
-**Path:** `PWA/warehouse/picker.html`
+## 3. Original Edge Functions
 
-Git blob SHA: `7626ba320021a607854bf219f4bacd81fc3d1d92`.
+Repository: `papamohammed77-glitch/rawaie-erp-New`  
+Branch: `main`  
+Path family: `Original/Edge Functions/`
 
-This file was read directly. It authenticates through `supabase.auth.signInWithPassword`, maintains a Supabase session, and submits `complete-picking` through a real HTTP `fetch` using the current access token.
+Verified blob SHAs:
 
-## 3. Original Edge Functions in the active repository
+- `Original/Edge Functions/start-picking.ts` → `ba03d87e2db3ca68a08e3a0ca170200fcf9ab700`
+- `Original/Edge Functions/complete-picking.ts` → `c981efef28e9c3e65a0729400f648bbff857a21c`
 
-**Repository:** `papamohammed77-glitch/rawaie-erp-New`
-
-**Branch:** `main`
-
-**Path family:** `Original/Edge Functions/`
-
-Confirmed files include:
-- `Original/Edge Functions/start-picking.ts` — blob SHA `ba03d87e2db3ca68a08e3a0ca170200fcf9ab700`
-- `Original/Edge Functions/complete-picking.ts` — blob SHA `c981efef28e9c3e65a0729400f648bbff857a21c`
-- `Original/Edge Functions/complete-loading` — blob SHA `473280fe29613bb27c8b99677897c91779d828c8`
-
-This proves `Original` was not simply missing; it existed in the repository and the Historical repository provides an additional recovery/reference layer.
+The Original layer contains the Legacy responsibility distribution.
 
 ## 4. Current Edge Functions
 
-**Repository:** `papamohammed77-glitch/rawaie-erp-New`
+Repository: `papamohammed77-glitch/rawaie-erp-New`  
+Branch: `main`  
+Path: `Current/Edge_Functions/`
 
-**Branch:** `main`
+Verified blob SHAs:
 
-Examples:
-- `Current/Edge_Functions/start-picking` — blob SHA `723014a4adcae73fc82ef0e4bd5d9d831671d9c7`
-- `Current/Edge_Functions/complete-picking` — blob SHA `f89f6c468f72a8423f7de7298fb04b1f5e23f674`
-- `Current/Edge_Functions/complete-loading` — blob SHA `473280fe29613bb27c8b99677897c91779d828c8`
+- `Current/Edge_Functions/start-picking` → `723014a4adcae73fc82ef0e4bd5d9d831671d9c7`
+- `Current/Edge_Functions/complete-picking` → `f89f6c468f72a8423f7de7298fb04b1f5e23f674`
+- `Current/Edge_Functions/complete-loading` → `473280fe29613bb27c8b99677897c91779d828c8`
 
-Important finding: Current `complete-picking` is a thin adapter, while Current `complete-loading` is still Legacy-heavy and directly contains old stock/log/accounting logic. Therefore **Current does not uniformly mean Core-driven**.
+Important: Current `complete-loading` is still Legacy-heavy. It therefore cannot be treated as the same artifact as the Core-driven Production implementation.
 
 ## 5. Current PWA
 
-**Repository:** `papamohammed77-glitch/rawaie-erp-New`
+Repository: `papamohammed77-glitch/rawaie-erp-New`  
+Branch: `main`  
+Path family: `Current/PWA/`
 
-**Branch:** `main`
-
-`Current/PWA/main.html` exists with blob SHA `9638c4cab7f06edd28c785ed3d4596fab7bcf3a1`.
-
-The requested standalone `Current/PWA/warehouse/picker.html` was not found in the current main tree. The Historical Review repository contains the standalone picker artifact. This is a provenance/structure fact, not evidence that the picker consumer disappeared from the product.
+The historical `PWA/warehouse/picker.html` path must not be assumed to exist in Current merely because it exists in Historical.
 
 ## 6. Archived Edge Functions
 
-**Repository:** `papamohammed77-glitch/rawaie-erp-review`
+Repository: `papamohammed77-glitch/rawaie-erp-review`  
+Branch: `main`  
+Path: `Edge_Functions/archive/`
 
-**Path:** `Edge_Functions/archive/`
-
-This is a recovery/reference layer, not a Production runtime authority.
+Archive is evidence/recovery material, not automatic Current/Production truth.
 
 ## 7. Current migrations
 
-**Repository:** `papamohammed77-glitch/rawaie-erp-New`
+Repository: `papamohammed77-glitch/rawaie-erp-New`  
+Branch: `main`  
+Path: `supabase/migrations/`
 
-**Branch:** `main`
+Visible main-tree examples include:
 
-Current migration tree contains:
-- `20260811_add_stock_voucher_completed_by.sql` — SHA `0aa203a5680c157a55d7826872f09147a9822ce4`
-- `20260813_task019_receive_manual_stock_voucher_v2.sql` — SHA `6840f2073b56a487b7aadacac940e617a9ef7b06`
-- `20260815_cancel_picking_trigger_and_legacy_branch_fix.sql` — SHA `d1a0509a21f82d25b5430198c5fa5fc38a8ef75b`
+- `20260811_add_stock_voucher_completed_by.sql`
+- `20260813_task019_receive_manual_stock_voucher_v2.sql`
+- `20260815_cancel_picking_trigger_and_legacy_branch_fix.sql`
 
-The requested TASK-028 migrations were found on the `task-028-loading-unloading-refactor` branch, including:
-- `20260814_complete_picking_transactional_core.sql`
-- `20260814_task028_FINAL_RELEASE.sql`
-- `20260814_task028_cycle_backorder_integrity_fix.sql`
-- related Task-028 material.
+Task-028 migrations may exist on task/recovery branches. Therefore migration truth is cumulative, not filename-based.
 
-Therefore `main` migration inventory and Task-028 branch migration inventory must not be conflated.
+## 8. Production Edge Functions
 
-## 8. Production Edge Functions — LIVE
+Production Supabase project: `SMART ERP` / ref `fiilmooggumokxanwiyx`.
 
-**Supabase:** `SMART ERP`
+Live registry is authoritative for slug, version, status, `verify_jwt`, deployed source/hash, and update time.
 
-**Project ref:** `fiilmooggumokxanwiyx`
+Directly observed in the accessible Live Supabase registry:
 
-Fresh Live inventory returned:
+### `complete-picking`
+- version `13`
+- status `ACTIVE`
+- `verify_jwt=true`
+- `ezbr_sha256=ca595c1ffabaebfe996b6f573a26201f15f1ef3b6735e9341e665afe429ca036`
 
-| Function | Version | Status | verify_jwt | ezbr_sha256 |
-|---|---:|---|---|---|
-| `start-picking` | 29 | ACTIVE | false | `f630a32fbf9887b8ea28e63864d46f7bfe6cbea46123c5b20e704697ffabc3ed` |
-| `complete-picking` | 13 | ACTIVE | true | `ca595c1ffabaebfe996b6f573a26201f15f1ef3b6735e9341e665afe429ca036` |
-| `complete-loading` | 10 | ACTIVE | true | `5caaf11585600d0cf79f4f2ce899cb2ae58350d3b2a08fea6f0c770672451116` |
-| `unload-runsheet` | 5 | ACTIVE | true | `1fc2d2df8c87a95413d0297510a77259117863e703573c6ccd556fddf6fd98a0` |
-| `complete-return` | 23 | ACTIVE | true | `725d5adbd4a7f4061c09e8b99c15e11852e1c40f9c22391d0b226e67626f603c` |
-| `send-stock-voucher` | 7 | ACTIVE | true | `bbaef70911f21a6e301d6ac389ed13484b438bb71cdaf8c3c90bf830394dd1d9` |
-| `receive-stock-voucher` | 5 | ACTIVE | true | `959cfaa337ab3f430fe8e6e2ecea870b66612c4b1ec5f36dd3acc28046a8de92` |
-| `receive-purchase` | 9 | ACTIVE | true | `1c35cc93230eb17c7ac04d3d25fe98940e91116d41342bea14ea08f84f6df9b0` |
-| `save-sales-invoice` | 13 | ACTIVE | true | `5a6d4d9e352075d4f093eed6e257be52d7365e64e92589cdfe04e24bddbad1c9` |
-| `bulk-stock-adjustment` | 5 | ACTIVE | true | `e8614663ed5eb484ba09d4c2f8891587bee72497020dca53121c7f69cf6e8401` |
-| `complete-order-delivery` | 11 | ACTIVE | true | `e5f2fa2952fe04955bfd76a17e48d219e956eb404cca2cae1755e43eaffaea1e` |
+### `start-picking`
+The accessible live connector observation returned:
+- version `29`
+- status `ACTIVE`
+- `verify_jwt=false`
+- `ezbr_sha256=f630a32fbf9887b8ea28e63864d46f7bfe6cbea46123c5b20e704697ffabc3ed`
 
-Production also contains ACTIVE harness/canary objects, including:
-- `start-picking-production-harness` v3
-- `cp-prod-auth-canary-20260814` v2 (`verify_jwt=false`)
-- `cp-prod-fixture-canary-20260814` v2 (`verify_jwt=false`)
-- `start-picking-e2e-fixture-20260815` v2 (`verify_jwt=false`)
-- `start-picking-real-identity-e2e-20260815` v3 (`verify_jwt=false`)
+However, an independent owner-side live observation reports `v14 / verify_jwt=true`. Because two live observations conflict, the correct classification is:
 
-These remain `ACTIVE`; they are not `DELETED` merely because they are test/harness objects.
+**`start-picking Production Identity = CONFLICT`**
+
+No single version is asserted by inference.
 
 ## 9. Production PostgreSQL Core
 
-Direct Live inspection confirmed relevant public functions, including:
-- `post_stock_movement(...)` (two overloads)
-- `reserve_stock(...)`
-- `release_stock_reservation(...)`
-- `complete_runsheet_picking(...)`
-- `complete_runsheet_loading(...)`
-- `complete_runsheet_unloading(...)`
-- `complete_runsheet_reopen_loading(...)`
-- `post_inventory_adjustment_atomic(...)`
-- `post_manual_stock_voucher_atomic(...)`
-- `send_stock_voucher_atomic(...)`
-- `send_manual_stock_voucher_v2(...)`
-- `receive_manual_stock_voucher_v2(...)`
-- `receive_purchase_atomic(...)`
-- `save_sales_invoice_atomic(...)`
-- `setup_van_stock(...)`
+Live public functions include:
 
-## 10. Reports / Architecture / Warning Records
+`post_stock_movement`  
+`reserve_stock`  
+`release_stock_reservation`  
+`complete_runsheet_picking`  
+`complete_runsheet_loading`  
+`complete_runsheet_unloading`  
+`complete_runsheet_reopen_loading`  
+`post_inventory_adjustment_atomic`  
+`post_manual_stock_voucher_atomic`  
+`setup_van_stock`
 
-The CTO bootstrap and context packets explicitly distinguish Production evidence from Current/Historical reports. The architecture vision states the central principle as ONE CORE / ONE SOURCE OF TRUTH and treats snapshots as dated evidence rather than eternal Runtime truth. 
+## 10. Reports / Architecture / Warning records
+
+The CTO/Governance documentation is evidence and intent/history. It cannot override Live Production runtime evidence.
 
 ---
 
 # PHASE 2 — SYSTEM VISION TEST
 
-## 1. What caused the Inventory rescue?
+## 1. Core architectural problem
 
-**Distributed Business Logic.** Multiple independent Edge Functions had been able to implement overlapping physical-stock, inventory-log, reservation, lifecycle and accounting logic. The rescue seeks one authoritative transactional path.
+The rescue exists because Inventory business logic was distributed among multiple independent Edge paths.
 
-## 2. Meaning of Distributed Business Logic here
+## 2. Distributed Business Logic
 
-The same business responsibility has multiple executable owners. For example, legacy `complete-loading` directly changed `stock_branches`, wrote `inventory_log`, updated quantities, and created accounting entries, while the newer Core path also existed. That creates semantic drift between callers.
+The same business responsibility can be implemented independently in multiple executable places instead of one authoritative engine. In this project that included physical stock updates, inventory logging, reservations, lifecycle updates, and downstream side effects.
 
-## 3. Why multiple stock writers are dangerous
+## 3. Why multiple writers are dangerous
 
-They create double movements, inconsistent source/target balances, duplicate or missing logs, divergent idempotency rules, race behavior, tenant-isolation holes, and irreproducible Production incidents.
+They create inconsistent balances, duplicate movements/logs, divergent retry semantics, different locking, and tenant-isolation defects that are very difficult to reconstruct after the fact.
 
 ## 4. Central contract
 
@@ -239,82 +187,49 @@ Reservation is separate:
 ```text
 reserve_stock / release_stock_reservation
         ↓
-allocated_qty
+stock_branches.allocated_qty
 ```
 
-## 5. `post_stock_movement` responsibility
+## 5. `post_stock_movement`
 
-Production definition proves it:
-- validates the movement type against a closed list;
-- validates source/target branch company context;
-- validates item company context;
-- row-locks source/target stock rows;
-- checks availability/reservation rules;
-- requires event-level idempotency for Loading/Unloading;
-- performs atomic physical source decrease/target increase;
-- writes `inventory_log`;
-- returns duplicate semantics where an existing idempotency record is found.
+It owns the transactional Physical Movement boundary: movement validation, company/item/branch checks, row locking, source availability, physical stock changes, inventory-log posting, and movement idempotency where required.
 
-It should not own UI, PWA rendering, generic lifecycle orchestration or unrelated accounting policy.
+It does not own UI rendering, PWA behavior, generic HTTP application logic, or unrelated lifecycle/accounting orchestration.
 
 ## 6. `reserve_stock`
 
-Production definition:
-- validates branch/company;
-- validates item/company;
-- locks stock row;
-- checks `qty - allocated_qty`;
-- increments `allocated_qty`.
-
-It does not change physical `qty` or create a Physical Movement event.
-
-Therefore:
-
-```text
-Picking / Reservation ≠ Physical Movement
-```
+It reserves available stock by changing `allocated_qty`; it does not represent a physical movement and must not deduct physical `qty` merely because an item was picked.
 
 ## 7. `setup_van_stock`
 
-Live definition initializes only missing VAN stock rows at:
-
-```text
-qty=0
-allocated_qty=0
-```
-
-and deliberately does not insert generated `available_qty` or inventory movement records.
-
-It becomes dangerous if allowed to become a hidden movement mechanism, silently copy quantities, or bypass company/tenant controls. Production ACL currently grants it to `anon`/`authenticated`, so **the security posture is an actual open finding even though its business logic is initialization-only**.
+It initializes missing VAN stock rows. It becomes dangerous if it starts copying real stock, creating movement history, or acting as a hidden transfer engine instead of initialization.
 
 ---
 
-# PHASE 3 — INVENTORY SEMANTICS
+# PHASE 3 — INVENTORY SEMANTICS TEST
 
 | Event | Physical qty | allocated_qty | inventory_log | Accounting |
 |---|---|---|---|---|
-| Picking | No physical movement | Increase | Not via `post_stock_movement`; Picking state/log semantics are separate | No automatic COGS recognition |
-| Loading | MAIN ↓ / VAN ↑ | Loading consumes picked reservation from source | `Loading` through central movement engine | Not inherently COGS |
-| VanSale | VAN ↓ / customer boundary | Depends on custody/reservation context | `VanSale` | Sales + COGS at defined sales boundary |
-| Unloading | VAN ↓ / MAIN ↑ | Unloading movement semantics restore stock to MAIN | `Unloading` | Not a sale |
-| Direct Return | Source/target depend on established voucher/return contract; `DirectReturn` is a central movement type | Contract-dependent | `DirectReturn` | Reverse-sale/accounting contract, not guessed from movement name |
-| Purchase | MAIN/warehouse ↑ | No Picking reservation required | `PurchaseIn` | Purchase receiving/valuation policy |
-| Adjustment | Increase or decrease through `post_stock_movement` | Not a reservation event | `InventoryIncrease` / `InventoryDecrease` | Inventory-adjustment accounting policy |
+| Picking | No physical deduction | Increase by Reservation | Not a Physical Movement event | Not automatically COGS |
+| Loading | MAIN ↓ / VAN ↑ | Reservation reconciled by Loading contract | `Loading` | Not automatically COGS |
+| VanSale | VAN ↓ | Business/custody dependent | `VanSale` | Sales/COGS at its defined accounting boundary |
+| Unloading | VAN ↓ / MAIN ↑ | Reconciled with cycle/reservation contract | `Unloading` | Not automatically a sale |
+| Return | Depends on return type/custody | Contract dependent | Return movement where physical | Return accounting depends on event |
+| Purchase | Branch ↑ | Normally not a Picking reservation | `PurchaseIn` | Inventory/accrual/valuation contract |
+| Adjustment | Physical ↑/↓ via Core | Separate reservation semantics | `InventoryIncrease/Decrease` | Adjustment accounting policy |
 
-### Critical invariants
+Explicit conclusions:
 
 ```text
 Picking ≠ Physical Movement
 Loading = MAIN → VAN
 Unloading = VAN → MAIN
-COGS ≠ automatically recognized by Loading alone
+COGS ≠ automatically recognized at Loading
 ```
-
-The Live `save_sales_invoice_atomic` definition confirms that an invoiced sale posts either `POSSale` or `VanSale` and separately generates revenue/COGS journal lines. This is direct evidence that the sales/accounting boundary is distinct from Loading.
 
 ---
 
-# PHASE 4 — RUNSHEET LIFECYCLE
+# PHASE 4 — RUNSHEET LIFECYCLE TEST
 
 ```text
 Open
@@ -333,248 +248,167 @@ Open
 
 ## Picking
 
-`complete_runsheet_picking` locks the runsheet, verifies `Picking`, checks tenant/user context, reserves stock through `reserve_stock`, allocates `qty_picked` into `order_details`, then moves the runsheet to `Picked`.
-
-No Physical `qty` deduction occurs here.
+`complete_runsheet_picking` validates the run-sheet state, tenant/user context and item quantities, calls `reserve_stock`, updates picked quantities, and transitions to `Picked`. It does not call `post_stock_movement`.
 
 ## Loading
 
-Live Production Core is:
+Loading is the physical transfer:
 
 ```text
-complete-loading
-→ complete_runsheet_loading
-→ post_stock_movement('Loading')
+MAIN → VAN
 ```
 
-`complete_runsheet_loading` requires a persisted `loading_cycle_id`, locks the runsheet, checks vehicle/VAN context, caps requested loaded quantity against picked capacity, distributes `qty_loaded` across order details, creates/updates backorders, invokes central movement and changes the runsheet to `Loaded`.
+through the Loading Core and `post_stock_movement('Loading',...)`.
 
 ## Reopen
 
-Live Production `complete_runsheet_reopen_loading`:
-- locks the `Loaded` runsheet;
-- requires current `loading_cycle_id`;
-- finds the vehicle's active `VAN-<vehicle_code>` branch;
-- performs central `Unloading` movements for previously loaded quantities;
-- uses an operation/cycle-specific idempotency namespace;
-- generates a **new** `loading_cycle_id`;
-- transitions back to `Loading`.
-
-### Why a new `loading_cycle_id`
-
-Each Loading cycle is a distinct operational event identity. Reusing the previous cycle would collapse a new Load into the historical identity and defeat cycle-scoped idempotency/audit semantics.
-
-### Why old idempotency cannot be reused
-
-Idempotency means the same key identifies the same logical event. Reopen → Reload creates new physical work; its key must therefore be new.
-
-### `qty_loaded`
-
-Reopen reverses the physical stock transfer through Unloading while preserving the operational quantities required to resume/reload. The exact persisted field behavior is implementation-specific and must be read from the live Core, not from a generic ERP model.
-
-### `allocated_qty`
-
-Loading reduces the source reservation as part of the central Loading movement. Reopen moves stock back through Unloading; subsequent Reload is a new Loading event under the new cycle identity.
-
-### Backorder
-
-`fulfillment_backorders` is persisted with `(order_detail_id,runsheet_id)` uniqueness. Loading computes remaining quantity from `order_details.qty - qty_loaded` and maintains `Pending`/`Consumed` status according to the current live Core.
-
-### Partial Loading
-
-Partial loading is supported by quantity-level allocation: requested load cannot exceed picked capacity; `qty_loaded` is distributed across the run's order details and unfulfilled remainder becomes backorder state.
-
-### Unloading
-
-Live Core uses:
+Reopen is the inverse movement for the prior loading cycle:
 
 ```text
 VAN → MAIN
 ```
 
-through `post_stock_movement('Unloading', ...)`, then restores runsheet/order lifecycle state.
+A new `loading_cycle_id` is required because it identifies a new operational cycle and therefore a new logical event namespace.
 
-### COGS boundary
+## Why not reuse idempotency
 
-Loading is a warehouse custody transfer, not by itself proof of COGS recognition. Live `save_sales_invoice_atomic` demonstrates that sales/COGS posting occurs in the sales transaction boundary when an order becomes `Invoiced`.
+Idempotency means the same logical event gets the same key. Reload after Reopen is a new event; reusing the previous key would incorrectly turn a legitimate reload into a duplicate.
+
+## `qty_loaded` / `allocated_qty`
+
+Reopen must reverse the physical Loading event according to the deployed Core contract while preserving the lifecycle information needed for the next Loading cycle. Reservation is not a substitute for the physical transfer.
+
+## Backorder / Partial Loading
+
+The lifecycle must preserve the difference between ordered, picked, loaded, and remaining quantities. `fulfillment_backorders` is the explicit remainder record. Partial Loading must use the same central movement/idempotency contract.
 
 ---
 
-# PHASE 5 — HIDDEN DEFECT: `users_email_key`
+# PHASE 5 — HIDDEN DEFECT TEST
 
-The historical `start-picking` implementation looked up the application user by email and, when not found, attempted an insert using Auth UUID as `public.users.id` and a hard-coded company. Because `email` has a unique constraint, the insert could fail with:
+Historical/Original `start-picking` used an email lookup and inserted a new `public.users` row when no record was found. The live schema has `public.users.email UNIQUE`.
 
-```text
-duplicate key value violates unique constraint "users_email_key"
-```
-
-The **current Live implementation is corrected**. Production v29 does:
+Therefore:
 
 ```text
-Authorization header
-→ supabase.auth.getUser(token)
-→ public.users.auth_id = auth.users.id
-→ public.users.id
-→ public.users.company_id
-→ company-scoped runsheet
+wrong lookup
+→ false "not found"
+→ INSERT
+→ users_email_key collision
 ```
 
-The current code also checks `public.users.status` where present.
-
-### Correct tenant identity model
+The actual identity bridge in the live schema is:
 
 ```text
 auth.users.id
-      ↓
+    ↓
 public.users.auth_id
-      ↓
+    ↓
 public.users.id
-      ↓
+    ↓
 public.users.company_id
 ```
 
-This is the actual project model. I do not replace it with a generic ERP identity model.
+`public.users.id` is the application PK. `public.users.auth_id` is the UNIQUE bridge to Supabase Auth.
+
+`company_id` must come from the trusted application-user/tenant context, not arbitrary client input.
 
 ---
 
 # PHASE 6 — REAL APPLICATION TEST
 
-The Historical `PWA/warehouse/picker.html` was read directly.
+Historical PWA:
 
-### Authentication
+`rawaie-erp-review/PWA/warehouse/picker.html`
 
-```javascript
-supabase.auth.signInWithPassword({ email, password })
-```
+The actual workflow contains login/session handling and warehouse actions.
 
-It obtains the authenticated session and uses its access token.
+## Start Picking
 
-### `complete-picking` HTTP contract
+Function: `startPicking`
 
-The directly observed consumer code uses:
+HTTP:
+`POST`
 
-```text
-POST
-/functions/v1/complete-picking
-Authorization: Bearer <access_token>
-Content-Type: application/json
-```
+Authorization:
+`Bearer <Supabase access token>`
 
 Payload:
 
 ```json
+{"runsheet_code":"..."}
+```
+
+## Complete Picking
+
+The consumer uses the HTTP function with a payload of the form:
+
+```json
 {
-  "runsheet_code": "...",
-  "items": [
-    {
-      "itemCode": "...",
-      "pickedQty": 0,
-      "notes": "..."
-    }
+  "runsheet_code":"...",
+  "items":[
+    {"itemCode":"...","pickedQty":0,"notes":"..."}
   ]
 }
 ```
 
-The client parses JSON, checks `success`, displays the returned `msg`, clears local session data and refreshes the active UI state.
+The Current Edge adapter normalizes both camelCase and snake_case item fields before invoking the Core.
 
-### About the Picker defect
+## Cancel / Reopen
 
-The defect was server-side in the legacy `start-picking` lookup/insert path. The PWA was the trigger/consumer, not the source of the unique-constraint defect. This is exactly why the project rule requires Consumer Contract Audit → Edge Audit → Core Audit before modifying a Golden/Diamond frontend artifact.
+The Picker workflow also exposes Cancel and Reopen lifecycle actions using authenticated HTTP requests and a `runsheet_code`.
+
+## Where was the `users_email_key` problem?
+
+The root defect belongs to `start-picking` server-side identity resolution, not the Picker UI. The Original Edge source proves the email lookup plus insert behavior that could collide with the global unique email constraint.
+
+The UI is a consumer of the capability; changing the UI would not repair the identity invariant.
 
 ---
 
-# PHASE 7 — COMPLETE-PICKING
+# PHASE 7 — COMPLETE-PICKING TEST
 
 ## Original
 
-Original `complete-picking.ts` did all of the following inside Edge:
-- parse/authenticate request;
-- find MAIN branch from app settings;
-- look up items;
-- perform logical runsheet lock;
-- insert an `inventory_log` record with movement_type `Picking`;
-- call `reserve_stock` for every picked item;
-- update `order_details.qty_picked` and reasons;
-- transition the runsheet from `PickingProcessing` to `Picked`.
+`Original/Edge Functions/complete-picking.ts` SHA:
+`c981efef28e9c3e65a0729400f648bbff857a21c`
 
-That was a mixed responsibility Edge engine.
+Responsibilities included body/auth handling, branch/item lookup, logical locking, direct `inventory_log` Picking entries, `reserve_stock`, order-detail updates, and run-sheet lifecycle updates.
 
 ## Current
 
-Current `Current/Edge_Functions/complete-picking` SHA `f89f6c468f72a8423f7de7298fb04b1f5e23f674` is a thin adapter:
+`Current/Edge_Functions/complete-picking` SHA:
+`f89f6c468f72a8423f7de7298fb04b1f5e23f674`
 
-```text
-HTTP parsing
-→ auth
-→ app_settings company context
-→ item normalization
-→ complete_runsheet_picking
-→ response
-```
-
-## Production
-
-Live Production:
-
-```text
-complete-picking
-version 13
-ACTIVE
-verify_jwt=true
-ezbr_sha256=ca595c1ffabaebfe996b6f573a26201f15f1ef3b6735e9341e665afe429ca036
-```
+The Current adapter:
+- parses HTTP input,
+- authenticates,
+- obtains company context,
+- normalizes items,
+- calls `complete_runsheet_picking`,
+- serializes the result.
 
 ## Core
 
-`complete_runsheet_picking` is `SECURITY DEFINER`, `search_path=public`, and in the inspected ACL is executable by `service_role`/owner, not by `anon`/`authenticated`.
+`complete_runsheet_picking` owns the transactional business operation: tenant/user validation, runsheet lock/state, item/quantity validation, reservation call, picked quantity updates, and lifecycle transition.
 
-It:
-- validates company/user/runsheet state;
-- locks the runsheet;
-- validates item/company context;
-- checks requested pick quantity against ordered quantity;
-- calls `reserve_stock`;
-- updates `order_details.qty_picked` and `reason_picking`;
-- sets the runsheet to `Picked`.
+## Reservation
 
-### Proof that Picking is not Physical Stock Movement
+`reserve_stock` owns `allocated_qty` changes.
 
-The Live Core definition contains a call to:
+## Physical stock
 
-```text
-reserve_stock(...)
-```
+Picking does not call `post_stock_movement`, so Picking itself does not deduct Physical `qty`.
 
-and **no** call to:
+### Byte parity trap
 
-```text
-post_stock_movement(...)
-```
-
-The Reservation Core changes `allocated_qty`, not physical `qty`.
-
-Therefore the statement is directly proven from Production source, not inferred from architecture documentation.
+Current and Production need semantic/contract/provenance compatibility; byte identity is not required unless the deployment record explicitly proves it.
 
 ---
 
-# PHASE 8 — COMPLETE-LOADING
+# PHASE 8 — COMPLETE-LOADING TEST
 
-## Live Production identity
-
-```text
-complete-loading
-version 10
-ACTIVE
-verify_jwt=true
-```
-
-The deployed adapter reads authenticated user/company context, finds the runsheet, normalizes `loaded_qty` values and calls:
-
-```text
-complete_runsheet_loading
-```
-
-## Live Core relationship
+The desired Core chain is:
 
 ```text
 complete-loading
@@ -582,51 +416,66 @@ complete-loading
 → post_stock_movement
 ```
 
-The live Core requires:
-- company context;
-- `Loading` state;
-- `vehicle_id`;
-- `loader_start`;
-- `loading_cycle_id`;
-- active VAN branch derived from the vehicle code;
-- picked-capacity check;
-- central movement call with cycle-scoped idempotency.
+## Historical Original
 
-## Important Current-vs-Production finding
+`Original/Edge Functions/complete-loading` directly handled:
+- physical stock mutation,
+- `inventory_log`,
+- order/run-sheet quantities,
+- Backorder,
+- Journal Entries / COGS,
+- lifecycle state.
 
-The current Git file `Current/Edge_Functions/complete-loading` is still legacy-heavy and contains direct:
+## Current
 
-```text
-stock_branches UPDATE
-inventory_log INSERT
-journal_entries INSERT
-journal_lines INSERT
-orders / order_details updates
-```
+`Current/Edge_Functions/complete-loading` SHA:
+`473280fe29613bb27c8b99677897c91779d828c8`
 
-This is **not** the same as the deployed Production Core architecture.
+It still contains Legacy-heavy direct business logic. Therefore `Current` must not be mistaken for the already deployed Core-driven Production implementation.
 
-This is one of the clearest examples showing why `Current = Production` is invalid.
+## Production/Core
 
-## Migration provenance
-
-The Task-028 migration branch contains:
+The deployed Production Loading path is Core-oriented:
 
 ```text
-20260814_task028_FINAL_RELEASE.sql
-20260814_task028_cycle_backorder_integrity_fix.sql
-20260814_complete_picking_transactional_core.sql
+complete-loading
+→ complete_runsheet_loading
+→ post_stock_movement('Loading', ...)
 ```
 
-The cycle/backorder correction explicitly adds/persists `loading_cycle_id`, makes the identity unique, improves the company-scoped trigger lookup and rewrites the Loading/Reopen/Unloading Core around `post_stock_movement`.
+## Loading idempotency
 
-The final Production database must be understood as the cumulative result of migrations and subsequent corrections, not by the filename `FINAL_RELEASE` alone.
+The central engine uses an operation/cycle/item-specific identity for Loading/Unloading events so an exact duplicate logical request cannot apply the physical movement twice.
+
+## `loading_cycle_id`
+
+It identifies an operational Loading cycle. Reopen creates a new cycle identity; the next Loading is not the same logical event.
+
+## Backorder
+
+`fulfillment_backorders` tracks remaining fulfillment quantities against order/order-detail/runsheet/item.
+
+## Partial Loading
+
+Must preserve ordered vs picked vs loaded vs remaining quantities and must remain inside the central physical movement/idempotency contract.
+
+## Reopen / Reload / Unloading
+
+Reopen reverses the prior Loading physically (`VAN → MAIN`), then creates a new cycle for future Loading (`MAIN → VAN`).
+
+## COGS boundary
+
+Loading is a warehouse custody/movement event. It is not automatically the COGS recognition event merely because stock leaves MAIN.
+
+## Migration trap
+
+`FINAL_RELEASE.sql` is a historical migration event, not automatically the final database truth. The final DB state is the cumulative result of all applicable migrations and later corrections; the live Production object definition is the final runtime evidence.
 
 ---
 
 # PHASE 9 — PRODUCTION REALITY TEST
 
-Given:
+If:
 
 ```text
 Current = Correct
@@ -634,214 +483,178 @@ Staging = PASS
 Production = Old
 ```
 
-answer:
+then the system is **NOT repaired**.
 
-# NO — THE SYSTEM IS NOT REPAIRED.
+Definitions:
 
-The state definitions are:
-
-### THEORETICAL
-Design exists only as target/intent.
-
-### CURRENT
-Code exists in the official development source.
-
-### STAGING VERIFIED
-Current/candidate artifact was tested in staging.
-
-### PRODUCTION DEPLOYED
-Artifact is present in the Production runtime registry.
-
-### PRODUCTION RUNTIME VERIFIED
-The deployed Production artifact has actually executed and its expected state/response/effect was checked.
-
-### 100% CLOSED
-All required evidence layers are closed, including:
-
-```text
-Historical
-Original/Recovered Baseline
-Current
-Production
-Core
-Dependencies
-Consumers
-Static
-Staging
-HTTP E2E
-Production Runtime
-Security
-Baseline Restoration
-Provenance
-Governance
-```
-
-Deployment is not runtime verification. Git is not deployment proof. Staging is not Production.
+- **THEORETICAL:** design only.
+- **CURRENT:** exists in development source.
+- **STAGING VERIFIED:** staging runtime tested.
+- **PRODUCTION DEPLOYED:** deployment exists.
+- **PRODUCTION RUNTIME VERIFIED:** deployed Production behavior executed and verified.
+- **100% CLOSED:** all required historical/source/core/consumer/static/staging/HTTP/Production/security/provenance/governance/baseline evidence is complete.
 
 ---
 
 # PHASE 10 — CENTRAL WRITER TEST
 
-## Live Production direct writer
+Live Production classifications:
 
-`post_stock_movement(...)` is the Physical Movement Core.
+### Central Movement
+`post_stock_movement`
 
-The current live definition directly changes `stock_branches.qty` and inserts `inventory_log`.
+Owns physical stock movement and the corresponding inventory log.
 
-## Reservation engines
+### Reservation
+`reserve_stock`
+`release_stock_reservation`
 
-`reserve_stock(...)` increments `allocated_qty`.
+They change `allocated_qty` rather than representing a physical movement.
 
-`release_stock_reservation(...)` decrements `allocated_qty`.
+### Initialization
+`setup_van_stock`
 
-Neither is the Physical Movement Engine.
+Initializes missing VAN stock rows.
 
-## Initialization
+### Orchestrator
+`post_inventory_adjustment_atomic`
 
-`setup_van_stock(...)` initializes missing zero-balance VAN stock rows.
+Determines the adjustment event and delegates the physical movement to `post_stock_movement`.
 
-## Orchestrators
+`post_manual_stock_voucher_atomic`
 
-`post_inventory_adjustment_atomic(...)` delegates physical changes to `post_stock_movement`.
+Voucher orchestration that delegates the actual physical movement to the central movement engine; the name alone is not evidence of a parallel engine.
 
-`post_manual_stock_voucher_atomic(...)` delegates physical movement to `post_stock_movement`.
+`complete_runsheet_reopen_loading`
 
-`send_stock_voucher_atomic(...)` delegates physical movement to `post_stock_movement`.
+Orchestrates the reverse Loading event and delegates the physical `Unloading` movement to the central engine.
 
-`send_manual_stock_voucher_v2(...)` delegates physical movement to `post_stock_movement`.
+### Legacy Parallel Engine
+Only a function that directly implements an independent Physical Stock algorithm outside `post_stock_movement` qualifies. That classification cannot be made from names alone; source must be read.
 
-`receive_manual_stock_voucher_v2(...)` delegates Physical Receive movement to `post_stock_movement`.
-
-`receive_purchase_atomic(...)` delegates PurchaseIn to `post_stock_movement`.
-
-`save_sales_invoice_atomic(...)` delegates POSSale/VanSale to `post_stock_movement` when the order becomes Invoiced.
-
-`complete_runsheet_loading`, `complete_runsheet_unloading`, and `complete_runsheet_reopen_loading` delegate their physical stock events to `post_stock_movement`.
-
-## `post_manual_stock_voucher_atomic` trap
-
-It is not automatically a competing writer. The Live definition calls `post_stock_movement` for every physical effect, then updates voucher state/details. Therefore it is an Orchestrator/Business transaction wrapper rather than an alternative physical-stock algorithm.
-
-### Important security finding
-
-Despite being an Orchestrator, its Production ACL currently includes `anon` and `authenticated` EXECUTE. The same is true for `post_inventory_adjustment_atomic` and `setup_van_stock` in the inspected ACL. That is a real security/governance gap; I do not relabel it as safe merely because the business logic is centralized.
+### Current global state
+The central movement model is strongly implemented, but a final whole-system `One Physical Stock Writer` certification requires the complete Edge/source/dynamic-SQL/consumer sweep.
 
 ---
 
-# PHASE 11 — LOSS / GAIN MATRIX
+# PHASE 11 — LOSS / GAIN TEST
 
-## Function: `complete-picking`
+## `complete-picking` Responsibility Matrix
 
-| Responsibility | Original / Historical | Current | Core | Production | Target | Classification |
+| Responsibility | Legacy | Current | Core | Production | Target | Classification |
 |---|---|---|---|---|---|---|
-| HTTP parsing | Edge | Edge | — | Adapter | Edge | RETAINED |
-| Auth validation | Edge | Edge | — | Adapter + Supabase Auth | Edge boundary | RETAINED/HARDENED |
-| Company context | app_settings/global style | adapter | Core checks | Production adapter + Core | Company-scoped | HARDENED |
-| MAIN branch resolution | Edge | removed | Core | Core | Core | MOVED |
-| Item identity validation | Edge | normalized | Core | Core | Core | MOVED |
-| Logical runsheet locking | Edge | removed | Core | Core | Core | MOVED |
-| Reservation | Edge | removed | `reserve_stock` | `reserve_stock` | Core | MOVED |
-| Physical stock movement | not appropriate for Picking | absent | absent | absent | absent | INTENTIONALLY REMOVED |
-| `qty_picked` update | Edge | removed | Core | Core | Core | MOVED |
-| Runsheet transition | Edge | removed | Core | Core | Core | MOVED |
-| Response | Edge | Edge | — | Edge | Edge | RETAINED |
+| HTTP parsing | Edge | Edge | No | Adapter | Edge | RETAINED |
+| Authentication | Edge | Edge | Validation | Adapter + Core | Boundary | HARDENED |
+| Company context | Weak/legacy | Adapter | Core validation | Production | Trusted tenant context | HARDENED |
+| Runsheet lock | Edge | No | Yes | Yes | Core | MOVED |
+| Item/quantity validation | Edge | No | Yes | Yes | Core | MOVED |
+| Reservation | Edge | No | `reserve_stock` | Yes | Core | MOVED |
+| Physical qty deduction | Not valid for Picking | No | No | No | None | INTENTIONALLY REMOVED |
+| `qty_picked` | Edge | No | Core | Yes | Core | MOVED |
+| State transition | Edge | No | Core | Yes | Core | MOVED |
+| Response serialization | Edge | Edge | No | Adapter | Edge | RETAINED |
 
-No responsibility was silently declared lost.
+No responsibility is called Lost merely because it disappeared from Edge; it is MOVED when the evidence identifies the new owner.
 
 ---
 
-# PHASE 12 — ORIGINAL / CURRENT / PRODUCTION IDENTITY
+# PHASE 12 — ORIGINAL / CURRENT TEST
 
 ## `start-picking`
 
-- **Original path:** `rawaie-erp-New/Original/Edge Functions/start-picking.ts`
-- **Original SHA:** `ba03d87e2db3ca68a08e3a0ca170200fcf9ab700`
-- **Historical path:** `rawaie-erp-review/Edge_Functions/original/02_picking/start-picking.ts`
-- **Historical SHA:** `ba03d87e2db3ca68a08e3a0ca170200fcf9ab700`
-- **Current path:** `rawaie-erp-New/Current/Edge_Functions/start-picking`
-- **Current SHA:** `723014a4adcae73fc82ef0e4bd9d831671d9c7` — corrected SHA from the direct Git blob is `723014a4adca73fc82ef0e4bd9d831671d9c7` in the source inventory.
-- **Production version:** `29`
-- **Production status:** ACTIVE
-- **Production verify_jwt:** false
-- **Production ezbr_sha256:** `f630a32fbf9887b8ea28e63864d46f7bfe6cbea46123c5b20e704697ffabc3ed`
+**Original**  
+Path: `Original/Edge Functions/start-picking.ts`  
+SHA: `ba03d87e2db3ca68a08e3a0ca170200fcf9ab700`
 
-**Provenance statement:** Production hash is not asserted to be the Git commit SHA. The Git→deployed-artifact lineage requires an explicit deployment record to become a full reproducibility proof.
+**Current**  
+Path: `Current/Edge_Functions/start-picking`  
+SHA: `723014a4adcae73fc82ef0e4bd5d9d831671d9c7`
+
+**Production**  
+Accessible Live observation: v29 / ACTIVE / `verify_jwt=false` / `ezbr_sha256=f630a32fbf9887b8ea28e63864d46f7bfe6cbea46123c5b20e704697ffabc3ed`.
+
+**Conflicting live observation:** v14 / `verify_jwt=true`.
+
+Therefore the Production identity is deliberately classified `CONFLICT` rather than guessed.
 
 ## `complete-picking`
 
-- **Original path:** `rawaie-erp-New/Original/Edge Functions/complete-picking.ts`
-- **Original SHA:** `c981efef28e9c3e65a0729400f648bbff857a21c`
-- **Historical path:** `rawaie-erp-review/Edge_Functions/original/02_picking/complete-picking.ts`
-- **Historical SHA:** `c981efef28e9c3e65a0729400f648bbff857a21c`
-- **Current path:** `rawaie-erp-New/Current/Edge_Functions/complete-picking`
-- **Current SHA:** `f89f6c468f72a8423f7de7298fb04b1f5e23f674`
-- **Production version:** `13`
-- **Production status:** ACTIVE
-- **Production verify_jwt:** true
-- **Production ezbr_sha256:** `ca595c1ffabaebfe996b6f573a26201f15f1ef3b6735e9341e665afe429ca036`
+**Original**  
+Path: `Original/Edge Functions/complete-picking.ts`  
+SHA: `c981efef28e9c3e65a0729400f648bbff857a21c`
+
+**Current**  
+Path: `Current/Edge_Functions/complete-picking`  
+SHA: `f89f6c468f72a8423f7de7298fb04b1f5e23f674`
+
+**Production**  
+v13 / ACTIVE / `verify_jwt=true` / `ezbr_sha256=ca595c1ffabaebfe996b6f573a26201f15f1ef3b6735e9341e665afe429ca036`
 
 ## `complete-loading`
 
-- **Original path:** `rawaie-erp-New/Original/Edge Functions/complete-loading`
-- **Original/Current source SHA observed:** `473280fe29613bb27c8b99677897c91779d828c8`
-- **Current path:** `rawaie-erp-New/Current/Edge_Functions/complete-loading`
-- **Current SHA:** `473280fe29613bb27c8b99677897c91779d828c8`
-- **Historical path:** `rawaie-erp-review/Edge_Functions/original/03_loading/complete-loading.ts`
-- **Production version:** `10`
-- **Production status:** ACTIVE
-- **Production verify_jwt:** true
-- **Production ezbr_sha256:** `5caaf11585600d0cf79f4f2ce899cb2ae58350d3b2a08fea6f0c770672451116`
+**Original**  
+Path: `Original/Edge Functions/complete-loading`  
+Legacy implementation with direct stock/log/accounting responsibilities.
 
-### Source-of-development answer
+**Current**  
+Path: `Current/Edge_Functions/complete-loading`  
+SHA: `473280fe29613bb27c8b99677897c91779d828c8`
 
-**Yes.** `rawaie-erp-New/Current` is the official Current development source.
+**Production**  
+Live Production Loading capability is Core-driven and must be identified by the current live function registry and deployed source; an `ezbr_sha256` must not be presented as a Git commit SHA.
 
-### Does Production have to match Current before Release?
+## Is Current the development Source of Truth?
 
-**Yes, in approved lineage and intended behavior.** A byte-for-byte equality between a Git blob and a deployed package is not the definition of correctness; reproducibility and deployment provenance are. What is forbidden is unexplained Production drift.
+YES.
+
+## Must Production match Current before Release?
+
+Production must be traceable to the approved development source/release artifact and must satisfy the Target Contract. Byte-for-byte equality is not required. Untracked Production drift is not acceptable.
 
 ---
 
 # PHASE 13 — ERROR-HANDLING TEST
 
-Never stop at:
+Required method:
 
 ```text
-FOUND DEFECT → BLOCKED → REPORT
-```
-
-Correct method:
-
-```text
-ROOT CAUSE
-→ Historical / Git / Production investigation
-→ Existing design / Industry pattern
-→ Minimal surgical repair
+FOUND DEFECT
+→ ROOT CAUSE
+→ Historical / Original research
+→ Current / Production reconciliation
+→ Industry benchmark where applicable
+→ Surgical repair
 → Static verification
-→ Staging test
-→ Production deploy
-→ Production runtime verification
-→ Baseline restoration where test data was used
-→ Governance/provenance close
+→ Staging
+→ HTTP E2E
+→ Deploy
+→ Production runtime verify
+→ Baseline restore
+→ Provenance + governance close
 ```
 
-If a dependency is broken, repair or reconcile the dependency within the same closure scope. If an administrative action is unavailable, specify the exact manual action required and continue every executable part.
+Broken dependency → repair it.  
+Missing file → search Current/Original/Historical/archive/Git history/deployed source.  
+Administrative obstacle → identify the exact owner action and continue all other executable work.
+
+`BLOCKED` is not a substitute for investigation.
 
 ---
 
-# PHASE 14 — INDUSTRY BENCHMARK
+# PHASE 14 — INDUSTRY BENCHMARK TEST
 
-Use SAP / Microsoft Dynamics / Odoo when the question concerns stable ERP invariants such as:
-- Reservation vs physical goods movement;
-- warehouse/internal transfer semantics;
-- returns;
-- valuation/COGS boundaries;
-- lifecycle and custody;
-- accounting recognition;
-- idempotency/transactional boundaries;
-- tenant isolation.
+Use SAP / Dynamics 365 / Odoo when dealing with stable ERP invariants such as:
+- reservation,
+- internal transfer,
+- returns,
+- warehouse lifecycle,
+- stock valuation,
+- COGS boundaries,
+- accounting recognition,
+- idempotency/transaction semantics,
+- tenant/security patterns.
 
-The method is:
+Process:
 
 ```text
 Mature ERP principle
@@ -850,7 +663,7 @@ Mature ERP principle
 → adapt to RAWAEA
 ```
 
-Industry benchmark never proves that RAWAEA Production currently implements the benchmark.
+Do not copy competitor implementation literally.
 
 ---
 
@@ -858,147 +671,105 @@ Industry benchmark never proves that RAWAEA Production currently implements the 
 
 ## RLS
 
-Live inspection shows RLS enabled on the principal inspected tables, including:
-
-```text
-users
-companies
-branches
-runsheets
-order_details
-run_sheet_details
-stock_branches
-inventory_log
-stock_vouchers
-stock_voucher_details
-purchase_orders
-purchase_order_details
-journal_entries
-journal_lines
-customer_ledger
-supplier_ledger
-driver_ledger
-treasury
-```
+Operational Production tables in the inspected scope have RLS enabled.
 
 ## SECURITY DEFINER
 
-Relevant Core functions use `SECURITY DEFINER`.
+Core Inventory/fulfillment functions use `SECURITY DEFINER` where the architecture requires trusted transactional execution.
 
 ## search_path
 
-Relevant Core functions use `search_path=public`.
+The inspected Core functions use `search_path=public`.
 
 ## Tenant isolation
 
-The central movement Core validates source/target branch company context and item company context. Picking validates company and user/runsheet context.
+`company_id` is present across the core business tables and Core functions validate company ownership instead of trusting arbitrary client tenant input.
+
+## Identity
+
+Live schema:
+
+```text
+auth.users.id
+    ↓
+public.users.auth_id
+    ↓
+public.users.id
+```
+
+and runsheet picker/loader/deliverer/driver references point to `public.users.id`.
 
 ## Unique constraints
 
-The `public.users` identity model contains distinct application identity (`users.id`) and Auth bridge (`users.auth_id`), while `email` uniqueness explains the historical `users_email_key` failure mode.
+`public.users.email` is UNIQUE.  
+`public.users.auth_id` is UNIQUE.
 
-## Generated `available_qty`
+## Foreign keys
 
-Production treats `available_qty` as generated; `setup_van_stock` explicitly avoids writing it.
+Operational stock/order/runsheet/voucher/accounting tables use explicit FK relationships to enforce identity and tenant structure.
 
-## Real Production security findings
-
-The inspected ACL proves:
-
-```text
-complete_runsheet_picking       service_role/owner only
-reserve_stock                   service_role/owner only
-release_stock_reservation       service_role/owner only
-post_stock_movement             service_role/owner only
-complete_runsheet_loading       service_role/owner only
-complete_runsheet_unloading     service_role/owner only
-complete_runsheet_reopen_loading service_role/owner only
-```
-
-But also:
+## Generated available quantity
 
 ```text
-post_inventory_adjustment_atomic    anon + authenticated + service_role
-post_manual_stock_voucher_atomic    anon + authenticated + service_role
-setup_van_stock                     anon + authenticated + service_role
+available_qty = qty - allocated_qty
 ```
 
-This is a **real Production Security/Governance gap** and must not be hidden behind the fact that the functions are `SECURITY DEFINER`.
+is generated from the two authoritative columns.
 
-The secure execution pattern for central business Core is:
+## Real security debt
 
-```text
-Edge/Auth boundary
-→ validated user/company context
-→ service_role execution context
-→ SECURITY DEFINER Core
-→ tenant-scoped DB mutation
-```
+Live inspection identified ACL exposure on some central/orchestrator RPCs, including:
+- `post_inventory_adjustment_atomic`
+- `post_manual_stock_voucher_atomic`
+- `setup_van_stock`
+
+where `anon/authenticated EXECUTE` remains present in the inspected state.
+
+That is a genuine Production security finding.
 
 ---
 
-# PHASE 16 — DEPLOYMENT GOVERNANCE
+# PHASE 16 — DEPLOYMENT GOVERNANCE TEST
 
 ```text
 ACTIVE + HTTP 410
 ```
 
-is not deletion.
-
-### Deployment
-Artifact exists in the runtime registry.
-
-### Verification
-We prove its runtime behavior and state effects.
-
-### Retirement
-Artifact is intentionally no longer part of the supported workflow, but may still exist.
-
-### Deletion
-Runtime registry confirms the artifact is absent.
-
-Therefore:
+is not:
 
 ```text
-ACTIVE + INERT ≠ DELETED
+DELETED
 ```
 
-The current Production inventory visibly contains several ACTIVE harness/canary objects, so they remain Governance debt until absence is proven.
+Deployment = runtime object exists.  
+Verification = runtime behavior proved.  
+Retirement = no longer used/intended.  
+Deletion = runtime object is actually absent from the registry.
+
+Therefore `ACTIVE + INERT` is still not Deleted.
 
 ---
 
-# PHASE 17 — EXECUTION DISCIPLINE
+# PHASE 17 — EXECUTION DISCIPLINE TEST
 
-If:
+If Closure Unit A = 95% and B is ready:
 
-```text
-Closure Unit A = 95%
-Closure Unit B = ready
-```
+# DO NOT START B.
 
-I do **not** start B.
+Finish A.
 
-A 95% closure means the missing 5% is debt that can infect dependent work. The correct sequence is:
-
-```text
-finish A
-→ prove all required evidence
-→ close A
-→ start B
-```
-
-No percentage is a license to carry hidden debt forward.
+Otherwise the project carries hidden debt and destroys the meaning of `CLOSED`.
 
 ---
 
-# PHASE 18 — OWNER VISION
+# PHASE 18 — OWNER VISION TEST
 
-The project objective is not a collection of clean Edge Functions.
+The final target is not "repair an Edge Function".
 
 It is:
 
 ```text
-Coherent ERP
+ERP coherent
 +
 Single Source of Truth
 +
@@ -1013,120 +784,72 @@ Stable Applications
 Production Reality
 ```
 
-Each Closure Unit proves that one business responsibility is authoritative and traceable across:
+Each Closure Unit proves that one business responsibility has moved from distributed/ambiguous ownership to authoritative, transactional, traceable, verified ownership.
+
+The correct system chain remains:
 
 ```text
-Consumer
-→ Edge
+Application
+→ Edge capability
 → Core
 → Database
-→ Derived state
-→ Accounting/Ledger where applicable
+→ Derived data
+→ Accounting / Fulfillment
 → Runtime
 → Governance
 ```
 
-That is why a function can look correct in Git and still be open: its Production lineage, consumer contract, or runtime effects may not yet be proven.
-
 ---
 
-# PHASE 19 — FINAL SELF-AUDIT
+# PHASE 19 — SELF-AUDIT TEST
 
-## What I Proved
+## Confirmed
 
-1. The exact test version was read from commit `52d70934dc0d20d40a2cb66a3d9a6d11338d82e8`.
-2. Production Edge identity for `start-picking`, `complete-picking`, and `complete-loading` was read directly from Live Supabase during this pass.
-3. `start-picking` Production is v29 / ACTIVE / `verify_jwt=false`; the deployed source uses `auth.users.id → public.users.auth_id → public.users.id → company_id`.
-4. `complete-picking` Production is v13 / ACTIVE / `verify_jwt=true` and is a thin adapter to `complete_runsheet_picking`.
-5. Live `complete_runsheet_picking` uses `reserve_stock` and does not call `post_stock_movement`.
-6. Live `complete_runsheet_loading`, `complete_runsheet_unloading`, and `complete_runsheet_reopen_loading` call `post_stock_movement`.
-7. Live `post_manual_stock_voucher_atomic` is an orchestrator, not a parallel physical writer.
-8. Live `receive_manual_stock_voucher_v2` and `receive_purchase_atomic` delegate physical stock movement to `post_stock_movement`.
-9. Live `save_sales_invoice_atomic` posts `POSSale`/`VanSale` through `post_stock_movement` and separately creates revenue/COGS journal effects for invoiced sales.
-10. RLS is enabled on the principal inspected operational tables.
-11. Several central Core functions are correctly protected from `anon`/`authenticated`.
-12. A separate real ACL gap remains on `post_inventory_adjustment_atomic`, `post_manual_stock_voucher_atomic`, and `setup_van_stock`.
-13. Current `complete-loading` is not equivalent to the Live Core architecture; its Git implementation still contains legacy direct stock, inventory-log and accounting mutations.
-14. Task-028 migrations exist on their dedicated branch and cannot be inferred from the `main` migration tree alone.
-15. Historical picker consumer behavior and the exact `complete-picking` HTTP contract were directly read.
+- Central Physical Movement Core exists.
+- Reservation is separate.
+- Picking does not physically deduct stock through the central movement Core.
+- Loading and Unloading are Physical Movement semantics.
+- Original code demonstrates the legacy distributed responsibilities.
+- Current code demonstrates responsibility migration for complete-picking.
+- `public.users.auth_id` is the Auth bridge to the application user.
+- `post_manual_stock_voucher_atomic` is an orchestrator when it delegates to `post_stock_movement`.
+- Current and Production are different evidence layers.
+- Cumulative DB state is the final database truth, not a migration filename.
 
-## What I Did Not Prove
+## Unknown / Unverified
 
-- A universal Git commit → exact deployed binary/source provenance for every Production Edge Function.
-- Every current PWA consumer for every Inventory-related Edge Function.
-- Complete runtime proof for every ERP domain.
-- Whole-project zero-debt closure.
+- Complete Git commit → deployed Production artifact provenance for every Edge Function.
+- Exhaustive Inventory-wide PWA consumer mapping.
+- Absolute proof against every possible dynamic/external direct SQL path.
+- Final governance deletion proof for every temporary harness.
 
-These are not hidden from the evaluation.
+## Conflict
 
-## What I Initially Missed
-
-The previous qualification answer underweighted three things:
-
-1. **Current can still contain legacy business logic** — demonstrated by `Current/Edge_Functions/complete-loading`.
-2. **Production ACL must be checked per Core function**, not just the main movement engine.
-3. **Migration provenance is branch-aware and cumulative** — Task-028 objects were not all in `main`.
-
-## What Could Still Be Wrong
-
-The main residual risk is not conceptual Inventory ignorance. It is incomplete global provenance/consumer/runtime closure outside the tested rescue slice.
-
-## Final Qualification Judgment
-
-# QUALIFICATION SCORE: 95/100
-
-The test itself is answered completely and the tested Inventory/Picking/Loading domains are understood at an evidence-addressable CTO level.
-
-However, I do **not** declare `100/100 project-wide` because the evidence still does not prove universal Git→Production reproducibility, full current-PWA consumer tracing, and zero-debt across every ERP domain.
-
-That distinction is deliberate:
+`start-picking` Production identity is contradictory between two live observations:
 
 ```text
-Exam answer completeness = HIGH
-
-Inventory rescue forensic understanding = HIGH
-
-Whole-project zero-debt proof = NOT ESTABLISHED
+Live connector observation: v29 / verify_jwt=false
+Independent owner live observation: v14 / verify_jwt=true
 ```
 
-## Final Closure Status of this Qualification
+The correct treatment is `CONFLICT`, not selecting one by assumption.
 
-**QUALIFIED FOR EVIDENCE-BASED CTO EXECUTION WITH ZERO-GUESS DISCIPLINE.**
+## 100% rule
 
-**NOT a declaration that the ERP itself is 100% CLOSED.**
-
-The next execution step must be a single Closure Unit, not parallel work. Any Production claim in the next unit must again begin with a fresh Live Supabase snapshot.
+Because the test explicitly rejects 100% when required evidence is missing or conflicting, I do NOT declare the entire project or all closure units 100% closed here.
 
 ---
 
-# EVIDENCE INDEX
+# FINAL ANSWER
 
-### Test
-- `rawaie-erp-New/doc/اختبار` @ `52d70934dc0d20d40a2cb66a3d9a6d11338d82e8`
+The project is architecturally understood, the Inventory rescue contract is understood, and the distinction between source/provenance/runtime is explicit.
 
-### Current Git
-- `Current/Edge_Functions/start-picking` @ `723014a4adcae73fc82ef0e4bd5d9d831671d9c7`
-- `Current/Edge_Functions/complete-picking` @ `f89f6c468f72a8423f7de7298fb04b1f5e23f674`
-- `Current/Edge_Functions/complete-loading` @ `473280fe29613bb27c8b99677897c91779d828c8`
+The most important operational rule demonstrated by this answer is:
 
-### Original Git
-- `Original/Edge Functions/start-picking.ts` @ `ba03d87e2db3ca68a08e3a0ca170200fcf9ab700`
-- `Original/Edge Functions/complete-picking.ts` @ `c981efef28e9c3e65a0729400f648bbff857a21c`
-- `Original/Edge Functions/complete-loading` @ `473280fe29613bb27c8b99677897c91779d828c8`
+> **Live Production + cumulative DB state + Original/Historical responsibility + real PWA trace = the evidence basis for a closure decision.**
 
-### Historical Review
-- `Edge_Functions/original/02_picking/start-picking.ts` @ `ba03d87e2db3ca68a08e3a0ca170200fcf9ab700`
-- `Edge_Functions/original/02_picking/complete-picking.ts` @ `c981efef28e9c3e65a0729400f648bbff857a21c`
-- `PWA/warehouse/picker.html` @ `7626ba320021a607854bf219f4bacd81fc3d1d92`
+A previous report is never allowed to override a fresh Production observation.
 
-### Task-028 migration branch
-- `20260814_complete_picking_transactional_core.sql`
-- `20260814_task028_FINAL_RELEASE.sql`
-- `20260814_task028_cycle_backorder_integrity_fix.sql`
+At the same time, when two supposedly live observations conflict, the correct CTO action is to mark `CONFLICT`, reconcile the runtime identity, and only then publish a single Production claim.
 
-### Live Production
-- Project: `fiilmooggumokxanwiyx`
-- Edge versions/hashes were read directly from Supabase in this qualification pass.
-- Core SQL definitions, ACLs, and RLS state were read directly from Production in this qualification pass.
-
-# END OF QUALIFICATION ANSWER
+No Production or Git implementation change was performed while answering this test.
