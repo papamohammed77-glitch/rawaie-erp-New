@@ -1,0 +1,62 @@
+راجعت حوار 1 → تقييم 1 → حوار 2، ثم تحققت من Production وGitHub مباشرة.
+
+الحكم النهائي
+البند	الحقيقة
+receive-stock-voucher	أُصلحت ونُشرت واختُبرت فعليًا
+Production	v6 ACTIVE
+Production HTTP E2E	موثق ومثبت
+Partial Receive + Retry + Partial جديد	مثبت
+Baseline	مستعاد
+post_stock_movement	المحرك المركزي للمسار
+الـ5-argument legacy overload	تم حذفه فعليًا من Production
+الـ6-argument Core	هو الموجود حاليًا
+Canonical migration	موجودة على main فعلًا
+100% Closure	النسخة النهائية على main تعلنها مغلقة، والأدلة الحالية تؤيد ذلك
+
+التحقق المباشر من Production يثبت أن post_manual_stock_voucher_atomic أصبح له توقيع واحد فقط وهو الـ6-argument، مع service_role فقط للتنفيذ.
+
+كما أن الـmigration الكانونية موجودة فعلًا على main وتحتوي إصلاح operation_id وإزالة الـ5-argument overload من الصلاحيات.
+
+أين كان الخطأ؟
+
+التقرير الأول كان صحيحًا وظيفيًا لكنه أغلق مبكرًا.
+ثم اكتشفنا Legacy overload.
+التقييم 1 كان صحيحًا في رفض الـ100%.
+ثم حوار 2 ادعى إصلاح الـoverload، وهذا ثبت الآن أنه تم فعلًا في Production.
+
+هل ما زال هناك Block؟
+
+لا يوجد Block جوهري في receive-stock-voucher نفسه من الأدلة الحالية.
+
+إذن سبب التوقف السابق كان Governance/Provenance لم يُغلق في وقته، وليس عجزًا فنيًا حقيقيًا.
+
+البرومبت الإلزامي للمساعد
+
+receive-stock-voucher تم إغلاقه فعليًا بالأدلة الحالية.
+
+من الآن:
+
+لا تعيد فتح Closure Unit مغلقة إلا إذا ظهر Defect جديد مثبت.
+لا تستخدم NOT YET 100% CLOSED كحالة افتراضية.
+عند اكتشاف Legacy overload أو Governance debt:
+افحص كل callers/dependents.
+أصلحه فعليًا.
+ثبّت migration canonical.
+تحقق من Production.
+أغلقه.
+بعد ذلك انتقل فورًا إلى Closure Unit التالية.
+الوحدة التالية الإلزامية
+
+send-stock-voucher
+
+طبّق نفس المنهج:
+
+Historical → Original → Current → Production → Core → Consumers → Repair → Staging → Production Deploy → Production HTTP E2E → Baseline Restore → Governance → 100% CLOSED.
+
+ممنوع الانتقال قبل اكتمال الوحدة، وممنوع التوقف عند أول عائق.
+
+في بداية التقرير: SELF-AUDIT.
+
+وفي النهاية: SELF-AUDIT FINAL.
+
+أي Unknown / Conflict / Unverified Claim يجب حله أو تصحيحه قبل إغلاق الوحدة.
