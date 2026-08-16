@@ -1,0 +1,44 @@
+
+تم إغلاق receive-stock-voucher فعليًا، وليس كـClosure Report نظري.
+النتيجة
+receive-stock-voucher = 100% CLOSED
+تم إثبات كامل السلسلة:
+Historical / Original
+→ Current
+→ Core
+→ Consumer
+→ Surgical Fix
+→ Staging
+→ Production Deploy
+→ Production HTTP E2E
+→ Baseline Restoration
+→ Provenance
+→ Governance
+→ CLOSE
+الأدلة التنفيذية الرئيسية
+•	Production Edge: receive-stock-voucher أصبح v6 / ACTIVE / verify_jwt=true.
+•	Production Core: تم تحويل idempotency إلى operation_id على مستوى العملية، بدل voucher + item + qty.
+•	PWA Consumer: تم تعديل Current/PWA/main.html ليولد operation_id ثابتًا للعملية ويرسله كـoperation_id وIdempotency-Key.
+•	Staging: ثبتت ثلاث حالات:
+o	Partial Receive.
+o	Retry بنفس operation_id دون تكرار الحركة أو received_qty.
+o	Partial Receive جديد بنفس الكمية لكن operation_id مختلف.
+•	Production HTTP E2E: نجح GitHub Actions Run:
+31925730251
+والمسار كان فعليًا:
+Auth → HTTP → Edge v6 → Core → PostgreSQL.
+•	Baseline: عاد Production إلى:
+qty = 207
+allocated_qty = 0
+ولا توجد QA vouchers أو QA inventory logs.
+•	Governance: تم حذف الـtemporary PWA patch workflow والـProduction E2E workflow بعد انتهاء المهمة.
+•	Provenance: تم تثبيت Current Edge وCurrent PWA والـmigration في main، وتوثيق Production version + ezbr_sha256 دون الخلط بينه وبين Git SHA.
+التقرير النهائي — مثبت على main
+فتح تقرير receive-stock-voucher النهائي على GitHub
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/CTO_CLOSURE_RECEIVE_STOCK_VOUCHER_2026-08-16.md
+Commit التقرير: 898a2cd220f293f274c662d7fef49c5e47f0e75b
+نقطة مهمة
+أثناء التنفيذ تم اكتشاف أن أول إصلاح مقترح (received_before + qty) غير كافٍ. تم اختباره ورفضه قبل اعتماده، ثم استبداله بالعقد الصحيح القائم على operation_id. هذا موثق في الـClosure Report.
+وبذلك أصبح الانتقال مسموحًا الآن فقط إلى:
+send-stock-voucher
+ولا توجد Closure Unit أخرى مفتوحة بالتوازي.
