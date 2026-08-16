@@ -1,0 +1,529 @@
+تقرير الإغلاق الجنائي — Picking Lifecycle
+Self-Audit
+Business Understanding:
+مفهوم دورة المستودع واضح: Runsheet → Picking → Picked → Loading، مع إمكان Cancel أثناء Picking وReopen بعد Picked.
+
+
+Architecture Understanding:
+تم تتبع المسار الكامل: picker.html → Auth → Edge Function → RPC/Core → runsheets/order_details/stock_branches/run_sheet_details.
+
+
+Database Understanding:
+تم فحص Production schema، constraints، FKs، triggers، RLS، stock model، identity bridge، وRPC definitions الفعلية.
+
+
+Historical Understanding:
+تمت مراجعة التطبيق الأصلي ووظائف Picking الأصلية، ومقارنة عقودها بالسلوك الحالي.
+
+
+Production Understanding:
+تم الاستعلام مباشرة من Production واختبار حالات حقيقية، بما فيها مستخدم Picker وRunsheet حقيقي وStock حقيقي.
+
+
+Current Understanding:
+تمت مراجعة النسخ المنشورة الحالية، ثم إصلاح الـEdge/Core ونشرها فعليًا.
+
+
+Execution Confidence:
+مرتفع جدًا للـBackend/Core lifecycle.
+أقل من 100% فقط بالنسبة لاختبار Browser/HTTP E2E النهائي لأن أدوات الجلسة الحالية لا توفر POST حقيقيًا عبر picker.html إلى Edge.
+Confirmed Facts:
+- public.users.id ليس Auth UUID.
+- public.users.auth_id هو الجسر الصحيح إلى auth.users.id.
+- app_settings الحالي عالمي فعليًا ولا يمثل جميع الشركات.
+- توجد بيانات تاريخية cross-company في item identity.
+- Reopen كان يحرر reservation بينما qty_picked يظل موجودًا.
+- Cancel كان يستنتج reservation من qty_picked.
+- complete-picking كان يستخدم app_settings.limit(1).
+- picker.html لا يفرض tenant/company scope على عدة قراءات.
+- أصلحت ونشرت Core + Edge.
+
+
+Unknowns:
+- Browser E2E الحقيقي من جلسة المستخدم النهائية لم أستطع تنفيذه من الأدوات المتاحة.
+
+
+Conflicts:
+- تاريخيًا item/company identities ليست متطابقة دائمًا.
+- التطبيق القديم كان يستخدم email وauto-provisioning، بينما Production الحالي يعتمد auth_id.
+
+
+Unverified Claims:
+- لا توجد مطالبة بأن Browser E2E تم تنفيذه فعليًا.
+1. Root Cause — ما الذي كان يحدث فعلًا؟
+
+المشكلة لم تكن Bug واحدًا.
+
+كانت هناك عدة عقود متعارضة تراكمت فوق Picking.
+
+A. هوية المستخدم
+
+Production أثبت:
+
+auth.users.id
+       ↓
+public.users.auth_id
+       ↓
+public.users.id
+
+وليس:
+
+auth.users.id == public.users.id
+
+بالنسبة إلى picker@rawaea.com مثلًا:
+
+Auth ID
+2aff26b3-c2fa-4b3d-8bfa-924629d75d4f
+
+
+public.users.id
+34758d59-21db-4f28-9028-f2dd8125f69b
+
+
+public.users.auth_id
+2aff26b3-c2fa-4b3d-8bfa-924629d75d4f
+
+وهذا يفسر مباشرة فشل v14 الذي كان يبحث:
+
+users.id = auth.users.id
+
+بينما العقد الحقيقي:
+
+users.auth_id = auth.users.id
+2. خطأ الشركة
+
+app_settings في Production يحتوي حاليًا على شركة:
+
+da4ef704-88ac-4120-aa0e-65b92b2aa2bc
+
+بينما توجد Users وRunsheets للشركة:
+
+00000000-0000-0000-0000-000000000001
+
+إذًا:
+
+app_settings.limit(1)
+
+ليس Tenant Context.
+
+وهذا كان يجعل بعض مسارات Picking تعمل على الشركة الخطأ.
+
+3. خطأ Lifecycle أخطر
+
+تم اكتشاف تناقض حقيقي:
+
+Picked
+   ↓
+Reopen
+   ↓
+allocated_qty يُخفض
+   +
+qty_picked يظل موجودًا
+
+ثم:
+
+Cancel
+   ↓
+يقرأ qty_picked
+   ↓
+يفترض أن reservation ما زالت موجودة
+   ↓
+Double Release / Reservation mismatch
+
+هذا كان قادرًا على خلق أعطال متكررة في:
+
+Reopen → تعديل → Cancel
+
+وليس فقط في Start.
+
+4. خطأ Item Identity
+
+وجدت في Production بيانات تاريخية حقيقية مثل:
+
+Runsheet / Orders company = ALRAWAE
+
+بينما:
+
+item 1001 → MAIN
+item 1019 → COMP-01
+item 1030 → COMP-01
+
+والمهم أن sync_run_sheet_details() نفسها توثق أن:
+
+order_details.item_id هو الهوية المرجعية للعنصر.
+
+لذلك كان فرض:
+
+items.company_id = runsheet.company_id
+
+خطأ في هذا النظام التاريخي.
+
+تم تعديل reservation engine ليعتمد:
+
+Physical Branch Context
++
+Concrete item_id
+
+بدل فرض Tenant واحد على كل Catalog Item.
+
+5. الإصلاحات المنفذة فعليًا
+start-picking
+
+تم نشر:
+
+v31
+ACTIVE
+
+والعقد أصبح:
+
+JWT
+ ↓
+auth.users.id
+ ↓
+public.users.auth_id
+ ↓
+public.users.id + company_id
+ ↓
+company-scoped runsheet
+
+كما أضيف:
+
+Picking idempotency
+
+فالضغط المتكرر لنفس الـPicker على نفس الـRunsheet يعيد Success بدل إنشاء عملية ثانية.
+
+Production deployment confirmed:
+
+start-picking v31
+sha256:
+b9035ffd295605b5fcd79df1238ea790f0637585bbb3e7ee3248598c0e29c1e2
+complete-picking
+
+تم نشر:
+
+v14
+
+وأزيل منه الاعتماد على:
+
+app_settings.limit(1)
+
+ليصبح:
+
+Authenticated User
+        ↓
+public.users.auth_id
+        ↓
+company_id
+
+كما تم إصلاح Item Resolution ليبدأ من:
+
+order_details.item_id
+
+وتم إصلاح reservation state.
+
+reopen-picking
+
+تم نشر:
+
+v8
+
+ويعتمد الآن على RPC ذري:
+
+reopen_runsheet_picking()
+
+بدل منطق JavaScript المتسلسل القديم الذي كان:
+
+read
+→ loop
+→ update stock
+→ update runsheet
+cancel-picking
+
+لم أكتفِ بالـEdge wrapper.
+
+تم إصلاح:
+
+cancel_runsheet_picking()
+
+ليعرف هل reservation تم تحريره بالفعل أم لا.
+
+6. New Lifecycle State
+
+أضيف إلى:
+
+runsheets
+
+الحقل:
+
+picking_reservation_released boolean NOT NULL DEFAULT false
+
+وبذلك أصبح العقد واضحًا:
+
+Start
+Open / Confirmed
+      ↓
+Picking
+      ↓
+reservation_released = false
+Complete
+Picking
+   ↓
+reserve_stock()
+   ↓
+Picked
+   ↓
+reservation_released = false
+Reopen
+Picked
+   ↓
+release reservation
+   ↓
+Picking
+   ↓
+reservation_released = true
+Cancel after Reopen
+Picking
+   ↓
+reservation_released = true
+   ↓
+NO SECOND RELEASE
+   ↓
+Open
+
+وهذا هو الإصلاح الذي كان مفقودًا.
+
+7. Production Test — أقوى اختبار تم تنفيذه
+
+أنشأت Transactional fixture داخل Production ثم أعدت كل شيء بـRollback.
+
+السيناريو:
+
+Picking
+→ Complete
+→ Reopen
+→ Cancel
+
+واستخدمت Item حقيقيًا من Production كانت هويته:
+
+item.company_id != runsheet.company_id
+
+والنتيجة:
+
+allocated_before        = 0
+allocated_after_complete = 1
+allocated_after_reopen   = 0
+allocated_after_cancel   = 0
+
+والنتيجة النهائية:
+
+Complete = PASS
+Reopen   = PASS
+Cancel   = PASS
+Rollback = PASS
+
+وهذا الاختبار مهم جدًا لأنه أثبت أن الإصلاح يعمل حتى مع البيانات التاريخية cross-company identity الموجودة فعليًا في Production.
+
+8. اختبار Production حقيقي إضافي
+
+RS-2 موجود فعليًا في Production تحت الشركة:
+
+MAIN
+
+والمستخدم:
+
+picker@rawaea.com
+
+تم تشغيله فعليًا إلى:
+
+Picking
+
+مع:
+
+picker_id =
+34758d59-21db-4f28-9028-f2dd8125f69b
+
+ثم تم تنفيذ Cancel الحقيقي عليه، وكانت النتيجة:
+
+success = true
+status = Open
+released_qty = 0
+reset_order_details = 0
+
+وعاد Production state إلى:
+
+Open
+
+دون تغيير كمية Stock.
+
+9. picker.html — نتيجة المراجعة
+
+راجعت الملف الأصلي كاملًا، وليس أول الأسطر فقط.
+
+والنتيجة مهمة:
+
+السطر الذي كان يرسل HTTP ليس المشكلة
+
+الـHTTP invocation نفسه صحيح.
+
+المشكلة كانت Backend/Data Contract.
+
+لكن المراجعة الكاملة كشفت أيضًا أن الـGolden UI لديه مشكلة مستقلة:
+
+runsheets
+
+يتم قراءتها في عدة أماكن بدون:
+
+company_id
+
+مثل:
+
+renderPendingTab
+search
+openRunsheet
+completed
+reopen pre-check
+
+وهذا يعني أن التطبيق يستطيع نظريًا رؤية Runsheet من Tenant آخر إذا تشابه الكود أو البيانات.
+
+لم أعدل picker.html لأن ذلك لم يكن سبب الـ400 الذي فتح الحادثة، ولأنك اشترطت التعامل معه Surgical وعدم لمس الـGolden artifact بدون إثبات.
+
+لكن هذا Defect حقيقي ومثبت، وليس افتراضًا.
+
+10. Tailwind Warning
+
+تم تصنيفه مستقلًا:
+
+cdn.tailwindcss.com should not be used in production
+
+ولم أخلطه بحادثة Picking.
+
+11. GitHub / Production parity
+
+تم تحديث:
+
+Current/Edge_Functions/start-picking
+Current/Edge_Functions/complete-picking
+Current/Edge_Functions/reopen-picking
+
+والـProduction deployments أصبحت:
+
+Function	Production
+start-picking	v31
+complete-picking	v14
+cancel-picking	v4
+reopen-picking	v8
+
+picker.html لم يُمس.
+
+12. ما لم أفعله عمدًا
+
+لم أفعل أيًا من التالي:
+
+Automatic user creation
+
+لم أستخدم:
+
+app_settings.limit(1)
+
+كمصدر Tenant.
+
+لم أغير:
+
+users_email_key
+
+ولم أفرض:
+
+public.users.id == auth.users.id
+
+ولم أغير:
+
+stock.qty
+
+أثناء Reopen/Cancel.
+
+ولم أستخدم run_sheet_details كـSource of Truth للحالة المالية/المادية.
+
+13. E2E النهائي — الحقيقة الدقيقة
+
+لا أستطيع أن أقول إنني نفذت:
+
+Browser
+→ picker.html
+→ actual click
+→ actual HTTP POST
+→ Production Edge
+→ Production UI response
+
+بشكل آلي من داخل بيئة الأدوات الحالية، لأن:
+
+لا يوجد Browser automation متاح هنا.
+لا يوجد Supabase invoke/POST tool.
+Production لا يحتوي pg_net أو http extension.
+Harness السابق start-picking-real-identity-e2e-20260815 متقاعد ويعيد HTTP 410.
+
+لذلك لن أضع PASS كاذبة على هذا الجزء.
+
+هذا لا يلغي أن:
+
+Core lifecycle
+Production DB
+Identity contract
+Edge deployments
+Real production cancel
+Transactional lifecycle
+
+تم إصلاحها واختبارها فعليًا.
+
+Self-Audit — الإغلاق
+What I Proved
+أثبت أن سبب خطأ v14 كان Identity Mapping خاطئًا.
+أثبت أن auth_id هو Auth bridge الحقيقي.
+أثبت أن app_settings.limit(1) ليس Tenant Context صالحًا.
+أثبت وجود cross-company item identities في Production.
+أثبت تناقض Reopen → Cancel في reservation semantics.
+أصلحت Start / Complete / Cancel / Reopen Core.
+أصلحت reservation engine.
+اختبرت Complete → Reopen → Cancel داخل Production مع Rollback.
+اختبرت Cancel على Runsheet حقيقي.
+نشرت Edge Functions المصححة فعليًا.
+What I Did Not Prove
+
+الاختبار Browser/HTTP E2E النهائي من picker.html نفسها.
+
+What I Fixed
+Auth identity
+Tenant derivation
+Picking idempotency
+Reservation lifecycle
+Reopen atomicity
+Cancel double-release
+Legacy item identity
+Complete wrapper company context
+What I Initially Missed
+
+المشكلة ليست start-picking فقط؛ كان هناك Lifecycle State inconsistency بين qty_picked وallocated_qty، بالإضافة إلى legacy item identity.
+
+What Could Still Be Wrong
+
+أهم نقطة متبقية هي Tenant scoping داخل picker.html نفسها، وهي عيب حقيقي مستقل أثبته التحقيق ولم أغير الـGolden artifact بسببه حتى الآن.
+
+كما أن Tenant MAIN في Production لا يملك main_branch_id/warehouse branch مطابقًا لما يتطلبه Complete Picking، ولذلك لا يصح استخدام Runsheet MAIN كاختبار Complete إنتاجي كامل.
+
+Final Confidence
+
+Backend/Core: 98%
+
+Full Browser E2E: غير مثبت، لذلك لا أدعي 100%.
+
+Final Closure Status
+start-picking — CLOSED
+
+تم إصلاح السبب الحقيقي ونشر الإصلاح والتحقق من Production.
+
+Picking Lifecycle Core — REPAIRED & PRODUCTION-VERIFIED
+
+تم إصلاح Start / Complete / Cancel / Reopen على مستوى الـCore، وتم إثبات دورة Complete → Reopen → Cancel اختباريًا داخل Production.
+
+picker.html — SURGICAL REVIEW COMPLETE
+
+لم يتم تعديل الـGolden artifact، لكن تم إثبات وجود Tenant-scoping defect مستقل داخله، وهو الآن أوضح نقطة تستحق أن تكون Closure Unit التالية بدل مواصلة ترقيع Edge Functions عشوائيًا.
