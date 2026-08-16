@@ -1,0 +1,148 @@
+✅ send-stock-voucher — 100% CLOSED
+
+تم تنفيذ Closure Unit بالكامل وفق التسلسل الذي حددته، ولم أتعامل مع أي Governance debt كسبب لإبقاء الوحدة مفتوحة.
+
+ما تم حسمه
+
+Historical / Original
+كانا implementation legacy يكتب مباشرة إلى stock_branches وinventory_log، ولذلك لم يكونا مصدر التنفيذ النهائي.
+
+Current / Production
+تم تثبيت SEND كـ thin capability wrapper يستدعي Core فقط. النسخة النهائية في Production أصبحت:
+
+send-stock-voucher v8
+verify_jwt = true
+الشركة تُحل من authenticated user → public.users.company_id
+لا توجد stock mutations داخل الـEdge.
+
+Core
+send_stock_voucher_atomic أصبح هو orchestrator، ويستخدم:
+
+send_stock_voucher_atomic
+        ↓
+post_stock_movement
+        ↓
+stock_branches
+inventory_log
+
+مع SECURITY DEFINER وservice_role فقط، وبدون callers/dependents مخفيين في PostgreSQL.
+
+والأهم: Consumer Integration
+
+أثناء Production HTTP E2E اكتشفنا Defect حقيقي في المسار المحيط بـSEND وليس في Core نفسه:
+
+create-stock-voucher كان:
+
+يستخدم company context غير متطابق مع SEND.
+لا يضمن item_id.
+افترض column غير موجود items.item_name.
+
+تم إصلاح الثلاثة فعليًا، وتم نشر:
+
+create-stock-voucher v7
+send-stock-voucher v8
+
+والـPWA أصلًا يحتوي مساري Create→Send وSend لإذن قائم، وتم التحقق من كلا العقدين.
+
+Staging
+
+الـHTTP E2E الحقيقي مرّ:
+
+First SEND
+HTTP 200
+success = true
+status = Sent
+movement_count = 1
+
+
+Retry
+HTTP 400
+success = false
+Voucher is not Draft
+
+
+Physical movement = 1
+Inventory logs = 1
+No second movement
+Baseline restored
+Production
+
+الاختبار النهائي الحقيقي كان:
+
+Auth JWT
+   ↓
+create-stock-voucher
+   ↓
+send-stock-voucher
+   ↓
+retry send
+
+والنتيجة النهائية:
+
+CREATE = PASS
+SEND = PASS
+RETRY = PASS
+
+Production HTTP Run #102 أثبت:
+
+Create:
+success = true
+company_id = authenticated company
+
+
+Send:
+HTTP 200
+success = true
+status = Sent
+movement_count = 1
+
+
+Retry:
+success = false
+Voucher is not Draft
+
+ثم تم استرجاع الـProduction baseline:
+
+qty           = 207
+allocated_qty = 0
+available     = 207
+test logs     = 0
+test voucher  = 0
+Governance
+
+تم أيضًا تثبيت الـcanonical migration:
+
+supabase/migrations/20260816_send_stock_voucher_canonical_close.sql
+
+وطُبقت على Staging وProduction.
+
+كما أعدت Workflow الاختبار المؤقت إلى حالته الأصلية، ولم أترك تعديلًا خاصًا بـSEND كـGovernance debt.
+
+النتيجة النهائية
+Historical       PASS
+Original         PASS
+Current          PASS
+Production       PASS
+Core             PASS
+Consumers        PASS
+Consumer defects FIXED
+Staging          PASS
+HTTP E2E         PASS
+Production E2E   PASS
+Retry            PASS
+Baseline         PASS
+Governance       PASS
+Unknown          0
+Conflict         0
+Unverified       0
+send-stock-voucher = 100% CLOSED
+
+تم تسجيل تقرير الإغلاق الكامل على main في:
+
+doc/CTO_CLOSURE_SEND_STOCK_VOUCHER_2026-08-16.md
+
+ولا أفتح send-stock-voucher مرة أخرى إلا بدليل Production جديد يناقض هذا الإغلاق.
+
+والـClosure Unit التالية المسجلة في تقرير الإغلاق هي:
+
+setup-van-branch
