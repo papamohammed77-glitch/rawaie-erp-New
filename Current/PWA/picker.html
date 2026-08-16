@@ -476,8 +476,11 @@ onSearchInput: function(query){
 
     startPicking: function(code){
         var self = this;
-        window._rwHasActiveSession = true;
-        if(!navigator.onLine){ toast('أنت غير متصل', 'warning'); return; }
+
+    if(!navigator.onLine){
+        toast('أنت غير متصل', 'warning');
+        return;
+    }
         Swal.fire({ title: 'جاري بدء التحضير...', allowOutsideClick: false, didOpen: function(){ Swal.showLoading(); } });
         supabase.auth.getSession().then(function(sessionRes){
             var token = sessionRes.data.session ? sessionRes.data.session.access_token : null;
@@ -489,9 +492,15 @@ onSearchInput: function(query){
             return res.json();
         }).then(function(json){
             Swal.close();
-            if(!json || !json.success){ toast((json && json.msg) || 'فشل', 'error'); return; }
-            toast('تم بنجاح', 'success');
-            self.openRunsheet(code);
+if(!json || !json.success){
+    window._rwHasActiveSession = false;
+    toast((json && json.msg) || 'فشل', 'error');
+    return;
+}
+
+window._rwHasActiveSession = true;
+toast('تم بنجاح', 'success');
+self.openRunsheet(code);
         }).catch(function(err){ Swal.close(); toast(err.message || 'فشل الاتصال', 'error'); });
     },
 
