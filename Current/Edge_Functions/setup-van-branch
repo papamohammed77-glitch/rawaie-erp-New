@@ -2,50 +2,30 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-const supabase = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-)
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-}
+const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" }
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
-
   try {
     const body = await req.json().catch(() => ({}))
     const vehicleId = String(body?.vehicle_id || "").trim()
     const driverEmail = String(body?.driver_email || "").trim().toLowerCase()
-    const driverName = String(body?.driver_name || "").trim()
-
-    if (!vehicleId && !driverEmail) {
-      throw new Error("vehicle_id أو driver_email مطلوب")
-    }
+    if (!vehicleId && !driverEmail) throw new Error("vehicle_id أو driver_email مطلوب")
 
     const authHeader = req.headers.get("Authorization")
     if (!authHeader) throw new Error("غير مصرح")
     const token = authHeader.replace(/^Bearer\s+/i, "").trim()
-    if (!token) throw new Error("جلسة غير صالحة")
-
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !user?.id || !user?.email) throw new Error("جلسة غير صالحة")
 
     const { data: publicUser, error: userError } = await supabase
-      .from("users")
-      .select("id, company_id, status, email, name")
-      .eq("auth_id", user.id)
-      .maybeSingle()
-
+      .from("users").select("id, company_id, status, email, name").eq("auth_id", user.id).maybeSingle()
     if (userError) throw new Error("فشل قراءة المستخدم: " + userError.message)
     if (!publicUser?.id || !publicUser.company_id) throw new Error("المستخدم غير مسجل في النظام أو سياق الشركة غير محدد")
     if (publicUser.status && publicUser.status !== "Active") throw new Error("المستخدم غير نشط")
 
     const companyId = publicUser.company_id
-
     let vehicleQuery = supabase
       .from("vehicles")
       .select("id, company_id, vehicle_code, license_plate, driver_id, status")
@@ -55,14 +35,9 @@ serve(async (req) => {
       vehicleQuery = vehicleQuery.eq("id", vehicleId)
     } else {
       const { data: driver, error: driverError } = await supabase
-        .from("users")
-        .select("id, company_id, email, name")
-        .eq("company_id", companyId)
-        .eq("email", driverEmail)
-        .maybeSingle()
+        .from("users").select("id, company_id, email").eq("company_id", companyId).eq("email", driverEmail).maybeSingle()
       if (driverError) throw new Error("فشل قراءة المندوب: " + driverError.message)
       if (!driver) throw new Error("المندوب غير موجود ضمن الشركة الحالية")
-
       vehicleQuery = vehicleQuery.eq("driver_id", driver.id)
     }
 
@@ -74,53 +49,29 @@ serve(async (req) => {
     // Backward-compatible driver input is validation metadata only; vehicle remains the identity.
     if (driverEmail && vehicle.driver_id) {
       const { data: assignedDriver, error: assignedDriverError } = await supabase
-        .from("users")
-        .select("id, email")
-        .eq("id", vehicle.driver_id)
-        .eq("company_id", companyId)
-        .maybeSingle()
+        .from("users").select("email").eq("id", vehicle.driver_id).eq("company_id", companyId).maybeSingle()
       if (assignedDriverError) throw new Error("فشل التحقق من مندوب السيارة: " + assignedDriverError.message)
-      if (!assignedDriver || String(assignedDriver.email || "").trim().toLowerCase() !== driverEmail) {
-        throw new Error("المندوب لا يطابق المندوب المرتبط بالسيارة")
-      }
+      if (!assignedDriver || String(assignedDriver.email || "").trim().toLowerCase() !== driverEmail) throw new Error("المندوب لا يطابق المندوب المرتبط بالسيارة")
     }
 
     const branchCode = `VAN-${vehicle.vehicle_code}`
     const branchName = `سيارة ${vehicle.vehicle_code}${vehicle.license_plate ? ` - ${vehicle.license_plate}` : ""}`
-
     const { data: existingBranch, error: branchLookupError } = await supabase
-      .from("branches")
-      .select("id, branch_code, name, company_id")
-      .eq("company_id", companyId)
-      .eq("branch_code", branchCode)
-      .maybeSingle()
-
+      .from("branches").select("id, branch_code, name, company_id").eq("company_id", companyId).eq("branch_code", branchCode).maybeSingle()
     if (branchLookupError) throw new Error("فشل قراءة فرع السيارة: " + branchLookupError.message)
 
     let branchId = existingBranch?.id || null
     let created = false
-
     if (!branchId) {
       const { data: createdBranch, error: createError } = await supabase
         .from("branches")
-        .insert({
-          branch_code: branchCode,
-          name: branchName,
-          is_active: true,
-          company_id: companyId,
-        })
-        .select("id, branch_code, name")
-        .single()
-
+        .insert({ id: crypto.randomUUID(), branch_code: branchCode, name: branchName, is_active: true, company_id: companyId })
+        .select("id, branch_code, name").single()
       if (createError || !createdBranch) {
         if (createError?.code === "23505") {
           const { data: retryBranch, error: retryError } = await supabase
-            .from("branches")
-            .select("id, branch_code, name")
-            .eq("company_id", companyId)
-            .eq("branch_code", branchCode)
-            .maybeSingle()
-          if (retryError || !retryBranch) throw new Error(retryError?.message || createError.message)
+            .from("branches").select("id, branch_code, name").eq("company_id", companyId).eq("branch_code", branchCode).maybeSingle()
+          if (retryError || !retryBranch) throw new Error(retryError?.message || createError?.message || "فشل إنشاء فرع السيارة")
           branchId = retryBranch.id
         } else {
           throw new Error("فشل إنشاء فرع السيارة: " + (createError?.message || "غير معروف"))
@@ -131,15 +82,10 @@ serve(async (req) => {
       }
     }
 
-    const { data: stockInit, error: stockError } = await supabase.rpc("setup_van_stock", {
-      p_van_branch_id: branchId,
-    })
-
+    const { data: stockInit, error: stockError } = await supabase.rpc("setup_van_stock", { p_van_branch_id: branchId })
     if (stockError) throw new Error("فشل تهيئة مخزون السيارة: " + stockError.message)
     if (typeof stockInit === "string" && !stockInit.startsWith("OK:")) throw new Error(stockInit)
-
     const stockMatch = typeof stockInit === "string" ? stockInit.match(/^OK:\s*(\d+)\sitems\scopied$/) : null
-    const initializedRows = stockMatch ? Number(stockMatch[1]) : null
 
     return new Response(JSON.stringify({
       success: true,
@@ -150,18 +96,12 @@ serve(async (req) => {
       vehicle_code: vehicle.vehicle_code,
       driver_id: vehicle.driver_id || null,
       created,
-      initialized_stock_rows: initializedRows,
+      initialized_stock_rows: stockMatch ? Number(stockMatch[1]) : null,
       stock_initialization: stockInit,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    })
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
   } catch (error: any) {
-    return new Response(JSON.stringify({
-      success: false,
-      msg: error?.message || "فشل إعداد فرع السيارة",
-    }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ success: false, msg: error?.message || "فشل إعداد فرع السيارة" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     })
   }
 })
