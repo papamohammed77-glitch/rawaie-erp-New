@@ -1,0 +1,505 @@
+FINAL CLOSURE REPORT
+STAGE 28 — setup-van-branch
+PRE-CHANGE SELF-AUDIT
+Business Understanding:
+CONFIRMED
+Van Branch represents the mobile stock container of a Vehicle.
+Vehicle is the identity; Driver/Representative is associated metadata.
+
+
+Architecture Understanding:
+CONFIRMED
+setup-van-branch is an initialization capability.
+It must not perform commercial stock movement.
+Physical movement remains exclusively under post_stock_movement.
+
+
+Database Understanding:
+CONFIRMED
+Vehicle → driver relationship is `vehicles.driver_id`.
+Van inventory is represented through `branches` + `stock_branches`.
+`stock_branches` is unique per `(branch_id, item_id)`.
+Company isolation is enforced through company-scoped Vehicle/Branch/Item resolution.
+
+
+Historical Understanding:
+CONFIRMED
+Legacy implementation identified the Van Branch using `driver_email`.
+Historical Van Sales also consumed `VAN-{email}`.
+The historical architecture subsequently evolved toward Vehicle-owned stock. 
+
+
+Production Understanding:
+CONFIRMED
+Production already contains a real Vehicle/Van Branch model such as `VAN-VEH-92yrzb`.
+The deployed Production function is now v3.
+
+
+Current Understanding:
+CONFIRMED
+Current canonical artifact is `Current/Edge_Functions/setup-van-branch`.
+Its source is vehicle-owned and company-scoped. 
+
+
+Execution Confidence:
+VERY HIGH
+All mandatory runtime gates completed in Staging and Production.
+Initial findings
+Confirmed Facts:
+- Historical function was driver-email based.
+- Current Production Van Branch identity is Vehicle-based.
+- Vehicle → Driver is already modeled by `vehicles.driver_id`.
+- Loading uses Vehicle → VAN branch resolution.
+- Unloading uses the same Vehicle → VAN branch.
+- setup_van_stock is initialization only.
+- post_stock_movement remains the movement engine.
+
+
+Unknowns:
+NONE remaining.
+
+
+Conflicts:
+Historical driver-email identity vs current vehicle identity.
+RESOLVED through backward-compatible driver_email fallback.
+
+
+Unverified Claims:
+NONE remaining for the closure contract.
+Historical Opened:        YES
+Original Opened:          YES
+Production Opened:        YES
+Current Opened:            YES
+Schema Checked:           YES
+Triggers Checked:         YES
+Dependencies Checked:     YES
+Consumers Checked:        YES
+A. BUSINESS / ARCHITECTURE RESULT
+
+The canonical contract is now:
+
+Authenticated User
+        │
+        ▼
+public.users.company_id
+        │
+        ▼
+Vehicle
+        │
+        ├── vehicle_code
+        └── driver_id → Representative
+        │
+        ▼
+VAN-{vehicle_code}
+        │
+        ▼
+branches
+        │
+        ▼
+stock_branches
+
+The Driver is not the stock location identity.
+
+The Vehicle is.
+
+The historical driver-email API remains accepted only as backward-compatible input. Internally it resolves to the Vehicle and does not redefine Vehicle identity.
+
+This is consistent with the architecture constitution's single-core / single-source-of-truth principle.
+
+B. ARTIFACT
+Canonical Current Artifact
+Current/Edge_Functions/setup-van-branch
+
+Git blob SHA:
+
+04807b3bbfd009371272cf9b89b3d9527ac7289d
+
+The current implementation:
+
+authenticates the caller;
+derives company_id from public.users.auth_id;
+resolves Vehicle inside that company;
+supports legacy driver_email;
+validates Driver ↔ Vehicle consistency;
+creates/returns VAN-{vehicle_code};
+handles duplicate creation safely;
+calls setup_van_stock;
+performs no stock movement itself.
+C. HISTORICAL / ORIGINAL → CURRENT
+Responsibility	Historical	Current	Resolution
+Branch identity	VAN-{driver_email}	VAN-{vehicle_code}	MOVED
+Driver	Identity	Vehicle representative	MOVED
+Vehicle	Indirect/absent	Primary identity	ADDED / HARDENED
+Company isolation	Hardcoded company	Authenticated user's company	HARDENED
+Branch creation	Yes	Yes	RETAINED
+Stock initialization	Not reliably owned	setup_van_stock	ADDED
+Commercial stock movement	None	None	INTENTIONALLY REMOVED
+Duplicate handling	Weak	Idempotent	HARDENED
+Vehicle validation	None	Same-company + Active	ADDED
+Legacy driver-email compatibility	Native identity	Compatibility input	RETAINED COMPATIBILITY
+
+No business responsibility was silently discarded.
+
+D. CORE
+
+The resulting dependency chain is:
+
+setup-van-branch
+        │
+        ▼
+setup_van_stock
+        │
+        └── creates missing stock_branches rows
+             with qty = 0
+             allocated_qty = 0
+
+
+Commercial movement
+        │
+        ▼
+post_stock_movement
+
+That boundary is critical.
+
+setup_van_stock does not call post_stock_movement.
+
+It does not create inventory movement events.
+
+It does not deduct MAIN.
+
+It does not create a commercial increase in VAN.
+
+post_stock_movement remains the physical movement engine, while reserve_stock remains reservation-only. The Production Core definitions confirm this separation and also show Loading and Unloading resolving VAN-{vehicle_code} and then using post_stock_movement.
+
+E. LOADING / UNLOADING / VAN SALES COMPATIBILITY
+
+Production Core proves:
+
+Runsheet.vehicle_id
+       ↓
+vehicles.vehicle_code
+       ↓
+VAN-{vehicle_code}
+       ↓
+branches
+Loading
+
+complete_runsheet_loading explicitly resolves:
+
+VAN- || vehicle.vehicle_code
+
+and performs:
+
+MAIN → VAN
+
+through post_stock_movement.
+
+Unloading
+
+complete_runsheet_unloading resolves the same Vehicle-owned branch and performs:
+
+VAN → MAIN
+
+through post_stock_movement.
+
+Van Sales
+
+Historical Van Sales explicitly treated the vehicle as mobile stock and consumed the Van Branch. The old consumer used the driver-email convention, which is precisely why the new implementation preserves driver_email as backward-compatible input while changing the underlying identity to Vehicle.
+
+Returns
+
+Returns operate through the same existing stock lifecycle; setup-van-branch itself introduces no return-side movement and therefore does not duplicate the Return engine.
+
+F. DATABASE / GOVERNANCE REPAIR
+
+Two real schema defects were uncovered during execution.
+
+Defect 1 — branches.id
+
+The schema does not supply a UUID default.
+
+Repair:
+
+id = crypto.randomUUID()
+
+inside setup-van-branch.
+
+Defect 2 — stock_branches.id
+
+The schema likewise does not supply a UUID default.
+
+Repair:
+
+gen_random_uuid()
+
+inside setup_van_stock.
+
+This was a genuine runtime defect and was repaired rather than documented as a blocker.
+
+Constraints
+
+Production currently confirms:
+
+branches:
+UNIQUE(company_id, branch_code)
+
+
+stock_branches:
+PRIMARY KEY(id)
+UNIQUE(branch_id, item_id)
+
+
+vehicles:
+UNIQUE(company_id, vehicle_code)
+
+
+vehicles.driver_id:
+FK → users(id)
+
+
+stock_branches.branch_id:
+FK → branches(id)
+
+
+stock_branches.item_id:
+FK → items(id)
+
+No additional business trigger was found on these four tables in the final audit.
+
+G. STAGING E2E
+
+The final clean-baseline Staging run proved:
+
+CREATE
+PASS
+
+
+Vehicle identity
+PASS
+
+
+Branch code = VAN-ST28-VAN-NORMAL
+PASS
+
+
+Stock initialization
+PASS
+
+
+All initialized balances
+qty = 0
+allocated_qty = 0
+
+
+Duplicate retry
+PASS
+created = false
+same branch_id
+initialized_stock_rows = 0
+
+
+Cross-company Vehicle
+PASS
+rejected
+
+
+Test workflow
+PASS
+
+The important correction during testing was that Staging MAIN had only one actual stock row. The test was corrected to validate against the real baseline instead of inventing an expected quantity.
+
+After the successful run:
+
+Staging branch residue = 0
+Staging test vehicles residue = 0
+Staging test company residue = 0
+H. PRODUCTION E2E
+
+Final Production run:
+
+Production workflow run:
+31962776937
+
+
+Result:
+SUCCESS
+
+The runtime gate proved:
+
+Authenticated JWT
+        ↓
+setup-van-branch
+        ↓
+Vehicle resolution
+        ↓
+Company isolation
+        ↓
+Branch creation
+        ↓
+Stock initialization
+        ↓
+Duplicate invocation
+        ↓
+Cross-company rejection
+
+All assertions passed.
+
+The Production function is currently:
+
+setup-van-branch
+Version: 3
+Status: ACTIVE
+verify_jwt: true
+
+Production deployment package identity:
+
+dd2ac7a9605f39f7f1888a0aba80bee7cdadcc675072ff77906bbead4181b49b
+
+This is semantic/source deployment parity with the canonical Current artifact; I am not claiming byte-level parity of Supabase's packaged deployment artifact.
+
+I. PRODUCTION DATA SAFETY
+
+The real Production Van was not modified by the test.
+
+Current real Van Branch:
+
+VAN-VEH-92yrzb
+
+Its existing stock rows remain:
+
+stock rows = 50
+qty        = 0
+allocated  = 0
+
+No commercial movement was generated by setup-van-branch.
+
+All temporary Stage-28 Production objects were removed:
+
+test Van Branch       = 0
+test stock rows       = 0
+test vehicles         = 0
+test company          = 0
+
+Staging test residue was also reduced to zero.
+
+J. GOVERNANCE / REPOSITORY
+
+The temporary Stage-28 modifications to the two existing canary workflows were removed.
+
+The Production workflow is back to its original artifact:
+
+SHA:
+ef2395a7c921f34ac4d1fc4c81c6b667e75d3068
+
+The restored workflow is confirmed in the repository.
+
+The final repository commit restoring the Production canary while preserving the Stage-28 source/migration changes is:
+
+3df3b55eec9a06193ad03e60db85893331be8379
+LOSS / GAIN / RESPONSIBILITY MATRIX
+RETAINED
+- Branch creation
+- Existing API capability
+- Legacy driver_email input compatibility
+- Existing Loading/Unloading contract
+
+
+MOVED
+- Van identity: Driver → Vehicle
+
+
+HARDENED
+- Company isolation
+- Duplicate handling
+- Vehicle status validation
+- Driver ↔ Vehicle validation
+- Stock initialization
+- UUID creation under current schema
+- Branch uniqueness
+
+
+ADDED
+- vehicle_id API path
+- Vehicle-owned Branch resolution
+- zero-balance stock initialization contract
+
+
+INTENTIONALLY REMOVED
+- Driver as physical stock-location identity
+- Hardcoded company identity
+- Any stock movement from setup
+
+
+MISSING
+NONE
+
+
+CONFLICT
+NONE
+
+
+DEBT
+NONE
+REMAINING
+NONE
+STATUS
+STAGE 28 — setup-van-branch — 100% CLOSED
+SELF-AUDIT FINAL
+What I Proved
+
+I proved the complete lifecycle from:
+
+Historical
+→ Original
+→ Current
+→ Core
+→ Dependencies
+→ Consumers
+→ Staging
+→ Production
+→ Production Runtime
+→ Baseline Restoration
+→ Governance
+
+The final Production runtime is consistent with the target Vehicle-owned Mobile Stock Container model.
+
+What I Did Not Prove
+
+I did not claim byte-for-byte equality between the Git source and Supabase's packaged Edge Function artifact. The semantic source contract and deployed runtime were verified instead.
+
+What I Fixed
+1. Legacy driver-based identity
+2. Company isolation
+3. Vehicle ownership semantics
+4. Duplicate/idempotent creation
+5. Branch UUID generation
+6. Stock-row UUID generation
+7. Company-scoped stock initialization
+8. Historical/current consumer compatibility
+What I Initially Missed
+
+Two schema realities were only exposed by runtime execution:
+
+branches.id has no default UUID
+stock_branches.id has no default UUID
+
+Both were repaired.
+
+I also initially used an incorrect Staging test assumption (50 rows); runtime evidence showed MAIN actually contained one stock row. The test was corrected to the actual baseline rather than modifying the data.
+
+What Could Still Be Wrong
+
+For the setup-van-branch closure contract itself:
+
+No known unresolved defect.
+
+The broader ERP still contains unrelated architectural work, but none is a remaining dependency or blocker for this Closure Unit.
+
+Final Confidence
+
+98–100% operational confidence, with the only deliberate qualification being that deployment package byte parity was not claimed.
+
+Final Closure Status
+✅ 100% CLOSED
+
+setup-van-branch is now a Vehicle-owned, company-isolated, idempotent initialization capability that creates only the mobile stock container and zero-balance stock rows, while leaving all physical stock movement to the centralized inventory engine.
