@@ -1,15 +1,14 @@
--- receive-stock-voucher closure: repair RECEIVE idempotency at the Core boundary.
--- Principle:
---   same voucher + item + starting received quantity + requested qty = same logical receive attempt
---   a later legitimate partial receive of the same qty has a different starting received quantity.
--- This avoids relying on a client-generated operation id and preserves the existing PWA contract.
+-- receive-stock-voucher closure: make RECEIVE idempotent at request level.
+-- The client contract supplies a stable operation_id for the whole receive attempt.
+-- Repeating the same operation_id is a duplicate; a later legitimate partial receive uses a new operation_id.
 
 CREATE OR REPLACE FUNCTION public.post_manual_stock_voucher_atomic(
   p_company_id uuid,
   p_voucher_code text,
   p_operation text,
   p_user_email text,
-  p_effects jsonb
+  p_effects jsonb,
+  p_operation_id text DEFAULT NULL
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -20,7 +19,6 @@ DECLARE
   v public.stock_vouchers%ROWTYPE;
   e record;
   v_detail_qty numeric;
-  v_received_before numeric;
   movement text;
   idem text;
   src uuid;
@@ -40,6 +38,10 @@ BEGIN
 
   IF p_operation NOT IN ('SEND','RECEIVE') THEN
     RAISE EXCEPTION 'عملية مخزنية غير مدعومة';
+  END IF;
+
+  IF p_operation = 'RECEIVE' AND NULLIF(btrim(p_operation_id), '') IS NULL THEN
+    RAISE EXCEPTION 'operation_id مطلوب لاستلام الإذن';
   END IF;
 
   IF p_operation = 'SEND' AND v.status <> 'Draft' THEN
@@ -69,26 +71,21 @@ BEGIN
     END IF;
 
     IF NOT EXISTS (
-      SELECT 1
-      FROM public.branches b
-      WHERE b.id = e.branch_id
-        AND b.company_id = p_company_id
+      SELECT 1 FROM public.branches b
+      WHERE b.id = e.branch_id AND b.company_id = p_company_id
     ) THEN
       RAISE EXCEPTION 'الفرع غير موجود أو لا يتبع الشركة';
     END IF;
 
     IF NOT EXISTS (
-      SELECT 1
-      FROM public.items i
-      WHERE i.id = e.item_id
-        AND i.company_id = p_company_id
-        AND i.item_code = e.item_code
+      SELECT 1 FROM public.items i
+      WHERE i.id = e.item_id AND i.company_id = p_company_id AND i.item_code = e.item_code
     ) THEN
       RAISE EXCEPTION 'الصنف غير متسق مع سياق الشركة';
     END IF;
 
-    SELECT d.qty, coalesce(d.received_qty, 0)
-      INTO v_detail_qty, v_received_before
+    SELECT d.qty
+      INTO v_detail_qty
     FROM public.stock_voucher_details d
     WHERE d.voucher_id = v.id
       AND d.item_id = e.item_id
@@ -124,10 +121,6 @@ BEGIN
         RAISE EXCEPTION 'اتجاه الاستلام لا يطابق الإذن';
       END IF;
 
-      IF e.qty > (v_detail_qty - v_received_before) THEN
-        RAISE EXCEPTION 'الكمية المستلمة أكبر من المتبقي';
-      END IF;
-
       movement := CASE v.type
         WHEN 'Transfer' THEN 'TransferIn'
         WHEN 'DirectReturn' THEN 'DirectReturn'
@@ -136,14 +129,15 @@ BEGIN
       tgt := v.to_id;
     END IF;
 
+    -- Request-level identity: the same operation_id is the same logical receive.
+    -- The item_id suffix keeps the movement idempotent per line inside one multi-item request.
     idem := CASE
       WHEN p_operation = 'RECEIVE' THEN
         'ManualVoucher:RECEIVE:'
         || p_company_id::text || ':'
         || v.id::text || ':'
-        || e.item_id::text || ':'
-        || v_received_before::text || ':'
-        || e.qty::text
+        || NULLIF(btrim(p_operation_id), '') || ':'
+        || e.item_id::text
       ELSE
         'ManualVoucher:SEND:'
         || p_company_id::text || ':'
@@ -151,6 +145,28 @@ BEGIN
         || e.item_id::text || ':'
         || e.qty::text
     END;
+
+    IF p_operation = 'RECEIVE' THEN
+      -- The reservation/quantity ceiling is evaluated after locking the detail row.
+      PERFORM 1
+      FROM public.stock_voucher_details d
+      WHERE d.voucher_id = v.id
+        AND d.item_id = e.item_id
+        AND d.item_code = e.item_code
+        AND e.qty <= (d.qty - coalesce(d.received_qty,0));
+      IF NOT FOUND THEN
+        -- A retry may already have consumed this exact operation. Let the movement layer
+        -- decide duplicate semantics; otherwise this is a genuine over-receive.
+        IF NOT EXISTS (
+          SELECT 1 FROM public.inventory_log il
+          WHERE il.company_id = p_company_id
+            AND il.idempotency_key = idem
+            AND il.item_id = e.item_id
+        ) THEN
+          RAISE EXCEPTION 'الكمية المستلمة أكبر من المتبقي';
+        END IF;
+      END IF;
+    END IF;
 
     movement_result := public.post_stock_movement(
       p_company_id,
@@ -165,9 +181,8 @@ BEGIN
       idem
     );
 
-    -- Physical movement is already committed for this logical event when duplicate=true.
-    -- Never advance received_qty again on a retry of the same receive attempt.
-    IF p_operation = 'RECEIVE' AND coalesce((movement_result->>'duplicate')::boolean, false) = false THEN
+    IF p_operation = 'RECEIVE'
+       AND coalesce((movement_result->>'duplicate')::boolean, false) = false THEN
       UPDATE public.stock_voucher_details
       SET received_qty = coalesce(received_qty, 0) + e.qty
       WHERE voucher_id = v.id
@@ -182,11 +197,8 @@ BEGIN
 
   IF p_operation = 'SEND' THEN
     UPDATE public.stock_vouchers
-    SET status = 'Sent',
-        sent_date = now()
-    WHERE id = v.id
-      AND company_id = p_company_id
-      AND status = 'Draft';
+    SET status = 'Sent', sent_date = now()
+    WHERE id = v.id AND company_id = p_company_id AND status = 'Draft';
   ELSE
     SELECT count(*) INTO remain
     FROM public.stock_voucher_details sd
@@ -196,9 +208,7 @@ BEGIN
     UPDATE public.stock_vouchers
     SET status = CASE WHEN remain = 0 THEN 'Received' ELSE 'Sent' END,
         received_date = CASE WHEN remain = 0 THEN now() ELSE received_date END
-    WHERE id = v.id
-      AND company_id = p_company_id
-      AND status = 'Sent';
+    WHERE id = v.id AND company_id = p_company_id AND status = 'Sent';
   END IF;
 
   IF NOT FOUND THEN
@@ -209,7 +219,13 @@ BEGIN
     'success', true,
     'voucher_code', p_voucher_code,
     'operation', p_operation,
+    'operation_id', p_operation_id,
     'status', (SELECT status FROM public.stock_vouchers WHERE id = v.id)
   );
 END;
 $function$;
+
+REVOKE EXECUTE ON FUNCTION public.post_manual_stock_voucher_atomic(uuid,text,text,text,jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.post_manual_stock_voucher_atomic(uuid,text,text,text,jsonb,text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.post_manual_stock_voucher_atomic(uuid,text,text,text,jsonb) TO service_role;
+GRANT EXECUTE ON FUNCTION public.post_manual_stock_voucher_atomic(uuid,text,text,text,jsonb,text) TO service_role;
