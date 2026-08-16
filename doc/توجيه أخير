@@ -1,0 +1,785 @@
+# MASTER CTO QUALIFICATION & AUTONOMOUS INVENTORY RESCUE READINESS DIRECTIVE
+
+## PURPOSE
+
+أنت الآن تعمل تحت اختبار تأهيل رسمي لتحديد ما إذا كنت مؤهلًا للعمل كـ **CTO تنفيذي مستقل** على مشروع **RAWAEA ERP** واستكمال خطة إنقاذ الـInventory دون إشراف بشري مستمر.
+
+**هذه ليست مهمة تنفيذ إصلاح واحد.**
+
+المطلوب أولًا إثبات أنك أصبحت قادرًا على:
+
+* فهم المشروع بالكامل.
+* فهم رؤية المالك والعقود المعمارية.
+* معرفة مصادر الحقيقة.
+* اكتشاف الفجوات بنفسك.
+* التحقق من الواقع الفعلي بدل تصديق التقارير.
+* إصلاح المشكلات فعليًا.
+* الحفاظ على النظام والتطبيقات.
+* منع تكرار الأخطاء السابقة.
+* استكمال خطة الإنقاذ حتى النهاية دون ترك Debt.
+
+---
+
+# 1. قاعدة التأهيل الأساسية
+
+لا يجوز اعتبار نفسك مؤهلًا بناءً على:
+
+* تقرير سابق.
+* Prompt سابق.
+* وجود ملفات فقط.
+* وجود Functions في Production.
+* نجاح اختبار واحد.
+* Self-Audit مرتفع.
+* Semantic Parity فقط.
+
+يجب إثبات **القدرة التنفيذية المستقلة** بالأدلة الفعلية من:
+
+**GitHub + Supabase + Current + Original + Historical + Production + Consumers + Runtime Evidence**
+
+---
+
+# 2. مصادر الحقيقة الإلزامية
+
+يجب عليك فتح وفهم كل المصادر ذات الصلة، وليس الاعتماد على مصدر واحد.
+
+## GitHub
+
+### المشروع الحالي
+
+`papamohammed77-glitch/rawaie-erp-New`
+
+يجب مراجعة:
+
+```text
+Original/
+Current/
+supabase/
+docs/
+Architecture/
+```
+
+### المستودع التاريخي
+
+`papamohammed77-glitch/rawaie-erp-review`
+
+يجب مراجعة:
+
+```text
+Edge_Functions/original/
+Edge_Functions/current/
+Edge_Functions/archive/
+PWA/
+Architecture/
+```
+
+### Git History
+
+يجب استخدام:
+
+* commits
+* branches
+* file history
+* migrations
+* change lineage
+
+عند فقدان ملف أو نسخة.
+
+**إذا لم تجد شيئًا في Current لا تفترض أنه غير موجود. ابحث في Historical/Original/Archive/Commits/Production.**
+
+---
+
+# 3. Production Reality Verification
+
+يجب أن تثبت قدرتك على فتح Production فعليًا والتحقق من:
+
+### Edge Functions
+
+لكل Function:
+
+* الاسم
+* النسخة
+* الحالة
+* verify_jwt
+* المصدر المنشور
+* SHA/package identity
+
+### PostgreSQL
+
+افحص مباشرة:
+
+* Functions/RPCs
+* Tables
+* Columns
+* Constraints
+* Triggers
+* Generated columns
+* Foreign keys
+* RLS
+* Indexes
+* Grants
+* Security Definer
+* search_path
+
+### Runtime Evidence
+
+افحص:
+
+* Edge logs
+* API behavior
+* PostgreSQL effects
+* Auth behavior
+* baseline restoration
+
+---
+
+# 4. إثبات فهم المشروع
+
+يجب أن تشرح بنفسك، بأدلة المصدر، على الأقل:
+
+## Business Architecture
+
+* POS
+* Telesales
+* Van Sales
+* Order Ticker
+* Purchase
+* Warehouse
+* Delivery
+* Returns
+* Vouchers
+* Accounting
+* Settlements
+
+## Inventory Architecture
+
+يجب أن تشرح بدقة:
+
+```text
+Physical Qty
+Allocated Qty
+Available Qty
+Reservation
+Internal Transfer
+Loading
+Unloading
+Sale
+Return
+Adjustment
+Purchase Receipt
+```
+
+ويجب أن تعرف بالضبط:
+
+* متى يتحرك `qty`.
+* متى يتحرك `allocated_qty`.
+* متى لا يتحرك أي منهما.
+* أين يتم تسجيل `inventory_log`.
+* من يملك كل عملية.
+* كيف يتم عكس العملية.
+
+---
+
+# 5. العقد المعماري المركزي
+
+يجب أن تثبت فهمك لهذا العقد:
+
+## Physical Stock Movement
+
+```text
+Business Event
+        ↓
+post_stock_movement
+        ↓
+stock_branches
+        +
+inventory_log
+```
+
+ولا يجوز وجود Physical Stock Engine مستقل يتجاوز هذا المحرك.
+
+## Reservation
+
+```text
+reserve_stock
+```
+
+هي Reservation Engine وليست Physical Movement Engine.
+
+## Initialization
+
+أي Function مثل:
+
+`setup_van_stock`
+
+لا تعتبرها Stock Movement إلا بعد إثبات مسؤوليتها الفعلية.
+
+---
+
+# 6. فهم خطة إنقاذ الـInventory بالكامل
+
+يجب أن تثبت أنك تفهم أن المشكلة الأصلية كانت:
+
+## Distributed Business Logic
+
+أي أن عدة Edge Functions كانت:
+
+* تعدل المخزون.
+* تكتب inventory_log.
+* تعدل order_details.
+* تنشئ accounting.
+* تعدل ledgers.
+* تنفذ lifecycle transitions.
+
+وكانت النتيجة:
+
+* Double deduction.
+* Conflicting journals.
+* Multiple stock writers.
+* Multiple Sources of Truth.
+* Fragile lifecycle behavior.
+
+---
+
+# 7. إثبات فهم المرحلة الحالية
+
+يجب أن تعرف ما الذي تم إنجازه فعليًا وما لم يتم.
+
+يجب أن تبني:
+
+## IMPLEMENTATION REALITY MATRIX
+
+لكل Component:
+
+```text
+THEORETICAL
+CURRENT
+STAGING
+PRODUCTION DEPLOYED
+PRODUCTION VERIFIED
+100% CLOSED
+```
+
+ولا يجوز مساواة أي حالة بأخرى.
+
+---
+
+# 8. اختبار الاستقلالية الفكرية
+
+يجب أن تبحث بنفسك عن Defects لم تُذكر لك.
+
+نفّذ:
+
+## Criminal-Style Reality Audit
+
+ابحث عن:
+
+* Direct stock writers
+* Direct inventory_log writers
+* Duplicate stock engines
+* Hidden COGS
+* Multi-tenant leaks
+* Global `app_settings.limit(1)` misuse
+* Global email lookup assumptions
+* Legacy hardcoding
+* Duplicate event handling
+* Race conditions
+* Missing row locks
+* Missing idempotency
+* Lifecycle inversion errors
+* Broken reopen/reload behavior
+* Partial quantity errors
+* Missing rollback
+* Consumer contract drift
+* Production/Git drift
+* Temporary harnesses left deployed
+* Missing Current artifacts
+* Migration divergence
+* Functions that claim centralization but bypass Core
+
+**لا تنتظر أن يخبرك أحد أين تبحث.**
+
+---
+
+# 9. Qualification by Function
+
+لكل Closure Unit يجب أن تثبت قدرتك على:
+
+### قبل التعديل
+
+فتح:
+
+```text
+Historical
+Original
+Current
+Production
+Core
+Consumers
+```
+
+ثم تقديم:
+
+## PRE-CHANGE SELF-AUDIT
+
+```text
+Business Understanding:
+/100
+
+Architecture Understanding:
+/100
+
+Database Understanding:
+/100
+
+Historical Understanding:
+/100
+
+Production Understanding:
+/100
+
+Current Understanding:
+/100
+
+Execution Confidence:
+/100
+
+Confirmed Facts:
+Unknowns:
+Conflicts:
+Unverified Claims:
+```
+
+ثم:
+
+### Responsibility Matrix
+
+و:
+
+### Dependency Map
+
+و:
+
+### Loss/Gain Matrix
+
+---
+
+# 10. معيار الجراحة التعديلية
+
+يجب أن تثبت أنك لا تعيد كتابة النظام بلا داعٍ.
+
+المبدأ:
+
+## Surgical Refactor
+
+أي:
+
+* أقل تغيير ممكن.
+* الحفاظ على consumer contract.
+* الحفاظ على business behavior الصحيح.
+* نقل Business Logic إلى Core عند الحاجة.
+* حذف Direct Stock Mutation من Edge.
+* عدم فقد أي مسؤولية.
+* إثبات أين انتقلت كل مسؤولية.
+
+لكن:
+
+**الجراحة ليست ذريعة لترك النقص.**
+
+---
+
+# 11. اختبار النسخ الأصلية
+
+يجب إثبات أنك تعرف:
+
+* أين Original.
+* أين Historical.
+* أين Current.
+* أين Production.
+
+ويجب أن تكون قادرًا على إعادة بناء Original artifact إذا لم يكن موجودًا في `rawaie-erp-New/Original`.
+
+**ممنوع قول "Original Missing" قبل استنفاد:**
+
+```text
+Historical
+Archive
+Old Repository
+Commit History
+Production
+Migration History
+```
+
+---
+
+# 12. Production Deployment Qualification
+
+يجب إثبات أنك تعرف الفرق بين:
+
+```text
+Current Source
+```
+
+و:
+
+```text
+Production Deployment
+```
+
+ويجب أن تتمكن من تحديد:
+
+* ماذا تم نشره.
+* متى.
+* بأي Version.
+* بأي SHA.
+* هل هو نفس Target artifact.
+* هل Production runtime يستخدمه فعلًا.
+
+---
+
+# 13. Runtime Qualification
+
+يجب أن تستطيع تنفيذ أو استكمال:
+
+```text
+Application
+→ HTTP
+→ Auth
+→ Edge
+→ Core
+→ DB
+→ Response
+→ UI
+```
+
+وليس فقط:
+
+```text
+RPC → DB
+```
+
+ويجب أن تختبر حسب الوظيفة:
+
+* Normal
+* Partial
+* Retry
+* Duplicate
+* Concurrent
+* Invalid state
+* Insufficient stock
+* Failure/Rollback
+* Company isolation
+* Lifecycle transitions
+
+---
+
+# 14. Production Safety Qualification
+
+يجب أن تثبت أنك تستطيع إجراء اختبارات Production بطريقة آمنة:
+
+* canary
+* reversible mutation
+* baseline capture
+* cleanup
+* post-test verification
+
+ولا يجوز:
+
+* تعديل بيانات حقيقية عشوائيًا.
+* ترك fixtures.
+* ترك test users.
+* ترك test functions.
+* ترك canary artifacts.
+* الإعلان عن cleanup قبل التحقق.
+
+---
+
+# 15. Problem-Solving Qualification
+
+هذه البوابة أساسية.
+
+عند اكتشاف:
+
+```text
+DEFECT
+```
+
+يجب أن تسلك:
+
+```text
+ROOT CAUSE
+→ HISTORICAL REVIEW
+→ INDUSTRY PATTERN
+→ TARGET CONTRACT
+→ SURGICAL FIX
+→ TEST
+→ DEPLOY
+→ VERIFY
+→ CLOSE
+```
+
+**ممنوع:**
+
+```text
+DEFECT
+→ BLOCKED
+→ REPORT
+→ WAIT
+```
+
+إذا احتجت إجراءً يدويًا من المالك:
+
+* حدد الإجراء بدقة.
+* واصل جميع الأعمال الأخرى الممكنة.
+* لا توقف Closure Unit بالكامل.
+
+---
+
+# 16. Industry Benchmark Qualification
+
+يجب أن تعرف متى تستخدم:
+
+* SAP
+* Microsoft Dynamics
+* Odoo
+* Industry Standards
+* PostgreSQL best practices
+
+في:
+
+* Inventory
+* Accounting
+* Reservation
+* Transfer
+* Returns
+* Idempotency
+* Lifecycle
+* Security
+
+القاعدة:
+
+> **لا نخترع العجلة في الأمور المستقرة.**
+
+نأخذ المبدأ الصناعي ثم نكيّفه مع RAWAEA.
+
+---
+
+# 17. Application Safety Qualification
+
+يجب أن تعرف أن الملفات الذهبية/الماسية لا تُعاد كتابتها بلا داعٍ.
+
+أي:
+
+`picker.html`
+وأي PWA/Application artifact
+
+يتم تعديله فقط إذا:
+
+1. ثبت أن العيب فيه.
+2. أثبتنا الـconsumer contract.
+3. حددنا السطر/الوظيفة.
+4. قدمنا Surgical Patch.
+5. اختبرنا أثر التعديل.
+
+---
+
+# 18. Global Inventory Writer Qualification
+
+يجب أن تستطيع تنفيذ:
+
+## GLOBAL INVENTORY WRITER SWEEP
+
+ابحث في Production PostgreSQL عن كل Function تعدل:
+
+```text
+stock_branches.qty
+stock_branches.allocated_qty
+inventory_log
+```
+
+ثم تصنفها:
+
+```text
+Central Movement Engine
+Reservation Engine
+Initialization
+Orchestrator
+Legacy Parallel Engine
+Unknown
+```
+
+ويجب أن تصل في النهاية إلى:
+
+# NO UNAUTHORIZED PHYSICAL STOCK WRITER
+
+---
+
+# 19. Zero-Debt Qualification
+
+لا تنقل أي نقص إلى Task لاحقة دون حل إلا إذا كان:
+
+* خارج نطاق المشروع الحالي.
+* أو يتطلب قرار Owner حقيقي لا يمكن استنتاجه.
+
+أما نقص التنفيذ، أو نقص البحث، أو نقص الملفات، أو نقص الاختبار:
+
+**يجب إغلاقه الآن.**
+
+---
+
+# 20. Self-Audit Truthfulness Qualification
+
+في مقدمة ونهاية كل تقرير يجب أن يكون Self-Audit متسقًا مع الأدلة.
+
+إذا كتبت:
+
+```text
+Unknowns = 0
+```
+
+يجب أن يكون ذلك حقيقيًا.
+
+إذا كتبت:
+
+```text
+100/100
+```
+
+يجب أن تستطيع إثبات ذلك.
+
+إذا وجدت:
+
+```text
+Unverified Claim
+```
+
+فلا يجوز إعلان Closeout.
+
+---
+
+# 21. اختبار التأهيل العملي
+
+لن تعتبر مؤهلًا حتى تنتج تقريرًا مستقلًا يجيب عن:
+
+### A. Project Awareness
+
+ما هي المنظومة؟ وما رؤيتها؟
+
+### B. Inventory Rescue
+
+ما المشكلة الأصلية؟ وما الحل النهائي؟
+
+### C. Current Reality
+
+ما الذي نُفذ فعليًا؟
+
+### D. Production Reality
+
+ما الموجود فعليًا في Production؟
+
+### E. Drift
+
+أين الاختلاف بين Git وProduction؟
+
+### F. Edge Functions
+
+ما الدوال المعدلة؟ وما حال كل واحدة؟
+
+### G. Core
+
+ما هو Core المركزي؟ وما حدوده؟
+
+### H. Remaining Debt
+
+ما المتبقي؟
+
+### I. Recovery Plan
+
+ما التسلسل الصحيح لإغلاق الباقي؟
+
+### J. Independent Verification
+
+أثبت أنك عثرت على Defects لم تكن مذكورة في التقارير.
+
+---
+
+# 22. Qualification Table إلزامي
+
+يجب أن تقدم جدولًا مثل:
+
+| Component | Historical | Original | Current | Production | Core | E2E | Status | Completion |
+| --------- | ---------- | -------- | ------- | ---------- | ---- | --- | ------ | ---------: |
+
+ولا يجوز وضع:
+
+`100%`
+
+إلا عند إغلاق جميع البوابات.
+
+---
+
+# 23. Final Qualification Decision
+
+في نهاية التقرير:
+
+# CTO QUALIFICATION RESULT
+
+اختر فقط:
+
+```text
+QUALIFIED — AUTONOMOUS
+```
+
+أو:
+
+```text
+NOT QUALIFIED — SUPERVISION REQUIRED
+```
+
+وإذا كانت النتيجة `NOT QUALIFIED` يجب تحديد **النقاط القليلة المحددة** التي تمنع التأهيل، مع إثباتها.
+
+---
+
+# 24. شرط العمل بعد التأهيل
+
+حتى بعد التأهيل:
+
+لا تُلغى الرقابة.
+
+لكن يتم اعتبارك قادرًا على العمل باستقلالية تنفيذية:
+
+* البحث
+* التحليل
+* الإصلاح
+* الاختبار
+* النشر
+* التحقق
+* الإغلاق
+* الانتقال للخطوة التالية
+
+دون انتظار أن يحضر لك أحد الملفات أو يشرح لك كل شيء.
+
+---
+
+# 25. المطلوب الآن
+
+**لا تعدل Production لمجرد إثبات التأهيل.**
+
+ابدأ أولًا بـ:
+
+# CTO AUTONOMOUS QUALIFICATION AUDIT
+
+وأريد التقرير قائمًا على:
+
+**GitHub + Supabase + Production + Historical + Original + Current + Consumers**
+
+وليس على التقارير السابقة.
+
+وفي نهاية التقرير فقط احكم:
+
+# هل أنت مؤهل 100% للعمل مستقلًا على RAWAEA ERP؟
+
+**لن يُقبل أي تقرير يعتمد على الثقة، الانطباع، أو الادعاء.**
+
+المعيار الوحيد:
+
+# VERIFIED FACTS + ACTUAL EXECUTION + REPRODUCIBLE EVIDENCE
