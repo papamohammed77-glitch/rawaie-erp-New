@@ -14,6 +14,8 @@ jobs:
           PASSWORD: Tmp-CP-PROD-20260814-Aa1!
           AUTH_URL: https://fiilmooggumokxanwiyx.supabase.co/functions/v1/cp-prod-auth-canary-20260814?token=CP-PROD-AUTH-20260814
           FIX_URL: https://fiilmooggumokxanwiyx.supabase.co/functions/v1/cp-prod-fixture-canary-20260814?token=CP-PROD-FIX-20260814
+          SEND_BRANCH_ID: 151e5cd7-ac4a-4fc3-b703-d73a0dbb0dc6
+          SEND_ITEM_CODE: 1003
         run: |
           set -euo pipefail
           trap 'curl --silent --show-error --max-time 60 "$FIX_URL&mode=cleanup" >/tmp/cleanup.json || true' EXIT
@@ -55,4 +57,27 @@ jobs:
           import json
           r=json.load(open('retry.json')); assert r.get('success') is False and ('Picking' in r.get('msg','') or 'state' in r.get('msg','')),r
           PY
-          echo '{"success":true,"production_e2e":true,"retry_rejected":true}'
+
+          # SEND-STOCK-VOUCHER production HTTP E2E
+          SEND_REF="TASK-INV-SEND-PROD-${GITHUB_RUN_ID}"
+          CREATE_BODY=$(python - <<PY
+          import json
+          print(json.dumps({"type":"Transfer","reference":"$SEND_REF","fromType":"Branch","fromId":"$SEND_BRANCH_ID","toType":"Branch","toId":"$SEND_BRANCH_ID","items":[{"itemCode":"$SEND_ITEM_CODE","itemName":"TASK-INV-SEND","unit":"حبة","qty":1,"unitPrice":0}],"notes":"$SEND_REF"}))
+          PY
+          )
+          curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/create-stock-voucher" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "$CREATE_BODY" | tee send_create.json
+          SEND_VOUCHER=$(python -c "import json;print(json.load(open('send_create.json'))['voucherId'])")
+          curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/send-stock-voucher" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"voucher_code\":\"$SEND_VOUCHER\"}" | tee send_first.json
+          python - <<'PY'
+          import json
+          r=json.load(open('send_first.json')); assert r.get('success') is True and r.get('status')=='Sent' and r.get('movement_count')==1,r
+          PY
+          set +e
+          curl --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/send-stock-voucher" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"voucher_code\":\"$SEND_VOUCHER\"}" | tee send_retry.json
+          set -e
+          python - <<'PY'
+          import json
+          r=json.load(open('send_retry.json')); assert r.get('success') is False and 'Draft' in r.get('msg',''),r
+          PY
+          echo "SEND_VOUCHER=$SEND_VOUCHER"
+          echo '{"success":true,"production_e2e":true,"retry_rejected":true,"send_http_e2e":true}'
