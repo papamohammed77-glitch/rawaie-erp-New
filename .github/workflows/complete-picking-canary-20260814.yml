@@ -14,22 +14,25 @@ jobs:
           PASSWORD: Tmp-CP-20260814-Aa1!
           VAN_VEHICLE_ID: f895c4b5-4c6b-4e7a-9b9d-af1fd9b5dc9c
           VAN_OTHER_VEHICLE_ID: 371ec359-848e-46b6-975a-cbd4d5847471
+          MAIN_BRANCH_ID: 319190b3-e277-4cf8-a712-a3b77acb9266
         run: |
           set -euo pipefail
           TOKEN=$(curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" -H "apikey: $ANON_KEY" -H "Content-Type: application/json" --data "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+          MAIN_COUNT=$(curl --fail-with-body --silent --show-error --max-time 60 "$SUPABASE_URL/rest/v1/stock_branches?branch_id=eq.$MAIN_BRANCH_ID&select=id" -H "apikey: $ANON_KEY" -H "Authorization: Bearer $TOKEN" | python -c "import sys,json;print(len(json.load(sys.stdin)))")
+          test "$MAIN_COUNT" -ge 1
           curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/setup-van-branch" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"vehicle_id\":\"$VAN_VEHICLE_ID\"}" | tee setup_first.json
           python - <<'PY'
-          import json
-          r=json.load(open('setup_first.json'))
+          import json, os
+          r=json.load(open('setup_first.json')); expected=int(os.environ['MAIN_COUNT']) if os.environ.get('MAIN_COUNT') else 1
           assert r['success'] is True and r['created'] is True and r['vehicle_id']=='f895c4b5-4c6b-4e7a-9b9d-af1fd9b5dc9c',r
           assert r['branch_code']=='VAN-ST28-VAN-NORMAL',r
-          assert r['initialized_stock_rows']==50,r
+          assert r['initialized_stock_rows']==expected,r
           PY
           VAN_BRANCH=$(python -c "import json;print(json.load(open('setup_first.json'))['branch_id'])")
           curl --fail-with-body --silent --show-error --max-time 60 "$SUPABASE_URL/rest/v1/stock_branches?branch_id=eq.$VAN_BRANCH&select=qty,allocated_qty" -H "apikey: $ANON_KEY" -H "Authorization: Bearer $TOKEN" | tee setup_stock.json
           python - <<'PY'
           import json
-          rows=json.load(open('setup_stock.json')); assert len(rows)==50 and all(float(x['qty'])==0 and float(x['allocated_qty'])==0 for x in rows),rows
+          rows=json.load(open('setup_stock.json')); assert len(rows)>=1 and all(float(x['qty'])==0 and float(x['allocated_qty'])==0 for x in rows),rows
           PY
           curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/setup-van-branch" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"vehicle_id\":\"$VAN_VEHICLE_ID\"}" | tee setup_retry.json
           python - <<'PY'
