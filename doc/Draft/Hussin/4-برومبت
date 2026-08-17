@@ -1,0 +1,287 @@
+الحكم التنفيذي:
+التقييم السابق كان صحيح الاتجاه. وفي Production الآن:
+
+release_stock_reservation يفك الحجز مباشرة عبر allocated_qty، وهذا قد يكون صحيحًا لأنه Reservation Reversal، لكنه لم يُغلق كـClosure Unit 100%.
+setup_van_stock تهيئة فقط؛ ينشئ صفوف stock_branches بكمية 0 ولا ينقل مخزونًا، لكنه يحتاج إثباتًا نهائيًا أنه لا يُستخدم كحركة تشغيلية.
+تقرير المساعد عن send-stock-voucher v19 كان متعارضًا مع التقييم السابق الذي أثبت Production v7؛ لذلك لا يُعتمد التقرير السابق كمرجع قبل إعادة التحقق.
+complete-picking وstart-picking وTASK-028 ليست كلها Zero-Debt حتى الآن.
+
+الخطوة الصحيحة فعلًا: إغلاق release_stock_reservation ثم setup_van_stock بالكامل، واحدةً واحدةً، ثم العودة لبقية Closure Units دون حمل دين للخلف.
+
+MANDATORY CTO DIRECTIVE
+CRITICAL — FREEZE PICKER / CLOSE CURRENT UNITS / NO DEBT FORWARD
+1. FREEZE
+
+جمّد بالكامل مسار:
+
+picker
+start-picking
+complete-picking
+أي مشكلة UI مرتبطة بالتحضير
+
+ولا تبدأ أي إصلاح جديد فيه الآن، إلا إذا كان هناك خطر مباشر على سلامة Production.
+
+المهمة الحالية الوحيدة:
+
+release_stock_reservation
+
+ثم:
+
+setup_van_stock
+2. لا تعتمد على أي تقرير سابق
+
+قبل أي تعديل:
+
+افحص Production PostgreSQL مباشرة.
+افحص Current.
+افحص Historical.
+افحص Original إن وجد.
+افحص Git history والـcommits.
+افحص كل Consumers.
+افحص كل Edge Functions التي تستدعي Core.
+افحص migrations.
+افحص القيود والـTriggers.
+
+التقرير السابق ليس Evidence.
+
+3. PRE-CHANGE SELF-AUDIT — إلزامي
+
+في مقدمة كل Closure Unit:
+
+Business Understanding:
+Architecture Understanding:
+Database Understanding:
+Historical Understanding:
+Production Understanding:
+Current Understanding:
+Execution Confidence:
+
+Confirmed Facts:
+Unknowns:
+Conflicts:
+Unverified Claims:
+
+Historical Opened:
+Original Opened:
+Production Opened:
+Current Opened:
+Schema Checked:
+Triggers Checked:
+Dependencies Checked:
+Consumers Checked:
+
+أي Unknown أو Conflict أو Unverified يجب معالجته فعليًا قبل الإغلاق.
+
+4. CLOSURE UNIT — release_stock_reservation
+
+افهم أولًا أن هذه الدالة ليست Physical Movement.
+
+العقد:
+
+reserve_stock
+    ↓
+allocated_qty ↑
+
+release_stock_reservation
+    ↓
+allocated_qty ↓
+
+ولا يجب أن:
+
+تنقص qty.
+تزيد qty.
+تنشئ Physical Movement.
+تكتب inventory_log كحركة فيزيائية.
+المطلوب
+
+طابقها مع:
+
+جميع حالات Reservation الحالية.
+reserve_stock.
+أي Cancel/Reopen/Failure consumers.
+أي Edge Function تستدعيها.
+العقد التاريخي.
+
+ثم قرر بناءً على Evidence:
+
+هل الـdirect update لـallocated_qty داخل Reservation Engine هو العقد الصحيح النهائي أم يجب تحويله إلى Core أكثر مركزية.
+
+لا تغيّرها لمجرد تغييرها.
+
+لكن لا تتركها مفتوحة.
+
+5. CLOSURE UNIT — setup_van_stock
+
+الدالة الحالية:
+
+تنشئ stock_branches للـVAN.
+تبدأ بـqty=0.
+لا تنقل كمية من MAIN.
+لا تنفذ Physical Movement.
+
+يجب إثبات:
+
+Initialization ≠ Stock Movement
+
+ثم:
+
+افحص كل Consumers.
+افحص توقيت تشغيلها.
+افحص هل يمكن استدعاؤها أكثر من مرة.
+افحص uniqueness.
+افحص Company isolation.
+افحص أنها لا تُستخدم كـmovement workaround.
+
+ثم أغلقها 100%.
+
+6. LOSS / GAIN MATRIX
+
+لكل Closure Unit:
+
+Historical
+Original
+Production
+Current
+Target
+
+وسجل:
+
+RETAINED
+MOVED
+HARDENED
+ADDED
+INTENTIONALLY REMOVED
+MISSING
+CONFLICT
+
+لا تفقد أي Business Responsibility.
+
+7. SOURCE OF TRUTH
+
+لا تنشئ Repository جديدًا.
+
+Current هو المصدر التطويري الرسمي.
+
+أي artifact نهائي يجب أن يوجد في:
+
+rawaie-erp-New/Current/
+
+ثم يجب مطابقة:
+
+Current
+↔
+Production
+↔
+Core
+8. التنفيذ
+
+لا أريد:
+
+READY
+BLOCKED
+REPORT
+
+أريد:
+
+DISCOVER
+→ COMPARE
+→ REPAIR
+→ TEST
+→ DEPLOY
+→ PRODUCTION VERIFY
+→ CLOSE 100%
+
+إذا اكتشفت مشكلة:
+
+حلها فورًا.
+
+إذا احتجت ملفًا:
+
+استخرجه بنفسك من Historical/Original/Archive/Git.
+
+إذا احتجت اختبارًا:
+
+استخدم الرانشيتات/البيانات التجريبية الموجودة.
+
+إذا احتجت إجراءً يدويًا من المالك:
+
+حدد الإجراء بدقة، وأكمل كل ما تستطيع دون انتظار.
+
+9. PRODUCTION EVIDENCE
+
+لكل دالة يجب إثبات:
+
+Deployment version
+Current artifact SHA
+Production artifact identity
+Core definition
+Runtime result
+Baseline restoration
+Consumers
+
+ولا يكفي Staging.
+
+10. بعد الإغلاق
+
+لا تنتقل إلى Closure Unit أخرى حتى تصبح:
+
+100% CLOSED
+
+ثم انتقل فقط إلى الدالة التالية حسب الترتيب المعتمد.
+
+لا تفتح:
+
+send-stock-voucher
+
+ولا:
+
+receive-stock-voucher
+
+قبل إغلاق:
+
+release_stock_reservation
+setup_van_stock
+
+بالكامل.
+
+11. FINAL SELF-AUDIT
+
+في نهاية كل Closure Unit:
+
+What I Proved
+What I Did Not Prove
+What I Fixed
+What I Initially Missed
+What Could Still Be Wrong
+Final Confidence
+Final Closure Status
+
+ويجب أن يكون التقرير مطابقًا تمامًا للواقع.
+
+12. ممنوع تكرار الأخطاء السابقة
+
+ممنوع:
+
+التوقف بسبب نقص ملف يمكن العثور عليه.
+اعتبار تقرير سابق مصدر حقيقة.
+الادعاء 100% مع وجود نقص.
+تحويل العائق إلى Gate دائمة.
+الانتقال لدالة أخرى قبل إغلاق الحالية.
+إنشاء حلول ترقيعية مؤقتة.
+ترك direct writer بدون تصنيف.
+عدم مطابقة Current مع Production.
+الادعاء بالنشر دون Evidence.
+الادعاء بالحذف بينما الكائن ما زال ACTIVE.
+الهدف
+
+إغلاق:
+
+release_stock_reservation = 100%
+
+ثم:
+
+setup_van_stock = 100%
+
+ثم الاستمرار بنفس المنهجية حتى:
+
+ZERO-DEBT INVENTORY RESCUE — 100% PRODUCTION VERIFIED
