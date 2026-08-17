@@ -1,0 +1,74 @@
+التقرير التدقيقي الحالي
+
+أوقفت مسار picker ومشاكله مؤقتًا كما طلبت.
+
+الوحدة	Production	الحالة الفعلية	الإغلاق
+complete-picking	v13 ACTIVE	مغلق وظيفيًا ومختبر Production	100%
+complete-loading	v10 ACTIVE	Production مثبت	100% وظيفيًا
+start-loading	v4 ACTIVE	Production مثبت	100% وظيفيًا
+reopen-loading	v2 ACTIVE	Production مثبت	100% وظيفيًا
+unload-runsheet	v5 ACTIVE	Production مثبت	100% وظيفيًا
+start-picking	v14 ACTIVE	متوقف الآن بسبب المشكلة الحالية	غير مغلق
+send-stock-voucher	v7 ACTIVE	Core مركزي في Production؛ Current alignment موجود، لكن مراجعة E2E/المصدر مستمرة	≈80–90%
+receive-stock-voucher	v5 ACTIVE	منشورة، لكنها لم تُغلق 100%	≈70–80%
+receive-purchase	v9 ACTIVE	منشورة، ولم تُغلق 100%	≈70–80%
+bulk-stock-adjustment	v5 ACTIVE	منشورة، ولم تُغلق 100%	≈70–80%
+save-sales-invoice	v13 ACTIVE	منشورة، ولم تُغلق 100%	≈70–80%
+complete-return	v23 ACTIVE	منشورة، ولم تُغلق 100%	≈70–80%
+complete-order-delivery	v11 ACTIVE	منشورة، ولم تُغلق 100%	≈70–80%
+خطة إنقاذ الـInventory
+
+الإنجاز الحقيقي الكبير:
+
+post_stock_movement أصبح فعليًا هو المحرك المركزي للحركات الفيزيائية في Production.
+
+والفحص الحالي لـstock_branches يُظهر فقط:
+
+post_stock_movement = Physical Movement
+reserve_stock = Reservation
+release_stock_reservation = Reservation reversal
+setup_van_stock = Initialization
+post_inventory_adjustment_atomic = Orchestrator
+
+وهذا يعني أن المشكلة الكبرى Distributed Physical Stock Engines تم احتواؤها بدرجة كبيرة.
+
+لكن توجد ديون حقيقية
+
+وجدت في Production 4 مستخدمين تجريبيين/مشبوهين، منهم:
+
+cp-prod-canary-20260814@example.invalid
+
+وهناك آثار Canary في Edge Function Registry ما زالت ACTIVE. لذلك قاعدة البيانات ليست نظيفة 100% بعد.
+
+كما أن GitHub الحديث نفسه يظهر تعديلات Rescue متعددة خلال 17 أغسطس، منها:
+
+send-stock-voucher
+receive
+save-sales-invoice
+receive-purchase
+
+وهذا يؤكد أن العمل مطبق فعليًا وليس نظريًا فقط، لكنه ما زال في مرحلة Zero-Debt Sweep.
+
+خطأ مهم اكتشفته
+
+Production الآن يقول:
+
+start-picking = v14
+
+بينما أحد سجلات Git الحديثة يدعي مزامنة نسخة أخرى، وهناك تقارير سابقة قالت v15. هذا Production/Git drift يجب تسجيله والتحقيق فيه لاحقًا، وليس افتراض التطابق.
+
+Stage 28
+
+Stage 28 ليست مجرد نظرية.
+
+حركات Loading/Reopen/Reload/Unloading الأساسية منشورة ومُختبرة في Production.
+
+لكن Release/Governance/cleanup ليست 100%.
+
+الخطوة التالية
+
+بعد تجميد picker:
+
+تنظيف وتثبيت الحقيقة الحالية أولًا → إزالة بيانات/Artifacts التجريبية غير المطلوبة → تثبيت Current ↔ Production → ثم استكمال Zero-Debt Inventory Sweep من send-stock-voucher وما بعدها.
+
+لا نعيد فتح شيء أثبتناه 100%، ولا ننقل دينًا إلى الأمام.
