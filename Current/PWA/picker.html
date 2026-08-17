@@ -178,26 +178,41 @@ var App = {
         self.pubUserId = userData.id;
         self.companyId = userData.company_id;
 
-        supabase
+supabase
     .from('items')
-    .select('item_code, image_url')
-    .eq('company_id', self.companyId)
-    .then(function(imgRes){
-        if(imgRes.error){
-            console.error('Picker items/company context error:', imgRes.error);
+    .select('item_code, name, unit, description, image_url')
+    .eq('is_active', true)
+    .then(function(itemRes){
+
+        if(itemRes.error){
+            console.error('Picker Item Master load error:', itemRes.error);
             return;
         }
 
-        var items = imgRes.data || [];
+        var items = itemRes.data || [];
 
         for(var i = 0; i < items.length; i++){
-            if(items[i].item_code && items[i].image_url){
-                ITEMS_IMAGE_CACHE[items[i].item_code] = items[i].image_url;
+
+            var item = items[i];
+
+            if(!item.item_code) continue;
+
+            ITEM_MASTER_CACHE[item.item_code] = {
+                item_code: item.item_code,
+                name: item.name || '',
+                unit: item.unit || 'حبة',
+                description: item.description || '',
+                image_url: item.image_url || ''
+            };
+
+            if(item.image_url){
+                ITEMS_IMAGE_CACHE[item.item_code] = item.image_url;
             }
         }
+
     })
     .catch(function(err){
-        console.error('Picker items cache error:', err);
+        console.error('Picker Item Master cache error:', err);
     });
         var userName = userData.name || meta.name || self.currentUser.email;
         var activeRole = userData.active_warehouse_role || meta.active_warehouse_role || '';
@@ -499,38 +514,152 @@ supabase
     .select('*')
     .eq('runsheet_id', rs.id)
     .then(function(detRes){
-                var items = detRes.data || [];
-                var itemCount = items.length;
-                if(rs.status === 'Picking' && rs.picker_id === self.pubUserId){
-                    self.session = { runsheet_code: code, runsheet_id: rs.id, start_time: rs.picker_start || new Date().toISOString(), items: [] };
-                    for(var i = 0; i < items.length; i++){
-                        self.session.items.push({
-                            item_code: items[i].item_code,
-                            item_name: items[i].item_name || '',
-                            unit: items[i].unit || 'حبة',
-                            description: items[i].description || '',
-                            qty_ordered: items[i].qty_ordered || 0,
-                            qty_picked: items[i].qty_picked || 0,
-                            notes: items[i].notes || ''
-                        });
-                    }
-                    self.renderActiveSession();
-                    return;
-                }
-                var html = '';
-                html += '<div class="flex items-center gap-3 mb-6"><button onclick="App.renderPendingTab()" class="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm"><i class="fa-solid fa-arrow-right"></i></button><span class="font-black text-xl text-slate-800">' + code + ' | عدد الأصناف: ' + itemCount + '</span></div>';
-                if(rs.status === 'Open' || rs.status === 'Confirmed'){
-    html += '<button onclick="App.startPicking(\'' + code + '\')" class="btn-primary mb-6 sticky-top"><i class="fa-solid fa-play ml-2"></i> بدء التحضير</button>';
+var items = detRes.data || [];
+var itemCodes = [];
+
+for(var i = 0; i < items.length; i++){
+    if(items[i].item_code){
+        itemCodes.push(items[i].item_code);
+    }
 }
-                html += '<p class="text-sm text-slate-400 mb-6">اضغط على الصنف لرؤية التفاصيل</p>';
-                for(var k = 0; k < items.length; k++){
-                    var it = items[k];
-                    html += '<div class="card mb-3 cursor-pointer slide-in" onclick="App.showItemDetail(\'' + it.item_code + '\', \'' + (it.item_name || '').replace(/'/g, "\\'") + '\', \'' + (it.unit || 'حبة') + '\', ' + (it.qty_ordered || 0) + ', \'' + (it.description || '').replace(/'/g, "\\'") + '\')"><div class="flex items-center gap-4">' + self._img(it.item_code) + '<div><p class="font-bold text-slate-700">' + (it.item_name || '') + '</p><p class="text-xs text-slate-400 mt-0.5">' + (it.unit || 'حبة') + ' | الكمية: <span class="font-bold text-slate-600">' + (it.qty_ordered || 0) + '</span></p></div></div></div>';
-                }
-                safeHTML(byId('mainContent'), html);
+
+var loadMasterItems = itemCodes.length
+    ? supabase
+        .from('items')
+        .select('item_code, name, unit, description, image_url')
+        .in('item_code', itemCodes)
+    : Promise.resolve({ data: [], error: null });
+
+loadMasterItems.then(function(masterRes){
+
+    if(masterRes.error){
+        throw masterRes.error;
+    }
+
+    var masterItems = masterRes.data || [];
+    var masterMap = {};
+
+    for(var m = 0; m < masterItems.length; m++){
+
+        var master = masterItems[m];
+
+        masterMap[master.item_code] = master;
+
+        ITEM_MASTER_CACHE[master.item_code] = {
+            item_code: master.item_code,
+            name: master.name || '',
+            unit: master.unit || 'حبة',
+            description: master.description || '',
+            image_url: master.image_url || ''
+        };
+
+        if(master.image_url){
+            ITEMS_IMAGE_CACHE[master.item_code] = master.image_url;
+        }
+    }
+
+    var itemCount = items.length;
+
+    if(
+        rs.status === 'Picking' &&
+        rs.picker_id === self.pubUserId
+    ){
+
+        self.session = {
+            runsheet_code: code,
+            runsheet_id: rs.id,
+            start_time: rs.picker_start || new Date().toISOString(),
+            items: []
+        };
+
+        for(var i = 0; i < items.length; i++){
+
+            var detail = items[i];
+            var master = masterMap[detail.item_code] || {};
+
+            self.session.items.push({
+                item_code: detail.item_code,
+
+                // Item Master is authoritative for definition
+                item_name: master.name || detail.item_name || detail.item_code,
+                unit: master.unit || detail.unit || 'حبة',
+                description: master.description || '',
+
+                // run_sheet_details is authoritative only for fulfillment quantities
+                qty_ordered: Number(detail.qty_ordered) || 0,
+                qty_picked: Number(detail.qty_picked) || 0,
+                notes: ''
             });
-        });
-    },
+        }
+
+        self.renderActiveSession();
+        return;
+    }
+
+    var html = '';
+
+    html +=
+        '<div class="flex items-center gap-3 mb-6">' +
+            '<button onclick="App.renderPendingTab()" class="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm">' +
+                '<i class="fa-solid fa-arrow-right"></i>' +
+            '</button>' +
+            '<span class="font-black text-xl text-slate-800">' +
+                code +
+                ' | عدد الأصناف: ' +
+                itemCount +
+            '</span>' +
+        '</div>';
+
+    if(rs.status === 'Open' || rs.status === 'Confirmed'){
+        html +=
+            '<button onclick="App.startPicking(\'' + code + '\')" class="btn-primary mb-6 sticky-top">' +
+                '<i class="fa-solid fa-play ml-2"></i> بدء التحضير' +
+            '</button>';
+    }
+
+    html += '<p class="text-sm text-slate-400 mb-6">اضغط على الصنف لرؤية التفاصيل</p>';
+
+    for(var k = 0; k < items.length; k++){
+
+        var detail = items[k];
+        var master = masterMap[detail.item_code] || {};
+
+        var name = master.name || detail.item_name || detail.item_code;
+        var unit = master.unit || detail.unit || 'حبة';
+        var qty = Number(detail.qty_ordered) || 0;
+        var desc = master.description || '';
+
+        html +=
+            '<div class="card mb-3 cursor-pointer slide-in" onclick="App.showItemDetail(\'' +
+                detail.item_code.replace(/'/g, "\\'") +
+                '\', \'' +
+                name.replace(/'/g, "\\'") +
+                '\', \'' +
+                unit.replace(/'/g, "\\'") +
+                '\', ' +
+                qty +
+                ', \'' +
+                desc.replace(/'/g, "\\'") +
+            '\')">' +
+
+                '<div class="flex items-center gap-4">' +
+                    self._img(detail.item_code) +
+                    '<div>' +
+                        '<p class="font-bold text-slate-700">' + name + '</p>' +
+                        '<p class="text-xs text-slate-400 mt-0.5">' +
+                            unit +
+                            ' | الكمية: ' +
+                            '<span class="font-bold text-slate-600">' +
+                                qty +
+                            '</span>' +
+                        '</p>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+    }
+
+    safeHTML(byId('mainContent'), html);
+});
 
     _img: function(code){
         var url = ITEMS_IMAGE_CACHE[code];
@@ -621,38 +750,123 @@ self.openRunsheet(code);
     },
 
     // ==================== نافذة تعديل الكمية (مع الصورة والوحدة والوصف) ====================
-    editPickedItem: function(index){
-        var self = this; var it = this.session.items[index];
-        var img = ITEMS_IMAGE_CACHE[it.item_code] || '';
-        var imgHtml = img ? '<img src="' + img + '" class="w-20 h-20 rounded-2xl object-cover mx-auto shadow-sm mb-3" onerror="this.style.display=\'none\'">' : '<div class="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl mx-auto flex items-center justify-center text-slate-400 mb-3"><i class="fa-solid fa-box text-2xl"></i></div>';
-        var unitHtml = it.unit ? '<div class="flex justify-between"><span class="text-slate-400">الوحدة</span><span class="font-bold text-slate-600">' + it.unit + '</span></div>' : '';
-        var descHtml = it.description ? '<p class="text-sm text-slate-500 mt-3 pt-3 border-t border-slate-100">' + it.description + '</p>' : '';
+editPickedItem: function(index){
+    var self = this;
+    var it = this.session.items[index];
 
-        Swal.fire({
-            title: '<span class="text-slate-800">' + it.item_name + '</span>',
-            html: '<div class="text-center">' + imgHtml + '</div><div class="text-right text-sm space-y-2"><div class="flex justify-between"><span class="text-slate-400">الكمية المطلوبة</span><strong class="text-slate-700">' + it.qty_ordered + '</strong></div>' + unitHtml + '</div>' + descHtml + '<div class="mt-4 text-right"><label class="block text-xs font-bold text-slate-500 mb-2">الكمية المحضّرة</label><input id="swal-qty" type="number" class="swal2-input !rounded-xl !text-center !font-bold !text-lg" value="' + it.qty_picked + '" min="0" max="' + it.qty_ordered + '"><label class="block text-xs font-bold text-slate-500 mb-2 mt-4">ملاحظات</label><input id="swal-notes" class="swal2-input !rounded-xl" value="' + (it.notes || '') + '" placeholder="سبب النقص..."></div>',
-            showCancelButton: true, confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء',
-            customClass: { popup: '!rounded-3xl', confirmButton: '!rounded-xl !bg-indigo-600 !px-8', cancelButton: '!rounded-xl' },
-            preConfirm: function(){
-                return { qty: Math.max(0, Math.min(parseInt(document.getElementById('swal-qty').value) || 0, it.qty_ordered)), notes: document.getElementById('swal-notes').value.trim() };
-            }
-        }).then(function(r){
-            if(r.isConfirmed){
-                self.session.items[index].qty_picked = r.value.qty;
-                self.session.items[index].notes = r.value.notes;
-                supabase.from('run_sheet_details').update({ qty_picked: r.value.qty }).eq('runsheet_id', self.session.runsheet_id || null).eq('item_code', it.item_code).then(function(){});
-                self.renderActiveSession();
-                if(r.value.qty < it.qty_ordered && !r.value.notes){
-                    Swal.fire({
-                        title: 'تنبيه',
-                        text: 'الكمية المحضّرة أقل من المطلوبة. هل تريد إضافة سبب النقص؟',
-                        icon: 'question', showCancelButton: true, confirmButtonText: 'إضافة سبب', cancelButtonText: 'تخطي',
-                        customClass: { popup: '!rounded-3xl', confirmButton: '!rounded-xl !bg-amber-500 !px-6', cancelButton: '!rounded-xl' }
-                    }).then(function(r2){ if(r2.isConfirmed){ self.editPickedItem(index); } });
+    var master = ITEM_MASTER_CACHE[it.item_code] || {};
+    var img = master.image_url || ITEMS_IMAGE_CACHE[it.item_code] || '';
+
+    var imgHtml = img
+        ? '<img src="' + img + '" class="w-20 h-20 rounded-2xl object-cover mx-auto shadow-sm mb-3" onerror="this.style.display=\'none\'">'
+        : '<div class="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl mx-auto flex items-center justify-center text-slate-400 mb-3"><i class="fa-solid fa-box text-2xl"></i></div>';
+
+    var unitHtml = (master.unit || it.unit)
+        ? '<div class="flex justify-between"><span class="text-slate-400">الوحدة</span><span class="font-bold text-slate-600">' +
+          (master.unit || it.unit || 'حبة') +
+          '</span></div>'
+        : '';
+
+    var descHtml = (master.description || it.description)
+        ? '<p class="text-sm text-slate-500 mt-3 pt-3 border-t border-slate-100">' +
+          (master.description || it.description) +
+          '</p>'
+        : '';
+
+    Swal.fire({
+        title: '<span class="text-slate-800">' + (master.name || it.item_name || it.item_code) + '</span>',
+        html:
+            '<div class="text-center">' + imgHtml + '</div>' +
+            '<div class="text-right text-sm space-y-2">' +
+                '<div class="flex justify-between">' +
+                    '<span class="text-slate-400">الكمية المطلوبة</span>' +
+                    '<strong class="text-slate-700">' + it.qty_ordered + '</strong>' +
+                '</div>' +
+                unitHtml +
+            '</div>' +
+            descHtml +
+            '<div class="mt-4 text-right">' +
+                '<label class="block text-xs font-bold text-slate-500 mb-2">الكمية المحضّرة</label>' +
+                '<input id="swal-qty" type="number" class="swal2-input !rounded-xl !text-center !font-bold !text-lg" value="' +
+                    it.qty_picked +
+                    '" min="0" max="' +
+                    it.qty_ordered +
+                    '">' +
+                '<label class="block text-xs font-bold text-slate-500 mb-2 mt-4">ملاحظات</label>' +
+                '<input id="swal-notes" class="swal2-input !rounded-xl" value="' +
+                    (it.notes || '') +
+                    '" placeholder="سبب النقص...">' +
+            '</div>',
+
+        showCancelButton: true,
+        confirmButtonText: 'حفظ',
+        cancelButtonText: 'إلغاء',
+
+        customClass: {
+            popup: '!rounded-3xl',
+            confirmButton: '!rounded-xl !bg-indigo-600 !px-8',
+            cancelButton: '!rounded-xl'
+        },
+
+        preConfirm: function(){
+            return {
+                qty: Math.max(
+                    0,
+                    Math.min(
+                        parseInt(document.getElementById('swal-qty').value) || 0,
+                        it.qty_ordered
+                    )
+                ),
+                notes: document.getElementById('swal-notes').value.trim()
+            };
+        }
+    }).then(function(r){
+
+        if(!r.isConfirmed) return;
+
+        /*
+         * IMPORTANT:
+         * Picking quantity is intentionally kept in the local session only.
+         *
+         * Database persistence happens once, through:
+         *
+         * complete-picking
+         *   -> complete_runsheet_picking()
+         *      -> reserve_stock()
+         *
+         * run_sheet_details is derived data and must not be written directly
+         * from the picker UI.
+         */
+
+        self.session.items[index].qty_picked = r.value.qty;
+        self.session.items[index].notes = r.value.notes;
+
+        self.renderActiveSession();
+
+        if(r.value.qty < it.qty_ordered && !r.value.notes){
+
+            Swal.fire({
+                title: 'تنبيه',
+                text: 'الكمية المحضّرة أقل من المطلوبة. هل تريد إضافة سبب النقص؟',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'إضافة سبب',
+                cancelButtonText: 'تخطي',
+
+                customClass: {
+                    popup: '!rounded-3xl',
+                    confirmButton: '!rounded-xl !bg-amber-500 !px-6',
+                    cancelButton: '!rounded-xl'
                 }
-            }
-        });
-    },
+
+            }).then(function(r2){
+                if(r2.isConfirmed){
+                    self.editPickedItem(index);
+                }
+            });
+        }
+    });
+},
 
     completePicking: function(){
         var self = this; if(!this.session) return; if(!navigator.onLine){ toast('أنت غير متصل', 'warning'); return; }
