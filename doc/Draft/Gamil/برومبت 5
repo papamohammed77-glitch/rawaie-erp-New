@@ -1,0 +1,360 @@
+الحكم النهائي المبسط
+أين وصلنا؟
+
+خطة إنقاذ الـInventory متقدمة فعليًا في Production، وليست نظرية، لكنها ليست Zero-Debt 100% بعد.
+
+العنصر	التنفيذ الفعلي	الإغلاق
+post_stock_movement	منشور ومركزي للحركات الفيزيائية	100%
+reserve_stock	Reservation Core فعلي	100%
+release_stock_reservation	Reservation Reversal صحيح؛ لا يغيّر qty	100% وظيفيًا
+setup_van_stock	Initialization فقط؛ ينشئ VAN rows بصفر	100% وظيفيًا
+TASK-028 Loading/Reopen/Unload	منشور ومختبر في Production	≈100% وظيفيًا؛ Governance منفصل
+complete-picking	Production v13 + E2E سابق فعلي	≈95%
+start-picking	Production v14 بعد الإصلاح	غير مغلق؛ توجد مشكلة provisioning فعلية
+send-stock-voucher	Production موجود وإصلاحات Core فعلية	غير مغلق 100%
+بقية Writers الرئيسية	أجزاء كبيرة منها منشورة	غير مغلقة 100%
+ماذا أثبتت المراجعة الأخيرة؟
+
+release_stock_reservation صحيح معماريًا: يعدّل allocated_qty فقط، مع FOR UPDATE وCAS، ولا يعمل Physical Movement.
+
+setup_van_stock ليس محرك حركة مخزون؛ هو يهيّئ سجلات VAN بكمية 0 ويمنع التكرار. فحص Production الفعلي يؤكد ذلك.
+
+أين المشكلة الحقيقية الآن؟
+
+ليست مشكلة في خطة الإنقاذ نفسها.
+
+المشكلة موزعة بين:
+
+1. Edge / Identity Provisioning:
+start-picking v14 يمنع إنشاء المستخدم تلقائيًا، وهذا صحيح معماريًا، لكن Production ما زال لديه 28 مستخدم Auth بدون Public User مطابق وفق الفحص المباشر؛ لذلك المستخدم الحقيقي قد يفشل برسالة المستخدم غير مسجل.
+
+2. Application Integration:
+picker.html نفسه ليس سبب الـ400؛ السطر 381 مجرد HTTP call صحيح.
+
+3. Governance / E2E:
+هناك آثار Canary/Temporary Functions ما زالت ACTIVE، وبعض الدوال لم تُغلق E2E/Consumerيًا بالكامل.
+
+4. Production/Current Drift:
+التقارير السابقة أعطت نسخًا متناقضة مثل send-stock-voucher v7 مقابل v19. لذلك Production هو المرجع الفعلي، وليس التقارير.
+
+هل Prompt 4 نجح؟
+
+نعم وظيفيًا. الدالتان:
+
+release_stock_reservation
+setup_van_stock
+
+وصلتا إلى الحالة الصحيحة في Production، ولم يكن المطلوب تغييرهما لمجرد التغيير.
+
+لكن هذا لا يعني أن خطة Inventory Rescue انتهت.
+
+الخطوة التالية
+
+نعود الآن إلى send-stock-voucher كـClosure Unit واحدة، ثم receive-stock-voucher، وهكذا، مع عدم ترك أي Writer أو Consumer أو Production Drift خلفنا.
+
+والـPicker يُجمّد كما طلبت، إلا إذا كان هناك خطر مباشر على Production.
+
+الخلاصة: السبب الرئيسي لعدم الإكمال ليس خطأ في الخطة؛ بل تراكم Production Drift + مشاكل هوية المستخدم + نقص إغلاق E2E/Governance.
+
+التقييم الحاسم:
+
+المساعد نفذ جزءًا حقيقيًا ومفيدًا في release_stock_reservation وsetup_van_stock.
+لكنه أنهى الوحدة إداريًا قبل استكمال كل الأدلة التي اشترطناها؛ فالتقرير نفسه يقول إن setup_van_stock لم يُختبر HTTP/browser E2E، ثم أعلنها CLOSED. هذا تناقض مباشر مع قاعدة 100%.
+كما أن تقرير المهمة الأولى لم يثبت HTTP E2E حقيقيًا لـsend-stock-voucher، ومع ذلك جمع عدة إصلاحات واستنتاجات وسمّاها تقدمًا كبيرًا.
+التقييم السابق نفسه خلص إلى أن الخطة متقدمة في Production لكنها ليست Zero-Debt 100% وأن start-picking ما زالت بها مشكلة هوية مستخدم/Provisioning، مع دوال أخرى غير مغلقة.
+الأهم: مصادر Original موجودة فعلًا في المستودع القديم ضمن Edge_Functions/original، لذلك لا يوجد مبرر عام لنقص المصدر.
+
+المشكلة الأساسية ليست في الخطة؛ بل في الانضباط التنفيذي: يكتشف نقصًا، ثم يحوله إلى Gate أو Exception بدل أن يعالج كل ما يمكنه أولًا.
+
+البرومبت الإلزامي التالي
+MANDATORY CTO EXECUTION DIRECTIVE
+CLOSURE UNIT — send-stock-voucher
+
+من هذه اللحظة:
+
+لا Readiness فقط. لا تقرير بدل التنفيذ. لا Block إلا بعد استنفاد جميع وسائل الحل.
+
+أنت الآن مسؤول عن إغلاق send-stock-voucher حتى 100% فعليًا، ثم فقط الانتقال إلى receive-stock-voucher.
+
+1. أولًا: PRE-CHANGE SELF-AUDIT
+
+في مقدمة التنفيذ، قدم:
+
+Business Understanding
+Architecture Understanding
+Database Understanding
+Historical Understanding
+Production Understanding
+Current Understanding
+Execution Confidence
+
+Confirmed Facts
+Unknowns
+Conflicts
+Unverified Claims
+
+Historical Opened
+Original Opened
+Production Opened
+Current Opened
+Schema Checked
+Triggers Checked
+Dependencies Checked
+Consumers Checked
+
+وأعطني فهمًا صريحًا لـ:
+
+وظيفة send-stock-voucher.
+دورة Voucher كاملة.
+الفرق بين Send وReceive وComplete وCancel.
+تأثيرها على Physical Stock.
+تأثيرها على allocated_qty.
+تأثيرها على inventory_log.
+تأثيرها المحاسبي.
+كل Consumers.
+كل Dependencies.
+Target Contract.
+مكان Historical.
+مكان Original.
+مكان Current.
+ما هو منشور فعليًا في Production.
+
+أي Unknown أو Conflict يجب أن يتحول إلى بحث وتصحيح، وليس سببًا للتوقف.
+
+2. المصادر
+
+ابحث بنفسك في جميع المصادر:
+
+Historical / Original
+
+rawaie-erp-review/Edge_Functions/original/
+
+Current
+
+rawaie-erp-New/Current/Edge_Functions/
+
+Archive
+
+rawaie-erp-review/Edge_Functions/archive/
+
+Git history
+
+كل commits/branches المتعلقة بـsend-stock-voucher.
+
+Production
+
+Supabase Edge Function + PostgreSQL Core + tables + triggers + constraints.
+
+لا تنتظر أي ملف من المالك.
+
+3. المقارنة الإلزامية
+
+قارن:
+
+Historical
+vs
+Original
+vs
+Current
+vs
+Production
+vs
+Target
+
+وابنِ:
+
+LOSS / GAIN MATRIX
+
+لكل مسؤولية:
+
+RETAINED / MOVED / HARDENED / ADDED / INTENTIONALLY REMOVED / MISSING
+
+لا يجوز أن تختفي أي وظيفة صحيحة دون إثبات أين انتقلت.
+
+4. CONTRACT
+
+المبدأ النهائي:
+
+send-stock-voucher
+        ↓
+send_stock_voucher_atomic
+        ↓
+post_stock_movement
+        ↓
+stock_branches + inventory_log
+
+ويجب ألا تكون هناك أي Physical Stock mutation موازية.
+
+reserve_stock لا تستخدم إلا إذا كان العقد الفعلي يتطلب Reservation.
+
+5. التنفيذ الجراحي
+
+إذا كان Current صحيحًا أصلًا:
+
+لا تعيد كتابة الدالة.
+
+إذا كان به نقص:
+
+أصلح النقص مباشرة.
+
+إذا كان Core خاطئًا:
+
+أصلح Core.
+
+إذا كانت Dependency ناقصة:
+
+أصلح Dependency فورًا.
+
+إذا كان ملف Current مفقودًا:
+
+استخرجه بنفسك من Historical/Archive/Git.
+
+6. الاختبارات
+
+نفّذ فعليًا:
+
+Normal Send
+Retry
+Duplicate
+Invalid State
+Insufficient Stock
+Wrong Company
+Concurrent Send
+Rollback
+Inventory Effect
+Inventory Log
+Accounting Effects
+Consumer Compatibility
+
+ثم:
+
+HTTP
+→ Auth
+→ Edge
+→ Core
+→ DB
+→ Response
+
+ثم Production runtime verification.
+
+7. العوائق
+
+ممنوع:
+
+FOUND BLOCKER → STOP
+
+المطلوب:
+
+FOUND BLOCKER
+→ ROOT CAUSE
+→ SEARCH
+→ REPAIR
+→ TEST
+→ DEPLOY
+→ VERIFY
+
+إذا احتجت إجراءً يدويًا من المالك:
+
+حدد الإجراء فقط، وأكمل كل ما تستطيع فورًا.
+
+8. Production Truth
+
+لكل نتيجة صنّفها:
+
+THEORETICAL
+CURRENT
+STAGING VERIFIED
+DEPLOYED
+PRODUCTION RUNTIME VERIFIED
+100% CLOSED
+
+ولا تخلط بينها.
+
+9. Cleanup
+
+أي Test User أو Test Voucher أو Test Runsheet أو Temporary Function:
+
+IDENTIFY
+→ PROVE TEST-ONLY
+→ CHECK REFERENCES
+→ REMOVE
+→ VERIFY ABSENCE
+
+ACTIVE + 410 ≠ Deleted.
+
+10. 100% Rule
+
+لا تكتب:
+
+100% CLOSED
+
+إلا بعد:
+
+Original comparison
+Current final artifact
+Core correctness
+Dependencies
+Consumers
+Staging
+HTTP E2E
+Production deployment
+Production runtime verification
+Baseline restoration
+Governance cleanup
+11. لا تنتقل
+
+بعد إغلاق send-stock-voucher:
+
+→ receive-stock-voucher
+
+ثم بنفس المنهج:
+
+→ receive-purchase
+→ bulk-stock-adjustment
+→ save-sales-invoice
+→ complete-return
+→ complete-order-delivery
+→ GLOBAL INVENTORY WRITER SWEEP
+→ FINAL INVENTORY RESCUE CLOSEOUT
+12. FINAL SELF-AUDIT
+
+في نهاية التقرير:
+
+What I Proved
+What I Did Not Prove
+What I Fixed
+What I Initially Missed
+What Could Still Be Wrong
+Final Confidence
+Final Closure Status
+
+وأرفق:
+
+Current Artifact
+Current SHA
+Production Version
+Production Package SHA
+Core RPCs
+Dependencies
+Consumers
+Tests
+Production Evidence
+Remaining Defects
+Remaining Governance
+
+إذا بقي نقص واحد، فالحالة INCOMPLETE.
+
+FINAL COMMAND
+
+نفّذ الآن.
+
+لا أريد خطة جديدة.
+لا أريد Reconnaissance جديدًا.
+لا أريد Block.
+لا أريد نصف حل.
+
+أريد:
+
+DISCOVER → COMPARE → REPAIR → TEST → DEPLOY → VERIFY → CLOSE 100%
+
+ثم فقط انتقل إلى receive-stock-voucher.
