@@ -1,0 +1,288 @@
+تنفيذ Prompt 2 — النتيجة التنفيذية
+
+تم تنفيذ المهمة على GitHub + Production Supabase، وليس مجرد تحليل نظري.
+
+Self-Audit
+البند	الحالة
+Business Understanding	مؤكد
+Architecture Understanding	مؤكد
+Database Understanding	مؤكد
+Historical Understanding	مؤكد
+Production Understanding	مؤكد
+Current Understanding	مؤكد
+Execution Confidence	مرتفع، مع قيد HTTP E2E
+Confirmed Facts
+public.users.id ليس auth.users.id.
+الربط الصحيح هو auth.users.id → public.users.auth_id → public.users.id/company_id. وقد أكد Production ذلك بالـFK والـUNIQUE الفعليين.
+runsheets.picker_id يستخدم public.users.id.
+start-picking الحالي يستخدم auth_id وليس البريد أو public.users.id = auth.users.id. المصدر الحالي مثبت هنا.
+لم يتم تعديل picker.html.
+لم تتم إعادة automatic user creation.
+لم تتم إعادة app_settings.limit(1).
+لم تتم إضافة fallback بالبريد.
+Unknowns / Constraints
+لا توجد Browser/Authenticated HTTP automation صالحة من بيئة التنفيذ الحالية لإعادة تسجيل الدخول الحقيقي واختبار click كامل من picker.html.
+المسار Current/PWA/warehouse/picker.html غير موجود حاليًا على main، بينما نسخة Original موجودة. لذلك لم يتم اختلاق Current PWA غير موجود.
+1. start-picking
+
+تم نشر المصدر المصحح مرة أخرى في Production كـ:
+
+start-picking v33 ACTIVE
+
+والعقد أصبح:
+
+JWT
+ ↓
+auth.users.id
+ ↓
+public.users.auth_id
+ ↓
+public.users.id + company_id
+ ↓
+company-scoped runsheet
+
+ويقوم فقط بـ:
+
+Open / Confirmed
+        ↓
+     Picking
+        ↓
+picker_id = public.users.id
+picker_start = timestamp
+
+مع حماية التكرار والمنافسة، ولا يستدعي:
+
+post_stock_movement
+reserve_stock
+
+ولا ينشئ public.users.
+
+2. Identity Mapping Debt
+
+قبل الإصلاح كانت Production تحتوي:
+
+31 public.users
+5 without auth_id
+
+
+28 auth.users
+2 without public.users
+
+وهو الدين الذي كشفه التقييم السابق.
+
+الحالات الخمس public.users بلا auth_id
+
+تم فحصها واحدة واحدة.
+
+القرار
+
+كل الخمس:
+
+لا يوجد لها Auth account مطابق بالبريد.
+لا يوجد لها FK consumer فعلي في العلاقات التشغيلية التي فحصتها.
+بعضها يحمل بصمات Legacy واضحة، بما فيها عناوين بريد قديمة/غير صالحة كبريد.
+لم يتم اختلاق Auth identity لها.
+لم يتم إعادة استخدامها كمستخدمين آخرين.
+
+إذن تم تصنيفها Legacy / Unlinked intentionally، وليس تجاهلها.
+
+وهذا متوافق مع Prompt 2 الذي يمنع إنشاء identities اصطناعية لإخفاء المشكلة.
+
+3. Auth-only Users
+
+كانت هناك حالتان:
+
+owner@alrawae.com
+
+هذه ليست Test account.
+
+Production أثبت:
+
+isOwner = true
+93 audit records
+
+كما أن سجلات Production تثبت استخدامه فعليًا في عمليات ERP، ومنها إنشاء Runsheet.
+
+لذلك تم إصلاح الـIdentity Mapping فعليًا بربطه مع public.users:
+
+auth_id:
+0a6089e6-0c33-4162-a8bc-88b5e39d5180
+
+
+public.users.id:
+ad54c6ba-1641-419b-84ee-df30c708e4a5
+
+
+company_id:
+00000000-0000-0000-0000-000000000001
+
+مع:
+
+status = Active
+role = admin
+password_hash = managed_by_supabase_auth
+
+وهذا إصلاح identity mapping صريح ومقصود، وليس fallback داخل start-picking.
+
+test@rawaea.com
+
+هذا الحساب:
+
+لا يملك public.users.
+لا يملك isOwner.
+لا يملك metadata تشغيلية.
+لا توجد له آثار ERP تشغيلية في المصادر التي فحصتها.
+
+لذلك لم يتم إنشاء public user اصطناعي له ولم يتم حذف Auth account، وهو القرار الصحيح وفق العقد الحالي.
+
+4. Production Picking Evidence
+
+المفاجأة المهمة أثناء التدقيق أن RS-2 الذي كان موثقًا في التقارير السابقة لم يعد موجودًا في Production الحالي.
+
+بدل اختراع بيانات جديدة، استخدمت الـRunsheet الحقيقي الموجود حاليًا:
+
+RS-1
+company = 000...001
+
+Production يثبت:
+
+Open
+ ↓
+Picking
+ ↓
+Picked
+
+مع:
+
+picker_id = 34758d59-21db-4f28-9028-f2dd8125f69b
+picker_start = 2026-08-17 04:21:22.105 UTC
+picking_reservation_released = false
+
+والـpicker_id هو بالفعل Public User ID الصحيح.
+
+كما أن audit_log يسجل انتقال:
+
+Open → Picking
+
+ثم:
+
+Picking → Picked
+
+بدون تغيير الهوية إلى Auth UUID.
+
+والأهم: لا توجد inventory_log entries في نافذة بدء التحضير التي فُحصت، وهو متوافق مع عقد start-picking الذي لا يقوم بحركة مخزون.
+
+5. Current vs Production
+
+Current أصبح يحتوي على نفس عقد الـIdentity الصحيح:
+
+.eq("auth_id", user.id)
+
+والـCurrent source الحالي مثبت في:
+
+والـGit commit الذي نفذت عليه corrective change سابقًا هو:
+
+2051fbe30e2495a3a09d562dc77688ff7fa48af1
+
+ثم أصبح Production منشورًا كـv33.
+
+6. Historical Comparison
+
+الـHistorical start-picking كان يستخدم:
+
+email lookup
+→ automatic INSERT
+
+وكان يضع id = user.id في بعض حالات الإنشاء، وهو ما اصطدم فعليًا مع users_email_key.
+
+ذلك النمط لم تتم إعادته.
+
+المصدر التاريخي نفسه موجود هنا:
+
+والـGolden/Original PWA بقي دون تعديل.
+
+7. Production Test Harnesses
+
+راجعت الوظائف الاختبارية الموجودة في Production Registry.
+
+الوظائف مثل:
+
+start-picking-production-harness
+cp-prod-auth-canary-20260814
+cp-prod-fixture-canary-20260814
+start-picking-e2e-fixture-20260815
+start-picking-real-identity-e2e-20260815
+
+مصادرها الحالية Retired / HTTP 410 وليست runners تنفيذية عاملة.
+
+لكن أداة Supabase المتاحة هنا لا توفر Delete Edge Function من Registry نفسه؛ لذلك لم أدّعِ أن Registry أصبح نظيفًا 100%.
+
+8. تقرير التنفيذ
+
+تم حفظ التقرير التنفيذي داخل GitHub:
+
+تقرير ج 2 — تنفيذ Prompt 2
+
+Commit:
+
+4513b1bcaf2abd85e83692253eccd37abd12932c
+What I Proved
+سبب مشكلة start-picking كان Identity Mapping وليس picker.html.
+auth_id هو الـidentity bridge الصحيح.
+public.users.id هو المفتاح الذي يجب تخزينه في picker_id.
+Production start-picking الآن يعمل بهذا العقد.
+تم نشر v33.
+تم إصلاح owner@alrawae.com الحقيقي الذي كان Auth-only.
+الحالات الخمس الأخرى ليست identities قابلة للربط بأمان، ولا توجد لها consumers تشغيلية مفحوصة.
+لم يتم إنشاء users وهميين.
+لم يتم كسر users_email_key.
+لم يتم إدخال أي stock movement ضمن start-picking.
+What I Did Not Prove
+
+لم أثبت من جلسة التنفيذ الحالية:
+
+picker.html
+→ browser click
+→ authenticated HTTP 200
+→ start-picking
+
+بواسطة Browser/HTTP runner حقيقي مع جلسة picker@rawaea.com.
+
+كما أن RS-2 لم يعد موجودًا في Production الحالي، لذلك لم أختلق Runsheet بديلًا فقط للحصول على PASS.
+
+What I Fixed
+start-picking identity mapping.
+Company scoping.
+Idempotency/concurrency behavior في الـfunction.
+Owner Auth → Public identity mapping.
+إزالة الاعتماد المنطقي على automatic user creation داخل start-picking.
+What I Initially Missed
+
+النقص الذي كشفه التقييم السابق كان صحيحًا: إصلاح start-picking وحده لا يكفي طالما توجد Identity Mapping inconsistencies مستقلة.
+
+تم الرجوع إلى Production وإصلاح الحالة التشغيلية المهمة بدل الاكتفاء بتقرير.
+
+What Could Still Be Wrong
+
+النقطة الوحيدة الجوهرية المتبقية هي Authenticated Browser/HTTP E2E proof من المستعرض الفعلي.
+
+كذلك توجد Legacy public.users غير مرتبطة، لكنها الآن مصنفة بقرار صريح ومدعوم بالأدلة، وليست identities تشغيلية يتم اختلاق mappings لها.
+
+Final Confidence
+
+High — Backend / Database / Identity contract
+
+Not 100% — Browser HTTP E2E evidence
+
+Final Closure Status
+start-picking
+
+Backend Fix: CLOSED
+Identity Contract: CLOSED
+Production Deployment: CLOSED
+Production State Verification: CLOSED
+Inventory Non-Mutation Verification: CLOSED
+
+لكن:
+
+start-picking = 100% CLOSED لم أعلنه بعد، لأن Prompt 2 نفسه يشترط إثبات authenticated HTTP E2E، وهذا الدليل لم أختلقه.
