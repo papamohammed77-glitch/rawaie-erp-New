@@ -1,0 +1,54 @@
+الحكم التدقيقي النهائي
+
+المساعد تقدم، لكن تقاريره الأخيرة ليست موثوقة بالكامل. وجدت تعارضًا مباشرًا بين التقرير والـProduction الحقيقي.
+
+الوضع الفعلي
+الجزء	الواقع الحالي	الإغلاق الحقيقي
+post_stock_movement	موجود ويُعد المحرك المركزي للحركات الفيزيائية	100%
+reserve_stock	موجود ويقوم بـReservation	100% وظيفيًا
+release_stock_reservation	ما زال يكتب stock_branches مباشرة	غير مكتمل
+setup_van_stock	ما زال يكتب stock_branches مباشرة	غير مكتمل
+complete-loading / Reopen / Unload	منشورة وتعمل في Production	≈100% وظيفيًا، Governance يحتاج فصلًا
+complete-picking	Production v13، Core منشور، E2E فعلي موجود	≈95% بسبب العيب الذي اكتشفناه + إغلاق الحوكمة
+start-picking	Production v14 بالفعل، وليس v15	≈95%: إصلاح الخطأ الأساسي منشور، لكن ما زالت مشاكل المستخدم/السجلات والحواجز الإدارية
+send-stock-voucher	Production v7 فعليًا، وليس v19 كما ذكر تقرير Gamil	≈80–90%؛ التقرير غير متزامن مع Production
+receive-stock-voucher	Production v5	≈80%
+receive-purchase	Production v9	≈80%
+bulk-stock-adjustment	Production v5	≈80%
+save-sales-invoice	Production v13	≈80–90%
+complete-return	Production v23	≈80–90%
+complete-order-delivery	Production v11	≈80–90%
+مهم جدًا: هل المركزية اكتملت؟
+
+لا، ليس 100% system-wide.
+
+الفحص المباشر لـProduction أثبت وجود كاتبين مباشرين للمخزون:
+
+reserve_stock — وهذا مسموح لأنه Reservation.
+release_stock_reservation — يحتاج مراجعة.
+setup_van_stock — Initialization، لكن يجب إثبات أنه لا يُستخدم كحركة تشغيلية.
+
+أما بقية الدوال الرئيسية مثل send_stock_voucher_atomic وpost_manual_stock_voucher_atomic وpost_inventory_adjustment_atomic فهي لا تُصنف كـDirect Physical Stock Writers وفق الفحص الحالي؛ وهذا يؤيد أن جزءًا كبيرًا من المركزية تم تنفيذه فعليًا.
+
+Stage 28
+
+ليست نظرية.
+Loading/Reopen/Reload/Unloading منشورة في Production ومثبت لها Runtime evidence.
+
+لكن Stage 28 كـZero-Debt Release كاملة = ليست 100%.
+
+أهم مشكلة في تقرير Gamil
+
+تقريره يقول:
+
+send-stock-voucher = v19
+
+لكن Production الحي الذي فحصته الآن = v7.
+
+هذا يعني أن التقرير ليس مرجع الحقيقة الحالي.
+
+النتيجة العامة
+
+خطة إنقاذ Inventory قطعت شوطًا حقيقيًا في Production، لكن لم نصل إلى Zero-Debt بعد.
+
+الخطوة التالية الصحيحة هي إغلاق release_stock_reservation وsetup_van_stock أولًا، ثم إكمال Closure Units المتبقية واحدةً واحدةً، مع مطابقة Current ↔ Production ↔ Core بعد كل إغلاق.
