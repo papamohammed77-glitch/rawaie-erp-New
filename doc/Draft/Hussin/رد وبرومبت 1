@@ -1,0 +1,317 @@
+راجعت التقرير نفسه. أهم ما فيه: هناك Drift حقيقي بين Current وProduction، والمساعد ممنوع أن يواصل بناء طبقات جديدة قبل إغلاق هذا الانحراف. التقرير يثبت أيضًا أن كثيرًا من الإصلاحات منشورة فعلًا، لكنها ليست كلها متزامنة أو مغلقة 100%.
+
+MANDATORY ZERO-DEBT EXECUTION DIRECTIVE
+الوضع الذي يجب اعتباره حقيقة تنفيذية
+
+التدقيق الأخير أثبت وجود Source-of-Truth Drift حقيقي بين GitHub Current وProduction، وأثبت أن جزءًا من الإصلاحات موجود في Production بينما Current ما زال يحتوي نسخًا أقدم، كما أن بعض الإصلاحات الحديثة في Git لم تُغلق بعد Runtime/Production.
+
+هذا الوضع غير مقبول.
+
+1. المهمة الأولى الآن: إغلاق Source-of-Truth Drift
+
+ممنوع البدء في إصلاحات عشوائية جديدة.
+
+ابدأ أولًا بمطابقة:
+
+Current
+↔
+Production
+↔
+Historical / Original
+↔
+Core / Migrations
+
+ولكل Edge Function سبق تعديلها أو نشرها في خطة Inventory Rescue:
+
+حدد نسخة Current الفعلية.
+حدد نسخة Production الفعلية.
+حدد الـSHA/Version.
+حدد الفرق.
+حدد أين توجد النسخة النهائية المعتمدة.
+انقل النسخة النهائية إلى Current في مكانها الرسمي إذا كانت غائبة.
+لا تنشئ Repository جديدًا.
+لا تنشئ مجلدًا إضافيًا بلا ضرورة.
+لا تترك نسختين متنافستين.
+أولوية خاصة
+
+التدقيق الحالي أثبت أن:
+
+rawaie-erp-New/main/Current/Edge_Functions/complete-loading
+
+كان ما زال يحمل Legacy SHA بينما Production يعمل بالـThin Wrapper v10.
+
+هذا يجب إصلاحه أولًا.
+
+2. لا تخلط بين ثلاثة مستويات
+
+يجب أن تصنّف كل نتيجة بوضوح:
+
+THEORETICAL
+CURRENT IMPLEMENTED
+STAGING VERIFIED
+PRODUCTION DEPLOYED
+PRODUCTION RUNTIME VERIFIED
+100% CLOSED
+
+لا يجوز أن تتحول:
+
+Current = PASS
+
+إلى:
+
+Production = PASS
+
+ولا:
+
+Production = deployed
+
+إلى:
+
+Production = verified
+3. بعد إغلاق Drift فقط
+
+نفذ:
+
+ZERO-DEBT CLOSURE SWEEP
+
+بالترتيب:
+
+complete-loading / TASK-028
+complete-picking
+start-picking
+send-stock-voucher
+receive-stock-voucher
+receive-purchase
+save-sales-invoice
+bulk-stock-adjustment
+complete-return
+complete-order-delivery
+create-runsheet
+
+وظيفة واحدة في كل مرة.
+
+لا تنتقل إلى التالية إلا بعد:
+
+100% CLOSED
+4. مبدأ الجراحة
+
+لكل Function:
+
+Original
+→ Understand
+→ Compare
+→ Surgical Patch
+→ Core Alignment
+→ Consumer Compatibility
+→ Staging
+→ Production
+→ Production Verification
+→ Close
+
+لا تعيد كتابة الوظيفة بلا ضرورة.
+
+ولا تزيل مسؤولية من Edge إلا بعد إثبات مكان انتقالها.
+
+5. Inventory Core Contract
+
+العقد غير القابل للتفاوض:
+
+Physical Stock Movement
+        ↓
+post_stock_movement
+        ↓
+stock_branches.qty
+        +
+inventory_log
+
+و:
+
+reserve_stock
+
+للحجز فقط.
+
+لا يجوز ظهور Physical Stock Writer مستقل يتجاوز المحرك المركزي.
+
+بعد إغلاق جميع الدوال:
+
+GLOBAL PHYSICAL-STOCK WRITER SWEEP
+
+افحص Production PostgreSQL بالكامل للتأكد من عدم وجود Parallel Physical Stock Engine.
+
+6. عند اكتشاف مشكلة
+
+ممنوع:
+
+DEFECT
+→ BLOCKED
+→ REPORT
+→ NEXT
+
+المطلوب:
+
+DEFECT
+→ ROOT CAUSE
+→ FIND SOURCE / HISTORICAL PATTERN
+→ REPAIR
+→ TEST
+→ DEPLOY
+→ VERIFY
+→ CLOSE
+
+إذا كانت المشكلة في Dependency:
+
+أصلحها فورًا.
+
+إذا كان المصدر ناقصًا:
+
+استخرجه بنفسك من Historical / Original / Archive / Git commits / Production.
+
+إذا احتاج الأمر إجراءً يدويًا من المالك:
+
+حدد الإجراء المطلوب بدقة، ثم واصل بقية التنفيذ الممكن فورًا.
+
+7. Consumer Protection
+
+لا تعدّل PWA/Applications إلا إذا ثبت أن:
+
+backend contract
+
+أصبح غير متوافق.
+
+قبل أي تعديل على Application:
+
+Historical
+Original
+Current
+Production
+Consumers
+
+ثم Surgical Patch فقط.
+
+8. قاعدة مهمة جدًا
+
+لا تعتمد على وجود تقرير سابق.
+
+ولا تعتمد على:
+
+"تم التنفيذ"
+"PASS"
+"100%"
+
+إلا بعد فحص:
+
+Git artifact
+Production version
+Production source
+PostgreSQL Core
+Runtime evidence
+9. Self-Audit إجباري
+مقدمة كل Closure Unit
+Business Understanding
+Architecture Understanding
+Database Understanding
+Historical Understanding
+Production Understanding
+Current Understanding
+Execution Confidence
+
+Confirmed Facts
+Unknowns
+Conflicts
+Unverified Claims
+
+ثم:
+
+Historical Opened
+Original Opened
+Production Opened
+Current Opened
+Schema Checked
+Triggers Checked
+Dependencies Checked
+Consumers Checked
+نهاية كل Closure Unit
+What I Proved
+What I Did Not Prove
+What I Fixed
+What I Initially Missed
+What Could Still Be Wrong
+Final Confidence
+Final Closure Status
+
+أي Unknown أو Conflict أو Unverified في مسؤولية أساسية = لا 100%.
+
+10. تقرير كل Function
+
+لكل Function يجب تقديم:
+
+البند	المطلوب
+Historical	المسار + SHA
+Original	المسار + SHA
+Current	المسار + SHA
+Production	Version + SHA
+Core	RPC/dependencies
+Loss/Gain	كامل
+Consumers	كامل
+Staging	النتائج الفعلية
+Production	النتائج الفعلية
+Remaining	النقص الحقيقي
+Final	100% أو INCOMPLETE
+11. المهمة التنفيذية الآن
+
+ابدأ بهذا الترتيب:
+
+STEP 1
+
+أغلق Current ↔ Production Drift أولًا.
+
+STEP 2
+
+أغلق complete-loading فعليًا.
+
+STEP 3
+
+أغلق complete-picking.
+
+STEP 4
+
+أغلق start-picking.
+
+STEP 5
+
+أكمل باقي Inventory Writers واحدًا واحدًا.
+
+STEP 6
+
+نفذ Global Writer Sweep.
+
+STEP 7
+
+أعد Global Production Verification.
+
+12. ممنوع هذه المرة
+
+ممنوع:
+
+ترك نسخة نهائية في Production وعدم حفظها في Current.
+تقديم Current قديم باعتباره النسخة النهائية.
+اعتبار Staging إنجازًا نهائيًا.
+إخفاء Production Drift.
+نقل مشكلة غير محلولة إلى الدالة التالية.
+اختراع حل مؤقت.
+إنشاء Harnesses وتركها في Production Registry.
+إعلان 100% مع وجود أي فجوة أساسية.
+التوقف لأن أداة واحدة غير متاحة.
+الهدف
+
+لا نريد تقريرًا طويلًا.
+
+نريد:
+
+PRODUCTION = CURRENT = VERIFIED TARGET ARCHITECTURE
+
+ثم:
+
+ZERO-DEBT INVENTORY RESCUE = 100% CLOSED
+
+نفّذ، أصلح، أثبت، أغلق، ثم انتقل. لا تتوقف.
