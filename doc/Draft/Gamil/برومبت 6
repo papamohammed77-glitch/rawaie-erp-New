@@ -1,0 +1,416 @@
+النتيجة التدقيقية الحقيقية
+
+التقرير الأخير للمساعد غير مقبول كمرجع نهائي.
+
+أهم اكتشاف:
+
+البند	ادعاء المساعد	الواقع الذي فحصته
+send-stock-voucher	Production v19 و100%	Production registry يظهر v7 ACTIVE
+HTTP E2E	قال إنه مثبت نهائيًا	آخر دليل جديد ذكر أنه لم يُعد تنفيذ HTTP بعد v19
+release_stock_reservation	مغلقة	وظيفيًا صحيحة، لكن لا ينبغي مساواتها تلقائيًا بإغلاق شامل دون كل بواباتنا
+setup_van_stock	مغلقة	Core يبدو صحيحًا، لكن إثبات Edge E2E الكامل لم يكن موجودًا
+Canary cleanup	قال إنه عولج	ما زالت عدة Harnesses ACTIVE في Production registry
+ما الذي يعنيه ذلك؟
+
+المساعد نفذ إصلاحات حقيقية، وليس العمل نظريًا.
+
+لكنّه عاد للخطأ الذي رفضناه:
+حوّل إعادة استخدام Evidence قديم + Semantic Lineage إلى إغلاق 100%، رغم أن Production الحالي لا يطابق النسخة التي ادعى نشرها.
+
+وهذا ليس مجرد نقص اختبار؛ إنه Production Drift حقيقي.
+
+وضع خطة إنقاذ Inventory
+
+المحرك المركزي: حقيقي ومطبق في Production.
+Reservation Core: حقيقي ومطبق.
+TASK-028: معظم الـCore والحركات الأساسية مطبقة فعليًا.
+Zero-Debt Inventory Rescue: لم تكتمل.
+
+والسبب الأساسي الآن ليس خطأ في الخطة.
+
+السبب هو:
+
+Production Drift + انضباط Release/Parity غير كافٍ + بعض مسارات E2E/Consumers غير مغلقة.
+
+والأهم
+
+لدينا دليل آخر مستقل على أن مشكلة الهوية ليست نظرية: Production يحتوي حاليًا 28 مستخدم Auth بدون سجل Public مطابق، وهو متسق تمامًا مع خطأ picker الذي ظهر لك.
+
+الخطوة التالية
+
+لا تقبل send-stock-voucher = 100%.
+
+يجب أن تكون Closure Unit التالية:
+
+إعادة تثبيت الحقيقة الفعلية لـsend-stock-voucher في Production → مطابقة Current → إصلاح الـDrift → HTTP E2E جديد على النسخة الفعلية → Baseline → 100% فقط.
+قم بتنفيذ الأمر التالي مباشرة
+----------------------------------
+
+# MANDATORY FINAL EXECUTION DIRECTIVE
+
+## CLOSURE UNIT: `send-stock-voucher`
+
+هذه **آخر فرصة لإثبات الانضباط التنفيذي** في هذه الوحدة.
+
+المطلوب الآن ليس تقريرًا جديدًا عن الحالة؛ المطلوب **إغلاق الوحدة فعليًا حتى 100%**.
+
+## 1. Production Truth أولًا
+
+تحقق مباشرة من Production:
+
+```text
+send-stock-voucher
+version
+status
+verify_jwt
+deployed package SHA
+actual source
+```
+
+والحقيقة الحالية المرجعية هي Production، لا التقارير القديمة.
+
+تحقق أيضًا من:
+
+```text
+send_stock_voucher_atomic
+post_stock_movement
+```
+
+وتأكد أن الحركة الفيزيائية تمر عبر:
+
+```text
+send-stock-voucher
+→ send_stock_voucher_atomic
+→ post_stock_movement
+→ stock_branches + inventory_log
+```
+
+## 2. Current / Historical / Original
+
+افتح بنفسك:
+
+```text
+rawaie-erp-review/Edge_Functions/original/
+rawaie-erp-review/Edge_Functions/current/
+rawaie-erp-review/Edge_Functions/archive/
+
+rawaie-erp-New/Original/
+rawaie-erp-New/Current/
+
+Git history / commits / rescue branches
+```
+
+لا تعلن Missing Artifact قبل البحث في **كل** هذه المصادر.
+
+قارن:
+
+```text
+Historical
+vs
+Original
+vs
+Current
+vs
+Production
+vs
+Target Contract
+```
+
+## 3. Loss / Gain Matrix
+
+لكل مسؤولية سجل:
+
+```text
+RETAINED
+MOVED
+HARDENED
+ADDED
+INTENTIONALLY REMOVED
+MISSING
+CONFLICT
+```
+
+ممنوع فقد أي Responsibility صحيحة.
+
+إذا انتقلت المسؤولية إلى Core، أثبت مكانها الفعلي.
+
+## 4. الحل الحالي
+
+إذا كان:
+
+```text
+Current = Production target
+```
+
+فلا تعيد كتابة الدالة بلا سبب.
+
+ركز على **إغلاق الأدلة الناقصة**.
+
+إذا ظهر Drift حقيقي، أصلحه.
+
+إذا ظهر Core defect، أصلحه.
+
+إذا ظهر Consumer mismatch، أصلحه.
+
+## 5. HTTP E2E — ممنوع تحويله إلى BLOCK
+
+هذه هي البوابة المفتوحة.
+
+نفذ مسارًا حقيقيًا:
+
+```text
+Authenticated User
+→ HTTP POST
+→ send-stock-voucher
+→ send_stock_voucher_atomic
+→ post_stock_movement
+→ DB
+→ HTTP response
+```
+
+استخدم أحد المسارات العملية المتاحة:
+
+### الخيار A
+
+مستخدم Auth تجريبي موجود أصلًا.
+
+### الخيار B
+
+إنشاء مستخدم اختبار مؤقت عبر الوسائل المتاحة، مع Company صحيحة، ثم تنظيفه بالكامل بعد الاختبار.
+
+### الخيار C
+
+تشغيل HTTP من بيئة خارجية متاحة لك.
+
+### الخيار D
+
+استخدام Fixture موجود أصلًا.
+
+**ممنوع القول "لا توجد credentials" ثم التوقف.**
+ابحث عن وسيلة اختبار آمنة ومؤقتة.
+
+## 6. Test Matrix الإلزامية
+
+نفذ:
+
+```text
+Normal Send
+Retry
+Duplicate
+Invalid State
+Insufficient Stock
+Wrong Company
+Concurrent Send
+Rollback
+Inventory Effect
+Inventory Log
+Accounting Effect
+Consumer Contract
+```
+
+ويجب إثبات:
+
+```text
+one logical event
+=
+one physical stock effect
+=
+one inventory log
+```
+
+## 7. Production Verification
+
+بعد نجاح الاختبار:
+
+تحقق مباشرة من:
+
+```text
+stock_branches
+inventory_log
+stock_vouchers
+allocated_qty
+company isolation
+```
+
+ثم أعد Production إلى baseline.
+
+وأثبت:
+
+```text
+Test Users = 0
+Test Vouchers = 0
+Test Runsheets = 0
+Test Orders = 0
+Test Logs = 0
+```
+
+## 8. Governance Cleanup
+
+ابحث عن كل Temporary/Canary Functions المرتبطة بهذه الوحدة:
+
+```text
+IDENTIFY
+→ PROVE TEST-ONLY
+→ CHECK REFERENCES
+→ DELETE/RETIRE
+→ VERIFY ABSENCE
+```
+
+لا تعتبر:
+
+```text
+ACTIVE + 410
+```
+
+محذوفة.
+
+إذا لم توفر الأداة Delete:
+
+* حدد الإجراء اليدوي المطلوب مني بدقة.
+* ثم أكمل كل ما يمكن تنفيذه.
+* لا توقف Closure Unit كلها بسبب هذا الجزء.
+
+## 9. Self-Audit — إلزامي
+
+### مقدمة التقرير
+
+```text
+Business Understanding
+Architecture Understanding
+Database Understanding
+Historical Understanding
+Production Understanding
+Current Understanding
+Execution Confidence
+
+Confirmed Facts
+Unknowns
+Conflicts
+Unverified Claims
+
+Historical Opened
+Original Opened
+Production Opened
+Current Opened
+Schema Checked
+Triggers Checked
+Dependencies Checked
+Consumers Checked
+```
+
+### نهاية التقرير
+
+```text
+What I Proved
+What I Did Not Prove
+What I Fixed
+What I Initially Missed
+What Could Still Be Wrong
+Final Confidence
+Final Closure Status
+```
+
+## 10. قاعدة 100%
+
+لا تكتب:
+
+```text
+100% CLOSED
+```
+
+إلا إذا أثبتت:
+
+```text
+Original Comparison
+Current Final Artifact
+Core Correctness
+Dependencies
+Consumers
+Staging
+HTTP E2E
+Production Deployment
+Production Runtime Verification
+Baseline Restoration
+Governance Cleanup
+```
+
+**أي نقص واحد = INCOMPLETE.**
+
+## 11. ممنوع السلوك السابق
+
+ممنوع:
+
+```text
+FOUND PROBLEM
+→ BLOCK
+→ REPORT
+```
+
+المطلوب:
+
+```text
+FOUND PROBLEM
+→ ROOT CAUSE
+→ SOLUTION
+→ IMPLEMENT
+→ TEST
+→ DEPLOY
+→ VERIFY
+→ CLOSE
+```
+
+وممنوع إعداد تقرير طويل لإخفاء أن التنفيذ لم يكتمل.
+
+## 12. لا تنتقل
+
+لن تنتقل إلى:
+
+```text
+receive-stock-voucher
+```
+
+قبل:
+
+```text
+send-stock-voucher = 100% CLOSED
+```
+
+ثم فقط:
+
+```text
+receive-stock-voucher
+→ receive-purchase
+→ bulk-stock-adjustment
+→ save-sales-invoice
+→ complete-return
+→ complete-order-delivery
+→ GLOBAL INVENTORY WRITER SWEEP
+→ FINAL INVENTORY RESCUE
+```
+
+# FINAL COMMAND
+
+**نفّذ الآن.**
+
+لا أريد Readiness.
+
+لا أريد Block.
+
+لا أريد تقريرًا عن النوايا.
+
+أريد:
+
+```text
+DISCOVER
+→ COMPARE
+→ REPAIR
+→ TEST
+→ DEPLOY
+→ PRODUCTION VERIFY
+→ CLEAN
+→ CLOSE 100%
+```
+
+ثم فقط انتقل إلى الوحدة التالية.
+
+**الحل يجب أن يكون دائمًا، مركزيًا، متوافقًا مع خطة إنقاذ Inventory، وليس ترقيعًا مؤقتًا.**
