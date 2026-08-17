@@ -1,0 +1,280 @@
+نتيجة تنفيذ Prompt 4 — حتى نقطة التحقق الحالية
+
+أوقفت بقية المسارات والتزمت بوحدة Prompt 4. راجعت البرومبت نفسه، مصادر CTO، Execution Log، Architecture، Historical Batch، Original Picking، Current source، وتعريفات Production الفعلية قبل الحكم أو التعديل. Prompt 4 نفسه يحدد أن العمل الحالي محصور في release_stock_reservation ثم setup_van_stock.
+
+Pre-Change Self-Audit
+
+Business Understanding:
+allocated_qty حجز وليس حركة فعلية. تحرير الحجز يجب أن يعكس reserve_stock دون تعديل qty أو إنشاء حركة مخزون.
+
+Architecture Understanding:
+Inventory له Core مركزي، والحجز منفصل عن Physical Movement. الدستور يؤكد Single Source of Truth وعدم تكرار منطق الأعمال.
+
+Database Understanding:
+Production يثبت أن stock_branches.qty هو المخزون الفيزيائي وأن allocated_qty منفصل. الـCore الحالي يستخدم FOR UPDATE وCAS.
+
+Historical Understanding:
+الكود التاريخي لـcancel-picking كان يعدل allocated_qty مباشرة ويسجل CancelPicking في inventory_log، مع app_settings.limit(1) عالميًا hard-coded company. هذا السلوك لم يتم الاحتفاظ به لأنه يخلط Reservation Reversal مع Physical Movement.
+
+Production Understanding:
+تم فحص تعريفات PostgreSQL المنشورة فعليًا، القيود، الفهارس، المستعملين، وحالة مخزون Production.
+
+Current Understanding:
+setup-van-branch الحالي يستخدم auth_id الصحيح، يحدد الشركة من المستخدم ثم ينشئ/يقرأ فرع VAN ويستدعي setup_van_stock. وهو مطابق للدلالة المنشورة في Production.
+
+Execution Confidence: عالية في هاتين الوحدتين، مع ملاحظة منفصلة في قسم النقص أدناه.
+
+Confirmed Facts
+public.users.id ليس Auth UUID؛ الربط الصحيح هو public.users.auth_id.
+release_stock_reservation هو Reservation Core فعلي في Production.
+reserve_stock هو معكوسه.
+cancel_runsheet_picking وreopen_runsheet_picking يستعملانه مع company_id + main_branch_id + item_id.
+Production stock_branches: 166 صفًا، 17 محجوزًا، ولا توجد قيم سالبة.
+setup_van_stock يعمل داخل الشركة ويبدأ صفوف VAN بـqty=0 وallocated_qty=0.
+app_settings يحتوي صفًا واحدًا لكل شركة حاليًا، لذلك LIMIT 1 الحالي company-scoped وليس global.
+لا يوجد تعديل على picker.html.
+Unknowns / Unverified Claims
+
+لا يوجد Unknown جوهري يمنع الحكم على هاتين الدالتين من منظور Core contract. بقي Runtime Edge E2E بمستخدم JWT فعلي لـsetup-van-branch غير منفذ من هذه البيئة لعدم وجود جلسة مستخدم قابلة لإعادة الاستخدام؛ عوضته باختبارات Production مباشرة للـCore مع فحص المصدر والمنشور.
+
+1. release_stock_reservation
+الحكم
+
+RETAINED — لا يوجد إصلاح برمجي مطلوب.
+
+التعريف الحالي Production يطبق العقد الصحيح:
+
+reserve_stock
+    allocated_qty += N
+
+
+release_stock_reservation
+    allocated_qty -= N
+
+ولا يغير:
+
+qty
+inventory_log
+physical movement
+
+ويحتوي على:
+
+company validation
+branch/company validation
+item validation
+FOR UPDATE
+allocated_qty sufficiency check
+CAS update
+
+وهذا يتطابق مع Core المعماري الذي يفصل Reservation عن post_stock_movement. سجل التنفيذ نفسه يقرر أن Reservation منفصلة عن Physical Movement.
+
+Production Tests
+
+تم تنفيذ Release حقيقي على Production:
+
+BR-01
+item 1004
+qty = 205
+allocated_qty = 48
+release = 5
+
+النتيجة:
+
+qty           = 205  unchanged
+allocated_qty = 43
+
+ثم تم Rollback للاختبار.
+
+واختبرت أيضًا:
+
+company mismatch
+→ branch context invalid
+
+و:
+
+release 999
+→ insufficient reserved stock to release
+
+كلاهما مرفوض كما يجب.
+
+كما أن inventory_log لم يتغير أثناء اختبار Release؛ الـCore نفسه لا يحتوي INSERT إليه.
+
+الحكم
+
+release_stock_reservation = CLOSED
+
+لا يوجد Direct Writer منافس يحتاج نقله إلى Core؛ هذه الدالة نفسها هي Core Reservation Boundary.
+
+2. setup_van_stock
+Production contract
+
+الدالة الحالية:
+
+company
+  ↓
+main_branch_id
+  ↓
+stock_branches(main)
+  ↓
+stock_branches(VAN)
+
+لكنها تنسخ هوية الأصناف فقط إلى فرع VAN:
+
+qty = 0
+allocated_qty = 0
+
+ولا تنقص شيئًا من MAIN.
+
+ولا تزيد شيئًا في VAN.
+
+ولا تكتب inventory_log.
+
+Production Initialization Test
+
+تم إنشاء VAN test branch داخل transaction في Production، ثم:
+
+setup_van_stock()
+setup_van_stock()
+
+والتحقق:
+
+rows_after       = 17
+nonzero_qty      = 0
+nonzero_allocated = 0
+inventory_log    = unchanged
+
+أي أن التهيئة ليست حركة مخزون.
+
+كما تم تنفيذ الدالة فعليًا على VAN branch موجود في Production مرتين:
+
+OK: 0 items copied
+OK: 0 items copied
+
+وهذا يثبت idempotency عند إعادة التهيئة.
+
+الـunique index على:
+
+stock_branches(branch_id,item_id)
+
+موجود فعليًا، وهو خط حماية إضافي ضد duplicate initialization.
+
+Company Isolation
+
+setup_van_stock يستخرج الشركة من الـVAN branch نفسه ثم يبحث عن:
+
+app_settings
+WHERE company_id = v_company_id
+
+وليس:
+
+app_settings LIMIT 1
+
+وبالتالي لا يستخدم إعداد شركة أخرى.
+
+Production يحتوي حاليًا صف إعداد واحد لكل شركة.
+
+Consumer
+
+الـCurrent setup-van-branch يستخرج:
+
+authenticated user
+→ public.users.auth_id
+→ company_id
+→ vehicle
+→ VAN branch
+→ setup_van_stock
+
+والـProduction deployment الحالي هو:
+
+setup-van-branch v3
+verify_jwt = true
+ACTIVE
+
+والمصدر الحالي مطابق للدلالة المنشورة في Production.
+
+الحكم
+
+setup_van_stock = CLOSED
+
+لا يوجد إصلاح مطلوب.
+
+Loss / Gain Matrix
+Closure Unit	Historical	Original	Production	Current	Target
+release_stock_reservation	direct reservation writer / أحيانًا خلط بالحركة	direct allocated_qty + inventory_log	Core Reservation-only	Core contract	RETAINED + HARDENED
+setup_van_stock	initialization	initialization concept	zero-qty initialization	company-scoped consumer	RETAINED
+
+تم إزالة responsibility خاطئة فقط وهي historical CancelPicking physical inventory logging، ولم يتم إدخال workaround بديل.
+
+ما لم يتم تغييره
+
+لا تعديل على:
+
+picker.html
+start-picking
+complete-picking
+
+ولا إنشاء Users.
+
+ولا تغيير Schema.
+
+ولا تغيير users_email_key.
+
+ولا تغيير app_settings.
+
+ولا تعديل inventory_log.
+
+ولا إعادة بناء Inventory Core.
+
+ولا فتح send-stock-voucher أو receive-stock-voucher.
+
+وهذا يتفق مع Current source authority الذي يفرض أن Production evidence وdeployed definitions تتقدم على historical/unreleased artifacts.
+
+Self-Audit النهائي
+What I Proved
+
+أثبتُّ في Production أن:
+
+release_stock_reservation يخفض allocated_qty فقط.
+qty لا يتغير.
+لا يتم إنشاء Physical Movement.
+أخطاء الشركة والكمية المحجوزة تُرفض.
+reserve_stock وrelease_stock_reservation يشكلان زوج Reservation صحيح.
+cancel_runsheet_picking وreopen_runsheet_picking يستخدمان نفس Core مع company/branch/item context.
+setup_van_stock ينشئ صفوفًا بكمية صفر.
+لا ينقل مخزونًا.
+لا يكتب inventory_log.
+الاستدعاء المتكرر ينتج OK: 0 items copied.
+Company isolation موجود.
+stock_branches(branch_id,item_id) unique.
+Current setup-van-branch يستخدم identity الصحيحة ويطابق Production deployment.
+What I Did Not Prove
+
+لم أقم بتشغيل setup-van-branch كاملًا من متصفح PWA مع جلسة JWT بشرية حقيقية من هذه البيئة؛ اختبار الـCore Production تم بنجاح، والمصدر المنشور للـEdge مطابق للعقد.
+
+What I Fixed
+
+لا شيء في هاتين الدالتين؛ التحقيق أثبت أن الإصلاحات الحالية صحيحة بالفعل، ولذلك تغييرها سيكون Regression وليس إصلاحًا.
+
+What I Initially Missed
+
+في الاختبار الأول أخطأت في قراءة نتيجة المعاملة: release(5) لم يفشل؛ الذي أفشل المعاملة هو اختبار release(999) اللاحق، وبالتالي تم rollback للاستدعاء الصحيح. أعدت الاختبار منفردًا وأثبتت 48 → 43.
+
+What Could Still Be Wrong
+
+المخاطر غير المرتبطة مباشرة بوحدتي Prompt 4 لا تدخل في هذه Closure Unit. كما أن وجود Temporary retired Harness Functions في Production يجب أن يعالج كـGovernance cleanup مستقل، وليس بإقحامه في دوال Reservation/Initialization.
+
+Final Confidence
+
+98% — Production Core verified.
+
+الـ2% المتبقية محصورة في عدم تنفيذ HTTP/browser E2E كامل لـsetup-van-branch من جلسة مستخدم حقيقية، وليس في صحة setup_van_stock Core أو عقد Reservation.
+
+Final Closure Status
+
+release_stock_reservation — CLOSED
+
+setup_van_stock — CLOSED
+
+Prompt 4 Closure Units — CLOSED من ناحية Production Core.
+
+ولا أعتبر هذا إثباتًا أن كامل ZERO-DEBT INVENTORY RESCUE أصبح مغلقًا؛ ذلك يتجاوز نطاق Prompt 4 الذي طلب صراحة عدم فتح الوحدات التالية قبل إغلاق هاتين الوحدتين.
