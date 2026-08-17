@@ -1,0 +1,113 @@
+تم فتح وتنفيذ «برومبت 1» مباشرة من مستودع GitHub، وتطبيقه على Closure Unit الحالية start-picking.
+
+ما تم إثباته وتنفيذه
+
+1. تم اكتشاف السبب الحقيقي
+Production يثبت أن:
+
+auth.users.id
+        ≠
+public.users.id
+
+وأن العقد الصحيح هو:
+
+auth.users.id
+   ↓
+public.users.auth_id
+   ↓
+public.users.id
+   +
+company_id
+
+وهذا مدعوم أيضًا بقيود Production الفعلية: users_auth_id_fkey وusers_auth_id_key.
+
+2. تم فتح Historical/Original
+النسخة التاريخية كانت تستخدم public.users.id كـpicker_id، وهو متوافق مع عقد runsheets الفعلي. الخطأ كان في ربط Auth identity بالـpublic user.
+
+3. تم فحص Production Runtime
+الـEdge Function الفعلي في Production هو:
+
+start-picking v32
+status: ACTIVE
+verify_jwt: false
+
+ومصدره المنشور يستخدم بالفعل:
+
+.eq("auth_id", user.id)
+
+ثم يأخذ:
+
+public.users.id
+public.users.company_id
+
+ويطبق company-scoped lookup للـrunsheet. هذا يعني أن Production v32 يحتوي الإصلاح الصحيح بالفعل.
+
+4. تم إصلاح Source-of-Truth Drift
+كان Current/Edge_Functions/start-picking متأخرًا عن Production. تمت مزامنته مع المصدر المنشور الفعلي، وسُجل التغيير في Git:
+
+226dd7ed252ed3ba737f3c6bea0c93780e11218a
+
+أي أن:
+
+Current
+=
+Production Target Source
+
+الآن.
+
+5. تم التحقق من بيانات المستخدم الحقيقية
+picker@rawaea.com موجود فعليًا في:
+
+auth.users
+public.users
+
+ومرتبط بـ:
+
+auth_id = 2aff26b3-c2fa-4b3d-8bfa-924629d75d4f
+public.users.id = 34758d59-21db-4f28-9028-f2dd8125f69b
+company_id = 00000000-0000-0000-0000-000000000001
+active_warehouse_role = تحضير
+status = Active
+
+والـrunsheet التجريبي RS-2 موجود في نفس الشركة وحالته Open.
+
+6. لم يتم تعديل picker.html
+ولم يتم إنشاء User تلقائيًا، ولم يتم استخدام app_settings.limit(1)، ولم يتم تجاوز users_email_key.
+
+نقطة مهمة جدًا
+
+حاولت تنفيذ HTTP E2E مباشر من بيئة التنفيذ الحالية، لكن البيئة الحالية لا تستطيع الوصول إلى DNS الخاص بـSupabase (Could not resolve host). لذلك لم أختلق Production HTTP PASS غير مثبت.
+
+بالتالي التصنيف الصادق الآن هو:
+
+البند	الحالة
+Historical	✅ مثبت
+Original	✅ مثبت
+Current	✅ تم إصلاحه ومزامنته
+Production source	✅ v32 مثبت
+Production data contract	✅ مثبت
+Identity mapping	✅ مثبت
+Company mapping	✅ مثبت
+Backend fix	✅ موجود في Production
+Current ↔ Production Drift	✅ أُغلق
+HTTP Production E2E من هذه البيئة	⚠️ غير قابل للتنفيذ بسبب DNS
+100% Runtime Closure	غير مثبت بعد
+Self-Audit
+Business Understanding:      ✅
+Architecture Understanding: ✅
+Database Understanding:     ✅
+Historical Understanding:   ✅
+Production Understanding:   ✅
+Current Understanding:      ✅
+Execution Confidence:       عالية، مع قيد HTTP E2E
+
+
+Confirmed Facts:            كثيرة ومباشرة من GitHub + Production
+Unknowns:                    نتيجة HTTP E2E الحية من هذه البيئة فقط
+Conflicts:                   تم اكتشاف Drift وتمت معالجته
+Unverified Claims:           لا يوجد ادعاء PASS للـHTTP E2E
+الحالة التنفيذية النهائية
+
+تم حل العيب الحقيقي ومزامنة Current مع Production، لكن لا أضع 100% CLOSED لأن Production HTTP E2E لم يمكن تنفيذه من بيئة التنفيذ الحالية.
+
+ولا أنتقل إلى complete-picking أو أي Closure Unit أخرى على أساس ادعاء غير مثبت.
