@@ -1,0 +1,114 @@
+تم تنفيذ Prompt 3 على Production، مع إعادة مزامنة كاملة قبل أي إصلاح
+
+راجعت أولًا تقييم تنفيذ Prompt 2، واتضح منه أن المشكلة الأساسية كانت فعلًا Synchronization Drift: التقرير كان يصف Production قديمًا مثل complete-picking v13 وsend-stock-voucher v7.
+
+ثم بدأت Prompt 3 من Production الحالية، لا من التقرير السابق. الحالة الحالية التي ثبتتها من Supabase هي:
+
+start-picking        v33
+complete-picking     v15
+send-stock-voucher   v19
+receive-stock-voucher v21
+complete-loading     v11
+complete-return      v23
+unload-runsheet      v6
+save-sales-invoice   v14
+bulk-stock-adjustment v5
+setup-van-branch     v3
+
+وهذا هو الواقع الذي بُني عليه القرار، وليس أرقام التقرير القديم.
+
+ما تم اكتشافه وإصلاحه فعليًا
+
+وجدت عيبًا حقيقيًا في send_stock_voucher_atomic:
+
+كان الـCore ينشئ حركة واحدة لكل مجموعة (item_id,item_code)، لكن عداد الـidempotency كان يعد صفوف التفاصيل الخام.
+
+وبالتالي، Voucher يحتوي:
+
+Item 1003 — qty 1
+Item 1003 — qty 1
+
+ينتج عنه:
+
+First SEND  → success / Sent / movement_count = 1
+Replay      → Voucher is not Draft
+
+وقد تم إعادة إنتاج هذا السلوك مباشرة في Production قبل الإصلاح، وليس استنتاجه نظريًا.
+
+تم إصلاحه بمigration دائمة:
+
+20260818162929_fix_send_voucher_idempotency_duplicate_detail_groups
+
+وجرى أيضًا تسجيلها في Git داخل:
+
+supabase/migrations/
+20260818163000_fix_send_voucher_idempotency_duplicate_detail_groups.sql
+إثبات الإصلاح
+
+بعد الإصلاح أُعيد تنفيذ نفس السيناريو في Production:
+
+First SEND
+success = true
+status = Sent
+movement_count = 1
+
+
+Replay
+success = true
+duplicate = true
+status = Sent
+movement_count = 1
+
+أي أن إعادة الإرسال لم تُنشئ حركة ثانية.
+
+ثم أُعيد المخزون إلى الـbaseline الحقيقي:
+
+qty           = 207
+allocated_qty = 0
+P3 vouchers  = 0
+P3 SEND logs  = 0
+
+وبصمة الـCore الحالية بعد الإصلاح:
+
+546b5291430231634ca544b4cc0eaf6f
+Edge Adapter
+
+لم أجرِ تعديلًا ترقيعيًا في send-stock-voucher.
+
+الـEdge الحالي بقي Thin Adapter: Authentication → company context → send_stock_voucher_atomic، ولا يحتوي على stock mutation أو inventory_log مباشرة.
+
+HTTP Production Gate
+
+شغّلت Production HTTP E2E عدة مرات عبر GitHub Actions والـSupabase runtime الحقيقي.
+
+النتيجة المهمة:
+
+الـHTTP Gate لم يفشل بسبب SEND.
+
+بل فشل قبل الوصول إلى send-stock-voucher لأن Production Auth الحالي لا يسمح للـcanary bootstrap بإنشاء مستخدم مؤقت، كما فشل مسار Magic Link لإنشاء مستخدم مؤقت جديد، ثم فشل توليد token لحساب موجود. ولذلك رفضت تمامًا إضافة Authentication bypass مؤقت إلى Production.
+
+الـtemporary harness تم تعطيله إلى 410، والـtemporary PR أُغلق دون merge، والـProduction workflow الأصلي أُعيد كما كان.
+
+الحالة النهائية الدقيقة
+Gate	الحالة
+Production synchronization	PASS
+Current Git reconciliation	PASS
+Historical / Original review	PASS
+SEND adapter architecture	PASS
+Core defect reproduction	PASS
+Permanent Core repair	PASS
+Idempotent replay	PASS
+No duplicate stock movement	PASS
+Baseline restoration	PASS
+Temporary cleanup	PASS
+Production HTTP E2E	PENDING — Auth bootstrap blocker
+
+لذلك لم أضع نسبة مئوية، ولم أكتب 100%، ولم أعلن SEND = CLOSED زيفًا.
+
+الحالة الصحيحة الآن:
+
+SEND STOCK VOUCHER = REPAIRED / CORE-GO / HTTP-CLOSURE-PENDING-AUTH
+
+وهذه الدورة موثقة في السجل canonical داخل Current/CTO، بما في ذلك الحالة الحالية، العيب، الإصلاح، إثبات ما قبل وما بعد الإصلاح، ونتيجة HTTP Gate.
+
+المهم: أصبح لدينا الآن إصلاح Production حقيقي دائم للمشكلة التي كانت ستظل مخفية خلف تقارير قديمة، بينما لم يتم تغليف فشل الـAuth الاختباري على أنه فشل SEND أو تحويله إلى bypass خطير.
