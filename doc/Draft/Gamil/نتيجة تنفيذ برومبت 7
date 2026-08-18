@@ -1,0 +1,439 @@
+PRODUCTION RECONCILIATION COMPLETE
+
+تم تنفيذ Prompt 7 فقط. تم تجميد Picker وstart-picking وباقي Closure Units، ولم أبدأ send-stock-voucher أو أي مسار آخر.
+
+قرأت سلسلة المصادر 1 → 7 كاملة، ثم تعاملت مع Production كمرجع الحقيقة، لا التقارير السابقة. Prompt 7 نفسه يطلب صراحةً تصنيف السجلات قبل أي حذف، ومقارنة auth.users مع public.users.auth_id، وعدم حذف أي سجل إلا بعد إثبات أنه Test-Only ولا توجد له مراجع أو تاريخ أعمال.
+
+1. SELF-AUDIT
+Business Understanding
+
+Production يجب أن يحتفظ بالبيانات التشغيلية والتاريخية الصحيحة، بينما تُزال فقط Fixtures/Canaries التي ثبت أنها تجريبية ولا تحمل قيمة أعمال.
+
+Architecture Understanding
+
+العلاقة الصحيحة للهوية هي:
+
+auth.users.id
+      ↓
+public.users.auth_id
+      ↓
+public.users.id
+      ↓
+company_id
+
+وليس مساواة public.users.id مع Auth UUID. وهذا يتفق أيضًا مع التحقيقات السابقة في سلسلة المهمة، التي أثبتت أن auth_id هو جسر الهوية الصحيح.
+
+Database Understanding
+
+تحققت من:
+
+users
+auth.users
+الشركات
+FK constraints
+users_auth_id_fkey
+users_auth_id_key
+users_email_key
+مراجع المستخدمين عبر الجداول التشغيلية
+items
+مراجع الأصناف
+runsheets
+stock_vouchers
+stock_voucher_details
+inventory_log
+audit_log
+بيانات الاختبار المضمنة في JSON/JSONB.
+Historical Understanding
+
+راجعت السلسلة السابقة، وخصوصًا حقيقة أن بعض الإصلاحات السابقة كانت صحيحة رغم أن تقاريرها كانت متضاربة. التقييم السابق نفسه حذّر من الاعتماد على التقارير عندما تخالف Production.
+
+Production Understanding
+
+Production قبل التنظيف كان يحتوي:
+
+public.users = 31
+Auth users   = 27
+linked users = 26
+public users without auth_id = 5
+Auth users without public row = 1
+Current Understanding
+
+لم أستخدم Current لتقرير حقيقة البيانات؛ استخدمته كمرجع provenance فقط، كما يفرض Prompt 7. ولم أعد فتح أي Closure Unit سابقة لمجرد تحسين التقرير.
+
+Execution Confidence
+
+99% لنطاق Production Data Reconciliation & Cleanup المحدد في Prompt 7.
+
+2. CONFIRMED FACTS
+المستخدمون
+
+تم إثبات أن المستخدم الوحيد في Auth بلا Public User كان:
+
+test@rawaea.com
+
+وهو حساب اختبار قديم، منشأ في يونيو، بلا Public User وبلا أي سياق تشغيلي.
+
+أما الـ5 المستخدمين في public.users بلا auth_id:
+
+admin@alrawae.com
+abo.rahmah
+ahmed.ragab
+mostafa@rawaea.com
+papamohammed77@gmail.com
+
+فلم يتم حذفهم.
+
+سبب ذلك مهم جدًا: لا توجد أدلة تثبت أنهم Test Users، وهناك دلائل قوية على أنهم legacy / historical-valid records مرتبطة بشركات وأدوار فعلية. وadmin@alrawae.com تحديدًا مرتبط بفرع وشركة حقيقية. لذلك كان حذفهم سيكون Data Destruction وليس Cleanup.
+
+المستخدمون التجريبيون المثبتون
+
+تم إثبات أن الحسابات التالية Test-Only:
+
+test@rawaea.com
+test.console@rawaea.com
+test10@rawaea.com
+test2@rawaea.com
+
+بالنسبة إلى الثلاثة المرتبطين بـpublic.users:
+
+Orders            = 0
+Runsheets         = 0
+Stock Vouchers    = 0
+Inventory Logs    = 0
+Audit references  = 0
+FK references     = 0
+
+تم حذف الأربعة من auth.users.
+
+وبسبب:
+
+public.users.auth_id
+→ auth.users.id
+ON DELETE CASCADE
+
+تم أيضًا تنظيف الـ3 Public User rows المرتبطة تلقائيًا.
+
+النتيجة بعد الحذف
+public.users = 28
+linked_auth  = 23
+no_auth_id   = 5
+
+
+auth.users   = 23
+
+
+auth_without_public = 0
+public_without_auth = 0
+
+والأهم:
+
+deleted test users remaining = 0
+
+إذًا أصبحت هوية Production متسقة بالكامل داخل نطاق المستخدمين المرتبطين بـAuth.
+
+3. USERS RECONCILIATION LEDGER
+Artifact	التصنيف	القرار	السبب
+test@rawaea.com	TEST-ONLY / ORPHAN	DELETED	Auth-only، بلا Public، بلا تاريخ أعمال
+test.console@rawaea.com	TEST-ONLY	DELETED	لا مراجع ولا تاريخ أعمال
+test10@rawaea.com	TEST-ONLY	DELETED	لا مراجع ولا تاريخ أعمال
+test2@rawaea.com	TEST-ONLY	DELETED	لا مراجع ولا تاريخ أعمال
+admin@alrawae.com	HISTORICAL-VALID	KEPT	Legacy admin record حقيقي
+abo.rahmah	HISTORICAL-VALID	KEPT	مستخدم تاريخي حقيقي
+ahmed.ragab	HISTORICAL-VALID	KEPT	مستخدم تاريخي حقيقي
+mostafa@rawaea.com	HISTORICAL-VALID	KEPT	سجل حقيقي، لا دليل على كونه Test
+papamohammed77@gmail.com	HISTORICAL-VALID	KEPT	سجل تاريخي حقيقي
+4. ITEMS RECONCILIATION
+
+Production يحتوي:
+
+Items = 50
+Referenced Items = 50
+Orphan Items = 0
+
+والفحص:
+
+GROUP BY company_id, item_code
+HAVING COUNT(*) > 1
+
+أعاد:
+
+0 rows
+
+إذًا:
+
+No intra-company item_code duplicates
+
+ولم أحذف أي Item.
+
+كما أن كل الـ50 Item لها مراجع فعلية في واحد أو أكثر من:
+
+stock_branches
+inventory_log
+order_details
+purchase_order_details
+run_sheet_details
+stock_voucher_details
+fulfillment_backorders
+
+هذا يمنع تمامًا سياسة:
+
+"هذا Item قديم، إذن احذفه."
+
+5. TEST DATA CLEANUP
+
+هنا ظهر أهم جزء عملي من Prompt 7.
+
+A. RS-2 Test Fixture
+
+تم اكتشاف 16 inventory_log rows مرتبطة صراحة بعبارات:
+
+Controlled RS-2 fixture stock
+Controlled RS-2 fixture stock restoration
+Controlled restoration of existing RS-2 test fixture stock
+
+وكانت كلها:
+
+user_email = picker@rawaea.com
+movement_type = InventoryIncrease
+
+والأهم أن RS-2 نفسه لم يعد موجودًا في Production.
+
+هذه ليست بيانات أعمال؛ هي آثار Fixture/Restoration صريحة.
+
+الإجراء
+
+تم حذف الـ16 سجلًا تحديدًا وبشروط محكمة.
+
+بعد ذلك:
+
+RS-2 fixture inventory logs = 0
+6. Canary Audit Cleanup
+
+وجدت 12 Audit rows صريحة لمستخدمين من نوع:
+
+sp-prod-...@example.test
+
+وكلها كانت:
+
+table = runsheets
+record_id = b2f0c9ca-...
+
+والـRunsheet نفسه أصبح غير موجود في Production.
+
+تم حذف الـ12 Test actor audit rows فقط.
+
+أما Audit history المتبقية التي تحمل:
+
+system
+owner@alrawae.com
+
+فتم الإبقاء عليها؛ لأنها Historical/Operational audit وليست Canary identity.
+
+وهذا تمييز مهم بين:
+
+Test data
+
+و:
+
+Audit history of real system actions
+7. TEST-004-PERSISTENT / IN-1
+
+تم العثور على Fixture أقوى من مجرد اسم:
+
+voucher_code = IN-1
+reference    = TEST-004-PERSISTENT
+notes        = TEST-004 PERSISTENT FIXTURE
+created_by   = test-operator@rawaea.local
+completed_by = test-operator@rawaea.local
+
+وله Detail واحد:
+
+Item 1004
+Qty = 1
+notes = TEST-004 PERSISTENT
+التحقيق قبل الحذف
+
+تم إثبات:
+
+inventory_log for voucher = 0
+journal_entries by test operator = 0
+
+أي لم توجد حركة مخزنية أو محاسبية مرتبطة به يمكن أن تختفي بمجرد حذف الـVoucher.
+
+تم حذف:
+
+3 audit rows الخاصة بالـVoucher
+stock_voucher IN-1
+
+وstock_voucher_details تم تنظيفه عبر الـFK:
+
+ON DELETE CASCADE
+النتيجة
+TEST-004 voucher       = 0
+TEST-004 details       = 0
+TEST-004 inventory log = 0
+
+وتم عدم تعديل stock_branches لأن التحقيق لم يثبت أن هذا الـVoucher أنتج حركة فيزيائية باقية.
+
+8. ماذا أبقيت عمدًا؟
+
+لم أحذف:
+
+أي مستخدم Legacy فقط لأنه بلا auth_id.
+picker@rawaea.com أو loader@rawaea.com أو أي Warehouse user حقيقي.
+أي Item.
+أي Runsheet حقيقي.
+أي Audit history حقيقي.
+workflow_rules الفعلية.
+أي stock movement غير مثبت أنه Fixture.
+
+وهذا متوافق مع قاعدة Prompt 7: لا يتم مسح التاريخ تحت اسم Cleanup.
+
+9. FALSE POSITIVES التي تم اكتشافها
+
+الـText/JSON sweep كشف بعض النتائج التي ليست Test Data:
+
+workflow_rules
+
+ظهرت أسماء مثل:
+
+CreateStockVoucherOnOrderConfirm
+UpdateStockAndJournalOnPOReceive
+
+هذه Business workflows حقيقية، وليست Test rules.
+
+items.image_url
+
+ظهر تطابق مع e2e بسبب نص داخل URL، وليس بسبب Fixture.
+
+audit_log.record_id
+
+ظهرت بعض UUIDs بسبب احتوائها عرضيًا على سلسلة مشابهة لـe2e.
+
+هذه النتائج لم تُحذف.
+
+10. RECONCILIATION LEDGER — EXECUTIVE
+Area	What existed	Decision
+Auth identity bridge	auth_id canonical	KEEP
+5 legacy public users	no auth_id, real provenance	KEEP
+1 orphan Auth test user	test@rawaea.com	DELETE
+3 linked test users	no business references	DELETE
+RS-2 fixture stock logs	explicit test restoration logs	DELETE 16
+sp-prod-*@example.test audit rows	orphan canary activity	DELETE 12
+IN-1 TEST-004-PERSISTENT	explicit persistent fixture	DELETE
+IN-1 details	test fixture detail	CASCADE DELETE
+Real Items	50 / all referenced	KEEP ALL
+Intra-company item duplication	none	NO CHANGE
+Real Audit history	system/owner history	KEEP
+Real workflows	active business rules	KEEP
+11. PRODUCTION BASELINE AFTER CLEANUP
+
+الحقيقة الحالية أصبحت:
+
+AUTH USERS                     23
+PUBLIC USERS                   28
+PUBLIC USERS WITH AUTH_ID      23
+PUBLIC USERS WITHOUT AUTH_ID    5
+
+
+AUTH → PUBLIC ORPHANS           0
+PUBLIC → AUTH ORPHANS            0
+
+
+ITEMS                           50
+ORPHAN ITEMS                     0
+DUPLICATE ITEM CODES             0
+
+
+TEST USERS REMAINING             0
+RS-2 TEST LOGS                   0
+TEST-004 VOUCHERS                0
+TEST-004 DETAILS                 0
+CANARY AUDIT ACTOR ROWS          0
+
+هذه هي أهم نتيجة في الوحدة.
+
+12. WHAT I PROVED
+Production لا يحتوي حاليًا على Auth user بلا Public user.
+كل public.users.auth_id الموجود يشير إلى Auth identity حقيقية.
+الـ5 auth_id NULL records ليست Test records مثبتة، ولذلك تم الحفاظ عليها.
+الـ4 Test Auth identities تم إثبات أنها Test-only وإزالتها.
+لا توجد item_code duplicates داخل الشركة.
+لا توجد Items orphan.
+تم تنظيف 16 RS-2 fixture inventory logs.
+تم تنظيف 12 canary audit actor records.
+تم تنظيف TEST-004-PERSISTENT / IN-1.
+تم التحقق من عدم وجود بقايا مباشرة لهذه العناصر بعد التنظيف.
+لم يتم حذف بيانات المالك.
+لم يتم تعديل Picker أو picker.html.
+لم يتم تغيير users_email_key.
+لم يتم إنشاء Users تلقائيًا.
+لم يتم استخدام Cleanup كوسيلة لإخفاء حركة مخزون حقيقية.
+13. WHAT I DID NOT PROVE
+
+لم أعتبر هذا التحقيق إثباتًا أن كل قيمة user identifier مخفية داخل أي JSON حر في كل جدول تاريخي خالية من كل Test artifact ممكن؛ تم فحص الـJSON/JSONB identifiers الحرجة، ولم يظهر إلا Audit row يمثل عملية الحذف نفسها، وهو audit history صحيح ويجب الاحتفاظ به.
+
+كما لم أقم بتغيير أي provisioning contract للمستخدمين Legacy الذين لا يملكون auth_id؛ لأن ربطهم بحسابات Auth جديدة دون دليل سيكون تعديل هوية خطيرًا.
+
+14. WHAT I FIXED
+
+تم تنفيذ Cleanup فعلي في Production:
+
+4 test Auth users
+16 RS-2 fixture inventory logs
+12 orphan canary audit actor rows
+1 persistent TEST voucher
+3 voucher audit rows
+1 voucher detail via cascade
+
+ولم يكن هناك إصلاح برمجي مطلوب ضمن Prompt 7 نفسه.
+
+15. WHAT I INITIALLY MISSED
+
+أهم شيء كشفته المراجعة الكاملة:
+
+التقارير السابقة لم تكن Truth Source.
+
+لقد كانت هناك حالات فعلية من:
+
+v7 vs v19
+closed vs incomplete
+current vs production drift
+test artifact claimed removed بينما ما زال موجودًا
+
+وهذا هو سبب أن Prompt 7 أعاد تعريف المهمة على أنها Reconciliation of Reality, وليس تحديث تقرير.
+
+وهذا التحذير موجود بوضوح في تقييمات Prompt 5 و6.
+
+16. WHAT COULD STILL BE WRONG
+
+المخاطر المتبقية ليست في البيانات التي قمنا بتصنيفها وتنظيفها، بل في نطاق أوسع لم يكن جزءًا من هذه mutation unit:
+
+Governance الخاص بـTemporary Edge Functions قد يحتاج دورة مستقلة.
+start-picking ما زال مجمدًا كما أمرت.
+Zero-Debt Inventory Sweep لم أعد إليه.
+المستخدمون Legacy بلا auth_id يحتاجون لاحقًا قرار Identity Governance مستقلًا، وليس حذفًا.
+17. FINAL CONFIDENCE
+99% — Production Reconciliation & Cleanup Scope
+
+الـ1% ليست بيانات Test غير معروفة اكتشفناها ولم ننظفها؛ بل حدود فحص الـindirect free-form historical references خارج الـFK/text/JSON domains التي تم فحصها.
+
+18. FINAL STATUS
+PRODUCTION RECONCILIATION COMPLETE
+
+والـProduction الآن أنظف من الحالة التي بدأ بها هذا المسار، مع:
+
+No Auth/Public orphan
+No item orphan
+No intra-company item_code duplication
+No proven test users remaining
+No RS-2 fixture logs
+No TEST-004 persistent voucher
+No canary test-actor audit rows
+Real legacy users preserved
+Real owner/history preserved
+القرار التنفيذي
+
+تم إغلاق Prompt 7 فقط.
+
+لم أبدأ send-stock-voucher، ولم أعد إلى Picker، ولم أتابع أي Closure Unit أخرى، التزامًا بالتجميد الذي طلبته وبترتيب السلسلة.
