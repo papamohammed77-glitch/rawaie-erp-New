@@ -1,0 +1,47 @@
+التقرير النهائي المختصر — الوضع الحقيقي
+العنصر	الموقف الفعلي
+خطة إنقاذ Inventory	متقدمة فعليًا وليست نظرية
+post_stock_movement	منشور ويعمل كمحرك Physical Stock مركزي
+reserve_stock	منشور ويعمل للحجز
+TASK-028 Loading Core	منفذ في Production
+complete-loading	Production v10
+reopen-loading	Production v2
+unload-runsheet	Production v5
+start-loading	Production v4
+send-stock-voucher	Production v7
+receive-stock-voucher	Production v5
+receive-purchase	Production v9
+bulk-stock-adjustment	Production v5
+save-sales-invoice	Production v13
+complete-return	Production v23
+complete-order-delivery	Production v11
+مركزية Physical Stock على مستوى النظام	تحققت بدرجة كبيرة، لكن لم أغلقها كـ100%
+complete-picking	Production v13، لكن ما زال غير مغلق 100% بسبب عيوب/فجوات التحقق
+start-picking	مجمّد حاليًا بسبب المشكلة الحقيقية التي ظهرت في التطبيق
+التطبيق/Picker	مجمّد كما طلبت
+الإنتاج مقابل Current	ليس متزامنًا 100% لكل المسارات
+Global Zero-Debt Inventory Closeout	لم يكتمل بعد
+أهم ما ثبت في Core Production
+
+complete_picking يستخدم reserve_stock ولا يخصم qty المادي. هذا صحيح.
+
+لكن توجد نقاط ما زالت تحتاج إغلاقًا ضمن الإنقاذ، مثل اتساق tenant/company وitem identity في بعض الـCore، ومراجعة بقية Writers حتى نثبت عدم وجود أي Physical Writer يتجاوز post_stock_movement.
+
+الخلاصة
+
+لسنا في بداية الطريق.
+لدينا Core مركزي حقيقي منشور في Production وعدد كبير من الدوال أعيد توجيهها إليه.
+
+لكن لم نصل إلى Zero-Debt / 100%.
+
+الخطوة التالية
+
+بعد تجميد الـPicker كما طلبت:
+
+Global Inventory Core Integrity Sweep
+
+هدفها واحد فقط:
+
+إثبات أن كل Physical Stock Movement في Production يمر عبر post_stock_movement، ثم إغلاق أي Writer أو Core متبقٍ، وبعدها نعود للـPicker.
+
+ولا نحتاج منك تجربة الآن.
