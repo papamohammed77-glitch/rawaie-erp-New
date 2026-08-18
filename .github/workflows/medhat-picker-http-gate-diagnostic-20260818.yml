@@ -1,0 +1,14 @@
+name: Medhat picker Production HTTP diagnostic gate
+on:
+  push:
+    branches: [main]
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute live Production HTTP diagnostic gate
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --max-time 180 \
+            "https://fiilmooggumokxanwiyx.supabase.co/functions/v1/complete-picking-picker-http-gate-20260818" | tee result.json
+          cat result.json
