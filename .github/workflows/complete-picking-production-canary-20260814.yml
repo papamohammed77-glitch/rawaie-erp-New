@@ -8,12 +8,16 @@ jobs:
   canary:
     runs-on: ubuntu-latest
     steps:
-      - name: Prompt 3 SEND production repro canary
+      - name: Prompt 3 SEND production repro canary v12
         run: |
           set -euo pipefail
           curl --fail-with-body --silent --show-error --max-time 120 "https://fiilmooggumokxanwiyx.supabase.co/functions/v1/send-stock-voucher-runtime-e2e-20260818?token=PROMPT3-SV-20260818" | tee result.json
           python - <<'PY'
           import json
           r=json.load(open('result.json')); assert r.get('success') is True, r
+          assert r['first']['status']==200 and r['first']['body'].get('success') is True, r
+          assert r['replay']['status']==200 and r['replay']['body'].get('duplicate') is True, r
+          assert r['log_count']==1, r
+          assert r['after']==r['baseline'], r
           print(json.dumps(r,ensure_ascii=False,indent=2))
           PY
