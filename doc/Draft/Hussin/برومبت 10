@@ -1,0 +1,512 @@
+بعد فحص Supabase Production Security Advisor الآن. توجد مشكلات أمنية حقيقية، لكنها يجب أن تُعالج كوحدات جراحية مستقلة دون تعطيل مسار Inventory. أبرزها حاليًا: سياسات RLS غير مكتملة، RLS policies تعتمد على auth.users.user_metadata، دوال SECURITY DEFINER قابلة للاستدعاء من anon/authenticated، وsearch_path mutable لبعض الدوال، إضافة لتعطيل حماية كلمات المرور المسربة. وهذا يحتاج معالجة فعلية، لا تقريرًا فقط.
+
+MANDATORY SECURITY CLOSURE DIRECTIVE
+RLS + SECURITY DEFINER + AUTH HARDENING
+ZERO-DEBT / SURGICAL / NO INVENTORY INTERRUPTION
+
+أنت الآن تدخل Security Closure Unit مستقلة.
+
+0. FREEZE RULE
+
+ممنوع إعادة فتح أو تعطيل أو إعادة تصميم:
+
+Picker
+picker.html
+start-picking
+complete-picking
+Loading lifecycle
+أي Inventory Closure Unit مغلقة 100%
+
+إلا إذا اكتشفت دليلًا مباشرًا على خطر Production يستلزم إصلاحًا فوريًا.
+
+Inventory Rescue يستمر في مساره المعتاد.
+
+الأمن لا يوقف Inventory.
+
+وفي المقابل:
+
+لا يجوز أن ننهي المشروع مع Security Debt معروف ومهمل.
+
+1. هذه ليست مهمة "تفعيل RLS للجميع"
+
+ممنوع:
+
+ALTER TABLE ... ENABLE ROW LEVEL SECURITY
+
+على عشرات الجداول دفعة واحدة.
+
+وممنوع إضافة Policies عامة مثل:
+
+auth.role() = authenticated
+
+بدون تحليل الملكية والشركة والوظيفة.
+
+المطلوب:
+
+SURGICAL SECURITY REMEDIATION
+
+كل مشكلة = وحدة صغيرة.
+
+2. Production Security Facts الحالية
+
+ابدأ من Production Supabase مباشرة.
+
+المراجعة الحالية أظهرت بالفعل:
+
+A — RLS Enabled Without Policies
+
+وجدت Security Advisor جداول RLS مفعلة عليها بلا Policies، ومنها:
+
+public.companies
+public.customer_assignments
+public.fulfillment_backorders
+public.owner_profile
+public.work_order_details
+
+يجب تحليل كل جدول قبل إنشاء Policy.
+
+B — RLS Uses Editable user_metadata
+
+وجدت Policies تعتمد على:
+
+auth.users.user_metadata
+
+وهذا غير مقبول كمصدر Authorization لأنه قابل للتعديل من المستخدم.
+
+ظهر ذلك في جداول منها:
+
+items
+customers
+suppliers
+branches
+runsheets
+stock_branches
+users
+app_settings
+audit_log
+
+يجب استبدال هذا المنطق بمصدر Authorization موثوق، وفق عقد الهوية الحالي:
+
+auth.users.id
+        ↓
+public.users.auth_id
+        ↓
+public.users.company_id
+        ↓
+role / permissions / ownership
+
+لا تعكس تصميم الهوية القديم.
+
+C — SECURITY DEFINER Exposure
+
+Security Advisor الحالي يظهر Functions من نوع:
+
+SECURITY DEFINER
+
+ويمكن لـanon أو authenticated استدعاء بعضها مباشرة عبر RPC.
+
+ومن الأمثلة:
+
+cancel_manual_stock_voucher_atomic
+complete_manual_stock_voucher_atomic
+create_manual_stock_voucher_atomic
+create_runsheet_atomic
+receive_purchase_atomic
+send_manual_stock_voucher_v2
+receive_manual_stock_voucher_v2
+reopen_runsheet_picking
+Functions مالية أخرى
+
+لا تفترض أن كل هذه exposures خاطئة.
+
+افحص لكل Function:
+
+هل هي Public API؟
+هل هي Edge-only Core؟
+هل تحتاج anon؟
+هل تحتاج authenticated؟
+هل يجب service_role فقط؟
+
+ثم طبّق أقل صلاحية لازمة:
+
+REVOKE EXECUTE
+GRANT EXECUTE
+
+أو غيّر التصميم فقط إذا كان ذلك ضروريًا.
+
+D — Mutable Search Path
+
+Security Advisor الحالي أظهر Functions ذات search_path mutable، ومنها وظائف مالية وتقارير.
+
+يجب تحليلها واحدةً واحدة.
+
+لـSECURITY DEFINER على وجه الخصوص:
+
+SET search_path = public
+
+أو التصميم الآمن المناسب بعد مراجعة الاعتماديات.
+
+E — Leaked Password Protection
+
+Supabase Auth حاليًا يظهر:
+
+Leaked Password Protection = DISABLED
+
+يجب تقييم تفعيله، مع التأكد من عدم كسر المستخدمين الحاليين أو عمليات تسجيل الدخول.
+
+3. قبل أي تعديل
+
+قدّم:
+
+PRE-CHANGE SECURITY SELF-AUDIT
+Business Understanding
+Architecture Understanding
+Database Understanding
+Historical Understanding
+Production Understanding
+Current Understanding
+Security Understanding
+Execution Confidence
+
+Confirmed Facts
+Unknowns
+Conflicts
+Unverified Claims
+
+ثم:
+
+Production Opened
+Current Opened
+Historical Opened
+Original Opened
+Schema Checked
+Policies Checked
+Triggers Checked
+Functions Checked
+Consumers Checked
+Auth Checked
+
+ثم حدد:
+
+المشكلة الدقيقة.
+سببها.
+تأثيرها.
+ما هو مصدر Authorization الصحيح.
+ما الذي سيتغير.
+ما الذي لن يتغير.
+كيف سيتم اختبار عدم كسر النظام.
+4. Historical / Current / Production Comparison
+
+لكل Security Unit:
+
+Historical
+vs
+Original
+vs
+Current
+vs
+Production
+vs
+Target Security Contract
+
+حدد:
+
+RETAINED
+HARDENED
+MOVED
+ADDED
+INTENTIONALLY REMOVED
+MISSING
+CONFLICT
+5. لا تخترع Authorization
+
+المصدر الصحيح للهوية:
+
+JWT
+ ↓
+auth.users.id
+ ↓
+public.users.auth_id
+ ↓
+public.users.company_id
+ ↓
+role / permissions
+
+ولا تستخدم:
+
+auth.users.user_metadata
+
+كمصدر Security Authority.
+
+ولا تستخدم:
+
+app_settings.limit(1)
+
+كمصدر Tenant Authority عندما يوجد user/company context حقيقي.
+
+6. RLS Design
+
+قبل إنشاء Policy:
+
+حدد مالك الصف.
+حدد الشركة المالكة.
+حدد الأدوار المسموح لها.
+حدد SELECT/INSERT/UPDATE/DELETE المطلوبة.
+افحص كل Consumers.
+اختبر Edge Functions وCore RPCs تحت anon وauthenticated وservice_role.
+تأكد أن SECURITY DEFINER functions لا تُفتح للعميل بلا ضرورة.
+لا تجعل RLS يكسر Core
+
+إذا كانت Edge Function تستعمل:
+
+SECURITY DEFINER
+
+فلا تحذفها أو تجعلها INVOKER تلقائيًا.
+
+حل المشكلة الأمنية مع الحفاظ على:
+
+transaction boundary
+stock engine
+accounting engines
+workflow contracts
+7. SECURITY DEFENDER RULE
+
+أي Function من نوع:
+
+SECURITY DEFINER
+
+يجب أن يكون:
+
+Authenticated/Service-only
+
+أو Public عن قصد موثق.
+
+لكل Function سجل:
+
+anon EXECUTE = ?
+authenticated EXECUTE = ?
+service_role EXECUTE = ?
+Reason = ?
+Consumer = ?
+Final decision = ?
+8. RLS Migration Rule
+
+كل Policy جديدة يجب أن تكون:
+
+company-scoped عند الحاجة.
+ownership-scoped عند الحاجة.
+role-scoped عند الحاجة.
+قابلة للاختبار.
+لا تستخدم user_metadata.
+لا تفتح البيانات لكل authenticated.
+9. التنفيذ الجراحي
+
+لكل Security Defect:
+
+DISCOVER
+→ UNDERSTAND
+→ COMPARE
+→ DESIGN
+→ SURGICAL PATCH
+→ STAGING
+→ NEGATIVE TEST
+→ POSITIVE TEST
+→ PRODUCTION
+→ VERIFY
+→ CLOSE
+Negative Tests
+
+اختبر:
+
+مستخدم من شركة أخرى.
+مستخدم غير مصرح.
+anon.
+authenticated بدون الدور.
+record من شركة أخرى.
+Positive Tests
+
+اختبر المستخدم الصحيح والدور الصحيح.
+
+10. لا تستخدم Security كذريعة لإيقاف Inventory
+
+إذا ظهرت مشكلة أمنية:
+
+أصلحها في Security Closure Unit.
+
+ولا تعيد فتح:
+
+send-stock-voucher
+receive-stock-voucher
+...
+
+إلا إذا كان الأمن يكشف عيبًا مباشرًا فيها.
+
+وبالتوازي، لا تسمح بأن تصبح Security Unit:
+
+BLOCKED
+
+إذا أمكن تنفيذ أجزاء منها.
+
+11. إذا واجهت أداة لا تستطيع تنفيذ إجراء
+
+لا تتوقف.
+
+حدد:
+
+MANUAL OWNER ACTION REQUIRED:
+<الإجراء المحدد>
+
+ثم واصل:
+
+التحقيق.
+التعديل.
+Testing.
+Git Current artifacts.
+migrations.
+privilege review.
+verification.
+12. Governance
+
+لا تعتبر:
+
+410 Stub
+
+بديلًا عن:
+
+Deleted
+
+وأي Temporary Function يجب:
+
+IDENTIFY
+→ PROVE TEST-ONLY
+→ CHECK REFERENCES
+→ DELETE
+→ VERIFY ABSENCE
+
+وإذا لم تستطع الأداة حذفها:
+
+اطلب مني الحذف فقط، ولا تدّعي أنه تم.
+
+13. Current Source of Truth
+
+كل Security remediation يجب أن يوجد في:
+
+rawaie-erp-New/Current/
+
+وتكون لها:
+
+ملف migration canonical.
+SHA.
+Commit.
+Production deployment evidence.
+
+لا تنشئ Repository جديدًا.
+
+14. Definition of Security 100%
+
+لا تعلن Security Unit = 100% إلا عند إثبات:
+
+Policy correctness
++
+Tenant isolation
++
+Role isolation
++
+Privilege correctness
++
+SECURITY DEFINER hardening
++
+search_path hardening
++
+Auth hardening
++
+Staging verification
++
+Production verification
++
+Consumer compatibility
++
+No governance debt
+15. ترتيب التنفيذ
+
+نفّذ بهذا الترتيب:
+
+SECURITY UNIT 1
+
+إزالة user_metadata من RLS Policies الحرجة.
+
+SECURITY UNIT 2
+
+إغلاق SECURITY DEFINER exposure غير الضروري.
+
+SECURITY UNIT 3
+
+إصلاح mutable search_path.
+
+SECURITY UNIT 4
+
+إصلاح RLS-enabled-without-policy tables.
+
+SECURITY UNIT 5
+
+مراجعة Auth hardening وLeaked Password Protection.
+
+SECURITY UNIT 6
+
+Security Final Sweep.
+
+لا تخلط الوحدات.
+
+16. SELF-AUDIT في النهاية
+What I Proved
+What I Did Not Prove
+What I Fixed
+What I Initially Missed
+What Could Still Be Wrong
+Final Confidence
+Final Closure Status
+
+ويجب أيضًا:
+
+RLS Findings Before
+RLS Findings After
+SECURITY DEFINER Findings Before
+SECURITY DEFINER Findings After
+Mutable Search Path Before
+Mutable Search Path After
+Auth Findings Before
+Auth Findings After
+Production Verified = YES/NO
+17. FINAL COMMAND
+
+أنت لا تعمل لإنتاج تقرير أمني.
+
+أنت تعمل لإزالة المخاطر فعليًا.
+
+لا:
+
+BLOCKED
+
+لا:
+
+READY
+
+لا:
+
+THEORETICAL PASS
+
+بل:
+
+DISCOVER → REPAIR → TEST → DEPLOY → VERIFY → CLOSE
+
+مع الحفاظ على خطة Inventory دون تعطيلها.
+
+والهدف النهائي:
+
+ZERO-DEBT SECURITY
+
+
+ZERO-DEBT INVENTORY
+
+
+PRODUCTION VERIFIED
