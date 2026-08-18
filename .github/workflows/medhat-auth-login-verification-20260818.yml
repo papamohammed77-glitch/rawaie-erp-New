@@ -1,0 +1,20 @@
+name: Medhat auth login verification
+on:
+  push:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify real Production sign-in
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --max-time 120 \
+            'https://fiilmooggumokxanwiyx.supabase.co/functions/v1/auth-login-verification-20260818?token=AUTH-VERIFY-20260818' | tee result.json
+          python - <<'PY'
+          import json
+          r=json.load(open('result.json'))
+          print(json.dumps(r,ensure_ascii=False))
+          assert r.get('success') is True, r
+          assert all(x.get('success') for x in r['results']), r
+          PY
