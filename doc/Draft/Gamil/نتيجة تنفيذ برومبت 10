@@ -1,0 +1,109 @@
+# نتيجة تنفيذ برومبت 10 — Security Closure Unit
+
+## Self Audit
+
+Business Understanding:
+- Prompt 10 was treated as an independent security closure unit.
+- Closed inventory/picking work was not reopened except where security evidence directly touched shared authorization infrastructure.
+
+Architecture Understanding:
+- Canonical production identity is auth.users.id -> public.users.auth_id -> public.users.id/company_id -> permissions.
+- Physical inventory remains Core/RPC owned; stock_branches receives no direct client DML policy.
+
+Database Understanding:
+- Production RLS, policies, SECURITY DEFINER functions, privileges, search_path, and Security Advisor were inspected before modification.
+
+Historical Understanding:
+- CTO execution/truth logs were reconciled before edits; historical claims were not allowed to override current Production schema/evidence.
+
+Production Understanding:
+- Production evidence was used for the live users/permissions contract and live Security Advisor findings.
+
+Current Understanding:
+- Units 1-4 are implemented and directly verified in Production.
+- Current Security Advisor has one remaining finding: Auth leaked-password protection disabled.
+
+Execution Confidence:
+- HIGH for the database-side changes actually executed and verified.
+- NOT 100% for the full Prompt 10 closure because Auth leaked-password protection remains disabled and temporary Edge test functions cannot be physically deleted with the connected toolset.
+
+## What Was Proved
+
+1. `public.users.id` is not the Auth UUID in the established production identity model; `public.users.auth_id` is the FK to `auth.users(id)`.
+2. The old `user_metadata` authorization policies were unsafe and were removed from the targeted tables.
+3. Company + permission scoped RLS was installed for:
+   `items, customers, suppliers, branches, runsheets, stock_branches, users, app_settings, audit_log`.
+4. Previously RLS-enabled/no-policy tables were given explicit policies or explicit client denial:
+   `companies, customer_assignments, fulfillment_backorders, owner_profile, work_order_details`.
+5. SECURITY DEFINER functions previously callable by `anon`/`authenticated` were closed to those API roles; service_role is the retained backend execution authority for the identified RPCs.
+6. Security Advisor search_path warnings were cleared for the identified mutable functions.
+7. Post-change Security Advisor returned exactly one finding: `auth_leaked_password_protection`.
+
+## Production Verification
+
+Picker identity simulation (`picker@rawaea.com`, auth id `2aff26b3-c2fa-4b3d-8bfa-924629d75d4f`):
+- company = `00000000-0000-0000-0000-000000000001`
+- warehouse permission = true
+- settings permission = false
+- own runsheets visible = 1
+- foreign-company runsheets visible = 0
+- own-company items visible = 17
+- foreign-company items visible = 0
+- settings rows visible = 0
+- work_order_details visible = 0
+
+Warehouse manager simulation (`warehouse.manager@rawaea.com`, auth id `e29cce21-f018-4cbd-b00c-663cd3a7ce51`):
+- company = `00000000-0000-0000-0000-000000000001`
+- settings permission = true
+- customers permission = true
+- settings visible = 1
+- customers visible = 3
+- own runsheets = 1
+- foreign-company runsheets = 0
+
+Anonymous simulation:
+- items = 0
+- companies = 0
+- runsheets = 0
+- app_settings = 0
+
+SECURITY DEFINER post-check:
+- public SECURITY DEFINER functions callable by `anon` or `authenticated`: 0.
+
+## Changes Executed
+
+- Created private schema `app_private`.
+- Created canonical helpers:
+  `app_private.current_user_company_id()`
+  `app_private.current_user_has_permission(text)`
+- Helpers use `auth.uid()` + `public.users.auth_id`, not JWT user_metadata.
+- Helpers use `SET search_path=''` and are not exposed from `public`.
+- Replaced broad/user_metadata RLS policies with company/permission scoped policies.
+- Hardened identified function search_path values to `public, pg_temp`.
+- Revoked API-role EXECUTE from exposed SECURITY DEFINER RPCs; retained service_role execution.
+
+## Governance Findings
+
+Temporary test-only Edge Functions still physically exist in Production, including:
+- `start-picking-production-harness`
+- `cp-prod-auth-canary-20260814`
+- `cp-prod-fixture-canary-20260814`
+- `start-picking-e2e-fixture-20260815`
+- `start-picking-real-identity-e2e-20260815`
+- `send-stock-voucher-runtime-e2e-20260818`
+
+They are retained as a governance debt item. The connected Supabase toolset exposes list/get/deploy Edge Function operations but no delete operation, so physical deletion was not falsely claimed.
+
+## Remaining Gate
+
+`auth_leaked_password_protection` remains disabled. The connected Supabase toolset exposes no Auth configuration update control, so this platform-level setting could not be enabled from the available execution surface without inventing an unsupported operation.
+
+## Final Status
+
+Database security Units 1-4: CLOSED / PRODUCTION VERIFIED.
+Prompt 10 overall: NOT 100% CLOSED.
+Reason: two externally controlled governance gates remain:
+1. Auth leaked-password protection must be enabled through the Supabase Auth control plane.
+2. Retired test-only Edge Functions must be physically deleted when a deletion-capable control is available.
+
+No claim of 100% closure is made.
