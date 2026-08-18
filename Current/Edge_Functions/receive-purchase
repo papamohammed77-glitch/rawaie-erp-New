@@ -1,0 +1,46 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+const supabase=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+const corsHeaders={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type, idempotency-key","Access-Control-Allow-Methods":"POST, OPTIONS"}
+serve(async(req)=>{
+  if(req.method==='OPTIONS')return new Response('ok',{headers:corsHeaders})
+  try{
+    const b=await req.json().catch(()=>({}))
+    const po_code=String(b?.po_code||'').trim()
+    const itemsReceived=Array.isArray(b?.itemsReceived)?b.itemsReceived:[]
+    const operationId=String(b?.operation_id||req.headers.get('Idempotency-Key')||'').trim()
+    if(!po_code||!itemsReceived.length)throw new Error('البيانات غير مكتملة')
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(operationId))throw new Error('هوية عملية الاستلام غير صالحة')
+
+    const ah=req.headers.get('Authorization')
+    if(!ah)throw new Error('غير مصرح')
+    const {data:{user},error:ae}=await supabase.auth.getUser(ah.replace('Bearer ',''))
+    if(ae||!user?.id||!user?.email)throw new Error('جلسة غير صالحة')
+
+    const {data:userRow,error:ue}=await supabase.from('users').select('company_id').eq('auth_id',user.id).maybeSingle()
+    if(ue||!userRow?.company_id)throw new Error('سياق الشركة غير محدد للمستخدم')
+
+    const items=itemsReceived.map((x:any)=>({
+      item_code:String(x?.itemCode??'').trim(),
+      received_qty:Number(x?.receivedQty)||0,
+      item_name:x?.itemName||x?.itemCode||'',
+      unit:x?.unit||'حبة',
+      reason:x?.reason||null
+    }))
+    for(const item of items){
+      if(!item.item_code||!Number.isFinite(item.received_qty)||item.received_qty<=0)throw new Error('بيانات الاستلام غير صالحة')
+    }
+
+    const {data,error}=await supabase.rpc('receive_purchase_atomic',{
+      p_company_id:userRow.company_id,
+      p_po_code:po_code,
+      p_user_email:user.email,
+      p_items:items,
+      p_operation_id:operationId
+    })
+    if(error)throw new Error(error.message)
+    return new Response(JSON.stringify(data),{headers:{...corsHeaders,'Content-Type':'application/json'}})
+  }catch(e){
+    return new Response(JSON.stringify({success:false,msg:e?.message||'فشل استلام البضاعة'}),{status:400,headers:{...corsHeaders,'Content-Type':'application/json'}})
+  }
+})
