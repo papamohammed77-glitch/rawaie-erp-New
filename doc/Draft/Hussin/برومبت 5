@@ -1,0 +1,386 @@
+# MANDATORY CTO PERFORMANCE AUDIT & NEXT-STEP EXECUTION DIRECTIVE
+
+## الوضع التنفيذي
+
+أنت الآن مسؤول عن قيادة RAWAEA ERP كـCTO تنفيذي مستقل.
+
+**ممنوع بدء أي إصلاح جديد في هذه الرسالة.**
+
+موضوع `picker` ومشاكل التحضير الحالية **مجمّد مؤقتًا**.
+
+المطلوب الآن فقط:
+
+# 1. PERFORMANCE REPORT
+
+قدّم تقرير أداء كامل عن الفترة منذ استلامك التكليف كـCTO وحتى لحظة إعداد هذا التقرير.
+
+لا تعتمد على تقاريرك السابقة كحقيقة.
+
+ابدأ من:
+
+`PRODUCTION CURRENT REALITY`
+
+ثم طابقها مع:
+
+`Current → Historical → Original → Reports → Target Contract`
+
+---
+
+# 2. CTO PERFORMANCE ASSESSMENT
+
+أعطني تقييمًا حقيقيًا لما أنجزته أنت خلال فترة التكليف، وليس تقييمًا للمشروع فقط.
+
+يشمل:
+
+### A. الإنجازات الفعلية
+
+اذكر كل إصلاح نفذته فعلًا، ومن بينها إن كان مثبتًا:
+
+* Inventory Centralization
+* `post_stock_movement`
+* `reserve_stock`
+* `complete-loading`
+* `start-loading`
+* `reopen-loading`
+* `unload-runsheet`
+* `start-picking`
+* `complete-picking`
+* `send-stock-voucher`
+* `receive-stock-voucher`
+* `receive-purchase`
+* `bulk-stock-adjustment`
+* `save-sales-invoice`
+* `complete-return`
+* `complete-order-delivery`
+
+لكن **لا تذكر أي عنصر باعتباره منجزًا إلا إذا أثبتَّه مباشرة من Production/Git/Core/Runtime.**
+
+---
+
+# 3. لكل إنجاز
+
+أنشئ:
+
+| Component | Current | Production | Core | Runtime | Status |
+| --------- | ------- | ---------- | ---- | ------- | ------ |
+
+واستخدم فقط:
+
+`THEORETICAL`
+`CURRENT ONLY`
+`STAGING VERIFIED`
+`PRODUCTION DEPLOYED`
+`PRODUCTION RUNTIME VERIFIED`
+`100% CLOSED`
+
+---
+
+# 4. فرق حاسم
+
+يجب أن تفصل بين:
+
+### تم إصلاحه
+
+و
+
+### تم نشره
+
+و
+
+### تم اختباره
+
+و
+
+### تم إغلاقه 100%
+
+ولا تعتبر أي واحدة بديلًا عن الأخرى.
+
+---
+
+# 5. الأخطاء التي ارتكبتها أثناء القيادة
+
+يجب أن تسجلها أنت بنفسك.
+
+خصوصًا:
+
+* Production synchronization drift
+* تقارير بأرقام Production غير محدثة
+* إعلانات غير مثبتة
+* التوقف أمام عوائق الاختبار
+* عدم إغلاق بعض الوحدات بالكامل
+* مشاكل temporary harness / governance
+* أي Dependency تم تركها مفتوحة
+* أي حالة تم فيها وصف الإصلاح قبل إثباته
+
+لكل خطأ:
+
+`الخطأ → سببه → أثره → كيف عالجته → كيف ستمنع تكراره`
+
+**لا تبرر الخطأ.**
+
+---
+
+# 6. SELF-AUDIT إلزامي في مقدمة التقرير
+
+```text
+Business Understanding:
+Architecture Understanding:
+Database Understanding:
+Historical Understanding:
+Production Understanding:
+Current Understanding:
+Execution Discipline:
+Synchronization Discipline:
+Closure Discipline:
+Evidence Discipline:
+
+Confirmed Facts:
+Unknowns:
+Conflicts:
+Unverified Claims:
+```
+
+ثم:
+
+```text
+Historical Opened:
+Original Opened:
+Production Opened:
+Current Opened:
+Schema Checked:
+Triggers Checked:
+Dependencies Checked:
+Consumers Checked:
+Production Runtime Checked:
+```
+
+---
+
+# 7. أهم جزء
+
+أنشئ:
+
+# CTO PERFORMANCE SCORECARD
+
+قيّم نفسك في:
+
+| المجال                     | التقييم | دليل |
+| -------------------------- | ------: | ---- |
+| فهم المشروع                |    /100 |      |
+| فهم رؤية المالك            |    /100 |      |
+| Inventory Architecture     |    /100 |      |
+| Production Synchronization |    /100 |      |
+| Historical Recovery        |    /100 |      |
+| Surgical Refactoring       |    /100 |      |
+| Runtime Verification       |    /100 |      |
+| Deployment Discipline      |    /100 |      |
+| Closure Discipline         |    /100 |      |
+| عدم حمل Debt للأمام        |    /100 |      |
+| الصدق في التقارير          |    /100 |      |
+| الاستقلالية التنفيذية      |    /100 |      |
+
+**إذا وجدت أنك كنت تكتب نسبة أعلى مما تثبته الأدلة، خفض النسبة بنفسك.**
+
+---
+
+# 8. CURRENT REALITY MATRIX
+
+أنشئ في نفس التقرير Reality Matrix جديدة من Production الحالي.
+
+يجب أن تحتوي على الأقل:
+
+```text
+Function
+Production Version
+Production SHA
+Current SHA
+Core Definition
+Runtime State
+Consumer State
+Historical Baseline
+Target State
+Closure State
+```
+
+**هذه المصفوفة هي نقطة البداية الجديدة للمشروع.**
+
+---
+
+# 9. INVENTORY RESCUE STATUS
+
+حدد بوضوح:
+
+### مكتمل فعليًا 100%
+
+### منفذ لكن غير مغلق
+
+### Current فقط
+
+### Production فقط
+
+### يحتاج إصلاح
+
+### لم يبدأ
+
+وخاصة:
+
+```text
+post_stock_movement
+reserve_stock
+TASK-028
+Picking
+Vouchers
+Purchasing
+Sales
+Returns
+Delivery
+Global Inventory Writer Sweep
+Accounting
+Application Integration
+```
+
+---
+
+# 10. ممنوع الانتقال الآن
+
+لا تبدأ:
+
+* `picker`
+* `start-picking`
+* `complete-picking`
+* `send-stock-voucher`
+* أي Closure Unit جديدة
+
+قبل تسليم Performance Report + Current Reality Matrix.
+
+هذه الرسالة **تقييم قيادة** وليست رسالة تنفيذ إصلاح.
+
+---
+
+# 11. بعد التقرير فقط
+
+إذا كان التقرير يثبت أن نقطة الحقيقة الحالية واضحة، فبعده تبدأ **Closure Unit واحدة فقط** من نقطة الواقع الحالية.
+
+قاعدة العمل:
+
+```text
+ONE CLOSURE UNIT
+→ REPAIR
+→ TEST
+→ DEPLOY
+→ VERIFY
+→ 100% CLOSED
+→ NEXT
+```
+
+ولا يجوز العودة إلى:
+
+```text
+FOUND DEFECT
+→ BLOCKED
+→ REPORT
+→ WAIT
+```
+
+بل:
+
+```text
+FOUND DEFECT
+→ ROOT CAUSE
+→ SEARCH
+→ REPAIR
+→ TEST
+→ VERIFY
+→ CLOSE
+```
+
+---
+
+# 12. قاعدة المصادر
+
+إذا فقدت معلومة:
+
+لا تنتظر أن يحضرها أحد.
+
+ابحث في:
+
+```text
+Historical
+Original
+Current
+Archive
+Git History
+Production Edge
+Production PostgreSQL
+Migrations
+Reports
+Consumers
+```
+
+وإذا لم تجد `Original` مستقلًا، استخدم Historical/Production كـBaseline موثقًا، ولا تخترع نسخة.
+
+---
+
+# 13. Golden / Diamond Applications
+
+لا تعدّل أي تطبيق الآن.
+
+وعند عودتك للتنفيذ:
+
+أي تطبيق مثل:
+
+`picker.html`
+`main.html`
+وأي PWA/Warehouse Application
+
+يعامل كـ:
+
+# GOLDEN / DIAMOND ARTIFACT
+
+والتعديل فيه:
+
+# SURGICAL PATCH ONLY
+
+إلا إذا أثبت التحقيق أن التطبيق نفسه هو سبب العيب.
+
+---
+
+# 14. Production First
+
+تذكر:
+
+```text
+Old Report ≠ Current Truth
+Old PASS ≠ Current PASS
+Old 100% ≠ Current 100%
+Old Production ≠ Current Production
+```
+
+كل دورة تبدأ من Production الحالي.
+
+---
+
+# 15. FINAL PERFORMANCE SELF-AUDIT
+
+في نهاية التقرير:
+
+```text
+What I Proved
+What I Did Not Prove
+What I Fixed
+What I Initially Missed
+What Could Still Be Wrong
+Where I Failed
+How I Corrected My Method
+Final CTO Performance Score
+Final Project Reality
+Next Closure Unit
+```
+
+**لا تكتب 100% لأي شيء إلا إذا كانت الأدلة تثبتها.**
+
+# الهدف
+
+أريد أن أعرف الآن **أداءك الحقيقي كـCTO خلال فترة التكليف، وما الذي أنجزته فعلًا، وما الذي بقي، وأين أخطأت، وما نقطة الحقيقة الحالية للمشروع.**
+
+بعد هذا التقرير فقط تستأنف التنفيذ.
