@@ -65,22 +65,17 @@ Production contains three functions matching direct stock table writes:
 These are the canonical central movement/reservation engines, not independent legacy writers. No additional parallel physical stock engine was identified in this sweep.
 
 ## HTTP E2E gate
-A controlled Production HTTP harness was deployed as:
-`complete-picking-runtime-e2e-20260818` v1.
+A controlled Production HTTP harness was deployed as `complete-picking-runtime-e2e-20260818` v1. It was designed to create a temporary Auth user, create a public picker fixture, call the live `complete-picking` endpoint with a real Auth access token, verify Picked/reservation/run_sheet_details/no-Picking-log, retry the HTTP call, release reservation, and prove exact baseline restoration.
 
-The harness:
-1. creates a temporary Auth user through Supabase Admin
-2. creates a temporary public picker identity
-3. creates a temporary runsheet/order/detail fixture
-4. obtains a real Auth access token
-5. calls the live `complete-picking` endpoint over HTTP
-6. verifies Picked state, qty_picked, run_sheet_details, reservation increase, and absence of Picking inventory_log
-7. retries the same HTTP request and requires rejection without a second side effect
-8. releases the reservation
-9. verifies exact stock baseline restoration
-10. deletes all temporary Auth/public/fixture objects
+A temporary GitHub workflow was added to execute the harness against Production. The available GitHub connector returned no workflow run or status for the triggering commits, so there is no verifiable HTTP gate result available from the execution infrastructure. No success claim is made.
 
-A temporary GitHub workflow was added to execute this harness against Production. The workflow is intentionally temporary and must be removed after the gate result is recorded.
+The temporary workflow was removed from `main`. The temporary HTTP harness was retired to HTTP 410. Production contains zero residual P4 test users, Auth users, runsheets, or orders by the P4 test prefixes.
 
-## Closure rule
-No 100% Closure is recorded here until the Production HTTP gate itself returns success and baseline restoration is independently verified from the gate output.
+## Closure status
+COMPLETE-PICKING Core / Static / Data Integrity: PASS.
+Production HTTP E2E: NOT PROVEN in this cycle.
+
+Therefore `complete-picking` is **NOT 100% CLOSED** under Prompt 4 because the required live HTTP gate has no verifiable execution result. No percentage is reported and no historical HTTP result is promoted to current truth.
+
+## Next permitted Closure Unit
+`complete-picking` remains the active closure unit until a legitimate Production HTTP runtime result is captured. Per Prompt 4 Zero-Debt Rule, `send-stock-voucher` and later units must not be promoted to 100% closure as a substitute.
