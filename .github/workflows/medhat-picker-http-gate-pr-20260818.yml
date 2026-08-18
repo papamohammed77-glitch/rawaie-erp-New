@@ -9,6 +9,7 @@ jobs:
       - name: Execute live Production picker HTTP E2E
         run: |
           set -euo pipefail
+          echo "fixture contract: generated order_details.line_amount is intentionally omitted"
           curl --fail-with-body --silent --show-error --max-time 180 \
             "https://fiilmooggumokxanwiyx.supabase.co/functions/v1/complete-picking-picker-http-gate-20260818" | tee result.json
           python - <<'PY'
