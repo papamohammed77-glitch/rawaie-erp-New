@@ -6,53 +6,12 @@ jobs:
   canary:
     runs-on: ubuntu-latest
     steps:
-      - name: Production HTTP E2E canary
-        env:
-          SUPABASE_URL: https://fiilmooggumokxanwiyx.supabase.co
-          ANON_KEY: sb_publishable_ZQC-PFJJWDoFh-6ZmaTWeg_UtrzzM71
-          EMAIL: cp-prod-canary-20260814@example.invalid
-          PASSWORD: Tmp-CP-PROD-20260814-Aa1!
-          AUTH_URL: https://fiilmooggumokxanwiyx.supabase.co/functions/v1/cp-prod-auth-canary-20260814?token=CP-PROD-AUTH-20260814
-          FIX_URL: https://fiilmooggumokxanwiyx.supabase.co/functions/v1/cp-prod-fixture-canary-20260814?token=CP-PROD-FIX-20260814
+      - name: Prompt 3 SEND production repro canary
         run: |
           set -euo pipefail
-          trap 'curl --silent --show-error --max-time 60 "$FIX_URL&mode=cleanup" >/tmp/cleanup.json || true' EXIT
-          curl --fail-with-body --silent --show-error --max-time 60 "$AUTH_URL" | tee auth.json
+          curl --fail-with-body --silent --show-error --max-time 120 "https://fiilmooggumokxanwiyx.supabase.co/functions/v1/send-stock-voucher-runtime-e2e-20260818?token=PROMPT3-SV-20260818" | tee result.json
           python - <<'PY'
           import json
-          r=json.load(open('auth.json')); assert r.get('success') is True, r
+          r=json.load(open('result.json')); assert r.get('success') is True, r
+          print(json.dumps(r,ensure_ascii=False,indent=2))
           PY
-          curl --fail-with-body --silent --show-error --max-time 60 "$FIX_URL&mode=create&user_id=$(python -c "import json;print(json.load(open('auth.json'))['public_user_id'])")" | tee fixture.json
-          python - <<'PY'
-          import json
-          r=json.load(open('fixture.json')); assert r.get('success') is True, r
-          PY
-          TOKEN=$(curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" -H "apikey: $ANON_KEY" -H "Content-Type: application/json" --data "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
-          RUN=$(python -c "import json;print(json.load(open('fixture.json'))['runsheet_code'])")
-          ITEM=$(python -c "import json;print(json.load(open('fixture.json'))['item_code'])")
-          curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/complete-picking" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"runsheet_code\":\"$RUN\",\"items\":[{\"itemCode\":\"$ITEM\",\"pickedQty\":1,\"notes\":\"canary\"}]}" | tee first.json
-          python - <<'PY'
-          import json
-          r=json.load(open('first.json')); assert r.get('success') is True, r
-          PY
-          ORDER=$(python -c "import json;print(json.load(open('fixture.json'))['order_id'])")
-          DETAIL=$(python -c "import json;print(json.load(open('fixture.json'))['detail_id'])")
-          RUN=$(python -c "import json;print(json.load(open('fixture.json'))['runsheet_code'])")
-          BQ=$(python -c "import json;print(json.load(open('fixture.json'))['baseline']['qty'])")
-          BA=$(python -c "import json;print(json.load(open('fixture.json'))['baseline']['allocated_qty'])")
-          curl --fail-with-body --silent --show-error --max-time 60 "$FIX_URL&mode=verify&order_id=$ORDER&detail_id=$DETAIL&runsheet_code=$RUN&baseline_qty=$BQ&baseline_allocated=$BA" | tee verify.json
-          python - <<'PY'
-          import json
-          r=json.load(open('verify.json'))
-          assert r.get('success') is True and r['runsheet']['status']=='Picked' and r['detail']['qty_picked']==1 and r['run_detail']['qty_picked']==1,r
-          assert float(r['stock']['qty'])==float(r['baseline_qty']) and float(r['stock']['allocated_qty'])==float(r['baseline_allocated'])+1,r
-          assert len(r['picking_logs'])==0,r
-          PY
-          set +e
-          curl --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/functions/v1/complete-picking" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "{\"runsheet_code\":\"$RUN\",\"items\":[{\"itemCode\":\"$ITEM\",\"pickedQty\":1}]}" | tee retry.json
-          set -e
-          python - <<'PY'
-          import json
-          r=json.load(open('retry.json')); assert r.get('success') is False and ('Picking' in r.get('msg','') or 'state' in r.get('msg','')),r
-          PY
-          echo '{"success":true,"production_e2e":true,"retry_rejected":true}'
