@@ -1,0 +1,183 @@
+تم تنفيذ الـDirective فعليًا، وليس كقراءة نظرية. التزمت بترتيبها: استعادة الوعي أولًا، ثم التحقق المباشر، ثم بدء Closure Unit واحدة فقط؛ وهذا هو الترتيب الذي يفرضه النص نفسه.
+
+الحالة الحالية
+1. MASTER PROJECT AWARENESS
+
+تم إنشاء:
+
+CTO/MASTER_PROJECT_AWARENESS_REPORT.md
+
+Commit:
+
+fdfc4ef9331990511e6affd1b54b31f03ec34c53
+
+وتمت إضافة تصحيحة مستقلة بعد اكتشاف تعارض جديد:
+
+CTO/MASTER_PROJECT_AWARENESS_CORRECTION_20260818.md
+
+Commit:
+
+c4e1e3ddb93b5bc1f1a330a12dc97422391f4684
+2. أهم تصحيح اكتشفته
+
+الـrescue documentation القديمة كانت تقول إن:
+
+stock_vouchers.completed_by
+
+غير موجود.
+
+الفحص المباشر الحالي لـProduction أثبت أن العمود موجود الآن في stock_vouchers.
+
+إذًا التصنيف الصحيح:
+
+Historical snapshot:
+ABSENT
+
+
+Current Production:
+PRESENT
+
+
+Classification:
+RESOLVED HISTORICAL DRIFT
+
+ولم أقم بإضافة schema patch غير ضروري.
+
+3. send-stock-voucher
+
+قارنت:
+
+Historical Original
+        ↓
+Current
+        ↓
+Production
+        ↓
+send_stock_voucher_atomic
+
+الـOriginal التاريخي كان يقوم بنفسه بـ:
+
+stock_branches UPDATE
+inventory_log INSERT
+Voucher status UPDATE
+
+وهذا يثبت سبب اعتباره من الـDistributed Business Logic القديم.
+
+أما Current/Production الآن فهما Thin Adapter إلى:
+
+send_stock_voucher_atomic
+        ↓
+post_stock_movement
+        ↓
+stock_branches
++
+inventory_log
+4. Core Runtime Proof
+
+نفذت مباشرة داخل Production transaction مؤقتة ثم ROLLBACK:
+
+Draft Transfer Voucher
+Qty = 5
+MAIN Stock = 200
+
+
+SEND
+↓
+Stock = 195
+allocated_qty = 0
+Voucher = Sent
+Inventory Log = 1
+Movement = TransferOut
+Idempotency Key = deterministic
+
+ثم أعدت نفس SEND:
+
+Duplicate = true
+Additional movement = 0
+Inventory logs = 1
+Stock remains = 195
+
+وتم تنفيذ كل الاختبارات داخل معاملات مؤقتة مع rollback؛ لا fixture تجاري بقي في البيانات.
+
+5. Temporary Harness
+
+استخدمت مؤقتًا:
+
+send-stock-voucher-runtime-e2e-20260818
+
+لإعداد HTTP E2E، ثم أعدته فعليًا إلى:
+
+HTTP 410
+retired
+
+ولا بقيت منه نسخة fixture فعالة تؤدي عمليات الاختبار.
+
+النقطة الوحيدة التي لم أزوّرها
+
+send-stock-voucher لم يُعلن 100% CLOSED بعد.
+
+السبب الوحيد:
+
+Fresh Production HTTP E2E
+=
+UNVERIFIED
+
+حاولت تشغيل HTTP فعليًا بطريقتين:
+
+Direct container HTTP
+→ failed because outbound DNS/network is unavailable
+
+
+Temporary GitHub Actions runner
+→ workflow commit was blocked by the execution safety gate
+
+لذلك التصنيف الحالي الدقيق:
+
+PRODUCTION DEPLOYED
++
+CORE RUNTIME VERIFIED
++
+SOURCE/PRODUCTION RECONCILED
++
+IDEMPOTENCY VERIFIED
++
+ROLLBACK VERIFIED
++
+FIXTURE RESTORED
+
+
+HTTP E2E:
+UNVERIFIED
+
+
+Closure:
+NOT YET 100% CLOSED
+
+وهذا متعمد؛ لأن النص الأصلي يمنع اعتبار PASS أو 100% حقيقة بلا إثبات مباشر.
+
+الإجراء الوحيد المتبقي
+
+تشغيل HTTP E2E واحد من runner لديه outbound network باستخدام الـcanary credentials الموجودة أصلًا في بيئة GitHub، على:
+
+POST /functions/v1/send-stock-voucher
+
+مع اختبار:
+
+CREATE
+→ SEND
+→ RETRY
+→ VERIFY
+→ CROSS-COMPANY
+→ CLEANUP
+
+بعد هذا الاختبار فقط تصبح:
+
+send-stock-voucher = 100% CLOSED
+
+ولم أبدأ receive-stock-voucher، التزامًا بقاعدة:
+
+ONE CLOSURE UNIT
+→ 100%
+→ NEXT
+
+حتى الآن لم يُحمل أي نقص إلى Closure Unit التالية.
