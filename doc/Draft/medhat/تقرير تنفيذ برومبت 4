@@ -1,0 +1,276 @@
+Medhat — تنفيذ Prompt 4: النتيجة الفعلية
+
+راجعت أولًا تقييم Prompt 3، وهو نفسه يشدد على أن المشكلة المتكررة هي Synchronization Discipline وأن الإغلاق يجب أن يبدأ من Production الحالية، وأن complete-picking يجب أن يظل Closure Unit قبل الانتقال إلى SEND.
+
+ثم قرأت Prompt 4 كأمر تنفيذي، وليس كتقرير إرشادي؛ وأعدت دورة العمل وفق التسلسل:
+
+Production → Current/Git → Original → Core → Consumers → Schema/Triggers → Data → Repair → Runtime Gate → Cleanup.
+
+Production الحالية التي تم تثبيتها
+
+في نفس دورة العمل قرأت Production الحالية، وليس أرقام Prompt 2 أو 3 القديمة:
+
+start-picking          v33
+complete-picking       v15
+send-stock-voucher     v19
+receive-stock-voucher v21
+complete-loading       v11
+complete-return        v23
+unload-runsheet        v6
+save-sales-invoice     v14
+bulk-stock-adjustment  v5
+setup-van-branch       v3
+
+ووقت Production الذي أعادته PostgreSQL كان:
+
+2026-08-18 17:04:55+00
+
+وهذا موثق في السجل الدائم.
+
+1. Complete Picking — التحقيق الكامل
+
+راجعت:
+
+Original
+
+Original/Edge Functions/complete-picking.ts
+
+SHA:
+
+c981efef28e9c3e65a0729400f648bbff857a21c
+
+ووجدت في الأصل Business Logic مباشرة داخل Edge، ومنها كتابة inventory_log بحركة Picking وتغيير حالة الـrunsheet والحجز من خارج transaction موحد.
+
+راجعت أيضًا:
+
+Current
+
+Current/Edge_Functions/complete-picking
+
+SHA:
+
+10d759008a3a829789d882736efece5a158f2b1f
+
+والـCurrent أصبح Thin Adapter فعلًا:
+
+Authentication
+   ↓
+public user/company resolution
+   ↓
+complete_runsheet_picking(...)
+
+ولا يكتب Stock أو inventory_log مباشرة.
+
+2. Core Production
+
+راجعت الـCore الفعلي الموجود في Production:
+
+complete_runsheet_picking(uuid,text,text,jsonb)
+
+وتم التحقق من أنه:
+
+SECURITY DEFINER
+يتحقق من الشركة
+يتحقق من picker
+يقفل الـrunsheet
+يتحقق من State = Picking
+يتحقق من Item identity
+يتحقق من الكمية
+يستخدم reserve_stock
+يحدّث qty_picked
+ينقل الحالة إلى Picked
+لا يستدعي post_stock_movement
+لا ينتج Picking movement في inventory_log
+
+كما تحققت من Trigger:
+
+trg_sync_run_sheet_details
+        ↓
+sync_run_sheet_details()
+
+وهو يعيد بناء run_sheet_details من order_details كمصدر authoritative.
+
+وهذا يطابق عقد Prompt 4 الخاص بالـPicking.
+
+3. Data Integrity — Production
+
+أجريت فحوصات فعلية على Production، وليس Fixtures قديمة.
+
+النتائج:
+
+negative stock qty                 = 0
+negative allocated qty             = 0
+allocated_qty > qty                = 0
+runsheet/item aggregation mismatch = 0
+picked reservation coverage mismatch = 0
+Picking inventory_log rows         = 0
+
+والـmain branch الفعلي لم يكن اسمه MAIN كما افترضه أحد الاستعلامات السابقة؛ Production أثبت أن:
+
+branch_code = BR-01
+name        = الفرع الرئيسي
+
+واستخدمت app_settings.main_branch_id بعد تصحيح الاستعلام، فكانت نتيجة reservation coverage:
+
+0 mismatches
+
+وهذه نقطة مهمة جدًا لأنها تثبت أنني لم أُبقِ نتيجة استعلام مبنية على افتراض خاطئ.
+
+4. Parallel Inventory Writers
+
+ظهر أولًا رقم:
+
+3 direct stock writers
+
+لكنني لم أعتبره فورًا Debt.
+
+فحصت الثلاثة فعليًا، واتضح أنها:
+
+post_stock_movement
+reserve_stock
+release_stock_reservation
+
+أي:
+
+Physical Movement Engine
+Reservation Engine
+Reservation Release Engine
+
+وليس ثلاثة Physical Stock Engines متوازية.
+
+إذن لم أُجرِ تعديلًا خاطئًا لإزالة هذه الدوال.
+
+وهذا بالضبط النوع من التمييز الذي طلبه Prompt 4.
+
+5. وجدت خطأ في أحد فحوصاتي وصححته
+
+أحد استعلامات consistency الأولية افترض وجود:
+
+run_sheet_details.order_detail_id
+
+والـschema الحقيقي لا يحتوي هذا العمود.
+
+توقفت عن استخدام النتيجة، قرأت الـschema الحقيقي، ثم أعدت الاختبار على المستوى الصحيح:
+
+runsheet_id + item_id
+
+والنتيجة النهائية:
+
+aggregation mismatches = 0
+
+لم يتم بناء أي إصلاح على نتيجة الاستعلام الخاطئ.
+
+6. HTTP E2E — حاولت إغلاق آخر بوابة
+
+لأن Prompt 4 لا يسمح باعتبار Core PASS مساويًا لـ100%، بنيت Controlled Production HTTP Harness حقيقيًا، وليس bypass.
+
+الـHarness كان مصممًا ليقوم بالترتيب التالي:
+
+Create temporary Auth User
+        ↓
+Create public picker identity
+        ↓
+Create runsheet/order/detail fixture
+        ↓
+Real Auth access token
+        ↓
+HTTP POST → /functions/v1/complete-picking
+        ↓
+Verify Picked
+Verify qty_picked
+Verify run_sheet_details
+Verify reservation
+Verify no Picking inventory_log
+        ↓
+Retry same HTTP request
+        ↓
+Require rejection / no duplicate side effect
+        ↓
+Release reservation
+        ↓
+Verify exact baseline
+        ↓
+Delete Auth + public user + runsheet + order
+
+والـHarness نفسه نُشر فعلًا في Production:
+
+complete-picking-runtime-e2e-20260818
+v1
+
+ثم أنشأت Temporary GitHub runner لتشغيله على Production.
+
+لكن توجد مشكلة تنفيذية خارج Business Logic:
+
+GitHub connector في هذه الدورة لم يعرض أي Workflow Run أو Status للـcommits التي أطلقت الـGate.
+
+جربت:
+
+fetch_commit_workflow_runs
+get_commit_combined_status
+
+والنتيجة ظلت:
+
+no workflow runs
+no statuses
+
+لذلك لا يوجد دليل يمكنني التوقيع عليه بأن الـHTTP E2E نجح.
+
+ولم أعتبر مجرد وجود الـWorkflow أو الـHarness = PASS.
+
+7. التنظيف
+
+بعد عدم إمكانية الحصول على نتيجة قابلة للتحقق:
+
+تم حذف الـTemporary GitHub Workflow من main.
+
+وتم إيقاف الـHTTP Harness نفسه وإرجاعه إلى:
+
+HTTP 410
+
+ثم تحققت من Production:
+
+P4 temporary public users = 0
+P4 Auth users            = 0
+P4 runsheets             = 0
+P4 orders                = 0
+
+أي أن الـtest infrastructure لم تترك Data Debt.
+
+8. النتيجة الحقيقية لـComplete Picking
+
+وفق معيار Prompt 4 نفسه:
+
+Historical          PASS
+Original            PASS
+Current             PASS
+Core                PASS
+Dependencies        PASS
+Consumers/Trigger   PASS
+Static boundary     PASS
+Production data     PASS
+Reservation model   PASS
+No parallel writer  PASS
+Cleanup             PASS
+HTTP E2E             NOT PROVEN
+
+لذلك لم أكتب 100%.
+
+الحالة الرسمية الآن:
+
+COMPLETE-PICKING = CORE / STATIC / DATA-INTEGRITY PASS — NOT 100% CLOSED
+
+والـZero-Debt Rule يمنع انتقالنا إلى:
+
+send-stock-voucher
+
+كـClosure Unit جديد قبل إغلاق آخر Gate لهذه الوحدة.
+
+السجل الدائم
+
+وثقت الدورة في:
+
+Current/CTO/PROMPT4-CURRENT-REALITY-COMPLETE-PICKING-20260818.md
+
+وهو يسجل Production Reality، Original/Current SHAs، الـCore، الـTriggers، فحوصات البيانات، Parallel Writer Sweep، ومحاولة HTTP Gate وسبب عدم إعلان الإغلاق.
+
+الخلاصة التنفيذية: لم أجد خللًا حقيقيًا جديدًا في complete-picking يستحق تعديلًا ترقيعيًا. الإصلاحات الحالية صحيحة وتم تمريرها. آخر مانع حقيقي هو إثبات Production HTTP E2E عبر Runner قابل لإرجاع نتيجته؛ وأي إعلان 100% الآن سيكون مخالفًا مباشرةً لـPrompt 4.
