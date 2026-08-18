@@ -1,0 +1,22 @@
+name: owner recovery verification
+on:
+  push:
+    branches: [main]
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Recover owner auth credential and verify sign-in
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --max-time 120 \
+            "https://fiilmooggumokxanwiyx.supabase.co/functions/v1/owner-recovery-20260818?token=P4-OWNER-RECOVERY-20260818-7c3a9f" | tee result.json
+          python - <<'PY'
+          import json
+          r=json.load(open('result.json'))
+          assert r.get('success') is True, r
+          assert r.get('password_verified') is True, r
+          assert r.get('role') == 'مدير النظام', r
+          assert r.get('all_branches') is True, r
+          print(json.dumps({k:r[k] for k in ['success','auth_user_id','public_user_id','role','permissions_count','all_branches','password_verified']}, ensure_ascii=False))
+          PY
