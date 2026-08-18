@@ -1,0 +1,27 @@
+name: Medhat owner recovery verification
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify owner credential recovery
+        run: |
+          set -euo pipefail
+          T=$(python - <<'PY'
+          import base64
+          print(base64.b64decode('UDQtT1dORVItUkVDT1ZFUlktMjAyNjA4MTgtN2MzYTlm').decode())
+          PY
+          )
+          URL="https://fiilmooggumokxanwiyx.supabase.co/functions/v1/owner-recovery-20260818?token=${T}"
+          curl --fail-with-body --silent --show-error --max-time 120 "$URL" | tee result.json
+          python - <<'PY'
+          import json
+          r=json.load(open('result.json'))
+          assert r.get('success') is True, r
+          assert r.get('password_verified') is True, r
+          assert r.get('role') == 'مدير النظام', r
+          assert r.get('all_branches') is True, r
+          print(json.dumps({k:r[k] for k in ['success','auth_user_id','public_user_id','role','permissions_count','all_branches','password_verified']}, ensure_ascii=False))
+          PY
