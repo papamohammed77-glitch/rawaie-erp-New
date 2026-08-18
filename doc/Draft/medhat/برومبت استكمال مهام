@@ -1,0 +1,478 @@
+MANDATORY CTO DIRECTIVE
+
+GLOBAL INVENTORY ZERO-DEBT — CORE INTEGRITY SWEEP
+
+المرحلة الحالية الوحيدة هي:
+
+GLOBAL INVENTORY CORE INTEGRITY SWEEP
+
+________________________________________
+
+1. الهدف الوحيد
+
+الوضع المرجعي الحالي يثبت أن:
+
+post_stock_movement
+
+منشور ويعمل كمحرك Physical Stock مركزي، وأن عددًا كبيرًا من المسارات أعيد توجيهها إليه. لكن مركزية الـPhysical Stock لم تُغلق 100% بعد، وما زالت هناك نقاط مرتبطة بـtenant/company وitem identity وWriters أخرى يجب حسمها.
+
+الهدف الآن:
+
+إثبات أن كل Physical Stock Movement في Production يمر عبر post_stock_movement، وإغلاق أي Writer أو Core متبقٍ يتجاوز هذا العقد.
+
+________________________________________
+
+2. لا تعتمد على التقارير السابقة
+
+ابدأ من الواقع الفعلي:
+
+Production Supabase
+
+افحص PostgreSQL فعليًا وابحث عن جميع الـfunctions والـtriggers التي:
+
+•	تعدل stock_branches.qty
+
+•	تعدل Physical Stock بأي صورة
+
+•	تكتب inventory_log
+
+•	تنفذ Transfer / Sale / Return / Purchase / Adjustment / Loading / Unloading
+
+GitHub Sources
+
+ابحث في كل:
+
+•	rawaie-erp-review/Edge_Functions/original/
+
+•	rawaie-erp-review/Edge_Functions/current/
+
+•	rawaie-erp-review/Edge_Functions/archive/
+
+•	rawaie-erp-New/Original/
+
+•	rawaie-erp-New/Current/
+
+•	Git history
+
+•	migrations
+
+•	التقارير التاريخية
+
+إذا لم تجد وظيفة في مكان، ابحث في كل المصادر قبل إعلان Missing.
+
+________________________________________
+
+3. ممنوع معالجة عدة مشاكل دفعة واحدة
+
+حوّل النتائج إلى Writer Closure Units.
+
+لكل Writer متبقٍ:
+
+1.	حدد المسؤولية.
+
+2.	حدد الـConsumer.
+
+3.	حدد النسخة الأصلية.
+
+4.	حدد Production.
+
+5.	حدد Current.
+
+6.	قارن المسؤوليات.
+
+7.	حدد مكان انتقال كل Business Responsibility.
+
+8.	أصلح Writer واحدًا.
+
+9.	اختبره.
+
+10.	انشره.
+
+11.	تحقق من Production.
+
+12.	أغلقه 100%.
+
+ثم فقط انتقل للـWriter التالي.
+
+________________________________________
+
+4. Inventory Contract
+
+العقد غير قابل للتغيير:
+
+PHYSICAL STOCK MOVEMENT
+
+        ↓
+
+post_stock_movement
+
+        ↓
+
+stock_branches
+
++
+
+inventory_log
+
+و:
+
+reserve_stock
+
+هو Reservation Engine فقط، وليس Physical Movement Engine.
+
+لا يجوز لأي Writer آخر تنفيذ Physical Movement مستقلًا.
+
+________________________________________
+
+5. المطلوب فحصه حصرًا في هذه المرحلة
+
+ابدأ بهذا التسلسل، بعد إثباته من Production وليس بناءً على القائمة وحدها:
+
+send_stock_voucher_atomic
+
+receive_stock_voucher_atomic
+
+receive_purchase_atomic
+
+post_inventory_adjustment_atomic
+
+save_sales_invoice_atomic
+
+complete_return_atomic
+
+complete_order_delivery_atomic
+
+ثم:
+
+GLOBAL WRITER DISCOVERY
+
+للعثور على أي Writer آخر لم يظهر في التقارير السابقة.
+
+________________________________________
+
+6. Critical Integrity Checks
+
+يجب التحقق وإصلاح أي خلل في:
+
+Tenant / Company Identity
+
+كل lookup يجب أن يكون Company-scoped.
+
+ممنوع:
+
+global lookup
+
+LIMIT 1
+
+عندما تكون الهوية مرتبطة بالشركة.
+
+Item Identity
+
+لا تعتمد على:
+
+item_code
+
+كمفتاح عالمي إلا إذا كانت uniqueness مضمونة رسميًا.
+
+المطلوب إثبات:
+
+company_id + item_code
+
+أو مفتاح الهوية الصحيح المعتمد في Schema.
+
+Source of Truth
+
+يجب أن يبقى:
+
+order_details
+
+هو authoritative fulfillment detail إذا كان هذا هو العقد المعتمد.
+
+و:
+
+run_sheet_details
+
+derived aggregate.
+
+لا Dual Write.
+
+________________________________________
+
+7. Loss / Gain لكل Writer
+
+قبل وبعد كل إصلاح:
+
+Historical
+
+Original
+
+Production
+
+Current
+
+Target
+
+أنشئ:
+
+Responsibility	Historical	Production	Current	Target
+
+Stock mutation				
+
+Inventory Log				
+
+Reservation				
+
+Order quantities				
+
+Runsheet state				
+
+Accounting				
+
+Ledger				
+
+Backorder				
+
+Idempotency				
+
+Company isolation				
+
+لا يجوز أن تختفي مسؤولية دون إثبات أين أصبحت.
+
+________________________________________
+
+8. إذا وجدت Defect
+
+لا توقف العمل.
+
+نفذ:
+
+FOUND
+
+→ ROOT CAUSE
+
+→ HISTORICAL REVIEW
+
+→ INDUSTRY PATTERN
+
+→ SURGICAL FIX
+
+→ TEST
+
+→ DEPLOY
+
+→ PRODUCTION VERIFY
+
+→ CLOSE
+
+ممنوع:
+
+FOUND
+
+→ BLOCKED
+
+→ REPORT
+
+________________________________________
+
+9. Industry Rule
+
+في الأمور المحاسبية والمنطقية الثابتة:
+
+لا نخترع العجلة.
+
+استند عند الحاجة إلى:
+
+•	SAP
+
+•	Microsoft Dynamics
+
+•	Odoo
+
+•	المعايير المحاسبية/المخزنية المناسبة
+
+ثم طبّق المبدأ على RAWAEA، لا النسخ الحرفي.
+
+________________________________________
+
+10. Production Reality
+
+لكل إصلاح يجب تسجيل:
+
+THEORETICAL
+
+CURRENT ONLY
+
+STAGING VERIFIED
+
+PRODUCTION DEPLOYED
+
+PRODUCTION RUNTIME VERIFIED
+
+100% CLOSED
+
+ممنوع تحويل:
+
+Staging PASS
+
+إلى:
+
+Production PASS
+
+________________________________________
+
+11. Self-Audit إلزامي
+
+PRE-SWEEP SELF-AUDIT
+
+Business Understanding:
+
+Architecture Understanding:
+
+Database Understanding:
+
+Historical Understanding:
+
+Production Understanding:
+
+Current Understanding:
+
+Execution Confidence:
+
+
+
+Confirmed Facts:
+
+Unknowns:
+
+Conflicts:
+
+Unverified Claims:
+
+
+
+Historical Opened:
+
+Original Opened:
+
+Production Opened:
+
+Current Opened:
+
+Schema Checked:
+
+Triggers Checked:
+
+Dependencies Checked:
+
+Consumers Checked:
+
+FINAL SELF-AUDIT
+
+What I Proved
+
+What I Did Not Prove
+
+What I Fixed
+
+What I Initially Missed
+
+What Could Still Be Wrong
+
+Final Confidence
+
+Final Closure Status
+
+أي Unknown أو Conflict أو Unverified Claim مؤثر يمنع 100%.
+
+________________________________________
+
+12. لا تُنشئ دينًا جديدًا
+
+لا تنتقل من Writer إلى Writer وتترك:
+
+•	Core defect
+
+•	Migration defect
+
+•	Consumer drift
+
+•	Production drift
+
+•	Current drift
+
+•	Governance residue
+
+خلفك.
+
+كل Closure Unit يجب أن تنتهي 100%.
+
+________________________________________
+
+13. المخرج المطلوب
+
+عند نهاية هذه المهمة يجب تقديم:
+
+GLOBAL INVENTORY WRITER MATRIX
+
+تتضمن كل Physical Writers التي اكتُشفت في Production:
+
+Writer	Production Version	Current	Physical Movement	Centralized?	Production Verified?	Status
+
+ثم:
+
+ZERO-DEBT RESULT
+
+يجب أن يكون:
+
+Physical Writers outside post_stock_movement = 0
+
+وإلا:
+
+GLOBAL INVENTORY CORE INTEGRITY = INCOMPLETE
+
+________________________________________
+
+14. شرط النجاح النهائي
+
+لا تعتبر هذه المهمة منتهية إلا إذا أثبتت:
+
+All Physical Writers discovered
+
++
+
+All required Writers rewired
+
++
+
+No lost responsibilities
+
++
+
+No parallel Physical Stock Engine
+
++
+
+Tenant integrity
+
++
+
+Item identity integrity
+
++
+
+Current/Production alignment
+
++
+
+Production runtime verification
+
+ثم فقط:
+
+GLOBAL INVENTORY CORE INTEGRITY = 100% CLOSED
+
+وبعدها نعود إلى الـPicker.
+
+لا أريد تقريرًا عن نيتك في التنفيذ. أريد التنفيذ نفسه، ثم التقرير الذي يثبت التنفيذ.
+
+
+
