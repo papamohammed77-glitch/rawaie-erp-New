@@ -6288,7 +6288,8 @@ async function openReceive(poCode){
               body: JSON.stringify({
                   po_code: poCode,
                   itemsReceived: r.value,
-                  notes: notes
+                  notes: notes,
+                  operation_id: crypto.randomUUID()
               })
           });
       }).then(function(res) {
