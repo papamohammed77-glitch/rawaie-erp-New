@@ -1,2 +1,0 @@
-FORENSIC_EXECUTE_VOUCHERS_AUTH_FIX
-This marker exists only to create an auditable source event after the issue-triggered one-shot workflow has been armed. It may be retained as execution evidence unless governance requires cleanup.
