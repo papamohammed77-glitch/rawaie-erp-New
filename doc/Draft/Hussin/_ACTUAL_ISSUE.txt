@@ -1,1 +1,0 @@
-The GitHub issue event is the intended trigger. This marker must not be treated as the trigger itself.
