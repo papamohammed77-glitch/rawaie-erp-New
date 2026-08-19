@@ -8,40 +8,89 @@ const supabase = createClient(
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, idempotency-key",
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders })
+  }
 
   try {
     const rawBody = await req.text()
     if (!rawBody) throw new Error("Body فارغ")
 
     let body: any
-    try { body = JSON.parse(rawBody) } catch { throw new Error("صيغة JSON غير صالحة") }
+    try {
+      body = JSON.parse(rawBody)
+    } catch {
+      throw new Error("صيغة JSON غير صالحة")
+    }
 
-    const runsheet_code = body?.runsheet_code
+    const runsheet_code = String(body?.runsheet_code || "").trim()
     const items = body?.items
-    if (!runsheet_code || !Array.isArray(items) || !items.length) throw new Error("البيانات غير مكتملة")
+
+    if (!runsheet_code || !Array.isArray(items) || !items.length) {
+      throw new Error("البيانات غير مكتملة")
+    }
+
+    const suppliedOperationId = String(
+      body?.operation_id ||
+      req.headers.get("Idempotency-Key") ||
+      ""
+    ).trim()
+
+    if (suppliedOperationId && !UUID_RE.test(suppliedOperationId)) {
+      throw new Error("operation_id غير صالح")
+    }
+
+    const operationId = suppliedOperationId || null
 
     const authHeader = req.headers.get("Authorization")
     if (!authHeader) throw new Error("غير مصرح")
+
     const token = authHeader.replace(/^Bearer\s+/i, "").trim()
     if (!token) throw new Error("جلسة غير صالحة")
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    if (authError || !user?.id || !user?.email) throw new Error("جلسة غير صالحة")
+    const {
+      data: { user },
+      error: authError
+    } = await supabase.auth.getUser(token)
 
-    const { data: pubUser, error: userLookupError } = await supabase
-      .from("users")
-      .select("id, company_id, status, email")
-      .eq("auth_id", user.id)
-      .maybeSingle()
-    if (userLookupError) throw new Error("فشل قراءة المستخدم: " + userLookupError.message)
-    if (!pubUser?.id || !pubUser?.company_id) throw new Error("المستخدم غير مسجل في النظام أو سياق الشركة غير محدد")
-    if (pubUser.status && pubUser.status !== "Active") throw new Error("المستخدم غير نشط")
+    if (authError || !user?.id || !user?.email) {
+      throw new Error("جلسة غير صالحة")
+    }
+
+    const { data: pubUser, error: userLookupError } =
+      await supabase
+        .from("users")
+        .select("id, company_id, status, email")
+        .eq("auth_id", user.id)
+        .maybeSingle()
+
+    if (userLookupError) {
+      throw new Error(
+        "فشل قراءة المستخدم: " + userLookupError.message
+      )
+    }
+
+    if (!pubUser?.id || !pubUser?.company_id) {
+      throw new Error(
+        "المستخدم غير مسجل في النظام أو سياق الشركة غير محدد"
+      )
+    }
+
+    if (
+      pubUser.status &&
+      pubUser.status !== "Active"
+    ) {
+      throw new Error("المستخدم غير نشط")
+    }
 
     const normalizedItems = items.map((item: any) => ({
       item_code: item?.item_code ?? item?.itemCode,
@@ -49,25 +98,45 @@ serve(async (req) => {
       notes: item?.notes ?? null
     }))
 
-    const { data, error } = await supabase.rpc("complete_runsheet_picking", {
-      p_company_id: pubUser.company_id,
-      p_runsheet_code: runsheet_code,
-      p_user_email: pubUser.email || user.email,
-      p_items: normalizedItems
-    })
+    const { data, error } = await supabase.rpc(
+      "complete_runsheet_picking",
+      {
+        p_company_id: pubUser.company_id,
+        p_runsheet_code: runsheet_code,
+        p_user_email: pubUser.email || user.email,
+        p_items: normalizedItems,
+        p_operation_id: operationId
+      }
+    )
 
-    if (error) throw new Error(error.message)
+    if (error) {
+      throw new Error(error.message)
+    }
 
-    return new Response(JSON.stringify(data), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    })
+    return new Response(
+      JSON.stringify(data),
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json"
+        }
+      }
+    )
+
   } catch (error: any) {
-    return new Response(JSON.stringify({
-      success: false,
-      msg: error?.message || "فشل إنهاء التحضير"
-    }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    })
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        msg: error?.message || "فشل إنهاء التحضير"
+      }),
+      {
+        status: 400,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json"
+        }
+      }
+    )
   }
 })
