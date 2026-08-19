@@ -868,62 +868,204 @@ editPickedItem: function(index){
     });
 },
 
-    completePicking: function(){
-        var self = this; if(!this.session) return; if(!navigator.onLine){ toast('أنت غير متصل', 'warning'); return; }
-        var items = []; var fullCount = 0, partialCount = 0, zeroCount = 0;
-        for(var i = 0; i < this.session.items.length; i++){
-            var it = this.session.items[i];
-            items.push({ itemCode: it.item_code, pickedQty: it.qty_picked, notes: it.notes });
-            if(it.qty_picked >= it.qty_ordered) fullCount++;
-            else if(it.qty_picked > 0) partialCount++;
-            else zeroCount++;
-        }
-        var summaryHtml = '<div class="text-right text-sm"><p>أنت على وشك إنهاء تحضير الرانشيت <strong>' + this.session.runsheet_code + '</strong>.</p><div class="mt-3 space-y-1"><div>✅ <strong>' + fullCount + '</strong> أصناف مكتملة</div><div>⚠️ <strong>' + partialCount + '</strong> أصناف منقوصة</div><div>❌ <strong>' + zeroCount + '</strong> أصناف لم تُحضّر</div></div>';
-        if(partialCount > 0 || zeroCount > 0){
-            summaryHtml += '<hr class="my-3"><p class="text-amber-600 font-bold text-xs">الأصناف الناقصة:</p><ul class="text-xs space-y-1 mt-1">';
-            for(var k = 0; k < this.session.items.length; k++){
-                var item = this.session.items[k];
-                if(item.qty_picked < item.qty_ordered){
-                    summaryHtml += '<li>• ' + item.item_name + ' (' + item.qty_picked + '/' + item.qty_ordered + ') ' + (item.notes ? '– ' + item.notes : '<span class="text-red-400">بدون سبب</span>') + '</li>';
-                }
-            }
-            summaryHtml += '</ul>';
-        }
-        summaryHtml += '</div>';
-        Swal.fire({
-            title: 'تأكيد إنهاء التحضير',
-            html: summaryHtml,
-            icon: 'info', showCancelButton: true, confirmButtonText: 'تأكيد ومتابعة', cancelButtonText: 'إلغاء',
-            customClass: { popup: '!rounded-3xl', confirmButton: '!rounded-xl !bg-indigo-600 !px-8', cancelButton: '!rounded-xl' }
-        }).then(function(result){
-            if(!result.isConfirmed) return;
-            Swal.fire({ title: 'جاري إنهاء التحضير...', allowOutsideClick: false, didOpen: function(){ Swal.showLoading(); } });
-            supabase.auth.getSession().then(function(sessionRes){
-                var token = sessionRes.data.session ? sessionRes.data.session.access_token : null;
-                if(!token){ Swal.close(); toast('انتهت الجلسة', 'error'); return; }
-                return fetch(SUPABASE_URL + '/functions/v1/complete-picking', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ runsheet_code: self.session.runsheet_code, items: items }) });
-            }).then(function(res){
-                if(!res) return; if(!res.ok) return res.json().then(function(err){ throw new Error(err.msg || 'خطأ'); }); return res.json();
-            }).then(function(json){
-                Swal.close();
-                if(!json || !json.success){ toast((json && json.msg) || 'فشل', 'error'); return; }
-                toast('تم إنهاء التحضير', 'success');
-db.session.clear();
-self.session = null;
-if (self.timerInterval) clearInterval(self.timerInterval);
+completePicking: function() {
+    var self = this;
 
-// ✅ إنهاء الجلسة النشطة والسماح بالتحديث التلقائي
-window._rwHasActiveSession = false;
-if (typeof RW_checkPendingReload === 'function') {
-    RW_checkPendingReload();
-}
+    if (!this.session) return;
 
-self.renderPendingTab();
-            }).catch(function(err){ Swal.close(); toast(err.message || 'فشل الاتصال', 'error'); });
+    if (!navigator.onLine) {
+        toast('أنت غير متصل', 'warning');
+        return;
+    }
+
+    var items = [];
+    var fullCount = 0, partialCount = 0, zeroCount = 0;
+
+    for (var i = 0; i < this.session.items.length; i++) {
+        var it = this.session.items[i];
+
+        items.push({
+            itemCode: it.item_code,
+            pickedQty: it.qty_picked,
+            notes: it.notes
         });
-    },
 
-    // ==================== تبويب مكتملة ====================
+        if (it.qty_picked >= it.qty_ordered) {
+            fullCount++;
+        } else if (it.qty_picked > 0) {
+            partialCount++;
+        } else {
+            zeroCount++;
+        }
+    }
+
+    var summaryHtml =
+        '<div class="text-right text-sm">' +
+        '<p>أنت على وشك إنهاء تحضير الرانشيت <strong>' +
+        this.session.runsheet_code +
+        '</strong>.</p>' +
+        '<div class="mt-3 space-y-1">' +
+        '<div>✅ <strong>' + fullCount + '</strong> أصناف مكتملة</div>' +
+        '<div>⚠️ <strong>' + partialCount + '</strong> أصناف منقوصة</div>' +
+        '<div>❌ <strong>' + zeroCount + '</strong> أصناف لم تُحضّر</div>' +
+        '</div>';
+
+    if (partialCount > 0 || zeroCount > 0) {
+        summaryHtml +=
+            '<hr class="my-3">' +
+            '<p class="text-amber-600 font-bold text-xs">الأصناف الناقصة:</p>' +
+            '<ul class="text-xs space-y-1 mt-1">';
+
+        for (var k = 0; k < this.session.items.length; k++) {
+            var item = this.session.items[k];
+
+            if (item.qty_picked < item.qty_ordered) {
+                summaryHtml +=
+                    '<li>• ' +
+                    item.item_name +
+                    ' (' +
+                    item.qty_picked +
+                    '/' +
+                    item.qty_ordered +
+                    ') ' +
+                    (item.notes
+                        ? '– ' + item.notes
+                        : '<span class="text-red-400">بدون سبب</span>') +
+                    '</li>';
+            }
+        }
+
+        summaryHtml += '</ul>';
+    }
+
+    summaryHtml += '</div>';
+
+    Swal.fire({
+        title: 'تأكيد إنهاء التحضير',
+        html: summaryHtml,
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: 'تأكيد ومتابعة',
+        cancelButtonText: 'إلغاء',
+        customClass: {
+            popup: '!rounded-3xl',
+            confirmButton: '!rounded-xl !bg-indigo-600 !px-8',
+            cancelButton: '!rounded-xl'
+        }
+    }).then(function(result) {
+
+        if (!result.isConfirmed) return;
+
+        /*
+         * نفس operation_id يجب أن يبقى ثابتًا أثناء إعادة إرسال
+         * نفس عملية الإنهاء.
+         *
+         * sessionStorage يحافظ عليه حتى مع reload داخل نفس التبويب.
+         */
+        var operationStorageKey =
+            'RW_PICKER_COMPLETE:' +
+            String(self.companyId || '') +
+            ':' +
+            String(self.session.runsheet_code || '');
+
+        var operationId =
+            self.session.complete_operation_id ||
+            sessionStorage.getItem(operationStorageKey) ||
+            crypto.randomUUID();
+
+        self.session.complete_operation_id = operationId;
+        sessionStorage.setItem(operationStorageKey, operationId);
+
+        Swal.fire({
+            title: 'جاري إنهاء التحضير...',
+            allowOutsideClick: false,
+            didOpen: function() {
+                Swal.showLoading();
+            }
+        });
+
+        supabase.auth.getSession().then(function(sessionRes) {
+
+            var token = sessionRes.data.session
+                ? sessionRes.data.session.access_token
+                : null;
+
+            if (!token) {
+                Swal.close();
+                toast('انتهت الجلسة', 'error');
+                return;
+            }
+
+            return fetch(
+                SUPABASE_URL + '/functions/v1/complete-picking',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token,
+                        'Idempotency-Key': operationId
+                    },
+                    body: JSON.stringify({
+                        runsheet_code: self.session.runsheet_code,
+                        items: items,
+                        operation_id: operationId
+                    })
+                }
+            );
+
+        }).then(function(res) {
+
+            if (!res) return;
+
+            if (!res.ok) {
+                return res.json().then(function(err) {
+                    throw new Error(err.msg || 'خطأ');
+                });
+            }
+
+            return res.json();
+
+        }).then(function(json) {
+
+            Swal.close();
+
+            if (!json || !json.success) {
+                toast((json && json.msg) || 'فشل', 'error');
+                return;
+            }
+
+            sessionStorage.removeItem(operationStorageKey);
+
+            toast(
+                json.duplicate
+                    ? 'تم تأكيد العملية السابقة بنجاح'
+                    : 'تم إنهاء التحضير',
+                'success'
+            );
+
+            db.session.clear();
+            self.session = null;
+
+            if (self.timerInterval) {
+                clearInterval(self.timerInterval);
+            }
+
+            window._rwHasActiveSession = false;
+
+            if (typeof RW_checkPendingReload === 'function') {
+                RW_checkPendingReload();
+            }
+
+            self.renderPendingTab();
+
+        }).catch(function(err) {
+            Swal.close();
+            toast(err.message || 'فشل الاتصال', 'error');
+        });
+    });
+},
+
+        // ==================== تبويب مكتملة ====================
 renderCompletedTab: function(){
     var self = this;
 
