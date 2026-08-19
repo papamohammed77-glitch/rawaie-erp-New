@@ -264,49 +264,77 @@ else if (view === 'account') { if (fc) fc.classList.add('hidden'); this.renderAc
         });
     },
 
-    _createVanBranch: function(vanCode) {
-        var self = this;
-        var userName = this.currentUser ? (this.currentUser.name || this.currentUser.email) : vanCode;
+_createVanBranch: function() {
+    var self = this;
 
-        RW_UI.showLoader('جاري تهيئة فرع المندوب...');
+    var driverEmail = this.currentUser
+        ? String(this.currentUser.email || '').trim().toLowerCase()
+        : '';
 
-        // إنشاء الفرع في Supabase عبر REST مباشرة
-        supabase.from('branches').insert({
-            company_id: '00000000-0000-0000-0000-000000000001',
-            branch_code: vanCode,
-            name: 'سيارة ' + userName,
+    if (!driverEmail) {
+        RW_UI.hideLoader();
+        RW_UI.showError('تعذر تحديد بريد مندوب السيارة.');
+        return;
+    }
+
+    RW_UI.showLoader('جاري تهيئة فرع السيارة...');
+
+    supabase.functions.invoke('setup-van-branch', {
+        body: {
+            driver_email: driverEmail
+        }
+    }).then(function(result) {
+
+        if (result.error) {
+            throw result.error;
+        }
+
+        var data = result.data;
+
+        if (!data || !data.success || !data.branch_id) {
+            throw new Error(
+                (data && data.msg) ||
+                'فشل إعداد فرع السيارة'
+            );
+        }
+
+        self.vanBranch = {
+            id: data.branch_id,
+            branch_code: data.branch_code,
+            name: data.branch_name,
+            company_id: self.currentUser.company_id,
             is_active: true
-        }).select('id, branch_code, name').single().then(function(res) {
-            if (res.data) {
-                self.vanBranch = res.data;
-                self.vanBranchId = res.data.id;
-                // حفظ في Dexie
-                var db = RW_DB.getDB('VanSales');
-                db.branches.put(res.data);
+        };
 
-                // ✅ تهيئة stock_branches للفرع الجديد – نسخ من MAIN
-                supabase.rpc('setup_van_stock', { p_van_branch_id: res.data.id }).then(function() {
-                    RW_UI.hideLoader();
-                    self._afterVanBranchReady();
-                }).catch(function() {
-                    RW_UI.hideLoader();
-                    self._afterVanBranchReady();
-                });
-            } else {
-                // فشل الإنشاء – استخدام MAIN كبديل
-                RW_UI.hideLoader();
-                self.vanBranch = { branch_code: 'MAIN', name: 'المخزن الرئيسي', id: null };
-                self.vanBranchId = null;
-                self._afterVanBranchReady();
-            }
-        }).catch(function() {
+        self.vanBranchId = data.branch_id;
+
+        var db = RW_DB.getDB('VanSales');
+
+        return db.branches.put(self.vanBranch).then(function() {
+
             RW_UI.hideLoader();
-            self.vanBranch = { branch_code: 'MAIN', name: 'المخزن الرئيسي', id: null };
-            self.vanBranchId = null;
-            self._afterVanBranchReady();
-        });
-    },
 
+            self._afterVanBranchReady();
+
+            RW_UI.toast(
+                '🚛 تم تهيئة ' + data.branch_code,
+                'success'
+            );
+
+        });
+
+    }).catch(function(err) {
+
+        RW_UI.hideLoader();
+
+        RW_UI.showError(
+            err?.message ||
+            'تعذر إنشاء أو تهيئة فرع السيارة.'
+        );
+
+    });
+},
+    
     _afterVanBranchReady: function() {
         this.loadMyCustomers();
         this.loadCustomerPatterns();
