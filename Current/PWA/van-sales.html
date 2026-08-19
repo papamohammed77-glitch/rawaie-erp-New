@@ -255,10 +255,10 @@ else if (view === 'account') { if (fc) fc.classList.add('hidden'); this.renderAc
                         self._afterVanBranchReady();
                     } else {
                         // ٣. الفرع غير موجود – إنشاؤه تلقائياً
-                        self._createVanBranch(vanCode);
+                        self._createVanBranch();
                     }
                 }).catch(function() {
-                    self._createVanBranch(vanCode);
+                    self._createVanBranch();
                 });
             }
         });
