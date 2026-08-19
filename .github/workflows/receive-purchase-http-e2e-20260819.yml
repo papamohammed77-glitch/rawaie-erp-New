@@ -1,0 +1,26 @@
+name: receive-purchase Production HTTP E2E 20260819
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [ctorepair-receive-purchase-http-e2e2-20260819]
+permissions: {}
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute Production HTTP harness
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --max-time 180 \
+            'https://fiilmooggumokxanwiyx.supabase.co/functions/v1/receive-purchase-runtime-e2e-20260819?token=RPO-CTO-E2E-20260819' | tee result.json
+          python - <<'PY'
+          import json
+          r=json.load(open('result.json'))
+          print(json.dumps(r,ensure_ascii=False,indent=2))
+          assert r.get('success') is True, r
+          assert r.get('production_http_e2e') is True, r
+          assert r.get('replay',{}).get('body',{}).get('duplicate') is True, r
+          assert r.get('residue_zero') is True, r
+          assert r.get('baseline_restored') is True, r
+          PY
