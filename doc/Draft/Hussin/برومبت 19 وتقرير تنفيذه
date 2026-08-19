@@ -1,0 +1,253 @@
+برومبت 19
+مهمة حرجة : 
+في هذه المهمة قم بالتحقيق الجنائي من المصادر مباشرة ولا تثق بالتقارير ولا ذاكرتك فذاكرتك توقفت في مرحلة تاريخية قديمة ، لذلك لا تعتمد علي الذاكرة الحالية التاريخية ،
+ستجد العديد من التعديلات ، لا تجعلها تسبب لك الإرتباك نتيجة توقف الذاكرة ، وما تجده من تعديلات الصحيح منها مرره والغير صحيح قم بإصلاحه مباشرة
+لمعرفة السياق الحالي للمهمة الحالية وتسلسل الأحداث 
+قم بفتح الملف التالي :
+ https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2011%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2012%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2013%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2014%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي  :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2015%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+ثم قم بفتح الملف التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2016%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2017%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2018%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+الهدف المطلوب هو :
+المشكلة مركبة وليست بسيطة قم بالتحقيق الجنائي لإكتشاب الخطأ
+الفكرة العامة 
+أريد في النظام الأم main.html  في تبويب الصلاحيات الممنوحة بدلا من دمج 
+مجموعة عمال المخازن المختصين بالعمليات المخزنية مثل التحضير والتحميل والمرتجعات والأذونات المخزنية والجرد 
+يتم تسجيلهم في النظام الأم في صلاحية ممنوحة واحدة (عمال مخازن)
+ويقوم االمشرف في تطبيقه 
+بتغيير الأدوار من تبويب الفريق باختيار العضو واختيار الدور 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/PWA/warehouse.supervisor
+يوجد مشكلة في التبويب أريدك مراجعتها واصلاحها بحيث استطيع اختيار المسئول و التطبيق المختص عنه
+
+في التطبيق vouchers.html
+وقمت بتسجيل مستخدم جديد vouchers@rawaea.com  وعند محاولة الدخول التطبيق لا يتجاوز شاشة الدخول
+وتقرير كونسول 
+(index):64 cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation
+(anonymous) @ (index):64
+(anonymous) @ (index):64
+core.js:674 ✅ core.js – النواة المشتركة للروائع ERP – تم التحميل بنجاح
+core.js:675    RW_Auth | RW_DB | RW_API | RW_UI | RW_ImageCache | RW_SW
+supabase-js@2:14  POST https://fiilmooggumokxanwiyx.supabase.co/auth/v1/token?grant_type=password 400 (Bad Request)
+wr @ supabase-js@2:14
+ni @ supabase-js@2:14
+J @ supabase-js@2:14
+signInWithPassword @ supabase-js@2:16
+doLogin @ core.js:88
+doLogin @ vouchers:36
+onclick @ vouchers:24
+
+----------------------------------------------
+ملحق 
+تقرير تنفيذ برومبت 19
+
+النتيجة الجنائية
+
+أعدت التحقيق من Prompts 11–18، Git الحالي، vouchers.html، warehouse.supervisor، وProduction Supabase. والنتيجة الحالية مختلفة في نقطتين مهمتين عن بعض التقارير السابقة.
+
+1. نموذج صلاحيات عمال المخازن
+
+هذا النموذج موجود فعليًا في Production بالفعل، وليس مجرد اقتراح:
+
+warehouse = الصلاحية الأساسية الموحدة للعامل المخزني
+active_warehouse_role = التطبيق/المهمة الفعلية
+
+وProduction تحتوي بالفعل على أدوار مثل:
+
+استلام / تحضير / تحميل / مرتجعات / تفريغ / أذونات / جرد / احتياطي
+
+وهذا يؤيد المطلوب الذي حددته. تقارير Prompt 15–17 كانت تسير في هذا الاتجاه، بينما Prompt 16 كشف لاحقًا أخطاء فعلية في النسخة البرمجية، وهو بالضبط سبب عدم الاعتماد على التقرير وحده.
+
+2. المشكلة الحقيقية في warehouse.supervisor
+
+كان هناك عيبان حقيقيان:
+
+التطبيق كان يسمح لأي مستخدم لديه warehouse بفتح تطبيق المشرف، بينما المفترض أن يكون الدخول للمشرف فقط أو Owner.
+تبويب الفريق كان ينفذ:
+supabase.from('users').update(...)
+
+مباشرة، لكن RLS لا يسمح لمشرف المخازن بتعديل users بهذه الطريقة.
+
+أغلقت هذا معماريًا وليس بترقيع RLS:
+
+أضفت Production RPC:
+
+set_active_warehouse_role(uuid,text)
+
+ويفرض:
+
+نفس company_id
+المشرف يملك warehouse_supervisor
+العضو المستهدف role = مخزني
+الدور ضمن قائمة مغلقة
+لا يمكن تغيير عضو من شركة أخرى
+
+ثم عدّلت Current/PWA/warehouse.supervisor ليقوم بـ:
+
+اختيار العضو → اختيار الدور → RPC → تحديث فوري
+
+وأصبح تحميل الفريق Company-scoped ويعرض عمال المخازن فقط.
+
+الأهم: اختبرت الـRPC فعليًا بــJWT claims لمشرف المخازن داخل Transaction ثم ROLLBACK. التغيير نجح، ثم عاد Production لحالتها الأصلية بعد الـRollback.
+
+3. vouchers@rawaea.com
+
+هنا التحقيق كشف شيئًا مهمًا جدًا.
+
+المستخدم موجود فعلًا في Auth وemail_confirmed_at موجود، ولديه password hash. وبالتالي المشكلة ليست عدم وجود المستخدم أو عدم تأكيد البريد.
+
+كما أن signInWithPassword → HTTP 400 يحدث قبل App.init().
+
+لذلك فإن:
+
+activeWarehouseRole
+
+لم يكن سبب الـ400 نفسه.
+
+لكن كان هناك عطل ثانٍ سيظهر بعد نجاح تسجيل الدخول: المستخدم لم يكن لديه دور نشط.
+
+قمت بإصلاح بيانات Production فعليًا:
+
+email: vouchers@rawaea.com
+role: مخزني
+active_warehouse_role: أذونات
+company_id: 00000000-0000-0000-0000-000000000001
+
+وتم تسجيل التغيير في audit_log.
+
+التحقق النهائي في Production الآن:
+
+vouchers@rawaea.com
+role = مخزني
+active_warehouse_role = أذونات
+4. هل تم حل خطأ "انتهت الجلسة"؟
+
+نعم، وهذا كان Bug حقيقيًا منفصلًا أثبته Prompt 18 أيضًا.
+
+NO_SESSION عند فتح الصفحة لأول مرة كان يتحول خطأً إلى:
+
+انتهت الجلسة
+
+بينما NO_SESSION حالة طبيعية للزائر الجديد.
+
+تم إصلاحها بحيث:
+
+NO_SESSION
+↓
+ابقَ على شاشة الدخول
+↓
+المستخدم يسجل الدخول
+
+وهذا الإصلاح مثبت في vouchers.html.
+
+5. هل المشكلة الحالية في vouchers.html انتهت؟
+
+جزئيًا، وبتمييز مهم جدًا.
+
+vouchers.html الحالي يحتوي فعليًا على بوابة الدور:
+
+activeWarehouseRole === 'أذونات'
+
+وبالتالي بعد إصلاح سجل vouchers@rawaea.com أصبح المستخدم مؤهلًا من ناحية التطبيق.
+
+لكن Console الذي أعطيته:
+
+POST /auth/v1/token
+400
+signInWithPassword
+
+لا يمكنني أن أقول إن تسجيل الدخول صار ناجحًا دون معرفة كلمة المرور التي أدخلتها.
+
+أنا أثبتُّ:
+
+المستخدم موجود.
+Auth ID صحيح.
+البريد مؤكد.
+password hash موجود.
+سجل public.users صحيح الآن.
+Role routing صحيح.
+خطأ NO_SESSION السابق مغلق.
+
+لكن لم أغيّر كلمة المرور ولم أخمّنها.
+
+إذن الـ400 المتبقي هو حاليًا Credential-level failure غير مثبت السبب بدقة، وليس Role failure.
+
+6. اكتشاف إضافي مهم جدًا
+
+هناك Source Drift:
+
+ملفات PWA مثل:
+
+<script src="../core.js"></script>
+
+لكن Current/PWA/core.js غير ظاهر ضمن Git الحالي بنفس المسار الذي تشير إليه الصفحات.
+
+بينما المتصفح فعليًا يحمل core.js.
+
+هذا يعني أن هناك فرقًا بين:
+
+Git source
+
+و
+
+الـcore.js الذي يصل للـhosting
+
+وهذا يحتاج إغلاقًا مستقلًا قبل أن نعطي أي CTO لاحق ادعاءً بأن Git يمثل كامل Frontend runtime.
+
+لن أعتبر هذا مغلقًا بالتخمين.
+
+الحالة الحالية
+المسار	الحالة
+نموذج Permission موحد لعمال المخازن	✅ مثبت في Production
+active_warehouse_role routing	✅ أصلحته
+warehouse.supervisor Company Scope	✅ أصلحته
+قصر تطبيق المشرف على Supervisor/Owner	✅ أصلحته
+تعيين الدور من تبويب الفريق	✅ RPC حقيقي + Production tested
+vouchers@rawaea.com public user role	✅ تم تصحيحه
+vouchers@rawaea.com active role	✅ أذونات
+False “انتهت الجلسة”	✅ مغلق
+Auth account existence	✅ مثبت
+Email confirmation	✅ مثبت
+Password validity	❌ غير مثبت
+signInWithPassword 400	⚠️ ما زال يحتاج credential verification
+Frontend core.js Git/Hosting provenance	⚠️ Drift مفتوح
+القرار المهني
+
+لا أعتبر مشكلة vouchers@rawaea.com مكتملة 100% بعد.
+
+الجزء الخاص بالصلاحيات والـrouting تم إصلاحه فعليًا في Production، لكن الـ400 من Supabase Auth لا يجوز أن أنسبه إلى كلمة مرور خاطئة دون رؤية استجابة Auth الفعلية أو اختبار اعتماد صحيح.
+
+أما نموذج عمال المخازن، فقد وصل الآن إلى الشكل المطلوب معماريًا:
+
+MAIN SYSTEM
+    ↓
+warehouse = base permission
+    ↓
+Warehouse Supervisor
+    ↓
+select worker
+    ↓
+select active_warehouse_role
+    ↓
+specific PWA
+
+وهذا هو النموذج الصحيح الذي ينبغي أن يستمر عليه المشروع.
+
+الخطوة الوحيدة المتبقية في هذا المسار: إثبات الـAuth credential نفسه، ثم إغلاق مصدر core.js بين Git والـhosting.
