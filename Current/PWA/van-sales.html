@@ -227,43 +227,196 @@ else if (view === 'account') { if (fc) fc.classList.add('hidden'); this.renderAc
         else if (view === 'balance') { if (fc) fc.classList.add('hidden'); this.renderBalanceView(); }
     },
     // ==================== فرع المندوب – VAN-{email} ====================
-    loadVanBranch: function() {
-        var self = this;
-        var db = RW_DB.getDB('VanSales');
-        var vanCode = 'VAN-' + (this.currentUser ? this.currentUser.email : '');
+loadVanBranch: function() {
+    var self = this;
+    var db = RW_DB.getDB('VanSales');
 
-        // ١. البحث عن الفرع في Dexie
-        db.branches.toArray().then(function(branches) {
-            var found = null;
-            for (var i = 0; i < branches.length; i++) {
-                if (branches[i].branch_code === vanCode) { found = branches[i]; break; }
+    var driverEmail = this.currentUser
+        ? String(this.currentUser.email || '').trim().toLowerCase()
+        : '';
+
+    if (!driverEmail) {
+        RW_UI.hideLoader();
+        RW_UI.showError('تعذر تحديد بريد المندوب.');
+        return;
+    }
+
+    /*
+     * لا نبني Branch Code من البريد الإلكتروني.
+     * الهوية الصحيحة للسيارة تأتي من vehicles.vehicle_code.
+     */
+
+    if (!navigator.onLine) {
+        if (this.vanBranch && this.vanBranch.id) {
+            this.vanBranchId = this.vanBranch.id;
+            this._afterVanBranchReady();
+            return;
+        }
+
+        RW_UI.showError(
+            'لا يوجد اتصال ولا توجد بيانات فرع سيارة محفوظة لهذه الجلسة.'
+        );
+        return;
+    }
+
+    RW_UI.showLoader('جاري تحديد سيارة المندوب...');
+
+    /*
+     * 1) تحديد Public User من جلسة Auth
+     * 2) تحديد السيارة المرتبطة به
+     * 3) بناء VAN-{vehicle_code}
+     * 4) البحث عن الفرع الصحيح
+     * 5) إن لم يوجد يتم تمرير المهمة إلى _createVanBranch()
+     */
+
+    supabase
+        .from('users')
+        .select('id, company_id, status, email')
+        .eq('auth_id', this.currentUser.id)
+        .maybeSingle()
+        .then(function(userRes) {
+
+            if (userRes.error) {
+                throw userRes.error;
             }
 
-            if (found) {
-                // ✅ الفرع موجود محلياً
-                self.vanBranch = found;
-                self.vanBranchId = found.id;
-                self._afterVanBranchReady();
-            } else {
-                // ٢. البحث عن الفرع في Supabase مباشرة
-                supabase.from('branches').select('*').eq('branch_code', vanCode).maybeSingle().then(function(res) {
-                    if (res.data) {
-                        self.vanBranch = res.data;
-                        self.vanBranchId = res.data.id;
-                        // ✅ حفظ الفرع في Dexie للاستخدام المستقبلي
-                        db.branches.put(res.data);
-                        self._afterVanBranchReady();
-                    } else {
-                        // ٣. الفرع غير موجود – إنشاؤه تلقائياً
-                        self._createVanBranch();
+            var publicUser = userRes.data;
+
+            if (!publicUser || !publicUser.id || !publicUser.company_id) {
+                throw new Error(
+                    'تعذر تحديد المستخدم أو سياق الشركة.'
+                );
+            }
+
+            if (
+                publicUser.status &&
+                publicUser.status !== 'Active'
+            ) {
+                throw new Error('المستخدم غير نشط.');
+            }
+
+            return supabase
+                .from('vehicles')
+                .select(
+                    'id, company_id, vehicle_code, license_plate, driver_id, status'
+                )
+                .eq('company_id', publicUser.company_id)
+                .eq('driver_id', publicUser.id)
+                .maybeSingle()
+                .then(function(vehicleRes) {
+
+                    if (vehicleRes.error) {
+                        throw vehicleRes.error;
                     }
-                }).catch(function() {
-                    self._createVanBranch();
-                });
-            }
-        });
-    },
 
+                    var vehicle = vehicleRes.data;
+
+                    if (!vehicle) {
+                        throw new Error(
+                            'لا توجد سيارة مرتبطة بهذا المندوب.'
+                        );
+                    }
+
+                    if (
+                        vehicle.status &&
+                        vehicle.status !== 'Active'
+                    ) {
+                        throw new Error('السيارة غير نشطة.');
+                    }
+
+                    if (!vehicle.vehicle_code) {
+                        throw new Error(
+                            'السيارة لا تحتوي على vehicle_code صالح.'
+                        );
+                    }
+
+                    return {
+                        publicUser: publicUser,
+                        vehicle: vehicle,
+                        branchCode: 'VAN-' + vehicle.vehicle_code
+                    };
+                });
+        })
+        .then(function(ctx) {
+
+            /*
+             * أولاً: Cache
+             */
+            return db.branches
+                .toArray()
+                .then(function(branches) {
+
+                    var found = null;
+
+                    for (var i = 0; i < branches.length; i++) {
+                        if (
+                            branches[i].branch_code === ctx.branchCode &&
+                            branches[i].company_id === ctx.publicUser.company_id
+                        ) {
+                            found = branches[i];
+                            break;
+                        }
+                    }
+
+                    if (found) {
+                        return found;
+                    }
+
+                    /*
+                     * ثانياً: Production
+                     */
+                    return supabase
+                        .from('branches')
+                        .select(
+                            'id, branch_code, name, company_id, is_active'
+                        )
+                        .eq('company_id', ctx.publicUser.company_id)
+                        .eq('branch_code', ctx.branchCode)
+                        .maybeSingle()
+                        .then(function(branchRes) {
+
+                            if (branchRes.error) {
+                                throw branchRes.error;
+                            }
+
+                            return branchRes.data || null;
+                        });
+                })
+                .then(function(found) {
+
+                    /*
+                     * الفرع موجود بالفعل
+                     */
+                    if (found) {
+                        self.vanBranch = found;
+                        self.vanBranchId = found.id;
+
+                        return db.branches
+                            .put(found)
+                            .then(function() {
+                                RW_UI.hideLoader();
+                                self._afterVanBranchReady();
+                            });
+                    }
+
+                    /*
+                     * الفرع غير موجود:
+                     * استخدام الـcanonical capability الموجودة بالفعل.
+                     */
+                    return self._createVanBranch();
+                });
+        })
+        .catch(function(err) {
+
+            RW_UI.hideLoader();
+
+            RW_UI.showError(
+                err && err.message
+                    ? err.message
+                    : 'تعذر تحديد فرع السيارة.'
+            );
+        });
+},
 _createVanBranch: function() {
     var self = this;
 
