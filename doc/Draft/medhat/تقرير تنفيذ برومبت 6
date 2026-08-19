@@ -1,0 +1,147 @@
+تابعت التنفيذ الفعلي، والنتيجة حتى نقطة توقف التنفيذ الآلي هي:
+
+ما تم إغلاقه فعليًا
+
+1. receive_purchase_atomic — مغلق 100%
+
+تم إثبات Production Core ثم إزالة الـlegacy overload القديم:
+
+تم حذف receive_purchase_atomic(uuid,text,text,jsonb) القديم بعد إثبات أن عدد الـDB dependencies عليه = صفر.
+بقي الـcanonical request-idempotent RPC.
+تم اختبار:
+استلام أول: نجاح.
+إعادة نفس operation_id: duplicate=true بدون حركة ثانية.
+عملية استلام جزئي جديدة: نجاح.
+تم تنفيذ Production HTTP E2E حقيقي عبر GitHub Actions على Edge Function الحقيقية، وليس SQL فقط.
+النتيجة الموثقة في run 32211017375:
+Initial: success=true, duplicate=false.
+Retry بنفس العملية: success=true, duplicate=true.
+Second partial: success=true, duplicate=false.
+Production قبل التنظيف: stock=203, received=2, inventory_log=2, receiving=2.
+بعد التنظيف: baseline_restored=true, residue_zero=true.
+النتيجة النهائية: RECEIVE_PURCHASE_PRODUCTION_E2E=PASS.
+أداة الـE2E المؤقتة تم تحويلها إلى HTTP 410 بعد الاختبار.
+أُغلقت PRs الاختبارية #11 و#12 و#13 ولم تدخل Production.
+2. PWA receive-purchase
+
+تم تعديل الـPWA الحالي ليُرسل operation_id: crypto.randomUUID() في طلب الاستلام، ثم دمج الإصلاح في main.
+
+هذا يكمل السلسلة:
+
+PWA operation_id → Edge → receive_purchase_atomic → post_stock_movement
+
+بدل ترك الـCore صحيحًا بينما المستهلك لا يرسل هوية العملية.
+
+3. create-stock-voucher
+
+تمت مراجعة المسار الحالي وإعادته إلى الـRPC canonical، مع إزالة الاعتماد غير الآمن على app_settings LIMIT 1 في سياق الشركة.
+
+اختبار Production transaction أثبت إنشاء Voucher بنجاح ثم Rollback كامل.
+
+4. post_inventory_adjustment_atomic
+
+تمت مراجعة Production والـEdge.
+
+النتيجة المهمة:
+
+الـRPC لا يكتب Physical Stock مباشرة.
+يستدعي post_stock_movement.
+Item identity معتمد على item_id + item_code مع كون item_code عالميًا UNIQUE.
+الـEdge الحالي يستخرج company_id من المستخدم المصادق، وليس app_settings LIMIT 1.
+تم اختبار add / deduct / replace داخل Transactions.
+لم يظهر Writer مستقل خارج post_stock_movement.
+5. Global Physical Writer Discovery
+
+تم فحص وظائف PostgreSQL ذات العلاقة بـstock_branches وinventory_log.
+
+النتيجة الحالية:
+
+Function	Physical write مباشر	يستعمل post_stock_movement
+post_stock_movement	نعم	—
+post_inventory_adjustment_atomic	لا	نعم
+post_manual_stock_voucher_atomic	لا	نعم
+send_stock_voucher_atomic	لا	نعم
+complete_runsheet_reopen_loading	لا	نعم
+reserve_stock	Reservation فقط	لا
+release_stock_reservation	Reservation فقط	لا
+setup_van_stock	setup/bootstrap	لا
+
+وهذا يثبت حاليًا أن Physical mutation المباشر محصور في post_stock_movement، مع استثناءات Reservation المقصودة وليست Physical Movement Engine.
+
+Writer الذي أعمل عليه الآن: save_sales_invoice_atomic
+
+هنا اكتشفت مشكلة حقيقية، وليست مجرد ملاحظة:
+
+الـRPC القديم كان ينشئ order_id جديدًا في كل استدعاء، وبالتالي كان idempotency_key الخاص بالمخزون يعتمد على Order جديد في كل retry. أي أن:
+
+same business request → new order_id → new stock movement key
+
+وهذا كان يسمح نظريًا بتكرار البيع والمخزون عند إعادة إرسال نفس الطلب.
+
+تم بالفعل تطبيق إصلاح Production:
+
+orders.operation_id uuid
++
+UNIQUE(company_id, operation_id)
+
+والـRPC أصبح:
+
+operation_id
+   ↓
+existing order?
+   ↓
+duplicate=true
+   ↓
+لا Order جديد
+ولا Stock Movement جديد
+ولا Accounting جديد
+
+كما أضفت:
+
+pg_advisory_xact_lock(...)
+
+حول توليد ORD-xxxx لمنع collision تحت concurrent sales.
+
+اختبار Production transactional نجح دون Assertion Failure، وتم Rollback لكل بيانات الاختبار.
+
+ما تبقى في save_sales_invoice
+
+تم إنشاء PR #14 لتوصيل operation_id من الـPWA إلى نقاط إنشاء orderHeader الثلاثة.
+
+الـPR موجود هنا:
+
+PR #14 — save-sales operation identity
+
+وهو غير مدمج بعد عند نقطة توقف التنفيذ، لأنني كنت في منتصف التحقق من الـCI قبل الدمج.
+
+أي أنني لن أصف save_sales_invoice بأنه 100% CLOSED بعد؛ الـProduction RPC تم إصلاحه، لكن الـCurrent PWA consumer ما زال يحتاج إغلاق الـPR والتحقق من Production runtime.
+
+أهم اكتشاف بياناتي حتى الآن
+
+لم أقم بحذف الـ143 stock_branches المختلفين في Company da4e… بشكل أعمى.
+
+ثبت أن:
+
+items.item_code لديه UNIQUE عالمي.
+المشروع يتعامل حاليًا مع Item Master باعتباره Global Identity.
+post_stock_movement نفسه يثبت ذلك صراحة.
+لذلك كون items.company_id مختلفًا عن Company الفرع ليس وحده دليلًا على تلف البيانات.
+
+وبالتالي تجنبت تنظيفًا تدميريًا مبنيًا على افتراض، وفقًا للمبدأ الحاكم.
+
+الوضع الحالي
+
+Production تم تغييره فعليًا، وليس التقرير نظريًا.
+
+المغلق فعليًا:
+
+receive_purchase_atomic
+create-stock-voucher closure
+Physical writer centralization proof
+post_inventory_adjustment_atomic centralization
+
+قيد الإغلاق النهائي:
+
+save_sales_invoice_atomic — الـCore patched، والـPWA PR #14 يحتاج merge + Production runtime verification.
+
+وبعد إغلاقه، التسلسل الصحيح هو الاستمرار إلى complete_return_atomic ثم complete_order_delivery_atomic ثم بقية Writers المطلوبة، مع إعادة الـProduction snapshot قبل كل نتيجة—not بناء أي نسبة على snapshot قديم.
