@@ -1,0 +1,135 @@
+برومبت 18
+مهمة حرجة : 
+في هذه المهمة قم بالتحقيق الجنائي من المصادر مباشرة ولا تثق بالتقارير ولا ذاكرتك فذاكرتك توقفت في مرحلة تاريخية قديمة ، لذلك لا تعتمد علي الذاكرة الحالية التاريخية ،
+ستجد العديد من التعديلات ، لا تجعلها تسبب لك الإرتباك نتيجة توقف الذاكرة ، وما تجده من تعديلات الصحيح منها مرره والغير صحيح قم بإصلاحه مباشرة
+لمعرفة السياق الحالي للمهمة الحالية وتسلسل الأحداث 
+قم بفتح الملف التالي :
+ https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2011%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2012%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2013%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2014%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي  :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2015%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+ثم قم بفتح الملف التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2016%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2017%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+الهدف المطلوب هو : قم بالتحقيق الجنائي لإكتشاب الخطأ
+-	عند اختبار التطبيق وفتح صفحته علي المتصفح تخرج رسالة "خطأ انتهت الجلسة" ولا يعطيني فرصة محاولة الدخول 
+بالرغم من إن تقرير Console 
+(index):64 cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation
+(anonymous) @ (index):64
+(anonymous) @ (index):64
+core.js:674 ✅ core.js – النواة المشتركة للروائع ERP – تم التحميل بنجاح
+core.js:675    RW_Auth | RW_DB | RW_API | RW_UI | RW_ImageCache | RW_SW
+قم بمعالجة المشكلة 
+
+----------------------------------------------------------
+
+ملحق
+تقرير تنفيذ برومبت 18
+تمت معالجة المشكلة الأساسية بعد تحقيق مباشر من المصدر، وليس من التقارير السابقة.
+
+السبب الجنائي المثبت
+
+المشكلة ليست من Supabase Auth ولا من تحذير Tailwind.
+
+في Original/PWA/core.js، عند فتح التطبيق من دون جلسة، RW_Auth.init() يعيد:
+
+callback(null, 'NO_SESSION')
+
+وهذا هو السلوك الصحيح للزائر الجديد.
+
+لكن Current/PWA/vouchers.html كان يحتوي على هذا المنطق:
+
+RW_Auth.init(function(u,er){
+    if(er||!u){
+        RW_UI.showError('انتهت الجلسة',function(){location.reload()});
+        return
+    }
+    ...
+})
+
+وفوق ذلك كان هناك:
+
+document.addEventListener('DOMContentLoaded',function(){
+    App.init()
+});
+
+أي أن الصفحة كانت تستدعي فحص الجلسة تلقائيًا لحظة الفتح، وتحوّل الحالة الطبيعية NO_SESSION إلى رسالة «انتهت الجلسة» ثم تعيد تحميل الصفحة. لذلك لم يكن المستخدم يصل أصلًا إلى فرصة تسجيل الدخول.
+
+الإصلاح الذي نُفّذ
+
+تم تغيير السلوك إلى:
+
+if(!u){
+    if(er&&er!=='NO_SESSION'){
+        console.warn('⚠️ تعذر استعادة الجلسة السابقة:',er)
+    }
+    return
+}
+
+أي:
+
+لا توجد جلسة: ابقَ على شاشة تسجيل الدخول.
+جلسة صحيحة: استعد التطبيق طبيعيًا.
+خطأ حقيقي في استعادة الجلسة: يسجل في Console بدل منع المستخدم من تسجيل الدخول.
+
+والـdoLogin() بقي مرتبطًا بالمسار الصحيح؛ بعد نجاح signInWithPassword تتم إعادة تهيئة التطبيق، وهذه المرة توجد جلسة فعلية. التعديل مثبت في Current/PWA/vouchers.html في main.
+
+التنفيذ الفعلي
+
+تم تنفيذ الإصلاح فعليًا على GitHub main عبر One-shot forensic workflow، والـjob اكتمل بنجاح في الخطوات:
+
+Patch false session-expired gate
+ثم
+Remove one-shot runner and commit the actual fix to main
+
+وبعد ذلك تم حذف الـworkflow نفسه من المستودع، وأُغلق PR التنفيذي التجريبي.
+
+كما أن التوجيه الذي راجعته في Prompt 16 نفسه كان يشدد على عدم الوثوق بالتقارير القديمة وإعادة التحقيق من Production والمصادر المباشرة، وهو ما انطبق هنا فعليًا؛ فالمشكلة كانت في النسخة الحالية المنشورة من vouchers.html لا في الاستنتاج التاريخي.
+
+ملاحظة مهمة
+
+تحذير:
+
+cdn.tailwindcss.com should not be used in production
+
+ليس سبب المشكلة. هو تحذير هندسي منفصل، ولا علاقة له بانتهاء الجلسة.
+
+النتيجة
+
+False Session Expired Gate: FIXED
+
+السلوك المتوقع الآن عند فتح الصفحة لأول مرة:
+
+فتح الصفحة
+   ↓
+NO_SESSION
+   ↓
+لا توجد نافذة "انتهت الجلسة"
+   ↓
+تظهر شاشة تسجيل الدخول
+   ↓
+المستخدم يدخل البريد وكلمة المرور
+   ↓
+Supabase signInWithPassword
+   ↓
+App.init()
+   ↓
+الدخول للنظام
+
+ولأن المشكلة مرتبطة بملف PWA، يجب عند الاختبار استخدام Hard Refresh (Ctrl+Shift+R) حتى لا تكون نسخة HTML القديمة محفوظة من Service Worker أو Cache.
+
+لم أتعامل مع تحذير Tailwind ولم أغير Auth أو قاعدة البيانات، لأن الأدلة أثبتت أنهما ليسا أصل العطل.
+
+---------------
