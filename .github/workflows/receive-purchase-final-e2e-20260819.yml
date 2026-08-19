@@ -1,0 +1,69 @@
+name: receive-purchase Production Final HTTP E2E 20260819
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions: {}
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute final Production receive-purchase E2E
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://fiilmooggumokxanwiyx.supabase.co'
+          ANON='sb_publishable_ZQC-PFJJWDoFh-6ZmaTWeg_UtrzzM71'
+          HARNESS="$BASE/functions/v1/receive-purchase-runtime-e2e-20260819?token=RPO-CTO-E2E-20260819"
+          setup=$(curl --silent --show-error --max-time 60 "$HARNESS&mode=setup")
+          echo "$setup" | python -m json.tool
+          eval "$(python - <<'PY' "$setup"
+          import json,sys,shlex
+          x=json.loads(sys.argv[1])
+          assert x.get('success') is True, x
+          for k in ('email','password','po_code','baseline','op1','op2'):
+              print(f'{k}='+shlex.quote(str(x[k])))
+          PY
+          )"
+          cleanup() {
+            curl --silent --show-error --max-time 60 "$HARNESS&mode=finalize&po_code=$(python -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))' "$po_code")&baseline=$baseline" | tee finalize.json || true
+          }
+          trap cleanup EXIT
+          login=$(curl --silent --show-error --max-time 60 -X POST "$BASE/auth/v1/token?grant_type=password" -H "apikey: $ANON" -H 'Content-Type: application/json' --data "$(python - <<'PY' "$email" "$password"
+          import json,sys
+          print(json.dumps({'email':sys.argv[1],'password':sys.argv[2]}))
+          PY
+          )")
+          echo "$login" | python -m json.tool
+          access=$(python - <<'PY' "$login"
+          import json,sys
+          x=json.loads(sys.argv[1]); assert x.get('access_token'), x; print(x['access_token'])
+          PY
+          )"
+          call_receive() {
+            local op="$1"
+            curl --silent --show-error --max-time 60 -X POST "$BASE/functions/v1/receive-purchase" \
+              -H "Authorization: Bearer $access" -H 'Content-Type: application/json' \
+              --data "$(python - <<'PY' "$po_code" "$op"
+          import json,sys
+          print(json.dumps({'po_code':sys.argv[1],'itemsReceived':[{'itemCode':'1001','receivedQty':1,'itemName':'جو كيك 5ج','unit':'حبة'}],'operation_id':sys.argv[2]}))
+          PY
+          )"
+          }
+          a=$(call_receive "$op1"); echo "$a" | python -m json.tool
+          b=$(call_receive "$op1"); echo "$b" | python -m json.tool
+          c=$(call_receive "$op2"); echo "$c" | python -m json.tool
+          echo '--- FINALIZE / VERIFY ---'
+          # cleanup() runs on shell exit; force its result into an artifact-like file without failing before trap
+          final=$(curl --silent --show-error --max-time 60 "$HARNESS&mode=finalize&po_code=$(python -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))' "$po_code")&baseline=$baseline")
+          trap - EXIT
+          echo "$final" | tee finalize.json | python -m json.tool
+          python - <<'PY' "$a" "$b" "$c" "$final"
+          import json,sys
+          a,b,c,f=map(json.loads,sys.argv[1:])
+          assert a.get('success') is True and a.get('duplicate') is not True, a
+          assert b.get('success') is True and b.get('duplicate') is True, b
+          assert c.get('success') is True and c.get('duplicate') is not True, c
+          assert f.get('success') is True and f.get('verified') is True, f
+          assert f.get('residue_zero') is True and f.get('baseline_restored') is True, f
+          print('RECEIVE_PURCHASE_PRODUCTION_E2E=PASS')
+          PY
