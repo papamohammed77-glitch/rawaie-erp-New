@@ -1,0 +1,8 @@
+name: save-sales post-merge Production HTTP E2E (retired)
+on:
+  workflow_dispatch:
+jobs:
+  retired:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'Retired after successful Production E2E run 32214977470. Evidence retained in GitHub Actions history.'
