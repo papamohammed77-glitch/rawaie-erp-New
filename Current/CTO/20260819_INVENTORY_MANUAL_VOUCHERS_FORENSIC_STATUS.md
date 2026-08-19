@@ -70,8 +70,9 @@ Verified in the real deployed database:
 ## Remaining known gaps / conflicts
 1. Historical architecture contains Scrap and Adjustment as manual voucher types, but the current deployed CREATE contract does not support them. They are intentionally NOT exposed as fake UI options.
 2. Production-only Edge files `complete-stock-voucher` and `cancel-stock-voucher` are now deployed; the canonical `Current/Edge_Functions` directory did not contain those files during this task. This is a documented Production/Current Git drift and should be reconciled in the next governance pass rather than hidden.
-3. Purchase receiving idempotency remains a separate closure unit; it was not silently counted as closed by this voucher task.
-4. Global Inventory Core Integrity remains incomplete until the remaining writer closure units in the governing directive are independently closed.
+3. A legacy 9-argument `post_stock_movement` overload still exists in Production, but `anon`/`authenticated`/`service_role` cannot execute it; the application path uses the canonical 10-argument idempotent overload. It remains legacy residue and was not deleted in this voucher closure because that dependency boundary was outside the surgical task.
+4. Purchase receiving idempotency remains a separate closure unit; it was not silently counted as closed by this voucher task.
+5. Global Inventory Core Integrity remains incomplete until the remaining writer closure units in the governing directive are independently closed.
 
 ## Final status for this task
 - Manual voucher UI gap: CLOSED for the capabilities proven by current Production backend.
