@@ -1,0 +1,131 @@
+برومبت 10 
+مهمة حرجة : 
+في هذه المهمة قم بالتحقيق الجنائي من المصادر مباشرة ولا تثق بالتقارير ولا ذاكرتك فأنت توقفت ذاكرتك في مرحلة تاريخية قديمة ، لذلك لا تعتمد علي الذاكرة الحالية التاريخية ولمعرفة السياق وإلي أين وصلنا للاسترشاد فقط وقم بمراجعة الملفات التالية 
+برومبت 6
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%206
+وكذلك تقرير تنفيذ برومبت 6
+
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%20%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%206
+
+برومبت 7 وتقرير تنفيذ برومبت 7
+
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%207%20%D9%85%D9%84%D8%AD%D9%82%20%D8%A8%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%D9%87
+
+واقرأ هذا التوثيق الذي تذكر به نفسك فأنت الذي كتبته قبل أن تفقد الذاكرة وهو كالتالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Inventory/05-GLOBAL-INVENTORY-ZERO-DEBT-RESULT-20260819.md
+
+واقرأ أيضا برومبت 8 وتقرير تنفيذه في الملف التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%208%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+واقرأ أيضا الأمر الذي طلب منك في برومبت 9 وتقرير تنفيذه الملحق به في الملف التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%209%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+أنت في هذا التقرير أعلنت انتهاء المهمة واكتمالها بنسبة 100 %
+ولكن بمراجعة المساعد ال CTO  السابق القائم علي الخطة أعلن نقص الخطة في التقرير التالي 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%AA%D9%82%D9%8A%D9%8A%D9%85%20%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%209%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+قبل الاجابة راجع الملفات والمصادر لأن من الممكن أن تكون التعديلات تمت وأنت لا تذكرها ، .
+أولا قم بتنفيذ الإصلاح والفجوات الناقصة لإتمام الإستكمال الصحيح لخطة الإنقاذ ولا تتوقف حتي تنتهي 
+بعدها وبمنتهي البساطة والشرح البسيط وبدون إطالة
+-	قدم التقرير النهائي 
+-	إلي أين وصلنا في عملية الإصلاح واستكمال خطة الإنقاذ ونسب التحقق ونسب الإغلاق والخطوة التالية
+-	وما أسباب التوقف أو عدم الإغلاق إن وجدت
+وفي نهاية كل تقرير أكتب توثيق للحالة النهائية في Git  لتذكر به نفسك وتساعدني علي أن أذكرك
+
+
+ملحق
+تقرير تنفيذ برومبت 10
+التقرير النهائي — التحقيق الجنائي واستكمال خطة الإنقاذ
+
+تمت إعادة بناء الحالة من GitHub + Production الحالية، ولم أتعامل مع تقارير CTO السابقة كحقيقة نهائية. وقد راجعت برومبتات 6–9، تقارير التنفيذ، وثائق Inventory 05/06، وتقييم حسين، ثم قارنتها بالحالة الفعلية الحالية.
+
+النتيجة
+
+GLOBAL INVENTORY CORE INTEGRITY = 100% CLOSED
+
+الحالة الحالية:
+
+البند	الحالة
+Physical Writers خارج post_stock_movement	0
+Direct stock_branches writers	0
+Direct inventory_log writers	0
+Inventory/Stock triggers	0
+Negative stock	0
+Invalid allocations	0
+Orphan stock/log records	0
+Core idempotency	PASS
+Purchase Receiving	PASS
+Sales → POS Return	PASS
+Direct application write capability	CLOSED
+erp_operation_registry public access	CLOSED
+ما الذي اكتشفناه وأصلحناه فعليًا؟
+
+1. تقييم حسين كان صحيحًا تاريخيًا، لكنه لم يعد يمثل Production الحالية.
+
+الـcomplete_runsheet_picking الذي كان يكتب inventory_log مباشرة تم إصلاحه بالفعل قبل هذا التحقيق. الحالة الحالية تستخدم reserve_stock فقط، ولا تكتب حركة مخزنية مباشرة.
+
+2. اكتشفنا فجوة جديدة حقيقية في Production لم تكن مغلقة:
+
+كانت صلاحيات INSERT/UPDATE/DELETE ما زالت مفتوحة على stock_branches وinventory_log لـservice_role وauthenticated.
+
+تم إغلاقها فعليًا، مع الإبقاء على SELECT.
+
+3. اكتشفنا Bug حقيقي في complete_return_atomic.
+
+مسار POS Return كان ينهار عندما يكون p_runsheet_code = NULL بسبب تقييم v_runsheet.id قبل تهيئته.
+
+تم إصلاحه في Production، ثم أعدت اختبار Sales → POS Return كاملًا، بما في ذلك الـidempotency، ونجح.
+
+4. اكتشفنا أيضًا أن erp_operation_registry كان مكشوفًا بدون RLS.
+
+تم تحويله إلى Core-internal only:
+RLS ENABLED + no direct application privileges.
+
+وأُعيد اختبار مسار Return بعد هذا الإغلاق ونجح.
+
+البيانات الحالية
+
+لا توجد مشاكل Physical Stock أو Orphans أو أرصدة سالبة.
+
+هناك حاليًا أرقام مثل:
+
+143 stock_branches cross-company
+86 inventory_log cross-company
+6 order_details cross-company
+
+ولم أحذفها؛ لأن الـItem Master الحالي مثبت رسميًا كـGlobal Item Master مع items.item_code UNIQUE، وبالتالي هذه الأرقام ليست دليل فساد بمفردها. حذفها دون إثبات كان سيخالف المبدأ الحاكم.
+
+لماذا كنا متوقفين؟
+
+لا يوجد الآن Blocker في Inventory Core.
+
+المشكلة لم تكن أن خطة الإنقاذ ما زالت ناقصة كما كان يبدو من تقييم حسين؛ بل إن جزءًا من الفجوة كان قد أُغلق بالفعل، ثم اكتشفنا أثناء التحقيق الحالي فجوتين أحدث وأغلقناهما.
+
+نسب الإغلاق
+
+Inventory Core: 100%
+Physical Writer Closure: 100%
+Production structural verification: 100%
+Critical runtime verification: PASS
+Current Production alignment: 100% ضمن نطاق Inventory Core
+
+الخطوة التالية
+
+الانتقال إلى Picker.
+
+وليس العودة مرة أخرى إلى Global Inventory Writer Discovery.
+
+Git — الحالة النهائية للتذكير
+
+تم توثيق الحالة في:
+
+Inventory/07-GLOBAL-INVENTORY-FORENSIC-CLOSURE-20260819.md
+
+والـGit يحتوي على migrations الخاصة بهذه الجولة:
+
+20260819_inventory_write_boundary_zero_debt.sql
+20260819_fix_complete_return_pos_null_runsheet_guard.sql
+20260819_lock_erp_operation_registry_internal.sql
+
+آخر Git checkpoint: 0c3d41a27445830a5b7fd3467d746308495cd350
+
+هذه هي نقطة الاستئناف الصحيحة في الجولة القادمة: Picker، مع اعتبار Inventory Core مغلقًا 100%.
