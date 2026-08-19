@@ -1,0 +1,98 @@
+name: Forensic warehouse role patch
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch warehouse supervisor
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('Current/PWA/warehouse.supervisor')
+          s=p.read_text(encoding='utf-8')
+          old="currentUser: null, staffList: [], currentTab: 'dashboard', chartInstance: null,"
+          new="currentUser: null, companyId: null, staffList: [], currentTab: 'dashboard', chartInstance: null,"
+          if old not in s:
+              raise SystemExit('state declaration anchor not found')
+          s=s.replace(old,new,1)
+          old_init="""init: function(){var s=this;RW_Auth.init(function(user,err){if(err||!user){if(err==='NO_SESSION')return;RW_UI.showError('فشل استعادة الجلسة');return}var isO=user.isOwner,perms=user.permissions,has=isO||perms.indexOf('warehouse_supervisor')!==-1||perms.indexOf('warehouse')!==-1;if(!has){RW_UI.showError('غير مصرح');RW_Auth.doLogout();return}RW_UI.safeText(RW_UI.byId('headerUserName'),user.name);s.currentUser=user;s.enterApp()})},"""
+          new_init="""init: function(){var s=this;RW_Auth.init(function(user,err){if(err||!user){if(err==='NO_SESSION')return;RW_UI.showError('فشل استعادة الجلسة');return}var isO=user.isOwner,perms=user.permissions,has=isO||perms.indexOf('warehouse_supervisor')!==-1;if(!has){RW_UI.showError('غير مصرح');RW_Auth.doLogout();return}RW_UI.safeText(RW_UI.byId('headerUserName'),user.name);s.currentUser=user;supabase.from('users').select('company_id').eq('auth_id',user.id||'').maybeSingle().then(function(r){if(r.error||!r.data||!r.data.company_id)throw new Error('سياق الشركة غير محدد');s.companyId=r.data.company_id;s.enterApp()}).catch(function(e){RW_UI.showError(e.message||'تعذر تحديد الشركة')})})},"""
+          if old_init not in s:
+              raise SystemExit('init anchor not found')
+          s=s.replace(old_init,new_init,1)
+          old_load="""loadStaff: function(){
+        var s=this;
+        supabase.from('users').select('id,name,email,role,active_warehouse_role').then(function(r){
+            s.staffList = r.data || [];
+        });
+    },"""
+          new_load="""loadStaff: function(){
+        var s=this;
+        supabase.from('users').select('id,name,email,role,active_warehouse_role').eq('company_id',s.companyId).eq('role','مخزني').order('name').then(function(r){
+            if(r.error){Swal.fire({title:'خطأ',text:r.error.message,icon:'error'});return}
+            s.staffList = r.data || [];
+            if(s.currentTab==='roster')s.renderRoster();
+        });
+    },"""
+          if old_load not in s:
+              raise SystemExit('loadStaff anchor not found')
+          s=s.replace(old_load,new_load,1)
+          old_update="""updateRole: function(userId,newRole){
+        var s=this; Swal.showLoading();
+        supabase.from('users').update({active_warehouse_role:newRole}).eq('id',userId).then(function(r){
+            Swal.close();
+            if(r.error){Swal.fire({title:'خطأ',text:r.error.message,icon:'error'})}
+            else {for(var i=0;i<s.staffList.length;i++){if(s.staffList[i].id===userId){s.staffList[i].active_warehouse_role=newRole;break}}s.renderRoster()}
+        });
+    },"""
+          new_update="""updateRole: function(userId,newRole){
+        var s=this;
+        RW_UI.showLoader('جاري حفظ الدور...');
+        supabase.rpc('set_active_warehouse_role',{p_user_id:userId,p_role:newRole}).then(function(r){
+            RW_UI.hideLoader();
+            if(r.error){Swal.fire({title:'تعذر تغيير الدور',text:r.error.message,icon:'error'});return}
+            for(var i=0;i<s.staffList.length;i++){if(s.staffList[i].id===userId){s.staffList[i].active_warehouse_role=newRole;break}}
+            RW_UI.toast('تم تعيين الدور: '+newRole,'success');
+            s.renderRoster();
+        });
+    },"""
+          if old_update not in s:
+              raise SystemExit('updateRole anchor not found')
+          s=s.replace(old_update,new_update,1)
+          # Company-scope live operational counters.
+          s=s.replace("supabase.from('purchase_orders').select('id').in('status',['Sent','Partially Received'])", "supabase.from('purchase_orders').select('id').eq('company_id',s.companyId).in('status',['Sent','Partially Received'])")
+          s=s.replace("supabase.from('runsheets').select('id').eq('status','Picking')", "supabase.from('runsheets').select('id').eq('company_id',s.companyId).eq('status','Picking')")
+          s=s.replace("supabase.from('runsheets').select('id').eq('status','Loading')", "supabase.from('runsheets').select('id').eq('company_id',s.companyId).eq('status','Loading')")
+          s=s.replace("supabase.from('runsheets').select('id').eq('status','Returning')", "supabase.from('runsheets').select('id').eq('company_id',s.companyId).eq('status','Returning')")
+          s=s.replace("supabase.from('runsheets').select('id').eq('status','Loaded')", "supabase.from('runsheets').select('id').eq('company_id',s.companyId).eq('status','Loaded')")
+          s=s.replace("supabase.from('purchase_orders').select('po_code,supplier_name').in('status',['Sent','Partially Received'])", "supabase.from('purchase_orders').select('po_code,supplier_name').eq('company_id',s.companyId).in('status',['Sent','Partially Received'])")
+          s=s.replace("supabase.from('runsheets').select('runsheet_code,picker_id').eq('status','Picking')", "supabase.from('runsheets').select('runsheet_code,picker_id').eq('company_id',s.companyId).eq('status','Picking')")
+          s=s.replace("supabase.from('runsheets').select('runsheet_code,loader_id').eq('status','Loading')", "supabase.from('runsheets').select('runsheet_code,loader_id').eq('company_id',s.companyId).eq('status','Loading')")
+          s=s.replace("supabase.from('runsheets').select('runsheet_code,return_handler_id').eq('status','Returning')", "supabase.from('runsheets').select('runsheet_code,return_handler_id').eq('company_id',s.companyId).eq('status','Returning')")
+          s=s.replace("supabase.from('runsheets').select('runsheet_code').eq('status','Loaded')", "supabase.from('runsheets').select('runsheet_code').eq('company_id',s.companyId).eq('status','Loaded')")
+          p.write_text(s,encoding='utf-8')
+          mem=Path('Current/CTO/20260819_INVENTORY_MANUAL_VOUCHERS_FORENSIC_STATUS.md')
+          t=mem.read_text(encoding='utf-8')
+          t += "\n\n## 2026-08-19 — Warehouse role routing forensic closure\n- Production confirms warehouse workers share base permission `warehouse`; `active_warehouse_role` selects the operational role (`استلام`, `تحضير`, `تحميل`, `مرتجعات`, `تفريغ`, `أذونات`, `جرد`, `احتياطي`).\n- `vouchers@rawaea.com` is now normalized to role `مخزني` and active role `أذونات`, with its Production change audited.\n- Added Production RPC `set_active_warehouse_role(uuid,text)` enforcing actor company scope, `warehouse_supervisor` authorization, target-company isolation, target role `مخزني`, and a closed role list.\n- `Current/PWA/warehouse.supervisor` is now company-scoped, exposes only warehouse workers, requires `warehouse_supervisor` (or owner) rather than any `warehouse` worker, and writes the selected role through the RPC instead of direct `users` UPDATE.\n- Login 400 for `vouchers@rawaea.com` remains unproven as a password issue because the entered credential is not observable; Auth user exists, is email-confirmed, and has a password hash. No password was guessed or changed.\n- Current Git does not contain the `Current/PWA/../core.js` path referenced by the PWA files; this is a separate source/hosting drift that must be verified before claiming complete frontend provenance.\n"
+          mem.write_text(t,encoding='utf-8')
+          PY
+      - name: Verify and commit
+        shell: bash
+        run: |
+          grep -q "set_active_warehouse_role" Current/PWA/warehouse.supervisor
+          grep -q "eq('role','مخزني')" Current/PWA/warehouse.supervisor
+          grep -q "perms.indexOf('warehouse_supervisor')!==-1" Current/PWA/warehouse.supervisor
+          grep -q "Warehouse role routing forensic closure" Current/CTO/20260819_INVENTORY_MANUAL_VOUCHERS_FORENSIC_STATUS.md
+          rm .github/workflows/forensic_warehouse_role_patch.yml
+          git config user.name 'rawaea-forensic-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add Current/PWA/warehouse.supervisor Current/CTO/20260819_INVENTORY_MANUAL_VOUCHERS_FORENSIC_STATUS.md .github/workflows/forensic_warehouse_role_patch.yml
+          git commit -m 'fix: company-scoped warehouse worker role routing'
+          git push
