@@ -145,3 +145,204 @@ post_inventory_adjustment_atomic centralization
 save_sales_invoice_atomic — الـCore patched، والـPWA PR #14 يحتاج merge + Production runtime verification.
 
 وبعد إغلاقه، التسلسل الصحيح هو الاستمرار إلى complete_return_atomic ثم complete_order_delivery_atomic ثم بقية Writers المطلوبة، مع إعادة الـProduction snapshot قبل كل نتيجة—not بناء أي نسبة على snapshot قديم.
+
+-------------------------
+ملحق متابعة التقرير 
+
+نعم. راجعت برومبت 6 وتقرير تنفيذه، ثم قارنت ما ورد فيه مع Production الحالية وCurrent/PWA الحالية. والنتيجة المهمة هي أن هناك فرقًا واضحًا بين ما كان قد أُنجز وقت التقرير وما هو مكتمل اليوم.
+
+النتيجة ببساطة
+الجزء	Production	PWA / Current	الحالة الحالية
+receive_purchase_atomic	✅ مطبق	✅ مطبق	مغلق
+create-stock-voucher	✅ مطبق	✅ Edge Current معدّل	مغلق
+post_inventory_adjustment_atomic	✅ مركزي عبر post_stock_movement	✅ Consumer الحالي مناسب	مغلق من ناحية Writer
+save_sales_invoice_atomic	✅ الـCore والإضافة orders.operation_id موجودة في Production	❌ PWA لم يُدمج إصلاحه	غير مغلق
+PR #14	—	❌ مفتوح وغير مدمج	ينتظر الدمج
+1. receive_purchase_atomic
+
+هذا ليس مجرد كلام في التقرير.
+
+تقرير تنفيذ Prompt 6 يقول إنه أُغلق 100%، مع اختبار Production HTTP E2E حقيقي: العملية الأولى نجحت، وإعادة نفس operation_id أعطت duplicate=true دون حركة إضافية، والاستلام الجزئي الجديد نجح، ثم تم تنظيف بيانات الاختبار بالكامل.
+
+والأهم أنني تحققت من Production الآن، ووجدت أن الـRPC الحالي فعلاً يحمل:
+
+p_operation_id uuid
+
+أي أن الـCore الخاص بـPurchase Receive موجود في Production فعليًا، وليس مجرد تعديل في Git. كما أن Edge Function receive-purchase في Production الآن version 11 وتستقبل operation_id أو Idempotency-Key وتستدعي الـRPC به.
+
+إذن:
+
+Production: نعم ✅
+Edge: نعم ✅
+PWA: التقرير يقول إنه عُدّل لإرسال operation_id ✅
+
+وهذا يتوافق مع تقرير Prompt 6.
+
+2. create-stock-voucher
+
+هذا أيضًا تم تنفيذه فعليًا.
+
+تقرير Prompt 6 يقول إن المسار الحالي أُعيد إلى الـRPC canonical وتم إزالة الاعتماد غير الآمن على app_settings LIMIT 1.
+
+وأستطيع تأكيد أن Production الآن لديها Edge Function create-stock-voucher version 8، والنسخة الحالية في Git أصبحت Wrapper رفيع يستدعي:
+
+create_manual_stock_voucher_atomic
+
+بدل تنفيذ إنشاء الـvoucher والتفاصيل بنفسه. كما أن commit الخاص بالإصلاح موثق صراحة بعنوان:
+
+fix(inventory): close manual voucher create tenant and item identity drift
+
+إذن:
+
+Production: نعم ✅
+Current Edge: نعم ✅
+PWA: لم يُحتج إلى تعديل جوهري لهذا الجزء؛ الـPWA يستدعي الـEdge API نفسه.
+
+3. post_inventory_adjustment_atomic
+
+تقرير Prompt 6 أثبت أن هذه الوظيفة لا تعدل Physical Stock مباشرة، بل تستدعي post_stock_movement.
+
+وهذا متوافق مع الـArchitecture المستهدفة:
+
+post_inventory_adjustment_atomic
+→ post_stock_movement
+→ stock_branches + inventory_log
+
+إذن هذا الجزء لا يحتاج منك اعتبارًا جديدًا على أنه Writer مستقل.
+
+4. المشكلة الوحيدة التي ما زالت مفتوحة من Prompt 6: save_sales_invoice
+
+وهنا تحديدًا كان من المهم جدًا ألا أعتمد على ذاكرتي.
+
+تقرير Prompt 6 نفسه كان واضحًا:
+
+الـProduction RPC تم إصلاحه، لكن الـCurrent PWA consumer ما زال يحتاج إغلاق الـPR والتحقق من Production runtime.
+
+وقد تحققت الآن من الحالة بعد التقرير:
+
+Production
+
+Production تحتوي بالفعل على:
+
+orders.operation_id
+
+وأيضًا الـCore الخاص بـsave_sales_invoice_atomic تم إصلاحه سابقًا بحسب التقرير.
+
+إذن Core Production موجود.
+
+لكن الـPWA؟
+
+هنا توجد الحقيقة الحاسمة:
+
+PR #14 ما زال:
+
+OPEN
+MERGED = false
+
+وهو تحديدًا PR:
+
+fix(sales): propagate order operation identity from PWA
+
+والـPR يحتوي تعديلًا واحدًا فقط في:
+
+Current/PWA/main.html
+
+ويضيف:
+
+operation_id: crypto.randomUUID(),
+
+إلى ثلاثة orderHeader builders.
+
+لكنني فحصت Current/PWA/main.html على main الآن، والنسخة الحالية لا تحتوي هذا التعديل في أول موضع من مواضع بناء orderHeader؛ أي أن إصلاح PR #14 لم يدخل main بعد.
+
+وهذا ليس استنتاجًا من التقرير؛ هذا تطابق مباشر بين:
+
+PR branch مقابل main الحالي.
+
+إذن إجابة سؤالك المباشر
+هل تم تنفيذ كل التعديلات في Production؟
+
+لا، وليس صحيحًا أن نقول إن كل Prompt 6 أُغلق في Production بالكامل.
+
+الأدق:
+
+تم في Production ✅
+
+receive_purchase_atomic
+create-stock-voucher
+post_inventory_adjustment_atomic
+save_sales_invoice_atomic Core
+orders.operation_id
+
+لم يكتمل كمسار End-to-End ❌
+
+save_sales_invoice
+
+لأن PWA لم يتم دمج PR #14 بعد.
+
+وهذا مهم جدًا:
+الـProduction Core يمكن أن يكون صحيحًا، لكن لو الـPWA لا يرسل الـoperation_id، فإن سلسلة idempotency لا تكون مكتملة من الواجهة حتى الـDB.
+
+هل تم تنفيذ تعديلات PWA؟
+
+نعم لبعض الأجزاء، وليس كلها.
+
+PWA الذي تم تعديله بالفعل
+
+Current/PWA/main.html
+
+تم فيه إصلاح مسار Receive Purchase بحيث يرسل operation_id، وهذا مثبت في تقرير Prompt 6، والـProduction Edge الحالية تستقبل هذا الـoperation identity بالفعل.
+
+PWA الذي لم يكتمل
+
+أيضًا:
+
+Current/PWA/main.html
+
+لكن في جزء Sales / orderHeader builders.
+
+التعديل المطلوب موجود حاليًا داخل PR #14 فقط وليس في main. الـPR نفسه يغير ملفًا واحدًا فقط ويضيف 3 أسطر عملية، واحدة لكل orderHeader builder.
+
+هل كانت التعديلات جراحية؟
+
+في الأجزاء التي أغلقت حتى الآن: نعم، وبشكل واضح.
+
+أقوى مثال هو create-stock-voucher:
+
+بدل إعادة كتابة Business Logic كاملة، تم تحويل الـEdge إلى Capability Wrapper يستخرج Company من المستخدم، يطبع الـinput، ثم يستدعي الـcanonical RPC. التغيير حافظ على نفس الوظيفة الخارجية، بينما نقل المسؤولية إلى الـCore الصحيح.
+
+وفي save_sales_invoice، إصلاح الـPWA المقترح في PR #14 أكثر جراحية من ذلك:
+
+لا يغير حساب الفاتورة، ولا الـUI، ولا المنتجات، ولا العملاء، ولا الـpricing.
+
+هو فقط يضيف:
+
+operation_id: crypto.randomUUID()
+
+إلى الـorderHeader.
+
+أي أنه يضيف هوية للعملية دون تغيير الـBusiness Behavior نفسه.
+
+الخلاصة التي يجب أن نعتمدها الآن
+
+الحالة ليست أنني بدأت من الصفر، ولا أن كل شيء غير منفذ.
+
+الحالة الصحيحة هي:
+
+Prompt 6 أنجز جزءًا كبيرًا جدًا فعليًا.
+
+وأهم ما تبقى منه هو:
+
+save_sales_invoice: Production Core = موجود، لكن PWA operation identity = لم يُدمج بعد.
+
+والدليل القاطع حاليًا هو:
+
+orders.operation_id موجود في Production.
+save_sales_invoice_atomic موجود في Production.
+PR #14 مفتوح وغير مدمج.
+تعديل operation_id موجود في PR وليس في main.
+لذلك Sales Idempotency ليست 100% CLOSED End-to-End بعد.
+
+وهذا أيضًا يفسر لماذا ظهر لي أثناء الاستكمال أن save_sales_invoice يحتاج Consumer repair؛ لم يكن هذا نسيانًا عشوائيًا، بل لأن تقرير Prompt 6 نفسه ترك هذه النقطة مفتوحة.
+
+وبالتالي، لن أتعامل مع أي نسبة إغلاق لـPrompt 6 على أنها 100% قبل إغلاق PR #14 والتحقق من main.html ثم Production runtime.
