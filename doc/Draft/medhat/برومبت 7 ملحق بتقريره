@@ -1,0 +1,118 @@
+أولا برومبت 7
+أنت فقدت الذاكرة .. لذلك قم بمراجعة 
+برومبت 6
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%206
+وكذلك تقرير تنفيذ برومبت 6
+
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%20%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%206
+
+قبل الاجابة راجع الملفات والمصادر لأن من الممكن أن تكون التعديلات تمت وأنت لا تذكرها ، ..تابع الخطوات الإصلاحية التالية ولا تترك فجوات خلفنا .. ولا تتوقف حتي تنتهي من خطة الإنقاذ
+
+
+-----------------------------------------------------------------------------
+ثانيا - ملحق 
+تقرير تنفيذ برومبت 7
+
+راجعت برومبت 6 وتقرير تنفيذه قبل استئناف العمل، ولم أعتمد على الذاكرة. النتيجة الفعلية مختلفة عن الحالة القديمة التي كنت أتحرك منها، لذلك تم استكمال الإنقاذ من الحالة الحالية لا من نقطة تاريخية.
+
+ما تم إغلاقه فعليًا
+Closure Unit	الحالة الحالية
+receive_purchase_atomic	مغلق — وكان Prompt 6 قد أثبت Production HTTP E2E + idempotency + cleanup
+create-stock-voucher	مغلق — canonical path + tenant/item identity
+post_inventory_adjustment_atomic	مغلق — Physical Stock عبر post_stock_movement
+save_sales_invoice_atomic	Core + PWA operation identity مغلقان؛ PR #14 تم دمجه إلى main
+complete_return_atomic	مغلق Production — مع إصلاح responsibility gap الخاص بـdriver_liabilities
+complete_order_delivery_atomic	مغلق Production — fulfillment-only، مع إصلاح retry/audit
+
+تقرير Prompt 6 نفسه كان قد ترك save_sales_invoice مفتوحًا بسبب PR #14، وهذا PR هو الذي أغلقته الآن. الـPR كان يضيف operation_id إلى مواضع بناء orderHeader الثلاثة، وتم دمجه فعليًا في main بالـcommit 3e7ff26e….
+
+أهم إصلاحين اكتشفتهما أثناء الاستكمال
+complete_return_atomic
+
+لم أكتفِ بإثبات مركزية المخزون. اكتشفت أن الـrefactor أسقط مسؤولية تاريخية مثبتة: إنشاء driver_liabilities عند وجود عجز في Returns. Production كانت تحتوي الجدول، لكن لم يكن هناك PostgreSQL function حديث يكتب إليه.
+
+تمت إعادة المسؤولية إلى نفس الـatomic core، مع إصلاح Bug فعلي في مسار Runsheet Return كان يستخدم v_order غير المهيأ عندما لا يوجد order_code.
+
+ثم اختبرت:
+
+Runsheet Return → shortage → driver liability → retry
+
+والـretry أعاد:
+
+success=true, duplicate=true
+
+ثم تم ROLLBACK وعادت Production إلى baseline؛ لم يبقَ أثر اختبار أو liability تجريبية.
+
+وتم توثيق وإدخال التغيير في main عبر PR #15، الذي تم دمجه بنجاح.
+
+complete_order_delivery_atomic
+
+ثبت أن هذه الوظيفة ليست Physical Stock Writer أصلًا؛ هي fulfillment transition فقط، بينما المخزون يُرحّل عند Loading.
+
+وجدت فيها مشكلتين:
+
+audit action كان يخالف audit_log_action_check.
+العمليات failed في erp_operation_registry كانت تُعامل كأنها duplicate، مما يمنع retry الصحيح.
+
+تم إصلاح الاثنين في Production، ثم اختبار:
+
+delivery 0.5 → success → identical retry → duplicate=true
+
+مع ROLLBACK كامل.
+
+Global Physical Writer Discovery
+
+أعدت فحص PostgreSQL والـTriggers بدل الاعتماد على القائمة السابقة.
+
+النتيجة:
+
+Physical Stock Writer الحقيقي الوحيد هو post_stock_movement.
+
+أما:
+
+reserve_stock → Reservation فقط.
+release_stock_reservation → Reservation release فقط.
+setup_van_stock → Bootstrap لصفوف صفرية، وليس حركة مخزنية.
+
+كما أن عدد Triggers على stock_branches وinventory_log = 0.
+
+وبالتالي:
+
+PHYSICAL WRITERS OUTSIDE post_stock_movement = 0
+
+وهذه المرة النتيجة مبنية على Production الحالية، لا على تقرير قديم.
+
+Production Data Integrity
+
+آخر snapshot في Production أعطى:
+
+Negative stock = 0
+allocated_qty < 0 أو allocated_qty > qty = 0
+Orphan stock branch = 0
+Orphan stock item = 0
+Orphan inventory-log item = 0
+Orphan inventory-log company = 0
+Triggers على جداول المخزون = 0
+لا توجد عمليات processing أو failed عالقة في erp_operation_registry للـclosures التي اختبرناها.
+
+ولم أحذف الـ143 cross-company item metadata rows؛ لأن items.item_code مثبت كـglobal UNIQUE، وبالتالي لم يكن من الصحيح اعتبارها فسادًا بمجرد اختلاف company_id. هذا متسق مع المبدأ الحاكم الذي يمنع الإصلاح المبني على الافتراض.
+
+النتيجة الصادقة
+
+الجزء الخاص بـPhysical Writer Centralization وCore Inventory Integrity أصبح مغلقًا هيكليًا في Production:
+
+Physical Writers outside post_stock_movement = 0
+
+لكن لن أزوّر شرط الـdirective وأكتب 100% CLOSED بلا تحفظ.
+
+النقطة الوحيدة المتبقية كـVerification Gap هي:
+
+save_sales_invoice
+
+الـCore نفسه تم اختباره سابقًا في Prompt 6، والـPWA الآن يحمل operation_id في main، وPR #14 تم دمجه؛ لكن لا يوجد HTTP E2E جديد بعد merge PR #14 في GitHub Actions، والـcommit نفسه لا يرتبط بأي workflow run. لذلك التقرير النهائي يحتفظ بهذه النقطة كـverification limitation بدل تحويل دليل تاريخي إلى دليل runtime جديد.
+
+وقد وثقت الحالة النهائية في Git:
+
+GLOBAL INVENTORY ZERO-DEBT — Final Production Snapshot
+
+الحكم النهائي: خطة الإنقاذ وصلت إلى مرحلة Zero Physical Writer Debt + Production data integrity clean، مع فجوة إثبات واحدة فقط هي HTTP E2E جديد لـsave-sales-invoice بعد دمج PR #14. وهذه الفجوة موثقة صراحة وليست مخفية داخل نسبة نجاح مصطنعة.
