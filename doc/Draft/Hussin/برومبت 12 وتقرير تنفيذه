@@ -1,0 +1,106 @@
+برومبت 12
+مهمة حرجة : 
+في هذه المهمة قم بالتحقيق الجنائي من المصادر مباشرة ولا تثق بالتقارير ولا ذاكرتك فأنت توقفت ذاكرتك في مرحلة تاريخية قديمة ، لذلك لا تعتمد علي الذاكرة الحالية التاريخية ، قم بفتح الملف التالي : https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2011%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87،         ثم قم بفتح المجلد التالي https://github.com/papamohammed77-glitch/rawaie-erp-New/tree/main/Current/PWA وافتح الملفات التالية أولا ملف النظام الأم main.htm ، وخصوصا تبويب الأذونات المخزنية ، وقم بالبحث في المستودعات لمعرفة دور الأذونات المخزنية اليدوية الغير مرتبطة بالرانشيتات علي سبيل المثال الملف التالي : https://github.com/papamohammed77-glitch/rawaie-erp-review/blob/main/Architecture/%D8%A7%D9%84%D8%A3%D8%B0%D9%88%D9%86%D8%A7%D8%AA%20%D8%A7%D9%84%D9%85%D8%AE%D8%B2%D9%86%D9%8A%D8%A9%20%D8%A7%D9%84%D9%8A%D8%AF%D9%88%D9%8A%D8%A9.md ، ثم افتح ملف vouchers.html لمعرفة ما الذي ينقصه الأخير حتي يصل إلي الهدف من التطبيق  
+ ابدأ في تعديل الملف  vouchers.html لإستكمال النقص مع التوافق مع خطة الإنقاذ ، بأسلوب التعديل الجراحي وعدم إنشاء ملف جديد ، ولا تتوقف حتي تنتهي وفي النهاية قم بتوثيق للحالة النهائية في Git  لتذكر به نفسك وتساعدني علي أن أذكرك
+
+------------------------------------------------------------------
+ملحق
+تقرير تنفيذ برومبت 12
+تم تنفيذ المهمة على المصادر الحية وProduction، وليس بناءً على الذاكرة أو التقارير وحدها.
+
+ما تم إنجازه فعليًا
+
+vouchers.html
+تم تعديل الملف نفسه جراحيًا، بدون إنشاء ملف UI جديد.
+Git commit:
+
+2b31d238d53fe15e7edd3556fe6bc0ea9bb11e41
+
+وأصبح يشمل:
+
+Company context حقيقي من جلسة المستخدم.
+قراءة الأذونات بـcompany_id.
+اختيار المصدر والوجهة بدل MAIN الثابت.
+دعم:
+Transfer
+DirectSale → Vehicle
+DirectReturn ← Vehicle
+SupplierReturn
+Reference إلزامي.
+تفاصيل كاملة للإذن.
+Cancel للـDraft.
+Complete للـReceived.
+Partial Receive بكميات فعلية لكل صنف.
+Idempotency operation identity للـReceive.
+إزالة أي Physical Stock mutation من الواجهة؛ الواجهة أصبحت مستهلكًا للـBackend contract فقط.
+عدم اختراع Scrap/Adjustment لأن Production الحالية لا تملك CREATE contract مثبتًا لهما.
+Production
+
+تم تطبيق فعليًا:
+
+20260819_manual_voucher_vehicle_stock_contract
+
+20260819_manual_voucher_lifecycle_company_scope
+
+20260819_manual_voucher_reference_required
+
+وتم نشر:
+
+complete-stock-voucher
+cancel-stock-voucher
+
+كما تم تصحيح عقد المركبات بحيث أصبحت:
+
+DirectSale: Branch → Vehicle
+
+DirectReturn: Vehicle → Branch
+
+مع استخدام فرع المخزون الرسمي للمركبة VAN-{vehicle_code}.
+
+الاختبار الجنائي
+
+تم تنفيذ اختبار Runtime حقيقي على Production داخل subtransaction ثم rollback تلقائي:
+
+DirectSale: خصم وحدة من MAIN.
+DirectReturn: إعادة الوحدة إلى MAIN.
+Transfer: Send → Receive → Complete.
+كل الحركات مرت عبر post_stock_movement.
+inventory_log تم التحقق منه لكل حركة.
+وبعد الاختبار:
+
+forensic_vouchers = 0
+
+forensic_inventory_logs = 0
+
+أي لا توجد Test Data متروكة في Production.
+
+التوثيق
+
+تم تحديث سجل الذاكرة الحاكم:
+
+Current/CTO/20260819_INVENTORY_MANUAL_VOUCHERS_FORENSIC_STATUS.md
+
+آخر Git commit:
+
+8607614cd647674ede009182c439f229d9d038b7
+
+ما لم أزعم إغلاقه
+
+هناك ثلاث نقاط بقيت موثقة بدل إخفائها:
+
+Scrap / Adjustment creation: غير مدعومين حاليًا في Production CREATE contract، لذلك لم أخترع لهما Backend غير مثبت.
+يوجد legacy 9-argument post_stock_movement overload في Production، لكنه غير قابل للتنفيذ من anon/authenticated/service_role; مسار التطبيق يستخدم الـ10-argument canonical overload.
+complete-stock-voucher وcancel-stock-voucher موجودان الآن في Production، لكنهما ما زالا غير ممثلين في Current/Edge_Functions Git؛ تم تسجيل هذا كـProduction/Current drift بدل الادعاء بأن المزامنة كاملة.
+
+الحالة النهائية لهذه المهمة:
+Manual Voucher UI Gap = CLOSED
+
+Vehicle Voucher Contract = CLOSED
+
+Physical Stock Ownership = Centralized
+
+Production Runtime Verification = PASS
+
+GLOBAL INVENTORY CORE INTEGRITY = NOT YET 100% CLOSED
+
+وهذا الأخير لم أخفضه أو أرفعه نظريًا؛ أبقيته مفتوحًا لأن directive الحاكم يطلب إغلاق جميع الـWriter Closure Units، وليس وحدة الأذونات فقط.
