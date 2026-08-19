@@ -137,19 +137,114 @@ var App = {
     sendVoucher: function(code){ var s=this; RW_UI.showConfirm('إرسال '+code+'؟',function(){RW_UI.showLoader();RW_API.call('send-stock-voucher',{voucher_code:code},function(j){RW_UI.hideLoader();if(j.success){RW_UI.toast('تم','success');s.loadVouchers('pending')}else RW_UI.showError(j.msg)})})},
     receiveVoucher: function(code){ var s=this; RW_UI.showConfirm('استلام '+code+'؟',function(){RW_UI.showLoader();RW_API.call('receive-stock-voucher',{voucher_code:code,receivedItems:[]},function(j){RW_UI.hideLoader();if(j.success){RW_UI.toast('تم','success');s.loadVouchers('pending')}else RW_UI.showError(j.msg)})})},
 
-    viewVoucherDetails: function(code){
-        RW_UI.showLoader();
-        supabase.from('stock_voucher_details').select('*').eq('voucher_code',code).then(function(r){
-            RW_UI.hideLoader(); var its=r.data||[];
-            var h='<div class="text-right"><h3 class="font-black text-lg mb-4">'+code+'</h3>';
-            if(!its.length)h+='<p class="text-slate-400 text-center py-4">لا توجد أصناف</p>';
-            else { h+='<table class="w-full text-sm border"><thead class="bg-slate-100"><tr><th class="p-2">الصنف</th><th class="p-2 text-center">الكمية</th><th class="p-2 text-center">المستلمة</th></tr></thead><tbody>';
-                for(var i=0;i<its.length;i++) h+='<tr class="border-t"><td class="p-2 font-semibold">'+(its[i].item_name||its[i].item_code)+'</td><td class="p-2 text-center">'+(its[i].qty||0)+'</td><td class="p-2 text-center">'+(its[i].received_qty||0)+'</td></tr>';
-                h+='</tbody></table>'; }
-            h+='</div>';
-            Swal.fire({title:'تفاصيل الإذن',html:h,width:'600px',showCloseButton:true,showConfirmButton:false,customClass:{popup:'!rounded-3xl'}});
+viewVoucherDetails: function(code){
+    var self = this;
+
+    RW_UI.showLoader();
+
+    supabase
+        .from('stock_vouchers')
+        .select('id')
+        .eq('voucher_code', code)
+        .maybeSingle()
+        .then(function(voucherRes) {
+
+            if (voucherRes.error) {
+                throw voucherRes.error;
+            }
+
+            if (!voucherRes.data || !voucherRes.data.id) {
+                throw new Error('الإذن غير موجود: ' + code);
+            }
+
+            return supabase
+                .from('stock_voucher_details')
+                .select('*')
+                .eq('voucher_id', voucherRes.data.id);
+
+        })
+        .then(function(detailsRes) {
+
+            RW_UI.hideLoader();
+
+            if (detailsRes.error) {
+                throw detailsRes.error;
+            }
+
+            var its = detailsRes.data || [];
+
+            var h =
+                '<div class="text-right">' +
+                '<h3 class="font-black text-lg mb-4">' +
+                code +
+                '</h3>';
+
+            if (!its.length) {
+
+                h +=
+                    '<p class="text-slate-400 text-center py-4">' +
+                    'لا توجد أصناف' +
+                    '</p>';
+
+            } else {
+
+                h +=
+                    '<table class="w-full text-sm border">' +
+                    '<thead class="bg-slate-100">' +
+                    '<tr>' +
+                    '<th class="p-2">الصنف</th>' +
+                    '<th class="p-2 text-center">الكمية</th>' +
+                    '<th class="p-2 text-center">المستلمة</th>' +
+                    '</tr>' +
+                    '</thead>' +
+                    '<tbody>';
+
+                for (var i = 0; i < its.length; i++) {
+
+                    h +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2 font-semibold">' +
+                        (its[i].item_name || its[i].item_code) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        (its[i].qty || 0) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        (its[i].received_qty || 0) +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                h +=
+                    '</tbody>' +
+                    '</table>';
+            }
+
+            h += '</div>';
+
+            Swal.fire({
+                title: 'تفاصيل الإذن',
+                html: h,
+                width: '600px',
+                showCloseButton: true,
+                showConfirmButton: false,
+                customClass: {
+                    popup: '!rounded-3xl'
+                }
+            });
+
+        })
+        .catch(function(err) {
+
+            RW_UI.hideLoader();
+
+            RW_UI.showError(
+                err && err.message
+                    ? err.message
+                    : 'تعذر تحميل تفاصيل الإذن'
+            );
         });
-    },
+},
 
     openNewVoucherModal: function(){
         var self = this; self.newVoucherCart = [];
