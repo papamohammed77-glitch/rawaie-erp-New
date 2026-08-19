@@ -3,6 +3,8 @@
 **Execution date:** 2026-08-19
 **Environment:** Production `fiilmooggumokxanwiyx`
 **Authority:** FOUNDATIONAL SYSTEM CONTRACT 2026-08-19 + Governing Principles + Task Completion Directive
+**Supabase migration version recorded:** `20260819010619`
+**Logical migration name:** `centralize_return_delivery_operations`
 
 ## Production facts verified before change
 
@@ -35,10 +37,16 @@ Both wrappers also derived `company_id` with `app_settings.limit(1)`, which viol
 7. Deployed `complete-return` **v24**.
 8. Deployed `complete-order-delivery` **v12**.
 9. Synchronized the corresponding Current Edge Function source and migration into GitHub.
-10. Added audit records through `audit_log` for successful operation executions.
+10. Added the CTO deployment evidence to `audit_log` using the existing allowed `update` action contract.
 
-## Current-data checks
+## Verification
 
+- Dry-run calls for both newly restored RPCs used intentionally nonexistent records inside a transaction and were rolled back.
+- Residual dry-run operation rows: **0**.
+- `complete_return_atomic`: calls central stock core; direct stock write: **false**.
+- `complete_order_delivery_atomic`: direct stock write: **false** (delivery does not move physical stock; Loading already owns that movement).
+- Physical writers outside `post_stock_movement`: **0**.
+- Non-system triggers writing `stock_branches`/`inventory_log`: **0**.
 - Negative stock / allocated anomalies: **0**.
 - Orphan stock items: **0**.
 - Orphan stock branches: **0**.
@@ -49,6 +57,22 @@ Both wrappers also derived `company_id` with `app_settings.limit(1)`, which viol
 ## Governance decision on legacy inventory logs
 
 Legacy inventory logs are evidence of earlier system behavior. They were not silently relabeled because doing so would alter historical evidence and could fabricate a false current reconciliation. Current writers are constrained to the canonical movement vocabulary through `post_stock_movement`.
+
+## Owner authorization contract
+
+The Production owner remains on the historical special contract:
+
+`isOwner = true + permissions = ["*"] + linked owner_profile + active license state`.
+
+No role-based expansion was used to make the license tab appear.
+
+## Source-control alignment
+
+The repository now contains:
+
+- authoritative `Current/Edge_Functions/complete-return`
+- restored `Current/Edge_Functions/complete-order-delivery`
+- migration file named with the actual Supabase-recorded version: `supabase/migrations/20260819010619_centralize_return_delivery_operations.sql`
 
 ## Closure target
 
