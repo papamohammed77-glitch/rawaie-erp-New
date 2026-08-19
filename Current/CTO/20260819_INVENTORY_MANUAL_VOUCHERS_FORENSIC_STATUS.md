@@ -5,53 +5,82 @@ Fresh source-first investigation of:
 - `Current/PWA/main.html`
 - `Current/PWA/vouchers.html`
 - `rawaie-erp-review/Architecture/الأذونات المخزنية اليدوية.md`
-- Production Supabase state and deployed RPC/Edge definitions already verified during the sweep.
+- `doc/Draft/Hussin/برومبت 11 وتقريري تنفيذه`
+- Production Supabase schema, RPCs, Edge Functions, and runtime verification.
 
 ## Proven current facts
-1. `main.html` exposes a warehouse submenu named `الأذونات المخزنية` with: Transfer, DirectSale, DirectReturn, SupplierReturn, and Vouchers display. It also exposes filtering for automatic movements and Adjustment.
-2. `main.html` currently creates manual vouchers through `create-stock-voucher`, then immediately calls `send-stock-voucher` for the operational flow.
-3. `vouchers.html` is a separate manual-voucher UI. It lists only `source=Manual` or `type=Adjustment`, and its create UI currently exposes only Transfer, DirectSale, DirectReturn, SupplierReturn.
-4. `vouchers.html` create UI does not expose from/to branch/vehicle/supplier selection, mandatory reference, Scrap, or Adjustment creation. It hardcodes `fromId='MAIN'` and empty `toId` in the create call.
-5. `vouchers.html` supports Draft -> Send and Sent -> Receive, but no visible edit, cancel, complete, or partial-receive workflow. Details are read-only.
-6. Historical/manual-voucher architecture defines six manual types: Transfer, DirectSale, DirectReturn, SupplierReturn, Scrap, Adjustment, with type-specific lifecycle rules and inventory/accounting effects.
-7. Production `post_manual_stock_voucher_atomic` routes stock mutations to `post_stock_movement`; this is not a parallel Physical Stock engine.
-8. The Production schema has `items.item_code` as a UNIQUE key, therefore item_code is globally unique in the deployed schema; item identity is safer through `item_id`/globally unique `item_code` than company-scoped lookup for the current contract.
-9. Production `receiving.operation_id` is UNIQUE. A correct purchase-receive retry contract therefore needs stable operation identity; generating a new operation id on every retry is insufficient.
-10. Several historical/legacy manual-voucher functions still contain company-context checks based on `app_settings LIMIT 1`; these are Tenant-drift risks even where they do not independently mutate stock.
+1. Manual vouchers are a separate workflow from runsheets. Historical architecture defines: Transfer, DirectSale, DirectReturn, SupplierReturn, Scrap, Adjustment.
+2. Current Production manual CREATE contract now supports: Transfer Branch→Branch; DirectSale Branch→Vehicle; DirectReturn Vehicle→Branch; SupplierReturn Branch→Supplier.
+3. Vehicle stock is represented by a company branch `VAN-{vehicle_code}`; the live Production vehicle `VEH-92yrzb` has `VAN-VEH-92yrzb` initialized.
+4. Physical stock mutations for the manual voucher lifecycle are routed through `post_stock_movement`; no second Physical Stock engine was introduced.
+5. `items.item_code` is globally UNIQUE in the deployed schema. The CREATE contract therefore resolves item identity by global `item_code`/`item_id`; Branch/Vehicle/Supplier/header context remains company-scoped.
+6. Manual voucher `reference` is now enforced in Production for `source='Manual'` by a database CHECK constraint.
 
-## Closure status
-Mandatory seven-writer inventory sweep:
-- `send_stock_voucher_atomic`: Physical movement centralized through `post_stock_movement`; Production definition and deployed Edge wrapper verified. FULL CLOSURE for stock-writer responsibility.
-- `receive_stock_voucher_atomic` / current manual receive path: current Edge calls `post_manual_stock_voucher_atomic`, which calls `post_stock_movement`. FULL CLOSURE for stock-writer responsibility; workflow completeness is separate.
-- `receive_purchase_atomic`: partially repaired for idempotency/company scoping, but not production-runtime-closed yet because the UI does not provide a stable client operation identity and the retry contract still requires final end-to-end verification.
-- `post_inventory_adjustment_atomic`: centralizes physical movement through `post_stock_movement`, but strict final tenant/consumer closure still pending.
-- `save_sales_invoice_atomic`: calls `post_stock_movement`; broader tenant/item identity and accounting responsibility closure still pending.
-- `complete_return_atomic`: not proven as the current valid Production runtime path; deployed `complete-return` references it, while current Production function inventory previously showed no such RPC. Legacy implementation also contained direct `stock_branches` and `inventory_log` writes. NOT CLOSED.
-- `complete_order_delivery_atomic`: deployed Edge references it, but Production RPC existence/runtime contract has not been proven. NOT CLOSED.
+## Production changes actually applied
+- Migration `20260819_manual_voucher_vehicle_stock_contract`
+  - corrected DirectSale/DirectReturn vehicle semantics;
+  - kept all stock mutation through `post_stock_movement`;
+  - made direct vehicle movements complete atomically after the movement;
+  - retained Transfer as Draft→Sent→Receive→Complete workflow.
+- Migration `20260819_manual_voucher_lifecycle_company_scope`
+  - removed `app_settings LIMIT 1` dependency from CANCEL/COMPLETE;
+  - made both operations company-scoped and idempotent for already-final states.
+- Migration `20260819_manual_voucher_reference_required`
+  - enforced non-empty reference for manual vouchers.
+- Production Edge capabilities `complete-stock-voucher` and `cancel-stock-voucher` were deployed and verified as the runtime capabilities used by the updated UI.
 
-## Important interpretation
-The manual-voucher UI is not merely missing cosmetic fields. The gap is a business-workflow gap between the historical contract and the current UI/backend composition:
-- destination/source selection is incomplete;
-- Scrap and Adjustment creation are incomplete in the dedicated UI;
-- reference and operational metadata are incomplete;
-- cancellation/edit/complete workflows are incomplete or absent from the UI;
-- partial receiving is not exposed in the dedicated UI;
-- the UI is inconsistent with the broader six-type manual-voucher contract.
+## `vouchers.html` closure implemented
+Git commit: `2b31d238d53fe15e7edd3556fe6bc0ea9bb11e41`
 
-## Current percentages (strict, evidence-based)
-- Mandatory seven-writer closure sweep: **2/7 fully closed = 28.6%**.
-- Purchase receive: **partially remediated, not counted as closed**.
-- Full manual-voucher application contract: **not closed** because the UI does not implement the complete six-type workflow proven by the historical architecture.
-- ZERO-DEBT / GLOBAL INVENTORY CORE INTEGRITY: **NOT CLOSED**.
+The file itself was surgically upgraded; no new UI file was created.
 
-These percentages are closure-unit percentages, not a claim about the percentage of all ERP functionality.
+Implemented:
+- authenticated company resolution from the current Supabase user;
+- company-scoped voucher header reads;
+- company-scoped Branch / Vehicle / Supplier reference data;
+- real source/target selection instead of hardcoded `MAIN`/empty destination;
+- mandatory reference field;
+- Transfer / DirectSale / DirectReturn / SupplierReturn type-specific routing;
+- read-only historical semantics for unsupported Scrap/Adjustment creation (not invented because current Production CREATE contract does not support them);
+- voucher details with source, target, reference, notes, quantities, received quantities and remaining quantities;
+- CANCEL capability for Draft;
+- COMPLETE capability for Received;
+- partial RECEIVE UI with per-line quantities and stable browser operation identity;
+- existing Send capability preserved;
+- removal of client-side Physical Stock mutation; all movement remains backend/RPC controlled.
 
-## Next step
-Do not build new voucher UI features blindly. First close the current manual-voucher contract at the backend boundary:
-1. establish one authoritative CREATE/SEND/RECEIVE/CANCEL/COMPLETE contract;
-2. make the UI consume it without hardcoded MAIN/empty destination values;
-3. provide stable operation identity for purchase receiving;
-4. then implement the missing UI capabilities against the proven contract.
+## Production runtime verification
+A Production-only forensic test was executed inside a PL/pgSQL subtransaction and intentionally rolled back after verification.
 
-## Git state marker
-This file is the current memory anchor for the next CTO session. It must be reread before further inventory/voucher work.
+Verified in the real deployed database:
+- DirectSale: MAIN physical stock decreased by exactly 1; one `DirectSale` inventory log was produced; final voucher status `Completed`.
+- DirectReturn: one unit moved Vehicle→MAIN and restored the tested MAIN stock balance; one `DirectReturn` inventory log was produced; final voucher status `Completed`.
+- Transfer: Branch→Branch Send produced status `Sent`; RECEIVE completed through `post_manual_stock_voucher_atomic`; status became `Received`; COMPLETE then produced `Completed`.
+- All three flows passed through `post_stock_movement`.
+- Final Production cleanup check returned:
+  - forensic vouchers = 0
+  - forensic inventory logs = 0
+
+## Audit / governance
+- `stock_vouchers` audit trigger path is `trg_audit_stock_vouchers` → `fn_audit_trigger()`.
+- The audit trigger records INSERT/UPDATE/DELETE with JWT email when available and `system` fallback.
+- No new parallel stock writer was introduced.
+- `main.html` was not modified by this closure.
+
+## Remaining known gaps / conflicts
+1. Historical architecture contains Scrap and Adjustment as manual voucher types, but the current deployed CREATE contract does not support them. They are intentionally NOT exposed as fake UI options.
+2. Production-only Edge files `complete-stock-voucher` and `cancel-stock-voucher` are now deployed; the canonical `Current/Edge_Functions` directory did not contain those files during this task. This is a documented Production/Current Git drift and should be reconciled in the next governance pass rather than hidden.
+3. Purchase receiving idempotency remains a separate closure unit; it was not silently counted as closed by this voucher task.
+4. Global Inventory Core Integrity remains incomplete until the remaining writer closure units in the governing directive are independently closed.
+
+## Final status for this task
+- Manual voucher UI gap: CLOSED for the capabilities proven by current Production backend.
+- Manual voucher vehicle semantics: CLOSED at Production contract level.
+- Hardcoded source/target UI defect: CLOSED.
+- Mandatory reference gap: CLOSED.
+- Cancel / Complete / Partial Receive UI gap: CLOSED for current Production contract.
+- Physical Stock ownership: remains centralized through `post_stock_movement`.
+- Scrap / Adjustment creation: intentionally NOT CLOSED because the current Production CREATE contract does not support them; no invented behavior was added.
+
+## Memory anchor
+This document is the current forensic memory anchor. The next CTO must reread it, verify Production again, and not infer that any remaining historical six-type gaps are implemented merely because the UI is polished.
