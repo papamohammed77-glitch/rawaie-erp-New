@@ -1,75 +1,8 @@
-name: save-sales post-merge Production HTTP E2E (temporary gate)
+name: save-sales Production E2E evidence (retired)
 on:
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 jobs:
-  e2e:
+  retired:
     runs-on: ubuntu-latest
     steps:
-      - name: Verify current PWA operation identity
-        run: |
-          set -euo pipefail
-          curl --fail-with-body --silent --show-error --max-time 60 \
-            https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/Current/PWA/main.html -o main.html
-          python - <<'PY'
-          from pathlib import Path
-          s=Path('main.html').read_text(encoding='utf-8')
-          assert s.count('operation_id: crypto.randomUUID()') >= 3, 'save-sales PWA operation identity missing'
-          print('PWA_SAVE_SALES_OPERATION_ID=PASS')
-          PY
-      - name: Production HTTP E2E
-        env:
-          SUPABASE_URL: https://fiilmooggumokxanwiyx.supabase.co
-          ANON_KEY: sb_publishable_ZQC-PFJJWDoFh-6ZmaTWeg_UtrzzM71
-          CANARY_URL: https://fiilmooggumokxanwiyx.supabase.co/functions/v1/save-sales-production-canary-20260819?token=SAVE-SALES-PROD-E2E-20260819
-          SAVE_URL: https://fiilmooggumokxanwiyx.supabase.co/functions/v1/save-sales-invoice
-        run: |
-          set -euo pipefail
-          curl --fail-with-body --silent --show-error --max-time 60 "$CANARY_URL&mode=prepare" | tee prepare.json
-          EMAIL=$(python -c "import json;print(json.load(open('prepare.json'))['email'])")
-          PASSWORD=$(python -c "import json;print(json.load(open('prepare.json'))['password'])")
-          AUTH_ID=$(python -c "import json;print(json.load(open('prepare.json'))['auth_id'])")
-          BRANCH=$(python -c "import json;print(json.load(open('prepare.json'))['branch_code'])")
-          ITEM=$(python -c "import json;print(json.load(open('prepare.json'))['item_code'])")
-          ITEM_NAME=$(python -c "import json;print(json.load(open('prepare.json'))['item_name'])")
-          UNIT=$(python -c "import json;print(json.load(open('prepare.json'))['unit'])")
-          BRANCH_ID=$(python -c "import json;print(json.load(open('prepare.json'))['branch_id'])")
-          ITEM_ID=$(python -c "import json;print(json.load(open('prepare.json'))['item_id'])")
-          BASE_QTY=$(python -c "import json;print(json.load(open('prepare.json'))['baseline_qty'])")
-          BASE_ALLOC=$(python -c "import json;print(json.load(open('prepare.json'))['baseline_allocated'])")
-          OP=$(python -c 'import uuid; print(uuid.uuid4())')
-          cleanup(){ curl --silent --show-error --max-time 60 -X POST "$CANARY_URL&mode=cleanup" -H "Content-Type: application/json" --data "{\"operation_id\":\"$OP\",\"auth_id\":\"$AUTH_ID\",\"branch_id\":\"$BRANCH_ID\",\"item_id\":\"$ITEM_ID\",\"baseline_qty\":$BASE_QTY}" >/tmp/cleanup.json || true; }
-          trap cleanup EXIT
-          TOKEN=$(curl --fail-with-body --silent --show-error --max-time 60 -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" -H "apikey: $ANON_KEY" -H "Content-Type: application/json" --data "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
-          PAYLOAD=$(python -c "import json; print(json.dumps({'orderHeader':{'operation_id':'$OP','custId':'','custName':'','area':'E2E','total':1,'deliveryFees':0,'status':'Invoiced','paymentType':'نقدي','taxAmount':0,'taxRate':0,'source':'pos'},'itemsList':[{'code':'$ITEM','name':'$ITEM_NAME','unit':'$UNIT','price':1,'qty':1}],'branchCode':'$BRANCH'},ensure_ascii=False))")
-          curl --fail-with-body --silent --show-error --max-time 90 -X POST "$SAVE_URL" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "$PAYLOAD" | tee first.json
-          python - <<'PY'
-          import json
-          r=json.load(open('first.json')); assert r.get('success') is True and r.get('duplicate') is False, r
-          PY
-          curl --fail-with-body --silent --show-error --max-time 90 -X POST "$SAVE_URL" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data "$PAYLOAD" | tee retry.json
-          python - <<'PY'
-          import json
-          r=json.load(open('retry.json')); assert r.get('success') is True and r.get('duplicate') is True, r
-          PY
-          curl --fail-with-body --silent --show-error --max-time 60 -X POST "$CANARY_URL&mode=verify" -H "Content-Type: application/json" --data "{\"operation_id\":\"$OP\",\"branch_id\":\"$BRANCH_ID\",\"item_id\":\"$ITEM_ID\"}" | tee verify.json
-          python - <<'PY'
-          import json
-          r=json.load(open('verify.json'))
-          assert r.get('success') is True and r['orders']==1 and r['inventory_logs']==1 and r['journal_entries']==1, r
-          assert float(r['stock']['qty']) == float(json.load(open('prepare.json'))['baseline_qty']) - 1, r
-          assert float(r['stock']['allocated_qty']) == float(json.load(open('prepare.json'))['baseline_allocated']), r
-          print('SAVE_SALES_POSTMERGE_E2E=PASS')
-          PY
-          ORDER=$(python -c "import json;print(json.load(open('verify.json'))['order']['order_code'])")
-          curl --fail-with-body --silent --show-error --max-time 60 -X POST "$CANARY_URL&mode=cleanup" -H "Content-Type: application/json" --data "{\"operation_id\":\"$OP\",\"auth_id\":\"$AUTH_ID\",\"branch_id\":\"$BRANCH_ID\",\"item_id\":\"$ITEM_ID\",\"baseline_qty\":$BASE_QTY}" | tee cleanup.json
-          python - <<'PY'
-          import json
-          r=json.load(open('cleanup.json')); assert r.get('success') is True and r.get('cleaned') is True, r
-          PY
-          curl --fail-with-body --silent --show-error --max-time 60 -X POST "$CANARY_URL&mode=final" -H "Content-Type: application/json" --data "{\"operation_id\":\"$OP\",\"order_code\":\"$ORDER\",\"branch_id\":\"$BRANCH_ID\",\"item_id\":\"$ITEM_ID\",\"baseline_qty\":$BASE_QTY,\"baseline_allocated\":$BASE_ALLOC}" | tee final.json
-          python - <<'PY'
-          import json
-          r=json.load(open('final.json')); assert r.get('success') is True and r.get('baseline_restored') is True and r.get('residual_orders')==0 and r.get('residual_sales_logs')==0, r
-          print('SAVE_SALES_RESIDUE_ZERO=PASS')
-          PY
+      - run: echo 'Retired after successful Production E2E run 32214977470. Evidence retained in GitHub Actions history.'
