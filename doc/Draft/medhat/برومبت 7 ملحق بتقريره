@@ -115,4 +115,6 @@ save_sales_invoice
 
 GLOBAL INVENTORY ZERO-DEBT — Final Production Snapshot
 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Inventory/05-GLOBAL-INVENTORY-ZERO-DEBT-RESULT-20260819.md
+
 الحكم النهائي: خطة الإنقاذ وصلت إلى مرحلة Zero Physical Writer Debt + Production data integrity clean، مع فجوة إثبات واحدة فقط هي HTTP E2E جديد لـsave-sales-invoice بعد دمج PR #14. وهذه الفجوة موثقة صراحة وليست مخفية داخل نسبة نجاح مصطنعة.
