@@ -1,0 +1,269 @@
+برومبت 15
+مهمة حرجة : 
+في هذه المهمة قم بالتحقيق الجنائي من المصادر مباشرة ولا تثق بالتقارير ولا ذاكرتك فذاكرتك توقفت في مرحلة تاريخية قديمة ، لذلك لا تعتمد علي الذاكرة الحالية التاريخية ، وما تجده من تعديلات الصحيح منها مرره والغير صحيح قم بإصلاحه مباشرة
+لمعرفة السياق الحالي للمهمة الحالية قم بفتح الملف التالي :
+ https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2011%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2012%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2013%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2014%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+الهدف المطلوب هو
+-	
+-	استكمال الأدوار التاريخية كاملة بما يتبعها وجميع مستلزماتها  والذي يماثله ما هو موجود في ملف النظام الأم main.html 
+-	التأكد من أن جميع الدوال موجودة كاملة وشاملة ومصححة وليست اختصارات وغير مبنية علي ظن أو افتراض أو تخمين
+-	استكمال كل أنواع الأذونات المخزنية اليدوية الغير مرتبطة بالرانشيت 
+-	وتكون هذه الأذونات موجودة في الهيدر 
+-	جميع التعديلات في الملف Current/PWA/vouchers.html وليس ملفات أخري 
+تحويل ملف vouchers.html  الي ملف ذهبي ماسي  وأن يكون التطبيق ذهبي ماسي بالتشابه مع تطبيق picker.html 
+وبعد ذلك أريد عقد مقارنة بين ملف التطبيق الحالي والملف الأصلي وملف Picker.html  الأذونات المخزنية الموجودة في main.html  وما توفر فيه بعد إصلاحاتك وهل تم دمجها في الملف أم لا وهل اصبح الملف كاملا شاملا كل التغييرات والدوال الطلوبة والربط بالنظام وخطة المخازن أم لا
+للمقارنة مع الملف الأصلي 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Original/PWA/warehouse/vouchers.html
+الملف المطلوب تعديله فقط هو
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/6c8e83697f8182790d79a019cb3483494c0b940a/Current/PWA/vouchers.html
+
+والملفات الاسترشادية الأخري في المجلد التالي 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/tree/main/Current/PWA 
+وافتح الملفات التالية :
+أولا ملف النظام الأم main.htm ، وخصوصا تبويب الأذونات المخزنية ،
+وقم بالبحث في المستودعات لمعرفة دور الأذونات المخزنية اليدوية الغير مرتبطة بالرانشيتات علي سبيل المثال الملف التالي 
+: https://github.com/papamohammed77-glitch/rawaie-erp-review/blob/main/Architecture/%D8%A7%D9%84%D8%A3%D8%B0%D9%88%D9%86%D8%A7%D8%AA%20%D8%A7%D9%84%D9%85%D8%AE%D8%B2%D9%86%D9%8A%D8%A9%20%D8%A7%D9%84%D9%8A%D8%AF%D9%88%D9%8A%D8%A9.md 
+
+، ثم افتح ملف vouchers.html 
+قم باستكمال النقص في التطبيق لتحقيق جميع أنواع الأذونات المخزنية اليدوية 
+علي أن تكون التطبيق ذهبي ماسي مثل التطبيق التالي :
+Current/PWA/picker.html
+وكذلك أريد أن تكون الأذونات المخزنية اليدوية الجديدة في الهيدر ويتم منها اختيار الإذن المخزني وليس في شريط التبويبات السفلي
+ابدأ في تعديل الملف  vouchers.html لإستكمال النقص مع التوافق مع خطة الإنقاذ ، بأسلوب التعديل الجراحي وعدم إنشاء ملف جديد ، ولا تتوقف حتي تنتهي وفي النهاية قم بتوثيق للحالة النهائية في Git  لتذكر به نفسك وتساعدني علي أن أذكرك
+قدم في النهاية التقرير المطلوب والذي ذكرته بالأعلي 
+مع توضيح هل النسخة الأخيرة كاملة فأقوم بنشرها أم أن التعديلات في ملفات ملحقة يجب أولا دمجها بالملف أريد استكمال اللمف في مكان واحد هو الملف Current/PWA/vouchers.html وليس في ملفات ممرفقة
+
+
+----------------------------------------------------------
+
+ملحق تقرير تنفيذ برومبت 15
+
+تم إنهاء التنفيذ الفعلي على Current/PWA/vouchers.html فقط، مع إعادة التحقيق من Production الحالية بدل الاعتماد على تقارير 11–14 أو الذاكرة القديمة. وهذا متوافق مع مبدأ الحوكمة الذي يجعل الدراسة وإعادة بناء العقد التاريخي والتشغيلي سابقة على أي تعديل.
+
+الحالة الحالية
+
+النسخة الحالية أصبحت موجودة في Git بالـblob النهائي:
+
+9f11a3e9585945a3cda9aa25cedc667c784c4b55
+
+وآخر إصلاح مسجل في commit:
+
+d32b5b38026417d88cb05d7a265d21678dd59958
+
+وكان قبله commit البناء الرئيسي:
+
+12265fb8eb2c65df3d2c50206852fc80b66b28e9
+
+بعنوان واضح يصف التعديل: forensic-aligned manual voucher center and six-type header.
+
+والأهم: التعديل النهائي لم يخرج عن الملف المطلوب.
+
+ما تم استكماله داخل vouchers.html
+1. الهيدر أصبح مركز اختيار الأذونات
+
+أضيفت داخله الأنواع الستة:
+
+النوع	الحالة الحالية
+Transfer	✅ Manual Voucher
+DirectSale	✅ Manual Voucher
+DirectReturn	✅ Manual Voucher
+SupplierReturn	✅ Manual Voucher
+Scrap	✅ متاح عبر Adjustment Engine
+Adjustment	✅ متاح عبر Adjustment Engine
+
+أصبحت الأذونات الجديدة تُختار من الهيدر، ولم يتم وضعها كتجميع تبويبات سفلي، بما يطابق طلبك.
+
+2. تم تصحيح DirectReturn وفق Production الحالية
+
+هذه نقطة مهمة جدًا.
+
+التقارير التاريخية كانت تعتبر DirectReturn غير مغلق بالكامل، لكن التحقيق المباشر في Production الحالية أثبت أن send_stock_voucher_atomic أصبح يدعم:
+
+Transfer
+DirectSale
+DirectReturn
+SupplierReturn
+
+مع المسارات الصحيحة:
+
+Branch → Branch
+Branch → Vehicle
+Vehicle → Branch
+Branch → Supplier
+
+وبالتالي لم أترك DirectReturn معطلاً كما كان في الحالة التاريخية.
+
+3. تم الحفاظ على Inventory Rescue Contract
+
+الواجهة الجديدة لا تقوم بأي:
+
+UPDATE stock_branches
+INSERT inventory_log
+Physical stock mutation مباشرة.
+
+الـVoucher flows تمر عبر الـEdge/RPCs القائمة، وهذا ينسجم مع الـdirective الذي يفرض أن الحركة الفعلية تمر بالمحرك المركزي لا من الواجهة.
+
+Transfer
+
+Draft → Send → Sent → Receive → Received
+
+DirectSale
+
+Draft → Send → Completed
+
+DirectReturn
+
+Draft → Send → Completed
+
+SupplierReturn
+
+Draft → Send → Completed
+
+والواجهة تتعامل مع الحالات الحالية بدل اختراع Lifecycle جديد.
+
+4. الاستلام أصبح أكثر صرامة
+
+تم ربط receive-stock-voucher مع:
+
+operation_id
+
+كما تم الاحتفاظ به محليًا أثناء إعادة المحاولة، بحيث لا يؤدي انقطاع الشبكة أو إعادة الضغط إلى توليد هوية تشغيل جديدة بلا داعٍ.
+
+وهذا متوافق مع الـProduction contract الحالي الذي يستقبل operation_id.
+
+5. Company Scoping
+
+كل قراءة رئيسية داخل التطبيق أصبحت مرتبطة بـ:
+
+company_id
+
+وتحديد:
+
+branches
+vehicles
+suppliers
+stock vouchers
+
+يتم من سياق المستخدم الحالي.
+
+لا توجد عودة إلى app_settings LIMIT 1 في الواجهة.
+
+6. إنشاء الإذن
+
+داخل نفس الملف أصبح هناك:
+
+اختيار المصدر
+اختيار الوجهة
+تحديد المسار حسب نوع الإذن
+Reference إجباري
+Notes
+Item search
+Cart
+Quantity control
+إنشاء الـDraft عبر create-stock-voucher
+
+والـroutes متوافقة مع Production الحالية.
+
+7. Scrap وAdjustment
+
+هنا أرفض أن أبيع لك اكتمالًا وهميًا.
+
+التحقيق الحالي أثبت أن Production لديها:
+
+post_inventory_adjustment_atomic
+
+وتوجد Edge Function:
+
+bulk-stock-adjustment
+
+لكن لا يوجد حاليًا Manual Voucher lifecycle كامل لـ Scrap وAdjustment عبر stock_vouchers.
+
+لذلك فعلت الآتي:
+
+وضعت الاثنين داخل الهيدر وجعلتهما قابلين للتنفيذ فعليًا عبر محرك التسوية الحالي، مع توضيح صريح داخل التطبيق أنهما Engine Operations وليسا stock_vouchers lifecycle.
+
+وهذا أكثر احترافية من اختراع Voucher وهمي أو الكتابة المباشرة في قاعدة البيانات.
+
+المقارنة المطلوبة
+البعد	Original	main.html	picker.html	النسخة الحالية
+اختيار النوع من الهيدر	❌	❌	أسلوب PWA متقدم	✅
+Transfer	✅ قديم	✅	—	✅
+DirectSale	✅ قديم	✅	—	✅
+DirectReturn	محدود/قديم	موجود	—	✅ Production-aligned
+SupplierReturn	✅ قديم	✅	—	✅
+Scrap	تاريخيًا موجود كمفهوم	ليس Manual Voucher كاملًا في current contract	—	✅ Engine operation
+Adjustment	تاريخيًا موجود كمفهوم	Engine منفصل	—	✅ Engine operation
+Company scope	ضعيف تاريخيًا	مختلط	قوي	✅
+Physical stock direct write	موجود تاريخيًا في بعض المسارات	ممنوع في target	—	✅ لا يوجد
+Search / Cart	بدائي	أفضل	قوي	✅
+Gold/Diamond UI	❌	—	✅	✅
+حالات الإذن	محدودة	أوسع	—	✅
+Partial Receive	محدود	Backend contract	—	✅
+Idempotency	غير مكتمل تاريخيًا	Backend-supported	—	✅ Operation identity
+التعديلات خارج الملف	—	—	—	✅ لا يوجد في هذه المهمة
+أهم نتيجة جنائية
+
+هناك فرق يجب تثبيته أمام أي CTO قادم:
+
+التاريخ النظري = 6 أنواع Manual Vouchers.
+
+أما Production الحالية فهي:
+
+4 أنواع Manual Voucher lifecycle حقيقية
++
+2 أنواع Inventory Engine operations
+
+وليس:
+
+6 Manual Voucher lifecycles.
+
+هذه ليست وجهة نظر؛ هذا هو الفرق بين ما يسمح به الـBackend الحالي وما تسمح به الـواجهة.
+
+هل النسخة جاهزة للنشر؟
+نعم — بشروط واضحة
+
+جاهزة للنشر كتطبيق الأذونات الحالي إذا كان المقصود:
+
+4 Manual Voucher lifecycles كاملة + Scrap/Adjustment كعمليات Engine حقيقية من الهيدر.
+
+أما إذا كان شرط النشر هو:
+
+6/6 أنواع يجب أن تكون جميعها سجلات stock_vouchers كاملة بدورة Draft/Sent/Received/Completed
+
+فالإجابة:
+
+لا، ليس بعد.
+
+لأن هذا يتطلب Backend contract جديدًا لـScrap وAdjustment، وهذا يتعارض مع شرطك الحالي بأن تكون كل التعديلات في vouchers.html فقط. وأنا لن أكسر هذه القاعدة بكتابة Backend ترقيعي أو اختلاق lifecycle غير موجود.
+
+ملاحظة مهمة جدًا
+
+أثناء الـpost-check وجدت خطأ حقيقيًا في النسخة الأولى بعد commit الإنشاء: مسار إنشاء الإذن كان يستدعي loadVouchers() بينما النسخة الجديدة تستخدم load().
+
+لم أتركه في الحالة النهائية؛ تم تصحيحه في commit:
+
+d32b5b38026417d88cb05d7a265d21678dd59958
+
+أي أن حالة Git الحالية ليست نفس النسخة الأولى التي تم نشرها مباشرة، بل تحتوي على إصلاح ما بعد المراجعة.
+
+الحكم النهائي
+
+Current/PWA/vouchers.html أصبح الآن مركزًا موحدًا للأذونات، Gold/Diamond، والهيدر يحتوي الأنواع الستة، والـ4 Voucher contracts متوافقة مع Production الحالية، وScrap/Adjustment يعملان عبر الـEngine القائم دون اختلاق Contract.
+
+لكن:
+
+لم أصبح 6/6 Manual Voucher Lifecycle، ولن أدّعي ذلك.
+
+وهذا تحديدًا يلتزم بالقاعدة الحاكمة: أي Unknown أو Contract غير مثبت يمنع إعلان الإغلاق الكامل بدل تحويله إلى نسبة نجاح وهمية.
+
+الحالة: FUNCTIONALLY CLOSED FOR CURRENT PRODUCTION CONTRACT / 4-VOUCHER + 2-ENGINE MODEL — وليست 6/6 MANUAL VOUCHER CLOSED.
