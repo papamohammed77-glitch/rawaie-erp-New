@@ -1,0 +1,146 @@
+برومبت 9
+مهمة حرجة : في هذه المهمة قم بالتحقيق الجنائي من المصادر مباشرة ولا تثق بالتقارير ولا ذاكرتك فأنت فقدت الذاكرة ، لذلك لا تعتمد علي الذاكرة الحالية التاريخية ولمعرفة السياق وإلي أين وصلنا للاسترشاد فقط وقم بمراجعة الملفات التالية 
+برومبت 6
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%206
+وكذلك تقرير تنفيذ برومبت 6
+
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%20%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%206
+
+برومبت 7 وتقرير تنفيذ برومبت 7
+
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%207%20%D9%85%D9%84%D8%AD%D9%82%20%D8%A8%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%D9%87
+
+واقرأ هذا التوثيق الذي تذكر به نفسك فأنت الذي كتبته قبل أن تفقد الذاكرة وهو كالتالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Inventory/05-GLOBAL-INVENTORY-ZERO-DEBT-RESULT-20260819.md
+
+واقرأ أيضا برومبت 8 وتقرير تنفيذه في الملف التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%208%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+قبل الاجابة راجع الملفات والمصادر لأن من الممكن أن تكون التعديلات تمت وأنت لا تذكرها ، .
+وبمنتهي البساطة والشرح البسيط وبدون إطالة
+-	قدم التقرير النهائي 
+-	إلي أين وصلنا في عملية الإصلاح واستكمال خطة الإنقاذ ونسب التحقق ونسب الإغلاق والخطوة التالية
+-	وما أسباب التوقف أو عدم الإغلاق إن وجدت
+وفي نهاية كل تقرير أكتب توثيق للحالة النهائية في Git  لتذكر به نفسك وتساعدني علي أن أذكرك
+
+
+ملحق
+تقرير تنفيذ برومبت 9
+التقرير النهائي — حالة خطة إنقاذ Inventory
+
+راجعت المصادر التي حددتها مباشرة من GitHub، ثم قارنتها بـProduction الحالية بدل الاعتماد على التقرير وحده.
+
+النتيجة
+
+الخطة الحالية وصلت فعليًا إلى: 100% CLOSED بالنسبة لـ GLOBAL INVENTORY CORE INTEGRITY.
+
+التوثيق النهائي في Git يثبت ذلك صراحة: PHYSICAL WRITERS OUTSIDE post_stock_movement = 0، وSAVE_SALES_POSTMERGE_PRODUCTION_E2E = PASS، وPRODUCTION_TEST_RESIDUE = 0.
+
+ما تم إغلاقه
+الوحدة	الحالة
+receive_purchase_atomic	✅ مغلق
+create-stock-voucher	✅ مغلق
+post_inventory_adjustment_atomic	✅ مغلق
+save_sales_invoice_atomic	✅ مغلق
+complete_return_atomic	✅ مغلق
+complete_order_delivery_atomic	✅ مغلق
+Physical Writer Centralization	✅ مغلق
+Production Data Integrity	✅ نظيفة
+
+وتقرير Prompt 7 يوضح أن complete_return استعاد أيضًا مسؤولية driver_liabilities التاريخية، وأن complete_order_delivery عولجت فيه مشاكل الـretry والـaudit.
+
+أهم نقطة حاسمة
+
+تم بالفعل إغلاق الفجوة التي كانت متبقية بعد Prompt 7:
+
+Save Sales PWA operation identity + Production E2E بعد Merge.
+
+PR #14 مغلق ومُدمج فعلًا، والـmerge commit هو:
+
+3e7ff26ecfacc153878adb9cd96f977e472206d9
+
+وحالته الرسمية الآن merged = true.
+
+ثم جاء Prompt 8 وأجرى Production HTTP E2E جديد بعد الدمج:
+
+Run 32214977470
+Job 95954658863
+
+والاختبار أثبت:
+
+أول عملية: success=true, duplicate=false
+Retry مطابق: duplicate=true
+Order واحد فقط
+inventory_log واحد
+journal_entries واحد
+خصم مخزون واحد
+allocated_qty لم يتغير
+Baseline عاد كما كان
+Residue = 0
+التحقق اللحظي من Production
+
+أخذت Snapshot جديدًا الآن من Production نفسها عند:
+
+2026-08-19 04:38:43 UTC
+
+والنتيجة:
+
+Negative stock = 0
+Invalid allocated quantity = 0
+Orphan stock branches = 0
+Orphan stock items = 0
+Orphan inventory-log items = 0
+Orphan inventory-log companies = 0
+Stock triggers = 0
+Canonical post_stock_movement قابل للتنفيذ للـservice_role = نعم
+Legacy 9-argument overload قابل للتنفيذ للـservice_role = لا
+
+كما أن Production تحتوي على النسخة canonical ذات idempotency_key، مع بقاء الـlegacy overload غير قابل للتنفيذ للأدوار التطبيقية. وهذا يطابق وثيقة الإغلاق الأخيرة.
+
+النسبة الحقيقية الآن
+
+Inventory Core Integrity: 100% CLOSED
+
+Physical Writers خارج post_stock_movement: 0
+
+Production Data Integrity Checks: 100% PASS
+
+Save-Sales Post-Merge Production E2E: PASS
+
+Production Test Residue: 0
+
+وهذه ليست نسبًا من تقرير قديم؛ الـstructural Production snapshot الحالي يؤكدها، بينما الـE2E التفصيلي مثبت في التشغيل الموثق بعد الـmerge.
+
+ما سبب التوقف إذن؟
+
+لا يوجد الآن توقف داخل مرحلة Global Inventory Zero-Debt نفسها.
+
+المرحلة أُغلقت.
+
+لكن توجد ملاحظة مهمة: وجود overload قديم لـpost_stock_movement في PostgreSQL لا يعني وجود Writer مفتوح؛ الـEXECUTE عليه مسحور للتطبيقات ومغلق، بينما الـ10-argument canonical هو العقد التنفيذي الفعلي.
+
+أما صفوف الـCross-Company Item Metadata القديمة فلم تُحذف عمدًا، لأن items.item_code عالميًا UNIQUE والعقد الحالي يتعامل مع Item Master كهوية عالمية؛ حذفها دون إثبات عقد ملكية سيكون مخالفًا للمبدأ الحاكم.
+
+الخطوة التالية
+
+المرحلة التالية ليست إعادة إصلاح Inventory Core؛ هذا الملف مغلق.
+
+الانتقال الصحيح هو إلى المرحلة التالية من خطة الإنقاذ/الـPicker مع الاحتفاظ بـ:
+
+Inventory/06-GLOBAL-INVENTORY-ZERO-DEBT-POST-MERGE-20260819.md
+
+كـ Memory Checkpoint الحالي للـCTO القادم.
+
+توثيق الحالة النهائية في Git
+
+الحالة المرجعية الحالية:
+
+Inventory/06-GLOBAL-INVENTORY-ZERO-DEBT-POST-MERGE-20260819.md
+
+والحكم المثبت فيه:
+
+GLOBAL INVENTORY CORE INTEGRITY = 100% CLOSED
+PHYSICAL WRITERS OUTSIDE post_stock_movement = 0
+SAVE_SALES_POSTMERGE_PRODUCTION_E2E = PASS
+PRODUCTION_TEST_RESIDUE = 0
+
+الخلاصة العملية: نحن خرجنا من مرحلة إنقاذ Inventory Core، ولسنا متوقفين داخلها؛ الآن يمكن الانتقال للمرحلة التالية بأرضية نظيفة ومثبتة.
