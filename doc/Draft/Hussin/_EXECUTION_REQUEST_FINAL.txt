@@ -1,1 +1,0 @@
-The trigger issue title is FORENSIC_EXECUTE_VOUCHERS_AUTH_FIX.
