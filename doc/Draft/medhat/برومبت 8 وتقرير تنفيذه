@@ -1,0 +1,129 @@
+برومبت 8
+مدحت
+أنت فقدت الذاكرة ، لذلك لا تعتمد علي الذاكرة الحالية التاريخية وقم بمراجعة الملفات التالية 
+برومبت 6
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%206
+وكذلك تقرير تنفيذ برومبت 6
+
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%20%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%206
+
+برومبت 7 وتقرير تنفيذ برومبت 7
+
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%207%20%D9%85%D9%84%D8%AD%D9%82%20%D8%A8%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%D9%87
+
+واقرأ هذا التوثيق الذي تذكر به نفسك فأنت الذي كتبته قبل أن تفقد الذاكرة وهو كالتالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Inventory/05-GLOBAL-INVENTORY-ZERO-DEBT-RESULT-20260819.md
+
+قبل الاجابة راجع الملفات والمصادر لأن من الممكن أن تكون التعديلات تمت وأنت لا تذكرها ، ..تابع الخطوات الإصلاحية التالية ولا تترك فجوات خلفنا .. ولا تتوقف حتي تنتهي من خطة الإنقاذ
+أكمل تعديلاتك علي ملفات PWA  ولا تترك فجوات خلفك 
+وأكمل إصلاحاتك لتصل إلي 100% ولا تتوقف حتي تنتهي ولديك كل المصادر لعلاج النقص التاريخي او الفكري أو الرؤية أو قاعدة البيانات
+وفي نهاية كل تقرير أكتب توثيق للحالة النهائية في Git  لتذكر به نفسك وتساعدني علي أن أذكرك
+
+
+ملحق 
+تقرير تنفيذ برومبت 8
+نعم. أعدت بناء الحالة من المصادر نفسها بدل الاعتماد على الذاكرة، ثم قارنتها بـGit وProduction الحالية، وأكملت الفجوة التي كانت ما تزال مفتوحة.
+
+النتيجة النهائية
+
+المشكلة الوحيدة التي كانت موثقة كـ Verification Gap بعد Prompt 7 كانت:
+
+save_sales_invoice_atomic
+
+وبالتحديد إثبات أن إصلاح operation_id في PWA بعد دمج PR #14 يعمل فعليًا في Production.
+
+هذه الفجوة أُغلقت الآن بإثبات Runtime حقيقي.
+
+PR #14 كان قد دمج بالفعل إلى main بالـcommit 3e7ff26...، ويحتوي PWA على operation_id: crypto.randomUUID() في مواضع إنشاء orderHeader الثلاثة.
+
+كما أن receive-purchase كان قد أُغلق سابقًا على مستوى PWA بإرسال operation_id صريح، وهو مثبت في commit مستقل.
+
+Production HTTP E2E الجديد
+
+تم تشغيل GitHub Actions على Production نفسها:
+
+Run 32214977470
+Job 95954658863
+Conclusion: success
+
+والاختبار أثبت فعليًا:
+
+الاختبار	النتيجة
+PWA operation identity	PASS
+أول save-sales-invoice	success=true, duplicate=false
+نفس العملية مرة ثانية	success=true, duplicate=true
+Orders الناتجة	1 فقط
+inventory_log	1 فقط
+journal_entries	1 فقط
+خصم Physical Stock	1 فقط
+allocated_qty	لم يتغير
+Restore baseline	PASS
+Residual Orders	0
+Residual Sales Logs	0
+
+وهذا بالضبط يغلق الفجوة التي ذكرها تقرير Prompt 7، بدل تحويل الدليل التاريخي إلى دليل جديد كما كان يحذر التقرير.
+
+كذلك أغلقت Legacy Bridge إضافية
+
+أثناء إعادة فحص Production ظهر overload قديم لـ:
+
+post_stock_movement(... 9 args ...)
+
+ثبت أنه ليس Writer مستقلًا، بل compatibility bridge يستدعي النسخة canonical ذات idempotency_key.
+
+تم تعطيل EXECUTE عليه من أدوار التطبيق، وأصبح:
+
+service_role → legacy overload = false
+service_role → canonical 10-arg engine = true
+
+وبالتالي لا توجد واجهة تطبيقية قديمة مفتوحة لتجاوز عقد المحرك المركزي.
+
+Production Data Integrity بعد الاختبار
+
+تم أخذ Snapshot جديد مباشرة من Production بعد انتهاء الاختبار والتنظيف:
+
+negative_stock = 0
+invalid_allocated = 0
+orphan_stock_items = 0
+orphan_stock_branches = 0
+orphan_inventory_items = 0
+orphan_inventory_companies = 0
+stock_triggers = 0
+
+وكان وقت Production snapshot:
+
+2026-08-19 04:21:00 UTC
+
+أي أن الاختبار لم يترك وراءه فسادًا أو residue.
+
+البيانات التي لم ألمسها عمدًا
+
+الـcross-company Item metadata rows التي ظهرت سابقًا لم يتم حذفها. السبب ثابت: items.item_code مثبت كـglobal UNIQUE، والعقد الحالي يعامل Item Master كهوية عالمية؛ حذفها أو إعادة إسنادها دون إثبات عقد الملكية سيكون إصلاحًا مبنيًا على افتراض، وهو مخالف للمبدأ الحاكم.
+
+التوثيق الجديد
+
+أنشأت وثيقة الذاكرة الجديدة:
+
+Inventory/06-GLOBAL-INVENTORY-ZERO-DEBT-POST-MERGE-20260819.md
+
+وتسجل فيها الحالة الفعلية بعد إغلاق الفجوة، بما فيها Run الـProduction E2E، حالة PWA، Legacy overload، ونتيجة Zero Residue.
+
+وأضفت أيضًا checkpoint مختصرًا لاسترجاع السياق بعد أي فقدان ذاكرة.
+
+كما تم تحديث Inventory/05-GLOBAL-INVENTORY-ZERO-DEBT-RESULT-20260819.md ليعكس أن save_sales_invoice أصبح مثبتًا الآن بـProduction HTTP E2E جديد، وليس مجرد verification limitation.
+
+الحكم النهائي
+
+المصادر الحاكمة نفسها كانت تشترط أن تكون الدراسة قبل التعديل، وأن يكون الحكم مبنيًا على Production الحالية لا على الذاكرة أو التقارير القديمة.
+
+والآن الحالة:
+
+GLOBAL INVENTORY CORE INTEGRITY = 100% CLOSED
+
+PHYSICAL WRITERS OUTSIDE post_stock_movement = 0
+
+SAVE_SALES_POSTMERGE_PRODUCTION_E2E = PASS
+
+PRODUCTION_TEST_RESIDUE = 0
+
+وهذا متوافق مع بنية الإغلاق التي طلبها Prompt 7، مع الاحتفاظ بالـhistorical reports كأدلة تاريخية وعدم استبدالها صامتًا.
