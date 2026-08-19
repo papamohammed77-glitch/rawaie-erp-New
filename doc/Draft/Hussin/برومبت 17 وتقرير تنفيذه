@@ -1,0 +1,373 @@
+برومبت 17
+مهمة حرجة : 
+في هذه المهمة قم بالتحقيق الجنائي من المصادر مباشرة ولا تثق بالتقارير ولا ذاكرتك فذاكرتك توقفت في مرحلة تاريخية قديمة ، لذلك لا تعتمد علي الذاكرة الحالية التاريخية ،
+ستجد العديد من التعديلات ، لا تجعلها تسبب لك الإرتباك نتيجة توقف الذاكرة ، وما تجده من تعديلات الصحيح منها مرره والغير صحيح قم بإصلاحه مباشرة
+لمعرفة السياق الحالي للمهمة الحالية وتسلسل الأحداث 
+قم بفتح الملف التالي :
+ https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2011%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2012%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2013%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2014%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي  :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2015%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+ثم قم بفتح الملف التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2016%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+الهدف المطلوب هو
+-	
+-	استكمال الأدوار التاريخية كاملة بما يتبعها وجميع مستلزماتها  والذي يماثله ما هو موجود في ملف النظام الأم main.html 
+-	التأكد من أن جميع الدوال موجودة كاملة وشاملة ومصححة وليست اختصارات وغير مبنية علي ظن أو افتراض أو تخمين
+-	استكمال كل أنواع الأذونات المخزنية اليدوية الغير مرتبطة بالرانشيت 
+-	وتكون هذه الأذونات موجودة في الهيدر 
+-	جميع التعديلات في الملف Current/PWA/vouchers.html وليس ملفات أخري 
+تحويل ملف vouchers.html  الي ملف ذهبي ماسي  وأن يكون التطبيق ذهبي ماسي بالتشابه مع تطبيق picker.html 
+وبعد ذلك أريد عقد مقارنة بين ملف التطبيق الحالي والملف الأصلي وملف Picker.html  الأذونات المخزنية الموجودة في main.html  وما توفر فيه بعد إصلاحاتك وهل تم دمجها في الملف أم لا وهل اصبح الملف كاملا شاملا كل التغييرات والدوال الطلوبة والربط بالنظام وخطة المخازن أم لا
+للمقارنة مع الملف الأصلي 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Original/PWA/warehouse/vouchers.html
+الملف المطلوب تعديله فقط هو
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/6c8e83697f8182790d79a019cb3483494c0b940a/Current/PWA/vouchers.html
+
+والملفات الاسترشادية الأخري في المجلد التالي 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/tree/main/Current/PWA 
+وافتح الملفات التالية :
+أولا ملف النظام الأم main.htm ، وخصوصا تبويب الأذونات المخزنية ،
+وقم بالبحث في المستودعات لمعرفة دور الأذونات المخزنية اليدوية الغير مرتبطة بالرانشيتات علي سبيل المثال الملف التالي 
+: https://github.com/papamohammed77-glitch/rawaie-erp-review/blob/main/Architecture/%D8%A7%D9%84%D8%A3%D8%B0%D9%88%D9%86%D8%A7%D8%AA%20%D8%A7%D9%84%D9%85%D8%AE%D8%B2%D9%86%D9%8A%D8%A9%20%D8%A7%D9%84%D9%8A%D8%AF%D9%88%D9%8A%D8%A9.md 
+
+، ثم افتح ملف vouchers.html 
+قم باستكمال النقص في التطبيق لتحقيق جميع أنواع الأذونات المخزنية اليدوية 
+علي أن تكون التطبيق ذهبي ماسي مثل التطبيق التالي :
+Current/PWA/picker.html
+وكذلك أريد أن تكون الأذونات المخزنية اليدوية الجديدة في الهيدر ويتم منها اختيار الإذن المخزني وليس في شريط التبويبات السفلي
+ابدأ في تعديل الملف  vouchers.html لإستكمال النقص مع التوافق مع خطة الإنقاذ ، بأسلوب التعديل الجراحي وعدم إنشاء ملف جديد ، ولا تتوقف حتي تنتهي وفي النهاية قم بتوثيق للحالة النهائية في Git  لتذكر به نفسك وتساعدني علي أن أذكرك
+قدم في النهاية التقرير المطلوب والذي ذكرته بالأعلي 
+مع توضيح هل النسخة الأخيرة كاملة فأقوم بنشرها أم أن التعديلات في ملفات ملحقة يجب أولا دمجها بالملف أريد استكمال اللمف في مكان واحد هو الملف Current/PWA/vouchers.html وليس في ملفات ممرفقة
+أنا لا أفهم ما المقصود أن الملف محدث في ال commit  في ال git 
+أنا لا أعرف طريقة التعامل مع ال Commits 
+أنا أريد دمج التعديل في الملف نفسه الملف Current/PWA/vouchers.html
+فقط لأقوم بنشره مباشرة و ليس في الملف وال commits 
+قم بدمج كل ال Commits  الملف المطلوب
+ليكون ملف واحد أقوم بنشره
+ولو كان الأمر صعب أخبرني كيف أقوم بدمج ال Commits في الملف
+انظر الي التعديل في البرومبت التالي 
+------------------------------------------------------------------------
+تعديل في البرومبت
+ولكني عندما أريد أن أنقل انسخ الملف واحذف الحالي كيف أنقل كل ال commits  لأن من الممكن أن أقوم بحذف المستودع في النهاية لتخفيف الأحمال ولتنظيم الملفات 
+لذلك أريد عملية دمج جراحية بين الملف وبين ال commits  تسمح باكتمال الملف 
+
+
+----------------------------------------------------------------
+ملحق 
+تقرير تنفيذ برومبت 17
+تم تنفيذ المهمة على المصدر الحالي مباشرة، وليس على الذاكرة أو التقارير باعتبارها حقيقة نهائية. وتم تعديل ملف واحد فقط:
+
+Current/PWA/vouchers.html
+
+والملف أصبح بعد آخر تعديل في Git بالـCommit:
+
+968f8ec6123a8b55256073e16b61f40c408826ab
+
+والـblob الحالي للملف:
+
+46a632a73ea0a65dc66ac12a94f9e85f0f7ea130
+
+1. ماذا أثبت التحقيق؟
+
+أهم نتيجة: تقرير Prompt 15 كان يحتوي بالفعل على عيب لم يكن يجوز تركه. Prompt 16 نفسه اكتشف أن الواجهة تستدعي:
+
+App.chooseEngineType()
+
+وأن switchTab('account') يستدعي this.account() بينما الموجود كان renderAccount() فقط. لذلك كانت النسخة 9f11a3e... ليست صالحة للنشر كما هي.
+
+قمت بإصلاح هذين العيبين داخل vouchers.html نفسه.
+
+والنسخة الجديدة تحتوي فعليًا على:
+
+chooseVoucherType()
+chooseEngineType()
+newVoucher()
+newEngineOperation()
+account()
+renderAccount()
+
+أي أن مسار Scrap / Adjustment أصبح له Handler فعلي بدل زر HTML بلا تنفيذ، وتبويب الحساب أصبح له Handler صحيح.
+
+2. الحقيقة الحالية لأنواع الأذونات
+
+بعد مطابقة vouchers.html مع Production الحالية، لم أعتمد على العقد التاريخي وحده.
+
+Manual Voucher Lifecycle
+النوع	Production الحالية	داخل vouchers.html
+Transfer	✅ Voucher حقيقي	✅
+DirectSale	✅ Voucher حقيقي	✅
+DirectReturn	✅ Voucher حقيقي	✅
+SupplierReturn	✅ Voucher حقيقي	✅
+Scrap	❌ ليس Voucher lifecycle	✅ كـEngine Operation
+Adjustment	❌ ليس Voucher lifecycle	✅ كـEngine Operation
+
+العقد التاريخي يعرّف الأنواع الستة فعلًا، بما فيها Scrap وAdjustment.
+
+لكن Production الحالية لا تجعل Scrap وAdjustment stock_vouchers عادية؛ لذلك لم أحوّلهما إلى Voucher وهمي.
+
+هذه نقطة مهمة جدًا.
+
+داخل الهيدر أصبح التصنيف صريحًا:
+
+Manual Voucher Lifecycle
+├─ Transfer
+├─ DirectSale
+├─ DirectReturn
+└─ SupplierReturn
+
+
+Manual Stock Engine Operations
+├─ Scrap
+└─ Adjustment
+
+وهذا موجود فعليًا في الملف النهائي.
+
+3. ماذا تم إصلاحه داخل الملف؟
+
+تم الإبقاء على الهيكل Gold/Diamond الذي بُني في التعديلات السابقة، ثم إصلاحه بدل إعادة بنائه.
+
+الهيدر
+
+أصبح الهيدر هو مركز اختيار نوع الحركة، وليس الـbottom tabs.
+
+الأنواع الستة موجودة فيه بالفعل.
+
+أما الـbottom tabs فبقيت:
+
+معلقة
+مكتملة
+حسابي
+
+وهذا هو التصميم المطلوب.
+
+Manual Voucher
+
+تم الإبقاء على:
+
+Company Context
+Branch / Vehicle / Supplier selection
+Reference إلزامي
+Notes
+Item Search
+Cart
+Quantity
+Create Draft
+Send
+Receive
+Partial Receive
+Cancel
+Complete
+Company-scoped reads
+
+وهو متسق مع العقد الذي تم بناؤه في Prompts 12–15.
+
+DirectReturn
+
+تم الحفاظ عليه صراحة:
+
+Vehicle → Branch
+
+وليس العكس.
+
+وهذا يتوافق مع Production الحالية التي تحققت منها مباشرة.
+
+Scrap / Adjustment
+
+تم إنشاء واجهة تنفيذ داخل نفس الملف تستخدم:
+
+bulk-stock-adjustment
+
+ولا تقوم هي نفسها بـ:
+
+UPDATE stock_branches
+INSERT inventory_log
+
+بل تمرر العملية إلى الـBackend الموجود.
+
+الملف النهائي نفسه لا يحتوي Writer مباشر للمخزون؛ فالبحث في المصدر بعد التعديل وجد فقط العبارة التوضيحية، وليس Mutation فعليًا.
+
+4. مقارنة مع Original
+
+النسخة الأصلية Original/PWA/warehouse/vouchers.html كانت أبسط بكثير، وتعتمد على نموذج PWA أقدم، والهيدر فيها لا يحمل مركز اختيار الأنواع بالطريقة الحالية.
+
+أما النسخة الحالية فبها:
+
+الوظيفة	Original	Current بعد الإصلاح
+Gold/Diamond Header	❌	✅
+اختيار نوع الإذن من Header	❌	✅
+Company Context	محدود/قديم	✅
+Branch/Vehicle/Supplier routing	قديم	✅
+Transfer	✅	✅
+DirectSale	✅	✅
+DirectReturn	✅	✅ ومصحح
+SupplierReturn	✅	✅
+Partial Receive	محدود	✅
+Cancel	قديم	✅
+Complete	قديم	✅
+Engine Operations	❌	✅ Scrap + Adjustment
+Direct Stock Mutation من UI	تاريخي	❌
+Contract-aware backend calls	❌	✅
+
+النتيجة: لا توجد قيمة في العودة إلى Original ونسخها فوق الحالية؛ الحالية أصبحت معماريًا أحدث منها.
+
+5. مقارنة مع Picker.html
+
+picker.html هو المرجع الأقوى بصريًا وتشغيليًا من ملفات الـPWA الحالية: Header واضح، Cards، Loading/Skeleton، Search، SweetAlert، Offline infrastructure وغيرها.
+
+أما vouchers.html الحالية فأصبحت بالفعل في نفس الاتجاه Gold/Diamond:
+
+Gold Header
+Gold Action Chip
+Cards
+Header Menu
+محدودية الـBottom Tabs
+Loading/Skeleton عبر core.js
+SweetAlert
+Search
+Cart
+workflow states
+
+لكنها ليست نسخة حرفية من Picker؛ وهذا صحيح لأن Picker له Business Domain مختلف.
+
+6. مقارنة مع main.html
+
+main.html ما زال يحتوي واجهة أوسع وأقدم للأذونات المخزنية، وهو مصدر مهم لفهم التاريخ والوظائف.
+
+لكن لا ينبغي نسخ كل ما فيه بلا تمييز.
+
+التحقيق أثبت أن:
+
+main.html
+≠
+Production Contract الحالي بالكامل
+
+والنسخة الجديدة تعاملت مع هذا الفرق بطريقة صحيحة:
+
+ما هو مثبت في Production
+        ↓
+تم تنفيذه
+
+
+ما هو تاريخي فقط
+        ↓
+تم الحفاظ على مفهومه دون اختراع Backend غير موجود
+
+وهذا تحديدًا هو سبب بقاء Scrap وAdjustment كـEngine Operations بدل تزوير دورة Voucher غير موجودة حاليًا.
+
+7. هل تم دمج الـCommits داخل الملف؟
+
+نعم، وهذا هو الجزء الذي كان يسبب لك الالتباس.
+
+الـCommit ليس ملفًا منفصلًا تحتاج إلى حمله معك.
+
+الـCommit هو مجرد سجل تاريخي للتغيير.
+
+الملف نفسه الآن يحتوي الحالة النهائية المتراكمة.
+
+بمعنى:
+
+c391...
+   ↓
+6c8...
+   ↓
+12265...
+   ↓
+d32...
+   ↓
+Prompt 16 fixes
+   ↓
+Current/PWA/vouchers.html
+
+والنتيجة النهائية كلها الآن داخل:
+
+Current/PWA/vouchers.html
+
+والـGit Commit الجديد 968f... يسجل هذه النسخة فقط.
+
+لذلك عندما تنسخ ملف vouchers.html نفسه لا تحتاج إلى نسخ أي Commit معه.
+
+8. هل الملف يحتاج ملفات UI إضافية حتى يكتمل؟
+
+من ناحية الكود الموجود داخل vouchers.html نفسه: لا توجد وظيفة Prompt 16 التي أصلحتها تعتمد على ملف UI جديد.
+
+لكن بطبيعة الحال الملف ما زال يعتمد على Runtime الموجود أصلًا في النظام:
+
+../core.js
+Supabase
+Edge Functions
+../register-sw.js
+../sw.js
+
+وهذا ليس “جزءًا ناقصًا من الـCommit”، بل dependencies فعلية للتطبيق.
+
+9. هل أنصحك بنشر النسخة الحالية؟
+نعم، بالنسبة إلى Current/PWA/vouchers.html نفسها أصبحت النسخة الصحيحة التي يجب البناء/النشر منها.
+
+والسبب أن النسخة القديمة 9f11a3e... كان فيها:
+
+chooseEngineType → مفقودة
+account → مفقودة
+
+أما النسخة الحالية فقد أُغلقت هذه الفجوة فعليًا داخل الملف.
+
+لكن هناك تمييز مهم:
+
+لا أعتبر هذا إغلاقًا لـ GLOBAL INVENTORY CORE بالكامل.
+
+لأن ذلك يحتاج إغلاق الـBackend Writer Closure Units كلها، وليس واجهة vouchers فقط.
+
+كذلك Scrap/Adjustment أصبحا قابلين للاستخدام من الواجهة عبر الـAdjustment Engine الموجود، لكنهما ما زالا ليسا Manual Voucher lifecycle في Production، وهذا لم أزوّره أو أخفيه.
+
+10. حالة المهمة الآن
+البند	الحالة
+تحقيق Prompt 11–16	✅
+مراجعة Architecture	✅
+مراجعة Original	✅
+مراجعة main.html	✅
+مراجعة picker.html	✅
+مراجعة Production Contract	✅
+Gold/Diamond Header	✅
+Header-based type selection	✅
+Transfer	✅
+DirectSale	✅
+DirectReturn	✅
+SupplierReturn	✅
+Scrap Engine	✅
+Adjustment Engine	✅
+إصلاح chooseEngineType	✅
+إصلاح account mismatch	✅
+Direct physical stock mutation من UI	✅ لا يوجد
+دمج النتيجة في ملف واحد	✅
+تعديل ملف جديد	❌ لم يتم
+Git documentation / commit	✅
+Global Inventory Zero-Debt	❌ ليست هذه المهمة وحدها
+نقطة Git النهائية
+
+Commit:
+
+968f8ec6123a8b55256073e16b61f40c408826ab
+
+الرسالة:
+
+fix(vouchers): consolidate Prompt16 gold-master runtime gaps
+
+وقد أثبت Git أن التغيير تم على الملف نفسه.
+
+فتح النسخة الحالية من vouchers.html على GitHub
+
+الحكم النهائي
+
+هذه هي النسخة التي تستخرجها وتحتفظ بها كملف vouchers.html واحد. لا تحتاج إلى دمج Commits يدويًا.
+
+لكنها تمثل Gold Master للواجهة والعقد الحالي المثبت، وليست شهادة بأن كل Inventory Rescue في المشروع كله أصبح 100% CLOSED. وهذا التفريق مقصود ومثبت، وليس تحفظًا شكليًا.
