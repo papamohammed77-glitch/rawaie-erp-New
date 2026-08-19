@@ -6,15 +6,16 @@ Fresh source-first investigation of:
 - `Current/PWA/vouchers.html`
 - `rawaie-erp-review/Architecture/الأذونات المخزنية اليدوية.md`
 - `doc/Draft/Hussin/برومبت 11 وتقريري تنفيذه`
+- `doc/Draft/Hussin/برومبت 12 وتقريري تنفيذه`
 - Production Supabase schema, RPCs, Edge Functions, and runtime verification.
 
 ## Proven current facts
 1. Manual vouchers are a separate workflow from runsheets. Historical architecture defines: Transfer, DirectSale, DirectReturn, SupplierReturn, Scrap, Adjustment.
-2. Current Production manual CREATE contract now supports: Transfer Branch→Branch; DirectSale Branch→Vehicle; DirectReturn Vehicle→Branch; SupplierReturn Branch→Supplier.
+2. Current Production manual CREATE contract supports only: Transfer Branch→Branch; DirectSale Branch→Vehicle; DirectReturn Vehicle→Branch; SupplierReturn Branch→Supplier.
 3. Vehicle stock is represented by a company branch `VAN-{vehicle_code}`; the live Production vehicle `VEH-92yrzb` has `VAN-VEH-92yrzb` initialized.
 4. Physical stock mutations for the manual voucher lifecycle are routed through `post_stock_movement`; no second Physical Stock engine was introduced.
-5. `items.item_code` is globally UNIQUE in the deployed schema. The CREATE contract therefore resolves item identity by global `item_code`/`item_id`; Branch/Vehicle/Supplier/header context remains company-scoped.
-6. Manual voucher `reference` is now enforced in Production for `source='Manual'` by a database CHECK constraint.
+5. `items.item_code` is globally UNIQUE in the deployed schema. Item identity therefore uses global `item_code`/`item_id`; Branch/Vehicle/Supplier/header context remains company-scoped.
+6. Manual voucher `reference` is enforced in Production for `source='Manual'` by a database CHECK constraint.
 
 ## Production changes actually applied
 - Migration `20260819_manual_voucher_vehicle_stock_contract`
@@ -29,27 +30,38 @@ Fresh source-first investigation of:
   - enforced non-empty reference for manual vouchers.
 - Production Edge capabilities `complete-stock-voucher` and `cancel-stock-voucher` were deployed and verified as the runtime capabilities used by the updated UI.
 
-## `vouchers.html` closure implemented
-Git commit: `2b31d238d53fe15e7edd3556fe6bc0ea9bb11e41`
+## vouchers.html — forensic UI closure
+The file was upgraded surgically in-place. No new UI file was created.
 
-The file itself was surgically upgraded; no new UI file was created.
+### UI commits
+- `c391695188eed6570e205752e8503ae1b60d08f1` — elevated manual voucher type selection into the gold header.
+- `6c8e83697f8182790d79a019cb3483494c0b940a` — corrected the DirectReturn Vehicle→Branch selector before declaring closure.
 
-Implemented:
-- authenticated company resolution from the current Supabase user;
-- company-scoped voucher header reads;
-- company-scoped Branch / Vehicle / Supplier reference data;
-- real source/target selection instead of hardcoded `MAIN`/empty destination;
-- mandatory reference field;
-- Transfer / DirectSale / DirectReturn / SupplierReturn type-specific routing;
-- read-only historical semantics for unsupported Scrap/Adjustment creation (not invented because current Production CREATE contract does not support them);
-- voucher details with source, target, reference, notes, quantities, received quantities and remaining quantities;
-- CANCEL capability for Draft;
-- COMPLETE capability for Received;
-- partial RECEIVE UI with per-line quantities and stable browser operation identity;
-- existing Send capability preserved;
-- removal of client-side Physical Stock mutation; all movement remains backend/RPC controlled.
+### Current UI contract
+Implemented and verified in the final Git blob:
+- gold/diamond header treatment inspired by the current PWA visual language;
+- manual voucher type selection is in the HEADER, not in the lower tab strip;
+- the lower tabs remain only `معلقة / مكتملة / حسابي`;
+- four currently Production-supported manual types are directly selectable from the header:
+  - `Transfer` — Branch → Branch
+  - `DirectSale` — Branch → Vehicle
+  - `DirectReturn` — Vehicle → Branch
+  - `SupplierReturn` — Branch → Supplier
+- `Scrap` and `Adjustment` are deliberately shown as disabled/non-available because Production CREATE does not currently prove a safe backend contract for them; no fake behavior was invented;
+- the create dialog opens directly for the selected header type rather than asking for the type a second time;
+- DirectReturn now explicitly renders Vehicle as source and Branch as destination;
+- source/destination reference data is company-scoped;
+- reference is mandatory;
+- item search follows the deployed global `item_code` identity model;
+- Send / partial Receive / Complete / Cancel capabilities remain wired to backend/RPC capabilities;
+- no client-side `stock_branches.qty` or `inventory_log` mutation was introduced;
+- Physical Stock ownership remains backend-controlled through `post_stock_movement`.
 
-## Production runtime verification
+### Final vouchers.html identity
+- Git blob SHA: `a8d6726c037ed45157ec5cfadce63cbf791babb6`
+- Final file: `Current/PWA/vouchers.html`
+
+## Production runtime verification previously completed
 A Production-only forensic test was executed inside a PL/pgSQL subtransaction and intentionally rolled back after verification.
 
 Verified in the real deployed database:
@@ -65,23 +77,25 @@ Verified in the real deployed database:
 - `stock_vouchers` audit trigger path is `trg_audit_stock_vouchers` → `fn_audit_trigger()`.
 - The audit trigger records INSERT/UPDATE/DELETE with JWT email when available and `system` fallback.
 - No new parallel stock writer was introduced.
-- `main.html` was not modified by this closure.
+- `main.html` was not modified by this UI closure.
 
 ## Remaining known gaps / conflicts
-1. Historical architecture contains Scrap and Adjustment as manual voucher types, but the current deployed CREATE contract does not support them. They are intentionally NOT exposed as fake UI options.
-2. Production-only Edge files `complete-stock-voucher` and `cancel-stock-voucher` are now deployed; the canonical `Current/Edge_Functions` directory did not contain those files during this task. This is a documented Production/Current Git drift and should be reconciled in the next governance pass rather than hidden.
-3. A legacy 9-argument `post_stock_movement` overload still exists in Production, but `anon`/`authenticated`/`service_role` cannot execute it; the application path uses the canonical 10-argument idempotent overload. It remains legacy residue and was not deleted in this voucher closure because that dependency boundary was outside the surgical task.
-4. Purchase receiving idempotency remains a separate closure unit; it was not silently counted as closed by this voucher task.
+1. Historical architecture contains Scrap and Adjustment as manual voucher types, but the current deployed CREATE contract does not support them. They remain intentionally unavailable in the UI until their backend contract is independently proven and closed.
+2. Production-only Edge files `complete-stock-voucher` and `cancel-stock-voucher` are deployed; the canonical `Current/Edge_Functions` directory did not contain those files during the earlier closure. This remains documented Production/Current Git drift.
+3. A legacy 9-argument `post_stock_movement` overload still exists in Production, but the application roles cannot execute it; the application path uses the canonical 10-argument idempotent overload. This is legacy residue outside the surgical voucher UI task.
+4. Purchase receiving idempotency remains a separate closure unit; it is not silently counted as closed here.
 5. Global Inventory Core Integrity remains incomplete until the remaining writer closure units in the governing directive are independently closed.
 
-## Final status for this task
-- Manual voucher UI gap: CLOSED for the capabilities proven by current Production backend.
-- Manual voucher vehicle semantics: CLOSED at Production contract level.
+## Final status
+- Manual voucher UI/UX gap for the four Production-proven types: CLOSED.
+- Header-based type selection requirement: CLOSED.
+- Gold/diamond visual direction: IMPLEMENTED in `vouchers.html`.
+- DirectReturn Vehicle→Branch selector defect found during verification: FIXED before closure.
 - Hardcoded source/target UI defect: CLOSED.
 - Mandatory reference gap: CLOSED.
-- Cancel / Complete / Partial Receive UI gap: CLOSED for current Production contract.
+- Cancel / Complete / Partial Receive UI gap: CLOSED for the current Production contract.
 - Physical Stock ownership: remains centralized through `post_stock_movement`.
-- Scrap / Adjustment creation: intentionally NOT CLOSED because the current Production CREATE contract does not support them; no invented behavior was added.
+- Scrap / Adjustment creation: NOT CLOSED because Production CREATE contract is not proven; intentionally not invented.
 
 ## Memory anchor
-This document is the current forensic memory anchor. The next CTO must reread it, verify Production again, and not infer that any remaining historical six-type gaps are implemented merely because the UI is polished.
+This document is the current forensic memory anchor. The next CTO must reread it and verify Production again. Do not infer that a historical manual voucher type is implemented merely because the UI lists it. The only types considered operationally supported are those proven by the current Production CREATE contract.
