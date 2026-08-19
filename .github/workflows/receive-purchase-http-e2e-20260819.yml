@@ -2,6 +2,8 @@ name: receive-purchase Production HTTP E2E 20260819
 on:
   push:
     branches: [ctorepair-receive-purchase-http-e2e-20260819]
+  pull_request:
+    types: [opened, synchronize, reopened]
 permissions: {}
 jobs:
   e2e:
