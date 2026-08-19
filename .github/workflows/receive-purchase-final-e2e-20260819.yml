@@ -14,50 +14,65 @@ jobs:
           BASE='https://fiilmooggumokxanwiyx.supabase.co'
           ANON='sb_publishable_ZQC-PFJJWDoFh-6ZmaTWeg_UtrzzM71'
           HARNESS="$BASE/functions/v1/receive-purchase-runtime-e2e-20260819?token=RPO-CTO-E2E-20260819"
+
           setup=$(curl --silent --show-error --max-time 60 "$HARNESS&mode=setup")
-          echo "$setup" | python -m json.tool
-          eval "$(python - <<'PY' "$setup"
-          import json,sys,shlex
+          echo "$setup" | python -m json.tool | sed -E '/"password"/d'
+          readarray -t KV < <(python - "$setup" <<'PY'
+          import json,sys
           x=json.loads(sys.argv[1])
           assert x.get('success') is True, x
           for k in ('email','password','po_code','baseline','op1','op2'):
-              print(f'{k}='+shlex.quote(str(x[k])))
+              print(f'{k}\t{x[k]}')
           PY
-          )"
+          )
+          for row in "${KV[@]}"; do
+            key="${row%%$'\t'*}"; value="${row#*$'\t'}"
+            case "$key" in
+              email) EMAIL="$value";; password) PASSWORD="$value";; po_code) PO_CODE="$value";; baseline) BASELINE="$value";; op1) OP1="$value";; op2) OP2="$value";;
+            esac
+          done
+
+          finalized=0
           cleanup() {
-            curl --silent --show-error --max-time 60 "$HARNESS&mode=finalize&po_code=$(python -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))' "$po_code")&baseline=$baseline" | tee finalize.json || true
+            if [ "$finalized" -eq 0 ] && [ -n "${PO_CODE:-}" ]; then
+              curl --silent --show-error --max-time 60 "$HARNESS&mode=finalize&po_code=$PO_CODE&baseline=$BASELINE" >/tmp/finalize-cleanup.json || true
+            fi
           }
           trap cleanup EXIT
-          login=$(curl --silent --show-error --max-time 60 -X POST "$BASE/auth/v1/token?grant_type=password" -H "apikey: $ANON" -H 'Content-Type: application/json' --data "$(python - <<'PY' "$email" "$password"
+
+          payload=$(python - "$EMAIL" "$PASSWORD" <<'PY'
           import json,sys
           print(json.dumps({'email':sys.argv[1],'password':sys.argv[2]}))
           PY
-          )")
-          echo "$login" | python -m json.tool
-          access=$(python - <<'PY' "$login"
+          )
+          login=$(curl --silent --show-error --max-time 60 -X POST "$BASE/auth/v1/token?grant_type=password" -H "apikey: $ANON" -H 'Content-Type: application/json' --data "$payload")
+          access=$(python - "$login" <<'PY'
           import json,sys
           x=json.loads(sys.argv[1]); assert x.get('access_token'), x; print(x['access_token'])
           PY
-          )"
-          call_receive() {
-            local op="$1"
-            curl --silent --show-error --max-time 60 -X POST "$BASE/functions/v1/receive-purchase" \
-              -H "Authorization: Bearer $access" -H 'Content-Type: application/json' \
-              --data "$(python - <<'PY' "$po_code" "$op"
+          )
+
+          receive_payload() {
+            python - "$PO_CODE" "$1" <<'PY'
           import json,sys
           print(json.dumps({'po_code':sys.argv[1],'itemsReceived':[{'itemCode':'1001','receivedQty':1,'itemName':'جو كيك 5ج','unit':'حبة'}],'operation_id':sys.argv[2]}))
           PY
-          )"
           }
-          a=$(call_receive "$op1"); echo "$a" | python -m json.tool
-          b=$(call_receive "$op1"); echo "$b" | python -m json.tool
-          c=$(call_receive "$op2"); echo "$c" | python -m json.tool
-          echo '--- FINALIZE / VERIFY ---'
-          # cleanup() runs on shell exit; force its result into an artifact-like file without failing before trap
-          final=$(curl --silent --show-error --max-time 60 "$HARNESS&mode=finalize&po_code=$(python -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))' "$po_code")&baseline=$baseline")
+
+          a=$(curl --silent --show-error --max-time 60 -X POST "$BASE/functions/v1/receive-purchase" -H "Authorization: Bearer $access" -H 'Content-Type: application/json' --data "$(receive_payload "$OP1")")
+          b=$(curl --silent --show-error --max-time 60 -X POST "$BASE/functions/v1/receive-purchase" -H "Authorization: Bearer $access" -H 'Content-Type: application/json' --data "$(receive_payload "$OP1")")
+          c=$(curl --silent --show-error --max-time 60 -X POST "$BASE/functions/v1/receive-purchase" -H "Authorization: Bearer $access" -H 'Content-Type: application/json' --data "$(receive_payload "$OP2")")
+
+          echo 'INITIAL:'; echo "$a" | python -m json.tool
+          echo 'RETRY:'; echo "$b" | python -m json.tool
+          echo 'SECOND PARTIAL:'; echo "$c" | python -m json.tool
+
+          final=$(curl --silent --show-error --max-time 60 "$HARNESS&mode=finalize&po_code=$PO_CODE&baseline=$BASELINE")
+          finalized=1
           trap - EXIT
-          echo "$final" | tee finalize.json | python -m json.tool
-          python - <<'PY' "$a" "$b" "$c" "$final"
+          echo 'FINALIZE:'; echo "$final" | python -m json.tool
+
+          python - "$a" "$b" "$c" "$final" <<'PY'
           import json,sys
           a,b,c,f=map(json.loads,sys.argv[1:])
           assert a.get('success') is True and a.get('duplicate') is not True, a
