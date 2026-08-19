@@ -1,0 +1,44 @@
+التقرير النهائي — بعد التحقيق من الواقع
+تقرير المساعد 9 صحيح جزئيًا فقط.
+البند	الحكم الحقيقي
+post_stock_movement كمحرك مركزي	✅ مؤكد في Production
+Physical writers على stock_branches	✅ لا يوجد إلا المحرك المركزي
+Triggers على جداول المخزون	✅ 0
+سلامة بيانات المخزون الحالية	✅ PASS: لا Negative ولا Orphans
+save_sales_invoice بعد PR #14	✅ توجد أدلة E2E موثقة
+Global Inventory Core	⚠️ ليس 100% كما ادعى
+سبب المشكلة	وجود complete_runsheet_picking نفسه يكتب inventory_log مباشرة
+الاكتشاف الحاسم
+فحصت Production PostgreSQL مباشرة، ووجدت أن:
+complete_runsheet_picking(...)
+يحتوي فعليًا على:
+INSERT INTO public.inventory_log(...)
+...
+movement_type = 'Picking'
+وهذا يناقض عقدنا المعتمد:
+Picking = Reservation فقط، وليس Physical Inventory Movement.
+كما أن فحص الدوال التي تحتوي على inventory_log أظهر:
+•	complete_runsheet_picking 
+•	complete_runsheet_reopen_loading 
+•	post_manual_stock_voucher_atomic 
+•	post_stock_movement 
+•	send_stock_voucher_atomic 
+إذن عبارة التقرير:
+PHYSICAL WRITERS OUTSIDE post_stock_movement = 0
+مضللة بصيغتها الحالية؛ لأن complete_runsheet_picking ليس Physical stock_branches.qty writer، لكنه ما زال يكتب Inventory Log مباشرة، أي أنه يكسر مبدأ single stock-event writer boundary الذي اتفقنا عليه.
+موقف خطة الإنقاذ
+الإنجاز الحقيقي حتى الآن:
+•	Central physical stock mutation: 100% 
+•	Stock data integrity: 100% PASS 
+•	Production deployment للـCore المركزي: منفذ 
+•	Global Inventory Zero-Debt: ليس 100% بعد 
+الخطوة التالية
+نغلق هذا العيب تحديدًا:
+complete_runsheet_picking
+→ إزالة Picking من inventory_log المباشر
+→ إبقاء reserve_stock للحجز فقط
+→ اختبار Production الحقيقي
+→ التحقق من baseline
+→ ثم إعادة تقييم وثيقة 05-GLOBAL-INVENTORY-ZERO-DEBT-RESULT.
+وبالتالي: لا تعتبر وثيقة Prompt 9 إغلاقًا نهائيًا بعد.
+
