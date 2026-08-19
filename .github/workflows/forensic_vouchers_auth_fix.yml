@@ -1,15 +1,15 @@
 name: One-shot forensic fix — vouchers auth boot
 
 on:
-  push:
-    branches: [main]
+  issues:
+    types: [opened]
 
 permissions:
   contents: write
 
 jobs:
   repair:
-    if: github.event.head_commit.message == 'FORENSIC: trigger one-shot vouchers auth boot repair'
+    if: github.event.issue.title == 'FORENSIC_EXECUTE_VOUCHERS_AUTH_FIX'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
