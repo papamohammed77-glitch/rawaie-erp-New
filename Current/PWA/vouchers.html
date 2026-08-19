@@ -1,319 +1,61 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>الأذونات المخزنية | الروائع ERP</title>
-    <link rel="manifest" href="../manifest.json">
-    <meta name="theme-color" content="#6366f1">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dexie@3/dist/dexie.min.js"></script>
-    <script src="../core.js"></script>
-    <script>var supabase = window.supabase;</script>
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Cairo',sans-serif;background:#f8fafc;-webkit-tap-highlight-color:transparent}
-        .auth-bg{background:linear-gradient(135deg,#3730a3 0%,#4f46e5 40%,#6366f1 100%)}
-        .card{background:#fff;border-radius:24px;padding:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,0.02),0 8px 24px rgba(0,0,0,0.03);transition:all 0.2s ease}
-        .card:active{transform:scale(0.985)}
-        .btn-primary{background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;padding:1rem 1.5rem;border-radius:16px;font-weight:700;border:none;cursor:pointer;width:100%;box-shadow:0 4px 12px rgba(99,102,241,0.25)}
-        .btn-primary:active{transform:scale(0.97)}
-        .btn-secondary{background:#f1f5f9;color:#1e293b;padding:0.75rem 1.25rem;border-radius:14px;font-weight:700;border:none;cursor:pointer;transition:all 0.15s ease}
-        .btn-danger{background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;padding:0.75rem 1.25rem;border-radius:14px;font-weight:700;border:none;cursor:pointer;transition:all 0.15s ease;box-shadow:0 4px 12px rgba(220,38,38,0.2)}
-        .tab-btn{transition:all 0.2s ease}
-        .tab-btn.active{border-bottom-color:#6366f1;color:#0f172a}
-        .slide-in{animation:slideIn 0.3s ease}
-        @keyframes slideIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-        .skeleton{background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:12px}
-        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>الأذونات المخزنية | الروائع ERP</title>
+<link rel="manifest" href="../manifest.json"><meta name="theme-color" content="#6366f1">
+<script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../core.js"></script><script>var supabase=window.supabase;</script>
+<style>
+*{box-sizing:border-box}body{font-family:'Cairo',sans-serif;background:#f8fafc}.auth-bg{background:linear-gradient(135deg,#3730a3,#4f46e5,#6366f1)}
+.card{background:#fff;border-radius:24px;padding:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.02),0 8px 24px rgba(0,0,0,.03)}.tab-btn.active{border-bottom-color:#6366f1;color:#0f172a}
+</style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
-
 <div id="loginScreen" class="fixed inset-0 z-[100] flex items-center justify-center auth-bg p-4">
-    <div class="bg-white rounded-[36px] shadow-2xl p-6 w-[92%] max-w-md slide-in">
-        <div class="text-center mb-6"><div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-indigo-200 mb-5"><i class="fa-solid fa-file-signature text-white text-3xl"></i></div><h1 class="font-black text-2xl text-slate-800">الروائع</h1><p class="text-sm text-slate-400">الأذونات المخزنية</p></div>
-        <div class="space-y-4"><div><input id="loginEmail" type="email" placeholder="البريد الإلكتروني" class="w-full p-3.5 bg-slate-50 rounded-2xl border-2 border-slate-100 focus:border-indigo-500 outline-none font-semibold text-sm"></div><div class="relative"><input id="loginPass" type="password" placeholder="كلمة السر" class="w-full p-3.5 bg-slate-50 rounded-2xl border-2 border-slate-100 focus:border-indigo-500 outline-none font-semibold text-sm pr-12"><button type="button" onclick="App.togglePass()" class="absolute left-3 top-1/2 -translate-y-1/2 p-2 text-slate-300"><i id="passIcon" class="fa-solid fa-eye"></i></button></div></div>
-        <button onclick="App.doLogin()" class="w-full bg-gradient-to-r from-indigo-600 to-indigo-500 text-white py-4 rounded-2xl font-bold text-base shadow-lg mt-6">تسجيل الدخول</button>
-        <p id="loginMsg" class="text-center text-xs text-red-500 font-bold mt-4 hidden"></p>
-    </div>
-</div>
-
+<div class="bg-white rounded-[36px] shadow-2xl p-6 w-[92%] max-w-md">
+<div class="text-center mb-6"><div class="w-20 h-20 bg-indigo-600 rounded-3xl mx-auto flex items-center justify-center mb-5"><i class="fa-solid fa-file-signature text-white text-3xl"></i></div><h1 class="font-black text-2xl text-slate-800">الروائع</h1><p class="text-sm text-slate-400">الأذونات المخزنية</p></div>
+<div class="space-y-4"><input id="loginEmail" type="email" placeholder="البريد الإلكتروني" class="w-full p-3.5 bg-slate-50 rounded-2xl border-2 border-slate-100 outline-none"><div class="relative"><input id="loginPass" type="password" placeholder="كلمة السر" class="w-full p-3.5 bg-slate-50 rounded-2xl border-2 border-slate-100 outline-none pr-12"><button type="button" onclick="App.togglePass()" class="absolute left-3 top-1/2 -translate-y-1/2 p-2"><i id="passIcon" class="fa-solid fa-eye"></i></button></div></div>
+<button onclick="App.doLogin()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold mt-6">تسجيل الدخول</button><p id="loginMsg" class="text-center text-xs text-red-500 font-bold mt-4 hidden"></p>
+</div></div>
 <div id="mainApp" class="hidden flex flex-col h-full">
-    <header class="bg-gradient-to-r from-indigo-700 to-indigo-600 text-white p-4 flex items-center justify-between sticky top-0 z-30 shadow-md flex-shrink-0">
-        <span class="font-black text-base">📄 الأذونات المخزنية</span>
-        <div class="flex items-center gap-2">
-            <span id="connDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-            <span id="connLabel" class="text-xs font-bold">متصل</span>
-            <button onclick="App.doLogout()" class="bg-white/15 w-9 h-9 rounded-full"><i class="fa-solid fa-arrow-right-from-bracket text-xs"></i></button>
-        </div>
-    </header>
-
-    <div class="flex gap-1.5 p-2 bg-white border-b border-slate-100 overflow-x-auto flex-shrink-0">
-        <button onclick="App.switchTab('pending')" class="tab-btn whitespace-nowrap px-5 py-2.5 rounded-2xl font-bold text-sm active" id="tab-pending">📄 معلقة</button>
-        <button onclick="App.switchTab('completed')" class="tab-btn whitespace-nowrap px-5 py-2.5 rounded-2xl font-bold text-sm text-slate-400" id="tab-completed">✅ مكتملة</button>
-        <button onclick="App.switchTab('account')" class="tab-btn whitespace-nowrap px-5 py-2.5 rounded-2xl font-bold text-sm text-slate-400" id="tab-account">⚙️ حسابي</button>
-    </div>
-    <main id="mainContent" class="flex-1 overflow-y-auto p-4"></main>
-</div>
-
+<header class="bg-gradient-to-r from-indigo-700 to-indigo-600 text-white p-4 flex items-center justify-between sticky top-0 z-30"><span class="font-black">📄 الأذونات المخزنية</span><div class="flex items-center gap-2"><span id="connDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span><span id="connLabel" class="text-xs font-bold">متصل</span><button onclick="App.doLogout()" class="bg-white/15 w-9 h-9 rounded-full"><i class="fa-solid fa-arrow-right-from-bracket text-xs"></i></button></div></header>
+<div class="flex gap-1.5 p-2 bg-white border-b overflow-x-auto"><button onclick="App.switchTab('pending')" id="tab-pending" class="tab-btn px-5 py-2.5 rounded-2xl font-bold text-sm active">📄 معلقة</button><button onclick="App.switchTab('completed')" id="tab-completed" class="tab-btn px-5 py-2.5 rounded-2xl font-bold text-sm text-slate-400">✅ مكتملة</button><button onclick="App.switchTab('account')" id="tab-account" class="tab-btn px-5 py-2.5 rounded-2xl font-bold text-sm text-slate-400">⚙️ حسابي</button></div>
+<main id="mainContent" class="flex-1 overflow-y-auto p-4"></main></div>
 <script>
-var App = {
-    currentUser: null, currentTab: 'pending', vouchers: [], newVoucherCart: [],
-
-    togglePass: function(){var p=RW_UI.byId('loginPass'),i=RW_UI.byId('passIcon');if(p.type==='password'){p.type='text';i.className='fa-solid fa-eye-slash'}else{p.type='password';i.className='fa-solid fa-eye'}},
-    doLogin: function(){var e=RW_UI.byId('loginEmail').value.trim(),p=RW_UI.byId('loginPass').value.trim();if(!e||!p){RW_UI.byId('loginMsg').innerText='أدخل البيانات';RW_UI.byId('loginMsg').classList.remove('hidden');return}RW_UI.byId('loginMsg').classList.add('hidden');RW_UI.showLoader();RW_Auth.doLogin(e,p,function(u,er){RW_UI.hideLoader();if(er){RW_UI.byId('loginMsg').innerText=er;RW_UI.byId('loginMsg').classList.remove('hidden')}else App.init()})},
-    init: function(){var s=this;RW_Auth.init(function(u,er){if(er||!u){RW_UI.showError('انتهت الجلسة',function(){location.reload()});return}s.currentUser=u;if(!u.isOwner&&u.activeWarehouseRole!=='أذونات'){RW_UI.showError('دورك النشط هو "'+(u.activeWarehouseRole||'غير محدد')+'"',function(){RW_Auth.doLogout()});return}RW_UI.safeText(RW_UI.byId('headerUserName'),u.name);s.enterApp()})},
-    enterApp: function(){RW_UI.byId('loginScreen').classList.add('hidden');RW_UI.byId('mainApp').classList.remove('hidden');RW_UI.updateConnectionStatus('connDot','connLabel');window.addEventListener('online',function(){RW_UI.updateConnectionStatus('connDot','connLabel')});window.addEventListener('offline',function(){RW_UI.updateConnectionStatus('connDot','connLabel')});this.switchTab('pending')},
-    doLogout: function(){RW_Auth.doLogout(function(){RW_UI.byId('mainApp').classList.add('hidden');RW_UI.byId('loginScreen').classList.remove('hidden')})},
-
-    switchTab: function(tab){
-        this.currentTab = tab;
-        var tabs = ['pending', 'completed', 'account'];
-        for(var i=0;i<tabs.length;i++){ var btn=RW_UI.byId('tab-'+tabs[i]); if(btn){btn.classList.remove('active');btn.classList.add('text-slate-400')} }
-        var act=RW_UI.byId('tab-'+tab); if(act){act.classList.add('active');act.classList.remove('text-slate-400')}
-        if(tab==='pending') this.loadVouchers('pending');
-        else if(tab==='completed') this.loadVouchers('completed');
-        else if(tab==='account') this.renderAccount();
-    },
-
-    loadVouchers: function(scope){
-        var self = this;
-        RW_UI.showSkeleton('mainContent', 3, 'card');
-        var query = supabase.from('stock_vouchers').select('*').order('voucher_date',{ascending:false}).limit(50);
-        if(scope==='pending') query = query.in('status',['Draft','Sent']);
-        else query = query.in('status',['Received','Completed']);
-        query.then(function(r){
-            self.vouchers = r.data || [];
-            if(scope==='pending') self._renderList('pending');
-            else self._renderList('completed');
-        }).catch(function(){ RW_UI.showEmptyState('mainContent','فشل تحميل الأذونات','📡') });
-    },
-
-    _renderList: function(scope){
-        var self = this, h='', title='', showActions=false;
-        if(scope==='pending'){ title='📄 أذونات معلقة'; showActions=true }
-        else { title='✅ أذونات مكتملة' }
-        h += '<div class="mb-4 flex justify-between items-center"><p class="text-slate-400 text-sm">أهلاً، <span class="font-bold text-slate-700">'+(this.currentUser.name||'زميل')+'</span> 👋</p>';
-        if(showActions) h += '<button onclick="App.openNewVoucherModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-sm"><i class="fa-solid fa-plus ml-1"></i> إذن جديد</button>';
-        h += '</div>';
-        h += '<input type="text" id="voucherSearch" placeholder="🔍 بحث..." class="w-full p-3 bg-white rounded-2xl border-2 border-slate-100 focus:border-indigo-400 outline-none font-semibold text-sm shadow-sm mb-4" oninput="App._filterAndRender()">';
-        h += '<h2 class="text-lg font-black mb-4">'+title+'</h2>';
-        var manual = self.vouchers.filter(function(v){ return (v.source==='Manual'||v.type==='Adjustment') });
-        h += self._buildCardsHTML(manual, showActions);
-        RW_UI.safeHTML(RW_UI.byId('mainContent'), h);
-    },
-
-    _filterAndRender: function(){
-        var q = (RW_UI.byId('voucherSearch') ? RW_UI.byId('voucherSearch').value : '').toLowerCase();
-        var manual = this.vouchers.filter(function(v){ return ((v.voucher_code||'').toLowerCase().indexOf(q)!==-1 || (v.type||'').toLowerCase().indexOf(q)!==-1) && (v.source==='Manual'||v.type==='Adjustment') });
-        var showActions = (this.currentTab==='pending');
-        var cardsHTML = this._buildCardsHTML(manual, showActions);
-        var container = RW_UI.byId('voucherCardsContainer');
-        if(container) RW_UI.safeHTML(container, cardsHTML);
-    },
-
-    _buildCardsHTML: function(data, showActions){
-        if(data.length===0) return '<div id="voucherCardsContainer" class="text-center py-12"><div class="text-6xl mb-4">☕</div><p class="text-slate-400 font-bold">لا توجد أذونات.</p></div>';
-        var h = '<div id="voucherCardsContainer">';
-        for(var i=0;i<data.length;i++){
-            var v = data[i];
-            var sc = v.status==='Draft'?'bg-amber-100 text-amber-700':(v.status==='Sent'?'bg-blue-100 text-blue-700':'bg-green-100 text-green-700');
-            var sl = v.status==='Draft'?'مسودة':(v.status==='Sent'?'مُرسل':v.status);
-            h += '<div class="card mb-3 cursor-pointer slide-in" onclick="App.viewVoucherDetails(\''+v.voucher_code+'\')"><div class="flex justify-between items-center"><div><span class="font-black">'+v.voucher_code+'</span><p class="text-xs text-slate-400">'+v.voucher_date+' | '+v.type+'</p></div><div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded-full text-xs font-bold '+sc+'">'+sl+'</span>';
-            if(showActions){
-                if(v.status==='Draft') h += '<button onclick="event.stopPropagation();App.sendVoucher(\''+v.voucher_code+'\')" class="bg-indigo-600 text-white px-3 py-1 rounded-lg text-xs font-bold">إرسال</button>';
-                else if(v.status==='Sent') h += '<button onclick="event.stopPropagation();App.receiveVoucher(\''+v.voucher_code+'\')" class="bg-emerald-600 text-white px-3 py-1 rounded-lg text-xs font-bold">استلام</button>';
-            }
-            h += '</div></div></div>';
-        }
-        h += '</div>';
-        return h;
-    },
-
-    sendVoucher: function(code){ var s=this; RW_UI.showConfirm('إرسال '+code+'؟',function(){RW_UI.showLoader();RW_API.call('send-stock-voucher',{voucher_code:code},function(j){RW_UI.hideLoader();if(j.success){RW_UI.toast('تم','success');s.loadVouchers('pending')}else RW_UI.showError(j.msg)})})},
-    receiveVoucher: function(code){ var s=this; RW_UI.showConfirm('استلام '+code+'؟',function(){RW_UI.showLoader();RW_API.call('receive-stock-voucher',{voucher_code:code,receivedItems:[]},function(j){RW_UI.hideLoader();if(j.success){RW_UI.toast('تم','success');s.loadVouchers('pending')}else RW_UI.showError(j.msg)})})},
-
-viewVoucherDetails: function(code){
-    var self = this;
-
-    RW_UI.showLoader();
-
-    supabase
-        .from('stock_vouchers')
-        .select('id')
-        .eq('voucher_code', code)
-        .maybeSingle()
-        .then(function(voucherRes) {
-
-            if (voucherRes.error) {
-                throw voucherRes.error;
-            }
-
-            if (!voucherRes.data || !voucherRes.data.id) {
-                throw new Error('الإذن غير موجود: ' + code);
-            }
-
-            return supabase
-                .from('stock_voucher_details')
-                .select('*')
-                .eq('voucher_id', voucherRes.data.id);
-
-        })
-        .then(function(detailsRes) {
-
-            RW_UI.hideLoader();
-
-            if (detailsRes.error) {
-                throw detailsRes.error;
-            }
-
-            var its = detailsRes.data || [];
-
-            var h =
-                '<div class="text-right">' +
-                '<h3 class="font-black text-lg mb-4">' +
-                code +
-                '</h3>';
-
-            if (!its.length) {
-
-                h +=
-                    '<p class="text-slate-400 text-center py-4">' +
-                    'لا توجد أصناف' +
-                    '</p>';
-
-            } else {
-
-                h +=
-                    '<table class="w-full text-sm border">' +
-                    '<thead class="bg-slate-100">' +
-                    '<tr>' +
-                    '<th class="p-2">الصنف</th>' +
-                    '<th class="p-2 text-center">الكمية</th>' +
-                    '<th class="p-2 text-center">المستلمة</th>' +
-                    '</tr>' +
-                    '</thead>' +
-                    '<tbody>';
-
-                for (var i = 0; i < its.length; i++) {
-
-                    h +=
-                        '<tr class="border-t">' +
-                        '<td class="p-2 font-semibold">' +
-                        (its[i].item_name || its[i].item_code) +
-                        '</td>' +
-                        '<td class="p-2 text-center">' +
-                        (its[i].qty || 0) +
-                        '</td>' +
-                        '<td class="p-2 text-center">' +
-                        (its[i].received_qty || 0) +
-                        '</td>' +
-                        '</tr>';
-                }
-
-                h +=
-                    '</tbody>' +
-                    '</table>';
-            }
-
-            h += '</div>';
-
-            Swal.fire({
-                title: 'تفاصيل الإذن',
-                html: h,
-                width: '600px',
-                showCloseButton: true,
-                showConfirmButton: false,
-                customClass: {
-                    popup: '!rounded-3xl'
-                }
-            });
-
-        })
-        .catch(function(err) {
-
-            RW_UI.hideLoader();
-
-            RW_UI.showError(
-                err && err.message
-                    ? err.message
-                    : 'تعذر تحميل تفاصيل الإذن'
-            );
-        });
-},
-
-    openNewVoucherModal: function(){
-        var self = this; self.newVoucherCart = [];
-        var h = '<div class="text-right"><div class="mb-3"><label class="text-xs font-bold">نوع الإذن</label><select id="newVoucherType" class="w-full p-2.5 border rounded-xl text-sm"><option value="Transfer">تحويل داخلي</option><option value="DirectSale">صرف مباشر</option><option value="DirectReturn">مرتجع مباشر</option><option value="SupplierReturn">مرتجع لمورد</option></select></div><div class="mb-3"><label class="text-xs font-bold">ملاحظات</label><input id="newVoucherNotes" class="w-full p-2.5 border rounded-xl text-sm"></div><div class="mb-3"><label class="text-xs font-bold">بحث عن صنف</label><input type="text" id="newVoucherItemSearch" placeholder="ابحث..." class="w-full p-2.5 border rounded-xl text-sm" oninput="App.searchVoucherItem(this.value)"><div id="newVoucherItemResults" class="max-h-48 overflow-y-auto border rounded-xl mt-1"></div></div><div class="mb-3"><h4 class="font-bold text-sm mb-1">الأصناف المضافة</h4><div id="newVoucherCart"><p class="text-slate-400 text-center py-2">لا توجد أصناف</p></div></div></div>';
-        Swal.fire({title:'إذن جديد',html:h,width:'600px',showCancelButton:true,confirmButtonText:'حفظ',cancelButtonText:'إلغاء',customClass:{popup:'!rounded-3xl'},preConfirm:function(){
-            var popup = Swal.getPopup();
-            var typeEl = popup ? popup.querySelector('#newVoucherType') : null;
-            var notesEl = popup ? popup.querySelector('#newVoucherNotes') : null;
-            var type = typeEl ? typeEl.value : '';
-            var notes = notesEl ? notesEl.value : '';
-            if(!type){ Swal.showValidationMessage('اختر النوع'); return false }
-            if(self.newVoucherCart.length===0){ Swal.showValidationMessage('أضف صنفاً'); return false }
-            return {type:type, notes:notes};
-        }}).then(function(r){
-            if(!r.isConfirmed) return;
-            var its = [];
-            for(var i=0;i<self.newVoucherCart.length;i++) its.push({itemCode:self.newVoucherCart[i].code, qty:self.newVoucherCart[i].qty, unitPrice:0, notes:''});
-            RW_UI.showLoader();
-            RW_API.call('create-stock-voucher', {type:r.value.type, reference:'', fromType:'Branch', fromId:'MAIN', toType:'Branch', toId:'', items:its, notes:r.value.notes}, function(j){
-                RW_UI.hideLoader();
-                if(j.success){ RW_UI.toast('تم '+j.voucherId,'success'); self.loadVouchers('pending') }
-                else RW_UI.showError(j.msg||'فشل');
-            });
-        });
-    },
-
-    searchVoucherItem: function(q){
-        if(!q||!q.trim()){ var popup = Swal.getPopup(); if(popup){ var resDiv = popup.querySelector('#newVoucherItemResults'); if(resDiv) resDiv.innerHTML = '' } return }
-        supabase.from('items').select('item_code,name,unit').or('name.ilike.%'+q+'%,item_code.ilike.%'+q+'%').limit(8).then(function(r){
-            var items = r.data||[], h='';
-            for(var i=0;i<items.length;i++) h += '<div onclick="App.addToNewVoucherCart(\''+items[i].item_code+'\',\''+(items[i].name||'').replace(/'/g,"\\'")+'\',\''+(items[i].unit||'حبة')+'\')" class="p-2 border-b hover:bg-indigo-50 cursor-pointer font-bold text-sm">'+items[i].name+' ('+items[i].item_code+')</div>';
-            var popup = Swal.getPopup();
-            if(popup){ var resDiv = popup.querySelector('#newVoucherItemResults'); if(resDiv) resDiv.innerHTML = h||'<p class="p-2 text-slate-400">لا توجد نتائج</p>' }
-        });
-    },
-
-    addToNewVoucherCart: function(code,name,unit){
-        var exist=null; for(var i=0;i<this.newVoucherCart.length;i++){ if(this.newVoucherCart[i].code===code){ exist=this.newVoucherCart[i]; break } }
-        if(exist) exist.qty++; else this.newVoucherCart.push({code:code,name:name,unit:unit,qty:1});
-        this.renderNewVoucherCart();
-    },
-
-    renderNewVoucherCart: function(){
-        var popup = Swal.getPopup(); if(!popup) return;
-        var cartDiv = popup.querySelector('#newVoucherCart'); if(!cartDiv) return;
-        if(this.newVoucherCart.length===0){ cartDiv.innerHTML = '<p class="text-slate-400 text-center py-2">لا توجد أصناف</p>'; return }
-        var h = '';
-        for(var i=0;i<this.newVoucherCart.length;i++){
-            var it = this.newVoucherCart[i];
-            h += '<div class="flex justify-between items-center p-2 border-b"><span class="font-bold text-sm">'+it.name+'</span><div class="flex items-center gap-2"><button onclick="App.changeNewCartQty('+i+',-1)" class="w-6 h-6 bg-slate-100 rounded-full text-xs">-</button><span class="w-6 text-center font-bold">'+it.qty+'</span><button onclick="App.changeNewCartQty('+i+',1)" class="w-6 h-6 bg-indigo-600 text-white rounded-full text-xs">+</button></div></div>';
-        }
-        cartDiv.innerHTML = h;
-    },
-
-    changeNewCartQty: function(idx, delta){
-        this.newVoucherCart[idx].qty += delta;
-        if(this.newVoucherCart[idx].qty <= 0) this.newVoucherCart.splice(idx,1);
-        this.renderNewVoucherCart();
-    },
-
-    renderAccount: function(){
-        var h = '<div class="text-center mb-8 mt-4"><div class="w-20 h-20 bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-3xl mx-auto flex items-center justify-center text-white text-3xl font-black shadow-lg mb-4">'+(this.currentUser.name||'?').charAt(0)+'</div><h2 class="font-black text-xl">'+(this.currentUser.name||this.currentUser.email)+'</h2><p class="text-sm text-slate-400">أذونات مخزنية</p></div><div class="card mb-3"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-slate-100 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-envelope"></i></div><div><p class="text-xs text-slate-400">البريد</p><p class="font-bold text-sm">'+this.currentUser.email+'</p></div></div></div><button onclick="App.doLogout()" class="w-full bg-white border-2 border-red-100 text-red-500 py-4 rounded-2xl font-bold mt-6"><i class="fa-solid fa-arrow-right-from-bracket ml-2"></i> تسجيل الخروج</button>';
-        RW_UI.safeHTML(RW_UI.byId('mainContent'), h);
-    }
+var App={currentUser:null,companyId:null,currentTab:'pending',vouchers:[],newVoucherCart:[],maps:{branches:[],vehicles:[],suppliers:[]},
+ esc:function(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')},
+ togglePass:function(){var p=RW_UI.byId('loginPass'),i=RW_UI.byId('passIcon');if(p.type==='password'){p.type='text';i.className='fa-solid fa-eye-slash'}else{p.type='password';i.className='fa-solid fa-eye'}},
+ doLogin:function(){var e=RW_UI.byId('loginEmail').value.trim(),p=RW_UI.byId('loginPass').value.trim();if(!e||!p){RW_UI.byId('loginMsg').innerText='أدخل البيانات';RW_UI.byId('loginMsg').classList.remove('hidden');return}RW_UI.showLoader();RW_Auth.doLogin(e,p,function(u,er){RW_UI.hideLoader();if(er){RW_UI.byId('loginMsg').innerText=er;RW_UI.byId('loginMsg').classList.remove('hidden')}else App.init()})},
+ init:function(){var s=this;RW_Auth.init(function(u,er){if(er||!u){RW_UI.showError('انتهت الجلسة',function(){location.reload()});return}s.currentUser=u;supabase.auth.getUser().then(function(r){if(r.error||!r.data.user)throw new Error('جلسة غير صالحة');return supabase.from('users').select('company_id').eq('auth_id',r.data.user.id).maybeSingle()}).then(function(r){if(r.error||!r.data||!r.data.company_id)throw new Error('سياق الشركة غير محدد');s.companyId=r.data.company_id;return s.loadReferenceData()}).then(function(){if(!s.currentUser.isOwner&&s.currentUser.activeWarehouseRole!=='أذونات'){RW_UI.showError('دورك النشط هو "'+(s.currentUser.activeWarehouseRole||'غير محدد')+'"',function(){RW_Auth.doLogout()});return}s.enterApp()}).catch(function(e){RW_UI.showError(e.message||'تعذر تهيئة الأذونات')})})},
+ enterApp:function(){RW_UI.byId('loginScreen').classList.add('hidden');RW_UI.byId('mainApp').classList.remove('hidden');RW_UI.updateConnectionStatus('connDot','connLabel');this.switchTab('pending')},
+ doLogout:function(){RW_Auth.doLogout(function(){location.reload()})},
+ loadReferenceData:function(){var s=this;return Promise.all([
+  supabase.from('branches').select('id,branch_code,name').eq('company_id',s.companyId).eq('is_active',true).order('name'),
+  supabase.from('vehicles').select('id,vehicle_code,status').eq('company_id',s.companyId).eq('status','Active').order('vehicle_code'),
+  supabase.from('suppliers').select('id,supplier_code,name').eq('company_id',s.companyId).eq('is_active',true).order('name')
+ ]).then(function(r){if(r[0].error)throw r[0].error;if(r[1].error)throw r[1].error;if(r[2].error)throw r[2].error;s.maps.branches=r[0].data||[];s.maps.vehicles=r[1].data||[];s.maps.suppliers=r[2].data||[]})},
+ switchTab:function(tab){this.currentTab=tab;['pending','completed','account'].forEach(function(x){var b=RW_UI.byId('tab-'+x);if(b){b.classList.remove('active');b.classList.add('text-slate-400')}});var a=RW_UI.byId('tab-'+tab);if(a){a.classList.add('active');a.classList.remove('text-slate-400')}if(tab==='account')this.renderAccount();else this.loadVouchers(tab)},
+ loadVouchers:function(scope){var s=this;RW_UI.showSkeleton('mainContent',3,'card');var q=supabase.from('stock_vouchers').select('*').eq('company_id',s.companyId).eq('source','Manual').order('voucher_date',{ascending:false}).limit(100);q=scope==='pending'?q.in('status',['Draft','Sent']):q.in('status',['Received','Completed','Cancelled']);q.then(function(r){if(r.error)throw r.error;s.vouchers=r.data||[];s.renderList(scope)}).catch(function(e){RW_UI.showError(e.message||'فشل تحميل الأذونات')})},
+ renderList:function(scope){var s=this,h='<div class="flex justify-between items-center mb-4"><p class="text-slate-400 text-sm">أهلاً، <span class="font-bold text-slate-700">'+s.esc(s.currentUser.name||'زميل')+'</span></p>';if(scope==='pending')h+='<button onclick="App.openNewVoucherModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-sm"><i class="fa-solid fa-plus ml-1"></i> إذن جديد</button>';h+='</div><input id="voucherSearch" oninput="App.filterList()" placeholder="🔍 بحث برقم الإذن أو المرجع أو النوع" class="w-full p-3 bg-white rounded-2xl border-2 border-slate-100 mb-4"><h2 class="text-lg font-black mb-4">'+(scope==='pending'?'📄 أذونات معلقة':'✅ الأذونات المكتملة')+'</h2><div id="voucherCardsContainer">'+s.cardsHTML(s.vouchers,scope)+'</div>';RW_UI.safeHTML(RW_UI.byId('mainContent'),h)},
+ filterList:function(){var q=(RW_UI.byId('voucherSearch').value||'').toLowerCase(),rows=this.vouchers.filter(function(v){return (String(v.voucher_code||'').toLowerCase().indexOf(q)>-1||String(v.reference||'').toLowerCase().indexOf(q)>-1||String(v.type||'').toLowerCase().indexOf(q)>-1)});var c=RW_UI.byId('voucherCardsContainer');if(c)RW_UI.safeHTML(c,this.cardsHTML(rows,this.currentTab))},
+ cardsHTML:function(rows,scope){if(!rows.length)return '<div class="text-center py-12"><div class="text-6xl mb-4">☕</div><p class="text-slate-400 font-bold">لا توجد أذونات.</p></div>';var s=this,h='';rows.forEach(function(v){var cls=v.status==='Draft'?'bg-amber-100 text-amber-700':v.status==='Sent'?'bg-blue-100 text-blue-700':v.status==='Received'?'bg-emerald-100 text-emerald-700':v.status==='Cancelled'?'bg-red-100 text-red-700':'bg-slate-100 text-slate-700';var label=v.status==='Draft'?'مسودة':v.status==='Sent'?'مُرسل':v.status==='Received'?'مُستلم':v.status==='Completed'?'مكتمل':v.status==='Cancelled'?'ملغى':v.status;h+='<div class="card mb-3 cursor-pointer" onclick="App.viewVoucherDetails(\''+s.esc(v.voucher_code)+'\')"><div class="flex justify-between gap-3"><div><b>'+s.esc(v.voucher_code)+'</b><p class="text-xs text-slate-400 mt-1">'+s.esc(v.type)+' · '+s.esc(v.reference||'بدون مرجع')+'</p></div><div class="flex items-center gap-2"><span class="px-2 py-1 rounded-full text-xs font-bold '+cls+'">'+label+'</span>';if(scope==='pending'&&v.status==='Draft')h+='<button onclick="event.stopPropagation();App.sendVoucher(\''+s.esc(v.voucher_code)+'\')" class="bg-indigo-600 text-white px-3 py-1 rounded-lg text-xs font-bold">إرسال</button>';if(scope==='pending'&&v.status==='Sent')h+='<button onclick="event.stopPropagation();App.openReceiveModal(\''+s.esc(v.voucher_code)+'\')" class="bg-emerald-600 text-white px-3 py-1 rounded-lg text-xs font-bold">استلام</button>';h+='</div></div></div>'});return h},
+ sendVoucher:function(code){var s=this;RW_UI.showConfirm('إرسال '+code+'؟',function(){RW_UI.showLoader();RW_API.call('send-stock-voucher',{voucher_code:code},function(j){RW_UI.hideLoader();if(j.success){RW_UI.toast('تم الإرسال','success');s.loadVouchers('pending')}else RW_UI.showError(j.msg||'فشل الإرسال')})})},
+ viewVoucherDetails:function(code){var s=this;RW_UI.showLoader();supabase.from('stock_vouchers').select('*').eq('company_id',s.companyId).eq('voucher_code',code).maybeSingle().then(function(r){if(r.error)throw r.error;if(!r.data)throw new Error('الإذن غير موجود');return Promise.all([Promise.resolve(r.data),supabase.from('stock_voucher_details').select('*').eq('voucher_id',r.data.id).order('item_code')])}).then(function(r){RW_UI.hideLoader();var v=r[0],d=r[1].data||[];if(r[1].error)throw r[1].error;var from=s.locationLabel(v.from_type,v.from_id),to=s.locationLabel(v.to_type,v.to_id),h='<div class="text-right"><div class="grid grid-cols-2 gap-2 text-xs mb-4"><div><b>النوع</b><p>'+s.esc(v.type)+'</p></div><div><b>الحالة</b><p>'+s.esc(v.status)+'</p></div><div><b>المرجع</b><p>'+s.esc(v.reference||'')+'</p></div><div><b>التاريخ</b><p>'+s.esc(v.voucher_date||'')+'</p></div><div><b>المصدر</b><p>'+s.esc(from)+'</p></div><div><b>الوجهة</b><p>'+s.esc(to)+'</p></div></div><div class="mb-3 p-3 bg-slate-50 rounded-xl text-sm">'+s.esc(v.notes||'لا توجد ملاحظات')+'</div><table class="w-full text-sm border"><thead class="bg-slate-100"><tr><th class="p-2">الصنف</th><th class="p-2">الكمية</th><th class="p-2">المستلم</th><th class="p-2">المتبقي</th></tr></thead><tbody>';d.forEach(function(x){h+='<tr class="border-t"><td class="p-2">'+s.esc(x.item_name||x.item_code)+'</td><td class="p-2 text-center">'+Number(x.qty||0)+'</td><td class="p-2 text-center">'+Number(x.received_qty||0)+'</td><td class="p-2 text-center">'+Math.max(0,Number(x.qty||0)-Number(x.received_qty||0))+'</td></tr>'});h+='</tbody></table><div class="flex gap-2 mt-4">';if(v.status==='Draft')h+='<button onclick="Swal.close();App.cancelVoucher(\''+s.esc(v.voucher_code)+'\')" class="btn-danger">إلغاء</button>';if(v.status==='Sent'&&v.type==='Transfer')h+='<button onclick="Swal.close();App.openReceiveModal(\''+s.esc(v.voucher_code)+'\')" class="btn-primary">استلام</button>';if(v.status==='Received')h+='<button onclick="Swal.close();App.completeVoucher(\''+s.esc(v.voucher_code)+'\')" class="btn-primary">إكمال</button>';h+='</div></div>';Swal.fire({title:'تفاصيل الإذن',html:h,width:700,showConfirmButton:false,showCloseButton:true,customClass:{popup:'!rounded-3xl'}})}).catch(function(e){RW_UI.hideLoader();RW_UI.showError(e.message||'تعذر تحميل التفاصيل')})},
+ locationLabel:function(type,id){if(!type||!id)return '—';if(type==='Branch'){var b=this.maps.branches.find(function(x){return x.id===id});return b?(b.name+' ('+b.branch_code+')'):'فرع غير معروف'}if(type==='Vehicle'){var v=this.maps.vehicles.find(function(x){return x.id===id});return v?(v.vehicle_code+' (مركبة)'):'مركبة غير معروفة'}if(type==='Supplier'){var p=this.maps.suppliers.find(function(x){return x.id===id});return p?(p.name+' ('+(p.supplier_code||'')+')'):'مورد غير معروف'}return type},
+ cancelVoucher:function(code){var s=this;RW_UI.showConfirm('إلغاء الإذن '+code+'؟ لا يمكن إلغاء إذن تم تنفيذه.',function(){RW_API.call('cancel-stock-voucher',{voucher_code:code},function(j){if(j.success){RW_UI.toast('تم الإلغاء','success');s.loadVouchers('pending')}else RW_UI.showError(j.msg||'فشل الإلغاء')})})},
+ completeVoucher:function(code){var s=this;RW_UI.showConfirm('إكمال الإذن '+code+'؟',function(){RW_API.call('complete-stock-voucher',{voucher_code:code},function(j){if(j.success){RW_UI.toast('تم الإكمال','success');s.loadVouchers('pending')}else RW_UI.showError(j.msg||'فشل الإكمال')})})},
+ openNewVoucherModal:function(){var s=this;s.newVoucherCart=[];var branchOpts=s.maps.branches.map(function(x){return '<option value="'+s.esc(x.id)+'">'+s.esc(x.name)+' ('+s.esc(x.branch_code)+')</option>'}).join(''),vehicleOpts=s.maps.vehicles.map(function(x){return '<option value="'+s.esc(x.id)+'">'+s.esc(x.vehicle_code)+'</option>'}).join(''),supplierOpts=s.maps.suppliers.map(function(x){return '<option value="'+s.esc(x.id)+'">'+s.esc(x.name)+'</option>'}).join('');var h='<div class="text-right space-y-3"><div><label class="text-xs font-bold">نوع الإذن</label><select id="mv_type" class="w-full p-2.5 border rounded-xl"><option value="Transfer">تحويل داخلي</option><option value="DirectSale">صرف مباشر للمركبة</option><option value="DirectReturn">مرتجع من المركبة</option><option value="SupplierReturn">مرتجع لمورد</option></select></div><div><label class="text-xs font-bold">المرجع *</label><input id="mv_ref" class="w-full p-2.5 border rounded-xl" placeholder="رقم طلب / فاتورة / مستند مرجعي"></div><div class="grid grid-cols-2 gap-2"><div><label class="text-xs font-bold">المصدر</label><select id="mv_from" class="w-full p-2.5 border rounded-xl">'+branchOpts+'</select></div><div><label class="text-xs font-bold">الوجهة</label><select id="mv_to" class="w-full p-2.5 border rounded-xl">'+branchOpts+'</select></div></div><div id="mv_dynamic"></div><div><label class="text-xs font-bold">ملاحظات</label><textarea id="mv_notes" class="w-full p-2.5 border rounded-xl"></textarea></div><div><label class="text-xs font-bold">بحث عن صنف</label><input id="mv_search" oninput="App.searchVoucherItem(this.value)" class="w-full p-2.5 border rounded-xl" placeholder="الاسم أو الكود"><div id="mv_results" class="max-h-40 overflow-y-auto border rounded-xl mt-1"></div></div><div><b class="text-sm">الأصناف</b><div id="mv_cart" class="mt-2"></div></div></div>';Swal.fire({title:'إذن مخزني يدوي جديد',html:h,width:720,showCancelButton:true,confirmButtonText:'إنشاء',cancelButtonText:'إلغاء',didOpen:function(){s.renderTypeFields()},preConfirm:function(){var p=Swal.getPopup(),type=p.querySelector('#mv_type').value,ref=p.querySelector('#mv_ref').value.trim();if(!ref){Swal.showValidationMessage('المرجع إلزامي');return false}if(!s.newVoucherCart.length){Swal.showValidationMessage('أضف صنفاً واحداً على الأقل');return false}var from=p.querySelector('#mv_from').value,to=p.querySelector('#mv_to').value,d={type:type,reference:ref,fromId:from,toId:to,notes:p.querySelector('#mv_notes').value.trim()};if(type==='DirectSale')d.toId=p.querySelector('#mv_vehicle').value;if(type==='DirectReturn')d.fromId=p.querySelector('#mv_vehicle').value;if(type==='SupplierReturn')d.toId=p.querySelector('#mv_supplier').value;return d}}).then(function(r){if(!r.isConfirmed)return;var d=r.value,items=s.newVoucherCart.map(function(x){return{itemCode:x.code,qty:x.qty,unitPrice:0,notes:''}});RW_UI.showLoader();RW_API.call('create-stock-voucher',{type:d.type,reference:d.reference,fromType:d.type==='DirectReturn'?'Vehicle':'Branch',fromId:d.fromId,toType:d.type==='DirectSale'?'Vehicle':d.type==='SupplierReturn'?'Supplier':'Branch',toId:d.toId,items:items,notes:d.notes},function(j){RW_UI.hideLoader();if(j.success){RW_UI.toast('تم إنشاء '+j.voucher_code,'success');s.loadVouchers('pending')}else RW_UI.showError(j.msg||'فشل إنشاء الإذن')})})},
+ renderTypeFields:function(){var p=Swal.getPopup(),t=p.querySelector('#mv_type').value,from=p.querySelector('#mv_from').parentNode,to=p.querySelector('#mv_to').parentNode,dyn=p.querySelector('#mv_dynamic');from.style.display=t==='DirectReturn'?'none':'block';to.style.display=(t==='DirectSale'||t==='DirectReturn'||t==='SupplierReturn')?'none':'block';var vs=this.maps.vehicles.map(function(x){return '<option value="'+x.id+'">'+x.vehicle_code+'</option>'}).join(''),ss=this.maps.suppliers.map(function(x){return '<option value="'+x.id+'">'+x.name+'</option>'}).join('');dyn.innerHTML=t==='DirectSale'||t==='DirectReturn'?'<label class="text-xs font-bold">المركبة</label><select id="mv_vehicle" class="w-full p-2.5 border rounded-xl">'+vs+'</select>':t==='SupplierReturn'?'<label class="text-xs font-bold">المورد</label><select id="mv_supplier" class="w-full p-2.5 border rounded-xl">'+ss+'</select>':'';p.querySelector('#mv_type').onchange=this.renderTypeFields.bind(this)},
+ searchVoucherItem:function(q){var p=Swal.getPopup(),box=p&&p.querySelector('#mv_results');if(!box)return;if(!q||q.trim().length<2){box.innerHTML='';return}supabase.from('items').select('id,item_code,name,unit').eq('company_id',this.companyId).or('name.ilike.%'+q+'%,item_code.ilike.%'+q+'%').limit(8).then(function(r){if(r.error){box.innerHTML='<p class="p-2 text-red-500">فشل البحث</p>';return}var h='',s=App;r.data.forEach(function(x){h+='<button type="button" class="block w-full text-right p-2 border-b hover:bg-indigo-50" onclick="App.addToNewVoucherCart(\''+s.esc(x.item_code)+'\',\''+s.esc(x.name)+'\',\''+s.esc(x.unit||'حبة')+'\')">'+s.esc(x.name)+' ('+s.esc(x.item_code)+')</button>'});box.innerHTML=h||'<p class="p-2 text-slate-400">لا توجد نتائج</p>'})},
+ addToNewVoucherCart:function(code,name,unit){var e=this.newVoucherCart.find(function(x){return x.code===code});if(e)e.qty++;else this.newVoucherCart.push({code:code,name:name,unit:unit,qty:1});this.renderNewVoucherCart()},
+ renderNewVoucherCart:function(){var p=Swal.getPopup(),c=p&&p.querySelector('#mv_cart');if(!c)return;var s=this;if(!this.newVoucherCart.length){c.innerHTML='<p class="text-slate-400 py-2">لا توجد أصناف</p>';return}c.innerHTML=this.newVoucherCart.map(function(x,i){return '<div class="flex justify-between items-center border-b py-2"><span class="font-bold text-sm">'+s.esc(x.name)+' ('+s.esc(x.code)+')</span><span><button type="button" onclick="App.changeNewCartQty('+i+',-1)" class="w-7 h-7 bg-slate-100 rounded-full">−</button><b class="mx-2">'+x.qty+'</b><button type="button" onclick="App.changeNewCartQty('+i+',1)" class="w-7 h-7 bg-indigo-600 text-white rounded-full">+</button></span></div>'}).join('')},
+ changeNewCartQty:function(i,d){this.newVoucherCart[i].qty+=d;if(this.newVoucherCart[i].qty<=0)this.newVoucherCart.splice(i,1);this.renderNewVoucherCart()},
+ openReceiveModal:function(code){var s=this;RW_UI.showLoader();supabase.from('stock_vouchers').select('id,type,status').eq('company_id',s.companyId).eq('voucher_code',code).maybeSingle().then(function(v){if(v.error)throw v.error;if(!v.data)throw new Error('الإذن غير موجود');return supabase.from('stock_voucher_details').select('item_id,item_code,item_name,qty,received_qty').eq('voucher_id',v.data.id).order('item_code')}).then(function(r){RW_UI.hideLoader();if(r.error)throw r.error;var op='UI-RECEIVE:'+s.companyId+':'+code,html='<div class="text-right">';r.data.forEach(function(x,i){var rem=Math.max(0,Number(x.qty||0)-Number(x.received_qty||0));if(rem>0)html+='<div class="p-2 border-b"><div class="font-bold text-sm">'+s.esc(x.item_name||x.item_code)+'</div><div class="text-xs text-slate-400">المتبقي: '+rem+'</div><input id="rc_'+i+'" data-code="'+s.esc(x.item_code)+'" data-item="'+x.item_id+'" data-max="'+rem+'" type="number" min="0" max="'+rem+'" value="'+rem+'" class="w-full p-2 border rounded-xl mt-1"></div>'});html+='</div>';Swal.fire({title:'استلام الإذن '+s.esc(code),html:html,width:650,showCancelButton:true,confirmButtonText:'استلام',cancelButtonText:'إلغاء',preConfirm:function(){var rows=Swal.getPopup().querySelectorAll('input[id^="rc_"]'),items=[];rows.forEach(function(x){var q=Number(x.value||0),m=Number(x.dataset.max||0);if(q<0||q>m)throw new Error('كمية الاستلام غير صالحة');if(q>0)items.push({itemId:x.dataset.item,itemCode:x.dataset.code,receivedQty:q})});if(!items.length){Swal.showValidationMessage('أدخل كمية واحدة على الأقل');return false}return items}}).then(function(x){if(!x.isConfirmed)return;RW_UI.showLoader();var fp=JSON.stringify(x.value.map(function(z){return[z.itemId,z.receivedQty]}));var key='vch-recv-op:'+s.companyId+':'+code,old=localStorage.getItem(key),opId=old;try{if(old){var o=JSON.parse(old);if(o.fp!==fp)opId='UI-RECEIVE:'+s.companyId+':'+code+':'+Date.now()}}catch(e){opId='UI-RECEIVE:'+s.companyId+':'+code+':'+Date.now()}localStorage.setItem(key,JSON.stringify({opId:opId,fp:fp}));RW_API.call('receive-stock-voucher',{voucher_code:code,receivedItems:x.value,operation_id:opId},function(j){RW_UI.hideLoader();if(j.success){localStorage.removeItem(key);RW_UI.toast(j.duplicate?'تم التعرف على الإرسال المكرر':'تم الاستلام','success');s.loadVouchers('pending')}else RW_UI.showError(j.msg||'فشل الاستلام')})})}).catch(function(e){RW_UI.hideLoader();RW_UI.showError(e.message||'تعذر فتح الاستلام')})},
+ renderAccount:function(){var h='<div class="text-center mt-8"><div class="w-20 h-20 bg-indigo-600 rounded-3xl mx-auto flex items-center justify-center text-white text-3xl font-black">'+this.esc((this.currentUser.name||'?').charAt(0))+'</div><h2 class="font-black text-xl mt-3">'+this.esc(this.currentUser.name||this.currentUser.email)+'</h2><p class="text-sm text-slate-400">الشركة: '+this.esc(this.companyId)+'</p></div><button onclick="App.doLogout()" class="w-full bg-white border-2 border-red-100 text-red-500 py-4 rounded-2xl font-bold mt-6">تسجيل الخروج</button>';RW_UI.safeHTML(RW_UI.byId('mainContent'),h)}
 };
-
-RW_SW.register('../sw.js');
-document.addEventListener('DOMContentLoaded',function(){App.init()});
-</script>
-<script src="../register-sw.js"></script>
-</body>
-</html>
+RW_SW.register('../sw.js');document.addEventListener('DOMContentLoaded',function(){App.init()});
+</script><script src="../register-sw.js"></script>
+</body></html>
