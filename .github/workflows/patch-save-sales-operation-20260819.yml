@@ -1,0 +1,31 @@
+name: CTO patch save-sales operation identity
+on:
+  push:
+    branches: [ctorepair-save-sales-operation-identity-20260819]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('Current/PWA/main.html')
+          s=p.read_text(encoding='utf-8')
+          needle='''        var orderHeader = {'''
+          replacement='''        var orderHeader = {\n            operation_id: crypto.randomUUID(),'''
+          count=s.count(needle)
+          if count != 3:
+              raise SystemExit(f'Expected exactly 3 save-sales orderHeader builders, found {count}')
+          p.write_text(s.replace(needle,replacement),encoding='utf-8')
+          PY
+          git config user.name 'rawaea-cto-bot'
+          git config user.email 'cto-bot@rawaea.com'
+          git add Current/PWA/main.html
+          git rm .github/workflows/patch-save-sales-operation-20260819.yml
+          git commit -m 'fix(sales): propagate order operation identity from PWA'
+          git push origin HEAD
