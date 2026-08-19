@@ -1,0 +1,41 @@
+name: One-shot forensic fix — vouchers auth boot
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.event.head_commit.message == 'FORENSIC: trigger one-shot vouchers auth boot repair'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Patch false session-expired gate
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('Current/PWA/vouchers.html')
+          s = p.read_text(encoding='utf-8')
+          old = "init:function(){var s=this;RW_Auth.init(function(u,er){if(er||!u){RW_UI.showError('انتهت الجلسة',function(){location.reload()});return}s.currentUser=u;"
+          new = "init:function(){var s=this;RW_Auth.init(function(u,er){if(!u){if(er&&er!=='NO_SESSION'){console.warn('⚠️ تعذر استعادة الجلسة السابقة:',er)}return}s.currentUser=u;"
+          if s.count(old) != 1:
+              raise SystemExit(f'Expected exactly one auth-boot target, found {s.count(old)}')
+          p.write_text(s.replace(old, new), encoding='utf-8')
+          print('PATCH_OK')
+          PY
+
+      - name: Remove one-shot runner and commit the actual fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/forensic_vouchers_auth_fix.yml
+          git add Current/PWA/vouchers.html
+          git commit -m "fix: prevent false session-expired gate on vouchers boot"
+          git push origin main
