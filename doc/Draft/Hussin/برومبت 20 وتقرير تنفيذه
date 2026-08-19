@@ -1,0 +1,247 @@
+برومبت 20
+مهمة حرجة : 
+في هذه المهمة قم بالتحقيق الجنائي من المصادر مباشرة ولا تثق بالتقارير ولا ذاكرتك فذاكرتك توقفت في مرحلة تاريخية قديمة ، لذلك لا تعتمد علي الذاكرة الحالية التاريخية ،
+ستجد العديد من التعديلات ، لا تجعلها تسبب لك الإرتباك نتيجة توقف الذاكرة ، وما تجده من تعديلات الصحيح منها مرره والغير صحيح قم بإصلاحه مباشرة
+لمعرفة السياق الحالي للمهمة الحالية وتسلسل الأحداث 
+قم بفتح الملف التالي :
+ https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2011%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2012%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2013%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2014%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي  :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2015%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+ثم قم بفتح الملف التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2016%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2017%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2018%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+ثم قم بفتح الملف التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hussin/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2019%20%D9%88%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%87
+
+الهدف المطلوب هو :
+أولا قم بمراجعة المجلد 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/tree/main/Current/PWA
+ستجد كل الملفات التي سألت عنها مثل Core.js 
+تصفح بقية الملفات الخاصة بالنشر 
+تطبيق مشرف المخازن لا يتجاوز شاشة الدخول 
+وتقرير Console 
+(index):64 cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation
+(anonymous) @ (index):64
+(anonymous) @ (index):64
+core.js:674 ✅ core.js – النواة المشتركة للروائع ERP – تم التحميل بنجاح
+core.js:675    RW_Auth | RW_DB | RW_API | RW_UI | RW_ImageCache | RW_SW
+supervisor:130 Uncaught SyntaxError: Unexpected string (at supervisor:130:524)
+supervisor:48 Uncaught ReferenceError: App is not defined
+    at HTMLButtonElement.onclick (supervisor:48:162)
+onclick @ supervisor:48
+
+
+
+----------------------------------------
+ملحق
+تقرير تنفيذ برومبت 20
+تم تنفيذ التحقيق من المصادر الحالية المباشرة، وليس من الذاكرة أو التقارير باعتبارها حقائق.
+
+النتيجة الحاسمة
+1. عطل warehouse.supervisor تم تحديده وإصلاحه فعليًا
+
+العطل لم يكن في Supabase ولا في core.js.
+
+السبب الجنائي المباشر كان في Current/PWA/warehouse.supervisor داخل renderRoster، حيث كان توليد <select> ينتج JavaScript مكسورًا:
+
+onchange="App.updateRole(\\''+emp.id+'\\',this.value)"
+
+وهذا هو الذي أدى إلى:
+
+Uncaught SyntaxError: Unexpected string
+
+ثم، كنتيجة ثانوية مباشرة:
+
+Uncaught ReferenceError: App is not defined
+
+لأن الـ<script> كله يفشل في الـparse، وبالتالي لا يصل المتصفح إلى تعريف App.
+
+تم إصلاحه فعليًا في main إلى:
+
+data-user-id="'+emp.id+'"
+onchange="App.updateRole(this.dataset.userId,this.value)"
+
+والـblob الحالي للملف أصبح:
+
+afccf027beda6e26deb927fb0d7edd9727d434d8
+
+والسطر الحالي المثبت من المصدر هو الصحيح. كما أن البحث في المستودع لم يعد يجد النمط القديم المكسور.
+
+وللتأكد من صحة البناء النحوي للعبارة المصححة نفسها، تم تشغيلها عبر Node.js مع node --check وكانت PASS.
+
+2. لم أعد كتابة الملف كله
+
+استخدمت إصلاحًا آليًا محددًا exact-match عبر workflow مؤقت، بحيث:
+
+يطبق الاستبدال المحدد فقط.
+يعمل Commit على main.
+يحذف الـworkflow نفسه مباشرة بعد التنفيذ.
+
+تم إنشاء الـworkflow بانتظار هذا الإصلاح ثم اختفاؤه بعد التنفيذ؛ محاولة قراءته الآن تعطي Not Found.
+
+هذا مهم لأننا لم نمس بقية warehouse.supervisor أو نُدخل نسخة بديلة غير موثقة.
+
+3. core.js ليس سبب المشكلة
+
+warehouse.supervisor يستدعي:
+
+<script src="../core.js"></script>
+
+وcore.js الحالي هو الذي يحمّل:
+
+RW_Auth
+RW_DB
+RW_API
+RW_UI
+RW_ImageCache
+RW_SW
+
+والـConsole الذي أرسلته يثبت أن core.js نفسه وصل إلى التنفيذ؛ لذلك رسالة:
+
+core.js:674 ✅ core.js – النواة المشتركة...
+
+ليست الخطأ.
+
+المشكلة كانت بعد تحميل core وقبل اكتمال تعريف App.
+
+4. الـService Worker ليس سبب العطل
+
+راجعت register-sw.js وsw.js.
+
+الـSW الحالي مصمم بحيث تكون طلبات HTML:
+
+Network Only
+
+أي أن HTML الخاص بـwarehouse.supervisor لا يُفترض أن يبقى نسخة HTML قديمة من الكاش. وهذا يتوافق مع التصميم الحالي.
+
+إذًا بعد التحديث، مشكلة الـsyntax ليست ناجمة عن HTML قديم مخزن في الـSW من حيث التصميم الحالي.
+
+5. صلاحية مشرف المخازن في Production صحيحة
+
+تم فحص Production مباشرة.
+
+المستخدم:
+
+warehouse.supervisor@rawaea.com
+
+حاليًا:
+
+role = مشرف مخازن
+status = Active
+permissions = [
+  "warehouse_supervisor",
+  "items",
+  "runsheets",
+  "receiving",
+  "picking",
+  "loading",
+  "return",
+  "unloading",
+  "vouchers",
+  "transfer",
+  "direct-sale",
+  "direct-return",
+  "supplier-return",
+  "vehicle-count",
+  "branch-count",
+  "general-count",
+  "reports"
+]
+
+إذًا شرط:
+
+isOwner || permissions.indexOf('warehouse_supervisor') !== -1
+
+متحقق بالفعل في Production.
+
+بالتالي حتى قبل إصلاح SyntaxError كان authorization نفسه موجودًا؛ العائق الذي منع الوصول إلى التطبيق كان JavaScript parse failure.
+
+6. حساب vouchers@rawaea.com — الحالة الحالية
+
+Production تؤكد حاليًا:
+
+email = vouchers@rawaea.com
+role = مخزني
+active_warehouse_role = أذونات
+status = Active
+company_id = 00000000-0000-0000-0000-000000000001
+
+كما أن Auth يؤكد أن الحساب موجود ومؤكد البريد:
+
+email_confirmed_at = 2026-08-19 19:34:35 UTC
+confirmed_at       = 2026-08-19 19:34:35 UTC
+last_sign_in_at   = NULL
+
+إذًا لا توجد الآن مشكلة من نوع:
+
+المستخدم غير موجود
+
+أو:
+
+البريد غير مؤكد
+
+أما signInWithPassword 400 الذي ظهر سابقًا، فلا يوجد في المصدر الحالي ما يثبت أن سببه permission أو role. وهو يحدث قبل App.init() في RW_Auth.doLogin.
+
+لذلك لم أقم باختراع كلمة مرور أو تغييرها عشوائيًا؛ هذا سيكون مخالفة مباشرة للمبدأ الذي طلبته: لا إصلاح بالتخمين. vouchers.html الحالي نفسه يتعامل بشكل صحيح مع NO_SESSION ولا يعيد تحميل الصفحة بشكل خاطئ.
+
+7. تحذير Tailwind
+
+هذه الرسالة:
+
+cdn.tailwindcss.com should not be used in production
+
+حقيقية لكنها ليست سبب توقف التطبيق.
+
+هي Warning فقط، وليست سبب:
+
+Unexpected string
+
+ولذلك لم أخلط بين مشكلتين مستقلتين.
+
+إزالة Tailwind CDN وتحويل المشروع إلى build pipeline مستقل مهمة صحيحة هندسيًا، لكن دمجها داخل إصلاح supervisor الآن سيكون تغييرًا خارج نطاق العطل المثبت، وبالتالي لم أرتكب هذا الخلط.
+
+8. ما أثبتته مراجعة Prompts 11–19
+
+راجعت التسلسل 11 → 19، ولم أتعامل مع تقاريرها كـTruth Source.
+
+أهم نتيجة خرجت بها هي أن السلسلة نفسها تحتوي تصحيحات وتصحيحات للتصحيحات؛ خصوصًا أن Prompt 16 كان قد اكتشف سابقًا أن vouchers.html لم يكن صالحًا رغم الادعاء السابق باكتماله.
+
+وهذا يتوافق تمامًا مع ما طلبته: التقرير يحدد موضع البحث، أما Production + Git current source فهي التي تحسم الحقيقة.
+
+Current Status
+البند	الحالة
+سبب Unexpected string	✅ مثبت
+سبب App is not defined	✅ مثبت كأثر ثانوي
+إصلاح warehouse.supervisor في Git main	✅ تم
+الـblob الجديد	✅ afccf027...
+النمط المكسور ما زال موجودًا	✅ لا
+Syntax check للعبارة المصححة	✅ PASS
+صلاحيات warehouse.supervisor في Production	✅ صحيحة
+core.js سبب المشكلة	❌ غير صحيح
+Service Worker سبب المشكلة	❌ غير مثبت، والعقد الحالي Network Only للـHTML
+vouchers@rawaea.com موجود في Auth	✅
+البريد Confirmed	✅
+Role/warehouse role لـvouchers	✅ صحيح
+سبب Password 400	⚠️ غير مثبت من الأدلة الحالية
+Tailwind warning	⚠️ موجود، لكنه غير قاتل
+الحكم النهائي
+
+العطل الحالي الذي أوقف Warehouse Supervisor تم إصلاحه على المصدر الفعلي في main.
+
+لكن هناك تمييز مهم جدًا: أستطيع إثبات أن Production source صار صحيحًا، وأن الـHTML سيأخذ النسخة الحديثة وفق سياسة الـService Worker الحالية؛ لا أستطيع من داخل هذه الأدوات تشغيل متصفحك الفعلي وإثبات أن جلسة Chrome المفتوحة عندك نفذت النسخة الجديدة بالفعل. لذلك لن أسجل ذلك كـPRODUCTION RUNTIME VERIFIED قبل وجود runtime evidence من المتصفح نفسه.
