@@ -12,6 +12,7 @@ jobs:
       - name: Execute Production HTTP harness
         run: |
           set -euo pipefail
+          echo 'HARNESS_VERSION_CHECK_2'
           curl --fail-with-body --silent --show-error --max-time 180 \
             'https://fiilmooggumokxanwiyx.supabase.co/functions/v1/receive-purchase-runtime-e2e-20260819?token=RPO-CTO-E2E-20260819' | tee result.json
           python - <<'PY'
