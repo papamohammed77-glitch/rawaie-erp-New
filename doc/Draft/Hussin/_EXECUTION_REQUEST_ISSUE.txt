@@ -1,0 +1,1 @@
+Issue event should trigger the one-shot workflow titled FORENSIC_EXECUTE_VOUCHERS_AUTH_FIX.
