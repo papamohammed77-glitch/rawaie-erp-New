@@ -112,10 +112,10 @@ var App = {
             ];
             for(var i=0;i<items.length;i++){
                 var it=items[i];
-                html+='<div class="stat-card" onclick="App.switchTab(\\'live\\')"><div class="bg-gradient-to-br '+it.color+' w-10 h-10 rounded-2xl flex items-center justify-center text-white text-lg mb-2">'+it.icon+'</div><div class="text-2xl font-black text-slate-800">'+d[it.key]+'</div><div class="text-xs text-slate-400">'+it.label+'</div></div>';
+                html+='<div class="stat-card" onclick="App.switchTab(\'live\')"><div class="bg-gradient-to-br '+it.color+' w-10 h-10 rounded-2xl flex items-center justify-center text-white text-lg mb-2">'+it.icon+'</div><div class="text-2xl font-black text-slate-800">'+d[it.key]+'</div><div class="text-xs text-slate-400">'+it.label+'</div></div>';
             }
             html+='</div>';
-            html+='<button onclick="App.switchTab(\\'roster\\')" class="btn-primary"><i class="fa-solid fa-users ml-2"></i> إدارة الفريق</button>';
+            html+='<button onclick="App.switchTab(\'roster\')" class="btn-primary"><i class="fa-solid fa-users ml-2"></i> إدارة الفريق</button>';
             RW_UI.safeHTML(RW_UI.byId('mainContent'),html);
         });
     },
