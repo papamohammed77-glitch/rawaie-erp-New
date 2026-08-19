@@ -1,0 +1,1 @@
+The issue-triggered workflow must use GitHub issue event; this file is only a permanent audit marker of the attempted execution.
