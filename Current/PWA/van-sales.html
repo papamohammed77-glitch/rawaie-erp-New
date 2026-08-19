@@ -1814,65 +1814,111 @@ _createVanBranch: function() {
     submitOrder: function() { this.submitQuickSale(); },
 
     // ==================== حفظ الفاتورة ====================
-    submitQuickSale: function() {
-        if (this.eodLocked) { RW_UI.toast('تم إقفال الوردية. لا يمكن إنشاء فواتير جديدة.', 'warning'); return; }
-        var custCode = RW_UI.byId('quickCustSelect') ? RW_UI.byId('quickCustSelect').value : '';
-        if (!custCode) { RW_UI.toast('اختر عميلاً', 'warning'); return; }
-        if (!this.cart.length) { RW_UI.toast('السلة فارغة', 'warning'); return; }
-        var self = this;
-        this.closeCartModal();
+submitQuickSale: function() {
+    if (this.eodLocked) {
+        RW_UI.toast('تم إقفال الوردية. لا يمكن إنشاء فواتير جديدة.', 'warning');
+        return;
+    }
 
-        var db = RW_DB.getDB('VanSales');
-        db.customers.get(custCode).then(function(c) {
-            if (!c) { RW_UI.toast('العميل غير موجود', 'error'); return; }
-            var items = [], sub = 0;
-            for (var i = 0; i < self.cart.length; i++) {
-                items.push({ code: self.cart[i].code, name: self.cart[i].name, price: self.cart[i].price, qty: self.cart[i].qty, unit: self.cart[i].unit });
-                sub += self.cart[i].price * self.cart[i].qty;
-            }
+    var custCode = RW_UI.byId('quickCustSelect')
+        ? RW_UI.byId('quickCustSelect').value
+        : '';
 
-            var hdr = {
-                customer_code: c.customer_code,
-                custName: c.name,
-                area: c.area || '',
-                total: sub,
-                deliveryFees: 0,
-                status: 'Invoiced',
-                paymentType: c.payment_type || 'نقدي',
-                taxAmount: 0,
-                taxRate: 0
-            };
+    if (!custCode) {
+        RW_UI.toast('اختر عميلاً', 'warning');
+        return;
+    }
 
-            RW_UI.showLoader('جاري حفظ الفاتورة...');
+    if (!this.cart.length) {
+        RW_UI.toast('السلة فارغة', 'warning');
+        return;
+    }
 
-            // ✅ استخدام الفرع الصحيح للمندوب
-            var branchCode = self.vanBranch ? self.vanBranch.branch_code : 'MAIN';
+    var self = this;
+    this.closeCartModal();
 
-            RW_API.call('save-sales-invoice', {
-                orderHeader: hdr,
-                itemsList: items,
-                branchCode: branchCode
-            }, function(json) {
-                RW_UI.hideLoader();
-                if (json.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: '✅ تم الحفظ',
-                        html: '<div class="text-right"><p>الفاتورة: <strong>' + json.orderID + '</strong></p><p>العميل: <strong>' + c.name + '</strong></p><p>المبلغ: <strong>' + RW_UI.formatNumber(sub) + ' ج.م</strong></p></div>',
-                        confirmButtonText: 'حسناً',
-                        customClass: { popup: '!rounded-3xl', confirmButton: '!rounded-xl !bg-orange-600' }
-                    });
-                    self.cart = [];
-                    self.selCust = null;
-                    self._updateFloatingCart();
-                    self.loadMyCustomers();
-                    self.showView('home');
-                } else {
-                    RW_UI.showError(json.msg || 'فشل الحفظ');
-                }
+    var db = RW_DB.getDB('VanSales');
+
+    db.customers.get(custCode).then(function(c) {
+        if (!c) {
+            RW_UI.toast('العميل غير موجود', 'error');
+            return;
+        }
+
+        var items = [];
+        var sub = 0;
+
+        for (var i = 0; i < self.cart.length; i++) {
+            items.push({
+                code: self.cart[i].code,
+                name: self.cart[i].name,
+                price: self.cart[i].price,
+                qty: self.cart[i].qty,
+                unit: self.cart[i].unit
             });
+
+            sub += self.cart[i].price * self.cart[i].qty;
+        }
+
+        var hdr = {
+            operation_id: crypto.randomUUID(),
+            customer_code: c.customer_code,
+            custName: c.name,
+            area: c.area || '',
+            total: sub,
+            deliveryFees: 0,
+            status: 'Invoiced',
+            paymentType: c.payment_type || 'نقدي',
+            taxAmount: 0,
+            taxRate: 0
+        };
+
+        RW_UI.showLoader('جاري حفظ الفاتورة...');
+
+        var branchCode = self.vanBranch
+            ? self.vanBranch.branch_code
+            : 'MAIN';
+
+        RW_API.call('save-sales-invoice', {
+            orderHeader: hdr,
+            itemsList: items,
+            branchCode: branchCode
+        }, function(json) {
+
+            RW_UI.hideLoader();
+
+            if (json.success) {
+
+                Swal.fire({
+                    icon: 'success',
+                    title: '✅ تم الحفظ',
+                    html:
+                        '<div class="text-right">' +
+                        '<p>الفاتورة: <strong>' + json.orderID + '</strong></p>' +
+                        '<p>العميل: <strong>' + c.name + '</strong></p>' +
+                        '<p>المبلغ: <strong>' +
+                        RW_UI.formatNumber(sub) +
+                        ' ج.م</strong></p>' +
+                        '</div>',
+                    confirmButtonText: 'حسناً',
+                    customClass: {
+                        popup: '!rounded-3xl',
+                        confirmButton: '!rounded-xl !bg-orange-600'
+                    }
+                });
+
+                self.cart = [];
+                self.selCust = null;
+                self._updateFloatingCart();
+                self.loadMyCustomers();
+                self.showView('home');
+
+            } else {
+                RW_UI.showError(json.msg || 'فشل الحفظ');
+            }
         });
-    },
+    });
+},
         // ==================== السلة الشبحية – منتجات مقترحة من أنماط الشراء ====================
     loadGhostCart: function(customerCode) {
         var self = this;
