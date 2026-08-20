@@ -1,0 +1,291 @@
+name: _vouchers_forensic_surgery
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/_vouchers_forensic_surgery.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  surgery:
+    if: ${{ github.actor != 'github-actions[bot]' || true }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply surgical Vouchers repair
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path('Current/PWA/vouchers.html')
+          s = path.read_text(encoding='utf-8')
+          marker = 'VOUCHERS-FORENSIC-SURGERY-20260821'
+          if marker in s:
+              print('Surgery already present; nothing to do.')
+              raise SystemExit(0)
+
+          assert 'RAWAEA-VOUCHERS-GOLD-MASTER-2026-08-21-VRS-SURGICAL' in s, 'Unexpected vouchers base version'
+
+          replacements = [
+            (
+              "if(s.type==='DirectSale'&&key==='wsTo')return validVehicles(s);",
+              "if(s.type==='DirectSale'&&key==='wsTo'){var rid=(document.getElementById('wsRep')||{}).value||'';return validVehicles(s).filter(function(v){return !!rid&&v.driver_id===rid});}"
+            ),
+            (
+              "return create('DirectSale',b.id,vb.id,'Branch','Branch')",
+              "return create('DirectSale',b.id,v.id,'Branch','Vehicle')"
+            ),
+            (
+              "return create('DirectReturn',vbr.id,br.id,'Branch','Branch')",
+              "return create('DirectReturn',v.id,br.id,'Vehicle','Branch')"
+            ),
+          ]
+
+          for old, new in replacements:
+              count = s.count(old)
+              if count != 1:
+                  raise RuntimeError(f'Expected exactly one occurrence for surgical replacement, got {count}: {old}')
+              s = s.replace(old, new)
+
+          scanner = r'''
+/* VOUCHERS-FORENSIC-SURGERY-20260821 */
+(function(){
+  'use strict';
+  if(typeof App==='undefined'||App.__VOUCHERS_FORENSIC_SURGERY_20260821__)return;
+  App.__VOUCHERS_FORENSIC_SURGERY_20260821__=true;
+
+  function scannerStatus(text,kind){
+    var el=document.getElementById('rwScanStatus');
+    if(!el)return;
+    el.textContent=text||'';
+    el.className='text-[11px] font-bold mt-2 '+(kind==='ok'?'text-emerald-400':kind==='warn'?'text-amber-300':'text-slate-400');
+  }
+  function beep(){
+    try{
+      var C=window.AudioContext||window.webkitAudioContext;
+      if(!C)return;
+      var c=new C(),o=c.createOscillator(),g=c.createGain();
+      o.type='sine';o.frequency.value=1040;g.gain.value=.05;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+.08);
+    }catch(e){}
+    try{if(navigator.vibrate)navigator.vibrate(55)}catch(e){}
+  }
+  function esc(v){return App.esc?App.esc(v):String(v==null?'':v)}
+
+  App.resolveScannedItem=function(code){
+    var s=this,needle=s.norm(code);
+    var local=(s.items||[]).find(function(x){return s.norm(x.barcode)===needle||s.norm(x.item_code)===needle});
+    if(local)return Promise.resolve(local);
+    return supabase.from('items')
+      .select('id,item_code,barcode,name,search_label,category,unit,description,image_url,is_active')
+      .or('barcode.eq.'+String(code).replace(/([%_])/g,'\\$1')+',item_code.eq.'+String(code).replace(/([%_])/g,'\\$1'))
+      .limit(2)
+      .then(function(r){
+        if(r.error)throw r.error;
+        return (r.data||[]).filter(function(x){return x.is_active!==false})[0]||null;
+      });
+  };
+
+  App.handleScannedCode=function(code){
+    var s=this,raw=String(code==null?'':code).trim();
+    if(!raw)return;
+    var from=document.getElementById('wsFrom');
+    if(!from||!from.value){RW_UI.toast('اختر المصدر قبل المسح','warning');scannerStatus('اختر المصدر أولاً','warn');return;}
+    scannerStatus('جارٍ التعرف على '+raw+' ...','warn');
+    this.resolveScannedItem(raw).then(function(item){
+      if(!item){scannerStatus('لم يتم العثور على الصنف: '+raw,'warn');return;}
+      s.add(item.item_code);
+      scannerStatus('✓ تمت إضافة '+(item.name||item.item_code)+' · '+item.item_code,'ok');
+      beep();
+    }).catch(function(e){
+      scannerStatus(e.message||'تعذر البحث عن الصنف','warn');
+    });
+  };
+
+  App._scanner={active:false,stream:null,timer:null,lastCode:'',lastAt:0,qr:null};
+  App.stopContinuousScanner=function(){
+    var x=this._scanner||{};x.active=false;
+    if(x.timer){clearTimeout(x.timer);x.timer=null}
+    if(x.qr&&x.qr.stop){try{x.qr.stop().catch(function(){})}catch(e){}x.qr=null}
+    if(x.stream){try{x.stream.getTracks().forEach(function(t){t.stop()})}catch(e){}x.stream=null}
+  };
+
+  function loadHtml5Qrcode(cb){
+    if(window.Html5Qrcode)return cb(null);
+    var existing=document.querySelector('script[data-rw-html5qr]');
+    if(existing){existing.addEventListener('load',function(){cb(null)});existing.addEventListener('error',function(){cb(new Error('فشل تحميل مكتبة الكاميرا'))});return}
+    var sc=document.createElement('script');sc.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';sc.async=true;sc.setAttribute('data-rw-html5qr','1');
+    sc.onload=function(){cb(null)};sc.onerror=function(){cb(new Error('فشل تحميل مكتبة الكاميرا'))};document.head.appendChild(sc);
+  }
+
+  App.openContinuousScanner=function(){
+    var s=this;
+    if(!this.mode){RW_UI.toast('افتح مساحة العمل أولاً','warning');return}
+    this.stopContinuousScanner();
+    Swal.fire({
+      title:'ماسح المخزن المستمر',
+      html:'<div class="text-right"><div id="rwScanViewport" class="rounded-3xl overflow-hidden bg-black border border-slate-700"><video id="rwScanVideo" autoplay muted playsinline class="w-full" style="min-height:240px;object-fit:cover"></video></div><div class="mt-3 p-3 rounded-2xl bg-slate-800 text-slate-200"><b>Scan Mode</b><div class="text-[11px] text-slate-400 mt-1">وجّه الكاميرا للصنف وسيُضاف تلقائياً للسلة دون مغادرة شاشة المخزن.</div><div id="rwScanStatus" class="text-[11px] font-bold mt-2 text-slate-400">تهيئة الكاميرا...</div></div></div>',
+      width:430,showConfirmButton:false,showCloseButton:true,customClass:{popup:'!bg-slate-900 !rounded-3xl !border !border-slate-700',closeButton:'!text-slate-400'},
+      didOpen:function(){
+        var video=document.getElementById('rwScanVideo');
+        if(!video){return}
+        var runNative=function(){
+          if(!('BarcodeDetector' in window))return false;
+          try{
+            var detector=new BarcodeDetector();
+            navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false}).then(function(stream){
+              s._scanner.active=true;s._scanner.stream=stream;video.srcObject=stream;
+              var loop=function(){
+                if(!s._scanner.active)return;
+                detector.detect(video).then(function(codes){
+                  if(codes&&codes.length){
+                    var code=(codes[0].rawValue||'').trim(),now=Date.now();
+                    if(code&&!(code===s._scanner.lastCode&&now-s._scanner.lastAt<900)){
+                      s._scanner.lastCode=code;s._scanner.lastAt=now;s.handleScannedCode(code);
+                    }
+                  }
+                }).catch(function(){}).finally(function(){s._scanner.timer=setTimeout(loop,180)});
+              };
+              scannerStatus('✓ الكاميرا تعمل — امسح بشكل مستمر','ok');loop();
+            }).catch(function(e){scannerStatus('تعذر تشغيل الكاميرا: '+(e.message||'صلاحية الكاميرا مطلوبة'),'warn')});
+            return true;
+          }catch(e){return false}
+        };
+        if(runNative())return;
+        loadHtml5Qrcode(function(err){
+          if(err){scannerStatus(err.message||'المتصفح لا يدعم الماسح','warn');return}
+          var host=document.getElementById('rwScanViewport');
+          if(!host)return;
+          video.remove();
+          var div=document.createElement('div');div.id='rwHtml5QrReader';host.appendChild(div);
+          var qr=new Html5Qrcode('rwHtml5QrReader');s._scanner.qr=qr;
+          qr.start({facingMode:'environment'},{fps:10,qrbox:{width:250,height:160}},function(decoded){
+            var now=Date.now();
+            if(decoded&&!(decoded===s._scanner.lastCode&&now-s._scanner.lastAt<900)){
+              s._scanner.lastCode=decoded;s._scanner.lastAt=now;s.handleScannedCode(decoded);
+            }
+          },function(){}).then(function(){s._scanner.active=true;scannerStatus('✓ الكاميرا تعمل — امسح بشكل مستمر','ok')}).catch(function(e){scannerStatus('فشل تشغيل الكاميرا: '+(e.message||''),'warn')});
+        });
+      },
+      willClose:function(){s.stopContinuousScanner()}
+    });
+  };
+
+  var baseRenderWorkspace=App.renderWorkspace;
+  App.renderWorkspace=function(){
+    baseRenderWorkspace.call(this);
+    var search=document.getElementById('wsSearch');
+    if(search&&search.parentElement&&!document.getElementById('wsScanBtn')){
+      var wrap=search.parentElement;
+      var b=document.createElement('button');
+      b.type='button';b.id='wsScanBtn';b.title='مسح باركود مستمر';b.setAttribute('aria-label','مسح باركود مستمر');
+      b.style.cssText='position:absolute;left:10px;top:50%;transform:translateY(-50%);z-index:20;width:38px;height:38px;border-radius:12px;background:#2563eb;color:#fff;border:0;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 18px rgba(37,99,235,.25)';
+      b.innerHTML='<i class="fa-solid fa-camera"></i>';
+      b.onclick=function(){App.openContinuousScanner()};
+      wrap.appendChild(b);
+      search.style.paddingLeft='58px';
+    }
+    var input=document.getElementById('wsSearch');
+    if(input){input.setAttribute('inputmode','search');input.setAttribute('enterkeyhint','search')}
+  };
+
+  var basePickArr=App.pickArr;
+  App.pickArr=function(key){
+    if(this.type==='DirectSale'&&key==='wsTo'){
+      var repId=(document.getElementById('wsRep')||{}).value||'';
+      return (this.refs.vehicles||[]).filter(function(v){return v.status==='Active'&&v.driver_id===repId&&!!(function(s,v){var c='VAN-'+String(v.vehicle_code||'').trim().toUpperCase();return (s.refs.branches||[]).some(function(b){return String(b.branch_code||'').trim().toUpperCase()===c})})(this,v)}.bind(this));
+    }
+    if(this.type==='DirectReturn'&&key==='wsRep'){
+      var vid=(document.getElementById('wsFrom')||{}).value||'',veh=(this.refs.vehicles||[]).find(function(v){return v.id===vid});
+      return veh&&veh.driver_id?(this.refs.reps||[]).filter(function(r){return r.id===veh.driver_id}):[];
+    }
+    return basePickArr.call(this,key);
+  };
+
+  var basePickSelect=App.pickSelect;
+  App.pickSelect=function(key,id){
+    if(this.type==='DirectReturn'&&key==='wsFrom'){
+      var veh=(this.refs.vehicles||[]).find(function(v){return v.id===id});
+      if(!veh)return;
+      var code='VAN-'+String(veh.vehicle_code||'').trim().toUpperCase();
+      var hasBranch=(this.refs.branches||[]).some(function(b){return String(b.branch_code||'').trim().toUpperCase()===code});
+      if(!hasBranch){RW_UI.toast('المركبة لا تملك مخزنًا متنقلًا صالحًا','error');return}
+      var rep=veh.driver_id?(this.refs.reps||[]).find(function(r){return r.id===veh.driver_id}):null;
+      document.getElementById('wsFrom').value=id;document.getElementById('wsFromSearch').value=veh.vehicle_code||'مركبة';document.getElementById('wsFromMenu').classList.add('hidden');
+      if(rep){document.getElementById('wsRep').value=rep.id;document.getElementById('wsRepSearch').value=rep.name||rep.email||''}
+      this.summary();this.renderProducts();return;
+    }
+    return basePickSelect.call(this,key,id);
+  };
+
+  var baseSubmit=App.submit;
+  App.submit=function(){
+    if(this.type==='DirectSale'){
+      var fb=document.getElementById('wsFrom'),fr=document.getElementById('wsRep'),ft=document.getElementById('wsTo');
+      var branchId=fb&&fb.value||'',repId=fr&&fr.value||'',vehicleId=ft&&ft.value||'',b=(this.refs.branches||[]).find(function(x){return x.id===branchId}),r=(this.refs.reps||[]).find(function(x){return x.id===repId}),v=(this.refs.vehicles||[]).find(function(x){return x.id===vehicleId});
+      if(!b||!r||!v||v.driver_id!==r.id){RW_UI.toast('الفرع والمندوب والمركبة غير متسقة','error');return}
+      if(!this.cart.length){RW_UI.toast('أضف صنفاً واحداً على الأقل','warning');return}
+      var ref=(document.getElementById('wsRef')||{}).value.trim(),notes=(document.getElementById('wsNotes')||{}).value.trim();
+      if(!ref){RW_UI.toast('المرجع إجباري','warning');return}
+      RW_UI.showLoader('جاري حفظ الصرف المباشر...');
+      return RW_API.call('create-stock-voucher',{type:'DirectSale',reference:ref,fromType:'Branch',fromId:b.id,toType:'Vehicle',toId:v.id,notes:notes,items:this.cart.map(function(x){return{itemCode:x.code,qty:x.qty,notes:''}})},function(j){RW_UI.hideLoader();if(j&&j.success){RW_UI.toast('تم إنشاء '+(j.voucher_code||j.voucherId||'إذن الصرف'),'success');App.back()}else RW_UI.showError((j&&j.msg)||'فشل إنشاء الصرف المباشر')});
+    }
+    if(this.type==='DirectReturn'){
+      var ff=document.getElementById('wsFrom'),tr=document.getElementById('wsTo'),rp=document.getElementById('wsRep');
+      var vehicleId2=ff&&ff.value||'',branchId2=tr&&tr.value||'',repId2=rp&&rp.value||'',v2=(this.refs.vehicles||[]).find(function(x){return x.id===vehicleId2}),b2=(this.refs.branches||[]).find(function(x){return x.id===branchId2});
+      if(!v2||!b2||!repId2||v2.driver_id!==repId2){RW_UI.toast('المركبة والمندوب وفرع المرتجع غير متسقين','error');return}
+      if(!this.cart.length){RW_UI.toast('أضف صنفاً واحداً على الأقل','warning');return}
+      var ref2=(document.getElementById('wsRef')||{}).value.trim(),notes2=(document.getElementById('wsNotes')||{}).value.trim();
+      if(!ref2){RW_UI.toast('المرجع إجباري','warning');return}
+      RW_UI.showLoader('جاري حفظ المرتجع المباشر...');
+      return RW_API.call('create-stock-voucher',{type:'DirectReturn',reference:ref2,fromType:'Vehicle',fromId:v2.id,toType:'Branch',toId:b2.id,notes:notes2,items:this.cart.map(function(x){return{itemCode:x.code,qty:x.qty,notes:''}})},function(j){RW_UI.hideLoader();if(j&&j.success){RW_UI.toast('تم إنشاء '+(j.voucher_code||j.voucherId||'إذن المرتجع'),'success');App.back()}else RW_UI.showError((j&&j.msg)||'فشل إنشاء المرتجع المباشر')});
+    }
+    return baseSubmit.apply(this,arguments);
+  };
+
+  console.info('[VOUCHERS] forensic surgery 2026-08-21 loaded');
+})();
+'''
+
+          head, tail = s.rsplit('</script>', 1)
+          s = head + scanner + '\n</script>' + tail
+          s = s.replace('RAWAEA-VOUCHERS-GOLD-MASTER-2026-08-21-VRS-SURGICAL', 'RAWAEA-VOUCHERS-GOLD-MASTER-2026-08-21-VRS-SURGICAL-R1')
+          path.write_text(s, encoding='utf-8')
+
+      - name: Static verification
+        shell: bash
+        run: |
+          grep -q 'VOUCHERS-FORENSIC-SURGERY-20260821' Current/PWA/vouchers.html
+          grep -q "toType:'Vehicle',toId:v.id" Current/PWA/vouchers.html
+          grep -q "fromType:'Vehicle',fromId:v2.id,toType:'Branch',toId:b2.id" Current/PWA/vouchers.html
+          grep -q "v.driver_id===repId" Current/PWA/vouchers.html
+          ! grep -nE 'stock_branches.*(\.update|\.insert)|inventory_log.*\.insert' Current/PWA/vouchers.html
+          ! grep -nE 'sales_price|cost_price' Current/PWA/vouchers.html
+          python3 - <<'PY'
+          import re, pathlib
+          s=pathlib.Path('Current/PWA/vouchers.html').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',s,re.S|re.I)
+          pathlib.Path('/tmp/vouchers_inline.js').write_text('\n;\n'.join(scripts),encoding='utf-8')
+          print('inline scripts:',len(scripts),'bytes:',len(s))
+          PY
+          node --check /tmp/vouchers_inline.js
+
+      - name: Commit final vouchers only and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/_vouchers_forensic_surgery.yml
+          git add Current/PWA/vouchers.html
+          if git diff --cached --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git commit -m "fix: surgical vouchers vehicle lifecycle and continuous warehouse scan"
+          git push origin HEAD:main
