@@ -35,7 +35,7 @@ jobs:
             const enhancement=`
           /* RAWAEA VOUCHERS GOLD MASTER 2026-08-20 */
           (function(){
-            function safeId(v){return String(v==null?'':v).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+            function safeId(v){return String(v==null?'':v).replaceAll("'","\\'")}
             var originalLoadRefs=App.loadRefs;
             App.loadRefs=function(){var s=this;return originalLoadRefs.call(this).then(function(){var map={};(s.refs.vehicles||[]).forEach(function(v){var code='VAN-'+String(v.vehicle_code||'').trim().toUpperCase();var b=(s.refs.branches||[]).find(function(x){return String(x.branch_code||'').toUpperCase()===code});if(b)map[v.id]=b.id});s.refs.vehicleBranchMap=map})};
             App.avail=function(id){var e=document.getElementById('wsFrom');if(!e||!e.value)return null;var branch=e.value;if(this.type==='DirectReturn'&&(this.refs.vehicleBranchMap||{})[branch])branch=this.refs.vehicleBranchMap[branch];var k=branch+':'+id;return Object.prototype.hasOwnProperty.call(this.stock,k)?Number(this.stock[k]||0):0};
