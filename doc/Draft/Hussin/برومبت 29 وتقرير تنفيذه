@@ -1,0 +1,83 @@
+# برومبت 29 — تقرير التنفيذ
+
+## 1. مصدر الحقيقة
+تمت مراجعة سلسلة ملفات Hussin المطلوبة (Prompts 11–28) من GitHub كمصادر سياقية، ثم تم الرجوع إلى النسخة الحالية في `main` قبل التعديل.
+
+المرجع الفعلي للواجهة قبل التنفيذ:
+- `Current/PWA/vouchers.html`
+- SHA قبل التعديل: `8f428a5cd343d3963843124a20cc162461ef0b4f`
+- `Current/PWA/pos.html` تمت مراجعته للمقارنة البصرية/التفاعلية.
+
+## 2. الهدف المنفذ
+تحويل تجربة اختيار الأصناف داخل الأذونات من نافذة SweetAlert بسيطة إلى مساحة عمل قريبة جدًا من تجربة POS، مع الحفاظ على عقود الـvoucher والـengine الحالية.
+
+## 3. ما تم تنفيذه
+### POS Voucher Workspace
+- مساحة عمل كاملة داخل `vouchers.html` بدل نموذج اختيار الأصناف القديم.
+- تقسيم الشاشة إلى Catalog + Cart على سطح المكتب.
+- Drawer للسلة على الشاشات الصغيرة.
+- بحث فوري باسم الصنف، الكود، الباركود، و`search_label`.
+- ترتيب نتائج ذكي بالأولوية للـexact code/barcode ثم prefix ثم name/search label.
+- دعم Enter للإضافة وArrow Up/Down للتنقل وF2 للتركيز على البحث وEsc للخروج.
+- بطاقات أصناف بأسلوب POS مع الصورة والوحدة والسعر وحالة التوفر.
+- إظهار الرصيد المتاح للمصدر عند اختيار الفرع.
+- منع إضافة كمية تتجاوز الرصيد المتاح عندما يكون المصدر فرعًا.
+- فئات أصناف سريعة.
+- سلة حية مع زيادة/نقص/حذف.
+- ملخص المصدر والوجهة وعدد الأصناف وإجمالي الكمية.
+- حفظ المسودة/تنفيذ الحركة من نفس مساحة العمل.
+
+## 4. الحفاظ على العقود
+لم يتم استحداث Physical Stock Writer جديد.
+
+Voucher creation ما زال يمر عبر:
+`RW_API.call('create-stock-voucher', ...)`
+
+Engine operations ما زالت تمر عبر:
+`RW_API.call('bulk-stock-adjustment', ...)`
+
+وبالتالي الواجهة الجديدة لا تعدل مباشرة:
+- `stock_branches`
+- `inventory_log`
+
+بل تقرأ البيانات اللازمة لعرض UX ثم تستدعي الـcapability الحالية.
+
+## 5. التحقق النصي
+تم فحص النسخة المنشورة في `main` بعد الـcommit، وتم البحث مباشرة داخل المصدر عن:
+- `stock_branches').update`
+- `inventory_log').insert`
+والنتيجة: لا توجد مطابقات.
+
+## 6. Git execution
+Commit:
+`4cfcee850e088c2ef366411dd9c255bd755771a8`
+
+Message:
+`feat(vouchers): introduce POS-style voucher workspace`
+
+## 7. Production status
+تم تحديث المصدر في GitHub `main` فعليًا.
+لم يتم الادعاء بأن واجهة الاستضافة النهائية أصبحت Live تلقائيًا؛ آلية نشر PWA نفسها تحتاج تحققًا منفصلًا من الـdeployment/runtime endpoint قبل إصدار حالة Production Runtime Verified.
+
+## 8. ملاحظة مهمة
+هذه المهمة ركزت على UX الخاصة باختيار الأصناف ومساحة إنشاء الأذن، ولم تغيّر Business Contract للـstock engines. أي خلل خارج هذا النطاق لم تتم معالجته تحت غطاء هذا الـcommit.
+
+## 9. SELF-AUDIT
+### What I Proved
+- النسخة الحالية من `vouchers.html` تغيّرت فعليًا في GitHub.
+- commit محدد ومسجل.
+- تجربة إنشاء الأذن أصبحت POS-style workspace.
+- البحث الذكي والسلة والفئات والرصيد المعروض موجودة في المصدر.
+- لا توجد كتابة مباشرة للمخزون من الواجهة الجديدة.
+
+### What I Did Not Prove
+- لم يتم تشغيل Browser E2E حقيقي من متصفح Production في هذه الجولة.
+- لم يتم إثبات أن الاستضافة النهائية التقطت commit الجديد وأصبح Live.
+
+### What Could Still Be Wrong
+- اختلاف بيئة الاستضافة أو Service Worker قد يؤخر ظهور النسخة الجديدة.
+- يجب إجراء smoke test فعلي على الأجهزة المستهدفة بعد وصول النسخة إلى runtime.
+
+### Final Closure Status
+`GITHUB SOURCE IMPLEMENTED`
+`PRODUCTION RUNTIME NOT YET VERIFIED`
