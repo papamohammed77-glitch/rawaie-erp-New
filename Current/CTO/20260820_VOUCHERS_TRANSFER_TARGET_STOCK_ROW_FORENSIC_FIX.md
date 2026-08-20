@@ -73,14 +73,52 @@ Result:
 
 This is Production Runtime Verified for the reported incident.
 
+## Second defect found during closure: SEND retry semantics
+A mandatory post-success retry test exposed a separate defect in the same writer closure: once `IN-1` was `Sent`, the next identical SEND returned `Voucher is not Draft` instead of `duplicate=true`.
+
+This was a real idempotency contract defect because a network retry after a successful request could surface a false failure to the UI.
+
+### Repair
+A second Production migration was applied:
+
+`20260820_send_voucher_retry_idempotency`
+
+The function now checks the expected item movement set and matching idempotency logs before rejecting a non-Draft voucher. A complete matching prior SEND is returned as:
+
+`success=true, duplicate=true, status=Sent`
+
+No additional stock movement is executed.
+
+### Runtime proof
+The identical SEND retry for `IN-1` returned:
+
+`success=true`
+`duplicate=true`
+`status=Sent`
+`movement_count=3`
+
+The inventory log count for that voucher remained exactly `3`; no duplicate movements were created.
+
+Canonical Git commit for this closure:
+
+`52ff5521ca5fbc06f0cff7d36a3feda809f34d92`
+
 ## Git canonicalization
-The deployed database repair has been recorded in Git as:
+The target-row repair is recorded in Git as:
 
 `supabase/migrations/20260820_inventory_target_stock_row_autoinit.sql`
 
 Commit:
 
 `2c4c9a3eafd3d7dfd5944abdfd35a04eba7fc215`
+
+The SEND retry repair is recorded as:
+
+`supabase/migrations/20260820_send_voucher_retry_idempotency.sql`
+
+Commit:
+
+`52ff5521ca5fbc06f0cff7d36a3feda809f34d92`
 
 ## Current vouchers.html
 The current Gold Master remains the single UI publication file:
@@ -91,10 +129,15 @@ Current Git blob at the time of this closure:
 
 `812070b2e0ede5754d971fd20f4e6b5b2472f59c`
 
-The UI contains no direct `stock_branches` or `inventory_log` mutation; the fix belongs in the core engine by design.
+The UI contains no direct Physical Stock mutation. It calls the existing `send-stock-voucher` capability; therefore the root fixes belong in the Production core rather than in a UI-side stock workaround.
+
+## Related current-state checks
+- The deployed `receive_purchase_atomic` is already the newer `p_operation_id uuid` contract with operation reuse conflict checks; it was not incorrectly regressed to the older signature.
+- `post_stock_movement` remains the sole discovered Production function that both initializes/updates `stock_branches` for Physical Movement and writes `inventory_log`; reservation functions remain reservation-only.
+- The current `vouchers.html` final Gold Master IIFE overrides the older base `renderProducts` implementation and does not render sale/cost prices. The base source contains a stale price expression, but the effective runtime Gold Master path displays warehouse data only. This was verified as source/runtime behavior rather than assumed from Prompt 36 alone.
 
 ## Governing alignment
 This closure follows the project's governing rule: understand historical/current/target contracts, prove the live defect in Production, apply the smallest safe change, then verify the actual Production runtime. It does not invent a new UI workaround or a second inventory engine.
 
 ## Remaining known work
-This incident is closed. It does **not** mean Global Inventory Zero-Debt is universally closed. Separate known closure units, including purchase-receiving idempotency and remaining historical/current Production drift, must not be counted as closed without their own evidence.
+This incident and its SEND retry idempotency defect are closed. This does **not** mean Global Inventory Zero-Debt is universally closed. Separate closure units and remaining historical/current Production drift must not be counted as closed without their own evidence.
