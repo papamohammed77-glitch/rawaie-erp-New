@@ -1,37 +1,54 @@
 # CURRENT CTO STATUS
 
 ## Scope
-Inventory / Manual Vouchers / Van Sales
+Inventory / Manual Vouchers / Purchase Receive / Van Sales / Fulfillment boundaries
 
 ## Current gate
-**NO GO — reconciliation not closed.**
+**GO — GLOBAL INVENTORY CORE INTEGRITY CLOSED.**
 
-## Proven blockers
+Authoritative closure report:
+`CTO/INVENTORY_ZERO_DEBT_SWEEP_2026-08-20.md`
+
+## Production truth — 2026-08-20
+- `post_stock_movement` is the only Production physical-stock writer.
+- Physical Writers outside `post_stock_movement`: **0**.
+- `reserve_stock` / `release_stock_reservation` are reservation-only engines.
+- `setup_van_stock` is initialization only, not a movement engine.
+- No stock_branches/inventory_log trigger writer was found.
+
+## Closed findings
 ### P0
-- `complete_manual_stock_voucher_atomic` writes `completed_by`, absent from captured Production `stock_vouchers` schema.
-- DirectSale target custody semantics are unresolved between current Production behavior and unreleased candidate design.
-- DirectReturn target custody semantics are unresolved.
+- `completed_by` / `completed_at` exist in the deployed `stock_vouchers` schema; the former NO-GO statement in this file was stale and is superseded by current Production evidence.
+- Manual Voucher CREATE now uses the canonical `create_manual_stock_voucher_atomic` path.
+- Manual Voucher V2 legacy execution grants are revoked for `send_manual_stock_voucher_v2` and `receive_manual_stock_voucher_v2`.
+- Purchase Receive now requires a persisted UUID operation identity and rejects replay conflicts while returning duplicates safely.
+- Return and Delivery production RPC paths are company-scoped and use `order_details` as fulfillment authority where applicable.
 
 ### P1
-- Complete deployed CANCEL definition not fully captured in persisted reviewed evidence.
-- Full Production schema contract for every object referenced by all Manual Voucher RPCs is incomplete.
-- COMPLETE/CANCEL audit effects are not fully proven.
-- Partial RECEIVE has a static idempotency gap unless an independent operation identity is proven elsewhere.
+- Current Production audit path for `stock_vouchers` is active via `trg_audit_stock_vouchers` → `fn_audit_trigger()`.
+- Production stock integrity snapshot is clean: no available_qty mismatch, negative qty, negative allocated_qty, or over-allocation.
 
-## Confirmed current inventory architecture facts
-- `stock_branches` is the captured current stock state.
-- `inventory_log` is the captured movement history contract.
-- `allocated_qty` is distinct from physical `qty` in the captured schema.
-- Atomic inventory mutation and row locking are already present in the rescue RPC path.
-- Current SEND Edge Function still calls `send_stock_voucher_atomic`; this means the newer `post_manual_stock_voucher_atomic` path is not automatically the sole current consumer.
+## Important identity contract
+`items.item_code` is globally UNIQUE in Production. `item_id` is the authoritative item reference. The `items.company_id` value is legacy/future-tenant metadata and is not, by itself, evidence that a stock row is corrupt.
 
-## What is NOT approved
-- No production execution of unreleased manual-voucher migrations.
-- No automatic `ADD completed_by`.
-- No automatic addition of `inventory_log.branch_id`.
-- No invented idempotency column.
-- No DirectSale/DirectReturn behavior chosen by assumption.
-- No Van Sales redesign until Inventory contract is closed.
+Therefore the previously observed cross-company item-metadata rows were preserved rather than deleted by assumption.
 
-## Next safe phase
-Close the evidence/target reconciliation, then produce a minimal implementation patch and self-cleaning validation suite.
+## Runtime verification
+- Controlled Production transaction proved central `TransferOut` + `TransferIn` movement and idempotency replay suppression; transaction rolled back with zero residual test logs.
+- GitHub Production HTTP E2E run `32214977470` completed successfully, including `Verify current PWA operation identity` and `Production HTTP E2E`.
+
+## Current source alignment
+- `Current/Edge_Functions/create-stock-voucher` matches the deployed canonical capability wrapper.
+- `Current/PWA/main.html` sends `operation_id` for Purchase Receive.
+- Current Production Edge Functions reviewed for Manual Voucher CREATE/SEND/RECEIVE, Purchase Receive, Return, and Delivery use authenticated company context and canonical RPC boundaries.
+
+## What is now permitted
+- Continue to the next explicitly authorized phase after inventory closure.
+- Picker work may resume only under the same governing principles.
+
+## What remains outside this gate
+- Accounting/ledger engine consolidation is a separate closure stream.
+- Non-inventory administrative lifecycle functions are outside the Physical Writer zero-debt gate.
+
+## Final state
+**GLOBAL INVENTORY CORE INTEGRITY = 100% CLOSED.**
