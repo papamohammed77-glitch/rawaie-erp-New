@@ -1,1 +1,0 @@
-Temporary verification trigger; execute the current forensic vouchers Gold Master closure on main.
