@@ -59,14 +59,14 @@ jobs:
           from pathlib import Path
           import re
           s=Path('Current/PWA/vouchers.html').read_text(encoding='utf-8')
-          scripts=re.findall(r'<script(?:\\s[^>]*)?>([\\s\\S]*?)</script>',s,re.I)
+          scripts=re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',s,re.I)
           Path('/tmp/vouchers-inline.js').write_text('\n\n'.join(scripts),encoding='utf-8')
           if 'rw-build' not in s: raise SystemExit('MISSING_BUILD_MARKER')
           if 'RW_VOUCHER_RECEIVE:' not in s: raise SystemExit('MISSING_RECEIVE_IDEMPOTENCY')
           for name in ['doLogin','init','choose','details','itemDetails','send','cancel','receive','complete','renderWorkspace','renderProducts','renderCart','submit']:
-            if not re.search(r'\\b'+re.escape(name)+r'\\s*:\\s*function',s): raise SystemExit('MISSING_APP_METHOD:'+name)
-          if re.search(r"stock_branches[^\\n]{0,120}\\.(?:update|insert|upsert)",s,re.I): raise SystemExit('DIRECT_PHYSICAL_STOCK_WRITE_DETECTED')
-          if re.search(r"inventory_log[^\\n]{0,120}\\.(?:update|insert|upsert)",s,re.I): raise SystemExit('DIRECT_PHYSICAL_LOG_WRITE_DETECTED')
+            if name+':function' not in s: raise SystemExit('MISSING_APP_METHOD:'+name)
+          if re.search(r"stock_branches[^\n]{0,120}\.(?:update|insert|upsert)",s,re.I): raise SystemExit('DIRECT_PHYSICAL_STOCK_WRITE_DETECTED')
+          if re.search(r"inventory_log[^\n]{0,120}\.(?:update|insert|upsert)",s,re.I): raise SystemExit('DIRECT_PHYSICAL_LOG_WRITE_DETECTED')
           print('STATIC_AUDIT_PASS')
           PY
           node --check /tmp/vouchers-inline.js
