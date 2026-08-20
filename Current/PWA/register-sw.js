@@ -33,19 +33,11 @@ function RW_showUpdateBanner() {
     };
 }
 
-/* Vouchers-only UI Gold Master capability layer. */
-(function(){
-    if(location.pathname.indexOf('/vouchers.html')===-1)return;
-    var tag='vouchers-gold-master-ui.js';
-    if(document.querySelector('script[data-rw-vouchers-gm="1"]'))return;
-    var script=document.createElement('script');
-    script.src='./vouchers-gold-master-ui.js';
-    script.async=false;
-    script.dataset.rwVouchersGm='1';
-    script.onload=function(){console.info('[VOUCHERS] UI Gold Master capability layer ready')};
-    script.onerror=function(){console.error('[VOUCHERS] failed to load '+tag)};
-    document.head.appendChild(script);
-})();
+/*
+ * Vouchers Gold Master is now fully embedded in Current/PWA/vouchers.html.
+ * This shared file MUST NOT inject any voucher-specific UI capability layer.
+ * Service-worker/update responsibilities remain shared here only.
+ */
 
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('../sw.js').then(function(registration) {
