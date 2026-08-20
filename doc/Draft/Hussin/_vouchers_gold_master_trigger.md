@@ -1,1 +1,1 @@
-Temporary verification trigger; remove after Gold Master verification.
+Temporary verification trigger; PR-run marker. The one-off workflow applies and validates the vouchers Gold Master closure on main.
