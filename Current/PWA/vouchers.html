@@ -313,6 +313,7 @@ App.renderWorkspace=App.renderWorkspace;document.addEventListener('keydown',func
   'use strict';
   if(typeof App==='undefined'||typeof supabase==='undefined'||App.__SURGICAL_VRS_FIX_20260821__)return;
   App.__SURGICAL_VRS_FIX_20260821__=true;
+  var basePickArr=App.pickArr,basePickSearch=App.pickSearch,basePickSelect=App.pickSelect,baseRouteHtml=App.routeHtml,baseSummary=App.summary,baseSubmit=App.submit;
   function arr(v){if(Array.isArray(v))return v.map(String);var s=String(v==null?'':v).trim();if(!s)return [];try{var j=JSON.parse(s);if(Array.isArray(j))return j.map(String);if(typeof j==='string')return [j]}catch(e){}return s.split(',').map(function(x){return x.trim()}).filter(Boolean)}
   function repBranchMatch(rep,b){if(!rep||!b)return false;if(String(rep.default_branch_id||'')===String(b.id))return true;var a=arr(rep.allowed_branch_ids);return a.indexOf(String(b.id))>=0||a.indexOf(String(b.branch_code||''))>=0}
   function mobileBranch(s,v){if(!v)return null;var code='VAN-'+String(v.vehicle_code||'').trim().toUpperCase();return (s.refs.branches||[]).find(function(b){return String(b.branch_code||'').trim().toUpperCase()===code})||null}
