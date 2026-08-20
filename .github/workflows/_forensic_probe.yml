@@ -1,0 +1,12 @@
+name: forensic-probe
+on:
+  push:
+    paths:
+      - '_forensic_vouchers_branch_probe.txt'
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo probe
