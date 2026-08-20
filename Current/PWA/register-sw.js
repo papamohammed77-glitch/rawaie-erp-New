@@ -34,12 +34,13 @@ function RW_showUpdateBanner() {
 }
 
 /*
- * Vouchers Gold Master is now fully embedded in Current/PWA/vouchers.html.
- * This shared file MUST NOT inject any voucher-specific UI capability layer.
- * Service-worker/update responsibilities remain shared here only.
+ * Vouchers Gold Master is fully embedded in Current/PWA/vouchers.html.
+ * This shared file MUST NOT inject voucher-specific UI.
+ * The vouchers page registers its Service Worker through RW_SW itself,
+ * so this shared registration path intentionally skips vouchers.html.
  */
 
-if ('serviceWorker' in navigator) {
+if (location.pathname.indexOf('/vouchers.html') === -1 && 'serviceWorker' in navigator) {
     navigator.serviceWorker.register('../sw.js').then(function(registration) {
         setInterval(function() {
             registration.update();
