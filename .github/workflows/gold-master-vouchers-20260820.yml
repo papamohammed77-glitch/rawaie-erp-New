@@ -1,0 +1,91 @@
+name: Gold Master Vouchers Forensic Build
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - gold-master-vouchers-20260820
+
+jobs:
+  forensic-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout head branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 1
+
+      - name: Apply source-preserving Gold Master patch
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const path='Current/PWA/vouchers.html';
+          let s=fs.readFileSync(path,'utf8');
+          const marker='RAWAEA-VOUCHERS-GOLD-MASTER-2026-08-20';
+          if(!s.includes(marker)){
+            s=s.replace('<meta name="theme-color" content="#21154f">','<meta name="theme-color" content="#21154f"><meta name="rw-build" content="'+marker+'">');
+            s=s.replace('.catalog{min-width:0;display:flex;flex-direction:column;min-height:0;border-left:1px solid #1e293b;overscroll-behavior:contain}', '.catalog{min-width:0;display:flex;flex-direction:column;min-height:0;border-left:1px solid #1e293b;overscroll-behavior:contain;overflow:hidden}');
+            s=s.replace('.cart{min-width:0;display:flex;flex-direction:column;min-height:0;background:#111827}', '.cart{min-width:0;display:flex;flex-direction:column;min-height:0;background:#111827;overflow:hidden}');
+            const enhancement=`
+          /* RAWAEA VOUCHERS GOLD MASTER 2026-08-20 */
+          (function(){
+            function safeId(v){return String(v==null?'':v).replaceAll("'","\\'")}
+            var originalLoadRefs=App.loadRefs;
+            App.loadRefs=function(){var s=this;return originalLoadRefs.call(this).then(function(){var map={};(s.refs.vehicles||[]).forEach(function(v){var code='VAN-'+String(v.vehicle_code||'').trim().toUpperCase();var b=(s.refs.branches||[]).find(function(x){return String(x.branch_code||'').toUpperCase()===code});if(b)map[v.id]=b.id});s.refs.vehicleBranchMap=map})};
+            App.avail=function(id){var e=document.getElementById('wsFrom');if(!e||!e.value)return null;var branch=e.value;if(this.type==='DirectReturn'&&(this.refs.vehicleBranchMap||{})[branch])branch=this.refs.vehicleBranchMap[branch];var k=branch+':'+id;return Object.prototype.hasOwnProperty.call(this.stock,k)?Number(this.stock[k]||0):0};
+            App.canAddQuantity=function(item,next){var av=this.avail(item.id);if(av===null)return true;if(this.type==='DirectReturn')return true;if(this.mode==='engine'&&this.type==='Adjustment'){var m=document.getElementById('wsMode');var mode=m?m.value:'replace';return mode!=='deduct'||next<=av}if(this.mode==='engine'&&this.type==='Scrap')return next<=av;return next<=av};
+            App.itemDetails=function(id){var s=this,x=this.items.find(function(i){return i.id===id});if(!x)return;var av=this.avail(id),html='<div class="text-right"><div class="flex gap-4 items-start"><div class="w-28 h-28 rounded-3xl bg-slate-100 overflow-hidden flex items-center justify-center">'+(x.image_url?'<img src="'+s.esc(x.image_url)+'" class="w-full h-full object-cover">':'<i class="fa-solid fa-box text-4xl text-slate-400"></i>')+'</div><div class="flex-1"><h3 class="text-lg font-black">'+s.esc(x.name||x.item_code)+'</h3><p class="text-xs text-slate-400 mt-1">الكود: '+s.esc(x.item_code)+'</p><p class="text-xs text-slate-400">الباركود: '+s.esc(x.barcode||'—')+'</p><p class="text-xs text-slate-400">الوحدة: '+s.esc(x.unit||'حبة')+'</p></div></div><div class="grid grid-cols-2 gap-2 mt-4"><div class="p-3 bg-slate-50 rounded-2xl"><span class="text-[10px] text-slate-400">سعر البيع</span><b class="block mt-1">'+f(x.sales_price||0)+'</b></div><div class="p-3 bg-slate-50 rounded-2xl"><span class="text-[10px] text-slate-400">التكلفة</span><b class="block mt-1">'+f(x.cost_price||0)+'</b></div><div class="p-3 bg-slate-50 rounded-2xl"><span class="text-[10px] text-slate-400">التصنيف</span><b class="block mt-1">'+s.esc(x.category||'أخرى')+'</b></div><div class="p-3 bg-slate-50 rounded-2xl"><span class="text-[10px] text-slate-400">المتاح</span><b class="block mt-1">'+(av===null?'اختر المصدر':f(av))+'</b></div></div></div>';Swal.fire({title:'تفاصيل الصنف',html:html,showCancelButton:true,confirmButtonText:'إضافة إلى السلة',cancelButtonText:'إغلاق',customClass:{popup:'!rounded-3xl'}}).then(function(r){if(r.isConfirmed)s.add(x.item_code)})};
+            App.renderProducts=function(){var s=this,q=(document.getElementById('wsSearch')||{}).value||'',z=this.norm(q),a=this.items.filter(function(x){if(s.cat!=='الكل'&&(x.category||'أخرى')!==s.cat)return false;if(!z)return true;var n=s.norm(x.name),c=s.norm(x.item_code),b=s.norm(x.barcode),l=s.norm(x.search_label);return c===z||b===z||c.indexOf(z)===0||b.indexOf(z)===0||n.indexOf(z)>=0||l.indexOf(z)>=0}).sort(function(a,b){return String(a.name||'').localeCompare(String(b.name||''),'ar')}).slice(0,120);RW_UI.safeText(RW_UI.byId('count'),a.length?' · '+a.length:'');var h=a.map(function(x){var av=s.avail(x.id),inCart=(s.cart.find(function(c){return c.id===x.id})||{}).qty||0,disabled=av!==null&&av<=0&&!(s.mode==='engine'&&s.type==='Adjustment')&&s.type!=='DirectReturn';return '<div class="product-card '+(disabled?'opacity-60':'')+'"><button type="button" class="w-full text-right" onclick="App.itemDetails(\\''+safeId(x.id)+'\\')" title="عرض تفاصيل الصنف"><div class="product-img mb-2">'+(x.image_url?'<img src="'+s.esc(x.image_url)+'" loading="lazy">':'<i class="fa-solid fa-box text-2xl text-slate-600"></i>')+'</div><div class="flex justify-between gap-2"><div class="min-w-0"><b class="text-xs truncate block">'+s.esc(x.name||x.item_code)+'</b><span class="text-[10px] text-slate-500">'+s.esc(x.item_code)+' · '+s.esc(x.unit||'حبة')+'</span></div><span class="text-[9px] text-slate-400">'+(av===null?'اختر المصدر':av>0?'متاح '+f(av):'غير متاح')+'</span></div></button><div class="flex justify-between mt-2"><span class="text-[11px] text-emerald-400 font-black">'+f(x.sales_price||x.cost_price||0)+'</span><button type="button" '+(disabled?'disabled':'')+' onclick="event.stopPropagation();App.add(\\''+safeId(x.item_code)+'\\')" class="w-9 h-9 rounded-full '+(!disabled?'bg-blue-600 hover:bg-blue-500':'bg-slate-700')+' flex items-center justify-center" title="إضافة">'+(inCart||'<i class="fa-solid fa-plus text-xs"></i>')+'</button></div></div>'}).join('');RW_UI.safeHTML(RW_UI.byId('products'),h||'<div class="col-span-full text-center text-slate-500 py-14">🔍 لا توجد نتائج</div>')};
+            App.add=function(code){var s=this,x=this.items.find(function(i){return i.item_code===code});if(!x)return;var ex=this.cart.find(function(c){return c.id===x.id}),next=(ex?ex.qty:0)+1;if(!this.canAddQuantity(x,next)){RW_UI.toast('الكمية المتاحة في المصدر: '+f(this.avail(x.id)),'warning');return}if(ex)ex.qty=next;else this.cart.push({id:x.id,code:x.item_code,name:x.name||x.item_code,unit:x.unit||'حبة',qty:1,price:Number(x.sales_price||x.cost_price||0)});this.renderCart();this.renderProducts();this.updateResults()};
+            App.inc=function(i){var x=this.cart[i];if(!x)return;var master=this.items.find(function(a){return a.id===x.id});if(!master)return;var next=x.qty+1;if(!this.canAddQuantity(master,next)){RW_UI.toast('الكمية تتجاوز المتاح في المصدر','warning');return}x.qty=next;this.renderCart();this.renderProducts();this.updateResults()};
+            App.choose=function(t){this.type=t;this.mode=(t==='Scrap'||t==='Adjustment')?'engine':'voucher';this.toggleMenu();this.newWorkspace()};
+            var oldBack=App.back;App.back=function(){oldBack.call(this);var l=document.getElementById('typeLabel');if(l)l.textContent='إذن جديد'};
+            if(window.RW_SW&&navigator.serviceWorker&&navigator.serviceWorker.getRegistrations){navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.update().catch(function(){})})}).catch(function(){})}
+            console.log('[VOUCHERS] '+marker+' loaded');
+          })();
+          `;
+            const target='</script><script src="../register-sw.js"></script>';
+            if(!s.includes(target)) throw new Error('VOUCHERS_SCRIPT_TARGET_NOT_FOUND');
+            s=s.replace(target,enhancement+'\n</script><script src="../register-sw.js"></script>');
+            s=s.replace('<button onclick="App.doLogin()"','<button type="button" onclick="App.doLogin()"').replace('<button onclick="App.resetPassword()"','<button type="button" onclick="App.resetPassword()"').replace('<button onclick="App.applyRecoveryPassword()"','<button type="button" onclick="App.applyRecoveryPassword()"').replace('<button onclick="App.cancelRecovery()"','<button type="button" onclick="App.cancelRecovery()"');
+          }
+          fs.writeFileSync(path,s);
+          NODE
+
+      - name: Syntax and static audit
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('Current/PWA/vouchers.html').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',s,re.I)
+          if not scripts: raise SystemExit('NO_INLINE_SCRIPT')
+          Path('/tmp/vouchers-inline.js').write_text('\n\n'.join(scripts),encoding='utf-8')
+          required=['doLogin','init','choose','details','itemDetails','send','cancel','receive','complete','renderWorkspace','renderProducts','renderCart','submit']
+          for name in required:
+            if name+':function' not in s and 'App.'+name+'=function' not in s: raise SystemExit('MISSING_APP_METHOD:'+name)
+          if 'RAWAEA-VOUCHERS-GOLD-MASTER-2026-08-20' not in s: raise SystemExit('MISSING_BUILD_MARKER')
+          if re.search(r"stock_branches[^\n]{0,120}\.(?:update|insert|upsert)",s,re.I): raise SystemExit('DIRECT_PHYSICAL_STOCK_WRITE_DETECTED')
+          if re.search(r"inventory_log[^\n]{0,120}\.(?:update|insert|upsert)",s,re.I): raise SystemExit('DIRECT_PHYSICAL_LOG_WRITE_DETECTED')
+          if 'RW_VOUCHER_RECEIVE:' not in s: raise SystemExit('RECEIVE_IDENTITY_MISSING')
+          print('STATIC_AUDIT_PASS')
+          PY
+          node --check /tmp/vouchers-inline.js
+          git diff --check
+
+      - name: Commit Gold Master
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: bash
+        run: |
+          git config user.name 'rawaea-cto-bot'
+          git config user.email 'rawaea-cto-bot@users.noreply.github.com'
+          git add Current/PWA/vouchers.html .github/workflows/gold-master-vouchers-20260820.yml
+          git commit -m 'fix(vouchers): finalize source-preserving Gold Master [gold-master]' || echo 'NO_CHANGES'
+          git push origin HEAD:${{ github.head_ref }}
