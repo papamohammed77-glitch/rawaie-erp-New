@@ -1,0 +1,199 @@
+الخطة العامة الكبرى لـ RAWAEA ERP
+1. تثبيت الحقيقة المعمارية — SSOT
+
+توحيد مصادر الحقيقة ومنع وجود نسخ متنافسة:
+Production + Current + Historical + Original + DB Schema + Edge Functions + Consumers.
+
+القاعدة:
+
+لا قرار بلا Evidence، ولا Evidence بلا مصدر يمكن الرجوع إليه.
+
+2. إيقاف Distributed Business Logic
+
+إزالة نمط أن كل Edge Function تصبح ERP صغيرًا مستقلًا.
+
+المطلوب:
+Edge = Capability/API Boundary
+
+PostgreSQL Core = Transactional Business Engine
+
+3. إنقاذ الـInventory
+
+وهذا هو المحور الذي نعمل عليه الآن:
+
+post_stock_movement
+= المحرك المركزي الوحيد للـPhysical Stock Movement
+
+مع فصل:
+reserve_stock
+= Reservation
+
+ثم إعادة توجيه جميع writers:
+Picking / Loading / Unloading / Sales / Returns / Purchases / Vouchers / Adjustments / Delivery.
+
+الهدف:
+حركة مخزون واحدة = مكان واحد = Transaction واحدة = Inventory Log واحد = Idempotency واحدة.
+
+4. إصلاح الـInventory Lifecycle كاملًا
+
+بناء دورة سليمة ومتكاملة:
+
+Order
+→ Runsheet
+→ Picking
+→ Reservation
+→ Loading MAIN→VAN
+→ Van Sale VAN→Customer
+→ Return
+→ Unloading VAN→MAIN
+→ Reopen/Cancel
+→ Backorder
+
+مع قابلية:
+Retry / Idempotency / Rollback / Reverse
+
+5. إصلاح المحاسبة المركزية
+
+بعد تثبيت حركة المخزون:
+
+post_journal_entry
+→ Journal Header/Lines
+
+ثم توحيد:
+COGS / Revenue / Returns / Purchase accounting
+
+ومنْع كل Edge Function من اختراع قيودها الخاصة.
+
+6. توحيد الـLedgers
+
+محرك مركزي للدفاتر:
+
+Customer Ledger
+Supplier Ledger
+Driver Ledger
+Treasury
+Daily Settlement
+
+بحيث لا توجد مصادر متكررة أو قيود متضاربة.
+
+7. إصلاح الـFulfillment / Order State
+
+توحيد العلاقة بين:
+
+orders
+→ order_details
+→ runsheets
+→ run_sheet_details
+
+والقاعدة التي أثبتناها:
+order_details = authoritative fulfillment data
+
+run_sheet_details = derived aggregate
+
+8. إصلاح Multi-Tenancy وIdentity
+
+منع أخطاء مثل التي ظهرت في start-picking:
+
+auth.users.id
+→ public.users.id
+→ public.users.company_id
+
+ثم كل Query:
+Company-scoped
+
+لا app_settings.limit(1) كمرجع عالمي للـtenant.
+
+9. توحيد الصلاحيات والأمان
+
+ضبط:
+
+RLS
+SECURITY DEFINER
+EXECUTE privileges
+Company isolation
+User/Role permissions
+Edge authentication
+
+مع مراجعة Security Advisor.
+
+10. إصلاح كل Edge Functions جراحيًا
+
+ليس دفعة واحدة.
+
+كل Closure Unit:
+
+Historical → Original → Current → Production → Core → Consumers → Surgical Patch → Tests → Deployment → Production Verification → 100% Close
+
+ولا تنتقل للدالة التالية قبل إغلاق الحالية.
+
+11. إصلاح التطبيقات والـConsumers
+
+بعد تثبيت العقود الخلفية:
+
+PWA / النظام الأم / التطبيقات المنفصلة
+
+يجب أن:
+
+تستمر في استخدام العقود الحالية.
+لا تُكرر Business Logic.
+لا تعتمد على جداول مشتقة كمصدر حقيقة.
+تمر من خلال الـEdge/Core الجديدين.
+
+والتعديلات على التطبيقات:
+Surgical فقط لأنها artifacts ذهبية/ماسية.
+
+12. Migration & Deployment Discipline
+
+لا تصبح لدينا سلسلة migrations متنافسة أو نسخة غير معروفة.
+
+نحتاج:
+Canonical Migration Lineage
+
+وتمييز واضح بين:
+
+Current
+→ Staging
+→ Production
+
+مع Deployment Evidence.
+
+13. Global Regression & Concurrency
+
+بعد الإصلاحات:
+
+Sequential
+Retry
+Duplicate
+Concurrent
+Partial
+Failure
+Rollback
+Reverse lifecycle
+Multi-tenant isolation
+
+ثم Production Canary آمن وقابل للإرجاع.
+
+14. Zero-Debt Sweep
+
+في النهاية:
+
+مسح شامل لكل:
+
+Direct Stock Writers
+Direct Journal Writers
+Direct Ledger Writers
+Duplicate Business Engines
+Hidden Triggers
+Legacy Edge Functions
+Consumers خارج العقود
+Temporary Harnesses
+Drift بين Git وProduction
+15. المنتج النهائي
+
+الهدف ليس مجرد "ERP يعمل".
+
+الهدف:
+
+RAWAEA ERP بنواة معاملات مركزية، مصدر حقيقة واحد، حدود واضحة بين التشغيل والمحاسبة، قابل للتوسع، قابل للتدقيق، ومحصّن ضد ازدواجية الحركات والقيود.
+
+وعندها فقط نعتبر مشروع الإنقاذ Zero-Debt / 100% Closed.
