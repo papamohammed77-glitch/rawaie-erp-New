@@ -1,0 +1,110 @@
+name: Forensic Supervisor Team Surgical Fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply exact surgical patch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+          p = Path('Current/PWA/warehouse.supervisor')
+          text = p.read_text(encoding='utf-8')
+
+          replacements = [
+            (
+              "select('id,name,email,role,status,active_warehouse_role,default_branch_id,allowed_branch_ids').eq('company_id',s.companyId).in('role',['مخزني','أمين مخزن']).eq('status','Active').order('name')",
+              "select('id,name,email,role,status,active_warehouse_role,default_branch_id,allowed_branch_ids').eq('company_id',s.companyId).eq('role','مخزني').eq('status','Active').order('name')"
+            ),
+            (
+              ".team-row td{padding:13px 14px;border-bottom:1px solid #eef2f7;vertical-align:middle}",
+              ".team-table td{padding:13px 14px;border-bottom:1px solid #eef2f7;vertical-align:middle}"
+            ),
+          ]
+
+          for old, new in replacements:
+              if old not in text:
+                  print(f'MISSING: {old}')
+                  sys.exit(1)
+              text = text.replace(old, new, 1)
+
+          css_anchor = "        .team-row-muted{color:#64748b;font-size:11px;font-weight:700}\n"
+          css_add = """        .team-row-muted{color:#64748b;font-size:11px;font-weight:700}
+        .team-refresh-btn{border:1px solid #dbe4f0;background:#fff;color:#1e40af;border-radius:12px;padding:9px 12px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap}
+        .team-refresh-btn:active{transform:scale(.97)}
+        @media(max-width:720px){
+            .team-table-wrap{overflow:visible;border:none;background:transparent;box-shadow:none}
+            .team-table{min-width:0;width:100%;display:block}
+            .team-table thead{display:none}
+            .team-table tbody{display:block}
+            .team-table tbody tr{display:grid;grid-template-columns:1fr 1fr;background:#fff;border:1px solid #e8edf5;border-radius:22px;padding:11px;margin-bottom:12px;box-shadow:0 8px 24px rgba(15,23,42,.05)}
+            .team-table td{display:block;border:none;padding:7px 5px}
+            .team-table td:before{content:attr(data-label);display:block;color:#94a3b8;font-size:9px;font-weight:900;margin-bottom:4px}
+            .team-table td:nth-child(1){grid-column:1/-1}
+            .team-table td:nth-child(5){grid-column:1/-1}
+            .team-table td:nth-child(6){grid-column:1}
+            .team-table td:nth-child(7){grid-column:2}
+            .team-role-select{min-height:46px}
+            .team-save-btn{width:100%;min-height:46px}
+        }
+"""
+          if css_anchor not in text:
+              print('MISSING CSS ANCHOR')
+              sys.exit(1)
+          text = text.replace(css_anchor, css_add, 1)
+
+          old_row = "html+='<tr class=\"team-row\" data-team-row=\"'+(safeName+' '+safeEmail+' '+role+' '+jobLabel+' '+branchText).toLowerCase()+'\" data-user-id=\"'+emp.id+'\"><td><div class=\"font-black text-slate-800\">'+safeName+'</div><div class=\"text-xs text-slate-400 mt-1\">'+safeEmail+'</div></td><td><span class=\"team-row-muted\">'+jobLabel+'</span></td><td><span class=\"team-row-muted\">'+branchText+'</span></td><td><span class=\"team-current\">'+(icons[role]||'🪑')+' '+role+'</span></td><td><select class=\"team-role-select\" data-user-id=\"'+emp.id+'\" data-original-role=\"'+role+'\" onchange=\"App.queueRoleChange(this.dataset.userId,this.value)\">';"
+          new_row = "html+='<tr class=\"team-row\" data-team-row=\"'+(safeName+' '+safeEmail+' '+role+' '+jobLabel+' '+branchText).toLowerCase()+'\" data-user-id=\"'+emp.id+'\"><td data-label=\"العامل\"><div class=\"font-black text-slate-800\">'+safeName+'</div><div class=\"text-xs text-slate-400 mt-1\">'+safeEmail+'</div></td><td data-label=\"المسمى الوظيفي\"><span class=\"team-row-muted\">'+jobLabel+'</span></td><td data-label=\"نطاق العامل\"><span class=\"team-row-muted\">'+branchText+'</span></td><td data-label=\"المهمة الحالية\"><span id=\"team-current-'+emp.id+'\" class=\"team-current\">'+(icons[role]||'🪑')+' '+role+'</span></td><td data-label=\"المهمة الجديدة\"><select class=\"team-role-select\" data-user-id=\"'+emp.id+'\" data-original-role=\"'+role+'\" onchange=\"App.queueRoleChange(this.dataset.userId,this.value)\">';"
+          if old_row not in text:
+              print('MISSING ROW TEMPLATE')
+              sys.exit(1)
+          text = text.replace(old_row, new_row, 1)
+
+          old_save = "if(pending)pending.classList.add('hidden');if(saved){saved.classList.remove('hidden');saved.innerText='✓ تم الحفظ'}RW_UI.toast('تم حفظ مهمة '+newRole+' للعامل بنجاح','success');setTimeout(function(){s.renderRoster()},450)"
+          new_save = "if(pending)pending.classList.add('hidden');if(saved){saved.classList.remove('hidden');saved.innerText='✓ تم الحفظ'}select.setAttribute('data-original-role',newRole);var current=RW_UI.byId('team-current-'+userId);if(current){current.innerText=(newRole==='استلام'?'📦 ':newRole==='تحضير'?'📋 ':newRole==='تحميل'?'🚛 ':newRole==='مرتجعات'?'↩️ ':newRole==='تفريغ'?'🔄 ':newRole==='أذونات'?'📄 ':newRole==='جرد'?'🔍 ':'🪑 ')+newRole;current.className='team-current'}RW_UI.toast('تم حفظ مهمة '+newRole+' للعامل بنجاح','success');"
+          if old_save not in text:
+              print('MISSING SAVE BLOCK')
+              sys.exit(1)
+          text = text.replace(old_save, new_save, 1)
+
+          p.write_text(text, encoding='utf-8')
+          print('PATCH_OK')
+          PY
+
+      - name: Validate JavaScript
+        run: |
+          node --check <(python3 - <<'PY'
+          from pathlib import Path
+          import re
+          t=Path('Current/PWA/warehouse.supervisor').read_text(encoding='utf-8')
+          m=re.search(r'<script>\n(var App = .*?)\nRW_SW\.register',t,re.S)
+          if not m:
+              raise SystemExit('Unable to extract application JavaScript')
+          print(m.group(1))
+          PY
+          )
+
+      - name: Commit final file and remove runner
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Current/PWA/warehouse.supervisor .github/workflows/forensic_supervisor_team_surgical_fix.yml
+          git commit -m "fix: refine warehouse supervisor team assignment UX" 
+          git push
+          git rm .github/workflows/forensic_supervisor_team_surgical_fix.yml
+          git commit -m "chore: remove one-shot forensic supervisor fixer"
+          git push
