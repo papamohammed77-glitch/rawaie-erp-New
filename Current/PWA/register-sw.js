@@ -39,7 +39,7 @@ function RW_showUpdateBanner() {
     var tag='vouchers-gold-master-ui.js';
     if(document.querySelector('script[data-rw-vouchers-gm="1"]'))return;
     var script=document.createElement('script');
-    script.src='../vouchers-gold-master-ui.js';
+    script.src='./vouchers-gold-master-ui.js';
     script.async=false;
     script.dataset.rwVouchersGm='1';
     script.onload=function(){console.info('[VOUCHERS] UI Gold Master capability layer ready')};
