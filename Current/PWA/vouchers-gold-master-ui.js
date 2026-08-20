@@ -1,25 +1,129 @@
-/* RAWAEA VOUCHERS — UI GOLD MASTER PATCH 2026-08-20
- * UI-only capability layer. No stock mutation, no inventory_log writes.
+/* RAWAEA VOUCHERS — UI GOLD MASTER CAPABILITY PATCH 2026-08-20+
+ * UI-only capability layer. No stock mutation and no inventory_log writes.
+ * DirectSale contract: Representative -> Vehicle; vehicle.driver_id is authoritative.
  */
 (function(){
   'use strict';
   if(location.pathname.indexOf('/vouchers.html')===-1)return;
-  if(typeof App==='undefined'){console.error('[VOUCHERS] Gold Master UI patch loaded before App');return;}
-  var COLLAPSE_KEY='RW_VOUCHER_WORKSPACE_COLLAPSED',collapsed=false;
-  try{collapsed=localStorage.getItem(COLLAPSE_KEY)==='1'}catch(e){collapsed=false}
+  if(typeof App==='undefined'){console.error('[VOUCHERS] capability patch loaded before App');return;}
+
   function esc(v){return App.esc?App.esc(v):String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;')}
-  function stockClass(av){return av===null?'n':av>10?'g':av>0?'y':'r'}
-  function installStyles(){if(document.getElementById('rw-vouchers-gm-ui-style'))return;var st=document.createElement('style');st.id='rw-vouchers-gm-ui-style';st.textContent=['#workspaceHead.rw-vouchers-workspace-head{position:relative;max-height:900px;overflow:visible;transition:max-height .24s ease,opacity .18s ease,padding .22s ease,transform .22s ease}','#workspaceHead.rw-vouchers-workspace-head.rw-vouchers-collapsed{max-height:0!important;opacity:0;overflow:hidden;padding-top:0!important;padding-bottom:0!important;border-bottom:0!important;transform:translateY(-8px)}','.rw-vouchers-collapse-btn{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.10);color:#cbd5e1;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(148,163,184,.18);transition:.18s}','.rw-vouchers-collapse-btn:hover{background:rgba(255,255,255,.18);color:#fff}','.rw-vouchers-collapse-float{position:absolute;right:10px;top:10px;z-index:150;width:42px;height:42px;border-radius:14px;background:#1e293b;color:#fff;border:1px solid #475569;box-shadow:0 12px 28px rgba(0,0,0,.28);display:none;align-items:center;justify-content:center}','.rw-vouchers-collapse-float.visible{display:flex}','.rw-vouchers-detail-qty{display:flex;align-items:center;gap:10px}','.rw-vouchers-detail-qty button{width:40px;height:40px;border-radius:12px;border:1px solid #475569;font-weight:900;color:#fff;background:#334155}','.rw-vouchers-detail-qty button.plus{background:#2563eb;border-color:#2563eb}'].join('');document.head.appendChild(st)}
-  App.applyWorkspaceCollapsed=function(){var head=document.getElementById('workspaceHead'),floatBtn=document.getElementById('rwVouchersCollapseFloat'),btn=document.getElementById('rwVouchersCollapseBtn');if(!head||!floatBtn||!btn)return;head.classList.toggle('rw-vouchers-collapsed',collapsed);btn.innerHTML=collapsed?'<i class="fa-solid fa-chevron-down"></i>':'<i class="fa-solid fa-chevron-up"></i>';btn.title=collapsed?'فتح الجزء العلوي':'ضم الجزء العلوي';btn.setAttribute('aria-label',btn.title);floatBtn.classList.toggle('visible',collapsed)};
-  App.toggleWorkspaceHead=function(){collapsed=!collapsed;try{localStorage.setItem(COLLAPSE_KEY,collapsed?'1':'0')}catch(e){}this.applyWorkspaceCollapsed()};
+  function label(x,type){if(!x)return '';if(type==='rep')return x.name||x.email||'';if(type==='supplier')return x.name||x.supplier_code||'';if(type==='vehicle')return x.vehicle_code||'';return x.name||x.branch_code||''}
+  function code(x,type){if(!x)return '';if(type==='rep')return x.email||'';if(type==='supplier')return x.supplier_code||x.phone||'';if(type==='vehicle')return x.vehicle_code||'';return x.branch_code||''}
+  function scoreRow(x,z,type){if(!z)return 1;var a=App.norm(label(x,type)),b=App.norm(code(x,type));return a===z||b===z?140:a.indexOf(z)===0?110:b.indexOf(z)===0?105:a.indexOf(z)>=0?70:b.indexOf(z)>=0?60:0}
+  function hydrateRefs(s){
+    if(!s || !s.company)return Promise.resolve();
+    return Promise.all([
+      supabase.from('users').select('id,name,email,role,status').eq('company_id',s.company).eq('status','Active').eq('role','مندوب بيع مباشر').order('name'),
+      supabase.from('suppliers').select('id,supplier_code,name,phone').eq('company_id',s.company).eq('is_active',true).order('name')
+    ]).then(function(r){
+      if(r[0].error)throw r[0].error;
+      if(r[1].error)throw r[1].error;
+      s.refs=s.refs||{};
+      s.refs.reps=r[0].data||[];
+      s.refs.suppliers=r[1].data||s.refs.suppliers||[];
+    });
+  }
+
+  var originalLoadRefs=App.loadRefs;
+  App.loadRefs=function(){
+    var s=this;
+    return Promise.resolve(originalLoadRefs.call(this)).then(function(){return hydrateRefs(s)});
+  };
+
+  var originalPickArr=App.pickArr;
+  App.pickArr=function(key){
+    if(key==='wsRep')return this.refs&&this.refs.reps||[];
+    if(key==='wsTo' && this.type==='DirectSale'){
+      var repId=(document.getElementById('wsRep')||{}).value||'';
+      return (this.refs&&this.refs.vehicles||[]).filter(function(v){return !!repId&&v.driver_id===repId&&v.status==='Active'});
+    }
+    return originalPickArr.call(this,key);
+  };
+
+  var originalPickSearch=App.pickSearch;
+  App.pickSearch=function(key,q){
+    var type=key==='wsRep'?'rep':key==='wsTo'&&this.type==='DirectSale'?'vehicle':key==='wsTo'&&this.type==='SupplierReturn'?'supplier':key==='wsFrom'&&this.type==='DirectReturn'?'vehicle':key==='wsFrom'?'branch':null;
+    if(!type)return originalPickSearch.call(this,key,q);
+    var s=this,arr=this.pickArr(key)||[],z=this.norm(q),box=RW_UI.byId(key+'Menu');
+    if(!box)return;
+    var scored=arr.map(function(x){return{x:x,score:scoreRow(x,z,type)}}).filter(function(o){return o.score>0}).sort(function(a,b){return b.score-a.score}).slice(0,12);
+    box.innerHTML=scored.length?scored.map(function(o){var x=o.x;return '<div class="smart-row" onclick="App.pickSelect(\''+key+'\',\''+s.esc(x.id)+'\')"><div><b class="text-xs text-white">'+s.esc(label(x,type))+'</b><div class="smart-code">'+s.esc(code(x,type))+'</div></div><span class="text-[9px] text-emerald-400">اختيار</span></div>'}).join(''):'<div class="smart-empty">لا توجد نتائج</div>';
+    box.classList.remove('hidden');
+  };
+
+  var originalPickSelect=App.pickSelect;
+  App.pickSelect=function(key,id){
+    if(key==='wsRep'){
+      var reps=this.refs&&this.refs.reps||[],rep=reps.find(function(x){return x.id===id});
+      if(!rep)return;
+      RW_UI.byId('wsRep').value=id;
+      RW_UI.byId('wsRepSearch').value=label(rep,'rep');
+      RW_UI.byId('wsRepMenu').classList.add('hidden');
+      var to=RW_UI.byId('wsTo'),toSearch=RW_UI.byId('wsToSearch'),toMenu=RW_UI.byId('wsToMenu');
+      if(to)to.value='';if(toSearch)toSearch.value='';if(toMenu)toMenu.classList.add('hidden');
+      this.updateSource();
+      return;
+    }
+    if(key==='wsTo' && this.type==='DirectSale'){
+      var repId=(RW_UI.byId('wsRep')||{}).value||'',vehicles=this.pickArr('wsTo'),vehicle=vehicles.find(function(x){return x.id===id});
+      if(!repId){RW_UI.toast('اختر مندوب البيع المباشر أولاً','warning');return;}
+      if(!vehicle){RW_UI.toast('المركبة لا تتبع المندوب المختار','error');return;}
+      RW_UI.byId('wsTo').value=id;
+      RW_UI.byId('wsToSearch').value=label(vehicle,'vehicle');
+      RW_UI.byId('wsToMenu').classList.add('hidden');
+      this.summary();
+      return;
+    }
+    return originalPickSelect.call(this,key,id);
+  };
+
+  var originalRouteHtml=App.routeHtml;
+  App.routeHtml=function(){
+    var s=this,t=this.type;
+    if(t!=='DirectSale')return originalRouteHtml.call(this);
+    function picker(key,labelText,disabled){return '<div class="smart-field"><input type="hidden" id="'+key+'" value=""><input id="'+key+'Search" class="smart-input" autocomplete="off" placeholder="'+labelText+' — ابحث بالاسم أو الكود" '+(disabled?'disabled ':'')+'onfocus="App.pickShow(\''+key+'\')" oninput="App.pickSearch(\''+key+'\',this.value)"><div id="'+key+'Menu" class="smart-menu hidden"></div></div>'}
+    return '<div class="grid grid-cols-1 sm:grid-cols-3 gap-2">'+picker('wsFrom','الفرع المصدر',false)+picker('wsRep','مندوب البيع المباشر',false)+picker('wsTo','المركبة — اختر المندوب أولاً',false)+'</div>';
+  };
+
+  var originalSummary=App.summary;
+  App.summary=function(){
+    if(this.type!=='DirectSale'){
+      var r=originalSummary.call(this);
+      if(this.type==='DirectReturn'){
+        var to=RW_UI.byId('wsFrom'),v=to&&to.value?(this.refs.vehicles||[]).find(function(x){return x.id===to.value}):null,rep=v&&v.driver_id?(this.refs.reps||[]).find(function(x){return x.id===v.driver_id}):null;
+        if(rep)RW_UI.safeText(RW_UI.byId('routeSummary'),(RW_UI.byId('routeSummary').textContent||'')+' · المندوب: '+label(rep,'rep'));
+      }
+      return r;
+    }
+    var fr=RW_UI.byId('wsFrom'),repEl=RW_UI.byId('wsRep'),to=RW_UI.byId('wsTo'),t='';
+    if(fr&&fr.value)t+='المصدر: '+this.loc(fr.value,'Branch');
+    if(repEl&&repEl.value){var rep=(this.refs.reps||[]).find(function(x){return x.id===repEl.value});if(rep)t+=(t?' · ':'')+'المندوب: '+label(rep,'rep')}
+    if(to&&to.value)t+=(t?' · ':'')+'المركبة: '+this.loc(to.value,'Vehicle');
+    RW_UI.safeText(RW_UI.byId('routeSummary'),t||'اختر المندوب ثم المركبة');
+    RW_UI.safeText(RW_UI.byId('stockHint'),fr&&fr.value?'المتاح محسوب من المصدر المحدد':'اختر المصدر لمعرفة المتاح');
+  };
+
+  var originalSubmit=App.submit;
+  App.submit=function(){
+    if(this.type==='DirectSale'){
+      var repId=(RW_UI.byId('wsRep')||{}).value||'',vehicleId=(RW_UI.byId('wsTo')||{}).value||'';
+      if(!repId){RW_UI.toast('مندوب البيع المباشر مطلوب','warning');return;}
+      if(!vehicleId){RW_UI.toast('المركبة مطلوبة بعد اختيار المندوب','warning');return;}
+      var vehicle=(this.refs.vehicles||[]).find(function(x){return x.id===vehicleId});
+      if(!vehicle||vehicle.driver_id!==repId){RW_UI.toast('المركبة المختارة غير مرتبطة بالمندوب المحدد','error');return;}
+    }
+    return originalSubmit.apply(this,arguments);
+  };
+
   var originalRenderWorkspace=App.renderWorkspace;
-  App.renderWorkspace=function(){originalRenderWorkspace.call(this);installStyles();var ws=document.querySelector('#mainContent .ws');if(!ws)return;ws.style.position='relative';var head=ws.firstElementChild;if(!head)return;head.id='workspaceHead';head.classList.add('rw-vouchers-workspace-head');var titleRow=head.querySelector('button[onclick*="App.back"]');if(titleRow&&!document.getElementById('rwVouchersCollapseBtn')){var btn=document.createElement('button');btn.type='button';btn.id='rwVouchersCollapseBtn';btn.className='rw-vouchers-collapse-btn';btn.onclick=function(){App.toggleWorkspaceHead()};btn.title='ضم الجزء العلوي';btn.setAttribute('aria-label','ضم الجزء العلوي');titleRow.parentNode.insertBefore(btn,titleRow.nextSibling)}if(!document.getElementById('rwVouchersCollapseFloat')){var floatBtn=document.createElement('button');floatBtn.type='button';floatBtn.id='rwVouchersCollapseFloat';floatBtn.className='rw-vouchers-collapse-float';floatBtn.innerHTML='<i class="fa-solid fa-chevron-down"></i>';floatBtn.title='فتح الجزء العلوي';floatBtn.setAttribute('aria-label','فتح الجزء العلوي');floatBtn.onclick=function(){App.toggleWorkspaceHead()};ws.insertBefore(floatBtn,ws.children[1]||null)}App.applyWorkspaceCollapsed()};
-  App.itemDetails=function(id){var s=this,x=this.items.find(function(i){return i.id===id});if(!x)return;var av=this.avail(x.id),existing=this.cart.find(function(c){return c.id===x.id}),qty=existing?Number(existing.qty):0,status=av===null?'اختر المصدر':av>10?'🟢 متوفر':av>0?'🟡 محدود ('+f(av)+')':'🔴 غير متاح',canAdd=(av===null)||av>0||this.type==='DirectReturn'||(this.mode==='engine'&&this.type==='Adjustment'&&((document.getElementById('wsMode')||{}).value||'replace')!=='deduct'),qtyHtml=qty>0?'<div id="rwVouchersDetailQty" class="rw-vouchers-detail-qty"><button type="button" data-code="'+esc(x.item_code)+'" onclick="App._rwVoucherDetailQty(this.dataset.code,-1)">−</button><span id="rwVouchersDetailQtyValue" class="text-xl font-black text-white min-w-7 text-center">'+qty+'</span><button type="button" class="plus" data-code="'+esc(x.item_code)+'" onclick="App._rwVoucherDetailQty(this.dataset.code,1)">+</button></div>':(canAdd?'<button type="button" data-code="'+esc(x.item_code)+'" onclick="App._rwVoucherDetailAdd(this.dataset.code)" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold"><i class="fa-solid fa-cart-plus ml-1"></i> أضف للسلة</button>':'<span class="text-xs text-slate-500 font-bold">لا توجد كمية متاحة</span>'),html='<div class="text-right text-slate-100"><div class="flex gap-4 items-start"><div class="w-28 h-28 rounded-3xl bg-slate-800 overflow-hidden flex items-center justify-center shrink-0">'+(x.image_url?'<img src="'+s.esc(x.image_url)+'" class="w-full h-full object-cover">':'<i class="fa-solid fa-box text-4xl text-slate-500"></i>')+'</div><div class="flex-1 min-w-0"><h3 class="text-lg font-black text-white truncate">'+s.esc(x.name||x.item_code)+'</h3><p class="text-xs text-slate-400 mt-1">الكود: '+s.esc(x.item_code)+'</p><p class="text-xs text-slate-400">الباركود: '+s.esc(x.barcode||'—')+'</p><p class="text-xs text-slate-400">الوحدة: '+s.esc(x.unit||'حبة')+'</p></div></div><div class="grid grid-cols-2 gap-2 mt-4"><div class="p-3 bg-slate-800 rounded-2xl"><span class="text-[10px] text-slate-400">سعر البيع</span><b class="block mt-1 text-white">'+f(x.sales_price||0)+'</b></div><div class="p-3 bg-slate-800 rounded-2xl"><span class="text-[10px] text-slate-400">التكلفة</span><b class="block mt-1 text-white">'+f(x.cost_price||0)+'</b></div><div class="p-3 bg-slate-800 rounded-2xl"><span class="text-[10px] text-slate-400">التصنيف</span><b class="block mt-1 text-white">'+s.esc(x.category||'أخرى')+'</b></div><div class="p-3 bg-slate-800 rounded-2xl"><span class="text-[10px] text-slate-400">المتاح</span><b class="block mt-1 text-white">'+(av===null?'اختر المصدر':f(av))+'</b></div></div><div class="flex items-center justify-between bg-slate-800 rounded-2xl p-4 mt-4 gap-3"><span class="text-2xl font-black text-emerald-400 whitespace-nowrap">'+f(x.sales_price||x.cost_price||0)+'</span>'+qtyHtml+'</div><div class="text-xs text-slate-400 mt-2">الحالة: <b class="text-slate-200">'+status+'</b></div></div>';Swal.fire({html:html,width:520,showCloseButton:true,showConfirmButton:false,customClass:{popup:'!bg-slate-900 !rounded-3xl !border !border-slate-700',closeButton:'!text-slate-400'}})};
-  App._rwVoucherDetailAdd=function(code){this.add(code);var item=this.items.find(function(x){return x.item_code===code});if(item)this.itemDetails(item.id)};
-  App._rwVoucherDetailQty=function(code,delta){var idx=this.cart.findIndex(function(c){return c.code===code});if(delta>0)this.add(code);else if(idx>=0)this.dec(idx);var item=this.items.find(function(x){return x.item_code===code});if(item)this.itemDetails(item.id)};
-  App.renderProducts=function(){var s=this,q=(document.getElementById('wsSearch')||{}).value||'',z=this.norm(q),a=this.items.filter(function(x){if(s.cat!=='الكل'&&(x.category||'أخرى')!==s.cat)return false;if(!z)return true;var n=s.norm(x.name),c=s.norm(x.item_code),b=s.norm(x.barcode),l=s.norm(x.search_label);return c===z||b===z||c.indexOf(z)===0||b.indexOf(z)===0||n.indexOf(z)>=0||l.indexOf(z)>=0}).sort(function(a,b){if(!z)return String(a.name||'').localeCompare(String(b.name||''),'ar');function score(x){var c=s.norm(x.item_code),br=s.norm(x.barcode),n=s.norm(x.name),l=s.norm(x.search_label);return c===z?150:br===z?145:c.indexOf(z)===0?120:br.indexOf(z)===0?115:n.indexOf(z)>=0?75:l.indexOf(z)>=0?55:0}return score(b)-score(a)||String(a.name||'').localeCompare(String(b.name||''),'ar')}).slice(0,120);RW_UI.safeText(RW_UI.byId('count'),a.length?' · '+a.length:'');var h=a.map(function(x){var av=s.avail(x.id),inCart=(s.cart.find(function(c){return c.id===x.id})||{}).qty||0,disabled=av!==null&&av<=0&&!(s.mode==='engine'&&s.type==='Adjustment')&&s.type!=='DirectReturn';return '<div class="product-card '+(disabled?'opacity-60':'')+'"><button type="button" data-item-id="'+esc(x.id)+'" class="w-full text-right" onclick="App.itemDetails(this.dataset.itemId)" title="عرض تفاصيل الصنف"><div class="product-img mb-2">'+(x.image_url?'<img src="'+s.esc(x.image_url)+'" loading="lazy">':'<i class="fa-solid fa-box text-2xl text-slate-600"></i>')+'</div><div class="flex justify-between gap-2"><div class="min-w-0"><b class="text-xs truncate block">'+s.esc(x.name||x.item_code)+'</b><span class="text-[10px] text-slate-500">'+s.esc(x.item_code)+' · '+s.esc(x.unit||'حبة')+'</span></div><span class="text-[9px] text-slate-400"><i class="stock-dot '+stockClass(av)+'"></i> '+(av===null?'اختر المصدر':av>0?'متاح '+f(av):'غير متاح')+'</span></div></button><div class="flex justify-between mt-2"><span class="text-[11px] text-emerald-400 font-black">'+f(x.sales_price||x.cost_price||0)+'</span><button type="button" '+(disabled?'disabled':'')+' data-item-code="'+esc(x.item_code)+'" onclick="event.stopPropagation();App.add(this.dataset.itemCode)" class="w-9 h-9 rounded-full '+(!disabled?'bg-blue-600 hover:bg-blue-500':'bg-slate-700')+' flex items-center justify-center" title="إضافة">'+(inCart||'<i class="fa-solid fa-plus text-xs"></i>')+'</button></div></div>'}).join('');RW_UI.safeHTML(RW_UI.byId('products'),h||'<div class="col-span-full text-center text-slate-500 py-14">🔍 لا توجد نتائج</div>')};
-  App.add=function(code){var s=this,x=this.items.find(function(i){return i.item_code===code});if(!x)return;var ex=this.cart.find(function(c){return c.id===x.id}),next=(ex?ex.qty:0)+1;if(!this.canAddQuantity(x,next)){RW_UI.toast('الكمية المتاحة في المصدر: '+f(this.avail(x.id)),'warning');return}if(ex)ex.qty=next;else this.cart.push({id:x.id,code:x.item_code,name:x.name||x.item_code,unit:x.unit||'حبة',qty:1,price:Number(x.sales_price||x.cost_price||0)});this.renderCart();this.renderProducts();this.updateResults()};
-  App.inc=function(i){var x=this.cart[i];if(!x)return;var master=this.items.find(function(a){return a.id===x.id});if(!master)return;if(!this.canAddQuantity(master,x.qty+1)){RW_UI.toast('الكمية تتجاوز المتاح في المصدر','warning');return}x.qty++;this.renderCart();this.renderProducts();this.updateResults()};
-  console.info('[VOUCHERS] GOLD-MASTER-2026-08-20 UI patch loaded');
-  document.addEventListener('DOMContentLoaded',function(){if(App.applyWorkspaceCollapsed)App.applyWorkspaceCollapsed()});
+  App.renderWorkspace=function(){
+    originalRenderWorkspace.call(this);
+    if(this.type==='DirectSale'){
+      this.summary();
+    }
+  };
+
+  Promise.resolve().then(function(){return hydrateRefs(App)}).catch(function(e){console.error('[VOUCHERS] reference hydration failed',e)});
+  console.info('[VOUCHERS] direct-sale representative workflow + lookup hardening loaded');
 })();
