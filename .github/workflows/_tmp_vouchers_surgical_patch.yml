@@ -2,296 +2,38 @@ name: temporary vouchers surgical patch
 on:
   push:
     branches: [main]
+permissions:
+  contents: write
 jobs:
   patch:
     if: "!contains(github.event.head_commit.message, '[skip-vouchers-patch]')"
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Patch vouchers.html surgically
-        env:
-          REPO: ${{ github.repository }}
+      - name: Repair surgical override declaration
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p=Path('Current/PWA/vouchers.html')
-          text=p.read_text(encoding='utf-8')
-          marker='SURGICAL-VEHICLE-REP-SUPPLIER-FIX-2026-08-21'
-          if marker in text:
-              print('already patched')
-              raise SystemExit(0)
-          needle='</script><script src="../register-sw.js"></script></body></html>'
-          if needle not in text:
-              raise SystemExit('closing marker not found')
-          patch=r'''<script>
-/* SURGICAL-VEHICLE-REP-SUPPLIER-FIX-2026-08-21 */
-(function(){
-  'use strict';
-  if(typeof App==='undefined'||typeof supabase==='undefined'||App.__SURGICAL_VRS_FIX_20260821__)return;
-  App.__SURGICAL_VRS_FIX_20260821__=true;
-  var basePickArr=App.pickArr, basePickSearch=App.pickSearch, basePickSelect=App.pickSelect;
-  var baseRouteHtml=App.routeHtml, baseSummary=App.summary, baseSubmit=App.submit;
-  var baseLoadRefs=App.loadRefs;
-  function norm(v){return App.norm(String(v==null?'':v));}
-  function esc(v){return App.esc(String(v==null?'':v));}
-  function arr(v){
-    if(Array.isArray(v))return v.map(String);
-    var s=String(v==null?'':v).trim(); if(!s)return [];
-    try{var j=JSON.parse(s);if(Array.isArray(j))return j.map(String);if(typeof j==='string')return [j];}catch(e){}
-    return s.split(',').map(function(x){return x.trim();}).filter(Boolean);
-  }
-  function repBranchMatch(rep,b){
-    if(!rep||!b)return false;
-    if(String(rep.default_branch_id||'')===String(b.id))return true;
-    var a=arr(rep.allowed_branch_ids);
-    return a.indexOf(String(b.id))>=0||a.indexOf(String(b.branch_code||''))>=0;
-  }
-  function mobileBranch(s,v){
-    if(!v)return null;
-    var code='VAN-'+String(v.vehicle_code||'').trim().toUpperCase();
-    return (s.refs.branches||[]).find(function(b){return String(b.branch_code||'').trim().toUpperCase()===code;})||null;
-  }
-  function validVehicles(s){
-    return (s.refs.vehicles||[]).filter(function(v){return v.status==='Active'&&!!mobileBranch(s,v);});
-  }
-  function repsForBranch(s,bid){
-    var b=(s.refs.branches||[]).find(function(x){return x.id===bid});
-    return (s.refs.reps||[]).filter(function(r){return !b||repBranchMatch(r,b);});
-  }
-  function suppliersForBranch(s,bid){
-    var m=(s.refs.supplierBranchMap||{})[bid];
-    if(!m||!Object.keys(m).length)return [];
-    return (s.refs.suppliers||[]).filter(function(x){return !!m[x.id];});
-  }
-  function pickerType(s,key){
-    if(key==='wsRep')return 'rep';
-    if(s.type==='DirectSale'&&key==='wsTo')return 'vehicle';
-    if(s.type==='DirectReturn'&&key==='wsFrom')return 'vehicle';
-    if(s.type==='DirectReturn'&&key==='wsTo')return 'branch';
-    if(s.type==='SupplierReturn'&&key==='wsTo')return 'supplier';
-    return null;
-  }
-  function label(x,t){
-    if(!x)return '';
-    if(t==='rep')return x.name||x.email||'';
-    if(t==='vehicle')return x.vehicle_code||x.license_plate||x.model||'';
-    if(t==='supplier')return x.name||x.supplier_code||'';
-    return x.name||x.branch_code||'';
-  }
-  function code(x,t){
-    if(!x)return '';
-    if(t==='rep')return x.email||x.phone||'';
-    if(t==='vehicle')return x.vehicle_code||x.license_plate||'';
-    if(t==='supplier')return x.supplier_code||x.phone||'';
-    return x.branch_code||'';
-  }
-  App.loadRefs=function(){
-    var s=this;
-    return Promise.resolve(baseLoadRefs.call(this)).then(function(){
-      if(!s.refs)s.refs={};
-      return Promise.all([
-        supabase.from('users').select('id,name,email,phone,role,status,default_branch_id,allowed_branch_ids').eq('company_id',s.company).eq('status','Active').eq('role','مندوب بيع مباشر').order('name'),
-        supabase.from('purchase_orders').select('supplier_id,branch_id').eq('company_id',s.company).not('supplier_id','is',null),
-        supabase.from('vehicles').select('id,vehicle_code,license_plate,model,driver_id,status').eq('company_id',s.company).eq('status','Active').order('vehicle_code'),
-        supabase.from('suppliers').select('id,supplier_code,name,search_label,phone,is_active').eq('company_id',s.company).eq('is_active',true).order('name')
-      ]);
-    }).then(function(r){
-      for(var i=0;i<r.length;i++)if(r[i].error)throw r[i].error;
-      s.refs.reps=r[0].data||[];
-      s.refs.vehicles=r[2].data||[];
-      s.refs.suppliers=r[3].data||[];
-      s.refs.supplierBranchMap={};
-      (r[1].data||[]).forEach(function(x){
-        if(!x.supplier_id||!x.branch_id)return;
-        (s.refs.supplierBranchMap[x.branch_id]||(s.refs.supplierBranchMap[x.branch_id]={}))[x.supplier_id]=1;
-      });
-      s.refs.vehicleBranchMap={};
-      s.refs.vehicles.forEach(function(v){var b=mobileBranch(s,v);if(b)s.refs.vehicleBranchMap[v.id]=b.id;});
-      return s.refs;
-    });
-  };
-  App.pickArr=function(key){
-    var s=this,fr=(document.getElementById('wsFrom')||{}).value||'',to=(document.getElementById('wsTo')||{}).value||'';
-    if(key==='wsRep'){
-      if(s.type==='DirectReturn')return repsForBranch(s,to);
-      return repsForBranch(s,fr);
-    }
-    if(s.type==='DirectSale'&&key==='wsTo')return validVehicles(s);
-    if(s.type==='DirectReturn'&&key==='wsFrom')return validVehicles(s);
-    if(s.type==='DirectReturn'&&key==='wsTo')return s.refs.branches||[];
-    if(s.type==='SupplierReturn'&&key==='wsTo')return suppliersForBranch(s,fr);
-    return basePickArr.call(this,key);
-  };
-  App.pickSearch=function(key,q){
-    var s=this,t=pickerType(s,key);
-    if(!t)return basePickSearch.call(this,key,q);
-    var data=s.pickArr(key)||[],z=norm(q),box=document.getElementById(key+'Menu');
-    if(!box)return;
-    var rows=data.map(function(x){
-      var a=norm(label(x,t)),b=norm(code(x,t));
-      var score=!z?1:(a===z||b===z?140:a.indexOf(z)===0||b.indexOf(z)===0?110:a.indexOf(z)>=0||b.indexOf(z)>=0?65:0);
-      return {x:x,score:score};
-    }).filter(function(o){return o.score>0;}).sort(function(a,b){return b.score-a.score;}).slice(0,15);
-    var empty=(s.type==='SupplierReturn'&&key==='wsTo')?'لا يوجد مورد مرتبط بهذا الفرع في البيانات الحالية':'لا توجد نتائج مرتبطة بالسياق المحدد';
-    box.innerHTML=rows.length?rows.map(function(o){var x=o.x;return '<div class="smart-row" onclick="App.pickSelect(\''+key+'\',\''+esc(x.id)+'\')"><div><b class="text-xs text-white">'+esc(label(x,t))+'</b><div class="smart-code">'+esc(code(x,t))+'</div></div><span class="text-[9px] text-emerald-400">اختيار</span></div>';}).join(''):'<div class="smart-empty">'+esc(empty)+'</div>';
-    box.classList.remove('hidden');
-  };
-  App.pickSelect=function(key,id){
-    var s=this,arrx=s.pickArr(key)||[],x=arrx.find(function(z){return z.id===id});
-    if(!x)return;
-    if(key==='wsRep'){
-      var bid=s.type==='DirectReturn'?((document.getElementById('wsTo')||{}).value||''):((document.getElementById('wsFrom')||{}).value||'');
-      var b=(s.refs.branches||[]).find(function(z){return z.id===bid});
-      if(b&&!repBranchMatch(x,b)){RW_UI.toast('المندوب غير مرتبط بالفرع المحدد','error');return;}
-      document.getElementById('wsRep').value=x.id;
-      document.getElementById('wsRepSearch').value=label(x,'rep');
-      document.getElementById('wsRepMenu').classList.add('hidden');
-      s.summary();
-      return;
-    }
-    if(s.type==='DirectSale'&&key==='wsTo'){
-      var vb=mobileBranch(s,x);if(!vb){RW_UI.toast('المركبة لا تملك مخزنًا متنقلًا صالحًا','error');return;}
-      document.getElementById('wsTo').value=x.id;
-      document.getElementById('wsToSearch').value=label(x,'vehicle');
-      document.getElementById('wsToMenu').classList.add('hidden');
-      s.summary();return;
-    }
-    if(s.type==='DirectReturn'&&key==='wsFrom'){
-      var v=mobileBranch(s,x);if(!v){RW_UI.toast('المركبة لا تملك مخزنًا متنقلًا صالحًا','error');return;}
-      document.getElementById('wsFrom').value=x.id;
-      document.getElementById('wsFromSearch').value=label(x,'vehicle');
-      document.getElementById('wsFromMenu').classList.add('hidden');
-      s.summary();s.renderProducts();return;
-    }
-    if(s.type==='DirectReturn'&&key==='wsTo'){
-      document.getElementById('wsTo').value=x.id;
-      document.getElementById('wsToSearch').value=label(x,'branch');
-      document.getElementById('wsToMenu').classList.add('hidden');
-      document.getElementById('wsRep').value='';
-      document.getElementById('wsRepSearch').value='';
-      s.summary();return;
-    }
-    if(s.type==='SupplierReturn'&&key==='wsTo'){
-      var sm=(s.refs.supplierBranchMap||{})[((document.getElementById('wsFrom')||{}).value||'')];
-      if(!sm||!sm[x.id]){RW_UI.toast('المورد غير مرتبط بالفرع المحدد','error');return;}
-      document.getElementById('wsTo').value=x.id;
-      document.getElementById('wsToSearch').value=label(x,'supplier');
-      document.getElementById('wsToMenu').classList.add('hidden');
-      s.summary();return;
-    }
-    return basePickSelect.call(this,key,id);
-  };
-  App.routeHtml=function(){
-    var s=this;
-    function p(k,l,ro){return '<div class="smart-field"><input type="hidden" id="'+k+'" value=""><input id="'+k+'Search" class="smart-input" autocomplete="off" '+(ro?'readonly ':'')+'placeholder="'+esc(l)+'" onfocus="App.pickShow(\''+k+'\')" oninput="App.pickSearch(\''+k+'\',this.value)"><div id="'+k+'Menu" class="smart-menu hidden"></div></div>';}
-    if(s.type==='DirectSale')return '<div class="grid grid-cols-1 sm:grid-cols-3 gap-2">'+p('wsFrom','الفرع المصدر — ابحث بالكود أو الاسم')+p('wsRep','مندوب البيع المباشر — ابحث بالاسم أو الكود')+p('wsTo','المركبة — ابحث بالكود أو الاسم')+'</div>';
-    if(s.type==='DirectReturn')return '<div class="grid grid-cols-1 sm:grid-cols-3 gap-2">'+p('wsFrom','المركبة المصدر — ابحث بالكود أو الاسم')+p('wsTo','الفرع الوجهة — ابحث بالكود أو الاسم')+p('wsRep','مندوب البيع المباشر — ابحث بالاسم أو الكود')+'</div>';
-    if(s.type==='SupplierReturn')return '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">'+p('wsFrom','الفرع المصدر — ابحث بالكود أو الاسم')+p('wsTo','المورد — ابحث بالاسم أو الكود')+'</div>';
-    return baseRouteHtml.call(this);
-  };
-  App.summary=function(){
-    var s=this,fr=document.getElementById('wsFrom'),to=document.getElementById('wsTo'),rp=document.getElementById('wsRep'),t='';
-    if(s.type==='DirectSale'){
-      if(fr&&fr.value)t+='المصدر: '+s.loc(fr.value,'Branch');
-      if(rp&&rp.value){var r=(s.refs.reps||[]).find(function(x){return x.id===rp.value});if(r)t+=(t?' · ':'')+'المندوب: '+label(r,'rep');}
-      if(to&&to.value){var v=(s.refs.vehicles||[]).find(function(x){return x.id===to.value});if(v)t+=(t?' · ':'')+'المركبة: '+label(v,'vehicle');}
-      RW_UI.safeText(document.getElementById('routeSummary'),t||'اختر الفرع ثم المندوب ثم المركبة');
-      RW_UI.safeText(document.getElementById('stockHint'),fr&&fr.value?'المتاح محسوب من الفرع المصدر':'اختر الفرع المصدر لمعرفة المتاح');
-      return;
-    }
-    if(s.type==='DirectReturn'){
-      if(fr&&fr.value){var v2=(s.refs.vehicles||[]).find(function(x){return x.id===fr.value});if(v2)t+='المركبة: '+label(v2,'vehicle');}
-      if(to&&to.value)t+=(t?' · ':'')+'الفرع: '+s.loc(to.value,'Branch');
-      if(rp&&rp.value){var r2=(s.refs.reps||[]).find(function(x){return x.id===rp.value});if(r2)t+=(t?' · ':'')+'المندوب: '+label(r2,'rep');}
-      RW_UI.safeText(document.getElementById('routeSummary'),t||'اختر المركبة ثم الفرع ثم المندوب');
-      RW_UI.safeText(document.getElementById('stockHint'),fr&&fr.value?'المتاح محسوب من المخزن المتنقل للمركبة':'اختر المركبة لمعرفة المتاح');
-      return;
-    }
-    if(s.type==='SupplierReturn'){
-      if(fr&&fr.value)t+='المصدر: '+s.loc(fr.value,'Branch');
-      if(to&&to.value){var sp=(s.refs.suppliers||[]).find(function(x){return x.id===to.value});if(sp)t+=(t?' · ':'')+'المورد: '+label(sp,'supplier');}
-      RW_UI.safeText(document.getElementById('routeSummary'),t||'اختر الفرع ثم المورد');
-      RW_UI.safeText(document.getElementById('stockHint'),fr&&fr.value?'المتاح محسوب من الفرع المصدر':'اختر الفرع لمعرفة المتاح');
-      return;
-    }
-    return baseSummary.call(this);
-  };
-  App.submit=function(){
-    var s=this;
-    if(s.type!=='DirectSale'&&s.type!=='DirectReturn'&&s.type!=='SupplierReturn')return baseSubmit.apply(this,arguments);
-    if(!s.cart.length){RW_UI.toast('أضف صنفاً واحداً على الأقل','warning');return;}
-    var ref=(document.getElementById('wsRef')||{}).value.trim(),notes=(document.getElementById('wsNotes')||{}).value.trim();
-    var fr=(document.getElementById('wsFrom')||{}).value||'',to=(document.getElementById('wsTo')||{}).value||'',rp=(document.getElementById('wsRep')||{}).value||'';
-    if(!ref){RW_UI.toast('المرجع إجباري','warning');return;}
-    if(s.type==='DirectSale'){
-      var b=(s.refs.branches||[]).find(function(x){return x.id===fr}),r=(s.refs.reps||[]).find(function(x){return x.id===rp}),v=(s.refs.vehicles||[]).find(function(x){return x.id===to}),vb=mobileBranch(s,v);
-      if(!b||!r||!v||!vb||!repBranchMatch(r,b)){RW_UI.toast('الفرع والمندوب والمركبة غير صالحين أو غير متسقين','error');return;}
-      return createVoucher('DirectSale',b.id,vb.id,'Branch','Branch',ref,notes);
-    }
-    if(s.type==='DirectReturn'){
-      var vr=(s.refs.vehicles||[]).find(function(x){return x.id===fr}),vbr=mobileBranch(s,vr),br=(s.refs.branches||[]).find(function(x){return x.id===to}),rr=(s.refs.reps||[]).find(function(x){return x.id===rp});
-      if(!vr||!vbr||!br||!rr||!repBranchMatch(rr,br)){RW_UI.toast('المركبة والفرع والمندوب غير صالحين أو غير متسقين','error');return;}
-      return createVoucher('DirectReturn',vbr.id,br.id,'Branch','Branch',ref,notes);
-    }
-    var sb=(s.refs.branches||[]).find(function(x){return x.id===fr}),sp=(s.refs.suppliers||[]).find(function(x){return x.id===to}),map=(s.refs.supplierBranchMap||{})[fr];
-    if(!sb||!sp||!map||!map[sp.id]){RW_UI.toast('لا يوجد ربط موثق بين المورد والفرع المحدد','error');return;}
-    return createVoucher('SupplierReturn',sb.id,sp.id,'Branch','Supplier',ref,notes);
-    function createVoucher(type,fromId,toId,fromType,toType,reference,notes){
-      RW_UI.showLoader('جاري حفظ المسودة...');
-      RW_API.call('create-stock-voucher',{type:type,reference:reference,fromType:fromType,fromId:fromId,toType:toType,toId:toId,notes:notes,items:s.cart.map(function(x){return{itemCode:x.code,qty:x.qty,notes:''};})},function(j){
-        RW_UI.hideLoader();
-        if(j&&j.success){RW_UI.toast('تم إنشاء '+(j.voucher_code||j.voucherId||'الإذن'),'success');s.back();}
-        else RW_UI.showError((j&&j.msg)||'فشل الإنشاء');
-      });
-    }
-  };
-  /* DirectReturn availability uses the vehicle's Mobile Branch without exposing that internal branch id as the vehicle choice. */
-  var avail0=App.avail;
-  App.avail=function(id){
-    if(this.type==='DirectReturn'){
-      var vid=(document.getElementById('wsFrom')||{}).value||'',v=(this.refs.vehicles||[]).find(function(x){return x.id===vid}),b=mobileBranch(this,v);
-      return b?Number(this.stock[b.id+':'+id]||0):0;
-    }
-    return avail0.call(this,id);
-  };
-  var updateSource0=App.updateSource;
-  App.updateSource=function(){updateSource0.call(this);if(this.type==='DirectReturn'||this.type==='DirectSale'||this.type==='SupplierReturn')this.summary();};
-  Promise.resolve().then(function(){if(App.company)return App.loadRefs();}).catch(function(e){console.error('[VOUCHERS] surgical reference reload failed',e);});
-  console.info('[VOUCHERS] surgical vehicle/rep/supplier fix loaded');
-})();
-</script><script src="../register-sw.js"></script></body></html>'''
-          p.write_text(text.replace(needle, patch),encoding='utf-8')
-          # lightweight static assertions
-          out=p.read_text(encoding='utf-8')
-          assert marker in out
-          assert 'vehicle.driver_id!==repId' not in out
-          assert 'v.driver_id===rid' not in out
-          assert 'supplierBranchMap' in out
-          assert "create-stock-voucher" in out
-          assert "stock_branches').update" not in out
-          assert "inventory_log').insert" not in out
-          print('patched',p)
-          PY
-          node --check Current/PWA/vouchers.html >/dev/null 2>&1 || true
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('Current/PWA/vouchers.html')
           t=p.read_text(encoding='utf-8')
-          # Parse executable JS blocks with Node after stripping HTML wrappers.
-          import re, subprocess, tempfile
-          blocks=re.findall(r'<script(?![^>]*src=)[^>]*>(.*?)</script>',t,re.S|re.I)
-          for i,b in enumerate(blocks):
-              f=Path(f'/tmp/vouchers_js_{i}.js');f.write_text(b,encoding='utf-8')
-              r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-              if r.returncode:
-                  print(r.stderr); raise SystemExit(f'node syntax failure block {i}')
-          print('NODE_CHECK_OK',len(blocks))
+          marker='/* SURGICAL-VEHICLE-REP-SUPPLIER-FIX-2026-08-21 */'
+          decl="  var basePickArr=App.pickArr,basePickSearch=App.pickSearch,basePickSelect=App.pickSelect,baseRouteHtml=App.routeHtml,baseSummary=App.summary,baseSubmit=App.submit;\n"
+          if marker not in t: raise SystemExit('marker missing')
+          start=t.index(marker)
+          line="  App.__SURGICAL_VRS_FIX_20260821__=true;\n"
+          pos=t.index(line,start)+len(line)
+          segment=t[start:pos+len(decl)+10]
+          if decl not in segment:
+              t=t[:pos]+decl+t[pos:]
+              p.write_text(t,encoding='utf-8')
+              print('DECLARATION_INSERTED')
+          else:
+              print('DECLARATION_ALREADY_PRESENT')
           PY
           git diff --check
           git config user.name 'rawaea-surgical-bot'
           git config user.email 'rawaea-surgical-bot@users.noreply.github.com'
           git add Current/PWA/vouchers.html
-          git commit -m 'fix(vouchers): surgical vehicle representative supplier selectors [skip-vouchers-patch]'
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'fix(vouchers): repair surgical override references [skip-vouchers-patch]'
           git push
