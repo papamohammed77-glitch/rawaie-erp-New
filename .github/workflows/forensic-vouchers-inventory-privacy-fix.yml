@@ -105,3 +105,4 @@ jobs:
           git diff --cached --check
           git commit -m 'fix(vouchers): hide commercial prices from warehouse item flow [forensic-vouchers-privacy]'
           git push origin main
+          # trigger marker: forensic-vouchers-privacy-v2
