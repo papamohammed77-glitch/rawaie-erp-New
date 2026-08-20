@@ -1,1 +1,1 @@
-Temporary verification trigger; remove after Gold Master verification.
+Temporary verification trigger; execute the current forensic vouchers Gold Master closure on main.
