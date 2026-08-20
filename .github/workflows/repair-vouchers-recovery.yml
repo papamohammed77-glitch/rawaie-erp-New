@@ -1,0 +1,63 @@
+name: repair-vouchers-recovery
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/repair-vouchers-recovery.yml'
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch vouchers recovery flow
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('Current/PWA/vouchers.html')
+          s=p.read_text(encoding='utf-8')
+          old='<button onclick="App.doLogin()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold mt-6">تسجيل الدخول</button>'
+          new=old+'<button type="button" onclick="App.requestPasswordReset()" class="w-full text-indigo-600 py-2 rounded-2xl font-bold text-sm mt-1">نسيت كلمة المرور؟</button>'
+          if old not in s: raise SystemExit('login button anchor not found')
+          s=s.replace(old,new,1)
+          oldjs="doLogin:function(){var e=RW_UI.byId('loginEmail').value.trim(),p=RW_UI.byId('loginPass').value.trim();if(!e||!p){RW_UI.byId('loginMsg').innerText='أدخل البيانات';RW_UI.byId('loginMsg').classList.remove('hidden');return}RW_UI.showLoader();RW_Auth.doLogin(e,p,function(u,er){RW_UI.hideLoader();if(er){RW_UI.byId('loginMsg').innerText=er;RW_UI.byId('loginMsg').classList.remove('hidden')}else App.init()})},init:function()"
+          newjs="requestPasswordReset:function(){var e=RW_UI.byId('loginEmail').value.trim();if(!e){RW_UI.byId('loginMsg').innerText='أدخل بريد الحساب أولاً';RW_UI.byId('loginMsg').classList.remove('hidden');return}RW_UI.showLoader();supabase.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin+window.location.pathname}).then(function(r){RW_UI.hideLoader();var m=RW_UI.byId('loginMsg');m.innerText=r.error?'تعذر إرسال رابط استعادة كلمة المرور':'تم إرسال رابط استعادة كلمة المرور إلى البريد المسجل، راجع بريدك لإكمال التعيين';m.classList.remove('hidden')}).catch(function(){RW_UI.hideLoader();var m=RW_UI.byId('loginMsg');m.innerText='تعذر إرسال رابط استعادة كلمة المرور';m.classList.remove('hidden')})},doLogin:function(){var e=RW_UI.byId('loginEmail').value.trim(),p=RW_UI.byId('loginPass').value.trim();if(!e||!p){RW_UI.byId('loginMsg').innerText='أدخل البيانات';RW_UI.byId('loginMsg').classList.remove('hidden');return}RW_UI.showLoader();RW_Auth.doLogin(e,p,function(u,er){RW_UI.hideLoader();if(er){RW_UI.byId('loginMsg').innerText=er;RW_UI.byId('loginMsg').classList.remove('hidden')}else App.init()})},init:function()"
+          if oldjs not in s: raise SystemExit('doLogin anchor not found')
+          s=s.replace(oldjs,newjs,1)
+          oldend="RW_SW.register('../sw.js');document.addEventListener('DOMContentLoaded',function(){App.init()});"
+          newend="App.startRecovery=function(){supabase.auth.getSession().then(function(r){if(r.error||!r.data.session){App.init();return}Swal.fire({title:'تعيين كلمة مرور جديدة',html:'<div class=\"text-right space-y-3\"><input id=\"rp1\" type=\"password\" class=\"swal2-input !m-0 !w-full\" placeholder=\"كلمة المرور الجديدة\"><input id=\"rp2\" type=\"password\" class=\"swal2-input !m-0 !w-full\" placeholder=\"تأكيد كلمة المرور\"></div>',confirmButtonText:'حفظ كلمة المرور',allowOutsideClick:false,preConfirm:function(){var a=document.getElementById('rp1').value,b=document.getElementById('rp2').value;if(a.length<8){Swal.showValidationMessage('كلمة المرور يجب أن تكون 8 أحرف على الأقل');return false}if(a!==b){Swal.showValidationMessage('تأكيد كلمة المرور غير متطابق');return false}return a}}).then(function(x){if(!x.isConfirmed)return;RW_UI.showLoader();supabase.auth.updateUser({password:x.value}).then(function(r){RW_UI.hideLoader();if(r.error)throw r.error;return supabase.auth.signOut()}).then(function(){history.replaceState({},document.title,window.location.pathname);Swal.fire({icon:'success',title:'تم تحديث كلمة المرور',text:'يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة',confirmButtonText:'حسنًا'});}).catch(function(e){RW_UI.hideLoader();RW_UI.showError(e.message||'تعذر تحديث كلمة المرور')})})})};RW_SW.register('../sw.js');document.addEventListener('DOMContentLoaded',function(){if(window.location.hash.indexOf('type=recovery')!==-1)App.startRecovery();else App.init()});"
+          if oldend not in s: raise SystemExit('DOMContentLoaded anchor not found')
+          s=s.replace(oldend,newend,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Validate syntax
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('Current/PWA/vouchers.html').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script(?:[^>]*)>(.*?)</script>',s,re.S)
+          Path('/tmp/vouchers-inline.js').write_text('\n'.join(scripts),encoding='utf-8')
+          PY
+          node --check /tmp/vouchers-inline.js
+      - name: Commit repair
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Current/PWA/vouchers.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'fix(vouchers): add password recovery flow'
+          git push
+      - name: Remove temporary workflow
+        if: always()
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm -f .github/workflows/repair-vouchers-recovery.yml || true
+          git diff --cached --quiet || git commit -m 'chore: remove temporary voucher repair workflow'
+          git push || true
