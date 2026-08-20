@@ -171,7 +171,17 @@ The cross-company `items.company_id` mismatches were initially treated as possib
 ### Unknown / conflict status
 No material Unknown or Conflict remains inside the Physical Inventory Writer closure defined by this sweep.
 
-## 12. Final gate
+## 12. Final Production snapshot
+
+Authoritative final snapshot executed after all Production changes and immediately before closure reporting:
+- PostgreSQL `now()`: **2026-08-20 00:00:39.599996+00**
+- stock rows: **23**
+- inventory log rows: **56**
+- `available_qty` mismatches: **0**
+- stock violations (`qty<0`, `allocated_qty<0`, `allocated_qty>qty`): **0**
+- `post_stock_movement` overloads: **2** (9-arg compatibility wrapper + 10-arg keyed engine)
+
+## 13. Final gate
 
 `GLOBAL INVENTORY CORE INTEGRITY = 100% CLOSED`
 
