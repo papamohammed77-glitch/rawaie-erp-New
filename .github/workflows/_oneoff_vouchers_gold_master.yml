@@ -1,0 +1,96 @@
+name: oneoff-vouchers-gold-master
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, 'Vouchers Gold Master')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Apply forensic closure and validate
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re, subprocess
+
+          p = Path('Current/PWA/vouchers.html')
+          text = p.read_text(encoding='utf-8')
+
+          # 1) Preserve the historical Dexie compatibility contract for core.js.
+          dexie = '<script src="https://cdn.jsdelivr.net/npm/dexie@3/dist/dexie.min.js"></script>'
+          anchor = '<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>'
+          if dexie not in text:
+              if anchor not in text: raise SystemExit('DEXIE_ANCHOR_MISSING')
+              text = text.replace(anchor, anchor + dexie, 1)
+
+          # 2) Restore password-recovery completion UI without changing the normal login contract.
+          if 'id="recoveryScreen"' not in text:
+              marker = '<div id="mainApp"'
+              recovery = '''<div id="recoveryScreen" class="hidden fixed inset-0 z-[110] flex items-center justify-center auth-bg p-4 overflow-y-auto"><div class="bg-white rounded-[36px] shadow-2xl p-6 w-[92%] max-w-md my-6"><div class="text-center mb-6"><div class="w-16 h-16 rounded-3xl bg-indigo-50 text-indigo-700 mx-auto flex items-center justify-center mb-4"><i class="fa-solid fa-key text-2xl"></i></div><h2 class="font-black text-xl text-slate-800">تعيين كلمة مرور جديدة</h2><p class="text-sm text-slate-400 mt-1">أدخل كلمة مرور جديدة ثم العودة إلى تسجيل الدخول</p></div><input id="recoveryPass1" type="password" autocomplete="new-password" placeholder="كلمة المرور الجديدة" class="w-full p-3.5 bg-slate-50 rounded-2xl border-2 border-slate-100 outline-none mb-3"><input id="recoveryPass2" type="password" autocomplete="new-password" placeholder="تأكيد كلمة المرور" class="w-full p-3.5 bg-slate-50 rounded-2xl border-2 border-slate-100 outline-none"><button onclick="App.applyRecoveryPassword()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold mt-5">حفظ كلمة المرور</button><button onclick="App.cancelRecovery()" class="w-full text-slate-500 py-2 rounded-2xl font-bold text-sm mt-1">العودة لتسجيل الدخول</button><p id="recoveryMsg" class="text-center text-xs font-bold mt-3 hidden"></p></div></div>\n'''
+              if marker not in text: raise SystemExit('MAINAPP_MARKER_MISSING')
+              text = text.replace(marker, recovery + marker, 1)
+
+          # 3) Restore the actual recovery completion functions referenced by Prompt 26.
+          if 'applyRecoveryPassword:function' not in text:
+              marker = '\n\ndoLogin:function'
+              funcs = '''\n\napplyRecoveryPassword:function(){var a=RW_UI.byId('recoveryPass1').value,b=RW_UI.byId('recoveryPass2').value,m=RW_UI.byId('recoveryMsg');m.classList.add('hidden');if(!a||a.length<6){m.textContent='كلمة المرور يجب أن تحتوي على 6 أحرف على الأقل';m.className='text-center text-xs font-bold mt-3 text-red-500';m.classList.remove('hidden');return}if(a!==b){m.textContent='تأكيد كلمة المرور غير مطابق';m.className='text-center text-xs font-bold mt-3 text-red-500';m.classList.remove('hidden');return}RW_UI.showLoader();supabase.auth.updateUser({password:a}).then(function(r){RW_UI.hideLoader();if(r.error){m.textContent=r.error.message||'فشل تحديث كلمة المرور';m.className='text-center text-xs font-bold mt-3 text-red-500';m.classList.remove('hidden');return}RW_UI.toast('تم تحديث كلمة المرور بنجاح','success');return supabase.auth.signOut()}).then(function(){App.cancelRecovery()}).catch(function(e){RW_UI.hideLoader();m.textContent=e.message||'فشل تحديث كلمة المرور';m.className='text-center text-xs font-bold mt-3 text-red-500';m.classList.remove('hidden')})},\nshowRecovery:function(){RW_UI.byId('loginScreen').classList.add('hidden');RW_UI.byId('mainApp').classList.add('hidden');RW_UI.byId('recoveryScreen').classList.remove('hidden')},\ncancelRecovery:function(){RW_UI.byId('recoveryScreen').classList.add('hidden');RW_UI.byId('mainApp').classList.add('hidden');RW_UI.byId('loginScreen').classList.remove('hidden');if(location.hash){try{history.replaceState({},document.title,location.pathname+location.search)}catch(e){}}},\n'''
+              if marker not in text: raise SystemExit('LOGIN_INSERT_MARKER_MISSING')
+              text = text.replace(marker, funcs + 'doLogin:function', 1)
+
+          # 4) Restore connection lifecycle indicators.
+          old = "RW_UI.byId('loginScreen').classList.add('hidden');RW_UI.byId('mainApp').classList.remove('hidden');RW_UI.updateConnectionStatus('connDot','connLabel');"
+          new = "RW_UI.byId('loginScreen').classList.add('hidden');RW_UI.byId('recoveryScreen').classList.add('hidden');RW_UI.byId('mainApp').classList.remove('hidden');RW_UI.updateConnectionStatus('connDot','connLabel');window.addEventListener('online',function(){RW_UI.updateConnectionStatus('connDot','connLabel')});window.addEventListener('offline',function(){RW_UI.updateConnectionStatus('connDot','connLabel')});"
+          if old in text:
+              text = text.replace(old, new, 1)
+
+          # 5) Keep the selected operation visible in the header.
+          old_choose = "choose:function(t){this.type=t;this.mode=(t==='Scrap'||t==='Adjustment')?'engine':'voucher';this.toggleMenu();this.newWorkspace()},"
+          new_choose = "choose:function(t){this.type=t;this.mode=(t==='Scrap'||t==='Adjustment')?'engine':'voucher';this.toggleMenu();RW_UI.safeText(RW_UI.byId('typeLabel'),this.voucherLabel(t));this.newWorkspace()},"
+          if old_choose in text:
+              text = text.replace(old_choose, new_choose, 1)
+
+          # 6) Restore durable receive operation identity across reload/network failure.
+          old_recv = "var op=s.receiveOps[code]||(s.receiveOps[code]=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():'UI-RECEIVE:'+s.company+':'+v.id+':'+Date.now()+':'+Math.random().toString(36).slice(2));RW_UI.showLoader();RW_API.call('receive-stock-voucher',{voucher_code:code,receivedItems:a.value,operation_id:op},function(j){RW_UI.hideLoader();if(j&&j.success){delete s.receiveOps[code];RW_UI.toast(j.duplicate?'تم التعرف على التكرار':'تم الاستلام','success');s.loadList('pending')}else RW_UI.showError((j&&j.msg)||'فشل الاستلام')})"
+          new_recv = "var fp=JSON.stringify(a.value.map(function(x){return[x.itemId,Number(x.receivedQty)]}).sort(function(x,y){return String(x[0]).localeCompare(String(y[0]))}));var store='RW_VOUCHER_RECEIVE:'+s.company+':'+v.id,op=null;try{var old=localStorage.getItem(store);if(old){var rec=JSON.parse(old);if(rec&&rec.fingerprint===fp&&rec.operation_id)op=rec.operation_id}}catch(e){}if(!op)op=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():'UI-RECEIVE:'+s.company+':'+v.id+':'+Date.now()+':'+Math.random().toString(36).slice(2);try{localStorage.setItem(store,JSON.stringify({operation_id:op,fingerprint:fp,created_at:new Date().toISOString()}))}catch(e){}RW_UI.showLoader();RW_API.call('receive-stock-voucher',{voucher_code:code,receivedItems:a.value,operation_id:op},function(j){RW_UI.hideLoader();if(j&&j.success){try{localStorage.removeItem(store)}catch(e){}RW_UI.toast(j.duplicate?'تم التعرف على العملية المكررة':'تم الاستلام','success');s.loadList('pending')}else RW_UI.showError((j&&j.msg)||'فشل الاستلام — تم الاحتفاظ بهوية العملية لإعادة المحاولة بأمان')})"
+          if old_recv in text:
+              text = text.replace(old_recv, new_recv, 1)
+          else:
+              # The guard prevents a silent partial patch if the implementation already changed again.
+              if 'localStorage' not in text or "RW_VOUCHER_RECEIVE:" not in text:
+                  raise SystemExit('RECEIVE_IDEMPOTENCY_PATTERN_MISSING')
+
+          # 7) Restore recovery event handling after Supabase auth establishes a recovery session.
+          marker = "document.addEventListener('DOMContentLoaded',function(){App.init()});"
+          replacement = "if(supabase&&supabase.auth&&supabase.auth.onAuthStateChange){supabase.auth.onAuthStateChange(function(event){if(event==='PASSWORD_RECOVERY'&&App.showRecovery)App.showRecovery()})}document.addEventListener('DOMContentLoaded',function(){if(location.hash&&/type=recovery|access_token=.*type=recovery/i.test(location.hash)){if(App.showRecovery)App.showRecovery()}else App.init()});"
+          if marker in text:
+              text = text.replace(marker, replacement, 1)
+          elif "PASSWORD_RECOVERY" not in text:
+              raise SystemExit('RECOVERY_EVENT_MARKER_MISSING')
+
+          # 8) Static guardrails: vouchers page must never mutate physical stock tables directly.
+          forbidden = ["from('stock_branches').update","from('stock_branches').insert","from('stock_branches').upsert","from('inventory_log').insert","from('inventory_log').update"]
+          for token in forbidden:
+              if token in text: raise SystemExit('DIRECT_PHYSICAL_STOCK_WRITE:'+token)
+
+          p.write_text(text,encoding='utf-8')
+
+          # Syntax-check the inline JavaScript before commit.
+          m=re.search(r'<script>\n(.*?)\n</script>', text, re.S)
+          if not m: raise SystemExit('INLINE_JS_NOT_FOUND')
+          Path('/tmp/vouchers_inline.js').write_text(m.group(1),encoding='utf-8')
+          subprocess.run(['node','--check','/tmp/vouchers_inline.js'],check=True)
+          print('VOUCHERS_GOLD_MASTER_PATCH_OK', len(text.encode('utf-8')))
+          PY
+
+          git config user.name "rawaea-ctobot"
+          git config user.email "ctobot@users.noreply.github.com"
+          git add Current/PWA/vouchers.html
+          git diff --cached --check
+          git commit -m "fix: vouchers Gold Master forensic closure"
+          git push
