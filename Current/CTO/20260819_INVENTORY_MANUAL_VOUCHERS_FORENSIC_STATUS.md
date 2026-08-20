@@ -58,8 +58,9 @@ Implemented and verified in the final Git blob:
 - Physical Stock ownership remains backend-controlled through `post_stock_movement`.
 
 ### Final vouchers.html identity
-- Git blob SHA: `a8d6726c037ed45157ec5cfadce63cbf791babb6`
+- Git blob SHA: `812070b2e0ede5754d971fd20f4e6b5b2472f59c`
 - Final file: `Current/PWA/vouchers.html`
+- Build marker: `RAWAEA-VOUCHERS-GOLD-MASTER-2026-08-20-INV-PRIVACY`
 
 ## Production runtime verification previously completed
 A Production-only forensic test was executed inside a PL/pgSQL subtransaction and intentionally rolled back after verification.
@@ -83,8 +84,48 @@ Verified in the real deployed database:
 1. Historical architecture contains Scrap and Adjustment as manual voucher types, but the current deployed CREATE contract does not support them. They remain intentionally unavailable in the UI until their backend contract is independently proven and closed.
 2. Production-only Edge files `complete-stock-voucher` and `cancel-stock-voucher` are deployed; the canonical `Current/Edge_Functions` directory did not contain those files during the earlier closure. This remains documented Production/Current Git drift.
 3. A legacy 9-argument `post_stock_movement` overload still exists in Production, but the application roles cannot execute it; the application path uses the canonical 10-argument idempotent overload. This is legacy residue outside the surgical voucher UI task.
-4. Purchase receiving idempotency remains a separate closure unit; it is not silently counted as closed here.
+4. Purchase receiving idempotency remains a separate closure unit; it is not silently counted as closed.
 5. Global Inventory Core Integrity remains incomplete until the remaining writer closure units in the governing directive are independently closed.
+
+## 2026-08-20 Transfer SEND incident closure
+### Incident
+Real Production `Transfer` voucher `IN-1` failed with `target stock row missing` because destination branch `BR-2` had valid company/master-data context but no `stock_branches` row for the selected items.
+
+### Root cause
+`send_stock_voucher_atomic` was already routing Transfer to `voucher.to_id` and calling the canonical `post_stock_movement`. The remaining defect was inside `post_stock_movement`: it treated an absent destination inventory-state row as an invalid movement instead of a zero opening stock state.
+
+### Surgical Production repair
+A new canonical migration was applied:
+
+`supabase/migrations/20260820_inventory_target_stock_row_autoinit.sql`
+
+The engine now:
+- validates target branch company context;
+- validates global item identity;
+- atomically creates a missing target `stock_branches` row with `qty=0` and `allocated_qty=0`;
+- uses `ON CONFLICT (branch_id,item_id) DO NOTHING` for concurrency safety;
+- keeps source stock existence and availability checks unchanged;
+- keeps all physical mutation and `inventory_log` creation inside `post_stock_movement`.
+
+Canonical Git commit:
+`2c4c9a3eafd3d7dfd5944abdfd35a04eba7fc215`
+
+### Production runtime proof
+The real Production voucher `IN-1` was then executed through `send_stock_voucher_atomic`.
+
+Verified:
+- voucher status changed to `Sent`;
+- `movement_count = 3`;
+- target branch `BR-2` rows were created for item codes `1001`, `1003`, `1005`;
+- target quantities became `1`, `2`, `1` respectively;
+- allocated quantities remained `0`;
+- three `TransferOut` inventory logs were created with per-item idempotency keys;
+- source balances decreased exactly by the requested quantities.
+
+Incident status: `PRODUCTION RUNTIME VERIFIED — CLOSED`.
+
+Forensic record:
+`Current/CTO/20260820_VOUCHERS_TRANSFER_TARGET_STOCK_ROW_FORENSIC_FIX.md`
 
 ## Final status
 - Manual voucher UI/UX gap for the four Production-proven types: CLOSED.
@@ -94,8 +135,9 @@ Verified in the real deployed database:
 - Hardcoded source/target UI defect: CLOSED.
 - Mandatory reference gap: CLOSED.
 - Cancel / Complete / Partial Receive UI gap: CLOSED for the current Production contract.
+- **Transfer Branch→Branch `target stock row missing`: CLOSED in Production and canonically recorded in Git.**
 - Physical Stock ownership: remains centralized through `post_stock_movement`.
 - Scrap / Adjustment creation: NOT CLOSED because Production CREATE contract is not proven; intentionally not invented.
 
 ## Memory anchor
-This document is the current forensic memory anchor. The next CTO must reread it and verify Production again. Do not infer that a historical manual voucher type is implemented merely because the UI lists it. The only types considered operationally supported are those proven by the current Production CREATE contract.
+This document is the current forensic memory anchor. The next CTO must reread it and verify Production again. Do not infer that a historical manual voucher type is implemented merely because the UI lists it. The only types considered operationally supported are those proven by the current Production CREATE contract. A missing target `stock_branches` row for a valid inbound destination is now treated as zero inventory state and initialized centrally by `post_stock_movement`; do not regress to a hard failure or introduce a client-side stock writer.
