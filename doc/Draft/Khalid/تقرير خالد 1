@@ -1,0 +1,364 @@
+النتيجة التنفيذية الأولى: COLD-START RE-BASELINE
+
+اللقطة الحالية أخذت من Production في:
+
+2026-08-21 01:19:06 UTC
+
+وهي أحدث من جميع لقطات 19–20 أغسطس السابقة.
+
+Production الحالي
+PostgreSQL: 17.6
+الجداول الحساسة كلها RLS-enabled، بما فيها:
+stock_branches, inventory_log, stock_vouchers, erp_operation_registry, users, branches, items.
+عدد public functions الحالي: 42
+منها 36 SECURITY DEFINER.
+items.item_code ما زال GLOBAL UNIQUE فعلياً:
+UNIQUE (item_code).
+negative qty = 0
+negative allocated_qty = 0
+allocated_qty > qty = 0
+Stock/Inventory triggers = 0.
+صلاحيات INSERT/UPDATE/DELETE/TRUNCATE المباشرة على stock_branches, inventory_log, erp_operation_registry للأدوار anon/authenticated/service_role = 0.
+
+هذه نتائج Production مباشرة وليست اعتماداً على التقارير السابقة.
+
+أهم تصحيح خرج به الـRe-baseline
+
+الـDirective أجبرني على إعادة فحص ما كنا نعتبره مغلقاً، وظهر بالفعل تغير حقيقي في Production بعد تقرير 19 أغسطس.
+
+المحرك الحالي:
+
+post_stock_movement(10 args)
+
+ما زال هو الكاتب الفيزيائي الوحيد.
+
+والـ9-arg legacy overload موجود فعلاً في PostgreSQL، لكن:
+
+service_role EXECUTE = false
+authenticated = false
+anon = false
+
+بينما الـ10-arg الحالي:
+
+service_role EXECUTE = true
+authenticated = false
+anon = false
+
+إذن:
+
+Legacy physical movement API موجود كـDB object لكنه غير قابل للتنفيذ من application roles.
+
+وهذا هو التصنيف الصحيح: RETIREMENT / COMPATIBILITY RESIDUE، وليس Active Writer.
+
+Global Writer Sweep الجديد
+
+أعدت الـSweep من Production نفسها.
+
+النتيجة:
+
+Writer	النتيجة
+post_stock_movement(10)	Physical Stock Writer
+reserve_stock	Reservation فقط
+release_stock_reservation	Reservation release فقط
+setup_van_stock	Initialization
+أي function أخرى تكتب stock_branches.qty فعلياً	0
+أي function أخرى تعمل INSERT INTO inventory_log فعلياً	0
+Stock/Inventory triggers	0
+
+والفحص التفصيلي كشف نقطة كانت ستظهر false positive في sweep نصي بسيط: complete_runsheet_picking القديم والجديد يحتويان نصوصاً تشير إلى inventory_log، لكن التعريف الحالي نفسه يرجع صراحة:
+
+inventory_log_written = false
+
+ولا يقوم بإدراج سجل حركة.
+
+إذن:
+
+GLOBAL INVENTORY CORE = STILL CLOSED
+
+ولن أعيد فتح هذه المرحلة.
+
+لكن Production تغيّرت فعلاً بعد 19 أغسطس
+
+Migration ledger الحالي يحتوي تغييرات مهمة جداً بتاريخ 20 أغسطس، منها:
+
+20260820_fix_direct_sale_voucher_target_stock
+voucher_vehicle_lifecycle_contract_fix_20260820
+20260820_send_voucher_retry_idempotency
+20260820_inventory_target_stock_row_autoinit
+20260820_tenant_safe_main_crud
+20260820_warehouse_supervisor_team_read_scope
+20260820_disable_legacy_manual_stock_voucher_v2
+وغيرها من إصلاحات Voucher / Tenant / Picking.
+
+هذا يعني أن بعض الـReports التي كانت تقول إن Manual Voucher أو DirectSale ما زالا عند نفس الحالة في 19 أغسطس أصبحت stale.
+
+وهذا تحديداً هو ما طلب الـDirective عدم تكراره.
+
+اكتشاف مهم جداً في post_stock_movement
+
+الـProduction الحالية تغيرت عن النسخة التي كانت عندنا في 19 أغسطس.
+
+عند وجود target_branch_id، الـCore الآن يستطيع إنشاء صف stock_branches للصنف والفرع الهدف:
+
+target stock row
+        ↓
+ON CONFLICT DO NOTHING
+        ↓
+physical movement
+
+وهذا جاء مع migration:
+
+20260820_inventory_target_stock_row_autoinit
+
+إذن:
+
+setup_van_stock لم يعد المسؤول الوحيد عن وجود target stock row.
+
+وهذه نقطة معماريّة مهمة لأن العقد الحالي أصبح:
+
+Source row
+= must already exist
+
+
+Target inbound row
+= may be initialized atomically by post_stock_movement
+
+وهذا أحدث من التقرير السابق.
+
+DirectSale تغير أيضاً
+
+Production الحالية لـsend_stock_voucher_atomic تثبت أن:
+
+DirectSale
+
+أصبح له target واضح عند إرسال الـVoucher:
+
+Vehicle
+   ↓
+Vehicle branch
+   ↓
+post_stock_movement(
+    movement = DirectSale,
+    source = source branch,
+    target = vehicle branch
+)
+
+وفي post_manual_stock_voucher_atomic توجد أيضاً صراحة:
+
+DirectSale
+→ Vehicle target
+→ DirectSale movement
+
+وهذا متوافق مع migration:
+
+20260820_fix_direct_sale_voucher_target_stock
+
+إذن الاستنتاج السابق:
+
+"DirectSale semantics still unresolved"
+
+لم يعد صالحاً بصيغته القديمة.
+
+الأدلة الحالية تقول إن Production اتخذت قراراً تنفيذياً فعلياً.
+
+يبقى فقط إثبات Consumer/UI وruntime end-to-end.
+
+Manual Voucher V2
+
+هذه نقطة أخرى تغيرت عن baseline السابق.
+
+Production الحالية:
+
+send_manual_stock_voucher_v2
+service_role EXECUTE = false
+
+
+receive_manual_stock_voucher_v2
+service_role EXECUTE = false
+
+بينما المسار الفعلي القابل للاستخدام أصبح:
+
+create_manual_stock_voucher_atomic
+post_manual_stock_voucher_atomic
+send_stock_voucher_atomic
+
+وهذا متسق مع migration:
+
+20260820_disable_legacy_manual_stock_voucher_v2
+
+إذن V2 القديم أصبح retired at execution boundary.
+
+Reservation Contract ما زال سليماً
+
+Production الحالية تثبت:
+
+reserve_stock
+→ allocated_qty += qty
+
+
+release_stock_reservation
+→ allocated_qty -= qty
+
+مع:
+
+company validation
+branch validation
+item validation
+FOR UPDATE
+CAS update
+no physical qty mutation.
+
+إذن الفصل:
+
+Reservation ≠ Physical Movement
+
+ما زال قائماً بشكل فعلي.
+
+Tenant Reality — اكتشاف يجب عدم تجاهله
+
+Production ليست شركة واحدة في البيانات الحالية.
+
+لدينا الآن:
+
+Company	Branches
+الروائع للتوزيع	3
+الروائع للتجارة	0
+الروائع	2
+
+كما يوجد app_settings فعّال لشركتين على الأقل.
+
+والـProduction voucher الوحيد الموجود حالياً تابع للشركة:
+
+00000000-0000-0000-0000-000000000001
+
+وليس للشركة الرئيسية التي كانت التقارير القديمة تستخدمها.
+
+هذا يثبت عملياً إحدى قواعد الـDirective:
+
+لا تستخدم بيانات الاختبارات الحالية كأنها business truth.
+
+كما يثبت أن أي app_settings LIMIT 1 عالمي يجب ألا يُستخدم كـtenant identity عندما يكون user/company context هو العقد الحقيقي.
+
+Current Git Reality
+
+الـmain حالياً عند:
+
+66caaf2831b116dc35452114ac3915307651d63e
+
+والـcommit الأخير هو:
+
+docs(cto): add master continuity directive for next CTO
+
+والملف الذي طلبتَ تنفيذه هو بالفعل أحدث commit في main.
+
+أما آخر أعمال الـVoucher قبل الـDirective فمنها:
+
+a7cb9a1ed4006ecc35618f02e5c86d30e9451aa9
+fix: surgical vouchers vehicle lifecycle and continuous warehouse scan
+
+وهذا يطابق بشكل مباشر تغييرات Production التي ظهرت في 20 أغسطس.
+
+الحالة الجديدة لـReality Matrix
+Domain	Production	Current Git	Target	Runtime	Status
+Physical Stock Writer	post_stock_movement(10)	aligned	one engine	verified	CLOSED
+Reservation	reserve_stock	aligned	separate reservation engine	verified	CLOSED
+Legacy stock writer	9-arg object, non-executable	compatibility residue	retired	verified blocked	CLOSED
+Manual Voucher V2	non-executable	legacy source may exist	retired	DB gate verified	CLOSED
+DirectSale target contract	Vehicle branch	latest voucher work	Vehicle target	Core verified	CORE CLOSED / CONSUMER OPEN
+Target stock-row initialization	Core auto-init	latest migration	centralized	Production verified	CLOSED
+Voucher UI	latest surgical changes in Git	main aligned	Gold Master	full runtime parity not yet proven	OPEN
+Tenant isolation	significantly hardened	latest migrations present	company-scoped	partial runtime proof	OPEN
+Accounting/Ledger	separate stream	not fully centralized	event→journal→ledger	incomplete	OPEN
+Closure Unit الذي حددته الـDirective
+
+بعد الـre-baseline، لم يعد من الصحيح اختيار Inventory أو إعادة اكتشاف Writers.
+
+Closure Unit #1 الآن:
+
+MANUAL VOUCHER / vouchers.html CONSUMER RECONCILIATION
+
+وليس Core redesign.
+
+والمشكلة الحالية ليست:
+
+"ابنِ Voucher system."
+
+بل:
+
+أثبت أن الـcurrent Gold Voucher UI يحافظ على الـOriginal capabilities، ويرسل العقود الحالية الجديدة للـProduction Core بدون consumer drift.
+
+وهذا يتطلب تحديداً:
+
+Original
+   ↓
+Current vouchers.html
+   ↓
+Current RPC contract
+   ↓
+Production RPC definition
+   ↓
+Vehicle / Branch / Supplier / DirectReturn semantics
+   ↓
+Tenant scope
+   ↓
+Idempotency
+   ↓
+Runtime
+أهم ما ثبت حتى الآن
+PROVEN FACTS
+Production baseline أعيد بناؤه بتاريخ 21 أغسطس.
+Physical Stock Writer الوحيد = post_stock_movement(10).
+لا direct application write permissions على stock/log.
+item_code globally unique.
+reservation منفصلة.
+legacy stock/voucher V2 execution boundaries مغلقة.
+target-row auto initialization دخل Production.
+DirectSale vehicle-target semantics دخلت Production.
+Production data متعددة الشركات.
+main آخر commit هو Master Continuity Directive.
+Voucher source خضع لسلسلة إصلاحات surgical حديثة جداً.
+UNKNOWN / OPEN
+Full UI feature parity مع Original.
+Production runtime E2E الكامل لـvouchers.html.
+كامل authorization matrix لكل Voucher operation.
+true independent-session concurrency proof للعمليات التي تحتاجه.
+Accounting/Ledger closure.
+بعض Git/Production lineage التفاصيل غير الحساسة.
+FINAL SELF-AUDIT
+Business Understanding:        STRONG / CURRENT RE-BASELINED
+Architecture Understanding:    VERIFIED FOR INVENTORY/VOUCHER CORE
+Database Understanding:        CURRENT PRODUCTION VERIFIED
+Historical Understanding:      RECONCILED
+Production Understanding:      RE-BASELINED 2026-08-21
+Current Git Understanding:     VERIFIED
+Consumer Understanding:        PARTIAL
+Security Understanding:        STRONG / AUTHZ MATRIX OPEN
+Execution Confidence:          HIGH FOR CORE, LIMITED FOR UI RUNTIME
+Schema Checked:        YES
+Functions Checked:     YES
+Triggers Checked:      YES
+RLS Checked:           YES
+Permissions Checked:   YES
+Consumers Checked:     PARTIAL
+Data Checked:          YES
+Runtime Checked:       CORE / NOT FULL UI
+Git Checked:           YES
+التصحيح الأهم للسجل السابق
+
+الـDirective أدى إلى تصحيح جوهري:
+
+الحالة الحالية لم تعد هي حالة تقرير 19 أغسطس.
+
+منذ ذلك الحين Production أضافت DirectSale target correction + target stock autoinit + retry idempotency + voucher vehicle lifecycle + tenant-safe CRUD + legacy V2 retirement.
+
+لذلك سأتعامل من الآن مع هذه الحالة الجديدة باعتبارها Current Reality Baseline — 2026-08-21، وليس مع التقارير القديمة.
+
+الحالة التنفيذية الآن:
+
+COLD START → PRODUCTION RE-BASELINE = CLOSED
+
+ثم:
+
+MANUAL VOUCHER / vouchers.html CONSUMER RECONCILIATION = OPEN / NEXT
+
+وهذا هو أول Closure Unit حقيقي بعد تنفيذ الـMASTER CTO CONTINUITY DIRECTIVE.
