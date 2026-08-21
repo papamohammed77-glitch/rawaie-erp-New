@@ -1,0 +1,192 @@
+# MANDATORY DIRECTIVE
+
+أنت تستلم مشروعًا قائمًا، ولا يُسمح لك بإعادة الاستكشاف من الصفر أو الانتظار حتى يشرح لك أحد المشروع.
+
+## 1. أغلق النقص المعرفي بنفسك
+
+استخدم جميع المصادر المتاحة:
+
+### Production
+
+Supabase Edge Functions + PostgreSQL + migrations + triggers + logs + schema + constraints.
+
+### Git — `rawaie-erp-New`
+
+`Original/`
+`Current/`
+`doc/`
+`supabase/migrations/`
+كل الفروع والـcommits ذات الصلة.
+
+### Git — `rawaie-erp-review`
+
+`Edge_Functions/original/`
+`Edge_Functions/current/`
+`Edge_Functions/archive/`
+`PWA/`
+Architecture / historical reports / warning records.
+
+### قاعدة إلزامية
+
+إذا لم تجد ملفًا في مساره المتوقع، ابحث عنه في **كل المصادر والـcommits** قبل اعتباره مفقودًا.
+
+---
+
+# 2. لا تبنِ صورة نظرية
+
+أنشئ أولًا:
+
+## PRODUCTION → GIT REALITY MATRIX
+
+لكل Edge Function وCore RPC حساس:
+
+`Production version/SHA`
+→ `Current path/SHA`
+→ `Original path/SHA`
+→ `Historical path/SHA`
+→ `branch/commit`
+→ `Status`
+
+والحالات المسموح بها فقط:
+
+`DEPLOYED`
+`CURRENT ONLY`
+`STAGING ONLY`
+`DRIFT`
+`MISSING`
+`VERIFIED`
+`INCOMPLETE`
+
+---
+
+# 3. Global Stock Writer Sweep
+
+نفّذ تحقيقًا شاملًا في Production DB:
+
+ابحث عن كل:
+
+* `UPDATE stock_branches`
+* `INSERT inventory_log`
+* `UPDATE stock_branches.qty`
+* أي RPC/Function/Trigger تنفذ Physical Stock Movement.
+* أي Edge Function تحتوي direct stock mutation.
+* أي SQL أو trigger غير مركزي.
+
+ثم صنّف كل نتيجة:
+
+### Physical Movement
+
+يجب أن تمر عبر:
+
+`post_stock_movement`
+
+### Reservation
+
+يجب أن تمر عبر:
+
+`reserve_stock`
+
+### Initialization
+
+مثل `setup_van_stock` إذا ثبت أنها Initialization فقط.
+
+### Legacy/Conflict
+
+يجب إصلاحها وإغلاقها، لا تركها.
+
+**الهدف:**
+`One Physical Stock Mutation Engine`
+
+---
+
+# 4. لا تؤجل العقد غير المحسومة
+
+لكل:
+
+DirectSale
+DirectReturn
+Partial Receive
+Voucher
+Loading
+Van
+Delivery
+Custody
+
+افتح:
+
+Historical + Original + Production + Current + Industry Benchmark.
+
+استنتج العقد من الأدلة، ولا تخترع Contract من عندك.
+
+عند وجود قرار Business حقيقي لا يمكن حسمه بالأدلة، سجله كـOwner Decision، لكن **أكمل كل ما لا يعتمد عليه**.
+
+---
+
+# 5. Security Matrix
+
+أنشئ مصفوفة لكل عملية حساسة:
+
+`JWT`
+→ `auth.users`
+→ `public.users`
+→ `company_id`
+→ `role`
+→ `RPC`
+→ `SECURITY DEFINER`
+→ `search_path`
+→ `RLS`
+
+وتحقق من التطبيق الفعلي، لا من الوثائق فقط.
+
+---
+
+# 6. Concurrency
+
+حدد فقط المسارات التي تحتاج concurrency proof فعلًا.
+
+اختبرها عمليًا بجلسات مستقلة حيثما أمكن.
+
+لا تستخدم:
+
+`sequential retry`
+
+كبديل لاختبار concurrency الحقيقي.
+
+---
+
+# 7. Accounting / Ledger
+
+لا تعيد تصميم المحاسبة الآن.
+
+قم أولًا بعمل:
+
+`Inventory Event`
+→ `Accounting Impact`
+→ `Ledger Impact`
+
+لكل حركة مخزنية أساسية.
+
+ابحث في الأنظمة الناضجة عند الأمور الثابتة، خصوصًا SAP / Dynamics / Odoo، ثم طابق المبدأ مع RAWAEA.
+
+---
+
+# 8. Reality Matrix النهائية
+
+أنشئ Matrix واحدة فقط تحتوي:
+
+`Original`
+`Historical`
+`Current`
+`Git`
+`Production`
+`Core`
+`Consumers`
+`Target`
+`Runtime`
+`Status`
+
+هذه تصبح **مرجع الحالة الوحيد**.
+
+لا تنشئ مستودعات أو مصطلحات جديدة بدون ضرورة.
+
+لا تثق في التقارير وقم بالتحقيق الجنائي من المصادر باستكمال البناء المعرفي الكامل للمشروع وفهم الخطة الحالية وفهم المنطق الذي نعمل به واستكمال أي نقص معلوماتي بالخطط وقاعدة البيانات و طريقة العمل وسجل المتابعة وكل شئ عن المشروع
