@@ -1,0 +1,844 @@
+MASTER CTO CONTINUITY DIRECTIVE — تم تفعيله
+
+تم فتح الملف المطلوب وقراءة الـDirective كاملًا، وليس التعامل معه كتقرير حالة.
+
+طبّقت منه Cold Start / Re-Baseline فعليًا على Production وGit المتاح، مع اعتبار التقارير السابقة مجرد Evidence Chain.
+
+1. Current Production Snapshot
+
+Production snapshot UTC: 2026-08-21 01:39:50.834128
+
+Production حاليًا يحتوي:
+
+المؤشر	القيمة
+Public tables	62
+Public functions	42
+Public RLS policies	102
+Non-internal triggers	13
+Companies	3
+Users	26
+Branches	5
+Items	50
+Stock rows	26
+Inventory logs	62
+Stock vouchers	1
+Orders	0
+Runsheets	0
+Purchase orders	0
+
+هذه أرقام لقطة Production الحالية وليست نسبًا أو تقديرات تاريخية.
+
+2. أول تصحيح جنائي مهم
+
+التقرير القديم كان يقول:
+
+stock_vouchers.completed_by غير موجود.
+
+Production الحالية تثبت عكس ذلك:
+
+stock_vouchers.completed_by
+type = text
+nullable = YES
+
+وكذلك:
+
+completed_at
+
+موجود.
+
+إذن:
+
+هذا الـP0 defect لم يعد Production defect في اللقطة الحالية.
+
+الوثيقة CTO/00_MASTER_CONTEXT.md أصبحت في هذه النقطة stale snapshot وليست Current Production Truth. وهذا بالضبط أحد الأسباب التي جعلت الـDirective يفرض إعادة الـbaseline.
+
+3. Inventory Core — مثبت فعليًا
+
+Production تحتوي:
+
+post_stock_movement(
+    uuid,
+    text,
+    uuid,
+    uuid,
+    uuid,
+    numeric,
+    text,
+    text,
+    text,
+    text
+)
+
+وهي:
+
+SECURITY DEFINER
+search_path = public
+تتحقق من Company للـsource/target
+تتحقق من Item
+تقفل Stock rows بـFOR UPDATE
+تفحص qty - allocated_qty
+تنشئ target stock row عند الـinbound
+تحدث stock_branches
+تكتب inventory_log
+تطبق idempotency_key
+وترفض اختلاف payload مع نفس المفتاح.
+
+الـphysical movement boundary إذن موجود فعليًا في Production.
+
+4. Reservation Boundary — مثبت
+
+Production:
+
+reserve_stock
+release_stock_reservation
+
+تعدلان:
+
+allocated_qty
+
+ولا تكتبان inventory_log.
+
+إذن قانون النظام الحالي:
+
+Physical:
+qty
++
+inventory_log
+
+
+Reservation:
+allocated_qty
+
+وهذا متسق مع الـDirective والـArchitecture.
+
+5. Writer Sweep — النتيجة الحالية
+
+عند إعادة اكتشاف الـwriters من Production، وجدت:
+
+Physical Stock + Inventory Log
+
+فقط:
+
+post_stock_movement
+
+هو الذي يكتب مباشرة:
+
+stock_branches
+inventory_log
+Reservation Writers
+reserve_stock
+release_stock_reservation
+Initialization Writer
+setup_van_stock
+
+وهو يهيئ صفوف stock_branches، لكنه لا ينفذ حركة أعمال ولا يكتب inventory_log.
+
+Domain Functions
+
+مثل:
+
+send_stock_voucher_atomic
+post_manual_stock_voucher_atomic
+receive_purchase_atomic
+save_sales_invoice_atomic
+complete_runsheet_loading
+complete_runsheet_unloading
+complete_return_atomic
+post_inventory_adjustment_atomic
+
+لا تكتب stock_branches مباشرة؛ تستدعي Core.
+
+هذا دليل قوي على أن Central Inventory Core أصبح فعليًا، وليس مجرد Target Design.
+
+6. لكن اكتشفت Trap مهمًا جدًا
+
+Production ما زالت تحتوي overload قديم لـ:
+
+post_stock_movement(
+ uuid,text,uuid,uuid,uuid,numeric,text,text,text
+)
+
+وهذا overload يقوم بتفويض التنفيذ إلى النسخة الجديدة ذات idempotency_key.
+
+هو ليس Parallel Stock Engine؛ لكنه legacy API surface.
+
+والأهم: وجدت أن:
+
+receive_manual_stock_voucher_v2
+
+ما زال يستدعي الـ9-argument overload.
+
+إذن لا يجوز الآن أن نقول:
+
+retire_post_stock_movement_legacy_overload = CLOSED
+
+الحقيقة:
+
+Legacy overload still has a known consumer.
+
+وهذا يطابق تمامًا مبدأ الـDirective: لا تحذف legacy surface قبل mapping consumers.
+
+7. DirectSale — الوضع الحالي أدق من التقارير السابقة
+
+Production create_manual_stock_voucher_atomic يثبت صراحة:
+
+DirectSale:
+from_type = Branch
+to_type   = Vehicle
+
+ويتحقق من:
+
+Vehicle
+→ company
+→ active
+→ VAN branch exists
+
+كما أن send_stock_voucher_atomic الحالي يحدد:
+
+source = from branch
+target = Vehicle VAN branch
+movement = DirectSale
+
+ثم يستدعي:
+
+post_stock_movement(
+ source,
+ target,
+ ...
+)
+
+إذن:
+
+MAIN
+ ↓
+DirectSale
+ ↓
+VAN
+
+موجود فعليًا في Production.
+
+هذه نقطة تصحح بصورة كبيرة ما كان مفتوحًا في تقارير 15 أغسطس.
+
+8. Manual Voucher Receive — تقدم واضح
+
+Production post_manual_stock_voucher_atomic تحتوي الآن على:
+
+operation_id
+
+لـRECEIVE.
+
+وتوجد:
+
+erp_operation_registry
+
+مع unique key:
+
+(company_id, operation_type, operation_key)
+
+وكذلك inventory_log لديه:
+
+(company_id, idempotency_key)
+UNIQUE
+
+وبالتالي هناك الآن real operation identity mechanism.
+
+لكن ما زلت لا أعتبر الـwhole Receive domain مغلقًا بالكامل لأن المسار الأقدم:
+
+receive_manual_stock_voucher_v2
+
+لا يزال يستعمل النسخة القديمة من post_stock_movement، ولا يحمل operation identity بنفس الدرجة.
+
+إذن:
+
+Idempotency Core = موجود. Consumer convergence = غير مكتمل.
+
+9. Purchasing — Core ناضج نسبيًا
+
+receive_purchase_atomic الحالي يحتوي:
+
+operation_id REQUIRED
+
+ويستخدم:
+
+receiving.operation_id
+
+والـProduction لديها Unique:
+
+receiving.operation_id
+
+وتعيد duplicate بدل إعادة الحركة.
+
+ثم:
+
+PurchaseIn
+→ post_stock_movement
+→ receiving_details
+→ purchase_order_details
+→ Purchase Order state
+→ Journal
+→ Supplier Ledger
+
+إذن Purchase Receiving حاليًا Compound Business Transaction وليس مجرد Stock Writer.
+
+10. Sales — Operation Identity أصبحت جزءًا من العقد
+
+orders لديها:
+
+operation_id
+
+ومؤشر Unique:
+
+(company_id, operation_id)
+
+وsave_sales_invoice_atomic يستخدمه للـduplicate detection.
+
+ثم يحدد:
+
+MAIN → POSSale
+VAN  → VanSale
+
+ويستخدم:
+
+post_stock_movement
+
+إضافة إلى:
+
+Journal
+Customer Ledger
+Driver Ledger.
+
+هذه بنية Core حقيقية، وليست مجرد refactor شكلي.
+
+11. Loading / Unloading
+
+Production الحالية تثبت:
+
+Loading
+MAIN → VAN
+
+بواسطة:
+
+complete_runsheet_loading
+
+والحركة تذهب عبر:
+
+post_stock_movement
+
+مع:
+
+TASK-028|Loading|<cycle>
+
+كـidempotency boundary.
+
+Unloading
+VAN → MAIN
+
+بواسطة:
+
+complete_runsheet_unloading
+
+ومفتاح:
+
+TASK-028|Unloading|<loading_cycle>|<item>
+Reopen Loading
+
+هناك:
+
+complete_runsheet_reopen_loading
+
+ويقوم فعليًا بـ:
+
+Unloading
+→ new loading_cycle_id
+→ Loading
+
+إذن STAGE-28 دخل Production فعليًا؛ لا ينبغي إعادة اعتباره Target Design فقط.
+
+12. Picking
+
+يوجد حاليًا overloadان:
+
+complete_runsheet_picking(...jsonb)
+complete_runsheet_picking(...jsonb, uuid operation_id)
+
+والـ5-argument version تحتوي:
+
+picker identity
+operation registry
+payload conflict protection
+duplicate handling
+reserve_stock
+runsheet lock
+order detail updates.
+
+والـ4-argument version ما زالت موجودة.
+
+إذن:
+
+Picking Core improved, but legacy overload retirement is not completely proven from current Production inventory alone.
+
+13. Tenant / Company Baseline — اكتشاف مهم جدًا
+
+Production تحتوي:
+
+3 Companies
+
+لكن:
+
+app_settings
+
+لديها Records لشركتين فقط.
+
+هناك:
+
+Company A
+= 00000000-0000-0000-0000-000000000001
+
+و:
+
+Company B
+= da4ef704-88ac-4120-aa0e-65b92b2aa2bc
+
+لكن توجد أيضًا:
+
+Company C
+= 73a141bd-157a-4c2c-8693-34e21325b943
+
+ولا يوجد لها app_settings بحسب اللقطة الحالية.
+
+هذا ليس دليلًا وحده على bug، لكنه:
+
+Tenant Configuration Integrity GAP حقيقي يحتاج تصنيفًا.
+
+لأن عمليات تعتمد على:
+
+app_settings
+→ main_branch_id
+
+قد تكون صحيحة لشركتين فقط.
+
+14. app_settings LIMIT 1 — الحكم الجنائي الصحيح
+
+وجدت عدة RPCs تستخدم:
+
+WHERE company_id = p_company_id
+...
+LIMIT 1
+
+وهذا ظهر في:
+
+Picking
+Loading
+Returns
+Purchase
+Sales
+Setup VAN
+وغيرها.
+
+هذا ليس تلقائيًا Tenant Leak.
+
+لأن Production الحالية تثبت أن كل Company لها صف واحد من app_settings حيث وجدت.
+
+لكن وجود Company ثالثة بلا app_settings يجعل:
+
+Configuration completeness أكثر إلحاحًا من إزالة LIMIT 1 بشكل آلي.
+
+لا يجوز إصلاح LIMIT 1 بإزالة العَرَض دون معالجة configuration contract.
+
+15. Item Identity — محسومة
+
+Production لديها:
+
+items.item_code
+
+مع:
+
+UNIQUE (item_code)
+
+فعليًا.
+
+إذن:
+
+item_code = Global Unique Identity
+
+حتى وإن كانت items تحتوي company_id.
+
+هذه نقطة مهمة جدًا لأن الـDirective نفسه يحذر من افتراض identity.
+
+هنا Production حسمت الأمر.
+
+16. RLS
+
+الجداول الحساسة كلها تقريبًا في اللقطة الحالية:
+
+rowsecurity = true
+
+ومنها:
+
+companies
+users
+branches
+items
+stock_branches
+inventory_log
+vouchers
+orders
+runsheets
+receiving
+accounting
+ledgers
+audit
+operation registry.
+
+وهناك:
+
+102 RLS policies
+
+لكن هذا لا يعني أن Authorization مكتمل تلقائيًا.
+
+ما زال علينا ربط:
+
+JWT
+→ users.auth_id
+→ users.id
+→ company_id
+→ role
+→ permissions
+→ Edge
+→ RPC
+
+وهذا أحد الـnext sweeps.
+
+17. Auth Identity
+
+Production schema تؤكد أن users تحتوي:
+
+id
+auth_id
+company_id
+role
+permissions
+default_branch_id
+allowed_branch_ids
+
+إذن الـDirective هنا مهم جدًا:
+
+auth.users.id
+≠
+public.users.id
+
+والـlink الرسمي الموجود في schema هو:
+
+public.users.auth_id
+
+لا يجوز في أي إصلاح لاحق استخدام public.users.id على أنه Auth ID.
+
+18. Current Data State
+
+هناك نقطة يجب أن نأخذها بجدية:
+
+Companies = 3
+Users = 26
+Branches = 5
+Items = 50
+
+
+Orders = 0
+Runsheets = 0
+Purchase Orders = 0
+
+مع وجود:
+
+1 stock voucher
+62 inventory logs
+
+هذا يعني أن Production الحالية في لقطة التحقيق ليست workload-heavy operational state.
+
+أي أن إثبات:
+
+Schema correctness
+RPC correctness
+Idempotency
+Tenant isolation
+
+ممكن.
+
+لكن لا ينبغي الخلط بينها وبين:
+
+إثبات الأداء تحت workload حقيقي.
+
+19. Git Truth
+
+المستودع النشط هو:
+
+papamohammed77-glitch/rawaie-erp-New
+
+والـdefault branch:
+
+main
+
+وهو repository نشط وpublic حاليًا، والصلاحيات المتاحة من Connector تشمل القراءة والكتابة.
+
+لكن أثناء تنفيذ الـDirective:
+
+لم أقم بأي Git mutation.
+
+كما أنني وجدت أن بعض المسارات المذكورة في الوثائق لا تطابق paths الحالية حرفيًا؛ لذلك لن أستنتج أن الملف "مفقود" حتى تكتمل repository-wide path reconciliation.
+
+وهذه بحد ذاتها نتيجة منضبطة حسب Section 9 من الـDirective.
+
+20. Current Reality Matrix — النسخة الأولية
+Component	Production	Git/Docs	الحكم
+post_stock_movement	Central active	Target سابقًا	PRODUCTION IMPLEMENTED
+Reservation	Active	Architecture	PROVEN
+DirectSale	MAIN→VAN	Old reports unresolved	PROVEN CURRENT
+DirectReturn	VAN→MAIN paths موجودة	mixed history	PARTIALLY RECONCILED
+Purchase Receive	operation_id	current plan	PROVEN
+Sales operation identity	Active	later target	PROVEN
+Loading	Core active	Stage-28 target سابقًا	PRODUCTION IMPLEMENTED
+Unloading	Core active	Stage-28 target سابقًا	PRODUCTION IMPLEMENTED
+Picking operation identity	Active	legacy overload remains	DRIFT / PARTIAL
+Voucher completed_by	موجود حاليًا	old evidence said missing	REPORT STALE
+Receive idempotency	Core exists	old gap	CORE PROVEN / CONSUMER GAP
+post_stock_movement legacy overload	Exists	retirement intended	OPEN / CONSUMER EXISTS
+Tenant config	3 companies / 2 app_settings	old assumptions	OPEN
+Item identity	global unique code	historical ambiguity	PROVEN
+RLS	enabled broadly	old general claims	PROVEN ACTIVE
+UI parity	not re-proven	current target	OPEN
+Git↔Production exact deployment lineage	incomplete	mixed	OPEN
+21. الخبرة المطلوبة للدور أصبحت الآن أوضح
+
+المرحلة الحالية ليست مرحلة:
+
+"مطور Edge Function"
+
+وليست:
+
+"مهندس UI"
+
+وليست حتى:
+
+"Database developer" فقط.
+
+الدور المطلوب فعليًا هو:
+
+Production Forensic CTO
+
+ويجب أن يفكر بهذه الطريقة:
+
+Business Contract
+      ↓
+State Machine
+      ↓
+Consumer Graph
+      ↓
+RPC/Core Boundary
+      ↓
+Data Integrity
+      ↓
+Tenant Boundary
+      ↓
+Idempotency
+      ↓
+Concurrency
+      ↓
+Accounting
+      ↓
+Audit
+      ↓
+Deployment Lineage
+      ↓
+Runtime Proof
+
+أي Bug جديد يجب أن يمر عبر هذا الرسم قبل أن نلمس الكود.
+
+22. النقص المعرفي الذي تم استكماله الآن
+
+تم رفع المعرفة من مستوى:
+
+"قراءة تقارير وإنقاذ Inventory"
+
+إلى:
+
+"فهم Production Core + business semantics + state machine + writer topology + tenant model + operation identity + current deployment evolution."
+
+وأصبحت لدينا معرفة مثبتة بأن:
+
+Physical Inventory Core موجود فعليًا.
+Reservation منفصل فعليًا.
+DirectSale الحالي يملك target vehicle semantics.
+Purchase Receiving لديه operation identity حقيقية.
+Sales لديها operation identity.
+Loading/Unloading أصبحت Production Core.
+RLS مفعّل على الجداول الحساسة.
+item_code global unique.
+completed_by أصبح موجودًا في Production.
+هناك legacy overloads ما زالت حية.
+هناك configuration gap لشركة موجودة بلا app_settings.
+التقارير الحالية ليست مرآة زمنية موثوقة للـProduction.
+23. أول Closure Unit أختارها الآن
+
+وفق Section 44/46 من الـDirective، لا ننتقل عشوائيًا إلى UI.
+
+Closure Unit #1 المقترحة:
+
+CU-001 — Legacy Inventory API / Consumer Convergence
+
+الهدف:
+
+post_stock_movement
+legacy overload
+        ↓
+discover all consumers
+        ↓
+classify each consumer
+        ↓
+rewire legitimate consumers
+        ↓
+prove no consumer remains
+        ↓
+retire legacy overload
+        ↓
+Production verification
+
+والسبب ليس تجميليًا:
+
+لأننا أثبتنا أن:
+
+receive_manual_stock_voucher_v2
+
+ما زالت تعتمد عليه.
+
+وبالتالي لا يجوز حذف الـoverload الآن، ولا يجوز أيضًا اعتباره مغلقًا.
+
+24. ما لن أفعله الآن
+
+لن:
+
+أعدل Production عشوائيًا.
+أضيف column جديدًا.
+أحذف legacy overload.
+أعيد تصميم Voucher.
+أعيد كتابة UI.
+أعدل RLS.
+أغير Auth.
+أفتح STAGE جديدة شكليًا.
+
+لأن التحقيق أثبت أن المشكلة الآن ليست غياب Core، بل Convergence / lineage / tenant configuration / consumer alignment.
+
+25. SELF-AUDIT
+Business Understanding
+
+HIGH — reconstructed from Production + governing sources
+
+Architecture Understanding
+
+HIGH
+
+Database Understanding
+
+HIGH for current rescue / inventory-fulfillment slice
+
+Historical Understanding
+
+HIGH enough to distinguish stale reports from current reality
+
+Production Understanding
+
+DIRECTLY VERIFIED at 2026-08-21 01:39 UTC
+
+Current Git Understanding
+
+PARTIAL — repository/path lineage still requires broader enumeration
+
+Consumer Understanding
+
+PARTIAL — enough to identify first real closure unit, not enough for global closure
+
+Security Understanding
+
+PARTIAL / ACTIVE INVESTIGATION
+
+Execution Confidence
+
+HIGH for forensic classification; NOT sufficient yet for arbitrary Production mutation
+
+Confirmed Facts
+post_stock_movement is live.
+Reservation is separate.
+completed_by exists now.
+DirectSale source/target semantics exist in current Voucher Core.
+Purchase/Sales operation identities exist.
+Loading/Unloading use central movement Core.
+RLS is enabled on sensitive tables.
+item_code is globally unique.
+legacy overload still exists and has a known consumer.
+one Production company currently lacks app_settings.
+Unknown / Open
+Complete Production Edge deployment → Git SHA lineage.
+Full UI consumer parity.
+Complete DirectReturn cross-domain semantic reconciliation.
+Full concurrent runtime proofs.
+Authorization matrix across all sensitive operations.
+Whether the third company is intentional legacy/test/master context or an incompletely initialized tenant.
+Conflicts
+
+The most important confirmed conflict is:
+
+OLD CTO RECORD
+completed_by absent
+
+
+vs
+
+
+CURRENT PRODUCTION
+completed_by present
+
+وهذا يجب أن يُسجل كـREPORT DRIFT وليس Production defect.
+
+FINAL CTO STATION
+CURRENT STATION:
+Production Core is materially ahead of the old rescue documentation.
+
+
+CLOSED / PROVEN:
+Central Inventory
+Reservation Separation
+DirectSale current topology
+Purchase operation identity
+Sales operation identity
+Loading
+Unloading
+RLS enabled
+Global item identity
+
+
+OPEN:
+Legacy consumer convergence
+Deployment lineage
+Tenant configuration integrity
+DirectReturn full reconciliation
+Security matrix
+UI parity
+
+
+CURRENT GOVERNING STATE:
+NO FULL DOMAIN CLOSURE
+
+
+NEXT EXACT CLOSURE UNIT:
+CU-001 — Legacy Inventory API / Consumer Convergence
+
+
+DO NOT REPEAT:
+Old report conclusions about missing completed_by,
+old assumptions that Loading is only Target,
+old assumption that DirectSale is unresolved,
+or old assumption that Receive has no operation identity.
+
+
+LAST VERIFIED:
+2026-08-21 01:39 UTC
+
+والأهم: لم أكتفِ بتشغيل الـDirective على مستوى الكلام؛ حولته إلى current operating baseline مبني على Production الحالية، ووجدت بالفعل تغييرات مهمة لم تكن موجودة في الـmemory snapshots السابقة. الـDirective نفسه يطلب تحديد هذه الانحرافات بدل توريثها، وهذا ما تم هنا.
