@@ -1,0 +1,576 @@
+الحكم التنفيذي
+
+بعد مطابقة السلسلة التاريخية مع Production الحالية + Git الحالي + الـRPC المنشور فعليًا، لا أستطيع أن أطمئنك بأن Current/PWA/main.html أصبح مكتملًا ماليًا بنسبة 100%.
+
+لكنني أستطيع تحديد الجراحة الأولى بدقة، وهي واضحة ومثبتة:
+
+الدالة المعيبة في Current/PWA/main.html هي _saveJournalEntry() الحالية.
+
+وهي تحديدًا المرشحة للاستبدال الجراحي الآن.
+
+أما الملف ككل، فما زال أمام المشروع Financial Writer Convergence ومسارات القبض والصرف والتسوية وطبقة الـConsumer/Runtime؛ لذلك إعلان أن النظام الأم أصبح مكتملًا بالكامل سيكون مخالفًا للأدلة الحالية. هذا يتفق مع خلاصة خالد وهيثم الأخيرة، ومع Prompt 51 نفسه الذي أبقى Financial Closure مفتوحة.
+
+أولًا — تقييم خالد وهيثم
+خالد
+
+خالد هو الأقوى حاليًا في:
+
+إعادة بناء الصورة المعمارية والـKnowledge Model
+الفصل بين Production Truth وGit Truth وHistorical Evidence
+اكتشاف أن وجود Core جديد لا يعني أن الـlegacy writers اختفت
+اكتشاف مشكلة Treasury → COA
+بناء Consumer Matrix
+رفض تحويل إصلاح ناقص إلى “Closure”
+
+وهذا مهم جدًا؛ لأنه وصل إلى الاستنتاج الصحيح:
+
+Accounting Core = DEPLOYED
+Writer Convergence = OPEN
+
+ولم يعلن الاستقلال الكامل أو الإغلاق النهائي.
+
+هيثم
+
+هيثم أقوى في التنفيذ المالي الجراحي المباشر.
+
+والأهم في هذه المهمة أنه لم يقع في خطأ شائع جدًا: أخذ Prompt 51 كما هو وتنفيذه حرفيًا.
+
+لقد اكتشف أن Prompt 51 كان مبنيًا على DOM أقدم بينما main.html الحالي يستخدم:
+
+journal-ref
+journal-desc
+jl-cost-center
+
+ولذلك أعاد بناء _saveJournalEntry() على Current DOM الحقيقي + Production save-journal-entry v8 بدل النسخ الحرفي للبرومبت.
+
+وهذا، في رأيي، هو أفضل جزء تنفيذي قدمه الاثنان في الجولة الأخيرة.
+
+ثانيًا — ما الذي أثبته التحقيق في main.html؟
+
+النسخة الحالية من main.html لا تزال تحتوي على _saveJournalEntry() القديمة.
+
+الدالة الحالية:
+
+تجمع السطور فقط.
+لا تتحقق من NaN.
+لا تمنع القيم السالبة.
+لا تمنع أن يحتوي السطر نفسه على Debit وCredit.
+لا تشترط سطرين.
+لا تتحقق من توازن القيد.
+لا ترسل operation_id.
+لا ترسل entryType.
+وبعد نجاح الحفظ تستدعي:
+RW_Audit_log(...)
+
+رغم أن الـaudit أصبح مسؤولية الـProduction Accounting Core.
+
+وفي الوقت نفسه، واجهة القيد الحالية نفسها تستخدم بالفعل الـDOM الصحيح:
+
+journal-ref
+journal-desc
+jl-cost-center
+
+وهذا يطابق ما اكتشفه هيثم.
+
+ثالثًا — لماذا هذا الخلل مهم فعليًا وليس تجميليًا؟
+
+لأن Production الحالية لديها الآن عقد أقوى بكثير من Consumer الموجود في main.html.
+
+الـProduction save-journal-entry هو Version 8 ACTIVE، ويأخذ:
+
+operation_id
+date
+entryType
+reference
+description
+lines
+
+ثم:
+
+authenticated user
+→ public.users
+→ company_id
+→ account-code → chart_of_accounts.id
+→ post_journal_entry
+
+ولا يكتب الـEdge مباشرة في journal_entries.
+
+والـpost_journal_entry نفسه يتحقق من:
+
+company
+operation_id
+minimum 2 lines
+account identity
+account/company ownership
+negative amounts
+debit+credit same line
+zero lines
+non-zero debit/credit
+balanced totals
+idempotency
+audit
+
+وهذا تحقق مباشر من Production الحالية.
+
+إذن المشكلة ليست أن Core ضعيف.
+
+المشكلة أن main.html لم يلحق بهذا الـCore.
+
+وهذه بالضبط حالة:
+
+PRODUCTION CORE = CORRECT / STRONG
+CURRENT CONSUMER = STALE
+رابعًا — الجراحة الصحيحة
+
+لا تحذف RW_Finance.
+
+ولا تعدل الملف كله.
+
+ولا تغير:
+
+_renderJournal()
+_addJournalLine()
+save-journal-entry
+post_journal_entry
+الـRPC
+الـDOM
+
+فقط استبدل:
+
+function _saveJournalEntry() {
+   ...
+}
+
+بالدالة التالية بالكامل.
+
+هذه هي نسخة الجراحة التي أعدها هيثم، وقد تحققتُ منها مقابل الـDOM الحالي وعقد Production v8، وليس باعتبار التقرير مصدر الحقيقة.
+
+function _saveJournalEntry() {
+    var host = byId('journal-lines');
+    if (host && host.dataset.journalSaving === '1') return;
+
+    var lines = [];
+    var lineEls = document.querySelectorAll('.journal-line');
+    var totalDebit = 0;
+    var totalCredit = 0;
+
+    for (var i = 0; i < lineEls.length; i++) {
+        var l = lineEls[i];
+
+        var accEl = l.querySelector('.jl-account');
+        var acc = accEl ? String(accEl.value || '').trim() : '';
+
+        var debEl = l.querySelector('.jl-debit');
+        var credEl = l.querySelector('.jl-credit');
+
+        var deb = Number(debEl ? debEl.value : 0);
+        var cred = Number(credEl ? credEl.value : 0);
+
+        if (!Number.isFinite(deb) || !Number.isFinite(cred)) {
+            _showToast(
+                'يوجد مبلغ غير صالح في السطر ' + (i + 1),
+                'error'
+            );
+            return;
+        }
+
+        if (deb < 0 || cred < 0) {
+            _showToast(
+                'لا يجوز إدخال مبالغ سالبة في السطر ' + (i + 1),
+                'error'
+            );
+            return;
+        }
+
+        if (deb > 0 && cred > 0) {
+            _showToast(
+                'لا يجوز أن يحتوي السطر ' + (i + 1) +
+                ' على مدين ودائن معًا',
+                'error'
+            );
+            return;
+        }
+
+        if (acc && (deb || cred)) {
+            var selected =
+                accEl &&
+                accEl.selectedOptions &&
+                accEl.selectedOptions[0];
+
+            var ccEl = l.querySelector('.jl-cost-center');
+
+            lines.push({
+                accountId: acc,
+                accountName: selected ? selected.textContent : '',
+                costCenterId:
+                    ccEl && ccEl.value
+                        ? ccEl.value
+                        : null,
+                debit: deb,
+                credit: cred
+            });
+
+            totalDebit += deb;
+            totalCredit += cred;
+        }
+    }
+
+    if (lines.length < 2) {
+        _showToast(
+            'يجب إدخال سطرين على الأقل للقيد',
+            'warning'
+        );
+        return;
+    }
+
+    if (
+        Math.abs(totalDebit - totalCredit) >= 0.01 ||
+        totalDebit <= 0 ||
+        totalCredit <= 0
+    ) {
+        _showToast(
+            'القيد غير متوازن: المدين ' +
+            _fmtNum(totalDebit) +
+            ' / الدائن ' +
+            _fmtNum(totalCredit),
+            'error'
+        );
+        return;
+    }
+
+    var operationId =
+        (host && host.dataset.journalOperationId) || '';
+
+    if (!operationId) {
+        if (
+            window.crypto &&
+            typeof window.crypto.randomUUID === 'function'
+        ) {
+            operationId = window.crypto.randomUUID();
+        } else if (
+            window.crypto &&
+            typeof window.crypto.getRandomValues === 'function'
+        ) {
+            var bytes = new Uint8Array(16);
+            window.crypto.getRandomValues(bytes);
+
+            bytes[6] =
+                (bytes[6] & 0x0f) | 0x40;
+
+            bytes[8] =
+                (bytes[8] & 0x3f) | 0x80;
+
+            operationId = '';
+
+            for (var b = 0; b < bytes.length; b++) {
+                if (
+                    b === 4 ||
+                    b === 6 ||
+                    b === 8 ||
+                    b === 10
+                ) {
+                    operationId += '-';
+                }
+
+                operationId +=
+                    bytes[b]
+                        .toString(16)
+                        .padStart(2, '0');
+            }
+        } else {
+            function hex4() {
+                return Math.floor(
+                    (1 + Math.random()) * 0x10000
+                )
+                .toString(16)
+                .substring(1);
+            }
+
+            operationId =
+                hex4() +
+                hex4() +
+                '-' +
+                hex4() +
+                '-4' +
+                hex4().substring(1) +
+                '-' +
+                (
+                    8 +
+                    Math.floor(Math.random() * 4)
+                ).toString(16) +
+                hex4().substring(1) +
+                '-' +
+                hex4() +
+                hex4() +
+                hex4();
+        }
+
+        if (host) {
+            host.dataset.journalOperationId =
+                operationId;
+        }
+    }
+
+    if (host) {
+        host.dataset.journalSaving = '1';
+    }
+
+    var payload = {
+        operation_id: operationId,
+
+        date:
+            byId('journal-date')
+                ? (
+                    byId('journal-date').value ||
+                    new Date()
+                        .toISOString()
+                        .slice(0, 10)
+                )
+                : new Date()
+                    .toISOString()
+                    .slice(0, 10),
+
+        reference:
+            byId('journal-ref')
+                ? (
+                    byId('journal-ref').value || ''
+                )
+                : '',
+
+        description:
+            byId('journal-desc')
+                ? (
+                    byId('journal-desc').value || ''
+                )
+                : '',
+
+        entryType: 'Manual',
+
+        lines: lines
+    };
+
+    var saveUrl =
+        RW_SUPABASE_URL +
+        '/functions/v1/save-journal-entry';
+
+    if (
+        typeof supabase === 'undefined' ||
+        !supabase ||
+        !supabase.auth
+    ) {
+        if (host) {
+            host.dataset.journalSaving = '0';
+        }
+
+        _showToast(
+            'جلسة Supabase غير متاحة',
+            'error'
+        );
+
+        return;
+    }
+
+    _showLoader();
+
+    supabase.auth.getSession()
+
+        .then(function(ses) {
+            var token =
+                ses &&
+                ses.data &&
+                ses.data.session
+                    ? ses.data.session.access_token
+                    : null;
+
+            if (!token) {
+                throw new Error(
+                    'انتهت الجلسة'
+                );
+            }
+
+            return fetch(saveUrl, {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type':
+                        'application/json',
+
+                    'Authorization':
+                        'Bearer ' + token
+                },
+
+                body:
+                    JSON.stringify(payload)
+            });
+        })
+
+        .then(function(res) {
+            return res.json().then(function(json) {
+
+                if (
+                    !res.ok ||
+                    !json ||
+                    !json.success
+                ) {
+                    throw new Error(
+                        (
+                            json &&
+                            json.error
+                        ) ||
+                        'فشل حفظ القيد'
+                    );
+                }
+
+                return json;
+            });
+        })
+
+        .then(function(json) {
+            _hideLoader();
+
+            if (host) {
+                host.dataset.journalSaving = '0';
+                delete host.dataset.journalOperationId;
+            }
+
+            _showToast(
+                (
+                    json.duplicate
+                        ? 'القيد موجود بالفعل: '
+                        : 'تم حفظ القيد '
+                ) +
+                (
+                    json.entry_code ||
+                    json.entryCode ||
+                    ''
+                ),
+                'success'
+            );
+
+            renderSubTab('journal');
+        })
+
+        .catch(function(e) {
+            _hideLoader();
+
+            if (host) {
+                host.dataset.journalSaving = '0';
+            }
+
+            _showToast(
+                e && e.message
+                    ? e.message
+                    : 'فشل الحفظ',
+                'error'
+            );
+
+            console.error(
+                'Journal save error:',
+                e
+            );
+        });
+}
+خامسًا — لماذا هذه هي الجراحة الصحيحة؟
+
+لأنها تحقق سلسلة كاملة:
+
+main.html
+   ↓
+_validate journal
+   ↓
+operation_id
+   ↓
+save-journal-entry v8
+   ↓
+authenticated user
+   ↓
+company_id
+   ↓
+account code
+   ↓
+COA UUID
+   ↓
+post_journal_entry
+   ↓
+erp_operation_registry
+   ↓
+journal_entries
+   ↓
+journal_lines
+   ↓
+audit_log
+
+ولا تعيد أي مسؤولية إلى main.html ليست مسؤوليته.
+
+الأهم أنها لا تنشئ Accounting Engine جديدًا في الواجهة.
+
+سادسًا — نقطة مهمة جدًا بخصوص operation_id
+
+الـProduction Core يشترط:
+
+p_operation_id uuid
+
+ويستخدمه كمفتاح idempotency في:
+
+erp_operation_registry
+
+وبالتالي الدالة القديمة كانت ناقصة جوهريًا.
+
+أما النسخة الجديدة فتحافظ على نفس operation_id أثناء عملية الحفظ، ولذلك الضغط المزدوج لا ينشئ قيدين لنفس العملية. والـCore هو الذي يحسم الـduplicate فعليًا، وليس الواجهة.
+
+سابعًا — ما الذي لم أعدّله عمدًا؟
+
+لم أعتبر هذه الجراحة حلًا لـ:
+
+save-receipt-voucher
+save-payment-voucher
+save-daily-settlement
+update-driver-ledger
+
+فهذه ما زالت جزءًا من Writer Convergence المفتوحة.
+
+كما أن:
+
+Accounting Core
+
+أصبح موجودًا في Production، لكن:
+
+Financial Closure
+≠
+100% CLOSED
+
+والـPrompt 51 نفسه يحسم أن الهدف التالي هو نقل المسؤوليات من الـlegacy financial writers إلى الـCores، ثم Consumer Matrix، ثم Security، ثم Runtime/Concurrency، ثم reconciliation.
+
+الحكم النهائي على main.html
+البعد	الحكم
+Inventory Core alignment	✅ متقدم ومتماسك
+Voucher architecture	✅
+Sales/Purchase centralization	✅ جزئيًا
+Manual Journal Consumer	❌ الدالة الحالية stale
+save-journal-entry v8	✅ Production
+post_journal_entry	✅ Production
+Journal idempotency from UI	❌ في النسخة الحالية
+Journal validation from UI	❌ ناقص
+Local duplicate audit	❌ يجب إزالته
+Receipt/Payment convergence	❌ مفتوح
+Daily Settlement convergence	❌ مفتوح
+Driver Ledger convergence	❌ مفتوح
+Financial Security Production rollout	❌ مفتوح
+Global Accounting Closure	❌ غير مكتمل
+Autonomous CTO readiness	❌ غير مثبت
+
+خالد نفسه انتهى إلى Autonomous CTO Ready = NO، وهيثم أيضًا لم يدّعِ إغلاق المرحلة المالية بالكامل.
+
+الخلاصة العملية
+
+لا تلمس main.html بالكامل.
+
+استبدل فقط:
+
+_saveJournalEntry()
+
+بالنسخة أعلاه.
+
+هذه هي الجراحة ذات الدليل الأقوى في هذه المحطة، وهي متوافقة مع Current DOM + Production Edge v8 + Production post_journal_entry.
+
+وبعد الاستبدال، الخطوة الصحيحة ليست “ممتاز، انتهينا”، بل مراجعة diff الدالة فقط ثم اختبار مسار قيد يدوي كامل: قيد متوازن، قيد غير متوازن، سطر Debit+Credit، retry، وحساب من Company أخرى قبل اعتبار Closure مكتملًا.
