@@ -1,0 +1,447 @@
+نعم. هيثم نفّذ التوجيه باعتباره تكليفًا تنفيذيًا مباشرًا، وليس كتقييم نظري. وقد بدأت فعليًا بـ ACCOUNTING CORE FORENSIC CLOSURE كما يفرض النص: اكتشاف كل الـwriters، بناء عقد المحاسبة، منع القفز إلى تصميم غير مثبت، ثم التنفيذ والاختبار والتحقق.
+
+ما تم تنفيذه فعليًا
+1. أُعيد بناء الحقيقة المالية من Production
+
+تمت قراءة Production PostgreSQL وتعريفات الـRPCs والـEdge Functions الحالية، واتضح أن:
+
+Sales
+    → save_sales_invoice_atomic
+    → Journal
+    → Customer Ledger
+    → Driver Ledger
+
+
+Purchase Receive
+    → receive_purchase_atomic
+    → Journal
+    → Supplier Ledger
+
+
+Return
+    → complete_return_atomic
+    → Journal
+    → Customer Ledger
+
+ولا يوجد في Production قبل هذه الجولة محرك Accounting مركزي مماثل لـpost_stock_movement.
+
+كما تم التأكد من أن inventory_movements / movement_registry الموجودة في Staging ليست موجودة أصلًا في Production؛ لذلك لم أنقل تصميمًا تجريبيًا إلى Production لمجرد أنه يبدو مناسبًا.
+
+2. تم اكتشاف Defect إضافي مهم
+
+الدوال المالية:
+
+get_trial_balance
+get_balance_sheet
+get_profit_loss
+get_cash_flow
+
+كانت تعتمد على ربط:
+
+journal_lines.account_id
+
+مع:
+
+chart_of_accounts.account_code
+
+مع أن journal_lines.account_id هو UUID FK إلى chart_of_accounts.id.
+
+أي أن هذه الطبقة القرائية كانت تستخدم Identity غير صحيحة.
+
+تم تصحيح هذه الدوال في الـStaging ثم تطبيق الإصلاح في Production بحيث يعتمد الربط على:
+
+journal_lines.account_id = chart_of_accounts.id
+
+مع Company alignment.
+
+هذه نتيجة تحقيق مستقل، وليست مما كان معروضًا في التقييم.
+
+3. تم بناء أول Accounting Core فعلي
+
+تم إنشاء:
+
+post_journal_entry(...)
+
+بحدود صريحة:
+
+Company
++
+Operation Identity
++
+Entry Date
++
+Entry Type
++
+Reference
++
+Description
++
+Lines
+
+والمحرك يفرض:
+
+الشركة موجودة.
+العملية لها operation_id.
+الحد الأدنى سطران.
+كل حساب ينتمي للشركة نفسها.
+الحساب Active.
+لا Debit سالب.
+لا Credit سالب.
+لا يجوز Debit وCredit معًا في السطر نفسه.
+لا يوجد Zero Line.
+مجموع Debit يجب أن يساوي مجموع Credit.
+القيد يتم إدخاله كرأس + أسطر داخل نفس العملية.
+يتم تسجيل Operation Identity.
+يتم تسجيل Audit.
+الـRPC نفسه SECURITY DEFINER.
+الـsearch_path محدد.
+anon/authenticated لا يملكان EXECUTE.
+التنفيذ محصور في service_role.
+
+وهذا يحقق المبدأ الصناعي الثابت في الـERP: Document Posting يجب أن يكون متوازنًا وكاملًا قبل اعتباره Posted، بدل السماح برأس قيد منفصل عن أسطره.
+
+4. الاختبار كشف عيوبًا حقيقية قبل إعلان النجاح
+
+في Staging أُجري اختبار حقيقي للمحرك.
+
+المحاولة الأولى
+
+كشفت:
+
+journal_lines.id
+
+ليس له Default في البيئة.
+
+تم تصحيح التنفيذ بحيث يولد UUID صريحًا.
+
+المحاولة الثانية
+
+كشفت:
+
+audit_log.id
+
+بدون Default.
+
+تم تصحيح التنفيذ.
+
+المحاولة الثالثة
+
+كشفت:
+
+audit_log.created_at
+
+بدون Default.
+
+تم تصحيح التنفيذ أيضًا.
+
+هذه نقطة مهمة جدًا في التأهيل: الاختبار لم يكن لإثبات أن الكود جميل؛ كان لإيجاد ما يمنع التنفيذ الفعلي.
+
+5. الاختبارات الفعلية الناجحة
+
+بعد التصحيح:
+
+Posting صحيح
+Debit  = 100
+Credit = 100
+
+النتيجة:
+
+success = true
+status  = Posted
+line_count = 2
+Duplicate
+
+إعادة نفس:
+
+operation_id
+
+أعادت:
+
+duplicate = true
+
+مع نفس Journal Entry بدل إنشاء قيد ثانٍ.
+
+Unbalanced
+
+اختبار:
+
+Debit  = 100
+Credit = 90
+
+رُفض صراحة:
+
+ACCOUNTING_UNBALANCED_ENTRY
+
+ولم يتم إنشاء قيد غير متوازن.
+
+Cleanup
+
+تم حذف كل Test Accounts / Test Journal / Operation Registry / Audit الخاص بالـCanary.
+
+والتحقق النهائي:
+
+fixture_accounts = 0
+fixture_entries  = 0
+fixture_lines    = 0
+operation_registry_rows = 0
+
+إذن لم أترك Canary residue.
+
+وهذا يتفق مع قاعدة الـDirective التي تمنع إعلان Cleanup دون التحقق منه.
+
+6. ماذا تم نشره في Production؟
+
+تم تطبيق:
+
+Production
+post_journal_entry(...)
+
+وأصبحت الدالة موجودة فعليًا في Production.
+
+وكذلك تم تحديث:
+
+get_trial_balance
+get_balance_sheet
+get_profit_loss
+get_cash_flow
+
+لتستخدم Account UUID الصحيح بدل Account Code في الـjoin.
+
+لكن: لم أعلن أن الـAccounting Closure اكتملت.
+
+السبب مهم جدًا:
+
+Core موجود
+≠
+ERP Financial Domain مغلق
+
+ما زالت الـEdge Functions القديمة تقوم بالكتابة المباشرة، ولم تتم إعادة توجيهها كلها إلى المحرك الجديد.
+
+وهذه هي بالضبط القاعدة التي يفرضها النص: لا يكفي FOUND → IMPLEMENTED؛ المطلوب DEPLOY → VERIFY → CLOSE.
+
+7. ما لم أفعله عمدًا
+
+لم أقم الآن بـ:
+
+save-receipt-voucher
+save-payment-voucher
+save-transfer-voucher
+save-daily-settlement
+update-driver-ledger
+save-sales-invoice_atomic
+receive_purchase_atomic
+complete_return_atomic
+
+كلها إلى post_journal_entry بشكل أعمى.
+
+لأن هذا يتطلب أولًا تثبيت:
+
+Business Event
+→ Accounts
+→ Debit/Credit
+→ COGS
+→ Revenue
+→ Inventory
+→ Counterparty
+→ Ledger
+→ Treasury
+→ Reversal
+→ Retry
+→ Cancel
+→ Partial
+→ Failure
+
+وهذا شرط صريح في التكليف.
+
+8. لذلك الحالة الدقيقة الآن
+ACCOUNTING CORE
+
+CORE IMPLEMENTED / STAGING VERIFIED / PRODUCTION DEPLOYED
+
+ولكن:
+
+Closure = NO
+
+لأن:
+
+ما زال مفتوحًا:
+
+Financial Writer Convergence
+
+Old Writers
+    ↓
+post_journal_entry
+
+لم يحدث للجميع.
+
+Consumer Convergence
+
+الـPWA ما زالت مرتبطة بالـFinancial Edge القديمة.
+
+Deployment Lineage
+
+لم تُغلق بعد لكل financial artifact:
+
+→ Edge Artifact
+→ Production Version
+→ Browser
+
+Financial Concurrency
+
+لم يحدث بعد اختبار مستقل بجلسات HTTP متزامنة للـAccounting.
+
+Ledger Core
+
+ما زال Distributed.
+
+Treasury Core
+
+ما زال Distributed.
+
+Financial Security
+
+لم تُغلق بعد؛ والـRLS الحالية واسعة، ولا يجوز تقليصها قبل Consumer Matrix.
+
+Data Repair
+
+هناك حالتان Production حاليًا:
+
+Posted Journal Header
++
+0 Journal Lines
+
+وهما لم تُحسم provenance الخاصة بهما بعد.
+
+9. اكتشاف مهم جدًا من Production الحالية
+
+Production فيها فعليًا:
+
+3 Companies
+
+لكن حسابات Chart of Accounts الحالية ليست موزعة على الشركات الثلاث.
+
+الـ87 حسابًا موجودة تحت:
+
+الروائع للتوزيع
+
+بينما الشركتان الأخريان لا تملكان Chart of Accounts مماثلة في اللقطة الحالية.
+
+هذه ليست نقطة أعدلها بالتخمين، لكنها أصبحت الآن Tenant/Accounting configuration dependency واضحة يجب أن تدخل في Closure Matrix قبل اعتبار Accounting multi-tenant جاهزًا.
+
+10. لا يزال هناك Security Blocker
+
+الـFinancial tables حاليًا RLS-enabled، لكن الـpolicies الحالية واسعة جدًا، ومنها:
+
+Allow all for all
+
+على:
+
+journal_entries
+journal_lines
+customer_ledger
+supplier_ledger
+treasury
+cash_box
+daily_settlements
+
+وبالتالي:
+
+RLS enabled لا تعني Financial Security Closed.
+
+لن أغيرها الآن بصورة عمياء، لأن التكليف نفسه يمنع ذلك قبل بناء Consumer Matrix وReplacement Path.
+
+11. الاستفادة من الأنظمة العالمية
+
+لم أتعامل مع RAWAEA باعتباره مضطرًا لاختراع Accounting architecture من الصفر.
+
+المبدأ الذي أثبتته الأنظمة الناضجة:
+
+Business Transaction
+       ↓
+Validated Accounting Document
+       ↓
+Balanced Debit/Credit
+       ↓
+Posting
+       ↓
+Audit / Reversal / Reporting
+
+SAP وDynamics وOdoo كلها تفصل مفهوم المستند/القيد المالي عن مجرد إدخال صفوف عشوائية في جدول، وتفرض قواعد تحقق قبل الـposting. وهذا هو النمط الذي استخدمته كـbenchmark، مع إبقاء RAWAEA contract هو السلطة النهائية لا نسخ النظام المنافس حرفيًا. وهذا يتوافق مع قاعدة التكليف نفسها التي تطلب أخذ الـpattern الصناعي وتكييفه مع RAWAEA.
+
+12. أين وصل هيثم الآن؟
+Knowledge
+
+مرتفع جدًا
+
+Forensic Discovery
+
+مرتفع جدًا
+
+Production Execution
+
+بدأت فعليًا، وليست مجرد تقارير
+
+Autonomous Execution
+
+لم تصل بعد إلى READY
+
+والسبب لم يعد "عدم معرفة النظام".
+
+السبب أصبح محددًا جدًا:
+
+Accounting Core
+    ↓
+Ledger Core
+    ↓
+Treasury
+    ↓
+Security
+    ↓
+Consumer
+    ↓
+Deployment
+    ↓
+Concurrency
+    ↓
+Data Repair
+    ↓
+Zero-Debt
+
+وهذا هو نفس التسلسل الإلزامي في النص المُلصق.
+
+الحالة التنفيذية الحالية
+ACCOUNTING CORE
+────────────────────────
+Core Engine              ✅
+Balanced Posting         ✅
+Account/Company Check    ✅
+Operation Identity       ✅
+Duplicate Protection     ✅
+Audit                    ✅
+Staging Canary            ✅
+Staging Cleanup           ✅
+Production Deployment     ✅
+
+
+Full Accounting Closure  ❌
+LEDGER CORE              ❌
+TREASURY CORE             ❌
+FINANCIAL SECURITY        ❌
+CONSUMER CONVERGENCE      ❌
+DEPLOYMENT LINEAGE        ⚠️
+FINANCIAL CONCURRENCY     ❌
+DATA REPAIR               ❌
+GLOBAL ZERO-DEBT          ❌
+قرار هيثم الآن
+
+AUTONOMOUS CTO READY = NO
+
+لكن هذه المرة السبب ليس "المعرفة ناقصة".
+
+بل:
+
+بدأ بالفعل تحويل المعرفة إلى تنفيذ Production-grade، وأول Core مالي تم إنشاؤه ونشره، لكن لم يتم بعد إغلاق الـFinancial Closure Unit بالكامل.
+
+وهذا هو الفارق الذي طلبه التوجيه تحديدًا بين CTO يعرف المشروع وCTO يستطيع امتلاك المشروع تنفيذيًا.
+
+والخطوة التالية المباشرة ليست العودة إلى Inventory؛ بل إكمال Convergence للـAccounting Writers ثم Ledger Core ثم Treasury، مع استمرار كل أعمال Consumer/Deployment/Data-Reconciliation المستقلة بالتوازي.
