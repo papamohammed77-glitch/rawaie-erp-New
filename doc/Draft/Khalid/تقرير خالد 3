@@ -1,0 +1,142 @@
+تم تنفيذ برومبت 51 باعتباره تكليف خالد، وبُني التنفيذ على Production SMART ERP + Git rawaie-erp-New/main + Current/PWA الحالي، مع عدم استخدام الملفات خارج Current للتعديل.
+
+ما أُنجز فعليًا
+
+1. Treasury → COA أُغلق للعقد الحالي
+
+Production تثبت وجود خزينة واحدة:
+
+CASH-01 / الخزينة الرئيسية
+
+وترتبط حاليًا بحساب COA:
+
+121 / النقدية (الخزينة الرئيسية)
+
+بالـUUID:
+
+c0da972b-6dbc-4f7c-96b8-acd33c86c736
+
+وبنفس company_id.
+
+إذن أصبح لدينا Identity Contract مثبت للمحطة الحالية، مع قاعدة صريحة: الكودان CASH-01 و121 ليسا قابلين للاستبدال؛ الهوية هي UUID + company scope + semantic identity.
+
+2. تم تثبيت وضع Accounting Core من Production
+
+post_journal_entry موجود فعليًا كـSECURITY DEFINER، ويطبق:
+
+company validation
+UUID account validation
+company/account ownership
+balanced posting
+operation identity
+idempotency عبر erp_operation_registry
+audit logging
+
+كما أن Production تحتوي بالفعل على post_cash_receipt_atomic وpost_cash_payment_atomic، وهو ما يتوافق مع إغلاق Hytham السابق المسجل في commit e5961aa19d516361ae44d04a9d145ab9cc6e8617.
+
+3. اكتمل Financial Writer Sweep من PostgreSQL الحالي
+
+ثبت وجود مسارات مالية ما زالت تكتب مباشرة، منها:
+
+save_sales_invoice_atomic
+
+receive_purchase_atomic
+
+complete_return_atomic
+
+بالإضافة إلى الـCore الجديد.
+
+إذن:
+
+Accounting Core = DEPLOYED
+Writer Convergence = OPEN
+
+ولم أعتبر وجود Core جديد مساويًا لإغلاق الكتابات القديمة.
+
+4. Consumer Matrix — أهم نتيجة
+
+Current/PWA/accountant.html هو Consumer مؤكد لسندات القبض والصرف، وتبويب:
+
+KPI → سندات قبض → سندات صرف → قيود
+
+وتظهر فيه مباشرة استدعاءات:
+
+save-receipt-voucher
+
+save-payment-voucher
+
+لكن الـPWA الحالي يرسل:
+
+cashBoxId = "MAIN"
+mainAccountName = reference
+lines[].accountName = reference
+amount
+date
+notes
+
+بينما الـAtomic Core الجديد يتطلب Treasury UUID + Cash Account UUID + Offset Account UUID + Operation UUID.
+
+لذلك لم أعدل accountant.html؛ إضافة UUID أو تغيير MAIN أو تحويل المرجع إلى حساب محاسبي ستكون اختراعًا لعقد محاسبي لم يُثبت من Consumer الحالي.
+
+Modified Current/PWA files: NONE
+
+وهذا هو التعديل الجراحي الصحيح في هذه المرحلة: عدم إدخال Patch خاطئ في ملف منشور.
+
+5. Financial Security
+
+Production الحالية ما زالت تمنح anon وauthenticated صلاحيات DML واسعة على الجداول المالية الحساسة، مثل:
+
+journal_entries / journal_lines / cash_box / treasury / customer_ledger / supplier_ledger / driver_ledger / daily_settlements / driver_liabilities
+
+لذلك لم أسحب الصلاحيات في Production بعد؛ لأن بعض الـwriters القديمة ما زالت قائمة، وسحب الصلاحيات الآن قبل تحويل المستهلكين قد يكسر Runtime قائم.
+
+الحالة:
+
+Staging boundary = proven
+
+Production rollout = OPEN
+
+6. Deployment Lineage
+
+تم تثبيت Git current:
+
+e5961aa19d516361ae44d04a9d145ab9cc6e8617
+
+لكن لا يوجد في سطح Production SQL المتاح Registry موثوق يثبت Edge deployed SHA/version لكل Function؛ لذلك لم أخترع lineage من أسماء الملفات أو التقارير.
+
+الحالة:
+
+Deployment Lineage = PARTIAL / OPEN
+
+السجل الرسمي
+
+تم حفظ التنفيذ في:
+
+20260822_KHALID_PROMPT51_DIRECT_EXECUTION_CLOSURE.md
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260822_KHALID_PROMPT51_DIRECT_EXECUTION_CLOSURE.md
+
+
+Commit:
+
+b8400aaf3bda88f8aad87983f2ec6ce8f6a0a3c7
+
+الحالة الحالية
+Accounting Contract Authority       ACTIVE
+Treasury ↔ COA current identity    CLOSED
+Receipt Consumer Contract           OPEN
+Payment Consumer Contract           OPEN
+Financial Security Staging          PROVEN
+Financial Security Production      OPEN
+Consumer Matrix                    PARTIAL / ACTIVE
+Deployment Lineage                 PARTIAL / OPEN
+Writer Convergence                 OPEN
+Concurrency                        OPEN
+Data Reconciliation                OPEN
+Global Zero-Debt                   OPEN
+Autonomous CTO Ready               NO
+
+والـInventory لم يُفتح من جديد؛ ما زال Regression Foundation كما يفرض برومبت 51.
+
+المسار التالي لخالد أصبح محددًا بدقة:
+
+Receipt/Payment Consumer Contract → Daily Settlement Consumer Contract → Full Consumer Matrix → Production Financial Write Boundary → Deployment Lineage → Runtime → Concurrency.
