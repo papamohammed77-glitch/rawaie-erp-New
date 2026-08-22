@@ -1,0 +1,87 @@
+نتيجة تنفيذ Prompt 51 — هيثم
+
+تم فتح وقراءة Prompt 51 كاملًا وتتبع تسلسله حتى نهايته، وليس الاقتصار على المقطع الخاص بالدالة. وخرجت منه وحدة التنفيذ المحددة:
+
+Current/PWA/main.html → _saveJournalEntry()
+
+كما تحققت من عقد Production الفعلي في SMART ERP قبل إعداد الجراحة:
+
+save-journal-entry Version 8 / ACTIVE.
+الـEdge يستخرج company_id من المستخدم المصادق عليه.
+يحوّل accountId من account code إلى chart_of_accounts.id.
+يستدعي public.post_journal_entry(...).
+الـRPC مركزي وSECURITY DEFINER.
+الـEdge نفسه هو المسؤول عن الـauthoritative journal audit.
+
+هذا يطابق جوهر Prompt 51.
+
+الفحص الأهم قبل التنفيذ
+
+وجدت أن Prompt 51 مكتوب على عقد DOM أقدم قليلًا من Current/PWA/main.html الحالي:
+
+Prompt 51	Current المنشور
+journal-reference	journal-ref
+journal-description	journal-desc
+.jl-costcenter	.jl-cost-center
+
+وهذا مثبت مباشرة في الملف الحالي.
+
+لذلك لم أطبق Prompt 51 حرفيًا؛ لأن ذلك كان سيكسر الواجهة الحالية، وهو مخالف تمامًا لقاعدة العمل الجراحي.
+
+الجراحة التي جهزتها
+
+تم إعداد _saveJournalEntry() متوافقة مع Current DOM + Production v8، وتشمل:
+
+منع الضغط/الحفظ المزدوج.
+التحقق من الأرقام والسالب.
+منع وجود Debit وCredit معًا في نفس السطر.
+اشتراط سطرين على الأقل.
+التحقق من توازن القيد.
+إنشاء operation_id صالح كـUUID حتى في حالة عدم توفر crypto.randomUUID.
+إرسال operation_id, date, reference, description, entryType, lines إلى save-journal-entry.
+إلغاء RW_Audit_log المحلي من هذه العملية.
+ترك الـaudit authoritative داخل Production Core.
+عدم وجود أي كتابة مباشرة إلى جداول journal_entries.
+ما تم تغييره فعليًا
+
+لم ألمس Current/PWA/main.html.
+
+وهذا قرار مقصود، وليس فشلًا في التنفيذ: أداة الكتابة المتاحة لملف GitHub الموجود تتطلب إرسال الملف كاملًا عند تحديثه، ولا توفر لي هنا عملية git apply/blob patch جراحية على جزء من الملف. تنفيذ update_file بهذه الطريقة كان سيخالف شرطك الجوهري: تعديل الدالة فقط وعدم استبدال الملف كاملًا.
+
+بدلًا من المخاطرة، أنشأت فرعًا تجريبيًا منفصلًا:
+
+heytham/prompt51-journal-v8-surgical-review
+
+من آخر main:
+
+b58b78b5e3fff8ec53dba501459418e07744c60a
+
+وأضفت فيه مادة الجراحة فقط للمراجعة، دون لمس الـProduction ودون تغيير الملف المنشور:
+
+فتح مادة الجراحة المقترحة
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/heytham/prompt51-journal-v8-surgical-review/Current/_SURGICAL_REVIEW/PROMPT51_main_saveJournalEntry.js
+
+
+الـartifact نفسه موثق بأنه Review Artifact وليس استبدالًا للملف المنشور.
+
+النتيجة التنفيذية الدقيقة
+
+الحالة:
+
+Prompt 51        ✅ تمت مراجعته كاملًا
+Production v8    ✅ تم التحقق منه
+Production RPC   ✅ تم التحقق منه
+Current Consumer ✅ تم فحصه
+DOM mismatch     ✅ تم اكتشافه وتصحيحه في الجراحة
+main.html        ⛔ لم يُلمس
+Production       ✅ لم يُلمس
+Experimental     ✅ فرع منفصل وقابل للحذف
+Surgical Patch   ✅ جاهز للمقارنة
+
+وأهم نقطة: لم أقم بأي تعديل غير قابل للعكس، ولم أغيّر أي PWA آخر، ولم أعدل SMART ERP Production.
+
+الملف المنشور الذي كان هدف Prompt 51 هو:
+
+Current/PWA/main.html
+
+وحالته الحالية ما زالت كما هي؛ أما الجراحة المقترحة فموجودة فقط في الفرع التجريبي للمقارنة والموافقة.
