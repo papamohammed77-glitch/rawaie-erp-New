@@ -1,0 +1,249 @@
+مقدمة التقرير
+قرأت النص الملصق كاملًا حتى آخر سطر، بما في ذلك الـFINAL COMMAND الذي يحدد أن دور خالد الآن هو AUTONOMOUS CTO-IN-TRAINING وأن أول Closure Unit إلزامية هي ACCOUNTING CORE FORENSIC CLOSURE، ثم LEDGER وTREASURY وFINANCIAL SECURITY وغيرها.
+
+ولم أتعامل معه كتقرير للمراجعة فقط؛ بدأت التنفيذ على Production الحالية وGit وStaging، مع الاستفادة من SAP/Dynamics/Odoo عندما ظهر نقص حقيقي في تصميم العقد.
+
+ما تم تنفيذه فعليًا
+1. تم إعادة الـProduction Re-Baseline صباح 22 أغسطس
+
+اللقطة المباشرة الآن:
+
+العنصر	Production
+Companies	3
+Users	26
+Branches	5
+Items	50
+Stock rows	26
+inventory_log	3
+stock_vouchers	0
+Orders	0
+Runsheets	0
+Purchase Orders	0
+Journal Entries	2
+Journal Lines	0
+Audit Log	1778
+Customer Ledger	0
+Supplier Ledger	0
+Driver Ledger	0
+
+Production ما زالت عند migration:
+
+20260821023458
+
+إذن الحالة الحالية فعلاً هي post-cleanup Production، وليست لقطات 19–21 أغسطس القديمة.
+
+2. تم تنفيذ Financial Writer Discovery من Production
+
+تم فحص Edge Functions المنشورة فعليًا، ومن أهمها:
+
+save-journal-entry v6
+save-receipt-voucher v5
+save-payment-voucher v3
+save-daily-settlement v3
+update-driver-ledger v1
+save-sales-invoice v15
+receive-purchase v12
+complete-return v24
+
+وأثبت التنفيذ وجود Direct Financial Writers حقيقية في Production، وليس مجرد احتمال معماري.
+
+أخطرها:
+
+save-receipt-voucher
+
+يكتب مباشرة:
+
+cash_box → journal_entries → journal_lines → treasury → driver_ledger
+
+ويحتوي company_id ثابتًا.
+
+ونفس النمط موجود في save-payment-voucher، بينما save-daily-settlement يحمل أيضًا عمليات متعددة مستقلة ذات آثار مالية.
+
+3. اكتشاف Contract Drift مهم جدًا
+
+Production تثبت أن:
+
+journal_lines.account_id
+
+هو UUID وله FK إلى:
+
+chart_of_accounts(id)
+
+بينما treasury.account_code الحالي هو:
+
+CASH-01
+
+ولا توجد مطابقة chart_of_accounts.account_code = CASH-01.
+
+في المقابل الحساب المحاسبي الحالي للنقدية هو:
+
+121 — النقدية (الخزينة الرئيسية)
+
+بـUUID مستقل.
+
+إذن إصلاح Financial Writers بتحويل CASH-01 مباشرة إلى journal_lines.account_id سيكون خطأ.
+
+هذا أصبح الآن Contract Gap مثبتًا من Production، وليس رأيًا.
+
+4. تم التحقيق في الـJournal Headers ذات الخطوط الصفرية
+
+الـJournal Entries الوحيدان الحاليان:
+
+JE-VOID-1784927448473-476
+JE-VOID-1784927457858-428
+
+وهما:
+
+VoidInvoice
+
+بدون أي journal_lines.
+
+ثم تابعت العلاقة إلى audit_log ووجدت أن:
+
+ORD-1015 تم إنشاؤه.
+ORD-1016 تم إنشاؤه.
+ثم تم حذف كلا الطلبين.
+وبعد الحذف تم إنشاء الـVoidInvoice Journal Headers.
+
+إذن لم أعد أصنفهما كـ"orphan عشوائي".
+
+الأدلة الحالية تدعم أنهما Void markers مرتبطة بحذف فواتير قديمة، لكن تمثيلها المالي غير مكتمل لأنهما Posted بلا Lines.
+
+لم أقم بحذفهما أو اختلاق قيود لهما.
+
+وهذا متسق مع قواعد الأنظمة الناضجة: SAP وDynamics يتعاملان مع reversal كحدث/وثيقة محاسبية صريحة مرتبطة بالأصل، لا كتشويه صامت للسجل الأصلي.
+
+5. تم تنفيذ Security Closure Test في Staging
+
+بدلاً من تعديل Production عميانًا، نفذت أول Security Boundary Test في:
+
+rawaea-staging
+
+وتم سحب:
+
+INSERT / UPDATE / DELETE / TRUNCATE
+
+من:
+
+anon
+authenticated
+
+عن:
+
+journal_entries
+journal_lines
+cash_box
+treasury
+customer_ledger
+supplier_ledger
+driver_ledger
+daily_settlements
+driver_liabilities
+
+مع الإبقاء على صلاحيات service_role اللازمة لمسارات الـEdge الحالية.
+
+والتحقق بعد التنفيذ أثبت:
+
+Staging Direct Financial DML Boundary = PASS
+
+لم أنقل هذا إلى Production بعد لأن Consumer Matrix وRuntime Proof لهذه المسارات لم تُغلق بالكامل.
+
+6. تم استخدام الأنظمة العالمية لاستكمال الرؤية
+
+تمت مطابقة الوضع الحالي مع المبادئ الثابتة في:
+
+SAP
+
+Journal Document + Line Items.
+Explicit posting context.
+Explicit reversal document/reference.
+
+Dynamics 365
+
+Reversal كمعاملة مستقلة.
+إمكانية عكس journal كامل أو vouchers.
+الفصل بحسب طبيعة الـphysical/financial posting.
+
+Odoo
+
+Inventory valuation مرتبطة بالـGeneral Ledger.
+Stock variation / valuation entries.
+Accrual model عند اختلاف توقيت الاعتراف المالي عن الحركة التشغيلية.
+
+والنتيجة ليست نسخ SAP أو Odoo، بل تثبيت Pattern عام صالح لـRAWAEA:
+
+Business Event
+      ↓
+Financial Event
+      ↓
+Balanced Journal
+      ↓
+Journal Lines
+      ↓
+Ledger / Treasury
+      ↓
+Audit
+      ↓
+Reversal / Retry / Idempotency
+الحالة التنفيذية الحالية
+ACCOUNTING CORE FORENSIC CLOSURE
+
+ACTIVE — NOT CLOSED
+
+تم إنجاز:
+
+FOUND
+→ FORENSIC DISCOVERY
+→ ROOT CAUSE IDENTIFICATION
+→ PRODUCTION TRACE
+→ STAGING SECURITY TEST
+→ INDUSTRY BENCHMARK
+
+والمتبقي ليس نقص معرفة عام، بل عقود محددة:
+
+Treasury ↔ Chart of Accounts contract.
+Receipt/Payment accounting contract.
+Daily Settlement contract.
+VoidInvoice semantics.
+Central Accounting posting boundary.
+Ledger ownership.
+Consumer Matrix.
+Production security rollout.
+Runtime E2E.
+True concurrency proof.
+
+لم أتوقف بسبب نقص المعلومات. كل ما يمكن حسمه بالأدلة تم حسمه، وما يتطلب Owner Decision تم فصله عن الأعمال المستقلة بدل تعطيل المسار كله.
+
+تم تخزين التنفيذ رسميًا
+
+تم إنشاء الملف:
+
+Current/CTO/20260822_KHALID_ACCOUNTING_EXECUTION_QUALIFICATION.md
+
+والـcommit:
+
+ab8ce3fd3003f08e95cb698d343aed2d1d553e0f
+
+فتح سجل تنفيذ خالد على GitHub
+
+الحكم الحالي
+Inventory Core              VERIFIED
+Voucher Core                VERIFIED
+Tenant Core                 STRONG
+Accounting Discovery        EXECUTED
+Accounting Core             OPEN / ACTIVE CLOSURE
+Ledger Core                 OPEN
+Treasury                    OPEN
+Financial Security          CRITICAL / STAGING TEST PASS
+Consumer Matrix             OPEN
+Deployment Lineage          OPEN
+Runtime                     PARTIAL
+Concurrency                 OPEN
+Global Zero-Debt            OPEN
+
+
+AUTONOMOUS CTO READY        NO
+
+والمرحلة التالية الطبيعية الآن هي إكمال عقد Accounting نفسه ثم بناء Ledger Core عليه، وليس العودة إلى Inventory.
+
+
