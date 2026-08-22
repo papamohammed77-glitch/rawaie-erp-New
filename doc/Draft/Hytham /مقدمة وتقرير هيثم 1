@@ -1,0 +1,811 @@
+مقدمة 
+تم استكمال التحقيق من المصادر الحية مباشرة: Production Supabase، تعريفات Edge Functions المنشورة فعليًا، PostgreSQL pg_proc وRLS/GRANTS/constraints/data الحالية، وmain الحالي في Git. لم أتعامل مع التقارير السابقة كمصدر إثبات.
+
+والنتيجة كشفت فجوات مهمة لم تكن ظاهرة بالكامل في التقييم السابق.
+
+النتيجة الجنائية الحالية
+1. Accounting Core — الفجوة أكبر مما كان ظاهرًا
+
+في Production الحالية لا توجد دالة مركزية مكافئة لـ post_stock_movement للمحاسبة.
+
+البحث المباشر في تعريفات PostgreSQL لم يجد post_journal_entry أو Financial Posting Engine مركزيًا.
+
+بدلًا من ذلك، توجد كتابة مالية موزعة داخل عدة Business Cores:
+
+save_sales_invoice_atomic
+    → journal_entries
+    → journal_lines
+    → customer_ledger
+    → driver_ledger
+
+
+receive_purchase_atomic
+    → journal_entries
+    → journal_lines
+    → supplier_ledger
+
+
+complete_return_atomic
+    → journal_entries
+    → journal_lines
+    → customer_ledger
+
+إذن:
+
+Inventory أصبح مركزيًا، بينما Accounting ما زال Distributed Business Logic.
+
+هذه ليست استنتاجًا من تقرير؛ هذه نتيجة فحص مباشر لـpg_proc.
+
+2. اكتشاف أكبر: Production تنشر Financial Edge Functions غير موجودة في Current Git
+
+قائمة Edge Functions الحية في Production تثبت حاليًا:
+
+Production Function	Version
+save-journal-entry	6
+save-receipt-voucher	5
+save-payment-voucher	3
+save-transfer-voucher	3
+save-daily-settlement	3
+update-driver-ledger	1
+save-sales-invoice	15
+receive-purchase	12
+complete-return	24
+complete-order-delivery	13
+
+لكن عند فحص rawaie-erp-New/main مباشرة:
+
+Current/Edge_Functions/save-journal-entry
+Current/Edge_Functions/save-receipt-voucher
+Current/Edge_Functions/save-payment-voucher
+Current/Edge_Functions/save-transfer-voucher
+Current/Edge_Functions/save-daily-settlement
+
+غير موجودة.
+
+وهذا يجعل:
+
+DEPLOYMENT / SOURCE LINEAGE في Financial Domain غير مغلق.
+
+ولا يجوز اعتبار main مصدر الحقيقة البرمجية الكامل للمالية ما دام Production يشغل artifacts لا يستطيع main الحالي إعادة بنائها.
+
+3. save-journal-entry — أفضل حالًا لكنه ليس Core
+
+النسخة المنشورة v6 تتحقق من:
+
+JWT
+→ auth.users
+→ public.users
+→ company_id
+→ chart_of_accounts.company_id
+
+ثم تنشئ:
+
+journal_entries
+journal_lines
+
+وهذا Tenant-aware.
+
+لكنها ما زالت:
+
+Edge Function
+→ direct journal insert
+
+وليست:
+
+Edge
+→ central accounting RPC
+→ atomic journal posting
+
+كما أنها لا تملك idempotency/operation identity مكافئة لجوهر Inventory.
+
+4. save-receipt-voucher — Critical
+
+Production v5 تقوم مباشرة بـ:
+
+cash_box
+journal_entries
+journal_lines
+treasury
+driver_ledger
+
+والكود المنشور يضع:
+
+company_id =
+00000000-0000-0000-0000-000000000001
+
+داخل:
+
+cash_box
+
+و:
+
+journal_entries.
+
+كما أنها تعدل:
+
+treasury.current_balance
+
+مباشرة.
+
+أي أن المسار الحالي هو:
+
+UI
+→ Edge
+→ cash
+→ Journal
+→ Treasury
+→ Driver Ledger
+
+من دون Financial Core مركزي واحد.
+
+5. save-payment-voucher — نفس المشكلة
+
+Production v3:
+
+cash_box
++
+journal_entries
++
+journal_lines
++
+treasury
+
+وتستخدم نفس الـhard-coded MAIN company context.
+
+كما أن Treasury balance تتم قراءته ثم حساب الرصيد الجديد ثم تحديثه مباشرة.
+
+لا يوجد هنا Core Financial transaction engine مماثل لـpost_stock_movement.
+
+6. save-transfer-voucher
+
+Production v3 تنفذ:
+
+Cash Box OUT
++
+Cash Box IN
++
+Journal
++
+Journal Lines
++
+Treasury OUT
++
+Treasury IN
+
+وكل ذلك داخل Edge Function.
+
+والـcompany_id في السجلات الأساسية hard-coded إلى MAIN.
+
+هذه بالتحديد إحدى صور:
+
+Distributed Financial Business Logic
+
+7. save-daily-settlement — اكتشاف أخطر
+
+النسخة المنشورة v3 تنفذ مباشرة:
+
+daily_settlements
+driver_liabilities
+journal_entries
+journal_lines
+runsheets.status
+
+وتستخدم أيضًا:
+
+company_id = MAIN
+
+كما أن الكود يسمح بفشل إدراج journal_lines ثم يستمر في التنفيذ، ثم يغلق الـrunsheet.
+
+أي أن لدينا مسارًا محتملًا من النوع:
+
+Settlement created
++
+Journal Header created
++
+Journal Lines fail
++
+Runsheet closed
+
+وهذه ليست مجرد مشكلة تصميم مستقبلية؛ إنها atomicity weakness في Production code الحالي المنشور.
+
+8. update-driver-ledger
+
+Production v1 تقوم مباشرة بـ:
+
+driver_ledger.insert(...)
+
+وتقبل من request:
+
+driver_email
+debit
+credit
+reference
+description
+
+ولا تقوم داخل جسم الوظيفة بحساب:
+
+company_id
+driver ownership
+current user company
+driver/company relationship
+
+وهذا writer مالي إضافي خارج أي Ledger Core مركزي.
+
+والأهم أن جدول driver_ledger نفسه لا يحتوي أصلًا company_id.
+
+9. Current Main Consumer — مثبت
+
+فحص Current/PWA/main.html مباشرة يثبت أن النظام الأم يستدعي فعليًا:
+
+save-journal-entry
+save-receipt-voucher
+save-payment-voucher
+save-transfer-voucher
+save-daily-settlement
+
+وبالتالي هذه ليست Edge Functions مهجورة نستطيع تجاهلها.
+
+هناك:
+
+Production Deployment
+        +
+Real Current Consumer
+
+وهذا يجعلها Closure Units حقيقية.
+
+10. الوضع الفعلي للـLedger
+
+Production الحالية لديها:
+
+customer_ledger
+supplier_ledger
+driver_ledger
+
+لكن لا يوجد:
+
+post_customer_ledger
+post_supplier_ledger
+post_driver_ledger
+
+أو Ledger Core مركزي مماثل.
+
+بل يتم الكتابة من:
+
+Sales Core
+Purchase Core
+Return Core
+Receipt Voucher
+Daily Settlement
+update-driver-ledger.
+
+إذن:
+
+Ledger Architecture لم تصل بعد إلى نفس مستوى Inventory Architecture.
+
+11. Treasury
+
+Production لديها:
+
+treasury
+cash_box
+
+ومحركات مالية مباشرة تقوم بـ:
+
+SELECT current_balance
+→ calculate
+→ UPDATE current_balance
+
+داخل Edge Functions.
+
+ولا يوجد Treasury Posting Core مركزي.
+
+وهذا يجعل:
+
+Treasury
+
+أيضًا جزءًا من الـDistributed Financial Writer problem.
+
+12. Security — اكتشاف مباشر خطير
+
+فحص RLS الحالي للمالية أعطى:
+
+cash_box
+
+Allow all for all
+
+customer_ledger
+
+Allow all for all
+
+daily_settlements
+
+Allow all for all
+
+journal_entries
+
+Allow all for all
+
+journal_lines
+
+Allow all for all
+
+supplier_ledger
+
+Allow all for all
+
+treasury
+
+Allow all for all
+
+كما أن grants الحالية تمنح anon وauthenticated صلاحيات DML واسعة على عدة جداول مالية.
+
+driver_ledger لديه أيضًا policy تسمح بالإدخال مع:
+
+WITH CHECK = true
+
+وهذه ليست Security Gap نظرية.
+
+هذه Production Security Boundary غير مغلقة ماليًا.
+
+لكنني لم أغيرها مباشرة لأن إغلاق RLS الآن قبل بناء Consumer Matrix يمكن أن يكسر الـfinancial applications التي تثبت main.html أنها تعتمد على الخدمات الحالية.
+
+13. Current Production Financial Data
+
+اللقطة الحية الآن:
+
+Table	Rows
+chart_of_accounts	87
+journal_entries	2
+journal_lines	0
+customer_ledger	0
+supplier_ledger	0
+driver_ledger	0
+treasury	1
+cash_box	0
+daily_settlements	0
+cheques	0
+
+والأهم أن الـ2 journal_entries الموجودين حاليًا هما:
+
+JE-VOID-...
+status = Posted
+entry_type = VoidInvoice
+
+لكن:
+
+journal_lines = 0
+
+لكليهما.
+
+هذه Data Integrity Finding حالية.
+
+لم أحذفهما أو أصلحهما بالتخمين؛ لأن المصدر الحالي لا يكفي لإثبات هل هما orphaned historical artifacts يجب حذفهما، أم لهما contract خاص.
+
+14. Database Integrity Structure
+
+بعض العلاقات الأساسية موجودة وسليمة بنيويًا، مثل:
+
+journal_lines.entry_id
+→ journal_entries.id
+
+
+journal_lines.account_id
+→ chart_of_accounts.id
+
+
+customer_ledger.customer_id
+→ customers.id
+
+
+supplier_ledger.supplier_id
+→ suppliers.id
+
+
+daily_settlements.runsheet_id
+→ runsheets.id
+
+
+daily_settlements.driver_id
+→ users.id
+
+
+cash_box.treasury_id
+→ treasury.id
+
+لكن لا توجد قاعدة DB تمنع:
+
+Posted Journal Header
++
+Zero Journal Lines
+
+وهذا هو سبب إمكانية وجود الـ2 الحاليين.
+
+15. Concurrency — ما تم إثباته فعلًا
+
+وجدت في Git workflow حقيقيًا:
+
+.github/workflows/complete-picking-concurrency-canary-20260814.yml
+
+ويقوم فعليًا بفتح طلبين HTTP متزامنين إلى complete-picking:
+
+Request 1 ─┐
+           ├── Concurrent
+Request 2 ─┘
+
+ثم يشترط:
+
+success = 1
+failure = 1
+
+ويتحقق بعد ذلك من:
+
+qty_picked = 1
+allocated_qty = baseline + 1
+picking_logs = 0
+
+إذن لدينا True Concurrency Test Mechanism فعلي، وليس Sequential Retry.
+
+لكن:
+
+هذا يثبت Picking فقط، ولا يثبت Concurrency للـAccounting/Treasury/Ledger/Settlement.
+
+16. Deployment Lineage
+
+الآن أصبح لدينا دليل مباشر على الطرفين:
+
+Production
+→ Edge version
+→ deployed SHA
+
+مثلًا:
+
+save-journal-entry  v6
+save-receipt-voucher v5
+save-payment-voucher v3
+save-transfer-voucher v3
+save-daily-settlement v3
+
+لكن الطرف الآخر:
+
+Current/Edge_Functions
+
+غير موجود لهذه الوظائف على main.
+
+إذن:
+
+Deployment Lineage = OPEN
+
+وليست مجرد missing documentation.
+
+17. ما الذي تم إغلاقه الآن؟
+أُغلق مباشرة من المصادر:
+ACC-001
+
+لا يوجد post_journal_entry مركزي في Production.
+
+LED-001
+
+لا يوجد Ledger Core مركزي.
+
+FIN-001
+
+هناك Financial Edge Functions منشورة تستخدم MAIN hard-coded company context.
+
+FIN-002
+
+هناك Financial multi-table writers غير مركزية وغير موحدة ذريًا.
+
+SEC-001
+
+هناك Financial tables ذات DML/RLS exposure واسع جدًا.
+
+DATA-001
+
+يوجد حاليًا 2 Posted Journal Headers بدون Lines.
+
+DEP-001
+
+Production Financial Edge ↔ Current Git divergence مثبت.
+
+CON-001
+
+Concurrency proof موجود لـPicking، لكنه غير موجود بعد للـFinancial domain.
+
+18. ما الذي لا ينبغي إصلاحه بالتخمين؟
+
+هناك ثلاثة أشياء لا يجوز أن ألمسها الآن بدون Contract:
+
+Journal Semantics
+
+ما هي authoritative account rules لكل Business Event؟
+
+Treasury Semantics
+
+هل treasury.current_balance authoritative state أم derived/cache؟
+
+Ledger Semantics
+
+هل balance في ledger persisted state أم يجب اشتقاقه من entries؟
+
+هذه ليست أسئلة تقنية فقط؛ بعضها Business/Accounting Owner Decisions.
+
+والقاعدة الصحيحة:
+
+Owner Decision
+→ register
+→ continue all independent work
+19. النتيجة الفعلية للمرحلة
+
+بعد التحقيق الجديد، لا أرى أن الخطوة التالية هي:
+
+ارجع إلى Inventory
+
+ولا:
+
+ابدأ بكتابة post_journal_entry فورًا
+
+بل:
+
+CURRENT PRODUCTION FINANCIAL REALITY
+        ↓
+FINANCIAL WRITER MATRIX
+        ↓
+ACCOUNTING EVENT CONTRACT MATRIX
+        ↓
+LEDGER EVENT CONTRACT MATRIX
+        ↓
+TREASURY CONTRACT
+        ↓
+SECURITY BOUNDARY
+        ↓
+DEPLOYMENT LINEAGE
+        ↓
+CANONICAL CORE
+        ↓
+CONSUMER REWIRE
+        ↓
+CONCURRENCY
+        ↓
+DATA REPAIR
+
+هذه هي أول مرة أصبح لدينا دليل مباشر يجعل Accounting/Ledger المرحلة التالية فعليًا وليس مجرد اقتراح.
+
+20. سجل المتابعة الذي تم تثبيته
+
+تم حفظ هذه الحقائق في المستودع في:
+
+20260821_ACCOUNTING_LEDGER_SOURCE_FORENSIC_TRACE.md
+
+والـcommit:
+
+c2c5a5c3b235c5b45c95d8d253145acf49ea0ab8
+
+والملف نفسه تم فتحه والتحقق من وجوده بعد الـcommit.
+
+الحالة الحالية بعد إغلاق هذا الجزء
+Gate	الحالة
+Production Freshness	VERIFIED
+Inventory Core	STRONG / VERIFIED
+Voucher Core	STRONG / VERIFIED
+Tenant Core	STRONG
+Accounting Core	NOT CLOSED
+Ledger Core	NOT CLOSED
+Treasury Core	NOT CLOSED
+Financial Security	CRITICAL OPEN
+Financial Consumer Map	PARTIALLY VERIFIED
+Financial Deployment Lineage	OPEN
+Picking Concurrency	VERIFIED TEST MECHANISM
+Financial Concurrency	UNPROVEN
+Financial Data Integrity	CRITICAL OPEN
+Autonomous CTO	NOT READY
+
+الخلاصة الحاسمة: التحقيق المباشر لم يكتفِ بتأكيد أن Accounting/Ledger ناقصان؛ بل أثبت أن Production تحتوي حاليًا على Financial Distributed Writers + Deployment Drift + Security Exposure + Persisted Journal Integrity Issue. لذلك لا يجوز إعلان إغلاق المرحلة المالية، ولا يجوز بناء Core جديد قبل تثبيت Contract Matrix لهذه العمليات.
+
+
+------------------------------------------------------------
+تقرير
+# RAWAEA ERP — ACCOUNTING / LEDGER SOURCE FORENSIC TRACE
+
+**Date:** 2026-08-21  
+**Authority:** Direct Production Supabase + current Git source only.  
+**Reports/history:** navigation only; no report claim is treated as current truth.
+
+## 1. Production deployment reality
+
+Direct Production Edge Functions currently active include:
+
+- `save-journal-entry` v6
+- `save-receipt-voucher` v5
+- `save-payment-voucher` v3
+- `save-transfer-voucher` v3
+- `save-daily-settlement` v3
+- `update-driver-ledger` v1
+- `save-sales-invoice` v15
+- `receive-purchase` v12
+- `complete-return` v24
+- `complete-order-delivery` v13
+
+The corresponding `Current/Edge_Functions` paths for `save-journal-entry`, `save-receipt-voucher`, `save-payment-voucher`, `save-transfer-voucher`, and `save-daily-settlement` are NOT present on `main` at the time of this trace.
+
+## 2. Production Financial Writer finding
+
+Direct `pg_proc` inspection shows no canonical public `post_journal_entry` or central ledger posting function comparable to `post_stock_movement`.
+
+Current Production domain functions directly write financial state:
+
+- `save_sales_invoice_atomic`
+  - inserts `journal_entries`
+  - inserts `journal_lines`
+  - inserts `customer_ledger` for credit sales
+  - inserts `driver_ledger` for VAN credit cases
+- `receive_purchase_atomic`
+  - inserts `journal_entries`
+  - inserts `journal_lines`
+  - inserts `supplier_ledger`
+- `complete_return_atomic`
+  - inserts `journal_entries`
+  - inserts `journal_lines`
+  - inserts `customer_ledger`
+
+Therefore the financial writer model is currently distributed.
+
+## 3. Published Edge writers
+
+### `save-journal-entry` v6
+
+Production source validates Authorization and resolves `company_id` from `public.users`, verifies account ownership, then directly inserts journal header and lines.
+
+It is tenant-aware but not a single database transaction / canonical posting engine. A header can be persisted before a later line failure unless the request itself rolls back at the DB layer; the implementation does not call a central accounting RPC.
+
+### `save-receipt-voucher` v5
+
+Production source directly writes:
+
+- `cash_box`
+- `journal_entries`
+- `journal_lines`
+- `treasury`
+- `driver_ledger`
+
+The implementation hard-codes company ID `00000000-0000-0000-0000-000000000001` in `cash_box` and `journal_entries`, and performs direct treasury balance mutation by account lookup.
+
+### `save-payment-voucher` v3
+
+Production source directly writes:
+
+- `cash_box`
+- `journal_entries`
+- `journal_lines`
+- `treasury`
+
+and hard-codes the MAIN company ID in `cash_box` and `journal_entries`.
+
+### `save-transfer-voucher` v3
+
+Production source directly writes:
+
+- two `cash_box` rows
+- `journal_entries`
+- `journal_lines`
+- source treasury balance
+- target treasury balance
+
+and hard-codes the MAIN company ID in `cash_box` and `journal_entries`.
+
+### `save-daily-settlement` v3
+
+Production source directly writes:
+
+- `daily_settlements`
+- `driver_liabilities`
+- `journal_entries`
+- `journal_lines`
+- `runsheets.status`
+
+and hard-codes the MAIN company ID in `daily_settlements` and `journal_entries`.
+
+The implementation also allows `journal_lines` insertion failure to be logged without failing the whole settlement response, and it can continue to close the runsheet.
+
+### `update-driver-ledger` v1
+
+Production source directly inserts into `driver_ledger` using service-role client and accepts `driver_email`, debit, credit, reference and description from request data. The function body does not resolve company context or enforce a driver/company relationship.
+
+## 4. Current main.html consumers
+
+Direct Git source inspection of `Current/PWA/main.html` confirms the application calls the deployed financial functions:
+
+- `save-journal-entry`
+- `save-receipt-voucher`
+- `save-payment-voucher`
+- `save-transfer-voucher`
+- `save-daily-settlement`
+
+The UI therefore has real deployed consumers for these financial capabilities.
+
+## 5. Production financial data snapshot
+
+Direct Production query:
+
+- `chart_of_accounts` = 87
+- `journal_entries` = 2
+- `journal_lines` = 0
+- `customer_ledger` = 0
+- `supplier_ledger` = 0
+- `driver_ledger` = 0
+- `treasury` = 1
+- `cash_box` = 0
+- `daily_settlements` = 0
+- `cheques` = 0
+
+Both current `journal_entries` are `Posted` `VoidInvoice` headers with **zero journal lines**.
+
+This is a current persisted data-integrity finding, not a report interpretation.
+
+## 6. Current database security finding
+
+Direct Production inspection shows broad `public` policies / grants on financial tables.
+
+Examples include `Allow all for all` policies on:
+
+- `cash_box`
+- `customer_ledger`
+- `daily_settlements`
+- `journal_entries`
+- `journal_lines`
+- `supplier_ledger`
+- `treasury`
+
+`driver_ledger` also has broad table grants, including INSERT for anon/authenticated, with a policy whose `with_check` is `true`.
+
+The current database role grants additionally expose DML privileges to `anon` and `authenticated` on multiple financial tables.
+
+## 7. Closure blockers
+
+### ACC-001 — No canonical accounting posting engine
+
+No `post_journal_entry` equivalent is currently present in Production public functions.
+
+### LED-001 — No canonical ledger posting layer
+
+Customer, Supplier and Driver ledgers are written by separate domain/Edge paths.
+
+### FIN-001 — Tenant-unsafe published financial writers
+
+Receipt, Payment, Transfer and Settlement production functions contain hard-coded MAIN company context.
+
+### FIN-002 — Non-atomic financial multi-table operations
+
+Several published writers perform multiple sequential writes across cash, journal, treasury, ledger and settlement state without a single canonical transaction boundary.
+
+### SEC-001 — Financial tables have excessive direct DML exposure
+
+Current Production RLS/grants are not aligned with the desired ERP financial authority boundary.
+
+### DATA-001 — Posted journal headers without lines
+
+Two current `journal_entries` are persisted as Posted with zero `journal_lines`.
+
+### DEP-001 — Production financial Edge/Git divergence
+
+Multiple active Production financial Edge functions have no corresponding `Current/Edge_Functions` artifact on `main`.
+
+## 8. Concurrency evidence status
+
+Current Git contains a real concurrent HTTP canary for `complete-picking` that starts two simultaneous requests and asserts exactly one success and one failure. This proves the project has an actual concurrency-test mechanism for that domain.
+
+It does NOT prove live concurrent correctness of Accounting, Ledger, Treasury, Receipt, Payment, Transfer or Settlement operations.
+
+## 9. Required next closure sequence
+
+1. Freeze the current Production financial topology as evidence.
+2. Build accounting event-to-journal writer matrix from deployed functions and Core RPCs.
+3. Build customer/supplier/driver/treasury/settlement writer matrix.
+4. Establish owner/business contracts for receipt, payment, transfer, settlement and manual journal posting.
+5. Close deployment lineage for every deployed financial Edge.
+6. Design/implement canonical financial posting only after contract proof.
+7. Migrate ledger and treasury writers behind authoritative Core boundaries.
+8. Re-test tenant isolation and concurrency at the financial boundary.
+9. Repair or explicitly classify the two orphan Posted journal headers before final financial closure.
+
+**Status:** `AUTONOMOUS CTO NOT READY — FINANCIAL CORE CLOSURE REQUIRED`
+
