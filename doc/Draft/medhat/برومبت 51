@@ -1,90 +1,55 @@
-تم تنفيذ الجزء التنفيذي من برومبت 50، وليس الاكتفاء بقراءة التقرير.
-
-ما ثبتته من برومبت 50
-
-الغاية النهائية في الملف ليست إعادة فتح Inventory، بل الانتقال إلى المرحلة التالية من خطة ERP الكبرى:
-
+-	الغاية النهائية ليست إعادة فتح Inventory، بل الانتقال إلى المرحلة التالية من خطة ERP الكبرى:
 ACCOUNTING → LEDGER → TREASURY → FINANCIAL SECURITY → CONSUMER MATRIX → DEPLOYMENT LINEAGE → CONCURRENCY → DATA RECONCILIATION → GLOBAL ZERO-DEBT
-
-والملف يفرض أيضًا أن يكون التنفيذ Production-first، وأن تكون تعديلات Current/PWA جراحية ومحصورة في الدالة المستهدفة، وألا يُبنى أي تغيير على التخمين أو الافتراض.
-
+-	يجب أن يكون التنفيذ Production-first، وأن تكون تعديلات Current/PWA جراحية ومحصورة في الدالة المستهدفة، وألا يُبنى أي تغيير على التخمين أو الافتراض.
 مراجعة وضع خالد وهيثم
-
 التقارير الحالية تؤكد أن:
-
-خالد أقوى في الاستمرارية المعمارية وإعادة بناء نموذج المعرفة، لكن Accounting/Ledger/Treasury/Consumer/Deployment/Concurrency ما زالت غير مغلقة.
-هيثم وصل فعليًا إلى Production وبنى post_journal_entry ونشره، وأثبت اختبارات الـbalanced posting والـidempotency والرفض للقيد غير المتوازن، لكنه لم يغلق Convergence للـfinancial writers بعد.
-برومبت 49 نفسه يؤكد أن هيثم أقوى في Financial Forensics، وخالد أقوى في Knowledge/Architecture Continuity، وأن كليهما غير جاهز للاستقلال الكامل.
-التنفيذ الذي قمت به
-
+•	خالد أقوى في الاستمرارية المعمارية وإعادة بناء نموذج المعرفة، لكن Accounting/Ledger/Treasury/Consumer/Deployment/Concurrency ما زالت غير مغلقة. 
+•	هيثم وصل فعليًا إلى Production وبنى post_journal_entry ونشره، وأثبت اختبارات الـbalanced posting والـidempotency والرفض للقيد غير المتوازن، لكنه لم يغلق Convergence للـfinancial writers بعد. 
+•	برومبت 49 نفسه يؤكد أن هيثم أقوى في Financial Forensics، وخالد أقوى في Knowledge/Architecture Continuity، وأن كليهما غير جاهز للاستقلال الكامل. 
+الخطة التنفيذية المطلوبة الآن : 
 أنشأت وسجلت خطة تنفيذ مرحلية مستقلة لكليهما داخل Git:
-
 Current/CTO/20260822_PARALLEL_EXECUTION_PLAN_KHALID_HYTHAM.md
-
 والخطة تقسم المسؤوليات فعليًا إلى مسارين:
-
 خالد
-
-Accounting Contract Authority
-Treasury ↔ COA Contract
-Consumer Matrix
-Financial Security
-Deployment Lineage
-
+•	Accounting Contract Authority 
+•	Treasury ↔ COA Contract 
+•	Consumer Matrix 
+•	Financial Security 
+•	Deployment Lineage 
 هيثم
-
-post_journal_entry
-Atomic Receipt
-Atomic Payment
-Daily Settlement Core
-Driver Ledger Core
-Writer Convergence
-Financial Concurrency
-
+•	post_journal_entry 
+•	Atomic Receipt 
+•	Atomic Payment 
+•	Daily Settlement Core 
+•	Driver Ledger Core 
+•	Writer Convergence 
+•	Financial Concurrency 
 وكل Writer أصبح Closure Unit مستقلة بالترتيب:
-
 FOUND → CONTRACT → SURGICAL CHANGE → TEST → PRODUCTION DEPLOY → RUNTIME VERIFY → CLOSE
-
 تم تسجيل الخطة في Git في commit:
-
 8f1e0366b8ad8f9e0e0c4b40941aec05e81982df
-
 والأهم: بدأت التحقق التنفيذي من Production نفسها
-
 الحالة الحالية في Production أثبتت وجود Financial Writers فعلية، منها:
-
 save-receipt-voucher v5
 save-payment-voucher v3
 save-daily-settlement v3
 update-driver-ledger v1
-
 وهي لا تزال تكتب مباشرة إلى الجداول المالية بدل الاعتماد الكامل على Core موحد.
-
 مثلًا save-receipt-voucher ما زال يحتوي على:
-
-company_id ثابتًا للشركة 000...001
-كتابة مباشرة إلى cash_box
-كتابة مباشرة إلى journal_entries
-كتابة مباشرة إلى journal_lines
-تحديث مباشر لـtreasury
-كتابة مباشرة لـdriver_ledger
-
+•	company_id ثابتًا للشركة 000...001 
+•	كتابة مباشرة إلى cash_box 
+•	كتابة مباشرة إلى journal_entries 
+•	كتابة مباشرة إلى journal_lines 
+•	تحديث مباشر لـtreasury 
+•	كتابة مباشرة لـdriver_ledger 
 كما يستخدم قيمًا مثل CASH-01 و41 في مواضع ثبت أن journal_lines.account_id فيها UUID FK إلى chart_of_accounts.id. لذلك لن أرقع هذه الدالة بتغيير الشركة فقط لأن ذلك سيغلق عيبًا ويترك Contract Defect ماليًا أخطر. وهذا متسق مع قاعدة برومبت 50 التي تمنع الإصلاحات الناقصة أو الترقيعية.
-
 اكتشاف مهم أثناء التنفيذ
-
 راجعت Current/PWA أيضًا، وثبت أن van-sales.html يستدعي save-sales-invoice مباشرة، وبالتالي توجد بالفعل Consumer/Edge dependency مثبتة من المصدر المنشور.
-
 أما vouchers.html فهو مسار الأذونات المخزنية، وليس Consumer مباشرًا لسندات القبض/الصرف، وبالتالي لن أعدل هذا الملف بلا علاقة مثبتة.
-
 قرار التنفيذ الحالي
-
 لم أقم بتعديل مالي Production ناقصًا.
-
 السبب ليس توقفًا أو نقص صلاحيات، بل وجود Contract Gap مثبت: قبل تحويل save-receipt-voucher إلى post_journal_entry يجب تثبيت Treasury → COA identity contract. تقرير هيثم أيضًا أثبت أن post_journal_entry أصبح موجودًا في Production بالفعل، لكن الـwriters القديمة لم تُحوّل إليه بعد.
-
 وبالتالي مسار التنفيذ الصحيح الآن هو:
-
 Treasury ↔ COA Contract
         ↓
 Receipt Core
@@ -106,14 +71,10 @@ Runtime / Concurrency
 Data Repair
         ↓
 GLOBAL ZERO-DEBT
-
 الحالة الحالية:
 Accounting Core = Production Deployed
-
 لكن:
-
 Financial Closure = OPEN
-
 وذلك مثبت مباشرة من Production، وليس من تقرير قديم.
-
 لن أعتبر المرحلة مغلقة حتى تنتقل المسؤوليات فعليًا من الـwriters القديمة إلى الـCores، وتُثبت Production runtime، ثم يتم تنظيف البيانات والتوثيق النهائي.
+
