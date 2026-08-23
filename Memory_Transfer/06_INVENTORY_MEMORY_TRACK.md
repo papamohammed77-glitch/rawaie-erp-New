@@ -1,34 +1,50 @@
 # INVENTORY MEMORY TRACK
 
-## Current Production baseline
-Snapshot UTC: 2026-08-23 03:27:59.
-- companies=3
-- users=26
-- branches=5
-- items=50
-- stock_branches=26
-- inventory_log=3
+## CURRENT SNAPSHOT
+2026-08-23 03:41:38.004558 UTC
 
-## Core law
-`post_stock_movement(10)` is the central physical stock writer. The 2026-08-20 Zero-Debt Sweep reports 0 physical writers outside it. fileciteturn212file0
+## CORE CONTRACT
+`PHYSICAL MOVEMENT → post_stock_movement → stock_branches + inventory_log`
 
-## Reservation
-`reserve_stock` / `release_stock_reservation` are reservation-only. Reservation changes `allocated_qty`; physical `qty` is not reduced merely by picking.
+`reserve_stock / release_stock_reservation → allocated_qty only`
 
-## Movement history
-`inventory_log` is authoritative movement history for posted physical movements. Picking must not create a Physical Stock movement log if the current Production contract confirms reservation-only behavior.
+## CURRENT FORENSIC RESULT
+Production SQL function sweep found:
+- `post_stock_movement(10 args)` performs physical stock UPDATE/INSERT and inventory_log INSERT.
+- `reserve_stock` / `release_stock_reservation` only change allocation state.
+- `setup_van_stock` initializes stock rows.
+- No trigger directly mutates physical stock or inventory_log.
 
-## Identity
-Production `items.item_code` is globally UNIQUE and `item_id` is authoritative. `stock_branches` is keyed by branch/item identity. Do not repair cross-company item metadata blindly; current model treats item master identity globally. fileciteturn225file0
+Therefore:
+**Physical Writers outside post_stock_movement = 0 for the current inspected Production surface.**
 
-## Proven convergence
-The 2026-08-20 sweep lists these adapters converged on the central engine: send voucher, purchase receive, inventory adjustment, sales invoice, return, manual voucher, loading, reopen loading, unloading. fileciteturn222file0
+## CURRENT DATA
+- stock_branches = 26
+- inventory_log = 3
+- negative physical stock: NOT OBSERVED in current sweep
+- negative allocation: NOT OBSERVED in current sweep
+- over-allocation: NOT OBSERVED in current sweep
+- stock vouchers: 0
 
-## Inventory closure status
-`GLOBAL INVENTORY CORE INTEGRITY = 100% CLOSED` was recorded on 2026-08-20. This closure is boundary-specific: it does not mean Accounting/Ledger/Fulfillment/Consumer/Deployment domains are closed. fileciteturn222file0
+## HISTORICAL WRITER CLOSURE LINE
+Central inventory migrations include the 14–21 August rescue lineage, later tenant/item identity corrections, legacy overload retirement, target-row auto-init, DirectSale target correction, and legacy manual V2 disablement.
 
-## Current risks/drift
-- Current 2026-08-23 inventory_log count=3 differs from older closure snapshots (56/62). This must be treated as snapshot drift and provenance/reconciliation target.
-- `Current/Edge_Functions/start-picking` differs from deployed Production v14 identity lookup and must be reconciled.
-- Temporary/canary Edge Functions remain active in Production registry and require governance cleanup.
-- Full fulfillment/consumer/deployment lineage remains open.
+## MANUAL VOUCHER
+Current real lifecycle: Transfer / DirectSale / DirectReturn / SupplierReturn.
+Scrap/Adjustment remain Adjustment Engine operations.
+
+## ITEM / COMPANY IDENTITY
+Live `items.item_code` is globally UNIQUE. Therefore current identity is `item_id` + unique item_code, while branch/company scope belongs to branch and operation context.
+Do not retroactively classify old cross-company rows from earlier snapshots as current corruption without fresh provenance analysis.
+
+## CURRENT LEGACY DEBT
+Some legacy PostgreSQL functions still exist as objects. Several application execution grants were removed. Object existence is not equivalent to active writer capability. Retirement/deletion remains a governance-classification task.
+
+## INVENTORY-SPECIFIC OPEN ITEMS
+- Full provenance registry for historical inventory-log snapshots (56 → 62 → 3) is still required.
+- Complete deployment lineage for every inventory Edge artifact remains open.
+- Independent-session concurrency proof outside tested paths remains open.
+- Browser/runtime E2E for critical inventory PWAs remains open.
+
+## CLOSURE STATEMENT
+Inventory physical writer centralization is **CURRENTLY VERIFIED**. This does not authorize calling the ERP globally closed.
