@@ -1,18 +1,38 @@
 # SUCCESSION KNOWLEDGE — KHALID / HYTHAM
 
-## Scope
-The Master Memory Transfer directive requires historical succession material for Khalid and Hytham. Current handoff sources identify their rebaseline/qualification documents, but this reconstruction has not re-opened every individual successor report. Therefore this file records the required evidence path without certifying their full historical content.
+## CURRENT ASSESSMENT
+Both successor tracks demonstrated strong forensic discipline, but neither established Autonomous CTO readiness.
 
-## Required source families
-- Khalid: knowledge model rebaseline, subsequent introductions/reports, accounting execution qualification.
-- Hytham: forensic knowledge rebaseline and later reports.
-- Any later successor/CTO assessment files referenced by the current documentation.
+## KHALID — EVIDENCE
+Source: `Current/CTO/20260822_KHALID_PROMPT51_EXECUTION.md`.
 
-## Institutional lessons to preserve
-- Strong assistants can discover useful defects but must still be checked against Production.
-- High self-audit scores do not equal closure.
-- The most important blind spots historically were Current/Production drift, incomplete original-source comparison, premature blockers, and false deployment/retirement claims.
-- The successor CTO must maintain evidence labels and never promote a historical or target statement into current truth.
+Strengths:
+- Knowledge architecture and historical continuity.
+- Production-first separation of truth layers.
+- Consumer Matrix construction.
+- Treasury↔COA contract discovery.
+- Refusal to lock financial RLS before Consumer/Runtime proof.
+- Correct classification of Accounting Core as deployed but not globally converged.
 
-## Certification status
-`HISTORICALLY INDEXED / CURRENT REVALIDATION PENDING`.
+Prompt 49 historical assessment: approximately 82/100, strong but not autonomous.
+
+## HYTHAM — EVIDENCE
+Source: `doc/Draft/Hytham /تقرير هيثم 3`.
+
+Strengths:
+- Deep financial forensic inspection.
+- Exact DOM-to-Production contract reconciliation.
+- Refusal to apply Prompt 51 literally when Current DOM had changed.
+- Prepared surgical `_saveJournalEntry()` aligned to current DOM and `save-journal-entry` v8.
+- Explicitly did not change `main.html` because the available write path would have required replacing the whole file, violating the surgical constraint.
+
+Prompt 49 historical assessment: approximately 86/100, strongest in Financial/Forensic Discovery, still not autonomous.
+
+## INSTITUTIONAL LESSONS
+- High-quality discovery is not the same as closure.
+- A prepared surgical patch is not a deployed fix.
+- “NO CHANGE” can be the correct engineering result when the replacement contract is not proven.
+- The successor CTO must convert Knowledge Model → Closure Units only after current evidence.
+
+## CURRENT SUCCESSION STATUS
+`HISTORICALLY RECONSTRUCTED / CURRENTLY INDEXED / AUTONOMOUS CTO NOT READY`
