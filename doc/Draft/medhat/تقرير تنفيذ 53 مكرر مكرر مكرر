@@ -1,0 +1,186 @@
+تم إجراء إعادة تحقيق جنائي من الحالة الحالية، وليس إعادة تدوير التقارير القديمة. والنتيجة الأهم هي أن بعض السجلات الحديثة نفسها أصبحت متقادمة، ولذلك فصلت بين التاريخ والحقيقة الحالية في Production.
+
+النتيجة الحاسمة
+1. الشركة الحالية أصبحت مثبتة
+
+Production SMART ERP تحتوي حاليًا على شركة واحدة فقط:
+
+00000000-0000-0000-0000-000000000001 — الروائع / MAIN
+
+مع 24 مستخدمًا و2 فروع و17 صنفًا. وهذا ينسف أي توجيه حديث ما زال يتعامل مع 73a... أو da4... كشركات Production حية.
+
+السجل الجنائي الحالي نفسه يثبت أن توحيد الشركات حدث، لكنه كان حذفًا/تقاعدًا للـtenant القديم وليس Merge محافظًا للبيانات المالية.
+
+2. الـTreasury لا يحتاج إلى إعادة إنشاء
+
+تحقق Production المباشر أثبت وجود Treasury بالفعل:
+
+الحقل	القيمة
+UUID	0a9d9357-b5f3-4dfa-886f-7c73de4f274e
+Company	000...001
+Code	CASH-01
+Name	الخزينة الرئيسية
+Type	Cash
+Opening	10,000
+Current	10,000
+Active	نعم
+
+إذن إعادة إنشاء Treasury الآن ستكون خطأ وستنتج Duplicate Master Data.
+
+والأهم أن سجل القرار الحالي يثبت أن Treasury أعيد بالفعل تحت الشركة الحالية مع الحفاظ على UUID والرصيد التاريخي.
+
+3. الـ87 حسابًا: لم أقم بإنشائها — وهذا هو القرار الصحيح
+
+Production الآن:
+
+chart_of_accounts = 0
+journal_entries = 2
+journal_lines = 0
+customer_ledger = 0
+supplier_ledger = 0
+driver_ledger = 0
+
+لكن وجود حقيقة تاريخية أن الـtenant القديم كان يحتوي 87 حسابًا لا يعني أننا نملك أسماءها وأكوادها وعلاقاتها.
+
+التحقيق أثبت:
+
+لا يوجد row-level audit_log كافٍ لإعادة بناء الـ87.
+rawaie-erp-review/PWA/main.html يحتوي فقط على seed صغير، وليس الـ87.
+البحث في المستودع لم يكشف مصدرًا authoritative كاملًا للـ87.
+لذلك لا يوجد أساس صحيح لإنشاء الحسابات من الـ14 حسابًا أو اختراع 73 حسابًا إضافيًا.
+
+هذا يتطابق مع القرار الجنائي الموجود أصلًا في Current/CTO: 87-account recovery = OPEN حتى العثور على مصدر صفّي دقيق.
+
+وبالتالي رفضت تنفيذ إنشاء الـ87. إنشاؤها الآن سيكون تزويرًا للـFinancial Master Data وليس إصلاحًا.
+
+الأخطاء التي اكتشفتها
+خطأ 1 — بعض تقارير CTO الحديثة نفسها أصبحت Stale
+
+وجدت تقريرًا يصف Production بثلاث شركات وTreasury تحت da4...، بينما Production الحالية أصبحت شركة واحدة وTreasury تحت 000...001.
+
+إذن أي Prompt لاحق يجب أن يبدأ بـ Fresh Production Rebaseline، لا بإعادة استخدام snapshot من 22 أغسطس.
+
+خطأ 2 — تم الانتقال إلى حذف tenant قبل حفظ الـ87 Row-Level
+
+هذه ليست مشكلة UI. هذه Data Preservation Failure.
+
+وجود count=87 بعد الحذف لا يكفي لاستعادة البيانات.
+
+خطأ 3 — Treasury ↔ COA Contract ما زال غير محسوم
+
+treasury.account_code = CASH-01
+
+بينما:
+
+journal_lines.account_id → chart_of_accounts.id
+
+أي UUID.
+
+لذلك لا يجوز استنتاج:
+
+CASH-01 → 121
+
+من الاسم فقط.
+
+هذه النقطة أثبتها مسار خالد وهي سبب صحيح لتأجيل بعض تغييرات Accountant/Receipt/Payment.
+
+خطأ 4 — Financial Writer Zero-Debt لم يغلق
+
+الـProduction الحالية ما زالت تحتوي على Writers مباشرة، من بينها:
+
+receive_purchase_atomic
+→ journal_entries / journal_lines / supplier_ledger
+
+complete_return_atomic
+→ journal_entries / journal_lines / customer_ledger
+
+save_sales_invoice_atomic
+→ driver_ledger في Van Credit
+
+إذن الادعاء بأن post_journal_entry وحده أغلق Accounting غير صحيح. وجود Core لا يساوي Convergence. وهذا متسق أيضًا مع تقرير هيثم نفسه.
+
+خطأ 5 — receive_purchase_atomic أصبح أفضل لكنه لم يصل Zero-Debt
+
+النسخة الحالية تستخدم p_operation_id صريحًا، وهذا أفضل بكثير من fingerprint مبني على qty_received.
+
+لكنها ما زالت تكتب Journal وSupplier Ledger مباشرة بدل المرور بالـAccounting Core.
+
+إذن تم إصلاح Idempotency identity، لكن لم يتم إغلاق Writer convergence.
+
+خطأ 6 — الادعاء بأن الحسابات الـ87 يمكن أخذها من الـbootstrap غير مقبول
+
+التقرير الخارجي نفسه كان صريحًا بأن seed التطبيق ليس قائمة الـ87.
+
+ماذا نفذت فعليًا
+
+أضفت ثلاثة سجلات تنفيذية جديدة في Current/CTO:
+
+الحوكمة العامة وإعادة التشغيل للشركة الواحدة
+
+Prompt خالد الجديد V2
+
+NEXT_PROMPT_KHALID_20260823_FINANCIAL_MASTER_DATA_RECOVERY_V2.md
+
+وهو مكلف تحديدًا باسترداد الـ87 صفًا الحقيقيين من Git history / blobs / migrations / backups / Production evidence، مع منع أي تخمين.
+
+Prompt هيثم الجديد V2
+
+NEXT_PROMPT_HYTHAM_20260823_FINANCIAL_WRITE_CONVERGENCE_V2.md
+
+ومهمته الآن هي Financial Write-Side Convergence، بدءًا من Driver Ledger ثم بقية Writers، مع Runtime E2E وConcurrency وDeployment Lineage، ومنع أي تعديل على Company/COA/Treasury.
+
+كما أنشأت سجل التحقيق:
+
+20260823_FORENSIC_FINDINGS_87_COA_SINGLE_TENANT_AND_ASSISTANTS.md
+
+التوزيع الجديد للمساعدين
+خالد
+
+مسؤوليته الآن:
+
+Company Identity
+→ Exact 87 COA Source Recovery
+→ Treasury ↔ COA Contract
+→ Financial Master Data Canonicalization
+→ Consumer Account Identity
+
+والأهم: لا ينشئ حسابًا واحدًا قبل إثبات مصدره.
+
+هيثم
+
+مسؤوليته بالتوازي:
+
+Driver Ledger Contract/Core
+→ POS residual closure
+→ Authenticated HTTP E2E
+→ Concurrency
+→ save-receipt-voucher
+→ save-payment-voucher
+→ save-daily-settlement
+→ receive_purchase
+→ complete_return
+→ Global Writer Convergence
+
+مع شرط واضح: لا يمس ملكية الشركة أو COA/Treasury.
+
+هذا يتسق مع خطة التنفيذ المرحلية الموجودة بالفعل التي قسمت المسارين بين خالد وهيثم بهذه الصورة.
+
+الحكم النهائي الآن
+المجال	الحالة
+Single-company Production	✅ CONFIRMED
+Current company = 000...001	✅ CONFIRMED
+Treasury CASH-01	✅ RESTORED / VERIFIED
+87 exact COA rows	❌ NOT RECOVERED
+Synthetic 87 accounts	❌ REJECTED
+Treasury duplicate creation	❌ REJECTED
+Treasury ↔ COA contract	🔴 OPEN
+Accounting Core	✅ DEPLOYED
+Financial Writer Convergence	🔴 OPEN
+Driver Ledger Core	🔴 OPEN
+Consumer Matrix	🔴 OPEN
+Runtime E2E	🔴 OPEN
+Concurrency	🔴 OPEN
+Financial Data Reconciliation	🔴 OPEN
+Global Zero-Debt	🔴 OPEN
+
+أهم تصحيح في الموقف: لا يوجد الآن ما يبرر إنشاء الـ87 حسابًا بالاعتماد على المعرفة المتاحة. الشيء الصحيح هو استمرار Forensic Source Recovery حتى نعثر على مصدر الصفوف الـ87 نفسه؛ أما Treasury فقد تم بالفعل استرداده تحت الشركة الصحيحة، فلا ينبغي تكراره.
