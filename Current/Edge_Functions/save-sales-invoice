@@ -1,51 +1,36 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-const supabase=createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-)
+const supabase=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+const corsHeaders={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type, idempotency-key","Access-Control-Allow-Methods":"POST, OPTIONS"}
 
-const corsHeaders={
-  "Access-Control-Allow-Origin":"*",
-  "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods":"POST, OPTIONS"
+async function deterministicUuid(seed:string){
+  const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(seed))
+  const hex=Array.from(new Uint8Array(buf)).map(x=>x.toString(16).padStart(2,"0")).join("")
+  return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20,32)}`
 }
 
 serve(async(req)=>{
   if(req.method==='OPTIONS') return new Response('ok',{headers:corsHeaders})
-
   try{
     const body=await req.json().catch(()=>({}))
-    if(!body?.orderHeader || !Array.isArray(body?.itemsList) || !body.itemsList.length){
-      throw new Error('بيانات الفاتورة غير مكتملة')
-    }
-
-    const authHeader=req.headers.get('Authorization')
-    if(!authHeader) throw new Error('غير مصرح')
-
-    const {data:{user},error:authError}=await supabase.auth.getUser(authHeader.replace('Bearer ',''))
-    if(authError || !user?.email || !user?.id) throw new Error('جلسة غير صالحة')
-
+    if(!body?.orderHeader||!Array.isArray(body?.itemsList)||!body.itemsList.length) throw new Error('بيانات الفاتورة غير مكتملة')
+    const ah=req.headers.get('Authorization')
+    if(!ah) throw new Error('غير مصرح')
+    const {data:{user},error:ae}=await supabase.auth.getUser(ah.replace('Bearer ',''))
+    if(ae||!user?.id||!user?.email) throw new Error('جلسة غير صالحة')
+    const supplied=String(body?.operation_id||body?.orderHeader?.operation_id||req.headers.get('Idempotency-Key')||'').trim()
+    const operation_id=supplied||await deterministicUuid(user.id+'|'+JSON.stringify({orderHeader:body.orderHeader,items:body.itemsList,branchCode:body.branchCode||'MAIN'}))
+    const orderHeader={...body.orderHeader,operation_id}
     const {data,error}=await supabase.rpc('save_sales_invoice_atomic',{
-      p_order_header:body.orderHeader,
+      p_order_header:orderHeader,
       p_items:body.itemsList,
-      p_branch_code:body.branchCode || 'MAIN',
+      p_branch_code:body.branchCode||'MAIN',
       p_user_email:user.email
     })
-
     if(error) throw new Error(error.message)
-
-    return new Response(JSON.stringify(data),{
-      headers:{...corsHeaders,'Content-Type':'application/json'}
-    })
-  }catch(error){
-    return new Response(JSON.stringify({
-      success:false,
-      msg:error?.message || 'فشل حفظ الفاتورة'
-    }),{
-      status:400,
-      headers:{...corsHeaders,'Content-Type':'application/json'}
-    })
+    return new Response(JSON.stringify({...data,operation_id}),{headers:{...corsHeaders,'Content-Type':'application/json'}})
+  }catch(e){
+    return new Response(JSON.stringify({success:false,msg:e?.message||'فشل حفظ الفاتورة'}),{status:400,headers:{...corsHeaders,'Content-Type':'application/json'}})
   }
 })
