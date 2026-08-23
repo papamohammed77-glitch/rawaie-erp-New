@@ -1,143 +1,205 @@
-# RAWAEA ERP — FORENSIC REVIEW: KHALID / HYTHAM / COMPANY IDENTITY
+# RAWAEA ERP — FINAL FORENSIC REBASELINE
+## Khalid / Hytham / Company Identity / Financial Master Data
 
 Date: 2026-08-23
 Production: SMART ERP (`fiilmooggumokxanwiyx`)
 Repository: `rawaie-erp-New`
 
-## 1. Truth hierarchy used
+## 1. Truth hierarchy
 
 Production runtime/database/deployed Edge definitions > Current Git > Current CTO/evidence records > historical/original sources > previous reports.
 
-No historical closure claim is treated as current truth without re-verification.
+A historical closure statement is not current truth until re-proven against the live Production state.
 
-## 2. Historical chain review
+## 2. Historical chain finding
 
-The Hussin Prompt 11–45 chain was reviewed as a historical evolution record, including the known reversals/corrections around:
-- voucher semantics;
-- owner/permission semantics;
-- auth/public.users identity;
-- tenant isolation;
-- inventory centralization;
-- item identity;
-- vehicle/mobile branch semantics;
-- PWA consumer binding;
-- DirectSale target-stock behavior.
+The Hussin Prompt 11–45 sequence is an evolution/audit trail, not a live source of truth. It contains repeated corrections around voucher semantics, owner/permission semantics, auth identity, tenant isolation, inventory centralization, item identity, vehicle/mobile branch semantics, PWA consumer binding, and DirectSale target-stock behavior.
 
-The chain demonstrates repeated historical corrections. Therefore later Production evidence overrides earlier "closed" language.
+Prompt 49 and later governance directives establish the closure gate: no material unknown, conflict, unverified claim, unresolved Production/Git drift, lost responsibility, unclassified consumer, or unproven critical runtime path may be silently promoted to CLOSED.
 
-Prompt 49 explicitly established the correct engineering gate: no material unknown, no material conflict, no unverified claim, no unresolved Production/Current drift, no lost responsibility, no unclassified consumer, and no unproven critical runtime path before closure.
+## 3. Current Production — company topology
 
-## 3. Khalid assessment
+Direct Production verification on 2026-08-23 proves:
 
-Khalid's strongest contribution is continuity/governance and financial reporting forensics. His Prompt-53 work correctly used Production reporting cores and made a surgical `finance-manager.html` change rather than rewriting the file. The report also correctly refused to modify `accountant.html` without a proven Treasury/COA consumer contract.
+- `public.companies = 1`.
+- The only surviving company is `00000000-0000-0000-0000-000000000001` (`الروائع`, `MAIN`, active).
+- `users_without_company = 0`.
+- `users_with_old_company = 0`.
+- `branch_company_mismatch = 0`.
+- `inventory_log_company_item_mismatch = 0`.
+- `order_detail_company_item_mismatch = 0`.
+- No current public rows remain under the old company IDs `73a...` and `da4...`.
 
-The current Production definitions now prove that the reporting-core direction survived: current reporting functions use authenticated company context and UUID-based journal-to-COA relationships.
+Therefore the live tenant topology is now a single-company Production environment.
 
-Khalid's work is therefore assessed as:
-- directionally correct;
-- contract-conscious;
-- appropriately surgical on PWA;
-- NOT a complete financial closure;
-- dependent on resolving Financial Tenant Identity and deployment lineage.
+## 4. CRITICAL — this was retirement/deletion, not a data merge
 
-## 4. Hytham assessment
+The 2026-08-23 cleanup did not merge the old tenants' data into the surviving tenant.
 
-Hytham's strongest contribution is transactional/core execution. His accounting work created/used the canonical journal and cash posting boundaries, corrected real schema drift, preserved idempotency, and deliberately avoided inventing Treasury/COA mappings.
+The audit trail records deletion of:
 
-The current live `save_sales_invoice_atomic` confirms that the architectural direction survived: physical stock goes through `post_stock_movement`, cash uses `post_cash_receipt_atomic`, credit journal posting uses `post_journal_entry`, and customer credit uses `post_customer_ledger_entry`.
+- company `73a...`: 31 items, 10 suppliers, 1 customer, no branches/COA/treasury.
+- company `da4...`: 2 items, 3 branches, 9 customers, 87 chart-of-accounts rows, 1 treasury, 1 operation-registry row.
+- 33 items, 10 customers, 10 suppliers, and 1 treasury are explicitly represented as delete events in `audit_log`.
+- The deleted companies themselves are recorded with the reason `Owner-directed consolidation to the single active Production tenant` and `kept_company_id = 000...001`.
 
-A material writer remains open: Van Credit still performs a direct `driver_ledger` INSERT. His PR #23 is still Draft/Open and Unmerged, so Git main is not the same artifact as deployed Production.
+However, `chart_of_accounts` and some cascaded tenant data do not have row-by-row audit snapshots sufficient to reconstruct the original 87 accounts.
 
-Hytham's work is therefore assessed as:
-- technically strong and evidence-backed;
-- correct to leave Driver Ledger open;
-- correct not to modify `pos.html` unnecessarily;
-- NOT fully merged/canonical in Git;
-- NOT a complete writer-convergence or concurrency closure.
+Therefore:
 
-## 5. Production changes that supersede older reports
+**Single-company topology = CLOSED.**
 
-Current Production now contains `post_journal_entry`, `post_customer_ledger_entry`, `post_cash_receipt_atomic`, `post_cash_payment_atomic`, and the newer `receive_purchase_atomic` signature. Therefore older reports that said these objects were absent are historical snapshots, not current facts.
+**Complete historical-data merge/preservation = NOT PROVEN.**
 
-Current `save-sales-invoice` Edge deployment is v15 ACTIVE and passes operation identity/idempotency into `save_sales_invoice_atomic`.
+Deleted data must not be recreated from memory or guessed values. Any recovery must use authoritative backup/source evidence.
 
-## 6. Company identity forensic finding — CRITICAL
+## 5. CRITICAL — current financial master-data state
 
-Before the owner-requested cleanup, Production contained three company records:
+Direct Production verification now shows:
 
-- `00000000-0000-0000-0000-000000000001` — الروائع — active runtime population: 24 public users, 23 linked Auth users, latest sign-in 2026-08-22.
-- `73a141bd-157a-4c2c-8693-34e21325b943` — الروائع للتجارة — no active Auth user, no branches, no COA/Treasury.
-- `da4ef704-88ac-4120-aa0e-65b92b2aa2bc` — الروائع للتوزيع — one active Auth user, 3 branches, 87 COA rows, one Treasury row.
+- `chart_of_accounts = 0`
+- `active chart_of_accounts = 0`
+- `treasury = 0`
+- `active treasury = 0`
+- `cash_box = 0`
+- `journal_entries = 2`
+- `journal_lines = 0`
+- `customer_ledger = 0`
+- `supplier_ledger = 0`
+- `driver_ledger = 0`
 
-The owner explicitly instructed that there should be one experimental company and requested deletion of the others.
+This is a material live-system state gap. The financial cores are architecturally present, but the retained tenant has no Financial Master Data on which those cores can operate.
 
-A Production cleanup migration was then executed with a safety gate preserving `00000000-0000-0000-0000-000000000001`. The database now contains exactly one company: `00000000-0000-0000-0000-000000000001`.
+No synthetic COA, Treasury, Cash Box, customer, supplier, or accounting data has been created.
 
-The deletion was fully transactional and documented in `audit_log`; the deleted tenant's non-FK `erp_operation_registry` rows and its linked Auth user were also removed. Verification showed no residual public rows under the deleted company IDs and no residual Auth user for the deleted distribution tenant.
+## 6. Company Identity remains a forensic closure unit
 
-## 7. Post-cleanup forensic conflict discovered
+Historical evidence identifies `da4...` as the former financial/experimental tenant with 87 COA rows and a Treasury, while runtime activity strongly identifies `000...001` as the currently active operational tenant.
 
-After the deletion, older production-object memory was re-opened. `CTO/BACKUP_CTO/09_PRODUCTION_OBJECT_MEMORY.md` explicitly records `da4ef704-...` as the known active company and describes its MAIN branch, official experimental vehicle, and official test representative `van-sales@rawaea.com`.
+The owner requirement of one experimental company is clear. What is not yet proven is whether the intended canonical identity was the surviving `000...001`, the former `da4...`, or a specific canonicalized record assembled from both.
 
-Khalid's later Prompt-53 report also records that the financial/treasury domain lived under `da4ef704-...` while many operational users lived under `000...001`.
+No user/company reassignment or master-data reconstruction should occur until this semantic identity is proven from authoritative evidence.
 
-Therefore the historical evidence creates a material conflict with the runtime-user evidence used for the cleanup:
+## 7. Khalid assessment
 
-- runtime activity strongly identifies `000...001` as the only currently active user tenant;
-- historical financial/experimental evidence strongly identifies `da4ef704-...` as the official experimental/financial tenant.
+Khalid's work is directionally correct and appropriately conservative.
 
-This means the semantic correctness of the company deletion is **NOT CERTIFIED**.
+Strengths:
+- strong historical/architectural continuity;
+- correct use of Closure Units;
+- correct refusal to guess Treasury/COA identity;
+- surgically aligned `finance-manager.html` rather than rewriting the file;
+- correct decision not to modify `accountant.html` before its Financial Consumer Contract is proven.
 
-## 8. Current Production risk created by the cleanup
+Current limitation:
+- his Prompt-53 company/financial-tenant snapshot is now historical;
+- the live one-company topology supersedes the old three-company snapshot;
+- Financial Master Data is now missing from the surviving tenant;
+- therefore his next task is Company/Financial Tenant Identity Recovery + Financial Master Data Canonicalization, not UI redesign.
 
-The remaining company `000...001` currently has no `chart_of_accounts` rows and no `treasury` row. Current sales-financial code requires company-scoped COA accounts and, for cash POS, exactly one active Treasury.
+## 8. Hytham assessment
 
-Therefore financial transactions for the retained tenant cannot be considered Production-ready until the authoritative company identity is proven and the required financial master data is present under that tenant.
+Hytham's work is technically strong and evidence-backed.
 
-No synthetic COA/Treasury data has been created.
+Confirmed strengths:
+- `post_journal_entry` is deployed as a SECURITY DEFINER Core;
+- `post_cash_receipt_atomic` exists;
+- `post_cash_payment_atomic` exists;
+- `post_customer_ledger_entry` exists;
+- POS inventory remains centralized through `post_stock_movement`;
+- operation identity/idempotency and transactional tests were treated seriously;
+- he correctly refused to invent Treasury/COA mappings;
+- he correctly left `Driver Ledger`, authenticated HTTP E2E, and two-session concurrency open.
 
-## 9. Recovery posture
+Current limitation:
+- PR #23 is still Draft/Open/Unmerged;
+- Git main is therefore not identical to the deployed Production Edge source;
+- direct financial writers still exist in Production outside the central cores;
+- `receive_purchase_atomic` directly writes journal and supplier ledger;
+- `complete_return_atomic` directly writes journal and customer ledger;
+- `save_sales_invoice_atomic` still directly writes `driver_ledger` for Van Credit;
+- `save-receipt-voucher`, `save-payment-voucher`, and `save-daily-settlement` remain legacy direct-write consumers.
 
-Do NOT invent or reconstruct COA, Treasury, customers, items, or users from memory.
+Therefore Financial Writer Convergence is still OPEN.
 
-Do NOT create a second company simply to make the system work.
+## 9. Direct writer scan — current live Production
 
-Do NOT move users between companies without an explicit proven owner/contract decision.
+Current PostgreSQL function scan confirms direct financial writes remain in:
 
-The next closure unit must be a **Company / Financial Tenant Forensic Recovery and Canonicalization** unit that determines whether the intended experimental company was `000...001` or `da4ef704...` using:
-- migration history;
-- current Git/main tenant records;
-- historical production object memory;
-- audit-log snapshots;
-- Auth identities;
-- PWA consumers;
-- financial master-data ownership;
-- runtime evidence.
+- `receive_purchase_atomic` → `journal_entries`, `journal_lines`, `supplier_ledger`
+- `complete_return_atomic` → `journal_entries`, `journal_lines`, `customer_ledger`
+- `save_sales_invoice_atomic` → `driver_ledger`
 
-Only after the identity is proven should any company recovery/remapping occur.
+The canonical cores themselves are intentionally allowed to write their authoritative target tables.
 
-## 10. Khalid next responsibility
+## 10. Decisions that are CORRECT and should be preserved
 
-Khalid owns:
-**COMPANY / FINANCIAL TENANT IDENTITY RECOVERY + ACCOUNTING/TREASURY CANONICALIZATION + DEPLOYMENT LINEAGE**
+1. Do not invent Treasury → COA mappings.
+2. Do not patch `accountant.html` until its UUID-based Financial Consumer Contract is proven.
+3. Do not change `pos.html` without a proven Consumer defect.
+4. Do not call a Production deployment CLOSED because a report says so.
+5. Do not restore deleted financial master data from memory.
+6. Do not create a second company merely to recover missing finance data.
+7. Do not let Inventory re-enter as a separate parallel project; Inventory is the established physical-stock foundation for the next ERP layer.
 
-He must resolve the company conflict first. No financial PWA redesign is authorized before that.
+## 11. Required next closure order
 
-## 11. Hytham next responsibility
+### Khalid
 
-Hytham owns:
-**POS WRITE-SIDE DRIVER-LEDGER CONVERGENCE + LIVE EDGE/GIT ALIGNMENT + HTTP E2E + TWO-SESSION CONCURRENCY**
+**COMPANY / FINANCIAL TENANT IDENTITY RECOVERY**
 
-He must not modify company membership, COA ownership, Treasury ownership, or `accountant.html` during this unit.
+then:
 
-## 12. Final assessment
+**FINANCIAL MASTER DATA CANONICALIZATION**
 
-Inventory remains a regression foundation and is not the next reconstruction task.
+then:
 
-Khalid = strong Continuity/Reporting/Governance track, but Company Identity is now a blocking forensic closure.
+**TREASURY ↔ COA CONTRACT + DEPLOYMENT LINEAGE + FINANCIAL CONSUMER MATRIX**
 
-Hytham = strong Core/Runtime track, but Driver Ledger convergence, PR/main synchronization, authenticated HTTP E2E, and independent-session concurrency remain open.
+No PWA redesign is authorized until these are proven.
 
-Global Zero-Debt remains OPEN.
+### Hytham
 
-Autonomous CTO readiness remains NO.
+**WRITE-SIDE FINANCIAL CONVERGENCE**
+
+starting with:
+
+1. live Edge/Git lineage for `save-sales-invoice`;
+2. Driver Ledger contract and Core design evidence;
+3. authenticated HTTP E2E;
+4. independent-session concurrency proof;
+5. only then, and only after company identity/master-data contract is settled, converge the remaining financial writers one closure unit at a time.
+
+Hytham must not alter company membership, COA ownership, Treasury ownership, or `accountant.html` during this closure.
+
+## 12. Final status
+
+| Area | Status |
+|---|---|
+| Single-company live topology | CLOSED |
+| Historical old-company data fully merged | NOT PROVEN |
+| Financial Master Data availability | BLOCKED / OPEN |
+| Inventory physical-stock centralization | FOUNDATION ESTABLISHED |
+| Accounting Core | DEPLOYED |
+| Cash Receipt/Payment Cores | DEPLOYED |
+| POS full financial convergence | OPEN |
+| Supplier Ledger Core | OPEN |
+| Driver Ledger Core | OPEN |
+| Financial Writer Zero-Debt | OPEN |
+| Financial Consumer Matrix | OPEN |
+| Deployment Lineage | OPEN |
+| Concurrency Proof | OPEN |
+| Global Zero-Debt | OPEN |
+| Autonomous CTO Readiness | NO |
+
+## 13. Non-negotiable forensic conclusion
+
+The correct current statement is NOT:
+
+> "The three companies were merged successfully and finance is ready."
+
+The correct statement is:
+
+> "Production now contains one company only, but the previous financial tenant's master data was retired/deleted rather than proven merged. The surviving tenant currently has no COA/Treasury/Cash Box master data. Financial identity and master-data recovery are therefore the next blocking forensic closure units."
+
+No synthetic recovery is authorized.
