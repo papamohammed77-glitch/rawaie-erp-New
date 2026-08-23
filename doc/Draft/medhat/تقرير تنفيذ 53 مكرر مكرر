@@ -1,0 +1,192 @@
+تم تنفيذ التحقيق الجنائي على Production + Git + السجلات + المصادر التاريخية، والنتيجة ليست “إكمالًا شكليًا” بل فصل واضح بين ما يمكن إثباته وما لا يمكن إثباته.
+
+الحكم التنفيذي
+1. الشركة المالكة الحالية حُسمت
+
+Production الآن تحتوي شركة حية واحدة فقط:
+
+00000000-0000-0000-0000-000000000001
+MAIN / الروائع
+
+وهذا يتوافق مع مسار المعرفة الأحدث الذي يجعل Production Runtime مصدر الحقيقة الأعلى، ويعامل سلسلة Hussin كتاريخ تدقيق لا كمصدر حقيقة حالي.
+
+2. Treasury: تم استعادتها فعليًا
+
+تم العثور على السجل الأصلي في audit_log بكل تفاصيله، وليس مجرد اسم أو عدد:
+
+الحقل	القيمة
+UUID	0a9d9357-b5f3-4dfa-886f-7c73de4f274e
+الشركة الأصلية	da4ef704-88ac-4120-aa0e-65b92b2aa2bc
+الشركة الحالية	00000000-0000-0000-0000-000000000001
+Code	CASH-01
+Name	الخزينة الرئيسية
+Type	Cash
+Opening	10000
+Current	10000
+Created	2026-05-16T00:08:06.123874Z
+
+تم بالفعل إدخال السجل في Production الحالية بنفس UUID ونفس القيم التاريخية، وسجل audit_log عملية الاستعادة الجديدة بنجاح.
+
+إذن:
+
+Treasury = RESTORED / PRODUCTION VERIFIED
+
+3. الـ87 حسابًا: لم أختلقها
+
+هذه أهم نتيجة في التحقيق.
+
+الـProduction تثبت أن الشركة القديمة da4e... كانت تحتوي على:
+
+87 Chart of Accounts
+
+لكن audit_log لا يحتوي snapshots للـ87 صفًا؛ الموجود هو عدد 87 ضمن بيانات حذف الشركة، وليس الـ87 صفًا نفسها.
+
+بحثت في المصدر الأصلي أيضًا. rawaie-erp-review/PWA/main.html يحتوي Seed ماليًا صغيرًا فقط، وليس الـ87 حسابًا التاريخية؛ من الحسابات الظاهرة فيه مثل:
+
+1, 11, 12, 121, 123, 124, 2, 21, 211, 216, 3, 31, 4, 41, 5, 51
+
+وهذه مجموعة bootstrap صغيرة وليست دليلًا على الـ87 حسابًا.
+
+لذلك كان القرار الصحيح:
+
+ممنوع إعادة إنشاء 87 حسابًا من الذاكرة أو من Accounting conventions أو بتوسيع الـ14 حسابًا إلى 87.
+
+هذا تحديدًا كان سيكون خطأً كارثيًا، لأن:
+
+journal_lines.account_id → chart_of_accounts.id
+
+ومع وجود parent_account_id والعلاقات التاريخية، فإن اختراع حسابات “مشابهة” سيخلق Financial Master Data مزيفة.
+
+الحالة الصحيحة الآن
+
+87 Accounts = OPEN / SOURCE RECOVERY REQUIRED
+
+وليست:
+
+87 Accounts = RESTORED
+
+4. الخطأ الجنائي الأكبر الذي كشفناه
+
+عملية الـtenant consolidation قامت بحذف الشركة القديمة التي كان لديها الـ87 Account والـTreasury قبل إثبات وجود نسخة صفية كاملة قابلة للاستعادة للـChart of Accounts.
+
+الـTreasury نجت لأن audit_log كان يحتفظ بالصف بالكامل.
+
+أما Chart of Accounts فلم يحصل على نفس الحماية.
+
+هذه ليست مشكلة UI ولا مشكلة PWA؛ هذه مشكلة Financial Master Data Preservation.
+
+5. Production المالية الحالية ليست مكتملة
+
+بعد المطابقة الحالية:
+
+المكوّن	الحالة
+Companies	1
+Users	24
+Chart of Accounts	0 قبل الاستعادة
+Treasury	1 بعد الاستعادة
+Cash Box	0
+Journal Entries	2
+Journal Lines	0
+Customer Ledger	0
+Supplier Ledger	0
+Driver Ledger	0
+
+كما أن SQL الحالي يثبت وجود:
+
+save_sales_invoice_atomic
+receive_purchase_atomic
+complete_return_atomic
+complete_order_delivery_atomic
+
+بينما لم يثبت وجود RPCs canonical بالأسماء المتوقعة لمسارات receipt/payment/transfer/daily-settlement/driver-ledger. لذلك هذه لا تعتبر مغلقة لمجرد أن تقارير سابقة تحدثت عنها.
+
+وهذا يتفق مع الـforensic baseline الذي حذر أصلًا من إعلان Autonomous CTO Ready قبل إغلاق Accounting/Ledger/Consumers/Deployment Lineage.
+
+6. ماذا عدّلت فعليًا؟
+
+أنشأت وسجلت ثلاث وثائق تنفيذية داخل:
+
+Current/CTO
+
+وهي المنطقة المسموح بها للتعديلات المنشورة وفق قواعدكم.
+
+تقرير القرار الجنائي
+
+Current/CTO/20260823_FORENSIC_FINANCIAL_MASTER_DATA_DECISION.md
+
+فتح تقرير القرار الجنائي
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260823_FORENSIC_FINANCIAL_MASTER_DATA_DECISION.md
+
+تكليف خالد
+
+Current/CTO/NEXT_PROMPT_KHALID_FINANCIAL_MASTER_DATA_RECOVERY_20260823.md
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/NEXT_PROMPT_KHALID_FINANCIAL_MASTER_DATA_RECOVERY_20260823.md
+فتح تكليف خالد
+
+تكليف هيثم
+
+Current/CTO/NEXT_PROMPT_HYTHAM_FINANCIAL_WRITER_CONVERGENCE_20260823.md
+
+فتح تكليف هيثم
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/NEXT_PROMPT_HYTHAM_FINANCIAL_WRITER_CONVERGENCE_20260823.md
+
+7. توزيع العمل الآن
+خالد — Financial Master Data Recovery
+
+التكليف الجديد لخالد ليس “أنشئ 87 حسابًا”.
+
+بل:
+
+استخرج المصدر الحقيقي للـ87 حسابًا أولًا.
+
+عليه البحث في:
+
+rawaie-erp-review
+
+ثم:
+
+rawaie-erp-New
+
+ثم:
+
+Git history
+blobs
+migrations
+seeds
+Evidence
+Production snapshots
+historical deployment artifacts
+
+ولا يسمح له بتوليد أي Account غير مثبت المصدر.
+
+وإذا وجد المصدر، يصبح مسؤولًا عن:
+
+87 exact rows → MAIN company → FK-safe restoration → Production verification
+
+هيثم — Financial Writer Convergence
+
+بعد تثبيت Master Data:
+
+يتولى:
+
+Receipt → Payment → Transfer → Driver Ledger → Daily Settlement → Sales → Purchase → Return → Delivery
+
+ويثبت لكل Writer:
+
+Production → Current → Consumer → Tenant → Account Identity → Treasury → Ledger → Idempotency → Atomicity
+
+ثم يغلق الكتابة المتوازية.
+
+وهذا يتفق مع الاتجاه الأحدث في الخطة، الذي يضع Accounting/Ledger بعد Inventory Core بدل الرجوع إلى إصلاحات Voucher UI القديمة.
+
+الخلاصة الصارمة
+
+تم إصلاح شيء حقيقي الآن: Treasury الأصلية عادت إلى الشركة الحالية ببياناتها وUUIDها التاريخي.
+
+تم اكتشاف خطأ حقيقي: الـ87 حسابًا لم تُحفظ بصورة صفية قبل حذف الـtenant القديم، ولذلك لا توجد حاليًا أدلة كافية تسمح بإعادة بنائها بأمان.
+
+تم رفض الحل الخطأ: لن أقوم بإنشاء 87 حسابًا تخمينيًا من الـ14 حسابًا الموجودة في main.html.
+
+تم تجهيز المسار التالي: خالد لاستعادة الـFinancial Master Data من مصدر مثبت، وهيثم لإغلاق Financial Writers بعد ثبوت الـMaster Data.
+
+وبالتالي Financial Master Data Recovery لم تُغلق 100% بعد؛ والسبب هنا Unknown حقيقي ومحدد، وليس عذرًا أو توقفًا غير مبرر.
