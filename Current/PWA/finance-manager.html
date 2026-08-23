@@ -61,21 +61,57 @@ var App = {
     switchTab: function(t){['dashboard','reports'].forEach(function(x){var b=RW_UI.byId('tab-'+x);if(b){b.classList.remove('bg-teal-600','text-white');b.classList.add('text-gray-500');}});var a=RW_UI.byId('tab-'+t);if(a){a.classList.add('bg-teal-600','text-white');a.classList.remove('text-gray-500');}if(t==='dashboard')this.renderDashboard();else if(t==='reports')this.renderReports();},
 
     renderDashboard: function(){
-        var s=this; RW_UI.safeHTML(RW_UI.byId('mainContent'),'<div class="text-center py-10"><i class="fa-solid fa-spinner fa-spin"></i></div>');
+        var s=this;
+        RW_UI.safeHTML(RW_UI.byId('mainContent'),'<div class="text-center py-10"><i class="fa-solid fa-spinner fa-spin"></i></div>');
         var today=new Date().toISOString().split('T')[0],firstDay=new Date(new Date().getFullYear(),new Date().getMonth(),1).toISOString().split('T')[0];
-        Promise.all([supabase.from('orders').select('total_amount').gte('order_date',firstDay).lte('order_date',today),supabase.from('purchase_orders').select('total_amount').gte('po_date',firstDay).lte('order_date',today),supabase.from('treasury').select('current_balance')]).then(function(r){
-            var sales=0;for(var i=0;i<(r[0].data||[]).length;i++)sales+=Number(r[0].data[i].total_amount)||0;
-            var purchases=0;for(var j=0;j<(r[1].data||[]).length;j++)purchases+=Number(r[1].data[j].total_amount)||0;
-            var treasury=0;for(var k=0;k<(r[2].data||[]).length;k++)treasury+=Number(r[2].data[k].current_balance)||0;
-            var profit=sales-purchases;
+        Promise.all([
+            supabase.rpc('get_profit_loss',{p_from_date:firstDay,p_to_date:today}),
+            supabase.rpc('get_trial_balance',{p_from_date:firstDay,p_to_date:today}),
+            supabase.rpc('get_cash_flow',{p_from_date:firstDay,p_to_date:today}),
+            supabase.rpc('get_balance_sheet',{p_as_of:today}),
+            supabase.from('treasury').select('current_balance')
+        ]).then(function(r){
+            var pnl=r[0],trial=r[1],cashFlow=r[2],balanceSheet=r[3],treasuryResult=r[4];
+            var errors=[pnl.error,trial.error,cashFlow.error,balanceSheet.error,treasuryResult.error].filter(Boolean);
+            if(errors.length){
+                RW_UI.showError('تعذر تحميل المؤشرات المالية من مركز التقارير');
+                return;
+            }
+
+            var revenue=0,expenses=0;
+            var pnlRows=pnl.data||[];
+            for(var i=0;i<pnlRows.length;i++){
+                if(pnlRows[i].account_type==='revenue')revenue+=Number(pnlRows[i].total_amount)||0;
+                if(pnlRows[i].account_type==='expense')expenses+=Number(pnlRows[i].total_amount)||0;
+            }
+            var netResult=revenue-expenses;
+            var trialRows=trial.data||[];
+            var totalDebit=0,totalCredit=0;
+            for(var j=0;j<trialRows.length;j++){
+                totalDebit+=Number(trialRows[j].total_debit)||0;
+                totalCredit+=Number(trialRows[j].total_credit)||0;
+            }
+            var cashRows=cashFlow.data||[];
+            var cashFlowTotal=0;
+            for(var k=0;k<cashRows.length;k++)cashFlowTotal+=Number(cashRows[k].amount)||0;
+            var treasuryRows=treasuryResult.data||[];
+            var treasury=0;
+            for(var m=0;m<treasuryRows.length;m++)treasury+=Number(treasuryRows[m].current_balance)||0;
+
             var html='<h2 class="text-lg font-black mb-4">📊 المؤشرات المالية – الشهر</h2>';
             html+='<div class="grid grid-cols-2 gap-3">';
-            html+='<div class="stat-card"><p class="text-xs text-gray-400">الإيرادات</p><p class="text-2xl font-black text-green-600">'+fmtNum(sales)+' ج.م</p></div>';
-            html+='<div class="stat-card"><p class="text-xs text-gray-400">المشتريات</p><p class="text-2xl font-black text-red-600">'+fmtNum(purchases)+' ج.م</p></div>';
-            html+='<div class="stat-card"><p class="text-xs text-gray-400">صافي الربح</p><p class="text-2xl font-black '+(profit>=0?'text-teal-600':'text-red-600')+'">'+fmtNum(profit)+' ج.م</p></div>';
-            html+='<div class="stat-card"><p class="text-xs text-gray-400">الخزائن</p><p class="text-2xl font-black text-blue-600">'+fmtNum(treasury)+' ج.م</p></div>';
-            html+='</div>';RW_UI.safeHTML(RW_UI.byId('mainContent'),html);
-        });
+            html+='<div class="stat-card"><p class="text-xs text-gray-400">الإيرادات المحاسبية</p><p class="text-2xl font-black text-green-600">'+fmtNum(revenue)+' ج.م</p></div>';
+            html+='<div class="stat-card"><p class="text-xs text-gray-400">المصروفات المحاسبية</p><p class="text-2xl font-black text-red-600">'+fmtNum(expenses)+' ج.م</p></div>';
+            html+='<div class="stat-card"><p class="text-xs text-gray-400">النتيجة الصافية</p><p class="text-2xl font-black '+(netResult>=0?'text-teal-600':'text-red-600')+'">'+fmtNum(netResult)+' ج.م</p></div>';
+            html+='<div class="stat-card"><p class="text-xs text-gray-400">الموقف النقدي الحالي</p><p class="text-2xl font-black text-blue-600">'+fmtNum(treasury)+' ج.م</p></div>';
+            html+='</div>';
+            html+='<div class="grid grid-cols-2 gap-3 mt-3">';
+            html+='<div class="stat-card"><p class="text-xs text-gray-400">إجمالي المدين</p><p class="text-lg font-black text-slate-700">'+fmtNum(totalDebit)+' ج.م</p></div>';
+            html+='<div class="stat-card"><p class="text-xs text-gray-400">إجمالي الدائن</p><p class="text-lg font-black text-slate-700">'+fmtNum(totalCredit)+' ج.م</p></div>';
+            html+='</div>';
+            html+='<div class="card mt-3"><p class="text-xs text-gray-400">التدفق النقدي للفترة</p><p class="text-xl font-black '+(cashFlowTotal>=0?'text-emerald-600':'text-red-600')+'">'+fmtNum(cashFlowTotal)+' ج.م</p><p class="text-[11px] text-gray-400 mt-1">يُعرض وفق عقد مركز التقارير الحالي.</p></div>';
+            RW_UI.safeHTML(RW_UI.byId('mainContent'),html);
+        }).catch(function(){RW_UI.showError('تعذر تحميل المؤشرات المالية من مركز التقارير');});
     },
 
     renderReports: function(){RW_UI.safeHTML(RW_UI.byId('mainContent'),'<div class="text-center py-10 text-gray-400"><i class="fa-solid fa-file-invoice text-4xl mb-3"></i><p>التقارير المالية – تُدار من النظام الأم</p><p class="text-sm mt-2">استخدم تطبيق المركز الرئيسي للتقارير المتقدمة</p></div>');}
