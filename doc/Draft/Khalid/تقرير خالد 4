@@ -1,0 +1,285 @@
+ا
+
+تم تنفيذ تقرير وبرومبت 53 باعتبار خالد مسؤولًا عن Financial Reporting + Accounting Consumers + Governance، مع الفصل الكامل بين مسار خالد ومسار هيثم في POS.
+
+ما تم تنفيذه فعليًا
+1) Production Re-Baseline
+
+أعيدت قراءة Production الحالية مباشرة، وليس من التقرير السابق. اللقطة الحالية أثبتت:
+
+Companies 3
+Users 26
+Branches 5
+Items 50
+Stock rows 26
+inventory_log 3
+stock_vouchers 0
+Orders 0
+Runsheets 0
+Purchase Orders 0
+Journal Entries 2
+Journal Lines 0
+Audit log 1781
+
+وهذه هي نقطة الحقيقة الحالية التي بُني عليها التنفيذ.
+
+2) تم إصلاح Reporting Core في Production
+
+تم تعديل الخمس دوال الحالية مع الحفاظ على نفس التوقيعات حتى لا نكسر Consumers قائمة:
+
+get_trial_balance
+get_profit_loss
+get_balance_sheet
+get_cash_flow
+get_pnl_by_cost_center
+
+والإصلاحات ليست تجميلية:
+
+get_pnl_by_cost_center
+
+كان يستخدم:
+
+journal_lines.account_id
+        =
+chart_of_accounts.account_code
+
+وهذا مخالف للعلاقة الفعلية، لأن journal_lines.account_id هو FK إلى chart_of_accounts.id.
+
+تم إصلاحه إلى:
+
+journal_lines.account_id = chart_of_accounts.id
+
+get_cash_flow
+
+كانت تفشل فعليًا في Production بخطأ PostgreSQL 42803 بسبب GROUP BY غير مكتمل. تم إصلاح الـruntime failure.
+
+جميع دوال التقارير
+
+أصبحت تستخدم:
+
+auth.uid()
+    ↓
+app_private.current_user_company_id()
+    ↓
+COA / Journal company scope
+
+وتفشل مغلقًا عند غياب company context، مع الحفاظ على الـAPI الحالي.
+
+3) تم إثبات الـTenant Boundary عمليًا
+
+وهذه أهم نتيجة في العمل كله.
+
+عند المحاكاة بمستخدم تابع للشركة المالية الحالية:
+
+da4ef704-88ac-4120-aa0e-65b92b2aa2bc
+
+أصبحت دوال التقارير تعمل ضمن ذلك الـCompany context، وأعيدت النتائج المتوافقة مع بياناتها.
+
+وعند المحاكاة بمستخدم تابع لـ:
+
+00000000-0000-0000-0000-000000000001
+
+تعيد دوال التقارير صفر نتائج لأن الـCOA المالي الحالي ليس تابعًا لهذه الشركة.
+
+وهذا ليس Bug قمنا بإخفائه؛ بل سلوك أمني صحيح يكشف Contract Gap حقيقي.
+
+الاكتشاف الحرج
+
+Production تحتوي حاليًا على ثلاث شركات، لكن:
+
+الخزينة والـCOA المالي الحاليان تابعان لـ:
+
+da4ef704-88ac-4120-aa0e-65b92b2aa2bc
+
+بينما عدد كبير من مستخدمي التطبيقات المالية/التشغيلية مرتبطون بـ:
+
+00000000-0000-0000-0000-000000000001
+
+أي أن لدينا الآن:
+
+Operational Tenant
+       ≠
+Financial Tenant
+
+هذا ليس قرارًا سأحسمه بنفسي؛ لأنه قد يكون نتيجة انتقال/تهيئة تاريخية أو تصميم Business مقصود.
+
+لذلك سجلته صراحة كـ:
+
+OWNER DECISION — Financial Tenant Identity Contract
+
+ولم أنقل مستخدمًا، ولم أغير company_id، ولم أنقل COA أو Treasury من شركة إلى أخرى.
+
+4) finance-manager.html — تعديل جراحي فعلي
+
+تم اكتشاف Bugين حقيقيين:
+
+العيب الأول
+
+كان يحسب:
+
+profit = sales - purchases
+
+وهذا ليس P&L محاسبيًا.
+
+العيب الثاني
+
+كان يستعمل:
+
+po_date >= firstDay
+AND
+order_date <= today
+
+على purchase_orders، بينما التاريخ الفعلي هو po_date.
+
+ما تم تغييره
+
+تم استبدال الدالة فقط:
+
+App.renderDashboard()
+
+وأصبح الـDashboard يقرأ من Production Reporting Core:
+
+get_profit_loss
+get_trial_balance
+get_cash_flow
+get_balance_sheet
+
+مع إبقاء treasury.current_balance كمصدر للموقف النقدي الحالي.
+
+لم أعد كتابة الملف.
+لم أغير الـHTML العام.
+لم أغير Tab.
+لم أغير Login.
+لم أغير أي دالة أخرى.
+
+Commit التعديل:
+
+76eae6443aa3c06400aef3c67a0cb9c600d1895c
+
+والـdiff يثبت أن التغيير انحصر في renderDashboard().
+
+5) accountant.html — لم ألمسه
+
+وهذا مقصود.
+
+التطبيق الحالي ما زال يحتوي:
+
+KPI → سندات قبض → سندات صرف → قيود
+
+لكن Consumer سندات القبض والصرف ما زال يستخدم عقدًا مثل:
+
+cashBoxId = "MAIN"
+mainAccountName = reference
+accountName = reference
+
+بينما الـAtomic Financial Core يحتاج هويات صريحة:
+
+Treasury UUID
+Cash Account UUID
+Offset Account UUID
+Operation UUID
+
+تغيير accountant.html الآن كان سيعني اختراع Contract محاسبي لم يثبت بعد.
+
+لذلك:
+
+Modified accountant.html = NO
+
+6) UX المستهدف أصبح مثبتًا، وليس مجرد تجميل
+
+لا ينبغي تحويل accountant.html إلى شاشة KPI أخرى فقط.
+
+الـAccountant المستهدف يجب أن يصل إلى:
+
+Dashboard
+Receipts
+Payments
+Journals
+Receivables
+Customer Balances
+Supplier Balances
+Driver Settlements
+Daily Settlement
+Treasury Monitoring
+Exceptions / Audit
+
+أما الـFinance Manager فيحتاج طبقة أعلى:
+
+Executive Financial Dashboard
+Revenue
+Gross Margin
+Net Result
+Cash Position
+Receivables Aging
+Payables
+Daily Settlement
+Driver Exposure
+Treasury Movement
+P&L
+Balance Sheet
+Cash Flow
+Branch Comparison
+Sales vs Collections
+Financial Anomalies
+Unposted / Incomplete Journal Alerts
+Void / Reversal Alerts
+Working Capital
+
+لكن لا توجد أي شاشة ستُعتبر Production-ready قبل وجود Backend source-of-truth مثبت لها.
+
+وهذا قريب من طريقة بناء التقارير في الأنظمة الناضجة: SAP يعرض KPI وP&L وBalance Sheet وCash Flow وتحليلات متعددة الأبعاد، وOdoo يجمع P&L وBalance Sheet وGeneral Ledger وTrial Balance وAged Receivable/Payable وCash Flow وAudit Trail، بينما Dynamics يضيف طبقات Aging وCollections وas-of reporting.
+
+لن ننسخها حرفيًا؛ سنأخذ ما ثبت استقراره في السوق ونربطه بمصادر RAWAEA نفسها.
+
+7) POS — تم ربط المسار، لكن لم أتدخل في Write Side
+
+pos.html بالفعل Transaction Originator ويصل إلى:
+
+POS
+ ↓
+save-sales-invoice
+ ↓
+save_sales_invoice_atomic
+
+والفجوة المعمارية المعروفة لا تزال:
+
+Inventory
+   ↓
+post_stock_movement      ← مركزي
+
+Accounting
+   ↓
+direct journal writes    ← ما زال موزعًا
+
+Ledger
+   ↓
+direct ledger writes     ← ما زال موزعًا
+
+وهذا هو Write-Side Closure الخاص بهيثم، وليس خالد. تم تسجيله كـHandoff ولم يتم خلط المسارين.
+
+الحالة الرسمية الآن
+الوحدة	الحالة
+Trial Balance tenant safety	CLOSED
+P&L tenant safety	CLOSED
+Balance Sheet tenant safety	CLOSED
+Cash Flow runtime failure	CLOSED
+Cost Center UUID defect	CLOSED
+Cost Center tenant safety	CLOSED
+Financial Reporting semantic contract	OPEN
+Financial Tenant Identity	OPEN / OWNER DECISION
+Accountant Consumer	OPEN
+Accountant UX	DEFERRED
+Finance Manager KPI Consumer	SURGICALLY ALIGNED
+Finance Manager full UX	OPEN
+Production Financial Security	OPEN
+POS Financial Closure	HYTHAM TRACK
+Autonomous CTO	NO
+السجل الذي تم رفعه
+
+فتح تقرير خالد — 20260823_KHALID_PROMPT53_FINANCIAL_REPORTING_CLOSURE.md
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260823_KHALID_PROMPT53_FINANCIAL_REPORTING_CLOSURE.md
+والملف المعدل الوحيد من Current/PWA في هذه الوحدة هو:
+
+Current/PWA/finance-manager.html — الدالة App.renderDashboard() فقط.
+
+والخطوة المحورية التالية لخالد أصبحت Financial Tenant Identity + Accountant Consumer Contract، بينما POS remains على مسار Write-Side الخاص بهيثم.
