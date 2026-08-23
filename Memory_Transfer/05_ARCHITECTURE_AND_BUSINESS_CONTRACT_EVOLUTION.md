@@ -1,35 +1,56 @@
 # ARCHITECTURE AND BUSINESS CONTRACT EVOLUTION
 
-## Governing architecture
-ONE CORE / ONE SOURCE OF TRUTH / controlled domain execution.
+## Target architecture
+`PWA/UI → Edge Capability → PostgreSQL Domain Core/RPC → authoritative state → audit/accounting/ledger effects`
 
-UI is an interface; Edge Functions are business capabilities; PostgreSQL Core owns business logic and atomic state transitions. Duplicate business logic is a defect. This is codified in the active Architecture Constitution. fileciteturn205file0
+## Contract evolution
+### Inventory
+Historical distributed stock mutations were progressively converged into:
+`Business operation → domain RPC → post_stock_movement → stock_branches + inventory_log`.
+Current direct Production SQL verifies the central writer boundary.
 
-## Inventory contract
-- `stock_branches.qty` = Physical Stock.
-- `stock_branches.allocated_qty` = Reservation.
-- `available_qty` = derived availability; if generated, never write directly.
-- `inventory_log` = posted movement history.
-- `post_stock_movement(10)` = central physical movement boundary.
-- `reserve_stock` / `release_stock_reservation` = reservation path only.
+### Reservation
+`reserve_stock` and `release_stock_reservation` own allocation only. They are not physical movement engines.
 
-## Fulfillment contract
-orders → order_details (authoritative detail) → runsheets → Picking → Reservation → Loading MAIN→VAN → Delivery/Van Sales/Return → Unloading VAN→MAIN where applicable. fileciteturn228file0
+### Voucher
+Historical six-type vocabulary became a current four-lifecycle Voucher Core:
+- Transfer
+- DirectSale
+- DirectReturn
+- SupplierReturn
 
-## Custody contract
-Vehicle = mobile stock container/mobile branch/physical operating unit. Representative/Driver = accountable custodian/financial responsibility holder. Vehicle identity != representative identity. DirectSale = MAIN→VAN custody loading; VanSale = VAN→Customer; DirectReturn = VAN→MAIN; SupplierReturn = Branch/Warehouse→Supplier. fileciteturn202file0
+Scrap/Adjustment are Adjustment Engine operations, not invented voucher lifecycles.
 
-## Picking contract
-Start Picking: authenticated user context → company-scoped runsheet → Open/Confirmed→Picking. No physical stock movement at start.
-Complete Picking: Picking → reservation via `reserve_stock` → order_details qty_picked → derived runsheet detail sync → Picked. No physical stock decrement merely because of picking.
+### Vehicle
+Vehicle and Representative are distinct identities. Current Production resolves Vehicle mobile stock context before physical movement.
 
-## Loading contract
-Loading = MAIN→VAN. Loading consumes reservation and posts physical movement through central engine. Loading is not COGS by itself.
-Reopen reverses the prior loading movement, preserves `qty_loaded`, and starts a new loading cycle identity. Reload uses the new cycle.
-Unloading = VAN→MAIN exact inverse where applicable.
+### Item Identity
+Current `items.item_code` is globally UNIQUE and `item_id` is the durable row identity. Do not invent company-scoped uniqueness where the live schema does not define it.
 
-## Manual Voucher contract
-Draft→Sent→Receive/Partial Receive→Completed. Cancel is controlled state transition. Physical SEND/RECEIVE converge on central stock engine.
+### Tenant Identity
+Live contract:
+`auth.users.id → public.users.auth_id → public.users.id → company_id → authorization scope`.
+Current `start-picking` Production v33 and current Git use this contract.
 
-## Accounting boundary
-Accounting is a separate domain. Inventory events feed accounting; accounting must not invent inventory truth. Journal ownership/posting contract remains open in the 2026-08-21 readiness registry. fileciteturn227file0
+### Fulfillment Authority
+`order_details` is authoritative fulfillment detail; `run_sheet_details` is derived/aggregated state where the current contract requires it.
+
+### Accounting
+A central `post_journal_entry` core exists and `save-journal-entry` v8 uses it, but domain writers remain distributed. Therefore Accounting Core is deployed/strong but Writer Convergence is OPEN.
+
+### Treasury
+Treasury contains its own account identity conventions (e.g. historical `CASH-01`) while journal lines use COA UUIDs. No universal mapping is invented without proof.
+
+## Governance transitions
+The project repeatedly learned that:
+- Historical UI completeness can be false.
+- Git completeness can be false.
+- Migration existence can be mistaken for deployment.
+- Production deployment can be mistaken for browser runtime.
+- Legacy objects can remain executable unless grants are explicitly controlled.
+- A repair layer can introduce new defects.
+- RLS can masquerade as missing data.
+- Identity keys must be verified live.
+
+## Surviving target architecture
+Inventory and Voucher responsibilities are strongly separated. The remaining architectural debt is financial writer convergence, Consumer Matrix, Deployment Lineage, Fulfillment closure, Concurrency, and Global Zero-Debt outside Inventory.
