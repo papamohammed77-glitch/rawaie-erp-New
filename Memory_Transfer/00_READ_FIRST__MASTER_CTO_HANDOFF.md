@@ -1,44 +1,114 @@
 # RAWAEA ERP — MASTER CTO HANDOFF
 
-## Handoff snapshot
-- Snapshot UTC: 2026-08-23 03:27:59
-- Production: `fiilmooggumokxanwiyx` / SMART ERP
-- PostgreSQL: 17.6
-- Current active source: `rawaie-erp-New`
-- Historical/reference source: `rawaie-erp-review`
+## HANDOFF SNAPSHOT
+- Snapshot UTC: **2026-08-23 03:41:38.004558 UTC**
+- Production project: `fiilmooggumokxanwiyx` / SMART ERP
+- PostgreSQL database: `postgres`
+- Current Git branch: `main`
+- Git HEAD at snapshot start: `579722996367998327fda7340408f1ad32ce955f`
+- Current migration head: `20260822182733 fix_post_journal_entry_schema_drift_20260822`
 
-## Truth hierarchy
-1. Direct Production runtime/schema/RPC/Edge/auth/data evidence
-2. Current Git canonical source
-3. Current architecture/evidence/CTO records
-4. Historical/original contracts
-5. Historical reports/prompts
+## TRUTH HIERARCHY
+1. Current Production runtime / PostgreSQL / deployed Edge / RPC / RLS / grants / data / logs.
+2. Current Git `main`.
+3. Current CTO / Evidence records.
+4. Historical / Original / Git history.
+5. Historical prompts and reports.
 
-Production is current truth. Git is source truth only for code lineage. A migration/report never proves deployment.
+A historical CLOSED state never overrides a newer Production contradiction.
 
-## Current verified position
-- Inventory physical-writer boundary is documented as CLOSED by the 2026-08-20 sweep: `post_stock_movement` is the sole physical stock writer; `reserve_stock`/`release_stock_reservation` are reservation-only; no stock trigger writer was found.
-- Production current counts at this handoff: companies 3; users 26; branches 5; items 50; stock_branches 26; inventory_log 3; journal_entries 2; journal_lines 0; customer_ledger 0; supplier_ledger 0; driver_ledger 0; daily_settlements 0; treasury 1; chart_of_accounts 87.
-- Current direct Production PostgreSQL public-function count = 45. This supersedes the older 2026-08-21 snapshot of 42 and is recorded as drift.
-- `start-picking` Production is v14 ACTIVE. Current Git source currently differs in identity lookup (`auth_id` vs Production v14 `id`). This is a real Git/Production parity conflict.
-- `complete-picking` Production is v13 ACTIVE.
-- TASK-028 PR #3 remains open/draft/unmerged; its body still lists historical remaining gates. Do not use its stale gate text as current Production truth without revalidation.
-- ERP-wide readiness is NOT READY: accounting, ledgers, fulfillment graph, consumer map, deployment lineage, data repair, concurrency coverage, and global zero-debt outside the closed inventory writer boundary remain open in the 2026-08-21 readiness registry.
+## CURRENT VERIFIED POSITION
+- Public PostgreSQL functions: **45**.
+- Public tables: **62**.
+- RLS-enabled public tables: **62**.
+- RLS policies: **102**.
+- Public triggers: **38**.
+- Companies: 3; users: 26; branches: 5; items: 50.
+- `stock_branches`: 26.
+- `inventory_log`: **3**.
+- `stock_vouchers`: 0; `stock_voucher_details`: 0.
+- `orders`: 0; `order_details`: 0.
+- `runsheets`: 0; `run_sheet_details`: 0.
+- `purchase_orders`: 0; `purchase_order_details`: 0.
+- `journal_entries`: 2; `journal_lines`: 0.
+- `audit_log`: 1781.
+- customer/supplier/driver ledgers: 0 rows each.
 
-## Immediate execution discipline
-One Closure Unit at a time. Do not treat a report as execution. For behavior changes: UNDERSTAND → RECONCILE → TARGET → PATCH → TEST → DEPLOY → PRODUCTION VERIFY → CLOSE.
+## INVENTORY CORE
+The current direct SQL sweep finds only one function performing the Physical Stock contract:
 
-## First 10 checks for a successor CTO
-1. Query current Production timestamp and PostgreSQL version.
-2. Count critical tables and compare with this snapshot.
+`post_stock_movement(10 args)`
+→ `stock_branches` physical qty
+→ `inventory_log`.
+
+`reserve_stock` / `release_stock_reservation` mutate `allocated_qty` only.
+`setup_van_stock` is an initialization capability.
+No public trigger directly writes Physical Stock or `inventory_log`.
+
+**Current inventory conclusion:** Physical Writer Centralization = VERIFIED for the currently deployed Production surface.
+
+## CURRENT EDGE REALITY
+Critical deployed versions now include:
+- `start-picking` v33 ACTIVE.
+- `complete-picking` v16 ACTIVE.
+- `complete-loading` v11 ACTIVE.
+- `complete-return` v24 ACTIVE.
+- `create-stock-voucher` v8 ACTIVE.
+- `send-stock-voucher` v19 ACTIVE.
+- `receive-stock-voucher` v21 ACTIVE.
+- `complete-stock-voucher` v4 ACTIVE.
+- `cancel-stock-voucher` v4 ACTIVE.
+- `receive-purchase` v12 ACTIVE.
+- `save-sales-invoice` v15 ACTIVE.
+- `save-journal-entry` v8 ACTIVE.
+- `save-receipt-voucher` v5 ACTIVE.
+- `save-payment-voucher` v3 ACTIVE.
+- `save-daily-settlement` v3 ACTIVE.
+- `update-driver-ledger` v1 ACTIVE.
+- `complete-order-delivery` v13 ACTIVE.
+
+The registry still contains temporary/canary/runtime-harness functions. Several were observed returning HTTP 410 while remaining registered ACTIVE. `ACTIVE + 410` is not equivalent to deletion and remains governance debt.
+
+## START-PICKING PARITY — CORRECTED
+The older Memory Transfer package recorded Production `start-picking` v14 as using `public.users.id = auth.users.id`. That statement is obsolete.
+
+Current Production `start-picking` v33 and current Git `Current/Edge_Functions/start-picking` both resolve the authenticated user through:
+
+`auth.users.id → public.users.auth_id → public.users.id → company_id`.
+
+The previous parity conflict is therefore **RESOLVED by newer evidence** and must not be inherited by the successor CTO.
+
+## ACCOUNTING / FINANCIAL STATE
+Accounting is active but not centrally converged. Current financial writers include journal/ledger effects from domain RPCs and dedicated Edge capabilities such as receipt, payment, daily settlement and driver ledger paths.
+
+Current `save-journal-entry` v8 + `post_journal_entry` are strong core contracts, but Journal Writer Convergence is not globally closed. Treasury→COA identity remains an explicit contract boundary; do not invent a mapping.
+
+## CURRENT OPEN DOMAINS
+- Accounting writer convergence.
+- Ledger writer authority and reconciliation.
+- Treasury / Daily Settlement contract graph.
+- Full fulfillment state/consumer graph.
+- Full critical Consumer Matrix.
+- Deployment lineage (Git SHA → deployed Edge version → runtime consumer).
+- ERP-wide data repair/provenance registry.
+- Independent-session concurrency proof for remaining high-risk transitions.
+- Browser/client runtime proof.
+- Temporary Edge/canary registry retirement.
+- Global Zero-Debt outside the verified Physical Stock writer boundary.
+
+## FIRST 10 CHECKS FOR THE SUCCESSOR CTO
+1. `select now(), version();`
+2. Recount critical tables and compare with this snapshot.
 3. List deployed Edge Functions and versions.
 4. Re-read critical deployed RPC definitions.
-5. Identify current physical stock writers.
-6. Verify reservation writers separately.
-7. Read Current source for the active Closure Unit.
-8. Read Historical/Original for the same unit.
-9. Read its current consumer(s).
-10. Compare new evidence with this handoff and register drift before acting.
+5. Rescan Physical Stock writers.
+6. Rescan reservation writers separately.
+7. Read the current source for the active Closure Unit.
+8. Read the Historical/Original source for the same unit.
+9. Read every current consumer of the unit.
+10. Compare the new snapshot with this handoff and register drift before acting.
 
-## Critical warning
-This package is institutional memory, not a substitute for Production verification. Any contradiction with current Production must remain recorded and must not be silently normalized.
+## OPERATING RULE
+UNDERSTAND → RECONSTRUCT → TRACE → RECONCILE → PATCH ONE CLOSURE UNIT → TEST → DEPLOY → PRODUCTION VERIFY → CLOSE.
+
+**Memory is context. Production is truth.**
