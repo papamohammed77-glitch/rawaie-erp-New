@@ -1,0 +1,111 @@
+تم تنفيذ Master Memory Transfer Directive فعليًا، وليس إعداد ملخص نظري.
+
+ما تم إنجازه
+
+تمت إعادة التحقيق من المصادر المباشرة وربط التاريخ بالحالة الحالية، ثم إعادة بناء حزمة Memory_Transfer على main، بما في ذلك:
+
+00 → 14 + 99_MEMORY_CERTIFICATION_AND_CURRENT_STATE.md
+
+وتحديدًا تم تحديث:
+
+الـExecutive Handoff.
+سجل الأحداث من Prompt 11 → 45 ثم 47 / 49 / 51 / 52.
+Production Change Ledger.
+Git Change Ledger.
+Architecture / Business Contract Evolution.
+Inventory Memory.
+Accounting Memory.
+Tenant / Authorization Memory.
+UI / Consumer Evolution.
+Decisions / Lessons.
+Open Debt / Conflict / Drift Register.
+Khalid / Hytham Succession Knowledge.
+General Project Plan.
+Source Manifest / Chain of Custody.
+Final Certification.
+أهم تصحيح جنائي
+
+تم اكتشاف أن الذاكرة السابقة كانت تحمل تعارضًا أصبح قديمًا وغير صحيح:
+
+start-picking Production v14 → public.users.id = auth.users.id
+
+الحقيقة الحالية المثبتة مباشرة:
+
+Production start-picking v33
+→ public.users.auth_id = auth.users.id
+
+والـCurrent Git يستخدم نفس العقد؛ لذلك تم تحويل هذا التعارض من Current Conflict إلى historical-only / resolved by newer evidence.
+
+Production النهائية بعد إعادة المزامنة
+
+آخر snapshot مباشر:
+
+2026-08-23 03:47:57.683327 UTC
+
+Production:
+
+PostgreSQL 17.6
+45 Public Functions
+62 Tables
+38 Triggers
+62 RLS-enabled tables
+102 RLS policies
+3 Companies
+26 Users
+5 Branches
+50 Items
+26 Stock Rows
+3 Inventory Log Rows
+0 Stock Vouchers
+2 Journal Entries
+0 Journal Lines
+1,781 Audit Log rows
+
+وهذه الأرقام هي التي تم اعتمادها في 99_MEMORY_CERTIFICATION...، وليس snapshot 20 أو 21 أغسطس القديم.
+
+Inventory
+
+أعدت التحقيق في Production مباشرة، ووجدت أن الـPhysical Stock DML الحالي ما زال محصورًا في:
+
+post_stock_movement
+
+بينما:
+
+reserve_stock / release_stock_reservation
+
+خاصان بالـAllocation فقط، وsetup_van_stock Initialization capability. ولم يظهر Trigger مستقل يكتب Physical Stock أو inventory_log.
+
+بالتالي:
+
+Physical Stock Writer خارج post_stock_movement = 0 في Production الحالية المفحوصة.
+
+هذا تم تثبيته أيضًا داخل Memory_Transfer/06_INVENTORY_MEMORY_TRACK.md.
+
+ما لم أزيف إغلاقه
+
+لم أرفع حالة المشروع إلى CTO CONTINUITY READY.
+
+الحزمة النهائية تسجل صراحة أن هناك Gates حقيقية ما زالت مفتوحة:
+
+Accounting Writer Convergence → Ledger → Treasury/COA → Financial Security → Consumer Matrix → Deployment Lineage → Fulfillment → Concurrency → Browser Runtime → Global Zero-Debt
+
+كما أبقيت اختلافات inventory_log التاريخية:
+
+56 → 62 → 3
+
+كسجل DRIFT فقط، بدون اختراع تفسير أو اتهام بفساد بيانات. وهذا متسق مع قاعدة عدم البناء على الظن.
+
+Git النهائي
+
+أصبحت main عند:
+
+73f886a890de922a25dc7df7029a3d54c51e709a
+
+بـcommit:
+
+Certify forensic memory package against final 2026-08-23 Production snapshot.
+
+فتح الـFinal Git Commit
+https://github.com/papamohammed77-glitch/rawaie-erp-New/commit/73f886a890de922a25dc7df7029a3d54c51e709a?utm_source=chatgpt.com
+
+الخلاصة: تم تنفيذ أمر الـMaster Memory Transfer نفسه، وتم تحديث الذاكرة المؤسسية وربطها بـProduction الحالية، وتصحيح المعلومات التاريخية التي أثبت الواقع أنها أصبحت قديمة. الحالة النهائية بقيت NOT READY FOR AUTONOMOUS CTO CERTIFICATION عمدًا، لأن إعلان الجاهزية الآن سيكون مخالفًا للأدلة الحالية.
