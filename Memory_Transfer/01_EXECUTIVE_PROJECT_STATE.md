@@ -1,35 +1,71 @@
-# EXECUTIVE PROJECT STATE
+# EXECUTIVE PROJECT STATE — 2026-08-23
 
-## Project
-RAWAEA ERP — FMCG Distribution / Logistics ERP on Supabase/PostgreSQL + Edge Functions + PWA clients.
+## CURRENT PRODUCTION SNAPSHOT
+`2026-08-23 03:41:38.004558 UTC`
 
-## Architectural target
-ONE CORE / ONE SOURCE OF TRUTH / controlled domain execution.
-UI → Capability/Edge → Core RPC → PostgreSQL → State/History/Audit.
+- Project: SMART ERP / `fiilmooggumokxanwiyx`
+- PostgreSQL database: `postgres`
+- Public functions: 45
+- Public tables: 62
+- RLS tables: 62
+- RLS policies: 102
+- Public triggers: 38
 
-## Inventory state
-Production evidence captured in the 2026-08-20 sweep states that `post_stock_movement` is the sole Physical Stock Movement writer; `reserve_stock` and `release_stock_reservation` are reservation-only; `setup_van_stock` is initialization. No trigger writer was found.
+Data:
+- companies 3
+- users 26
+- branches 5
+- items 50
+- stock_branches 26
+- inventory_log 3
+- stock_vouchers 0
+- orders 0
+- runsheets 0
+- purchase_orders 0
+- journal_entries 2
+- journal_lines 0
+- audit_log 1781
+- customer_ledger 0
+- supplier_ledger 0
+- driver_ledger 0
 
-## Current Production re-baseline
-Snapshot: 2026-08-23 03:27:59 UTC.
-- Companies: 3
-- Users: 26
-- Branches: 5
-- Items: 50
-- Stock branch rows: 26
-- Inventory log rows: 3
-- Journal entries: 2
-- Journal lines: 0
-- Customer ledger rows: 0
-- Supplier ledger rows: 0
-- Driver ledger rows: 0
-- Daily settlements: 0
-- Treasury rows: 1
-- Chart of accounts rows: 87
-- Public PostgreSQL functions: 45
+## GIT
+Current `main` began this revalidation at:
+`579722996367998327fda7340408f1ad32ce955f`
 
-## Readiness
-Inventory Core integrity is documented as closed. ERP-wide autonomous CTO readiness is NOT READY because accounting, ledgers, fulfillment-wide graph, consumers, deployment lineage, data repair, concurrency coverage, and global zero-debt outside the physical writer boundary remain open.
+The latest package commits are themselves part of the current Git history; any final package certification must record the final HEAD after the memory package updates are committed.
 
-## Important drift
-The 2026-08-21 readiness registry recorded 42 public functions and inventory_log=62; the current 2026-08-23 Production query shows 45 functions and inventory_log=3. These are different snapshots and must not be silently conflated.
+## PRODUCTION MIGRATION HEAD
+`20260822182733 fix_post_journal_entry_schema_drift_20260822`
+
+## DOMAIN STATUS
+| Domain | Current status |
+|---|---|
+| Physical Stock Writer Centralization | VERIFIED |
+| Reservation Boundary | VERIFIED for swept paths |
+| Manual Voucher Core | VERIFIED CORE; UI/runtime lineage still separate concern |
+| Purchase Receive Inventory Boundary | VERIFIED CORE; consumer/operation identity must remain checked |
+| Accounting Core | DEPLOYED / PARTIALLY CONVERGED |
+| Ledger Core | OPEN CENTRALIZATION / RECONCILIATION |
+| Treasury | OPEN CONTRACT |
+| Tenant / Identity Core | STRONG in reviewed domains |
+| Consumer Matrix | PARTIAL |
+| Deployment Lineage | PARTIAL / OPEN |
+| Fulfillment Lifecycle | PARTIAL |
+| Concurrency | PARTIAL |
+| Browser Runtime | NOT FULLY PROVEN |
+| Global Zero-Debt | OPEN outside verified inventory boundary |
+| Autonomous CTO Readiness | NOT READY |
+
+## CRITICAL CORRECTION
+The previous handoff conflict stating that Production `start-picking` v14 used `public.users.id = auth.users.id` is obsolete. Current Production v33 and current Git both use `public.users.auth_id = auth.users.id` for identity resolution. The old claim is retained only as historical state.
+
+## CRITICAL CURRENT RISK
+The Production Edge registry still contains temporary/canary/harness functions that have returned HTTP 410 in runtime logs. Their continued registry presence is governance residue and must be classified/retired with direct evidence; 410 does not equal deletion.
+
+## NEXT AUTHORIZED PHASE
+The latest direct evidence places the next major closure stream in:
+
+ACCOUNTING → LEDGER → TREASURY → FINANCIAL SECURITY → CONSUMER MATRIX → DEPLOYMENT LINEAGE → CONCURRENCY → DATA RECONCILIATION → GLOBAL ZERO-DEBT.
+
+Do not reopen Inventory without contradictory Production evidence.
