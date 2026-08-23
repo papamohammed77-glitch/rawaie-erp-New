@@ -1,0 +1,1238 @@
+نعم. بعد إعادة بناء الصورة من Production الحالية + Git الحالي + السلسلة التاريخية + تقارير خالد وهيثم + الملفات المنشورة نفسها، أستطيع الآن إعطاؤك حكمًا تنفيذيًا واضحًا، والأهم: من الذي يتولى ماذا، ولماذا، وما الذي يجب ألا نسمح لهما بلمسه حتى لا نعيد إنتاج أخطاء سابقة.
+
+ملاحظة منهجية: سلسلة Hussin طويلة جدًا وبعض ملفاتها أكبر من حد الإخراج الذي تعرضه أداة GitHub في استجابة واحدة؛ لذلك لم أبنِ الحكم على مقاطع مقتطعة منفردة. استخدمت السلسلة لتتبع التطور، ثم جعلت Production الحالية وGit الحالي وتعريفات RPC/Edge الحالية هي الفيصل عند التعارض، وهو نفس هرم الحقيقة الذي تنص عليه الـCTO directives والخطة العامة.
+
+1. الحكم التنفيذي النهائي
+خالد
+
+خالد وصل إلى مستوى جيد جدًا في الاستمرارية المعمارية وإعادة بناء المعرفة ثم تحويلها إلى Closure Units. هذا ظاهر بوضوح في انتقاله من Knowledge Rebaseline إلى Accounting Execution Qualification، ثم إلى Prompt 51، حيث رفض اعتبار وجود post_journal_entry مساويًا لإغلاق Accounting.
+
+والأهم أنه اتخذ قرارًا صحيحًا جدًا عندما لم يعبث بـaccountant.html لأن الـConsumer الحالي يرسل عقدًا قديمًا/غير مكتمل لا يمكن تحويله إلى UUIDs بالافتراض.
+
+لكن خالد ما زال محققًا/منظمًا ممتازًا أكثر من كونه منفذًا مستقلًا مكتمل الصلاحية. Receipt Consumer Contract, Payment Consumer Contract, Writer Convergence, Security Production, Concurrency, Deployment Lineage ما زالت مفتوحة عنده.
+
+تقديري الحالي لخالد
+
+8.8/10 — مؤهل لمهام Closure محددة، وليس Autonomous CTO كاملًا بعد.
+
+هيثم
+
+هيثم انتقل خطوة أبعد: لم يكتفِ باكتشاف مشكلة Accounting، بل أنشأ post_journal_entry ونشره في Production، وأثبت duplicate protection والتوازن والـsecurity والـoperation identity باختبارات فعلية. وهذا الجزء من عمله مثبت الآن أيضًا من Production الحالية: post_journal_entry موجود بالفعل كـSECURITY DEFINER، وكذلك post_cash_receipt_atomic وpost_cash_payment_atomic.
+
+لكن عند مراجعة Production الحالية اليوم ظهرت مشكلة مهمة جدًا:
+
+هيثم صحيح في الاتجاه، لكنه أعلن بعض أجزاء الـReporting Core بصورة أوسع من الحقيقة الحالية.
+
+لدينا الآن في Production:
+
+get_trial_balance
+get_profit_loss
+get_balance_sheet
+get_cash_flow
+get_pnl_by_cost_center
+
+والفحص الحالي يثبت أن:
+
+get_trial_balance وget_profit_loss وget_balance_sheet تستخدم journal_lines.account_id = chart_of_accounts.id في جوهرها، وهذا الاتجاه صحيح.
+لكن get_pnl_by_cost_center ما زال يستخدم:
+
+jl.account_id::character varying = coa.account_code
+
+وهذا خطأ Contract واضح، لأن journal_lines.account_id هو FK إلى chart_of_accounts.id وليس إلى account_code.
+
+والأهم أن بعض دوال التقارير لا تحمل company_id كمدخل أصلًا؛ وبالتالي لا يجوز اعتبارها Multi-Tenant Reporting Core مكتملًا لمجرد أن الـJOIN المالي أصبح صحيحًا.
+
+إذن هنا لدينا Regression/Incomplete Closure مثبت من Production الحالية.
+
+تقديري الحالي لهيثم
+
+9.1/10 في Forensic/Execution
+لكنه أيضًا ليس Autonomous CTO مكتملًا بعد.
+
+2. أهم نقطة: Production الحالية تجاوزت تقاريرهما
+
+الـProduction الحالية اليوم ليست Production الخاصة بتقارير 21–22 أغسطس.
+
+اللقطة الحالية تثبت:
+
+العنصر	Production الحالية
+Public functions	45
+Public tables	62
+RLS policies	102
+Public triggers	13
+Companies	3
+Users	26
+Branches	5
+Items	50
+Stock rows	26
+Inventory log	3
+Stock vouchers	0
+Orders	0
+Runsheets	0
+Purchase Orders	0
+Journal Entries	2
+Journal Lines	0
+Audit log	1781
+Latest migration	20260822182733
+
+وبالتالي أي تقرير من خالد أو هيثم يقول “current” يجب أن يُقرأ كـhistorical snapshot ما لم يطابق هذا الـProduction snapshot الأحدث.
+
+وهذه بالضبط القاعدة التي وضعها الـMaster CTO Directive: Production الحالية تتغلب على التقارير والتاريخ.
+
+3. ما تم إنجازه فعليًا وصحيح من عمل هيثم
+
+هناك أربعة أشياء أعتبرها مكاسب حقيقية وليست تجميلًا:
+
+1. post_journal_entry أصبح موجودًا فعليًا
+
+Production الحالية تحتوي:
+
+post_journal_entry(...)
+
+ويفرض:
+
+Company validation
+Operation identity
+Account UUID validation
+Account/company ownership
+non-negative debit/credit
+no both debit+credit
+no zero lines
+balanced posting
+journal header + lines
+operation registry
+audit
+SECURITY DEFINER
+
+وهذا يحقق بالفعل الاتجاه الذي حددته الخطة العامة: نقل Accounting إلى Core مركزي بدلاً من Distributed Business Logic.
+
+2. Cash Core موجود
+
+Production الحالية تحتوي أيضًا:
+
+post_cash_receipt_atomic
+post_cash_payment_atomic
+
+وكلاهما:
+
+Treasury + Cash Account + Offset Account + post_journal_entry + operation identity
+
+وهذا مهم جدًا لأننا لم نعد نتحدث عن تصميم نظري.
+
+3. الاختبارات التي أجراها هيثم كانت ذات قيمة
+
+هو لم يكتفِ بـ“SQL نجح”، بل وصل إلى:
+
+balanced posting
+duplicate protection
+rejection of unbalanced entries
+cleanup
+
+وهذا يتوافق جيدًا مع Closure discipline.
+
+4. رفضه لإعادة توجيه الـFinancial Writers بشكل أعمى كان صحيحًا
+
+هذه نقطة مهمة جدًا لصالحه.
+
+هو لم يقل:
+
+post_journal_entry exists → convert everything now
+
+بل أبقى:
+
+save-receipt-voucher
+save-payment-voucher
+save-sales-invoice_atomic
+receive_purchase_atomic
+complete_return_atomic
+
+دون Convergence عمياء، لأن الـBusiness Contract لم يكن مكتملًا.
+
+هذا القرار صحيح.
+
+4. وما الذي لم يصبح صحيحًا بعد؟
+
+هنا تظهر الفجوة الحقيقية.
+
+Production الحالية تثبت أن:
+
+save_sales_invoice_atomic
+
+ما زالت تكتب مباشرة:
+
+journal_entries
+journal_lines
+customer_ledger
+driver_ledger
+
+مع أنها تستخدم post_stock_movement للمخزون.
+
+أي أن POS أصبح:
+
+POS
+ ↓
+save-sales-invoice
+ ↓
+post_stock_movement
++
+direct journal writes
++
+direct ledger writes
+
+وليس:
+
+POS
+ ↓
+Sales Core
+ ↓
+Inventory Core
++
+Accounting Core
++
+Ledger Core
++
+Treasury Core
+
+وهذه نقطة شديدة الأهمية لأن POS هو الآن أحد أهم الـClosure Units التالية.
+
+5. التحقيق الجنائي في POS — وهذا يغير ترتيب الأولويات
+
+راجعت Current/PWA/pos.html.
+
+هو Consumer فعلي لـ:
+
+save-sales-invoice
+
+والـPOS عند الدفع يرسل:
+
+status = Invoiced
+paymentType = نقدي
+branchCode = selected branch
+
+ثم يستدعي:
+
+save-sales-invoice
+
+مباشرة.
+
+والـProduction Edge الحالي هو Version 15، ويقوم فعلًا بتوليد operation_id وإرساله إلى:
+
+save_sales_invoice_atomic
+
+ويدعم idempotency. لكن الـRPC نفسه لا يستدعي post_journal_entry حتى الآن؛ بل ينشئ Journal Entries وJournal Lines وCustomer/Driver Ledgers مباشرة.
+
+هذه ليست ملاحظة UI.
+
+هذه Financial Architecture Gap في POS نفسه.
+
+6. لماذا POS الآن أهم من بناء accountant.html؟
+
+لأن POS ليس شاشة تقارير.
+
+POS هو Transaction Originator.
+
+هو يخلق في نفس الحدث:
+
+Operational
+
+فاتورة بيع
+
+Inventory
+
+POSSale
+
+Financial
+
+Revenue
+
+COGS
+
+COGS / Inventory
+
+Cash
+
+نقدية
+
+Customer
+
+لو كانت العملية آجلة
+
+Driver
+
+في بعض حالات Van Sales
+
+أي أن أي خطأ هنا يمكن أن يفسد أربع طبقات ERP دفعة واحدة.
+
+لذلك ترتيب الخطة الصحيح هو:
+
+POS Transaction Integrity
+        ↓
+Accounting Convergence
+        ↓
+Ledger Convergence
+        ↓
+Treasury Convergence
+        ↓
+Financial Security
+        ↓
+Reporting Consumers
+
+وليس العكس.
+
+7. accountant.html — حكم صريح
+
+accountant.html اليوم ليس تطبيق محاسب مكتملًا.
+
+هو هيكل أولي جيد نسبيًا من ناحية tabs، لكنه حاليًا يحتوي:
+
+KPI
+سندات قبض
+سندات صرف
+قيود
+
+والأهم أن الـKPI والقراءات تستخدم Supabase مباشرة على جداول مثل:
+
+treasury
+cash_box
+customers
+
+والـReceipt/Payment UI يرسل:
+
+cashBoxId = "MAIN"
+mainAccountName = reference
+lines[].accountName = reference
+
+وهو لا يطابق Contract الـAtomic Financial Core الحالي الذي أصبح يعتمد على:
+
+treasury UUID
+cash account UUID
+offset account UUID
+operation UUID
+
+وهذا ما لاحظه خالد نفسه وقرر بحق عدم ترقيع التطبيق بالتخمين.
+
+إذن:
+
+عدم تعديل accountant.html حتى الآن كان قرارًا صحيحًا.
+
+8. finance-manager.html — وهناك خطأ إضافي واضح
+
+المدير المالي حاليًا أكثر بدائية.
+
+في الـDashboard يقوم بحساب:
+
+profit = sales - purchases
+
+وهذا ليس P&L محاسبيًا.
+
+كما أن الملف يستعلم من:
+
+purchase_orders
+
+ويستخدم شرطًا على:
+
+order_date
+
+بينما Schema الحالي لـpurchase_orders يستخدم:
+
+po_date
+
+وهذا Bug Consumer حقيقي، وليس مجرد نقص تصميم.
+
+إذن لا ينبغي بناء الـFinance Manager على هذه النسخة الحالية باعتبارها “شبه مكتملة”.
+
+هي Placeholder / Skeleton.
+
+9. القرار النهائي لتوزيع المسؤوليات
+
+أوصي الآن بتقسيمهما هكذا، لأن هذا يمنع التداخل والتصادم:
+
+هيثم = WRITE SIDE / TRANSACTIONAL FINANCE
+
+المسؤول عن:
+
+POS → Sales Core → Accounting Core → Ledger/Treasury convergence
+
+والخطوة الأولى تحديدًا:
+
+POS Financial Closure
+
+ولا يلمس accountant.html أو finance-manager.html الآن.
+
+خالد = READ SIDE / FINANCIAL CONSUMERS / REPORTING GOVERNANCE
+
+المسؤول عن:
+
+Reporting Core → Accountant Consumer → Finance Manager Consumer → Tenant-safe financial read model
+
+ويبدأ بتصحيح ما ظهر الآن في Production:
+
+get_pnl_by_cost_center
+
+ثم يراجع:
+
+get_trial_balance
+get_profit_loss
+get_balance_sheet
+get_cash_flow
+
+ويثبت أن التقارير كلها:
+
+Company-aware
+Account-ID correct
+date correct
+balance semantics correct
+لا تسرب Company أخرى
+ثم فقط ينتقل إلى تصميم accountant.html وfinance-manager.html.
+
+وهذا أيضًا يتسق مع أن خالد أقوى في continuity/architecture/consumer matrix، وهيثم أقوى في financial execution. هذا التمييز ظهر بوضوح في Prompt 49 نفسه.
+
+10. البرومبت الخاص بهيثم
+
+هذا هو البرومبت الذي أوصي بإرساله له كما هو:
+
+MASTER CTO EXECUTION DIRECTIVE — HYTHAM
+PHASE: POS FINANCIAL CLOSURE
+
+أنت الآن مسؤول عن Closure Unit واحدة فقط:
+
+POS FINANCIAL TRANSACTION CLOSURE
+
+ولا تفتح accountant.html أو finance-manager.html في هذه المرحلة.
+
+==================================================
+1. CURRENT PRODUCTION TRUTH
+==================================================
+
+ابدأ من Production الحالية وليس من تقاريرك السابقة.
+
+SMART ERP
+Project:
+fiilmooggumokxanwiyx
+
+Current Production snapshot must be re-read first.
+
+Current known live architecture proves:
+
+post_stock_movement
+post_journal_entry
+post_cash_receipt_atomic
+post_cash_payment_atomic
+
+وجود هذه الـCores لا يعني أن POS أغلق.
+
+Current save_sales_invoice_atomic ما زال ينفذ مباشرة:
+
+journal_entries
+journal_lines
+customer_ledger
+driver_ledger
+
+بينما يستخدم:
+
+post_stock_movement
+
+لـPhysical Stock.
+
+إذن POS الآن يحتوي:
+
+Inventory Centralization
++
+Accounting Distribution
++
+Ledger Distribution
+
+وهذا هو الـClosure المطلوب.
+
+==================================================
+2. TARGET SCOPE
+==================================================
+
+افحص فقط المسار:
+
+Current/PWA/pos.html
+        ↓
+save-sales-invoice
+        ↓
+save_sales_invoice_atomic
+        ↓
+post_stock_movement
+        ↓
+post_journal_entry
+        ↓
+Ledger / Treasury effects
+
+وافتح كل Edge/RPC/Consumer مرتبط فعليًا بهذا المسار.
+
+ممنوع فتح ملفات مالية أخرى بلا علاقة مثبتة.
+
+==================================================
+3. FORENSIC ORDER
+==================================================
+
+قبل أي تعديل أثبت من Production:
+
+A. POS authentication
+B. company identity
+C. branch identity
+D. operation identity
+E. customer identity
+F. payment type
+G. physical stock movement
+H. revenue posting
+I. COGS posting
+J. inventory valuation effect
+K. cash / treasury effect
+L. customer ledger effect
+M. driver ledger effect
+N. retry behavior
+O. duplicate behavior
+P. failure rollback
+Q. concurrency
+R. audit trail
+
+==================================================
+4. IMPORTANT
+==================================================
+
+لا تفترض أن:
+
+paymentType = نقدي
+
+يعني تلقائيًا:
+
+post_cash_receipt_atomic
+
+إلا بعد إثبات أن POS contract الحالي يربطهما.
+
+ولا تفترض:
+
+Treasury = MAIN
+
+ولا:
+
+Cash Account = 121
+
+ولا:
+
+POS cash = treasury.current_balance
+
+ولا:
+
+Customer Ledger غير مطلوب.
+
+كل ذلك يجب إثباته من:
+
+Production
++
+Schema
++
+Current Consumer
++
+Historical Contract
++
+Current Business Rule
+
+==================================================
+5. REQUIRED BUSINESS CONTRACT
+==================================================
+
+استخرج contract مكتوبًا فعليًا لـ:
+
+CASH POS SALE
+
+CREDIT POS SALE
+
+VAN CASH SALE
+
+VAN CREDIT SALE
+
+RETURN AFTER POS SALE
+
+CANCEL / VOID
+
+RETRY
+
+DUPLICATE
+
+FAILURE MID-TRANSACTION
+
+لكل حالة:
+
+Business Event
+→ Stock Event
+→ Accounting Event
+→ Ledger Event
+→ Treasury Event
+→ Audit Event
+
+==================================================
+6. CENTRALIZATION RULE
+==================================================
+
+الهدف النهائي:
+
+POS
+ ↓
+save_sales_invoice_atomic
+ ↓
+post_stock_movement
++
+post_journal_entry
++
+appropriate Ledger/Treasury Core
+
+ممنوع أن يبقى save_sales_invoice_atomic
+كاتبًا مباشرًا للـjournal/ledger
+إذا أصبحت Core المناسبة مثبتة.
+
+لكن لا تعِد التوجيه قبل إثبات:
+
+Debit/Credit semantics
+Revenue account
+COGS account
+Inventory account
+Cash account
+Customer account
+Driver account
+
+==================================================
+7. SURGICAL MODIFICATION RULE
+==================================================
+
+إذا كان Consumer يحتاج تعديل:
+
+عدّل Current/PWA/pos.html فقط.
+
+ولا تعيد كتابة الملف كاملًا.
+
+التعديل يجب أن يكون في الدالة المستهدفة فقط.
+
+إذا احتجت SQL:
+Production first
+ثم migration canonical
+ثم Production verification.
+
+أي تجربة:
+must be transactional / reversible / cleanup-verifiable.
+
+==================================================
+8. REQUIRED TESTS
+==================================================
+
+CASH POS
+
+Correct posting
+Correct stock
+Correct cash effect
+Correct journal balance
+Correct ledger behavior
+
+RETRY
+
+same operation_id
+→ duplicate
+→ no second stock
+→ no second journal
+→ no second ledger
+→ no second treasury effect
+
+FAILURE
+
+forcing a controlled failure
+→ no half transaction
+
+CONCURRENCY
+
+two independent sessions
+→ one success
+→ one duplicate/failure
+→ no double stock
+→ no double journal
+→ no double treasury
+
+TENANT
+
+Company A cannot post in Company B.
+
+==================================================
+9. PRODUCTION RUNTIME VERIFICATION
+==================================================
+
+لا تعتبر:
+
+SQL test
+أو Staging PASS
+
+مساويًا لـ Production PASS.
+
+المطلوب:
+
+Current Git
++
+Production Definition
++
+Production Runtime
++
+Post-transaction verification.
+
+==================================================
+10. DO NOT TOUCH
+==================================================
+
+Do not modify:
+
+accountant.html
+finance-manager.html
+vouchers.html
+Inventory Core
+
+إلا إذا ظهر dependency مثبت يمنع POS closure.
+
+لا تعيد فتح Inventory من الصفر.
+
+==================================================
+11. REQUIRED OUTPUT
+==================================================
+
+في النهاية قدم:
+
+POS FORENSIC CONTRACT
+
+POS CURRENT WRITER MATRIX
+
+Historical
+Original
+Current Git
+Production
+Target
+
+ثم:
+
+WHAT IS CORRECT
+
+WHAT IS WRONG
+
+WHAT YOU CHANGED
+
+WHAT YOU DID NOT CHANGE
+
+WHY
+
+Production Evidence
+
+Runtime Evidence
+
+Concurrency Evidence
+
+Rollback Evidence
+
+Remaining Unknowns
+
+Final Closure:
+
+POS FINANCIAL CLOSURE
+= CLOSED / OPEN
+
+ولن تعتبرها CLOSED إلا إذا:
+
+No distributed journal writer for POS
+No distributed ledger writer for POS
+No treasury duplication
+No duplicate posting
+No duplicate stock
+No tenant leak
+No unresolved contract gap
+11. البرومبت الخاص بخالد
+
+وخالد أعطيه مسار القراءة والتقارير والـConsumers، وليس POS write-side.
+
+MASTER CTO EXECUTION DIRECTIVE — KHALID
+PHASE: FINANCIAL REPORTING + ACCOUNTING CONSUMER CLOSURE
+
+أنت مسؤول الآن عن Closure Unit التالية:
+
+FINANCIAL REPORTING CORE
+        ↓
+ACCOUNTANT CONSUMER
+        ↓
+FINANCE MANAGER CONSUMER
+
+ولا تفتح POS write-side الآن.
+
+==================================================
+1. CURRENT PRODUCTION TRUTH
+==================================================
+
+ابدأ بـProduction الحالية من جديد.
+
+لا تعتمد على:
+
+Khalid reports
+Hytham reports
+Prompt 49
+Prompt 51
+Old snapshots
+
+إلا كأدلة تاريخية.
+
+==================================================
+2. IMMEDIATE PROVEN DEFECT
+==================================================
+
+Production الحالية تحتوي:
+
+get_trial_balance
+get_profit_loss
+get_balance_sheet
+get_cash_flow
+get_pnl_by_cost_center
+
+وقد ثبت أن:
+
+get_pnl_by_cost_center
+
+ما زال يستخدم:
+
+journal_lines.account_id::text
+=
+chart_of_accounts.account_code
+
+وهذا لا يطابق:
+
+journal_lines.account_id
+→ chart_of_accounts.id
+
+يجب التحقيق في هذا كـClosure Unit مستقلة.
+
+==================================================
+3. REPORTING TENANT SECURITY
+==================================================
+
+تحقق من:
+
+get_trial_balance
+get_profit_loss
+get_balance_sheet
+get_cash_flow
+get_pnl_by_cost_center
+
+هل هي:
+
+Company-scoped؟
+
+أم تسمح بإرجاع حسابات أكثر من Company؟
+
+لا تفترض أن:
+
+LEFT JOIN je.company_id = coa.company_id
+
+يعني أن الـFunction نفسها آمنة.
+
+أثبت ذلك من:
+
+Production
+Edge consumers
+Auth
+company context
+RLS
+grants
+
+==================================================
+4. ACCOUNTANT.HTML
+==================================================
+
+بعد إغلاق Reporting Core فقط:
+
+افتح:
+
+Current/PWA/accountant.html
+
+وحدّد:
+
+Current UI
+Current Consumer
+Current API Contract
+Current financial Core
+Broken contracts
+Legacy assumptions
+
+أثبت مشكلة:
+
+cashBoxId = MAIN
+
+و:
+
+mainAccountName = reference
+
+و:
+
+lines[].accountName = reference
+
+ولا تخترع UUIDs أو account mappings.
+
+==================================================
+5. FINANCE-MANAGER.HTML
+==================================================
+
+افحص:
+
+Current/PWA/finance-manager.html
+
+أثبت كل defects.
+
+منها على الأقل:
+
+purchase_orders
+يستخدم:
+
+order_date
+
+بينما Production schema تستخدم:
+
+po_date
+
+ثم تحقق من أن:
+
+profit = sales - purchases
+
+ليس P&L accounting-grade.
+
+يجب تحديد:
+
+ما الذي يجب أن يأتي من:
+
+get_profit_loss
+
+ما الذي يجب أن يأتي من:
+
+get_balance_sheet
+
+ما الذي يجب أن يأتي من:
+
+get_trial_balance
+
+ما الذي يجب أن يأتي من:
+
+cash flow
+
+وما الذي يجب أن يأتي من operational reporting.
+
+==================================================
+6. DO NOT BUILD UI BLINDLY
+==================================================
+
+لا تقم الآن بتحويل accountant.html أو finance-manager.html إلى نظام ضخم.
+
+أولًا:
+
+Financial Reporting Contract
+
+ثم:
+
+Consumer Contract
+
+ثم:
+
+UX Architecture
+
+ثم:
+
+Surgical implementation.
+
+==================================================
+7. INDUSTRY BENCHMARK
+==================================================
+
+استفد من:
+
+SAP
+Dynamics 365
+Odoo
+Manager.io
+Daftra
+
+لكن لا تنسخ.
+
+استخدمهم فقط لتثبيت:
+
+Dashboard structure
+Financial KPI taxonomy
+Report hierarchy
+Period filters
+Drill-down
+Journal visibility
+Receivables
+Payables
+Treasury
+Cash position
+Profitability
+Aging
+Collections
+Daily settlement monitoring
+Variance controls
+Audit indicators
+
+لكن لا تضيف KPI لا يمكن تغذيته بمصدر حقيقة موثوق في RAWAEA.
+
+==================================================
+8. ACCOUNTANT UX TARGET
+==================================================
+
+المحاسب يجب أن يرى على الأقل بعد تثبيت Backend:
+
+Dashboard
+Receipts
+Payments
+Journals
+Receivables
+Customer balances
+Supplier balances
+Driver settlements
+Daily settlement
+Cash/Treasury monitoring
+Outstanding items
+Audit/Exceptions
+
+لكن لا تنفذ أي module إلا عندما يكون الـBackend contract مثبتًا.
+
+==================================================
+9. FINANCE MANAGER UX TARGET
+==================================================
+
+المدير المالي يحتاج طبقة أعلى:
+
+Executive Financial Dashboard
+Revenue
+Gross Margin
+Net Result
+Cash Position
+Receivables Aging
+Payables
+Daily Settlements
+Driver Exposure
+Treasury movement
+P&L
+Balance Sheet
+Cash Flow
+Branch comparison
+Sales vs collections
+Financial anomalies
+Unposted / incomplete journal alerts
+Void / reversal alerts
+Working capital indicators
+
+لكن:
+
+NO CALCULATED "PROFIT"
+من:
+
+sales - purchases
+
+إلا إذا ثبت Business Contract لذلك.
+
+==================================================
+10. SURGICAL PWA RULE
+==================================================
+
+إذا احتاج التطبيق تعديلًا:
+
+Current/PWA/accountant.html
+أو
+Current/PWA/finance-manager.html
+
+فقط الملف المطلوب.
+
+والدالة المستهدفة فقط.
+
+لا إعادة بناء الملف كاملًا.
+
+ولا إضافة Business Logic داخل UI.
+
+==================================================
+11. REQUIRED CLOSURE TESTS
+==================================================
+
+REPORTING:
+
+Company A
+must not see Company B accounts.
+
+Date range:
+correct.
+
+Account identity:
+UUID-based.
+
+Posted entries only:
+correct.
+
+P&L:
+balanced and mathematically traceable.
+
+Balance Sheet:
+balanced and company-scoped.
+
+Cash Flow:
+contract proven.
+
+Cost Center:
+account join proven by UUID.
+
+==================================================
+12. REQUIRED OUTPUT
+==================================================
+
+FINANCIAL REPORTING FORENSIC MATRIX
+
+For each report:
+
+Historical
+Original
+Production
+Current Git
+Consumer
+Target
+Security
+Company scope
+Runtime
+Status
+
+Then:
+
+ACCOUNTANT UX CONTRACT
+
+FINANCE MANAGER UX CONTRACT
+
+Then:
+
+LIST OF PROVEN BUGS
+
+LIST OF DEFERRED DESIGN DECISIONS
+
+LIST OF OWNER DECISIONS
+
+LIST OF CHANGES MADE
+
+LIST OF FILES CHANGED
+
+Production verification
+
+Final status:
+
+FINANCIAL REPORTING CORE
+= CLOSED / OPEN
+
+ACCOUNTANT CONSUMER
+= CLOSED / OPEN
+
+FINANCE MANAGER CONSUMER
+= CLOSED / OPEN
+12. هل تعديلات خالد وهيثم تسير وفق الخطة؟
+نعم — على المستوى المعماري العام.
+
+وهذه أهم نقطة.
+
+الخطة العامة لا تقول:
+
+Inventory forever.
+
+بل تقول:
+
+Inventory
+→ Inventory Lifecycle
+→ Accounting Core
+→ Ledger
+→ Fulfillment
+→ Multi-Tenancy
+→ Security
+→ Consumers
+→ Deployment
+→ Concurrency
+→ Zero-Debt
+
+وهما الآن بالفعل تحركا من Inventory إلى Accounting، وهو صحيح تمامًا.
+
+13. لكن هل كل ما نفذاه صحيح 100%؟
+
+لا.
+
+والفرق هنا مهم جدًا:
+
+خالد
+
+عمله أكثر تحفظًا وأمانًا، ولم أرَ في المواد التي راجعتها اندفاعًا خطيرًا إلى تعديل UI مالي غير مثبت.
+
+لكن إغلاقه لـTreasury↔COA هو Closure جزئي للعقد الحالي وليس إغلاقًا للـFinancial Domain.
+
+هيثم
+
+عمله أكثر تقدمًا تنفيذيًا لأنه أنشأ ونشر Core فعليًا.
+
+لكن اكتشفت في Production الحالية عيبًا متبقيًا في get_pnl_by_cost_center، كما أن طبقة Reporting نفسها ما زالت تحتاج إثباتًا واضحًا للـCompany scope.
+
+لذلك:
+
+نمرر الاتجاه الصحيح، ولا نمرر ادعاء الإغلاق الكامل.
+
+وهذه هي بالضبط الفلسفة التي طلبتها أنت منذ البداية: لا نهدم التعديل الصحيح، ولا نورث الخطأ معه.
+
+14. والأهم: ما الذي لا يجب أن نفعله الآن؟
+
+أوصي بقرار حاسم:
+
+لا تجعل خالد وهيثم يعملان معًا على نفس Writer في نفس الوقت.
+
+التقسيم الصحيح الآن:
+
+                 RAWAEA FINANCIAL PHASE
+                         │
+             ┌───────────┴───────────┐
+             │                       │
+          HYTHAM                    KHALID
+             │                       │
+     WRITE / TRANSACTION       READ / REPORTING
+             │                       │
+           POS               Financial Reports
+     save-sales-invoice      accountant.html
+     Accounting convergence  finance-manager.html
+     Treasury convergence   Reporting tenant safety
+     Ledger convergence     Reporting correctness
+
+وهذا يقلل الـmerge conflicts، ويمنع أن يقوم أحدهما ببناء Consumer على Contract لم يثبت بعد.
+
+15. النتيجة التي أطمئنك عليها
+
+أهم شيء أثبتته هذه المراجعة هو أن رحلة المشروع لم تتوه.
+
+بل بالعكس:
+
+Inventory Core أصبح Foundation قوية.
+Voucher Core أصبح Domain معروفًا.
+Multi-Tenancy قطع شوطًا كبيرًا.
+Accounting Core أصبح موجودًا فعليًا.
+Cash Core بدأ يتبلور.
+ما تبقى الآن ليس “إعادة اختراع ERP”.
+بل Convergence: نقل المسؤوليات من الـWriters القديمة إلى الـCores الجديدة، ثم حماية الحدود، ثم بناء التطبيقات المالية فوق عقود صحيحة.
+
+لكن ما زال لدينا دين حقيقي وملموس في:
+
+POS → Accounting/Ledger
+
+و:
+
+Financial Reporting → Tenant/Identity
+
+و:
+
+Accountant / Finance Manager → Consumer Contract
+
+وهذه هي المحطة الصحيحة الآن.
+
+الحكم النهائي
+
+خالد: مؤهل لـ Financial Reporting / Consumer Closure.
+هيثم: مؤهل لـ POS / Transactional Financial Closure.
+كلاهما: ليس Autonomous CTO كاملًا حتى الآن.
+
+والسبب هذه المرة ليس نقص معرفة؛ بل لأن Production نفسها ما زالت تحتوي مسؤوليات مالية موزعة، وهذه مسؤوليات يجب إغلاقها فعليًا قبل إعلان الاستقلال الكامل.
