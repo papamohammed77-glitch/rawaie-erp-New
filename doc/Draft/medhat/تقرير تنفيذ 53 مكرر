@@ -1,0 +1,279 @@
+ولا توجد حاليًا صفوف تشغيلية مرتبطة بالـCompany IDs القديمة، ولا يوجد mismatch بين الشركة والفرع/الصنف في الـchecks التي نفذتها.
+
+إذن لا توجد ثلاث شركات حاليًا.
+
+2. لكن هناك تصحيح بالغ الأهمية لطلب "تجميع كل البيانات"
+
+ما حدث في 23 أغسطس ليس Merge بالمعنى الدقيق.
+
+سجل audit_log يثبت أن:
+
+الشركة 73a... حُذفت وكان لديها تاريخيًا 31 صنفًا + 10 موردين + عميل واحد.
+الشركة da4... حُذفت وكان لديها 2 صنف + 3 فروع + 9 عملاء + 87 حسابًا في COA + خزينة واحدة.
+إجماليًا تم تسجيل حذف 33 صنفًا، 10 عملاء، 10 موردين، وخزينة واحدة، إضافة إلى الشركتين نفسيهما.
+سبب الحذف المسجل هو:
+Owner-directed consolidation to the single active Production tenant
+والـtenant المحتفظ به هو 000...001.
+
+والأخطر: الـ87 حسابًا في COA لم تعد موجودة، ولا يوجد لدينا audit snapshot صف-بصف يسمح بإعادة بنائها بأمان.
+
+لذلك العبارة الصحيحة ليست:
+
+"تم دمج كل البيانات بنجاح."
+
+بل:
+
+"تم الوصول إلى Single-Company Production Topology، لكن الدمج الكامل والمحافظة على بيانات الـFinancial Master Data القديمة لم يُثبت."
+
+وهذا مثبت أيضًا في سجل الـforensic الذي حدثته الآن.
+
+3. اكتشاف أخطر من موضوع عدد الشركات
+
+بعد تنظيف الشركات، أجريت فحصًا مباشرًا جديدًا على Production، وكانت النتيجة:
+
+companies           = 1
+chart_of_accounts   = 0
+treasury             = 0
+cash_box             = 0
+journal_entries     = 2
+journal_lines       = 0
+customer_ledger     = 0
+supplier_ledger     = 0
+driver_ledger       = 0
+
+وهذا مهم جدًا.
+
+فـHytham كان قد أثبت قبل الحذف أن الـFinancial Core يعتمد على Treasury وCOA حقيقيين؛ بل كان قد أثبت أن Treasury CASH-01 كان تابعًا لـda4...، وأن الـCOA المالي الحقيقي كان هناك، وأن النظام تعمد عدم اختراع mapping بين CASH-01 وAccount UUID.
+
+إذن لدينا الآن:
+
+Single Tenant = نعم
+
+لكن:
+
+Financial Master Data = مفقود حاليًا
+
+وهذه ليست ملاحظة تجميلية؛ معناها أن الـFinancial Core الموجود معماريًا لا يملك الآن Master Data يستطيع العمل عليها.
+
+ولهذا لم أنشئ COA أو Treasury وهميين، ولم أستعدها بالتخمين.
+
+4. تقييم خالد
+ما فعله خالد صحيح
+
+خالد كان قويًا في:
+
+Architecture Continuity.
+إعادة بناء المعرفة.
+Financial Reporting Forensics.
+الالتزام بمبدأ عدم اختراع Treasury/COA mapping.
+التعديل الجراحي في finance-manager.html.
+رفض العبث بـaccountant.html قبل إثبات عقد الـConsumer.
+
+وهذا يتوافق مع التقرير الحالي الذي يصف عمله بأنه directional/contract-conscious وسليم في الأسلوب.
+
+ما أصبح قديمًا في عمل خالد
+
+تقرير خالد 4 قال إن Production ما زالت ثلاث شركات، وإن هناك:
+
+Operational Tenant ≠ Financial Tenant
+
+وهذا لم يعد Current Truth.
+
+Production تغيرت بعد ذلك.
+
+لذلك لا يجوز أن يستخدم خالد تقريره القديم كنقطة انطلاق الآن. تقريره التاريخي نفسه كان منطقيًا وقتها، لكن snapshot انتهى.
+
+حكمي على خالد الآن
+
+مناسب جدًا لـ:
+
+Company Identity → Financial Master Data → Treasury/COA → Consumer Governance
+
+وليس مناسبًا الآن للعودة إلى UI.
+
+5. تقييم هيثم
+
+هيثم حقق تقدمًا تقنيًا حقيقيًا، وليس نظريًا.
+
+Production الحالية تحتوي بالفعل على:
+
+post_journal_entry
+post_cash_receipt_atomic
+post_cash_payment_atomic
+post_customer_ledger_entry
+
+وهذا متوافق مع ما أثبته هيثم في تقريره.
+
+كما أن PR #23 ما زال:
+
+Open
+Draft
+Unmerged
+
+وبالتالي Git main ليس مساويًا للـProduction deployed source حتى الآن.
+
+ما الذي ما زال مفتوحًا فعليًا؟
+
+الفحص المباشر الحالي لـPostgreSQL أثبت أن هناك Writers مالية موزعة ما زالت خارج الـCore:
+
+Writer	Direct Responsibility ما زالت موجودة
+receive_purchase_atomic	Journal + Supplier Ledger
+complete_return_atomic	Journal + Customer Ledger
+save_sales_invoice_atomic	Driver Ledger في Van Credit
+save-receipt-voucher	Legacy direct financial writes
+save-payment-voucher	Legacy direct financial writes
+save-daily-settlement	Legacy direct financial writes
+update-driver-ledger	Direct Driver Ledger writer
+
+إذن:
+
+Financial Writer Zero-Debt = OPEN
+
+وهذا متسق مع سجل الـOpen Debt الرسمي الذي ما زال يصنف Accounting Writer Convergence وLedger Authority وTreasury↔COA وConsumer Matrix وDeployment Lineage وConcurrency كدين مفتوح.
+
+6. هل تعديلات خالد وهيثم صحيحة؟
+خالد
+
+نعم، في الاتجاه وبالقدر الذي تم تنفيذه.
+
+المشكلة ليست في الجراحة التي أجراها، بل في أن Production تغيرت بعدها.
+
+الخطأ الوحيد الذي يجب تصحيحه الآن هو اعتبار snapshot القديم ما زال Current.
+
+هيثم
+
+نعم، الاتجاه التقني صحيح، والتنفيذ الأساسي قوي.
+
+لكن لا يجوز اعتبار:
+
+post_journal_entry exists
+
+مساويًا لـ:
+
+Financial Writer Convergence CLOSED
+
+لأن الـwriters أعلاه ما زالت موجودة فعليًا.
+
+وهذا بالفعل كان منضبطًا في تقرير هيثم؛ هو نفسه لم يعلن POS CLOSED وأبقى Driver Ledger وConcurrency وHTTP E2E مفتوحة.
+
+7. هل أصلحت التعديلات الخاطئة مباشرة؟
+
+لم أقم بإعادة كتابة Financial Writers الآن.
+
+والسبب ليس التوقف.
+
+بل لأن إصلاح:
+
+save-receipt-voucher
+save-payment-voucher
+receive_purchase_atomic
+complete_return_atomic
+save-daily-settlement
+
+قبل حسم:
+
+Canonical Company
++
+COA Master
++
+Treasury Master
++
+Ledger Ownership
+
+سيكون بالضبط النوع الذي طلبت مني رفضه: Patch مبني على Contract ناقص.
+
+ولا توجد لدينا حاليًا COA/Treasury بيانات صالحة للشركة الحالية أصلًا.
+
+لذلك التعديل السليم الآن هو إيقاف التغيير الخاطئ، وليس اختراع إصلاح خاطئ جديد.
+
+8. ما الذي نفذته فعليًا الآن؟
+
+حدّثت سجل الـforensic الرئيسي داخل Current/CTO ليعكس Production الحالية، وليس snapshot خالد/هيثم القديم.
+
+سجل الـForensic Re-Baseline النهائي
+
+كما أنشأت تكليف Khalid الجديد:
+
+Next Directive — Khalid: Company & Financial Tenant Recovery
+
+وأنشأت تكليف Hytham الجديد:
+
+Next Directive — Hytham: Financial Writer Convergence
+
+9. المهمة التالية لكل واحد
+خالد — المسار الجديد
+
+COMPANY / FINANCIAL TENANT IDENTITY RECOVERY
+
+ثم:
+
+FINANCIAL MASTER DATA CANONICALIZATION
+
+ثم:
+
+TREASURY ↔ COA CONTRACT
+
+ثم:
+
+Financial Consumer Matrix + Deployment Lineage
+
+وخلال هذا المسار:
+
+ممنوع تعديل accountant.html أو finance-manager.html.
+
+لأن المشكلة أصبحت Backend/Master-Data Contract قبل أن تصبح UI.
+
+هيثم — المسار الجديد
+
+WRITE-SIDE FINANCIAL CONVERGENCE
+
+بالترتيب:
+
+Driver Ledger Contract
+        ↓
+Git / Production Lineage
+        ↓
+Authenticated HTTP E2E
+        ↓
+Two-Session Concurrency
+        ↓
+Driver Ledger Core
+        ↓
+Receipt Writer
+        ↓
+Payment Writer
+        ↓
+Purchase Receiving Writer
+        ↓
+Return Writer
+        ↓
+Daily Settlement Writer
+        ↓
+Global Financial Writer Zero-Debt
+
+وبشرط واضح:
+
+لا يلمس Company Identity أو COA أو Treasury Ownership.
+
+10. الحكم النهائي الحالي
+المحور	الحكم
+وجود 3 شركات حاليًا	لا
+Production بها شركة واحدة	نعم — مثبت
+كل المستخدمين تحت شركة حالية	نعم
+Tenant mismatches الحالية	0 في الفحوص الرئيسية
+هل تم Merge كامل للبيانات القديمة؟	لا، غير مثبت
+هل تم حذف بيانات قديمة؟	نعم، مثبت بالـAudit
+هل COA الحالي موجود؟	لا — 0
+هل Treasury الحالي موجود؟	لا — 0
+Accounting Core	Production Deployed
+Cash Cores	Production Deployed
+POS Financial Closure	OPEN
+Driver Ledger Core	OPEN
+Writer Convergence	OPEN
+Consumer Matrix	OPEN
+Git/Production Lineage	OPEN
+Concurrency	OPEN
+Global Zero-Debt	OPEN
+Autonomous CTO	NO
+
+والأهم: لن أعيد إنشاء الـ87 حسابًا أو الـTreasury من التخمين. سجل التدقيق لا يحتوي على snapshot كافٍ لذلك، وأي إعادة بناء يجب أن تأتي من مصدر authoritative آخر. هذا هو الحد الفاصل بين إصلاح حقيقي وإفساد Production باسم الإصلاح.
