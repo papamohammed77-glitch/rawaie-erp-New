@@ -1,0 +1,273 @@
+هيثم — تنفيذ Prompt 53 تم
+
+قرأت تقرير وبرومبت 53 كاملًا من بدايته إلى نهايته، واستخلصت منه مسار هيثم تحديدًا، مع الاطلاع على مسار خالد فقط لتثبيت حدود التكامل وعدم التصادم. التقرير يحدد بوضوح أن مهمتي الحالية هي POS Financial Transaction Closure، وأن accountant.html وfinance-manager.html خارج نطاقي في هذه المرحلة.
+
+ما ثبت من Production
+
+المسار الحالي هو:
+
+Current/PWA/pos.html
+        ↓
+save-sales-invoice
+        ↓
+save_sales_invoice_atomic
+        ↓
+post_stock_movement
+
+وكانت المشكلة الأساسية أن save_sales_invoice_atomic بعد المخزون يكتب مباشرة في:
+
+journal_entries
+journal_lines
+customer_ledger
+driver_ledger
+
+وقد ثبت ذلك مباشرة من تعريف Production.
+
+ما تم إصلاحه
+
+في SMART ERP Production نفذت Closure حقيقية للجزء المحاسبي من POS:
+
+POS
+ ↓
+save_sales_invoice_atomic
+ ├── post_stock_movement
+ ├── post_journal_entry
+ ├── post_cash_receipt_atomic   ← Cash POS
+ └── post_customer_ledger_entry ← Credit Customer
+
+وأصبحت الدالة Production لا تحتوي على direct writes إلى:
+
+journal_entries       ✅ removed
+journal_lines        ✅ removed
+customer_ledger      ✅ removed
+
+والتحقق المباشر من تعريف الدالة يؤكد وجود الاستدعاءات المركزية الثلاثة. أما driver_ledger فما زال direct writer في حالة Van Credit، ولذلك لم أعتبر الإغلاق كاملًا.
+
+Customer Ledger Core
+
+أنشأت:
+
+post_customer_ledger_entry(...)
+
+ويحتوي على:
+
+Company validation
+Customer ownership validation
+Operation identity
+Duplicate protection
+Customer row locking
+Sequential balance calculation
+Audit
+SECURITY DEFINER
+
+وهذا أغلق جانب Customer Ledger من POS بدون اختراع UUID mappings أو إدخال Business Logic في الـPWA.
+
+Cash POS
+
+بدلًا من أن ينشئ POS القيد ويعدل الخزينة بنفسه، أصبح Cash POS يستخدم:
+
+post_cash_receipt_atomic
+
+وبالتالي:
+
+Treasury
++
+Cash Box
++
+Revenue Journal
+
+تتم داخل الـAtomic Core الموجود بالفعل.
+
+ولم أخترع:
+
+CASH-01 → Account 121
+
+كمطابقة تلقائية؛ التقرير السابق أثبت أن هذه المطابقة ليست Contract موثوقًا. لذلك وضعت قاعدة آمنة:
+
+POS Cash
+→ exactly one active treasury
+
+وإلا تفشل العملية بدل إنشاء أثر مالي في خزينة خاطئة.
+
+الاختبارات التي نفذتها
+1. Cash POS
+
+اختبار حقيقي داخل Transaction على بيانات Production:
+
+المخزون انخفض.
+الخزينة زادت بالمبلغ.
+القيد المركزي تم إنشاؤه.
+post_cash_receipt_atomic عمل داخل نفس العملية.
+
+ثم:
+
+ROLLBACK
+
+وبعد الـrollback أثبتت Production:
+
+orders                 = 0
+operation_registry     = 0
+journals               = 0
+inventory logs         = 0
+treasury balance       = 10000.00
+
+أي لا يوجد أثر متبقٍ للاختبار.
+
+2. Retry / Duplicate
+
+تم إرسال نفس:
+
+operation_id
+
+مرتين.
+
+النتيجة:
+
+Order count     = 1
+Journal count   = 1
+
+ولم تُنشأ معاملة ثانية.
+
+3. Credit POS
+
+اختبرت POS آجل مع Customer حقيقي.
+
+كشفت النسخة الأولى من الجراحة مشكلة صحيحة في حالة:
+
+COGS = 0
+
+إذ كان سيتم إرسال zero journal lines إلى post_journal_entry، والـCore رفض ذلك بالشكل الصحيح.
+
+تم تصحيح الجراحة بحيث:
+
+COGS > 0
+→ AR + Revenue + COGS + Inventory
+
+COGS = 0
+→ AR + Revenue
+
+ثم أعيد الاختبار ونجح، وبعده تم ROLLBACK والتحقق من عدم بقاء أي أثر.
+
+ماذا عدلت في Git؟
+
+لم أعدل Current/PWA/pos.html إطلاقًا.
+
+وهذا مقصود؛ لأن الـConsumer الحالي صحيح من ناحية تمرير operation_id، وProduction Edge v15 يعالجه بشكل صحيح. تعديل الـPWA هنا كان سيكون تجميليًا وغير ضروري.
+
+أما الملف:
+
+Current/Edge_Functions/save-sales-invoice
+
+فكان متأخرًا عن Production الفعلية؛ النسخة الموجودة في Git لم تكن تعكس v15 الحالية.
+
+لذلك قمت بتحديثه ليطابق Production v15، بما في ذلك:
+
+operation_id
+Idempotency-Key
+deterministic fallback UUID
+authenticated user
+save_sales_invoice_atomic
+فرع المراجعة
+heytham/prompt53-pos-financial-closure
+
+والتغييرات الموجودة عليه حاليًا ملفان فقط:
+
+Current/Edge_Functions/save-sales-invoice
+Current/CTO/20260823_HYTHAM_PROMPT53_POS_FINANCIAL_CLOSURE.md
+
+الفرع متقدم عن main بملفين فقط، دون أي تعديل في PWA.
+
+Pull Request للمقارنة
+
+PR #23 — Draft / Review Only
+
+HYTHAM: Prompt 53 POS financial closure
+https://github.com/papamohammed77-glitch/rawaie-erp-New/pull/23
+لم أدمجه في main.
+
+ما لم أغلقه عمدًا
+
+وهنا النقطة المهمة جدًا: لم أعلن POS CLOSED لأن ذلك سيكون غير صحيح.
+
+1. Driver Ledger — OPEN
+
+في:
+
+Van Credit
+
+ما زال هناك:
+
+INSERT INTO driver_ledger
+
+مباشرة.
+
+وهذا لم ألمسه لأن Schema الحالي لـdriver_ledger لا يحمل company_id، وعقد الملكية والتعدد المؤسسي غير مثبت بما يكفي لبناء Core آمن بالتخمين.
+
+2. Multi-Treasury Contract — OPEN
+
+حاليًا الشركة التي اختبرنا عليها لديها خزينة نشطة واحدة.
+
+لذلك استخدمت:
+
+exactly one active treasury
+
+بدل:
+
+MAIN
+CASH-01
+
+كتخمين.
+
+لكن تصميم POS متعدد الخزائن يحتاج Contract صريح من الـBusiness.
+
+3. Concurrency — OPEN
+
+اختبارات:
+
+Atomicity
+Rollback
+Duplicate
+
+تمت.
+
+لكن لم أنفذ بعد إثباتًا حقيقيًا من جلستين مستقلتين في نفس اللحظة.
+
+لذلك لا أدعي أن Concurrency Closure اكتمل.
+
+4. Authenticated HTTP E2E — OPEN
+
+تم إثبات الـCore مباشرة داخل Production SQL Transaction.
+
+لكن ما زال يلزم إثبات كامل:
+
+PWA
+ ↓
+Edge v15
+ ↓
+save_sales_invoice_atomic
+ ↓
+Core
+ ↓
+Production verification
+
+لذلك أيضًا لم أضع CLOSED.
+
+الحكم النهائي
+POS Inventory Centralization       ✅
+POS Accounting Centralization      ✅
+POS Customer Ledger Centralization ✅
+POS Cash Core Convergence          ✅
+POS Retry / Idempotency             ✅
+POS Rollback                         ✅
+
+Driver Ledger Convergence           ⏳ OPEN
+Multi-Treasury Contract             ⏳ OPEN
+Concurrency Runtime Proof           ⏳ OPEN
+Authenticated HTTP E2E               ⏳ OPEN
+FINAL
+
+POS FINANCIAL CLOSURE = OPEN / PARTIAL CLOSURE
+
+وهذا هو القرار الصحيح وفق Prompt 53: تم إغلاق الجزء الكبير والخطير من Distributed Accounting Writer دون العبث بـpos.html أو Inventory Core، لكن لم يتم تمرير ادعاء إغلاق كامل مع بقاء Driver Ledger وConcurrency وRuntime Proof مفتوحة.
+
+كما أن accountant.html وfinance-manager.html لم ألمسهما؛ مسارهما ينتقل بعد ذلك إلى خالد وفق تقسيم Prompt 53، وليس الآن.
