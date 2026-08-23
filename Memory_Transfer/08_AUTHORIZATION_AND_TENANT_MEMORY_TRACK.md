@@ -1,20 +1,37 @@
 # AUTHORIZATION AND TENANT MEMORY TRACK
 
-## Identity model
-Current governing graph:
-auth.users.id → public.users.auth_id → public.users.id → public.users.company_id → role/permission → application/Edge → Core RPC → company-scoped rows. fileciteturn228file0
+## LIVE IDENTITY CONTRACT
+`auth.users.id → public.users.auth_id → public.users.id → company_id → role/permissions → branch scope`
 
-## Critical lesson
-Authentication != authorization. Tenant context must come from authenticated application-user identity where the current contract requires it; `app_settings.limit(1)` is an unsafe global context pattern and has been a proven source of defects.
+Current live schema confirms `public.users.auth_id` is the relationship to `auth.users(id)` and is uniquely constrained.
 
-## Production example
-`start-picking` Production v14 uses `public.users.id = auth user id` and derives `company_id` from the user record. Current Git `start-picking` on `main` currently uses `public.users.auth_id = auth user id`, producing a real Git/Production parity conflict that must be reconciled against the deployed contract before treating Current as the canonical final source.
+## CURRENT PRODUCTION
+- companies 3
+- users 26
+- branches 5
+- RLS tables 62
+- RLS policies 102
 
-## Security controls
-Core RPCs reviewed in the rescue stream use SECURITY DEFINER/search_path controls; RLS is not disabled as a workaround. Full ERP-wide role/permission mapping remains OPEN. 
+## CURRENT START-PICKING PARITY
+Production `start-picking` v33 and current Git `Current/Edge_Functions/start-picking` both query `public.users` by `auth_id = auth.users.id` and then use `public.users.id` as the ERP identity.
 
-## Required future work
-- Reconcile all critical Edge Functions to the same authoritative identity contract.
-- Trace role/permission checks end-to-end.
-- Verify RLS policies and grants for all critical functions.
-- Preserve one-company/multi-branch V1 architecture unless an explicit target decision changes it.
+The older handoff statement that Production v14 used `public.users.id = auth.users.id` is obsolete historical state.
+
+## TENANT CONTRACT
+A business operation must obtain company context from authenticated identity and then scope all tenant-owned reads/writes by `company_id`. `LIMIT 1` is forbidden for tenant identity when it can select another company context.
+
+## CURRENT SECURITY POSTURE
+Core reviewed domains use RLS, helper context functions, and SECURITY DEFINER RPCs. However, the ERP-wide authorization matrix remains incomplete.
+
+## FINANCIAL SECURITY
+Prompt 51 exposed broad direct DML/RLS patterns on multiple financial tables. Staging write-boundary tests passed, but Production lockdown remains gated by Consumer Matrix and runtime proof.
+
+## OPEN
+- Full current Edge/PWA auth→authorization matrix.
+- Direct write surface inventory outside core domain RPCs.
+- Full deployment/runtime proof.
+- Final financial security rollout.
+- Classification/removal of temporary registry functions.
+
+## LESSON
+An identity fix is never global by appearance. Re-check the live relation before modifying each consumer.
