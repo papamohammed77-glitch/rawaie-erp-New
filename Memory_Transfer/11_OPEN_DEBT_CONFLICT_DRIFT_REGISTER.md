@@ -1,46 +1,65 @@
 # OPEN DEBT / CONFLICT / DRIFT REGISTER
 
-## CONFlict / drift items
-
-### DRIFT-001 — Public PostgreSQL function count
-- Older readiness snapshot 2026-08-21: 42 public functions.
-- Direct Production revalidation 2026-08-23: 45 public functions.
-- Classification: CONFLICT/DRIFT between snapshots.
-- Action: re-baseline function inventory before next major phase.
-
-### DRIFT-002 — Inventory log row count
-- 2026-08-20 closure snapshot: 56 rows.
-- 2026-08-21 readiness snapshot: 62 rows.
-- 2026-08-23 direct Production query: 3 rows.
+## DRIFT-001 — PostgreSQL public function count
+- 2026-08-21 baseline: 42.
+- 2026-08-23 03:41:38 UTC direct Production: 45.
 - Classification: MATERIAL SNAPSHOT DRIFT.
-- Action: trace provenance/cleanup/deployment-test effects; do not infer deletion or corruption from counts alone.
+- Action: current function inventory is authoritative; trace additions by migration/deployment before retiring anything.
 
-### CONFLICT-003 — Current Git vs Production `start-picking`
-- Production v14 uses `public.users.id = auth.users.id` and derives `company_id` from that record.
-- Current Git main `Current/Edge_Functions/start-picking` uses `public.users.auth_id = auth.users.id`.
-- Classification: CURRENT SOURCE / PRODUCTION PARITY CONFLICT.
-- Action: reconcile against actual schema contract and update Current to the accepted deployed lineage only after comparison.
+## DRIFT-002 — inventory_log count
+- 2026-08-20 snapshot: 56.
+- 2026-08-21 snapshot: 62.
+- 2026-08-23 direct Production: 3.
+- Classification: MATERIAL DATA SNAPSHOT DRIFT.
+- Rule: do not infer deletion/corruption without provenance.
 
-### GOVERNANCE-004 — Temporary Edge registry residue
-Production registry still includes temporary/canary functions. `ACTIVE` with an inert/410 implementation is not equivalent to deletion. Exact deletion evidence is still required.
+## RESOLVED-003 — start-picking identity parity
+- Older handoff claimed Production v14 used `public.users.id = auth.users.id`.
+- Current Production v33 uses `.eq('auth_id', user.id)`.
+- Current Git `Current/Edge_Functions/start-picking` also uses `.eq('auth_id', user.id)`.
+- Classification: RESOLVED by newer evidence.
+- The old statement remains historical only.
 
-### GOVERNANCE-005 — PR #3
-PR #3 remains Draft/Open/Unmerged; it is not a Production source of truth and its gate text is historical until re-baselined.
+## GOVERNANCE-004 — Temporary Edge registry residue
+Production registry contains temporary/canary/harness functions. Several were observed returning HTTP 410 while remaining ACTIVE.
+- Classification: OPEN GOVERNANCE DEBT.
+- Action: explicit deletion/retirement evidence required.
 
-### STALE-006 — Older plan files
-`CTO/PLAN-STATUS-CURRENT.md`, older Master Execution logs, and older CTO reconstruction documents contain earlier task positions. They must be treated as historical snapshots when contradicted by newer Production evidence/current closure records.
+## GOVERNANCE-005 — PR #3
+PR #3 remains Draft/Open/Unmerged and is not a Production source of truth.
 
-## OPEN DOMAIN DEBT
-- Accounting journal authority and writer convergence.
-- Customer/supplier/driver ledger writer mapping and reconciliation.
-- Treasury/settlement event graph.
-- Full fulfillment state/consumer graph.
-- Full critical consumer map and runtime parity.
-- Full deployment lineage map.
-- ERP-wide data repair/provenance register.
-- Required independent-session concurrency proof outside already-proven paths.
-- Gold UI parity for vouchers/van sales and remaining critical clients.
-- ERP-wide autonomous CTO readiness.
+## OPEN-006 — Accounting writer convergence
+Multiple current domain and Edge functions can create financial effects. Central journal Core exists but global authority is not closed.
+
+## OPEN-007 — Ledger authority/reconciliation
+Customer/Supplier/Driver ledger writers are distributed; no single universal ledger posting authority has been proven.
+
+## OPEN-008 — Treasury↔COA contract
+Treasury identity such as `CASH-01` does not have a proven universal mapping to journal `account_id` UUID. No mapping invented.
+
+## OPEN-009 — Financial security Production rollout
+Staging direct-write restrictions were proven in prior work. Production rollout remains gated by consumer/runtime proof.
+
+## OPEN-010 — Consumer Matrix
+Not every current PWA/Edge consumer has a verified Git SHA → deployed version → runtime contract mapping.
+
+## OPEN-011 — Deployment Lineage
+Current Edge registry versions are known, but complete per-function Git source SHA/deployment lineage is not fully indexed.
+
+## OPEN-012 — Browser Runtime
+Critical PWA browser/service-worker E2E remains unproven from the current execution environment.
+
+## OPEN-013 — Concurrency
+Independent-session concurrency proof is incomplete outside already-tested transactional paths.
+
+## OPEN-014 — Data provenance registry
+Historical inventory-log and other cleanup deltas require full provenance chain before any claim of corruption/cleanup correctness.
+
+## OPEN-015 — Supplier↔Branch master contract
+Live schema does not prove a permanent `suppliers.branch_id` contract. Do not invent one.
+
+## OPEN-016 — Fulfillment lifecycle graph
+Complete state-machine interactions across order → runsheet → loading → delivery → return → unload → settlement remain partially mapped.
 
 ## STATUS RULE
-An item remains OPEN until direct evidence proves closure. Historical or target documents may describe intended closure, but do not override current Production truth.
+Nothing becomes CLOSED because a report says so. Closure requires current evidence appropriate to the contract: Production, Git parity, runtime, security and responsibility preservation as applicable.
