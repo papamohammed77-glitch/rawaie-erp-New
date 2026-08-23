@@ -1,54 +1,95 @@
 # MEMORY CERTIFICATION AND CURRENT STATE
 
-## HANDOFF_SNAPSHOT_TIMESTAMP_UTC
-2026-08-23 03:27:59 UTC
+## FINAL PRODUCTION SNAPSHOT
+- UTC: `2026-08-23 03:47:57.683327`
+- PostgreSQL: `17.6`
+- Project: `fiilmooggumokxanwiyx`
+- Public functions: 45
+- Public tables: 62
+- Public triggers: 38
+- RLS tables: 62
+- RLS policies: 102
+
+Core data:
+- companies 3
+- users 26
+- branches 5
+- items 50
+- stock_branches 26
+- inventory_log 3
+- stock_vouchers 0
+- orders 0
+- runsheets 0
+- purchase_orders 0
+- journal_entries 2
+- journal_lines 0
+- audit_log 1781
 
 ## MEMORY BUILD SELF-AUDIT
+### Historical Coverage
+- Prompt 11→39: `RECONSTRUCTED from maintained historical execution sequence + source anchors`
+- Prompt 40→45: `RECONSTRUCTED from current CTO forensic rebaseline`
+- Prompt 47: `DIRECT SOURCE REOPENED`
+- Prompt 49: `DIRECT SOURCE REOPENED`
+- Prompt 51: `DIRECT SOURCE / Khalid execution reopened`
+- Prompt 52 / Report 52: `DIRECT SOURCE REOPENED`
+- Current governance directives: `DIRECT SOURCE REOPENED`
 
-Historical Source Coverage:
-- Prompt 11→45: `PARTIAL / NOT INDIVIDUALLY RE-EXTRACTED IN THIS BUILD`
-- Prompt 47: `PARTIAL`
-- Prompt 49: `PARTIAL`
-- Prompt 51: `PARTIAL`
-- Prompt 52: `PARTIAL`
-- Current continuity/forensic directives: `VERIFIED SOURCES READ`
-- Current/Production rescue ledgers: `VERIFIED`
+### Current Production
+- Revalidated after memory package updates: `YES`
+- Inventory physical writer rescan: `YES`
+- Current Edge registry rescan: `YES`
+- Current migration inventory: `YES`
+- Current Git source for critical identity consumer: `YES`
 
-All Events Indexed: NO — full per-prompt event extraction remains required.
-All Corrections Linked: PARTIAL.
-All Production Changes Indexed: PARTIAL but current critical inventory changes are recorded.
-All Git Changes Indexed: PARTIAL; full commit-by-commit history remains outside this handoff build.
-All Memory Anchors Indexed: PARTIAL.
-All Open Debt Indexed: YES for currently known material domains; ERP-wide completeness still open.
-All Conflicts Indexed: YES for conflicts discovered during this revalidation.
-Current Production Revalidated: YES.
-Current Git Revalidated: YES for governing/current artifacts used in this handoff.
+### Coverage limits
+- Full repository-wide commit-by-commit Git history: `PARTIAL`
+- Full individual body extraction of every historical Prompt/Report file: `PARTIAL`
+- Browser/client E2E proof: `OPEN`
+- Complete ERP-wide consumer/deployment lineage: `OPEN`
 
-## CURRENT TRUTH SUMMARY
-- Inventory physical writer boundary: documented CLOSED by 2026-08-20 direct Production sweep.
-- Reservation boundary: separate and verified for swept paths.
-- Manual Voucher / Purchase Receive swept inventory boundaries: documented CLOSED/strong, but UI and broader ERP domains remain open.
-- Fulfillment: PARTIAL.
-- Accounting: OPEN.
-- Ledgers: OPEN.
-- Treasury/Settlement: OPEN.
-- Consumers: PARTIAL.
-- Deployment lineage: PARTIAL.
-- Data repair: PARTIAL.
-- Concurrency: PARTIAL.
-- Runtime/browser E2E: PARTIAL.
-- Global zero-debt outside physical inventory: OPEN.
-- Autonomous CTO readiness: NOT READY.
+## CURRENT TRUTH
+### Verified
+- Physical Stock Writer boundary: `CLOSED / VERIFIED FOR CURRENT PRODUCTION SURFACE`
+- Reservation boundary: `VERIFIED`
+- Item identity contract: `VERIFIED`
+- Current start-picking identity parity: `VERIFIED`
+- Current Voucher core boundary: `VERIFIED CORE`
+- Accounting Core: `DEPLOYED / PARTIALLY CONVERGED`
 
-## CURRENT SNAPSHOT DRIFT
-The direct Production snapshot today differs materially from older persisted snapshots. The package preserves these differences as DRIFT rather than inventing a cause:
-- public functions: 42 (2026-08-21 registry) → 45 (2026-08-23 direct query).
-- inventory_log: 56 (2026-08-20) → 62 (2026-08-21 registry) → 3 (2026-08-23 direct query).
+### Open
+- Accounting writer convergence.
+- Ledger writer convergence/reconciliation.
+- Treasury↔COA contract.
+- Financial security Production rollout.
+- Full Consumer Matrix.
+- Deployment lineage.
+- Fulfillment state graph.
+- Concurrency proof.
+- Browser runtime proof.
+- Data provenance registry.
+- Temporary Edge registry retirement.
+- Global Zero-Debt outside inventory.
 
-## CONTINUITY CERTIFICATION
-Status: `NOT READY`
+## DRIFT PRESERVED — NOT EXPLAINED BY ASSUMPTION
+- Public functions: 42 (8/21) → 45 (8/23).
+- `inventory_log`: 56 (8/20) → 62 (8/21) → 3 (8/23).
+The package records the drift; it does not invent a deletion/corruption narrative.
 
-Reason: the required Master Memory Transfer directive demanded complete event-by-event reconstruction from Prompt 11 through current plus full chain-of-custody. This build creates the institutional package and revalidates current reality, but it does not claim that every historical prompt/report has been individually re-extracted and indexed.
+## CURRENT CORRECTION TO OLDER MEMORY
+Older package material said Production `start-picking` v14 used a direct `public.users.id = auth.users.id` relationship. Current Production v33 and Current Git prove the live contract is `auth.users.id → public.users.auth_id → public.users.id`. The old statement is now historical only.
 
-## HANDOFF RULE
-This package prevents historical amnesia but does not replace current forensic verification. At every major handoff, refresh the Production snapshot and compare it against the package before making execution decisions.
+## CONTINUITY STATUS
+`NOT READY FOR AUTONOMOUS CTO CERTIFICATION`
+
+This is not because the project lacks knowledge. It is because the governing directive requires no material missing event, conflict, unverified claim or unresolved critical Production/Current drift before declaring continuity ready. The memory package is materially upgraded and current Production was revalidated, but ERP-wide consumer/deployment/runtime/concurrency/financial convergence gates remain open, and full repository prompt/report extraction is not claimed.
+
+## FINAL RULE
+At every future handoff:
+1. Refresh Production timestamp/counts.
+2. Re-read critical deployed RPC/Edge definitions.
+3. Compare against this package.
+4. Register every contradiction as DRIFT/CONFLICT.
+5. Execute only after the affected Closure Unit is reconstructed.
+
+**This file is an institutional memory anchor, not a substitute for Production truth.**
