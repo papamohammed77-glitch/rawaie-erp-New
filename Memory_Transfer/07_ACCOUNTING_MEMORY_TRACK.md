@@ -1,19 +1,48 @@
 # ACCOUNTING MEMORY TRACK
 
-## Current Production evidence
-Snapshot 2026-08-23: chart_of_accounts=87, journal_entries=2, journal_lines=0, customer_ledger=0, supplier_ledger=0, driver_ledger=0, treasury=1, daily_settlements=0.
+## CURRENT SNAPSHOT
+2026-08-23 03:41:38.004558 UTC
 
-## Architectural contract
-Accounting consumes business/inventory events; it does not invent inventory truth. Ledger is derived from accounting, not a substitute for upstream correctness. fileciteturn205file0
+## CURRENT PRODUCTION FACTS
+- `save-journal-entry` Edge v8 ACTIVE.
+- `post_journal_entry` Core is deployed.
+- `save_sales_invoice_atomic`, `receive_purchase_atomic`, `complete_return_atomic` and other domain operations create financial effects.
+- Receipt/payment/daily-settlement/driver-ledger capabilities are also deployed.
+- `journal_entries` = 2; `journal_lines` = 0 at this snapshot.
 
-## Readiness
-The 2026-08-21 Autonomous CTO readiness registry classifies Accounting, Ledgers, and Treasury/Settlement as OPEN because posting contracts, writer ownership, event mapping, reconciliation, and balance semantics remain unproven ERP-wide. fileciteturn227file0
+## HISTORICAL TRANSITION
+The system evolved from distributed journal writes toward a stronger centralized journal core. Prompt 51/52 then identified the remaining problem as Consumer/Writer convergence rather than absence of an Accounting Core.
 
-## Historical lesson
-Older Loading implementations created COGS directly; the current Loading target intentionally separates physical custody movement from accounting recognition. Any future accounting change must reconcile the Owner/business contract and industry-standard accounting boundaries before implementation.
+## CURRENT JOURNAL CONTRACT
+Current `save-journal-entry` v8 → authenticated user → company context → account code → COA UUID → `post_journal_entry` → journal state + operation registry + authoritative audit.
 
-## Next evidence needed
-- Discover every journal writer/adapter in current Production.
-- Trace business event → journal authority → journal lines → ledger/treasury effects.
-- Prove idempotency and audit behavior.
-- Preserve original business responsibilities while centralizing posting.
+The current core validates minimum lines, account identity/company ownership, non-negative amounts, single-sided line values, balanced totals and idempotency.
+
+## CURRENT CONSUMER GAP
+`Current/PWA/main.html::_saveJournalEntry()` was historically found stale. Report 52 prepared a surgical replacement aligned to the current DOM (`journal-ref`, `journal-desc`, `jl-cost-center`) and Production v8. That replacement was reviewed but the published `main.html` was deliberately not altered in that surgical review.
+
+Therefore:
+**Production Journal Core = STRONG / CURRENT**
+**Manual Journal Consumer = NOT YET PROVEN ALIGNED**
+
+## FINANCIAL WRITERS DISCOVERED
+- save-sales-invoice
+- receive-purchase
+- complete-return
+- save-receipt-voucher
+- save-payment-voucher
+- save-daily-settlement
+- update-driver-ledger
+- save-expense / opening-balance / related domain functions recorded in the rebaseline
+
+## OPEN
+- Universal journal posting authority.
+- Full financial writer matrix.
+- Ledger authority/reconciliation.
+- Treasury↔COA mapping.
+- Production financial security rollout.
+- Consumer retry/operation identity proof.
+- Runtime/concurrency proof.
+
+## NO FALSE CLOSURE
+Accounting is not “UNKNOWN”; it is **PARTIALLY VERIFIED / CENTRALIZATION OPEN**.
