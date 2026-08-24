@@ -1,0 +1,803 @@
+نعم. بعد التحقيق المباشر، الصورة الآن أوضح بكثير، وهناك فرق مهم بين أن الاتجاه صحيح وبين أن الإغلاق صحيح ومكتمل.
+
+الحكم التنفيذي
+
+خالد: عمله الأخير صحيح في جوهره، ومحافظ، ولم أجد فيه اختلاقًا للـ87 حسابًا. لكنه لم يغلق Recovery؛ وهذا صحيح لأن الدليل الصفّي للـ87 غير متوفر. تقرير خالد 5 نفسه يثبت بقاء 87 COA RECOVERY = OPEN وعدم إعادة إنشاء أي حساب بالتخمين.
+
+هيثم: التغيير المعماري الأساسي صحيح وقوي، وProduction الحالية تؤكد أن save_sales_invoice_atomic وreceive_purchase_atomic وcomplete_return_atomic لم تعد تكتب مباشرة إلى Journal/Ledger، بل أصبحت تمر عبر الـCores. هذا يثبت أن الجزء الجوهري من Financial Writer Convergence تم بالفعل. لكن تقرير هيثم 5 يحتوي على عيب أمني حقيقي في ادعاءاته حول صلاحيات التنفيذ، كما أن Production/Git lineage غير مغلق لأن PR #24 ما زال Draft وغير مدموج في main.
+
+والأهم: قمت بإصلاح العيب الأمني المكتشف مباشرة في Production، ثم سجلت الإصلاح في Git على main.
+
+Commit الإصلاح:
+666a71dde6f555b54377738b6524007314c176b8
+
+1. ماذا أثبت التحقيق الحالي؟
+
+أعدت مطابقة Production الحالية مباشرة في:
+
+2026-08-24 14:56:16 UTC
+
+والحالة الحالية هي:
+
+العنصر	Production الحالية
+Companies	1
+Users	24
+Treasury	1
+Chart of Accounts	0
+Journal Entries	2
+Journal Lines	0
+Customer Ledger	0
+Supplier Ledger	0
+Driver Ledger	0
+Orders	0
+Purchase Orders	0
+Runsheets	0
+Inventory Log	3
+
+PostgreSQL = 17.6.
+
+وهذا يتفق مع جوهر تقرير خالد 5 وهيثم 5 في النقطة الأساسية: الشركة الحالية الواحدة هي 00000000-0000-0000-0000-000000000001، والـTreasury الحالية موجودة بالفعل، والـCOA ما زال صفرًا.
+
+2. تقييم خالد
+ما فعله خالد بشكل صحيح
+
+خالد اتخذ القرار الصحيح تمامًا في موضوع الـ87 حسابًا:
+
+لا مصدر صفّي موثوق → لا إنشاء حسابات.
+
+وهذا مهم جدًا.
+
+التقرير الخارجي نفسه لم يقدم الـ87 حسابًا؛ بل شرح فقط الـbootstrap الأساسي، واعترف صراحة بأنه لا يملك القائمة الصفية للـ87.
+
+وتقرير خالد 5 لم يحاول تحويل هذا الـbootstrap إلى 87 حسابًا صناعيًا، ولم يخترع Parent/Child relationships أو UUIDs. هذا متوافق تمامًا مع مبدأ عدم التخمين.
+
+كذلك لم يُعد إنشاء Treasury الموجودة أصلًا، وهذه نقطة صحيحة.
+
+ما الذي لم يعجبني؟
+
+ليس خطأً في التنفيذ، وإنما خطر منهجي:
+
+خالد أصبح في وضع Forensic Source Recovery Loop.
+
+أي أن المهمة قد تستمر في تكرار:
+
+بحث → لا يوجد مصدر → تقرير → Prompt جديد → بحث
+
+من دون نقطة انتهاء هندسية واضحة.
+
+لذلك الخطوة التالية لخالد لا ينبغي أن تكون:
+
+“استمر في البحث عن الـ87.”
+
+بل يجب أن تكون:
+
+Exhaustive Source Recovery + Evidence Exhaustion Certificate
+
+بحيث يثبت أنه فحص كل طبقات المصدر الممكنة، ثم إما:
+
+يعثر على الـ87 صفًا الحقيقيين، أو
+يثبت بصورة جنائية أن المصدر غير موجود في السلسلة المتاحة، وينقل القرار إلى Owner/Business Recovery Decision.
+
+هذه نقطة مهمة جدًا لتسريع العمل دون التضحية بالدقة.
+
+3. تقييم هيثم
+ما أنجزه هيثم صحيح فعلاً
+
+هذا الجزء ليس نظريًا.
+
+Production الحالية تثبت أن هذه الدوال أصبحت بلا direct financial DML إلى Journal/Ledger:
+
+save_sales_invoice_atomic
+receive_purchase_atomic
+complete_return_atomic
+
+الفحص الحالي أعطى:
+
+Writer	Direct Journal/Ledger Write
+save_sales_invoice_atomic	0
+receive_purchase_atomic	0
+complete_return_atomic	0
+
+وهذا يطابق جوهر ما ذكره هيثم في تقرير 5.
+
+كما أن الـCores التالية موجودة بالفعل في Production:
+
+post_journal_entry
+post_customer_ledger_entry
+post_supplier_ledger_entry
+post_driver_ledger_entry
+post_cash_receipt_atomic
+post_cash_payment_atomic
+
+وهذا مكسب معماري حقيقي.
+
+4. الخطأ الجنائي الذي اكتشفته في عمل هيثم
+
+تقرير هيثم 5 يقول ضمنيًا إن الـFinancial Cores أصبحت مقيدة للاستخدام عبر service_role فقط، بينما الاختبار المباشر في Production أظهر أن هذا لم يكن صحيحًا.
+
+قبل التصحيح كانت Production تمنح:
+
+anon
+authenticated
+وفي حالة post_customer_ledger_entry حتى PUBLIC
+
+صلاحية EXECUTE على:
+
+post_customer_ledger_entry
+post_supplier_ledger_entry
+post_driver_ledger_entry
+post_cash_receipt_atomic
+post_cash_payment_atomic
+
+وهذا Security defect حقيقي.
+
+ولأن الـEdge Financial path يستخدم أصلًا service_role، لم يكن هناك مبرر للإبقاء على صلاحيات الـclient المباشرة.
+
+ما تم إصلاحه
+
+تم سحب التنفيذ من:
+
+PUBLIC
+anon
+authenticated
+
+والإبقاء على:
+
+service_role
+
+فقط.
+
+ثم أعدت التحقق، والنتيجة أصبحت:
+
+post_cash_payment_atomic      → service_role فقط
+post_cash_receipt_atomic      → service_role فقط
+post_customer_ledger_entry    → service_role فقط
+post_supplier_ledger_entry    → service_role فقط
+post_driver_ledger_entry      → service_role فقط
+
+وهذا الإصلاح تم في Production، ثم تم تسجيله في main.
+
+هذا هو أول تصحيح مباشر نفذته نتيجة التحقيق.
+
+5. المشكلة الثانية في تنفيذ هيثم: Git ≠ Production
+
+هذه أخطر نقطة بعد الـsecurity.
+
+PR #24:
+
+Open
+Draft
+Unmerged
+Head = heytham/20260824-financial-writer-convergence
+Base = main
+
+والـPR نفسه يقول صراحة إنه Review Only ولم يُدمج.
+
+لكن Production تحتوي بالفعل على الـCores والتعديلات التي يدّعي هيثم أنها تم تنفيذها.
+
+إذن لدينا حاليًا:
+
+PRODUCTION STATE
+      ≠
+MAIN SOURCE STATE
+
+وهذا بالضبط ما تحذر منه الـMaster Memory Directive:
+
+Git changed ≠ Migration applied ≠ Edge deployed ≠ Production verified.
+
+والأكثر خطورة:
+
+بحث Git الحالي لم يجد تعريفًا canonical داخل main لـ:
+
+post_driver_ledger_entry
+
+بينما Production تحتويه بالفعل.
+
+إذن هناك Production Schema Drift / Deployment Lineage Gap.
+
+وهذه ليست ملاحظة توثيقية؛ إنها مشكلة مستقبلية خطيرة لأي CTO سيقوم بإعادة نشر migrations أو إعادة بناء البيئة.
+
+6. ما الذي أصبح واضحًا جدًا الآن؟
+
+لدينا ثلاث حالات مختلفة ويجب عدم خلطها:
+
+خالد
+Historical correctness       = جيد جدًا
+Current Production awareness = جيد
+Data safety                  = ممتاز
+Execution                    = محافظ
+87 Recovery                  = OPEN
+هيثم
+Architectural direction      = صحيح
+Financial Core convergence   = حقيقي
+Production implementation    = حقيقي
+Security                     = كان به defect وتم إصلاحه
+Git lineage                  = OPEN
+HTTP E2E                     = OPEN
+Concurrency                  = OPEN
+Daily Settlement             = OPEN
+Receipt/Payment runtime      = OPEN
+Global Zero-Debt             = OPEN
+المشروع ككل
+
+ليس:
+
+Financial Closed
+
+بل:
+
+Financial Core = materially stronger
+
+Financial Writer Convergence = PARTIAL / OPEN
+
+Financial Master Data = INCOMPLETE
+
+COA = 0
+
+Treasury = RESTORED
+
+Security = corrected
+
+Production/Git lineage = OPEN
+
+وهذا متسق مع قاعدة NO FALSE CLOSURE في الذاكرة الحاكمة.
+
+7. الخطوة التالية لخالد
+
+أوصي بإيقاف أي UI أو Accounting Consumer عند خالد الآن.
+
+PROMPT — KHALID
+MASTER CTO EXECUTION DIRECTIVE — KHALID
+PHASE: FINANCIAL MASTER DATA SOURCE RECOVERY
+MODE: FORENSIC EXHAUSTION + NO FABRICATION
+
+أنت الآن مسؤول عن Closure Unit واحدة فقط:
+
+EXACT HISTORICAL COA SOURCE RECOVERY
+
+ولا تنتقل إلى إنشاء الحسابات أو تعديل Accountant أو Finance Manager قبل إغلاق هذه الوحدة.
+
+==================================================
+1. CURRENT PRODUCTION TRUTH
+==================================================
+
+ابدأ من Production الحالية مباشرة.
+
+لا تعتمد على:
+- تقرير خالد 5
+- تقرير هيثم 5
+- التقارير السابقة
+- الذاكرة
+- snapshotات 22 أو 23 أغسطس
+
+الحالة الحالية المثبتة:
+
+Companies = 1
+Current Company = 00000000-0000-0000-0000-000000000001
+Treasury = 1
+COA = 0
+
+Treasury الموجودة بالفعل:
+CASH-01
+UUID:
+0a9d9357-b5f3-4dfa-886f-7c73de4f274e
+
+ممنوع إعادة إنشائها.
+
+==================================================
+2. OBJECTIVE
+==================================================
+
+العثور على:
+
+EXACT 87 HISTORICAL COA ROWS
+
+وليس:
+- count = 87
+- seed accounts
+- inferred accounts
+- accounting conventions
+- reconstructed hierarchy
+- generated UUIDs
+
+المطلوب الحقيقي لكل صف:
+
+id
+company_id historical
+account_code
+account_name
+account_type
+parent_account_id
+normal_balance
+is_active
+وأي أعمدة إضافية كانت جزءًا من العقد التاريخي.
+
+==================================================
+3. SOURCE EXHAUSTION ORDER
+==================================================
+
+افحص بالترتيب:
+
+A. rawaie-erp-review
+B. rawaie-erp-New
+C. Git history
+D. deleted blobs
+E. commits قبل consolidation
+F. trees
+G. migrations
+H. seeds
+I. historical deployment artifacts
+J. Evidence / Production snapshots
+K. audit_log
+L. archived source
+M. historical documentation
+N. exact UUID / account-code references
+
+ولا تعتبر Search Result = Source Recovery.
+
+يجب فتح المصدر الأصلي نفسه والتحقق من الصفوف.
+
+==================================================
+4. CHAIN OF CUSTODY
+==================================================
+
+لكل مرشح للمصدر:
+
+SOURCE
+SHA
+PATH
+DATE
+COMMIT
+ROWS FOUND
+ROW COUNT
+FIELDS FOUND
+HASH
+CONFIDENCE
+
+لا تستخدم أي مصدر بدون chain-of-custody.
+
+==================================================
+5. REQUIRED RESULT
+
+النتيجة يجب أن تكون واحدة من اثنتين فقط:
+
+A.
+87 EXACT ROWS RECOVERED
+
+أو:
+
+B.
+SOURCE EXHAUSTION CERTIFICATE
+
+يثبت أن:
+- كل المصادر القابلة للوصول تم فحصها
+- لا يوجد row-level authoritative source
+- لا توجد طريقة آمنة لإعادة البناء
+
+==================================================
+6. IF SOURCE RECOVERED
+
+لا تدخلها Production مباشرة.
+
+أنشئ:
+
+RAW SNAPSHOT
+↓
+STRUCTURAL VALIDATION
+↓
+FK VALIDATION
+↓
+UNIQUENESS VALIDATION
+↓
+PARENT TREE VALIDATION
+↓
+CURRENT COMPANY MAPPING
+↓
+DRY RUN
+↓
+TRANSACTIONAL REPLAY
+↓
+VERIFY
+↓
+ONLY THEN PRODUCTION
+
+==================================================
+7. TREASURY ↔ COA
+
+لا تستنتج:
+
+CASH-01 = 121
+
+ولا أي UUID mapping.
+
+المطلوب:
+
+إثبات العلاقة التاريخية أو الحالية من مصدر موثوق.
+
+إذا لم توجد:
+اكتب CONTRACT UNKNOWN.
+
+==================================================
+8. DO NOT TOUCH
+
+ممنوع:
+- Accountant UI
+- Finance Manager UI
+- POS
+- Inventory Core
+- Financial Writers
+- إعادة إنشاء الـ87 بالتخمين
+- تغيير Treasury
+- تغيير Company Identity
+
+==================================================
+9. STOP CONDITION
+
+لا تنشئ Prompt جديدًا لمجرد عدم العثور على المصدر.
+
+إذا استُنفدت كل مصادر الإثبات:
+
+SOURCE EXHAUSTION = CLOSED
+87 RECOVERY = OPEN
+OWNER DECISION REQUIRED
+
+ويجب أن يتضمن التقرير:
+- كل مصدر تم فحصه
+- لماذا رفض
+- ما الذي تم إثباته
+- ما الذي لم يمكن إثباته
+- القرار الوحيد الممكن بأمان.
+
+==================================================
+10. FINAL OUTPUT
+
+KHALID COA FORENSIC MATRIX
+
+Source
+Path
+SHA
+Rows
+Exact?
+Authoritative?
+Recoverable?
+Reason
+
+ثم:
+
+87 COA RECOVERY = CLOSED / OPEN
+SOURCE EXHAUSTION = CLOSED / OPEN
+TREASURY ↔ COA = CLOSED / OPEN
+NO FABRICATION = MUST REMAIN TRUE
+8. الخطوة التالية لهيثم
+
+هنا يجب تغيير المهمة قليلًا.
+
+ليس من الحكمة أن نقول له فورًا:
+
+أكمل Receipt ثم Payment ثم Daily Settlement.
+
+قبل ذلك يجب إغلاق Lineage + Security + Runtime Contract.
+
+PROMPT — HYTHAM
+MASTER CTO EXECUTION DIRECTIVE — HYTHAM
+PHASE: FINANCIAL WRITER CONVERGENCE — PRODUCTION / GIT LINEAGE + SECURITY + RUNTIME
+
+أنت الآن لا تبدأ Writer جديدًا مباشرة.
+
+لديك أولًا Closure Unit إلزامية:
+
+FINANCIAL CORE DEPLOYMENT + SECURITY LINEAGE CLOSURE
+
+==================================================
+1. CURRENT PRODUCTION TRUTH
+==================================================
+
+Production الحالية:
+
+Companies = 1
+Users = 24
+Treasury = 1
+COA = 0
+Journal Entries = 2
+Journal Lines = 0
+Customer Ledger = 0
+Supplier Ledger = 0
+Driver Ledger = 0
+Orders = 0
+Purchase Orders = 0
+Runsheets = 0
+
+Current Production already contains:
+
+post_journal_entry
+post_customer_ledger_entry
+post_supplier_ledger_entry
+post_driver_ledger_entry
+post_cash_receipt_atomic
+post_cash_payment_atomic
+
+==================================================
+2. IMPORTANT SECURITY CORRECTION ALREADY APPLIED
+==================================================
+
+A forensic review found that the following financial cores had excessive EXECUTE privileges.
+
+They have now been restricted in Production to:
+
+service_role ONLY
+
+Functions:
+
+post_cash_receipt_atomic
+post_cash_payment_atomic
+post_customer_ledger_entry
+post_supplier_ledger_entry
+post_driver_ledger_entry
+
+Do NOT reopen these permissions.
+
+Current Git contains canonical security migration:
+
+20260824_restrict_financial_core_execute_privileges.sql
+
+Commit:
+
+666a71dde6f555b54377738b6524007314c176b8
+
+This change is already Production-applied.
+
+==================================================
+3. FIRST TASK — LINEAGE CLOSURE
+==================================================
+
+You must reconcile:
+
+Production PostgreSQL
++
+Current Git
++
+Migrations
++
+Edge deployments
+
+For every Core you created or changed:
+
+post_driver_ledger_entry
+save_sales_invoice_atomic
+receive_purchase_atomic
+complete_return_atomic
+
+and any related Core.
+
+For each object prove:
+
+Production definition
+Current Git definition
+Canonical migration
+Migration applied?
+Deployment version
+Runtime verified?
+Commit SHA
+
+No object may remain:
+
+Production-only
+or
+Git-only
+
+without explicit forensic classification.
+
+==================================================
+4. DRIVER LEDGER CORE
+==================================================
+
+You stated that:
+
+post_driver_ledger_entry
+
+is canonical.
+
+Now prove:
+
+- exact Production definition
+- exact Git source
+- exact migration
+- grants
+- RLS impact
+- tenant contract
+- idempotency
+- locking
+- audit
+- rollback
+
+Do not assume Production DDL is reproducible because the function exists.
+
+==================================================
+5. GLOBAL FINANCIAL WRITER SWEEP
+==================================================
+
+Search all:
+
+PostgreSQL functions
+Triggers
+Edge Functions
+Current
+Archive
+Legacy wrappers
+migrations
+
+for writes to:
+
+journal_entries
+journal_lines
+customer_ledger
+supplier_ledger
+driver_ledger
+treasury
+cash_box
+
+Produce:
+
+GLOBAL FINANCIAL WRITER MATRIX
+
+Writer
+Production
+Git
+Consumer
+Direct DML
+Canonical Core
+Tenant Safety
+Idempotency
+Security
+Runtime
+Status
+
+==================================================
+6. DO NOT CLAIM ZERO-DEBT
+
+The following remain open until actually proven:
+
+Authenticated HTTP E2E
+Two-session concurrency
+Receipt runtime
+Payment runtime
+Daily Settlement
+Purchase live runtime
+Return live runtime
+Deployment lineage
+Production/Git parity
+
+==================================================
+7. NEXT WRITER ORDER
+
+Only after Lineage + Security Closure:
+
+1. Receipt Writer
+2. Payment Writer
+3. Daily Settlement
+4. Remaining purchase/return edge cases
+5. Global sweep
+6. Concurrency
+7. HTTP E2E
+8. Final Zero-Debt
+
+One Writer at a time.
+
+For each:
+
+UNDERSTAND
+→ TRACE
+→ FIX
+→ MIGRATION
+→ DEPLOY
+→ RUNTIME TEST
+→ VERIFY
+→ CLOSE
+
+==================================================
+8. HARD RULE
+
+Do NOT:
+
+- modify COA
+- modify Treasury ownership
+- recreate missing accounts
+- modify Inventory Core
+- modify Accountant UI
+- modify Finance Manager UI
+- reopen closed Inventory work
+
+==================================================
+9. REQUIRED FINAL STATUS
+
+Financial Core Security = CLOSED / OPEN
+Production/Git Lineage = CLOSED / OPEN
+Driver Ledger = CLOSED / OPEN
+Receipt Writer = CLOSED / OPEN
+Payment Writer = CLOSED / OPEN
+Daily Settlement = CLOSED / OPEN
+HTTP E2E = CLOSED / OPEN
+Concurrency = CLOSED / OPEN
+Global Financial Writer Zero-Debt = CLOSED / OPEN
+
+No CLOSED without Production evidence.
+9. هل أسيرهم وفق الخطة؟
+
+نعم، الاتجاه العام صحيح جدًا.
+
+والتحول الحالي ممتاز:
+
+Inventory Core
+      ↓
+Accounting Core
+      ↓
+Ledger Core
+      ↓
+Treasury
+      ↓
+Financial Writers
+      ↓
+Consumers
+      ↓
+Runtime / Concurrency
+      ↓
+Zero-Debt
+
+لكن يوجد تصحيح مهم في إدارة المرحلة:
+
+لا نسمح الآن لـ:
+Khalid → UI
+Hytham → UI
+
+بل:
+
+KHALID
+Financial Master Data / COA Source Recovery
+
+            +
+
+HYTHAM
+Writer Convergence / Deployment Lineage / Runtime
+
+والسبب أن COA = 0 حاليًا؛ لذلك أي إكمال مالي على مستوى UI أو معاملات محاسبية سيظل فوق Master Data غير مكتملة.
+
+10. النتيجة الجنائية النهائية
+ما مررته
+
+خالد
+
+رفض الاختلاق.
+لم يعِد إنشاء الـ87 حسابًا.
+لم يكرر Treasury.
+فصل Historical عن Current.
+مناسب للاستمرار في Forensic COA Recovery.
+
+هيثم
+
+نقل الـPOS/Purchase/Return من Distributed Journal/Ledger Writes إلى Cores.
+إنشاء Driver Ledger Core حقيقي.
+إبقاء Inventory خارج التغيير.
+عدم إعلان Zero-Debt رغم بقاء Runtime/Concurrency مفتوحة.
+ما رفضته / صححته
+ادعاء Service-Role-only كان غير صحيح في Production → تم إصلاحه فعليًا.
+Production/Git lineage لجزء من عمل هيثم غير مغلق → PR #24 ما زال Draft/Unmerged، وتعريف post_driver_ledger_entry لا يظهر كجزء canonical واضح في main.
+لا يجوز اعتبار Financial Writer Convergence مغلقًا فقط لأن direct DML اختفى من ثلاثة RPCs.
+87 COA لا تزال OPEN؛ لا يوجد دليل صفّي كافٍ لإعادة بنائها، وهذا القرار صحيح.
+Treasury لا يجب لمسها مرة أخرى؛ هي موجودة حاليًا ومثبتة.
+الحالة الآن
+Inventory Core                         = محفوظ
+Single Company                         = VERIFIED
+Treasury                               = VERIFIED
+COA 87 Recovery                        = OPEN
+Financial Core                         = DEPLOYED
+Financial Writer Convergence           = PARTIAL / OPEN
+Security Core Privileges               = CORRECTED
+Production/Git Lineage                 = OPEN
+Authenticated HTTP E2E                  = OPEN
+Two-Session Concurrency                = OPEN
+Receipt/Payment Runtime                = OPEN
+Daily Settlement                       = OPEN
+Global Financial Zero-Debt             = OPEN
+Autonomous CTO                         = NO
+
+الحكم المهني النهائي: خالد وهيثم لم يخرّبا المسار؛ بالعكس، التعديل الأساسي الذي نفذاه صحيح وذو قيمة. لكن كانت هناك فجوة أمنية حقيقية، وفجوة Lineage حقيقية، وعدة بوابات Closure لم تُثبت بعد. أصلحت الخطأ الأمني مباشرة، والـخطوة الصحيحة الآن هي تنفيذ البرومبتين أعلاه، لا فتح واجهات جديدة ولا إعادة بناء الـ87 حسابًا بالتخمين.
