@@ -1,0 +1,14 @@
+نعم، Cloudflare مناسب جدًا لهذه المهمة، ويمكن تنفيذها مجانًا كبداية.
+
+أفضل تركيب عندكم:
+
+GitHub Scheduler
+→ Cloudflare Worker
+→ Agent Runtime
+→ Medhat / Khalid / Hytham
+
+والـWorkers Free حاليًا يسمح بـ 100,000 طلب/يوم و5 Cron Triggers للحساب، مع حد CPU قدره 10ms لكل تشغيل Cron.
+
+لكن هناك نقطة مهمة: Cloudflare Worker وحده ليس هو Agent Runtime؛ هو طبقة استقبال/توجيه وتشغيل HTTP. يجب أن نبني داخله أو حوله طبقة Routing/Queue مناسبة لتوزيع المهام على المساعدين. ويمكن استخدام Durable Objects مجانًا أيضًا للتنسيق والحالة.
+
+النتيجة: حساب Cloudflare الذي لديك يمكن أن يكون أساسًا ممتازًا ومجانيًا للـExternal Agent Runtime.
