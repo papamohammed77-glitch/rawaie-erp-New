@@ -1,0 +1,214 @@
+النتيجة التنفيذية
+
+أنجزت التحقيق الجنائي على المصادر الحالية، وقاعدة rawaea-staging، وProduction، وGit، ولم أتعامل مع التقارير القديمة كحقيقة حالية.
+
+1. الـ87 حسابًا: لم أختلقها
+
+ثبت من المصدر الجنائي الحالي أن الشركة القديمة da4... كانت تملك تاريخيًا 87 حسابًا، لكن لا يوجد حتى الآن مصدر row-level موثوق يعيد الـ87 صفًا نفسها. كما أن main.html لا يحتوي إلا على seed أساسي محدود، وليس سجل الـ87 التاريخي. لذلك إعادة بناء الـ87 بالاجتهاد أو وفق شجرة محاسبية عامة كانت ستكون تزويرًا للـFinancial Master Data. هذا هو نفس القرار الموثق في السجل الجنائي الحالي.
+
+بحثت في rawaie-erp-review وrawaie-erp-New عن آثار مباشرة للـ87، ولم أجد حتى الآن artifact يثبت الصفوف الـ87 نفسها. لذلك:
+
+87 COA Recovery = OPEN
+
+وليس “فشلًا في التنفيذ”.
+
+2. الـTreasury: تمت استعادته فعليًا في rawaea-staging
+
+تم فتح المشروع:
+
+rawaea-staging
+
+والشركة الحالية فيه هي:
+
+b4cc737e-6431-474e-af9e-92a427a44911 — TASK028 STAGING
+
+وأعدت إنشاء الخزينة التاريخية المؤكدة تحت الشركة الحالية:
+
+الحقل	القيمة
+UUID	0a9d9357-b5f3-4dfa-886f-7c73de4f274e
+Code	CASH-01
+Name	الخزينة الرئيسية
+Type	Cash
+Opening	10000
+Current	10000
+Active	نعم
+
+مع الحفاظ على الـUUID والتواريخ التاريخية المؤكدة.
+
+كما اكتشفت أثناء التنفيذ أن staging لا يملك فعليًا الـUnique Constraint الذي كانت بعض الوثائق تفترضه على (company_id, account_code). محاولة ON CONFLICT فشلت بسبب ذلك، وتم تصحيح المسار إلى UPDATE → INSERT بدون تغيير schema بالتخمين.
+
+والأهم: staging لا يملك Trigger Audit على Treasury، لذلك أضفت سجلًا صريحًا للعملية في audit_log:
+
+646af97c-e3c4-48f4-b023-0b01c27b4d12
+
+وبذلك الاستعادة ليست عملية صامتة.
+
+3. وجدت أخطاء جديدة في staging نفسه
+
+التحقيق لم يكشف فقط مشكلة الـ87، بل كشف Drift حقيقي:
+
+Staging Security غير صالح للاعتماد النهائي. Supabase Advisor يثبت أن 65 جدولًا عامًا تعمل بدون RLS، مع إمكانية تعرضها لـanon/authenticated. كما أن عدة SECURITY DEFINER مالية قابلة للتنفيذ مباشرة عبر RPC من أدوار غير مناسبة، ومنها:
+
+receive_purchase_atomic
+save_sales_invoice_atomic
+post_cash_receipt_atomic
+post_cash_payment_atomic
+post_customer_ledger_entry
+
+ولا يجوز الآن تشغيل إصلاح RLS جماعي عشوائي؛ تفعيل RLS بلا سياسة صحيحة قد يكسر النظام. لذلك سجلت ذلك كـHardening Gate مستقل.
+
+كما اكتشفت أن staging يفتقد بعض المفاتيح الأساسية والفهارس، ووجود Duplicate Index في erp_operation_registry.
+
+4. تصحيح مهم جدًا في فهم حالة المشروع
+
+الذاكرة والتقارير السابقة كانت صحيحة في وقتها، لكنها لم تعد تمثل الحالة الحالية.
+
+تقرير الذاكرة نفسه يفرض أن:
+
+Production Current > Current Git > Evidence > Historical Source > Reports.
+
+وتقرير القرار الجنائي الحالي أكد أن الـ87 لا يجوز اختلاقها، وأن Treasury كانت قابلة للاسترداد row-level بينما COA لم تكن كذلك.
+
+وبالتالي مررت ما هو صحيح، ورفضت ما لا يمكن إثباته.
+
+5. أنشأت Master Directive جديدة
+
+أنشأت:
+
+MASTER CURRENT COMPANY REPAIR REPLAY DIRECTIVE
+
+Commit:
+
+fab642c908c346b4a79a6d6c0b32af792bf48d05
+
+هذه الوثيقة تعيد ضبط قاعدة العمل:
+
+كل إصلاح سابق صحيح يُعاد تطبيقه في سياق الشركة الحالية، وليس تحت Company IDs المتقاعدة.
+
+وتمنع صراحة:
+
+إعادة إنشاء بيانات مالية بالتخمين.
+إعادة توجيه Treasury أو COA بدون عقد.
+العبث بـInventory Core.
+اعتبار Git وحده دليلًا على أن Production مغلقة.
+اعتبار عدد الصفوف مصدرًا للصفوف نفسها.
+6. تكليف خالد الجديد
+
+أنشأت:
+
+NEXT PROMPT — KHALID — CURRENT COMPANY FINANCIAL MASTER RECOVERY
+
+Commit:
+
+ac30e60c49f1bda6e31023259db91e0c2342f411
+
+مهمة خالد الآن
+
+ليس UI.
+
+المسار هو:
+
+Forensic COA Recovery
+→ Current Company Ownership
+→ COA Canonicalization
+→ Treasury ↔ COA Contract
+→ Financial Master Data Closure
+
+والمهمة الأولى له تحديدًا:
+
+العثور على المصدر الحقيقي للـ87 صفًا.
+
+ويجب أن يبحث في:
+
+Git history
+blobs
+trees
+migrations
+seeds
+historical commits
+authoritative snapshots
+
+ويُمنع من تحويل الـ16 الأساسية إلى 87 بالتخمين.
+
+كما منعته صراحة من لمس:
+
+accountant.html
+finance-manager.html
+POS
+Inventory Core
+Company Identity خارج مهمته.
+
+7. تكليف هيثم الجديد
+
+أنشأت:
+
+NEXT PROMPT — HYTHAM — FINANCIAL WRITER CONVERGENCE
+
+Commit:
+
+6cd08e039fdd94b9e9da8ad268e2b207f15b4b3e
+
+مسار هيثم
+
+Global Writer Discovery
+→ Driver Ledger Contract
+→ Deployment Lineage
+→ Authenticated HTTP E2E
+→ Two-Session Concurrency
+→ Driver Ledger Core
+→ Receipt
+→ Payment
+→ Purchase Receiving
+→ Return
+→ Daily Settlement
+→ Global Financial Writer Zero-Debt
+
+والتعليمات تمنعه من لمس:
+
+COA ownership
+Treasury ownership
+Company consolidation
+Inventory Core
+
+إلا أن الأدلة تثبت dependency لا يمكن تجاوزها.
+
+8. أنشأت سجل النتيجة الجنائية
+
+FORENSIC STAGING FINANCIAL RECOVERY RESULT
+
+Commit:
+
+bad743ba5b95eb1d35e0523b42fd0fca9d08af51
+
+وحالته الرسمية:
+
+Gate	الحالة
+Treasury Replay	✅ CLOSED
+Current Company Ownership	✅ مثبت في staging
+87 COA Recovery	🔴 OPEN
+Financial Writer Convergence	🔴 OPEN
+Staging Security Hardening	🔴 OPEN
+Fabrication / Guessing	✅ مرفوض
+الحكم النهائي
+
+المسار الصحيح الآن ليس إنشاء 87 حسابًا بأي ثمن.
+
+المسار الصحيح هو:
+
+Treasury تم استردادها.
+
+الـ87 تحتاج Source Recovery حقيقي.
+
+ثم بعد ذلك:
+
+Khaled → Financial Master Data
+
+وبالتوازي المنضبط:
+
+Hytham → Financial Writer Convergence
+
+وهذا أفضل بكثير من إنشاء 87 حسابًا “معقولة شكليًا” ثم بناء Accounting Core كامل فوق بيانات مالية غير حقيقية.
+
+تنبيه أمني مهم
+
+rawaea-staging حاليًا ليست بيئة آمنة للاعتماد الإنتاجي؛ Advisor يثبت أن 65 جدولًا عامة بلا RLS، وبعض الـSECURITY DEFINER المالية قابلة للاستدعاء من anon/authenticated. لم أقم بتفعيل RLS عشوائيًا لأن ذلك قد يقفل النظام بلا Policies صحيحة.
