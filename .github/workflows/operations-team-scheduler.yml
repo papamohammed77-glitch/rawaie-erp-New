@@ -7,11 +7,15 @@ on:
 
 permissions:
   contents: write
-  issues: write
+
+concurrency:
+  group: operations-team-scheduler
+  cancel-in-progress: false
 
 jobs:
-  poll-control-room:
+  control-plane:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,69 +23,16 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Poll Operations Control Room
+      - name: Build and dispatch operations queue
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AGENT_RUNTIME_URL: ${{ secrets.AGENT_RUNTIME_URL }}
+          AGENT_RUNTIME_TOKEN: ${{ secrets.AGENT_RUNTIME_TOKEN }}
         run: |
           set -euo pipefail
-          OPS='doc/Draft/Operations_Team'
-          STATE="$OPS/.scheduler_state"
-          INBOX="$OPS/.scheduler_inbox.md"
-          mkdir -p "$OPS"
+          python3 .github/operations/operations_control_plane.py
 
-          mapfile -t files < <(find "$OPS" -maxdepth 1 -type f \
-            ! -name '.scheduler_state' \
-            ! -name '.scheduler_inbox.md' \
-            -printf '%f\n' | sort)
-
-          current=''
-          for f in "${files[@]}"; do
-            current+="$f|$(git log -1 --format='%H' -- "$OPS/$f")\n"
-          done
-          current_sha=$(printf '%b' "$current" | sha256sum | cut -d' ' -f1)
-          previous_sha=$(cat "$STATE" 2>/dev/null || true)
-
-          if [[ "$current_sha" == "$previous_sha" ]]; then
-            echo 'No Operations Control Room change detected.'
-            exit 0
-          fi
-
-          now=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
-          {
-            echo '# Operations Scheduler Inbox'
-            echo
-            echo "Last poll: $now"
-            echo
-            echo '## New/changed control-room items detected'
-            echo
-            if [[ -n "$current" ]]; then
-              printf '%b' "$current" | while IFS='|' read -r name sha; do
-                [[ -z "$name" ]] && continue
-                echo "- **$name** — source commit \`$sha\`"
-              done
-            else
-              echo '- No files currently present.'
-            fi
-            echo
-            echo '## Required team action'
-            echo '- Medhat: review new execution reports, verify evidence, and issue the next strict directive.'
-            echo '- Khalid: inspect the newest Medhat directive and execute the assigned Closure Unit.'
-            echo '- Hytham: inspect the newest Medhat directive and execute the assigned Closure Unit.'
-            echo '- All members: do not reprocess files already marked REVIEWED/CLOSED/SUPERSEDED.'
-            echo
-            echo '## Scheduler contract'
-            echo 'This file is an external polling signal. It does not claim that an AI assistant executed work.'
-          } > "$INBOX"
-          printf '%s' "$current_sha" > "$STATE"
-
-          git config user.name 'Operations Scheduler'
-          git config user.email 'operations-scheduler@users.noreply.github.com'
-          git add "$STATE" "$INBOX"
-          git commit -m "ops: refresh 5-minute control-room scheduler state" || true
-          git push
-
-      - name: Publish run summary
+      - name: Publish control-plane summary
         run: |
-          echo '## Operations Team Scheduler' >> "$GITHUB_STEP_SUMMARY"
-          echo 'The control room was polled on the 5-minute schedule.' >> "$GITHUB_STEP_SUMMARY"
-          echo 'New/changed files are recorded in `doc/Draft/Operations_Team/.scheduler_inbox.md` when the control-room state changes.' >> "$GITHUB_STEP_SUMMARY"
+          echo '## Operations Control Plane' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Polled every 5 minutes; created/updated task records; dispatched NEW tasks only when Agent Runtime is configured.' >> "$GITHUB_STEP_SUMMARY"
