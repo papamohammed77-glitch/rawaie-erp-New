@@ -1,0 +1,87 @@
+name: Operations Team Scheduler
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  poll-control-room:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Poll Operations Control Room
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          OPS='doc/Draft/Operations_Team'
+          STATE="$OPS/.scheduler_state"
+          INBOX="$OPS/.scheduler_inbox.md"
+          mkdir -p "$OPS"
+
+          mapfile -t files < <(find "$OPS" -maxdepth 1 -type f \
+            ! -name '.scheduler_state' \
+            ! -name '.scheduler_inbox.md' \
+            -printf '%f\n' | sort)
+
+          current=''
+          for f in "${files[@]}"; do
+            current+="$f|$(git log -1 --format='%H' -- "$OPS/$f")\n"
+          done
+          current_sha=$(printf '%b' "$current" | sha256sum | cut -d' ' -f1)
+          previous_sha=$(cat "$STATE" 2>/dev/null || true)
+
+          if [[ "$current_sha" == "$previous_sha" ]]; then
+            echo 'No Operations Control Room change detected.'
+            exit 0
+          fi
+
+          now=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          {
+            echo '# Operations Scheduler Inbox'
+            echo
+            echo "Last poll: $now"
+            echo
+            echo '## New/changed control-room items detected'
+            echo
+            if [[ -n "$current" ]]; then
+              printf '%b' "$current" | while IFS='|' read -r name sha; do
+                [[ -z "$name" ]] && continue
+                echo "- **$name** — source commit \`$sha\`"
+              done
+            else
+              echo '- No files currently present.'
+            fi
+            echo
+            echo '## Required team action'
+            echo '- Medhat: review new execution reports, verify evidence, and issue the next strict directive.'
+            echo '- Khalid: inspect the newest Medhat directive and execute the assigned Closure Unit.'
+            echo '- Hytham: inspect the newest Medhat directive and execute the assigned Closure Unit.'
+            echo '- All members: do not reprocess files already marked REVIEWED/CLOSED/SUPERSEDED.'
+            echo
+            echo '## Scheduler contract'
+            echo 'This file is an external polling signal. It does not claim that an AI assistant executed work.'
+          } > "$INBOX"
+          printf '%s' "$current_sha" > "$STATE"
+
+          git config user.name 'Operations Scheduler'
+          git config user.email 'operations-scheduler@users.noreply.github.com'
+          git add "$STATE" "$INBOX"
+          git commit -m "ops: refresh 5-minute control-room scheduler state" || true
+          git push
+
+      - name: Publish run summary
+        run: |
+          echo '## Operations Team Scheduler' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The control room was polled on the 5-minute schedule.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'New/changed files are recorded in `doc/Draft/Operations_Team/.scheduler_inbox.md` when the control-room state changes.' >> "$GITHUB_STEP_SUMMARY"
