@@ -1,0 +1,139 @@
+هيثم — تنفيذ برومبت 57
+
+تمت قراءة برومبت 57 كاملًا حتى نهايته، ثم فتح وتنفيذ التكليفين المرتبطين بهيثم:
+
+Current/CTO/20260824_PHASE0_EXECUTION_DIRECTIVE_MASTER.md
+Current/CTO/20260824_PHASE0_HYTHAM_TECHNICAL_BASELINE.md
+
+والالتزام بقاعدة:
+
+Production > main > Evidence > Historical > Reports
+
+مع منع أي إصلاح وظيفي أثناء Phase 0.
+
+ما تم إثباته من SMART ERP مباشرة
+
+UTC: 2026-08-24 16:06:44.657473
+PostgreSQL: 17.6
+
+Companies        1
+Users           24
+Branches         2
+Items           17
+Stock rows      20
+Inventory log    3
+Stock vouchers   0
+Treasury         1
+COA              0
+Journal entries  2
+Journal lines    0
+Customer ledger  0
+Supplier ledger  0
+Driver ledger    0
+Orders           0
+Purchase Orders  0
+Runsheets        0
+
+تم التحقق مباشرة من 48 public PostgreSQL functions.
+
+كما تم التحقق من أن الـFinancial/Inventory Core الحساسة حاليًا مقيدة إلى service_role فقط، بما فيها:
+
+post_journal_entry
+post_customer_ledger_entry
+post_supplier_ledger_entry
+post_driver_ledger_entry
+post_cash_receipt_atomic
+post_cash_payment_atomic
+post_stock_movement ذي 10 arguments
+reserve_stock
+release_stock_reservation
+save_sales_invoice_atomic
+receive_purchase_atomic
+complete_return_atomic
+
+بينما الـ9-argument legacy overload لـpost_stock_movement لا يملك EXECUTE للـroles المفحوصة.
+
+ما اكتشفه التحقيق
+DRIFT / OPEN
+
+هناك سياسات RLS فعلية باسم:
+
+Allow all for all
+
+على:
+
+customer_ledger
+journal_entries
+journal_lines
+supplier_ledger
+treasury
+
+وكذلك سياسات واسعة على driver_ledger.
+
+لم يتم إصلاحها لأن Phase 0 يمنع أي تعديل وظيفي/أمني؛ تم تسجيلها كـOpen Debt فقط.
+
+كما تم إثبات:
+
+وجود legacy stock overload.
+وجود legacy voucher bridges.
+عدم اكتمال 1:1 migration reconciliation بين Production وGit.
+عدم اكتمال byte/hash parity لجميع Edge deployments مع Current.
+عدم إمكانية اعتبار SQL inspection إثباتًا لـHTTP E2E أو two-session concurrency.
+Git / Production
+
+تم تثبيت:
+
+Current main HEAD:
+
+c88159ed486819afe76dcf19614c204dcae242ae
+
+وتم جرد الفروع التاريخية الخاصة بهيثم:
+
+heytham/prompt51-journal-v8-surgical-review
+heytham/prompt53-pos-financial-closure
+heytham/20260824-financial-writer-convergence
+
+كما تم تثبيت أن PR #24 مغلق وغير مدموج، وبالتالي ليس مصدر main الحالي.
+
+Production Edge baseline
+
+تم التحقق من الإصدارات الحالية، ومنها:
+
+save-sales-invoice      v15
+receive-purchase       v12
+complete-return        v24
+complete-order-delivery v13
+save-journal-entry      v8
+save-receipt-voucher    v5
+save-payment-voucher    v3
+save-transfer-voucher   v3
+save-daily-settlement   v3
+update-driver-ledger    v1
+create-stock-voucher    v8
+send-stock-voucher      v19
+receive-stock-voucher   v21
+complete-stock-voucher  v4
+cancel-stock-voucher    v4
+Artifact الرسمي
+
+تم تحديث وحفظ تقرير هيثم الفعلي في main:
+
+فتح 20260824_PHASE0_HYTHAM_TECHNICAL_BASELINE.md
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260824_PHASE0_HYTHAM_TECHNICAL_BASELINE.md
+
+وتم أيضًا تسجيل النتائج في Issue #26 كـexecution evidence.
+
+الحكم الحالي
+HYTHAM PHASE 0 TECHNICAL BASELINE = OPEN
+
+وليس CLOSED، لأن بوابات Phase 0 المتبقية والمثبتة بالمصدر هي:
+
+Full applied-migration ↔ Git migration reconciliation
+Full deployed Edge hash/version ↔ Current source mapping
+Full 48-function writer classification
+Line-by-line reconciliation with Khalid
+Normalized Open Debt handoff
+المهم
+
+لم يتم تنفيذ أي إصلاح وظيفي أو DDL أو DML أو PWA/Edge refactor في تنفيذ Prompt 57.
+هذه الجولة كانت Technical Baseline فقط كما يفرض التكليف.
