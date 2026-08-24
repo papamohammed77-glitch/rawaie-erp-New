@@ -1,0 +1,67 @@
+تم تنفيذ التكليف فعليًا على المستودع، مع تثبيت Phase 0 — Rebaseline & Governance كـGate مستقلة قبل أي Phase لاحقة.
+
+ما تم تثبيته من Production مباشرة
+
+آخر تحقق مباشر متاح أثناء إنشاء التكليف أثبت:
+
+PostgreSQL 17.6
+Company واحدة
+Users: 24
+Branches: 2
+Items: 17
+Stock rows: 20
+Inventory log: 3
+Treasury: 1
+COA: 0
+Journal entries: 2
+Journal lines: 0
+Customer/Supplier/Driver ledgers: 0
+Orders / Purchase Orders / Runsheets: 0
+آخر migration مطبق: 20260824151259
+
+كما تحققت من أن Production الحالية تحتوي بالفعل على مجموعة واسعة من الـRPCs والـEdge Functions، بما فيها save-sales-invoice v15 وreceive-purchase v12 وcomplete-return v24 وغيرها؛ ولذلك لا يجوز أن تُقرأ تقارير Prompt 53–56 باعتبارها Current Truth تلقائيًا.
+
+التكليفات التي أنشأتها
+
+1. التكليف الرئيسي
+
+Current/CTO/20260824_PHASE0_EXECUTION_DIRECTIVE_MASTER.md
+
+ويفرض:
+
+Production > main > Evidence > Historical > Reports
+
+ويمنع أي تعديل وظيفي أثناء Phase 0.
+
+2. خالد — Governance / Evidence
+
+Current/CTO/20260824_PHASE0_KHALID_GOVERNANCE_BASELINE.md
+
+مسؤوليته: توحيد Current Truth، Git/Production lineage، PR/branch state، Open Debt/Conflict/Drift، وعدم إعادة فتح حلقة الـ87 حسابًا إلا بمصدر جديد authoritative.
+
+Issue التنفيذ: #25
+
+3. هيثم — Production Technical Baseline
+
+Current/CTO/20260824_PHASE0_HYTHAM_TECHNICAL_BASELINE.md
+
+مسؤوليته: inventory كامل للـFunctions/RPCs/Triggers/RLS/Grants/Edge Versions/Writers/Migrations، ومقارنة Production مباشرة مع main وتسجيل كل Drift دون إصلاحه داخل Phase 0.
+
+Issue التنفيذ: #26
+
+نقطة مهمة في تقييم الجولة السابقة
+
+تم الحفاظ على النتيجة الصحيحة لخالد: Source Exhaustion للـ87 = CLOSED، أما Exact 87 COA Recovery = OPEN؛ ولم يتم اختلاق الحسابات.
+
+كذلك ثبت من حالة PR #24 أنه Closed / Draft / Unmerged؛ لذلك لن أتعامل معه كمصدر main الحالي.
+
+والأهم: Phase 0 لم تُعلن مغلقة. لقد أصبح لديها Gate، Assignments، ومعايير خروج واضحة، لكن إغلاقها يحتاج نتائج خالد وهيثم ثم reconciliation مستقل ضد Production.
+
+فتح التكليف الرئيسي في GitHub
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260824_PHASE0_EXECUTION_DIRECTIVE_MASTER.md
+
+Issue #25 — Khalid
+https://github.com/papamohammed77-glitch/rawaie-erp-New/issues/25
+
+Issue #26 — Hytham
+https://github.com/papamohammed77-glitch/rawaie-erp-New/issues/26
