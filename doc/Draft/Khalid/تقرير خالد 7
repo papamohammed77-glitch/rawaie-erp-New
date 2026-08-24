@@ -1,0 +1,267 @@
+تم تنفيذ برومبت 57 / Phase 0 — Governance & Authoritative Baseline من طرفي حتى نقطة الإغلاق الخاصة بخالد، مع الالتزام بعدم إجراء أي تعديل وظيفي أو تغيير على Production.
+
+ما تم تثبيته من Production مباشرة
+
+اللقطة التنفيذية الدقيقة:
+
+2026-08-24T16:05:40.448271+00:00
+
+والحالة الحالية:
+
+المجال	الحالة
+Companies	1
+Current Company	00000000-0000-0000-0000-000000000001
+Users	24
+Branches	2
+Items	17
+Stock rows	20
+Inventory log	3
+Stock vouchers	0
+Treasury	1
+COA	0
+Journal Entries	2
+Journal Lines	0
+Customer Ledger	0
+Supplier Ledger	0
+Driver Ledger	0
+Orders	0
+Purchase Orders	0
+Runsheets	0
+PostgreSQL	17.6
+Applied migration head	20260824151259
+
+والشركة الحالية والخزينة الحالية مثبتتان مباشرة في Production، بما في ذلك CASH-01 / الخزينة الرئيسية ورصيدها الافتتاحي والحالي 10,000.
+
+Git الحالي
+
+قبل تسجيل baseline، كان main عند:
+
+4a1adcee564f65f17abfa03624cd7673994e80cd
+
+Create برومبت 57
+
+ثم سجّلت أنا artifacts الخاصة بـPhase 0 فقط، فأصبح main الحالي الآن:
+
+c88159ed486819afe76dcf19614c204dcae242ae
+
+والـcommit الأخير:
+
+docs(cto): complete Khalid Phase 0 governance baseline
+
+أي أن تغييرات خالد كانت توثيقية فقط؛ لم أغيّر Business Logic أو Schema أو Data أو PWA.
+
+Financial Core Security
+
+تم التحقق مباشرة من Production أن الـFinancial Cores الرئيسية:
+
+post_journal_entry
+post_customer_ledger_entry
+post_supplier_ledger_entry
+post_driver_ledger_entry
+post_cash_receipt_atomic
+post_cash_payment_atomic
+
+هي SECURITY DEFINER، ونتيجة has_function_privilege الحالية:
+
+public        = false
+anon          = false
+authenticated = false
+service_role  = true
+
+وهذا يؤكد أن التصحيح الأمني المسجل في السلسلة الأخيرة أصبح واقع Production فعلاً.
+
+Production Edge Reality
+
+تم جرد Production Edge Functions الحالية، ومن أهمها:
+
+save-sales-invoice v15
+
+receive-purchase v12
+
+complete-return v24
+
+complete-order-delivery v13
+
+save-journal-entry v8
+
+save-receipt-voucher v5
+
+save-payment-voucher v3
+
+save-transfer-voucher v3
+
+save-daily-settlement v3
+
+update-driver-ledger v1
+
+إضافة إلى وظائف Inventory/Fulfillment الحالية، وكذلك مجموعة كبيرة من canary / harness / recovery / E2E functions ما زالت ACTIVE.
+
+وهذه الأخيرة لم أعتبرها تلقائيًا Business Consumers؛ تم تسجيلها كـLegacy/Operational Footprint تحتاج تصنيفًا مستقلًا.
+
+Production Migration Reality
+
+تم جرد migrations المطبقة فعليًا حتى:
+
+20260824151259
+
+والسلسلة المالية الأخيرة تشمل:
+
+Accounting Core
+Cash Receipt/Payment Cores
+Journal Schema Drift Fix
+Financial Reporting Tenant Scope
+POS Financial Core
+Treasury lookup fixes
+POS credit/COGS correction
+Single-company cleanup
+Driver Ledger Core
+Supplier Ledger Core
+Purchase/Return financial convergence
+Financial core privilege restriction
+Canonical financial writer cores
+
+وهذا يثبت أن Production الحالية ليست الحالة التاريخية الموجودة في تقارير 22 أو 23 أغسطس.
+
+PR / Branch Reality
+
+أهم حالة تم تصحيحها في نموذج الحقيقة:
+
+PR #24
+
+HYTHAM: Prompt 55 financial writer convergence
+
+حالته:
+
+CLOSED
+NOT MERGED
+DRAFT
+Head: heytham/20260824-financial-writer-convergence
+Head SHA: d78b24ae4f23c95d31df08710a5ff48cffdaccf8
+
+وبالتالي:
+
+PR #24 ليس Current Main Truth.
+
+وهذا أصبح مثبتًا مباشرة من GitHub، وليس من وصف PR فقط.
+
+Lineage Finding
+
+تم التحقق أن:
+
+Current/Edge_Functions/save-sales-invoice
+
+موجود في main حاليًا، وSHA الملف الحالي:
+
+e85583546ab26af995e3237dbf07b5c6428c6301
+
+بينما Production Edge:
+
+v15
+
+وبـdeployed hash مختلف.
+
+إذن:
+
+Production = VERIFIED
+
+Git Current = VERIFIED
+
+لكن:
+
+Byte-for-byte deployed-source lineage = OPEN
+
+وهذا هو التصنيف الصحيح، لا CLOSED.
+
+Security Debt
+
+الـbaseline الحالي كشف شيئًا مهمًا لا يجوز تجاهله:
+
+رغم أن EXECUTE على الـFinancial Cores أصبحت service_role-only، فإن RLS/privilege layer على عدة جداول مالية ما زالت واسعة جدًا.
+
+أمثلة مباشرة في Production:
+
+cash_box → ALL USING true
+customer_ledger → ALL USING true
+daily_settlements → ALL USING true
+journal_entries → ALL USING true
+journal_lines → ALL USING true
+supplier_ledger → ALL USING true
+treasury → ALL USING true
+
+وكذلك توجد table-level privileges واسعة على أدوار anon وauthenticated لبعض هذه الجداول.
+
+لم أغيرها.
+
+لأن برومبت 57 Phase 0 يمنع إصلاحها الآن؛ المطلوب في هذه المرحلة هو تصنيفها كـOpen Security Debt فقط.
+
+87 COA
+
+تم الحفاظ تمامًا على:
+
+EXACT 87 COA RECOVERY = OPEN
+SOURCE EXHAUSTION      = CLOSED
+NO FABRICATION         = TRUE
+
+لا يوجد أي إنشاء أو إعادة بناء للحسابات.
+
+ما تم رفعه إلى المستودع
+1. Master Current-State Baseline
+
+فتح 20260824_PHASE0_CURRENT_STATE_BASELINE.md
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260824_PHASE0_CURRENT_STATE_BASELINE.md
+
+2. Khalid Governance Baseline
+
+فتح 20260824_PHASE0_KHALID_GOVERNANCE_BASELINE.md
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260824_PHASE0_KHALID_GOVERNANCE_BASELINE.md
+
+3. Open Debt Register
+
+فتح 20260824_PHASE0_OPEN_DEBT_REGISTER.md
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260824_PHASE0_OPEN_DEBT_REGISTER.md
+
+كما تم تحديث Issue #25 بسجل التنفيذ والحالة النهائية الخاصة بخالد.
+
+أهم نتيجة لخالد
+
+Khalid Phase 0 Governance Deliverable = COMPLETE
+
+لكن:
+
+PHASE 0 = OPEN
+
+وليس CLOSED.
+
+السبب الوحيد المتبقي على مستوى الـGate العام هو أن:
+
+Hytham's independent Phase 0 technical baseline + Khalid/Hytham final reconciliation لم يتم إثباتهما بعد.
+
+وهذا ليس فشلًا ولا توقفًا؛ بل هو الـGate الصحيح الذي يمنع الانتقال إلى أي تطوير وظيفي قبل أن يتطابق:
+
+Production
+
+مع
+
+Git
+
+مع
+
+Migrations
+
+مع
+
+Edge
+
+مع
+
+Security
+
+مع
+
+Branches/PRs
+
+مع
+
+Open Debt.
+
+وبالتالي نفذت كل ما يخص خالد في Phase 0، دون أي تعديل على Business Logic أو PWA أو Inventory أو COA أو Treasury أو Financial Writers.
