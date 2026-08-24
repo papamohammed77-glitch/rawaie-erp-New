@@ -1,0 +1,101 @@
+النتيجة التنفيذية
+أنشأت Master Directive جديدة
+أنشأت:
+MASTER CURRENT COMPANY REPAIR REPLAY DIRECTIVE
+Commit:
+fab642c908c346b4a79a6d6c0b32af792bf48d05
+هذه الوثيقة تعيد ضبط قاعدة العمل:
+كل إصلاح سابق صحيح يُعاد تطبيقه في سياق الشركة الحالية، وليس تحت Company IDs المتقاعدة.
+وتمنع صراحة:
+•	إعادة إنشاء بيانات مالية بالتخمين. 
+•	إعادة توجيه Treasury أو COA بدون عقد. 
+•	العبث بـInventory Core. 
+•	اعتبار Git وحده دليلًا على أن Production مغلقة. 
+•	اعتبار عدد الصفوف مصدرًا للصفوف نفسها. 
+________________________________________
+تكليف خالد الجديد
+أنشأت:
+NEXT PROMPT — KHALID — CURRENT COMPANY FINANCIAL MASTER RECOVERY
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/NEXT_PROMPT_KHALID_20260824_CURRENT_COMPANY_FINANCIAL_MASTER_RECOVERY.md
+
+Commit:
+ac30e60c49f1bda6e31023259db91e0c2342f411
+مهمة خالد الآن
+ليس UI.
+المسار هو:
+Forensic COA Recovery
+→ Current Company Ownership
+→ COA Canonicalization
+→ Treasury ↔ COA Contract
+→ Financial Master Data Closure
+والمهمة الأولى له تحديدًا:
+العثور على المصدر الحقيقي للـ87 صفًا.
+ويجب أن يبحث في:
+Git history
+blobs
+trees
+migrations
+seeds
+historical commits
+authoritative snapshots
+ويُمنع من تحويل الـ16 الأساسية إلى 87 بالتخمين.
+كما منعته صراحة من لمس:
+accountant.html
+finance-manager.html
+POS
+Inventory Core
+Company Identity خارج مهمته.
+________________________________________
+تكليف هيثم الجديد
+أنشأت:
+NEXT PROMPT — HYTHAM — FINANCIAL WRITER CONVERGENCE
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/NEXT_PROMPT_HYTHAM_20260824_FINANCIAL_WRITER_CONVERGENCE.md
+
+Commit:
+6cd08e039fdd94b9e9da8ad268e2b207f15b4b3e
+مسار هيثم
+Global Writer Discovery
+→ Driver Ledger Contract
+→ Deployment Lineage
+→ Authenticated HTTP E2E
+→ Two-Session Concurrency
+→ Driver Ledger Core
+→ Receipt
+→ Payment
+→ Purchase Receiving
+→ Return
+→ Daily Settlement
+→ Global Financial Writer Zero-Debt
+والتعليمات تمنعه من لمس:
+COA ownership
+Treasury ownership
+Company consolidation
+Inventory Core
+إلا أن الأدلة تثبت dependency لا يمكن تجاوزها.
+________________________________________
+أنشأت سجل النتيجة الجنائية
+FORENSIC STAGING FINANCIAL RECOVERY RESULT
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260824_FORENSIC_STAGING_FINANCIAL_RECOVERY_RESULT.md
+
+Commit:
+bad743ba5b95eb1d35e0523b42fd0fca9d08af51
+وحالته الرسمية:
+Gate	الحالة
+Treasury Replay	✅ CLOSED
+Current Company Ownership	✅ مثبت في staging
+87 COA Recovery	🔴 OPEN
+Financial Writer Convergence	🔴 OPEN
+Staging Security Hardening	🔴 OPEN
+Fabrication / Guessing	✅ مرفوض
+________________________________________
+الحكم النهائي
+المسار الصحيح الآن ليس إنشاء 87 حسابًا بأي ثمن.
+المسار الصحيح هو:
+Treasury تم استردادها.
+الـ87 تحتاج Source Recovery حقيقي.
+ثم بعد ذلك:
+Khaled → Financial Master Data
+وبالتوازي المنضبط:
+Hytham → Financial Writer Convergence
+وهذا أفضل بكثير من إنشاء 87 حسابًا “معقولة شكليًا” ثم بناء Accounting Core كامل فوق بيانات مالية غير حقيقية.
+
