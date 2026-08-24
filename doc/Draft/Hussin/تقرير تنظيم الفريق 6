@@ -1,0 +1,71 @@
+نعم. بعد مراجعة التسلسل والملفات الحالية، المشكلة محددة جدًا:
+
+Scheduler → Control Plane منفذ فعلًا كل 5 دقائق، ويُنشئ الـtask ويستدعي AGENT_RUNTIME_URL عند وجوده.
+
+لكن Operations_Team نفسه لا يحتوي حاليًا إلا ملف اختبار واحد، أي أن تشغيل الفريق الحقيقي لم يبدأ بعد.
+
+المنصة التي أوصي بها
+
+Google Cloud Run + OpenAI Agents SDK (Python).
+
+السبب: Cloud Run يعطيك HTTPS service حقيقيًا، ويمكن حمايته وإدارة أسراره عبر Secret Manager.
+وAgents SDK مناسب تحديدًا لبناء عدة Agents مع handoffs/tools/guardrails/tracing.
+
+والشكل النهائي يكون:
+
+GitHub Scheduler
+       ↓
+Control Plane
+       ↓ HTTPS POST
+External Agent Runtime
+       ↓
+ ┌────────┬────────┬────────┐
+ │ Medhat │ Khalid │ Hytham │
+ └────────┴────────┴────────┘
+       ↓
+GitHub Operations_Team
+الخطوات التنفيذية
+
+1. أنشئ مشروع Google Cloud مخصص للـRuntime.
+
+2. فعّل:
+Cloud Run
+Artifact Registry
+Secret Manager.
+
+3. ننشئ داخل المشروع Runtime حقيقي يحتوي ثلاثة Agents:
+Medhat, Khalid, Hytham.
+والـowner القادم من الـScheduler هو الذي يحدد الـAgent.
+
+4. الـRuntime يستقبل بالضبط الـpayload المحدد في العقد الحالي.
+
+5. الـRuntime يحتاج أسرارًا مثل:
+OPENAI_API_KEY
+GITHUB_TOKEN / GitHub App credentials
+SUPABASE credentials عند الحاجة.
+الأسرار توضع في Secret Manager، وليس داخل الكود.
+
+6. بعد نشر Cloud Run نحصل على:
+AGENT_RUNTIME_URL
+
+وننشئ:
+AGENT_RUNTIME_TOKEN
+
+ثم نضعهما في:
+GitHub → Settings → Secrets and variables → Actions → Repository secrets
+وهذا يتطابق مباشرة مع الـworkflow الحالي.
+
+7. نختبر دورة كاملة:
+
+new task file
+→ Scheduler
+→ Runtime
+→ Medhat/Khalid/Hytham
+→ execution
+→ report in Operations_Team
+→ next scheduler cycle
+نقطة مهمة
+
+لا نحتاج ثلاثة مساعدين ChatGPT منفصلين بالضرورة. نحتاج Runtime واحدًا حقيقيًا يحتوي ثلاثة Agents معرفين برمجيًا مع أدواتهم وصلاحياتهم ومسؤولياتهم. هذا هو التصميم الأنسب للنظام الحالي.
+
+الخطوة التالية الصحيحة: بناء مشروع الـExternal Agent Runtime نفسه؛ وليس تعديل الـScheduler مرة أخرى.
