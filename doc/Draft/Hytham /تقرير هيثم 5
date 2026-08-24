@@ -1,0 +1,378 @@
+هيثم — تنفيذ تقرير وبرومبت 55
+
+تم فتح doc/Draft/medhat/تقرير وبرومبت 55 كاملًا وتتبع تسلسله حتى النهاية، ثم تنفيذ ما يخص هيثم وفق الـDirective المرتبط به.
+
+وأخذت حقيقة تشغيلية جديدة كقاعدة حاكمة:
+
+Production الحالية = شركة واحدة فقط
+00000000-0000-0000-0000-000000000001
+
+ولا أستخدم أي Company IDs متقاعدة ضمن المسار الحالي.
+
+1. Production Re-Baseline
+
+تمت القراءة المباشرة من SMART ERP Production بتاريخ 24 أغسطس 2026:
+
+العنصر	Production الحالية
+Companies	1
+Users	24
+Treasury	1
+Journal Entries	2
+Journal Lines	0
+Customer Ledger	0
+Supplier Ledger	0
+Driver Ledger	0
+Cash Box	0
+Orders	0
+Purchase Orders	0
+Runsheets	0
+
+وإصدار PostgreSQL هو 17.6.
+
+إذن لا توجد قاعدة حقيقية حاليًا تبرر إعادة إنشاء بيانات مالية تاريخية أو ملء جداول محذوفة بالتخمين.
+
+2. Global Financial Writer Sweep
+
+تم تنفيذ sweep مباشر على Production، وليس الاعتماد على قائمة تاريخية.
+
+النتيجة قبل الإغلاق
+
+كانت الـwriters المالية الفعلية تتضمن:
+
+save_sales_invoice_atomic
+receive_purchase_atomic
+complete_return_atomic
+
+إلى جانب الـlegacy writers على مستوى Edge Functions.
+
+النتيجة بعد التنفيذ
+
+أصبحت الكتابة المباشرة في PostgreSQL محصورة في الـCanonical Cores:
+
+post_journal_entry
+post_customer_ledger_entry
+post_supplier_ledger_entry
+post_driver_ledger_entry
+
+وهذا تحقق مباشرة من تعريفات Production الحالية.
+
+بالتالي:
+
+NO DIRECT JOURNAL WRITER
+NO DIRECT CUSTOMER LEDGER WRITER
+NO DIRECT SUPPLIER LEDGER WRITER
+NO DIRECT DRIVER LEDGER WRITER
+
+خارج الـCore functions نفسها.
+
+3. Driver Ledger Contract
+
+كانت هذه أهم بوابة في Prompt 55.
+
+driver_ledger لا يحتوي:
+
+company_id
+
+ولا يحتوي FK مباشرًا على Driver.
+
+لكن Production أثبتت أن:
+
+users.email = UNIQUE
+users.company_id = NOT NULL
+users.company_id → companies.id
+
+كما أن Driver users موجودون كـ:
+
+مندوب توصيل
+
+والـDriver identities الحالية في users جميعها تخص الشركة الوحيدة الحالية.
+
+كذلك:
+
+vehicles = 0
+daily_settlements = 0
+driver_ledger = 0
+
+لذلك لم أقم بإضافة company_id إلى driver_ledger.
+
+بدلًا من ذلك أصبح العقد:
+
+company_id
++
+driver_email
+        ↓
+users.email
+        ↓
+users.company_id = supplied company
+        ↓
+role = Driver
+
+وهذا يحقق Tenant Ownership على مستوى العقد الحالي بدون اختراع بنية جديدة.
+
+4. تم إنشاء Driver Ledger Core
+
+Production الآن تحتوي:
+
+post_driver_ledger_entry(...)
+
+ويدير:
+
+Driver ownership.
+Company validation.
+Operation identity.
+Duplicate protection.
+Driver row locking.
+Running balance.
+Audit.
+SECURITY DEFINER.
+service_role execution.
+
+تم تنفيذ اختبار فعلي داخل Transaction:
+
+driver
+→ debit 125
+→ ledger
+→ operation registry
+→ audit
+
+ثم:
+
+ROLLBACK
+
+والتحقق بعد ذلك أكد عدم بقاء Test Ledger أو Test Operation.
+
+5. POS Financial Writer Convergence
+
+أصبح:
+
+POS
+ ↓
+save_sales_invoice_atomic
+
+يمر الآن عبر:
+
+post_stock_movement
+post_cash_receipt_atomic
+post_journal_entry
+post_customer_ledger_entry
+post_driver_ledger_entry
+
+بدل الكتابة المباشرة.
+
+أزيلت من POS:
+INSERT journal_entries      ❌
+INSERT journal_lines       ❌
+INSERT customer_ledger     ❌
+INSERT driver_ledger       ❌
+
+وهذا يعني أن POS لم يعد Financial Writer مستقلًا.
+
+والـInventory لم ألمسه.
+
+6. Purchase Receiving Convergence
+
+receive_purchase_atomic كان يكتب مباشرة:
+
+journal_entries
+journal_lines
+supplier_ledger
+
+تم تحويله إلى:
+
+post_journal_entry
+post_supplier_ledger_entry
+
+مع بقاء:
+
+post_stock_movement
+
+هو المسؤول عن Physical Inventory.
+
+والـSupplier نفسه يحمل:
+
+company_id
+
+لذلك ملكيته المؤسسية مثبتة.
+
+والتحقق من Production الآن:
+
+direct journal write = 0
+direct supplier ledger write = 0
+
+داخل receive_purchase_atomic.
+
+7. Return Convergence
+
+complete_return_atomic كان أيضًا يكتب مباشرة:
+
+journal_entries
+journal_lines
+customer_ledger
+
+أصبح الآن يستخدم:
+
+post_journal_entry
+post_customer_ledger_entry
+
+مع إبقاء:
+
+post_stock_movement
+
+للحركة الفيزيائية.
+
+أما:
+
+driver_liabilities
+
+فلم أحولها إلى Driver Ledger؛ لأنها Operational Liability وليست Financial Ledger contract مثبتة حاليًا.
+
+وهذا فصل مهم جدًا بين:
+
+Driver Liability
+≠
+Driver Ledger
+8. لماذا لم أختبر Purchase وReturn Live؟
+
+لأن Production الحالية بعد إزالة البيانات الوهمية لا تحتوي:
+
+Purchase Orders = 0
+Orders = 0
+Runsheets = 0
+
+وبالتالي إنشاء Purchase Order أو Order أو Runsheet اصطناعي فقط لإجبار الاختبار على النجاح سيكون مخالفًا تمامًا لـPrompt 55.
+
+لذلك:
+
+Purchase Receiving Business Runtime = OPEN
+Return Business Runtime = OPEN
+
+وليس Failed.
+
+9. Deployment Lineage
+
+وجدت Drift حقيقيًا:
+
+Current/Edge_Functions/save-sales-invoice
+
+في main لم تكن مطابقة لـProduction v15 الحالية.
+
+لذلك على فرع هيثم:
+
+heytham/20260824-financial-writer-convergence
+
+تمت مزامنة:
+
+Current/Edge_Functions/save-sales-invoice
+
+مع Production v15، بما فيها:
+
+operation_id
+Idempotency-Key
+deterministic fallback
+authenticated user
+save_sales_invoice_atomic
+
+ولم يتم تعديل أي PWA.
+
+10. ما لم أفعله
+
+التكليف يمنعني من إعلان Zero-Debt قبل إغلاق:
+
+Authenticated HTTP E2E
+
+لا توجد لدي في هذه الجلسة نقطة HTTP مصادق عليها تسمح بإثبات:
+
+PWA
+→ Edge
+→ Core
+→ Production Runtime
+
+بدون اصطناع دليل.
+
+Two-Session Concurrency
+
+لم أعلن أن:
+
+two simultaneous sessions
+
+تم اختبارهما بالفعل.
+
+وجود locks/unique keys وحده ليس concurrency proof.
+
+Receipt / Payment Runtime Closure
+
+الـCash Cores موجودة بالفعل، لكن الـlegacy Edge Consumers لم يثبت بعد عبر HTTP Runtime النهائي أنها كلها متوافقة معها.
+
+Daily Settlement
+
+ما زال يحتاج Writer Forensics مستقل قبل إغلاقه.
+
+11. الحالة الحالية
+Global Writer Discovery             ✅
+Current Company Rebaseline          ✅
+Driver Ledger Ownership             ✅
+Driver Ledger Core                  ✅
+POS Journal convergence             ✅
+POS Customer Ledger convergence     ✅
+POS Driver Ledger convergence       ✅
+POS Cash Core                       ✅
+Purchase Journal convergence       ✅
+Purchase Supplier Ledger            ✅
+Return Journal convergence          ✅
+Return Customer Ledger              ✅
+Inventory Core untouched            ✅
+COA untouched                       ✅
+Treasury ownership untouched        ✅
+PWA untouched                       ✅
+
+ويبقى:
+
+Authenticated HTTP E2E               OPEN
+Two-Session Concurrency              OPEN
+Receipt Writer Runtime               OPEN
+Payment Writer Runtime               OPEN
+Daily Settlement Writer              OPEN
+Purchase live runtime                OPEN
+Return live runtime                  OPEN
+Global Financial Zero-Debt           OPEN
+12. Git — تم حفظ التنفيذ للمراجعة
+
+أنشأت فرع:
+
+heytham/20260824-financial-writer-convergence
+
+وتم حفظ:
+
+Current/Edge_Functions/save-sales-invoice
+Current/CTO/20260824_HYTHAM_PROMPT55_FINANCIAL_WRITER_CONVERGENCE.md
+
+لم يتم تعديل Current/PWA إطلاقًا.
+
+وتم إنشاء Pull Request للمراجعة فقط:
+
+PR #24
+
+HYTHAM: Prompt 55 financial writer convergence
+
+وهو Draft وغير مدموج في main.
+
+التقرير التنفيذي الكامل محفوظ هنا:
+
+20260824_HYTHAM_PROMPT55_FINANCIAL_WRITER_CONVERGENCE.md
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/heytham/20260824-financial-writer-convergence/Current/CTO/20260824_HYTHAM_PROMPT55_FINANCIAL_WRITER_CONVERGENCE.md
+
+الحكم النهائي لهيثم
+
+FINANCIAL WRITER CONVERGENCE = OPEN / PARTIAL
+
+لكن التحول الأساسي تم بالفعل:
+
+Distributed Financial Writers
+            ↓
+Canonical Financial Core Boundary
+
+ولا تزال بوابات HTTP E2E + Concurrency + Receipt/Payment + Daily Settlement + Runtime Closure هي ما يمنع إعلان:
+
+FINANCIAL WRITER ZERO-DEBT = CLOSED
+
+وهذا يحافظ على مبدأ Prompt 55: لا نعلن الإغلاق لمجرد أن الكود أصبح نظيفًا؛ الإغلاق يحتاج Production Runtime Evidence.
