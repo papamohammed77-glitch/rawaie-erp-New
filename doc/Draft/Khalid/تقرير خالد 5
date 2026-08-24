@@ -1,0 +1,98 @@
+تم التنفيذ يا خالد وفق تقرير وبرومبت 55 وبالاعتماد على Production الحالية + Git الحالي + Git history + rawaie-erp-review + audit/seed evidence، وليس على التقارير كحقيقة.
+
+النتيجة الأساسية
+
+Production الآن شركة واحدة فقط:
+
+00000000-0000-0000-0000-000000000001 — الروائع
+
+وهذا تم التحقق منه مباشرة من SMART ERP. كما أن:
+
+chart_of_accounts = 0
+treasury = 1
+cash_box = 0
+journal_entries = 2
+journal_lines = 0
+
+والخزينة الحالية موجودة بالفعل تحت الشركة الوحيدة:
+
+CASH-01 — الخزينة الرئيسية
+
+مع UUID التاريخي نفسه ورصيد:
+
+10,000
+
+لذلك لم أعد إنشاء Treasury ولم أعد إنشاء الشركات المحذوفة.
+
+الـ87 حسابًا
+
+نفذت الـForensic Source Recovery كما أمر Prompt 55:
+
+rawaie-erp-New
+
+rawaie-erp-review
+
+Git history / commits
+
+migrations / seeds
+
+historical tenant references
+
+Production audit_log
+
+row-level audit availability
+
+النتيجة الدقيقة:
+
+لم أجد حتى الآن مصدرًا authoritative يحتوي الصفوف الـ87 نفسها صفًا بصف.
+
+ما وجدناه يثبت العدد 87 فقط، وليس السجلات الـ87.
+
+كما أن الـapplication seed الحالي يحتوي فقط على الحسابات الأساسية، ولا يجوز تحويلها اصطناعيًا إلى 87 حسابًا.
+
+وaudit_log الحالي لا يحتوي row-level history لـchart_of_accounts يمكن منه إعادة بناء الحسابات المحذوفة.
+
+لذلك:
+
+87 COA RECOVERY = OPEN
+
+ولم أُنشئ حسابًا واحدًا بالتخمين، ولم أفترض علاقات Parent/Child، ولم أغيّر أكوادًا أو أسماء.
+
+وهذا هو القرار الصحيح وفق الـDirective نفسه.
+
+ماذا تم إغلاقه؟
+الوحدة	الحالة
+Single-company Production topology	CLOSED / VERIFIED
+Current Treasury ownership	CLOSED / VERIFIED
+Exact 87 COA recovery	OPEN
+COA canonicalization	BLOCKED BY SOURCE RECOVERY
+Treasury ↔ COA semantic contract	OPEN
+Financial Writer Convergence	HYTHAM TRACK / OPEN
+Accountant / Finance Manager	OUT OF SCOPE لهذه المهمة
+POS	OUT OF SCOPE
+Inventory Core	UNCHANGED
+
+وهذا متسق مع قرار الـForensic السابق الذي رفض إعادة إنشاء الـ87 بدون مصدر صفّي موثوق.
+
+تم حفظ نتيجة خالد في Current/CTO
+
+20260824_KHALID_PROMPT55_CURRENT_COMPANY_FINANCIAL_MASTER_RECOVERY.md
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260824_KHALID_PROMPT55_CURRENT_COMPANY_FINANCIAL_MASTER_RECOVERY.md
+
+Commit:
+
+16004b55c04518dcb5c515388832bbbd9c7b1f20
+
+والـPrompt 55 نفسه أكد أن المطلوب الآن هو Forensic COA Recovery → Current Company Ownership → COA Canonicalization → Treasury ↔ COA Contract، مع منع صريح للاختلاق أو لمس POS/Inventory/الـPWAs المالية خلال هذه الوحدة.
+
+الحالة النهائية لخالد الآن:
+
+CURRENT COMPANY = VERIFIED
+
+TREASURY = VERIFIED
+
+87 COA = OPEN
+
+NO FABRICATION = CONFIRMED
+
+AUTONOMOUS CTO READY = NO
