@@ -1,0 +1,48 @@
+تم تصحيح طبقة التشغيل الفعلية، وليس البرومبت فقط.
+
+ما كان خطأً
+
+الـScheduler كان مجرد Poller: يفحص الملفات ويكتب Inbox/State، ولا يشغّل أي مساعد فعلي ولا يملك message_id/task_id/owner/status ولا يمنع التكرار بمنظومة مهام حقيقية. هذا مؤكد من الـworkflow نفسه.
+
+كما أن Operations_Team على main كان يحتوي عمليًا ملف اختبار واحد فقط.
+
+ما تم إصلاحه فعليًا
+
+عدّلت:
+
+.github/workflows/operations-team-scheduler.yml
+
+ليصبح Control Plane حقيقيًا كل 5 دقائق، مع:
+task_id / message_id / owner / status / source_commit / timestamps / dispatch result
+
+وأضفت:
+
+.github/operations/operations_control_plane.py
+
+وهو المسؤول عن:
+discover → deduplicate → queue → dispatch → record state
+
+وأضفت:
+
+.github/operations/AGENT_RUNTIME_CONTRACT.md
+
+لتحديد واجهة الربط الفعلية مع Agent Runtime الخارجي.
+
+نقطة مهمة جدًا
+
+الطبقة الآن مهيأة فعليًا لاستدعاء Agent Runtime خارجي، لكنها لن تدّعي تشغيل المساعدين من نفسها ما لم تُضبط أسرار GitHub:
+
+AGENT_RUNTIME_URL
+AGENT_RUNTIME_TOKEN
+
+وهذا متسق مع البروتوكول الأصلي الذي نفسه نص على ضرورة ربط:
+
+Scheduler → Agent Runtime
+
+الحكم
+
+Scheduler السابق: غير كافٍ.
+Control Plane الجديد: مُنفذ في GitHub.
+Agent Runtime الفعلي: نقطة الربط الوحيدة التي تحتاج endpoint/credential حقيقي.
+
+وهذه المرة لم أضع "تقريرًا" مكان التنفيذ؛ تم تعديل الملفات الفعلية نفسها.
