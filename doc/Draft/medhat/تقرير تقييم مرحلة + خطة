@@ -1,0 +1,924 @@
+نعم. بعد إعادة بناء السياق من المصادر المنشورة، Git الحالي، Production Supabase، تعريفات RPC، Edge Functions، وسجلات الجولة الأخيرة، الصورة الآن أوضح بكثير من أي Snapshot سابق.
+
+والحكم الأهم: لسنا في مرحلة “إضافة ميزات”؛ نحن في مرحلة تحويل ما تم إنقاذه إلى نظام مرجعي متماسك قابل لإعادة البناء والتشغيل دون دين مخفي.
+
+1. نقطة الصفر الحالية — Current Reality
+
+آخر Production Snapshot أجريته الآن هو:
+
+2026-08-24 15:18:34 UTC — PostgreSQL 17.6
+
+والحالة الفعلية الآن:
+
+المجال	Production الحالية
+Companies	1
+Users	24
+Branches	2
+Items	17
+Stock Rows	20
+Inventory Log	3
+Stock Vouchers	0
+Treasury	1
+Chart of Accounts	0
+Journal Entries	2
+Journal Lines	0
+Customer Ledger	0
+Supplier Ledger	0
+Driver Ledger	0
+Orders	0
+Purchase Orders	0
+Runsheets	0
+
+والـCompany الحالية الوحيدة هي:
+
+00000000-0000-0000-0000-000000000001
+
+والـTreasury الحالية موجودة بالفعل:
+
+CASH-01 — الخزينة الرئيسية
+
+برصيد افتتاحي وحالي 10,000.
+
+هذه النقطة تختلف عن بعض تقارير 22–23 أغسطس، ولذلك لا يجوز استخدام أرقامها كنقطة انطلاق حالية.
+
+وهذا يتفق مع المبدأ الموجود في Memory Transfer Directive: Production الحالية هي المرجع الأعلى، وليس التقرير التاريخي.
+
+2. النتيجة الجنائية للمرحلة السابقة
+ما ثبت أنه صحيح
+A. Single-Company Topology
+
+تم الوصول فعليًا إلى Company واحدة.
+
+إذن:
+
+Company Consolidation = منتهية من ناحية topology الحالية
+
+لكن:
+
+Historical Data Preservation / Full Merge = غير مثبت
+
+وهذه نقطة شديدة الأهمية.
+
+التقارير نفسها أثبتت أن الشركتين القديمتين تم حذفهما، وأن البيانات القديمة لم تُحافظ كلها في صورة قابلة لإعادة البناء.
+
+B. Treasury
+
+الـTreasury ليست مفقودة الآن.
+
+لا يجب إعادة إنشائها.
+
+وهذه واحدة من النقاط التي قام خالد فيها بالتصرف الصحيح تمامًا: عدم إعادة إنشاء Master Data موجودة أصلًا.
+
+C. الـ87 COA
+
+هنا الموقف واضح جدًا:
+
+87 COA Recovery = OPEN
+
+ولا يوجد حتى الآن مصدر Row-Level authoritative يمكن منه استرداد:
+
+account_code
+account_name
+account_type
+parent_account_id
+normal_balance
+وغيرها
+
+بصورة مؤكدة.
+
+المساعد الخارجي أثبت فقط وجود Bootstrap صغير من 16 حسابًا، واعترف صراحة بأنه لا يملك الـ87 صفًا.
+
+وبالتالي:
+
+ممنوع إنشاء 87 حسابًا من الـ16 حسابًا.
+
+قرار خالد بعدم الاختلاق صحيح تمامًا.
+
+3. Inventory — أين وصل فعليًا؟
+
+هنا توجد نقطة إيجابية جدًا.
+
+الـMemory Transfer Directive وضع العقد التالي:
+
+PHYSICAL MOVEMENT
+       ↓
+post_stock_movement
+       ↓
+stock_branches
++
+inventory_log
+
+مع:
+
+reserve_stock
+release_stock_reservation
+
+كـReservation فقط، وليس Physical Movement.
+
+والتحقق الحالي من Production يؤكد أن:
+
+Physical Stock Engine الأساسي = post_stock_movement
+
+وهو يقوم فعليًا بتعديل:
+
+stock_branches
+inventory_log
+
+بينما reserve_stock وrelease_stock_reservation يغيران allocated_qty فقط.
+
+إذن Inventory Core ليس هو المنطقة التي يجب أن نعيد تصميمها من الصفر.
+
+لكن هذا لا يعني:
+
+GLOBAL INVENTORY = 100% CLOSED
+
+لأن ما تبقى هو:
+
+Consumer convergence
+company/item identity hardening
+runtime evidence
+loading/unloading lifecycle
+picker/fulfillment integration
+historical data integrity
+current Git/Production lineage
+
+وهذا بالضبط سبب رفض الذاكرة الحاكمة لعبارة CLOSED العامة.
+
+4. Accounting — التقدم حقيقي لكن الإغلاق غير حقيقي
+
+هنا يجب التفريق بين شيئين.
+
+Architecture
+
+تم إنشاء Financial Core حقيقي:
+
+post_journal_entry
+post_customer_ledger_entry
+post_supplier_ledger_entry
+post_driver_ledger_entry
+post_cash_receipt_atomic
+post_cash_payment_atomic
+
+وهذا تقدم معماري حقيقي، وليس مجرد Naming exercise.
+
+هيثم كان صحيحًا في الاتجاه العام.
+
+لكن Global Financial Writer Convergence
+
+ليست مغلقة بعد.
+
+وهذه من أهم النتائج التي خرجت بها مراجعة الجولة الأخيرة.
+
+السبب ليس أن الـCores غير موجودة.
+
+السبب هو أن:
+
+وجود Core ≠ انتقال كل المسؤوليات إليه + إثبات Runtime + إثبات Lineage.
+
+5. اكتشاف مهم جدًا بخصوص Git / Production
+
+كانت هناك في جولة هيثم:
+
+PR #24
+
+لكن الآن الحالة الفعلية للـPR:
+
+Closed / Draft / Not Merged
+
+أي أنه ليس مصدرًا حاليًا للـmain.
+
+وفي نفس الوقت، main استمر في التقدم بالفعل، وظهرت commits مستقلة في 24 أغسطس، منها:
+
+مزامنة save-sales-invoice مع Production v15
+مزامنة receive-purchase مع Production v12
+توثيق Prompt 56
+إضافة Production-verified save-journal-entry
+
+وهذا يثبت أن الوضع الحالي لا يمكن قراءته من PR #24 وحده.
+
+هذه نقطة جوهرية جدًا:
+
+Historical PR
+      ≠
+Current main
+      ≠
+Production
+
+إلا إذا تمت المطابقة الثلاثية.
+
+6. اكتشاف أمني تم إصلاحه
+
+المراجعة السابقة اكتشفت أن Financial Cores كانت تمتلك صلاحيات تنفيذ أوسع مما ينبغي.
+
+تم تصحيح ذلك وسحب التنفيذ من:
+
+PUBLIC
+anon
+authenticated
+
+والإبقاء على:
+
+service_role
+
+وفق التقرير الأخير.
+
+والتحقق الحالي في Production يعكس هذا الاتجاه: الـCore functions التنفيذية التي فحصتها لا يظهر لها anon أو authenticated في routine_privileges.
+
+إذن:
+
+Security Closure لهذا الجزء = تم التصحيح، لكن ليس سببًا لإعلان Financial Security بالكامل CLOSED.
+
+7. الحكم على خالد وهيثم
+خالد
+الحكم:
+
+صحيح ومحافظ.
+
+أفضل ما فعله:
+
+No Row-Level Source
+      ↓
+No Fabrication
+
+ولم يحوّل الـ16 حسابًا إلى 87 حسابًا وهميًا.
+
+لكن هناك خطر منهجي:
+
+Search
+ ↓
+No Source
+ ↓
+Prompt جديد
+ ↓
+Search
+ ↓
+No Source
+
+وهذا قد يتحول إلى Forensic Loop بلا نهاية.
+
+لذلك المسار الصحيح لخالد الآن ليس “استمر في البحث”.
+
+بل:
+
+EXHAUSTIVE SOURCE RECOVERY
+          ↓
+EVIDENCE EXHAUSTION CERTIFICATE
+          ↓
+FOUND
+  OR
+NO AUTHORITATIVE SOURCE EXISTS
+          ↓
+OWNER / BUSINESS RECOVERY DECISION
+
+وهو استنتاج متوافق مباشرة مع المراجعة الأخيرة.
+
+هيثم
+الحكم:
+
+Architecturally صحيح، Production progress حقيقي، لكن Financial Zero-Debt غير مكتمل.
+
+نجح في:
+
+Financial Core boundary
+POS convergence
+Purchase convergence على مستوى الـCore architecture
+Return convergence
+Driver Ledger Core
+Operation registry / idempotency
+
+لكن ما زال لدينا Gates:
+
+Authenticated HTTP E2E
+Concurrency
+Receipt Runtime
+Payment Runtime
+Daily Settlement
+Purchase Runtime
+Return Runtime
+Consumer Matrix
+Production/Git Lineage
+Global Financial Zero-Debt
+
+وهذا مذكور بوضوح في تقرير هيثم نفسه.
+
+8. الآن أهم قرار استراتيجي
+لا نواصل العمل على مسارين منفصلين بلا نقطة التقائهما.
+
+الوضع الحالي هو:
+
+             RAWAEA ERP
+                  │
+       ┌──────────┴──────────┐
+       │                     │
+   DATA FOUNDATION       WRITE ENGINES
+       │                     │
+       │                     │
+   Company              Inventory Core
+   Treasury             Financial Core
+   COA                   Ledger Cores
+   Master Data           Cash Cores
+       │                     │
+       └──────────┬──────────┘
+                  │
+            CONSUMERS
+                  │
+        Edge Functions
+                  │
+              PWA/UI
+                  │
+          RUNTIME PROOF
+                  │
+          GLOBAL CLOSURE
+
+وبالتالي:
+
+المرحلة التالية ليست “Accounting” ولا “Inventory” وحدهما.
+
+المرحلة التالية هي FOUNDATION + CORE + CONSUMER ALIGNMENT.
+
+9. الخطة العامة الكبرى
+
+أقترح تقسيم المشروع من الآن إلى 7 مراحل رئيسية:
+
+RAWAEA ERP RECOVERY & CONVERGENCE
+│
+├── PHASE 0 — REBASELINE & GOVERNANCE
+│
+├── PHASE 1 — FINANCIAL MASTER DATA RECOVERY
+│
+├── PHASE 2 — INVENTORY ZERO-DEBT
+│
+├── PHASE 3 — FINANCIAL WRITER ZERO-DEBT
+│
+├── PHASE 4 — CONSUMER / EDGE / PWA CONVERGENCE
+│
+├── PHASE 5 — RUNTIME + CONCURRENCY + E2E
+│
+├── PHASE 6 — DATA RECONCILIATION & PRODUCTION CERTIFICATION
+│
+└── PHASE 7 — AUTONOMOUS CTO READINESS
+10. PHASE 0 — REBASELINE & GOVERNANCE
+
+هذه المرحلة بدأت الآن ويجب اعتبارها Gate وليست مشروعًا دائمًا.
+
+هدفها
+
+إنشاء خط أساس واحد:
+
+Current Production
++
+Current main
++
+Current Edge Versions
++
+Current RPCs
++
+Current Data
++
+Current Open Debt
+المطلوب
+PRODUCTION SNAPSHOT
+       ↓
+FUNCTION INVENTORY
+       ↓
+EDGE INVENTORY
+       ↓
+MIGRATION INVENTORY
+       ↓
+GIT HEAD
+       ↓
+PR/BRANCH STATUS
+       ↓
+OPEN DEBT REGISTER
+       ↓
+ONE AUTHORITATIVE BASELINE
+شرط الخروج
+
+لا يوجد:
+
+“حسب تقرير 22 أغسطس”
+“حسب هيثم”
+“حسب خالد”
+“حسب Prompt سابق”
+
+إلا بوصفه Historical Evidence.
+
+11. PHASE 1 — FINANCIAL MASTER DATA
+
+هذه الآن أكبر Blocker مالي.
+
+المسار
+87 COA SOURCE RECOVERY
+        ↓
+EVIDENCE EXHAUSTION
+        ↓
+COA RESTORATION / OWNER DECISION
+        ↓
+TREASURY ↔ COA CONTRACT
+        ↓
+ACCOUNT IDENTITY CONTRACT
+        ↓
+FINANCIAL MASTER DATA VERIFIED
+مهم جدًا
+
+Treasury موجودة.
+
+إذن لا تلمس Treasury الآن.
+
+المطلوب:
+
+CASH-01
+   ↕
+Canonical COA Account
+
+لكن لا يجوز اختيار الحساب المقابل من الاسم أو الكود بالافتراض.
+
+12. PHASE 2 — INVENTORY ZERO-DEBT
+
+هنا لا نعيد بناء post_stock_movement.
+
+بل نبدأ Closure Matrix.
+
+post_stock_movement
+       ↓
+Manual Voucher
+       ↓
+Purchase
+       ↓
+POS
+       ↓
+Van Sales
+       ↓
+Return
+       ↓
+Loading
+       ↓
+Unloading
+       ↓
+Adjustment
+       ↓
+Picking / Reservation
+
+لكل وحدة:
+
+Historical
+Original
+Current Git
+Production
+Consumer
+Runtime
+Idempotency
+Tenant
+Item Identity
+Status
+الناتج النهائي
+Physical Writers outside post_stock_movement = 0
+
+ثم:
+
+Inventory Runtime Closure = CLOSED
+
+وليس فقط:
+
+Inventory Core exists
+13. PHASE 3 — FINANCIAL WRITER ZERO-DEBT
+
+بعد تأمين الـMaster Data أو بالتوازي بحذر شديد، يبدأ:
+
+Driver Ledger
+      ↓
+POS
+      ↓
+Receipt
+      ↓
+Payment
+      ↓
+Purchase Receiving
+      ↓
+Returns
+      ↓
+Daily Settlement
+      ↓
+Transfers
+      ↓
+Manual Journal
+
+لكل Writer:
+
+DIRECT DML = 0
+
+ويصبح:
+
+Consumer
+   ↓
+Canonical Core
+   ↓
+Operation Registry
+   ↓
+Audit
+14. PHASE 4 — CONSUMER CONVERGENCE
+
+هذه المرحلة أراها ضرورية قبل إعلان أي Core Closed.
+
+لدينا الآن خطر معروف:
+
+Core updated
+      ≠
+Consumer updated
+
+لذلك أنشئ:
+
+Consumer Matrix
+Consumer	Current Version	Expected Core	Current Contract	Production	Runtime	Status
+save-sales-invoice	v15	Financial Core	verified	yes	pending	
+receive-purchase	v12	Financial Core	verified	yes	pending	
+complete-return	v24	Financial Core	verified	yes	pending	
+save-receipt-voucher	v5	Cash Core	investigate	yes	pending	
+save-payment-voucher	v3	Cash Core	investigate	yes	pending	
+save-daily-settlement	v3	Financial Core	investigate	yes	pending	
+update-driver-ledger	v1	Driver Core	investigate	yes	pending	
+
+الهدف:
+
+لا توجد Edge Function تعرف عقدًا ماليًا قديمًا.
+
+15. PHASE 5 — RUNTIME PROOF
+
+وهذه مرحلة كانت دائمًا ناقصة في الجولة الأخيرة.
+
+لا يكفي:
+SQL PASS
+
+ولا:
+
+Migration PASS
+
+ولا:
+
+Deployment PASS
+
+المطلوب:
+
+Browser/PWA
+     ↓
+Authenticated HTTP
+     ↓
+Edge Function
+     ↓
+RPC/Core
+     ↓
+Database
+     ↓
+Audit / Operation Registry
+
+ثم إعادة المحاولة:
+
+Same request twice
+
+ثم:
+
+Two sessions simultaneously
+
+والنتيجة يجب أن تثبت:
+
+no duplicate
+no double stock
+no double journal
+no double ledger
+no lost update
+no race condition
+16. PHASE 6 — DATA RECONCILIATION
+
+هذه مرحلة مستقلة لا ينبغي دفنها داخل التطوير.
+
+Inventory
+stock_branches
+       ↕
+inventory_log
+       ↕
+business documents
+Accounting
+journal_entries
+       ↕
+journal_lines
+       ↕
+ledger tables
+       ↕
+cash_box
+       ↕
+treasury
+Fulfillment
+orders
+   ↓
+order_details
+   ↓
+runsheets
+   ↓
+run_sheet_details
+
+وهنا يجب منع:
+
+Order Details
+       ↕
+Runsheet Details
+
+من أن يتحولا إلى مصدرين متنافسين للحقيقة.
+
+بل:
+
+order_details = authoritative fulfillment detail
+run_sheet_details = derived aggregate
+
+إذا كان هذا هو العقد الفعلي المثبت، كما تقرر في Memory Directive.
+
+17. PHASE 7 — AUTONOMOUS CTO READINESS
+
+آخر مرحلة فقط:
+
+Historical Reconstruction
+        +
+Current Production
+        +
+Git
+        +
+Architecture
+        +
+Runtime
+        +
+Data Integrity
+        +
+Open Debt
+        +
+Lineage
+
+ثم:
+
+AUTONOMOUS CTO READY
+
+وليس قبل ذلك.
+
+التقرير الخاص بالذاكرة نفسها رفض هذا الإغلاق عمدًا، وهذا صحيح.
+
+18. الخريطة الذهنية التنفيذية
+
+هذه هي الخريطة التي أرى أنها يجب أن تحكم العمل من الآن:
+
+                         RAWAEA ERP
+                              │
+                  ┌───────────┴───────────┐
+                  │                       │
+            CURRENT TRUTH           HISTORICAL TRUTH
+                  │                       │
+                  │                       │
+            ┌─────┴─────┐           ┌─────┴─────┐
+            │           │           │           │
+         Supabase       Git       Prompts     Reports
+            │           │           │           │
+            └─────┬─────┴───────────┴─────┬─────┘
+                  │                       │
+                  ▼                       ▼
+             REBASELINE              CHAIN OF CUSTODY
+                  │
+                  ▼
+        ┌─────────────────────┐
+        │  FOUNDATION LAYER   │
+        └──────────┬──────────┘
+                   │
+       ┌───────────┼────────────┐
+       │           │            │
+    Company      Treasury      COA
+       │           │            │
+       └───────────┼────────────┘
+                   │
+                   ▼
+          MASTER DATA CONTRACT
+                   │
+        ┌──────────┴──────────┐
+        │                     │
+        ▼                     ▼
+ INVENTORY CORE         FINANCIAL CORE
+        │                     │
+ post_stock_movement     post_journal_entry
+        │                post_customer_ledger
+ reserve_stock           post_supplier_ledger
+        │                post_driver_ledger
+        │                cash cores
+        └──────────┬──────────┘
+                   │
+                   ▼
+             EDGE CONSUMERS
+                   │
+          ┌────────┼─────────┐
+          │        │         │
+         POS    PURCHASE   RETURNS
+          │        │         │
+       VAN SALES  RECEIPT  SETTLEMENT
+          │        │         │
+          └────────┼─────────┘
+                   │
+                   ▼
+          CONSUMER MATRIX
+                   │
+                   ▼
+           AUTHENTICATED E2E
+                   │
+                   ▼
+          CONCURRENCY PROOF
+                   │
+                   ▼
+          DATA RECONCILIATION
+                   │
+                   ▼
+          PRODUCTION CERTIFIED
+                   │
+                   ▼
+          GLOBAL ZERO-DEBT
+                   │
+                   ▼
+        AUTONOMOUS CTO READY
+19. التنفيذ المرحلي الفعلي الذي أوصي به الآن
+
+ليس من الصحيح أن نبدأ بـUI.
+
+وليس من الصحيح أن نبدأ بإعادة بناء الـ87.
+
+وليس من الصحيح أن نبدأ بإصلاح كل Financial Writer مرة واحدة.
+
+الترتيب الأفضل:
+
+المرحلة A — الآن
+
+Production/Git Rebaseline
+
+ثم إنشاء سجل واحد:
+
+CURRENT_STATE__2026-08-24
+
+ويحتوي:
+
+exact Production snapshot
+Git HEAD
+Edge versions
+RPC versions
+migrations
+security state
+open debts
+المرحلة B
+
+Khalid — Final Evidence Exhaustion
+
+المهمة الوحيدة:
+
+87 COA
+
+والنتيجة إما:
+
+87 EXACT ROWS
+
+أو:
+
+SOURCE EXHAUSTION CERTIFICATE
+
+ثم تتوقف الحلقة.
+
+المرحلة C بالتوازي
+
+Hytham — Writer Closure
+
+لكن ليس تعديلًا عشوائيًا.
+
+الترتيب:
+
+Driver Ledger
+↓
+Receipt
+↓
+Payment
+↓
+Daily Settlement
+↓
+Purchase
+↓
+Return
+↓
+POS residuals
+
+مع:
+
+Direct DML = 0
+المرحلة D
+
+Consumer Matrix
+
+مطابقة:
+
+Edge
++
+PWA
++
+RPC
++
+Production
+المرحلة E
+
+Authenticated E2E
+
+المرحلة F
+
+Two-Session Concurrency
+
+المرحلة G
+
+Reconciliation
+
+المرحلة H
+
+Final Certification
+
+20. ما الذي يجب ألا نفعله الآن
+
+هناك قرارات أراها ممنوعة في هذه اللحظة:
+
+لا تنشئ الـ87 حسابًا بالتخمين.
+
+لا تعيد إنشاء Treasury.
+
+لا تعدل PWA لمجرد أن Backend Core أصبح أفضل.
+
+لا تعلن Financial Closed لأن الـCores موجودة.
+
+لا تعلن Inventory Closed لأن Writer واحدًا فقط يكتب Physical Stock.
+
+لا تعتبر PR مغلقًا أو مفتوحًا هو الحقيقة؛ الحقيقة هي main + Production.
+
+لا تصلح Writer ماليًا قبل أن يكون Contract الـMaster Data الذي يعتمد عليه معلومًا.
+
+هذه القيود ليست تحفظًا زائدًا؛ هي بالضبط الدروس التي أخرجتها الذاكرة الحاكمة من السلسلة.
+
+21. مصفوفة الوضع الحالية
+Domain	Current Judgment
+Company Topology	CLOSED / VERIFIED
+Treasury	VERIFIED
+Exact 87 COA	OPEN
+Treasury ↔ COA	OPEN
+Physical Stock Core	STRONG / VERIFIED
+Inventory Global Closure	OPEN
+Journal Core	DEPLOYED
+Ledger Cores	DEPLOYED
+Financial Writer Convergence	PARTIAL / OPEN
+Security of Financial Core execution	CORRECTED
+POS Core convergence	SUBSTANTIALLY DONE
+Purchase Runtime	OPEN
+Return Runtime	OPEN
+Receipt Runtime	OPEN
+Payment Runtime	OPEN
+Daily Settlement	OPEN
+Consumer Matrix	OPEN
+HTTP E2E	OPEN
+Concurrency	OPEN
+Reconciliation	OPEN
+Git/Production Lineage	IMPROVED, STILL REQUIRES CERTIFICATION
+Autonomous CTO	NO
+22. الخلاصة التنفيذية
+
+المشروع ليس متعطلًا، لكنه أيضًا ليس في مرحلة السماح بالتوسع الوظيفي الحر.
+
+نحن خرجنا من مرحلة:
+
+“هل نملك Core أصلًا؟”
+
+إلى مرحلة أكثر نضجًا:
+
+“هل أصبحت كل المسؤوليات تحت الـCore، وهل الـConsumers متزامنة، وهل Production قابلة للإثبات وإعادة البناء؟”
+
+وهذا فرق جوهري.
+
+الأولوية رقم 1
+
+Financial Master Data — الـ87 COA
+
+الأولوية رقم 2
+
+Financial Writer Zero-Debt
+
+الأولوية رقم 3
+
+Consumer / Edge / PWA Convergence
+
+الأولوية رقم 4
+
+Authenticated E2E + Concurrency
+
+الأولوية رقم 5
+
+Full Reconciliation + Production Certification
+
+ثم فقط:
+
+GLOBAL ZERO-DEBT
+        ↓
+AUTONOMOUS CTO READY
+
+وأرى أن هذه هي الخريطة الصحيحة للانتقال من “مشروع تم إنقاذه معماريًا” إلى “نظام يمكن الاعتماد عليه وإعادة بنائه وإدارته CTO-to-CTO دون فقدان الحقيقة”.
+
+وأقوى نقطة في المرحلة كلها حاليًا هي أن الـ87 حسابًا لم يتم اختلاقها، والـTreasury لم يتم تكرارها، وFinancial Core موجود فعلًا، وInventory Core موجود فعلًا؛ المشكلة الآن ليست ابتكار أساس جديد، وإنما إغلاق الحدود بين الأساس والـWriters والـConsumers والـRuntime.
