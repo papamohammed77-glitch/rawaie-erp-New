@@ -1,0 +1,57 @@
+نعم. المطلوب منك إنشاء مكوّن خارجي جديد؛ الـScheduler الموجود حاليًا لا يشغّل المساعدين بنفسه.
+
+ما هو External Agent Runtime؟
+
+هو خادم/Endpoint HTTPS صغير يستقبل من GitHub هذا الطلب:
+
+GitHub Scheduler
+      ↓ POST
+AGENT_RUNTIME_URL
+      ↓
+يحدد Medhat / Khalid / Hytham
+      ↓
+يشغّل المساعد المناسب
+      ↓
+ينفذ المهمة ويكتب الرد في Operations_Team
+
+الـWorkflow الحالي فعليًا يعمل كل 5 دقائق ويقرأ AGENT_RUNTIME_URL وAGENT_RUNTIME_TOKEN ويرسل له الـtask.
+والـControl Plane نفسه يوضح صراحة أن الحلقة تتوقف عند غياب الـRuntime الخارجي.
+
+ما الذي يمثلانه؟
+
+AGENT_RUNTIME_URL
+= عنوان الـHTTPS للـRuntime، مثل:
+
+https://your-runtime.example.com/dispatch
+
+AGENT_RUNTIME_TOKEN
+= مفتاح سري يثبت أن الطلب قادم من GitHub المصرح له.
+
+هما ليسا شيئًا نحصل عليهما من ChatGPT أو GitHub تلقائيًا.
+أنت تحتاج أن يكون لديك Runtime خارجي فعلي، ثم تحصل منه على URL وتولّد منه Token.
+
+أين يوضعان؟
+
+في:
+
+GitHub Repository → Settings → Secrets and variables → Actions → Repository secrets
+
+وتضيف:
+
+AGENT_RUNTIME_URL
+AGENT_RUNTIME_TOKEN
+
+وهذا يتوافق مباشرة مع الـWorkflow الحالي.
+
+هل نعيّن مساعدًا جديدًا؟
+
+نعم، لكن ليس بالضرورة مساعدًا آخر من نوع CTO.
+
+الأفضل تعيين Agent/Developer مخصص لمهمة إنشاء الـExternal Agent Runtime فقط.
+وظيفته ليست إصلاح ERP؛ وظيفته بناء طبقة التشغيل الخارجية نفسها بحيث يصبح:
+
+Scheduler → Agent Runtime → Medhat/Khalid/Hytham
+
+هو النظام الفعلي للفريق. والتقرير السابق يؤكد أن هذه هي القطعة الوحيدة الناقصة في طبقة التشغيل الحالية.
+
+لكن لا تبدأ بإنشاء مساعد جديد عشوائيًا. أولًا نحدد نوع الـRuntime المناسب والمنصة التي سيعمل عليها، ثم نبنيها بصورة قابلة للتشغيل فعلًا وليست مجرد Endpoint شكلي.
