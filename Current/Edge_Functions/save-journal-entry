@@ -1,0 +1,71 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS"
+};
+
+async function context(req: Request) {
+  const h = req.headers.get("Authorization");
+  if (!h) throw new Error("غير مصرح");
+  const { data: { user }, error } = await db.auth.getUser(h.replace("Bearer ", ""));
+  if (error || !user) throw new Error("جلسة غير صالحة");
+  const { data: u, error: ue } = await db.from("users").select("company_id,status").eq("auth_id", user.id).maybeSingle();
+  if (ue || !u || u.status === "Inactive") throw new Error("سياق الشركة غير صالح");
+  if (!u.company_id) throw new Error("سياق الشركة غير مكتمل");
+  return { user, companyId: u.company_id as string };
+}
+
+function normalizeNumber(value: unknown, field: string, line: number) {
+  const n = Number(value ?? 0);
+  if (!Number.isFinite(n)) throw new Error(`قيمة ${field} غير صالحة في السطر ${line}`);
+  return n;
+}
+
+async function operationIdFromPayload(payload: unknown) {
+  const bytes = new TextEncoder().encode(JSON.stringify(payload));
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const hex = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  try {
+    const body = await req.json();
+    const reference = String(body?.reference ?? "").trim();
+    const description = String(body?.description ?? "").trim();
+    const entryType = String(body?.entryType ?? "Manual").trim() || "Manual";
+    const entryDate = String(body?.date ?? new Date().toISOString().slice(0, 10)).trim();
+    const requestedOperationId = String(body?.operation_id ?? "").trim();
+    const lines = body?.lines;
+    if (!Array.isArray(lines) || lines.length < 2) throw new Error("يجب إدخال سطرين على الأقل للقيد");
+    const { user, companyId } = await context(req);
+    const accountCodes = lines.map((x: any) => String(x?.accountId ?? "").trim());
+    if (accountCodes.some((x: string) => !x)) throw new Error("حساب كل سطر مطلوب");
+    const uniqueCodes = [...new Set(accountCodes)];
+    const { data: accounts, error: ae } = await db.from("chart_of_accounts").select("id,account_code,account_name").eq("company_id", companyId).in("account_code", uniqueCodes);
+    if (ae) throw ae;
+    const accountMap = new Map<string, { id: string; account_name: string }>();
+    for (const account of accounts || []) accountMap.set(String(account.account_code), { id: account.id, account_name: account.account_name || String(account.account_code) });
+    if (accountMap.size !== uniqueCodes.length) {
+      const missing = uniqueCodes.filter(code => !accountMap.has(code));
+      throw new Error(`يوجد حساب غير موجود أو لا يتبع الشركة الحالية: ${missing.join(", ")}`);
+    }
+    const canonicalLines = lines.map((line: any, index: number) => {
+      const lineNo = index + 1;
+      const code = String(line?.accountId ?? "").trim();
+      const account = accountMap.get(code)!;
+      return { account_id: account.id, account_name: account.account_name, debit: normalizeNumber(line?.debit, "المدين", lineNo), credit: normalizeNumber(line?.credit, "الدائن", lineNo), notes: String(line?.notes ?? "").trim() || null, cost_center_id: String(line?.costCenterId ?? "").trim() || null };
+    });
+    const operationId = requestedOperationId || await operationIdFromPayload({ company_id: companyId, entry_date: entryDate, entry_type: entryType, reference, description, lines: canonicalLines });
+    const { data, error } = await db.rpc("post_journal_entry", { p_company_id: companyId, p_operation_id: operationId, p_entry_date: entryDate, p_entry_type: entryType, p_reference: reference || null, p_description: description || null, p_created_by: user.email || "system", p_lines: canonicalLines, p_entry_code: null, p_posting_date: new Date().toISOString(), p_movement_id: null });
+    if (error) throw error;
+    return new Response(JSON.stringify({ ...data, operation_id: operationId }), { headers: { ...cors, "Content-Type": "application/json" } });
+  } catch (e: any) {
+    return new Response(JSON.stringify({ success: false, error: e?.message || "فشل حفظ القيد" }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+  }
+});
