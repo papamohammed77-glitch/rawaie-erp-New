@@ -1,0 +1,35 @@
+راجعت التسلسل الفعلي. المطلوب منك الآن ليس تعديل المشروع؛ بل تفعيل حلقة التشغيل الخارجية.
+
+ما هو موجود فعليًا
+بروتوكول الفريق موجود ومحدد.
+الـScheduler يعمل كل 5 دقائق.
+الـControl Plane فعليًا ينشئ task_id/message_id/owner/status ويمنع إعادة المعالجة عبر SHA للملف والـcommit.
+لكن GitHub Actions لا يستطيع تشغيل ChatGPT/Medhat/Khalid/Hytham وحده.
+التنفيذ الفعلي متوقف على External Agent Runtime عبر:
+AGENT_RUNTIME_URL
+وAGENT_RUNTIME_TOKEN.
+ما المطلوب منك الآن
+
+خطوتان فقط:
+
+توفير HTTPS Endpoint فعلي لـAgent Runtime يستطيع استقبال POST بالـpayload المحدد وإسناد المهمة للمساعد الصحيح.
+إضافة السرّين في GitHub Repository Secrets:
+AGENT_RUNTIME_URL
+AGENT_RUNTIME_TOKEN
+
+بعد ذلك الـworkflow الموجود سيعمل كالتالي:
+
+كل 5 دقائق
+→ يكتشف الملف الجديد
+→ ينشئ Task
+→ يرسله إلى Agent Runtime
+→ المساعد ينفذ
+→ يكتب التقرير في Operations_Team
+→ الـScheduler يلتقط الرد التالي.
+
+نقطة حاسمة
+
+الـScheduler وحده ليس نظام تشغيل الفريق.
+هو الآن Control Plane/Queue فعلي؛ المكوّن الوحيد الناقص هو Agent Runtime التنفيذي الخارجي. هذا مثبت صراحة في العقد نفسه.
+
+إذا كان لديك Endpoint/خدمة تريد استخدامها لهذا الـRuntime، فهذا هو الشيء الوحيد الذي تحتاج تهيئته الآن.
