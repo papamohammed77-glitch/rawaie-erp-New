@@ -1,0 +1,431 @@
+هيثم — تنفيذ تقييم تنفيذ + برومبت 56
+
+تمت قراءة الملف كاملًا حتى النهاية، بما في ذلك قسم تقييم خالد، وقسم تقييم هيثم، وتصحيح الـSecurity، ومشكلة Production ≠ Git، وClosure Unit الجديدة، وGlobal Writer Matrix، وترتيب التنفيذ الإلزامي.
+
+تم تنفيذ ما يخص هيثم مباشرة.
+
+1. Production Re-Baseline
+
+تمت إعادة التحقق من SMART ERP Production، وليس الاعتماد على أرقام التقرير:
+
+العنصر	الحالة الحالية
+Companies	1
+Current Company	00000000-0000-0000-0000-000000000001
+Users	24
+Treasury	1
+Chart of Accounts	0
+Journal Entries	2
+Journal Lines	0
+Customer Ledger	0
+Supplier Ledger	0
+Driver Ledger	0
+Orders	0
+Purchase Orders	0
+Runsheets	0
+Inventory Log	3
+PostgreSQL	17.6
+
+تم احترام قاعدة Single Company الحالية، ولم تتم إعادة إنشاء أي شركة أو Treasury أو COA.
+
+2. Security Lineage — تم إغلاقه
+
+أعدت التحقق مباشرة من Production.
+
+النتيجة الحالية:
+
+post_journal_entry
+post_customer_ledger_entry
+post_supplier_ledger_entry
+post_driver_ledger_entry
+post_cash_receipt_atomic
+post_cash_payment_atomic
+
+جميعها:
+
+PUBLIC         = false
+anon           = false
+authenticated  = false
+service_role   = true
+
+أي أن الـSecurity correction التي كشفها Prompt 56 أصبحت مُثبتة في Production.
+
+والـcanonical security migration موجود في Git:
+
+supabase/migrations/20260824_restrict_financial_core_execute_privileges.sql
+
+Commit:
+
+666a71dde6f555b54377738b6524007314c176b8
+
+3. أهم فجوة Lineage التي اكتشفتها
+
+الـProduction كانت تحتوي الـFinancial Cores:
+
+post_journal_entry
+post_customer_ledger_entry
+post_supplier_ledger_entry
+post_driver_ledger_entry
+
+لكن لم يكن هناك Migration Canonical واضح في main يستطيع إعادة بناء هذه الـdefinitions من المصدر.
+
+هذا يعني:
+
+Production
+   ✅
+
+Git
+   ❌ incomplete reproducibility
+
+وهذا بالفعل خرق مباشر لمبدأ Prompt 56.
+
+تم إصلاحه
+
+أُنشئت وطبقت Migration Canonical:
+
+supabase/migrations/20260824_canonical_financial_writer_cores.sql
+
+وتحتوي التعريفات المؤكدة من Production لـ:
+
+post_journal_entry
+post_customer_ledger_entry
+post_supplier_ledger_entry
+post_driver_ledger_entry
+
+مع حدود الـservice_role.
+
+المigration طبقت فعليًا على SMART ERP Production.
+
+كما أصبحت موجودة في main.
+
+4. Driver Ledger Lineage
+
+تم إثبات:
+
+driver_ledger
+
+لا يحتوي company_id.
+
+لكن Driver ownership يمكن إثباته من:
+
+driver_email
+      ↓
+users.email
+      ↓
+users.company_id
+
+مع:
+
+users.email UNIQUE
+users.company_id NOT NULL
+
+ولذلك لم أضف company_id إلى driver_ledger.
+
+وأصبح:
+
+post_driver_ledger_entry
+
+هو الـcanonical writer.
+
+ويتحقق من:
+
+Company
+Driver identity
+Driver role
+Active status
+Operation identity
+Duplicate protection
+Balance
+Audit
+
+بدون تغيير Schema.
+
+5. Global Financial Writer Sweep
+
+تمت إعادة الفحص من Production بعد إصلاحات Prompt 55.
+
+النتيجة:
+
+لم يعد هناك direct Financial DML داخل:
+save_sales_invoice_atomic
+receive_purchase_atomic
+complete_return_atomic
+
+وهي الآن تعتمد على:
+
+post_journal_entry
+post_customer_ledger_entry
+post_supplier_ledger_entry
+post_driver_ledger_entry
+post_cash_receipt_atomic
+post_cash_payment_atomic
+
+أما الـdirect Journal/Ledger writers المتبقية فهي فقط الـCanonical Cores نفسها.
+
+إذن:
+
+Financial Writer Centralization على مستوى PostgreSQL Core = مثبت.
+
+6. Deployment Lineage — Edge
+
+تمت مطابقة Production Edge Functions مع Current/Edge_Functions.
+
+save-sales-invoice
+
+Production:
+
+Version 15
+JWT = true
+
+والـCurrent source كان أقدم.
+
+تمت مزامنته مع Production v15، بما في ذلك:
+
+operation_id
+Idempotency-Key
+deterministic UUID fallback
+authenticated user
+call to save_sales_invoice_atomic
+receive-purchase
+
+Production:
+
+Version 12
+JWT = true
+
+والـCurrent source كان لا يزال على Contract أقدم.
+
+تمت مزامنته مع Production v12.
+
+complete-return
+
+Production:
+
+Version 24
+JWT = true
+
+والـCurrent source يطابق عقد Production في السلوك والـConsumer path؛ الاختلاف الموجود فقط غير وظيفي من ناحية التعليقات/التنسيق.
+
+save-journal-entry
+
+هنا كان Gap أخطر:
+
+Production كانت تحتوي:
+
+Version 8
+
+لكن:
+
+Current/Edge_Functions/save-journal-entry
+
+لم يكن موجودًا أصلًا في main.
+
+تمت إضافة النسخة المنشورة الفعلية إلى:
+
+Current/Edge_Functions/save-journal-entry
+
+بدون تعديل أي PWA.
+
+7. لماذا لم أبدأ Receipt / Payment / Daily Settlement؟
+
+لأن Prompt 56 غيّر ترتيب التنفيذ صراحةً إلى:
+
+LINEAGE
+→ SECURITY
+→ RUNTIME CONTRACT
+→ Receipt
+→ Payment
+→ Daily Settlement
+
+وليس:
+
+Receipt مباشرة
+
+وتم بالفعل إغلاق الجزء الأول.
+
+8. لم يتم تعديل أي PWA
+
+لم أعدّل:
+
+Current/PWA/main.html
+Current/PWA/pos.html
+Current/PWA/accountant.html
+Current/PWA/finance-manager.html
+
+ولا أي PWA أخرى.
+
+وهذا مطابق حرفيًا للضابط الذي يمنع لمس UI في هذه Closure Unit.
+
+9. الـProduction والـGit أصبحا أقرب إلى بعضهما
+
+تم نقل حالة الـFinancial Core إلى Git بحيث أصبح:
+
+Production Core
+      ↕
+Canonical Migration
+      ↕
+main
+
+بدل:
+
+Production-only
+
+وكذلك أصبحت Edge wrappers الحرجة موثقة في Current.
+
+10. تم تسجيل سجل التنفيذ
+
+أُنشئ في Current/CTO:
+
+20260824_HYTHAM_PROMPT56_FINANCIAL_LINEAGE_SECURITY_CLOSURE.md
+
+ويحتوي:
+
+Production baseline
+Security proof
+canonical migration
+Edge lineage
+writer convergence
+Driver ownership
+ما تم إغلاقه
+ما بقي مفتوحًا
+ضوابط عدم التخمين.
+11. PR #24
+
+كان PR #24 يمثل الحالة القديمة لـPrompt 55:
+
+Draft / Unmerged
+
+وبعد نقل الأعمال المثبتة إلى main أصبح وجوده مصدر التباس في الـlineage.
+
+لذلك تم إغلاق PR #24 دون Merge.
+
+حالته الحالية:
+
+Closed
+Not Merged
+12. الحالة الرسمية بعد Prompt 56
+Gate	الحالة
+Security Financial Cores	CLOSED
+Canonical Financial Core Migration	CLOSED
+Driver Ledger Ownership	CLOSED
+Driver Ledger Core	CLOSED
+POS Core Writer Convergence	CLOSED
+Purchase Core Writer Convergence	CLOSED
+Return Core Writer Convergence	CLOSED
+Core Production/Git Reproducibility	CLOSED
+save-sales Edge lineage	CLOSED
+receive-purchase Edge lineage	CLOSED
+complete-return Edge lineage	CLOSED
+save-journal-entry Edge lineage	CLOSED
+Receipt runtime	OPEN
+Payment runtime	OPEN
+Daily Settlement	OPEN
+Authenticated HTTP E2E	OPEN
+Two-session Concurrency	OPEN
+Purchase live business test	OPEN
+Return live business test	OPEN
+Global Financial Writer Zero-Debt	OPEN
+13. لماذا لم أضع Runtime أو Concurrency = CLOSED؟
+
+لأن Production الحالية لا تحتوي:
+
+Orders
+Purchase Orders
+Runsheets
+Driver Ledger rows
+Customer Ledger rows
+Supplier Ledger rows
+COA rows
+
+وبالتالي لا يمكن تنفيذ:
+
+Purchase HTTP E2E
+Return HTTP E2E
+
+باستخدام Business Transactions حقيقية دون اختراع بيانات.
+
+كما أن أدوات التنفيذ المتاحة في هذه الجلسة لا تمنحني HTTP authenticated session مستقلة لجلسَتين متزامنتين لإجراء Two-Session Concurrency Proof الحقيقي.
+
+لذلك لن أساوي بين:
+
+SQL proof
+
+و:
+
+Production HTTP runtime proof
+
+وهذا تحديدًا هو شرط Prompt 56.
+
+14. نقطة مهمة جدًا
+
+لم أتوقف بسبب نقص المعلومات.
+
+لقد تم استكمال كل ما يمكن إثباته من:
+
+Production
++
+PostgreSQL
++
+Git main
++
+Migrations
++
+Edge Deployment
+
+وتم تنفيذ الإصلاحات التي يطلبها الـPrompt فعليًا.
+
+أما ما بقي OPEN فهو OPEN لأن إغلاقه يحتاج دليل Runtime حقيقي غير موجود حاليًا، وليس لأن المعلومات غير مفهومة.
+
+الروابط
+
+فتح سجل تنفيذ هيثم Prompt 56
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260824_HYTHAM_PROMPT56_FINANCIAL_LINEAGE_SECURITY_CLOSURE.md
+
+فتح Migration الخاصة بالـFinancial Cores
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/supabase/migrations/20260824_canonical_financial_writer_cores.sql
+
+فتح Security Migration
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/supabase/migrations/20260824_restrict_financial_core_execute_privileges.sql
+
+فتح save-journal-entry المنشورة في Current
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/Edge_Functions/save-journal-entry
+
+فتح save-sales-invoice
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/Edge_Functions/save-sales-invoice
+
+فتح receive-purchase
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/Edge_Functions/receive-purchase
+
+الوضع التنفيذي النهائي لهيثم الآن
+FINANCIAL CORE SECURITY
+        ✅
+
+FINANCIAL CORE LINEAGE
+        ✅
+
+DRIVER LEDGER CORE
+        ✅
+
+POST / PURCHASE / RETURN WRITER CONVERGENCE
+        ✅
+
+RECEIPT
+        ⏳
+
+PAYMENT
+        ⏳
+
+DAILY SETTLEMENT
+        ⏳
+
+HTTP E2E
+        ⏳
+
+TWO-SESSION CONCURRENCY
+        ⏳
+
+GLOBAL ZERO-DEBT
+        ❌
+
+Autonomous CTO = NOT READY
+
+لكن Gate Lineage + Security التي فرضها Prompt 56 أصبحت مغلقة فعليًا من Production evidence، ولا يوجد الآن سبب صحيح للقفز فوقها أو العودة إلى Inventory.
