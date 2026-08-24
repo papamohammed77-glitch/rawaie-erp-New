@@ -1,0 +1,12 @@
+تم إنشاء Scheduler خارجي فعلي داخل GitHub Actions يعمل كل 5 دقائق لمراقبة:
+
+doc/Draft/Operations_Team
+
+ويُنشئ إشارة عمل عند ظهور/تغير ملفات جديدة، مع منع التكرار وحفظ الحالة.
+
+فتح Scheduler
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/.github/workflows/operations-team-scheduler.yml
+
+Commit: 63209885b86a7121a0625254fa5f4e0c9bc5d04f
+
+مهم: هذا يحقق المراقبة والتنسيق الآلي، لكنه لا يستطيع من تلقاء نفسه تشغيل مساعدين ChatGPT؛ تنفيذ المساعدين يحتاج تكاملًا خارجيًا معهم
