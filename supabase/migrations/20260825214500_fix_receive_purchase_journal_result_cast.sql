@@ -1,0 +1,4 @@
+-- Fix Production defect discovered by Phase 2/3 transactional canary.
+-- post_journal_entry returns jsonb; receive_purchase_atomic was assigning it to uuid.
+-- Preserve the existing contract and extract only the authoritative entry_id.
+-- This is intentionally a surgical cast fix; no business contract changes.
