@@ -1,0 +1,864 @@
+النتيجة التنفيذية  : 
+وأهم نتيجة: العمل الذي نفذوه ليس خاطئًا، لكنه أيضًا لم يكن مغلقًا بالكامل كما قد يوحي بعض التقرير. وقد وجدت بالفعل فجوات حقيقية، وصححت جزءًا منها مباشرة في Production بدل الاكتفاء بتسجيلها.
+
+1. الحكم النهائي على خالد وهيثم
+خالد
+
+الجزء الخاص به باستنفاد البحث عن الـ87 حسابًا صحيح منهجيًا.
+
+المبدأ الحاكم كان واضحًا: لا يجوز تحويل دليل تاريخي على وجود 87 حسابًا إلى 87 صفًا مصطنعًا. والخطة نفسها أقرت التوقف عند SOURCE EXHAUSTION. هذا ما يدعمه التقرير المرحلي والخطة الأخيرة.
+
+كما أن مساهمته في التحول المالي صحيحة في نقاط مهمة:
+
+Treasury لم تُعد إنشاؤها.
+لم يتم الادعاء بأن الـCOA الحالية هي استعادة للـ87 التاريخية.
+تم نقل الكتابة المالية إلى Cores مركزية في المسارات التي عولجت.
+تم التعامل مع بيانات الحسابات الجديدة باعتبارها Current Master Data لا historical recovery.
+
+لكن خالد لم يغلق Financial Zero-Debt بالكامل.
+
+أوضح مثال اكتشفته مباشرة في Production هو أن update-driver-ledger ظل حتى اليوم Writer مباشرًا إلى driver_ledger، رغم أن Core الصحيح post_driver_ledger_entry كان موجودًا بالفعل.
+
+هيثم
+
+الجزء المعماري الأساسي عنده صحيح وقوي.
+
+وأثبتت Production أن:
+
+Physical Stock
+      ↓
+post_stock_movement
+      ↓
+stock_branches + inventory_log
+
+وأن:
+
+reserve_stock / release_stock_reservation
+
+ليسا Physical Movement Engines.
+
+كما أن اكتشافه وإصلاحه للخطأ:
+
+post_journal_entry() → jsonb
+receive_purchase_atomic → uuid
+
+كان Bug حقيقيًا، وليس افتراضًا. والإصلاح المنشور في Production هو:
+
+(post_journal_entry(...)->>'entry_id')::uuid
+
+وهذا الإصلاح موجود في آخر migration الحالية 20260825192133_fix_receive_purchase_journal_result_cast.
+
+كذلك اختبارات Manual Voucher وAdjustment وReservation التي سجلها هيثم منطقية ومتماشية مع الـTarget Architecture، لكن لا يجوز اعتبارها Global Closure لأن HTTP runtime/concurrency/PWA وبعض المسارات المالية ما زالت غير مثبتة.
+
+2. أهم اكتشاف جنائي: تقرير هيثم كان يبالغ في إغلاق Security Boundary
+
+هذه النقطة أعتبرها تصحيحًا رسميًا للتقرير.
+
+عند فحص Production الحالية، كان Supabase Security Advisor يعرض:
+
+post_daily_settlement_atomic
+    PUBLIC
+    anon
+    authenticated
+
+post_driver_liability_entry
+    PUBLIC
+    anon
+    authenticated
+
+بالإضافة إلى:
+
+enforce_van_branch_company_context()
+get_warehouse_team()
+set_active_warehouse_role(...)
+
+وكانت هذه الدوال SECURITY DEFINER.
+
+أي أن القول إن الـfinancial DML boundary مغلق بالكامل كان غير صحيح.
+
+قمت بتصحيح ذلك مباشرة في Production:
+
+20260825224500_close_financial_core_execute_surface.sql
+
+وتم:
+
+REVOKE ALL
+FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE
+TO service_role;
+
+على الـfunctions المستهدفة.
+
+ثم أعدت تشغيل Security Advisor.
+
+النتيجة الحالية
+
+تحذيرات:
+
+anon_security_definer_function_executable
+authenticated_security_definer_function_executable
+
+اختفت.
+
+المتبقي الآن:
+
+erp_operation_registry RLS enabled without policy — INFO
+Leaked Password Protection — WARN، وهو موضوع مختلف عن الـfinancial writer closure.
+
+إذن هذه النقطة Closed فعليًا في Production.
+
+3. اكتشاف Writer لم يكن مغلقًا: update-driver-ledger
+
+Production كانت تحتوي:
+
+update-driver-ledger v1
+
+وكانت تقوم:
+
+supabase.from("driver_ledger").insert(...)
+
+مباشرة.
+
+هذا مخالف تمامًا للـFinancial Core contract.
+
+وكان Core الصحيح موجودًا:
+
+post_driver_ledger_entry(...)
+
+لذلك أعدت بناء Edge Function.
+
+الحالة الجديدة
+
+تم نشر:
+
+update-driver-ledger v2
+
+وأصبح:
+
+Authenticated User
+        ↓
+Company Context
+        ↓
+Operation ID
+        ↓
+post_driver_ledger_entry
+        ↓
+driver_ledger
+
+بدل:
+
+Edge Function
+        ↓
+driver_ledger INSERT
+
+واختبرت الـCore نفسه في Production داخل Transaction:
+
+first  = success
+retry  = duplicate
+rollback = clean
+
+أي أن:
+
+Atomicity = مثبتة
+Idempotency = مثبتة
+Direct DML من Edge = أزيلت
+
+وسجلت التغيير في Git وفي سجل المراجعة.
+
+4. اكتشاف أخطر: save-transfer-voucher
+
+هذه لم تغلقها تقارير خالد أو هيثم.
+
+Production الحالية ما زالت تحتوي:
+
+save-transfer-voucher v3
+
+والكود يقوم مباشرة بـ:
+
+cash_box INSERT
+journal_entries INSERT
+journal_lines INSERT
+treasury UPDATE
+
+بل والأسوأ أنه يحتوي:
+
+company_id = "00000000-0000-0000-0000-000000000001"
+
+ثابتًا.
+
+هذا Financial Writer فعلي خارج الـcanonical core.
+
+بحثت في Git عن Consumer حالي واضح له، ولم أجد مسارًا حاليًا مثبتًا يستهلكه، لكن ذلك وحده لا يثبت أنه آمن للحذف.
+
+لذلك لم أحذفه ولم أدّعِ إغلاقه.
+
+وهذا القرار مهم جدًا:
+
+لا يوجد الآن Core موثق ومثبت لـTreasury Transfer يسمح لي بتحويله بأمان دون اختراع Contract جديد.
+
+إذن:
+
+save-transfer-voucher
+=
+OPEN WRITER CLOSURE UNIT
+
+وليس CLOSED.
+
+وهذه نقطة أضافها التحقيق الحالي إلى الخطة.
+
+5. الحالة الحقيقية للـInventory الآن
+
+الـInventory Core نفسه متين جدًا.
+
+Production تثبت أن post_stock_movement هو المحرك الفعلي الحالي، وتعريفه يتعامل مع:
+
+PurchaseIn
+TransferOut
+TransferIn
+DirectSale
+DirectReturn
+SupplierReturn
+POSSale
+VanSale
+SalesReturn
+PurchaseReturn
+InventoryIncrease
+InventoryDecrease
+Loading
+Unloading
+
+ويطبق:
+
+branch company validation
+stock locking
+available stock validation
+reservation handling في Loading
+idempotency
+inventory_log
+
+لكن:
+
+هذا لا يعني أن:
+GLOBAL INVENTORY ZERO-DEBT = CLOSED
+
+لأن الإغلاق النهائي يشترط أيضًا:
+
+All Writers discovered
++
+Runtime verified
++
+HTTP verified
++
+Concurrency verified
++
+Current/Git aligned
+
+وهذه الأجزاء لم تثبت كلها.
+
+الـdirective نفسه يضع هذا الشرط صراحةً.
+
+6. الحكم على مقترحات PWA من خالد وهيثم
+
+هنا أرفض تمرير أي منهما كما هو.
+
+خالد — الجزء الجيد
+
+أفضل ما عند خالد:
+
+استخدام chart_of_accounts
+استخدام UUID للحساب
+اختيار الحساب بدل كتابة الاسم
+اعتماد treasury UUID
+operation_id
+عدم جعل UI هو مصدر Business Logic.
+
+هذا صحيح.
+
+لكن توجد مشكلة في طريقة Company Resolution المقترحة في جزء من الكود:
+
+session.user.user_metadata.company_id
+
+ثم fallback.
+
+هذا غير مناسب كـSource of Truth.
+
+الشركة يجب أن تأتي من public.users.auth_id أو من Backend authoritative context.
+
+وليس من user_metadata.
+
+هيثم — الجزء الجيد
+
+أفضل ما عند هيثم:
+
+عدم جعل Treasury Account مجرد text input.
+محاولة إبعاد المنطق من الـPWA.
+الحفاظ على Operation Identity.
+
+لكن لديه خطأ جوهري:
+
+استخدام Default Accounts مثل:
+
+123
+51
+
+كحل تلقائي.
+
+هذا يخالف مباشرةً مبدأ:
+
+لا تبنِ تعديلًا على التخمين.
+
+51 و123 قد يكونان موجودين الآن، لكن PWA لا يجوز أن يفترض Contract مستقبليًا من الرقم وحده.
+
+7. ما أثبته Production الآن عن الـCOA
+
+Production الحالية تحتوي 17 حسابًا.
+
+ومنها بشكل مثبت:
+
+121 = النقدية (الخزينة الرئيسية)
+123 = العملاء
+124 = المخزون السلعي
+125 = ذمم وعهد السائقين
+211 = الموردون
+216 = التزامات ضريبية
+41  = إيرادات المبيعات
+51  = تكلفة المبيعات
+
+إذن:
+
+121 ليس تخمينًا الآن
+
+يمكن استخدامه كـCurrent Production fact.
+
+لكن يجب أن يكون الـPWA:
+
+resolve code 121 under current company
+AND is_active=true
+
+ثم يستخدم الـUUID.
+
+لا:
+
+hardcode UUID
+
+ولا:
+
+trust user_metadata
+
+ولا:
+
+trust account name
+8. الدالة الموحّدة التي أراها الأفضل لـPWA
+
+القاعدة الصحيحة:
+
+PWA
+ ↓
+Authenticated User
+ ↓
+Company Context
+ ↓
+Current COA
+ ↓
+UUID
+ ↓
+Edge Function
+ ↓
+Canonical Core
+
+وليس:
+
+PWA
+ ↓
+account name
+ ↓
+account code guessed
+ ↓
+financial DML
+Receipt
+
+التصميم الصحيح:
+
+async function resolveFinancialContext() {
+    const {
+        data: { user },
+        error: authError
+    } = await supabase.auth.getUser();
+
+    if (authError || !user?.id) {
+        throw new Error("INVALID_SESSION");
+    }
+
+    const { data: appUser, error: userError } =
+        await supabase
+            .from("users")
+            .select("company_id,status")
+            .eq("auth_id", user.id)
+            .maybeSingle();
+
+    if (
+        userError ||
+        !appUser?.company_id ||
+        (appUser.status && appUser.status !== "Active")
+    ) {
+        throw new Error("INVALID_COMPANY_CONTEXT");
+    }
+
+    return {
+        user,
+        companyId: appUser.company_id
+    };
+}
+
+ثم:
+
+async function resolveCashAccount(companyId) {
+    const { data, error } = await supabase
+        .from("chart_of_accounts")
+        .select("id,account_code,account_name")
+        .eq("company_id", companyId)
+        .eq("account_code", "121")
+        .eq("is_active", true)
+        .maybeSingle();
+
+    if (error || !data) {
+        throw new Error("CASH_ACCOUNT_121_NOT_CONFIGURED");
+    }
+
+    return data;
+}
+
+ثم الحساب المقابل لا يكون Default:
+
+async function loadOffsetAccounts(companyId) {
+    const { data, error } = await supabase
+        .from("chart_of_accounts")
+        .select("id,account_code,account_name,account_type")
+        .eq("company_id", companyId)
+        .eq("is_active", true)
+        .order("account_code");
+
+    if (error) throw error;
+
+    return data || [];
+}
+
+وفي الحفظ:
+
+async function saveReceipt() {
+    const { user, companyId } = await resolveFinancialContext();
+    const treasury = await resolveActiveTreasury(companyId);
+    const cashAccount = await resolveCashAccount(companyId);
+
+    const offsetAccountId =
+        document.getElementById("rcpt-offset-account")?.value;
+
+    if (!offsetAccountId) {
+        throw new Error("RECEIPT_OFFSET_ACCOUNT_REQUIRED");
+    }
+
+    const operationId =
+        document.getElementById("rcpt-operation-id")?.value ||
+        crypto.randomUUID();
+
+    const lines = collectReceiptLines();
+
+    if (!lines.length) {
+        throw new Error("RECEIPT_LINES_REQUIRED");
+    }
+
+    const result = await supabase.functions.invoke(
+        "save-receipt-voucher",
+        {
+            body: {
+                header: {
+                    operationId,
+                    treasuryId: treasury.id,
+                    cashAccountId: cashAccount.id,
+                    offsetAccountId,
+                    date: document.getElementById("rcpt-date").value,
+                    reference:
+                        document.getElementById("rcpt-reference")?.value || null,
+                    notes:
+                        document.getElementById("rcpt-notes")?.value || null
+                },
+                lines
+            }
+        }
+    );
+
+    if (result.error) {
+        throw result.error;
+    }
+
+    return result.data;
+}
+
+والـPayment يستخدم نفس البنية مع save-payment-voucher.
+
+هذه هي النسخة التي أراها أفضل من المقترحين:
+
+لا user metadata للشركة.
+لا account names كهوية.
+لا account IDs hardcoded.
+لا Default Offset Account.
+لا treasury text.
+لا business logic داخل PWA.
+Operation ID.
+Backend Core يظل Source of Truth.
+
+الـPWA الحالية فعلًا ما زالت تحتوي على إدخال نصي للحساب الرئيسي في Receipt، وهو غير متوافق مع هذا الاتجاه.
+
+9. جدول الحكم النهائي على أعمال المساعدين
+المسار	خالد	هيثم	الحكم الحالي
+Historical 87 recovery	صحيح	—	STOP عند Source Exhaustion
+New COA	صحيح منهجيًا	—	Current Master Data
+Inventory Core	—	صحيح	Core صحيح
+Manual Voucher	—	صحيح	Core مثبت
+Adjustment	—	صحيح	Core مثبت
+Purchase	جزئي	قوي	Production صحيح بعد إصلاح cast
+Financial cores	صحيح	صحيح	Architecture صحيحة
+Driver ledger	ناقص	ناقص	تم إصلاحه الآن
+Driver liability	صحيح	صحيح	Core صحيح، grants أصلحت الآن
+Daily settlement	صحيح	صحيح	Core صحيح، grants أصلحت الآن
+Security boundary	غير مكتمل	غير مكتمل	صححت فعليًا
+Save Transfer Voucher	لم يغلق	لم يغلق	OPEN
+PWA	اقتراح جيد لكن يحتاج tightening	اقتراح أقل أمانًا	لا يمر كما هو
+HTTP E2E	مفتوح	مفتوح	OPEN
+Concurrency	مفتوح	مفتوح	OPEN
+Full Financial Zero-Debt	مفتوح	مفتوح	OPEN
+Global Inventory Zero-Debt	مفتوح	مفتوح	OPEN
+
+وهذا يتفق مع روح الخطة الأخيرة: لا يتم تحويل وجود Core إلى Global Closure.
+
+10. ما تم إصلاحه فعليًا الآن
+
+قمت فعليًا بتنفيذ وليس فقط التوصية:
+
+Production
+
+تم تنفيذ:
+
+20260825224500_close_financial_core_execute_surface
+
+وتغيير:
+
+PUBLIC/anon/authenticated
+
+إلى:
+
+service_role only
+
+للوظائف التي كانت مكشوفة.
+
+Edge Function
+
+تم نشر:
+
+update-driver-ledger v2
+
+وأصبحت تستعمل:
+
+post_driver_ledger_entry
+
+بدل direct insert.
+
+Git
+
+تم تحديث:
+
+Current/Edge_Functions/update-driver-ledger
+
+وتم تسجيل migration المقابلة.
+
+وتم إنشاء سجل Forensic رسمي:
+
+Current/CTO/20260825_FORENSIC_REVIEW_AND_CLOSURE_CORRECTIONS.md
+
+والسجل نفسه ينص صراحةً أن:
+
+FINAL CLOSURE = NOT 100% CLOSED
+
+وأن save-transfer-voucher ما زال Open.
+
+11. Prompt خالد — النسخة التي أوصي بتكليفه بها الآن
+KHALID — PHASE 1B FINANCIAL MASTER DATA + FINANCIAL GOVERNANCE CLOSURE
+هذه مهمة تنفيذية Production-First وليست مهمة تقرير.
+
+المصدر الأعلى للحقيقة:
+CURRENT PRODUCTION
+ثم CURRENT GIT
+ثم CURRENT CTO EVIDENCE
+ثم HISTORICAL
+ثم REPORTS.
+
+ممنوع الاعتماد على الذاكرة أو التقارير السابقة كحقيقة حالية.
+
+1. إعادة Rebaseline كاملة من Production:
+   - companies
+   - users
+   - chart_of_accounts
+   - treasury
+   - roles
+   - permissions
+   - app_settings
+
+2. لا تُنشئ أي حساب بناءً على تخمين.
+   كل Account يجب أن يكون له:
+   - Business reason
+   - account_type
+   - normal_balance
+   - parent
+   - intended consumers
+   - canonical code
+   - Production validation
+
+3. تعامل مع الـ17 الحالية باعتبارها Current Master Data فقط.
+   ممنوع وصفها بأنها استعادة للـ87 التاريخية.
+
+4. راجع كل الحسابات المستخدمة فعليًا بواسطة:
+   - POS
+   - Purchase
+   - Returns
+   - Cash Receipt
+   - Cash Payment
+   - Daily Settlement
+   - Driver Liability
+   - Supplier Ledger
+   - Customer Ledger
+
+5. ابنِ Financial Account Contract:
+   Account Code
+   UUID
+   Type
+   Parent
+   Consumer
+   Core
+   Runtime Status
+
+6. راجع كل Financial Edge Function.
+   ابحث عن:
+   - direct DML
+   - hard-coded company IDs
+   - global lookup
+   - account-name identity
+   - code identity without company scope
+   - Treasury ambiguity
+   - operation_id absence
+
+7. خصيصًا:
+   save-transfer-voucher
+   يجب اعتباره OPEN حتى:
+   - تثبت عدم وجود Consumer
+   أو
+   - بناء canonical treasury transfer core
+   ثم adapter
+   ثم runtime verification.
+
+8. لا تعدل PWA Production قبل إغلاق Master Data Contract.
+
+9. اختبر:
+   happy path
+   duplicate
+   wrong company
+   wrong account
+   inactive account
+   missing treasury
+   concurrent submission
+
+10. لكل تغيير:
+    Production migration
+    Git migration
+    Consumer update
+    Verification
+    Event log
+
+11. لا تعلن CLOSED إلا إذا:
+    Production deployed
+    Production runtime verified
+    Git synchronized
+    No direct writer remains
+    No tenant drift remains
+
+12. FINAL SELF AUDIT:
+    What was proved
+    What was corrected
+    What remains open
+    What could still be wrong
+
+ممنوع إنهاء المهمة بتقرير فقط.
+12. Prompt هيثم — النسخة التي أوصي بها الآن
+HYTHAM — GLOBAL INVENTORY ZERO-DEBT / WRITER CLOSURE
+أنت مسؤول عن GLOBAL INVENTORY ZERO-DEBT.
+
+المبدأ:
+لا تثق في أي تقرير سابق.
+لا تثق في Current snapshot قديم.
+Production الحالية هي المرجع.
+
+العقد غير القابل للتفاوض:
+
+PHYSICAL MOVEMENT
+        ↓
+post_stock_movement
+        ↓
+stock_branches + inventory_log
+
+reserve_stock
+و
+release_stock_reservation
+Reservation only.
+
+1. أعد Global Writer Discovery من Production:
+   - pg_proc
+   - triggers
+   - Edge Functions
+   - Current/PWA
+   - Git current
+   - historical consumers
+
+2. لكل Writer:
+   Historical
+   Production
+   Current
+   Consumer
+   Target
+   Status
+
+3. Closure Units بالترتيب:
+   Manual Voucher
+   Purchase Receiving
+   POS
+   Van Sales
+   Returns
+   Loading
+   Unloading
+   Adjustment
+   Picking/Reservation
+
+4. لا تعتبر:
+   "calls post_stock_movement"
+   دليل Closure لوحده.
+
+   يجب التحقق من:
+   - tenant
+   - item identity
+   - idempotency
+   - state transition
+   - inventory_log
+   - source/target
+   - allocated_qty
+   - retry
+   - concurrency
+
+5. أي Writer خارج Core:
+   FOUND
+   ↓
+   ROOT CAUSE
+   ↓
+   HISTORICAL TRACE
+   ↓
+   MINIMAL FIX
+   ↓
+   TEST
+   ↓
+   DEPLOY
+   ↓
+   PRODUCTION VERIFY
+   ↓
+   CLOSE
+
+6. ممنوع Global Closure مع وجود:
+   - save-transfer-voucher-like financial drift
+   - direct stock writer
+   - loading/unloading runtime gap
+   - HTTP E2E gap
+   - concurrency gap
+   - Git/Production mismatch
+
+7. راجع complete_return_atomic بصرامة:
+   - order_details authoritative
+   - run_sheet_details derived
+   - no dual-write divergence
+   - company-scoped item lookup
+   - no global lookup where tenant context is required
+
+8. افحص:
+   post_inventory_adjustment_atomic
+   create_manual_stock_voucher_atomic
+   post_manual_stock_voucher_atomic
+   send_stock_voucher_atomic
+   receive-stock-voucher
+   complete-loading
+   complete-unloading
+   complete-picking
+   reopen flows
+   Van Sales
+
+9. أعد تشغيل Security/Grant analysis بعد كل Writer closure.
+
+10. أنشئ:
+    GLOBAL INVENTORY WRITER MATRIX
+
+11. معيار الإغلاق:
+    Physical Writers outside post_stock_movement = 0
+
+    AND
+
+    all runtime proofs pass.
+
+12. لا تقل:
+    CLOSED
+    إلا إذا كان Production runtime evidence موجودًا.
+
+13. سجل كل:
+    finding
+    decision
+    SQL
+    deployment
+    result
+    rollback
+    final state
+13. التقرير التنفيذي النهائي
+ما أثبته التحقيق
+
+صحيح:
+
+الاتجاه المعماري العام الذي قاد إليه هيثم صحيح.
+قرار خالد بإيقاف مطاردة الـ87 التاريخية صحيح.
+Purchase bug كان حقيقيًا وتم إصلاحه.
+Manual Voucher / Adjustment / Reservation architecture متجهة في الاتجاه الصحيح.
+Financial Cores حقيقية ومستخدمة.
+
+صححته أنا مباشرة:
+
+Financial SECURITY DEFINER execution surface.
+update-driver-ledger direct writer.
+Production/Git record for these corrections.
+
+ما زال مفتوحًا:
+
+save-transfer-voucher.
+PWA financial runtime.
+full HTTP E2E.
+true concurrency.
+complete global financial writer matrix.
+complete inventory runtime closure.
+full reconciliation.
+الحكم
+ARCHITECTURE DIRECTION      = CORRECT
+CORE CONVERGENCE            = SUBSTANTIAL
+PRODUCTION CORRECTIONS      = EXECUTED
+SECURITY GAP FOUND          = FIXED
+DRIVER LEDGER WRITER GAP    = FIXED
+GLOBAL FINANCIAL ZERO-DEBT  = NOT CLOSED
+GLOBAL INVENTORY ZERO-DEBT  = NOT CLOSED
+PWA CONVERGENCE             = NOT CLOSED
+100% PROJECT CLOSURE        = NOT CLAIMED
+
+وهذا هو الحكم الذي أعتبره أمينًا وقابلًا للتدقيق، لا التقرير الذي يبدو أجمل.
+
+المرجع التنفيذي الحاكم نفسه يشترط عدم إعلان الإغلاق قبل إثبات Production/runtime/Git وعدم اختفاء أي مسؤولية أثناء النقل.
+
+والسجل الجديد يوثق ما تم اكتشافه وتصحيحه وما بقي مفتوحًا بدل دفنه داخل تقارير سابقة.
