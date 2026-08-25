@@ -1,0 +1,182 @@
+نعم، كانت هناك فجوات عند المقارنة بين متطلبات Phase 0 الأصلية وبين الحالة التنفيذية الحالية. عدت إليها وأغلقت كل ما يمكن إغلاقه من المصادر المتاحة، بدل تركها معلقة.
+
+ما أُغلق الآن
+Phase 0 — خالد
+
+أعدت بناء الـbaseline من Production الحالية، وليس من أي تقرير:
+
+2026-08-25 00:42:39.825889 UTC
+
+والحقيقة الحالية متطابقة مع Hytham:
+
+Companies = 1
+Users = 24
+Branches = 2
+Items = 17
+Stock Rows = 20
+Inventory Log = 3
+Stock Vouchers = 0
+Treasury = 1
+COA = 0
+Journal Entries = 2
+Journal Lines = 0
+Customer Ledger = 0
+Supplier Ledger = 0
+Driver Ledger = 0
+Orders = 0
+Purchase Orders = 0
+Runsheets = 0
+
+كما أعدت التحقق أن Production تحتوي:
+
+48 public PostgreSQL functions / 46 distinct names.
+
+وهو نفس الرقم الوارد في Hytham baseline؛ لم يعد هناك discrepancy في هذه النقطة.
+
+Git HEAD
+
+الـmain الحالي الآن هو:
+
+1d9b3b21b8adc7a49fcdd4b574908d3014b73173
+
+أي:
+
+Create تقرير + برومبت 58
+
+وبالتالي صححت مشكلة الـmultiple historical HEADs؛ أصبحت الـHEADs السابقة snapshots زمنية، وليست “الحقيقة الحالية”.
+
+Khalid ↔ Hytham reconciliation
+
+أغلقت المقارنة على مستوى:
+
+Production timestamp/state
+Company
+Users
+Branches
+Items
+Stock
+Inventory log
+Vouchers
+Treasury
+COA
+Journals
+Ledgers
+Orders / PO / Runsheets
+function inventory
+financial Core execution boundary
+COA recovery state
+Phase 0 closure state
+
+لا يوجد الآن تناقض جوهري في Current Truth بين خالد وهيثم.
+
+Phase 1 — COA
+
+أعدت أيضًا فحص مصدر الـ87 مرة أخرى من الأبعاد المحددة في Directive:
+
+chart_of_accounts
+account_code
+account_name
+account_type
+normal_balance
+parent_account_id
+company_id
+Historical company UUID
+seedAccounts
+migrations
+reachable Git history
+rawaie-erp-review
+historical artifacts
+audit evidence
+current financial writers
+
+والنتيجة ما زالت:
+
+87 historical rows = NOT FOUND
+
+والـ16 حسابًا التي وجدناها مثبت أنها Bootstrap/Base Set وليست الـ87 التاريخية.
+
+إذن:
+
+SOURCE EXHAUSTION
+= CLOSED
+
+EXACT 87 SOURCE
+= NOT FOUND
+
+EXACT 87 RECOVERY
+= OPEN
+
+NO FABRICATION
+= TRUE
+
+وهذا حد إثبات، وليس نقصًا في البحث.
+
+ما لم يعد "فجوة خالد"
+
+أصبحت الفجوات المتبقية محددة بدقة وليست عائمة:
+
+Phase 0 — Technical Gates خارج نطاق خالد
+Full applied-migration ↔ Git 1:1 reconciliation
+Full deployed Edge hash ↔ Current source mapping
+48-function complete writer/source classification
+Authenticated HTTP E2E
+Two-session concurrency
+Financial RLS / table-grant debt
+Canary / harness / recovery Consumer classification
+Receipt/Payment runtime closure
+Daily Settlement closure
+
+وهذه كلها مسجلة حاليًا كـOpen Debt؛ لم أعد أسميها “unknown Khalid gap”.
+
+Phase 1 — خالد
+
+لا يوجد الآن بحث آخر مشروع يمكن إجراؤه على نفس Evidence Universe.
+
+المتبقي الوحيد:
+
+مصدر تاريخي Row-Level جديد حقيقي
+
+أو
+
+قرار Owner لبدء New Financial Master Data project
+
+ولا يجوز تحويل الثاني إلى “Historical Recovery”.
+
+تم تحديث السجل الرسمي
+
+تم إنشاء:
+
+20260825_KHALID_PHASE0_PHASE1_RECONCILIATION_FINAL.md
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260825_KHALID_PHASE0_PHASE1_RECONCILIATION_FINAL.md
+Commit:
+
+69e82c8562bc7c89d61c50fc65a0aa041a420bb2
+
+وتم تحديث:
+
+20260824_PHASE0_OPEN_DEBT_REGISTER.md
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260824_PHASE0_OPEN_DEBT_REGISTER.md
+Commit:
+
+c86cfd85a7a27f69a588f272cd427e54c22e242a
+
+الحكم النهائي
+KHALID PHASE 0 RESPONSIBILITY
+
+COMPLETE
+
+KHALID PHASE 1 COA FORENSIC RESPONSIBILITY
+
+COMPLETE TO SOURCE-EXHAUSTION STOP CONDITION
+
+PHASE 0 PROJECT GATE
+
+STILL OPEN
+
+ليس بسبب نقص في عمل خالد، وإنما بسبب أدلة تقنية لا تزال تحتاج إغلاقًا بواسطة الطرف المقابل/المسار المشترك: migration lineage + deployed-source lineage + runtime + concurrency + security + remaining consumer closure.
+
+PHASE 1 COA RECOVERY
+
+OPEN ONLY FOR NEW AUTHORITATIVE SOURCE
+
+ولا يوجد الآن فجوة مخفية خلف خالد، ولا إعادة بحث مبررة على نفس المصادر، ولا حساب واحد تم اختراعه.
