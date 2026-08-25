@@ -24,6 +24,7 @@ Continue from Prompt 60 through the broader ERP plan without waiting for phase-s
 - Purchase Orders: 0
 - Runsheets: 0
 - Treasury: 1 (`CASH-01`)
+- Treasury current balance: `10000.00`
 - COA: 17
 
 ## Event 01 — Global Inventory Writer Discovery
@@ -313,22 +314,75 @@ Decision:
 - Do not count it as an Inventory failure.
 - Classify as `TEST_HARNESS_RETIRED`.
 
-This proves a designed CI path exists, but its current fixture endpoint is retired. A new controlled test harness would be required for live HTTP proof.
+## Event 18 — Prompt 61 Forensic Re-baseline
 
-## Event 18 — Exact Runtime Limitations
+Prompt 61 was read as a historical assessment, then re-tested against current Production rather than accepted as current truth.
 
-The following are NOT claimed as closed:
-- authenticated HTTP E2E for every critical writer;
-- two genuinely independent concurrent HTTP sessions for critical writers;
-- exhaustive deployed Edge hash/version parity for every inventory/financial consumer;
-- full PWA consumer runtime verification;
-- real Vehicle/Driver/Order/Runsheet runtime proofs while current Production has zero vehicles, drivers, orders and runsheets;
-- full financial RLS policy refinement beyond the table-level DML boundary already fixed;
-- end-to-end reconciliation under real business workload;
-- final Phase 2 Zero-Debt certification;
-- final Phase 3–7 certification.
+Findings superseding stale report claims:
 
-These are evidence/capability gates, not reasons to repeat completed work.
+1. `save-transfer-voucher` is currently Production **v4**, not the v3 direct-writer described by the report. Its current source is authenticated, company-scoped through `public.users.auth_id`, requires `operation_id`, and delegates to `post_treasury_transfer_atomic`.
+
+2. `update-driver-ledger` is currently Production **v2**, not the v1 direct-insert path described by the report. It authenticates the user, derives company context, supports operation/idempotency keys, and delegates to `post_driver_ledger_entry`.
+
+3. Current PostgreSQL ACL verification shows the following SECURITY DEFINER functions are restricted to `service_role` plus owner `postgres` for the inspected signatures:
+- `post_treasury_transfer_atomic`
+- `post_daily_settlement_atomic`
+- `post_driver_liability_entry`
+- `post_driver_ledger_entry`
+- `enforce_van_branch_company_context`
+- `get_warehouse_team`
+- `set_active_warehouse_role`
+
+4. Current Security Advisor results now contain only:
+- `erp_operation_registry` RLS enabled without policy (INFO)
+- Leaked Password Protection disabled (WARN)
+No `anon_security_definer_function_executable` or `authenticated_security_definer_function_executable` finding remains.
+
+5. Current Treasury state is one active treasury only:
+`CASH-01` / `0a9d9357-b5f3-4dfa-886f-7c73de4f274e` / balance `10000.00`.
+Because there is only one active treasury, a real source→target transfer business transaction cannot be executed without creating a second treasury fixture. No such fixture was created.
+
+6. `Current/PWA/accountant.html` still contains legacy Receipt/Payment consumer functions. They do not yet pass the current canonical Edge contract fields (`operationId`, explicit account UUIDs) and are therefore a genuine open Consumer Contract gap.
+
+Decision:
+Do not revert to the stale v3 transfer path. Treat Production v4/v2 as current truth. Continue with Accountant PWA surgical consumer correction and later authenticated HTTP E2E once an approved test harness is available.
+
+## Event 19 — PWA Contract Decision
+
+The currently published Accountant PWA does not require direct financial table DML and continues to call the canonical Receipt/Payment Edge functions, but its payload contract is stale.
+
+Required surgical scope:
+- `Current/PWA/accountant.html`
+- `App.newReceipt`
+- `App.newPayment`
+
+The corrected consumer must:
+- obtain the authenticated user through Supabase Auth;
+- derive company only from `public.users.auth_id`;
+- resolve the active treasury from the current company;
+- resolve account UUIDs from `chart_of_accounts` under the current company and active state;
+- generate an operation UUID;
+- pass the canonical Edge payload;
+- never use `user_metadata.company_id`;
+- never hard-code an account UUID;
+- never make an offset account a hidden default;
+- never perform direct financial DML.
+
+No PWA file was auto-modified in this event. The exact surgical replacement is to be reviewed/pasted into the published file under the established Current/PWA manual-review protocol.
+
+## Event 20 — Git Lineage Verification
+
+`Current/Edge_Functions/save-transfer-voucher/index.ts` is already present and matches the current Production v4 adapter.
+`Current/Edge_Functions/update-driver-ledger/index.ts` is already present and matches current Production v2 adapter.
+
+Decision:
+No duplicate Git files or unnecessary redeployments were performed.
+
+## Event 21 — Self-Audit
+
+Prompt 61 itself was stale in at least the `save-transfer-voucher` and `update-driver-ledger` sections relative to live Production.
+The earlier PWA proposal that defaulted offset accounts was rejected because it violated the no-guessing rule.
+The current PWA correction therefore resolves account UUIDs dynamically under authoritative company context.
 
 ## Current Status
 
@@ -344,15 +398,18 @@ These are evidence/capability gates, not reasons to repeat completed work.
 - Daily Settlement core canary.
 - Financial table direct-DML boundary for anon/authenticated.
 - Current persisted-state integrity invariants checked.
+- `save-transfer-voucher` current Production v4 canonical adapter.
+- `update-driver-ledger` current Production v2 canonical adapter.
 
 ### Still open — cannot be truthfully upgraded without the required evidence
+- Published Accountant PWA surgical consumer replacement.
 - Authenticated HTTP E2E for every critical writer.
 - Two genuinely independent concurrent HTTP sessions for critical writers.
-- Exhaustive deployed Edge hash/version parity against `Current/Edge_Functions`.
+- Exhaustive deployed Edge hash/version parity for every critical consumer.
 - Full PWA consumer runtime verification.
-- Real Vehicle/Driver/Order/Runsheet runtime proofs.
-- Full financial RLS policy refinement beyond the DML boundary already fixed.
-- End-to-end stock/document/ledger reconciliation under live transactional workload.
+- Real Vehicle/Driver/Order/Runsheet runtime proofs while current Production has zero vehicles, drivers, orders and runsheets.
+- Full financial RLS policy refinement beyond the current DML boundary.
+- End-to-end reconciliation under live business workload.
 - Final Phase 2 Zero-Debt certification.
 - Final Phase 3–7 certification.
 
@@ -363,17 +420,19 @@ Production was modified only where a real defect or security boundary was direct
 All temporary canaries used transactions and were rolled back.
 No historical COA was recreated.
 No Treasury mapping was guessed.
-No PWA was modified in this continuous pass.
+No PWA was auto-modified in this pass.
 A real Production defect was discovered, corrected, retested, and made reproducible in Git.
 A retired HTTP canary was explicitly prevented from being counted as runtime proof.
+Prompt 61 stale claims were corrected against live Production rather than replayed mechanically.
 
 ## Next Execution State
 
 Continue directly with:
-1. Rebuild/replace the retired authenticated HTTP test harness in an allowed location without modifying business PWA/Production logic.
-2. Use that harness for critical writer E2E and two-session concurrency proof.
-3. Continue Phase 4 consumer/Edge/PWA convergence.
-4. Complete Phase 6 reconciliation.
-5. Evaluate Phase 7 readiness only from accumulated evidence.
+1. Review/paste the exact surgical Accountant PWA replacement.
+2. Verify the published Accountant PWA against the current Edge contract.
+3. Continue consumer/Edge/PWA convergence.
+4. Replace retired HTTP harness in an allowed location if an approved mechanism is available.
+5. Complete runtime/concurrency and reconciliation gates.
+6. Evaluate Phase 7 readiness only from accumulated evidence.
 
 Do not reopen completed SQL/core closures unless new evidence contradicts them.
