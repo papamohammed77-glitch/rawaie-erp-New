@@ -1,0 +1,162 @@
+تم يا خالد. Phase 1B نُفذت فعليًا حتى الإغلاق، وانتقلنا من حلقة البحث التاريخي إلى Master Data جديدة قابلة للتدقيق.
+
+الحالة التنفيذية الحالية
+1. Historical 87-row Recovery
+
+تم إغلاقها نهائيًا عند:
+
+SOURCE EXHAUSTION = CLOSED
+
+ولم يتم استرجاع الـ87، ولم يتم اختلاقها.
+
+2. New Financial Master Data
+
+تم إنشاء 16 حسابًا جديدًا للشركة الوحيدة الحالية:
+
+00000000-0000-0000-0000-000000000001
+
+والـ16 ليست “الـ87 القديمة”، بل:
+
+NEW MASTER DATA
+
+وقد غطّت الحسابات التي تطلبها Production مباشرة:
+
+121 النقدية
+123 العملاء
+124 المخزون
+211 الموردون
+41 إيرادات المبيعات
+51 تكلفة المبيعات
+
+مع المجموعات والأبناء اللازمة لبناء شجرة صحيحة.
+
+3. Production Verification
+
+بعد الإدخال:
+
+COA = 16
+Assets = 6
+Liabilities = 4
+Equity = 2
+Revenue = 2
+Expense = 2
+Journal Entries = 2 بدون تغيير
+Journal Lines = 0 بدون تغيير
+Treasury Balance = 10,000 بدون تغيير
+
+كما تم التحقق أن جميع parent_account_id أصبحت صحيحة داخل نفس الشركة، ولا توجد orphan parents أو duplicate account codes.
+
+4. Core Compatibility
+
+تم تنفيذ اختبار حقيقي داخل transaction باستخدام UUIDs الجديدة للحسابين:
+
+121 + 41
+
+واستدعاء:
+
+post_journal_entry
+
+والنتيجة:
+
+success = true
+balanced debit/credit
+line_count = 2
+UUID validation = PASS
+
+ثم تم عمل:
+
+ROLLBACK
+
+لذلك لم يتبق أي Journal أو Audit أو Registry test residue.
+
+5. Treasury
+
+لم يتم تعديل Treasury إطلاقًا.
+
+العقد المثبت حاليًا هو:
+
+Treasury identity
+      +
+GL cash-account identity
+      ↓
+post_cash_receipt_atomic / post_cash_payment_atomic
+
+وsave_sales_invoice_atomic يطلب صراحة الحساب المحاسبي:
+
+account_code = 121
+
+لكن لم يتم إنشاء أي FK أو mapping مصطنع:
+
+CASH-01 → 121
+
+لأن Production لا تحتوي هذا الـFK أصلًا.
+
+تصحيح مهم أثناء التنفيذ
+
+خلال الـPost-Insert Verification اكتشفت أن أول INSERT أنشأ الحسابات لكن لم يربط الـparents كما كان متوقعًا بسبب طبيعة snapshot داخل نفس INSERT ... VALUES.
+
+لم أعتبر المهمة ناجحة.
+
+أنشأت فورًا migration تصحيحية وربطت كل Parent/Child، ثم أعدت التحقق الكامل.
+
+إذن الـProduction الحالية ليست فقط “مدخلة”، بل مصححة بعد التحقق.
+
+Git ↔ Production
+
+تم تمثيل التغيير في Git بمهاجرتين:
+
+20260825013814_khalid_new_financial_master_data_v1.sql
+
+20260825013838_khalid_new_financial_master_data_parent_links_v1.sql
+
+وProduction migration registry تؤكد بالفعل:
+
+20260825013814
+20260825013838
+
+وبالتالي Git/Production migration representation = VERIFIED لهذه الوحدة.
+
+والـmain الحالي بعد توثيق التنفيذ هو:
+
+d22a266264dc67a40240c9bad49e07f0d44041d8
+
+الملفات الرسمية
+تقرير التنفيذ
+
+20260825_KHALID_NEW_FINANCIAL_MASTER_DATA_EXECUTION.md
+
+مصفوفة الحسابات والمصادر
+
+20260825_KHALID_FINANCIAL_ACCOUNT_REQUIREMENTS_MATRIX.md
+
+عقد Treasury ↔ COA
+
+20260825_KHALID_TREASURY_COA_CONTRACT.md
+
+سجل الدين المحدث
+
+20260824_PHASE0_OPEN_DEBT_REGISTER.md
+
+سجل الانتقال التنفيذي
+
+20260825_PHASE_TRANSITION_DECISION_AND_EXECUTION_LOG.md
+
+الحالة الرسمية لخالد
+الوحدة	الحالة
+Historical 87 Recovery	CLOSED AT SOURCE EXHAUSTION
+New Financial Master Data	CLOSED / PRODUCTION VERIFIED
+COA hierarchy	VERIFIED
+Core UUID compatibility	VERIFIED
+Treasury integrity	VERIFIED / UNCHANGED
+Treasury ↔ COA operational contract	PROVEN
+Git migration representation	VERIFIED
+Accountant UI	OPEN — لم يتم لمسها
+Financial HTTP E2E	OPEN
+Daily Settlement	OPEN
+Financial Writer Zero-Debt	OPEN
+Financial RLS / Grants	OPEN
+Concurrency	OPEN
+Phase 0 project gate	OPEN
+Hytham Phase 2 Inventory Zero-Debt	ACTIVE / PARALLEL
+
+الخلاصة: خالد أنهى الآن Phase 1B بالكامل. لم نعد ننتظر الـ87 التاريخية كي يتحرك المشروع، ولم نلمس Treasury أو POS أو Inventory أو الـPWA. المشروع أصبح يملك الآن Financial Master جديدة فعلية في Production يمكن بناء الـAccounting/Consumer layers عليها، مع بقاء الـglobal technical gates منفصلة ومحددة.
