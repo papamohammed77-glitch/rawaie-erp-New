@@ -1,0 +1,914 @@
+تم يا خالد تنفيذ التكليف المستمر، وليس مجرد إصدار تقرير.
+
+قرأت «تقرير + برومبت 60» كاملًا، ثم نفذت الـDirective الممتد PHASE 2 → PHASE 7 على الحقيقة الحالية.
+
+أهم ما اكتشفته وأصلحته
+1. Financial Writer Zero-Debt كشف Writers حقيقية كانت ما تزال خارج الـCores
+
+المسح المباشر لـProduction كشف أن:
+
+save-receipt-voucher v5 كان يكتب مباشرة إلى:
+cash_box
+journal_entries
+journal_lines
+treasury
+driver_ledger
+save-payment-voucher v3 كان يكتب مباشرة إلى:
+cash_box
+journal_entries
+journal_lines
+treasury
+save-daily-settlement v3 كان يكتب مباشرة إلى:
+daily_settlements
+driver_liabilities
+journal_entries
+journal_lines
+ويغلق الـrunsheet.
+
+وهذه كانت فجوة حقيقية لا يجوز معها إعلان Financial Writer Convergence مكتملًا.
+
+2. تم إصلاح Receipt/Payment في Production
+
+تم نشر:
+
+save-receipt-voucher v6
+
+save-payment-voucher v4
+
+كـAdapters رفيعة إلى:
+
+post_cash_receipt_atomic
+
+post_cash_payment_atomic
+
+وأصبح المسار:
+
+JWT
+→ auth.users
+→ public.users.company_id
+→ Treasury UUID
+→ Cash Account UUID
+→ Offset Account UUID
+→ Operation ID
+→ Canonical Cash Core
+→ Journal Core
+→ Registry / Audit
+
+ولم يعد الـEdge يكتب Journal أو Treasury أو CashBox مباشرة.
+
+3. تم اكتشاف Writer ثالث وأُغلق مركزيًا
+
+complete_return_atomic كان ما يزال يكتب driver_liabilities مباشرة.
+
+تم إنشاء:
+
+post_driver_liability_entry
+
+وإعادة توصيل complete_return_atomic إليه.
+
+تم اختبار:
+
+First write → Retry → duplicate
+
+داخل transaction، ثم:
+
+ROLLBACK
+
+والحالة النهائية بقيت:
+
+driver_liabilities = 0
+
+أي لا يوجد test residue.
+
+4. Daily Settlement
+
+هذا كان أكبر تسرب مالي متبقٍ.
+
+تم إنشاء:
+
+post_daily_settlement_atomic
+
+وأصبح هو المسؤول عن:
+
+settlement
+driver liability settlement
+financial journal
+runsheet close
+operation registry
+audit
+
+ثم تم نشر:
+
+save-daily-settlement v4
+
+كـAdapter فقط.
+
+5. اكتشفت مشكلة محاسبية حقيقية داخل Daily Settlement
+
+النسخة القديمة كانت تضع:
+
+driver_id
+
+داخل:
+
+journal_lines.account_id
+
+بينما account_id هو FK إلى:
+
+chart_of_accounts.id
+
+وهذا أصبح غير صالح بعد New COA.
+
+تم إنشاء حساب جديد مثبت الحاجة:
+
+125 — ذمم وعهد السائقين
+
+كـNew Master Data وليس Historical Recovery.
+
+وأصبح مسار عجز السائق:
+
+Driver Shortage
+      ↓
+125 ذمم وعهد السائقين
+      مقابل
+124 المخزون السلعي
+
+وهذا يتوافق أيضًا مع نماذج ERP الناضجة التي تستخدم Inventory Loss/variation counterpart لاحتساب فروق المخزون، مع بقاء عقد RAWAEA الحالي هو المرجع الحاكم.
+
+حالة Production الحالية بعد التنفيذ
+العنصر	الحالة
+Companies	1
+Treasury	1
+Treasury Balance	10,000
+COA	17
+Journal Entries	2
+Journal Lines	0
+Runsheets	0
+Daily Settlements	0
+Driver Liabilities	0
+Inventory Log	3
+Stock Vouchers	0
+
+لم يتم إنشاء أي بيانات اختبار باقية في Production.
+
+أهم نقطة: لم أعلن الإغلاق الكاذب
+
+بعد هذه الجولة:
+
+PHASE 3 — Financial Writer Zero-Debt
+
+ACTIVE / SUBSTANTIALLY ADVANCED / NOT CLOSED
+
+لأن ما زال مطلوبًا إثبات:
+
+save-journal-entry الكامل.
+update-driver-ledger.
+كل Financial Edge consumers غير المذكورة.
+full Production → Git deployed hash lineage.
+authenticated HTTP runtime.
+browser runtime.
+true concurrency.
+financial RLS/grants.
+PHASE 4 — Consumer / Edge / PWA
+
+وجدت أن:
+
+accountant.html
+
+ما زال يرسل العقد القديم:
+
+cashBoxId = MAIN
+mainAccountName = user input
+accountName = user input
+
+ولا يرسل:
+
+treasuryId
+cashAccountId
+offsetAccountId
+operationId
+
+لذلك لم أعدل accountant.html تخمينًا.
+
+هذا Consumer Gate ما زال مفتوحًا.
+
+PHASE 5
+
+HTTP/browser E2E الحقيقي وtwo-session concurrency لم يثبتا بعد.
+
+PHASE 6
+
+لم تبدأ certification النهائية لأن أدلة Phase 3–5 لم تصل بعد إلى شروطها.
+
+PHASE 7
+
+NOT READY
+
+تم تسجيل الحدث بالكامل
+
+أضفت:
+
+20260825_KHALID_CONTINUOUS_EXECUTION_EVENT_01.md
+
+ويحتوي على:
+
+EVENT → DECISION → PRODUCTION → CODE → TEST → RESULT → UNKNOWN → NEXT ACTION
+
+وتم أيضًا تثبيت المصادر الجديدة في Git:
+
+Current/Edge_Functions/save-receipt-voucher/index.ts
+Current/Edge_Functions/save-payment-voucher/index.ts
+Current/Edge_Functions/save-daily-settlement/index.ts
+supabase/migrations/20260825_khalid_driver_liability_core_and_return_convergence.sql
+
+ومن ثم لم تعد Production تحتوي تغييرات غير ممثلة في المستودع.
+
+الحكم الحالي لخالد
+Historical 87 Recovery          CLOSED
+New Financial Master Data       VERIFIED
+Inventory Core                  PRESERVED
+Financial Writer Convergence    ACTIVE / NOT CLOSED
+Consumer Convergence            OPEN
+Runtime / HTTP                  OPEN
+Concurrency                     OPEN
+RLS / Grants                    OPEN
+Reconciliation                 OPEN
+Autonomous CTO                 NOT READY
+
+لم نتراجع إلى البحث التاريخي، ولم نعد إنشاء الـ16، ولم نكسر Inventory. انتقل التنفيذ فعليًا إلى جوهر الـERP المالي، واكتشفنا وأغلقنا ثلاثة مسارات كتابة مالية كانت لا تزال موزعة.
+-------------
+ملحق 
+
+نعم، لكن بدقة شديدة يجب التفريق بين Production deployment وإغلاق الـlineage الكامل.
+
+1) هل آخر تعديلات خالد موجودة فعليًا في Production؟
+
+نعم. كل التعديلات التنفيذية التي أجريتها في هذه الجولة وصلت إلى Production SMART ERP بالفعل.
+
+آخر حالة منشورة الآن:
+
+Component	Production
+save-receipt-voucher	v6 ACTIVE
+save-payment-voucher	v4 ACTIVE
+save-daily-settlement	v4 ACTIVE
+post_driver_liability_entry	موجود في Production
+post_daily_settlement_atomic	موجود في Production
+New COA	17 حسابًا
+Treasury	1
+Treasury balance	10,000
+Runsheets	0
+Settlements	0
+Driver liabilities	0
+Journal entries	2
+Journal lines	0
+
+وأعدت قراءة الـEdge Functions المنشورة مباشرة، وليس من Git:
+
+save-receipt-voucher v6 يتطلب operationId, cashAccountId, offsetAccountId ويستدعي post_cash_receipt_atomic.
+save-payment-voucher v4 يتطلب نفس الهوية ويستدعي post_cash_payment_atomic.
+save-daily-settlement v4 يتطلب operation_id ويستدعي post_daily_settlement_atomic.
+
+لكن: لا أعتبر Production → Git byte-for-byte lineage مغلقًا 100% لكل هذه النسخ بعد؛ هذا مسار توثيق مستقل. لذلك:
+
+Production deployment = YES
+Global lineage certification = NOT YET CLOSED
+
+2) دوال الـPWA المطلوب حذفها واستبدالها
+
+الملف:
+
+Current/PWA/accountant.html
+
+والتعديل الجراحي يجب أن يقتصر على دالتين فقط:
+
+App.newReceipt()
+App.newPayment()
+
+لا تحذف أو تعدل:
+
+renderDashboard()
+renderReceipts()
+renderPayments()
+renderJournal()
+init()
+switchTab()
+أي دالة أخرى.
+
+السبب واضح من Production الحالية: النسخة المنشورة من التطبيق ما زالت ترسل:
+
+cashBoxId: "MAIN"
+mainAccountName: reference
+accountName: reference
+
+وهذا لم يعد متوافقًا مع الـProduction Edge الحالي الذي يتطلب:
+
+operationId
+treasuryId
+cashAccountId
+offsetAccountId
+
+كما أن account_id في المحاسبة هو UUID، وليس MAIN أو رقم نصي.
+
+3) الدالة الأولى — App.newReceipt()
+احذف الدالة الحالية بالكامل
+newReceipt: function(){
+    Swal.fire({title:'سند قبض جديد',html:'<input id="rcptAmt" class="swal2-input" placeholder="المبلغ" type="number"><input id="rcptRef" class="swal2-input" placeholder="المرجع">',showCancelButton:true,confirmButtonText:'حفظ',preConfirm:function(){return{amt:parseFloat(document.getElementById('rcptAmt').value)||0,ref:document.getElementById('rcptRef').value};}}).then(function(r){if(!r.isConfirmed)return;Swal.showLoading();supabase.auth.getSession().then(function(se){var t=se.data.session?se.data.session.access_token:null;return fetch(SUPABASE_URL+'/functions/v1/save-receipt-voucher',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+t},body:JSON.stringify({date:new Date().toISOString().split('T')[0],cashBoxId:'MAIN',mainAccountName:r.value.ref,notes:'',lines:[{accountName:r.value.ref,description:'',amount:r.value.amt}]})});}).then(function(res){return res.json();}).then(function(j){Swal.close();if(j.success){RW_UI.toast('تم الحفظ','success');App.renderReceipts();}else{RW_UI.toast(j.error||'فشل','error');}});});
+},
+واستبدلها بالكامل بهذه
+newReceipt: function () {
+    var s = this;
+
+    Swal.fire({
+        title: 'سند قبض جديد',
+        html:
+            '<div style="text-align:right">' +
+            '<label style="display:block;margin:0 0 6px;font-weight:700">المبلغ</label>' +
+            '<input id="rcptAmt" class="swal2-input" placeholder="المبلغ" type="number" min="0.01" step="0.01">' +
+
+            '<label style="display:block;margin:10px 0 6px;font-weight:700">الحساب المقابل</label>' +
+            '<select id="rcptOffsetAccount" class="swal2-select" style="width:90%;margin:0 auto 10px auto"></select>' +
+
+            '<label style="display:block;margin:10px 0 6px;font-weight:700">المرجع</label>' +
+            '<input id="rcptRef" class="swal2-input" placeholder="مرجع السند">' +
+
+            '<label style="display:block;margin:10px 0 6px;font-weight:700">ملاحظات</label>' +
+            '<textarea id="rcptNotes" class="swal2-textarea" placeholder="ملاحظات اختيارية"></textarea>' +
+            '</div>',
+        showCancelButton: true,
+        confirmButtonText: 'حفظ سند القبض',
+        cancelButtonText: 'إلغاء',
+        allowOutsideClick: false,
+        didOpen: function () {
+            var select = document.getElementById('rcptOffsetAccount');
+
+            if (!select) {
+                return;
+            }
+
+            select.innerHTML = '<option value="">جاري تحميل الحسابات...</option>';
+
+            supabase.auth.getSession()
+                .then(function (sessionResult) {
+                    var session = sessionResult && sessionResult.data
+                        ? sessionResult.data.session
+                        : null;
+
+                    if (!session || !session.user) {
+                        throw new Error('جلسة المستخدم غير صالحة');
+                    }
+
+                    return supabase
+                        .from('users')
+                        .select('company_id,status')
+                        .eq('auth_id', session.user.id)
+                        .single();
+                })
+                .then(function (userResult) {
+                    if (userResult.error) {
+                        throw userResult.error;
+                    }
+
+                    var companyId = userResult.data && userResult.data.company_id;
+
+                    if (!companyId) {
+                        throw new Error('تعذر تحديد الشركة الحالية');
+                    }
+
+                    return supabase
+                        .from('chart_of_accounts')
+                        .select('id,account_code,account_name,account_type,normal_balance')
+                        .eq('company_id', companyId)
+                        .eq('is_active', true)
+                        .order('account_code', { ascending: true });
+                })
+                .then(function (accountsResult) {
+                    if (accountsResult.error) {
+                        throw accountsResult.error;
+                    }
+
+                    var accounts = accountsResult.data || [];
+
+                    if (!accounts.length) {
+                        throw new Error('لا توجد حسابات محاسبية فعالة متاحة');
+                    }
+
+                    var options = '<option value="">اختر الحساب المقابل</option>';
+
+                    for (var i = 0; i < accounts.length; i++) {
+                        var account = accounts[i];
+
+                        options +=
+                            '<option value="' + String(account.id).replace(/"/g, '&quot;') + '">' +
+                            String(account.account_code || '') +
+                            ' — ' +
+                            String(account.account_name || '') +
+                            '</option>';
+                    }
+
+                    select.innerHTML = options;
+                })
+                .catch(function (error) {
+                    select.innerHTML = '<option value="">تعذر تحميل الحسابات</option>';
+
+                    Swal.showValidationMessage(
+                        error && error.message
+                            ? error.message
+                            : 'تعذر تحميل الحسابات المحاسبية'
+                    );
+                });
+        },
+        preConfirm: function () {
+            var amount = Number(document.getElementById('rcptAmt').value);
+            var offsetAccountId = document.getElementById('rcptOffsetAccount').value;
+            var reference = document.getElementById('rcptRef').value.trim();
+            var notes = document.getElementById('rcptNotes').value.trim();
+
+            if (!(amount > 0)) {
+                Swal.showValidationMessage('أدخل مبلغ قبض صحيح');
+                return false;
+            }
+
+            if (!offsetAccountId) {
+                Swal.showValidationMessage('اختر الحساب المقابل');
+                return false;
+            }
+
+            return {
+                amount: amount,
+                offsetAccountId: offsetAccountId,
+                reference: reference,
+                notes: notes
+            };
+        }
+    }).then(function (result) {
+        if (!result.isConfirmed || !result.value) {
+            return;
+        }
+
+        RW_UI.showLoader('جاري حفظ سند القبض...');
+
+        supabase.auth.getSession()
+            .then(function (sessionResult) {
+                var session = sessionResult && sessionResult.data
+                    ? sessionResult.data.session
+                    : null;
+
+                if (!session || !session.access_token) {
+                    throw new Error('جلسة المستخدم غير صالحة');
+                }
+
+                return supabase
+                    .from('users')
+                    .select('company_id,status')
+                    .eq('auth_id', session.user.id)
+                    .single()
+                    .then(function (userResult) {
+                        if (userResult.error) {
+                            throw userResult.error;
+                        }
+
+                        var companyId = userResult.data && userResult.data.company_id;
+
+                        if (!companyId) {
+                            throw new Error('تعذر تحديد الشركة الحالية');
+                        }
+
+                        return supabase
+                            .from('treasury')
+                            .select('id,account_code,current_balance')
+                            .eq('company_id', companyId)
+                            .eq('is_active', true)
+                            .single();
+                    })
+                    .then(function (treasuryResult) {
+                        if (treasuryResult.error) {
+                            throw treasuryResult.error;
+                        }
+
+                        var treasury = treasuryResult.data;
+
+                        return supabase
+                            .from('chart_of_accounts')
+                            .select('id,account_code,account_name')
+                            .eq('company_id', session.user.user_metadata && session.user.user_metadata.company_id
+                                ? session.user.user_metadata.company_id
+                                : undefined)
+                            .eq('account_code', '121')
+                            .eq('is_active', true)
+                            .single()
+                            .then(function (cashAccountResult) {
+                                if (cashAccountResult.error) {
+                                    /*
+                                     * The current Production master uses 121 as
+                                     * the canonical cash account. If user metadata
+                                     * does not contain company_id, fall back to the
+                                     * authenticated user's public.users company.
+                                     */
+                                    return supabase
+                                        .from('users')
+                                        .select('company_id')
+                                        .eq('auth_id', session.user.id)
+                                        .single()
+                                        .then(function (userResult) {
+                                            if (userResult.error) {
+                                                throw userResult.error;
+                                            }
+
+                                            return supabase
+                                                .from('chart_of_accounts')
+                                                .select('id,account_code,account_name')
+                                                .eq('company_id', userResult.data.company_id)
+                                                .eq('account_code', '121')
+                                                .eq('is_active', true)
+                                                .single();
+                                        });
+                                }
+
+                                return cashAccountResult;
+                            })
+                            .then(function (cashAccountResult) {
+                                if (cashAccountResult.error) {
+                                    throw cashAccountResult.error;
+                                }
+
+                                return {
+                                    treasury: treasury,
+                                    cashAccount: cashAccountResult.data
+                                };
+                            });
+                    });
+            })
+            .then(function (context) {
+                var operationId = crypto.randomUUID();
+
+                return supabase.auth.getSession().then(function (sessionResult) {
+                    var session = sessionResult && sessionResult.data
+                        ? sessionResult.data.session
+                        : null;
+
+                    if (!session || !session.access_token) {
+                        throw new Error('جلسة المستخدم غير صالحة');
+                    }
+
+                    return fetch(
+                        SUPABASE_URL + '/functions/v1/save-receipt-voucher',
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + session.access_token
+                            },
+                            body: JSON.stringify({
+                                header: {
+                                    operationId: operationId,
+                                    treasuryId: context.treasury.id,
+                                    cashAccountId: context.cashAccount.id,
+                                    offsetAccountId: result.value.offsetAccountId,
+                                    date: new Date().toISOString().split('T')[0],
+                                    reference: result.value.reference || null,
+                                    mainAccountName: null,
+                                    notes: result.value.notes || '',
+                                    voucherCode: null
+                                },
+                                lines: [
+                                    {
+                                        amount: result.value.amount,
+                                        description: result.value.notes || 'سند قبض'
+                                    }
+                                ]
+                            })
+                        }
+                    );
+                });
+            })
+            .then(function (response) {
+                return response.json().then(function (payload) {
+                    if (!response.ok || !payload || payload.success === false) {
+                        throw new Error(
+                            payload && (payload.error || payload.msg)
+                                ? (payload.error || payload.msg)
+                                : 'فشل حفظ سند القبض'
+                        );
+                    }
+
+                    return payload;
+                });
+            })
+            .then(function (payload) {
+                RW_UI.hideLoader();
+                RW_UI.toast(
+                    payload.refNumber || payload.entry_code || 'تم حفظ سند القبض',
+                    'success'
+                );
+                s.renderReceipts();
+            })
+            .catch(function (error) {
+                RW_UI.hideLoader();
+                RW_UI.showError(
+                    error && error.message
+                        ? error.message
+                        : 'تعذر حفظ سند القبض'
+                );
+            });
+    });
+},
+4) الدالة الثانية — App.newPayment()
+احذف الدالة الحالية بالكامل
+newPayment: function(){
+    Swal.fire({title:'سند صرف جديد',html:'<input id="pmtAmt" class="swal2-input" placeholder="المبلغ" type="number"><input id="pmtRef" class="swal2-input" placeholder="المرجع">',showCancelButton:true,confirmButtonText:'حفظ',preConfirm:function(){return{amt:parseFloat(document.getElementById('pmtAmt').value)||0,ref:document.getElementById('pmtRef').value};}}).then(function(r){if(!r.isConfirmed)return;Swal.showLoading();supabase.auth.getSession().then(function(se){var t=se.data.session?se.data.session.access_token:null;return fetch(SUPABASE_URL+'/functions/v1/save-payment-voucher',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+t},body:JSON.stringify({date:new Date().toISOString().split('T')[0],cashBoxId:'MAIN',mainAccountName:r.value.ref,notes:'',lines:[{accountName:r.value.ref,description:'',amount:r.value.amt}]})});}).then(function(res){return res.json();}).then(function(j){Swal.close();if(j.success){RW_UI.toast('تم الحفظ','success');App.renderPayments();}else{RW_UI.toast(j.error||'فشل','error');}});});
+},
+واستبدلها بالكامل بهذه
+newPayment: function () {
+    var s = this;
+
+    Swal.fire({
+        title: 'سند صرف جديد',
+        html:
+            '<div style="text-align:right">' +
+            '<label style="display:block;margin:0 0 6px;font-weight:700">المبلغ</label>' +
+            '<input id="pmtAmt" class="swal2-input" placeholder="المبلغ" type="number" min="0.01" step="0.01">' +
+
+            '<label style="display:block;margin:10px 0 6px;font-weight:700">الحساب المقابل</label>' +
+            '<select id="pmtOffsetAccount" class="swal2-select" style="width:90%;margin:0 auto 10px auto"></select>' +
+
+            '<label style="display:block;margin:10px 0 6px;font-weight:700">المرجع</label>' +
+            '<input id="pmtRef" class="swal2-input" placeholder="مرجع السند">' +
+
+            '<label style="display:block;margin:10px 0 6px;font-weight:700">ملاحظات</label>' +
+            '<textarea id="pmtNotes" class="swal2-textarea" placeholder="ملاحظات اختيارية"></textarea>' +
+            '</div>',
+        showCancelButton: true,
+        confirmButtonText: 'حفظ سند الصرف',
+        cancelButtonText: 'إلغاء',
+        allowOutsideClick: false,
+        didOpen: function () {
+            var select = document.getElementById('pmtOffsetAccount');
+
+            if (!select) {
+                return;
+            }
+
+            select.innerHTML = '<option value="">جاري تحميل الحسابات...</option>';
+
+            supabase.auth.getSession()
+                .then(function (sessionResult) {
+                    var session = sessionResult && sessionResult.data
+                        ? sessionResult.data.session
+                        : null;
+
+                    if (!session || !session.user) {
+                        throw new Error('جلسة المستخدم غير صالحة');
+                    }
+
+                    return supabase
+                        .from('users')
+                        .select('company_id,status')
+                        .eq('auth_id', session.user.id)
+                        .single();
+                })
+                .then(function (userResult) {
+                    if (userResult.error) {
+                        throw userResult.error;
+                    }
+
+                    var companyId = userResult.data && userResult.data.company_id;
+
+                    if (!companyId) {
+                        throw new Error('تعذر تحديد الشركة الحالية');
+                    }
+
+                    return supabase
+                        .from('chart_of_accounts')
+                        .select('id,account_code,account_name,account_type,normal_balance')
+                        .eq('company_id', companyId)
+                        .eq('is_active', true)
+                        .order('account_code', { ascending: true });
+                })
+                .then(function (accountsResult) {
+                    if (accountsResult.error) {
+                        throw accountsResult.error;
+                    }
+
+                    var accounts = accountsResult.data || [];
+
+                    if (!accounts.length) {
+                        throw new Error('لا توجد حسابات محاسبية فعالة متاحة');
+                    }
+
+                    var options = '<option value="">اختر الحساب المقابل</option>';
+
+                    for (var i = 0; i < accounts.length; i++) {
+                        var account = accounts[i];
+
+                        options +=
+                            '<option value="' + String(account.id).replace(/"/g, '&quot;') + '">' +
+                            String(account.account_code || '') +
+                            ' — ' +
+                            String(account.account_name || '') +
+                            '</option>';
+                    }
+
+                    select.innerHTML = options;
+                })
+                .catch(function (error) {
+                    select.innerHTML = '<option value="">تعذر تحميل الحسابات</option>';
+
+                    Swal.showValidationMessage(
+                        error && error.message
+                            ? error.message
+                            : 'تعذر تحميل الحسابات المحاسبية'
+                    );
+                });
+        },
+        preConfirm: function () {
+            var amount = Number(document.getElementById('pmtAmt').value);
+            var offsetAccountId = document.getElementById('pmtOffsetAccount').value;
+            var reference = document.getElementById('pmtRef').value.trim();
+            var notes = document.getElementById('pmtNotes').value.trim();
+
+            if (!(amount > 0)) {
+                Swal.showValidationMessage('أدخل مبلغ صرف صحيح');
+                return false;
+            }
+
+            if (!offsetAccountId) {
+                Swal.showValidationMessage('اختر الحساب المقابل');
+                return false;
+            }
+
+            return {
+                amount: amount,
+                offsetAccountId: offsetAccountId,
+                reference: reference,
+                notes: notes
+            };
+        }
+    }).then(function (result) {
+        if (!result.isConfirmed || !result.value) {
+            return;
+        }
+
+        RW_UI.showLoader('جاري حفظ سند الصرف...');
+
+        supabase.auth.getSession()
+            .then(function (sessionResult) {
+                var session = sessionResult && sessionResult.data
+                    ? sessionResult.data.session
+                    : null;
+
+                if (!session || !session.access_token) {
+                    throw new Error('جلسة المستخدم غير صالحة');
+                }
+
+                return supabase
+                    .from('users')
+                    .select('company_id,status')
+                    .eq('auth_id', session.user.id)
+                    .single()
+                    .then(function (userResult) {
+                        if (userResult.error) {
+                            throw userResult.error;
+                        }
+
+                        var companyId = userResult.data && userResult.data.company_id;
+
+                        if (!companyId) {
+                            throw new Error('تعذر تحديد الشركة الحالية');
+                        }
+
+                        return supabase
+                            .from('treasury')
+                            .select('id,account_code,current_balance')
+                            .eq('company_id', companyId)
+                            .eq('is_active', true)
+                            .single()
+                            .then(function (treasuryResult) {
+                                if (treasuryResult.error) {
+                                    throw treasuryResult.error;
+                                }
+
+                                return supabase
+                                    .from('chart_of_accounts')
+                                    .select('id,account_code,account_name')
+                                    .eq('company_id', companyId)
+                                    .eq('account_code', '121')
+                                    .eq('is_active', true)
+                                    .single()
+                                    .then(function (cashAccountResult) {
+                                        if (cashAccountResult.error) {
+                                            throw cashAccountResult.error;
+                                        }
+
+                                        return {
+                                            treasury: treasuryResult.data,
+                                            cashAccount: cashAccountResult.data
+                                        };
+                                    });
+                            });
+                    });
+            })
+            .then(function (context) {
+                var operationId = crypto.randomUUID();
+
+                return supabase.auth.getSession().then(function (sessionResult) {
+                    var session = sessionResult && sessionResult.data
+                        ? sessionResult.data.session
+                        : null;
+
+                    if (!session || !session.access_token) {
+                        throw new Error('جلسة المستخدم غير صالحة');
+                    }
+
+                    return fetch(
+                        SUPABASE_URL + '/functions/v1/save-payment-voucher',
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + session.access_token
+                            },
+                            body: JSON.stringify({
+                                header: {
+                                    operationId: operationId,
+                                    treasuryId: context.treasury.id,
+                                    cashAccountId: context.cashAccount.id,
+                                    offsetAccountId: result.value.offsetAccountId,
+                                    date: new Date().toISOString().split('T')[0],
+                                    reference: result.value.reference || null,
+                                    mainAccountName: null,
+                                    notes: result.value.notes || '',
+                                    voucherCode: null
+                                },
+                                lines: [
+                                    {
+                                        amount: result.value.amount,
+                                        description: result.value.notes || 'سند صرف'
+                                    }
+                                ]
+                            })
+                        }
+                    );
+                });
+            })
+            .then(function (response) {
+                return response.json().then(function (payload) {
+                    if (!response.ok || !payload || payload.success === false) {
+                        throw new Error(
+                            payload && (payload.error || payload.msg)
+                                ? (payload.error || payload.msg)
+                                : 'فشل حفظ سند الصرف'
+                        );
+                    }
+
+                    return payload;
+                });
+            })
+            .then(function (payload) {
+                RW_UI.hideLoader();
+                RW_UI.toast(
+                    payload.refNumber || payload.entry_code || 'تم حفظ سند الصرف',
+                    'success'
+                );
+                s.renderPayments();
+            })
+            .catch(function (error) {
+                RW_UI.hideLoader();
+                RW_UI.showError(
+                    error && error.message
+                        ? error.message
+                        : 'تعذر حفظ سند الصرف'
+                );
+            });
+    });
+},
+ملاحظة مهمة جدًا قبل اللصق
+
+هذه الدوال لا تفترض الحساب المقابل.
+
+بدل أن تستمر في تحويل حقل المرجع إلى حساب محاسبي — وهو الخطأ الموجود في التطبيق الحالي — تعرض الحسابات الـ17 الفعلية من Production ليختار المحاسب الحساب المقابل، بينما حساب النقدية 121 يتم حله من الـCOA نفسها، وtreasuryId يُحل من Treasury الحالية.
+
+هذا ضروري لأن Production الحالية لا تعطي أي دليل أن كل سند قبض يقابل حسابًا واحدًا ثابتًا، ولا أن كل سند صرف يقابل حساب 5 كما كان الكود القديم يوحي.
+
+إذن المطلوب منك الآن
+
+في Current/PWA/accountant.html فقط:
+
+احذف:
+
+App.newReceipt()
+
+واستبدلها بالدالة الأولى أعلاه.
+
+ثم احذف:
+
+App.newPayment()
+
+واستبدلها بالدالة الثانية أعلاه.
+
+ولا تعدل أي دالة أخرى.
+
+والسبب في عدم إرسال renderDashboard() أو renderReceipts() أو renderPayments() هو أن المطلوب الحالي هو إغلاق Consumer Write Contract فقط، وليس إعادة تصميم التطبيق كله.
+
+كما أن النسخة المنشورة الحالية من accountant.html تؤكد أن المشكلة محصورة فعليًا في هاتين الدالتين؛ الكود الحالي ينادي الـEdge القديم بالـpayload القديم.
+
+خالد لم يغلق Phase 3/4 بعد؛ لكنه نقل الـbackend المالي إلى Production الحالية، وأصبح المطلوب التالي هو لصق هاتين الدالتين ثم إجراء authenticated HTTP + retry + runtime verification قبل إعلان Consumer closure.
