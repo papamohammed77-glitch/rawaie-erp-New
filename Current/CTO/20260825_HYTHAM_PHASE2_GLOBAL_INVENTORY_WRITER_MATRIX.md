@@ -7,18 +7,24 @@ Production: SMART ERP / fiilmooggumokxanwiyx
 
 ## 1. Fresh Production Baseline
 
-Production was re-queried before this Phase 2 sweep.
+The baseline was re-queried during execution and is newer than prior snapshots.
 
 - Companies: 1
 - Company: `00000000-0000-0000-0000-000000000001`
+- Branches: 2
+- Items: 17
 - Stock rows: 20
 - Inventory log rows: 3
 - Stock vouchers: 0
 - Orders: 0
 - Purchase Orders: 0
 - Runsheets: 0
+- Suppliers: 1
+- Customers: 3
+- Vehicles: 0
+- Drivers: 0
 - Treasury: 1
-- COA: 0
+- Chart of Accounts: 17
 
 ## 2. Immutable Contract
 
@@ -36,24 +42,13 @@ No parallel Physical Stock engine is authorized.
 
 ## 3. Direct Writer Sweep Result
 
-Production `pg_proc` definitions were searched for direct:
-
-- INSERT/UPDATE/DELETE on `stock_branches`
-- INSERT/UPDATE/DELETE on `inventory_log`
-
-Result:
+Production `pg_proc` definitions were searched for direct writes affecting `stock_branches` and `inventory_log`.
 
 ### Canonical Physical Writer
 
 `post_stock_movement(uuid,text,uuid,uuid,uuid,numeric,text,text,text,text)`
 
-This function directly mutates Physical Stock and writes `inventory_log`.
-
-### Initialization-only writer
-
-`setup_van_stock(uuid)` inserts zero-balance `stock_branches` initialization rows for a VAN branch and does not write `inventory_log`.
-
-Classification: INITIALIZATION, not Physical Movement.
+Directly mutates Physical Stock and writes `inventory_log`.
 
 ### Reservation writers
 
@@ -63,99 +58,208 @@ Classification: INITIALIZATION, not Physical Movement.
 
 They mutate `allocated_qty` only and do not create physical movements.
 
-### Result
+### Initialization-only writer
 
-No second Production Physical Stock engine was found in the public PostgreSQL function catalog.
+`setup_van_stock(uuid)` inserts zero-balance `stock_branches` rows for a VAN branch and does not write `inventory_log`.
+
+Classification: INITIALIZATION, not Physical Movement.
+
+### Bridges
+
+The following operational functions were verified as bridges to the canonical physical writer rather than parallel writers:
+
+- `post_manual_stock_voucher_atomic`
+- `send_stock_voucher_atomic`
+- `receive_purchase_atomic`
+- `save_sales_invoice_atomic`
+- `complete_return_atomic`
+- `complete_runsheet_loading`
+- `complete_runsheet_unloading`
+- `complete_runsheet_reopen_loading`
+- `post_inventory_adjustment_atomic`
+
+Picking uses `reserve_stock` and does not write Physical Stock.
 
 ## 4. Trigger Sweep
 
 Non-internal triggers were inspected for references to `stock_branches` / `inventory_log`.
-
 No trigger writer was found that creates a parallel Physical Stock mutation path.
 
-## 5. Closure Unit Matrix
+## 5. Manual Voucher Closure
 
-| Closure Unit | Production Core | Direct Physical Writer Outside Core | Reservation | Inventory Log | Current Result |
-|---|---|---|---|---|---|
-| Manual Voucher | `post_manual_stock_voucher_atomic` / `send_stock_voucher_atomic` | None found | N/A | through `post_stock_movement` | READY FOR UNIT REVIEW |
-| Purchase Receiving | `receive_purchase_atomic` | None found | N/A | through `post_stock_movement` | READY FOR UNIT REVIEW |
-| POS | `save_sales_invoice_atomic` | None found | N/A | through `post_stock_movement` | READY FOR UNIT REVIEW |
-| Van Sales | Sales Core + `post_stock_movement` | None found | N/A | through `post_stock_movement` | READY FOR UNIT REVIEW |
-| Returns | `complete_return_atomic` | None found | No new physical reservation | through `post_stock_movement` | READY FOR UNIT REVIEW |
-| Loading | `complete_runsheet_loading` | None found | consumes reservation according to movement contract | through `post_stock_movement` | READY FOR UNIT REVIEW |
-| Unloading | `complete_runsheet_unloading` | None found | operational transition only | through `post_stock_movement` | READY FOR UNIT REVIEW |
-| Reopen Loading | `complete_runsheet_reopen_loading` | None found | N/A | through `post_stock_movement` | READY FOR UNIT REVIEW |
-| Inventory Adjustment | `post_inventory_adjustment_atomic` | None found | N/A | through `post_stock_movement` | READY FOR UNIT REVIEW |
-| Picking | `complete_runsheet_picking` | None found | `reserve_stock` | No inventory movement | READY FOR UNIT REVIEW |
+### Production contract verified
 
-## 6. Tenant / Item Identity
+Supported lifecycle:
 
-Production branches validate company ownership at movement boundaries.
+```text
+Draft
+  -> Sent
+  -> Partial Receive (remains Sent)
+  -> Received
+  -> Completed
+```
 
-`item_code` is globally unique in the current Production schema and must not be reinterpreted as company-scoped.
+Cancellation is allowed only from Draft and returns a Cancelled state without physical movement.
 
-`post_stock_movement` currently validates item identity by UUID existence; downstream consumers also validate their submitted item identity where required.
+### Transactional evidence
 
-No company-scoped reinterpretation was introduced.
+A Production SQL transaction successfully proved:
 
-## 7. Idempotency / Core Canary
+- Create Transfer voucher
+- SEND => `Sent`
+- RECEIVE => `Received`
+- Same receive `operation_id` repeated => `duplicate=true`
+- Partial receive `0.4` => `Sent`
+- Final receive `0.6` => `Received`
+- Complete => `Completed`
+- Rollback => no retained fixture
 
-A controlled Production SQL transaction was executed against an existing stock row:
+### Legacy retirement
 
-- `InventoryIncrease`, quantity 1
-- idempotency key: `PH2-CANARY-0001`
-- same call executed twice
-- duplicate path observed on the second call
-- temporary inventory_log count = 1 inside transaction
+`receive_manual_stock_voucher_v2` was found in Production but had no EXECUTE privilege for `anon`, `authenticated`, or `service_role`, and the current `receive-stock-voucher` Edge wrapper does not call it.
+It was therefore formally retired from Production and recorded in:
+
+`supabase/migrations/20260825210000_retire_receive_manual_stock_voucher_v2.sql`
+
+## 6. Inventory Adjustment Closure Evidence
+
+Production transactional canary:
+
+- `InventoryIncrease`
+- quantity `0.5`
+- same deterministic adjustment key retried
+- no second physical movement
 - transaction rolled back
 
-No test residue was retained.
+## 7. Purchase Receiving — Defect Found and Fixed
 
-This proves the central writer's local transaction/idempotency behavior at SQL level. It does not prove authenticated HTTP E2E or two-session concurrency.
+Transactional canary discovered a real Production defect:
+`post_journal_entry` returns JSONB, while `receive_purchase_atomic` attempted to assign the complete JSONB directly to a UUID variable.
 
-## 8. Legacy / Residual Inventory Functions
+Observed failure:
+`22P02 invalid input syntax for type uuid`
 
-The following remain catalogued and require consumer/edge lineage review before any retirement:
+Surgical fix applied in Production:
 
-- legacy `post_stock_movement` overload
-- legacy `complete_runsheet_picking` overload
-- legacy manual-voucher V2 surfaces where still deployed/reachable
+```text
+post_journal_entry(...)->>'entry_id'::uuid
+```
 
-No legacy capability is retired by this matrix alone.
+Canonical migration recorded:
 
-## 9. Phase 2 Global Writer Discovery Status
+`supabase/migrations/20260825214500_fix_receive_purchase_journal_result_cast.sql`
 
-`GLOBAL WRITER DISCOVERY = SUBSTANTIVELY VERIFIED`
+After the fix, a Production transaction proved:
 
-`PHYSICAL WRITERS OUTSIDE post_stock_movement = 0`
+- Purchase Order exists
+- PurchaseIn movement is posted through `post_stock_movement`
+- Journal posting succeeds
+- Supplier ledger posting succeeds
+- first operation succeeds
+- exact same operation_id returns `duplicate=true`
+- transaction rollback leaves no test residue
 
-subject to the remaining source/deployment/HTTP runtime evidence gates.
+## 8. Picking / Reservation Evidence
 
-## 10. Not Yet Closed
+Production transactional canary proved:
 
-- exact deployed Edge version/hash mapping for every inventory consumer;
-- exhaustive Current Git ↔ Production source parity for every consumer;
-- authenticated HTTP E2E;
-- duplicate HTTP proof per critical writer;
-- two-session concurrency proof;
-- individual closure-unit runtime evidence;
-- legacy retirement evidence.
+- `complete_runsheet_picking` reserves stock through `reserve_stock`
+- `inventory_log_written=false`
+- exact same `operation_id` returns `duplicate=true`
+- no Physical Stock movement is produced by Picking
+- rollback leaves reservation/data clean
 
-## 11. Phase 2 Next Unit
+## 9. POS / Return / Loading / Unloading / Van Sales
 
-`MANUAL VOUCHER`
+Production definitions confirm these paths bridge to `post_stock_movement`.
+However, current Production has:
 
-The next step is a dedicated closure record for:
+- Vehicles: 0
+- Drivers: 0
+- Orders: 0
+- Runsheets: 0
 
-- SEND
-- RECEIVE
-- DirectSale
-- DirectReturn
-- Transfer
-- partial receive
-- Consumer → Edge → Core → inventory_log
-- company/item identity
-- operation/idempotency
-- production runtime proof.
+Therefore full authenticated runtime proof for Van Sales, Returns, Loading, Unloading, and Delivery cannot be truthfully claimed from the current data set.
+Their SQL contract and writer classification are verified; their operational closure remains runtime-gated.
 
-No unrelated domain is to be mixed into that closure unit.
+## 10. Tenant / Item Identity
+
+Production is currently single-company.
+`item_code` is globally unique in the current schema and remains global identity.
+Movement boundaries validate branch/company context.
+
+## 11. Financial Security Boundary Fixed
+
+Direct DML privileges on the following financial tables were removed from `anon` and `authenticated` while preserving SELECT:
+
+- `journal_entries`
+- `journal_lines`
+- `customer_ledger`
+- `supplier_ledger`
+- `driver_ledger`
+- `treasury`
+- `cash_box`
+- `daily_settlements`
+
+Migration:
+
+`supabase/migrations/20260825213000_financial_table_dml_boundary.sql`
+
+Post-change verification confirms `anon/authenticated = SELECT only` on these tables.
+
+## 12. Self-Audit
+
+### Confirmed facts
+
+- Physical writer outside `post_stock_movement`: 0
+- Reservation is separate
+- Manual Voucher lifecycle tested transactionally
+- Manual receive duplicate tested
+- Partial receive tested
+- Adjustment retry tested
+- Purchase Receiving defect discovered and fixed
+- Purchase duplicate tested
+- Picking reservation/duplicate tested
+- Legacy receive V2 retired after consumer/reachability proof
+- Financial direct DML boundary tightened
+- Current COA = 17
+
+### Unknown / still unverified
+
+- Authenticated HTTP E2E for every critical writer
+- Two independent concurrent HTTP sessions for every critical writer
+- Full deployed Edge byte/hash parity for every inventory consumer
+- Full Current/PWA consumer runtime proof for each closure unit
+- Van/Return/Loading/Unloading runtime proof with real operational fixtures
+- Full end-to-end reconciliation of stock branches versus inventory logs versus business documents after live workloads
+
+### Current Production verified
+
+Yes for SQL-level core, identity, state transition, idempotency, and rollback canaries.
+
+### Runtime verified
+
+Only SQL transactional canaries are currently proven. HTTP runtime and two-session concurrency remain open because the current Production dataset has no vehicles/orders/runsheets and the available execution channel does not expose independent authenticated HTTP sessions.
+
+## 13. Current Phase 2 Status
+
+`GLOBAL WRITER DISCOVERY = VERIFIED AT SQL LEVEL`
+
+`MANUAL VOUCHER = SUBSTANTIVELY CLOSED, RUNTIME GATE OPEN`
+
+`PURCHASE RECEIVING = CORE CLOSED AFTER DEFECT FIX, RUNTIME GATE OPEN`
+
+`INVENTORY ADJUSTMENT = CORE CLOSED, RUNTIME GATE OPEN`
+
+`PICKING / RESERVATION = CORE CLOSED, RUNTIME GATE OPEN`
+
+`POS / VAN SALES / RETURNS / LOADING / UNLOADING = SQL CONTRACT VERIFIED, RUNTIME GATE OPEN`
+
+`PHASE 2 GLOBAL ZERO-DEBT = NOT CLOSED`
+
+## 14. Rule for Continuation
+
+Continue directly into the remaining independent work. Do not rebuild Inventory Core. Any new Production defect discovered by canary becomes an immediate surgical fix with:
+
+`DISCOVER -> ROOT CAUSE -> FIX -> TEST -> ROLLBACK/VERIFY -> MIGRATION -> RECORD -> CONTINUE`
+
