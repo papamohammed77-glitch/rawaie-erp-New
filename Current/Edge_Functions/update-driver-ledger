@@ -1,67 +1,41 @@
-// ============================================================
-// P0: update-driver-ledger – تحديث دفتر أستاذ المندوب
-// ============================================================
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-var supabase = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-)
+const db=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization,x-client-info,apikey,content-type,idempotency-key","Access-Control-Allow-Methods":"POST,OPTIONS"}
 
-var corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS"
+async function deterministicUuid(seed:string){
+  const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(seed))
+  const h=Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,"0")).join("")
+  return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20,32)}`
 }
 
-serve(async function(req) {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders })
-  }
+serve(async(req)=>{
+  if(req.method==='OPTIONS') return new Response('ok',{headers:cors})
+  try{
+    const body=await req.json().catch(()=>({}))
+    const driver_email=String(body?.driver_email||'').trim()
+    const entry_date=String(body?.entry_date||new Date().toISOString().slice(0,10))
+    const description=String(body?.description||'').trim()
+    const debit=Number(body?.debit)||0
+    const credit=Number(body?.credit)||0
+    const reference=String(body?.reference||'').trim()
+    if(!driver_email) throw new Error('driver_email مطلوب')
+    if(debit===0 && credit===0) throw new Error('يجب تحديد مدين أو دائن')
+    if(debit<0 || credit<0 || (debit>0 && credit>0)) throw new Error('قيمة القيد غير صالحة')
 
-  try {
-    var rawBody = await req.text()
-    console.log("📥 update-driver-ledger – rawBody:", rawBody)
-    var body = {}
-    if (rawBody && rawBody.trim() !== "") {
-      try { body = JSON.parse(rawBody) } catch (e) { throw new Error("صيغة JSON غير صالحة") }
-    }
-
-    var driver_email = body.driver_email
-    var entry_date = body.entry_date || new Date().toISOString().split("T")[0]
-    var description = body.description || ""
-    var debit = Number(body.debit) || 0
-    var credit = Number(body.credit) || 0
-    var reference = body.reference || ""
-
-    if (!driver_email) throw new Error("driver_email مطلوب")
-    if (debit === 0 && credit === 0) throw new Error("يجب تحديد مدين أو دائن")
-
-    // إدراج القيد
-    var insertRes = await supabase.from("driver_ledger").insert({
-      driver_email: driver_email,
-      entry_date: entry_date,
-      description: description,
-      debit: debit,
-      credit: credit,
-      reference: reference
-    }).select("id").single()
-
-    if (insertRes.error) throw new Error("فشل إدراج القيد: " + insertRes.error.message)
-
-    console.log("✅ driver_ledger updated:", driver_email, "debit:", debit, "credit:", credit)
-
-    return new Response(JSON.stringify({ success: true, id: insertRes.data.id }), {
-      headers: Object.assign({}, corsHeaders, { "Content-Type": "application/json" })
-    })
-
-  } catch (error) {
-    console.error("❌ Error:", error.message)
-    return new Response(JSON.stringify({ success: false, msg: error.message }), {
-      status: 400,
-      headers: Object.assign({}, corsHeaders, { "Content-Type": "application/json" })
-    })
+    const ah=req.headers.get('Authorization')
+    if(!ah) throw new Error('غير مصرح')
+    const {data:{user},error:ae}=await db.auth.getUser(ah.replace(/^Bearer\s+/i,''))
+    if(ae||!user?.id||!user?.email) throw new Error('جلسة غير صالحة')
+    const {data:u,error:ue}=await db.from('users').select('company_id,status').eq('auth_id',user.id).maybeSingle()
+    if(ue||!u?.company_id||u.status&&u.status!=='Active') throw new Error('سياق الشركة غير صالح')
+    const supplied=String(body?.operation_id||req.headers.get('Idempotency-Key')||'').trim()
+    const operation_id=supplied||await deterministicUuid(user.id+'|'+u.company_id+'|'+JSON.stringify({driver_email,entry_date,description,debit,credit,reference}))
+    const {data,error}=await db.rpc('post_driver_ledger_entry',{p_company_id:u.company_id,p_operation_id:operation_id,p_driver_email:driver_email,p_entry_date:entry_date,p_reference:reference||null,p_description:description||null,p_debit:debit,p_credit:credit})
+    if(error) throw new Error(error.message)
+    return new Response(JSON.stringify({...data,operation_id}),{headers:{...cors,'Content-Type':'application/json'}})
+  }catch(e){
+    return new Response(JSON.stringify({success:false,msg:e?.message||'فشل تحديث دفتر المندوب'}),{status:400,headers:{...cors,'Content-Type':'application/json'}})
   }
 })
