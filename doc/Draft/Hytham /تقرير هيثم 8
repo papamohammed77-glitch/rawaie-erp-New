@@ -1,0 +1,453 @@
+هيثم — تنفيذ الخطة الجديدة + تقرير/برومبت 58
+
+تم تثبيت تعديل الخطة المرحلية باعتباره المرجع التشغيلي الجديد: المشروع لم يعد يسير إلى Phase 2 مباشرة؛ أصبح المسار:
+
+PHASE 0
+Rebaseline & Governance
+        ↓
+PHASE 1
+Financial Master Data Recovery
+        ↓
+PHASE 2
+Inventory Zero-Debt
+        ↓
+PHASE 3
+Financial Writer Zero-Debt
+        ↓
+PHASE 4
+Consumer / Edge / PWA
+        ↓
+PHASE 5
+Runtime / Concurrency / E2E
+        ↓
+PHASE 6
+Data Reconciliation / Production Certification
+        ↓
+PHASE 7
+Autonomous CTO
+
+والقاعدة الجديدة المهمة: Phase 1 تحقيق واستعادة مضبوطة، وليس Production COA Mutation.
+
+كما تمت قراءة تقرير + برومبت 58، وهو يحسم دور هيثم تحديدًا:
+Financial Master Data Contract / Staging Validation، وليس إعادة البحث عن الـ87 حسابًا.
+
+1. Current Production — أعيد التحقق بنفسي
+
+آخر baseline فني مباشر استخدمته في Contract:
+
+PostgreSQL            17.6
+Companies             1
+Users                 24
+Branches              2
+Items                 17
+Stock rows            20
+Inventory log          3
+Treasury              1
+COA                    0
+Journal entries        2
+Journal lines          0
+Customer ledger        0
+Supplier ledger        0
+Driver ledger          0
+Orders                 0
+Purchase Orders        0
+Runsheets              0
+
+الشركة الوحيدة:
+
+00000000-0000-0000-0000-000000000001
+
+ولم يتم إنشاء أو تعديل أي COA في Production.
+
+2. Production COA Contract — تم إغلاق هذا الجزء
+
+الـSchema الفعلي لـchart_of_accounts ثبت أنه:
+
+الحقل	النوع
+id	uuid
+company_id	uuid
+account_code	varchar
+account_name	varchar
+account_type	varchar
+parent_account_id	uuid
+normal_balance	varchar
+is_active	boolean
+notes	text
+created_at	timestamptz
+updated_at	timestamptz
+
+والقيود الفعلية:
+
+PK:
+chart_of_accounts_pkey
+        ↓
+id
+
+UNIQUE:
+(company_id, account_code)
+
+FK:
+company_id → companies.id
+
+SELF FK:
+parent_account_id → chart_of_accounts.id
+
+والـindexes الفعلية:
+
+chart_of_accounts_pkey
+chart_of_accounts_company_id_account_code_key
+idx_chart_of_accounts_company
+
+إذن Contract الإدخال المستقبلي أصبح مثبتًا من Production، وليس من التقارير.
+
+3. Account Identity Contract
+
+هذا هو الاكتشاف الأهم في Phase 1.
+
+post_journal_entry لا يعتمد على اسم الحساب باعتباره Identity.
+
+بل:
+
+account_id UUID
+        ↓
+chart_of_accounts.id
+        ↓
+company_id validation
+        ↓
+is_active validation
+
+ثم يقوم بنفسه بإحضار account_name.
+
+إذن:
+
+Account Identity = UUID
+Account Name     = Descriptive
+
+وليس:
+
+Account Name = Identity
+
+كما أن الـJournal Core يرفض:
+
+account غير موجود.
+account تابع لشركة أخرى.
+account غير نشط.
+line صفر.
+debit وcredit معًا.
+journal غير متوازن.
+
+هذا يعني أن أي Dataset سيأتي من خالد يجب أن يحافظ على Identity Contract وليس مجرد أسماء الحسابات.
+
+4. اكتشاف مهم في الـCompound Writers
+
+الـCore يستخدم UUID.
+
+لكن الـcompound writers الحالية تستخدم Account Codes لكي تجد UUID أولًا.
+
+POS
+
+الحسابات المطلوبة حاليًا:
+
+121
+123
+41
+51
+124
+Purchase Receiving
+211
+124
+Returns
+124
+51
+
+وهذا لا يعني أن هذه الأكواد هي “87 الحساب التاريخية” تلقائيًا.
+
+لكن يعني أن Dataset خالد إذا كان صحيحًا يجب أن يثبت وجود تلك الأكواد أو يثبت بوضوح أن الـBusiness Contract نفسه قد تغير.
+
+لا يجوز لي اختراع mapping لتجاوز ذلك.
+
+5. Parent Account Contract
+
+Production تثبت:
+
+parent_account_id
+        ↓
+chart_of_accounts.id
+
+إذن Dataset مستقبلي يجب أن يثبت:
+
+Parent exists
+Parent same company
+No self-parent
+No cycle
+Graph preserved after company remap
+
+ولا يجوز تفسير:
+
+1
+11
+111
+1111
+
+على أنها hierarchy لمجرد شكل الكود.
+
+6. Treasury Contract
+
+تم فحص Treasury الفعلية مباشرة.
+
+id:
+0a9d9357-b5f3-4dfa-886f-7c73de4f274e
+
+company:
+00000000-0000-0000-0000-000000000001
+
+account_code:
+CASH-01
+
+account_name:
+الخزينة الرئيسية
+
+type:
+Cash
+
+opening_balance:
+10000.00
+
+current_balance:
+10000.00
+
+is_active:
+true
+
+والنقطة المهمة جدًا:
+
+لا يوجد FK مباشر من Treasury إلى COA
+
+أي أن:
+
+CASH-01
+   ↓
+COA Account
+
+غير مثبت Schema-wise.
+
+كما أن:
+
+post_cash_receipt_atomic
+post_cash_payment_atomic
+
+يستقبلان:
+
+Treasury UUID
++
+Cash Account UUID
++
+Offset Account UUID
+
+كل واحد مستقل.
+
+لذلك:
+
+لم أثبت أن CASH-01 هو أي Account Code في COA.
+
+وهذا يبقى:
+
+TREASURY ↔ COA = OPEN
+
+حتى يظهر دليل حقيقي.
+
+7. فحص خالد
+
+بحثت عن أي Dataset صفّي جديد لـKhalid.
+
+المصدر الرسمي الحالي يقول:
+
+SOURCE EXHAUSTION = CLOSED
+EXACT 87 COA RECOVERY = OPEN
+
+والشهادة تؤكد أنه لم يتم العثور على الـ87 صفًا الكاملين في المصادر المتاحة.
+
+لذلك:
+
+Khalid Dataset
+       =
+NOT DELIVERED
+
+وهذا ليس Failure في دوري.
+
+بل Dependency حقيقية.
+
+8. Staging — وهنا ظهر Drift مهم جدًا
+
+تم فحص:
+
+rawaea-staging
+
+Project:
+
+hfzznsiprnwkpayskzhu
+
+والـbaseline:
+
+PostgreSQL       17.6
+Companies        1
+COA              0
+Treasury         1
+Journal Entries  0
+Journal Lines    0
+
+Treasury موجودة أيضًا بـ:
+
+CASH-01
+الخزينة الرئيسية
+10000
+
+ولكن:
+
+Staging chart_of_accounts ليست Structural Match لـProduction
+
+وجدت:
+
+Columns             ✅
+Constraints         ❌
+Indexes             ❌
+RLS                 ❌
+
+بينما Production لديها:
+
+PK                  ✅
+UNIQUE              ✅
+company FK          ✅
+parent FK           ✅
+Indexes             ✅
+RLS                 ✅
+
+وهذا اكتشاف حقيقي مهم.
+
+النتيجة
+
+لا يجوز حاليًا أن نقوم بـ:
+
+Khalid Dataset
+    ↓
+Staging INSERT
+    ↓
+PASS
+
+ثم نستنتج:
+
+Production Compatible
+
+لأن Staging الحالية لا تماثل Production Contract.
+
+ولم أقم بتعديل Staging لإخفاء المشكلة؛ Prompt 58 لا يسمح لي بإنشاء Schema Mutation لهذا الغرض.
+
+9. Technical Matrix
+Contract	Production	Khalid Dataset	Staging	الحالة
+Account Identity	UUID + Company + Active	غير موجود	Core موجود	VERIFIED CONTRACT
+Parent Relationship	Self-FK	غير موجود	FK غير موجود	STAGING DRIFT
+Company Ownership	FK	غير موجود	Company واحدة	VERIFIED
+Account Code Unique	UNIQUE(company, code)	غير موجود	Constraint غير موجود	STAGING DRIFT
+Treasury Identity	CASH-01	—	موجود	VERIFIED
+Treasury ↔ COA	غير مثبت	غير موجود	غير مثبت	OPEN
+Journal Compatibility	UUID/Company/Active	—	Core موجود	VERIFIED
+Cash Core	Treasury UUID + COA UUIDs	—	Core موجود	VERIFIED
+Reporting	COA + Journal Lines	—	Functions موجودة	VERIFIED STRUCTURE
+87-row Recovery	غير موجود	غير موجود	غير موجود	OPEN
+10. ما أُغلق فعليًا في دوري
+Production COA Schema Contract        ✅
+Account Identity Contract             ✅
+Parent FK Contract                    ✅
+Account Code Uniqueness Contract      ✅
+Company Ownership Contract            ✅
+Treasury Schema Contract              ✅
+Treasury Identity                     ✅
+Cash Core Identity Contract           ✅
+Journal Core Compatibility            ✅
+Purchase Compatibility                ✅
+POS Compatibility                     ✅
+Return Compatibility                  ✅
+Reporting Consumption Contract        ✅
+Production Safety Gate                ✅
+11. ما بقي مفتوحًا
+Exact 87-row historical dataset        OPEN
+Khalid dataset review                 BLOCKED
+Treasury ↔ COA exact mapping          OPEN
+Staging structural parity             OPEN
+Staging replay                        NOT YET VALID
+
+وأضيف نقطة مهمة:
+
+لا توجد مشكلة تمنعنا تقنيًا من تصميم Replay Validator.
+
+المشكلة الوحيدة هي أن:
+
+Dataset خالد غير موجود حتى الآن.
+Staging الحالية ليست Production-contract-equivalent.
+
+وبالتالي تشغيل Replay الآن سيكون اختبارًا ناقص القيمة.
+
+12. ما تم حفظه على المستودع
+
+تم إنشاء التقرير الفعلي:
+
+20260825_HYTHAM_PHASE1_MASTER_DATA_CONTRACT.md
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260825_HYTHAM_PHASE1_MASTER_DATA_CONTRACT.md
+
+Commit:
+
+78c3ff8fc2b75154f522ef4e89b1d68397fb3e0f
+
+والملف تم التحقق من وجوده ومحتواه بعد الكتابة.
+
+13. Production Safety
+
+تم الالتزام بالكامل:
+
+Production COA INSERT      = NOT PERFORMED
+Production COA UPDATE      = NOT PERFORMED
+Production COA DELETE      = NOT PERFORMED
+
+Treasury mutation          = NOT PERFORMED
+Inventory mutation         = NOT PERFORMED
+Financial writer mutation  = NOT PERFORMED
+PWA mutation               = NOT PERFORMED
+14. الحكم النهائي لهيثم
+PHASE 1 — HYTHAM
+MASTER DATA CONTRACT
+
+TECHNICAL CONTRACT
+        ✅ PROVEN
+
+TREASURY CONTRACT
+        ✅ PROVEN
+
+ACCOUNT IDENTITY
+        ✅ PROVEN
+
+PRODUCTION SAFETY
+        ✅ PROVEN
+
+KHALID DATASET
+        ⏳ NOT YET AVAILABLE
+
+STAGING PARITY
+        ❌ DRIFT
+
+STAGING REPLAY
+        ⛔ BLOCKED
+
+TREASURY ↔ COA
+        ⏳ OPEN
+
+EXACT 87 RECOVERY
+        ⏳ OPEN
+الحالة الرسمية
+
+PHASE 1 HYTHAM MASTER DATA CONTRACT = OPEN / TECHNICAL CONTRACT PROVEN
+
+ولا أعتبرها CLOSED لأن الـClosure Rule في Prompt 58 تشترط Dataset حقيقي من خالد + Staging Replay صالح + إثبات Treasury↔COA.
+
+والأهم: لم أضع أي حساب واحد في Production، ولم أخترع علاقة CASH-01 بحساب COA، ولم أستخدم الـ16 حسابًا القديمة كبديل عن الـ87.
+
+هذا هو المكان الصحيح الذي وصل إليه هيثم الآن: العقد الفني أصبح ثابتًا، وما تبقى يعتمد على مصدر تاريخي حقيقي من خالد وعلى تصحيح/تجهيز Staging بطريقة لا تضعف عقد Production.
