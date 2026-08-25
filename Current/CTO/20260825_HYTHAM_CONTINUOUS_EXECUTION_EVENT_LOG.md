@@ -2,7 +2,7 @@
 
 Date: 2026-08-25
 Role: Hytham
-Authority: Production SMART ERP > Current main > Current CTO evidence > Historical sources > Reports
+Authority: Production SMART ERP > Current main > Current CTO evidence > historical sources > reports
 
 ## Mission
 Continue from Prompt 60 through the broader ERP plan without waiting for phase-specific prompts, while refusing false closure. Every material event is recorded here for memory transfer and future continuation.
@@ -244,16 +244,77 @@ Production function definitions currently show direct financial DML only in cano
 
 `save_sales_invoice_atomic`, `receive_purchase_atomic`, and `complete_return_atomic` no longer directly perform those financial table writes.
 
-## Event 13 — Current Main / Git
+## Event 13 — Current Financial Edge Adapters
 
-Current `main` was re-read during execution.
-Latest observed HEAD before this event record update:
-`dadf4095e78df2a16a92af694f9c973522f3e0b3`
+Current Git sources were opened for:
+- `save-receipt-voucher` (canonical v6 source)
+- `save-payment-voucher` (canonical v4 source)
+- `save-daily-settlement` (canonical v4 source)
+- `create-stock-voucher` (company-scoped capability wrapper)
+- `receive-stock-voucher` (company-scoped partial/full receive wrapper)
 
-Latest commit message at that point:
-`feat(financial): record canonical daily settlement adapter source`
+Observed pattern:
+- authenticate bearer token;
+- resolve `public.users` via `auth_id`;
+- derive company context;
+- resolve required IDs or require them explicitly;
+- delegate business posting to Production Core RPCs.
 
-The repository is public and `main` is the working current source.
+These adapters do not require client direct DML on the protected financial tables.
+
+## Event 14 — Production Data Integrity Sweep
+
+Current Production verification:
+- `stock_branches.qty < 0` = 0
+- `stock_branches.allocated_qty < 0` = 0
+- `allocated_qty > qty` = 0
+- orphan `inventory_log.item_id` = 0
+- orphan `inventory_log.company_id` = 0
+- duplicate non-null inventory idempotency keys = 0
+- `erp_operation_registry` current rows = 0
+
+Decision:
+Current persisted state passes the checked integrity invariants.
+Historical `VoidInvoice` logs remain retained evidence.
+
+## Event 15 — Current COA Freshness Correction
+
+During continuous execution, Production COA changed from the earlier 16-row snapshot to 17 rows.
+The new current account is:
+`216 — التزامات ضريبية`
+
+Decision:
+All current references now use the live Production 17-row dataset. No historical snapshot is allowed to override it.
+
+## Event 16 — Phase Status Reclassification
+
+Phase 2:
+- Global writer discovery: SQL-level verified.
+- Manual Voucher: transactionally verified; runtime/Edge proof remains open.
+- Purchase Receiving: defect fixed; transactionally verified; runtime/Edge proof remains open.
+- Adjustment: transactionally verified.
+- Picking/Reservation: transactionally verified.
+- POS/Van/Returns/Loading/Unloading: SQL bridge contract verified; runtime proof remains open due zero live operational data.
+
+Phase 3:
+- Journal/Core/Ledger direct-writer convergence: substantively verified.
+- Cash Receipt: core canary verified.
+- Cash Payment: core canary verified.
+- Daily Settlement: core canary verified.
+- Financial client DML boundary: fixed and verified.
+
+## Event 17 — Exact Runtime Limitations
+
+The following are NOT claimed as closed:
+- authenticated HTTP E2E;
+- two genuinely independent concurrent HTTP sessions;
+- exhaustive deployed Edge hash/version parity for every consumer;
+- real Van/Driver/Order/Runsheet runtime closure while current Production has zero vehicles, drivers, orders and runsheets;
+- final PWA runtime certification;
+- final Financial RLS policy certification beyond DML boundary;
+- final end-to-end reconciliation under real business workload.
+
+These are evidence/capability gates, not reasons to repeat completed work.
 
 ## Current Status
 
@@ -268,14 +329,15 @@ The repository is public and `main` is the working current source.
 - Cash Payment core canary.
 - Daily Settlement core canary.
 - Financial table direct-DML boundary for anon/authenticated.
+- Current persisted-state integrity invariants checked.
 
 ### Still open — cannot be truthfully upgraded without the required evidence
 - Authenticated HTTP E2E for every critical writer.
 - Two genuinely independent concurrent HTTP sessions for critical writers.
 - Exhaustive deployed Edge hash/version parity against `Current/Edge_Functions`.
 - Full PWA consumer runtime verification.
-- Real Vehicle/Driver/Order/Runsheet runtime proofs because current Production has zero vehicles/drivers/orders/runsheets.
-- Full financial RLS policy refinement beyond the table-level DML boundary already fixed.
+- Real Vehicle/Driver/Order/Runsheet runtime proofs.
+- Full financial RLS policy refinement beyond the DML boundary already fixed.
 - End-to-end stock/document/ledger reconciliation under live transactional workload.
 - Final Phase 2 Zero-Debt certification.
 - Final Phase 3–7 certification.
@@ -288,6 +350,7 @@ All temporary canaries used transactions and were rolled back.
 No historical COA was recreated.
 No Treasury mapping was guessed.
 No PWA was modified in this continuous pass.
+A real Production defect was discovered, corrected, retested, and made reproducible in Git.
 
 ## Next Execution State
 
