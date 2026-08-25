@@ -1,0 +1,301 @@
+# RAWAEA ERP — Hytham Continuous Execution Event Log
+
+Date: 2026-08-25
+Role: Hytham
+Authority: Production SMART ERP > Current main > Current CTO evidence > Historical sources > Reports
+
+## Mission
+Continue from Prompt 60 through the broader ERP plan without waiting for phase-specific prompts, while refusing false closure. Every material event is recorded here for memory transfer and future continuation.
+
+## Current Production Baseline (latest direct query during execution)
+
+- Company count: 1
+- Company: `00000000-0000-0000-0000-000000000001`
+- Branches: 2 (`BR-01`, `BR-2`)
+- Items: 17
+- Stock rows: 20
+- Inventory log: 3
+- Stock vouchers: 0
+- Customers: 3
+- Suppliers: 1
+- Vehicles: 0
+- Drivers by current role filter: 0
+- Orders: 0
+- Purchase Orders: 0
+- Runsheets: 0
+- Treasury: 1 (`CASH-01`)
+- COA: 17
+
+## Event 01 — Global Inventory Writer Discovery
+
+Finding:
+`post_stock_movement(...)` is the only Production function directly mutating Physical Stock and `inventory_log`.
+
+Separate classifications:
+- `reserve_stock` / `release_stock_reservation` = reservation state only.
+- `setup_van_stock` = initialization only.
+
+Trigger sweep found no parallel stock writer.
+
+Decision:
+`Physical Writers outside post_stock_movement = 0` at SQL function/trigger level.
+
+Remaining gates:
+HTTP runtime, Edge source/version parity, PWA consumer proof, two-session concurrency.
+
+## Event 02 — Production Core Canary
+
+Canary:
+`PH2-CANARY-0001`
+
+Movement:
+InventoryIncrease quantity 1 against existing stock.
+
+Result:
+- first call accepted;
+- second identical call returned duplicate;
+- temporary inventory log count = 1;
+- transaction rolled back.
+
+Decision:
+Central movement idempotency/rollback behavior verified at SQL level.
+
+## Event 03 — Manual Voucher Closure
+
+Transactional tests:
+- Create Transfer Draft.
+- SEND -> Sent.
+- RECEIVE 1.0 -> Received.
+- Repeat same operation_id -> duplicate.
+- Partial RECEIVE 0.4 -> Sent.
+- Final RECEIVE 0.6 -> Received.
+- Complete -> Completed.
+
+All test data rolled back.
+
+Legacy function discovery:
+`receive_manual_stock_voucher_v2` existed in Production but had no EXECUTE privilege for the inspected roles and no current Edge consumer.
+
+Action:
+Retired the function in Production.
+
+Git migration:
+`supabase/migrations/20260825210000_retire_receive_manual_stock_voucher_v2.sql`
+
+## Event 04 — Inventory Adjustment Closure
+
+Canary:
+`PH2-ADJ-CANARY-20260825`
+
+Result:
+First adjustment succeeded; exact retry produced no second movement; transaction rolled back.
+
+## Event 05 — Picking / Reservation Closure
+
+Canary constructed with temporary Runsheet/Order/Order Detail.
+
+Result:
+- `complete_runsheet_picking` succeeded.
+- `reserve_stock` was used.
+- `inventory_log_written=false`.
+- same operation_id returned duplicate=true.
+- transaction rolled back.
+
+Decision:
+Picking is Reservation, not Physical Movement.
+
+## Event 06 — Financial Security Boundary
+
+Before change:
+`anon` and `authenticated` had broad DML privileges on financial state tables.
+
+Consumer check:
+Current Accountant PWA reads financial tables and submits Receipt/Payment through Edge functions; no approved Current financial path was found that requires client direct DML.
+
+Production change:
+Revoke INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER from anon/authenticated on:
+- journal_entries
+- journal_lines
+- customer_ledger
+- supplier_ledger
+- driver_ledger
+- treasury
+- cash_box
+- daily_settlements
+
+Preserve SELECT.
+
+Git migration:
+`supabase/migrations/20260825213000_financial_table_dml_boundary.sql`
+
+Verification:
+anon/authenticated = SELECT only on those tables.
+
+## Event 07 — Purchase Receiving Defect Discovery
+
+A real Production defect was discovered through a transactional canary.
+
+Observed error:
+`22P02 invalid input syntax for type uuid`
+
+Root cause:
+`post_journal_entry` returns `jsonb`, while `receive_purchase_atomic` attempted to assign the full JSONB result directly into a UUID variable `entry_id`.
+
+Impact:
+Purchase Receiving could perform earlier work inside the transaction and then fail when extracting the journal entry id.
+
+Fix:
+Changed only the result extraction to:
+`(post_journal_entry(...)->>'entry_id')::uuid`
+
+Production:
+Fixed through migration.
+
+Git:
+`supabase/migrations/20260825214500_fix_receive_purchase_journal_result_cast.sql`
+
+Self-audit correction:
+The first Git migration artifact was mistakenly created as comments only. This was discovered by reviewing the artifact itself, then replaced with the full reproducible CREATE OR REPLACE FUNCTION body containing the surgical cast fix.
+
+Validation after fix:
+- Purchase Order test fixture created inside transaction.
+- Purchase Receiving succeeded.
+- PurchaseIn passed through `post_stock_movement`.
+- Journal posting succeeded.
+- Supplier ledger posting succeeded.
+- Exact operation_id retry returned duplicate=true.
+- Transaction rolled back.
+
+## Event 08 — Cash Receipt Core
+
+Canary:
+operation_id `bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb`
+amount 10
+Treasury `CASH-01`
+Cash account 121
+Offset account 41
+
+Result:
+- Posted
+- balanced 10/10 journal
+- retry returned duplicate=true
+- rollback completed
+
+## Event 09 — Cash Payment Core
+
+Canary:
+operation_id `cccccccc-cccc-4ccc-8ccc-cccccccccccc`
+amount 10
+Treasury `CASH-01`
+Cash account 121
+Offset account 51
+
+Result:
+- Posted
+- balanced 10/10 journal
+- retry returned duplicate=true
+- rollback completed
+
+## Event 10 — Daily Settlement Core
+
+Canary:
+Temporary Delivered Runsheet
+operation_id `eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee`
+
+Result:
+- settlement created
+- shortage = 0
+- no journal required
+- exact retry returned duplicate=true
+- rollback completed
+
+Decision:
+Daily Settlement Core local idempotency/transactional behavior verified.
+
+## Event 11 — Historical VoidInvoice Forensics
+
+Current Production `inventory_log` contains three historical rows with `movement_type='VoidInvoice'`, dated 2026-07-24, no idempotency key.
+
+Historical source identified:
+`Original/Edge Functions/delete-order.ts`
+
+That source directly:
+- updates `stock_branches`;
+- writes `inventory_log`;
+- writes journal_entries/journal_lines;
+- writes customer_ledger;
+- hard-deletes orders.
+
+Classification:
+HISTORICAL LEGACY EVIDENCE, not evidence of a current Current-path writer.
+
+Action:
+Do not delete the historical log rows. Preserve them as reconciliation evidence.
+
+## Event 12 — Current Financial Direct-Writer Sweep
+
+Production function definitions currently show direct financial DML only in canonical cores:
+- `post_journal_entry`
+- `post_customer_ledger_entry`
+- `post_supplier_ledger_entry`
+- `post_driver_ledger_entry`
+- `post_cash_receipt_atomic`
+- `post_cash_payment_atomic`
+
+`save_sales_invoice_atomic`, `receive_purchase_atomic`, and `complete_return_atomic` no longer directly perform those financial table writes.
+
+## Event 13 — Current Main / Git
+
+Current `main` was re-read during execution.
+Latest observed HEAD before this event record update:
+`dadf4095e78df2a16a92af694f9c973522f3e0b3`
+
+Latest commit message at that point:
+`feat(financial): record canonical daily settlement adapter source`
+
+The repository is public and `main` is the working current source.
+
+## Current Status
+
+### Substantively closed at SQL/Core level
+- Global physical-writer discovery.
+- Reservation separation.
+- Manual Voucher lifecycle and duplicate protection.
+- Inventory Adjustment core canary.
+- Picking/Reservation canary.
+- Purchase Receiving after defect repair.
+- Cash Receipt core canary.
+- Cash Payment core canary.
+- Daily Settlement core canary.
+- Financial table direct-DML boundary for anon/authenticated.
+
+### Still open — cannot be truthfully upgraded without the required evidence
+- Authenticated HTTP E2E for every critical writer.
+- Two genuinely independent concurrent HTTP sessions for critical writers.
+- Exhaustive deployed Edge hash/version parity against `Current/Edge_Functions`.
+- Full PWA consumer runtime verification.
+- Real Vehicle/Driver/Order/Runsheet runtime proofs because current Production has zero vehicles/drivers/orders/runsheets.
+- Full financial RLS policy refinement beyond the table-level DML boundary already fixed.
+- End-to-end stock/document/ledger reconciliation under live transactional workload.
+- Final Phase 2 Zero-Debt certification.
+- Final Phase 3–7 certification.
+
+## Hytham Self-Assessment
+
+No completion claim is made beyond the evidence listed above.
+Production was modified only where a real defect or security boundary was directly proven.
+All temporary canaries used transactions and were rolled back.
+No historical COA was recreated.
+No Treasury mapping was guessed.
+No PWA was modified in this continuous pass.
+
+## Next Execution State
+
+Continue directly with:
+1. Remaining Edge/Consumer lineage verification.
+2. Runtime/E2E channel where safely available.
+3. Further financial writer/settlement convergence.
+4. Phase 6 data reconciliation.
+5. Phase 7 readiness gates.
+
+Do not reopen completed SQL/core closures unless new evidence contradicts them.
