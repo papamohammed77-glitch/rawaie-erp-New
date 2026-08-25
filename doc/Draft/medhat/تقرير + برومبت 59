@@ -1,0 +1,286 @@
+الحكم التنفيذي
+
+بعد إعادة بناء المرحلة من المصادر المنشورة، ثم مطابقة التقارير مع Production Supabase الحالية وmain الحالي، النتيجة واضحة:
+
+1) خالد — عمله صحيح، ويجب إيقاف حلقة البحث عن الـ87
+
+تقرير خالد 5 ثم 6 ثم 7 ثم 9 متسق في جوهره: لم يخترع حسابات، وميّز بين إثبات وجود 87 سجلًا تاريخيًا وبين امتلاك 87 صفًا فعليًا. والأهم أن خالد 9 وصل إلى شرط التوقف الصحيح: SOURCE EXHAUSTION = CLOSED بينما EXACT 87 RECOVERY = OPEN.
+
+هذا القرار تدعمه الآن Production مباشرة:
+
+العنصر	Production الحالية
+Companies	1
+Users	24
+Branches	2
+Items	17
+Stock Rows	20
+Inventory Log	3
+Treasury	1
+Chart of Accounts	0
+Journal Entries	2
+Journal Lines	0
+Customer Ledger	0
+Supplier Ledger	0
+Driver Ledger	0
+Orders	0
+Purchase Orders	0
+Runsheets	0
+PostgreSQL functions	48
+Distinct function names	46
+
+والـTreasury الحالية مثبتة مباشرة: CASH-01، UUID 0a9d9357-b5f3-4dfa-886f-7c73de4f274e، برصيد 10,000.
+
+الخطأ الذي كان سيحدث لو استمررنا: تحويل المشروع إلى حلقة Search → No source → Report → Prompt → Search بلا نهاية.
+
+لذلك لا أوصي بأي Prompt جديد لخالد لاستكمال البحث عن الـ87.
+
+2) هيثم — التنفيذ المعماري صحيح، لكن لا يوجد Financial Zero-Debt حتى الآن
+
+تقرير هيثم 5 أثبت انتقالًا حقيقيًا من Distributed Financial Writers إلى Cores مركزية:
+
+post_journal_entry
+post_customer_ledger_entry
+post_supplier_ledger_entry
+post_driver_ledger_entry
+post_cash_receipt_atomic
+post_cash_payment_atomic
+
+وأصبح save_sales_invoice_atomic وreceive_purchase_atomic وcomplete_return_atomic لا تقوم بالـJournal/Ledger DML المباشر بالطريقة القديمة. هذا الجزء صحيح.
+
+لكن لا يجوز استنتاج أن ذلك يعني إغلاق Financial Writer Convergence؛ فما زالت أدلة مهمة مفتوحة، وعلى رأسها:
+
+Authenticated HTTP E2E
+Two-session concurrency
+Receipt/Payment runtime
+Daily Settlement
+Purchase/Return runtime
+Consumer Matrix
+Production/Git lineage
+Financial RLS / table grants
+Global Financial Writer Zero-Debt
+
+وهذا منضبط مع تقارير هيثم نفسها، وليس تناقضًا معها.
+
+النقطة الحاسمة التي ظهرت من التحقيق الحالي
+
+هناك تحديث مهم جدًا بالنسبة لتقرير خالد 9:
+
+خالد كان قد سجّل أن main هو:
+
+1d9b3b21...
+
+لكن هذا لم يعد Current HEAD.
+
+الـmain الحالي أصبح:
+
+8e93bf0be008fa4932d93e3314dab3d03c83fd9f
+
+بتاريخ 25 أغسطس 2026 01:12 UTC، ورسالة الـcommit نفسها:
+
+docs(cto): authorize Hytham parallel Phase 2 inventory zero-debt track
+
+أي أن المشروع انتقل فعليًا إلى السماح بالـPhase 2 بعد تقرير خالد 9/هيثم 9.
+
+وهذه نقطة مهمة جدًا: نحن لسنا الآن في نفس لحظة تقارير خالد 9 وهيثم 9.
+
+قراري التنفيذي
+PHASE 1 التاريخية
+
+تم إغلاقها عند Evidence Exhaustion Stop Condition.
+
+وليس:
+
+87 COA = recovered
+
+بل:
+
+Historical 87 Source Recovery
+        ↓
+SOURCE EXHAUSTION
+        ↓
+CLOSED
+        ↓
+87 EXACT ROWS
+NOT FOUND
+        ↓
+Historical Recovery = STOP
+
+أي مصدر تاريخي جديد يظهر مستقبلًا سيعامل كـحدث جديد مستقل.
+
+PHASE 1B — القرار الجديد
+
+بناءً على تكليفك المباشر، ننتقل من:
+
+Historical COA Recovery
+
+إلى:
+
+NEW FINANCIAL MASTER DATA
+
+وهذا فرق جوهري.
+
+لن نقول:
+
+"هذه هي الـ87 حسابًا التي استعدناها."
+
+سنقول:
+
+"هذه Chart of Accounts جديدة صُممت للشركة الحالية بناءً على احتياجات RAWAEA الحالية."
+
+وهذا القرار موثق بالفعل في سجل المرحلة وفي التكليف الجديد.
+
+التكليف الجديد لخالد
+
+أنشأت له بالفعل Directive جديدة في main:
+
+PHASE 1B — Khalid — New Financial Master Data
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260825_NEXT_PHASE1_KHALID_NEW_FINANCIAL_MASTER_DATA_PROMPT.md
+
+والتكليف ليس مجرد "أنشئ 87 حسابًا جديدة".
+
+بل يبدأ:
+
+Current Production Rebaseline
+        ↓
+Financial Account Requirements Matrix
+        ↓
+New COA Architecture
+        ↓
+Validation
+        ↓
+Dry Run
+        ↓
+Atomic Production Build
+        ↓
+Verification
+        ↓
+Git Reproducibility
+
+ويمنع صراحةً:
+
+إعادة استخدام الـ16 Bootstrap وكأنها الـ87 التاريخية.
+اختراع CASH-01 → account 121.
+تعديل Treasury.
+تعديل POS.
+تعديل Inventory.
+ترقيع الـUI لتعويض نقص الـMaster Data.
+إنشاء حسابات بلا Business/Technical evidence.
+
+والـSchema الحالي نفسه يثبت أن chart_of_accounts يحتوي على id, company_id, account_code, account_name, account_type, parent_account_id, normal_balance, is_active، مع Company FK وParent FK وUnique (company_id, account_code). لذلك التكليف مبني على العقد الحالي، لا على تصميم مفترض.
+
+التكليف الخاص بهيثم
+
+هنا لا أحتاج إلى إنشاء Prompt جديد من الصفر؛ الـPhase 2 directive موجود بالفعل في main ومصرح به رسميًا:
+
+PHASE 2 — Hytham — Global Inventory Zero-Debt
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260825_NEXT_PHASE2_HYTHAM_INVENTORY_ZERO_DEBT_PROMPT.md
+
+وترتيبه الصحيح:
+
+GLOBAL WRITER DISCOVERY
+        ↓
+Manual Voucher
+        ↓
+Purchase Receiving
+        ↓
+POS
+        ↓
+Van Sales
+        ↓
+Returns
+        ↓
+Loading
+        ↓
+Unloading
+        ↓
+Adjustment
+        ↓
+Picking / Reservation
+
+والشرط النهائي ليس:
+
+post_stock_movement exists
+
+بل:
+
+Physical Writers outside post_stock_movement = 0
++
+Tenant Integrity
++
+Item Identity
++
+Idempotency
++
+Audit
++
+Git/Production Alignment
++
+Runtime Verification
+
+وهذا متوافق تمامًا مع الحالة التي وجدتها الآن في Production؛ فالبحث الحالي يثبت وجود عدة inventory-related functions، لكن المطلوب إثبات أن كل Physical Mutation فعليًا تعبر إلى post_stock_movement. ومن أمثلة ما يجب أن يعالجه هيثم في الـmatrix: complete_runsheet_picking، complete_runsheet_reopen_loading، post_inventory_adjustment_atomic، post_manual_stock_voucher_atomic، send_stock_voucher_atomic، إضافة إلى الـCore نفسه.
+
+هل تعديلات خالد وهيثم صحيحة؟
+خالد
+
+نعم — صحيحة منهجيًا وتنفيذيًا في الجزء الذي أنجزه.
+
+لا يوجد لدي دليل على أنه اخترع الـ87 أو لوّث Production بمحاولة reconstruction غير مثبتة.
+
+والذي أصبح قديمًا هو الـsnapshot، وليس الجراحة نفسها.
+
+هيثم
+
+نعم — التحول المعماري الأساسي صحيح ومثبت.
+
+لكن بعض الادعاءات التاريخية عن اكتمال Financial Convergence لا تصلح كـCurrent Truth بدون إعادة مطابقة Production/Git/runtime.
+
+وهذا مهم جدًا لأننا وجدنا بالفعل سابقًا Drift بين Production وGit وجرى تصحيح أجزاء منه.
+
+ما الذي أصلحته الآن؟
+
+في هذه المهمة الحالية لم أعدل Business Logic أو COA أو Treasury في Production.
+
+وهذا مقصود.
+
+لأن التغيير الوحيد الذي أثبته التحقيق أنه يجب تنفيذه الآن هو تغيير اتجاه المرحلة:
+
+87 Historical Recovery
+        ↓
+STOP AT SOURCE EXHAUSTION
+
+ثم
+
+New Financial Master Data
+        +
+Phase 2 Inventory Zero-Debt
+
+وأصبح هذا القرار مسجلًا في:
+
+Phase Transition Decision & Execution Log
+
+كما حدثت Open Debt Register ليعكس ذلك، بما في ذلك:
+
+P1-01 Historical 87-row recovery → CLOSED STOP CONDITION
+
+و:
+
+P1-02 New Financial Master Data → AUTHORIZED / NOT YET EXECUTED
+
+و:
+
+P2-01 Inventory Zero-Debt → AUTHORIZED / IN PROGRESS.
+
+الخلاصة التنفيذية
+المسار	القرار
+Historical 87 COA Search	STOP — CLOSED AT SOURCE EXHAUSTION
+Historical 87 Recovery	OPEN ONLY IF NEW AUTHORITATIVE SOURCE APPEARS
+New COA	AUTHORIZED NOW
+Treasury	DO NOT TOUCH
+Khalid	New Financial Master Data
+Hytham	Phase 2 Inventory Zero-Debt
+Inventory Core	لا إعادة بناء؛ Closure فقط
+Financial Writer Zero-Debt	OPEN
+Phase 0	NOT CERTIFIED CLOSED
+UI financial work	لا تبدأ الآن
+
+والأهم: لن ننتظر الـ87 حتى يتحرك المشروع. سنبني Master Data مالية جديدة صحيحة وقابلة للتدقيق، وفي الوقت نفسه نُكمل Inventory Zero-Debt بصورة مستقلة. هذا يخرج المشروع من الحلقة المفرغة دون تحويل عدم توفر التاريخ إلى بيانات وهمية.
