@@ -303,16 +303,30 @@ Phase 3:
 - Daily Settlement: core canary verified.
 - Financial client DML boundary: fixed and verified.
 
-## Event 17 — Exact Runtime Limitations
+## Event 17 — Runtime Canary Investigation
+
+The repository contains a Production HTTP E2E/Concurrency canary workflow for Picking.
+The current run on `main` (run `32889594729`, commit `6e9387944d5a9e7b574182b1a14e9641dff5f739`) did NOT execute the business test because its prerequisite temporary Production Canary endpoint returned HTTP `410` with `Temporary production canary retired`.
+
+Decision:
+- Do not count this run as HTTP E2E proof.
+- Do not count it as an Inventory failure.
+- Classify as `TEST_HARNESS_RETIRED`.
+
+This proves a designed CI path exists, but its current fixture endpoint is retired. A new controlled test harness would be required for live HTTP proof.
+
+## Event 18 — Exact Runtime Limitations
 
 The following are NOT claimed as closed:
-- authenticated HTTP E2E;
-- two genuinely independent concurrent HTTP sessions;
-- exhaustive deployed Edge hash/version parity for every consumer;
-- real Van/Driver/Order/Runsheet runtime closure while current Production has zero vehicles, drivers, orders and runsheets;
-- final PWA runtime certification;
-- final Financial RLS policy certification beyond DML boundary;
-- final end-to-end reconciliation under real business workload.
+- authenticated HTTP E2E for every critical writer;
+- two genuinely independent concurrent HTTP sessions for critical writers;
+- exhaustive deployed Edge hash/version parity for every inventory/financial consumer;
+- full PWA consumer runtime verification;
+- real Vehicle/Driver/Order/Runsheet runtime proofs while current Production has zero vehicles, drivers, orders and runsheets;
+- full financial RLS policy refinement beyond the table-level DML boundary already fixed;
+- end-to-end reconciliation under real business workload;
+- final Phase 2 Zero-Debt certification;
+- final Phase 3–7 certification.
 
 These are evidence/capability gates, not reasons to repeat completed work.
 
@@ -351,14 +365,15 @@ No historical COA was recreated.
 No Treasury mapping was guessed.
 No PWA was modified in this continuous pass.
 A real Production defect was discovered, corrected, retested, and made reproducible in Git.
+A retired HTTP canary was explicitly prevented from being counted as runtime proof.
 
 ## Next Execution State
 
 Continue directly with:
-1. Remaining Edge/Consumer lineage verification.
-2. Runtime/E2E channel where safely available.
-3. Further financial writer/settlement convergence.
-4. Phase 6 data reconciliation.
-5. Phase 7 readiness gates.
+1. Rebuild/replace the retired authenticated HTTP test harness in an allowed location without modifying business PWA/Production logic.
+2. Use that harness for critical writer E2E and two-session concurrency proof.
+3. Continue Phase 4 consumer/Edge/PWA convergence.
+4. Complete Phase 6 reconciliation.
+5. Evaluate Phase 7 readiness only from accumulated evidence.
 
 Do not reopen completed SQL/core closures unless new evidence contradicts them.
