@@ -1,0 +1,151 @@
+تم تنفيذ Prompt 59 من جهة هيثم، ولم نعد ندور في حلقة البحث التاريخي.
+
+ما تم إنجازه فعليًا
+
+تم تثبيت القرار الجديد:
+
+Historical 87 COA Recovery
+→ SOURCE EXHAUSTION
+→ STOP
+
+NEW FINANCIAL MASTER DATA
+→ خالد
+
+PHASE 2 INVENTORY ZERO-DEBT
+→ هيثم
+
+وهذا هو المسار الذي يصرّح به Prompt 59 وDirective Phase 2 الحالي.
+
+Phase 2 — Unit 1: Global Writer Discovery
+
+أعدت التحقيق مباشرة في SMART ERP Production.
+
+النتيجة
+
+وجدت أن:
+
+post_stock_movement
+
+هو Physical Stock Movement Engine الفعلي.
+
+وأن:
+
+reserve_stock
+release_stock_reservation
+
+هما Reservation فقط.
+
+أما:
+
+setup_van_stock
+
+فهو Initialization-only؛ يهيئ stock_branches بصفر ولا يكتب inventory_log.
+
+كما تمت مراجعة Triggers ولم يظهر Trigger ينفذ مسارًا موازيًا لتعديل stock_branches أو inventory_log.
+
+وبالتالي:
+
+Physical Writers خارج post_stock_movement = 0
+وفق Production PostgreSQL الحالية، مع بقاء إثبات Edge/HTTP الكامل كـGate منفصل.
+
+Consumers التي ثبتت
+Manual Voucher
+→ post_manual_stock_voucher_atomic / send_stock_voucher_atomic
+→ post_stock_movement
+
+Purchase
+→ receive_purchase_atomic
+→ post_stock_movement
+
+POS / Van Sales
+→ save_sales_invoice_atomic
+→ post_stock_movement
+
+Returns
+→ complete_return_atomic
+→ post_stock_movement
+
+Loading / Unloading / Reopen Loading
+→ Run-sheet Cores
+→ post_stock_movement
+
+Inventory Adjustment
+→ post_inventory_adjustment_atomic
+→ post_stock_movement
+
+Picking
+→ reserve_stock
+→ no Physical Movement
+
+هذا يثبت أن Inventory Core المركزي موجود بالفعل في Production وأن المتبقي الآن هو Closure لكل Consumer وليس إعادة بناء المحرك من الصفر.
+
+Production Canary
+
+أجريت اختبارًا حقيقيًا على Production داخل Transaction باستخدام Stock Row موجود:
+
+InventoryIncrease = 1
+idempotency_key = PH2-CANARY-0001
+
+تم تنفيذ الطلب مرتين.
+
+النتيجة:
+
+First call  = accepted
+Second call = duplicate
+inventory_log during test = 1
+ROLLBACK    = successful
+
+ولم يبق أي أثر للاختبار.
+
+هذا يثبت:
+
+SQL Core atomic/idempotency behavior = VERIFIED
+
+لكنه لا يثبت بعد:
+
+Authenticated HTTP E2E
+Two-session concurrency
+Edge byte/hash parity
+Legacy retirement
+
+وهذه لم أعلنها مغلقة.
+
+تم حفظ النتائج في Git
+Matrix
+
+20260825_HYTHAM_PHASE2_GLOBAL_INVENTORY_WRITER_MATRIX.md
+
+Commit:
+
+99ef48ae595e3ab23589fb8bbe2e01b4a6e43594
+
+Closure Record
+
+20260825_HYTHAM_PHASE2_GLOBAL_WRITER_DISCOVERY_CLOSURE.md
+
+Commit:
+
+33e2e5b5b7f1c3c5a685d38cab45082548bd9a2c
+
+الحالة الحالية
+PHASE 2
+│
+├── GLOBAL WRITER DISCOVERY     ✅ SUBSTANTIVELY VERIFIED
+│
+├── MANUAL VOUCHER              → NEXT
+├── PURCHASE RECEIVING          → PENDING
+├── POS                         → PENDING
+├── VAN SALES                   → PENDING
+├── RETURNS                     → PENDING
+├── LOADING                     → PENDING
+├── UNLOADING                   → PENDING
+├── INVENTORY ADJUSTMENT        → PENDING
+└── PICKING / RESERVATION       → PENDING
+
+لم أعدل Business Logic أو PWA أو Treasury أو COA في هذه الوحدة.
+
+والمرحلة التالية المحددة الآن هي:
+
+MANUAL VOUCHER CLOSURE UNIT
+
+وهنا سيكون التحقيق على SEND / RECEIVE / DirectSale / DirectReturn / Transfer / Partial Receive مع Consumer → Edge → Core → inventory_log → idempotency → audit → Production runtime.
