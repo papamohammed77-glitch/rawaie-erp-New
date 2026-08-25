@@ -1,0 +1,292 @@
+الحكم التنفيذي
+
+بعد إعادة التحقيق من Production Supabase + Git main + Current/CTO artifacts + migrations + Edge deployment inventory، النتيجة ليست أن خالد وهيثم “أخطآ”، ولا أن Phase 0 مغلقة. النتيجة الأدق هي:
+
+العمل الجوهري لخالد وهيثم في Phase 0 صحيح إلى حد كبير، لكن شهادة إغلاق Phase 0 غير مستحقة بعد؛ والانتقال إلى Phase 1 ممكن فقط كـControlled Investigation / Staging Track، وليس كمرحلة Production Mutation.
+
+هذا يتفق مع الـPhase 0 directive نفسه، الذي يشترط اكتمال reconciliation بين Production وGit والمigrations وEdge وKhalid/Hytham قبل إعلان PHASE 0 = CLOSED.
+
+1. ما ثبت أنه صحيح في عمل خالد
+
+خالد كان صحيحًا في النقاط الجوهرية:
+
+المجال	الحكم
+إعادة قراءة Production	✅ صحيح
+Single-company topology	✅ صحيح
+عدم إعادة إنشاء Treasury	✅ صحيح
+عدم اختلاق الـ87 COA	✅ صحيح
+فصل SOURCE EXHAUSTION عن EXACT 87 RECOVERY	✅ صحيح
+اعتبار PR #24 تاريخيًا وليس Current Main	✅ صحيح
+تسجيل Financial RLS كـOpen Debt وعدم إصلاحه داخل Phase 0	✅ صحيح
+
+وتحديدًا، تقرير خالد أثبت أن 87 count موجود تاريخيًا، لكن الـ87 rows نفسها لم تُسترد، وهذا التفريق صحيح هندسيًا وقانونيًا من ناحية forensic evidence.
+
+2. ما ثبت أنه صحيح في عمل هيثم
+
+هيثم أيضًا أصاب في جوهر المرحلة:
+
+جرد Production function inventory.
+إثبات وجود post_stock_movement والـFinancial Cores.
+إثبات service_role execution restrictions.
+اكتشاف الـlegacy overloads/bridges.
+عدم مساواة SQL inspection مع HTTP E2E.
+عدم مساواة SQL inspection مع two-session concurrency.
+إبقاء RLS debt مفتوحًا بدل إصلاحه تخمينيًا.
+
+وهذه النقاط مثبتة في تقريره وفي baseline الفني نفسه.
+
+لكنني وجدت أخطاء/Drift مهمًا
+الخطأ الأول: تعدد Git HEADs داخل Phase 0
+
+وثائق Phase 0 تحمل ثلاث نقاط مختلفة للـmain:
+
+000f57...
+ثم 4a1ad...
+ثم c88159...
+
+ثم كانت الحقيقة الحالية لاحقًا:
+
+ff50bb2dc9416db313fa008ab60d9392b4a9da6e
+
+والآن بعد artifacts هذه الجولة أصبحت main عند:
+
+4e03ac8de557d0988e6a0a34dc97eed1aa1cc4b0.
+
+إذن هذه ليست “حقيقة واحدة” اسمها Current Main؛ بل snapshots تاريخية متعاقبة.
+
+ولذلك صححت ذلك في سجل مستقل بدل الكتابة فوق التاريخ.
+
+الخطأ الثاني: إعلان بعض مراحل الـFinancial Convergence بصورة أوسع من الحقيقة الحالية
+
+الـProduction الحالية تثبت الآن أن:
+
+save_sales_invoice_atomic
+receive_purchase_atomic
+complete_return_atomic
+
+تستخدم بالفعل الـcanonical cores:
+
+post_stock_movement
+post_journal_entry
+post_customer_ledger_entry
+post_supplier_ledger_entry
+post_driver_ledger_entry
+post_cash_receipt_atomic
+
+وهذا يعني أن تقارير قديمة قالت إن الـdirect journal/ledger writes ما زالت موجودة أصبحت Historical Truth وليست Current Truth.
+
+هذا مثال مهم جدًا على لماذا لا يجوز بناء Phase 1 أو Phase 2 من تقرير قديم.
+
+الخطأ الثالث: Phase 0 فعلًا لم تستوفِ شروط الإغلاق
+
+وهذه ليست وجهة نظر مني؛ Hytham نفسه وثق أن هناك Gates مفتوحة:
+
+applied migrations ↔ Git reconciliation
+deployed Edge hash/version ↔ Current source
+complete writer classification
+line-by-line Khalid/Hytham reconciliation
+normalized Open Debt handoff.
+
+إذن إصدار:
+
+PHASE 0 = CLOSED
+
+كان سيكون غير مدعوم بالأدلة.
+
+Production الحالية التي اعتمدتها
+
+آخر baseline مباشر الذي بنيت عليه الحكم:
+
+2026-08-24 21:41:19 UTC
+
+والحالة:
+
+العنصر	Production
+Companies	1
+Users	24
+Branches	2
+Items	17
+Stock Rows	20
+Inventory Log	3
+Stock Vouchers	0
+Treasury	1
+COA	0
+Journal Entries	2
+Journal Lines	0
+Customer Ledger	0
+Supplier Ledger	0
+Driver Ledger	0
+Orders	0
+Purchase Orders	0
+Runsheets	0
+Audit Log	1855
+PostgreSQL	17.6
+Applied migration head	20260824151259
+
+وهذا مسجل الآن كـforensic baseline رسمي.
+
+اكتشاف أمني لا يزال مفتوحًا
+
+الـProduction الحالية ما زالت تحتوي سياسات:
+
+Allow all for all
+
+على جداول مالية حساسة مثل:
+
+journal_entries
+journal_lines
+customer_ledger
+supplier_ledger
+treasury
+cash_box
+daily_settlements
+
+مع ALL وtrue.
+
+وكذلك driver_ledger لديه سياسات public permissive.
+
+هذه Security Debt حقيقية، لكنها لم تُصلح الآن لأن ذلك سيكون خلطًا بين Phase 0 وPhase 1.
+
+أهم قرار استراتيجي
+لا أوافق على فتح Phase 1 باعتبار أن Phase 0 أصبحت CLOSED.
+
+لكنني أوافق على تشغيل Phase 1 كمسار تحقيق واستعادة Controlled لأن Phase 1 نفسها لا تحتاج إلى تعديل Production.
+
+الصيغة الصحيحة:
+
+PHASE 0 = NOT CERTIFIED CLOSED
+
+PHASE 1 INVESTIGATION/STAGING TRACK = AUTHORIZED
+
+PRODUCTION COA MUTATION = NOT AUTHORIZED
+
+وهذا بالضبط ما ثبّتّه في السجل التنفيذي.
+
+توزيع Phase 1
+خالد — Forensic COA Recovery
+
+مهمته الوحيدة:
+
+EXACT HISTORICAL 87-ROW COA SOURCE RECOVERY
+
+وليس:
+
+“إنشاء COA”
+
+ولا:
+
+“استكمال 87 حسابًا”
+
+ولا:
+
+“تخمين الحسابات الناقصة”.
+
+المطلوب منه
+
+البحث عن:
+
+exact rows
+exact UUIDs
+account codes
+names
+types
+normal balance
+parent UUIDs
+ownership
+أي export/snapshot/migration/seed حقيقي
+
+ثم:
+
+FOUND
+
+أو:
+
+SOURCE EXHAUSTION
+
+ولا يسمح بفتح حلقة بحث لا نهائية.
+
+النتيجة المطلوبة
+
+إن وُجد الـ87:
+
+Canonical replay dataset → staging → hash → validation
+
+وإن لم يوجد:
+
+SOURCE EXHAUSTION = CLOSED
+EXACT 87 RECOVERY = OPEN
+OWNER DECISION REQUIRED
+
+وهذه المبادئ متطابقة أيضًا مع الـdirective السابق لخالد.
+
+هيثم — Financial Master Data Contract
+
+لا أريد من هيثم أن يعيد البحث في الـ87 مرة أخرى.
+
+مهمته:
+
+إثبات أن أي Dataset مصدره خالد يمكن أن يدخل النظام الحالي بأمان.
+
+ويتحقق من:
+
+COA schema
+PK/FK
+uniqueness
+parent graph
+account identity
+company ownership
+active state
+Treasury contract
+Treasury ↔ COA relationship
+compatibility مع:
+post_journal_entry
+cash cores
+purchase
+POS
+returns
+reporting
+
+ثم يعيد Staging Replay / Validation.
+
+ولا يلمس Production COA أو Treasury.
+
+البرومبتات التنفيذية أصبحت مسجلة فعليًا
+خالد
+
+PHASE 1 — Khalid COA Recovery
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260825_PHASE1_KHALID_COA_RECOVERY_PROMPT.md
+
+هيثم
+
+PHASE 1 — Hytham Master Data Contract
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260825_PHASE1_HYTHAM_MASTER_DATA_CONTRACT_PROMPT.md
+
+سجل المصالحة والقرار
+
+Forensic Phase 0 Reconciliation + Phase 1 Authorization
+
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260825_PHASE0_FORENSIC_RECONCILIATION_AND_PHASE1_AUTHORIZATION.md
+
+سجل الحدث والقرار والتنفيذ
+
+Phase 1 Authorization Event Log
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260825_PHASE1_AUTHORIZATION_EVENT_LOG.md
+وقد سُجلت النتيجة كـmemory anchor مستقل، لا تعتمد على هذه المحادثة وحدها.
+
+ملاحظة مهمة عن طلبك بقراءة كل سلسلة Hussin
+
+ألتزم هنا بالدقة: لم أدّعِ أنني أعدت قراءة كل ملف من Prompt 11 حتى آخر ملف في سلسلة Hussin واحدًا واحدًا؛ بعض تلك الملفات ضخمة جدًا، وأداة GitHub تعيد بعض الملفات الكبيرة بشكل مقتطع. لذلك لم أبنِ حكمًا نهائيًا على أنها قُرئت بالكامل، بل اعتمدت في الحكم التنفيذي على طبقة الحقيقة الأعلى: Production + Current Git + Current CTO/Evidence + Phase 0 artifacts، مع الاحتفاظ بالتاريخ كمرجع. هذا متوافق مع هرم المصدر الذي يفرضه Memory Transfer Directive.
+
+الحكم النهائي
+
+خالد: ✅ Phase 0 substantive work صحيح. مؤهل لـPhase 1 كـForensic COA Owner.
+
+هيثم: ✅ Phase 0 substantive work صحيح. مؤهل لـPhase 1 كـTechnical Contract/Staging Validation Owner.
+
+Phase 0: ❌ NOT CERTIFIED CLOSED.
+
+Phase 1 Investigation/Staging: ✅ AUTHORIZED.
+
+Production COA restoration: ❌ BLOCKED حتى يثبت المصدر ويجتاز الـstaging وتصدر موافقة مالك صريحة.
+
+والأهم: لم أجد في أعمالهما الحالية ما يبرر التراجع عن التعديلات الصحيحة أو إجراء إصلاح Production عشوائي؛ ما وجدته أساسًا هو stale snapshots وclosure claims يجب تصنيفها تاريخيًا، وهو ما تم توثيقه بالفعل.
