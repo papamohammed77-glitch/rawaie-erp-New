@@ -1,0 +1,249 @@
+النتيجة التنفيذية
+1. هل كان عمل خالد وهيثم صحيحًا؟
+
+خالد — نعم، في جوهره صحيح.
+
+أهم ما ثبت صحته هو عدم اختلاق الـ87 حسابًا. تقرير خالد 9 أغلق البحث التاريخي عند SOURCE EXHAUSTION، وهذا متوافق مع الـdirective الحاكم.
+
+ثم نُفذت Phase 1B فعلًا، وأصبحت Production تحتوي 16 حسابًا جديدة، وليست الـ87 التاريخية. Production الحالية والمigrations تؤكد ذلك؛ التقرير نفسه يوثق التطهير الأبوي وإعادة التحقق.
+
+هيثم — نعم، الاتجاه المعماري صحيح، لكن شهادته كانت أوسع من الحقيقة.
+
+التحقيق الحالي يؤكد أن post_stock_movement هو محرك Physical Stock المركزي، وأن reserve_stock / release_stock_reservation Reservation engines، وأن مسارات Picking لا تكتب Physical Stock. كما أن complete_runsheet_reopen_loading يمرر الحركة إلى post_stock_movement. هذا يؤيد جوهر نتيجة هيثم 10.
+
+لكن:
+
+Physical Writers outside post_stock_movement = 0
+
+لا تعني:
+
+GLOBAL INVENTORY = CLOSED
+
+لأن طبقات Consumer / Edge / PWA / Authentication / Idempotency / Runtime / Concurrency / RLS / Lineage ما زالت تحتاج إثباتًا.
+
+2. أهم التصحيحات التي أثبتها التحقيق الحالي
+أ. الـ87 حسابًا: انتهى دوران الحلقة
+
+لم يعد هناك مبرر لإعادة:
+
+Search → No Source → Report → Prompt → Search
+
+الـHistorical 87-row recovery الآن:
+
+CLOSED AT SOURCE EXHAUSTION
+
+وأي مصدر تاريخي جديد يظهر مستقبلًا يُعامل كحدث جديد مستقل، وليس سببًا لإعادة فتح الحلقة القديمة.
+
+ب. الـ16 COA الحالية حقيقية وموجودة
+
+Production الحالية الآن:
+
+العنصر	الحالة
+Companies	1
+Users	24
+Branches	2
+Items	17
+Stock Rows	20
+Inventory Log	3
+Treasury	1
+COA	16
+Journal Entries	2
+Journal Lines	0
+Customer Ledger	0
+Supplier Ledger	0
+Driver Ledger	0
+Orders	0
+Purchase Orders	0
+Runsheets	0
+
+والـ16 موجودة فعليًا في Production، مع hierarchy وFKs، وmigration lineage:
+
+20260825013814
++
+20260825013838
+
+وهذا يعني أن مرحلة إنشاء Master Data الجديدة لا ينبغي إعادة تنفيذها.
+
+ج. Main تغيّر بعد كل التقارير السابقة
+
+أثناء التحقيق كان الـHEAD:
+
+455b53c618dc41390896e66ca3f9d393f3cb3967
+
+ثم أضفت أنا فقط سجلات القرار والتكليفات الجديدة إلى Git، وأصبح main حاليًا:
+
+815bd3565a1f843dcc62c59ac9faca3a173016dd
+
+وهذا مهم جدًا:
+
+تقرير خالد قبل الأخير / تقرير خالد الأخير / تقرير هيثم الأخير ليست Current HEAD.
+
+هي Historical Snapshots.
+
+د. الـFinancial Cores موجودة فعليًا
+
+Production الحالية تحتوي:
+
+post_journal_entry
+
+post_customer_ledger_entry
+
+post_supplier_ledger_entry
+
+post_driver_ledger_entry
+
+post_cash_receipt_atomic
+
+post_cash_payment_atomic
+
+والـFinancial writers الأساسية التي فحصتها أصبحت تستعمل الـcores بدل الـold direct journal/ledger paths.
+
+لكن Financial Writer Zero-Debt لم يُغلق.
+
+هـ. RLS ما زال Debt حقيقيًا
+
+التحقيق الحالي ما زال يرى Allow all for all على جداول مالية حساسة مثل:
+
+journal_entries
+journal_lines
+customer_ledger
+supplier_ledger
+treasury
+cash_box
+daily_settlements
+
+وهذا لا يجوز تجاهله، لكنه أيضًا لا يبرر إعادة فتح Inventory أو COA. مكانه الصحيح ضمن مراحل convergence/security/runtime.
+
+3. أين وصلنا فعليًا؟
+
+الحكم الذي أعتمد عليه الآن:
+
+Phase	الحكم
+Phase 0	NOT CERTIFIED CLOSED
+Historical 87 Recovery	CLOSED AT SOURCE EXHAUSTION
+New Financial Master Data	PRODUCTION VERIFIED
+Phase 2 Global Writer Discovery	SUBSTANTIVELY VERIFIED
+Phase 2 Manual Voucher	NEXT OPEN UNIT
+Phase 3 Financial Writer Zero-Debt	OPEN / AUTHORIZED
+Phase 4 Consumer / Edge / PWA	AUTHORIZED
+Phase 5 Runtime / Concurrency / E2E	AUTHORIZED
+Phase 6 Reconciliation / Certification	AUTHORIZED
+Phase 7 Autonomous CTO	AUTHORIZED AFTER GATES
+
+وهذا يتفق مع الخطط الحاكمة التي تشترط التمييز بين Core exists وبين الإغلاق التشغيلي الحقيقي.
+
+4. قرار الانتقال الجديد
+
+نعم: نوقف البحث عن الـ87 ونمضي.
+
+ولكن ليس بإنشاء COA ثانية.
+
+الـ16 الحالية هي:
+
+NEW CANONICAL FINANCIAL MASTER DATA
+
+وسنستخدمها كأساس.
+
+لا يجوز إنشاء حساب جديد إلا إذا ظهر Business/Technical requirement مثبت من Consumer أو Core أو transaction path.
+
+5. التكليف الجديد لخالد
+
+تم إنشاء directive كاملة لخالد:
+
+فتح Prompt خالد — Phase 2 → Phase 7
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260825_KHALID_CONTINUOUS_PHASE2_TO_PHASE7_EXECUTION_PROMPT.md
+
+وظيفته الأساسية:
+
+Financial convergence + Financial Runtime + Financial Reconciliation + Final Certification
+
+مع مراجعة مستقلة لأعمال Inventory.
+
+والقاعدة فيه صريحة:
+
+لا ينتظر Prompt جديد بين Phase وأخرى.
+
+سيستمر:
+
+Phase 2 support → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7
+
+ولا يتوقف عند التقرير.
+
+6. التكليف الجديد لهيثم
+
+تم إنشاء directive كاملة لهيثم:
+
+فتح Prompt هيثم — Phase 2 → Phase 7
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260825_HYTHAM_CONTINUOUS_PHASE2_TO_PHASE7_EXECUTION_PROMPT.md
+
+ويبدأ تحديدًا من:
+
+PHASE 2 — MANUAL VOUCHER CLOSURE
+
+ثم:
+
+Purchase
+
+→ POS
+
+→ Van Sales
+
+→ Returns
+
+→ Loading
+
+→ Unloading
+
+→ Adjustment
+
+→ Picking / Reservation
+
+ثم ينتقل مباشرة إلى:
+
+PHASE 3
+
+→ PHASE 4
+
+→ PHASE 5
+
+→ PHASE 6
+
+→ PHASE 7
+
+وهو المسؤول الأساسي عن Inventory + Consumers + Runtime + Concurrency + Technical Certification.
+
+7. سجلت القرار رسميًا
+
+أنشأت:
+
+Forensic Review & Global Phase Authorization
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260825_FORENSIC_REVIEW_AND_GLOBAL_PHASE_AUTHORIZATION.md
+
+وكذلك:
+
+Global Phase Continuity Event Log
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260825_GLOBAL_PHASE_CONTINUITY_EVENT_LOG.md
+
+وهما يسجلان:
+
+EVENT → DECISION → CURRENT STATE → OWNERSHIP → NEXT ACTION → CLOSURE RULE
+
+ليكونا نقطة ذاكرة كافية لأي CTO لاحق.
+
+الحكم النهائي
+
+لا يوجد سبب مهني لمواصلة الدوران حول الـ87.
+
+الخالد أثبت ما ينبغي إثباته، وProduction الآن تملك Master Data جديدة فعلية.
+
+والهيثم أثبت أن Inventory Core المركزي موجود فعلاً، لكن عليه الآن إغلاق الـClosure Units واحدةً واحدة، ابتداءً من Manual Voucher.
+
+والخطوة التالية لم تعد “هل نبحث أكثر؟”.
+
+بل:
+
+EXECUTE → VERIFY → DEPLOY → RUNTIME VERIFY → RECORD → CONTINUE
+
+حتى PHASE 7، مع منع أي ادعاء CLOSED أو 100% إلا عند إثباته فعليًا.
+
+الوثيقتان الجديدتان محفوظتان في Current/CTO، والقرار نفسه مسجل في Git.
