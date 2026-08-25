@@ -1,0 +1,953 @@
+هيثم — تنفيذ تقرير + برومبت 60 بالمسار المستمر
+
+تم تشغيل التكليف على أساس الاستمرار عبر الخطة كلها وليس انتظار Prompt لكل مرحلة، مع الالتزام بالقاعدة الحاكمة:
+
+Production PostgreSQL → Current main → Current CTO evidence → Historical → Reports
+
+ومع عدم إعادة فتح ما ثبت إغلاقه، وعدم إعلان أي Gate مغلقًا بدون دليلها الفعلي. هذا هو صلب Directive الاستمرارية.
+
+ما أنجزته فعليًا في هذه الجولة
+1. Inventory — Physical Writer Boundary
+
+أعيد الفحص الجنائي لـstock_branches وinventory_log وTriggers وFunctions.
+
+النتيجة:
+
+Physical Writer:
+post_stock_movement
+        ↓
+stock_branches
+inventory_log
+
+و:
+
+reserve_stock
+release_stock_reservation
+
+Reservation فقط.
+
+و:
+
+setup_van_stock
+
+Initialization فقط.
+
+لم أجد Physical Writer موازيًا لـpost_stock_movement في Production PostgreSQL.
+
+وهذا ليس مبنيًا على التقرير؛ تم إثباته من التعريفات الحالية نفسها.
+
+2. Manual Voucher — إغلاق فعلي على مستوى Core
+
+تم اختبار المسار الحقيقي داخل Transaction:
+
+Draft
+ ↓
+Send
+ ↓
+Sent
+ ↓
+Partial Receive
+ ↓
+Sent
+ ↓
+Final Receive
+ ↓
+Received
+ ↓
+Complete
+ ↓
+Completed
+
+واختُبر:
+
+Duplicate Receive بنفس operation_id.
+Partial 0.4.
+Final 0.6.
+Rollback.
+
+كما تم اكتشاف أن:
+
+receive_manual_stock_voucher_v2
+
+كان Legacy surface غير قابل للتنفيذ بالأدوار المفحوصة، ولا يوجد Consumer حالي يستعمله.
+
+تم إزالة الوظيفة من Production رسميًا وتسجيل Migration:
+
+supabase/migrations/20260825210000_retire_receive_manual_stock_voucher_v2.sql
+
+3. Inventory Adjustment
+
+اختبار Production Transaction:
+
+InventoryIncrease
+qty = 0.5
+
+ثم نفس الطلب مرة ثانية.
+
+النتيجة:
+
+first  = success
+retry  = duplicate
+rollback = clean
+
+إذن Adjustment Core أثبت:
+
+Idempotency + Atomicity على مستوى SQL.
+
+4. Picking / Reservation
+
+تم إنشاء Canary مؤقت داخل Production Transaction.
+
+النتيجة:
+
+complete_runsheet_picking
+        ↓
+reserve_stock
+        ↓
+allocated_qty
+
+والاستجابة قالت صراحة:
+
+inventory_log_written = false
+
+والـretry بنفس operation_id:
+
+duplicate = true
+
+ثم تم ROLLBACK.
+
+إذن تم تأكيد الفصل بين:
+
+Reservation
+
+و:
+
+Physical Movement.
+
+5. اكتشاف وإصلاح Bug Production حقيقي
+
+هذه أهم نتيجة في الجولة.
+
+أثناء اختبار Purchase Receiving ظهر:
+
+22P02
+invalid input syntax for type uuid
+
+التحقيق كشف أن:
+
+post_journal_entry(...)
+
+يعيد:
+
+jsonb
+
+بينما:
+
+receive_purchase_atomic
+
+كان يستقبل النتيجة مباشرة في:
+
+entry_id uuid
+
+أي:
+
+JSONB
+ ↓
+UUID
+
+دون استخراج entry_id.
+
+تم الإصلاح في Production
+
+أصبح:
+
+(post_journal_entry(...)->>'entry_id')::uuid
+
+وتم الاختبار بعد الإصلاح:
+
+Purchase Order
+ ↓
+PurchaseIn
+ ↓
+post_stock_movement
+ ↓
+Journal
+ ↓
+Supplier Ledger
+
+ثم exact retry:
+
+duplicate = true
+
+ثم rollback.
+
+والـMigration القابلة لإعادة البناء موجودة في Git:
+
+20260825214500_fix_receive_purchase_journal_result_cast.sql
+
+والـself-audit التقط أيضًا خطأ توثيقي مني: النسخة الأولى من الـmigration كانت مجرد ملاحظات، وتم تصحيحها فورًا إلى CREATE OR REPLACE FUNCTION كامل قابل لإعادة البناء.
+
+6. Security — إصلاح Production فعلي
+
+وجدت مباشرة أن:
+
+anon وauthenticated
+
+كان لديهما DML واسع على:
+
+journal_entries
+journal_lines
+customer_ledger
+supplier_ledger
+driver_ledger
+treasury
+cash_box
+daily_settlements
+
+تم سحب:
+
+INSERT
+UPDATE
+DELETE
+TRUNCATE
+REFERENCES
+TRIGGER
+
+مع الإبقاء على:
+
+SELECT
+
+بعد التحقق من Consumer الحالي.
+
+Migration:
+
+20260825213000_financial_table_dml_boundary.sql
+
+والتحقق التالي أثبت:
+
+anon          = SELECT only
+authenticated = SELECT only
+
+على الجداول المالية الحساسة.
+
+7. Financial Core — Receipt
+
+اختبار Production:
+
+operation_id = bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb
+amount = 10
+Treasury = CASH-01
+Cash Account = 121
+Offset = 41
+
+النتيجة:
+
+Posted
+Debit  = 10
+Credit = 10
+duplicate retry = true
+ROLLBACK = clean
+
+والـCurrent Edge adapter الآن:
+
+save-receipt-voucher v6
+
+يستقبل JWT، يستخرج company_id من public.users.auth_id، ثم يستدعي:
+
+post_cash_receipt_atomic.
+
+8. Financial Core — Payment
+
+اختبار Production:
+
+operation_id = cccccccc-cccc-4ccc-8ccc-cccccccccccc
+amount = 10
+Treasury = CASH-01
+Cash Account = 121
+Offset = 51
+
+النتيجة:
+
+Posted
+Debit  = 10
+Credit = 10
+duplicate retry = true
+ROLLBACK = clean
+
+وsave-payment-voucher الحالي يتبع نفس الـCore boundary.
+
+9. Daily Settlement
+
+تم اختبار:
+
+Delivered Runsheet
+→ post_daily_settlement_atomic
+
+والنتيجة:
+
+Settlement = created
+Shortage = 0
+Journal = none
+Retry = duplicate
+Rollback = clean
+
+وsave-daily-settlement الحالي Adapter إلى:
+
+post_daily_settlement_atomic.
+
+10. Data Integrity Sweep
+
+الـProduction الحالية الآن أثبتت:
+
+negative stock qty       = 0
+negative allocated_qty   = 0
+allocated > qty          = 0
+orphan item logs         = 0
+orphan company logs      = 0
+duplicate inventory keys = 0
+erp_operation_registry   = 0 rows
+
+وهذا إغلاق حقيقي للـinvariants التي فحصناها، وليس مجرد schema inspection.
+
+11. اكتشاف Historical Legacy مهم
+
+وجدت في Production:
+
+3 inventory_log rows
+movement_type = VoidInvoice
+date = 2026-07-24
+
+وبالتحقيق في Git، مصدرها التاريخي هو:
+
+Original/Edge Functions/delete-order.ts
+
+والدالة التاريخية كانت تقوم مباشرةً بـ:
+
+stock_branches update
+inventory_log insert
+journal_entries insert
+journal_lines insert
+customer_ledger insert
+hard delete order
+
+هذه Legacy Historical Evidence، وليست دليلًا على وجود Physical Writer حي في Current.
+
+لم أحذف السجلات التاريخية حتى لا نخسر Chain of Custody.
+
+12. Current COA تغيّرت مرة أخرى
+
+أثناء التنفيذ المباشر:
+
+COA = 17
+
+بدل Snapshot الـ16 السابقة.
+
+الحساب الجديد:
+
+216
+التزامات ضريبية
+
+وبالتالي أصبح Production الحالي هو المرجع الوحيد، وليس أي تقرير سابق.
+
+13. Current Financial Edge Consumers
+
+تم فتح ومراجعة:
+
+save-receipt-voucher
+save-payment-voucher
+save-daily-settlement
+create-stock-voucher
+receive-stock-voucher
+
+والنمط الحالي:
+
+Bearer Token
+ ↓
+auth.users
+ ↓
+public.users.auth_id
+ ↓
+company_id
+ ↓
+Core RPC
+
+وليس:
+
+PWA
+ ↓
+Direct financial table DML
+
+والـcreate-stock-voucher الحالي هو Company-scoped capability wrapper إلى:
+
+create_manual_stock_voucher_atomic.
+
+14. Runtime / Concurrency — وصلنا إلى الحقيقة الفعلية
+
+بحثت في Git عن قناة HTTP/Concurrency الموجودة.
+
+هناك Workflow فعلي مصمم لإجراء:
+
+Authenticated HTTP
++
+Two concurrent requests
++
+Production verification
+
+لكن آخر تشغيل على main:
+
+Run 32889594729
+
+فشل قبل تنفيذ Business Test لأن Canary endpoint نفسه أعاد:
+
+410
+Temporary production canary retired
+
+أي أن:
+
+هذا ليس فشلًا في Inventory Core.
+
+و:
+
+ليس Runtime Proof أيضًا.
+
+بل:
+
+TEST_HARNESS_RETIRED
+
+والـworkflow نفسه مثبت أنه كان يستهدف Production HTTP وConcurrency.
+
+وبالتالي لم أرتكب الخطأ الأخطر:
+
+اعتبار SQL tests + Locks = Concurrent HTTP Proof.
+
+15. لماذا لم أنشئ Workflow بديل؟
+
+لأن ضابط المشروع الحالي يقول إن مساحة التعديلات المنشورة المسموح بها هي Current.
+
+إنشاء Workflow جديد تحت:
+
+.github/workflows
+
+سيكون تعديلًا خارج مساحة التعديل المعتمدة.
+
+لذلك لم أتجاوز الضابط كي أصطنع Runtime Closure.
+
+هذه الآن Infrastructure/Test-Harness Gate حقيقية، وليست نقصًا في فهم Core.
+
+16. السجل التنفيذي الكامل
+
+كل ما حدث في هذه الجولة تم تسجيله في:
+
+20260825_HYTHAM_CONTINUOUS_EXECUTION_EVENT_LOG.md
+
+وتم تحديثه بعد إضافة نتائج:
+
+Purchase defect
+Receipt
+Payment
+Daily Settlement
+Security boundary
+Historical VoidInvoice
+Data Integrity
+Current COA 17
+Retired Runtime Canary
+
+آخر Commit للسجل:
+
+1a53e4e39b3a3aba3dca311e705cb1ee0b80a7c0
+
+17. مصفوفة Phase 2 أصبحت محدثة
+
+20260825_HYTHAM_PHASE2_GLOBAL_INVENTORY_WRITER_MATRIX.md
+
+وهي الآن تحتوي على:
+
+Global writer sweep
+Manual Voucher
+Adjustment
+Picking
+Purchase defect/fix
+Financial DML boundary
+Historical legacy classification
+Runtime gates
+Current COA17
+Self-audit.
+الحالة الحقيقية الآن
+مغلق على مستوى SQL/Core + Transactional Evidence
+Physical Writer Boundary          ✅
+Reservation Boundary              ✅
+Manual Voucher                    ✅ Core/transactional
+Inventory Adjustment              ✅ Core/transactional
+Picking/Reservation               ✅ Core/transactional
+Purchase Receiving                ✅ بعد إصلاح Bug حقيقي
+Cash Receipt                      ✅
+Cash Payment                      ✅
+Daily Settlement                  ✅
+Financial Client DML Boundary     ✅
+Current Data Integrity Checks     ✅
+لم يُغلق بعد
+Authenticated HTTP E2E            ⏳
+True Two-Session Concurrency      ⏳
+Full Edge SHA/Deployment Parity   ⏳
+Full PWA Runtime Verification    ⏳
+Van Sales Live Runtime            ⏳
+Returns Live Runtime              ⏳
+Loading Live Runtime              ⏳
+Unloading Live Runtime            ⏳
+Final Financial RLS Certification ⏳
+Full Live Stock↔Document Reconcile⏳
+Phase 2 Zero-Debt Certification   ❌
+Phase 3 Zero-Debt Certification   ❌
+Phase 4–7 Certification           ❌
+الحكم الصريح
+
+لا أستطيع أن أقول إن الخطة الكاملة انتهت 100%.
+
+وهذا ليس التفافًا؛ بل العكس: خلال التنفيذ تم اكتشاف وإصلاح Bug Production حقيقي لم يكن ظاهرًا في التقارير، وتم إغلاق Security DML boundary، وتم اختبار عدة Cores فعليًا، ثم ثبت أن الـHTTP Harness المستخدم رسميًا متقاعد ولا يمكن استخدامه لإثبات Runtime.
+
+إذن الوضع الصحيح الآن:
+
+تم تحقيق تقدم حقيقي عبر Phase 2 وPhase 3، وليس مجرد انتقال شكلي بين المراحل، لكن شهادة ERP النهائية وAUTONOMOUS CTO READY لا يمكن إصدارها قبل إغلاق Runtime/Concurrency/Consumer/Deployment/Final Reconciliation بالأدلة الفعلية.
+
+-------------------------------------
+
+ملحق
+نعم. كل التعديلات التي غيّرت Production Database فعلًا تم تطبيقها على الـProduction حتى آخر تعديل Production قمت به. أما تحديثات Git/CTO فكانت توثيقًا أو مصدر إعادة بناء، وليست بديلًا عن Production. كذلك لم أعدل أي ملف PWA حتى الآن؛ لذلك ما سأعطيك إياه هنا هو ما ثبت بالفعل من الـPWA الحالي ويحتاج تعديلًا.
+
+Production — آخر تعديلات مطبقة فعليًا
+
+تم تطبيقها على Production:
+
+تقاعد receive_manual_stock_voucher_v2.
+سحب DML المباشر من الجداول المالية عن anon/authenticated.
+إصلاح Bug حقيقي في receive_purchase_atomic الخاص بتحويل نتيجة post_journal_entry من JSONB إلى UUID.
+وكل اختبارات الـCanary التي أنشأتها كانت داخل Transactions ثم ROLLBACK.
+
+أما ملفات مثل Event Log وCTO reports فهي موجودة في Git لتوثيق Chain of Custody، وليست هي التعديلات نفسها.
+
+تعديلات PWA المطلوبة
+
+من التحقيق الحالي، التعديل المؤكد في الـPWA هو ملف:
+
+Current/PWA/accountant.html
+
+والدوال المؤكد أنها تحتاج استبدالًا هي:
+
+newReceipt
+newPayment
+
+السبب أن النسخة الحالية ترسل Payload قديمًا:
+
+cashBoxId
+mainAccountName
+
+ولا ترسل:
+
+operationId
+cashAccountId
+offsetAccountId
+
+بينما الـEdge الحالي أصبح يستدعي الـcanonical Core ويطلب هذه البيانات صراحة. وهذا مثبت في save-receipt-voucher وsave-payment-voucher الحاليين.
+
+1) newReceipt
+امسح الدالة الحالية بالكامل:
+newReceipt: function(){
+    Swal.fire({title:'سند قبض جديد',html:'<input id="rcptAmt" class="swal2-input" placeholder="المبلغ" type="number"><input id="rcptRef" class="swal2-input" placeholder="المرجع">',showCancelButton:true,confirmButtonText:'حفظ',preConfirm:function(){return{amt:parseFloat(document.getElementById('rcptAmt').value)||0,ref:document.getElementById('rcptRef').value};}}).then(function(r){if(!r.isConfirmed)return;Swal.showLoading();supabase.auth.getSession().then(function(se){var t=se.data.session?se.data.session.access_token:null;return fetch(SUPABASE_URL+'/functions/v1/save-receipt-voucher',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+t},body:JSON.stringify({date:new Date().toISOString().split('T')[0],cashBoxId:'MAIN',mainAccountName:r.value.ref,notes:'',lines:[{accountName:r.value.ref,description:'',amount:r.value.amt}]})});}).then(function(res){return res.json();}).then(function(j){Swal.close();if(j.success){RW_UI.toast('تم الحفظ','success');App.renderReceipts();}else{RW_UI.toast(j.error||'فشل','error');}});});
+},
+والصق هذه بدلًا منها كاملة:
+newReceipt: function () {
+    var s = this;
+
+    Swal.fire({
+        title: 'سند قبض جديد',
+        html:
+            '<div style="text-align:right">' +
+                '<label style="display:block;margin-bottom:6px;font-weight:bold">المبلغ</label>' +
+                '<input id="rcptAmt" class="swal2-input" placeholder="المبلغ" type="number" min="0.01" step="0.01">' +
+
+                '<label style="display:block;margin:12px 0 6px;font-weight:bold">كود الحساب المقابل</label>' +
+                '<input id="rcptOffsetCode" class="swal2-input" placeholder="مثال: 123" value="123">' +
+
+                '<label style="display:block;margin:12px 0 6px;font-weight:bold">المرجع</label>' +
+                '<input id="rcptRef" class="swal2-input" placeholder="المرجع">' +
+            '</div>',
+        showCancelButton: true,
+        confirmButtonText: 'حفظ',
+        cancelButtonText: 'إلغاء',
+        focusConfirm: false,
+
+        preConfirm: async function () {
+            var amount = Number(document.getElementById('rcptAmt').value);
+            var offsetCode = String(document.getElementById('rcptOffsetCode').value || '').trim();
+            var reference = String(document.getElementById('rcptRef').value || '').trim();
+
+            if (!Number.isFinite(amount) || amount <= 0) {
+                Swal.showValidationMessage('أدخل مبلغًا صحيحًا أكبر من صفر');
+                return false;
+            }
+
+            if (!offsetCode) {
+                Swal.showValidationMessage('كود الحساب المقابل مطلوب');
+                return false;
+            }
+
+            try {
+                var accountResult = await supabase
+                    .from('chart_of_accounts')
+                    .select('id,account_code,account_name,is_active')
+                    .eq('account_code', offsetCode)
+                    .eq('is_active', true)
+                    .maybeSingle();
+
+                if (accountResult.error) {
+                    throw new Error(accountResult.error.message);
+                }
+
+                if (!accountResult.data) {
+                    Swal.showValidationMessage('الحساب المقابل غير موجود أو غير نشط: ' + offsetCode);
+                    return false;
+                }
+
+                return {
+                    amount: amount,
+                    offsetAccountId: accountResult.data.id,
+                    offsetAccountCode: accountResult.data.account_code,
+                    offsetAccountName: accountResult.data.account_name,
+                    reference: reference
+                };
+
+            } catch (err) {
+                Swal.showValidationMessage(
+                    'تعذر التحقق من الحساب: ' + (err && err.message ? err.message : 'خطأ غير معروف')
+                );
+                return false;
+            }
+        }
+    }).then(function (result) {
+
+        if (!result.isConfirmed || !result.value) {
+            return;
+        }
+
+        var data = result.value;
+
+        Swal.fire({
+            title: 'جاري الحفظ...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: function () {
+                Swal.showLoading();
+            }
+        });
+
+        supabase.auth.getSession()
+            .then(function (sessionResult) {
+
+                var session = sessionResult &&
+                              sessionResult.data &&
+                              sessionResult.data.session;
+
+                if (!session || !session.access_token) {
+                    throw new Error('جلسة المستخدم غير صالحة');
+                }
+
+                var operationId =
+                    (window.crypto && typeof window.crypto.randomUUID === 'function')
+                        ? window.crypto.randomUUID()
+                        : (
+                            'RCV-' +
+                            Date.now() +
+                            '-' +
+                            Math.random().toString(36).slice(2, 10)
+                        );
+
+                return fetch(
+                    SUPABASE_URL + '/functions/v1/save-receipt-voucher',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + session.access_token
+                        },
+                        body: JSON.stringify({
+                            header: {
+                                operationId: operationId,
+                                date: new Date().toISOString().slice(0, 10),
+                                reference: data.reference || null,
+                                notes: 'سند قبض',
+                                cashAccountId: null,
+                                offsetAccountId: data.offsetAccountId,
+                                mainAccountName: data.offsetAccountName
+                            },
+                            lines: [
+                                {
+                                    accountName: data.offsetAccountName,
+                                    accountCode: data.offsetAccountCode,
+                                    description: data.reference || 'سند قبض',
+                                    amount: data.amount
+                                }
+                            ]
+                        })
+                    }
+                );
+            })
+            .then(async function (response) {
+
+                var payload = await response.json().catch(function () {
+                    return {
+                        success: false,
+                        error: 'استجابة غير صالحة من الخادم'
+                    };
+                });
+
+                if (!response.ok || payload.success === false) {
+                    throw new Error(
+                        payload.error ||
+                        payload.msg ||
+                        'فشل حفظ سند القبض'
+                    );
+                }
+
+                return payload;
+            })
+            .then(function (payload) {
+
+                Swal.close();
+
+                RW_UI.toast(
+                    payload.duplicate
+                        ? 'العملية موجودة بالفعل ولم تتم إضافة حركة ثانية'
+                        : 'تم حفظ سند القبض بنجاح',
+                    'success'
+                );
+
+                s.renderReceipts();
+            })
+            .catch(function (err) {
+
+                Swal.close();
+
+                RW_UI.toast(
+                    err && err.message
+                        ? err.message
+                        : 'فشل حفظ سند القبض',
+                    'error'
+                );
+            });
+    });
+},
+ملاحظة مهمة جدًا
+
+تعمدت عدم اختراع Treasury UUID في الـPWA؛ الـEdge الحالي لديه آلية حل الـTreasury ويؤكد وجود Treasury واحدة فعالة في الشركة. كذلك post_cash_receipt_atomic يحتاج cash_account_id وoffset_account_id، لذلك أصبح الحساب المقابل معرفًا فعليًا بالـUUID وليس باسم نصي.
+
+2) newPayment
+امسح الدالة الحالية بالكامل:
+newPayment: function(){
+    Swal.fire({title:'سند صرف جديد',html:'<input id="pmtAmt" class="swal2-input" placeholder="المبلغ" type="number"><input id="pmtRef" class="swal2-input" placeholder="المرجع">',showCancelButton:true,confirmButtonText:'حفظ',preConfirm:function(){return{amt:parseFloat(document.getElementById('pmtAmt').value)||0,ref:document.getElementById('pmtRef').value};}}).then(function(r){if(!r.isConfirmed)return;Swal.showLoading();supabase.auth.getSession().then(function(se){var t=se.data.session?se.data.session.access_token:null;return fetch(SUPABASE_URL+'/functions/v1/save-payment-voucher',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+t},body:JSON.stringify({date:new Date().toISOString().split('T')[0],cashBoxId:'MAIN',mainAccountName:r.value.ref,notes:'',lines:[{accountName:r.value.ref,description:'',amount:r.value.amt}]})});}).then(function(res){return res.json();}).then(function(j){Swal.close();if(j.success){RW_UI.toast('تم الحفظ','success');App.renderPayments();}else{RW_UI.toast(j.error||'فشل','error');}});});
+},
+والصق هذه بدلًا منها كاملة:
+newPayment: function () {
+    var s = this;
+
+    Swal.fire({
+        title: 'سند صرف جديد',
+        html:
+            '<div style="text-align:right">' +
+                '<label style="display:block;margin-bottom:6px;font-weight:bold">المبلغ</label>' +
+                '<input id="pmtAmt" class="swal2-input" placeholder="المبلغ" type="number" min="0.01" step="0.01">' +
+
+                '<label style="display:block;margin:12px 0 6px;font-weight:bold">كود الحساب المقابل</label>' +
+                '<input id="pmtOffsetCode" class="swal2-input" placeholder="مثال: 51 أو 211" value="51">' +
+
+                '<label style="display:block;margin:12px 0 6px;font-weight:bold">المرجع</label>' +
+                '<input id="pmtRef" class="swal2-input" placeholder="المرجع">' +
+            '</div>',
+        showCancelButton: true,
+        confirmButtonText: 'حفظ',
+        cancelButtonText: 'إلغاء',
+        focusConfirm: false,
+
+        preConfirm: async function () {
+
+            var amount = Number(document.getElementById('pmtAmt').value);
+            var offsetCode = String(document.getElementById('pmtOffsetCode').value || '').trim();
+            var reference = String(document.getElementById('pmtRef').value || '').trim();
+
+            if (!Number.isFinite(amount) || amount <= 0) {
+                Swal.showValidationMessage('أدخل مبلغًا صحيحًا أكبر من صفر');
+                return false;
+            }
+
+            if (!offsetCode) {
+                Swal.showValidationMessage('كود الحساب المقابل مطلوب');
+                return false;
+            }
+
+            try {
+                var accountResult = await supabase
+                    .from('chart_of_accounts')
+                    .select('id,account_code,account_name,is_active')
+                    .eq('account_code', offsetCode)
+                    .eq('is_active', true)
+                    .maybeSingle();
+
+                if (accountResult.error) {
+                    throw new Error(accountResult.error.message);
+                }
+
+                if (!accountResult.data) {
+                    Swal.showValidationMessage('الحساب المقابل غير موجود أو غير نشط: ' + offsetCode);
+                    return false;
+                }
+
+                return {
+                    amount: amount,
+                    offsetAccountId: accountResult.data.id,
+                    offsetAccountCode: accountResult.data.account_code,
+                    offsetAccountName: accountResult.data.account_name,
+                    reference: reference
+                };
+
+            } catch (err) {
+                Swal.showValidationMessage(
+                    'تعذر التحقق من الحساب: ' + (err && err.message ? err.message : 'خطأ غير معروف')
+                );
+                return false;
+            }
+        }
+    }).then(function (result) {
+
+        if (!result.isConfirmed || !result.value) {
+            return;
+        }
+
+        var data = result.value;
+
+        Swal.fire({
+            title: 'جاري الحفظ...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: function () {
+                Swal.showLoading();
+            }
+        });
+
+        supabase.auth.getSession()
+            .then(function (sessionResult) {
+
+                var session = sessionResult &&
+                              sessionResult.data &&
+                              sessionResult.data.session;
+
+                if (!session || !session.access_token) {
+                    throw new Error('جلسة المستخدم غير صالحة');
+                }
+
+                var operationId =
+                    (window.crypto && typeof window.crypto.randomUUID === 'function')
+                        ? window.crypto.randomUUID()
+                        : (
+                            'PMT-' +
+                            Date.now() +
+                            '-' +
+                            Math.random().toString(36).slice(2, 10)
+                        );
+
+                return fetch(
+                    SUPABASE_URL + '/functions/v1/save-payment-voucher',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + session.access_token
+                        },
+                        body: JSON.stringify({
+                            header: {
+                                operationId: operationId,
+                                date: new Date().toISOString().slice(0, 10),
+                                reference: data.reference || null,
+                                notes: 'سند صرف',
+                                cashAccountId: null,
+                                offsetAccountId: data.offsetAccountId,
+                                mainAccountName: data.offsetAccountName
+                            },
+                            lines: [
+                                {
+                                    accountName: data.offsetAccountName,
+                                    accountCode: data.offsetAccountCode,
+                                    description: data.reference || 'سند صرف',
+                                    amount: data.amount
+                                }
+                            ]
+                        })
+                    }
+                );
+            })
+            .then(async function (response) {
+
+                var payload = await response.json().catch(function () {
+                    return {
+                        success: false,
+                        error: 'استجابة غير صالحة من الخادم'
+                    };
+                });
+
+                if (!response.ok || payload.success === false) {
+                    throw new Error(
+                        payload.error ||
+                        payload.msg ||
+                        'فشل حفظ سند الصرف'
+                    );
+                }
+
+                return payload;
+            })
+            .then(function (payload) {
+
+                Swal.close();
+
+                RW_UI.toast(
+                    payload.duplicate
+                        ? 'العملية موجودة بالفعل ولم تتم إضافة حركة ثانية'
+                        : 'تم حفظ سند الصرف بنجاح',
+                    'success'
+                );
+
+                s.renderPayments();
+            })
+            .catch(function (err) {
+
+                Swal.close();
+
+                RW_UI.toast(
+                    err && err.message
+                        ? err.message
+                        : 'فشل حفظ سند الصرف',
+                    'error'
+                );
+            });
+    });
+},
+نقطة مهمة حول الحساب المقابل
+
+لم أُبقِ:
+
+mainAccountName: r.value.ref
+
+لأن هذا كان يخلط بين المرجع والحساب المحاسبي.
+
+النسخة الجديدة تفصل بوضوح:
+
+reference
+      ≠
+offsetAccountId
+      ≠
+offsetAccountName
+
+وهذا يتوافق مع الـcanonical financial adapter الموجود حاليًا.
+
+ما لا أنصح بتعديله الآن
+
+لا أريد أن أجعلك تمسح دوالًا أخرى في الـPWA اعتمادًا على التخمين. في هذه الجولة الدليل المباشر يثبت أن newReceipt وnewPayment هما الدالتان اللتان لديهما Consumer Contract قديم واضح. أما receive-stock-voucher الحالي فقد تمت مراجعته ووجدناه بالفعل يستخدم operation_id وCore RPC بصورة صحيحة، لذلك لا نبدله بلا دليل جديد.
+
+بعد لصق الدالتين، الخطوة الصحيحة هي اختبار Accountant PWA → Edge → Core → Journal/Cash → duplicate retry قبل لمس أي PWA آخر.
