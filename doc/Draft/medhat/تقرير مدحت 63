@@ -1,0 +1,302 @@
+تمت المراجعة والتنفيذ على أساس Production الحالية وGit الحالي، وليس على أساس الذاكرة أو تقارير خالد/هيثم أو أي Snapshot قديم.
+
+الحكم التنفيذي
+1. عمل خالد وهيثم: الاتجاه صحيح، لكن بعض الاستنتاجات لم تعد تمثل الحالة الحالية
+
+أعمالهما في نقل المحاسبة من Distributed Writers إلى Financial Cores كانت صحيحة في جوهرها، ووجود:
+
+post_journal_entry
+post_cash_receipt_atomic
+post_cash_payment_atomic
+
+في Production الحالية يؤكد أن الجزء المعماري الأساسي أصبح حقيقيًا وليس نظريًا.
+
+لكن بعض تقاريرهما أصبحت Historical Evidence وليست Current Truth، وهو بالضبط ما يفرضه MASTER_MEMORY_TRANSFER_DIRECTIVE: Production الحالية تتفوق على Git الحالي ثم الأدلة والتاريخ والتقارير.
+
+كما أن تقرير المرحلة الأخير كان صريحًا في أن وجود الـCore لا يعني إغلاق الـConsumer أو Runtime أو Writer Convergence بالكامل.
+
+2. أهم شيء ثبتته مراجعة Production
+
+الـFinancial Core الحالي يعمل بصورة صحيحة:
+
+post_journal_entry يتحقق من UUID والحساب والشركة والتوازن.
+Receipt/Payment يستخدمان operation_id.
+إعادة نفس العملية تعيد duplicate=true.
+الخزينة والحساب المقابل يتم التحقق منهما مع company_id.
+Journal يتم إنشاؤه من الـCore وليس من واجهة المحاسب.
+
+وهذا يتفق مع الاتجاه الذي جمعناه في تقرير 62: عدم استخدام MAIN أو اسم الحساب كهوية، وعدم نقل DML المالي إلى الـPWA.
+
+accountant.html — النتيجة بعد التنفيذ
+
+استبدلت Current/PWA/accountant.html بنسخة جديدة كاملة، وليست مجرد تعديل تجميلي.
+
+النسخة الحالية أصبحت Financial Workbench وتحتوي على:
+
+المحاور الموجودة الآن
+
+نظرة مالية
+
+رصيد الخزينة.
+المقبوضات.
+المدفوعات.
+الحركة الصافية.
+اختبار توازن الفترة.
+آخر العمليات.
+
+القبض
+
+إنشاء سند قبض.
+اختيار الحساب المقابل بالـUUID.
+Company-scoped context.
+Treasury UUID.
+Cash Account UUID.
+Operation ID.
+Retry-safe operation.
+
+الصرف
+
+نفس المستوى مع حماية الرصيد قبل الإرسال.
+
+القيود
+
+قائمة القيود المنشورة.
+التفاصيل.
+خطوط القيد.
+مدين / دائن.
+المنشئ والمرجع.
+
+التقارير
+
+Trial Balance.
+Profit & Loss.
+Balance Sheet.
+P&L by Cost Center.
+Cash Movement.
+CSV Export.
+
+الذمم
+
+العملاء.
+الموردون.
+مع تنبيه صريح أن أرصدة customers.debt وsupplier.accounts_payable ليست بديلًا عن G/L reconciliation.
+
+الرقابة
+
+Operation Registry.
+Processing/Failed operations.
+عدد القيود المنشورة.
+
+والفاصل المعماري بقي صحيحًا: PWA لا تقوم بأي Financial DML مباشر؛ هي Consumer للـEdge/Core.
+
+إصلاح أمني نفذته مباشرة في Production
+
+هذه كانت أخطر نقطة وجدتها أثناء المراجعة.
+
+Production كانت تحتوي على:
+
+Allow all for all
+
+على:
+
+cash_box
+treasury
+journal_entries
+journal_lines
+
+بصلاحية public.
+
+أغلقت هذا المسار فعليًا، واستبدلته بسياسات قراءة Company-scoped للمستخدم authenticated، مع ربط journal_lines بالشركة من خلال journal_entries.
+
+كما أضفت Company-scoped SELECT لـerp_operation_registry.
+
+ثم تحققت مباشرة من Production وأصبح عدد سياسات Allow all for all لهذه الجداول:
+
+0
+
+وأصبحت القراءة الشرعية:
+
+authenticated → current_user_company_id() → company-scoped data
+
+وهذا تصحيح حقيقي وليس UI patch.
+
+اختبار Production الفعلي
+
+لم أكتفِ بفحص تعريفات الدوال.
+
+اختبرت الـFinancial Core داخل Transaction مؤقتة:
+
+Receipt
+
+النتيجة:
+
+أول تنفيذ: success=true
+Journal متوازن.
+سطران.
+Debit = Credit.
+Retry بنفس operation_id:
+duplicate=true
+نفس العملية نفسها، دون إنشاء قيد ثانٍ.
+Payment
+
+نفس النتيجة:
+
+First write = Success.
+Balanced journal.
+Retry = duplicate=true.
+
+ثم:
+
+ROLLBACK
+
+والتحقق النهائي أعطى:
+
+test cash rows = 0
+test journal rows = 0
+test registry rows = 0
+
+أي أنه لا يوجد Test Residue في Production.
+
+Git / Production Lineage
+
+تم تحديث Git أيضًا حتى لا نقع في مشكلة:
+
+Production fixed
+لكن
+Git stale
+
+تم تسجيل:
+
+Accountant Workbench
+
+Commit:
+
+76f9a926039ec9918cac17f3a9f7f2f3c96a61fe
+
+ثم تم تسجيل الحدث الكامل في:
+
+Current/CTO/20260827_ACCOUNTANT_FORENSIC_CLOSURE.md
+
+والـRLS migration تم تثبيته في Git أيضًا:
+
+supabase/migrations/20260827_harden_financial_read_policies.sql
+
+وأصبح آخر migration في Production هو:
+
+20260827190931 — harden_financial_read_policies_20260827
+
+وبذلك هذه الإصلاحات ليست معلقة خارج Git.
+
+ماذا أخذت من Odoo وBusiness Central؟
+
+لم أنسخ واجهاتهما؛ أخذت مبادئ الـFinancial UX التي ثبت أنها ذات قيمة عملية.
+
+Odoo يوفر ضمن المحاسبة تقارير مثل:
+
+Balance Sheet
+P&L
+General Ledger
+Aged Receivable
+Aged Payable
+Cash Flow
+Audit Trail
+مقارنة الفترات
+Drill-down
+Export PDF/XLSX.
+
+Business Central يركز كذلك على:
+
+Chart of Accounts
+G/L Register
+Detail Trial Balance
+Receivables/Payables reconciliation
+Trial Balance by Period
+المقارنة مع العام السابق والـBudget.
+
+وبناءً عليه جعلت شاشة المحاسب مركز عمل وتحكم مالي بدل أن تكون مجرد أربع شاشات إدخال.
+
+لكن هل أصبحت Diamond / Golden بالكامل؟
+
+لا، ولن أقول ذلك كذبًا.
+
+هي الآن أقوى بكثير، ويمكن وصفها بأنها:
+
+Production-oriented Financial Workbench — Gold level
+
+لكنها لم تصل بعد إلى Full ERP Accountant Suite بمستوى Odoo/Business Central.
+
+وهناك أسباب موضوعية:
+
+ما يزال مفتوحًا
+General Ledger احترافي كامل
+مع Opening → Movement → Running Balance → Closing Balance لكل حساب.
+A/R Aging
+وليس مجرد customers.debt.
+A/P Aging
+وليس مجرد suppliers.accounts_payable.
+Bank/Treasury Reconciliation
+وهي من الوظائف المركزية في الأنظمة الناضجة.
+Period Close / Reopen
+وإدارة الإقفال المحاسبي.
+Audit Trail UI
+الـBackend لديه Audit infrastructure، لكن واجهة المحاسب لا تعرضه كأداة تحقيق.
+Comparative reporting
+Current vs Previous Period / Previous Year.
+Exception Center
+مثل:
+unbalanced entries
+failed operations
+missing mappings
+subledger/G/L discrepancies.
+Backend financial reconciliation
+خصوصًا بين:
+Customer/Supplier subledger ↔ G/L control accounts.
+
+Business Central نفسه يعتبر reconciliation بين الـsubledger والـG/L وظيفة أساسية في الإقفال والمراجعة.
+
+وهناك نقطتان لم أعتبرهما مغلقتين عمدًا
+
+أثناء فحص النسخة الحالية وجدّت أن:
+
+فلاتر التاريخ/البحث في بعض قوائم receipt/payment/journal تحتاج ربطًا تفاعليًا فعليًا بإعادة الاستعلام بعد تعديل الفترة.
+تصدير CSV يحتاج مراجعة نهائية لسلوك فصل الصفوف.
+
+لذلك لن أضع شهادة 100% على accountant.html نفسه قبل إغلاق هذه التفاصيل واختبار Browser Runtime الحقيقي.
+
+وهذا متسق مع المبدأ الحاكم: وجود الكود لا يساوي Runtime Verification.
+
+نقطة أهم من accountant.html نفسه
+
+المراجعة الجنائية الحالية كشفت أن المشروع لا يزال يحتوي على مشاكل Consumer/Runtime مستقلة لا ينبغي دفنها تحت تحسين شاشة المحاسب.
+
+خصوصًا أن بعض الـEdge Functions الحالية ما زالت تحمل Drift عن الـCore الجديد، ومن أمثلتها complete-return وبعض مسارات receive-purchase/delivery.
+
+لذلك:
+
+accountant.html أصبح أفضل بكثير، لكن لا يجوز تحويل ذلك إلى إعلان أن Financial Architecture كلها مغلقة.
+
+التوجيه الحاكم نفسه يشترط Closure Unit → Test → Deploy → Production Verify → 100% Close قبل الانتقال.
+
+الحكم النهائي
+البند	الحالة
+تقييم عمل خالد	صحيح في الاتجاه، بعضه Historical الآن
+تقييم عمل هيثم	Core architecture صحيحة، Global closure غير مكتمل
+accountant.html القديم	غير كافٍ
+accountant.html الحالي	ترقية كبيرة وحقيقية
+Financial Core	Production Verified
+Receipt/Payment Idempotency	Verified
+Financial RLS	Hardening منفذ وVerified
+Git/Production للـRLS	متزامن
+Financial Workbench	Gold / Production-oriented
+Full Accountant Suite	ليس 100% بعد
+Global Financial Zero-Debt	ليس مغلقًا
+Production PWA hosting/runtime	لم أعتبره Verified لأن آلية نشر الـPWA نفسها لم تُثبت من Production
+السجل التنفيذي
+
+تم توثيق كل ذلك في:
+
+Current/CTO/20260827_ACCOUNTANT_FORENSIC_CLOSURE.md
+
+وهذه هي النقطة المهمة: لم أمرر تعديلات خالد وهيثم كما هي؛ مررت الصحيح، صححت ما أثبت Production أنه غير صحيح، وأضفت طبقة جديدة للحماية والرقابة.
+
+المرحلة التالية الصحيحة ليست تجميل accountant.html أكثر، وإنما إغلاق الـAccounting Consumer/Runtime/Reconciliation gaps المتبقية ثم رفع الشاشة إلى Full Accountant Suite.
