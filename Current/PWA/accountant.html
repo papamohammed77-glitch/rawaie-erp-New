@@ -75,314 +75,37 @@ body{font-family:Tahoma,Arial,sans-serif;background:#f3f6f9;color:#17202a}
 
 <script>
 var App={
-  currentTab:'dashboard',
-  user:null,
-  companyId:null,
-  context:null,
-  reportRows:[],
-
-  togglePass:function(){
-    var p=RW_UI.byId('loginPass'),i=RW_UI.byId('passIcon');
-    if(!p||!i)return;
-    if(p.type==='password'){p.type='text';i.className='fa-solid fa-eye-slash';}
-    else{p.type='password';i.className='fa-solid fa-eye';}
-  },
-
-  init:function(){
-    var s=this;
-    RW_Auth.init(function(user,err){
-      if(err||!user){if(err!=='NO_SESSION')s.authFail(err||'جلسة غير صالحة');return;}
-      var isO=!!user.isOwner,perms=Array.isArray(user.permissions)?user.permissions:[];
-      if(!(isO||perms.indexOf('finance')!==-1)){s.authFail('غير مصرح');return;}
-      s.user=user;
-      s.loadContext().then(function(){
-        RW_UI.byId('loginScreen').classList.add('hidden');
-        RW_UI.byId('mainApp').classList.remove('hidden');
-        RW_UI.safeText(RW_UI.byId('companyLabel'),'Company: '+s.companyId);
-        RW_UI.safeText(RW_UI.byId('headerUserName'),user.name||user.email||'—');
-        RW_UI.safeText(RW_UI.byId('headerUserRole'),isO?'OWNER':'Finance');
-        s.render();
-      }).catch(function(e){s.authFail(e.message||'تعذر تحميل السياق المالي');});
-    });
-  },
-
-  authFail:function(msg){
-    var x=RW_UI.byId('loginMsg');
-    if(x){x.innerText=msg||'تعذر الدخول';x.classList.remove('hidden');}
-    if(RW_UI.showError)RW_UI.showError(msg||'تعذر الدخول');
-  },
-
-  doLogin:function(){
-    var s=this,e=String(RW_UI.byId('loginEmail').value||'').trim(),p=String(RW_UI.byId('loginPass').value||'').trim();
-    if(!e||!p){s.authFail('أدخل البريد وكلمة المرور');return;}
-    RW_UI.showLoader('جاري تسجيل الدخول...');
-    RW_Auth.doLogin(e,p,function(user,err){
-      RW_UI.hideLoader();
-      if(err){s.authFail(err);return;}
-      s.init();
-    });
-  },
-
+  currentTab:'dashboard',user:null,companyId:null,context:null,reportRows:[],
+  togglePass:function(){var p=RW_UI.byId('loginPass'),i=RW_UI.byId('passIcon');if(!p||!i)return;if(p.type==='password'){p.type='text';i.className='fa-solid fa-eye-slash';}else{p.type='password';i.className='fa-solid fa-eye';}},
+  init:function(){var s=this;RW_Auth.init(function(user,err){if(err||!user){if(err!=='NO_SESSION')s.authFail(err||'جلسة غير صالحة');return;}var isO=!!user.isOwner,perms=Array.isArray(user.permissions)?user.permissions:[];if(!(isO||perms.indexOf('finance')!==-1)){s.authFail('غير مصرح');return;}s.user=user;s.loadContext().then(function(){RW_UI.byId('loginScreen').classList.add('hidden');RW_UI.byId('mainApp').classList.remove('hidden');RW_UI.safeText(RW_UI.byId('companyLabel'),'Company: '+s.companyId);RW_UI.safeText(RW_UI.byId('headerUserName'),user.name||user.email||'—');RW_UI.safeText(RW_UI.byId('headerUserRole'),isO?'OWNER':'Finance');s.render();}).catch(function(e){s.authFail(e.message||'تعذر تحميل السياق المالي');});});},
+  authFail:function(msg){var x=RW_UI.byId('loginMsg');if(x){x.innerText=msg||'تعذر الدخول';x.classList.remove('hidden');}if(RW_UI.showError)RW_UI.showError(msg||'تعذر الدخول');},
+  doLogin:function(){var s=this,e=String(RW_UI.byId('loginEmail').value||'').trim(),p=String(RW_UI.byId('loginPass').value||'').trim();if(!e||!p){s.authFail('أدخل البريد وكلمة المرور');return;}RW_UI.showLoader('جاري تسجيل الدخول...');RW_Auth.doLogin(e,p,function(user,err){RW_UI.hideLoader();if(err){s.authFail(err);return;}s.init();});},
   doLogout:function(){RW_Auth.doLogout(function(){location.reload();});},
-
-  loadContext:function(){
-    var s=this;
-    return supabase.auth.getUser().then(function(ar){
-      if(ar.error||!ar.data||!ar.data.user)throw new Error('INVALID_SESSION');
-      s.user=ar.data.user;
-      return supabase.from('users').select('company_id,status,name').eq('auth_id',ar.data.user.id).maybeSingle();
-    }).then(function(ur){
-      if(ur.error||!ur.data||!ur.data.company_id||(ur.data.status&&ur.data.status!=='Active'))throw new Error('INVALID_COMPANY_CONTEXT');
-      s.companyId=ur.data.company_id;
-      return Promise.all([
-        supabase.from('treasury').select('id,account_code,account_name,current_balance,is_active').eq('company_id',s.companyId).eq('is_active',true),
-        supabase.from('chart_of_accounts').select('id,account_code,account_name,account_type,normal_balance,is_active').eq('company_id',s.companyId).eq('account_code','121').eq('is_active',true).maybeSingle(),
-        supabase.from('chart_of_accounts').select('id,account_code,account_name,account_type,normal_balance,is_active').eq('company_id',s.companyId).eq('is_active',true).order('account_code',{ascending:true})
-      ]);
-    }).then(function(r){
-      if(r[0].error)throw r[0].error;
-      if(!r[0].data||r[0].data.length!==1)throw new Error('RECEIPT_TREASURY_MAPPING_REQUIRED');
-      if(r[1].error)throw r[1].error;
-      if(!r[1].data)throw new Error('CASH_ACCOUNT_121_NOT_CONFIGURED');
-      if(r[2].error)throw r[2].error;
-      s.context={treasury:r[0].data[0],cashAccount:r[1].data,accounts:r[2].data};
-      return s.context;
-    });
-  },
-
-  refresh:function(){
-    var s=this;RW_UI.showLoader('جاري تحديث البيانات...');
-    this.context=null;
-    this.loadContext().then(function(){s.render();}).catch(function(e){RW_UI.showError(e.message||'فشل التحديث');}).finally(function(){RW_UI.hideLoader();});
-  },
-
-  switchTab:function(t){
-    this.currentTab=t;
-    document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');b.classList.add('text-slate-600');});
-    var b=document.querySelector('[data-tab="'+t+'"]');
-    if(b){b.classList.add('active');b.classList.remove('text-slate-600');}
-    this.render();
-  },
-
-  render:function(){
-    var m=RW_UI.byId('mainContent');
-    RW_UI.safeHTML(m,'<div class="panel p-10 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><div class="mt-3 font-bold">جاري التحميل...</div></div>');
-    var map={dashboard:'renderDashboard',receipts:'renderReceipts',payments:'renderPayments',journal:'renderJournal',reports:'renderReports',partners:'renderPartners',control:'renderControl'};
-    this[map[this.currentTab]||'renderDashboard']();
-  },
-
+  loadContext:function(){var s=this;return supabase.auth.getUser().then(function(ar){if(ar.error||!ar.data||!ar.data.user)throw new Error('INVALID_SESSION');s.user=ar.data.user;return supabase.from('users').select('company_id,status,name').eq('auth_id',ar.data.user.id).maybeSingle();}).then(function(ur){if(ur.error||!ur.data||!ur.data.company_id||(ur.data.status&&ur.data.status!=='Active'))throw new Error('INVALID_COMPANY_CONTEXT');s.companyId=ur.data.company_id;return Promise.all([supabase.from('treasury').select('id,account_code,account_name,current_balance,is_active').eq('company_id',s.companyId).eq('is_active',true),supabase.from('chart_of_accounts').select('id,account_code,account_name,account_type,normal_balance,is_active').eq('company_id',s.companyId).eq('account_code','121').eq('is_active',true).maybeSingle(),supabase.from('chart_of_accounts').select('id,account_code,account_name,account_type,normal_balance,is_active').eq('company_id',s.companyId).eq('is_active',true).order('account_code',{ascending:true})]);}).then(function(r){if(r[0].error)throw r[0].error;if(!r[0].data||r[0].data.length!==1)throw new Error('RECEIPT_TREASURY_MAPPING_REQUIRED');if(r[1].error)throw r[1].error;if(!r[1].data)throw new Error('CASH_ACCOUNT_121_NOT_CONFIGURED');if(r[2].error)throw r[2].error;s.context={treasury:r[0].data[0],cashAccount:r[1].data,accounts:r[2].data};return s.context;});},
+  refresh:function(){var s=this;RW_UI.showLoader('جاري تحديث البيانات...');this.context=null;this.loadContext().then(function(){s.render();}).catch(function(e){RW_UI.showError(e.message||'فشل التحديث');}).finally(function(){RW_UI.hideLoader();});},
+  switchTab:function(t){this.currentTab=t;document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');b.classList.add('text-slate-600');});var b=document.querySelector('[data-tab="'+t+'"]');if(b){b.classList.add('active');b.classList.remove('text-slate-600');}this.render();},
+  render:function(){var m=RW_UI.byId('mainContent');RW_UI.safeHTML(m,'<div class="panel p-10 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><div class="mt-3 font-bold">جاري التحميل...</div></div>');var map={dashboard:'renderDashboard',receipts:'renderReceipts',payments:'renderPayments',journal:'renderJournal',reports:'renderReports',partners:'renderPartners',control:'renderControl'};this[map[this.currentTab]||'renderDashboard']();},
   money:function(n){return (Number(n)||0).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2})+' ج.م';},
   esc:function(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});},
   dates:function(){var d=new Date(),to=d.toISOString().slice(0,10),from=new Date(d.getFullYear(),d.getMonth(),1).toISOString().slice(0,10);return{from:from,to:to};},
-
-  renderDashboard:function(){
-    var s=this,ds=this.dates();
-    Promise.all([
-      supabase.from('treasury').select('current_balance').eq('company_id',s.companyId).eq('is_active',true),
-      supabase.from('cash_box').select('type,amount,voucher_date,voucher_code,reference,user_email').eq('company_id',s.companyId).gte('voucher_date',ds.from).lte('voucher_date',ds.to).order('created_at',{ascending:false}).limit(20),
-      supabase.from('journal_entries').select('id,entry_code,entry_date,reference,description,status,created_by').eq('company_id',s.companyId).eq('status','Posted').order('entry_date',{ascending:false}).limit(20),
-      supabase.from('customers').select('debt').eq('company_id',s.companyId).eq('is_active',true),
-      supabase.rpc('get_trial_balance',{p_from_date:ds.from,p_to_date:ds.to})
-    ]).then(function(r){
-      if(r[0].error)throw r[0].error;if(r[1].error)throw r[1].error;if(r[2].error)throw r[2].error;if(r[3].error)throw r[3].error;if(r[4].error)throw r[4].error;
-      var cash=0;(r[0].data||[]).forEach(function(x){cash+=Number(x.current_balance)||0;});
-      var rec=0,pay=0;(r[1].data||[]).forEach(function(x){if(x.type==='Receipt')rec+=Number(x.amount)||0;else if(x.type==='Payment')pay+=Number(x.amount)||0;});
-      var debt=0;(r[3].data||[]).forEach(function(x){debt+=Number(x.debt)||0;});
-      var debit=0,credit=0;(r[4].data||[]).forEach(function(x){debit+=Number(x.total_debit)||0;credit+=Number(x.total_credit)||0;});
-      var balanced=Math.abs(debit-credit)<0.005;
-      var html='<div class="grid grid-cols-2 lg:grid-cols-5 gap-4">';
-      html+=s.kpi('رصيد الخزائن',s.money(cash),'من treasury');
-      html+=s.kpi('مقبوضات الشهر',s.money(rec),'من cash_box');
-      html+=s.kpi('مدفوعات الشهر',s.money(pay),'من cash_box');
-      html+=s.kpi('صافي الحركة',s.money(rec-pay),'قبض − صرف');
-      html+=s.kpi('ذمم العملاء',s.money(debt),'تشغيليًا معتمد للعرض');
-      html+='</div>';
-      html+='<div class="grid lg:grid-cols-3 gap-4 mt-4">';
-      html+='<div class="panel p-5 lg:col-span-2"><div class="flex items-center justify-between mb-4"><div><h2 class="font-black text-lg">مركز العمل اليومي</h2><p class="text-xs muted">الفترة: '+s.esc(ds.from)+' → '+s.esc(ds.to)+'</p></div><div class="flex gap-2"><button class="btn bg-emerald-700 text-white px-3 py-2 rounded-lg font-black text-sm" onclick="App.newReceipt()">+ قبض</button><button class="btn bg-red-600 text-white px-3 py-2 rounded-lg font-black text-sm" onclick="App.newPayment()">+ صرف</button></div></div>';
-      html+='<div class="grid md:grid-cols-2 gap-3"><div class="border rounded-xl p-4"><div class="text-xs muted">قيود منشورة</div><div class="text-2xl font-black">'+(r[2].data||[]).length+'</div><div class="text-xs mt-1">من آخر 20 قيد</div></div><div class="border rounded-xl p-4 '+(balanced?'border-emerald-200 bg-emerald-50':'border-red-200 bg-red-50')+'"><div class="text-xs muted">توازن الفترة</div><div class="font-black '+(balanced?'ok':'danger')+'">'+(balanced?'✓ متوازن':'⚠ غير متوازن')+'</div><div class="text-xs mt-1">مدين '+s.money(debit)+' — دائن '+s.money(credit)+'</div></div></div></div>';
-      html+='<div class="panel p-5"><h2 class="font-black text-lg mb-3">آخر العمليات النقدية</h2>';
-      (r[1].data||[]).slice(0,8).forEach(function(x){html+='<div class="py-2 border-b flex justify-between gap-2 text-sm"><div><div class="font-bold">'+s.esc(x.voucher_code)+'</div><div class="text-xs muted">'+s.esc(x.voucher_date)+' · '+s.esc(x.reference||'بدون مرجع')+'</div></div><div class="font-black '+(x.type==='Receipt'?'ok':'danger')+'">'+(x.type==='Receipt'?'+':'−')+s.money(x.amount)+'</div></div>';});
-      if(!(r[1].data||[]).length)html+='<div class="text-sm muted py-6 text-center">لا توجد عمليات نقدية في الفترة</div>';
-      html+='</div></div>';
-      RW_UI.safeHTML(RW_UI.byId('mainContent'),html);
-    }).catch(function(e){RW_UI.showError(e.message||'تعذر تحميل لوحة المحاسب');});
-  },
-
+  renderDashboard:function(){var s=this,ds=this.dates();Promise.all([supabase.from('treasury').select('current_balance').eq('company_id',s.companyId).eq('is_active',true),supabase.from('cash_box').select('type,amount,voucher_date,voucher_code,reference,user_email').eq('company_id',s.companyId).gte('voucher_date',ds.from).lte('voucher_date',ds.to).order('created_at',{ascending:false}).limit(20),supabase.from('journal_entries').select('id,entry_code,entry_date,reference,description,status,created_by').eq('company_id',s.companyId).eq('status','Posted').order('entry_date',{ascending:false}).limit(20),supabase.from('customers').select('debt').eq('company_id',s.companyId).eq('is_active',true),supabase.rpc('get_trial_balance',{p_from_date:ds.from,p_to_date:ds.to})]).then(function(r){if(r[0].error)throw r[0].error;if(r[1].error)throw r[1].error;if(r[2].error)throw r[2].error;if(r[3].error)throw r[3].error;if(r[4].error)throw r[4].error;var cash=0;(r[0].data||[]).forEach(function(x){cash+=Number(x.current_balance)||0;});var rec=0,pay=0;(r[1].data||[]).forEach(function(x){if(x.type==='Receipt')rec+=Number(x.amount)||0;else if(x.type==='Payment')pay+=Number(x.amount)||0;});var debt=0;(r[3].data||[]).forEach(function(x){debt+=Number(x.debt)||0;});var debit=0,credit=0;(r[4].data||[]).forEach(function(x){debit+=Number(x.total_debit)||0;credit+=Number(x.total_credit)||0;});var balanced=Math.abs(debit-credit)<0.005;var html='<div class="grid grid-cols-2 lg:grid-cols-5 gap-4">';html+=s.kpi('رصيد الخزائن',s.money(cash),'من treasury');html+=s.kpi('مقبوضات الشهر',s.money(rec),'من cash_box');html+=s.kpi('مدفوعات الشهر',s.money(pay),'من cash_box');html+=s.kpi('صافي الحركة',s.money(rec-pay),'قبض − صرف');html+=s.kpi('ذمم العملاء',s.money(debt),'تشغيليًا معتمد للعرض');html+='</div>';html+='<div class="grid lg:grid-cols-3 gap-4 mt-4">';html+='<div class="panel p-5 lg:col-span-2"><div class="flex items-center justify-between mb-4"><div><h2 class="font-black text-lg">مركز العمل اليومي</h2><p class="text-xs muted">الفترة: '+s.esc(ds.from)+' → '+s.esc(ds.to)+'</p></div><div class="flex gap-2"><button class="btn bg-emerald-700 text-white px-3 py-2 rounded-lg font-black text-sm" onclick="App.newReceipt()">+ قبض</button><button class="btn bg-red-600 text-white px-3 py-2 rounded-lg font-black text-sm" onclick="App.newPayment()">+ صرف</button></div></div><div class="grid md:grid-cols-2 gap-3"><div class="border rounded-xl p-4"><div class="text-xs muted">قيود منشورة</div><div class="text-2xl font-black">'+(r[2].data||[]).length+'</div><div class="text-xs mt-1">من آخر 20 قيد</div></div><div class="border rounded-xl p-4 '+(balanced?'border-emerald-200 bg-emerald-50':'border-red-200 bg-red-50')+'"><div class="text-xs muted">توازن الفترة</div><div class="font-black '+(balanced?'ok':'danger')+'">'+(balanced?'✓ متوازن':'⚠ غير متوازن')+'</div><div class="text-xs mt-1">مدين '+s.money(debit)+' — دائن '+s.money(credit)+'</div></div></div></div>';html+='<div class="panel p-5"><h2 class="font-black text-lg mb-3">آخر العمليات النقدية</h2>';(r[1].data||[]).slice(0,8).forEach(function(x){html+='<div class="py-2 border-b flex justify-between gap-2 text-sm"><div><div class="font-bold">'+s.esc(x.voucher_code)+'</div><div class="text-xs muted">'+s.esc(x.voucher_date)+' · '+s.esc(x.reference||'بدون مرجع')+'</div></div><div class="font-black '+(x.type==='Receipt'?'ok':'danger')+'">'+(x.type==='Receipt'?'+':'−')+s.money(x.amount)+'</div></div>';});if(!(r[1].data||[]).length)html+='<div class="text-sm muted py-6 text-center">لا توجد عمليات نقدية في الفترة</div>';html+='</div></div>';RW_UI.safeHTML(RW_UI.byId('mainContent'),html);}).catch(function(e){RW_UI.showError(e.message||'تعذر تحميل لوحة المحاسب');});},
   kpi:function(t,v,su){return '<div class="panel p-5"><div class="text-xs muted">'+t+'</div><div class="text-xl md:text-2xl font-black mt-1">'+v+'</div><div class="text-xs muted mt-2">'+su+'</div></div>';},
-
   formDates:function(fid,tid){var ds=this.dates();return '<div class="flex flex-wrap gap-2 items-end"><div><label class="text-xs font-bold block mb-1">من</label><input id="'+fid+'" type="date" value="'+ds.from+'" class="border rounded-lg p-2 font-bold"></div><div><label class="text-xs font-bold block mb-1">إلى</label><input id="'+tid+'" type="date" value="'+ds.to+'" class="border rounded-lg p-2 font-bold"></div></div>';},
-
-  renderReceipts:function(){this.renderCashList('Receipt','القبض','newReceipt');},
-  renderPayments:function(){this.renderCashList('Payment','الصرف','newPayment');},
-
-  renderCashList:function(type,title,action){
-    var s=this,ds=this.dates();
-    var html='<div class="panel p-5"><div class="flex flex-wrap items-center justify-between gap-3 mb-4"><div><h2 class="text-xl font-black">سندات '+title+'</h2><p class="text-xs muted">Company-scoped · read-only history</p></div><button class="btn '+(type==='Receipt'?'bg-emerald-700':'bg-red-600')+' text-white px-4 py-2 rounded-lg font-black" onclick="App.'+action+'()">+ سند جديد</button></div>';
-    html+='<div class="flex flex-wrap gap-2 items-end mb-4">'+this.formDates('cashFrom','cashTo')+'<input id="cashSearch" class="border rounded-lg p-2 min-w-[220px]" placeholder="بحث بالمرجع/الكود"></div><div id="cashListBody" class="text-sm muted">جاري التحميل...</div></div>';
-    RW_UI.safeHTML(RW_UI.byId('mainContent'),html);
-    function load(){s.loadCashList(type,'cashFrom','cashTo','cashSearch','cashListBody');}
-    RW_UI.byId('cashFrom').addEventListener('change',load);RW_UI.byId('cashTo').addEventListener('change',load);RW_UI.byId('cashSearch').addEventListener('input',load);load();
-  },
-
-  loadCashList:function(type,fi,ti,si,bi){
-    var s=this,from=RW_UI.byId(fi).value,to=RW_UI.byId(ti).value,q=(RW_UI.byId(si).value||'').trim().toLowerCase();
-    if(from>to){RW_UI.safeText(RW_UI.byId(bi),'الفترة غير صحيحة');return;}
-    supabase.from('cash_box').select('voucher_code,voucher_date,type,amount,reference,notes,user_email,status').eq('company_id',s.companyId).eq('type',type).gte('voucher_date',from).lte('voucher_date',to).order('voucher_date',{ascending:false}).order('created_at',{ascending:false}).limit(500).then(function(r){
-      if(r.error)throw r.error;
-      var rows=(r.data||[]).filter(function(x){return !q||String(x.voucher_code||'').toLowerCase().indexOf(q)>=0||String(x.reference||'').toLowerCase().indexOf(q)>=0;});
-      var h='<div class="table-wrap"><table class="w-full text-right"><thead class="sticky-head"><tr class="border-b"><th class="p-3">التاريخ</th><th class="p-3">الكود</th><th class="p-3">المرجع</th><th class="p-3">المبلغ</th><th class="p-3">المنشئ</th><th class="p-3">الحالة</th></tr></thead><tbody>';
-      rows.forEach(function(x){h+='<tr class="border-b"><td class="p-3">'+s.esc(x.voucher_date)+'</td><td class="p-3 font-bold">'+s.esc(x.voucher_code)+'</td><td class="p-3">'+s.esc(x.reference||'—')+'</td><td class="p-3 font-black">'+s.money(x.amount)+'</td><td class="p-3">'+s.esc(x.user_email||'—')+'</td><td class="p-3">'+s.esc(x.status||'Active')+'</td></tr>';});
-      h+='</tbody></table></div>';
-      if(!rows.length)h='<div class="py-12 text-center muted">لا توجد نتائج للفترة المحددة</div>';
-      RW_UI.safeHTML(RW_UI.byId(bi),h);
-    }).catch(function(e){RW_UI.safeText(RW_UI.byId(bi),e.message||'فشل تحميل السندات');});
-  },
-
-  renderJournal:function(){
-    var s=this,ds=this.dates();
-    var html='<div class="panel p-5"><div class="flex flex-wrap justify-between gap-3 mb-4"><div><h2 class="text-xl font-black">دفتر القيود المنشورة</h2><p class="text-xs muted">الترحيل يتم عبر Financial Core؛ هذه الشاشة للعرض والتدقيق.</p></div></div>';
-    html+='<div class="flex flex-wrap gap-2 items-end mb-4">'+this.formDates('jFrom','jTo')+'<input id="jSearch" class="border rounded-lg p-2 min-w-[260px]" placeholder="بحث بالكود / المرجع / الوصف"></div><div id="journalBody">جاري التحميل...</div></div>';
-    RW_UI.safeHTML(RW_UI.byId('mainContent'),html);
-    function load(){s.loadJournal('jFrom','jTo','jSearch','journalBody');}
-    RW_UI.byId('jFrom').addEventListener('change',load);RW_UI.byId('jTo').addEventListener('change',load);RW_UI.byId('jSearch').addEventListener('input',load);load();
-  },
-
-  loadJournal:function(fi,ti,si,bi){
-    var s=this,from=RW_UI.byId(fi).value,to=RW_UI.byId(ti).value,q=(RW_UI.byId(si).value||'').trim().toLowerCase();
-    if(from>to){RW_UI.safeText(RW_UI.byId(bi),'الفترة غير صحيحة');return;}
-    supabase.from('journal_entries').select('id,entry_code,entry_date,reference,description,entry_type,status,created_by').eq('company_id',s.companyId).eq('status','Posted').gte('entry_date',from).lte('entry_date',to).order('entry_date',{ascending:false}).limit(500).then(function(r){
-      if(r.error)throw r.error;
-      var rows=(r.data||[]).filter(function(x){var z=(String(x.entry_code||'')+' '+String(x.reference||'')+' '+String(x.description||'')).toLowerCase();return !q||z.indexOf(q)>=0;});
-      var h='<div class="table-wrap"><table class="w-full"><thead class="sticky-head"><tr class="border-b"><th class="p-3">التاريخ</th><th class="p-3">القيد</th><th class="p-3">المرجع</th><th class="p-3">النوع</th><th class="p-3">المنشئ</th><th class="p-3">إجراء</th></tr></thead><tbody>';
-      rows.forEach(function(x){h+='<tr class="border-b"><td class="p-3">'+s.esc(x.entry_date)+'</td><td class="p-3 font-black">'+s.esc(x.entry_code)+'</td><td class="p-3">'+s.esc(x.reference||'—')+'</td><td class="p-3">'+s.esc(x.entry_type||'—')+'</td><td class="p-3">'+s.esc(x.created_by||'—')+'</td><td class="p-3"><button class="px-3 py-1 rounded bg-slate-100 font-bold" onclick="App.showJournalLines(\''+x.id+'\')">التفاصيل</button></td></tr>';});
-      h+='</tbody></table></div>';if(!rows.length)h='<div class="py-12 text-center muted">لا توجد قيود منشورة في الفترة</div>';RW_UI.safeHTML(RW_UI.byId(bi),h);
-    }).catch(function(e){RW_UI.showError(e.message||'فشل تحميل القيود');});
-  },
-
-  showJournalLines:function(id){
-    var s=this;
-    supabase.from('journal_entries').select('entry_code,entry_date,reference,description,entry_type,created_by').eq('id',id).eq('company_id',s.companyId).maybeSingle().then(function(h){
-      if(h.error)throw h.error;if(!h.data)throw new Error('القيد غير موجود');
-      return Promise.all([Promise.resolve(h.data),supabase.from('journal_lines').select('account_id,account_name,debit,credit,notes').eq('entry_id',id)]);
-    }).then(function(r){
-      if(r[1].error)throw r[1].error;var h=r[0],lines=r[1].data||[],debit=0,credit=0;
-      var body='<div class="text-right"><div class="mb-3"><b>'+s.esc(h.entry_code)+'</b> · '+s.esc(h.entry_date)+' · '+s.esc(h.reference||'')+'<br>'+s.esc(h.description||'')+'</div><div class="table-wrap"><table class="w-full"><thead><tr class="border-b"><th class="p-2">الحساب</th><th class="p-2">مدين</th><th class="p-2">دائن</th></tr></thead><tbody>';
-      lines.forEach(function(x){debit+=Number(x.debit)||0;credit+=Number(x.credit)||0;body+='<tr class="border-b"><td class="p-2">'+s.esc((x.account_name||'')+' · '+(x.account_id||''))+'</td><td class="p-2">'+s.money(x.debit)+'</td><td class="p-2">'+s.money(x.credit)+'</td></tr>';});
-      body+='</tbody></table></div><div class="mt-3 font-bold">مدين: '+s.money(debit)+' — دائن: '+s.money(credit)+'</div></div>';
-      Swal.fire({title:'تفاصيل القيد',html:body,width:900,confirmButtonText:'إغلاق'});
-    }).catch(function(e){RW_UI.showError(e.message||'تعذر تحميل تفاصيل القيد');});
-  },
-
-  renderReports:function(){
-    var html='<div class="panel p-5"><div class="flex flex-wrap justify-between items-end gap-3"><div><h2 class="text-xl font-black">التقارير المالية</h2><p class="text-xs muted">مصدر الأرقام: Reporting Core / PostgreSQL</p></div>'+this.formDates('rFrom','rTo')+'</div><div class="flex flex-wrap gap-2 mt-4"><button class="px-3 py-2 rounded-lg bg-slate-100 font-bold" onclick="App.runReport(\'tb\')">ميزان المراجعة</button><button class="px-3 py-2 rounded-lg bg-slate-100 font-bold" onclick="App.runReport(\'pl\')">الأرباح والخسائر</button><button class="px-3 py-2 rounded-lg bg-slate-100 font-bold" onclick="App.runReport(\'bs\')">الميزانية</button><button class="px-3 py-2 rounded-lg bg-slate-100 font-bold" onclick="App.runReport(\'cc\')">حسب مركز التكلفة</button><button class="px-3 py-2 rounded-lg bg-slate-100 font-bold" onclick="App.runReport(\'cf\')">التدفقات النقدية</button><button class="px-3 py-2 rounded-lg bg-emerald-50 text-emerald-800 font-bold" onclick="App.runCashMovement()">حركة الخزينة</button><button class="px-3 py-2 rounded-lg bg-slate-100 font-bold" onclick="App.exportReport()">تصدير CSV</button></div><div id="reportBody" class="mt-5"><div class="py-10 text-center muted">اختر تقريرًا</div></div></div>';
-    RW_UI.safeHTML(RW_UI.byId('mainContent'),html);
-  },
-
-  runReport:function(kind){
-    var s=this,from=RW_UI.byId('rFrom').value,to=RW_UI.byId('rTo').value;
-    var fn=kind==='tb'?'get_trial_balance':kind==='pl'?'get_profit_loss':kind==='bs'?'get_balance_sheet':kind==='cc'?'get_pnl_by_cost_center':'get_cash_flow';
-    var args=kind==='bs'?{p_as_of:to}:{p_from_date:from,p_to_date:to};
-    RW_UI.safeText(RW_UI.byId('reportBody'),'جاري استخراج التقرير...');
-    supabase.rpc(fn,args).then(function(r){if(r.error)throw r.error;var rows=r.data||[];s.reportRows=rows;RW_UI.safeHTML(RW_UI.byId('reportBody'),s.reportTable(kind,rows));}).catch(function(e){RW_UI.showError(e.message||'فشل التقرير');});
-  },
-
-  reportTable:function(kind,rows){
-    var s=this;if(!rows.length)return '<div class="py-10 text-center muted">لا توجد بيانات</div>';
-    var map={
-      tb:[['الحساب','account_id'],['اسم الحساب','account_name'],['مدين','total_debit'],['دائن','total_credit'],['الرصيد','net_balance']],
-      pl:[['النوع','account_type'],['الحساب','account_id'],['اسم الحساب','account_name'],['المبلغ','total_amount']],
-      bs:[['النوع','account_type'],['الحساب','account_id'],['اسم الحساب','account_name'],['الرصيد','balance']],
-      cc:[['مركز التكلفة','cost_center_id'],['الاسم','cost_center_name'],['إيرادات','revenue'],['مصروفات','expenses'],['صافي','net_income']],
-      cf:[['الفئة','category'],['الحساب','account_id'],['اسم الحساب','account_name'],['المبلغ','amount']]
-    }[kind]||[];
-    var h='<div class="table-wrap"><table class="w-full text-right"><thead class="sticky-head"><tr class="border-b">';map.forEach(function(c){h+='<th class="p-3">'+c[0]+'</th>';});h+='</tr></thead><tbody>';
-    rows.forEach(function(x){h+='<tr class="border-b">';map.forEach(function(c){var v=x[c[1]];h+='<td class="p-3 '+(typeof v==='number'?'font-black':'')+'">'+(typeof v==='number'?s.money(v):s.esc(v||'—'))+'</td>';});h+='</tr>';});
-    h+='</tbody></table></div>';return h;
-  },
-
-  runCashMovement:function(){
-    var s=this,from=RW_UI.byId('rFrom').value,to=RW_UI.byId('rTo').value;
-    supabase.from('cash_box').select('voucher_date,type,voucher_code,amount,reference').eq('company_id',s.companyId).gte('voucher_date',from).lte('voucher_date',to).order('voucher_date',{ascending:true}).limit(1000).then(function(r){
-      if(r.error)throw r.error;var rows=r.data||[];s.reportRows=rows,rec=0,pay=0;rows.forEach(function(x){if(x.type==='Receipt')rec+=Number(x.amount)||0;else if(x.type==='Payment')pay+=Number(x.amount)||0;});
-      var h='<div class="grid md:grid-cols-3 gap-3 mb-4"><div class="border rounded-xl p-4"><div class="text-xs muted">مقبوضات</div><div class="text-xl font-black ok">'+s.money(rec)+'</div></div><div class="border rounded-xl p-4"><div class="text-xs muted">مدفوعات</div><div class="text-xl font-black danger">'+s.money(pay)+'</div></div><div class="border rounded-xl p-4"><div class="text-xs muted">الصافي</div><div class="text-xl font-black">'+s.money(rec-pay)+'</div></div></div>';
-      h+='<div class="table-wrap"><table class="w-full"><thead><tr class="border-b"><th class="p-2">التاريخ</th><th class="p-2">الكود</th><th class="p-2">النوع</th><th class="p-2">المبلغ</th><th class="p-2">المرجع</th></tr></thead><tbody>';rows.forEach(function(x){h+='<tr class="border-b"><td class="p-2">'+s.esc(x.voucher_date)+'</td><td class="p-2">'+s.esc(x.voucher_code)+'</td><td class="p-2">'+s.esc(x.type)+'</td><td class="p-2 font-black">'+s.money(x.amount)+'</td><td class="p-2">'+s.esc(x.reference||'—')+'</td></tr>';});h+='</tbody></table></div>';
-      RW_UI.safeHTML(RW_UI.byId('reportBody'),h);
-    }).catch(function(e){RW_UI.showError(e.message||'تعذر استخراج حركة الخزينة');});
-  },
-
-  exportReport:function(){
-    var rows=this.reportRows||[];if(!rows.length){RW_UI.showError('لا توجد بيانات لتصديرها');return;}
-    var keys=Object.keys(rows[0]),csv=[keys.join(',')].concat(rows.map(function(r){return keys.map(function(k){var v=r[k]==null?'':r[k];return '"'+String(v).replace(/"/g,'""')+'"';}).join(',');})).join('\r\n');
-    var blob=new Blob([new Uint8Array([0xEF,0xBB,0xBF]),csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='rawaea-financial-report.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);
-  },
-
-  renderPartners:function(){
-    var s=this;
-    Promise.all([
-      supabase.from('customers').select('customer_code,name,debt,is_active').eq('company_id',s.companyId).eq('is_active',true).order('name').limit(500),
-      supabase.from('suppliers').select('supplier_code,name,accounts_payable,is_active').eq('company_id',s.companyId).eq('is_active',true).order('name').limit(500)
-    ]).then(function(r){
-      if(r[0].error)throw r[0].error;if(r[1].error)throw r[1].error;
-      var ch='<div class="grid lg:grid-cols-2 gap-4"><div class="panel p-5"><h2 class="font-black text-lg mb-3">ذمم العملاء</h2><div class="table-wrap"><table class="w-full"><thead><tr class="border-b"><th class="p-2">الكود</th><th class="p-2">العميل</th><th class="p-2">الرصيد المسجل</th></tr></thead><tbody>';
-      (r[0].data||[]).forEach(function(x){ch+='<tr class="border-b"><td class="p-2">'+s.esc(x.customer_code)+'</td><td class="p-2 font-bold">'+s.esc(x.name)+'</td><td class="p-2 font-black">'+s.money(x.debt)+'</td></tr>';});
-      ch+='</tbody></table></div></div><div class="panel p-5"><h2 class="font-black text-lg mb-3">ذمم الموردين</h2><div class="table-wrap"><table class="w-full"><thead><tr class="border-b"><th class="p-2">الكود</th><th class="p-2">المورد</th><th class="p-2">الرصيد المسجل</th></tr></thead><tbody>';
-      (r[1].data||[]).forEach(function(x){ch+='<tr class="border-b"><td class="p-2">'+s.esc(x.supplier_code)+'</td><td class="p-2 font-bold">'+s.esc(x.name)+'</td><td class="p-2 font-black">'+s.money(x.accounts_payable)+'</td></tr>';});
-      ch+='</tbody></table></div></div></div><div class="text-xs muted mt-3">تنبيه: أرصدة الطرفين هنا أعمدة تشغيلية؛ لا تُعامل كبديل عن reconciliation مع الـG/L عند الإقفال.</div>';
-      RW_UI.safeHTML(RW_UI.byId('mainContent'),ch);
-    }).catch(function(e){RW_UI.showError(e.message||'تعذر تحميل الذمم');});
-  },
-
-  renderControl:function(){
-    var s=this;
-    Promise.all([
-      supabase.from('erp_operation_registry').select('operation_type,status,created_at,completed_at').eq('company_id',s.companyId).order('created_at',{ascending:false}).limit(200),
-      supabase.from('journal_entries').select('id',{count:'exact',head:true}).eq('company_id',s.companyId).eq('status','Posted')
-    ]).then(function(r){
-      if(r[0].error)throw r[0].error;if(r[1].error)throw r[1].error;
-      var ops=r[0].data||[],processing=ops.filter(function(x){return x.status==='processing';}).length,failed=ops.filter(function(x){return x.status==='failed';}).length;
-      var h='<div class="grid md:grid-cols-3 gap-4"><div class="panel p-5"><div class="text-xs muted">قيد المعالجة</div><div class="text-2xl font-black '+(processing?'warn':'ok')+'">'+processing+'</div></div><div class="panel p-5"><div class="text-xs muted">عمليات فاشلة</div><div class="text-2xl font-black '+(failed?'danger':'ok')+'">'+failed+'</div></div><div class="panel p-5"><div class="text-xs muted">قيود منشورة</div><div class="text-2xl font-black">'+(r[1].count||0)+'</div></div></div>';
-      h+='<div class="panel p-5 mt-4"><h2 class="font-black text-lg mb-3">آخر عمليات الـCore</h2><div class="table-wrap"><table class="w-full"><thead><tr class="border-b"><th class="p-2">الوقت</th><th class="p-2">النوع</th><th class="p-2">الحالة</th></tr></thead><tbody>';
-      ops.slice(0,60).forEach(function(x){h+='<tr class="border-b"><td class="p-2">'+s.esc(x.created_at)+'</td><td class="p-2">'+s.esc(x.operation_type)+'</td><td class="p-2 font-black '+(x.status==='failed'?'danger':x.status==='completed'?'ok':'warn')+'">'+s.esc(x.status)+'</td></tr>';});
-      h+='</tbody></table></div></div>';RW_UI.safeHTML(RW_UI.byId('mainContent'),h);
-    }).catch(function(e){RW_UI.showError(e.message||'تعذر تحميل لوحة الرقابة');});
-  },
-
-  newReceipt:function(){this.cashVoucher('Receipt');},
-  newPayment:function(){this.cashVoucher('Payment');},
-
-  cashVoucher:function(type){
-    var s=this,ctx=this.context,storage='RW_ACCOUNTANT_PENDING_'+String(this.companyId||'NO_COMPANY')+'_'+type.toUpperCase();
-    if(!ctx) {RW_UI.showError('السياق المالي غير جاهز');return;}
-    var accounts=ctx.accounts.filter(function(a){return a.is_active&&a.account_code!=='121';});
-    var opts='<option value="">اختر الحساب المقابل</option>';accounts.forEach(function(a){opts+='<option value="'+s.esc(a.id)+'">'+s.esc(a.account_code)+' — '+s.esc(a.account_name)+'</option>';});
-    var title=type==='Receipt'?'سند قبض جديد':'سند صرف جديد',label=type==='Receipt'?'استلام نقدية':'صرف نقدية';
-    Swal.fire({
-      title:title,width:650,
-      html:'<div class="text-right space-y-3"><div class="bg-slate-50 rounded-xl p-3 text-sm"><b>الخزينة:</b> '+s.esc(ctx.treasury.account_name)+' — الرصيد الحالي: <span class="font-black">'+s.money(ctx.treasury.current_balance)+'</span></div><div><label class="text-xs font-bold">التاريخ</label><input id="cvDate" type="date" class="swal2-input" value="'+new Date().toISOString().slice(0,10)+'"></div><div><label class="text-xs font-bold">المبلغ</label><input id="cvAmt" type="number" min="0.01" step="0.01" class="swal2-input" placeholder="0.00"></div><div><label class="text-xs font-bold">الحساب المقابل</label><select id="cvAccount" class="swal2-select" style="width:90%">'+opts+'</select></div><div><label class="text-xs font-bold">المرجع</label><input id="cvRef" class="swal2-input" placeholder="مرجع السند"></div><div><label class="text-xs font-bold">ملاحظات</label><textarea id="cvNotes" class="swal2-textarea" placeholder="وصف العملية"></textarea></div></div>',
-      showCancelButton:true,confirmButtonText:'حفظ '+label,cancelButtonText:'إلغاء',allowOutsideClick:false,
-      preConfirm:function(){
-        var amount=Number(document.getElementById('cvAmt').value),accountId=String(document.getElementById('cvAccount').value||'').trim(),date=String(document.getElementById('cvDate').value||'').trim(),ref=String(document.getElementById('cvRef').value||'').trim(),notes=String(document.getElementById('cvNotes').value||'').trim();
-        if(!(amount>0))return Swal.showValidationMessage('المبلغ يجب أن يكون أكبر من صفر');
-        if(!accountId)return Swal.showValidationMessage('اختر الحساب المقابل');
-        if(!date)return Swal.showValidationMessage('التاريخ مطلوب');
-        if(type==='Payment'&&amount>Number(ctx.treasury.current_balance||0))return Swal.showValidationMessage('الرصيد الحالي لا يكفي للصرف');
-        return{amount:amount,accountId:accountId,date:date,ref:ref,notes:notes};
-      }
-    }).then(function(res){
-      if(!res.isConfirmed||!res.value)return;
-      var p=res.value,fp=JSON.stringify({company_id:s.companyId,type:type,amount:p.amount,accountId:p.accountId,date:p.date,ref:p.ref,notes:p.notes}),op=null;
-      try{var raw=localStorage.getItem(storage),v=raw?JSON.parse(raw):null;if(v&&v.fingerprint===fp&&v.operationId)op=v.operationId;}catch(e){}
-      if(!op)op=(window.crypto&&typeof crypto.randomUUID==='function')?crypto.randomUUID():type.slice(0,3).toUpperCase()+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
-      try{localStorage.setItem(storage,JSON.stringify({operationId:op,fingerprint:fp,createdAt:Date.now()}));}catch(e){}
-      RW_UI.showLoader('جاري حفظ السند...');
-      var fn=type==='Receipt'?'save-receipt-voucher':'save-payment-voucher';
-      supabase.functions.invoke(fn,{body:{header:{operationId:op,treasuryId:ctx.treasury.id,cashAccountId:ctx.cashAccount.id,offsetAccountId:p.accountId,date:p.date,reference:p.ref||null,notes:p.notes||null,voucherCode:null},lines:[{accountId:p.accountId,amount:p.amount,description:p.notes||title}]}}).then(function(r){
-        if(r.error)throw r.error;var d=r.data||{};if(d.success===false)throw new Error(d.error||d.msg||'فشل الحفظ');
-        try{localStorage.removeItem(storage);}catch(e){}
-        RW_UI.toast(d.duplicate?'العملية موجودة بالفعل ولم تُكرر':'تم الحفظ بنجاح','success');s.render();
-      }).catch(function(e){RW_UI.showError(e.message||'تعذر حفظ السند');}).finally(function(){RW_UI.hideLoader();});
-    });
-  }
+  renderReceipts:function(){this.renderCashList('Receipt','القبض','newReceipt');},renderPayments:function(){this.renderCashList('Payment','الصرف','newPayment');},
+  renderCashList:function(type,title,action){var s=this,ds=this.dates();var html='<div class="panel p-5"><div class="flex flex-wrap items-center justify-between gap-3 mb-4"><div><h2 class="text-xl font-black">سندات '+title+'</h2><p class="text-xs muted">Company-scoped · read-only history</p></div><button class="btn '+(type==='Receipt'?'bg-emerald-700':'bg-red-600')+' text-white px-4 py-2 rounded-lg font-black" onclick="App.'+action+'()">+ سند جديد</button></div><div class="flex flex-wrap gap-2 items-end mb-4">'+this.formDates('cashFrom','cashTo')+'<input id="cashSearch" class="border rounded-lg p-2 min-w-[220px]" placeholder="بحث بالمرجع/الكود"></div><div id="cashListBody" class="text-sm muted">جاري التحميل...</div></div>';RW_UI.safeHTML(RW_UI.byId('mainContent'),html);function load(){s.loadCashList(type,'cashFrom','cashTo','cashSearch','cashListBody');}RW_UI.byId('cashFrom').addEventListener('change',load);RW_UI.byId('cashTo').addEventListener('change',load);RW_UI.byId('cashSearch').addEventListener('input',load);load();},
+  loadCashList:function(type,fi,ti,si,bi){var s=this,from=RW_UI.byId(fi).value,to=RW_UI.byId(ti).value,q=(RW_UI.byId(si).value||'').trim().toLowerCase();if(from>to){RW_UI.safeText(RW_UI.byId(bi),'الفترة غير صحيحة');return;}supabase.from('cash_box').select('voucher_code,voucher_date,type,amount,reference,notes,user_email,status').eq('company_id',s.companyId).eq('type',type).gte('voucher_date',from).lte('voucher_date',to).order('voucher_date',{ascending:false}).order('created_at',{ascending:false}).limit(500).then(function(r){if(r.error)throw r.error;var rows=(r.data||[]).filter(function(x){return !q||String(x.voucher_code||'').toLowerCase().indexOf(q)>=0||String(x.reference||'').toLowerCase().indexOf(q)>=0;});var h='<div class="table-wrap"><table class="w-full text-right"><thead class="sticky-head"><tr class="border-b"><th class="p-3">التاريخ</th><th class="p-3">الكود</th><th class="p-3">المرجع</th><th class="p-3">المبلغ</th><th class="p-3">المنشئ</th><th class="p-3">الحالة</th></tr></thead><tbody>';rows.forEach(function(x){h+='<tr class="border-b"><td class="p-3">'+s.esc(x.voucher_date)+'</td><td class="p-3 font-bold">'+s.esc(x.voucher_code)+'</td><td class="p-3">'+s.esc(x.reference||'—')+'</td><td class="p-3 font-black">'+s.money(x.amount)+'</td><td class="p-3">'+s.esc(x.user_email||'—')+'</td><td class="p-3">'+s.esc(x.status||'Active')+'</td></tr>';});h+='</tbody></table></div>';if(!rows.length)h='<div class="py-12 text-center muted">لا توجد نتائج للفترة المحددة</div>';RW_UI.safeHTML(RW_UI.byId(bi),h);}).catch(function(e){RW_UI.safeText(RW_UI.byId(bi),e.message||'فشل تحميل السندات');});},
+  renderJournal:function(){var s=this,ds=this.dates();var html='<div class="panel p-5"><div class="flex flex-wrap justify-between gap-3 mb-4"><div><h2 class="text-xl font-black">دفتر القيود المنشورة</h2><p class="text-xs muted">الترحيل يتم عبر Financial Core؛ هذه الشاشة للعرض والتدقيق.</p></div></div><div class="flex flex-wrap gap-2 items-end mb-4">'+this.formDates('jFrom','jTo')+'<input id="jSearch" class="border rounded-lg p-2 min-w-[260px]" placeholder="بحث بالكود / المرجع / الوصف"></div><div id="journalBody">جاري التحميل...</div></div>';RW_UI.safeHTML(RW_UI.byId('mainContent'),html);function load(){s.loadJournal('jFrom','jTo','jSearch','journalBody');}RW_UI.byId('jFrom').addEventListener('change',load);RW_UI.byId('jTo').addEventListener('change',load);RW_UI.byId('jSearch').addEventListener('input',load);load();},
+  loadJournal:function(fi,ti,si,bi){var s=this,from=RW_UI.byId(fi).value,to=RW_UI.byId(ti).value,q=(RW_UI.byId(si).value||'').trim().toLowerCase();if(from>to){RW_UI.safeText(RW_UI.byId(bi),'الفترة غير صحيحة');return;}supabase.from('journal_entries').select('id,entry_code,entry_date,reference,description,entry_type,status,created_by').eq('company_id',s.companyId).eq('status','Posted').gte('entry_date',from).lte('entry_date',to).order('entry_date',{ascending:false}).limit(500).then(function(r){if(r.error)throw r.error;var rows=(r.data||[]).filter(function(x){var z=(String(x.entry_code||'')+' '+String(x.reference||'')+' '+String(x.description||'')).toLowerCase();return !q||z.indexOf(q)>=0;});var h='<div class="table-wrap"><table class="w-full"><thead class="sticky-head"><tr class="border-b"><th class="p-3">التاريخ</th><th class="p-3">القيد</th><th class="p-3">المرجع</th><th class="p-3">النوع</th><th class="p-3">المنشئ</th><th class="p-3">إجراء</th></tr></thead><tbody>';rows.forEach(function(x){h+='<tr class="border-b"><td class="p-3">'+s.esc(x.entry_date)+'</td><td class="p-3 font-black">'+s.esc(x.entry_code)+'</td><td class="p-3">'+s.esc(x.reference||'—')+'</td><td class="p-3">'+s.esc(x.entry_type||'—')+'</td><td class="p-3">'+s.esc(x.created_by||'—')+'</td><td class="p-3"><button class="px-3 py-1 rounded bg-slate-100 font-bold" onclick="App.showJournalLines(\''+x.id+'\')">التفاصيل</button></td></tr>';});h+='</tbody></table></div>';if(!rows.length)h='<div class="py-12 text-center muted">لا توجد قيود منشورة في الفترة</div>';RW_UI.safeHTML(RW_UI.byId(bi),h);}).catch(function(e){RW_UI.showError(e.message||'فشل تحميل القيود');});},
+  showJournalLines:function(id){var s=this;supabase.from('journal_entries').select('entry_code,entry_date,reference,description,entry_type,created_by').eq('id',id).eq('company_id',s.companyId).maybeSingle().then(function(h){if(h.error)throw h.error;if(!h.data)throw new Error('القيد غير موجود');return Promise.all([Promise.resolve(h.data),supabase.from('journal_lines').select('account_id,account_name,debit,credit,notes').eq('entry_id',id)]);}).then(function(r){if(r[1].error)throw r[1].error;var h=r[0],lines=r[1].data||[],debit=0,credit=0;var body='<div class="text-right"><div class="mb-3"><b>'+s.esc(h.entry_code)+'</b> · '+s.esc(h.entry_date)+' · '+s.esc(h.reference||'')+'<br>'+s.esc(h.description||'')+'</div><div class="table-wrap"><table class="w-full"><thead><tr class="border-b"><th class="p-2">الحساب</th><th class="p-2">مدين</th><th class="p-2">دائن</th></tr></thead><tbody>';lines.forEach(function(x){debit+=Number(x.debit)||0;credit+=Number(x.credit)||0;body+='<tr class="border-b"><td class="p-2">'+s.esc((x.account_name||'')+' · '+(x.account_id||''))+'</td><td class="p-2">'+s.money(x.debit)+'</td><td class="p-2">'+s.money(x.credit)+'</td></tr>';});body+='</tbody></table></div><div class="mt-3 font-bold">مدين: '+s.money(debit)+' — دائن: '+s.money(credit)+'</div></div>';Swal.fire({title:'تفاصيل القيد',html:body,width:900,confirmButtonText:'إغلاق'});}).catch(function(e){RW_UI.showError(e.message||'تعذر تحميل تفاصيل القيد');});},
+  renderReports:function(){var html='<div class="panel p-5"><div class="flex flex-wrap justify-between items-end gap-3"><div><h2 class="text-xl font-black">التقارير المالية</h2><p class="text-xs muted">مصدر الأرقام: Reporting Core / PostgreSQL</p></div>'+this.formDates('rFrom','rTo')+'</div><div class="flex flex-wrap gap-2 mt-4"><button class="px-3 py-2 rounded-lg bg-slate-100 font-bold" onclick="App.runReport(\'tb\')">ميزان المراجعة</button><button class="px-3 py-2 rounded-lg bg-slate-100 font-bold" onclick="App.runReport(\'pl\')">الأرباح والخسائر</button><button class="px-3 py-2 rounded-lg bg-slate-100 font-bold" onclick="App.runReport(\'bs\')">الميزانية</button><button class="px-3 py-2 rounded-lg bg-slate-100 font-bold" onclick="App.runReport(\'cc\')">حسب مركز التكلفة</button><button class="px-3 py-2 rounded-lg bg-slate-100 font-bold" onclick="App.runReport(\'cf\')">التدفقات النقدية</button><button class="px-3 py-2 rounded-lg bg-emerald-50 text-emerald-800 font-bold" onclick="App.runCashMovement()">حركة الخزينة</button><button class="px-3 py-2 rounded-lg bg-slate-100 font-bold" onclick="App.exportReport()">تصدير CSV</button></div><div id="reportBody" class="mt-5"><div class="py-10 text-center muted">اختر تقريرًا</div></div></div>';RW_UI.safeHTML(RW_UI.byId('mainContent'),html);},
+  runReport:function(kind){var s=this,from=RW_UI.byId('rFrom').value,to=RW_UI.byId('rTo').value;var fn=kind==='tb'?'get_trial_balance':kind==='pl'?'get_profit_loss':kind==='bs'?'get_balance_sheet':kind==='cc'?'get_pnl_by_cost_center':'get_cash_flow';var args=kind==='bs'?{p_as_of:to}:{p_from_date:from,p_to_date:to};RW_UI.safeText(RW_UI.byId('reportBody'),'جاري استخراج التقرير...');supabase.rpc(fn,args).then(function(r){if(r.error)throw r.error;var rows=r.data||[];s.reportRows=rows;RW_UI.safeHTML(RW_UI.byId('reportBody'),s.reportTable(kind,rows));}).catch(function(e){RW_UI.showError(e.message||'فشل التقرير');});},
+  reportTable:function(kind,rows){var s=this;if(!rows.length)return '<div class="py-10 text-center muted">لا توجد بيانات</div>';var map={tb:[['الحساب','account_id'],['اسم الحساب','account_name'],['مدين','total_debit'],['دائن','total_credit'],['الرصيد','net_balance']],pl:[['النوع','account_type'],['الحساب','account_id'],['اسم الحساب','account_name'],['المبلغ','total_amount']],bs:[['النوع','account_type'],['الحساب','account_id'],['اسم الحساب','account_name'],['الرصيد','balance']],cc:[['مركز التكلفة','cost_center_id'],['الاسم','cost_center_name'],['إيرادات','revenue'],['مصروفات','expenses'],['صافي','net_income']],cf:[['الفئة','category'],['الحساب','account_id'],['اسم الحساب','account_name'],['المبلغ','amount']]}[kind]||[];var h='<div class="table-wrap"><table class="w-full text-right"><thead class="sticky-head"><tr class="border-b">';map.forEach(function(c){h+='<th class="p-3">'+c[0]+'</th>';});h+='</tr></thead><tbody>';rows.forEach(function(x){h+='<tr class="border-b">';map.forEach(function(c){var v=x[c[1]];h+='<td class="p-3 '+(typeof v==='number'?'font-black':'')+'">'+(typeof v==='number'?s.money(v):s.esc(v||'—'))+'</td>';});h+='</tr>';});h+='</tbody></table></div>';return h;},
+  runCashMovement:function(){var s=this,from=RW_UI.byId('rFrom').value,to=RW_UI.byId('rTo').value;supabase.from('cash_box').select('voucher_date,type,voucher_code,amount,reference').eq('company_id',s.companyId).gte('voucher_date',from).lte('voucher_date',to).order('voucher_date',{ascending:true}).limit(1000).then(function(r){if(r.error)throw r.error;var rows=r.data||[];s.reportRows=rows;var rec=0,pay=0;rows.forEach(function(x){if(x.type==='Receipt')rec+=Number(x.amount)||0;else if(x.type==='Payment')pay+=Number(x.amount)||0;});var h='<div class="grid md:grid-cols-3 gap-3 mb-4"><div class="border rounded-xl p-4"><div class="text-xs muted">مقبوضات</div><div class="text-xl font-black ok">'+s.money(rec)+'</div></div><div class="border rounded-xl p-4"><div class="text-xs muted">مدفوعات</div><div class="text-xl font-black danger">'+s.money(pay)+'</div></div><div class="border rounded-xl p-4"><div class="text-xs muted">الصافي</div><div class="text-xl font-black">'+s.money(rec-pay)+'</div></div></div>';h+='<div class="table-wrap"><table class="w-full"><thead><tr class="border-b"><th class="p-2">التاريخ</th><th class="p-2">الكود</th><th class="p-2">النوع</th><th class="p-2">المبلغ</th><th class="p-2">المرجع</th></tr></thead><tbody>';rows.forEach(function(x){h+='<tr class="border-b"><td class="p-2">'+s.esc(x.voucher_date)+'</td><td class="p-2">'+s.esc(x.voucher_code)+'</td><td class="p-2">'+s.esc(x.type)+'</td><td class="p-2 font-black">'+s.money(x.amount)+'</td><td class="p-2">'+s.esc(x.reference||'—')+'</td></tr>';});h+='</tbody></table></div>';RW_UI.safeHTML(RW_UI.byId('reportBody'),h);}).catch(function(e){RW_UI.showError(e.message||'تعذر استخراج حركة الخزينة');});},
+  exportReport:function(){var rows=this.reportRows||[];if(!rows.length){RW_UI.showError('لا توجد بيانات لتصديرها');return;}var keys=Object.keys(rows[0]),csv=[keys.join(',')].concat(rows.map(function(r){return keys.map(function(k){var v=r[k]==null?'':r[k];return '"'+String(v).replace(/"/g,'""')+'"';}).join(',');})).join('\r\n');var blob=new Blob([new Uint8Array([0xEF,0xBB,0xBF]),csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='rawaea-financial-report.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);},
+  renderPartners:function(){var s=this;Promise.all([supabase.from('customers').select('customer_code,name,debt,is_active').eq('company_id',s.companyId).eq('is_active',true).order('name').limit(500),supabase.from('suppliers').select('supplier_code,name,accounts_payable,is_active').eq('company_id',s.companyId).eq('is_active',true).order('name').limit(500)]).then(function(r){if(r[0].error)throw r[0].error;if(r[1].error)throw r[1].error;var ch='<div class="grid lg:grid-cols-2 gap-4"><div class="panel p-5"><h2 class="font-black text-lg mb-3">ذمم العملاء</h2><div class="table-wrap"><table class="w-full"><thead><tr class="border-b"><th class="p-2">الكود</th><th class="p-2">العميل</th><th class="p-2">الرصيد المسجل</th></tr></thead><tbody>';(r[0].data||[]).forEach(function(x){ch+='<tr class="border-b"><td class="p-2">'+s.esc(x.customer_code)+'</td><td class="p-2 font-bold">'+s.esc(x.name)+'</td><td class="p-2 font-black">'+s.money(x.debt)+'</td></tr>';});ch+='</tbody></table></div></div><div class="panel p-5"><h2 class="font-black text-lg mb-3">ذمم الموردين</h2><div class="table-wrap"><table class="w-full"><thead><tr class="border-b"><th class="p-2">الكود</th><th class="p-2">المورد</th><th class="p-2">الرصيد المسجل</th></tr></thead><tbody>';(r[1].data||[]).forEach(function(x){ch+='<tr class="border-b"><td class="p-2">'+s.esc(x.supplier_code)+'</td><td class="p-2 font-bold">'+s.esc(x.name)+'</td><td class="p-2 font-black">'+s.money(x.accounts_payable)+'</td></tr>';});ch+='</tbody></table></div></div></div><div class="text-xs muted mt-3">تنبيه: أرصدة الطرفين هنا أعمدة تشغيلية؛ لا تُعامل كبديل عن reconciliation مع الـG/L عند الإقفال.</div>';RW_UI.safeHTML(RW_UI.byId('mainContent'),ch);}).catch(function(e){RW_UI.showError(e.message||'تعذر تحميل الذمم');});},
+  renderControl:function(){var s=this;Promise.all([supabase.from('erp_operation_registry').select('operation_type,status,created_at,completed_at').eq('company_id',s.companyId).order('created_at',{ascending:false}).limit(200),supabase.from('journal_entries').select('id',{count:'exact',head:true}).eq('company_id',s.companyId).eq('status','Posted')]).then(function(r){if(r[0].error)throw r[0].error;if(r[1].error)throw r[1].error;var ops=r[0].data||[],processing=ops.filter(function(x){return x.status==='processing';}).length,failed=ops.filter(function(x){return x.status==='failed';}).length;var h='<div class="grid md:grid-cols-3 gap-4"><div class="panel p-5"><div class="text-xs muted">قيد المعالجة</div><div class="text-2xl font-black '+(processing?'warn':'ok')+'">'+processing+'</div></div><div class="panel p-5"><div class="text-xs muted">عمليات فاشلة</div><div class="text-2xl font-black '+(failed?'danger':'ok')+'">'+failed+'</div></div><div class="panel p-5"><div class="text-xs muted">قيود منشورة</div><div class="text-2xl font-black">'+(r[1].count||0)+'</div></div></div>';h+='<div class="panel p-5 mt-4"><h2 class="font-black text-lg mb-3">آخر عمليات الـCore</h2><div class="table-wrap"><table class="w-full"><thead><tr class="border-b"><th class="p-2">الوقت</th><th class="p-2">النوع</th><th class="p-2">الحالة</th></tr></thead><tbody>';ops.slice(0,60).forEach(function(x){h+='<tr class="border-b"><td class="p-2">'+s.esc(x.created_at)+'</td><td class="p-2">'+s.esc(x.operation_type)+'</td><td class="p-2 font-black '+(x.status==='failed'?'danger':x.status==='completed'?'ok':'warn')+'">'+s.esc(x.status)+'</td></tr>';});h+='</tbody></table></div></div>';RW_UI.safeHTML(RW_UI.byId('mainContent'),h);}).catch(function(e){RW_UI.showError(e.message||'تعذر تحميل لوحة الرقابة');});},
+  newReceipt:function(){this.cashVoucher('Receipt');},newPayment:function(){this.cashVoucher('Payment');},
+  cashVoucher:function(type){var s=this,ctx=this.context,storage='RW_ACCOUNTANT_PENDING_'+String(this.companyId||'NO_COMPANY')+'_'+type.toUpperCase();if(!ctx){RW_UI.showError('السياق المالي غير جاهز');return;}var accounts=ctx.accounts.filter(function(a){return a.is_active&&a.account_code!=='121';});var opts='<option value="">اختر الحساب المقابل</option>';accounts.forEach(function(a){opts+='<option value="'+s.esc(a.id)+'">'+s.esc(a.account_code)+' — '+s.esc(a.account_name)+'</option>';});var title=type==='Receipt'?'سند قبض جديد':'سند صرف جديد',label=type==='Receipt'?'استلام نقدية':'صرف نقدية';Swal.fire({title:title,width:650,html:'<div class="text-right space-y-3"><div class="bg-slate-50 rounded-xl p-3 text-sm"><b>الخزينة:</b> '+s.esc(ctx.treasury.account_name)+' — الرصيد الحالي: <span class="font-black">'+s.money(ctx.treasury.current_balance)+'</span></div><div><label class="text-xs font-bold">التاريخ</label><input id="cvDate" type="date" class="swal2-input" value="'+new Date().toISOString().slice(0,10)+'"></div><div><label class="text-xs font-bold">المبلغ</label><input id="cvAmt" type="number" min="0.01" step="0.01" class="swal2-input" placeholder="0.00"></div><div><label class="text-xs font-bold">الحساب المقابل</label><select id="cvAccount" class="swal2-select" style="width:90%">'+opts+'</select></div><div><label class="text-xs font-bold">المرجع</label><input id="cvRef" class="swal2-input" placeholder="مرجع السند"></div><div><label class="text-xs font-bold">ملاحظات</label><textarea id="cvNotes" class="swal2-textarea" placeholder="وصف العملية"></textarea></div></div>',showCancelButton:true,confirmButtonText:'حفظ '+label,cancelButtonText:'إلغاء',allowOutsideClick:false,preConfirm:function(){var amount=Number(document.getElementById('cvAmt').value),accountId=String(document.getElementById('cvAccount').value||'').trim(),date=String(document.getElementById('cvDate').value||'').trim(),ref=String(document.getElementById('cvRef').value||'').trim(),notes=String(document.getElementById('cvNotes').value||'').trim();if(!(amount>0))return Swal.showValidationMessage('المبلغ يجب أن يكون أكبر من صفر');if(!accountId)return Swal.showValidationMessage('اختر الحساب المقابل');if(!date)return Swal.showValidationMessage('التاريخ مطلوب');if(type==='Payment'&&amount>Number(ctx.treasury.current_balance||0))return Swal.showValidationMessage('الرصيد الحالي لا يكفي للصرف');return{amount:amount,accountId:accountId,date:date,ref:ref,notes:notes};}}).then(function(res){if(!res.isConfirmed||!res.value)return;var p=res.value,fp=JSON.stringify({company_id:s.companyId,type:type,amount:p.amount,accountId:p.accountId,date:p.date,ref:p.ref,notes:p.notes}),op=null;try{var raw=localStorage.getItem(storage),v=raw?JSON.parse(raw):null;if(v&&v.fingerprint===fp&&v.operationId)op=v.operationId;}catch(e){}if(!op)op=(window.crypto&&typeof crypto.randomUUID==='function')?crypto.randomUUID():type.slice(0,3).toUpperCase()+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);try{localStorage.setItem(storage,JSON.stringify({operationId:op,fingerprint:fp,createdAt:Date.now()}));}catch(e){}RW_UI.showLoader('جاري حفظ السند...');var fn=type==='Receipt'?'save-receipt-voucher':'save-payment-voucher';supabase.functions.invoke(fn,{body:{header:{operationId:op,treasuryId:ctx.treasury.id,cashAccountId:ctx.cashAccount.id,offsetAccountId:p.accountId,date:p.date,reference:p.ref||null,notes:p.notes||null,voucherCode:null},lines:[{accountId:p.accountId,amount:p.amount,description:p.notes||title}]}}).then(function(r){if(r.error)throw r.error;var d=r.data||{};if(d.success===false)throw new Error(d.error||d.msg||'فشل الحفظ');try{localStorage.removeItem(storage);}catch(e){}RW_UI.toast(d.duplicate?'العملية موجودة بالفعل ولم تُكرر':'تم الحفظ بنجاح','success');s.render();}).catch(function(e){RW_UI.showError(e.message||'تعذر حفظ السند');}).finally(function(){RW_UI.hideLoader();});});}
 };
 RW_SW.register('../sw.js');
 document.addEventListener('DOMContentLoaded',function(){App.init();});
