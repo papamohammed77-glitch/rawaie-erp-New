@@ -1,0 +1,657 @@
+نعم، راجعت ما يكفي من السلسلة الأخيرة لإعطاء حكم دقيق، والنتيجة ليست مطمئنة بالدرجة التي توحي بها بعض التقارير السابقة.
+
+الحكم الصريح
+
+لا. لم تتم حتى الآن مراجعة وتنفيذ منظومة “المحاسب في الروائع” بوصفها Accountant Operating Suite متكاملة تغطي جميع الأدوار التشغيلية والمالية التي ذكرتها.
+
+ما تم بناؤه حتى الآن هو Financial Workbench جيد ومهم، وليس بعد Full Accountant Suite.
+
+وهذا ليس استنتاجًا مني من الذاكرة؛ بل تؤكده ثلاثة مصادر مستقلة:
+
+تقرير الخطة المرحلية نفسه كان يضع Consumer Convergence, Runtime, Reconciliation, Daily Settlement, Purchase, Return وغيرها كمسارات مفتوحة.
+تقرير مدحت 63 صرّح صراحةً أن الصفحة وصلت إلى Gold / Production-oriented Financial Workbench وليس Full ERP Accountant Suite، وحدد بنفسه General Ledger وAR/AP Aging وBank/Treasury Reconciliation وPeriod Close وAudit Trail وComparative Reporting وException Center وSubledger/G/L reconciliation كفجوات.
+الملف الحالي Current/PWA/accountant.html يؤكد ذلك فعليًا: تبويباته هي نظرة مالية، القبض، الصرف، القيود، التقارير، الذمم، الرقابة فقط، ولا يحتوي حتى على runsheet أو inventory أو driver.
+
+والأهم أن Production الحالية التي تحققت منها اليوم 27 أغسطس 2026 الساعة 19:38 UTC أصبحت مختلفة عن بعض الـSnapshots السابقة:
+
+العنصر	Production الحالية
+Companies	1
+Users	24
+Branches	2
+Items	17
+Stock Rows	20
+Inventory Log	3
+Treasury	1
+COA	17
+Journal Entries	2
+Journal Lines	0
+Customers	3
+Suppliers	1
+Customer Ledger	0
+Supplier Ledger	0
+Driver Ledger	0
+Orders	0
+Purchase Orders	0
+Runsheets	0
+
+وهذه مطابقة فعلية مباشرة من Production وليست من تقرير سابق.
+
+1. ماذا يوجد الآن فعلًا في Accountant؟
+
+النسخة الحالية ممتازة مقارنةً بما كانت عليه، وتحتوي فعليًا على:
+
+Financial Dashboard
+
+رصيد الخزائن، المقبوضات، المدفوعات، صافي الحركة، ذمم العملاء، واختبار توازن الفترة.
+
+Receipts
+
+إنشاء سند قبض باستخدام:
+Treasury UUID + Cash Account UUID + Offset Account UUID + Operation ID
+
+مع حفظ مركزي من خلال الـFinancial Core.
+
+Payments
+
+المقابل للقبض مع حماية الرصيد.
+
+Journal
+
+عرض القيود المنشورة، البحث والفترة، وعرض خطوط القيد Debit/Credit.
+
+Financial Reports
+
+يوجد حاليًا:
+
+Trial Balance
+P&L
+Balance Sheet
+P&L by Cost Center
+Cash Flow
+Cash Movement
+CSV Export
+Partners
+
+عرض رصيد العملاء والموردين، ولكن بصورة رصيد تشغيلي مختصر.
+
+Control
+
+مراقبة erp_operation_registry والعمليات الفاشلة/الجارية وعدد القيود.
+
+وهذا بالفعل أفضل كثيرًا من النسخة القديمة. تقرير 64 أيضًا أكد أن اختزال الملف من نحو 1020 سطرًا إلى نسخة أصغر لم يكن في حد ذاته تجريدًا للمحاسبة من وظائفها الأصلية، وأنه تم استرجاع بعض الوظائف التي تراجعت مثل فلاتر البحث والتاريخ وإظهار اسم المستخدم وسلوك التصدير.
+
+2. لكن أين المشكلة الحقيقية؟
+
+المشكلة أن مفهوم “المحاسب” في الروائع أكبر بكثير من accountant.html الحالي.
+
+A. متابعة الرانشيتات
+
+غير موجودة كوظيفة محاسب داخل الصفحة.
+
+لا توجد شاشة تمكن المحاسب من رؤية:
+
+Runsheet → Loaded → Delivered → Returned → Shortage → Liability → Settlement
+
+مع drill-down إلى العميل والصنف والكميات.
+
+في المقابل، الـBackend لديه بالفعل post_daily_settlement_atomic المرتبط بالرانشيت، وProduction الحالية تحتوي عليه كـCore.
+
+إذن:
+
+Backend capability موجودة جزئيًا
+Accountant workflow غير ممثل في الـPWA.
+
+B. متابعة الأوردرات
+
+غير موجودة بصورة محاسبية متكاملة.
+
+المحاسب يحتاج على الأقل إلى رؤية:
+
+Order
+→ Customer
+→ Sales
+→ Payment Type
+→ Delivered
+→ Returned
+→ Outstanding
+→ Ledger Impact
+→ Related Journal
+
+بينما الصفحة الحالية لا تحتوي Order Ledger أو Order Financial Drill-down.
+
+C. الجرد والمخزون
+
+هذه نقطة مهمة جدًا.
+
+المحاسب ليس مسؤول المخزن، لكنه يحتاج رؤية مالية للمخزون:
+
+Opening Stock
+Purchases
+Sales
+Returns
+Adjustments
+Transfers
+Closing Stock
+COGS
+Inventory Variance
+Inventory ↔ G/L reconciliation
+
+الصفحة الحالية لا تقدم هذه الدورة.
+
+والـBackend نفسه يثبت أن Inventory Core متقدم بالفعل: post_stock_movement موجود، ويدعم Purchase/Transfer/Sale/Return/Adjustment/Loading/Unloading وغيرها.
+
+أي أن الأساس موجود، لكن Accounting Consumption فوقه لم يُبنَ بالكامل.
+
+3. إغلاق المندوب ومديونيته
+
+هذه من أكبر الفجوات.
+
+لدينا الآن:
+
+post_driver_ledger_entry
+
+و:
+
+post_daily_settlement_atomic
+
+وحتى تم إنشاء حساب:
+
+125 — ذمم وعهد السائقين
+
+لربط عجز/التزامات السائق محاسبيًا.
+
+لكن لا توجد في accountant.html شاشة حقيقية لـ:
+
+Driver Settlement Center
+
+مثلاً:
+
+مندوب	قيمة المحمل	قيمة المباع	النقدية	المرتجع	العجز	المديونية	المسدد	المتبقي
+
+ثم:
+
+فتح التسوية → مراجعة → اعتماد → قيد → إغلاق رانشيت
+
+وهذا بالضبط من الوظائف التي تحتاجها الروائع كـFMCG Distribution ERP، وليس مجرد برنامج قيود.
+
+4. العملاء
+
+الوضع الحالي أضعف كثيرًا من المطلوب.
+
+الصفحة تعرض:
+
+customers.debt
+
+لكن هذا ليس:
+
+Customer Accounting Center
+
+المطلوب فعليًا:
+
+Customer
+→ Invoice
+→ Credit
+→ Payment
+→ Return
+→ Adjustment
+→ Aging
+→ Running Balance
+→ Statement
+→ G/L Control Account
+→ Difference
+
+تقرير 63 نفسه حدد A/R Aging وsubledger/G/L reconciliation كوظائف غير مكتملة.
+
+5. الموردون
+
+نفس المشكلة.
+
+الصفحة تعرض:
+
+suppliers.accounts_payable
+
+لكن لا توجد:
+
+Supplier Ledger
+A/P Aging
+Supplier Statement
+Purchase Invoice → Payment matching
+Credit/Debit adjustments
+Subledger → G/L reconciliation
+
+وهذه أيضًا وظيفة أساسية في أنظمة ERP الناضجة. Odoo مثلًا يقدم Partner Ledger وAged Receivable وAged Payable، وليس مجرد حقل رصيد للطرف.
+
+6. الخزينة
+
+هنا يوجد تقدم حقيقي.
+
+لدينا:
+
+Treasury
+Receipt
+Payment
+Cash Movement
+Current Balance
+
+ولدينا في Production:
+
+post_cash_receipt_atomic
+
+post_cash_payment_atomic
+
+post_treasury_transfer_atomic
+
+لكن ما يزال ينقص Accountant Treasury Center:
+
+Treasury Reconciliation
+
+أي:
+
+Opening Balance
+→ Receipts
+→ Payments
+→ Transfers
+→ Adjustments
+→ Book Balance
+→ Physical Count
+→ Difference
+→ Reconciliation
+→ Approval
+
+وBank/Cash reconciliation من الوظائف الأساسية في ERP الحديث. Odoo يوفر حتى matching/reconciliation models للمعاملات البنكية.
+
+7. General Ledger
+
+هذه فجوة واضحة جدًا.
+
+الموجود:
+
+Journal Register بسيط + Journal Details
+
+لكن المطلوب:
+
+General Ledger
+
+اختيار الحساب:
+
+121 النقدية
+
+ثم:
+
+التاريخ	المرجع	البيان	مدين	دائن	الرصيد
+
+ثم:
+
+Opening Balance
+→ Movement
+→ Running Balance
+→ Closing Balance
+
+مع Drill-down من السطر إلى المستند الأصلي.
+
+وهذا تحديدًا موجود كأداة قياسية في الأنظمة الناضجة؛ Business Central مثلًا يركز على G/L Register وDetail Trial Balance ومراجعة الرصيد الافتتاحي والحركة والختامي.
+
+8. COA
+
+هناك الآن 17 حسابًا فعليًا في Production.
+
+لكن Accountant UI لا يقدم:
+
+Account hierarchy
+Account Card
+Parent/Child view
+Account activity
+Account ledger
+Account reconciliation
+Inactive/active management
+Mapping visibility
+
+كما أن العلاقة:
+
+Treasury CASH-01 ↔ GL account
+
+ما زالت Contract يحتاج إثباتًا صريحًا؛ وهذا تحديدًا لم يكن من الصحيح اختراعه، كما أثبتت الجولة السابقة.
+
+9. Profit & Loss
+
+موجود، لكنه Reporting فقط.
+
+لدينا P&L.
+
+لكن النظام الذهبي يحتاج:
+
+P&L
+→ Account
+→ Journal
+→ Document
+→ Customer/Supplier
+→ Cost Center
+→ Period comparison
+
+مع:
+
+Current vs Previous Period
+Current vs Previous Year
+Budget vs Actual
+Variance
+Drill-down
+
+Odoo حاليًا يوفر comparison بين الفترات، وBusiness Central يدعم التقارير والأبعاد والـBudget-based analysis.
+
+10. Period Close
+
+غير موجود بصورة مكتملة.
+
+وهذه من أخطر الفجوات.
+
+المحاسب يحتاج:
+
+Period Open
+
+ثم:
+
+Period Review
+
+ثم:
+
+Unposted transactions
+Unbalanced journals
+AR/AP outstanding
+Cash reconciliation
+Inventory reconciliation
+Suspense accounts
+Variance
+Exceptions
+
+ثم:
+
+Close Period
+
+وبعد ذلك:
+
+Lock
+
+مع صلاحية Reopen محكومة.
+
+هذه ليست رفاهية؛ عمليات الإغلاق السنوي في الأنظمة الناضجة تشمل reconciliation ومراجعة القيود والذمم والبنك والإهلاك والضرائب وإجراءات الإقفال.
+
+11. Audit Trail
+
+الـBackend لديه Audit infrastructure.
+
+وtrigger:
+
+fn_audit_trigger()
+
+ويكتب:
+
+user
+action
+table
+record
+old_data
+new_data
+timestamp
+
+وقد تحققنا من وجوده بالفعل.
+
+لكن Accountant UI لا يوفر:
+
+Audit Investigation Center
+
+بحيث يقول المحاسب:
+
+أرني كل ما تغير على هذا العميل خلال الفترة.
+
+أو:
+
+من عدّل هذا القيد؟
+
+أو:
+
+من غيّر هذا الرصيد؟
+
+هذا الفرق بين وجود Audit Backend ووجود Audit Product.
+
+12. Exception Center
+
+هذه في رأيي واحدة من أهم الإضافات الإبداعية التي ينبغي أن تميز الروائع.
+
+بدل أن يبحث المحاسب يدويًا:
+
+FINANCIAL EXCEPTION CENTER
+
+يعرض تلقائيًا:
+
+Unbalanced journals
+Failed operations
+Duplicate attempts
+Unreconciled treasury
+Customer/G/L mismatch
+Supplier/G/L mismatch
+Driver liability mismatch
+Inventory/G/L variance
+Missing mappings
+Negative stock
+Suspicious adjustments
+Unclosed runsheets
+Unsettled drivers
+Returns not reflected financially
+
+وهذا يرفع المحاسب من Data Entry User إلى Financial Control User.
+
+13. ما تقوله الأنظمة المنافسة يؤكد الفجوة
+
+المعايير الحالية في Odoo وBusiness Central تتجاوز بكثير:
+
+“قبض + صرف + قيود + ميزان مراجعة + P&L”.
+
+Odoo يوفر حاليًا، ضمن منظومته المالية، General Ledger وTrial Balance وPartner Ledger وAged Receivable وAged Payable وCash Flow وAudit Trail وTax Reporting وAnalytic Accounting وBudgets وYear-End Closing وغيرها.
+
+Business Central يركز كذلك على G/L، Dimensions، Detail Trial Balance، reconciliation بين AR/AP والـG/L، والـBudgets والتحليل المالي.
+
+14. والأهم: الروائع لديه شيء لا ينبغي أن نقلده منهم حرفيًا
+
+هذه فرصة ممتازة.
+
+الروائع ليس Manufacturing ERP عام.
+
+هو FMCG Distribution ERP.
+
+لذلك يمكننا بناء Accountant Suite مختلفة جذريًا:
+
+                 ACCOUNTANT CONTROL CENTER
+                          │
+        ┌─────────────────┼─────────────────┐
+        │                 │                 │
+     FINANCE          OPERATIONS         CONTROL
+        │                 │                 │
+   G/L + COA         Runsheets          Exceptions
+   AR/AP             Drivers            Audit
+   Treasury          Orders             Reconciliation
+   P&L               Returns            Period Close
+   Cash Flow         Inventory          Risk
+        │                 │                 │
+        └─────────────────┼─────────────────┘
+                          ↓
+                 SINGLE FINANCIAL TRUTH
+
+وهنا تظهر قيمة الروائع الحقيقية.
+
+المحاسب لا يرى المحاسبة منعزلة عن النشاط.
+
+بل يستطيع الوصول من:
+
+قيد مالي
+
+إلى:
+
+الفاتورة
+
+إلى:
+
+الأوردر
+
+إلى:
+
+الرانشيت
+
+إلى:
+
+المندوب
+
+إلى:
+
+المرتجع
+
+إلى:
+
+العجز
+
+إلى:
+
+الخزينة
+
+إلى:
+
+الـG/L
+
+في سلسلة واحدة.
+
+15. أهم نتيجة جنائية من كل ما قرأته
+
+هناك تناقض مهم بين صلاحيات المحاسب في Business Process وبين صلاحيات صفحة المحاسب الحالية.
+
+الـBackend الآن يملك عددًا معتبرًا من الـCores:
+
+post_journal_entry
+
+post_customer_ledger_entry
+
+post_supplier_ledger_entry
+
+post_driver_ledger_entry
+
+post_cash_receipt_atomic
+
+post_cash_payment_atomic
+
+post_daily_settlement_atomic
+
+post_stock_movement
+
+إضافة إلى Reporting Cores.
+
+لكن الـPWA لا تحول هذه الإمكانيات إلى منظومة عمل واحدة للمحاسب.
+
+وهذا يعني أن المشكلة القادمة ليست Core Creation فقط.
+
+إنها:
+
+Financial Capability → Accountant Workflow → Cross-domain Visibility → Reconciliation → Control
+
+16. لذلك أغيّر الحكم السابق قليلًا
+
+التقييم الأدق للحالة الحالية هو:
+
+المجال	الحكم
+Financial Core	✅ قوي
+Receipt	✅ Core
+Payment	✅ Core
+Journal	✅ Core
+Treasury basic	✅
+Trial Balance	✅
+P&L	✅
+Balance Sheet	✅
+Cash Flow	✅
+Cost Center P&L	✅
+Basic customer balances	✅
+Basic supplier balances	✅
+Core Operation Control	✅
+General Ledger	❌ غير مكتمل
+Customer Ledger UI	❌
+A/R Aging	❌
+Supplier Ledger UI	❌
+A/P Aging	❌
+Treasury Reconciliation	❌
+Bank Reconciliation	❌
+Driver Settlement Center	❌
+Driver Liability Center	❌
+Runsheet Financial Control	❌
+Order Financial Drill-down	❌
+Inventory/G/L reconciliation	❌
+Audit Investigation UI	❌
+Exception Center	❌
+Comparative Reporting	❌
+Budget vs Actual	❌
+Period Close	❌
+Period Reopen control	❌
+Year-end Closing	❌
+Full Financial Reconciliation	❌
+Browser Runtime certification	❌
+17. إذن هل Accountant.html الحالي "ذهبي ماسي"؟
+
+لا.
+
+والقول بذلك الآن سيكون غير مهني.
+
+الأدق:
+
+Production-oriented Financial Workbench — Gold foundation
+
+وليس:
+
+Full Accountant Suite — Diamond/Gold Certified.
+
+بل توجد نقطة أهم:
+
+لا يجب أن نستمر في تكبير accountant.html عشوائيًا.
+
+المطلوب الآن تصميم Accountant Domain Architecture أولًا، ثم تحويل الصفحة إلى Consumer لهذه البنية.
+
+وأرى أن هذا هو الترتيب الأكثر أمانًا:
+
+ACCOUNTANT DOMAIN MODEL
+        ↓
+ACCOUNTANT RESPONSIBILITY MATRIX
+        ↓
+FINANCIAL + OPERATIONAL RECONCILIATION CONTRACT
+        ↓
+REQUIRED RPC / REPORTING CORES
+        ↓
+ACCOUNTANT CONTROL CENTER
+        ↓
+DRILL-DOWN
+        ↓
+EXCEPTION CENTER
+        ↓
+PERIOD CLOSE
+        ↓
+RUNTIME / E2E
+والشيء الذي لن أفعله
+
+لن أبدأ بإضافة 20 زرًا جديدًا إلى accountant.html.
+
+لأن هذا سيعيد نفس الخطأ القديم:
+
+UI كبير فوق Contract غير مكتمل.
+
+الأصح أن نبني أولًا مصفوفة وظائف المحاسب الكاملة للروائع ونطابق كل وظيفة مع ما هو موجود فعليًا في Production، ثم نحدد ما يحتاج Core وما يحتاج Consumer وما يحتاج Reporting وما يحتاج فقط واجهة.
+
+الخلاصة
+
+سؤالك كان في مكانه تمامًا.
+
+الإجابة الدقيقة هي:
+
+لا، لم تكن مراجعة أدوار المحاسب المتعددة قد اكتملت بالشكل الذي وصفته.
+
+ما تحقق حتى الآن هو نواة مالية قوية + Financial Workbench جيد، لكن لم يتم بعد بناء المحاسب التشغيلي الشامل للروائع الذي يربط:
+
+الرانشيتات + الأوردرات + المخزون + الجرد + المندوب + التسوية + مديونية المندوب + العملاء + الموردين + الخزينة + G/L + P&L + reconciliation + audit + closing
+
+في نقطة تحكم مالية موحدة.
+
+وهذه ليست مجرد فجوات واجهة؛ جزء منها Business/Reporting/Control capabilities يجب تصميمها وتدعيمها على الـBackend أولًا.
+
+والخبر الجيد أن البنية الحالية للـFinancial Cores أصبحت أقوى بكثير، ولذلك لسنا بحاجة إلى هدم ما تم بناؤه؛ نحتاج الآن إلى رفع الـFinancial Workbench إلى Accountant Control Center حقيقي دون كسر الـCores أو إعادة Distributed Writers.
