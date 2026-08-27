@@ -85,10 +85,453 @@ var App = {
         RW_UI.safeHTML(RW_UI.byId('mainContent'),html);});
     },
 
-    newReceipt: function(){
-        Swal.fire({title:'سند قبض جديد',html:'<input id="rcptAmt" class="swal2-input" placeholder="المبلغ" type="number"><input id="rcptRef" class="swal2-input" placeholder="المرجع">',showCancelButton:true,confirmButtonText:'حفظ',preConfirm:function(){return{amt:parseFloat(document.getElementById('rcptAmt').value)||0,ref:document.getElementById('rcptRef').value};}}).then(function(r){if(!r.isConfirmed)return;Swal.showLoading();supabase.auth.getSession().then(function(se){var t=se.data.session?se.data.session.access_token:null;return fetch(SUPABASE_URL+'/functions/v1/save-receipt-voucher',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+t},body:JSON.stringify({date:new Date().toISOString().split('T')[0],cashBoxId:'MAIN',mainAccountName:r.value.ref,notes:'',lines:[{accountName:r.value.ref,description:'',amount:r.value.amt}]})});}).then(function(res){return res.json();}).then(function(j){Swal.close();if(j.success){RW_UI.toast('تم الحفظ','success');App.renderReceipts();}else{RW_UI.toast(j.error||'فشل','error');}});});
-    },
+newReceipt: function () {
+    var s = this;
 
+    function getOperationId(storageKey, payloadFingerprint) {
+        try {
+            var raw = sessionStorage.getItem(storageKey);
+
+            if (raw) {
+                var pending = JSON.parse(raw);
+
+                if (
+                    pending &&
+                    pending.fingerprint === payloadFingerprint &&
+                    pending.operationId &&
+                    pending.createdAt &&
+                    (Date.now() - pending.createdAt) < 15 * 60 * 1000
+                ) {
+                    return pending.operationId;
+                }
+            }
+        } catch (e) {}
+
+        var operationId =
+            window.crypto &&
+            typeof window.crypto.randomUUID === 'function'
+                ? window.crypto.randomUUID()
+                : (
+                    'RCV-' +
+                    Date.now() +
+                    '-' +
+                    Math.random().toString(36).slice(2, 10)
+                );
+
+        try {
+            sessionStorage.setItem(
+                storageKey,
+                JSON.stringify({
+                    operationId: operationId,
+                    fingerprint: payloadFingerprint,
+                    createdAt: Date.now()
+                })
+            );
+        } catch (e) {}
+
+        return operationId;
+    }
+
+    function clearPending(storageKey) {
+        try {
+            sessionStorage.removeItem(storageKey);
+        } catch (e) {}
+    }
+
+    Swal.fire({
+        title: 'جاري تحميل السياق المالي...',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: function () {
+            Swal.showLoading();
+        }
+    });
+
+    supabase.auth.getUser()
+
+        .then(function (authResult) {
+            if (
+                authResult.error ||
+                !authResult.data ||
+                !authResult.data.user
+            ) {
+                throw new Error('INVALID_SESSION');
+            }
+
+            return supabase
+                .from('users')
+                .select('company_id,status')
+                .eq('auth_id', authResult.data.user.id)
+                .maybeSingle()
+                .then(function (userResult) {
+                    if (
+                        userResult.error ||
+                        !userResult.data ||
+                        !userResult.data.company_id ||
+                        (
+                            userResult.data.status &&
+                            userResult.data.status !== 'Active'
+                        )
+                    ) {
+                        throw new Error('INVALID_COMPANY_CONTEXT');
+                    }
+
+                    return {
+                        user: authResult.data.user,
+                        companyId: userResult.data.company_id
+                    };
+                });
+        })
+
+        .then(function (ctx) {
+
+            return Promise.all([
+
+                supabase
+                    .from('treasury')
+                    .select(
+                        'id,account_code,account_name,current_balance,is_active'
+                    )
+                    .eq('company_id', ctx.companyId)
+                    .eq('is_active', true),
+
+                supabase
+                    .from('chart_of_accounts')
+                    .select(
+                        'id,account_code,account_name,account_type,normal_balance,is_active'
+                    )
+                    .eq('company_id', ctx.companyId)
+                    .eq('account_code', '121')
+                    .eq('is_active', true)
+                    .maybeSingle(),
+
+                supabase
+                    .from('chart_of_accounts')
+                    .select(
+                        'id,account_code,account_name,account_type,normal_balance,is_active'
+                    )
+                    .eq('company_id', ctx.companyId)
+                    .eq('is_active', true)
+                    .neq('account_code', '121')
+                    .order('account_code', {
+                        ascending: true
+                    })
+            ])
+
+            .then(function (results) {
+
+                var treasuryResult = results[0];
+                var cashAccountResult = results[1];
+                var offsetAccountsResult = results[2];
+
+                if (treasuryResult.error) {
+                    throw treasuryResult.error;
+                }
+
+                if (
+                    !treasuryResult.data ||
+                    treasuryResult.data.length !== 1
+                ) {
+                    throw new Error(
+                        'RECEIPT_TREASURY_MAPPING_REQUIRED'
+                    );
+                }
+
+                if (cashAccountResult.error) {
+                    throw cashAccountResult.error;
+                }
+
+                if (
+                    !cashAccountResult.data ||
+                    !cashAccountResult.data.id
+                ) {
+                    throw new Error(
+                        'CASH_ACCOUNT_121_NOT_CONFIGURED'
+                    );
+                }
+
+                if (offsetAccountsResult.error) {
+                    throw offsetAccountsResult.error;
+                }
+
+                var accounts =
+                    offsetAccountsResult.data || [];
+
+                if (!accounts.length) {
+                    throw new Error(
+                        'NO_ACTIVE_OFFSET_ACCOUNTS_AVAILABLE'
+                    );
+                }
+
+                return {
+                    user: ctx.user,
+                    companyId: ctx.companyId,
+                    treasury: treasuryResult.data[0],
+                    cashAccount: cashAccountResult.data,
+                    offsetAccounts: accounts
+                };
+            });
+        })
+
+        .then(function (ctx) {
+
+            var offsetSelect =
+                '<option value="">اختر الحساب المقابل</option>';
+
+            var container = document.createElement('div');
+
+            for (
+                var i = 0;
+                i < ctx.offsetAccounts.length;
+                i++
+            ) {
+                var account = ctx.offsetAccounts[i];
+
+                offsetSelect +=
+                    '<option value="' +
+                    String(account.id).replace(
+                        /"/g,
+                        '&quot;'
+                    ) +
+                    '">' +
+                    String(account.account_code || '') +
+                    ' — ' +
+                    String(account.account_name || '') +
+                    '</option>';
+            }
+
+            Swal.fire({
+
+                title: 'سند قبض جديد',
+
+                html:
+                    '<div style="text-align:right">' +
+
+                        '<label style="display:block;margin:0 0 6px;font-weight:700">' +
+                            'المبلغ' +
+                        '</label>' +
+
+                        '<input ' +
+                            'id="rcptAmt" ' +
+                            'class="swal2-input" ' +
+                            'type="number" ' +
+                            'min="0.01" ' +
+                            'step="0.01" ' +
+                            'placeholder="المبلغ">' +
+
+                        '<label style="display:block;margin:10px 0 6px;font-weight:700">' +
+                            'الحساب المقابل' +
+                        '</label>' +
+
+                        '<select ' +
+                            'id="rcptOffsetAccount" ' +
+                            'class="swal2-select" ' +
+                            'style="width:90%;margin:0 auto 10px auto">' +
+                            offsetSelect +
+                        '</select>' +
+
+                        '<label style="display:block;margin:10px 0 6px;font-weight:700">' +
+                            'المرجع' +
+                        '</label>' +
+
+                        '<input ' +
+                            'id="rcptRef" ' +
+                            'class="swal2-input" ' +
+                            'placeholder="مرجع السند">' +
+
+                        '<label style="display:block;margin:10px 0 6px;font-weight:700">' +
+                            'ملاحظات' +
+                        '</label>' +
+
+                        '<textarea ' +
+                            'id="rcptNotes" ' +
+                            'class="swal2-textarea" ' +
+                            'placeholder="ملاحظات اختيارية">' +
+                        '</textarea>' +
+
+                    '</div>',
+
+                showCancelButton: true,
+                confirmButtonText: 'حفظ سند القبض',
+                cancelButtonText: 'إلغاء',
+                allowOutsideClick: false,
+
+                preConfirm: function () {
+
+                    var amount = Number(
+                        document.getElementById('rcptAmt').value
+                    );
+
+                    var offsetAccountId = String(
+                        document.getElementById(
+                            'rcptOffsetAccount'
+                        ).value || ''
+                    ).trim();
+
+                    var reference = String(
+                        document.getElementById('rcptRef').value || ''
+                    ).trim();
+
+                    var notes = String(
+                        document.getElementById('rcptNotes').value || ''
+                    ).trim();
+
+                    if (
+                        !Number.isFinite(amount) ||
+                        amount <= 0
+                    ) {
+                        Swal.showValidationMessage(
+                            'أدخل مبلغ قبض صحيح أكبر من صفر'
+                        );
+                        return false;
+                    }
+
+                    if (!offsetAccountId) {
+                        Swal.showValidationMessage(
+                            'يجب اختيار الحساب المقابل'
+                        );
+                        return false;
+                    }
+
+                    return {
+                        amount: amount,
+                        offsetAccountId: offsetAccountId,
+                        reference: reference,
+                        notes: notes
+                    };
+                }
+
+            })
+
+            .then(function (result) {
+
+                if (
+                    !result.isConfirmed ||
+                    !result.value
+                ) {
+                    return;
+                }
+
+                var payload = result.value;
+
+                var fingerprint = JSON.stringify({
+                    amount: payload.amount,
+                    offsetAccountId: payload.offsetAccountId,
+                    reference: payload.reference,
+                    notes: payload.notes
+                });
+
+                var storageKey =
+                    'RW_ACCOUNTANT_PENDING_RECEIPT';
+
+                var operationId =
+                    getOperationId(
+                        storageKey,
+                        fingerprint
+                    );
+
+                RW_UI.showLoader(
+                    'جاري حفظ سند القبض...'
+                );
+
+                return supabase.functions.invoke(
+                    'save-receipt-voucher',
+                    {
+                        body: {
+
+                            header: {
+                                operationId: operationId,
+
+                                treasuryId:
+                                    ctx.treasury.id,
+
+                                cashAccountId:
+                                    ctx.cashAccount.id,
+
+                                offsetAccountId:
+                                    payload.offsetAccountId,
+
+                                date:
+                                    new Date()
+                                        .toISOString()
+                                        .slice(0, 10),
+
+                                reference:
+                                    payload.reference || null,
+
+                                notes:
+                                    payload.notes || null,
+
+                                voucherCode:
+                                    null
+                            },
+
+                            lines: [
+                                {
+                                    accountId:
+                                        payload.offsetAccountId,
+
+                                    amount:
+                                        payload.amount,
+
+                                    description:
+                                        payload.reference ||
+                                        'سند قبض'
+                                }
+                            ]
+                        }
+                    }
+                )
+
+                .then(function (response) {
+
+                    RW_UI.hideLoader();
+
+                    if (response.error) {
+                        throw response.error;
+                    }
+
+                    var data =
+                        response.data || {};
+
+                    if (data.success === false) {
+                        throw new Error(
+                            data.error ||
+                            data.msg ||
+                            'فشل حفظ سند القبض'
+                        );
+                    }
+
+                    clearPending(storageKey);
+
+                    RW_UI.toast(
+                        data.duplicate
+                            ? 'العملية موجودة بالفعل ولم تتم إضافة حركة ثانية'
+                            : 'تم حفظ سند القبض بنجاح',
+                        'success'
+                    );
+
+                    s.renderReceipts();
+                })
+
+                .catch(function (error) {
+
+                    RW_UI.hideLoader();
+
+                    /*
+                     * لا نحذف operationId هنا.
+                     * يبقى في sessionStorage ليُستخدم في retry
+                     * لنفس العملية، ويمنع إنشاء حركة مالية ثانية.
+                     */
+                    RW_UI.showError(
+                        error && error.message
+                            ? error.message
+                            : 'تعذر حفظ سند القبض'
+                    );
+                });
+            });
+        });
+}
     renderPayments: function(){
         var s=this; RW_UI.safeHTML(RW_UI.byId('mainContent'),'<div class="text-center py-10"><i class="fa-solid fa-spinner fa-spin"></i></div>');
         supabase.from('cash_box').select('*').eq('type','Payment').order('voucher_date',{ascending:false}).limit(30).then(function(r){var data=r.data||[],html='<h2 class="text-lg font-black mb-4">📤 سندات الصرف</h2><button onclick="App.newPayment()" class="w-full bg-red-600 text-white py-3 rounded-xl font-black mb-4">➕ سند صرف جديد</button>';
@@ -96,10 +539,475 @@ var App = {
         RW_UI.safeHTML(RW_UI.byId('mainContent'),html);});
     },
 
-    newPayment: function(){
-        Swal.fire({title:'سند صرف جديد',html:'<input id="pmtAmt" class="swal2-input" placeholder="المبلغ" type="number"><input id="pmtRef" class="swal2-input" placeholder="المرجع">',showCancelButton:true,confirmButtonText:'حفظ',preConfirm:function(){return{amt:parseFloat(document.getElementById('pmtAmt').value)||0,ref:document.getElementById('pmtRef').value};}}).then(function(r){if(!r.isConfirmed)return;Swal.showLoading();supabase.auth.getSession().then(function(se){var t=se.data.session?se.data.session.access_token:null;return fetch(SUPABASE_URL+'/functions/v1/save-payment-voucher',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+t},body:JSON.stringify({date:new Date().toISOString().split('T')[0],cashBoxId:'MAIN',mainAccountName:r.value.ref,notes:'',lines:[{accountName:r.value.ref,description:'',amount:r.value.amt}]})});}).then(function(res){return res.json();}).then(function(j){Swal.close();if(j.success){RW_UI.toast('تم الحفظ','success');App.renderPayments();}else{RW_UI.toast(j.error||'فشل','error');}});});
-    },
+ newPayment: function () {
+    var s = this;
 
+    function getOperationId(storageKey, payloadFingerprint) {
+        try {
+            var raw = sessionStorage.getItem(storageKey);
+
+            if (raw) {
+                var pending = JSON.parse(raw);
+
+                if (
+                    pending &&
+                    pending.fingerprint === payloadFingerprint &&
+                    pending.operationId &&
+                    pending.createdAt &&
+                    (Date.now() - pending.createdAt) < 15 * 60 * 1000
+                ) {
+                    return pending.operationId;
+                }
+            }
+        } catch (e) {}
+
+        var operationId =
+            window.crypto &&
+            typeof window.crypto.randomUUID === 'function'
+                ? window.crypto.randomUUID()
+                : (
+                    'PMT-' +
+                    Date.now() +
+                    '-' +
+                    Math.random().toString(36).slice(2, 10)
+                );
+
+        try {
+            sessionStorage.setItem(
+                storageKey,
+                JSON.stringify({
+                    operationId: operationId,
+                    fingerprint: payloadFingerprint,
+                    createdAt: Date.now()
+                })
+            );
+        } catch (e) {}
+
+        return operationId;
+    }
+
+    function clearPending(storageKey) {
+        try {
+            sessionStorage.removeItem(storageKey);
+        } catch (e) {}
+    }
+
+    Swal.fire({
+        title: 'جاري تحميل السياق المالي...',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: function () {
+            Swal.showLoading();
+        }
+    });
+
+    supabase.auth.getUser()
+
+        .then(function (authResult) {
+
+            if (
+                authResult.error ||
+                !authResult.data ||
+                !authResult.data.user
+            ) {
+                throw new Error('INVALID_SESSION');
+            }
+
+            return supabase
+                .from('users')
+                .select('company_id,status')
+                .eq('auth_id', authResult.data.user.id)
+                .maybeSingle()
+                .then(function (userResult) {
+
+                    if (
+                        userResult.error ||
+                        !userResult.data ||
+                        !userResult.data.company_id ||
+                        (
+                            userResult.data.status &&
+                            userResult.data.status !== 'Active'
+                        )
+                    ) {
+                        throw new Error(
+                            'INVALID_COMPANY_CONTEXT'
+                        );
+                    }
+
+                    return {
+                        user: authResult.data.user,
+                        companyId:
+                            userResult.data.company_id
+                    };
+                });
+        })
+
+        .then(function (ctx) {
+
+            return Promise.all([
+
+                supabase
+                    .from('treasury')
+                    .select(
+                        'id,account_code,account_name,current_balance,is_active'
+                    )
+                    .eq('company_id', ctx.companyId)
+                    .eq('is_active', true),
+
+                supabase
+                    .from('chart_of_accounts')
+                    .select(
+                        'id,account_code,account_name,account_type,normal_balance,is_active'
+                    )
+                    .eq('company_id', ctx.companyId)
+                    .eq('account_code', '121')
+                    .eq('is_active', true)
+                    .maybeSingle(),
+
+                supabase
+                    .from('chart_of_accounts')
+                    .select(
+                        'id,account_code,account_name,account_type,normal_balance,is_active'
+                    )
+                    .eq('company_id', ctx.companyId)
+                    .eq('is_active', true)
+                    .neq('account_code', '121')
+                    .order('account_code', {
+                        ascending: true
+                    })
+            ])
+
+            .then(function (results) {
+
+                var treasuryResult = results[0];
+                var cashAccountResult = results[1];
+                var offsetAccountsResult = results[2];
+
+                if (treasuryResult.error) {
+                    throw treasuryResult.error;
+                }
+
+                if (
+                    !treasuryResult.data ||
+                    treasuryResult.data.length !== 1
+                ) {
+                    throw new Error(
+                        'PAYMENT_TREASURY_MAPPING_REQUIRED'
+                    );
+                }
+
+                if (cashAccountResult.error) {
+                    throw cashAccountResult.error;
+                }
+
+                if (
+                    !cashAccountResult.data ||
+                    !cashAccountResult.data.id
+                ) {
+                    throw new Error(
+                        'CASH_ACCOUNT_121_NOT_CONFIGURED'
+                    );
+                }
+
+                if (offsetAccountsResult.error) {
+                    throw offsetAccountsResult.error;
+                }
+
+                var accounts =
+                    offsetAccountsResult.data || [];
+
+                if (!accounts.length) {
+                    throw new Error(
+                        'NO_ACTIVE_OFFSET_ACCOUNTS_AVAILABLE'
+                    );
+                }
+
+                return {
+                    user: ctx.user,
+                    companyId: ctx.companyId,
+                    treasury: treasuryResult.data[0],
+                    cashAccount: cashAccountResult.data,
+                    offsetAccounts: accounts
+                };
+            });
+        })
+
+        .then(function (ctx) {
+
+            var offsetSelect =
+                '<option value="">اختر الحساب المقابل</option>';
+
+            for (
+                var i = 0;
+                i < ctx.offsetAccounts.length;
+                i++
+            ) {
+
+                var account =
+                    ctx.offsetAccounts[i];
+
+                offsetSelect +=
+                    '<option value="' +
+                    String(account.id).replace(
+                        /"/g,
+                        '&quot;'
+                    ) +
+                    '">' +
+                    String(account.account_code || '') +
+                    ' — ' +
+                    String(account.account_name || '') +
+                    '</option>';
+            }
+
+            Swal.fire({
+
+                title: 'سند صرف جديد',
+
+                html:
+                    '<div style="text-align:right">' +
+
+                        '<label style="display:block;margin:0 0 6px;font-weight:700">' +
+                            'المبلغ' +
+                        '</label>' +
+
+                        '<input ' +
+                            'id="pmtAmt" ' +
+                            'class="swal2-input" ' +
+                            'type="number" ' +
+                            'min="0.01" ' +
+                            'step="0.01" ' +
+                            'placeholder="المبلغ">' +
+
+                        '<label style="display:block;margin:10px 0 6px;font-weight:700">' +
+                            'الحساب المقابل' +
+                        '</label>' +
+
+                        '<select ' +
+                            'id="pmtOffsetAccount" ' +
+                            'class="swal2-select" ' +
+                            'style="width:90%;margin:0 auto 10px auto">' +
+                            offsetSelect +
+                        '</select>' +
+
+                        '<label style="display:block;margin:10px 0 6px;font-weight:700">' +
+                            'المرجع' +
+                        '</label>' +
+
+                        '<input ' +
+                            'id="pmtRef" ' +
+                            'class="swal2-input" ' +
+                            'placeholder="مرجع السند">' +
+
+                        '<label style="display:block;margin:10px 0 6px;font-weight:700">' +
+                            'ملاحظات' +
+                        '</label>' +
+
+                        '<textarea ' +
+                            'id="pmtNotes" ' +
+                            'class="swal2-textarea" ' +
+                            'placeholder="ملاحظات اختيارية">' +
+                        '</textarea>' +
+
+                    '</div>',
+
+                showCancelButton: true,
+                confirmButtonText: 'حفظ سند الصرف',
+                cancelButtonText: 'إلغاء',
+                allowOutsideClick: false,
+
+                preConfirm: function () {
+
+                    var amount = Number(
+                        document.getElementById(
+                            'pmtAmt'
+                        ).value
+                    );
+
+                    var offsetAccountId =
+                        String(
+                            document.getElementById(
+                                'pmtOffsetAccount'
+                            ).value || ''
+                        ).trim();
+
+                    var reference =
+                        String(
+                            document.getElementById(
+                                'pmtRef'
+                            ).value || ''
+                        ).trim();
+
+                    var notes =
+                        String(
+                            document.getElementById(
+                                'pmtNotes'
+                            ).value || ''
+                        ).trim();
+
+                    if (
+                        !Number.isFinite(amount) ||
+                        amount <= 0
+                    ) {
+                        Swal.showValidationMessage(
+                            'أدخل مبلغ صرف صحيح أكبر من صفر'
+                        );
+                        return false;
+                    }
+
+                    if (!offsetAccountId) {
+                        Swal.showValidationMessage(
+                            'يجب اختيار الحساب المقابل'
+                        );
+                        return false;
+                    }
+
+                    return {
+                        amount: amount,
+                        offsetAccountId: offsetAccountId,
+                        reference: reference,
+                        notes: notes
+                    };
+                }
+
+            })
+
+            .then(function (result) {
+
+                if (
+                    !result.isConfirmed ||
+                    !result.value
+                ) {
+                    return;
+                }
+
+                var payload =
+                    result.value;
+
+                var fingerprint =
+                    JSON.stringify({
+                        amount:
+                            payload.amount,
+                        offsetAccountId:
+                            payload.offsetAccountId,
+                        reference:
+                            payload.reference,
+                        notes:
+                            payload.notes
+                    });
+
+                var storageKey =
+                    'RW_ACCOUNTANT_PENDING_PAYMENT';
+
+                var operationId =
+                    getOperationId(
+                        storageKey,
+                        fingerprint
+                    );
+
+                RW_UI.showLoader(
+                    'جاري حفظ سند الصرف...'
+                );
+
+                return supabase.functions.invoke(
+                    'save-payment-voucher',
+                    {
+                        body: {
+
+                            header: {
+                                operationId:
+                                    operationId,
+
+                                treasuryId:
+                                    ctx.treasury.id,
+
+                                cashAccountId:
+                                    ctx.cashAccount.id,
+
+                                offsetAccountId:
+                                    payload.offsetAccountId,
+
+                                date:
+                                    new Date()
+                                        .toISOString()
+                                        .slice(0, 10),
+
+                                reference:
+                                    payload.reference ||
+                                    null,
+
+                                notes:
+                                    payload.notes ||
+                                    null,
+
+                                voucherCode:
+                                    null
+                            },
+
+                            lines: [
+                                {
+                                    accountId:
+                                        payload.offsetAccountId,
+
+                                    amount:
+                                        payload.amount,
+
+                                    description:
+                                        payload.reference ||
+                                        'سند صرف'
+                                }
+                            ]
+                        }
+                    }
+                )
+
+                .then(function (response) {
+
+                    RW_UI.hideLoader();
+
+                    if (response.error) {
+                        throw response.error;
+                    }
+
+                    var data =
+                        response.data || {};
+
+                    if (data.success === false) {
+                        throw new Error(
+                            data.error ||
+                            data.msg ||
+                            'فشل حفظ سند الصرف'
+                        );
+                    }
+
+                    clearPending(storageKey);
+
+                    RW_UI.toast(
+                        data.duplicate
+                            ? 'العملية موجودة بالفعل ولم تتم إضافة حركة ثانية'
+                            : 'تم حفظ سند الصرف بنجاح',
+                        'success'
+                    );
+
+                    s.renderPayments();
+                })
+
+                .catch(function (error) {
+
+                    RW_UI.hideLoader();
+
+                    /*
+                     * الاحتفاظ بالـoperationId يسمح بإعادة المحاولة
+                     * دون إنشاء حركة مالية ثانية.
+                     */
+                    RW_UI.showError(
+                        error && error.message
+                            ? error.message
+                            : 'تعذر حفظ سند الصرف'
+                    );
+                });
+            });
+        });
+}
     renderJournal: function(){
         RW_UI.safeHTML(RW_UI.byId('mainContent'),'<div class="text-center py-10 text-gray-400"><i class="fa-solid fa-book text-4xl mb-3"></i><p>القيود اليومية – تُدار من النظام الأم</p><p class="text-sm mt-2">استخدم تطبيق المركز الرئيسي لإدارة القيود المحاسبية</p></div>');
     }
