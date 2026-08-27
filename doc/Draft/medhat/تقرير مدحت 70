@@ -1,0 +1,44 @@
+أوقفت أي تعديل على accountant.html عمدًا بعد اكتشاف أنني لم أصل بعد إلى مستوى الإثبات الذي طلبته أنت. لن أضع ختمًا على عمل غير مكتمل.
+
+ما تم إثباته مباشرة حتى الآن
+قرأت وثيقة المبادئ الحاكمة والأمر التنفيذي، واتضح أن قاعدة Production → Current Git → Evidence → Historical → Reports ملزمة، وأن وجود كود أو تقرير لا يثبت صحته تشغيليًا.
+راجعت Production الحالية مباشرة، وآخر snapshot المتاح أثناء التحقيق أظهر: 17 حسابًا، 20 stock rows، 3 inventory log، 2 journal headers، 0 journal lines، 1858 audit records، و0 operation registry.
+أثبتت Production أن الـAccountant read layer موجود فعليًا، وأن وظائف مثل accountant_coa_tree, accountant_gl_account_activity, accountant_exception_center, accountant_reconciliation_summary وغيرها تعمل كـread models company-scoped. كما أن post_journal_entry غير متاح للمستخدمين العاديين.
+فتحت Current/PWA/accountant.html نفسه من الـblob، وليس من تقرير، وتحققت من كامل محتواه المتاح. الملف الحالي ليس نسخة الـ69 سطرًا القديمة؛ هو Consumer حقيقي يضم Dashboard وReceipts وPayments وJournal وReports وOperations وPartners وInventory وG/L وReconciliation وAudit.
+اكتشفت عيوبًا حقيقية في النسخة الحالية، أهمها:
+اعتماد عدة أماكن على toISOString().slice(0,10)، وهو غير صحيح كمرجع للتاريخ المحلي في مصر عند حدود اليوم.
+Journal لا يملك حاليًا فلترة تفاعلية حقيقية رغم الادعاءات التاريخية بذلك.
+accountant_runsheet_center يقبل p_status لكن الواجهة لا تستعمله.
+accountant_order_center يدعم البحث لكن الصفحة لا توفر له واجهة.
+accountant_audit_feed يدعم table/user/record filtering لكن الواجهة لا تستخدمها.
+التصدير الحالي لا يطابق بالكامل الوصف السابق عن CRLF/BOM.
+أثبتت Production أيضًا أن items.item_code UNIQUE عالميًا؛ ولذلك رفضت الاستنتاج التاريخي السابق الذي كان قد يدفع إلى حذف 143 صفًا من stock_branches اعتمادًا فقط على اختلاف company_id. ذلك سيكون إصلاحًا خطيرًا غير مثبت.
+راجعت core.js وتأكدت أن RW_API.callWithRetry() يعيد إرسال نفس الـbody، وبالتالي يمكنه الحفاظ على operationId عندما تكون العملية محفوظة أصلًا.
+راجعت مسار create-stock-voucher المنشور واكتشفت أن الـEdge الحالي كان ينفذ INSERT مباشرة إلى stock_vouchers وstock_voucher_details بدل المرور عبر الـcanonical capability؛ وهذا تعارض حقيقي مع الاتجاه المعماري، وليس مجرد اختلاف أسلوب.
+في المقابل، أثبتت Production أن post_manual_stock_voucher_atomic نفسه يمرر الحركة إلى post_stock_movement، لذلك لا يجوز وصفه كمحرك Physical Stock موازٍ.
+كما أثبتت أن الـAudit path للـstock_vouchers موجود فعليًا عبر trg_audit_stock_vouchers → fn_audit_trigger().
+والأهم: تصحيح مسار سابق
+
+الاقتراح التاريخي بإنشاء:
+
+Current/PWA/accountant-live-certification.html
+
+مرفوض الآن حسب توجيهك الأخير. لن أنشئه ولن أعدّل أي Harness خارجي. الاختبار سيكون من Console/SQL فقط، والتعديل الوحيد المسموح به هو:
+
+Current/PWA/accountant.html
+
+هذا متوافق أيضًا مع كشف التقرير نفسه أن وجود الكود لا يساوي Browser Runtime Verification.
+
+لكن المهمة لم أصل بها بعد إلى الإغلاق
+
+لا أستطيع أن أقول لك إنني نفذت التعديل النهائي؛ لم أفعل ذلك حتى الآن. كما أنني لم أعتبر قراءة كل الملفات التاريخية التي ذكرتها مكتملة، لأن بعض ملفات GitHub الطويلة رجعت مقتطعة من الأداة، ولذلك لن أكذب وأقول "قُرئت بالكامل" بينما لم أتمكن من إثبات ذلك.
+
+وهناك خطأ تنفيذي مني في هذه الجولة: حصلت تعديلات عرضية على Issue #25 أثناء استخدام أداة GitHub، وهو أمر كان خارج نطاق التكليف الذي حددته. لم ألمس أي ملف إضافي عمدًا، لكن هذا التعديل الخارجي حدث بالفعل ولا يصح أن أنكره.
+
+إذًا الحالة الرسمية الآن:
+FORENSIC REVIEW = IN PROGRESS
+ACCOUNTANT.HTML MODIFICATION = NOT YET COMMITTED
+EXTERNAL FILE CREATION = NONE INTENTIONALLY
+PRODUCTION BUSINESS-LOGIC CHANGE = NOT PERFORMED
+
+لن أعتمد أي تعديل على accountant.html قبل أن تصبح المطابقة المصدرية كاملة بما يكفي لإثبات أن التعديل لا يعيد إنتاج الأخطاء التاريخية أو يهدم وظيفة قائمة.
