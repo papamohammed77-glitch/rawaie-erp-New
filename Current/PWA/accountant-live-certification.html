@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RAWAEA ERP | Accountant Live Certification</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../core.js"></script>
+<style>
+body{font-family:Tahoma,Arial,sans-serif;background:#f3f6f9;color:#17202a;margin:0;padding:24px}.panel{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:18px;margin-bottom:16px}.ok{color:#047857}.bad{color:#b91c1c}.warn{color:#b45309}.muted{color:#64748b}.btn{border:0;border-radius:10px;padding:11px 16px;font-weight:800;cursor:pointer;background:#047857;color:#fff}.mono{font-family:Consolas,monospace;white-space:pre-wrap;word-break:break-word;font-size:12px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #eef2f7;padding:10px 0}.badge{border-radius:999px;padding:4px 9px;font-size:11px;font-weight:900}.b-ok{background:#dcfce7;color:#166534}.b-bad{background:#fee2e2;color:#991b1b}.b-warn{background:#fef3c7;color:#92400e}
+</style>
+</head>
+<body>
+<div class="panel">
+  <h1>Accountant Live Certification</h1>
+  <div class="muted">READ-ONLY / NO BUSINESS MUTATION. Run this page only after logging into the published Current/PWA/accountant.html in the same browser profile.</div>
+  <div style="margin-top:14px"><button class="btn" onclick="runCertification()">تشغيل الشهادة الحية</button></div>
+</div>
+<div id="summary" class="panel">لم يبدأ الاختبار.</div>
+<div id="results" class="panel"></div>
+<div id="raw" class="panel mono"></div>
+<script>
+(function(){
+  var state={results:[],raw:{}};
+  function add(name,status,detail){state.results.push({name:name,status:status,detail:detail});}
+  function show(){
+    var good=state.results.filter(function(x){return x.status==='PASS'}).length;
+    var fail=state.results.filter(function(x){return x.status==='FAIL'}).length;
+    var review=state.results.filter(function(x){return x.status==='REVIEW'}).length;
+    document.getElementById('summary').innerHTML='<div><b>PASS:</b> '+good+' &nbsp; <b>FAIL:</b> '+fail+' &nbsp; <b>REVIEW:</b> '+review+'</div>';
+    document.getElementById('results').innerHTML=state.results.map(function(x){
+      var cls=x.status==='PASS'?'b-ok':x.status==='FAIL'?'b-bad':'b-warn';
+      return '<div class="row"><span class="badge '+cls+'">'+x.status+'</span><div><b>'+escapeHtml(x.name)+'</b><div class="muted">'+escapeHtml(x.detail||'')+'</div></div></div>';
+    }).join('');
+    document.getElementById('raw').textContent=JSON.stringify(state.raw,null,2);
+  }
+  function escapeHtml(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c];});}
+  function callRpc(name,args){return supabase.rpc(name,args||{});}
+  async function runCertification(){
+    state={results:[],raw:{}}; show();
+    try{
+      var sessionRes=await supabase.auth.getSession();
+      if(sessionRes.error||!sessionRes.data||!sessionRes.data.session){add('SESSION','FAIL','No active authenticated session');show();return;}
+      add('SESSION','PASS','Authenticated session is present');
+      var authUser=sessionRes.data.session.user;
+      state.raw.authUser={id:authUser.id,email:authUser.email};
+
+      var ures=await supabase.from('users').select('id,company_id,status,name').eq('auth_id',authUser.id).maybeSingle();
+      if(ures.error||!ures.data||!ures.data.company_id||ures.data.status==='Inactive'){add('COMPANY_CONTEXT','FAIL','users.auth_id did not resolve an active company');show();return;}
+      var companyId=ures.data.company_id;
+      state.raw.company={id:ures.data.id,company_id:companyId,status:ures.data.status,name:ures.data.name};
+      add('COMPANY_CONTEXT','PASS','Resolved through users.auth_id: '+companyId);
+
+      var tr=await supabase.from('treasury').select('id,account_code,account_name,current_balance,is_active').eq('company_id',companyId).eq('is_active',true).order('account_code');
+      if(tr.error){add('TREASURY_READ','FAIL',tr.error.message);}else{state.raw.treasuries=tr.data||[];add('TREASURY_READ','PASS',(tr.data||[]).length+' active treasury row(s)');}
+
+      var coa=await supabase.from('chart_of_accounts').select('id,account_code,account_name,account_type,normal_balance,is_active').eq('company_id',companyId).eq('is_active',true).order('account_code');
+      if(coa.error){add('COA_READ','FAIL',coa.error.message);}else{state.raw.coa=coa.data||[];add('COA_READ','PASS',(coa.data||[]).length+' active account(s)');}
+
+      var today=new Date().toISOString().slice(0,10), first=today.slice(0,8)+'01';
+      var reads=[
+        ['accountant_reconciliation_summary',{p_as_of_date:today}],
+        ['accountant_period_readiness',{p_from_date:first,p_to_date:today}],
+        ['accountant_exception_center',{p_as_of_date:today}],
+        ['accountant_runsheet_center',{p_from_date:first,p_to_date:today,p_status:null}],
+        ['accountant_order_center',{p_from_date:first,p_to_date:today,p_search:null}],
+        ['accountant_customer_aging',{p_as_of_date:today}],
+        ['accountant_supplier_aging',{p_as_of_date:today}],
+        ['accountant_inventory_control',{p_from_date:first,p_to_date:today}],
+        ['accountant_coa_tree',{}],
+        ['accountant_audit_feed',{p_from_date:first,p_to_date:today,p_table_name:null,p_user_email:null,p_record_id:null}],
+        ['get_trial_balance',{p_from_date:first,p_to_date:today}],
+        ['get_profit_loss',{p_from_date:first,p_to_date:today}],
+        ['get_balance_sheet',{p_as_of:today}],
+        ['get_cash_flow',{p_from_date:first,p_to_date:today}],
+        ['get_pnl_by_cost_center',{p_from_date:first,p_to_date:today}]
+      ];
+      for(var i=0;i<reads.length;i++){
+        var rr=await callRpc(reads[i][0],reads[i][1]);
+        if(rr.error){add('READ_RPC '+reads[i][0],'FAIL',rr.error.message);state.raw[reads[i][0]]={error:rr.error.message};}
+        else{add('READ_RPC '+reads[i][0],'PASS','RPC returned successfully');state.raw[reads[i][0]]=rr.data;}
+      }
+
+      var writerTests=[
+        ['post_journal_entry',{p_company_id:companyId,p_operation_id:'00000000-0000-0000-0000-000000000000',p_entry_date:today,p_entry_type:'LIVE_CERTIFICATION_NEGATIVE',p_reference:'LIVE-CERT',p_description:'read-only negative permission test',p_created_by:authUser.email||'test',p_lines:[]}],
+        ['post_stock_movement',{p_company_id:companyId,p_movement_type:'InventoryIncrease',p_source_branch_id:null,p_target_branch_id:null,p_item_id:'00000000-0000-0000-0000-000000000000',p_qty:1,p_voucher_id:'LIVE-CERT',p_reference:'LIVE-CERT',p_user_email:authUser.email||'test',p_idempotency_key:'LIVE-CERT'}],
+        ['post_cash_receipt_atomic',{p_company_id:companyId,p_operation_id:'00000000-0000-0000-0000-000000000000',p_treasury_id:'00000000-0000-0000-0000-000000000000',p_cash_account_id:'00000000-0000-0000-0000-000000000000',p_offset_account_id:'00000000-0000-0000-0000-000000000000',p_amount:0.01,p_entry_date:today,p_reference:'LIVE-CERT',p_description:'permission test',p_created_by:authUser.email||'test',p_source_name:'LIVE-CERT',p_source_type:'LIVE_CERT',p_source_id:null,p_notes:null,p_voucher_code:null}]
+      ];
+      for(var j=0;j<writerTests.length;j++){
+        var wr=await callRpc(writerTests[j][0],writerTests[j][1]);
+        if(wr.error){add('WRITE_SURFACE '+writerTests[j][0],'PASS','Authenticated browser call rejected: '+wr.error.message);state.raw['WRITE_SURFACE '+writerTests[j][0]]={rejected:true,error:wr.error.message};}
+        else{add('WRITE_SURFACE '+writerTests[j][0],'FAIL','Writer call unexpectedly executed; investigate immediately');state.raw['WRITE_SURFACE '+writerTests[j][0]]={rejected:false,data:wr.data};}
+      }
+
+      var adapterBodies=[
+        ['save-receipt-voucher',{}],['save-payment-voucher',{}],['save-transfer-voucher',{}]
+      ];
+      var token=sessionRes.data.session.access_token;
+      for(var k=0;k<adapterBodies.length;k++){
+        try{
+          var fr=await fetch(SUPABASE_URL+'/functions/v1/'+adapterBodies[k][0],{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(adapterBodies[k][1])});
+          var tx=await fr.text();
+          if(fr.status>=400&&fr.status<500){add('HTTP_VALIDATION '+adapterBodies[k][0],'PASS','Side-effect-free validation rejected invalid payload with HTTP '+fr.status);state.raw['HTTP_VALIDATION '+adapterBodies[k][0]]={status:fr.status,body:tx};}
+          else{add('HTTP_VALIDATION '+adapterBodies[k][0],'FAIL','Unexpected HTTP '+fr.status+'; inspect response');state.raw['HTTP_VALIDATION '+adapterBodies[k][0]]={status:fr.status,body:tx};}
+        }catch(ex){add('HTTP_VALIDATION '+adapterBodies[k][0],'FAIL',ex.message||'fetch failed');}
+      }
+
+      add('FINAL','PASS','This harness performs no successful business write; mutation/concurrency certification still requires a controlled test transaction or dedicated test tenant.');
+    }catch(e){add('HARNESS','FAIL',e.message||String(e));}
+    show();
+  }
+  window.runCertification=runCertification;
+})();
+</script>
+</body>
+</html>
