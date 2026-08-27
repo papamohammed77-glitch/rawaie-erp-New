@@ -1,0 +1,204 @@
+تمت المراجعة والتنفيذ الفعلي، مع الالتزام بالقاعدة الأساسية التي وضعتها: Production والمصادر المباشرة أعلى من أي تقرير تاريخي أو ذاكرة أو ادعاء مساعد. المبدأ الحاكم نفسه ينص على أن الدراسة وإعادة بناء السياق تسبق التعديل، وأن وجود سلوك غير منطقي ظاهريًا لا يكفي لإثبات أنه خطأ.
+
+النتيجة التنفيذية
+1. ما ثبت خطؤه في الأعمال السابقة
+
+المراجعة الجنائية كشفت عدة نقاط كان من الخطأ اعتبارها مغلقة اعتمادًا على التقارير وحدها:
+
+accountant.html الحالي لم يكن بالفعل النسخة “الماسية” المتكاملة؛ كانت واجهة Financial Workbench محدودة، وليست Accountant Control Center.
+وُجدت مسارات Tenant/Company تعتمد في بعض المواضع على app_settings LIMIT 1، وهو غير مقبول عندما تكون الهوية مرتبطة بالشركة.
+create-stock-voucher الحالي كان ينفذ INSERT مباشرة إلى stock_vouchers وstock_voucher_details بدل الاستفادة من الـcanonical capability.
+ظهرت فروق تاريخية في بيانات stock_branches، لكن التحقيق أثبت أن items.item_code Unique عالميًا في Production؛ لذلك لم أرتكب الخطأ الأخطر بحذف أو إعادة ربط 143 سجلًا اعتمادًا على مقارنة company_id فقط.
+تم أيضًا التحقق من أن الـPhysical Stock Core الحالي موجود فعليًا، وأن post_stock_movement هو العقد المركزي، ولم يتم إنشاء Writer بديل جديد.
+2. ما تم تنفيذه فعلًا في Production
+
+تم بناء Accountant Read/Control Plane فوق الـCores القائمة، بدون إنشاء Distributed Writers جديدة.
+
+تم نشر وظائف Read-only جديدة:
+
+accountant_coa_tree
+accountant_gl_account_activity
+accountant_customer_aging
+accountant_supplier_aging
+accountant_runsheet_center
+accountant_order_center
+accountant_inventory_control
+accountant_reconciliation_summary
+accountant_exception_center
+accountant_audit_feed
+accountant_period_readiness
+
+وكلها SECURITY INVOKER، مع إزالة التنفيذ من PUBLIC/anon وإتاحته للمستخدمين المصرح لهم فقط.
+
+والأهم: هذه الوظائف لا تكتب Stock ولا Journal ولا Ledger ولا Treasury ولا Orders ولا Runsheets.
+
+هذا يتوافق مباشرةً مع أمر التنفيذ الذي اشترط أن يكون:
+
+Physical Stock Movement → post_stock_movement
+
+وأن الـAccountant Center لا يعيد Distributed Writers.
+
+3. ما أصبح موجودًا داخل Accountant Control Center
+
+تم رفع Current/PWA/accountant.html من Workbench محدود إلى مركز تحكم مالي موحد يشمل:
+
+المجال	الحالة
+Dashboard مالي	✅
+قبض	✅
+صرف	✅
+القيود	✅
+تفاصيل القيود	✅
+التقارير المالية	✅
+Trial Balance	✅
+P&L	✅
+Balance Sheet	✅
+Cash Flow	✅
+Cost Center	✅
+Treasury Movement	✅
+Runsheet Financial Center	✅
+Order Financial Center	✅
+Customer Aging	✅
+Supplier Aging	✅
+Inventory Financial Control	✅
+COA Tree	✅
+G/L Account Activity + Running Balance	✅
+Reconciliation Center	✅
+Exception Center	✅
+Audit Feed	✅
+ERP Operation Registry	✅
+Period Close Readiness	✅
+Persistent Period Close	⚠️ غير مخترع عمدًا
+
+النسخة الجديدة حافظت كذلك على وظائف القبض والصرف والقيود والتقارير السابقة بدل استبدالها بنواة مختصرة.
+
+النسخة الحالية أصبحت موجودة في Git main، وتم فحص JavaScript الخاص بها محليًا باستخدام node --check قبل رفعها. والنسخة الحالية موثقة كذلك كسجل تنفيذ.
+
+4. Production Verification
+
+في آخر Snapshot مباشر من Production بتاريخ:
+
+2026-08-27 20:09:56 UTC
+
+كانت الصورة:
+
+Companies: 1
+Users: 24
+Branches: 2
+Items: 17
+Stock rows: 20
+Inventory log: 3
+Stock vouchers: 0
+Treasury: 1
+Chart of Accounts: 17
+Journal entries: 2
+Journal lines: 0
+Customers: 3
+Suppliers: 1
+Orders: 0
+Purchase orders: 0
+Runsheets: 0
+Audit log: 1855
+ERP operation registry: 0
+
+وتحت Company context حقيقي مرتبط بالمستخدم عبر users.auth_id:
+
+COA Tree → 17
+Customer Aging → 0
+Supplier Aging → 0
+Runsheet Center → 0
+Order Center → 0
+Inventory Control → 1 summary
+Exception Center → 0
+Audit Feed → 214 ضمن فترة الاختبار.
+
+والـReadiness الحالي:
+
+UNBALANCED_JOURNALS → PASS / 0
+FAILED_OPERATIONS → PASS / 0
+PENDING_DRIVER_LIABILITIES → PASS / 0
+STOCK_INVARIANTS → PASS / 0
+PERSISTENT_PERIOD_CLOSE → REVIEW
+
+وهذه الأرقام مسجلة في سجل التنفيذ النهائي.
+
+سجل تنفيذ Accountant Control Center
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260827_ACCOUNTANT_CONTROL_CENTER_EXECUTION.md
+
+Snapshot النهائي لـProduction
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260827_ACCOUNTANT_CONTROL_CENTER_FINAL_SNAPSHOT.md
+
+5. لماذا لم أنفذ Persistent Close/Reopen؟
+
+هذه نقطة متعمدة وليست نقصًا تقنيًا مخفيًا.
+
+لم أجد في Production عقدًا موثوقًا ومثبتًا لـ:
+
+accounting_periods / period_close / close_state
+
+وبالتالي لم أخترع State Machine جديدة من عندي.
+
+بدل ذلك أنشأت:
+
+Period Close Readiness
+
+بحيث يستطيع المحاسب معرفة هل الفترة مستعدة للإغلاق أم لا، دون إدخال مفهوم Closing جديد قد يكسر تاريخ النظام أو يخلق Core جديدًا بلا عقد.
+
+وهذا بالضبط يتفق مع مبدأ:
+
+لا تُسقط مسؤولية أو تضيف سلوكًا جديدًا دون إثبات العقد الذي يحكمه.
+
+6. مقارنة المنافسين
+
+تمت مطابقة التصميم مع الأنماط الفعلية في Odoo وMicrosoft Dynamics Business Central، خصوصًا:
+
+General Ledger، Trial Balance، Aging، Cash Flow، Audit Trail، Drill-down، Reconciliation، Cost Center، Budget/Actual، والمقارنة المالية.
+
+لكن تم تطبيقها على Contract الروائع، وليس نسخ نموذج منافس بشكل أعمى.
+
+7. تقييم خالد وهيثم
+
+الخلاصة ليست أن أحدهما “صح” والآخر “خطأ” بالكامل.
+
+ما قدمه خالد وهيثم كان مفيدًا في كشف أجزاء من الصورة، لكن التحقيق الحالي أثبت أن بعض نتائجهم أصبحت stale أو كانت تحتاج Runtime/Production verification. مثال واضح: خالد 12 اعتبر save-transfer-voucher مغلقًا، بينما توجيهنا الحالي لا يقبل الإغلاق اعتمادًا على التقرير؛ الإغلاق يجب أن يُثبت من Production. وهذا هو سبب أنني اعتمدت Production الحالية بدل التقرير.
+
+وبالمثل، بعض اكتشافات الـCompany/Item التي تبدو في التقارير كـcorruption لا يجوز إصلاحها إلا بعد إثبات العقد. لذلك لم أنفذ mass cleanup على البيانات لمجرد أن الأرقام بدت غير طبيعية.
+
+8. الأهم: هل النظام أصبح مكتملًا 100%؟
+
+لا. وأرفض أن أقول ذلك بشكل غير صادق.
+
+ما أصبح مغلقًا فعليًا هو:
+
+Accountant Control Center Read/Control Plane
+
+وليس:
+
+ERP Financial Architecture = 100% closed
+
+ما زال لدينا فرق بين:
+
+Source synchronized → Production DB verified → PWA source updated
+
+وبين:
+
+Browser runtime of the hosted PWA independently E2E verified
+
+لم أجد في مجموعة workflows التي تم فحصها قناة deployment واضحة تثبت أن Commit الـPWA وحده يعني أن النسخة المستضافة للمستخدمين أصبحت Runtime Production version؛ ولذلك سجلت هذا صراحةً بدل ادعاء غير مثبت.
+
+الحكم النهائي
+
+النتيجة الحالية:
+
+Accountant Control Center Architecture: ✅ منفذة
+Financial Read/Control Layer: ✅ منفذة
+No new Distributed Writers: ✅
+Production DB verification: ✅
+Company-scoped reads: ✅
+Inventory Core preserved: ✅
+Existing receipt/payment writers preserved: ✅
+Historical functionality not intentionally removed: ✅
+Audit/Exception/Reconciliation: ✅
+Persistent Close/Reopen: ⚠️ غير منفذ حتى يثبت عقده
+Browser-host Runtime Certification: ⚠️ لم أدّعها دون دليل
+
+وبالتالي لا أعتبر المشروع في هذه اللحظة 100% CLOSED، لكن الجزء الذي نُفذ الآن ليس ترقيعًا مؤقتًا؛ هو Control Plane حقيقي فوق الـCores القائمة، ومثبت في Production، ومسجل في Git، ومنظم بحيث لا يعيد لنا مشكلة Distributed Business Logic نفسها.
