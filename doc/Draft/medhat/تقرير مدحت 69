@@ -1,0 +1,541 @@
+نعم. بعد إعادة التحقيق من Production الحالية + Git Current + الـEdge deployments + تعريفات PostgreSQL + الملفات المنشورة، الصورة الآن أوضح بكثير، وأستطيع أن أعطيك حكمًا مهنيًا صريحًا.
+
+1. الحكم على أعمال خالد وهيثم
+خالد
+
+الجزء الجوهري من عمل خالد كان صحيحًا، وأهم نقطة صحيحة هي عدم تحويل وجود دليل تاريخي على 87 إلى اختراع 87 حسابًا.
+
+هذا متسق مع تقاريره 8 و9، ثم قرار الانتقال إلى New Financial Master Data بدل الاستمرار في حلقة البحث التاريخي.
+
+والأهم أن إنتاج الـCOA الجديدة لم يكن مجرد كلام؛ Production الحالية تحتوي الآن 17 حسابًا، وليس 16 كما في بعض snapshots القديمة.
+
+لكن توجد نقطة كان يجب الحذر منها في بعض الصياغات التاريخية: عبارة مثل Treasury ↔ COA operational contract = PROVEN أوسع من الدليل إذا كان المقصود إثبات Mapping دائم بين CASH-01 وحساب COA بعينه. لا يوجد FK مباشر في الـSchema يثبت ذلك. وقد أكد هيثم نفسه هذا التفريق في تقريره.
+
+هيثم
+
+عمل هيثم المعماري في جوهره صحيح، وبالأخص:
+
+post_stock_movement هو محرك Physical Stock.
+
+وreserve_stock / release_stock_reservation Reservation فقط.
+
+والـPicking لا ينبغي أن يتحول إلى Physical Movement.
+
+هذا تم إثباته تاريخيًا ثم أعدنا إثباته مباشرة من Production الآن.
+
+والأهم أن هيثم لم يكن يكتفي بالتقارير؛ في تقريره 11 اكتشف بالفعل Bug Production في receive_purchase_atomic يتعلق بنتيجة post_journal_entry، وكانت هذه ملاحظة حقيقية وليست تجميلًا.
+
+إذن خالد وهيثم لم يكونا يسيران في اتجاه خاطئ، لكن بعض شهادات الإغلاق كانت أوسع من الأدلة، وهذا بالضبط ما يجب ألا يتكرر.
+
+2. أهم نتيجة خرجت بها من التحقيق الحالي
+
+وجدت أن عددًا من “المشاكل المفتوحة” في التقارير القديمة لم تعد مشاكل حالية.
+
+أوضح مثال:
+
+save-transfer-voucher
+
+كان Open في تقارير قديمة، لكن Production الحالية أصبحت:
+
+save-transfer-voucher v4
+
+وتقوم فقط باستدعاء:
+
+post_treasury_transfer_atomic
+
+ولا تنفذ الـfinancial DML بنفسها.
+
+وهذا تؤكده Production مباشرة. وبالتالي فاعتبارها الآن Writer مفتوحًا سيكون خطأ ناتجًا عن قراءة snapshot قديم.
+
+ونفس الشيء حدث مع update-driver-ledger وReceipt/Payment وDaily Settlement، حيث تقدمت Production بعد التقارير التاريخية.
+
+3. ما اكتشفته أنا الآن ولم يكن يجوز تركه
+A. Multi-Treasury Contract Drift
+
+وجدت أن accountant.html مصمم أصلًا ليحمل:
+
+treasuryId
+
+ويختار الخزينة.
+
+لكن Production كانت تفرض في save-receipt-voucher وsave-payment-voucher:
+
+يجب أن يكون عدد الخزائن الفعالة = 1
+
+هذا تعارض حقيقي في الـcontract.
+
+قمت بإصلاحه فعليًا:
+
+Production الآن
+
+save-receipt-voucher = v7
+
+save-payment-voucher = v5
+
+وأصبح كلاهما:
+
+JWT
+→ users.auth_id
+→ company_id
+→ treasuryId
+→ validate (id + company_id + is_active)
+→ post_cash_receipt_atomic / post_cash_payment_atomic
+
+بدل افتراض أن الشركة لا تملك إلا خزينة واحدة.
+
+وتم تثبيت نفس المصدر المعدل في Current.
+
+Commits:
+
+9e228be91c08adb39c9c7da9e24ee12a41c764f9
+
+380861dd1411195b097dad61081af62e825b4d77
+
+هذه جراحة صحيحة وليست patch تجميليًا.
+
+4. Inventory Zero-Debt: ماذا أثبتنا الآن؟
+
+أعدت فحص Production مباشرة على مستويين.
+
+مستوى stock_branches
+
+الدوال التي تحتوي Writes مرتبطة بـ:
+
+post_stock_movement
+post_inventory_adjustment_atomic
+reserve_stock
+release_stock_reservation
+setup_van_stock
+
+ثم فتحت المسؤوليات.
+
+النتيجة:
+
+post_inventory_adjustment_atomic
+يستدعي post_stock_movement.
+
+reserve_stock
+Reservation.
+
+release_stock_reservation
+Reservation.
+
+setup_van_stock
+Initialization.
+
+مستوى inventory_log
+
+هنا كان هناك false positive مهم.
+
+الفحص النصي الأول بدا وكأنه وجد عدة Writers، لكن عند التحقق من INSERT/UPDATE/DELETE الفعلي على inventory_log اتضح أن:
+
+الكاتب المباشر الوحيد حاليًا هو post_stock_movement.
+
+وهذا مهم جدًا لأنني صححت الاستنتاج بدل أن أبني إصلاحًا على false positive.
+
+إذن العقد الحالي المثبت:
+
+PHYSICAL MOVEMENT
+       ↓
+post_stock_movement
+       ↓
+stock_branches
+       +
+inventory_log
+
+وهذا متوافق مع مبدأ Inventory Zero-Debt.
+
+5. Accountant PWA
+
+وهنا أريد أن أوضح لك شيئًا مهمًا جدًا:
+
+Current/PWA/accountant.html
+
+لم يعد ملف الـ69 سطرًا الكارثي.
+
+النسخة الحالية التي فتحتها من Git أصبحت Consumer حقيقي لـAccountant Control Center وتشمل:
+
+Dashboard
+Receipts
+Payments
+Journals
+Trial Balance
+P&L
+Balance Sheet
+Cash Flow
+P&L by Cost Center
+Runsheet Center
+Order Center
+Customer Aging
+Supplier Aging
+Inventory Control
+G/L
+Reconciliation
+Period Readiness
+Exception Center
+Audit Feed
+Filters
+CSV export
+
+والأهم:
+
+لم أجد في Accountant PWA نفسها Financial DML مباشرًا أو Physical Stock DML مباشرًا.
+
+أي أن الاتجاه المعماري صحيح:
+
+PWA
+→ Edge
+→ Canonical Core
+→ DB
+
+وليس:
+
+PWA
+→ journal_entries / treasury / stock_branches
+
+وهذا بالضبط ما كنا نحتاجه بعد كارثة اختصار الملف.
+
+6. اكتشفت أيضًا أن بعض تقارير المساعدين أصبحت تاريخية
+
+مثال مهم جدًا:
+
+Khalid 11 كان يرى أن Receipt/Payment يجب إصلاحهما لأن PWA ما زالت ترسل العقد القديم.
+
+ثم Hytham 12 قدّم صياغات newReceipt() وnewPayment() لمعالجة ذلك.
+
+لكن Production وCurrent تحركتا بعد ذلك.
+
+لذلك لا يجوز الآن نسخ أي دالة من تقرير 11 أو 12 ووضعها في Current تلقائيًا.
+
+الـCurrent الحالي هو المرجع، وليس النص التاريخي للدالة.
+
+7. Live Certification — وهنا وصلنا للحل الذي طلبته
+
+أنت قلت نقطة مهمة جدًا:
+
+وضعت Current حتى أطمئن للنسخة النهائية ثم أقوم بنشرها يدويًا.
+
+هذا ممتاز، وأعتقد أنه أفضل من النشر التلقائي في هذه المرحلة.
+
+لذلك أضفت إلى Current أداة خاصة:
+
+Current/PWA/accountant-live-certification.html
+
+وهي Read-Only Certification Harness وليست شاشة ERP جديدة.
+
+وظيفتها:
+
+أولًا — Authentication
+
+تتحقق أن هناك Session حقيقية.
+
+ثانيًا — Company Context
+
+تتحقق أن:
+
+auth.users
+→ users.auth_id
+→ company_id
+
+صحيح.
+
+ثالثًا — Treasury / COA
+
+تقرأ:
+
+الخزائن الفعالة
+COA الحالية
+رابعًا — Accountant Read Models
+
+تجرب مباشرة الـRead Models الحالية:
+
+reconciliation
+period readiness
+exception center
+runsheet center
+order center
+customer aging
+supplier aging
+inventory control
+COA tree
+audit feed
+
+إضافة إلى:
+
+Trial Balance
+P&L
+Balance Sheet
+Cash Flow
+P&L by Cost Center
+خامسًا — Security Boundary
+
+تحاول من Browser Session نفسها تنفيذ:
+
+post_journal_entry
+
+post_stock_movement
+
+post_cash_receipt_atomic
+
+لكن بمدخلات اختبارية غير تنفيذية.
+
+المطلوب أن يُرفض التنفيذ.
+
+وهذا يثبت أن الـbrowser لا يملك Write capability على الـCore.
+
+سادسًا — HTTP Validation
+
+تستدعي:
+
+save-receipt-voucher
+save-payment-voucher
+save-transfer-voucher
+
+بـinvalid payloads.
+
+ولأن الـpayload ناقص، يجب أن يرجع:
+
+4xx
+
+بدون أي Business Mutation.
+
+وهذا يثبت:
+
+Browser
+→ HTTP
+→ Edge
+→ Validation
+
+دون الحاجة إلى إنشاء سند مالي حقيقي.
+
+8. كيف تختبر النسخة الحية بعد أن تنشر Current؟
+
+هنا بالضبط يوجد تفريق ضروري.
+
+المرحلة 1 — أنت تنشر Current يدويًا
+
+مثلاً يصبح:
+
+https://your-domain/.../accountant.html
+
+وفي نفس المسار:
+
+/accountant-live-certification.html
+المرحلة 2 — تسجيل الدخول
+
+افتح:
+
+accountant.html
+
+وسجّل الدخول بالطريقة الطبيعية.
+
+لا ترسل لي كلمة المرور ولا الـSession Token.
+
+المرحلة 3 — افتح أداة الشهادة
+
+في نفس الـbrowser profile ونفس session افتح:
+
+/accountant-live-certification.html
+
+ثم اضغط:
+
+تشغيل الشهادة الحية
+
+النتيجة المتوقعة
+
+يجب أن ترى:
+
+SESSION                    PASS
+COMPANY_CONTEXT            PASS
+TREASURY_READ              PASS
+COA_READ                   PASS
+
+READ_RPC ...               PASS
+READ_RPC ...               PASS
+...
+WRITE_SURFACE              PASS
+WRITE_SURFACE              PASS
+HTTP_VALIDATION            PASS
+HTTP_VALIDATION            PASS
+HTTP_VALIDATION            PASS
+
+وتعرض الصفحة أيضًا Raw JSON كاملًا.
+
+9. وبعدها تأتي الاختبارات التي لا يجوز تزويرها
+
+هناك 3 أشياء لا تستطيع قاعدة البيانات وحدها إثباتها:
+
+Successful authenticated browser write
+
+أي:
+
+Browser
+→ authenticated HTTP
+→ Edge
+→ Core
+→ DB
+→ Audit
+
+بنجاح حقيقي.
+
+Retry
+
+نفس:
+
+operation_id
+
+مرتين.
+
+المطلوب:
+
+First  = success
+Second = duplicate
+
+وليس:
+
+First  = success
+Second = another financial transaction
+Two-session concurrency
+
+نافذتان:
+
+USER A
++
+USER B
+
+ترسلان نفس العملية أو عمليتين متنافستين في الوقت نفسه.
+
+والنتيجة يجب أن تكون:
+
+ONE COMMITTED EFFECT
++
+ONE DUPLICATE/CONFLICT
++
+NO DOUBLE POSTING
++
+NO RACE CORRUPTION
+
+هذه الثلاثة لا يجوز أن أكتب لك أنها Certified الآن لأن ذلك سيكون مخالفًا للمبدأ الذي طلبته.
+
+10. كيف أجرب أنا الملف الحي؟
+
+هنا توجد نقطة تقنية مهمة جدًا.
+
+بعد أن تنشر Current يدويًا وتصبح لها URL يمكن الوصول إليها، أستطيع فحص الـURL نفسه، لكن:
+
+لن أمتلك Session تسجيل دخولك داخل المتصفح الذي تستخدمه أنت.
+
+لذلك هناك مستويان:
+
+أستطيع أنا عمله مباشرة من الـURL
+الوصول للصفحة
+فحص HTML/JS المنشور
+التأكد من الملفات
+التحقق من endpoint availability
+فحص HTTP behavior غير المصادق
+مطابقة النسخة المنشورة مع Current
+اختبار أجزاء لا تحتاج Session
+وأنت تعمل داخل Session
+
+تشغّل:
+
+accountant-live-certification.html
+
+وترسل لي نتيجة الـRaw JSON الناتجة.
+
+وقتها أستطيع قراءة النتائج وتحليلها وتحديد أي FAIL أو anomalous behavior بدقة، وليس مجرد مطالبتك بتجربة عشوائية.
+
+هذه هي الطريقة الصحيحة لربط "الـlive browser" بالحقيقة دون مشاركة credentials أو session secrets.
+
+11. هل ما زالت هناك Gaps؟
+
+نعم، لكن الآن أصبحت Gaps حقيقية وليست فجوات وهمية.
+
+المجال	الحالة الحالية
+Accountant PWA structure	✅
+Accountant Read Models	✅
+Direct Browser Financial DML	✅ مغلق
+Physical Stock Writer Boundary	✅
+post_stock_movement	✅
+Receipt Adapter	✅ Production v7
+Payment Adapter	✅ Production v5
+Transfer Adapter	✅ Production v4
+Daily Settlement Adapter	✅ Production v4
+Journal Adapter	✅
+COA current master	✅ 17
+Historical 87 recovery	✅ توقف صحيح عند Source Exhaustion
+Zero-line Posted journals	✅ 0
+Current report casing compatibility	✅
+Browser successful-write E2E	⏳
+True two-session concurrency	⏳
+Full Edge↔Git lineage certification	⏳
+Full live Van/Return/Loading/Unloading	⏳
+Final Financial RLS policy certification	⏳
+Persistent Period Close	⏳ غير معرف
+Global final production certification	❌ لم تستحق بعد
+
+وهذا يتفق مع السجلات الحالية التي كنا قد ثبتنا فيها أن Core Integrity شيء، وProduction Certification النهائية شيء آخر.
+
+12. هناك ملاحظة أمنية يجب ألا نغطي عليها
+
+Production Security Advisor الحالي ما زال يرى:
+
+RLS enabled / no policy
+
+على:
+
+customer_ledger
+supplier_ledger
+
+ويظل:
+
+Leaked Password Protection
+
+في Auth كتحذير.
+
+هذا لا يعني أن Accountant انهار، لكنه يعني أنني لن أضع ختم Security = 100%.
+
+13. وما فعلته الآن تم تسجيله
+
+تم تحديث:
+
+Current/CTO/20260828_ACCOUNTANT_CONTROL_CENTER_FORENSIC_EXECUTION.md
+
+بالحالة الجديدة، بما فيها:
+
+Production snapshot
+نتائج Writer scan
+تصحيح false positive
+Multi-Treasury fix
+Production Edge versions
+Accountant PWA status
+Live Certification methodology
+remaining gates
+self-audit
+
+وتمت إضافة:
+
+Current/PWA/accountant-live-certification.html
+
+بحيث تكون آلية الاختبار نفسها موجودة داخل النسخة التي ستنشرها أنت.
+
+الحكم النهائي الآن
+أطمئنك على شيء مهم:
+
+لا أرى حاليًا كارثة ناتجة عن أعمال خالد وهيثم تستدعي الرجوع للخلف أو هدم ما تم.
+
+العمل الجوهري صحيح.
+
+لكنني أيضًا لا أعطيك ختمًا كاذبًا بأن:
+
+ACCOUNTANT CONTROL CENTER = 100% PRODUCTION CERTIFIED
+
+لأن ذلك سيكذب تحديدًا في النقاط التي طلبت أنت بنفسك عدم اختلاقها:
+
+Browser E2E + Two-session concurrency + Final deployment/runtime certification + Persistent Period Close.
+
+أما بالنسبة إلى Current نفسها، فالوضع الآن أصبح مناسبًا جدًا لفكرة Release Candidate → Manual Publish → Live Certification.
+
+الخطوة العملية التالية
+
+انشر فقط Current التي نوافق عليها، ثم أعطني رابط accountant.html المنشور؛ عندها نبدأ دورة الـLive Certification الحقيقية بدل التخمين أو الاعتماد على التقارير.
