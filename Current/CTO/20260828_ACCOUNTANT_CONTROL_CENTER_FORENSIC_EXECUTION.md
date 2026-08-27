@@ -12,9 +12,13 @@ The governing modification sequence remains:
 
 UNDERSTAND → HISTORICAL CONTRACT → CURRENT BEHAVIOR → DATA/AUTH FLOW → TARGET GAP → SURGICAL CHANGE → VERIFY
 
-## 2. Current Production baseline
+This follows the governing principle that study precedes modification and that historical behavior, current behavior, and target architecture must be distinguished before any change. fileciteturn1279file0
 
-The current Production database snapshot used for this execution reports:
+## 2. Current Production baseline — fresh revalidation
+
+A fresh Production query was executed after the prior Accountant Control Center work and before this record was updated.
+
+Current core counts:
 
 - PostgreSQL 17.6
 - Companies: 1
@@ -34,258 +38,304 @@ The current Production database snapshot used for this execution reports:
 - Orders: 0
 - Purchase orders: 0
 - Runsheets: 0
-- Audit log rows: 1856
-- erp_operation_registry rows: 0 at the baseline query
+- erp_operation_registry rows: 0
+- Posted journal headers without lines: 0
+
+A fresh security-advisor inspection currently reports only informational RLS-without-policy findings for `customer_ledger` / `supplier_ledger` and a WARN for leaked-password protection. No anonymous Financial Core execution warning was returned.
 
 ## 3. Historical assistant assessment
 
 ### Khalid
 
-The historical 87-account recovery stop was methodologically correct. Source exhaustion was correctly distinguished from successful recovery of 87 authoritative rows. The later creation of 16/17 current COA accounts was treated as New Financial Master Data, not as historical reconstruction.
+The historical 87-account recovery stop was methodologically correct. Source exhaustion was correctly distinguished from successful recovery of 87 authoritative rows. The later creation of 16/17 current COA accounts was treated as New Financial Master Data, not as historical reconstruction. fileciteturn1327file0 fileciteturn1329file0
 
-His financial convergence work was valuable, but the reports were not treated as proof of current closure because subsequent Production changes existed.
+The later financial convergence work was valuable and uncovered real Production defects, but its historical closure claims were not treated as current certification without re-reading Production. His report explicitly left runtime, concurrency, consumer, lineage, and security gates open. fileciteturn1335file0
 
 ### Hytham
 
-The core architectural finding remains correct: `post_stock_movement` is the Physical Stock writer contract; `reserve_stock` and `release_stock_reservation` are reservation engines, not physical movement engines. Current Production confirms the financial writer Cores also exist.
+The core architectural finding remains correct: `post_stock_movement` is the Physical Stock writer contract; `reserve_stock` and `release_stock_reservation` are reservation engines, not physical movement engines. Hytham also correctly distinguished SQL/Core evidence from authenticated HTTP and browser concurrency proof. fileciteturn1333file0 fileciteturn1336file0
 
-However, prior claims of global closure were broader than the evidence because browser E2E, runtime/concurrency and persistent period-close contract were not proven.
+## 4. What became stale vs what remained valid
 
-## 4. Historical bad journal data
+`save-transfer-voucher` was previously described as open in older material, but current Production v4 is an adapter to `post_treasury_transfer_atomic`; no direct `cash_box` / `journal_entries` / `journal_lines` / `treasury` mutation was found in the deployed Edge source. The current Core is SECURITY DEFINER, company-scoped, operation-id based, and performs the treasury transfer atomically.
 
-Two historical `VoidInvoice` journal headers existed:
+Therefore the old `save-transfer-voucher OPEN` classification is historical and must not be carried forward as a current defect. The same principle applies to any prior snapshot whose Production version has since advanced. fileciteturn1337file0
 
-- `JE-VOID-1784927448473-476` / `VOID-ORD-1015`
-- `JE-VOID-1784927457858-428` / `VOID-ORD-1016`
+## 5. Fresh inventory Writer forensic sweep
 
-Both were `Posted` with zero current journal lines. Audit history proves that two temporary lines were created and deleted within seconds, preserving the historical audit trail.
+The current Production PostgreSQL scan for definitions containing actual writes to `stock_branches` returns:
 
-### Executed fix
+- `post_stock_movement`
+- `post_inventory_adjustment_atomic`
+- `reserve_stock`
+- `release_stock_reservation`
+- `setup_van_stock`
 
-The headers were **not deleted** and historical audit records were not rewritten.
+The current definitions confirm that `post_inventory_adjustment_atomic` delegates the physical change to `post_stock_movement`, while `reserve_stock` / `release_stock_reservation` operate on reservation state. `setup_van_stock` is initialization rather than a transaction movement engine.
 
-They were moved from `Posted` to `Cancelled` because they represent invalid zero-line void headers and must not remain posted.
+A second, stricter scan for actual `INSERT/UPDATE/DELETE` statements against `inventory_log` returns **only `post_stock_movement`**. A prior broader text scan produced false positives because some functions contained the field name `inventory_log_written` in their JSON response. That false positive has been explicitly corrected and is not being carried into the final matrix.
 
-Migration:
+This is important: the current Production evidence still supports the intended Physical Stock contract:
 
-`20260828_quarantine_zero_line_void_invoice_headers`
+Physical Movement → `post_stock_movement` → `stock_branches` + `inventory_log`
 
-Production verification:
+## 6. Accountant PWA current-state review
 
-`Posted zero-line journal headers = 0`
+`Current/PWA/accountant.html` is a substantial Accountant Control Center consumer, not the earlier 69-line regression. The current source contains authenticated context loading, multi-tab accounting/operations views, reporting, aging, inventory control, G/L, reconciliation, audit feed, period readiness, and operation-aware cash receipt/payment flows.
 
-## 5. Reconciliation defect discovered and fixed
+No direct Financial or Physical Stock DML was found in the Accountant PWA itself; business writes are routed through Edge/Core contracts.
 
-The prior `accountant_reconciliation_summary` incorrectly reported:
+The current PWA calls the following read surfaces, among others:
 
-`CASH_VS_GL = OK, difference = 10000`
-
-because it compared Treasury current balance directly with GL movement while Treasury opening balance was 10000.
-
-### Executed fix
-
-The reconciliation now compares:
-
-`Treasury current - Treasury opening`
-
-against:
-
-`posted GL movement on account 121`
-
-and explicitly treats zero-line posted journals as journal integrity exceptions.
-
-Migration:
-
-`20260828_fix_accountant_reconciliation_cash_baseline_and_gl_scope`
-
-Production authenticated verification now returns:
-
-- CASH_VS_GL = OK / 0.00
-- AR_VS_GL = OK / 0
-- AP_VS_GL = OK / 0
-- JOURNAL_BALANCE = OK / 0
-
-The G/L account activity read model was also hardened with an explicit current-company account ownership guard.
-
-## 6. Accountant PWA regression correction
-
-The current PWA was not accepted as equivalent to the historical richer accountant consumer merely because it contained the same tab labels.
-
-A real regression was found:
-
-`cashVoucher()` created a new Operation ID for every attempt and did not persist failed operations.
-
-That undermined the idempotency contract already implemented in the financial Cores.
-
-### Executed PWA repair
-
-`Current/PWA/accountant.html` was surgically restored as a full Accountant Control Center consumer without introducing financial writers into the browser.
-
-The PWA now includes:
-
-- authenticated Company context from `users.auth_id`
-- OWNER / wildcard / finance permission semantics
-- multi-treasury context
-- current COA account resolution
-- Dashboard
-- Receipts
-- Payments
-- Journals
-- Trial Balance
-- P&L
-- Balance Sheet
-- Cash Flow
-- P&L by Cost Center
-- Operational Runsheet and Order views
-- Customer and Supplier Aging
-- Inventory control read model
-- G/L and account activity
-- Reconciliation
-- Period Readiness
-- Exception Center
-- Audit Feed
-- date filtering
-- CSV export
-
-Cash operations now persist the complete request in `sessionStorage` under a company/type key and retry with the **same Operation ID**, preserving the canonical idempotency contract.
-
-No financial DML was added to the PWA.
-
-## 7. Financial report execution surface
-
-Production inspection found that the following report functions were executable by `anon` even though the Accountant Control Center is authenticated:
-
+- `accountant_reconciliation_summary`
+- `accountant_period_readiness`
+- `accountant_exception_center`
+- `accountant_runsheet_center`
+- `accountant_order_center`
+- `accountant_customer_aging`
+- `accountant_supplier_aging`
+- `accountant_inventory_control`
+- `accountant_coa_tree`
+- `accountant_audit_feed`
 - `get_trial_balance`
 - `get_profit_loss`
 - `get_balance_sheet`
 - `get_cash_flow`
 - `get_pnl_by_cost_center`
 
-### Executed fix
+Production signatures were re-queried directly and match the argument forms used by the read-only certification harness.
 
-Anonymous execution was revoked. Execution remains available to `authenticated` and `service_role`.
+## 7. New defect found and fixed — multi-treasury contract drift
 
-Migration:
+The Accountant PWA already models treasury selection and sends a selected `treasuryId`. However, Production `save-receipt-voucher` and `save-payment-voucher` previously required the company to have exactly one active treasury.
 
-`20260828_harden_accountant_report_execute_surface`
+That was a real forward-compatibility defect: a valid multi-treasury company would be rejected despite the PWA exposing explicit treasury selection.
 
-Current verification shows `anon_exec = false` and `auth_exec = true` for these reports.
+### Surgical fix
 
-## 8. Financial Core surface
+The deployed adapters were updated to:
 
-Current Production verification shows the following canonical writers are SECURITY DEFINER and service-role executable only:
+- derive `company_id` from `public.users.auth_id`;
+- require an explicit `treasuryId`;
+- validate `treasury.id + company_id + is_active`;
+- preserve explicit `cashAccountId` and `offsetAccountId`;
+- delegate posting only to `post_cash_receipt_atomic` / `post_cash_payment_atomic`.
 
-- `post_journal_entry`
-- `post_cash_receipt_atomic`
-- `post_cash_payment_atomic`
-- `post_customer_ledger_entry`
-- `post_supplier_ledger_entry`
-- `post_driver_ledger_entry`
-- `post_driver_liability_entry`
-- `post_daily_settlement_atomic`
-- `post_treasury_transfer_atomic`
-- `post_inventory_adjustment_atomic`
-- `post_manual_stock_voucher_atomic`
-- `post_stock_movement`
+Production Edge versions are now:
 
-All direct user execution was not granted for these Financial/Stock Core writers.
+- `save-receipt-voucher` v7
+- `save-payment-voucher` v5
 
-`erp_operation_registry` has the unique identity contract:
+The same source changes were written to `Current/Edge_Functions/...` in Git.
 
-`(company_id, operation_type, operation_key)`
+Git commits:
 
-## 9. Physical Stock zero-debt result
+- receipt adapter repair: `9e228be91c08adb39c9c7da9e24ee12a41c764f9`
+- payment adapter repair: `380861dd1411195b097dad61081af62e825b4d77`
 
-Current Production function scan found no direct Physical Stock writer outside the intended core.
+This change does not alter the accounting Core contract; it removes an incorrect adapter-side assumption.
 
-The only functions whose definitions contain `stock_branches` writes are the intended:
+## 8. Manual Voucher CREATE contract review
 
-- `post_stock_movement`
-- `reserve_stock`
-- `release_stock_reservation`
+The current `create-stock-voucher` Edge consumer was re-read in Git and shown to derive company context from `users.auth_id`. The Production schema also proves `items.item_code` is globally UNIQUE, while `stock_branches` is keyed by `(branch_id,item_id)` and stock branch membership is branch/company scoped.
 
-The latter two are reservation-only by contract.
+The canonical `create_manual_stock_voucher_atomic` Production function is company-scoped and validates the supplied branch IDs and the globally unique Item identity before creating the Draft voucher.
 
-The current Physical Stock contract therefore remains:
+A transactional Production test using an Item whose metadata belongs to a different historical company context demonstrated the important contract distinction: the Item identity is global, while the stock location is company-owned. The test was rolled back and produced no persistent business residue.
 
-Physical Movement → `post_stock_movement` → `stock_branches` + `inventory_log`
+## 9. Purchase Receiving — current contract
 
-## 10. Period close
+Production `receive_purchase_atomic` was re-read directly. It now uses a deterministic receiving operation identity stored in the existing UNIQUE `receiving.operation_id` field rather than inventing a new table-level identity column.
 
-Production has no persisted `period`, `fiscal period`, `close`, or `lock` table or write RPC.
+Its contract is:
 
-The only verified capability is:
+Company → PO → receiving branch → PO detail → global Item identity → `post_stock_movement` → receiving details → accounting.
 
-`accountant_period_readiness`
+A key historical defect around receiving/journal result typing was already repaired in Production by the previous execution; current runtime source must still be certified through the live E2E harness before that path can be called browser-certified.
 
-This is a readiness model, not a persistent accounting-period close contract.
+## 10. Financial Edge status currently verified
 
-No new period-close contract was invented during this execution because doing so would create a new architectural contract without a historical source or explicit design decision.
+Current Production Edge inventory confirms:
 
-Current readiness output is:
+- `save-sales-invoice` v15 — active
+- `receive-purchase` v12 — active
+- `save-journal-entry` v8 — active
+- `save-receipt-voucher` v7 — active
+- `save-payment-voucher` v5 — active
+- `save-transfer-voucher` v4 — active
+- `save-daily-settlement` v4 — active
+- `update-driver-ledger` v2 — active
 
-- UNBALANCED_JOURNALS = PASS / 0
-- FAILED_OPERATIONS = PASS / 0
-- PENDING_DRIVER_LIABILITIES = PASS / 0
-- STOCK_INVARIANTS = PASS / 0
-- PERSISTENT_PERIOD_CLOSE = REVIEW / contract absent
+The current source of `save-transfer-voucher` delegates to `post_treasury_transfer_atomic`, and `save-daily-settlement` delegates to `post_daily_settlement_atomic`. The current `save-journal-entry` adapter resolves company and account UUIDs and delegates posting to `post_journal_entry`.
 
-## 11. Current Accountant Control Center status
+## 11. Read-model correctness checks
 
-### Closed with direct evidence
+Production `chart_of_accounts.account_type` values are currently lowercase and distributed as:
 
-- Historical zero-line `VoidInvoice` headers quarantined without audit destruction
-- Zero-line Posted journal exception removed from current state
-- Treasury-vs-GL reconciliation logic corrected
-- AR/AP reconciliation read models verified at zero difference in current company context
-- Journal balance integrity verified
-- Accountant read-model access is authenticated-only
-- Accountant PWA consumer restored and aligned to canonical financial cores
-- PWA receipt/payment idempotency persistence restored
-- G/L account activity company guard hardened
-- Financial core anonymous execution surface closed
-- Physical Stock direct-writer scan = no unauthorized Physical Movement writer found
+- asset: 7
+- liability: 4
+- equity: 2
+- revenue: 2
+- expense: 2
 
-### Not honestly certifiable as 100% closed yet
+Therefore the current reporting query casing is consistent with current Production data and is not a casing defect.
 
-1. **Browser Runtime / HTTP E2E** — a real authenticated user session was not available for destructive-free browser execution, so no claim of browser runtime certification is made.
-2. **Persistent Period Close Contract** — no existing Production contract exists; creating one is a new architecture decision, not a forensic repair.
-3. **Global Consumer/Edge closure** — some Edge wrappers have historically used unsafe `app_settings LIMIT 1` company resolution and require continued closure where they remain active. These should not be falsely marked complete without per-function Production verification.
-4. **Full financial concurrency certification** — SQL Core idempotency is present, but two-user/browser concurrency has not been honestly certified from an authenticated UI session.
+Production signatures for the accountant read models were re-read directly; the live certification harness uses the exact current signatures.
 
-## 12. Anti-regression rule
+## 12. Persistent period close
 
-The following must remain prohibited:
+Production still has no verified persistent accounting-period/lock contract. `accountant_period_readiness` remains a readiness model, not a period-close engine.
 
-- account name as financial identity
-- user_metadata as Company source of truth
-- hard-coded financial UUIDs
-- guessed default account codes for new business behavior
-- direct browser financial DML
-- direct Physical Stock mutation outside the stock core
-- treating readiness as period close
-- treating staging/SQL-only PASS as browser runtime PASS
-- deleting historical audit evidence to make reports look clean
+No period-close write contract is being invented during forensic repair. This remains a design/architecture decision, not a defect that can be silently “fixed” without an explicit contract.
 
-## 13. Canonical Git migrations added by this execution
+## 13. Live Certification Harness added to Current
 
-- `supabase/migrations/20260828_quarantine_zero_line_void_invoice_headers.sql`
-- `supabase/migrations/20260828_fix_accountant_reconciliation_cash_baseline_and_gl_scope.sql`
-- `supabase/migrations/20260828_accountant_forensic_cleanup.sql`
-- `supabase/migrations/20260828_harden_accountant_report_execute_surface.sql`
+A new **read-only** file was added:
 
-## 14. Final forensic verdict
+`Current/PWA/accountant-live-certification.html`
 
-The previous Accountant work was **not worthless and was not wholly wrong**. The principal architecture was largely correct, but several closure claims exceeded the evidence.
+Its purpose is controlled browser/runtime proof after the user manually publishes the `Current` folder.
 
-This execution corrected proven defects and restored the Accountant PWA to a substantial production-ready consumer of the canonical financial Cores without introducing new distributed writers.
+It performs:
 
-However, the honest final certification is:
+1. authenticated session verification;
+2. `users.auth_id → company_id` verification;
+3. active Treasury and COA read checks;
+4. all current Accountant read-model calls;
+5. direct browser attempts to execute protected Financial/Stock Core RPCs, which must be rejected;
+6. authenticated HTTP calls to receipt/payment/transfer adapters with intentionally invalid payloads, proving the HTTP route/authentication/validation boundary without performing a business mutation.
+
+It explicitly does **not** perform a successful receipt/payment/transfer, so it leaves Production financially untouched.
+
+This distinction is intentional: a safe read-only browser harness can prove session, routing, read models, authentication and negative protection; it cannot honestly certify a successful financial mutation or two-user race without a controlled business transaction.
+
+## 14. Current hard gates that remain
+
+### Not yet 100% certified
+
+1. **Authenticated Browser E2E for successful business mutations** — requires a real authenticated browser session against the manually published Current URL.
+2. **True two-session concurrency** — requires two authenticated sessions executing the same operation identity or competing operations during a controlled test.
+3. **Full Edge Source ↔ Production deployment lineage** — current deployed versions are known; complete byte/hash mapping for every relevant Edge function remains a separate certification task.
+4. **Van Sales / Returns / Loading / Unloading live business-path certification** — SQL/Core evidence exists for key paths, but browser-level success traces are not yet certified.
+5. **Financial RLS policy design** — current security advisor still reports RLS-without-policy informational findings for customer/supplier ledgers; the correct tenant policy contract must be designed rather than guessed.
+6. **Persistent period close** — no Production contract exists.
+
+These are not being converted into false “100%” status merely because the underlying SQL Cores exist.
+
+## 15. Live test procedure after manual publishing
+
+After the owner publishes `Current` manually, the safest certification sequence is:
+
+### Stage A — Static release gate
+
+Verify the deployed `accountant.html`, `core.js`, and the added `accountant-live-certification.html` are the exact Current files approved in Git.
+
+### Stage B — Browser session
+
+Open the published Accountant PWA, sign in normally, and confirm the dashboard loads without authentication or company-context errors.
+
+Open `accountant-live-certification.html` in the same authenticated browser profile and click **تشغيل الشهادة الحية**.
+
+Expected mandatory results:
+
+- SESSION = PASS
+- COMPANY_CONTEXT = PASS
+- TREASURY_READ = PASS
+- COA_READ = PASS
+- every Accountant READ_RPC = PASS
+- every protected WRITE_SURFACE = PASS because the browser call is rejected
+- every HTTP_VALIDATION adapter check = PASS with 4xx validation response
+
+### Stage C — Functional read walkthrough
+
+In `accountant.html`, manually open:
+
+Dashboard → Receipts → Payments → Journals → Reports → Operations → Partners → Inventory → G/L → Reconciliation → Audit.
+
+Check that every tab loads data or an explicit legitimate empty state, and that no tab creates console exceptions that block navigation.
+
+### Stage D — Controlled successful business transaction
+
+This stage cannot be safely faked with a read-only harness.
+
+Use either:
+
+- a dedicated test tenant/treasury/account environment; or
+- a maintenance-window transaction explicitly approved for live Production testing, followed by a documented compensating transaction.
+
+For the selected operation:
+
+1. capture Treasury balance / GL balance / operation registry count;
+2. submit once;
+3. verify one business effect;
+4. submit the exact same operation ID again;
+5. verify `duplicate=true` and no second business effect;
+6. compare Stock/GL/Treasury/Registry/Audit counts;
+7. document the complete HTTP → Edge → Core → DB → Audit trace.
+
+### Stage E — Two-session concurrency
+
+Use two authenticated browser sessions with different authorized users.
+
+Submit the same operation identity concurrently. Expected behavior is exactly one committed operation and one duplicate/conflict result, with no doubled Treasury/GL effect and no inconsistent registry state.
+
+This must be performed only in a controlled environment because it intentionally exercises a real write race.
+
+### Stage F — Final evidence package
+
+Record:
+
+- published URL
+- publication timestamp
+- Git release commit
+- Production Edge versions
+- browser certification output
+- successful mutation operation IDs
+- duplicate retry result
+- two-session race result
+- before/after financial balances
+- audit evidence
+- unresolved gates
+
+Only after this package exists can the browser/runtime portion be marked certified.
+
+## 16. Final forensic verdict
+
+### Proven now
+
+- Current Accountant PWA is a substantial Control Center consumer, not the old 69-line regression.
+- Physical Stock direct-writer scan supports one physical movement core: `post_stock_movement`.
+- Direct `inventory_log` writing is confined to `post_stock_movement`.
+- `save-transfer-voucher` is currently a canonical adapter in Production, not an open direct writer.
+- `save-receipt-voucher` and `save-payment-voucher` are now multi-treasury-compatible adapters in Production v7/v5.
+- Current accountant read-model signatures match the read-only certification harness.
+- Current account-type casing matches the report SQL.
+- Posted zero-line journal headers currently equal 0.
+- Current operation registry rows equal 0 at the fresh snapshot.
+
+### Still not certified 100%
+
+- browser successful-write E2E
+- true two-session concurrency
+- complete deployment-lineage certification
+- full live business-path certification across all fulfillment flows
+- final financial RLS policy certification
+- persistent period-close architecture
+
+Therefore the current evidence-backed status remains:
 
 `ACCOUNTANT CONTROL CENTER CORE INTEGRITY = CLOSED`
 
 `ACCOUNTANT CONTROL CENTER PRODUCTION CERTIFICATION = NOT 100% CERTIFIED`
 
-because Browser E2E, two-session concurrency and a persistent period-close contract remain unproven/undefined.
+No higher percentage is authorized without the missing runtime evidence.
 
-No percentage above the evidence-backed boundary is authorized.
+## 17. Self-audit
+
+**What was re-proven directly:** Production baseline, Edge versions, Financial/Inventory core boundaries, accountant read-model signatures, current COA type values, transfer adapter convergence, selected-treasury contract, and direct inventory-log writer scan.
+
+**What was corrected during this round:** multi-treasury adapter mismatch; false-positive interpretation of `inventory_log` writer scan.
+
+**What remains an explicit evidence gap:** authenticated successful browser mutations and two-session race proof.
+
+**What was not invented:** Treasury→COA mapping, persistent period close, historical 87-row recovery, or browser success claims.
