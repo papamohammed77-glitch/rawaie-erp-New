@@ -1,0 +1,326 @@
+النتيجة التنفيذية
+
+أنهيت التحقيق وإعادة التحقق من المرحلة من مصادرها المباشرة بدل اعتماد تقارير المساعدين كحقيقة. القاعدة الحاكمة التي طبقتها هي أن الدراسة والسياق التاريخي ثم Production/Git الحالية تسبق أي تعديل، وأن وجود سلوك في كود قديم لا يعني تلقائيًا أنه Bug.
+
+كما أن الـdirective التنفيذية نفسها تشترط عدم إعلان CLOSED إلا بعد إثبات الـProduction، والـRuntime، والـTenant، والـIdempotency، والـAudit، وعدم إسقاط أي مسؤولية أثناء إعادة الهيكلة.
+
+1. الحكم على خالد وهيثم
+
+خالد:
+
+موقفه من الـ87 حسابًا كان صحيحًا: انتهى البحث عند Source Exhaustion ولم يكن من الصحيح اختلاق 87 سجلًا.
+إنشاء الـCOA الحالية يجب اعتباره New Financial Master Data وليس Historical Recovery.
+أعماله في Financial Convergence كانت ذات اتجاه صحيح، لكن بعض تقارير الإغلاق أصبحت Historical Snapshots وليست Current Truth.
+
+هيثم:
+
+الاستنتاج المركزي عن Inventory صحيح: post_stock_movement هو Physical Stock Core، بينما reserve_stock وrelease_stock_reservation Reservation فقط.
+لكن إعلان Global Closure كان أوسع من الأدلة المتاحة؛ فقد كانت هناك فجوات في PWA وRuntime وConcurrency وSecurity وPeriod Close.
+
+هذا متسق مع الوثائق التاريخية نفسها، التي كانت تفرق بين وجود الـCore وبين إغلاق النظام بالكامل.
+
+2. ما الذي اكتشفته وصححته فعليًا في Production
+أ. القيدان التاريخيان
+
+وجدت فعليًا:
+
+JE-VOID-1784927448473-476
+JE-VOID-1784927457858-428
+
+كلاهما Posted بلا journal_lines حاليًا، بينما الـAudit يثبت أنه كانت هناك خطوط بقيمة 1 ثم حُذفت بعد ثوانٍ.
+
+لم أحذف التاريخ ولم أمسح الـAudit.
+
+قمت بتحويل الرأسين إلى:
+
+Cancelled
+
+والنتيجة الحالية:
+
+Posted zero-line journal headers = 0
+
+أي أن البيانات لم تُجمّل بحذف الأدلة؛ بل تم إخراج السجلات غير الصالحة من الحالة المحاسبية المنشورة.
+
+ب. اكتشفت خطأ حقيقيًا في Reconciliation
+
+كان النظام يعرض:
+
+CASH_VS_GL = OK
+
+مع:
+
+difference = 10000
+
+وهذا كان خطأً منطقيًا حقيقيًا لأن Treasury تحمل Opening Balance = 10,000، بينما GL لا يحتوي حركة مقابلة.
+
+أصلحت المعادلة لتصبح:
+
+Current Treasury − Opening Treasury = GL Movement
+
+وأعدت التحقق بجلسة المحاسب.
+
+النتيجة الحالية:
+
+Check	Current
+CASH_VS_GL	OK / 0.00
+AR_VS_GL	OK / 0
+AP_VS_GL	OK / 0
+JOURNAL_BALANCE	OK / 0
+
+كما أضفت حماية Company Scope إلى G/L Account Activity.
+
+ج. اكتشفت Regression حقيقي في Accountant PWA
+
+النسخة الحالية قبل الإصلاح كانت تولد Operation ID جديدًا مع كل محاولة قبض/صرف، ولا تحفظ العملية الفاشلة لإعادة المحاولة.
+
+وهذا يتعارض مباشرة مع الـidempotency architecture الموجودة أصلًا.
+
+قمت بإعادة تنظيم Current/PWA/accountant.html مع الحفاظ على الوظائف الأساسية، وأصبح:
+
+PWA → Canonical Financial Edge/Core
+
+بدل وضع Financial DML داخل المتصفح.
+
+وأضفت:
+
+Company context عبر users.auth_id
+OWNER / * / finance semantics
+Multiple Treasury support
+Current COA resolution
+Receipts
+Payments
+Journals
+Trial Balance
+P&L
+Balance Sheet
+Cash Flow
+P&L by Cost Center
+Runsheet / Order financial operations
+Customer Aging
+Supplier Aging
+Inventory Control
+G/L
+Reconciliation
+Period Readiness
+Exception Center
+Audit Feed
+Date filtering
+CSV export
+Persistent pending operation handling
+Retry بنفس الـOperation ID
+
+والأهم:
+
+لم أُدخل Financial Writer جديد داخل الـPWA.
+
+النسخة الحالية موجودة على main وتم تثبيتها في سجل التنفيذ.
+
+3. أغلقت ثغرة حقيقية في Financial Reporting
+
+وجدت أن هذه الدوال كانت قابلة للتنفيذ من anon:
+
+get_trial_balance
+get_profit_loss
+get_balance_sheet
+get_cash_flow
+get_pnl_by_cost_center
+
+وهذا غير مقبول لمركز مالي محمي.
+
+تم تنفيذ:
+
+REVOKE ... FROM PUBLIC, anon
+
+مع الإبقاء على:
+
+authenticated + service_role
+
+والتحقق الحالي يؤكد:
+
+anon_exec = false
+
+و
+
+authenticated = true
+
+4. Financial Core الحالي
+
+الـProduction الحالية تثبت أن الـcanonical writers المالية موجودة كـSecurity-Definer / Service-Role Cores:
+
+post_journal_entry
+post_cash_receipt_atomic
+post_cash_payment_atomic
+post_customer_ledger_entry
+post_supplier_ledger_entry
+post_driver_ledger_entry
+post_driver_liability_entry
+post_daily_settlement_atomic
+post_treasury_transfer_atomic
+post_inventory_adjustment_atomic
+post_manual_stock_voucher_atomic
+
+وكلها لها Company/Operation controls.
+
+كما أن:
+
+erp_operation_registry
+
+لديه Unique Contract حقيقي:
+
+(company_id, operation_type, operation_key)
+
+5. Inventory Zero-Debt
+
+أعدت فحص Production function definitions بدل قبول التقرير السابق.
+
+النتيجة:
+
+الـfunctions التي تكتب stock_branches هي:
+
+post_stock_movement
+reserve_stock
+release_stock_reservation
+
+لكن الأخيرتين Reservation فقط.
+
+إذًا:
+
+Physical Movement outside post_stock_movement = 0
+
+وهذا الجزء مدعوم مباشرة من Production.
+
+6. Period Close
+
+هنا تحديدًا رفضت اختراع حل لإرضاء نسبة 100%.
+
+بحثت في Production عن:
+
+Period tables
+Fiscal tables
+Close tables
+Lock tables
+Close RPCs
+
+ولم أجد عقدًا Persistent موجودًا.
+
+الموجود فقط:
+
+accountant_period_readiness
+
+وهو Readiness Model، وليس Period Close Contract.
+
+ولهذا فالحالة الحالية:
+
+Gate	Status
+UNBALANCED_JOURNALS	PASS
+FAILED_OPERATIONS	PASS
+PENDING_DRIVER_LIABILITIES	PASS
+STOCK_INVARIANTS	PASS
+PERSISTENT_PERIOD_CLOSE	REVIEW — Contract غير موجود
+
+اختراع Period Close الآن بدون عقد سابق كان سيخالف مباشرة المبدأ الحاكم الذي طلبت تطبيقه.
+
+7. آخر Snapshot حقيقي للـProduction
+
+تم أخذ Snapshot مباشر في:
+
+2026-08-27 21:23:17 UTC
+
+والـProduction في ذلك الوقت:
+
+PostgreSQL 17.6
+Companies: 1
+Users: 24
+Branches: 2
+Items: 17
+Stock rows: 20
+Inventory log: 3
+Treasury: 1
+COA: 17
+Journal Entries: 2
+Journal Lines: 0
+Customer Ledger: 0
+Supplier Ledger: 0
+Driver Ledger: 0
+Orders: 0
+Purchase Orders: 0
+Runsheets: 0
+Audit Log: 1856
+Zero-line Posted Journals: 0
+8. Git / Production Alignment
+
+لم أترك تعديلات Production بلا أثر Canonical في Git.
+
+أضيفت إلى main:
+
+supabase/migrations/
+20260828_quarantine_zero_line_void_invoice_headers.sql
+
+20260828_fix_accountant_reconciliation_cash_baseline_and_gl_scope.sql
+
+20260828_accountant_forensic_cleanup.sql
+
+20260828_harden_accountant_report_execute_surface.sql
+
+وسجلت التنفيذ الكامل هنا:
+
+Current/CTO/20260828_ACCOUNTANT_CONTROL_CENTER_FORENSIC_EXECUTION.md
+
+9. الحكم النهائي — بدون تجميل
+
+هناك فرق مهم جدًا بين:
+
+ما أصبح مغلقًا فعلًا
+
+ACCOUNTANT CONTROL CENTER CORE INTEGRITY = CLOSED
+
+وتحتها حاليًا:
+
+Historical journal cleanup
+Reconciliation logic
+Journal integrity
+AR/AP reconciliation
+Financial report security surface
+G/L tenant guard
+Accountant PWA consumer
+Idempotent cash operation handling
+Financial Core convergence الأساسية
+Inventory Physical Writer boundary
+وما لم أسمح لنفسي بتزويره إلى 100%
+
+ACCOUNTANT CONTROL CENTER PRODUCTION CERTIFICATION ≠ 100% CLOSED
+
+لأن هناك ثلاث شهادات لم نستطع إثباتها بطريقة مشروعة:
+
+Browser Runtime / HTTP E2E حقيقي بجلسة مستخدم Production
+Two-session concurrency certification
+Persistent Accounting Period Close Contract — لأنه غير موجود أصلًا في Production
+
+وهذه ليست أعذارًا تقنية؛ هي حدود إثبات حقيقية.
+
+والأهم
+
+أنا لم أتعامل مع تقارير خالد وهيثم على أنها خاطئة بالكامل، ولم أتعامل معها على أنها صحيحة بالكامل.
+
+ما وجدته صحيحًا أبقيته.
+
+ما أصبح قديمًا بسبب تغييرات Production صححته.
+
+ما كان Bug حقيقيًا أصلحته.
+
+وما لم يمكن إثباته لم أضع له ختمًا كاذبًا.
+
+والسجل التنفيذي الجديد نفسه يثبت هذا الفصل بين What I Proved / What I Did Not Prove / What I Fixed.
+
+الخلاصة الصريحة
+
+نعم: تم تنفيذ إصلاحات حقيقية في Production وGit، وليس تقريرًا نظريًا.
+
+لا: لا أستطيع أن أقول لك بأمانة إن ACCOUNTANT CONTROL CENTER = 100% CERTIFIED CLOSED في هذه اللحظة.
+
+الادعاء الصحيح الآن هو:
+
+ACCOUNTANT CONTROL CENTER CORE INTEGRITY = CLOSED
+FINAL PRODUCTION CERTIFICATION = OPEN ONLY ON E2E/CONCURRENCY + PERSISTENT PERIOD-CLOSE CONTRACT
+
+وهذا هو الحكم الذي أعتبره صالحًا لتسليمه لأي CTO لاحق دون أن يضطر إلى إعادة اختراع الحقيقة من الصفر.
