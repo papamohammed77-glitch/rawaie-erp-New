@@ -1,0 +1,1168 @@
+MASTER RAWAEA ERP
+FORENSIC MEMORY TRANSFER & CONTINUITY EXECUTION DIRECTIVE
+VERSION — POST REPORT 71
+________________________________________
+0 — PURPOSE
+مهمة حرجة : 
+في هذه المهمة لا تثق في التقارير ، ولا تثق في المساعدين ، ولا تثق في ذاكرتك ، لا تستعجل بالقفز إلي  إتخاذ قرارات استباقية أو بالتعديل .. 
+انتظر حتي تنتهي من قراءة آخر سطر وآخر أمر تنفيذي ،  قم بالتحقيق الجنائي من المصادر مباشرة وقاعدة البيانات supabase و الملفات المنشورة  وسجلات التوثيق ولا تثق بالتقارير ولا ذاكرتك فذاكرتك توقفت في مرحلة تاريخية قديمة ، لذلك لا تعتمد علي الذاكرة الحالية التاريخية ،
+وفي النهاية ما تجده من تعديلات الصحيح منها مرره والغير صحيح قم بإصلاحه مباشرة
+أرغب بتكليفك بمهمة شديدة الحرج والأهمية ولكن قبل ذلك يجب أن أقوم بإعدادك وتأهيلك لهذه المهمة 
+لمعرفة سياق الحوار الحالي للمهمة الحالية وتسلسل الأحداث للاسترشاد 
+هام جدا .. قم بقراءة الملفات التالية كاملة من أولها إلي آخرها قراءة تدقيقية ولا تكتفي بأول أسطر
+هذه الرسالة تنقل الذاكرة، لكنها لا تنقل الحقيقة الحالية. الحقيقة الحالية يجب إعادة إثباتها من Production.
+الملفات المرجعية الأساسية:
+MASTER_MEMORY_TRANSFER_DIRECTIVE_RAWAEA_ERP.md
+تقرير 71
+Current/PWA/accountant.html
+
+هذه الرسالة ليست مجرد Summary.
+وليست بديلًا عن التحقيق.
+وليست مصدر الحقيقة النهائي عن Production.
+
+بل هي:
+Historical Continuity + Architectural Context + Decision History + Execution Governance
+هدفها منع فقدان تسلسل المشروع، ومنع إسقاط القرارات والتصحيحات والوظائف التي تم الوصول إليها خلال الرحلة السابقة.
+لكن:
+لا يجوز اعتبار أي معلومة في هذه الرسالة Current Production Truth إلا بعد إثباتها مباشرة من Production الحالية.
+________________________________________
+1 — ABSOLUTE TRUST RULE
+من لحظة استلامك هذه الرسالة:
+DO NOT TRUST:
+•	Model Memory
+•	Previous Assistant Memory
+•	Any Previous Assistant Conclusion
+•	Historical Reports
+•	Old Snapshots
+•	Old Percentages
+•	Previous "100% CLOSED" Statements
+•	Previous "DONE" Statements
+•	Any Assumption
+•	Any Unverified Claim
+ولا حتى هذه الرسالة نفسها باعتبارها وصفًا نهائيًا للحالة الحالية.
+استخدمها لفهم:
+WHY / WHEN / HOW / DECISION / HISTORY
+ولا تستخدمها بدلًا من:
+PRODUCTION EVIDENCE
+________________________________________
+2 — SOURCE AUTHORITY HIERARCHY
+عند وجود تعارض استخدم الترتيب التالي:
+A0 — CURRENT PRODUCTION REALITY
+أعلى مصدر للحقيقة:
+•	Supabase PostgreSQL
+•	Current rows/data
+•	Current schema
+•	constraints
+•	triggers
+•	RLS
+•	permissions
+•	PostgreSQL functions / RPCs
+•	Current Edge Function deployments
+•	Deployment versions
+•	Runtime logs
+•	Actual Production behavior
+↓
+A1 — CURRENT GIT
+المستودع الحالي:
+rawaie-erp-New/main
+المصادر الحالية:
+•	Current/
+•	Current/PWA/
+•	Current/CTO/
+•	supabase/migrations/
+•	deployed-source mirrors
+•	current documentation
+↓
+A2 — CURRENT EVIDENCE
+•	Evidence/Production/
+•	deployment records
+•	forensic records
+•	current status records
+•	memory anchors
+•	current verification records
+↓
+A3 — HISTORICAL SOURCES
+•	Original/
+•	rawaie-erp-review
+•	old migrations
+•	Git history
+•	previous architectures
+•	superseded implementations
+↓
+A4 — HISTORICAL REPORTS
+•	prompts
+•	assistant reports
+•	reviews
+•	previous conclusions
+قاعدة إلزامية:
+إذا قال تقرير قديم:
+CLOSED
+لكن Production الحالية تقول:
+OPEN
+فلا تحذف التاريخ.
+سجل:
+Historical State = CLOSED
+Later Correction = ...
+Current Surviving State = OPEN
+وبالعكس.
+________________________________________
+3 — MASTER HISTORICAL CONTINUITY ANCHOR
+الوثيقة الأساسية التي تحدد طريقة نقل الذاكرة هي:
+MASTER_MEMORY_TRANSFER_DIRECTIVE_RAWAEA_ERP.md
+الرابط المباشر:
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/MASTER_MEMORY_TRANSFER_DIRECTIVE_RAWAEA_ERP.md
+هذه الوثيقة يجب قراءتها كاملة.
+إذا كان حجم الملف أو الأداة يؤدي إلى اقتطاع العرض:
+لا تدّعي أنك قرأته كاملًا.
+قسّم القراءة إلى أجزاء حتى تصل إلى آخر سطر.
+________________________________________
+4 — LAST HISTORICAL MEMORY REPORT
+آخر تقرير لنقطة نقل الذاكرة السابقة هو:
+تقرير 71
+الرابط المباشر:
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%2071
+هذا التقرير يمثل:
+Historical Memory Transfer Attempt
+وليس:
+Current Production Truth
+يجب استخدامه لفهم:
+•	لماذا ظهرت مشكلة نقل الذاكرة.
+•	لماذا أصبح الفصل بين Historical وCurrent ضروريًا.
+•	ما هي قواعد الاستمرار الجديدة.
+•	أين وصلت منهجية العمل.
+•	وما هي الأخطاء التي يجب عدم تكرارها.
+________________________________________
+5 — HISTORICAL PROJECT CHAIN
+السلسلة التالية تاريخية ولا يجوز إسقاطها:
+Prompt 53
+↓
+Prompt 54
+↓
+External Accounting Investigation
+↓
+Prompt 56
+↓
+PHASE 0
+↓
+Prompt 57
+↓
+PHASE 1
+↓
+Prompt 58
+↓
+Gap Closure / Re-investigation
+↓
+Prompt 59
+↓
+PWA / Architecture Decisions
+↓
+Prompt 60
+↓
+PWA Accounting Requirements
+↓
+Prompt 61
+↓
+Accounting Core / Function Proposals
+↓
+Report 62
+↓
+Accountant PWA Review
+↓
+Report 63
+↓
+Discovery of Destructive accountant.html Reduction
+↓
+Report 64
+↓
+Expanded Accountant Requirements
+↓
+Report 65
+↓
+Accountant Control Center
+↓
+Report 66
+↓
+Deep Accountant Completion
+↓
+Report 67
+↓
+Accountant Control Center Closure Attempt
+↓
+Report 68
+↓
+Current-only Forensic Verification
+↓
+Report 69
+↓
+Single-file Rule
+↓
+Report 70
+↓
+Report 71
+↓
+CURRENT FORENSIC CONTINUITY STATE
+هذه السلسلة لا تُختصر إلى:
+"تم تطوير النظام محاسبيًا ثم تحسينه."
+كل مرحلة قد تكون غيّرت:
+•	Business Contract
+•	Architecture
+•	Production
+•	Consumers
+•	Database
+•	UI
+•	Permissions
+•	Writers
+•	Data
+•	Deployment
+•	Decisions
+________________________________________
+6 — HISTORICAL REPORT CHAIN
+هذه الملفات Historical Evidence يجب الرجوع إليها عند الحاجة لفهم القرارات والتطورات:
+Memory / Continuity
+MASTER_MEMORY_TRANSFER_DIRECTIVE
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/MASTER_MEMORY_TRANSFER_DIRECTIVE_RAWAEA_ERP.md
+تقرير الذاكرة الكامل
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%A8%D8%B1%D9%88%D9%85%D8%AA%20%D8%A7%D9%84%D8%B0%D8%A7%D9%83%D8%B1%D8%A9%20%D8%A7%D9%84%D9%83%D8%A7%D9%85%D9%84%D8%A9
+Prompt 53 Chain
+Report + Prompt 53
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%88%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2053
+Khalid 4
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Khalid/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AE%D8%A7%D9%84%D8%AF%204
+Hytham 4
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hytham%20/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%87%D9%8A%D8%AB%D9%85%204
+Medhat — 53 duplicated execution report
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%2053%20%D9%85%D9%83%D8%B1%D8%B1
+Prompt 54 / External Accounting Investigation
+Prompt 54
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2054%20%D8%AE%D8%A7%D8%B5
+Medhat — final repeated report
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%2053%20%D9%85%D9%83%D8%B1%D8%B1%20%D9%85%D9%83%D8%B1%D8%B1
+External Accounting Assistant
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%85%D8%B3%D8%A7%D8%B9%D8%AF%20%D8%AE%D8%A7%D8%B1%D8%AC%D9%8A%20%D8%AD%D9%88%D9%84%20%D8%A7%D9%84%D8%AD%D8%B3%D8%A7%D8%A8%D8%A7%D8%AA
+Prompt 56 / Phase Planning
+Evaluation + Prompt 56
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D9%8A%D9%8A%D9%85%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%20%20+%20%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2056
+Khalid 6
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Khalid/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AE%D8%A7%D9%84%D8%AF%206
+Hytham 6
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hytham%20/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%87%D9%8A%D8%AB%D9%85%206
+Evaluation + Plan
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%82%D9%8A%D9%8A%D9%85%20%D9%85%D8%B1%D8%AD%D9%84%D8%A9%20%2B%20%D8%AE%D8%B7%D8%A9
+________________________________________
+7 — PHASE 0 / PHASE 1 CONTINUITY
+Prompt 57
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2057
+Khalid 7
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Khalid/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AE%D8%A7%D9%84%D8%AF%207
+Hytham 7
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hytham%20/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%87%D9%8A%D8%AB%D9%85%207
+Prompt 58
+https://github.com/papamohammed77-glitch/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%2B%20%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2058
+Khalid 8
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Khalid/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AE%D8%A7%D9%84%D8%AF%208
+Hytham 8
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hytham%20/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%87%D9%8A%D8%AB%D9%85%208
+Khalid 9
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Khalid/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AE%D8%A7%D9%84%D8%AF%209
+Hytham 9
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hytham%20/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%87%D9%8A%D8%AB%D9%85%209
+________________________________________
+8 — ACCOUNTING / PWA CONTINUITY
+Prompt 59
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%2B%20%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2059
+Khalid 10
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Khalid/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AE%D8%A7%D9%84%D8%AF%2010
+Hytham 10
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hytham%20/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%87%D9%8A%D8%AB%D9%85%2010
+Prompt 60
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%2B%20%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2060
+Khalid 11
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Khalid/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AE%D8%A7%D9%84%D8%AF%2011
+Hytham 11
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hytham%20/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%87%D9%8A%D8%AB%D9%85%2011
+Prompt 61
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%2B%20%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2061
+Khalid 12
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Khalid/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AE%D8%A7%D9%84%D8%AF%2012
+Hytham 12
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hytham%20/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%87%D9%8A%D8%AB%D9%85%2012
+Medhat 62
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%85%D8%AF%D8%AD%D8%AA%2062
+________________________________________
+9 — ACCOUNTANT CONTROL CENTER CONTINUITY
+Medhat 63
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%85%D8%AF%D8%AD%D8%AA%2063
+Medhat 64
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%85%D8%AF%D8%AD%D8%AA%2064
+Medhat 65
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%85%D8%AF%D8%AD%D8%AA%2065
+Medhat 66
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%85%D8%AF%D8%AD%D8%AA%2066
+Medhat 67
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%85%D8%AF%D8%AD%D8%AA%2067
+Medhat 68
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%85%D8%AF%D8%AD%D8%AA%2068
+Medhat 69
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%85%D8%AF%D8%AD%D8%AA%2069
+Medhat 70
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%85%D8%AF%D8%AD%D8%AA%2070
+Medhat 71
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%2071
+________________________________________
+10 — CRITICAL ACCOUNTING MEMORY
+كان هناك تاريخيًا تحقيق حول:
+87 Accounts
+لكن:
+87 ≠ Current Requirement
+ولا يجوز:
+Historical evidence
+↓
+invent 87 accounts
+الـ87 يجب اعتبارها:
+Historical Investigation Finding
+وليست أمر إنشاء.
+كما أن أي رقم للحسابات ظهر تاريخيًا يجب إعادة قياسه من Production الحالية.
+________________________________________
+11 — ACCOUNTANT CONTROL CENTER TARGET
+المقصود ليس شاشة محاسبية سطحية.
+الهدف:
+ACCOUNTANT CONTROL CENTER
+كنقطة تحكم مالية تشغيلية موحدة تربط:
+Runsheets
++
+Orders
++
+Loading
++
+Delivery
++
+Returns
++
+Inventory
++
+Counting
++
+Drivers
++
+Driver Settlement
++
+Driver Liability
++
+Customers
++
+Suppliers
++
+Treasury
++
+Journal
++
+General Ledger
++
+Trial Balance
++
+P&L
++
+Balance Sheet
++
+Cash Flow
++
+Aging
++
+Reconciliation
++
+Audit
++
+Exceptions
++
+Period Readiness
++
+Closing
++
+Source Document Traceability
+________________________________________
+12 — ACCOUNTANT ARCHITECTURE CONTRACT
+المسار الصحيح:
+PWA
+↓
+Edge Capability
+↓
+Canonical Core
+↓
+PostgreSQL
+ولا:
+PWA
+↓
+Direct DB financial writes
+ولا:
+PWA
+↓
+Direct stock mutation
+Accountant:
+Control / Observation / Authorization / Workflow Initiation
+Canonical Core:
+Posting Authority
+________________________________________
+13 — ACCOUNTANT.HTML SINGLE-FILE RULE
+الملف التنفيذي الرئيسي المتفق عليه:
+Current/PWA/accountant.html
+الرابط:
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/PWA/accountant.html
+هذا الملف لا يجوز استبداله بنسخة مختصرة لمجرد التبسيط.
+أي Refactor يجب أن يثبت:
+BEFORE FUNCTIONAL COVERAGE
+=
+AFTER FUNCTIONAL COVERAGE
+أو يجب إثبات أن كل وظيفة أصبحت:
+RETAINED
+OR
+MOVED
+OR
+REPLACED WITH SUPERIOR EQUIVALENT
+OR
+FORMALLY DEPRECATED
+ولا توجد شرعية لحالة:
+ACCIDENTALLY REMOVED
+________________________________________
+14 — 69 → 1020 → 69 INCIDENT
+هذه حادثة تاريخية حرجة.
+تم اختزال Accountant PWA من ملف كبير إلى نسخة شديدة الاختصار.
+الدرس الرسمي:
+Shorter Code ≠ Better System
+المعيار هو:
+Same Functional Coverage
++
+Same Contracts
++
+Same Consumers
++
+No Lost Business Responsibility
+قبل أي تعديل مستقبلي على accountant.html يجب بناء:
+UI Function
+↓
+API / Edge
+↓
+RPC
+↓
+Business Responsibility
+↓
+Data
+________________________________________
+15 — OWNER / AUTHORIZATION CONTRACT
+لا تستنتج:
+Role = Admin
+إذن:
+All Permissions
+ولا تحول:
+permissions:["*"]
+إلى قائمة صريحة لمجرد أنها تبدو مكافئة.
+التاريخ أثبت أن OWNER semantics قد تعتمد على:
+isOwner
++
+permissions:["*"]
++
+owner_profile
++
+license state
+أي تعديل على هذا السلوك يحتاج:
+Historical Check
++
+Current Production Check
++
+Consumer Check
+________________________________________
+16 — INVENTORY CORE CONTRACT
+العقد الحاكم:
+PHYSICAL STOCK MOVEMENT
+        ↓
+post_stock_movement
+        ↓
+stock_branches
++
+inventory_log
+والـReservation:
+reserve_stock
+release_stock_reservation
+هي:
+Reservation Engine
+وليست:
+Physical Movement Engine
+أي Physical Stock Writer آخر يجب إثباته من Production قبل اعتباره Writer.
+________________________________________
+17 — NEVER MISCLASSIFY INVENTORY WRITERS
+وجود:
+INSERT INTO inventory_log
+داخل Function
+لا يعني بالضرورة أنها:
+Physical Writer
+وجود:
+UPDATE stock_branches
+في سياق initialization
+لا يعني بالضرورة أنها:
+Business Movement Engine
+يجب السؤال:
+•	هل تعدل Physical Stock؟
+•	هل تستدعي Writer آخر؟
+•	هل هي initialization؟
+•	هل هي reservation؟
+•	هل هي derived state؟
+•	هل هي audit؟
+•	هل هي cleanup؟
+________________________________________
+18 — DATA CLEANUP RULE
+أي بيانات تبدو سيئة أو تاريخية:
+لا تحذفها مباشرة.
+التسلسل الإلزامي:
+Identify
+↓
+Classify
+↓
+Trace Origin
+↓
+Trace References
+↓
+Determine Test / Fixture / Production
+↓
+Preserve Auditability
+↓
+Determine Corrective Strategy
+↓
+Execute
+↓
+Verify
+ولا يجوز حذف:
+Audit Trail
+Business Evidence
+Financial Traceability
+Historical Reference
+بلا إثبات واضح.
+________________________________________
+19 — CURRENT VS HISTORICAL DATA
+إذا وجدت مثلًا:
+Company mismatch
+بين:
+stock_branches
+و
+items.company_id
+فلا تستخدم قاعدة مبسطة:
+stock.company_id = item.company_id
+إلا إذا ثبت أن هذا هو Data Contract.
+يجب الرجوع إلى:
+Schema
++
+Constraints
++
+Actual Production behavior
++
+Historical contract
+قبل التنظيف.
+________________________________________
+20 — GIT / PRODUCTION DRIFT RULE
+هذه الحالات ليست متساوية:
+Git Changed
+Migration Created
+Migration Applied
+Edge Source Changed
+Edge Deployed
+Production Verified
+Runtime Verified
+كل مرحلة يجب تسجيلها مستقلة.
+________________________________________
+21 — RUNTIME VERIFICATION RULE
+لا تعتبر:
+Git Source Verified
+مساويًا لـ:
+Production Runtime Verified
+ولا:
+Migration Exists
+مساويًا لـ:
+Migration Applied
+ولا:
+Edge Source Exists
+مساويًا لـ:
+Edge Deployment Is Latest
+ولا:
+Staging PASS
+مساويًا لـ:
+Production PASS
+الحالات الرسمية:
+THEORETICAL
+CURRENT GIT VERIFIED
+STAGING VERIFIED
+PRODUCTION DEPLOYED
+PRODUCTION RUNTIME VERIFIED
+100% CLOSED
+________________________________________
+22 — BROWSER RUNTIME CONTRACT
+عند الحاجة إلى اختبار الواجهة:
+Browser نفسه يجب أن يكون نقطة التنفيذ.
+يجب التحقق من:
+Authentication
+↓
+Company Context
+↓
+Capabilities
+↓
+Write Boundary
+↓
+HTTP Validation
+↓
+Canonical Core
+↓
+Database Effect
+↓
+Audit
+SQL وحده لا يثبت Browser Runtime.
+________________________________________
+23 — NO EXTERNAL TEST FILES
+ممنوع إنشاء:
+•	accountant-test.html
+•	accountant-verifier.html
+•	accountant-live-certification.html
+•	temporary harness
+•	runtime helper file
+•	test replacement UI
+المسموح:
+SQL Console
+و:
+Browser DevTools Console
+والتعديلات الفعلية:
+Current/PWA/accountant.html
+________________________________________
+24 — IDEMPOTENCY CONTRACT
+أي Financial أو Inventory operation قابلة لإعادة الإرسال يجب أن تثبت:
+FIRST REQUEST
+=
+ONE COMMITTED EFFECT
+ثم:
+SAME OPERATION IDENTITY
+=
+DUPLICATE
+ولا:
+RETRY
+=
+SECOND TRANSACTION
+________________________________________
+25 — CONCURRENCY CONTRACT
+العمليات الحرجة يجب اختبارها بالتوازي:
+USER A
++
+USER B
+والنتيجة الصحيحة:
+ONE COMMITTED EFFECT
++
+ONE DUPLICATE / CONFLICT
++
+NO DOUBLE POSTING
++
+NO RACE CORRUPTION
+________________________________________
+26 — WRITER CLOSURE MODEL
+لا تصلح مجموعة Writers دفعة واحدة.
+لكل Writer:
+WRITER
+↓
+RESPONSIBILITY
+↓
+CONSUMER
+↓
+HISTORICAL
+↓
+ORIGINAL
+↓
+CURRENT
+↓
+PRODUCTION
+↓
+TARGET
+↓
+GAP
+↓
+SURGICAL FIX
+↓
+TEST
+↓
+DEPLOY
+↓
+PRODUCTION VERIFY
+↓
+DOCUMENT
+↓
+CLOSE
+ثم فقط:
+NEXT WRITER
+________________________________________
+27 — FORENSIC CHANGE MODEL
+لا تستخدم:
+BUG FOUND
+↓
+PATCH
+استخدم:
+UNDERSTAND
+↓
+RECONSTRUCT HISTORICAL CONTRACT
+↓
+TRACE CURRENT PRODUCTION
+↓
+TRACE CURRENT GIT
+↓
+TRACE DATA FLOW
+↓
+TRACE AUTHORIZATION
+↓
+COMPARE TARGET
+↓
+IDENTIFY ACTUAL GAP
+↓
+DESIGN SURGICAL CHANGE
+↓
+IMPLEMENT
+↓
+VERIFY
+↓
+DEPLOY
+↓
+VERIFY PRODUCTION AGAIN
+↓
+DOCUMENT
+↓
+CLOSE
+________________________________________
+28 — HISTORICAL / CURRENT CLASSIFICATION
+كل معلومة أو نتيجة يجب تصنيفها إلى واحدة فقط على الأقل من:
+HISTORICAL
+CURRENT
+OBSOLETE
+PARTIALLY SURVIVING
+CONTRADICTED
+UNKNOWN
+UNVERIFIED
+مثال:
+تقرير قديم يقول:
+DONE
+لكن Production الحالية تقول:
+OPEN
+لا تكتب:
+"التقرير السابق كان خاطئًا"
+فقط.
+بل:
+Historical State = DONE
+Later State = ...
+Current Surviving State = OPEN
+________________________________________
+29 — CURRENT PRODUCTION SNAPSHOT
+قبل أي تحليل مهم:
+نفّذ Snapshot جديدة من:
+Production Database
++
+Current Git
++
+Deployment Metadata
++
+Current UI File
+ولا تعتمد على Snapshot قديمة لمجرد أنها محفوظة في Evidence.
+________________________________________
+30 — REPORTING RULE
+لا تستخدم:
+95%
+98%
+99%
+100%
+إلا إذا كان لها:
+Measurement Query
++
+Timestamp
++
+Production State
++
+Scope
++
+Definition
+كل نسبة يجب أن تكون قابلة لإعادة الإنتاج.
+________________________________________
+31 — ZERO-DEBT DEFINITION
+لا تعلن:
+ZERO-DEBT
+إلا إذا ثبت:
+All intended responsibilities present
++
+All Writers identified
++
+Consumers aligned
++
+Production deployed
++
+Production runtime verified
++
+No critical parallel writer
++
+No unresolved contradiction
++
+Data reconciled
++
+Audit preserved
++
+Current Git aligned
+________________________________________
+32 — SELF AUDIT BEFORE ACTION
+قبل أي تعديل يجب أن تسجل داخليًا:
+Business Understanding:
+Architecture Understanding:
+Database Understanding:
+Historical Understanding:
+Current Git Understanding:
+Current Production Understanding:
+Deployment Understanding:
+Runtime Understanding:
+
+Confirmed Facts:
+Unknowns:
+Conflicts:
+Unverified Claims:
+
+Production Opened:
+Current Git Opened:
+Historical Opened:
+Schema Checked:
+Triggers Checked:
+RLS Checked:
+Permissions Checked:
+Consumers Checked:
+Dependencies Checked:
+Git History Checked:
+وجود Unknown مؤثر يمنع إعلان 100% Closed.
+________________________________________
+33 — SELF AUDIT AFTER ACTION
+بعد التنفيذ:
+WHAT I PROVED
+WHAT I DID NOT PROVE
+WHAT I CHANGED
+WHAT I DID NOT CHANGE
+WHAT I DISCOVERED
+WHAT I INITIALLY MISSED
+WHAT BECAME OBSOLETE
+WHAT REMAINS OPEN
+WHAT COULD STILL BE WRONG
+
+PRODUCTION DEPLOYED?
+PRODUCTION RUNTIME VERIFIED?
+AUDIT VERIFIED?
+DATA VERIFIED?
+CURRENT GIT ALIGNED?
+
+FINAL CLOSURE STATUS
+________________________________________
+34 — DOCUMENTATION / MEMORY RULE
+كل حدث مهم يجب أن يسجل:
+EVENT ID:
+DATE:
+SOURCE:
+OBJECTIVE:
+INPUT STATE:
+
+HISTORICAL CONTRACT:
+CURRENT PRODUCTION FACT:
+CURRENT GIT FACT:
+CURRENT EVIDENCE:
+
+DISCOVERY:
+ROOT CAUSE:
+BUSINESS IMPACT:
+ARCHITECTURAL IMPACT:
+DATABASE IMPACT:
+EDGE/RPC IMPACT:
+FRONTEND IMPACT:
+
+CHANGE MADE:
+WHY:
+ALTERNATIVES REJECTED:
+
+MIGRATION:
+DEPLOYMENT:
+COMMIT:
+
+TEST:
+RUNTIME TEST:
+PRODUCTION VERIFY:
+
+DATA CLEANUP:
+AUDIT PRESERVATION:
+
+POST-CHANGE STATE:
+OBSOLETE STATE:
+REMAINING OPEN ITEMS:
+LATER CORRECTIONS:
+
+CURRENT SURVIVING STATE:
+SOURCE REFERENCES:
+________________________________________
+35 — NO RESPONSIBILITY MAY DISAPPEAR
+خلال أي Refactor أو Convergence:
+لا يجوز أن تختفي Business Responsibility.
+كل مسؤولية يجب أن تكون:
+RETAINED
+OR
+MOVED
+OR
+REPLACED WITH SUPERIOR EQUIVALENT
+OR
+FORMALLY DEPRECATED
+________________________________________
+36 — INDUSTRY RESEARCH RULE
+عند الحاجة إلى تحسين التصميم:
+يمكن الرجوع إلى:
+SAP
+Microsoft Dynamics 365
+Odoo
+NetSuite
+Comparable ERP patterns
+لكن:
+لا تنسخ الواجهة أو architecture حرفيًا.
+استخراج:
+Business Pattern
++
+Control Pattern
++
+Accounting Pattern
++
+Audit Pattern
++
+Reconciliation Pattern
++
+Closing Pattern
+ثم تطبيق الأفضل على RAWAEA.
+________________________________________
+37 — INNOVATION RULE
+الإبداع مطلوب.
+لكن لا يجوز أن يأتي على حساب:
+Accounting correctness
+Inventory integrity
+Auditability
+Tenant isolation
+Traceability
+Existing functionality
+Historical contracts
+Production stability
+الإبداع الصحيح:
+Better Outcome
++
+Lower Complexity
++
+Higher Auditability
++
+Less Manual Effort
++
+Same or Stronger Safety
+________________________________________
+38 — WHAT TO DO WHEN A DEFECT IS FOUND
+لا تتوقف عند:
+FOUND
+بل:
+FOUND
+↓
+ROOT CAUSE
+↓
+HISTORICAL REVIEW
+↓
+CURRENT PRODUCTION REVIEW
+↓
+TARGET REVIEW
+↓
+SAFE DESIGN
+↓
+SURGICAL FIX
+↓
+TEST
+↓
+DEPLOY
+↓
+PRODUCTION VERIFY
+↓
+DOCUMENT
+↓
+CLOSE
+إذا كان التنفيذ غير آمن بسبب Missing Evidence:
+لا تخترع Evidence.
+اذكر:
+BLOCKING UNKNOWN
+وحدد بالضبط ما الذي يمنع التنفيذ.
+________________________________________
+39 — INITIAL ACTIONS AFTER RECEIVING THIS MESSAGE
+لا تبدأ أي إصلاح استباقي.
+أولًا:
+STEP 1
+افتح:
+MASTER_MEMORY_TRANSFER_DIRECTIVE_RAWAEA_ERP.md
+كاملًا.
+STEP 2
+افتح:
+تقرير 71
+كاملًا.
+STEP 3
+افتح Current Git.
+STEP 4
+افتح Production.
+STEP 5
+خذ:
+CURRENT PRODUCTION SNAPSHOT
+STEP 6
+طابق:
+Git ↔ Production
+STEP 7
+حدد:
+CURRENT
+HISTORICAL
+OBSOLETE
+CONFLICT
+UNKNOWN
+UNVERIFIED
+STEP 8
+أنشئ:
+CURRENT BASELINE
+STEP 9
+لا تنفذ أي تعديل حتى يصل المستخدم إلى المهمة التنفيذية التالية.
+________________________________________
+40 — WHEN THE NEXT TASK ARRIVES
+لا تقفز إلى الحل.
+أولًا:
+OPEN SOURCE
+↓
+READ FULLY
+↓
+OPEN PRODUCTION
+↓
+TRACE CURRENT
+↓
+TRACE HISTORY
+↓
+TRACE CONSUMERS
+↓
+TRACE DATA
+↓
+TRACE AUTH
+↓
+COMPARE TARGET
+↓
+IDENTIFY ACTUAL GAP
+↓
+SELECT CLOSURE UNIT
+↓
+EXECUTE
+↓
+TEST
+↓
+DEPLOY
+↓
+VERIFY PRODUCTION
+↓
+DOCUMENT
+↓
+CLOSE
+________________________________________
+41 — FINAL CONTINUITY PRINCIPLE
+أنا لا أحتاج منك أن توافق:
+•	Medhat
+•	Khalid
+•	Hytham
+•	أي مساعد سابق
+•	أي تقرير سابق
+•	أي قرار تاريخي
+إذا كان الاستنتاج خاطئًا:
+صححه.
+إذا كان Production نفسه يحتوي Bug:
+أثبت ذلك ثم أصلحه بأقل تغيير آمن.
+إذا كان قرار سابق صحيحًا تاريخيًا لكنه لم يعد صحيحًا:
+احتفظ بالتاريخ، وصحح Current State.
+________________________________________
+42 — FINAL COMMAND
+من الآن:
+DO NOT TRUST MEMORY
+DO NOT TRUST REPORTS
+DO NOT TRUST ASSISTANTS
+DO NOT TRUST OLD SNAPSHOTS
+DO NOT TRUST ASSUMPTIONS
+DO NOT TRUST UNVERIFIED CLAIMS
+ثق فقط بما يمكن إثباته من:
+CURRENT PRODUCTION
++
+CURRENT GIT
++
+DIRECT SOURCE INSPECTION
++
+DATABASE EVIDENCE
++
+RUNTIME EVIDENCE
++
+DOCUMENTED HISTORICAL CONTEXT
+________________________________________
+43 — FINAL OBJECTIVE
+الهدف ليس:
+More Reports
+ولا:
+More Code
+ولا:
+More Features
+بل:
+CORRECT SYSTEM
++
+CURRENT PRODUCTION
++
+CURRENT GIT
++
+TRACEABLE DATA
++
+CONTROLLED WRITERS
++
+SAFE ACCOUNTING
++
+SAFE INVENTORY
++
+SAFE AUTHORIZATION
++
+AUDITABILITY
++
+RUNTIME VERIFIED
++
+NO UNDOCUMENTED DEBT
+ثم فقط:
+CLOSED
+________________________________________
+44 — FINAL FIRST RESPONSE REQUIRED FROM THE NEW CTO
+بعد استلام هذه الرسالة لا تبدأ إصلاحًا.
+أول رد يجب أن يحتوي فقط على:
+MEMORY TRANSFER ACCEPTED
+
+MASTER DIRECTIVE:
+OPENED / NOT OPENED
+
+REPORT 71:
+OPENED / NOT OPENED
+
+CURRENT GIT:
+OPENED / NOT OPENED
+
+PRODUCTION:
+OPENED / NOT OPENED
+
+CURRENT BASELINE:
+NOT YET ESTABLISHED / ESTABLISHED
+
+HISTORICAL CONTEXT:
+UNDERSTOOD / NOT YET VERIFIED
+
+CURRENT TRUTH:
+NOT YET VERIFIED
+
+UNKNOWNs:
+...
+
+CONFLICTS:
+...
+
+UNVERIFIED CLAIMS:
+...
+
+NO MODIFICATION STARTED:
+YES
+ثم ينتظر المهمة التنفيذية التالية.
+ولا يقوم بأي إصلاح استباقي لمجرد أن شيئًا يبدو خاطئًا.
+
