@@ -1,0 +1,164 @@
+نفذت التحقيق الجنائي على المصادر المباشرة، وليس على التقارير وحدها، ووصلت إلى نتيجة مهمة جدًا: كانت هناك إصلاحات صحيحة فعلًا، لكن المرحلة لم تكن مغلقة 100%، وبعض ما اعتُبر مكتملًا كان ما يزال يحتوي فجوات حقيقية.
+
+ما ثبت فعليًا من Git + Production
+
+أولًا، اختصار accountant.html من 1020 سطرًا إلى 69 سطرًا لم يكن وهمًا؛ سجل Git يثبت أن commit 76f9a926... حذف 1010 سطرًا وأضاف 59 فقط.
+
+كما أثبتت النسخة السابقة أن هناك وظائف Reliability مهمة كانت موجودة ثم اختفت، وأهمها آلية sessionStorage التي تحفظ operationId لسندات القبض والصرف وتسمح بإعادة المحاولة دون إنشاء حركة مالية ثانية.
+
+أما Production الحالية، فآخر snapshot مباشر عند 27 أغسطس 2026 يثبت:
+
+العنصر	Production الحالية
+Companies	1
+Users	24
+Branches	2
+Items	17
+Stock rows	20
+Inventory log	3
+Journal headers	2
+Journal lines	0
+
+وهذا يختلف صراحةً عن الـsnapshots التاريخية السابقة؛ لذلك لا يصح اعتبار أرقام تقارير 21–23 أغسطس “الحالة الحالية”.
+
+أهم اكتشاف جنائي
+
+وجدت أن:
+
+Physical Stock Writer الحقيقي ما زال post_stock_movement فقط.
+
+أما:
+
+reserve_stock
+release_stock_reservation
+
+فهما Reservation/Allocation فقط.
+
+وsetup_van_stock يقوم بتهيئة صفوف المخزون، وليس تنفيذ حركة مخزون.
+كما أن complete_runsheet_picking يقوم بالحجز وتحديث order_details وrunsheets ولا ينفذ Physical Stock Movement مستقلًا.
+
+إذًا من ناحية Physical Stock Engine لم نجد Writer موازيًا حقيقيًا خارج post_stock_movement.
+
+وهذا يتفق مع مبدأ الحوكمة الحاكم الذي ينص على عدم اعتبار أي سلوك خطأ قبل إعادة بناء العقد التاريخي وتتبع Production الحالية.
+
+لكن وجدت عيبًا ماليًا حقيقيًا في Production
+
+هناك الآن:
+
+2 Journal Entries بحالة Posted وبدون أي journal_lines.
+
+أي أن:
+
+Posted Header
++
+0 Lines
+
+وهذه حالة محاسبية غير صالحة.
+
+التقارير السابقة لم تكن تلتقطها لأن منطق accountant_exception_center كان يفحص فرق المدين/الدائن فقط، وفرق الصفر لا يكشف غياب الـlines.
+
+قمت بإصلاح ذلك فعليًا في Production:
+
+accountant_exception_center
+accountant_period_readiness
+
+وأصبح:
+
+Posted Journal + 0 Journal Lines
+        ↓
+UNBALANCED_JOURNAL
+        ↓
+FAIL / HIGH
+
+ولم أحذف القيدين التاريخيين أو أعدل بياناتهما عشوائيًا.
+
+إصلاح آخر فعلي تم في Production
+
+وجدت في الـledger tables سياسات RLS واسعة:
+
+customer_ledger
+supplier_ledger
+driver_ledger
+
+وبعد التحقق من الـtable grants والـRLS، أغلقت سطح الكتابة المباشر للمستخدمين وأبقيت القراءة المناسبة، بحيث لا يصبح الـLedger Writer موزعًا خارج الـCore.
+
+هذا يتفق مع الاتجاه المعتمد مسبقًا نحو post_customer_ledger_entry / post_supplier_ledger_entry / post_driver_ledger_entry.
+
+وأثبتنا أيضًا شيئًا مهمًا جدًا بخصوص Inventory
+
+يوجد في Production نسختان overload من:
+
+post_stock_movement
+
+لكن التسعة معاملات ليست محركًا ثانيًا؛ هي wrapper إلى النسخة ذات العشرة معاملات.
+
+إذًا:
+
+post_stock_movement(9 args)
+        ↓
+post_stock_movement(10 args)
+        ↓
+stock_branches
++
+inventory_log
+
+وليس لدينا هنا محرك Physical Stock موازٍ.
+
+وهذا متوافق مع الـGlobal Inventory directive الذي يجعل العقد المركزي هو:
+
+PHYSICAL STOCK MOVEMENT → post_stock_movement → stock_branches + inventory_log.
+
+ماذا عن accountant.html؟
+
+هنا لن أجامل.
+
+النسخة الحالية أصبحت بالفعل أوسع من نسخة الـ69 سطرًا المبكرة، وتحتوي:
+
+Dashboard / Receipts / Payments / Journal / Reports / Operations / Partners / Inventory / GL / Reconciliation / Audit
+
+لكن التحقيق أثبت أن الملف لم يصل بعد إلى مستوى “Accountant Control Center 100% Closed”.
+
+وأهم ما لم أعتبره مغلقًا:
+
+فقدان بعض Reliability UX التاريخي، خصوصًا persistent operation identity للقبض والصرف.
+بعض وظائف الـUX الأقدم التي كانت أكثر غنى من النسخة الحالية.
+عدم جواز اعتبار تقارير P&L / TB / BS صحيحة محاسبيًا بينما Production الحالية نفسها تحتوي Posted Journals = 2 وJournal Lines = 0.
+لا يوجد حتى الآن Contract مثبت لـPersistent Period Close، ولذلك أبقيته REVIEW ولم أخترع إغلاقًا وهميًا.
+لا يمكن الادعاء بأن Browser Runtime للـPWA تم التحقق منه فعليًا من خلال بيئة المتصفح نفسها.
+
+والأهم أن هذا ليس استنتاجًا نظريًا؛ Git يثبت بالفعل حجم الـregression التاريخي في الملف.
+
+النتيجة التنفيذية الحالية
+
+تم إصلاح Production فعليًا، لكن لا أعتبر المهمة 100% مغلقة.
+
+الحالة الدقيقة الآن:
+
+Gate	الحالة
+Forensic source review	✅
+Production resynchronization	✅
+Physical Stock Writer discovery	✅
+Physical Writer outside post_stock_movement	0 حقيقيين
+Reservation separation	✅
+Journal zero-line detection	✅ تم إصلاحه
+Period readiness zero-line detection	✅ تم إصلاحه
+Direct Ledger write surface	✅ تم تشديده
+Historical bad journal data	⚠️ مكتشفة ولم تُحذف
+Accountant PWA functional completeness	⚠️ غير مغلقة 100%
+Browser runtime verification	⚠️ غير مثبتة
+Persistent period close	⚠️ لا يوجد Contract مثبت
+Global Zero-Debt	❌ غير مغلق بعد
+والأهم
+
+أنا لا أوصي الآن بأن نعلن:
+
+ACCOUNTANT CONTROL CENTER = 100% CLOSED
+
+لأن ذلك سيكون مخالفًا للأدلة الحالية.
+
+التقرير التاريخي الخاص بالذاكرة نفسه كان قد حذر من نفس المشكلة: وجود Core أو تقرير لا يعني أن كل الـAccounting/Consumer/Security/Deployment gates أغلقت.
+
+والـMaster Governance Principle نفسه يفرض علينا ألا نحول اكتشافًا أو تقريرًا إلى حقيقة إلا بعد مطابقة Production الحالية.
+
+ما تم إنجازه إذن ليس مجرد تقرير مراجعة؛ تم تنفيذ إصلاحات حقيقية في Production وتسجيلها، وكُشف أن المرحلة لا تزال تحتوي Debt حقيقيًا.
+
+الـGap الكبير المتبقي الآن هو إغلاق Accountant PWA + معالجة القيدين التاريخيين بطريقة تحفظ الـAudit Trail + إتمام Accounting Writer Convergence، وليس اختراع واجهة جديدة سطحية فوق البيانات الحالية.
