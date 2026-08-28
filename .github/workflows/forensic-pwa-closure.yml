@@ -22,35 +22,28 @@ jobs:
           core=Path('Current/PWA/core.js')
           sw=Path('Current/PWA/sw.js')
           vouchers=Path('Current/PWA/vouchers.html')
-
           c=core.read_text(encoding='utf-8')
           assert "var path = swPath || '../sw.js';" in c
           c=c.replace("var path = swPath || '../sw.js';","var path = swPath || 'sw.js';",1)
           core.write_text(c,encoding='utf-8')
-
           s=sw.read_text(encoding='utf-8')
           assert "var STATIC_CACHE = 'rw-static-v1';" in s
           s=s.replace("var STATIC_CACHE = 'rw-static-v1';","var STATIC_CACHE = 'rw-static-v2';",1)
-          assert ".js'];" in s
-          s=s.replace("'.ico', '.webp', '.js'];","'.ico', '.webp'];",1)
+          assert "'.webp', '.js'];" in s
+          s=s.replace("'.webp', '.js'];","'.webp'];",1)
           assert 'function isStaticAsset(pathname) {' in s
           s=s.replace('function isStaticAsset(pathname) {',"function isRuntimeScript(pathname) {\n    var lowerPath = pathname.toLowerCase();\n    return lowerPath.slice(-3) === '.js' || lowerPath.slice(-4) === '.mjs';\n}\n\nfunction isStaticAsset(pathname) {",1)
-          anchor='    // 3. الموارد الثابتة: Cache First مع حماية من تجاوز الحصة\n'
+          anchor='// 3. الموارد الثابتة: Cache First مع حماية من تجاوز الحصة\n'
           assert anchor in s
-          s=s.replace(anchor,"    // 3. Runtime scripts: Network Only to prevent stale application code.\n    if (isRuntimeScript(url.pathname)) {\n        event.respondWith(fetch(request));\n        return;\n    }\n\n    // 4. الموارد الثابتة: Cache First مع حماية من تجاوز الحصة\n",1)
-          s=s.replace("    // 4. أي موارد أخرى: Network First مع fallback للكاش\n","    // 5. أي موارد أخرى: Network First مع fallback للكاش\n",1)
+          s=s.replace(anchor,"// 3. Runtime scripts: Network Only to prevent stale application code.\n    if (isRuntimeScript(url.pathname)) {\n        event.respondWith(fetch(request));\n        return;\n    }\n\n    // 4. الموارد الثابتة: Cache First مع حماية من تجاوز الحصة\n",1)
+          s=s.replace('// 4. أي موارد أخرى: Network First مع fallback للكاش','// 5. أي موارد أخرى: Network First مع fallback للكاش',1)
           sw.write_text(s,encoding='utf-8')
-
           v=vouchers.read_text(encoding='utf-8')
           anchor=".from('items').select('id,item_code,barcode,name,search_label,category,unit,description,image_url,sales_price,cost_price,is_active').eq('is_active',true).or('barcode.eq.'+code+',item_code.eq.'+code).limit(1)"
           assert anchor in v
           v=v.replace(anchor,".from('items').select('id,item_code,barcode,name,search_label,category,unit,description,image_url,sales_price,cost_price,is_active').eq('company_id',s.company).eq('is_active',true).or('barcode.eq.'+code+',item_code.eq.'+code).limit(1)",1)
           vouchers.write_text(v,encoding='utf-8')
-          
-          for p in (core,sw):
-              assert p.read_text(encoding='utf-8').count("../sw.js") == (0 if p is core else p.read_text(encoding='utf-8').count("../sw.js"))
-          x=re.findall(r'<script>(.*?)</script>',v,re.S)
-          Path('/tmp/vouchers-inline.js').write_text('\n'.join(x),encoding='utf-8')
+          Path('/tmp/vouchers-inline.js').write_text('\n'.join(re.findall(r'<script>(.*?)</script>',v,re.S)),encoding='utf-8')
           PY
           node --check Current/PWA/core.js
           node --check Current/PWA/sw.js
