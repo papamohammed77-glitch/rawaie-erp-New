@@ -12,7 +12,7 @@ serve(async(req)=>{
     const type=String(body?.type||'').trim()
     const items=Array.isArray(body?.items)?body.items:[]
     const repId=body?.rep_id||body?.repId||null
-    const operationId=String(body?.operation_id||body?.operationId||req.headers.get('Idempotency-Key')||'').trim()||null
+    const suppliedOperationId=String(body?.operation_id||body?.operationId||req.headers.get('Idempotency-Key')||'').trim()||null
     if(!type||!items.length) throw new Error('النوع والأصناف مطلوبة')
     const ah=req.headers.get('Authorization')
     if(!ah) throw new Error('غير مصرح')
@@ -23,8 +23,12 @@ serve(async(req)=>{
     const companyId=pu.company_id
     const normalized=items.map((item:any)=>({itemCode:String(item?.itemCode??'').trim(),qty:Number(item?.qty),itemName:item?.itemName||item?.itemCode||'',unit:item?.unit||'حبة',unitPrice:Number(item?.unitPrice)||0,notes:item?.notes||''}))
     for(const x of normalized){if(!x.itemCode||!Number.isFinite(x.qty)||x.qty<=0) throw new Error('بيانات الصنف غير صالحة')}
-    if(type==='DirectSale'&&!repId) throw new Error('مندوب البيع المباشر مطلوب للصرف المباشر')
-    const {data,error}=await supabase.rpc('create_manual_stock_voucher_atomic',{p_company_id:companyId,p_type:type,p_reference:body?.reference||'',p_from_type:body?.fromType||'Branch',p_from_id:body?.fromId||null,p_to_type:body?.toType||'Branch',p_to_id:body?.toId||null,p_notes:body?.notes||'',p_created_by:user.email,p_items:normalized,p_rep_id:repId,p_operation_id:operationId})
+
+    const args10={p_company_id:companyId,p_type:type,p_reference:body?.reference||'',p_from_type:body?.fromType||'Branch',p_from_id:body?.fromId||null,p_to_type:body?.toType||'Branch',p_to_id:body?.toId||null,p_notes:body?.notes||'',p_created_by:user.email,p_items:normalized}
+    const args12={...args10,p_rep_id:repId,p_operation_id:suppliedOperationId}
+    const {data,error}=repId||suppliedOperationId
+      ? await supabase.rpc('create_manual_stock_voucher_atomic',args12)
+      : await supabase.rpc('create_manual_stock_voucher_atomic',args10)
     if(error) throw new Error(error.message)
     return new Response(JSON.stringify(data),{headers:{...corsHeaders,'Content-Type':'application/json'}})
   }catch(e){return new Response(JSON.stringify({success:false,msg:e?.message||'فشل إنشاء الإذن'}),{status:400,headers:{...corsHeaders,'Content-Type':'application/json'}})}
