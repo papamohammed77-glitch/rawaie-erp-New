@@ -7,7 +7,7 @@ const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-
 
 function isAllowed(user: any) {
   const permissions = Array.isArray(user?.permissions) ? user.permissions : []
-  return user?.isOwner === true || permissions.includes("*") || permissions.includes("vehicles.manage")
+  return user?.isOwner === true || permissions.includes("*") || permissions.includes("vehicles.manage") || user?.role === "مدير عام" || user?.role === "مدير مخازن"
 }
 
 serve(async (req) => {
@@ -20,7 +20,7 @@ serve(async (req) => {
     if (authError || !user?.id || !user?.email) throw new Error("جلسة غير صالحة")
 
     const { data: pu, error: ue } = await supabase.from("users")
-      .select("id,company_id,name,email,status,permissions,auth_id")
+      .select("id,company_id,name,email,status,permissions,auth_id,role")
       .eq("auth_id", user.id).maybeSingle()
     if (ue || !pu?.company_id) throw new Error("سياق الشركة غير محدد للمستخدم")
     if (pu.status && pu.status !== "Active") throw new Error("المستخدم غير نشط")
