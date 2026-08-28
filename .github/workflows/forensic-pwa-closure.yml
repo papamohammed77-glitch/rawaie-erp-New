@@ -38,9 +38,18 @@ jobs:
           s=s.replace('// 4. أي موارد أخرى: Network First مع fallback للكاش','// 5. أي موارد أخرى: Network First مع fallback للكاش',1)
           sw.write_text(s,encoding='utf-8')
           v=vouchers.read_text(encoding='utf-8')
-          old="cards:function(rows,scope){var s=this;if(!rows.length)return"
-          assert old in v
-          v=v.replace("+'\\\\\\\\')\\\"", "+'\\\\')\\\"")
+          lines=v.splitlines(True)
+          out=[]
+          in_cards=False
+          for line in lines:
+              if 'cards:function' in line:
+                  in_cards=True
+              if in_cards:
+                  line=re.sub(r"\\{2,}'", r"\\'", line)
+              out.append(line)
+              if in_cards and '},' in line:
+                  in_cards=False
+          v=''.join(out)
           vouchers.write_text(v,encoding='utf-8')
           inline='\n'.join(re.findall(r'<script>(.*?)</script>',v,re.S))
           Path('/tmp/vouchers-inline.js').write_text(inline,encoding='utf-8')
@@ -60,5 +69,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add Current/PWA/core.js Current/PWA/sw.js Current/PWA/vouchers.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'fix: close PWA runtime path and voucher script syntax'
+          git commit -m 'fix: close shared PWA runtime path and voucher syntax drift'
           git push origin HEAD:main
