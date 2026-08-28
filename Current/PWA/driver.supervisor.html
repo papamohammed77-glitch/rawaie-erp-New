@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="../core.js"></script>
+    <script src="core.js"></script>
     <script>var supabase = window.supabase;</script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
@@ -220,9 +220,9 @@ var App = {
         RW_UI.safeHTML(RW_UI.byId('mainContent'),html);
     }
 };
-RW_SW.register('../sw.js');
+RW_SW.register('sw.js');
 document.addEventListener('DOMContentLoaded',function(){App.init();});
 </script>
-<script src="../register-sw.js"></script>
+<script src="register-sw.js"></script>
 </body>
 </html>
