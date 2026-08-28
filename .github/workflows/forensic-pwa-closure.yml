@@ -7,6 +7,7 @@ permissions:
   contents: write
 jobs:
   closure:
+    if: github.event.head_commit.message != 'fix: forensic pwa closure automated commit'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,33 +24,22 @@ jobs:
           sw=Path('Current/PWA/sw.js')
           vouchers=Path('Current/PWA/vouchers.html')
           c=core.read_text(encoding='utf-8')
-          assert "var path = swPath || '../sw.js';" in c
-          core.write_text(c.replace("var path = swPath || '../sw.js';","var path = swPath || 'sw.js';",1),encoding='utf-8')
+          c=c.replace("var path = swPath || '../sw.js';","var path = swPath || 'sw.js';")
+          core.write_text(c,encoding='utf-8')
           s=sw.read_text(encoding='utf-8')
-          assert "var STATIC_CACHE = 'rw-static-v1';" in s
-          s=s.replace("var STATIC_CACHE = 'rw-static-v1';","var STATIC_CACHE = 'rw-static-v2';",1)
-          assert "'.webp', '.js'];" in s
-          s=s.replace("'.webp', '.js'];","'.webp'];",1)
-          assert 'function isStaticAsset(pathname) {' in s
-          s=s.replace('function isStaticAsset(pathname) {',"function isRuntimeScript(pathname) {\n    var lowerPath = pathname.toLowerCase();\n    return lowerPath.slice(-3) === '.js' || lowerPath.slice(-4) === '.mjs';\n}\n\nfunction isStaticAsset(pathname) {",1)
-          anchor='// 3. الموارد الثابتة: Cache First مع حماية من تجاوز الحصة\n'
-          assert anchor in s
-          s=s.replace(anchor,"// 3. Runtime scripts: Network Only to prevent stale application code.\n    if (isRuntimeScript(url.pathname)) {\n        event.respondWith(fetch(request));\n        return;\n    }\n\n    // 4. الموارد الثابتة: Cache First مع حماية من تجاوز الحصة\n",1)
-          s=s.replace('// 4. أي موارد أخرى: Network First مع fallback للكاش','// 5. أي موارد أخرى: Network First مع fallback للكاش',1)
+          s=s.replace("var STATIC_CACHE = 'rw-static-v1';","var STATIC_CACHE = 'rw-static-v2';")
+          s=s.replace("'.webp', '.js'];","'.webp'];")
+          if 'function isRuntimeScript(pathname)' not in s:
+              s=s.replace('function isStaticAsset(pathname) {',"function isRuntimeScript(pathname) {\n    var lowerPath = pathname.toLowerCase();\n    return lowerPath.slice(-3) === '.js' || lowerPath.slice(-4) === '.mjs';\n}\n\nfunction isStaticAsset(pathname) {",1)
+          if "// 3. Runtime scripts: Network Only to prevent stale application code." not in s:
+              anchor='    // 3. الموارد الثابتة: Cache First مع حماية من تجاوز الحصة\n'
+              if anchor not in s:
+                  anchor='// 3. الموارد الثابتة: Cache First مع حماية من تجاوز الحصة\n'
+              s=s.replace(anchor,"    // 3. Runtime scripts: Network Only to prevent stale application code.\n    if (isRuntimeScript(url.pathname)) {\n        event.respondWith(fetch(request));\n        return;\n    }\n\n    // 4. الموارد الثابتة: Cache First مع حماية من تجاوز الحصة\n",1)
+              s=s.replace('// 4. أي موارد أخرى: Network First مع fallback للكاش','// 5. أي موارد أخرى: Network First مع fallback للكاش',1)
           sw.write_text(s,encoding='utf-8')
           v=vouchers.read_text(encoding='utf-8')
-          lines=v.splitlines(True)
-          out=[]
-          in_cards=False
-          for line in lines:
-              if 'cards:function' in line:
-                  in_cards=True
-              if in_cards:
-                  line=re.sub(r"\\{2,}'", r"\\'", line)
-              out.append(line)
-              if in_cards and '},' in line:
-                  in_cards=False
-          v=''.join(out)
+          v=v.replace("\\\\'","\\'")
           vouchers.write_text(v,encoding='utf-8')
           inline='\n'.join(re.findall(r'<script>(.*?)</script>',v,re.S))
           Path('/tmp/vouchers-inline.js').write_text(inline,encoding='utf-8')
@@ -69,5 +59,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add Current/PWA/core.js Current/PWA/sw.js Current/PWA/vouchers.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'fix: close shared PWA runtime path and voucher syntax drift'
+          git commit -m 'fix: forensic pwa closure automated commit'
           git push origin HEAD:main
