@@ -1,0 +1,65 @@
+name: one-shot-vouchers-core-canonicalization
+on:
+  push:
+    branches: [ main ]
+permissions:
+  contents: write
+jobs:
+  canonicalize:
+    if: ${{ !contains(github.event.head_commit.message, '[canonical-core-finalize]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Canonicalize Current/PWA core paths and voucher runtime
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          root = Path('Current/PWA')
+          changed = []
+          for path in root.iterdir():
+              if not path.is_file():
+                  continue
+              try:
+                  text = path.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              new = text.replace('../core.js', 'core.js')
+              new = new.replace('../register-sw.js', 'register-sw.js')
+              if path.name == 'vouchers.html':
+                  new = new.replace("RW_SW.register('../sw.js')", "RW_SW.register('sw.js')")
+                  new = re.sub(r"replace\(/[^)]*&quot;\'/\)", "replace(/\"/g,'&quot;')", new, count=1)
+                  if "scanLastCode:''" not in new:
+                      new = new.replace("lastSyncAt:null,", "lastSyncAt:null,scanLastCode:'',scanLastAt:0,", 1)
+                  marker = "handleScan:function(code){var s=this,x=this.items.find(function(i){return s.norm(i.barcode)===s.norm(code)||s.norm(i.item_code)===s.norm(code)});"
+                  replacement = "handleScan:function(code){var s=this,scanCode=s.norm(code),scanNow=Date.now();if(!scanCode)return;if(s.scanLastCode===scanCode&&scanNow-s.scanLastAt<1200)return;s.scanLastCode=scanCode;s.scanLastAt=scanNow;var x=this.items.find(function(i){return s.norm(i.barcode)===scanCode||s.norm(i.item_code)===scanCode});"
+                  if marker in new:
+                      new = new.replace(marker, replacement, 1)
+              if new != text:
+                  path.write_text(new, encoding='utf-8')
+                  changed.append(str(path))
+          legacy = Path('Current/core.js')
+          if legacy.exists():
+              legacy.unlink()
+              changed.append(str(legacy) + ' [deleted]')
+          if not changed:
+              raise SystemExit('NO_CHANGES')
+          print('\n'.join(changed))
+          PY
+      - name: Validate canonical layout
+        run: |
+          test -f Current/PWA/core.js
+          test -f Current/PWA/register-sw.js
+          test -f Current/PWA/sw.js
+          test ! -e Current/core.js
+          ! grep -R --line-number --fixed-strings '../core.js' Current/PWA
+          ! grep -R --line-number --fixed-strings '../register-sw.js' Current/PWA
+          ! grep -R --line-number --fixed-strings "RW_SW.register('../sw.js')" Current/PWA
+      - name: Commit canonicalization and remove one-shot workflow
+        run: |
+          git config user.name 'RAWAEA CTO Automation'
+          git config user.email 'cto@rawaea.com'
+          git rm -f .github/workflows/one-shot-vouchers-core-canonicalization.yml
+          git add Current/PWA Current/core.js
+          git commit -m "fix: canonicalize Current/PWA shared core and voucher runtime [canonical-core-finalize]"
+          git push origin main
