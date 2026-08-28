@@ -22,12 +22,9 @@ jobs:
           core=Path('Current/PWA/core.js')
           sw=Path('Current/PWA/sw.js')
           vouchers=Path('Current/PWA/vouchers.html')
-
           c=core.read_text(encoding='utf-8')
           assert "var path = swPath || '../sw.js';" in c
-          c=c.replace("var path = swPath || '../sw.js';","var path = swPath || 'sw.js';",1)
-          core.write_text(c,encoding='utf-8')
-
+          core.write_text(c.replace("var path = swPath || '../sw.js';","var path = swPath || 'sw.js';",1),encoding='utf-8')
           s=sw.read_text(encoding='utf-8')
           assert "var STATIC_CACHE = 'rw-static-v1';" in s
           s=s.replace("var STATIC_CACHE = 'rw-static-v1';","var STATIC_CACHE = 'rw-static-v2';",1)
@@ -40,18 +37,13 @@ jobs:
           s=s.replace(anchor,"// 3. Runtime scripts: Network Only to prevent stale application code.\n    if (isRuntimeScript(url.pathname)) {\n        event.respondWith(fetch(request));\n        return;\n    }\n\n    // 4. الموارد الثابتة: Cache First مع حماية من تجاوز الحصة\n",1)
           s=s.replace('// 4. أي موارد أخرى: Network First مع fallback للكاش','// 5. أي موارد أخرى: Network First مع fallback للكاش',1)
           sw.write_text(s,encoding='utf-8')
-
           v=vouchers.read_text(encoding='utf-8')
-          # Fix malformed JS escaping in the action buttons; preserve HTML behavior.
-          assert "App.send(\\\\''+s.esc" in v or "App.send(\\''+s.esc" in v
-          v=v.replace("App.send(\\\\''+s.esc", "App.send(\\''+s.esc")
-          v=v.replace("App.cancel(\\\\''+s.esc", "App.cancel(\\''+s.esc")
-          v=v.replace("App.receive(\\\\''+s.esc", "App.receive(\\''+s.esc")
-          v=v.replace("App.complete(\\\\''+s.esc", "App.complete(\\''+s.esc")
-          # Same correction for the closing escaped quote after the dynamic code.
-          v=v.replace("+'\\\\')\\\"", "+'\\')\\\"")
+          old="cards:function(rows,scope){var s=this;if(!rows.length)return"
+          assert old in v
+          v=v.replace("+'\\\\\\\\')\\\"", "+'\\\\')\\\"")
           vouchers.write_text(v,encoding='utf-8')
-          Path('/tmp/vouchers-inline.js').write_text('\n'.join(re.findall(r'<script>(.*?)</script>',v,re.S)),encoding='utf-8')
+          inline='\n'.join(re.findall(r'<script>(.*?)</script>',v,re.S))
+          Path('/tmp/vouchers-inline.js').write_text(inline,encoding='utf-8')
           PY
           node --check Current/PWA/core.js
           node --check Current/PWA/sw.js
