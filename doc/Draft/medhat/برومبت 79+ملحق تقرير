@@ -1,0 +1,381 @@
+برومبت 79
+مهمة حرجة : 
+توقف عن كل مهمة حالية مثل Picker.html  أو غيرها واهتم فقط بالمهمة الحرجة الحالية ، في هذه المهمة لا تثق في التقارير ، ولا تثق في المساعدين ، ولا تثق في ذاكرتك ، لا تستعجل بالقفز إلي  إتخاذ قرارات استباقية أو بالتعديل .. 
+انتظر حتي تنتهي من قراءة آخر سطر وآخر أمر تنفيذي ،  قم بالتحقيق الجنائي من المصادر مباشرة وقاعدة البيانات supabase و الملفات المنشورة  وسجلات التوثيق ولا تثق بالتقارير ولا ذاكرتك فذاكرتك توقفت في مرحلة تاريخية قديمة ، لذلك لا تعتمد علي الذاكرة الحالية التاريخية ،
+وفي النهاية ما تجده من تعديلات الصحيح منها مرره والغير صحيح قم بإصلاحه مباشرة
+أرغب بتكليفك بمهمة شديدة الحرج والأهمية ولكن قبل ذلك يجب أن أقوم بإعدادك وتأهيلك لهذه المهمة 
+لمعرفة سياق الحوار الحالي للمهمة الحالية وتسلسل الأحداث للاسترشاد 
+هام جدا .. طلبت منك قراءة الملفات التالية كاملة من أولها إلي آخرها قراءة تدقيقية ولا تكتفي بأول أسطر قم بفتح الملف التالي : doc/Draft/medhat/برومبت 72 ، https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2072 
+
+وطلبت منك  بعد قراءتها مراجعة شاملة وكاملة لملف vouchers.html  من كل النواحي وأعلم أنه تابع للمخازن 
+
+والقيام بالإغلاق التام والكامل مع أخذ كل الوسائل
+الإبداعية والبحث عن حلول لدي الشركات المنافسة
+
+والقيام باكتشاف الأخطاء قم بحل واستكمال الـGap المتبقية فيه حتي الآن 
+
+وليس اختراع واجهة جديدة سطحية فوق البيانات الحالية.
+
+أريد أن يكون ملف كامل وشامل ومصحح واحترافي وذهبي ماسي وجاهز للنشر
+الفوري بدون أي أخطاء أو معوقات تعطل النظام او ال workflow
+وتدفق البيانات والتكامل والمزامنة اللحظية
+
+أريد أن نصل في هذه المرة إلي 100% CLOSED" ، قبل المساس بالملف قم بمراجعة آخر دور تم الاتفاق عله لهذا التطبيق ودوره في النظام وعلاقته ببقية النظام وخاصة المخازن وتطبيق مندوب البيع المباشر والموردين ، وكذلك في اذن مندوب البيع المباشر يتم اختيار المندوب ويتم اختيار السيارة ،وفي كل أنواع الأذون يتم تفعيل البحث الذكي مثل في الأصناف في المناديب في السيارات في الموردين  ، وقم بمراجعة  آخر ما تم التخطيط و الخطط التي وضعناها لهذا الملف ، قم بمراجعة آخر الأحداث التي تمت لهذا الملف والمسجلة في سجل الأحداث ، أريد تحقيق أعلي إبداع بالمقارنة بالشركات المنافسة ،  وكان ردك كالتالي : https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2073%20%2B%20%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1 ، 
+
+وطلبت منك أيضا التالي :
+القيام بدمج التعديل فقط في الملف core.js الموجود داخل المجلد Current/PWA ، لأننا لدينا بالفعل ملف Current/PWA/core.js ليكون مصدرنا واحد وقم بتسجيل جميع الأحدث ليسهل الرجوع لها لأي مساعد في التعديل وجعلها من المبادي الحاكمة
+
+وجاء ردك كالتالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2074%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+وطلبت منك التالي : 
+"ولكني فوجئت بأنك صححت كل الملفات ولم تصحح الملف 
+Current/PWA/core.js
+ولا أعلم لماذا قمت بتصليح كل الملفات الأخري 
+ولماذا لم تتعرف علي الملفات الأخري الموجودة مثل 
+Current/PWA/sw.js
+Current/PWA/register-sw.js
+وكلها موجودة 
+المطلوب الآن مراجعة جميع التعديلات السابقة والتأكد من صحتها 
+مراجعة الملفات والتأكد من أنها صحيحة وماسية ذهبية 
+تسجيل الأحداث وعدم فقدان البوصلة واقرأ البرومبتات والرسائل كلها من أولها إلي آخرها وليس بعض أسطر فنفقد النظام وينهار"
+
+وكان ردك التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2075%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+وطلبت منك التالي : 
+"أنت قلت في نهاية تقريرك "الـInventory Core في Production أقرب بكثير إلى الحالة الصحيحة مما توحي به التقارير القديمة، لكن Vouchers/PWA ليست 100% مغلقة حتى الآن بسبب vouchers.html syntax وcore.js/sw.js runtime parity وCI residue. لذلك لن أصف الحالة بأنها ذهبية أو ماسية أو Production-closed قبل إزالة هذه الأدلة المضادة والتحقق منها مرة أخرى."
+قم بإستكمال الإصلاح حتي يصل إلي الحالة الصحيحة وأكمل 100%
+وقم بإزالة الأدلة المضادة والتحقق منها مرة أخري 
+لا تنتظر المساعدة من أحد ولا تتوقف حتي تنتهي ، لديك كل الملفات ولديك كل الخبرة ولديك القدرة علي البحث عبر الإنترنت عن الحلول وما تفعله الأنظمة المنافسة ، والحلول الإبتكارية والإبداعية ولديك رؤية المالك والرؤية العامة لنظام الروائع الذي نعمل عليه
+ولديك التسجيلات التاريخية للمشروع 
+لا تتوقف حتي تنتهي من الاصلاح الكامل وتحقيق تجربة مستخدم رائعة ابداعية وملف ذهبي ماسي"
+
+وكان ردك كالتالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2076%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+وطلبت منك البرومبت التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2077%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+وتم طلب منك الأمر التنفيذي التالي (برومبت 78 + ملحق تقرير بالتنفيذ)
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2078%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+والمطلوب الآن
+قم بمراجعة الدور التاريخي والهام للنظام الأم وتبويباته وطريقة التعديل فيه لعدم إهداره أو ضياعه أو التسبب بانهياره
+قم بفتح ملف النظام الأم 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/PWA/main.html
+قم بمراجعة تبويب المخازن والفروع 
+أريد استحداث تبويب لإضافة سيارة إلي جدول السيارات تتدفق بياناته في الجداول الخاصة بالسيارات تسمح لنا بمتابعة السيارة واستعمالها كوعاء ومخزن وفرع متنقل في سيارات الشحن والتوصيل مع مناديب الدليفري وسيارات البيع المباشروطبعا بأنواعها المختلفة وحمولتها المختلفة ونستطيع منه بعد ذلك متابعة صيانة السيارات وإدارة الحركة والنقل وهكذا 
+قم بمراجعة الأنظمة المنافسة والمعمول به في شركات مثل المراعي في السعودية والخليج وغيرها
+
+
+
+---------------------------------------
+ملحق
+تقرير تنفيذ البرومبت
+تم تنفيذ المهمة الحالية باعتبارها مهمة حرجة مستقلة لــ Vehicle Master داخل النظام الأم، مع الالتزام بالتسلسل الحاكم وعدم الاعتماد على التقارير القديمة كحقيقة Production.
+
+النتيجة الفعلية
+1. أعَدْتُ بناء السياق من المصادر الأساسية
+
+تم الرجوع إلى سلسلة Prompts 72–78 والحوكمة المرتبطة بها، وثبت أن القاعدة الحاكمة هي:
+
+UNDERSTAND → HISTORICAL CONTRACT → CURRENT PRODUCTION → DATA/AUTH FLOW → TARGET → GAP → SURGICAL FIX → VERIFY
+
+وليس تعديل الكود بناءً على شكل يبدو خاطئًا.
+
+كما ثبت من المصادر الحالية أن:
+
+vouchers.html واجهة تشغيل مخزنية وليست محرك المخزون.
+السيارة كانت أصلًا جزءًا من نموذج المخزون المتنقل؛ VAN-{vehicle_code} هو الفرع/الحاوية المتنقلة، والتحميل يستخدم السيارة في تدفق MAIN → VAN.
+vehicles هي الـmaster الفعلية التي تعتمد عليها عمليات الـLoading وDirect Sale.
+2. طابقت Production الحالية نفسها
+
+الحالة الحالية التي أثبتها الاستعلام المباشر، وليست من تقرير تاريخي:
+
+العنصر	Production الحالية
+Companies	1
+Vehicles	0
+Vehicle Tracking	0
+VAN branches	0
+Vehicle Maintenance	0
+Vehicle Documents	0
+Vehicle Status History	0
+MAIN stock rows	17
+
+أي أن Production الحالية نظيفة من ناحية السيارات، ولم أقم بإدخال سيارة تجريبية دائمة.
+
+3. تم إنشاء Vehicle Master حقيقي وليس واجهة شكلية
+
+تم توسيع vehicles بشكل إضافي دون استبدال الجدول الأساسي، وإضافة:
+
+vehicle_type
+operation_mode
+ownership_type
+model_year
+vin
+fuel_type
+refrigerated
+mobile_stock_enabled
+mobile_branch_id
+
+وأضفت البنية المستقبلية اللازمة لـ:
+
+vehicle_maintenance
+vehicle_documents
+vehicle_status_history
+
+مع indexes وRLS وContext Guards وAudit.
+
+الأهم: أصبحت العلاقة:
+
+Vehicle → Mobile Branch → Stock Container
+
+علاقة صريحة وليست مجرد convention نصي.
+
+4. إنشاء السيارة أصبح Transaction مركزية واحدة
+
+تم إنشاء:
+
+public.create_vehicle_atomic(...)
+
+وهي الآن المسؤول المركزي عن إنشاء السيارة.
+
+وتنفذ:
+
+Vehicle Master
+      ↓
+Validation
+      ↓
+Company / Driver Context
+      ↓
+Vehicle
+      ↓
+VAN-{vehicle_code}
+      ↓
+mobile_branch_id
+      ↓
+Initial Stock Container
+      ↓
+Vehicle Status History
+      ↓
+Audit
+
+ولا تقوم هذه العملية بعمل Physical Movement.
+
+وهذا مهم جدًا:
+
+إنشاء المخزن المتنقل لا يعني حركة مخزنية.
+
+الحركة الفيزيائية تظل في:
+
+post_stock_movement
+
+وبالتالي لم أخلق محرك مخزون ثاني.
+
+5. أغلقت مشكلة الـCompany / Driver isolation
+
+الـRPC نفسه، وليس الواجهة فقط، أصبح يتحقق من:
+
+auth.uid()
+users.auth_id
+company_id
+status
+الصلاحية *
+vehicles.manage
+أو أدوار الإدارة الحالية مدير عام / مدير مخازن
+
+وهذا يحافظ على semantics الـOWNER التاريخية بدل تحويلها إلى افتراض جديد.
+
+كما أن اختيار السائق في Vehicle Master أصبح Company-scoped وSmart Search.
+
+6. أغلقت مشكلة السيارة ↔ الفرع المتنقل
+
+الـcreation transaction لا تنشئ فرعًا ثانيًا إذا كان الفرع الصحيح موجودًا.
+
+تتعامل مع:
+
+VAN-{vehicle_code}
+
+بقاعدة:
+
+إن لم يوجد → يُنشأ.
+إن وجد ولا يتبع سيارة → يتم تبنيه وربطه.
+إن كان مرتبطًا بسيارة أخرى → العملية تُرفض.
+يتم تخزين mobile_branch_id داخل السيارة.
+
+وهذا مهم جدًا لتجنب ظهور:
+
+Vehicle A
+Vehicle B
+VAN-XXX
+VAN-XXX
+
+أو وجود سيارة بلا مخزن متنقل.
+
+7. أغلقت أساس Fleet Management المستقبلية
+
+لم أضع كل إدارة الأسطول في حقل notes.
+
+الآن يوجد foundation رسمي للصيانة والمستندات وحالات السيارة، مع company/vehicle guards وaudit.
+
+هذا يسمح لاحقًا ببناء:
+
+الصيانة الوقائية
+الصيانة التصحيحية
+عداد الكيلومترات
+الوثائق والتراخيص
+التأمين
+التكاليف
+سجل حالات السيارة
+الإهلاك
+حركة ونقل الأسطول
+telematics لاحقًا
+
+دون إعادة اختراع vehicles مرة أخرى.
+
+8. تم إنشاء واجهة Vehicle Master
+
+أضيف:
+
+Current/PWA/vehicles.html
+
+وتحتوي على:
+
+قائمة السيارات.
+Smart Search.
+كود السيارة.
+اللوحة.
+الموديل.
+نوع السيارة.
+نمط التشغيل.
+السائق/المندوب.
+الوزن الأقصى.
+الحجم الأقصى.
+مبردة / غير مبردة.
+Mobile Stock.
+Mobile Branch.
+إضافة سيارة جديدة.
+
+والإضافة تحتوي على البحث الذكي في السائق/المندوب، وهو متسق مع فلسفة Smart Search الموجودة في Vouchers.
+
+9. تم دمجها داخل النظام الأم فعلًا
+
+في Current/PWA/main.html أضيفت:
+
+إدارة السيارات والأسطول
+
+داخل:
+
+إدارة المخازن والمخزون
+
+والزر يفتح نفس Vehicle Master الوحيد، وليس نسخة ثانية.
+
+تم تثبيت ذلك في Git diff مباشرة:
+
+إضافة عنصر Vehicle Master إلى قائمة المخازن.
+إضافة openVehicleMaster.
+توجيهه إلى vehicles.html.
+
+ثم تم حذف الـone-shot workflow الذي نفذ الدمج، وبالتالي لا يوجد CI residue دائم.
+
+آخر التسلسل في Git:
+
+feat(vehicle): add vehicle master PWA
+fix(vehicle): use canonical published Supabase client configuration
+fix(vehicle): align access with existing owner/manager roles
+chore(ci): add one-shot vehicle master main integrator
+feat(pwa): integrate vehicle master into warehouse navigation
+chore(ci): remove one-shot vehicle master integrator
+docs(cto): record vehicle master and parent PWA forensic closure
+10. اختبرت الـTransaction فعليًا
+
+لم أكتفِ بالـDDL.
+
+تم تنفيذ اختبار داخل Production باستخدام سياق warehouse.manager الموجود فعليًا، وإنشاء:
+
+Vehicle
+Mobile Branch
+Mobile Stock rows
+Vehicle Status History
+
+ثم:
+
+ROLLBACK
+
+والتحقق النهائي أثبت أن:
+
+vehicles_after_rollback = 0
+
+أي أن الاختبار لم يلوث Production.
+
+كما أثبتت اختبارات الـintegrity:
+
+orphan_tracking = 0
+vehicle_without_mobile_branch = 0
+orphan VAN branches = 0
+11. نقطة مهمة جدًا من المقارنة بالمنافسين
+
+لم أنقل SAP أو Odoo حرفيًا؛ أخذت الـpatterns الصحيحة فقط.
+
+SAP يتعامل مع السيارة كـResource مستقل له Capacity وAvailability، مع mass/volume وخصائص تخطيطية أوسع، ويعامل المركبة والسائق والموارد كجزء من Transportation Management.
+
+Odoo Fleet يربط المركبة بالخدمات، العداد، العقود، المستندات، التكاليف والتقارير.
+
+أما Almarai فالنموذج الصناعي مهم جدًا بالنسبة لنا: تقرير 2025 يذكر 129 sales depots وأكثر من 12,000 مركبة وأكثر من 2.3 مليار كجم يتم التعامل معها وتسليمها سنويًا، مع اعتماد واضح على cold chain والـhigh-frequency distribution.
+
+لذلك الاتجاه الذي ثبت أنه صحيح للروائع هو:
+
+Vehicle Master
+     ↓
+Capacity
+     ↓
+Driver / Sales Rep
+     ↓
+Mobile Branch
+     ↓
+Mobile Inventory
+     ↓
+Loading / Delivery / Direct Sales
+     ↓
+Counting / Return / Unloading
+     ↓
+Maintenance / Costs / Documents
+     ↓
+Transport Intelligence
+
+وليس مجرد جدول سيارات.
+
+ما لم أفعله عمدًا
+
+هناك فرق مهم بين Vehicle Master Closure وبين الادعاء أن Fleet Management بالكامل أصبحت مكتملة.
+
+لم أدّعِ أن:
+
+Route Optimization مكتمل.
+Live GPS/Telematics مكتمل.
+Gantt Transport Planning مكتمل.
+Predictive Maintenance مكتمل.
+
+هذه وظائف مستقبلية تحتاج عقودًا ومصادر بيانات لم تثبت في Production الحالية، وبالتالي اختراعها الآن كان سيخالف مبدأك الأساسي.
+
+الحالة النهائية
+
+Vehicle Master & Mobile Vehicle Branch Foundation = CLOSED
+
+والتنفيذ الفعلي موجود في:
+
+Current/PWA/vehicles.html
+Production create_vehicle_atomic
+vehicle_maintenance
+vehicle_documents
+vehicle_status_history
+vehicles.mobile_branch_id
+Parent PWA navigation
+
+وسجل الإغلاق موجود في:
+
+تقرير الإغلاق الجنائي Vehicle Master & Parent PWA
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260829_VEHICLE_MASTER_AND_PARENT_PWA_FORENSIC_CLOSURE.md
+
+والـintegration نفسها مثبتة بالـGit diff، وليست مجرد وصف.
+
+ملاحظة دقة مهمة: هذا الإغلاق يخص المهمة الحالية الخاصة بـVehicle Master وربطها بالنظام الأم. لم أخلطها مع إغلاق Global Inventory Zero-Debt الخاص بـvouchers.html وcore.js وcomplete-return، لأن ذلك كان سيخرق قاعدة الـClosure Unit التي فرضتها أنت.
