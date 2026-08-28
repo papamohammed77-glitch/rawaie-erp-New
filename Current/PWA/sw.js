@@ -1,33 +1,24 @@
-// sw.js – إصدار 2.0 محسَّن (إدارة ذكية للكاش)
-// متوافق مع دستور الروائع: Network Only لـ HTML و API، Cache First مع حد أقصى للموارد الثابتة
+// sw.js – إصدار 2.1 (إدارة ذكية للكاش دون تجميد runtime)
+// Network Only لـ HTML و API و runtime JS؛ Cache First للموارد الثابتة غير التنفيذية.
 
-var STATIC_CACHE = 'rw-static-v1';
-var STATIC_EXTENSIONS = ['.css', '.woff', '.woff2', '.ttf', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.webp', '.js'];
-var MAX_STATIC_ITEMS = 200; // الحد الأقصى لعدد الملفات المخزنة في الكاش
+var STATIC_CACHE = 'rw-static-v2';
+var STATIC_EXTENSIONS = ['.css', '.woff', '.woff2', '.ttf', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.webp'];
+var MAX_STATIC_ITEMS = 200;
 
-// ==================== حدث التثبيت ====================
 self.addEventListener('install', function(event) {
-    // تفعيل الـ SW فوراً دون انتظار إغلاق النوافذ القديمة
     self.skipWaiting();
 });
 
-// ==================== حدث التفعيل ====================
 self.addEventListener('activate', function(event) {
     event.waitUntil(
         Promise.all([
-            // 1. تنظيف الكاشات القديمة (يحذف أي كاش لا يحمل اسم STATIC_CACHE)
             caches.keys().then(function(keys) {
                 return Promise.all(keys.map(function(key) {
-                    if (key !== STATIC_CACHE) {
-                        console.log('[SW] حذف الكاش القديم:', key);
-                        return caches.delete(key);
-                    }
+                    if (key !== STATIC_CACHE) return caches.delete(key);
                 }));
             }),
-            // 2. السيطرة على جميع النوافذ المفتوحة فوراً
             self.clients.claim()
         ]).then(function() {
-            // إشعار النوافذ بوجود تحديث
             return self.clients.matchAll({ type: 'window' });
         }).then(function(clientsList) {
             for (var i = 0; i < clientsList.length; i++) {
@@ -37,7 +28,6 @@ self.addEventListener('activate', function(event) {
     );
 });
 
-// ==================== دوال مساعدة ====================
 function isHTMLRequest(request) {
     if (request.mode === 'navigate') return true;
     var accept = request.headers.get('accept') || '';
@@ -50,6 +40,11 @@ function isAPIRequest(url) {
     return false;
 }
 
+function isRuntimeRequest(url) {
+    var lowerPath = url.pathname.toLowerCase();
+    return lowerPath.indexOf('.js') !== -1 || lowerPath.indexOf('.mjs') !== -1 || lowerPath.indexOf('.ts') !== -1;
+}
+
 function isStaticAsset(pathname) {
     var lowerPath = pathname.toLowerCase();
     for (var i = 0; i < STATIC_EXTENSIONS.length; i++) {
@@ -58,68 +53,40 @@ function isStaticAsset(pathname) {
     return false;
 }
 
-// دالة مساعدة للتحقق من حجم الكاش وتنظيف أقدم الملفات إذا تجاوز الحد
 function trimCache(cache) {
     return cache.keys().then(function(keys) {
         if (keys.length >= MAX_STATIC_ITEMS) {
-            // حذف أقدم ملف (أول ملف في القائمة)
-            console.warn('[SW] الكاش ممتلئ، جاري حذف أقدم ملف...');
-            return cache.delete(keys[0]).then(function() {
-                return cache;
-            });
+            return cache.delete(keys[0]).then(function() { return cache; });
         }
         return cache;
     });
 }
 
-// ==================== حدث الطلب ====================
 self.addEventListener('fetch', function(event) {
     var request = event.request;
     var url = new URL(request.url);
 
-    // تجاهل الطلبات غير GET
     if (request.method !== 'GET') return;
 
-    // 1. طلبات API و Supabase: Network Only (لا تخزين)
-    if (isAPIRequest(url)) {
+    if (isAPIRequest(url) || isHTMLRequest(request) || isRuntimeRequest(url)) {
         event.respondWith(fetch(request));
         return;
     }
 
-    // 2. ملفات HTML: Network Only (لا تخزين، لضمان وصول التحديثات)
-    if (isHTMLRequest(request)) {
-        event.respondWith(fetch(request));
-        return;
-    }
-
-// 3. الموارد الثابتة: Cache First مع حماية من تجاوز الحصة
     if (isStaticAsset(url.pathname)) {
         event.respondWith(
             caches.open(STATIC_CACHE).then(function(cache) {
                 return cache.match(request).then(function(cached) {
-                    if (cached) {
-                        // موجود في الكاش، استخدمه
-                        return cached;
-                    }
-                    // غير موجود، اجلبه من الشبكة وحاول تخزينه
+                    if (cached) return cached;
                     return fetch(request).then(function(networkResponse) {
-                        // تأكد من أن الاستجابة صالحة
-                        if (!networkResponse || networkResponse.status !== 200) {
-                            return networkResponse;
-                        }
-                        // حاول التخزين مع حماية من تجاوز الحصة
+                        if (!networkResponse || networkResponse.status !== 200) return networkResponse;
                         var copy = networkResponse.clone();
                         trimCache(cache).then(function() {
-                            try {
-                                cache.put(request, copy);
-                            } catch (e) {
-                                // إذا فشل التخزين (مثلاً QuotaExceeded)، نتجاهل بهدوء
-                                console.warn('[SW] تعذر تخزين الملف (تجاوز الحصة):', url.pathname);
-                            }
+                            try { return cache.put(request, copy); }
+                            catch (e) { console.warn('[SW] تعذر تخزين المورد:', url.pathname); }
                         });
                         return networkResponse;
                     }).catch(function() {
-                        // إذا فشل الاتصال بالشبكة وكان الملف غير موجود في الكاش، لا نستطيع فعل شيء
                         return new Response('غير متصل', { status: 503, statusText: 'Service Unavailable' });
                     });
                 });
@@ -128,21 +95,8 @@ self.addEventListener('fetch', function(event) {
         return;
     }
 
-    // 4. أي موارد أخرى: Network First مع fallback للكاش
     event.respondWith(
-        fetch(request).then(function(networkResponse) {
-            var copy = networkResponse.clone();
-            caches.open(STATIC_CACHE).then(function(cache) {
-                trimCache(cache).then(function() {
-                    try {
-                        cache.put(request, copy);
-                    } catch (e) {
-                        console.warn('[SW] تعذر تخزين الملف:', url.pathname);
-                    }
-                });
-            });
-            return networkResponse;
-        }).catch(function() {
+        fetch(request).catch(function() {
             return caches.match(request);
         })
     );
