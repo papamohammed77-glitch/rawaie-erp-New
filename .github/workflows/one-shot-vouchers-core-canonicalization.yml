@@ -10,11 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Canonicalize Current/PWA core paths and voucher runtime
+      - name: Canonicalize Current/PWA shared runtime paths
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
           root = Path('Current/PWA')
           changed = []
           for path in root.iterdir():
@@ -26,15 +25,13 @@ jobs:
                   continue
               new = text.replace('../core.js', 'core.js')
               new = new.replace('../register-sw.js', 'register-sw.js')
+              new = new.replace("RW_SW.register('../sw.js')", "RW_SW.register('sw.js')")
               if path.name == 'vouchers.html':
-                  new = new.replace("RW_SW.register('../sw.js')", "RW_SW.register('sw.js')")
-                  new = re.sub(r"replace\(/[^)]*&quot;\'/\)", "replace(/\"/g,'&quot;')", new, count=1)
-                  if "scanLastCode:''" not in new:
+                  if "scanLastCode:''" not in new and 'lastSyncAt:null,' in new:
                       new = new.replace("lastSyncAt:null,", "lastSyncAt:null,scanLastCode:'',scanLastAt:0,", 1)
                   marker = "handleScan:function(code){var s=this,x=this.items.find(function(i){return s.norm(i.barcode)===s.norm(code)||s.norm(i.item_code)===s.norm(code)});"
                   replacement = "handleScan:function(code){var s=this,scanCode=s.norm(code),scanNow=Date.now();if(!scanCode)return;if(s.scanLastCode===scanCode&&scanNow-s.scanLastAt<1200)return;s.scanLastCode=scanCode;s.scanLastAt=scanNow;var x=this.items.find(function(i){return s.norm(i.barcode)===scanCode||s.norm(i.item_code)===scanCode});"
-                  if marker in new:
-                      new = new.replace(marker, replacement, 1)
+                  new = new.replace(marker, replacement, 1)
               if new != text:
                   path.write_text(new, encoding='utf-8')
                   changed.append(str(path))
@@ -48,6 +45,7 @@ jobs:
           PY
       - name: Validate canonical layout
         run: |
+          set -e
           test -f Current/PWA/core.js
           test -f Current/PWA/register-sw.js
           test -f Current/PWA/sw.js
