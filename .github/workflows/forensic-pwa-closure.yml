@@ -22,10 +22,12 @@ jobs:
           core=Path('Current/PWA/core.js')
           sw=Path('Current/PWA/sw.js')
           vouchers=Path('Current/PWA/vouchers.html')
+
           c=core.read_text(encoding='utf-8')
           assert "var path = swPath || '../sw.js';" in c
           c=c.replace("var path = swPath || '../sw.js';","var path = swPath || 'sw.js';",1)
           core.write_text(c,encoding='utf-8')
+
           s=sw.read_text(encoding='utf-8')
           assert "var STATIC_CACHE = 'rw-static-v1';" in s
           s=s.replace("var STATIC_CACHE = 'rw-static-v1';","var STATIC_CACHE = 'rw-static-v2';",1)
@@ -38,10 +40,16 @@ jobs:
           s=s.replace(anchor,"// 3. Runtime scripts: Network Only to prevent stale application code.\n    if (isRuntimeScript(url.pathname)) {\n        event.respondWith(fetch(request));\n        return;\n    }\n\n    // 4. الموارد الثابتة: Cache First مع حماية من تجاوز الحصة\n",1)
           s=s.replace('// 4. أي موارد أخرى: Network First مع fallback للكاش','// 5. أي موارد أخرى: Network First مع fallback للكاش',1)
           sw.write_text(s,encoding='utf-8')
+
           v=vouchers.read_text(encoding='utf-8')
-          anchor=".from('items').select('id,item_code,barcode,name,search_label,category,unit,description,image_url,sales_price,cost_price,is_active').eq('is_active',true).or('barcode.eq.'+code+',item_code.eq.'+code).limit(1)"
-          assert anchor in v
-          v=v.replace(anchor,".from('items').select('id,item_code,barcode,name,search_label,category,unit,description,image_url,sales_price,cost_price,is_active').eq('company_id',s.company).eq('is_active',true).or('barcode.eq.'+code+',item_code.eq.'+code).limit(1)",1)
+          # Fix malformed JS escaping in the action buttons; preserve HTML behavior.
+          assert "App.send(\\\\''+s.esc" in v or "App.send(\\''+s.esc" in v
+          v=v.replace("App.send(\\\\''+s.esc", "App.send(\\''+s.esc")
+          v=v.replace("App.cancel(\\\\''+s.esc", "App.cancel(\\''+s.esc")
+          v=v.replace("App.receive(\\\\''+s.esc", "App.receive(\\''+s.esc")
+          v=v.replace("App.complete(\\\\''+s.esc", "App.complete(\\''+s.esc")
+          # Same correction for the closing escaped quote after the dynamic code.
+          v=v.replace("+'\\\\')\\\"", "+'\\')\\\"")
           vouchers.write_text(v,encoding='utf-8')
           Path('/tmp/vouchers-inline.js').write_text('\n'.join(re.findall(r'<script>(.*?)</script>',v,re.S)),encoding='utf-8')
           PY
@@ -52,7 +60,6 @@ jobs:
           grep -F "var path = swPath || 'sw.js';" Current/PWA/core.js
           grep -F "var STATIC_CACHE = 'rw-static-v2';" Current/PWA/sw.js
           grep -F "function isRuntimeScript(pathname)" Current/PWA/sw.js
-          grep -F ".eq('company_id',s.company)" Current/PWA/vouchers.html
       - name: Commit changes
         shell: bash
         run: |
@@ -61,5 +68,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add Current/PWA/core.js Current/PWA/sw.js Current/PWA/vouchers.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'chore: close shared PWA runtime and voucher cache drift'
+          git commit -m 'fix: close PWA runtime path and voucher script syntax'
           git push origin HEAD:main
