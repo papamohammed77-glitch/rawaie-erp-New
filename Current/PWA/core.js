@@ -5,7 +5,7 @@
 // ============================================================
 
 var SUPABASE_URL = 'https://fiilmooggumokxanwiyx.supabase.co';
-var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpaWxtb29nZ3Vtb2t4YW53aXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDkwOTIsImV4cCI6MjA5NDI4NTA5Mn0.LZScCxnCiRrTSCCBmTryszQpY1AwBgR2dkTBc5kOc4';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpaWxtb29nZ3Vtb2t4YW53aXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDkwOTIsImV4cCI6MjA5NDI4NTA5Mn0.LZScCxnCiRrTSCCBmTryszQpY1AwBgR2dkTBbC5kOc4';
 
 // ✅ إنشاء عميل Supabase الموحد (إصلاح الخطأ القاتل)
 var supabase = (typeof window.supabase !== 'undefined' && typeof window.supabase.createClient === 'function')
@@ -645,7 +645,7 @@ var RW_SW = (function() {
             if (callback) callback(false, 'المتصفح لا يدعم Service Worker');
             return;
         }
-        var path = swPath || 'sw.js';
+        var path = swPath || '../sw.js';
         navigator.serviceWorker.register(path).then(function(reg) {
             // تم تخفيف الكود هنا لأن الاعتماد أصبح على حدث 'message' في الأعلى
             // والذي يعتبر أسرع وأدق مع استراتيجية self.skipWaiting
