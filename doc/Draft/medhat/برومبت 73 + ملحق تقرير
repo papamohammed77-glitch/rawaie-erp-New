@@ -1,0 +1,293 @@
+البرومبت 73
+مهمة حرجة : 
+توقف عن كل مهمة حالية مثل Picker.html  أو غيرها واهتم فقط بالمهمة الحرجة الحالية ، في هذه المهمة لا تثق في التقارير ، ولا تثق في المساعدين ، ولا تثق في ذاكرتك ، لا تستعجل بالقفز إلي  إتخاذ قرارات استباقية أو بالتعديل .. 
+انتظر حتي تنتهي من قراءة آخر سطر وآخر أمر تنفيذي ،  قم بالتحقيق الجنائي من المصادر مباشرة وقاعدة البيانات supabase و الملفات المنشورة  وسجلات التوثيق ولا تثق بالتقارير ولا ذاكرتك فذاكرتك توقفت في مرحلة تاريخية قديمة ، لذلك لا تعتمد علي الذاكرة الحالية التاريخية ،
+وفي النهاية ما تجده من تعديلات الصحيح منها مرره والغير صحيح قم بإصلاحه مباشرة
+أرغب بتكليفك بمهمة شديدة الحرج والأهمية ولكن قبل ذلك يجب أن أقوم بإعدادك وتأهيلك لهذه المهمة 
+لمعرفة سياق الحوار الحالي للمهمة الحالية وتسلسل الأحداث للاسترشاد 
+هام جدا .. قم بقراءة الملفات التالية كاملة من أولها إلي آخرها قراءة تدقيقية ولا تكتفي بأول أسطر قم بفتح الملف التالي : doc/Draft/medhat/برومبت 72 ، https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2072 والمطلوب بعد قراءتها مراجعة شاملة وكاملة لملف vouchers.html  من كل النواحي وأعلم أنه تابع للمخازن 
+
+قم بالإغلاق التام والكامل مع أخذ كل الوسائل
+الإبداعية والبحث عن حلول لدي الشركات المنافسة
+
+قم باكتشاف الأخطاء قم بحل واستكمال الـGap المتبقية فيه حتي الآن 
+
+وليس اختراع واجهة جديدة سطحية فوق البيانات الحالية.
+
+أريد أن يكون ملف كامل وشامل ومصحح واحترافي وذهبي ماسي وجاهز للنشر
+الفوري بدون أي أخطاء أو معوقات تعطل النظام او ال workflow
+وتدفق البيانات والتكامل والمزامنة اللحظية
+
+أريد أن نصل في هذه المرة إلي 100% CLOSED" ، قبل المساس بالملف قم بمراجعة آخر دور تم الاتفاق عله لهذا التطبيق ودوره في النظام وعلاقته ببقية النظام وخاصة المخازن وتطبيق مندوب البيع المباشر والموردين ، وكذلك في اذن مندوب البيع المباشر يتم اختيار المندوب ويتم اختيار السيارة ،وفي كل أنواع الأذون يتم تفعيل البحث الذكي مثل في الأصناف في المناديب في السيارات في الموردين  ، وقم بمراجعة  آخر ما تم التخطيط و الخطط التي وضعناها لهذا الملف ، قم بمراجعة آخر الأحداث التي تمت لهذا الملف والمسجلة في سجل الأحداث ، أريد تحقيق أعلي إبداع بالمقارنة بالشركات المنافسة 
+
+---------------------------------------------------------------------
+ملحق
+تقرير تنفيذ البرومبت
+تم التعامل مع المهمة كـ Forensic Engineering Closure وليس كمراجعة تقريرية. وطبقت القاعدة الحاكمة التي تشترط فهم التاريخ والعقد الحالي وProduction قبل التعديل، ثم التنفيذ والتحقق، لا القفز من “العثور على مشكلة” إلى “ترقيعها”.
+
+النتيجة الفعلية
+1. vouchers.html تمت مراجعته كاملًا
+
+تمت قراءة Prompt 72 حتى نهايته، ثم قراءة Current/PWA/vouchers.html كاملًا من GitHub، وليس الاكتفاء ببداية الملف. كما تمت مطابقة وظائفه مع الـEdge Functions والـRPCs وProduction الحالية.
+
+الملف فعليًا يؤدي دور Warehouse Voucher Center ويغطي:
+
+Transfer
+DirectSale
+DirectReturn
+SupplierReturn
+مع البحث الذكي في الأصناف والمناديب والسيارات والموردين، والـbarcode scanning، والـrealtime synchronization.
+
+2. تم اكتشاف وإصلاح عيب حقيقي في DirectSale
+
+Production الحالية تثبت أن:
+
+vouchers@rawaea.com = مخزني / أذونات
+vansales@rawaea.com = مندوب بيع مباشر
+
+بينما عقد Production القديم كان يجعل منشئ DirectSale نفسه يجب أن يكون مندوب البيع المباشر.
+
+هذا كان خطأ في توزيع المسؤولية؛ لأن الشاشة أصلًا مصممة لكي يقوم المخزن باختيار المندوب والسيارة.
+
+تم إصلاح العقد بحيث أصبح:
+
+Warehouse Operator → يختار Representative → يختار Vehicle
+
+والـBackend يتحقق من:
+
+company
+active user
+direct-sales role
+vehicle company
+vehicle active
+vehicle.driver_id = selected rep
+
+وبالتالي لم نغير الدور الوظيفي للمستخدم، بل صححنا الـauthorization model ليتطابق مع الـworkflow الحقيقي.
+
+3. تم اكتشاف وإصلاح مشكلة Idempotency أخطر مما كان متوقعًا
+
+أثناء اختبار post_inventory_adjustment_atomic اكتشفت أن النظام كان يرسل نفس idempotency_key إلى post_stock_movement لكنه يتجاهل نتيجة duplicate.
+
+النتيجة قبل الإصلاح كانت أن إعادة نفس Adjustment يمكن أن تضيف الكمية مرة ثانية.
+
+تم إصلاحها واختبارها:
+
+قبل العملية = 2
+الطلب الأول  = +1
+النتيجة       = 3
+
+الطلب الثاني بنفس العملية
+duplicate     = true
+movement_count = 0
+والرصيد لم يتغير
+
+وهذا أهم مثال على أن الاختبار الفعلي كشف خللًا لم يكن ظاهرًا في التقارير.
+
+4. أغلقت CREATE Idempotency بشكل دائم
+
+تم إنشاء:
+
+stock_voucher_operations
+
+ويحفظ:
+
+company_id
+operation_id
+request fingerprint
+voucher_id
+creation timestamp
+
+مع uniqueness على:
+
+(company_id, operation_id)
+
+وبذلك لم تعد إعادة إرسال نفس طلب إنشاء الإذن تعتمد على الحظ أو توقيت الشبكة.
+
+5. تم الحفاظ على Physical Stock Architecture
+
+تم عمل Global Writer Discovery في Production.
+
+النتيجة الحالية:
+
+Function	الدور
+post_stock_movement	Physical Stock Writer الوحيد
+reserve_stock	Reservation فقط
+release_stock_reservation	Reservation فقط
+
+لا يوجد Physical Stock Writer مستقل آخر يكتب stock_branches.qty.
+
+وهذا يحقق القاعدة:
+
+PHYSICAL MOVEMENT → post_stock_movement → stock_branches + inventory_log
+
+وهو مطابق للتوجيه الحاكم.
+
+6. تم اختبار DirectSale فعليًا داخل Production Transaction
+
+تم إنشاء Vehicle وVAN Branch مؤقتين داخل Transaction فقط، ثم:
+
+Create → Duplicate Create → Send → Duplicate Send
+
+والنتيجة المثبتة:
+
+Source stock: 2 → 1
+Vehicle stock: 0 → 1
+Create: success
+Second Create: duplicate=true
+Second Send: no second movement
+
+ثم تم:
+
+ROLLBACK
+
+فعادت Production إلى نفس الحالة السابقة.
+
+وهذا مهم جدًا لأن Production الحالية لا تحتوي أي Vehicles أصلًا.
+
+7. تم اختبار Transfer
+
+تم تنفيذ Transactionية:
+
+Branch → Branch
+
+والنتيجة:
+
+Source: 2 → 1
+Target: 0 → 1
+
+مع إنشاء target stock_branches عند الحاجة من خلال post_stock_movement نفسه، وليس عبر client-side writer.
+
+8. تم اختبار Branch Authorization
+
+تم اختبار مندوب مسموح له فقط بـBR-01 وحاول إنشاء DirectSale من BR-2.
+
+النتيجة:
+
+REJECTED
+الفرع المصدر غير مسموح لمندوب البيع المباشر
+
+أي أن الحماية لم تعد موجودة في الواجهة فقط؛ أصبحت في Production Contract نفسها.
+
+9. تم تقوية Complete / Cancel / Adjustment
+
+تم ربط Company Context بالمستخدم المنفذ بدل الثقة في:
+
+app_settings LIMIT 1
+
+خصوصًا في العمليات الحساسة.
+
+وهذا يغلق واحدة من أكثر نقاط الـTenant Drift خطورة.
+
+10. تم إصلاح Runtime dependency
+
+اكتشفت أن:
+
+vouchers.html
+
+يستدعي:
+
+../core.js
+
+بينما الـcanonical core الفعلي هو:
+
+Current/PWA/core.js
+
+تم إنشاء:
+
+Current/core.js
+
+كـcompatibility entry point غير مكرر، ويحمّل الـcanonical core بدل إنشاء نسخة ثانية منه. هذا متسق مع مبدأ عدم إنشاء Source of Truth إضافي. والـcore الفعلي الحالي معروف في Git.
+
+11. تم الحفاظ على Realtime
+
+Production الآن تحتوي جداول:
+
+stock_vouchers
+stock_voucher_details
+stock_branches
+
+ضمن supabase_realtime، مع FULL REPLICA IDENTITY.
+
+12. Production الحالية نظيفة بعد كل الاختبارات
+
+آخر snapshot من Production:
+
+companies                     = 1
+branches                      = 2
+vehicles                      = 0
+suppliers                     = 1
+stock_vouchers                = 0
+stock_voucher_operations      = 0
+stock_branches                = 20
+inventory_log                 = 3
+
+negative_stock                = 0
+over_allocated                = 0
+duplicate_stock_keys          = 0
+stock/item company mismatch   = 0
+inventory_log/item mismatch   = 0
+order_detail/item mismatch    = 0
+runsheet/item mismatch        = 0
+
+والـsnapshot النهائي تم أخذه بعد الإصلاحات، وليس قبلها.
+
+مقارنة بما لدى المنافسين
+
+راجعت أيضًا الأنماط الرسمية الحالية في Odoo وSAP EWM وDynamics.
+
+النمط المشترك الأقوى هو:
+
+Barcode-first execution + explicit operation/task identity + confirmation + documented differences + auditable movement
+
+Odoo يدمج الـBarcode مباشرة في تنفيذ عمليات الاستلام والتحويل والتجهيز، وSAP EWM يفصل Warehouse Task عن تأكيد التنفيذ ويوثق فروق الكميات، بينما Dynamics يدعم camera scanning كمدخل تشغيلي للمخازن المحمولة.
+
+وهذه النقاط موجودة أصلًا بدرجات جيدة في vouchers.html: intelligent search، barcode scanning، وbackend-controlled stock movement.
+
+أهم ما تم تغييره فعليًا
+
+Git تم تحديثه ليعكس الوضع الحالي، ومن أهم الملفات:
+
+Current/core.js
+Current/Edge_Functions/create-stock-voucher
+CTO/STAGES/STAGE-25-VOUCHERS-UI.md
+Current/CTO/20260828_VOUCHERS_FORENSIC_CLOSURE.md
+
+كما تم تسجيل تغييرات Production في migration history، وآخر migrations الخاصة بهذه المهمة أصبحت جزءًا من Production نفسها.
+
+سجل الإغلاق الكامل موجود هنا:
+
+Current/CTO/20260828_VOUCHERS_FORENSIC_CLOSURE.md
+
+وتم أيضًا تحديث Stage-25 ليعكس الحقيقة الحالية بدل التقرير التاريخي.
+
+لكن هناك نقطة واحدة لا يجوز أن أكذب فيها عليك
+
+لن أكتب لك "100% CLOSED" على مستوى Production Runtime الكامل.
+
+ليس لأن هناك خللًا معروفًا متروكًا.
+
+بل لأن شرطك أنت وPrompt 72 يشترطان إثبات:
+
+Live authenticated browser → Production → Create → Send → Receive → Complete
+
+بالجلسة الحقيقية.
+
+وهذا لم يكن ممكنًا إثباته من بيئة التنفيذ الحالية، إضافة إلى أن Production حاليًا تحتوي:
+
+0 Vehicles
+
+لذلك لم يكن من المقبول أن أنشئ Vehicle حقيقيًا دائمًا فقط لكي أصنع لنفسي Evidence مصطنعًا.
+
+الذي أصبح مغلقًا فعليًا ومثبتًا هو:
+
+Vouchers Database + Capability + Physical Stock + Idempotency + Tenant Security + Realtime = CLOSED
+
+أما:
+
+Live Browser E2E against persistent real Vehicle master data = NOT CLAIMED
+
+وهذا التفريق مقصود، لأن كتابة 100% CLOSED الآن ستكون مخالفة صريحة للمبادئ الحاكمة التي طلبتها أنت: لا تقرير بلا مطابقة Production، ولا تحويل اختبار اصطناعي إلى Production Runtime Proof.
+
+وأهم نتيجة عملية في هذه الجولة: الاختبارات لم تؤكد ما هو موجود فقط؛ بل اكتشفت Defect جديدًا حقيقيًا في Adjustment Idempotency، وتم إصلاحه وإعادة اختباره قبل إعلان الحالة. وهذا بالضبط النوع الصحيح من الـforensic closure.
+
+
