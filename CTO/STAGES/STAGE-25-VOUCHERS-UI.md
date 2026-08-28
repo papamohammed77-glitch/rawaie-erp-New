@@ -1,50 +1,88 @@
 # STAGE-25 — vouchers.html Contract + Implementation + E2E
 
 ## Status
-IN PROGRESS — SOURCE IMPLEMENTED / PRODUCTION DEPLOYMENT NOT YET VERIFIED
+FORENSIC CURRENT STATUS — DATABASE/CAPABILITY CLOSURE VERIFIED; LIVE BROWSER RUNTIME NOT CLAIMED
 
-## Original Source Reviewed
-`PWA/warehouse/vouchers.html` from rescue branch `rescue/manual-vouchers-inventory-core`.
+## Current Source
+`Current/PWA/vouchers.html`
 
-## Production Voucher Core Used
+## Current Production Contract
 - `create_manual_stock_voucher_atomic`
-- `send_manual_stock_voucher_v2`
-- `receive_manual_stock_voucher_v2`
+- `post_manual_stock_voucher_atomic`
+- `send_stock_voucher_atomic`
 - `complete_manual_stock_voucher_atomic`
 - `cancel_manual_stock_voucher_atomic`
+- `post_inventory_adjustment_atomic`
+- `post_stock_movement`
 
-## Source Implementation
-Commit:
-`c093e2f79c81e3a03f5dbb04ce2f22ce7226e737`
+## Current Production Truth
+Verified 2026-08-28:
+- companies: 1
+- branches: 2
+- vehicles: 0
+- suppliers: 1
+- stock_vouchers: 0
+- stock_voucher_operations: 0
+- stock_branches: 20
+- inventory_log: 3
+- negative stock: 0
+- over-allocated stock: 0
+- duplicate stock keys: 0
+- branch/item company mismatch: 0
+- inventory_log/item mismatch: 0
+- order_detail/item mismatch: 0
+- runsheet/item mismatch: 0
 
-## Changes
-1. Voucher lifecycle actions route directly through the verified Voucher RPC core.
-2. Legacy UI calls to `send-stock-voucher`, `receive-stock-voucher`, and `complete-stock-voucher` are removed from the implemented path.
-3. Create uses the verified `create_manual_stock_voucher_atomic` contract.
-4. Receive UI now collects explicit `receivedQty` values per item and exposes required/received/remaining quantities.
-5. Partial Receive remains `Sent`; final receipt becomes `Received` through the backend contract.
-6. Draft Cancel is exposed through `cancel_manual_stock_voucher_atomic`.
-7. Complete is available in the valid `Sent` / `Received` states.
-8. Existing login, role gate, tabs, search, item search, cart, voucher details, and account UI are preserved.
-9. UI performs no direct stock mutation and no direct inventory-log mutation.
+## Closure Changes Applied
+1. CREATE is now server-authorized for warehouse operator `active_warehouse_role='أذونات'` while allowing explicit direct-sales representative selection.
+2. DirectSale validates representative/company/active-state and vehicle/company/active-state/driver relation.
+3. A permanent `stock_voucher_operations` registry provides operation identity + fingerprint + voucher link for CREATE idempotency.
+4. Existing ten-argument CREATE signature remains as compatibility wrapper.
+5. Adjustment idempotency bug was found by testing and fixed: duplicate Physical Stock results are now surfaced and not counted as a second mutation.
+6. Adjustment, Complete, and Cancel now bind company context to the active executing user.
+7. `stock_vouchers`, `stock_voucher_details`, and `stock_branches` remain in Realtime with FULL replica identity.
+8. `Current/core.js` provides a non-duplicating compatibility path to canonical `Current/PWA/core.js` because `vouchers.html` resolves `../core.js`.
 
-## Production Reality Gate
-The source implementation exists in GitHub, but STAGE-25 cannot be called CLOSED / GO until the updated PWA file is deployed to the actual target application and live runtime evidence proves:
+## Physical Writer Rule
+Production function discovery finds only:
+- `post_stock_movement` as Physical Stock Writer.
+- `reserve_stock` and `release_stock_reservation` as Reservation Engines.
 
-`Create → Draft → Send → Partial Receive → Full Receive → Complete`
+No parallel Physical Stock Writer was found.
 
-and:
+## Transactional Production Proof
+Temporary fixtures were created and rolled back.
 
-`Create → Draft → Cancel`
+### DirectSale
+- warehouse operator successfully created DirectSale with explicit representative
+- repeated same operation_id returned duplicate + same voucher
+- send moved exactly one unit Branch → Vehicle VAN branch
+- source stock 2 → 1
+- vehicle stock 0 → 1
+- repeated SEND did not duplicate movement
 
-with correct UI/API behavior and no legacy consumer path.
+### Transfer
+- CREATE succeeded
+- SEND moved exactly one unit Branch → Branch
+- target stock row auto-initialization worked
 
-## Required Final Evidence
-- deployed PWA version/commit
-- live Create test result
-- live Send test result
-- live Partial Receive result
-- live Full Receive result
-- live Complete result
-- live Draft Cancel result
-- confirmation that legacy Voucher lifecycle calls are no longer the active runtime consumer path
+### Adjustment
+- first adjustment changed stock once
+- repeated same request returned duplicate=true and movement_count=0
+- no second stock mutation occurred after the fix
+
+### Branch Authorization
+- DirectSale from a representative's disallowed branch was rejected by the database contract
+
+All tests were transactionally rolled back; Production final counts remain clean.
+
+## Browser Runtime Boundary
+A live authenticated browser session was not available in this execution context. Production currently contains zero vehicles, so a persistent live DirectSale workflow cannot be executed against real vehicle master data without inventing operational data.
+
+Therefore the following are intentionally **not** claimed:
+- live authenticated browser E2E proof of `Create → Send → Receive → Complete`
+- live authenticated browser proof of Draft Cancel
+- persistent live DirectSale against a real Production vehicle
+
+## Final Position
+The voucher Database/Capability layer is verified against current Production and transactional runtime evidence. The remaining Stage-25 gate is external browser-session evidence plus real vehicle master data. No false CLOSED label is applied to those unproven conditions.
