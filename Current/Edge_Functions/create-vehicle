@@ -1,0 +1,58 @@
+// create-vehicle — canonical vehicle master capability
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+
+const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" }
+
+function isAllowed(user: any) {
+  const permissions = Array.isArray(user?.permissions) ? user.permissions : []
+  return user?.isOwner === true || permissions.includes("*") || permissions.includes("vehicles.manage")
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
+  try {
+    const authHeader = req.headers.get("Authorization")
+    if (!authHeader) throw new Error("غير مصرح")
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim()
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user?.id || !user?.email) throw new Error("جلسة غير صالحة")
+
+    const { data: pu, error: ue } = await supabase.from("users")
+      .select("id,company_id,name,email,status,permissions,auth_id")
+      .eq("auth_id", user.id).maybeSingle()
+    if (ue || !pu?.company_id) throw new Error("سياق الشركة غير محدد للمستخدم")
+    if (pu.status && pu.status !== "Active") throw new Error("المستخدم غير نشط")
+
+    const effectiveUser = { ...pu, isOwner: user.user_metadata?.isOwner === true, permissions: Array.isArray(pu.permissions) ? pu.permissions : [] }
+    if (!isAllowed(effectiveUser)) throw new Error("غير مصرح بإدارة السيارات")
+
+    const body = await req.json().catch(() => ({}))
+    const { data, error } = await supabase.rpc("create_vehicle_atomic", {
+      p_company_id: pu.company_id,
+      p_vehicle_code: body?.vehicle_code,
+      p_model: body?.model ?? null,
+      p_license_plate: body?.license_plate,
+      p_driver_id: body?.driver_id ?? null,
+      p_max_weight_kg: body?.max_weight_kg == null || body?.max_weight_kg === "" ? null : Number(body.max_weight_kg),
+      p_max_volume_m3: body?.max_volume_m3 == null || body?.max_volume_m3 === "" ? null : Number(body.max_volume_m3),
+      p_min_trip_value: body?.min_trip_value == null || body?.min_trip_value === "" ? null : Number(body.min_trip_value),
+      p_status: body?.status || "Active",
+      p_notes: body?.notes || null,
+      p_vehicle_type: body?.vehicle_type || "Delivery",
+      p_operation_mode: body?.operation_mode || "Mixed",
+      p_ownership_type: body?.ownership_type || "Owned",
+      p_model_year: body?.model_year == null || body?.model_year === "" ? null : Number(body.model_year),
+      p_vin: body?.vin || null,
+      p_fuel_type: body?.fuel_type || null,
+      p_refrigerated: body?.refrigerated === true,
+      p_mobile_stock_enabled: body?.mobile_stock_enabled !== false,
+      p_created_by: pu.email || user.email
+    })
+    if (error) throw new Error(error.message)
+    return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+  } catch (e: any) {
+    return new Response(JSON.stringify({ success: false, msg: e?.message || "فشل إنشاء السيارة" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } })
+  }
+})
