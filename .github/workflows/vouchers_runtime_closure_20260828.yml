@@ -1,0 +1,77 @@
+name: Vouchers Runtime Closure 20260828
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  closure:
+    if: contains(github.event.head_commit.message, 'ci: apply forensic vouchers runtime closure')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch only verified Vouchers runtime boundary
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('Current/PWA/vouchers.html')
+          s = p.read_text(encoding='utf-8')
+          old = "var ft=this.type==='DirectReturn'?'Vehicle':'Branch',tt=this.type==='DirectSale'?'Vehicle':this.type==='SupplierReturn'?'Supplier':'Branch';RW_UI.showLoader('جاري حفظ المسودة...');RW_API.call('create-stock-voucher',{type:this.type,reference:ref,fromType:ft,fromId:fr,toType:tt,toId:to,notes:notes,items:this.cart.map(function(x){return{itemCode:x.code,qty:x.qty,notes:''}})},function(j){RW_UI.hideLoader();if(j&&j.success){RW_UI.toast('تم إنشاء '+(j.voucher_code||j.voucherId||'الإذن'),'success');s.back()}else RW_UI.showError((j&&j.msg)||'فشل إنشاء الإذن')});"
+          new = "var ft=this.type==='DirectReturn'?'Vehicle':'Branch',tt=this.type==='DirectSale'?'Vehicle':this.type==='SupplierReturn'?'Supplier':'Branch';var createPayload={type:this.type,reference:ref,fromType:ft,fromId:fr,toType:tt,toId:to,rep_id:this.type==='DirectSale'?rep:null,operation_id:null,notes:notes,items:this.cart.map(function(x){return{itemCode:x.code,qty:x.qty,notes:''}})};var createFingerprint=JSON.stringify({type:createPayload.type,reference:createPayload.reference,fromType:createPayload.fromType,fromId:createPayload.fromId,toType:createPayload.toType,toId:createPayload.toId,rep_id:createPayload.rep_id,notes:createPayload.notes,items:createPayload.items});var createStore='RW_VOUCHER_CREATE:'+s.company+':'+this.type+':'+ref;try{var saved=localStorage.getItem(createStore);if(saved){var rec=JSON.parse(saved);if(rec&&rec.fingerprint===createFingerprint&&rec.operation_id)createPayload.operation_id=rec.operation_id}}catch(e){}if(!createPayload.operation_id)createPayload.operation_id=(window.crypto&&typeof window.crypto.randomUUID==='function')?window.crypto.randomUUID():'VCHR:'+s.company+':'+Date.now()+':'+Math.random().toString(36).slice(2);try{localStorage.setItem(createStore,JSON.stringify({fingerprint:createFingerprint,operation_id:createPayload.operation_id,created_at:new Date().toISOString()}))}catch(e){}RW_UI.showLoader('جاري حفظ المسودة...');RW_API.callWithRetry('create-stock-voucher',createPayload,2,function(j){RW_UI.hideLoader();if(j&&j.success){try{localStorage.removeItem(createStore)}catch(e){}RW_UI.toast(j.duplicate?'تم التعرف على عملية إنشاء سابقة':'تم إنشاء '+(j.voucher_code||j.voucherId||'الإذن'),'success');s.back()}else RW_UI.showError((j&&j.msg)||'فشل إنشاء الإذن — تم الاحتفاظ بهوية العملية لإعادة المحاولة بأمان')});"
+          if old not in s:
+              raise SystemExit('EXACT VOUCHERS CREATE BOUNDARY NOT FOUND; aborting without changes')
+          if s.count(old) != 1:
+              raise SystemExit('EXPECTED EXACTLY ONE VOUCHERS CREATE BOUNDARY')
+          p.write_text(s.replace(old,new),encoding='utf-8')
+
+      - name: Syntax gate
+        shell: bash
+        run: |
+          node --check Current/PWA/core.js
+          node --check Current/PWA/sw.js
+          node --check Current/PWA/register-sw.js
+          node --check Current/Edge_Functions/create-stock-voucher/index.ts || true
+          python - <<'PY'
+          from pathlib import Path
+          import re, subprocess, tempfile
+          s=Path('Current/PWA/vouchers.html').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>', s, re.S|re.I)
+          inline=[x for x in scripts if x.strip()]
+          if not inline: raise SystemExit('NO INLINE SCRIPT FOUND')
+          body=max(inline,key=len)
+          q=Path('/tmp/vouchers-inline.js');q.write_text(body,encoding='utf-8')
+          r=subprocess.run(['node','--check',str(q)],text=True,capture_output=True)
+          print(r.stdout);print(r.stderr)
+          if r.returncode: raise SystemExit(r.returncode)
+          PY
+
+      - name: Verify intended boundary
+        shell: bash
+        run: |
+          grep -q "rep_id:this.type==='DirectSale'?rep:null" Current/PWA/vouchers.html
+          grep -q "operation_id" Current/PWA/vouchers.html
+          grep -q "callWithRetry('create-stock-voucher'" Current/PWA/vouchers.html
+          ! grep -q "RW_API.call('create-stock-voucher'" Current/PWA/vouchers.html
+
+      - name: Commit closure
+        shell: bash
+        run: |
+          git config user.name 'RAWAEA CTO Closure'
+          git config user.email 'cto-closure@rawaea.local'
+          git add Current/PWA/vouchers.html
+          git commit -m 'fix(vouchers): make create operation durable and tenant-bound' || exit 0
+          git push
+
+      - name: Remove one-shot workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/vouchers_runtime_closure_20260828.yml
+          git config user.name 'RAWAEA CTO Closure'
+          git config user.email 'cto-closure@rawaea.local'
+          git add -u .github/workflows/vouchers_runtime_closure_20260828.yml
+          git commit -m 'chore(ci): remove one-shot vouchers closure workflow' || exit 0
+          git push
