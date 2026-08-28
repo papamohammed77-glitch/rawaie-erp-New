@@ -7,7 +7,6 @@ permissions:
   contents: write
 jobs:
   closure:
-    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, 'forensic runtime closure')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -70,8 +69,6 @@ jobs:
           test "$(grep -F ".eq('company_id',s.company)" -c Current/PWA/vouchers.html)" -ge 1
       - name: Commit and self-delete
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git config user.name 'rawaea-forensic-automation'
