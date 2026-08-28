@@ -78,6 +78,7 @@ VERIFY AGAINST HISTORICAL + TARGET CONTRACTS
 BUG FOUND
    ↓
 PATCH CODE
+
 قاعدة مهمة جدًا
 
 وجود سلوك يبدو غير منطقي في الكود لا يعني تلقائيًا أنه خطأ.
@@ -116,6 +117,45 @@ owner_profile
 active license state
 
 وبالتالي فإن تغيير ["*"] إلى 42 صلاحية صريحة، حتى لو بدا مكافئًا وظيفيًا، ليس تعديلًا بريئًا؛ لأنه قد يكسر semantics أخرى مثل Owner guards وLicense Management.
+
+مبدأ إضافي حاكم — Single Source / Canonical Runtime
+
+كل مورد مشترك له مصدر تنفيذ واحد محدد صراحة، ولا يجوز إنشاء Duplicate أو Compatibility Copy خارج موضع المصدر المعتمد لمعالجة مشكلة مسار أو توافق.
+
+في طبقة PWA الحالية:
+
+CANONICAL SHARED CORE
+    =
+Current/PWA/core.js
+
+CANONICAL SERVICE WORKER BOOTSTRAP
+    =
+Current/PWA/register-sw.js
+
+CANONICAL SERVICE WORKER
+    =
+Current/PWA/sw.js
+
+ويُحظر إنشاء أو إعادة إنشاء:
+
+Current/core.js
+
+أو أي shared core بديل خارج `Current/PWA`.
+
+كما يجب أن تكون مراجع تطبيقات `Current/PWA` للمصادر المشتركة متسقة مع هذا layout الفعلي، ولا تُنشأ طبقة توافق ثانية لمجرد إخفاء خطأ في المسار.
+
+وأي تغيير يمس موردًا مشتركًا يجب أن يثبت قبل وبعد التنفيذ:
+
+1. المصدر الحالي الفعلي في Git.
+2. جميع المستهلكين الحاليين.
+3. عقد Production المتأثر.
+4. سبب المشكلة المثبت.
+5. التغيير والبدائل المرفوضة.
+6. نتيجة التحقق.
+7. سجل دائم يمكن لمساعد أو CTO لاحق الرجوع إليه.
+
+هذا المبدأ موثق تفصيليًا في:
+`Current/CTO/20260828_VOUCHERS_CORE_SINGLE_SOURCE_GOVERNANCE.md`
 
 قاعدة أعلى من الجميع
 
