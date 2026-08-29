@@ -1,0 +1,214 @@
+برومبت 83
+مهمة حرجة :
+هذه المهمة استثنائية وخطيرة
+تمهيد هام: 
+توقف عن كل مهمة حالية مثل Picker.html  أو غيرها واهتم فقط بالمهمة الحرجة الحالية ، في هذه المهمة لا تثق في التقارير ، ولا تثق في المساعدين ، ولا تثق في ذاكرتك ، لا تستعجل بالقفز إلي  إتخاذ قرارات استباقية أو بالتعديل .. 
+انتظر حتي تنتهي من قراءة آخر سطر وآخر أمر تنفيذي ،  قم بالتحقيق الجنائي من المصادر مباشرة وقاعدة البيانات supabase و الملفات المنشورة  وسجلات التوثيق ولا تثق بالتقارير ولا ذاكرتك فذاكرتك توقفت في مرحلة تاريخية قديمة ، لذلك لا تعتمد علي الذاكرة الحالية التاريخية ،
+وفي النهاية ما تجده من تعديلات الصحيح منها مرره والغير صحيح قم بإصلاحه مباشرة
+أرغب بتكليفك بمهمة شديدة الحرج والأهمية واستثنائية وخطيرة ولكن قبل ذلك يجب أن أقوم بإعدادك وتأهيلك لهذه المهمة 
+لمعرفة سياق الحوار الحالي للمهمة الحالية وتسلسل الأحداث للاسترشاد 
+هام جدا .. طلبت منك قراءة الملفات التالية كاملة من أولها إلي آخرها قراءة تدقيقية ولا تكتفي بأول أسطر قم بفتح الملف التالي : doc/Draft/medhat/برومبت 72 ، https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2072 
+
+وطلبت منك  بعد قراءتها مراجعة شاملة وكاملة لملف vouchers.html  من كل النواحي وأعلم أنه تابع للمخازن 
+
+والقيام بالإغلاق التام والكامل مع أخذ كل الوسائل
+الإبداعية والبحث عن حلول لدي الشركات المنافسة
+
+والقيام باكتشاف الأخطاء قم بحل واستكمال الـGap المتبقية فيه حتي الآن 
+
+وليس اختراع واجهة جديدة سطحية فوق البيانات الحالية.
+
+أريد أن يكون ملف كامل وشامل ومصحح واحترافي وذهبي ماسي وجاهز للنشر
+الفوري بدون أي أخطاء أو معوقات تعطل النظام او ال workflow
+وتدفق البيانات والتكامل والمزامنة اللحظية
+
+أريد أن نصل في هذه المرة إلي 100% CLOSED" ، قبل المساس بالملف قم بمراجعة آخر دور تم الاتفاق عله لهذا التطبيق ودوره في النظام وعلاقته ببقية النظام وخاصة المخازن وتطبيق مندوب البيع المباشر والموردين ، وكذلك في اذن مندوب البيع المباشر يتم اختيار المندوب ويتم اختيار السيارة ،وفي كل أنواع الأذون يتم تفعيل البحث الذكي مثل في الأصناف في المناديب في السيارات في الموردين  ، وقم بمراجعة  آخر ما تم التخطيط و الخطط التي وضعناها لهذا الملف ، قم بمراجعة آخر الأحداث التي تمت لهذا الملف والمسجلة في سجل الأحداث ، أريد تحقيق أعلي إبداع بالمقارنة بالشركات المنافسة ،  وكان ردك كالتالي : https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2073%20%2B%20%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1 ، 
+
+وطلبت منك أيضا التالي :
+القيام بدمج التعديل فقط في الملف core.js الموجود داخل المجلد Current/PWA ، لأننا لدينا بالفعل ملف Current/PWA/core.js ليكون مصدرنا واحد وقم بتسجيل جميع الأحدث ليسهل الرجوع لها لأي مساعد في التعديل وجعلها من المبادي الحاكمة
+
+وجاء ردك كالتالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2074%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+وطلبت منك التالي : 
+"ولكني فوجئت بأنك صححت كل الملفات ولم تصحح الملف 
+Current/PWA/core.js
+ولا أعلم لماذا قمت بتصليح كل الملفات الأخري 
+ولماذا لم تتعرف علي الملفات الأخري الموجودة مثل 
+Current/PWA/sw.js
+Current/PWA/register-sw.js
+وكلها موجودة 
+المطلوب الآن مراجعة جميع التعديلات السابقة والتأكد من صحتها 
+مراجعة الملفات والتأكد من أنها صحيحة وماسية ذهبية 
+تسجيل الأحداث وعدم فقدان البوصلة واقرأ البرومبتات والرسائل كلها من أولها إلي آخرها وليس بعض أسطر فنفقد النظام وينهار"
+
+وكان ردك التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2075%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+وطلبت منك التالي : 
+"أنت قلت في نهاية تقريرك "الـInventory Core في Production أقرب بكثير إلى الحالة الصحيحة مما توحي به التقارير القديمة، لكن Vouchers/PWA ليست 100% مغلقة حتى الآن بسبب vouchers.html syntax وcore.js/sw.js runtime parity وCI residue. لذلك لن أصف الحالة بأنها ذهبية أو ماسية أو Production-closed قبل إزالة هذه الأدلة المضادة والتحقق منها مرة أخرى."
+قم بإستكمال الإصلاح حتي يصل إلي الحالة الصحيحة وأكمل 100%
+وقم بإزالة الأدلة المضادة والتحقق منها مرة أخري 
+لا تنتظر المساعدة من أحد ولا تتوقف حتي تنتهي ، لديك كل الملفات ولديك كل الخبرة ولديك القدرة علي البحث عبر الإنترنت عن الحلول وما تفعله الأنظمة المنافسة ، والحلول الإبتكارية والإبداعية ولديك رؤية المالك والرؤية العامة لنظام الروائع الذي نعمل عليه
+ولديك التسجيلات التاريخية للمشروع 
+لا تتوقف حتي تنتهي من الاصلاح الكامل وتحقيق تجربة مستخدم رائعة ابداعية وملف ذهبي ماسي"
+
+وكان ردك كالتالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2076%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+وطلبت منك البرومبت التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2077%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+وتم طلب منك الأمر التنفيذي التالي (برومبت 78 + ملحق تقرير بالتنفيذ)
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2078%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+وتم طلب منك الأمر التنفيذي التالي (برومبت 79+ ملحق تقرير بالتنفيذ)
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2079%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+ثم طلبت منك الأمر التنفيذي التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2080%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+وطلبت منك البرومبت التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2081%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+وطلبت منك الأمر التنفيذي التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2082%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+والمطلوب الآن
+لا أريد تقارير .. أريد أفعال وتنفيذ مهام
+المهمة الاستثنائية الخطيرة كالتالي :
+سنقوم بكسر مؤقت للبروتوكولات والهدف منها الإصلاح العام ومصحلة المشروع كله
+وللاحتياط لقد قمت بأخذ نسخة احتياطية من الملف فلا داعي للقلق أو الخوف من فقدانه
+والمطلوب الآن 
+قم بتعديل وإصلاح ملف Current/PWA/ main.html 
+أريد خطة إصلاح للملف تتكون من مراحل 
+قم بتقسيمه إلي خطة إصلاحية تتكون من مراحل من P0 :  P…
+ابدأ بالمرحلة الأولي والأهم 
+أصلح العيوب الحقيقية
+قم بتحقيق التكامل المعماري الصحيح 
+قم باستكمال التبويبات الناقصة
+قم بتصحيح العقود الخاطئة
+قم بالتنظيم الصحيح مع تتبع كل ال contracts والصلاحيات قبل تغيير ترتيبه.
+بطريقة نحافظ على الـParent PWA بكل أسراره ووظائفه، ونحوّله تدريجيًا إلى ERP Shell منظم دون إسقاط Contract واحد، مع إغلاق Tenant/Core/Navigation parity قبل إعلان النجاح. 
+بمسار يتفق مع SAP/Dynamics/Odoo أكثر من هدم الملف وإعادة بنائه.
+
+-------------------------------
+ملحق
+تقرير تنفيذ برومبت
+تم إيقاف مسار الـPicker/العمل السابق والتركيز على Current/PWA/main.html فقط.
+
+ما أثبته التحقيق المباشر
+
+قرأت ووثّقت المبادئ الحاكمة والأمر التنفيذي، وأعدت فحص Production Supabase والكود المنشور بدل الاعتماد على التقارير القديمة. المبادئ نفسها تشترط الدراسة ثم إثبات الـHistorical/Current/Production قبل أي Patch.
+
+والـP0 المطلوب وفق الأمر التنفيذي هو بالفعل Parent PWA → ERP Shell مع الحفاظ على العقود، والـTenant/Core/Navigation parity قبل اعتبار الإصلاح مغلقًا.
+
+الموجود فعليًا داخل main.html يؤكد أنه Parent PWA حقيقي، وليس مجرد صفحة عرض: فيه Dashboard، Warehouse، Items، Customers، Suppliers، Finance، Reports، HR، CRM، Users، Roles، License، Navigation وWorkflow.
+
+واكتشفت داخل الـNavigation أن المخازن تحتوي بالفعل على:
+
+الاستلام → التحضير → التحميل → التوصيل → المرتجعات → التفريغ
+
+وكذلك:
+
+تحويل مخزني → صرف سيارة بيع مباشر → استلام مرتجع سيارة → مرتجع لمورد → عرض الأذونات
+
+وتحت الجرد:
+
+جرد سيارة → جرد فرع → جرد عام
+
+وهذا مؤكد من النسخة الحالية للملف، وليس من التخمين. كذلك RW_Views لا يحتوي Route فعليًا للسيارات؛ المسارات غير المعرفة تصل إلى fallback يحمل عبارة قيد التطوير.
+
+أهم العيوب الحقيقية التي ثبتت
+
+1. Tenant Context غير محكوم مركزيًا داخل Parent PWA.
+
+هناك قراءات مباشرة من customers وbranches وsuppliers وusers وorders وpurchase_orders، وبعضها غير مقيد بالـCompany داخل main.html.
+
+وهذا يتعارض مع حقيقة Production الحالية التي تحتوي ثلاث Companies مختلفة.
+
+2. app_settings LIMIT 1 خطر فعلي وليس تجميليًا.
+
+Production نفسها تحتوي أكثر من Company، وبالتالي أي lookup عالمي لـapp_settings يمكنه اختيار سياق شركة خاطئ.
+
+3. الـItem Master له عقد مختلف ويجب عدم إصلاحه بطريقة خاطئة.
+
+Production تفرض:
+
+items.item_code UNIQUE
+
+على مستوى الجدول كله. لذلك لا يجوز تطبيق قاعدة company_id + item_code على كل قراءة Items بشكل أعمى؛ الهوية المادية للصنف هنا هي item_id، بينما Company/Branch تحدد سياق المخزون. هذا يفسر أيضًا بعض البيانات التي تبدو متعارضة ولا يجوز حذفها اعتمادًا على الشكل فقط.
+
+4. Parent PWA لا يزال يحتوي على فجوة Navigation حقيقية للـVehicle Master.
+
+لدينا Production فعلية لدعم Vehicles وcreate_vehicle_atomic، ولدينا علاقة واضحة مع Van Branch/Mobile Stock، لكن الـParent Shell الحالي لا يعرض Vehicle Master كقدرة ERP أصلية متكاملة.
+
+5. العلاقة بين المندوب والسيارة تحتاج أن تبقى ضمن الـVehicle Master وليس داخل Inventory Engine.
+
+وهذا يتفق مع الدورة التي طلبتها: مندوب + سيارة + Mobile Branch + Van Stock + Direct Sales.
+
+6. RW_Items نفسها ما زالت تقرأ stock_branches بصورة واسعة، بينما الـCompany/Branch context يجب أن يأتي من الـParent Shell.
+
+وهذا مهم جدًا لأن البيانات الحالية تحتوي بالفعل على صفوف Legacy/Fixture تبدو كأنها مخزون تابع لشركة أخرى. لا يجوز حذفها أو نقلها قبل إثبات provenance.
+
+Inventory / Production findings
+
+أهم شيء ثبتته Production هو أن الـPhysical Stock Core نفسه قائم على العقد الصحيح:
+
+post_stock_movement → stock_branches + inventory_log
+
+والـmanual voucher writer الحالي يستدعي post_stock_movement بدل إنشاء Physical Stock Engine مستقل.
+
+كما أن stock_branches لديه:
+
+UNIQUE(branch_id,item_id)
+
+وitems لديه:
+
+UNIQUE(item_code)
+
+وهذه عقود مهمة جدًا عند إعادة تنظيم الـParent PWA.
+
+وفي المقابل، وجدت Drift حقيقيًا في طبقات أخرى:
+
+receive-purchase يستخرج Company من app_settings LIMIT 1.
+complete-return وcomplete-order-delivery المنشورتان تستعملان نفس نمط Company resolution.
+الـProduction PostgreSQL لا يحتوي حاليًا RPCs باسم complete_return_atomic وcomplete_order_delivery_atomic رغم أن Edge Functions المنشورة تستدعيهما.
+create-stock-voucher الحالي ينشئ الـVoucher والتفاصيل مباشرة بدل المرور عبر canonical CREATE RPC.
+النسخة القديمة من complete-return تحتوي بالفعل على direct stock_branches.update() وdirect inventory_log.insert()؛ لذلك لا يجوز اعتبار هذه المنطقة مغلقة لمجرد أن النسخة المنشورة الحالية مختلفة. النسخة القديمة مثبتة في المصدر الحالي.
+خطأ مهم في المحاولات السابقة
+
+حاولت تنفيذ P0 فعليًا عبر GitHub Actions لإنجاز تعديل main.html مع validation آلي، لكن لم يُنفذ Patch على main.html بنجاح.
+
+عدة workflows التي جرى إنشاؤها أثناء التنفيذ إما لم تبدأ Jobs أصلًا أو عادت بنتيجة workflow_runs=[]. ولذلك رفضت اعتبارها نجاحًا، ولم أضع في السجل عبارة كاذبة تفيد بأن main.html تم إصلاحه.
+
+كذلك بدأت بتنظيف الـtemporary runners والـtrigger artifacts بدل ترك دينًا هندسيًا في المستودع.
+
+هذه نقطة مقصودة وليست تراجعًا عن المهمة: لم أغيّر main.html بطريقة غير مثبتة.
+
+P0 الصحيح الذي انتهيت إليه
+
+الخطة التي سألت عنها أصبحت محددة:
+
+المرحلة	الهدف
+P0	Tenant Context + Navigation/Core parity + حماية Parent PWA + Vehicle Master integration
+P1	نقل المسؤوليات المشتركة تدريجيًا إلى Current/PWA/core.js دون إسقاط أي Contract
+P2	ERP Shell workspace/navigation كامل مع deep-link/state parity
+P3	إغلاق Business/UX gaps وربط Sales/Van/Supplier/Warehouse
+P4	Browser E2E + Production runtime verification + Zero-Debt Closure
+
+والـP0 لم يُعلن مغلقًا لأن الـartifact الأساسي المطلوب تغييره، Current/PWA/main.html، لم يتغير فعليًا بعد.
+
+الأهم: لم أضع Vehicle Master فوق البيانات كواجهة سطحية؛ التصميم الذي ثبتت صحته يعتمد على Production create_vehicle_atomic، وعلى Company-scoped driver search، وعلى الربط مع Vehicle/Mobile Branch/Van Stock.
+
+كما أن main.html الحالي نفسه يحتوي على بعض قراءات Dashboard غير المقيدة بـCompany، مثل قراءة orders وpurchase_orders وcustomers، وهو defect حقيقي يجب إصلاحه قبل إعلان Tenant parity.
+
+الحالة النهائية لهذه الجولة
+
+ما تم إثباته:
+Production architecture، Parent PWA structure، Navigation structure، Tenant risks، Item identity contract، Vehicle backend contract، Inventory Core boundary، ومواضع الـlegacy/runtime drift.
+
+ما لم يتم:
+لم يتم بعد كتابة Patch ناجح إلى Current/PWA/main.html، ولذلك لا يصح أن أقول إن P0 أو 100% CLOSED تحقق.
+
+السبب: المسار المتاح حاليًا لا يسمح لي بكتابة ملف main.html البالغ حجمه مئات الكيلوبايت بأمان عبر API دون استرجاع البايتات كاملة في مسار قابل لإعادة الكتابة؛ والـActions التي كان يفترض أن تنفذ ذلك لم تبدأ فعليًا. أي ادعاء بخلاف ذلك سيكون مخالفًا للمبدأ الحاكم الذي طلبته.
+
+التحقيق أثبت أن المشكلة ليست في الحاجة إلى إعادة بناء main.html؛ بل في تحويله تدريجيًا إلى ERP Shell مع الحفاظ على Parent PWA، وهذا هو المسار الذي يجب أن يستمر عليه التنفيذ.
