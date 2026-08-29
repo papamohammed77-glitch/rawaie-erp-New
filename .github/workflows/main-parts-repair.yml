@@ -6,6 +6,7 @@ permissions:
   contents: write
 jobs:
   serial_repair:
+    if: github.event.head_commit.message != 'fix(main-p1): repair tenant bootstrap and fail-closed shell'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout main
@@ -13,119 +14,250 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - name: Repair one original part per commit
+      - name: Repair main.1 only
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
           import re, subprocess, tempfile
 
-          root=Path('Current/PWA/main')
-          parts=[root/f'main.{i}.txt' for i in range(1,12)]
-          if any(not p.exists() for p in parts): raise SystemExit('MISSING_MAIN_PART')
+          p=Path('Current/PWA/main/main.1.txt')
+          if not p.exists(): raise SystemExit('MAIN_P1_MISSING')
+          text=p.read_text(encoding='utf-8')
 
-          def replace_once(text, old, new, name):
-              if old in text:
-                  return text.replace(old,new,1), True
-              return text, False
+          state_old="const RW_STATE = { app: { initialized: false, authenticated: false, loading: false, currentView: 'dashboard', currentUser: null, company: { name: 'الروائع ERP', logo: 'ر' } }, data: { items: [], customers: [], suppliers: [], branches: [] }, permissions: [], ui: { sidebarOpen: false, sidebarCollapsed: false } };"
+          state_new="const RW_STATE = { app: { initialized: false, authenticated: false, loading: false, currentView: 'dashboard', currentUser: null, companyId: null, company: { name: 'الروائع ERP', logo: 'ر' } }, data: { items: [], customers: [], suppliers: [], branches: [] }, permissions: [], ui: { sidebarOpen: false, sidebarCollapsed: false } };"
+          if state_old not in text: raise SystemExit('P1_STATE_ANCHOR_NOT_FOUND')
+          text=text.replace(state_old,state_new,1)
 
-          def scope_selects(text, table):
-              pat=re.compile(r"supabase\\.from\\('"+re.escape(table)+r"'\\)\\.select\\([^;\\n]*?\\)")
-              pieces=[]; last=0; changed=False
-              for m in pat.finditer(text):
-                  pieces.append(text[last:m.end()])
-                  tail=text[m.end():m.end()+260]
-                  if ".eq('company_id',RW_ShellContext.getCompanyId())" not in tail:
-                      pieces.append(".eq('company_id',RW_ShellContext.getCompanyId())")
-                      changed=True
-                  last=m.end()
-              pieces.append(text[last:])
-              return ''.join(pieces), changed
+          a=text.index('const RW_Auth = {')
+          b=text.index("\n\nvar RW_Data = {",a)
+          auth=r'''const RW_Auth = {
+    login: function(username, password) {
+        if (!username || !password) {
+            showToast('يرجى إدخال اسم المستخدم وكلمة المرور', 'error');
+            return;
+        }
+        showLoader('جاري تسجيل الدخول...');
+        if (!RW_SUPABASE_CLIENT) {
+            hideLoader();
+            showToast('خطأ داخلي: عميل Supabase غير مهيأ', 'error');
+            return;
+        }
+        var self = this;
+        RW_SUPABASE_CLIENT.auth.signInWithPassword({ email: username, password: password })
+            .then(function(authRes) {
+                if (authRes.error) {
+                    var msg = authRes.error.message || 'بيانات الدخول غير صحيحة';
+                    RW_Audit_log('failed_login', 'auth', username, null, { reason: msg });
+                    throw new Error('LOGIN_FAILED:' + msg);
+                }
+                return self.loadAuthenticatedContext(authRes.data.user);
+            })
+            .then(function() {
+                RW_STATE.app.authenticated = true;
+                var u = RW_STATE.app.currentUser;
+                RW_Audit_log('login', 'auth', u.authId, null, { email: u.email, role: u.role });
+                return self.enterSystem();
+            })
+            .catch(function(e) {
+                console.error('AUTH_CONTEXT_ERROR', e);
+                RW_STATE.app.authenticated = false;
+                RW_STATE.app.initialized = false;
+                RW_STATE.app.currentUser = null;
+                RW_STATE.app.companyId = null;
+                RW_STATE.permissions = [];
+                RW_STATE.app.company = { name: 'الروائع ERP', logo: 'ر' };
+                hideLoader();
+                RW_SUPABASE_CLIENT.auth.signOut().catch(function() {});
+                var msg = String(e && e.message || 'تعذر تهيئة حساب المستخدم');
+                if (msg.indexOf('LOGIN_FAILED:') === 0) msg = msg.substring(12);
+                showToast(msg === 'تعذر تهيئة حساب المستخدم' ? 'تعذر تهيئة سياق المستخدم والشركة' : 'فشل الدخول: ' + msg, 'error');
+            });
+    },
+    loadAuthenticatedContext: function(authUser) {
+        var self = this;
+        if (!authUser || !authUser.id || !authUser.email) return Promise.reject(new Error('جلسة المستخدم غير صالحة'));
+        var meta = authUser.user_metadata || {};
+        return RW_SUPABASE_CLIENT.from('users')
+            .select('id,auth_id,email,name,role,permissions,status,company_id')
+            .eq('auth_id', authUser.id)
+            .maybeSingle()
+            .then(function(profileRes) {
+                if (profileRes.error) throw profileRes.error;
+                var profile = profileRes.data;
+                if (!profile || !profile.company_id || (profile.status !== null && profile.status !== 'Active')) {
+                    throw new Error('حساب المستخدم غير موجود أو غير نشط أو بلا سياق شركة');
+                }
+                RW_STATE.app.companyId = profile.company_id;
+                RW_STATE.app.currentUser = {
+                    id: profile.id,
+                    authId: profile.auth_id,
+                    companyId: profile.company_id,
+                    name: profile.name || authUser.email,
+                    email: profile.email || authUser.email,
+                    role: profile.role || 'مستخدم',
+                    isOwner: meta.isOwner === true || meta.isOwner === 'true'
+                };
+                RW_STATE.permissions = Array.isArray(profile.permissions) ? profile.permissions.slice() : [];
+                return Promise.all([
+                    RW_SUPABASE_CLIENT.from('companies')
+                        .select('id,name,logo_url,is_active')
+                        .eq('id', profile.company_id)
+                        .eq('is_active', true)
+                        .maybeSingle(),
+                    RW_SUPABASE_CLIENT.from('app_settings')
+                        .select('company_name,company_logo')
+                        .eq('company_id', profile.company_id)
+                        .order('created_at', { ascending: true })
+                        .limit(1)
+                        .maybeSingle()
+                ]).then(function(ctx) {
+                    var companyRes = ctx[0], settingsRes = ctx[1];
+                    if (companyRes.error) throw companyRes.error;
+                    if (!companyRes.data) throw new Error('الشركة غير موجودة أو غير نشطة');
+                    if (settingsRes.error) throw settingsRes.error;
+                    var company = companyRes.data;
+                    var settings = settingsRes.data || {};
+                    RW_STATE.app.company = {
+                        name: settings.company_name || company.name || 'الروائع ERP',
+                        logo: settings.company_logo || company.logo_url || 'ر'
+                    };
+                    return RW_STATE.app.companyId;
+                });
+            });
+    },
+    enterSystem: function() {
+        hideLoader();
+        var self = this;
+        if (!RW_STATE.app.authenticated || !RW_STATE.app.currentUser || !RW_STATE.app.companyId) {
+            return self.forceEnterFallback(new Error('سياق الشركة غير متاح'));
+        }
+        try {
+            safeText(byId('rw-sidebar-company-name'), RW_STATE.app.company.name || 'الروائع ERP');
+            safeText(byId('rw-header-user-display'), RW_STATE.app.currentUser.name || RW_STATE.app.currentUser.email || 'مستخدم');
+            RW_Navigation.buildSidebar();
+            RW_Workflow.loadRules();
+            RW_Notification.init();
+            return Promise.all([
+                RW_Data.loadItems(),
+                RW_Data.loadCustomers(),
+                RW_Data.loadBranches(),
+                RW_Data.loadSuppliers()
+            ]).then(function() {
+                RW_STATE.app.initialized = true;
+                byId('rw-login-page').style.display = 'none';
+                byId('rw-main-shell').style.display = 'flex';
+                RW_Navigation.navigate('dashboard');
+                setTimeout(function() { RW_Notification.renderBell(); }, 500);
+                return true;
+            }).catch(function(e) {
+                return self.forceEnterFallback(e);
+            });
+        } catch(e) {
+            return self.forceEnterFallback(e);
+        }
+    },
+    forceEnterFallback: function(error) {
+        hideLoader();
+        console.error('FAIL_CLOSED_SHELL_INIT', error || 'unknown');
+        RW_STATE.app.authenticated = false;
+        RW_STATE.app.initialized = false;
+        RW_STATE.app.currentUser = null;
+        RW_STATE.app.companyId = null;
+        RW_STATE.permissions = [];
+        RW_STATE.app.company = { name: 'الروائع ERP', logo: 'ر' };
+        try { byId('rw-main-shell').style.display = 'none'; } catch(e) {}
+        try { byId('rw-login-page').style.display = 'flex'; } catch(e) {}
+        RW_SUPABASE_CLIENT.auth.signOut().catch(function() {});
+        showToast('تعذر تهيئة بيانات الشركة؛ تم إلغاء الدخول حفاظًا على عزل البيانات.', 'error');
+        return false;
+    },
+    logout: function() {
+        var userEmail = RW_STATE.app.currentUser && RW_STATE.app.currentUser.email ? RW_STATE.app.currentUser.email : 'unknown';
+        RW_Audit_log('logout', 'auth', userEmail, null, null);
+        supabase.auth.signOut().then(function() {
+            RW_STATE.app.authenticated = false;
+            RW_STATE.app.initialized = false;
+            RW_STATE.app.currentUser = null;
+            RW_STATE.app.companyId = null;
+            RW_STATE.permissions = [];
+            RW_STATE.data.customers = [];
+            RW_STATE.data.suppliers = [];
+            RW_STATE.data.branches = [];
+            byId('rw-main-shell').style.display = 'none';
+            byId('rw-login-page').style.display = 'flex';
+        }).catch(function(e) { console.error(e); });
+    }
+};'''
+          text=text[:a]+auth+text[b:]
 
-          def validate_part(text, idx):
-              if idx==1 and 'window.RW_ShellContext=RW_ShellContext;' not in text: raise SystemExit('P1_CONTEXT_MISSING')
-              if "showToast('تم تشغيل النظام في الوضع الآمن', 'warning');" in text: raise SystemExit('FAIL_OPEN_REMAINS')
-              if re.search(r"supabase\\.from\\('stock_branches'\\)[\\s\\S]{0,500}\\.(update|insert|upsert|delete)\\(",text): raise SystemExit(f'P{idx}_DIRECT_STOCK_WRITER')
-              if ".from('inventory_log').insert" in text: raise SystemExit(f'P{idx}_DIRECT_INVENTORY_LOG_WRITER')
+          c=text.index('var RW_Data = {')
+          d=text.index("\nconst RW_Navigation = {",c)
+          data=r'''var RW_Data = {
+    loadItems: function() {
+        return supabase.from('items').select('*').then(function(res) {
+            if (res.error) throw res.error;
+            RW_STATE.data.items = res.data || [];
+            return RW_STATE.data.items;
+        });
+    },
+    loadCustomers: function() {
+        var companyId = RW_STATE.app.companyId;
+        if (!companyId) return Promise.reject(new Error('Company context unavailable'));
+        return supabase.from('customers').select('*').eq('company_id', companyId).then(function(res) {
+            if (res.error) throw res.error;
+            RW_STATE.data.customers = res.data || [];
+            return RW_STATE.data.customers;
+        });
+    },
+    loadBranches: function() {
+        var companyId = RW_STATE.app.companyId;
+        if (!companyId) return Promise.reject(new Error('Company context unavailable'));
+        return supabase.from('branches').select('*').eq('company_id', companyId).then(function(res) {
+            if (res.error) throw res.error;
+            RW_STATE.data.branches = res.data || [];
+            return RW_STATE.data.branches;
+        });
+    },
+    loadSuppliers: function() {
+        var companyId = RW_STATE.app.companyId;
+        if (!companyId) return Promise.reject(new Error('Company context unavailable'));
+        return supabase.from('suppliers').select('*').eq('company_id', companyId).then(function(res) {
+            if (res.error) throw res.error;
+            RW_STATE.data.suppliers = res.data || [];
+            return RW_STATE.data.suppliers;
+        });
+    }
+};'''
+          text=text[:c]+data+text[d:]
 
-          for idx,p in enumerate(parts,1):
-              text=p.read_text(encoding='utf-8')
-              original=text
+          # This part must never retain the legacy fail-open shell.
+          if "meta.permissions || ['*']" in text: raise SystemExit('P1_WILDCARD_FAIL_OPEN_REMAINS')
+          if "showToast('تم تشغيل النظام في الوضع الآمن', 'warning');" in text: raise SystemExit('P1_FAIL_OPEN_REMAINS')
+          if ".from('app_settings')\n            .select('*')\n            .limit(1)" in text: raise SystemExit('P1_GLOBAL_SETTINGS_REMAINS')
+          if re.search(r"\.from\('customers'\)\.select\('\*'\)(?!\.eq\('company_id', companyId\))", text): raise SystemExit('P1_CUSTOMER_SCOPE_MISSING')
+          if re.search(r"\.from\('branches'\)\.select\('\*'\)(?!\.eq\('company_id', companyId\))", text): raise SystemExit('P1_BRANCH_SCOPE_MISSING')
+          if re.search(r"\.from\('suppliers'\)\.select\('\*'\)(?!\.eq\('company_id', companyId\))", text): raise SystemExit('P1_SUPPLIER_SCOPE_MISSING')
+          if 'select(\'id,auth_id,email,name,role,permissions,status,company_id\')' not in text: raise SystemExit('P1_AUTH_PROFILE_MISSING')
+          if 'RW_STATE.app.companyId = profile.company_id;' not in text: raise SystemExit('P1_COMPANY_CONTEXT_MISSING')
+          if 'Array.isArray(profile.permissions) ? profile.permissions.slice() : []' not in text: raise SystemExit('P1_PERMISSION_SOURCE_MISSING')
 
-              if idx==1:
-                  if 'window.RW_ShellContext=RW_ShellContext;' not in text:
-                      anchor='window.RW_STATE = RW_STATE;'
-                      if anchor not in text: raise SystemExit('P1_NO_STATE_ANCHOR')
-                      block="""
-// RAWAEA GOVERNED TENANT CONTEXT
-var RW_ShellContext=(function(){
-  var companyId=null,resolving=null;
-  function resolve(){
-    if(companyId){RW_STATE.app.companyId=companyId;return Promise.resolve(companyId);}
-    if(RW_STATE.app.companyId){companyId=RW_STATE.app.companyId;return Promise.resolve(companyId);}
-    if(resolving)return resolving;
-    var u=RW_STATE.app.currentUser||{};
-    if(u.companyId){companyId=u.companyId;RW_STATE.app.companyId=companyId;return Promise.resolve(companyId);}
-    if(!u.authId)return Promise.reject(new Error('AUTH_ID_UNAVAILABLE'));
-    resolving=supabase.from('users').select('id,company_id,name,role,status').eq('auth_id',u.authId).eq('status','Active').maybeSingle().then(function(r){
-      if(r.error||!r.data||!r.data.company_id)throw new Error('TENANT_CONTEXT_UNAVAILABLE');
-      companyId=r.data.company_id;RW_STATE.app.companyId=companyId;RW_STATE.app.userId=r.data.id||null;
-      if(RW_STATE.app.currentUser){if(r.data.name)RW_STATE.app.currentUser.name=r.data.name;if(r.data.role)RW_STATE.app.currentUser.role=r.data.role;RW_STATE.app.currentUser.companyId=companyId;}
-      return companyId;
-    }).finally(function(){resolving=null;});
-    return resolving;
-  }
-  function getCompanyId(){if(!companyId&&RW_STATE.app.companyId)companyId=RW_STATE.app.companyId;if(!companyId&&RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId)companyId=RW_STATE.app.currentUser.companyId;if(!companyId)throw new Error('TENANT_CONTEXT_UNAVAILABLE');return companyId;}
-  return {resolve:resolve,getCompanyId:getCompanyId,hasCompany:function(){return !!(companyId||RW_STATE.app.companyId||RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId);}};
-})();
-window.RW_ShellContext=RW_ShellContext;
-"""
-                      text=text.replace(anchor,anchor+block,1)
-                  text=text.replace("email: user.email,\n                role:","email: user.email,\n                authId: user.id,\n                companyId: user.company_id || null,\n                role:",1)
-                  text=text.replace("RW_STATE.permissions = meta.permissions || ['*'];","RW_STATE.permissions = Array.isArray(meta.permissions) ? meta.permissions : [];",1)
-                  if "showToast('تم تشغيل النظام في الوضع الآمن', 'warning');" in text:
-                      text=text.replace("showToast('تم تشغيل النظام في الوضع الآمن', 'warning');","throw new Error('FAIL_CLOSED_TENANT_CONTEXT');",1)
-                  # Never use a global settings row for the shell.
-                  text=text.replace(".from('app_settings')\n            .select('*')\n            .limit(1)",".from('app_settings')\n            .select('*')\n            .eq('company_id',RW_ShellContext.getCompanyId())\n            .limit(1)",1)
+          scripts=re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>',text,re.S|re.I)
+          for i,code in enumerate(scripts,1):
+              f=Path(tempfile.gettempdir())/f'rawaea-p1-{i}.js';f.write_text(code,encoding='utf-8')
+              r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+              if r.returncode:
+                  print(r.stderr);raise SystemExit(f'P1_JS_SYNTAX_{i}')
 
-              for table in ['app_settings','customers','branches','suppliers','orders','purchase_orders','receiving','stock_vouchers','runsheets','treasury','chart_of_accounts','roles']:
-                  text,_=scope_selects(text,table)
-              if idx!=1:
-                  text,_=scope_selects(text,'users')
-
-              if idx==7:
-                  old="supabase.from('stock_voucher_details').select('*').eq('voucher_code', voucherCode)"
-                  new="supabase.from('stock_voucher_details').select('*').eq('voucher_id', voucherCode)"
-                  # Guard only if legacy voucher-code lookup is present; P7 later resolves id at call site.
-                  text=text.replace(old,new,1) if old in text else text
-
-              validate_part(text,idx)
-              p.write_text(text,encoding='utf-8')
-
-              # Syntax-check this part when it contains executable JS.
-              scripts=re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>',text,re.S|re.I)
-              for sidx,code in enumerate(scripts,1):
-                  f=Path(tempfile.gettempdir())/f'rawaea-p{idx}-{sidx}.js';f.write_text(code,encoding='utf-8')
-                  r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-                  if r.returncode:
-                      print(r.stderr);raise SystemExit(f'P{idx}_JS_SYNTAX_{sidx}')
-
-              if text!=original:
-                  subprocess.run(['git','add',str(p)],check=True)
-                  subprocess.run(['git','commit','-m',f'fix(p{idx}): govern and repair original main part {idx}'],check=True)
-                  subprocess.run(['git','push','origin','HEAD:main'],check=True)
-                  # Continue on the checked-out working tree; GITHUB_TOKEN pushes do not recurse workflow.
-                  print(f'P{idx}_COMMITTED')
-              else:
-                  print(f'P{idx}_NO_CHANGE')
-
-          logical='\n'.join(p.read_text(encoding='utf-8') for p in parts)
-          if logical.count('<!DOCTYPE html>')!=1 or logical.count('<html')!=1 or logical.count('</html>')!=1: raise SystemExit('LOGICAL_HTML_STRUCTURE_FAILURE')
-          if re.search(r"supabase\\.from\\('stock_branches'\\)[\\s\\S]{0,500}\\.(update|insert|upsert|delete)\\(",logical): raise SystemExit('DIRECT_PHYSICAL_STOCK_WRITER_REMAINS')
-          if ".from('inventory_log').insert" in logical: raise SystemExit('DIRECT_INVENTORY_LOG_WRITER_REMAINS')
-          print('ALL_MAIN_PARTS_SERIAL_REPAIR_COMPLETED')
+          p.write_text(text,encoding='utf-8')
+          subprocess.run(['git','diff','--check'],check=True)
+          subprocess.run(['git','config','user.name','RAWAEA Main P1 Executor'],check=True)
+          subprocess.run(['git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com'],check=True)
+          subprocess.run(['git','add',str(p)],check=True)
+          subprocess.run(['git','commit','-m','fix(main-p1): repair tenant bootstrap and fail-closed shell'],check=True)
+          subprocess.run(['git','push','origin','HEAD:main'],check=True)
+          print('MAIN_P1_REPAIRED_AND_PUSHED')
           PY
           git diff --check
