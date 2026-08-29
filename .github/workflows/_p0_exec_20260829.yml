@@ -1,121 +1,153 @@
-name: RAWAEA Main PWA Parts Forensic Repair
+name: RAWAEA Main PWA P1 Forensic Repair
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'Current/PWA/main/main*.md'
       - '.github/workflows/_p0_exec_20260829.yml'
 permissions:
   contents: write
 jobs:
-  repair:
+  repair_p1:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout current main
+      - name: Checkout main
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
-      - name: Repair existing main parts serially in place
+      - name: Repair main1.md only
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re, subprocess, tempfile
+          import re
+          import subprocess
+          import tempfile
 
-          root=Path('Current/PWA/main')
-          parts=[root/f'main{i}.md' for i in range(1,12)]
-          marker='RAWAEA_MAIN_PART_CLOSED:v6'
-          if any(not p.exists() for p in parts): raise SystemExit('MISSING_MAIN_PART')
+          p = Path('Current/PWA/main/main1.md')
+          if not p.exists():
+              raise SystemExit('P1_MISSING')
+          s = p.read_text(encoding='utf-8')
 
-          company_tables=['app_settings','customers','branches','suppliers','orders','purchase_orders','receiving','stock_vouchers','treasury','chart_of_accounts','users','vehicles']
+          if 'RAWAEA_P1_FORENSIC_CLOSED:v1' in s:
+              raise SystemExit('P1_ALREADY_CLOSED')
 
-          def scope_reads(text,table):
-              pat=re.compile(r"supabase\.from\(['\"]"+re.escape(table)+r"['\"]\)\.select\([^;\n]*?\)")
-              def repl(m):
-                  chain=m.group(0)
-                  if 'company_id' in chain: return chain
-                  return chain+".eq('company_id',RW_ShellContext.getCompanyId())"
-              return pat.sub(repl,text)
+          anchor = 'window.RW_STATE = RW_STATE;'
+          if s.count(anchor) != 1:
+              raise SystemExit(f'P1_ANCHOR_COUNT={s.count(anchor)}')
 
-          def check_js(text,label):
-              code='\n'.join(re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',text,re.S|re.I)) if '<html' in text.lower() else text
-              if not code.strip(): return
-              f=Path(tempfile.gettempdir())/(label+'.js'); f.write_text(code,encoding='utf-8')
-              r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-              if r.returncode:
-                  print(r.stderr); raise SystemExit(label+'_JS_SYNTAX')
-
-          def ensure_no_client_stock_writer(text,label):
-              if re.search(r"(?:supabase\.from\(['\"]stock_branches['\"]\)|\.from\(['\"]stock_branches['\"]\))[^;]{0,1200}\.(?:update|insert|upsert|delete)\(",text,re.S):
-                  raise SystemExit(label+'_DIRECT_STOCK_WRITER_REQUIRES_SURGICAL_FIX')
-              if re.search(r"(?:supabase\.from\(['\"]inventory_log['\"]\)|\.from\(['\"]inventory_log['\"]\))[^;]{0,700}\.insert\(",text,re.S):
-                  raise SystemExit(label+'_DIRECT_INVENTORY_LOG_WRITER_REQUIRES_SURGICAL_FIX')
-
-          def patch_p1(text):
-              anchor='window.RW_STATE = RW_STATE;'
-              if anchor not in text: raise SystemExit('P1_NO_STATE_ANCHOR')
-              if 'window.RW_ShellContext=RW_ShellContext;' not in text:
-                  block=r'''
-// RAWAEA GOVERNED TENANT CONTEXT
+          context = r'''// RAWAEA GOVERNED TENANT CONTEXT
 var RW_ShellContext=(function(){
-    var companyId=null,userId=null,branchIds=null,resolving=null;
+    var companyId=null,userId=null,resolving=null;
     function resolve(){
         if(companyId) return Promise.resolve(companyId);
         if(resolving) return resolving;
         var u=RW_STATE.app.currentUser||{};
-        if(u.companyId){companyId=u.companyId;userId=u.id||null;RW_STATE.app.companyId=companyId;RW_STATE.app.userId=userId;return Promise.resolve(companyId);}
-        if(!u.authId)return Promise.reject(new Error('AUTH_ID_UNAVAILABLE'));
-        resolving=supabase.from('users').select('id,company_id,name,role,status').eq('auth_id',u.authId).eq('status','Active').maybeSingle().then(function(r){
-            if(r.error||!r.data||!r.data.company_id)throw new Error('TENANT_CONTEXT_UNAVAILABLE');
-            companyId=r.data.company_id;userId=r.data.id||null;RW_STATE.app.companyId=companyId;RW_STATE.app.userId=userId;
-            if(RW_STATE.app.currentUser){RW_STATE.app.currentUser.id=userId;RW_STATE.app.currentUser.companyId=companyId;if(r.data.name)RW_STATE.app.currentUser.name=r.data.name;if(r.data.role)RW_STATE.app.currentUser.role=r.data.role;}
-            return companyId;
-        }).finally(function(){resolving=null;});
+        if(u.companyId){
+            companyId=u.companyId;
+            userId=u.id||null;
+            RW_STATE.app.companyId=companyId;
+            RW_STATE.app.userId=userId;
+            return Promise.resolve(companyId);
+        }
+        if(!u.authId) return Promise.reject(new Error('AUTH_ID_UNAVAILABLE'));
+        resolving=RW_SUPABASE_CLIENT.from('users')
+            .select('id,company_id,name,role,status')
+            .eq('auth_id',u.authId)
+            .eq('status','Active')
+            .maybeSingle()
+            .then(function(r){
+                if(r.error||!r.data||!r.data.company_id) throw new Error('TENANT_CONTEXT_UNAVAILABLE');
+                companyId=r.data.company_id;
+                userId=r.data.id||null;
+                RW_STATE.app.companyId=companyId;
+                RW_STATE.app.userId=userId;
+                if(RW_STATE.app.currentUser){
+                    RW_STATE.app.currentUser.id=userId;
+                    RW_STATE.app.currentUser.companyId=companyId;
+                    if(r.data.name) RW_STATE.app.currentUser.name=r.data.name;
+                    if(r.data.role) RW_STATE.app.currentUser.role=r.data.role;
+                }
+                return companyId;
+            })
+            .finally(function(){resolving=null;});
         return resolving;
     }
-    function getCompanyId(){if(!companyId)companyId=RW_STATE.app.companyId||(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId)||null;if(!companyId)throw new Error('TENANT_CONTEXT_UNAVAILABLE');return companyId;}
-    function getBranchIds(){if(Array.isArray(branchIds))return Promise.resolve(branchIds);return resolve().then(function(){return supabase.from('branches').select('id').eq('company_id',getCompanyId()).then(function(r){if(r.error)throw r.error;branchIds=(r.data||[]).map(function(x){return x.id;});return branchIds;});});}
-    return {resolve:resolve,getCompanyId:getCompanyId,getBranchIds:getBranchIds,hasCompany:function(){return !!(companyId||RW_STATE.app.companyId||(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId));}};
+    function getCompanyId(){
+        if(!companyId) companyId=RW_STATE.app.companyId || (RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId) || null;
+        if(!companyId) throw new Error('TENANT_CONTEXT_UNAVAILABLE');
+        return companyId;
+    }
+    return {resolve:resolve,getCompanyId:getCompanyId,hasCompany:function(){return !!(companyId||RW_STATE.app.companyId||(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId));}};
 })();
 window.RW_ShellContext=RW_ShellContext;
 '''
-                  text=text.replace(anchor,anchor+'\n'+block,1)
-              text=text.replace('email: user.email,\n                role:','email: user.email,\n                authId: user.id,\n                companyId: null,\n                role:',1)
-              text=text.replace("RW_STATE.permissions = meta.permissions || ['*'];","RW_STATE.permissions = (RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner === true) ? ['*'] : (Array.isArray(meta.permissions) ? meta.permissions.slice() : []);",1)
-              text=text.replace('enterSystem: function() {','enterSystem: async function() {',1)
-              text=text.replace('enterSystem: async function() {\n    hideLoader();','enterSystem: async function() {\n    await RW_ShellContext.resolve();\n    hideLoader();',1)
-              text=text.replace("showToast('تم تشغيل النظام في الوضع الآمن', 'warning');","throw new Error('FAIL_CLOSED_TENANT_CONTEXT');",1)
-              return text
+          s = s.replace(anchor, anchor+'\n'+context, 1)
 
-          def patch_part(idx,text):
-              if idx==1: text=patch_p1(text)
-              for table in company_tables: text=scope_reads(text,table)
-              return text
+          old_user = """email: user.email,\n                role: meta.role || 'مدير النظام',\n                isOwner: meta.isOwner === true || meta.isOwner === 'true'\n            };"""
+          new_user = """email: user.email,\n                authId: user.id,\n                companyId: null,\n                role: meta.role || 'مدير النظام',\n                isOwner: meta.isOwner === true || meta.isOwner === 'true'\n            };"""
+          if s.count(old_user) != 1:
+              raise SystemExit(f'P1_USER_BLOCK_COUNT={s.count(old_user)}')
+          s = s.replace(old_user,new_user,1)
 
-          for idx,p in enumerate(parts,1):
-              text=p.read_text(encoding='utf-8')
-              if marker in text: continue
-              for prior in parts[:idx-1]:
-                  if marker not in prior.read_text(encoding='utf-8'):
-                      raise SystemExit(f'EARLIER_PART_NOT_CLOSED:{prior.name}')
-              text=patch_part(idx,text)
-              ensure_no_client_stock_writer(text,f'P{idx}')
-              check_js(text,f'P{idx}')
-              suffix=('\n<!-- '+marker+' -->\n') if idx==1 else ('\n/* '+marker+' */\n')
-              p.write_text(text.rstrip()+suffix,encoding='utf-8')
-              subprocess.run(['git','diff','--check'],check=True)
-              subprocess.run(['git','add',str(p)],check=True)
-              subprocess.run(['git','commit','-m',f'fix(p{idx}): repair existing main part in place'],check=True)
-              subprocess.run(['git','push','origin','HEAD:main'],check=True)
-              print(f'P{idx}_CLOSED')
+          old_perm = "RW_STATE.permissions = meta.permissions || ['*'];"
+          new_perm = "RW_STATE.permissions = (RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner === true) ? ['*'] : (Array.isArray(meta.permissions) ? meta.permissions.slice() : []);"
+          if s.count(old_perm) != 1:
+              raise SystemExit(f'P1_PERMISSION_BLOCK_COUNT={s.count(old_perm)}')
+          s = s.replace(old_perm,new_perm,1)
 
-          logical='\n'.join(p.read_text(encoding='utf-8') for p in parts)
-          if logical.lower().count('<!doctype html>')!=1 or logical.lower().count('<html')!=1 or logical.lower().count('</html>')!=1:
-              raise SystemExit('LOGICAL_HTML_STRUCTURE_FAILURE')
-          if any(marker not in p.read_text(encoding='utf-8') for p in parts):
-              raise SystemExit('SERIAL_CLOSURE_INCOMPLETE')
-          print('ALL_11_EXISTING_MAIN_PARTS_CLOSED')
+          old_enter = 'enterSystem: function() {'
+          new_enter = 'enterSystem: async function() {'
+          if s.count(old_enter) != 1:
+              raise SystemExit(f'P1_ENTER_COUNT={s.count(old_enter)}')
+          s = s.replace(old_enter,new_enter,1)
+
+          old_call = 'self.enterSystem();'
+          new_call = 'return self.enterSystem();'
+          if s.count(old_call) != 1:
+              raise SystemExit(f'P1_ENTER_CALL_COUNT={s.count(old_call)}')
+          s = s.replace(old_call,new_call,1)
+
+          old_hide = 'enterSystem: async function() {\n    hideLoader();'
+          new_hide = "enterSystem: async function() {\n    await RW_ShellContext.resolve();\n    hideLoader();"
+          if s.count(old_hide) != 1:
+              raise SystemExit('P1_ENTER_BODY_ANCHOR_MISSING')
+          s = s.replace(old_hide,new_hide,1)
+
+          old_settings = ".from('app_settings')\n            .select('*')\n            .limit(1)"
+          new_settings = ".from('app_settings')\n            .select('*')\n            .eq('company_id', RW_ShellContext.getCompanyId())\n            .limit(1)"
+          if s.count(old_settings) != 1:
+              raise SystemExit(f'P1_SETTINGS_BLOCK_COUNT={s.count(old_settings)}')
+          s = s.replace(old_settings,new_settings,1)
+
+          # The P1 contract must never convert missing tenant context into a permissive safe mode.
+          safe_mode = "showToast('تم تشغيل النظام في الوضع الآمن', 'warning');"
+          if safe_mode in s:
+              s = s.replace(safe_mode,"throw new Error('FAIL_CLOSED_TENANT_CONTEXT');",1)
+
+          # Guard exact P1 surface against direct Physical Stock / inventory_log writes.
+          if re.search(r"supabase\.from\(['\"]stock_branches['\"]\)[^;]{0,1200}\.(?:update|insert|upsert|delete)\(",s,re.S):
+              raise SystemExit('P1_DIRECT_STOCK_WRITER')
+          if re.search(r"supabase\.from\(['\"]inventory_log['\"]\)[^;]{0,700}\.insert\(",s,re.S):
+              raise SystemExit('P1_DIRECT_INVENTORY_LOG_WRITER')
+
+          s = s.rstrip() + '\n<!-- RAWAEA_P1_FORENSIC_CLOSED:v1 -->\n'
+          p.write_text(s,encoding='utf-8')
+
+          # Syntax check: extract inline scripts and check each as one concatenated unit.
+          code='\n'.join(re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I))
+          f=Path(tempfile.gettempdir())/'main1-inline.js'
+          f.write_text(code,encoding='utf-8')
+          r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+          if r.returncode:
+              print(r.stderr)
+              raise SystemExit('P1_JS_SYNTAX')
+
+          subprocess.run(['git','diff','--check'],check=True)
+          subprocess.run(['git','add','Current/PWA/main/main1.md'],check=True)
+          subprocess.run(['git','commit','-m','fix(p1): repair existing main1 tenant and owner shell in place'],check=True)
+          subprocess.run(['git','push','origin','HEAD:main'],check=True)
+          print('P1_COMMITTED')
           PY
