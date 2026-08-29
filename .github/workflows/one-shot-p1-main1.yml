@@ -24,18 +24,15 @@ jobs:
           import re, subprocess, tempfile
           p=Path('Current/PWA/main/main1.md')
           s=p.read_text(encoding='utf-8')
-          marker='RAWAEA_P1_FORENSIC_CLOSED:v9'
+          marker='RAWAEA_P1_FORENSIC_CLOSED:v10'
           if marker in s:
               print('P1_ALREADY_CLOSED')
               raise SystemExit(0)
-
           def req(old,new,label):
               global s
               c=s.count(old)
-              if c!=1:
-                  raise SystemExit(f'{label}_COUNT={c}')
+              if c!=1: raise SystemExit(f'{label}_COUNT={c}')
               s=s.replace(old,new,1)
-
           anchor='window.RW_STATE = RW_STATE;'
           context="""
 // RAWAEA GOVERNED TENANT CONTEXT
@@ -93,21 +90,12 @@ window.RW_ShellContext=RW_ShellContext;
           old_fallback="""        forceEnterFallback: function() {\n        hideLoader();\n        try {\n            byId('rw-login-page').style.display = 'none';\n            byId('rw-main-shell').style.display = 'flex';\n            RW_Navigation.buildSidebar();\n            RW_Navigation.navigate('dashboard');\n            showToast('تم تشغيل النظام في الوضع الآمن', 'warning');\n        } catch(e) {\n            document.body.innerHTML = '<div style=\"min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:Cairo;\"><h1>RAWAEA ERP</h1><p>حدث خطأ أثناء تشغيل النظام</p><button onclick=\"location.reload()\">إعادة التحميل</button></div>';\n        }\n    },"""
           new_fallback="""        forceEnterFallback: function() {\n        hideLoader();\n        try {\n            RW_STATE.app.authenticated = false;\n            byId('rw-main-shell').style.display = 'none';\n            byId('rw-login-page').style.display = 'flex';\n            showToast('تعذر تحديد سياق الشركة الآمن. لم يتم تشغيل النظام.', 'error');\n        } catch(e) {\n            console.error('FAIL_CLOSED_TENANT_CONTEXT', e);\n        }\n    },"""
           req(old_fallback,new_fallback,'P1_FAIL_CLOSED')
-
-          # P1 must not contain a direct Physical Stock or inventory-log writer.
-          if re.search(r"supabase\.from\(['\"]stock_branches['\"]\)[^;]{0,1200}\.(?:update|insert|upsert|delete)\(",s,re.S):
-              raise SystemExit('P1_DIRECT_STOCK_WRITER')
-          if re.search(r"supabase\.from\(['\"]inventory_log['\"]\)[^;]{0,700}\.insert\(",s,re.S):
-              raise SystemExit('P1_DIRECT_INVENTORY_LOG_WRITER')
-
-          # Full-file P1 syntax check for this part's complete HTML/JS fragment.
+          if re.search(r"supabase\.from\(['\"]stock_branches['\"]\)[^;]{0,1200}\.(?:update|insert|upsert|delete)\(",s,re.S): raise SystemExit('P1_DIRECT_STOCK_WRITER')
+          if re.search(r"supabase\.from\(['\"]inventory_log['\"]\)[^;]{0,700}\.insert\(",s,re.S): raise SystemExit('P1_DIRECT_INVENTORY_LOG_WRITER')
           code='\n'.join(re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I))
           f=Path(tempfile.gettempdir())/'p1.js'; f.write_text(code,encoding='utf-8')
           r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-          if r.returncode:
-              print(r.stderr)
-              raise SystemExit('P1_JS_SYNTAX')
-
+          if r.returncode: print(r.stderr); raise SystemExit('P1_JS_SYNTAX')
           p.write_text(s.rstrip()+'\n<!-- '+marker+' -->\n',encoding='utf-8')
           subprocess.run(['git','diff','--check'],check=True)
           subprocess.run(['git','config','user.name','github-actions[bot]'],check=True)
