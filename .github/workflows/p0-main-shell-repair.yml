@@ -1,71 +1,127 @@
-name: P0 Parent PWA main repair
+name: RAWAEA Main PWA Serial Forensic Repair
 on:
+  workflow_dispatch:
   push:
     branches: [main]
+    paths:
+      - 'Current/PWA/main/main*.md'
+      - '.github/workflows/p0-main-shell-repair.yml'
 permissions:
   contents: write
 jobs:
   repair:
-    if: github.event.head_commit.message != 'fix: execute parent pwa main shell p0'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout current main
         uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 2
-      - name: Run audited P0 patch
-        run: python3 tools/p0_main_shell_repair.py
-      - name: Validate JavaScript and invariants
+          fetch-depth: 0
+      - name: Repair exactly one existing part
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
           import re, subprocess, tempfile
-          s=Path('Current/PWA/main.html').read_text(encoding='utf-8')
-          required=['RW_ShellContext','RW_Fleet','create_vehicle_atomic',"if (view === 'vehicles')"]
-          for x in required:
-              if x not in s: raise SystemExit('missing '+x)
-          if ".from('app_settings')\n            .select('*')\n            .limit(1" in s: raise SystemExit('unscoped app_settings remains')
-          scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I)
-          if not scripts: raise SystemExit('no inline scripts')
-          for i,c in enumerate(scripts,1):
-              f=Path(tempfile.gettempdir())/f'rw_main_{i}.js';f.write_text(c,encoding='utf-8')
+
+          ROOT=Path('Current/PWA/main')
+          PARTS=[ROOT/f'main{i}.md' for i in range(1,12)]
+          MARK='RAWAEA_MAIN_PART_CLOSED:v4'
+          if any(not p.exists() for p in PARTS): raise SystemExit('MISSING_MAIN_PART')
+
+          COMPANY_TABLES=['app_settings','customers','branches','suppliers','orders','purchase_orders','receiving','stock_vouchers','treasury','chart_of_accounts','roles','users','vehicles']
+
+          def scope_reads(text, table):
+              pat=re.compile(r"supabase\.from\(['\"]"+re.escape(table)+r"['\"]\)\.select\([^;\n]*?\)")
+              out=[]; last=0
+              for m in pat.finditer(text):
+                  out.append(text[last:m.end()])
+                  tail=text[m.end():m.end()+320]
+                  if ".eq('company_id', RW_ShellContext.getCompanyId())" not in tail and '.eq("company_id", RW_ShellContext.getCompanyId())' not in tail:
+                      out.append(".eq('company_id', RW_ShellContext.getCompanyId())")
+                  last=m.end()
+              out.append(text[last:])
+              return ''.join(out)
+
+          def check_js(text,label):
+              code='\n'.join(re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',text,re.S|re.I)) if '<html' in text.lower() else text
+              if not code.strip(): return
+              f=Path(tempfile.gettempdir())/(label+'.js'); f.write_text(code,encoding='utf-8')
               r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-              if r.returncode:
-                  print(r.stderr);raise SystemExit('syntax failure '+str(i))
+              if r.returncode: print(r.stderr); raise SystemExit(label+'_JS_SYNTAX')
+
+          def forbid_direct_stock(text,label):
+              if re.search(r"(?:supabase\.from\(['\"]stock_branches['\"]\)|\.from\(['\"]stock_branches['\"]\))[^;]{0,900}\.(?:update|insert|upsert|delete)\(",text,re.S):
+                  raise SystemExit(label+'_DIRECT_STOCK_WRITER')
+              if re.search(r"(?:supabase\.from\(['\"]inventory_log['\"]\)|\.from\(['\"]inventory_log['\"]\))[^;]{0,500}\.insert\(",text,re.S):
+                  raise SystemExit(label+'_DIRECT_INVENTORY_LOG_WRITER')
+
+          def patch_p1(text):
+              anchor='window.RW_STATE = RW_STATE;'
+              if anchor not in text: raise SystemExit('P1_NO_STATE_ANCHOR')
+              if 'window.RW_ShellContext=RW_ShellContext;' not in text:
+                  block=r'''
+// RAWAEA GOVERNED TENANT CONTEXT
+var RW_ShellContext=(function(){
+    var companyId=null,userId=null,branchIds=null,resolving=null;
+    function resolve(){
+        if(companyId) return Promise.resolve(companyId);
+        if(resolving) return resolving;
+        var u=RW_STATE.app.currentUser||{};
+        if(u.companyId){ companyId=u.companyId; userId=u.id||null; RW_STATE.app.companyId=companyId; RW_STATE.app.userId=userId; return Promise.resolve(companyId); }
+        if(!u.authId) return Promise.reject(new Error('AUTH_ID_UNAVAILABLE'));
+        resolving=supabase.from('users').select('id,company_id,name,role,status').eq('auth_id',u.authId).eq('status','Active').maybeSingle().then(function(r){
+            if(r.error||!r.data||!r.data.company_id) throw new Error('TENANT_CONTEXT_UNAVAILABLE');
+            companyId=r.data.company_id; userId=r.data.id||null;
+            RW_STATE.app.companyId=companyId; RW_STATE.app.userId=userId;
+            if(RW_STATE.app.currentUser){ RW_STATE.app.currentUser.id=userId; RW_STATE.app.currentUser.companyId=companyId; if(r.data.name) RW_STATE.app.currentUser.name=r.data.name; if(r.data.role) RW_STATE.app.currentUser.role=r.data.role; }
+            return companyId;
+        }).finally(function(){resolving=null;});
+        return resolving;
+    }
+    function getCompanyId(){ if(!companyId) companyId=RW_STATE.app.companyId || (RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId) || null; if(!companyId) throw new Error('TENANT_CONTEXT_UNAVAILABLE'); return companyId; }
+    function getBranchIds(){ if(Array.isArray(branchIds)) return Promise.resolve(branchIds); return resolve().then(function(){ return supabase.from('branches').select('id').eq('company_id',getCompanyId()).then(function(r){ if(r.error) throw r.error; branchIds=(r.data||[]).map(function(x){return x.id;}); return branchIds; }); }); }
+    return {resolve:resolve,getCompanyId:getCompanyId,getBranchIds:getBranchIds,hasCompany:function(){return !!(companyId||RW_STATE.app.companyId||(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId));}};
+})();
+window.RW_ShellContext=RW_ShellContext;
+'''
+                  text=text.replace(anchor,anchor+'\n'+block,1)
+              text=text.replace("email: user.email,\n                role:","email: user.email,\n                authId: user.id,\n                companyId: null,\n                role:",1)
+              text=text.replace("RW_STATE.permissions = meta.permissions || ['*'];","RW_STATE.permissions = (RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner === true) ? ['*'] : (Array.isArray(meta.permissions) ? meta.permissions.slice() : []);",1)
+              text=text.replace('enterSystem: function() {','enterSystem: async function() {',1)
+              text=text.replace('enterSystem: async function() {\n    hideLoader();','enterSystem: async function() {\n    await RW_ShellContext.resolve();\n    hideLoader();',1)
+              text=text.replace(".from('app_settings')\n            .select('*')\n            .limit(1)",".from('app_settings')\n            .select('*')\n            .eq('company_id',RW_ShellContext.getCompanyId())\n            .limit(1)",1)
+              return text
+
+          selected=None
+          for i,p in enumerate(PARTS,1):
+              if MARK not in p.read_text(encoding='utf-8'):
+                  selected=i; break
+          if selected is None:
+              print('ALL_PARTS_CLOSED'); raise SystemExit(0)
+          for i in range(1,selected):
+              if MARK not in PARTS[i-1].read_text(encoding='utf-8'):
+                  raise SystemExit(f'EARLIER_PART_NOT_CLOSED_P{i}')
+
+          p=PARTS[selected-1]; original=p.read_text(encoding='utf-8'); text=original
+          if selected==1: text=patch_p1(text)
+          for table in COMPANY_TABLES: text=scope_reads(text,table)
+          forbid_direct_stock(text,f'P{selected}')
+          check_js(text,f'P{selected}')
+
+          # Main logical-file guard: P1 must remain the only HTML document root; no sibling is modified in this transaction.
+          logical='\n'.join((text if i==selected else q.read_text(encoding='utf-8')) for i,q in enumerate(PARTS,1))
+          if logical.lower().count('<!doctype html>')!=1 or logical.lower().count('<html')!=1 or logical.lower().count('</html>')!=1:
+              raise SystemExit('LOGICAL_HTML_STRUCTURE_FAILURE')
+
+          text=text.rstrip()+('\n<!-- '+MARK+' -->\n' if selected==1 else '\n/* '+MARK+' */\n')
+          p.write_text(text,encoding='utf-8')
           subprocess.run(['git','diff','--check'],check=True)
-          print('P0_STATIC_OK',len(scripts))
+          subprocess.run(['git','add',str(p)],check=True)
+          subprocess.run(['git','commit','-m',f'fix(p{selected}): forensic repair existing main part in place'],check=True)
+          subprocess.run(['git','push','origin','HEAD:main'],check=True)
+          print(f'P{selected}_COMMITTED')
           PY
-      - name: Record result and restore runner
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'RAWAEA P0 Repair Bot'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          cat > Current/CTO/20260829_MAIN_P0_EXECUTION.md <<'EOF'
-# RAWAEA ERP — Parent PWA main.html — P0 Execution Record
-
-P0 executed against the current main tree as an in-place repair.
-
-Delivered:
-- authenticated tenant context sourced from `users.company_id` before shell entry;
-- known Parent PWA tenant-owned `app_settings` reads company-scoped;
-- known customer/branch/supplier/user/order/procurement reads company-scoped where applicable;
-- Vehicle Master integrated into the existing Parent PWA navigation and routing;
-- smart driver search scoped to the authenticated company;
-- Vehicle creation delegated only to Production `create_vehicle_atomic`;
-- no client Physical Stock writer introduced;
-- existing Parent PWA structure retained.
-
-Validation: static JavaScript syntax + invariant checks + git diff check.
-
-Not claimed here: browser E2E, Production browser runtime, or global Inventory Zero-Debt closure.
-
-Roadmap: P0 tenant/core/navigation parity; P1 shared runtime convergence; P2 ERP workspace/navigation parity; P3 business/UX closure; P4 runtime/Production closure.
-EOF
-          git checkout HEAD^ -- .github/workflows/p0-main-shell-repair.yml
-          git add Current/PWA/main.html Current/CTO/20260829_MAIN_P0_EXECUTION.md .github/workflows/p0-main-shell-repair.yml
-          git commit -m 'fix: execute parent pwa main shell p0'
-          git push origin HEAD:main
