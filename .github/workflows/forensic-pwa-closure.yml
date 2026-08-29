@@ -6,7 +6,7 @@ permissions:
   contents: write
 jobs:
   closure:
-    if: github.event.head_commit.message != 'fix: execute parent pwa vehicle master integration' && github.event.head_commit.message != 'fix: forensic pwa closure automated commit'
+    if: github.event.head_commit.message != 'fix: execute parent pwa vehicle master integration' && github.event.head_commit.message != 'fix: forensic pwa closure automated commit' && github.event.head_commit.message != 'fix: restore forensic pwa closure runner'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,42 +21,125 @@ jobs:
           import re
           p=Path('Current/PWA/main.html')
           s=p.read_text(encoding='utf-8')
-          if "view: 'vehicles'" in s and 'var RW_Vehicles=' in s:
-              print('already integrated')
+          if 'RW_Vehicles_VERSION_2' in s:
+              print('vehicle module v2 already integrated')
               raise SystemExit(0)
           nav=re.compile(r"\{\s*view:\s*['\"]branches['\"][^}]*label:\s*['\"]المخازن والفروع['\"][^}]*\}")
           m=nav.search(s)
           if not m: raise SystemExit('navigation anchor not found')
           s=s[:m.end()]+", { view: 'vehicles', icon: 'fa-car-side', label: 'السيارات والأسطول' }"+s[m.end():]
+          perm=re.compile(r"(['\"]branches['\"]\s*:\s*['\"]branches['\"]\s*,)")
+          m=perm.search(s)
+          if not m: raise SystemExit('permission anchor not found')
+          s=s[:m.end()]+" 'vehicles':'vehicles.manage',"+s[m.end():]
+          title=re.compile(r"(['\"]branches['\"]\s*:\s*['\"]المخازن والفروع['\"]\s*,)")
+          m=title.search(s)
+          if not m: raise SystemExit('title anchor not found')
+          s=s[:m.end()]+" 'vehicles':'السيارات والأسطول',"+s[m.end():]
           route=re.compile(r"(?m)^([ \t]*)if\s*\(view\s*===\s*['\"]branches['\"]\)\s*\{\s*RW_Branches\.render\(\)\;\s*return\;\s*\}")
           m=route.search(s)
           if not m: raise SystemExit('route anchor not found')
           s=s[:m.end()]+"\n"+m.group(1)+"if (view === 'vehicles') { RW_Vehicles.render(); return; }"+s[m.end():]
-          t=re.compile(r"(['\"]branches['\"]\s*:\s*['\"]المخازن والفروع['\"]\s*,)")
-          m=t.search(s)
-          if not m: raise SystemExit('title map anchor not found')
-          s=s[:m.end()]+" 'vehicles':'السيارات والأسطول',"+s[m.end():]
           marker="var RW_Branches = (function() {"
           if s.count(marker)!=1: raise SystemExit('module anchor not found')
-          module='''var RW_Vehicles=(function(){
-          var vehicles=[],users=[];
-          function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]})}
-          async function ctx(){var a=await supabase.auth.getUser();if(a.error||!a.data||!a.data.user)throw new Error('جلسة غير صالحة');var u=await supabase.from('users').select('id,company_id,name,email,role,status').eq('auth_id',a.data.user.id).eq('status','Active').maybeSingle();if(u.error||!u.data||!u.data.company_id)throw new Error('سياق الشركة غير محدد للمستخدم');return{user:a.data.user,companyId:u.data.company_id}}
-          async function load(){var c=await ctx();var v=await supabase.from('vehicles').select('id,vehicle_code,model,license_plate,driver_id,status,vehicle_type,operation_mode,ownership_type,mobile_stock_enabled,mobile_branch_id,created_at').eq('company_id',c.companyId).order('created_at',{ascending:false});if(v.error)throw new Error(v.error.message);var d=await supabase.from('users').select('id,name,email,role,status').eq('company_id',c.companyId).eq('status','Active').order('name',{ascending:true});if(d.error)throw new Error(d.error.message);vehicles=v.data||[];users=d.data||[]}
-          function driverName(id){var d=users.find(function(x){return x.id===id});return d?(d.name||'')+(d.email?' — '+d.email:''):'غير مخصص'}
-          function filtered(q){q=String(q||'').trim().toLowerCase();return vehicles.filter(function(v){return !q||[v.vehicle_code,v.license_plate,v.model,v.vehicle_type,v.operation_mode,v.ownership_type,v.status,driverName(v.driver_id)].join(' ').toLowerCase().indexOf(q)!==-1})}
-          function rows(q){var a=filtered(q);if(!a.length)return'<tr><td colspan="8" class="p-8 text-center text-gray-400 font-bold">لا توجد سيارات مطابقة</td></tr>';return a.map(function(v){return'<tr class="border-b hover:bg-slate-50"><td class="p-3 font-black text-blue-700">'+esc(v.vehicle_code)+'</td><td class="p-3 font-bold">'+esc(v.license_plate)+'</td><td class="p-3">'+esc(v.model||'—')+'</td><td class="p-3">'+esc(driverName(v.driver_id))+'</td><td class="p-3 text-center">'+esc(v.vehicle_type||'—')+'</td><td class="p-3 text-center">'+(v.mobile_stock_enabled?'✓':'—')+'</td><td class="p-3 text-center">'+esc(v.status||'—')+'</td><td class="p-3 text-center">'+esc(v.mobile_branch_id||'—')+'</td></tr>'}).join('')}
-          async function create(){var c=await ctx();var code=prompt('كود السيارة *');if(code===null)return;var plate=prompt('لوحة السيارة *');if(plate===null)return;if(!code.trim()||!plate.trim())throw new Error('كود السيارة ولوحة السيارة مطلوبان');var r=await supabase.rpc('create_vehicle_atomic',{p_company_id:c.companyId,p_vehicle_code:code.trim(),p_model:null,p_license_plate:plate.trim(),p_driver_id:null,p_max_weight_kg:null,p_max_volume_m3:null,p_min_trip_value:null,p_status:'Active',p_notes:null,p_vehicle_type:'Delivery',p_operation_mode:'Mixed',p_ownership_type:'Owned',p_model_year:null,p_vin:null,p_fuel_type:null,p_refrigerated:false,p_mobile_stock_enabled:true,p_created_by:c.user.email});if(r.error)throw new Error(r.error.message);showToast('تم إنشاء السيارة وربطها بالبنية التشغيلية','success');await render()}
-          async function render(){var c=document.getElementById('rw-page-container');if(!c)return;var h=document.getElementById('rw-header-title');if(h)h.textContent='السيارات والأسطول';try{await load()}catch(e){c.innerHTML='<div class="p-8 text-center text-red-600 font-bold">'+esc(e.message)+'</div>';return}c.innerHTML='<div class="space-y-6"><div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between"><div><div class="text-2xl font-black">السيارات والأسطول</div><div class="text-sm text-gray-500 mt-1">Vehicle Master داخل التطبيق الرئيسي.</div></div><button id="rw-v-add" class="px-6 py-3 rounded-xl bg-blue-600 text-white font-black"><i class="fa-solid fa-plus ml-2"></i>إنشاء سيارة</button></div><div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100"><input id="rw-v-search" class="rw-input" style="height:54px;padding:0 16px" placeholder="بحث ذكي: الكود، اللوحة، الموديل، المندوب، النوع، الحالة..."></div><div class="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100"><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="p-3 text-right">الكود</th><th class="p-3 text-right">اللوحة</th><th class="p-3 text-right">الموديل</th><th class="p-3 text-right">السائق/المندوب</th><th class="p-3 text-center">النوع</th><th class="p-3 text-center">المخزون</th><th class="p-3 text-center">الحالة</th><th class="p-3 text-center">Mobile Branch</th></tr></thead><tbody id="rw-v-rows">'+rows('')+'</tbody></table></div></div></div>';document.getElementById('rw-v-add').onclick=function(){create().catch(function(e){showToast(e.message||'تعذر إنشاء السيارة','error')})};document.getElementById('rw-v-search').oninput=function(){document.getElementById('rw-v-rows').innerHTML=rows(this.value)}}
-          return{render:render}
-          })();window.RW_Vehicles=RW_Vehicles;
+          module=r'''// RW_Vehicles_VERSION_2
+          var RW_Vehicles=(function(){
+            var vehicles=[],users=[];
+            function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]})}
+            function norm(v){return String(v==null?'':v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[إأآا]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/\s+/g,' ').trim()}
+            async function ctx(){
+              var a=await supabase.auth.getUser();
+              if(a.error||!a.data||!a.data.user)throw new Error('جلسة غير صالحة');
+              var u=await supabase.from('users').select('id,company_id,name,email,role,status').eq('auth_id',a.data.user.id).eq('status','Active').maybeSingle();
+              if(u.error||!u.data||!u.data.company_id)throw new Error('سياق الشركة غير محدد للمستخدم');
+              return{user:a.data.user,companyId:u.data.company_id};
+            }
+            async function load(){
+              var c=await ctx();
+              var v=await supabase.from('vehicles').select('id,vehicle_code,model,license_plate,driver_id,status,vehicle_type,operation_mode,ownership_type,model_year,vin,fuel_type,refrigerated,mobile_stock_enabled,mobile_branch_id,max_weight_kg,max_volume_m3,min_trip_value,notes,created_at').eq('company_id',c.companyId).order('created_at',{ascending:false});
+              if(v.error)throw new Error(v.error.message);
+              var d=await supabase.from('users').select('id,name,email,role,status').eq('company_id',c.companyId).eq('status','Active').order('name',{ascending:true});
+              if(d.error)throw new Error(d.error.message);
+              vehicles=v.data||[];users=d.data||[];
+            }
+            function driverName(id){var d=users.find(function(x){return x.id===id});return d?((d.name||'')+(d.email?' — '+d.email:'')):'غير مخصص'}
+            function filtered(q){var n=norm(q);return vehicles.filter(function(v){return !n||[v.vehicle_code,v.license_plate,v.model,v.vehicle_type,v.operation_mode,v.ownership_type,v.status,v.vin,v.fuel_type,driverName(v.driver_id)].some(function(x){return norm(x).indexOf(n)!==-1})})}
+            function statusBadge(v){var cls=v==='Active'?'bg-emerald-50 text-emerald-700':v==='Maintenance'?'bg-amber-50 text-amber-700':'bg-slate-100 text-slate-600';var t=v==='Active'?'نشطة':v==='Maintenance'?'صيانة':(v||'غير محددة');return'<span class="px-2.5 py-1 rounded-full text-xs font-black '+cls+'">'+esc(t)+'</span>'}
+            function rows(q){var a=filtered(q);if(!a.length)return'<tr><td colspan="9" class="p-10 text-center text-slate-400 font-bold">لا توجد سيارات مطابقة للبحث</td></tr>';return a.map(function(v){return'<tr class="border-b hover:bg-slate-50"><td class="p-3 font-black text-blue-700">'+esc(v.vehicle_code)+'</td><td class="p-3 font-bold">'+esc(v.license_plate)+'</td><td class="p-3">'+esc(v.model||'—')+'</td><td class="p-3">'+esc(driverName(v.driver_id))+'</td><td class="p-3 text-center">'+esc(v.vehicle_type||'—')+'</td><td class="p-3 text-center">'+esc(v.operation_mode||'—')+'</td><td class="p-3 text-center">'+(v.mobile_stock_enabled?'✓':'—')+'</td><td class="p-3 text-center">'+statusBadge(v.status)+'</td><td class="p-3 text-center">'+esc(v.mobile_branch_id||'—')+'</td></tr>'}).join('')}
+            function formHtml(){
+              var driverOpts='<option value="">غير مخصص</option>'+users.map(function(u){return'<option value="'+esc(u.id)+'">'+esc((u.name||u.email||'')+(u.email?' — '+u.email:''))+'</option>'}).join('');
+              return '<div class="text-right space-y-4"><div class="grid grid-cols-1 md:grid-cols-2 gap-3">'+
+                '<div><label class="block text-xs font-black mb-1">كود السيارة *</label><input id="rv-code" class="swal2-input" style="margin:0;width:100%" required></div>'+ 
+                '<div><label class="block text-xs font-black mb-1">لوحة السيارة *</label><input id="rv-plate" class="swal2-input" style="margin:0;width:100%" required></div>'+ 
+                '<div><label class="block text-xs font-black mb-1">الموديل</label><input id="rv-model" class="swal2-input" style="margin:0;width:100%"></div>'+ 
+                '<div><label class="block text-xs font-black mb-1">المندوب / السائق</label><select id="rv-driver" class="swal2-select" style="margin:0;width:100%">'+driverOpts+'</select></div>'+ 
+                '<div><label class="block text-xs font-black mb-1">نوع المركبة</label><select id="rv-type" class="swal2-select" style="margin:0;width:100%"><option value="Delivery">توصيل</option><option value="VanSales">بيع مباشر</option><option value="Truck">شاحنة</option><option value="Other">أخرى</option></select></div>'+ 
+                '<div><label class="block text-xs font-black mb-1">نمط التشغيل</label><select id="rv-mode" class="swal2-select" style="margin:0;width:100%"><option value="Mixed">مختلط</option><option value="Delivery">توصيل</option><option value="Sales">مبيعات</option></select></div>'+ 
+                '<div><label class="block text-xs font-black mb-1">الملكية</label><select id="rv-own" class="swal2-select" style="margin:0;width:100%"><option value="Owned">مملوكة</option><option value="Leased">مؤجرة</option><option value="Other">أخرى</option></select></div>'+ 
+                '<div><label class="block text-xs font-black mb-1">الحالة</label><select id="rv-status" class="swal2-select" style="margin:0;width:100%"><option value="Active">نشطة</option><option value="Maintenance">صيانة</option><option value="Inactive">غير نشطة</option></select></div>'+ 
+                '<div><label class="block text-xs font-black mb-1">سنة الموديل</label><input id="rv-year" type="number" class="swal2-input" style="margin:0;width:100%"></div>'+ 
+                '<div><label class="block text-xs font-black mb-1">VIN</label><input id="rv-vin" class="swal2-input" style="margin:0;width:100%"></div>'+ 
+                '<div><label class="block text-xs font-black mb-1">نوع الوقود</label><input id="rv-fuel" class="swal2-input" style="margin:0;width:100%"></div>'+ 
+                '<div><label class="block text-xs font-black mb-1">الحمولة كجم</label><input id="rv-weight" type="number" min="0" class="swal2-input" style="margin:0;width:100%"></div>'+ 
+                '<div><label class="block text-xs font-black mb-1">الحجم م³</label><input id="rv-volume" type="number" min="0" class="swal2-input" style="margin:0;width:100%"></div>'+ 
+                '<div><label class="block text-xs font-black mb-1">الحد الأدنى لقيمة الرحلة</label><input id="rv-mintrip" type="number" min="0" class="swal2-input" style="margin:0;width:100%"></div>'+ 
+                '</div><div class="flex flex-wrap gap-4 text-sm font-bold"><label><input type="checkbox" id="rv-refrig"> ثلاجة</label><label><input type="checkbox" id="rv-mobile" checked> مخزون متنقل</label></div><div><label class="block text-xs font-black mb-1">ملاحظات</label><textarea id="rv-notes" class="swal2-textarea" style="margin:0;width:100%"></textarea></div></div>';
+            }
+            async function create(){
+              if(!RW_Permissions_check('vehicles.manage')){showToast('ليس لديك صلاحية إنشاء سيارة','error');return}
+              var c=await ctx();
+              var result=await Swal.fire({title:'إنشاء سيارة',html:formHtml(),width:900,focusConfirm:false,showCancelButton:true,confirmButtonText:'إنشاء وحفظ',cancelButtonText:'إلغاء',preConfirm:function(){
+                var code=document.getElementById('rv-code').value.trim(),plate=document.getElementById('rv-plate').value.trim();
+                if(!code||!plate){Swal.showValidationMessage('كود السيارة ولوحة السيارة مطلوبان');return false}
+                return{code:code,plate:plate,model:document.getElementById('rv-model').value.trim()||null,driver:document.getElementById('rv-driver').value||null,type:document.getElementById('rv-type').value,mode:document.getElementById('rv-mode').value,own:document.getElementById('rv-own').value,status:document.getElementById('rv-status').value,year:Number(document.getElementById('rv-year').value)||null,vin:document.getElementById('rv-vin').value.trim()||null,fuel:document.getElementById('rv-fuel').value.trim()||null,weight:Number(document.getElementById('rv-weight').value)||null,volume:Number(document.getElementById('rv-volume').value)||null,mintrip:Number(document.getElementById('rv-mintrip').value)||null,refrig:document.getElementById('rv-refrig').checked,mobile:document.getElementById('rv-mobile').checked,notes:document.getElementById('rv-notes').value.trim()||null};
+              }});
+              if(!result.isConfirmed)return;
+              showLoader('جاري إنشاء السيارة وربطها بالبنية التشغيلية...');
+              var x=result.value;
+              var r=await supabase.rpc('create_vehicle_atomic',{p_company_id:c.companyId,p_vehicle_code:x.code,p_model:x.model,p_license_plate:x.plate,p_driver_id:x.driver,p_max_weight_kg:x.weight,p_max_volume_m3:x.volume,p_min_trip_value:x.mintrip,p_status:x.status,p_notes:x.notes,p_vehicle_type:x.type,p_operation_mode:x.mode,p_ownership_type:x.own,p_model_year:x.year,p_vin:x.vin,p_fuel_type:x.fuel,p_refrigerated:x.refrig,p_mobile_stock_enabled:x.mobile,p_created_by:c.user.email});
+              hideLoader();
+              if(r.error)throw new Error(r.error.message);
+              showToast('تم إنشاء السيارة وربطها بالمخزون المتنقل','success');
+              await render();
+            }
+            async function render(){
+              var c=document.getElementById('rw-page-container');if(!c)return;
+              safeText(byId('rw-header-title'),'السيارات والأسطول');
+              try{await load()}catch(e){safeHTML(c,'<div class="p-8 text-center text-red-600 font-bold">'+esc(e.message)+'</div>');return}
+              var active=vehicles.filter(function(v){return v.status==='Active'}).length, mobile=vehicles.filter(function(v){return v.mobile_stock_enabled}).length, assigned=vehicles.filter(function(v){return !!v.driver_id}).length;
+              safeHTML(c,'<div class="space-y-5"><div class="grid grid-cols-1 md:grid-cols-3 gap-4"><div class="bg-white rounded-3xl p-5 border shadow-sm"><div class="text-xs text-slate-400 font-bold">إجمالي السيارات</div><div class="text-3xl font-black text-slate-800 mt-1">'+vehicles.length+'</div></div><div class="bg-white rounded-3xl p-5 border shadow-sm"><div class="text-xs text-slate-400 font-bold">السيارات النشطة</div><div class="text-3xl font-black text-emerald-600 mt-1">'+active+'</div></div><div class="bg-white rounded-3xl p-5 border shadow-sm"><div class="text-xs text-slate-400 font-bold">المخزون المتنقل / المخصصة</div><div class="text-3xl font-black text-indigo-600 mt-1">'+mobile+' / '+assigned+'</div></div></div><div class="bg-white rounded-3xl p-5 border shadow-sm flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between"><div><div class="text-2xl font-black">إدارة السيارات والأسطول</div><div class="text-sm text-slate-500 mt-1">Vehicle Master داخل Parent PWA؛ الكتابة تتم فقط عبر create_vehicle_atomic.</div></div><div class="flex gap-2"><input id="rw-v-search" class="rw-input" style="height:52px;padding:0 16px;min-width:320px" placeholder="بحث ذكي: الكود، اللوحة، الموديل، المندوب، النوع، VIN..."/><button id="rw-v-add" class="rw-btn-primary"><i class="fa-solid fa-plus ml-2"></i>إنشاء سيارة</button></div></div><div class="bg-white rounded-3xl overflow-hidden border shadow-sm"><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="p-3 text-right">الكود</th><th class="p-3 text-right">اللوحة</th><th class="p-3 text-right">الموديل</th><th class="p-3 text-right">المندوب/السائق</th><th class="p-3 text-center">النوع</th><th class="p-3 text-center">التشغيل</th><th class="p-3 text-center">مخزون متنقل</th><th class="p-3 text-center">الحالة</th><th class="p-3 text-center">Mobile Branch</th></tr></thead><tbody id="rw-v-rows">'+rows('')+'</tbody></table></div></div></div>');
+              document.getElementById('rw-v-search').oninput=function(){document.getElementById('rw-v-rows').innerHTML=rows(this.value)};
+              document.getElementById('rw-v-add').onclick=function(){create().catch(function(e){hideLoader();showToast(e.message||'تعذر إنشاء السيارة','error')})};
+            }
+            return{render:render};
+          })(); window.RW_Vehicles=RW_Vehicles;
+          // END RW_Vehicles_VERSION_2
           '''
           s=s.replace(marker,module+'\n'+marker,1)
           p.write_text(s,encoding='utf-8')
           PY
+          grep -F "RW_Vehicles_VERSION_2" Current/PWA/main.html
           grep -F "view: 'vehicles'" Current/PWA/main.html
+          grep -F "vehicles.manage" Current/PWA/main.html
           grep -F "if (view === 'vehicles')" Current/PWA/main.html
-          grep -F "var RW_Vehicles=(function()" Current/PWA/main.html
+      - name: Validate parent PWA syntax surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('Current/PWA/main.html').read_text(encoding='utf-8')
+          assert s.count('RW_Vehicles_VERSION_2')==1
+          assert "view: 'vehicles'" in s
+          assert "'vehicles':'vehicles.manage'" in s
+          assert "if (view === 'vehicles')" in s
+          assert 'create_vehicle_atomic' in s
+          assert 'vehicles.manage' in s
+          assert "window.RW_Vehicles" in s
+          assert s.count("var RW_Branches = (function() {")==1
+          print('PASS: structural vehicle integration anchors present')
+          PY
       - name: Commit vehicle integration
         shell: bash
         run: |
