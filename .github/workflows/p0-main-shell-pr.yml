@@ -1,4 +1,4 @@
-name: P0 Main ERP Shell Repair (PR)
+name: P0 Main PWA P1 Repair
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -6,7 +6,7 @@ permissions:
   contents: write
   pull-requests: write
 jobs:
-  repair:
+  repair_p1:
     if: github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-latest
     steps:
@@ -14,90 +14,68 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
-      - name: Repair and validate
+      - name: Repair existing main1.md only
         shell: bash
         run: |
           set -euo pipefail
-          python3 <<'PY'
+          python3 - <<'PY'
           from pathlib import Path
           import re, subprocess, tempfile
-          p=Path('Current/PWA/main.html')
+          p=Path('Current/PWA/main/main1.md')
           s=p.read_text(encoding='utf-8')
-          original=s
-          anchors=['var RW_Dashboard','var RW_Auth','const RW_Navigation = {','var RW_Views = {','var RW_Warehouse','var RW_Finance','var RW_Reports','function RW_Audit_renderTab()']
-          for a in anchors:
-              if a not in s: raise SystemExit('ABORT missing anchor: '+a)
-          if "window.RW_ShellContext" not in s:
-              a='window.RW_STATE = RW_STATE;'; pos=s.find(a)
-              if pos<0: raise SystemExit('ABORT state anchor')
-              pos+=len(a)
-              block="""\n// ============================================================\n// P0 ERP SHELL — AUTHENTICATED TENANT CONTEXT\n// ============================================================\nvar RW_ShellContext=(function(){var companyId=null,resolving=null;function resolve(callback){if(companyId){RW_STATE.app.companyId=companyId;if(callback)callback(true,companyId);return Promise.resolve(companyId);}if(resolving)return resolving.then(function(id){if(callback)callback(true,id);return id;});var u=RW_STATE.app.currentUser||{};if(!u.email){if(callback)callback(false,null);return Promise.resolve(null);}resolving=supabase.from('users').select('id,company_id,name,role,status').eq('email',u.email).eq('status','Active').maybeSingle().then(function(r){if(r.error||!r.data||!r.data.company_id)throw new Error('تعذر تحديد شركة المستخدم');companyId=r.data.company_id;RW_STATE.app.companyId=companyId;RW_STATE.app.userId=r.data.id||null;if(RW_STATE.app.currentUser){if(r.data.name)RW_STATE.app.currentUser.name=r.data.name;if(r.data.role)RW_STATE.app.currentUser.role=r.data.role;}return companyId;}).finally(function(){resolving=null;});return resolving.then(function(id){if(callback)callback(true,id);return id;}).catch(function(e){companyId=null;RW_STATE.app.companyId=null;if(callback)callback(false,null);throw e;});}function getCompanyId(){if(!companyId&&RW_STATE.app.companyId)companyId=RW_STATE.app.companyId;if(!companyId)throw new Error('TENANT_CONTEXT_UNAVAILABLE');return companyId;}function hasCompany(){return !!(companyId||(RW_STATE.app&&RW_STATE.app.companyId));}return{resolve:resolve,getCompanyId:getCompanyId,hasCompany:hasCompany};})();\nwindow.RW_ShellContext=RW_ShellContext;\n"""
-              s=s[:pos]+block+s[pos:]
-          old="enterSystem: function() {\n    hideLoader();"
-          if old in s and 'TENANT_CONTEXT_ERROR' not in s:
-              new="enterSystem: function() {\n    var self=this;\n    if(!RW_ShellContext.hasCompany()){RW_ShellContext.resolve(function(ok){if(ok)self.enterSystem();else{hideLoader();showToast('تعذر تحديد سياق الشركة للمستخدم','error');}}).catch(function(e){console.error('TENANT_CONTEXT_ERROR',e);});return;}\n    hideLoader();"
+          marker='RAWAEA_P1_FORENSIC_CLOSED:v4'
+          if marker in s:
+              print('P1_ALREADY_CLOSED')
+              raise SystemExit(0)
+          def req(old,new,label):
+              global s
+              c=s.count(old)
+              if c!=1: raise SystemExit(f'{label}_COUNT={c}')
               s=s.replace(old,new,1)
-          for a,b in [
-            (".from('app_settings')\n            .select('*')\n            .limit(1)",".from('app_settings')\n            .select('*')\n            .eq('company_id',RW_ShellContext.getCompanyId())\n            .limit(1)"),
-            (".from('app_settings').select('*').limit(1).single()",".from('app_settings').select('*').eq('company_id',RW_ShellContext.getCompanyId()).limit(1).single()"),
-            (".from('app_settings').select('min_invoice_amount, delivery_fee, tax_rate').limit(1).single()",".from('app_settings').select('min_invoice_amount, delivery_fee, tax_rate').eq('company_id',RW_ShellContext.getCompanyId()).limit(1).single()"),
-            ("supabase.from('customers').select('*').then(function(res)","supabase.from('customers').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(res)"),
-            ("supabase.from('branches').select('*').then(function(res)","supabase.from('branches').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(res)"),
-            ("supabase.from('suppliers').select('*').then(function(r)","supabase.from('suppliers').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(r)"),
-            ("supabase.from('users').select('*')","supabase.from('users').select('*').eq('company_id',RW_ShellContext.getCompanyId())"),
-            ("supabase.from('orders').select('order_code, customer_id, total_amount, order_date, area')","supabase.from('orders').select('order_code, customer_id, total_amount, order_date, area').eq('company_id',RW_ShellContext.getCompanyId())"),
-            ("supabase.from('purchase_orders').select('total_amount')","supabase.from('purchase_orders').select('total_amount').eq('company_id',RW_ShellContext.getCompanyId())"),
-            ("supabase.from('purchase_orders').select('*')","supabase.from('purchase_orders').select('*').eq('company_id',RW_ShellContext.getCompanyId())")
-          ]: s=s.replace(a,b)
-          if "view: 'vehicles', label: 'السيارات والمركبات'" not in s:
-              a="{ view: 'vehicle-count', label: 'جرد سيارة' }, { view: 'branch-count', label: 'جرد فرع' },"
-              if a not in s: raise SystemExit('ABORT vehicle nav anchor')
-              s=s.replace(a,"{ view: 'vehicle-count', label: 'جرد سيارة' }, { view: 'vehicles', label: 'السيارات والمركبات', perm: 'vehicles.manage' }, { view: 'branch-count', label: 'جرد فرع' },",1)
-          if 'var RW_Fleet=(function()' not in s:
-              a='// ============================================================\n// RW_Views – نظام التوجيه النهائي'; pos=s.find(a)
-              if pos<0: raise SystemExit('ABORT views anchor')
-              fleet="""// ============================================================\n// RW_Fleet — Vehicle Master inside Parent ERP Shell\n// Backend contract: create_vehicle_atomic only.\n// ============================================================\nvar RW_Fleet=(function(){var rows=[],drivers=[];function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[m];});}function cid(){return RW_ShellContext.getCompanyId();}async function load(){var vr=await supabase.from('vehicles').select('id,vehicle_code,model,license_plate,driver_id,status,vehicle_type,operation_mode,ownership_type,max_weight_kg,max_volume_m3,min_trip_value,refrigerated,mobile_stock_enabled,mobile_branch_id').eq('company_id',cid()).order('vehicle_code',{ascending:true});rows=vr.data||[];var dr=await supabase.from('users').select('id,name,email,role,status').eq('company_id',cid()).eq('status','Active').in('role',['driver','سائق','مندوب']).order('name',{ascending:true});drivers=dr.data||[];}function render(){var c=byId('rw-page-container');if(!c)return;safeText(byId('rw-header-title'),'السيارات والمركبات');safeText(byId('rw-header-subtitle'),'Vehicle Master • مندوب • سيارة • Mobile Branch • Van Stock');safeHTML(c,'<div class=\"space-y-5\"><div class=\"rw-card\"><div class=\"flex justify-between items-center gap-3 flex-wrap\"><div><h2 class=\"text-xl font-black\">Vehicle Master</h2><p class=\"text-sm text-gray-500 mt-1\">إدارة الأسطول من داخل الـERP Shell وبالعقد الخلفي المعتمد.</p></div><button class=\"rw-btn-primary\" onclick=\"RW_Fleet.openCreate()\"><i class=\"fa-solid fa-plus\"></i> إضافة سيارة</button></div></div><div class=\"rw-card p-0 overflow-hidden\"><div class=\"p-4 border-b flex gap-3 items-center flex-wrap\"><input id=\"fleet-search\" class=\"rw-input\" style=\"height:46px;max-width:440px;padding-right:18px\" placeholder=\"بحث ذكي: الكود، اللوحة، الموديل، المندوب...\" oninput=\"RW_Fleet.filter(this.value)\"><span id=\"fleet-count\" class=\"rw-status success\">0 مركبة</span></div><div id=\"fleet-table\"></div></div></div>');load().then(function(){filter('');}).catch(function(e){safeHTML(byId('fleet-table'),'<div class=\"p-10 text-center text-red-500\">تعذر تحميل السيارات: '+esc(e.message)+'</div>');});}function filter(term){term=String(term||'').toLowerCase().trim();var data=rows.filter(function(v){var d=null;for(var i=0;i<drivers.length;i++)if(drivers[i].id===v.driver_id){d=drivers[i];break;}return !term||[v.vehicle_code,v.license_plate,v.model,v.status,v.vehicle_type,v.operation_mode,d&&d.name,d&&d.email].join(' ').toLowerCase().indexOf(term)!==-1;});var cnt=byId('fleet-count');if(cnt)cnt.textContent=data.length+' مركبة';var w=byId('fleet-table');if(!w)return;if(!data.length){safeHTML(w,'<div class=\"p-10 text-center text-gray-400\">لا توجد سيارات.</div>');return;}var h='<table class=\"rw-table\"><thead><tr><th>الكود</th><th>اللوحة</th><th>الموديل</th><th>المندوب</th><th>النمط</th><th>الحالة</th><th>Mobile Stock</th></tr></thead><tbody>';data.forEach(function(v){var d=null;for(var i=0;i<drivers.length;i++)if(drivers[i].id===v.driver_id){d=drivers[i];break;}h+='<tr><td>'+esc(v.vehicle_code)+'</td><td>'+esc(v.license_plate)+'</td><td>'+esc(v.model||'-')+'</td><td>'+esc(d?d.name:'غير معين')+'</td><td>'+esc(v.operation_mode||'-')+'</td><td>'+esc(v.status||'-')+'</td><td>'+(v.mobile_stock_enabled?'مفعل':'غير مفعل')+'</td></tr>';});h+='</tbody></table>';safeHTML(w,h);}async function searchDriverUI(term){term=String(term||'').trim();var q=supabase.from('users').select('id,name,email,role,status').eq('company_id',cid()).eq('status','Active').in('role',['driver','سائق','مندوب']).limit(20);if(term)q=q.or('name.ilike.%'+term+'%,email.ilike.%'+term+'%');var r=await q;var w=byId('vf-driver-results');if(!w)return;var h='';(r.data||[]).forEach(function(d){h+='<button type=\"button\" class=\"block w-full text-right p-3 border-b bg-white\" onclick=\"RW_Fleet.pickDriver(\\''+d.id+'\\',\\''+esc(d.name)+'\\',\\''+esc(d.email)+'\\')\"><b>'+esc(d.name)+'</b> <span class=\"text-gray-500\">'+esc(d.email)+'</span></button>';});safeHTML(w,h||'<div class=\"p-3 text-gray-400\">لا يوجد مندوب مطابق.</div>');}function pickDriver(id,name,email){var h=byId('vf-driver-id'),i=byId('vf-driver-search');if(h)h.value=id;if(i)i.value=name+' ('+email+')';safeHTML(byId('vf-driver-results'),'');}function openCreate(){var html='<div dir=\"rtl\" class=\"text-right\"><div class=\"grid grid-cols-1 md:grid-cols-2 gap-3\"><input id=\"vf-code\" class=\"rw-input\" placeholder=\"كود السيارة *\"><input id=\"vf-plate\" class=\"rw-input\" placeholder=\"رقم اللوحة *\"><input id=\"vf-model\" class=\"rw-input\" placeholder=\"الموديل\"><input id=\"vf-year\" type=\"number\" class=\"rw-input\" placeholder=\"سنة الموديل\"><input id=\"vf-vin\" class=\"rw-input\" placeholder=\"VIN\"><input id=\"vf-fuel\" class=\"rw-input\" placeholder=\"نوع الوقود\"><input id=\"vf-weight\" type=\"number\" step=\"0.01\" class=\"rw-input\" placeholder=\"أقصى وزن kg\"><input id=\"vf-volume\" type=\"number\" step=\"0.01\" class=\"rw-input\" placeholder=\"أقصى حجم m³\"><input id=\"vf-mintrip\" type=\"number\" step=\"0.01\" class=\"rw-input\" placeholder=\"الحد الأدنى لقيمة الرحلة\"><select id=\"vf-type\" class=\"rw-input\"><option value=\"Delivery\">Delivery</option><option value=\"Sales\">Sales</option><option value=\"Mixed\" selected>Mixed</option></select><select id=\"vf-mode\" class=\"rw-input\"><option value=\"Mixed\" selected>Mixed</option><option value=\"DirectSales\">Direct Sales</option><option value=\"Delivery\">Delivery</option></select><select id=\"vf-own\" class=\"rw-input\"><option value=\"Owned\" selected>Owned</option><option value=\"Leased\">Leased</option><option value=\"Rented\">Rented</option></select><select id=\"vf-status\" class=\"rw-input\"><option value=\"Active\" selected>Active</option><option value=\"Inactive\">Inactive</option><option value=\"Maintenance\">Maintenance</option></select><div class=\"md:col-span-2\"><label class=\"font-bold text-sm\">المندوب / السائق</label><input id=\"vf-driver-search\" class=\"rw-input mt-2\" placeholder=\"بحث ذكي بالاسم أو البريد\" oninput=\"RW_Fleet.searchDriverUI(this.value)\"><div id=\"vf-driver-results\" class=\"border rounded-xl mt-2 max-h-40 overflow-auto\"></div><input id=\"vf-driver-id\" type=\"hidden\"></div><label class=\"flex items-center gap-2 md:col-span-2\"><input id=\"vf-refrigerated\" type=\"checkbox\"> <span>مركبة مبردة</span></label><label class=\"flex items-center gap-2 md:col-span-2\"><input id=\"vf-mobile-stock\" type=\"checkbox\" checked> <span>تفعيل Mobile Stock / Van Branch</span></label><textarea id=\"vf-notes\" class=\"rw-input md:col-span-2\" style=\"height:90px;padding:12px 18px\" placeholder=\"ملاحظات\"></textarea></div></div>';Swal.fire({title:'إضافة سيارة',html:html,width:820,showCancelButton:true,confirmButtonText:'إنشاء السيارة',cancelButtonText:'إلغاء',focusConfirm:false,preConfirm:function(){return create();}});searchDriverUI('');}async function create(){var code=(byId('vf-code')||{}).value||'',plate=(byId('vf-plate')||{}).value||'';code=String(code).trim();plate=String(plate).trim();if(!code||!plate){Swal.showValidationMessage('كود السيارة ورقم اللوحة مطلوبان');return false;}var u=RW_STATE.app.currentUser||{};var r=await supabase.rpc('create_vehicle_atomic',{p_company_id:cid(),p_vehicle_code:code,p_model:(byId('vf-model')||{}).value||null,p_license_plate:plate,p_driver_id:(byId('vf-driver-id')||{}).value||null,p_max_weight_kg:Number((byId('vf-weight')||{}).value)||null,p_max_volume_m3:Number((byId('vf-volume')||{}).value)||null,p_min_trip_value:Number((byId('vf-mintrip')||{}).value)||null,p_status:(byId('vf-status')||{}).value||'Active',p_notes:(byId('vf-notes')||{}).value||null,p_vehicle_type:(byId('vf-type')||{}).value||'Delivery',p_operation_mode:(byId('vf-mode')||{}).value||'Mixed',p_ownership_type:(byId('vf-own')||{}).value||'Owned',p_model_year:Number((byId('vf-year')||{}).value)||null,p_vin:(byId('vf-vin')||{}).value||null,p_fuel_type:(byId('vf-fuel')||{}).value||null,p_refrigerated:!!(byId('vf-refrigerated')||{}).checked,p_mobile_stock_enabled:!!(byId('vf-mobile-stock')||{}).checked,p_created_by:u.email||null});if(r.error){Swal.showValidationMessage(r.error.message);return false;}if(!r.data||!r.data.success){Swal.showValidationMessage((r.data&&r.data.error)||'فشل إنشاء السيارة');return false;}RW_Audit_log('create','vehicles',r.data.vehicle_id,null,r.data);return r.data;}return{render:render,filter:filter,openCreate:openCreate,searchDriverUI:searchDriverUI,pickDriver:pickDriver};})();window.RW_Fleet=RW_Fleet;\n\n"""
-              s=s[:pos]+fleet+s[pos:]
-          t="            'audit-log':'سجل التدقيق'"
-          if t in s and "'vehicles':'السيارات والمركبات'" not in s:s=s.replace(t,"            'vehicles':'السيارات والمركبات',\n"+t,1)
-          r="        if (view === 'audit-log') { RW_Audit_renderTab(); return; }"
-          if r not in s: raise SystemExit('ABORT audit route')
-          if "if (view === 'vehicles') { RW_Fleet.render(); return; }" not in s:s=s.replace(r,"        if (view === 'vehicles') { RW_Fleet.render(); return; }\n"+r,1)
-          p.write_text(s,encoding='utf-8')
-          print('PATCH',len(original),len(s))
+          anchor='window.RW_STATE = RW_STATE;'
+          context="""
+// RAWAEA GOVERNED TENANT CONTEXT
+var RW_ShellContext=(function(){
+ var companyId=null,userId=null,resolving=null;
+ function resolve(){
+  if(companyId)return Promise.resolve(companyId);
+  if(resolving)return resolving;
+  var u=RW_STATE.app.currentUser||{};
+  if(u.companyId){companyId=u.companyId;userId=u.id||null;RW_STATE.app.companyId=companyId;RW_STATE.app.userId=userId;return Promise.resolve(companyId);}
+  if(!u.authId)return Promise.reject(new Error('AUTH_ID_UNAVAILABLE'));
+  resolving=RW_SUPABASE_CLIENT.from('users').select('id,company_id,name,role,status').eq('auth_id',u.authId).eq('status','Active').maybeSingle().then(function(r){
+   if(r.error||!r.data||!r.data.company_id)throw new Error('TENANT_CONTEXT_UNAVAILABLE');
+   companyId=r.data.company_id;userId=r.data.id||null;RW_STATE.app.companyId=companyId;RW_STATE.app.userId=userId;
+   if(RW_STATE.app.currentUser){RW_STATE.app.currentUser.id=userId;RW_STATE.app.currentUser.companyId=companyId;if(r.data.name)RW_STATE.app.currentUser.name=r.data.name;if(r.data.role)RW_STATE.app.currentUser.role=r.data.role;}
+   return companyId;
+  }).finally(function(){resolving=null;});
+  return resolving;
+ }
+ function getCompanyId(){if(!companyId)companyId=RW_STATE.app.companyId||(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId)||null;if(!companyId)throw new Error('TENANT_CONTEXT_UNAVAILABLE');return companyId;}
+ return {resolve:resolve,getCompanyId:getCompanyId,hasCompany:function(){return !!(companyId||RW_STATE.app.companyId||(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId));}};
+})();
+window.RW_ShellContext=RW_ShellContext;
+"""
+          req(anchor,anchor+'\n'+context,'P1_CONTEXT')
+          req("email: user.email,\n                role: meta.role || 'مدير النظام',\n                isOwner: meta.isOwner === true || meta.isOwner === 'true'\n            };\n","email: user.email,\n                authId: user.id,\n                companyId: null,\n                role: meta.role || 'مدير النظام',\n                isOwner: meta.isOwner === true || meta.isOwner === 'true'\n            };\n",'P1_USER')
+          req("RW_STATE.permissions = meta.permissions || ['*'];","RW_STATE.permissions = (RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner === true) ? ['*'] : (Array.isArray(meta.permissions) ? meta.permissions.slice() : []);",'P1_PERMISSIONS')
+          req('enterSystem: function() {','enterSystem: async function() {','P1_ENTER')
+          req('self.enterSystem();','return self.enterSystem();','P1_ENTER_CALL')
+          req('enterSystem: async function() {\n    hideLoader();','enterSystem: async function() {\n    await RW_ShellContext.resolve();\n    hideLoader();','P1_ENTER_BODY')
+          req(".from('app_settings')\n            .select('*')\n            .limit(1)",".from('app_settings')\n            .select('*')\n            .eq('company_id',RW_ShellContext.getCompanyId())\n            .limit(1)",'P1_SETTINGS')
+          safe="showToast('تم تشغيل النظام في الوضع الآمن', 'warning');"
+          if safe in s: s=s.replace(safe,"throw new Error('FAIL_CLOSED_TENANT_CONTEXT');",1)
+          if re.search(r"supabase\.from\(['\"]stock_branches['\"]\)[^;]{0,1200}\.(?:update|insert|upsert|delete)\(",s,re.S): raise SystemExit('P1_DIRECT_STOCK_WRITER')
+          if re.search(r"supabase\.from\(['\"]inventory_log['\"]\)[^;]{0,700}\.insert\(",s,re.S): raise SystemExit('P1_DIRECT_INVENTORY_LOG_WRITER')
+          code='\n'.join(re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I))
+          f=Path(tempfile.gettempdir())/'p1.js';f.write_text(code,encoding='utf-8')
+          r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+          if r.returncode: print(r.stderr); raise SystemExit('P1_JS_SYNTAX')
+          p.write_text(s.rstrip()+'\n<!-- '+marker+' -->\n',encoding='utf-8')
+          subprocess.run(['git','diff','--check'],check=True)
+          subprocess.run(['git','config','user.name','github-actions[bot]'],check=True)
+          subprocess.run(['git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com'],check=True)
+          subprocess.run(['git','add',str(p)],check=True)
+          subprocess.run(['git','commit','-m','fix(p1): repair existing main1 tenant and owner shell'],check=True)
+          subprocess.run(['git','push','origin',f"HEAD:${{ github.event.pull_request.head.ref }}"],check=True)
           PY
-      - name: Validate syntax and diff
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 <<'PY'
-          from pathlib import Path
-          import re, subprocess, tempfile
-          s=Path('Current/PWA/main.html').read_text(encoding='utf-8')
-          for bad in [".from('app_settings')\n            .select('*')\n            .limit(1",".from('app_settings').select('*').limit(1).single()"]:
-            if bad in s: raise SystemExit('VALIDATION_FAILED unscoped app_settings')
-          for code in re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I):
-            f=Path(tempfile.gettempdir())/'rw_main.js';f.write_text(code,encoding='utf-8')
-            r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-            if r.returncode: print(r.stderr);raise SystemExit('VALIDATION_FAILED JS syntax')
-          print('P0_STATIC_OK')
-          PY
-          git diff --check
-      - name: Commit P0
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'RAWAEA P0 Repair Bot'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          cat > Current/CTO/20260829_MAIN_P0_EXECUTION.md <<'EOF'
-# RAWAEA ERP — main.html P0 Execution
-
-P0 preserves the Parent PWA and applies surgical ERP Shell hardening: authenticated tenant context, company-scoped known tenant reads, integrated Vehicle Master backed by `create_vehicle_atomic`, and static syntax/diff gates.
-
-Roadmap: P0 Tenant/Core/Navigation parity; P1 shared-runtime convergence; P2 ERP workspace/navigation parity; P3 remaining UX/business gaps; P4 runtime E2E and Production closure.
-
-No duplicate `Current/core.js`, no client-side Physical Stock writer, and no wholesale rewrite are permitted.
-EOF
-          git add Current/PWA/main.html Current/CTO/20260829_MAIN_P0_EXECUTION.md
-          git commit -m "feat: harden Parent PWA ERP shell P0"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
