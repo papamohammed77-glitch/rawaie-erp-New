@@ -1,0 +1,1039 @@
+// ============================================================
+// RW_Customers – العملاء (مودال كامل + Edge Function)
+// ============================================================
+var RW_Customers = (function() {
+    let data = [], sortField = 'customer_code', sortAsc = true;
+
+    async function render() {
+        const container = byId('rw-page-container'); if (!container) return;
+        safeText(byId('rw-header-title'), 'العملاء');
+        safeHTML(container, `<div class="p-4">
+            <div class="flex justify-between mb-4"><h2 class="text-xl font-bold"><i class="fas fa-user-tie ml-2"></i>العملاء</h2><button id="btn-add-cust" class="bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold"><i class="fa-solid fa-plus ml-1"></i> عميل جديد</button></div>
+            <input type="text" id="cust-search" placeholder="بحث..." class="w-full p-3 border rounded-xl mb-4">
+            <div class="bg-white rounded-2xl shadow-sm border overflow-y-auto" id="cust-table-wrapper" style="max-height:65vh"></div>
+        </div>`);
+        data = await RW_Data.loadCustomers();
+        renderTable(data);
+        byId('cust-search')?.addEventListener('input', filterTable);
+        byId('btn-add-cust')?.addEventListener('click', () => openModal(null));
+    }
+
+    function renderTable(data) {
+        var w = byId('cust-table-wrapper'); if (!w) return;
+        if (!data.length) { safeHTML(w, '<div class="text-center p-10">لا يوجد عملاء</div>'); return; }
+        var sorted = data.slice().sort(function(a,b) {
+            var va = a[sortField] || '', vb = b[sortField] || '';
+            if (sortField === 'debt') { va = Number(va); vb = Number(vb); }
+            else { va = String(va).toLowerCase(); vb = String(vb).toLowerCase(); }
+            return (va < vb ? -1 : va > vb ? 1 : 0) * (sortAsc ? 1 : -1);
+        });
+        var cols = [{field:'customer_code',label:'الكود'},{field:'name',label:'الاسم'},{field:'phone',label:'الهاتف'},{field:'area',label:'المنطقة'},{field:'contact_person',label:'مسؤول التواصل'},{field:'visit_day',label:'يوم الزيارة'},{field:'debt',label:'الرصيد'}];
+        var iconSuffix = sortAsc ? 'fa-sort-up' : 'fa-sort-down';
+        var headerHtml = '<table class="w-full text-sm"><thead class="sticky top-0 bg-gray-50"><tr>';
+        for (var c = 0; c < cols.length; c++) {
+            var icon = sortField === cols[c].field ? iconSuffix : 'fa-sort';
+            headerHtml += '<th class="p-3 cursor-pointer" onclick="RW_Customers._sort(\'' + cols[c].field + '\')">' + cols[c].label + ' <i class="fa-solid ' + icon + '"></i></th>';
+        }
+        headerHtml += '</tr></thead><tbody id="cust-tbody"></tbody></table>';
+        var controlsHtml = '<div id="cust-tbody-controls"></div>';
+        safeHTML(w, headerHtml + controlsHtml);
+        RW_Table.paginate('cust-tbody', sorted, 1, 50, function(c) {
+            return '<tr class="hover:bg-gray-50 cursor-pointer" onclick="RW_Customers._openModal(\'' + c.customer_code + '\')"><td class="p-3">' + (c.customer_code||'') + '</td><td class="p-3 font-semibold">' + (c.name||'') + '</td><td class="p-3">' + (c.phone||'') + '</td><td class="p-3">' + (c.area||'') + '</td><td class="p-3">' + (c.contact_person||'') + '</td><td class="p-3">' + (c.visit_day||'') + '</td><td class="p-3 font-bold ' + (Number(c.debt)>0?'text-red-500':'text-green-600') + '">' + Number(c.debt||0).toLocaleString() + ' EGP</td></tr>';
+        });
+    }
+
+    function filterTable() { const q = (byId('cust-search')?.value||'').toLowerCase(); renderTable(data.filter(c => (c.name||'').toLowerCase().includes(q) || (c.customer_code||'').toLowerCase().includes(q) || (c.phone||'').includes(q))); }
+    function _sort(field) { if (sortField === field) sortAsc = !sortAsc; else { sortField = field; sortAsc = true; } renderTable(data); }
+
+    function openModal(code) {
+        const c = code ? data.find(x => x.customer_code === code) : null;
+        const isEdit = !!c;
+        const title = isEdit ? 'تعديل العميل' : 'إضافة عميل جديد';
+        let html = `<div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" dir="rtl">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden">
+        <div class="bg-emerald-600 px-6 py-4 flex justify-between text-white"><h3 class="text-xl font-bold"><i class="fas fa-user-tie ml-2"></i>${title}</h3><button onclick="Swal.close()"><i class="fas fa-xmark text-xl"></i></button></div>
+        <form class="p-6 space-y-6" style="max-height:70vh;overflow-y:auto">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex flex-col"><label>كود العميل</label><input id="cust-code" value="${c?.customer_code||'جديد'}" readonly class="p-2.5 bg-gray-100 border rounded-lg"></div>
+        <div class="flex flex-col"><label>اسم العميل *</label><input id="cust-name" value="${c?.name||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="flex flex-col"><label>رقم الهاتف</label><input id="cust-phone" value="${c?.phone||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="flex flex-col"><label>المنطقة</label><input id="cust-area" value="${c?.area||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="flex flex-col"><label>العنوان التفصيلي</label><input id="cust-location" value="${c?.location||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="flex flex-col"><label>نوع العميل</label><select id="cust-type" class="p-2.5 bg-gray-50 border rounded-lg"><option value="عادي" ${c?.customer_type==='عادي'?'selected':''}>عادي</option><option value="جملة" ${c?.customer_type==='جملة'?'selected':''}>جملة</option><option value="VIP" ${c?.customer_type==='VIP'?'selected':''}>VIP</option></select></div>
+        <div class="flex flex-col"><label>طريقة الدفع</label><select id="cust-payment" class="p-2.5 bg-gray-50 border rounded-lg"><option value="نقدي" ${c?.payment_type==='نقدي'?'selected':''}>نقدي</option><option value="أجل" ${c?.payment_type==='أجل'?'selected':''}>أجل</option></select></div>
+        <div class="flex flex-col"><label>الرصيد الحالي (EGP)</label><input id="cust-debt" type="number" value="${c?.debt||0}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="flex flex-col"><label>يوم الزيارة</label><select id="cust-visit" class="p-2.5 bg-gray-50 border rounded-lg"><option value="">اختر</option>${['السبت','الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس'].map(d => `<option value="${d}" ${c?.visit_day===d?'selected':''}>${d}</option>`).join('')}</select></div>
+        <div class="flex flex-col"><label>مسؤول التواصل</label><input id="cust-contact" value="${c?.contact_person||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="md:col-span-2 flex flex-col"><label>ملاحظات</label><textarea id="cust-notes" rows="2" class="p-2.5 bg-gray-50 border rounded-lg">${c?.notes||''}</textarea></div>
+        </div>
+        <div class="flex justify-end gap-3 pt-4 border-t">
+        ${isEdit ? '<button type="button" id="btn-delete-cust" class="px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold mr-auto"><i class="fas fa-trash-alt ml-1"></i> حذف</button>' : ''}
+        <button type="button" class="px-5 py-2.5 border rounded-xl font-bold" onclick="Swal.close()">إلغاء</button>
+        <button type="button" id="btn-save-cust" class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-bold">حفظ</button>
+        </div></form></div></div>`;
+
+        Swal.fire({ html, width: '900px', showConfirmButton: false, showCancelButton: false, customClass: { popup: '!bg-transparent !shadow-none !p-0' },
+            didOpen: () => {
+                byId('btn-save-cust').addEventListener('click', function() { RW_Customers._handleSave(c, isEdit); });
+                if (isEdit) { var deleteBtn = byId('btn-delete-cust'); if (deleteBtn) deleteBtn.addEventListener('click', function() { RW_Customers._handleDelete(c); }); }
+            }
+        });
+    }
+    var _handleSave = function(c, isEdit) {
+        var name = byId('cust-name').value.trim();
+        if (!name) { showToast('اسم العميل مطلوب', 'error'); return; }
+        var payload = {
+            name: name,
+            phone: byId('cust-phone').value.trim(),
+            area: byId('cust-area').value.trim(),
+            location: byId('cust-location').value.trim(),
+            customer_type: byId('cust-type').value,
+            payment_type: byId('cust-payment').value,
+            debt: parseFloat(byId('cust-debt').value) || 0,
+            visit_day: byId('cust-visit').value,
+            contact_person: byId('cust-contact').value.trim(),
+            notes: byId('cust-notes').value.trim()
+        };
+        showLoader('جاري الحفظ...');
+        supabase.auth.getSession().then(function(sessionRes) {
+            var token = sessionRes.data && sessionRes.data.session ? sessionRes.data.session.access_token : null;
+            return fetch(RW_SUPABASE_URL + '/functions/v1/save-customer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                body: JSON.stringify({ customer: payload, isEdit: isEdit, customer_code: c ? c.customer_code : null })
+            }).then(function(res) { return res.json(); });
+        }).then(function(json) {
+            hideLoader();
+            if (json.success) {
+                RW_Audit_log(isEdit ? 'update' : 'create', 'customers', json.customer_code || (c ? c.customer_code : ''), isEdit ? c : null, payload);
+                showToast(isEdit ? 'تم التعديل' : 'تمت الإضافة', 'success');
+                Swal.close();
+                RW_Data.loadCustomers().then(function(newData) { data = newData; renderTable(data); });
+            } else {
+                showToast(json.error || 'فشل الحفظ', 'error');
+            }
+        }).catch(function(e) { hideLoader(); showToast('فشل الاتصال بـ Edge Function', 'error'); console.error(e); });
+    };
+    var _handleDelete = function(c) {
+        Swal.fire({ title: 'تأكيد الحذف', text: 'حذف هذا العميل؟', icon: 'warning', showCancelButton: true, confirmButtonText: 'حذف', cancelButtonText: 'إلغاء' }).then(function(confirm) {
+            if (!confirm.isConfirmed) return;
+            showLoader('جاري الحذف...');
+            supabase.auth.getSession().then(function(sessionRes) {
+                var token = sessionRes.data && sessionRes.data.session ? sessionRes.data.session.access_token : null;
+                return fetch(RW_SUPABASE_URL + '/functions/v1/delete-customer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                    body: JSON.stringify({ customer_code: c.customer_code })
+                }).then(function(res) { return res.json(); });
+            }).then(function(json) {
+                hideLoader();
+                if (json.success) {
+                    RW_Audit_log('delete', 'customers', c.customer_code, c, null);
+                    showToast('تم الحذف', 'success');
+                    Swal.close();
+                    RW_Data.loadCustomers().then(function(newData) { data = newData; renderTable(data); });
+                } else {
+                    showToast(json.error || 'فشل الحذف', 'error');
+                }
+            }).catch(function(e) { hideLoader(); showToast('فشل الاتصال بـ Edge Function', 'error'); });
+        });
+    };
+    return { render: render, _sort: _sort, _openModal: openModal, _handleSave: _handleSave, _handleDelete: _handleDelete };
+})();
+window.RW_Customers = RW_Customers;
+
+// ============================================================
+// RW_Suppliers – الموردين (مودال كامل + Edge Function)
+// ============================================================
+var RW_Suppliers = (function() {
+    let data = [], sortField = 'supplier_code', sortAsc = true;
+
+    async function render() {
+        const container = byId('rw-page-container'); if (!container) return;
+        safeText(byId('rw-header-title'), 'الموردين');
+        safeHTML(container, `<div class="p-4">
+            <div class="flex justify-between mb-4"><h2 class="text-xl font-bold"><i class="fas fa-truck ml-2"></i>الموردين</h2><button id="btn-add-supp" class="bg-orange-600 text-white px-4 py-2 rounded-xl font-bold"><i class="fa-solid fa-plus ml-1"></i> مورد جديد</button></div>
+            <input type="text" id="supp-search" placeholder="بحث..." class="w-full p-3 border rounded-xl mb-4">
+            <div class="bg-white rounded-2xl shadow-sm border overflow-y-auto" id="supp-table-wrapper" style="max-height:65vh"></div>
+        </div>`);
+        const { data: d } = await supabase.from('suppliers').select('*');
+        data = d || [];
+        renderTable(data);
+        byId('supp-search')?.addEventListener('input', filterTable);
+        byId('btn-add-supp')?.addEventListener('click', () => openModal(null));
+    }
+
+    function renderTable(data) {
+        var w = byId('supp-table-wrapper'); if (!w) return;
+        if (!data.length) { safeHTML(w, '<div class="text-center p-10">لا يوجد موردين</div>'); return; }
+        var sorted = data.slice().sort(function(a,b) {
+            var va = a[sortField] || '', vb = b[sortField] || '';
+            if (sortField === 'accounts_payable') { va = Number(va); vb = Number(vb); }
+            else { va = String(va).toLowerCase(); vb = String(vb).toLowerCase(); }
+            return (va < vb ? -1 : va > vb ? 1 : 0) * (sortAsc ? 1 : -1);
+        });
+        var cols = [{field:'supplier_code',label:'الكود'},{field:'name',label:'الاسم'},{field:'phone',label:'الهاتف'},{field:'area',label:'المنطقة'},{field:'contact_person',label:'جهة الاتصال'},{field:'accounts_payable',label:'الرصيد'}];
+        var iconSuffix = sortAsc ? 'fa-sort-up' : 'fa-sort-down';
+        var headerHtml = '<table class="w-full text-sm"><thead class="sticky top-0 bg-gray-50"><tr>';
+        for (var c = 0; c < cols.length; c++) {
+            var icon = sortField === cols[c].field ? iconSuffix : 'fa-sort';
+            headerHtml += '<th class="p-3 cursor-pointer" onclick="RW_Suppliers._sort(\'' + cols[c].field + '\')">' + cols[c].label + ' <i class="fa-solid ' + icon + '"></i></th>';
+        }
+        headerHtml += '</tr></thead><tbody id="supp-tbody"></tbody></table>';
+        var controlsHtml = '<div id="supp-tbody-controls"></div>';
+        safeHTML(w, headerHtml + controlsHtml);
+        RW_Table.paginate('supp-tbody', sorted, 1, 50, function(s) {
+            return '<tr class="hover:bg-gray-50 cursor-pointer" onclick="RW_Suppliers._openModal(\'' + s.supplier_code + '\')"><td class="p-3">' + (s.supplier_code||'') + '</td><td class="p-3 font-semibold">' + (s.name||'') + '</td><td class="p-3">' + (s.phone||'') + '</td><td class="p-3">' + (s.area||'') + '</td><td class="p-3">' + (s.contact_person||'') + '</td><td class="p-3 font-bold text-red-500">' + Number(s.accounts_payable||0).toLocaleString() + ' EGP</td></tr>';
+        });
+    }
+
+    function filterTable() { const q = (byId('supp-search')?.value||'').toLowerCase(); renderTable(data.filter(s => (s.name||'').toLowerCase().includes(q) || (s.supplier_code||'').toLowerCase().includes(q))); }
+    function _sort(field) { if (sortField === field) sortAsc = !sortAsc; else { sortField = field; sortAsc = true; } renderTable(data); }
+
+    function openModal(code) {
+        const s = code ? data.find(x => x.supplier_code === code) : null;
+        const isEdit = !!s;
+        const title = isEdit ? 'تعديل المورد' : 'إضافة مورد جديد';
+        let html = `<div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" dir="rtl">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden">
+        <div class="bg-orange-600 px-6 py-4 flex justify-between text-white"><h3 class="text-xl font-bold"><i class="fas fa-truck ml-2"></i>${title}</h3><button onclick="Swal.close()"><i class="fas fa-xmark text-xl"></i></button></div>
+        <form class="p-6 space-y-6" style="max-height:70vh;overflow-y:auto">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex flex-col"><label>كود المورد</label><input id="supp-code" value="${s?.supplier_code||'جديد'}" readonly class="p-2.5 bg-gray-100 border rounded-lg"></div>
+        <div class="flex flex-col"><label>اسم المورد *</label><input id="supp-name" value="${s?.name||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="flex flex-col"><label>رقم الهاتف</label><input id="supp-phone" value="${s?.phone||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="flex flex-col"><label>المنطقة</label><input id="supp-area" value="${s?.area||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="flex flex-col"><label>العنوان التفصيلي</label><input id="supp-address" value="${s?.address||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="flex flex-col"><label>نوع المورد</label><select id="supp-type" class="p-2.5 bg-gray-50 border rounded-lg"><option value="مورد عام" ${s?.supplier_type==='مورد عام'?'selected':''}>مورد عام</option><option value="مصنع" ${s?.supplier_type==='مصنع'?'selected':''}>مصنع</option><option value="مورد خارجي" ${s?.supplier_type==='مورد خارجي'?'selected':''}>مورد خارجي</option></select></div>
+        <div class="flex flex-col"><label>طريقة الدفع</label><select id="supp-payment" class="p-2.5 bg-gray-50 border rounded-lg"><option value="نقدي" ${s?.payment_type==='نقدي'?'selected':''}>نقدي</option><option value="أجل" ${s?.payment_type==='أجل'?'selected':''}>أجل</option></select></div>
+        <div class="flex flex-col"><label>الرصيد الدائن (EGP)</label><input id="supp-balance" type="number" value="${s?.accounts_payable||0}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="flex flex-col"><label>جهة الاتصال</label><input id="supp-contact" value="${s?.contact_person||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="flex flex-col"><label>مسؤول المشتريات</label><input id="supp-rep" value="${s?.purchase_rep||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="md:col-span-2 flex flex-col"><label>ملاحظات</label><textarea id="supp-notes" rows="2" class="p-2.5 bg-gray-50 border rounded-lg">${s?.notes||''}</textarea></div>
+        </div>
+        <div class="flex justify-end gap-3 pt-4 border-t">
+        ${isEdit ? '<button type="button" id="btn-delete-supp" class="px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold mr-auto"><i class="fas fa-trash-alt ml-1"></i> حذف</button>' : ''}
+        <button type="button" class="px-5 py-2.5 border rounded-xl font-bold" onclick="Swal.close()">إلغاء</button>
+        <button type="button" id="btn-save-supp" class="px-6 py-2.5 bg-orange-600 text-white rounded-xl font-bold">حفظ</button>
+        </div></form></div></div>`;
+
+        Swal.fire({ html, width: '900px', showConfirmButton: false, showCancelButton: false, customClass: { popup: '!bg-transparent !shadow-none !p-0' },
+            didOpen: () => {
+                byId('btn-save-supp').addEventListener('click', function() { RW_Suppliers._handleSave(s, isEdit); });
+                if (isEdit) { var deleteBtn = byId('btn-delete-supp'); if (deleteBtn) deleteBtn.addEventListener('click', function() { RW_Suppliers._handleDelete(s); }); }
+            }
+        });
+    }
+    var _handleSave = function(s, isEdit) {
+        var name = byId('supp-name').value.trim();
+        if (!name) { showToast('اسم المورد مطلوب', 'error'); return; }
+        var payload = {
+            name: name,
+            phone: byId('supp-phone').value.trim(),
+            area: byId('supp-area').value.trim(),
+            address: byId('supp-address').value.trim(),
+            supplier_type: byId('supp-type').value,
+            payment_type: byId('supp-payment').value,
+            accounts_payable: parseFloat(byId('supp-balance').value) || 0,
+            contact_person: byId('supp-contact').value.trim(),
+            purchase_rep: byId('supp-rep').value.trim(),
+            notes: byId('supp-notes').value.trim()
+        };
+        showLoader('جاري الحفظ...');
+        supabase.auth.getSession().then(function(sessionRes) {
+            var token = sessionRes.data && sessionRes.data.session ? sessionRes.data.session.access_token : null;
+            return fetch(RW_SUPABASE_URL + '/functions/v1/save-supplier', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                body: JSON.stringify({ supplier: payload, isEdit: isEdit, supplier_code: s ? s.supplier_code : null })
+            }).then(function(res) { return res.json(); });
+        }).then(function(json) {
+            hideLoader();
+            if (json.success) {
+                RW_Audit_log(isEdit ? 'update' : 'create', 'suppliers', json.supplier_code || (s ? s.supplier_code : ''), isEdit ? s : null, payload);
+                showToast(isEdit ? 'تم التعديل' : 'تمت الإضافة', 'success');
+                Swal.close();
+                supabase.from('suppliers').select('*').then(function(res) { data = res.data || []; renderTable(data); });
+            } else {
+                showToast(json.error || 'فشل الحفظ', 'error');
+            }
+        }).catch(function(e) { hideLoader(); showToast('فشل الاتصال بـ Edge Function', 'error'); console.error(e); });
+    };
+    var _handleDelete = function(s) {
+        Swal.fire({ title: 'تأكيد الحذف', text: 'حذف هذا المورد؟', icon: 'warning', showCancelButton: true, confirmButtonText: 'حذف', cancelButtonText: 'إلغاء' }).then(function(confirm) {
+            if (!confirm.isConfirmed) return;
+            showLoader('جاري الحذف...');
+            supabase.auth.getSession().then(function(sessionRes) {
+                var token = sessionRes.data && sessionRes.data.session ? sessionRes.data.session.access_token : null;
+                return fetch(RW_SUPABASE_URL + '/functions/v1/delete-supplier', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                    body: JSON.stringify({ supplier_code: s.supplier_code })
+                }).then(function(res) { return res.json(); });
+            }).then(function(json) {
+                hideLoader();
+                if (json.success) {
+                    RW_Audit_log('delete', 'suppliers', s.supplier_code, s, null);
+                    showToast('تم الحذف', 'success');
+                    Swal.close();
+                    supabase.from('suppliers').select('*').then(function(res) { data = res.data || []; renderTable(data); });
+                } else {
+                    showToast(json.error || 'فشل الحذف', 'error');
+                }
+            }).catch(function(e) { hideLoader(); showToast('فشل الاتصال بـ Edge Function', 'error'); });
+        });
+    };
+    return { render: render, _sort: _sort, _openModal: openModal, _handleSave: _handleSave, _handleDelete: _handleDelete };
+})();
+window.RW_Suppliers = RW_Suppliers;
+
+// ============================================================
+// RW_Branches – الفروع (مودال كامل + Edge Function)
+// ============================================================
+var RW_Branches = (function() {
+    let data = [];
+
+    async function render() {
+        const container = byId('rw-page-container'); if (!container) return;
+        safeText(byId('rw-header-title'), 'المخازن والفروع');
+        safeHTML(container, `<div class="p-4">
+            <div class="flex justify-between mb-4"><h2 class="text-xl font-bold"><i class="fas fa-store ml-2"></i>الفروع والمخازن</h2><button id="btn-add-branch" class="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold"><i class="fa-solid fa-plus ml-1"></i> إضافة فرع</button></div>
+            <input type="text" id="branch-search" placeholder="بحث..." class="w-full p-3 border rounded-xl mb-4">
+            <div class="bg-white rounded-2xl shadow-sm border overflow-y-auto" id="branch-table-wrapper" style="max-height:65vh"></div>
+        </div>`);
+        data = await RW_Data.loadBranches();
+        renderTable(data);
+        byId('branch-search')?.addEventListener('input', filterTable);
+        byId('btn-add-branch')?.addEventListener('click', () => openModal(null));
+    }
+
+    function renderTable(data) {
+        const w = byId('branch-table-wrapper'); if (!w) return;
+        if (!data.length) { safeHTML(w, '<div class="text-center p-10">لا توجد فروع</div>'); return; }
+        let html = `<table class="w-full text-sm"><thead class="bg-gray-50"><tr><th class="p-3">الكود</th><th class="p-3">الاسم</th><th class="p-3">الموقع</th><th class="p-3">المدير</th><th class="p-3">الهاتف</th><th class="p-3">الحالة</th></tr></thead><tbody>`;
+        data.forEach(b => { const status = b.is_active ? '<span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs">نشط</span>' : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs">غير نشط</span>'; html += `<tr class="hover:bg-gray-50 cursor-pointer" onclick="RW_Branches._openModal('${b.branch_code}')"><td class="p-3">${b.branch_code||''}</td><td class="p-3 font-semibold">${b.name||''}</td><td class="p-3">${b.location||''}</td><td class="p-3">${b.manager||''}</td><td class="p-3">${b.phone||''}</td><td class="p-3">${status}</td></tr>`; });
+        html += `</tbody></table>`; safeHTML(w, html);
+    }
+
+    function filterTable() { const q = (byId('branch-search')?.value||'').toLowerCase(); renderTable(data.filter(b => (b.name||'').toLowerCase().includes(q) || (b.branch_code||'').toLowerCase().includes(q))); }
+
+    function openModal(code) {
+        const b = code ? data.find(x => x.branch_code === code) : null;
+        const isEdit = !!b;
+        const title = isEdit ? 'تعديل الفرع' : 'إضافة فرع جديد';
+        let html = `<div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" dir="rtl">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+        <div class="bg-indigo-600 px-6 py-4 flex justify-between text-white"><h3 class="text-xl font-bold"><i class="fas fa-store ml-2"></i>${title}</h3><button onclick="Swal.close()"><i class="fas fa-xmark text-xl"></i></button></div>
+        <form class="p-6 space-y-6" style="max-height:70vh;overflow-y:auto">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex flex-col"><label>كود الفرع</label><input id="branch-code" value="${b?.branch_code||'جديد'}" readonly class="p-2.5 bg-gray-100 border rounded-lg"></div>
+        <div class="flex flex-col"><label>اسم الفرع *</label><input id="branch-name" value="${b?.name||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="flex flex-col"><label>الموقع / العنوان</label><input id="branch-location" value="${b?.location||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="flex flex-col"><label>المدير المسؤول</label><input id="branch-manager" value="${b?.manager||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="flex flex-col"><label>رقم الهاتف</label><input id="branch-phone" value="${b?.phone||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="flex flex-col"><label>الحالة</label><select id="branch-status" class="p-2.5 bg-gray-50 border rounded-lg"><option value="active" ${b?.is_active?'selected':''}>نشط</option><option value="inactive" ${!b?.is_active && b?'selected':''}>غير نشط</option></select></div>
+        </div>
+        <div class="flex justify-end gap-3 pt-4 border-t">
+        ${isEdit ? '<button type="button" id="btn-delete-branch" class="px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold mr-auto"><i class="fas fa-trash-alt ml-1"></i> حذف</button>' : ''}
+        <button type="button" class="px-5 py-2.5 border rounded-xl font-bold" onclick="Swal.close()">إلغاء</button>
+        <button type="button" id="btn-save-branch" class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold">حفظ</button>
+        </div></form></div></div>`;
+
+        Swal.fire({ html, width: '800px', showConfirmButton: false, showCancelButton: false, customClass: { popup: '!bg-transparent !shadow-none !p-0' },
+            didOpen: () => {
+                byId('btn-save-branch').addEventListener('click', async () => {
+                    const name = byId('branch-name').value.trim();
+                    if (!name) { showToast('اسم الفرع مطلوب', 'error'); return; }
+                    const payload = { name, location: byId('branch-location').value.trim(), manager: byId('branch-manager').value.trim(), phone: byId('branch-phone').value.trim(), is_active: byId('branch-status').value === 'active' };
+                    showLoader('جاري الحفظ...');
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const token = session?.access_token;
+                    try {
+                        const res = await fetch(`${RW_SUPABASE_URL}/functions/v1/save-branch`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ branch: payload, isEdit, branch_code: b?.branch_code }) });
+                        const json = await res.json();
+                        hideLoader();
+                        if (json.success) { showToast(isEdit ? 'تم التعديل' : 'تمت الإضافة', 'success'); Swal.close(); data = await RW_Data.loadBranches(); renderTable(data); }
+                        else { showToast(json.error || 'فشل الحفظ', 'error'); }
+                    } catch(e) { hideLoader(); showToast('فشل الاتصال بـ Edge Function', 'error'); console.error(e); }
+                });
+                if (isEdit) byId('btn-delete-branch')?.addEventListener('click', async () => {
+                    const confirm = await Swal.fire({ title: 'تأكيد الحذف', text: 'حذف هذا الفرع؟', icon: 'warning', showCancelButton: true, confirmButtonText: 'حذف', cancelButtonText: 'إلغاء' });
+                    if (!confirm.isConfirmed) return;
+                    showLoader('جاري الحذف...');
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const token = session?.access_token;
+                    try {
+                        const res = await fetch(`${RW_SUPABASE_URL}/functions/v1/delete-branch`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ branch_code: b.branch_code }) });
+                        const json = await res.json();
+                        hideLoader();
+                        if (json.success) { showToast('تم الحذف', 'success'); Swal.close(); data = await RW_Data.loadBranches(); renderTable(data); }
+                        else { showToast(json.error || 'فشل الحذف', 'error'); }
+                    } catch(e) { hideLoader(); showToast('فشل الاتصال بـ Edge Function', 'error'); }
+                });
+            }
+        });
+    }
+    return { render, _openModal: openModal };
+})();
+window.RW_Branches = RW_Branches;
+// ============================================================
+// RW_Settings – إعدادات النظام (قراءة وكتابة Supabase)
+// ============================================================
+var RW_Settings = (function() {
+    var currentSettings = {};
+
+    async function render() {
+        const container = byId('rw-page-container'); if (!container) return;
+        safeText(byId('rw-header-title'), 'إعدادات النظام');
+        showLoader('جاري تحميل الإعدادات...');
+        try {
+            const { data: appSets, error } = await supabase.from('app_settings').select('*').limit(1).single();
+            if (!error && appSets) {
+                currentSettings = {
+                    delivery_fee: appSets.delivery_fee || 0,
+                    min_invoice_amount: appSets.min_invoice_amount || 0,
+                    tax_rate: appSets.tax_rate || 0,
+                    company_name: appSets.company_name || 'الروائع',
+                    company_logo: appSets.company_logo || '',
+                    vat_number: appSets.vat_number || '',
+                    registered_name: appSets.registered_name || '',
+                    business_address: appSets.business_address || ''
+                };
+            } else {
+                currentSettings = { delivery_fee: 0, min_invoice_amount: 0, tax_rate: 0, company_name: 'الروائع', company_logo: '', vat_number: '', registered_name: '', business_address: '' };
+            }
+        } catch(e) { console.error(e); }
+        hideLoader();
+        safeHTML(container, `<div class="p-4 max-w-2xl mx-auto space-y-6">
+            <!-- قسم إعدادات الفاتورة والرسوم -->
+            <div class="bg-white rounded-2xl shadow-sm border p-6">
+                <h2 class="text-xl font-bold mb-6"><i class="fas fa-file-invoice-dollar ml-2"></i>إعدادات الفاتورة والرسوم</h2>
+                <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex flex-col"><label class="text-sm font-bold">رسوم التوصيل</label><input id="settings-delivery-fee" type="number" value="${currentSettings.delivery_fee}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+                <div class="flex flex-col"><label class="text-sm font-bold">الحد الأدنى للفاتورة</label><input id="settings-min-invoice" type="number" value="${currentSettings.min_invoice_amount}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+                <div class="flex flex-col"><label class="text-sm font-bold">نسبة الضريبة (%)</label><input id="settings-tax-rate" type="number" step="0.01" value="${currentSettings.tax_rate}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+                <div class="flex flex-col"><label class="text-sm font-bold">العملة</label><select id="settings-currency" class="p-2.5 bg-gray-50 border rounded-lg"><option value="SAR"${currentSettings.currency==='SAR'?' selected':''}>ريال سعودي (SAR)</option><option value="EGP"${currentSettings.currency==='EGP'?' selected':''}>جنيه مصري (EGP)</option><option value="AED"${currentSettings.currency==='AED'?' selected':''}>درهم إماراتي (AED)</option><option value="KWD"${currentSettings.currency==='KWD'?' selected':''}>دينار كويتي (KWD)</option><option value="QAR"${currentSettings.currency==='QAR'?' selected':''}>ريال قطري (QAR)</option><option value="BHD"${currentSettings.currency==='BHD'?' selected':''}>دينار بحريني (BHD)</option><option value="OMR"${currentSettings.currency==='OMR'?' selected':''}>ريال عماني (OMR)</option><option value="USD"${currentSettings.currency==='USD'?' selected':''}>دولار أمريكي (USD)</option></select></div>
+                <div class="flex flex-col"><label class="text-sm font-bold">اسم الشركة</label><input id="settings-company-name" value="${currentSettings.company_name}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+                <div class="flex flex-col"><label class="text-sm font-bold">شعار الشركة</label>
+                    <div class="flex items-center gap-4">
+                        <div class="w-20 h-20 rounded-xl border-2 border-dashed bg-gray-50 flex items-center justify-center overflow-hidden">
+                            <img id="settings-logo-preview" src="${currentSettings.company_logo || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22%3E%3Crect fill=%22%23e2e8f0%22 width=%2280%22 height=%2280%22/%3E%3Ctext fill=%22%2394a3b8%22 font-family=%22Arial%22 font-size=%2210%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3E📦%3C/text%3E%3C/svg%3E'}" class="max-w-full max-h-full object-contain" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22%3E%3Crect fill=%22%23e2e8f0%22 width=%2280%22 height=%2280%22/%3E%3Ctext fill=%22%2394a3b8%22 font-family=%22Arial%22 font-size=%2210%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3E📦%3C/text%3E%3C/svg%3E'">
+                        </div>
+                        <div>
+                            <input type="file" id="settings-logo-file" accept="image/*" class="text-xs file:py-2 file:px-4 file:rounded-lg file:bg-blue-50 file:text-blue-700">
+                            <p class="text-xs text-gray-500 mt-1">يفضل صورة مربعة (مثلاً 200×200)</p>
+                        </div>
+                    </div>
+                </div>
+                </div>
+                <div class="flex justify-end pt-4"><button id="btn-save-invoice-settings" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold">حفظ الإعدادات</button></div>
+                </div>
+            </div>
+            <!-- قسم إعدادات الفوترة الإلكترونية -->
+            <div class="bg-white rounded-2xl shadow-sm border p-6">
+                <h2 class="text-xl font-bold mb-6"><i class="fas fa-file-invoice ml-2 text-emerald-600"></i>إعدادات الفوترة الإلكترونية (ZATCA)</h2>
+                <div class="space-y-4">
+                <div class="flex flex-col"><label class="text-sm font-bold">رقم التسجيل الضريبي</label><input id="settings-vat-number" value="${currentSettings.vat_number}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+                <div class="flex flex-col"><label class="text-sm font-bold">الاسم التجاري المسجّل</label><input id="settings-registered-name" value="${currentSettings.registered_name}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+                <div class="flex flex-col"><label class="text-sm font-bold">العنوان التجاري</label><textarea id="settings-business-address" rows="2" class="p-2.5 bg-gray-50 border rounded-lg">${currentSettings.business_address}</textarea></div>
+                <div class="flex justify-end pt-4"><button id="btn-save-zatca-settings" class="bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold">حفظ إعدادات الفوترة</button></div>
+                </div>
+            </div>
+        </div>`);
+        // معاينة الصورة
+        byId('settings-logo-file')?.addEventListener('change', function() {
+            var file = this.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(e) { byId('settings-logo-preview').src = e.target.result; };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // زر حفظ إعدادات الفاتورة
+        byId('btn-save-invoice-settings').addEventListener('click', async () => {
+            var company_logo = currentSettings.company_logo;
+            var fileInput = byId('settings-logo-file');
+            if (fileInput && fileInput.files.length > 0) {
+                showLoader('جاري رفع الشعار...');
+                var file = fileInput.files[0];
+                var fileName = `logos/${Date.now()}-${file.name}`;
+                var { data: uploadData, error: uploadError } = await supabase.storage.from('product-images').upload(fileName, file, { upsert: true });
+                if (!uploadError) {
+                    var { data: publicUrl } = supabase.storage.from('product-images').getPublicUrl(fileName);
+                    company_logo = publicUrl.publicUrl;
+                }
+            }
+            var payload = {
+                delivery_fee: parseFloat(byId('settings-delivery-fee').value) || 0,
+                min_invoice_amount: parseFloat(byId('settings-min-invoice').value) || 0,
+                tax_rate: parseFloat(byId('settings-tax-rate').value) || 0,
+                currency: byId('settings-currency') ? byId('settings-currency').value : 'SAR',
+                company_name: byId('settings-company-name').value.trim(),
+                company_logo: company_logo
+            };
+            await _saveSettings(payload);
+        });
+
+        // زر حفظ إعدادات الفوترة الإلكترونية
+        byId('btn-save-zatca-settings').addEventListener('click', async () => {
+            var payload = {
+                vat_number: byId('settings-vat-number').value.trim(),
+                registered_name: byId('settings-registered-name').value.trim(),
+                business_address: byId('settings-business-address').value.trim()
+            };
+            await _saveSettings(payload);
+        });
+    }
+
+    async function _saveSettings(payload) {
+        showLoader('جاري حفظ الإعدادات...');
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        try {
+            const res = await fetch(`${RW_SUPABASE_URL}/functions/v1/save-settings`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
+            const json = await res.json();
+            hideLoader();
+            if (json.success) { showToast('تم حفظ الإعدادات', 'success'); }
+            else { showToast(json.error || 'فشل الحفظ', 'error'); }
+        } catch(e) { hideLoader(); showToast('فشل الاتصال بـ Edge Function', 'error'); }
+    }
+    return { render };
+})();
+window.RW_Settings = RW_Settings;
+// ============================================================
+// RW_Users – المستخدمين والصلاحيات (مودال كامل + Edge Function)
+// ============================================================
+var RW_Users = (function() {
+    var employeesData = [];
+    var rolesList = [];
+    var branchesList = [];
+
+async function render() {
+    var container = byId('rw-page-container');
+    if (!container) return;
+    safeText(byId('rw-header-title'), 'المستخدمين والصلاحيات');
+    safeHTML(container, '<div class="p-4">' +
+        '<div class="flex justify-between mb-4"><h2 class="text-xl font-bold"><i class="fas fa-users-gear ml-2"></i>إدارة المستخدمين والصلاحيات</h2><button id="btn-add-emp" class="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold"><i class="fa-solid fa-plus ml-1"></i> إضافة مستخدم</button></div>' +
+        '<input type="text" id="emp-search" placeholder="بحث..." class="w-full p-3 border rounded-xl mb-4">' +
+        '<div class="bg-white rounded-2xl shadow-sm border overflow-y-auto" id="emp-table-wrapper" style="max-height:65vh"></div>' +
+    '</div>');
+
+    var usersRes = await supabase.from('users').select('*');
+    employeesData = usersRes.data || [];
+    try { var rRes = await supabase.from('roles').select('*'); rolesList = rRes.data || []; } catch(e) { rolesList = []; }
+    try { branchesList = await RW_Data.loadBranches(); } catch(e) { branchesList = []; }
+
+    renderTable(employeesData);
+
+    var searchInput = byId('emp-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', filterTable);
+    }
+    var addBtn = byId('btn-add-emp');
+    if (addBtn) {
+        addBtn.addEventListener('click', function() { openModal(null); });
+    }
+}
+
+    function renderTable(data) {
+        var w = byId('emp-table-wrapper');
+        if (!w) return;
+        var filtered = [];
+        for (var i = 0; i < data.length; i++) {
+            var emp = data[i];
+            if (emp.role === 'مالك' || emp.role === 'Owner' || emp.is_owner === true) continue;
+            filtered.push(emp);
+        }
+        if (!filtered.length) { safeHTML(w, '<div class="text-center p-10">لا يوجد مستخدمون</div>'); return; }
+        
+        var searchInput = byId('emp-search');
+        var searchTerm = '';
+        if (searchInput) {
+            searchTerm = (searchInput.value || '').toLowerCase();
+        }
+        if (searchTerm) {
+            var searchFiltered = [];
+            for (var s = 0; s < filtered.length; s++) {
+                var emp = filtered[s];
+                if ((emp.name||'').toLowerCase().indexOf(searchTerm) !== -1 || (emp.email||'').toLowerCase().indexOf(searchTerm) !== -1 || (emp.phone||'').toLowerCase().indexOf(searchTerm) !== -1) {
+                    searchFiltered.push(emp);
+                }
+            }
+            filtered = searchFiltered;
+        }
+        if (!filtered.length) { safeHTML(w, '<div class="text-center p-10">لا يوجد مستخدمون مطابقون للبحث</div>'); return; }
+        
+        var headerHtml = '<table class="w-full text-sm"><thead class="bg-gray-50"><tr>';
+        headerHtml += '<th class="p-3">الاسم</th><th class="p-3">البريد</th><th class="p-3">الدور</th><th class="p-3">الحالة</th><th class="p-3">الهاتف</th><th class="p-3">الفروع</th>';
+        headerHtml += '</tr></thead><tbody id="users-tbody"></tbody></table>';
+        var controlsHtml = '<div id="users-tbody-controls"></div>';
+        safeHTML(w, headerHtml + controlsHtml);
+        RW_Table.paginate('users-tbody', filtered, 1, 50, function(emp) {
+            var statusClass = emp.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+            var statusText = emp.status === 'Active' ? 'نشط' : 'غير نشط';
+            return '<tr class="border-b hover:bg-gray-50 cursor-pointer" data-email="' + emp.email + '">' +
+                '<td class="p-3 font-semibold">' + (emp.name||'') + '</td>' +
+                '<td class="p-3">' + (emp.email||'') + '</td>' +
+                '<td class="p-3">' + (emp.role||'') + '</td>' +
+                '<td class="p-3"><span class="px-2 py-1 rounded-full text-xs ' + statusClass + '">' + statusText + '</span></td>' +
+                '<td class="p-3">' + (emp.phone||'') + '</td>' +
+                '<td class="p-3">' + (emp.allowed_branch_ids||'*') + '</td>' +
+            '</tr>';
+        });
+    }
+
+    function filterTable() {
+        var searchInput = byId('emp-search');
+        var q = '';
+        if (searchInput) {
+            q = (searchInput.value || '').toLowerCase();
+        }
+        var filtered = [];
+        for (var i = 0; i < employeesData.length; i++) {
+            var e = employeesData[i];
+            if ((e.name||'').toLowerCase().indexOf(q) !== -1 || (e.email||'').toLowerCase().indexOf(q) !== -1) {
+                filtered.push(e);
+            }
+        }
+        renderTable(filtered);
+    }
+
+    // دوال مساعدة داخلية
+    function _renderAssignedCustomersList(assignments) {
+        var container = byId('assigned-customers-list');
+        if (!container) return;
+        if (!assignments || assignments.length === 0) {
+            safeHTML(container, '<div class="text-center text-gray-400 text-sm py-4">لا يوجد عملاء معينون</div>');
+            return;
+        }
+        var html = '';
+        for (var i = 0; i < assignments.length; i++) {
+            var a = assignments[i];
+            var cust = a.customers || {};
+            html += '<div class="flex justify-between items-center p-2 border-b">' +
+                '<div><span class="font-bold text-sm">' + (cust.name || '') + '</span><span class="text-xs text-gray-400 mr-2">' + (cust.customer_code || '') + ' - ' + (cust.area || '') + '</span></div>' +
+                '<button onclick="RW_Users._removeAssignedCustomer(\'' + a.customer_id + '\')" class="text-red-500 text-xs font-bold">✕ إزالة</button>' +
+                '</div>';
+        }
+        safeHTML(container, html);
+    }
+
+    function _renderAssignedCustomersListFromIds() {
+        var ids = window._assignedCustomerIds || [];
+        var container = byId('assigned-customers-list');
+        if (!container) return;
+        if (ids.length === 0) {
+            safeHTML(container, '<div class="text-center text-gray-400 text-sm py-4">لا يوجد عملاء معينون</div>');
+            return;
+        }
+        var customers = RW_STATE.data.customers || [];
+        var map = {};
+        for (var i = 0; i < customers.length; i++) { map[customers[i].id] = customers[i]; }
+        var html = '';
+        for (var j = 0; j < ids.length; j++) {
+            var cust = map[ids[j]] || {};
+            html += '<div class="flex justify-between items-center p-2 border-b">' +
+                '<div><span class="font-bold text-sm">' + (cust.name || ids[j]) + '</span><span class="text-xs text-gray-400 mr-2">' + (cust.customer_code || '') + '</span></div>' +
+                '<button onclick="RW_Users._removeAssignedCustomer(\'' + ids[j] + '\')" class="text-red-500 text-xs font-bold">✕ إزالة</button>' +
+                '</div>';
+        }
+        safeHTML(container, html);
+    }
+
+function openModal(email) {
+    var emp = null;
+    if (email) {
+        for (var i = 0; i < employeesData.length; i++) {
+            if (employeesData[i].email === email) { emp = employeesData[i]; break; }
+        }
+    }
+    var isEdit = !!emp;
+    var title = isEdit ? 'تعديل مستخدم' : 'إضافة مستخدم جديد';
+    
+    var roleOptions = '<option value="">اختر دوراً</option>';
+    for (var r = 0; r < rolesList.length; r++) {
+        var selectedAttr = '';
+        if (emp && emp.role === rolesList[r].role_name) selectedAttr = ' selected';
+        roleOptions += '<option value="' + rolesList[r].role_name + '"' + selectedAttr + '>' + rolesList[r].role_name + '</option>';
+    }
+    if (rolesList.length === 0) {
+        roleOptions += '<option value="مدير">مدير</option><option value="محاسب">محاسب</option><option value="مندوب">مندوب</option><option value="سائق">سائق</option><option value="مخزني">مخزني</option>';
+    }
+    
+    var branchOptions = '';
+    for (var b = 0; b < branchesList.length; b++) {
+        var br = branchesList[b];
+        var code = br.branch_code || br.id || '';
+        var name = br.name || br.branch_name || '';
+        var sel = '';
+        if (emp && emp.allowed_branch_ids) {
+            var allowed = emp.allowed_branch_ids;
+            if (typeof allowed === 'string') {
+                allowed = allowed.split(',');
+            }
+            for (var a = 0; a < allowed.length; a++) {
+                var val = (typeof allowed[a] === 'string') ? allowed[a].trim() : String(allowed[a]).trim();
+                if (val === code) { sel = ' selected'; break; }
+            }
+        }
+        branchOptions += '<option value="' + code + '"' + sel + '>' + name + ' (' + code + ')</option>';
+    }
+    
+    var empName = emp ? (emp.name || '') : '';
+    var empEmail = emp ? (emp.email || '') : '';
+    var empPhone = emp ? (emp.phone || '') : '';
+    var empPassword = '';
+    var passwordPlaceholder = isEdit ? 'اترك فارغاً للإبقاء' : '';
+    var empStatusActive = (!emp || emp.status === 'Active') ? ' selected' : '';
+    var empStatusInactive = (emp && emp.status === 'Inactive') ? ' selected' : '';
+    var empExpiry = emp ? (emp.expiry_date || '') : '';
+    var empOriginalEmail = emp ? (emp.email || '') : '';
+    
+    var allowAllCusts = emp ? (emp.allow_all_customers ? ' checked' : '') : '';
+    var restrictVisit = emp ? (emp.restrict_to_visit_day !== false ? ' checked' : '') : ' checked';
+    var deviceIdVal = emp ? (emp.device_id || '') : '';
+    
+    var permLabels = [
+        { key: 'pos', label: '📱 نقطة البيع (POS)' },
+        { key: 'telesales', label: '📱 التلي سيلز' },
+        { key: 'orders', label: '📱 الأوردرات (مندوب المبيعات)' },
+        { key: 'van-sales', label: '📱 فان سيلز' },
+        { key: 'sales_supervisor', label: '📱 مشرف المبيعات' },
+        { key: 'warehouse_supervisor', label: '📱 مشرف المخازن' },
+        { key: 'warehouse', label: '📱 عمال المخازن' },
+        { key: 'delivery', label: '📱 مندوب التوصيل' },
+        { key: 'delivery_supervisor', label: '📱 مشرف التوصيل' },
+        { key: 'purchases', label: '📱 مسؤول المشتريات' },
+        { key: 'purchases_supervisor', label: '📱 مشرف المشتريات' },
+        { key: 'finance', label: '📱 المحاسب' },
+        { key: 'online-store', label: '📱 المتجر الإلكتروني' },
+        { key: 'sales_manager', label: '📱 مدير المبيعات' },
+        { key: 'warehouse_manager', label: '📱 مدير المخازن' },
+        { key: 'finance_manager', label: '📱 المدير المالي' },
+        { key: 'general_manager', label: '📱 المدير العام' },
+        { key: 'hr', label: '📱 الموارد البشرية' },
+        { key: 'dash', label: '🏢 لوحة التحكم' },
+        { key: 'items', label: '🏢 الأصناف والمخزون' },
+        { key: 'customers', label: '🏢 العملاء' },
+        { key: 'suppliers', label: '🏢 الموردين' },
+        { key: 'branches', label: '🏢 الفروع والمخازن' },
+        { key: 'runsheets', label: '🏢 الرانشيتات' },
+        { key: 'receiving', label: '🏢 سجل الاستلام' },
+        { key: 'picking', label: '🏢 سجل التحضير' },
+        { key: 'loading', label: '🏢 سجل التحميل' },
+        { key: 'return', label: '🏢 سجل المرتجعات' },
+        { key: 'unloading', label: '🏢 سجل التفريغ' },
+        { key: 'vouchers', label: '🏢 الأذونات المخزنية' },
+        { key: 'transfer', label: '🏢 تحويل مخزني' },
+        { key: 'direct-sale', label: '🏢 صرف سيارة بيع مباشر' },
+        { key: 'direct-return', label: '🏢 استلام مرتجع سيارة' },
+        { key: 'supplier-return', label: '🏢 مرتجع لمورد' },
+        { key: 'vehicle-count', label: '🏢 جرد سيارة' },
+        { key: 'branch-count', label: '🏢 جرد فرع' },
+        { key: 'general-count', label: '🏢 جرد عام' },
+        { key: 'reports', label: '🏢 التقارير' },
+        { key: 'users', label: '🏢 المستخدمين والصلاحيات' },
+        { key: 'roles', label: '🏢 إدارة الأدوار' },
+        { key: 'settings', label: '🏢 إعدادات النظام' },
+        { key: 'settlement', label: '🏢 إغلاق اليومية' }
+    ];
+    
+    var permsHTML = '';
+    for (var p = 0; p < permLabels.length; p++) {
+        var checked = '';
+        if (emp && emp.permissions) {
+            var perms = emp.permissions;
+            if (typeof perms === 'string') perms = perms.split(',');
+            for (var c = 0; c < perms.length; c++) {
+                if (perms[c].trim() === permLabels[p].key) { checked = ' checked'; break; }
+            }
+        }
+        permsHTML += '<label class="flex items-center gap-1 text-xs"><input type="checkbox" value="' + permLabels[p].key + '" class="emp-custom-perm"' + checked + '> ' + permLabels[p].label + '</label>';
+    }
+
+    var html = '<div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" dir="rtl">' +
+    '<div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden">' +
+    '<div class="bg-indigo-600 px-6 py-4 flex justify-between text-white"><h3 class="text-xl font-bold"><i class="fas fa-user-cog ml-2"></i>' + title + '</h3><button onclick="Swal.close()"><i class="fas fa-xmark text-xl"></i></button></div>' +
+    '<form class="p-6 space-y-6" style="max-height:70vh;overflow-y:auto">' +
+    '<input type="hidden" id="emp-original-email" value="' + empOriginalEmail + '">' +
+
+    '<div class="flex border-b mb-4" id="emp-modal-tabs">' +
+        '<button type="button" onclick="RW_Users._switchEmpTab(\'basic\')" class="px-4 py-2 font-bold text-sm border-b-2 border-blue-600 text-blue-600" id="tab-basic">البيانات الأساسية</button>' +
+        '<button type="button" onclick="RW_Users._switchEmpTab(\'perms\')" class="px-4 py-2 font-bold text-sm text-gray-500" id="tab-perms">الصلاحيات</button>' +
+        '<button type="button" onclick="RW_Users._switchEmpTab(\'field\')" class="px-4 py-2 font-bold text-sm text-gray-500" id="tab-field">إعدادات الميدان</button>' +
+        (isEdit ? '<button type="button" onclick="RW_Users._switchEmpTab(\'assignments\')" class="px-4 py-2 font-bold text-sm text-gray-500" id="tab-assignments">العملاء المسموحين</button>' : '') +
+    '</div>' +
+
+    '<div id="emp-panel-basic">' +
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">' +
+    '<div class="flex flex-col"><label>الاسم الكامل *</label><input id="emp-name" value="' + empName + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>' +
+    '<div class="flex flex-col"><label>البريد الإلكتروني *</label><input id="emp-email" value="' + empEmail + '" type="email" class="p-2.5 bg-gray-50 border rounded-lg"></div>' +
+    '<div class="flex flex-col"><label>رقم الهاتف</label><input id="emp-phone" value="' + empPhone + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>' +
+    '<div class="flex flex-col"><label>كلمة المرور *</label><input id="emp-password" type="password" value="' + empPassword + '" class="p-2.5 bg-gray-50 border rounded-lg" placeholder="' + passwordPlaceholder + '"></div>' +
+    '<div class="flex flex-col"><label>الدور الوظيفي *</label><select id="emp-role" class="p-2.5 bg-gray-50 border rounded-lg">' + roleOptions + '</select></div>' +
+    '<div class="flex flex-col"><label>الحالة</label><select id="emp-status" class="p-2.5 bg-gray-50 border rounded-lg"><option value="Active"' + empStatusActive + '>نشط</option><option value="Inactive"' + empStatusInactive + '>غير نشط</option></select></div>' +
+    '<div class="flex flex-col"><label>تاريخ انتهاء الصلاحية</label><input id="emp-expiry" type="date" value="' + empExpiry + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>' +
+    '<div class="flex flex-col"><label>الفروع المسموحة</label><select id="emp-branches" multiple class="p-2.5 bg-gray-50 border rounded-lg" style="min-height:100px">' + branchOptions + '</select><p class="text-xs text-gray-500 mt-1">اضغط Ctrl/Cmd للاختيار المتعدد. اتركه فارغاً للسماح بجميع الفروع.</p></div>' +
+    '</div></div>' +
+
+    '<div id="emp-panel-perms" class="hidden">' +
+    '<div class="md:col-span-2">' +
+    '<label class="flex items-center gap-2 cursor-pointer mt-2">' +
+    '<input type="checkbox" id="emp-custom-perms-toggle" onchange="document.getElementById(\'emp-custom-perms-section\').classList.toggle(\'hidden\')">' +
+    '<span class="text-sm font-bold">تفعيل صلاحيات مخصصة (تضاف لصلاحيات الدور)</span>' +
+    '</label>' +
+    '<div id="emp-custom-perms-section" class="hidden mt-3 p-3 bg-gray-50 rounded-xl">' +
+    '<label class="text-xs font-bold text-gray-500 block mb-2">الصلاحيات الإضافية:</label>' +
+    '<div class="grid grid-cols-2 md:grid-cols-4 gap-2" id="emp-permissions-checkboxes">' + permsHTML + '</div>' +
+    '</div></div></div>' +
+
+    '<div id="emp-panel-field" class="hidden">' +
+    '<div class="space-y-4 p-4 bg-amber-50 rounded-xl border border-amber-200">' +
+    '<h4 class="font-black text-amber-700"><i class="fa-solid fa-truck-fast ml-2"></i>إعدادات الصلاحيات الميدانية</h4>' +
+    '<div class="grid grid-cols-1 gap-4">' +
+    '<label class="flex items-center gap-3 cursor-pointer bg-white p-3 rounded-xl border">' +
+    '<input type="checkbox" id="emp-allow-all-customers"' + allowAllCusts + ' class="w-5 h-5">' +
+    '<div><span class="font-bold text-sm block">السماح برؤية جميع العملاء</span><span class="text-xs text-gray-500">عند التفعيل، يرى المندوب كل العملاء بغض النظر عن المنطقة أو يوم الزيارة</span></div>' +
+    '</label>' +
+    '<label class="flex items-center gap-3 cursor-pointer bg-white p-3 rounded-xl border">' +
+    '<input type="checkbox" id="emp-restrict-visit-day"' + restrictVisit + ' class="w-5 h-5">' +
+    '<div><span class="font-bold text-sm block">تقييد بيوم الزيارة</span><span class="text-xs text-gray-500">عند التفعيل، يرى المندوب فقط العملاء الذين يوم زيارتهم هو اليوم</span></div>' +
+    '</label>' +
+    '<div class="flex flex-col bg-white p-3 rounded-xl border">' +
+    '<label class="text-sm font-bold text-gray-700 mb-2">معرف الجهاز (Device ID)</label>' +
+    '<input id="emp-device-id" value="' + deviceIdVal + '" class="p-2.5 bg-gray-50 border rounded-lg text-sm" placeholder="يُملأ تلقائياً عند استخدام التطبيق">' +
+    '<p class="text-xs text-gray-500 mt-1">يُستخدم لتتبع الجهاز المرتبط بالمندوب</p>' +
+    '</div></div></div></div>' +
+
+    (isEdit ? '<div id="emp-panel-assignments" class="hidden">' +
+    '<div class="space-y-4 p-4 bg-blue-50 rounded-xl border border-blue-200">' +
+    '<h4 class="font-black text-blue-700"><i class="fa-solid fa-users ml-2"></i>تعيين العملاء للمندوب</h4>' +
+    '<div class="mb-3"><input type="text" id="assignment-search" oninput="RW_Users._searchAssignmentCustomers(this.value)" placeholder="🔍 بحث عن عميل..." class="w-full p-2.5 bg-white border rounded-lg text-sm"></div>' +
+    '<div id="assignment-results" class="max-h-48 overflow-y-auto bg-white rounded-xl border p-2"></div>' +
+    '<div class="mt-4"><h5 class="font-bold text-sm text-blue-700 mb-2">العملاء المعينون حالياً:</h5><div id="assigned-customers-list" class="max-h-48 overflow-y-auto bg-white rounded-xl border p-2">' +
+    '<div class="text-center text-gray-400 text-sm py-4">جاري التحميل...</div>' +
+    '</div></div>' +
+    '<p class="text-xs text-gray-500 mt-2">إذا فُعّل "السماح برؤية جميع العملاء" أعلاه، سيتم تجاهل هذه القائمة.</p>' +
+    '</div></div>' : '') +
+
+    '<div class="flex justify-end gap-3 pt-4 border-t">' +
+    (isEdit ? '<button type="button" id="btn-delete-emp" class="px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold mr-auto"><i class="fas fa-trash-alt ml-1"></i> حذف</button>' : '') +
+    '<button type="button" class="px-5 py-2.5 border rounded-xl font-bold" onclick="Swal.close()">إلغاء</button>' +
+    '<button type="button" id="btn-save-emp" class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold">حفظ</button>' +
+    '</div></form></div></div>';
+
+    Swal.fire({ html: html, width: '950px', showConfirmButton: false, showCancelButton: false, customClass: { popup: '!bg-transparent !shadow-none !p-0' },
+        didOpen: function() {
+            window._currentEmpEmail = emp ? emp.email : null;
+            window._assignmentCustomers = [];
+            window._assignedCustomerIds = [];
+
+            var saveBtn = byId('btn-save-emp');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', async function() {
+                    var sel = byId('emp-branches');
+                    var selectedBranches = [];
+                    if (sel) {
+                        for (var i = 0; i < sel.options.length; i++) {
+                            if (sel.options[i].selected) selectedBranches.push(sel.options[i].value);
+                        }
+                    }
+                    var nameInput = byId('emp-name');
+                    var emailInput = byId('emp-email');
+                    var name = nameInput ? nameInput.value.trim() : '';
+                    var emailVal = emailInput ? emailInput.value.trim() : '';
+                    if (!name || !emailVal) { showToast('الاسم والبريد مطلوبان', 'error'); return; }
+                    var passInput = byId('emp-password');
+                    var passValue = (passInput && passInput.value) ? passInput.value : '';
+                    if (!isEdit && !passValue) { showToast('يجب تعيين كلمة مرور', 'error'); return; }
+                    
+                    var customPerms = [];
+                    var toggleEl = document.getElementById('emp-custom-perms-toggle');
+                    if (toggleEl && toggleEl.checked) {
+                        var checkboxes = document.querySelectorAll('.emp-custom-perm:checked');
+                        for (var c = 0; c < checkboxes.length; c++) {
+                            customPerms.push(checkboxes[c].value);
+                        }
+                    }
+                    
+                    var payload = {
+                        name: name,
+                        email: emailVal,
+                        phone: byId('emp-phone') ? byId('emp-phone').value.trim() : '',
+                        password: passValue || null,
+                        role: byId('emp-role') ? byId('emp-role').value : '',
+                        status: byId('emp-status') ? byId('emp-status').value : 'Active',
+                        expiry_date: byId('emp-expiry') ? byId('emp-expiry').value : '',
+                        allowed_branch_ids: selectedBranches.join(','),
+                        permissions: customPerms,
+                        allow_all_customers: byId('emp-allow-all-customers') ? byId('emp-allow-all-customers').checked : false,
+                        restrict_to_visit_day: byId('emp-restrict-visit-day') ? byId('emp-restrict-visit-day').checked : true,
+                        device_id: byId('emp-device-id') ? byId('emp-device-id').value.trim() : ''
+                    };
+                    
+                    showLoader('جاري الحفظ...');
+                    var sessionRes = await supabase.auth.getSession();
+                    var token = null;
+                    if (sessionRes && sessionRes.data && sessionRes.data.session) {
+                        token = sessionRes.data.session.access_token;
+                    }
+                    try {
+                        var res = await fetch(RW_SUPABASE_URL + '/functions/v1/save-employee', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ employee: payload, isEdit: isEdit, originalEmail: emp ? emp.email : '' }) });
+                        var json = await res.json();
+                        hideLoader();
+                        if (json.success) { 
+                            showToast(isEdit ? 'تم التعديل' : 'تمت الإضافة', 'success'); 
+                            Swal.close(); 
+                            var usersRes = await supabase.from('users').select('*'); 
+                            employeesData = usersRes.data || []; 
+                            renderTable(employeesData); 
+                        }
+                        else { showToast(json.error || 'فشل الحفظ', 'error'); }
+                    } catch(e) { hideLoader(); showToast('فشل الاتصال بـ Edge Function', 'error'); console.error(e); }
+                });
+            }
+            if (isEdit) {
+                var deleteBtn = byId('btn-delete-emp');
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', async function() {
+                        var confirm = await Swal.fire({ title: 'تأكيد الحذف', text: 'حذف هذا الموظف؟', icon: 'warning', showCancelButton: true, confirmButtonText: 'حذف', cancelButtonText: 'إلغاء' });
+                        if (!confirm.isConfirmed) return;
+                        showLoader('جاري الحذف...');
+                        var sessionRes = await supabase.auth.getSession();
+                        var token = null;
+                        if (sessionRes && sessionRes.data && sessionRes.data.session) {
+                            token = sessionRes.data.session.access_token;
+                        }
+                        try {
+                            var res = await fetch(RW_SUPABASE_URL + '/functions/v1/delete-employee', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ email: emp.email }) });
+                            var json = await res.json();
+                            hideLoader();
+                            if (json.success) { showToast('تم الحذف', 'success'); Swal.close(); var usersRes = await supabase.from('users').select('*'); employeesData = usersRes.data || []; renderTable(employeesData); }
+                            else { showToast(json.error || 'فشل الحذف', 'error'); }
+                        } catch(e) { hideLoader(); showToast('فشل الاتصال بـ Edge Function', 'error'); }
+                    });
+                }
+            }
+
+            if (isEdit && emp) {
+                supabase.from('customer_assignments').select('customer_id, customers!inner(customer_code, name, area)').eq('user_id', emp.id).eq('is_active', true).then(function(res) {
+                    window._assignedCustomerIds = (res.data || []).map(function(a) { return a.customer_id; });
+                    _renderAssignedCustomersList(res.data || []);
+                }).catch(function(e) {
+                    console.error('Failed to load assignments:', e);
+                });
+            }
+        }
+    });
+}
+
+    return {
+        render: render,
+        _openModal: openModal,
+        _switchEmpTab: function(tabId) {
+            var panels = ['basic', 'perms', 'field', 'assignments'];
+            for (var i = 0; i < panels.length; i++) {
+                var panel = byId('emp-panel-' + panels[i]);
+                var tab = byId('tab-' + panels[i]);
+                if (panel) panel.classList.add('hidden');
+                if (tab) { tab.classList.remove('border-blue-600', 'text-blue-600'); tab.classList.add('text-gray-500'); }
+            }
+            var activePanel = byId('emp-panel-' + tabId);
+            var activeTab = byId('tab-' + tabId);
+            if (activePanel) activePanel.classList.remove('hidden');
+            if (activeTab) { activeTab.classList.add('border-blue-600', 'text-blue-600'); activeTab.classList.remove('text-gray-500'); }
+            
+            if (tabId === 'assignments' && window._currentEmpEmail) {
+                var emp = null;
+                for (var j = 0; j < employeesData.length; j++) {
+                    if (employeesData[j].email === window._currentEmpEmail) { emp = employeesData[j]; break; }
+                }
+                if (emp && emp.id) {
+                    supabase.from('customer_assignments').select('customer_id, customers!inner(customer_code, name, area, phone)').eq('user_id', emp.id).eq('is_active', true).then(function(res) {
+                        window._assignedCustomerIds = (res.data || []).map(function(a) { return a.customer_id; });
+                        _renderAssignedCustomersList(res.data || []);
+                    });
+                }
+            }
+        },
+        _searchAssignmentCustomers: function(query) {
+            var container = byId('assignment-results');
+            if (!container) return;
+            if (!query || query.trim().length < 2) {
+                safeHTML(container, '<div class="text-center text-gray-400 text-sm py-2">اكتب حرفين على الأقل للبحث</div>');
+                return;
+            }
+            var q = query.toLowerCase();
+            var customers = RW_STATE.data.customers || [];
+            var filtered = [];
+            for (var i = 0; i < customers.length; i++) {
+                var c = customers[i];
+                if ((c.name || '').toLowerCase().indexOf(q) !== -1 || (c.customer_code || '').toLowerCase().indexOf(q) !== -1) {
+                    filtered.push(c);
+                }
+                if (filtered.length >= 20) break;
+            }
+            if (filtered.length === 0) {
+                safeHTML(container, '<div class="text-center text-gray-400 text-sm py-2">لا توجد نتائج</div>');
+                return;
+            }
+            var html = '';
+            for (var j = 0; j < filtered.length; j++) {
+                var cust = filtered[j];
+                var isAssigned = window._assignedCustomerIds.indexOf(cust.id) !== -1;
+                var btnLabel = isAssigned ? '✓ مضاف' : '➕ إضافة';
+                var btnClass = isAssigned ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700 hover:bg-blue-200';
+                html += '<div class="flex justify-between items-center p-2 border-b hover:bg-gray-50">' +
+                    '<div><span class="font-bold text-sm">' + (cust.name || '') + '</span><span class="text-xs text-gray-400 mr-2">' + (cust.customer_code || '') + ' - ' + (cust.area || '') + '</span></div>' +
+                    '<button onclick="RW_Users._toggleAssignmentCustomer(\'' + cust.id + '\', this)" data-cust-id="' + cust.id + '" class="px-3 py-1 rounded-lg text-xs font-bold ' + btnClass + '">' + btnLabel + '</button>' +
+                    '</div>';
+            }
+            safeHTML(container, html);
+        },
+        _toggleAssignmentCustomer: function(customerId, btn) {
+            var idx = window._assignedCustomerIds.indexOf(customerId);
+            if (idx === -1) {
+                window._assignedCustomerIds.push(customerId);
+                btn.innerText = '✓ مضاف';
+                btn.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-700';
+            } else {
+                window._assignedCustomerIds.splice(idx, 1);
+                btn.innerText = '➕ إضافة';
+                btn.className = 'px-3 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-700 hover:bg-blue-200';
+            }
+            var emp = null;
+            for (var i = 0; i < employeesData.length; i++) {
+                if (employeesData[i].email === window._currentEmpEmail) { emp = employeesData[i]; break; }
+            }
+            if (!emp || !emp.id) return;
+            
+            if (idx === -1) {
+                supabase.from('customer_assignments').upsert({
+                    user_id: emp.id,
+                    customer_id: customerId,
+                    assigned_by: (RW_STATE.app.currentUser && RW_STATE.app.currentUser.email) || null,
+                    is_active: true
+                }, { onConflict: 'user_id,customer_id' }).then(function() {});
+            } else {
+                supabase.from('customer_assignments').update({ is_active: false }).eq('user_id', emp.id).eq('customer_id', customerId).then(function() {});
+            }
+            
+            _renderAssignedCustomersListFromIds();
+        },
+        _removeAssignedCustomer: function(customerId) {
+            var idx = window._assignedCustomerIds.indexOf(customerId);
+            if (idx !== -1) window._assignedCustomerIds.splice(idx, 1);
+            var emp = null;
+            for (var i = 0; i < employeesData.length; i++) {
+                if (employeesData[i].email === window._currentEmpEmail) { emp = employeesData[i]; break; }
+            }
+            if (emp && emp.id) {
+                supabase.from('customer_assignments').update({ is_active: false }).eq('user_id', emp.id).eq('customer_id', customerId).then(function() {});
+            }
+            _renderAssignedCustomersListFromIds();
+        }
+    };
+})();
+window.RW_Users = RW_Users;
