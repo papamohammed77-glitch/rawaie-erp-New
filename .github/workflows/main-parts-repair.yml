@@ -17,10 +17,10 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - name: Repair exactly one main part
-        shell: bash
+      - name: Serial forensic repair — one existing file at a time
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -29,38 +29,55 @@ jobs:
           import subprocess
           import tempfile
 
-          root = Path('Current/PWA/main')
-          parts = [root / f'main{i}.md' for i in range(1, 12)]
-          if any(not p.exists() for p in parts):
-              raise SystemExit('MISSING_MAIN_PART')
-          marker = 'RAWAEA_MAIN_PART_CLOSED:v2'
+          ROOT = Path('Current/PWA/main')
+          PARTS = [ROOT / f'main{i}.md' for i in range(1, 12)]
+          MARKER = 'RAWAEA_MAIN_PART_CLOSED:v3'
 
-          def inline_js(text):
+          if any(not p.exists() for p in PARTS):
+              raise SystemExit('MISSING_MAIN_PART')
+
+          def scripts(text):
               return '\n'.join(re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>', text, re.S | re.I))
 
-          def js_check(text, label):
-              code = inline_js(text) if '<html' in text.lower() else text
+          def check_js(text, label):
+              code = scripts(text) if '<html' in text.lower() else text
               if not code.strip():
                   return
-              f = Path(tempfile.gettempdir()) / f'rawaea-{label}.js'
+              f = Path(tempfile.gettempdir()) / f'{label}.js'
               f.write_text(code, encoding='utf-8')
               r = subprocess.run(['node', '--check', str(f)], capture_output=True, text=True)
               if r.returncode:
                   print(r.stderr)
                   raise SystemExit(f'{label}_JS_SYNTAX')
 
-          def validate_no_direct_physical_writer(text, label):
-              if re.search(r"(?:supabase\.from\(['\"]stock_branches['\"]\)|from\(['\"]stock_branches['\"]\))[^;]{0,700}\.(update|insert|upsert|delete)\(", text, re.S):
+          def forbid_direct_stock(text, label):
+              direct_stock = re.compile(r"(?:supabase\.from\(['\"]stock_branches['\"]\)|\.from\(['\"]stock_branches['\"]\))[^;]{0,900}\.(?:update|insert|upsert|delete)\(", re.S)
+              direct_log = re.compile(r"(?:supabase\.from\(['\"]inventory_log['\"]\)|\.from\(['\"]inventory_log['\"]\))[^;]{0,500}\.insert\(", re.S)
+              if direct_stock.search(text):
                   raise SystemExit(f'{label}_DIRECT_STOCK_WRITER')
-              if re.search(r"(?:supabase\.from\(['\"]inventory_log['\"]\)|from\(['\"]inventory_log['\"]\))[^;]{0,400}\.insert\(", text, re.S):
+              if direct_log.search(text):
                   raise SystemExit(f'{label}_DIRECT_INVENTORY_LOG_WRITER')
 
-          def patch_main1(text):
-              state_anchor = 'window.RW_STATE = RW_STATE;'
-              if state_anchor not in text:
-                  raise SystemExit('P1_NO_STATE_ANCHOR')
+          def add_company_filter(text, table):
+              # Only patch a simple, complete select chain when company_id is an actual column.
+              pattern = re.compile(
+                  r"(supabase\.from\(['\"]" + re.escape(table) + r"['\"]\)\.select\([^;\n]*?\))"
+                  r"((?:\s*\.eq\([^\n;]*\)|\s*\.neq\([^\n;]*\)|\s*\.in\([^\n;]*\)|\s*\.order\([^\n;]*\)|\s*\.limit\([^\n;]*\)|\s*\.maybeSingle\(\)|\s*\.single\(\))*)",
+                  re.S
+              )
+              def repl(m):
+                  head, tail = m.group(1), m.group(2)
+                  if "'company_id'" in head + tail or '"company_id"' in head + tail:
+                      return m.group(0)
+                  return head + ".eq('company_id', RW_ShellContext.getCompanyId())" + tail
+              return pattern.sub(repl, text)
+
+          def add_main1_context(text):
               if 'window.RW_ShellContext=RW_ShellContext;' not in text:
-                  context_block = r'''
+                  anchor = 'window.RW_STATE = RW_STATE;'
+                  if anchor not in text:
+                      raise SystemExit('P1_NO_STATE_ANCHOR')
+                  block = r'''
 // RAWAEA GOVERNED TENANT CONTEXT
 var RW_ShellContext=(function(){
     var companyId=null,userId=null,branchIds=null,resolving=null;
@@ -108,39 +125,73 @@ var RW_ShellContext=(function(){
 })();
 window.RW_ShellContext=RW_ShellContext;
 '''
-                  text=text.replace(state_anchor,state_anchor+'\n'+context_block,1)
-              text=text.replace("email: user.email,\n                role:","email: user.email,\n                authId: user.id,\n                companyId: null,\n                role:",1)
-              text=text.replace("RW_STATE.permissions = meta.permissions || ['*'];","RW_STATE.permissions = (RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner === true) ? ['*'] : (Array.isArray(meta.permissions) ? meta.permissions.slice() : []);",1)
-              text=text.replace('enterSystem: function() {','enterSystem: async function() {',1)
-              text=text.replace('enterSystem: async function() {\n    hideLoader();','enterSystem: async function() {\n    await RW_ShellContext.resolve();\n    hideLoader();',1)
-              text=text.replace(".from('app_settings')\n            .select('*')\n            .limit(1)",".from('app_settings')\n            .select('*')\n            .eq('company_id', RW_ShellContext.getCompanyId())\n            .limit(1)",1)
-              text=text.replace("showToast('تم تشغيل النظام في الوضع الآمن', 'warning');","throw new Error('FAIL_CLOSED_TENANT_CONTEXT');",1)
-              return text.rstrip()+'\n<!-- '+marker+' -->\n'
+                  text=text.replace(anchor, anchor+'\n'+block, 1)
+              return text
 
-          selected=None
-          for i,p in enumerate(parts,1):
-              if marker not in p.read_text(encoding='utf-8'):
-                  selected=i; break
+          def patch_part(text, idx):
+              if MARKER in text:
+                  return text
+              if idx == 1:
+                  text = add_main1_context(text)
+                  text = text.replace(
+                      "email: user.email,\n                role:",
+                      "email: user.email,\n                authId: user.id,\n                companyId: null,\n                role:", 1
+                  )
+                  text = text.replace(
+                      "RW_STATE.permissions = meta.permissions || ['*'];",
+                      "RW_STATE.permissions = (RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner === true) ? ['*'] : (Array.isArray(meta.permissions) ? meta.permissions.slice() : []);",
+                      1
+                  )
+                  text = text.replace('enterSystem: function() {', 'enterSystem: async function() {', 1)
+                  text = text.replace(
+                      'enterSystem: async function() {\n    hideLoader();',
+                      'enterSystem: async function() {\n    await RW_ShellContext.resolve();\n    hideLoader();', 1
+                  )
+                  # The first shell settings read must be tenant scoped.
+                  text = text.replace(
+                      ".from('app_settings')\n            .select('*')\n            .limit(1)",
+                      ".from('app_settings')\n            .select('*')\n            .eq('company_id', RW_ShellContext.getCompanyId())\n            .limit(1)", 1
+                  )
+                  # Never fail-open on missing tenant context.
+                  text = text.replace("showToast('تم تشغيل النظام في الوضع الآمن', 'warning');", "throw new Error('FAIL_CLOSED_TENANT_CONTEXT');", 1)
+                  # Explicit owner semantics if the legacy assignment still exists in this part.
+                  text = text.replace(
+                      "permissions: meta.permissions || ['*']",
+                      "permissions: (meta.isOwner === true || meta.isOwner === 'true') ? ['*'] : (Array.isArray(meta.permissions) ? meta.permissions.slice() : [])",
+                      1
+                  )
+              # Company-owned reads. Do not scope items: its item_code is globally unique in Production schema.
+              for table in ['app_settings','customers','branches','suppliers','orders','purchase_orders','receiving','stock_vouchers','treasury','chart_of_accounts','roles','users']:
+                  text = add_company_filter(text, table)
+              forbid_direct_stock(text, f'P{idx}')
+              return text.rstrip() + ('\n<!-- ' + MARKER + ' -->\n' if idx == 1 else '\n/* ' + MARKER + ' */\n')
+
+          # Serial closure: exactly one unclosed file is changed in each invocation.
+          selected = None
+          for idx, p in enumerate(PARTS, 1):
+              if MARKER not in p.read_text(encoding='utf-8'):
+                  selected = idx
+                  break
           if selected is None:
-              print('ALL_MAIN_PARTS_ALREADY_CLOSED')
+              print('ALL_PARTS_CLOSED')
               raise SystemExit(0)
-          for i in range(1,selected):
-              if marker not in parts[i-1].read_text(encoding='utf-8'):
-                  raise SystemExit(f'EARLIER_PART_NOT_CLOSED_P{i}')
-          if selected != 1:
-              raise SystemExit(f'P{selected}_AWAITING_SERIAL_EXECUTION')
-          p=parts[selected-1]
-          original=p.read_text(encoding='utf-8')
-          patched=patch_main1(original)
-          js_check(patched,'p1')
-          validate_no_direct_physical_writer(patched,'p1')
-          logical='\n'.join(x.read_text(encoding='utf-8') for x in parts[:selected-1])+'\n'+patched+'\n'+'\n'.join(x.read_text(encoding='utf-8') for x in parts[selected:])
-          if logical.lower().count('<!doctype html>')!=1 or logical.lower().count('<html')!=1 or logical.lower().count('</html>')!=1:
+          for i in range(1, selected):
+              if MARKER not in PARTS[i-1].read_text(encoding='utf-8'):
+                  raise SystemExit(f'Earlier part P{i} is not closed')
+          p = PARTS[selected-1]
+          original = p.read_text(encoding='utf-8')
+          patched = patch_part(original, selected)
+          if patched == original:
+              raise SystemExit(f'P{selected}_NO_CHANGE_PATH')
+          check_js(patched, f'P{selected}')
+          # Validate the complete logical file while changing only the selected physical file.
+          logical = ''.join(x.read_text(encoding='utf-8') if i != selected else patched for i,x in enumerate(PARTS,1))
+          if logical.lower().count('<!doctype html>') != 1 or logical.lower().count('<html') != 1 or logical.lower().count('</html>') != 1:
               raise SystemExit('LOGICAL_HTML_STRUCTURE_FAILURE')
-          p.write_text(patched,encoding='utf-8')
-          subprocess.run(['git','diff','--check'],check=True)
-          subprocess.run(['git','add',str(p)],check=True)
-          subprocess.run(['git','commit','-m','fix(p1): govern and repair existing main1 in place'],check=True)
-          subprocess.run(['git','push','origin','HEAD:main'],check=True)
-          print('P1_COMMITTED')
+          p.write_text(patched, encoding='utf-8')
+          subprocess.run(['git','diff','--check'], check=True)
+          subprocess.run(['git','add',str(p)], check=True)
+          subprocess.run(['git','commit','-m',f'fix(p{selected}): forensic repair existing main part in place'], check=True)
+          subprocess.run(['git','push','origin','HEAD:main'], check=True)
+          print(f'P{selected}_COMMITTED')
           PY
