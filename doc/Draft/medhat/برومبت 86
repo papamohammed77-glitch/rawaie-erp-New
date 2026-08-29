@@ -1,0 +1,1020 @@
+MASTER CTO CONTINUITY & EXECUTION DIRECTIVE
+RAWAEA ERP — FULL MEMORY TRANSFER + CURRENT/PWA/main.html ZERO-DEBT CLOSURE
+حالة المهمة
+هذه ليست مهمة تحليل أو تقرير أو مراجعة نظرية.
+هذه مهمة تنفيذية حرجة على نظام RAWAEA ERP.
+المطلوب هو استلام المشروع من الحالة التاريخية السابقة، إعادة بناء الحقيقة الفعلية من المصادر المباشرة، ثم تنفيذ الإصلاحات فعليًا على Git وProduction والتحقق منها، مع الانتقال تلقائيًا بين مراحل الإغلاق حتى الوصول إلى حالة مغلقة بالكامل.
+لا تعتبر كتابة تقرير، أو اقتراح SQL، أو إعداد Patch، أو إصلاح Staging، أو تعديل Git وحده إنجازًا.
+الإنجاز الحقيقي هو:
+UNDERSTAND
+→ VERIFY
+→ RECONSTRUCT
+→ IDENTIFY
+→ FIX
+→ DEPLOY
+→ RUNTIME VERIFY
+→ DOCUMENT
+→ CLOSE
+→ NEXT UNIT
+________________________________________
+1. القاعدة العليا
+لا تثق في أي شيء سابق لمجرد أنه تقرير سابق.
+ولا تثق في:
+•	الذاكرة السابقة.
+•	مساعد سابق.
+•	تقرير سابق.
+•	نسبة Completion سابقة.
+•	عبارة “تم الإصلاح”.
+•	عبارة “Production Verified”.
+•	Git وحده.
+•	Production وحدها.
+•	ملف واحد بمعزل عن بقية النظام.
+المصدر الحاكم للحقيقة هو المطابقة بين:
+1.	Git الحالي الفعلي.
+2.	Production Supabase الحالية فعليًا.
+3.	Edge Functions المنشورة فعليًا.
+4.	PostgreSQL functions / triggers / constraints / RLS / grants.
+5.	PWA الحالية المنشورة في المستودع.
+6.	Git history.
+7.	السجلات التنفيذية والـ forensic logs.
+8.	التاريخ الوظيفي والمعماري للمشروع.
+9.	العقود التي ثبت اعتمادها.
+10.	نتائج الاختبارات الفعلية.
+ولا يجوز اعتماد أي استنتاج مهم اعتمادًا على مصدر واحد فقط عندما تكون هناك إمكانية للمطابقة.
+________________________________________
+2. ممنوع البدء بالتعديل قبل القراءة الكاملة
+قبل لمس أي ملف:
+اقرأ كاملًا من أول سطر إلى آخر سطر:
+السجل التاريخي الإلزامي
+قم بفتح المجلد التالي : 
+doc/Draft/medhat
+وقم بفتح وقراءة الملفات التالية :
+•	برومبت 72
+•	برومبت 73 + ملحق تقرير
+•	برومبت 74 + ملحق تقرير
+•	برومبت 75 + ملحق تقرير
+•	برومبت 76 + ملحق تقرير
+•	برومبت 77 + ملحق تقرير
+•	برومبت 78 + ملحق تقرير
+•	برومبت 79 + ملحق تقرير
+•	برومبت 80 + ملحق تقرير
+•	برومبت 81 + ملحق تقرير
+•	برومبت 82 + ملحق تقرير
+•	برومبت 83 + ملحق تقرير
+•	برومبت 84 + ملحق تقرير
+•	برومبت 85 + ملحق تقرير
+مع:
+•	تقرير مبادئ حاكمة
+•	أحدث سجل أحداث Vouchers.
+•	أحدث Vouchers Forensic Closure.
+•	أحدث CTO / forensic execution logs.
+•	أي سجل أحدث من ذلك.
+لا تقرأ مقتطفات.
+لا تعتمد على أول أسطر.
+لا تعتبر نتيجة Search وحدها كافية.
+افتح الملف كاملًا.
+إذا كان أحد الملفات مفقودًا أو اسمه مختلفًا:
+لا تعلن Missing بعد أول محاولة.
+ابحث في:
+•	Git history
+•	path variations
+•	branches
+•	commit history
+•	neighboring documentation
+•	event logs
+•	reports
+ثم قرر.
+________________________________________
+3. المصادر التاريخية ليست مصدر الحقيقة الحالي
+بعد قراءة التاريخ، لا تفترض أن آخر Prompt هو الحقيقة الحالية.
+قم مباشرة بإنشاء:
+HISTORICAL → CURRENT RECONCILIATION
+لكل قرار مهم:
+الموضوع	التاريخ	آخر قرار	Git الحالي	Production الحالي	الحقيقة الحالية
+أي Conflict يجب تفسيره.
+أي تغيير صحيح مرّ بعد التقارير القديمة يجب الاحتفاظ به.
+أي تعديل قديم أصبح خاطئًا يجب تحديده وإصلاحه.
+أي قرار تاريخي ما زال عقدًا يجب الحفاظ عليه.
+أي Bridge أصبح Legacy يجب إغلاقه بطريقة آمنة.
+________________________________________
+4. الذاكرة المنقولة للمشروع
+هذه هي خلاصة السياق الذي يجب ألا يفقده المساعد:
+RAWAEA ERP
+النظام ERP تشغيلي متكامل وليس صفحة CRUD.
+ويضم على الأقل:
+•	Sales
+•	POS
+•	Van Sales
+•	Telesales
+•	Orders
+•	Runsheets
+•	Warehouse
+•	Picking
+•	Loading
+•	Delivery
+•	Returns
+•	Unloading
+•	Purchasing
+•	Receiving
+•	Stock Vouchers
+•	Inventory
+•	Drivers
+•	Vehicles
+•	Customers
+•	Suppliers
+•	Treasury
+•	Ledgers
+•	Accounting
+•	Permissions
+•	PWA
+•	Offline / sync behavior
+•	Shared application services
+ويجب فهم العلاقات بينها قبل تعديل أي جزء.
+________________________________________
+5. الدور الوظيفي لـ vouchers.html
+vouchers.html ليس مجرد واجهة إدخال.
+هو جزء من منظومة المخازن.
+ويتعامل مع دورة:
+CREATE
+→ SEND
+→ RECEIVE
+→ COMPLETE
+→ CANCEL
+للأنواع المختلفة من Stock Vouchers.
+ويجب أن يكون مرتبطًا فعليًا مع:
+•	warehouse
+•	stock engine
+•	stock_branches
+•	inventory_log
+•	order fulfillment
+•	Van Sales
+•	vehicles
+•	drivers
+•	suppliers
+•	purchasing
+•	receiving
+•	returns
+•	accounting / audit
+•	authentication / tenant context
+ولا يجوز بناء واجهة سطحية جديدة فوق البيانات الحالية.
+________________________________________
+6. عقد Core Inventory
+العقد الحاكم:
+PHYSICAL STOCK MOVEMENT
+↓
+post_stock_movement
+↓
+stock_branches
+•	
+inventory_log
+والـReservation:
+reserve_stock
+هو Reservation Engine فقط.
+ليس Physical Movement Engine.
+ولا يجوز لأي Writer آخر إنشاء Physical Stock Mutation مستقل.
+________________________________________
+7. أهم ما ثبت في التحقيقات الحديثة
+المساعد القادم يجب أن يتحقق بنفسه من هذه النقاط، وليس أن يصدقها تلقائيًا:
+•	post_stock_movement موجود في Production.
+•	عدة مسارات تم توجيهها إليه.
+•	ما زالت هناك آثار Legacy وTenant/Identity/Consumer drift تحتاج إلى verification.
+•	هناك Production migrations أحدث من بعض التقارير القديمة.
+•	هناك فرق بين historical code وCurrent code.
+•	توجد بعض Edge Functions الحالية thin wrappers.
+•	توجد بعض functions legacy ما زالت قابلة للتنفيذ من service_role.
+•	بعض المسارات التاريخية استخدمت app_settings LIMIT 1.
+•	بعض الـwrappers الحالية كانت تستخدم Company context غير آمن.
+•	بعض وظائف Vouchers وWarehouse أصبحت تعتمد على global Item identity بسبب Schema contract، ولذلك يجب عدم افتراض أن items.company_id يعني tenant ownership لكل حركة مخزون.
+•	items.item_code في Schema الحالي عليه UNIQUE constraint عالمي.
+•	stock_branches مرتبطة بالفرع + item.
+•	stock_vouchers مرتبطة بالشركة.
+•	receiving.operation_id عليه UNIQUE constraint.
+•	audit path يستخدم trigger/function وليس مجرد frontend logging.
+هذه نقاط تمثل فرضيات تحقيقية مثبتة جزئيًا من Production، ويجب إعادة التحقق منها عند بدء المهمة لأن Production قد تكون تغيرت مرة أخرى.
+________________________________________
+8. OWNER / Permissions Contract
+لا تكسر semantics التاريخية.
+خصوصًا:
+OWNER
+=
+isOwner = true
+•	
+permissions = ["*"]
+•	
+owner_profile
+•	
+active license state
+ولا تحول wildcard إلى قائمة صلاحيات صريحة لمجرد أن الاثنين يبدوان متكافئين.
+لا تغير:
+•	Owner guards
+•	license guards
+•	permission inheritance
+•	authentication semantics
+إلا بعد إثبات العقد الحالي والهدف الجديد.
+________________________________________
+9. PWA Architecture
+المطلوب الآن يخص:
+Current/PWA/main.html
+لكن لا يجوز التعامل معه منفردًا.
+راجع أيضًا:
+•	Current/PWA/core.js
+•	Current/PWA/sw.js
+•	Current/PWA/register-sw.js
+•	Current/PWA/picker.html
+•	Current/PWA/van-sales.html
+•	Current/PWA/vouchers.html
+•	وأي dependency أخرى يستخدمها main.html.
+المبدأ:
+SINGLE SOURCE OF TRUTH
+لا تنسخ Business Logic من:
+core.js
+إلى:
+main.html
+ولا تكرر:
+•	auth
+•	API wrappers
+•	stock logic
+•	cache logic
+•	sync logic
+•	permissions
+•	search infrastructure
+•	shared state
+•	realtime handling
+داخل main.html إذا كان المفترض أن تكون في Core.
+إذا كانت core.js نفسها غير مكتملة أو تحتوي defect:
+أصلح Core بالوسيلة الصحيحة بدل خلق نسخة ثانية من المنطق داخل main.html.
+________________________________________
+10. الهدف الحالي
+MAIN.HTML GOLD / DIAMOND PRODUCTION CLOSURE
+المطلوب ليس تجميل main.html.
+المطلوب تحويله إلى:
+•	Production-ready
+•	architecturally aligned
+•	secure
+•	tenant-safe
+•	sync-safe
+•	workflow-safe
+•	realtime-aware
+•	offline-aware
+•	maintainable
+•	performant
+•	consistent with Core
+•	consistent with Supabase
+•	consistent with Edge Functions
+•	consistent with PWA lifecycle
+________________________________________
+11. الوظائف التي يجب أن يغلقها main.html
+افحص كل وظائف main.html المتعلقة بـ:
+Authentication
+•	login
+•	session restore
+•	token lifecycle
+•	logout
+•	refresh
+•	expired session
+•	user identity
+•	company identity
+•	role
+•	permissions
+•	OWNER semantics
+Navigation
+•	module loading
+•	SPA view lifecycle
+•	active navigation
+•	deep links
+•	refresh
+•	browser history
+•	mobile behavior
+Data Loading
+•	initial load
+•	lazy loading
+•	pagination
+•	cache
+•	stale data
+•	refresh
+•	error states
+•	empty states
+Search
+يجب أن يكون Smart Search حقيقيًا.
+في:
+•	items
+•	drivers
+•	vehicles
+•	suppliers
+•	customers
+•	branches
+وليس مجرد includes() سطحي.
+يجب دراسة:
+•	Arabic text normalization
+•	diacritics
+•	spacing
+•	barcode
+•	item code
+•	partial code
+•	name
+•	phone
+•	vehicle code
+•	driver name
+•	supplier name
+•	ranking
+•	keyboard navigation
+•	no-result state
+•	debounce
+•	cancellation of stale requests
+•	caching
+•	performance
+________________________________________
+12. Direct Sales Voucher
+عند اختيار:
+Direct Sales / مندوب البيع المباشر
+يجب أن يدعم النظام فعليًا:
+•	اختيار المندوب
+•	اختيار السيارة
+•	التحقق من صلاحية المندوب
+•	التحقق من السيارة
+•	ربط المندوب بالسيارة إذا كان هذا العقد الحالي
+•	ربط الإذن بالـcompany
+•	ربط الإذن بالفرع/المخزن الصحيح
+•	عدم إنشاء Stock Movement إلا في المرحلة التي يحددها الـworkflow
+•	عدم الازدواج في خصم المخزون
+•	عدم فقدان علاقة الـvoucher بحركة المندوب والسيارة
+يجب قراءة التاريخ والكود الفعلي لتحديد القاعدة الصحيحة بدل اختراع قاعدة جديدة.
+________________________________________
+13. Supplier Flow
+راجع الموردين وربطهم مع:
+•	Supplier Return
+•	Purchase
+•	Receiving
+•	Supplier ledger
+•	Stock movement
+•	Accounting
+•	Voucher references
+وتأكد من:
+•	company scoping
+•	identity
+•	state transitions
+•	duplicate requests
+•	partial operation
+•	cancellation
+•	audit trail
+________________________________________
+14. Voucher State Machine
+لا تفترض أن كل الحالات متشابهة.
+أنشئ من الواقع الحالي State Machine حقيقيًا:
+Draft
+→ Sent
+→ Partially Received
+→ Received
+→ Completed
+→ Cancelled
+بحسب نوع الإذن.
+ثم تحقق من:
+•	allowed transition
+•	illegal transition
+•	duplicate transition
+•	retry
+•	refresh
+•	offline retry
+•	concurrent user
+•	partial receive
+•	full receive
+________________________________________
+15. Idempotency
+أي عملية حساسة مثل:
+•	SEND
+•	RECEIVE
+•	SALE
+•	RETURN
+•	PURCHASE RECEIPT
+•	ADJUSTMENT
+يجب أن يكون لها Operation Identity حقيقية.
+لا تعتمد على:
+•	Date.now()
+•	random suffix
+•	quantity الحالية
+•	UI timing
+•	browser state
+كمفتاح وحيد.
+ابحث أولًا عن mechanisms الموجودة أصلًا.
+ثم صمم/أصلح identity المتوافقة مع الـSchema الحالي.
+________________________________________
+16. Tenant / Company Integrity
+أي lookup يجب فحصه.
+ابحث عن:
+•	LIMIT 1
+•	global lookup
+•	.eq(...).maybeSingle()
+•	item lookup
+•	branch lookup
+•	user lookup
+•	settings lookup
+•	vehicle lookup
+•	driver lookup
+•	supplier lookup
+واسأل:
+هل الهوية عالمية أم Company-scoped؟
+لا تغيرها دون إثبات.
+________________________________________
+17. Item Identity
+قبل تعديل أي item logic:
+تحقق فعليًا من:
+•	Primary Key
+•	UNIQUE constraints
+•	company_id
+•	item_code
+•	barcode
+•	foreign keys
+•	historical contracts
+لا تفترض:
+item_code = company key
+إذا كان Schema الحالي يثبت أنه global unique.
+ولا تفترض العكس.
+________________________________________
+18. Source of Truth
+إذا كان العقد الحالي يثبت:
+order_details
+هو authoritative fulfillment detail
+و:
+run_sheet_details
+derived aggregate
+فلا تنشئ Dual Write غير ضروري.
+أي بيانات مشتقة يجب أن تكون:
+•	derived
+•	consistent
+•	rebuildable
+ما لم يثبت أن الحقل authoritative.
+________________________________________
+19. Realtime
+راجع:
+•	Supabase realtime
+•	subscriptions
+•	listeners
+•	stale state
+•	duplicate listeners
+•	cleanup
+•	reconnect
+•	visibility changes
+•	tab restore
+•	network loss
+•	network restoration
+لا تسمح بـ:
+•	memory leaks
+•	duplicated subscriptions
+•	stale UI
+•	race conditions
+•	duplicate mutation
+•	ghost state
+________________________________________
+20. Service Worker
+راجع فعليًا:
+•	sw.js
+•	register-sw.js
+وتحقق من:
+•	cache strategy
+•	cache invalidation
+•	versioning
+•	update lifecycle
+•	stale asset problem
+•	navigation fallback
+•	authentication safety
+•	API caching
+•	PWA refresh
+•	old-version takeover
+لا تجعل Service Worker يقدم نسخة قديمة من main.html أو Core بعد deployment.
+________________________________________
+21. Performance
+main.html ملف كبير جدًا، لذلك لا تفترض أن “يعمل” يعني “صحيح”.
+افحص:
+•	script execution
+•	duplicate libraries
+•	duplicate listeners
+•	excessive DOM work
+•	unnecessary rerenders
+•	synchronous blocking
+•	repeated queries
+•	giant global state
+•	memory retention
+•	event listener duplication
+•	repeated initialization
+•	search throttling/debouncing
+•	mobile performance
+لا تعالج الأداء بإخفاء الوظائف أو حذفها.
+________________________________________
+22. UX
+المطلوب تجربة ERP احترافية.
+ليس مجرد:
+form + table + button
+يجب توفير:
+•	loading states
+•	skeletons where appropriate
+•	clear errors
+•	actionable errors
+•	empty states
+•	inline validation
+•	keyboard navigation
+•	responsive behavior
+•	mobile UX
+•	confirmation for destructive actions
+•	duplicate prevention feedback
+•	optimistic UI only when safe
+•	authoritative server result
+•	retry behavior
+•	no silent failures
+________________________________________
+23. المنافسون
+يمكن الرجوع إلى الأنظمة المنافسة عند الحاجة، خصوصًا:
+•	SAP
+•	Microsoft Dynamics
+•	Odoo
+•	أنظمة WMS الحديثة
+•	تطبيقات Route Sales / Van Sales
+لكن:
+لا تنسخها.
+استخرج:
+•	pattern
+•	workflow principle
+•	UX pattern
+•	error-handling strategy
+•	search behavior
+•	inventory integrity pattern
+ثم طبقه على RAWAEA وفق العقد الخاص بالنظام.
+________________________________________
+24. ممنوع “التجميل فوق البيانات”
+لا تفعل:
+UI facade
+→ فوق schema broken
+ولا:
+frontend workaround
+→ لإخفاء backend defect
+ولا:
+fake realtime
+→ فوق stale data
+ولا:
+fake loading state
+→ لإخفاء slow query
+ولا:
+frontend validation
+→ بدل database integrity
+ولا:
+retry loop
+→ بدل idempotency
+________________________________________
+25. Closure Units
+نفذ الإصلاح على شكل:
+CLOSURE UNIT
+مثال:
+CU-001
+Authentication Context
+CU-002
+Navigation Lifecycle
+CU-003
+Shared Core Integration
+CU-004
+Smart Search
+CU-005
+Voucher Loading
+CU-006
+Voucher Create
+CU-007
+Voucher Send
+CU-008
+Voucher Receive
+CU-009
+Direct Sales + Driver + Vehicle
+CU-010
+Supplier Flow
+CU-011
+Realtime
+CU-012
+PWA / Service Worker
+CU-013
+Performance
+CU-014
+Security
+CU-015
+Production Runtime Verification
+لكن لا تفترض هذه القائمة نهائية.
+يجب إنشاء القائمة الفعلية بعد forensic discovery.
+________________________________________
+26. قاعدة الـClosure
+لا تنتقل إلى Closure Unit التالي إلا بعد:
+1.	فهم المسؤولية.
+2.	فهم الـConsumer.
+3.	فتح التاريخ.
+4.	فتح Original.
+5.	فتح Current.
+6.	فحص Production.
+7.	فحص Schema.
+8.	فحص Permissions.
+9.	فحص Dependencies.
+10.	تحديد Root Cause.
+11.	تنفيذ الإصلاح.
+12.	Git update.
+13.	Production deployment عند الحاجة.
+14.	Runtime verification.
+15.	Regression verification.
+16.	توثيق النتيجة.
+17.	إغلاق الـUnit.
+إذا فشل الاختبار:
+لا تكتب “Known issue” وتنتقل.
+أصلح المشكلة.
+________________________________________
+27. Production Rule
+لكل Closure Unit يجب تسجيل:
+THEORETICAL
+CURRENT
+GIT VERIFIED
+STAGING VERIFIED
+PRODUCTION DEPLOYED
+PRODUCTION RUNTIME VERIFIED
+REGRESSION VERIFIED
+CLOSED
+ولا تعتبر:
+STAGING PASS
+=
+PRODUCTION PASS
+________________________________________
+28. Data Repair
+إذا وجدت بيانات حالية ناتجة عن:
+•	fixture
+•	test data
+•	migration residue
+•	wrong tenant association
+•	invalid identity
+•	orphan
+•	duplicate
+•	historical artifact
+فلا تتركها لتربك CTO القادم.
+لكن:
+لا تحذف أي بيانات تشغيلية قبل إثبات طبيعتها.
+المطلوب:
+CLASSIFY
+→ TRACE ORIGIN
+→ CONFIRM IMPACT
+→ PRESERVE EVIDENCE
+→ REPAIR / ARCHIVE / DELETE
+→ VERIFY
+وإذا احتاج الأمر إنشاء archive/snapshot منطقي قبل الحذف، افعله.
+________________________________________
+29. Legacy Closure
+وجود function قديمة لا يعني أنها يجب أن تحذف فورًا.
+حدد:
+•	Producer
+•	Consumer
+•	Grant
+•	Edge Function dependency
+•	Frontend dependency
+•	Migration dependency
+•	Runtime usage
+ثم:
+ACTIVE
+→ BRIDGED
+→ UNUSED
+→ LOCKED
+→ RETIRED
+حسب الدليل.
+________________________________________
+30. Git Governance
+لا تعدل الملفات بلا توثيق.
+كل تعديل يجب أن يكون:
+•	واضحًا
+•	atomic قدر الإمكان
+•	traceable
+•	reversible
+•	مرتبطًا بـClosure Unit
+وفي Git:
+•	commit message واضح
+•	no unrelated edits
+•	no accidental formatting churn
+•	no deletion without evidence
+•	no duplicate implementation
+________________________________________
+31. Event Logging
+بعد كل مرحلة أنشئ/حدث السجل التنفيذي الرسمي.
+مثلاً:
+Current/CTO/2026...MAIN_HTML_FORENSIC_EXECUTION.md
+ويجب تسجيل:
+•	time
+•	commit
+•	files
+•	production state
+•	findings
+•	actions
+•	tests
+•	deployment
+•	result
+•	remaining debt
+لكن السجل نفسه ليس بديلًا عن التنفيذ.
+________________________________________
+32. لا تنتظر المستخدم
+هذه المهمة لا تحتاج إلى:
+“هل تريد أن أتابع؟”
+ولا:
+“هل تريد تطبيق التغيير؟”
+ولا:
+“هل تريد أن أصلح المشكلة؟”
+عندما تكون الأدلة كافية:
+EXECUTE.
+إذا ظهر defect جديد:
+INVESTIGATE
+→ FIX
+→ VERIFY
+→ CONTINUE
+ولا توقف المسار لمجرد ظهور مشكلة جديدة.
+________________________________________
+33. عند وجود تعارض
+إذا وجدت:
+Historical ≠ Current
+أو:
+Git ≠ Production
+أو:
+Report ≠ Production
+أو:
+Frontend ≠ Backend
+أو:
+Edge ≠ RPC
+فلا تختَر أحدها بالتخمين.
+نفذ:
+SOURCE TRACE
+→ TIMELINE
+→ CONSUMER TRACE
+→ DATA IMPACT
+→ CONTRACT CHECK
+→ CURRENT CORRECT STATE
+→ SAFE MIGRATION
+ثم طبّق الحالة الصحيحة.
+________________________________________
+34. لا تستخدم النسب الوهمية
+ممنوع:
+97%
+98%
+99%
+99.5%
+بدون Evidence Matrix.
+النتيجة الوحيدة المقبولة:
+CLOSED
+أو:
+INCOMPLETE
+ومعها دليل واضح.
+________________________________________
+35. Definition of Done
+لا تعتبر المهمة منتهية حتى تثبت:
+Code
+•	main.html correct
+•	core.js aligned
+•	sw.js aligned
+•	register-sw.js aligned
+•	required shared dependencies aligned
+Backend
+•	Edge Functions aligned
+•	RPCs aligned
+•	no obsolete Consumer
+•	no parallel stock engine
+Database
+•	schema verified
+•	constraints verified
+•	RLS verified
+•	grants verified
+•	triggers verified
+•	functions verified
+Data
+•	current data inspected
+•	corruption repaired
+•	residue classified
+•	no known blocker left
+UX
+•	workflows complete
+•	smart search complete
+•	errors actionable
+•	mobile behavior correct
+Sync
+•	realtime verified
+•	refresh verified
+•	reconnect verified
+•	stale state prevented
+•	duplicate request protected
+Security
+•	tenant isolation
+•	user context
+•	Owner semantics
+•	grants
+•	service role boundaries
+PWA
+•	cache lifecycle
+•	update lifecycle
+•	current assets
+•	no stale release problem
+Production
+•	deployed
+•	runtime verified
+•	regression verified
+ثم:
+MAIN.HTML PRODUCTION CLOSURE = 100% CLOSED
+________________________________________
+36. GLOBAL FINAL GATE
+قبل إعلان النجاح النهائي:
+أعد الفحص من البداية مرة أخرى.
+لا تعتمد على نتائج الفحص الأول.
+نفذ:
+FINAL PRODUCTION RE-SCAN
+يشمل:
+•	functions
+•	triggers
+•	grants
+•	RLS
+•	Edge Functions
+•	PWA assets
+•	Git consistency
+•	data integrity
+•	workflow states
+•	realtime
+•	cache
+•	errors
+•	logs
+ثم:
+FINAL CROSS-SYSTEM RECONCILIATION
+________________________________________
+37. Mandatory Self Audit
+PRE-EXECUTION SELF-AUDIT
+Business Understanding:
+Architecture Understanding:
+Database Understanding:
+Historical Understanding:
+Git Understanding:
+Production Understanding:
+PWA Understanding:
+Consumer Understanding:
+Execution Readiness:
+Confirmed Facts:
+Unknowns:
+Conflicts:
+Unverified Claims:
+Historical Opened:
+Original Opened:
+Current Opened:
+Production Opened:
+Schema Checked:
+Triggers Checked:
+RLS Checked:
+Grants Checked:
+Dependencies Checked:
+Consumers Checked:
+________________________________________
+38. FINAL SELF-AUDIT
+What I Proved:
+What I Fixed:
+What I Initially Missed:
+What Changed After Production Reconciliation:
+What Historical Assumption Was Wrong:
+What Current Drift Was Found:
+What Data Was Repaired:
+What Legacy Was Retired:
+What Responsibilities Were Preserved:
+What Remains Unresolved:
+Any material:
+Unknown
+Conflict
+Unverified Claim
+Production Drift
+Consumer Drift
+Data Integrity Drift
+means:
+NOT CLOSED.
+________________________________________
+39. الانتقال التلقائي بين المراحل
+هذه نقطة إلزامية.
+بعد إغلاق أي Closure Unit:
+لا تتوقف.
+نفذ تلقائيًا:
+CURRENT UNIT
+→ VERIFY
+→ CLOSE
+→ DISCOVER NEXT
+→ EXECUTE NEXT
+إلى أن تنتهي جميع الوحدات.
+لا تتوقف لكتابة تقرير طويل بين الوحدات.
+التوثيق يتم بالتوازي.
+________________________________________
+40. أولوية المهمة الآن
+توقف عن أي مهمة سابقة غير مرتبطة، بما فيها:
+•	Picker
+•	تحسينات واجهة أخرى
+•	Features جديدة
+•	Cosmetic work
+إلى أن ينتهي:
+CURRENT/PWA/main.html + COMPLETE DEPENDENCY / PRODUCTION CLOSURE
+ثم فقط يسمح النظام بالعودة إلى المهام التالية.
+________________________________________
+41. مهم جدًا — لا تعتبر main.html وحدة مستقلة
+إذا اكتشفت أن إصلاح main.html يتطلب تعديل:
+•	core.js
+•	sw.js
+•	register-sw.js
+•	Edge Function
+•	RPC
+•	SQL
+•	Schema
+•	PWA registration
+فنفذ التعديل الضروري.
+لكن:
+لا توسع نطاق المهمة بلا دليل.
+كل توسع يجب أن يكون:
+DEPENDENCY-PROVEN.
+________________________________________
+42. الهدف النهائي
+ليس:
+“main.html يبدو جيدًا”.
+وليس:
+“الـworkflow يعمل في حالتي الاختبار”.
+وليس:
+“التقرير يقول 100%”.
+الهدف:
+RAWAEA ERP — MAIN PWA PRODUCTION INTEGRITY
+بحيث:
+Frontend
+↔
+Core
+↔
+PWA
+↔
+Service Worker
+↔
+Edge
+↔
+RPC
+↔
+PostgreSQL
+↔
+Data
+↔
+Realtime
+كلها تمثل نظامًا واحدًا متسقًا.
+________________________________________
+43. أمر التنفيذ النهائي
+ابدأ الآن.
+STEP 0
+اقرأ Prompt 72 حتى Prompt 85 كاملًا.
+STEP 1
+اقرأ السجلات التنفيذية والـforensic logs كاملة.
+STEP 2
+افتح Git current state كاملًا.
+STEP 3
+افتح Production Supabase الحالية مباشرة.
+STEP 4
+أنشئ Historical / Current / Production Reconciliation.
+STEP 5
+اكتشف الـClosure Units الفعلية.
+STEP 6
+ابدأ أول Closure Unit.
+STEP 7
+أصلحها فعليًا.
+STEP 8
+اختبرها.
+STEP 9
+Deploy.
+STEP 10
+Verify Production Runtime.
+STEP 11
+Document.
+STEP 12
+Close.
+STEP 13
+انتقل تلقائيًا للتي بعدها.
+كرر ذلك حتى:
+100% CLOSED
+________________________________________
+44. قاعدة أخيرة
+لا تبحث عن طريقة تجعل التقرير يقول إن النظام صحيح.
+ابحث عن الحقيقة.
+إذا كانت الحقيقة سيئة:
+أصلحها.
+إذا كانت التقارير خاطئة:
+صححها.
+إذا كان الكود صحيحًا والتقرير قديمًا:
+احتفظ بالكود وصحح السجل.
+إذا كان Production صحيحًا وGit متأخرًا:
+زامن Git مع Production.
+إذا كان Git صحيحًا وProduction متأخرة:
+انشر.
+إذا كانت البيانات خاطئة:
+أصلح البيانات.
+إذا كانت المشكلة جديدة وغير موثقة:
+أنشئ الحل وسجله.
+إذا وجدت طريقًا أفضل وأكثر أمانًا:
+استخدمه بشرط أن يثبت بالدليل ولا يكسر العقد.
+لا تترك:
+Gaps
+Debt
+Drift
+Legacy residue
+Consumer drift
+Production drift
+Data ambiguity
+خلفك.
+التنفيذ أولًا.
+الإثبات ثانيًا.
+التقرير ثالثًا.
+ولا تعلن:
+CLOSED
+إلا عندما تستطيع إثباتها من:
+Git + Production + Runtime + Data + Workflow + Regression.
