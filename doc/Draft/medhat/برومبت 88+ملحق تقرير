@@ -1,0 +1,148 @@
+برومبت 88
+مهمة حرجة :
+هذه المهمة استثنائية وخطيرة
+تمهيد هام: 
+توقف عن كل مهمة حالية  واهتم فقط بالمهمة الحرجة الحالية ، في هذه المهمة لا تثق في التقارير ، ولا تثق في المساعدين ، ولا تثق في ذاكرتك ، لا تستعجل بالقفز إلي  إتخاذ قرارات استباقية أو بالتعديل .. 
+انتظر حتي تنتهي من قراءة آخر سطر وآخر أمر تنفيذي ،  قم بالتحقيق الجنائي من المصادر مباشرة وقاعدة البيانات supabase و الملفات المنشورة  وسجلات التوثيق ولا تثق بالتقارير ولا ذاكرتك 
+لأن ذاكرتك توقفت في مرحلة تاريخية قديمة ، لذلك لا تعتمد علي الذاكرة الحالية التاريخية ،
+ستكتشف تغييرات حديثة وتاريخية لا تجعلها تسبب لك إرتباك
+في النهاية ما تجده من تعديلات الصحيح منها مرره والغير صحيح قم بإصلاحه مباشرة
+أرغب بتكليفك بمهمة شديدة الحرج والأهمية واستثنائية وخطيرة ولكن قبل ذلك يجب أن أقوم بإعدادك وتأهيلك لهذه المهمة 
+قم بفتح الأمر التشغيلي التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2086
+
+وتم طلب منك الأمر التشغيلي التالي : https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2087%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1 ، والمطلوب الآن
+لا أريد تقارير .. أريد أفعال وتنفيذ مهام
+بعد مراجعة لملفCurrent/PWA/main.html تم اكتشاف أن كان هناك دور لتحديد اسم المشروع واللوجو وبعض تبويب إعدادات النظام وربطه بجدول App_settings قد اختفت اثناء عملية الإصلاح ، قم باعادتها وربطها بالمصادر مرة أخري  والتأكد من استمراريتها في العمل ، وكذلك قم بمراجعة تبويب إدارة التراخيص والصلاحية المطلقة لمالك النظام وعدم فقدان الميزات التي وصلنا إليها
+---------------------------
+ملحق
+تقرير تنفيذ البرومبت
+نتيجة التحقيق والتنفيذ حتى نقطة التوقف
+
+قمت بإيقاف مسار الـInventory واتبعت المهمة الحرجة مباشرة من المصادر. تم فتح Prompt 86 وPrompt 87+الملحق، ومراجعة المصادر التاريخية ذات الصلة، وCurrent/PWA/main.html وOriginal/PWA/main.html، والـPWA companion files، وProduction Supabase، وEdge Functions، وسجلات GitHub Actions.
+
+ما تم إثباته مباشرة من Production
+
+app_settings الحالي يحتوي فعليًا على عقد هوية النظام والمتجر الذي طلبت استعادته:
+
+company_name
+company_logo
+company_phone
+store_name
+store_logo
+store_primary_color
+store_secondary_color
+payment_method
+currency
+delivery_fee
+min_invoice_amount
+tax_rate
+main_branch_id
+حالات الترخيص status / trial_end_date / subscription_end_date
+
+والسجل الحالي للشركة الأساسية يحمل company_name = الروائع وstore_name = الروائع وcurrency = SAR، مع الشعار حاليًا غير محفوظ في الحقل. لم أستبدل هذه البيانات أو أخترع بدائل.
+
+كما تم التحقق مباشرة من Owner:
+
+owner@alrawae.com
+
+وحالته الحالية:
+
+Active
+
+وصلاحيته في قاعدة البيانات:
+
+permissions = ["*"]
+
+وفي Auth metadata:
+
+isOwner = true
+
+مع permissions = ["*"].
+
+وبالتالي تم الحفاظ على عقد OWNER التاريخي، ولم أحوله إلى قائمة صلاحيات صريحة. وهذا متسق مباشرة مع مبدأ الحوكمة الذي يشترط فهم عقد OWNER قبل أي تعديل.
+
+اكتشاف مهم في save-settings
+
+تم إثبات Drift حقيقي بين الـProduction والـSchema:
+
+النسخة السابقة من save-settings كانت تتعامل مع:
+
+vat_number
+registered_name
+business_address
+
+بينما هذه الأعمدة غير موجودة أصلًا في app_settings.
+
+تم إصلاح ذلك فعليًا في Production.
+
+تم نشر:
+
+save-settings version 13 — ACTIVE — JWT required
+
+والنسخة الجديدة:
+
+تستخرج الشركة من users.auth_id.
+ترفض المستخدم غير النشط.
+تعمل Company-scoped.
+تستخدم whitelist للحقول الموجودة فعليًا فقط.
+تتحقق من main_branch_id.
+تمنع تعديل License fields إلا عندما تثبت بيانات Auth وDB معًا عقد OWNER:
+isOwner=true + ["*"].
+لا تعتمد على app_settings LIMIT 1 كسياق tenant.
+
+هذا تعديل Production حقيقي وليس توصية نظرية.
+
+ما تم تحضيره في Git
+
+تم تحديث tools/p0_main_shell_repair_v2.py ليضيف:
+
+RW_ShellContext لاستخراج company_id من المستخدم المصادق عليه.
+RW_OwnerContract.
+إزالة fallback الخطير:
+meta.permissions || ['*'].
+ربط RW_Settings بالعملة الحالية.
+RW_SettingsIdentity لعرض وربط هوية النظام والمتجر مع app_settings.
+RW_ShellBranding لتحميل الاسم والشعار والإعدادات من الشركة الحالية.
+حراسة شاشة الترخيص بعقد OWNER.
+Fail-closed بدل فتح النظام عند فشل bootstrap.
+إبقاء Parent PWA دون wholesale rewrite.
+عدم إضافة Physical Stock writer إلى الواجهة.
+
+لكن توجد نقطة حرجة: هذا التحويل لم يُثبت حتى الآن داخل Current/PWA/main.html على main.
+
+الـblob الحالي الذي تم التحقق منه ما زال:
+
+34b1bd23f99ac08a797625ab2fd359b21bf140b4
+
+أي أنني رفضت عمدًا اعتبار إصلاح Git “منفذًا” لمجرد أن executor تم تعديله.
+
+سبب عدم إعلان الإغلاق
+
+حاولت تشغيل executor عبر GitHub Actions. الـRuns الخاصة بمسار push سجلت Failure، وبعضها أنهى الحالة دون Jobs. لذلك لم أستخدمها كدليل تنفيذ زائف.
+
+تم إنشاء PR:
+
+#35 — critical: restore main PWA system identity and owner continuity
+
+ثم فتح مسار PR فعلي. لكن إحدى بوابات Owner Recovery القديمة فشلت، وليس لدي دليل صالح يسمح باعتبار ذلك اختبارًا ناجحًا للميزة الجديدة.
+
+والأهم: لم أدمج PR لمجرد أن mergeable أصبح true؛ لأن ذلك يخالف القاعدة التي طلبتها: لا تمرير تعديل غير مثبت.
+
+حالة المشروع الآن
+
+GLOBAL MAIN PWA RESTORATION = INCOMPLETE
+
+وليس CLOSED.
+
+الجزء الذي تم إغلاقه فعليًا في Production هو:
+
+save-settings backend contract = DEPLOYED
+
+أما المطلوب الأساسي في Current/PWA/main.html — إعادة ربط واجهة الهوية والإعدادات واستمراريتها مع app_settings، والتحقق النهائي من شاشة إدارة التراخيص وOwner داخل الـPWA — فلم أعتبره مكتملًا لأن الـsource transformation لم يصل بعد إلى main.html بشكل يمكن إثباته، ولم يتم إجراء Browser-authenticated E2E.
+
+كذلك توجد ملفات Trigger تشخيصية مؤقتة أُضيفت إلى main أثناء محاولة تشغيل مسار التنفيذ، ولم أعتبرها جزءًا من المنتج؛ لذلك يجب تنظيفها قبل الإغلاق النهائي بدل ترك آثار مؤقتة في المستودع.
+
+المبدأ الحاكم نفسه يلزم بذلك: الدراسة تسبق التعديل، والمقارنة يجب أن تكون بين Historical وCurrent وProduction وTarget، ولا يجوز اعتبار إصلاح غير منشور أو اختبار غير منفذ حقيقة تشغيلية.
+
+الخلاصة الدقيقة: تم اكتشاف وإصلاح عيب Production حقيقي في backend ونشره، وتم تجهيز إصلاح PWA المطلوب، لكن لن أدعي أن إعادة الهوية/الإعدادات وشاشة الترخيص داخل main.html مكتملة أو Production-closed لأن الدليل التنفيذي النهائي لذلك لم يتحقق بعد.
