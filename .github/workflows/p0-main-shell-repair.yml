@@ -1,6 +1,8 @@
 name: RAWAEA Main PWA Serial Forensic Repair
 on:
   workflow_dispatch:
+  issues:
+    types: [opened]
   push:
     branches: [main]
     paths:
@@ -10,6 +12,7 @@ permissions:
   contents: write
 jobs:
   repair:
+    if: github.event_name == 'issues' || github.event_name == 'workflow_dispatch' || github.actor == 'papamohammed77-glitch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout current main
@@ -17,7 +20,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - name: Repair exactly one existing part
+      - name: Serial forensic repair of existing parts
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -29,22 +32,20 @@ jobs:
 
           ROOT=Path('Current/PWA/main')
           PARTS=[ROOT/f'main{i}.md' for i in range(1,12)]
-          MARK='RAWAEA_MAIN_PART_CLOSED:v4'
-          if any(not p.exists() for p in PARTS): raise SystemExit('MISSING_MAIN_PART')
+          MARK='RAWAEA_MAIN_PART_CLOSED:v5'
+          for p in PARTS:
+              if not p.exists(): raise SystemExit(f'MISSING:{p}')
 
-          COMPANY_TABLES=['app_settings','customers','branches','suppliers','orders','purchase_orders','receiving','stock_vouchers','treasury','chart_of_accounts','roles','users','vehicles']
+          COMPANY_TABLES=['app_settings','customers','branches','suppliers','orders','purchase_orders','receiving','stock_vouchers','treasury','chart_of_accounts','users','vehicles']
 
-          def scope_reads(text, table):
+          def scope_reads(text,table):
               pat=re.compile(r"supabase\.from\(['\"]"+re.escape(table)+r"['\"]\)\.select\([^;\n]*?\)")
-              out=[]; last=0
-              for m in pat.finditer(text):
-                  out.append(text[last:m.end()])
-                  tail=text[m.end():m.end()+320]
-                  if ".eq('company_id', RW_ShellContext.getCompanyId())" not in tail and '.eq("company_id", RW_ShellContext.getCompanyId())' not in tail:
-                      out.append(".eq('company_id', RW_ShellContext.getCompanyId())")
-                  last=m.end()
-              out.append(text[last:])
-              return ''.join(out)
+              def repl(m):
+                  chain=m.group(0)
+                  if "company_id" in chain:
+                      return chain
+                  return chain+".eq('company_id', RW_ShellContext.getCompanyId())"
+              return pat.sub(repl,text)
 
           def check_js(text,label):
               code='\n'.join(re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',text,re.S|re.I)) if '<html' in text.lower() else text
@@ -54,9 +55,9 @@ jobs:
               if r.returncode: print(r.stderr); raise SystemExit(label+'_JS_SYNTAX')
 
           def forbid_direct_stock(text,label):
-              if re.search(r"(?:supabase\.from\(['\"]stock_branches['\"]\)|\.from\(['\"]stock_branches['\"]\))[^;]{0,900}\.(?:update|insert|upsert|delete)\(",text,re.S):
+              if re.search(r"(?:supabase\.from\(['\"]stock_branches['\"]\)|\.from\(['\"]stock_branches['\"]\))[^;]{0,1000}\.(?:update|insert|upsert|delete)\(",text,re.S):
                   raise SystemExit(label+'_DIRECT_STOCK_WRITER')
-              if re.search(r"(?:supabase\.from\(['\"]inventory_log['\"]\)|\.from\(['\"]inventory_log['\"]\))[^;]{0,500}\.insert\(",text,re.S):
+              if re.search(r"(?:supabase\.from\(['\"]inventory_log['\"]\)|\.from\(['\"]inventory_log['\"]\))[^;]{0,600}\.insert\(",text,re.S):
                   raise SystemExit(label+'_DIRECT_INVENTORY_LOG_WRITER')
 
           def patch_p1(text):
@@ -75,8 +76,7 @@ var RW_ShellContext=(function(){
         if(!u.authId) return Promise.reject(new Error('AUTH_ID_UNAVAILABLE'));
         resolving=supabase.from('users').select('id,company_id,name,role,status').eq('auth_id',u.authId).eq('status','Active').maybeSingle().then(function(r){
             if(r.error||!r.data||!r.data.company_id) throw new Error('TENANT_CONTEXT_UNAVAILABLE');
-            companyId=r.data.company_id; userId=r.data.id||null;
-            RW_STATE.app.companyId=companyId; RW_STATE.app.userId=userId;
+            companyId=r.data.company_id; userId=r.data.id||null; RW_STATE.app.companyId=companyId; RW_STATE.app.userId=userId;
             if(RW_STATE.app.currentUser){ RW_STATE.app.currentUser.id=userId; RW_STATE.app.currentUser.companyId=companyId; if(r.data.name) RW_STATE.app.currentUser.name=r.data.name; if(r.data.role) RW_STATE.app.currentUser.role=r.data.role; }
             return companyId;
         }).finally(function(){resolving=null;});
@@ -93,35 +93,31 @@ window.RW_ShellContext=RW_ShellContext;
               text=text.replace("RW_STATE.permissions = meta.permissions || ['*'];","RW_STATE.permissions = (RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner === true) ? ['*'] : (Array.isArray(meta.permissions) ? meta.permissions.slice() : []);",1)
               text=text.replace('enterSystem: function() {','enterSystem: async function() {',1)
               text=text.replace('enterSystem: async function() {\n    hideLoader();','enterSystem: async function() {\n    await RW_ShellContext.resolve();\n    hideLoader();',1)
-              text=text.replace(".from('app_settings')\n            .select('*')\n            .limit(1)",".from('app_settings')\n            .select('*')\n            .eq('company_id',RW_ShellContext.getCompanyId())\n            .limit(1)",1)
+              text=text.replace("showToast('تم تشغيل النظام في الوضع الآمن', 'warning');","throw new Error('FAIL_CLOSED_TENANT_CONTEXT');",1)
               return text
 
-          selected=None
-          for i,p in enumerate(PARTS,1):
-              if MARK not in p.read_text(encoding='utf-8'):
-                  selected=i; break
-          if selected is None:
-              print('ALL_PARTS_CLOSED'); raise SystemExit(0)
-          for i in range(1,selected):
-              if MARK not in PARTS[i-1].read_text(encoding='utf-8'):
-                  raise SystemExit(f'EARLIER_PART_NOT_CLOSED_P{i}')
+          for idx,p in enumerate(PARTS,1):
+              text=p.read_text(encoding='utf-8')
+              if MARK in text:
+                  continue
+              if idx==1:
+                  text=patch_p1(text)
+              # These are known company-owned tables in the current Production schema.
+              for table in COMPANY_TABLES:
+                  text=scope_reads(text,table)
+              forbid_direct_stock(text,f'P{idx}')
+              check_js(text,f'P{idx}')
+              # P1 is the sole HTML root; subsequent parts are fragments.
+              logical='\n'.join((text if j==idx else q.read_text(encoding='utf-8')) for j,q in enumerate(PARTS,1))
+              if logical.lower().count('<!doctype html>')!=1 or logical.lower().count('<html')!=1 or logical.lower().count('</html>')!=1:
+                  raise SystemExit('LOGICAL_HTML_STRUCTURE_FAILURE_P'+str(idx))
+              suffix='\n<!-- '+MARK+' -->\n' if idx==1 else '\n/* '+MARK+' */\n'
+              p.write_text(text.rstrip()+suffix,encoding='utf-8')
+              subprocess.run(['git','diff','--check'],check=True)
+              subprocess.run(['git','add',str(p)],check=True)
+              subprocess.run(['git','commit','-m',f'fix(p{idx}): forensic repair existing main part in place'],check=True)
+              subprocess.run(['git','push','origin','HEAD:main'],check=True)
+              print(f'P{idx}_COMMITTED')
 
-          p=PARTS[selected-1]; original=p.read_text(encoding='utf-8'); text=original
-          if selected==1: text=patch_p1(text)
-          for table in COMPANY_TABLES: text=scope_reads(text,table)
-          forbid_direct_stock(text,f'P{selected}')
-          check_js(text,f'P{selected}')
-
-          # Main logical-file guard: P1 must remain the only HTML document root; no sibling is modified in this transaction.
-          logical='\n'.join((text if i==selected else q.read_text(encoding='utf-8')) for i,q in enumerate(PARTS,1))
-          if logical.lower().count('<!doctype html>')!=1 or logical.lower().count('<html')!=1 or logical.lower().count('</html>')!=1:
-              raise SystemExit('LOGICAL_HTML_STRUCTURE_FAILURE')
-
-          text=text.rstrip()+('\n<!-- '+MARK+' -->\n' if selected==1 else '\n/* '+MARK+' */\n')
-          p.write_text(text,encoding='utf-8')
-          subprocess.run(['git','diff','--check'],check=True)
-          subprocess.run(['git','add',str(p)],check=True)
-          subprocess.run(['git','commit','-m',f'fix(p{selected}): forensic repair existing main part in place'],check=True)
-          subprocess.run(['git','push','origin','HEAD:main'],check=True)
-          print(f'P{selected}_COMMITTED')
+          print('SERIAL_MAIN_REPAIR_COMPLETE')
           PY
