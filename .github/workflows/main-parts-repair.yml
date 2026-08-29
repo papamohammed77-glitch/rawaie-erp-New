@@ -25,31 +25,69 @@ jobs:
           import re, subprocess, tempfile
           p=Path('Current/PWA/main/main1.md')
           s=p.read_text(encoding='utf-8')
-          marker='RAWAEA_P1_FORENSIC_CLOSED:v7'
+          marker='RAWAEA_P1_FORENSIC_CLOSED:v8'
           if marker in s:
               print('P1_ALREADY_CLOSED')
               raise SystemExit(0)
           def req(old,new,label):
               global s
               c=s.count(old)
-              if c!=1: raise SystemExit(f'{label}_COUNT={c}')
+              if c!=1:
+                  raise SystemExit(f'{label}_COUNT={c}')
               s=s.replace(old,new,1)
+
           anchor='window.RW_STATE = RW_STATE;'
           context="""
 // RAWAEA GOVERNED TENANT CONTEXT
 var RW_ShellContext=(function(){
  var companyId=null,userId=null,resolving=null;
+ function applyUserIdentity(row, authUser){
+  companyId=row.company_id||null;
+  userId=row.id||null;
+  RW_STATE.app.companyId=companyId;
+  RW_STATE.app.userId=userId;
+  if(RW_STATE.app.currentUser){
+   RW_STATE.app.currentUser.id=userId;
+   RW_STATE.app.currentUser.authId=(authUser&&authUser.id)||(RW_STATE.app.currentUser.authId)||null;
+   RW_STATE.app.currentUser.companyId=companyId;
+   if(row.name)RW_STATE.app.currentUser.name=row.name;
+   if(row.role)RW_STATE.app.currentUser.role=row.role;
+   RW_STATE.app.currentUser.isOwner=RW_STATE.app.currentUser.isOwner===true;
+  }
+  var dbPerms=Array.isArray(row.permissions)?row.permissions.slice():[];
+  if(RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner===true){
+   RW_STATE.permissions=['*'];
+  }else{
+   RW_STATE.permissions=dbPerms;
+  }
+  return companyId;
+ }
  function resolve(){
   if(companyId)return Promise.resolve(companyId);
   if(resolving)return resolving;
   var u=RW_STATE.app.currentUser||{};
-  if(u.companyId){companyId=u.companyId;userId=u.id||null;RW_STATE.app.companyId=companyId;RW_STATE.app.userId=userId;return Promise.resolve(companyId);}
-  if(!u.authId)return Promise.reject(new Error('AUTH_ID_UNAVAILABLE'));
-  resolving=RW_SUPABASE_CLIENT.from('users').select('id,company_id,name,role,status').eq('auth_id',u.authId).eq('status','Active').maybeSingle().then(function(r){
-   if(r.error||!r.data||!r.data.company_id)throw new Error('TENANT_CONTEXT_UNAVAILABLE');
-   companyId=r.data.company_id;userId=r.data.id||null;RW_STATE.app.companyId=companyId;RW_STATE.app.userId=userId;
-   if(RW_STATE.app.currentUser){RW_STATE.app.currentUser.id=userId;RW_STATE.app.currentUser.companyId=companyId;if(r.data.name)RW_STATE.app.currentUser.name=r.data.name;if(r.data.role)RW_STATE.app.currentUser.role=r.data.role;}
-   return companyId;
+  if(u.companyId){
+   companyId=u.companyId;
+   userId=u.id||null;
+   RW_STATE.app.companyId=companyId;
+   RW_STATE.app.userId=userId;
+   if(u.isOwner===true)RW_STATE.permissions=['*'];
+   return Promise.resolve(companyId);
+  }
+  var authUserPromise;
+  if(u.authId){
+   authUserPromise=Promise.resolve({id:u.authId,email:u.email||null});
+  }else{
+   authUserPromise=RW_SUPABASE_CLIENT.auth.getUser().then(function(r){
+    if(r.error||!r.data||!r.data.user||!r.data.user.id)throw new Error('AUTH_ID_UNAVAILABLE');
+    return r.data.user;
+   });
+  }
+  resolving=authUserPromise.then(function(authUser){
+   return RW_SUPABASE_CLIENT.from('users').select('id,company_id,name,role,status,permissions').eq('auth_id',authUser.id).eq('status','Active').maybeSingle().then(function(r){
+    if(r.error||!r.data||!r.data.company_id)throw new Error('TENANT_CONTEXT_UNAVAILABLE');
+    return applyUserIdentity(r.data,authUser);
+   });
   }).finally(function(){resolving=null;});
   return resolving;
  }
@@ -66,16 +104,23 @@ window.RW_ShellContext=RW_ShellContext;
           req('enterSystem: async function() {\n    hideLoader();','enterSystem: async function() {\n    await RW_ShellContext.resolve();\n    hideLoader();','P1_ENTER_BODY')
           req(".from('app_settings')\n            .select('*')\n            .limit(1)",".from('app_settings')\n            .select('*')\n            .eq('company_id',RW_ShellContext.getCompanyId())\n            .limit(1)",'P1_SETTINGS')
           safe="showToast('تم تشغيل النظام في الوضع الآمن', 'warning');"
-          if safe in s: s=s.replace(safe,"throw new Error('FAIL_CLOSED_TENANT_CONTEXT');",1)
+          if safe in s:
+              s=s.replace(safe,"throw new Error('FAIL_CLOSED_TENANT_CONTEXT');",1)
+          if re.search(r"supabase\.from\(['\"]stock_branches['\"]\)[^;]{0,1200}\.(?:update|insert|upsert|delete)\(",s,re.S):
+              raise SystemExit('P1_DIRECT_STOCK_WRITER')
+          if re.search(r"supabase\.from\(['\"]inventory_log['\"]\)[^;]{0,700}\.insert\(",s,re.S):
+              raise SystemExit('P1_DIRECT_INVENTORY_LOG_WRITER')
           code='\n'.join(re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I))
-          f=Path(tempfile.gettempdir())/'p1.js'; f.write_text(code,encoding='utf-8')
+          f=Path(tempfile.gettempdir())/'p1.js';f.write_text(code,encoding='utf-8')
           r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-          if r.returncode: print(r.stderr); raise SystemExit('P1_JS_SYNTAX')
+          if r.returncode:
+              print(r.stderr)
+              raise SystemExit('P1_JS_SYNTAX')
           p.write_text(s.rstrip()+'\n<!-- '+marker+' -->\n',encoding='utf-8')
           subprocess.run(['git','diff','--check'],check=True)
           subprocess.run(['git','config','user.name','github-actions[bot]'],check=True)
           subprocess.run(['git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com'],check=True)
-          subprocess.run(['git','add','Current/PWA/main/main1.md'],check=True)
+          subprocess.run(['git','add',str(p)],check=True)
           subprocess.run(['git','commit','-m','fix(p1): repair existing main1 tenant and owner shell'],check=True)
           subprocess.run(['git','push','origin','HEAD:main'],check=True)
           PY
