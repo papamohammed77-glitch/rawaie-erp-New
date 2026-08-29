@@ -22,5 +22,8 @@ MASTER EXECUTION PROMPT.md (SHA 528bb4e5f7ce7e9c40a04981ae84aa501eb2b260)
 ## P0 status
 FORNSIC IN PROGRESS — NO PHASE CLOSURE CLAIM.
 
+## Trigger
+A governed no-business-data-change commit was pushed to main to trigger the repository's existing P0 workflow.
+
 ## Rule
 This file is only an execution ledger trigger. Any production closure claim requires fresh Production + Edge + Git verification after the corresponding implementation.
