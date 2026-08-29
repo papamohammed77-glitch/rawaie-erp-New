@@ -1,7 +1,11 @@
 name: RAWAEA Main PWA Serial Repair
 on:
+  workflow_dispatch:
   push:
     branches: [main]
+    paths:
+      - 'Current/PWA/main/main*.md'
+      - '.github/workflows/main-parts-repair.yml'
 permissions:
   contents: write
 jobs:
@@ -13,7 +17,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - name: Repair one original part per commit
+      - name: Repair exactly one main part
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -21,102 +25,122 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re, subprocess, tempfile
+          import re
+          import subprocess
+          import tempfile
 
-          root=Path('Current/PWA/main')
-          parts=[root/f'main.{i}.txt' for i in range(1,12)]
-          if any(not p.exists() for p in parts): raise SystemExit('MISSING_MAIN_PART')
+          root = Path('Current/PWA/main')
+          parts = [root / f'main{i}.md' for i in range(1, 12)]
+          if any(not p.exists() for p in parts):
+              raise SystemExit('MISSING_MAIN_PART')
+          marker = 'RAWAEA_MAIN_PART_CLOSED:v2'
 
-          def replace_once(text, old, new, name):
-              if old in text:
-                  return text.replace(old,new,1), True
-              return text, False
+          def inline_js(text):
+              return '\n'.join(re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>', text, re.S | re.I))
 
-          def scope_selects(text, table):
-              pat=re.compile(r"supabase\\.from\\('"+re.escape(table)+r"'\\)\\.select\\([^;\\n]*?\\)")
-              pieces=[]; last=0; changed=False
-              for m in pat.finditer(text):
-                  pieces.append(text[last:m.end()])
-                  tail=text[m.end():m.end()+260]
-                  if ".eq('company_id',RW_ShellContext.getCompanyId())" not in tail:
-                      pieces.append(".eq('company_id',RW_ShellContext.getCompanyId())")
-                      changed=True
-                  last=m.end()
-              pieces.append(text[last:])
-              return ''.join(pieces), changed
+          def js_check(text, label):
+              code = inline_js(text) if '<html' in text.lower() else text
+              if not code.strip():
+                  return
+              f = Path(tempfile.gettempdir()) / f'rawaea-{label}.js'
+              f.write_text(code, encoding='utf-8')
+              r = subprocess.run(['node', '--check', str(f)], capture_output=True, text=True)
+              if r.returncode:
+                  print(r.stderr)
+                  raise SystemExit(f'{label}_JS_SYNTAX')
 
-          def validate_part(text, idx):
-              if idx==1 and 'window.RW_ShellContext=RW_ShellContext;' not in text: raise SystemExit('P1_CONTEXT_MISSING')
-              if "showToast('تم تشغيل النظام في الوضع الآمن', 'warning');" in text: raise SystemExit('FAIL_OPEN_REMAINS')
-              if re.search(r"supabase\\.from\\('stock_branches'\\)[\\s\\S]{0,500}\\.(update|insert|upsert|delete)\\(",text): raise SystemExit(f'P{idx}_DIRECT_STOCK_WRITER')
-              if ".from('inventory_log').insert" in text: raise SystemExit(f'P{idx}_DIRECT_INVENTORY_LOG_WRITER')
+          def validate_no_direct_physical_writer(text, label):
+              if re.search(r"(?:supabase\.from\(['\"]stock_branches['\"]\)|from\(['\"]stock_branches['\"]\))[^;]{0,700}\.(update|insert|upsert|delete)\(", text, re.S):
+                  raise SystemExit(f'{label}_DIRECT_STOCK_WRITER')
+              if re.search(r"(?:supabase\.from\(['\"]inventory_log['\"]\)|from\(['\"]inventory_log['\"]\))[^;]{0,400}\.insert\(", text, re.S):
+                  raise SystemExit(f'{label}_DIRECT_INVENTORY_LOG_WRITER')
 
-          for idx,p in enumerate(parts,1):
-              text=p.read_text(encoding='utf-8')
-              original=text
-
-              if idx==1:
-                  if 'window.RW_ShellContext=RW_ShellContext;' not in text:
-                      anchor='window.RW_STATE = RW_STATE;'
-                      if anchor not in text: raise SystemExit('P1_NO_STATE_ANCHOR')
-                      block="""
+          def patch_main1(text):
+              state_anchor = 'window.RW_STATE = RW_STATE;'
+              if state_anchor not in text:
+                  raise SystemExit('P1_NO_STATE_ANCHOR')
+              if 'window.RW_ShellContext=RW_ShellContext;' not in text:
+                  context_block = r'''
 // RAWAEA GOVERNED TENANT CONTEXT
 var RW_ShellContext=(function(){
-  var companyId=null,resolving=null;
-  function resolve(){
-    if(companyId){RW_STATE.app.companyId=companyId;return Promise.resolve(companyId);}
-    if(RW_STATE.app.companyId){companyId=RW_STATE.app.companyId;return Promise.resolve(companyId);}
-    if(resolving)return resolving;
-    var u=RW_STATE.app.currentUser||{};
-    if(u.companyId){companyId=u.companyId;RW_STATE.app.companyId=companyId;return Promise.resolve(companyId);}
-    if(!u.authId)return Promise.reject(new Error('AUTH_ID_UNAVAILABLE'));
-    resolving=supabase.from('users').select('id,company_id,name,role,status').eq('auth_id',u.authId).eq('status','Active').maybeSingle().then(function(r){
-      if(r.error||!r.data||!r.data.company_id)throw new Error('TENANT_CONTEXT_UNAVAILABLE');
-      companyId=r.data.company_id;RW_STATE.app.companyId=companyId;RW_STATE.app.userId=r.data.id||null;
-      if(RW_STATE.app.currentUser){if(r.data.name)RW_STATE.app.currentUser.name=r.data.name;if(r.data.role)RW_STATE.app.currentUser.role=r.data.role;RW_STATE.app.currentUser.companyId=companyId;}
-      return companyId;
-    }).finally(function(){resolving=null;});
-    return resolving;
-  }
-  function getCompanyId(){if(!companyId&&RW_STATE.app.companyId)companyId=RW_STATE.app.companyId;if(!companyId&&RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId)companyId=RW_STATE.app.currentUser.companyId;if(!companyId)throw new Error('TENANT_CONTEXT_UNAVAILABLE');return companyId;}
-  return {resolve:resolve,getCompanyId:getCompanyId,hasCompany:function(){return !!(companyId||RW_STATE.app.companyId||RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId);}};
+    var companyId=null,userId=null,branchIds=null,resolving=null;
+    function resolve(){
+        if(companyId) return Promise.resolve(companyId);
+        if(resolving) return resolving;
+        var u=RW_STATE.app.currentUser||{};
+        if(u.companyId){
+            companyId=u.companyId; userId=u.id||null;
+            RW_STATE.app.companyId=companyId; RW_STATE.app.userId=userId;
+            return Promise.resolve(companyId);
+        }
+        if(!u.authId) return Promise.reject(new Error('AUTH_ID_UNAVAILABLE'));
+        resolving=supabase.from('users').select('id,company_id,name,role,status')
+            .eq('auth_id',u.authId).eq('status','Active').maybeSingle().then(function(r){
+                if(r.error||!r.data||!r.data.company_id) throw new Error('TENANT_CONTEXT_UNAVAILABLE');
+                companyId=r.data.company_id; userId=r.data.id||null;
+                RW_STATE.app.companyId=companyId; RW_STATE.app.userId=userId;
+                if(RW_STATE.app.currentUser){
+                    RW_STATE.app.currentUser.id=userId;
+                    RW_STATE.app.currentUser.companyId=companyId;
+                    if(r.data.name) RW_STATE.app.currentUser.name=r.data.name;
+                    if(r.data.role) RW_STATE.app.currentUser.role=r.data.role;
+                }
+                return companyId;
+            }).finally(function(){resolving=null;});
+        return resolving;
+    }
+    function getCompanyId(){
+        if(!companyId) companyId=RW_STATE.app.companyId || (RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId) || null;
+        if(!companyId) throw new Error('TENANT_CONTEXT_UNAVAILABLE');
+        return companyId;
+    }
+    function getBranchIds(){
+        if(Array.isArray(branchIds)) return Promise.resolve(branchIds);
+        return resolve().then(function(){
+            return supabase.from('branches').select('id').eq('company_id',getCompanyId()).then(function(r){
+                if(r.error) throw r.error;
+                branchIds=(r.data||[]).map(function(x){return x.id;});
+                return branchIds;
+            });
+        });
+    }
+    return {resolve:resolve,getCompanyId:getCompanyId,getBranchIds:getBranchIds,hasCompany:function(){return !!(companyId||RW_STATE.app.companyId||(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId));}};
 })();
 window.RW_ShellContext=RW_ShellContext;
-"""
-                      text=text.replace(anchor,anchor+block,1)
-                  text=text.replace("email: user.email,\n                role:","email: user.email,\n                authId: user.id,\n                companyId: user.company_id || null,\n                role:",1)
-                  text=text.replace("RW_STATE.permissions = meta.permissions || ['*'];","RW_STATE.permissions = Array.isArray(meta.permissions) ? meta.permissions : [];",1)
-                  if "showToast('تم تشغيل النظام في الوضع الآمن', 'warning');" in text:
-                      text=text.replace("showToast('تم تشغيل النظام في الوضع الآمن', 'warning');","throw new Error('FAIL_CLOSED_TENANT_CONTEXT');",1)
-                  text=text.replace(".from('app_settings')\n            .select('*')\n            .limit(1)",".from('app_settings')\n            .select('*')\n            .eq('company_id',RW_ShellContext.getCompanyId())\n            .limit(1)",1)
+'''
+                  text=text.replace(state_anchor,state_anchor+'\n'+context_block,1)
+              text=text.replace("email: user.email,\n                role:","email: user.email,\n                authId: user.id,\n                companyId: null,\n                role:",1)
+              text=text.replace("RW_STATE.permissions = meta.permissions || ['*'];","RW_STATE.permissions = (RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner === true) ? ['*'] : (Array.isArray(meta.permissions) ? meta.permissions.slice() : []);",1)
+              text=text.replace('enterSystem: function() {','enterSystem: async function() {',1)
+              text=text.replace('enterSystem: async function() {\n    hideLoader();','enterSystem: async function() {\n    await RW_ShellContext.resolve();\n    hideLoader();',1)
+              text=text.replace(".from('app_settings')\n            .select('*')\n            .limit(1)",".from('app_settings')\n            .select('*')\n            .eq('company_id', RW_ShellContext.getCompanyId())\n            .limit(1)",1)
+              text=text.replace("showToast('تم تشغيل النظام في الوضع الآمن', 'warning');","throw new Error('FAIL_CLOSED_TENANT_CONTEXT');",1)
+              return text.rstrip()+'\n<!-- '+marker+' -->\n'
 
-              for table in ['app_settings','customers','branches','suppliers','orders','purchase_orders','receiving','stock_vouchers','runsheets','treasury','chart_of_accounts','roles']:
-                  text,_=scope_selects(text,table)
-              if idx!=1:
-                  text,_=scope_selects(text,'users')
-
-              validate_part(text,idx)
-              p.write_text(text,encoding='utf-8')
-
-              scripts=re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>',text,re.S|re.I)
-              for sidx,code in enumerate(scripts,1):
-                  f=Path(tempfile.gettempdir())/f'rawaea-p{idx}-{sidx}.js';f.write_text(code,encoding='utf-8')
-                  r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-                  if r.returncode:
-                      print(r.stderr);raise SystemExit(f'P{idx}_JS_SYNTAX_{sidx}')
-
-              if text!=original:
-                  subprocess.run(['git','add',str(p)],check=True)
-                  subprocess.run(['git','commit','-m',f'fix(p{idx}): govern and repair original main part {idx}'],check=True)
-                  subprocess.run(['git','push','origin','HEAD:main'],check=True)
-                  print(f'P{idx}_COMMITTED')
-              else:
-                  print(f'P{idx}_NO_CHANGE')
-
-          logical='\n'.join(p.read_text(encoding='utf-8') for p in parts)
-          if logical.count('<!DOCTYPE html>')!=1 or logical.count('<html')!=1 or logical.count('</html>')!=1: raise SystemExit('LOGICAL_HTML_STRUCTURE_FAILURE')
-          if re.search(r"supabase\\.from\\('stock_branches'\\)[\\s\\S]{0,500}\\.(update|insert|upsert|delete)\\(",logical): raise SystemExit('DIRECT_PHYSICAL_STOCK_WRITER_REMAINS')
-          if ".from('inventory_log').insert" in logical: raise SystemExit('DIRECT_INVENTORY_LOG_WRITER_REMAINS')
-          print('ALL_MAIN_PARTS_SERIAL_REPAIR_COMPLETED')
+          selected=None
+          for i,p in enumerate(parts,1):
+              if marker not in p.read_text(encoding='utf-8'):
+                  selected=i; break
+          if selected is None:
+              print('ALL_MAIN_PARTS_ALREADY_CLOSED')
+              raise SystemExit(0)
+          for i in range(1,selected):
+              if marker not in parts[i-1].read_text(encoding='utf-8'):
+                  raise SystemExit(f'EARLIER_PART_NOT_CLOSED_P{i}')
+          if selected != 1:
+              raise SystemExit(f'P{selected}_AWAITING_SERIAL_EXECUTION')
+          p=parts[selected-1]
+          original=p.read_text(encoding='utf-8')
+          patched=patch_main1(original)
+          js_check(patched,'p1')
+          validate_no_direct_physical_writer(patched,'p1')
+          logical='\n'.join(x.read_text(encoding='utf-8') for x in parts[:selected-1])+'\n'+patched+'\n'+'\n'.join(x.read_text(encoding='utf-8') for x in parts[selected:])
+          if logical.lower().count('<!doctype html>')!=1 or logical.lower().count('<html')!=1 or logical.lower().count('</html>')!=1:
+              raise SystemExit('LOGICAL_HTML_STRUCTURE_FAILURE')
+          p.write_text(patched,encoding='utf-8')
+          subprocess.run(['git','diff','--check'],check=True)
+          subprocess.run(['git','add',str(p)],check=True)
+          subprocess.run(['git','commit','-m','fix(p1): govern and repair existing main1 in place'],check=True)
+          subprocess.run(['git','push','origin','HEAD:main'],check=True)
+          print('P1_COMMITTED')
           PY
-          git diff --check
