@@ -1,0 +1,1 @@
+Cleanup receipt for the temporary executor-trigger markers. This file is intentionally retained as an audit record; it is not a trigger.

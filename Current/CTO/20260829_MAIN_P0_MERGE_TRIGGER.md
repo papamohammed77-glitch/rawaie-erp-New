@@ -1,1 +1,0 @@
-Temporary merge trigger; executor must remove this chain residue.
