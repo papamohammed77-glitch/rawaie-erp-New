@@ -1,0 +1,153 @@
+برومبت 83
+مهمة حرجة :
+هذه المهمة استثنائية وخطيرة
+تمهيد هام: 
+توقف عن كل مهمة حالية مثل Picker.html  أو غيرها واهتم فقط بالمهمة الحرجة الحالية ، في هذه المهمة لا تثق في التقارير ، ولا تثق في المساعدين ، ولا تثق في ذاكرتك ، لا تستعجل بالقفز إلي  إتخاذ قرارات استباقية أو بالتعديل .. 
+انتظر حتي تنتهي من قراءة آخر سطر وآخر أمر تنفيذي ،  قم بالتحقيق الجنائي من المصادر مباشرة وقاعدة البيانات supabase و الملفات المنشورة  وسجلات التوثيق ولا تثق بالتقارير ولا ذاكرتك 
+لأن ذاكرتك توقفت في مرحلة تاريخية قديمة ، لذلك لا تعتمد علي الذاكرة الحالية التاريخية ،
+ستكتشف تغييرات حديثة وتاريخية لا تجعلها تسبب لك إرتباك
+في النهاية ما تجده من تعديلات الصحيح منها مرره والغير صحيح قم بإصلاحه مباشرة
+أرغب بتكليفك بمهمة شديدة الحرج والأهمية واستثنائية وخطيرة ولكن قبل ذلك يجب أن أقوم بإعدادك وتأهيلك لهذه المهمة 
+لمعرفة سياق الحوار الحالي للمهمة الحالية وتسلسل الأحداث للاسترشاد 
+هام جدا .. طلبت منك قراءة الملفات التالية كاملة من أولها إلي آخرها قراءة تدقيقية ولا تكتفي بأول أسطر قم بفتح الملف التالي : doc/Draft/medhat/برومبت 72 ، https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2072 
+
+وطلبت منك  بعد قراءتها مراجعة شاملة وكاملة لملف vouchers.html  من كل النواحي وأعلم أنه تابع للمخازن 
+
+والقيام بالإغلاق التام والكامل مع أخذ كل الوسائل
+الإبداعية والبحث عن حلول لدي الشركات المنافسة
+
+والقيام باكتشاف الأخطاء قم بحل واستكمال الـGap المتبقية فيه حتي الآن 
+
+وليس اختراع واجهة جديدة سطحية فوق البيانات الحالية.
+
+أريد أن يكون ملف كامل وشامل ومصحح واحترافي وذهبي ماسي وجاهز للنشر
+الفوري بدون أي أخطاء أو معوقات تعطل النظام او ال workflow
+وتدفق البيانات والتكامل والمزامنة اللحظية
+
+أريد أن نصل في هذه المرة إلي 100% CLOSED" ، قبل المساس بالملف قم بمراجعة آخر دور تم الاتفاق عله لهذا التطبيق ودوره في النظام وعلاقته ببقية النظام وخاصة المخازن وتطبيق مندوب البيع المباشر والموردين ، وكذلك في اذن مندوب البيع المباشر يتم اختيار المندوب ويتم اختيار السيارة ،وفي كل أنواع الأذون يتم تفعيل البحث الذكي مثل في الأصناف في المناديب في السيارات في الموردين  ، وقم بمراجعة  آخر ما تم التخطيط و الخطط التي وضعناها لهذا الملف ، قم بمراجعة آخر الأحداث التي تمت لهذا الملف والمسجلة في سجل الأحداث ، أريد تحقيق أعلي إبداع بالمقارنة بالشركات المنافسة ،  وكان ردك كالتالي : https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2073%20%2B%20%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1 ، 
+
+وطلبت منك أيضا التالي :
+القيام بدمج التعديل فقط في الملف core.js الموجود داخل المجلد Current/PWA ، لأننا لدينا بالفعل ملف Current/PWA/core.js ليكون مصدرنا واحد وقم بتسجيل جميع الأحدث ليسهل الرجوع لها لأي مساعد في التعديل وجعلها من المبادي الحاكمة
+
+وجاء ردك كالتالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2074%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+وطلبت منك التالي : 
+"ولكني فوجئت بأنك صححت كل الملفات ولم تصحح الملف 
+Current/PWA/core.js
+ولا أعلم لماذا قمت بتصليح كل الملفات الأخري 
+ولماذا لم تتعرف علي الملفات الأخري الموجودة مثل 
+Current/PWA/sw.js
+Current/PWA/register-sw.js
+وكلها موجودة 
+المطلوب الآن مراجعة جميع التعديلات السابقة والتأكد من صحتها 
+مراجعة الملفات والتأكد من أنها صحيحة وماسية ذهبية 
+تسجيل الأحداث وعدم فقدان البوصلة واقرأ البرومبتات والرسائل كلها من أولها إلي آخرها وليس بعض أسطر فنفقد النظام وينهار"
+
+وكان ردك التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2075%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+وطلبت منك التالي : 
+"أنت قلت في نهاية تقريرك "الـInventory Core في Production أقرب بكثير إلى الحالة الصحيحة مما توحي به التقارير القديمة، لكن Vouchers/PWA ليست 100% مغلقة حتى الآن بسبب vouchers.html syntax وcore.js/sw.js runtime parity وCI residue. لذلك لن أصف الحالة بأنها ذهبية أو ماسية أو Production-closed قبل إزالة هذه الأدلة المضادة والتحقق منها مرة أخرى."
+قم بإستكمال الإصلاح حتي يصل إلي الحالة الصحيحة وأكمل 100%
+وقم بإزالة الأدلة المضادة والتحقق منها مرة أخري 
+لا تنتظر المساعدة من أحد ولا تتوقف حتي تنتهي ، لديك كل الملفات ولديك كل الخبرة ولديك القدرة علي البحث عبر الإنترنت عن الحلول وما تفعله الأنظمة المنافسة ، والحلول الإبتكارية والإبداعية ولديك رؤية المالك والرؤية العامة لنظام الروائع الذي نعمل عليه
+ولديك التسجيلات التاريخية للمشروع 
+لا تتوقف حتي تنتهي من الاصلاح الكامل وتحقيق تجربة مستخدم رائعة ابداعية وملف ذهبي ماسي"
+
+وكان ردك كالتالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2076%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+وطلبت منك البرومبت التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2077%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+وتم طلب منك الأمر التنفيذي التالي (برومبت 78 + ملحق تقرير بالتنفيذ)
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2078%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+وتم طلب منك الأمر التنفيذي التالي (برومبت 79+ ملحق تقرير بالتنفيذ)
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2079%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+ثم طلبت منك الأمر التنفيذي التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2080%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+وطلبت منك البرومبت التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2081%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+وطلبت منك الأمر التنفيذي التالي : 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2082%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+وطلبت منك الأمر التنفيذي التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2083%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+وتم طلب منك الأمر التنفيذي التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%2084%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+والمطلوب الآن
+
+لا أريد تقارير .. أريد أفعال وتنفيذ مهام
+قم بدمج الإصلاحات في ملف Current/PWA/main.html
+ قم بتقسيمه خطة الإصلاحات إلي إصلاح كائنات 
+Dashboard وتحليلات.
+Master Data.
+Customers / Suppliers.
+Branches / Warehouse.
+POS.
+Purchases.
+Orders.
+Runsheets.
+Receiving / Picking / Loading / Delivery / Return / Unloading.
+Vouchers / Transfers.
+Vehicle Count / Branch Count / General Count.
+Reports.
+Users / Roles / Permissions.
+License / Settings.
+HR.
+CRM.
+Notifications.
+Workflow engine.
+Audit.
+Routing/navigation.
+Supabase client/auth/session handling.
+
+قم باستكمال المراحل ولا تتوقف حتي تنتهي 
+لا تترك Gaps خلفنا أو ديون تقنية 
+عند استكمال المرحلة انتقل تلقائيا إلي المرحلة التي تليها دون توقف
+
+
+
+-----------------------
+ملحق
+تقرير تنفيذ البرومبت
+تم تنفيذ التحقيق المباشر حتى النقطة التي يمكن إثباتها، لكن لم أصل بعد إلى 100% CLOSED، ولن أصف المهمة بأنها مكتملة أو أدّعي تعديل Current/PWA/main.html بينما الأدلة الحالية لا تثبت ذلك.
+
+أهم ما تم إثباته فعليًا من Production وGitHub:
+
+post_stock_movement هو محرك Physical Stock المركزي، ولم أجد Writer مستقلًا آخر يثبت أنه يتجاوز العقد.
+reserve_stock وrelease_stock_reservation Reservation فقط.
+توجد نقاط Tenant/Company حقيقية في عدة RPCs وEdge Functions تستخدم app_settings ... LIMIT 1.
+create-stock-voucher الحالي في Git لا يستخدم الـcanonical RPC، بل يكتب stock_vouchers وstock_voucher_details مباشرة؛ وهذا Consumer Drift يجب إصلاحه.
+receive_purchase_atomic أصبح لديه idempotency logic، لكن التصميم الحالي يحتاج Operation Identity صريحًا من العميل حتى يكون retry بعد انقطاع الاتصال آمنًا بصورة فعلية.
+main.html الحالي لا يثبت، من الأدلة التي تمكنت من فحصها كاملة، أنه يحتوي على Vehicle Master native capability.
+Production تحتوي vehicles schema/capability، لكن لا توجد بيانات Vehicle Master حية يمكن افتراضها كبيانات تشغيلية.
+وجدت في المسارات التاريخية Edge code قديمًا يقوم بتعديل stock_branches وinventory_log مباشرة، لكنه Legacy وليس دليلًا على أن هذا هو runtime الحالي.
+حدثت محاولات تشغيلية عبر GitHub Actions، لكن الـruns التي تم التحقق منها كانت مرتبطة بـHTTP gates متقاعدة وترجع 410؛ لذلك لم أعتبرها نجاحًا لإصلاح main.html.
+أغلقت PR التنفيذي المؤقت ولم أعتبره تغييرًا إنتاجيًا.
+لم أترك خلفي ادعاءً زائفًا بأن main.html أصبح ذهبيًا أو ماسيًا.
+
+والأهم: لم أقم بإعادة كتابة main.html من نسخة مبتورة. الملف كبير جدًا، وإعادة تركيبه من مخرجات truncated كانت ستخالف مباشرة المبدأ الذي طلبته: عدم التخمين وعدم إسقاط أي Contract أو جزء مخفي من النظام.
+
+الحالة الحالية
+المجال	الحالة المثبتة
+Production forensic baseline	✅
+Inventory Core writer discovery	✅ جزئيًا
+post_stock_movement centrality	✅
+Manual Voucher CREATE	✅ تم إصلاحه واختباره Transactionally
+Voucher CREATE Edge → canonical RPC	❌ لم يُغلق بعد
+Purchase idempotency	⚠️ يحتاج Operation Identity صريح
+Tenant isolation	⚠️ توجد Gaps فعلية
+Vehicle Master داخل Parent PWA	❌ لم يثبت تنفيذه
+main.html full staged closure	❌
+Production runtime verification للـPWA	❌
+100% CLOSED	❌ غير مثبت
+
+لذلك النتيجة المهنية الصحيحة الآن هي: المهمة لم تُغلق بعد، وأنا لن أبيعك نسبة 100% غير مثبتة.
+
+أستطيع متابعة التنفيذ، لكن الوصول الحقيقي إلى 100% يتطلب قناة كتابة/تنفيذ موثوقة للـrepository تمنحني تعديل الملف الكامل Current/PWA/main.html والتحقق منه بعد النشر؛ أدوات الـGit الحالية استطاعت القراءة والتغييرات الصغيرة، لكنها لم توفر هنا مسارًا موثوقًا لتعديل هذا الـblob الضخم كاملًا والتحقق من runtime Production end-to-end.
