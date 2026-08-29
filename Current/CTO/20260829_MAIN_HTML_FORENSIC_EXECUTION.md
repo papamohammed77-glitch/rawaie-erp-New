@@ -23,29 +23,30 @@
 7. Production has a canonical Vehicle Master contract: `vehicles` + `create_vehicle_atomic(...)`, with company validation and optional Mobile/Van branch initialization.
 8. Direct client-side Physical Stock mutation was not accepted; Physical Stock remains a backend engine responsibility.
 
-## Historical/target constraints preserved
-- Parent PWA structure preserved.
-- OWNER wildcard semantics preserved only for confirmed owner state.
-- Item identity follows Production schema evidence; `items.item_code` is globally UNIQUE, so no speculative company restriction was introduced merely because `items.company_id` exists.
-- Vehicle mutation remains delegated to `create_vehicle_atomic`.
-- No permanent test vehicle or permanent test inventory was created.
+## New critical task: System Identity / Settings / Owner continuity
+- Production `app_settings` was re-read directly. Current schema contains `company_name`, `company_logo`, `company_phone`, `store_name`, `store_logo`, `store_primary_color`, `store_secondary_color`, `payment_method`, `currency`, `delivery_fee`, `min_invoice_amount`, `tax_rate`, `main_branch_id`, and license state fields.
+- Production owner row `owner@alrawae.com` was re-read directly. Current DB permissions are `[*]`, status `Active`; auth metadata retains `isOwner=true` and `permissions=["*"]`.
+- Existing `RW_OwnerLicense` and owner-only navigation were found in Current; the task is restoration/continuity, not replacement.
+- A critical backend drift was discovered: the deployed `save-settings` capability previously referenced non-existent `app_settings` columns (`vat_number`, `registered_name`, `business_address`) and lacked a real Owner gate for license mutations.
 
-## Execution units
-- MAIN-TENANT-001 — authenticated tenant context
-- MAIN-AUTH-002 — permission fallback safety
-- MAIN-BOOT-003 — fail-closed bootstrap
-- MAIN-READ-004 — explicit company scoping for tenant-owned reads
-- MAIN-FLEET-005 — native Vehicle Master integration
-- MAIN-STOCK-006 — verify no parent-shell Physical Stock writer
+## Changes actually deployed
+### Production
+- `save-settings` Edge Function deployed as version 13, ACTIVE, JWT required.
+- New backend contract authenticates through `auth_id`, resolves `users.company_id`, requires Active user, whitelists only current `app_settings` fields, validates `main_branch_id` against the same company, and allows license-field mutations only when both Auth metadata and DB permissions confirm OWNER wildcard semantics.
 
-## Required verification gates
-- Inline JavaScript syntax check
-- Static tenant-read invariant check
-- No wildcard permission fallback for non-owner users
-- Vehicle route/module/export and `create_vehicle_atomic` contract
-- No direct `stock_branches` physical mutation from main.html
-- No direct `inventory_log` write from main.html
-- Git diff integrity
+### Git executor
+- `tools/p0_main_shell_repair_v2.py` updated in commit `59d6e1f1f9d786f26b2f21fb728b6404ff6e7099`.
+- Executor now also restores app-settings-backed identity/branding bridge, adds OwnerContract protection, restores currency state, and converts bootstrap fallback to fail-closed.
+- A second critical workflow trigger commit `4cba1498408596a5fb638e30d39b7d3eeecd08b2` was added, but its run created no jobs; it therefore was NOT treated as execution success.
 
-## Status
-Execution trigger committed. The governed executor must now perform the surgical source transformation, validate it, record the resulting commit, and remove the temporary executor workflow.
+## Production data findings
+- Owner identity/permissions currently remain intact; no owner permissions or license state were altered.
+- No production data repair was performed from assumption.
+
+## Current limitation still under execution
+- `Current/PWA/main.html` remains at the pre-executor SHA `34b1bd23f99ac08a797625ab2fd359b21bf140b4` at the time of this log update because the GitHub Actions executor has not yet executed its job.
+- Therefore the main.html source transformation is NOT yet claimed as deployed or closed.
+- Browser-authenticated E2E of the UI is not claimed until an actual browser runtime is available.
+
+## Governance
+No percentage completion is used. Closure is accepted only after Git + Production + runtime + regression evidence reconcile.
