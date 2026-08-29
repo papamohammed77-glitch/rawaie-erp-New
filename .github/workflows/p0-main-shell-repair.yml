@@ -1,482 +1,71 @@
-name: P0 Main ERP Shell Repair
-
+name: P0 Parent PWA main repair
 on:
   push:
-    paths:
-      - '.github/workflows/p0-main-shell-repair.yml'
-
+    branches: [main]
 permissions:
   contents: write
-
 jobs:
-  p0-repair:
+  repair:
+    if: github.event.head_commit.message != 'fix: execute parent pwa main shell p0'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main
+      - name: Checkout current main
         uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 0
-
-      - name: Apply surgical P0 repair
+          fetch-depth: 2
+      - name: Run audited P0 patch
+        run: python3 tools/p0_main_shell_repair.py
+      - name: Validate JavaScript and invariants
         shell: bash
         run: |
           set -euo pipefail
-          python3 <<'PY'
-          from pathlib import Path
-          import re, subprocess, datetime, sys
-
-          main = Path('Current/PWA/main.html')
-          if not main.exists():
-              raise SystemExit('P0_ABORT: Current/PWA/main.html not found')
-          if not Path('Current/PWA/core.js').exists():
-              raise SystemExit('P0_ABORT: canonical Current/PWA/core.js missing')
-          if not Path('Current/PWA/sw.js').exists() or not Path('Current/PWA/register-sw.js').exists():
-              raise SystemExit('P0_ABORT: canonical service-worker files missing')
-
-          s = main.read_text(encoding='utf-8')
-          original = s
-          required = [
-              "const RW_STATE = {",
-              "const RW_Navigation = {",
-              "var RW_Views = {",
-              "function RW_Audit_renderTab()",
-              "RW_Warehouse",
-              "RW_Finance",
-              "RW_Reports"
-          ]
-          for marker in required:
-              if marker not in s:
-                  raise SystemExit(f'P0_ABORT: required anchor missing: {marker}')
-
-          def insert_once(text, anchor, payload, label):
-              if payload.strip() in text:
-                  return text
-              pos = text.find(anchor)
-              if pos < 0:
-                  raise SystemExit(f'P0_ABORT: insertion anchor missing: {label}')
-              return text[:pos] + payload + text[pos:]
-
-          # ------------------------------------------------------------
-          # 1) Establish a real authenticated Tenant/Company context.
-          # ------------------------------------------------------------
-          state_pattern = re.compile(r"const RW_STATE = \{.*?\};\nwindow\.RW_STATE = RW_STATE;", re.S)
-          m = state_pattern.search(s)
-          if not m:
-              raise SystemExit('P0_ABORT: RW_STATE block not found')
-          state_block = m.group(0)
-          context_block = r'''
-// ============================================================
-// P0 ERP Shell — authenticated tenant context (canonical)
-// Never infer company from app_settings LIMIT 1.
-// ============================================================
-var RW_ShellContext = (function() {
-    var companyId = null;
-    var resolving = null;
-
-    function resolve(callback) {
-        if (companyId) {
-            RW_STATE.app.companyId = companyId;
-            if (callback) callback(true, companyId);
-            return Promise.resolve(companyId);
-        }
-        if (resolving) {
-            return resolving.then(function(id) {
-                if (callback) callback(!!id, id);
-                return id;
-            });
-        }
-        var current = RW_STATE.app.currentUser || {};
-        if (!current.email && !current.id) {
-            if (callback) callback(false, null);
-            return Promise.resolve(null);
-        }
-        var query = null;
-        if (current.id) {
-            query = supabase.from('users')
-                .select('id,company_id,name,role,status')
-                .eq('auth_id', current.id)
-                .eq('status', 'Active')
-                .maybeSingle();
-        } else {
-            query = supabase.from('users')
-                .select('id,company_id,name,role,status')
-                .eq('email', current.email)
-                .eq('status', 'Active')
-                .maybeSingle();
-        }
-        resolving = query.then(function(res) {
-            if (res.error || !res.data || !res.data.company_id) {
-                throw new Error('سياق الشركة غير صالح للمستخدم الحالي');
-            }
-            companyId = res.data.company_id;
-            RW_STATE.app.companyId = companyId;
-            RW_STATE.app.userId = res.data.id || current.id || null;
-            if (res.data.name) RW_STATE.app.currentUser.name = res.data.name;
-            if (res.data.role) RW_STATE.app.currentUser.role = res.data.role;
-            return companyId;
-        }).finally(function() {
-            resolving = null;
-        });
-        return resolving.then(function(id) {
-            if (callback) callback(true, id);
-            return id;
-        }).catch(function(err) {
-            companyId = null;
-            RW_STATE.app.companyId = null;
-            if (callback) callback(false, null);
-            throw err;
-        });
-    }
-
-    function getCompanyId() {
-        if (!companyId && RW_STATE.app.companyId) companyId = RW_STATE.app.companyId;
-        if (!companyId) throw new Error('TENANT_CONTEXT_UNAVAILABLE');
-        return companyId;
-    }
-
-    function hasCompany() {
-        return !!(companyId || (RW_STATE.app && RW_STATE.app.companyId));
-    }
-
-    return { resolve: resolve, getCompanyId: getCompanyId, hasCompany: hasCompany };
-})();
-window.RW_ShellContext = RW_ShellContext;
-
-'''
-          s = s[:m.start()] + state_block + context_block + s[m.end():]
-
-          # ------------------------------------------------------------
-          # 2) Make enterSystem fail-closed until tenant context exists.
-          # ------------------------------------------------------------
-          anchor = "enterSystem: function() {\n    hideLoader();"
-          replacement = "enterSystem: function() {\n    var self = this;\n    if (!RW_ShellContext.hasCompany()) {\n        RW_ShellContext.resolve(function(ok) {\n            if (ok) self.enterSystem();\n            else { hideLoader(); showToast('تعذر تحديد الشركة الحالية للمستخدم', 'error'); }\n        }).catch(function(e) { console.error('TENANT_CONTEXT_ERROR', e); });\n        return;\n    }\n    hideLoader();"
-          if anchor not in s:
-              raise SystemExit('P0_ABORT: enterSystem anchor missing')
-          s = s.replace(anchor, replacement, 1)
-
-          # ------------------------------------------------------------
-          # 3) Scope every app_settings read in the Parent PWA.
-          # ------------------------------------------------------------
-          patterns = [
-              (".from('app_settings')\n            .select('*')\n            .limit(1)", ".from('app_settings')\n            .select('*')\n            .eq('company_id', RW_ShellContext.getCompanyId())\n            .limit(1)"),
-              (".from('app_settings').select('*').limit(1).single()", ".from('app_settings').select('*').eq('company_id', RW_ShellContext.getCompanyId()).limit(1).single()"),
-              (".from('app_settings').select('min_invoice_amount, delivery_fee, tax_rate').limit(1).single()", ".from('app_settings').select('min_invoice_amount, delivery_fee, tax_rate').eq('company_id', RW_ShellContext.getCompanyId()).limit(1).single()")
-          ]
-          for a,b in patterns:
-              s = s.replace(a,b)
-
-          # ------------------------------------------------------------
-          # 4) Scope simple SELECT read paths for tenant-owned tables.
-          #    Items intentionally remain global-master because Production
-          #    enforces UNIQUE(item_code) globally; branch/company identity
-          #    remains enforced at movement/stock boundaries.
-          # ------------------------------------------------------------
-          tenant_tables = ['customers','suppliers','branches','orders','purchase_orders','runsheets','users','vehicles']
-          select_re = re.compile(r"supabase\.from\('([a-z_]+)'\)(\s*\.select\([^\n;]*?\))")
-          def scope_select(mm):
-              table = mm.group(1)
-              chain = mm.group(0)
-              if table not in tenant_tables:
-                  return chain
-              if ".eq('company_id', RW_ShellContext.getCompanyId())" in chain:
-                  return chain
-              return chain + ".eq('company_id', RW_ShellContext.getCompanyId())"
-          s = select_re.sub(scope_select, s)
-
-          # ------------------------------------------------------------
-          # 5) Replace the old permission/navigation handling for Vehicles
-          #    without changing existing view keys.
-          # ------------------------------------------------------------
-          inventory_anchor = "{ view: 'general-count', label: 'جرد عام' }] }] },"
-          vehicle_item = "{ view: 'vehicle-count', label: 'جرد سيارة' }, { view: 'vehicles', label: 'السيارات والمركبات', perm: 'vehicles.manage' }, { view: 'branch-count', label: 'جرد فرع' }, { view: 'general-count', label: 'جرد عام' }] }] },"
-          if "{ view: 'vehicles', label: 'السيارات والمركبات'" not in s:
-              if inventory_anchor in s:
-                  s = s.replace(inventory_anchor, vehicle_item, 1)
-              else:
-                  raise SystemExit('P0_ABORT: inventory navigation anchor missing')
-
-          permission_anchor = "                if (item.perm === 'owner') {"
-          if permission_anchor not in s:
-              raise SystemExit('P0_ABORT: navigation permission anchor missing')
-          special_perm = "                if (item.view === 'vehicles') {\n                    var cu = RW_STATE.app.currentUser || {};\n                    return RW_Permissions_check('vehicles.manage') || cu.role === 'مدير مخازن' || cu.role === 'مدير عام' || cu.role === 'owner';\n                }\n"
-          s = s.replace(permission_anchor, special_perm + permission_anchor, 1)
-
-          # ------------------------------------------------------------
-          # 6) Add Vehicle Master capability backed ONLY by create_vehicle_atomic.
-          # ------------------------------------------------------------
-          fleet_marker = "// ============================================================\n// RW_Views – نظام التوجيه النهائي"
-          if fleet_marker not in s:
-              raise SystemExit('P0_ABORT: RW_Views anchor missing')
-          fleet_block = r'''
-// ============================================================
-// RW_Fleet — Vehicle Master (P0 integrated capability)
-// Contract: UI -> create_vehicle_atomic -> vehicle/mobile branch/stock.
-// No direct vehicle insert/update is permitted here.
-// ============================================================
-var RW_Fleet = (function() {
-    var drivers = [];
-    var vehicles = [];
-
-    function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(m) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; }); }
-    function companyId() { return RW_ShellContext.getCompanyId(); }
-
-    async function load() {
-        var res = await supabase.from('vehicles')
-            .select('id,vehicle_code,model,license_plate,driver_id,status,vehicle_type,operation_mode,ownership_type,max_weight_kg,max_volume_m3,min_trip_value,refrigerated,mobile_stock_enabled,mobile_branch_id')
-            .eq('company_id', companyId())
-            .order('vehicle_code', { ascending: true });
-        vehicles = res.data || [];
-        var du = await supabase.from('users')
-            .select('id,name,email,role,status')
-            .eq('company_id', companyId())
-            .eq('status', 'Active')
-            .in('role', ['driver','سائق','مندوب'])
-            .order('name', { ascending: true });
-        drivers = du.data || [];
-        return vehicles;
-    }
-
-    function render() {
-        var c = byId('rw-page-container');
-        if (!c) return;
-        safeText(byId('rw-header-title'), 'إدارة السيارات والمركبات');
-        safeText(byId('rw-header-subtitle'), 'Vehicle Master • مندوب • سيارة • Mobile Branch • Van Stock');
-        var html = '<div class="space-y-5">';
-        html += '<div class="rw-card" style="padding:24px;">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">';
-        html += '<div><h2 style="font-size:22px;font-weight:900;color:#111827;">Vehicle Master</h2><p style="margin-top:6px;color:#6b7280;font-size:13px;">إدارة الأسطول من نفس الـERP Shell وبالعقد الخلفي المعتمد.</p></div>';
-        html += '<button onclick="RW_Fleet.openCreate()" class="rw-btn-primary"><i class="fa-solid fa-plus"></i> إضافة سيارة</button></div></div>';
-        html += '<div class="rw-card" style="padding:0;overflow:hidden;"><div class="p-4" style="border-bottom:1px solid #e5e7eb;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">';
-        html += '<input id="fleet-search" oninput="RW_Fleet.filter(this.value)" class="rw-input" style="height:46px;max-width:420px;padding-right:18px;" placeholder="بحث ذكي: كود السيارة، اللوحة، الموديل، المندوب...">';
-        html += '<span id="fleet-count" class="rw-status success">0 مركبة</span></div><div id="fleet-table" class="overflow-auto"></div></div></div>';
-        safeHTML(c, html);
-        load().then(function() { filter(''); }).catch(function(e) { safeHTML(byId('fleet-table'), '<div class="p-10 text-center text-red-500">تعذر تحميل السيارات: '+esc(e.message)+'</div>'); });
-    }
-
-    function filter(term) {
-        term = String(term || '').trim().toLowerCase();
-        var rows = vehicles.filter(function(v) {
-            var d = null;
-            for (var i=0;i<drivers.length;i++) if (drivers[i].id === v.driver_id) { d = drivers[i]; break; }
-            var hay = [v.vehicle_code,v.license_plate,v.model,v.status,v.vehicle_type,v.operation_mode,d && d.name,d && d.email].join(' ').toLowerCase();
-            return !term || hay.indexOf(term) !== -1;
-        });
-        var count = byId('fleet-count'); if (count) count.textContent = rows.length + ' مركبة';
-        var w = byId('fleet-table'); if (!w) return;
-        if (!rows.length) { safeHTML(w, '<div class="p-12 text-center text-gray-400">لا توجد سيارات ضمن سياق الشركة الحالي.</div>'); return; }
-        var h = '<table class="rw-table"><thead><tr><th>الكود</th><th>اللوحة</th><th>الموديل</th><th>المندوب</th><th>النمط</th><th>الحالة</th><th>Mobile Stock</th></tr></thead><tbody>';
-        rows.forEach(function(v) {
-            var d = null; for (var i=0;i<drivers.length;i++) if (drivers[i].id === v.driver_id) { d = drivers[i]; break; }
-            h += '<tr><td>'+esc(v.vehicle_code)+'</td><td>'+esc(v.license_plate)+'</td><td>'+esc(v.model || '-')+'</td><td>'+esc(d ? d.name : 'غير معين')+'</td><td>'+esc(v.operation_mode || '-')+'</td><td><span class="rw-status '+(v.status==='Active'?'success':'warning')+'">'+esc(v.status || '-')+'</span></td><td>'+(v.mobile_stock_enabled?'مفعل':'غير مفعل')+'</td></tr>';
-        });
-        h += '</tbody></table>'; safeHTML(w,h);
-    }
-
-    async function searchDrivers(term) {
-        term = String(term || '').trim();
-        if (term.length < 1) return drivers.slice(0,20);
-        var res = await supabase.from('users')
-            .select('id,name,email,role,status')
-            .eq('company_id', companyId())
-            .eq('status','Active')
-            .in('role',['driver','سائق','مندوب'])
-            .or('name.ilike.%'+term+'%,email.ilike.%'+term+'%')
-            .limit(20);
-        return res.data || [];
-    }
-
-    function openCreate() {
-        var html = '<div dir="rtl" class="text-right space-y-3">';
-        html += '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">';
-        html += '<input id="vf-code" class="rw-input" placeholder="كود السيارة *">';
-        html += '<input id="vf-plate" class="rw-input" placeholder="رقم اللوحة *">';
-        html += '<input id="vf-model" class="rw-input" placeholder="الموديل">';
-        html += '<input id="vf-year" type="number" class="rw-input" placeholder="سنة الموديل">';
-        html += '<input id="vf-vin" class="rw-input" placeholder="VIN">';
-        html += '<input id="vf-fuel" class="rw-input" placeholder="نوع الوقود">';
-        html += '<input id="vf-weight" type="number" step="0.01" class="rw-input" placeholder="أقصى وزن kg">';
-        html += '<input id="vf-volume" type="number" step="0.01" class="rw-input" placeholder="أقصى حجم m³">';
-        html += '<input id="vf-mintrip" type="number" step="0.01" class="rw-input" placeholder="الحد الأدنى لقيمة الرحلة">';
-        html += '<select id="vf-type" class="rw-input"><option value="Delivery">Delivery</option><option value="Sales">Sales</option><option value="Mixed" selected>Mixed</option></select>';
-        html += '<select id="vf-mode" class="rw-input"><option value="Mixed" selected>Mixed</option><option value="DirectSales">Direct Sales</option><option value="Delivery">Delivery</option></select>';
-        html += '<select id="vf-own" class="rw-input"><option value="Owned" selected>Owned</option><option value="Leased">Leased</option><option value="Rented">Rented</option></select>';
-        html += '<select id="vf-status" class="rw-input"><option value="Active" selected>Active</option><option value="Inactive">Inactive</option><option value="Maintenance">Maintenance</option></select>';
-        html += '<div class="md:col-span-2"><label class="font-bold text-sm">المندوب / السائق</label><input id="vf-driver-search" oninput="RW_Fleet.searchDriverUI(this.value)" class="rw-input" style="margin-top:6px;" placeholder="بحث ذكي بالاسم أو البريد"><div id="vf-driver-results" class="border rounded-xl mt-2 max-h-40 overflow-auto"></div><input type="hidden" id="vf-driver-id"></div>';
-        html += '<label class="flex items-center gap-2 md:col-span-2"><input id="vf-refrigerated" type="checkbox"> <span>مركبة مبردة</span></label>';
-        html += '<label class="flex items-center gap-2 md:col-span-2"><input id="vf-mobile-stock" type="checkbox" checked> <span>تفعيل Mobile Stock / Van Branch</span></label>';
-        html += '<textarea id="vf-notes" class="rw-input md:col-span-2" style="height:90px;padding:12px 18px;" placeholder="ملاحظات"></textarea>';
-        html += '</div></div>';
-        Swal.fire({ title:'إضافة سيارة', html:html, width:820, showCancelButton:true, confirmButtonText:'إنشاء السيارة', cancelButtonText:'إلغاء', focusConfirm:false, preConfirm:function(){ return create(); } });
-        searchDriverUI('');
-    }
-
-    async function searchDriverUI(term) {
-        try {
-            var rows = await searchDrivers(term);
-            var w = byId('vf-driver-results'); if (!w) return;
-            var h = '';
-            rows.forEach(function(d) { h += '<button type="button" style="display:block;width:100%;text-align:right;padding:10px;border-bottom:1px solid #eee;background:white;" onclick="RW_Fleet.pickDriver(\\''+d.id+'\\',\\''+esc(d.name)+'\\',\\''+esc(d.email)+'\\')"><b>'+esc(d.name)+'</b><span style="color:#64748b;margin-right:8px;">'+esc(d.email)+'</span></button>'; });
-            safeHTML(w, h || '<div class="p-3 text-gray-400">لا يوجد مندوب مطابق.</div>');
-        } catch(e) { console.error(e); }
-    }
-
-    function pickDriver(id,name,email) {
-        var hid=byId('vf-driver-id'), inp=byId('vf-driver-search');
-        if (hid) hid.value=id;
-        if (inp) inp.value=name+' ('+email+')';
-        safeHTML(byId('vf-driver-results'),'');
-    }
-
-    async function create() {
-        var current = RW_STATE.app.currentUser || {};
-        var code = String(byId('vf-code') ? byId('vf-code').value : '').trim();
-        var plate = String(byId('vf-plate') ? byId('vf-plate').value : '').trim();
-        if (!code || !plate) { Swal.showValidationMessage('كود السيارة ورقم اللوحة مطلوبان'); return false; }
-        var params = {
-            p_company_id: companyId(), p_vehicle_code:code, p_model:byId('vf-model').value || null, p_license_plate:plate,
-            p_driver_id:byId('vf-driver-id').value || null, p_max_weight_kg:Number(byId('vf-weight').value)||null,
-            p_max_volume_m3:Number(byId('vf-volume').value)||null, p_min_trip_value:Number(byId('vf-mintrip').value)||null,
-            p_status:byId('vf-status').value, p_notes:byId('vf-notes').value || null, p_vehicle_type:byId('vf-type').value,
-            p_operation_mode:byId('vf-mode').value, p_ownership_type:byId('vf-own').value,
-            p_model_year:Number(byId('vf-year').value)||null, p_vin:byId('vf-vin').value||null, p_fuel_type:byId('vf-fuel').value||null,
-            p_refrigerated:!!byId('vf-refrigerated').checked, p_mobile_stock_enabled:!!byId('vf-mobile-stock').checked,
-            p_created_by:current.email || null
-        };
-        var res = await supabase.rpc('create_vehicle_atomic', params);
-        if (res.error) { Swal.showValidationMessage(res.error.message); return false; }
-        if (!res.data || !res.data.success) { Swal.showValidationMessage((res.data && res.data.error) || 'فشل إنشاء السيارة'); return false; }
-        RW_Audit_log('create','vehicles',res.data.vehicle_id,null,res.data);
-        return res.data;
-    }
-
-    return { render:render, openCreate:openCreate, filter:filter, searchDriverUI:searchDriverUI, pickDriver:pickDriver };
-})();
-window.RW_Fleet = RW_Fleet;
-
-'''
-          s = s.replace(fleet_marker, fleet_block + fleet_marker, 1)
-
-          # Add view title and render route.
-          titles_anchor = "            'audit-log':'سجل التدقيق'"
-          if titles_anchor in s and "'vehicles':'السيارات والمركبات'" not in s:
-              s = s.replace(titles_anchor, "            'vehicles':'السيارات والمركبات',\n" + titles_anchor, 1)
-          route_anchor = "        if (view === 'audit-log') { RW_Audit_renderTab(); return; }"
-          if route_anchor not in s:
-              raise SystemExit('P0_ABORT: audit route anchor missing')
-          if "if (view === 'vehicles') { RW_Fleet.render(); return; }" not in s:
-              s = s.replace(route_anchor, "        if (view === 'vehicles') { RW_Fleet.render(); return; }\n" + route_anchor, 1)
-
-          # ------------------------------------------------------------
-          # 7) ERP shell connection + tenant indicator. No business logic.
-          # ------------------------------------------------------------
-          header_anchor = '<div class="rw-header-right"><div class="rw-header-search">'
-          indicator = '<div id="rw-shell-tenant-status" class="rw-status neutral" title="حالة سياق الشركة">Tenant: …</div><div id="rw-shell-connection" class="rw-status neutral" title="اتصال النظام">● اتصال</div>'
-          if 'id="rw-shell-tenant-status"' not in s:
-              if header_anchor not in s:
-                  raise SystemExit('P0_ABORT: header anchor missing')
-              s = s.replace(header_anchor, '<div class="rw-header-right">' + indicator + '<div class="rw-header-search">', 1)
-
-          shell_boot = r'''
-// ============================================================
-// P0 Shell Health — tenant + network state only
-// ============================================================
-(function() {
-    function paint() {
-        var tenant = byId('rw-shell-tenant-status');
-        var online = byId('rw-shell-connection');
-        if (tenant) {
-            try { tenant.textContent = 'Tenant: ' + (RW_ShellContext.hasCompany() ? RW_ShellContext.getCompanyId().slice(0,8) : '…'); } catch(e) { tenant.textContent = 'Tenant: …'; }
-        }
-        if (online) {
-            online.textContent = navigator.onLine ? '● اتصال' : '● دون اتصال';
-            online.className = 'rw-status ' + (navigator.onLine ? 'success' : 'warning');
-        }
-    }
-    window.addEventListener('online', paint);
-    window.addEventListener('offline', paint);
-    setTimeout(paint, 300);
-})();
-
-'''
-          if 'P0 Shell Health — tenant + network state only' not in s:
-              # insert near the first global utility section so it can see runtime globals
-              anchor = "const showToast = (message, type = 'success') =>"
-              p = s.find(anchor)
-              if p < 0: raise SystemExit('P0_ABORT: utility anchor missing')
-              s = s[:p] + shell_boot + s[p:]
-
-          # ------------------------------------------------------------
-          # 8) Defensive fix for the old users/company app_settings bootstrap.
-          # ------------------------------------------------------------
-          s = s.replace("supabase.from('suppliers').select('*').then(function(r)", "supabase.from('suppliers').select('*').eq('company_id', RW_ShellContext.getCompanyId()).then(function(r)")
-
-          if s == original:
-              raise SystemExit('P0_ABORT: no changes produced')
-
-          main.write_text(s, encoding='utf-8')
-
-          # ------------------------------------------------------------
-          # 9) Static invariants: no dangerous global app_settings lookup in main.
-          # ------------------------------------------------------------
-          forbidden = [
-              ".from('app_settings')\n            .select('*')\n            .limit(1)",
-              ".from('app_settings').select('*').limit(1).single()",
-              ".from('app_settings').select('min_invoice_amount, delivery_fee, tax_rate').limit(1).single()"
-          ]
-          for item in forbidden:
-              if item in s:
-                  raise SystemExit('P0_ABORT: unscoped app_settings lookup remains')
-
-          # No accidental second shared core path.
-          if 'Current/core.js' in s:
-              raise SystemExit('P0_ABORT: forbidden duplicate core path leaked into main')
-
-          print('P0_PATCH_OK')
-          print('Original bytes:', len(original.encode('utf-8')))
-          print('New bytes:', len(s.encode('utf-8')))
-          PY
-
-      - name: Validate HTML and JavaScript
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 <<'PY'
+          python3 - <<'PY'
           from pathlib import Path
           import re, subprocess, tempfile
-          s = Path('Current/PWA/main.html').read_text(encoding='utf-8')
-          scripts = re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>', s, re.S | re.I)
-          if not scripts:
-              raise SystemExit('VALIDATION_FAILED: no inline scripts found')
-          for i, code in enumerate(scripts, 1):
-              f = Path(tempfile.gettempdir()) / f'rw_main_inline_{i}.js'
-              f.write_text(code, encoding='utf-8')
-              r = subprocess.run(['node','--check',str(f)], text=True, capture_output=True)
+          s=Path('Current/PWA/main.html').read_text(encoding='utf-8')
+          required=['RW_ShellContext','RW_Fleet','create_vehicle_atomic',"if (view === 'vehicles')"]
+          for x in required:
+              if x not in s: raise SystemExit('missing '+x)
+          if ".from('app_settings')\n            .select('*')\n            .limit(1" in s: raise SystemExit('unscoped app_settings remains')
+          scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I)
+          if not scripts: raise SystemExit('no inline scripts')
+          for i,c in enumerate(scripts,1):
+              f=Path(tempfile.gettempdir())/f'rw_main_{i}.js';f.write_text(c,encoding='utf-8')
+              r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
               if r.returncode:
-                  print(r.stdout)
-                  print(r.stderr)
-                  raise SystemExit(f'VALIDATION_FAILED: inline script {i} syntax error')
-          print('JS_SYNTAX_OK', len(scripts))
+                  print(r.stderr);raise SystemExit('syntax failure '+str(i))
+          subprocess.run(['git','diff','--check'],check=True)
+          print('P0_STATIC_OK',len(scripts))
           PY
-          git diff --check
-
-      - name: Commit P0 result and remove one-shot runner
+      - name: Record result and restore runner
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git config user.name 'RAWAEA P0 Repair Bot'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          python3 <<'PY'
-          from pathlib import Path
-          import datetime, subprocess
-          p=Path('Current/CTO/20260829_MAIN_P0_EXECUTION.md')
-          head=subprocess.check_output(['git','rev-parse','HEAD']).decode().strip()
-          body=f'''# RAWAEA ERP — main.html P0 Execution Record — 2026-08-29\n\n## Authority\nExecuted against `rawaie-erp-New/main` under the governing principles and critical directives supplied for the Parent PWA. Production remains the authoritative runtime source; this commit changes only the Parent PWA shell layer and does not replace its historical functions wholesale.\n\n## P0 scope executed\n- Authenticated company context is established before the Parent PWA enters the shell.\n- `app_settings` reads in `Current/PWA/main.html` are company-scoped; global `LIMIT 1` reads were removed from the Parent PWA.\n- Tenant-owned simple SELECT paths were company-scoped where the table contract is company-owned. Item Master was intentionally not company-filtered because Production schema currently enforces global `UNIQUE(item_code)` and existing inventory architecture treats item identity as a global master.\n- Navigation gained an integrated Vehicle Master route without creating a side application.\n- Vehicle creation uses only Production `create_vehicle_atomic`; no direct vehicle/branch/stock insert is performed by the new UI.\n- Smart driver lookup is company-scoped.\n- Tenant/network health indicators were added to the existing shell without changing business workflow.\n- Full inline JavaScript syntax validation and `git diff --check` passed before commit.\n\n## Historical preservation\nThe original `Current/PWA/main.html` was not rewritten from scratch. The repair is surgical and leaves the existing ERP/PWA functions, view keys, warehouse workflow, finance, reports, HR, CRM, users, roles, license, notifications, workflow and audit modules in place.\n\n## Production contracts consulted\n- `create_vehicle_atomic(uuid, text, text, text, uuid, numeric, numeric, numeric, text, text, text, text, text, integer, text, text, boolean, boolean, text)`\n- `Current/PWA/core.js`, `Current/PWA/sw.js`, `Current/PWA/register-sw.js` as canonical shared-runtime sources.\n\n## Pre-existing boundaries not silently changed\n- DirectSale business contract remains backend-owned.\n- Physical Stock remains server-side; this P0 adds no client-side stock writer.\n- `complete-return` legacy direct-writer debt was not reclassified as closed by this file-only change.\n\n## Starting commit\n`{head}`\n\n## Verification\nStatic repository validation passed. A live browser/devtools E2E session is still a separate runtime verification boundary and is not fabricated here.\n'''
-          p.write_text(body, encoding='utf-8')
-          PY
-          git rm .github/workflows/p0-main-shell-repair.yml
-          git add Current/PWA/main.html Current/CTO/20260829_MAIN_P0_EXECUTION.md
-          git commit -m "feat: harden main ERP shell tenant and navigation P0"
+          cat > Current/CTO/20260829_MAIN_P0_EXECUTION.md <<'EOF'
+# RAWAEA ERP — Parent PWA main.html — P0 Execution Record
+
+P0 executed against the current main tree as an in-place repair.
+
+Delivered:
+- authenticated tenant context sourced from `users.company_id` before shell entry;
+- known Parent PWA tenant-owned `app_settings` reads company-scoped;
+- known customer/branch/supplier/user/order/procurement reads company-scoped where applicable;
+- Vehicle Master integrated into the existing Parent PWA navigation and routing;
+- smart driver search scoped to the authenticated company;
+- Vehicle creation delegated only to Production `create_vehicle_atomic`;
+- no client Physical Stock writer introduced;
+- existing Parent PWA structure retained.
+
+Validation: static JavaScript syntax + invariant checks + git diff check.
+
+Not claimed here: browser E2E, Production browser runtime, or global Inventory Zero-Debt closure.
+
+Roadmap: P0 tenant/core/navigation parity; P1 shared runtime convergence; P2 ERP workspace/navigation parity; P3 business/UX closure; P4 runtime/Production closure.
+EOF
+          git checkout HEAD^ -- .github/workflows/p0-main-shell-repair.yml
+          git add Current/PWA/main.html Current/CTO/20260829_MAIN_P0_EXECUTION.md .github/workflows/p0-main-shell-repair.yml
+          git commit -m 'fix: execute parent pwa main shell p0'
           git push origin HEAD:main
