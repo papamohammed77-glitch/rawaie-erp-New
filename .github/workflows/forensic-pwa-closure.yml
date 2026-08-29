@@ -1,17 +1,18 @@
 name: Forensic PWA Closure
 on:
-  push:
-    branches: [main]
+  pull_request:
+    types: [opened]
 permissions:
   contents: write
 jobs:
   closure:
-    if: github.event.head_commit.message != 'fix: execute parent pwa vehicle master integration' && github.event.head_commit.message != 'fix: forensic pwa closure automated commit'
+    if: github.event.pull_request.head.ref == 'forensic-vehicle-parent-pwa-20260829'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Surgical Parent PWA Vehicle Integration
         shell: bash
         run: |
@@ -21,26 +22,27 @@ jobs:
           import re
           p=Path('Current/PWA/main.html')
           s=p.read_text(encoding='utf-8')
-          if "view: 'vehicles'" in s and 'var RW_Vehicles=' in s:
-              print('already integrated')
-              raise SystemExit(0)
           nav=re.compile(r"\{\s*view:\s*['\"]branches['\"][^}]*label:\s*['\"]المخازن والفروع['\"][^}]*\}")
-          m=nav.search(s)
-          if not m: raise SystemExit('navigation anchor not found')
-          s=s[:m.end()]+", { view: 'vehicles', icon: 'fa-car-side', label: 'السيارات والأسطول' }"+s[m.end():]
+          if "view: 'vehicles'" not in s:
+              m=nav.search(s)
+              if not m: raise SystemExit('navigation anchor not found')
+              s=s[:m.end()]+", { view: 'vehicles', icon: 'fa-car-side', label: 'السيارات والأسطول' }"+s[m.end():]
           route=re.compile(r"(?m)^([ \t]*)if\s*\(view\s*===\s*['\"]branches['\"]\)\s*\{\s*RW_Branches\.render\(\)\;\s*return\;\s*\}")
-          m=route.search(s)
-          if not m: raise SystemExit('route anchor not found')
-          s=s[:m.end()]+"\n"+m.group(1)+"if (view === 'vehicles') { RW_Vehicles.render(); return; }"+s[m.end():]
+          if "if (view === 'vehicles')" not in s:
+              m=route.search(s)
+              if not m: raise SystemExit('route anchor not found')
+              s=s[:m.end()]+"\n"+m.group(1)+"if (view === 'vehicles') { RW_Vehicles.render(); return; }"+s[m.end():]
           t=re.compile(r"(['\"]branches['\"]\s*:\s*['\"]المخازن والفروع['\"]\s*,)")
-          m=t.search(s)
-          if not m: raise SystemExit('title map anchor not found')
-          s=s[:m.end()]+" 'vehicles':'السيارات والأسطول',"+s[m.end():]
-          marker="var RW_Branches = (function() {"
-          if s.count(marker)!=1: raise SystemExit('module anchor not found')
-          module='''var RW_Vehicles=(function(){
+          if "'vehicles':'السيارات والأسطول'" not in s:
+              m=t.search(s)
+              if not m: raise SystemExit('title map anchor not found')
+              s=s[:m.end()]+" 'vehicles':'السيارات والأسطول',"+s[m.end():]
+          if 'var RW_Vehicles=(function(){' not in s:
+              marker="var RW_Branches = (function() {"
+              if s.count(marker)!=1: raise SystemExit('module anchor not found')
+              module='''var RW_Vehicles=(function(){
           var vehicles=[],users=[];
-          function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]})}
+          function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]})}
           async function ctx(){var a=await supabase.auth.getUser();if(a.error||!a.data||!a.data.user)throw new Error('جلسة غير صالحة');var u=await supabase.from('users').select('id,company_id,name,email,role,status').eq('auth_id',a.data.user.id).eq('status','Active').maybeSingle();if(u.error||!u.data||!u.data.company_id)throw new Error('سياق الشركة غير محدد للمستخدم');return{user:a.data.user,companyId:u.data.company_id}}
           async function load(){var c=await ctx();var v=await supabase.from('vehicles').select('id,vehicle_code,model,license_plate,driver_id,status,vehicle_type,operation_mode,ownership_type,mobile_stock_enabled,mobile_branch_id,created_at').eq('company_id',c.companyId).order('created_at',{ascending:false});if(v.error)throw new Error(v.error.message);var d=await supabase.from('users').select('id,name,email,role,status').eq('company_id',c.companyId).eq('status','Active').order('name',{ascending:true});if(d.error)throw new Error(d.error.message);vehicles=v.data||[];users=d.data||[]}
           function driverName(id){var d=users.find(function(x){return x.id===id});return d?(d.name||'')+(d.email?' — '+d.email:''):'غير مخصص'}
@@ -51,19 +53,28 @@ jobs:
           return{render:render}
           })();window.RW_Vehicles=RW_Vehicles;
           '''
-          s=s.replace(marker,module+'\n'+marker,1)
+              s=s.replace(marker,module+'\n'+marker,1)
           p.write_text(s,encoding='utf-8')
           PY
-          grep -F "view: 'vehicles'" Current/PWA/main.html
-          grep -F "if (view === 'vehicles')" Current/PWA/main.html
-          grep -F "var RW_Vehicles=(function()" Current/PWA/main.html
-      - name: Commit vehicle integration
-        shell: bash
-        run: |
-          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs'); const s=fs.readFileSync('Current/PWA/main.html','utf8');
+          for (const x of ["view: 'vehicles'", "if (view === 'vehicles')", "var RW_Vehicles=(function(){"]) if (!s.includes(x)) process.exit(1);
+          if ((s.match(/view: 'vehicles'/g)||[]).length!==1) process.exit(1);
+          if ((s.match(/if \(view === 'vehicles'\)/g)||[]).length!==1) process.exit(1);
+          console.log('vehicle parent integration anchors verified');
+          NODE
           git config user.name 'rawaea-forensic-automation'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add Current/PWA/main.html
-          if git diff --cached --quiet; then exit 0; fi
           git commit -m 'fix: execute parent pwa vehicle master integration'
-          git push origin HEAD:main
+          git push origin HEAD
+      - name: Restore original workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show 44d85ed48f1dc406581a3792dceeb8b5cd556feb:.github/workflows/forensic-pwa-closure.yml > .github/workflows/forensic-pwa-closure.yml
+          git config user.name 'rawaea-forensic-automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/forensic-pwa-closure.yml
+          git commit -m 'fix: restore forensic pwa closure workflow'
+          git push origin HEAD
