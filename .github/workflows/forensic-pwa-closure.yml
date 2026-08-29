@@ -7,57 +7,183 @@ permissions:
   contents: write
 jobs:
   closure:
-    if: github.event.head_commit.message != 'fix: forensic pwa closure automated commit'
+    if: github.event.head_commit.message != 'fix: forensic pwa closure automated commit' && github.event.head_commit.message != 'chore: restore forensic pwa closure workflow'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
-      - name: Patch runtime and validate
+      - name: Surgical parent PWA vehicle integration
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re
-          core=Path('Current/PWA/core.js')
-          sw=Path('Current/PWA/sw.js')
-          vouchers=Path('Current/PWA/vouchers.html')
-          c=core.read_text(encoding='utf-8')
-          c=c.replace("var path = swPath || '../sw.js';","var path = swPath || 'sw.js';")
-          core.write_text(c,encoding='utf-8')
-          s=sw.read_text(encoding='utf-8')
-          s=s.replace("var STATIC_CACHE = 'rw-static-v1';","var STATIC_CACHE = 'rw-static-v2';")
-          s=s.replace("'.webp', '.js'];","'.webp'];")
-          if 'function isRuntimeScript(pathname)' not in s:
-              s=s.replace('function isStaticAsset(pathname) {',"function isRuntimeScript(pathname) {\n    var lowerPath = pathname.toLowerCase();\n    return lowerPath.slice(-3) === '.js' || lowerPath.slice(-4) === '.mjs';\n}\n\nfunction isStaticAsset(pathname) {",1)
-          if "// 3. Runtime scripts: Network Only to prevent stale application code." not in s:
-              anchor='    // 3. الموارد الثابتة: Cache First مع حماية من تجاوز الحصة\n'
-              if anchor not in s:
-                  anchor='// 3. الموارد الثابتة: Cache First مع حماية من تجاوز الحصة\n'
-              s=s.replace(anchor,"    // 3. Runtime scripts: Network Only to prevent stale application code.\n    if (isRuntimeScript(url.pathname)) {\n        event.respondWith(fetch(request));\n        return;\n    }\n\n    // 4. الموارد الثابتة: Cache First مع حماية من تجاوز الحصة\n",1)
-              s=s.replace('// 4. أي موارد أخرى: Network First مع fallback للكاش','// 5. أي موارد أخرى: Network First مع fallback للكاش',1)
-          sw.write_text(s,encoding='utf-8')
-          v=vouchers.read_text(encoding='utf-8')
-          v=v.replace("\\\\'","\\'")
-          vouchers.write_text(v,encoding='utf-8')
-          inline='\n'.join(re.findall(r'<script>(.*?)</script>',v,re.S))
-          Path('/tmp/vouchers-inline.js').write_text(inline,encoding='utf-8')
+          main=Path('Current/PWA/main.html')
+          s=main.read_text(encoding='utf-8')
+          def once(old,new,label):
+              n=s.count(old)
+              if n!=1: raise SystemExit(f'{label}: expected 1 match, found {n}')
+              return old,new
+          old="{ view: 'branches', label: 'المخازن والفروع' },"
+          if s.count(old)!=1: raise SystemExit('navigation branch anchor mismatch')
+          s=s.replace(old, old+" { view: 'vehicles', icon: 'fa-car-side', label: 'السيارات والأسطول' },",1)
+          old="        if (view === 'branches') { RW_Branches.render(); return; }\n"
+          if s.count(old)!=1: raise SystemExit('view render anchor mismatch')
+          s=s.replace(old, old+"        if (view === 'vehicles') { RW_Vehicles.render(); return; }\n",1)
+          old="        'branches':'المخازن والفروع',"
+          if s.count(old)!=1: raise SystemExit('title map anchor mismatch')
+          s=s.replace(old, old+" 'vehicles':'السيارات والأسطول',",1)
+          marker="// RW_Settings – إعدادات النظام (قراءة وكتابة Supabase)"
+          if s.count(marker)!=1: raise SystemExit('module insertion anchor mismatch')
+          vehicle_js=r'''// ============================================================
+// RW_Vehicles – Vehicle Master داخل Parent PWA
+// Production contract: public.create_vehicle_atomic
+// No direct vehicle/branch/stock writes from the UI.
+// ============================================================
+var RW_Vehicles = (function() {
+    var data = [];
+    var drivers = [];
+
+    function esc(v) { return String(v == null ? '' : v).replace(/[&<>\"']/g, function(m) { return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]; }); }
+    function num(v) { var n = Number(v); return Number.isFinite(n) ? n : 0; }
+    function getCompanyId() {
+        return supabase.auth.getUser().then(function(r) {
+            if (r.error || !r.data || !r.data.user) throw new Error('جلسة غير صالحة');
+            return supabase.from('users').select('company_id').eq('auth_id', r.data.user.id).maybeSingle();
+        }).then(function(r) {
+            if (r.error || !r.data || !r.data.company_id) throw new Error('سياق الشركة غير محدد للمستخدم');
+            return r.data.company_id;
+        });
+    }
+
+    function renderRows(filter) {
+        var q = String(filter || '').trim().toLowerCase();
+        var rows = data.filter(function(v) {
+            var driver = drivers.find(function(d) { return d.id === v.driver_id; });
+            var hay = [v.vehicle_code, v.license_plate, v.model, v.vehicle_type, v.operation_mode, v.ownership_type, v.status, driver && driver.name, driver && driver.email].join(' ').toLowerCase();
+            return !q || hay.indexOf(q) !== -1;
+        });
+        if (!rows.length) return '<tr><td colspan="8" class="p-8 text-center text-gray-400 font-bold">لا توجد سيارات مطابقة</td></tr>';
+        return rows.map(function(v) {
+            var d = drivers.find(function(x) { return x.id === v.driver_id; });
+            return '<tr class="border-b hover:bg-gray-50">' +
+                '<td class="p-3 font-bold text-blue-700">'+esc(v.vehicle_code)+'</td>'+
+                '<td class="p-3 font-bold">'+esc(v.license_plate)+'</td>'+
+                '<td class="p-3">'+esc(v.model || '—')+'</td>'+
+                '<td class="p-3">'+esc(d ? d.name : '—')+'</td>'+
+                '<td class="p-3 text-center">'+esc(v.vehicle_type || '—')+'</td>'+
+                '<td class="p-3 text-center">'+esc(v.operation_mode || '—')+'</td>'+
+                '<td class="p-3 text-center">'+esc(v.ownership_type || '—')+'</td>'+
+                '<td class="p-3 text-center"><span class="px-3 py-1 rounded-full text-xs font-black '+(v.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600')+'">'+esc(v.status || '—')+'</span></td>'+
+            '</tr>';
+        }).join('');
+    }
+
+    async function load() {
+        var companyId = await getCompanyId();
+        var vr = await supabase.from('vehicles').select('id,company_id,vehicle_code,model,license_plate,driver_id,max_weight_kg,max_volume_m3,min_trip_value,status,notes,vehicle_type,operation_mode,ownership_type,model_year,vin,fuel_type,refrigerated,mobile_stock_enabled,mobile_branch_id,created_at,updated_at').eq('company_id', companyId).order('created_at', {ascending:false});
+        if (vr.error) throw new Error(vr.error.message);
+        data = vr.data || [];
+        var dr = await supabase.from('users').select('id,name,email,role,status').eq('company_id', companyId).eq('status','Active');
+        if (dr.error) throw new Error(dr.error.message);
+        drivers = (dr.data || []).filter(function(d) { return ['driver','سائق','مندوب','مندوبي دليفري'].indexOf(String(d.role || '').toLowerCase()) !== -1 || /driver|مندوب|سائق/i.test((d.email || '')+' '+(d.name || '')); });
+        return {companyId: companyId};
+    }
+
+    function openCreate() {
+        var body = '<div style="text-align:right;direction:rtl">' +
+          '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">' +
+          '<div><label class="block mb-1 font-bold">كود السيارة *</label><input id="rw-v-code" class="rw-input" style="height:52px" placeholder="مثال: VEH-001"></div>' +
+          '<div><label class="block mb-1 font-bold">لوحة السيارة *</label><input id="rw-v-plate" class="rw-input" style="height:52px" placeholder="مثال: س ن أ 1234"></div>' +
+          '<div><label class="block mb-1 font-bold">الموديل</label><input id="rw-v-model" class="rw-input" style="height:52px"></div>' +
+          '<div><label class="block mb-1 font-bold">المندوب / السائق</label><select id="rw-v-driver" class="rw-input" style="height:52px;padding:0 16px"><option value="">بدون تخصيص الآن</option>'+drivers.map(function(d){return '<option value="'+esc(d.id)+'">'+esc(d.name)+' — '+esc(d.email)+'</option>';}).join('')+'</select></div>' +
+          '<div><label class="block mb-1 font-bold">نوع السيارة</label><select id="rw-v-type" class="rw-input" style="height:52px;padding:0 16px"><option>Delivery</option><option>Direct Sales</option><option>Transport</option><option>Mixed</option></select></div>' +
+          '<div><label class="block mb-1 font-bold">نمط التشغيل</label><select id="rw-v-mode" class="rw-input" style="height:52px;padding:0 16px"><option>Mixed</option><option>Delivery</option><option>Direct Sales</option></select></div>' +
+          '<div><label class="block mb-1 font-bold">الملكية</label><select id="rw-v-owner" class="rw-input" style="height:52px;padding:0 16px"><option>Owned</option><option>Leased</option><option>Rented</option><option>Other</option></select></div>' +
+          '<div><label class="block mb-1 font-bold">سنة الموديل</label><input id="rw-v-year" type="number" class="rw-input" style="height:52px"></div>' +
+          '<div><label class="block mb-1 font-bold">الحمولة القصوى (كجم)</label><input id="rw-v-weight" type="number" step="0.01" min="0" class="rw-input" style="height:52px"></div>' +
+          '<div><label class="block mb-1 font-bold">الحجم الأقصى (م³)</label><input id="rw-v-volume" type="number" step="0.01" min="0" class="rw-input" style="height:52px"></div>' +
+          '<div><label class="block mb-1 font-bold">الحد الأدنى لقيمة الرحلة</label><input id="rw-v-trip" type="number" step="0.01" min="0" class="rw-input" style="height:52px"></div>' +
+          '<div><label class="block mb-1 font-bold">VIN</label><input id="rw-v-vin" class="rw-input" style="height:52px"></div>' +
+          '<div><label class="block mb-1 font-bold">نوع الوقود</label><input id="rw-v-fuel" class="rw-input" style="height:52px" placeholder="بنزين / ديزل / ..."></div>' +
+          '<div class="flex items-center gap-3 pt-8"><input id="rw-v-fridge" type="checkbox"><label for="rw-v-fridge" class="font-bold">سيارة مبردة</label></div>' +
+          '<div class="flex items-center gap-3 pt-8"><input id="rw-v-mobile" type="checkbox" checked><label for="rw-v-mobile" class="font-bold">تفعيل المخزون المتنقل للسيارة</label></div>' +
+          '<div class="md:col-span-2"><label class="block mb-1 font-bold">ملاحظات</label><textarea id="rw-v-notes" class="rw-input" style="height:90px;padding:12px"></textarea></div>' +
+          '</div></div>';
+        var modal = byId('rw-vehicle-modal');
+        if (!modal) { modal = document.createElement('div'); modal.id='rw-vehicle-modal'; modal.className='fixed inset-0 z-[1000] flex items-center justify-center p-4'; modal.style.background='rgba(15,23,42,.55)'; document.body.appendChild(modal); }
+        modal.innerHTML = '<div class="bg-white rounded-3xl w-full max-w-5xl max-h-[92vh] overflow-auto shadow-2xl p-6">'+body+'<div class="flex gap-3 justify-end mt-6"><button id="rw-v-close" class="px-5 py-3 rounded-xl bg-gray-100 font-bold">إلغاء</button><button id="rw-v-save" class="px-6 py-3 rounded-xl bg-blue-600 text-white font-black">إنشاء السيارة</button></div></div>';
+        modal.style.display='flex';
+        byId('rw-v-close').onclick=function(){modal.style.display='none';};
+        byId('rw-v-save').onclick=save;
+    }
+
+    async function save() {
+        var btn=byId('rw-v-save'); if(!btn) return;
+        btn.disabled=true; btn.textContent='جاري الإنشاء...';
+        try {
+            var companyId=await getCompanyId();
+            var {data:authData}=await supabase.auth.getUser();
+            var actor=authData && authData.user ? authData.user.email : null;
+            var payload={
+              p_company_id:companyId,
+              p_vehicle_code:byId('rw-v-code').value.trim(),
+              p_model:byId('rw-v-model').value.trim() || null,
+              p_license_plate:byId('rw-v-plate').value.trim(),
+              p_driver_id:byId('rw-v-driver').value || null,
+              p_max_weight_kg:byId('rw-v-weight').value ? num(byId('rw-v-weight').value) : null,
+              p_max_volume_m3:byId('rw-v-volume').value ? num(byId('rw-v-volume').value) : null,
+              p_min_trip_value:byId('rw-v-trip').value ? num(byId('rw-v-trip').value) : null,
+              p_status:'Active', p_notes:byId('rw-v-notes').value.trim() || null,
+              p_vehicle_type:byId('rw-v-type').value, p_operation_mode:byId('rw-v-mode').value, p_ownership_type:byId('rw-v-owner').value,
+              p_model_year:byId('rw-v-year').value ? parseInt(byId('rw-v-year').value,10) : null,
+              p_vin:byId('rw-v-vin').value.trim() || null, p_fuel_type:byId('rw-v-fuel').value.trim() || null,
+              p_refrigerated:byId('rw-v-fridge').checked, p_mobile_stock_enabled:byId('rw-v-mobile').checked, p_created_by:actor
+            };
+            var r=await supabase.rpc('create_vehicle_atomic',payload);
+            if(r.error) throw new Error(r.error.message);
+            modalClose();
+            showToast('تم إنشاء السيارة وربطها بالبنية التشغيلية بنجاح','success');
+            await render();
+        } catch(e) { console.error('RW_VEHICLES_CREATE',e); showToast(e.message || 'تعذر إنشاء السيارة','error'); }
+        finally { btn.disabled=false; btn.textContent='إنشاء السيارة'; }
+    }
+    function modalClose(){var m=byId('rw-vehicle-modal');if(m)m.style.display='none';}
+
+    async function render() {
+        var c=byId('rw-page-container'); if(!c)return;
+        safeText(byId('rw-header-title'),'السيارات والأسطول');
+        try { await load(); } catch(e) { console.error(e); c.innerHTML='<div class="bg-white rounded-3xl p-8 text-center text-red-600 font-bold">تعذر تحميل بيانات السيارات: '+esc(e.message)+'</div>'; return; }
+        c.innerHTML='<div class="space-y-6">' +
+          '<div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">' +
+            '<div><div class="text-2xl font-black text-gray-900">Vehicle Master</div><div class="text-sm text-gray-500 mt-1">السيارة وعاء تشغيلي/مخزني متنقل، والرصيد والالتزامات المالية تبقى مرتبطة بالدورة التشغيلية والموظف المكلّف وفق العقد.</div></div>' +
+            '<button id="rw-v-add" class="px-6 py-3 rounded-xl bg-blue-600 text-white font-black"><i class="fa-solid fa-plus ml-2"></i>إنشاء سيارة</button>' +
+          '</div>' +
+          '<div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100"><div class="relative"><i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"></i><input id="rw-v-search" class="rw-input" style="height:54px;padding-right:48px" placeholder="بحث ذكي: الكود، اللوحة، الموديل، المندوب، النوع، الحالة..."></div></div>' +
+          '<div class="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100"><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50"><tr><th class="p-3 text-right">الكود</th><th class="p-3 text-right">اللوحة</th><th class="p-3 text-right">الموديل</th><th class="p-3 text-right">المندوب/السائق</th><th class="p-3 text-center">النوع</th><th class="p-3 text-center">التشغيل</th><th class="p-3 text-center">الملكية</th><th class="p-3 text-center">الحالة</th></tr></thead><tbody id="rw-v-rows">'+renderRows('')+'</tbody></table></div></div>'+
+        '</div>';
+        byId('rw-v-add').onclick=openCreate;
+        byId('rw-v-search').oninput=function(){byId('rw-v-rows').innerHTML=renderRows(this.value);};
+    }
+    return {render:render};
+})();
+window.RW_Vehicles = RW_Vehicles;
+
+'''
+          s=s.replace(marker, vehicle_js+marker,1)
+          main.write_text(s,encoding='utf-8')
+          print('vehicle parent patch applied')
           PY
-          node --check Current/PWA/core.js
-          node --check Current/PWA/sw.js
-          node --check /tmp/vouchers-inline.js
-          ! grep -F "var path = swPath || '../sw.js';" Current/PWA/core.js
-          grep -F "var path = swPath || 'sw.js';" Current/PWA/core.js
-          grep -F "var STATIC_CACHE = 'rw-static-v2';" Current/PWA/sw.js
-          grep -F "function isRuntimeScript(pathname)" Current/PWA/sw.js
-      - name: Commit changes
+          grep -F "view: 'vehicles'" Current/PWA/main.html
+          grep -F "if (view === 'vehicles')" Current/PWA/main.html
+          grep -F "var RW_Vehicles" Current/PWA/main.html
+      - name: Commit
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'rawaea-forensic-automation'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add Current/PWA/core.js Current/PWA/sw.js Current/PWA/vouchers.html
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'fix: forensic pwa closure automated commit'
+          git add Current/PWA/main.html
+          git commit -m 'fix: integrate vehicle master into parent pwa'
           git push origin HEAD:main
