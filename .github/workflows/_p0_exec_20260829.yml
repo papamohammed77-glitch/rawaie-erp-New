@@ -14,7 +14,7 @@ jobs:
           ref: main
           fetch-depth: 0
       - name: Execute P0 repair
-        run: python3 tools/p0_main_shell_repair.py
+        run: python3 tools/p0_main_shell_repair_v2.py
       - name: Validate repaired main shell
         shell: bash
         run: |
@@ -23,18 +23,19 @@ jobs:
           from pathlib import Path
           import re, subprocess, tempfile
           s=Path('Current/PWA/main.html').read_text(encoding='utf-8')
-          required=['RW_ShellContext','RW_Fleet','create_vehicle_atomic']
+          required=['RW_ShellContext','RW_Fleet','create_vehicle_atomic',"if (view === 'vehicles') { RW_Fleet.render(); return; }"]
           for x in required:
               if x not in s: raise SystemExit('missing '+x)
-          scripts=re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I)
+          scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I)
           if not scripts: raise SystemExit('no inline scripts')
           for i,c in enumerate(scripts,1):
               p=Path(tempfile.gettempdir())/f'rw_main_{i}.js';p.write_text(c,encoding='utf-8')
               r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
               if r.returncode:
-                  print(r.stderr);raise SystemExit('syntax failure '+str(i))
-          if "from('app_settings').select('*').limit(1)" in s: raise SystemExit('known unscoped app_settings')
-          print('P0_OK scripts',len(scripts))
+                  print(r.stderr); raise SystemExit('syntax failure '+str(i))
+          if re.search(r"\.from\('app_settings'\)\.select\('\*'\)\.limit\(1\)",s): raise SystemExit('known unscoped app_settings')
+          if 'window.RW_Fleet=RW_Fleet;' not in s: raise SystemExit('fleet export missing')
+          print('P0_OK inline_scripts',len(scripts))
           PY
           git diff --check
       - name: Record and remove executor
@@ -45,20 +46,19 @@ jobs:
           cat > Current/CTO/20260829_MAIN_P0_EXECUTION.md <<'EOF'
 # RAWAEA ERP — Parent PWA main.html — P0 Execution
 
-Executed by the governed temporary runner on 2026-08-29.
+Executed by governed runner after correcting executor syntax corruption on 2026-08-29.
 
-P0 changes applied surgically to the existing Parent PWA:
+Verified P0 scope:
 - authenticated tenant context from `users.company_id`;
-- company-scoped tenant-owned shell reads;
-- native Vehicle Master navigation/view;
-- company-scoped smart driver search;
-- vehicle creation delegated to `create_vehicle_atomic`;
+- company-scoped `app_settings` and tenant-owned shell reads;
+- integrated Vehicle Master inside Parent PWA;
+- vehicle mutation delegated to `create_vehicle_atomic`;
 - no client-side Physical Stock mutation added;
 - original Parent PWA structure retained.
 
-Validation completed in the same runner: inline JavaScript syntax, required anchors, tenant-read invariant, and git diff check.
+Validation completed in runner: inline JavaScript syntax, required anchors, tenant-read invariant, vehicle route/export, and git diff check.
 
-Browser E2E and Production browser runtime are separate P4 gates and are not claimed by this static execution.
+Browser E2E and Production browser runtime remain separate gates and are not claimed here.
 EOF
           git add Current/PWA/main.html Current/CTO/20260829_MAIN_P0_EXECUTION.md
           git rm .github/workflows/_p0_exec_20260829.yml
