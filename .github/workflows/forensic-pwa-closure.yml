@@ -39,7 +39,7 @@ jobs:
           s=s[:m.end()]+" 'vehicles':'السيارات والأسطول',"+s[m.end():]
           marker="var RW_Branches = (function() {"
           if s.count(marker)!=1: raise SystemExit('module anchor not found')
-          module=base64.b64decode('dmFyIFJXX1ZlaGljbGVzPShmdW5jdGlvbigpewp2YXIgdmVoaWNsZXM9W10sdXNlcnM9W107CmZ1bmN0aW9uIGVzYyh2KXtyZXR1cm4gU3RyaW5nKHY9PW51bGw/JycpLnJlcGxhY2UoL1smPD4iJ10vZyxmdW5jdGlvbihhKXtyZXR1cm4neyYjMzhhbXA7JzonJmFtcDsnLCc8JzonJmx0O1wnLCc+JzonJmd0OycsJyInOicyJnF1b3Q7JywiJyI6JyYjMzk7J1t2Xid9W2F0XTt9KTt9CWFzeW5jIGFjdHgoKXthd2FpdCBzdXBhYmFzZS5hdXRoLmdldFVzZXIoKTtyZXR1cm4gYXR4fQp9').decode('utf-8')
+          module=base64.b64decode("dmFyIFJXX1ZlaGljbGVzPShmdW5jdGlvbigpewp2YXIgdmVoaWNsZXM9W10sdXNlcnM9W107CmZ1bmN0aW9uIGVzYyh2KXtyZXR1cm4gU3RyaW5nKHY9PW51bGw/JycpLnJlcGxhY2UoL1smPD4iJ10vZyxmdW5jdGlvbihhKXtyZXR1cm4neyYjMzhhbXA7JzonJmFtcDsnLCc8JzonJmx0OycsJz4nOicmZ3Q7JywnIic6JyZxdW90OyIsIiciOicmIzMzk7J31bYV0gfSk7fQo=").decode('utf-8')
           s=s.replace(marker,module+"\n"+marker,1)
           p.write_text(s,encoding='utf-8')
           PY
