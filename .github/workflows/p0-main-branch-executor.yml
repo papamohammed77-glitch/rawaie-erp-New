@@ -1,0 +1,67 @@
+name: P0 main branch executor
+on:
+  push:
+    branches: [exec-main-p0-live-20260829]
+permissions:
+  contents: write
+jobs:
+  execute:
+    if: github.event.head_commit.message != 'fix: execute parent pwa main shell p0'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout executor branch
+        uses: actions/checkout@v4
+        with:
+          ref: exec-main-p0-live-20260829
+          fetch-depth: 2
+      - name: Run P0 script
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/p0_main_shell_repair.py
+      - name: Validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess, tempfile
+          s=Path('Current/PWA/main.html').read_text(encoding='utf-8')
+          required=['window.RW_ShellContext','window.RW_Fleet','create_vehicle_atomic',"view: 'vehicles'"]
+          for x in required:
+              if x not in s: raise SystemExit('missing '+x)
+          scripts=re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>', s, re.S|re.I)
+          for i,code in enumerate(scripts,1):
+              p=Path(tempfile.mktemp(suffix='.js')); p.write_text(code,encoding='utf-8')
+              r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
+              p.unlink(missing_ok=True)
+              if r.returncode: print(r.stderr); raise SystemExit(f'JS syntax failure {i}')
+          if ".from('app_settings').select('*').limit(1)" in s: raise SystemExit('unscoped app_settings remains')
+          print('P0_STATIC_OK scripts=',len(scripts))
+          PY
+          git diff --check
+      - name: Commit repaired main only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'RAWAEA P0 Executor'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cat > Current/CTO/20260829_MAIN_P0_EXECUTION.md <<'EOF'
+# RAWAEA ERP — Parent PWA main.html — P0 Execution
+
+Executed against the current main tree by a one-shot isolated executor branch.
+
+Delivered:
+- authenticated tenant context from users.company_id;
+- company-scoped tenant-owned shell reads;
+- native Vehicle Master route/capability in the existing Parent PWA;
+- company-scoped smart driver search;
+- vehicle creation through create_vehicle_atomic;
+- no client-side Physical Stock mutation;
+- original Parent PWA structure retained.
+
+Validation: required anchors, inline JS syntax, tenant invariant, git diff check.
+EOF
+          git add Current/PWA/main.html Current/CTO/20260829_MAIN_P0_EXECUTION.md
+          git commit -m 'fix: execute parent pwa main shell p0'
+          git push origin HEAD:exec-main-p0-live-20260829
