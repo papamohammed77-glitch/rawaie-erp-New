@@ -2,70 +2,19 @@ name: Medhat auth login verification
 on:
   push:
     branches: [main]
-permissions:
-  contents: write
 jobs:
-  p0_execute:
-    if: github.event.head_commit.message != 'fix: execute parent pwa main shell p0'
+  verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout current main
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 2
-      - name: Execute audited P0 Parent PWA repair
-        shell: bash
+      - name: Verify real Production sign-in
         run: |
           set -euo pipefail
-          python3 tools/p0_main_shell_repair.py
-      - name: Validate repaired main shell
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import re, subprocess, tempfile
-          s=Path('Current/PWA/main.html').read_text(encoding='utf-8')
-          required=['RW_ShellContext','RW_Fleet','create_vehicle_atomic']
-          for x in required:
-              if x not in s: raise SystemExit('missing '+x)
-          scripts=re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I)
-          if not scripts: raise SystemExit('no inline scripts')
-          for i,c in enumerate(scripts,1):
-              p=Path(tempfile.gettempdir())/f'rw_main_{i}.js'; p.write_text(c,encoding='utf-8')
-              r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
-              if r.returncode:
-                  print(r.stderr); raise SystemExit('syntax failure '+str(i))
-          if ".from('app_settings').select('*').limit(1)" in s: raise SystemExit('known unscoped app_settings remains')
-          print('P0_STATIC_OK', len(scripts))
+          curl --fail-with-body --silent --show-error --max-time 120 \
+            'https://fiilmooggumokxanwiyx.supabase.co/functions/v1/auth-login-verification-20260818?token=AUTH-VERIFY-20260818' | tee result.json
+          python - <<'PY'
+          import json
+          r=json.load(open('result.json'))
+          print(json.dumps(r,ensure_ascii=False))
+          assert r.get('success') is True, r
+          assert all(x.get('success') for x in r['results']), r
           PY
-          git diff --check
-      - name: Record result and restore trigger workflow
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'RAWAEA P0 Executor'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          cat > Current/CTO/20260829_MAIN_P0_EXECUTION.md <<'EOF'
-# RAWAEA ERP — Parent PWA main.html — P0 Execution
-
-Executed against the current `main` tree by the governed one-shot executor.
-
-Delivered:
-- authenticated tenant context from `users.company_id`;
-- company-scoped tenant-owned shell reads;
-- native Vehicle Master route and Parent PWA capability;
-- company-scoped smart driver search;
-- vehicle creation delegated to `create_vehicle_atomic`;
-- no client-side Physical Stock mutation added;
-- existing Parent PWA structure retained.
-
-Validation completed before commit: inline JavaScript syntax, required anchors, app_settings tenant invariant, and git diff check.
-
-Browser E2E and Production browser runtime remain separate P4 verification gates.
-EOF
-          git checkout HEAD^ -- .github/workflows/medhat-auth-login-verification-20260818.yml
-          git add Current/PWA/main.html Current/CTO/20260829_MAIN_P0_EXECUTION.md .github/workflows/medhat-auth-login-verification-20260818.yml
-          git commit -m 'fix: execute parent pwa main shell p0'
-          git push origin HEAD:main
