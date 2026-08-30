@@ -1,0 +1,109 @@
+تم تنفيذ المهمة على أساس الحقيقة الحالية من Git + Production Supabase + الـEdge Functions + الـSchema، وليس على أساس الذاكرة أو التقارير السابقة.
+
+النتيجة
+
+Current/PWA/main/main6.md
+
+أُعيدت كتابته بالكامل.
+تم الحفاظ على وظائف:
+Online Store
+Cart / Product View / Categories / Search
+Online Order
+Order Tracking
+Purchase Orders
+Purchase POS
+Receiving
+تم الحفاظ على الـpublic modules:
+RW_OnlineStore
+RW_Purchases
+تم عزل helper الداخلي داخل IIFE، ولم أُنشئ Global API إضافية.
+
+الـcommit النهائي:
+2dea6ba7458d040259d14dd9e7b457bc40972932
+
+إصلاحات Production التي كانت ضرورية لكي يكون main6 صحيحًا
+
+تم اكتشاف وإصلاح انحرافين لم يكن من الآمن تركهما خلف main6:
+
+save-purchase-order
+
+كان يستخدم Company ثابتة.
+كان يولّد PO code بشكل global.
+كان يكتب purchase_order_details بدون item_id.
+اتضح أن line_amount Generated Column.
+أعيد بناؤه كـatomic capability.
+Production الآن: v3.
+
+submit-online-order
+
+كان يستخدم Company ثابتة.
+customer lookup غير tenant-scoped.
+order numbering global.
+app_settings غير scoped.
+أصبح atomic + company-scoped.
+Production الآن: v7.
+
+كما تم الاعتماد على receive-purchase الحالي v12 وعقد operation_id الموجود فعلًا في Production.
+
+أهم اكتشاف أثناء التنفيذ
+
+كشف الـProduction harness أن:
+
+purchase_order_details.line_amount Generated.
+order_details.line_amount Generated.
+
+وكان من الخطأ افتراض إمكانية الكتابة إليهما. تم تصحيح ذلك قبل الإغلاق.
+
+Production verification
+
+تم تنفيذ مسار حقيقي على Production باستخدام بيانات حقيقية موجودة بالفعل في قاعدة البيانات، ثم تنظيف جميع الآثار الاصطناعية:
+
+إنشاء PO تجريبي نجح.
+إنشاء Online Order تجريبي نجح.
+القيم أعادها الـDB نفسه.
+تم حذف PO / Order / Customer / Details / Audit test rows.
+تم حذف الـverification harness نفسه.
+لا توجد بقايا QA مقصودة.
+Git synchronization
+
+تم أيضًا تثبيت المصادر الجديدة في Git:
+
+Current/Edge_Functions/save-purchase-order
+Current/Edge_Functions/submit-online-order
+supabase/migrations/20260830070000_main6_atomic_closure.sql
+
+والـlog التشغيلي الدائم:
+doc/Draft/medhat/تقرير 100 - main6 forensic closure.md
+
+ما لم أدّعِه كإتمام
+
+وهذا مهم جدًا:
+
+لم أدّعِ أن Browser E2E لـmain6 تم إثباته، لأنني لا أملك هنا جلسة Browser authenticated حقيقية لتنفيذ السيناريو من الواجهة حتى Production.
+
+كذلك لم أنشر PWA hosting/CDN نفسه؛ المطلوب الحالي كان إعادة بناء ملف main6 وتجهيز dependencies، بينما نشر الملف النهائي بعد دمج main1…main11 مرحلة لاحقة.
+
+لذلك الحالة الدقيقة هي:
+
+البند	الحالة
+قراءة main6 بالكامل	✅
+مقارنة Original	✅
+Production inspection	✅
+Schema verification	✅
+Backend dependency repair	✅
+Production deployment	✅
+Production DB runtime verification	✅
+Data cleanup	✅
+Audit path verification	✅
+Git alignment	✅
+Main6 rebuild	✅
+Browser authenticated E2E	OPEN
+Live PWA hosting deployment	OPEN
+
+المراجع الأساسية التي حُكم بها التنفيذ تضمنت مبدأ أن الدراسة والسياق التاريخي يسبقان أي تعديل، وأن Production الحالية هي المرجع التنفيذي الأقوى، وهو ما تم تطبيقه هنا.
+
+فتح نسخة main6 النهائية في GitHub
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/PWA/main/main6.md
+
+فتح تقرير التنفيذ 100
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20100%20-%20main6%20forensic%20closure.md
