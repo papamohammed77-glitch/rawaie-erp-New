@@ -1,0 +1,75 @@
+name: RAWAEA reconstruct PWA fragments (forensic gated)
+
+on:
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Reconstruct fragments only when canonical main passes equivalence gate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node <<'NODE'
+          const fs=require('fs'); const crypto=require('crypto');
+          const cur='Current/PWA/main.html', orig='Original/PWA/main.html';
+          const curBuf=fs.readFileSync(cur), origBuf=fs.readFileSync(orig);
+          const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+          const firstDiff=(a,b)=>{const n=Math.min(a.length,b.length);for(let i=0;i<n;i++)if(a[i]!==b[i])return i;return a.length===b.length?-1:n;};
+          const fd=firstDiff(curBuf,origBuf);
+          if(fd!==-1) throw new Error(`CANONICAL_MAIN_NOT_EQUIVALENT firstDiff=${fd} current=${curBuf.length} original=${origBuf.length}`);
+          const sizes=[63126,18851,22900,100436,76707,63334,68592,26717,101985,67029];
+          const total=sizes.reduce((a,b)=>a+b,0);
+          if(total>curBuf.length) throw new Error(`BOUNDARY_OVERFLOW ${total}>${curBuf.length}`);
+          sizes.push(curBuf.length-total);
+          let off=0; const rows=[];
+          for(let i=0;i<11;i++){
+            const part=curBuf.subarray(off,off+sizes[i]);
+            const name=`main${i+1}.md`;
+            const out=`Current/PWA/main/${name}`;
+            fs.writeFileSync(out,part);
+            const ob=fs.readFileSync(`Original/PWA/main/${name}`);
+            rows.push({part:name,bytes:part.length,sha256:sha(part),original_bytes:ob.length,original_sha256:sha(ob),first_difference_vs_original:firstDiff(part,ob),exact_byte_match:Buffer.compare(part,ob)===0});
+            off+=sizes[i];
+          }
+          const concat=Buffer.concat(Array.from({length:11},(_,i)=>fs.readFileSync(`Current/PWA/main/main${i+1}.md`)));
+          const report={generated_at:new Date().toISOString(),canonical_main:{bytes:curBuf.length,sha256:sha(curBuf),original_bytes:origBuf.length,original_sha256:sha(origBuf),exact_byte_match:true},fragment_sizes:sizes,fragments:rows,concatenation:{bytes:concat.length,sha256:sha(concat),first_difference_vs_current_main:firstDiff(concat,curBuf),exact_concat_equals_current_main:Buffer.compare(concat,curBuf)===0},safe_reconstruction:true};
+          fs.mkdirSync('Current/CTO',{recursive:true});
+          fs.writeFileSync('Current/CTO/PWA_FRAGMENT_RECONSTRUCTION_REPORT.json',JSON.stringify(report,null,2));
+          console.log(JSON.stringify(report,null,2));
+          if(Buffer.compare(concat,curBuf)!==0) throw new Error('RECONSTRUCTED_CONCAT_NOT_EQUAL_CURRENT_MAIN');
+          NODE
+
+      - name: Validate generated fragment HTML/JS balances
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs'); const path=require('path');
+          const names=Array.from({length:11},(_,i)=>`main${i+1}.md`);
+          const joined=Buffer.concat(names.map(n=>fs.readFileSync(path.join('Current/PWA/main',n)))).toString('utf8');
+          const checks={doctype:/<!doctype\s+html/i.test(joined),htmlClose:/<\/html>/i.test(joined),scriptOpen:(joined.match(/<script\b/gi)||[]).length,scriptClose:(joined.match(/<\/script>/gi)||[]).length,styleOpen:(joined.match(/<style\b/gi)||[]).length,styleClose:(joined.match(/<\/style>/gi)||[]).length,braceBalance:(joined.match(/{/g)||[]).length-(joined.match(/}/g)||[]).length};
+          fs.writeFileSync('Current/CTO/PWA_FRAGMENT_RUNTIME_STRUCTURE.json',JSON.stringify(checks,null,2));
+          if(!checks.doctype||!checks.htmlClose||checks.scriptOpen!==checks.scriptClose||checks.styleOpen!==checks.styleClose||checks.braceBalance!==0) process.exit(2);
+          NODE
+
+      - name: Commit reconstruction and report
+        shell: bash
+        run: |
+          git config user.name 'rawaea-forensic-bot'
+          git config user.email 'rawaea-forensic-bot@users.noreply.github.com'
+          git add Current/PWA/main Current/CTO/PWA_FRAGMENT_RECONSTRUCTION_REPORT.json Current/CTO/PWA_FRAGMENT_RUNTIME_STRUCTURE.json
+          git commit -m 'fix(pwa): reconstruct main fragments from verified canonical main [forensic-gated]'
+          git push
