@@ -1,0 +1,60 @@
+تم تنفيذ الجزء الذي أمكن إثباته فعليًا، لكن لن أعتبر المهمة مكتملة أو أقول لك إن main7 أصبح Production-closed لأن التحقيق أثبت وجود Dependency حرجة ما زالت مفتوحة.
+
+ما تم إثباته
+تمت قراءة الـMASTER EXECUTION PROMPT وسلسلة التقارير/الأوامر المطلوبة من GitHub.
+تمت مقارنة Current/PWA/main/main7.md مع Original/PWA/main/main7.md، وثبت أن الاثنين كانا يحملان نفس SHA:
+6f7aef60ac137cd7f6b74281a17835dbd29595be.
+تمت مراجعة Production مباشرة، وليس الاعتماد على التقارير.
+Production الحالية أظهرت:
+receiving=0
+stock_vouchers=0
+inventory_logs=3
+stock_rows=20
+audit_rows=1866
+orders=0
+purchase_orders=0
+runsheets=0
+تمت إعادة كتابة Current/PWA/main/main7.md فعليًا، والـcommit الناتج:
+107ac94b0a4acc6bead7cfb47d661ceecdd65aa6
+النسخة الجديدة أصبحت تعتمد على RW_ShellContext.getCompanyId()، وتستخدم Company-scoped reads، وتمنع الكتابة المباشرة إلى stock_branches وinventory_log من طبقة PWA.
+تم تصحيح استخدام stock_voucher_details من voucher_code إلى voucher_id وفق الـProduction schema.
+تم تصحيح مفهوم Vehicle ليكون Vehicle UUID بدل Driver email.
+تم تصحيح Delivery ليعمل على مستوى Order بدل إعادة استعمال Runsheet aggregate لكل Order.
+تم تصحيح Unloading ليعرض Runsheets بحالة Loaded.
+تم إدخال operation/idempotency handling في العمليات التي يدعمها العقد الحالي.
+الاكتشاف الحرج الذي يمنع الإغلاق
+
+الـmain7 الجديد يستدعي:
+
+create-stock-voucher
+
+لكن الـEdge Function المنشورة حاليًا لهذه القدرة ما زالت Legacy وتقوم بالكتابة المباشرة إلى stock_vouchers وstock_voucher_details بدل المرور عبر الـcanonical RPC.
+
+لذلك لا يصح هندسيًا أن أقول:
+
+MAIN7 COMPLETE PRODUCTION CONTRACT CLOSURE = 100%
+
+لأن ذلك سيكون مخالفًا للمبدأ الذي طلبته أنت: لا نسبة ولا إغلاق قبل مطابقة Production الحالية فعليًا.
+
+وقد سجلت هذا التصحيح صراحة في:
+MAIN7-CLOSURE-CORRECTION-20260830.md.
+
+النتيجة الحالية
+البند	الحالة
+قراءة المصادر الحاكمة	✅
+Production investigation	✅
+Historical comparison	✅
+إعادة كتابة main7	✅
+Git commit	✅
+Static tenant/stock safety	✅
+Production data preserved	✅
+Browser E2E	❌ غير مثبت
+create-stock-voucher dependency	⚠️ مفتوحة
+MAIN7 Production closure	❌ غير مكتمل
+Global zero-debt closure	❌ غير مكتمل
+
+كما أن محاولة تسجيل Event مخصص مباشرة داخل audit_log فشلت بسبب الـaudit_log_action_check الموجود في Production، ولم ينتج عنها أي تغيير بيانات. تم توثيق ذلك بدل إخفائه.
+
+إذن الحالة الصحيحة الآن هي: MAIN7 SOURCE RECONSTRUCTION = CLOSED، لكن MAIN7 PRODUCTION CLOSURE = OPEN.
+
+وهذا هو الحد الذي أستطيع إثباته من الأدلة الحالية دون اختلاق Runtime verification أو الادعاء بأن Dependency ما تم إصلاحها وهي لم تُصلح بعد.
