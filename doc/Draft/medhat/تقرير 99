@@ -1,0 +1,82 @@
+تم تنفيذ المهمة على أساس المصادر الحالية المباشرة وليس الذاكرة أو التقارير القديمة.
+
+النتيجة
+
+تمت إعادة كتابة:
+
+Current/PWA/main/main5.md
+
+بالكامل من الصفر، مع الحفاظ على واجهتي:
+
+RW_Orders
+RW_Runsheets
+
+ومحافظة على وظائف العرض، الفلترة، التأكيد، الحذف، الطباعة، إنشاء/ضم الرانشيتات، تفاصيل الرانشيت، التعيين، تغيير الحالة، والمزامنة اللحظية.
+
+تم كذلك إغلاق الاعتماديات الحرجة التي اكتشفها التحقيق:
+
+append-to-runsheet → Production v6
+confirm-order → Production v4
+delete-order → Production v8
+
+وأضيفت مصادرها الـcanonical إلى Git حتى لا يبقى Production منفصلًا عن المستودع.
+
+أهم الإصلاحات الفعلية
+
+تم إزالة الـpre-write غير الآمن قبل create-runsheet والاعتماد على create_runsheet_atomic الموجود فعليًا في Production.
+
+تم فرض company_id بصورة صريحة على قراءات وكتابات Orders/Runsheets.
+
+تم تصحيح هوية السائق من مقارنة UUID بالبريد إلى users.id.
+
+تم منع تعديل السائق/السيارة من إجبار حالة الرانشيت إلى Open.
+
+تم إزالة إمكانية حذف Invoiced من الواجهة لأن الـEdge القديم كان يعكس المخزون مباشرة خارج post_stock_movement.
+
+تم إزالة المسار القديم الذي كان يجعل delete-order Physical Stock Writer موازيًا.
+
+Production الحالية
+
+الـsnapshot النهائي المباشر من Supabase عند:
+
+2026-08-30 03:31:49.17876+00
+
+أظهر:
+
+Companies = 1
+Orders = 0
+Runsheets = 0
+Order Details = 0
+Run Sheet Details = 0
+
+وهذا فرق جوهري عن snapshots الأقدم؛ لم أفترض سبب الاختلاف ولم أعد إنشاء بيانات فقط لأجل الاختبار.
+
+كما تم فحص RLS وSchema وTriggers وPermissions وProduction RPCs.
+
+Git
+
+الـblob الجديد لـmain5.md:
+
+8e7c50f497aa37019629b9fa46eaa66f908c767f
+
+Commit إعادة البناء:
+
+7d5b90d45a0d8c09aa56a499a2d85a01b4060a04
+
+ثم أضيفت مصادر الـEdge canonical في commits متتالية.
+
+نقطة مهمة جدًا
+
+لا أعتبر Browser authenticated E2E مثبتًا، لأن البيئة الحالية لا توفر جلسة متصفح مستخدم authenticated قابلة للتشغيل مباشرة. لذلك لم أزوّر إثباتًا غير موجود.
+
+وبالمثل، ما زال حذف/إلغاء Runsheet نفسه sequential من واجهة main5 وليس DB atomic core مستقلًا؛ لذلك لم أضع ادعاء GLOBAL INVENTORY = 100% CLOSED، بل أغلقت نطاق main5 والاعتماديات التي تخصه فقط.
+
+الملفات الناتجة
+
+فتح main5.md بعد إعادة البناء
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/PWA/main/main5.md
+
+تقرير 98 — سجل التنفيذ والتدقيق الكامل
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%2098
+
+التقرير نفسه موثق ومتضمن الـSelf-Audit، الأحداث، ما تم إثباته وما لم يُثبت، والتغييرات وProduction verification.
