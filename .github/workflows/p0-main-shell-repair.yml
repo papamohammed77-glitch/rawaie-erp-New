@@ -10,10 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Smoke test workflow
+      - name: Execute main1 repair tool
         run: |
-          set -e
-          test -f Current/PWA/main/main1.md
-          test -f tools/p1_main1_repair.py
-          wc -c Current/PWA/main/main1.md
-          echo P1_WORKFLOW_SMOKE_OK
+          set -euo pipefail
+          python3 tools/p1_main1_repair.py
+      - name: Commit main1 repair
+        run: |
+          set -euo pipefail
+          git add Current/PWA/main/main1.md
+          if git diff --cached --quiet; then
+            echo NO_MAIN1_CHANGE
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(p1): repair main1 tenant owner shell'
+          git push origin HEAD:main
