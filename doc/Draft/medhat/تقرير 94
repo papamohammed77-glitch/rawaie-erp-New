@@ -1,0 +1,105 @@
+تم إيقاف مسار main3 قبل أن يتحول إلى ضرر إضافي، وتم تنفيذ استرداد كامل لحالة Git السابقة لهذه الجلسة.
+
+ما تم إثباته
+
+قرأت التسلسل المطلوب:
+MASTER EXECUTION PROMPT → 89 → 90 → 91 → 92 → 93، ثم فتحت main3 مباشرة من Git وقرأت محتواه حتى نهايته، مع الرجوع إلى الـraw blob الأصلي بدل الاعتماد على مقتطفات. كما فُتحت Production وSchema وRLS وTriggers وPermissions وGit history.
+
+الـmain3 الأصلي ما زال حاليًا على الـblob:
+
+1bfedd3b16abb804d83e2b7d5671f1b31f320a14
+
+والحالة التي أُعيد إليها فرع main هي commit:
+
+6ab83bdced096262df68f07feab7a754bf47d984
+
+وهو commit ما قبل تدخلات هذه الجلسة، بشجرة:
+
+a7fbb16198a69d8a17aa7007cfcc4de68b792cf4
+
+أهم اكتشاف في main3
+
+ثبت وجود فجوة حقيقية في Tenant Isolation داخل main3:
+
+قراءات suppliers غير مقيّدة بـcompany_id.
+قراءة app_settings تستخدم LIMIT 1.
+قراءات users غير مقيّدة.
+قراءة roles غير مقيّدة.
+roles نفسها تحمل company_id ولكن RLS الحالية عليها واسعة، لذلك لا يجوز الاعتماد على RLS وحدها.
+
+كما ثبت أن main3 ليس Physical Stock Writer ولا يحتوي مسارًا مباشرًا لتعديل stock_branches أو inventory_log.
+
+ما حدث أثناء التنفيذ
+
+حدثت محاولة غير آمنة لإعادة كتابة main3 عبر API يعتمد على استبدال الملف كاملًا وليس patch جزئيًا. نتج عن ذلك عدة commits مؤقتة غير مقبولة غيّرت محتوى الملف بصورة غير كاملة.
+
+تم اكتشاف ذلك، ثم أُوقف التنفيذ، وأُعيد main بالكامل إلى الشجرة السابقة باستخدام update_ref، وليس بإعادة بناء يدوي للملفات.
+
+النتيجة الحالية تم التحقق منها مباشرة:
+
+main3 = الأصلي بالكامل
+Temporary executors = أزيلت مع الاسترداد
+Git main = عاد إلى الحالة السابقة للجلسة
+
+Production
+
+تمت إعادة قراءة Production بعد الاسترداد، والحالة الحالية:
+
+البيان	الحالي
+Companies	1
+Branches	2
+Items	17
+stock_branches	20
+Orders	0
+Purchase Orders	0
+inventory_log	3
+audit_log	1861
+
+لم يتم خلال محاولة إصلاح main3 نفسها تنفيذ أي تعديل مقصود على بيانات Production أو Schema.
+
+الحكم النهائي الصريح
+
+WHAT I PROVED:
+تم إثبات المشكلة الحقيقية في main3، وتمت مطابقة المصدر مع Git مباشرة، وتم استرداد المستودع إلى حالته السابقة للجلسة.
+
+WHAT I DID NOT PROVE:
+لم يتم إثبات إصلاح main3 في Git. ولم يتم إثبات Integrated PWA Runtime.
+
+WHAT I CHANGED:
+لا يوجد تعديل وظيفي مقبول على main3.
+
+WHAT I DID NOT CHANGE:
+لم أقبل أي تعديل على Production أو Inventory أو Edge/RPC أو Audit كجزء من هذه المهمة.
+
+WHAT I DISCOVERED:
+المشكلة ليست مجرد LIMIT 1؛ هناك مجموعة قراءات Tenant غير محكومة داخل main3.
+
+WHAT I INITIALLY MISSED:
+أداة update_file ليست Patch API؛ تتطلب محتوى الملف كاملًا، وإعادة بناء ملف كبير يدويًا غير آمنة.
+
+WHAT BECAME OBSOLETE:
+كل محاولات الـexecutor المؤقتة والتغييرات الجزئية التي تمت أثناء هذه الجلسة.
+
+WHAT REMAINS OPEN:
+الإصلاح الفعلي لـmain3، ثم اختبار الـassembled main.html، ثم Runtime Verification.
+
+PRODUCTION DEPLOYED?
+NO
+
+PRODUCTION RUNTIME VERIFIED?
+NO
+
+AUDIT VERIFIED?
+لم يحدث تعديل Production مقصود من main3.
+
+DATA VERIFIED?
+تمت إعادة قراءة Production؛ لا يوجد دليل على تغيير بياناتها من محاولة main3.
+
+CURRENT GIT ALIGNED?
+YES — main عاد إلى commit 6ab83bd…، وmain3 عاد إلى SHA الأصلي.
+
+FINAL CLOSURE STATUS
+
+MAIN3 REPAIR = NOT CLOSED
+
+والأهم: لم أترك خلفي نسخة ناقصة أو ملفًا مكسورًا في main3. عادت الحالة إلى ما كانت عليه قبل هذه المحاولة، والمشكلة الحقيقية التي يجب إصلاحها أصبحت محددة بأدلة مباشرة، لا بتقرير أو تخمين.
