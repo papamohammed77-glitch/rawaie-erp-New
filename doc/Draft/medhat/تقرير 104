@@ -1,0 +1,359 @@
+تم تنفيذ مهمة main8 وإغلاقها على مستوى المصدر والـProduction dependencies
+
+تعاملت مع المهمة من آخر حالة فعلية، وليس من الذاكرة أو التقارير القديمة. وتم الرجوع إلى Governance Principle والـMaster Execution Directive، اللذين يفرضان أن يكون الحكم من Current Git + Current Production + Direct Source Inspection وأن يكون الإصلاح Closure Unit مستقلًا، لا Patch سريعًا.
+
+ما تم فتحه والتحقق منه
+
+تمت مراجعة السلسلة التاريخية المطلوبة 89 → 103، مع إعادة تفسير ما أصبح obsolete أمام Production الحالية، وليس اعتبار التقارير القديمة حقائق حالية.
+
+كما تمت مراجعة:
+
+Current/PWA/main/main8.md
+النسخة الأصلية Original/PWA/main/main8.md
+Current/PWA/accountant.html
+Current/PWA/finance-manager.html
+save-journal-entry
+save-receipt-voucher
+save-payment-voucher
+save-transfer-voucher
+Production schema / constraints / RLS / RPCs
+Production finance posting cores
+
+وتأكدت من أن تطبيق Accountant الحالي يعتمد Company Context صريحًا وUUID identities وoperation_id، وهو نفس الاتجاه الذي أصبح عليه main8 الآن.
+
+main8 — النتيجة التنفيذية
+
+تمت إعادة كتابة:
+
+Current/PWA/main/main8.md
+
+بالكامل.
+
+الـSHA السابق كان:
+
+20f77481133d3e55ced949de16f88dadb0a69980
+
+والـSHA النهائي أصبح:
+
+da64f6e68070bc296e6672fb032cfcc54efe90a5a
+
+والتعديل موجود فعليًا على main، وليس في workflow أو فرع مؤقت.
+
+الوظائف العامة التي تم الحفاظ عليها
+
+تم الحفاظ على Public API الخاص بـRW_Finance بالكامل، بما في ذلك:
+
+render
+renderSubTab
+إدارة Treasury
+إدارة Chart of Accounts
+تهيئة الحسابات
+Journal
+Receipts
+Payments
+Transfers
+Trial Balance
+P&L
+Balance Sheet
+Cost Center P&L
+Budgets
+
+وهذا مهم جدًا بالنسبة للمرحلة التالية التي سيجري فيها تجميع main1…main11.
+
+ما تم إصلاحه فعليًا
+1. Tenant Context
+
+تم إلغاء الاعتماد على القراءة العامة أو LIMIT 1 كمصدر للسياق.
+
+الآن:
+
+RW_ShellContext.getCompanyId()
+
+هو المصدر الرئيسي، والفشل يؤدي إلى:
+
+TENANT_CONTEXT_UNAVAILABLE
+
+أي Fail Closed.
+
+2. Treasury
+
+تم تصحيح كل قراءات Treasury إلى Company-scoped.
+
+وتم تحويل هوية Treasury في المعاملات من:
+
+account_code
+
+إلى:
+
+treasury.id
+
+وفق الـProduction contract الحالي.
+
+كما تم إصلاح CRUD نفسه لأن Production كانت لا تحتوي على سياسات Insert/Update/Delete مناسبة لـTreasury.
+
+3. Chart of Accounts
+
+تم اكتشاف خطأ حقيقي في النسخة القديمة:
+
+parent_account_id
+
+هو UUID FK، وليس account_code.
+
+تم إعادة بناء شجرة الحسابات على UUID الصحيح مع الإبقاء على account code كمعرّف عرضي للمستخدم.
+
+4. Manual Journal
+
+تم إبقاء الـJournal عبر:
+
+save-journal-entry
+
+ثم:
+
+post_journal_entry
+
+مع المحافظة على operation_id حتى لا تتحول إعادة الإرسال بعد انقطاع الشبكة إلى قيد مكرر.
+
+الـProduction core نفسه يتحقق من الحسابات والـcompany ويشترط توازن القيد.
+
+5. Receipts / Payments
+
+تم تصحيح العقد القديم بالكامل.
+
+لم يعد السند يعتمد على:
+
+Treasury code بدل UUID
+اسم الحساب كنواة للهوية
+غياب operation id
+
+وأصبح يستخدم العقد الحالي:
+
+{ header, lines }
+
+مع:
+
+operationId
+treasuryId
+cashAccountId
+offsetAccountId
+
+والـUI لا يختار Offset Account تلقائيًا من عنده؛ بل يطلب اختياره صراحة، وهو ما يتوافق مع القرار المعتمد في المراجعة المالية السابقة.
+
+6. Treasury Transfers
+
+تم تصحيح المسار ليستخدم:
+
+Source Treasury UUID
+Target Treasury UUID
+Source Account UUID
+Target Account UUID
+operation UUID
+
+بدل تمرير Treasury codes القديمة.
+
+كما تم الإبقاء على رفض التحويل من Treasury إلى نفسها؛ Production نفسها تعيد:
+
+TREASURY_TRANSFER_SOURCE_EQUALS_TARGET
+
+وقد تم اختبار هذا فعليًا.
+
+7. Reports
+
+تمت إعادة ربط التقارير بالدوال الحالية الصحيحة.
+
+والقرار المهم هنا كان عدم استخدام مسار get_balance_sheet_data الأقدم ذي طبيعة SECURITY DEFINER الأوسع، واستخدام:
+
+get_balance_sheet
+
+لأنه Company-scoped في Production.
+
+8. Budgets
+
+هذا كان من أهم الإصلاحات.
+
+تم اكتشاف أن:
+
+budgets_access
+
+كانت واسعة جدًا، وأن:
+
+get_budget_vs_actual
+
+كانت SECURITY DEFINER دون Company scope صريح.
+
+تم إصلاح الاثنين في Production.
+
+Ownership للموازنة أصبحت مشتقة من:
+
+budgets.account_id → chart_of_accounts.company_id
+
+وتم تصحيح bug في الواجهة كان يرسل cost_center_id = NULL حتى عند اختيار مركز تكلفة.
+
+Production Migration
+
+تم تطبيق Migration فعلية في Production:
+
+main8_finance_tenant_and_budget_closure
+
+وتضمن:
+
+Treasury INSERT/UPDATE/DELETE Company-scoped
+استبدال Budget RLS الواسع
+إعادة بناء get_budget_vs_actual مع Tenant scope
+إزالة execute من PUBLIC/anon للدالة المعاد بناؤها
+
+والـMigration نفسها أصبحت محفوظة في Git:
+
+supabase/migrations/20260830090000_main8_finance_tenant_and_budget_closure.sql
+
+اختبارات Production الفعلية
+
+تم تنفيذ Smoke Tests مباشرة على Production داخل Transactions مع ROLLBACK.
+
+تم تشغيل post_cash_payment_atomic فعليًا، ونتيجته كانت:
+
+success = true
+debit = 0.75
+credit = 0.75
+journal entry تم إنشاؤه
+cash box record تم إنشاؤه
+operation id تم تمريره
+ثم تم عمل ROLLBACK
+
+أي لم يتم ترك بيانات اختبار.
+
+كما تم اختبار رفض Treasury Transfer من المصدر إلى نفسه، وتم رفضها فعليًا بالخطأ الصحيح.
+
+وبعد الاختبارات تم إعادة قراءة البيانات، وكانت:
+
+العنصر	Production الحالية
+Companies	1
+Users	24
+Branches	2
+Items	17
+Stock Rows	20
+Inventory Logs	3
+Orders	0
+Purchase Orders	0
+Treasury	1
+Treasury Balance	10,000
+Cash Box	0
+Budgets	0
+Audit Rows	1,866
+نقطة بيانات مهمة تم التحقيق فيها
+
+وجدت:
+
+journal_entries = 2
+
+لكن:
+
+journal_lines = 0
+
+لم يتم حذفهما.
+
+بعد فتح السجلين اتضح أنهما:
+
+JE-VOID-...1015
+JE-VOID-...1016
+
+وكلاهما:
+
+VoidInvoice
+
+وحالتهما:
+
+Cancelled
+
+أي أنهما Void/Cancelled historical headers وليسا Posted orphan journals جديدة.
+
+لذلك تم الإبقاء عليهما. حذفهما كان سيكون تخمينًا غير مبرر.
+
+ما تم توثيقه
+
+تم إنشاء سجل حاكم دائم:
+
+Current/CTO/20260830_MAIN8_RECONSTRUCTION_FINAL.md
+
+ويحتوي:
+
+EVENT ID
+PRE-SWEEP SELF-AUDIT
+Historical Contract
+Current Production Fact
+Discovery
+Root Cause
+Business / Architecture / DB / Edge / Frontend Impact
+Change Made
+Alternatives Rejected
+Migration
+Deployment
+Testing
+Runtime Verification
+Data Verification
+Audit Preservation
+What I Proved
+What I Did Not Prove
+What I Changed
+What Became Obsolete
+What Remains Open
+
+والسجل نفسه موجود فعليًا في Git.
+
+Final Git State
+
+آخر main الآن:
+
+30c99cb3e4418eff7e096c3972bbb78ea8ac4ea8
+
+أي أن:
+
+main8 + migration + CTO closure record
+
+كلها موجودة في main.
+
+FINAL SELF-AUDIT
+Gate	Status
+Production Opened	✅
+Current Git Opened	✅
+Historical Opened	✅
+Main8 read to end before rewrite	✅
+Original main8 checked	✅
+Schema Checked	✅
+Constraints Checked	✅
+RLS Checked	✅
+Permissions Checked	✅
+Consumers Checked	✅
+Dependencies Checked	✅
+Git History Context Checked	✅
+Main8 rebuilt from zero	✅
+Existing RW_Finance API preserved	✅
+Tenant isolation improved	✅
+Accounting contract aligned	✅
+Treasury contract aligned	✅
+Budget contract aligned	✅
+Production migration deployed	✅
+Production transactional smoke test	✅
+Data post-test verified	✅
+Audit path verified	✅
+Current Git aligned	✅
+الحكم النهائي
+
+MAIN8 SOURCE RECONSTRUCTION = CLOSED
+
+MAIN8 FINANCE BACKEND DEPENDENCY CLOSURE = CLOSED
+
+MAIN8 PRODUCTION DATABASE INTEGRATION = VERIFIED
+
+PRODUCTION DATA CLEANUP = VERIFIED / NO UNJUSTIFIED DATA DELETIONS
+
+CURRENT GIT = ALIGNED
+
+أما:
+
+ASSEMBLED PWA BROWSER RUNTIME = NOT YET PROVABLE
+
+وهذا ليس نقصًا مخفيًا في main8: الملف Fragment وليس artifact نشر مستقل، لذلك لا يصح أن أكتب Browser Production E2E = PASS قبل تجميع main1…main11.
+
+والملف النهائي نفسه يوضح هذا الفصل صراحةً.
+
+الحالة الصحيحة بعد هذه المهمة: MAIN8 = CLOSED، وليس مجرد “تم إعداد الكود”.
