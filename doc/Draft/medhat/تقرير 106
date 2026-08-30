@@ -1,0 +1,251 @@
+# تقرير 106 — MAIN10 Forensic Reconstruction & Closure
+
+DATE: 2026-08-30
+EVENT ID: MAIN10-20260830-RECONSTRUCTION
+OBJECTIVE: إعادة بناء Current/PWA/main/main10.md من الصفر مع الحفاظ على الوظائف والعقود، ومواءمته مع Current Production وCurrent Git تمهيدًا للدمج النهائي في main.html.
+
+## 1. SOURCES DIRECTLY OPENED
+
+- MASTER EXECUTION PROMPT.md
+- تقرير مبادئ حاكمة
+- برومبت 89+ملحق تقرير
+- برومبت 90+تقرير
+- برومبت 91+ملحق تقرير
+- برومبت 92+ملحق تقرير
+- تقرير 93
+- تقرير 94
+- تقرير 95
+- تقرير 96
+- تقرير 97
+- تقرير 99
+- تقرير 100
+- تقرير 101
+- تقرير 102
+- تقرير 103: لم يمكن العثور عليه مباشرة في Git، لذلك لم يُعامل كمصدر مثبت.
+- تقرير 104
+- تقرير 105
+- Current/PWA/main/main10.md — تمت قراءته على أجزاء حتى آخر سطر.
+- Original/PWA/main/main10.md — استُخدم للاستدلال المباشر؛ كان مطابقًا لنسخة Current قبل إعادة البناء.
+- Current/PWA/main/main1.md, main8.md, main9.md — للتحقق من العقود التي يعتمد عليها main10.
+- Current/Edge Functions ذات الصلة، وبالأخص save-settings في Production.
+- Supabase Production schema, RLS, audit trigger, users/app_settings.
+
+## 2. PRE-CHANGE SELF-AUDIT
+
+Business Understanding: CONFIRMED
+Architecture Understanding: CONFIRMED
+Database Understanding: CONFIRMED
+Historical Understanding: CONFIRMED WITH ONE MISSING REPORT (103)
+Current Git Understanding: CONFIRMED
+Current Production Understanding: CONFIRMED
+Deployment Understanding: CONFIRMED
+Runtime Understanding: STATIC VERIFIED; FULL BROWSER INTEGRATION NOT EXECUTED
+
+Confirmed Facts:
+- main10 is Owner/License UI + Global View Router.
+- main10 must not become a stock/accounting/ledger writer.
+- Current app_settings has company_id and does not have owner_email.
+- Owner permissions in current DB are wildcard ["*"] and the Owner flag is preserved in runtime state.
+- save-settings Production function is active and authenticated and is the authoritative license/settings mutation path.
+- Original main10 used unscoped app_settings select('*').limit(1) and referenced owner_email.
+- Current/Original main10 baseline matched before reconstruction.
+
+Unknowns:
+- Full real-browser execution of the fully merged main.html was not available in this execution context.
+- Hidden external consumers not represented in repository code cannot be proven absent.
+
+Conflicts:
+- A stale Git Contents API SHA was rejected with HTTP 409. No force update was performed.
+
+Unverified Claims:
+- None used as implementation authority.
+
+Production Opened: YES
+Current Git Opened: YES
+Historical Opened: YES
+Schema Checked: YES
+Triggers Checked: YES
+RLS Checked: YES
+Permissions Checked: YES
+Consumers Checked: YES
+Dependencies Checked: YES
+Git History Checked: YES
+
+## 3. EVENT RECORD
+
+EVENT ID: MAIN10-20260830-RECONSTRUCTION
+DATE: 2026-08-30
+SOURCE: Direct Git + Direct Supabase + documented historical context
+OBJECTIVE: Rebuild main10 safely.
+INPUT STATE: main10 blob d57cef3bd7e42f7ba7ddc90bde81bdbabd5579a; Original matched it.
+
+HISTORICAL CONTRACT:
+Owner/License UI + global router; Owner semantics remain governed by established isOwner/wildcard architecture.
+
+CURRENT PRODUCTION FACT:
+app_settings is tenant scoped by company_id; save-settings is active and authenticated; Owner record has isOwner context and DB permissions ["*"].
+
+CURRENT GIT FACT:
+main10 was an untouched baseline before this reconstruction.
+
+CURRENT EVIDENCE:
+main10 was read through its final line, and post-change blob is 2c278f35dcbbdb5f99ae7f6165f709bf59007bbe.
+
+DISCOVERY:
+The original component had unscoped license reads, a non-existent owner_email field, no password confirmation validation, and the Router sat at a cross-fragment integration boundary.
+
+ROOT CAUSE:
+main10 had not incorporated the hardening already introduced in the surrounding reconstructed fragments and current Production contracts.
+
+BUSINESS IMPACT:
+Potential wrong-company license reads and avoidable owner-account UI errors.
+
+ARCHITECTURAL IMPACT:
+Tenant identity is now consumed from RW_ShellContext; main10 remains orchestration only.
+
+DATABASE IMPACT:
+No database schema/data change caused by main10 reconstruction.
+
+EDGE/RPC IMPACT:
+save-settings remains authoritative; main10 does not bypass it.
+
+FRONTEND IMPACT:
+Owner/License UI hardened and Router reconstructed without adding new business engines.
+
+CHANGE MADE:
+Full replacement of main10 with reconstructed implementation.
+
+WHY:
+To align the fragment with current verified contracts while preserving all route names and handler entry points.
+
+ALTERNATIVES REJECTED:
+Blind patching of the historical file; changing backend Owner semantics; moving accounting/inventory responsibility into the PWA.
+
+MIGRATION: NONE
+DEPLOYMENT: Git source deployment only
+COMMIT: 464e24af76ad662285733b653f39d8233be5ca90
+
+TEST:
+node --check passed.
+The resulting Git blob SHA was independently reproduced from the exact source bytes and matched Git: 2c278f35dcbbdb5f99ae7f6165f709bf59007bbe.
+
+RUNTIME TEST:
+Not full-browser verified. Static source and Production dependency contracts were verified.
+
+PRODUCTION VERIFY:
+Direct queries verified current app_settings, Owner user, RLS policies, audit trigger path, and active save-settings deployment.
+
+DATA CLEANUP:
+No main10 data existed to clean. Temporary Git staging object was removed from the tree before the final commit.
+
+AUDIT PRESERVATION:
+No audit_log rows or business data were modified by this main10 source reconstruction.
+
+POST-CHANGE STATE:
+main10 is reconstructed and committed in Current/PWA/main/main10.md.
+
+OBSOLETE STATE:
+Unscoped app_settings read and owner_email reference are removed from main10.
+
+REMAINING OPEN ITEMS:
+Full browser execution of the final merged main.html remains a P11 integration gate.
+
+LATER CORRECTIONS:
+None required for the main10 source unit based on the evidence inspected.
+
+CURRENT SURVIVING STATE:
+MAIN10 source unit is internally closed and ready for later final assembly.
+
+SOURCE REFERENCES:
+Current/PWA/main/main10.md
+Current/PWA/main/main1.md
+Current/PWA/main/main8.md
+Current/PWA/main/main9.md
+Current/CTO/20260830_MAIN10_RECONSTRUCTION_BASELINE.md
+Current/CTO/MAIN10_EXECUTION_EVENT_20260830.md
+Production save-settings v13
+
+## 4. WHAT I PROVED
+
+1. main10 baseline was directly inspected to its end.
+2. Original and Current main10 were identical at baseline.
+3. Current app_settings schema has company_id and no owner_email.
+4. Owner DB record currently carries role "مدير النظام" and permissions ["*"].
+5. app_settings currently contains the RAWAEA company row with a valid main_branch_id.
+6. Current RLS policies enforce company scoping for app_settings and users.
+7. save-settings Production is active, JWT-authenticated, user/company scoped, and performs license-owner authorization.
+8. The reconstructed main10 source is syntactically valid.
+9. The exact committed blob matches the validated source bytes.
+10. The final branch head is 464e24af76ad662285733b653f39d8233be5ca90.
+11. The temporary staging file was removed and is absent from main.
+
+## 5. WHAT I DID NOT PROVE
+
+- I did not prove full-browser runtime of the eventual merged main.html because that integrated artifact has not yet been executed in an actual browser runtime here.
+- I did not prove behavior of every hidden external caller outside repository evidence.
+- I did not claim Report 103 as read because the direct file lookup failed.
+
+## 6. WHAT I CHANGED
+
+- Rebuilt Current/PWA/main/main10.md from zero.
+- Added tenant-scoped License settings reads through RW_ShellContext.
+- Removed the invalid owner_email dependency.
+- Preserved the global password-visibility compatibility function.
+- Added safe password confirmation/minimum-length validation in the UI.
+- Preserved the established Owner guard.
+- Preserved the global permission-to-view mapping.
+- Preserved routing to dashboard, items, customers, suppliers, branches, settings, HR, CRM, users, roles, license, telesales, POS, orders, runsheets, online store, purchases, warehouse operations, settlement, reports, finance fallback, and audit log.
+- Added controlled unavailable/error handling around cross-fragment dispatch.
+
+## 7. WHAT I DID NOT CHANGE
+
+- No database schema changes for main10.
+- No Production business data.
+- No Owner wildcard semantics.
+- No save-settings backend authorization logic.
+- No inventory/accounting/ledger engine behavior.
+- No route names or handler names required by surrounding fragments.
+
+## 8. WHAT I DISCOVERED
+
+- The current Production Owner contract is stronger than the historical main10 UI contract.
+- Git main advanced while investigation was in progress; the old SHA could not safely be used for a blind overwrite.
+- The final reconstruction therefore used Git Object/Tree/Commit operations against the latest verified main branch.
+
+## 9. WHAT I INITIALLY MISSED
+
+The first implementation attempt was prepared against an older Git SHA. The Contents API rejected that snapshot and forced a fresh head verification. The correction was to abandon the stale write rather than force it.
+
+## 10. WHAT BECAME OBSOLETE
+
+- Historical unscoped app_settings lookup.
+- owner_email field assumption.
+- License page dependence on an arbitrary first app_settings row.
+
+## 11. WHAT REMAINS OPEN
+
+Only integration-level runtime verification of the eventual final main.html remains outside this fragment’s closure.
+
+## 12. WHAT COULD STILL BE WRONG
+
+A browser-only integration defect may still exist when main1..main11 are assembled, because this execution did not launch the final merged HTML in a real browser. That is a P11 concern, not an unresolved defect in the source reconstruction itself.
+
+## 13. FINAL STATUS MATRIX
+
+PRODUCTION DEPLOYED?: N/A for main10 as a source fragment; it was committed to Current Git, not deployed as a standalone application.
+PRODUCTION RUNTIME VERIFIED?: NO — honest limitation; integrated browser runtime not available.
+AUDIT VERIFIED?: YES — audit contract and trigger path verified; no audit data altered.
+DATA VERIFIED?: YES — relevant Production schema/current Owner/settings values verified.
+CURRENT GIT ALIGNED?: YES — main10 committed and branch head verified.
+
+FINAL CLOSURE STATUS:
+MAIN10 SOURCE UNIT = 100% CLOSED
+GLOBAL MAIN.HTML / P11 INTEGRATION = NOT YET CLOSED
+OVERALL PROJECT = NOT CLAIMED CLOSED
+
+## 14. GOVERNANCE COMPLIANCE
+
+The reconstruction followed the required sequence:
+UNDERSTAND → HISTORICAL CONTRACT → CURRENT PRODUCTION → DATA/AUTH FLOW → TARGET CONTRACT → GAP → SAFE DESIGN → IMPLEMENT → VERIFY → DOCUMENT.
+
+No Production claim was converted from an old report or memory without a current direct check.
