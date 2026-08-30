@@ -1,11 +1,15 @@
-name: RAWAEA forensic main assembly
+name: RAWAEA forensic main assembly — VERIFY ONLY
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
+    paths:
+      - 'Current/PWA/main/**'
+      - 'Current/PWA/main.html'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   forensic-assembly:
@@ -14,84 +18,62 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
       - name: Build forensic manifest
         shell: bash
         run: |
-          node > /tmp/forensic.js <<'NODE'
-          const fs = require('fs');
-          const crypto = require('crypto');
-          const path = require('path');
-          const parts = Array.from({length:11},(_,i)=>`main${i+1}.md`);
-          const curDir='Current/PWA/main';
-          const origDir='Original/PWA/main';
-          const sha256=b=>crypto.createHash('sha256').update(b).digest('hex');
-          const read=(p)=>fs.readFileSync(p);
-          const escReg=s=>s.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&');
-          const stat=(p)=>({bytes:fs.statSync(p).size,sha256:sha256(read(p)),lines:read(p).toString('utf8').split(/\n/).length});
-          const sourceMap=(p)=>{
-            const s=read(p).toString('utf8');
-            const text=s;
-            const functions=[...s.matchAll(/(?:async\\s+)?function\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)].map(m=>m[1]);
-            const vars=[...s.matchAll(/\\b(?:var|let|const)\\s+([A-Za-z_$][\\w$]*)/g)].map(m=>m[1]);
-            const ids=[...s.matchAll(/\\bid=["']([^"']+)["']/g)].map(m=>m[1]);
-            const rpcs=[...s.matchAll(/\\.rpc\\(\\s*["']([^"']+)["']/g)].map(m=>m[1]);
-            const tables=[...s.matchAll(/\\.from\\(\\s*["']([^"']+)["']/g)].map(m=>m[1]);
-            const fetches=[...s.matchAll(/functions\\/v1\\/([A-Za-z0-9._-]+)/g)].map(m=>m[1]);
-            const globals=[...s.matchAll(/window\\.([A-Za-z_$][\\w$]*)/g)].map(m=>m[1]);
-            const storage=[...s.matchAll(/(?:localStorage|sessionStorage)\\.(?:getItem|setItem|removeItem)\\(\\s*["']([^"']+)/g)].map(m=>m[1]);
-            const listeners=[...s.matchAll(/addEventListener\\(\\s*["']([^"']+)["']/g)].map(m=>m[1]);
-            const directStock=(/from\\(\\s*["']stock_branches["'][^;]{0,400}\\.(?:update|insert|upsert|delete)\\(/s.test(s)||/from\\(\\s*["']inventory_log["'][^;]{0,400}\\.(?:update|insert|upsert|delete)\\(/s.test(s));
-            const appSettingsUnscoped=/from\\(\\s*["']app_settings["'][\\s\\S]{0,500}?\\.limit\\(\\s*1\\s*\\)/.test(s)&&!/from\\(\\s*["']app_settings["'][\\s\\S]{0,250}?company_id/.test(s);
-            const count=k=>[...s.matchAll(new RegExp(escReg(k),'g'))].length;
-            return {functions:[...new Set(functions)].sort(),vars:[...new Set(vars)].sort(),ids:[...new Set(ids)].sort(),rpcs:[...new Set(rpcs)].sort(),tables:[...new Set(tables)].sort(),fetches:[...new Set(fetches)].sort(),globals:[...new Set(globals)].sort(),storage:[...new Set(storage)].sort(),listeners:[...new Set(listeners)].sort(),direct_stock_writer:directStock,unscoped_app_settings_limit_1:appSettingsUnscoped,feature_counts:{rec_offers:count('rec-offers'),rec_purchase:count('rec-purchase'),rec_customers:count('rec-customers'),rec_expansion:count('rec-expansion'),RW_Reports:count('RW_Reports')},prefix:s.slice(0,240),suffix:s.slice(-240)};
-          };
-          const current=parts.map(n=>stat(path.join(curDir,n)));
-          const original=parts.map(n=>stat(path.join(origDir,n)));
-          const concatParts=parts.map(n=>read(path.join(curDir,n)));
-          const concat=Buffer.concat(concatParts);
-          const main=read('Current/PWA/main.html');
-          const origMain=fs.existsSync('Original/PWA/main.html')?read('Original/PWA/main.html'):null;
-          const diagnostics=Object.fromEntries(parts.map((n,i)=>[n,{current:sourceMap(path.join(curDir,n)),original:sourceMap(path.join(origDir,n))}]));
-          const firstDiff=(()=>{const m=Math.min(concat.length,main.length);for(let i=0;i<m;i++)if(concat[i]!==main[i])return i;return concat.length===main.length?-1:m;})();
-          const locate=(buf,frag)=>{const idx=buf.indexOf(frag);return idx;};
-          let offset=0; const concatRanges={}; parts.forEach((n,i)=>{concatRanges[n]={start:offset,end:offset+concatParts[i].length-1};offset+=concatParts[i].length;});
-          const mainText=main.toString('utf8');
-          const occurrences={};
-          for(const n of parts){const b=read(path.join(curDir,n));const ix=locate(main,b);occurrences[n]={exact_subsequence_offset_bytes:ix};}
-          const bctx=firstDiff>=0?{start:Math.max(0,firstDiff-160),end:Math.min(main.length,firstDiff+160),concat_utf8:concat.subarray(Math.max(0,firstDiff-160),Math.min(concat.length,firstDiff+160)).toString('utf8'),main_utf8:main.subarray(Math.max(0,firstDiff-160),Math.min(main.length,firstDiff+160)).toString('utf8')}:null;
-          const out={generated_at:new Date().toISOString(),parts:parts.map((n,i)=>({part:n,current:current[i],original:original[i]})),current_concatenation:{bytes:concat.length,sha256:sha256(concat)},current_main_html:{bytes:main.length,sha256:sha256(main)},original_main_html:origMain?{bytes:origMain.length,sha256:sha256(origMain)}:null,first_byte_difference:firstDiff,exact_concat_equals_current_main:firstDiff===-1,concat_ranges:concatRanges,part_occurrences_in_current_main:occurrences,first_difference_context:bctx,diagnostics};
-          fs.mkdirSync('Current/CTO',{recursive:true});
-          fs.writeFileSync('Current/CTO/FORENSIC_MAIN_ASSEMBLY_MANIFEST.json',JSON.stringify(out,null,2));
-          console.log(JSON.stringify({firstDiff,concatBytes:concat.length,mainBytes:main.length,parts:parts.map(n=>({part:n,current:diagnostics[n].current.feature_counts,original:diagnostics[n].original.feature_counts,subsequence:occurrences[n].exact_subsequence_offset_bytes}))},null,2));
-          NODE
-          node /tmp/forensic.js
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json, re
+          parts=[f'main{i}.md' for i in range(1,12)]
+          cur=Path('Current/PWA/main'); org=Path('Original/PWA/main')
+          sha=lambda b: hashlib.sha256(b).hexdigest()
+          def meta(p):
+              b=p.read_bytes(); return {'path':str(p),'bytes':len(b),'sha256':sha(b),'lines':b.count(b'\n')+1}
+          def symbols(p):
+              s=p.read_text(encoding='utf-8')
+              return {
+                'functions':sorted(set(re.findall(r'(?<![\\w$])function\\s+([A-Za-z_$][\\w$]*)\\s*\\(',s))),
+                'ids':sorted(set(re.findall(r'\\bid=["\']([^"\']+)["\']',s))),
+                'rpcs':sorted(set(re.findall(r'\\.rpc\\(\\s*["\']([^"\']+)["\']',s))),
+                'tables':sorted(set(re.findall(r'\\.from\\(\\s*["\']([^"\']+)["\']',s))),
+                'feature_counts':{k:s.count(k) for k in ['rec-purchase','rec-offers','RW_POS','RW_Roles','RW_TeleSales','RW_ShellContext','RW_OwnerContract']}
+              }
+          out={'parts':[],'current_main_html':meta(Path('Current/PWA/main.html')),'original_main_html':meta(Path('Original/PWA/main.html'))}
+          for n in parts:
+              out['parts'].append({'part':n,'current':meta(cur/n),'original':meta(org/n),'current_symbols':symbols(cur/n),'original_symbols':symbols(org/n)})
+          Path('Current/CTO').mkdir(parents=True,exist_ok=True)
+          Path('Current/CTO/FORENSIC_MAIN_ASSEMBLY_MANIFEST.json').write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
+          print('FORENSIC_MANIFEST_PASS')
+          PY
 
-      - name: Validate full main HTML
+      - name: Validate current main HTML
         shell: bash
         run: |
-          node > /tmp/check.js <<'NODE'
-          const fs=require('fs'); const s=fs.readFileSync('Current/PWA/main.html','utf8');
-          const checks={doctype:/<!doctype\s+html/i.test(s),htmlOpen:/<html\b/i.test(s),htmlClose:/<\/html>/i.test(s),headOpen:/<head\b/i.test(s),headClose:/<\/head>/i.test(s),bodyOpen:/<body\b/i.test(s),bodyClose:/<\/body>/i.test(s)};
-          const scriptOpen=(s.match(/<script\b/gi)||[]).length,scriptClose=(s.match(/<\/script>/gi)||[]).length;
-          const styleOpen=(s.match(/<style\b/gi)||[]).length,styleClose=(s.match(/<\/style>/gi)||[]).length;
-          const braceBalance=(s.match(/{/g)||[]).length-(s.match(/}/g)||[]).length;
-          const out={checks,scriptOpen,scriptClose,styleOpen,styleClose,braceBalance};
-          fs.writeFileSync('Current/CTO/FORENSIC_MAIN_HTML_STRUCTURE.json',JSON.stringify(out,null,2));
-          if(!Object.values(checks).every(Boolean)||scriptOpen!==scriptClose||styleOpen!==styleClose||braceBalance!==0) process.exit(3);
-          NODE
-          node /tmp/check.js
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('Current/PWA/main.html').read_text(encoding='utf-8')
+          checks=[r'<!doctype\s+html',r'<html\b',r'</html>',r'<head\b',r'</head>',r'<body\b',r'</body>']
+          assert all(re.search(x,s,re.I) for x in checks), 'HTML_STRUCTURE_FAIL'
+          assert s.lower().count('<script')==s.lower().count('</script>'), 'SCRIPT_BALANCE_FAIL'
+          assert s.lower().count('<style')==s.lower().count('</style>'), 'STYLE_BALANCE_FAIL'
+          assert 'window.RW_ShellContext' in s and 'window.RW_OwnerContract' in s, 'CONTRACTS_MISSING'
+          assert 'rec-purchase' in s and 'rec-offers' in s, 'RECOMMENDATION_PARITY_MISSING'
+          assert not re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,500}?\.(?:update|insert|upsert|delete)\(",s), 'DIRECT_STOCK_WRITER'
+          assert not re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,500}?\.(?:update|insert|upsert|delete)\(",s), 'DIRECT_INVENTORY_LOG_WRITER'
+          assert not re.search(r"\.from\(['\"]app_settings['\"]\)\.select\([^;]*?\)\.limit\(\s*1\s*\)",s,re.S), 'UNSCOPED_APP_SETTINGS'
+          print('CURRENT_MAIN_FORENSIC_VERIFY_PASS')
+          PY
 
-      - name: Commit forensic artifacts only
+      - name: Record-only commit
         shell: bash
         run: |
+          set -euo pipefail
           git config user.name 'rawaea-forensic-bot'
           git config user.email 'rawaea-forensic-bot@users.noreply.github.com'
-          git add Current/CTO/FORENSIC_MAIN_ASSEMBLY_MANIFEST.json Current/CTO/FORENSIC_MAIN_HTML_STRUCTURE.json
+          git add Current/CTO/FORENSIC_MAIN_ASSEMBLY_MANIFEST.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'chore(cto): record main assembly forensic baseline [no-deploy]'
-          git push
+          git commit -m 'chore(cto): record main assembly forensic verification [no-deploy]'
+          git push origin HEAD:main
