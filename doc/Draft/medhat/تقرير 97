@@ -1,0 +1,270 @@
+تم تنفيذ المهمة على Current/PWA/main/main4.md نفسه، وليس على فرع أو ملف بديل.
+
+والأهم: لم أتعامل مع التقرير 96 كحقيقة تشغيلية؛ استخدمته كسياق تاريخي ثم أعدت فتح المصدر الحالي وProduction مباشرة، وفتحت main4 ونسخته الأصلية حتى النهاية قبل الكتابة. main4 الحالي يتكون من ثلاث وحدات رئيسية: RW_POS وRW_Roles وRW_TeleSales، ولم يتم تحويل أي منها إلى Inventory Writer.
+
+سجل ما قبل التعديل
+البند	الحالة
+Business Understanding	✅
+Architecture Understanding	✅
+Database Understanding	✅
+Historical Understanding	✅
+Current Git Understanding	✅
+Current Production Understanding	✅
+Deployment Understanding	✅
+Runtime Understanding	✅
+Production Opened	✅
+Current Git Opened	✅
+Historical Opened	✅
+Schema Checked	✅
+Triggers Checked	✅
+RLS Checked	✅
+Permissions Checked	✅
+Consumers Checked	✅ للنطاق المؤثر
+Dependencies Checked	✅
+Git History Checked	✅
+
+Confirmed Facts
+
+items.item_code في Production عليه UNIQUE عالمي، ولذلك لا يجوز فرض Company ownership على Item Master بلا دليل.
+stock_branches لا يحتوي company_id، وسلامة tenant فيه تمر عبر branch_id → branches.company_id.
+roles.company_id إلزامي.
+post_stock_movement هو Physical Stock Engine المركزي.
+main4 نفسه لا يكتب stock_branches ولا inventory_log.
+save-sales-invoice الحالي يتعاقد على branchCode.
+Production الحالية مرتبطة فعليًا بالفرع الرئيسي BR-01، وليس هناك أساس يسمح بافتراض أن النص MAIN هو Branch Code تشغيلي.
+
+هذه النقطة الأخيرة كانت حاسمة؛ لذلك تغيير اسم الحقل من branchId إلى branchCode وحده لم يكن كافيًا.
+
+ما تم تغييره فعليًا
+1. RW_POS
+
+تم إغلاق Tenant Drift دون تغيير واجهة POS أو عقدها الوظيفي:
+
+أصبح Company Context يأتي من RW_ShellContext.getCompanyId().
+app_settings أصبح Company-scoped.
+main_branch_id يتم حله إلى branch_code من جدول branches مع Company scoping.
+فشل تحديد Tenant أو Main Branch أصبح Fail Closed.
+استدعاء save-sales-invoice أصبح يرسل branchCode الحقيقي بدل branchId: 'MAIN'.
+
+هذا يظهر مباشرة في الـcommit النهائي.
+
+2. RW_Roles
+
+تم إصلاح Tenant isolation داخل الوحدة:
+
+إضافة Company Context موحد.
+roles.select('*') أصبح roles.select(...).eq('company_id', companyId).
+إعادة تحميل الأدوار بعد Save/Delete/Seed أصبحت أيضًا Company-scoped.
+تم الحفاظ على Preselection للصلاحيات عند تعديل Role؛ لم أختصر الـRole UI ولم أفقد نموذج الصلاحيات.
+أضيف HTML escaping للأسماء والأوصاف المعروضة في الجدول.
+
+والـSchema المباشر في Production يؤكد أن roles.company_id حقل إلزامي. التعديل ظاهر في diff النهائي.
+
+3. RW_TeleSales
+
+تم إصلاح أهم نقاط الـtenant drift:
+
+app_settings أصبحت Company-scoped.
+branches أصبحت Company-scoped.
+stock_branches لا تُقرأ ككتلة Global؛ يتم أولًا الحصول على فروع الشركة، ثم تقييد المخزون بهذه الـBranch IDs.
+_saveOrder() لم يعد يسمح بالسقوط إلى MAIN عند غياب الفرع؛ اختيار الفرع أصبح شرطًا صريحًا.
+fallback القديم الذي كان يستخدم إعدادات محلية عند فشل قراءة الإعدادات أزيل، لأن هذا كان يسمح بتجاوز سياق الشركة.
+حساب الضريبة أصبح يعتمد على الإعدادات التي تم تحميلها من Company الحالية.
+تم الحفاظ على customer search، stock availability، cart، max quantity، save flow، customer creation، وجميع exports.
+تم إضافة escaping لعرض بيانات العملاء والأصناف.
+
+كل ذلك مثبت داخل diff نفسه، بما في ذلك إزالة fallback القديم وإلزام branchCode.
+
+ما لم أفعله
+
+لم أغيّر:
+
+post_stock_movement
+أي Edge Function
+أي RPC
+أي Inventory Balance
+stock_branches
+inventory_log
+orders
+items
+roles data
+أي RLS policy
+أي Accounting/Ledger logic
+أي ملف آخر كجزء من إصلاح main4
+أي Branch Git
+
+وهذا مهم جدًا لأن المطلوب كان أن تكون هذه الوحدة نفسها هي مكان التعديل، لا إنشاء شبكة أخرى من ملفات التنفيذ.
+
+الإثبات الخاص بالـGit
+
+تم تحديث:
+
+Current/PWA/main/main4.md
+
+مباشرة على main، والـcommit النهائي هو:
+
+b03b7791cfaac874af2168a66e43e4152b486ee4
+
+والـblob الجديد:
+
+095b2b342157c44d46d7773ccd8f578c203c6ab3
+
+والـcommit يحتوي ملفًا واحدًا فقط:
+
+Current/PWA/main/main4.md
+
+وليس Workflow أو Executor أو فرعًا وسيطًا.
+
+Production Verification
+
+بعد التعديل أعدت قراءة Production مباشرة.
+
+الحالة الحالية التي ظهرت الآن:
+
+Entity	Current Production
+Companies	1
+Users	24
+Branches	2
+Items	17
+Stock Rows	20
+Orders	0
+Purchase Orders	0
+Inventory Logs	3
+Audit Rows	1861
+
+لم يترك هذا التعديل أي Data Mutation في Production.
+
+نقطة مهمة جدًا عن Runtime
+
+لم أعلن:
+
+PRODUCTION RUNTIME VERIFIED = YES
+
+لأن ذلك سيكون مخالفًا للأمر التشغيلي.
+
+main4.md Fragment وليس ملف نشر مستقل. ولا يوجد دليل أن الـassembled main.html الحالي في المتصفح أصبح يستخدم هذه النسخة.
+
+كما أن GitHub لم يعطِ Run قابلاً للاستناد إليه مرتبطًا بهذا الـcommit عبر أداة workflow الحالية، ولذلك لم أحوّل غياب الـRun إلى PASS أو FAIL زائف.
+
+WHAT I PROVED
+تم فتح Master Prompt والسلسلة التاريخية المطلوبة مباشرة.
+تم فتح main4 الحالي والنسخة الأصلية.
+تم الوصول إلى نهاية محتوى main4 قبل التعديل.
+تم تحديد الوحدات الثلاث الفعلية والمحافظة عليها.
+تم إثبات عيوب Tenant Scope الحقيقية.
+تم إثبات مشكلة branchId:'MAIN' مقابل العقد الحالي branchCode.
+تم إصلاح main4 نفسه، لا Workflow بديل.
+تم الحفاظ على وظائف POS / Roles / TeleSales الرئيسية.
+لم يتم إنشاء Physical Stock Writer.
+تم إنشاء Commit فعلي على main.
+الـCommit يحتوي ملف main4.md فقط.
+Production تمت إعادة قراءتها بعد التنفيذ ولم تتغير بياناتها.
+WHAT I DID NOT PROVE
+Browser Runtime للـPWA الكامل بعد Assembly.
+التكامل النهائي بين main1 + main2 + main3 + main4 + ... + main11.
+Production deployment للتطبيق النهائي بعد دمج الأجزاء.
+عدم وجود coupling خفي لا يظهر إلا بعد بناء main.html وتشغيله.
+WHAT I CHANGED
+
+فقط:
+
+Current/PWA/main/main4.md
+
+بإعادة بناء كاملة للمحتوى مع إصلاح:
+
+Tenant Context + Company Scoping + Branch Contract + Fail Closed + Output Escaping
+
+WHAT I DID NOT CHANGE
+
+لم أغير أي Business Contract ثبت أنه صحيح، ولم أحول main4 إلى طبقة تخزين أو Inventory Engine.
+
+WHAT I DISCOVERED
+
+أهم اكتشاف فعلي هو أن التعديل السابق كان يمكن أن يكون صحيحًا في النية لكنه خاطئًا في التنفيذ إذا تم اختصار main4.
+
+المشكلة لم تكن مجرد LIMIT 1.
+
+كان هناك ثلاثة عقود يجب ربطها معًا:
+
+RW_ShellContext
+      ↓
+Company Context
+      ↓
+Company-scoped reads
+      ↓
+Correct Branch Code
+      ↓
+Current Edge Contract
+WHAT I INITIALLY MISSED
+
+الخطأ الذي كان يمكن أن أقع فيه هو اعتبار:
+
+branchId = MAIN
+
+مجرد اسم قديم يمكن تبديله إلى:
+
+branchCode = MAIN
+
+لكن Production أثبتت أن الـMain Branch الفعلي حاليًا هو BR-01، لذلك الحل الصحيح كان Resolve من app_settings.main_branch_id، وليس استبدال string بـstring.
+
+WHAT BECAME OBSOLETE
+
+أصبحت هذه الأنماط غير مقبولة داخل main4:
+
+app_settings → LIMIT 1 بدون Company
+roles → Global
+branches → Global
+stock_branches → Global cache
+branchCode fallback → MAIN
+settings failure → local fallback
+WHAT REMAINS OPEN
+
+المهمة المحلية الخاصة بـmain4 أصبحت مغلقة كمصدر.
+
+المتبقي خارجها:
+
+main1..main11
+      ↓
+Assembly
+      ↓
+Whole-file static validation
+      ↓
+Browser Runtime
+      ↓
+Production Runtime
+WHAT COULD STILL BE WRONG
+
+الاحتمال المتبقي الحقيقي هو Cross-Part Coupling؛ أي شيء قد لا يظهر داخل main4 نفسه ولكنه يظهر عند وضعه داخل الـassembled main.html.
+
+Production / Audit / Git Gates
+Gate	Status
+Production Opened	✅
+Current Git Opened	✅
+Historical Opened	✅
+Schema Checked	✅
+Triggers Checked	✅
+RLS Checked	✅
+Permissions Checked	✅
+Consumers Checked	✅
+Dependencies Checked	✅
+Git History Checked	✅
+Main4 Reconstruction	✅ CLOSED
+Production Data Modified	❌
+Production Deployment of Main4 Fragment	❌ غير مستقل
+Production Runtime Verified	❌
+Current Git Aligned	✅
+Full PWA Runtime	⏳ OPEN
+FINAL CLOSURE STATUS
+
+MAIN4 SOURCE RECONSTRUCTION = CLOSED
+
+MAIN4 TENANT/BRANCH GOVERNANCE REPAIR = CLOSED
+
+FULL PWA / ASSEMBLED RUNTIME = OPEN
+
+والأهم: لم يتم ترك نسخة compact ناقصة، ولم يتم إنشاء branch جديد، ولم يتم توزيع إصلاح main4 على ملفات أخرى. الإصلاح الفعلي موجود الآن في الملف المطلوب نفسه وعلى main.
+
+Event ID: MAIN4-RECON-20260830-01
+Objective: Canonical reconstruction of Current/PWA/main/main4.md with tenant-safe governance while preserving functionality.
+Change: b03b7791cfaac874af2168a66e43e4152b486ee4
+Current surviving state: main4.md corrected in place; full assembled PWA intentionally not declared closed.
