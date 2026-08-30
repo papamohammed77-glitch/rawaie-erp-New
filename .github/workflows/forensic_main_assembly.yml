@@ -1,0 +1,71 @@
+name: RAWAEA forensic main assembly
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  forensic-assembly:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build forensic manifest
+        shell: bash
+        run: |
+          node > /tmp/forensic.js <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          const path = require('path');
+          const parts = Array.from({length:11},(_,i)=>`main${i+1}.md`);
+          const curDir='Current/PWA/main';
+          const origDir='Original/PWA/main';
+          const sha256=b=>crypto.createHash('sha256').update(b).digest('hex');
+          const read=(p)=>fs.readFileSync(p);
+          const stat=(p)=>({bytes:fs.statSync(p).size,sha256:sha256(read(p)),lines:read(p).toString('utf8').split(/\n/).length});
+          const current=parts.map(n=>stat(path.join(curDir,n)));
+          const original=parts.map(n=>stat(path.join(origDir,n)));
+          const concat=Buffer.concat(parts.map(n=>read(path.join(curDir,n))));
+          const main=read('Current/PWA/main.html');
+          const origMain=fs.existsSync('Original/PWA/main.html')?read('Original/PWA/main.html'):null;
+          const featureKeys=['rec-offers','rec-purchase','rec-customers','rec-expansion','RW_Reports'];
+          function features(p){const s=read(p).toString('utf8');return Object.fromEntries(featureKeys.map(k=>[k,(s.match(new RegExp(k.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&'),'g'))||[]).length]));}
+          const featureMatrix=Object.fromEntries(parts.map((n,i)=>[n,{current:features(path.join(curDir,n)),original:features(path.join(origDir,n))}]));
+          const firstDiff=(()=>{const m=Math.min(concat.length,main.length);for(let i=0;i<m;i++)if(concat[i]!==main[i])return i;return concat.length===main.length?-1:m;})();
+          const out={generated_at:new Date().toISOString(),parts:parts.map((n,i)=>({part:n,current:current[i],original:original[i]})),current_concatenation:{bytes:concat.length,sha256:sha256(concat)},current_main_html:{bytes:main.length,sha256:sha256(main)},original_main_html:origMain?{bytes:origMain.length,sha256:sha256(origMain)}:null,first_byte_difference: firstDiff,exact_concat_equals_current_main: firstDiff===-1,feature_matrix:featureMatrix};
+          fs.mkdirSync('Current/CTO',{recursive:true});
+          fs.writeFileSync('Current/CTO/FORENSIC_MAIN_ASSEMBLY_MANIFEST.json',JSON.stringify(out,null,2));
+          if (firstDiff!==-1) { console.error('ASSEMBLY_MISMATCH at byte',firstDiff,'concat',concat.length,'main',main.length); process.exit(2); }
+          NODE
+
+      - name: Validate full main HTML
+        shell: bash
+        run: |
+          node > /tmp/check.js <<'NODE'
+          const fs=require('fs'); const s=fs.readFileSync('Current/PWA/main.html','utf8');
+          const checks={doctype:/<!doctype\s+html/i.test(s),htmlOpen:/<html\b/i.test(s),htmlClose:/<\/html>/i.test(s),headOpen:/<head\b/i.test(s),headClose:/<\/head>/i.test(s),bodyOpen:/<body\b/i.test(s),bodyClose:/<\/body>/i.test(s)};
+          const scriptOpen=(s.match(/<script\b/gi)||[]).length,scriptClose=(s.match(/<\/script>/gi)||[]).length;
+          const styleOpen=(s.match(/<style\b/gi)||[]).length,styleClose=(s.match(/<\/style>/gi)||[]).length;
+          const out={checks,scriptOpen,scriptClose,styleOpen,styleClose};
+          fs.writeFileSync('Current/CTO/FORENSIC_MAIN_HTML_STRUCTURE.json',JSON.stringify(out,null,2));
+          if(!Object.values(checks).every(Boolean)||scriptOpen!==scriptClose||styleOpen!==styleClose) process.exit(3);
+          NODE
+
+      - name: Commit forensic artifacts only
+        shell: bash
+        run: |
+          git config user.name 'rawaea-forensic-bot'
+          git config user.email 'rawaea-forensic-bot@users.noreply.github.com'
+          git add Current/CTO/FORENSIC_MAIN_ASSEMBLY_MANIFEST.json Current/CTO/FORENSIC_MAIN_HTML_STRUCTURE.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore(cto): record main assembly forensic baseline [no-deploy]'
+          git push
