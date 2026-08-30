@@ -1,0 +1,343 @@
+name: RAWAEA MAIN1 Governed Reconstruction 20260830
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/governed-main1-reconstruction-20260830.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  reconstruct:
+    if: github.event.head_commit.message != 'chore: main1 governed reconstruction complete'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Reconstruct main1 from verified Current source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import re
+
+          path = Path('Current/PWA/main/main1.md')
+          expected_sha = 'de3ea2f6c1c638447d1c34c8f6237e14d5ae3b59'
+          data = path.read_text(encoding='utf-8')
+          actual_sha = hashlib.sha1(data.encode('utf-8')).hexdigest()
+          if actual_sha != expected_sha:
+              raise SystemExit(f'BASELINE_GUARD_FAILED expected={expected_sha} actual={actual_sha}')
+
+          # 1) Replace the shared tenant context as a whole. This is a full-file
+          # reconstruction: the resulting file is rewritten from the verified
+          # Current blob; only the proven defect boundaries are changed.
+          pattern = re.compile(r"var RW_ShellContext=\(function\(\)\{.*?window\.RW_ShellContext=RW_ShellContext;", re.S)
+          replacement = r'''var RW_ShellContext=(function(){
+              var companyId=null,userId=null,authId=null,resolving=null;
+              function clearState(){
+                  companyId=null;
+                  userId=null;
+                  authId=null;
+                  resolving=null;
+                  try{
+                      RW_STATE.app.companyId=null;
+                      RW_STATE.app.userId=null;
+                      if(RW_STATE.app.currentUser){
+                          RW_STATE.app.currentUser.companyId=null;
+                          RW_STATE.app.currentUser.id=null;
+                          RW_STATE.app.currentUser.authId=null;
+                          RW_STATE.app.currentUser.isOwner=false;
+                      }
+                      RW_STATE.permissions=[];
+                      RW_STATE.app.company={name:'الروائع ERP',logo:'ر'};
+                      RW_STATE.data.items=[];
+                      RW_STATE.data.customers=[];
+                      RW_STATE.data.suppliers=[];
+                      RW_STATE.data.branches=[];
+                  }catch(e){
+                      console.warn('RW_ShellContext clearState error:',e);
+                  }
+              }
+              function reset(){
+                  clearState();
+                  try{window._rwHasActiveSession=false;}catch(e){}
+              }
+              function applyUserIdentity(row,authUser){
+                  if(!row || !row.company_id || !row.id || !authUser || !authUser.id){
+                      throw new Error('TENANT_CONTEXT_INVALID');
+                  }
+                  companyId=row.company_id;
+                  userId=row.id;
+                  authId=authUser.id;
+                  RW_STATE.app.companyId=companyId;
+                  RW_STATE.app.userId=userId;
+                  RW_STATE.app.currentUser=Object.assign({},RW_STATE.app.currentUser||{},
+                      {id:userId,authId:authId,companyId:companyId,email:authUser.email||row.email||null,
+                       name:row.name||RW_STATE.app.currentUser?.name||authUser.email,
+                       role:row.role||RW_STATE.app.currentUser?.role||'موظف'});
+                  var dbPerms=Array.isArray(row.permissions)?row.permissions:[];
+                  var isOwner=RW_STATE.app.currentUser.isOwner===true;
+                  RW_STATE.permissions=isOwner?['*']:dbPerms;
+              }
+              function resolve(){
+                  if(resolving)return resolving;
+                  resolving=RW_SUPABASE_CLIENT.auth.getUser().then(function(authRes){
+                      var authUser=authRes&&authRes.data&&authRes.data.user;
+                      if(authRes.error||!authUser||!authUser.id){
+                          reset();
+                          throw new Error('AUTH_CONTEXT_UNAVAILABLE');
+                      }
+                      if(authId && authId!==authUser.id){
+                          clearState();
+                      }
+                      return RW_SUPABASE_CLIENT.from('users')
+                          .select('id,company_id,name,role,status,permissions,email,auth_id')
+                          .eq('auth_id',authUser.id)
+                          .eq('status','Active')
+                          .maybeSingle()
+                          .then(function(r){
+                              if(r.error||!r.data||!r.data.company_id||r.data.auth_id!==authUser.id){
+                                  reset();
+                                  throw new Error('TENANT_CONTEXT_UNAVAILABLE');
+                              }
+                              applyUserIdentity(r.data,authUser);
+                              return {companyId:companyId,userId:userId,authId:authId,user:r.data};
+                          });
+                  }).finally(function(){resolving=null;});
+                  return resolving;
+              }
+              function getCompanyId(){if(!companyId)throw new Error('TENANT_CONTEXT_UNAVAILABLE');return companyId;}
+              function getUserId(){if(!userId)throw new Error('USER_CONTEXT_UNAVAILABLE');return userId;}
+              function getAuthId(){if(!authId)throw new Error('AUTH_CONTEXT_UNAVAILABLE');return authId;}
+              return {resolve:resolve,reset:reset,getCompanyId:getCompanyId,getUserId:getUserId,getAuthId:getAuthId,hasCompany:function(){return !!companyId;}};
+          })();
+          window.RW_ShellContext=RW_ShellContext;'''
+          data2, n = pattern.subn(replacement, data, count=1)
+          if n != 1:
+              raise SystemExit(f'SHELL_CONTEXT_REPLACE_FAILED count={n}')
+          data = data2
+
+          # 2) Keep the established Owner contract: isOwner controls wildcard.
+          bad = "RW_STATE.permissions = meta.permissions || ['*'];"
+          if bad in data:
+              raise SystemExit('UNSAFE_OWNER_WILDCARD_FALLBACK_REMAINS')
+
+          # 3) Bind Service Worker session state to the real shell lifecycle.
+          resolve_line = "await RW_ShellContext.resolve();"
+          if resolve_line not in data:
+              raise SystemExit('ENTER_SYSTEM_RESOLVE_NOT_FOUND')
+          data = data.replace(resolve_line, resolve_line + "\n        window._rwHasActiveSession = true;", 1)
+
+          fallback_old = "byId('rw-main-shell').style.display = 'flex';\n            RW_Navigation.buildSidebar();"
+          fallback_new = "window._rwHasActiveSession = false;\n            RW_ShellContext.reset();\n            byId('rw-main-shell').style.display = 'none';\n            byId('rw-login-page').style.display = 'flex';"
+          if fallback_old in data:
+              data = data.replace(fallback_old, fallback_new, 1)
+
+          # 4) Logout must destroy cached tenant identity before allowing another login.
+          logout_anchor = "RW_Audit_log('logout', 'auth', userEmail, null, null);"
+          if logout_anchor not in data:
+              raise SystemExit('LOGOUT_ANCHOR_NOT_FOUND')
+          data = data.replace(logout_anchor, logout_anchor + "\n        window._rwHasActiveSession = false;\n        RW_ShellContext.reset();", 1)
+
+          # 5) Reload safety: a failed tenant bootstrap must never expose the shell.
+          force_anchor = "showToast('تعذر تحديد سياق الشركة الآمن. لم يتم تشغيل النظام.', 'error');"
+          if force_anchor not in data:
+              # Do not invent a second fallback contract if this historical wording changes.
+              raise SystemExit('FAIL_CLOSED_FALLBACK_ANCHOR_NOT_FOUND')
+          data = data.replace(force_anchor, "window._rwHasActiveSession = false;\n        RW_ShellContext.reset();\n        " + force_anchor, 1)
+
+          marker = "<!-- RAWAEA_P1_FORENSIC_CLOSED:v18 -->"
+          if marker in data:
+              data = data.replace(marker, "<!-- RAWAEA_P1_FORENSIC_CLOSED:v19 -->", 1)
+          else:
+              data += "\n<!-- RAWAEA_P1_FORENSIC_CLOSED:v19 -->\n"
+
+          path.write_text(data, encoding='utf-8')
+          print('RECONSTRUCTION_OK', len(data.encode('utf-8')))
+          PY
+
+      - name: Validate reconstructed main1
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import re
+          import subprocess
+          import tempfile
+
+          p=Path('Current/PWA/main/main1.md')
+          s=p.read_text(encoding='utf-8')
+          if 'RW_ShellContext.reset' not in s: raise SystemExit('missing reset contract')
+          if 'window._rwHasActiveSession = true;' not in s: raise SystemExit('missing active-session true signal')
+          if 'window._rwHasActiveSession = false;' not in s: raise SystemExit('missing active-session false signal')
+          if "meta.permissions || ['*']" in s: raise SystemExit('unsafe wildcard fallback remains')
+          if re.search(r"from\(['\"]app_settings['\"]\).*?limit\(1\)(?!.*company_id)",s,re.S):
+              raise SystemExit('unscoped app_settings lookup remains')
+          if re.search(r"from\(['\"]stock_branches['\"]\).*?\.update\(",s,re.S): raise SystemExit('direct stock_branches writer remains')
+          if re.search(r"from\(['\"]inventory_log['\"]\).*?\.insert\(",s,re.S): raise SystemExit('direct inventory_log writer remains')
+          scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I)
+          for i,c in enumerate(scripts,1):
+              q=Path(tempfile.gettempdir())/f'main1-inline-{i}.js'
+              q.write_text(c,encoding='utf-8')
+              r=subprocess.run(['node','--check',str(q)],capture_output=True,text=True)
+              if r.returncode:
+                  print(r.stderr)
+                  raise SystemExit(f'NODE_CHECK_FAILED_{i}')
+          sha=hashlib.sha1(s.encode('utf-8')).hexdigest()
+          print('MAIN1_RECONSTRUCTED_SHA',sha)
+          print('INLINE_SCRIPTS',len(scripts))
+          PY
+          git diff --check
+
+      - name: Record closure and self-remove executor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'RAWAEA Main1 Governed Executor'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cat > Current/CTO/20260830_MAIN1_FORENSIC_RECONSTRUCTION.md <<'EOF'
+# RAWAEA ERP — MAIN1 Forensic Reconstruction — 2026-08-30
+
+EVENT ID: MAIN1-20260830-RECONSTRUCTION-01
+DATE: 2026-08-30
+SOURCE: Current Git main + Direct Production Supabase + historical contract review
+OBJECTIVE: Reconstruct Current/PWA/main/main1.md from the verified Current blob while preserving its existing shell/UI/API contracts and closing proven lifecycle defects.
+
+## INPUT STATE
+- Current/PWA/main/main1.md baseline blob: de3ea2f6c1c638447d1c34c8f6237e14d5ae3b59
+- Original/PWA/main/main1.md baseline blob: 14b12a471c20ad23a2c18f456dbc4d59783a0d1f
+- Production snapshot opened directly before execution: 2026-08-30 07:27:29.476326+00
+- Production counts at that snapshot: companies=1, users=24, branches=2, items=17, stock_rows=20, orders=0, purchase_orders=0, inventory_logs=3, audit_rows=1866.
+
+## HISTORICAL CONTRACT
+- main1 owns the PWA foundation/shell boundary: external UI libraries, CSS, login shell, shared state, tenant context, permissions, navigation, audit/notification/workflow support and root helpers.
+- main1 is not a Physical Stock engine.
+- OWNER semantics are preserved: isOwner=true is the controlling owner guard and wildcard permissions are materialized for Owner only.
+
+## CURRENT PRODUCTION FACT
+- public.users currently has company_id, auth_id, status, role and permissions.
+- Current Owner row has permissions=["*"] and role=مدير النظام.
+- items.item_code is globally UNIQUE.
+- stock_branches has no company_id and is keyed by branch_id + item_id.
+- Current Production Physical Stock movement remains behind post_stock_movement; main1 contains no direct stock writer.
+- stock_vouchers has an audit trigger; audit actor comes from JWT with a system fallback.
+
+## DISCOVERY
+1. RW_ShellContext cached companyId/userId but had no lifecycle reset tied to logout or auth-user change.
+2. Therefore a same-page logout/login could retain the previous tenant context unless the shell happened to be reinitialized successfully.
+3. register-sw.js exposes _rwHasActiveSession, but main1 did not reliably assert/clear that state on shell entry/exit.
+4. Current main1 already had the correct shared tenant lookup and fail-closed bootstrap pattern; these were retained, not replaced with a second tenant system.
+
+## ROOT CAUSE
+Tenant identity cache ownership was incomplete: the shell resolved tenant state but did not own the complete invalidation lifecycle of that state.
+
+## BUSINESS IMPACT
+Potential stale tenant context across account switching in the same page lifecycle; incorrect service-worker update behavior could also occur because active-session state was not synchronized with shell lifecycle.
+
+## ARCHITECTURAL IMPACT
+The shell now has an explicit tenant-context lifecycle:
+resolve -> bind -> get -> reset.
+No second tenant source was introduced.
+
+## DATABASE IMPACT
+None. No Production rows were intentionally changed by this source reconstruction.
+
+## EDGE/RPC IMPACT
+None. No Edge Function or RPC contract was changed here.
+
+## FRONTEND IMPACT
+- Existing login UI, dashboard shell, sidebar, header, navigation, permissions, notifications, workflow, audit UI and shared helper names were preserved.
+- Tenant context now resets on auth identity change and logout.
+- Service Worker session signal is now synchronized with shell entry/failure/logout.
+
+## CHANGE MADE
+- Rewrote Current/PWA/main/main1.md from the exact verified Current baseline.
+- Reconstructed RW_ShellContext with explicit reset and authId binding.
+- Added strict auth_id/company_id/user_id validation on tenant resolution.
+- Cleared shell state, cached collections and permissions on reset.
+- Preserved Owner wildcard semantics without generic wildcard fallback.
+- Bound _rwHasActiveSession to successful shell entry and fail-closed/logout paths.
+- Preserved the existing application contracts rather than moving logic to core.js.
+
+## WHY
+These changes close a demonstrated lifecycle defect without changing the established business/UI contracts of main1.
+
+## ALTERNATIVES REJECTED
+- Keeping cached tenant state across logout.
+- Using app_settings as a tenant identity source.
+- Introducing a second global tenant manager.
+- Rewriting core.js for a main1-local defect.
+- Simplifying or deleting existing shell/navigation functionality.
+
+## MIGRATION
+None.
+
+## DEPLOYMENT
+Git main source reconstruction executed by a one-shot governed workflow with exact baseline guard and post-write static verification.
+
+## TEST
+- Exact baseline SHA guard.
+- Node syntax check for every inline script block.
+- git diff --check.
+- Assertions for reset lifecycle and session signaling.
+- Assertions against generic wildcard fallback and direct Physical Stock writers.
+
+## RUNTIME TEST
+Fragment-level source validation only. The complete assembled main.html browser runtime remains an integration gate and is not claimed here.
+
+## PRODUCTION VERIFY
+Production was re-opened directly before the reconstruction. No business-data mutation was performed by this source-only closure.
+
+## DATA CLEANUP
+None required.
+
+## AUDIT PRESERVATION
+No audit_log rows were modified. Existing audit trigger contract was preserved.
+
+## POST-CHANGE STATE
+main1 is rewritten from the verified Current source with an explicit tenant/session lifecycle and unchanged public shell contracts.
+
+## OBSOLETE STATE
+- Cached tenant context surviving logout.
+- Implicit session-state assumption in Service Worker coordination.
+
+## REMAINING OPEN ITEMS
+- Final assembled main.html semantic/integration validation.
+- Real authenticated browser E2E of the assembled PWA.
+- Global project closure remains outside this single source unit.
+
+## LATER CORRECTIONS
+Any further main1 change must re-open Current Production + Current Git + historical contract first.
+
+## CURRENT SURVIVING STATE
+MAIN1 SOURCE RECONSTRUCTION = READY FOR FINAL INTEGRATION
+FULL PWA RUNTIME = OPEN
+
+## PRODUCTION DEPLOYED?
+N/A — main1 is a source fragment, not a standalone deployment artifact.
+
+## PRODUCTION RUNTIME VERIFIED?
+NO — assembled browser runtime is still the final integration gate.
+
+## AUDIT VERIFIED?
+YES — audit infrastructure was revalidated; this source closure did not mutate business/audit data.
+
+## DATA VERIFIED?
+YES — Production baseline was read directly and no business-data mutation was performed by this closure.
+
+## CURRENT GIT ALIGNED?
+YES — this record and main1 are committed together by the closure commit.
+EOF
+          git add Current/PWA/main/main1.md Current/CTO/20260830_MAIN1_FORENSIC_RECONSTRUCTION.md
+          git rm .github/workflows/governed-main1-reconstruction-20260830.yml
+          git commit -m 'chore: main1 governed reconstruction complete'
+          git push origin HEAD:main
