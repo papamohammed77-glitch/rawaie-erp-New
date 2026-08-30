@@ -1,0 +1,219 @@
+تم تنفيذ المهمة الحرجة الخاصة بـmain3، مع الالتزام بمبدأ Current Evidence First وعدم اعتماد التقارير التاريخية كمرجع للحالة الحالية.
+
+النتيجة
+1. تم فتح ودراسة السلسلة المطلوبة
+
+تم الرجوع مباشرة إلى:
+
+MASTER EXECUTION PROMPT → 89 → 90 → 91 → 92 → 93 → 94
+
+وتم استخدام هذه المواد كسياق تاريخي ومعماري فقط. المبدأ الحاكم نفسه واضح: الدراسة والسياق يسبقان التعديل، ولا يجوز اعتبار السلوك غير المنطقي خطأً قبل إثبات سببه وسياقه.
+
+كما أن الـMaster Directive يفرض أن كل Writer/Closure Unit يُفحص من Production وGit والمستهلكين والتبعيات قبل الإصلاح، وأن Physical Stock يجب أن يبقى خلف post_stock_movement ولا ينشأ Writer موازٍ.
+
+2. أهم تصحيح في فهم الحالة
+
+التقرير 94 كان مبنيًا على حالة تاريخية؛ أما Current Git عند بداية هذه المهمة فكان:
+
+61384e40183372c5630bbc6fee3c722f865f0fba
+
+وmain3.md الأصلي كان:
+
+1bfedd3b16abb804d83e2b7d5671f1b31f320a14
+
+وهذا مثبت مباشرة من Git، وليس من الذاكرة أو التقرير. تقرير 94 نفسه يصف تلك الحالة القديمة والـrollback السابق.
+
+3. main3 أُعيد بناؤه فعليًا
+
+تم استبدال:
+
+Current/PWA/main/main3.md
+
+بإعادة بناء كاملة للجزء، مع الحفاظ على الوحدات الخمس الرئيسية:
+
+RW_Customers
+RW_Suppliers
+RW_Branches
+RW_Settings
+RW_Users
+
+والـexports الرئيسية بقيت موجودة، كما تم الحفاظ على مسارات CRUD والصلاحيات والتعيينات وإعدادات الميدان وإعدادات النظام. وجود هذه الوحدات في النسخة الحالية يمكن مراجعته مباشرة في Git.
+
+4. تم إصلاح المشكلة الأساسية التي كشفتها المحاولات السابقة
+
+أصبح مصدر Tenant Context موحدًا على:
+
+RW_ShellContext.getCompanyId()
+
+بدل الاعتماد على قراءات عامة أو LIMIT 1 غير مرتبطة بالسياق.
+
+في النسخة الجديدة:
+
+suppliers → Company scoped
+users → Company scoped
+roles → Company scoped
+app_settings → Company scoped
+customer_assignments → Company scoped
+assigned_by يستخدم RW_STATE.app.userId وهو UUID مناسب للـschema.
+
+والنسخة الحالية من main3 تثبت مباشرة أن قراءة المستخدمين والأدوار أصبحت مرتبطة بـcompany_id.
+
+5. لم يتم إدخال Inventory Writer جديد
+
+main3 لا يكتب:
+
+stock_branches
+
+ولا:
+
+inventory_log
+
+وبالتالي لا ينشئ Physical Stock Engine موازيًا. وهذا متوافق مع العقد الحاكم للـInventory.
+
+6. تم اكتشاف وتصحيح عيب أثناء المراجعة النهائية
+
+المحاولة الأولى من إعادة البناء احتوت على مشكلتين حقيقيتين:
+
+helpers غير معرفة بشكل صحيح (E/A)
+بعض aliases الخاصة بـSupplier handlers لم تكن تمثل contract حقيقيًا
+
+تم اكتشافهما بعد النشر الأول وقبل الإغلاق النهائي، ثم تمت إعادة كتابة main3 مرة أخرى بصورة صحيحة، ولذلك النسخة التي يجب اعتمادها هي النسخة الأخيرة، وليس المسودة الأولى.
+
+الـfinal code commit هو:
+
+5d3346f965ecd201f755e09edd3b4f3e6b24c299
+
+ومثبت مباشرة كـGit commit بعنوان:
+
+refactor(pwa): complete governed main3 reconstruction
+
+7. Production تمت مطابقتها مرة أخرى
+
+آخر Production snapshot مباشر:
+
+2026-08-30 02:14:31 UTC
+
+Entity	Current
+Companies	1
+Users	24
+Branches	2
+Customers	3
+Suppliers	1
+Items	17
+App Settings	1
+Stock Rows	20
+Inventory Logs	3
+Audit Rows	1861
+
+ولا توجد عملية Data Migration أو تغيير متعمد لبيانات Production كجزء من مهمة main3.
+
+8. Git الحالي
+
+آخر main أصبح:
+
+9541392730fafdb6f803e6774aca83f1c0ff7fd4
+
+وهو يحتوي على:
+
+كود main3 النهائي في commit 5d3346f…
+سجل التنفيذ النهائي 20260830_MAIN3_RECONSTRUCTION_FINAL.md
+
+والـHEAD الحالي مثبت مباشرة من Git.
+
+FINAL SELF-AUDIT
+WHAT I PROVED
+
+تم إثبات أن:
+
+main3 الأصلي تم فتحه حتى النهاية قبل الاستبدال.
+السلسلة التاريخية المطلوبة تمت مراجعتها مباشرة.
+Current Git تم التحقق منه قبل الكتابة.
+Production تم فتحها والتحقق منها مباشرة.
+تم إعادة بناء main3.
+الوحدات الخمس الأساسية بقيت موجودة.
+Tenant Context أصبح مرتبطًا بـRW_ShellContext.
+لا يوجد Physical Stock Writer داخل main3.
+تم تصحيح أخطاء ظهرت أثناء post-review قبل الإغلاق النهائي.
+التغيير موجود على main.
+WHAT I DID NOT PROVE
+
+لم أثبت بعد:
+
+Runtime الكامل لـmain.html.
+تكامل main3 مع main1…main11 بعد التجميع النهائي.
+Browser regression testing للـPWA الكامل.
+
+وهذا مقصود وليس نقصًا مخفيًا؛ main3 مصدر fragment وليس التطبيق الكامل.
+
+WHAT I CHANGED
+
+تمت إعادة كتابة:
+
+Current/PWA/main/main3.md
+
+وتم إضافة:
+
+Current/CTO/20260830_MAIN3_RECONSTRUCTION_FINAL.md
+
+WHAT I DID NOT CHANGE
+
+لم أغيّر:
+
+Production data
+Production schema
+Inventory balances
+Accounting
+Ledger
+Edge Function business logic
+main.html
+WHAT I DISCOVERED
+
+أهم اكتشاف هو أن المشكلة الحقيقية في main3 لم تكن مجرد LIMIT 1؛ بل وجود Tenant access semantics غير موحدة في عدة وحدات، في حين أن Shell Context الصحيح كان موجودًا بالفعل.
+
+كما ثبت أن تقرير 94 كان يمثل حالة تاريخية وليست Current HEAD.
+
+WHAT I INITIALLY MISSED
+
+المسودة الأولى لإعادة البناء كانت تحتاج مراجعة post-write أقوى؛ وتم اكتشاف ذلك وتصحيحه قبل النسخة النهائية.
+
+WHAT BECAME OBSOLETE
+
+نسخة main3 القديمة غير المحكومة أصبحت obsolete.
+
+WHAT REMAINS OPEN
+
+فقط المرحلة التالية الطبيعية:
+
+main1..main11 → assembly → integrated static check → browser/runtime verification
+
+WHAT COULD STILL BE WRONG
+
+الاحتمال المتبقي هو coupling غير موثق بين fragments لا يظهر إلا بعد التجميع والتنفيذ الفعلي.
+
+الحالة النهائية
+Gate	Status
+Production Opened	✅
+Current Git Opened	✅
+Historical Opened	✅
+Schema Checked	✅
+Triggers Checked	✅
+RLS Checked	✅
+Permissions Checked	✅
+Consumers Checked	✅
+Dependencies Checked	✅
+Git History Checked	✅
+MAIN3 SOURCE RECONSTRUCTION	✅ CLOSED
+Production Data Changed	❌
+Production Deployment of full PWA	❌
+Full PWA Runtime Verified	❌
+Integrated PWA Closure	⏳ OPEN
+الخلاصة الحاسمة
+
+MAIN3 SOURCE RECONSTRUCTION = CLOSED
+
+وليس كلامًا نظريًا: التغيير موجود فعليًا في Git الحالي، والـProduction تمت إعادة مطابقتها بعده، وسجل التنفيذ النهائي محفوظ داخل المستودع.
+
+سجل الإغلاق:
+Current/CTO/20260830_MAIN3_RECONSTRUCTION_FINAL.md
+
+والآن نقطة العمل الصحيحة هي عدم إعادة فتح main3 مرة أخرى، بل الانتقال إلى تجميعه مع بقية أجزاء main وإجراء اختبار التكامل الكامل.
