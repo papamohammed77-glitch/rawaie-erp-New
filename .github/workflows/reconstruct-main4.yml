@@ -1,0 +1,31 @@
+name: reconstruct-main4
+on:
+  push:
+    branches: [reconstruct-main4-20260830]
+permissions:
+  contents: write
+jobs:
+  reconstruct:
+    if: ${{ hashFiles('Current/PWA/main/.main4_payload.gz.b64') != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct and validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 -d Current/PWA/main/.main4_payload.gz.b64 | gzip -dc > Current/PWA/main/main4.md
+          node --check Current/PWA/main/main4.md
+          test "$(grep -o 'window.RW_POS' Current/PWA/main/main4.md | wc -l)" -ge 1
+          test "$(grep -o 'window.RW_Roles' Current/PWA/main/main4.md | wc -l)" -ge 1
+          test "$(grep -o 'window.RW_TeleSales' Current/PWA/main/main4.md | wc -l)" -ge 1
+          ! grep -q 'app_settings.*limit(1)' Current/PWA/main/main4.md
+          ! grep -q 'branchId.*MAIN' Current/PWA/main/main4.md
+          ! grep -q 'stock_branches.*\.update' Current/PWA/main/main4.md
+          ! grep -q 'inventory_log.*\.insert' Current/PWA/main/main4.md
+          rm Current/PWA/main/.main4_payload.gz.b64 .github/workflows/reconstruct-main4.yml
+          git config user.name 'rawaea-cto'
+          git config user.email 'cto@rawaea.local'
+          git add Current/PWA/main/main4.md Current/PWA/main/.main4_payload.gz.b64 .github/workflows/reconstruct-main4.yml
+          git commit -m 'refactor(pwa): complete governed main4 reconstruction'
+          git push
