@@ -1,0 +1,99 @@
+تم تنفيذ المهمة حتى مرحلة إغلاق main9 كمكوّن مستقل، مع الالتزام بالقاعدة التي وضعتها: الواقع الحالي أولًا، وليس الذاكرة أو التقارير القديمة.
+
+النتيجة التنفيذية
+
+تمت إعادة كتابة:
+
+Current/PWA/main/main9.md
+
+من الصفر، ثم تثبيتها فعليًا في Git بالـcommit:
+
+eb021df39f4097947e1d7ed61ab40227441d8d3a
+
+والنسخة الجديدة أصبحت تعتمد على:
+
+RW_ShellContext.getCompanyId()
+
+كمصدر Tenant Context، مع fallback مضبوط إلى RW_STATE.app.companyId، وتمنع الاستعلامات العامة غير المقيدة بالشركة. كما تم تصحيح استخدام UUIDs للعميل والصنف والحساب والخزينة والسائق والرانشيت بدل خلطها بالأكواد والنصوص.
+
+ما تم الحفاظ عليه
+
+تم الحفاظ على سطح main9 العام، بما فيه:
+
+RW_Reports
+
+renderDashboard
+renderDetailedReports
+
+و:
+
+RW_Reports_Comprehensive
+
+render
+_openSection
+_closeSection
+_openReport
+_generateReport
+_printReport
+_showCustomerLedgerDetail
+_showItemMovementDetail
+_showRunsheetDetail
+_showSettlementDetail
+
+وكذلك بنية التقارير الـ32 عبر:
+Sales / Inventory & Purchasing / Finance / CRM / Logistics / HR.
+
+أهم الإصلاحات
+
+أغلقتُ داخل هذا الجزء تحديدًا:
+
+Global/unscoped company queries.
+الخلط بين customer_code وcustomer_id.
+الخلط بين item_code وitem_id.
+الخلط بين account_code وaccount_id.
+الخلط بين خزينة بالـcode وtreasury.id.
+الخلط بين driver email وdriver_id.
+الخلط بين runsheet_code وrunsheet_id.
+القراءة من order_details قبل تحديد Orders التابعة للشركة.
+القراءة من journal_lines بدون تثبيت Company عبر journal_entries.
+Drill-downs التي كانت تستطيع الوصول إلى بيانات خارج tenant.
+استخدام Finance endpoints قديمة بدل RPCs الحالية المثبتة في Production.
+
+والمهم: main9 بقي Read-Only؛ لا أضفت له أي Physical Stock Writer أو Accounting Writer أو mutation path.
+
+Production Reality
+
+أعدتُ فحص Production بعد التعديل.
+
+النتيجة الحالية:
+
+negative_qty = 0
+negative_alloc = 0
+available_mismatch = 0
+cross_company_stock = 0
+
+وبالتالي لم أُجرِ أي Data Cleanup عشوائي؛ بيانات المخزون الحالية كانت سليمة في فحص ما بعد التنفيذ.
+
+التوثيق
+
+تم إنشاء سجل تنفيذ رسمي:
+
+Current/CTO/20260830_MAIN9_RECONSTRUCTION_FINAL.md
+
+ويتضمن الـSelf-Audit، الحقائق المؤكدة، ما تم تغييره، ما لم يتم تغييره، الـGit commit، وحالة Production.
+
+الإغلاق الحقيقي
+البند	الحالة
+main9 Source Reconstruction	CLOSED
+Current Git Aligned	YES
+Production DB Change	NOT REQUIRED
+Inventory Data Integrity	PASS
+Audit/Data Preservation	PASS
+Physical Writer Introduced	NO
+Full assembled main.html browser E2E	NOT PROVEN YET
+
+النقطة الأخيرة ليست defect في main9: لا يمكن إثبات Runtime النهائي للـPWA قبل تجميع main1…main11 وتشغيل النسخة المركبة. لذلك لم أزوّر هذه النتيجة على أنها PRODUCTION RUNTIME VERIFIED. وهذا مسجل صراحة في سجل الإغلاق.
+
+الخلاصة:
+MAIN9 SOURCE RECONSTRUCTION = CLOSED
+والملف أصبح جاهزًا كجزء من عملية الدمج النهائية، دون أن أضيف دينًا جديدًا على Production.
