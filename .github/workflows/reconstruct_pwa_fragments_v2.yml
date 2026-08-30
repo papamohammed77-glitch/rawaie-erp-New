@@ -27,7 +27,7 @@ jobs:
               return re.sub(rb'^(<!DOCTYPE html>\n<!--)[^>]*(-->\n)', rb'\1__BUILD_MARKER__\2', b, count=1, flags=re.I)
           if hashlib.sha256(norm(cur)).hexdigest()!=hashlib.sha256(norm(orig)).hexdigest():
               raise SystemExit('BLOCKING_UNKNOWN: current integrated main is not functionally byte-equivalent to Original beyond the documented build marker')
-          sizes=[63126,18851,22900,100436,76707,63334,68592,26717,101985,67029]
+          sizes=[63126,100436,76707,63334,68592,26717,101985,67029,89270,18851]
           total=sum(sizes)
           if total>len(cur): raise SystemExit(f'BOUNDARY_OVERFLOW {total}>{len(cur)}')
           sizes.append(len(cur)-total)
