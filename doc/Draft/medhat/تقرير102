@@ -1,0 +1,165 @@
+تم التعامل مع المهمة باعتبارها Critical Continuation وليست بداية جديدة.
+
+أهم نتيجة: تم إغلاق المشكلة التي كانت تمنع إغلاق create-stock-voucher، لكنني لم أرفع حالة MAIN7 أو GLOBAL INVENTORY إلى 100% كذبًا، لأن التحقيق الحالي أثبت وجود نقطة مستقلة ما زالت تحتاج Closure منفصل.
+
+ما تم إثباته الآن
+
+1. create-stock-voucher في Production
+
+Production الحالية هي v9 Active.
+لم تعد Direct-Write إلى stock_vouchers / stock_voucher_details.
+أصبحت تستدعي create_manual_stock_voucher_atomic.
+تدعم الآن operation_id وIdempotency-Key.
+عند وجود Operation Identity تستخدم مسار الـoperation-aware RPC، مع الحفاظ على compatibility للمستهلكين القدامى.
+
+2. الـPhysical Stock Writer
+التحقيق الجنائي في PostgreSQL الحالية أظهر أن:
+
+Physical Stock Movement → post_stock_movement
+
+ولا يوجد Writer فعلي موازٍ للـPhysical Stock خارج هذا المحرك.
+
+الاستثناءات التي ظهرت في discovery ليست Physical Movement Writers:
+
+reserve_stock / release_stock_reservation: تغيّر allocated_qty فقط.
+create_vehicle_atomic / setup_van_stock: تهيئة صفوف مخزون بصفر، وليست حركة مخزنية.
+
+وهذا متوافق مع عقد الـInventory الحاكم.
+
+3. Production Inventory الحالية
+الـProduction الحالية مختلفة جوهريًا عن snapshots التاريخية:
+
+Check	Current Production
+Stock rows	20
+Negative qty	0
+Negative allocated	0
+available_qty mismatch	0
+Cross-company branch/item	0
+Cross-company inventory-log/item	0
+Companies	1
+Branches	2
+Items	17
+
+وبالتالي لم أقم بأي Data Cleanup جديد؛ لا يوجد سبب مشروع لإعادة العبث بالبيانات الحالية.
+
+4. Idempotency
+Production تحتوي أصلًا على Operation Identity architecture، ومنها stock_voucher_operations، لذلك لم أخترع Mechanism جديدًا.
+
+اختبار الـ12-argument manual-voucher contract تم فعليًا داخل Transaction، مع إعادة استخدام نفس Operation ID، ثم تم تنفيذ ROLLBACK. وبعدها:
+
+voucher_rows_after_rollback = 0
+
+أي لم تُترك بيانات اختبار في Production.
+
+5. main7
+المهم هنا أن تقرير 101 كان صحيحًا في وقته: كان create-stock-voucher هو الـblocker. لكنه أصبح Historical Fact وليس Current Fact؛ لأن Production تغيّرت بعده.
+
+التقرير 101 نفسه يقول إن الـblocker كان أن Production ما زالت تستخدم direct-write في create-stock-voucher.
+
+أما main7 الحالية فكانت بالفعل ترسل:
+
+operation_id
+
+إلى create-stock-voucher، ولذلك لم أعِد كتابة main7 بلا ضرورة.
+
+لكن هناك نقطة ما زالت مفتوحة
+
+وجدت Defect مستقلًا في main7 داخل Delivery:
+
+order_details ... .eq('company_id', companyId())
+
+بينما Current Production schema لـorder_details لا يحتوي company_id أصلًا.
+
+هذا ليس متعلقًا بـcreate-stock-voucher، ولذلك لم أرتكب الخطأ الذي يحذر منه الـGovernance Directive: خلط Closure Units مختلفة في Patch واحد.
+
+كما أنني لم أغيّر Vouchers.html بطريقة تكسر compatibility؛ التطبيق المنفصل ما زال يستخدم المسار القديم الذي يدعمه الـ10-argument compatibility contract.
+
+Deployment / Git
+
+تم بالفعل نشر:
+
+create-stock-voucher Production v9
+
+وتمت مواءمة:
+
+Current/Edge_Functions/create-stock-voucher
+
+مع الـProduction contract.
+
+وتم تسجيل ذلك في Git.
+
+التوثيق
+
+أنشأت سجل الحدث الكامل:
+
+EVENT — CREATE STOCK VOUCHER CLOSURE
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/EVENT-20260830-CREATE-STOCK-VOUCHER-CLOSURE.md
+
+وأنشأت تقرير الإغلاق الحالي:
+
+تقرير 102 — Critical MAIN7 / Create Stock Voucher Closure
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20102
+
+والتقرير نفسه يحفظ صراحةً ما تم إثباته وما لم يتم إثباته.
+
+Self-Audit النهائي للحالة الحالية
+
+WHAT I PROVED
+
+create-stock-voucher لم يعد Direct Physical Stock Writer.
+Production v9 تستخدم الـcanonical manual-voucher RPC.
+Physical Stock mutation مركزية في post_stock_movement.
+Current Production inventory invariants سليمة.
+Operation identity موجودة ومستخدمة.
+لا يوجد Physical Writer موازٍ في Production.
+
+WHAT I DID NOT PROVE
+
+Fresh authenticated Browser/HTTP E2E بعد نشر v9.
+إغلاق كل الدين على مستوى المستودع بأكمله.
+
+WHAT I CHANGED
+
+Production create-stock-voucher → v9.
+Git Edge source aligned.
+Event log + Report 102.
+
+WHAT I DID NOT CHANGE
+
+لم ألمس أرصدة المخزون الحالية.
+لم أحذف التاريخ.
+لم أخترع Scrap contract جديد.
+لم أعد كتابة main7 من الصفر.
+لم أكسر compatibility الخاص بـVouchers.html.
+
+WHAT BECAME OBSOLETE
+
+Assertion Report 101 بأن Production create-stock-voucher ما زالت Legacy direct-write.
+افتراض أن مشاكل الـ143 cross-company inventory القديمة ما زالت موجودة.
+
+WHAT REMAINS OPEN
+
+main7 Delivery schema mismatch.
+Fresh HTTP E2E لـcreate-stock-voucher.
+Global repository zero-debt certification.
+الحكم النهائي
+
+CREATE-STOCK-VOUCHER BACKEND CLOSURE = CLOSED
+
+PHYSICAL WRITERS OUTSIDE post_stock_movement IN CURRENT PRODUCTION = 0
+
+PRODUCTION DEPLOYED = YES
+
+DATABASE/RPC RUNTIME VERIFIED = YES
+
+CURRENT INVENTORY DATA VERIFIED = YES
+
+AUDIT MECHANISM VERIFIED = YES
+
+FRESH HTTP E2E = NOT YET PROVEN
+
+MAIN7 FULL PRODUCTION CLOSURE = OPEN
+
+GLOBAL INVENTORY ZERO-DEBT = NOT YET CERTIFIED
+
+وهذا هو الحد الصحيح الذي يمكن إثباته الآن دون العودة إلى نفس الخطأ الذي وضعتَ له قواعد الحوكمة: لا مساواة بين “تم الإصلاح” و“تم إثباته في Production Runtime”.
