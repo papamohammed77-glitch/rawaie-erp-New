@@ -1,0 +1,258 @@
+تقرير تنفيذ البرومبت 
+تم تنفيذ التحقيق على الحالة الحالية، لكن لا أستطيع أن أرفع حالة المهمة إلى CLOSED أو أدّعي أن main2.md تم إصلاحه في Production؛ الأدلة المباشرة المتاحة تثبت العكس.
+
+MAIN2 FORENSIC EXECUTION — FINAL STATUS
+PRE-SWEEP SELF-AUDIT
+Business Understanding
+
+Current/PWA/main/main2.md هو جزء قراءة/تقارير وإدارة أصناف ومخزون داخل الـPWA، وليس مالكًا مستقلًا لـPhysical Stock. عقد المخزون الحاكم هو أن الحركة الفعلية يجب أن تمر عبر post_stock_movement، بينما main2 يجب أن يستهلك البيانات ولا يصبح Physical Stock Writer مستقلًا.
+
+Architecture Understanding
+
+تم التحقق من وجود فصل مطلوب بين:
+
+Shell / tenant context.
+PWA main2.
+Supabase RPC / database.
+stock_branches كمصدر حالة المخزون التشغيلي.
+inventory_log كسجل الحركة.
+
+كما ثبت من المصدر الحالي أن main1 هو الجزء الذي يوفّر RW_ShellContext، ولذلك الإصلاح المقترح لـmain2 يعتمد عليه بدل اختراع Tenant Context جديد.
+
+Database Understanding
+
+الحالة الحالية المباشرة في Production مختلفة عن snapshots القديمة. الفحص المباشر أثبت:
+
+items.item_code عليه UNIQUE عالميًا.
+stock_branches لا يحتوي company_id؛ سلامة tenant فيه تعتمد على branch_id → branches.company_id.
+stock_vouchers مرتبط بـcompany_id.
+order_details لا يحتوي company_id ويجب عزله من خلال orders.
+categories تحتوي company_id.
+توجد سياسات RLS حالية على customers, items, purchase_orders, stock_branches, stock_vouchers, stock_voucher_details.
+توجد سياسات واسعة جدًا على orders وorder_details:
+allow_all_orders وallow_all_order_details مع auth.role()='authenticated'.
+categories لديها policy باسم Allow all for all للـpublic مع qual=true وwith_check=true. هذا تعارض أمني مستقل يستحق معالجة لاحقة، لكنه لم يُمس في هذه المهمة حتى لا نخلط نطاقها.
+Historical Understanding
+
+تم الرجوع إلى المبادئ الحاكمة مباشرة، والتي تفرض:
+UNDERSTAND → HISTORICAL CONTRACT → CURRENT BEHAVIOR → DATA/AUTH FLOW → TARGET → GAP → SURGICAL FIX → VERIFY.
+
+كما تم الرجوع إلى توجيه Inventory المباشر الذي يفرض Closure Unit لكل Writer، ومنع اعتبار تقرير أو snapshot قديم دليلًا نهائيًا.
+
+Current Git Understanding
+
+Current/PWA/main/main2.md ما زال على SHA:
+
+45d5e760a4b53e3be574346e3d9d192dbad309af
+
+وتم التحقق من بداية الملف ونهايته بنفس الـSHA، أي لم يحدث تعديل فعلي على الملف نفسه أثناء هذه المهمة.
+
+Current Production Understanding
+
+Production الحالية تم فحصها مباشرة، ولم أعتمد على snapshot القديم الذي كان يحتوي عدة Companies وصفوف stock كثيرة.
+
+Deployment Understanding
+
+لم يوجد دليل قابل للتحقق على نشر إصلاح main2.
+
+Runtime Understanding
+
+لم يوجد Runtime verification لإصلاح main2 لأنه لم يُنشر أصلًا.
+
+CONFIRMED FACTS
+main2.md الحالي لم يتغير.
+SHA الحالي هو 45d5e760....
+تم فحص الملف على أجزاء حتى بدايته ونهايته.
+يوجد في main2 عدد من قراءات البيانات التي لا تحمل tenant scoping صريحًا.
+توجد قراءات stock_branches ينبغي تقييدها بمجموعة فروع الشركة الحالية.
+توجد قراءة order_details لا ينبغي أن تكون global؛ المسار الصحيح هو تضييقها إلى order_id الخاصة بالأوردرات المؤكدة داخل الـtenant.
+توجد قراءات categories تحتاج Company scope.
+لا يوجد دليل أن main2 يجب أن يصبح Physical Stock Writer؛ بل العكس.
+RLS الحالي موجود، لكنه ليس متسقًا بالكامل بين الجداول.
+آلية GitHub Actions التي أنشأتها كقناة تنفيذ مؤقتة لم تنتج Run قابلًا للتحقق؛ لذلك لم أعتبرها تنفيذًا.
+UNKNOWN / CONFLICTS / UNVERIFIED
+Blocking Unknowns
+لا يوجد دليل تنفيذ مباشر على main2.md نفسه.
+لا يوجد Production Runtime evidence بعد الإصلاح لأنه لم يتم الإصلاح.
+لا يمكن إثبات أن الـdeployment الخارجي للواجهة التابع لـGitHub التقط نسخة جديدة.
+Important Conflict
+
+آلية التنفيذ عبر Actions أُنشئت، لكن GitHub أعاد 0 workflow runs للـcommit الذي كان يفترض أن ينفذ الإصلاح. لذلك لا يمكن استخدام CI كدليل تنفيذ.
+
+WHAT I DISCOVERED
+1. Main2 لديه Tenant Read Drift
+
+من المصدر المباشر ظهرت قراءات مثل:
+
+orders
+purchase_orders
+customers
+items
+stock_branches
+stock_vouchers
+categories
+
+بعضها كان بلا Company scope صريح.
+
+2. Stock matrix يجب أن يعتمد على Company Branch Set
+
+لأن stock_branches لا يحتوي company_id، فإن الحل الصحيح ليس إضافة Company filter وهمي، بل استخراج فروع الشركة ثم استخدام:
+
+branch_id IN current_company_branches
+
+3. order_details ليس Tenant Root
+
+لأن order_details لا يحتوي company_id، فإن عزله الصحيح يكون عن طريق orders.id الخاصة بالشركة.
+
+4. Item Identity مختلف
+
+لا يجوز فرض company_id + item_code كمفتاح هوية للصنف بينما Production Schema يثبت أن:
+
+items.item_code UNIQUE
+
+وبالتالي item_code هو مفتاح عالمي في الـItem Master الحالي.
+
+PROPOSED SURGICAL CHANGE
+
+تم تجهيز منطق إصلاح جراحي محدد لـmain2 يتضمن:
+
+إضافة accessor يعتمد على RW_ShellContext.
+Company-scoping للـDashboard.
+إضافة orders.id وcustomer_name.
+تقييد previous-period queries.
+تقييد purchase queries.
+تقييد customer/item counts.
+تضييق Top Items إلى order_ids الخاصة بالـtenant.
+تقييد Stock Matrix بفروع الشركة.
+تقييد Movement Report بالـcompany/date.
+منع فتح Movement Report لفرع خارج tenant.
+تقييد Categories.
+تقييد Upload item lookup.
+منع وجود direct stock_branches writer داخل main2.
+منع inventory_log writer داخل main2.
+
+لكن هذه التغييرات لم تُكتب على main2.md لأن قناة التنفيذ التي حاولت استخدامها لم تنتج Runtime/commit قابلًا للإثبات.
+
+WHAT I PROVED
+قرأت main2 على دفعات، وليس اعتمادًا على مقتطف واحد.
+تحققت من SHA الحالي للملف في بداية الملف ونهايته.
+تحققت من Schema وForeign Keys وUnique constraints.
+تحققت من جزء مهم من RLS الحالي.
+تحققت من Trigger audit الخاص بـstock_vouchers.
+تحققت أن post_manual_stock_voucher_atomic يمرر Physical Movement إلى post_stock_movement.
+تحققت أن بعض snapshots السابقة لم تعد تمثل Production الحالية.
+تحققت أن محاولة التنفيذ عبر GitHub Actions لم تنتج Run قابلًا للإثبات.
+WHAT I DID NOT PROVE
+لم أثبت نشر main2 بعد الإصلاح.
+لم أثبت Runtime behavior بعد الإصلاح.
+لم أثبت أن public deployed PWA يعكس نسخة جديدة.
+لم أثبت 100% alignment بين كل consumer وكل جزء من الـPWA بعد التعديل، لأن التعديل نفسه لم يحدث.
+لم أعتبر ملفات prompts 89/90/91 مكتملة القراءة في المواضع التي لم تعرضها الأداة؛ لذلك لن أدّعي أنها قُرئت بالكامل حيث لم يظهر محتواها الكامل.
+WHAT I CHANGED
+
+تم تعديل/إنشاء قنوات تشغيل مؤقتة فقط أثناء محاولة التنفيذ:
+
+temporary GitHub repair workflows
+temporary execution signal files
+temporary PR execution path
+
+ثم تم حذفها من main بعد إثبات أنها لم تحقق تنفيذًا موثوقًا، وإغلاق PR #41 بدون Merge إلى Production.
+
+WHAT I DID NOT CHANGE
+
+لم أعدل Current/PWA/main/main2.md.
+
+لم أغير:
+
+Business logic في قاعدة البيانات.
+Physical Stock.
+inventory_log.
+RLS.
+أي بيانات تشغيلية في Production.
+أي stock quantity.
+أي order.
+أي item master data.
+WHAT I INITIALLY MISSED
+
+أول مسار تنفيذي بنيته على افتراض أن GitHub Actions يمكنه تنفيذ التغيير بمجرد إدخال workflow، لكن الأدلة المباشرة أثبتت أن هذا المسار لم ينتج Run.
+
+لذلك تم إيقاف هذا المسار بدل تحويل عدم وجود Run إلى ادعاء نجاح.
+
+WHAT BECAME OBSOLETE
+
+كل snapshots القديمة التي كانت تشير إلى:
+
+عدة Companies
+أعداد stock كبيرة مختلفة
+حالات cross-company سابقة
+
+لم تعد تصلح كـCurrent Production Baseline.
+
+الـbaseline الصحيح لهذه المهمة هو ما تم قياسه مباشرة من Production أثناء التحقيق الحالي.
+
+WHAT REMAINS OPEN
+CRITICAL BLOCKER
+
+main2.md نفسه لم يُنَفّذ عليه الإصلاح.
+
+وبالتالي:
+
+MAIN2 FORENSIC CLOSURE = INCOMPLETE
+
+وليس 100% CLOSED.
+
+PRODUCTION STATUS
+
+PRODUCTION DEPLOYED?
+NO — لا يوجد دليل على نشر إصلاح main2.
+
+PRODUCTION RUNTIME VERIFIED?
+NO.
+
+AUDIT VERIFIED?
+Partially — تم التحقق من وجود audit trigger ومسار fn_audit_trigger للـstock vouchers.
+
+DATA VERIFIED?
+YES — تم فحص Production الحالية مباشرة، ولم يتم تعديل بياناتها في main2.
+
+CURRENT GIT ALIGNED?
+YES بالنسبة لـmain2 الحالي؛ لم يتم تغييره.
+وليس هناك إصلاح جديد يحتاج alignment.
+
+FINAL SURVIVING STATE
+
+الحالة الحالية الآمنة هي:
+
+Current Production
++
+Current Git main2
++
+Governance Evidence
+
+ولا يوجد Patch غير مثبت خلفها.
+
+وهذا أفضل من تسجيل إصلاح وهمي أو ترك workflow مؤقت يمكن أن يصبح قناة دين غير موثقة.
+
+FINAL CLOSURE STATUS
+❌ NOT CLOSED
+
+MAIN2 FORENSIC REPAIR = NOT EXECUTED
+
+MAIN2 PRODUCTION DEPLOYMENT = NO
+
+MAIN2 RUNTIME VERIFICATION = NO
+
+MAIN2 100% CLOSURE = NO
+
+السبب ليس نقصًا في تصميم الإصلاح؛ السبب أن قناة الكتابة المباشرة الموثوقة إلى main2.md لم تنتج commit قابلًا للإثبات، وبالتالي لم أسمح لنفسي بتحويل خطة صحيحة إلى تنفيذ مزعوم.
+
+SOURCE REFERENCES:
+
+Governance Principle:
+Inventory execution directive:
+Current main2.md beginning and SHA:
+Current main2.md ending and same SHA:
+Current PR execution attempt closed without merge:
+Current RLS evidence: direct Production query from 2026-08-30.
+
+الخلاصة الحاسمة: هذه المرة لم أُكمل على أساس “يبدو أنه تم”. الدليل الحالي يقول إن main2.md لم يتغير، ولذلك لا أعتبر المهمة منتهية. هذا هو آخر وضع صحيح يمكن إثباته من المصادر الحالية، بدل اختلاق Closure غير موجود.
