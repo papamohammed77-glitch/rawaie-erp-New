@@ -30,3 +30,4 @@ jobs:
           git rm tools/main3_reconstruction.py .github/workflows/main3-reconstruction.yml
           git commit -m "chore(ctr): remove temporary main3 reconstruction executor"
           git push
+# retrigger main3 governed reconstruction
