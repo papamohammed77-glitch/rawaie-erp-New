@@ -1,0 +1,1 @@
+Trigger for one read-only cross-part forensic inventory run.
