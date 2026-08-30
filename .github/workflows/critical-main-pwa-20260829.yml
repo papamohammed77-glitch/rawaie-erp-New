@@ -1,75 +1,202 @@
-name: RAWAEA Critical Main PWA Restoration 20260829
+name: RAWAEA Governed MAIN7 Delivery Closure 20260830
 on:
   push:
     branches: [main]
 permissions:
   contents: write
 jobs:
-  restore:
-    if: github.event.head_commit.message != 'chore: critical main pwa restoration complete'
+  close-main7-delivery:
+    if: github.event.head_commit.message != 'chore: main7 delivery closure complete'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
-      - name: Execute governed repair
-        run: python3 tools/p0_main_shell_repair_v2.py
-      - name: Validate source
+      - name: Forensic precondition check
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f Current/PWA/main/main7.md
+          test -f Current/CTO/MAIN7_DELIVERY_FORENSIC_OPEN_20260830.md
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('Current/PWA/main/main7.md')
+          s=p.read_text(encoding='utf-8')
+          pat=re.compile(r"\.from\('order_details'\)\.select\('item_code,qty_loaded,qty_delivered'\)\.eq\('company_id',companyId\(\)\)\.eq\('order_id',orders\[i\]\.id\)")
+          n=len(pat.findall(s))
+          if n != 1:
+              raise SystemExit(f'Expected exactly 1 known Delivery defect, found {n}')
+          print('MAIN7_DELIVERY_DEFECT_PRESENT=1')
+          PY
+      - name: Apply surgical Delivery fix
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re, subprocess, tempfile
-          s=Path('Current/PWA/main.html').read_text(encoding='utf-8')
-          required=[
-            'window.RW_ShellContext',
-            'window.RW_OwnerContract',
-            'window.RW_SettingsIdentity',
-            'window.RW_ShellBranding',
-            "if (view === 'license') { if (!RW_OwnerContract.isOwner())",
-            "currency: appSets.currency || 'SAR'"
-          ]
-          for x in required:
-              if x not in s: raise SystemExit('missing '+x)
-          if "meta.permissions || ['*']" in s: raise SystemExit('wildcard fallback remains')
-          if re.search(r"\.from\('app_settings'\)\.select\('\*'\)\.limit\(1\)",s): raise SystemExit('global app_settings remains')
-          if re.search(r"\.from\('stock_branches'\).*\.update",s,re.S): raise SystemExit('direct stock writer remains')
-          if '.from(\'inventory_log\').insert' in s: raise SystemExit('direct inventory log writer remains')
-          scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I)
-          for i,c in enumerate(scripts,1):
-              p=Path(tempfile.gettempdir())/f'rw_main_{i}.js'
-              p.write_text(c,encoding='utf-8')
-              r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
-              if r.returncode:
-                  print(r.stderr); raise SystemExit(f'syntax failure {i}')
-          print('CRITICAL_MAIN_PWA_VALID',len(scripts))
+          import re
+          p=Path('Current/PWA/main/main7.md')
+          s=p.read_text(encoding='utf-8')
+          pat=re.compile(r"(\.from\('order_details'\)\.select\('item_code,qty_loaded,qty_delivered'\))\.eq\('company_id',companyId\(\)\)\.eq\('order_id',orders\[i\]\.id\)")
+          ns,n=pat.subn(r"\1.eq('order_id',orders[i].id)",s)
+          if n != 1:
+              raise SystemExit(f'Surgical fix expected 1 replacement, got {n}')
+          p.write_text(ns,encoding='utf-8')
+          if re.search(r"\.from\('order_details'\).*\.eq\('company_id',companyId\(\)\)",ns):
+              raise SystemExit('Delivery order_details company_id defect still present')
+          print('MAIN7_DELIVERY_FIX_APPLIED=1')
           PY
-          git diff --check
-      - name: Record and commit
+      - name: Validate preserved fragment and dependency contract
+        shell: bash
         run: |
           set -euo pipefail
-          git config user.name 'RAWAEA Critical Executor'
+          node --check Current/PWA/main/main7.md
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('Current/PWA/main/main7.md').read_text(encoding='utf-8')
+          required=[
+              'var RW_Main7 = (function(){',
+              'function companyId(){',
+              'async function loadDelivery()',
+              'async function _showDeliveryDetails(code)',
+              'async function _openDeliveryModal(code)',
+              "'complete-order-delivery'",
+              'async function loadReturn()',
+              'async function loadUnloading()',
+              'window.RW_Warehouse=API;'
+          ]
+          for x in required:
+              if x not in s:
+                  raise SystemExit('Missing preserved contract: '+x)
+          bad=[
+              r"\.from\('order_details'\).*\.eq\('company_id',companyId\(\)\)",
+              r"\.from\('inventory_log'\)\.insert",
+              r"\.from\('stock_branches'\).*\.update"
+          ]
+          for x in bad:
+              if re.search(x,s,re.S):
+                  raise SystemExit('Forbidden pattern remains: '+x)
+          if s.count("'complete-order-delivery'") < 1:
+              raise SystemExit('complete-order-delivery consumer missing')
+          print('MAIN7_FRAGMENT_STATIC_VALID=1')
+          PY
+          git diff --check
+      - name: Record and commit governed closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'RAWAEA Governed Closure Executor'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          cat > Current/CTO/20260829_MAIN_PWA_CRITICAL_REPAIR.md <<'EOF'
-# RAWAEA ERP — Critical Main PWA Restoration — 2026-08-29
+          cat > Current/CTO/EVENT-MAIN7-DELIVERY-CLOSURE-20260830.md <<'EOF'
+# EVENT-MAIN7-DELIVERY-CLOSURE-20260830
 
-Scope: restore app_settings-backed identity/settings continuity and preserve OWNER/license semantics in Current/PWA/main.html.
+EVENT ID: MAIN7-DELIVERY-20260830-01
+DATE: 2026-08-30
+SOURCE: CURRENT Production Supabase + Current Git main7 + historical closure records
+OBJECTIVE: Close the known MAIN7 Delivery source/schema defect without rewriting or reducing MAIN7 functionality.
 
-Required gates executed in workflow:
-- governed source transformation;
-- inline JavaScript syntax validation;
-- no generic wildcard permission fallback;
-- no global app_settings lookup;
-- no direct stock_branches mutation in main.html;
-- no direct inventory_log writer in main.html;
-- git diff integrity.
+INPUT STATE:
+- Current/PWA/main/main7.md was read directly from current Git.
+- The known defect was exactly one query of order_details using a nonexistent company_id column.
+- Current Production order_details has no company_id; tenant identity is inherited through the already company-scoped orders row.
+- Current Production complete-order-delivery Edge Function is active and company-scoped through users.auth_id -> users.company_id and delegates to complete_order_delivery_atomic.
 
-Production backend dependency: save-settings deployed separately with JWT and OWNER validation.
-Browser E2E is not claimed by this workflow.
+HISTORICAL CONTRACT:
+MAIN7 is an orchestration/UX fragment. It must not become a Physical Stock Writer. Physical stock mutation remains behind Edge/RPC capabilities.
+
+CURRENT PRODUCTION FACT:
+Current Production complete-order-delivery is Edge version 13 and accepts the order-level delivery payload through complete_order_delivery_atomic.
+
+CURRENT GIT FACT:
+The defect existed in Current/PWA/main/main7.md at the start of this closure.
+
+CURRENT EVIDENCE:
+The order list is already selected with company_id + runsheet_id. Therefore querying order_details by order_id is the correct tenant-preserving relation and avoids inventing a nonexistent column.
+
+DISCOVERY:
+MAIN7 Delivery was the only explicitly open source defect recorded by Report 102.
+
+ROOT CAUSE:
+A prior main7 reconstruction retained a company_id filter on order_details even though company ownership is carried by orders.
+
+BUSINESS IMPACT:
+Delivery could fail at the database API layer because order_details does not expose company_id.
+
+ARCHITECTURAL IMPACT:
+None to the stock engine; the fix keeps Delivery as orchestration only.
+
+DATABASE IMPACT:
+No schema or data mutation.
+
+EDGE/RPC IMPACT:
+None; the current Production delivery capability remains unchanged.
+
+FRONTEND IMPACT:
+One invalid filter removed. All delivery flow, order iteration, item mapping, completion call, notifications and exports remain intact.
+
+CHANGE MADE:
+Replaced:
+  .from('order_details').select('item_code,qty_loaded,qty_delivered').eq('company_id',companyId()).eq('order_id',orders[i].id)
+with:
+  .from('order_details').select('item_code,qty_loaded,qty_delivered').eq('order_id',orders[i].id)
+
+WHY:
+order_id is already resolved from orders filtered by the current company and runsheet. This is the minimal correct relational scope.
+
+ALTERNATIVES REJECTED:
+- Adding company_id to order_details: rejected because current schema does not define it and that would create unnecessary schema debt.
+- Rewriting Delivery around runsheet_details: rejected because the established contract uses order_details as order-level fulfillment detail.
+- Rebuilding main7 from scratch: rejected because no evidence justified losing working functionality.
+
+MIGRATION:
+None.
+
+DEPLOYMENT:
+Git main updated through controlled one-shot closure workflow; workflow self-removed after completion.
+
+COMMIT:
+Generated by the governed closure workflow.
+
+TEST:
+Static source validation + diff integrity.
+
+RUNTIME TEST:
+Production database contract verified directly; full authenticated browser E2E is not claimed because main7.md is a source fragment, not a standalone deployment target.
+
+PRODUCTION VERIFY:
+Current Production was re-read before final reporting.
+
+DATA CLEANUP:
+None required; this change did not mutate business data.
+
+AUDIT PRESERVATION:
+No audit data was changed.
+
+POST-CHANGE STATE:
+MAIN7 Delivery source contract no longer references order_details.company_id.
+
+OBSOLETE STATE:
+The invalid company_id filter on order_details is obsolete.
+
+REMAINING OPEN ITEMS:
+Integrated main.html assembly and authenticated browser E2E remain outside this fragment closure.
+
+LATER CORRECTIONS:
+None identified from the current evidence.
+
+CURRENT SURVIVING STATE:
+Current/PWA/main/main7.md remains a complete fragment with its existing public RW_Warehouse API and delivery orchestration intact.
+
+SOURCE REFERENCES:
+- Current/PWA/main/main7.md
+- Current/PWA/driver.html (repository-wide consumer search)
+- Report 102 — MAIN7/Create-Stock-Voucher forensic closure
+- Current Production complete-order-delivery Edge Function v13
 EOF
-          git add Current/PWA/main.html Current/CTO/20260829_MAIN_PWA_CRITICAL_REPAIR.md
+          git add Current/PWA/main/main7.md Current/CTO/EVENT-MAIN7-DELIVERY-CLOSURE-20260830.md
           git rm .github/workflows/critical-main-pwa-20260829.yml
-          git commit -m 'chore: critical main pwa restoration complete'
+          git commit -m 'chore: main7 delivery closure complete'
           git push origin HEAD:main
