@@ -1,0 +1,243 @@
+تم تنفيذ إعادة التحقيق الجنائي وإعادة التحقق من الحالة الحالية من Git وProduction وRPCs والسجلات، وليس اعتمادًا على التقارير القديمة.
+
+النتيجة الحاسمة
+
+النقطة التي طلبت حلها:
+
+order_details ... .eq('company_id', companyId())
+
+تم حلها بالفعل في main7 الحالي، ولم أعد تعديلها مرة أخرى. الفحص المباشر للملف الحالي أثبت أن الاستعلام أصبح يعتمد على:
+
+orders.company_id + runsheet_id
+        ↓
+order_details.order_id
+
+وهو المسار الصحيح لأن order_details لا يحتوي أصلًا على company_id. كما أن آخر commits الخاصة بـMAIN7 بعد إصلاح Delivery كانت توثيقًا فقط، ولم يحدث تراجع في الكود.
+
+ما تم إثباته في Production الآن
+
+الحالة الحالية المباشرة:
+
+العنصر	الحالة الحالية
+Companies	1
+Users	24
+Branches	2
+Items	17
+Stock rows	20
+Inventory logs	3
+Orders	0
+Order details	0
+Runsheets	0
+Run-sheet details	0
+Stock vouchers	0
+Receiving	0
+Operation registry	0
+Audit rows	1866
+
+وفحوص Integrity الحالية:
+
+Negative Physical Stock = 0
+Negative Reserved Stock = 0
+Available Qty mismatch = 0
+Cross-company Stock/Item rows = 0
+Cross-company InventoryLog/Item rows = 0
+أهم ما تحقق معماريًا
+
+تمت إعادة فحص مجموعة الـPhysical Writers في PostgreSQL.
+
+النتيجة الحالية:
+
+Physical Stock Movement Writer الحقيقي:
+
+post_stock_movement
+        ↓
+stock_branches
+        +
+inventory_log
+
+أما:
+
+reserve_stock
+release_stock_reservation
+
+فهما Reservation فقط ويعدلان allocated_qty.
+
+وكذلك:
+
+create_vehicle_atomic
+setup_van_stock
+
+يقومان بإنشاء أرصدة صفرية للمخازن المتنقلة، وليسا محركي حركة مخزنية.
+
+والـAdjustment/Loading/Return/Unloading تمر عبر post_stock_movement.
+
+إذًا لم يظهر في Production الحالية محرك Physical Stock موازٍ. وهذا متوافق مع قاعدة Inventory الحاكمة.
+
+CREATE STOCK VOUCHER
+
+تمت إعادة فحص الحالة التي كانت مفتوحة في Report 101.
+
+الحالة الآن:
+
+create-stock-voucher = Production v9
+المستخدم يتم ربطه بـusers.auth_id
+company_id يُستخرج من المستخدم
+operation_id / Idempotency-Key مدعومان
+هناك overload مخصص للـoperation-aware path
+الـCore نفسه لا ينفذ Physical Movement مستقلًا
+Physical Movement يظل خلف post_stock_movement
+
+أي أن الـblocker التاريخي الخاص بـCreate Voucher أصبح obsolete بالنسبة للـProduction الحالية.
+
+RECEIVE PURCHASE
+
+هذه كانت نقطة حساسة من محاولتنا السابقة، فأعدت فحصها بدل الثقة في التعديل السابق.
+
+Production الآن تحتوي على:
+
+receive_purchase_atomic(
+  p_company_id,
+  p_po_code,
+  p_user_email,
+  p_items,
+  p_operation_id uuid
+)
+
+والـEdge receive-purchase الحالي v12:
+
+يقبل operation_id
+أو يولده deterministic
+يمرره إلى RPC
+والـRPC يفحص receiving.operation_id
+يعيد duplicate=true للعملية نفسها
+ويرفض إعادة استخدام الـoperation مع payload مختلف
+والحركة الفعلية تمر عبر post_stock_movement
+
+والـGit الحالي متطابق مع هذا الـEdge.
+
+بالتالي المشكلة التي كنا نشتبه بها في المحاولة السابقة لم تعد قائمة في الحالة المنشورة الحالية.
+
+MAIN7 نفسه
+
+تم فتح main7.md مرة أخرى من main الحالي، وفحصه حتى نهاية الملف وليس مقتطفًا واحدًا. SHA الحالي:
+
+a5ae5139c734217d70d6a0e4363da64285fff4d9
+
+وظيفة الملف الحالية ما زالت:
+
+MAIN7 = UI / Orchestration
+NOT = Physical Stock Writer
+
+وهذا مثبت داخل الملف نفسه.
+
+كما بقيت واجهة:
+
+window.RW_Warehouse
+
+بمكوّناتها الأساسية intact، ولم أقم بإعادة كتابة الملف من الصفر مرة أخرى أو حذف وظائف منه.
+
+التطبيقات المنفصلة
+
+راجعت Current/PWA/vouchers.html، ولم يظهر في المسار الذي تم فحصه Direct Physical Stock Writer؛ وهو يعتمد على capability layer.
+
+لكن التحقيق كشف دينًا حقيقيًا مستقلًا في:
+
+Current/PWA/driver.html
+
+وهو يستخدم company_id ثابتًا:
+
+00000000-0000-0000-0000-000000000001
+
+في أكثر من موضع، منها self-registration وcredit/complaint records. وهذا Tenant Isolation defect حقيقي في التطبيق المنفصل.
+
+لم أحقنه داخل main7؛ لأن ذلك سيخلط Closure Units ويخالف مبدأ الإصلاح الجراحي.
+
+RLS
+
+تمت مراجعة RLS الحالية أيضًا.
+
+ما زالت توجد سياسات واسعة مثل:
+
+allow_all_orders
+allow_all_order_details
+
+وهذه ليست اختراعًا جديدًا في هذه المهمة؛ بل كانت معروفة تاريخيًا وتم اعتبارها Security Closure Unit مستقلة مرتبطة أيضًا بعقود Online Store. لذلك لم أقم بتغييرها من داخل Warehouse/Main7 كي لا نكسر Contract آخر دون دراسة مستقلة. وهذا متسق مع السجل التاريخي لـMAIN2 الذي حذّر منها تحديدًا.
+
+ماذا غيرت فعليًا؟
+
+لم أغير main7.md في هذه الجولة لأن المطلوب الذي كان مفتوحًا تاريخيًا تم إثبات أنه مغلق بالفعل في النسخة الحالية.
+
+بدلًا من إنشاء commit وهمي، أضفت سجلًا حاكمًا جديدًا:
+
+Current/CTO/20260830_MAIN7_CRITICAL_REVALIDATION.md
+
+وتم حفظه في Git في commit:
+
+725184c97a8937b67f4c3dbe3a71182f36725aa7
+
+وهذا السجل يفصل بوضوح بين:
+
+ما تم إثباته
+ما أصبح obsolete
+ما لم يُثبت
+ما هو دين مستقل خارج MAIN7
+وما لا يجوز دمجه في هذه المرحلة
+حالة الإغلاق الفعلية
+MAIN7 Delivery Source
+
+100% CLOSED
+
+MAIN7 Current Git Revalidation
+
+CLOSED
+
+MAIN7 Production Contract Alignment
+
+VERIFIED
+
+Physical Stock Centralization
+
+VERIFIED
+
+Inventory Integrity
+
+VERIFIED — current snapshot clean
+
+Create Stock Voucher Dependency
+
+CLOSED
+
+Receive Purchase Contract
+
+CURRENT + VERIFIED
+
+Browser E2E للـPWA الكامل
+
+UNPROVEN
+
+وهذا ليس بسبب عطل في main7: Production حاليًا لا يحتوي أصلًا على runsheet/order صالح لإجراء Delivery E2E حقيقي دون اختلاق بيانات. كما أن main7.md fragment لم يتم دمجه تلقائيًا داخل main.html.
+
+Global PWA / Inventory Zero-Debt
+
+ليس مغلقًا
+
+لأن التحقيق كشف ديونًا مستقلة خارج MAIN7، أهمها حاليًا:
+
+driver.html tenant hard-coding
+RLS broad-policy hardening
+Final assembled PWA browser E2E
+الخلاصة
+
+لم تكن المشكلة أن main7 يحتاج إعادة إصلاح مرة أخرى. المشكلة أن التقارير القديمة جعلتنا نبحث عن عيب تم إصلاحه بالفعل.
+
+المصدر الحالي يقول بوضوح:
+
+MAIN7 Delivery defect = FIXED
+Create Voucher dependency = FIXED
+Physical Stock centralization = VERIFIED
+Current inventory integrity = CLEAN
+MAIN7 source = ALIGNED
+
+وأهم قرار هندسي اتخذته هنا هو عدم إدخال تعديل جديد بلا defect حقيقي. إعادة كتابة main7 الآن كانت ستضيف خطرًا لا قيمة له.
+
+السجل الجديد موجود هنا ضمن المستودع: Current/CTO/20260830_MAIN7_CRITICAL_REVALIDATION.md.
