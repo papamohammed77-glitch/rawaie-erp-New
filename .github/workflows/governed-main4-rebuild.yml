@@ -1,85 +1,20 @@
-name: governed-main4-rebuild
+name: governed-main4-rebuild — ARCHIVED VERIFY ONLY
 on:
+  workflow_dispatch:
   push:
     branches: [main]
+    paths:
+      - 'Current/PWA/main/main4.md'
 permissions:
-  contents: write
+  contents: read
 jobs:
-  rebuild:
-    if: ${{ !contains(github.event.head_commit.message, 'reconstruct main4 from canonical baseline') }}
+  verify-only:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Reconstruct canonical main4 and validate
-        shell: bash
+      - name: Verify archived fragment
         run: |
           set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          import re
-          p = Path('Current/PWA/main/main4.md')
-          s = p.read_text(encoding='utf-8')
-          marker='MAIN4_GOVERNED_REBUILD_20260830'
-          if marker in s:
-              raise SystemExit('already reconstructed')
-          anchor='var RW_POS = (function() {'
-          if anchor not in s:
-              raise SystemExit('main4 baseline anchor missing')
-          s=s.replace(anchor, "var __M4_COMPANY_ID = function(){ var c = window.RW_ShellContext && typeof window.RW_ShellContext.getCompanyId === 'function' ? window.RW_ShellContext.getCompanyId() : null; if(!c) throw new Error('MAIN4_TENANT_CONTEXT_UNAVAILABLE'); return c; };\n"+anchor, 1)
-          # POS: company-scoped settings + real configured main branch code.
-          s=s.replace("var taxRate = 0;", "var taxRate = 0;\n    var mainBranchCode = '';", 1)
-          old="var settingsRes = await supabase.from('app_settings').select('*').limit(1).single();"
-          new="var settingsRes = await supabase.from('app_settings').select('*').eq('company_id', __M4_COMPANY_ID()).maybeSingle();"
-          if old not in s: raise SystemExit('POS settings lookup not found')
-          s=s.replace(old,new,1)
-          anchor2="if (!settingsRes.error && settingsRes.data) {\n            deliveryFee = Number(settingsRes.data.delivery_fee) || 0;\n            minInvoice = Number(settingsRes.data.min_invoice_amount) || 0;\n            taxRate = Number(settingsRes.data.tax_rate) || 0;\n        }"
-          repl2=anchor2+"\n        if (!settingsRes.error && settingsRes.data && settingsRes.data.main_branch_id) { var brRes = await supabase.from('branches').select('branch_code').eq('company_id', __M4_COMPANY_ID()).eq('id', settingsRes.data.main_branch_id).maybeSingle(); if (brRes.error) throw brRes.error; if (!brRes.data) throw new Error('MAIN_BRANCH_NOT_FOUND'); mainBranchCode = brRes.data.branch_code; }"
-          if anchor2 not in s: raise SystemExit('POS settings block not found')
-          s=s.replace(anchor2,repl2,1)
-          if "branchId: 'MAIN'" not in s: raise SystemExit('POS branch contract not found')
-          s=s.replace("branchId: 'MAIN'","branchCode: mainBranchCode",1)
-          # Roles: every read is tenant scoped.
-          s=s.replace("supabase.from('roles').select('*')", "supabase.from('roles').select('*').eq('company_id', __M4_COMPANY_ID())")
-          # TeleSales: scoped settings and branches; stock is then bounded by those company branches.
-          tele_settings="supabase.from('app_settings').select('*').limit(1).single()"
-          if tele_settings not in s: raise SystemExit('TeleSales settings lookup not found')
-          s=s.replace(tele_settings,"supabase.from('app_settings').select('*').eq('company_id', __M4_COMPANY_ID()).maybeSingle()",1)
-          branch_q="supabase.from('branches').select('id, branch_code, name')"
-          if branch_q not in s: raise SystemExit('TeleSales branch discovery not found')
-          s=s.replace(branch_q,"supabase.from('branches').select('id, branch_code, name').eq('company_id', __M4_COMPANY_ID())",1)
-          load_q="supabase.from('branches').select('branch_code, name')"
-          if load_q not in s: raise SystemExit('TeleSales branch loader not found')
-          s=s.replace(load_q,"supabase.from('branches').select('branch_code, name').eq('company_id', __M4_COMPANY_ID())",1)
-          # Partial checkout settings query.
-          partial="supabase.from('app_settings').select('min_invoice_amount, delivery_fee, tax_rate').limit(1).single()"
-          if partial not in s: raise SystemExit('TeleSales save settings lookup not found')
-          s=s.replace(partial,"supabase.from('app_settings').select('min_invoice_amount, delivery_fee, tax_rate').eq('company_id', __M4_COMPANY_ID()).maybeSingle()",1)
-          # Never silently default a required branch identity to synthetic MAIN.
-          s=s.replace("branchCode: branchCode || 'MAIN'","branchCode: branchCode || null")
-          # Add immutable marker and validate public contracts / forbidden writers.
-          s=s.replace("var __M4_COMPANY_ID = function(){", "/* MAIN4_GOVERNED_REBUILD_20260830 */\nvar __M4_COMPANY_ID = function(){", 1)
-          required=['window.RW_POS = RW_POS;','window.RW_Roles = RW_Roles;','window.RW_TeleSales = RW_TeleSales;', '_searchCustomers','_selectCustomer','_searchItems','_addToCart','_saveOrder','_openModal','_switchRoleTab','_save']
-          for x in required:
-              if x not in s: raise SystemExit('CONTRACT_MISSING:'+x)
-          forbidden=['stock_branches').update','inventory_log').insert','stock_branches"}.update']
-          for x in forbidden:
-              if x in s: raise SystemExit('PHYSICAL_WRITER_FOUND:'+x)
-          if re.search(r"from\((['\"])app_settings\1\).*?limit\(1\)", s, re.S):
-              raise SystemExit('UNSCOPED_APP_SETTINGS_LIMIT_1')
-          p.write_text(s,encoding='utf-8')
-          PY
-          node --check Current/PWA/main/main4.md
-          grep -q 'MAIN4_GOVERNED_REBUILD_20260830' Current/PWA/main/main4.md
-          test "$(grep -o 'var RW_POS = (function' Current/PWA/main/main4.md | wc -l)" -eq 1
-          test "$(grep -o 'var RW_Roles = (function' Current/PWA/main/main4.md | wc -l)" -eq 1
-          test "$(grep -o 'var RW_TeleSales = (function' Current/PWA/main/main4.md | wc -l)" -eq 1
-      - name: Commit and remove temporary workflow
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm .github/workflows/governed-main4-rebuild.yml
-          git config user.name 'rawaea-cto'
-          git config user.email 'cto@rawaea.local'
-          git add Current/PWA/main/main4.md .github/workflows/governed-main4-rebuild.yml
-          git commit -m 'refactor(pwa): reconstruct main4 from canonical baseline'
-          git push
+          test -s Current/PWA/main/main4.md
+          ! grep -q "git push" .github/workflows/governed-main4-rebuild.yml
+          echo "ARCHIVED_VERIFY_ONLY_PASS"
