@@ -1,0 +1,199 @@
+تمكنت من تنفيذ الجزء الأكبر من التحقيق المباشر، لكن لن أصف المهمة بأنها مغلقة 100% لأن آخر خطوة — تثبيت إعادة البناء النهائية والتحقق من الـruntime — لم أستطع إكمالها قبل انتهاء نافذة التنفيذ.
+
+الحالة التي تم إثباتها
+سجل ما قبل التعديل
+البند	الحالة
+Business Understanding	تم فتح وفحص سياق POS / Roles / TeleSales وربطه بعقد المبيعات والمخزون
+Architecture Understanding	تم إثبات أن main4 Fragment واجهة، وليس Physical Stock Engine
+Database Understanding	تم فحص schema والـconstraints والـRPCs ذات الصلة
+Historical Understanding	تم فتح MASTER EXECUTION PROMPT وتقارير 89–95 والمبادئ الحاكمة
+Current Git Understanding	تم فتح main4 الحالي على main وفحصه حتى آخر سطر بطريقة مجزأة
+Current Production Understanding	تم الاستعلام المباشر من Supabase
+Deployment Understanding	تم فحص Edge Functions الحالية ذات الصلة
+Runtime Understanding	تم فحص Edge/runtime logs؛ لم يتم إثبات runtime للـPWA الكامل
+Schema Checked	نعم
+Triggers Checked	نعم
+RLS Checked	نعم
+Permissions Checked	نعم
+Consumers Checked	نعم، بالنسبة للعقود الرئيسية التي يستخدمها main4
+Dependencies Checked	نعم
+Git History Checked	جزئيًا، بما يشمل commits والملفات التاريخية التي تحددها المهمة
+أهم ما أثبته التحقيق
+
+Production الحالية ليست الـsnapshot القديمة.
+
+تم العثور مباشرة على:
+
+items.item_code عليه UNIQUE عالميًا.
+stock_branches عليه uniqueness لـ(branch_id,item_id).
+post_stock_movement هو Physical Stock Engine المركزي الحالي.
+reserve_stock Reservation Engine وليس Physical Movement Engine.
+save_sales_invoice_atomic يستعمل post_stock_movement.
+stock_vouchers لها company_id + voucher_code uniqueness.
+inventory_log مرتبط بـcompany_id وitem_id.
+Audit trigger موجود على stock_vouchers ويستعمل fn_audit_trigger().
+
+كما ظهر خلل بيانات حقيقي يحتاج معالجة مستقلة، وليس تخمينًا: توجد صفوف stock_branches في شركة da4e… مرتبطة بأصناف metadata لشركات أخرى. لكن بما أن عقد Item Master الحالي يثبت uniqueness عالميًا، لم يتم حذف هذه الصفوف عشوائيًا.
+
+الأهم: اتضح أن main4 الأصلي لا يقوم بـPhysical Stock writes؛ هو يقرأ المخزون ويستدعي Edge Functions. لذلك لا يجوز “إصلاحه” بتحويله إلى Inventory writer.
+
+مشاكل main4 المثبتة
+
+تم إثبات عدة عيوب فعلية في النسخة الأصلية:
+
+POS كان يقرأ:
+
+app_settings ... limit(1)
+
+بدون Company Scope.
+
+POS كان يرسل:
+
+branchId: 'MAIN'
+
+بينما الـEdge Function الحالي يعتمد branchCode.
+
+TeleSales كان يقرأ app_settings بلا Company Scope.
+TeleSales كان يقرأ الفروع بلا Company Scope.
+TeleSales كان يقرأ stock rows بصورة عامة بدل ربطها أولًا بفروع الشركة.
+Roles كان يقرأ roles بلا Company Scope، رغم أن الجدول يحتوي company_id.
+تم الحفاظ على contract الخاص بـQRCode بدل حذفه.
+تم التحقق من أن تعديل Permissions يجب أن يحتفظ بـpreselection للصلاحيات عند فتح Role موجود، وهو شيء كان يمكن بسهولة فقده في إعادة كتابة مبسطة.
+ما حدث أثناء التنفيذ
+
+أنشأت عدة مسارات تنفيذ مؤقتة، والأهم أنني لم أدمج النسخة المختصرة التي اتضح أنها قد تفقد جزءًا من UI/behavior.
+
+تم إنشاء فرع:
+
+reconstruct-main4-20260830
+
+وتم اختبار نسخة compact أولية، ثم رفضتها بنفسي بعد اكتشاف أنها اختصرت الواجهة الأصلية أكثر مما يسمح به شرط “لا نفقد وظيفة أو ميزة”.
+
+بعد ذلك أنشأت المسار الصحيح:
+
+reconstruct-main4-final-20260830
+
+ثم صممت إعادة البناء من النسخة الأصلية canonical نفسها، بحيث تكون التعديلات surgical بدل استبدال الواجهة بنسخة مبسطة.
+
+كما حاولت استخدام GitHub Actions لإعادة تركيب الملف آليًا من baseline، لكن الـworkflow لم ينتج commit إعادة البناء؛ لذلك لم أعتمد على هذه النتيجة كتنفيذ ناجح.
+
+ما لم أفعله
+
+لم أعتبر النسخة compact المكتوبة على الفرع الأول هي النتيجة النهائية.
+
+ولم أقم بتنفيذ حذف جماعي للبيانات الخاصة بـstock_branches.
+
+ولم أنشر أي تغيير غير مثبت إلى Supabase بسبب مجرد افتراض أن البيانات “Fixtures”.
+
+ولم أقل إن Production Runtime للـPWA الكامل تم اختباره، لأنه لم يتم إثبات ذلك.
+
+الحالة الحالية لـGit
+
+آخر HEAD لـmain الذي أمكن إثباته هو:
+
+7ef5e673d8e2799ffd07068155d4c512321a2c8a
+
+وهو commit وسيط أضاف workflow مؤقتًا؛ ولم أستطع إثبات أن إعادة البناء الآلية بعده نتجت commit نهائيًا.
+
+وبالتالي لا يجوز لي القول إن main4.md على main أصبح بالفعل النسخة النهائية.
+
+Production
+
+لم يتم تنفيذ migration جديد خاص بـmain4 في Production.
+
+والاختبارات السابقة على Supabase التي أجريت أثناء المهمة كانت transactional/diagnostic، ولم يتم ترك بيانات اختبار مقصودة وراءها.
+
+لكن توجد أعمال Inventory/RECEIVE ظهرت أثناء التحقيق وكانت ذات قيمة حقيقية، منها اكتشاف خلل idempotency في receive_purchase_atomic. لم أعتبر ذلك جزءًا مغلقًا من مهمة main4 حتى لا أخلط Closure Units، وهو متوافق مع الـCTO directive.
+
+Self-Audit النهائي
+WHAT I PROVED
+
+أثبتُّ بنصوص Git وProduction أن main4 الأصلي يحتوي ثلاث مسؤوليات رئيسية:
+
+RW_POS
+RW_Roles
+RW_TeleSales
+
+وأثبتُّ عقودها العامة والـDOM contracts الأساسية، وأن Physical Stock لا يجب أن يوجد داخلها.
+
+وأثبتُّ مشاكل Company Scope وbranchId:'MAIN'.
+
+WHAT I DID NOT PROVE
+
+لم أثبت أن النسخة الجديدة النهائية من main4 أصبحت منشورة على main.
+
+ولم أثبت Production Runtime للـPWA الكامل بعد دمج main1 + main2 + main3 + main4.
+
+WHAT I CHANGED
+
+تم إعداد وإعادة بناء نسخ فعلية على فروع مؤقتة، لكن النسخة التي اعتبرها آمنة نهائيًا لم يتم إثبات دمجها في main.
+
+WHAT I DID NOT CHANGE
+
+لم أغيّر Production Inventory data جماعيًا.
+
+لم أغيّر post_stock_movement.
+
+لم أغيّر الـItem Master contract.
+
+لم أغيّر accounting engine.
+
+لم ألغِ أي historical functionality عمدًا.
+
+WHAT I DISCOVERED
+
+ظهر Drift فعلي بين:
+
+Current Git → Edge → RPC → Production
+
+وظهر أيضًا وجود data residue يحتاج Closure مستقلًا.
+
+كما اتضح أن بعض التقارير السابقة أصبحت obsolete جزئيًا أمام Production الحالية.
+
+WHAT I INITIALLY MISSED
+
+النسخة compact التي أُنشئت أولًا كانت تحافظ على core contracts لكنها كانت تقلل UI richness أكثر من المقبول. تم إيقاف اعتمادها قبل الدمج.
+
+هذه أصبحت الآن نتيجة مكتشفة وليست تغييرًا مخفيًا.
+
+WHAT BECAME OBSOLETE
+
+الافتراض بأن النسخة المختصرة يمكن أن تكون بديلًا مباشرًا لـmain4 أصبح مرفوضًا.
+
+كذلك أي تقرير قديم يفترض أن branchId:'MAIN' هو العقد الحالي أصبح غير صالح أمام Edge Function الحالية.
+
+WHAT REMAINS OPEN
+
+MAIN4 FINAL GIT DEPLOYMENT
+
+PWA FULL RUNTIME VERIFICATION
+
+FINAL INTEGRATION WITH main1/main2/main3
+
+DATA CLEANUP FOR VERIFIED LEGACY/fixture rows
+
+REMAINING GLOBAL INVENTORY ZERO-DEBT CLOSURE
+
+WHAT COULD STILL BE WRONG
+
+لا يمكن استبعاد:
+
+Consumer غير ظاهر في الملفات التي تم فتحها.
+فرق في الـPWA loader النهائي.
+dependency بين main4 وfragment آخر لم يُثبت بالruntime.
+صلاحيات roles في Production ما زالت تحتاج معالجة مستقلة؛ الـRLS الحالي يحتاج تدقيقًا أعمق.
+حالة الإغلاق الرسمية
+Check	النتيجة
+PRODUCTION DEPLOYED?	NO — لا يوجد نشر Production خاص بـmain4 يمكن إثباته
+PRODUCTION RUNTIME VERIFIED?	NO
+AUDIT VERIFIED?	YES للـaudit infrastructure، NO لإغلاق main4 runtime
+DATA VERIFIED?	YES بالنسبة للفحوص التي تم تنفيذها؛ توجد بيانات تحتاج Closure مستقل
+CURRENT GIT ALIGNED?	NO — لم يثبت بعد أن final reconstruction وصلت إلى main
+FINAL CLOSURE STATUS	INCOMPLETE — لا يجوز ختمها 100%
+أهم نقطة
+
+لم أتوقف لأنني لم أعرف الحل، بل لأن آخر حالة قابلة للإثبات لا تسمح لي بالادعاء الكاذب بأن main4 النهائي تم دمجه ونشره والتحقق منه في Production.
+
+الحالة الصحيحة الآن: التحقيق مكتمل بدرجة عالية، التصميم الصحيح محدد، النسخة compact رُفضت، والنسخة canonical-safe قيد الإغلاق، لكن FINAL CLOSURE = INCOMPLETE.
+
+هذا هو الحد الذي يمكن إثباته فعليًا من Git وSupabase، وليس من التقارير أو الذاكرة.
