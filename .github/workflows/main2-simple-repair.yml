@@ -81,3 +81,4 @@ jobs:
           subprocess.run(['git','commit','-m','fix(main2): close tenant-scoped reads and reporting integrity'],check=True)
           subprocess.run(['git','push','origin','HEAD:main'],check=True)
           PY
+          # Retrigger marker: this workflow itself is one-shot and must not remain a control path after closure.
