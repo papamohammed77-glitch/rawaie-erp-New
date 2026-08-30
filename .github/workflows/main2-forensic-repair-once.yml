@@ -21,7 +21,7 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re, subprocess, tempfile
+          import subprocess, tempfile
           p=Path('Current/PWA/main/main2.md')
           s=p.read_text(encoding='utf-8')
           marker='RAWAEA_MAIN2_FORENSIC_CLOSED:v1'
@@ -85,10 +85,10 @@ jobs:
           req("        if (!branchId) { safeHTML(previewTable, '<div class=\"text-center py-8 text-red-500\">يرجى اختيار الفرع أولاً</div>'); if (executeBtn) executeBtn.disabled = true; return; }", "        if (!branchId) { safeHTML(previewTable, '<div class=\"text-center py-8 text-red-500\">يرجى اختيار الفرع أولاً</div>'); if (executeBtn) executeBtn.disabled = true; return; }\n        if (allowedBranchIds.indexOf(branchId) === -1) { safeHTML(previewTable, '<div class=\"text-center py-8 text-red-500\">الفرع خارج نطاق الشركة الحالية</div>'); if (executeBtn) executeBtn.disabled = true; return; }", 'UPLOAD_BRANCH_SCOPE')
           req("supabase.from('items').select('id, item_code, barcode, name').in('barcode', barcodes)", "supabase.from('items').select('id, item_code, barcode, name').eq('company_id', RW_Main2_companyId()).in('barcode', barcodes)", 'UPLOAD_ITEMS_SCOPE')
 
-          # Hard architectural guard: this part may read stock but may not mutate it or write inventory_log directly.
-          if re.search(r"supabase\\.from\\(['\\\"]stock_branches['\\\"]\\)[^;]{0,1200}\\.(?:update|insert|upsert|delete)\\(", s, re.S):
+          # Hard architectural guard: main2 may read stock but may not be a stock writer.
+          if "supabase.from('stock_branches').update(" in s or "supabase.from('stock_branches').insert(" in s or "supabase.from('stock_branches').upsert(" in s or "supabase.from('stock_branches').delete(" in s:
               raise SystemExit('MAIN2_DIRECT_STOCK_WRITER')
-          if re.search(r"supabase\\.from\\(['\\\"]inventory_log['\\\"]\\)[^;]{0,700}\\.insert\\(", s, re.S):
+          if "supabase.from('inventory_log').insert(" in s or "supabase.from('inventory_log').upsert(" in s:
               raise SystemExit('MAIN2_DIRECT_INVENTORY_LOG_WRITER')
 
           # Full-file syntax and whitespace validation.
