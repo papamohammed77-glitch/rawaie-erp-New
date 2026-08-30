@@ -1,1 +1,2 @@
-Temporary branch anchor for isolated P1 main1 repair. Remove after merge.
+Temporary branch anchor for isolated P1 main1 repair.
+This anchor exists only to trigger the governed PR execution path and must be removed after closure.
