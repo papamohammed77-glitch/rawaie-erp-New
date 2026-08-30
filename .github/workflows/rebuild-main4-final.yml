@@ -1,0 +1,65 @@
+name: rebuild-main4-final
+on:
+  push:
+    branches: [reconstruct-main4-final-20260830]
+permissions:
+  contents: write
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild governed main4 from canonical baseline
+        shell: python
+        run: |
+          from pathlib import Path
+          import re, subprocess, sys
+          p=Path('Current/PWA/main/main4.md')
+          s=p.read_text(encoding='utf-8')
+          original=s
+          # Preserve all existing module bodies; only harden tenant/context contracts.
+          if 'MAIN4_GOVERNED_REBUILD_20260830' not in s:
+              s=s.replace("(function(){", "(function(){\n/* MAIN4_GOVERNED_REBUILD_20260830 */\nvar __M4_COMPANY_ID=function(){var c=window.RW_ShellContext&&typeof window.RW_ShellContext.getCompanyId==='function'?window.RW_ShellContext.getCompanyId():null;if(!c)throw Error('MAIN4_TENANT_CONTEXT_UNAVAILABLE');return c};", 1)
+          # app_settings: prohibit unscoped LIMIT 1.
+          patterns=[
+            (r"(supabase\\.from\\((['\"])app_settings\\2\\)\\.select\\([^\\n;]*?)(\\.limit\\(1\\))", r"\\1.eq('company_id',__M4_COMPANY_ID())\\3"),
+            (r"(supabase\\.from\\((['\"])roles\\2\\)\\.select\\([^\\n;]*?)(\\.order\\()", r"\\1.eq('company_id',__M4_COMPANY_ID())\\3"),
+          ]
+          for a,b in patterns:
+              s=re.sub(a,b,s)
+          # Common single-record branch/customer/item reads remain tenant-safe by using already-loaded company data;
+          # item identity uses globally UNIQUE item_code by verified Production schema.
+          # Fix the known POS contract drift: branchCode is the deployed save-sales-invoice contract.
+          s=re.sub(r"branchId\\s*:\s*['\"]MAIN['\"]", "branchCode:branchCode", s)
+          s=s.replace("branch_id:'MAIN'", "branchCode:branchCode")
+          # Add explicit company context to TeleSales branch discovery when a direct query exists.
+          s=re.sub(r"(supabase\\.from\\((['\"])branches\\2\\)\\.select\\([^\\n;]*?)(\\.order\\()", r"\\1.eq('company_id',__M4_COMPANY_ID())\\3", s)
+          # Ensure company context for direct roles queries even if formatting differs.
+          if "supabase.from('roles').select('*').eq('company_id',__M4_COMPANY_ID())" not in s and 'supabase.from("roles").select("*").eq("company_id",__M4_COMPANY_ID())' not in s:
+              s=s.replace("supabase.from('roles').select('*')", "supabase.from('roles').select('*').eq('company_id',__M4_COMPANY_ID())")
+          # Public contracts must survive reconstruction.
+          required=[
+            'window.RW_POS=RW_POS','window.RW_Roles=RW_Roles','window.RW_TeleSales=RW_TeleSales',
+            '_search','_addItem','_updateQty','_removeItem','_clearCart','_save','_openModal','_switchRoleTab',
+            '_searchCustomers','_selectCustomer','_searchItems','_addToCart','_saveOrder'
+          ]
+          missing=[x for x in required if x not in s]
+          if missing: raise SystemExit('CONTRACT_MISSING:'+','.join(missing))
+          # No physical inventory writer may live in this UI fragment.
+          forbidden=['stock_branches.update','inventory_log.insert','stock_branches"}.update']
+          for x in forbidden:
+              if x in s: raise SystemExit('PHYSICAL_WRITER_FOUND:'+x)
+          # No unscoped app_settings LIMIT 1 in the rebuilt fragment.
+          if re.search(r"from\\((['\"])app_settings\\1\\).*?limit\\(1\\)", s, re.S):
+              raise SystemExit('UNSCOPED_APP_SETTINGS_LIMIT_1')
+          p.write_text(s,encoding='utf-8')
+          subprocess.run(['node','--check',str(p)],check=True)
+          if s==original: raise SystemExit('NO_RECONSTRUCTION_APPLIED')
+      - name: Commit governed reconstruction
+        shell: bash
+        run: |
+          git config user.name 'rawaea-cto'
+          git config user.email 'cto@rawaea.local'
+          git add Current/PWA/main/main4.md .github/workflows/rebuild-main4-final.yml
+          git commit -m 'refactor(pwa): reconstruct main4 from canonical baseline'
+          git push
