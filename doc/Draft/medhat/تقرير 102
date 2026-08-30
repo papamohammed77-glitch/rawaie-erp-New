@@ -1,0 +1,138 @@
+# تقرير 102 — CRITICAL MAIN7 / CREATE-STOCK-VOUCHER CLOSURE
+
+## PRE-SWEEP SELF-AUDIT
+
+Business Understanding:
+Manual stock vouchers are a controlled warehouse document lifecycle. Physical Stock must not be mutated by the UI or a parallel voucher writer; it must pass through the canonical stock engine.
+
+Architecture Understanding:
+The surviving Production architecture separates voucher lifecycle from Physical Stock Movement. create_manual_stock_voucher_atomic manages voucher creation and operation identity; post_stock_movement owns Physical Stock mutation.
+
+Database Understanding:
+Current Production has one active company, two branches, 17 item master rows, 20 stock balance rows. items.item_code is globally UNIQUE. stock_branches is keyed by branch_id + item_id. receiving.operation_id is UNIQUE. stock_voucher_operations is the operation identity store for the operation-aware manual voucher path.
+
+Historical Understanding:
+Historical Report 101 correctly identified create-stock-voucher as open at the time. Direct current investigation shows the Production deployment subsequently advanced to an RPC-backed implementation. Therefore the historical blocker no longer described current Production.
+
+Current Git Understanding:
+Current main7 already uses company context from RW_ShellContext and sends operation_id for manual voucher creation. Current/Edge_Functions/create-stock-voucher was aligned to the deployed Production contract.
+
+Current Production Understanding:
+Production create-stock-voucher is active at version 9. The current manual voucher core is RPC-backed and routes Physical Stock through post_stock_movement.
+
+Deployment Understanding:
+The create-stock-voucher Edge Function was redeployed to Production as version 9 on 2026-08-30.
+
+Runtime Understanding:
+The PostgreSQL/RPC operation-aware path was executed in a transaction and verified. No permanent test data was retained. A fresh HTTP invocation after the v9 deployment was not present in the current Edge log stream, so HTTP E2E is not claimed.
+
+## CONFIRMED FACTS
+
+- Current Production inventory has zero negative quantities.
+- Current Production inventory has zero negative reservations.
+- Current Production has zero available_qty mismatches.
+- Current Production has zero cross-company branch/item inventory rows.
+- Current Production has zero cross-company inventory_log/item rows.
+- Current Production has 20 stock balance rows.
+- Current Production has zero stock_voucher_operations rows after cleanup.
+- create-stock-voucher is Production v9 and RPC-backed.
+- Current Git create-stock-voucher is aligned to that contract.
+- main7 already passes operation_id to create-stock-voucher.
+- Physical Writer discovery identifies post_stock_movement as the only Physical Stock writer; reservation writers modify allocated_qty only, and vehicle/VAN initialization creates zero-quantity stock rows rather than movement.
+
+## UNKNOWNS
+
+- A fresh authenticated HTTP E2E request against create-stock-voucher v9 after deployment was not captured in the last 24-hour log window.
+- Full repository-wide historical source closure outside the current Production writer graph is not certified by this report.
+
+## CONFLICTS
+
+- Historical Report 101 versus current Production deployment state: resolved in favor of current direct Production evidence.
+- Older Git/Original direct-write create-stock-voucher implementation versus current Production RPC-backed implementation: resolved as historical/obsolete path for runtime truth.
+
+## UNVERIFIED CLAIMS
+
+- No claim is made that browser E2E is 100% verified.
+- No claim is made that the entire ERP is globally zero-debt.
+
+## WHAT I PROVED
+
+1. The create-stock-voucher Production dependency identified by Report 101 is no longer a direct-write Production path.
+2. Current Production v9 accepts operation_id / Idempotency-Key and routes operation-aware calls to the canonical manual-voucher RPC.
+3. The canonical manual-voucher path uses operation identity and does not own Physical Stock mutation.
+4. Physical stock mutation remains centralized in post_stock_movement.
+5. Current Production inventory is clean with respect to the core inventory invariants checked.
+
+## WHAT I DID NOT PROVE
+
+- A live browser HTTP call using a real authenticated user after v9 deployment.
+- Final whole-repository global zero-debt beyond the Production physical-writer boundary.
+
+## WHAT I CHANGED
+
+- Deployed create-stock-voucher Production version 9 with operation-id aware dispatch.
+- Aligned Current/Edge_Functions/create-stock-voucher with the deployed Production behavior.
+- Added the detailed event record EVENT-20260830-CREATE-STOCK-VOUCHER-CLOSURE.md.
+
+## WHAT I DID NOT CHANGE
+
+- No inventory balances were manually corrected because current Production data is already clean.
+- No reservation logic was merged into Physical Stock logic.
+- No Scrap voucher contract was invented.
+- No main7 destructive rewrite was performed.
+- No existing historical functionality was removed from Vouchers.html.
+
+## WHAT I DISCOVERED
+
+- Production has materially advanced since Report 101.
+- The repository contains historical direct-write implementations that are not the active Production path.
+- main7 has one separate source defect in Delivery: order_details is queried with a company_id filter although that column does not exist in the current Production schema. This remains a separate closure unit.
+
+## WHAT I INITIALLY MISSED
+
+The main7 Delivery schema mismatch was visible in the surviving source but is independent of create-stock-voucher. It must not be mixed into the voucher closure because the governance directive requires one closure unit at a time.
+
+## WHAT BECAME OBSOLETE
+
+- The Report 101 statement that Production create-stock-voucher remained a Legacy direct writer.
+- Any assumption that the old cross-company inventory anomalies still exist in current Production.
+
+## WHAT REMAINS OPEN
+
+- MAIN7 Delivery source defect / separate closure.
+- Fresh authenticated HTTP E2E verification for create-stock-voucher.
+- Final repository-wide zero-debt certification after the remaining closure units.
+
+## WHAT COULD STILL BE WRONG
+
+The absence of fresh HTTP E2E means an edge-layer integration defect could exist despite correct database behavior. It has not been observed; it is simply not yet proven absent.
+
+## PRODUCTION DEPLOYED?
+
+YES — create-stock-voucher v9.
+
+## PRODUCTION RUNTIME VERIFIED?
+
+PARTIAL — PostgreSQL/RPC runtime verified; fresh HTTP E2E not observed.
+
+## AUDIT VERIFIED?
+
+YES for the audit mechanism: stock_vouchers has an AFTER INSERT/UPDATE/DELETE audit trigger using fn_audit_trigger(). Test transactions were rolled back, so no test pollution remains.
+
+## DATA VERIFIED?
+
+YES — current inventory invariants are clean: 0 negative stock, 0 negative allocation, 0 available mismatch, 0 cross-company stock rows, 0 cross-company inventory-log item rows.
+
+## CURRENT GIT ALIGNED?
+
+YES for the create-stock-voucher closure. The repository-wide current state still contains the separately identified main7 Delivery source defect.
+
+## FINAL CLOSURE STATUS
+
+CREATE-STOCK-VOUCHER BACKEND CLOSURE = CLOSED
+
+PHYSICAL STOCK WRITERS OUTSIDE post_stock_movement IN CURRENT PRODUCTION = 0
+
+MAIN7 FULL PRODUCTION CLOSURE = OPEN
+
+GLOBAL INVENTORY ZERO-DEBT = NOT YET CERTIFIED
