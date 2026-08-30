@@ -6,16 +6,16 @@ var RW_OwnerLicense = (function () {
     'use strict';
 
     function cid() {
-        if (!window.RW_ShellContext || typeof RW_ShellContext.getCompanyId !== 'function') {
+        if (!window.RW_ShellContext || typeof window.RW_ShellContext.getCompanyId !== 'function') {
             throw new Error('TENANT_CONTEXT_UNAVAILABLE');
         }
-        var id = RW_ShellContext.getCompanyId();
+        var id = window.RW_ShellContext.getCompanyId();
         if (!id) throw new Error('TENANT_CONTEXT_UNAVAILABLE');
         return id;
     }
     function owner() {
-        return !!(window.RW_STATE && RW_STATE.app && RW_STATE.app.currentUser &&
-            RW_STATE.app.currentUser.isOwner === true);
+        return !!(window.RW_STATE && window.RW_STATE.app && window.RW_STATE.app.currentUser &&
+            window.RW_STATE.app.currentUser.isOwner === true);
     }
     function esc(v) {
         return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
@@ -23,15 +23,15 @@ var RW_OwnerLicense = (function () {
         });
     }
     function toast(m, t) {
-        try { if (typeof showToast === 'function') showToast(m, t || 'info'); }
+        try { if (typeof window.showToast === 'function') window.showToast(m, t || 'info'); }
         catch (e) { console.error(m); }
     }
-    function loader(m) { try { if (typeof showLoader === 'function') showLoader(m); } catch (e) {} }
-    function unload() { try { if (typeof hideLoader === 'function') hideLoader(); } catch (e) {} }
+    function loader(m) { try { if (typeof window.showLoader === 'function') window.showLoader(m); } catch (e) {} }
+    function unload() { try { if (typeof window.hideLoader === 'function') window.hideLoader(); } catch (e) {} }
 
     function settings() {
         var company = cid();
-        return supabase.from('app_settings')
+        return window.supabase.from('app_settings')
             .select('id,company_id,company_name,status,trial_end_date,subscription_end_date,main_branch_id,created_at,updated_at')
             .eq('company_id', company)
             .order('created_at', {ascending:true})
@@ -44,7 +44,7 @@ var RW_OwnerLicense = (function () {
             });
     }
     function authUser() {
-        return supabase.auth.getUser().then(function (r) {
+        return window.supabase.auth.getUser().then(function (r) {
             if (r.error || !r.data || !r.data.user) throw new Error('SESSION_INVALID');
             return r.data.user;
         });
@@ -52,7 +52,7 @@ var RW_OwnerLicense = (function () {
     function profile() {
         var company = cid();
         return authUser().then(function (u) {
-            return supabase.from('users')
+            return window.supabase.from('users')
                 .select('id,auth_id,company_id,email,name,role,status,permissions')
                 .eq('auth_id', u.id).eq('company_id', company).maybeSingle()
                 .then(function (r) {
@@ -131,7 +131,7 @@ var RW_OwnerLicense = (function () {
             authUser().then(function (u) {
                 if (n === String(u.email||'').trim().toLowerCase()) throw new Error('البريد الإلكتروني الجديد مطابق للحالي');
                 loader('جاري تغيير البريد الإلكتروني...');
-                return supabase.auth.updateUser({email:n});
+                return window.supabase.auth.updateUser({email:n});
             }).then(function (r) {
                 unload(); if (r && r.error) throw r.error;
                 if (byId('owner-new-email')) byId('owner-new-email').value='';
@@ -145,7 +145,7 @@ var RW_OwnerLicense = (function () {
             if (n.length < 6) return toast('كلمة المرور يجب ألا تقل عن 6 أحرف.','error');
             if (n !== c) return toast('تأكيد كلمة المرور غير مطابق.','error');
             loader('جاري تغيير كلمة المرور...');
-            supabase.auth.updateUser({password:n}).then(function(r){
+            window.supabase.auth.updateUser({password:n}).then(function(r){
                 unload(); if (r.error) throw r.error;
                 if (byId('owner-new-password')) byId('owner-new-password').value='';
                 if (byId('owner-confirm-password')) byId('owner-confirm-password').value='';
@@ -155,9 +155,9 @@ var RW_OwnerLicense = (function () {
     }
     function saveSettings(payload) {
         cid(); loader('جاري حفظ إعدادات الترخيص...');
-        supabase.auth.getSession().then(function (r) {
+        window.supabase.auth.getSession().then(function (r) {
             if (!r.data || !r.data.session) throw new Error('SESSION_INVALID');
-            return fetch(RW_SUPABASE_URL+'/functions/v1/save-settings',{
+            return fetch(window.RW_SUPABASE_URL+'/functions/v1/save-settings',{
                 method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+r.data.session.access_token},
                 body:JSON.stringify(payload)
             });
@@ -184,9 +184,9 @@ var RW_Views = (function () {
     };
     function allowed(k) {
         try {
-            if (k === 'owner') return !!(RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner === true);
-            if (typeof RW_Permissions_check === 'function') return RW_Permissions_check(k) === true;
-            var p = RW_STATE.app.currentUser && RW_STATE.app.currentUser.permissions;
+            if (k === 'owner') return !!(window.RW_STATE.app.currentUser && window.RW_STATE.app.currentUser.isOwner === true);
+            if (typeof window.RW_Permissions_check === 'function') return window.RW_Permissions_check(k) === true;
+            var p = window.RW_STATE.app.currentUser && window.RW_STATE.app.currentUser.permissions;
             return Array.isArray(p) && (p.indexOf('*') >= 0 || p.indexOf(k) >= 0);
         } catch (e) { return false; }
     }
@@ -203,26 +203,26 @@ var RW_Views = (function () {
             return;
         }
         if (['transfer','direct-sale','direct-return','supplier-return'].indexOf(view)>=0) {
-            if (!window.RW_Warehouse || typeof RW_Warehouse.loadVoucherForm !== 'function') return err(c,'الوحدة غير متاحة','RW_Warehouse.loadVoucherForm غير محملة.');
-            try { RW_Warehouse.loadVoucherForm(view==='transfer'?'Transfer':view==='direct-sale'?'DirectSale':view==='direct-return'?'DirectReturn':'SupplierReturn'); }
+            if (!window.RW_Warehouse || typeof window.RW_Warehouse.loadVoucherForm !== 'function') return err(c,'الوحدة غير متاحة','RW_Warehouse.loadVoucherForm غير محملة.');
+            try { window.RW_Warehouse.loadVoucherForm(view==='transfer'?'Transfer':view==='direct-sale'?'DirectSale':view==='direct-return'?'DirectReturn':'SupplierReturn'); }
             catch(e){ console.error(e); err(c,'حدث خطأ','تعذر فتح نموذج المخزون.'); }
             return;
         }
         var map = {
-            dashboard:[RW_Dashboard,'render'], items:[RW_Items,'render'], customers:[RW_Customers,'render'],
-            suppliers:[RW_Suppliers,'render'], branches:[RW_Branches,'render'], settings:[RW_Settings,'render'],
-            hr:[RW_HR,'render'], crm:[RW_CRM,'render'], users:[RW_Users,'render'], roles:[RW_Roles,'render'],
-            license:[RW_OwnerLicense,'render'], telesales:[RW_TeleSales,'render'], pos:[RW_POS,'render'],
-            orders:[RW_Orders,'render'], runsheets:[RW_Runsheets,'render'], 'online-store':[RW_OnlineStore,'render'],
-            purchases:[RW_Purchases,'renderOrders'], 'purchase-pos':[RW_Purchases,'renderPOS'],
-            picking:[RW_Warehouse,'loadPicking'], loading:[RW_Warehouse,'loadLoading'], delivery:[RW_Warehouse,'loadDelivery'],
-            return:[RW_Warehouse,'loadReturn'], unloading:[RW_Warehouse,'loadUnloading'], receiving:[RW_Warehouse,'loadReceiving'],
-            vouchers:[RW_Warehouse,'loadVouchers'], 'vehicle-count':[RW_Warehouse,'loadVehicleCount'],
-            'branch-count':[RW_Warehouse,'loadBranchCount'], 'general-count':[RW_Warehouse,'loadGeneralCount'],
-            settlement:[RW_Warehouse,'loadSettlement'], 'reports-dashboard':[RW_Reports,'renderDashboard'],
-            'reports-detailed':[RW_Reports,'renderDetailedReports'], 'reports-comprehensive':[RW_Reports_Comprehensive,'render']
+            dashboard:[window.RW_Dashboard,'render'], items:[window.RW_Items,'render'], customers:[window.RW_Customers,'render'],
+            suppliers:[window.RW_Suppliers,'render'], branches:[window.RW_Branches,'render'], settings:[window.RW_Settings,'render'],
+            hr:[window.RW_HR,'render'], crm:[window.RW_CRM,'render'], users:[window.RW_Users,'render'], roles:[window.RW_Roles,'render'],
+            license:[RW_OwnerLicense,'render'], telesales:[window.RW_TeleSales,'render'], pos:[window.RW_POS,'render'],
+            orders:[window.RW_Orders,'render'], runsheets:[window.RW_Runsheets,'render'], 'online-store':[window.RW_OnlineStore,'render'],
+            purchases:[window.RW_Purchases,'renderOrders'], 'purchase-pos':[window.RW_Purchases,'renderPOS'],
+            picking:[window.RW_Warehouse,'loadPicking'], loading:[window.RW_Warehouse,'loadLoading'], delivery:[window.RW_Warehouse,'loadDelivery'],
+            return:[window.RW_Warehouse,'loadReturn'], unloading:[window.RW_Warehouse,'loadUnloading'], receiving:[window.RW_Warehouse,'loadReceiving'],
+            vouchers:[window.RW_Warehouse,'loadVouchers'], 'vehicle-count':[window.RW_Warehouse,'loadVehicleCount'],
+            'branch-count':[window.RW_Warehouse,'loadBranchCount'], 'general-count':[window.RW_Warehouse,'loadGeneralCount'],
+            settlement:[window.RW_Warehouse,'loadSettlement'], 'reports-dashboard':[window.RW_Reports,'renderDashboard'],
+            'reports-detailed':[window.RW_Reports,'renderDetailedReports'], 'reports-comprehensive':[window.RW_Reports_Comprehensive,'render']
         };
-        if (view === 'finance' && window.RW_Finance) map.finance=[RW_Finance,'render'];
+        if (view === 'finance' && window.RW_Finance) map.finance=[window.RW_Finance,'render'];
         var h = map[view];
         if (!h || !h[0] || typeof h[0][h[1]] !== 'function') return err(c,'الوحدة غير متاحة','الوحدة المطلوبة غير محملة.');
         try { h[0][h[1]](); } catch(e){ console.error('RW_Views.'+view,e); err(c,'حدث خطأ','تعذر فتح التبويب المطلوب.'); }
