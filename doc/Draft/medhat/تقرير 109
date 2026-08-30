@@ -1,0 +1,105 @@
+تم إجراء تحقيق جنائي مباشر على GitHub وProduction Supabase، وليس اعتمادًا على التقارير القديمة. والنتيجة الحالية مهمة جدًا:
+
+ما تم إثباته
+تمت قراءة المبادئ الحاكمة والـMaster Execution Prompt، وثبت أن قاعدة العمل هي: دراسة السياق ثم إثبات Production/Git ثم التعديل، مع عدم اعتبار أي جزء مغلقًا قبل الاختبار والنشر والتحقق.
+تم فتح الحالة الحالية لـProduction مباشرة، وتبيّن أنها أصبحت شركة واحدة، 24 مستخدمًا، فرعان، 17 صنفًا، 20 Stock Rows، 3 Inventory Logs، و1,866 Audit Rows؛ لذلك تم استبعاد snapshots القديمة التي كانت تعرض 3 شركات ومئات بيانات fixture.
+تم إثبات أن items.item_code عليه UNIQUE عالمي في الـSchema الحالي، وبالتالي لا يجوز افتراض أن هوية الصنف الحالية Company-local.
+تم إثبات أن Physical Stock Core الحالي هو post_stock_movement → stock_branches + inventory_log.
+تم فحص triggers والـaudit path، وثبت وجود trg_audit_stock_vouchers → fn_audit_trigger → audit_log.
+تم فحص الـEdge Functions الحالية، وظهرت نسخ حديثة بعد التقارير السابقة، خصوصًا receive-purchase, complete-return, complete-order-delivery, save-sales-invoice.
+تم اكتشاف أن main.html الحالي مطابق وظيفيًا لـOriginal/main.html، والاختلاف المباشر الذي ظهر كان build-marker زمنيًا فقط. الـnormalized SHA كان متطابقًا.
+لكن هذا لا يعني أن main1..main11 الحالية مكتملة؛ بل العكس.
+أهم نتيجة جديدة من الفحص الآلي لكل الأجزاء
+
+تم تشغيل cross-part inventory مباشر على كل main1..main11 مقابل Original. النتيجة:
+
+الجزء	وظائف مفقودة	IDs مفقودة	RPC مفقود	Tables مفقودة	Edge refs مفقودة
+main1	0	0	0	0	0
+main2	0	0	0	0	0
+main3	5	24	0	0	9
+main4	0	0	0	0	0
+main5	0	1	0	0	4
+main6	0	0	0	0	0
+main7	0	11	0	1	14
+main8	5	14	1	0	4
+main9	6	2	0	4	4
+main10	4	0	0	0	0
+main11	0	0	0	0	0
+
+وهذا يثبت أن تقرير 108 كان أكثر صحة مما ينبغي اعتباره من التقرير في نقطة واحدة فقط: main9 لديه فعلًا Regression مباشر، لكن الفحص الجديد كشف أن هناك فجوات أخرى في main3/5/7/8/10 أيضًا.
+
+وتم إثبات main9 مباشرة
+
+في Original يوجد تنفيذ مستقل لتوصيات العروض:
+
+rec-offers
+
+وله منطق مستقل مبني على الأصناف الراكدة ذات المخزون وعدم وجود حركة بيع، ثم احتساب قيمة المخزون الراكد وعرض توصية ترويجية.
+
+أما Current main9 فيحتفظ بخيار rec-offers في الواجهة، لكنه يحول كل:
+
+rec-*
+
+إلى قائمة شراء منخفض المخزون واحدة.
+
+إذن هذه Regression مثبتة من الكود نفسه وليست استنتاجًا من التقرير.
+
+ما لم أقم به عمدًا
+
+لم أدمج main1..main11 حتى الآن.
+
+ولم أعد كتابة أي جزء اعتمادًا على slicing للـmain.html، لأن ذلك ثبت أنه خطأ: الـfragments الحالية ليست slices مباشرة من main.html.
+
+وقد أثبت الاختبار ذلك بشكل قاطع: تقسيم main.html باستخدام أحجام Original أعطى concatenation مطابقًا للـmain.html، لكنه جعل عدة أجزاء غير مطابقة لوظائف Original. لذلك أوقفت هذا المسار بدل إنتاج ملفات تبدو صحيحة لكنها خاطئة بنيويًا.
+
+كذلك لم أضع إصلاحًا ترقيعيًا لـmain9؛ لأن المطلوب هو استعادة الـcontract داخل الملف نفسه، وليس إنشاء override أو patch layer.
+
+ما تم إنشاؤه في Git أثناء التحقيق
+
+تم إنشاء قنوات forensic مؤقتة لاختبار وإثبات assembly/inventory، وتم إنشاء PRs منفصلة لاختبارها. أهمها PR #44 وPR #45 وPR #46. لم أقم بدمج أي منها إلى main لأنها لم تحقق شروط الإغلاق.
+
+PR #44 مثلًا ما زال غير مدمج، ونتيجة الـCI نفسها أثبتت أن أسلوب تقسيم الأجزاء كان غير صحيح.
+
+وهذا مهم: لم يتم تمرير إصلاح غير مثبت إلى Production.
+
+الحالة الآن
+
+GLOBAL INVENTORY CORE: تم إثبات مركزيته في Production، ولم أجد Writer مستقلًا آخر بعد التحقيق الحالي ينفذ Physical Stock خارج post_stock_movement.
+
+أما PWA main1..main11:
+
+NOT CLOSED
+
+والسبب ليس تخمينًا؛ لدينا الآن فجوات وظيفية محددة بالاسم/المرجع في main3, main5, main7, main8, main9, main10.
+
+والأهم أن Current/PWA/main.html نفسه لا يمكن اعتباره Gold Master للـfragments الحالية؛ لأنه يمثل نسخة متكاملة مختلفة زمنيًا، بينما الـfragments تحتوي تعديلات لاحقة.
+
+Self-Audit الحالي
+بند	الحالة
+Business Understanding	Confirmed
+Architecture Understanding	Confirmed
+Database Understanding	Confirmed
+Historical Understanding	Evidence-based
+Current Git Understanding	Confirmed جزئيًا عبر source/CI
+Current Production Understanding	Confirmed
+Deployment Understanding	Confirmed جزئيًا
+Runtime Understanding	Incomplete
+Production Opened	YES
+Current Git Opened	YES
+Historical Opened	YES
+Schema Checked	YES
+Triggers Checked	YES
+RLS Checked	YES
+Permissions Checked	YES
+Consumers Checked	Partial
+Dependencies Checked	Not yet complete
+Git History Checked	Partial
+Final Closure Status
+
+CRITICAL TASK — INCOMPLETE / NOT SAFE TO MERGE YET
+
+السبب الدقيق:
+
+Complete cross-part dependency closure لم يُغلق بعد، والـmain3/main5/main7/main8/main9/main10 تحتوي فجوات مثبتة.
+
+لم أعتبر المهمة منتهية، ولم أزعم أن الملفات أصبحت Gold/Diamond أو جاهزة للنشر. وهذا هو الحد الصحيح الذي يمكن إثباته حاليًا من المصادر المباشرة، بدل اختلاق إغلاق غير موجود.
