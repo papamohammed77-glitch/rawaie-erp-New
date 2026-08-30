@@ -1,0 +1,107 @@
+name: RAWAEA Master Reconstruction 20260830
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  reconstruct:
+    if: >-
+      !contains(github.event.head_commit.message, '[master-reconstruction]') &&
+      !contains(github.event.head_commit.message, 'forensic main assembly baseline')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Reconstruct main.html
+        run: python3 tools/master_reconstruction_postprocess.py
+
+      - name: Static HTML gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess, tempfile
+          s=Path('Current/PWA/main.html').read_text(encoding='utf-8')
+          checks={
+            'doctype': bool(re.search(r'<!doctype\s+html',s,re.I)),
+            'html_open': bool(re.search(r'<html\b',s,re.I)),
+            'html_close': bool(re.search(r'</html>',s,re.I)),
+            'head_open': bool(re.search(r'<head\b',s,re.I)),
+            'head_close': bool(re.search(r'</head>',s,re.I)),
+            'body_open': bool(re.search(r'<body\b',s,re.I)),
+            'body_close': bool(re.search(r'</body>',s,re.I)),
+            'script_balance': len(re.findall(r'<script\b',s,re.I))==len(re.findall(r'</script>',s,re.I)),
+            'style_balance': len(re.findall(r'<style\b',s,re.I))==len(re.findall(r'</style>',s,re.I)),
+          }
+          if not all(checks.values()): raise SystemExit(f'STRUCTURE_FAIL {checks}')
+          scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I)
+          for i,c in enumerate(scripts,1):
+              p=Path(tempfile.gettempdir())/f'rw-main-{i}.js'; p.write_text(c,encoding='utf-8')
+              r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
+              if r.returncode: print(r.stderr); raise SystemExit(f'JS_SYNTAX_FAIL_{i}')
+          if re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,500}?\.(?:update|insert|upsert|delete)\(",s): raise SystemExit('DIRECT_STOCK_WRITER')
+          if re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,500}?\.(?:update|insert|upsert|delete)\(",s): raise SystemExit('DIRECT_INVENTORY_LOG_WRITER')
+          if re.search(r"\.from\(['\"]app_settings['\"]\)\.select\([^;]*?\)\.limit\(\s*1\s*\)",s,re.S): raise SystemExit('UNSCOPED_APP_SETTINGS')
+          required=['window.RW_ShellContext','window.RW_OwnerContract','RW_ShellContext.getCompanyId()','rec-purchase','rec-offers']
+          for x in required:
+              if x not in s: raise SystemExit('MISSING_CONTRACT '+x)
+          print('MASTER_RECONSTRUCTION_STATIC_GATE_PASS', len(scripts))
+          PY
+          git diff --check
+
+      - name: Deterministic reconstruction audit
+        run: |
+          set -euo pipefail
+          git status --short
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('Current/CTO/FORENSIC_MASTER_RECONSTRUCTION.json')
+          d=json.loads(p.read_text(encoding='utf-8'))
+          if any(d['parity']['original_symbol_losses'][k] for k in d['parity']['original_symbol_losses']):
+              raise SystemExit('ORIGINAL_SYMBOL_PARITY_FAIL')
+          print('ORIGINAL_SYMBOL_PARITY_PASS')
+          print('FINAL_MAIN_SHA256', d['current_main_after_rebuild']['sha256'])
+          PY
+
+      - name: Commit reconstructed artifact
+        run: |
+          set -euo pipefail
+          git config user.name 'RAWAEA Master Reconstruction'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cat > Current/CTO/20260830_MASTER_RECONSTRUCTION_EXECUTION.md <<'EOF'
+# RAWAEA ERP — MASTER RECONSTRUCTION EXECUTION
+
+Scope: deterministic semantic reconstruction of `Current/PWA/main.html` from current Git evidence.
+
+Method:
+- Current `main.html` is the behavioral seed.
+- `tools/p0_main_shell_repair_v2.py` is reused as the previously governed shell hardening transform.
+- `rec-purchase` and `rec-offers` are kept independent; `rec-offers` is restored as a dormant-stock recommendation path.
+- No fragment concatenation is used.
+- Original symbol parity is a hard gate.
+- Direct `stock_branches` / `inventory_log` mutation and unscoped `app_settings.limit(1)` are hard gates.
+
+This workflow does not claim authenticated browser E2E. That is a separate evidence gate.
+EOF
+          git add Current/PWA/main.html Current/CTO/FORENSIC_MASTER_RECONSTRUCTION.json Current/CTO/20260830_MASTER_RECONSTRUCTION_EXECUTION.md
+          if git diff --cached --quiet; then
+            echo 'NO_RECONSTRUCTION_DIFF'
+            exit 0
+          fi
+          git commit -m '[master-reconstruction] rebuild governed main.html from current evidence'
+          git push origin HEAD:main
