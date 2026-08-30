@@ -1,0 +1,32 @@
+name: main3-reconstruction
+on:
+  push:
+    branches: [main3-reconstruction-work2-20260830]
+permissions:
+  contents: write
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct and validate
+        run: |
+          python3 tools/main3_reconstruction.py
+          cp Current/PWA/main/main3.md /tmp/main3-check.js
+          node --check /tmp/main3-check.js
+          git diff --check
+          ! grep -nE "from\(['\"]suppliers['\"]\)\.select\(['\"]\*['\"]\)([^.]|$)|from\(['\"]users['\"]\)\.select\(['\"]\*['\"]\)([^.]|$)|from\(['\"]roles['\"]\)\.select\(['\"]\*['\"]\)([^.]|$)|from\(['\"]app_settings['\"]\)\.select\(['\"]\*['\"]\)\.limit\(1\)" Current/PWA/main/main3.md
+          ! grep -nE "stock_branches.*(\.update|\.insert|\.upsert)|inventory_log.*(\.update|\.insert|\.upsert)" Current/PWA/main/main3.md
+      - name: Commit reconstructed main3
+        run: |
+          git config user.name "rawaea-cto-bot"
+          git config user.email "rawaea-cto-bot@users.noreply.github.com"
+          git add Current/PWA/main/main3.md
+          git commit -m "refactor(pwa): reconstruct main3 under governed tenant contract"
+          git push
+      - name: Remove executor and workflow
+        if: success()
+        run: |
+          git rm tools/main3_reconstruction.py .github/workflows/main3-reconstruction.yml
+          git commit -m "chore(ctr): remove temporary main3 reconstruction executor"
+          git push
