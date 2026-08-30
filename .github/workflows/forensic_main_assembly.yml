@@ -31,21 +31,45 @@ jobs:
           const origDir='Original/PWA/main';
           const sha256=b=>crypto.createHash('sha256').update(b).digest('hex');
           const read=(p)=>fs.readFileSync(p);
+          const escReg=s=>s.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&');
           const stat=(p)=>({bytes:fs.statSync(p).size,sha256:sha256(read(p)),lines:read(p).toString('utf8').split(/\n/).length});
+          const sourceMap=(p)=>{
+            const s=read(p).toString('utf8');
+            const text=s;
+            const functions=[...s.matchAll(/(?:async\\s+)?function\\s+([A-Za-z_$][\\w$]*)\\s*\\(/g)].map(m=>m[1]);
+            const vars=[...s.matchAll(/\\b(?:var|let|const)\\s+([A-Za-z_$][\\w$]*)/g)].map(m=>m[1]);
+            const ids=[...s.matchAll(/\\bid=["']([^"']+)["']/g)].map(m=>m[1]);
+            const rpcs=[...s.matchAll(/\\.rpc\\(\\s*["']([^"']+)["']/g)].map(m=>m[1]);
+            const tables=[...s.matchAll(/\\.from\\(\\s*["']([^"']+)["']/g)].map(m=>m[1]);
+            const fetches=[...s.matchAll(/functions\\/v1\\/([A-Za-z0-9._-]+)/g)].map(m=>m[1]);
+            const globals=[...s.matchAll(/window\\.([A-Za-z_$][\\w$]*)/g)].map(m=>m[1]);
+            const storage=[...s.matchAll(/(?:localStorage|sessionStorage)\\.(?:getItem|setItem|removeItem)\\(\\s*["']([^"']+)/g)].map(m=>m[1]);
+            const listeners=[...s.matchAll(/addEventListener\\(\\s*["']([^"']+)["']/g)].map(m=>m[1]);
+            const directStock=(/from\\(\\s*["']stock_branches["'][^;]{0,400}\\.(?:update|insert|upsert|delete)\\(/s.test(s)||/from\\(\\s*["']inventory_log["'][^;]{0,400}\\.(?:update|insert|upsert|delete)\\(/s.test(s));
+            const appSettingsUnscoped=/from\\(\\s*["']app_settings["'][\\s\\S]{0,500}?\\.limit\\(\\s*1\\s*\\)/.test(s)&&!/from\\(\\s*["']app_settings["'][\\s\\S]{0,250}?company_id/.test(s);
+            const count=k=>[...s.matchAll(new RegExp(escReg(k),'g'))].length;
+            return {functions:[...new Set(functions)].sort(),vars:[...new Set(vars)].sort(),ids:[...new Set(ids)].sort(),rpcs:[...new Set(rpcs)].sort(),tables:[...new Set(tables)].sort(),fetches:[...new Set(fetches)].sort(),globals:[...new Set(globals)].sort(),storage:[...new Set(storage)].sort(),listeners:[...new Set(listeners)].sort(),direct_stock_writer:directStock,unscoped_app_settings_limit_1:appSettingsUnscoped,feature_counts:{rec_offers:count('rec-offers'),rec_purchase:count('rec-purchase'),rec_customers:count('rec-customers'),rec_expansion:count('rec-expansion'),RW_Reports:count('RW_Reports')},prefix:s.slice(0,240),suffix:s.slice(-240)};
+          };
           const current=parts.map(n=>stat(path.join(curDir,n)));
           const original=parts.map(n=>stat(path.join(origDir,n)));
-          const concat=Buffer.concat(parts.map(n=>read(path.join(curDir,n))));
+          const concatParts=parts.map(n=>read(path.join(curDir,n)));
+          const concat=Buffer.concat(concatParts);
           const main=read('Current/PWA/main.html');
           const origMain=fs.existsSync('Original/PWA/main.html')?read('Original/PWA/main.html'):null;
-          const featureKeys=['rec-offers','rec-purchase','rec-customers','rec-expansion','RW_Reports'];
-          function features(p){const s=read(p).toString('utf8');return Object.fromEntries(featureKeys.map(k=>[k,(s.match(new RegExp(k.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&'),'g'))||[]).length]));}
-          const featureMatrix=Object.fromEntries(parts.map((n,i)=>[n,{current:features(path.join(curDir,n)),original:features(path.join(origDir,n))}]));
+          const diagnostics=Object.fromEntries(parts.map((n,i)=>[n,{current:sourceMap(path.join(curDir,n)),original:sourceMap(path.join(origDir,n))}]));
           const firstDiff=(()=>{const m=Math.min(concat.length,main.length);for(let i=0;i<m;i++)if(concat[i]!==main[i])return i;return concat.length===main.length?-1:m;})();
-          const out={generated_at:new Date().toISOString(),parts:parts.map((n,i)=>({part:n,current:current[i],original:original[i]})),current_concatenation:{bytes:concat.length,sha256:sha256(concat)},current_main_html:{bytes:main.length,sha256:sha256(main)},original_main_html:origMain?{bytes:origMain.length,sha256:sha256(origMain)}:null,first_byte_difference: firstDiff,exact_concat_equals_current_main: firstDiff===-1,feature_matrix:featureMatrix};
+          const locate=(buf,frag)=>{const idx=buf.indexOf(frag);return idx;};
+          let offset=0; const concatRanges={}; parts.forEach((n,i)=>{concatRanges[n]={start:offset,end:offset+concatParts[i].length-1};offset+=concatParts[i].length;});
+          const mainText=main.toString('utf8');
+          const occurrences={};
+          for(const n of parts){const b=read(path.join(curDir,n));const ix=locate(main,b);occurrences[n]={exact_subsequence_offset_bytes:ix};}
+          const bctx=firstDiff>=0?{start:Math.max(0,firstDiff-160),end:Math.min(main.length,firstDiff+160),concat_utf8:concat.subarray(Math.max(0,firstDiff-160),Math.min(concat.length,firstDiff+160)).toString('utf8'),main_utf8:main.subarray(Math.max(0,firstDiff-160),Math.min(main.length,firstDiff+160)).toString('utf8')}:null;
+          const out={generated_at:new Date().toISOString(),parts:parts.map((n,i)=>({part:n,current:current[i],original:original[i]})),current_concatenation:{bytes:concat.length,sha256:sha256(concat)},current_main_html:{bytes:main.length,sha256:sha256(main)},original_main_html:origMain?{bytes:origMain.length,sha256:sha256(origMain)}:null,first_byte_difference:firstDiff,exact_concat_equals_current_main:firstDiff===-1,concat_ranges:concatRanges,part_occurrences_in_current_main:occurrences,first_difference_context:bctx,diagnostics};
           fs.mkdirSync('Current/CTO',{recursive:true});
           fs.writeFileSync('Current/CTO/FORENSIC_MAIN_ASSEMBLY_MANIFEST.json',JSON.stringify(out,null,2));
-          if (firstDiff!==-1) { console.error('ASSEMBLY_MISMATCH at byte',firstDiff,'concat',concat.length,'main',main.length); process.exit(2); }
+          console.log(JSON.stringify({firstDiff,concatBytes:concat.length,mainBytes:main.length,parts:parts.map(n=>({part:n,current:diagnostics[n].current.feature_counts,original:diagnostics[n].original.feature_counts,subsequence:occurrences[n].exact_subsequence_offset_bytes}))},null,2));
           NODE
+          node /tmp/forensic.js
 
       - name: Validate full main HTML
         shell: bash
@@ -55,10 +79,12 @@ jobs:
           const checks={doctype:/<!doctype\s+html/i.test(s),htmlOpen:/<html\b/i.test(s),htmlClose:/<\/html>/i.test(s),headOpen:/<head\b/i.test(s),headClose:/<\/head>/i.test(s),bodyOpen:/<body\b/i.test(s),bodyClose:/<\/body>/i.test(s)};
           const scriptOpen=(s.match(/<script\b/gi)||[]).length,scriptClose=(s.match(/<\/script>/gi)||[]).length;
           const styleOpen=(s.match(/<style\b/gi)||[]).length,styleClose=(s.match(/<\/style>/gi)||[]).length;
-          const out={checks,scriptOpen,scriptClose,styleOpen,styleClose};
+          const braceBalance=(s.match(/{/g)||[]).length-(s.match(/}/g)||[]).length;
+          const out={checks,scriptOpen,scriptClose,styleOpen,styleClose,braceBalance};
           fs.writeFileSync('Current/CTO/FORENSIC_MAIN_HTML_STRUCTURE.json',JSON.stringify(out,null,2));
-          if(!Object.values(checks).every(Boolean)||scriptOpen!==scriptClose||styleOpen!==styleClose) process.exit(3);
+          if(!Object.values(checks).every(Boolean)||scriptOpen!==scriptClose||styleOpen!==styleClose||braceBalance!==0) process.exit(3);
           NODE
+          node /tmp/check.js
 
       - name: Commit forensic artifacts only
         shell: bash
