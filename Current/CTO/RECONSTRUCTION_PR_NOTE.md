@@ -1,0 +1,1 @@
+PR-only forensic execution marker. No runtime/business change by this note.
