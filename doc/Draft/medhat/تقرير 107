@@ -1,0 +1,121 @@
+تم تنفيذ مهمة main11 على أساس التحقيق المباشر، وليس على أساس التقارير السابقة.
+
+النتيجة الفعلية
+
+تمت إعادة كتابة:
+
+Current/PWA/main/main11.md
+
+من الصفر، مع الحفاظ على عقد الجزء ووظائفه الأساسية:
+
+RW_HR
+RW_HR.render
+RW_HR._openModal
+RW_CRM
+RW_CRM.render
+RW_CRM._filterCustomers
+RW_CRM._openFollowupModal
+resetPassword
+generateQRInvoiceBase64
+Boot / DOMContentLoaded
+تكامل RW_Users._openModal
+
+وتم التحقق من الملف الجديد حتى آخر جزء منه بعد تقسيم القراءة إلى نطاقات، وليس اعتمادًا على معاينة مقتطعة. النسخة الحالية موجودة فعلًا في Git على main وبـblob:
+
+80585c51062efc61a1566b8236927f3e6a70ceda
+
+أهم اكتشاف جنائي
+
+النسخة السابقة كانت تطلب الحقل:
+
+users.is_owner
+
+لكن هذا الحقل غير موجود أصلًا في Production الحالية.
+
+الـProduction الحالية تستخدم عقد المالك المعتمد القائم على هوية المالك وpermissions=["*"]؛ وقد ثبت مباشرة أن هناك Owner واحدًا بهذا الشكل، ودوره الحالي مدير النظام.
+
+لذلك لم أضف عمودًا جديدًا إلى Production ولم أغيّر الـSchema لإرضاء خطأ في الواجهة؛ بل أصلحت main11 ليتعامل مع الـSchema الحقيقي. هذا يتوافق مع مبدأ الحوكمة الذي يفرض فهم السياق والـschema الفعلي قبل التعديل.
+
+ما تم تحسينه
+
+تم كذلك:
+
+تشديد Tenant Context في HR وCRM.
+الإبقاء على CRM مع customer resolution داخل الشركة الحالية.
+الحفاظ على RLS الحالي لـcustomer_followups بدل اختراع company_id جديد.
+إضافة حماية من تكرار تسجيل event handlers وBoot عند تجميع الأجزاء.
+إضافة stale-load protection لمنع نتائج طلب قديم من الكتابة فوق واجهة أحدث.
+الحفاظ على عدم وجود أي Physical Stock writer داخل main11.
+عدم إدخال Accounting/Ledger logic إلى هذا الجزء.
+الحفاظ على واجهات الاتصال مع main1 وmain10. سجل الإغلاق يوثق هذه الحدود بالتفصيل.
+الاختبارات
+
+تم تشغيل:
+
+node --check
+
+والنتيجة:
+
+PASS
+
+وتم التحقق أيضًا من وجود واجهات الـPublic Contract المطلوبة وعدم وجود Physical Stock references في التنفيذ.
+
+Production
+
+أخذت Production snapshot مباشرًا قبل وبعد التنفيذ:
+
+2026-08-30 07:11:56 UTC
+ثم
+2026-08-30 07:16:54 UTC
+
+والقيم ظلت:
+
+Companies: 1
+Users: 24
+Branches: 2
+Items: 17
+Customers: 3
+Customer Followups: 0
+Stock Rows: 20
+Inventory Logs: 3
+Audit Rows: 1866
+
+أي أن إعادة بناء main11 لم تغيّر بيانات Production.
+
+نقطة يجب تسجيلها بدقة
+
+لم أقم بنشر main11 منفردًا إلى Production، وهذا ليس نقصًا في التنفيذ؛ لأن main11 fragment وليس main.html مستقلًا، ونشره منفردًا سيخالف المعمارية التي طلبت أنت الحفاظ عليها. تم تثبيت المصدر في Git، بينما اختبار Browser Runtime الكامل لا يمكن اعتباره مثبتًا إلا بعد تجميع جميع الأجزاء في main.html.
+
+وهذا تحديدًا مذكور في سجل الإغلاق بدل تحويل اختبار Fragment إلى ادعاء Runtime Production.
+
+التوثيق
+
+تم إنشاء سجل دائم:
+
+Current/CTO/20260830_MAIN11_FORENSIC_CLOSURE.md
+
+ويتضمن الـevent ID، الحالة قبل/بعد، الأدلة، الاكتشافات، الـroot cause، التغيير، البدائل المرفوضة، الاختبارات، Production state، وSelf-Audit النهائي.
+
+Git
+
+النتيجة النهائية موجودة على main في commit:
+
+f5d5894c1c0089c4e9a7c47796561e5a2cae3c6f
+
+مع commit توثيق الإغلاق بعده:
+
+1c783738587305cedb83b6f360a14368b9d3fba5
+
+Final Closure
+
+MAIN11 SOURCE CLOSURE = 100% COMPLETE
+MAIN11 SCHEMA ALIGNMENT = CLOSED
+MAIN11 TENANT SCOPING = GOVERNED
+MAIN11 PHYSICAL STOCK WRITER = NONE
+MAIN11 DATABASE CHANGE = NONE REQUIRED
+CURRENT GIT ALIGNED = YES
+PRODUCTION DATA PRESERVED = YES
+INTEGRATED APPLICATION RUNTIME = لا يمكن إثباته قبل تجميع main1..main11
+
+فتح سجل الإغلاق الكامل
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260830_MAIN11_FORENSIC_CLOSURE.md
