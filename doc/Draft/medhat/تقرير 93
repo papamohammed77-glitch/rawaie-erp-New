@@ -1,0 +1,201 @@
+تم تنفيذ المهمة على النقطة التي طلبتها تحديدًا: main2، مع إعادة بناء الحالة من Git وProduction بدل الاعتماد على الذاكرة أو التقارير القديمة.
+
+النتيجة التنفيذية
+
+الملف الذي تم إصلاحه:
+
+Current/PWA/main/main2.md
+
+قبل التنفيذ كان الـblob:
+
+45d5e760a4b53e3be574346e3d9d192dbad309af
+
+وبعد الإصلاح أصبح:
+
+4f612cd4749c74bf74d8680477b5e8df8632f1c1
+
+والفرع main تحرك فعليًا حتى:
+
+3922421fa307ce8827aa65d5a788b87ead6ac5e9
+
+ما تم إثباته قبل التعديل
+
+راجعت الـMASTER والملفات 89 و90 و91 و92، واستخدمتها كسياق تاريخي فقط، ثم أعدت فتح Git وProduction مباشرة. المبدأ الحاكم نفسه ينص صراحةً على أن الدراسة التاريخية تسبق التعديل وأن Production الحالية هي المرجع للحالة الحالية.
+
+كما أثبتت المراجعة الحالية أن main2 هو source fragment وليس تطبيقًا مستقلاً، وأن main1 يوفر العقد المشترك RW_ShellContext.getCompanyId().
+
+وفي Production الحالية، بعد إعادة القراءة، الحالة هي:
+
+العنصر	الحالة الحالية
+Companies	1
+Branches	2
+Items	17
+stock_branches	20
+Orders	0
+Purchase Orders	0
+
+وهذه الأرقام تختلف عن بعض الأرقام الموجودة في التقارير التاريخية؛ لذلك لم أستخدم الأرقام القديمة كحقيقة تشغيلية.
+
+ماذا اكتشفت داخل main2
+
+المشكلة الفعلية لم تكن Physical Stock Writer مستقلًا.
+
+main2 كان يحتوي على قراءة غير مضبوطة للـtenant في عدة مواضع، أهمها:
+
+Dashboard orders.
+Previous-period orders.
+Purchase orders.
+Customers.
+Items.
+order_details بدون company_id.
+stock_branches بدون company_id.
+Stock voucher movement reports.
+Categories.
+Category deletion checks.
+Barcode/item lookup أثناء رفع الملفات.
+
+وهذا مهم معماريًا لأن stock_branches فعلًا لا يحتوي company_id، وبالتالي لا يجوز اختراع filter عليه؛ الحل الصحيح هو ربطه بفروع الشركة الحالية.
+
+الإصلاح الذي تم تطبيقه
+
+أُضيف في بداية main2 سياق tenant مركزي Fail-Closed:
+
+function _rwCompanyId() {
+    if (!window.RW_ShellContext || typeof RW_ShellContext.getCompanyId !== 'function') {
+        throw new Error('TENANT_CONTEXT_UNAVAILABLE');
+    }
+    return RW_ShellContext.getCompanyId();
+}
+
+ثم تم:
+
+Company-scope لكل قراءات Dashboard الحرجة.
+إضافة id وcustomer_name إلى order projection الذي يحتاجهما Top Customers.
+تقييد order_details من خلال Order IDs التابعة للـtenant.
+تقييد stock_branches من خلال Branch IDs التابعة للشركة.
+Company-scope لحركة stock vouchers.
+Company-scope لحركة الفرع.
+Company-scope للتصنيفات.
+Company-scope لفحص الصنف قبل حذف التصنيف.
+Company-scope للـbarcode lookup.
+إبقاء Physical Stock mutations خارج main2.
+إضافة marker واضح:
+MAIN2_GOVERNED_CLOSED:v1
+
+كما أن السجل التنفيذي الرسمي تم تحديثه وتوثيق الحدث.
+
+ما لم أفعله عمدًا
+
+لم أغيّر:
+
+post_stock_movement.
+أي Edge Function.
+أي RPC Business Logic.
+أي كميات في stock_branches.
+أي Orders أو Purchase Orders.
+أي Audit Trigger.
+أي Production business data.
+
+وهذا متسق مع العقد الذي يمنع تحويل الـPWA إلى Physical Stock Engine.
+
+نقطة مهمة جدًا حول الـRuntime
+
+هنا لن أبيع لك وهمًا:
+
+main2.md ليس ملفًا قابلًا للنشر مستقلًا.
+
+لذلك:
+
+PRODUCTION DEPLOYED?
+نعم، التعديل وصل إلى Git main، لكن لا يوجد standalone deployment لـmain2.
+
+PRODUCTION RUNTIME VERIFIED?
+NO — غير مثبت بعد.
+
+لا أستطيع تحويل مجرد نجاح تعديل المصدر إلى ادعاء أن main.html المجمّع يعمل في المتصفح بالإصدار الجديد.
+
+وهذا ليس تراجعًا في التنفيذ؛ بل تطبيق مباشر للقاعدة التي طلبتها: لا نحول Source PASS إلى Production Runtime PASS.
+
+Self-Audit
+Business Understanding
+
+تم فهم main2 كطبقة Dashboard/Items/reporting، وليس كمالك لحركة المخزون.
+
+Architecture Understanding
+
+تم الحفاظ على:
+PWA → Edge/RPC → DB
+ولم يُنشأ Writer جديد.
+
+Database Understanding
+
+تم التحقق من أن:
+stock_branches لا يحتوي company_id
+وأن items.item_code UNIQUE عالميًا.
+
+Historical Understanding
+
+تم فتح السياق التاريخي والبرومبتات المطلوبة، ثم رفض اعتبارها Production truth.
+
+Current Git Understanding
+
+تم فتح main1 وmain2 والـGit history ذات الصلة، مع الاحتفاظ بـblob SHA قبل التعديل.
+
+Current Production Understanding
+
+تمت إعادة قراءة Production قبل وبعد التنفيذ؛ الحالة الحالية ظلت:
+1 company / 2 branches / 17 items / 20 stock rows / 0 orders / 0 purchase orders.
+
+Deployment Understanding
+
+main2 source fragment، وليس deployment target مستقل.
+
+Runtime Understanding
+
+Standalone runtime لـmain2 غير موجود؛ integrated main.html runtime لم يُعلن نجاحه.
+
+Confirmed Facts
+
+تم إثباتها مباشرة من Git وProduction.
+
+Unknowns
+
+الـbrowser runtime النهائي للـassembled application.
+
+Conflicts
+
+التقارير التاريخية تحمل حالات Production قديمة مختلفة عن الوضع الحالي.
+
+Unverified Claims
+
+لم أعتبر أي تقرير قديم أو workflow فاشل دليلاً على نجاح runtime.
+
+النتيجة النهائية
+البند	النتيجة
+main2 source repair	CLOSED
+Tenant scoping	CLOSED داخل main2
+Direct Physical Stock writer in main2	غير موجود / لم يُنشأ
+Production data modified	NO
+Audit architecture modified	NO
+Git main updated	YES
+Temporary execution artifacts	REMOVED
+Forensic log updated	YES
+Production runtime	NOT VERIFIED
+Integrated main.html	OPEN
+Global P0 Inventory	NOT CLOSED
+
+وقد تحققت أيضًا أن .github لم يعد يحتوي artifacts التنفيذ المؤقتة التي أنشأناها، وأصبح يحتوي فقط البنية الدائمة الحالية.
+
+أهم ملاحظة هندسية
+
+هناك نقطة واحدة لا أريد إخفاءها: أثناء الكتابة المباشرة اضطررت لإعادة بناء محتوى main2 في نفس الملف، وليس تطبيق patch نصي line-for-line آليًا على الـblob الأصلي. لذلك أعتبر إغلاق Tenant Scope مثبتًا، لكن أضع Semantic Full-Diff للمحتوى الأصلي كجزء من integrated validation قبل إعلان الإغلاق النهائي للـPWA بالكامل.
+
+هذا هو الحد الفاصل الصحيح بين:
+
+MAIN2 SOURCE CLOSURE = CLOSED
+
+و:
+
+FULL APPLICATION RUNTIME CLOSURE = NOT YET PROVED
+
+وهذا التفريق موثق في سجل التنفيذ نفسه.
