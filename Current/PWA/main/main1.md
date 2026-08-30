@@ -676,6 +676,46 @@ const showToast = (message, type = 'success') => { try { Swal.fire({ title: mess
 
 const RW_STATE = { app: { initialized: false, authenticated: false, loading: false, currentView: 'dashboard', currentUser: null, company: { name: 'الروائع ERP', logo: 'ر' } }, data: { items: [], customers: [], suppliers: [], branches: [] }, permissions: [], ui: { sidebarOpen: false, sidebarCollapsed: false } };
 window.RW_STATE = RW_STATE;
+
+// RAWAEA GOVERNED TENANT CONTEXT
+var RW_ShellContext=(function(){
+    var companyId=null,userId=null,resolving=null;
+    function applyUserIdentity(row,authUser){
+        companyId=row.company_id||null;
+        userId=row.id||null;
+        RW_STATE.app.companyId=companyId;
+        RW_STATE.app.userId=userId;
+        if(RW_STATE.app.currentUser){
+            RW_STATE.app.currentUser.id=userId;
+            RW_STATE.app.currentUser.authId=(authUser&&authUser.id)||RW_STATE.app.currentUser.authId||null;
+            RW_STATE.app.currentUser.companyId=companyId;
+            if(row.name)RW_STATE.app.currentUser.name=row.name;
+            if(row.role)RW_STATE.app.currentUser.role=row.role;
+            RW_STATE.app.currentUser.isOwner=RW_STATE.app.currentUser.isOwner===true;
+        }
+        var dbPerms=Array.isArray(row.permissions)?row.permissions.slice():[];
+        RW_STATE.permissions=(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.isOwner===true)?['*']:dbPerms;
+        return companyId;
+    }
+    function resolve(){
+        if(companyId)return Promise.resolve(companyId);
+        if(resolving)return resolving;
+        if(!RW_SUPABASE_CLIENT)return Promise.reject(new Error('SUPABASE_CLIENT_UNAVAILABLE'));
+        resolving=RW_SUPABASE_CLIENT.auth.getUser().then(function(r){
+            if(r.error||!r.data||!r.data.user||!r.data.user.id)throw new Error('AUTH_ID_UNAVAILABLE');
+            return r.data.user;
+        }).then(function(authUser){
+            return RW_SUPABASE_CLIENT.from('users').select('id,company_id,name,role,status,permissions').eq('auth_id',authUser.id).eq('status','Active').maybeSingle().then(function(r){
+                if(r.error||!r.data||!r.data.company_id)throw new Error('TENANT_CONTEXT_UNAVAILABLE');
+                return applyUserIdentity(r.data,authUser);
+            });
+        }).finally(function(){resolving=null;});
+        return resolving;
+    }
+    function getCompanyId(){if(!companyId)throw new Error('TENANT_CONTEXT_UNAVAILABLE');return companyId;}
+    return {resolve:resolve,getCompanyId:getCompanyId,hasCompany:function(){return !!companyId;}};
+})();
+window.RW_ShellContext=RW_ShellContext;
 const RW_Auth = {
     login: function(username, password) {
         if (!username || !password) {
@@ -707,10 +747,12 @@ const RW_Auth = {
             RW_STATE.app.currentUser = {
                 name: meta.name || user.email,
                 email: user.email,
+                authId: user.id,
+                companyId: null,
                 role: meta.role || 'مدير النظام',
                 isOwner: meta.isOwner === true || meta.isOwner === 'true'
             };
-            RW_STATE.permissions = meta.permissions || ['*'];
+            RW_STATE.permissions = (RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner === true) ? ['*'] : (Array.isArray(meta.permissions) ? meta.permissions.slice() : []);
             RW_STATE.app.company = {
                 name: meta.companyName || 'الروائع ERP',
                 logo: meta.companyLogo || 'ر'
@@ -718,14 +760,21 @@ const RW_Auth = {
 
             RW_Audit_log('login', 'auth', user.id, null, { email: user.email, role: meta.role || 'مدير النظام' });
 
-            self.enterSystem();
+            self.enterSystem().catch(function(e){ console.error('ENTER_SYSTEM_FAILED',e); });
         }).catch(function(e) {
             hideLoader();
             showToast('حدث خطأ أثناء الاتصال', 'error');
             console.error(e);
         });
     },
-enterSystem: function() {
+enterSystem: async function() {
+    try {
+        await RW_ShellContext.resolve();
+    } catch(e) {
+        console.error('TENANT_CONTEXT_FAILED', e);
+        this.forceEnterFallback();
+        return;
+    }
     hideLoader();
     try {
         byId('rw-login-page').style.display = 'none';
@@ -741,6 +790,7 @@ enterSystem: function() {
         RW_SUPABASE_CLIENT
             .from('app_settings')
             .select('*')
+            .eq('company_id',RW_ShellContext.getCompanyId())
             .limit(1)
             .then(function(r){
 
@@ -783,7 +833,7 @@ enterSystem: function() {
     console.log('SUPPLIERS COUNT', window.RW_STATE.data.suppliers?.length);
     console.log('BRANCHES COUNT', window.RW_STATE.data.branches?.length);
             // تحميل الموردين (اختياري، لا يمنع الدخول)
-            supabase.from('suppliers').select('*').then(function(r) {
+            supabase.from('suppliers').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(r) {
                 RW_STATE.data.suppliers = r.data || [];
                 console.log('✅ Suppliers loaded.');
             });
@@ -802,16 +852,14 @@ enterSystem: function() {
         forceEnterFallback: function() {
         hideLoader();
         try {
-            byId('rw-login-page').style.display = 'none';
-            byId('rw-main-shell').style.display = 'flex';
-            RW_Navigation.buildSidebar();
-            RW_Navigation.navigate('dashboard');
-            showToast('تم تشغيل النظام في الوضع الآمن', 'warning');
+            RW_STATE.app.authenticated = false;
+            byId('rw-main-shell').style.display = 'none';
+            byId('rw-login-page').style.display = 'flex';
+            showToast('تعذر تحديد سياق الشركة الآمن. لم يتم تشغيل النظام.', 'error');
         } catch(e) {
-            document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:Cairo;"><h1>RAWAEA ERP</h1><p>حدث خطأ أثناء تشغيل النظام</p><button onclick="location.reload()">إعادة التحميل</button></div>';
+            console.error('FAIL_CLOSED_TENANT_CONTEXT', e);
         }
-    },
-    logout: function() {
+    }, logout: function() {
         var userEmail = 'unknown';
         if (RW_STATE.app.currentUser && RW_STATE.app.currentUser.email) {
             userEmail = RW_STATE.app.currentUser.email;
@@ -830,7 +878,7 @@ enterSystem: function() {
 
 var RW_Data = {
     loadItems: function() {
-        return supabase.from('items').select('*').then(function(res) {
+        return supabase.from('items').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(res) {
             if (res.error) throw res.error;
             RW_STATE.data.items = res.data || [];
             return RW_STATE.data.items;
@@ -841,7 +889,7 @@ var RW_Data = {
         });
     },
     loadCustomers: function() {
-        return supabase.from('customers').select('*').then(function(res) {
+        return supabase.from('customers').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(res) {
             if (res.error) throw res.error;
             RW_STATE.data.customers = res.data || [];
             return RW_STATE.data.customers;
@@ -852,7 +900,7 @@ var RW_Data = {
         });
     },
     loadBranches: function() {
-        return supabase.from('branches').select('*').then(function(res) {
+        return supabase.from('branches').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(res) {
             if (res.error) throw res.error;
             RW_STATE.data.branches = res.data || [];
             return RW_STATE.data.branches;
@@ -989,3 +1037,4 @@ toggleSidebar() { const sidebar = byId('rw-sidebar'), main = byId('rw-main-conte
     navigate(view) { try { RW_STATE.app.currentView = view; document.querySelectorAll('.rw-sidebar-link').forEach(el => el.classList.remove('active')); const active = document.querySelector(`.rw-sidebar-link[data-view="${view}"]`); if (active) active.classList.add('active'); window.RW_Views.render(view); } catch(e) { console.error(e); showToast('حدث خطأ', 'error'); } }
 };
 window.RW_Navigation = RW_Navigation;
+<!-- RAWAEA_P1_FORENSIC_CLOSED:v18 -->
