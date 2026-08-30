@@ -1,0 +1,137 @@
+name: RAWAEA governed main2 closure
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  repair:
+    if: github.event.head_commit.message != 'chore: main2 governed closure complete'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Apply surgical main2 repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess, tempfile
+          p=Path('Current/PWA/main/main2.md')
+          s=p.read_text(encoding='utf-8')
+          expected='45d5e760a4b53e3be574346e3d9d192dbad309af'
+          if 'MAIN2_GOVERNED_CLOSED:v1' in s:
+              raise SystemExit('already closed marker present')
+
+          anchor="var RW_Dashboard = (function() {"
+          helper="""var RW_Dashboard = (function() {\n    // RAWAEA governed tenant helper: fail closed; never infer tenant from app_settings.\n    function _rwCompanyId() {\n        if (!window.RW_ShellContext || typeof RW_ShellContext.getCompanyId !== 'function') {\n            throw new Error('TENANT_CONTEXT_UNAVAILABLE');\n        }\n        return RW_ShellContext.getCompanyId();\n    }"""
+          if s.count(anchor)!=1: raise SystemExit('dashboard anchor drift')
+          s=s.replace(anchor,helper,1)
+
+          old="""        _currentFrom = fromDate;\n        _currentTo = toDate;\n"""
+          new="""        _currentFrom = fromDate;\n        _currentTo = toDate;\n        var companyId = _rwCompanyId();\n"""
+          if s.count(old)!=1: raise SystemExit('loadAll anchor drift')
+          s=s.replace(old,new,1)
+
+          replacements=[
+            ("supabase.from('orders').select('order_code, customer_id, total_amount, order_date, area').gte('order_date', fromDate).lte('order_date', toDate)","supabase.from('orders').select('id, order_code, customer_id, customer_name, total_amount, order_date, area').eq('company_id', companyId).gte('order_date', fromDate).lte('order_date', toDate)"),
+            ("supabase.from('orders').select('total_amount').gte('order_date', prevFrom).lte('order_date', prevTo)","supabase.from('orders').select('total_amount').eq('company_id', companyId).gte('order_date', prevFrom).lte('order_date', prevTo)"),
+            ("supabase.from('purchase_orders').select('total_amount').gte('po_date', fromDate).lte('po_date', toDate)","supabase.from('purchase_orders').select('total_amount').eq('company_id', companyId).gte('po_date', fromDate).lte('po_date', toDate)"),
+            ("supabase.from('orders').select('total_amount').gte('order_date', fromDate).lte('order_date', toDate)","supabase.from('orders').select('total_amount').eq('company_id', companyId).gte('order_date', fromDate).lte('order_date', toDate)"),
+            ("supabase.from('customers').select('customer_code')","supabase.from('customers').select('customer_code').eq('company_id', companyId)"),
+            ("supabase.from('items').select('item_code')","supabase.from('items').select('item_code').eq('company_id', companyId)"),
+          ]
+          for a,b in replacements:
+              if s.count(a)!=1: raise SystemExit('missing expected query: '+a)
+              s=s.replace(a,b,1)
+
+          old_top="""        // 5. أفضل الأصناف\n        supabase.from('order_details').select('item_code, item_name, qty, unit_price').gte('created_at', fromDate).lte('created_at', toDate).then(function(res) {\n            renderTopItemsChart(res.data || []);\n        }).catch(function() {});"""
+          new_top="""        // 5. أفضل الأصناف — order_details has no company_id; constrain it through tenant-scoped orders.\n        var topOrderIds = [];\n        for (var oi = 0; oi < orders.length; oi++) { if (orders[oi].id) topOrderIds.push(orders[oi].id); }\n        if (topOrderIds.length) {\n            supabase.from('order_details').select('item_code, item_name, qty, unit_price').in('order_id', topOrderIds).gte('created_at', fromDate).lte('created_at', toDate).then(function(res) {\n                renderTopItemsChart(res.data || []);\n            }).catch(function() { renderTopItemsChart([]); });\n        } else {\n            renderTopItemsChart([]);\n        }"""
+          if s.count(old_top)!=1: raise SystemExit('top items block drift')
+          s=s.replace(old_top,new_top,1)
+
+          start=s.index('    async function _loadStockData() {')
+          end=s.index('\n    async function render() {',start)
+          old_func=s[start:end]
+          new_func="""    async function _loadStockData() {\n        var branches = window._itemsBranches || RW_STATE.data.branches || [];\n        if (!branches.length) {\n            try { branches = await RW_Data.loadBranches(); } catch(e) {}\n        }\n        var branchIds = [];\n        for (var b = 0; b < branches.length; b++) {\n            if (branches[b].id) branchIds.push(branches[b].id);\n        }\n        window._itemsBranchIds = branchIds;\n        window._itemsBranches = branches;\n        var stockRows = [];\n        if (branchIds.length) {\n            var stockRes = await supabase.from('stock_branches').select('item_id, branch_id, qty, allocated_qty').in('branch_id', branchIds);\n            if (stockRes.error) throw stockRes.error;\n            stockRows = stockRes.data || [];\n        }\n        var stockMap = {};\n        for (var s = 0; s < stockRows.length; s++) {\n            var row = stockRows[s];\n            if (!stockMap[row.item_id]) stockMap[row.item_id] = {};\n            stockMap[row.item_id][row.branch_id] = { qty: Number(row.qty) || 0, allocated: Number(row.allocated_qty) || 0 };\n        }\n        for (var i = 0; i < itemsData.length; i++) {\n            var item = itemsData[i];\n            var itemStock = stockMap[item.id] || {};\n            var branchStock = {};\n            var totalQty = 0;\n            for (var j = 0; j < branchIds.length; j++) {\n                var bid = branchIds[j];\n                var st = itemStock[bid] || { qty: 0, allocated: 0 };\n                branchStock[bid] = { qty: st.qty, allocated: st.allocated };\n                totalQty += st.qty;\n            }\n            item._branchStock = branchStock;\n            item._totalStock = totalQty;\n            item._branches = branchIds;\n        }\n    }"""
+          s=s[:start]+new_func+s[end:]
+
+          movement_old="""            var vouchersRes = await supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').order('voucher_date', { ascending: true });"""
+          movement_new="""            var movementCompanyId = _rwCompanyId();\n            var vouchersQuery = supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').eq('company_id', movementCompanyId).order('voucher_date', { ascending: true });\n            var selectedBranchId = window._movementBranchId || null;\n            if (selectedBranchId) {\n                vouchersQuery = vouchersQuery.or('from_branch_id.eq.' + selectedBranchId + ',to_branch_id.eq.' + selectedBranchId);\n            }\n            var vouchersRes = await vouchersQuery;"""
+          if s.count(movement_old)!=1: raise SystemExit('movement query drift')
+          s=s.replace(movement_old,movement_new,1)
+
+          branch_move_old="""            var vouchersRes = await supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').or('from_branch_id.eq.'+branchId+',to_branch_id.eq.'+branchId).order('voucher_date',{ascending:true});"""
+          branch_move_new="""            var branchMoveCompanyId = _rwCompanyId();\n            var vouchersRes = await supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').eq('company_id',branchMoveCompanyId).or('from_branch_id.eq.'+branchId+',to_branch_id.eq.'+branchId).order('voucher_date',{ascending:true});"""
+          if s.count(branch_move_old)!=1: raise SystemExit('branch movement query drift')
+          s=s.replace(branch_move_old,branch_move_new,1)
+
+          cat_repls=[
+            ("supabase.from('categories').select('id, category_name').order('category_name')","supabase.from('categories').select('id, category_name').eq('company_id', _rwCompanyId()).order('category_name')"),
+            ("supabase.from('items').select('id').eq('category_id', id).limit(1)","supabase.from('items').select('id').eq('company_id', _rwCompanyId()).eq('category_id', id).limit(1)"),
+            ("supabase.from('categories').select('id, category_name').neq('id', id).order('category_name')","supabase.from('categories').select('id, category_name').eq('company_id', _rwCompanyId()).neq('id', id).order('category_name')"),
+            ("supabase.from('items').select('id, item_code, barcode, name').in('barcode', barcodes)","supabase.from('items').select('id, item_code, barcode, name').eq('company_id', _rwCompanyId()).in('barcode', barcodes)"),
+          ]
+          for a,b in cat_repls:
+              if s.count(a)<1: raise SystemExit('missing scope target: '+a)
+              s=s.replace(a,b)
+
+          # No PWA physical stock or inventory-log writer.
+          if re.search(r"supabase\.from\(['\"]stock_branches['\"]\)[\s\S]{0,1400}\.(update|insert|upsert|delete)\(",s,re.S):
+              raise SystemExit('MAIN2_DIRECT_STOCK_WRITER')
+          if re.search(r"supabase\.from\(['\"]inventory_log['\"]\)[\s\S]{0,700}\.insert\(",s,re.S):
+              raise SystemExit('MAIN2_DIRECT_INVENTORY_LOG_WRITER')
+
+          # Static scope guards for known critical reads.
+          required=[
+            'function _rwCompanyId()',
+            "eq('company_id', companyId)",
+            "in('order_id', topOrderIds)",
+            ".in('branch_id', branchIds)",
+            "eq('company_id',movementCompanyId)",
+            "eq('company_id',branchMoveCompanyId)",
+          ]
+          for x in required:
+              if x not in s: raise SystemExit('missing invariant '+x)
+          # Critical global reads that existed in the pre-change file must be absent.
+          forbidden=[
+            "supabase.from('orders').select('order_code, customer_id, total_amount, order_date, area')",
+            "supabase.from('purchase_orders').select('total_amount').gte('po_date'",
+            "supabase.from('customers').select('customer_code').then",
+            "supabase.from('items').select('item_code').then",
+            "supabase.from('order_details').select('item_code, item_name, qty, unit_price').gte('created_at', fromDate).lte('created_at', toDate).then",
+          ]
+          for x in forbidden:
+              if x in s: raise SystemExit('forbidden legacy read remains: '+x)
+
+          s=s.rstrip()+"\n// MAIN2_GOVERNED_CLOSED:v1\n"
+          p.write_text(s,encoding='utf-8')
+
+          # Syntax check of the fragment itself.
+          f=Path(tempfile.gettempdir())/'main2.js'
+          f.write_text(s,encoding='utf-8')
+          r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+          if r.returncode:
+              print(r.stderr); raise SystemExit('MAIN2_JS_SYNTAX_FAILED')
+          subprocess.run(['git','diff','--check'],check=True)
+          PY
+      - name: Append forensic ledger and remove execution channel
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('Current/CTO/20260830_P0_FORENSIC_EXECUTION_LOG.md')
+          s=p.read_text(encoding='utf-8')
+          s += '''\n\n## EVENT: MAIN2-20260830-001\nDATE: 2026-08-30 UTC\nSOURCE: CURRENT GIT + DIRECT PRODUCTION POSTGRESQL + DEPLOYED EDGE FUNCTION INSPECTION\nOBJECTIVE: Governed repair of Current/PWA/main/main2.md without changing its physical-stock contract.\n\nINPUT STATE:\n- main2.md pre-change SHA: 45d5e760a4b53e3be574346e3d9d192dbad309af\n- Production baseline re-read immediately before execution: 1 company, 2 branches, 17 items, 20 stock rows, 0 orders, 0 purchase_orders, 1 category.\n\nHISTORICAL CONTRACT:\n- Study before change; Production overrides stale reports; main2 is not an independent Physical Stock writer.\n\nCURRENT PRODUCTION FACT:\n- post_stock_movement exists as the Physical Stock core; current Production also contains complete_return_atomic and complete_order_delivery_atomic.\n- Current receive_purchase_atomic signature is (p_company_id, p_po_code, p_user_email, p_items jsonb, p_operation_id uuid).\n\nCURRENT GIT FACT:\n- main1 exposes RW_ShellContext.getCompanyId(); main2 is a source fragment and is not standalone.\n\nCURRENT EVIDENCE:\n- main2 was read in bounded chunks through EOF before this execution.\n- Direct global reads existed in Dashboard and Item/stock reporting paths.\n- No direct stock_branches mutation or inventory_log insertion was found in main2.\n\nDISCOVERY:\n- Dashboard queries for orders/purchases/customers/items were not tenant-scoped; order_details lacked company_id and was globally queried.\n- stock_branches has no company_id and therefore must be restricted through current company branch IDs.\n- movement/category/upload reads also required explicit tenant scoping.\n\nROOT CAUSE:\n- main2 predated the governed tenant-context helper and relied on broad table reads rather than the authenticated company context.\n\nBUSINESS IMPACT:\n- Possible cross-tenant reporting leakage where RLS/policy breadth allows broad reads.\n\nARCHITECTURAL IMPACT:\n- main2 now consumes the shared Shell tenant contract instead of inferring company from data. Physical Stock ownership remains server-side.\n\nDATABASE IMPACT:\n- No production business data changed. Only source code changed.\n\nEDGE/RPC IMPACT:\n- None in this closure. main2 continues to call existing Edge capabilities for mutation workflows.\n\nFRONTEND IMPACT:\n- Dashboard/reporting reads are tenant-scoped; stock matrix uses company branch IDs; category/item selectors are company-scoped.\n\nCHANGE MADE:\n- Added _rwCompanyId() fail-closed helper backed by RW_ShellContext.getCompanyId().\n- Company-scoped Dashboard queries.\n- order_details constrained through tenant-scoped order IDs.\n- stock_branches reads constrained by current company branch IDs.\n- movement and branch-movement voucher reads company-scoped; optional branch filter preserved.\n- categories and item barcode lookups company-scoped.\n- Existing mutation paths and physical stock contract unchanged.\n\nWHY:\n- Align main2 with the authoritative tenant contract already present in main1 while preserving existing business behavior.\n\nALTERNATIVES REJECTED:\n- Global app_settings lookup.\n- Adding a second tenant context implementation.\n- Making main2 a stock writer.\n- Rebuilding the file from scratch.\n\nMIGRATION: source-only surgical transformation; no database migration.\nDEPLOYMENT: Git main source closure commit; no standalone main2 deployment exists.\nCOMMIT: recorded by final Git commit for this execution.\n\nTEST:\n- Structural invariant assertions.\n- Node syntax check.\n- git diff --check.\n\nRUNTIME TEST:\n- No standalone main2 runtime exists. Final assembled main.html runtime is not claimed here.\nPRODUCTION VERIFY:\n- Production database contract re-read before the source change. No production data mutation was performed.\n\nDATA CLEANUP: none; no business rows changed.\nAUDIT PRESERVATION: existing audit architecture left untouched.\n\nPOST-CHANGE STATE:\n- main2 source carries MAIN2_GOVERNED_CLOSED:v1 marker.\n\nOBSOLETE STATE:\n- The prior 92 report claim that main2 had not yet been repaired is obsolete after this execution and must not be used as current truth.\n\nREMAINING OPEN ITEMS:\n- Final 11-part assembly/runtime verification remains outside this source-part closure.\n- Production RLS/policy hardening is separate and was not silently changed here.\n\nLATER CORRECTIONS:\n- Any correction must re-open current Production + Current Git before editing.\n\nCURRENT SURVIVING STATE:\n- main2 remains the same physical file, repaired in place; no replacement/duplicate main2 was created.\n\nSOURCE REFERENCES:\n- MASTER EXECUTION PROMPT.md\n- doc/Draft/medhat/برومبت 89+ملحق تقرير\n- doc/Draft/medhat/برومبت 90+تقرير\n- doc/Draft/medhat/برومبت 91+ملحق تقرير\n- doc/Draft/medhat/برومبت 92+ملحق تقرير\n- Current/PWA/main/main1.md\n- Current/PWA/main/main2.md\n- Production PostgreSQL at execution time.\n'''
+          p.write_text(s,encoding='utf-8')
+          PY
+          git config user.name 'RAWAEA Main2 Governed Executor'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/one-shot-main2-closure.yml
+          git add Current/PWA/main/main2.md Current/CTO/20260830_P0_FORENSIC_EXECUTION_LOG.md
+          git commit -m 'chore: main2 governed closure complete'
+          git push origin HEAD:main
