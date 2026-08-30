@@ -1,0 +1,461 @@
+النتيجة التنفيذية
+
+لم أصل إلى حالة تسمح بدمج main1:main11 ونشر main.html بأمان، ولذلك لم أقم بالدمج ولم أزعم الإغلاق.
+
+وهذا ليس تحفظًا نظريًا؛ التحقيق المباشر أثبت وجود Regression وظيفية مؤكدة، بالإضافة إلى أن شرط الـMaster Prompt نفسه لم يتحقق بعد على مستوى الملف المنطقي الكامل.
+
+1. حالة Production الحالية — اللقطة الحاكمة
+
+آخر لقطة مباشرة من Supabase كانت:
+
+2026-08-30 08:36:56.997 UTC
+
+العنصر	الحالة الحالية
+Companies	1
+Users	24
+Branches	2
+Items	17
+Stock Rows	20
+Inventory Logs	3
+Orders	0
+Order Details	0
+Runsheets	0
+Run Sheet Details	0
+Purchase Orders	0
+Stock Vouchers	0
+Audit Rows	1,866
+
+إذن أي أرقام موجودة في تقارير أقدم بعد هذه اللحظة ليست Production Reality الحالية.
+
+2. ما ثبت في Inventory Core
+
+التحقيق المباشر في PostgreSQL الحالية يؤكد أن:
+
+PHYSICAL STOCK MOVEMENT
+        ↓
+post_stock_movement
+        ↓
+stock_branches
++
+inventory_log
+
+والـreserve_stock بقي Reservation Engine، وليس Physical Movement Engine.
+
+والـwriter discovery الحالي لم يجد وظيفة Production أخرى تنفذ مباشرة:
+
+stock_branches.qty
+
+أو تكتب:
+
+inventory_log
+
+خارج المسار المركزي.
+
+هذه النقطة ناجحة حاليًا.
+
+وهذا متسق مع الـMaster Execution Prompt الذي يجعل post_stock_movement المصدر المركزي للحركة المخزنية.
+
+3. أهم اكتشاف: main9 فقد وظيفة موجودة في Original
+
+وهذه هي أهم نتيجة تمنع الدمج الآن.
+
+في Original main9 كان هناك تنفيذ مستقل لـ:
+
+rec-purchase
+rec-offers
+
+والـrec-offers لم يكن مجرد checkbox؛ كان له Business Logic فعلي:
+
+اكتشاف الأصناف الراكدة.
+تحديد الأصناف ذات المخزون الموجود بدون حركة بيع.
+إنتاج توصية عرض ترويجي.
+حساب قيمة المخزون الراكد.
+عرض التوصية بصورة مستقلة عن توصية الشراء.
+
+أما في Current main9 فأصبح المنطق:
+
+if(types.some(function(x){return x.indexOf('rec-')===0;}))
+
+ثم يولد قائمة واحدة من Low Stock.
+
+أي أن:
+
+rec-offers
+
+ما زال ظاهرًا في UI، لكنه لم يعد يملك التنفيذ التاريخي الخاص به.
+
+هذا Regression حقيقي، وليس تحسينًا معماريًا.
+
+والأسوأ أنه يجعل الواجهة تقول للمستخدم إن rec-offers موجود، بينما التنفيذ الفعلي لا يحقق العقد التاريخي.
+
+وهذا يخالف مباشرة قاعدة الـMaster Prompt:
+
+لا يجوز أن ينتقل Contract أو يختفي إلا مع إثبات أين أصبح.
+
+4. لماذا لم أقم بترقيع main9 بطريقة سريعة؟
+
+لأن الحلول السريعة هنا ستكون أخطر من المشكلة.
+
+كان من السهل أن أضيف override أو ملف patch جديد، لكن هذا سيخلق:
+
+main9
++
+main9 patch
++
+duplicate behavior
++
+hidden precedence
+
+أي دينًا جديدًا، وليس إصلاحًا.
+
+كما أن أداة GitHub المتاحة لتحديث ملف موجود تتطلب إرسال المحتوى الكامل للملف؛ والـblob الحالي كبير جدًا، والـfetch الكامل نفسه يصل إلى حدود العرض/الاقتطاع. وبناءً على تعليماتك، رفضت أن أعيد بناء الملف من محتوى مبتور ثم أكتب فوق المصدر الأصلي.
+
+لذلك لم أضع إصلاحًا غير مضمون.
+
+5. أهم نتيجة ثانية: Production أصبحت أحدث من معظم التقارير السابقة
+
+وهذا مهم جدًا.
+
+التقارير السابقة كانت تتعامل مع حالات مثل:
+
+وجود أكثر من Company.
+fixture stock rows كثيرة.
+نسخ RPC قديمة.
+نسخ Edge أقدم.
+حالات idempotency قديمة.
+
+لكن Production الحالية تغيرت لاحقًا.
+
+مثلًا، receive-purchase حاليًا أصبح أحدث، وكذلك:
+
+save-sales-invoice
+complete-return
+complete-order-delivery
+
+وتمت إضافة/تحسينات حديثة للـoperation identity.
+
+لذلك لا يجوز اليوم أخذ تقرير 89 أو 95 أو 107 واعتباره وصفًا حرفيًا للحالة الحالية.
+
+وهذا بالضبط أحد مبادئ الـMaster Prompt نفسه.
+
+6. main11 — ما وجدته
+
+main11 الحالي نفسه أصبح أكثر انضباطًا:
+
+RW_HR
+RW_CRM
+Owner semantics
+Tenant context
+stale-load protection
+event-handler duplication protection
+لا يحتوي Physical Stock writer
+
+وتقرير 107 نفسه يوثق أن هذه النقاط تم فحصها، وأن main11 لم يتم نشره منفردًا لأن الـfragment ليس تطبيقًا مستقلاً. وهذا صحيح معماريًا.
+
+7. main6 — الوضع الحالي
+
+main6 الحالي يحتفظ بوظائف:
+
+Online Store
+Purchasing
+Receiving
+
+ووجدت فيه تحسينًا مهمًا صحيحًا:
+
+operation_id
++
+Idempotency-Key
+
+في مسار الاستلام.
+
+وهذا متوافق مع Contract الـRECEIVE الحديث.
+
+لكن لا يجوز تحويل ذلك تلقائيًا إلى:
+
+RECEIVE PURCHASE = 100% CLOSED
+
+قبل إثبات التطابق الكامل بين:
+
+main6
+→ receive-purchase Edge
+→ receive_purchase_atomic
+→ receiving.operation_id
+→ inventory movement
+
+والـProduction الحالية.
+
+8. Authorization / Tenant
+
+التحقيق أثبت تحسنًا واضحًا في main1, main4, main5, main6, main9, main11:
+
+بدل الـglobal lookups القديمة أصبح هناك اعتماد أكبر على:
+
+RW_ShellContext.getCompanyId()
+
+مع company-scoped queries.
+
+وهذا يتوافق مع الحوكمة التي تمنع:
+
+app_settings LIMIT 1
+global lookup
+
+عندما تكون الهوية مرتبطة بالشركة.
+
+لكن لا أعتبر هذه النقطة مغلقة على مستوى كل الـ11 جزءًا حتى يكتمل فحص cross-part لكل dependency.
+
+9. Database contract مهم جدًا
+
+Production الحالية تثبت أن:
+
+items.item_code
+
+عليه:
+
+UNIQUE
+
+عالميًا.
+
+وهذا يعني أن:
+
+item_code
+
+ليس Company-local key في الـSchema الحالي.
+
+وبالتالي بعض المنطق القديم الذي كان يفترض:
+
+company_id + item_code
+
+كهوية Item محلية، لا يمكن الإبقاء عليه بلا مراجعة.
+
+هذه كانت إحدى النقاط التي تسببت سابقًا في تفسير خاطئ لبيانات Inventory، ولذلك تعاملت معها الآن على أساس الـSchema الفعلي وليس التقرير.
+
+10. Audit
+
+Production تحتوي حاليًا على:
+
+1,866 audit rows
+
+والـtrigger الحاكم لـstock_vouchers موجود:
+
+trg_audit_stock_vouchers
+        ↓
+fn_audit_trigger()
+        ↓
+audit_log
+
+والـfunction تستخرج email من JWT، أو تستخدم:
+
+system
+
+عند عدم توفره.
+
+هذا المسار مثبت مباشرة في Production.
+
+11. شيء يجب تسجيله بشفافية
+
+في بداية هذه المهمة كانت لدي بالفعل سابقة مباشرة في نفس جلسة العمل: تم إنشاء عدة comment-only migrations أثناء جمع الأدلة السابقة.
+
+هذه لم تغيّر:
+
+schema
+data
+functions
+permissions
+
+لكنها أضافت migration history entries بلا قيمة تشغيلية.
+
+لا يجوز تجاهلها؛ هي:
+
+Governance Residue
+
+ولن أزعم تنظيفها بإعادة كتابة migration history، لأن ذلك أخطر من تركها كأثر موثق.
+
+12. مقارنة الأجزاء — الحالة التي أستطيع إثباتها الآن
+Part	النتيجة الحالية
+main1	تحسينات Tenant/Auth/Owner واضحة، ولا Regression مؤكدة حتى الآن
+main2	وظائف الأصناف والمخزون الأساسية محفوظة، Tenant hardening موجود
+main3	لم يظهر فقدان وظيفي مثبت في الفحص الحالي
+main4	POS / Roles / TeleSales محفوظة، مع Tenant hardening
+main5	Orders / Runsheets محفوظة، مع workflow guards وRealtime
+main6	Store / Purchasing / Receiving محفوظة، وIdempotency محسنة
+main7	Warehouse lifecycle محفوظ في الهيكل الحالي، ولم يثبت فقدان محدد في هذا المرور
+main8	Finance محفوظ، ولا دليل يثبت أن global masters الحالية يجب تحويلها إلى tenant objects
+main9	Regression مؤكدة: rec-offers
+main10	Owner/Licensing/Settings محفوظة؛ توجد نقطة Permission-map تستحق الإغلاق لاحقًا
+main11	تم إعادة بنائه، والـcore business surface محفوظ وفق السجل، لكن integrated runtime لم يُثبت
+13. أهم نقطة: هل أستطيع الآن القول إن main1 + ... + main11 = main.html؟
+
+لا.
+
+وهذه ليست إجابة شكلية.
+
+الـMaster Prompt يطلب صراحة إعادة بناء:
+
+ONE LOGICAL FILE
+=
+main1
++
+main2
++
+...
++
+main11
+
+ثم اختبار:
+
+cross-part dependencies
+duplicate symbols
+shadowing
+script order
+undefined references
+global contracts
+
+ولم يتم إثبات هذا بالكامل بعد على النسخ الحالية.
+
+كما أن Current/PWA/main.html الحالي لم أعتبره Gold Master؛ فلا يوجد حتى الآن إثبات كافٍ أنه يساوي concatenation صحيحًا للنسخ الحالية.
+
+ولهذا النشر الآن سيكون مخالفة مباشرة للعقد التشغيلي.
+
+PRE-SWEEP SELF-AUDIT
+البند	الحالة
+Business Understanding	Confirmed
+Architecture Understanding	Confirmed
+Database Understanding	Confirmed
+Historical Understanding	Partial but evidence-based
+Current Git Understanding	Partial — direct source inspection
+Current Production Understanding	Confirmed by fresh snapshot
+Deployment Understanding	Partial
+Runtime Understanding	Partial
+Production Opened	YES
+Current Git Opened	YES
+Historical Opened	YES
+Schema Checked	YES
+Triggers Checked	YES
+RLS Checked	YES
+Permissions Checked	YES
+Consumers Checked	PARTIAL
+Dependencies Checked	PARTIAL
+Git History Checked	PARTIAL
+Confirmed Facts
+Production الحالية بها Company واحدة.
+post_stock_movement هو Physical Stock Core.
+reserve_stock Reservation Engine.
+items.item_code global UNIQUE.
+main9 فقد rec-offers.
+بعض Edge Functions أحدث من التقارير القديمة.
+main11 غير منشور منفردًا.
+Unknowns
+complete byte-level functional equivalence لكل main1..main11 مع Originals.
+complete cross-part dependency closure.
+final integrated browser runtime.
+equivalence بين concatenated fragments وCurrent/PWA/main.html.
+Conflicts
+بعض التقارير القديمة تصف Production مختلفة عن Production الحالية.
+بعض historical contracts تغير تنفيذها لاحقًا.
+Unverified Claims
+
+أي claim من نوع:
+
+ALL 11 PARTS = COMPLETE
+
+أو:
+
+READY TO MERGE
+
+غير مثبت حاليًا.
+
+FINAL SELF-AUDIT
+WHAT I PROVED
+Production الحالية تم فتحها والتحقق منها مباشرة.
+Inventory Physical Writer المركزي قائم.
+لا يوجد حاليًا دليل على Physical Writer موازٍ داخل PostgreSQL.
+main1..main11 موجودة في Git الحالي.
+التعديلات اللاحقة وصلت Production في عدة Edge Functions.
+main11 الحالي يحتوي إصلاحات حقيقية وليس مجرد تقرير.
+يوجد Regression حقيقي في main9.
+WHAT I DID NOT PROVE
+التكافؤ الكامل بين كل Original وCurrent لكل main1..main11.
+عدم فقدان أي public function عبر كل الأجزاء.
+عدم وجود cross-part symbol collision بعد الدمج.
+أن main.html الحالي يساوي النسخة المنطقية الصحيحة للـ11 أجزاء.
+Production browser runtime للملف النهائي.
+WHAT I CHANGED
+
+في هذه المراجعة الحالية لم أضع overwrite خطير على main9 بسبب خطر فقد محتواه.
+
+WHAT I DID NOT CHANGE
+
+لم أغيّر:
+
+Production business data.
+main.html.
+أي Stock balance.
+أي Accounting balance.
+أي Owner semantics.
+أي migration history قديمة لمحاولة إخفاء الأثر.
+WHAT I DISCOVERED
+
+أهم اكتشاف:
+
+main9 UI CONTRACT
+        ≠
+main9 IMPLEMENTATION
+
+بالنسبة إلى:
+
+rec-offers
+WHAT I INITIALLY MISSED
+
+في مسار العمل السابق تم التركيز بشدة على Tenant/Inventory correctness، بينما لم يكن فقدان rec-offers واضحًا حتى تمت مقارنة الـimplementation الحالي مباشرة مع Original.
+
+WHAT BECAME OBSOLETE
+
+عدد من النتائج الواردة في التقارير 89–107 أصبحت تاريخية فقط لأن Production تغيرت بعدها.
+
+مثال مباشر: تقرير 107 نفسه يقر بأن integrated runtime لم يكن قابلًا للإثبات قبل التجميع.
+
+WHAT REMAINS OPEN
+MAIN9 REC-OFFERS RESTORATION
++
+FULL 11-PART CONTRACT CLOSURE
++
+WHOLE-FILE MERGE
++
+WHOLE-FILE JS VALIDATION
++
+BROWSER RUNTIME VERIFICATION
++
+FINAL PRODUCTION DEPLOYMENT
+WHAT COULD STILL BE WRONG
+
+الجزء الأخطر هو أي dependency بين أجزاء متباعدة لا تظهر عند فحص الجزء منفردًا.
+
+الحالة النهائية
+PRODUCTION DEPLOYED?
+NO — no new merged PWA deployment in this audit.
+
+PRODUCTION RUNTIME VERIFIED?
+PARTIAL — core/database paths verified; final merged browser runtime not verified.
+
+AUDIT VERIFIED?
+YES — database audit path verified.
+
+DATA VERIFIED?
+YES — fresh Production snapshot captured at
+2026-08-30 08:36:56.997 UTC
+
+CURRENT GIT ALIGNED?
+NO — because the 11-part closure is not yet proven and main9 has a confirmed regression.
+
+GLOBAL INVENTORY CORE
+= CURRENTLY CENTRALIZED
+
+MAIN1:MAIN11
+= NOT YET SAFE TO MERGE
+
+FINAL CLOSURE STATUS
+= OPEN / NOT CLOSED
+
+الـMaster Execution Prompt نفسه يشترط أن تكون عملية الإغلاق مبنية على: Production + Git + cross-part dependencies + testing + deployment + runtime verification، وليس على وجود ملفات أو تقارير نجاح فقط.
+
+الخلاصة الحاسمة: لا أنصح الآن بدمج الـ11 أجزاء أو نشرها. يوجد خطأ وظيفي مثبت بالفعل، والأهم أن الدمج الكامل نفسه لم يُثبت بعد كـsingle logical file. أي إعلان 100% CLOSED في هذه اللحظة سيكون مخالفًا للأدلة التي جمعناها مباشرة.
