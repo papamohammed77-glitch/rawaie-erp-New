@@ -4,7 +4,7 @@ import subprocess
 import tempfile
 
 PATH = Path('Current/PWA/main/main1.md')
-MARKER = 'RAWAEA_P1_FORENSIC_CLOSED:v17'
+MARKER = 'RAWAEA_P1_FORENSIC_CLOSED:v18'
 
 s = PATH.read_text(encoding='utf-8')
 if MARKER in s:
@@ -19,7 +19,6 @@ def replace_once(old: str, new: str, label: str) -> None:
         raise SystemExit(f'{label}_COUNT={count}')
     s = s.replace(old, new, 1)
 
-# 1. Establish tenant context from the authenticated Supabase user.
 replace_once(
     'window.RW_STATE = RW_STATE;',
     """window.RW_STATE = RW_STATE;
@@ -66,7 +65,6 @@ window.RW_ShellContext=RW_ShellContext;""",
     'TENANT_CONTEXT'
 )
 
-# 2. Preserve historical OWNER wildcard semantics; never manufacture wildcard for non-owner.
 replace_once(
     "email: user.email,\n                role: meta.role || 'مدير النظام',\n                isOwner: meta.isOwner === true || meta.isOwner === 'true'\n            };\n",
     "email: user.email,\n                authId: user.id,\n                companyId: null,\n                role: meta.role || 'مدير النظام',\n                isOwner: meta.isOwner === true || meta.isOwner === 'true'\n            };\n",
@@ -78,7 +76,6 @@ replace_once(
     'OWNER_PERMISSIONS'
 )
 
-# 3. Resolve tenant BEFORE opening the shell.
 replace_once('enterSystem: function() {', 'enterSystem: async function() {', 'ENTER_ASYNC')
 replace_once(
     'self.enterSystem();',
@@ -99,39 +96,22 @@ replace_once(
     'ENTER_RESOLVE'
 )
 
-# 4. Remove global app_settings access in this shell part.
 replace_once(
     ".from('app_settings')\n            .select('*')\n            .limit(1)",
     ".from('app_settings')\n            .select('*')\n            .eq('company_id',RW_ShellContext.getCompanyId())\n            .limit(1)",
     'APP_SETTINGS'
 )
 
-# 5. Company-scope bootstrap collections.
-for table, prefix in (
-    ('suppliers', "supabase.from('suppliers').select('*').then(function(r)"),
-    ('items', "return supabase.from('items').select('*').then(function(res)"),
-    ('customers', "return supabase.from('customers').select('*').then(function(res)"),
-    ('branches', "return supabase.from('branches').select('*').then(function(res)"),
+for table, needle, replacement in (
+    ('suppliers', "supabase.from('suppliers').select('*').then(function(r)", "supabase.from('suppliers').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(r)"),
+    ('items', "return supabase.from('items').select('*').then(function(res)", "return supabase.from('items').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(res)"),
+    ('customers', "return supabase.from('customers').select('*').then(function(res)", "return supabase.from('customers').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(res)"),
+    ('branches', "return supabase.from('branches').select('*').then(function(res)", "return supabase.from('branches').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(res)"),
 ):
-    if prefix in s:
-        s = s.replace(prefix, prefix.replace("select('*')", "select('*').eq('company_id',RW_ShellContext.getCompanyId())"), 1)
-    else:
-        raise SystemExit(f'BOOTSTRAP_ANCHOR_MISSING_{table}')
+    replace_once(needle, replacement, f'BOOTSTRAP_{table.upper()}')
 
-# 6. Fail closed: never expose shell/dashboard without tenant context.
-old_fallback = """        forceEnterFallback: function() {
-        hideLoader();
-        try {
-            byId('rw-login-page').style.display = 'none';
-            byId('rw-main-shell').style.display = 'flex';
-            RW_Navigation.buildSidebar();
-            RW_Navigation.navigate('dashboard');
-            showToast('تم تشغيل النظام في الوضع الآمن', 'warning');
-        } catch(e) {
-            document.body.innerHTML = '<div style=\\"min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:Cairo;\\"><h1>RAWAEA ERP</h1><p>حدث خطأ أثناء تشغيل النظام</p><button onclick=\\"location.reload()\\">إعادة التحميل</button></div>';
-        }
-    },"""
-new_fallback = """        forceEnterFallback: function() {
+fallback_pattern = re.compile(r"forceEnterFallback:\s*function\(\)\s*\{.*?\n\s*\},\s*logout:\s*function", re.S)
+fallback_replacement = """forceEnterFallback: function() {
         hideLoader();
         try {
             RW_STATE.app.authenticated = false;
@@ -141,21 +121,23 @@ new_fallback = """        forceEnterFallback: function() {
         } catch(e) {
             console.error('FAIL_CLOSED_TENANT_CONTEXT', e);
         }
-    },"""
-replace_once(old_fallback, new_fallback, 'FAIL_CLOSED')
+    }, logout: function"""
+s, fallback_count = fallback_pattern.subn(fallback_replacement, s, count=1)
+if fallback_count != 1:
+    raise SystemExit(f'FAIL_CLOSED_COUNT={fallback_count}')
 
-# 7. main1 must not contain an independent physical inventory writer.
-if re.search(r"supabase\\.from\\(['\"]stock_branches['\"]\\)[^;]{0,1600}\\.(?:update|insert|upsert|delete)\\(", s, re.S):
+# P1 shell must not contain any independent Physical Stock / inventory-log writer.
+if re.search(r"supabase\.from\(['\"]stock_branches['\"]\)[^;]{0,1600}\.(?:update|insert|upsert|delete)\(", s, re.S):
     raise SystemExit('DIRECT_STOCK_WRITER')
-if re.search(r"supabase\\.from\\(['\"]inventory_log['\"]\\)[^;]{0,900}\\.insert\\(", s, re.S):
+if re.search(r"supabase\.from\(['\"]inventory_log['\"]\)[^;]{0,900}\.insert\(", s, re.S):
     raise SystemExit('DIRECT_INVENTORY_LOG_WRITER')
 
-# 8. Full JS syntax validation of every inline script in this complete split part.
-code = '\n'.join(re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>', s, re.S | re.I))
+# Complete JS syntax check for this split part.
+code = '\n'.join(re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>', s, re.S | re.I))
 js = Path(tempfile.gettempdir()) / 'rawaea-main1-p1.js'
 js.write_text(code, encoding='utf-8')
 subprocess.run(['node', '--check', str(js)], check=True)
-subprocess.run(['git', 'diff', '--check'], check=True)
 
 PATH.write_text(s.rstrip() + '\n<!-- ' + MARKER + ' -->\n', encoding='utf-8')
+subprocess.run(['git', 'diff', '--check'], check=True)
 print(f'REPAIRED_BYTES={PATH.stat().st_size}')
