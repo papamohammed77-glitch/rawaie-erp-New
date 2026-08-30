@@ -1,57 +1,52 @@
-name: RAWAEA MASTER Reconstruction Forensic 20260830
+name: RAWAEA MASTER Reconstruction Forensic
 on:
   push:
     branches: [main]
-    paths:
-      - '.github/workflows/master_reconstruction_forensic_20260830.yml'
+  workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 jobs:
   forensic:
-    if: github.event.head_commit.message != 'chore(cto): master reconstruction forensic baseline complete'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          ref: main
-          fetch-depth: 0
-      - name: Build exhaustive fragment inventory
-        shell: bash
+          fetch-depth: 1
+      - name: Inventory fragments
         run: |
           set -euo pipefail
+          test -f Current/PWA/main.html
+          for i in $(seq 1 11); do test -f "Current/PWA/main/main${i}.md"; test -f "Original/PWA/main/main${i}.md"; done
           python3 - <<'PY'
           from pathlib import Path
-          import re, json, hashlib
-          def read(p): return Path(p).read_text(encoding='utf-8')
-          def uniq(xs): return sorted(set(x for x in xs if x))
-          def inv(p):
-              s=read(p)
-              funcs=uniq(re.findall(r'(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(',s)+re.findall(r'\b(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?function\s*\(',s))
-              vars=uniq(re.findall(r'\b(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=',s))
-              ids=uniq(re.findall(r'\b(?:id|data-page|data-view)=\"([^\"]+)\"',s)+re.findall(r"\b(?:id|data-page|data-view)='([^']+)'",s))
-              rpcs=uniq(re.findall(r'\.rpc\(\s*[\"\']([^\"\']+)',s))
-              tables=uniq(re.findall(r'\.from\(\s*[\"\']([^\"\']+)',s))
-              edges=uniq(re.findall(r'functions/v1/([A-Za-z0-9._-]+)',s))
-              globals=uniq(re.findall(r'window\.([A-Za-z_$][\w$]*)',s))
-              storage=uniq(re.findall(r'(?:localStorage|sessionStorage)\.(?:getItem|setItem|removeItem)\(\s*[\"\']([^\"\']+)',s))
-              listeners=uniq(re.findall(r'addEventListener\(\s*[\"\']([^\"\']+)',s))
-              return {'sha1':hashlib.sha1(s.encode()).hexdigest(),'bytes':len(s.encode()),'lines':len(s.splitlines()),'functions':funcs,'vars':vars,'ids':ids,'rpcs':rpcs,'tables':tables,'edge_functions':edges,'globals':globals,'storage_keys':storage,'listeners':listeners}
+          import hashlib,json,re
+          def text(p): return Path(p).read_text(encoding='utf-8')
+          def sig(p):
+              s=text(p)
+              return {'sha256':hashlib.sha256(s.encode()).hexdigest(),'bytes':len(s.encode()),'lines':len(s.splitlines()),'functions':sorted(set(re.findall(r'\bfunction\s+([A-Za-z_$][\w$]*)\s*\(',s))),'rpcs':sorted(set(re.findall(r'\.rpc\(\s*[\"\']([^\"\']+)',s))),'tables':sorted(set(re.findall(r'\.from\(\s*[\"\']([^\"\']+)',s))),'edges':sorted(set(re.findall(r'functions/v1/([A-Za-z0-9._-]+)',s))),'storage':sorted(set(re.findall(r'(?:localStorage|sessionStorage)\.(?:getItem|setItem|removeItem)\(\s*[\"\']([^\"\']+)',s)))}
           out={}
           for i in range(1,12):
-              n=f'main{i}.md'; c=inv(f'Current/PWA/main/{n}'); o=inv(f'Original/PWA/main/{n}')
-              out[n]={'current':c,'original':o,'missing_functions':[x for x in o['functions'] if x not in c['functions']],'removed_vars':[x for x in o['vars'] if x not in c['vars']],'missing_ids':[x for x in o['ids'] if x not in c['ids']],'missing_rpcs':[x for x in o['rpcs'] if x not in c['rpcs']],'missing_tables':[x for x in o['tables'] if x not in c['tables']],'missing_edge_functions':[x for x in o['edge_functions'] if x not in c['edge_functions']],'missing_globals':[x for x in o['globals'] if x not in c['globals']],'missing_storage_keys':[x for x in o['storage_keys'] if x not in c['storage_keys']],'missing_listeners':[x for x in o['listeners'] if x not in c['listeners']]}
-          Path('Current/CTO').mkdir(exist_ok=True)
-          Path('Current/CTO/MASTER_RECONSTRUCTION_FORENSIC_20260830.json').write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
-          print(json.dumps({n:{k:len(v) for k,v in x.items() if k.startswith('missing_') or k.startswith('removed_')} for n,x in out.items()},ensure_ascii=False,indent=2))
-          main=read('Current/PWA/main.html'); concat=''.join(read(f'Current/PWA/main/main{i}.md') for i in range(1,12))
-          print('CONCAT_EQUALS_MAIN', main==concat, 'MAIN_BYTES',len(main.encode()),'CONCAT_BYTES',len(concat.encode()))
+              c=sig(f'Current/PWA/main/main{i}.md'); o=sig(f'Original/PWA/main/main{i}.md')
+              out[f'main{i}']={'current':c,'original':o,'missing_functions':sorted(set(o['functions'])-set(c['functions'])),'missing_rpcs':sorted(set(o['rpcs'])-set(c['rpcs'])),'missing_tables':sorted(set(o['tables'])-set(c['tables'])),'missing_edges':sorted(set(o['edges'])-set(c['edges'])),'missing_storage':sorted(set(o['storage'])-set(c['storage']))}
+          cur=text('Current/PWA/main.html'); concat=''.join(text(f'Current/PWA/main/main{i}.md') for i in range(1,12))
+          out['_assembly']={'current_main':sig('Current/PWA/main.html'),'concat_current_sha256':hashlib.sha256(concat.encode()).hexdigest(),'concat_equals_current':cur==concat}
+          Path('forensic-main-reconstruction.json').write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
+          print(json.dumps({k:{x:len(v) for x,v in r.items() if x.startswith('missing_')} for k,r in out.items() if isinstance(r,dict)},ensure_ascii=False))
+          print('ASSEMBLY_EQUAL=',out['_assembly']['concat_equals_current'])
           PY
-      - name: Commit forensic baseline
-        shell: bash
+      - name: Build candidate
         run: |
-          git config user.name 'RAWAEA Master Reconstruction Forensic'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add Current/CTO/MASTER_RECONSTRUCTION_FORENSIC_20260830.json
-          git diff --cached --quiet || git commit -m 'chore(cto): master reconstruction forensic baseline complete'
-          git push origin HEAD:main
-# 2026-08-30 trigger
+          set -euo pipefail
+          cat Current/PWA/main/main{1..11}.md > MASTER_RECONSTRUCTION_CANDIDATE.html
+          test -s MASTER_RECONSTRUCTION_CANDIDATE.html
+          grep -q '<html' MASTER_RECONSTRUCTION_CANDIDATE.html
+          grep -q '</html>' MASTER_RECONSTRUCTION_CANDIDATE.html
+          sha256sum Current/PWA/main.html MASTER_RECONSTRUCTION_CANDIDATE.html
+      - name: Upload forensic evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: master-reconstruction-forensic
+          path: |
+            forensic-main-reconstruction.json
+            MASTER_RECONSTRUCTION_CANDIDATE.html
