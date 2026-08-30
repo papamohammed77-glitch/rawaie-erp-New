@@ -161,7 +161,7 @@
                     throw new Error('SUPABASE_CLIENT_UNAVAILABLE');
                 }
 
-                // Current Production users schema has no is_owner column.
+                // Current Production users schema has no dedicated owner-flag column.
                 // Owner detection is derived from the established permission/identity contract.
                 var result = await window.supabase
                     .from('users')
@@ -508,7 +508,7 @@
                 if (!customer) throw new Error('CUSTOMER_NOT_FOUND');
 
                 // customer_followups has no company_id column in current Production.
-                // Tenant isolation is enforced by the RLS policy through the resolved customer code.
+                // Tenant isolation is enforced by the current RLS policy through the resolved customer code.
                 var followupsResult = await window.supabase
                     .from('customer_followups')
                     .select('*')
