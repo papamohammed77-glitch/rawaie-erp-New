@@ -12,6 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
       - name: Compare every fragment against Original
         run: |
@@ -30,7 +31,6 @@ jobs:
               functions=uniq(re.findall(r'functions/v1/([A-Za-z0-9._-]+)',s))
               listeners=uniq(re.findall(r'addEventListener\(\s*[\"\']([^\"\']+)',s))
               storage=uniq(re.findall(r'(?:localStorage|sessionStorage)\.(?:getItem|setItem|removeItem)\(\s*[\"\']([^\"\']+)',s))
-              text_tokens=uniq(re.findall(r'['"'"']([^'"'"'\n]{4,80})['"'"']',s))
               return {'bytes':len(s.encode()),'sha256':hashlib.sha256(s.encode()).hexdigest(),'functions':uniq(funcs+arrow),'globals':globals,'ids':ids,'rpcs':rpcs,'tables':tables,'edge_functions':functions,'listeners':listeners,'storage_keys':storage}
           out={}
           for i in range(1,12):
@@ -40,10 +40,10 @@ jobs:
           Path('Current/CTO/FORENSIC_FRAGMENT_INVENTORY.json').write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
           for n,v in out.items(): print(n, 'bytes', v['current']['bytes'], '/', v['original']['bytes'], 'missing funcs',len(v['missing_functions']),'ids',len(v['missing_ids']),'rpc',len(v['missing_rpcs']),'tables',len(v['missing_tables']),'edge',len(v['missing_edge_functions']))
           PY
-      - name: Commit forensic inventory
+      - name: Commit forensic inventory evidence
         run: |
           git config user.name 'RAWAEA Forensic Inventory'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add Current/CTO/FORENSIC_FRAGMENT_INVENTORY.json
           git diff --cached --quiet || git commit -m 'chore(cto): add fragment functional inventory evidence'
-          git push
+          git push origin HEAD:${{ github.head_ref }}
