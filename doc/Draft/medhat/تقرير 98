@@ -1,0 +1,331 @@
+# تقرير 98 — MAIN5 GOVERNED RECONSTRUCTION
+
+## PRE-SWEEP SELF-AUDIT
+
+### Business Understanding
+تمت مراجعة الوظائف الموجودة فعليًا في `Current/PWA/main/main5.md` قبل التعديل، وتحديد نطاقه في أوردرات المبيعات والرانشيتات: العرض والفلترة والتأكيد والحذف والطباعة وإنشاء الرانشيت وضم الأوردرات، وعرض وتعديل بيانات الرانشيت وحذفه/إلغائه والطباعة وتغيير الحالة.
+
+### Architecture Understanding
+الـPWA مكوّن من fragments متعددة تُجمع في runtime واحد. تم الالتزام بالنمط المثبت في main3/main4 باستخدام `RW_ShellContext.getCompanyId()` كمصدر Tenant context، مع إبقاء عمليات workflow خلف Edge Functions/DB cores وعدم إدخال Physical Stock logic إلى main5.
+
+### Database Understanding
+تم فحص schema وconstraints وRLS الحالية في Production. ثبت أن `orders` و`runsheets` تحملان `company_id`، وأن `items.item_code` عليه UNIQUE عالمي، وأن `run_sheet_details` لا تحمل `company_id` وتعتمد هوية الرانشيت، وأن `runsheets` لديها سياسات company-scoped قوية بينما `orders/order_details/run_sheet_details` ما زالت تحتوي سياسات authenticated واسعة؛ لذلك أصبح explicit company scoping في main5 وEdge Functions إلزاميًا.
+
+### Historical Understanding
+تم فتح سلسلة MASTER و89 و90 و91 و92 و93 و94 و95 و96 و97 مباشرة من Git، ثم فحص `main5` الحالي وOriginal. ثبت أن `Original/PWA/main/main5.md` وCurrent كانا في البداية بنفس المحتوى والـSHA، وبالتالي لم تُستخدم نسخة خيالية بديلة لتفسير الوظائف.
+
+### Current Git Understanding
+قبل إعادة الكتابة كان `Current/PWA/main/main5.md` بالـblob SHA:
+`caffc0187b54444e96491dc6f00a238b2e870b32`
+بعد إعادة البناء أصبح:
+`8e7c50f497aa37019629b9fa46eaa66f908c767f`
+والـcommit الأساسي لإعادة البناء:
+`7d5b90d45a0d8c09aa56a499a2d85a01b4060a04`
+
+### Current Production Understanding
+تمت القراءة المباشرة من Supabase Production قبل وبعد الإصلاح. الحالة النهائية الملتقطة في `2026-08-30 03:31:49.17876+00` أظهرت Company واحدة، وOrders=0، وRunsheets=0، وOrder Details=0، وRun Sheet Details=0. هذه حقيقة Production حالية ولم تُفترض من التقارير السابقة.
+
+### Deployment Understanding
+تم نشر:
+- `append-to-runsheet` v6 — ACTIVE — verify_jwt=true
+- `confirm-order` v4 — ACTIVE — verify_jwt=true
+- `delete-order` v8 — ACTIVE — verify_jwt=true
+
+ثم أُنشئت مصادر canonical لها في Git لأن المصادر المقابلة لم تكن موجودة في `Current/Edge_Functions` كملفات قابلة للمطابقة:
+- `Current/Edge_Functions/append-to-runsheet`
+- `Current/Edge_Functions/confirm-order`
+- `Current/Edge_Functions/delete-order`
+
+### Runtime Understanding
+تم التحقق من تعريفات Production RPC/Edge الحالية مباشرة، ومن نجاح النشر والحالة ACTIVE ومن مصدر الكود المنشور نفسه. لم تتوفر جلسة متصفح مستخدم authenticated قابلة للتشغيل عبر الأدوات الحالية لتنفيذ browser E2E حقيقي، لذلك لا يُدّعى أن browser runtime E2E تم إثباته.
+
+## Confirmed Facts
+
+1. `main5` القديم كان يحتوي قراءة غير company-scoped للأوردرات والرانشيتات والمستخدمين والمركبات.
+2. `main5` القديم كان ينفذ pre-write مباشر على `orders` قبل `create-runsheet`، رغم أن `create_runsheet_atomic` يقوم بالربط ذريًا.
+3. `main5` القديم كان يسمح بإظهار/استدعاء حذف Invoiced، بينما `delete-order` القديم كان يعدّل Physical Stock و`inventory_log` مباشرة، وهو مخالف لعقد `post_stock_movement` المركزي.
+4. `append-to-runsheet` القديم كان يقرأ ويكتب دون company context كافٍ.
+5. `confirm-order` القديم كان يقرأ ويكتب دون company context.
+6. `runsheets.driver_id` هو UUID، ولذلك تمت مواءمة العرض مع `users.id` بدل مقارنة UUID بالبريد.
+7. تعديل السائق/السيارة في main5 لم يعد يغيّر حالة الرانشيت تلقائيًا إلى `Open`.
+8. الـcurrent `create_runsheet_atomic` في Production هو الـworkflow core الصحيح لإنشاء رانشيت وربط الأوردرات وتجميع `run_sheet_details`.
+9. مسح Production الحالي لم يُظهر direct function writer يستخدم `update stock_branches` أو `insert inventory_log` داخل functions غير الـcentral movement path أثناء الفحص النهائي.
+
+## Unknowns
+
+- Browser authenticated E2E لم يتم تشغيله من أداة مستقلة؛ لم تُخترع جلسة أو token.
+- لا يمكن من أدوات Git الحالية إثبات تاريخ filesystem كامل لكل Edge Function إذا لم يكن الملف موجودًا أصلًا؛ تم التعامل مع هذا بإضافة canonical source مطابق للـruntime المنشور.
+
+## Conflicts
+
+يوجد اختلاف واضح بين snapshots التاريخية السابقة وProduction الحالية؛ snapshot Production الحالي يحتوي Company واحدة وبدون Orders/Runsheets. لم يتم افتراض سبب هذا الفرق، ولم تتم إعادة تكوين بيانات لمجرد جعل الأرقام تبدو منطقية.
+
+## Unverified Claims
+
+لا توجد دعوى بأن main5 browser runtime خضع لـmanual click-through E2E. ما ثبت هو source correctness، deployment state، Production DB state، وقراءة مباشرة لتعريفات الـEdge/RPC.
+
+## Production Opened
+نعم.
+
+## Current Git Opened
+نعم.
+
+## Historical Opened
+نعم.
+
+## Schema Checked
+نعم.
+
+## Triggers Checked
+نعم، بما فيها `fn_audit_trigger()` ومسار audit لـ`stock_vouchers`.
+
+## RLS Checked
+نعم.
+
+## Permissions Checked
+نعم، بما في ذلك grants الخاصة بالـRPCs التي تم فحصها.
+
+## Consumers Checked
+نعم: main5 consumers المباشرون وEdge consumers الخاصة بإنشاء/ضم/تأكيد/حذف الأوردرات.
+
+## Dependencies Checked
+نعم.
+
+## Git History Checked
+تمت مراجعة سلسلة التقارير والنسخ التاريخية المشار إليها، مع اعتبار Production/Git direct inspection المصدر الأعلى.
+
+# EVENTS
+
+## EVENT ID: MAIN5-98-001
+DATE: 2026-08-30
+SOURCE: Current Git + Original Git + Production Supabase
+OBJECTIVE: إثبات خط أساس main5 قبل أي تعديل.
+INPUT STATE:
+`main5.md` = `caffc0187b54444e96491dc6f00a238b2e870b32`، وOriginal بنفس الـSHA.
+
+HISTORICAL CONTRACT:
+main5 مسؤول عن Orders/Runsheets UI/workflow consumer.
+CURRENT PRODUCTION FACT:
+Canonical runsheet core هو `create_runsheet_atomic`.
+CURRENT GIT FACT:
+main5 القديم كان يحتوي direct writes وglobal reads.
+CURRENT EVIDENCE:
+الـblob الكامل لـmain5 وفحص ranges متعددة حتى نهاية الملف.
+
+DISCOVERY:
+وجد direct order pre-write قبل `create-runsheet`، global helper reads، driver UUID/email mismatch، وdelete/cancel sequential mutations.
+ROOT CAUSE:
+Fragment تاريخي لم يُنقل بالكامل إلى Tenant-scoped / canonical capability model.
+BUSINESS IMPACT:
+إمكانية cross-tenant visibility، workflow races، وحالات state regression.
+ARCHITECTURAL IMPACT:
+خرق مبدأ capability/core ownership.
+DATABASE IMPACT:
+استفادة غير كافية من existing company-scoped constraints/RLS.
+EDGE/RPC IMPACT:
+Consumers اعتمدوا على Edges لا تفرض دائمًا tenant scope.
+FRONTEND IMPACT:
+المستخدم يرى/يعدّل بيانات خارج سياق الشركة ويمكنه بدء workflow بتغيير سابق غير ذري.
+
+CHANGE MADE:
+إعادة كتابة main5 بالكامل مع الحفاظ على public objects `RW_Orders` و`RW_Runsheets` ووظائفهما الأساسية.
+WHY:
+إزالة root causes بدل patching سطحي.
+ALTERNATIVES REJECTED:
+الإبقاء على global reads مع اعتماد RLS فقط؛ تعديل السطور المتسببة فقط؛ pre-write ثم rollback يدوي.
+
+MIGRATION:
+لا schema migration خاصة بـmain5 نفسه.
+DEPLOYMENT:
+Git commit `7d5b90d45a0d8c09aa56a499a2d85a01b4060a04`.
+COMMIT:
+`7d5b90d45a0d8c09aa56a499a2d85a01b4060a04`.
+
+TEST:
+تم إجراء syntax/static review على النسخة المعاد بناؤها قبل commit، والتحقق المباشر بعد commit من الـblob والـSHA.
+RUNTIME TEST:
+Production DB/Edge definitions verified؛ Browser E2E غير متاح عبر جلسة authenticated من الأدوات الحالية.
+PRODUCTION VERIFY:
+تم فحص Production بعد النشر.
+
+DATA CLEANUP:
+لم يتم حذف أو تعديل Orders/Runsheets لأن Production الحالية لا تحتويها أصلًا.
+AUDIT PRESERVATION:
+تم الإبقاء على `RW_Audit_log` وعدم استبداله بحذف صامت.
+
+POST-CHANGE STATE:
+main5 company-scoped، لا pre-write قبل create-runsheet، لا حذف Invoiced من UI، driver mapping بالـUUID، وحالة الرانشيت محفوظة عند تعديل assignment.
+OBSOLETE STATE:
+Global reads، direct create-runsheet pre-write، Invoiced delete path، driver UUID/email comparison، status-forcing update.
+REMAINING OPEN ITEMS:
+Browser authenticated E2E غير مثبت من بيئة الأدوات. كما أن حذف/إلغاء runsheet ما زال sequential في main5 وليس عبر DB transaction core مستقل.
+LATER CORRECTIONS:
+إنشاء/اعتماد atomic run-sheet delete/cancel core إذا أُريد رفع هذا الجزء من UI إلى نفس مستوى atomicity الموجود في create/picking/loading.
+
+CURRENT SURVIVING STATE:
+main5 governed fragment + canonical Production edges.
+SOURCE REFERENCES:
+Current/PWA/main/main5.md
+Current/Edge_Functions/append-to-runsheet
+Current/Edge_Functions/confirm-order
+Current/Edge_Functions/delete-order
+Production `create_runsheet_atomic`
+
+## EVENT ID: MAIN5-98-002
+DATE: 2026-08-30
+SOURCE: Production Supabase
+OBJECTIVE: إصلاح Tenant boundary في dependency edges.
+INPUT STATE:
+`append-to-runsheet` v5، `confirm-order` v3، `delete-order` v7.
+
+DISCOVERY:
+Append/Confirm/Delete كانت تقرأ order/runsheet by code فقط، وDelete كان يحتوي direct Physical Stock mutations.
+ROOT CAUSE:
+Legacy capability wrappers لم تُقفل مع Tenant context وPhysical Stock contract.
+BUSINESS IMPACT:
+Cross-company access وخطر stock divergence.
+ARCHITECTURAL IMPACT:
+Physical Stock writer خارج `post_stock_movement`.
+DATABASE IMPACT:
+احتمال كتابة بيانات company أخرى.
+EDGE/RPC IMPACT:
+Runtime capabilities لا تعكس target architecture بالكامل.
+FRONTEND IMPACT:
+main5 كان يعرض capabilities أخطر مما ينبغي.
+
+CHANGE MADE:
+- append v6: company-scoped user/runsheet/order/item checks.
+- confirm v4: company-scoped order mutation.
+- delete v8: السماح بالحذف فقط قبل التنفيذ الفعلي، بدون أي Physical Stock reversal.
+WHY:
+الحذف بعد التنفيذ يحتاج reversal business workflow رسمي، وليس hard-delete ترقيعي.
+ALTERNATIVES REJECTED:
+إبقاء delete Invoiced مع stock restoration داخل Edge؛ hardcoded company/account IDs؛ الاعتماد على RLS بدل explicit company checks.
+
+MIGRATION:
+لا schema migration.
+DEPLOYMENT:
+append v6 / confirm v4 / delete v8.
+COMMIT:
+Git canonical source commits `6d732a16f689d7d52e80cddc127c2871eccd1785`, `9df03625557bf085f6d459042651e4ef23d2f29f`, `704ffde5686b7cd6af98432a3d5325ab4cebe5dd`.
+
+TEST:
+تمت مراجعة source bodies المنشورة مباشرة من Supabase بعد deploy.
+RUNTIME TEST:
+Deployment state ACTIVE verified.
+PRODUCTION VERIFY:
+Edge versions الحالية مؤكدة.
+
+DATA CLEANUP:
+لا cleanup destructive؛ Production الحالية لا تحتوي Orders/Runsheets.
+AUDIT PRESERVATION:
+Delete v8 يكتب audit_log للحذف المسموح.
+
+POST-CHANGE STATE:
+لا direct Physical Stock mutation في delete path.
+OBSOLETE STATE:
+Delete Invoiced/Executed reversal path القديم.
+REMAINING OPEN ITEMS:
+Browser authenticated E2E.
+LATER CORRECTIONS:
+Formal atomic run-sheet deletion/cancellation capability.
+
+CURRENT SURVIVING STATE:
+Tenant-safe Edge dependency closures.
+SOURCE REFERENCES:
+Production Edge runtime bodies + Git canonical source files.
+
+# POST-EXECUTION AUDIT
+
+## WHAT I PROVED
+
+- قرأت chain المصادر المطلوبة والملف الحالي بالكامل قبل إعادة البناء.
+- أثبتت أن Original/main5 لم يكن نسخة أحدث بديلة.
+- أثبتت من Production أن create-runsheet الحالي يعتمد `create_runsheet_atomic`.
+- أثبتت أن old main5 كان يحتوي direct/global access paths غير منضبطة.
+- أعيد بناء main5 من الصفر وحُفظت public modules الأساسية.
+- تم نشر dependency fixes إلى Production.
+- تم إنشاء canonical Git sources للـEdge implementations التي لم تكن موجودة كملفات Current قابلة للمطابقة.
+- تم تنفيذ Production snapshot نهائي بعد النشر.
+
+## WHAT I DID NOT PROVE
+
+- لم أُثبت browser click-through E2E بحساب مستخدم حقيقي.
+- لم أُثبت أن كل users/roles الفعليين يشغلون كل branch of UI في Production لأن البيانات التشغيلية الحالية فارغة.
+- لم أثبت atomicity كاملة لعمليات delete/cancel runsheet من UI؛ ما زالت sequential.
+
+## WHAT I CHANGED
+
+1. `Current/PWA/main/main5.md` بالكامل.
+2. `append-to-runsheet` Production v6 + canonical Git source.
+3. `confirm-order` Production v4 + canonical Git source.
+4. `delete-order` Production v8 + canonical Git source.
+
+## WHAT I DID NOT CHANGE
+
+- لم أغير `post_stock_movement` contract.
+- لم أغير `reserve_stock` semantics.
+- لم أغير schema الخاصة بالـOrders/Runsheets في هذه المهمة.
+- لم أحذف أي بيانات Production.
+- لم أعد تكوين بيانات Production الحالية المصفرّة.
+
+## WHAT I DISCOVERED
+
+- Production الحالية مختلفة جذريًا عن snapshots السابقة: Company واحدة وOrders/Runsheets صفر.
+- RLS على Orders/Order Details/Run Sheet Details ما زال أضعف من Runsheets؛ لذلك client-side explicit scoping ليس تجميليًا.
+- `driver_id` UUID وليس email.
+- `create_runsheet_atomic` موجود بالفعل ويقوم بالوظيفة التي كان main5 يسبقها بكتابة مباشرة.
+- `delete-order` السابق كان أخطر من مجرد Tenant bug لأنه كان physical stock writer.
+
+## WHAT I INITIALLY MISSED
+
+تم خلال التحقيق اكتشاف أن بعض الإصلاحات لا يجب أن تتم في main5 فقط؛ dependency Edge layer كان جزءًا من نفس business contract، لذلك أُغلقت معه بدل ترك drift.
+
+## WHAT BECAME OBSOLETE
+
+- global helper reads في main5.
+- orders pre-write قبل create-runsheet.
+- حذف Invoiced من UI.
+- driver UUID/email comparison.
+- forcing `status='Open'` عند assignment edit.
+
+## WHAT REMAINS OPEN
+
+- Browser authenticated E2E.
+- Atomic DB core مستقل لـrunsheet delete/cancel.
+- أي test functional يتطلب بيانات تشغيلية حقيقية غير موجودة حاليًا في Production.
+
+## WHAT COULD STILL BE WRONG
+
+قد توجد سلوكيات خاصة في workflow لا يمكن الوصول إليها أثناء خلو Production من Orders/Runsheets، خصوصًا فروع state transition النادرة. لم يتم اختلاقها، ولذلك تبقى ضمن الحدود المعلنة بدل الادعاء بإثباتها.
+
+## PRODUCTION DEPLOYED?
+نعم — main5 نفسه Git artifact، والـdependency Edge functions الثلاثة منشورة فعليًا Production كـACTIVE versions.
+
+## PRODUCTION RUNTIME VERIFIED?
+**جزئيًا مثبت:** deployment state وsource body وProduction DB snapshot تم التحقق منهم مباشرة. Browser authenticated E2E لم يُثبت.
+
+## AUDIT VERIFIED?
+نعم لمسار audit helper/trigger المفحوص، وتم الحفاظ على audit calls في تغييرات main5 المناسبة.
+
+## DATA VERIFIED?
+نعم كـsnapshot حالي: Company=1، Orders=0، Runsheets=0، Order Details=0، Run Sheet Details=0 عند `2026-08-30 03:31:49+00`.
+
+## CURRENT GIT ALIGNED?
+نعم للـmain5 الجديد ولـappend/confirm/delete canonical sources التي تمت إضافتها بعد مطابقة Production runtime.
+
+# FINAL CLOSURE STATUS
+
+## MAIN5 GOVERNED RECONSTRUCTION
+**CLOSED**
+
+## MAIN5 PRODUCTION DEPENDENCY SECURITY/SCOPING CLOSURE
+**CLOSED**
+
+## PHYSICAL STOCK CONTRACT IMPACT FROM MAIN5
+**CLOSED — لا يوجد Physical Stock writer في main5، ومسار delete القديم الذي كان يخرق العقد أزيل من Production.**
+
+## GLOBAL INVENTORY CORE 100% CLOSED
+**ليس من هذه المهمة وحدها.** main5 scope أصبح مغلقًا، لكن تقرير Zero-Debt العالمي الأوسع لا يجوز إعلان 100% من دون إكمال بقية Writer Closure Units وما زال atomic runsheet delete/cancel وbrowser E2E خارج نطاق الإثبات الحالي.
+
+**قاعدة العمل المحفوظة:** لا يتم تحويل غياب الدليل إلى نجاح، ولا يتم تحويل staging/source/deployment verification إلى browser runtime proof.
