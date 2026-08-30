@@ -1,0 +1,66 @@
+تم تنفيذ المهمة على main10 من نقطة التوقف الحالية، وليس من الصفر التاريخي.
+
+النتيجة
+
+تمت إعادة كتابة:
+
+Current/PWA/main/main10.md
+
+من الصفر، مع الحفاظ على:
+
+RW_OwnerLicense
+إدارة حالة الترخيص
+تغيير البريد
+تغيير كلمة المرور + التأكيد
+togglePasswordVisibility
+RW_Views
+جميع مفاتيح الصلاحيات والـroutes الموجودة
+توجيه Warehouse / Finance / Reports / Audit
+فصل الـUI عن Stock / Accounting / Ledger engines
+
+والـRouter أصبح أكثر أمانًا تجاه غياب Fragment اختياري، دون تغيير عقود الـroutes.
+
+أهم الإصلاحات
+
+تم إغلاق:
+
+القراءة غير المقيّدة من app_settings.
+الاعتماد على owner_email غير الموجود في Production.
+عدم ربط License data بالـCompany الحالية.
+إمكانية انهيار الـRouter بسبب missing global module reference.
+ضعف التحقق من تأكيد كلمة المرور.
+
+والـOwner semantics بقيت كما هي: الاعتماد على isOwner === true، بينما يبقى save-settings هو السلطة الخلفية الفعلية للتعديل. Production الحالية أكدت أيضًا أن حساب Owner يحمل [ "*" ] وأن app_settings مرتبطة بـcompany_id.
+
+Git
+
+تم رفض أول محاولة كتابة بسبب Git SHA stale بـ409، ولم أستخدم force update. بدلًا من ذلك تم تنفيذ التعديل عبر Git Object/Tree/Commit على آخر main فعلي.
+
+الحالة النهائية:
+
+MAIN10 blob: 372d216f6918f35090b610121521b83ae4ced4ea
+Final main commit: 2b20c47ab91ac53c7afdf1e69578d32d9c46187c2
+ملف الـstaging المؤقت أزيل من الشجرة.
+آخر قراءة مباشرة للملف تؤكد الـblob النهائي نفسه.
+التوثيق
+
+تم إنشاء وحفظ:
+
+Current/CTO/20260830_MAIN10_RECONSTRUCTION_BASELINE.md
+Current/CTO/MAIN10_EXECUTION_EVENT_20260830.md
+doc/Draft/medhat/تقرير 106
+doc/Draft/medhat/تقرير 106-ملحق
+حالة الإغلاق الدقيقة
+البند	الحالة
+MAIN10 Source Reconstruction	CLOSED
+Historical/Current Git verification	CLOSED
+Production schema/RLS/Owner verification	VERIFIED
+Data mutation from MAIN10	NONE
+Audit data mutation	NONE
+Browser runtime للـmain.html النهائي	NOT PROVED
+P11 Integration	REMAINING GATE
+
+السبب في عدم إعلان GLOBAL MAIN.HTML = CLOSED هو أن main10 Fragment لا يُثبت وحده تشغيل النسخة النهائية المجمعة في Browser runtime. إعلان ذلك الآن سيكون ادعاءً غير مثبت، وهو تحديدًا ما تمنعه المبادئ الحاكمة التي طلبت الالتزام بها.
+
+فتح main10.md في GitHub
+Current/PWA/main/main10.md
