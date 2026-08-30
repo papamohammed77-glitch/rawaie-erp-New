@@ -1,0 +1,56 @@
+name: RAWAEA MASTER Reconstruction Forensic 20260830
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/master_reconstruction_forensic_20260830.yml'
+permissions:
+  contents: write
+jobs:
+  forensic:
+    if: github.event.head_commit.message != 'chore(cto): master reconstruction forensic baseline complete'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Build exhaustive fragment inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, json, hashlib
+          def read(p): return Path(p).read_text(encoding='utf-8')
+          def uniq(xs): return sorted(set(x for x in xs if x))
+          def inv(p):
+              s=read(p)
+              funcs=uniq(re.findall(r'(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(',s)+re.findall(r'\b(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?function\s*\(',s))
+              vars=uniq(re.findall(r'\b(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=',s))
+              ids=uniq(re.findall(r'\b(?:id|data-page|data-view)=\"([^\"]+)\"',s)+re.findall(r"\b(?:id|data-page|data-view)='([^']+)'",s))
+              rpcs=uniq(re.findall(r'\.rpc\(\s*[\"\']([^\"\']+)',s))
+              tables=uniq(re.findall(r'\.from\(\s*[\"\']([^\"\']+)',s))
+              edges=uniq(re.findall(r'functions/v1/([A-Za-z0-9._-]+)',s))
+              globals=uniq(re.findall(r'window\.([A-Za-z_$][\w$]*)',s))
+              storage=uniq(re.findall(r'(?:localStorage|sessionStorage)\.(?:getItem|setItem|removeItem)\(\s*[\"\']([^\"\']+)',s))
+              listeners=uniq(re.findall(r'addEventListener\(\s*[\"\']([^\"\']+)',s))
+              return {'sha1':hashlib.sha1(s.encode()).hexdigest(),'bytes':len(s.encode()),'lines':len(s.splitlines()),'functions':funcs,'vars':vars,'ids':ids,'rpcs':rpcs,'tables':tables,'edge_functions':edges,'globals':globals,'storage_keys':storage,'listeners':listeners}
+          out={}
+          for i in range(1,12):
+              n=f'main{i}.md'; c=inv(f'Current/PWA/main/{n}'); o=inv(f'Original/PWA/main/{n}')
+              out[n]={'current':c,'original':o,'missing_functions':[x for x in o['functions'] if x not in c['functions']],'removed_vars':[x for x in o['vars'] if x not in c['vars']],'missing_ids':[x for x in o['ids'] if x not in c['ids']],'missing_rpcs':[x for x in o['rpcs'] if x not in c['rpcs']],'missing_tables':[x for x in o['tables'] if x not in c['tables']],'missing_edge_functions':[x for x in o['edge_functions'] if x not in c['edge_functions']],'missing_globals':[x for x in o['globals'] if x not in c['globals']],'missing_storage_keys':[x for x in o['storage_keys'] if x not in c['storage_keys']],'missing_listeners':[x for x in o['listeners'] if x not in c['listeners']]}
+          Path('Current/CTO').mkdir(exist_ok=True)
+          Path('Current/CTO/MASTER_RECONSTRUCTION_FORENSIC_20260830.json').write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
+          print(json.dumps({n:{k:len(v) for k,v in x.items() if k.startswith('missing_') or k.startswith('removed_')} for n,x in out.items()},ensure_ascii=False,indent=2))
+          main=read('Current/PWA/main.html'); concat=''.join(read(f'Current/PWA/main/main{i}.md') for i in range(1,12))
+          print('CONCAT_EQUALS_MAIN', main==concat, 'MAIN_BYTES',len(main.encode()),'CONCAT_BYTES',len(concat.encode()))
+          PY
+      - name: Commit forensic baseline
+        shell: bash
+        run: |
+          git config user.name 'RAWAEA Master Reconstruction Forensic'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Current/CTO/MASTER_RECONSTRUCTION_FORENSIC_20260830.json
+          git diff --cached --quiet || git commit -m 'chore(cto): master reconstruction forensic baseline complete'
+          git push origin HEAD:main
