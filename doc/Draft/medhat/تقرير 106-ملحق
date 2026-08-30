@@ -1,0 +1,37 @@
+# ملحق تقرير 106 — Final MAIN10 Hardening
+
+DATE: 2026-08-30
+EVENT ID: MAIN10-20260830-FINAL-HARDENING
+
+بعد إغلاق تقرير 106 الأول، تمت مراجعة MAIN10 مرة إضافية كطبقة Integration Hardening.
+
+DISCOVERY:
+النسخة الأولى المعاد بناؤها استخدمت مراجع مباشرة للـFragments داخل router map. في حالة عدم تحميل Fragment اختياري، كان من الممكن أن يحدث ReferenceError قبل الوصول إلى فحص الوحدة المتاحة.
+
+ROOT CAUSE:
+اعتماد بناء الـmap على global identifiers بدل الوصول الآمن إلى window-scoped module references.
+
+CHANGE MADE:
+- تحويل مراجع الـFragments في Router إلى window-scoped references.
+- توحيد مراجع supabase/RW_SUPABASE_URL إلى window-scoped access في MAIN10.
+- الإبقاء على RW_OwnerLicense كمرجع محلي ثم تصديره إلى window.
+- لم يتغير أي route key أو permission key أو handler name.
+
+TEST:
+Node syntax check passed على المصدر المعاد بناؤه.
+
+FINAL GIT STATE:
+MAIN10 blob: 372d216f6918f35090b610121521b83ae4ced4ea
+Final main branch commit: a985ca5cf2a11ee0f19f708a2937e6af9ef69fa1
+
+PRODUCTION:
+لم تُجرَ أي database migration أو data mutation بسبب MAIN10.
+Production schema / RLS / Owner / save-settings dependency تم التحقق منها مباشرة.
+
+AUDIT:
+لا توجد تغييرات في audit data.
+
+FINAL CLOSURE:
+MAIN10 SOURCE UNIT = CLOSED
+FINAL MERGED main.html RUNTIME = NOT YET PROVED
+P11 GLOBAL INTEGRATION = REMAINING GATE
