@@ -18,9 +18,8 @@
 
 ## CURRENT GIT — FRESHLY RECONCILED
 - Branch: `main`
-- Current HEAD: `a20928631202229cf9d1dc5ee4d67f10f06165b9`
-- Latest user documentation commit only normalized the master command file name/newline; no Production mutation was introduced.
-- Repository is public, not archived, and write permissions are available.
+- Current HEAD before this state-only update: `a20928631202229cf9d1dc5ee4d67f10f06165b9`
+- This update changes documentation/state only; no Production mutation was introduced.
 
 ## CURRENT PRODUCTION — FRESHLY VERIFIED
 - Project: `fiilmooggumokxanwiyx`
@@ -28,119 +27,84 @@
 - Region: `eu-west-1`
 - Status: `ACTIVE_HEALTHY`
 - PostgreSQL: 17.6.1.121 / engine 17 / GA channel
-- Fresh SQL snapshot: 66 public tables, 76 public functions, 20 public triggers, 110 public RLS policies.
-- Current business data remains: companies 1, users 24, branches 2, items 17, stock rows 20, inventory_log 3, orders 0, runsheets 0, journal_entries 2, journal_lines 0, customer_ledger 0, supplier_ledger 0, driver_ledger 0, daily_settlements 0, treasury 1.
+- Fresh snapshot: 66 public tables, 76 public functions, 20 public triggers, 110 public RLS policies.
+- Current business data: companies 1, users 24, branches 2, items 17, stock rows 20, inventory_log 3, orders 0, runsheets 0, journal_entries 2, journal_lines 0, customer_ledger 0, supplier_ledger 0, driver_ledger 0, daily_settlements 0, treasury 1.
 - Authoritative identity path: authenticated user -> `public.users.auth_id` -> `public.users.company_id`.
 - Database tenant resolver: `app_private.current_user_company_id()`.
 - Physical-stock core: `post_stock_movement`.
-- Inspected accounting/ledger cores: `post_journal_entry`, `post_customer_ledger_entry`, `post_supplier_ledger_entry`, driver-ledger path.
+- Inspected accounting/ledger cores: `post_journal_entry`, dedicated customer/supplier/driver ledger paths.
 
-## CURRENT PRODUCTION SECURITY / AUTHORIZATION FINDINGS
-- `orders` broad authenticated ALL policy plus broad store/anon INSERT policies.
-- `order_details` broad authenticated ALL policy.
-- `run_sheet_details` broad authenticated ALL policy.
-- `daily_settlements` public ALL with `true/true`.
-- Seven current `SECURITY DEFINER` functions are executable by `anon` and/or `authenticated`, including `create_vehicle_atomic`, vehicle context/guard helpers, `fn_vehicle_audit_trigger`, and `get_budget_vs_actual`.
-- Auth leaked-password protection is disabled.
-- Performance Advisor also reports unindexed FKs, RLS init-plan inefficiencies, multiple permissive policies and unused indexes.
-- No security remediation has been applied in this execution; consumer/authorization proof remains required first.
-
-## STAGING EVIDENCE
-- Staging ref `hfzznsiprnwkpayskzhu` currently has 1 company, 1871 users, 2 branches, 1 item, 1 order, 2 runsheets, 2 stock rows, 14 inventory log rows.
-- Staging therefore does not currently provide a two-company authorization harness by observation alone.
-
-## CURRENT EDGE DEPLOYMENT INVENTORY
-Production contains a large active Edge Function surface across sales, fulfillment, vouchers, purchasing, accounting, inventory, settlement/ledger, master data, vehicles/HR, reporting/support, plus dated E2E/canary/recovery/harness functions.
-Important inspected versions:
-- `save-sales-invoice` v15, JWT enabled
-- `receive-purchase` v12, JWT enabled
-- `complete-loading` v11, JWT enabled
-- `send-stock-voucher` v19, platform JWT disabled but body explicitly authenticates Bearer credentials
-- `complete-picking` v16
-- `start-picking` v33
-- `start-loading` v5
-- `complete-return` v25
-- `complete-order-delivery` v14
-- `unload-runsheet` v6
-- `create-stock-voucher` v9
-- `receive-stock-voucher` v21
-- `save-purchase-order` v3
-- `save-journal-entry` v8
-- `save-daily-settlement` v4
-- `bulk-stock-adjustment` v6
-- `submit-online-order` v7
-- Active dated test/canary/recovery/harness functions are not treated as production consumers merely because they are deployed.
-
-## CURRENT APPLICATION / NEW-MAIN
-- `Current/PWA/main.html` is protected and has not been authorized for replacement.
-- `Current/PWA/New-main` remains a clean-room candidate.
-- New-main has authentication, tenant context, navigation, read models, delegated operational writes, dashboard/search, owner/permission surfaces, Service Worker wiring, and no direct stock/financial mutation.
-- Open New-main gates: exhaustive parity, browser/runtime verification, Service Worker runtime proof, authenticated Production E2E, concurrency proof, deployment lineage, replacement certification.
-- Logical `main1..main11` artifacts are modules/contracts, never byte slices.
+## CURRENT SECURITY / AUTHORIZATION FINDINGS — STILL OPEN
+- `orders` has broad authenticated `ALL` policy and broad anon/authenticated INSERT paths.
+- `order_details` has broad authenticated `ALL` policy.
+- `run_sheet_details` has broad authenticated `ALL` policy.
+- `daily_settlements` has public `ALL` with `USING true` / `WITH CHECK true`.
+- Seven current SECURITY DEFINER functions were observed executable by anon/authenticated in the prior verified security snapshot.
+- Auth leaked-password protection is disabled in the current Security Advisor snapshot.
+- Performance Advisor reports unindexed FKs, RLS init-plan inefficiencies, multiple permissive policies and unused indexes.
+- These are confirmed blockers/findings. No Production security mutation is authorized before consumer proof and a controlled multi-tenant harness.
 
 ## CURRENT ARCHITECTURAL CONTRACTS
-- Sales channels converge through orders/runsheets/fulfillment.
+- Sales channels: POS, Telesales, Order Taker, Van Sales, Online Store.
 - Physical stock authority: `post_stock_movement`.
 - Reservation authority: `reserve_stock` / `release_stock_reservation`.
-- Journal authority for inspected accounting paths: `post_journal_entry`.
+- Journal authority: `post_journal_entry` for inspected accounting paths.
 - Dedicated customer/supplier/driver ledger writers exist.
-- Sales, purchase receiving and loading inspected paths delegate physical movement to the canonical stock engine.
-- Specialized PWAs remain responsible for POS, Telesales, Van Sales, Purchasing/Receiving, Picking, Loading, Delivery, Returns and Stock Vouchers.
+- Specialized PWAs remain owners for POS, Telesales, Van Sales, Purchasing/Receiving, Picking, Loading, Delivery, Returns and Stock Vouchers.
+- `Current/PWA/main.html` remains protected.
+- `Current/PWA/New-main` remains a candidate and is not authorized to replace `main.html`.
 
-## MASTER COMMAND EXECUTION — 2026-08-31
-- Full `doc/Draft/medhat/MASTER - RAWAEA ERP.md` was read end-to-end through section 60.
-- The command was adopted as the execution governance for this session.
-- Current Target Discovery selected consumer/deployment/authorization graph proof rather than a historical numbered stage.
-- Existing `Current/CTO/20260831_PHASE5_SYSTEM_DEPENDENCY_GRAPH.md` was found internally inconsistent: it was labeled CLOSED while admitting the runtime consumer graph was not complete.
-- That inconsistency was corrected; Phase 5 is now `PARTIAL / OPEN` until consumer, runtime, deployment and authorization closure gates are proven.
+## MASTER CONTINUITY REVIEW — CURRENT SESSION
+- `doc/Draft/medhat/MASTER - RAWAEA ERP.md` was read through the end of the command and its continuity rules were adopted for this session.
+- Hytham `تقرير تنفيذي 1` and `تقرير تنفيذي 2` were reviewed as historical execution evidence only, not as current truth.
+- Current `CURRENT_STATE.md` was re-read and found materially newer than the assistant's prior context; it correctly redirects the current target to security/consumer/deployment readiness rather than a historical numbered stage.
+- `RAWAEA_PROJECT_MEMORY_117-02.md` was re-read and confirms the same current position.
+- Direct Production SQL reconfirmed the canonical stock function structure: the 10-argument idempotent `post_stock_movement` is the physical-stock authority, while the 9-argument form is a compatibility wrapper; `post_manual_stock_voucher_atomic` is a SECURITY DEFINER wrapper around its core.
+- Direct Production RLS inspection reconfirmed broad order/fulfillment policies and the open `daily_settlements` policy.
+- Current `main1..main11` fragments remain logical contracts/modules, not byte slices.
 
-## MEMORY 117-02
-- `Current/CTO/RAWAEA_PROJECT_MEMORY_117-02.md` is the governed project memory ledger.
-- It now contains the full Master-command operating rules, current Production snapshot, current security findings, staging limitation, historical Inventory/Receive lineage, consumer examples and closure units.
-- It does not claim exhaustive consumer/deployment proof or Production readiness.
+## NEW-MAIN / GOLDEN FINDINGS
+- The previously visible `Current/PWA/New-main` is an expanded clean-room candidate, not a certified replacement.
+- Historical clean-room execution had previously passed syntax/structural gates and then failed Browser Smoke because the composed inline script was prematurely terminated by HTML parsing.
+- A later experimental builder attempt on a branch failed at composition with `MAIN1_INLINE_SCRIPT_BLOCK_MISSING`; investigation showed that multiple builder/workflow lines exist and are not a single authoritative release path.
+- The current `main` branch does not currently contain the experimental clean-room commits attempted during that prior round; the branch has reconciled back to the newer `a2092863...` state.
+- The repository currently contains multiple historical CI workflows that run on every `main` push. Many fail for unrelated legacy gates; these failures must not be conflated with the Main replacement certification.
+- The canonical `new_main_clean_room_20260831.yml` and older `master_reconstruction_forensic_20260830.yml` currently disagree on target/builder/contract expectations; this is a known workflow-lineage inconsistency requiring cleanup before any closure claim.
 
-## KNOWN ANTIPATTERNS / FORBIDDEN ACTIONS
-- Report != current truth.
-- Historical PASS != current PASS.
-- CI/Migration PASS != Production PASS.
-- Git source != deployed code unless lineage is proven.
-- Deployment existence != production consumption.
-- Unknown != bug and Unknown != remove.
-- No duplicate Physical Stock writers.
-- No blind Production DDL/DML.
-- No repair of data anomalies without provenance/downstream/audit analysis.
-- No broad RLS/grant remediation before consumer proof.
-- No byte-slicing logical PWA modules.
-- No artificial workflow/executor/shadow architecture.
-- No Main replacement before complete evidence.
+## CURRENT BLOCKERS — NO FALSE CLOSURE
+1. Full consumer graph: `CONSUMER -> CAPABILITY -> EDGE -> RPC -> TABLE` is not exhaustively proven.
+2. Full deployment lineage of critical writers is not cryptographically proven end-to-end.
+3. Exhaustive Physical Stock writer exclusivity remains open beyond inspected paths.
+4. Exhaustive journal/ledger/treasury writer matrix remains open.
+5. No controlled two-company authorization harness currently exists in staging.
+6. P0 tenant-isolation defects remain open in Production policies/grants.
+7. Least-privilege grant/policy remediation remains blocked on consumer proof.
+8. Security Advisor findings remain open.
+9. Current auth-link anomaly and cancelled journal-header anomalies require provenance analysis before repair.
+10. New-main browser/runtime parity is not certified.
+11. Service Worker runtime proof is not certified.
+12. Main replacement certification is not authorized.
+13. Historical inventory-log provenance reconciliation remains open.
 
-## CURRENT OPEN CLOSURE UNITS
-1. Full consumer graph: `CONSUMER -> CAPABILITY -> EDGE -> RPC -> TABLE`.
-2. Full deployment lineage of critical writers.
-3. Exhaustive Physical Stock writer exclusivity current proof.
-4. Exhaustive journal/ledger/treasury writer matrix.
-5. Two-tenant authorization proof via a real multi-tenant harness; current staging has one company.
-6. P0 tenant isolation remediation.
-7. Least-privilege grant/policy remediation.
-8. Security Advisor remediation + regression suite.
-9. Production/New-main authenticated E2E and browser parity.
-10. Service Worker runtime proof.
-11. Main replacement certification.
-12. Historical inventory-log provenance reconciliation.
-13. Provenance of the current auth-link/journal anomalies.
+## KNOWN ANTIPATTERNS CONFIRMED THIS SESSION
+- Treating a historical report as current truth.
+- Treating a candidate/CI PASS as runtime/Production PASS.
+- Using a stale workflow as the authority for a current artifact.
+- Using a broad static gate that mistakes legitimate master-data CRUD (for example `treasury`) for transaction posting.
+- Creating or retaining multiple competing builder/workflow paths for the same closure target.
+- Modifying a candidate before the current target/ownership/consumer graph is proven.
 
 ## LAST VERIFIED EVENT
-- Event ID: `LVE-2026-08-31-018`
-- Event Type: `MASTER_COMMAND_EXECUTION_AND_DEPENDENCY_GRAPH_RECONCILIATION`
-- UTC: `2026-08-31T17:48:00Z` (execution window)
-- Source: direct GitHub full-file read + direct SMART ERP SQL verification + staging SQL verification
-- Git SHA: `a20928631202229cf9d1dc5ee4d67f10f06165b9`
+- Event ID: `LVE-2026-08-31-019`
+- Event Type: `MASTER_CONTINUITY_FORENSIC_REVIEW_AND_CURRENT_TARGET_RECONCILIATION`
+- UTC: `2026-08-31T18:00:00Z` (execution window)
+- Source: direct GitHub current files + full Master command review + Hytham reports + direct Production SQL/RLS/function inspection
+- Git SHA: `a20928631202229cf9d1dc5ee4d67f10f06165b9` (state before this documentation commit)
 - Production State: `ACTIVE_HEALTHY`
-- Action: read and analyzed `MASTER - RAWAEA ERP.md` end-to-end through section 60; executed its current-target discovery and reconciliation rules; freshly verified Production and staging; identified the Phase 5 CLOSED/OPEN contradiction; corrected the existing dependency graph to `PARTIAL / OPEN`; updated the governed memory ledger and this state checkpoint.
-- Result: `MASTER GOVERNANCE ACTIVE / PHASE5 CORRECTLY OPEN / SECURITY + CONSUMER + DEPLOYMENT PROOF GATES REMAIN`
-- Evidence: master-command commit `a20928631202229cf9d1dc5ee4d67f10f06165b9`; dependency-graph reconciliation commit `50b40e6b7d8d0f0ddc29dc6681fac8059cc5e110`; memory ledger reconciliation commit `a3d6239a6eea6b786cf0c3d5f9df0a85ff17a93c`; direct Production SQL snapshot and privilege/RLS query observed during the execution window.
-- Impact: project continuation is now governed by current verified evidence, and a misleading Phase 5 closure state has been removed.
-- Next Authorized Action: continue exhaustive consumer/function/deployment lineage and controlled multi-tenant authorization proof; keep Production security mutation blocked until those proofs are sufficient.
+- Action: re-entered the project from current truth; re-read the Master command end-to-end, reviewed the two historical execution reports, reconciled current Git/Production/Memory, verified stock-core and RLS contracts directly, classified the New-main/GOLD builder state, and identified workflow-lineage inconsistency and the actual current P0 security/consumer blockers.
+- Result: `CURRENT TARGET = SECURITY + CONSUMER + DEPLOYMENT READINESS / NEW-MAIN REMAINS CANDIDATE`
+- Impact: historical New-main reconstruction attempts are retained as evidence but are not treated as the active release path; Production mutation remains correctly blocked until readiness gates are satisfied.
+- Next Authorized Action: prove the exhaustive consumer graph and deployment lineage, establish an authorized two-tenant non-production harness, then perform controlled security remediation and regression testing. Only after those gates are closed may New-main runtime/parity/replacement certification resume.
 
 ## CURRENT CLOSURE STATUS
 `CURRENT_STATE = SYNCHRONIZED`
@@ -157,3 +121,4 @@ Important inspected versions:
 `LEDGER_WRITER_EXCLUSIVITY = PARTIAL / OPEN`
 `NEW_MAIN = CANDIDATE / NOT_PRODUCTION_REPLACEMENT`
 `PRODUCTION_ENGINEERING = BLOCKED_UNTIL_READINESS_GATES`
+`GOLDEN_DIAMOND = NOT_CERTIFIED`
