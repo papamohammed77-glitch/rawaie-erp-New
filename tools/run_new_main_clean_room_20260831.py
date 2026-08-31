@@ -73,7 +73,7 @@ def build() -> tuple[str, dict]:
     missing_required = [x for x in required if x not in candidate]
     if missing_required:
         raise RuntimeError('MISSING_REQUIRED_CONTRACTS:' + ','.join(missing_required))
-    if re.search(r"meta\.permissions\s*\|\|\s*\[["\']\*["\']\]", candidate):
+    if re.search(r"meta\.permissions\s*\|\|\s*\[\s*['\"]\*['\"]\s*\]", candidate):
         raise RuntimeError('OWNER_WILDCARD_FALLBACK_REMAINS')
     if re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,1600}?\.(?:update|insert|upsert|delete)\(", candidate):
         raise RuntimeError('DIRECT_STOCK_WRITER_REMAINS')
