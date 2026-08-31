@@ -40,20 +40,17 @@ def repaired_source(path: Path) -> str:
 
 
 def compose_html(chunks: list[str]) -> str:
-    # main1 is the HTML shell and owns the sole document-level inline script.
-    # Strip only its terminal script/body/html closures so all governed fragments
-    # execute inside that same script. Fragment 2..11 are JS-only bodies.
+    # main1 is intentionally an HTML shell whose final inline <script> remains
+    # open; main2..main11 are inserted into that same script body.
     first = chunks[0]
-    shell_close = re.search(r'</script>\s*</body>\s*</html>\s*$', first, re.I | re.S)
-    if not shell_close:
-        raise RuntimeError('MAIN1_SHELL_CLOSURE_NOT_FOUND')
-    first_open_end = first.find('>', first.find('<script'))
-    if first_open_end < 0:
+    inline_open = re.search(r'<script(?![^>]*\bsrc=)[^>]*>', first, re.I)
+    if not inline_open:
         raise RuntimeError('MAIN1_INLINE_SCRIPT_OPEN_NOT_FOUND')
-    # Keep everything through the inline script opening and its body, removing only
-    # the final three document closures. No content is otherwise normalized.
-    base = first[:shell_close.start()].rstrip()
-    candidate = base + '\n\n' + '\n\n'.join(c.rstrip() for c in chunks[1:]) + '\n\n</script>\n</body>\n</html>\n'
+    if re.search(r'</script>\s*</body>\s*</html>\s*$', first, re.I | re.S):
+        raise RuntimeError('MAIN1_UNEXPECTED_DOCUMENT_CLOSURE')
+    if re.search(r'</script>', first[inline_open.end():], re.I):
+        raise RuntimeError('MAIN1_INLINE_SCRIPT_ALREADY_CLOSED')
+    candidate = first.rstrip() + '\n\n' + '\n\n'.join(c.rstrip() for c in chunks[1:]) + '\n\n</script>\n</body>\n</html>\n'
     return candidate
 
 
@@ -78,13 +75,8 @@ def build() -> tuple[str, dict]:
             raise RuntimeError(f'INVALID_FRAGMENT_SCRIPT_CLOSE_MAIN{idx}')
 
     candidate = compose_html(chunks)
-
-    # Ensure the candidate has one document closure and at least one inline script.
     if candidate.lower().count('</html>') != 1 or candidate.lower().count('</body>') != 1:
         raise RuntimeError('DOCUMENT_CLOSURE_CARDINALITY_INVALID')
-    inline = re.search(r'<script(?![^>]*\bsrc=)[^>]*>', candidate, re.I)
-    if not inline:
-        raise RuntimeError('INLINE_SCRIPT_MISSING_AFTER_COMPOSITION')
 
     required = [
         'window.RW_ShellContext', 'RW_ShellContext.getCompanyId()',
