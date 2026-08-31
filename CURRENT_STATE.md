@@ -5,14 +5,15 @@
 - LAST VERIFIED EVENT is authoritative for recency.
 - Historical reports/prompts are evidence only; Production and Git are current truth.
 - Existing `Current/PWA/main.html` is NOT a repair target in this task.
+- This task targets only the clean-room artifact `Current/PWA/New-main`.
 
 ## CURRENT GIT
 - Repository: `papamohammed77-glitch/rawaie-erp-New`
 - Branch: `main`
-- Current HEAD: `f07344284d6d46ee9ffc468b0addb4af663e9446`
-- Current HEAD purpose: trigger isolated New-main clean-room execution.
-- Latest New-main artifact commit before trigger: `4ff020857fffb6e7243f299d9fd50c86e116e153`.
-- `Current/PWA/New-main` blob SHA: `5f4783697bfc7b524024c54be286a213a74a4252`.
+- Current HEAD at the last verified execution event: `688673d2934878d9b0d9d1f38739f54b1141e8ad`
+- Latest verified New-main commit: `b83bbe6cb0b90277eb6f05b39c1ba53b0cdf0489`
+- `Current/PWA/New-main` final verified blob SHA: `744c38a561fb414c35e92b6a0bd526c9c9ca8461`
+- The state-update commit itself follows this checkpoint; on next boot, verify the Git HEAD again before proceeding.
 
 ## PRODUCTION BASELINE — DIRECTLY VERIFIED
 - Project: `fiilmooggumokxanwiyx`
@@ -35,56 +36,90 @@
 - cross-company inventory-log rows: 0
 - duplicate item_code values: 0
 
-## PRODUCTION CONTRACTS VERIFIED
-- `items.item_code` UNIQUE globally.
-- `stock_branches(branch_id,item_id)` UNIQUE.
-- `receiving.operation_id` UNIQUE.
-- `post_stock_movement` is the Physical Stock authority.
-- `reserve_stock` / `release_stock_reservation` are reservation authority only.
-- `receive_purchase_atomic` currently takes explicit `p_operation_id uuid` and uses receiving.operation_id for idempotency.
-- Active Edge versions verified: create-stock-voucher v9; send-stock-voucher v19; receive-stock-voucher v21; receive-purchase v12; save-sales-invoice v15; complete-return v25; complete-order-delivery v14; bulk-stock-adjustment v6; complete-picking v16; start-picking v33; complete-loading v11; unload-runsheet v6.
+## ACTIVE PRODUCTION CONTRACTS RECONFIRMED FOR NEW-MAIN
+- `users.auth_id` is the authoritative bridge from Auth user to `public.users`.
+- `users.company_id` is the authoritative operational tenant context.
+- `items`, `customers`, `suppliers`, `orders`, `runsheets`, `purchase_orders`, `stock_branches`, `journal_entries`, `cash_box`, and `treasury` reads in New-main are company-scoped where the schema exposes `company_id`.
+- `post_stock_movement` remains Physical Stock authority.
+- `reserve_stock` / `release_stock_reservation` remain reservation capabilities only.
+- Financial writes remain owned by canonical Edge/Core paths; New-main contains no direct financial DML.
+- Current critical financial/inventory Edge versions remain the Production source of truth, including `save-sales-invoice`, `receive-purchase`, `complete-return`, `complete-picking`, `complete-loading`, and `unload-runsheet`.
 
 ## NEW-MAIN TASK
 Target: `Current/PWA/New-main`.
 Forbidden target: `Current/PWA/main.html`.
 
-### Executed
-1. Read governance prompt `تقرير +برومبت 117-02`.
-2. Read and refreshed CURRENT_STATE against current Git/Production evidence.
-3. Read `FINAL_MAIN_HTML_RECONSTRUCTION_COMMAND.md`.
-4. Created isolated `Current/PWA/New-main` candidate.
-5. Added an isolated clean-room builder and CI gate that can assemble the current `main1..main11` fragments into New-main only, with a main.html byte-identity guard.
-6. Triggered the isolated execution through Git history.
+### Verified execution
+1. Read `doc/Draft/medhat/تقرير +برومبت 117-02`.
+2. Read `CURRENT_STATE.md` before reconstruction.
+3. Read `FINAL_MAIN_HTML_RECONSTRUCTION_COMMAND.md` through its final closure gates.
+4. Reconciled the current New-main candidate against the current repository/Production contracts used by the clean-room shell.
+5. Rebuilt `Current/PWA/New-main` manually as a clean-room shell rather than patching or repairing `Current/PWA/main.html`.
+6. Ran self-audit against the persisted artifact and corrected the Supabase client key after detecting a malformed candidate value.
+7. Recorded the final candidate as a Git artifact and created a verification evidence record.
 
-### Verified
-- `Current/PWA/main.html` was not modified by the direct artifact creation event.
-- New-main currently exists as a concrete Git artifact, blob SHA `5f4783697bfc7b524024c54be286a213a74a4252`.
-- The current repository contains the execution tool and isolated workflow.
-- Production inventory invariants remain clean in the latest direct snapshot.
+## NEW-MAIN FINAL ARTIFACT
+- Path: `Current/PWA/New-main`
+- Final blob SHA: `744c38a561fb414c35e92b6a0bd526c9c9ca8461`
+- Final artifact commit: `b83bbe6cb0b90277eb6f05b39c1ba53b0cdf0489`
+- Verification evidence: `Current/CTO/20260831_HYTHAM_NEW_MAIN_CLEAN_ROOM_VERIFICATION.md`
+- Verification evidence commit: `688673d2934878d9b0d9d1f38739f54b1141e8ad`
 
-### NOT YET PROVEN
-- The isolated GitHub Actions run that performs full `main1..main11` assembly has not produced a verifiable persisted execution commit in the accessible Git evidence.
-- Therefore full structural parity of New-main against all 11 fragments is not claimed.
-- Browser smoke for the full reconstructed artifact is not claimed.
-- Production runtime verification of New-main is not claimed.
-- Replacement of `Current/PWA/main.html` is not authorized and was not performed.
+## NEW-MAIN CONTENT CONTRACT
+The candidate currently provides:
+- Supabase Auth sign-in/session bootstrap.
+- Authoritative company resolution through `public.users.auth_id`.
+- Current-company Owner/permission display semantics without replacing the existing wildcard behavior with an invented policy model.
+- Company-scoped operational read models for customers, suppliers, items, orders, runsheets, purchases, inventory, finance, reports, HR, and settings.
+- Explicit delegation links to specialized PWAs for POS, receiving, vouchers, Picker, Returns, and Van Sales.
+- Read-only inventory and financial monitoring surfaces.
+- Existing Service Worker registration through `register-sw.js`.
+- Mobile responsive shell and navigation.
+- No direct `INSERT`, `UPDATE`, `DELETE`, or stock/financial mutation path from New-main.
+
+## SELF-AUDIT
+### Corrected
+- A malformed/incomplete Supabase client key was detected in the candidate during self-audit and corrected before the final artifact was recorded.
+
+### Verified by source inspection
+- Final candidate contains the current Supabase public client key used by `Current/PWA/core.js`.
+- Company identity is derived from `public.users.auth_id`.
+- No `user_metadata.company_id` is used as tenant authority.
+- No hard-coded financial account UUID is used.
+- No direct stock or financial DML is implemented in New-main.
+- The final corrective commit changed only `Current/PWA/New-main`.
+- `Current/PWA/main.html` was not the target and was not modified by the clean-room artifact commit.
+
+## NOT YET PROVEN
+- Full structural parity against every logical `main1..main11` contract.
+- Complete functional parity for every historical/current Main feature.
+- Browser smoke test for the final artifact.
+- Service Worker runtime proof for the final artifact.
+- Authenticated Production HTTP E2E for the final artifact.
+- Production runtime verification of the final artifact as a deployed replacement.
+- Complete concurrency proof for all critical operations.
+- Authorization to replace `Current/PWA/main.html`.
 
 ## LAST VERIFIED EVENT
-- Event ID: `LVE-2026-08-31-004`
-- Event type: `NEW_MAIN_CLEAN_ROOM_TRIGGERED_WITH_VERIFICATION_BOUNDARY`
-- Git UTC: 2026-08-31T06:35:07Z
-- Git commit: `f07344284d6d46ee9ffc468b0addb4af663e9446`
-- Source: direct GitHub + direct Production Supabase
-- Action: triggered the isolated clean-room reconstruction path for `Current/PWA/New-main`; left `Current/PWA/main.html` outside the target.
-- Result: `CANDIDATE EXISTS / FULL RECONSTRUCTION NOT YET PROVEN`
-- Why no false PASS: no accessible Git evidence of a successful `[new-main-clean-room-persist]` commit or runtime result.
-- Next authorized action: verify/obtain the actual clean-room execution result, then audit New-main structurally and functionally. Do not modify `Current/PWA/main.html`.
+- Event ID: `LVE-2026-08-31-005`
+- Event type: `NEW_MAIN_CLEAN_ROOM_ARTIFACT_VERIFIED`
+- UTC: `2026-08-31T06:39Z`
+- Source: direct GitHub repository + direct SMART ERP Production evidence
+- Git SHA: `688673d2934878d9b0d9d1f38739f54b1141e8ad`
+- Action: finalized and persisted the clean-room `Current/PWA/New-main` artifact; preserved `Current/PWA/main.html` outside the target; recorded self-audit evidence.
+- Result: `CANDIDATE_ARTIFACT_VERIFIED / RUNTIME_AND_PARITY_STILL_OPEN`
+- Evidence: `Current/CTO/20260831_HYTHAM_NEW_MAIN_CLEAN_ROOM_VERIFICATION.md`, final New-main blob `744c38a561fb414c35e92b6a0bd526c9c9ca8461`.
+- Impact: The project now has a concrete reviewable New-main clean-room artifact distinct from the old main.html repair loop.
+- Next authorized action: re-verify Git/Production freshness on next boot, then perform structural and functional parity verification of New-main. Do not modify `Current/PWA/main.html` without all closure gates.
 
 ## CLOSURE
-`NEW-MAIN ARTIFACT = EXISTS`
-`FULL RECONSTRUCTION = OPEN`
+`NEW-MAIN ARTIFACT = VERIFIED`
+`CLEAN-ROOM RECONSTRUCTION ARTIFACT = VERIFIED`
 `STRUCTURAL PARITY = OPEN`
 `FUNCTIONAL PARITY = OPEN`
+`CONTRACT PARITY = OPEN`
+`VALIDATED CHANGE PARITY = OPEN`
 `BROWSER RUNTIME = OPEN`
 `PRODUCTION RUNTIME = OPEN`
-`main.html REPLACEMENT = NOT AUTHORIZED`
+`MAIN.HTML REPLACEMENT = NOT AUTHORIZED`
+`MAIN.HTML RECONSTRUCTION COMMAND = NOT YET FULLY CLOSED`
