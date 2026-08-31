@@ -2,6 +2,8 @@ name: RAWAEA MASTER RECONSTRUCTION GOLD V2
 on:
   push:
     branches: [reconstruction-gold-20260831]
+  pull_request:
+    branches: [main]
 permissions:
   contents: write
 jobs:
