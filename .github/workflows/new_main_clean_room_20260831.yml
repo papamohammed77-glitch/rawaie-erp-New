@@ -49,9 +49,10 @@ jobs:
           import re, subprocess, tempfile
           p=Path('Current/PWA/New-main')
           s=p.read_text(encoding='utf-8')
-          required=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn','window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM']
+          required=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn','window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM','btn-save-license-only',"{view:'license'",'license:RW_OwnerLicense.render']
           missing=[x for x in required if x not in s]
           if missing: raise SystemExit('STRUCTURAL_CONTRACT_MISSING:'+','.join(missing))
+          if "var owner=!!op.data" in s: raise SystemExit('OWNER_INFERENCE_FROM_PROFILE_REMAINS')
           if s.lower().count('</html>')!=1 or s.lower().count('</body>')!=1: raise SystemExit('DOCUMENT_CLOSURE_INVALID')
           scripts=re.findall(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>(.*?)</script>',s,re.I|re.S)
           if len(scripts)!=1: raise SystemExit('INLINE_SCRIPT_COUNT_INVALID:'+str(len(scripts)))
@@ -84,9 +85,20 @@ jobs:
             page.on('response',r=>{if(r.status()>=400 && !/favicon\\.ico$/i.test(r.url())) bad.push({status:r.status(),url:r.url()})});
             await page.goto('http://127.0.0.1:8124/New-main.html',{waitUntil:'domcontentloaded',timeout:30000});
             await page.waitForTimeout(3000);
-            const r=await page.evaluate(()=>({lang:document.documentElement.lang,body:!!document.body,login:!!document.getElementById('loginScreen'),app:!!document.getElementById('app'),shell:!!window.RW_ShellContext,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense,requiredViews:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_HR','RW_CRM'].every(k=>!!window[k])}));
+            const r=await page.evaluate(()=>({
+              lang:document.documentElement.lang,
+              body:!!document.body,
+              login:!!document.getElementById('rw-login-page')||!!document.getElementById('loginScreen'),
+              app:!!document.getElementById('rw-main-shell')||!!document.getElementById('app'),
+              shell:!!window.RW_ShellContext,
+              views:!!window.RW_Views,
+              owner:!!window.RW_OwnerLicense,
+              licenseRoute:!!window.RW_Views?.actions?.license,
+              licenseNav:document.body.innerText.includes('إدارة الترخيص') || document.body.innerText.includes('إدارة التراخيص'),
+              requiredViews:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_HR','RW_CRM'].every(k=>!!window[k])
+            }));
             console.log(JSON.stringify({result:r,pageErrors,consoleErrors,bad}));
-            if(r.lang!=='ar'||!r.body||!r.login||!r.app||!r.shell||!r.views||!r.owner||!r.requiredViews||pageErrors.length||consoleErrors.length||bad.length) process.exit(2);
+            if(r.lang!=='ar'||!r.body||!r.login||!r.app||!r.shell||!r.views||!r.owner||!r.licenseRoute||r.pageErrors||pageErrors.length||consoleErrors.length||bad.length) process.exit(2);
             await browser.close();
           })().catch(e=>{console.error(e);process.exit(2)});
           NODE
