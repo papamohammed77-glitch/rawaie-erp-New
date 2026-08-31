@@ -1,0 +1,110 @@
+CORRECTIVE DIRECTIVE — 116-2 FORENSIC RECONCILIATION & TRUE CLOSURE
+
+الهدف
+تصحيح أي فجوة أو ادعاء سابق يخص Prompt 116-1 / 116-2، ثم تثبيت حالة حالية قابلة للإثبات من Git + CI + Production.
+
+القواعد الحاكمة
+
+1. التقارير السابقة أدلة تاريخية فقط وليست Source of Truth.
+2. Production الحالية + Git refs الحالية + CI الحالي هي مصادر الحقيقة.
+3. لا تعتمد أي نسبة أو PASS أو CLOSED من سجل قديم إذا تحرك HEAD أو تغيرت Production بعده.
+4. لا تعيد بناء Current/PWA/main/main1..main11 من main.html بالـbyte slicing. هذه ملفات logical modules وليست slices ثابتة من monolith.
+5. أي forensic check يكتب فوق Current logical fragments ممنوع.
+6. يسمح فقط بتطبيع اختلاف timestamp header المعروف حرفيًا في canonical main. أي فرق آخر يجب أن يفشل.
+7. لا تغيّر business contract أو Production behavior لمجرد جعل CI أخضر.
+8. كل فشل جديد يجب تشخيصه من log/source ثم إصلاح جذره ثم إعادة الاختبار.
+
+التحقيق الإلزامي
+
+A. Git truth
+- سجل main HEAD الحالي.
+- سجل branch reconstruction-114-final-20260831 HEAD الحالي.
+- سجل PR #50 state/base/head.
+- تحقق من وجود Current/PWA/main.reconstruction.html على branch.
+- تحقق من SHA/size الحالية للـcandidate.
+- تحقق من Current/PWA/main/main1..main11 الحالية وعدم تغيرها بواسطة forensic workflow.
+- اربط كل نتيجة بالـcommit الذي أنتجها.
+
+B. Prompt 116-2 historical truth
+- أثبت أن run الذي سبق وأغلق Candidate قد نجح فعليًا.
+- سجّل Candidate SHA ونتائج static/contract/browser gates من ذلك run.
+- سجّل أن Production replacement لم يكن جزءًا من 116-2.
+- لا تحوّل هذا التاريخ إلى Current PASS بدون إعادة تحقق.
+
+C. Forensic workflow truth
+- تحقق أن reconstruct_pwa_fragments workflow:
+  * لا يكتب فوق logical fragments.
+  * يقرأ canonical main ويطبع فقط timestamp metadata header المعروف.
+  * يتحقق من Candidate الكامل في structural gate.
+  * يكتب forensic reports فقط.
+- أي فشل يجب إصلاحه في workflow نفسه، لا تعطيله ولا تخفيف شروطه بطريقة تخفي اختلافًا حقيقيًا.
+
+D. Production truth
+- التقط Production snapshot في لحظة التقرير:
+  companies, users, branches, items, stock_branches, inventory_log, stock_vouchers, purchase_orders, orders, runsheets, audit_log.
+- افحص deployed edge-function versions للوظائف ذات الصلة.
+- افحص PostgreSQL functions التي تعدل stock_branches أو تكتب inventory_log.
+- افحص triggers على stock_branches/inventory_log.
+- افحص tenant/company scoping.
+- افحص migrations المطبقة بعد Baseline 116-1.
+- لا تستخدم أي count قديم بدل snapshot جديد.
+
+E. Current status reconciliation
+أنشئ جدولًا صريحًا:
+
+Artifact | Historical Status | Current Git State | Current CI State | Production State | Final Status
+
+ويجب أن يفرق على الأقل بين:
+- 116-1 Baseline
+- 116-2 Candidate Build
+- Prompt 114 reconstruction pipeline
+- forensic PWA gate
+- Production replacement
+
+التصحيح
+
+1. إذا كان الفشل ناتجًا عن forensic tooling defect، أصلح tooling نفسه.
+2. إذا كان الفشل ناتجًا عن Candidate defect، أصلح المصدر الصحيح ثم أعد build.
+3. إذا كان الفشل ناتجًا عن Production drift، لا تعيد كتابة التاريخ؛ أنشئ reconciliation جديدًا.
+4. ممنوع إنشاء Candidate جديد من الصفر ما لم يثبت أن المسار الحالي تالف فعليًا.
+5. ممنوع استبدال Current/PWA/main.html أو نشر Production في هذه المرحلة.
+
+التحقق النهائي
+
+لا تكتب CANDIDATE = VALID / CANDIDATE_BUILD = CLOSED للحالة الحالية إلا بعد:
+- أحدث branch CI ناجح.
+- أحدث forensic gate ناجح.
+- Candidate file موجود على نفس HEAD الذي تم اختباره.
+- logical fragments لم تُستبدل بأجزاء byte-sliced.
+- Git evidence وCI evidence متطابقان.
+
+ولا تكتب GLOBAL STATUS = CLOSED إذا بقي:
+- workflow failure غير مفسر؛ أو
+- Production snapshot قديم؛ أو
+- اختلاف بين artifact المختبر وHEAD الحالي؛ أو
+- Unknown/Conflict مؤثر.
+
+الإخراج الإلزامي
+
+1. Current Truth Snapshot
+2. Historical 116-1 / 116-2 Verification
+3. Defects Found in Previous Execution
+4. Corrections Actually Applied
+5. Latest CI Verification
+6. Production Verification
+7. Remaining Unknowns/Conflicts
+8. Final Closure Matrix
+9. Explicit statement:
+   - WHAT IS CLOSED
+   - WHAT IS NOT CLOSED
+   - WHY
+   - EXACT NEXT AUTHORIZED STEP
+
+الممنوع
+
+- الكذب أو التجميل.
+- إعادة تسمية الفشل إلى PASS.
+- اعتماد تقرير سابق بعد تغير المرجع.
+- تعديل الاختبار لإخفاء defect حقيقي.
+- الكتابة فوق production أو source fragments كحل سريع.
+- إنهاء المرحلة بعبارة عامة مثل “تم التنفيذ” دون artifact + commit + CI + runtime evidence.
