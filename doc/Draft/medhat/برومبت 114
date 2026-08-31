@@ -1,0 +1,969 @@
+أتممت نقطة التحقيق الأساسية من المصادر المباشرة، والنتيجة الحاسمة هي أن المسار السابق لـ Gold كان مبنيًا على أساس غير كافٍ؛ لذلك لم أسمح باستبدال Current/PWA/main.html ولم أعتبر الـV3 Gold.
+
+ما ثبت مباشرة الآن
+
+Production الحالية عند آخر snapshot مباشر في 2026-08-31 01:36:10 UTC هي:
+
+الكيان	العدد
+Companies	1
+Users	24
+Branches	2
+Items	17
+Stock Rows	20
+Inventory Logs	3
+Orders	0
+Order Details	0
+Runsheets	0
+Purchase Orders	0
+Stock Vouchers	0
+Audit Rows	1,866
+
+وهذا snapshot مباشر من Supabase وليس نقلاً عن تقرير سابق.
+
+كما ثبت أن:
+
+items.item_code = UNIQUE عالميًا،
+stock_branches هويته (branch_id,item_id)،
+وعقد Physical Stock الحالي هو:
+
+Physical Movement
+        ↓
+post_stock_movement
+        ↓
+stock_branches
+        +
+inventory_log
+
+ومسار Audit الحالي:
+
+trg_audit_stock_vouchers
+        ↓
+fn_audit_trigger()
+        ↓
+audit_log
+
+وهذه حقائق Production مباشرة.
+
+أهم اكتشاف في Reconstruction السابقة
+
+راجعت الـV3 الفعلية الموجودة في PR #49، والـbuilder الحالي tools/gold_reconstruction_v3.py.
+
+الـbuilder الحالي يقوم عمليًا بهذا:
+
+Current main.html
+        ↓
+p0_main_shell_repair_v2
+        ↓
+candidate
+
+ثم يستخدم main1..main11 أساسًا في parity scanning وليس في بناء الـartifact نفسه. أي أنه لا يعيد تركيب الـ11 أجزاء فعليًا داخل الملف النهائي. لذلك لا يمكن اعتماد هذا البناء كـGold؛ حتى لو اجتاز بعض الاختبارات الشكلية.
+
+وهذا يتوافق مع اكتشاف سابق مباشر أن main1..main11 ليست slices مادية يمكن concatenation لها بأمان، وأن Current/PWA/main.html نفسه أقرب إلى نسخة قديمة كاملة، بينما الـfragments تحمل تطورات لاحقة.
+
+والأهم أن PR #49 نفسه ما زال Draft / غير مدموج، وبالتالي لم يصل المشروع بعد إلى Artifact نهائي مثبت.
+
+القرار المعماري الصحيح
+
+لن نبني:
+
+Original main.html
+        +
+Current main.html
+        +
+main1..main11
+
+ولن نبني:
+
+main1 + main2 + ... + main11
+
+بل:
+
+CURRENT PRODUCTION
+        +
+CURRENT GIT
+        +
+ORIGINAL CONTRACTS
+        +
+CURRENT main1..main11
+        +
+CURRENT PWA CORE
+        +
+CURRENT SW
+        +
+CURRENT EDGE/RPC
+        +
+SCHEMA/RLS/TRIGGERS
+        ↓
+CANONICAL SEMANTIC MODEL
+        ↓
+ONE GREENFIELD PARENT
+        ↓
+STATIC + SEMANTIC + RUNTIME GATES
+        ↓
+FRESH PRODUCTION FREEZE
+        ↓
+ONLY THEN replace main.html
+
+وهذه هي النقلة الفعلية من مرحلة التحقيق إلى مرحلة إنتاج Gold Artifact.
+
+شروط Gold / Diamond التي أعتمدها
+GOLD
+
+يجب أن تتحقق كلها:
+
+main.html جديد فعليًا وليس مجرد copy أو overlay.
+جميع الوظائف الحية من main1..main11 موجودة أو أعيد توزيع مسؤوليتها بشكل مثبت.
+لا يوجد unexplained feature loss.
+لا يوجد direct writer إلى:
+stock_branches
+inventory_log
+لا يوجد hard-coded tenant/company.
+لا يوجد app_settings LIMIT 1 لاكتساب Tenant identity.
+users.auth_id → users.id → users.company_id → RW_ShellContext.
+OWNER semantics محفوظة.
+جميع RPC/Edge contracts المطلوبة موجودة ومتوافقة.
+لا توجد global symbol collisions أو duplicate initialization.
+JavaScript syntax PASS.
+HTML structure PASS.
+semantic parity PASS.
+current-production contract PASS.
+browser smoke PASS.
+fresh baseline قبل replacement.
+final SHA موثق.
+final commit موثق.
+بعد replacement إعادة اختبار كاملة.
+DIAMOND
+
+كل ما سبق +:
+
+zero known closure debt
++
+zero material unknowns
++
+zero material conflicts
++
+zero unverified material claims
++
+reproducible evidence
++
+traceable final artifact
++
+fresh Production verification immediately after deployment
++
+no regression detected
+البرومبت التنفيذي الجديد
+
+هذا هو البرومبت الذي أعتبره الآن الـCanonical Execution Command. وهو مبني على ما ثبت فعليًا، وليس على الـV3 السابقة:
+
+MASTER GOLD ARTIFACT RECONSTRUCTION — FINAL EXECUTION COMMAND
+RAWAEA ERP — PWA PARENT / SINGLE MAIN.HTML
+FORENSIC → CANONICAL → GREENFIELD → GOLD → DIAMOND
+MISSION
+
+المهمة الوحيدة:
+
+إنتاج Current/PWA/main.html واحد نهائي يمثل الـPWA Parent الحقيقي لنظام RAWAEA ERP.
+
+ليس المطلوب Patch.
+ليس المطلوب Concatenation.
+ليس المطلوب Copy.
+ليس المطلوب Overlay.
+ليس المطلوب الحفاظ على أخطاء تاريخية.
+
+المطلوب:
+
+ONE CANONICAL PARENT PWA
++
+ALL VALID SURVIVING FUNCTIONALITY
++
+ALL VALID HISTORICAL CONTRACTS
++
+ALL CURRENT CONTRACTS
++
+CURRENT PRODUCTION COMPATIBILITY
++
+NO FUNCTION LOSS
++
+NO REGRESSION
++
+NO SHADOW ENGINE
++
+NO UNEXPLAINED DEBT
+1 — AUTHORITY
+
+الترتيب الإلزامي للحقيقة:
+
+LIVE PRODUCTION
+↓
+CURRENT GIT
+↓
+CURRENT DATABASE / RPC / EDGE / RLS / TRIGGERS
+↓
+CURRENT PWA / CORE / SW
+↓
+CURRENT main1..main11
+↓
+ORIGINAL main1..main11
+↓
+HISTORICAL REPORTS
+
+التقارير التاريخية ليست Source of Truth.
+
+أي معلومة قديمة يجب إعادة إثباتها من المصدر الحالي.
+
+لا يوجد تخمين.
+
+لا يوجد افتراض.
+
+لا يوجد:
+
+probably
+should be
+likely
+looks correct
+
+في أي قرار مادي.
+
+2 — GATE 0: FRESH WORLD FREEZE
+
+أعد قراءة:
+
+Current/PWA/main.html
+Current/PWA/main/main1.md ... main11.md
+Original/PWA/main.html
+Original/PWA/main/main1.md ... main11.md
+Current/PWA/core.js
+Current/PWA/sw.js
+Current/PWA/register-sw.js
+
+ثم احصل مباشرة من Production على:
+
+migration head
+RPC signatures
+RPC definitions
+SECURITY DEFINER
+GRANTS
+RLS
+TRIGGERS
+constraints
+indexes
+Edge Function versions
+Edge Function hashes
+Production counts
+Production integrity
+
+أنشئ:
+
+Current/CTO/RECONSTRUCTION_BASELINE.json
+
+يحوي:
+
+Git HEAD
+all file SHA256
+file sizes
+line counts
+Production snapshot timestamp
+Production counts
+RPC hashes
+Edge versions
+schema hash
+trigger inventory
+RLS inventory
+grant inventory
+
+أي تغيير بعد هذه اللحظة يجعل baseline:
+
+STALE
+
+ويجب إنشاء baseline جديد.
+
+3 — GATE 1: FORENSIC SOURCE MAP
+
+أنشئ:
+
+MASTER_FILE_INTEGRITY_MAP
+
+لكل:
+
+main1
+main2
+...
+main11
+
+استخرج:
+
+functions
+globals
+window exports
+DOM IDs
+DOM classes
+event listeners
+initializers
+timers
+observers
+storage
+IndexedDB / Dexie
+Supabase reads
+Supabase writes
+Edge Functions
+RPCs
+tables
+permissions
+Owner guards
+Tenant guards
+License guards
+PWA behavior
+offline
+sync
+realtime
+print
+export
+upload
+download
+notifications
+audit
+workflow
+routing
+dependencies
+4 — GATE 2: FEATURE CANON
+
+أنشئ:
+
+feature_registry.json
+
+ويجب أن يحتوي كل Feature حي:
+
+Feature
+Historical source
+Original source
+Current source
+Production evidence
+Business purpose
+UI entry
+Function owner
+DOM contract
+Backend contract
+Permission
+Tenant dependency
+State dependency
+Storage
+Offline
+Sync
+Realtime
+Target implementation
+Disposition
+
+الـDisposition المسموح فقط:
+
+PRESERVED
+REBUILT
+IMPROVED_WITHOUT_CONTRACT_LOSS
+INTENTIONALLY_RETIRED_WITH_PROOF
+
+لا يوجد Silent Loss.
+
+5 — GATE 3: FUNCTION CANON
+
+أنشئ:
+
+function_registry.json
+
+لكل وظيفة:
+
+name
+historical owner
+original owner
+current owner
+callers
+callees
+parameters
+return value
+side effects
+DOM dependencies
+state dependencies
+RPC dependencies
+Edge dependencies
+permission
+tenant
+error behavior
+target owner
+
+ثم:
+
+Original
+vs
+Current
+vs
+Target
+
+أي Function اختفت يجب أن تعرف لماذا وأين انتقلت مسؤوليتها.
+
+6 — GATE 4: CANONICAL PARENT MODEL
+
+لا تبدأ بكتابة HTML النهائي.
+
+أنشئ داخليًا:
+
+MAIN_CANONICAL_MODEL
+
+بالمجالات:
+
+BOOT
+AUTH
+SESSION
+TENANT
+OWNER
+LICENSE
+NAVIGATION
+DASHBOARD
+CUSTOMERS
+SUPPLIERS
+BRANCHES
+USERS
+ROLES
+ITEMS
+INVENTORY
+VOUCHERS
+PURCHASING
+RECEIVING
+ORDERS
+RUNSHEETS
+PICKING
+LOADING
+DELIVERY
+RETURNS
+UNLOADING
+VEHICLES
+POS
+TELESALES
+VAN SALES
+ONLINE STORE
+ACCOUNTING
+TREASURY
+REPORTS
+HR
+CRM
+AUDIT
+NOTIFICATIONS
+PWA
+OFFLINE
+SYNC
+REALTIME
+STORAGE
+PRINT
+EXPORT
+7 — GATE 5: CORRECT RECONSTRUCTION STRATEGY
+
+ممنوع:
+
+main.html + fragments
+
+وممنوع:
+
+fragment concatenation blindly
+
+الطريقة الصحيحة:
+
+MAIN1
+=
+PARENT HTML / HEAD / BODY / SHELL / CORE BOOT
+
+ثم:
+
+MAIN2 → MAIN11
+=
+LOGICAL APPLICATION MODULES
+
+ويُعاد تركيبها داخل Parent واحد.
+
+إذا احتاج أي Fragment إلى contract من Fragment آخر:
+
+REGISTER DEPENDENCY
+
+ثم رتب التحميل وفق dependency order.
+
+8 — GATE 6: GREENFIELD ARTIFACT
+
+أنشئ:
+
+Current/PWA/main.reconstruction.html
+
+ولا تلمس:
+
+Current/PWA/main.html
+
+يجب أن يكون الملف:
+
+complete HTML
+single parent shell
+all application modules
+all required contracts
+all required DOM
+all current feature behavior
+
+يجب ألا يحتوي:
+
+hard-coded company UUID
+direct stock writer
+direct inventory_log writer
+unsafe global lookup
+unscoped tenant lookup
+duplicate initialization
+hidden override
+late override
+competing business engine
+9 — TENANT HARD LOCK
+
+الهوية:
+
+Authenticated User
+↓
+users.auth_id
+↓
+users.id
+↓
+users.company_id
+↓
+RW_ShellContext
+
+ممنوع:
+
+app_settings LIMIT 1
+first row
+global company cache
+hardcoded company
+
+إلا إذا ثبت أنه غير Tenant-related.
+
+10 — OWNER HARD LOCK
+
+لا تحول OWNER إلى role-only logic.
+
+يجب الحفاظ على Contract:
+
+OWNER
+=
+isOwner
++
+permissions=["*"]
++
+owner profile
++
+valid license semantics
+
+أي تغيير يجب أن يستند إلى Evidence.
+
+11 — INVENTORY HARD LOCK
+
+الـPWA ليس Inventory Engine.
+
+الـPWA يرسل command فقط.
+
+العقد:
+
+Physical Movement
+↓
+post_stock_movement
+↓
+stock_branches
++
+inventory_log
+
+Reservation:
+
+reserve_stock
+release_stock_reservation
+
+فقط.
+
+يجب أن يفشل البناء إذا وجد:
+
+stock_branches.update()
+stock_branches.insert()
+stock_branches.upsert()
+inventory_log.insert()
+inventory_log.update()
+
+من داخل Parent PWA.
+
+12 — GATE 7: SYMBOL COLLISION
+
+افحص:
+
+duplicate functions
+duplicate globals
+duplicate window exports
+duplicate IDs
+duplicate initializers
+duplicate listeners
+duplicate Supabase clients
+duplicate routers
+duplicate renderers
+duplicate state objects
+duplicate API wrappers
+
+يجب أن يكون لكل global contract Owner واحد.
+
+13 — GATE 8: PARITY
+
+أنشئ:
+
+Current/CTO/parity.json
+
+لكل:
+
+Feature
+Function
+DOM
+RPC
+Edge
+Table
+Permission
+Tenant
+Owner
+PWA
+Storage
+Offline
+Sync
+Realtime
+
+النتيجة فقط:
+
+PRESERVED
+MOVED
+REBUILT
+REPAIRED
+INTENTIONALLY_RETIRED
+
+أي:
+
+LOSS
+
+غير مفسر:
+
+HARD FAIL
+14 — REQUIRED REGRESSION CHECK
+
+يجب تحديد الخصائص التي سبق أن فقدت في reconstruction السابقة.
+
+على رأسها:
+
+rec-offers
+
+ولا يكفي وجود الاسم.
+
+يجب إثبات أن:
+
+feature exists
++
+business purpose preserved
++
+data contract preserved
++
+UI preserved
++
+result preserved
+
+ولا يجوز تحويله إلى:
+
+rec-purchase
+
+إلا إذا ثبت تعادل السلوك.
+
+15 — GATE 9: STATIC VALIDATION
+
+افحص:
+
+DOCTYPE
+HTML balance
+HEAD balance
+BODY balance
+SCRIPT balance
+STYLE balance
+JS syntax
+duplicate symbol detection
+duplicate IDs
+direct stock writer
+direct inventory_log writer
+hardcoded tenant
+unscoped tenant lookup
+invalid RPC references
+invalid Edge references
+16 — GATE 10: BROWSER VALIDATION
+
+شغل:
+
+Chromium / Playwright
+
+واختبر:
+
+application boot
+login shell
+navigation
+sidebar
+dashboard
+critical modules
+modal opening
+critical forms
+table rendering
+routing
+PWA assumptions
+service worker integration
+offline assumptions
+runtime console
+page errors
+network errors
+
+إذا كانت credentials الحقيقية غير متاحة:
+
+AUTHENTICATED RUNTIME = NOT VERIFIED
+
+ولا تحولها إلى PASS.
+
+17 — GATE 11: PRODUCTION CONTRACT VALIDATION
+
+من Supabase Production مباشرة:
+
+تحقق من:
+
+RPC existence
+signatures
+SECURITY DEFINER
+GRANTS
+Edge versions
+Schema
+RLS
+Triggers
+Tenant identity
+Item identity
+Inventory writer topology
+Audit topology
+
+وأثبت:
+
+Physical Writers outside post_stock_movement = 0
+
+مع استبعاد فقط routines التي ثبت أنها master/row initialization ولا تنفذ physical movement.
+
+18 — GATE 12: FRESH REBASELINE
+
+قبل استبدال:
+
+Current/PWA/main.html
+
+أعد snapshot كاملًا.
+
+ثم قارن:
+
+fresh baseline
+vs
+candidate
+
+كل فرق يجب أن يصنف:
+
+INTENDED
+REPAIRED
+REBUILT
+UNEXPECTED
+
+أي:
+
+UNEXPECTED MATERIAL DRIFT
+
+=
+
+HARD STOP
+19 — GATE 13: REPLACEMENT
+
+فقط إذا كانت جميع Gates السابقة PASS:
+
+main.reconstruction.html
+↓
+main.html
+
+سجل:
+
+old SHA
+candidate SHA
+final SHA
+commit SHA
+timestamp
+baseline SHA
+20 — GATE 14: POST-REPLACEMENT VERIFICATION
+
+أعد كامل:
+
+static validation
+semantic validation
+browser validation
+PWA validation
+Owner validation
+Tenant validation
+RPC validation
+Edge validation
+Inventory validation
+Production verification
+
+ويجب إثبات:
+
+final main.html SHA
+==
+approved candidate SHA
+21 — REQUIRED EVIDENCE
+
+يجب أن توجد الملفات:
+
+Current/CTO/RECONSTRUCTION_BASELINE.json
+Current/CTO/feature_registry.json
+Current/CTO/function_registry.json
+Current/CTO/contract_registry.json
+Current/CTO/dependency_graph.json
+Current/CTO/parity.json
+Current/CTO/playwright-result.json
+Current/CTO/production-contract-result.json
+Current/CTO/final-baseline-comparison.json
+Current/CTO/MASTER_RECONSTRUCTION_EXECUTION_LOG.md
+Current/CTO/MASTER_RECONSTRUCTION_RESULT.md
+22 — GOLD CRITERIA
+
+GOLD يسمح فقط عند:
+
+all required functions present
++
+all surviving features present
++
+no unexplained loss
++
+no direct stock writer
++
+no direct inventory_log writer
++
+tenant integrity
++
+owner integrity
++
+current production compatibility
++
+static PASS
++
+semantic PASS
++
+browser PASS
++
+production contract PASS
++
+fresh baseline PASS
++
+replacement traceable
++
+post-replacement verification PASS
+23 — DIAMOND CRITERIA
+
+DIAMOND = GOLD
+
+
+
+zero known closure debt
+zero material unknowns
+zero material conflicts
+zero material unverified claims
+reproducible evidence
+traceable artifact
+fresh Production proof
+no known regression
+24 — ABSOLUTE STOP CONDITIONS
+
+يمنع إعلان GOLD أو DIAMOND إذا وجد:
+
+unknown critical contract
+unresolved conflict
+unexplained feature loss
+production drift
+runtime critical error
+direct stock writer
+tenant leakage
+owner contract regression
+RPC drift
+Edge drift
+candidate/final SHA mismatch
+missing evidence
+25 — FINAL SELF AUDIT
+
+سجل صراحة:
+
+WHAT I PROVED
+WHAT I DID NOT PROVE
+WHAT I FIXED
+WHAT I REBUILT
+WHAT I INITIALLY MISSED
+WHAT COULD STILL BE WRONG
+UNKNOWNs
+CONFLICTS
+UNVERIFIED CLAIMS
+PRODUCTION SNAPSHOT
+FINAL CANDIDATE SHA
+FINAL MAIN SHA
+FINAL COMMIT
+FINAL STATUS
+
+النتيجة النهائية لا تكون:
+
+GOLD
+
+أو:
+
+DIAMOND
+
+لأجل إنهاء التقرير.
+
+بل فقط إذا أثبتتها الأدلة.
+
+FINAL COMMAND
+
+نفّذ المهمة فعليًا.
+
+لا تتوقف عند:
+
+analysis
+report
+plan
+builder creation
+static preparation
+
+بل انتقل حتى:
+
+FORENSIC
+↓
+CANONICAL MODEL
+↓
+GREENFIELD ARTIFACT
+↓
+PARITY
+↓
+STATIC
+↓
+RUNTIME
+↓
+PRODUCTION
+↓
+REPLACEMENT
+↓
+POST-REPLACEMENT VERIFICATION
+↓
+GOLD / DIAMOND
+
+لكن إذا تعذر إثبات Gate معين من الأدوات المتاحة:
+
+NOT VERIFIED
+
+ولا تزيف PASS.
+
+الحكم التنفيذي الحالي
+
+أنا لم أستبدل main.html حتى هذه اللحظة، وهذا قرار مقصود وصحيح؛ لأن مسار الـV3 الموجود في Git لا يحقق فعلًا شرط semantic reconstruction من الأجزاء الـ11، وبالتالي اعتماده كان سيحوّل التحقيق إلى Gold شكلي.
+
+كما أن Production الحالية ما زالت سليمة من ناحية الـsnapshot الذي أخذته مباشرة، ولا يوجد أساس مقبول لإعادة إدخال تغييرات عليها بهدف إنجاح الاختبار.
+
+المرحلة الصحيحة التالية أصبحت محددة الآن: بناء main.reconstruction.html فعليًا من الـParent shell في main1 + الوحدات الحالية main2..main11 وفق dependency order، ثم تشغيل Gates أعلاه، وبعدها فقط استبدال main.html.
+
+الـV3 السابقة في PR #49 لا ينبغي اعتمادها كـGold Master.
