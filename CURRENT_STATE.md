@@ -10,10 +10,10 @@
 ## CURRENT GIT
 - Repository: `papamohammed77-glitch/rawaie-erp-New`
 - Branch: `main`
-- Latest verified execution commit: `0fa2cf2755cd12032a988ccadf2ccb9a22439bde`
-- New-main reconstruction commit: `7b913fb48374e390a0fc1bb5edc640b95fefe1d7`
-- New-main final blob SHA: `2f252390b56cc408a8db62523edf303f3e24a3ad`
-- Verification artifact commit: `0fa2cf2755cd12032a988ccadf2ccb9a22439bde`
+- Latest New-main expansion commit: `ffdc712000488cecf0435b94704bc95153e6e58b`
+- New-main current blob SHA: `e5376b78068e80d030a34ac77dac82efc8ebfd37`
+- Latest state-update commit: this file update
+- Temporary clean-room trigger file under `Current/PWA/main/` was removed after use.
 
 ## PRODUCTION BASELINE — DIRECTLY VERIFIED
 - Project: `fiilmooggumokxanwiyx`
@@ -29,7 +29,7 @@
 - Runsheets: 0
 - Treasury: 1
 - COA: 17
-- Checked current stock invariants remained clean during the latest forensic execution.
+- Latest verified stock invariants remained clean during this execution.
 
 ## CURRENT PRODUCTION CONTRACTS USED BY NEW-MAIN
 - Authenticated Supabase user is the identity entry point.
@@ -38,74 +38,98 @@
 - `post_stock_movement` remains the Physical Stock mutation authority.
 - `reserve_stock` / `release_stock_reservation` remain reservation capabilities only.
 - Financial writes remain delegated to canonical Edge/Core writers; New-main contains no financial DML.
-- Current financial/stock Edge deployments were checked directly and treated as current Production truth.
+- Current financial/stock Edge deployments remain the Production source of truth.
 
-## NEW-MAIN EXECUTION
-### Command chain executed
-1. `doc/Draft/medhat/تقرير +برومبت 117-02` read for continuity/governance rules.
-2. `CURRENT_STATE.md` read before reconstruction.
-3. `FINAL_MAIN_HTML_RECONSTRUCTION_COMMAND.md` read and its clean-room/closure rules applied.
-4. Current New-main artifact inspected as an incomplete prior candidate only; it was not treated as proof of completion.
-5. `Current/PWA/New-main` was manually rewritten as a new standalone clean-room HTML artifact.
-6. The legacy `Current/PWA/main.html` was not modified.
-7. A dedicated verification artifact was updated with the final New-main SHA and evidence boundary.
+## NEW-MAIN SPECIFICATION REVIEW
+### Source evidence reviewed
+- `FINAL_MAIN_HTML_RECONSTRUCTION_COMMAND.md`
+- `CURRENT/CTO/FORENSIC_FRAGMENT_INVENTORY.json`
+- `Current/PWA/main/main1.md`
+- `Current/PWA/main/main2.md`
+- `Current/PWA/main/main3.md`
+- `Current/PWA/main/main4.md`
+- `Current/PWA/main/main5.md` and current fragment inventory references
+- Current PWA companions including `core.js`, `register-sw.js`, `pos.html`, `picker.html`, `vouchers.html`, `Returns.html`, `accountant.html`, `buyer.html`, `telesales.html`, `van-sales.html`, `loader.html`, `unloader.html`
+- Direct Production contracts used by the current Main shell
 
-## NEW-MAIN CONTRACT IMPLEMENTED
-- Auth login/session bootstrap via current Supabase Auth client.
-- Authoritative tenant resolution through `public.users.auth_id` and `users.company_id`.
-- Owner/permissions/license surfaces retained without inventing a new permission model.
-- Company-scoped reads for customers, suppliers, items, orders, runsheets, purchase orders, stock branches, financial monitors, users, and settings.
-- Functional delegation links to specialized current PWAs for POS, purchasing/receiving, stock vouchers, picking, returns, and van sales.
-- Read-only inventory monitor.
-- Read-only financial monitor.
-- Responsive shell for desktop/mobile.
-- Required reconstruction globals exposed: `RW_ShellContext`, `RW_OwnerLicense`, `RW_Views`, `RW_Dashboard`, `RW_Items`, `RW_POS`, `RW_Orders`, `RW_Runsheets`, `RW_Purchases`, `RW_Warehouse`, `RW_Finance`, `RW_Reports`, `RW_HR`, `RW_CRM`.
-- No direct stock or financial mutation implementation.
-- Nested Service Worker registration targets the shared PWA root (`../sw.js`, scope `../`).
+### SPECIFICATION ASSESSMENT
+The previous New-main candidate was a shell and did not meet the full Main contract surface. It lacked several shared Main responsibilities and had insufficient semantic feature coverage.
+
+### CURRENTLY IMPLEMENTED IN NEW-MAIN
+- Authentication and session bootstrap.
+- Authoritative user/company resolution through `users.auth_id` and `users.company_id`.
+- Owner / permissions / license surfaces.
+- Navigation across current operational, warehouse, financial, HR and settings areas.
+- Company-scoped customer CRUD through current Edge contract.
+- Company-scoped item CRUD through current Edge contract.
+- Global search across customers/items/orders.
+- Dashboard KPI/data reads.
+- Orders, runsheets, suppliers, HR, inventory, finance and reports read models.
+- Financial monitoring with COA/journal/customer-ledger/supplier-ledger/driver-ledger/treasury visibility.
+- Owner-only audit read model.
+- Notifications read model.
+- CSV export for item data.
+- Explicit delegation to specialized PWA owners for POS, Telesales, Purchasing/Receiving, Stock Vouchers, Picking, Loading, Delivery and Returns.
+- Responsive mobile shell.
+- Service Worker registration from the nested New-main location to the shared PWA root.
+- No direct Physical Stock mutation.
+- No direct Journal/Ledger/Treasury/Cash mutation.
+- `MAIN_HTML_CURRENT_CONTRACT_LEDGER` embedded in the candidate.
 
 ## SELF-AUDIT
-- Prior candidate lacked reconstruction globals required by the clean-room execution gate.
-- Prior candidate registered Service Worker from the wrong nested path.
-- Both issues were corrected in the final New-main artifact.
-- The final artifact was re-read from Git after write.
-- No production database mutation was performed for the New-main reconstruction.
+- The prior candidate was confirmed to be a shell, not a complete semantic Main surface.
+- The expanded candidate corrected the missing reconstruction globals and the nested Service Worker path.
+- Tenant authority is not taken from `user_metadata.company_id`.
+- No financial account UUIDs are hard-coded.
+- No direct stock or financial DML exists in New-main.
+- Customer and Item writes use existing Edge owners rather than new direct database writers.
+- The final write in this round changed only `Current/PWA/New-main`.
+- The temporary workflow trigger was removed after use.
+
+## IMPORTANT LIMITATION
+New-main is now a substantially more complete clean-room Main candidate, but it is still not certified as a replacement for `Current/PWA/main.html`.
+
+The current source evidence establishes many contracts, but it does not yet prove exhaustive semantic parity for every historical/current Main feature. Missing full coverage includes, at minimum, deep runtime behavior for offline/sync, realtime, full workflow/notification behavior, every specialized operations path, and every consumer/error path.
 
 ## VERIFICATION BOUNDARY
-### Verified
-- New-main exists as a concrete Git artifact.
-- Static shell/contract markers required by the clean-room gate are present.
-- Company identity does not come from `user_metadata.company_id`.
-- No hard-coded financial account UUID exists.
-- No direct stock mutation path exists.
-- No direct journal/ledger/treasury DML exists.
+### Verified by source/static inspection
+- Candidate is a valid HTML document structure.
+- Required shell reconstruction globals are exposed.
+- Tenant mapping uses authenticated user -> public users -> company.
+- Company-scoped lookups are used where applicable.
 - `app_settings` lookup is company-scoped.
-- The reconstruction commit's write target was `Current/PWA/New-main` only.
+- New-main contains no direct stock mutation DML.
+- New-main contains no direct financial DML.
+- Specialized writes are delegated to existing current applications/Edge owners.
+- Existing `Current/PWA/main.html` remains outside the write target.
 
-### Still OPEN — no false closure
-- Full browser smoke for the final persisted artifact.
-- Service Worker runtime execution for the nested artifact.
-- Authenticated Production HTTP E2E using the final artifact.
-- Two-session concurrency proof for the final artifact's critical flows.
-- Exhaustive semantic feature parity against every logical `main1..main11` contract.
-- Full current-vs-historical validated-change parity certificate.
-- Production deployment/replacement certification for New-main.
+### STILL OPEN — NO FALSE CLOSURE
+- Full structural parity against every logical `main1..main11` feature contract.
+- Full functional parity against every current Main capability.
+- Full validated-change parity from all current Production changes.
+- Browser smoke of the persisted final artifact.
+- Service Worker runtime proof for New-main.
+- Authenticated Production HTTP E2E of New-main.
+- Two-session concurrency proof for critical Main flows.
+- Exhaustive runtime/error-path verification for all delegated applications.
+- Production deployment/replacement certification.
 - Authorization to replace `Current/PWA/main.html`.
 
 ## LAST VERIFIED EVENT
-- Event ID: `LVE-2026-08-31-006`
-- Event Type: `NEW_MAIN_CLEAN_ROOM_RECONSTRUCTION_FINAL_ARTIFACT`
-- UTC: `2026-08-31T06:39:00Z`
-- Source: direct GitHub repository + direct SMART ERP Production evidence
-- Git SHA: `0fa2cf2755cd12032a988ccadf2ccb9a22439bde`
-- Action: manually reconstructed and persisted the independent `Current/PWA/New-main` artifact and synchronized the operational state record.
-- Result: `NEW-MAIN ARTIFACT VERIFIED / FULL RUNTIME AND PARITY CERTIFICATION OPEN`
-- Evidence: `Current/CTO/20260831_HYTHAM_NEW_MAIN_CLEAN_ROOM_VERIFICATION.md`; New-main blob `2f252390b56cc408a8db62523edf303f3e24a3ad`.
-- Impact: The project now has a distinct clean-room Main candidate without reopening or modifying the historical `Current/PWA/main.html` repair loop.
-- Next Authorized Action: verify the final candidate structurally and functionally, then perform supported browser/runtime gates. Do not modify `Current/PWA/main.html` before all required closure gates are proven.
+- Event ID: `LVE-2026-08-31-007`
+- Event Type: `NEW_MAIN_CONTRACT_EXPANSION_AND_FORNSIC_REVIEW`
+- UTC: `2026-08-31T07:xx:xxZ`
+- Source: direct GitHub current repository + direct SMART ERP Production contract evidence
+- Git SHA: `ffdc712000488cecf0435b94704bc95153e6e58b`
+- Action: audited the previous New-main candidate against the reconstruction command and current logical-module evidence; expanded New-main with current shared Main contracts and specialized delegation; removed the temporary clean-room trigger.
+- Result: `NEW-MAIN SUBSTANTIALLY EXPANDED / FULL PARITY AND RUNTIME CERTIFICATION OPEN`
+- Evidence: `Current/PWA/New-main` blob `e5376b78068e80d030a34ac77dac82efc8ebfd37`.
+- Impact: New-main now contains a materially broader clean-room Main surface while keeping legacy `Current/PWA/main.html` untouched.
+- Next Authorized Action: continue structural/functional/runtime parity verification of New-main only. Do not modify `Current/PWA/main.html` until every required closure gate is actually proven.
 
 ## CLOSURE
-`NEW-MAIN ARTIFACT = VERIFIED`
-`STATIC CONTRACT = VERIFIED`
+`NEW-MAIN ARTIFACT = EXISTS`
+`CURRENT CONTRACT SURFACE = SUBSTANTIALLY IMPLEMENTED`
 `STRUCTURAL PARITY = OPEN`
 `FUNCTIONAL PARITY = OPEN`
 `CONTRACT PARITY = OPEN`
