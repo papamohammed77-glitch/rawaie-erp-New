@@ -1,3 +1,4 @@
+# Governed CI: this workflow executes a clean-room rebuild from main1.md..main11.md.
 name: RAWAEA FINAL MAIN.HTML RECONSTRUCTION — 20260831
 
 on:
@@ -88,17 +89,7 @@ jobs:
             page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
             await page.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});
             await page.waitForTimeout(5000);
-            const r=await page.evaluate(()=>({
-              title:document.title,
-              lang:document.documentElement.lang,
-              body:!!document.body,
-              rwState:!!window.RW_STATE,
-              auth:!!window.RW_Auth,
-              nav:!!window.RW_Navigation,
-              views:!!window.RW_Views,
-              shell:!!window.RW_ShellContext,
-              owner:!!window.RW_OwnerContract
-            }));
+            const r=await page.evaluate(()=>({title:document.title,lang:document.documentElement.lang,body:!!document.body,rwState:!!window.RW_STATE,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerContract}));
             console.log(JSON.stringify({result:r,pageErrors,consoleErrors}));
             if(r.lang!=='ar'||!r.body||!r.rwState||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||pageErrors.length) process.exit(2);
             await browser.close();
