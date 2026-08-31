@@ -1,0 +1,124 @@
+name: RAWAEA ERP — Prompt 114 Final Reconstruction
+on:
+  push:
+    branches: [reconstruction-114-final-20260831]
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  reconstruct:
+    if: "!contains(github.event.head_commit.message, '[reconstruction-114-artifact]') && !contains(github.event.head_commit.message, '[reconstruction-114-evidence]')"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@v4
+        with:
+          ref: reconstruction-114-final-20260831
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Repair verified source regression
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('Current/PWA/main/main7.md')
+          s = p.read_text(encoding='utf-8')
+          marker = "async function loadSettlement(){"
+          start = s.find(marker)
+          if start < 0: raise SystemExit('LOAD_SETTLEMENT_SOURCE_MISSING')
+          end = s.find('\n  async function _onSettlementRsChange', start)
+          if end < 0: raise SystemExit('LOAD_SETTLEMENT_BOUNDARY_MISSING')
+          block = s[start:end]
+          malformed = ".join(''));}"
+          fixed = ".join('')));}"
+          mc,fc=block.count(malformed),block.count(fixed)
+          if mc==1 and fc==0:
+              p.write_text(s[:start]+block.replace(malformed,fixed,1)+s[end:],encoding='utf-8')
+              print('SOURCE_REPAIR_APPLIED main7.loadSettlement')
+          elif mc==0 and fc==1: print('SOURCE_REPAIR_ALREADY_PRESENT')
+          else: raise SystemExit(f'LOAD_SETTLEMENT_REPAIR_AMBIGUOUS malformed={mc} fixed={fc}')
+      - name: Build greenfield candidate
+        run: python3 tools/reconstruct_114.py
+      - name: Static validation and module parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess, tempfile
+          p=Path('Current/PWA/main.reconstruction.html'); s=p.read_text(encoding='utf-8')
+          doc=re.sub(r'<script\b[^>]*>.*?</script\s*>','<script></script>',s,flags=re.I|re.S)
+          assert len(re.findall(r'<!doctype\s+html',doc,re.I))==1
+          for tag in ['html','head','body']: assert len(re.findall(rf'<{tag}\b',doc,re.I))==len(re.findall(rf'</{tag}>',doc,re.I)), tag
+          blocks=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script\s*>',s,re.S|re.I)
+          for i,c in enumerate(blocks):
+              f=Path(tempfile.gettempdir())/f'rw114-{i}.js'; f.write_text(c,encoding='utf-8')
+              r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+              if r.returncode: print(r.stderr); raise SystemExit(f'JS_SYNTAX_FAIL_{i}')
+          for pat,name in [(r"\.from\(\s*['\"]stock_branches['\"]\s*\)[\s\S]{0,1200}?\.(?:update|insert|upsert|delete)\s*\(",'DIRECT_STOCK_WRITER'),(r"\.from\(\s*['\"]inventory_log['\"]\s*\)[\s\S]{0,1200}?\.(?:update|insert|upsert|delete)\s*\(",'DIRECT_INVENTORY_LOG_WRITER'),(r'00000000-0000-0000-0000-000000000001','HARDCODED_TENANT')]: assert not re.search(pat,s,re.I), name
+          assert 'RW_ShellContext' in s and 'getCompanyId' in s and 'isOwner' in s and 'permissions' in s and "'*'" in s
+          ids=re.findall(r'\bid=["\']([^"\']+)["\']',doc); dup=sorted(k for k,v in __import__('collections').Counter(ids).items() if v>1); assert not dup, 'DUPLICATE_IDS '+str(dup[:20])
+          print('STATIC_GATE_PASS',len(blocks),'inline script blocks; document ids',len(ids))
+          PY
+      - name: Prompt 116-2 contract gates
+        shell: python
+        run: |
+          from pathlib import Path
+          from collections import Counter
+          import json,re
+          cand=Path('Current/PWA/main.reconstruction.html').read_text(encoding='utf-8')
+          current='\n'.join(Path(f'Current/PWA/main/main{i}.md').read_text(encoding='utf-8') for i in range(1,12))
+          original='\n'.join(Path(f'Original/PWA/main/main{i}.md').read_text(encoding='utf-8') for i in range(1,12))
+          def rx(pattern,text,flags=re.I): return sorted(set(re.findall(pattern,text,flags)))
+          for label,text in [('candidate',cand),('current',current),('original',original)]:
+              exports=rx(r'window\.(RW_[A-Za-z0-9_]+)\s*=',text)
+              dup=[k for k,v in Counter(re.findall(r'window\.(RW_[A-Za-z0-9_]+)\s*=',text)).items() if v>1]
+              if label=='candidate': assert not dup, 'DUPLICATE_GLOBAL_EXPORTS '+str(dup)
+              if label=='candidate': cand_exports=set(exports)
+              elif label=='current': current_exports=set(exports)
+              else: original_exports=set(exports)
+          assert current_exports <= cand_exports, 'CURRENT_PUBLIC_NAMESPACE_LOSS '+str(sorted(current_exports-cand_exports))
+          assert original_exports <= cand_exports, 'ORIGINAL_PUBLIC_NAMESPACE_LOSS '+str(sorted(original_exports-cand_exports))
+          def refs(text): return {'rpc':set(rx(r"\.rpc\(\s*['\"]([^'\"]+)['\"]",text)),'edge':set(rx(r'functions/v1/([A-Za-z0-9._-]+)',text))}
+          cr=refs(cand); qr=refs(current); assert cr==qr, json.dumps({'candidate':{k:sorted(v) for k,v in cr.items()},'current':{k:sorted(v) for k,v in qr.items()}},ensure_ascii=False)
+          refs_set=set(rx(r'\b(RW_[A-Za-z0-9_]+)\.([A-Za-z_$][\w$]*)\s*\(',cand))
+          for ns,method in sorted(refs_set):
+              assert re.search(rf'\b{re.escape(ns)}\b',current), f'UNDEFINED_NAMESPACE {ns}'
+              assert re.search(rf'\b{re.escape(method)}\b',cand), f'UNDEFINED_METHOD_OR_MEMBER {ns}.{method}'
+          tenant_tables=['branches','customers','suppliers','vehicles','orders','runsheets','stock_vouchers','receiving','purchase_orders','journal_entries']
+          for table in tenant_tables:
+              for m in re.finditer(rf"\.from\(\s*['\"]{table}['\"]\s*\)",cand,re.I):
+                  w=cand[m.start():m.start()+1000]
+                  assert re.search(r"\.eq\(\s*['\"]company_id['\"]\s*,",w,re.I), f'UNSCOPED_TENANT_LOOKUP {table}'
+          for m in re.finditer(r"app_settings[\s\S]{0,450}?\.limit\(\s*1\s*\)",cand,re.I): assert re.search(r"\.eq\(\s*['\"]company_id['\"]\s*,",m.group(0),re.I), 'UNSCOPED_APP_SETTINGS_LIMIT1'
+          assert re.search(r'\bisOwner\b',cand); assert re.search(r'permissions[\s\S]{0,500}["\']\*["\']',cand,re.I)
+          assert not re.search(r"\.from\(\s*['\"]stock_branches['\"]\s*\)[\s\S]{0,1500}?\.(?:update|insert|upsert|delete)\s*\(",cand,re.I)
+          assert not re.search(r"\.from\(\s*['\"]inventory_log['\"]\s*\)[\s\S]{0,1500}?\.(?:update|insert|upsert|delete)\s*\(",cand,re.I)
+          for i in range(2,12): assert f'RW114 MODULE main{i}' in cand, f'MISSING_MODULE_MARKER main{i}'
+          print('PROMPT_116_2_CONTRACT_GATES_PASS')
+          print('PUBLIC_EXPORTS',len(cand_exports),'RPCS',len(cr['rpc']),'EDGE_REFS',len(cr['edge']),'TENANT_TABLES',len(tenant_tables),'CRITICAL_RW_REFS',len(refs_set))
+      - name: Browser smoke gate
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          python3 -m http.server 8765 --directory Current/PWA >/tmp/rw114-http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID || true' EXIT
+          node - <<'NODE'
+          const { chromium } = require('playwright');
+          (async()=>{const browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1440,height:900}});const errors=[];const pageErrors=[];page.on('console',m=>{if(m.type()==='error'&&m.text()!=='MAIN11_SUPABASE_UNAVAILABLE')errors.push(m.text())});page.on('pageerror',e=>pageErrors.push(String(e)));await page.goto('http://127.0.0.1:8765/main.reconstruction.html',{waitUntil:'domcontentloaded',timeout:30000});await page.waitForTimeout(3500);const data=await page.evaluate(()=>({title:document.title,login:!!document.querySelector('.rw-login-page'),shell:!!document.querySelector('.rw-main-shell'),sidebar:!!document.querySelector('#rw-sidebar'),page:!!document.querySelector('#rw-page-container'),tenant:!!window.RW_ShellContext,nav:!!window.RW_Navigation,ownerState:!!(window.RW_STATE&&window.RW_STATE.app&&window.RW_STATE.app.currentUser),hr:!!window.RW_HR,orders:!!window.RW_Orders}));console.log(JSON.stringify({data,errors,pageErrors,known_offline:'MAIN11_SUPABASE_UNAVAILABLE'},null,2));if(!data.title||!data.tenant||(!data.login&&!data.shell)||!data.nav)process.exit(2);if(errors.length||pageErrors.length)process.exit(3);await browser.close();})().catch(e=>{console.error(e);process.exit(4)});
+          NODE
+      - name: Commit candidate and evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'RAWAEA Prompt 114 Reconstruction'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Current/PWA/main.reconstruction.html Current/PWA/main/main7.md Current/CTO/*.json .github/workflows/reconstruction-114-final.yml tools/reconstruct_114.py
+          git commit -m '[reconstruction-114-artifact] candidate build and verified source repair' || exit 0
+          git push origin HEAD:reconstruction-114-final-20260831

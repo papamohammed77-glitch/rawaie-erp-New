@@ -1,0 +1,18 @@
+{
+  "command": "PROMPT_114",
+  "method": "GREENFIELD_PARENT_MAIN1_PLUS_LOGICAL_MODULES_MAIN2_MAIN11",
+  "current_main": {
+    "path": "Current/PWA/main.html",
+    "bytes": 698945,
+    "lines": 10293,
+    "sha256": "fe4e1545af0e1f6d4c6d15bfd0921ffc0f534889338f4e40f51204b49e4b8c84"
+  },
+  "candidate": {
+    "path": "Current/PWA/main.reconstruction.html",
+    "bytes": 568899,
+    "lines": 6246,
+    "sha256": "9642fdbc78a17a509ba55114970939c586ddf2a297536ea82e11bea63ac00ebf"
+  },
+  "checks": "STATIC_CANDIDATE_PASS",
+  "note": "main.html untouched"
+}

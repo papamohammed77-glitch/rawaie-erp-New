@@ -1,0 +1,266 @@
+{
+  "BOOT": {
+    "current_source": "main1",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "AUTH": {
+    "current_source": "main1",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "SESSION": {
+    "current_source": "main1",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "TENANT": {
+    "current_source": "main1",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "OWNER": {
+    "current_source": "main10",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "LICENSE": {
+    "current_source": "main10",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "NAVIGATION": {
+    "current_source": "main1",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "DASHBOARD": {
+    "current_source": "main2",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "CUSTOMERS": {
+    "current_source": "main3",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "SUPPLIERS": {
+    "current_source": "main3",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "BRANCHES": {
+    "current_source": "main3",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "USERS": {
+    "current_source": "main3",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "ROLES": {
+    "current_source": "main3",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "ITEMS": {
+    "current_source": "main3",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "INVENTORY": {
+    "current_source": "main7",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "VOUCHERS": {
+    "current_source": "main7",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "PURCHASING": {
+    "current_source": "main6",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "RECEIVING": {
+    "current_source": "main6",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "ORDERS": {
+    "current_source": "main5",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "RUNSHEETS": {
+    "current_source": "main5",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "PICKING": {
+    "current_source": "main7",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "LOADING": {
+    "current_source": "main7",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "DELIVERY": {
+    "current_source": "main7",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "RETURNS": {
+    "current_source": "main7",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "UNLOADING": {
+    "current_source": "main7",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "VEHICLES": {
+    "current_source": "main3",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "POS": {
+    "current_source": "main4",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "TELESALES": {
+    "current_source": "main4",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "VAN SALES": {
+    "current_source": "main4",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "ONLINE STORE": {
+    "current_source": "main6",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "ACCOUNTING": {
+    "current_source": "main8",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "TREASURY": {
+    "current_source": "main8",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "REPORTS": {
+    "current_source": "main9",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "HR": {
+    "current_source": "main11",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "CRM": {
+    "current_source": "main11",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "AUDIT": {
+    "current_source": "main11",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "NOTIFICATIONS": {
+    "current_source": "main11",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "PWA": {
+    "current_source": "main1",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "OFFLINE": {
+    "current_source": "main11",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "SYNC": {
+    "current_source": "main11",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "REALTIME": {
+    "current_source": "main11",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "STORAGE": {
+    "current_source": "main11",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "PRINT": {
+    "current_source": "main9",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  },
+  "EXPORT": {
+    "current_source": "main9",
+    "original_source": "Original/PWA/main",
+    "production_evidence": "LIVE_PRODUCTION_SNAPSHOT",
+    "disposition": "PRESERVED"
+  }
+}
