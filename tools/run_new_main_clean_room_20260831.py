@@ -1,3 +1,4 @@
+# Canonical clean-room execution path; this comment is a no-op trigger for the existing workflow.
 from pathlib import Path
 import hashlib,json,re,subprocess
 CUR=Path('Current/PWA/main'); ORIG=Path('Original/PWA/main'); TARGET=Path('Current/PWA/New-main'); CTO=Path('Current/CTO')
