@@ -10,8 +10,8 @@ EVIDENCE = Path('Current/CTO/20260831_NEW_MAIN_CLEAN_ROOM_EXECUTION.json')
 PARTS = [CUR / f'main{i}.md' for i in range(1, 12)]
 ORIGINAL_PARTS = [ORIG / f'main{i}.md' for i in range(1, 12)]
 
-# 2026-08-31 continuation: executor remains the sole composition authority for New-main.
-# Do not edit Current/PWA/main.html; only Current/PWA/New-main may be produced here.
+# Clean-room composition authority for New-main only.
+# Current/PWA/main.html is immutable in this workflow.
 
 def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -28,17 +28,33 @@ def symbols(s: str) -> dict:
 
 
 def repaired_source(path: Path) -> str:
-    # Current main7.md contains one proven source-level syntax defect in the
-    # settlement selector: safeHTML(...) closes join + grouping + function call.
-    # Repair only that exact token sequence; no other source rewriting occurs.
     s = path.read_text(encoding='utf-8-sig')
     if path.name == 'main7.md':
+        # Proven source-level syntax correction from CI diagnosis.
         broken = ".join(''));}\n  async function _onSettlementRsChange()"
         fixed = ".join('')));}\n  async function _onSettlementRsChange()"
         if broken not in s:
             raise RuntimeError('EXPECTED_MAIN7_SETTLEMENT_PATTERN_NOT_FOUND')
         return s.replace(broken, fixed, 1)
     return s
+
+
+def compose_html(chunks: list[str]) -> str:
+    # main1 is the HTML shell and owns the sole document-level inline script.
+    # Strip only its terminal script/body/html closures so all governed fragments
+    # execute inside that same script. Fragment 2..11 are JS-only bodies.
+    first = chunks[0]
+    shell_close = re.search(r'</script>\s*</body>\s*</html>\s*$', first, re.I | re.S)
+    if not shell_close:
+        raise RuntimeError('MAIN1_SHELL_CLOSURE_NOT_FOUND')
+    first_open_end = first.find('>', first.find('<script'))
+    if first_open_end < 0:
+        raise RuntimeError('MAIN1_INLINE_SCRIPT_OPEN_NOT_FOUND')
+    # Keep everything through the inline script opening and its body, removing only
+    # the final three document closures. No content is otherwise normalized.
+    base = first[:shell_close.start()].rstrip()
+    candidate = base + '\n\n' + '\n\n'.join(c.rstrip() for c in chunks[1:]) + '\n\n</script>\n</body>\n</html>\n'
+    return candidate
 
 
 def build() -> tuple[str, dict]:
@@ -61,24 +77,21 @@ def build() -> tuple[str, dict]:
         if re.search(r'</script>', c, re.I):
             raise RuntimeError(f'INVALID_FRAGMENT_SCRIPT_CLOSE_MAIN{idx}')
 
-    candidate = first.rstrip() + '\n\n' + '\n\n'.join(c.rstrip() for c in chunks[1:]) + '\n\n</script>\n</body>\n</html>\n'
+    candidate = compose_html(chunks)
+
+    # Ensure the candidate has one document closure and at least one inline script.
+    if candidate.lower().count('</html>') != 1 or candidate.lower().count('</body>') != 1:
+        raise RuntimeError('DOCUMENT_CLOSURE_CARDINALITY_INVALID')
+    inline = re.search(r'<script(?![^>]*\bsrc=)[^>]*>', candidate, re.I)
+    if not inline:
+        raise RuntimeError('INLINE_SCRIPT_MISSING_AFTER_COMPOSITION')
 
     required = [
-        'window.RW_ShellContext',
-        'RW_ShellContext.getCompanyId()',
-        'window.RW_OwnerLicense',
-        'RW_Views',
-        'window.RW_Dashboard',
-        'window.RW_Items',
-        'window.RW_POS',
-        'window.RW_Orders',
-        'window.RW_Runsheets',
-        'window.RW_Purchases',
-        'window.RW_Warehouse',
-        'window.RW_Finance',
-        'window.RW_Reports',
-        'window.RW_HR',
-        'window.RW_CRM',
+        'window.RW_ShellContext', 'RW_ShellContext.getCompanyId()',
+        'window.RW_OwnerLicense', 'RW_Views', 'window.RW_Dashboard',
+        'window.RW_Items', 'window.RW_POS', 'window.RW_Orders',
+        'window.RW_Runsheets', 'window.RW_Purchases', 'window.RW_Warehouse',
+        'window.RW_Finance', 'window.RW_Reports', 'window.RW_HR', 'window.RW_CRM'
     ]
     missing_required = [x for x in required if x not in candidate]
     if missing_required:
@@ -100,10 +113,8 @@ def build() -> tuple[str, dict]:
     for m in re.finditer(r"\.from\(['\"]app_settings['\"]\)", candidate):
         tail = candidate[m.end():m.end()+2200]
         lim = re.search(r"\.limit\(\s*1\s*\)", tail)
-        if lim:
-            scoped = re.search(r"\.eq\(\s*['\"]company_id['\"]\s*,", tail[:lim.start()])
-            if not scoped:
-                raise RuntimeError('UNSCOPED_APP_SETTINGS_LIMIT1_IN_CANDIDATE')
+        if lim and not re.search(r"\.eq\(\s*['\"]company_id['\"]\s*,", tail[:lim.start()]):
+            raise RuntimeError('UNSCOPED_APP_SETTINGS_LIMIT1_IN_CANDIDATE')
 
     parity = {}
     current_union = {'functions': set(), 'ids': set(), 'rpcs': set(), 'tables': set(), 'edge_refs': set()}
@@ -143,7 +154,6 @@ def main() -> None:
     }
     EVIDENCE.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps(payload, ensure_ascii=False))
-
 
 if __name__ == '__main__':
     main()
