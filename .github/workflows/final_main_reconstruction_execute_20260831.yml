@@ -11,6 +11,14 @@ on:
       - 'Original/PWA/main.html'
       - 'Current/PWA/main/**'
       - '.github/workflows/final_main_reconstruction_execute_20260831.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/run_final_main_reconstruction_20260831.py'
+      - 'tools/master_reconstruction_postprocess.py'
+      - 'Original/PWA/main.html'
+      - 'Current/PWA/main/**'
+      - '.github/workflows/final_main_reconstruction_execute_20260831.yml'
   workflow_dispatch:
 
 permissions:
@@ -22,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - name: Checkout verified current main
+      - name: Checkout verified reconstruction sources
         uses: actions/checkout@v4
         with:
           ref: main
@@ -89,9 +97,7 @@ jobs:
               nav:!!window.RW_Navigation,
               views:!!window.RW_Views,
               shell:!!window.RW_ShellContext,
-              owner:!!window.RW_OwnerContract,
-              ownerWildcard:!!(window.RW_STATE&&Array.isArray(window.RW_STATE.permissions)&&window.RW_STATE.permissions.indexOf('*')!==-1),
-              serviceWorker:'serviceWorker' in navigator
+              owner:!!window.RW_OwnerContract
             }));
             console.log(JSON.stringify({result:r,pageErrors,consoleErrors}));
             if(r.lang!=='ar'||!r.body||!r.rwState||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||pageErrors.length) process.exit(2);
