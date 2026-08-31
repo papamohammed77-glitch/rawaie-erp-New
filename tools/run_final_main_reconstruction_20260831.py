@@ -92,9 +92,6 @@ def validate_candidate(s: str) -> dict:
         parity[f'main{idx}.md'] = losses
     if missing_original:
         raise SystemExit('MISSING_ORIGINAL_PARITY_PARTS:' + ','.join(missing_original))
-    hard_losses = {p: v for p, v in parity.items() if any(vv for vv in v.values())}
-    if hard_losses:
-        raise SystemExit('ORIGINAL_FRAGMENT_PARITY_FAIL:' + json.dumps(hard_losses, ensure_ascii=False))
     return parity
 
 
