@@ -1,0 +1,109 @@
+تمت مراجعة مسار main1 → New-main مرة أخرى، وهذه المرة فحصت أيضًا عقد Production الفعلية الخاصة بـ:
+
+users / company
+branches
+items
+customers
+suppliers
+orders
+stock_branches
+inventory_log
+chart_of_accounts
+journal_entries / journal_lines
+treasury
+audit_log
+workflow_rules / workflow_log
+notifications / notification_templates
+
+وهذا كشف لي خطأين حقيقيين في النسخة الحالية من New-main يجب ألا نتركهما:
+
+audit_log في Production لا يحتوي company_id، بينما النسخة السابقة كانت تحاول تقييده بهذا العمود.
+driver_ledger في Production لا يحتوي company_id أيضًا، وبالتالي نفس الفلترة كانت غير صالحة.
+
+تم تصحيح هذين المسارين ضمن إعادة تركيب MAIN1، وأصبح الوصول إلى audit_log Owner-only بدون فلتر وهمي للشركة، بينما القراءة المالية لا تبني Tenant Scope غير موجود في الـSchema. وهذا يعتمد على Production الفعلية، التي تثبت بنية هذه الجداول.
+
+كذلك تم تثبيت العقود المشتركة التي كانت ناقصة في Candidate السابق:
+
+RW_Table
+RW_Audit_log
+RW_Permissions_check
+RW_Permissions_applyUI
+RW_Workflow
+RW_Notification
+RW_Audit_renderTab
+RW_Data
+RW_Auth
+RW_Navigation
+
+وتم الحفاظ على الفصل بين:
+
+MAIN1 UI
+   ↓
+Current Owner
+
+بدل إنشاء Core مكرر داخل New-main، وهو شرط صريح في CTO EXECUTION COMMAND.
+
+كما تم الحفاظ على:
+
+Physical Stock
+→ post_stock_movement
+
+Reservation
+→ reserve_stock / release_stock_reservation
+
+وعدم إنشاء أي Stock أو Financial Writer داخل New-main.
+
+الحالة الفعلية الآن
+
+Current/PWA/New-main موجود ومحدث في main عند:
+
+a4551e0fcfc55fd609f48109407c025b44e20641
+
+والـcommit مسجل صراحةً كإكمال طبقة MAIN1:
+
+feat: complete MAIN1 clean-room contract surface in New-main.
+
+لكنني لا أضع شهادة Golden/Diamond بعد.
+
+السبب المتبقي ليس نقصًا في معرفة main1 ولا عدم وجود الملف؛ بل Runtime Gate غير مثبت. الـworkflow الحالي مصمم أصلًا لـfragment syntax + New-main structural + JS syntax + browser smoke، لكن آخر مسار تشغيل لم يعطِ Run على الـcommit الحالي.
+
+والأمر نفسه يمنع تحويل:
+
+Static PASS
+
+إلى:
+
+Browser PASS
+Production PASS
+
+وهو أمر محظور صراحةً.
+
+لذلك الحكم الصحيح الآن
+MAIN1 SOURCE UNDERSTANDING       ✅
+MAIN1 CONTRACT MAPPING           ✅
+MAIN1 CORE/OWNER DELEGATION      ✅
+MAIN1 TENANT CONTRACT            ✅
+MAIN1 OWNER/PERMISSION CONTRACT  ✅
+MAIN1 INVENTORY HARD LOCK        ✅
+MAIN1 FINANCIAL HARD LOCK        ✅
+MAIN1 WORKFLOW CONTRACT          ✅
+MAIN1 NOTIFICATION CONTRACT      ✅
+MAIN1 AUDIT CONTRACT             ✅
+MAIN1 DATA CONTRACT              ✅
+MAIN1 NAVIGATION CONTRACT        ✅
+
+STATIC CERTIFICATION              ✅
+BROWSER CERTIFICATION             ⏳
+FUNCTIONAL RUNTIME CERTIFICATION  ⏳
+PRODUCTION RUNTIME CERTIFICATION  ⏳
+FINAL MAIN1 CERTIFICATION         ❌
+GOLDEN                            ❌
+DIAMOND                           ❌
+
+وأيضًا لم يتم لمس:
+
+Current/PWA/main.html
+
+وهذا مثبت في مسار العمل نفسه.
+
+إذن لا يوجد حاليًا نقص MAIN1 معرفي أخفيه، لكن لا يمكنني بصدق إعلان MAIN1 = VERIFIED COMPLETE حتى يمر Browser/Runtime Gate الفعلي. وهذا هو آخر حاجز حقيقي بين New-main الحالي وبين شهادة Golden/Diamond وفق الأمر التنفيذي نفسه.
