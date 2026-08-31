@@ -33,7 +33,7 @@ jobs:
           test -s Current/PWA/main.html
           git hash-object Current/PWA/main.html > /tmp/main-before.sha
 
-      - name: Build one Golden artifact
+      - name: Build one New-main artifact
         shell: bash
         run: |
           set -euo pipefail
@@ -46,7 +46,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re, subprocess, tempfile
-          p=Path('Current/PWA/main.reconstruction.html')
+          p=Path('Current/PWA/New-main')
           s=p.read_text(encoding='utf-8')
           required=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn','window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM']
           missing=[x for x in required if x not in s]
@@ -54,7 +54,7 @@ jobs:
           if s.lower().count('</html>')!=1 or s.lower().count('</body>')!=1: raise SystemExit('DOCUMENT_CLOSURE_INVALID')
           scripts=re.findall(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>(.*?)</script>',s,re.I|re.S)
           if len(scripts)!=1: raise SystemExit('INLINE_SCRIPT_COUNT_INVALID:'+str(len(scripts)))
-          js=Path(tempfile.gettempdir())/'main-reconstruction.js'; js.write_text(scripts[0],encoding='utf-8')
+          js=Path(tempfile.gettempdir())/'new-main.js'; js.write_text(scripts[0],encoding='utf-8')
           r=subprocess.run(['node','--check',str(js)],capture_output=True,text=True)
           if r.returncode: print(r.stderr); raise SystemExit('JS_SYNTAX_FAIL')
           print('STRUCTURAL_AND_JS_PASS')
@@ -67,11 +67,11 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null 2>&1
-          rm -rf /tmp/rw-master-pwa
-          mkdir -p /tmp/rw-master-pwa
-          cp -r Current/PWA/. /tmp/rw-master-pwa/
-          cp Current/PWA/main.reconstruction.html /tmp/rw-master-pwa/main.reconstruction.html
-          python3 -m http.server 8124 --directory /tmp/rw-master-pwa >/tmp/rw-master-http.log 2>&1 &
+          rm -rf /tmp/rw-new-main-pwa
+          mkdir -p /tmp/rw-new-main-pwa
+          cp -r Current/PWA/. /tmp/rw-new-main-pwa/
+          cp Current/PWA/New-main /tmp/rw-new-main-pwa/New-main.html
+          python3 -m http.server 8124 --directory /tmp/rw-new-main-pwa >/tmp/rw-new-main-http.log 2>&1 &
           node <<'NODE'
           const {chromium}=require('playwright');
           (async()=>{
@@ -81,11 +81,11 @@ jobs:
             page.on('pageerror',e=>pageErrors.push(e.message));
             page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
             page.on('response',r=>{if(r.status()>=400 && !/favicon\\.ico$/i.test(r.url())) bad.push({status:r.status(),url:r.url()})});
-            await page.goto('http://127.0.0.1:8124/main.reconstruction.html',{waitUntil:'domcontentloaded',timeout:30000});
+            await page.goto('http://127.0.0.1:8124/New-main.html',{waitUntil:'domcontentloaded',timeout:30000});
             await page.waitForTimeout(3000);
-            const r=await page.evaluate(()=>({lang:document.documentElement.lang,body:!!document.body,login:!!document.getElementById('rw-login-page'),app:!!document.getElementById('rw-main-shell'),container:!!document.getElementById('rw-page-container'),shell:!!window.RW_ShellContext,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense}));
-            console.log(JSON.stringify({r,pageErrors,consoleErrors,bad}));
-            if(r.lang!=='ar'||!r.body||!r.login||!r.app||!r.container||!r.shell||!r.views||!r.owner||pageErrors.length||consoleErrors.length||bad.length) process.exit(2);
+            const r=await page.evaluate(()=>({lang:document.documentElement.lang,body:!!document.body,login:!!document.getElementById('loginScreen'),app:!!document.getElementById('app'),shell:!!window.RW_ShellContext,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense,requiredViews:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_HR','RW_CRM'].every(k=>!!window[k])}));
+            console.log(JSON.stringify({result:r,pageErrors,consoleErrors,bad}));
+            if(r.lang!=='ar'||!r.body||!r.login||!r.app||!r.shell||!r.views||!r.owner||!r.requiredViews||pageErrors.length||consoleErrors.length||bad.length) process.exit(2);
             await browser.close();
           })().catch(e=>{console.error(e);process.exit(2)});
           NODE
@@ -101,16 +101,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -s Current/PWA/main.reconstruction.html
-          sha256sum Current/PWA/main.reconstruction.html
+          test -s Current/PWA/New-main
+          sha256sum Current/PWA/New-main
 
-      - name: Persist one artifact only
+      - name: Persist single New-main artifact only
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'rawaea-master-reconstruction-bot'
           git config user.email 'rawaea-master-reconstruction-bot@users.noreply.github.com'
-          git add Current/PWA/main.reconstruction.html Current/CTO/20260831_NEW_MAIN_CLEAN_ROOM_EXECUTION.json
-          git diff --cached --quiet && { echo 'NO_GOLDEN_ARTIFACT_DELTA'; exit 1; }
-          git commit -m '[new-main-clean-room-persist] persist Golden master reconstruction artifact'
+          git add Current/PWA/New-main Current/CTO/20260831_NEW_MAIN_CLEAN_ROOM_EXECUTION.json
+          git diff --cached --quiet && { echo 'NO_NEW_MAIN_ARTIFACT_DELTA'; exit 1; }
+          git commit -m '[new-main-clean-room-persist] persist single Golden New-main artifact'
           git push origin HEAD:main
