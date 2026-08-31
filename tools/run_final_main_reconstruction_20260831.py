@@ -22,22 +22,24 @@ def assemble_clean_room() -> str:
         raise SystemExit('MISSING_RECONSTRUCTION_PARTS:' + ','.join(missing))
     chunks = [p.read_text(encoding='utf-8') for p in PARTS]
     first = chunks[0]
-    if not first.lstrip().startswith('<!DOCTYPE html>'):
+    if not re.match(r'^\s*<!DOCTYPE html>\b', first, re.I):
         raise SystemExit('MAIN1_IS_NOT_HTML_SHELL')
-    if re.search(r'^\s*</?(?:html|head|body)\b', first, re.I | re.M) and re.search(r'^\s*</(?:html|body)>\s*$', first, re.I | re.M):
+    if not re.search(r'^\s*<html\b', first, re.I | re.M):
+        raise SystemExit('MAIN1_HTML_ROOT_MISSING')
+    if re.search(r'^\s*</html>\s*$', first, re.I | re.M) or re.search(r'^\s*</body>\s*$', first, re.I | re.M):
         raise SystemExit('MAIN1_ALREADY_CLOSED_DOCUMENT')
     for i, c in enumerate(chunks[1:], 2):
         if re.search(r'^\s*<!doctype\b', c, re.I | re.M):
             raise SystemExit(f'INVALID_FRAGMENT_DOCTYPE_MAIN{i}')
         if re.search(r'^\s*</?(?:html|head|body)\b[^>]*>\s*$', c, re.I | re.M):
             raise SystemExit(f'INVALID_FRAGMENT_DOCUMENT_WRAPPER_MAIN{i}')
+        if re.search(r'</script>', c, re.I):
+            raise SystemExit(f'INVALID_FRAGMENT_SCRIPT_CLOSE_MAIN{i}')
     candidate = first.rstrip() + '\n\n' + '\n\n'.join(c.rstrip() for c in chunks[1:]) + '\n\n</script>\n</body>\n</html>\n'
-    if candidate.lower().count('<html') != 1 or candidate.lower().count('</html>') != 1:
-        raise SystemExit('HTML_DOCUMENT_BOUNDARY_FAIL')
-    opens = len(re.findall(r'<script(?:\s[^>]*)?>', candidate, re.I))
-    closes = len(re.findall(r'</script>', candidate, re.I))
-    if opens != closes:
-        raise SystemExit(f'SCRIPT_BOUNDARY_FAIL:open={opens}:close={closes}')
+    if not re.match(r'^\s*<!DOCTYPE html>\b', candidate, re.I):
+        raise SystemExit('HTML_DOCUMENT_START_FAIL')
+    if not re.search(r'</script>\s*</body>\s*</html>\s*$', candidate, re.I):
+        raise SystemExit('HTML_DOCUMENT_END_FAIL')
     return candidate
 
 
