@@ -28,13 +28,10 @@ def symbols(s: str) -> dict:
 
 
 def repaired_source(path: Path) -> str:
-    s = path.read_text(encoding='utf-8-sig')
-    if path.name == 'main7.md':
-        broken = ".join(''));}\n  async function _onSettlementRsChange()"
-        fixed = ".join('')));\n  async function _onSettlementRsChange()"
-        if broken in s:
-            return s.replace(broken, fixed, 1)
-    return s
+    # No automatic source repair is currently applied.
+    # main7.md was proven syntactically valid as committed; the previous
+    # executor-side parenthesis rewrite was itself the defect and is removed.
+    return path.read_text(encoding='utf-8-sig')
 
 
 def build() -> tuple[str, dict]:
@@ -133,7 +130,7 @@ def main() -> None:
         'main_html_modified': False,
         'new_main_sha256': sha256(candidate.encode('utf-8')),
         'new_main_bytes': len(candidate.encode('utf-8')),
-        'source_fragment_repairs': ['main7.md settlement-rs-select closing parenthesis repaired during composition'],
+        'source_fragment_repairs': [],
         'fragment_symbol_parity': parity,
         'static_gates': 'PENDING_CI_BROWSER_GATE'
     }
