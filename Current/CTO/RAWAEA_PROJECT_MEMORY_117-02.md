@@ -24,7 +24,7 @@ Historical sources explain why a behavior exists; Production proves whether it e
 - Current repository: `papamohammed77-glitch/rawaie-erp-New`
 - Historical repository: `papamohammed77-glitch/rawaie-erp-review`
 - Current Git branch: `main`
-- Current verified HEAD at latest recorded memory event: `0bd48099d6263c520daa903f6883e0670cef1502`
+- Current verified HEAD at latest recorded memory event: `c94f565497751542d6266e312042c75de401fb6e`
 - Production: Supabase `SMART ERP`, ref `fiilmooggumokxanwiyx`
 - Staging: Supabase `rawaea-staging`, ref `hfzznsiprnwkpayskzhu`
 
@@ -41,6 +41,7 @@ Latest state sequence:
 - `LVE-2026-08-31-012`: current-truth boot reconciliation; Git/Production/deployments/advisors reverified.
 - `LVE-2026-08-31-013`: governed memory ledger created.
 - `LVE-2026-08-31-014`: CURRENT_STATE synchronized after memory-ledger creation.
+- `LVE-2026-08-31-015`: memory ledger deepened with historical Inventory and representative consumer evidence.
 
 ## 5. BUSINESS DOMAIN MEMORY
 ### Sales
@@ -181,9 +182,13 @@ Historical `rawaie-erp-review` architecture documented:
 - historical JWT/RLS/Edge security model.
 - ADRs around Supabase, PWA, Dexie, core.js and specialized applications.
 
-A prior Inventory Memory Track recorded a historical closure of physical-stock centralization: `post_stock_movement` was the only inspected Production physical writer, `reserve_stock` / `release_stock_reservation` were reservation-only, `setup_van_stock` was initialization support, and no stock/inventory trigger writer was found at that snapshot. It also recorded historical rescue work for tenant/item identity corrections, legacy stock overload retirement for application execution, target-row initialization, DirectSale target correction, and Manual Voucher V2 restrictions. This remains historical provenance until continuously re-proven against the present full Production surface.
+Historical `CTO/03_CURRENT_STATUS.md` and `CTO/PRODUCTION_GIT_REALITY_MATRIX_2026-08-19.md` recorded an Inventory/Core closure boundary: the 10-argument `post_stock_movement` was the canonical application/service physical stock engine, reservation was separated, and the legacy 9-argument overload had its application/service execution constrained. The same records explicitly separated Inventory closure from ERP-wide closure.
 
-Historical records also state that earlier Production snapshots had different data counts and architecture states. Such snapshots must be treated as historical baselines when their timestamp predates current state.
+Historical `CTO/MASTER_PROJECT_AWARENESS_REPORT.md` recorded the root architectural problem as distributed business logic and the rescue direction as Business Event -> Capability/Core -> central domain engine -> authoritative state/history. It also explicitly rejected percentage-based project completeness claims and documented several then-open questions around partial receive idempotency, DirectSale/DirectReturn custody, voucher audit/CANCEL semantics, and deployment/runtime proof.
+
+Historical `CTO/TASKS/TASK-019-SOURCE-RECONCILIATION.md` preserved the intended Receive contract: cumulative `received_qty`, partial Receive remains Sent, full Receive becomes Received, over-remaining rejection, preserved allocation, one inventory history row per successful movement, and atomic DB transaction. It also recorded that the UI at that time still depended on the legacy Receive contract and that the task remained IN_PROGRESS at that historical snapshot.
+
+Historical autonomous-readiness registry (2026-08-21) classified Inventory/Reservation as VERIFIED while Fulfillment, Accounting, Ledgers, Treasury/Settlement, Consumers, Deployment Lineage, Data Repair, Concurrency, Runtime E2E and Global Zero-Debt remained OPEN. That registry is historical and must not override the 2026-08-31 Production snapshot.
 
 ## 13. KNOWN EVOLUTION
 The system evolved from distributed business logic toward centralized atomic writers.
@@ -283,7 +288,7 @@ For every future task:
 ## 21. CURRENT EXECUTION POSITION
 - 117-02 memory governance: ACTIVE
 - Current State: SYNCHRONIZED
-- Project memory ledger: CREATED and DEEPENED
+- Project memory ledger: CREATED / DEEPENED
 - Forensic readiness: READY
 - Production engineering: BLOCKED until open security/proof gates close
 - New-main: candidate only
