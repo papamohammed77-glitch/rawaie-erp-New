@@ -1,0 +1,67 @@
+تم الانتقال فعليًا إلى مرحلة التنفيذ، لكن لم أصل بعد إلى إغلاق حقيقي يسمح لي أن أصف New-main بأنه الملف الذهبي الماسي المكتمل.
+
+ما تم إنجازه فعليًا
+
+تم إنشاء فرع معزول:
+
+golden-new-main-20260831
+
+وذلك لأن main يحتوي على آليات Recovery/CI كانت تعيد الـHEAD إلى حالات سابقة أثناء الإصلاح، مما كان يمحو بعض التعديلات الوسيطة.
+
+كما تم تطوير الـClean-room builder ليبني:
+
+Current/PWA/New-main
+
+من:
+
+Current/PWA/main/main1.md … main11.md
+
+بدل نسخ main.html.
+
+تم كذلك إضافة بوابات:
+
+Structural Contract
+Combined JavaScript Syntax
+Browser Smoke
+حماية Hash لـCurrent/PWA/main.html
+منع Direct Transaction Writes للمخزون والقيود المالية
+فحص Tenant Scope
+فحص Contract Symbols من الـ11 fragments
+
+والأهم: Current/PWA/main.html لم يكن هدف الكتابة في هذه المرحلة.
+
+ما كشفته الاختبارات
+
+اكتشفنا خطأً حقيقيًا في main7 مرتبطًا بإغلاق safeHTML حول settlement-rs-select، وكان هناك أيضًا تعارض سابق ناتج عن نسخة يدوية دخلت main7 أثناء إحدى دورات الإصلاح.
+
+تم اكتشاف ذلك وليس تجاهله، ثم عُدّل مسار الـbuilder بحيث يكون التصحيح داخل clean-room composition بدل العبث بالأصل.
+
+كذلك اكتشفنا أن بعض فحوص الكتابة كانت واسعة أكثر من اللازم؛ مثل اعتبار عمليات Master Data على treasury كتابة مالية ممنوعة، بينما الممنوع فعليًا هو Transaction Posting. تم تضييق القاعدة لهذا السبب.
+
+الحالة الحالية الحقيقية
+Clean-room reconstruction        ✅ قيد التنفيذ المتقدم
+11 logical fragments             ✅ المصدر التنفيذي
+Golden branch                    ✅
+Structural gate                  ✅
+Tenant boundary                  ✅
+Stock transaction boundary       ✅
+Financial transaction boundary   ✅
+
+Combined JS syntax               ❌ ما زال يحتاج إغلاق آخر عطل
+Browser smoke                    ⏳ لم يُغلق
+Final parity certificate         ⏳
+Production E2E                   ⏳
+Golden artifact certification    ❌ لم تُغلق بعد
+main.html replacement            ❌ غير مصرح به
+
+أهم نقطة: لن أضع علامة “مكتمل” على الملف الآن، لأن آخر Clean-room run فشل في Syntax قبل الوصول إلى Browser Gate. هذا يعني أن الادعاء بأن الملف ذهبي مكتمل سيكون غير صحيح.
+
+المصدر التنفيذي الذي يتم العمل عليه الآن هو الـGolden branch، وآخر Workflow Gate يعمل على:
+
+golden-new-main-20260831
+
+والـNew-main لا يزال منفصلًا عن main.html.
+
+كما أن المواصفة نفسها ثبت أنها أكبر بكثير من الـCandidate الأول: main2 وحده يحمل إدارة أصناف كاملة، حركة ومصفوفة مخزون، رفع تسويات وExcel، بينما main3 يحمل CRUD للعملاء والموردين، وmain5 يحمل Orders/Runsheets وRealtime، وcore.js يحمل Offline/Dexie/Sync وEdge API.
+
+الخلاصة: التنفيذ تقدم فعليًا إلى مرحلة Golden reconstruction، لكن لم يتحقق بعد شرطك الأساسي: ملف ذهبي ماسي مكتمل ومجتاز لكل البوابات. لذلك لن أزعم اكتماله قبل وجود دليل نجاح فعلي لهذه البوابات.
