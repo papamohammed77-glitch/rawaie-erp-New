@@ -9,11 +9,24 @@ CUR = Path('Current/PWA/main')
 CTO = Path('Current/CTO')
 PARTS = [CUR / f'main{i}.md' for i in range(1, 12)]
 
-from master_reconstruction_postprocess import symbols, meta
-
 
 def fp(text: str) -> str:
     return hashlib.sha256(text.encode('utf-8')).hexdigest()
+
+
+def symbols(s: str) -> dict:
+    return {
+        'functions': sorted(set(re.findall(r'(?<![\w$])function\s+([A-Za-z_$][\w$]*)\s*\(', s))),
+        'ids': sorted(set(re.findall(r'\bid=["\']([^"\']+)["\']', s))),
+        'rpcs': sorted(set(re.findall(r'\.rpc\(\s*["\']([^"\']+)["\']', s))),
+        'tables': sorted(set(re.findall(r'\.from\(\s*["\']([^"\']+)["\']', s))),
+        'edge_refs': sorted(set(re.findall(r'functions/v1/([A-Za-z0-9._-]+)', s))),
+    }
+
+
+def meta(p: Path) -> dict:
+    b = p.read_bytes()
+    return {'path': str(p), 'bytes': len(b), 'sha256': hashlib.sha256(b).hexdigest(), 'lines': b.count(b'\n') + 1}
 
 
 def assemble_clean_room() -> str:
@@ -76,7 +89,6 @@ def validate_candidate(s: str) -> dict:
 
 
 def main() -> None:
-    # Clean-room reconstruction: Current/PWA/main.html is never used as an implementation seed.
     candidate = assemble_clean_room()
     losses = validate_candidate(candidate)
     tmp = MAIN.with_suffix('.reconstructed.tmp')
