@@ -42,36 +42,32 @@ jobs:
 
           const rows=[];
           for(let i=1;i<=11;i++){
-            const cp=`Current/PWA/main/main${i}.md`;
-            const op=`Original/PWA/main/main${i}.md`;
+            const cp=`Current/PWA/main/main${i}.md`, op=`Original/PWA/main/main${i}.md`;
             if(!fs.existsSync(cp)||!fs.existsSync(op)) throw new Error(`FRAGMENT_MISSING main${i}`);
             const cb=fs.readFileSync(cp), ob=fs.readFileSync(op);
             rows.push({module:`main${i}`,current_bytes:cb.length,current_sha256:sha(cb),original_bytes:ob.length,original_sha256:sha(ob),exact_byte_match:Buffer.compare(cb,ob)===0,first_difference_vs_original:firstDiff(cb,ob)});
           }
 
-          const report={
-            generated_at:new Date().toISOString(),
-            contract:'READ_ONLY_FORENSIC_FRAGMENT_INVENTORY',
-            canonical_main:{bytes:currentMain.length,sha256:sha(currentMain),original_bytes:originalMain.length,original_sha256:sha(originalMain),exact_byte_match:exact,normalized_equivalent:normalizedEquivalent,metadata_only_difference:!exact&&normalizedEquivalent,first_difference_byte:firstDifference,normalized_first_difference_byte:normalizedFirstDifference},
-            current_logical_fragments:rows,
-            source_mutation:false,
-            candidate_sources_preserved:true
-          };
+          const report={generated_at:new Date().toISOString(),contract:'READ_ONLY_FORENSIC_FRAGMENT_INVENTORY',canonical_main:{bytes:currentMain.length,sha256:sha(currentMain),original_bytes:originalMain.length,original_sha256:sha(originalMain),exact_byte_match:exact,normalized_equivalent:normalizedEquivalent,metadata_only_difference:!exact&&normalizedEquivalent,first_difference_byte:firstDifference,normalized_first_difference_byte:normalizedFirstDifference},current_logical_fragments:rows,source_mutation:false,candidate_sources_preserved:true};
           fs.mkdirSync('Current/CTO',{recursive:true});
           fs.writeFileSync('Current/CTO/PWA_FRAGMENT_RECONSTRUCTION_REPORT.json',JSON.stringify(report,null,2));
           console.log(JSON.stringify(report,null,2));
           NODE
 
-      - name: Validate current logical fragments structurally
+      - name: Validate candidate and logical fragment structure without mutating sources
         shell: bash
         run: |
           node <<'NODE'
           const fs=require('fs'); const path=require('path');
-          const names=Array.from({length:11},(_,i)=>`main${i+1}.md`);
-          const joined=names.map(n=>fs.readFileSync(path.join('Current/PWA/main',n))).join('');
-          const checks={doctype:/<!doctype\s+html/i.test(joined),htmlClose:/<\/html>/i.test(joined),scriptOpen:(joined.match(/<script\b/gi)||[]).length,scriptClose:(joined.match(/<\/script>/gi)||[]).length,styleOpen:(joined.match(/<style\b/gi)||[]).length,styleClose:(joined.match(/<\/style>/gi)||[]).length};
-          fs.writeFileSync('Current/CTO/PWA_FRAGMENT_RUNTIME_STRUCTURE.json',JSON.stringify(checks,null,2));
-          if(!checks.doctype||!checks.htmlClose||checks.scriptOpen!==checks.scriptClose||checks.styleOpen!==checks.styleClose) process.exit(2);
+          const cand=fs.readFileSync('Current/PWA/main.reconstruction.html','utf8');
+          const modules=Array.from({length:11},(_,i)=>`main${i+1}.md`);
+          const moduleState=modules.map(n=>({module:n,exists:fs.existsSync(path.join('Current/PWA/main',n))}));
+          if(moduleState.some(x=>!x.exists)) throw new Error('CURRENT_LOGICAL_MODULE_MISSING');
+          const checks={candidateDoctype:/<!doctype\s+html/i.test(cand),candidateHtmlClose:/<\/html>/i.test(cand),candidateScriptOpen:(cand.match(/<script\b/gi)||[]).length,candidateScriptClose:(cand.match(/<\/script>/gi)||[]).length,candidateStyleOpen:(cand.match(/<style\b/gi)||[]).length,candidateStyleClose:(cand.match(/<\/style>/gi)||[]).length,logical_module_count:moduleState.length};
+          checks.scriptBalance=checks.candidateScriptOpen===checks.candidateScriptClose;
+          checks.styleBalance=checks.candidateStyleOpen===checks.candidateStyleClose;
+          fs.writeFileSync('Current/CTO/PWA_FRAGMENT_RUNTIME_STRUCTURE.json',JSON.stringify({...checks,source_mutation:false},null,2));
+          if(!checks.candidateDoctype||!checks.candidateHtmlClose||!checks.scriptBalance||!checks.styleBalance) process.exit(2);
           NODE
 
       - name: Commit forensic report only
