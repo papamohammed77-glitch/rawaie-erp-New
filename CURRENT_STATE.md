@@ -1,22 +1,40 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
 ## GOVERNANCE
-- `CURRENT_STATE.md` is the operational checkpoint.
-- `LAST VERIFIED EVENT` is authoritative for recency.
-- Historical reports/prompts are evidence of past events, not current runtime truth.
-- The current task targets only `Current/PWA/New-main`.
-- `Current/PWA/main.html` is explicitly outside the write target and was not modified.
+- `CURRENT_STATE.md` is the single operational state entry point for this repository.
+- `LAST VERIFIED EVENT` is the only recency authority; `LAST REPORT` has no operational authority.
+- Reports, prompts, historical repositories and assistant memory are evidence/navigation only.
+- Any mismatch between this file, Git, Production, deployments or runtime must be marked `STALE` and reconciled before new engineering decisions.
+- Production changes require root-cause, dependency, contract, test, deployment and post-deployment verification before closure.
 
-## CURRENT GIT
-- Repository: `papamohammed77-glitch/rawaie-erp-New`
+## PROJECT
+- Project: RAWAEA ERP
+- Current repository: `papamohammed77-glitch/rawaie-erp-New`
+- Historical repository: `papamohammed77-glitch/rawaie-erp-review`
+- Active Git branch: `main`
+- Production Supabase: `SMART ERP` / `fiilmooggumokxanwiyx`
+- Staging Supabase: `rawaea-staging` / `hfzznsiprnwkpayskzhu`
+
+## CURRENT GIT — FRESHLY VERIFIED
 - Branch: `main`
-- Latest New-main expansion commit: `ffdc712000488cecf0435b94704bc95153e6e58b`
-- New-main current blob SHA: `e5376b78068e80d030a34ac77dac82efc8ebfd37`
-- Latest state-update commit: this file update
-- Temporary clean-room trigger file under `Current/PWA/main/` was removed after use.
+- Current HEAD: `461f98f31a3c10e2db23225a9ac74ad7e028a928`
+- HEAD message: `docs(cto): record final evidence matrix and open unknowns`
+- Repository is public, not archived, and current write permissions are available.
+- Current state file was reconciled after detecting drift from its previous recorded SHA/state.
 
-## PRODUCTION BASELINE — DIRECTLY VERIFIED
+## CURRENT PRODUCTION — FRESHLY VERIFIED
 - Project: `fiilmooggumokxanwiyx`
+- Name: `SMART ERP`
+- Region: `eu-west-1`
+- Status: `ACTIVE_HEALTHY`
+- PostgreSQL: 17.6.1.121 / engine 17 / GA channel
+- Directly verified Production contracts remain centered on authenticated user -> `public.users.auth_id` -> `public.users.company_id`.
+- `app_private.current_user_company_id()` is the database-side tenant resolver.
+- `post_stock_movement` is the inspected physical-stock core.
+- `post_journal_entry`, `post_customer_ledger_entry`, `post_supplier_ledger_entry` are the inspected accounting/ledger writers.
+
+## CURRENT PRODUCTION DATA / INTEGRITY BASELINE
+Previous fresh integrity snapshot remains the latest directly verified business-data snapshot until a newer SQL snapshot is recorded:
 - Companies: 1
 - Users: 24
 - Branches: 2
@@ -29,112 +47,124 @@
 - Runsheets: 0
 - Treasury: 1
 - COA: 17
-- Latest verified stock invariants remained clean during this execution.
+- Negative stock: 0
+- Allocated > qty: 0
+- Available negative: 0
+- Stock duplicate keys: 0
+- Cross-company integrity mismatches: 0
+- Customer/supplier ledger orphan count: 0
+- Journal lines without headers: 0
+- Journal headers without lines: 2 (both `Cancelled` / `VoidInvoice`)
+- Active/non-inactive users without auth link: 1
 
-## CURRENT PRODUCTION CONTRACTS USED BY NEW-MAIN
-- Authenticated Supabase user is the identity entry point.
-- `public.users.auth_id` -> `users.company_id` is the authoritative tenant mapping.
-- Operational reads in New-main are company-scoped where the table exposes `company_id`.
-- `post_stock_movement` remains the Physical Stock mutation authority.
-- `reserve_stock` / `release_stock_reservation` remain reservation capabilities only.
-- Financial writes remain delegated to canonical Edge/Core writers; New-main contains no financial DML.
-- Current financial/stock Edge deployments remain the Production source of truth.
+## CURRENT EDGE DEPLOYMENT INVENTORY — FRESHLY VERIFIED
+Production contains a large active Edge Function surface. Key inspected families include:
+- sales: `save-sales-invoice`, `confirm-order`, `delete-order`, `update-order`, `submit-online-order`
+- runsheets/fulfillment: `create-runsheet`, `append-to-runsheet`, `start-picking`, `complete-picking`, `start-loading`, `complete-loading`, `start-delivery`, `complete-delivery`, `start-return`, `complete-return`, `unload-runsheet`
+- stock vouchers: `create-stock-voucher`, `send-stock-voucher`, `receive-stock-voucher`, `complete-stock-voucher`, `cancel-stock-voucher`
+- purchasing: `save-purchase-order`, `receive-purchase`
+- accounting: `save-journal-entry`, `save-receipt-voucher`, `save-payment-voucher`, `get-trial-balance`, `get-profit-loss`, `get-balance-sheet`, `get-cash-flow`, `get-pnl-by-cost-center`
+- inventory: `save-inventory-count`, `bulk-stock-adjustment`, `seed-stock-branches`
+- customer/supplier/master data: `save-item`, `delete-item`, `save-customer`, `delete-customer`, `save-supplier`, `delete-supplier`, `save-branch`, `delete-branch`, `save-category`
+- settlement/ledger: `save-daily-settlement`, `update-driver-ledger`
+- delivery/support: `save-delivery-item`, `cancel-delivery`, `force-unassign-runsheet`, `report-discrepancy`, `create-credit-note`
+- vehicle/HR: `save-employee`, `delete-employee`, `create_vehicle_atomic` path, `setup-van-branch`
+- historical/test/canary/verification functions remain deployed and ACTIVE in Production, including multiple dated E2E, canary, recovery and harness functions. These are not to be treated as production consumers without runtime/consumer evidence.
 
-## NEW-MAIN SPECIFICATION REVIEW
-### Source evidence reviewed
-- `FINAL_MAIN_HTML_RECONSTRUCTION_COMMAND.md`
-- `CURRENT/CTO/FORENSIC_FRAGMENT_INVENTORY.json`
-- `Current/PWA/main/main1.md`
-- `Current/PWA/main/main2.md`
-- `Current/PWA/main/main3.md`
-- `Current/PWA/main/main4.md`
-- `Current/PWA/main/main5.md` and current fragment inventory references
-- Current PWA companions including `core.js`, `register-sw.js`, `pos.html`, `picker.html`, `vouchers.html`, `Returns.html`, `accountant.html`, `buyer.html`, `telesales.html`, `van-sales.html`, `loader.html`, `unloader.html`
-- Direct Production contracts used by the current Main shell
+### Inspected production versions
+- `save-sales-invoice` v15; JWT verification enabled
+- `receive-purchase` v12; JWT verification enabled
+- `complete-loading` v11; JWT verification enabled
+- `send-stock-voucher` v19; JWT verification currently disabled at platform layer but function body performs explicit Bearer-token authentication before business execution
 
-### SPECIFICATION ASSESSMENT
-The previous New-main candidate was a shell and did not meet the full Main contract surface. It lacked several shared Main responsibilities and had insufficient semantic feature coverage.
+## CURRENT DATABASE SECURITY — FRESHLY VERIFIED
+### Confirmed sound patterns
+- Tenant mapping is anchored on authenticated Supabase identity through `users.auth_id` and `company_id`.
+- `app_private.current_user_company_id()` is `SECURITY DEFINER`, `STABLE`, with empty search_path.
+- Many current RLS policies are company-scoped and permission-aware.
+- Critical atomic writers are `SECURITY DEFINER` with controlled search paths and business validation.
 
-### CURRENTLY IMPLEMENTED IN NEW-MAIN
-- Authentication and session bootstrap.
-- Authoritative user/company resolution through `users.auth_id` and `users.company_id`.
-- Owner / permissions / license surfaces.
-- Navigation across current operational, warehouse, financial, HR and settings areas.
-- Company-scoped customer CRUD through current Edge contract.
-- Company-scoped item CRUD through current Edge contract.
-- Global search across customers/items/orders.
-- Dashboard KPI/data reads.
-- Orders, runsheets, suppliers, HR, inventory, finance and reports read models.
-- Financial monitoring with COA/journal/customer-ledger/supplier-ledger/driver-ledger/treasury visibility.
-- Owner-only audit read model.
-- Notifications read model.
-- CSV export for item data.
-- Explicit delegation to specialized PWA owners for POS, Telesales, Purchasing/Receiving, Stock Vouchers, Picking, Loading, Delivery and Returns.
-- Responsive mobile shell.
-- Service Worker registration from the nested New-main location to the shared PWA root.
-- No direct Physical Stock mutation.
-- No direct Journal/Ledger/Treasury/Cash mutation.
-- `MAIN_HTML_CURRENT_CONTRACT_LEDGER` embedded in the candidate.
+### BLOCKING / OPEN SECURITY FINDINGS
+1. `orders` broad `ALL` policy for authenticated users based only on `auth.role()='authenticated'`.
+2. `order_details` same broad authenticated `ALL` policy.
+3. `run_sheet_details` same broad authenticated `ALL` policy.
+4. `daily_settlements` has `USING true` / `WITH CHECK true` policy and broad read exposure.
+5. Core order/fulfillment tables retain broad anon/authenticated grants; least-privilege remediation requires consumer proof first.
+6. Supabase Security Advisor currently reports several externally executable `SECURITY DEFINER` functions, including vehicle context/guard helpers and `create_vehicle_atomic`.
+7. Supabase Auth leaked-password protection is currently disabled.
+8. Supabase Performance Advisor reports unindexed FKs, auth-RLS initplan issues, multiple permissive policies and unused indexes. These are performance/governance backlog unless proven correctness-impacting.
+9. Some ledger tables have RLS enabled without policies; this must be classified deliberately against the actual consumer contract, not patched blindly.
 
-## SELF-AUDIT
-- The prior candidate was confirmed to be a shell, not a complete semantic Main surface.
-- The expanded candidate corrected the missing reconstruction globals and the nested Service Worker path.
-- Tenant authority is not taken from `user_metadata.company_id`.
-- No financial account UUIDs are hard-coded.
-- No direct stock or financial DML exists in New-main.
-- Customer and Item writes use existing Edge owners rather than new direct database writers.
-- The final write in this round changed only `Current/PWA/New-main`.
-- The temporary workflow trigger was removed after use.
+## CURRENT APPLICATION / NEW-MAIN STATUS
+- `Current/PWA/main.html` remains protected: not modified and not authorized for replacement.
+- `Current/PWA/New-main` remains a clean-room candidate, not certified production replacement.
+- New-main is materially expanded with authentication, tenant context, navigation, read models, delegated specialized writes, dashboard/search, owner/permission surfaces, and no direct stock/financial DML.
+- Current open New-main gates remain: exhaustive feature parity, structural parity, browser runtime, Service Worker runtime, authenticated Production E2E, concurrency proof, and replacement authorization.
+- Current logical `main1..main11` artifacts are treated as logical modules/contracts, never as byte slices.
 
-## IMPORTANT LIMITATION
-New-main is now a substantially more complete clean-room Main candidate, but it is still not certified as a replacement for `Current/PWA/main.html`.
+## CURRENT BUSINESS / ARCHITECTURAL CONTRACTS
+- Sales channels converge into order/runsheet/fulfillment lifecycle.
+- Physical stock authority: `post_stock_movement`.
+- Reservation authority: `reserve_stock` / `release_stock_reservation`.
+- Journal authority for inspected paths: `post_journal_entry`.
+- Customer/supplier/driver ledger authorities exist as dedicated writers.
+- Atomic/idempotent patterns are present in current sales, purchase, journal and stock paths.
+- `complete-loading` delegates physical stock movement to `post_stock_movement`.
+- `receive-purchase` delegates physical stock to `post_stock_movement` and financial consequences to journal + supplier ledger writers.
+- `save-sales-invoice` delegates physical stock to `post_stock_movement` and financial consequences to cash/journal/ledger writers.
+- Specialized PWA owners remain responsible for POS, Telesales, Van Sales, Purchasing/Receiving, Picking, Loading, Delivery, Returns and Stock Vouchers.
 
-The current source evidence establishes many contracts, but it does not yet prove exhaustive semantic parity for every historical/current Main feature. Missing full coverage includes, at minimum, deep runtime behavior for offline/sync, realtime, full workflow/notification behavior, every specialized operations path, and every consumer/error path.
+## HISTORICAL SOURCE STATUS
+- Historical repository `rawaie-erp-review/main` remains authoritative only for historical architecture/contracts/forensics.
+- Historical docs establish the PWA + Supabase + Edge Function architecture and business workflows, but do not override current Production truth.
+- Historical reports can explain why a behavior exists; Production decides whether it exists now.
 
-## VERIFICATION BOUNDARY
-### Verified by source/static inspection
-- Candidate is a valid HTML document structure.
-- Required shell reconstruction globals are exposed.
-- Tenant mapping uses authenticated user -> public users -> company.
-- Company-scoped lookups are used where applicable.
-- `app_settings` lookup is company-scoped.
-- New-main contains no direct stock mutation DML.
-- New-main contains no direct financial DML.
-- Specialized writes are delegated to existing current applications/Edge owners.
-- Existing `Current/PWA/main.html` remains outside the write target.
+## CURRENT INCIDENT / ANTIPATTERN MEMORY
+- Do not convert a report into runtime truth.
+- Do not treat a successful migration/CI/test as Production success.
+- Do not assume Git source equals deployed code.
+- Do not use `LIMIT 1` to hide unresolved company-scoped identity ambiguity.
+- Do not create a new Physical Stock writer when a canonical stock core exists.
+- Do not repair financial anomalies without provenance, downstream-impact analysis, rollback path and audit implications.
+- Do not patch `Current/PWA/main.html` while New-main replacement remains uncertified.
+- Do not infer that active dated test/canary Edge Functions are production business consumers.
+- Do not use broad RLS/grants as proof of intended authorization contract.
 
-### STILL OPEN — NO FALSE CLOSURE
-- Full structural parity against every logical `main1..main11` feature contract.
-- Full functional parity against every current Main capability.
-- Full validated-change parity from all current Production changes.
-- Browser smoke of the persisted final artifact.
-- Service Worker runtime proof for New-main.
-- Authenticated Production HTTP E2E of New-main.
-- Two-session concurrency proof for critical Main flows.
-- Exhaustive runtime/error-path verification for all delegated applications.
-- Production deployment/replacement certification.
-- Authorization to replace `Current/PWA/main.html`.
+## MEMORY / CURRENT-TRUTH RECOVERY STATUS
+- `117-02` command has been adopted as the current memory-governance operating rule.
+- Memory is represented as a verified-state system, not as narrative recollection.
+- The project memory must preserve: current truth, historical contract, current-vs-target gaps, incident memory, open unknowns, and last verified event.
+- Full semantic/all-function consumer graph is not yet proven exhaustively.
+
+## FORBIDDEN ACTIONS — ACTIVE
+- No blind Production DDL/DML.
+- No direct physical-stock DML outside canonical stock writer paths.
+- No direct financial mutation from New-main.
+- No rewrite/byte-slice of logical main modules.
+- No replacement of `Current/PWA/main.html` without complete parity/runtime/deployment evidence.
+- No deletion of unknown/legacy artifacts without proven classification.
+- No credential/token use from historical reports/workflows merely because it is visible in source.
 
 ## LAST VERIFIED EVENT
-- Event ID: `LVE-2026-08-31-008`
-- Event Type: `NEW_MAIN_CONTRACT_EXPANSION_AND_FORENSIC_REVIEW`
-- UTC: `2026-08-31T07:06:45Z`
-- Source: direct GitHub current repository + direct SMART ERP Production contract evidence
-- Git SHA: `ffdc712000488cecf0435b94704bc95153e6e58b`
-- Action: audited the previous New-main candidate against the reconstruction command and current logical-module evidence; expanded New-main with current shared Main contracts and specialized delegation; removed the temporary clean-room trigger; corrected the state record timestamp.
-- Result: `NEW-MAIN SUBSTANTIALLY EXPANDED / FULL PARITY AND RUNTIME CERTIFICATION OPEN`
-- Evidence: `Current/PWA/New-main` blob `e5376b78068e80d030a34ac77dac82efc8ebfd37`.
-- Impact: New-main now contains a materially broader clean-room Main surface while keeping legacy `Current/PWA/main.html` untouched.
-- Next Authorized Action: continue structural/functional/runtime parity verification of New-main only. Do not modify `Current/PWA/main.html` until every required closure gate is actually proven.
+- Event ID: `LVE-2026-08-31-012`
+- Event Type: `CURRENT_TRUTH_BOOT_RECONCILIATION`
+- UTC: `2026-08-31T17:16:30Z` (verification window)
+- Source: direct GitHub repository metadata + direct SMART ERP Supabase project/deployment/advisor verification
+- Git SHA: `461f98f31a3c10e2db23225a9ac74ad7e028a928`
+- Production State: `ACTIVE_HEALTHY`
+- Action: Read `CURRENT_STATE.md` first as required by 117-02; re-verified Git main HEAD, Production project status, active Edge deployment inventory, and current Security/Performance Advisor state; detected and classified the prior state as stale before reconciliation.
+- Result: `STATE RECONCILED / MEMORY RECOVERY CONTINUES / PRODUCTION CHANGES BLOCKED BY OPEN SECURITY + PROOF GATES`
+- Evidence: Git HEAD `461f98f31a3c10e2db23225a9ac74ad7e028a928`; Supabase `fiilmooggumokxanwiyx`; Security Advisor observed `2026-08-31T17:16:25Z`; Performance Advisor observed `2026-08-31T17:16:30Z`.
+- Impact: Previous New-main-focused state was stale as an operational memory entry and has now been synchronized to the wider current project/Production truth.
+- Next Authorized Action: build the governed `117-02` project memory artifact from verified current state + historical contract sources, then update this file immediately after that execution.
 
-## CLOSURE
-`NEW-MAIN ARTIFACT = EXISTS`
-`CURRENT CONTRACT SURFACE = SUBSTANTIALLY IMPLEMENTED`
-`STRUCTURAL PARITY = OPEN`
-`FUNCTIONAL PARITY = OPEN`
-`CONTRACT PARITY = OPEN`
-`VALIDATED CHANGE PARITY = OPEN`
-`BROWSER RUNTIME = OPEN`
-`SERVICE WORKER RUNTIME = OPEN`
-`PRODUCTION RUNTIME = OPEN`
-`MAIN.HTML REPLACEMENT = NOT AUTHORIZED`
+## CURRENT CLOSURE STATUS
+`CURRENT_STATE = RECONCILED`
+`MEMORY_GOVERNANCE_117_02 = ACTIVE`
+`PRODUCTION_HEALTH = ACTIVE_HEALTHY`
+`TENANT_SECURITY = P0_OPEN`
+`DIRECT_GRANT_LEAST_PRIVILEGE = OPEN`
+`CONSUMER_GRAPH = PARTIAL / OPEN`
+`DEPLOYMENT_LINEAGE = PARTIAL / OPEN`
+`NEW_MAIN = CANDIDATE / NOT_PRODUCTION_REPLACEMENT`
+`PRODUCTION_ENGINEERING = BLOCKED_UNTIL_READINESS_GATES`
