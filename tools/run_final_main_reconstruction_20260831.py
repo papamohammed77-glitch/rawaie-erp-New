@@ -22,7 +22,7 @@ def assemble_clean_room() -> str:
         raise SystemExit('MISSING_RECONSTRUCTION_PARTS:' + ','.join(missing))
     chunks = [p.read_text(encoding='utf-8-sig') for p in PARTS]
     first = chunks[0]
-    if not re.match(r'^\s*<!DOCTYPE html>\b', first, re.I):
+    if not re.match(r'^\s*<!DOCTYPE html>', first, re.I):
         raise SystemExit('MAIN1_IS_NOT_HTML_SHELL')
     if not re.search(r'^\s*<html\b', first, re.I | re.M):
         raise SystemExit('MAIN1_HTML_ROOT_MISSING')
@@ -36,7 +36,7 @@ def assemble_clean_room() -> str:
         if re.search(r'</script>', c, re.I):
             raise SystemExit(f'INVALID_FRAGMENT_SCRIPT_CLOSE_MAIN{i}')
     candidate = first.rstrip() + '\n\n' + '\n\n'.join(c.rstrip() for c in chunks[1:]) + '\n\n</script>\n</body>\n</html>\n'
-    if not re.match(r'^\s*<!DOCTYPE html>\b', candidate, re.I):
+    if not re.match(r'^\s*<!DOCTYPE html>', candidate, re.I):
         raise SystemExit('HTML_DOCUMENT_START_FAIL')
     if not re.search(r'</script>\s*</body>\s*</html>\s*$', candidate, re.I):
         raise SystemExit('HTML_DOCUMENT_END_FAIL')
