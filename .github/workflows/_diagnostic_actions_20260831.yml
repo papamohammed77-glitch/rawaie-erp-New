@@ -1,0 +1,10 @@
+name: ACTIONS DIAGNOSTIC 20260831
+on:
+  push:
+    paths:
+      - .github/workflows/_diagnostic_actions_20260831.yml
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ACTIONS_RUNNER_AVAILABLE
