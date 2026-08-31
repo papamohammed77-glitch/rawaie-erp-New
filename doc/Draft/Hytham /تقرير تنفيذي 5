@@ -1,0 +1,116 @@
+أكملت التحقيق إلى الحد الذي تسمح به الأدلة والتنفيذ الفعلي، والنتيجة الحالية ليست إغلاقًا ذهبيًا/ماسيًا بعد.
+
+أهم اكتشاف فعلي
+
+وجدت في Current/PWA/New-main الحالي خللًا حقيقيًا سيمنع الصفحة من العمل بعد تسجيل الدخول:
+
+stock_branches
+
+في Production لا يحتوي company_id؛ هويته هي:
+
+branch_id → branches.company_id
+
+بينما New-main الحالي ينفذ:
+
+.from('stock_branches')
+.eq('company_id', companyId)
+
+في كل من Dashboard وInventory. هذا عقد خاطئ ومؤكد من Production، وليس تخمينًا.
+
+لذلك رفضت اعتماد الـartifact الحالي كـGolden.
+
+كما ثبتت نقطة ثانية
+
+الـGolden branch التاريخي:
+
+golden-new-main-20260831
+
+ليس شهادة Golden/Diamond. آخر commit فيه كان:
+
+fb43e825e06366bae7906b56b0283b1bddba15aa
+
+ورسالة الـcommit نفسها:
+
+fix: test actual JavaScript in main1 and each clean-room fragment
+
+أي أنه اختبار للبناء، وليس اعتمادًا نهائيًا.
+
+والتحقيق في MAIN1 أكد العقد
+
+FORENSIC_FRAGMENT_INVENTORY يثبت أن MAIN1 الحالي/الأصلي يتضمن عقود:
+
+Audit
+Permissions
+Notification
+Workflow
+log-action
+rw_sidebar_collapsed
+
+والـCurrent main1.md نفسه يحتوي السلوك الكامل لهذه الأجزاء، بما فيها RW_Audit_* وRW_Notification وRW_Workflow.
+
+بينما New-main الحالي لا يساوي هذا السلوك كاملًا.
+
+ولذلك لم أفعل الآتي
+
+لم أستبدل:
+
+Current/PWA/main.html
+
+ولم أخلط Golden branch في main.
+
+ولم أعتبر CI نجاحًا؛ لا يوجد Run حالي قابل للإثبات للـclean-room workflow.
+
+ولم أضع New-main في حالة Golden/Diamond كذبًا.
+
+حالة التنفيذ الحالية
+MAIN.HTML legacy
+    ✅ untouched
+
+Production
+    ✅ untouched في مهمة إعادة بناء Main
+
+Golden branch
+    ⚠️ historical / not certified
+
+New-main
+    ⚠️ existing candidate
+    ❌ not Golden
+    ❌ not Diamond
+
+MAIN1 contract
+    ✅ verified from Current/Production evidence
+
+MAIN1 behavior inside New-main
+    ❌ not yet parity-closed
+
+Browser Runtime
+    ❌ not proven
+
+Production Runtime
+    ❌ not proven
+العائق التنفيذي الحالي
+
+حاولت تنفيذ الجراحة فعليًا، لكن قناة GitHub المتاحة في هذه الجلسة لا تسمح بتشغيل GitHub Actions يدويًا، والبيئة المحلية لا تستطيع الوصول إلى GitHub عبر git clone. كما أن أداة تحديث GitHub المتاحة لا توفر git apply أو patch جزئيًا؛ وهي تتطلب إرسال محتوى New-main كاملًا، بينما الملف الحالي كبير، ومحاولات تمرير النسخة الكاملة لم تُقبل.
+
+لذلك لن أضع نسخة مبتورة مكان الملف الحالي، ولن أحذف الملف ثم أخاطر بترك المستودع ناقصًا.
+
+ما أصبح مثبتًا الآن
+
+الحالة التشغيلية CURRENT_STATE.md
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/CURRENT_STATE.md
+
+New-main الحالي
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/PWA/New-main
+
+MAIN1 Current Contract
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/PWA/main/main1.md
+
+Clean-room executor
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/tools/run_new_main_clean_room_20260831.py
+
+Golden branch
+https://github.com/papamohammed77-glitch/rawaie-erp-New/tree/golden-new-main-20260831
+
+الحكم: NEW-MAIN = OPEN / NOT GOLDEN / NOT DIAMOND.
+
+وهذه المرة توجد علة Production-contract محددة في الـCandidate نفسه (stock_branches.company_id) يجب إصلاحها قبل أي شهادة.
