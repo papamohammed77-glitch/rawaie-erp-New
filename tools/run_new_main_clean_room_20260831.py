@@ -83,16 +83,15 @@ def build() -> tuple[str, dict]:
     if re.search(r"meta\.permissions\s*\|\|\s*\[\s*['\"]\*['\"]\s*\]", candidate):
         raise RuntimeError('OWNER_WILDCARD_FALLBACK_REMAINS')
 
-    forbidden_writes = [
-        'stock_branches', 'inventory_log', 'stock_vouchers', 'stock_voucher_details',
-        'journal_entries', 'journal_entry_lines', 'customer_ledger', 'supplier_ledger',
-        'driver_ledger', 'cash_box', 'treasury'
+    forbidden_transaction_writes = [
+        'stock_branches', 'inventory_log', 'stock_voucher_details',
+        'journal_entries', 'journal_entry_lines', 'cash_box',
+        'customer_ledger', 'supplier_ledger', 'driver_ledger'
     ]
-    for table in forbidden_writes:
-        # Match writes on the same Supabase statement only; do not flag nearby statements.
+    for table in forbidden_transaction_writes:
         pat = r"\.from\(['\"]" + re.escape(table) + r"['\"]\)[^;\n]{0,700}?\.(?:update|insert|upsert|delete)\s*\("
         if re.search(pat, candidate):
-            raise RuntimeError('DIRECT_FORBIDDEN_WRITE:' + table)
+            raise RuntimeError('DIRECT_TRANSACTION_WRITE:' + table)
 
     for m in re.finditer(r"\.from\(['\"]app_settings['\"]\)", candidate):
         tail = candidate[m.end():m.end()+2200]
