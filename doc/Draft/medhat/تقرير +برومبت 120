@@ -1,0 +1,659 @@
+بعد مراجعة السجل الحالي من GitHub مباشرة وربطه بـCURRENT_STATE.md وRAWAEA_PROJECT_MEMORY_117-02.md وملف حالة MAIN1 الحالي وملفات main1 الأصلية/الحالية، 
+هناك نتيجة مهمة جدًا قبل البرومبتين:
+الحكم التدقيقي على الوضع الحالي
+الـCURRENT_STATE.md الحالي يحسم أن:
+•	Current/PWA/New-main ليس Golden ولا Diamond. 
+•	عقد MAIN1 التاريخي/الحالي تم التحقق منه، لكن سلوك MAIN1 الكامل غير موجود بعد داخل New-main. 
+•	النقص المحدد حاليًا هو خصوصًا audit / permissions / notification / workflow behavioral surface. 
+•	MAIN1_FORENSIC_CONTRACT = VERIFIED لا تعني NEW_MAIN_MAIN1_PARITY = CLOSED. 
+•	الحالة الرسمية الحالية هي:
+NEW_MAIN_MAIN1_PARITY = OPEN
+وNEW_MAIN_BROWSER_RUNTIME = OPEN
+وNEW_MAIN_PRODUCTION_RUNTIME = OPEN. 
+وهذا يتطابق مع سجل forensic مستقل أكثر تفصيلًا: التحليل الجنائي لـMAIN1 مكتمل، لكن إعادة الكتابة الفعلية لم يتم إثباتها، ولا توجد شهادة Runtime أو Assembly. كما أن السجل نفسه يحدد أن الخلل المعزول في MAIN1 يتعلق بدورة حياة RW_ShellContext، مع ضرورة الحفاظ على isOwner من Auth metadata وعدم استنتاجه من الدور.
+كما أن الـCurrent/PWA/main/main1.md وOriginal/PWA/main/main1.md موجودان بالفعل كمصدرين منطقيين للمقارنة، والـNew-main هو الهدف الوحيد المصرح به.
+أهم خطأ كان يجب منعه في التنفيذ السابق
+كان هناك ميل لتحويل:
+MAIN1 Contract Verified
+إلى:
+MAIN1 Completed
+وهذا خطأ منطقي.
+التحقق من العقد ≠ تنفيذ العقد داخل New-main.
+والأخطر أن تقرير forensic نفسه قال صراحة إن التعديل المقترح وُضع في PR لكن لم يُنفذ كتحويل فعلي على main بسبب عدم وجود Action/check-run، وأن Current/PWA/main/main1.md ظل عند SHA الأساس.
+لذلك البرومبت التالي الذي سأعطيه للمساعد يجب أن يمنعه من أربعة أشياء تحديدًا:
+1.	اعتبار التقرير السابق تنفيذًا. 
+2.	اعتبار CURRENT_STATE نفسه دليلًا على أن الكود موجود. 
+3.	إعادة بناء New-main من الصفر. 
+4.	القفز إلى main2 بمجرد أن يقول "Parity Verified". 
+________________________________________
+البرومبت الأول
+لاستكمال MAIN1 فقط لأنه ناقصا
+CTO CONTINUATION COMMAND
+MAIN1 — COMPLETE ONLY WHAT IS ACTUALLY MISSING
+FORENSIC CONTINUATION / NO RESET / NO LOOP / NO FALSE CLOSURE
+أنت الآن تعمل كـ:
+CTO + Principal Software Architect + Forensic Reconstruction Engineer + Production Verification Engineer
+وهذه هي المهمة الوحيدة المسموح لك بتنفيذها الآن:
+استكمال MAIN1 داخل Current/PWA/New-main فقط، بناءً على الأدلة الفعلية الحالية، دون إعادة بناء المشروع، ودون إعادة تنفيذ الأعمال التاريخية، ودون لمس MAIN2 أو MAIN3 أو أي وحدة أخرى.
+________________________________________
+1. HARD STOP
+ممنوع تمامًا أن:
+•	تبدأ من الصفر.
+•	تعيد إنشاء Current/PWA/New-main.
+•	تعيد تقسيم main.html.
+•	تعيد تنفيذ main1 → main11.
+•	تعيد تطبيق إصلاحات تاريخية لمجرد أنها وردت في تقارير سابقة.
+•	تنسخ Current/PWA/main/main1.md أو Original/PWA/main/main1.md فوق New-main.
+•	تعتمد على تقرير سابق لإثبات أن شيئًا تم.
+•	تعتبر وجود PR أو workflow أو commit مقترح دليلًا على التنفيذ.
+•	تعتبر MAIN1_FORENSIC_CONTRACT = VERIFIED مساويًا لـNEW_MAIN_MAIN1_PARITY = CLOSED.
+•	تلمس Current/PWA/main.html.
+•	تلمس Current/PWA/main/main1.md.
+•	تلمس Original/PWA/main/main1.md.
+•	تلمس MAIN2.
+•	تنشئ أي ملف دائم جديد.
+•	تنشئ backup / candidate / final / fixed / v2 / evidence artifact.
+الملفات المسموح تعديلها فقط:
+Current/PWA/New-main
+CURRENT_STATE.md
+________________________________________
+2. START FROM CURRENT VERIFIED STATE
+ابدأ بقراءة:
+CURRENT_STATE.md
+حتى آخر سطر.
+ثم اقرأ:
+Current/CTO/RAWAEA_PROJECT_MEMORY_117-02.md
+ثم اقرأ:
+Current/CTO/20260830_MAIN1_FORENSIC_STATUS.md
+ثم اقرأ:
+Current/PWA/main/main1.md
+Original/PWA/main/main1.md
+Current/PWA/New-main
+ولا تستخدم أي تقرير تاريخي لإثبات الحالة الحالية.
+________________________________________
+3. SOURCE OF TRUTH
+ترتيب الأدلة الإلزامي:
+1.	Production Runtime
+2.	Production Supabase
+3.	PostgreSQL schema/functions/triggers/RLS/grants
+4.	Active Edge Functions
+5.	Current Git main
+6.	Current PWA/Core/SW
+7.	Git history
+8.	Current MAIN1 source
+9.	Original MAIN1 source
+10.	Historical prompts/reports
+11.	Assistant memory
+قاعدة مطلقة:
+REPORT != PROOF
+COMMIT != DEPLOYMENT
+WORKFLOW FILE != WORKFLOW EXECUTION
+FUNCTION EXISTS != FUNCTION CONSUMED
+CONTRACT VERIFIED != CONTRACT IMPLEMENTED
+________________________________________
+4. VERIFY REALITY BEFORE MODIFYING
+تحقق مباشرة من:
+Current Git HEAD
+Current branch
+Current/PWA/New-main SHA
+Current/PWA/main/main1.md SHA
+Original/PWA/main/main1.md SHA
+CURRENT_STATE.md SHA
+ثم تحقق من أن:
+New-main
+ما زال هو الهدف التنفيذي الوحيد.
+إذا وجدت أن CURRENT_STATE.md لا يطابق Git أو Production:
+STATE = STALE
+سجّل ذلك، ثم صحح CURRENT_STATE.md قبل أي تعديل آخر.
+________________________________________
+5. RECONSTRUCT THE MAIN1 CONTRACT
+أنشئ داخليًا فقط جدول:
+MAIN1_FORENSIC_CONTRACT_MATRIX
+ولا تحفظه في ملف جديد.
+لكل Contract من MAIN1 تحقق من:
+ORIGINAL
+CURRENT
+NEW-MAIN
+PRODUCTION / ACTIVE OWNER
+ويجب التحقق من الأقل من:
+Shell / Foundation
+•	Global CSS / layout contract
+•	login shell
+•	main shell
+•	sidebar
+•	header
+•	responsive behavior
+•	shared DOM root contracts
+Identity / Auth
+•	authenticated identity
+•	auth_id
+•	user lookup
+•	company/tenant resolution
+•	session bootstrap
+•	logout
+•	account-switch/reset behavior
+•	isOwner
+•	Owner metadata semantics
+Permissions
+•	RW_Permissions_*
+•	wildcard semantics
+•	Owner semantics
+•	permission checks
+•	fail-closed behavior
+•	role vs owner distinction
+Audit
+•	RW_Audit_*
+•	audit action contract
+•	actor identity
+•	tenant context
+•	audit consumer behavior
+Notifications
+•	_clickNotif
+•	_renderAndSave
+•	_updateBadge
+•	notification loading
+•	unread count
+•	notification state transitions
+•	notification interaction
+Workflow
+•	RW_Workflow
+•	workflow rules/log contract
+•	workflow consumer behavior
+Navigation
+•	sidebar navigation
+•	permission filtering
+•	owner-only surfaces
+•	tab routing
+•	protected routes
+Data contracts
+At minimum inspect the proven MAIN1 tables:
+app_settings
+audit_log
+branches
+customers
+items
+notification_templates
+notifications
+suppliers
+users
+workflow_log
+workflow_rules
+External dependency
+Verify the current contract of:
+log-action
+Do not recreate its business logic inside New-main.
+________________________________________
+6. SPECIAL OWNER RULE
+This rule is mandatory.
+The Owner contract must not be derived from role name alone.
+Current evidence establishes that:
+isOwner
+is derived from authenticated user metadata.
+Therefore:
+Owner
+=
+Auth metadata isOwner
++
+current authenticated identity
++
+current tenant
+and:
+permissions=["*"]
+must remain meaningful as wildcard Owner permission semantics.
+Do NOT replace this with:
+role === "مدير النظام"
+and do NOT convert wildcard permissions into an arbitrary hard-coded list.
+________________________________________
+7. SPECIAL SESSION LIFECYCLE RULE
+The already-isolated defect boundary includes:
+RW_ShellContext
+Therefore verify specifically:
+login
+bootstrap
+successful tenant resolution
+shell entry
+logout
+session expiration
+authenticated user change
+failed bootstrap
+re-entry after logout
+The shell must never retain stale:
+user
+authId
+tenant
+permissions
+owner state
+data cache
+navigation state
+from a previous session.
+The lifecycle rule must be:
+successful bootstrap
+    →
+activate shell
+
+logout / auth identity change / failed bootstrap
+    →
+reset shell context
+    →
+clear stale identity/tenant/permission state
+    →
+fail closed where required
+________________________________________
+8. CLASSIFY EVERY GAP
+Every MAIN1 item must be classified:
+PRESERVE
+FIX
+RECONSTRUCT
+REPLACE
+RETIRE
+UNKNOWN
+Definitions:
+PRESERVE
+Already present and correct.
+FIX
+Present but defective.
+RECONSTRUCT
+Missing but proven by contract.
+REPLACE
+Current implementation contradicts a proven contract.
+RETIRE
+Historical only and proven obsolete.
+UNKNOWN
+Insufficient evidence.
+Never transform:
+UNKNOWN
+into:
+REMOVE
+REBUILD
+INVENT
+________________________________________
+9. MINIMUM-SAFE-CHANGE RULE
+Only make changes required to close actual MAIN1 gaps.
+Preserve everything already correct in New-main.
+Do not refactor unrelated code.
+Do not improve unrelated UI.
+Do not modernize unrelated libraries.
+Do not rename unrelated identifiers.
+Do not move functionality between modules.
+Do not create a second business engine.
+Do not copy business logic whose owner is:
+Core
+Edge
+RPC
+Service Worker
+shared infrastructure
+Instead call the current owner.
+________________________________________
+10. IMPLEMENT THE ACTUAL MISSING CONTRACT
+If MAIN1 is incomplete:
+implement the missing functionality directly inside:
+Current/PWA/New-main
+The result must be a real executable artifact, not a plan and not a patch suggestion.
+You must preserve:
+existing correct New-main behavior
++
+MAIN1 required historical/current contracts
++
+current authorization semantics
++
+current tenant semantics
++
+current backend ownership
+________________________________________
+11. STATIC VERIFICATION
+After modification:
+•	parse the HTML
+•	parse/validate embedded JavaScript
+•	detect duplicate declarations where they can create runtime conflicts
+•	verify all referenced functions exist
+•	verify all required DOM IDs exist
+•	verify required listeners are attached
+•	verify no unresolved MAIN1 symbols
+•	verify no accidental MAIN2..MAIN11 functionality was imported
+•	verify no direct stock writer
+•	verify no unauthorized direct financial writer
+•	verify no second tenant authority
+•	verify wildcard Owner semantics remain intact
+________________________________________
+12. BEHAVIORAL VERIFICATION
+Do not stop at source inspection.
+Prove, to the extent technically possible:
+Unauthenticated
+→ login surface
+
+Authenticated user
+→ identity loaded
+
+Authenticated tenant
+→ correct company context
+
+Owner
+→ Owner state recognized
+
+Owner permissions=["*"]
+→ wildcard behavior works
+
+Normal user
+→ only allowed permissions
+
+Logout
+→ shell/session reset
+
+Different authenticated user
+→ no stale previous identity/tenant/permissions
+
+Notification surface
+→ badge/render/click contract works
+
+Audit surface
+→ audit contract remains connected
+
+Workflow surface
+→ workflow contract remains connected
+If browser runtime is unavailable, state:
+RUNTIME UNVERIFIED
+Do NOT state PASS.
+________________________________________
+13. PRODUCTION VERIFICATION
+Do not insert persistent fake business data.
+Read-only verification is preferred.
+If a transaction test is technically justified:
+BEGIN
+TEST
+VERIFY
+ROLLBACK
+VERIFY CLEAN
+Never leave synthetic production evidence.
+________________________________________
+14. CLOSURE GATE
+You may declare:
+MAIN1 COMPLETION = CLOSED
+only when all of the following are TRUE:
+MAIN1 CONTRACT VERIFIED
+AND
+ALL REQUIRED MAIN1 GAPS IMPLEMENTED
+AND
+NO KNOWN MAIN1 GAP REMAINS
+AND
+STATIC VALIDATION PASSES
+AND
+NO UNRESOLVED MAIN1 SYMBOLS
+AND
+OWNER/AUTH/PERMISSION CONTRACT VERIFIED
+AND
+TENANT CONTRACT VERIFIED
+AND
+NO DUPLICATE BUSINESS ENGINE INTRODUCED
+AND
+CURRENT_STATE UPDATED
+Browser/Production closure must be separately labeled.
+Never use:
+100%
+COMPLETE
+GOLDEN
+DIAMOND
+PRODUCTION VERIFIED
+unless the corresponding evidence actually exists.
+________________________________________
+15. CURRENT_STATE — MANDATORY EVENT
+At the end of the execution, update:
+CURRENT_STATE.md
+with a new:
+LAST VERIFIED EVENT
+containing:
+•	Event ID
+•	UTC
+•	Git SHA before
+•	Git SHA after
+•	exact target changed
+•	exact MAIN1 contracts verified
+•	exact gaps found
+•	exact changes made
+•	tests executed
+•	tests not executable
+•	Production checks performed
+•	unresolved items
+•	rejected assumptions
+•	failed attempts
+•	successful methods
+•	obstacles and their causes
+•	next authorized action
+Do NOT write a generic summary.
+The event must be sufficient for another CTO to continue without repeating the investigation.
+________________________________________
+16. FINAL RESPONSE FORMAT
+Your final response must explicitly state:
+1. REAL CURRENT STATE
+2. WHAT WAS PROVEN DIRECTLY
+3. WHAT WAS ACTUALLY CHANGED
+4. WHAT WAS NOT CHANGED
+5. WHAT TESTS ACTUALLY RAN
+6. WHAT TESTS COULD NOT RUN
+7. WHAT FAILED AND WHY
+8. WHAT SUCCEEDED
+9. WHAT REMAINS OPEN
+10. CURRENT_STATE EVENT ID
+11. FINAL MAIN1 STATUS
+12. NEXT AUTHORIZED STEP
+If MAIN1 is still incomplete:
+MAIN1 = OPEN
+and do not continue to MAIN2.
+If MAIN1 is actually closed:
+stop after recording the closure event.
+Do not begin MAIN2 in this command.
+________________________________________
+البرومبت الثاني
+الانتقال إلى MAIN2 فقط بعد إثبات إغلاق MAIN1
+هذا أفضل من مجرد قول "اذهب إلى main2"، لأنه يمنع المساعد من إعلان نجاح MAIN1 من نفسه ثم القفز.
+CTO CONTINUATION COMMAND
+MAIN2 — START ONLY AFTER VERIFIED MAIN1 CLOSURE
+NO FALSE HANDOFF / NO RESET / NO REWORK / SINGLE-MODULE CONTROL
+أنت الآن تنتقل إلى الوحدة التالية فقط إذا ثبت فعليًا أن MAIN1 مغلق.
+المهمة الحالية هي:
+بدء التحقيق والتنفيذ الجنائي لـMAIN2 داخل Current/PWA/New-main فقط، بعد التحقق المستقل من أن MAIN1 تم إغلاقه فعليًا، وليس اعتمادًا على تقرير أو عبارة "تم".
+________________________________________
+1. PRECONDITION — MAIN1 MUST BE PROVEN CLOSED
+قبل لمس MAIN2، أعد فحص:
+CURRENT_STATE.md
+LAST VERIFIED EVENT
+Current Git HEAD
+Current/PWA/New-main
+ثم تأكد أن آخر Event يثبت:
+MAIN1 COMPLETION = CLOSED
+مع أدلة فعلية.
+لا تعتبر هذه العبارات كافية:
+MAIN1 verified
+MAIN1 reconstructed
+MAIN1 implemented
+MAIN1 ready
+MAIN1 tested
+إلا إذا كان الحدث نفسه يحتوي دليلًا مباشرًا على التنفيذ والتحقق.
+________________________________________
+2. IF MAIN1 IS NOT CLOSED
+إذا تبين أن:
+MAIN1 != CLOSED
+فأوقف هذه المهمة فورًا.
+لا تبدأ MAIN2.
+ولا تعاود تحليل MAIN2.
+ولا تحاول إصلاح MAIN1 بنفسك ضمن هذا الأمر.
+اكتب فقط في CURRENT_STATE.md حدث استمرارية يثبت:
+MAIN2 HANDOFF BLOCKED
+REASON = MAIN1 NOT VERIFIED CLOSED
+ثم أنهِ التنفيذ.
+________________________________________
+3. IF MAIN1 IS CLOSED
+عند ثبوت إغلاق MAIN1:
+ابدأ MAIN2 من هنا فقط.
+الملفات المرجعية:
+Current/PWA/main/main2.md
+Original/PWA/main/main2.md
+Current/PWA/New-main
+ولا تبدأ من MAIN1.
+ولا تعيد فحص سلسلة:
+main1 → main11
+إلا بقدر ما يلزم لفهم dependency مباشر من MAIN2.
+________________________________________
+4. SOURCE OF TRUTH
+استخدم نفس هرم الأدلة:
+1.	Production Runtime
+2.	Production Supabase
+3.	PostgreSQL schema/functions/triggers/RLS/grants
+4.	Active Edge Functions
+5.	Current Git main
+6.	Current PWA/Core/SW
+7.	Git history
+8.	Current MAIN2
+9.	Original MAIN2
+10.	Historical prompts/reports
+11.	Assistant memory
+________________________________________
+5. TARGET
+الهدف التنفيذي الوحيد:
+Current/PWA/New-main
+والعقد المستهدف الوحيد:
+Current/PWA/main/main2.md
+Original/PWA/main/main2.md
+لا تنشئ نسخة ثانية.
+لا تنشئ ملفًا وسيطًا.
+لا تنشئ:
+main2-final
+main2-fixed
+New-main-v2
+candidate
+backup
+________________________________________
+6. MAIN2 CONTRACT MATRIX
+أنشئ داخليًا فقط:
+MAIN2_FORENSIC_CONTRACT_MATRIX
+لكل وظيفة أو ميزة:
+Original Evidence
+Current Evidence
+New-main Evidence
+Production/Owner Evidence
+Status
+Required Action
+Verification
+وصنّف:
+PRESERVE
+FIX
+RECONSTRUCT
+REPLACE
+RETIRE
+UNKNOWN
+________________________________________
+7. DEPENDENCY RULE
+قبل تعديل أي MAIN2 function:
+حدد مالكها الحالي.
+إذا كان مالكها:
+Core
+Edge
+RPC
+Service Worker
+shared infrastructure
+authorization
+inventory engine
+accounting engine
+فلا تنسخ المنطق داخل New-main.
+استخدم:
+New-main UI
+→ current owner
+ولا تستخدم:
+New-main UI
+→ duplicate business logic
+________________________________________
+8. MAIN2 ISOLATION RULE
+يجب ألا يؤدي إصلاح MAIN2 إلى:
+•	إعادة فتح MAIN1.
+•	تعديل MAIN3.
+•	تعديل backend غير مطلوب.
+•	تغيير auth contract بلا ضرورة مثبتة.
+•	تغيير tenant authority.
+•	تغيير business ownership.
+•	إعادة تصميم New-main.
+•	إعادة بناء المشروع.
+إذا اكتشفت dependency خارج MAIN2:
+سجّلها كـ:
+DEPENDENCY / BLOCKER
+ولا تحوّلها تلقائيًا إلى نطاق جديد.
+________________________________________
+9. EXECUTE ONLY WHAT IS REQUIRED
+إذا كان MAIN2:
+Present + Correct
+احتفظ به.
+إذا كان:
+Present + Wrong
+أصلحه.
+إذا كان:
+Missing + Contract Proven
+أعد بناؤه.
+إذا كان:
+Historical only
+فلا تعيده.
+إذا كان:
+UNKNOWN
+فلا تخمّن.
+________________________________________
+10. VERIFICATION
+بعد التنفيذ:
+•	validate HTML
+•	validate JS
+•	verify symbol closure
+•	verify DOM contracts
+•	verify event wiring
+•	verify dependency ownership
+•	verify authorization
+•	verify tenant isolation
+•	verify no duplicate business writer
+•	verify runtime where possible
+ولا تعلن Runtime PASS بدون Runtime evidence.
+________________________________________
+11. CURRENT_STATE CONTINUITY
+عند كل حدث جوهري:
+حدّث:
+CURRENT_STATE.md
+وفي نهاية MAIN2 سجّل:
+LAST VERIFIED EVENT
+ويجب أن يتضمن:
+MAIN1 HANDOFF VERIFIED = YES
+MAIN2 CONTRACT STATUS
+MAIN2 CHANGES
+TESTS
+FAILED ATTEMPTS
+OBSTACLES
+ROOT CAUSES
+SUCCESSFUL METHODS
+UNRESOLVED ITEMS
+NEXT AUTHORIZED ACTION
+________________________________________
+12. FINAL GATE
+إذا لم يغلق MAIN2:
+MAIN2 = OPEN
+ولا تنتقل إلى MAIN3.
+إذا أغلق MAIN2 فعلًا:
+MAIN2 = CLOSED
+MAIN3 HANDOFF = AUTHORIZED
+لكن لا تبدأ MAIN3 داخل هذا الأمر.
+________________________________________
+13. ABSOLUTE RULE
+لا توجد قيمة لعبارة:
+"أنا أكملت MAIN2"
+إلا إذا كان Git + source + contract + verification + CURRENT_STATE يثبت ذلك.
+القاعدة:
+CLAIM < EVIDENCE
+REPORT < SOURCE
+SOURCE < VERIFIED RUNTIME
+وفي حالة التعارض:
+الدليل المباشر ينتصر.
+________________________________________
+لماذا صغت البرومبتين بهذه الطريقة؟
+لأن السجل الحالي يكشف أن المشكلة لم تكن نقصًا في التعليمات بقدر ما كانت فشلًا في handoff وclosure semantics.
+لدينا حاليًا بالفعل:
+MAIN1 Contract = Verified
+لكن في الوقت نفسه:
+New-main MAIN1 Parity = Open
+وهذا مثبت صراحة في CURRENT_STATE.md.
+كما أن forensic status يثبت أن التحليل وصل إلى نتيجة دقيقة جدًا — ومن ضمنها RW_ShellContext, وisOwner, وwildcard permissions — لكنه لم يثبت أن إعادة الكتابة نفسها وصلت إلى main أو Production.
+لذلك نقطة تشغيل الآن هي:
+لا تستخدم برومبت "انتقل إلى MAIN2" إلا بعد أن يمر MAIN1 ببوابة إغلاق مستقلة داخل نفس التنفيذ.
+وهذا بالضبط ما يفعله البرومبت الثاني.
+
