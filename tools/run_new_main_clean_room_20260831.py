@@ -28,7 +28,15 @@ def symbols(s: str) -> dict:
 
 
 def repaired_source(path: Path) -> str:
-    return path.read_text(encoding='utf-8-sig')
+    s = path.read_text(encoding='utf-8-sig')
+    if path.name == 'main7.md':
+        broken = ".join(''));}\n  async function _onSettlementRsChange()"
+        fixed = ".join('')));}\n  async function _onSettlementRsChange()"
+        if broken in s:
+            return s.replace(broken, fixed, 1)
+        # Preserve the source unchanged when the verified defect is already absent.
+        return s
+    return s
 
 
 def build() -> tuple[str, dict]:
@@ -75,10 +83,15 @@ def build() -> tuple[str, dict]:
         raise RuntimeError('MISSING_REQUIRED_CONTRACTS:' + ','.join(missing_required))
     if re.search(r"meta\.permissions\s*\|\|\s*\[\s*['\"]\*['\"]\s*\]", candidate):
         raise RuntimeError('OWNER_WILDCARD_FALLBACK_REMAINS')
-    if re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,1600}?\.(?:update|insert|upsert|delete)\(", candidate):
-        raise RuntimeError('DIRECT_STOCK_WRITER_REMAINS')
-    if re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,1600}?\.(?:update|insert|upsert|delete)\(", candidate):
-        raise RuntimeError('DIRECT_INVENTORY_LOG_WRITER_REMAINS')
+
+    forbidden_writes = [
+        'stock_branches', 'inventory_log', 'stock_vouchers', 'stock_voucher_details',
+        'journal_entries', 'journal_entry_lines', 'customer_ledger', 'supplier_ledger',
+        'driver_ledger', 'cash_box', 'treasury'
+    ]
+    for table in forbidden_writes:
+        if re.search(r"\.from\(['\"]" + re.escape(table) + r"['\"]\)[\s\S]{0,1800}?\.(?:update|insert|upsert|delete)\(", candidate):
+            raise RuntimeError('DIRECT_FORBIDDEN_WRITE:' + table)
 
     for m in re.finditer(r"\.from\(['\"]app_settings['\"]\)", candidate):
         tail = candidate[m.end():m.end()+2200]
@@ -89,12 +102,20 @@ def build() -> tuple[str, dict]:
                 raise RuntimeError('UNSCOPED_APP_SETTINGS_LIMIT1_IN_CANDIDATE')
 
     parity = {}
+    current_union = {'functions': set(), 'ids': set(), 'rpcs': set(), 'tables': set(), 'edge_refs': set()}
     for idx, (op, cp) in enumerate(zip(ORIGINAL_PARTS, PARTS), 1):
         if not op.is_file() or op.stat().st_size == 0:
             raise RuntimeError(f'MISSING_ORIGINAL_PARITY_PART_MAIN{idx}')
+        current_symbols = symbols(repaired_source(cp))
+        for k in current_union:
+            current_union[k].update(current_symbols[k])
         osym = symbols(op.read_text(encoding='utf-8-sig'))
-        csym = symbols(repaired_source(cp))
-        parity[f'main{idx}.md'] = {k: sorted(set(osym[k]) - set(csym[k])) for k in osym}
+        parity[f'main{idx}.md'] = {k: sorted(set(osym[k]) - set(current_symbols[k])) for k in osym}
+
+    candidate_symbols = symbols(candidate)
+    current_missing = {k: sorted(v - set(candidate_symbols[k])) for k, v in current_union.items() if v - set(candidate_symbols[k])}
+    if any(current_missing.values()):
+        raise RuntimeError('CURRENT_FRAGMENT_SYMBOL_LOSS:' + json.dumps(current_missing, ensure_ascii=False, sort_keys=True))
 
     return candidate, parity
 
@@ -112,7 +133,7 @@ def main() -> None:
         'main_html_modified': False,
         'new_main_sha256': sha256(candidate.encode('utf-8')),
         'new_main_bytes': len(candidate.encode('utf-8')),
-        'source_fragment_repairs': [],
+        'source_fragment_repairs': ['main7.md settlement-rs-select closing parenthesis repaired in clean-room composition'] if 'join(\'\')));}' in candidate else [],
         'fragment_symbol_parity': parity,
         'static_gates': 'PENDING_CI_BROWSER_GATE'
     }
