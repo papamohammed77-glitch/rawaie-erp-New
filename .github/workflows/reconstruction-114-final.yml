@@ -81,7 +81,6 @@ jobs:
           current='\n'.join(Path(f'Current/PWA/main/main{i}.md').read_text(encoding='utf-8') for i in range(1,12))
           original='\n'.join(Path(f'Original/PWA/main/main{i}.md').read_text(encoding='utf-8') for i in range(1,12))
           def rx(pattern,text,flags=re.I): return sorted(set(re.findall(pattern,text,flags)))
-          # 1) Public namespace parity / duplicate global exports.
           for label,text in [('candidate',cand),('current',current),('original',original)]:
               exports=rx(r'window\.(RW_[A-Za-z0-9_]+)\s*=',text)
               dup=[k for k,v in Counter(re.findall(r'window\.(RW_[A-Za-z0-9_]+)\s*=',text)).items() if v>1]
@@ -91,19 +90,16 @@ jobs:
               else: original_exports=set(exports)
           assert current_exports <= cand_exports, 'CURRENT_PUBLIC_NAMESPACE_LOSS '+str(sorted(current_exports-cand_exports))
           assert original_exports <= cand_exports, 'ORIGINAL_PUBLIC_NAMESPACE_LOSS '+str(sorted(original_exports-cand_exports))
-          # 2) API/RPC/Edge parity between current source and candidate.
           def refs(text):
-              return {
-                'rpc':set(rx(r"\.rpc\(\s*['\"]([^'\"]+)['\"]",text)),
-                'edge':set(rx(r'functions/v1/([A-Za-z0-9._-]+)',text))
-              }
-          cr,qr=refs(cand),refs(current)
-          assert cr==qr, json.dumps({'candidate':{k:sorted(v) for k,v in cr.items()},'current':{k:sorted(v) for k,v in qr.items()}},ensure_ascii=False)
-          # 3) Critical handler references must resolve to a candidate public method/name.
-          for ns,method in sorted(set(rx(r'\b(RW_[A-Za-z0-9_]+)\.([A-Za-z_$][\w$]*)\s*\(',cand))):
-              assert re.search(rf'window\.{re.escape(ns)}\s*=|var\s+{re.escape(ns)}\s*=',cand), f'UNDEFINED_NAMESPACE {ns}'
-              assert re.search(rf'\b{re.escape(method)}\s*:',cand) or re.search(rf'function\s+{re.escape(method)}\s*\(',cand), f'UNDEFINED_METHOD {ns}.{method}'
-          # 4) Tenant contract: critical tenant tables must be company-scoped unless explicitly global identity tables.
+              return {'rpc':set(rx(r"\.rpc\(\s*['\"]([^'\"]+)['\"]",text)),'edge':set(rx(r'functions/v1/([A-Za-z0-9._-]+)',text))}
+          cr,qr=refs(cand),refs(current); assert cr==qr, json.dumps({'candidate':{k:sorted(v) for k,v in cr.items()},'current':{k:sorted(v) for k,v in qr.items()}},ensure_ascii=False)
+          # Critical RW_* references: the symbol may be a window export OR a local/global declaration.
+          refs_set=set(rx(r'\b(RW_[A-Za-z0-9_]+)\.([A-Za-z_$][\w$]*)\s*\(',cand))
+          for ns,method in sorted(refs_set):
+              ns_def = re.search(rf'window\.{re.escape(ns)}\s*=|\b(?:var|let|const|function|class)\s+{re.escape(ns)}\b',cand)
+              assert ns_def, f'UNDEFINED_NAMESPACE {ns}'
+              meth_def = re.search(rf'\b{re.escape(method)}\s*:',cand) or re.search(rf'function\s+{re.escape(method)}\s*\(',cand)
+              assert meth_def, f'UNDEFINED_METHOD {ns}.{method}'
           tenant_tables=['branches','customers','suppliers','vehicles','orders','runsheets','stock_vouchers','receiving','purchase_orders','journal_entries']
           for table in tenant_tables:
               for m in re.finditer(rf"\.from\(\s*['\"]{table}['\"]\s*\)",cand,re.I):
@@ -111,18 +107,14 @@ jobs:
                   assert re.search(r"\.eq\(\s*['\"]company_id['\"]\s*,",window,re.I), f'UNSCOPED_TENANT_LOOKUP {table}'
           for m in re.finditer(r"app_settings[\s\S]{0,450}?\.limit\(\s*1\s*\)",cand,re.I):
               assert re.search(r"\.eq\(\s*['\"]company_id['\"]\s*,",m.group(0),re.I), 'UNSCOPED_APP_SETTINGS_LIMIT1'
-          # items are globally unique by schema contract; no company equality is mandatory for identity lookup.
-          # 5) OWNER semantic preservation, not merely a role-name check.
           assert re.search(r'\bisOwner\b',cand)
           assert re.search(r'permissions[\s\S]{0,500}["\']\*["\']',cand,re.I)
-          # 6) Inventory writer contract.
           assert not re.search(r"\.from\(\s*['\"]stock_branches['\"]\s*\)[\s\S]{0,1500}?\.(?:update|insert|upsert|delete)\s*\(",cand,re.I)
           assert not re.search(r"\.from\(\s*['\"]inventory_log['\"]\s*\)[\s\S]{0,1500}?\.(?:update|insert|upsert|delete)\s*\(",cand,re.I)
           assert 'post_stock_movement' in cand
-          # 7) Source parity evidence: every current module exists in candidate build markers.
           for i in range(2,12): assert f'RW114 MODULE main{i}' in cand, f'MISSING_MODULE_MARKER main{i}'
           print('PROMPT_116_2_CONTRACT_GATES_PASS')
-          print('PUBLIC_EXPORTS',len(cand_exports),'RPCS',len(cr['rpc']),'EDGE_REFS',len(cr['edge']),'TENANT_TABLES',len(tenant_tables))
+          print('PUBLIC_EXPORTS',len(cand_exports),'RPCS',len(cr['rpc']),'EDGE_REFS',len(cr['edge']),'TENANT_TABLES',len(tenant_tables),'CRITICAL_RW_REFS',len(refs_set))
           PY
       - name: Browser smoke gate
         run: |
