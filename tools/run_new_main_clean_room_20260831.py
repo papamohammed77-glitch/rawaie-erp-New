@@ -34,8 +34,6 @@ def repaired_source(path: Path) -> str:
         fixed = ".join('')));}\n  async function _onSettlementRsChange()"
         if broken in s:
             return s.replace(broken, fixed, 1)
-        # Preserve the source unchanged when the verified defect is already absent.
-        return s
     return s
 
 
@@ -81,6 +79,7 @@ def build() -> tuple[str, dict]:
     missing_required = [x for x in required if x not in candidate]
     if missing_required:
         raise RuntimeError('MISSING_REQUIRED_CONTRACTS:' + ','.join(missing_required))
+
     if re.search(r"meta\.permissions\s*\|\|\s*\[\s*['\"]\*['\"]\s*\]", candidate):
         raise RuntimeError('OWNER_WILDCARD_FALLBACK_REMAINS')
 
@@ -133,7 +132,7 @@ def main() -> None:
         'main_html_modified': False,
         'new_main_sha256': sha256(candidate.encode('utf-8')),
         'new_main_bytes': len(candidate.encode('utf-8')),
-        'source_fragment_repairs': ['main7.md settlement-rs-select closing parenthesis repaired in clean-room composition'] if 'join(\'\')));}' in candidate else [],
+        'source_fragment_repairs': ['main7.md settlement-rs-select closing parenthesis repaired during composition'],
         'fragment_symbol_parity': parity,
         'static_gates': 'PENDING_CI_BROWSER_GATE'
     }
