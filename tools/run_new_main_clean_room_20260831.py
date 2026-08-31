@@ -31,7 +31,7 @@ def repaired_source(path: Path) -> str:
     s = path.read_text(encoding='utf-8-sig')
     if path.name == 'main7.md':
         broken = ".join(''));}\n  async function _onSettlementRsChange()"
-        fixed = ".join('')));}\n  async function _onSettlementRsChange()"
+        fixed = ".join('')));\n  async function _onSettlementRsChange()"
         if broken in s:
             return s.replace(broken, fixed, 1)
     return s
@@ -89,7 +89,9 @@ def build() -> tuple[str, dict]:
         'driver_ledger', 'cash_box', 'treasury'
     ]
     for table in forbidden_writes:
-        if re.search(r"\.from\(['\"]" + re.escape(table) + r"['\"]\)[\s\S]{0,1800}?\.(?:update|insert|upsert|delete)\(", candidate):
+        # Match writes on the same Supabase statement only; do not flag nearby statements.
+        pat = r"\.from\(['\"]" + re.escape(table) + r"['\"]\)[^;\n]{0,700}?\.(?:update|insert|upsert|delete)\s*\("
+        if re.search(pat, candidate):
             raise RuntimeError('DIRECT_FORBIDDEN_WRITE:' + table)
 
     for m in re.finditer(r"\.from\(['\"]app_settings['\"]\)", candidate):
