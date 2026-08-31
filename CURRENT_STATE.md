@@ -18,10 +18,10 @@
 
 ## CURRENT GIT — FRESHLY VERIFIED
 - Branch: `main`
-- Current HEAD after memory deepening: `c94f565497751542d6266e312042c75de401fb6e`
-- Previous verified memory-ledger creation commit: `0bd48099d6263c520daa903f6883e0670cef1502`
+- Current HEAD: `af16227deb49e1dcb25306678c68390060837f1c`
+- Previous memory deepening commit: `c94f565497751542d6266e312042c75de401fb6e`
 - Repository is public, not archived, and current write permissions are available.
-- This state file was updated immediately after the memory-ledger deepening execution.
+- `CURRENT_STATE.md` was updated immediately after the latest memory deepening execution.
 
 ## CURRENT PRODUCTION — FRESHLY VERIFIED
 - Project: `fiilmooggumokxanwiyx`
@@ -60,7 +60,7 @@ Latest directly verified business-data snapshot in this continuity chain:
 - Active/non-inactive users without auth link: 1
 
 ## CURRENT EDGE DEPLOYMENT INVENTORY
-Production contains a large active Edge Function surface including sales, runsheet/fulfillment, stock vouchers, purchasing, accounting, inventory, settlement/ledger, customer/supplier/master data, vehicles/HR, reporting and support capabilities.
+Production contains a large active Edge Function surface including sales, fulfillment, stock vouchers, purchasing, accounting, inventory, settlement/ledger, master data, vehicles/HR, reporting, support and dated test/canary/recovery/harness functions.
 Important inspected versions:
 - `save-sales-invoice` v15, JWT verification enabled
 - `receive-purchase` v12, JWT verification enabled
@@ -119,13 +119,14 @@ Important inspected versions:
 ## HISTORICAL SOURCE STATUS
 - Historical `rawaie-erp-review/main` is architecture/contract/forensics evidence, not current Production truth.
 - Historical CTO and Inventory memory tracks provide provenance for earlier closures, migrations and rescue work.
-- Older production baselines with different counts must remain historical unless freshly re-proven.
+- Older production baselines with different counts remain historical unless freshly re-proven.
+- Historical Inventory closure was explicitly scoped to the Physical Writer boundary, not global ERP closure.
 
 ## MEMORY 117-02
 - `Current/CTO/RAWAEA_PROJECT_MEMORY_117-02.md` is the persistent governed memory ledger.
-- It is intentionally separated from `CURRENT_STATE.md`: current operational state is in this file; broader classified project knowledge is in the ledger.
-- The ledger has now been deepened with verified historical Inventory centralization evidence and current representative consumer/writer paths.
-- The ledger does not claim exhaustive all-function consumer proof or Production readiness.
+- It records current/historical separation, business domains, architecture, Production writers/deployments, identity, security/performance findings, historical evolution, consumer examples, incidents, open closure units and operating loop.
+- It was deepened with `CTO/03_CURRENT_STATUS.md`, `CTO/MASTER_PROJECT_AWARENESS_REPORT.md`, `CTO/PRODUCTION_GIT_REALITY_MATRIX_2026-08-19.md`, `CTO/TASKS/TASK-019-SOURCE-RECONCILIATION.md`, and `AUTONOMOUS_CTO_READINESS_REGISTRY_20260821.md` evidence after timestamp classification.
+- It intentionally does not claim exhaustive all-function consumer proof or Production readiness.
 
 ## KNOWN INCIDENT / ANTIPATTERN MEMORY
 - Report != current truth.
@@ -150,22 +151,22 @@ Important inspected versions:
 - No replacement of `Current/PWA/main.html` without complete evidence.
 
 ## LAST VERIFIED EVENT
-- Event ID: `LVE-2026-08-31-015`
-- Event Type: `PROJECT_MEMORY_LEDGER_DEEPENING_117_02`
-- UTC: `2026-08-31T17:22:00Z` (execution window)
-- Source: direct GitHub current repository + verified historical memory artifact + current production contracts
-- Git SHA: `c94f565497751542d6266e312042c75de401fb6e`
+- Event ID: `LVE-2026-08-31-016`
+- Event Type: `PROJECT_MEMORY_HISTORICAL_RECONCILIATION_117_02`
+- UTC: `2026-08-31T17:24:00Z` (execution window)
+- Source: direct GitHub current repository + historical CTO status/awareness/source-reconciliation/readiness artifacts
+- Git SHA: `af16227deb49e1dcb25306678c68390060837f1c`
 - Production State: `ACTIVE_HEALTHY` (last fresh verified Production state)
-- Action: deepened the governed 117-02 project memory ledger with historical Inventory centralization evidence, historical rescue lineage classification, and representative current consumer/writer mappings; then synchronized the operational state checkpoint.
-- Result: `PROJECT MEMORY DEEPENED / CURRENT_STATE SYNCHRONIZED / PRODUCTION EXECUTION STILL BLOCKED`
-- Evidence: memory ledger update commit `c94f565497751542d6266e312042c75de401fb6e`.
-- Impact: project memory now preserves more of the historical/current transition without promoting historical claims into Production truth.
-- Next Authorized Action: continue exhaustive current consumer/function/deployment lineage and controlled two-tenant authorization proof; no Production policy migration until those gates are proven.
+- Action: integrated historical CTO status, Production→Git reality matrix, Receive source reconciliation, project awareness, and autonomous-readiness boundaries into the governed 117-02 memory ledger; historical facts remain timestamp-classified.
+- Result: `PROJECT MEMORY HISTORICAL RECONCILIATION COMPLETE / CURRENT_STATE SYNCHRONIZED`
+- Evidence: memory-ledger update commit `af16227deb49e1dcb25306678c68390060837f1c`.
+- Impact: future CTO continuity now retains the previously documented Inventory closure boundary, ERP-wide open domains, and historical source conflicts without falsely promoting them to current truth.
+- Next Authorized Action: continue exhaustive consumer/function/deployment lineage and two-tenant security proof; keep Production engineering blocked until readiness gates close.
 
 ## CURRENT CLOSURE STATUS
 `CURRENT_STATE = SYNCHRONIZED`
 `MEMORY_GOVERNANCE_117_02 = ACTIVE`
-`PROJECT_MEMORY_LEDGER = CREATED / DEEPENED`
+`PROJECT_MEMORY_LEDGER = CREATED / DEEPENED / HISTORICALLY RECONCILED`
 `PRODUCTION_HEALTH = ACTIVE_HEALTHY`
 `TENANT_SECURITY = P0_OPEN`
 `DIRECT_GRANT_LEAST_PRIVILEGE = OPEN`
