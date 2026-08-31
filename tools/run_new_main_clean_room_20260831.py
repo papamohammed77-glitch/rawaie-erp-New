@@ -13,6 +13,7 @@ ORIGINAL_PARTS = [ORIG / f'main{i}.md' for i in range(1, 12)]
 # 2026-08-31 continuation: executor remains the sole composition authority for New-main.
 # Do not edit Current/PWA/main.html; only Current/PWA/New-main may be produced here.
 
+
 def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
@@ -37,6 +38,31 @@ def repaired_source(path: Path) -> str:
     return s
 
 
+def compose_document(first: str, fragments: list[str]) -> str:
+    # main1 is the canonical document shell. Extract its single inline runtime
+    # script and keep the remaining 10 fragments inside that one script.
+    matches = list(re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>(.*?)</script>', first, re.I | re.S))
+    if not matches:
+        raise RuntimeError('MAIN1_INLINE_SCRIPT_MISSING')
+    if len(matches) != 1:
+        raise RuntimeError(f'MAIN1_EXPECTS_ONE_INLINE_SCRIPT_FOUND_{len(matches)}')
+    m = matches[0]
+    prefix = first[:m.start()]
+    suffix = first[m.end():]
+    if not re.fullmatch(r'\s*</body>\s*</html>\s*', suffix, re.I | re.S):
+        raise RuntimeError('MAIN1_SHELL_SUFFIX_NOT_STANDARD')
+    body = m.group(1).strip()
+    for idx, fragment in enumerate(fragments, 2):
+        if re.search(r'</script>', fragment, re.I):
+            raise RuntimeError(f'INVALID_FRAGMENT_SCRIPT_CLOSE_MAIN{idx}')
+        if re.search(r'^\s*</?(?:html|head|body)\b[^>]*>\s*$', fragment, re.I | re.M):
+            raise RuntimeError(f'INVALID_FRAGMENT_DOCUMENT_WRAPPER_MAIN{idx}')
+        if re.search(r'^\s*<!doctype\b', fragment, re.I | re.M):
+            raise RuntimeError(f'INVALID_FRAGMENT_DOCTYPE_MAIN{idx}')
+    combined = '\n\n'.join([body] + [f.rstrip() for f in fragments if f.strip()])
+    return prefix + '<script>\n' + combined + '\n</script>\n</body>\n</html>\n'
+
+
 def build() -> tuple[str, dict]:
     missing = [str(p) for p in PARTS if not p.is_file() or p.stat().st_size == 0]
     if missing:
@@ -49,32 +75,14 @@ def build() -> tuple[str, dict]:
     if not re.search(r'^\s*<html\b', first, re.I | re.M):
         raise RuntimeError('MAIN1_HTML_ROOT_MISSING')
 
-    for idx, c in enumerate(chunks[1:], 2):
-        if re.search(r'^\s*<!doctype\b', c, re.I | re.M):
-            raise RuntimeError(f'INVALID_FRAGMENT_DOCTYPE_MAIN{idx}')
-        if re.search(r'^\s*</?(?:html|head|body)\b[^>]*>\s*$', c, re.I | re.M):
-            raise RuntimeError(f'INVALID_FRAGMENT_DOCUMENT_WRAPPER_MAIN{idx}')
-        if re.search(r'</script>', c, re.I):
-            raise RuntimeError(f'INVALID_FRAGMENT_SCRIPT_CLOSE_MAIN{idx}')
-
-    candidate = first.rstrip() + '\n\n' + '\n\n'.join(c.rstrip() for c in chunks[1:]) + '\n\n</script>\n</body>\n</html>\n'
+    candidate = compose_document(first, chunks[1:])
 
     required = [
-        'window.RW_ShellContext',
-        'RW_ShellContext.getCompanyId()',
-        'window.RW_OwnerLicense',
-        'RW_Views',
-        'window.RW_Dashboard',
-        'window.RW_Items',
-        'window.RW_POS',
-        'window.RW_Orders',
-        'window.RW_Runsheets',
-        'window.RW_Purchases',
-        'window.RW_Warehouse',
-        'window.RW_Finance',
-        'window.RW_Reports',
-        'window.RW_HR',
-        'window.RW_CRM',
+        'window.RW_ShellContext', 'RW_ShellContext.getCompanyId()',
+        'window.RW_OwnerLicense', 'RW_Views', 'window.RW_Dashboard',
+        'window.RW_Items', 'window.RW_POS', 'window.RW_Orders',
+        'window.RW_Runsheets', 'window.RW_Purchases', 'window.RW_Warehouse',
+        'window.RW_Finance', 'window.RW_Reports', 'window.RW_HR', 'window.RW_CRM'
     ]
     missing_required = [x for x in required if x not in candidate]
     if missing_required:
@@ -131,6 +139,7 @@ def main() -> None:
         'target': 'Current/PWA/New-main',
         'legacy_target_modified': False,
         'main_html_modified': False,
+        'composition_mode': 'main1_document_shell_plus_single_combined_inline_script',
         'new_main_sha256': sha256(candidate.encode('utf-8')),
         'new_main_bytes': len(candidate.encode('utf-8')),
         'source_fragment_repairs': ['main7.md settlement-rs-select closing parenthesis repaired during composition'],
