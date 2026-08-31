@@ -36,6 +36,21 @@ jobs:
       - name: Build New-main only from current fragments
         run: python3 tools/run_new_main_clean_room_20260831.py
 
+      - name: Structural contract gate for New-main
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          required = ['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn']
+          globals_ = ['window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM']
+          missing=[x for x in required+globals_ if x not in s]
+          if missing: raise SystemExit('STRUCTURAL_CONTRACT_MISSING:'+','.join(missing))
+          if '</html>' not in s.lower() or '</body>' not in s.lower(): raise SystemExit('DOCUMENT_CLOSURE_MISSING')
+          print('STRUCTURAL_CONTRACT_PASS')
+          PY
+
       - name: JavaScript syntax gate for New-main
         shell: bash
         run: |
@@ -78,9 +93,9 @@ jobs:
             page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
             await page.goto('http://127.0.0.1:8124/New-main',{waitUntil:'domcontentloaded',timeout:30000});
             await page.waitForTimeout(3000);
-            const r=await page.evaluate(()=>({title:document.title,lang:document.documentElement.lang,body:!!document.body,login:!!document.getElementById('loginScreen'),app:!!document.getElementById('app'),shell:!!window.RW_ShellContext,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense}));
+            const r=await page.evaluate(()=>({title:document.title,lang:document.documentElement.lang,body:!!document.body,login:!!document.getElementById('rw-login-page'),app:!!document.getElementById('rw-main-shell'),container:!!document.getElementById('rw-page-container'),shell:!!window.RW_ShellContext,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense}));
             console.log(JSON.stringify({result:r,pageErrors,consoleErrors}));
-            if(r.lang!=='ar'||!r.body||!r.login||!r.app||!r.shell||!r.views||!r.owner||pageErrors.length) process.exit(2);
+            if(r.lang!=='ar'||!r.body||!r.login||!r.app||!r.container||!r.shell||!r.views||!r.owner||pageErrors.length) process.exit(2);
             await browser.close();
           })().catch(e=>{console.error(e);process.exit(2)});
           NODE
@@ -111,7 +126,7 @@ jobs:
           state=Path('CURRENT_STATE.md')
           old=state.read_text(encoding='utf-8')
           marker='- Next authorized action: continue verification and surgical correction of New-main only; do not modify Current/PWA/main.html.\n'
-          replacement='- Next authorized action: continue verification and surgical correction of New-main only; do not modify Current/PWA/main.html.\n\n## NEW-MAIN EXECUTION RESULT\n- New-main was rebuilt from the current `main1..main11` source fragments by an isolated executor.\n- Local JavaScript syntax gate: PASS.\n- Local browser smoke gate: PASS.\n- Existing `Current/PWA/main.html`: byte-identical before/after execution.\n- Production runtime of New-main itself: NOT DEPLOYED / NOT VERIFIED; this remains open until an actual supported production hosting path is identified.\n'
+          replacement='- Next authorized action: continue verification and surgical correction of New-main only; do not modify Current/PWA/main.html.\n\n## NEW-MAIN EXECUTION RESULT\n- New-main was rebuilt from the current `main1..main11` source fragments by an isolated executor.\n- Structural contract gate: PASS.\n- Local JavaScript syntax gate: PASS.\n- Local browser smoke gate: PASS.\n- Existing `Current/PWA/main.html`: byte-identical before/after execution.\n- Production runtime of New-main itself: NOT DEPLOYED / NOT VERIFIED; this remains open until an actual supported production hosting path is identified.\n'
           if marker in old: old=old.replace(marker,replacement,1)
           else: old += '\n'+replacement
           state.write_text(old,encoding='utf-8')
