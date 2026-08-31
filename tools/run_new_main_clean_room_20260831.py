@@ -28,10 +28,17 @@ def symbols(s: str) -> dict:
 
 
 def repaired_source(path: Path) -> str:
-    # No automatic source repair is currently applied.
-    # main7.md was proven syntactically valid as committed; the previous
-    # executor-side parenthesis rewrite was itself the defect and is removed.
-    return path.read_text(encoding='utf-8-sig')
+    # Current main7.md contains one proven source-level syntax defect in the
+    # settlement selector: safeHTML(...) closes join + grouping + function call.
+    # Repair only that exact token sequence; no other source rewriting occurs.
+    s = path.read_text(encoding='utf-8-sig')
+    if path.name == 'main7.md':
+        broken = ".join(''));}\n  async function _onSettlementRsChange()"
+        fixed = ".join('')));}\n  async function _onSettlementRsChange()"
+        if broken not in s:
+            raise RuntimeError('EXPECTED_MAIN7_SETTLEMENT_PATTERN_NOT_FOUND')
+        return s.replace(broken, fixed, 1)
+    return s
 
 
 def build() -> tuple[str, dict]:
@@ -130,7 +137,7 @@ def main() -> None:
         'main_html_modified': False,
         'new_main_sha256': sha256(candidate.encode('utf-8')),
         'new_main_bytes': len(candidate.encode('utf-8')),
-        'source_fragment_repairs': [],
+        'source_fragment_repairs': ['main7.md: exact safeHTML settlement selector closure repaired during composition'],
         'fragment_symbol_parity': parity,
         'static_gates': 'PENDING_CI_BROWSER_GATE'
     }
