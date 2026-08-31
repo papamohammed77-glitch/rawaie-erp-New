@@ -1,0 +1,120 @@
+الحالة الحالية لتنفيذ Prompt 114
+
+بدأت من آخر حالة فعلية في المستودع وProduction، وليس من التقارير السابقة. تم تنفيذ أجزاء فعلية من الأمر، لكن لم أصل إلى الإغلاق النهائي بعد، ولذلك لن أصف المهمة بأنها مكتملة.
+
+ما تم إثباته مباشرة
+
+تمت قراءة Prompt 114 نفسه، واتضح أن المطلوب ليس تعديلًا عاديًا لـmain.html، بل Greenfield Reconstruction يكون فيه:
+
+main1 → Parent HTML
+
+ثم:
+
+main2 … main11 → وحدات منطقية
+
+مع الحفاظ على عقود Tenant وOWNER والـInventory، ثم المرور عبر static/semantic/browser/Production gates قبل استبدال main.html.
+
+كما تم فحص Production مباشرة، وليس الاعتماد على التقارير، وتم العثور على أن عقد المخزون المركزي قائم حول post_stock_movement، وأن stock_branches وinventory_log هما مخرجا الحركة الفيزيائية.
+
+ما تم تنفيذه فعليًا
+
+تم إنشاء فرع تنفيذ مستقل:
+
+reconstruction-114-final-20260831
+
+من أحدث main فعليًا.
+
+وتم إنشاء PR:
+
+PR #50 — [114] Final Greenfield PWA Reconstruction
+
+ولم يتم لمس Current/PWA/main.html في Production branch حتى الآن.
+
+كما تم إنشاء:
+
+tools/reconstruct_114.py
+
+وWorkflow مستقل للتحقق.
+
+الـbuilder نجح فعليًا في توليد Candidate:
+
+Current/PWA/main.reconstruction.html
+
+بحجم 568,897 bytes / 6,246 lines في إحدى مراحل البناء.
+
+كما تم إنشاء بنية توثيقية للـ:
+
+feature registry
+function registry
+contract registry
+dependency graph
+parity evidence
+forensic reconstruction evidence
+أهم اكتشاف أثناء التحقيق
+
+وجدت أن main1 الحالي ليس HTML مكتمل الإغلاق من تلقاء نفسه؛ هو Parent مفتوح يحتوي runtime script يمتد حتى نهاية الجزء، بينما لا يغلق body/html داخله.
+
+ولهذا فشل أول Candidate بوضوح في node --check بـ:
+
+Unexpected end of input
+
+بدل اعتبار ذلك مشكلة في بقية الملفات، تم تتبع السبب حتى الـParent نفسه.
+
+تم بعد ذلك تعديل assembly layer بحيث يغلق runtime الخاص بـmain1 قبل تحميل main2..main11.
+
+هذا الإصلاح لم أعتبره نجاحًا نهائيًا بعد.
+
+اكتشاف مهم آخر
+
+تم التأكد أن عقد OWNER الحقيقي ليس API باسم window.RW_OwnerContract كما كان الـGate يفترض في إحدى النسخ.
+
+العقد الفعلي موزع في runtime حول:
+
+RW_STATE.app.currentUser.isOwner
+
+وpermissions، مع الحفاظ على wildcard ["*"].
+
+لذلك أزلت من Gate شرطًا كان سيفرض API غير موجود، وربطت التحقق بالعقد الفعلي بدل اختراع abstraction جديد.
+
+وهذا مهم جدًا لأن Prompt 114 نفسه يمنع تغيير semantics الخاصة بالـOWNER.
+
+تم أيضًا اكتشاف مشكلة في الـCI نفسه
+
+كانت هناك Workflows قديمة تعمل بالتوازي مع إعادة البناء وتنتج إشارات action_required وتنفذ عمليات مرتبطة بإعادة تركيب fragments.
+
+هذا يؤكد أن المشكلة ليست مجرد main.html؛ هناك Governance/CI drift يجب تنظيفه قبل إعلان أن 114 مغلق.
+
+الوضع الحالي الدقيق
+
+آخر Candidate لم يصل بعد إلى GOLD/DIAMOND.
+
+السبب الحالي ليس “عدم معرفة ماذا نفعل”، بل أن آخر تشغيل للـPR كان لا يزال يعيد تشغيل Gates قديمة بالتوازي، في حين أن Workflow 114 الجديد يحتاج أن أقرأ نتيجته النهائية بعد آخر تعديل للـbuilder.
+
+آخر run الخاص بالـworkflow الجديد كان:
+
+33351155658
+
+وكانت نسخته السابقة قد فشلت في Static validation قبل أن يتم تعديل إغلاق main1.
+
+لذلك لا يجوز الآن:
+
+استبدال main.html.
+دمج PR #50.
+إعلان Production PASS.
+اعتبار reconstruction مكتملًا.
+
+لأن ذلك سيخالف شرط 114 نفسه، الذي يشترط Production verification قبل الـreplacement.
+
+نقطة أمان مهمة
+
+كذلك لم أقم بإجراء تنظيف جماعي للبيانات في Production بناءً على أرقام التقارير القديمة. خلال التحقيق السابق ظهر أن بعض اختلافات company_id في stock_branches قد تكون ناتجة عن نموذج Item Master عالمي، بينما items.item_code لديه بالفعل UNIQUE عالمي في الـschema. لذلك أي تنظيف لتلك الصفوف يحتاج إثبات المصدر والسياق، وليس مجرد DELETE WHERE company_id <> item.company_id.
+
+النتيجة
+
+Prompt 114: IN PROGRESS — NOT CLOSED.
+
+تم بالفعل إنشاء مسار التنفيذ الصحيح، والـcandidate، والـgates، والـPR، وكشف وإصلاح عدة عيوب حقيقية في الـassembly والـverification.
+
+لكن لم يتم بعد إثبات Browser Runtime + Production Compatibility + Fresh Production Verification + Replacement + Post-Replacement Verification؛ وبالتالي إعلان 100% CLOSED الآن سيكون ادعاءً غير مدعوم بالأدلة.
+
+وسأعتبر الحالة الحالية هي آخر نقطة صحيحة للاستئناف، لا أيًا من التقارير 89–113.
