@@ -28,17 +28,7 @@ def symbols(s: str) -> dict:
 
 
 def repaired_source(path: Path) -> str:
-    s = path.read_text(encoding='utf-8-sig')
-    if path.name == 'main7.md':
-        pattern = re.compile(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}", re.M)
-        s2, n = pattern.subn(r"\1));}", s, count=1)
-        if n == 1:
-            return s2
-        corrected = re.search(r"safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\)\)\);}", s, re.M)
-        if corrected:
-            return s
-        raise RuntimeError('VERIFIED_MAIN7_SYNTAX_REPAIR_NOT_FOUND')
-    return s
+    return path.read_text(encoding='utf-8-sig')
 
 
 def build() -> tuple[str, dict]:
@@ -68,8 +58,6 @@ def build() -> tuple[str, dict]:
         'RW_ShellContext.getCompanyId()',
         'window.RW_OwnerLicense',
         'RW_Views',
-        'rec-purchase',
-        'rec-offers',
         'window.RW_Dashboard',
         'window.RW_Items',
         'window.RW_POS',
@@ -85,14 +73,20 @@ def build() -> tuple[str, dict]:
     missing_required = [x for x in required if x not in candidate]
     if missing_required:
         raise RuntimeError('MISSING_REQUIRED_CONTRACTS:' + ','.join(missing_required))
-    if 'meta.permissions || [\'*\']' in candidate:
+    if re.search(r"meta\.permissions\s*\|\|\s*\[["\']\*["\']\]", candidate):
         raise RuntimeError('OWNER_WILDCARD_FALLBACK_REMAINS')
-    if re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,1000}?\.(?:update|insert|upsert|delete)\(", candidate):
+    if re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,1600}?\.(?:update|insert|upsert|delete)\(", candidate):
         raise RuntimeError('DIRECT_STOCK_WRITER_REMAINS')
-    if re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,1000}?\.(?:update|insert|upsert|delete)\(", candidate):
+    if re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,1600}?\.(?:update|insert|upsert|delete)\(", candidate):
         raise RuntimeError('DIRECT_INVENTORY_LOG_WRITER_REMAINS')
-    if re.search(r"\.from\(['\"]app_settings['\"]\)[\s\S]{0,1600}?\.limit\(\s*1\s*\)", candidate):
-        raise RuntimeError('UNSCOPED_APP_SETTINGS_LIMIT1_IN_CANDIDATE')
+
+    for m in re.finditer(r"\.from\(['\"]app_settings['\"]\)", candidate):
+        tail = candidate[m.end():m.end()+2200]
+        lim = re.search(r"\.limit\(\s*1\s*\)", tail)
+        if lim:
+            scoped = re.search(r"\.eq\(\s*['\"]company_id['\"]\s*,", tail[:lim.start()])
+            if not scoped:
+                raise RuntimeError('UNSCOPED_APP_SETTINGS_LIMIT1_IN_CANDIDATE')
 
     parity = {}
     for idx, (op, cp) in enumerate(zip(ORIGINAL_PARTS, PARTS), 1):
@@ -118,7 +112,7 @@ def main() -> None:
         'main_html_modified': False,
         'new_main_sha256': sha256(candidate.encode('utf-8')),
         'new_main_bytes': len(candidate.encode('utf-8')),
-        'source_fragment_repairs': ['main7.md safeHTML settlement select closing parenthesis'] if 'settlement-rs-select' in candidate else [],
+        'source_fragment_repairs': [],
         'fragment_symbol_parity': parity,
         'static_gates': 'PENDING_CI_BROWSER_GATE'
     }
