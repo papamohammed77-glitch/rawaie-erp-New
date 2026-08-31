@@ -1,1 +1,1 @@
-trigger clean-room build after composition fix
+trigger golden clean-room after synchronized builder
