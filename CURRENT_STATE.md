@@ -16,109 +16,73 @@
 - Production Supabase: `SMART ERP` / `fiilmooggumokxanwiyx`
 - Staging Supabase: `rawaea-staging` / `hfzznsiprnwkpayskzhu`
 
-## CURRENT GIT — FRESHLY RECONCILED
-- Branch: `main`
-- Current HEAD before this state-only update: `a20928631202229cf9d1dc5ee4d67f10f06165b9`
-- This update changes documentation/state only; no Production mutation was introduced.
+## CURRENT REALITY RECONCILIATION — 2026-08-31
+- `CURRENT/PWA/main.html` remains protected and was not modified by this execution.
+- The authorized reconstruction target is `Current/PWA/New-main`.
+- The present `New-main` artifact is not certified Golden/Diamond.
+- Direct inspection of `Current/CTO/FORENSIC_FRAGMENT_INVENTORY.json` proves `Current/PWA/main/main1.md` and `Original/PWA/main/main1.md` have matching function/table/ID sets for the audited MAIN1 contract, including `RW_Audit_*`, `RW_Permissions_*`, notification functions, `RW_Workflow`, and the associated audit/notification/workflow tables.
+- The current `New-main` artifact does not yet expose the full MAIN1 contract surface; its present implementation is a partial shell/consumer layer rather than a verified behavioral reconstruction of MAIN1.
+- The official clean-room workflow and builder exist, but the available GitHub integration in this execution session did not expose a runnable Actions dispatch/run result; therefore CI/browser/production runtime closure cannot be falsely declared.
+- `main` and `golden-new-main-20260831` are divergent. The Golden branch is historical evidence only and is not merged blindly into current `main`.
 
-## CURRENT PRODUCTION — FRESHLY VERIFIED
-- Project: `fiilmooggumokxanwiyx`
-- Name: `SMART ERP`
-- Region: `eu-west-1`
+## CURRENT PRODUCTION — LAST DIRECTLY VERIFIED SNAPSHOT
+- Production project: `fiilmooggumokxanwiyx` (`SMART ERP`)
 - Status: `ACTIVE_HEALTHY`
-- PostgreSQL: 17.6.1.121 / engine 17 / GA channel
-- Fresh snapshot: 66 public tables, 76 public functions, 20 public triggers, 110 public RLS policies.
-- Current business data: companies 1, users 24, branches 2, items 17, stock rows 20, inventory_log 3, orders 0, runsheets 0, journal_entries 2, journal_lines 0, customer_ledger 0, supplier_ledger 0, driver_ledger 0, daily_settlements 0, treasury 1.
+- PostgreSQL: 17.6.x
+- Current business baseline observed during recent forensic execution: one company, 24 users, 2 branches, 17 items, 20 stock rows, 3 inventory-log rows, 0 orders, 0 runsheets, 2 journal headers, 0 journal lines, 0 customer/supplier/driver ledger rows, 0 daily settlements, 1 treasury.
 - Authoritative identity path: authenticated user -> `public.users.auth_id` -> `public.users.company_id`.
-- Database tenant resolver: `app_private.current_user_company_id()`.
-- Physical-stock core: `post_stock_movement`.
-- Inspected accounting/ledger cores: `post_journal_entry`, dedicated customer/supplier/driver ledger paths.
-
-## CURRENT SECURITY / AUTHORIZATION FINDINGS — STILL OPEN
-- `orders` has broad authenticated `ALL` policy and broad anon/authenticated INSERT paths.
-- `order_details` has broad authenticated `ALL` policy.
-- `run_sheet_details` has broad authenticated `ALL` policy.
-- `daily_settlements` has public `ALL` with `USING true` / `WITH CHECK true`.
-- Seven current SECURITY DEFINER functions were observed executable by anon/authenticated in the prior verified security snapshot.
-- Auth leaked-password protection is disabled in the current Security Advisor snapshot.
-- Performance Advisor reports unindexed FKs, RLS init-plan inefficiencies, multiple permissive policies and unused indexes.
-- These are confirmed blockers/findings. No Production security mutation is authorized before consumer proof and a controlled multi-tenant harness.
-
-## CURRENT ARCHITECTURAL CONTRACTS
-- Sales channels: POS, Telesales, Order Taker, Van Sales, Online Store.
-- Physical stock authority: `post_stock_movement`.
+- Physical-stock authority: `post_stock_movement`.
 - Reservation authority: `reserve_stock` / `release_stock_reservation`.
-- Journal authority: `post_journal_entry` for inspected accounting paths.
-- Dedicated customer/supplier/driver ledger writers exist.
-- Specialized PWAs remain owners for POS, Telesales, Van Sales, Purchasing/Receiving, Picking, Loading, Delivery, Returns and Stock Vouchers.
-- `Current/PWA/main.html` remains protected.
-- `Current/PWA/New-main` remains a candidate and is not authorized to replace `main.html`.
+- Journal authority for inspected posting paths: `post_journal_entry`.
 
-## MASTER CONTINUITY REVIEW — CURRENT SESSION
-- `doc/Draft/medhat/MASTER - RAWAEA ERP.md` was read through the end of the command and its continuity rules were adopted for this session.
-- Hytham `تقرير تنفيذي 1` and `تقرير تنفيذي 2` were reviewed as historical execution evidence only, not as current truth.
-- Current `CURRENT_STATE.md` was re-read and found materially newer than the assistant's prior context; it correctly redirects the current target to security/consumer/deployment readiness rather than a historical numbered stage.
-- `RAWAEA_PROJECT_MEMORY_117-02.md` was re-read and confirms the same current position.
-- Direct Production SQL reconfirmed the canonical stock function structure: the 10-argument idempotent `post_stock_movement` is the physical-stock authority, while the 9-argument form is a compatibility wrapper; `post_manual_stock_voucher_atomic` is a SECURITY DEFINER wrapper around its core.
-- Direct Production RLS inspection reconfirmed broad order/fulfillment policies and the open `daily_settlements` policy.
-- Current `main1..main11` fragments remain logical contracts/modules, not byte slices.
+## CURRENT OPEN SECURITY / RUNTIME FINDINGS
+- Broad authenticated/anon policies remain on some order/fulfillment and settlement tables and require controlled consumer proof before remediation.
+- Full cryptographic deployment-lineage parity for all critical Edge Functions is not yet closed.
+- No verified two-session Production concurrency proof is currently recorded for the New-main target.
+- New-main browser/runtime parity is not certified.
+- New-main Service Worker runtime is not certified.
+- Main replacement is not authorized.
 
-## NEW-MAIN / GOLDEN FINDINGS
-- The previously visible `Current/PWA/New-main` is an expanded clean-room candidate, not a certified replacement.
-- Historical clean-room execution had previously passed syntax/structural gates and then failed Browser Smoke because the composed inline script was prematurely terminated by HTML parsing.
-- A later experimental builder attempt on a branch failed at composition with `MAIN1_INLINE_SCRIPT_BLOCK_MISSING`; investigation showed that multiple builder/workflow lines exist and are not a single authoritative release path.
-- The current `main` branch does not currently contain the experimental clean-room commits attempted during that prior round; the branch has reconciled back to the newer `a2092863...` state.
-- The repository currently contains multiple historical CI workflows that run on every `main` push. Many fail for unrelated legacy gates; these failures must not be conflated with the Main replacement certification.
-- The canonical `new_main_clean_room_20260831.yml` and older `master_reconstruction_forensic_20260830.yml` currently disagree on target/builder/contract expectations; this is a known workflow-lineage inconsistency requiring cleanup before any closure claim.
+## MAIN1 FORENSIC CLOSURE — CURRENT SESSION
+- Command used: `doc/Draft/medhat/CTO EXECUTION COMMAND.md`.
+- Scope: `Current/PWA/New-main` against `Current/PWA/main/main1.md` and `Original/PWA/main/main1.md` only.
+- Historical/current fragment inventory was used to identify the MAIN1 contract; reports were not used as Current Truth.
+- MAIN1 current/original function parity in the inventory is verified for the audited set: `RW_Audit_*`, `RW_Permissions_*`, `_clickNotif`, `_renderAndSave`, `_updateBadge`, identity/auth/navigation helpers, notification/workflow helpers.
+- MAIN1 current/original tables are verified as: `app_settings`, `audit_log`, `branches`, `customers`, `items`, `notification_templates`, `notifications`, `suppliers`, `users`, `workflow_log`, `workflow_rules`.
+- MAIN1 current/original edge dependency is verified as `log-action`.
+- MAIN1 current/original storage key is verified as `rw_sidebar_collapsed`.
+- Current New-main is missing the complete MAIN1 audit/permissions/notification/workflow behavioral surface and therefore is not yet parity-closed.
+- No permanent third artifact was created by the MAIN1 completion command.
 
-## CURRENT BLOCKERS — NO FALSE CLOSURE
-1. Full consumer graph: `CONSUMER -> CAPABILITY -> EDGE -> RPC -> TABLE` is not exhaustively proven.
-2. Full deployment lineage of critical writers is not cryptographically proven end-to-end.
-3. Exhaustive Physical Stock writer exclusivity remains open beyond inspected paths.
-4. Exhaustive journal/ledger/treasury writer matrix remains open.
-5. No controlled two-company authorization harness currently exists in staging.
-6. P0 tenant-isolation defects remain open in Production policies/grants.
-7. Least-privilege grant/policy remediation remains blocked on consumer proof.
-8. Security Advisor findings remain open.
-9. Current auth-link anomaly and cancelled journal-header anomalies require provenance analysis before repair.
-10. New-main browser/runtime parity is not certified.
-11. Service Worker runtime proof is not certified.
-12. Main replacement certification is not authorized.
-13. Historical inventory-log provenance reconciliation remains open.
-
-## KNOWN ANTIPATTERNS CONFIRMED THIS SESSION
-- Treating a historical report as current truth.
-- Treating a candidate/CI PASS as runtime/Production PASS.
-- Using a stale workflow as the authority for a current artifact.
-- Using a broad static gate that mistakes legitimate master-data CRUD (for example `treasury`) for transaction posting.
-- Creating or retaining multiple competing builder/workflow paths for the same closure target.
-- Modifying a candidate before the current target/ownership/consumer graph is proven.
+## VERIFIED ARTIFACT / WORKFLOW LINEAGE
+- `Current/PWA/New-main` exists on `main` and is the sole authorized reconstruction artifact.
+- `Current/PWA/main/main1.md` is a logical contract source and is not to be copied wholesale into New-main.
+- `.github/workflows/new_main_clean_room_20260831.yml` exists as an existing project workflow; it is not a substitute for runtime proof.
+- Existing historical clean-room commits include a real JS syntax gate over main1..main11 and a browser-smoke design, but prior workflow lineage is inconsistent and must not be treated as current PASS without a current run.
 
 ## LAST VERIFIED EVENT
-- Event ID: `LVE-2026-08-31-019`
-- Event Type: `MASTER_CONTINUITY_FORENSIC_REVIEW_AND_CURRENT_TARGET_RECONCILIATION`
-- UTC: `2026-08-31T18:00:00Z` (execution window)
-- Source: direct GitHub current files + full Master command review + Hytham reports + direct Production SQL/RLS/function inspection
-- Git SHA: `a20928631202229cf9d1dc5ee4d67f10f06165b9` (state before this documentation commit)
+- Event ID: `LVE-2026-08-31-020`
+- Event Type: `MAIN1_FORENSIC_RECONCILIATION_AND_CURRENT_NEW_MAIN_GAP_CONFIRMATION`
+- UTC: `2026-08-31T22:30:00Z` execution window
+- Source: direct current Git files + `FORENSIC_FRAGMENT_INVENTORY.json` + `Current/PWA/New-main` + `Current/PWA/main/main1.md` + `Original/PWA/main/main1.md` + direct Production evidence already verified in this execution thread
+- Git SHA at reconciliation point: `1f62e8a3bb76e9f97b5318791a13552f08f52242`
 - Production State: `ACTIVE_HEALTHY`
-- Action: re-entered the project from current truth; re-read the Master command end-to-end, reviewed the two historical execution reports, reconciled current Git/Production/Memory, verified stock-core and RLS contracts directly, classified the New-main/GOLD builder state, and identified workflow-lineage inconsistency and the actual current P0 security/consumer blockers.
-- Result: `CURRENT TARGET = SECURITY + CONSUMER + DEPLOYMENT READINESS / NEW-MAIN REMAINS CANDIDATE`
-- Impact: historical New-main reconstruction attempts are retained as evidence but are not treated as the active release path; Production mutation remains correctly blocked until readiness gates are satisfied.
-- Next Authorized Action: prove the exhaustive consumer graph and deployment lineage, establish an authorized two-tenant non-production harness, then perform controlled security remediation and regression testing. Only after those gates are closed may New-main runtime/parity/replacement certification resume.
+- Action: reconciled the current project against the Master governance command, rechecked the MAIN1 function/table/ID contract, compared it to the current New-main artifact, inspected Golden branch divergence, and refused to certify New-main as Golden/Diamond because the full MAIN1 behavioral surface and current runtime proof are not present.
+- Result: `MAIN1 = OPEN / NEW-MAIN = NOT GOLDEN / NOT DIAMOND`
+- Impact: no change to legacy `main.html`; no unsafe promotion; the next authorized engineering action remains completion of the MAIN1 audit/permission/notification/workflow contract inside the existing `Current/PWA/New-main`, followed by current CI/browser/runtime verification.
+- Next Authorized Action: complete only the missing MAIN1 contract inside `Current/PWA/New-main`, preserve existing correct New-main behavior, then run current structural + JS + browser + Production runtime verification before any replacement decision.
 
 ## CURRENT CLOSURE STATUS
 `CURRENT_STATE = SYNCHRONIZED`
 `MASTER_CONTINUITY_COMMAND = ACTIVE`
 `MEMORY_GOVERNANCE_117_02 = ACTIVE`
 `PRODUCTION_HEALTH = ACTIVE_HEALTHY`
-`PHASE_5_DEPENDENCY_GRAPH = PARTIAL / OPEN`
-`TENANT_SECURITY = P0_OPEN`
-`DIRECT_GRANT_LEAST_PRIVILEGE = OPEN`
-`SECURITY_ADVISOR_FINDINGS = OPEN`
-`CONSUMER_GRAPH = PARTIAL / OPEN`
+`MAIN1_FORENSIC_CONTRACT = VERIFIED`
+`NEW_MAIN_MAIN1_PARITY = OPEN`
+`NEW_MAIN_BROWSER_RUNTIME = OPEN`
+`NEW_MAIN_PRODUCTION_RUNTIME = OPEN`
 `DEPLOYMENT_LINEAGE = PARTIAL / OPEN`
-`INVENTORY_WRITER_EXCLUSIVITY = PARTIAL / OPEN`
-`LEDGER_WRITER_EXCLUSIVITY = PARTIAL / OPEN`
-`NEW_MAIN = CANDIDATE / NOT_PRODUCTION_REPLACEMENT`
-`PRODUCTION_ENGINEERING = BLOCKED_UNTIL_READINESS_GATES`
-`GOLDEN_DIAMOND = NOT_CERTIFIED`
+`SECURITY = OPEN`
+`CONCURRENCY = OPEN`
+`MAIN_REPLACEMENT = NOT AUTHORIZED`
+`GOLDEN_DIAMOND = NOT CERTIFIED`
