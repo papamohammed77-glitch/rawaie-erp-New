@@ -29,7 +29,7 @@ def build():
         p=CUR/f'main{i}.md'; s=p.read_text(encoding='utf-8'); check_module(i,s)
         meta_map[f'main{i}']={'current':meta(p),'original':meta(ORG/f'main{i}.md'),'symbols':extract(s)}
         modules.append(f'\n<!-- RW114 MODULE main{i} -->\n<script data-rw-module="main{i}">\n{s}\n</script>\n<!-- END RW114 MODULE main{i} -->\n')
-    artifact=parent.rstrip()+"\n</script>\n"+"\n".join(modules)+"\n</body>\n</html>\n"
+    artifact=parent.rstrip()+"\n})();\n</script>\n"+"\n".join(modules)+"\n</body>\n</html>\n"
     doc=strip_script_payload(artifact)
     for pat,name in [(r'<!doctype\s+html','DOCTYPE'),(r'<html\b','HTML_OPEN'),(r'</html>','HTML_CLOSE'),(r'<head\b','HEAD_OPEN'),(r'</head>','HEAD_CLOSE'),(r'<body\b','BODY_OPEN'),(r'</body>','BODY_CLOSE')]:
         if len(re.findall(pat,doc,re.I))!=1: fail(name+' cardinality')
