@@ -1,0 +1,119 @@
+ما تم إثباته فعليًا
+
+1. 117-02
+تمت قراءة برومبت الذاكرة المرجعي، بما فيه التسلسل الإلزامي:
+
+UNDERSTAND → HISTORICAL CONTRACT → CURRENT BEHAVIOR → DATA/AUTH FLOW → TARGET → GAP → SAFE CHANGE → IMPLEMENT → VERIFY
+
+كما تم تثبيت قاعدة عدم اعتبار أي سلوك خطأً لمجرد أنه يبدو غير منطقي، وخصوصًا الحفاظ على عقد OWNER:
+isOwner=true + permissions=["*"] + owner_profile + active license.
+
+2. Production
+تم الدخول إلى Supabase Production الفعلية وليس الاعتماد على تقرير قديم.
+
+آخر snapshot موثّق تم التقاطه كان:
+
+المؤشر	القيمة
+companies	1
+users	24
+branches	2
+items	17
+stock_branches	20
+inventory_log	3
+stock_vouchers	0
+purchase_orders	0
+orders	0
+runsheets	0
+audit_log	1866
+negative qty	0
+negative allocated	0
+available mismatch	0
+cross-company stock	0
+cross-company inventory log	0
+
+كما تم التحقق من إصدارات Edge الحالية في تلك النقطة، ومن بنية audit_log والـtriggers.
+
+3. CURRENT_STATE
+تمت قراءة CURRENT_STATE.md وتحديثه من واقع Git + Production بدل استخدامه كحقيقة تاريخية. لكن أثناء التنفيذ حدثت commits أحدث، وبالتالي النسخة الموجودة فيه الآن تحتاج reconciliation نهائيًا مرة أخرى قبل إغلاق المهمة.
+
+4. Git الحالي
+تم التحقق الآن مباشرة من Current/PWA/main.html:
+
+blob SHA:
+34b1bd23f99ac08a797625ab2fd359b21bf140b4
+
+والملف ما زال هو الملف الحالي، أي أن الاستبدال النهائي لم يتم.
+
+وهذا مهم جدًا: لن أقول إن reconstruction اكتمل بينما Git نفسه يثبت أن main.html لم يتغير.
+
+ما تم اكتشافه في main.html
+
+المراجعة المباشرة أثبتت أن الملف الحالي لا يزال يحتوي على مخالفات للعقود الحاكمة، منها:
+
+meta.permissions || ['*']
+
+وهذا غير مقبول لأنه يخلق wildcard fallback بدل احترام عقد OWNER المثبت.
+
+كما توجد مواضع app_settings.limit(1) تحتاج تمييزًا دقيقًا بين lookup مقيّد بـcompany_id وlookup غير مقيّد. لذلك تم رفض الـregex السابق لأنه كان واسعًا أكثر من اللازم.
+
+كذلك تم إثبات أن الـcurrent main.html يحتاج reconstruction، وليس مجرد تقرير.
+
+ما تم تنفيذه في مسار reconstruction
+
+تم بناء executor مستقل:
+
+tools/run_final_main_reconstruction_20260831.py
+
+وهو يعتمد على:
+
+الـCurrent/PWA/main.html الحالي كمصدر seed.
+p0_main_shell_repair_v2.py.
+استعادة توصيات rec-purchase وrec-offers.
+منع Direct Writers إلى stock_branches وinventory_log.
+منع OWNER wildcard fallback.
+semantic tenant check للـapp_settings.
+Original feature-symbol parity.
+JavaScript syntax gate.
+Browser smoke gate.
+
+أي أن الاتجاه أصبح clean-room reconstruction من Current artifact نفسه، وليس إعادة لصق main1..main11.
+
+نقطة مهمة جدًا
+
+تم تشغيل الـGitHub Actions فعليًا، وثبت أن runner يعمل. أحد الـJobs وصل إلى تنفيذ الـP0 بالفعل:
+
+666715 → 680467
+
+ثم توقف بسبب الـguard القديم الذي كان يعتبر أي app_settings.limit(1) مخالفة، رغم أن بعضها company-scoped.
+
+لذلك لم يتم تحويل فشل الـworkflow إلى “فشل Production”، وتم تصحيح executor بدل إخفاء المشكلة.
+
+كما تم تعديل مسارات CI عدة مرات، لكن لم يتم اعتماد CI PASS كدليل نهائي لأن آخر runs الخاصة بالـreconstruction لم تنتج artifact/commit نهائيًا موثوقًا.
+
+حالة المهمة الآن
+
+النتيجة الصادقة هي:
+
+FINAL MAIN.HTML RECONSTRUCTION = غير مكتملة
+
+وليس من الصحيح إعلان:
+
+GLOBAL INVENTORY CORE INTEGRITY = 100% CLOSED
+
+أو
+
+MAIN.HTML = FINAL
+
+حتى الآن.
+
+والسبب ليس نقصًا في التقرير، بل أن الشرط الأهم الذي وضعته أنت لم يتحقق بعد:
+
+التنفيذ الحقيقي + تحقق Production runtime.
+
+أقوى دليل حالي هو أن Git يثبت أن main.html ما زال بالـSHA:
+
+34b1bd23f99ac08a797625ab2fd359b21bf140b4.
+
+كذلك يجب إعادة تحديث CURRENT_STATE.md من HEAD وProduction اللحظيين بعد آخر commits قبل أي إغلاق؛ فالنسخة التي حدّثتها أثناء العمل أصبحت بدورها أقدم من أحدث commits التي أُنشئت بعدها.
+
+لذلك لم أزوّر الإغلاق ولم أعتبر المهمة مكتملة نظريًا.
