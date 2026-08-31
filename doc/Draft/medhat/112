@@ -1,0 +1,695 @@
+راجعت MASTER RECONSTRUCTION COMMAND، وتقارير 109 و110 و111، وما تم فعليًا في Git، وربطت ذلك بما ظهر لنا مباشرة في Production. والنتيجة المهمة جدًا هي أن المشكلة ليست أن العمل كان “صعبًا” أو أن هناك خطأ واحدًا لم نكتشفه.
+
+الخلاصة أولًا
+
+سبب عدم الانتهاء هو أن طريقة تنفيذ المهمة دخلت في حلقة مغلقة:
+
+كنا نحاول إثبات أن main.html مكتمل وآمن قبل أن نبنيه،
+وفي نفس الوقت كانت الأدلة تثبت أن بناءه الآمن هو نفسه ما يحتاج إلى الإنجاز.
+
+بمعنى أبسط:
+
+كنا نتحرك كثيرًا داخل التحقيق، ولكننا لم نعبر من “مرحلة التحقيق” إلى “مرحلة إنتاج الـGold Artifact” بطريقة منهجية قابلة للإغلاق.
+
+وهذا هو سبب بقاء المهمة عند:
+
+MAIN.HTML RECONSTRUCTION = NOT CLOSED
+
+وهو ما تم تسجيله صراحة في تقرير 111.
+
+1. أين حدث التعطيل الحقيقي؟
+
+هناك 6 أسباب رئيسية.
+
+1) المهمة أصبحت أكبر من مجرد إعادة كتابة main.html
+
+الأمر الأصلي لا يطلب مجرد بناء ملف جديد.
+
+بل يطلب في وقت واحد:
+
+Historical reconstruction
++
+Original parity
++
+Current fragments parity
++
+Production compatibility
++
+Database compatibility
++
+Edge/RPC compatibility
++
+Tenant compatibility
++
+Permission compatibility
++
+PWA compatibility
++
+Browser runtime verification
+
+والـMaster Command نفسه يفرض هذا التسلسل الطويل قبل الإغلاق.
+
+إذن نحن لم نكن أمام:
+
+"اكتب main.html"
+
+بل أمام:
+
+إعادة بناء نظام واجهة كامل مع الحفاظ على عقد تاريخية وحالية وإثباته Runtime.
+
+2. أكبر خطأ منهجي: اعتبار main1..main11 أجزاء فعلية من main.html
+
+هذه كانت العقدة الأساسية.
+
+التحقيق السابق أثبت أن:
+
+main1
+main2
+...
+main11
+
+ليست بالضرورة slices مادية متتابعة من main.html.
+
+بل هي logical fragments تحتوي أحيانًا على تطورات أحدث من الملف الكامل.
+
+تقرير 109 أثبت ذلك بشكل مباشر، بما في ذلك أن محاولة تقسيم main.html حسب أحجام الأجزاء أعطت نتيجة مضللة: يمكن أن تبدو الأحجام صحيحة بينما تكون الوظائف نفسها غير متطابقة.
+
+وهذه نقطة محورية جدًا.
+
+لذلك كان هذا الطريق خاطئًا:
+
+main1
++
+main2
++
+...
++
+main11
+=
+main.html
+
+والـMaster Reconstruction Command نفسه أغلق هذا الباب صراحة، وطلب Semantic Reconstruction وليس Concatenation.
+
+3. اكتشفنا أن Current main.html نفسه ليس "Gold Master"
+
+وهذا زاد الأزمة وضوحًا.
+
+التحقيق السابق وجد أن:
+
+Current main.html
+
+قريب جدًا من الـOriginal، بينما الـfragments تحتوي تطورات وإصلاحات لاحقة.
+
+فأصبح لدينا:
+
+Original main.html
+Current main.html
+Current main1..main11
+Historical corrections
+Current Production
+
+ولا يوجد ملف واحد يمثل كل هذه الأشياء معًا.
+
+تقرير 109 سجل هذه النقطة صراحة.
+
+إذن كان مطلوبًا إنشاء مرجع جديد، وليس اختيار ملف قديم واعتباره المرجع الصحيح.
+
+4. كان هناك عمل كثير على "آلات التحقيق" وليس على الـFinal Artifact
+
+وهذه في رأيي أكبر خسارة للوقت.
+
+Git يظهر سلسلة من الخطوات مثل:
+
+إنشاء forensic workflow
+إنشاء semantic reconstruction executor
+إنشاء postprocessor
+تعطيل reconstruction writers
+تحويل بعض الأدوات إلى verify-only
+إنشاء commits لتسجيل الحالة
+
+ثم في النهاية:
+
+لا يوجد final reconstructed main.html
+
+السلسلة الحالية في Git تؤكد هذا بوضوح: آخر التطورات كانت تشغيل/ضبط البنية الحاكمة والتحقيق، بينما لم تصل إلى commit نهائي للـartifact.
+
+وهذا يفسر لماذا شعرنا أننا "نعمل باستمرار" ولكن المشروع لا يصل إلى خط النهاية.
+
+5. حصل Deadlock بسبب شرط Runtime Verification
+
+هذه نقطة يجب أن نكون دقيقين فيها.
+
+الـMaster Command يقول بوضوح:
+
+لا تعتبر المهمة منتهية بدون Browser Runtime Verification وProduction Verification.
+
+وتقرير 111 سجل أن هذه الأشياء لم تُثبت:
+
+Browser E2E
+Owner browser verification
+Normal-user browser verification
+Production Edge invocation authenticated
+Final reconstruction commit/parity الكامل.
+
+إذن حصلت حلقة:
+
+نبني →
+نحتاج Runtime إثبات →
+لا توجد قناة Browser/Authenticated Invocation →
+لا نستطيع إعلان Closed →
+لا نريد إعلان Closed →
+لا ننتج Gold
+
+وهذا ليس عيبًا في منطق الـERP.
+
+إنه عيب في مسار التسليم والتحقق.
+
+6. والأخطر: اختلطت مهمتان مختلفتان
+
+هناك مهمتان كبيرتان تم دمجهما تدريجيًا:
+
+المسار A
+
+Inventory Core Integrity
+
+وهدفه:
+
+Every Physical Movement
+        ↓
+post_stock_movement
+المسار B
+
+MASTER RECONSTRUCTION
+
+وهدفه:
+
+main.html
++
+all features
++
+all contracts
++
+all historical valid behavior
++
+current production compatibility
+
+الـInventory أصبح جزءًا من Reconstruction، ثم عادت التحقيقات إلى Inventory، ثم عادت إلى PWA، ثم إلى Runtime، ثم إلى Production.
+
+فحدث:
+
+PWA
+ ↓
+Inventory
+ ↓
+Production
+ ↓
+Edge
+ ↓
+PWA
+ ↓
+Git workflow
+ ↓
+Production
+
+وهذا هو Loop الذي منع الإغلاق.
+
+7. لكن هناك خبر ممتاز جدًا
+
+رغم كل ذلك، المشروع لم يفشل.
+
+بل على العكس.
+
+تم التخلص من أخطر شيء كان ممكنًا أن يحدث:
+
+بناء ملف جديد يبدو ناجحًا، لكنه يفقد وظائف أو يكسر Contracts تاريخية.
+
+مثال واضح:
+
+تم اكتشاف أن main9 يفقد rec-offers الحقيقي الموجود في Original، وأن Current كان يحول rec-* إلى توصية شراء منخفض المخزون. وهذه Regression حقيقية مثبتة بالكود وليست رأيًا.
+
+كما أن التحقيق الحالي أثبت:
+
+Physical Stock Core
+=
+post_stock_movement
+
+وأن post_manual_stock_voucher_atomic يستخدمه بالفعل، وأن items.item_code عليه UNIQUE عالمي، وأن Audit path موجود عبر:
+
+trg_audit_stock_vouchers
+        ↓
+fn_audit_trigger
+        ↓
+audit_log
+
+وهذا موثق في التقرير الحالي.
+
+إذن التحقيق خفض المخاطر بالفعل.
+
+المشكلة أنه لم يتحول إلى منتج نهائي.
+
+الحل النهائي الذي أراه
+
+لا نحتاج إلى إعادة كل شيء من الصفر.
+
+نحتاج إلى تغيير طريقة الإغلاق.
+
+الحل الذي أوصي به: "Gold Master Reconstruction Pipeline"
+
+بدل:
+
+11 ملفات
+↓
+محاولة دمج
+↓
+اختبارات
+↓
+اكتشاف نقص
+↓
+إعادة العمل
+↓
+اختبارات
+
+نعمل هكذا:
+
+CURRENT WORLD FREEZE
+        ↓
+CONTRACT LEDGER
+        ↓
+FEATURE LEDGER
+        ↓
+FUNCTION REGISTRY
+        ↓
+DEPENDENCY GRAPH
+        ↓
+CANONICAL SEMANTIC MODEL
+        ↓
+GREENFIELD MAIN
+        ↓
+AUTOMATED PARITY
+        ↓
+AUTOMATED STATIC VALIDATION
+        ↓
+AUTOMATED RUNTIME
+        ↓
+PRODUCTION VERIFICATION
+        ↓
+GOLD
+المرحلة 1 — لا نلمس Production أثناء إعادة البناء
+
+نغلق العالم المرجعي:
+
+Git HEAD
+main.html
+main1..main11
+Original
+core
+sw
+PWA companions
+RPCs
+Edge Functions
+DB schema
+RLS
+Triggers
+Permissions
+
+ويُنتج ملف واحد:
+
+RECONSTRUCTION_BASELINE.json
+
+يحتوي hashes وversions فقط.
+
+أي تغيير بعد ذلك يجعل الـbaseline:
+
+STALE
+
+ولا يجوز استخدام النسب القديمة.
+
+وهذا يطابق تمامًا فلسفة الـMaster Command.
+
+المرحلة 2 — لا نبني main.html مباشرة
+
+ننشيء داخليًا:
+
+MAIN_CANONICAL_MODEL
+
+ليس ملف HTML.
+
+بل خريطة منطقية:
+
+AUTH
+NAVIGATION
+DASHBOARD
+CUSTOMERS
+SUPPLIERS
+ITEMS
+INVENTORY
+VOUCHERS
+PURCHASING
+RECEIVING
+POS
+TELESALES
+VAN SALES
+RUNSHEETS
+PICKING
+LOADING
+DELIVERY
+RETURN
+UNLOADING
+ACCOUNTING
+TREASURY
+HR
+REPORTS
+SETTINGS
+PWA
+OFFLINE
+SYNC
+REALTIME
+
+وكل وحدة تحتوي:
+
+UI
++
+Functions
++
+DOM contracts
++
+API
++
+RPC
++
+Storage
++
+Permissions
++
+State
++
+Errors
++
+Dependencies
+
+هنا تصبح المشكلة قابلة للإدارة.
+
+المرحلة 3 — نوقف فكرة "كل وظيفة يجب أن تنتقل حرفيًا"
+
+هذه نقطة مهمة جدًا.
+
+لا نريد:
+
+نقل كل function من Original إلى New.
+
+نريد:
+
+إثبات أن كل Contract حي له Owner واحد في النسخة الجديدة.
+
+مثلاً:
+
+rec-offers
+
+ليس المطلوب الاحتفاظ بنفس code structure.
+
+المطلوب إثبات:
+
+Feature exists
++
+same business purpose
++
+same required data
++
+same user access
++
+same result
+
+وهذا يسمح فعلًا بعمل Greenfield.
+
+المرحلة 4 — إنشاء Main جديد منفصل
+
+ليس:
+
+Current/PWA/main.html
+
+مباشرة.
+
+بل:
+
+Current/PWA/main.reconstruction.html
+
+ثم بعد نجاح كل الاختبارات:
+
+main.reconstruction.html
+        ↓
+main.html
+
+هذا يمنع تدمير المرجع الحالي أثناء العمل.
+
+المرحلة 5 — أهم فكرة إبداعية: Contract Compatibility Harness
+
+هذه هي الوسيلة التي كانت ناقصة.
+
+ننشيء Test Harness يقارن:
+
+Original
+Current
+Reconstructed
+
+ولكن ليس بالسطر.
+
+بل بالـContract.
+
+مثلاً:
+
+Contract	Original	Current	New
+POS	✓	✓	✓
+Van Sales	✓	✓	✓
+rec-offers	✓	✗	✓
+Owner wildcard	✓	✓	✓
+Inventory API	✓	✓	✓
+Offline cache	✓	✓	✓
+
+هنا يظهر النقص فورًا.
+
+المرحلة 6 — Browser Verification لا يجب أن تكون عائقًا يدويًا
+
+وهذه أهم معالجة للأزمة الحالية.
+
+بدل انتظار وجود Browser Tool داخل المساعد، نجعل GitHub Actions هو الـBrowser Executor.
+
+باستخدام مثلًا:
+
+Playwright
+
+يتم تشغيل:
+
+login
+owner session
+normal user session
+navigation
+dashboard
+inventory
+POS
+van sales
+vouchers
+purchasing
+receiving
+returns
+offline
+reconnect
+service worker
+
+ثم يخرج:
+
+BROWSER_RUNTIME_REPORT.json
+
+وبالتالي لم يعد المساعد مضطرًا لأن "يرى المتصفح بنفسه".
+
+الـRepository نفسه يصبح أداة الإثبات.
+
+المرحلة 7 — Production Verification تصبح Contract Tests
+
+بدل محاولة عمل عمليات تجارية عشوائية على Production، نستخدم اختبارات غير ملوثة.
+
+مثلاً:
+
+READ TEST
+AUTH TEST
+TENANT TEST
+ITEM IDENTITY TEST
+RPC EXISTENCE TEST
+EDGE CONTRACT TEST
+RLS TEST
+AUDIT TEST
+IDEMPOTENCY TEST
+
+والاختبارات التي تحتاج كتابة:
+
+BEGIN
+TEST
+ROLLBACK
+
+بحيث لا نترك Fixtures خلفنا.
+
+المرحلة 8 — نفرق نهائيًا بين ثلاثة ألوان للحالة
+
+من الآن لا نستخدم:
+
+Done
+
+بمعنى فضفاض.
+
+بل:
+
+GREEN
+Source verified
+GOLD
+Source
++
+Parity
++
+Static
++
+Semantic
++
+Runtime
+DIAMOND
+GOLD
++
+Production verified
++
+Git/Production aligned
++
+No known debt
+
+وبذلك لا تتكرر مشكلة تقارير 108–111 التي كانت تنتقل أحيانًا بين "تم البناء" و"لم يتم إثبات runtime".
+
+ماذا نفعل الآن تحديدًا؟
+
+أرى أن أفضل طريق للخروج هو:
+
+لا نعيد قراءة 89 → 111 مرة أخرى من البداية.
+
+لقد أصبح لدينا بالفعل ما يكفي من الأدلة لتحديد نقطة الانسداد.
+
+نعتبر:
+
+Reports 89–111
+
+Historical Evidence
+
+وليس Execution Plan.
+
+ثم نأخذ:
+
+MASTER RECONSTRUCTION COMMAND
+
+كالقانون.
+
+ثم:
+
+CURRENT GIT
++
+CURRENT PRODUCTION
+
+كمصدر الحقيقة.
+
+ثم نبدأ إغلاق Reconstruction فعليًا.
+
+ترتيب التنفيذ المقترح
+Gate 0
+
+Freeze current world.
+
+Gate 1
+
+Build canonical feature/function/contract registries.
+
+Gate 2
+
+Resolve all gaps:
+
+main3
+main5
+main7
+main8
+main9
+main10
+
+وهي الفجوات التي كشفها التحقيق بالفعل.
+
+Gate 3
+
+Build one new main.reconstruction.html.
+
+Gate 4
+
+Run automated parity.
+
+Gate 5
+
+Run Playwright.
+
+Gate 6
+
+Run Production contract verification.
+
+Gate 7
+
+Compare final artifact against the freshly frozen baseline.
+
+Gate 8
+
+Replace main.html.
+
+Gate 9
+
+Run final Production verification مرة أخرى بعد replacement.
+
+Gate 10
+
+يصبح الحكم فقط:
+
+MASTER RECONSTRUCTION = GOLD
+
+أو:
+
+MASTER RECONSTRUCTION = DIAMOND
+التشخيص النهائي بصراحة
+
+المشكلة لم تكن:
+
+"نقص كود."
+
+ولا:
+
+"نقص تحقيق."
+
+ولا:
+
+"المشروع مستحيل."
+
+المشكلة كانت:
+
+لم يكن لدينا Pipeline واحد يحول التحقيق الجنائي إلى Artifact نهائي ثم إلى Runtime Evidence.
+
+فبقينا نتحرك بين:
+
+Investigation
+Documentation
+Forensics
+CI
+Production
+PWA
+
+دون عبور نهائي من:
+
+EVIDENCE
+        ↓
+CANONICAL MODEL
+        ↓
+ARTIFACT
+        ↓
+RUNTIME PROOF
+
+ولهذا بالضبط بقي التقرير 111 عند NOT CLOSED رغم أن كمية العمل المنفذ كبيرة جدًا.
+
+الحل ليس المزيد من التقارير. الحل هو تحويل كل ما تم اكتشافه إلى خط إعادة بناء واحد قابل للتنفيذ والاختبار والإغلاق.
+
+وهنا أرى أن الأزمة قابلة للخروج منها بصورة نظيفة، بل ويمكن أن تكون النتيجة النهائية أقوى بكثير من مجرد "main.html جديد": سيكون لدينا Gold Master قابل لإعادة الإثبات آليًا، بحيث لا يستطيع CTO لاحقًا أن يعيدنا إلى نفس الدائرة.
