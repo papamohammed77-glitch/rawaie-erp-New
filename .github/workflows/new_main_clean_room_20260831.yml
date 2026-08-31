@@ -19,10 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout Golden source branch
+      - name: Checkout current main source of truth
         uses: actions/checkout@v4
         with:
-          ref: golden-new-main-20260831
+          ref: main
           fetch-depth: 2
 
       - name: Prove legacy runtime file is untouched before build
@@ -49,7 +49,7 @@ jobs:
           for idx in range(1,12):
               src=mod.repaired_source(Path('Current/PWA/main')/f'main{idx}.md')
               if idx==1:
-                  scripts=re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>',src,re.S|re.I)
+                  scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',src,re.S|re.I)
                   if not scripts: raise SystemExit('MAIN1_NO_INLINE_SCRIPT')
                   src=scripts[-1]
               out=Path(tempfile.gettempdir())/f'rw-fragment-{idx}.js'
@@ -73,7 +73,9 @@ jobs:
           globals_ = ['window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM']
           missing=[x for x in required+globals_ if x not in s]
           if missing: raise SystemExit('STRUCTURAL_CONTRACT_MISSING:'+','.join(missing))
-          if '</html>' not in s.lower() or '</body>' not in s.lower(): raise SystemExit('DOCUMENT_CLOSURE_MISSING')
+          if s.lower().count('</html>') != 1 or s.lower().count('</body>') != 1: raise SystemExit('DOCUMENT_CLOSURE_DUPLICATED_OR_MISSING')
+          inline_scripts=len(__import__('re').findall(r'<script(?![^>]*\bsrc=)[^>]*>',s,__import__('re').I))
+          if inline_scripts != 1: raise SystemExit(f'INLINE_SCRIPT_COUNT_INVALID:{inline_scripts}')
           print('STRUCTURAL_CONTRACT_PASS')
           PY
 
@@ -85,20 +87,16 @@ jobs:
           from pathlib import Path
           import re, subprocess, tempfile
           s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          scripts=re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I)
+          scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I)
           if not scripts: raise SystemExit('NO_INLINE_SCRIPT_FOUND')
-          for i,c in enumerate(scripts,1):
-              p=Path(tempfile.gettempdir())/f'rw-new-main-{i}.js'; p.write_text(c,encoding='utf-8')
-              r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
-              if r.returncode:
-                  print(r.stderr)
-                  m=re.search(r':(\\d+)\\s*$', r.stderr.strip(), re.M) or re.search(r':(\\d+)\\n', r.stderr)
-                  if m:
-                      line=int(m.group(1)); lines=c.splitlines(); lo=max(1,line-12); hi=min(len(lines),line+12)
-                      print('--- SYNTAX_CONTEXT script',i,'line',line,'---')
-                      for n in range(lo,hi+1): print(f'{n:6d}: {lines[n-1]}')
-                  raise SystemExit(f'JS_SYNTAX_FAIL_{i}')
-          print('JS_SYNTAX_PASS',len(scripts))
+          if len(scripts)!=1: raise SystemExit(f'INLINE_SCRIPT_COUNT_INVALID:{len(scripts)}')
+          c=scripts[0]
+          p=Path(tempfile.gettempdir())/'rw-new-main.js'; p.write_text(c,encoding='utf-8')
+          r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
+          if r.returncode:
+              print(r.stderr)
+              raise SystemExit('JS_SYNTAX_FAIL')
+          print('JS_SYNTAX_PASS')
           PY
 
       - name: Browser smoke gate for New-main
@@ -117,14 +115,15 @@ jobs:
           (async()=>{
             const browser=await chromium.launch({headless:true});
             const page=await browser.newPage();
-            const pageErrors=[]; const consoleErrors=[];
+            const pageErrors=[]; const consoleErrors=[]; const badResponses=[];
             page.on('pageerror',e=>pageErrors.push(e.message));
             page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
+            page.on('response',r=>{if(r.status()>=400)badResponses.push({status:r.status(),url:r.url()})});
             await page.goto('http://127.0.0.1:8124/New-main',{waitUntil:'domcontentloaded',timeout:30000});
             await page.waitForTimeout(3000);
             const r=await page.evaluate(()=>({title:document.title,lang:document.documentElement.lang,body:!!document.body,login:!!document.getElementById('rw-login-page'),app:!!document.getElementById('rw-main-shell'),container:!!document.getElementById('rw-page-container'),shell:!!window.RW_ShellContext,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense}));
-            console.log(JSON.stringify({result:r,pageErrors,consoleErrors}));
-            if(r.lang!=='ar'||!r.body||!r.login||!r.app||!r.container||!r.shell||!r.views||!r.owner||pageErrors.length) process.exit(2);
+            console.log(JSON.stringify({result:r,pageErrors,consoleErrors,badResponses}));
+            if(r.lang!=='ar'||!r.body||!r.login||!r.app||!r.container||!r.shell||!r.views||!r.owner||pageErrors.length||consoleErrors.length||badResponses.length) process.exit(2);
             await browser.close();
           })().catch(e=>{console.error(e);process.exit(2)});
           NODE
@@ -137,7 +136,7 @@ jobs:
           diff -u /tmp/main-html-before.sha /tmp/main-html-after.sha
           test -s Current/PWA/New-main
 
-      - name: Persist New-main and evidence only on Golden branch
+      - name: Persist New-main and evidence only on current main
         shell: bash
         run: |
           set -euo pipefail
@@ -150,9 +149,10 @@ jobs:
           payload=json.loads(evidence.read_text(encoding='utf-8'))
           payload.update({'browser_runtime':'PASS_LOCAL_CLEAN_ROOM','main_html_unchanged':True,'main_html_sha256':hashlib.sha256(main.read_bytes()).hexdigest(),'git_head_before_persist':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()})
           evidence.write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding='utf-8')
-          state=Path('CURRENT_STATE.md'); old=state.read_text(encoding='utf-8'); marker='## NEW-MAIN EXECUTION RESULT\\n'
+          state=Path('CURRENT_STATE.md'); old=state.read_text(encoding='utf-8')
+          marker='## NEW-MAIN EXECUTION RESULT'
           block='''## NEW-MAIN EXECUTION RESULT
-- New-main was rebuilt from current `main1..main11` fragments by the isolated executor on the Golden branch.
+- New-main was rebuilt from current `main1..main11` fragments by the isolated executor on current `main`.
 - Fragment syntax gates: PASS.
 - Structural contract gate: PASS.
 - Local JavaScript syntax gate: PASS.
@@ -167,5 +167,5 @@ jobs:
           PY
           git add Current/PWA/New-main Current/CTO/20260831_NEW_MAIN_CLEAN_ROOM_EXECUTION.json CURRENT_STATE.md
           git diff --cached --quiet && { echo 'NO_NEW_MAIN_DELTA'; exit 1; }
-          git commit -m '[new-main-clean-room-persist] persist full New-main and verified evidence'
-          git push origin HEAD:golden-new-main-20260831
+          git commit -m '[new-main-clean-room-persist] persist verified New-main on current main'
+          git push origin HEAD:main
