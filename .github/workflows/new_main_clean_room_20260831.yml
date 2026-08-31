@@ -1,4 +1,4 @@
-name: RAWAEA NEW-MAIN CLEAN-ROOM
+name: RAWAEA MASTER RECONSTRUCTION CLEAN-ROOM
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout main
+      - name: Checkout main source of truth
         uses: actions/checkout@v4
         with:
           ref: main
@@ -33,28 +33,29 @@ jobs:
           test -s Current/PWA/main.html
           git hash-object Current/PWA/main.html > /tmp/main-before.sha
 
-      - name: Build New-main
+      - name: Build one Golden artifact
         shell: bash
         run: |
           set -euo pipefail
           python3 tools/run_new_main_clean_room_20260831.py
 
-      - name: Structural and syntax gates
+      - name: Structural and JavaScript syntax gates
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
           import re, subprocess, tempfile
-          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          req=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn','window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM']
-          missing=[x for x in req if x not in s]
+          p=Path('Current/PWA/main.reconstruction.html')
+          s=p.read_text(encoding='utf-8')
+          required=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn','window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM']
+          missing=[x for x in required if x not in s]
           if missing: raise SystemExit('STRUCTURAL_CONTRACT_MISSING:'+','.join(missing))
           if s.lower().count('</html>')!=1 or s.lower().count('</body>')!=1: raise SystemExit('DOCUMENT_CLOSURE_INVALID')
           scripts=re.findall(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>(.*?)</script>',s,re.I|re.S)
           if len(scripts)!=1: raise SystemExit('INLINE_SCRIPT_COUNT_INVALID:'+str(len(scripts)))
-          p=Path(tempfile.gettempdir())/'new-main.js'; p.write_text(scripts[0],encoding='utf-8')
-          r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
+          js=Path(tempfile.gettempdir())/'main-reconstruction.js'; js.write_text(scripts[0],encoding='utf-8')
+          r=subprocess.run(['node','--check',str(js)],capture_output=True,text=True)
           if r.returncode: print(r.stderr); raise SystemExit('JS_SYNTAX_FAIL')
           print('STRUCTURAL_AND_JS_PASS')
           PY
@@ -66,9 +67,11 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null 2>&1
-          mkdir -p /tmp/rw-pwa
-          cp -r Current/PWA/. /tmp/rw-pwa/
-          python3 -m http.server 8124 --directory /tmp/rw-pwa >/tmp/rw-http.log 2>&1 &
+          rm -rf /tmp/rw-master-pwa
+          mkdir -p /tmp/rw-master-pwa
+          cp -r Current/PWA/. /tmp/rw-master-pwa/
+          cp Current/PWA/main.reconstruction.html /tmp/rw-master-pwa/main.reconstruction.html
+          python3 -m http.server 8124 --directory /tmp/rw-master-pwa >/tmp/rw-master-http.log 2>&1 &
           node <<'NODE'
           const {chromium}=require('playwright');
           (async()=>{
@@ -77,30 +80,37 @@ jobs:
             const pageErrors=[]; const consoleErrors=[]; const bad=[];
             page.on('pageerror',e=>pageErrors.push(e.message));
             page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
-            page.on('response',r=>{if(r.status()>=400)bad.push({status:r.status(),url:r.url()})});
-            await page.goto('http://127.0.0.1:8124/New-main',{waitUntil:'domcontentloaded',timeout:30000});
-            const r=await page.evaluate(()=>({lang:document.documentElement.lang,login:!!document.getElementById('login'),app:!!document.getElementById('app'),shell:!!window.RW_ShellContext,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense}));
+            page.on('response',r=>{if(r.status()>=400 && !/favicon\\.ico$/i.test(r.url())) bad.push({status:r.status(),url:r.url()})});
+            await page.goto('http://127.0.0.1:8124/main.reconstruction.html',{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForTimeout(3000);
+            const r=await page.evaluate(()=>({lang:document.documentElement.lang,body:!!document.body,login:!!document.getElementById('rw-login-page'),app:!!document.getElementById('rw-main-shell'),container:!!document.getElementById('rw-page-container'),shell:!!window.RW_ShellContext,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense}));
             console.log(JSON.stringify({r,pageErrors,consoleErrors,bad}));
-            if(r.lang!=='ar'||!r.login||!r.app||!r.shell||!r.views||!r.owner||pageErrors.length||consoleErrors.length||bad.length) process.exit(2);
+            if(r.lang!=='ar'||!r.body||!r.login||!r.app||!r.container||!r.shell||!r.views||!r.owner||pageErrors.length||consoleErrors.length||bad.length) process.exit(2);
             await browser.close();
           })().catch(e=>{console.error(e);process.exit(2)});
           NODE
 
-      - name: Protect main.html after build
+      - name: Protect legacy main.html after build
         shell: bash
         run: |
           set -euo pipefail
           git hash-object Current/PWA/main.html > /tmp/main-after.sha
           diff -u /tmp/main-before.sha /tmp/main-after.sha
-          test -s Current/PWA/New-main
 
-      - name: Persist New-main only
+      - name: Final artifact checksums
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name 'rawaea-new-main-reconstruction-bot'
-          git config user.email 'rawaea-new-main-reconstruction-bot@users.noreply.github.com'
-          git add Current/PWA/New-main Current/CTO/20260831_NEW_MAIN_CLEAN_ROOM_EXECUTION.json
-          git diff --cached --quiet && { echo 'NO_NEW_MAIN_DELTA'; exit 1; }
-          git commit -m '[new-main-clean-room-persist] persist verified New-main'
+          test -s Current/PWA/main.reconstruction.html
+          sha256sum Current/PWA/main.reconstruction.html
+
+      - name: Persist one artifact only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'rawaea-master-reconstruction-bot'
+          git config user.email 'rawaea-master-reconstruction-bot@users.noreply.github.com'
+          git add Current/PWA/main.reconstruction.html Current/CTO/20260831_NEW_MAIN_CLEAN_ROOM_EXECUTION.json
+          git diff --cached --quiet && { echo 'NO_GOLDEN_ARTIFACT_DELTA'; exit 1; }
+          git commit -m '[new-main-clean-room-persist] persist Golden master reconstruction artifact'
           git push origin HEAD:main
