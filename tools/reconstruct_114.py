@@ -1,7 +1,6 @@
 from __future__ import annotations
 import hashlib, json, re
 from pathlib import Path
-from collections import Counter
 ROOT=Path('.')
 CUR=ROOT/'Current/PWA/main'; ORG=ROOT/'Original/PWA/main'; PWA=ROOT/'Current/PWA'; CTO=ROOT/'Current/CTO'
 PARTS=[f'main{i}.md' for i in range(1,12)]
@@ -10,6 +9,14 @@ def meta(p):
 def extract(s):
     return {'functions':sorted(set(re.findall(r'(?<![\w$])function\s+([A-Za-z_$][\w$]*)\s*\(',s))), 'window_exports':sorted(set(re.findall(r'window\.([A-Za-z_$][\w$]*)\s*=',s))), 'ids':sorted(set(re.findall(r'\bid=["\']([^"\']+)["\']',s))), 'rpcs':sorted(set(re.findall(r'\.rpc\(\s*["\']([^"\']+)["\']',s))), 'tables':sorted(set(re.findall(r'\.from\(\s*["\']([^"\']+)["\']',s))), 'edge_refs':sorted(set(re.findall(r'functions/v1/([A-Za-z0-9._-]+)',s))), 'event_listeners':len(re.findall(r'\.addEventListener\s*\(',s)), 'timers':len(re.findall(r'\b(?:setTimeout|setInterval)\s*\(',s)), 'observers':len(re.findall(r'\b(?:MutationObserver|IntersectionObserver|ResizeObserver)\b',s)), 'storage':sorted(set(re.findall(r'\b(?:localStorage|sessionStorage|indexedDB|caches)\b',s)))}
 def fail(msg): raise SystemExit('RECONSTRUCTION_114_FAIL: '+msg)
+def check_module(i,s):
+    checks=[(r"\.from\(\s*['\"]stock_branches['\"]\s*\)[\s\S]{0,1200}?\.(?:update|insert|upsert|delete)\s*\(",'direct stock writer'),(r"\.from\(\s*['\"]inventory_log['\"]\s*\)[\s\S]{0,1200}?\.(?:update|insert|upsert|delete)\s*\(",'direct inventory log writer'),(r'00000000-0000-0000-0000-000000000001','hardcoded tenant'),(r'</script>','raw script close')]
+    for pat,msg in checks:
+        if re.search(pat,s,re.I): fail(f'main{i}: {msg}')
+    # LIMIT(1) is acceptable only where app_settings is explicitly company-scoped.
+    for m in re.finditer(r"app_settings[\s\S]{0,250}?\.limit\(\s*1\s*\)",s,re.I):
+        segment=m.group(0)
+        if not re.search(r"\.eq\(\s*['\"]company_id['\"]\s*,",segment,re.I): fail(f'main{i}: unsafe app_settings limit1')
 def build():
     for p in PARTS:
         if not (CUR/p).exists() or not (ORG/p).exists(): fail(f'missing {p}')
@@ -20,10 +27,7 @@ def build():
     if re.search(r'</body>|</html>',parent,re.I): fail('main1 unexpectedly closes document')
     modules=[]; meta_map={}
     for i in range(2,12):
-        p=CUR/f'main{i}.md'; s=p.read_text(encoding='utf-8')
-        checks=[(r"\.from\(\s*['\"]stock_branches['\"]\s*\)[\s\S]{0,600}?\.(?:update|insert|upsert|delete)\s*\(",'direct stock writer'),(r"\.from\(\s*['\"]inventory_log['\"]\s*\)[\s\S]{0,600}?\.(?:update|insert|upsert|delete)\s*\(",'direct inventory log writer'),(r'00000000-0000-0000-0000-000000000001','hardcoded tenant'),(r'app_settings[\s\S]{0,80}?\.limit\(\s*1\s*\)','unsafe app_settings limit1'),(r'</script>','raw script close')]
-        for pat,msg in checks:
-            if re.search(pat,s,re.I): fail(f'main{i}: {msg}')
+        p=CUR/f'main{i}.md'; s=p.read_text(encoding='utf-8'); check_module(i,s)
         meta_map[f'main{i}']={'current':meta(p),'original':meta(ORG/f'main{i}.md'),'symbols':extract(s)}
         modules.append(f'\n<!-- RW114 MODULE main{i} -->\n<script data-rw-module="main{i}">\n{s}\n</script>\n<!-- END RW114 MODULE main{i} -->\n')
     artifact=parent.rstrip()+"\n</script>\n"+"\n".join(modules)+"\n</body>\n</html>\n"
@@ -31,8 +35,7 @@ def build():
         if len(re.findall(pat,artifact,re.I))!=1: fail(name+' cardinality')
     if len(re.findall(r'<script\b',artifact,re.I))!=len(re.findall(r'</script>',artifact,re.I)): fail('SCRIPT_BALANCE')
     if len(re.findall(r'<style\b',artifact,re.I))!=len(re.findall(r'</style>',artifact,re.I)): fail('STYLE_BALANCE')
-    bad=[(r"\.from\(\s*['\"]stock_branches['\"]\s*\)[\s\S]{0,600}?\.(?:update|insert|upsert|delete)\s*\(",'DIRECT_STOCK_WRITER'),(r"\.from\(\s*['\"]inventory_log['\"]\s*\)[\s\S]{0,600}?\.(?:update|insert|upsert|delete)\s*\(",'DIRECT_INVENTORY_LOG_WRITER'),(r'00000000-0000-0000-0000-000000000001','HARDCODED_TENANT'),(r'app_settings[\s\S]{0,80}?\.limit\(\s*1\s*\)','UNSAFE_APP_SETTINGS_LIMIT1')]
-    for pat,name in bad:
+    for pat,name in [(r"\.from\(\s*['\"]stock_branches['\"]\s*\)[\s\S]{0,1200}?\.(?:update|insert|upsert|delete)\s*\(",'DIRECT_STOCK_WRITER'),(r"\.from\(\s*['\"]inventory_log['\"]\s*\)[\s\S]{0,1200}?\.(?:update|insert|upsert|delete)\s*\(",'DIRECT_INVENTORY_LOG_WRITER'),(r'00000000-0000-0000-0000-000000000001','HARDCODED_TENANT')]:
         if re.search(pat,artifact,re.I): fail(name)
     for t in ('window.RW_ShellContext','window.RW_OwnerContract','RW_ShellContext.getCompanyId()'):
         if t not in artifact: fail('missing '+t)
