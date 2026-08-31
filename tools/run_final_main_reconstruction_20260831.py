@@ -20,7 +20,7 @@ def assemble_clean_room() -> str:
     missing = [str(p) for p in PARTS if not p.is_file() or p.stat().st_size == 0]
     if missing:
         raise SystemExit('MISSING_RECONSTRUCTION_PARTS:' + ','.join(missing))
-    chunks = [p.read_text(encoding='utf-8') for p in PARTS]
+    chunks = [p.read_text(encoding='utf-8-sig') for p in PARTS]
     first = chunks[0]
     if not re.match(r'^\s*<!DOCTYPE html>\b', first, re.I):
         raise SystemExit('MAIN1_IS_NOT_HTML_SHELL')
@@ -65,7 +65,7 @@ def validate_candidate(s: str) -> dict:
         raise SystemExit('DIRECT_STOCK_WRITER_REMAINS')
     if re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,800}?\.(?:update|insert|upsert|delete)\(", s):
         raise SystemExit('DIRECT_INVENTORY_LOG_WRITER_REMAINS')
-    original = ORIGINAL.read_text(encoding='utf-8')
+    original = ORIGINAL.read_text(encoding='utf-8-sig')
     osym = symbols(original)
     fsym = symbols(s)
     losses = {k: sorted(set(osym[k]) - set(fsym[k])) for k in osym}
