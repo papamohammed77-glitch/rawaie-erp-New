@@ -1,0 +1,210 @@
+{
+  "artifact": "MASTER_CURRENT_BASELINE",
+  "master_current_baseline": "FROZEN",
+  "baseline_status": "CLOSED",
+  "baseline_kind": "point_in_time_observation",
+  "observed_at_utc": "2026-08-31T02:55:11.822926Z",
+  "rules_applied": {
+    "production_wins_over_old_reports": true,
+    "current_git_wins_over_old_reports": true,
+    "candidate_vs_current_git_is_record_only": true,
+    "no_rebuild_performed": true,
+    "no_production_change_performed_for_freeze": true,
+    "no_new_workflow": true,
+    "no_new_pr": true,
+    "no_new_executor": true,
+    "no_gold_or_diamond_claim": true
+  },
+  "git": {
+    "repository": "papamohammed77-glitch/rawaie-erp-New",
+    "current_git_head_observed_before_baseline_commit": "19c4e64c79020daa878093064a723f1433673d52",
+    "default_branch": "main",
+    "main_html": {
+      "path": "Current/PWA/main.html",
+      "git_blob_sha": "34b1bd23f99ac08a797625ab2fd359b21bf140b4",
+      "last_content_commit": "c08e3fd3f2e386d8a67136b488adc21012b6bc4b",
+      "last_content_commit_message": "fix(pwa): restore main.html canonical content before vehicle integration",
+      "last_content_commit_at_utc": "2026-08-28T23:17:38Z"
+    },
+    "candidate": {
+      "path": "Current/PWA/main.reconstruction.html",
+      "exists_on_main": false,
+      "exists_on_reconstruction_branch": false,
+      "hash": null,
+      "status": "NOT_PRESENT"
+    },
+    "main1_to_main11": {
+      "source": "reconstruction-114-final-20260831/Current/CTO/FORENSIC_FRAGMENT_INVENTORY.json",
+      "hash_type": "sha256_content",
+      "values": {
+        "main1.md": "5c505c5a90870c34c046f41cc120b82f86d85fb6754ac9bf9bc7669e6d7ee306",
+        "main2.md": "506702be0a7413b3f6f44163624346896b50ad980d9c9b949daac9dee5e8aab2",
+        "main3.md": "1ba46edb3feb666cb13bf99f57059a06d3b082d3545d24edeafe0ec92bb1ea95",
+        "main4.md": "6d60b570a89be6307ca31d3516ef232eebf457c014f0c3cc5f91448955a868ff",
+        "main5.md": "315f75fc75c333e44aefe920126c0e7445afc0ad29f814df9820130c3e04b53b",
+        "main6.md": "4457f620f28e3db1f8a6d35aa170fdbd63893cb1e4dafa46ff9a0ff7df6c4148",
+        "main7.md": "2fb7bbf2d5f3999c588a74f61ee7f14e234b7e31b069087bdeaf625f7ce051fd",
+        "main8.md": "8149e479c1d6a87e847de2cdcb9975c8f3dd68197082a2436b5f6a4225860829",
+        "main9.md": "3d96577d43ed303b8de1bd0ab2dc2e87785a8fd3ad02077df3a4a543f64283f3",
+        "main10.md": "a647eb41a627676079a3a074bf175d7483860c762835d65ae23ede96decdd6f0",
+        "main11.md": "a810f2fb1139950bc77e71f65b21b1288a6ae312f563188db75d38f23a965f01"
+      }
+    },
+    "pwa_companions": {
+      "Current/PWA/core.js": "e5e3cb11467f2f1453c6d3dcbf9a82fc7fccbab0",
+      "Current/PWA/app.html": "b5861b087bbe4315852d8bbf03c0c377a12b5402",
+      "Current/PWA/Returns.html": "e572e8b935ad7a5d36dea6038ee68be61dd31fc2",
+      "Current/PWA/accountant.html": "03bc2815704a33a969c209054fc4ca62d39cbb83",
+      "Current/PWA/buyer.html": "04d18903f3273798fc2e96393b56d594e431317f",
+      "Current/PWA/buyers.supervisor.html": "dd79d763764ff2d3eba74f96fa034a789a252611",
+      "Current/PWA/counter.html": "764d27037d28bc595457470eb8fd62d2e1e22c9e",
+      "Current/PWA/driver.html": "b940a0cfa092a166c6daa5b14bfc860a4b25c5e0",
+      "Current/PWA/driver.supervisor.html": "18a11fe57e4ae383b93d62067d8bf65107b17769",
+      "Current/PWA/finance-manager.html": "4b1f0ab46308ee9b791839d928b2e10c04e7e8eb",
+      "Current/PWA/general-manager.html": "bb10959fcfeef0967ca278de915b3b31ae42d309",
+      "Current/PWA/hr.html": "aa49fbd7be81bab283e922ede044e0f5574a01cb",
+      "Current/PWA/picker.html": "7aa960adc097a73cc1a?recorded_in_prior_directory_snapshot",
+      "Current/PWA/van-sales.html": "445dff4217fbf4a82f333fa716bba5d74def7680",
+      "Current/PWA/vouchers.html": "b0a6d31c787b096a8d6a25b4e9aeb1e99c9d6504"
+    }
+  },
+  "reconstruction": {
+    "branch": "reconstruction-114-final-20260831",
+    "head_sha": "c95a885a1620624e6c8485388c5b5b7d59f4052c",
+    "pr": 50,
+    "pr_state": "OPEN",
+    "pr_base": "main",
+    "pr_base_sha_at_last_update": "2a3aca5c2253af13882f9f5f01971ce8bdbf1ce1",
+    "pr_mergeable": false,
+    "pr_commits": 11,
+    "pr_changed_files": 3,
+    "candidate_file_on_branch": false,
+    "builder": {
+      "path": "tools/reconstruct_114.py",
+      "exists_on_main": false,
+      "exists_on_reconstruction_branch": true,
+      "version": "Prompt-114 builder observed on branch",
+      "blob_sha_abbrev": "0659d94"
+    }
+  },
+  "runtime_ci": {
+    "latest_reconstruction_workflow": "RAWAEA ERP — Prompt 114 Final Reconstruction",
+    "run_id": 33351158178,
+    "run_number": 12,
+    "head_sha": "c95a885a1620624e6c8485388c5b5b7d59f4052c",
+    "status": "completed",
+    "conclusion": "failure",
+    "started_at_utc": "2026-08-31T02:35:34Z",
+    "updated_at_utc": "2026-08-31T02:35:43Z",
+    "latest_production_edge_runtime_observation": {
+      "observed_at_utc": "2026-08-31T02:39:43.899Z",
+      "notable_results": ["410 retired auth-login-verification-20260818", "410 retired complete-picking-picker-http-gate-20260818", "410 retired owner-recovery-20260818"]
+    }
+  },
+  "production": {
+    "project_id": "fiilmooggumokxanwiyx",
+    "project_url": "https://fiilmooggumokxanwiyx.supabase.co",
+    "database_snapshot_utc": "2026-08-31T02:55:11.822926Z",
+    "schema_fingerprint": "e6a8f1bf094bc59588f939e75ecce5dc",
+    "rls_grants_triggers_fingerprint": "50aabf0dc653b34e583e7ad8b473b59b",
+    "public_policy_count": 110,
+    "public_trigger_count": 55,
+    "applied_migration_count": 198,
+    "latest_migration_version": "20260830082911",
+    "data_counts": {
+      "companies": 1,
+      "users": 24,
+      "branches": 2,
+      "items": 17,
+      "stock_branches": 20,
+      "inventory_log": 3,
+      "stock_vouchers": 0,
+      "stock_voucher_details": 0,
+      "purchase_orders": 0,
+      "purchase_order_details": 0,
+      "receiving": 0,
+      "receiving_details": 0,
+      "orders": 0,
+      "order_details": 0,
+      "runsheets": 0,
+      "run_sheet_details": 0,
+      "audit_log": 1866
+    },
+    "integrity_checks": {
+      "duplicate_item_code_groups": 0,
+      "cross_company_stock_rows": 0,
+      "inventory_log_item_company_mismatch": 0,
+      "order_detail_item_company_mismatch": 0
+    }
+  },
+  "current_edge_functions_observed": {
+    "send-stock-voucher": {"version": 19, "sha256": "ec1b243418f93a5759cebfe21ea8b85e27235f7dc953c68a0242f180259303ef"},
+    "receive-purchase": {"version": 12, "sha256": "bcf5f3d576cebfac3d7f3ce655515acfd33ac25cbbce376db42568da8e06aa06"},
+    "create-stock-voucher": {"version": 9, "sha256": "48ec8d58c169529d2c296fa1517edc79eebb8e72bf951446f6bfdc701203c7bf"},
+    "receive-stock-voucher": {"version": 21, "sha256": "b4fe30ae9310e7e3cbda1be2e32b3fc4b5a35045a7f9754ef13443c4a51c24df"},
+    "save-sales-invoice": {"version": 15, "sha256": "af97233812981ffead7e28eef1122bc12e2cb126d9f3abaabce99384e2be7950"},
+    "complete-loading": {"version": 11, "sha256": "c0ca692a29d14d64ec3729ae4bd12b9b84268e826ffc1c6993a48617b552b286"},
+    "complete-return": {"version": 25, "sha256": "7182d22ffbe90219e8a4516c5020037c11cd0e441706cb611275c82e9c2c588d"},
+    "complete-order-delivery": {"version": 14, "sha256": "15c67bde52401897fc0ccc4156670fd5cdc026152617401aabca232c1b046fb2"},
+    "bulk-stock-adjustment": {"version": 6, "sha256": "8ad94699ef724b33f27ca61911e1eaf7ebeb0cb0428f8a48a67c2f54c2d16955"},
+    "complete-picking": {"version": 16, "sha256": "90bd82415ee92039da3e7b5c5b1bdfe20e76cc6aac68c36f231a848ea9100fa4"},
+    "cancel-picking": {"version": 4, "sha256": "e8013e0e06dd38503e3bc9c44a62c8b689212b145a9bbb44f45f48d99cdc5c66"},
+    "save-purchase-order": {"version": 3, "sha256": "45a27b634869b806cf25beb1b8d72852bc8c2e1f2c2ab897c50ca1b2710e836d"},
+    "complete-delivery": {"version": 4, "sha256": "9510e7ef441d3b1256f860c775094c43f5102381488580d99601b26c1b482753"},
+    "start-picking": {"version": 33, "sha256": "2ae5050d598eb78fbf2f8d2a81fbfdcafec3b20c76f42f7aa6f720009604127b"},
+    "start-loading": {"version": 5, "sha256": "afcfe32707382c57a15ebb744dec61e95a4079abb9ee8d32f479f322091230c7"},
+    "start-return": {"version": 4, "sha256": "dfbf2100038af2df8e45f8c0b0860c98b3d7f6d6f2c7048aa1be42d82bf3cb9f"},
+    "start-delivery": {"version": 7, "sha256": "7e87dd0a29d57d3d286c19e05aed70c8b40c7e74645fc73f593e6eee2610399e"},
+    "unload-runsheet": {"version": 6, "sha256": "34323971351b98b8cd7d7bd83fa25a80f135329cd2b2e09b80c3416a0c6f10e0"},
+    "log-action": {"version": 2, "sha256": "410f5b643fbb6e69eb5fb40a28936eae72cd34ffea19c61e38ffa343d2cffb87"},
+    "owner-recovery-20260818": {"version": 4, "sha256": "8a113ca2bdb2cd65c7ed4b4a6eadcaa1277c0f4df10e37d5067b5b24cffbb3ba"}
+  },
+  "current_rpc_snapshot": [
+    {"name":"post_stock_movement","args":"p_company_id uuid, p_movement_type text, p_source_branch_id uuid, p_target_branch_id uuid, p_item_id uuid, p_qty numeric, p_voucher_id text, p_reference text, p_user_email text","security_definer":true,"definition_md5":"092dd6c1c5bff030edd2401d843f3a51"},
+    {"name":"post_stock_movement","args":"p_company_id uuid, p_movement_type text, p_source_branch_id uuid, p_target_branch_id uuid, p_item_id uuid, p_qty numeric, p_voucher_id text, p_reference text, p_user_email text, p_idempotency_key text","security_definer":true,"definition_md5":"00ea5b97baebb2fb86fbafdb25bd3d59"},
+    {"name":"reserve_stock","args":"p_company_id uuid, p_branch_id uuid, p_item_id uuid, p_qty numeric","security_definer":true,"definition_md5":"09b1c42f26cda837c8451c34e7f71c78"},
+    {"name":"release_stock_reservation","args":"p_company_id uuid, p_branch_id uuid, p_item_id uuid, p_qty numeric","security_definer":true,"definition_md5":"9a358a9eec082be98cc83d334f663ecc"},
+    {"name":"create_manual_stock_voucher_atomic","args":"p_company_id uuid, p_type text, p_reference text, p_from_type text, p_from_id uuid, p_to_type text, p_to_id uuid, p_notes text, p_created_by text, p_items jsonb","security_definer":true,"definition_md5":"f5313c1393a9d399fc856be4529492a1"},
+    {"name":"create_manual_stock_voucher_atomic","args":"p_company_id uuid, p_type text, p_reference text, p_from_type text, p_from_id uuid, p_to_type text, p_to_id uuid, p_notes text, p_created_by text, p_items jsonb, p_rep_id uuid, p_operation_id text","security_definer":true,"definition_md5":"dbdef9b6a6b27fdb6e183f005ea5dfc0"},
+    {"name":"post_manual_stock_voucher_atomic","args":"p_company_id uuid, p_voucher_code text, p_operation text, p_user_email text, p_effects jsonb, p_operation_id text","security_definer":true,"definition_md5":"a05aaf62c24d7430112a54f3ca6b2184"},
+    {"name":"send_stock_voucher_atomic","args":"p_company_id uuid, p_voucher_code text, p_user_email text","security_definer":true,"definition_md5":"3dcb64d494586eca6aaea5d823a4694b"},
+    {"name":"receive_purchase_atomic","args":"p_company_id uuid, p_po_code text, p_user_email text, p_items jsonb, p_operation_id uuid","security_definer":true,"definition_md5":"78e2ba40b2883681151af26b6d3b1a80"},
+    {"name":"post_inventory_adjustment_atomic","args":"p_company_id uuid, p_branch_id uuid, p_adjustment_type text, p_voucher_code text, p_reason text, p_user_email text, p_items jsonb","security_definer":true,"definition_md5":"7f6c50815e4c46917e660c17e9823b25"},
+    {"name":"save_sales_invoice_atomic","args":"p_order_header jsonb, p_items jsonb, p_branch_code text, p_user_email text","security_definer":true,"definition_md5":"e664391257b79eb37a33136384966741"},
+    {"name":"complete_return_atomic","args":"p_company_id uuid, p_runsheet_code text, p_order_code text, p_is_pos_return boolean, p_user_email text, p_items jsonb","security_definer":true,"definition_md5":"456fc965e4f0c722235393b15850b32e"},
+    {"name":"complete_order_delivery_atomic","args":"p_company_id uuid, p_runsheet_code text, p_order_code text, p_user_email text, p_items jsonb","security_definer":true,"definition_md5":"ab5bc8ae067764dd3ddc6161cd7f4f16"},
+    {"name":"complete_runsheet_picking","args":"p_company_id uuid, p_runsheet_code text, p_user_email text, p_items jsonb","security_definer":true,"definition_md5":"654ec9a012dba6ccb717357c40a928d1"},
+    {"name":"complete_runsheet_picking","args":"p_company_id uuid, p_runsheet_code text, p_user_email text, p_items jsonb, p_operation_id uuid","security_definer":true,"definition_md5":"428bfeac7eb9c82e73736ab8f05e7eaa"},
+    {"name":"complete_runsheet_loading","args":"p_company_id uuid, p_runsheet_id uuid, p_items jsonb, p_user_email text","security_definer":true,"definition_md5":"337294090bad537da090bac4ebf7a93e"},
+    {"name":"complete_runsheet_unloading","args":"p_company_id uuid, p_runsheet_code text, p_user_email text","security_definer":true,"definition_md5":"d5bea9373514fbc7a10a0a61785ce51d"},
+    {"name":"complete_manual_stock_voucher_atomic","args":"p_company_id uuid, p_voucher_code text, p_user_email text","security_definer":true,"definition_md5":"a008eb1d9a0cf14f7f575c48528e8970"},
+    {"name":"cancel_manual_stock_voucher_atomic","args":"p_company_id uuid, p_voucher_code text, p_user_email text","security_definer":true,"definition_md5":"e238c58311735d5ce2b2f909c58ee724"}
+  ],
+  "inventory_writer_topology": {
+    "physical_stock_contract": "PHYSICAL STOCK MOVEMENT -> post_stock_movement -> stock_branches + inventory_log",
+    "direct_physical_stock_writers_discovered": ["post_stock_movement"],
+    "reservation_engines": ["reserve_stock","release_stock_reservation"],
+    "dependent_capabilities_observed": ["post_manual_stock_voucher_atomic","post_inventory_adjustment_atomic","receive_purchase_atomic","save_sales_invoice_atomic","complete_runsheet_picking"],
+    "parallel_physical_stock_engine": false,
+    "direct_inventory_log_writers_outside_post_stock_movement": false,
+    "current_database_writer_topology_status": "CENTRALIZED_WITH_RESERVATION_SEPARATION"
+  },
+  "freeze_notes": {
+    "production_wins": "Production snapshot shows 1 company, 17 items, 20 stock rows, 3 inventory logs, 0 stock vouchers, 0 POs, 0 orders, and all four sampled tenant integrity checks at zero.",
+    "candidate_vs_main": "Candidate reconstruction artifact is absent from both main and the reconstruction branch at freeze time; the reconstruction branch remains an open PR with failed latest CI.",
+    "historical_reports": "Not used as operational truth where contradicted by current Production/Git.",
+    "unresolved_for_next_prompt": [
+      "Full Edge Function enumeration was not exposed by a single list response; versions/hashes above are the directly observed current functions from Production during freeze.",
+      "main.reconstruction.html candidate hash is null because the candidate file does not exist on current main or reconstruction branch.",
+      "Current PWA companion hash for picker.html was observed only as a prior directory snapshot and therefore is marked provenance-qualified rather than treated as newly revalidated.",
+      "Latest reconstruction CI is FAILED; this is a branch status fact, not a Production failure claim."
+    ]
+  },
+  "closure": {
+    "MASTER_CURRENT_BASELINE": "FROZEN",
+    "BASELINE_STATUS": "CLOSED",
+    "production_changed_by_this_step": false,
+    "reconstruction_performed_by_this_step": false,
+    "next_action_gate": "STOP; await Prompt 2"
+  }
+}
