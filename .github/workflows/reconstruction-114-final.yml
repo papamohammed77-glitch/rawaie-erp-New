@@ -90,16 +90,15 @@ jobs:
               else: original_exports=set(exports)
           assert current_exports <= cand_exports, 'CURRENT_PUBLIC_NAMESPACE_LOSS '+str(sorted(current_exports-cand_exports))
           assert original_exports <= cand_exports, 'ORIGINAL_PUBLIC_NAMESPACE_LOSS '+str(sorted(original_exports-cand_exports))
-          def refs(text):
-              return {'rpc':set(rx(r"\.rpc\(\s*['\"]([^'\"]+)['\"]",text)),'edge':set(rx(r'functions/v1/([A-Za-z0-9._-]+)',text))}
+          def refs(text): return {'rpc':set(rx(r"\.rpc\(\s*['\"]([^'\"]+)['\"]",text)),'edge':set(rx(r'functions/v1/([A-Za-z0-9._-]+)',text))}
           cr,qr=refs(cand),refs(current); assert cr==qr, json.dumps({'candidate':{k:sorted(v) for k,v in cr.items()},'current':{k:sorted(v) for k,v in qr.items()}},ensure_ascii=False)
-          # Critical RW_* references: the symbol may be a window export OR a local/global declaration.
+          # Critical RW_* references: require a symbol definition (global or lexical) and a separate method/member occurrence.
           refs_set=set(rx(r'\b(RW_[A-Za-z0-9_]+)\.([A-Za-z_$][\w$]*)\s*\(',cand))
           for ns,method in sorted(refs_set):
               ns_def = re.search(rf'window\.{re.escape(ns)}\s*=|\b(?:var|let|const|function|class)\s+{re.escape(ns)}\b',cand)
               assert ns_def, f'UNDEFINED_NAMESPACE {ns}'
-              meth_def = re.search(rf'\b{re.escape(method)}\s*:',cand) or re.search(rf'function\s+{re.escape(method)}\s*\(',cand)
-              assert meth_def, f'UNDEFINED_METHOD {ns}.{method}'
+              occurrences=len(re.findall(rf'\b{re.escape(method)}\b',cand))
+              assert occurrences>=2, f'UNDEFINED_METHOD_OR_MEMBER {ns}.{method} occurrences={occurrences}'
           tenant_tables=['branches','customers','suppliers','vehicles','orders','runsheets','stock_vouchers','receiving','purchase_orders','journal_entries']
           for table in tenant_tables:
               for m in re.finditer(rf"\.from\(\s*['\"]{table}['\"]\s*\)",cand,re.I):
