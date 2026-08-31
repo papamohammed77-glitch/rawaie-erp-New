@@ -1,0 +1,52 @@
+FREEZE & TAKE CONTROL
+المهمة
+توقف عن أي إعادة بناء جديدة لـmain1..main11.
+لا تعِد فتح مراحل الإصلاح السابقة إلا عندما يظهر تعارض مثبت يحتاج تصحيحه.
+ابدأ من آخر حالة فعلية موجودة الآن في:
+•	Git main
+•	PR/branch الحالي لإعادة البناء
+•	Current/PWA/main.html
+•	Current/PWA/main.reconstruction.html إن وجد
+•	tools/reconstruct_114.py
+•	جميع ملفات evidence / registry / logs الموجودة
+•	Production Supabase الحالية
+لا تعتمد على أي تقرير سابق كحقيقة تشغيلية.
+المطلوب الوحيد
+إنشاء CURRENT MASTER BASELINE واحدة حاكمة لهذا التنفيذ.
+أنشئ/حدّث فقط:
+Current/CTO/MASTER_CURRENT_BASELINE.json
+ويجب أن يحتوي على:
+•	Current Git HEAD
+•	Current main.html hash
+•	Candidate hash إن وجد
+•	main1..main11 hashes
+•	Core/PWA companion hashes
+•	Current Edge Function versions/hashes
+•	Current RPC signatures/hashes
+•	Production schema fingerprint
+•	Production RLS/grants/triggers fingerprint
+•	Inventory writer topology
+•	Current Production data counts
+•	Current reconstruction branch/PR
+•	آخر Builder version
+•	آخر Runtime/CI result
+قاعدة مهمة
+لا تعيد بناء أي ملف الآن.
+إذا وجدت اختلافًا بين تقرير قديم وProduction الحالية:
+Production wins.
+إذا وجدت اختلافًا بين تقرير قديم وGit الحالي:
+Current Git wins.
+إذا وجدت اختلافًا بين Candidate وCurrent Git:
+سجله ولا تصلحه في هذه الخطوة.
+لا تتوقف قبل الإغلاق
+شرط الإغلاق
+لا تعتبر المهمة ناجحة إلا إذا أصبح لدينا:
+MASTER_CURRENT_BASELINE = FROZEN
+ويتم تسجيل:
+BASELINE_STATUS = CLOSED
+بعدها فقط انتقل إلى Prompt 2.
+لا تنشئ workflow جديدًا.
+لا تنشئ PR جديدًا.
+لا تنشئ executor جديدًا.
+لا تغير Production.
+لا تعلن أي Gold/Diamond.
