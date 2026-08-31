@@ -19,10 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout Golden source branch
+      - name: Checkout verification branch
         uses: actions/checkout@v4
         with:
-          ref: golden-new-main-20260831
+          ref: ci/golden-new-main-final-20260831
           fetch-depth: 2
       - name: Prove legacy runtime file is untouched before build
         shell: bash
