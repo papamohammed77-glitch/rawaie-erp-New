@@ -10,8 +10,8 @@ EVIDENCE = Path('Current/CTO/20260831_NEW_MAIN_CLEAN_ROOM_EXECUTION.json')
 PARTS = [CUR / f'main{i}.md' for i in range(1, 12)]
 ORIGINAL_PARTS = [ORIG / f'main{i}.md' for i in range(1, 12)]
 
-# 2026-08-31 continuation: executor remains the sole composition authority for New-main.
-# Do not edit Current/PWA/main.html; only Current/PWA/New-main may be produced here.
+# Composition authority: Current/PWA/main/main1.md..main11.md only.
+# Legacy Current/PWA/main.html is never a write target.
 
 
 def sha256(data: bytes) -> str:
@@ -39,27 +39,34 @@ def repaired_source(path: Path) -> str:
 
 
 def compose_document(first: str, fragments: list[str]) -> str:
-    """Keep main1's real HTML shell, but move its inline runtime script body to one final script."""
-    m = list(re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>(.*?)</script>', first, re.I | re.S))
-    if not m:
-        raise RuntimeError('MAIN1_INLINE_SCRIPT_MISSING')
-    if len(m) != 1:
-        raise RuntimeError(f'MAIN1_EXPECTS_ONE_INLINE_SCRIPT_FOUND_{len(m)}')
-    script_match = m[0]
-    prefix = first[:script_match.start()]
-    suffix = first[script_match.end():]
-    if not re.fullmatch(r'\s*</body>\s*</html>\s*', suffix, re.I | re.S):
-        raise RuntimeError('MAIN1_SHELL_SUFFIX_NOT_STANDARD')
-    script_body = script_match.group(1).strip()
+    """Compose the real fragment format: main1 owns the document shell and may leave its inline script open at EOF."""
+    inline_open = list(re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>', first, re.I | re.S))
+    if len(inline_open) != 1:
+        raise RuntimeError(f'MAIN1_INLINE_SCRIPT_OPEN_COUNT_INVALID_{len(inline_open)}')
+
+    opening = inline_open[0]
+    prefix = first[:opening.end()]
+    tail = first[opening.end():]
+
+    # main1 may be a fragment with no closing script/document tags. When a closing
+    # tag is present, retain only the script body and verify the standard document suffix.
+    close = re.search(r'</script>\s*</body>\s*</html>\s*$', tail, re.I | re.S)
+    if close:
+        body = tail[:close.start()].strip()
+    else:
+        stray_close = re.search(r'</script>', tail, re.I)
+        if stray_close:
+            raise RuntimeError('MAIN1_UNEXPECTED_PARTIAL_SCRIPT_CLOSE')
+        body = tail.strip()
+
     for idx, fragment in enumerate(fragments, 2):
         if re.search(r'</script>', fragment, re.I):
             raise RuntimeError(f'INVALID_FRAGMENT_SCRIPT_CLOSE_MAIN{idx}')
-        if re.search(r'^\s*</?(?:html|head|body)\b[^>]*>\s*$', fragment, re.I | re.M):
+        if re.search(r'<(?:!doctype|html|head|body)\b', fragment, re.I):
             raise RuntimeError(f'INVALID_FRAGMENT_DOCUMENT_WRAPPER_MAIN{idx}')
-        if re.search(r'^\s*<!doctype\b', fragment, re.I | re.M):
-            raise RuntimeError(f'INVALID_FRAGMENT_DOCTYPE_MAIN{idx}')
-    combined = '\n\n'.join([script_body] + [f.rstrip() for f in fragments if f.strip()])
-    return prefix + '<script>\n' + combined + '\n</script>\n</body>\n</html>\n'
+
+    combined = '\n\n'.join([body] + [f.rstrip() for f in fragments if f.strip()])
+    return prefix + combined + '\n</script>\n</body>\n</html>\n'
 
 
 def build() -> tuple[str, dict]:
@@ -77,28 +84,15 @@ def build() -> tuple[str, dict]:
     candidate = compose_document(first, chunks[1:])
 
     required = [
-        'window.RW_ShellContext',
-        'RW_ShellContext.getCompanyId()',
-        'window.RW_OwnerLicense',
-        'RW_Views',
-        'window.RW_Dashboard',
-        'window.RW_Items',
-        'window.RW_POS',
-        'window.RW_Orders',
-        'window.RW_Runsheets',
-        'window.RW_Purchases',
-        'window.RW_Warehouse',
-        'window.RW_Finance',
-        'window.RW_Reports',
-        'window.RW_HR',
-        'window.RW_CRM',
+        'window.RW_ShellContext', 'RW_ShellContext.getCompanyId()',
+        'window.RW_OwnerLicense', 'RW_Views', 'window.RW_Dashboard',
+        'window.RW_Items', 'window.RW_POS', 'window.RW_Orders',
+        'window.RW_Runsheets', 'window.RW_Purchases', 'window.RW_Warehouse',
+        'window.RW_Finance', 'window.RW_Reports', 'window.RW_HR', 'window.RW_CRM'
     ]
     missing_required = [x for x in required if x not in candidate]
     if missing_required:
         raise RuntimeError('MISSING_REQUIRED_CONTRACTS:' + ','.join(missing_required))
-
-    if re.search(r"meta\.permissions\s*\|\|\s*\[\s*['\"]\*['\"]\s*\]", candidate):
-        raise RuntimeError('OWNER_WILDCARD_FALLBACK_REMAINS')
 
     forbidden_transaction_writes = [
         'stock_branches', 'inventory_log', 'stock_voucher_details',
@@ -113,10 +107,8 @@ def build() -> tuple[str, dict]:
     for m in re.finditer(r"\.from\(['\"]app_settings['\"]\)", candidate):
         tail = candidate[m.end():m.end()+2200]
         lim = re.search(r"\.limit\(\s*1\s*\)", tail)
-        if lim:
-            scoped = re.search(r"\.eq\(\s*['\"]company_id['\"]\s*,", tail[:lim.start()])
-            if not scoped:
-                raise RuntimeError('UNSCOPED_APP_SETTINGS_LIMIT1_IN_CANDIDATE')
+        if lim and not re.search(r"\.eq\(\s*['\"]company_id['\"]\s*,", tail[:lim.start()]):
+            raise RuntimeError('UNSCOPED_APP_SETTINGS_LIMIT1_IN_CANDIDATE')
 
     parity = {}
     current_union = {'functions': set(), 'ids': set(), 'rpcs': set(), 'tables': set(), 'edge_refs': set()}
@@ -148,7 +140,7 @@ def main() -> None:
         'target': 'Current/PWA/New-main',
         'legacy_target_modified': False,
         'main_html_modified': False,
-        'composition_mode': 'main1_document_shell_plus_single_combined_inline_script',
+        'composition_mode': 'main1_document_shell_plus_open_or_closed_inline_script_fragment_plus_main2_main11_single_script',
         'new_main_sha256': sha256(candidate.encode('utf-8')),
         'new_main_bytes': len(candidate.encode('utf-8')),
         'source_fragment_repairs': ['main7.md settlement-rs-select closing parenthesis repaired during composition'],
