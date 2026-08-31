@@ -1,8 +1,11 @@
-name: RAWAEA Master Reconstruction 20260830
+name: RAWAEA FINAL MAIN.HTML RECONSTRUCTION — 20260831
 
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - Current/PWA/main.reconstruction.html
+      - Current/CTO/**
 
 permissions:
   contents: write
@@ -10,9 +13,10 @@ permissions:
 jobs:
   reconstruct:
     if: >-
-      !contains(github.event.head_commit.message, '[master-reconstruction]') &&
-      !contains(github.event.head_commit.message, 'forensic main assembly baseline')
+      !contains(github.event.head_commit.message, '[master-reconstruction-candidate]') &&
+      !contains(github.event.head_commit.message, '[master-reconstruction-executor]')
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout current main
         uses: actions/checkout@v4
@@ -20,88 +24,76 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Install Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      - name: Build candidate from verified current source
+        run: python3 tools/final_main_reconstruction_20260831.py
 
-      - name: Reconstruct main.html
-        run: python3 tools/master_reconstruction_postprocess.py
-
-      - name: Static HTML gate
+      - name: JavaScript syntax gate
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re, subprocess, tempfile
-          s=Path('Current/PWA/main.html').read_text(encoding='utf-8')
-          checks={
-            'doctype': bool(re.search(r'<!doctype\s+html',s,re.I)),
-            'html_open': bool(re.search(r'<html\b',s,re.I)),
-            'html_close': bool(re.search(r'</html>',s,re.I)),
-            'head_open': bool(re.search(r'<head\b',s,re.I)),
-            'head_close': bool(re.search(r'</head>',s,re.I)),
-            'body_open': bool(re.search(r'<body\b',s,re.I)),
-            'body_close': bool(re.search(r'</body>',s,re.I)),
-            'script_balance': len(re.findall(r'<script\b',s,re.I))==len(re.findall(r'</script>',s,re.I)),
-            'style_balance': len(re.findall(r'<style\b',s,re.I))==len(re.findall(r'</style>',s,re.I)),
-          }
-          if not all(checks.values()): raise SystemExit(f'STRUCTURE_FAIL {checks}')
+          import re,subprocess,tempfile
+          s=Path('Current/PWA/main.reconstruction.html').read_text(encoding='utf-8')
           scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I)
           for i,c in enumerate(scripts,1):
               p=Path(tempfile.gettempdir())/f'rw-main-{i}.js'; p.write_text(c,encoding='utf-8')
               r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
-              if r.returncode: print(r.stderr); raise SystemExit(f'JS_SYNTAX_FAIL_{i}')
-          if re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,500}?\.(?:update|insert|upsert|delete)\(",s): raise SystemExit('DIRECT_STOCK_WRITER')
-          if re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,500}?\.(?:update|insert|upsert|delete)\(",s): raise SystemExit('DIRECT_INVENTORY_LOG_WRITER')
-          if re.search(r"\.from\(['\"]app_settings['\"]\)\.select\([^;]*?\)\.limit\(\s*1\s*\)",s,re.S): raise SystemExit('UNSCOPED_APP_SETTINGS')
-          required=['window.RW_ShellContext','window.RW_OwnerContract','RW_ShellContext.getCompanyId()','rec-purchase','rec-offers']
-          for x in required:
-              if x not in s: raise SystemExit('MISSING_CONTRACT '+x)
-          print('MASTER_RECONSTRUCTION_STATIC_GATE_PASS', len(scripts))
-          PY
-          git diff --check
-
-      - name: Deterministic reconstruction audit
-        run: |
-          set -euo pipefail
-          git status --short
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          p=Path('Current/CTO/FORENSIC_MASTER_RECONSTRUCTION.json')
-          d=json.loads(p.read_text(encoding='utf-8'))
-          if any(d['parity']['original_symbol_losses'][k] for k in d['parity']['original_symbol_losses']):
-              raise SystemExit('ORIGINAL_SYMBOL_PARITY_FAIL')
-          print('ORIGINAL_SYMBOL_PARITY_PASS')
-          print('FINAL_MAIN_SHA256', d['current_main_after_rebuild']['sha256'])
+              if r.returncode:
+                  print(r.stderr); raise SystemExit(f'JS_SYNTAX_FAIL_{i}')
+          print('JS_SYNTAX_PASS',len(scripts))
           PY
 
-      - name: Commit reconstructed artifact
+      - name: Candidate browser smoke gate
+        shell: bash
         run: |
           set -euo pipefail
-          git config user.name 'RAWAEA Master Reconstruction'
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          rm -rf /tmp/rw-pwa; mkdir -p /tmp/rw-pwa
+          cp -r Current/PWA/. /tmp/rw-pwa/
+          cp Current/PWA/main.reconstruction.html /tmp/rw-pwa/main.html
+          python3 -m http.server 8123 --directory /tmp/rw-pwa >/tmp/rw-http.log 2>&1 &
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const page=await browser.newPage();
+            const pageErrors=[]; page.on('pageerror',e=>pageErrors.push(e.message));
+            await page.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForTimeout(4000);
+            const r=await page.evaluate(()=>({title:document.title,lang:document.documentElement.lang,body:!!document.body,rwState:!!window.RW_STATE,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerContract,sw:'serviceWorker' in navigator}));
+            console.log(JSON.stringify({r,pageErrors}));
+            if(r.lang!=='ar'||!r.body||!r.rwState||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||pageErrors.length) process.exit(2);
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(2)});
+          NODE
+
+      - name: Persist candidate evidence only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'RAWAEA Final Reconstruction'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          cat > Current/CTO/20260830_MASTER_RECONSTRUCTION_EXECUTION.md <<'EOF'
-# RAWAEA ERP — MASTER RECONSTRUCTION EXECUTION
+          cat > Current/CTO/20260831_MAIN_HTML_RECONSTRUCTION_CANDIDATE.md <<'EOF'
+# RAWAEA ERP — FINAL MAIN.HTML RECONSTRUCTION CANDIDATE
 
-Scope: deterministic semantic reconstruction of `Current/PWA/main.html` from current Git evidence.
+Candidate-only build. `Current/PWA/main.html` is intentionally unchanged in this run.
 
-Method:
-- Current `main.html` is the behavioral seed.
-- `tools/p0_main_shell_repair_v2.py` is reused as the previously governed shell hardening transform.
-- `rec-purchase` and `rec-offers` are kept independent; `rec-offers` is restored as a dormant-stock recommendation path.
-- No fragment concatenation is used.
-- Original symbol parity is a hard gate.
-- Direct `stock_branches` / `inventory_log` mutation and unscoped `app_settings.limit(1)` are hard gates.
-
-This workflow does not claim authenticated browser E2E. That is a separate evidence gate.
+Gates:
+- current Git/Production state reconciled before build;
+- current main.html behavioral seed;
+- governed shell transformation applied to candidate only;
+- contract ledger;
+- original symbol parity;
+- structural HTML/script/style parity;
+- no direct stock/inventory_log writer;
+- tenant and OWNER contract guards;
+- JavaScript syntax;
+- browser smoke.
 EOF
-          git add Current/PWA/main.html Current/CTO/FORENSIC_MASTER_RECONSTRUCTION.json Current/CTO/20260830_MASTER_RECONSTRUCTION_EXECUTION.md
-          if git diff --cached --quiet; then
-            echo 'NO_RECONSTRUCTION_DIFF'
-            exit 0
-          fi
-          git commit -m '[master-reconstruction] rebuild governed main.html from current evidence'
+          git add Current/PWA/main.reconstruction.html Current/CTO/MAIN_HTML_CURRENT_CONTRACT_LEDGER.json Current/CTO/20260831_MAIN_HTML_RECONSTRUCTION_CANDIDATE.md
+          git diff --cached --quiet && { echo 'NO_CANDIDATE_ARTIFACT'; exit 1; }
+          git commit -m '[master-reconstruction-candidate] persist verified main.html candidate'
           git push origin HEAD:main
