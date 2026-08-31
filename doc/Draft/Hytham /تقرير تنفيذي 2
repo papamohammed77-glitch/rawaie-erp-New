@@ -1,0 +1,157 @@
+راجعت المسار التاريخي والمستودع ولم أبدأ من الصفر. وتم الانتقال فعليًا إلى مرحلة التنفيذ، مع اكتشاف وإصلاح عدة أخطاء كانت ستؤدي إلى إغلاق زائف.
+
+ما تم إنجازه فعليًا
+
+تم التعامل مع golden-new-main-20260831 كخط إعادة البناء، وليس مع الـCandidate المختصر الذي ظهر لاحقًا في main.
+
+المواصفة الحاكمة التي وجدتها في تقرير 113 هي Gate 0 → Gate 10، مع شرط صريح بأن Gold/Diamond لا يُعلن إلا بعد Git + Production + Runtime evidence. وDiamond يتطلب كذلك zero known closure debt وإثباتًا قابلًا لإعادة الإنتاج.
+
+تم تشغيل الـClean-room builder فعليًا على GitHub Actions، وليس مجرد قراءته.
+
+والنتائج التي أصبحت PASS فعليًا:
+
+Builder                              PASS
+main1 syntax                         PASS
+main2 syntax                         PASS
+main3 syntax                         PASS
+main4 syntax                         PASS
+main5 syntax                         PASS
+main6 syntax                         PASS
+main7 syntax                         PASS
+main8 syntax                         PASS
+main9 syntax                         PASS
+main10 syntax                        PASS
+main11 syntax                        PASS
+Structural Contract                 PASS
+New-main JavaScript Syntax          PASS
+
+وفي إحدى الدورات ظهر تحديد واضح أن main7 هو سبب syntax failure؛ وتم حصر الإصلاح في closure محدد، ثم أصبح main7 PASS.
+
+الأهم: اكتشفت أن الـbuilder نفسه كان يرتكب أخطاء composition. كان يضع أجزاء main2..main11 بعد إغلاق HTML الخاص بـmain1، مع أن main1 مصمم أصلًا ليكون HTML shell مفتوح الـscript. وتم تغيير الـcomposer ليحافظ على هذا العقد ويضع الأجزاء الـ11 داخل الـinline script الواحد.
+
+هذا الإصلاح أثبت نفسه في الـCI: Builder + كل أجزاء الـ11 + Structural + New-main JS أصبحت PASS.
+
+كما تم اكتشاف خطأ في الـBrowser Gate نفسه
+
+الـNew-main ملف بلا extension، وhttp.server كان يقدمه كـdownload بدل HTML. وتم إصلاح الاختبار إلى نسخة runtime مؤقتة New-main.html دون تغيير artifact ذاته.
+
+ثم ظهر خطأ runtime حقيقي:
+
+RW_ShellContext = false
+RW_Views        = false
+RW_OwnerLicense = false
+Unexpected end of input
+
+وتبين أن السبب هو composition boundary، وليس Contract Logic.
+
+تم تصحيح ذلك أيضًا.
+
+الوضع الحالي
+
+آخر دورة نظيفة وصلت إلى:
+
+Builder                         PASS
+11 fragments                   PASS
+Structural contract            PASS
+New-main JS syntax             PASS
+
+Browser smoke                  FAILURE
+
+وهنا لن أرتكب الخطأ الذي حذر منه تقرير 111: لن أحول فشل Browser إلى PASS شكلي. التقرير نفسه يثبت أن Browser/Owner/Normal-user/Production verification كانت سابقًا حدودًا تمنع الإغلاق الحقيقي.
+
+آخر Run فعلي هو:
+
+33371519019
+
+وفيه فشل Browser Gate فقط، بينما جميع ما قبله PASS.
+
+لكنني لم أحصل بعد على log التفصيلي لهذا الفشل الأخير قبل انتهاء نافذة التنفيذ الحالية؛ لذلك لا أستطيع بصدق القول إن Browser أصبح PASS.
+
+Production أيضًا تمت مراجعتها
+
+أعيد فحص Production بدل استخدام أرقام قديمة.
+
+الحالة التي ثبتت:
+
+Companies       1
+Users           24
+Branches        2
+Items           17
+Stock rows      20
+Inventory log   3
+Stock vouchers  0
+Purchase orders 0
+Orders          0
+Runsheets       0
+Treasury        1
+COA             17
+Audit log       1866
+
+كما ثبت استمرار العقد الأساسي:
+
+post_stock_movement
+        ↓
+Physical Stock mutation authority
+
+reserve_stock
+release_stock_reservation
+        ↓
+Reservation only
+
+ولم تتم إضافة Physical Stock writer جديد إلى New-main.
+
+وتم منع خطأ مهم في الـschema validation
+
+كان هناك اختبار سابق يحاول استخدام:
+
+stock_branches.company_id
+
+وهذا غير صحيح في Production الحالية.
+
+stock_branches لا يحمل company_id بهذه الصورة؛ tenant resolution هناك مرتبط بسياق الـbranch. تم اكتشاف ذلك بدل إدخال استعلام خاطئ في شهادة Production.
+
+ما الذي لم يُغلق بعد
+
+وهذا مهم جدًا:
+
+FULL GOLD                       ❌
+FULL DIAMOND                    ❌
+Browser Runtime                 ❌ آخر Run
+Authenticated Owner E2E         ❌
+Authenticated Normal-user E2E   ❌
+Production HTTP E2E             ❌
+Fresh Gate-7 baseline           ❌
+Gate-8 main.html replacement   ❌
+Post-replacement verification   ❌
+Final Diamond evidence pack     ❌
+
+لذلك لم أستبدل Current/PWA/main.html، وهذا صحيح وفق شروط المشروع. كما أن main.html لم يتم تعديله في هذه الدورة.
+
+الملفات المؤقتة
+
+تم تنظيف ملفات التشخيص المؤقتة من PR عندما لم تعد مطلوبة. بقيت فقط بنية الـverification اللازمة لاستمرار التنفيذ، وليس جزءًا من Runtime Business Logic.
+
+الخلاصة الفنية
+
+المشروع ليس في نقطة البداية إطلاقًا.
+
+نحن الآن عند هذه النقطة:
+
+11-source reconstruction        ✅
+main7 historical syntax repair  ✅
+correct composition boundary    ✅
+11-fragment syntax              ✅
+structural contract             ✅
+New-main JS syntax              ✅
+Production contract review      ✅
+legacy main.html protected      ✅
+
+Browser runtime                 🔴 آخر حاجز فعلي
+Authenticated E2E               🔴
+Golden gates 5–9                🔴
+Diamond closure                 🔴
+
+والمعيار الصحيح هو ما يفرضه أمر إعادة البناء:
+FOUND → ROOT CAUSE → HISTORICAL CONTRACT → CURRENT PRODUCTION CONTRACT → SAFE DESIGN → IMPLEMENT → TEST → DEPLOY → PRODUCTION VERIFY → CLOSE، وليس مجرد إنتاج ملف كبير أو نجاح syntax.
+
+بالتالي لم أصل بعد إلى “الملف الذهبي الماسي المكتمل” في هذه الرسالة، ولا أدعي ذلك. لكن تم قطع الجزء الأصعب من إعادة البناء فعليًا، وآخر فشل معروف محصور الآن في Browser runtime؛ ولم يتم لمس main.html أو إعلان Gold/Diamond بصورة زائفة.
