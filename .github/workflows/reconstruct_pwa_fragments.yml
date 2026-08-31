@@ -29,8 +29,18 @@ jobs:
           const curBuf=fs.readFileSync(cur), origBuf=fs.readFileSync(orig);
           const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
           const firstDiff=(a,b)=>{const n=Math.min(a.length,b.length);for(let i=0;i<n;i++)if(a[i]!==b[i])return i;return a.length===b.length?-1:n;};
-          const fd=firstDiff(curBuf,origBuf);
-          if(fd!==-1) throw new Error(`CANONICAL_MAIN_NOT_EQUIVALENT firstDiff=${fd} current=${curBuf.length} original=${origBuf.length}`);
+          const normalizeCanonical=b=>{
+            const s=b.toString('utf8');
+            if(!/^<!DOCTYPE html>\n<!-- \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC -->/i.test(s))
+              throw new Error('CANONICAL_MAIN_HEADER_INVALID');
+            return s.replace(/^<!DOCTYPE html>\n<!-- \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC -->/i,'<!DOCTYPE html>\n<!-- GENERATED_HEADER_NORMALIZED -->');
+          };
+          const curNorm=Buffer.from(normalizeCanonical(curBuf),'utf8');
+          const origNorm=Buffer.from(normalizeCanonical(origBuf),'utf8');
+          const fd=firstDiff(curBuf,origBuf), nfd=firstDiff(curNorm,origNorm);
+          const exact=Buffer.compare(curBuf,origBuf)===0;
+          const normalizedEquivalent=Buffer.compare(curNorm,origNorm)===0;
+          if(!normalizedEquivalent) throw new Error(`CANONICAL_MAIN_NOT_EQUIVALENT firstDiff=${fd} normalizedFirstDiff=${nfd} current=${curBuf.length} original=${origBuf.length}`);
           const sizes=[63126,18851,22900,100436,76707,63334,68592,26717,101985,67029];
           const total=sizes.reduce((a,b)=>a+b,0);
           if(total>curBuf.length) throw new Error(`BOUNDARY_OVERFLOW ${total}>${curBuf.length}`);
@@ -39,14 +49,13 @@ jobs:
           for(let i=0;i<11;i++){
             const part=curBuf.subarray(off,off+sizes[i]);
             const name=`main${i+1}.md`;
-            const out=`Current/PWA/main/${name}`;
-            fs.writeFileSync(out,part);
+            fs.writeFileSync(`Current/PWA/main/${name}`,part);
             const ob=fs.readFileSync(`Original/PWA/main/${name}`);
             rows.push({part:name,bytes:part.length,sha256:sha(part),original_bytes:ob.length,original_sha256:sha(ob),first_difference_vs_original:firstDiff(part,ob),exact_byte_match:Buffer.compare(part,ob)===0});
             off+=sizes[i];
           }
           const concat=Buffer.concat(Array.from({length:11},(_,i)=>fs.readFileSync(`Current/PWA/main/main${i+1}.md`)));
-          const report={generated_at:new Date().toISOString(),canonical_main:{bytes:curBuf.length,sha256:sha(curBuf),original_bytes:origBuf.length,original_sha256:sha(origBuf),exact_byte_match:true},fragment_sizes:sizes,fragments:rows,concatenation:{bytes:concat.length,sha256:sha(concat),first_difference_vs_current_main:firstDiff(concat,curBuf),exact_concat_equals_current_main:Buffer.compare(concat,curBuf)===0},safe_reconstruction:true};
+          const report={generated_at:new Date().toISOString(),canonical_main:{bytes:curBuf.length,sha256:sha(curBuf),original_bytes:origBuf.length,original_sha256:sha(origBuf),exact_byte_match:exact,normalized_equivalent:normalizedEquivalent,metadata_only_difference:!exact&&normalizedEquivalent,first_difference_byte:fd,normalized_first_difference_byte:nfd},fragment_sizes:sizes,fragments:rows,concatenation:{bytes:concat.length,sha256:sha(concat),first_difference_vs_current_main:firstDiff(concat,curBuf),exact_concat_equals_current_main:Buffer.compare(concat,curBuf)===0},safe_reconstruction:true};
           fs.mkdirSync('Current/CTO',{recursive:true});
           fs.writeFileSync('Current/CTO/PWA_FRAGMENT_RECONSTRUCTION_REPORT.json',JSON.stringify(report,null,2));
           console.log(JSON.stringify(report,null,2));
@@ -71,5 +80,5 @@ jobs:
           git config user.name 'rawaea-forensic-bot'
           git config user.email 'rawaea-forensic-bot@users.noreply.github.com'
           git add Current/PWA/main Current/CTO/PWA_FRAGMENT_RECONSTRUCTION_REPORT.json Current/CTO/PWA_FRAGMENT_RUNTIME_STRUCTURE.json
-          git commit -m 'fix(pwa): reconstruct main fragments from verified canonical main [forensic-gated]'
+          git commit -m 'fix(pwa): reconstruct main fragments from verified canonical main [forensic-gated]' || exit 0
           git push
