@@ -2865,8 +2865,8 @@
   },
   "main7.md": {
     "current": {
-      "bytes": 59010,
-      "sha256": "2fb7bbf2d5f3999c588a74f61ee7f14e234b7e31b069087bdeaf625f7ce051fd",
+      "bytes": 59006,
+      "sha256": "95ba28806abe0fb630ee8d6b6d2074bc32ae5e30a2ed6ecaa2a4fc0fcfbdf17b",
       "functions": [
         "_addToInvCart",
         "_addVoucherItem",
