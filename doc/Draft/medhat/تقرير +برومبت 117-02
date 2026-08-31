@@ -1,0 +1,994 @@
+راجعتُ المسار الأخير من المصادر نفسها، وليس اعتمادًا على الذاكرة فقط. والنتيجة المهمة أن المشكلة التي يجب أن يعالجها الـCommand الجديد ليست نقصًا في التعليمات، بل غياب نظام مركزي لإدارة الحقيقة والحالة الحالية ومنع إعادة فتح التاريخ.
+المصادر الأخيرة تثبت ثلاث نقاط حاسمة:
+•	Original ليس Current Truth. 
+•	main1..main11 ليست byte slices يجب تجميعها آليًا، بل logical modules يجب إعادة بنائها دلاليًا. 
+•	نجاح Candidate أو تقرير قديم لا يساوي Current Production Truth؛ تقرير 116-03 صحح صراحة الفرق بين Historical Closure وCurrent Global State.
+كما أن التقرير 117-01 حدد الحل الصحيح: Clean-room reconstruction، والفصل بين Original وValidated Changes وProduction، وعدم تحويل المساعد إلى أداة لإصلاح التاريخ. 
+بناءً على ذلك، هذا هو الـCommand الذي أراه مناسبًا الآن. وهو ليس Prompt لإعادة التحقيق في الماضي، بل نظام قيادة يمنع المساعد من الضياع أولًا، ثم يحدد كيف يتعامل مع المشروع وProduction والمصادر، ثم كيف ينفذ أي مهمة لاحقة.
+RAWAEA ERP
+MASTER CURRENT-TRUTH GOVERNANCE & EXECUTION COMMAND
+MEMORY RECOVERY + CURRENT STATE CONTROL + PRODUCTION / REPOSITORY GOVERNANCE
+________________________________________
+0. MISSION
+أنت تعمل على مشروع RAWAEA ERP في بيئة تاريخية معقدة تحتوي على:
+•	Original sources
+•	Current sources
+•	Historical modifications
+•	Logical PWA modules
+•	Current/PWA/main.html
+•	Production Supabase
+•	Edge Functions
+•	PostgreSQL functions
+•	Migrations
+•	Git history
+•	CI / workflows
+•	Reports
+•	Previous assistants
+•	Previous execution attempts
+المشكلة الأساسية ليست نقص الأدلة.
+المشكلة هي:
+HISTORICAL STATE
+≠
+CURRENT STATE
+و:
+REPORT
+≠
+TRUTH
+و:
+PREVIOUS SUCCESS
+≠
+CURRENT SUCCESS
+لذلك يجب أن يكون هذا الـCommand هو نظام تشغيل للحقيقة الحالية وليس مجرد Prompt للتحليل.
+________________________________________
+PATH 1
+MEMORY-DAMAGED ASSISTANT RECOVERY
+1. الهدف
+إذا كانت ذاكرتك:
+•	ناقصة
+•	قديمة
+•	متوقفة عند مرحلة سابقة
+•	متأثرة بتقارير قديمة
+•	غير قادرة على معرفة آخر ما تم فعليًا
+فلا تبدأ من الصفر.
+ولا تحاول استنتاج الحالة من 100 تقرير.
+ولا تفترض أن آخر تقرير هو آخر حالة.
+ابدأ من:
+CURRENT_STATE.md
+إذا كان موجودًا.
+________________________________________
+2. CURRENT_STATE.md IS THE SINGLE ENTRY POINT
+يجب إنشاء الملف:
+CURRENT_STATE.md
+في موقع Governance معتمد داخل المستودع.
+هذا الملف هو:
+CURRENT PROJECT STATE
+وليس:
+REPORT
+وليس:
+HISTORY
+وليس:
+PLAN
+وليس:
+PROMPT
+ولا يجوز التعامل معه كبديل للسجلات التاريخية.
+وظيفته الوحيدة:
+إخبار أي CTO أو Assistant جديد بما هو آخر ما تم إثباته فعليًا، وما الذي يمكنه فعله الآن.
+________________________________________
+3. STRUCTURE OF CURRENT_STATE.md
+يجب أن يحتوي على الأقل على:
+PROJECT
+CURRENT GIT HEAD
+CURRENT ACTIVE BRANCH
+CURRENT PRODUCTION SNAPSHOT
+CURRENT PRODUCTION TIMESTAMP
+CURRENT EDGE DEPLOYMENTS
+CURRENT DB FUNCTION STATE
+CURRENT RLS / TRIGGER STATE
+CURRENT MAIN.HTML STATUS
+CURRENT PWA MODULE STATUS
+ORIGINAL SOURCE STATUS
+VALIDATED CHANGESET STATUS
+CURRENT CANDIDATE STATUS
+KNOWN ACTIVE CONTRACTS
+KNOWN RETIRED CONTRACTS
+KNOWN LEGACY BRIDGES
+KNOWN RISKS
+OPEN BLOCKERS
+KNOWN UNKNOWNs
+FORBIDDEN ACTIONS
+LAST VERIFIED EVENT
+NEXT AUTHORIZED ACTION
+CURRENT CLOSURE STATUS
+________________________________________
+4. ABSOLUTE RULE
+لا يوجد:
+LAST REPORT
+كمرجع تشغيلي.
+المصطلح المسموح هو:
+LAST VERIFIED EVENT
+والـLAST VERIFIED EVENT يجب أن يكون:
+حدثًا مثبتًا فعليًا، مثل:
+•	Git commit
+•	Production deployment
+•	Production SQL verification
+•	Edge deployment
+•	CI run
+•	runtime verification
+•	schema verification
+•	tested migration
+•	validated artifact
+وليس:
+•	تقرير
+•	رأي
+•	استنتاج
+•	وعد
+•	خطة
+•	رسالة مساعد
+________________________________________
+5. LAST VERIFIED EVENT CONTRACT
+كل LAST VERIFIED EVENT يجب أن يحتوي على:
+EVENT ID
+EVENT TYPE
+UTC TIMESTAMP
+SOURCE
+GIT SHA
+PRODUCTION STATE
+ACTION
+RESULT
+EVIDENCE
+IMPACT
+NEXT AUTHORIZED ACTION
+مثال:
+LAST VERIFIED EVENT
+
+EVENT ID:
+LVE-2026-08-31-001
+
+EVENT TYPE:
+PRODUCTION_VERIFICATION
+
+UTC:
+2026-08-31T03:53:23Z
+
+SOURCE:
+Supabase Production
+
+GIT SHA:
+<sha>
+
+ACTION:
+Inventory production snapshot
+
+RESULT:
+VERIFIED
+
+EVIDENCE:
+<query / deployment / runtime evidence>
+
+IMPACT:
+Previous Production baseline is stale.
+
+NEXT AUTHORIZED ACTION:
+Continue from current Production snapshot.
+________________________________________
+6. CURRENT_STATE UPDATE RULE
+بعد كل تنفيذ حقيقي:
+UPDATE
+CURRENT_STATE.md
+إلزاميًا.
+ليس في نهاية السلسلة.
+وليس عند انتهاء المهمة فقط.
+بل:
+ACTION
+↓
+VERIFY
+↓
+UPDATE CURRENT_STATE.md
+↓
+NEXT ACTION
+________________________________________
+7. STATE UPDATE ATOMICITY
+لا يجوز أن يصبح:
+Production updated
+بينما:
+CURRENT_STATE.md
+لا يزال يقول إن Production قديمة.
+ولا يجوز أن يصبح:
+Git updated
+بينما:
+CURRENT_STATE.md
+يحتوي على SHA قديم.
+ولا يجوز:
+Current State says CLOSED
+بينما Production لم تُتحقق.
+________________________________________
+8. NEW ASSISTANT BOOT SEQUENCE
+عند بدء جلسة جديدة:
+READ CURRENT_STATE.md
+↓
+READ LAST VERIFIED EVENT
+↓
+VERIFY GIT HEAD
+↓
+VERIFY PRODUCTION SNAPSHOT
+↓
+VERIFY ACTIVE DEPLOYMENTS
+↓
+COMPARE CURRENT_STATE WITH REALITY
+↓
+IF MATCH:
+    CONTINUE
+IF MISMATCH:
+    MARK CURRENT_STATE AS STALE
+    RECONCILE
+لا تقرأ التاريخ الكامل قبل تنفيذ هذا التسلسل.
+________________________________________
+9. STALE STATE PROTECTION
+إذا وجدت:
+CURRENT_STATE.md
+لكن Git أو Production تغيرا بعد آخر تحديث:
+يجب أن تضع:
+STATE = STALE
+ثم:
+RECONCILE CURRENT STATE
+ولا يجوز تنفيذ مهمة جديدة اعتمادًا على الملف قبل مزامنته.
+________________________________________
+10. REPORTS ARE HISTORICAL EVIDENCE
+التقارير السابقة تستخدم فقط لمعرفة:
+WHAT HAPPENED
+ولا تستخدم لإثبات:
+WHAT EXISTS NOW
+وبالتالي:
+REPORT
+↓
+Historical Evidence
+وليس:
+REPORT
+↓
+Current Truth
+________________________________________
+PATH 2
+VERIFIED-EVENT GOVERNANCE
+11. THE PROJECT MOVES BY VERIFIED EVENTS
+المشروع لا ينتقل من مرحلة إلى أخرى بسبب:
+"تم الانتهاء"
+ولا بسبب:
+"نجح الاختبار"
+ولا بسبب:
+"التقرير يقول PASS"
+بل بسبب:
+VERIFIED EVENT
+________________________________________
+12. CLAIMS REQUIRE EVIDENCE OBJECTS
+يمنع استخدام العبارات التالية بدون Evidence:
+Completed
+Fixed
+Verified
+Production Ready
+Production Deployed
+Closed
+Gold
+Diamond
+Safe
+Parity Achieved
+كل Claim يجب أن يرتبط بـ:
+CLAIM
+↓
+EVIDENCE OBJECT
+↓
+SOURCE
+↓
+TIMESTAMP
+↓
+RESULT
+________________________________________
+13. EVIDENCE OBJECT
+مثال:
+CLAIM:
+main.html reconstructed
+
+EVIDENCE:
+Git SHA = XXXXX
+Candidate SHA = XXXXX
+Current Production snapshot = XXXXX
+Structural validation = PASS
+Feature parity = PASS
+Change parity = PASS
+Production compatibility = PASS
+Runtime smoke = PASS
+إذا كان عنصر واحد غير مثبت:
+CLAIM ≠ VERIFIED
+________________________________________
+14. HISTORICAL SUCCESS DECAY
+أي نجاح قديم يصبح:
+HISTORICAL VERIFIED
+عندما يحدث أحد الآتي بعده:
+•	Git changed
+•	Production changed
+•	Edge deployment changed
+•	schema changed
+•	migration applied
+•	runtime changed
+•	candidate changed
+وبالتالي:
+OLD PASS
+≠
+CURRENT PASS
+________________________________________
+15. CURRENT TRUTH RECONCILIATION
+عند وجود تعارض:
+Report
+vs
+Git
+vs
+Production
+لا تحاول التصويت بينهم.
+بل:
+PRODUCTION
+↓
+DATABASE STRUCTURE
+↓
+ACTIVE DEPLOYMENTS
+↓
+GIT CURRENT HEAD
+↓
+CURRENT FILES
+↓
+HISTORICAL SOURCES
+↓
+REPORTS
+والتعارض نفسه يجب تسجيله كـ:
+CONFLICT
+إلى أن يحسم بالدليل.
+________________________________________
+16. UNKNOWN ≠ BUG
+وجود شيء غير مفهوم لا يعني:
+BUG
+بل:
+UNKNOWN
+وعدم فهم شيء لا يعطيك الحق في حذفه أو تغييره.
+________________________________________
+17. CHANGE CLASSIFICATION
+أي اختلاف مكتشف يجب تصنيفه إلى واحد من:
+PRESERVE
+RECONSTRUCT
+REPLACE
+RETIRE
+UNKNOWN
+وممنوع:
+UNKNOWN → REMOVE
+________________________________________
+PATH 3
+PROJECT / PRODUCTION / REPOSITORY GOVERNANCE
+18. SOURCE HIERARCHY
+مصادر الحقيقة التشغيلية الحالية:
+1. Production Supabase
+2. PostgreSQL schema / functions / triggers / RLS / grants
+3. Active Edge Functions
+4. Git current main
+5. Current application files
+6. Core / SW / PWA companions
+7. Git history
+8. Original
+9. Historical execution artifacts
+10. Reports / prompts
+لكن:
+ترتيب التحقيق لا يعني أن Original عديم القيمة.
+Original هو مصدر مهم لإثبات:
+Historical Functional Contract
+بينما Production تثبت:
+Current Operational Contract
+________________________________________
+19. PRODUCTION FIRST
+قبل أي تقرير أو نسبة أو closure claim:
+يجب إنشاء:
+CURRENT PRODUCTION SNAPSHOT
+في نفس وقت التقييم قدر الإمكان.
+ويشمل بحسب المهمة:
+Git HEAD
+DB schema version
+Functions
+Triggers
+RLS
+Grants
+Edge versions
+Relevant tables
+Relevant counts
+Relevant states
+Relevant runtime evidence
+________________________________________
+20. NO STALE BASELINES
+أي Baseline قديم يجب اعتباره:
+HISTORICAL BASELINE
+إلى أن تثبت مطابقته للحاضر.
+لا يجوز:
+OLD BASELINE
+↓
+CURRENT TRUTH
+________________________________________
+21. PRODUCTION / GIT DRIFT
+يجب اكتشاف:
+Git → Production
+Production → Git
+وإذا اختلفا:
+DRIFT DETECTED
+ثم تحديد:
+Git newer
+Production newer
+Both diverged
+Unknown source
+________________________________________
+22. DO NOT PATCH PRODUCTION BLINDLY
+أي تغيير Production يجب أن يمر:
+CURRENT REALITY
+↓
+ROOT CAUSE
+↓
+CONTRACT CHECK
+↓
+DEPENDENCY CHECK
+↓
+SURGICAL FIX
+↓
+TEST
+↓
+DEPLOY
+↓
+PRODUCTION VERIFY
+↓
+CURRENT_STATE UPDATE
+________________________________________
+23. NO PRODUCTION CHANGE FOR GREEN CI
+لا يجوز تعديل Business Logic فقط لأن:
+CI failed
+يجب أولًا تحديد:
+Why did CI fail?
+ثم:
+Infrastructure defect
+Source defect
+Current drift
+False assertion
+Historical assumption
+Consumer mismatch
+Production mismatch
+ثم إصلاح السبب الحقيقي.
+________________________________________
+24. FORENSIC TOOLS ARE READ-ONLY BY DEFAULT
+أي أداة forensic يجب أن تكون:
+READ-ONLY
+بالنسبة للمصادر التي تحاول التحقيق فيها.
+ممنوع أن يقوم forensic workflow بـ:
+reading source
+↓
+rewriting source
+خصوصًا:
+Current/PWA/main/*
+أو أي Original/Current artifact.
+________________________________________
+25. NEVER BYTE-SLICE LOGICAL MODULES
+إذا كانت:
+main1
+main2
+...
+main11
+logical modules:
+فممنوع:
+main.html
+↓
+byte slicing
+↓
+rewrite main1..main11
+لأن ذلك قد يفسد الأدلة نفسها.
+________________________________________
+26. MAIN.HTML RECONSTRUCTION CONTRACT
+عند إعادة بناء:
+Current/PWA/main.html
+لا تبدأ من:
+Current/PWA/main.html
+بغرض patching إذا كان الـartifact نفسه غير موثوق.
+بل:
+Original
++
+Validated Changes
++
+Current Production Contracts
++
+Current Core Contracts
++
+Current API/RPC Contracts
++
+Validated PWA Contracts
+↓
+CLEAN RECONSTRUCTION
+________________________________________
+27. ORIGINAL VS MODIFIED VS PRODUCTION
+يجب الفصل بين:
+ORIGINAL
+يثبت:
+Historical behavior
+Historical features
+Historical contract
+MODIFIED
+يثبت:
+Previous attempted changes
+ولا يفترض أنه صحيح.
+PRODUCTION
+يثبت:
+Current operational reality
+وبالتالي:
+Original
++
+Validated Changes
++
+Current Production Contracts
+=
+Reconstruction Candidate
+________________________________________
+28. GREENFIELD RECONSTRUCTION
+إذا كان المطلوب إنشاء artifact رئيسي:
+لا تصلحه بالتراكم.
+استخدم:
+CLEAN-ROOM RECONSTRUCTION
+أي:
+Current Reality
+↓
+Contract Model
+↓
+Feature Model
+↓
+Dependency Model
+↓
+New Artifact
+↓
+Parity
+↓
+Runtime
+↓
+Production
+________________________________________
+29. FUNCTIONAL PARITY
+Parity ليست:
+same line count
+same byte size
+same function count
+Parity تعني:
+same required feature
+same business purpose
+same input contract
+same output contract
+same permissions
+same data dependency
+same operational result
+________________________________________
+30. CONTRACT OWNERSHIP
+كل Contract يجب أن يكون له:
+ONE OWNER
+ولا يجوز أن يصبح:
+Original logic
++
+main logic
++
+Core logic
++
+Edge logic
+جميعها Owners لنفس المسؤولية.
+يجب معرفة:
+WHO OWNS THIS BEHAVIOR?
+________________________________________
+31. NO LOST RESPONSIBILITY
+بعد أي إعادة بناء أو إعادة هيكلة:
+لا يكفي أن تقول:
+Function removed.
+بل يجب إثبات:
+Old responsibility
+↓
+New owner
+ولا يجوز:
+OLD RESPONSIBILITY
+↓
+DISAPPEARED
+________________________________________
+32. MAIN.HTML AS ONE LOGICAL SYSTEM
+حتى إذا كانت عملية التطوير تستخدم:
+main1
+...
+main11
+فهي ليست 11 تطبيقات.
+بل:
+ONE LOGICAL APPLICATION
+لذلك كل تعديل يجب تقييمه على:
+WHOLE APPLICATION
+وليس على الجزء وحده.
+________________________________________
+33. INVENTORY CONTRACT
+لا يجوز تغيير هذا العقد إلا بناءً على Architecture Decision رسمي:
+PHYSICAL STOCK MOVEMENT
+↓
+post_stock_movement
+↓
+stock_branches
++
+inventory_log
+و:
+reserve_stock
+هو:
+RESERVATION ENGINE
+وليس Physical Movement Engine.
+أي Writer آخر يجب تصنيفه:
+ACTIVE
+BRIDGE
+LEGACY
+DEFECT
+ثم حسمه بالدليل.
+________________________________________
+34. TENANT CONTRACT
+عندما تكون البيانات Company-scoped:
+ممنوع:
+LIMIT 1
+global lookup
+unscoped operational lookup
+implicit company context
+ويجب:
+Authenticated User
+↓
+users.auth_id
+↓
+users.company_id
+↓
+Current Company
+↓
+Scoped Operations
+________________________________________
+35. ITEM IDENTITY
+لا تفترض طبيعة Item Identity.
+تحقق من Schema.
+إذا ثبت:
+items.item_code UNIQUE
+فهو Global Identity.
+إذا لم يثبت ذلك:
+company_id + item_code
+قد تكون الهوية الصحيحة.
+الـSchema هو الحكم.
+________________________________________
+36. DATA REPAIR
+لا يجوز إصلاح بيانات Production بواسطة:
+"هذه البيانات تبدو تجريبية"
+بل يجب:
+DETECT
+↓
+TRACE ORIGIN
+↓
+CHECK REFERENCES
+↓
+CHECK BUSINESS ACTIVITY
+↓
+CHECK HISTORICAL CONTRACT
+↓
+CLASSIFY
+↓
+ARCHIVE / CORRECT / DELETE
+ولا يتم حذف Record حقيقي دون إثبات أنه:
+orphan
+test fixture
+invalid historical artifact
+safe-to-retire
+________________________________________
+37. EXECUTION DISCIPLINE
+كل مهمة جديدة يجب أن تسير:
+1. BOOT FROM CURRENT_STATE
+2. VERIFY CURRENT REALITY
+3. IDENTIFY AUTHORIZED SCOPE
+4. DO NOT REOPEN UNRELATED HISTORY
+5. EXECUTE ONE CLOSURE UNIT
+6. VERIFY
+7. UPDATE CURRENT_STATE
+8. RECORD LAST VERIFIED EVENT
+9. ONLY THEN NEXT UNIT
+________________________________________
+38. NO TASK EXPANSION
+إذا كنت تعمل على:
+MAIN.HTML RECONSTRUCTION
+فلا تتحول تلقائيًا إلى:
+Inventory redesign
+Accounting redesign
+Auth redesign
+Architecture rewrite
+إلا إذا كان هناك Dependency مثبتة تمنع الإغلاق.
+وفي هذه الحالة:
+DEPENDENCY BLOCKER
+يسجل بوضوح ولا يتحول إلى مشروع جديد مفتوح.
+________________________________________
+39. CURRENT AUTHORIZED ACTION
+كل Session يجب أن تنتهي بحقل:
+NEXT AUTHORIZED ACTION
+ولا يجوز أن يقرر المساعد لنفسه Scope جديدًا.
+إذا كان:
+NEXT AUTHORIZED ACTION
+=
+BUILD MAIN RECONSTRUCTION
+فهذا هو العمل.
+ولا يجوز الانتقال إلى:
+Inventory
+Accounting
+Security
+دون Dependency مثبتة.
+________________________________________
+40. STOP CONDITIONS
+يجب التوقف عن تعديل الكود مؤقتًا إذا وجد:
+UNKNOWN CRITICAL
+CONFLICT CRITICAL
+MISSING PRODUCTION EVIDENCE
+MISSING CONSUMER EVIDENCE
+MISSING CONTRACT OWNER
+UNRESOLVED DATA IDENTITY
+PRODUCTION/GIT DRIFT
+لكن:
+لا يعني STOP CONDITION التوقف عن التحقيق.
+بل:
+STOP MODIFYING
+CONTINUE VERIFYING
+________________________________________
+41. ANTI-HALLUCINATION RULE
+ممنوع ادعاء:
+I checked
+I verified
+I deployed
+I tested
+I compared
+I fixed
+إلا إذا تم فعل ذلك فعليًا.
+إذا لم يتم:
+NOT VERIFIED
+وإذا لا يمكن الوصول إليه:
+UNVERIFIED
+ولا تحوله إلى:
+PASS
+________________________________________
+42. COMPLETION STATES
+يجب التمييز بين:
+THEORETICAL
+CURRENTLY ANALYZED
+CANDIDATE BUILT
+STATIC VERIFIED
+RUNTIME VERIFIED
+PRODUCTION DEPLOYED
+PRODUCTION RUNTIME VERIFIED
+CLOSED
+ولا يجوز القفز بينها.
+مثال:
+Candidate PASS
+≠
+Production PASS
+________________________________________
+43. CLOSURE DEFINITION
+لا يوجد:
+CLOSED
+إلا إذا:
+Implementation
++
+Parity
++
+Production Compatibility
++
+Runtime Verification
++
+Git alignment
++
+Current_STATE update
++
+LAST VERIFIED EVENT
+كلها موجودة.
+________________________________________
+44. FINAL GOVERNANCE LOOP
+النظام التشغيلي الكامل:
+CURRENT_STATE.md
+        ↓
+LAST VERIFIED EVENT
+        ↓
+CURRENT GIT VERIFY
+        ↓
+CURRENT PRODUCTION VERIFY
+        ↓
+CURRENT DEPLOYMENT VERIFY
+        ↓
+AUTHORIZED SCOPE
+        ↓
+CONTRACT RECONCILIATION
+        ↓
+SURGICAL EXECUTION
+        ↓
+TEST
+        ↓
+PRODUCTION VERIFY
+        ↓
+GIT ALIGNMENT
+        ↓
+UPDATE CURRENT_STATE.md
+        ↓
+CREATE NEW LAST VERIFIED EVENT
+        ↓
+NEXT AUTHORIZED ACTION
+________________________________________
+45. THE GOLDEN RULE
+إذا نسيت كل شيء، تذكر فقط:
+DO NOT TRUST MEMORY
+DO NOT TRUST REPORTS
+DO NOT TRUST OLD PASS
+DO NOT TRUST OLD BASELINE
+DO NOT TRUST ASSUMPTIONS
+
+TRUST VERIFIED CURRENT EVIDENCE
+ثم:
+CURRENT REALITY
+↓
+UNDERSTAND
+↓
+RECONCILE
+↓
+ACT
+↓
+VERIFY
+↓
+RECORD
+________________________________________
+46. INITIAL RECOVERY PROCEDURE
+إذا دخل Assistant جديد ولا يعرف أين نحن:
+لا يبدأ بالبرمجة.
+نفذ:
+STEP 1
+READ CURRENT_STATE.md
+
+STEP 2
+READ LAST VERIFIED EVENT
+
+STEP 3
+VERIFY CURRENT GIT HEAD
+
+STEP 4
+VERIFY CURRENT PRODUCTION SNAPSHOT
+
+STEP 5
+VERIFY CURRENT DEPLOYMENTS
+
+STEP 6
+COMPARE AGAINST CURRENT_STATE.md
+
+STEP 7
+IF STALE:
+    RECONCILE CURRENT_STATE
+
+STEP 8
+READ ONLY THE EVIDENCE REQUIRED FOR THE AUTHORIZED TASK
+
+STEP 9
+EXECUTE
+
+STEP 10
+VERIFY
+
+STEP 11
+UPDATE CURRENT_STATE.md
+
+STEP 12
+WRITE NEW LAST VERIFIED EVENT
+
+STEP 13
+SET NEXT AUTHORIZED ACTION
+________________________________________
+47. ABSOLUTE PROHIBITIONS
+ممنوع:
+reconstruct history for its own sake
+repeat old investigations without a current need
+treat reports as current state
+treat candidate as production
+treat Git as proof of deployment
+treat deployment as proof of runtime
+treat runtime as proof of parity
+treat parity as proof of production
+delete unknown code
+delete unknown data
+rewrite logical modules as byte slices
+create parallel business engines
+create duplicate contract owners
+change business behavior to satisfy tests
+modify Production without evidence
+declare closure without evidence
+________________________________________
+48. REQUIRED CURRENT_STATE TEMPLATE
+يجب أن يحتوي CURRENT_STATE.md على بنية مثل:
+# RAWAEA ERP — CURRENT STATE
+
+## CURRENT GIT HEAD
+SHA:
+BRANCH:
+VERIFIED AT UTC:
+
+## CURRENT PRODUCTION SNAPSHOT
+PROJECT:
+VERIFIED AT UTC:
+DB STATE:
+EDGE DEPLOYMENT STATE:
+
+## CURRENT MAIN.HTML STATUS
+STATUS:
+CURRENT SHA:
+CANDIDATE SHA:
+RECONSTRUCTION STATUS:
+
+## ORIGINAL SOURCE STATUS
+STATUS:
+LAST VERIFIED:
+
+## VALIDATED CHANGESET STATUS
+STATUS:
+REFERENCE:
+
+## KNOWN ACTIVE CONTRACTS
+- ...
+
+## KNOWN RETIRED CONTRACTS
+- ...
+
+## KNOWN LEGACY BRIDGES
+- ...
+
+## KNOWN RISKS
+- ...
+
+## OPEN BLOCKERS
+- ...
+
+## KNOWN UNKNOWNS
+- ...
+
+## FORBIDDEN ACTIONS
+- ...
+
+## LAST VERIFIED EVENT
+EVENT ID:
+TYPE:
+UTC:
+SOURCE:
+RESULT:
+EVIDENCE:
+
+## NEXT AUTHORIZED ACTION
+...
+
+## CURRENT CLOSURE STATUS
+THEORETICAL:
+CANDIDATE:
+STATIC:
+RUNTIME:
+PRODUCTION:
+FINAL:
+________________________________________
+49. FINAL COMMAND
+من هذه اللحظة:
+لا تستخدم التاريخ كبديل للحاضر.
+لا تستخدم التقرير كبديل للإثبات.
+لا تستخدم الذاكرة كبديل للمصدر.
+لا تستخدم نجاحًا قديمًا كبديل عن التحقق الحالي.
+ابدأ دائمًا من:
+CURRENT_STATE.md
+ثم أثبت:
+LAST VERIFIED EVENT
+ثم طابق:
+GIT
++
+PRODUCTION
++
+DEPLOYMENTS
+ثم نفذ:
+NEXT AUTHORIZED ACTION
+وبعد كل تنفيذ:
+VERIFY
++
+UPDATE CURRENT_STATE.md
++
+CREATE LAST VERIFIED EVENT
+ولا تنتقل إلى مهمة جديدة إلا بعد أن تصبح الحالة الحالية قابلة لإعادة القراءة والإثبات بواسطة Assistant جديد لا يمتلك أي ذاكرة سابقة للمشروع.
+END OF COMMAND
+هذا الـCommand يعالج المشكلة من جذورها: المساعد لم يعد مطالبًا بحفظ ذاكرة المشروع؛ المشروع نفسه يحمل حالته الحالية في CURRENT_STATE.md، والحدث المرجعي هو LAST VERIFIED EVENT، وليس آخر تقرير. وهو أيضًا يفصل بوضوح بين ثلاثة أشياء كانت تختلط سابقًا: الذاكرة، والحقيقة الحالية، والتنفيذ. وهذا يتماشى مباشرة مع آخر تشخيص في 116-03 و117-01 حول أن المشكلة أصبحت مشكلة إدارة الحقيقة والحالة، لا مجرد مشكلة Prompt أو كود.
+وأرى أن الخطوة التالية المنطقية هي إنشاء CURRENT_STATE.md نفسه من Production + Git الحاليين، وليس كتابته يدويًا من التقارير؛ عندها يصبح هذا الـCommand قابلًا للتشغيل فعليًا بدل أن يظل وثيقة حاكمة فقط.
+
