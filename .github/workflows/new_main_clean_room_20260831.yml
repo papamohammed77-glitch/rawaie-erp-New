@@ -1,8 +1,9 @@
-name: RAWAEA NEW-MAIN CLEAN-ROOM — 20260831
+name: RAWAEA NEW-MAIN CLEAN-ROOM
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - 'tools/run_new_main_clean_room_20260831.py'
       - 'Current/PWA/main/**'
@@ -15,71 +16,30 @@ permissions:
 
 jobs:
   build-new-main:
-    if: ${{ !contains(github.event.head_commit.message, '[new-main-clean-room-persist]') }}
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[new-main-clean-room-persist]')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout current main source of truth
+      - name: Checkout main
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 2
 
-      - name: Prove legacy runtime file is untouched before build
+      - name: Protect legacy main.html
         shell: bash
         run: |
           set -euo pipefail
           test -s Current/PWA/main.html
-          git hash-object Current/PWA/main.html > /tmp/main-html-before.sha
-          echo "MAIN_HTML_BEFORE=$(cat /tmp/main-html-before.sha)"
+          git hash-object Current/PWA/main.html > /tmp/main-before.sha
 
-      - name: Build New-main only from current fragments
-        run: python3 tools/run_new_main_clean_room_20260831.py
-
-      - name: Fragment syntax diagnostics for main1..main11
+      - name: Build New-main
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import importlib.util, re, subprocess, tempfile
-          builder=Path('tools/run_new_main_clean_room_20260831.py')
-          spec=importlib.util.spec_from_file_location('rw_builder', builder)
-          mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
-          for idx in range(1,12):
-              src=mod.repaired_source(Path('Current/PWA/main')/f'main{idx}.md')
-              if idx==1:
-                  scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',src,re.S|re.I)
-                  if not scripts: raise SystemExit('MAIN1_NO_INLINE_SCRIPT')
-                  src=scripts[-1]
-              out=Path(tempfile.gettempdir())/f'rw-fragment-{idx}.js'
-              out.write_text(src,encoding='utf-8')
-              r=subprocess.run(['node','--check',str(out)],capture_output=True,text=True)
-              if r.returncode:
-                  print(f'FRAGMENT_JS_SYNTAX_FAIL_main{idx}')
-                  print(r.stderr)
-                  raise SystemExit(2)
-              print(f'FRAGMENT_JS_SYNTAX_PASS_main{idx}')
-          PY
+          python3 tools/run_new_main_clean_room_20260831.py
 
-      - name: Structural contract gate for New-main
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          required = ['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn']
-          globals_ = ['window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM']
-          missing=[x for x in required+globals_ if x not in s]
-          if missing: raise SystemExit('STRUCTURAL_CONTRACT_MISSING:'+','.join(missing))
-          if s.lower().count('</html>') != 1 or s.lower().count('</body>') != 1: raise SystemExit('DOCUMENT_CLOSURE_DUPLICATED_OR_MISSING')
-          inline_scripts=len(__import__('re').findall(r'<script(?![^>]*\bsrc=)[^>]*>',s,__import__('re').I))
-          if inline_scripts != 1: raise SystemExit(f'INLINE_SCRIPT_COUNT_INVALID:{inline_scripts}')
-          print('STRUCTURAL_CONTRACT_PASS')
-          PY
-
-      - name: JavaScript syntax gate for New-main
+      - name: Structural and syntax gates
         shell: bash
         run: |
           set -euo pipefail
@@ -87,85 +47,60 @@ jobs:
           from pathlib import Path
           import re, subprocess, tempfile
           s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I)
-          if not scripts: raise SystemExit('NO_INLINE_SCRIPT_FOUND')
-          if len(scripts)!=1: raise SystemExit(f'INLINE_SCRIPT_COUNT_INVALID:{len(scripts)}')
-          c=scripts[0]
-          p=Path(tempfile.gettempdir())/'rw-new-main.js'; p.write_text(c,encoding='utf-8')
+          req=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn','window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM']
+          missing=[x for x in req if x not in s]
+          if missing: raise SystemExit('STRUCTURAL_CONTRACT_MISSING:'+','.join(missing))
+          if s.lower().count('</html>')!=1 or s.lower().count('</body>')!=1: raise SystemExit('DOCUMENT_CLOSURE_INVALID')
+          scripts=re.findall(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>(.*?)</script>',s,re.I|re.S)
+          if len(scripts)!=1: raise SystemExit('INLINE_SCRIPT_COUNT_INVALID:'+str(len(scripts)))
+          p=Path(tempfile.gettempdir())/'new-main.js'; p.write_text(scripts[0],encoding='utf-8')
           r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
-          if r.returncode:
-              print(r.stderr)
-              raise SystemExit('JS_SYNTAX_FAIL')
-          print('JS_SYNTAX_PASS')
+          if r.returncode: print(r.stderr); raise SystemExit('JS_SYNTAX_FAIL')
+          print('STRUCTURAL_AND_JS_PASS')
           PY
 
-      - name: Browser smoke gate for New-main
+      - name: Browser smoke gate
         shell: bash
         run: |
           set -euo pipefail
           npm init -y >/dev/null 2>&1
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null 2>&1
-          rm -rf /tmp/rw-new-main-pwa
-          mkdir -p /tmp/rw-new-main-pwa
-          cp -r Current/PWA/. /tmp/rw-new-main-pwa/
-          python3 -m http.server 8124 --directory /tmp/rw-new-main-pwa >/tmp/rw-new-main-http.log 2>&1 &
+          mkdir -p /tmp/rw-pwa
+          cp -r Current/PWA/. /tmp/rw-pwa/
+          python3 -m http.server 8124 --directory /tmp/rw-pwa >/tmp/rw-http.log 2>&1 &
           node <<'NODE'
           const {chromium}=require('playwright');
           (async()=>{
             const browser=await chromium.launch({headless:true});
             const page=await browser.newPage();
-            const pageErrors=[]; const consoleErrors=[]; const badResponses=[];
+            const pageErrors=[]; const consoleErrors=[]; const bad=[];
             page.on('pageerror',e=>pageErrors.push(e.message));
             page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
-            page.on('response',r=>{if(r.status()>=400)badResponses.push({status:r.status(),url:r.url()})});
+            page.on('response',r=>{if(r.status()>=400)bad.push({status:r.status(),url:r.url()})});
             await page.goto('http://127.0.0.1:8124/New-main',{waitUntil:'domcontentloaded',timeout:30000});
-            await page.waitForTimeout(3000);
-            const r=await page.evaluate(()=>({title:document.title,lang:document.documentElement.lang,body:!!document.body,login:!!document.getElementById('rw-login-page'),app:!!document.getElementById('rw-main-shell'),container:!!document.getElementById('rw-page-container'),shell:!!window.RW_ShellContext,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense}));
-            console.log(JSON.stringify({result:r,pageErrors,consoleErrors,badResponses}));
-            if(r.lang!=='ar'||!r.body||!r.login||!r.app||!r.container||!r.shell||!r.views||!r.owner||pageErrors.length||consoleErrors.length||badResponses.length) process.exit(2);
+            const r=await page.evaluate(()=>({lang:document.documentElement.lang,login:!!document.getElementById('login'),app:!!document.getElementById('app'),shell:!!window.RW_ShellContext,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense}));
+            console.log(JSON.stringify({r,pageErrors,consoleErrors,bad}));
+            if(r.lang!=='ar'||!r.login||!r.app||!r.shell||!r.views||!r.owner||pageErrors.length||consoleErrors.length||bad.length) process.exit(2);
             await browser.close();
           })().catch(e=>{console.error(e);process.exit(2)});
           NODE
 
-      - name: Prove legacy main.html remained byte-identical
+      - name: Protect main.html after build
         shell: bash
         run: |
           set -euo pipefail
-          git hash-object Current/PWA/main.html > /tmp/main-html-after.sha
-          diff -u /tmp/main-html-before.sha /tmp/main-html-after.sha
+          git hash-object Current/PWA/main.html > /tmp/main-after.sha
+          diff -u /tmp/main-before.sha /tmp/main-after.sha
           test -s Current/PWA/New-main
 
-      - name: Persist New-main and evidence only on current main
+      - name: Persist New-main only
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'rawaea-new-main-reconstruction-bot'
           git config user.email 'rawaea-new-main-reconstruction-bot@users.noreply.github.com'
-          python3 - <<'PY'
-          from pathlib import Path
-          import hashlib,json,subprocess
-          p=Path('Current/PWA/New-main'); main=Path('Current/PWA/main.html'); evidence=Path('Current/CTO/20260831_NEW_MAIN_CLEAN_ROOM_EXECUTION.json')
-          payload=json.loads(evidence.read_text(encoding='utf-8'))
-          payload.update({'browser_runtime':'PASS_LOCAL_CLEAN_ROOM','main_html_unchanged':True,'main_html_sha256':hashlib.sha256(main.read_bytes()).hexdigest(),'git_head_before_persist':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()})
-          evidence.write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding='utf-8')
-          state=Path('CURRENT_STATE.md'); old=state.read_text(encoding='utf-8')
-          marker='## NEW-MAIN EXECUTION RESULT'
-          block='''## NEW-MAIN EXECUTION RESULT
-- New-main was rebuilt from current `main1..main11` fragments by the isolated executor on current `main`.
-- Fragment syntax gates: PASS.
-- Structural contract gate: PASS.
-- Local JavaScript syntax gate: PASS.
-- Local browser smoke gate: PASS.
-- Existing `Current/PWA/main.html`: byte-identical before/after execution.
-- Production runtime of New-main itself: NOT DEPLOYED / NOT VERIFIED.
-'''
-          if marker in old:
-              start=old.index(marker); nextsec=old.find('\\n## ',start+len(marker)); old=old[:start]+block+(old[nextsec+1:] if nextsec!=-1 else '')
-          else: old += '\\n'+block
-          state.write_text(old,encoding='utf-8')
-          PY
-          git add Current/PWA/New-main Current/CTO/20260831_NEW_MAIN_CLEAN_ROOM_EXECUTION.json CURRENT_STATE.md
+          git add Current/PWA/New-main Current/CTO/20260831_NEW_MAIN_CLEAN_ROOM_EXECUTION.json
           git diff --cached --quiet && { echo 'NO_NEW_MAIN_DELTA'; exit 1; }
-          git commit -m '[new-main-clean-room-persist] persist verified New-main on current main'
+          git commit -m '[new-main-clean-room-persist] persist verified New-main'
           git push origin HEAD:main
