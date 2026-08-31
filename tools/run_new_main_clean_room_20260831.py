@@ -1,6 +1,6 @@
 from pathlib import Path
 import hashlib,json,re,subprocess
-CUR=Path('Current/PWA/main'); ORIG=Path('Original/PWA/main'); TARGET=Path('Current/PWA/main.reconstruction.html'); CTO=Path('Current/CTO')
+CUR=Path('Current/PWA/main'); ORIG=Path('Original/PWA/main'); TARGET=Path('Current/PWA/New-main'); CTO=Path('Current/CTO')
 PARTS=[CUR/f'main{i}.md' for i in range(1,12)]; ORIGINAL=[ORIG/f'main{i}.md' for i in range(1,12)]; EVIDENCE=CTO/'20260831_NEW_MAIN_CLEAN_ROOM_EXECUTION.json'
 def repair_main7(s):
  p=re.compile(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}",re.M); s2,n=p.subn(r"\1));}",s,count=1); return s2,[{'issue':'main7 settlement-rs-select closure','occurrences_fixed':n,'mode':'in-memory'}]
