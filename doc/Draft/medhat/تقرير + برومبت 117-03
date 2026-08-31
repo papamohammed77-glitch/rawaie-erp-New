@@ -1,0 +1,55 @@
+تم تنفيذ المهمة الحرجة الحالية فقط، وأوقفت مسار Inventory السابق كما طلبت.
+
+ما تم إنشاؤه فعليًا
+
+1. CURRENT_STATE.md في جذر المستودع، وأصبح نقطة الدخول التشغيلية الوحيدة للمساعدين القادمين. يحتوي على حالة Git الحالية، Snapshot حديث لـProduction، حالة main.html، العقود النشطة والمتقاعدة، الـblockers، المحاذير، وآخر LAST VERIFIED EVENT وليس LAST REPORT. كما ينص صراحةً على تحديثه بعد كل تنفيذ حقيقي.
+
+2. FINAL_MAIN_HTML_RECONSTRUCTION_COMMAND.md كأمر تنفيذي مستقل جديد، وظيفته الوحيدة إعادة بناء Current/PWA/main.html من الصفر ثم إثبات parity وProduction runtime قبل الإغلاق. صممته تحديدًا لكسر الحلقة السابقة: يبدأ من CURRENT_STATE.md، يطابق Git وProduction، يمنع إعادة فتح سلسلة main1–main11، يمنع النسخ الأعمى من Original، ويمنع إعلان Production PASS من مجرد static/staging PASS.
+
+أهم حقيقة اكتشفتها أثناء إعادة بناء الحالة
+
+الـGit HEAD الحالي ليس هو الـHEAD الذي كانت عليه سلسلة التقارير القديمة، بل:
+
+854613bda759f50e8d7b7418d35d01fe4046364c
+
+بعد إضافة الـCommand الجديد. وكان الـHEAD السابق مباشرة:
+
+03f756ac8db60b6b78d1342bb29e6fb4bf6708b0
+
+ورسالة هذا الـcommit كانت Create تقرير +برومبت 117-02.
+
+والأهم أن Production الحالية عند آخر Snapshot مباشر أصبحت:
+
+1 company / 24 users / 2 branches / 17 items / 20 stock rows / 3 inventory logs / 0 orders / 0 purchase orders / 0 runsheets
+
+مع:
+
+negative qty = 0
+negative allocated = 0
+available mismatch = 0
+cross-company stock = 0
+cross-company inventory log = 0
+
+وبالتالي فإن أرقام التقارير القديمة ليست الحالة الحالية.
+
+كما ثبت أن التقرير الحاكم نفسه يفرض أن الدراسة تسبق التعديل، وأن Production والسلوك الفعلي يجب أن يسبق أي قرار إصلاحي.
+
+والـDirective الذي بنيت عليه الأمر الجديد يفرض صراحةً أن المهمة لا تعتبر مكتملة إلا بعد اكتشاف الـwriters، وإعادة ربطها، وفحص Tenant/Item integrity، ثم Production runtime verification.
+
+نقطة مهمة جدًا
+
+لم أبدأ إعادة كتابة main.html الآن؛ لأن طلبك الحالي كان إنشاء منظومة الحالة والأمر الجديد أولًا، وليس تنفيذ الأمر نفسه. وهذا مقصود حتى لا نعود إلى نفس الحلقة السابقة قبل أن يصبح هناك State Authority واحد.
+
+الخطوة المصرح بها الآن داخل المستودع هي فقط:
+
+CURRENT_STATE.md
+↓
+FINAL_MAIN_HTML_RECONSTRUCTION_COMMAND.md
+
+ثم يبدأ التنفيذ الحقيقي للـmain.html من هذه النقطة، لا من أي تقرير سابق.
+
+فتح CURRENT_STATE.md
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/CURRENT_STATE.md
+
+فتح FINAL_MAIN_HTML_RECONSTRUCTION_COMMAND.md
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/FINAL_MAIN_HTML_RECONSTRUCTION_COMMAND.md
