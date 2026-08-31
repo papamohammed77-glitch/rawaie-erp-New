@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: '20'
       - name: Gates 0-4
-        run: python3 tools/gold_reconstruction_v2.py
+        run: python3 tools/gold_reconstruction_v3.py
       - name: Gate 5
         run: |
           npm init -y >/dev/null 2>&1
