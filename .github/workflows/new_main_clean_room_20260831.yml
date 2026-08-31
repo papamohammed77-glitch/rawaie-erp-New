@@ -36,6 +36,28 @@ jobs:
       - name: Build New-main only from current fragments
         run: python3 tools/run_new_main_clean_room_20260831.py
 
+      - name: Fragment syntax diagnostics for main1..main11
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import importlib.util, subprocess, tempfile
+          p=Path('tools/run_new_main_clean_room_20260831.py')
+          spec=importlib.util.spec_from_file_location('rw_builder', p)
+          mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+          for idx in range(1,12):
+              src=mod.repaired_source(Path('Current/PWA/main')/f'main{idx}.md')
+              out=Path(tempfile.gettempdir())/f'rw-fragment-{idx}.js'
+              out.write_text(src,encoding='utf-8')
+              r=subprocess.run(['node','--check',str(out)],capture_output=True,text=True)
+              if r.returncode:
+                  print(f'FRAGMENT_JS_SYNTAX_FAIL_main{idx}')
+                  print(r.stderr)
+                  raise SystemExit(2)
+              print(f'FRAGMENT_JS_SYNTAX_PASS_main{idx}')
+          PY
+
       - name: Structural contract gate for New-main
         shell: bash
         run: |
@@ -68,13 +90,9 @@ jobs:
               r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
               if r.returncode:
                   print(r.stderr)
-                  m=re.search(r':(\d+)\s*$', r.stderr.strip(), re.M)
-                  if not m:
-                      m=re.search(r':(\d+)\n', r.stderr)
+                  m=re.search(r':(\d+)\s*$', r.stderr.strip(), re.M) or re.search(r':(\d+)\n', r.stderr)
                   if m:
-                      line=int(m.group(1))
-                      lines=c.splitlines()
-                      lo=max(1,line-12); hi=min(len(lines),line+12)
+                      line=int(m.group(1)); lines=c.splitlines(); lo=max(1,line-12); hi=min(len(lines),line+12)
                       print('--- SYNTAX_CONTEXT script',i,'line',line,'---')
                       for n in range(lo,hi+1): print(f'{n:6d}: {lines[n-1]}')
                   raise SystemExit(f'JS_SYNTAX_FAIL_{i}')
@@ -126,20 +144,16 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import hashlib,json,subprocess
-          p=Path('Current/PWA/New-main')
-          main=Path('Current/PWA/main.html')
-          evidence=Path('Current/CTO/20260831_NEW_MAIN_CLEAN_ROOM_EXECUTION.json')
+          p=Path('Current/PWA/New-main'); main=Path('Current/PWA/main.html'); evidence=Path('Current/CTO/20260831_NEW_MAIN_CLEAN_ROOM_EXECUTION.json')
           payload=json.loads(evidence.read_text(encoding='utf-8'))
           payload.update({'browser_runtime':'PASS_LOCAL_CLEAN_ROOM','main_html_unchanged':True,'main_html_sha256':hashlib.sha256(main.read_bytes()).hexdigest(),'git_head_before_persist':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()})
           evidence.write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding='utf-8')
-          state=Path('CURRENT_STATE.md')
-          old=state.read_text(encoding='utf-8')
-          block='''\n## NEW-MAIN EXECUTION RESULT\n- New-main was rebuilt from the current `main1..main11` source fragments by the isolated executor.\n- Structural contract gate: PASS.\n- Local JavaScript syntax gate: PASS.\n- Local browser smoke gate: PASS.\n- Existing `Current/PWA/main.html`: byte-identical before/after execution.\n- Production runtime of New-main itself: NOT DEPLOYED / NOT VERIFIED; this remains open until an actual supported production hosting path is identified.\n'''
+          state=Path('CURRENT_STATE.md'); old=state.read_text(encoding='utf-8')
           marker='## NEW-MAIN EXECUTION RESULT\n'
+          block='''## NEW-MAIN EXECUTION RESULT\n- New-main was rebuilt from current `main1..main11` fragments by the isolated executor.\n- Fragment syntax gates: PASS.\n- Structural contract gate: PASS.\n- Local JavaScript syntax gate: PASS.\n- Local browser smoke gate: PASS.\n- Existing `Current/PWA/main.html`: byte-identical before/after execution.\n- Production runtime of New-main itself: NOT DEPLOYED / NOT VERIFIED.\n'''
           if marker in old:
-              start=old.index(marker); end=old.find('\n##',start+len(marker))
-              old=old[:start]+block.strip('\n')+'\n'+(old[end+1:] if end!=-1 else '')
-          else: old += block
+              start=old.index(marker); nextsec=old.find('\n## ',start+len(marker)); old=old[:start]+block+(old[nextsec+1:] if nextsec!=-1 else '')
+          else: old += '\n'+block
           state.write_text(old,encoding='utf-8')
           PY
           git add Current/PWA/New-main Current/CTO/20260831_NEW_MAIN_CLEAN_ROOM_EXECUTION.json CURRENT_STATE.md
