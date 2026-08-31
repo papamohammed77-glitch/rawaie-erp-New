@@ -45,12 +45,13 @@ def assemble_clean_room() -> str:
 
 def validate_candidate(s: str) -> dict:
     required = [
-        'window.RW_ShellContext', 'window.RW_OwnerContract',
-        'RW_ShellContext.getCompanyId()', 'rec-purchase', 'rec-offers',
+        'window.RW_ShellContext', 'RW_ShellContext.getCompanyId()',
+        'window.RW_OwnerLicense', 'RW_Views',
+        'rec-purchase', 'rec-offers',
         'window.RW_Dashboard', 'window.RW_Items', 'window.RW_POS',
         'window.RW_Orders', 'window.RW_Runsheets', 'window.RW_Purchases',
         'window.RW_Warehouse', 'window.RW_Finance', 'window.RW_Reports',
-        'window.RW_OwnerLicense', 'window.RW_Views', 'window.RW_HR', 'window.RW_CRM'
+        'window.RW_HR', 'window.RW_CRM'
     ]
     missing = [x for x in required if x not in s]
     if missing:
