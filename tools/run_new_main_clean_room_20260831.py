@@ -10,7 +10,8 @@ EVIDENCE = Path('Current/CTO/20260831_NEW_MAIN_CLEAN_ROOM_EXECUTION.json')
 PARTS = [CUR / f'main{i}.md' for i in range(1, 12)]
 ORIGINAL_PARTS = [ORIG / f'main{i}.md' for i in range(1, 12)]
 
-# Execution marker: clean-room build is intentionally isolated from main.html.
+# 2026-08-31 continuation: executor remains the sole composition authority for New-main.
+# Do not edit Current/PWA/main.html; only Current/PWA/New-main may be produced here.
 
 def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
