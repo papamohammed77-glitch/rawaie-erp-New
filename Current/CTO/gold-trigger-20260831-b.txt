@@ -1,1 +1,1 @@
-trigger=gold-pr-gate-20260831-final
+trigger=gold-pr-gate-20260831-final2
