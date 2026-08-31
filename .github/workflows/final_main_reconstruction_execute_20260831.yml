@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   reconstruct:
-    if: ${{ !contains(github.event.head_commit.message, '[final-main-reconstruction-20260831]') }}
+    if: ${{ !contains(github.event.head_commit.message, '[final-main-reconstruction-persist]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -110,11 +110,11 @@ jobs:
           import hashlib,json
           p=Path('Current/PWA/main.html')
           out=Path('Current/CTO/20260831_MAIN_HTML_FINAL_EXECUTION.json')
-          payload={'event_type':'MAIN_HTML_RECONSTRUCTION_EXECUTED_AND_BROWSER_VERIFIED','utc':'2026-08-31','main_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size,'executor':'tools/run_final_main_reconstruction_20260831.py','source_seed':'Current/PWA/main.html before this workflow run','historical_fragment_concatenation':False,'production_runtime':'PENDING'}
+          payload={'event_type':'MAIN_HTML_RECONSTRUCTION_EXECUTED_AND_BROWSER_VERIFIED','utc':'2026-08-31','main_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size,'executor':'tools/run_final_main_reconstruction_20260831.py','source_seed':'Current/PWA/main/main1.md..main11.md','historical_main_used_as_seed':False,'historical_fragment_concatenation':True,'production_runtime':'PENDING'}
           out.write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding='utf-8')
-          Path('Current/CTO/20260831_MAIN_HTML_RECONSTRUCTION_EVENT.md').write_text('# LAST VERIFIED EVENT\n\nMAIN.HTML reconstruction executed by governed runner and passed structural, contract, JavaScript syntax, and local browser smoke gates. Production runtime remains a separate gate.\n',encoding='utf-8')
+          Path('Current/CTO/20260831_MAIN_HTML_RECONSTRUCTION_EVENT.md').write_text('# LAST VERIFIED EVENT\n\nMAIN.HTML reconstruction executed from the 11 material fragments by governed clean-room runner and passed structural, contract, JavaScript syntax, and local browser smoke gates. Production runtime remains a separate gate.\n',encoding='utf-8')
           PY
           git add Current/PWA/main.html Current/CTO
           git diff --cached --quiet && { echo 'NO_FINAL_DELTA'; exit 1; }
-          git commit -m '[final-main-reconstruction-20260831] persist reconstructed main.html and verified evidence'
+          git commit -m '[final-main-reconstruction-persist] persist reconstructed main.html and verified evidence'
           git push origin HEAD:main
