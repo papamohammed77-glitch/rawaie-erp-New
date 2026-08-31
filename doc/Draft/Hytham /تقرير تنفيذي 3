@@ -1,0 +1,72 @@
+تم تنفيذ الجزء الحرج من المهمة وفق MASTER - RAWAEA ERP.md وليس وفق الذاكرة أو التقارير السابقة.
+
+لكن النتيجة المهنية الصريحة في هذه اللحظة هي:
+
+الحالة الحالية
+
+ليست CLOSED 100% بعد، وبالتالي لم أضع ختم Golden/Diamond وهميًا.
+
+التحقيق المباشر أثبت أن نقطة التوقف الحقيقية الحالية هي:
+
+Security / Tenant Isolation / Consumer Graph / Deployment Lineage
+
+وليس مجرد نقص في New-main.
+
+ما تم التحقق منه مباشرة
+تمت مراجعة Master Command حتى نهايته واعتماد هرم مصادر الحقيقة الخاص به.
+تمت مراجعة Hytham Executive Report 1 و2 كأدلة تاريخية، لا كمصادر حقيقة حالية.
+تمت إعادة قراءة CURRENT_STATE.md وRAWAEA_PROJECT_MEMORY_117-02.md، واتضح أن حالتهما أحدث بكثير من الذاكرة السابقة.
+تمت إعادة التحقق من Production مباشرة عبر Supabase.
+تم تأكيد أن post_stock_movement ذو 10 معاملات هو الـphysical-stock authority، وأن نسخة 9 معاملات مجرد compatibility wrapper.
+تم تأكيد أن complete_runsheet_picking لديه overload قديم وآخر يدعم idempotency.
+تم تأكيد أن post_manual_stock_voucher_atomic يعمل كـSECURITY DEFINER wrapper.
+تم فحص RLS الفعلي، واتضح أن:
+orders ما زال لديه ALL واسع للمستخدمين authenticated.
+order_details كذلك.
+run_sheet_details كذلك.
+daily_settlements لديه ALL مع USING true / WITH CHECK true.
+تم التحقق من وجود مشكلة حقيقية في تعدد مسارات الـCI/builders وعدم وجود مسار واحد موثوق حاليًا للـGolden artifact.
+تم تحديد فشل Browser السابق كفشل composition/HTML parsing وليس مجرد نقص JavaScript.
+تم اكتشاف أن بعض محاولات البناء اللاحقة كانت تعتمد على builder أو contract قديم، ولذلك لا تصلح كدليل إغلاق.
+أهم تصحيح حدث الآن
+
+حدّثت CURRENT_STATE.md ليعكس الواقع الحالي بدقة، وأزلت أي إيحاء بأن New-main جاهز للاستبدال أو أن Golden/Diamond مغلق.
+
+آخر حدث تشغيلي أصبح:
+
+LVE-2026-08-31-019
+
+والحالة:
+
+CURRENT_STATE = SYNCHRONIZED
+MASTER_CONTINUITY_COMMAND = ACTIVE
+PRODUCTION_HEALTH = ACTIVE_HEALTHY
+
+TENANT_SECURITY = P0_OPEN
+DIRECT_GRANT_LEAST_PRIVILEGE = OPEN
+SECURITY_ADVISOR_FINDINGS = OPEN
+CONSUMER_GRAPH = PARTIAL / OPEN
+DEPLOYMENT_LINEAGE = PARTIAL / OPEN
+INVENTORY_WRITER_EXCLUSIVITY = PARTIAL / OPEN
+LEDGER_WRITER_EXCLUSIVITY = PARTIAL / OPEN
+
+NEW_MAIN = CANDIDATE / NOT_PRODUCTION_REPLACEMENT
+GOLDEN_DIAMOND = NOT_CERTIFIED
+
+وهذا ليس تراجعًا في العمل؛ بل تصحيح جوهري لمسار التنفيذ منعنا من الدوران في حلقة build → CI → fake closure → إعادة البناء.
+
+فتح CURRENT_STATE.md
+
+فتح RAWAEA_PROJECT_MEMORY_117-02.md
+
+القرار الهندسي الآن
+
+الطريق الصحيح للوصول إلى الملف الواحد Golden/Diamond ليس أن نواصل ترقيع New-main الآن.
+
+الأولوية أصبحت:
+
+Consumer Graph → Deployment Lineage → Two-tenant Harness → P0 Security Remediation → Regression → New-main Runtime/Parity → Golden single-file certification → replacement.
+
+وأي قفزة مباشرة إلى استبدال main.html الآن ستكون مخالفة صريحة للـMaster ولن تكون نتيجة هندسية مقبولة.
+
+لم ألمس Current/PWA/main.html ولم أعتبر New-main مكتملًا دون دليل.
