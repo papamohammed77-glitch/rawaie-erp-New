@@ -1,0 +1,198 @@
+name: RAWAEA FINAL MAIN.HTML RECONSTRUCTION — 20260831
+
+on:
+  push:
+    branches: [reconstruction-main-20260831]
+    paths-ignore:
+      - 'Current/PWA/main.reconstruction.html'
+      - 'Current/CTO/**'
+
+permissions:
+  contents: write
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout isolated reconstruction branch
+        uses: actions/checkout@v4
+        with:
+          ref: reconstruction-main-20260831
+          fetch-depth: 0
+
+      - name: Prepare candidate from current main.html only
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s Current/PWA/main.html
+          cp Current/PWA/main.html Current/PWA/main.reconstruction.html
+          cp tools/p0_main_shell_repair_v2.py /tmp/p0_candidate.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('/tmp/p0_candidate.py')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('Current/PWA/main.html','Current/PWA/main.reconstruction.html')
+          p.write_text(s,encoding='utf-8')
+          PY
+          python3 /tmp/p0_candidate.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import tools.master_reconstruction_postprocess as m
+          candidate=Path('Current/PWA/main.reconstruction.html')
+          s=candidate.read_text(encoding='utf-8')
+          s, changed=m.restore_rec_offers(s)
+          if changed:
+              candidate.write_text(s,encoding='utf-8')
+          print('CANDIDATE_TRANSFORM_PASS', changed)
+          PY
+
+      - name: Build current contract ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,json,re
+          cur=Path('Current/PWA/main.html').read_text(encoding='utf-8')
+          cand=Path('Current/PWA/main.reconstruction.html').read_text(encoding='utf-8')
+          original=Path('Original/PWA/main.html').read_text(encoding='utf-8')
+          def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+          def symbols(s):
+              return {
+                'functions':sorted(set(re.findall(r'(?<![\\w$])function\\s+([A-Za-z_$][\\w$]*)\\s*\\(',s))),
+                'ids':sorted(set(re.findall(r'\\bid=["\\']([^"\\']+)["\\']',s))),
+                'rpcs':sorted(set(re.findall(r'\\.rpc\\(\\s*["\\']([^"\\']+)["\\']',s))),
+                'tables':sorted(set(re.findall(r'\\.from\\(\\s*["\\']([^"\\']+)["\\']',s))),
+                'edge_refs':sorted(set(re.findall(r'functions/v1/([A-Za-z0-9._-]+)',s))),
+              }
+          cs=symbols(cur); fs=symbols(cand); os=symbols(original)
+          losses={k:sorted(set(os[k])-set(fs[k])) for k in os}
+          ledger=[]
+          def add(name,evidence,required,consumer,implemented,verification,status='VERIFIED_FROM_SOURCE'):
+              ledger.append({'element':name,'current_evidence':evidence,'required_now':required,'consumers':consumer,'implemented_in_candidate':implemented,'verification_method':verification,'status':status})
+          add('HTML shell','Current/PWA/main.html + Candidate DOM shell','YES','Browser load',bool(re.search(r'<!doctype\\s+html',cand,re.I) and re.search(r'</html>',cand,re.I)),'HTML parser/static gate')
+          add('Authentication','RW_Auth / auth.getSession surface' if 'RW_Auth' in cur else 'No direct evidence','YES','Login/session bootstrap','window.RW_Auth' in cand,'browser/global smoke')
+          add('Session','RW_Auth session paths','YES','Authenticated bootstrap','RW_Auth' in cand,'browser/global smoke')
+          add('User identity','users/auth_id patterns + RW_STATE','YES','Shell bootstrap','currentUser' in cand and 'companyId' in cand,'source + browser smoke')
+          add('Company identity','users.company_id + RW_ShellContext','YES','All tenant-aware PWA paths','window.RW_ShellContext' in cand and 'RW_ShellContext.getCompanyId()' in cand,'static tenant gate')
+          add('OWNER semantics','isOwner + permissions wildcard + owner_profile/license references','YES','Owner/license guards','window.RW_OwnerContract' in cand and "indexOf('*')" in cand,'static contract gate')
+          add('Permissions','RW_STATE.permissions/current permission checks','YES','Navigation and feature guards','permissions' in cand,'source + browser smoke')
+          add('License state','license references in current shell','YES','Owner/license route','license' in cand.lower(),'source gate')
+          add('Navigation','RW_Navigation + view routing','YES','Sidebar/view dispatcher','window.RW_Navigation' in cand,'browser/global smoke')
+          add('Data loading','supabase.from / load methods','YES','ERP modules',bool(fs['tables']),'symbol inventory')
+          add('Search','search input/handlers in current shell','YES','Global/item/customer search','search' in cand.lower(),'source gate')
+          add('Cache','current cache/localStorage references','UNKNOWN','PWA state',('localStorage' in cand or 'indexedDB' in cand),'source only', 'UNKNOWN')
+          add('Offline','navigator.onLine/offline handlers/service-worker references','UNKNOWN','PWA runtime',('serviceWorker' in cand or 'offline' in cand.lower()),'source only', 'UNKNOWN' if 'serviceWorker' not in cand else 'VERIFIED_FROM_SOURCE')
+          add('Sync','sync queue/syncStatus paths','UNKNOWN','Offline synchronization','sync' in cand.lower(),'source only','UNKNOWN')
+          add('Realtime','Supabase realtime/channel references','UNKNOWN','Realtime consumers','channel' in cand.lower() or 'realtime' in cand.lower(),'source only','UNKNOWN')
+          add('Notifications','notification/toast paths','YES','User feedback','showToast' in cand,'source gate')
+          add('PWA lifecycle','service worker registration references','YES','Browser lifecycle','serviceWorker' in cand,'source gate')
+          add('CRUD','insert/update/delete/upsert calls across non-stock entities','YES','Master data/transactions',bool(re.search(r'\\.(insert|update|delete|upsert)\\(',cand)),'static mutation inventory')
+          for label,key in [('customers','customers'),('suppliers','suppliers'),('products/items','items'),('sales/POS','POSSale'),('Van Sales','VanSale'),('telesales/order ticker','telesales'),('purchasing','purchase'),('receiving','receive'),('inventory','post_stock_movement'),('stock vouchers','stock_vouchers'),('picking','picking'),('loading','loading'),('delivery','delivery'),('returns','return'),('vehicles','RW_Fleet'),('drivers','driver'),('accounting','journal'),('audit','audit'),('settings','RW_Settings'),('reports/export','xlsx'),('mobile behavior','viewport'),('error handling','catch')]:
+              add(label,'symbol/DOM evidence in current shell', 'YES' if label not in ('telesales/order ticker','offline') else 'CURRENT/VERIFY', 'Current PWA consumer', key in cand, 'source + browser smoke' if key in cand else 'source scan', 'VERIFIED_FROM_SOURCE' if key in cand else 'MISSING/UNVERIFIED')
+          report={'generated_at':'2026-08-31','current_main':{'bytes':len(cur.encode()),'sha256':sha(Path('Current/PWA/main.html'))},'candidate':{'bytes':len(cand.encode()),'sha256':sha(Path('Current/PWA/main.reconstruction.html'))},'original':{'bytes':len(original.encode()),'sha256':sha(Path('Original/PWA/main.html'))},'symbol_losses':losses,'ledger':ledger}
+          Path('Current/CTO').mkdir(parents=True,exist_ok=True)
+          Path('Current/CTO/MAIN_HTML_CURRENT_CONTRACT_LEDGER.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+          if any(losses[k] for k in losses): raise SystemExit('ORIGINAL_SYMBOL_PARITY_FAIL '+json.dumps(losses,ensure_ascii=False))
+          print('CONTRACT_LEDGER_PASS')
+          PY
+
+      - name: Candidate structural and contract parity gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,subprocess,tempfile,json
+          s=Path('Current/PWA/main.reconstruction.html').read_text(encoding='utf-8')
+          checks={
+            'doctype':bool(re.search(r'<!doctype\\s+html',s,re.I)),
+            'html_open':bool(re.search(r'<html\\b',s,re.I)),
+            'html_close':bool(re.search(r'</html>',s,re.I)),
+            'head_open':bool(re.search(r'<head\\b',s,re.I)),
+            'head_close':bool(re.search(r'</head>',s,re.I)),
+            'body_open':bool(re.search(r'<body\\b',s,re.I)),
+            'body_close':bool(re.search(r'</body>',s,re.I)),
+            'script_balance':len(re.findall(r'<script\\b',s,re.I))==len(re.findall(r'</script>',s,re.I)),
+            'style_balance':len(re.findall(r'<style\\b',s,re.I))==len(re.findall(r'</style>',s,re.I)),
+            'required_shell':all(x in s for x in ['window.RW_ShellContext','window.RW_OwnerContract','RW_ShellContext.getCompanyId()']),
+            'recommendations':all(x in s for x in ['rec-purchase','rec-offers']),
+            'size':len(s)>100000,
+            'no_direct_stock_writer':not re.search(r"\\.from\\(['\"]stock_branches['\"]\\)[\\s\\S]{0,500}?\\.(?:update|insert|upsert|delete)\\(",s),
+            'no_direct_inventory_log_writer':not re.search(r"\\.from\\(['\"]inventory_log['\"]\\)[\\s\\S]{0,500}?\\.(?:update|insert|upsert|delete)\\(",s),
+            'no_unscoped_app_settings_limit1':not re.search(r"\\.from\\(['\"]app_settings['\"]\\)\\.select\\([^;]*?\\)\\.limit\\(\\s*1\\s*\\)",s,re.S),
+            'no_owner_wildcard_fallback':"meta.permissions || ['*']" not in s,
+          }
+          scripts=re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I)
+          for i,c in enumerate(scripts,1):
+              p=Path(tempfile.gettempdir())/f'rw-candidate-{i}.js';p.write_text(c,encoding='utf-8');r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
+              if r.returncode: print(r.stderr); raise SystemExit(f'JS_SYNTAX_FAIL_{i}')
+          if not all(checks.values()): raise SystemExit('STRUCTURAL_OR_CONTRACT_FAIL '+json.dumps(checks,ensure_ascii=False))
+          print('STRUCTURAL_CONTRACT_GATE_PASS',len(scripts),checks)
+          PY
+          git diff --check
+
+      - name: Candidate browser smoke gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          rm -rf /tmp/rw-pwa && mkdir -p /tmp/rw-pwa
+          cp -r Current/PWA/. /tmp/rw-pwa/
+          cp Current/PWA/main.reconstruction.html /tmp/rw-pwa/main.html
+          python3 -m http.server 8123 --directory /tmp/rw-pwa >/tmp/rw-http.log 2>&1 & echo $! >/tmp/rw-http.pid
+          sleep 2
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const page=await browser.newPage();
+            const errors=[]; page.on('pageerror',e=>errors.push('PAGEERROR:'+e.message)); page.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE:'+m.text())});
+            await page.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForTimeout(5000);
+            const result=await page.evaluate(()=>({
+              title:document.title,
+              lang:document.documentElement.lang,
+              hasBody:!!document.body,
+              hasRWState:!!window.RW_STATE,
+              hasAuth:!!window.RW_Auth,
+              hasNav:!!window.RW_Navigation,
+              hasViews:!!window.RW_Views,
+              hasShell:!!window.RW_ShellContext,
+              hasOwnerContract:!!window.RW_OwnerContract,
+              shellHasCompany:!!(window.RW_ShellContext&&window.RW_ShellContext.hasCompany&&window.RW_ShellContext.hasCompany())
+            }));
+            console.log(JSON.stringify({result,errors}));
+            if(!result.hasBody||!result.hasRWState||!result.hasAuth||!result.hasNav||!result.hasViews||!result.hasShell||!result.hasOwnerContract||result.lang!=='ar'||errors.some(x=>x.startsWith('PAGEERROR:'))) process.exit(2);
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(2)});
+          NODE
+
+      - name: Persist candidate and evidence only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'RAWAEA Final Reconstruction'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cat > Current/CTO/20260831_MAIN_HTML_RECONSTRUCTION_CANDIDATE.md <<'EOF'
+# RAWAEA ERP — FINAL MAIN.HTML RECONSTRUCTION CANDIDATE
+
+This artifact is produced on an isolated branch from the verified current `Current/PWA/main.html` using the existing governed shell transform and independent recommendation restoration. The final `Current/PWA/main.html` is not changed in this workflow.
+
+Gates executed:
+- current source seed verified;
+- contract ledger generated;
+- original symbol parity;
+- HTML/script/style structural parity;
+- inventory writer prohibition;
+- tenant/owner contract guards;
+- Node JavaScript syntax checks;
+- browser smoke against the candidate.
+EOF
+          git add Current/PWA/main.reconstruction.html Current/CTO
+          git diff --cached --quiet && { echo NO_CANDIDATE_CHANGE; exit 1; }
+          git commit -m '[master-reconstruction-candidate] build clean-room main.html candidate'
+          git push origin HEAD:reconstruction-main-20260831
