@@ -1,154 +1,90 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
-> Single operational entry point. This is a state record, not a report. Current Git/Production evidence outranks historical material.
+## GOVERNANCE
+- CURRENT_STATE is the operational checkpoint.
+- LAST VERIFIED EVENT is authoritative for recency.
+- Historical reports/prompts are evidence only; Production and Git are current truth.
+- Existing `Current/PWA/main.html` is NOT a repair target in this task.
 
-## STATE ID
-- State Type: CURRENT PROJECT STATE
-- State Status: CURRENT
-- Date: 2026-08-31
-- Rule: Every real Git/Production/deployment/artifact change must be verified and recorded here before the next authorized action.
-
-# CURRENT GIT STATE
+## CURRENT GIT
 - Repository: `papamohammed77-glitch/rawaie-erp-New`
 - Branch: `main`
-- Last functional artifact commit before this state record: `4ff020857fffb6e7243f299d9fd50c86e116e153`
-- Artifact: `Current/PWA/New-main`
-- Legacy runtime file: `Current/PWA/main.html` was NOT modified by the reconstruction event.
-- Repository subsequently received this state-record commit; it is administrative and does not alter the New-main artifact.
+- Current HEAD: `f07344284d6d46ee9ffc468b0addb4af663e9446`
+- Current HEAD purpose: trigger isolated New-main clean-room execution.
+- Latest New-main artifact commit before trigger: `4ff020857fffb6e7243f299d9fd50c86e116e153`.
+- `Current/PWA/New-main` blob SHA: `5f4783697bfc7b524024c54be286a213a74a4252`.
 
-# CURRENT PRODUCTION SNAPSHOT
-Verified directly from Production at `2026-08-31T06:30:22.720848+00:00`:
+## PRODUCTION BASELINE — DIRECTLY VERIFIED
+- Project: `fiilmooggumokxanwiyx`
+- Last direct invariant baseline captured: 2026-08-31 UTC during this execution.
+- companies: 1
+- users: 24
+- branches: 2
+- items: 17
+- stock_branches: 20
+- inventory_log: 3
+- stock_vouchers: 0
+- purchase_orders: 0
+- orders: 0
+- runsheets: 0
+- audit_log: 1866
+- negative physical qty: 0
+- negative allocated qty: 0
+- available_qty mismatches: 0
+- cross-company stock rows: 0
+- cross-company inventory-log rows: 0
+- duplicate item_code values: 0
 
-| Entity / invariant | Value |
-|---|---:|
-| companies | 1 |
-| users | 24 |
-| branches | 2 |
-| items | 17 |
-| stock_branches | 20 |
-| inventory_log | 3 |
-| stock_vouchers | 0 |
-| purchase_orders | 0 |
-| orders | 0 |
-| runsheets | 0 |
-| audit_log | 1866 |
-| negative physical qty | 0 |
-| negative allocated qty | 0 |
-| available_qty mismatches | 0 |
-| cross-company stock rows | 0 |
-| cross-company inventory-log rows | 0 |
-| duplicate item_code values | 0 |
+## PRODUCTION CONTRACTS VERIFIED
+- `items.item_code` UNIQUE globally.
+- `stock_branches(branch_id,item_id)` UNIQUE.
+- `receiving.operation_id` UNIQUE.
+- `post_stock_movement` is the Physical Stock authority.
+- `reserve_stock` / `release_stock_reservation` are reservation authority only.
+- `receive_purchase_atomic` currently takes explicit `p_operation_id uuid` and uses receiving.operation_id for idempotency.
+- Active Edge versions verified: create-stock-voucher v9; send-stock-voucher v19; receive-stock-voucher v21; receive-purchase v12; save-sales-invoice v15; complete-return v25; complete-order-delivery v14; bulk-stock-adjustment v6; complete-picking v16; start-picking v33; complete-loading v11; unload-runsheet v6.
 
-Direct Production schema facts:
-- `items.item_code` is database-wide UNIQUE.
-- `stock_branches(branch_id,item_id)` is UNIQUE.
-- `receiving.operation_id` is UNIQUE.
-- `post_stock_movement` exists in 9-argument and 10-argument idempotency-aware overloads.
-- `reserve_stock` / `release_stock_reservation` exist as reservation capabilities.
-- `receive_purchase_atomic` currently requires `p_operation_id uuid` and implements receiving idempotency through `receiving.operation_id`.
+## NEW-MAIN TASK
+Target: `Current/PWA/New-main`.
+Forbidden target: `Current/PWA/main.html`.
 
-# CURRENT ACTIVE EDGE DEPLOYMENTS
-Directly verified from the active Production function list during this execution:
-- `create-stock-voucher` ACTIVE v9
-- `send-stock-voucher` ACTIVE v19
-- `receive-stock-voucher` ACTIVE v21
-- `receive-purchase` ACTIVE v12
-- `save-sales-invoice` ACTIVE v15
-- `complete-return` ACTIVE v25
-- `complete-order-delivery` ACTIVE v14
-- `bulk-stock-adjustment` ACTIVE v6
-- `complete-picking` ACTIVE v16
-- `start-picking` ACTIVE v33
-- `complete-loading` ACTIVE v11
-- `unload-runsheet` ACTIVE v6
+### Executed
+1. Read governance prompt `تقرير +برومبت 117-02`.
+2. Read and refreshed CURRENT_STATE against current Git/Production evidence.
+3. Read `FINAL_MAIN_HTML_RECONSTRUCTION_COMMAND.md`.
+4. Created isolated `Current/PWA/New-main` candidate.
+5. Added an isolated clean-room builder and CI gate that can assemble the current `main1..main11` fragments into New-main only, with a main.html byte-identity guard.
+6. Triggered the isolated execution through Git history.
 
-Current Git `receive-purchase` is aligned with Production v12: it resolves company through `users.auth_id` and supplies a deterministic/requested `operation_id` to `receive_purchase_atomic`.
+### Verified
+- `Current/PWA/main.html` was not modified by the direct artifact creation event.
+- New-main currently exists as a concrete Git artifact, blob SHA `5f4783697bfc7b524024c54be286a213a74a4252`.
+- The current repository contains the execution tool and isolated workflow.
+- Production inventory invariants remain clean in the latest direct snapshot.
 
-# CURRENT MAIN.HTML
-- Existing runtime file: `Current/PWA/main.html`
-- Existing blob SHA before this reconstruction: `e81ae6fe3e0e473b98927ff5cb2d54ba6ef18d8d`
-- Status: EXISTING / NOT FINAL
-- It was NOT edited during the New-main clean-room event.
+### NOT YET PROVEN
+- The isolated GitHub Actions run that performs full `main1..main11` assembly has not produced a verifiable persisted execution commit in the accessible Git evidence.
+- Therefore full structural parity of New-main against all 11 fragments is not claimed.
+- Browser smoke for the full reconstructed artifact is not claimed.
+- Production runtime verification of New-main is not claimed.
+- Replacement of `Current/PWA/main.html` is not authorized and was not performed.
 
-# NEW MAIN CLEAN-ROOM ARTIFACT
-- Path: `Current/PWA/New-main`
-- Creation commit: `4ff020857fffb6e7243f299d9fd50c86e116e153`
-- Purpose: independent clean-room candidate, manually authored from current verified contracts.
-- Historical `main1..main11` fragments were inspected as current repository evidence, but were NOT concatenated by the historical reconstruction script and `Current/PWA/main.html` was NOT replaced.
+## LAST VERIFIED EVENT
+- Event ID: `LVE-2026-08-31-004`
+- Event type: `NEW_MAIN_CLEAN_ROOM_TRIGGERED_WITH_VERIFICATION_BOUNDARY`
+- Git UTC: 2026-08-31T06:35:07Z
+- Git commit: `f07344284d6d46ee9ffc468b0addb4af663e9446`
+- Source: direct GitHub + direct Production Supabase
+- Action: triggered the isolated clean-room reconstruction path for `Current/PWA/New-main`; left `Current/PWA/main.html` outside the target.
+- Result: `CANDIDATE EXISTS / FULL RECONSTRUCTION NOT YET PROVEN`
+- Why no false PASS: no accessible Git evidence of a successful `[new-main-clean-room-persist]` commit or runtime result.
+- Next authorized action: verify/obtain the actual clean-room execution result, then audit New-main structurally and functionally. Do not modify `Current/PWA/main.html`.
 
-Current New-main contract characteristics verified by source inspection:
-- Authenticated identity is resolved through `users.auth_id` to `users.company_id`.
-- OWNER semantics preserve `isOwner` plus wildcard permission behavior rather than expanding wildcard to an arbitrary list.
-- Operational reads are company-scoped where company identity applies.
-- Physical stock is read-only in New-main; there is no direct writer for `stock_branches.qty` or `inventory_log`.
-- Physical stock authority remains `post_stock_movement` in Backend.
-- Reservation authority remains `reserve_stock` / `release_stock_reservation`.
-- Business writes are delegated to Edge capabilities such as `save-sales-invoice`.
-- Specialized current PWA capabilities are linked rather than reimplemented: Picker, Van Sales, Vouchers, Returns.
-- Responsive shell, navigation, dashboard, inventory read view, reporting read view, HR/CRM/settings shells are present.
-
-# REQUIRED PARITY STATUS
-`New-main CREATED = VERIFIED`
-`Current main.html MODIFIED = NO`
-`Structural parity = NOT YET FULLY VERIFIED`
-`Functional parity = OPEN`
-`Runtime/browser verification = OPEN`
-`Production runtime verification of New-main itself = OPEN`
-`Final replacement of main.html = NOT AUTHORIZED`
-
-# IMPORTANT CURRENT FINDINGS
-1. The repository moved materially after the previous CURRENT_STATE snapshot. Latest Git functional artifact before this state record is `4ff02085…`.
-2. Production Edge versions are newer than the stale snapshot previously recorded in CURRENT_STATE; the current list is the authority.
-3. Production is currently clean on the verified inventory invariants above.
-4. `receive_purchase_atomic` and its Edge consumer now agree on explicit operation identity in both current Git and Production.
-5. The historical clean-room automation script in Git is NOT the execution authority for this task because the owner explicitly requires a separate manually-built `Current/PWA/New-main` and forbids using the existing `main.html` as the repair target.
-
-# KNOWN CURRENT CONTRACTS
-## Governance
-- CURRENT_STATE is the operational entry point.
-- LAST VERIFIED EVENT is the only recency marker.
-- Historical reports/prompts are context evidence, not current truth.
-
-## Identity
-`authenticated user -> users.auth_id -> users.company_id -> company-scoped data`
-
-No unscoped `app_settings LIMIT 1` may determine tenant identity.
-
-## OWNER
-`isOwner=true + permissions=["*"] + owner_profile + active license state` semantics must not be simplified away.
-
-## Inventory
-`PHYSICAL STOCK MOVEMENT -> post_stock_movement -> stock_branches + inventory_log`
-`reserve_stock / release_stock_reservation` are reservation capabilities only.
-
-## Source of truth
-`order_details` remains authoritative where the fulfillment contract applies; `run_sheet_details` remains derived/synchronized where its existing trigger contract applies.
-
-# OPEN BLOCKERS
-- Full New-main feature parity is not yet proven against every current module/consumer.
-- Browser/runtime verification of New-main is not yet available through the present execution environment.
-- Main.html replacement remains unauthorized until structural, functional, contract, and runtime gates are proven.
-- The current New-main must still be audited for remaining source-level defects before any claim of finality.
-
-# LAST VERIFIED EVENT
-- Event ID: `LVE-2026-08-31-003`
-- Event type: `NEW_MAIN_CLEAN_ROOM_ARTIFACT_CREATED_AND_PRODUCTION_BASELINE_REFRESHED`
-- UTC: `2026-08-31T06:30:22Z` baseline / Git artifact commit `2026-08-31` preceding state-record commit
-- Source: GitHub + Production Supabase
-- Git artifact SHA: `4ff020857fffb6e7243f299d9fd50c86e116e153`
-- Action: Created `Current/PWA/New-main` without modifying `Current/PWA/main.html`; refreshed direct Production baseline and active Edge deployment state.
-- Result: `VERIFIED / CANDIDATE OPEN`
-- Evidence: direct GitHub fetch of New-main; direct Production snapshot query; direct active Edge deployment list; direct PostgreSQL function/schema inspection.
-- Impact: the requested independent reconstruction now exists as a concrete artifact; final replacement is intentionally not yet authorized because parity/runtime gates remain open.
-- Next authorized action: continue verification and surgical correction of New-main only; do not modify Current/PWA/main.html.
-
-# NEXT AUTHORIZED ACTION
-ONLY: Continue the clean-room verification of `Current/PWA/New-main` against current Git + Production contracts. Do not return to the historical main.html repair loop.
-
-# CURRENT CLOSURE STATUS
-`NEW-MAIN CLEAN-ROOM ARTIFACT = CREATED / VERIFIED`
-`NEW-MAIN STRUCTURAL PARITY = OPEN`
-`NEW-MAIN FUNCTIONAL PARITY = OPEN`
-`NEW-MAIN PRODUCTION RUNTIME = OPEN`
-`CURRENT/PWA/main.html REPLACEMENT = NOT AUTHORIZED`
-`HISTORICAL RECONSTRUCTION LOOP = CLOSED`
+## CLOSURE
+`NEW-MAIN ARTIFACT = EXISTS`
+`FULL RECONSTRUCTION = OPEN`
+`STRUCTURAL PARITY = OPEN`
+`FUNCTIONAL PARITY = OPEN`
+`BROWSER RUNTIME = OPEN`
+`PRODUCTION RUNTIME = OPEN`
+`main.html REPLACEMENT = NOT AUTHORIZED`
