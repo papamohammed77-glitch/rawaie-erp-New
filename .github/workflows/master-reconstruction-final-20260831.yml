@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   final-reconstruction:
-    if: !contains(github.event.head_commit.message, '[final-gate]')
+    if: ${{ !contains(github.event.head_commit.message, '[final-gate]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -34,7 +34,13 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/gold_reconstruction_final.py
-          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('Current/CTO/GREENFIELD_BUILD_RESULT.json')); if(p.status!=='PASS') process.exit(1); console.log(p)"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('Current/CTO/GREENFIELD_BUILD_RESULT.json').read_text())
+          assert p['status']=='PASS', p
+          print(p)
+          PY
           test -s Current/PWA/main.reconstruction.html
 
       - name: Gate 5 Playwright browser smoke
@@ -69,13 +75,13 @@ jobs:
           git config user.name 'RAWAEA Final Reconstruction'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           cat > Current/CTO/FINAL_GATE_STATUS.md <<'EOF'
-          # RAWAEA ERP — FINAL RECONSTRUCTION GATE
+# RAWAEA ERP — FINAL RECONSTRUCTION GATE
 
-          This branch generates `main.reconstruction.html` from the current complete PWA parent seed plus separately registered current logical modules `main2..main11`.
+This branch generates `main.reconstruction.html` from the current complete PWA parent seed plus separately registered current logical modules `main2..main11`.
 
-          Production replacement is NOT performed by this workflow. Live Production contract verification and final fresh-baseline approval are external mandatory gates from Prompt 114.
-          Authenticated Owner and normal-user browser flows remain NOT VERIFIED unless governed credentials are supplied.
-          EOF
+Production replacement is NOT performed by this workflow. Live Production contract verification and final fresh-baseline approval are external mandatory gates from Prompt 114.
+Authenticated Owner and normal-user browser flows remain NOT VERIFIED unless governed credentials are supplied.
+EOF
           git add Current/PWA/main.reconstruction.html Current/CTO
           git commit -m '[final-gate] persist final reconstruction evidence' || true
           git push origin HEAD:reconstruction-gold-20260831-v3
