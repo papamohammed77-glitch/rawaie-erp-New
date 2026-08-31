@@ -1,0 +1,77 @@
+تم تنفيذ Prompt 116-2 وإغلاق المرحلة فعليًا
+
+تمت متابعة العمل من آخر حالة حقيقية في المشروع، وليس من الذاكرة أو التقارير السابقة. وكانت النتيجة النهائية:
+
+CANDIDATE = VALID
+CANDIDATE_BUILD = CLOSED
+
+وسجل الإغلاق موجود داخل المستودع نفسه.
+
+ما تم إنجازه
+
+تم تنفيذ وإثبات الآتي على فرع:
+
+reconstruction-114-final-20260831
+
+والمرشح النهائي:
+
+Current/PWA/main.reconstruction.html
+
+بحجم 568,899 bytes و6,246 lines، وبـSHA256:
+
+9642fdbc78a17a509ba55114970939c586ddf2a297536ea82e11bea63ac00ebf
+
+تم إصلاح Regression حقيقية كانت موجودة في main7.loadSettlement في المصدر الصحيح main7.md، وليس بترقيع الـcandidate بعد بنائه. كما أصبح الإصلاح idempotent ويعاد التحقق منه قبل كل reconstruction.
+
+بوابات 116-2 النهائية
+
+الجولة الأخيرة نجحت بالكامل:
+
+Greenfield Candidate Build — PASS
+HTML structural validation — PASS
+JavaScript syntax validation — PASS
+Duplicate IDs / global exports — PASS
+Public namespace parity — PASS
+RPC parity — PASS
+Edge Function parity — PASS
+Critical RW_* references — PASS
+Tenant/company scoping checks — PASS
+app_settings LIMIT 1 discipline — PASS
+OWNER / wildcard permissions semantics — PASS
+عدم وجود direct writes من الـPWA إلى stock_branches أو inventory_log — PASS
+Browser Smoke — PASS
+Candidate/evidence commit — PASS
+
+الأرقام المثبتة في آخر Contract Gate:
+
+30 Public Exports
+6 RPC references
+16 Edge references
+10 Tenant-scoped table classes
+176 Critical RW_* references checked.
+
+الأهم: لم يتم العبث بـProduction
+
+لم يتم استبدال:
+
+Current/PWA/main.html
+
+ولم يتم Merge للـPR إلى main، ولم يتم نشر الـcandidate إلى Production في هذه المرحلة. الـPR #50 ما زال Open / Unmerged / Mergeable، والـProduction replacement ما زال محجوزًا للمرحلة التي تتطلب live evidence والموافقة الخاصة بها.
+
+وهذا متوافق مع حدّ المرحلة نفسها: 116-2 أغلقت Candidate reconstruction/validation، وليس Production replacement.
+
+تم توثيق النتيجة داخل المشروع
+
+أضيف:
+
+Current/CTO/PROMPT_116_2_COMPLETION.md
+
+وهو يسجل صراحةً:
+
+CANDIDATE = VALID
+CANDIDATE_BUILD = CLOSED
+PRODUCTION_REPLACEMENT = NOT PERFORMED
+
+مع الـSHA والاختبارات والحدود التنفيذية.
+
+وبالتالي: Prompt 116-2 مغلق. ولم يعد العمل عند مستوى “خطة أو تقرير”؛ أصبح لدينا Candidate صالح ومثبت بالـCI والـBrowser وموثق في Git، مع إبقاء Production محمية من الاستبدال غير المصرح به
