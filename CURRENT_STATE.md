@@ -19,13 +19,13 @@
 
 - **Repository:** `papamohammed77-glitch/rawaie-erp-New`
 - **Active branch:** `main`
-- **HEAD SHA:** `03f756ac8db60b6b78d1342bb29e6fb4bf6708b0`
-- **HEAD message:** `Create تقرير +برومبت 117-02`
-- **HEAD significance:** The current HEAD is newer than the historical main1–main11 reconstruction/report chain.
-- **Rule:** Never use an old report's commit or claim as the current Git state when the current HEAD differs.
+- **HEAD SHA:** `854613bda759f50e8d7b7418d35d01fe4046364c`
+- **HEAD message:** `Add final clean-room main.html reconstruction command`
+- **Previous verified HEAD:** `03f756ac8db60b6b78d1342bb29e6fb4bf6708b0`
+- **HEAD significance:** The new execution command has now become part of the current repository state. No historical main1–main11 report chain may supersede this state.
 
 ### Current HEAD evidence
-- Git commit SHA and commit message verified directly from GitHub on 2026-08-31.
+- Commit SHA and message verified directly from GitHub after the new command was created.
 
 ---
 
@@ -63,13 +63,13 @@ Additional direct Production facts:
 - Both `post_stock_movement` overloads are `SECURITY DEFINER`.
 - Current Production contains `complete_return_atomic` and `complete_order_delivery_atomic`.
 
-**Important:** The snapshot above supersedes older Production snapshots in historical reports.
+**Important:** This snapshot supersedes older Production snapshots in historical reports. It is not automatically renewed by reading a report; it must be refreshed by a direct Production query.
 
 ---
 
 # CURRENT DEPLOYMENTS
 
-Key Production Edge/runtime facts verified during the latest investigation:
+Key Production Edge/runtime facts verified during the current investigation:
 
 | Edge Function | Current observed state |
 |---|---|
@@ -135,6 +135,7 @@ The historical `MASTER EXECUTION PROMPT` describes `Current/PWA/main/main.1.txt`
 - Current send voucher canonical path routes Physical Stock Movement through `post_stock_movement`.
 - `stock_vouchers` audit trigger exists and routes to `fn_audit_trigger()`.
 - `order_details` has an AFTER trigger `trg_sync_run_sheet_details` calling `sync_run_sheet_details()`.
+- The new clean-room reconstruction command was committed to `main` at HEAD `854613bda759f50e8d7b7418d35d01fe4046364c`.
 
 ### Not validated as final
 
@@ -240,16 +241,17 @@ Historical reconstruction files/reports are also retired as **operational entry 
 
 > This section intentionally uses **EVENT**, not REPORT.
 
-- **Event ID:** `LVE-2026-08-31-001`
-- **Event type:** `PRODUCTION_SNAPSHOT_VERIFICATION`
-- **UTC:** `2026-08-31T04:53:38.97289+00:00`
-- **Source:** Supabase Production PostgreSQL
-- **Git SHA contemporaneous with state review:** `03f756ac8db60b6b78d1342bb29e6fb4bf6708b0`
-- **Action:** Direct Production state reconciliation before defining the new main.html reconstruction command.
+- **Event ID:** `LVE-2026-08-31-002`
+- **Event type:** `GIT_GOVERNANCE_ARTIFACT_COMMITTED`
+- **UTC:** `2026-08-31` (commit event; repository timestamp is the authoritative commit metadata)
+- **Source:** GitHub repository `papamohammed77-glitch/rawaie-erp-New`
+- **Git SHA:** `854613bda759f50e8d7b7418d35d01fe4046364c`
+- **Action:** Added `FINAL_MAIN_HTML_RECONSTRUCTION_COMMAND.md` as the sole authorized clean-room main.html execution command.
 - **Result:** `VERIFIED`
-- **Evidence:** Production counts, inventory integrity invariants, current PostgreSQL function inventory, current triggers/constraints, and current Git HEAD inspected directly.
-- **Impact:** Older Production snapshots from historical reports are stale for operational decisions.
-- **Next authorized action:** Use the new clean-room main.html reconstruction command defined below/alongside this state pack; update this file after every real execution step.
+- **Evidence:** Direct GitHub commit verification; file committed on current `main`.
+- **Impact:** Future main.html work now has a single operational state entry point plus a single execution contract instead of reopening the historical prompt/report chain.
+- **Production state:** Unchanged by this Git-only event; latest verified Production snapshot remains `2026-08-31T04:53:38.97289+00:00` and must be refreshed before any Production-changing action.
+- **Next authorized action:** Start `FINAL_MAIN_HTML_RECONSTRUCTION_COMMAND.md`; it MUST begin by reconciling Git + Production again and updating this file before any main.html rewrite.
 
 ---
 
