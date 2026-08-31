@@ -1,0 +1,81 @@
+name: RAWAEA Master Reconstruction FINAL 20260831
+
+on:
+  push:
+    branches: [reconstruction-gold-20260831-v3]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  final-reconstruction:
+    if: !contains(github.event.head_commit.message, '[final-gate]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout frozen branch
+        uses: actions/checkout@v4
+        with:
+          ref: reconstruction-gold-20260831-v3
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Gate 0-4 semantic build and static validation
+        run: |
+          set -euo pipefail
+          python3 tools/gold_reconstruction_final.py
+          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('Current/CTO/GREENFIELD_BUILD_RESULT.json')); if(p.status!=='PASS') process.exit(1); console.log(p)"
+          test -s Current/PWA/main.reconstruction.html
+
+      - name: Gate 5 Playwright browser smoke
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          python3 -m http.server 8123 --directory Current/PWA >/tmp/rw-http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID || true' EXIT
+          sleep 2
+          python3 tools/playwright_reconstruction.py
+
+      - name: Gate 7 verify parent seed was not mutated
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          b=json.loads(Path('Current/CTO/RECONSTRUCTION_BASELINE.json').read_text())
+          h=lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+          assert h(Path('Current/PWA/main.html')) == b['current_main']['sha256'], 'MAIN_SEED_MUTATED'
+          c=Path('Current/PWA/main.reconstruction.html')
+          assert c.exists() and c.stat().st_size > 100000, 'CANDIDATE_TOO_SMALL'
+          print('GATE7_PASS', h(c))
+          PY
+
+      - name: Persist final-gate evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'RAWAEA Final Reconstruction'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cat > Current/CTO/FINAL_GATE_STATUS.md <<'EOF'
+          # RAWAEA ERP — FINAL RECONSTRUCTION GATE
+
+          This branch generates `main.reconstruction.html` from the current complete PWA parent seed plus separately registered current logical modules `main2..main11`.
+
+          Production replacement is NOT performed by this workflow. Live Production contract verification and final fresh-baseline approval are external mandatory gates from Prompt 114.
+          Authenticated Owner and normal-user browser flows remain NOT VERIFIED unless governed credentials are supplied.
+          EOF
+          git add Current/PWA/main.reconstruction.html Current/CTO
+          git commit -m '[final-gate] persist final reconstruction evidence' || true
+          git push origin HEAD:reconstruction-gold-20260831-v3
