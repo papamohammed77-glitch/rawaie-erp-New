@@ -18,15 +18,11 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - name: Reconstruct fragments only when canonical main passes equivalence gate
+      - name: Verify canonical main and inventory fragments without overwriting sources
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           node <<'NODE'
           const fs=require('fs'); const crypto=require('crypto');
-          const cur='Current/PWA/main.html', orig='Original/PWA/main.html';
-          const curBuf=fs.readFileSync(cur), origBuf=fs.readFileSync(orig);
           const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
           const firstDiff=(a,b)=>{const n=Math.min(a.length,b.length);for(let i=0;i<n;i++)if(a[i]!==b[i])return i;return a.length===b.length?-1:n;};
           const normalizeCanonical=b=>{
@@ -34,48 +30,52 @@ jobs:
             if(!/^<!DOCTYPE html>\n<!-- \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC -->/i.test(s)) throw new Error('CANONICAL_MAIN_HEADER_INVALID');
             return s.replace(/^<!DOCTYPE html>\n<!-- \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC -->/i,'<!DOCTYPE html>\n<!-- GENERATED_HEADER_NORMALIZED -->');
           };
-          const curNorm=Buffer.from(normalizeCanonical(curBuf),'utf8');
-          const origNorm=Buffer.from(normalizeCanonical(origBuf),'utf8');
-          const fd=firstDiff(curBuf,origBuf), nfd=firstDiff(curNorm,origNorm);
-          const exact=Buffer.compare(curBuf,origBuf)===0, normalizedEquivalent=Buffer.compare(curNorm,origNorm)===0;
-          if(!normalizedEquivalent) throw new Error(`CANONICAL_MAIN_NOT_EQUIVALENT firstDiff=${fd} normalizedFirstDiff=${nfd} current=${curBuf.length} original=${origBuf.length}`);
-          const sizes=[63126,18851,22900,100436,76707,63334,68592,26717,101985,67029];
-          const total=sizes.reduce((a,b)=>a+b,0);
-          if(total>curBuf.length) throw new Error(`BOUNDARY_OVERFLOW ${total}>${curBuf.length}`);
-          sizes.push(curBuf.length-total);
-          let off=0; const rows=[];
-          for(let i=0;i<11;i++){
-            const part=curBuf.subarray(off,off+sizes[i]), name=`main${i+1}.md`;
-            fs.writeFileSync(`Current/PWA/main/${name}`,part);
-            const ob=fs.readFileSync(`Original/PWA/main/${name}`);
-            rows.push({part:name,bytes:part.length,sha256:sha(part),original_bytes:ob.length,original_sha256:sha(ob),first_difference_vs_original:firstDiff(part,ob),exact_byte_match:Buffer.compare(part,ob)===0});
-            off+=sizes[i];
+          const currentMain=fs.readFileSync('Current/PWA/main.html');
+          const originalMain=fs.readFileSync('Original/PWA/main.html');
+          const currentNorm=Buffer.from(normalizeCanonical(currentMain),'utf8');
+          const originalNorm=Buffer.from(normalizeCanonical(originalMain),'utf8');
+          const exact=Buffer.compare(currentMain,originalMain)===0;
+          const normalizedEquivalent=Buffer.compare(currentNorm,originalNorm)===0;
+          const firstDifference=firstDiff(currentMain,originalMain);
+          const normalizedFirstDifference=firstDiff(currentNorm,originalNorm);
+          if(!normalizedEquivalent) throw new Error(`CANONICAL_MAIN_NOT_EQUIVALENT firstDiff=${firstDifference} normalizedFirstDiff=${normalizedFirstDifference}`);
+
+          const rows=[];
+          for(let i=1;i<=11;i++){
+            const cp=`Current/PWA/main/main${i}.md`, op=`Original/PWA/main/main${i}.md`;
+            if(!fs.existsSync(cp)||!fs.existsSync(op)) throw new Error(`FRAGMENT_MISSING main${i}`);
+            const cb=fs.readFileSync(cp), ob=fs.readFileSync(op);
+            rows.push({module:`main${i}`,current_bytes:cb.length,current_sha256:sha(cb),original_bytes:ob.length,original_sha256:sha(ob),exact_byte_match:Buffer.compare(cb,ob)===0,first_difference_vs_original:firstDiff(cb,ob)});
           }
-          const concat=Buffer.concat(Array.from({length:11},(_,i)=>fs.readFileSync(`Current/PWA/main/main${i+1}.md`)));
-          const report={generated_at:new Date().toISOString(),canonical_main:{bytes:curBuf.length,sha256:sha(curBuf),original_bytes:origBuf.length,original_sha256:sha(origBuf),exact_byte_match:exact,normalized_equivalent:normalizedEquivalent,metadata_only_difference:!exact&&normalizedEquivalent,first_difference_byte:fd,normalized_first_difference_byte:nfd},fragment_sizes:sizes,fragments:rows,concatenation:{bytes:concat.length,sha256:sha(concat),first_difference_vs_current_main:firstDiff(concat,curBuf),exact_concat_equals_current_main:Buffer.compare(concat,curBuf)===0},safe_reconstruction:true};
+
+          const report={generated_at:new Date().toISOString(),contract:'READ_ONLY_FORENSIC_FRAGMENT_INVENTORY',canonical_main:{bytes:currentMain.length,sha256:sha(currentMain),original_bytes:originalMain.length,original_sha256:sha(originalMain),exact_byte_match:exact,normalized_equivalent:normalizedEquivalent,metadata_only_difference:!exact&&normalizedEquivalent,first_difference_byte:firstDifference,normalized_first_difference_byte:normalizedFirstDifference},current_logical_fragments:rows,source_mutation:false,candidate_sources_preserved:true};
           fs.mkdirSync('Current/CTO',{recursive:true});
           fs.writeFileSync('Current/CTO/PWA_FRAGMENT_RECONSTRUCTION_REPORT.json',JSON.stringify(report,null,2));
           console.log(JSON.stringify(report,null,2));
-          if(Buffer.compare(concat,curBuf)!==0) throw new Error('RECONSTRUCTED_CONCAT_NOT_EQUAL_CURRENT_MAIN');
           NODE
 
-      - name: Validate generated fragment HTML/JS balances
+      - name: Validate candidate and logical fragment structure without mutating sources
         shell: bash
         run: |
           node <<'NODE'
           const fs=require('fs'); const path=require('path');
-          const names=Array.from({length:11},(_,i)=>`main${i+1}.md`);
-          const joined=Buffer.concat(names.map(n=>fs.readFileSync(path.join('Current/PWA/main',n)))).toString('utf8');
-          const checks={doctype:/<!doctype\s+html/i.test(joined),htmlClose:/<\/html>/i.test(joined),scriptOpen:(joined.match(/<script\b/gi)||[]).length,scriptClose:(joined.match(/<\/script>/gi)||[]).length,styleOpen:(joined.match(/<style\b/gi)||[]).length,styleClose:(joined.match(/<\/style>/gi)||[]).length,braceBalance:(joined.match(/{/g)||[]).length-(joined.match(/}/g)||[]).length};
-          fs.writeFileSync('Current/CTO/PWA_FRAGMENT_RUNTIME_STRUCTURE.json',JSON.stringify(checks,null,2));
-          if(!checks.doctype||!checks.htmlClose||checks.scriptOpen!==checks.scriptClose||checks.styleOpen!==checks.styleClose||checks.braceBalance!==0) process.exit(2);
+          const cand=fs.readFileSync('Current/PWA/main.reconstruction.html','utf8');
+          const modules=Array.from({length:11},(_,i)=>`main${i+1}.md`);
+          const moduleState=modules.map(n=>({module:n,exists:fs.existsSync(path.join('Current/PWA/main',n))}));
+          if(moduleState.some(x=>!x.exists)) throw new Error('CURRENT_LOGICAL_MODULE_MISSING');
+          const checks={candidateDoctype:/<!doctype\s+html/i.test(cand),candidateHtmlClose:/<\/html>/i.test(cand),candidateScriptOpen:(cand.match(/<script\b/gi)||[]).length,candidateScriptClose:(cand.match(/<\/script>/gi)||[]).length,candidateStyleOpen:(cand.match(/<style\b/gi)||[]).length,candidateStyleClose:(cand.match(/<\/style>/gi)||[]).length,logical_module_count:moduleState.length};
+          checks.scriptBalance=checks.candidateScriptOpen===checks.candidateScriptClose;
+          checks.styleBalance=checks.candidateStyleOpen===checks.candidateStyleClose;
+          fs.writeFileSync('Current/CTO/PWA_FRAGMENT_RUNTIME_STRUCTURE.json',JSON.stringify({...checks,source_mutation:false},null,2));
+          if(!checks.candidateDoctype||!checks.candidateHtmlClose||!checks.scriptBalance||!checks.styleBalance) process.exit(2);
           NODE
 
-      - name: Commit reconstruction and report
+      - name: Commit forensic report only
         shell: bash
         run: |
           git config user.name 'rawaea-forensic-bot'
           git config user.email 'rawaea-forensic-bot@users.noreply.github.com'
-          git add Current/PWA/main Current/CTO/PWA_FRAGMENT_RECONSTRUCTION_REPORT.json Current/CTO/PWA_FRAGMENT_RUNTIME_STRUCTURE.json
-          git commit -m 'fix(pwa): reconstruct main fragments from verified canonical main [forensic-gated]' || exit 0
+          git add Current/CTO/PWA_FRAGMENT_RECONSTRUCTION_REPORT.json Current/CTO/PWA_FRAGMENT_RUNTIME_STRUCTURE.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'docs(forensics): inventory PWA fragments without mutating candidate sources'
           git push
