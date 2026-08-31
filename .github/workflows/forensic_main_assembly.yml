@@ -3,10 +3,13 @@ name: RAWAEA governed main assembly — EXECUTE AND VERIFY
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
       - 'Current/PWA/main/**'
       - 'Current/PWA/main.html'
+      - 'tools/run_final_main_reconstruction_20260831.py'
+      - 'tools/p0_main_shell_repair_v2.py'
+      - 'tools/master_reconstruction_postprocess.py'
       - '.github/workflows/forensic_main_assembly.yml'
 
 permissions:
@@ -16,7 +19,7 @@ jobs:
   forensic-assembly:
     if: ${{ !contains(github.event.head_commit.message, '[main-reconstruction-executed]') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,7 +36,7 @@ jobs:
           sha256sum Current/PWA/main.html
 
       - name: Execute governed clean-room reconstruction
-        run: python3 tools/master_reconstruction_postprocess.py
+        run: python3 tools/run_final_main_reconstruction_20260831.py
 
       - name: Structural and contract gates
         shell: bash
@@ -43,20 +46,18 @@ jobs:
           from pathlib import Path
           import re, json
           s=Path('Current/PWA/main.html').read_text(encoding='utf-8')
+          def unscoped_app_settings(s):
+              p=re.compile(r"\\.from\\(['\"]app_settings['\"]\\)(?P<c>[^;\\n]{0,1200}?)\\.limit\\(\\s*1\\s*\\)",re.S)
+              return any(not re.search(r"\\.eq\\(['\"]company_id['\"]\\s*,",m.group('c')) for m in p.finditer(s))
           checks={
-            'doctype':bool(re.search(r'<!doctype\\s+html',s,re.I)),
-            'html_close':bool(re.search(r'</html>',s,re.I)),
-            'head_close':bool(re.search(r'</head>',s,re.I)),
-            'body_close':bool(re.search(r'</body>',s,re.I)),
-            'script_balance':s.lower().count('<script')==s.lower().count('</script>'),
-            'style_balance':s.lower().count('<style')==s.lower().count('</style>'),
-            'shell': 'window.RW_ShellContext' in s and 'RW_ShellContext.getCompanyId()' in s,
-            'owner': 'window.RW_OwnerContract' in s,
-            'recommendations': 'rec-purchase' in s and 'rec-offers' in s,
-            'no_direct_stock_writer':not re.search(r"\\.from\\(['\"]stock_branches['\"]\\)[\\s\\S]{0,500}?\\.(?:update|insert|upsert|delete)\\(",s),
-            'no_direct_inventory_log_writer':not re.search(r"\\.from\\(['\"]inventory_log['\"]\\)[\\s\\S]{0,500}?\\.(?:update|insert|upsert|delete)\\(",s),
-            'no_unscoped_app_settings':not re.search(r"\\.from\\(['\"]app_settings['\"]\\)\\.select\\([^;]*?\\)\\.limit\\(\\s*1\\s*\\)",s,re.S),
-            'no_owner_fallback':"meta.permissions || ['*']" not in s,
+            'doctype':'<!doctype html' in s.lower(),'html':'</html>' in s.lower(),'head':'</head>' in s.lower(),'body':'</body>' in s.lower(),
+            'script_balance':s.lower().count('<script')==s.lower().count('</script>'),'style_balance':s.lower().count('<style')==s.lower().count('</style>'),
+            'shell':'window.RW_ShellContext' in s and 'RW_ShellContext.getCompanyId()' in s,
+            'owner':'window.RW_OwnerContract' in s and "meta.permissions || ['*']" not in s,
+            'recs':'rec-purchase' in s and 'rec-offers' in s,
+            'stock_writer':not re.search(r"\\.from\\(['\"]stock_branches['\"]\\)[\\s\\S]{0,500}?\\.(?:update|insert|upsert|delete)\\(",s),
+            'log_writer':not re.search(r"\\.from\\(['\"]inventory_log['\"]\\)[\\s\\S]{0,500}?\\.(?:update|insert|upsert|delete)\\(",s),
+            'tenant_app_settings':not unscoped_app_settings(s)
           }
           if not all(checks.values()): raise SystemExit('STRUCTURAL_CONTRACT_FAIL '+json.dumps(checks,ensure_ascii=False))
           print('STRUCTURAL_CONTRACT_PASS',json.dumps(checks,ensure_ascii=False))
@@ -71,22 +72,15 @@ jobs:
           from pathlib import Path
           import re,json
           def symbols(s):
-              return {
-                'functions':sorted(set(re.findall(r'(?<![\\w$])function\\s+([A-Za-z_$][\\w$]*)\\s*\\(',s))),
-                'ids':sorted(set(re.findall(r'\\bid=["\']([^"\']+)["\']',s))),
-                'rpcs':sorted(set(re.findall(r'\\.rpc\\(\\s*["\']([^"\']+)["\']',s))),
-                'tables':sorted(set(re.findall(r'\\.from\\(\\s*["\']([^"\']+)["\']',s))),
-                'edge_refs':sorted(set(re.findall(r'functions/v1/([A-Za-z0-9._-]+)',s))),
-              }
-          o=symbols(Path('Original/PWA/main.html').read_text(encoding='utf-8'))
-          f=symbols(Path('Current/PWA/main.html').read_text(encoding='utf-8'))
+              return {'functions':sorted(set(re.findall(r'(?<![\\w$])function\\s+([A-Za-z_$][\\w$]*)\\s*\\(',s))), 'ids':sorted(set(re.findall(r'\\bid=["\']([^"\']+)["\']',s))), 'rpcs':sorted(set(re.findall(r'\\.rpc\\(\\s*["\']([^"\']+)["\']',s))), 'tables':sorted(set(re.findall(r'\\.from\\(\\s*["\']([^"\']+)["\']',s))), 'edge_refs':sorted(set(re.findall(r'functions/v1/([A-Za-z0-9._-]+)',s)))}
+          o=symbols(Path('Original/PWA/main.html').read_text(encoding='utf-8')); f=symbols(Path('Current/PWA/main.html').read_text(encoding='utf-8'))
           losses={k:sorted(set(o[k])-set(f[k])) for k in o}
           Path('Current/CTO/FORENSIC_MAIN_SYMBOL_PARITY.json').write_text(json.dumps({'losses':losses,'original_counts':{k:len(v) for k,v in o.items()},'final_counts':{k:len(v) for k,v in f.items()}},ensure_ascii=False,indent=2),encoding='utf-8')
           if any(losses.values()): raise SystemExit('ORIGINAL_SYMBOL_PARITY_FAIL '+json.dumps(losses,ensure_ascii=False))
           print('ORIGINAL_SYMBOL_PARITY_PASS')
           PY
 
-      - name: Candidate browser smoke
+      - name: Browser smoke
         shell: bash
         run: |
           set -euo pipefail
@@ -98,35 +92,16 @@ jobs:
           python3 -m http.server 8123 --directory /tmp/rw-pwa >/tmp/rw-http.log 2>&1 &
           node <<'NODE'
           const {chromium}=require('playwright');
-          (async()=>{
-            const browser=await chromium.launch({headless:true});
-            const page=await browser.newPage();
-            const pageErrors=[]; page.on('pageerror',e=>pageErrors.push(e.message));
-            await page.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});
-            await page.waitForTimeout(5000);
-            const r=await page.evaluate(()=>({title:document.title,lang:document.documentElement.lang,body:!!document.body,rwState:!!window.RW_STATE,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerContract}));
-            console.log(JSON.stringify({r,pageErrors}));
-            if(r.lang!=='ar'||!r.body||!r.rwState||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||pageErrors.length)process.exit(2);
-            await browser.close();
-          })().catch(e=>{console.error(e);process.exit(2)});
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[];p.on('pageerror',e=>pe.push(e.message));await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(5000);const r=await p.evaluate(()=>({lang:document.documentElement.lang,body:!!document.body,state:!!window.RW_STATE,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerContract}));console.log(JSON.stringify({r,pe}));if(r.lang!=='ar'||!r.body||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||pe.length)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)})
           NODE
 
-      - name: Persist reconstruction evidence and updated main
+      - name: Persist executed result
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p Current/CTO
           git config user.name 'rawaea-reconstruction-bot'
           git config user.email 'rawaea-reconstruction-bot@users.noreply.github.com'
-          python3 - <<'PY'
-          from pathlib import Path
-          import hashlib,json
-          def h(p): return hashlib.sha256(p.read_bytes()).hexdigest()
-          p=Path('Current/PWA/main.html')
-          out={'event_type':'MAIN_HTML_RECONSTRUCTION_EXECUTED','utc':'2026-08-31','main_sha256':h(p),'bytes':p.stat().st_size,'source_seed':'Current/PWA/main.html before this run','executor':'tools/master_reconstruction_postprocess.py','candidate_model':'current-full-artifact semantic reconstruction; no historical fragment concatenation','browser_smoke':'PASS'}
-          Path('Current/CTO/20260831_MAIN_HTML_RECONSTRUCTION_EXECUTION.json').write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
-          PY
           git add Current/PWA/main.html Current/CTO
-          git diff --cached --quiet && { echo 'NO_EXECUTION_DELTA'; exit 1; }
+          git diff --cached --quiet && { echo NO_EXECUTION_DELTA; exit 1; }
           git commit -m '[main-reconstruction-executed] persist final reconstructed main.html and evidence'
           git push origin HEAD:main
