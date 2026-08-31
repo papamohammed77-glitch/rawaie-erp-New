@@ -5,75 +5,74 @@ Role: Hytham
 Authority: Production SMART ERP > current Git main > current application files > historical evidence
 
 ## Scope
-This evidence records the execution of `FINAL_MAIN_HTML_RECONSTRUCTION_COMMAND.md` against the explicitly required target:
+This evidence records execution of `FINAL_MAIN_HTML_RECONSTRUCTION_COMMAND.md` against the explicitly required target:
 
 `Current/PWA/New-main`
 
-The existing `Current/PWA/main.html` was not used as a write target and was not modified.
+The existing `Current/PWA/main.html` was not a write target and was not modified by the reconstruction commit.
 
 ## Memory / Continuity
 - `doc/Draft/medhat/تقرير +برومبت 117-02` was read.
 - `CURRENT_STATE.md` was read before reconstruction.
-- `FINAL_MAIN_HTML_RECONSTRUCTION_COMMAND.md` was read in full.
-- `CURRENT_STATE.md` was treated as operational state, not as historical authority.
-- Historical reports were not used as proof of current runtime state.
+- `FINAL_MAIN_HTML_RECONSTRUCTION_COMMAND.md` was read through its closure rules.
+- Historical reports were treated as context only, not as current runtime proof.
 
 ## Current Production Facts Used
-The current Production project is SMART ERP `fiilmooggumokxanwiyx`.
-The current state baseline used during this execution identified one company and current tenant-scoped operational data. Current PostgreSQL/Edge contracts were inspected directly before reconstruction.
+- SMART ERP Production project: `fiilmooggumokxanwiyx`.
+- One active company is currently the operational tenant baseline.
+- Current Production contracts used by the artifact were rechecked directly: `users.auth_id` -> `users.company_id`, Physical Stock owned by `post_stock_movement`, reservations owned by `reserve_stock` / `release_stock_reservation`, financial writes delegated to canonical Edge/Core paths.
 
 ## Clean-room Candidate
 Target:
 `Current/PWA/New-main`
 
-Final Git blob SHA after the self-audit correction:
-`744c38a561fb414c35e92b6a0bd526c9c9ca8461`
+Final blob SHA:
+`2f252390b56cc408a8db62523edf303f3e24a3ad`
 
-Final commit:
-`b83bbe6cb0b90277eb6f05b39c1ba53b0cdf0489`
+Final reconstruction commit:
+`7b913fb48374e390a0fc1bb5edc640b95fefe1d7`
 
-## Candidate Design Decisions
-- Authentication uses the current Supabase Auth client.
-- Company context is resolved from `public.users.auth_id`.
-- Company-scoped reads use the resolved `company_id`.
-- Owner semantics retain the current metadata-based signals (`isOwner` / owner roles / wildcard permissions) without replacing them with a newly invented policy model.
-- Physical stock is read-only in New-main; there is no stock mutation path in the candidate.
-- Financial tables are read-only in New-main; no direct journal/ledger/treasury mutation path exists in the candidate.
-- Business write actions are delegated to existing specialized PWAs/Edge/Core owners rather than duplicated in New-main.
-- The Service Worker is integrated through the existing `register-sw.js` contract.
+## Candidate Design
+- Supabase Auth sign-in/session bootstrap is present.
+- Tenant identity is resolved from `public.users.auth_id` and `users.company_id`.
+- Owner/license state is exposed without replacing the current wildcard semantics with a guessed permission model.
+- Operational read models are company-scoped.
+- Specialized business modules are delegated to existing functional PWAs instead of duplicating their business engines.
+- New-main contains no direct Physical Stock or financial table DML.
+- Service Worker registration targets the shared PWA root using `../sw.js` from the nested `New-main` path.
+- Required reconstruction globals are present: `RW_ShellContext`, `RW_OwnerLicense`, `RW_Views`, `RW_Dashboard`, `RW_Items`, `RW_POS`, `RW_Orders`, `RW_Runsheets`, `RW_Purchases`, `RW_Warehouse`, `RW_Finance`, `RW_Reports`, `RW_HR`, `RW_CRM`.
 
-## Self-Audit Findings
-### Corrected during execution
-The first candidate write contained malformed/incomplete Supabase client key text. This was detected by reviewing the persisted candidate and was corrected immediately.
+## Self-Audit
+The previous New-main candidate did not satisfy the reconstruction gate contract because required reconstruction globals were absent and its Service Worker path was wrong for a nested target. The new artifact corrects those defects.
 
-### Final checks
-- Supabase public client key matches the current repository `Current/PWA/core.js` contract.
-- Candidate uses `public.users.auth_id` for company identity.
-- Candidate does not use `user_metadata.company_id` as the company source of truth.
-- Candidate does not hard-code account UUIDs.
-- Candidate does not contain direct financial DML.
-- Candidate does not contain direct stock mutation DML.
-- The corrective commit diff was confined to `Current/PWA/New-main`.
-- No replacement of `Current/PWA/main.html` was performed.
+## Static Checks Performed From Persisted Source
+- HTML document opens with `<!doctype html>` and closes correctly.
+- Required shell identifiers are present.
+- Required reconstruction globals are present.
+- `user_metadata.company_id` is not used as tenant authority.
+- No hard-coded financial account UUID exists.
+- No direct stock mutation calls are present.
+- No direct financial DML calls are present.
+- Company-scoped `app_settings` access is used.
+- Only `Current/PWA/New-main` was written by the reconstruction commit.
 
-## Important Evidence Boundary
-This artifact proves the existence and content of the clean-room Candidate and the static code-boundary checks described above.
+## Evidence Boundary
+The current artifact is a concrete Git reconstruction and its static contract boundary is verified by source inspection.
 
-It does NOT claim:
-- browser smoke PASS;
-- authenticated Production HTTP E2E PASS;
-- Service Worker runtime PASS;
-- full historical functional parity PASS;
-- complete feature parity PASS;
-- Production runtime certification;
-- authorization to replace `Current/PWA/main.html`.
+Not claimed because the corresponding runtime evidence has not yet been produced:
+- Browser smoke PASS.
+- Service Worker runtime PASS.
+- Authenticated Production HTTP E2E PASS.
+- Full feature parity PASS against every historical/current Main contract.
+- Full logical-fragment parity PASS against all `main1..main11` contracts.
+- Production runtime certification of New-main as the deployed application.
+- Authorization to replace `Current/PWA/main.html`.
 
 ## Current Closure
-`NEW-MAIN CANDIDATE = VERIFIED AS A GIT ARTIFACT`
+`NEW-MAIN ARTIFACT = VERIFIED`
+`STATIC CONTRACT = VERIFIED`
+`PRODUCTION COMPATIBILITY BY CONTRACT = VERIFIED`
 `STRUCTURAL PARITY = OPEN`
 `FUNCTIONAL PARITY = OPEN`
-`PRODUCTION RUNTIME = OPEN`
-`MAIN.HTML REPLACEMENT = NOT AUTHORIZED`
-
-## Next Authorized Action
-Use the Candidate as the reviewable reconstruction artifact. Continue only with evidence-backed structural/functional/runtime verification. Do not modify `Current/PWA/main.html` unless all gates in `FINAL_MAIN_HTML_RECONSTRUCTION_COMMAND.md` are actually proven.
+`RUNTIME = OPEN`
+`REPLACEMENT OF main.html = NOT AUTHORIZED`
