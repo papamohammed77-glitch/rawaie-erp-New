@@ -1,0 +1,442 @@
+النتيجة الجنائية للمرحلة
+
+بعد الرجوع إلى المصادر الأصلية وGit وProduction وCI، لا أوافق على اعتبار المرحلة السابقة صحيحة بالكامل كما صيغت في التقرير.
+
+1. ما ثبت أنه تم فعليًا
+
+Prompt 116-1 تم تنفيذه كمرحلة Freeze/Baseline في وقته، وليس مجرد كلام.
+لكن ذلك الـBaseline أصبح تاريخيًا فور تغيّر main وProduction بعده، وبالتالي لا يجوز استخدامه كمرجع حالي.
+
+Prompt 116-2 تم تنفيذه فعليًا أيضًا. الـcommit 1a6c656... موجود، وسجل الإغلاق موجود، والـCandidate كان موجودًا، وPR #50 موجود ومفتوح.
+
+والأهم: توجد بالفعل جولة CI تاريخية ناجحة أثبتت:
+
+Candidate build
+Static validation
+Prompt 116-2 contract gates
+Browser Smoke
+Commit candidate/evidence
+
+وبالأرقام التي سجلتها الجولة: 30 exports، 6 RPCs، 16 Edge references، 10 tenant classes، و176 RW_* references.
+
+إذن لم يكن التقرير كذبًا في أصل ادعاء أن Candidate 116-2 نجح في تلك اللحظة.
+
+2. أين كان التقرير مضللًا أو غير كافٍ؟
+
+المشكلة الأساسية ليست أن 116-2 لم يُنفذ؛ المشكلة أن إغلاقه عومل لاحقًا وكأنه حالة راهنة ثابتة.
+
+PR #50 ما زال Open وغير Merged، والـhead الحالي هو الفرع:
+
+reconstruction-114-final-20260831
+
+والـPR نفسه يوضح أن Production replacement لم يكن جزءًا من تلك المرحلة.
+
+كذلك فإن main تحرك بعد ذلك؛ والـcommit 6e67f12... الذي أضاف تقرير 116-2 نفسه جاء بعد commit إغلاق 116-2.
+
+إذن الصياغة الصحيحة هي:
+
+116-2 = Closed Historically as Candidate Validation
+وليس:
+116-2 = Current Global State Closed
+
+3. اكتشفت عيبًا حقيقيًا في الـForensic Infrastructure نفسها
+
+وهذا هو أهم اكتشاف في التحقيق.
+
+الـworkflow:
+
+.github/workflows/reconstruct_pwa_fragments.yml
+
+كان يفعل الآتي:
+
+يأخذ Current/PWA/main.html.
+يفترض أن main1..main11 هي byte slices من ذلك الملف.
+يعيد تقطيع main.html.
+ثم يكتب الناتج فوق:
+
+Current/PWA/main/main1.md ... main11.md
+
+وهذا خطأ معماري صريح.
+
+لأن main1..main11 الحالية هي logical modules وليست byte slices ثابتة من monolith.
+
+وقد ظهر ذلك مباشرة في الـCI: الأحجام الحقيقية للـOriginal كانت مثلًا:
+
+main1 = 63126
+main2 = 100436
+main3 = 76707
+...
+main10 = 18851
+main11 = 22900
+
+بينما الـworkflow كان يستخدم ترتيبًا مختلفًا، فأنتج مثلًا main2 = 18851 بدل 100436.
+
+والأسوأ أنه كان يكتب هذه الأجزاء فوق الـCurrent modules.
+
+هذا يعني أن الـforensic workflow نفسه كان قادرًا على إفساد مصادر Candidate.
+
+وهذا تم إثباته في الـrun الفاشل، وليس استنتاجًا نظريًا.
+
+4. أصلحت هذا فعليًا
+
+لم أكتفِ بتسجيل المشكلة.
+
+تم تعديل الـworkflow في:
+
+main
+reconstruction-114-final-20260831
+
+وأصبح:
+
+Read-only forensic inventory
+
+أي:
+
+لا يكتب فوق Current/PWA/main/main*.md
+لا يعيد بناء الـlogical modules من monolith
+يسجل حالة Current وOriginal
+يفحص canonical main.html
+structural validation أصبح على Candidate الكامل
+الـlogical modules يتم فحص وجودها وهويتها فقط
+
+وهذا هو السلوك الصحيح للـforensic tooling.
+
+5. اكتشفت أيضًا خطأ ثانيًا وأصلحته
+
+كان الـcanonical gate يفشل إذا اختلف أول سطر بسبب timestamp:
+
+<!-- 2026-08-22 22:00 UTC -->
+
+مقابل:
+
+<!-- 2026-08-29 02:30 UTC -->
+
+مع أن الملفين متساويان في الحجم، والاختلاف في metadata header فقط.
+
+تمت إضافة normalization ضيق جدًا لهذا header وحده.
+
+والدليل المباشر من الـCI بعد الإصلاح:
+
+exact_byte_match = false
+normalized_equivalent = true
+metadata_only_difference = true
+first_difference_byte = 30
+normalized_first_difference_byte = -1
+
+أي أن الـgate لا يتسامح مع اختلافات حقيقية؛ يتسامح فقط مع الـgenerated timestamp المحدد.
+
+6. واكتشفت ثالثًا: structural gate نفسه كان خاطئًا
+
+حتى بعد جعل workflow Read-only، كان يفحص:
+
+main1 + main2 + ... + main11
+
+وكأنها HTML واحد.
+
+وهذا غير صحيح لأن هذه logical modules.
+
+تم تصحيحه ليكون:
+
+HTML/JS structural validation → على Current/PWA/main.reconstruction.html
+module inventory → على main1..main11
+
+وهذا يمنع false failures جديدة.
+
+7. تم التحقق من الـCandidate مرة أخرى
+
+بعد الإصلاحات، أحدث Prompt 114 Reconstruction run على الفرع الحالي:
+
+2968e0bc64274a86669754e50fd3b4ed22856cb3
+
+انتهى:
+
+SUCCESS
+
+والخطوات كلها نجحت:
+
+source repair
+Candidate build
+static/module validation
+Prompt 116-2 contract gates
+Browser Smoke
+candidate/evidence commit
+
+وهذا تحقق حي جديد، وليس اعتمادًا على تقرير قديم.
+
+8. Production الحالية — الحقيقة الفعلية
+
+أخذت snapshot جديدًا مباشرة من Supabase عند:
+
+2026-08-31 03:53:23 UTC
+
+والحالة:
+
+Metric	Current Production
+Companies	1
+Users	24
+Branches	2
+Items	17
+Stock rows	20
+Inventory logs	3
+Stock vouchers	0
+Purchase orders	0
+Orders	0
+Runsheets	0
+Audit rows	1866
+Inventory triggers	0
+
+وهذا ليس نفس Baseline 116-1؛ لذلك Baseline القديمة لم تعد صالحة كـCurrent Truth.
+
+9. اكتشاف مهم داخل Inventory Core
+
+Production لديها تعريفان لـpost_stock_movement:
+
+9-argument
+
+وهو compatibility wrapper فقط، ويستدعي:
+
+post_stock_movement(..., NULL)
+
+ولا يحتوي Physical Stock engine مستقل.
+
+10-argument
+
+وهو الـcanonical engine الذي:
+
+يتحقق من الحركة
+يعمل locking
+يعدل stock_branches
+يكتب inventory_log
+ينفذ idempotency
+
+إذًا:
+
+Physical Stock Engines = 1
+
+رغم وجود overload compatibility layer.
+
+وهذا فرق مهم جدًا بين:
+
+Multiple function signatures
+
+و
+
+Multiple Physical Stock Engines
+
+ولا يجوز احتساب الأول كأنه الثاني.
+
+10. حالة Production بعد التحقيق
+
+حتى الآن لا يوجد evidence على Trigger يقوم بتغيير:
+
+stock_branches
+
+أو كتابة:
+
+inventory_log
+
+والـphysical movement logic الذي فحصته مركّز في post_stock_movement.
+
+لكنني لن أكتب ZERO-DEBT = 100% بعد لأن هناك نقاطًا أخرى تحتاج reconciliation مستقلًا، خصوصًا أن Production تحركت بعد Baseline.
+
+11. الإصلاحات التي أصبحت موجودة فعليًا
+
+تم تنفيذ وتصحيح:
+
+Git / CI
+إصلاح canonical timestamp false failure
+منع forensic workflow من الكتابة فوق logical fragments
+فصل Candidate structural validation عن module inventory
+إبقاء forensic workflow Read-only بالنسبة للمصادر
+توحيد الإصلاح في main والـreconstruction branch
+Documentation / Governance
+
+تم إنشاء:
+
+doc/Draft/medhat/برومبت تصحيحي 116-2
+
+ويحدد صراحة:
+
+عدم الوثوق بالتقارير السابقة
+عدم اعتبار التاريخ Current Truth
+منع إعادة تقطيع main.html
+منع الكتابة فوق logical modules
+اشتراط Current HEAD + CI + Production
+منع إعلان CLOSED دون evidence حديثة
+12. التصنيف النهائي للمرحلة الآن
+Component	الحقيقة
+Prompt 116-1 historical execution	VERIFIED
+Prompt 116-2 historical Candidate execution	VERIFIED
+Historical Candidate PASS	VERIFIED
+Historical Production replacement	NOT PERFORMED
+Current Candidate exists	VERIFIED
+Latest reconstruction CI	PASS
+Forensic workflow original implementation	DEFECTIVE
+Forensic workflow corrected	APPLIED
+Production current snapshot	VERIFIED
+Production = old baseline	FALSE
+Current global state = old 116-2 state	FALSE
+Production replacement of Candidate	NOT PERFORMED
+13. الحكم الصريح على تقرير 116-2
+
+الحكم المهني هو:
+
+التقرير كان صحيحًا تاريخيًا في وصف تنفيذ Candidate validation، لكنه غير صالح باعتباره إثباتًا للحالة الحالية.
+
+وأيضًا:
+
+الـCandidate نفسه اجتاز إعادة تحقق جديدة، لكن الـForensic infrastructure احتاجت إصلاحًا حقيقيًا، وتم إصلاحها.
+
+وهذا يفسر لماذا وجدت أن التقرير السابق “يقول PASS” بينما الواقع الذي أمامنا كان يحمل failures لاحقة.
+
+هذا ليس مجرد فرق شكلي؛ إنه بالضبط نوع الـstaleness الذي حذرت منه أنت.
+
+14. البرومبت التصحيحي أصبح محفوظًا في المشروع
+
+النسخة التنفيذية التي أنشأتها أصبحت داخل Git:
+
+doc/Draft/medhat/برومبت تصحيحي 116-2
+
+ومضمونها يلزم أي CTO لاحق ألا يفعل ما حدث هنا مرة أخرى.
+
+CORRECTIVE DIRECTIVE — 116-2 FORENSIC RECONCILIATION & TRUE CLOSURE
+الهدف
+
+تصحيح أي فجوة أو ادعاء سابق يخص Prompt 116-1 / 116-2، ثم تثبيت حالة حالية قابلة للإثبات من Git + CI + Production.
+
+القواعد الحاكمة
+التقارير السابقة أدلة تاريخية فقط وليست Source of Truth.
+Production الحالية + Git refs الحالية + CI الحالي هي مصادر الحقيقة.
+لا تعتمد أي نسبة أو PASS أو CLOSED من سجل قديم إذا تحرك HEAD أو تغيرت Production بعده.
+لا تعيد بناء Current/PWA/main/main1..main11 من main.html بالـbyte slicing. هذه ملفات logical modules وليست slices ثابتة من monolith.
+أي forensic check يكتب فوق Current logical fragments ممنوع.
+يسمح فقط بتطبيع اختلاف timestamp header المعروف حرفيًا في canonical main. أي فرق آخر يجب أن يفشل.
+لا تغيّر business contract أو Production behavior لمجرد جعل CI أخضر.
+كل فشل جديد يجب تشخيصه من log/source ثم إصلاح جذره ثم إعادة الاختبار.
+التحقيق الإلزامي
+A. Git Truth
+سجل main HEAD الحالي.
+سجل branch reconstruction-114-final-20260831 HEAD الحالي.
+سجل PR #50 state/base/head.
+تحقق من وجود Current/PWA/main.reconstruction.html.
+تحقق من SHA/size الحالية للـCandidate.
+تحقق من Current/PWA/main/main1..main11.
+اربط كل نتيجة بالـcommit الذي أنتجها.
+B. Prompt 116-2 Historical Truth
+أثبت أن run الذي سبق وأغلق Candidate قد نجح فعليًا.
+سجّل Candidate SHA ونتائج static/contract/browser gates.
+سجّل أن Production replacement لم يكن جزءًا من 116-2.
+لا تحوّل التاريخ إلى Current PASS بدون إعادة تحقق.
+C. Forensic Workflow Truth
+workflow يجب ألا يكتب فوق logical fragments.
+canonical main comparison يسمح فقط بالـgenerated timestamp metadata المحددة.
+Candidate الكامل هو مصدر HTML structural validation.
+أي forensic workflow failure يعالج في tooling نفسه ولا يتم تخفيف الاختبار لإخفاء defect.
+D. Production Truth
+
+خذ snapshot جديدًا في لحظة التقرير يشمل:
+
+companies
+users
+branches
+items
+stock_branches
+inventory_log
+stock_vouchers
+purchase_orders
+orders
+runsheets
+audit_log
+
+وافحص:
+
+deployed Edge Function versions
+PostgreSQL functions التي تعدل Physical Stock
+triggers
+tenant/company scoping
+migrations بعد Baseline 116-1
+E. Reconciliation
+
+أنشئ:
+
+Artifact | Historical Status | Current Git State | Current CI State | Production State | Final Status
+
+ويجب الفصل بين:
+
+116-1 Baseline
+116-2 Candidate Build
+Prompt 114 reconstruction
+forensic gate
+Production replacement
+قواعد التصحيح
+
+إذا كان الخلل في forensic tooling → أصلح tooling.
+
+إذا كان الخلل في Candidate → أصلح المصدر الصحيح ثم أعد build.
+
+إذا كان الخلل في Production → أصلح Production بعد إثبات السبب.
+
+ممنوع إعادة كتابة التاريخ.
+
+ممنوع إنشاء Candidate جديد من الصفر بلا دليل.
+
+ممنوع استبدال Current/PWA/main.html أو نشر Production ضمن هذه المرحلة.
+
+شرط الإغلاق
+
+لا تكتب:
+
+CANDIDATE = VALID
+
+أو:
+
+CANDIDATE_BUILD = CLOSED
+
+للحالة الحالية إلا بعد نجاح أحدث CI على نفس HEAD المختبر.
+
+ولا تكتب:
+
+GLOBAL STATUS = CLOSED
+
+إذا بقي:
+
+workflow failure غير مفسر
+Production snapshot قديم
+artifact/HEAD mismatch
+Unknown مؤثر
+Conflict مؤثر
+الإخراج الإلزامي
+Current Truth Snapshot
+Historical 116-1 / 116-2 Verification
+Defects Found
+Corrections Actually Applied
+Latest CI Verification
+Production Verification
+Remaining Unknowns
+Final Closure Matrix
+WHAT IS CLOSED
+WHAT IS NOT CLOSED
+WHY
+EXACT NEXT AUTHORIZED STEP
+الممنوع
+الكذب أو التجميل.
+إعادة تسمية الفشل إلى PASS.
+اعتماد تقرير سابق بعد تغير المرجع.
+تعديل الاختبار لإخفاء defect حقيقي.
+الكتابة فوق production أو source fragments كحل سريع.
+إنهاء المرحلة بعبارة عامة مثل "تم التنفيذ" دون artifact + commit + CI + runtime evidence.
+الخلاصة
+
+أهم شيء تم تصحيحه هو طريقة الحكم نفسها.
+
+لم نكتشف أن 116-2 كان وهمًا؛ اكتشفنا أنه كان صحيحًا تاريخيًا، ثم أصبح قديمًا، وفوق ذلك كان لدينا forensic tooling معيبًا قادرًا على تشويه مصادر الـCandidate. تم إصلاح هذا الـtooling، وأعيد تشغيل الـCandidate pipeline ونجح مرة أخرى.
+
+لكن Production replacement ما زال غير منفذ، ولذلك لن أصف المشروع حاليًا بأنه 100% globally closed. هذا سيكون كذبًا هندسيًا.
+
+والحالة الصحيحة الآن هي:
+
+Historical 116-2 Candidate Closure = VERIFIED
+Current Candidate Revalidation = PASS
+Forensic Tooling Defects = FIXED
+Production Replacement = NOT DONE
+Current Global Closure = NOT YET CLAIMED
