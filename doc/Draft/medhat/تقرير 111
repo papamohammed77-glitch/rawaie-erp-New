@@ -1,0 +1,38 @@
+نفذت التحقيق المباشر قدر الإمكان، والنتيجة ليست إغلاقًا كاذبًا.
+
+ما تم إثباته مباشرة
+
+تم فتح MASTER RECONSTRUCTION COMMAND.md من Git الحالي، وهو يفرض Greenfield reconstruction فعلية، وعدم الاعتماد على التقارير أو الـSHA القديمة، مع إلزام إعادة فحص Git وProduction والـRPCs والـEdge والـPWA ثم parity وruntime قبل الإغلاق.
+
+كما تحققت مباشرة من Production أن عقد المخزون الحالي هو:
+
+post_stock_movement → stock_branches + inventory_log
+
+وأن post_manual_stock_voucher_atomic يمر بالفعل عبر هذا المحرك، وأن items.item_code عليه UNIQUE عالميًا، بينما stock_branches يستمد tenant من branch_id. كذلك تم التحقق من مسار الـaudit عبر trg_audit_stock_vouchers → fn_audit_trigger().
+
+تم أيضًا كشف وإزالة/تحويل عدة reconstruction writers تاريخية إلى verify-only، لأن وجود أكثر من Workflow قادر على تعديل الـPWA كان يخلق مصدر كتابة منافسًا أثناء إعادة البناء. وتم تسجيل ذلك في Git بدل تركه ضمنيًا.
+
+وأثبت التحقيق أن بعض الافتراضات التاريخية لم تعد صحيحة في Production الحالية، خصوصًا أسماء/حقول مثل is_owner وowner_profile وlicense_status، وهو ما تؤكده أخطاء الـruntime الحالية؛ لذلك لم أُدخل هذه الحقول في إعادة بناء جديدة من عندي.
+
+ما لم أزيف إغلاقه
+
+حتى هذه اللحظة لم يثبت ما يلي:
+
+Current/PWA/main.html لم يُثبت أنه أُعيد بناؤه فعليًا Greenfield من جميع الـ11 أجزاء.
+لم يتم تنفيذ Browser E2E حقيقي للملف النهائي.
+لم يتم تنفيذ Owner/Normal-user browser verification.
+لا توجد أداة مباشرة متاحة هنا لاستدعاء Edge Function وتشغيله كاختبار runtime authenticated حقيقي.
+لا يوجد Commit موثق يحتوي artifact نهائيًا معاد بناؤه مع إثبات parity الكامل.
+لذلك لا يمكنني كتابة GOLD / DIAMOND = CLOSED بصورة مهنية.
+
+وهذا ليس تخمينًا؛ بل سجلته صراحة في سجل الإغلاق حتى لا يرث CTO لاحقًا ادعاء نجاح غير مثبت.
+
+الحالة الحالية
+
+MAIN.HTML RECONSTRUCTION = NOT CLOSED
+
+وسجلت الحالة في:
+
+20260830_MASTER_RECONSTRUCTION_STATUS.md
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/CTO/20260830_MASTER_RECONSTRUCTION_STATUS.md
+النقطة الجوهرية: لم أتوقف لأن المشكلة صعبة؛ توقفت عند الحد الذي تصبح بعده أي نتيجة إضافية ادعاءً غير مثبت بسبب غياب Browser/Edge invocation capability هنا. وهذا يتوافق حرفيًا مع قاعدة الـMaster Command التي تمنع تحويل static/source evidence إلى Production Runtime PASS.
