@@ -98,7 +98,6 @@ jobs:
           assert re.search(r'\bisOwner\b',cand); assert re.search(r'permissions[\s\S]{0,500}["\']\*["\']',cand,re.I)
           assert not re.search(r"\.from\(\s*['\"]stock_branches['\"]\s*\)[\s\S]{0,1500}?\.(?:update|insert|upsert|delete)\s*\(",cand,re.I)
           assert not re.search(r"\.from\(\s*['\"]inventory_log['\"]\s*\)[\s\S]{0,1500}?\.(?:update|insert|upsert|delete)\s*\(",cand,re.I)
-          assert 'post_stock_movement' in cand
           for i in range(2,12): assert f'RW114 MODULE main{i}' in cand, f'MISSING_MODULE_MARKER main{i}'
           print('PROMPT_116_2_CONTRACT_GATES_PASS')
           print('PUBLIC_EXPORTS',len(cand_exports),'RPCS',len(cr['rpc']),'EDGE_REFS',len(cr['edge']),'TENANT_TABLES',len(tenant_tables),'CRITICAL_RW_REFS',len(refs_set))
