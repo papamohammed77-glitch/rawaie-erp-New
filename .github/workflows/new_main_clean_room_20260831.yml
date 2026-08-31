@@ -5,6 +5,7 @@ on:
     branches: [golden-new-main-20260831]
     paths:
       - 'tools/run_new_main_clean_room_20260831.py'
+      - 'tools/debug_main7_balance_20260831.py'
       - 'Current/PWA/main/**'
       - 'Original/PWA/main/**'
       - '.github/workflows/new_main_clean_room_20260831.yml'
@@ -31,6 +32,8 @@ jobs:
           git hash-object Current/PWA/main.html > /tmp/main-html-before.sha
       - name: Build New-main only from current fragments
         run: python3 tools/run_new_main_clean_room_20260831.py
+      - name: Diagnose main7 delimiter balance
+        run: python3 tools/debug_main7_balance_20260831.py
       - name: Fragment syntax diagnostics for main1..main11
         shell: bash
         run: |
