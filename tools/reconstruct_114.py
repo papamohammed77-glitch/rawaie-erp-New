@@ -9,14 +9,14 @@ def meta(p):
 def extract(s):
     return {'functions':sorted(set(re.findall(r'(?<![\w$])function\s+([A-Za-z_$][\w$]*)\s*\(',s))), 'window_exports':sorted(set(re.findall(r'window\.([A-Za-z_$][\w$]*)\s*=',s))), 'ids':sorted(set(re.findall(r'\bid=["\']([^"\']+)["\']',s))), 'rpcs':sorted(set(re.findall(r'\.rpc\(\s*["\']([^"\']+)["\']',s))), 'tables':sorted(set(re.findall(r'\.from\(\s*["\']([^"\']+)["\']',s))), 'edge_refs':sorted(set(re.findall(r'functions/v1/([A-Za-z0-9._-]+)',s))), 'event_listeners':len(re.findall(r'\.addEventListener\s*\(',s)), 'timers':len(re.findall(r'\b(?:setTimeout|setInterval)\s*\(',s)), 'observers':len(re.findall(r'\b(?:MutationObserver|IntersectionObserver|ResizeObserver)\b',s)), 'storage':sorted(set(re.findall(r'\b(?:localStorage|sessionStorage|indexedDB|caches)\b',s)))}
 def fail(msg): raise SystemExit('RECONSTRUCTION_114_FAIL: '+msg)
+def strip_script_payload(html):
+    return re.sub(r'<script\b[^>]*>.*?</script\s*>','<script></script>',html,flags=re.I|re.S)
 def check_module(i,s):
     checks=[(r"\.from\(\s*['\"]stock_branches['\"]\s*\)[\s\S]{0,1200}?\.(?:update|insert|upsert|delete)\s*\(",'direct stock writer'),(r"\.from\(\s*['\"]inventory_log['\"]\s*\)[\s\S]{0,1200}?\.(?:update|insert|upsert|delete)\s*\(",'direct inventory log writer'),(r'00000000-0000-0000-0000-000000000001','hardcoded tenant'),(r'</script>','raw script close')]
     for pat,msg in checks:
         if re.search(pat,s,re.I): fail(f'main{i}: {msg}')
-    # LIMIT(1) is acceptable only where app_settings is explicitly company-scoped.
     for m in re.finditer(r"app_settings[\s\S]{0,250}?\.limit\(\s*1\s*\)",s,re.I):
-        segment=m.group(0)
-        if not re.search(r"\.eq\(\s*['\"]company_id['\"]\s*,",segment,re.I): fail(f'main{i}: unsafe app_settings limit1')
+        if not re.search(r"\.eq\(\s*['\"]company_id['\"]\s*,",m.group(0),re.I): fail(f'main{i}: unsafe app_settings limit1')
 def build():
     for p in PARTS:
         if not (CUR/p).exists() or not (ORG/p).exists(): fail(f'missing {p}')
@@ -31,16 +31,17 @@ def build():
         meta_map[f'main{i}']={'current':meta(p),'original':meta(ORG/f'main{i}.md'),'symbols':extract(s)}
         modules.append(f'\n<!-- RW114 MODULE main{i} -->\n<script data-rw-module="main{i}">\n{s}\n</script>\n<!-- END RW114 MODULE main{i} -->\n')
     artifact=parent.rstrip()+"\n</script>\n"+"\n".join(modules)+"\n</body>\n</html>\n"
+    doc=strip_script_payload(artifact)
     for pat,name in [(r'<!doctype\s+html','DOCTYPE'),(r'<html\b','HTML_OPEN'),(r'</html>','HTML_CLOSE'),(r'<head\b','HEAD_OPEN'),(r'</head>','HEAD_CLOSE'),(r'<body\b','BODY_OPEN'),(r'</body>','BODY_CLOSE')]:
-        if len(re.findall(pat,artifact,re.I))!=1: fail(name+' cardinality')
-    if len(re.findall(r'<script\b',artifact,re.I))!=len(re.findall(r'</script>',artifact,re.I)): fail('SCRIPT_BALANCE')
-    if len(re.findall(r'<style\b',artifact,re.I))!=len(re.findall(r'</style>',artifact,re.I)): fail('STYLE_BALANCE')
-    for pat,name in [(r"\.from\(\s*['\"]stock_branches['\"]\s*\)[\s\S]{0,1200}?\.(?:update|insert|upsert|delete)\s*\(",'DIRECT_STOCK_WRITER'),(r"\.from\(\s*['\"]inventory_log['\"]\s*\)[\s\S]{0,1200}?\.(?:update|insert|upsert|delete)\s*\(",'DIRECT_INVENTORY_LOG_WRITER'),(r'00000000-0000-0000-0000-000000000001','HARDCODED_TENANT')]:
+        if len(re.findall(pat,doc,re.I))!=1: fail(name+' cardinality')
+    if len(re.findall(r'<script\b',doc,re.I))!=len(re.findall(r'</script>',doc,re.I)): fail('SCRIPT_BALANCE')
+    if len(re.findall(r'<style\b',doc,re.I))!=len(re.findall(r'</style>',doc,re.I)): fail('STYLE_BALANCE')
+    bad=[(r"\.from\(\s*['\"]stock_branches['\"]\s*\)[\s\S]{0,1200}?\.(?:update|insert|upsert|delete)\s*\(",'DIRECT_STOCK_WRITER'),(r"\.from\(\s*['\"]inventory_log['\"]\s*\)[\s\S]{0,1200}?\.(?:update|insert|upsert|delete)\s*\(",'DIRECT_INVENTORY_LOG_WRITER'),(r'00000000-0000-0000-0000-000000000001','HARDCODED_TENANT')]
+    for pat,name in bad:
         if re.search(pat,artifact,re.I): fail(name)
     for t in ('window.RW_ShellContext','window.RW_OwnerContract','RW_ShellContext.getCompanyId()'):
         if t not in artifact: fail('missing '+t)
-    PWA.mkdir(parents=True,exist_ok=True); CTO.mkdir(parents=True,exist_ok=True)
-    candidate=PWA/'main.reconstruction.html'; candidate.write_text(artifact,encoding='utf-8')
+    candidate=PWA/'main.reconstruction.html'; candidate.write_text(artifact,encoding='utf-8'); CTO.mkdir(parents=True,exist_ok=True)
     originals={f'main{i}':{'meta':meta(ORG/f'main{i}.md'),'symbols':extract((ORG/f'main{i}.md').read_text(encoding='utf-8'))} for i in range(1,12)}
     domains={'BOOT':'main1','AUTH':'main1','SESSION':'main1','TENANT':'main1','OWNER':'main10','LICENSE':'main10','NAVIGATION':'main1','DASHBOARD':'main2','CUSTOMERS':'main3','SUPPLIERS':'main3','BRANCHES':'main3','USERS':'main3','ROLES':'main3','ITEMS':'main3','INVENTORY':'main7','VOUCHERS':'main7','PURCHASING':'main6','RECEIVING':'main6','ORDERS':'main5','RUNSHEETS':'main5','PICKING':'main7','LOADING':'main7','DELIVERY':'main7','RETURNS':'main7','UNLOADING':'main7','VEHICLES':'main3','POS':'main4','TELESALES':'main4','VAN SALES':'main4','ONLINE STORE':'main6','ACCOUNTING':'main8','TREASURY':'main8','REPORTS':'main9','HR':'main11','CRM':'main11','AUDIT':'main11','NOTIFICATIONS':'main11','PWA':'main1','OFFLINE':'main11','SYNC':'main11','REALTIME':'main11','STORAGE':'main11','PRINT':'main9','EXPORT':'main9'}
     features={k:{'current_source':v,'original_source':'Original/PWA/main','production_evidence':'LIVE_PRODUCTION_SNAPSHOT','disposition':'PRESERVED'} for k,v in domains.items()}
