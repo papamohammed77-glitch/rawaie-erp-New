@@ -10,8 +10,8 @@ EVIDENCE = Path('Current/CTO/20260831_NEW_MAIN_CLEAN_ROOM_EXECUTION.json')
 PARTS = [CUR / f'main{i}.md' for i in range(1, 12)]
 ORIGINAL_PARTS = [ORIG / f'main{i}.md' for i in range(1, 12)]
 
-# 2026-08-31 continuation: executor remains the sole composition authority for New-main.
-# Do not edit Current/PWA/main.html; only Current/PWA/New-main may be produced here.
+# Clean-room composition authority for New-main only.
+# Current/PWA/main.html is immutable in this workflow.
 
 def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -31,10 +31,24 @@ def repaired_source(path: Path) -> str:
     s = path.read_text(encoding='utf-8-sig')
     if path.name == 'main7.md':
         broken = ".join(''));}\n  async function _onSettlementRsChange()"
-        fixed = ".join('')));\n  async function _onSettlementRsChange()"
-        if broken in s:
-            return s.replace(broken, fixed, 1)
+        fixed = ".join('')));}\n  async function _onSettlementRsChange()"
+        if broken not in s:
+            raise RuntimeError('EXPECTED_MAIN7_SETTLEMENT_PATTERN_NOT_FOUND')
+        return s.replace(broken, fixed, 1)
     return s
+
+
+def compose_html(chunks: list[str]) -> str:
+    first = chunks[0]
+    inline_open = re.search(r'<script(?![^>]*\bsrc=)[^>]*>', first, re.I)
+    if not inline_open:
+        raise RuntimeError('MAIN1_INLINE_SCRIPT_OPEN_NOT_FOUND')
+    # main1 is intentionally open-ended; embedded fragments must remain inside this script.
+    if re.search(r'</script>\s*</body>\s*</html>\s*$', first, re.I | re.S):
+        raise RuntimeError('MAIN1_UNEXPECTED_DOCUMENT_CLOSURE')
+    if re.search(r'</script>', first[inline_open.end():], re.I):
+        raise RuntimeError('MAIN1_INLINE_SCRIPT_ALREADY_CLOSED')
+    return first.rstrip() + '\n\n' + '\n\n'.join(c.rstrip() for c in chunks[1:]) + '\n\n</script>\n</body>\n</html>\n'
 
 
 def build() -> tuple[str, dict]:
@@ -57,24 +71,16 @@ def build() -> tuple[str, dict]:
         if re.search(r'</script>', c, re.I):
             raise RuntimeError(f'INVALID_FRAGMENT_SCRIPT_CLOSE_MAIN{idx}')
 
-    candidate = first.rstrip() + '\n\n' + '\n\n'.join(c.rstrip() for c in chunks[1:]) + '\n\n</script>\n</body>\n</html>\n'
+    candidate = compose_html(chunks)
+    if not re.search(r'</script>\s*</body>\s*</html>\s*$', candidate, re.I | re.S):
+        raise RuntimeError('FINAL_DOCUMENT_END_INVARIANT_FAILED')
 
     required = [
-        'window.RW_ShellContext',
-        'RW_ShellContext.getCompanyId()',
-        'window.RW_OwnerLicense',
-        'RW_Views',
-        'window.RW_Dashboard',
-        'window.RW_Items',
-        'window.RW_POS',
-        'window.RW_Orders',
-        'window.RW_Runsheets',
-        'window.RW_Purchases',
-        'window.RW_Warehouse',
-        'window.RW_Finance',
-        'window.RW_Reports',
-        'window.RW_HR',
-        'window.RW_CRM',
+        'window.RW_ShellContext', 'RW_ShellContext.getCompanyId()',
+        'window.RW_OwnerLicense', 'RW_Views', 'window.RW_Dashboard',
+        'window.RW_Items', 'window.RW_POS', 'window.RW_Orders',
+        'window.RW_Runsheets', 'window.RW_Purchases', 'window.RW_Warehouse',
+        'window.RW_Finance', 'window.RW_Reports', 'window.RW_HR', 'window.RW_CRM'
     ]
     missing_required = [x for x in required if x not in candidate]
     if missing_required:
@@ -96,10 +102,8 @@ def build() -> tuple[str, dict]:
     for m in re.finditer(r"\.from\(['\"]app_settings['\"]\)", candidate):
         tail = candidate[m.end():m.end()+2200]
         lim = re.search(r"\.limit\(\s*1\s*\)", tail)
-        if lim:
-            scoped = re.search(r"\.eq\(\s*['\"]company_id['\"]\s*,", tail[:lim.start()])
-            if not scoped:
-                raise RuntimeError('UNSCOPED_APP_SETTINGS_LIMIT1_IN_CANDIDATE')
+        if lim and not re.search(r"\.eq\(\s*['\"]company_id['\"]\s*,", tail[:lim.start()]):
+            raise RuntimeError('UNSCOPED_APP_SETTINGS_LIMIT1_IN_CANDIDATE')
 
     parity = {}
     current_union = {'functions': set(), 'ids': set(), 'rpcs': set(), 'tables': set(), 'edge_refs': set()}
@@ -133,13 +137,12 @@ def main() -> None:
         'main_html_modified': False,
         'new_main_sha256': sha256(candidate.encode('utf-8')),
         'new_main_bytes': len(candidate.encode('utf-8')),
-        'source_fragment_repairs': ['main7.md settlement-rs-select closing parenthesis repaired during composition'],
+        'source_fragment_repairs': ['main7.md: exact safeHTML settlement selector closure repaired during composition'],
         'fragment_symbol_parity': parity,
         'static_gates': 'PENDING_CI_BROWSER_GATE'
     }
     EVIDENCE.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps(payload, ensure_ascii=False))
-
 
 if __name__ == '__main__':
     main()
