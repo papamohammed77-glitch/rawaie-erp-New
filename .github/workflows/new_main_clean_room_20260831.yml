@@ -42,12 +42,16 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import importlib.util, subprocess, tempfile
-          p=Path('tools/run_new_main_clean_room_20260831.py')
-          spec=importlib.util.spec_from_file_location('rw_builder', p)
+          import importlib.util, re, subprocess, tempfile
+          builder=Path('tools/run_new_main_clean_room_20260831.py')
+          spec=importlib.util.spec_from_file_location('rw_builder', builder)
           mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
           for idx in range(1,12):
               src=mod.repaired_source(Path('Current/PWA/main')/f'main{idx}.md')
+              if idx==1:
+                  scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',src,re.S|re.I)
+                  if not scripts: raise SystemExit('MAIN1_NO_INLINE_SCRIPT')
+                  src=scripts[-1]
               out=Path(tempfile.gettempdir())/f'rw-fragment-{idx}.js'
               out.write_text(src,encoding='utf-8')
               r=subprocess.run(['node','--check',str(out)],capture_output=True,text=True)
@@ -82,11 +86,9 @@ jobs:
           import re, subprocess, tempfile
           s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
           scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I)
-          if not scripts:
-              raise SystemExit('NO_INLINE_SCRIPT_FOUND')
+          if not scripts: raise SystemExit('NO_INLINE_SCRIPT_FOUND')
           for i,c in enumerate(scripts,1):
-              p=Path(tempfile.gettempdir())/f'rw-new-main-{i}.js'
-              p.write_text(c,encoding='utf-8')
+              p=Path(tempfile.gettempdir())/f'rw-new-main-{i}.js'; p.write_text(c,encoding='utf-8')
               r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
               if r.returncode:
                   print(r.stderr)
@@ -148,8 +150,7 @@ jobs:
           payload=json.loads(evidence.read_text(encoding='utf-8'))
           payload.update({'browser_runtime':'PASS_LOCAL_CLEAN_ROOM','main_html_unchanged':True,'main_html_sha256':hashlib.sha256(main.read_bytes()).hexdigest(),'git_head_before_persist':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()})
           evidence.write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding='utf-8')
-          state=Path('CURRENT_STATE.md'); old=state.read_text(encoding='utf-8')
-          marker='## NEW-MAIN EXECUTION RESULT\n'
+          state=Path('CURRENT_STATE.md'); old=state.read_text(encoding='utf-8'); marker='## NEW-MAIN EXECUTION RESULT\n'
           block='''## NEW-MAIN EXECUTION RESULT\n- New-main was rebuilt from current `main1..main11` fragments by the isolated executor.\n- Fragment syntax gates: PASS.\n- Structural contract gate: PASS.\n- Local JavaScript syntax gate: PASS.\n- Local browser smoke gate: PASS.\n- Existing `Current/PWA/main.html`: byte-identical before/after execution.\n- Production runtime of New-main itself: NOT DEPLOYED / NOT VERIFIED.\n'''
           if marker in old:
               start=old.index(marker); nextsec=old.find('\n## ',start+len(marker)); old=old[:start]+block+(old[nextsec+1:] if nextsec!=-1 else '')
