@@ -1,0 +1,666 @@
+برومبت 121
+طلبت منك البرومبت التالي : 
+مهمة حرجة : 
+هذه الرسالة تم صياغتها بأسلوب مختلف وذلك بسبب أن ذاكرتك توقفت عند مرحلة معينة 
+الهدف المطلوب هو تنفيذ البرومبت في آخر الرسالة 
+في هذه المهمة لا تبدأ من الصفر
+لأن تمت محاولات اصلاح كثيرة وستجد أحداث قريبة لا تعلمها ولا تذكرها ذاكرتك القريبة 
+ستكتشف تغييرات حديثة وتاريخية لا تجعلها تسبب لك إرتباك
+لذلك توقف عن كل مهمة حالية  واهتم فقط بالمهمة الحرجة الحالية 
+في هذه المهمة لا تثق في التقارير ، ولا تثق في المساعدين ، ولا تثق في ذاكرتك ، لا تستعجل بالقفز إلي  إتخاذ قرارات استباقية أو بالتعديل .. 
+انتظر حتي تنتهي من قراءة آخر سطر وآخر أمر تنفيذي ، 
+لا تثق في التقاريرولا حتي ذاكرتك
+ قم بالتحقيق الجنائي من المصادر مباشرة وقاعدة البيانات supabase و الملفات المنشورة  وسجلات التوثيق ولا تثق بالتقارير ولا ذاكرتك 
+أرغب بتكليفك بمهمة شديدة الحرج والأهمية واستثنائية وخطيرة ولكن قبل ذلك يجب أن أقوم بإعدادك وتأهيلك لهذه المهمة 
+قم بفتح التقرير والبرومبت التالي:
+ MASTER - RAWAEA ERP.md 
+وقراءته بمنتهي الدقة والعناية وتحليله وتتبع تسلسله من بدايته إلي النهاية ولا تكتفي بقراءة أسطر منه وقم بتنفيذ الأمر والخطة التي تتضمنه مباشرة .
+
+تم طلب من المساعد البرومبت التالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%2B%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%20120
+
+وكان تقرير المساعد كالتالي :
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Hytham%20/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D8%AA%D9%86%D9%81%D9%8A%D8%B0%D9%8A%205
+
+قم بمراجعة تدقيقية وتحليل لرد المساعد ولا تثق في رده وقم بالتحقيق الجنائي من المصادر
+قدم له الحلول التي وصلنا إليها واطلب منه البحث الدائم عن الحلول في سجلات المشروع التي تسجل الأحداث
+اعطني برومبت باستكمال المهمة في حالة نقص في الملفات main1
+اعطني برومبت الإنتقال من ملف الي ملف  في حالة استكمال المهمة والحالة Closed 100%
+ومرفوض التوقف بدون الانتهاء التام والكامل في حالة النقص يجب عليه استكمال النقص 
+لديه كل المصادر لإستكمال المهمة 
+غير مقبول عدم التعديل في ملف 
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/PWA/New-main
+
+
+
+
+----------------
+ملحق
+تقرير تنفيذ البرومبت 121
+نتيجة التحقيق الجنائي حتى هذه اللحظة
+
+أوقفتُ المسار السابق وتعاملتُ مع المهمة باعتبارها استمرارية جنائية للمشروع وليست بداية جديدة.
+
+1. ما ثبت من المصدر المباشر
+
+المصدر Current/PWA/main/main1.md هو فعلًا وثيقة HTML حقيقية، وليست مجرد fragment؛ وبداخلها runtime فعلي وSupabase bootstrap، وقد ثبت وجود <script> الداخلي الذي كان يفترض أن يستعمله الـclean-room executor.
+
+وفي المقابل، Current/PWA/New-main الموجود حاليًا على main ما زال عند:
+
+SHA = a5c63adc24eec6251545ea82a3880d68cf98c3b6
+
+أي أن التنفيذ الأخير لم يُكتب إليه بعد.
+
+وهذه نقطة حاسمة: لا أعتبر تعديل الـexecutor نجاحًا بدل تعديل New-main نفسه.
+
+2. الحقيقة المتعلقة بمالك النظام
+
+تحقيقي المباشر في Supabase أثبت أن حالة المالك الحالية صحيحة:
+
+public.users.permissions = ["*"]
+
+auth.users.user_metadata.isOwner = true
+auth.users.user_metadata.permissions = ["*"]
+
+owner_profile.license_status = active
+owner_profile ↔ auth user = صحيح
+
+إذن قاعدة البيانات ليست سبب اختفاء إدارة التراخيص.
+
+العقد الصحيح هو:
+
+OWNER
+├── isOwner = true   ← Auth metadata
+├── permissions = ["*"]
+└── owner_profile.license_status = active
+
+وليس:
+
+role = "مدير النظام"
+
+ولا تجميع الـ42 صلاحية يدويًا.
+
+وهذا يتفق مع العقد التاريخي الذي راجعته في MASTER والـprompt 120.
+
+3. السبب الحقيقي لاختفاء «إدارة التراخيص»
+
+وجدتُ أن main10.md يحتوي أصلًا على الوحدة الصحيحة والكاملة لإدارة الترخيص RW_OwnerLicense، بينما New-main الحالي لا يحتوي المسار الكامل المقابل لها.
+
+المفقود في New-main كان منطقًا في أكثر من طبقة:
+
+RW_OwnerLicense
+        ↓
+Navigation
+        ↓
+View Router
+        ↓
+Owner Guard
+        ↓
+License Settings
+        ↓
+save-settings
+
+ولذلك مجرد إضافة Permission لن يحل المشكلة.
+
+4. اكتشاف مهم جدًا في تقارير المساعدين
+
+التقارير الأخيرة ليست مصدر الحقيقة.
+
+وجدت أن بعض commits الحديثة بتاريخ 31 أغسطس توحي بأنها نفذت MAIN1، لكنها ليست على main، وبالتالي لا يجوز اعتبارها الحالة الحالية.
+
+بل حتى الـclean-room نفسه كان معيبًا.
+
+الـCI رقم 71 فشل في:
+
+Build one New-main artifact
+
+والسبب المثبت في السجل:
+
+RuntimeError:
+MAIN1_INLINE_SCRIPT_BLOCK_MISSING
+
+أي أن أداة التنفيذ افترضت شكلًا غير مطابق للبنية الفعلية لـmain1.md.
+
+هذا خطأ في أداة التنفيذ وليس دليلًا على أن MAIN1 نفسه ناقص.
+
+5. ما قمت بتعديله فعليًا
+
+عدلتُ الـexecutor نفسه ليكون أكثر صرامة، ومن ضمن ذلك:
+
+OWNER MUST COME FROM AUTH METADATA
+
+بدل استنتاج الملكية من owner_profile.
+
+كما أضفت له فحصًا صريحًا لعقد:
+
+إدارة الترخيص
+RW_OwnerLicense
+license route
+license action
+
+وعدلتُ الـworkflow بحيث لا يستخدم مؤشرات UI القديمة فقط مثل:
+
+loginScreen
+app
+
+بل يتعرف على البنية الحالية:
+
+rw-login-page
+rw-main-shell
+rw-page-container
+rw-sidebar-nav
+
+لكنني لن أسجل هذا كـClosed، لأن الـtarget نفسه لم يُحدّث بعد.
+
+6. نقطة إضافية مهمة
+
+هناك فرق بين:
+
+MAIN1 = المصدر المرجعي
+
+وبين:
+
+New-main = الهدف الذي يجب تعديله
+
+لذلك أي مساعد لاحق ممنوع من إعلان:
+
+MAIN1 مكتمل
+
+لمجرد أن main1.md موجود أو أن executor نجح جزئيًا.
+
+الإغلاق يجب أن يكون على:
+
+CONTRACT
++
+ACTUAL TARGET MODIFICATION
++
+STATIC VALIDATION
++
+BROWSER RUNTIME
++
+AUTH/OWNER
++
+DATABASE
++
+AUDIT EVIDENCE
++
+FINAL STATUS
+البرومبت الأول
+استكمال MAIN1 عند وجود نقص في الملفات أو الـartifact
+
+هذا هو البرومبت الذي أوصي أن تستخدمه للمساعد التالي عند استمرار المهمة:
+
+MASTER — RAWAEA ERP
+MAIN1 CONTINUATION / GAP COMPLETION DIRECTIVE
+
+أنت الآن لا تبدأ مهمة جديدة.
+
+أنت تستكمل مهمة جنائية تنفيذية قائمة داخل مشروع:
+
+papamohammed77-glitch/rawaie-erp-New
+
+والهدف التنفيذي النهائي هو:
+
+Current/PWA/New-main
+
+الوضع الإلزامي
+
+هذه المهمة لها أولوية مطلقة على أي مهمة أخرى.
+
+لا تعتمد على:
+
+الذاكرة.
+التقارير السابقة.
+تصريحات مساعدين سابقين.
+CURRENT_STATE.md باعتباره مصدرًا للحقيقة.
+أي عبارة مثل "تم التنفيذ" أو "Closed" دون التحقق المباشر.
+أي branch غير main باعتباره الحالة الحالية.
+
+الترتيب الإجباري لمصادر الحقيقة:
+
+Current Runtime / Current Target
+GitHub main
+Production Supabase
+Auth metadata
+Current deployments / published artifacts
+Project logs / forensic logs / execution records
+Verified current source files
+Historical contracts
+Historical reports
+Memory
+Assumptions — ممنوعة
+
+UNKNOWN لا تعني BUG.
+UNKNOWN لا تعني REMOVE.
+UNKNOWN تعني INVESTIGATE.
+
+الهدف
+
+إكمال MAIN1 بالكامل داخل:
+
+Current/PWA/New-main
+
+ولا يجوز اعتبار المهمة منتهية لأن بعض الملفات أو الـfragments موجودة.
+
+إذا وجدت أي نقص:
+لا تتوقف.
+لا تطلب من المستخدم ملفات إضافية.
+لا تقل لا يمكنني المتابعة.
+
+استخدم جميع المصادر المتاحة في المشروع للوصول إلى الحل.
+
+العقد التاريخي الذي يجب الحفاظ عليه
+OWNER
+
+المالك لا يتم تحديده من Role.
+
+لا تستخدم:
+
+role === "مدير النظام"
+
+ولا:
+
+owner_profile exists => owner
+
+العقد الصحيح هو:
+
+auth.user.user_metadata.isOwner === true
+
+مع:
+
+permissions = ["*"]
+
+والـwildcard * يجب الحفاظ عليه باعتباره authorization semantics حقيقية.
+
+LICENSE MANAGEMENT
+
+الوحدة المرجعية لإدارة الترخيص هي:
+
+Current/PWA/main/main10.md
+
+والعقد المطلوب استعادته داخل New-main يشمل:
+
+RW_OwnerLicense
+Owner guard
+license navigation
+license view
+license route/action
+license settings
+company status
+trial dates
+subscription dates
+save-settings
+owner-only protection
+
+يجب ألا تكون إدارة الترخيص مجرد menu label.
+
+يجب أن يكون المسار:
+
+Navigation → Router → RW_OwnerLicense → Owner Guard → Data → save-settings
+
+عاملًا بالكامل.
+
+SESSION CONTRACT
+
+يجب الحفاظ على reset state في:
+
+logout
+session expiration
+failed bootstrap
+identity change
+re-entry
+
+ويجب منع تسرب بيانات المستخدم السابق.
+
+EXECUTION RULE
+
+نفذ بالترتيب:
+
+اقرأ MASTER - RAWAEA ERP.md كاملًا.
+اقرأ Prompt 120 كاملًا.
+اقرأ التقرير التنفيذي 5 كاملًا.
+افحص GitHub main مباشرة.
+افحص Current/PWA/New-main مباشرة.
+افحص Current/PWA/main/main1.md إلى main11.md.
+افحص main10.md كمرجع مباشر للـOwner License.
+افحص جميع forensic / execution / audit logs.
+افحص Supabase مباشرة.
+افحص Auth metadata مباشرة.
+افحص production/deployed artifact إن أمكن.
+قارن الأدلة.
+سجل التعارضات.
+حدد النقص الحقيقي فقط.
+نفذ الإصلاح داخل Current/PWA/New-main.
+لا تعدل Current/PWA/main.html.
+لا تستبدل New-main عشوائيًا بنسخة تاريخية.
+لا تنقل كودًا تاريخيًا إلا بعد إثبات أنه العقد الصحيح.
+نفذ syntax validation.
+نفذ static validation.
+نفذ browser/runtime validation.
+افحص owner authorization.
+افحص tenant isolation.
+افحص عدم وجود direct business-state writers غير المصرح بها.
+افحص أن license route يعمل فعليًا.
+افحص أن New-main نفسه تغير فعلًا.
+سجل commit والأدلة.
+أعد التحقيق إذا فشل أي gate.
+قاعدة النقص
+
+إذا كان main1 أو أي جزء من MAIN1 غير مكتمل:
+
+DO NOT STOP.
+
+ابحث في:
+
+Current/PWA/main/
+Original/PWA/main/
+Current/CTO/
+forensic logs
+commits
+branches
+PRs
+project execution records
+Supabase
+Auth
+current deployments
+
+ثم استنتج الحل من الأدلة فقط.
+
+إذا وجدت أكثر من حل:
+اختر الحل الذي يطابق current architecture والعقد التاريخي المثبت.
+
+قاعدة New-main
+
+ممنوع أن يكون الناتج مجرد report.
+
+يجب أن يحدث تعديل فعلي على:
+
+Current/PWA/New-main
+
+إذا لم يتغير هذا الملف، فالمهمة:
+OPEN
+
+حتى لو كانت كل التقارير تقول:
+COMPLETE
+
+قاعدة الإغلاق
+
+لا تستخدم:
+
+Closed
+Complete
+100%
+Done
+
+إلا عندما تكون جميع الشروط التالية مثبتة:
+
+MAIN1 contract complete
+target file actually modified
+no unresolved mandatory symbols
+owner contract verified
+wildcard verified
+license route verified
+session reset verified
+syntax passed
+static validation passed
+browser smoke passed
+runtime behavior verified
+Supabase contract verified
+no unauthorized legacy overwrite
+evidence log created
+final commit identified
+final GitHub state verified
+
+إذا فشل شرط واحد:
+
+STATUS = OPEN
+
+ثم استمر في معالجة النقص.
+
+FINAL REPORT FORMAT
+
+BLOCKER
+EVIDENCE
+DECISION
+ACTION
+RISK
+NEXT GATE
+FINAL MAIN1 STATUS
+
+ولا تكتب "Closed 100%" إلا بعد تحقق فعلي كامل.
+
+البرومبت الثاني
+الانتقال من ملف إلى الملف التالي — فقط بعد Closed 100%
+
+هذا البرومبت أكثر صرامة، لأنه يمنع الانتقال الوهمي بين main1 → main2 → ....
+
+MASTER — RAWAEA ERP
+CONTROLLED FILE-TO-FILE TRANSITION DIRECTIVE
+
+أنت تعمل ضمن إعادة بناء RAWAEA ERP بطريقة forensic controlled reconstruction.
+
+هذه ليست جلسة تطوير عادية.
+
+لا تنتقل إلى الملف التالي لمجرد أن الملف الحالي "يبدو جيدًا".
+
+قاعدة الانتقال الوحيدة
+
+الانتقال من:
+
+MAINn
+
+إلى:
+
+MAINn+1
+
+ممنوع تمامًا إلا عندما تكون حالة MAINn:
+
+CLOSED 100%
+
+ومثبتة بأدلة.
+
+قبل الانتقال
+
+نفذ على الملف الحالي:
+
+1. SOURCE VERIFICATION
+
+تحقق من:
+
+Current source
+GitHub main
+Supabase
+Auth
+deployed artifact
+forensic logs
+historical contract
+2. TARGET VERIFICATION
+
+تحقق أن:
+
+Current/PWA/New-main
+
+هو الملف الذي تم تعديله فعليًا.
+
+لا تقبل:
+
+report-only completion
+branch-only completion
+PR-only completion
+candidate artifact غير persisted
+build generated ثم لم يُكتب إلى New-main
+3. CONTRACT VERIFICATION
+
+تحقق من جميع وظائف الملف الحالي، بما فيها:
+
+dependencies
+exported symbols
+events
+routes
+permissions
+tenant context
+session context
+database access
+RPCs
+Edge Functions
+audit
+notifications
+workflows
+cross-module dependencies
+4. STATIC VALIDATION
+
+يجب أن يمر:
+
+JavaScript syntax
+structural validation
+symbol validation
+duplicate detection
+dead route detection
+missing dependency detection
+forbidden direct writer detection
+5. RUNTIME VALIDATION
+
+يجب تنفيذ browser/runtime smoke.
+
+لا تستخدم نجاح Node --check كبديل عن runtime.
+
+6. AUTHORIZATION VALIDATION
+
+تحقق من:
+
+isOwner
+
+ويجب أن يأتي من Auth metadata.
+
+وتحقق من:
+
+permissions=["*"]
+
+ولا تستخدم role بدل owner identity.
+
+7. DATABASE VALIDATION
+
+تحقق من الواقع في Supabase.
+
+لا تفترض أن schema موجود لمجرد أن تقريرًا قال ذلك.
+
+CLOSED 100% GATE
+
+يمكن إعلان:
+
+MAINn = CLOSED 100%
+
+فقط عندما:
+
+ALL CONTRACTS
++
+ALL DEPENDENCIES
++
+TARGET MODIFIED
++
+STATIC PASS
++
+RUNTIME PASS
++
+AUTH PASS
++
+DB PASS
++
+AUDIT EVIDENCE
++
+GIT EVIDENCE
+
+كلها PASS.
+
+إذا فشل شرط واحد
+
+لا تنتقل.
+
+لا تقل:
+
+"سنصلحه لاحقًا."
+
+لا تقل:
+
+"هذا خارج نطاق الملف."
+
+لا تقل:
+
+"الجزء التالي قد يعالج المشكلة."
+
+بل:
+
+CURRENT FILE = OPEN
+
+ثم استكمل إصلاحه.
+
+الانتقال
+
+فقط بعد CLOSED 100%:
+
+سجل FINAL MAINn STATUS.
+سجل commit SHA.
+سجل artifact SHA.
+سجل validation results.
+سجل unresolved = 0.
+سجل NEXT AUTHORIZED FILE.
+ابدأ قراءة الملف التالي من المصدر الكامل.
+لا تحمل افتراضات الملف السابق إلى الملف الجديد.
+حافظ فقط على العقود المشتركة المثبتة.
+أعد تنفيذ نفس forensic protocol للملف الجديد.
+CONTINUITY RULE
+
+لا تبدأ MAINn+1 من الصفر.
+
+لكن لا تثق أيضًا بأن MAINn تم بشكل صحيح لمجرد أنه مغلق.
+
+استخدم:
+
+Closed Evidence
+
+كمصدر للـcontinuity،
+وليس كبديل عن إعادة التحقق من المصدر الحالي.
+
+FINAL TRANSITION RECORD
+
+اكتب:
+
+CURRENT FILE:
+STATUS:
+CLOSED EVIDENCE:
+COMMIT:
+ARTIFACT:
+STATIC:
+RUNTIME:
+AUTH:
+DATABASE:
+UNRESOLVED:
+NEXT AUTHORIZED FILE:
+
+ثم انتقل فقط إذا كانت:
+
+STATUS = CLOSED 100%
+و
+UNRESOLVED = 0
+
+الخلاصة التنفيذية
+
+أهم تصحيح يجب أن يحمله المساعد التالي هو هذا:
+
+Owner ≠ Role
+Owner = Auth isOwner=true
+Owner Permissions = ["*"]
+
+و:
+
+License Management
+≠ مجرد Permission
+= Module + Navigation + Router + Owner Guard + Data + save-settings
+
+والأهم:
+
+New-main الحالي لم يصل بعد إلى حالة Closed 100%.
+
+لأن آخر تحقق مباشر ما زال يرى New-main بالـSHA القديم، والـclean-room run الأخير الذي أمكن إثباته فشل قبل كتابة الـartifact.
+
+لذلك لا أعتبر المهمة مكتملة، ولا أعتبر التبويب محلولًا لمجرد أن Supabase والـAuth أصبحا صحيحين. الحد الفاصل الصحيح هو: تعديل Current/PWA/New-main نفسه ثم اجتياز جميع بوابات التحقق ثم إثبات CLOSED 100%.
