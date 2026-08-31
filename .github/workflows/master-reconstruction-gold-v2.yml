@@ -1,0 +1,49 @@
+name: RAWAEA MASTER RECONSTRUCTION GOLD V2
+on:
+  push:
+    branches: [reconstruction-gold-20260831]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  reconstruct:
+    if: !contains(github.event.head_commit.message, '[gold-pipeline]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: reconstruction-gold-20260831, fetch-depth: 0}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - uses: actions/setup-node@v4
+        with: {node-version: '20'}
+      - name: Gates 0-4
+        run: python3 tools/gold_reconstruction_v2.py
+      - name: Gate 5
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          python3 -m http.server 8123 --directory Current/PWA >/tmp/rw_http.log 2>&1 &
+          sleep 2
+          python3 tools/playwright_reconstruction_v2.py
+      - name: Gate 7
+        run: |
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          b=json.loads(Path('Current/CTO/RECONSTRUCTION_BASELINE.json').read_text())
+          m=Path('Current/PWA/main.html'); c=Path('Current/PWA/main.reconstruction.html')
+          h=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+          assert h(m)==b['current_main']['sha256'],'MAIN_CHANGED'
+          assert c.exists() and c.stat().st_size>100000,'CANDIDATE_INVALID'
+          print('GATE7 PASS',h(c))
+          PY
+      - name: Persist evidence
+        run: |
+          git config user.name 'RAWAEA Gold Reconstruction'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Current/PWA/main.reconstruction.html Current/CTO
+          git commit -m '[gold-pipeline] persist reconstruction evidence' || true
+          git push origin HEAD:reconstruction-gold-20260831

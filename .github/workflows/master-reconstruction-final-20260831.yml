@@ -1,0 +1,82 @@
+name: RAWAEA Master Reconstruction FINAL 20260831
+
+on:
+  push:
+    branches: [reconstruction-gold-20260831-v3]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  final-reconstruction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout frozen branch
+        uses: actions/checkout@v4
+        with:
+          ref: reconstruction-gold-20260831-v3
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Gate 0-4 semantic build and static validation
+        run: |
+          set -euo pipefail
+          python3 tools/gold_reconstruction_final.py
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('Current/CTO/GREENFIELD_BUILD_RESULT.json').read_text())
+          assert p['status']=='PASS', p
+          print(json.dumps(p, ensure_ascii=False, indent=2))
+          PY
+          test -s Current/PWA/main.reconstruction.html
+
+      - name: Gate 5 Playwright browser smoke
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          rm -rf /tmp/rw-pwa && mkdir -p /tmp/rw-pwa
+          cp -a Current/PWA/. /tmp/rw-pwa/
+          cp Current/PWA/main.reconstruction.html /tmp/rw-pwa/main.html
+          python3 -m http.server 8123 --directory /tmp/rw-pwa >/tmp/rw-http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID || true' EXIT
+          sleep 2
+          python3 tools/playwright_reconstruction.py
+
+      - name: Gate 7 verify parent seed immutability
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          b=json.loads(Path('Current/CTO/RECONSTRUCTION_BASELINE.json').read_text())
+          h=lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+          assert h(Path('Current/PWA/main.html')) == b['current_main']['sha256'], 'MAIN_SEED_MUTATED'
+          c=Path('Current/PWA/main.reconstruction.html')
+          assert c.exists() and c.stat().st_size > 100000, 'CANDIDATE_TOO_SMALL'
+          print('GATE7_PASS', h(c))
+          PY
+
+      - name: Upload final evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawaea-final-reconstruction-evidence
+          path: |
+            Current/PWA/main.reconstruction.html
+            Current/CTO/*.json
+            Current/CTO/*.md
+          if-no-files-found: error
