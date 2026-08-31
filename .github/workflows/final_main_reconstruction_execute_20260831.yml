@@ -1,3 +1,4 @@
+# Governed CI: this workflow executes a clean-room rebuild from main1.md..main11.md.
 name: RAWAEA FINAL MAIN.HTML RECONSTRUCTION — 20260831
 
 on:
@@ -8,6 +9,14 @@ on:
       - 'tools/p0_main_shell_repair_v2.py'
       - 'tools/master_reconstruction_postprocess.py'
       - 'Current/PWA/main.html'
+      - 'Original/PWA/main.html'
+      - 'Current/PWA/main/**'
+      - '.github/workflows/final_main_reconstruction_execute_20260831.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/run_final_main_reconstruction_20260831.py'
+      - 'tools/master_reconstruction_postprocess.py'
       - 'Original/PWA/main.html'
       - 'Current/PWA/main/**'
       - '.github/workflows/final_main_reconstruction_execute_20260831.yml'
@@ -22,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - name: Checkout verified current main
+      - name: Checkout verified reconstruction sources
         uses: actions/checkout@v4
         with:
           ref: main
@@ -80,19 +89,7 @@ jobs:
             page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
             await page.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});
             await page.waitForTimeout(5000);
-            const r=await page.evaluate(()=>({
-              title:document.title,
-              lang:document.documentElement.lang,
-              body:!!document.body,
-              rwState:!!window.RW_STATE,
-              auth:!!window.RW_Auth,
-              nav:!!window.RW_Navigation,
-              views:!!window.RW_Views,
-              shell:!!window.RW_ShellContext,
-              owner:!!window.RW_OwnerContract,
-              ownerWildcard:!!(window.RW_STATE&&Array.isArray(window.RW_STATE.permissions)&&window.RW_STATE.permissions.indexOf('*')!==-1),
-              serviceWorker:'serviceWorker' in navigator
-            }));
+            const r=await page.evaluate(()=>({title:document.title,lang:document.documentElement.lang,body:!!document.body,rwState:!!window.RW_STATE,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerContract}));
             console.log(JSON.stringify({result:r,pageErrors,consoleErrors}));
             if(r.lang!=='ar'||!r.body||!r.rwState||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||pageErrors.length) process.exit(2);
             await browser.close();
