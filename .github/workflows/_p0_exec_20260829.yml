@@ -1,153 +1,72 @@
-name: RAWAEA Main PWA P1 Forensic Repair
+name: RAWAEA FINAL MAIN RECONSTRUCTION EXECUTION CHANNEL
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
       - '.github/workflows/_p0_exec_20260829.yml'
+      - 'tools/run_final_main_reconstruction_20260831.py'
+      - 'tools/p0_main_shell_repair_v2.py'
+      - 'tools/master_reconstruction_postprocess.py'
+      - 'Current/PWA/main.html'
+      - 'Original/PWA/main.html'
 permissions:
   contents: write
 jobs:
-  repair_p1:
+  final_reconstruction:
+    if: ${{ !contains(github.event.head_commit.message, '[final-main-reconstruction-20260831]') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
-      - name: Checkout main
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 0
-      - name: Repair main1.md only
+          fetch-depth: 2
+      - name: Verify baseline
+        run: |
+          set -euo pipefail
+          test -s Current/PWA/main.html
+          test -s Original/PWA/main.html
+          git rev-parse HEAD
+          sha256sum Current/PWA/main.html
+      - name: Execute reconstruction
+        run: python3 tools/run_final_main_reconstruction_20260831.py
+      - name: JavaScript syntax gate
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re
-          import subprocess
-          import tempfile
-
-          p = Path('Current/PWA/main/main1.md')
-          if not p.exists():
-              raise SystemExit('P1_MISSING')
-          s = p.read_text(encoding='utf-8')
-
-          if 'RAWAEA_P1_FORENSIC_CLOSED:v1' in s:
-              raise SystemExit('P1_ALREADY_CLOSED')
-
-          anchor = 'window.RW_STATE = RW_STATE;'
-          if s.count(anchor) != 1:
-              raise SystemExit(f'P1_ANCHOR_COUNT={s.count(anchor)}')
-
-          context = r'''// RAWAEA GOVERNED TENANT CONTEXT
-var RW_ShellContext=(function(){
-    var companyId=null,userId=null,resolving=null;
-    function resolve(){
-        if(companyId) return Promise.resolve(companyId);
-        if(resolving) return resolving;
-        var u=RW_STATE.app.currentUser||{};
-        if(u.companyId){
-            companyId=u.companyId;
-            userId=u.id||null;
-            RW_STATE.app.companyId=companyId;
-            RW_STATE.app.userId=userId;
-            return Promise.resolve(companyId);
-        }
-        if(!u.authId) return Promise.reject(new Error('AUTH_ID_UNAVAILABLE'));
-        resolving=RW_SUPABASE_CLIENT.from('users')
-            .select('id,company_id,name,role,status')
-            .eq('auth_id',u.authId)
-            .eq('status','Active')
-            .maybeSingle()
-            .then(function(r){
-                if(r.error||!r.data||!r.data.company_id) throw new Error('TENANT_CONTEXT_UNAVAILABLE');
-                companyId=r.data.company_id;
-                userId=r.data.id||null;
-                RW_STATE.app.companyId=companyId;
-                RW_STATE.app.userId=userId;
-                if(RW_STATE.app.currentUser){
-                    RW_STATE.app.currentUser.id=userId;
-                    RW_STATE.app.currentUser.companyId=companyId;
-                    if(r.data.name) RW_STATE.app.currentUser.name=r.data.name;
-                    if(r.data.role) RW_STATE.app.currentUser.role=r.data.role;
-                }
-                return companyId;
-            })
-            .finally(function(){resolving=null;});
-        return resolving;
-    }
-    function getCompanyId(){
-        if(!companyId) companyId=RW_STATE.app.companyId || (RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId) || null;
-        if(!companyId) throw new Error('TENANT_CONTEXT_UNAVAILABLE');
-        return companyId;
-    }
-    return {resolve:resolve,getCompanyId:getCompanyId,hasCompany:function(){return !!(companyId||RW_STATE.app.companyId||(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId));}};
-})();
-window.RW_ShellContext=RW_ShellContext;
-'''
-          s = s.replace(anchor, anchor+'\n'+context, 1)
-
-          old_user = """email: user.email,\n                role: meta.role || 'مدير النظام',\n                isOwner: meta.isOwner === true || meta.isOwner === 'true'\n            };"""
-          new_user = """email: user.email,\n                authId: user.id,\n                companyId: null,\n                role: meta.role || 'مدير النظام',\n                isOwner: meta.isOwner === true || meta.isOwner === 'true'\n            };"""
-          if s.count(old_user) != 1:
-              raise SystemExit(f'P1_USER_BLOCK_COUNT={s.count(old_user)}')
-          s = s.replace(old_user,new_user,1)
-
-          old_perm = "RW_STATE.permissions = meta.permissions || ['*'];"
-          new_perm = "RW_STATE.permissions = (RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner === true) ? ['*'] : (Array.isArray(meta.permissions) ? meta.permissions.slice() : []);"
-          if s.count(old_perm) != 1:
-              raise SystemExit(f'P1_PERMISSION_BLOCK_COUNT={s.count(old_perm)}')
-          s = s.replace(old_perm,new_perm,1)
-
-          old_enter = 'enterSystem: function() {'
-          new_enter = 'enterSystem: async function() {'
-          if s.count(old_enter) != 1:
-              raise SystemExit(f'P1_ENTER_COUNT={s.count(old_enter)}')
-          s = s.replace(old_enter,new_enter,1)
-
-          old_call = 'self.enterSystem();'
-          new_call = 'return self.enterSystem();'
-          if s.count(old_call) != 1:
-              raise SystemExit(f'P1_ENTER_CALL_COUNT={s.count(old_call)}')
-          s = s.replace(old_call,new_call,1)
-
-          old_hide = 'enterSystem: async function() {\n    hideLoader();'
-          new_hide = "enterSystem: async function() {\n    await RW_ShellContext.resolve();\n    hideLoader();"
-          if s.count(old_hide) != 1:
-              raise SystemExit('P1_ENTER_BODY_ANCHOR_MISSING')
-          s = s.replace(old_hide,new_hide,1)
-
-          old_settings = ".from('app_settings')\n            .select('*')\n            .limit(1)"
-          new_settings = ".from('app_settings')\n            .select('*')\n            .eq('company_id', RW_ShellContext.getCompanyId())\n            .limit(1)"
-          if s.count(old_settings) != 1:
-              raise SystemExit(f'P1_SETTINGS_BLOCK_COUNT={s.count(old_settings)}')
-          s = s.replace(old_settings,new_settings,1)
-
-          # The P1 contract must never convert missing tenant context into a permissive safe mode.
-          safe_mode = "showToast('تم تشغيل النظام في الوضع الآمن', 'warning');"
-          if safe_mode in s:
-              s = s.replace(safe_mode,"throw new Error('FAIL_CLOSED_TENANT_CONTEXT');",1)
-
-          # Guard exact P1 surface against direct Physical Stock / inventory_log writes.
-          if re.search(r"supabase\.from\(['\"]stock_branches['\"]\)[^;]{0,1200}\.(?:update|insert|upsert|delete)\(",s,re.S):
-              raise SystemExit('P1_DIRECT_STOCK_WRITER')
-          if re.search(r"supabase\.from\(['\"]inventory_log['\"]\)[^;]{0,700}\.insert\(",s,re.S):
-              raise SystemExit('P1_DIRECT_INVENTORY_LOG_WRITER')
-
-          s = s.rstrip() + '\n<!-- RAWAEA_P1_FORENSIC_CLOSED:v1 -->\n'
-          p.write_text(s,encoding='utf-8')
-
-          # Syntax check: extract inline scripts and check each as one concatenated unit.
-          code='\n'.join(re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I))
-          f=Path(tempfile.gettempdir())/'main1-inline.js'
-          f.write_text(code,encoding='utf-8')
-          r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-          if r.returncode:
-              print(r.stderr)
-              raise SystemExit('P1_JS_SYNTAX')
-
-          subprocess.run(['git','diff','--check'],check=True)
-          subprocess.run(['git','add','Current/PWA/main/main1.md'],check=True)
-          subprocess.run(['git','commit','-m','fix(p1): repair existing main1 tenant and owner shell in place'],check=True)
-          subprocess.run(['git','push','origin','HEAD:main'],check=True)
-          print('P1_COMMITTED')
+          import re,subprocess,tempfile
+          s=Path('Current/PWA/main.html').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I)
+          for i,c in enumerate(scripts,1):
+              p=Path(tempfile.gettempdir())/f'rw-final-{i}.js'; p.write_text(c,encoding='utf-8')
+              r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
+              if r.returncode: print(r.stderr); raise SystemExit(1)
+          print('JS_SYNTAX_PASS',len(scripts))
           PY
+      - name: Browser smoke gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          rm -rf /tmp/rw-final-pwa; mkdir -p /tmp/rw-final-pwa
+          cp -r Current/PWA/. /tmp/rw-final-pwa/
+          python3 -m http.server 8123 --directory /tmp/rw-final-pwa >/tmp/rw-http.log 2>&1 &
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[];p.on('pageerror',e=>pe.push(e.message));await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(4000);const r=await p.evaluate(()=>({lang:document.documentElement.lang,body:!!document.body,state:!!window.RW_STATE,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerContract}));console.log(JSON.stringify({r,pe}));if(r.lang!=='ar'||!r.body||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||pe.length)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)})
+          NODE
+      - name: Persist verified reconstruction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'rawaea-reconstruction-bot'
+          git config user.email 'rawaea-reconstruction-bot@users.noreply.github.com'
+          git add Current/PWA/main.html Current/CTO
+          git diff --cached --quiet && { echo NO_RECONSTRUCTION_DELTA; exit 1; }
+          git commit -m '[final-main-reconstruction-20260831] persist reconstructed main.html and evidence'
+          git push origin HEAD:main
