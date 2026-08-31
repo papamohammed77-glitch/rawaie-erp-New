@@ -1,0 +1,4046 @@
+{
+  "_addCategory": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_applyFilters": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_buildCategoryFilterFromDB": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_deleteCategory": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_editCategory": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_esc": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_executeDeleteCategory": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_executeUpload": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_exportMatrixToExcel": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_filterMatrix": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_fmtNum": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_getStockStatus": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_handleDeleteFromPage": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_handleFileSelect": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_handleSaveFromPage": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_loadCategoriesIntoSelect": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_loadMovementReport": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_loadStockData": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_openCategoryModal": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderBranchStockMatrix": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderBranchStockMatrixFiltered": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderListView": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderStockMovementReport": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderSubTabs": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderTable": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderUploadPreview": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderUploadTab": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_resetFilters": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_rwCompanyId": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_showBranchStockMovement": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_sort": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_switchItemTab": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_switchSubTab": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_viewImage": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "destroyCharts": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "executeSave": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "loadAll": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "openItemPage": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "render": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "renderRegionChart": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "renderSalesChart": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "renderTopCustomersChart": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "renderTopItemsChart": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "resolveImageUrlAndSave": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "shiftDate": {
+    "current_owner": "main2",
+    "original_owner": "main2",
+    "target_owner": "main2",
+    "rpcs": [],
+    "edge_refs": [
+      "bulk-stock-adjustment",
+      "delete-item",
+      "save-category",
+      "save-item"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_handleDelete": {
+    "current_owner": "main3",
+    "original_owner": "main3",
+    "target_owner": "main3",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_handleSave": {
+    "current_owner": "main3",
+    "original_owner": "main3",
+    "target_owner": "main3",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_openModal": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_removeAssignedCustomer": {
+    "current_owner": "main3",
+    "original_owner": "main3",
+    "target_owner": "main3",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_searchAssignmentCustomers": {
+    "current_owner": "main3",
+    "original_owner": "main3",
+    "target_owner": "main3",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_switchEmpTab": {
+    "current_owner": "main3",
+    "original_owner": "main3",
+    "target_owner": "main3",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_toggleAssignmentCustomer": {
+    "current_owner": "main3",
+    "original_owner": "main3",
+    "target_owner": "main3",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "edgeCall": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "employee": {
+    "current_owner": "main3",
+    "original_owner": "main3",
+    "target_owner": "main3",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "getToken": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "load": {
+    "current_owner": "main10",
+    "original_owner": "main10",
+    "target_owner": "main10",
+    "rpcs": [],
+    "edge_refs": [
+      "save-settings"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "loadAssignments": {
+    "current_owner": "main3",
+    "original_owner": "main3",
+    "target_owner": "main3",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "modal": {
+    "current_owner": "main3",
+    "original_owner": "main3",
+    "target_owner": "main3",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "notifyError": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "openForm": {
+    "current_owner": "main3",
+    "original_owner": "main3",
+    "target_owner": "main3",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "renderTable": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "save": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "searchRows": {
+    "current_owner": "main3",
+    "original_owner": "main3",
+    "target_owner": "main3",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_addToCart": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_clearCart": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_getAvailable": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_removeItem": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_saveNewCustomer": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_saveOrder": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_searchCustomers": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_searchItems": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_selectCustomer": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_showNewCustomerForm": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_switchRoleTab": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_updateQty": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "addItem": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "bindEvents": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "buildCheckboxes": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "buildHTML": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "clearCart": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "esc": {
+    "current_owner": "main10",
+    "original_owner": "main10",
+    "target_owner": "main10",
+    "rpcs": [],
+    "edge_refs": [
+      "save-settings"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "getCompanyId": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "loadBranches": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "loadCustomers": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "loadRoles": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "onCustChange": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "openModal": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "removeItem": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "renderCart": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "search": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "seedDefaultRoles": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "updateCartDisplay": {
+    "current_owner": "main4",
+    "original_owner": "main4",
+    "target_owner": "main4",
+    "rpcs": [],
+    "edge_refs": [
+      "delete-role",
+      "save-customer",
+      "save-role",
+      "save-sales-invoice",
+      "seed-roles"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "updateQty": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_appendRS": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_apply": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_buildPrintWindow": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_cancelRunsheet": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_changeStatus": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_confirm": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_confirmOrderFromDetails": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_createRS": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_delete": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_deleteRunsheet": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_details": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_getSelectedOrders": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_loadRunsheetCodes": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_printManifest": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_printOrder": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_refreshData": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_showDetails": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_showWithoutRS": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_statusClass": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_validateSelected": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "buildDriverOptions": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "buildVehicleOptions": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "byLocalId": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "decorate": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "escAttr": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "formatDate": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "formatNumber": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "loadData": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "loadHelpers": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "refreshRealtimeChannel": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "safeAudit": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "safeNotification": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "safeWorkflow": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "statusClassOrder": {
+    "current_owner": "main5",
+    "original_owner": "main5",
+    "target_owner": "main5",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "addToCart": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "buildCats": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "collectCart": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "companyId": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "escJs": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "fallbackImage": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "findItem": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "id": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "itemByCode": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "js": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "loadSettings": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "loadSuppliers": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "money": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "openReceive": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "renderCards": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "renderOrders": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "renderPOCart": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "renderPOS": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "renderPOTable": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "savePO": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "searchItem": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "setCat": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "showCart": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "showProduct": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "supplierById": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "text": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "token": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "trackOrder": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "updateBadge": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "updateCart": {
+    "current_owner": "main6",
+    "original_owner": "main6",
+    "target_owner": "main6",
+    "rpcs": [],
+    "edge_refs": [
+      "receive-purchase",
+      "save-purchase-order",
+      "submit-online-order"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_addToInvCart": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_addVoucherItem": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_applyDelivery": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_applyLoading": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_applyPicking": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_applyReceiving": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_applyReturn": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_applyUnloading": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_applyVouchers": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_clearVoucherCart": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_confirmUnload": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_getMainBranch": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_loadVoucherEntityOptions": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_onSettlementRsChange": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_openDeliveryModal": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_openLoadingModal": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_openNewVoucherModal": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_openPickingModal": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_openReturnModal": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_receiveVoucher": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_removeInvCartItem": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_removeVoucherItem": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderInvCart": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderRsTable": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderVoucherCart": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_runsheet": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_saveAndSendVoucher": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_saveBranchCount": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_saveGeneralCount": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_saveInvCount": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_saveSettlement": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_saveVehicleCount": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_searchDriver": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_searchInvItem": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_searchVoucherItem": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_selectDriver": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_sendVoucher": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_showDeliveryDetails": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_showLoadingDetails": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_showPickingDetails": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_showReceivingDetails": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_showReturnDetails": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_showUnloadingDetails": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_startDelivery": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_startLoading": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_startPicking": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_startReturn": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_updateInvCartQty": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_updateVoucherPrice": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_updateVoucherQty": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_viewVoucherDetails": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "edge": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "loadBranchCount": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "loadDelivery": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "loadGeneralCount": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "loadLoading": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "loadPicking": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "loadReceiving": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "loadReturn": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "loadSettlement": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "loadUnloading": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "loadVehicleCount": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "loadVoucherForm": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "loadVouchers": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "q": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "refreshRunsheets": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "setHeader": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "stableOp": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "uuid": {
+    "current_owner": "main7",
+    "original_owner": "main7",
+    "target_owner": "main7",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_accountByCode": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_accountOptions": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_addJournalLine": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_addPaymentLine": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_addReceiptLine": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_balanceSheet": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_buildAccountTreeHtml": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_buildAccountsTree": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_buildTreasuryTable": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_byId": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_cashAccountId": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_cashDialog": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_companyId": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_costCenterProfitLoss": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_currentUserId": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_editBudget": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_editTreasury": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_filterAccounts": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_filterTreasury": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_flattenNodesForSearch": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_getPendingOperation": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_handleResult": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_hideLoader": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_invalidate": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_journalAccountOptions": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_loadAllData": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_loadBudgetsList": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_newPayment": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_newReceipt": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_newTransfer": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_openAccountDialog": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_openTreasuryDialog": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_profitLoss": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_recalcJournalTotal": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_recalcPaymentTotal": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_recalcReceiptTotal": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_removeJournalLine": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_removePaymentLine": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_removeReceiptLine": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderAccounts": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderBudgets": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderCashList": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderJournal": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderPayments": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderReceipts": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderReports": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderTransfers": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_renderTreasury": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_safeHtml": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_safeText": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_saveCashVoucher": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_saveJournalEntry": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_savePayment": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_saveReceipt": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_saveTransfer": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_seedAccounts": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_showError": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_showLoader": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_showToast": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_today": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_treasuryOptions": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_trialBalance": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_uuid": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "renderSubTab": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "section": {
+    "current_owner": "main8",
+    "original_owner": "main8",
+    "target_owner": "main8",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_budget_vs_actual",
+      "get_pnl_by_cost_center",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [
+      "save-journal-entry",
+      "save-transfer-voucher"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_bindDetailedDrilldowns": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_bindReportDrilldowns": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_branches": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_checkGroup": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_cid": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_closeSection": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_customers": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_dashboard": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_fmt": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_generateReport": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_hide": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_items": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_loadDetailedReports": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_loadDropdowns": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_loader": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_month": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_msg": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_openReport": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_openSection": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_printReport": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_q": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_showCustomerLedgerDetail": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_showItemMovementDetail": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_showRunsheetDetail": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_showSettlementDetail": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_stock": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_suppliers": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_table": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_toast": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_users": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "renderDashboard": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "renderDetailedReports": {
+    "current_owner": "main9",
+    "original_owner": "main9",
+    "target_owner": "main9",
+    "rpcs": [
+      "get_balance_sheet",
+      "get_cash_flow",
+      "get_profit_loss",
+      "get_trial_balance"
+    ],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "allowed": {
+    "current_owner": "main10",
+    "original_owner": "main10",
+    "target_owner": "main10",
+    "rpcs": [],
+    "edge_refs": [
+      "save-settings"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "authUser": {
+    "current_owner": "main10",
+    "original_owner": "main10",
+    "target_owner": "main10",
+    "rpcs": [],
+    "edge_refs": [
+      "save-settings"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "bind": {
+    "current_owner": "main10",
+    "original_owner": "main10",
+    "target_owner": "main10",
+    "rpcs": [],
+    "edge_refs": [
+      "save-settings"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "build": {
+    "current_owner": "main10",
+    "original_owner": "main10",
+    "target_owner": "main10",
+    "rpcs": [],
+    "edge_refs": [
+      "save-settings"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "cid": {
+    "current_owner": "main10",
+    "original_owner": "main10",
+    "target_owner": "main10",
+    "rpcs": [],
+    "edge_refs": [
+      "save-settings"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "err": {
+    "current_owner": "main10",
+    "original_owner": "main10",
+    "target_owner": "main10",
+    "rpcs": [],
+    "edge_refs": [
+      "save-settings"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "loader": {
+    "current_owner": "main10",
+    "original_owner": "main10",
+    "target_owner": "main10",
+    "rpcs": [],
+    "edge_refs": [
+      "save-settings"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "owner": {
+    "current_owner": "main10",
+    "original_owner": "main10",
+    "target_owner": "main10",
+    "rpcs": [],
+    "edge_refs": [
+      "save-settings"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "profile": {
+    "current_owner": "main10",
+    "original_owner": "main10",
+    "target_owner": "main10",
+    "rpcs": [],
+    "edge_refs": [
+      "save-settings"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "saveSettings": {
+    "current_owner": "main10",
+    "original_owner": "main10",
+    "target_owner": "main10",
+    "rpcs": [],
+    "edge_refs": [
+      "save-settings"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "settings": {
+    "current_owner": "main10",
+    "original_owner": "main10",
+    "target_owner": "main10",
+    "rpcs": [],
+    "edge_refs": [
+      "save-settings"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "toast": {
+    "current_owner": "main10",
+    "original_owner": "main10",
+    "target_owner": "main10",
+    "rpcs": [],
+    "edge_refs": [
+      "save-settings"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "unload": {
+    "current_owner": "main10",
+    "original_owner": "main10",
+    "target_owner": "main10",
+    "rpcs": [],
+    "edge_refs": [
+      "save-settings"
+    ],
+    "tenant": "RW_ShellContext"
+  },
+  "_buildCustomersTable": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_dateFormat": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_filterCustomers": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_getCompanyId": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_isOwnerRecord": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_openFollowupModal": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_resolveCustomer": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_rwById": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_rwEsc": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_rwHideLoader": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_rwSafeHTML": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_rwSafeText": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_rwShowLoader": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_rwToast": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "_rwUserEmail": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "boot": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  },
+  "generateQRInvoiceBase64": {
+    "current_owner": "main11",
+    "original_owner": "main11",
+    "target_owner": "main11",
+    "rpcs": [],
+    "edge_refs": [],
+    "tenant": "RW_ShellContext"
+  }
+}
