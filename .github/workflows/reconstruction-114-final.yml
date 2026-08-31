@@ -21,6 +21,32 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Repair verified source regression
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('Current/PWA/main/main7.md')
+          s = p.read_text(encoding='utf-8')
+          marker = "async function loadSettlement(){"
+          start = s.find(marker)
+          if start < 0:
+              raise SystemExit('LOAD_SETTLEMENT_SOURCE_MISSING')
+          end = s.find('\n  async function _onSettlementRsChange', start)
+          if end < 0:
+              raise SystemExit('LOAD_SETTLEMENT_BOUNDARY_MISSING')
+          block = s[start:end]
+          malformed = ".join(''));}"
+          fixed = ".join('')));}"
+          malformed_count = block.count(malformed)
+          fixed_count = block.count(fixed)
+          if malformed_count == 1 and fixed_count == 0:
+              s = s[:start] + block.replace(malformed, fixed, 1) + s[end:]
+              p.write_text(s, encoding='utf-8')
+              print('SOURCE_REPAIR_APPLIED main7.loadSettlement')
+          elif malformed_count == 0 and fixed_count == 1:
+              print('SOURCE_REPAIR_ALREADY_PRESENT')
+          else:
+              raise SystemExit(f'LOAD_SETTLEMENT_REPAIR_AMBIGUOUS malformed={malformed_count} fixed={fixed_count}')
       - name: Build greenfield candidate
         run: python3 tools/reconstruct_114.py
       - name: Static validation and module parity
@@ -75,6 +101,6 @@ jobs:
           set -euo pipefail
           git config user.name 'RAWAEA Prompt 114 Reconstruction'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add Current/PWA/main.reconstruction.html Current/CTO/*.json .github/workflows/reconstruction-114-final.yml tools/reconstruct_114.py
-          git commit -m '[reconstruction-114-artifact] greenfield candidate and gates' || exit 0
+          git add Current/PWA/main.reconstruction.html Current/PWA/main/main7.md Current/CTO/*.json .github/workflows/reconstruction-114-final.yml tools/reconstruct_114.py
+          git commit -m '[reconstruction-114-artifact] candidate build and verified source repair' || exit 0
           git push origin HEAD:reconstruction-114-final-20260831
