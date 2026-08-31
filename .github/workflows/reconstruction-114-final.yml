@@ -27,7 +27,7 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re, subprocess, tempfile, json
+          import re, subprocess, tempfile
           p=Path('Current/PWA/main.reconstruction.html')
           s=p.read_text(encoding='utf-8')
           assert s.lower().count('<!doctype html>')==1
@@ -70,12 +70,11 @@ jobs:
             await browser.close();
           })().catch(e=>{console.error(e);process.exit(4)});
           NODE
-      - name: Production evidence placeholder gate
+      - name: Evidence placeholders
         run: |
           python3 - <<'PY'
-          import json,subprocess
+          import json
           from pathlib import Path
-          # The live Supabase snapshot is collected separately from the privileged DB connector.
           Path('Current/CTO/playwright-result.json').write_text(json.dumps({'status':'PASS','authenticated_runtime':'NOT_VERIFIED','note':'Unauthenticated shell smoke only'},ensure_ascii=False,indent=2),encoding='utf-8')
           Path('Current/CTO/production-contract-result.json').write_text(json.dumps({'status':'PENDING_LIVE_CONNECTOR_VERIFICATION'},ensure_ascii=False,indent=2),encoding='utf-8')
           PY
@@ -83,7 +82,7 @@ jobs:
         run: |
           set -euo pipefail
           git config user.name 'RAWAEA Prompt 114 Reconstruction'
-          git.config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add Current/PWA/main.reconstruction.html Current/CTO/*.json
           git add .github/workflows/reconstruction-114-final.yml tools/reconstruct_114.py
           git add -A
