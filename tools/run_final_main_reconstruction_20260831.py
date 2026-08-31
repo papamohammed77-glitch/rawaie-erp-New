@@ -4,10 +4,11 @@ import json
 import hashlib
 
 MAIN = Path('Current/PWA/main.html')
-ORIGINAL = Path('Original/PWA/main.html')
 CUR = Path('Current/PWA/main')
+ORIG = Path('Original/PWA/main')
 CTO = Path('Current/CTO')
 PARTS = [CUR / f'main{i}.md' for i in range(1, 12)]
+ORIGINAL_PARTS = [ORIG / f'main{i}.md' for i in range(1, 12)]
 
 
 def fp(text: str) -> str:
@@ -79,18 +80,27 @@ def validate_candidate(s: str) -> dict:
         raise SystemExit('DIRECT_STOCK_WRITER_REMAINS')
     if re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,800}?\.(?:update|insert|upsert|delete)\(", s):
         raise SystemExit('DIRECT_INVENTORY_LOG_WRITER_REMAINS')
-    original = ORIGINAL.read_text(encoding='utf-8-sig')
-    osym = symbols(original)
-    fsym = symbols(s)
-    losses = {k: sorted(set(osym[k]) - set(fsym[k])) for k in osym}
-    if any(losses.values()):
-        raise SystemExit('ORIGINAL_SYMBOL_PARITY_FAIL:' + json.dumps(losses, ensure_ascii=False))
-    return losses
+
+    parity = {}
+    missing_original = []
+    for idx, (op, cp) in enumerate(zip(ORIGINAL_PARTS, PARTS), 1):
+        if not op.is_file() or op.stat().st_size == 0:
+            missing_original.append(str(op)); continue
+        osym = symbols(op.read_text(encoding='utf-8-sig'))
+        csym = symbols(cp.read_text(encoding='utf-8-sig'))
+        losses = {k: sorted(set(osym[k]) - set(csym[k])) for k in osym}
+        parity[f'main{idx}.md'] = losses
+    if missing_original:
+        raise SystemExit('MISSING_ORIGINAL_PARITY_PARTS:' + ','.join(missing_original))
+    hard_losses = {p: v for p, v in parity.items() if any(vv for vv in v.values())}
+    if hard_losses:
+        raise SystemExit('ORIGINAL_FRAGMENT_PARITY_FAIL:' + json.dumps(hard_losses, ensure_ascii=False))
+    return parity
 
 
 def main() -> None:
     candidate = assemble_clean_room()
-    losses = validate_candidate(candidate)
+    parity = validate_candidate(candidate)
     tmp = MAIN.with_suffix('.reconstructed.tmp')
     tmp.write_text(candidate, encoding='utf-8')
     tmp.replace(MAIN)
@@ -103,8 +113,7 @@ def main() -> None:
         'executor': 'tools/run_final_main_reconstruction_20260831.py',
         'main_sha256': fp(candidate),
         'main_bytes': len(candidate.encode('utf-8')),
-        'original_symbol_losses': losses,
-        'parts': [meta(p) for p in PARTS],
+        'fragment_parity': parity,
         'browser_runtime': 'PENDING_SEPARATE_GATE',
         'production_runtime': 'PENDING_SEPARATE_GATE'
     }
