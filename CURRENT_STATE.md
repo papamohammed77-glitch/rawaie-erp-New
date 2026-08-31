@@ -116,12 +116,12 @@ The current source evidence establishes many contracts, but it does not yet prov
 - Authorization to replace `Current/PWA/main.html`.
 
 ## LAST VERIFIED EVENT
-- Event ID: `LVE-2026-08-31-007`
-- Event Type: `NEW_MAIN_CONTRACT_EXPANSION_AND_FORNSIC_REVIEW`
-- UTC: `2026-08-31T07:xx:xxZ`
+- Event ID: `LVE-2026-08-31-008`
+- Event Type: `NEW_MAIN_CONTRACT_EXPANSION_AND_FORENSIC_REVIEW`
+- UTC: `2026-08-31T07:06:45Z`
 - Source: direct GitHub current repository + direct SMART ERP Production contract evidence
 - Git SHA: `ffdc712000488cecf0435b94704bc95153e6e58b`
-- Action: audited the previous New-main candidate against the reconstruction command and current logical-module evidence; expanded New-main with current shared Main contracts and specialized delegation; removed the temporary clean-room trigger.
+- Action: audited the previous New-main candidate against the reconstruction command and current logical-module evidence; expanded New-main with current shared Main contracts and specialized delegation; removed the temporary clean-room trigger; corrected the state record timestamp.
 - Result: `NEW-MAIN SUBSTANTIALLY EXPANDED / FULL PARITY AND RUNTIME CERTIFICATION OPEN`
 - Evidence: `Current/PWA/New-main` blob `e5376b78068e80d030a34ac77dac82efc8ebfd37`.
 - Impact: New-main now contains a materially broader clean-room Main surface while keeping legacy `Current/PWA/main.html` untouched.
