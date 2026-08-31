@@ -1,0 +1,345 @@
+نعم. بعد مراجعة آخر السلسلة، الصورة أصبحت أوضح بكثير: المشكلة لم تعد في “كيف نصلح main1 ثم main2…”، بل في أن التنفيذ ظل يتحول إلى سلسلة تحقيقات وتقارير وGates تتكرر دون تحويلها إلى مسار إغلاق واحد.
+آخر حالة موثقة فعليًا تقول إن مسار reconstruction-114-final-20260831 موجود، وPR #50 موجود، وتم إنشاء Candidate وBuilder وGates، لكن لم يتم بعد الوصول إلى Browser Runtime ثم Production Replacement ثم Post-Replacement Closure. كما أن التقرير نفسه يثبت أن بعض افتراضات الـCI القديمة كانت خاطئة، وأن main1 Parent يحتاج Assembly خاصًا، وأن عقد OWNER الحقيقي يجب أخذه من runtime الفعلي لا من API مخترع.
+كما أن الـMaster Execution Prompt نفسه يفرض أن Production وGit والـRuntime هي الحكم النهائي، وأن الهدف هو Artifact نهائي واحد وليس الاستمرار في إعادة بناء الأجزاء إلى ما لا نهاية.
+لذلك غيّرت الاستراتيجية جذريًا:
+لن نعطي المساعد 11 مرحلة.
+لن نعطيه عشرات الـGates.
+لن نطالبه بإعادة التحقيق في كل مرة.
+سنقسم الطريق كله إلى 5 أوامر فقط، وكل أمر له بداية واضحة ونهاية غير قابلة للتأويل.
+والأهم: الأوامر الخمسة تعمل على الـIntegrated Artifact، وليس على main1…main11 واحدًا واحدًا من جديد.
+________________________________________
+البرومبتات الخمسة النهائية
+PROMPT 1 — FREEZE & TAKE CONTROL
+المهمة
+توقف عن أي إعادة بناء جديدة لـmain1..main11.
+لا تعِد فتح مراحل الإصلاح السابقة إلا عندما يظهر تعارض مثبت يحتاج تصحيحه.
+ابدأ من آخر حالة فعلية موجودة الآن في:
+•	Git main
+•	PR/branch الحالي لإعادة البناء
+•	Current/PWA/main.html
+•	Current/PWA/main.reconstruction.html إن وجد
+•	tools/reconstruct_114.py
+•	جميع ملفات evidence / registry / logs الموجودة
+•	Production Supabase الحالية
+لا تعتمد على أي تقرير سابق كحقيقة تشغيلية.
+المطلوب الوحيد
+إنشاء CURRENT MASTER BASELINE واحدة حاكمة لهذا التنفيذ.
+أنشئ/حدّث فقط:
+Current/CTO/MASTER_CURRENT_BASELINE.json
+ويجب أن يحتوي على:
+•	Current Git HEAD
+•	Current main.html hash
+•	Candidate hash إن وجد
+•	main1..main11 hashes
+•	Core/PWA companion hashes
+•	Current Edge Function versions/hashes
+•	Current RPC signatures/hashes
+•	Production schema fingerprint
+•	Production RLS/grants/triggers fingerprint
+•	Inventory writer topology
+•	Current Production data counts
+•	Current reconstruction branch/PR
+•	آخر Builder version
+•	آخر Runtime/CI result
+قاعدة مهمة
+لا تعيد بناء أي ملف الآن.
+إذا وجدت اختلافًا بين تقرير قديم وProduction الحالية:
+Production wins.
+إذا وجدت اختلافًا بين تقرير قديم وGit الحالي:
+Current Git wins.
+إذا وجدت اختلافًا بين Candidate وCurrent Git:
+سجله ولا تصلحه في هذه الخطوة.
+لا تتوقف قبل الإغلاق
+شرط الإغلاق
+لا تعتبر المهمة ناجحة إلا إذا أصبح لدينا:
+MASTER_CURRENT_BASELINE = FROZEN
+ويتم تسجيل:
+BASELINE_STATUS = CLOSED
+بعدها فقط انتقل إلى Prompt 2.
+لا تنشئ workflow جديدًا.
+لا تنشئ PR جديدًا.
+لا تنشئ executor جديدًا.
+لا تغير Production.
+لا تعلن أي Gold/Diamond.
+PROMPT 2 — FINISH THE CANDIDATE
+المهمة
+ابدأ من الـBaseline المغلق في Prompt 1.
+هدف هذه المرحلة واحد فقط:
+إنتاج Candidate نهائي واحد من main1..main11 الحاليين.
+استخدم المسار الموجود بالفعل:
+reconstruction-114-final-20260831
+وtools/reconstruct_114.py
+ولا تنشئ مسار إعادة بناء جديدًا إلا إذا كان الموجود معطوبًا فعليًا.
+المطلوب
+أنت الآن مسؤول عن:
+Current/PWA/main.reconstruction.html
+اجعله:
+•	HTML كاملًا
+•	JavaScript صالحًا
+•	main1 Parent صحيحًا
+•	main2..main11 مدمجين بالترتيب الصحيح
+•	لا يوجد duplicate global conflict
+•	لا يوجد undefined critical function
+•	لا يوجد direct Physical Stock writer
+•	لا يوجد direct inventory_log writer
+•	لا يوجد unscoped tenant lookup حرج
+•	لا يوجد app_settings LIMIT 1 في السياقات Company-scoped
+•	OWNER semantics محفوظة
+•	License semantics محفوظة
+•	existing feature contracts محفوظة
+•	API/RPC/Edge contracts محفوظة
+الأهم
+لا تعيد كتابة أجزاء main من الصفر لمجرد أن ذلك أسهل.
+استخدم الـCurrent fragments الموجودة الآن.
+إذا اكتشفت Regression حقيقية:
+1.	حدد المصدر.
+2.	أصلحها في المصدر الصحيح.
+3.	أعد البناء.
+4.	أعد الاختبار.
+لا تنشئ patch فوق patch.
+اختبارات إلزامية
+يجب أن ينجح:
+•	JavaScript syntax
+•	HTML structural validation
+•	duplicate symbol detection
+•	undefined critical reference detection
+•	public function parity
+•	feature parity
+•	API/RPC/Edge parity
+•	tenant checks
+•	OWNER checks
+•	inventory writer scan
+النتيجة المطلوبة
+يجب أن يوجد:
+Current/PWA/main.reconstruction.html
+ويجب أن يكون:
+CANDIDATE = VALID
+ولا تنتقل إلى Prompt 3 إلا إذا:
+CANDIDATE_BUILD = CLOSED
+لا تستبدل main.html.
+لا تنشر Production.
+لا تبدأ من main1 مرة أخرى.
+PROMPT 3 — PROVE THE CANDIDATE
+المهمة
+Candidate أصبح جاهزًا.
+الآن لا تعدّل التصميم إلا إذا كشف الاختبار عيبًا حقيقيًا.
+هدف هذه المرحلة:
+إثبات أن Candidate صالح وظيفيًا قبل Production.
+المطلوب
+شغّل main.reconstruction.html في Browser نظيف باستخدام Playwright أو أفضل Runtime harness متاح.
+اختبر على الأقل:
+•	Application boot
+•	Login shell
+•	Navigation
+•	Dashboard
+•	Critical ERP screens
+•	Forms
+•	Search
+•	CRUD
+•	Owner guards
+•	Normal user guards
+•	Tenant context
+•	Error handling
+•	PWA assumptions
+•	Service Worker interaction
+•	Console errors
+•	Page errors
+•	critical API/RPC calls
+ثم نفذ Production Contract Verification من Supabase مباشرة:
+•	RPC existence
+•	RPC signatures
+•	Edge versions
+•	RLS
+•	grants
+•	triggers
+•	tenant topology
+•	inventory writer topology
+•	reserve_stock semantics
+•	post_stock_movement semantics
+•	Production data integrity
+قاعدة حاسمة
+إذا فشل اختبار:
+لا تكتب تقريرًا وتنتظر.
+أصلح السبب مباشرة.
+ثم:
+BUILD → TEST → FIX → TEST
+ممنوع:
+FAIL → REPORT → STOP
+إلا إذا كانت هناك مشكلة خارج صلاحيات التنفيذ فعليًا.
+شرط النجاح
+كل critical browser test = PASS
+وكل critical Production contract check = PASS
+ولا يوجد:
+•	unexplained functional loss
+•	critical runtime error
+•	tenant breach
+•	inventory writer خارج post_stock_movement
+•	OWNER regression
+عندها فقط:
+CANDIDATE_RUNTIME = CLOSED
+PRODUCTION_CONTRACT = CLOSED
+ثم انتقل إلى Prompt 4.
+PROMPT 4 — REPLACE PRODUCTION
+المهمة
+أصبحت الآن في مرحلة النشر.
+لا تعُد إلى التحقيقات السابقة.
+استعمل فقط:
+Current/PWA/main.reconstruction.html
+الذي اجتاز Prompt 3.
+قبل الاستبدال
+أنشئ Fresh Snapshot فورًا.
+سجل:
+•	Production state
+•	Current main.html hash
+•	Candidate hash
+•	Git HEAD
+•	Candidate commit
+•	timestamp
+ثم تحقق أن الـCandidate لم يتغير منذ آخر verification.
+إذا تغيّر:
+ارجع فقط إلى Prompt 3.
+الاستبدال
+استبدل:
+Current/PWA/main.html
+بـ:
+Current/PWA/main.reconstruction.html
+بحيث تصبح النسخة الجديدة هي النسخة الرسمية.
+احتفظ بالـCandidate.
+سجل:
+•	old main hash
+•	candidate hash
+•	final main hash
+•	commit SHA
+•	deployment timestamp
+بعد الاستبدال مباشرة
+تحقق من:
+FINAL MAIN HASH == APPROVED CANDIDATE HASH
+ثم نفذ:
+•	static validation
+•	Browser smoke test
+•	authentication test
+•	tenant test
+•	owner test
+•	PWA test
+•	critical API/RPC test
+•	inventory contract test
+قاعدة
+لا تعد إلى fragments.
+لا تبدأ reconstruction جديدة.
+لا تنشئ PR جديدًا.
+لا تنشئ workflow جديدًا.
+إذا فشل شيء:
+أصلحه في المصدر الصحيح ثم أعد الاختبار.
+شرط الإغلاق
+يجب أن يصبح:
+PRODUCTION MAIN REPLACEMENT = CLOSED
+و:
+FINAL MAIN HASH = APPROVED HASH
+و:
+POST-DEPLOY RUNTIME = PASS
+بعدها فقط انتقل إلى Prompt 5.
+PROMPT 5 — ZERO-DEBT FINAL CLOSURE
+المهمة
+هذه هي المرحلة الأخيرة.
+لا تعدّل Business Logic جديدًا.
+لا تضف Features.
+لا تعيد بناء main.
+لا تعيد فتح main1..main11 إلا إذا كان هناك defect مادي مثبت في Production الحالية.
+هدف المرحلة الوحيد:
+إغلاق المشروع رسميًا وإثبات أن النسخة المنشورة هي النسخة المعتمدة.
+نفذ التحقق النهائي
+طابق:
+Git
+↓
+main.html
+↓
+Production
+↓
+Browser Runtime
+↓
+Database Contracts
+وتحقق من:
+•	Final Git SHA
+•	Final main.html SHA
+•	Candidate SHA
+•	Production runtime
+•	Edge versions
+•	RPC versions
+•	Tenant isolation
+•	OWNER semantics
+•	Inventory writer topology
+•	post_stock_movement
+•	reserve_stock
+•	Audit path
+•	RLS
+•	grants
+•	triggers
+•	feature preservation
+•	critical runtime errors
+Data Integrity
+لا تنظف Production تنظيفًا جماعيًا اعتمادًا على تقارير قديمة.
+أي بيانات مشبوهة:
+•	أثبت مصدرها
+•	أثبت أثرها
+•	أصلح فقط ما يمكن إثبات أنه خطأ
+•	احتفظ بالأثر التدقيقي
+لا تحذف بيانات تشغيلية لمجرد أنها تبدو غير منطقية.
+المطلوب إنشاءه
+أنشئ/حدّث فقط:
+Current/CTO/MASTER_RECONSTRUCTION_RESULT.md
+ويجب أن يحتوي على:
+WHAT WAS FIXED
+WHAT WAS VERIFIED
+WHAT REMAINS INTENTIONALLY UNCHANGED
+PRODUCTION FINAL SHA
+GIT FINAL SHA
+RUNTIME RESULT
+DATABASE RESULT
+INVENTORY RESULT
+TENANT RESULT
+OWNER RESULT
+AUDIT RESULT
+DATA INTEGRITY RESULT
+REMAINING UNKNOWN = 0
+REMAINING CONFLICT = 0
+UNVERIFIED CRITICAL CLAIMS = 0
+الحكم النهائي
+النتيجة الوحيدة المقبولة:
+MASTER RECONSTRUCTION = GOLD
+أو:
+MASTER RECONSTRUCTION = DIAMOND
+ولا يسمح بأي حالة ثالثة بعد اجتياز جميع الاختبارات.
+ثم اكتب بوضوح:
+FINAL CLOSURE STATUS = CLOSED
+وأوقف العمل في هذه المهمة.
+لا تفتح مهمة جديدة.
+لا تقترح Phase جديدة.
+لا تعد إلى main fragments.
+هذه هي نقطة النهاية.
+لماذا هذه الخطة مختلفة عن كل ما سبق؟
+لأننا نقلنا مركز الثقل من:
+“اصلح 11 ملفًا ثم افحص كل شيء مرة أخرى”
+إلى:
+1. جمّد العالم الحالي
+→ 2. ابنِ Candidate واحدًا
+→ 3. أثبت Candidate
+→ 4. انشره
+→ 5. أغلقه
+وهذا يحل تحديدًا الحلقة التي كشفتها السلسلة السابقة:
+Forensic → Report → Workflow → Failure → New Workflow → New Report → Rebuild → New Gate → ...
+بينما التسلسل الجديد يصبح:
+BASELINE
+   ↓
+CANDIDATE
+   ↓
+PROVEN
+   ↓
+PRODUCTION
+   ↓
+CLOSED
+والأهم هندسيًا
+هذه الخطة لا تعيد فتح main2 أو main3 أو main4 لمجرد أن مرحلة جديدة بدأت.
+الإصلاحات المصدرية المغلقة تظل مغلقة، والاختبار النهائي ينتقل إلى الملف المنطقي الكامل.
+وهذا يتفق تمامًا مع ما أثبتته السجلات الأخيرة: main3 وmain4 أُغلقت كمصادر، لكن الـIntegrated PWA كان لا يزال مفتوحًا، وأن العائق الحقيقي أصبح الـAssembly + Runtime + Production Replacement، وليس إعادة إصلاح الأجزاء مرة أخرى.
+هذه هي الخطة التي أنصح باعتمادها كخطة الإغلاق النهائية: 5 Prompts فقط، وكل Prompt له Exit Condition واضحة لا تسمح للدورة أن تعود إلى بدايتها.
+
