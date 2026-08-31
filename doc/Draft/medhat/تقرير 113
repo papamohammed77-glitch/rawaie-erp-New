@@ -1,0 +1,559 @@
+تم التعامل مع الرسالة باعتبارها نقطة استئناف جنائية وليست بداية مشروع جديد. وراجعت آخر الحالة في GitHub، الـPRs والـActions، وProduction Supabase، ولم أعتمد على التقارير السابقة كحقيقة تشغيلية.
+
+النتيجة الحالية
+
+لم أصل بعد إلى Gate 10، ولذلك لن أزعم أن GOLD أو DIAMOND تحقق.
+
+هناك تقدم فعلي، لكن يوجد مانع حقيقي يجب عدم تغطيته بتقرير شكلي:
+
+ما تم إنجازه فعليًا
+
+تم إنشاء مسار مستقل باسم:
+
+reconstruction-gold-20260831
+
+ثم نسخة تحقق منفصلة:
+
+reconstruction-gold-20260831-v2
+
+وPR تحقق جديد رقم 49، غير مدموج، كما أن main.html لم يُستبدل.
+
+تم إنشاء الـexecution prompt النهائي، والـGold reconstruction builder، وPlaywright gate، وCI pipeline.
+
+كما تم اكتشاف وتصحيح أول عيب فعلي في الـpipeline نفسه: الـV2 builder كان يحتوي Regex غير صالح أدى إلى:
+
+re.error: missing ), unterminated subpattern
+
+والـRunner أثبت ذلك مباشرة، وليس بالتخمين.
+
+بعد ذلك أنشأت V3 مصححة، ثم أعدت تشغيل الـJob الفعلي.
+
+اكتشاف مهم جدًا في الـProduction
+
+فحص Physical Stock في Production لم يؤكد وجود محرك مخزون ثانٍ يكتب الحركات العادية. المحرك الفعلي:
+
+post_stock_movement
+
+هو الذي ينفذ mutation ويكتب inventory_log.
+
+لكن الفحص كشف وظائف مثل:
+
+setup_van_stock
+
+وcreate_vehicle_atomic
+
+تقوم بتهيئة صفوف stock_branches، وليس تنفيذ Physical Movement transactional. لذلك لم أصنفها خطأً كـPhysical Movement Writers.
+
+كما ثبت مباشرة أن items.item_code عليه UNIQUE عالمي، وأن stock_branches هويته (branch_id,item_id)؛ وهذا مهم جدًا في تفسير حالات الـcross-company التي ظهرت سابقًا.
+
+اكتشاف آخر صحح فهم الحالة
+
+الـworkflow التاريخي كان يشترط:
+
+Current/PWA/main.html == Original/PWA/main.html
+
+بايتًا ببايت.
+
+هذا الشرط ثبت أنه غير صحيح كمعيار Reconstruction؛ الـRunner أثبت أن الحجمين متساويان، لكن أول اختلاف كان عند byte 30. لذلك تم رفض هذا المنطق ولم أبنِ Gold عليه.
+
+وهذا يتفق مع المبدأ الحاكم بأن المقارنة يجب أن تحافظ على العقود والسلوك وليس مجرد التطابق النصي؛ فالوثيقة الحاكمة تشترط فهم التاريخ، والسلوك الحالي، والـData Flow والـProduction قبل التعديل.
+
+أهم مانع حالي
+
+الـGold Runner الحالي وصل إلى Gate 0–4، لكنه فشل لأن الـbranch الذي يستخدمه الـworkflow القديم كان لا يزال يشير إلى V2 بدل V3 في إحدى عمليات التشغيل. لذلك لم يتم حتى الآن الحصول على نتيجة موثوقة لـGate 4/5/7.
+
+وهذا لا يسمح إطلاقًا بالانتقال إلى:
+
+main.html replacement
+
+ولا إلى:
+
+GOLD
+
+لأن ذلك سيكون مخالفة مباشرة للـMaster Directive.
+
+الـdirective نفسه يحكم بأن كل Writer/Gap يجب أن يمر بالتسلسل:
+
+FOUND → ROOT CAUSE → HISTORICAL REVIEW → SAFE DESIGN → IMPLEMENT → TEST → DEPLOY → PRODUCTION VERIFY → CLOSE
+
+وأن النتيجة النهائية لا تكون صحيحة إلا عندما تصبح Physical Writers خارج post_stock_movement = 0 ويتم إثبات Production/runtime alignment.
+
+البرومبت التنفيذي الصحيح الذي بنيت عليه المرحلة
+MASTER GOLD RECONSTRUCTION — EXECUTION COMMAND
+RAWAEA ERP — Gate 0 → Gate 10
+المهمة
+
+انقل المشروع من مرحلة Forensic Investigation إلى مرحلة إنتاج Artifact واحد نهائي قابل للإغلاق.
+
+الهدف النهائي الوحيد:
+
+MASTER RECONSTRUCTION = GOLD
+
+أو، عند تحقق شروط أعلى:
+
+MASTER RECONSTRUCTION = DIAMOND
+
+لا يسمح بإعلان أي نتيجة قبل إثباتها من Git + Production + Runtime.
+
+SOURCE OF TRUTH
+
+ترتيب الحقيقة:
+
+Live Production Supabase.
+Current Git state.
+Production RPCs / Edge Functions / Schema / RLS / Triggers / Grants.
+Current Frontend.
+Original source.
+Historical reports كمصادر تحقيق فقط.
+
+التقرير القديم لا يستطيع إلغاء دليل Production الحالي.
+
+لا يوجد افتراض يعوض دليلًا مفقودًا.
+
+GATE 0 — FREEZE CURRENT WORLD
+
+أنشئ snapshot جديدًا في:
+
+Current/CTO/RECONSTRUCTION_BASELINE.json
+
+ويشمل:
+
+Git HEAD.
+Current main.html.
+Original main.html.
+main1..main11.
+PWA companions.
+Service Worker.
+جميع RPC signatures.
+RPC hashes.
+Edge Function versions/hashes.
+Schema.
+constraints.
+indexes.
+triggers.
+RLS.
+grants.
+Production integrity counts.
+
+أي تغيير بعد الـfreeze يجعل الـbaseline STALE.
+
+لا تستخدم baseline قديمًا.
+
+GATE 1 — CANONICAL REGISTRIES
+
+أنشئ:
+
+feature_registry.json
+
+function_registry.json
+
+contract_registry.json
+
+dependency_graph.json
+
+لكل Feature:
+
+UI.
+public functions.
+DOM IDs.
+RPCs.
+Edge Functions.
+tables.
+permissions.
+state transitions.
+errors.
+storage.
+offline.
+sync.
+realtime.
+PWA dependencies.
+
+كل عنصر يجب أن يملك:
+
+historical source
+
+
+
+
+current source
+
+
+
+
+Production evidence
+
+
+
+
+target disposition
+
+GATE 2 — CLOSE THE SIX KNOWN GAPS
+
+الفجوات:
+
+main3
+main5
+main7
+main8
+main9
+main10
+
+لا تستخدم concatenation.
+
+كل Gap يعالج كوحدة مستقلة:
+
+FOUND
+
+↓
+
+ROOT CAUSE
+
+↓
+
+HISTORICAL CONTRACT
+
+↓
+
+CURRENT PRODUCTION CONTRACT
+
+↓
+
+SAFE DESIGN
+
+↓
+
+IMPLEMENT
+
+↓
+
+STATIC TEST
+
+↓
+
+RUNTIME TEST
+
+↓
+
+PRODUCTION VERIFY
+
+↓
+
+CLOSE
+
+لا تعتبر الوظيفة مغلقة لمجرد أن اسمها ظهر في الملف.
+
+GATE 3 — CREATE ONE ARTIFACT
+
+أنشئ فقط:
+
+Current/PWA/main.reconstruction.html
+
+ممنوع لمس:
+
+Current/PWA/main.html
+
+في هذه المرحلة.
+
+الـartifact يجب أن يكون:
+
+HTML كامل.
+كل الوظائف المطلوبة.
+كل العقود العامة.
+Owner semantics.
+License semantics.
+Tenant semantics.
+PWA.
+Offline/Sync.
+Realtime.
+جميع الميزات.
+كل RPC/Edge contracts.
+بدون direct Physical Stock writer.
+بدون direct inventory_log writer.
+بدون hard-coded tenant.
+بدون unscoped app_settings lookup.
+بدون competing business engines.
+GATE 4 — AUTOMATED PARITY
+
+Hard fail عند وجود:
+
+JavaScript syntax error.
+HTML structural error.
+Original public-function loss.
+Feature loss.
+API loss.
+RPC loss.
+Edge Function loss.
+Tenant contract loss.
+Owner contract loss.
+Direct Physical Stock writer.
+Direct inventory_log writer.
+Unscoped company lookup.
+Forbidden legacy writer.
+
+ينتج:
+
+Current/CTO/parity.json
+
+مع:
+
+LOSS
+
+GAIN
+
+PRESERVED
+
+MOVED
+
+REPAIRED
+
+INTENTIONALLY_RETIRED
+
+لا يوجد unexplained loss.
+
+GATE 5 — PLAYWRIGHT
+
+شغل artifact في Browser نظيف.
+
+اختبر:
+
+Application boot.
+Login shell.
+Navigation.
+Critical screens.
+Critical forms.
+JavaScript runtime.
+console/page errors.
+PWA assumptions.
+Owner guards.
+normal-user guards.
+state transitions.
+
+لا تستخدم credentials مخترعة.
+
+إذا لم توجد قناة credentials محكومة، سجل:
+
+NOT VERIFIED
+
+ولا تحولها إلى PASS.
+
+GATE 6 — PRODUCTION CONTRACT VERIFICATION
+
+من Live Supabase مباشرة:
+
+تحقق من:
+
+RPC existence.
+signatures.
+SECURITY DEFINER.
+grants.
+Edge versions.
+tenant identity.
+item identity.
+RLS.
+triggers.
+inventory writer topology.
+inventory_log topology.
+current Production data integrity.
+
+الشرط:
+
+Physical Writers outside post_stock_movement = 0
+
+مع استبعاد routines التي تقوم بتهيئة master/stock rows ولا تنفذ حركة Physical Stock.
+
+تحقق أيضًا من:
+
+reserve_stock = reservation only
+
+وليس Physical Movement Engine.
+
+GATE 7 — FRESH BASELINE
+
+قبل أي replacement:
+
+أعد freeze جديدًا.
+
+ثم:
+
+CURRENT WORLD FINAL SNAPSHOT
+
+قارن:
+
+main.html
+
+و
+
+main.reconstruction.html
+
+مع الـfresh baseline.
+
+كل فرق يجب أن يصنف:
+
+INTENDED RECONSTRUCTION
+
+أو
+
+GOVERNED REPAIR
+
+أو
+
+UNEXPECTED DRIFT
+
+أي Unexpected material drift:
+
+HARD STOP
+
+ولا تستخدم التخمين.
+
+GATE 8 — REPLACE MAIN.HTML
+
+فقط بعد PASS لجميع Gates السابقة:
+
+استبدل:
+
+Current/PWA/main.html
+
+بـ:
+
+Current/PWA/main.reconstruction.html
+
+احتفظ بالـcandidate.
+
+سجل:
+
+old hash.
+candidate hash.
+final hash.
+commit.
+timestamp.
+
+لا تدخل أي cleanup غير متعلق بالمهمة.
+
+GATE 9 — POST-REPLACEMENT VERIFICATION
+
+بعد replacement:
+
+أعد كامل Production contract verification.
+
+ثم:
+
+static validation.
+JavaScript syntax.
+browser smoke.
+PWA checks.
+Owner checks.
+tenant checks.
+RPC contract checks.
+inventory writer checks.
+
+ويجب إثبات:
+
+final main.html SHA == approved candidate SHA
+
+GATE 10 — FINAL VERDICT
+
+فقط نتيجتان مسموحتان:
+
+MASTER RECONSTRUCTION = GOLD
+
+أو:
+
+MASTER RECONSTRUCTION = DIAMOND
+
+GOLD
+
+عندما:
+
+Gates 0–9 PASS.
+لا يوجد material unexplained loss.
+لا يوجد production drift.
+لا يوجد critical runtime failure.
+DIAMOND
+
+GOLD +
+
+zero known closure debt.
+evidence reproducible.
+final artifact traceable.
+final Production verification مثبتة.
+لا Unknown مؤثر.
+لا Conflict مؤثر.
+لا Unverified Claim مؤثر.
+
+ممنوع صناعة verdict لإغلاق التقرير.
+
+REQUIRED FINAL EVIDENCE
+
+احفظ:
+
+RECONSTRUCTION_BASELINE.json
+
+feature_registry.json
+
+function_registry.json
+
+contract_registry.json
+
+dependency_graph.json
+
+parity.json
+
+playwright-result.json
+
+production-contract-result.json
+
+final-baseline-comparison.json
+
+MASTER_RECONSTRUCTION_RESULT.md
+
+MASTER_RECONSTRUCTION_EXECUTION_LOG.md
+
+FINAL SELF AUDIT
+
+سجل صراحة:
+
+What I proved.
+
+What I did not prove.
+
+What I fixed.
+
+What I initially missed.
+
+What could still be wrong.
+
+Unknowns.
+
+Conflicts.
+
+Unverified claims.
+
+Production evidence.
+
+Runtime evidence.
+
+Final hash.
+
+Final commit.
+
+Final closure status.
+
+ولا يسمح:
+
+GOLD
+
+أو
+
+DIAMOND
+
+إذا بقيت فجوة مادية غير مثبتة.
+
+الحكم الصادق الآن
+
+MASTER RECONSTRUCTION = NOT CLOSED YET
+
+وليس بسبب نقص في الخطة، بل لأن التنفيذ الفعلي كشف أن أداة الـGold نفسها كانت تحمل عيوبًا، وتم اكتشافها وإصلاح جزء منها، بينما آخر Runner ما زال يفشل قبل Gate 5 بسبب مسار V2 القديم. كذلك لم يتم تنفيذ Gate 8، وبالتالي Production main.html لم يتم استبداله.
+
+وهذا في الحقيقة أفضل بكثير من إعلان Gold كاذب.
+
+كما أن الـProduction investigation أظهر أن البنية الحالية أقرب بكثير إلى الهدف مما كانت عليه في بداية التحقيق: الـPhysical Stock engine المركزي موجود، والـRPCs الحرجة أصبحت أكثر نضجًا، والـAudit path موجود، لكن الإغلاق النهائي للـArtifact لم يثبت بعد.
