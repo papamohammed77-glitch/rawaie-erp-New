@@ -7,9 +7,7 @@ permissions:
   contents: write
 jobs:
   forensic:
-    if: >-
-      !contains(github.event.head_commit.message, '[master-reconstruction-candidate]') &&
-      !contains(github.event.head_commit.message, '[master-reconstruction-forensic]')
+    if: ${{ !contains(github.event.head_commit.message, '[master-reconstruction-candidate]') && !contains(github.event.head_commit.message, '[master-reconstruction-forensic]') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout current main
@@ -73,9 +71,9 @@ jobs:
           cat > Current/CTO/20260831_MAIN_HTML_RECONSTRUCTION_CANDIDATE.md <<'EOF'
 # RAWAEA ERP — FINAL MAIN.HTML RECONSTRUCTION CANDIDATE
 
-Candidate seeded from the verified current `Current/PWA/main.html`, processed through the governed shell repair transform, and passed static/runtime candidate gates.
+Candidate seeded from verified current `Current/PWA/main.html`, processed through the governed shell repair transform, and passed static candidate gates before persistence.
 
-`Current/PWA/main.html` is intentionally not replaced by this workflow.
+This artifact is candidate-only. `Current/PWA/main.html` is not replaced by this workflow.
 EOF
           git add Current/PWA/main.reconstruction.html Current/CTO/MAIN_HTML_CURRENT_CONTRACT_LEDGER.json Current/CTO/20260831_MAIN_HTML_RECONSTRUCTION_CANDIDATE.md
           git diff --cached --quiet && { echo 'NO_CANDIDATE_CHANGE'; exit 1; }
