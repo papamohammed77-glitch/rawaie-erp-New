@@ -9,9 +9,6 @@ CUR = Path('Current/PWA/main')
 CTO = Path('Current/CTO')
 PARTS = [CUR / f'main{i}.md' for i in range(1, 12)]
 
-# The script is executed as `python3 tools/run_....py`, so the tools directory is
-# already on sys.path; importing the helper as a sibling module avoids relying on
-# package semantics that do not exist in the checkout.
 from master_reconstruction_postprocess import symbols, meta
 
 
@@ -27,16 +24,15 @@ def assemble_clean_room() -> str:
     first = chunks[0]
     if not first.lstrip().startswith('<!DOCTYPE html>'):
         raise SystemExit('MAIN1_IS_NOT_HTML_SHELL')
-    if '</html>' in first.lower() or '</body>' in first.lower():
+    if re.search(r'^\s*</?(?:html|head|body)\b', first, re.I | re.M) and re.search(r'^\s*</(?:html|body)>\s*$', first, re.I | re.M):
         raise SystemExit('MAIN1_ALREADY_CLOSED_DOCUMENT')
     for i, c in enumerate(chunks[1:], 2):
-        low = c.lower()
-        if '<!doctype html>' in low or '<html' in low or '<head' in low or '<body' in low:
+        if re.search(r'^\s*<!doctype\b', c, re.I | re.M):
+            raise SystemExit(f'INVALID_FRAGMENT_DOCTYPE_MAIN{i}')
+        if re.search(r'^\s*</?(?:html|head|body)\b[^>]*>\s*$', c, re.I | re.M):
             raise SystemExit(f'INVALID_FRAGMENT_DOCUMENT_WRAPPER_MAIN{i}')
-        if '</script>' in low:
-            raise SystemExit(f'INVALID_FRAGMENT_SCRIPT_CLOSE_MAIN{i}')
     candidate = first.rstrip() + '\n\n' + '\n\n'.join(c.rstrip() for c in chunks[1:]) + '\n\n</script>\n</body>\n</html>\n'
-    if candidate.count('<html') != 1 or candidate.count('</html>') != 1:
+    if candidate.lower().count('<html') != 1 or candidate.lower().count('</html>') != 1:
         raise SystemExit('HTML_DOCUMENT_BOUNDARY_FAIL')
     opens = len(re.findall(r'<script(?:\s[^>]*)?>', candidate, re.I))
     closes = len(re.findall(r'</script>', candidate, re.I))
@@ -77,15 +73,12 @@ def validate_candidate(s: str) -> dict:
 
 
 def main() -> None:
-    # IMPORTANT: this is a clean-room reconstruction. The existing main.html is NOT
-    # read as an implementation seed and is never repaired or transformed.
+    # Clean-room reconstruction: Current/PWA/main.html is never used as an implementation seed.
     candidate = assemble_clean_room()
     losses = validate_candidate(candidate)
-
     tmp = MAIN.with_suffix('.reconstructed.tmp')
     tmp.write_text(candidate, encoding='utf-8')
     tmp.replace(MAIN)
-
     CTO.mkdir(parents=True, exist_ok=True)
     report = {
         'event_type': 'FINAL_MAIN_HTML_RECONSTRUCTION_EXECUTED_CLEAN_ROOM',
@@ -100,11 +93,8 @@ def main() -> None:
         'browser_runtime': 'PENDING_SEPARATE_GATE',
         'production_runtime': 'PENDING_SEPARATE_GATE'
     }
-    (CTO / '20260831_MAIN_HTML_RECONSTRUCTION_EXECUTION.json').write_text(
-        json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8'
-    )
+    (CTO / '20260831_MAIN_HTML_RECONSTRUCTION_EXECUTION.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps(report, ensure_ascii=False))
-
 
 if __name__ == '__main__':
     main()
