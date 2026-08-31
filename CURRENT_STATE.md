@@ -18,10 +18,10 @@
 
 ## CURRENT GIT — FRESHLY VERIFIED
 - Branch: `main`
-- Current HEAD: `0bd48099d6263c520daa903f6883e0670cef1502`
-- HEAD message: `docs(memory): create governed RAWAEA project memory ledger for 117-02`
+- Current HEAD after memory deepening: `c94f565497751542d6266e312042c75de401fb6e`
+- Previous verified memory-ledger creation commit: `0bd48099d6263c520daa903f6883e0670cef1502`
 - Repository is public, not archived, and current write permissions are available.
-- This state file is being updated after the memory-ledger creation event.
+- This state file was updated immediately after the memory-ledger deepening execution.
 
 ## CURRENT PRODUCTION — FRESHLY VERIFIED
 - Project: `fiilmooggumokxanwiyx`
@@ -103,7 +103,7 @@ Important inspected versions:
 - `Current/PWA/main.html` remains protected: not modified and not authorized for replacement.
 - `Current/PWA/New-main` remains a clean-room candidate, not certified Production replacement.
 - New-main has authentication, tenant context, navigation, read models, delegated specialized writes, dashboard/search, owner/permission surfaces and no direct stock/financial DML.
-- Open New-main gates: exhaustive parity, browser runtime, Service Worker runtime, authenticated Production E2E, concurrency proof and replacement authorization.
+- Open New-main gates: exhaustive feature parity, browser runtime, Service Worker runtime, authenticated Production E2E, concurrency proof, complete deployment lineage and replacement authorization.
 - Logical `main1..main11` artifacts are modules/contracts, never byte slices.
 
 ## CURRENT BUSINESS / ARCHITECTURAL CONTRACTS
@@ -117,14 +117,15 @@ Important inspected versions:
 - Specialized PWAs remain responsible for POS, Telesales, Van Sales, Purchasing/Receiving, Picking, Loading, Delivery, Returns and Stock Vouchers.
 
 ## HISTORICAL SOURCE STATUS
-- `rawaie-erp-review/main` is historical architecture/contract/forensics evidence.
-- Historical documents establish the PWA + Supabase + Edge + PostgreSQL architecture and business workflows.
-- Historical reports may explain why behavior exists but do not override current Production truth.
+- Historical `rawaie-erp-review/main` is architecture/contract/forensics evidence, not current Production truth.
+- Historical CTO and Inventory memory tracks provide provenance for earlier closures, migrations and rescue work.
+- Older production baselines with different counts must remain historical unless freshly re-proven.
 
 ## MEMORY 117-02
-- `Current/CTO/RAWAEA_PROJECT_MEMORY_117-02.md` was created from the reconciled current truth plus explicitly classified historical contract evidence.
-- It records business domains, architecture, current Production writers/deployments, tenant model, security findings, performance findings, historical evolution, incidents/antipatterns, open closure units and future boot rules.
-- It does not claim exhaustive all-function consumer proof or Production readiness.
+- `Current/CTO/RAWAEA_PROJECT_MEMORY_117-02.md` is the persistent governed memory ledger.
+- It is intentionally separated from `CURRENT_STATE.md`: current operational state is in this file; broader classified project knowledge is in the ledger.
+- The ledger has now been deepened with verified historical Inventory centralization evidence and current representative consumer/writer paths.
+- The ledger does not claim exhaustive all-function consumer proof or Production readiness.
 
 ## KNOWN INCIDENT / ANTIPATTERN MEMORY
 - Report != current truth.
@@ -133,10 +134,11 @@ Important inspected versions:
 - Git source != deployed code unless lineage is proven.
 - Do not create duplicate physical-stock writers.
 - Do not repair financial anomalies without provenance and audit/downstream analysis.
-- Do not use `LIMIT 1` to conceal company-scoped ambiguity.
+- Do not use `LIMIT 1` to hide unresolved company-scoped ambiguity.
 - Do not treat active test/canary function deployment as a business consumer.
 - Do not byte-slice logical PWA modules.
 - Do not replace Main before parity and runtime certification.
+- Do not use a schema/advisor warning alone as authorization to mutate Production.
 
 ## FORBIDDEN ACTIONS — ACTIVE
 - No blind Production DDL/DML.
@@ -148,22 +150,22 @@ Important inspected versions:
 - No replacement of `Current/PWA/main.html` without complete evidence.
 
 ## LAST VERIFIED EVENT
-- Event ID: `LVE-2026-08-31-014`
-- Event Type: `CURRENT_STATE_UPDATE_AFTER_MEMORY_LEDGER_CREATION`
-- UTC: `2026-08-31T17:21:00Z` (execution window)
-- Source: direct GitHub current repository
-- Git SHA: `0bd48099d6263c520daa903f6883e0670cef1502`
+- Event ID: `LVE-2026-08-31-015`
+- Event Type: `PROJECT_MEMORY_LEDGER_DEEPENING_117_02`
+- UTC: `2026-08-31T17:22:00Z` (execution window)
+- Source: direct GitHub current repository + verified historical memory artifact + current production contracts
+- Git SHA: `c94f565497751542d6266e312042c75de401fb6e`
 - Production State: `ACTIVE_HEALTHY` (last fresh verified Production state)
-- Action: updated `CURRENT_STATE.md` immediately after creating the governed 117-02 memory ledger, recording the new memory artifact and preserving the current production/security gates.
-- Result: `CURRENT_STATE SYNCHRONIZED WITH MEMORY LEDGER`
-- Evidence: memory ledger commit `0bd48099d6263c520daa903f6883e0670cef1502`; prior state reconciliation commit `2b13a6cc50d44cd7a12acc8a61524bedd5502349`.
-- Impact: `CURRENT_STATE.md` now points future assistants to the permanent memory ledger while retaining explicit Production blockers and non-authorized actions.
-- Next Authorized Action: deepen the memory through exhaustive consumer/function/deployment lineage and controlled two-tenant security proof; do not apply Production security migrations until that proof exists.
+- Action: deepened the governed 117-02 project memory ledger with historical Inventory centralization evidence, historical rescue lineage classification, and representative current consumer/writer mappings; then synchronized the operational state checkpoint.
+- Result: `PROJECT MEMORY DEEPENED / CURRENT_STATE SYNCHRONIZED / PRODUCTION EXECUTION STILL BLOCKED`
+- Evidence: memory ledger update commit `c94f565497751542d6266e312042c75de401fb6e`.
+- Impact: project memory now preserves more of the historical/current transition without promoting historical claims into Production truth.
+- Next Authorized Action: continue exhaustive current consumer/function/deployment lineage and controlled two-tenant authorization proof; no Production policy migration until those gates are proven.
 
 ## CURRENT CLOSURE STATUS
 `CURRENT_STATE = SYNCHRONIZED`
 `MEMORY_GOVERNANCE_117_02 = ACTIVE`
-`PROJECT_MEMORY_LEDGER = CREATED`
+`PROJECT_MEMORY_LEDGER = CREATED / DEEPENED`
 `PRODUCTION_HEALTH = ACTIVE_HEALTHY`
 `TENANT_SECURITY = P0_OPEN`
 `DIRECT_GRANT_LEAST_PRIVILEGE = OPEN`
