@@ -101,7 +101,6 @@ jobs:
           for i in range(2,12): assert f'RW114 MODULE main{i}' in cand, f'MISSING_MODULE_MARKER main{i}'
           print('PROMPT_116_2_CONTRACT_GATES_PASS')
           print('PUBLIC_EXPORTS',len(cand_exports),'RPCS',len(cr['rpc']),'EDGE_REFS',len(cr['edge']),'TENANT_TABLES',len(tenant_tables),'CRITICAL_RW_REFS',len(refs_set))
-          PY
       - name: Browser smoke gate
         run: |
           set -euo pipefail
