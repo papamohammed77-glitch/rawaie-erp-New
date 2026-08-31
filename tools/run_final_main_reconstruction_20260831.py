@@ -30,6 +30,27 @@ def meta(p: Path) -> dict:
     return {'path': str(p), 'bytes': len(b), 'sha256': hashlib.sha256(b).hexdigest(), 'lines': b.count(b'\n') + 1}
 
 
+def repair_verified_fragment_defects() -> list:
+    repairs = []
+    p = CUR / 'main7.md'
+    s = p.read_text(encoding='utf-8-sig')
+    # Verified from CI syntax gate at loadSettlement(): safeHTML had one missing
+    # closing parenthesis after the nested map().join() expression.
+    pattern = re.compile(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}", re.M)
+    s2, n = pattern.subn(r"\1));}", s, count=1)
+    if n == 1:
+        p.write_text(s2, encoding='utf-8-sig')
+        repairs.append({'path': str(p), 'issue': 'loadSettlement missing closing parenthesis', 'occurrences_fixed': 1})
+    elif n == 0:
+        # Already repaired is valid only when the exact corrected form exists.
+        corrected = re.search(r"safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\)\)\);}", s, re.M)
+        if not corrected:
+            raise SystemExit('VERIFIED_MAIN7_SYNTAX_REPAIR_NOT_FOUND')
+    else:
+        raise SystemExit('VERIFIED_MAIN7_SYNTAX_REPAIR_AMBIGUOUS')
+    return repairs
+
+
 def assemble_clean_room() -> str:
     missing = [str(p) for p in PARTS if not p.is_file() or p.stat().st_size == 0]
     if missing:
@@ -96,6 +117,7 @@ def validate_candidate(s: str) -> dict:
 
 
 def main() -> None:
+    repairs = repair_verified_fragment_defects()
     candidate = assemble_clean_room()
     parity = validate_candidate(candidate)
     tmp = MAIN.with_suffix('.reconstructed.tmp')
@@ -110,6 +132,7 @@ def main() -> None:
         'executor': 'tools/run_final_main_reconstruction_20260831.py',
         'main_sha256': fp(candidate),
         'main_bytes': len(candidate.encode('utf-8')),
+        'source_repairs': repairs,
         'fragment_parity': parity,
         'browser_runtime': 'PENDING_SEPARATE_GATE',
         'production_runtime': 'PENDING_SEPARATE_GATE'
