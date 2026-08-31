@@ -12,7 +12,6 @@ on:
     branches: [golden-new-main-20260831]
     paths:
       - 'tools/run_new_main_clean_room_20260831.py'
-      - 'tools/debug_main7_balance_20260831.py'
       - 'Current/PWA/main/**'
       - 'Original/PWA/main/**'
       - '.github/workflows/new_main_clean_room_20260831.yml'
