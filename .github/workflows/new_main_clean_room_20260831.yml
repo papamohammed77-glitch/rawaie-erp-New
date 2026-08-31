@@ -7,6 +7,7 @@ on:
     paths:
       - 'tools/run_new_main_clean_room_20260831.py'
       - 'Current/PWA/main/**'
+      - 'Current/PWA/New-main'
       - 'Original/PWA/main/**'
       - '.github/workflows/new_main_clean_room_20260831.yml'
   workflow_dispatch:
