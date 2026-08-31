@@ -1,6 +1,5 @@
 from pathlib import Path
 import re
-import subprocess
 import json
 import hashlib
 
@@ -10,7 +9,10 @@ CUR = Path('Current/PWA/main')
 CTO = Path('Current/CTO')
 PARTS = [CUR / f'main{i}.md' for i in range(1, 12)]
 
-from tools.master_reconstruction_postprocess import symbols, meta
+# The script is executed as `python3 tools/run_....py`, so the tools directory is
+# already on sys.path; importing the helper as a sibling module avoids relying on
+# package semantics that do not exist in the checkout.
+from master_reconstruction_postprocess import symbols, meta
 
 
 def fp(text: str) -> str:
@@ -80,7 +82,6 @@ def main() -> None:
     candidate = assemble_clean_room()
     losses = validate_candidate(candidate)
 
-    # Write candidate only after all deterministic source/contract gates pass.
     tmp = MAIN.with_suffix('.reconstructed.tmp')
     tmp.write_text(candidate, encoding='utf-8')
     tmp.replace(MAIN)
