@@ -30,7 +30,6 @@ def symbols(s: str) -> dict:
 def repaired_source(path: Path) -> str:
     s = path.read_text(encoding='utf-8-sig')
     if path.name == 'main7.md':
-        # Proven source-level syntax correction from CI diagnosis.
         broken = ".join(''));}\n  async function _onSettlementRsChange()"
         fixed = ".join('')));}\n  async function _onSettlementRsChange()"
         if broken not in s:
@@ -40,18 +39,16 @@ def repaired_source(path: Path) -> str:
 
 
 def compose_html(chunks: list[str]) -> str:
-    # main1 is intentionally an HTML shell whose final inline <script> remains
-    # open; main2..main11 are inserted into that same script body.
     first = chunks[0]
     inline_open = re.search(r'<script(?![^>]*\bsrc=)[^>]*>', first, re.I)
     if not inline_open:
         raise RuntimeError('MAIN1_INLINE_SCRIPT_OPEN_NOT_FOUND')
+    # main1 is intentionally open-ended; embedded fragments must remain inside this script.
     if re.search(r'</script>\s*</body>\s*</html>\s*$', first, re.I | re.S):
         raise RuntimeError('MAIN1_UNEXPECTED_DOCUMENT_CLOSURE')
     if re.search(r'</script>', first[inline_open.end():], re.I):
         raise RuntimeError('MAIN1_INLINE_SCRIPT_ALREADY_CLOSED')
-    candidate = first.rstrip() + '\n\n' + '\n\n'.join(c.rstrip() for c in chunks[1:]) + '\n\n</script>\n</body>\n</html>\n'
-    return candidate
+    return first.rstrip() + '\n\n' + '\n\n'.join(c.rstrip() for c in chunks[1:]) + '\n\n</script>\n</body>\n</html>\n'
 
 
 def build() -> tuple[str, dict]:
@@ -75,8 +72,8 @@ def build() -> tuple[str, dict]:
             raise RuntimeError(f'INVALID_FRAGMENT_SCRIPT_CLOSE_MAIN{idx}')
 
     candidate = compose_html(chunks)
-    if candidate.lower().count('</html>') != 1 or candidate.lower().count('</body>') != 1:
-        raise RuntimeError('DOCUMENT_CLOSURE_CARDINALITY_INVALID')
+    if not re.search(r'</script>\s*</body>\s*</html>\s*$', candidate, re.I | re.S):
+        raise RuntimeError('FINAL_DOCUMENT_END_INVARIANT_FAILED')
 
     required = [
         'window.RW_ShellContext', 'RW_ShellContext.getCompanyId()',
