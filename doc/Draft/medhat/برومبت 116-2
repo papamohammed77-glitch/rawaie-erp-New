@@ -1,0 +1,58 @@
+PROMPT 2 — FINISH THE CANDIDATE
+المهمة
+ابدأ من الـBaseline المغلق في Prompt 1.
+هدف هذه المرحلة واحد فقط:
+إنتاج Candidate نهائي واحد من main1..main11 الحاليين.
+استخدم المسار الموجود بالفعل:
+reconstruction-114-final-20260831
+وtools/reconstruct_114.py
+ولا تنشئ مسار إعادة بناء جديدًا إلا إذا كان الموجود معطوبًا فعليًا.
+المطلوب
+أنت الآن مسؤول عن:
+Current/PWA/main.reconstruction.html
+اجعله:
+•	HTML كاملًا
+•	JavaScript صالحًا
+•	main1 Parent صحيحًا
+•	main2..main11 مدمجين بالترتيب الصحيح
+•	لا يوجد duplicate global conflict
+•	لا يوجد undefined critical function
+•	لا يوجد direct Physical Stock writer
+•	لا يوجد direct inventory_log writer
+•	لا يوجد unscoped tenant lookup حرج
+•	لا يوجد app_settings LIMIT 1 في السياقات Company-scoped
+•	OWNER semantics محفوظة
+•	License semantics محفوظة
+•	existing feature contracts محفوظة
+•	API/RPC/Edge contracts محفوظة
+الأهم
+لا تعيد كتابة أجزاء main من الصفر لمجرد أن ذلك أسهل.
+استخدم الـCurrent fragments الموجودة الآن.
+إذا اكتشفت Regression حقيقية:
+1.	حدد المصدر.
+2.	أصلحها في المصدر الصحيح.
+3.	أعد البناء.
+4.	أعد الاختبار.
+لا تنشئ patch فوق patch.
+اختبارات إلزامية
+يجب أن ينجح:
+•	JavaScript syntax
+•	HTML structural validation
+•	duplicate symbol detection
+•	undefined critical reference detection
+•	public function parity
+•	feature parity
+•	API/RPC/Edge parity
+•	tenant checks
+•	OWNER checks
+•	inventory writer scan
+النتيجة المطلوبة
+يجب أن يوجد:
+Current/PWA/main.reconstruction.html
+ويجب أن يكون:
+CANDIDATE = VALID
+ولا تنتقل إلى Prompt 3 إلا إذا:
+CANDIDATE_BUILD = CLOSED
+لا تستبدل main.html.
+لا تنشر Production.
+لا تبدأ من main1 مرة أخرى.
