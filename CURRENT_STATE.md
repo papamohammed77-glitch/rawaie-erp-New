@@ -13,7 +13,7 @@
 ### P131-06 — TARGET_MUTATION_EXECUTED
 - Product mutation commit: `bdb74d365839c87e61fe4f1df5c4f4f940c76a41`.
 - Target blob after mutation: `765e812efa17662d8630c50fa3ecd3f8ed496bf3`.
-- Specialized report navigation routes were corrected and persisted.
+- Specialized report navigation was corrected and persisted.
 - Node syntax verification passed in the target-mutating Job.
 - `Current/PWA/main.html` and Supabase production were not mutated.
 
@@ -30,99 +30,103 @@
 
 ### P132-02 — MASTER_AND_MEMORY_RECOVERY
 - `MASTER - RAWAEA ERP.md` was read from beginning through its execution/governance rules.
-- Governing constraints reconfirmed: current truth outranks reports/memory; unknowns are not bugs; no artificial workflow/executor/reconstruction; target must be proven before patch; production/runtime evidence is mandatory for closure; `CURRENT_STATE.md` must be updated after real events.
+- Current truth was reaffirmed above historical reports/memory; unknowns were not treated as bugs; reconstruction was prohibited.
 - The requested `doc/Draft/medhat/برومبت 124+ ملحق تقرير` path returned `404 Not Found`; no content was fabricated.
 
 ### P132-03 — HANY_LATEST_REPORT_RECONCILIATION
-- `doc/Draft/Hany/تقرير تنفيذي 13.md` was the latest numbered Hany report at that point.
-- Browser/runtime and Gold/Diamond remained unproven.
+- `doc/Draft/Hany/تقرير تنفيذي 13.md` was the latest numbered report at the start of P133.
+- Browser/runtime and Gold/Diamond were still unproven.
 
 ### P132-04 — TARGET_RECHECK
-- `Current/PWA/New-main` was fetched directly from current `main`.
-- Target remained the P131-repaired artifact; no new target patch was authorized by P132 itself.
+- `Current/PWA/New-main` was fetched directly from `main`.
+- Target remained the P131-repaired artifact.
 
 ### P132-05 — PRODUCTION_RECHECK
 - Production Supabase project `fiilmooggumokxanwiyx` was read directly.
-- Observed baseline: `users=24`, `companies=1`, `owner_profile=1`, `app_settings=1`, `notifications=0`.
+- Baseline: `users=24`, `companies=1`, `owner_profile=1`, `app_settings=1`, `notifications=0`.
 - No Supabase mutation was executed.
 
 ### P132-06 — DEPLOYMENT_RUNTIME_STATUS
-- Cloudflare Pages deployment lineage and exact production application artifact were still UNPROVEN.
-- Browser/runtime certification of New-main remained UNPROVEN.
+- Cloudflare Pages deployment lineage and exact production application artifact remained UNPROVEN.
+- Browser/runtime certification remained UNPROVEN.
 - Gold/Diamond remained UNPROVEN.
 
 ## P133 — RUNTIME DEFECT FORENSIC + SURGICAL REPAIR — 2026-09-01
 ### P133-01 — MEMORY_AND_LATEST_HISTORY_RECONCILIATION
 - `MASTER - RAWAEA ERP.md` was re-read completely before product modification.
 - Current `CURRENT_STATE.md` was read before acting.
-- Hany directory was inspected directly; `تقرير تنفيذي 13.md` is the latest numbered report currently visible.
-- Git history also contains later-time report commits that demonstrate filename order is not sufficient chronology; all historical reports were preserved.
-- Prompt 124 exact requested path was not present as a current blob and was not fabricated; its executable history was reconstructed from Git/state/report evidence.
+- `doc/Draft/Hany` was inspected directly; `تقرير تنفيذي 13.md` was the latest numbered report then visible.
+- Git history contains later report commits whose chronology cannot be inferred from filenames alone; historical reports were preserved.
+- Prompt 124 exact requested path was unavailable as a current blob and was not fabricated.
 
 ### P133-02 — DIRECT_RUNTIME_DEFECT_FORENSICS
-- User runtime evidence: `MAIN11_SUPABASE_UNAVAILABLE`; Supabase Auth `401 Unauthorized / Invalid API key`; Service Worker `404` at `/companies/sw.js`.
-- `Current/PWA/New-main` directly contained the project URL for `fiilmooggumokxanwiyx.supabase.co`.
-- Target contained two assignments to `RW_SUPABASE_ANON_KEY`, including a stale hard-coded legacy anon key.
-- Direct Supabase connector comparison proved the target key did not exactly match the current published key.
-- Target boot/session code used `window.supabase.auth` even though the actual created client was stored as `supabase`.
-- Target Service Worker registration uses `../sw.js` while user runtime requests `/companies/sw.js`; this remains a deployment-lineage/path issue and was intentionally kept separate from the Auth patch.
+- User runtime evidence: `MAIN11_SUPABASE_UNAVAILABLE`, Supabase Auth `401 Unauthorized / Invalid API key`, Service Worker `404` at `/companies/sw.js`.
+- Target contained the correct Supabase project URL but stale/invalid hard-coded legacy key and duplicate key assignment.
+- Target created a client as `supabase` but MAIN11 used `window.supabase.auth`.
+- Target/current source and deployed runtime showed different Service Worker path behavior; this was kept as a separate deployment-lineage issue.
 
 ### P133-03 — FAILED_SURGICAL_ATTEMPT
-- PR #66 was created on branch `p133-auth-runtime-repair-20260901` through the existing surgical repair channel.
-- First execution run `33533313638` failed before target mutation with `P133_WRONG_GLOBAL_AUTH_REFERENCE_REMAINS`.
-- Cause: the initial verifier assumed only two `window.supabase.auth` references, but seven such references existed in the target.
-- No target mutation commit was created by that failed attempt; the guard prevented an unsafe partial change.
+- PR #66 opened using the existing surgical channel.
+- First execution run `33533313638` stopped before target mutation with `P133_WRONG_GLOBAL_AUTH_REFERENCE_REMAINS`.
+- Cause: first verifier assumed two Auth references while target contained seven.
+- No target mutation commit was created by the failed run.
 
 ### P133-04 — CORRECTED_SURGICAL_EXECUTION
-- The existing surgical executor was widened to repair all seven proven `window.supabase.auth` references to the actual created `supabase` client.
-- Run `33533396610` completed successfully.
-- Target mutation commit: `573def3` (`[P133-TARGET-MUTATION] repair Supabase auth bootstrap`).
-- Workflow log recorded `WRONG_AUTH_REFS_REPAIRED=7` and `1 file changed, 8 insertions(+), 9 deletions(-)`.
+- Executor was corrected to address all seven proven `window.supabase.auth` references.
+- Run `33533396610` succeeded.
+- Target mutation commit: `573def3`.
+- Workflow recorded `WRONG_AUTH_REFS_REPAIRED=7` and `1 file changed, 8 insertions(+), 9 deletions(-)`.
 - Target blob after repair: `6c94560ef22f6778fe0ecf91757afe500f4f1c63`.
 - Node syntax verification passed.
-- Direct target verification confirms boot now checks `supabase.auth` and session restore uses `supabase.auth.getSession()`.
-- Search no longer finds `window.supabase.auth` inside `Current/PWA/New-main`; remaining hits are legacy fragment files.
-- Temporary P133 workflow changes were restored to the original workflow content before merge; the PR net diff contains only `Current/PWA/New-main`.
+- Direct target verification confirmed boot/session use the created `supabase` client.
+- Temporary P133 workflow logic was restored before merge; final PR diff remained target-only.
 
 ### P133-05 — PR_MERGE_AND_MAIN_VERIFICATION
-- PR #66 was mergeable and had exactly one changed file in final diff: `Current/PWA/New-main`, with 8 additions and 9 deletions.
-- PR #66 merged successfully into `main` with merge commit `5d5de8419cfd751220adb324fceb7a659d0d1941`.
-- Direct fetch from `main` confirms repaired target blob `6c94560ef22f6778fe0ecf91757afe500f4f1c63`.
-- `Current/PWA/main.html` was not modified.
+- PR #66 was mergeable and final diff contained only `Current/PWA/New-main`.
+- PR #66 merged successfully into `main` with `5d5de8419cfd751220adb324fceb7a659d0d1941`.
+- Direct fetch from `main` confirmed target blob `6c94560ef22f6778fe0ecf91757afe500f4f1c63`.
+- `Current/PWA/main.html` remained untouched.
 - Production Supabase was not mutated.
 
 ### P133-06 — VALIDATION_LIMITS
-- A direct raw HTTP probe from the execution container to Supabase failed before reaching the API due to DNS resolution failure. This is an environment limitation and is not evidence of Supabase API/key failure.
-- Supabase project `SMART ERP` / ref `fiilmooggumokxanwiyx` remained directly observable and healthy through the Supabase connector.
-- The reported production browser `401 Invalid API key` is therefore addressed at source level, but production runtime closure still requires a fresh browser request against the deployed artifact.
+- Raw HTTP probe from execution container could not reach Supabase because DNS resolution failed before API access; this is an environment limitation, not evidence of API failure.
+- Supabase project remained directly observable and healthy through the connector.
+- Source-level Auth failure is fixed; production browser verification is still required.
 
 ### P133-07 — DEPLOYMENT_LINEAGE_AND_SERVICE_WORKER
-- Historical deployment-lineage report `Current/CTO/20260831_PHASE10_DEPLOYMENT_LINEAGE.md` explicitly records Cloudflare Pages deployment commit/artifact lineage as unproven.
-- Repository search for `rawaea-erp.pages.dev` returned no embedded deployment URL/identity.
-- `Current/PWA/sw.js` exists in the repository, but target registration is relative (`../sw.js`) while the observed deployed request is `/companies/sw.js`.
-- Therefore the Service Worker 404 is still open and must be investigated through actual Cloudflare Pages routing/artifact evidence, not by changing `Current/PWA/sw.js` blindly.
+- `Current/CTO/20260831_PHASE10_DEPLOYMENT_LINEAGE.md` still records Cloudflare Pages artifact/commit lineage as unproven.
+- Public search did not expose a usable Cloudflare deployment identifier for `rawaea-erp.pages.dev`.
+- `Current/PWA/register-sw.js` currently registers local `sw.js`; runtime evidence requested `/companies/sw.js` and got 404.
+- Service Worker will not be patched blindly; deployment artifact/base path must be proven first.
 
 ### P133-08 — CURRENT_DECISION
-- The original source defects that directly explain the reported Auth failure are fixed and persisted to `main`.
-- The application is NOT declared runtime-closed because the exact Cloudflare deployed artifact and a fresh browser login/session test have not been independently observed after the fix.
-- Service Worker 404 remains independently open.
+- Direct source defects explaining the reported authentication failure are fixed and persisted to `main`.
+- Production runtime is NOT declared closed because the deployed Cloudflare artifact and a fresh browser login/session result have not been independently observed after the merge.
+- Service Worker 404 remains open.
 - Gold: UNPROVEN. Diamond: UNPROVEN. Closed 100%: NO.
 
+### P133-09 — HANY_EXECUTIVE_REPORT_14
+- Created `doc/Draft/Hany/تقرير تنفيذي 14.md` in commit `4ff094502989dc5b4e7daa11a84e3de12774e349`.
+- Report 14 contains the full P133 forensic sequence, failed and successful execution attempts, root-cause analysis, merge result, deployment limitation, Service Worker decision, and P134 plan.
+- No historical Hany report was deleted or overwritten.
+
 ## CURRENT SURVIVING STATE AFTER P133
-- Last product mutation on `main`: P133 merge `5d5de8419cfd751220adb324fceb7a659d0d1941` containing target mutation `573def3`.
+- Last product mutation on `main`: merge `5d5de8419cfd751220adb324fceb7a659d0d1941` containing target mutation `573def3`.
 - Current target blob: `6c94560ef22f6778fe0ecf91757afe500f4f1c63`.
 - `Current/PWA/main.html`: PROTECTED / untouched.
 - Production Supabase: read-only reconciled; no P133 DB/Auth/schema mutation.
-- Historical Hany reports: preserved; next report is `تقرير تنفيذي 14.md`.
-- Production browser authentication: awaiting post-deploy evidence.
+- Hany reports preserved through `تقرير تنفيذي 14.md`.
+- Production browser authentication: UNVERIFIED after P133.
 - Cloudflare Pages deployment lineage: OPEN.
 - Service Worker `/companies/sw.js`: OPEN.
 - Gold/Diamond: UNPROVEN.
 - Closed 100%: NO.
 
-## NEXT AUTHORIZED ACTIONS
-1. Establish exact Cloudflare Pages deployment lineage for `rawaea-erp.pages.dev` and prove that production is serving target blob `6c94560ef22f6778fe0ecf91757afe500f4f1c63`.
-2. Re-run the login flow in a real browser and verify that the previous `401 Invalid API key` and `MAIN11_SUPABASE_UNAVAILABLE` errors are absent.
-3. Trace the `/companies/sw.js` request to the deployed route and resolve it only after proving the intended artifact base path.
-4. Update `CURRENT_STATE.md` after each real operation and preserve all Hany reports.
-5. Do not repeat clean-room reconstruction, monolithic replacement, historical-module replacement, or arbitrary Supabase mutations.
+## NEXT AUTHORIZED ACTIONS — P134
+1. Establish exact Cloudflare Pages deployment SHA/artifact and prove whether it serves target blob `6c94560ef22f6778fe0ecf91757afe500f4f1c63`.
+2. Run fresh browser boot/login/session/tenant verification against the actual production artifact and confirm the previous `Invalid API key` and `MAIN11_SUPABASE_UNAVAILABLE` errors are absent.
+3. Trace `/companies/sw.js` only after artifact/base-path identity is proven, then fix the actual routing/registration defect if required.
+4. Re-test P131 specialized report routes and Auth/session persistence after deployment.
+5. Only then evaluate Gold/Diamond closure.
+6. Update this file after every subsequent real operation and preserve all historical reports.
+7. Do not repeat clean-room reconstruction, monolithic replacement, historical-module replacement, or arbitrary production mutations.
