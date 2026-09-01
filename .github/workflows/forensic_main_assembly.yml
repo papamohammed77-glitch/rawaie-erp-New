@@ -1,5 +1,7 @@
 name: RAWAEA governed main assembly — EXECUTE AND VERIFY
 
+# P143 trigger: execute the canonical New-main reconstruction after the runtime-contract repair.
+
 on:
   workflow_dispatch:
   push:
@@ -47,17 +49,19 @@ jobs:
           import re, json
           s=Path('Current/PWA/main.html').read_text(encoding='utf-8')
           def unscoped_app_settings(s):
-              p=re.compile(r"\\.from\\(['\"]app_settings['\"]\\)(?P<c>[^;\\n]{0,1200}?)\\.limit\\(\\s*1\\s*\\)",re.S)
-              return any(not re.search(r"\\.eq\\(['\"]company_id['\"]\\s*,",m.group('c')) for m in p.finditer(s))
+              p=re.compile(r"\.from\(['\"]app_settings['\"]\)(?P<c>[^;\n]{0,1200}?)\.limit\(\s*1\s*\)",re.S)
+              return any(not re.search(r"\.eq\(['\"]company_id['\"]\s*,",m.group('c')) for m in p.finditer(s))
           checks={
             'doctype':'<!doctype html' in s.lower(),'html':'</html>' in s.lower(),'head':'</head>' in s.lower(),'body':'</body>' in s.lower(),
             'script_balance':s.lower().count('<script')==s.lower().count('</script>'),'style_balance':s.lower().count('<style')==s.lower().count('</style>'),
             'shell':'window.RW_ShellContext' in s and 'RW_ShellContext.getCompanyId()' in s,
             'owner':'window.RW_OwnerContract' in s and "meta.permissions || ['*']" not in s,
             'recs':'rec-purchase' in s and 'rec-offers' in s,
-            'stock_writer':not re.search(r"\\.from\\(['\"]stock_branches['\"]\\)[\\s\\S]{0,500}?\\.(?:update|insert|upsert|delete)\\(",s),
-            'log_writer':not re.search(r"\\.from\\(['\"]inventory_log['\"]\\)[\\s\\S]{0,500}?\\.(?:update|insert|upsert|delete)\\(",s),
-            'tenant_app_settings':not unscoped_app_settings(s)
+            'stock_writer':not re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,500}?\.(?:update|insert|upsert|delete)\(",s),
+            'log_writer':not re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,500}?\.(?:update|insert|upsert|delete)\(",s),
+            'tenant_app_settings':not unscoped_app_settings(s),
+            'supabase_key_declared_once':len(re.findall(r"var\s+RW_SUPABASE_ANON_KEY\s*=",s))==1,
+            'service_worker_canonical':s.count("navigator.serviceWorker.register('./sw.js',{scope:'./'})")==1
           }
           if not all(checks.values()): raise SystemExit('STRUCTURAL_CONTRACT_FAIL '+json.dumps(checks,ensure_ascii=False))
           print('STRUCTURAL_CONTRACT_PASS',json.dumps(checks,ensure_ascii=False))
@@ -72,7 +76,7 @@ jobs:
           from pathlib import Path
           import re,json
           def symbols(s):
-              return {'functions':sorted(set(re.findall(r'(?<![\\w$])function\\s+([A-Za-z_$][\\w$]*)\\s*\\(',s))), 'ids':sorted(set(re.findall(r'\\bid=["\']([^"\']+)["\']',s))), 'rpcs':sorted(set(re.findall(r'\\.rpc\\(\\s*["\']([^"\']+)["\']',s))), 'tables':sorted(set(re.findall(r'\\.from\\(\\s*["\']([^"\']+)["\']',s))), 'edge_refs':sorted(set(re.findall(r'functions/v1/([A-Za-z0-9._-]+)',s)))}
+              return {'functions':sorted(set(re.findall(r'(?<![\w$])function\s+([A-Za-z_$][\w$]*)\s*\(',s))), 'ids':sorted(set(re.findall(r'\bid=["\']([^"\']+)["\']',s))), 'rpcs':sorted(set(re.findall(r'\.rpc\(\s*["\']([^"\']+)["\']',s))), 'tables':sorted(set(re.findall(r'\.from\(\s*["\']([^"\']+)["\']',s))), 'edge_refs':sorted(set(re.findall(r'functions/v1/([A-Za-z0-9._-]+)',s)))}
           o=symbols(Path('Original/PWA/main.html').read_text(encoding='utf-8')); f=symbols(Path('Current/PWA/main.html').read_text(encoding='utf-8'))
           losses={k:sorted(set(o[k])-set(f[k])) for k in o}
           Path('Current/CTO/FORENSIC_MAIN_SYMBOL_PARITY.json').write_text(json.dumps({'losses':losses,'original_counts':{k:len(v) for k,v in o.items()},'final_counts':{k:len(v) for k,v in f.items()}},ensure_ascii=False,indent=2),encoding='utf-8')
