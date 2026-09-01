@@ -1,0 +1,19 @@
+تم استكمال التحقيق والتعديل ضمن الحدود التي أمكن إثباتها مباشرة من GitHub وSupabase، مع تعليق Browser E2E كما طلبت وعدم استخدامه كشرط في هذه الجولة.
+
+الحالة الحالية الصادقة:
+
+تم استرجاع سياق P124 والتحقيق المباشر في الحالة الحالية، بدل الاعتماد على التقارير التاريخية.
+تم تأكيد أن MAIN1 في New-main يملك العقود الأساسية المطلوبة، بما فيها Shell/Auth/Tenant/Owner/Permissions/Navigation/Data/Audit/Workflow/Notifications. كما أن عقود الإشعارات _renderAndSave و_updateBadge وmarkRead و_clickNotif موجودة.
+تم إثبات عيب فعلي في مسار Bulk Stock Upload: الـUI كان يحتفظ بـitem_code فقط بينما الـProduction Edge Function يعتمد على item_id canonical.
+تم التحقق من أن post_stock_movement هو محرك المخزون المركزي، SECURITY DEFINER، مع locking وidempotency وتسجيل inventory_log.
+تم التحقق من أن Production save-item الحالي وصل إلى نسخة أحدث تستخدم RPC للرصد الافتتاحي بدل direct stock_branches DML.
+تم تشديد RLS الخاص بالـworkflow/notification بدل ترك public ALL.
+تم التحقق من أن وظائف الـCRUD وAudit الأساسية في Production محمية بـJWT وتستخرج tenant من Auth/users.company_id.
+تم تعديل مسارات الـWorkflow القديمة التي كانت تسبب ضوضاء أو Overlay behavior، وجعلها P124 surgical-only.
+تم تثبيت قرار تعليق Browser E2E في Current/CTO/P124_RUNTIME_PAUSE.md.
+تم تحديث CURRENT_STATE.md عدة مرات ليعكس الحالة المرحلية وآخر نقطة تنفيذ.
+لكن لم أستطع إثبات أن إصلاح item_id وصل بالفعل إلى Git blob النهائي لـCurrent/PWA/New-main. الـworkflow trigger ظهر، لكن الـartifact بقي على البصمة القديمة أثناء التحقق. لذلك لا يجوز أن أكتب لك GOLD / DIAMOND / COMPLETE الآن؛ سيكون ذلك غير صادق.
+
+أهم استنتاج هندسي هو أن العائق الحالي لم يعد “فهم MAIN1”. العقد الأساسية مفهومة وموجودة. العائق المتبقي هو Persistence/Final-Artifact Verification، أي تحويل الإصلاح الجراحي من working copy/pipeline إلى الـGit blob النهائي ثم إثباته بالبصمة.
+
+كذلك، لا يوجد الآن أساس صحيح لإعادة بناء New-main من الصفر؛ ذلك سيعيد الخطأ الذي كشفته الجولة الحالية، ويخالف منهج P124.
