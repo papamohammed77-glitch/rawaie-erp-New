@@ -1,0 +1,1362 @@
+راجعت الحالة من GitHub مباشرة، وراجعت CURRENT_STATE.md، وتاريخ التعديلات الفعلي على Current/PWA/New-main، وملفات MAIN1، والـcommits الأخيرة، وفحصت Production Supabase مباشرة. والنتيجة مختلفة عن بعض التقارير الأخيرة.
+
+الحكم التنفيذي
+Current/PWA/New-main ليس CLOSED 100%
+
+وليس من المهني وصفه حاليًا بأنه:
+
+GOLD / DIAMOND / COMPLETE
+
+ليس لأن العمل فاشل؛ بل لأن هناك تعديلات حقيقية جدًا تمت في آخر ساعات، وبعضها يبدو صحيحًا، لكن لم تحصل بعد على بوابة إثبات مستقلة على الـartifact الحالي نفسه.
+
+الأهم من ذلك أن لدينا مشكلة حوكمة يجب إصلاحها قبل أي شيء:
+
+CURRENT_STATE.md أصبح متأخرًا عن Git الفعلي.
+
+فهو يقول إن الهدف بقي مجمدًا عند d657d6e... ولم يعدل، بينما تاريخ Git يثبت سلسلة تعديلات لاحقة فعلية على Current/PWA/New-main في 1 سبتمبر، وصولًا إلى a5b7aa69....
+
+بل إن d657d6e... نفسه عندما حاولت استخدامه كـGit ref للملف لم يكن commit صالحًا؛ هو مرتبط بـblob SHA في أحد الـcommits، وليس checkpoint صالحًا للحالة الحالية.
+
+1. أين وصل المشروع فعليًا؟
+
+تاريخ Current/PWA/New-main يثبت أن ما حدث ليس مجرد تقارير.
+
+كانت هناك تعديلات فعلية متتابعة:
+
+المرحلة	الدليل
+MAIN2	ac6e55...
+MAIN3	7805951...
+MAIN4	2c79811...
+MAIN5/6/7/8/9/10/11	عدة commits متتابعة
+MAIN1 Parent	6e3e6e...
+Navigation/Owner/License/CRM	31d4dc...
+Notifications	a5b7aa...
+
+وهذا ظاهر مباشرة في تاريخ الملف نفسه، وليس في تقرير مساعد.
+
+والـrepository نفسه الآن وصل إلى:
+
+c874373470...
+
+في 1 سبتمبر 2026، أي بعد هذه التعديلات.
+
+إذن العودة إلى حالة a4551e... أو اعتبار New-main لم يتغير بعدها أصبحت معلومة تاريخية قديمة وليست حالة حالية.
+
+2. هل ادعاء "MAIN1 closed" صحيح؟
+
+جزئيًا فقط.
+
+هناك بالفعل عمل كبير تم على MAIN1، لكن لا توجد لدينا حتى الآن أدلة مستقلة تكفي للقول إن الـcontract أصبح مكتملًا Runtime-wise.
+
+والأهم أن آخر التعديلات نفسها تكشف السبب.
+
+Commit 31d4dc3...
+
+هذا الـcommit أضاف/عدل:
+
+Owner determination.
+wildcard permissions.
+Navigation / License / CRM closure layer.
+
+والـOwner logic الجديد أصبح أكثر صحة من السابق:
+
+Auth metadata isOwner
++
+users.permissions contains "*"
++
+owner_profile exists
+
+وهذا متوافق مع العقد الذي كنت تؤكده أنت تاريخيًا.
+
+وهنا يوجد تصحيح مهم جدًا لما كان يحدث في المحاولات السابقة:
+
+المالك ليس مجرد Role
+
+العقد الصحيح الذي ثبتته أيضًا من Production هو:
+
+isOwner = true
+permissions = ["*"]
+owner_profile
+active license
+
+وفحص Production المباشر أكد أن بيانات المالك الحالية تحمل:
+
+public permissions = ["*"]
+Auth isOwner = true
+Auth permissions = ["*"]
+license_status = active
+
+وهذا متسق مع ما كنت تصفه أنت من البداية، وليس مع نموذج "أربعين أو اثنتين وأربعين صلاحية للمالك".
+
+3. لكن هنا اكتشفت مشكلة أخطر: Navigation
+
+آخر commit الخاص بالـNavigation ليس شيئًا أقبل اعتماده بلا فحص.
+
+الـpatch يقوم فعليًا بعمل شيء من هذا النوع:
+
+أخرج hr
+أخرج crm
+أخرج users
+أخرج roles
+أخرج license
+أخرج settings
+...
+ثم أضفها مرة أخرى
+
+وهذا مهم جدًا.
+
+لأنه قد يحقق:
+
+وجود العنصر
+
+لكن ليس بالضرورة:
+
+Hierarchy parity
+Parent/Submenu parity
+Visibility parity
+Behavioral parity
+
+وهذه ليست ملاحظة نظرية. Current/PWA/main/main1.md وOriginal/PWA/main/main1.md يحتويان بالفعل على:
+
+crm
+users
+roles
+license
+
+وتظهر في المصدر التاريخي كعناصر Navigation بعقودها الخاصة.
+
+إذًا:
+
+لا يكفي أن نجد license داخل HTML.
+
+يجب إثبات مكانه في شجرة التنقل، وشرط ظهوره، والـrouter الذي يستقبله، والrenderer الذي ينفذه.
+
+4. إدارة الترخيص: لماذا كانت لا تظهر؟
+
+هنا أصبح لدينا الآن تفسير تقني متماسك.
+
+المصدر التاريخي يحتوي على:
+
+إدارة الترخيص
+
+ووحدة RW_OwnerLicense موجودة، وكذلك renderer الحقيقي في MAIN10، وهناك أيضًا زر:
+
+btn-save-license-only
+
+والـhandler المقابل موجود في المصدر الأصلي.
+
+لكن وجود:
+
+RW_OwnerLicense
+
+لا يثبت أن:
+
+Navigation → visible → route → render
+
+تعمل.
+
+وهذا بالضبط هو الخطأ الذي وقع فيه بعض التنفيذ السابق:
+
+Function exists ≠ Feature works
+
+وتقرير برومبت + تقرير 122 نفسه كان قد كشف هذه النقطة بدقة، لكنه كان تقريرًا لا دليل تشغيل.
+
+5. أحدث commit الخاص بالإشعارات يحتاج تدقيقًا أيضًا
+
+a5b7aa69... أضاف 38 سطرًا لإغلاق Notification Contract.
+
+وهذا التعديل أضاف:
+
+_updateBadge
+markRead
+_clickNotif
+_renderAndSave
+
+إلى RW_Notification.
+
+لكن فيه نقطة يجب ألا نمررها مباشرة:
+
+_renderAndSave() يقوم من داخل الـPWA بعمل:
+
+supabase.from('notifications').insert(...)
+
+كما أن _updateBadge() وmarkRead() ينفذان queries مباشرة من الواجهة.
+
+هذا ليس خطأً مثبتًا وحده، ولكنه Contract يحتاج إلى إثبات:
+
+من يملك notification write authority؟
+هل هذا هو owner الحالي؟
+هل RLS تمنع تجاوز tenant/user scope؟
+هل توجد جهة أخرى تقوم بنفس الوظيفة؟
+هل هذا يؤدي إلى duplicate notification authority؟
+
+ولا يوجد حاليًا Browser PASS على هذا الـcommit.
+
+والأهم:
+
+لا توجد حتى Workflow Run واحدة مرتبطة بالـcommit a5b7aa69...
+
+التحقق المباشر أعاد:
+
+total_count = 0
+workflow_runs = []
+
+وهذا وحده يمنعني من اعتبار آخر تعديل "Verified".
+
+6. والأكثر أهمية: CURRENT_STATE.md الآن غير صالح ليكون نقطة التحكم
+
+وهذه في رأيي أول مشكلة يجب إصلاحها.
+
+CURRENT_STATE.md يقول:
+
+Exact target SHA remains d657...
+New-main was not modified...
+
+لكن Git يقول:
+
+31d4...
+a5b7...
+
+وهناك فعليًا commits جديدة تعدل New-main.
+
+إذًا:
+
+CURRENT_STATE = STALE
+
+والمساعد التالي إذا بدأ من CURRENT_STATE دون reconciliation قد يعيد كل الحلقة القديمة مرة أخرى.
+
+وهذا تحديدًا ما يجب أن نمنعه.
+
+7. هل التقارير الأخيرة كانت كاذبة؟
+
+ليس بهذا التبسيط.
+
+الأدق:
+
+ما ثبت أنه صحيح
+
+التقارير الأخيرة كانت محقة في أن:
+
+هناك تعديلات حقيقية تمت في Git.
+MAIN2→MAIN11 أصبحت لها آثار حقيقية في New-main.
+Production حصل فيها إصلاحات فعلية.
+Owner wildcard أعيدت له دلالته الصحيحة.
+Production stock/security hardening حدث فعليًا.
+New-main أصبح أكبر بكثير مما كان عليه سابقًا.
+
+وهذه أمور يمكننا رؤية آثارها مباشرة في Git وProduction.
+
+ما لا يمكن اعتماده
+
+لكن لا أقبل حاليًا:
+
+STATIC CLOSED
+=
+GOLD
+=
+DIAMOND
+=
+COMPLETE
+
+ولا أقبل:
+
+Target frozen at d657
+
+ولا أقبل:
+
+Only browser remains
+
+بصورة مطلقة؛ لأن الـtarget نفسه تغير بعد ذلك.
+
+8. النتيجة التدقيقية الحالية
+البوابة	الحكم
+Git current state	✅ يمكن إثباته
+New-main exists	✅
+MAIN2→MAIN11 historical integration	✅ توجد commits فعلية
+MAIN1 source contract	✅
+Owner wildcard Production	✅
+Owner Auth semantics	✅
+License module existence	✅
+License navigation	⚠️ يحتاج إثبات hierarchically
+CRM navigation	⚠️ يحتاج إثبات
+Users/Roles hierarchy	⚠️ يحتاج إثبات
+Notification closure	⚠️ آخر تعديل غير runtime-verified
+Contract ledger داخل New-main	❌ لا يصلح كدليل مستقل
+Latest target workflow	❌ لا يوجد run للـa5b7
+Browser runtime على آخر artifact	❌ غير مثبت
+Authenticated E2E	❌ غير مثبت
+Tenant isolation E2E	❌ غير مثبت
+Service Worker runtime	❌ غير مثبت
+CLOSED 100%	❌
+GOLD	❌
+DIAMOND	❌
+COMPLETE	❌
+9. النمط الصحيح للخروج من الأزمة
+
+هنا أرى أن الحل النهائي يجب أن يكون مختلفًا جذريًا عن أسلوب المحاولات السابقة.
+
+لا نعيد البناء.
+لا نرجع إلى MAIN1→MAIN11.
+لا نعيد كتابة New-main من الصفر.
+لا نستخدم overlays جديدة.
+لا نضيف workflows كل مرة.
+لا نكتب "CLOSED" داخل الملف ونعتبرها حقيقة.
+
+الأسلوب الصحيح:
+
+CURRENT REALITY
+      ↓
+RECONCILE
+      ↓
+FREEZE CURRENT NEW-MAIN
+      ↓
+FORENSIC CONTRACT MATRIX
+      ↓
+ONE GAP AT A TIME
+      ↓
+SURGICAL FIX
+      ↓
+STATIC VERIFY
+      ↓
+RUNTIME VERIFY
+      ↓
+CURRENT_STATE UPDATE
+      ↓
+NEXT GAP
+
+وبالتالي كل مساعد يدخل المشروع يبدأ من:
+
+آخر حالة فعلية
+
+وليس:
+
+آخر تقرير
+10. أهم تعديل سأضعه في البرومبت الجديد
+
+هناك أربعة أخطاء من المحاولات السابقة يجب منعها صراحةً:
+
+الأول
+
+اعتبار CURRENT_STATE.md حقيقة نهائية.
+
+الصحيح:
+
+CURRENT_STATE is a ledger, not an authority over Git/Production.
+الثاني
+
+اعتبار وجود function أو marker دليلًا على اكتمال الوظيفة.
+
+الصحيح:
+
+Existence ≠ wiring ≠ behavior ≠ runtime proof
+الثالث
+
+إضافة "closure blocks" متتالية.
+
+لا نريد:
+
+CLOSURE v1
+CLOSURE v2
+CLOSURE v7
+DIAMOND v1
+NAVIGATION PARITY v2
+
+كل هذا يزيد الطبقات ويجعل آخر تعريف هو المسيطر.
+
+الرابع
+
+تعديل Navigation بطريقة:
+
+remove → append
+
+بدل:
+
+preserve authoritative hierarchy
+البرومبت التنفيذي الجديد
+
+هذا هو البرومبت الذي أوصي بإرساله للمساعد التالي. صغته بحيث يبدأ من الحالة الحقيقية الحالية، ويستوعب أن New-main تغير فعليًا بعد d657...، ويحظر كل أنماط الفشل التي تكررت.
+
+CTO FORENSIC CONTINUATION COMMAND
+RAWAEA ERP — CURRENT New-main / GOLD-DIAMOND VERIFICATION & SURGICAL CLOSURE
+NO RESET / NO RECONSTRUCTION / NO LOOP / NO FALSE CLOSURE
+0. MISSION
+
+أنت تعمل الآن بصفة:
+
+CTO + Principal Software Architect + Forensic Engineer + Production Verification Engineer
+
+ومهمتك الوحيدة هي:
+
+التحقيق في الحالة الفعلية الحالية للملف Current/PWA/New-main، والتحقق الجنائي من اكتماله وصحة تكامله مع عقود MAIN1 وبقية التعديلات الموجودة فعليًا فيه، ثم إصلاح الفجوات المثبتة فقط إصلاحًا جراحيًا، دون إعادة بناء النظام أو إعادة تنفيذ السلسلة التاريخية، ثم إثبات النتيجة على المصدر والـruntime وتسجيل كل خطوة في CURRENT_STATE.md.
+
+هذه ليست مهمة:
+
+إعادة بناء MAIN1.
+إعادة تنفيذ MAIN1→MAIN11.
+إعادة كتابة New-main من الصفر.
+استبدال New-main بنسخة أخرى.
+إصلاح النظام كله.
+إنشاء architecture جديدة.
+إنشاء overlay جديد.
+إنشاء workflow جديد لمجرد إنتاج PASS.
+إعلان GOLD/DIAMOND بناءً على markers أو reports.
+1. ABSOLUTE TARGET
+
+الهدف الوحيد:
+
+Current/PWA/New-main
+
+الملف المحمي:
+
+Current/PWA/main.html
+
+ممنوع تعديله.
+
+المصادر التاريخية المرجعية الأساسية:
+
+Current/PWA/main/main1.md
+Original/PWA/main/main1.md
+
+ولا يجوز استبدال New-main بأحدهما.
+
+2. CURRENT REALITY OVERRIDES CURRENT_STATE
+
+ابدأ بقراءة:
+
+CURRENT_STATE.md
+
+حتى النهاية.
+
+ثم اعتبره:
+
+EVENT LEDGER
+
+وليس:
+
+SOURCE OF TRUTH
+
+بعد ذلك تحقق مباشرة من:
+
+Git main HEAD
+Current/PWA/New-main
+Current/PWA/main/main1.md
+Original/PWA/main/main1.md
+Current production
+Active Edge Functions
+Current database schema/functions/RLS/grants
+
+إذا اختلف CURRENT_STATE.md عن الواقع:
+
+STATE = STALE
+
+يجب تسجيل ذلك أولًا.
+
+لا تستخدم أي SHA قديم كتجميد للحالة لمجرد أن CURRENT_STATE قاله.
+
+خصوصًا:
+
+d657d6e...
+
+لا تفترض أنه الحالة الحالية.
+
+يجب تحديد:
+
+CURRENT HEAD
++
+LATEST New-main COMMIT
++
+LATEST New-main FILE SHA
+
+من Git مباشرة.
+
+3. CRITICAL CURRENT TARGET HISTORY
+
+أنت ملزم بفحص سلسلة التعديلات الأخيرة على:
+
+Current/PWA/New-main
+
+وبالأخص:
+
+a4551e0...
+90ed92...
+ec274f...
+ac6e55...
+7805951...
+2c79811...
+ce83b3...
+6e3e6e...
+MAIN10
+MAIN11
+31d4dc...
+a5b7aa...
+
+لا تثق في Commit Message.
+
+افحص diff الحقيقي لكل commit ذي صلة.
+
+المطلوب تحديد:
+
+WHAT CHANGED
+WHY
+WHETHER VALID
+WHETHER STILL REQUIRED
+WHETHER IT INTRODUCED REGRESSION
+4. NO HISTORICAL LOOP
+
+ممنوع:
+
+MAIN1 → MAIN2 → ... → MAIN11
+
+من جديد.
+
+وممنوع:
+
+تقسيم الملف من جديد.
+إعادة الدمج التاريخي.
+نسخ Original فوق New-main.
+نسخ Current MAIN1 فوق New-main.
+إعادة إنشاء New-main.
+إنشاء New-main-v2.
+إنشاء candidate.
+إنشاء final-main.
+إنشاء gold-main.
+إنشاء backup داخل repository.
+إنشاء ملفات evidence جديدة داخل repository.
+إنشاء closure overlays جديدة.
+5. SOURCE AUTHORITY
+
+ترتيب الأدلة:
+
+1. Current Production runtime
+2. Production Supabase
+3. PostgreSQL schema/functions/triggers/RLS/grants
+4. Active Edge Functions
+5. Git current main
+6. Current/PWA/New-main
+7. Current PWA/Core/SW
+8. Git history
+9. Current MAIN1
+10. Original MAIN1
+11. Historical prompts/reports
+12. Assistant memory
+
+Historical material يثبت:
+
+intent
+historical behavior
+historical contract
+
+لكنه لا يثبت:
+
+CURRENT
+PASS
+FIXED
+CLOSED
+GOLD
+DIAMOND
+
+إلا بعد إعادة التحقق.
+
+6. INTERNAL FORENSIC MATRIX
+
+أنشئ داخليًا فقط:
+
+NEW_MAIN_FORENSIC_CONTRACT_MATRIX
+
+ولا تحفظه في ملف.
+
+لكل عنصر:
+
+FEATURE
+SOURCE
+CURRENT CONTRACT
+NEW-MAIN IMPLEMENTATION
+ROUTE
+HANDLER
+OWNER
+PERMISSION
+TENANT SCOPE
+DATA SOURCE
+PRODUCTION CONTRACT
+STATIC STATUS
+RUNTIME STATUS
+EVIDENCE
+ACTION
+
+القيم:
+
+MATCH
+PARTIAL
+MISSING
+BROKEN
+CONFLICT
+UNKNOWN
+
+ممنوع استعمال:
+
+COMPLETE
+CLOSED
+GOLD
+DIAMOND
+
+داخل التحقيق قبل إثباتها.
+
+7. FIRST GATE — CURRENT MAIN1 NAVIGATION
+
+ابدأ بـNavigation.
+
+قارن:
+
+Original MAIN1
+Current MAIN1
+Current New-main
+
+لكل:
+
+dashboard
+telesales
+customers
+pos
+orders
+runsheets
+suppliers
+purchases
+receiving
+items
+inventory
+vouchers
+picking
+loading
+delivery
+returns
+unloading
+finance
+reports
+audit
+hr
+crm
+users
+roles
+license
+settings
+notifications
+
+تحقق لكل عنصر من:
+
+view
+label
+icon
+parent
+submenu
+position
+permission
+visibility rule
+route
+handler
+renderer
+CRITICAL
+
+لا تعتبر:
+
+exists in HTML
+
+مساويًا لـ:
+
+navigation parity
+8. NAVIGATION HIERARCHY PROHIBITION
+
+إذا وجدت أن نسخة حديثة قامت بـ:
+
+remove item
++
+append item
+
+فلا تعتمدها تلقائيًا.
+
+أثبت أولًا:
+
+Historical hierarchy
+Current approved hierarchy
+New-main hierarchy
+
+ثم أصلح فقط العنصر المخالف.
+
+ممنوع إعادة بناء الشجرة كلها بسبب عنصر واحد.
+
+9. OWNER CONTRACT — ABSOLUTE
+
+Owner semantics يجب أن تحافظ على:
+
+Auth metadata isOwner === true
++
+users.permissions contains "*"
++
+owner_profile exists
++
+active owner license
+
+لا تعتبر:
+
+role = مدير النظام
+
+دليلًا كافيًا.
+
+ولا تستبدل:
+
+["*"]
+
+بقائمة صريحة من الصلاحيات.
+
+ولا تعتبر role permission equality بديلاً عن Owner semantics.
+
+10. OWNER SECURITY CHECK
+
+تحقق من المسار الكامل:
+
+Supabase Auth
+↓
+users.auth_id
+↓
+users.company_id
+↓
+owner determination
+↓
+permissions
+↓
+RW_STATE
+↓
+navigation
+↓
+owner-only views
+
+أي mismatch بين هذه الطبقات يجب تسجيله.
+
+11. LICENSE CONTRACT — P0
+
+إدارة الترخيص يجب أن تعمل كمسار كامل:
+
+Owner identity
+↓
+isOwner === true
+↓
+permissions contains "*"
+↓
+license navigation visible
+↓
+view = license
+↓
+router resolves license
+↓
+RW_OwnerLicense
+↓
+render()
+↓
+license state loaded
+
+وجود:
+
+RW_OwnerLicense
+
+وحده لا يكفي.
+
+يجب التحقق أيضًا من:
+
+license-main-container
+btn-save-license-only
+save handler
+production settings contract
+owner_profile contract
+
+ولا تنشئ License engine جديدًا.
+
+إذا كان هناك current owner فعلي، استدعِ owner الحالي.
+
+12. NOTIFICATION CONTRACT — P0/P1
+
+تحقق من:
+
+_updateBadge
+markRead
+_clickNotif
+_renderAndSave
+
+لكن لا تعتبر commit a5b7aa... صحيحًا لمجرد وجود هذه الوظائف.
+
+يجب إثبات:
+
+consumer
+authorization
+RLS
+tenant/user scope
+reference navigation
+runtime behavior
+
+وتحقق تحديدًا مما إذا كان:
+
+PWA direct insert into notifications
+
+هو الـcurrent architectural owner أم duplicate writer.
+
+إذا كان هناك owner قائم للـnotification write:
+
+CALL THE OWNER
+
+ولا:
+
+CREATE SECOND WRITER
+13. CONTRACT LEDGER PROHIBITION
+
+أي object داخل New-main مثل:
+
+MAIN_HTML_CURRENT_CONTRACT_LEDGER
+RW_*_CONTRACT
+CLOSED
+GOLD
+DIAMOND
+
+هو:
+
+SELF-ATTESTATION
+
+وليس evidence.
+
+لا تستخدمه لإثبات الوظيفة.
+
+يجب أن تأتي الحقيقة من:
+
+implementation
+consumer
+runtime
+production
+14. NO OVERLAY PATCH CHAINS
+
+ممنوع إضافة:
+
+CLOSURE V1
+CLOSURE V2
+FINAL V7
+DIAMOND V1
+NAVIGATION PARITY V2
+
+كطبقات فوق طبقات.
+
+إذا كان هناك خلل:
+
+TRACE ORIGINAL OWNER
+↓
+FIX OWNER
+
+بدل:
+
+APPEND ANOTHER IIFE
+
+إذا أصبح هناك duplicate definitions:
+
+STOP
+TRACE DEFINITIONS
+REMOVE/RECONCILE ONLY THE CONFIRMED DUPLICATE
+15. MAIN1 DOES NOT OWN CORE
+
+ممنوع وضع داخل New-main نسخًا ثانية من:
+
+authentication engine
+authorization engine
+tenant engine
+stock engine
+inventory engine
+journal engine
+ledger engine
+sync engine
+cache engine
+realtime engine
+PWA lifecycle engine
+
+القاعدة:
+
+UI
+↓
+CURRENT OWNER
+
+وليس:
+
+UI
+↓
+DUPLICATE BUSINESS ENGINE
+16. INVENTORY CONTRACT LOCK
+
+أي physical stock movement يجب أن يظل:
+
+UI
+↓
+Current Edge/RPC owner
+↓
+post_stock_movement
+↓
+stock_branches + inventory_log
+
+ممنوع كتابة مباشرة من New-main إلى:
+
+stock_branches.qty
+inventory_log
+
+ولا تفتح هذا الملف ضمن هذه المهمة إلا إذا ظهر regression مثبت مرتبط مباشرة بنطاق هذه الوحدة.
+
+17. TENANT CONTRACT LOCK
+
+يجب الحفاظ على:
+
+authenticated user
+↓
+users.auth_id
+↓
+users.company_id
+↓
+company-scoped data
+
+ممنوع:
+
+LIMIT 1
+global operational lookup
+company-less write
+
+عندما تكون company identity مطلوبة.
+
+18. DO NOT REPAIR PRODUCTION TO MAKE THE TEST GREEN
+
+Production modification مسموحة فقط عند:
+
+confirmed production defect
++
+direct evidence
++
+bounded change
++
+security/tenant analysis
++
+verification
+
+ممنوع:
+
+patch Production
+because CI failed
+
+وممنوع:
+
+modify Production
+to make navigation appear
+19. NO NEW FILES
+
+المسموح الدائم:
+
+Current/PWA/New-main
+CURRENT_STATE.md
+
+لا تنشئ:
+
+candidate
+backup
+gold
+diamond
+v2
+verification file
+evidence file
+new workflow
+new permanent tool
+
+إلا إذا كانت هناك ضرورة تقنية قاطعة.
+
+والأصل:
+
+ZERO NEW FILES
+20. EXECUTION RULE
+
+لكل defect مثبت:
+
+DETECT
+↓
+CLASSIFY
+↓
+TRACE OWNER
+↓
+ROOT CAUSE
+↓
+SURGICAL FIX
+↓
+STATIC VERIFY
+↓
+RUNTIME VERIFY
+↓
+UPDATE CURRENT_STATE
+↓
+NEXT DEFECT
+
+لا تجمع عشرة إصلاحات غير مترابطة في commit واحد.
+
+21. FAILURE RULE
+
+عند فشل أي خطوة:
+
+لا:
+
+تعيد البناء.
+تبدأ سلسلة تاريخية.
+تضيف overlay.
+تضيف workflow جديد.
+تعيد كتابة الملف.
+تعتبر الفشل transient دون دليل.
+
+بل:
+
+FAILURE
+↓
+ROOT CAUSE
+↓
+MINIMAL FIX
+↓
+REVERIFY
+
+وسجّل:
+
+EVENT ID
+TIMESTAMP
+SOURCE
+FAILED STEP
+ROOT CAUSE
+ATTEMPT
+WHY IT FAILED
+FIX
+RESULT
+NEXT ACTION
+22. BROWSER GATE
+
+لا تعلن Runtime PASS إلا على:
+
+CURRENT LATEST New-main ARTIFACT
+
+وليس:
+
+old SHA
+staging
+candidate
+static generated copy
+
+يجب تنفيذ:
+
+authenticated owner login
+authenticated non-owner login
+
+على artifact نفسه.
+
+23. MINIMUM OWNER BROWSER TEST
+
+يجب إثبات:
+
+login
+↓
+auth bootstrap
+↓
+company context
+↓
+dashboard
+↓
+navigation
+↓
+إدارة الترخيص visible
+↓
+open license
+↓
+RW_OwnerLicense render
+↓
+license state
+↓
+notification
+↓
+audit
+↓
+logout
+↓
+fail-closed
+
+ولـOwner فقط:
+
+license = visible
+audit = allowed
+
+ولـnon-owner:
+
+license = hidden/denied
+audit = denied
+
+وفق current authorization contract.
+
+24. NETWORK / CONSOLE GATE
+
+سجّل:
+
+console errors
+uncaught exceptions
+HTTP >= 400
+failed RPC
+failed Edge Function
+RLS errors
+tenant mismatch
+navigation errors
+
+لا تحول:
+
+page loaded
+
+إلى:
+
+application passed
+25. TENANT GATE
+
+لا تعلن GOLD/DIAMOND دون اختبار tenant boundary إذا كانت البيئة تسمح بذلك.
+
+يجب التحقق من:
+
+Company A cannot read Company B
+Company A cannot mutate Company B
+Owner remains bounded to authorized company context
+
+إن تعذر تنفيذ اختبار tenant حقيقي:
+
+PENDING
+
+ولا تخترع PASS.
+
+26. CURRENT_STATE UPDATE RULE
+
+بعد كل تغيير حقيقي في:
+
+Git
+Production
+New-main
+
+يجب فورًا تحديث:
+
+CURRENT_STATE.md
+
+بـ:
+
+EVENT ID
+EVENT TYPE
+UTC
+CURRENT GIT HEAD
+TARGET FILE SHA
+PRODUCTION STATE
+ACTION
+RESULT
+EVIDENCE
+IMPACT
+NEXT AUTHORIZED ACTION
+
+ولا تستخدم:
+
+LAST REPORT
+
+كنقطة استمرار.
+
+27. CURRENT_STATE RECONCILIATION RULE
+
+إذا حدث commit جديد بعد آخر state event:
+
+STATE = STALE
+
+ولا تبدأ من آخر recorded event على أنه current.
+
+أعد:
+
+Git HEAD reconciliation
+Target SHA reconciliation
+Production reconciliation
+
+ثم تابع.
+
+28. CLOSURE RULE
+
+ممنوع كتابة:
+
+CLOSED 100%
+GOLD
+DIAMOND
+COMPLETE
+
+إلا إذا تحققت جميع الشروط:
+
+CURRENT_STATE synchronized
++
+latest target SHA identified
++
+MAIN1 parity proven
++
+navigation proven
++
+owner/wildcard proven
++
+license proven
++
+notifications proven
++
+tenant contract proven
++
+static verification PASS
++
+exact browser runtime PASS
++
+authenticated owner PASS
++
+authenticated non-owner authorization PASS
++
+no critical console errors
++
+no relevant HTTP >= 400
++
+logout/fail-closed PASS
++
+Production compatibility PASS
+29. IMPORTANT — LATEST STATE WARNING
+
+أنت ممنوع اعتماد العبارة التاريخية:
+
+New-main remained frozen at d657...
+
+قبل التحقق من Git.
+
+هناك تعديلات لاحقة فعلية على New-main.
+
+يجب أن تتعامل مع:
+
+latest actual New-main
+
+كهدفك الحالي.
+
+لا rollback.
+
+لا reset.
+
+لا restore historical target.
+
+30. SUCCESS DEFINITION
+
+نجاح المهمة ليس:
+
+HTML contains every function
+
+بل:
+
+CURRENT
++
+CORRECT
++
+CONNECTED
++
+AUTHORIZED
++
+TENANT-SAFE
++
+PRODUCTION-COMPATIBLE
++
+RUNTIME-PROVEN
+31. FINAL REPORT
+
+في النهاية أنشئ تقريرًا في ردك فقط، ولا تنشئ ملفًا جديدًا داخل repository.
+
+قسم التقرير إلى:
+
+1. CURRENT REALITY
+2. TARGET SHA
+3. MAIN1 CONTRACT MATRIX SUMMARY
+4. WHAT WAS ALREADY CORRECT
+5. WHAT WAS WRONG
+6. WHAT WAS FIXED
+7. WHAT FAILED DURING EXECUTION
+8. WHY IT FAILED
+9. WHAT MUST NOT BE REPEATED
+10. STATIC VERIFICATION
+11. PRODUCTION VERIFICATION
+12. BROWSER VERIFICATION
+13. REMAINING OPEN GATES
+14. CURRENT_STATE EVENT ID
+15. FINAL CLASSIFICATION
+
+ويجب أن تذكر بوضوح:
+
+PASS
+PARTIAL
+PENDING
+FAIL
+UNKNOWN
+
+ولا تستخدم لغة توحي بالإغلاق إذا كانت هناك Gate مفتوحة.
+
+32. FINAL COMMAND
+
+ابدأ الآن من:
+
+CURRENT_STATE.md
+
+ثم:
+
+ACTUAL GIT HEAD
+↓
+ACTUAL New-main LATEST SHA
+↓
+LATEST New-main COMMITS
+↓
+PRODUCTION SNAPSHOT
+↓
+MAIN1 ORIGINAL/CURRENT CONTRACT
+↓
+FORENSIC MATRIX
+↓
+SURGICAL FIXES ONLY
+↓
+STATIC VERIFY
+↓
+RUNTIME VERIFY
+↓
+CURRENT_STATE UPDATE
+
+لا تبدأ من الصفر.
+
+لا تعد MAIN1→MAIN11.
+
+لا تعيد بناء New-main.
+
+لا تثق في التقارير.
+
+لا تعتمد على markers.
+
+لا تعتمد على self-attestation.
+
+لا تنشئ ملفات جديدة.
+
+لا تضف overlay جديدًا.
+
+لا تعلن GOLD/DIAMOND/CLOSED دون Browser + Production evidence على أحدث artifact الفعلي.
+
+END COMMAND
+خلاصة الـCTO
+
+أرى أن الأزمة الآن ليست أزمة برمجة بالدرجة الأولى.
+
+الأزمة أصبحت:
+
+أزمة سيطرة على الحالة + إثبات + تداخل تعديلات + مساواة خاطئة بين وجود الكود واكتمال السلوك.
+
+والتحول الصحيح الآن هو من:
+
+RECONSTRUCTION
+
+إلى:
+
+FORENSIC CERTIFICATION + SURGICAL CORRECTION
+
+وهذا فارق جوهري.
+
+وأهم قاعدة سأثبتها للمساعد القادم:
+
+لا يصلح ما هو غير مثبت أنه خطأ، ولا يعلن ما هو غير مثبت أنه صحيح، ولا يعيد بناء ما تم بناؤه بالفعل.
+
+وبالمراجعة الحالية، لم أصل إلى CLOSED 100% / GOLD / DIAMOND / COMPLETE، وهذا قرار مقصود ومدعوم بالأدلة، وليس تحفظًا شكليًا. أخطر نقطة حاليًا ليست نقص MAIN1؛ بل أن CURRENT_STATE.md متأخر عن الـGit، وأن أحدث تغييرات New-main لم تمر بعد ببوابة Runtime مستقلة.
