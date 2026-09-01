@@ -9,16 +9,16 @@ permissions:
 
 jobs:
   repair:
-    if: startsWith(github.event.head_commit.message, '[p135-direct-repair]')
+    if: startsWith(github.event.head_commit.message, '[p136-trigger]')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 1
+          fetch-depth: 2
 
-      - name: Patch target and write forensic state
+      - name: Apply P136 surgical scope repair and restore executor
         shell: bash
         run: |
           set -euo pipefail
@@ -27,54 +27,76 @@ jobs:
           import re, subprocess, tempfile
 
           target = Path('Current/PWA/New-main')
+          workflow = Path('.github/workflows/p135-direct-runtime-repair.yml')
+          state = Path('CURRENT_STATE.md')
+          report = Path('doc/Draft/Reprots/تقرير3.md')
+
           s = target.read_text(encoding='utf-8')
+          original_s = s
 
-          # Find only the known MAIN11 availability guard. Do not touch the client construction or key.
-          pattern = re.compile(r"if\s*\(\s*!window\.supabase\s*\|\|\s*!supabase\.auth\s*\)\s*\{", re.M)
-          replacement = "if (typeof supabase === 'undefined' || !supabase || !supabase.auth) {"
-          s2, n = pattern.subn(replacement, s, count=1)
-          if n != 1:
-              if replacement not in s:
-                  raise SystemExit(f'P135_GUARD_MATCH_COUNT={n}')
-              s2 = s
+          # P136-01: expose the already-created Supabase client without changing URL/key/client options.
+          client_line = "var supabase=window.supabase.createClient(RW_SUPABASE_URL,RW_SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});"
+          client_export = client_line + "\nwindow.RW_SUPABASE_CLIENT=supabase;"
+          if client_line in s and "window.RW_SUPABASE_CLIENT=supabase;" not in s:
+              s = s.replace(client_line, client_export, 1)
 
-          marker = "window.__RAWAEA_P135_RUNTIME_BUILD__ = 'P135-2026-09-01';"
-          needle = "console.log('RAWAEA ERP BOOTING...');"
-          if marker not in s2:
-              pos = s2.find(needle)
-              if pos < 0:
-                  raise SystemExit('P135_BOOT_ANCHOR_NOT_FOUND')
-              end = pos + len(needle)
-              s2 = s2[:end] + "\n            " + marker + "\n            console.log('RAWAEA_P135_TARGET', 'New-main');" + s2[end:]
+          # P136-02: MAIN11 is a separate IIFE. It must use the shared client explicitly.
+          old_guard = "if (typeof supabase === 'undefined' || !supabase || !supabase.auth) {"
+          new_guard = "var sb = window.RW_SUPABASE_CLIENT || null;\n            if (!sb || !sb.auth) {"
+          if old_guard in s:
+              s = s.replace(old_guard, new_guard, 1)
+          elif new_guard not in s:
+              raise SystemExit('P136_MAIN11_GUARD_ANCHOR_NOT_FOUND')
 
-          if s2 == s:
-              raise SystemExit('P135_TARGET_ALREADY_CORRECT_OR_MARKER_ONLY')
+          # P136-03: use the same explicit client for the MAIN11 boot auth operation only.
+          boot_old = "var sessionResult = await supabase.auth.getSession();"
+          boot_new = "var sessionResult = await sb.auth.getSession();"
+          if boot_old in s:
+              s = s.replace(boot_old, boot_new, 1)
+          elif boot_new not in s:
+              raise SystemExit('P136_MAIN11_SESSION_ANCHOR_NOT_FOUND')
 
-          # Syntax validation of the one inline runtime before committing.
-          scripts = [m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>', s2, re.I)
+          # P136 proof marker: no secrets.
+          p136_marker = "window.__RAWAEA_P136_SCOPE_REPAIR__ = 'shared-client';"
+          p135_marker = "window.__RAWAEA_P135_RUNTIME_BUILD__ = 'P135-2026-09-01';"
+          if p136_marker not in s:
+              if p135_marker not in s:
+                  raise SystemExit('P136_P135_MARKER_NOT_FOUND')
+              s = s.replace(p135_marker, p135_marker + "\n            " + p136_marker, 1)
+
+          if s == original_s:
+              raise SystemExit('P136_NO_TARGET_CHANGE')
+
+          # Mandatory syntax verification of the complete inline runtime.
+          scripts = [m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>', s, re.I)
                      if not re.search(r'\bsrc\s*=', m.group('a') or '', re.I)]
           if len(scripts) != 1:
-              raise SystemExit(f'P135_INLINE_RUNTIME_COUNT={len(scripts)}')
-          js = Path(tempfile.gettempdir()) / 'rawaea-p135.js'
+              raise SystemExit(f'P136_INLINE_RUNTIME_COUNT={len(scripts)}')
+          js = Path(tempfile.gettempdir()) / 'rawaea-p136.js'
           js.write_text(scripts[0].group('b'), encoding='utf-8')
-          chk = subprocess.run(['node','--check',str(js)], capture_output=True, text=True)
+          chk = subprocess.run(['node', '--check', str(js)], capture_output=True, text=True)
           if chk.returncode:
               print(chk.stderr)
-              raise SystemExit('P135_TARGET_JS_SYNTAX_FAIL')
-          target.write_text(s2, encoding='utf-8')
+              raise SystemExit('P136_TARGET_JS_SYNTAX_FAIL')
+          target.write_text(s, encoding='utf-8')
 
-          report = Path('doc/Draft/Reprots/تقرير2.md')
-          report.write_text('''# تقرير2 — P135 Forensic Runtime Repair\n\n## Evidence\n- `Current/PWA/New-main` is the target artifact.\n- Supabase project is healthy and the source contains the current active key; no key rotation was performed.\n- Browser error `MAIN11_SUPABASE_UNAVAILABLE` is caused by an incorrect availability guard checking the UMD namespace instead of the instantiated local client.\n- Browser `401 Invalid API key` remains a separate deployment/artifact-lineage issue because the source target carries the active configuration while Supabase also records successful requests from another runtime.\n\n## Surgical repair\nReplaced the MAIN11 guard matching `!window.supabase || !supabase.auth` with:\n\n```js\nif (typeof supabase === 'undefined' || !supabase || !supabase.auth) {\n```\n\nAdded a non-secret runtime marker:\n\n```js\nwindow.__RAWAEA_P135_RUNTIME_BUILD__ = 'P135-2026-09-01';\nconsole.log('RAWAEA_P135_TARGET', 'New-main');\n```\n\nThe Supabase URL/key and login function were not changed.\n\n## Verification\nThe inline runtime is syntax-checked with Node before commit. Final closure requires the deployed browser to show the P135 marker and then a successful login. If marker appears but 401 remains, the investigation moves to the served artifact/client configuration. The Service Worker 404 remains a deployment routing/root question and is not changed speculatively.\n\n## Previous executor failure\nThe existing Gold/Diamond executor failed with `P135_EXPECTED_GUARD_NOT_FOUND` even though a fresh direct read of the same target blob showed the defective guard still present. That executor failure is recorded as an execution-path defect, not evidence that the source was fixed.\n''', encoding='utf-8')
+          # Preserve the historical report chain; do not overwrite Report 2.
+          report.write_text('''# تقرير3 — P136 MAIN11 Supabase Scope Repair\n\n## 1. نقطة الانطلاق\nهذه الجولة بدأت من آخر حالة مثبتة في `CURRENT_STATE.md` و`تقرير2.md`، ثم تمت مطابقة الحالة الحالية مباشرة مع Git وProduction Supabase وسجل Auth. لم يبدأ العمل من الصفر، ولم يتم حذف أو تعديل أي تقرير تاريخي.\n\n## 2. آخر الأحداث الموثقة قبل P136\n- P133 أصلح مسار Auth في `Current/PWA/New-main`.\n- P134 أثبت أن مفتاح Supabase الموجود في Current يطابق المفتاح Legacy النشط في مشروع Production.\n- P135 أضاف marker `RAWAEA_P135_TARGET` واستبدل guard قديمًا بعبارة تفحص `supabase` المحلي.\n- Runtime بعد P135 ما زال يعرض `MAIN11_SUPABASE_UNAVAILABLE` مع `401 Invalid API key`.\n\n## 3. الأدلة المباشرة الجديدة\n- HEAD الحالي قبل P136 هو commit `3a1db2d9f026d82f9a8d3ec62a531c50c0d63d0f`.\n- Target `Current/PWA/New-main` blob الحالي هو `a36f4b1a87833b27763a415ee4e6660bb7e0ea95`.\n- `New-main` ينشئ Supabase client داخل نطاق JavaScript مستقل: `var supabase = window.supabase.createClient(...)`.\n- `MAIN11` يبدأ بعد إغلاق IIFE سابق، وبالتالي لا يرث المتغير المحلي `supabase`.\n- P135 كان قد استبدل شرطًا غير صحيح، لكنه لم يعالج حد النطاق؛ لذلك `typeof supabase === 'undefined'` داخل MAIN11 يظل true بشكل طبيعي.\n- Supabase يعرض المفتاح Legacy نفسه كمفتاح نشط، وAuth logs تحتوي Login/refresh ناجحًا للمستخدم المالك من Runtime آخر.\n\n## 4. ROOT CAUSE\nالخطأ `MAIN11_SUPABASE_UNAVAILABLE` في Current ليس بسبب صلاحية مفتاح Supabase؛ السبب هو **JavaScript scope isolation بين IIFE الخاص بالعميل وIIFE الخاص بـMAIN11**.\n\nP135 عالج reference semantics لكنه لم يعالج ownership/scope للمتغير.\n\nأما `401 Invalid API key` في Pages runtime فما زال دليلًا مستقلًا على أن الـserved artifact/client configuration لم تُثبت مطابقتها للـCurrent Git artifact. لا يتم الادعاء بإغلاق هذا الجزء دون runtime verification.\n\n## 5. P136 SURGICAL REPAIR\nتم تعديل الهدف فقط: `Current/PWA/New-main`.\n\n### Change A — shared client export\nبعد إنشاء العميل الحالي أُضيف:\n\n```js\nwindow.RW_SUPABASE_CLIENT = supabase;\n```\n\nلم يتغير URL أو API key أو خيارات `createClient`.\n\n### Change B — MAIN11 guard\nتم استبدال guard السابق بالكامل بـ:\n\n```js\nvar sb = window.RW_SUPABASE_CLIENT || null;\nif (!sb || !sb.auth) {\n    console.error('MAIN11_SUPABASE_UNAVAILABLE');\n    return;\n}\n```\n\n### Change C — MAIN11 session call\nأصبح boot يستخدم العميل المشترك صراحةً:\n\n```js\nvar sessionResult = await sb.auth.getSession();\n```\n\n### Change D — runtime proof\nأضيف marker غير سري:\n\n```js\nwindow.__RAWAEA_P136_SCOPE_REPAIR__ = 'shared-client';\n```\n\n## 6. VERIFICATION\n- تم تشغيل `node --check` على كامل inline runtime بعد التعديل.\n- لم يتم تغيير `RW_SUPABASE_URL`.\n- لم يتم تغيير `RW_SUPABASE_ANON_KEY`.\n- لم يتم تغيير `RW_Auth.login` أو `signInWithPassword`.\n- لم يتم تغيير بيانات Production.\n- لم يتم تعديل Service Worker routing.\n\n## 7. WHAT THIS REPAIR PROVES\nإذا ظهرت العلامتان `RAWAEA_P135_TARGET` و`__RAWAEA_P136_SCOPE_REPAIR__` في نفس runtime، فلن يكون `MAIN11_SUPABASE_UNAVAILABLE` قابلًا للتفسير من scope القديم؛ لأن MAIN11 سيملك مرجعًا صريحًا إلى نفس client المنشأ في MAIN1.\n\nلكن إذا استمر `401 Invalid API key` بعد ظهور marker الجديد، فالعيب المتبقي يقع في **served Pages artifact/client configuration** وليس في credential الموجود في Current Git.\n\n## 8. DEPLOYMENT STATUS\nتم تنفيذ التعديل في قناة Git الحالية. وجوده في Git لا يثبت وحده أن Cloudflare Pages خدم هذا الـblob. لا يوجد Cloudflare Pages/Wrangler connector متاح في الأدوات الحالية، كما أن direct fetch للصفحة المنشورة أعاد `Cache miss`. لذلك تبقى runtime closure مشروطة بالمشاهدة الفعلية للـmarker الجديد ونجاح تسجيل الدخول.\n\n## 9. PREVIOUS FAILURES PRESERVED\n- P135 executor: فشل سابقًا بمرجع match guard رغم وجوده فعليًا؛ سُجل كخلل execution-path.\n- P135 source fix: كان صحيحًا بالنسبة لتغيير النص، لكنه غير كافٍ بنيويًا بسبب scope isolation.\n- Service Worker 404: لم يتم لمس routing دون proof.\n- لا توجد تقارير تاريخية محذوفة أو مستبدلة.\n\n## 10. NEXT CLOSURE GATE\n`Git target → Pages served artifact → P136 marker → no MAIN11 guard error → POST /auth token succeeds → enterSystem succeeds → owner context loads → License Management visible`.\n''', encoding='utf-8')
 
-          state = Path('CURRENT_STATE.md')
+          # Restore the pre-trigger workflow itself so the permanent diff remains surgical.
+          parent = subprocess.check_output(['git','rev-parse','HEAD^'], text=True).strip()
+          original_workflow = subprocess.check_output(['git','show',f'{parent}:.github/workflows/p135-direct-runtime-repair.yml'])
+          workflow.write_bytes(original_workflow)
+
+          # Update CURRENT_STATE without rewriting history.
           st = state.read_text(encoding='utf-8')
-          block = '''\n\n---\n\n### P135 — DIRECT SURGICAL RUNTIME REPAIR\n- Target: `Current/PWA/New-main`.\n- Confirmed Supabase source configuration is current/active; no key rotation.\n- Confirmed the failing `MAIN11_SUPABASE_UNAVAILABLE` guard was checking `!window.supabase || !supabase.auth` instead of the local client.\n- Direct regex-based surgical repair applied to the target and syntax-checked before commit.\n- Added runtime proof marker `RAWAEA_P135_TARGET` / `__RAWAEA_P135_RUNTIME_BUILD__`.\n- The prior P135 executor failed because its exact-match guard unexpectedly returned not-found; this is recorded as a tooling/execution failure.\n- Browser 401 remains unclosed until the P135 marker is observed in the deployed Pages artifact and login succeeds.\n- Service Worker 404 remains unmodified pending served-artifact/root verification.\n'''
-          if '### P135 — DIRECT SURGICAL RUNTIME REPAIR' not in st:
+          block = '''\n\n---\n\n### P136 — MAIN11 SUPABASE SCOPE REPAIR\n- Target: `Current/PWA/New-main`.\n- Direct Git forensic read proved `MAIN11` is a separate JavaScript IIFE and therefore cannot see the local `supabase` client created by the preceding IIFE.\n- P135 changed the guard expression but did not resolve this scope boundary; this explains the continued `MAIN11_SUPABASE_UNAVAILABLE` message without blaming the active Supabase key.\n- Supabase current publishable/legacy key inventory confirms the Current target key is active; Auth logs also show successful owner authentication from another runtime.\n- P136 exports the existing client as `window.RW_SUPABASE_CLIENT` and makes MAIN11 boot use that explicit shared reference.\n- P136 adds runtime marker `__RAWAEA_P136_SCOPE_REPAIR__='shared-client'`.\n- Full inline runtime passes Node syntax validation before commit.\n- No Supabase key, Login function, production data, or Service Worker routing was changed.\n- `401 Invalid API key` is still classified as a separate served-artifact/deployment-lineage problem until the Pages runtime is proven to execute this exact P136 artifact.\n- Cloudflare Pages deployment cannot be independently dispatched/verified from the currently available toolset; direct public fetch remains `Cache miss`.\n- Historical reports remain preserved.\n'''
+          if '### P136 — MAIN11 SUPABASE SCOPE REPAIR' not in st:
               state.write_text(st + block, encoding='utf-8')
 
-          subprocess.run(['git','config','user.name','rawaea-p135-direct-bot'], check=True)
-          subprocess.run(['git','config','user.email','rawaea-p135-direct-bot@users.noreply.github.com'], check=True)
-          subprocess.run(['git','add','Current/PWA/New-main','doc/Draft/Reprots/تقرير2.md','CURRENT_STATE.md'], check=True)
-          subprocess.run(['git','commit','-m','[p135-direct-runtime-repair] apply verified surgical fix'], check=True)
+          subprocess.run(['git','config','user.name','rawaea-p136-scope-bot'], check=True)
+          subprocess.run(['git','config','user.email','rawaea-p136-scope-bot@users.noreply.github.com'], check=True)
+          subprocess.run(['git','add','Current/PWA/New-main','doc/Draft/Reprots/تقرير3.md','CURRENT_STATE.md','.github/workflows/p135-direct-runtime-repair.yml'], check=True)
+          subprocess.run(['git','commit','-m','[p136-scope-repair] fix MAIN11 shared Supabase client scope'], check=True)
           subprocess.run(['git','push','origin','HEAD:main'], check=True)
           PY
