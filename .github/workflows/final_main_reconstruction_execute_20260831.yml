@@ -66,7 +66,7 @@ jobs:
                   subprocess.run(['git','push','origin','HEAD:main'],check=True)
 
           s=target.read_text(encoding='utf-8')
-          # ===== MAIN1 Parent hardening: one tenant source, canonical permissions, correct sibling-app routing =====
+          # ===== MAIN1 Parent hardening =====
           pairs={
             "'../pos.html'":"'./pos.html'","'../telesales.html'":"'./telesales.html'","'../buyer.html'":"'./buyer.html'",
             "'../vouchers.html'":"'./vouchers.html'","'../picker.html'":"'./picker.html'","'../loader.html'":"'./loader.html'",
@@ -78,13 +78,11 @@ jobs:
           new="function RW_Permissions_check(permissionKey){if(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.isOwner===true)return true;var p=String(permissionKey||'').trim(),base=p.replace(/:.*$/,'');var aliases={dashboard:'dash',inventory:'warehouse',returns:'return',users:'users',roles:'roles','purchase-pos':'purchases'};var candidates=[p,base,aliases[p],aliases[base],base+':view'];for(var i=0;i<candidates.length;i++){var c=candidates[i];if(c&&(RW_STATE.permissions.indexOf('*')>=0||RW_STATE.permissions.indexOf(c)>=0))return true;}return false}"
           if old in s: s=s.replace(old,new,1)
 
-          # Parent registry: the Parent owns identity/navigation/authorization, while each specialized PWA keeps its business engine.
           anchor='window.RW_MAIN1_CONTRACT={source:'
           if 'window.RW_ParentRegistry' not in s and anchor in s:
               ins="window.RW_ParentRegistry={version:'1.0',tenantAuthority:'RW_ShellContext.getCompanyId()',ownerAuthority:'owner_profile',permissionAuthority:'RW_Permissions_check',apps:{pos:'./pos.html',telesales:'./telesales.html',buyer:'./buyer.html',vouchers:'./vouchers.html',picker:'./picker.html',loader:'./loader.html',driver:'./driver.html',returns:'./Returns.html',unloader:'./unloader.html'},launch:function(key){var p=this.apps[key];if(!p)throw new Error('UNKNOWN_PARENT_APP:'+key);location.href=p;}};\n"
-              idx=s.find(anchor);s=s[:idx]+ins+s[idx:]
+              idx=s.find(anchor); s=s[:idx]+ins+s[idx:]
 
-          # Dashboard requires Chart.js; load it in the published Parent, not in an external scratch artifact.
           if 'cdn.jsdelivr.net/npm/chart.js' not in s:
               s=s.replace('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.107.0/dist/umd/supabase.min.js"></script>', '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.107.0/dist/umd/supabase.min.js"></script>',1)
 
@@ -92,13 +90,14 @@ jobs:
           validate(1)
           persist(1,'[new-main-target-persist] MAIN1 Parent contract closed')
 
-          # Resume-safe: MAIN2-MAIN4 are already published. Continue only from the first missing stage.
+          # Resume-safe: MAIN2-MAIN4 already exist in the published target; continue from MAIN5.
           for stage in range(5,12):
               s=target.read_text(encoding='utf-8');m=inline(s);body=m.group('b');marker=f'/* RAWAEA MAIN{stage} AUTHORITATIVE MODULE */'
               if marker not in body:
                   frag=(src/f'main{stage}.md').read_text(encoding='utf-8-sig').rstrip()
                   if re.match(r'^\s*(?:<!doctype\\b|<html\\b|<head\\b|<body\\b)',frag,re.I): raise RuntimeError(f'MAIN{stage}_SOURCE_WRAPPER')
-                  if '</script>' in frag.lower(): raise RuntimeError(f'MAIN{stage}_SOURCE_SCRIPT_CLOSURE')
+                  # JS modules may legitimately contain HTML strings. Escape only a literal script end tag so it stays inside the outer runtime.
+                  frag=re.sub(r'</script>', '<\\/script>', frag, flags=re.I)
                   target.write_text(s[:m.start('b')]+body+'\n'+marker+'\n'+frag+s[m.end('b'):],encoding='utf-8')
               validate(stage)
               persist(stage)
