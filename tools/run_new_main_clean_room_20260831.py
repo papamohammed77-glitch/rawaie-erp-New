@@ -128,12 +128,17 @@ def replace_block(s,k,n,b):
  if old is not None:return s.replace(old,b,1),old!=b,True
  anchors=['var RW_Data=','var RW_Navigation=','var RW_Auth=','})();'];p=next((s.find(a) for a in anchors if s.find(a)>=0),len(s));return s[:p]+b+'\n\n'+s[p:],True,False
 def decls(s):
- fs=sorted(set(re.findall(r'(?<![\w$])(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(',s)));vs=sorted(set(re.findall(r'(?m)^[ \t]*(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=',s)));out=[]
+ # MAIN2..MAIN11 are logical modules: extract only top-level RW_* contracts and known shared runtime helpers.
+ fs=sorted(set(re.findall(r'(?<![\w$])(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(',s)))
+ vs=sorted(set(re.findall(r'(?m)^[ \t]*(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=',s)))
+ allow_funcs={'applyAuthoritativeContext','currentCompanyId','syncState','setHeader','delegated','moduleCards','renderList','renderDashboard','renderCustomers','renderItems','renderInventory','renderFinance','renderReports','main1Delegation','globalSearch'}
+ out=[]
  for n in fs:
-  b=fn(s,n)
-  if b:out.append(('fn',n,b))
+  if n.startswith('RW_') or n in allow_funcs:
+   b=fn(s,n)
+   if b:out.append(('fn',n,b))
  for n in vs:
-  if n not in IGNORE_VARS:
+  if n.startswith('RW_') or n in {'actions'}:
    b=var(s,n)
    if b:out.append(('var',n,b))
  return out
