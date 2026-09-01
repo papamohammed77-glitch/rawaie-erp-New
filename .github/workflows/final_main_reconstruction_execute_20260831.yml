@@ -24,13 +24,12 @@ jobs:
           ref: main
           fetch-depth: 2
 
-      - name: MAIN2-MAIN11 authoritative module integration
+      - name: Sequential surgical MAIN1-MAIN11 merge into New-main only
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'rawaea-new-main-bot'
           git config user.email 'rawaea-new-main-bot@users.noreply.github.com'
-
           python3 <<'PY'
           from pathlib import Path
           import re, subprocess, tempfile
@@ -56,45 +55,47 @@ jobs:
               r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
               if r.returncode: print(r.stderr);raise RuntimeError(f'MAIN{stage}_JS_SYNTAX_FAIL')
 
-          def commit_stage(stage):
+          def persist(stage):
               subprocess.run(['git','add','Current/PWA/New-main'],check=True)
-              subprocess.run(['git','commit','--allow-empty','-m',f'[new-main-target-persist] MAIN{stage} complete'],check=True)
-              subprocess.run(['git','push','origin','HEAD:main'],check=True)
+              r=subprocess.run(['git','diff','--cached','--quiet'])
+              if r.returncode!=0:
+                  subprocess.run(['git','commit','-m',f'[new-main-target-persist] MAIN{stage} complete'],check=True)
+                  subprocess.run(['git','push','origin','HEAD:main'],check=True)
 
+          # MAIN1 is already the published baseline; verify it, do not recreate it.
           validate(1)
-          s=target.read_text(encoding='utf-8')
-          # Repair MAIN2 in-place if the earlier compact/failed implementation exists.
-          source2=source_dir/'main2.md'
-          if '/* RAWAEA MAIN2 AUTHORITATIVE MODULE */' not in s:
-              legacy_start=s.find('/* RAWAEA MAIN2 COMPATIBILITY */')
-              legacy_end=s.find('/* MAIN2_GOVERNED_CLOSED:v1 */',legacy_start)
-              if legacy_start>=0 and legacy_end>=0:
-                  m=runtime(s); a,b=m.start('b'),m.end('b'); body=m.group('b'); ls=body.find('/* RAWAEA MAIN2 COMPATIBILITY */'); le=body.find('/* MAIN2_GOVERNED_CLOSED:v1 */',ls)
-                  if ls<0 or le<0: raise RuntimeError('MAIN2_LEGACY_BODY_NOT_FOUND')
-                  frag=source2.read_text(encoding='utf-8-sig').rstrip()
-                  s=s[:a]+body[:ls]+'/* RAWAEA MAIN2 AUTHORITATIVE MODULE */\n'+frag+'\n'+body[le+len('/* MAIN2_GOVERNED_CLOSED:v1 */'):]+s[b:]
-                  target.write_text(s,encoding='utf-8')
-              else:
-                  raise RuntimeError('MAIN2_EXISTING_ANCHOR_NOT_FOUND')
-          validate(2)
-          commit_stage(2)
 
+          # MAIN2: remove any previously inserted compact/compatibility implementation only,
+          # then insert the complete authoritative module from main2.md.
+          s=target.read_text(encoding='utf-8')
+          if '/* RAWAEA MAIN2 AUTHORITATIVE MODULE */' not in s:
+              m=runtime(s); a,b=m.start('b'),m.end('b'); body=m.group('b')
+              start=body.find('/* RAWAEA MAIN2 COMPATIBILITY */')
+              if start>=0:
+                  end=body.find('/* MAIN2_GOVERNED_CLOSED',start)
+                  if end<0: raise RuntimeError('MAIN2_COMPACT_END_NOT_FOUND')
+                  body=body[:start]+body[end:]
+              frag=(source_dir/'main2.md').read_text(encoding='utf-8-sig').rstrip()
+              if '</script>' in frag.lower(): raise RuntimeError('MAIN2_SOURCE_SCRIPT_CLOSURE')
+              body=body+'\n/* RAWAEA MAIN2 AUTHORITATIVE MODULE */\n'+frag
+              target.write_text(s[:a]+body+s[b:],encoding='utf-8')
+          validate(2);persist(2)
+
+          # MAIN3..MAIN11: append complete authoritative module only once.
           for stage in range(3,12):
               s=target.read_text(encoding='utf-8')
               marker=f'/* RAWAEA MAIN{stage} AUTHORITATIVE MODULE */'
               if marker not in s:
-                  m=runtime(s); a,b=m.start('b'),m.end('b'); body=m.group('b')
+                  m=runtime(s);a,b=m.start('b'),m.end('b');body=m.group('b')
                   frag=(source_dir/f'main{stage}.md').read_text(encoding='utf-8-sig').rstrip()
-                  if re.search(r'</script>|<!doctype\b|<html\b|<body\b',frag,re.I): raise RuntimeError(f'MAIN{stage}_WRAPPER_INVALID')
-                  candidate=s[:a]+body+'\n'+marker+'\n'+frag+s[b:]
-                  target.write_text(candidate,encoding='utf-8')
-              validate(stage)
-              commit_stage(stage)
+                  if re.search(r'</script>|<!doctype\b|<html\b|<body\b',frag,re.I): raise RuntimeError(f'MAIN{stage}_SOURCE_WRAPPER')
+                  target.write_text(s[:a]+body+'\n'+marker+'\n'+frag+s[b:],encoding='utf-8')
+              validate(stage);persist(stage)
 
           print('MAIN1_TO_MAIN11_TARGET_CHAIN_COMPLETE')
           PY
 
-      - name: Final published New-main browser smoke
+      - name: Final New-main browser smoke
         shell: bash
         run: |
           set -euo pipefail
@@ -104,5 +105,5 @@ jobs:
           python3 -m http.server 8123 --directory Current/PWA >/tmp/rawaea-new-main-http.log 2>&1 &
           node <<'NODE'
           const {chromium}=require('playwright');
-          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[],bad=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});p.on('response',r=>{if(r.status()>=400&&!/favicon\\.ico$/i.test(r.url()))bad.push(r.status()+':'+r.url())});await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(3000);const x=await p.evaluate(()=>({lang:document.documentElement.lang,login:!!document.getElementById('rw-login-page'),app:!!document.getElementById('rw-main-shell'),shell:!!window.RW_ShellContext,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense,mods:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_HR','RW_CRM'].every(k=>!!window[k])}));console.log(JSON.stringify({x,pe,ce,bad}));if(x.lang!=='ar'||!x.login||!x.app||!x.shell||!x.auth||!x.nav||!x.views||!x.owner||!x.mods||pe.length||ce.length||bad.length)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)});
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[],bad=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});p.on('response',r=>{if(r.status()>=400&&!/favicon\\.ico$/i.test(r.url()))bad.push(r.status()+':'+r.url())});await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(2500);const x=await p.evaluate(()=>({lang:document.documentElement.lang,login:!!document.getElementById('rw-login-page'),app:!!document.getElementById('rw-main-shell'),shell:!!window.RW_ShellContext,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense,mods:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_HR','RW_CRM'].every(k=>!!window[k])}));console.log(JSON.stringify({x,pe,ce,bad}));if(x.lang!=='ar'||!x.login||!x.app||!x.shell||!x.auth||!x.nav||!x.views||!x.owner||!x.mods||pe.length||ce.length||bad.length)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)});
           NODE
