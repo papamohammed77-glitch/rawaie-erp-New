@@ -1,0 +1,415 @@
+# RAWAEA ERP — تقرير تنفيذي 10
+## P128 — Forensic Memory Recovery + Target Reconciliation + Surgical Patch Decision
+**التاريخ:** 2026-09-01  
+**النطاق:** استكمال الاستمرارية بعد P127، والتحقيق المباشر في Git/Supabase قبل أي mutation، مع احترام قواعد MASTER/Prompt 124 وعدم حذف أي تقرير تاريخي.
+
+---
+
+## 1. الهدف التنفيذي
+
+تم التعامل مع الجولة باعتبار المشروع مستمرًا من P127 وليس مشروعًا جديدًا.
+
+الأهداف:
+
+1. قراءة `MASTER - RAWAEA ERP.md` كاملًا قبل أي عملية.
+2. قراءة أحدث `CURRENT_STATE.md` قبل أي product mutation.
+3. مراجعة أحدث تقارير `doc/Draft/Hany` حتى آخر تقرير فعلي.
+4. استعادة Prompt 124 من Git/history قدر الإمكان دون اختلاق محتوى مفقود.
+5. التحقيق المباشر في `Current/PWA/New-main` وGit history وProduction Supabase.
+6. تحديد الإصلاح الجراحي الحقيقي فقط.
+7. عدم استخدام أي executor أو reconstruction محظور.
+8. توثيق نتيجة الجولة بالكامل، بما في ذلك الأخطاء السابقة وأسباب عدم إتمام patch الآمن.
+
+---
+
+## 2. MEMORY RECOVERY
+
+### 2.1 MASTER
+
+تمت قراءة `MASTER - RAWAEA ERP.md` حتى نهايته.
+
+تم تثبيت القواعد الحاكمة:
+
+- Operational Truth = الحالة الحالية في Git + Production Supabase + deployments + runtime evidence.
+- التقارير والذاكرة أدلة تاريخية وليست Source of Truth.
+- UNKNOWN ليس BUG.
+- لا إعادة بناء لما هو موجود بالفعل.
+- لا استبدال للهدف الحالي بالماضي.
+- لا mutation تخدم أداة إثبات غير مستقلة.
+- التعديل يجب أن يكون surgical.
+- بعد كل عملية منطقية: ACTION → VERIFY → STATE → NEXT ACTION.
+- لا GOLD/DIAMOND/COMPLETE بدون evidence حديث مستقل.
+
+### 2.2 Prompt 124 + الملحق
+
+تمت محاولة استعادة الملف المطلوب:
+
+`doc/Draft/medhat/برومبت 124+ ملحق تقرير`
+
+من `main` ومن Git history/tree.
+
+النتيجة المباشرة: المسار المطلوب لا يقدم Blob قابلًا للقراءة حاليًا، ولم يتم العثور على نسخة موثقة من محتوى Prompt نفسه يمكن اعتبارها المصدر الأصلي.
+
+تم رفض إعادة بناء النص من الذاكرة.
+
+لكن أوامر الاستمرارية والتنفيذ الخاصة بـP124 محفوظة في `CURRENT_STATE.md` وفي commits وتقارير Hany اللاحقة، وتم تنفيذ ما يمكن إثباته منها دون اختلاق محتوى مفقود.
+
+هذه **Evidence Limitation** وليست اعترافًا بعدم وجود الملف تاريخيًا.
+
+---
+
+## 3. LATEST HANY HISTORY
+
+تمت مراجعة سلسلة تقارير Hany حتى `تقرير تنفيذي 9`.
+
+أهم نقطة تم تصحيحها أثناء المراجعة:
+
+- تقارير سابقة كانت تصف بعض الإصلاحات بصيغة عامة على أنها لم تصل إلى Git.
+- Git history يثبت أن بعض الإصلاحات وصلت فعليًا إلى `Current/PWA/New-main`.
+- مثال مثبت: commit `a5b7aa69f173da5002105023676b1eada0a87c42` أضاف MAIN1 notification closure مباشرة إلى target، والـblob الناتج `d657d6e4bdd90a9b60f658a8bf28560e1b10f755` هو نفس blob الحالي.
+
+القاعدة الصحيحة:
+
+> لا نستنتج الفشل أو النجاح من صياغة التقرير؛ نرجع إلى blob/commit نفسه.
+
+لم يتم حذف أو overwrite أي تقرير Hany سابق.
+
+---
+
+## 4. CURRENT STATE AT ENTRY
+
+تمت قراءة `CURRENT_STATE.md` قبل أي target mutation.
+
+الحالة المسجلة قبل هذه الجولة:
+
+- `Current/PWA/New-main` target ثابت عند blob:
+  `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`
+- exact-target browser runtime = UNVERIFIED.
+- static orchestration defect = مثبت تاريخيًا.
+- production capability/security baseline = PASS على الفحوصات المباشرة السابقة.
+- product mutation in P127 = NONE.
+- GOLD/DIAMOND/COMPLETE = غير معلنة.
+
+---
+
+## 5. DIRECT TARGET FORENSICS
+
+تمت قراءة target الحالي مباشرة من GitHub/Raw Git source، وليس من تقرير سابق.
+
+### 5.1 Reports capability موجودة
+
+داخل target توجد فعليًا:
+
+- `RW_Reports`
+- `RW_Reports_Comprehensive`
+- handlers للتقرير Dashboard/Detailed/Comprehensive.
+
+والـmapping الأصلي/السابق يحتوي:
+
+```js
+'reports-dashboard':[window.RW_Reports,'renderDashboard'],
+'reports-detailed':[window.RW_Reports,'renderDetailedReports'],
+'reports-comprehensive':[window.RW_Reports_Comprehensive,'render']
+```
+
+### 5.2 MAIN122 effective override
+
+داخل نفس الـtarget توجد:
+
+`RAWAEA 122 DIAMOND CONTRACT CLOSURE v1`
+
+وفيه جدول `routes` فعّال يضم:
+
+```js
+finance:[window.RW_Finance,'render'],
+reports:[window.RW_Reports,'render'],
+audit:[null,null],
+notifications:[window.RW_Notification,'showPanel']
+```
+
+ولا يضم المفاتيح المتخصصة الثلاثة.
+
+ثم يعيد تعريف:
+
+`nav.navigate`
+
+ليبحث في هذا الجدول الأخير، وعند غياب المفتاح يرفع:
+
+`ROUTE_HANDLER_MISSING:<view>`
+
+### 5.3 النتيجة
+
+هذه ليست مشكلة missing Reports implementation.
+
+إنها مشكلة **effective navigation ownership/orchestration**:
+
+- implementation موجود.
+- early route capability موجودة.
+- late authoritative table لا يحمل كل route keys المطلوبة.
+- النتيجة deterministic static divergence.
+
+وهذا يطابق جوهر اكتشاف P127 بعد التحقق المباشر.
+
+---
+
+## 6. HANDLER VERIFICATION
+
+تم التأكد مباشرة من target أن أسماء handlers المطلوبة موجودة:
+
+- `RW_Reports.renderDashboard`
+- `RW_Reports.renderDetailedReports`
+- `RW_Reports_Comprehensive.render`
+
+لذلك الإصلاح المطلوب ليس guessed method naming.
+
+المطلوب هو إعادة هذه المفاتيح إلى **final effective route table**.
+
+---
+
+## 7. HISTORICAL EXECUTOR ANALYSIS
+
+تم فحص workflow:
+
+`.github/workflows/forensic-pwa-closure.yml`
+
+وهو يحمل صراحةً:
+
+`RAWAΕA TEMP GOLD DIAMOND TARGET EXECUTOR`
+
+والكود بداخله يبني/يعدل `Current/PWA/New-main` ثم يختبره ويدفعه إلى `main`.
+
+كما يحتوي بالفعل على navigation parity patch يضيف:
+
+- `reports-dashboard`
+- `reports-detailed`
+- `reports-comprehensive`
+
+مع route handlers الصحيحة.
+
+### القرار
+
+لم يتم تشغيله.
+
+السبب ليس أن التصحيح المنطقي خاطئ، بل لأن هذا المسار نفسه يناقض قواعد المهمة الحالية:
+
+- mutation + verification في نفس executor.
+- executor تاريخيًا مصنف كـTEMP/artificial path.
+- لا يحقق استقلالية evidence المطلوبة.
+- سبق أن ثبت أن هذه الفئة من المسارات قد تنتج Green status لا يساوي exact-target closure.
+
+تشغيله فقط للوصول إلى كلمة GOLD كان سيعيد الخطأ الذي تحذر منه المهمة.
+
+---
+
+## 8. GIT WRITE-PATH INVESTIGATION
+
+تم فحص أدوات Git المتاحة.
+
+المتاح للـexisting UTF-8 file هو `update_file`، وهو يتطلب:
+
+- full replacement content
+- current blob SHA
+- commit message
+
+ولا توجد partial patch operation على blob.
+
+تم فحص low-level Git tree/blob/commit tooling؛ وهي تسمح بإنشاء blobs/trees/commits لكنها لا تطبق textual patch على blob موجود.
+
+تمت محاولة الوصول إلى repository محليًا عبر `git clone` لتطبيق patch deterministic على نسخة مطابقة، لكن بيئة التنفيذ لا تملك DNS/network access إلى GitHub.
+
+النتيجة:
+
+`SAFE_PARTIAL_PATCH_PATH = UNAVAILABLE`
+
+---
+
+## 9. SURGICAL PATCH SPECIFICATION
+
+الإصلاح المطلوب، بناءً على target evidence وليس التخمين، هو الحفاظ على MAIN122 وكل الإغلاقات الحالية ثم تعديل الـeffective route table فقط لإضافة:
+
+```js
+'reports-dashboard':[window.RW_Reports,'renderDashboard'],
+'reports-detailed':[window.RW_Reports,'renderDetailedReports'],
+'reports-comprehensive':[window.RW_Reports_Comprehensive,'render']
+```
+
+ولا توجد حاجة لاستبدال `reports` العام.
+
+ولا توجد حاجة لإعادة بناء MAIN1–MAIN11.
+
+ولا توجد حاجة لتعديل Supabase.
+
+ولا توجد حاجة لإنشاء candidate artifact.
+
+---
+
+## 10. SUPABASE DIRECT CHECK
+
+تم تنفيذ read-only SQL مباشر على Production project:
+
+`fiilmooggumokxanwiyx`
+
+وتأكدت مباشرة من وجود:
+
+- `app_private.current_user_company_id()` — SECURITY DEFINER
+- `app_private.current_user_has_permission(text)` — SECURITY DEFINER
+- `post_stock_movement(...)` — SECURITY DEFINER
+- `post_stock_movement(...)` with idempotency key — SECURITY DEFINER
+- `reserve_stock(...)` — SECURITY DEFINER
+- `release_stock_reservation(...)` — SECURITY DEFINER
+- `post_journal_entry(...)` — SECURITY DEFINER
+
+لم يتم إجراء أي Production mutation.
+
+هذه النتيجة تدعم أن التغيير المطلوب في هذه الجولة UI/navigation-only ولا يتطلب فتح مسار بيانات جديد.
+
+---
+
+## 11. ما نجح في هذه الجولة
+
+1. قراءة MASTER كاملًا قبل التنفيذ.
+2. قراءة CURRENT_STATE قبل mutation.
+3. استعادة أحدث تسلسل Hany حتى Report 9.
+4. التمييز بين historical claim وcurrent Git truth.
+5. إثبات persistence لبعض الإصلاحات السابقة بدل تكرار الادعاء بأنها ضاعت.
+6. إثبات route conflict من target نفسه.
+7. إثبات أسماء handlers من target نفسه.
+8. التحقق المباشر من Supabase core capabilities.
+9. عدم تعديل Production بلا سبب.
+10. عدم استخدام artificial executor.
+11. عدم حذف أو overwrite أي تقرير تاريخي.
+12. عدم استبدال target بنسخة تاريخية.
+
+---
+
+## 12. ما فشل ولماذا
+
+### F1 — Exact browser runtime
+
+**الحالة:** UNVERIFIED.
+
+**السبب:** لا يوجد deployment مستقل موثق للبصمة الحالية يمكن اختباره من بيئة التنفيذ، والبيئة المحلية لا تصل إلى raw GitHub.
+
+### F2 — Direct surgical mutation
+
+**الحالة:** NOT APPLIED.
+
+**السبب:** واجهة Git الحالية المتاحة لا تدعم partial patch للـblob الأحادي الكبير، ولا يمكن بأمان إرسال full replacement content من دون materialized exact file.
+
+### F3 — استخدام executor تاريخي
+
+**الحالة:** DELIBERATELY REJECTED.
+
+**السبب:** يتعارض مع استقلالية التحقق وقواعد منع artificial executor.
+
+### F4 — Prompt 124 direct source
+
+**الحالة:** EVIDENCE LIMITATION.
+
+**السبب:** requested tracked path غير متاح حاليًا.
+
+---
+
+## 13. أخطاء تاريخية مؤكدة يجب عدم تكرارها
+
+### 13.1 الخلط بين runner result وtarget persistence
+
+نجاح runner لا يكفي لإثبات أن `Current/PWA/New-main` أصبح هو الناتج المقصود.
+
+### 13.2 reconstruction/overlay
+
+إعادة بناء ملف كبير أو إضافة طبقات متوازية تزيد ambiguity في ownership ولا تثبت parity.
+
+### 13.3 اعتبار report truth
+
+التقرير قد يصف حالة مختلفة عن Git HEAD أو blob لاحق.
+
+### 13.4 تغيير verification infrastructure لإجبار Green
+
+يُفسد استقلالية الدليل ولا يثبت closure.
+
+### 13.5 حذف التاريخ لتخفيف التشويش
+
+مرفوض؛ التقارير التاريخية يجب أن تبقى سجلًا جنائيًا متسلسلًا.
+
+---
+
+## 14. خطة التصحيح المرحلية التالية
+
+### المرحلة 1 — Safe materialization
+
+توفير path موثوق لمادة `d657d6e4...` الكاملة مع الحفاظ على البايتات كما هي.
+
+### المرحلة 2 — Deterministic surgical edit
+
+تغيير route table الأخير فقط، وإضافة المفاتيح الثلاثة.
+
+### المرحلة 3 — Structural verification
+
+- JS syntax check.
+- exact route inventory.
+- duplicate override inventory.
+- protected-file integrity.
+- new blob SHA.
+- diff limited to intended lines.
+
+### المرحلة 4 — Independent runtime
+
+تشغيل verifier مستقل لا يعدل target ويختبر exact target SHA، بما فيه:
+
+- login/session/tenant
+- navigation
+- reports-dashboard
+- reports-detailed
+- reports-comprehensive
+- owner/license
+- notifications
+- protected flows
+
+### المرحلة 5 — Production compatibility
+
+إعادة فحص Supabase/RLS/Edge compatibility بعد التغيير فقط.
+
+### المرحلة 6 — Final closure
+
+لا إعلان GOLD/DIAMOND/COMPLETE إلا بعد نجاح gates كاملة.
+
+---
+
+## 15. تقييم P128
+
+| البند | الحالة |
+|---|---|
+| MASTER recovery | PASS |
+| CURRENT_STATE recovery | PASS |
+| Hany history reconciliation | PASS |
+| Target identity | PASS |
+| Reports implementation presence | PASS |
+| Effective route divergence | CONFIRMED |
+| Exact handlers | CONFIRMED |
+| Supabase baseline | PASS |
+| Product surgical patch | BLOCKED_BY_SAFE_WRITE_PATH |
+| Browser runtime | UNVERIFIED |
+| Production mutation | NONE |
+| GOLD | NO |
+| DIAMOND | NO |
+| COMPLETE | NO |
+| Closed 100% | NO |
+
+---
+
+## 16. Final CTO decision
+
+المرحلة التالية ليست إعادة بناء للنظام.
+
+ليست استرجاع MAIN1–MAIN11.
+
+وليست تعديل Production.
+
+وليست تشغيل executor تاريخي.
+
+العمل المتبقي المحدد هو:
+
+**تعديل جراحي واحد في `Current/PWA/New-main` داخل الـeffective `routes` table لإعادة الثلاثة report routes، ثم التحقق المستقل الكامل.**
+
+حتى تتوفر وسيلة كتابة آمنة تحافظ على blob الحالي حرفيًا، أي إعلان لـGOLD أو DIAMOND سيكون غير صحيح ولذلك لم يتم إعلانه.
