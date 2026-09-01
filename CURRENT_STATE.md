@@ -19,99 +19,88 @@
 - P141–P143: reconstruction/assembly work continued after the state file became stale. Current forensic work supersedes stage labels in old reports where direct source evidence differs.
 - P144: one-shot New-main Service Worker repair executed and then retired; evidence preserved in `Current/CTO/20260901_P144_RUNTIME_SURGICAL_REPAIR.json`.
 - P145: current runtime/login investigation established that the Supabase key present in both Current and published Git is active in Production; the remaining 401 is therefore a served-runtime/deployment-path problem until the actual Worker artifact is directly verified.
-- P146: deployment-boundary repair committed to the published `erp-frontend` repository; legacy Manifest/SW URLs are now compatibility-routed to the canonical `company-1` assets. Runtime Auth closure remains open pending a fresh browser/runtime proof after deployment.
+- P146: deployment-boundary repair committed to the published `erp-frontend` repository; legacy Manifest/SW URLs are compatibility-routed to canonical `company-1` assets. Runtime Auth closure remained open pending fresh runtime proof.
+- P150: permanent Service Worker auto-update/cache contract implemented in Current and published repository; live Cloudflare propagation remains directly unverified.
 
 ## DIRECT FORENSIC FINDINGS — 2026-09-02
 ### Source relationship
 - `Current/PWA/New-main` remains the designated equivalent of `erp-frontend/companies/company-1/main.html`.
-- Current `erp-frontend/companies/company-1/main.html` is Git blob `5bf6907747d807dfa9f10979f5a63685c8bae64e`, size 599007 bytes at the time of this verification.
-- Latest published-repository commit before P146 was `022d0f1e0311328826c5ea11039f9ffc18f9def0` at 2026-09-01T20:53:06Z and fixed the HTML closing tag.
-- P146 commit on the published repository is `e7a85c80904d57afaed58c782c358a85afb78b95`, created 2026-09-01T21:05:47Z.
+- Current `erp-frontend/companies/company-1/main.html` was previously proven to contain the active Production Supabase anon key.
+- P146 added compatibility routes for historical manifest and Service Worker paths.
 
 ### Supabase / Auth credential proof
 - Production Supabase project: `fiilmooggumokxanwiyx`, status `ACTIVE_HEALTHY`, Postgres 17.6.1.
-- Production exposes an active legacy `anon` key and an active modern publishable key.
-- The exact legacy anon key embedded in `Current/PWA/New-main` matches the active Production legacy anon key.
-- The exact legacy anon key embedded in `erp-frontend/companies/company-1/main.html` also matches the active Production legacy anon key.
-- Therefore the current Git sources do NOT contain an invalid or disabled Supabase key.
-- `RW_Auth.login` in `Current/PWA/New-main` calls `supabase.auth.signInWithPassword({email:username,password:password})`; no defect in that call was proven.
+- The exact legacy anon key embedded in Current and published Git was previously matched directly to the active Production legacy anon key.
+- `RW_Auth.login` in `Current/PWA/New-main` uses `supabase.auth.signInWithPassword({email:username,password:password})`; no defect in that call was proven.
+- Current 401 runtime state remains open because the served Cloudflare artifact/config cannot be read directly through an available connector in this execution context.
 
-### Production runtime Auth evidence
-- Supabase API logs show repeated `POST /auth/v1/token?grant_type=password` HTTP 401 responses from Chrome 151, including 2026-09-01T20:55:18.966Z and 20:55:18.968Z.
-- Supabase Auth logs show a successful login event and successful token refresh from the same runtime hostname `https://erp-frontend.mh0537413487.workers.dev` at 2026-09-01T16:16:33Z, followed by a successful `/auth/v1/user` at 16:16:45Z.
-- This proves the Supabase Auth service and the Production project are capable of authenticating this runtime successfully and that the observed 401 state is time-varying.
-- The current runtime request's actual API key value cannot be read from the Supabase logs exposed here. Therefore it is NOT legitimate to claim the Worker is definitely sending a specific wrong key; the proven statement is only that the runtime is returning `Invalid API key` while the current Git key is valid in Production.
+### P146 deployment boundary
+- Published repository: `papamohammed77-glitch/erp-frontend`.
+- Compatibility routes remain:
+  - `/companies/manifest.json -> /companies/company-1/manifest.json`
+  - `/companies/sw.js -> /companies/company-1/sw.js`
+- P146 remains a source/deployment-boundary repair, not proof of live Worker propagation.
 
-### Login source / deployment-lineage conclusion
-- Because Current Git and published Git both carry the active Production anon key, changing the key line in `main.html` would be speculative and is explicitly rejected by the governance principle.
-- The remaining proven boundary is the served Runtime/Deployment artifact: the browser receives an artifact that behaves differently from the verified current source, or an intermediate Worker layer modifies/serves another artifact/configuration.
-- The direct Cloudflare Worker source/deployment configuration is not exposed through an available Cloudflare connector in this execution context. This is a declared UNVERIFIED boundary, not an invented explanation.
+## P150 — PERMANENT AUTO-UPDATE CONTRACT
+### Historical evidence
+- `Original/PWA/register-sw.js` used `registration.update()` every 60 seconds and on `visibilitychange`.
+- `Original/PWA/sw.js` used `skipWaiting()`, `clients.claim()`, Network Only for HTML/API, cache cleanup, and `RW_SW_UPDATED` notification.
 
-### Manifest defect — directly proven
-- `companies/company-1/main.html` contains `<link rel="manifest" href="../manifest.json">`.
-- The published repository contains the real manifest at `companies/company-1/manifest.json`.
-- From `/companies/company-1/main.html`, `../manifest.json` resolves to `/companies/manifest.json`, which explains the browser `manifest.json 404` reported by the user.
-- P146 adds an explicit rewrite from `/companies/manifest.json` to `/companies/company-1/manifest.json` in the published `_redirects` file.
+### Current defect proven
+- `Current/PWA/New-main` does NOT load `register-sw.js`; it registers the Service Worker inline.
+- The inline path did not contain the historical periodic update coordinator or a `controllerchange` reload handler.
+- `Current/PWA/sw.js` used a fixed `rw-static-v3` cache namespace.
 
-### Service Worker compatibility defect — directly proven
-- The historical runtime had requested `/companies/sw.js` because of the old relative registration path `../sw.js`.
-- The canonical current target registration is `navigator.serviceWorker.register('./sw.js',{scope:'./'})` and the canonical published worker exists at `companies/company-1/sw.js`.
-- P146 adds a compatibility rewrite from `/companies/sw.js` to `/companies/company-1/sw.js`, preventing an old cached/served artifact from failing solely because it still requests the historical URL.
+### P150 source changes
+- `Current/PWA/sw.js` is now `RAWAEA_SW_P150_AUTO_UPDATE`.
+- Static cache namespace is derived from the SW build: `rw-static-RAWAEA_SW_P150_AUTO_UPDATE`.
+- Install calls `skipWaiting()`.
+- Activate calls `clients.claim()` and automatically navigates all in-scope window clients to their current URL.
+- HTML/navigation, Supabase/API, and runtime JS/MJS/TS remain Network Only.
+- Old cache namespaces are deleted on activation.
+- `Current/PWA/register-sw.js` now performs an immediate update check, 60-second polling, visibility-triggered update, online-triggered update, and automatic reload on `controllerchange`.
 
-## P144 / P146 PRODUCTION REPAIR RECORD
-### P144 — New-main Service Worker repair
-- `Current/PWA/New-main`: `../sw.js` → `./sw.js`, scope `../` → `./`.
-- Evidence file: `Current/CTO/20260901_P144_RUNTIME_SURGICAL_REPAIR.json`.
-- P144 explicitly recorded `production_runtime = PENDING_MANUAL_PUBLISH_AND_BROWSER_VERIFY`.
+### Published changes
+- `erp-frontend/companies/company-1/sw.js` now carries the P150 auto-update contract.
+- `erp-frontend/companies/company-1/register-sw.js` now carries the P150 coordinator.
+- `erp-frontend/_headers` was added to require revalidation/no-store for app shell, Service Worker, registration coordinator, and manifests.
+- P146 `_redirects` compatibility routes remain in place.
 
-### P146 — published deployment boundary repair
-- Repository: `papamohammed77-glitch/erp-frontend`.
-- File changed: `_redirects` only.
-- Commit: `e7a85c80904d57afaed58c782c358a85afb78b95`.
-- Added:
-  - `/companies/manifest.json /companies/company-1/manifest.json 200`
-  - `/companies/sw.js /companies/company-1/sw.js 200`
-- No Supabase credential change.
-- No change to `main.html` login code.
-- No change to Production Auth users.
-- No change to protected `Current/PWA/main.html`.
-- Purpose: close the URLs explicitly proven broken by runtime evidence while preserving the canonical current asset locations; the commit also provides a new deployment boundary for the Cloudflare-connected published repository.
+### P150 Git commits
+- Current SW: `0cf055e368fb2d1a3f821402c4fbf097cdad3123`
+- Current register-sw: `ff033853b54af30dd1b26941f831471a71853fa8`
+- Published SW: `a67d36f29481b032e000e43919440d24e66426e7`
+- Published register-sw: `5ed2a1d905fb9fdc479fad5d3ddf2a2f19ae8d3b`
+- Published `_headers`: `49ad44762b36016151d90059c22dcb0e33d586e6`
+- P150 report: `doc/Draft/Reprots/تقرير10.md` commit `47e60a62c1a346dbfee4e8a34512457e714c5722`
 
-## REPORT / EXPERIMENT HISTORY FOR CURRENT LOGIN INCIDENT
-### What was verified
-1. `MASTER - RAWAEA ERP.md` and the governance sequence were reviewed before modification.
-2. `CURRENT_STATE.md` and reports 1–8 were reviewed as historical evidence, not as truth above direct sources.
-3. Current `rawaie-erp-New` and published `erp-frontend` sources were inspected.
-4. Supabase active keys were queried directly.
-5. Supabase Auth/API logs were queried directly.
-6. The live Worker hostname was identified from Production Auth logs.
-7. `RW_Auth.login` was inspected and no code defect was proven.
-8. Manifest and Service Worker URL resolution were traced against the actual published directory tree.
-9. P146 was applied to the published repository.
-
-### Rejected/failed approaches
-- Replacing the Supabase key in `main.html` was rejected because the embedded key was directly proven active in Production; doing so would have been an unverified change.
-- Treating the browser's `401 Invalid API key` as proof of a bad Git credential was rejected because the same credential exists and is active, and the same Worker hostname previously authenticated successfully.
-- Treating the P135 console marker alone as proof of a stale file was rejected because that marker was not independently proven to be absent from the current target.
-- Direct Cloudflare deployment/runtime inspection could not be completed because no Cloudflare connector is available in this execution context. This remains a hard verification boundary.
+### Important implementation boundary
+- `Current/PWA/New-main` still contains its own inline Service Worker registration. Because the file is very large/protected and the available Git connector only supports full-file replacement, it was intentionally NOT rewritten destructively in this sweep.
+- P150 therefore makes the Service Worker lifecycle itself auto-reloading, and separately upgrades the shared `register-sw.js` coordinator for pages that explicitly load it.
+- Continuous periodic detection for the New-main inline registration is NOT directly proven until the live app is serving a coordinator path that performs those checks. Normal browser Service Worker update checks still apply on registration/navigation.
 
 ## CURRENT STATUS FLAGS
 ```text
 MASTER_GOVERNANCE_REVIEW         = VERIFIED
-CURRENT_STATE_RECONCILED         = VERIFIED / UPDATED_P146
+CURRENT_STATE_RECONCILED         = VERIFIED / UPDATED_P150
 REPORT_HISTORY                   = PRESERVED
 SUPABASE_PRODUCTION              = ACTIVE_HEALTHY
 SUPABASE_ANON_KEY_IN_CURRENT     = VERIFIED_ACTIVE
 SUPABASE_ANON_KEY_IN_PUBLISHED   = VERIFIED_ACTIVE
 RW_AUTH_LOGIN_SOURCE             = VERIFIED_NO_DEFECT_PROVEN
-BROWSER_LOGIN                    = OPEN / 401_INVALID_API_KEY
+BROWSER_LOGIN                    = OPEN / 401_INVALID_API_KEY (last proven runtime evidence)
 RUNTIME_WORKER_ARTIFACT           = UNKNOWN / DIRECTLY_UNREADABLE_HERE
 CLOUDFLARE_DEPLOYMENT_STATE       = UNVERIFIED
 MANIFEST_404_CAUSE                = VERIFIED / PATH_MISMATCH
 MANIFEST_COMPAT_ROUTE             = COMMITTED_P146
 LEGACY_SW_404_CAUSE              = VERIFIED / HISTORICAL_PATH
 SW_COMPAT_ROUTE                   = COMMITTED_P146
-PRODUCTION_RUNTIME_AFTER_P146     = NOT_YET_VERIFIED_BY_NEW_BROWSER_EVENT
+P150_SOURCE                       = COMPLETE
+P150_PUBLISHED_REPO               = COMPLETE
+P150_CACHE_CONTRACT               = COMPLETE
+P150_AUTO_RELOAD_LOGIC            = COMPLETE
+P150_LIVE_PROPAGATION              = UNVERIFIED
+PRODUCTION_RUNTIME_AFTER_P150     = NOT_YET_VERIFIED_BY_NEW_BROWSER_EVENT
 GOLD                              = UNPROVEN
 DIAMOND                           = UNPROVEN
 CLOSED_100_PERCENT                = NO
@@ -120,47 +109,51 @@ CLOSED_100_PERCENT                = NO
 ## CURRENT MANUAL / DEPLOYMENT CONTRACT
 - Canonical product source: `rawaie-erp-New/Current/PWA/New-main`.
 - Published product path: `erp-frontend/companies/company-1/main.html`.
-- Published support assets include `companies/company-1/manifest.json` and `companies/company-1/sw.js`.
-- P146 intentionally adds compatibility rewrites at the published boundary instead of duplicating canonical assets.
-- No Production publish is to be inferred merely from the Git commit.
+- Published support assets include `companies/company-1/manifest.json`, `companies/company-1/sw.js`, and `companies/company-1/register-sw.js`.
+- `erp-frontend/_headers` defines revalidation policy for application shell/SW identity.
+- `erp-frontend/_redirects` preserves P146 compatibility routes for historical client paths.
+- No Production publish is to be inferred merely from a Git commit.
 
 ## REQUIRED RUNTIME CLOSURE TEST
-After P146 is actually serving from the live Worker, the clean-session browser proof must show:
-1. `RAWAEA ERP BOOTING...`
-2. no `MAIN11_SUPABASE_UNAVAILABLE`
-3. no `Invalid API key`
-4. login succeeds
-5. session restoration succeeds
-6. tenant/company context resolves
-7. owner/license guard behaves according to the historical contract
-8. `/companies/manifest.json` no longer returns 404
-9. `/companies/sw.js` no longer returns 404
-10. canonical Service Worker scope is correct
-11. no new uncaught console error blocks the application shell
+A fresh browser/runtime observation after P150 must show:
+1. P150 SW build is served.
+2. `/companies/company-1/sw.js` is 200 and returns P150 build marker.
+3. `/companies/sw.js` is 200 through compatibility route.
+4. `/companies/manifest.json` is 200 through compatibility route.
+5. New login attempt no longer returns the previously observed `Invalid API key` unless the served artifact still differs from Git.
+6. A new SW build activates without manual cache clearing.
+7. Existing in-scope app windows reload automatically when a new SW activates.
+8. Session restoration remains intact after automatic reload.
+9. No new uncaught console error blocks the application shell.
 
 ## NEXT AUTHORIZED ACTION
-- Verify the live `erp-frontend.mh0537413487.workers.dev` runtime after the P146 published-repository commit. This must be a fresh browser/network observation, not an inference from GitHub.
-- If `Invalid API key` persists, obtain the actual served HTML/Worker configuration or deployment artifact and compare the runtime Supabase URL/key byte-for-byte with the verified Production key before changing any credential or login code.
+- Verify the live `erp-frontend.mh0537413487.workers.dev` runtime after P150 is actually serving.
+- Compare live `sw.js`, live `register-sw.js`, and live `main.html` against the Git P150 source byte-for-byte where accessible.
+- If `Invalid API key` persists, obtain actual served HTML/Worker configuration and compare the runtime Supabase URL/key with the verified Production key before changing credentials.
 - Do not reopen Supabase Auth configuration, Owner permissions, or `RW_Auth.login` without new direct evidence.
+- After live P150 propagation is proven, resume Inventory Writer Closure Units one writer at a time.
 
 ## REPORTS
 - Historical reports remain preserved and sacred.
-- `doc/Draft/Reprots/تقرير7.md` remains preserved as the P140 historical execution report.
-- `doc/Draft/Reprots/تقرير8.md` remains preserved as the P143 forensic reconstruction/runtime diagnosis report.
-- `doc/Draft/Reprots/تقرير9.md` is the P146 forensic login/deployment investigation and surgical repair report.
+- `doc/Draft/Reprots/تقرير7.md`, `تقرير8.md`, and `تقرير9.md` remain preserved.
+- `doc/Draft/Reprots/تقرير10.md` is the P150 permanent auto-update/cache closure report.
 
-## FINAL FORENSIC JUDGMENT — CURRENT INCIDENT
-The browser's `Invalid API key` is NOT proven to be caused by the Supabase key stored in current Git, because that exact key is active in Production and exists in both Current and published Git.
+## FINAL FORENSIC JUDGMENT
+The project now has a permanent **source-level** auto-update contract:
 
-The strongest proven root boundary is:
+`NEW SW BUILD → skipWaiting → clients.claim → automatic reload`
 
-`LIVE RUNTIME / DEPLOYMENT ARTIFACT MISMATCH`
+plus explicit cache revalidation rules and compatibility routes at the published boundary.
 
-with two independently proven URL defects at the published boundary:
+This is materially stronger than the historical manual Banner path.
 
-- `../manifest.json` from `companies/company-1/main.html` → `/companies/manifest.json` 404
-- historical `../sw.js` from the older runtime → `/companies/sw.js` 404
+However:
 
-P146 closes both URL defects at the deployment boundary without modifying authentication behavior.
+`GIT SOURCE = COMPLETE`
+`LIVE CLOUDFLARE PROPAGATION = UNVERIFIED`
 
-However, because the live Cloudflare Worker artifact itself is not directly readable from the available connectors, `Invalid API key` remains OPEN and `CLOSED_100_PERCENT = NO` until a fresh runtime observation proves the browser is now consuming the verified artifact and completing login successfully.
+Therefore:
+
+`CLOSED_100_PERCENT = NO`
+
+until a fresh runtime/browser observation proves that the live Worker is serving P150 and the automatic update cycle is occurring in the real user environment.
