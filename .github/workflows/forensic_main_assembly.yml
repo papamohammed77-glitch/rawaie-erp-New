@@ -1,6 +1,6 @@
 name: RAWAEA governed main assembly — EXECUTE AND VERIFY
 
-# P143-RETRIGGER: run the canonical New-main reconstruction after runtime closure corrections.
+# P143-RETRIGGER: canonical reconstruction and verification of Current/PWA/New-main.
 
 on:
   workflow_dispatch:
@@ -9,6 +9,7 @@ on:
     paths:
       - 'Current/PWA/main/**'
       - 'Current/PWA/main.html'
+      - 'Current/PWA/New-main'
       - 'tools/run_final_main_reconstruction_20260831.py'
       - 'tools/p0_main_shell_repair_v2.py'
       - 'tools/master_reconstruction_postprocess.py'
@@ -34,20 +35,21 @@ jobs:
           set -euo pipefail
           test -s Current/PWA/main.html
           test -s Original/PWA/main.html
+          test -s Current/PWA/New-main || true
           git rev-parse HEAD
           sha256sum Current/PWA/main.html
 
       - name: Execute governed clean-room reconstruction
         run: python3 tools/run_final_main_reconstruction_20260831.py
 
-      - name: Structural and contract gates
+      - name: Structural and contract gates — New-main target
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
           import re, json
-          s=Path('Current/PWA/main.html').read_text(encoding='utf-8')
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
           def unscoped_app_settings(s):
               p=re.compile(r"\.from\(['\"]app_settings['\"]\)(?P<c>[^;\n]{0,1200}?)\.limit\(\s*1\s*\)",re.S)
               return any(not re.search(r"\.eq\(['\"]company_id['\"]\s*,",m.group('c')) for m in p.finditer(s))
@@ -68,7 +70,7 @@ jobs:
           PY
           git diff --check
 
-      - name: Original feature symbol parity
+      - name: Original feature symbol parity — New-main target
         shell: bash
         run: |
           set -euo pipefail
@@ -77,14 +79,14 @@ jobs:
           import re,json
           def symbols(s):
               return {'functions':sorted(set(re.findall(r'(?<![\w$])function\s+([A-Za-z_$][\w$]*)\s*\(',s))), 'ids':sorted(set(re.findall(r'\bid=["\']([^"\']+)["\']',s))), 'rpcs':sorted(set(re.findall(r'\.rpc\(\s*["\']([^"\']+)["\']',s))), 'tables':sorted(set(re.findall(r'\.from\(\s*["\']([^"\']+)["\']',s))), 'edge_refs':sorted(set(re.findall(r'functions/v1/([A-Za-z0-9._-]+)',s)))}
-          o=symbols(Path('Original/PWA/main.html').read_text(encoding='utf-8')); f=symbols(Path('Current/PWA/main.html').read_text(encoding='utf-8'))
+          o=symbols(Path('Original/PWA/main.html').read_text(encoding='utf-8')); f=symbols(Path('Current/PWA/New-main').read_text(encoding='utf-8'))
           losses={k:sorted(set(o[k])-set(f[k])) for k in o}
           Path('Current/CTO/FORENSIC_MAIN_SYMBOL_PARITY.json').write_text(json.dumps({'losses':losses,'original_counts':{k:len(v) for k,v in o.items()},'final_counts':{k:len(v) for k,v in f.items()}},ensure_ascii=False,indent=2),encoding='utf-8')
           if any(losses.values()): raise SystemExit('ORIGINAL_SYMBOL_PARITY_FAIL '+json.dumps(losses,ensure_ascii=False))
           print('ORIGINAL_SYMBOL_PARITY_PASS')
           PY
 
-      - name: Browser smoke
+      - name: Browser smoke — actual New-main target
         shell: bash
         run: |
           set -euo pipefail
@@ -93,6 +95,7 @@ jobs:
           npx playwright install --with-deps chromium >/dev/null 2>&1
           rm -rf /tmp/rw-pwa; mkdir -p /tmp/rw-pwa
           cp -r Current/PWA/. /tmp/rw-pwa/
+          cp Current/PWA/New-main /tmp/rw-pwa/main.html
           python3 -m http.server 8123 --directory /tmp/rw-pwa >/tmp/rw-http.log 2>&1 &
           node <<'NODE'
           const {chromium}=require('playwright');
