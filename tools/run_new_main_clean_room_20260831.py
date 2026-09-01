@@ -24,24 +24,30 @@ def sha_file(path: Path) -> str:
 
 def inline_scripts(html: str):
     return [m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>', html, re.I)
-            if not re.search(r'\bsrc\s*=', m.group('a') or '', re.I)]
+            if not re.search(r'\bsrc\s*=\s*', m.group('a') or '', re.I)]
 
 
 def validate_target(html: str):
     missing = [x for x in REQUIRED if x not in html]
     if missing:
         raise RuntimeError('TARGET_CONTRACT_MISSING:' + ','.join(missing))
-    if html.lower().count('</html>') != 1 or html.lower().count('</body>') != 1:
-        raise RuntimeError('DOCUMENT_CLOSURE_INVALID')
+
     scripts = inline_scripts(html)
     if len(scripts) != 1:
         raise RuntimeError('INLINE_SCRIPT_COUNT_INVALID:' + str(len(scripts)))
+
+    # Count document-closing tags only in markup, not inside JavaScript string literals.
+    markup = re.sub(r'<script(?P<a>[^>]*)>[\s\S]*?</script>', '', html, flags=re.I)
+    if markup.lower().count('</html>') != 1 or markup.lower().count('</body>') != 1:
+        raise RuntimeError('DOCUMENT_CLOSURE_INVALID')
+
     js = Path(tempfile.gettempdir()) / 'rawaea_new_main.js'
     js.write_text(scripts[0].group('b'), encoding='utf-8')
     r = subprocess.run(['node', '--check', str(js)], capture_output=True, text=True)
     if r.returncode:
         print(r.stderr)
         raise RuntimeError('TARGET_JS_SYNTAX_FAIL')
+
     # Main PWA must never mutate physical stock directly.
     for op in ('insert','update','upsert','delete'):
         if re.search(r"supabase\.from\(['\"]stock_branches['\"]\)\s*\." + op + r"\s*\(", html, re.I):
@@ -69,12 +75,11 @@ def patch_bulk_stock_item_identity(html: str) -> tuple[str, bool]:
 def compare_main1_sources(target: str):
     current = CURRENT_MAIN1.read_text(encoding='utf-8')
     original = ORIGINAL_MAIN1.read_text(encoding='utf-8')
-    checks = [
+    for name, source in [
         ('RW_ShellContext', target), ('RW_Auth', current), ('RW_Notification', current),
         ('RW_Workflow', current), ('RW_Audit_log', current), ('RW_Permissions_check', current),
         ('RW_Data', current), ('RW_Navigation', current)
-    ]
-    for name, source in checks:
+    ]:
         if name not in source:
             raise RuntimeError('SOURCE_CONTRACT_MISSING:' + name)
     for name in ('RW_Auth','RW_Notification','RW_Workflow','RW_Audit_log','RW_Permissions_check'):
