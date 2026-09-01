@@ -1,0 +1,98 @@
+تمت إعادة بناء السياق التنفيذي، وبدأت تنفيذ الخطة بالفعل من التقرير، مع الالتزام بأن الإنجاز الحقيقي هو Current/PWA/New-main وProduction DB فقط.
+
+ما تم إنجازه فعليًا
+
+1. تم تحويل New-main إلى Parent فعلي، وليس مجرد شاشة Dashboard
+أضفت داخله طبقة مركزية مسؤولة عن:
+
+الهوية والجلسة.
+Tenant Context من مصدر واحد.
+Owner semantics.
+توحيد مفاتيح الصلاحيات.
+RW_ParentRegistry لإدارة التطبيقات التابعة.
+Navigation بين الـPWA Parent والتطبيقات المتخصصة.
+إبقاء محركات الأعمال المتخصصة داخل تطبيقاتها بدل نسخها داخل Parent.
+إدخال Chart.js في الـParent لأن Dashboard يحتاجه.
+
+بهذا أصبح التصميم:
+
+New-main = النظام الأم / Parent / Control Plane
+
+بينما:
+
+POS / Telesales / Buyer / Vouchers / Picker / Loader / Driver / Returns / Unloader = Specialized Apps
+
+وهذا هو النموذج الصحيح بدل محاولة تحويل الـParent إلى نسخة مكررة من كل التطبيقات.
+
+مراحل الـPWA التي أُغلقت فعليًا
+
+داخل Current/PWA/New-main نفسها:
+
+المرحلة	الحالة
+MAIN1	✅ Parent contract
+MAIN2	✅
+MAIN3	✅
+MAIN4	✅
+MAIN5	✅
+MAIN6	✅
+MAIN7	⏳
+MAIN8	⏳
+MAIN9	⏳
+MAIN10	⏳
+MAIN11	⏳
+
+والأدلة الفعلية هي commits الهدف، وليس commits الأدوات:
+
+MAIN5 complete → 52429ce8...
+MAIN6 complete → 1f429ba5...
+
+أما main حاليًا فهو عند:
+
+5c2b02228bd6eb7e058ef0d9487b917548db90f6
+
+وهذا الـcommit للـexecution harness فقط، ووالده هو MAIN6 complete، أي أن MAIN7 لم يُحفظ في New-main بعد.
+
+Production DB
+
+نفذت كذلك تعديلًا حقيقيًا في Production Supabase لمعالجة التناقض الأمني الذي كشفه التحقيق:
+
+app_private.current_user_has_permission()
+
+أصبحت الصلاحية تراعي:
+
+المستخدم.
+الدور.
+permissions.
+Owner عبر owner_profile.
+tenant/identity context.
+مع الإبقاء على RLS وعدم تعطيله.
+
+وهذا مهم جدًا لأن Parent كان يتعامل مع المالك باعتباره * بينما طبقة DB لم تكن متسقة معه.
+
+نقطة مهمة جدًا كشفها التنفيذ
+
+وجدنا أن بعض محاولات الدمج السابقة كانت مضللة شكليًا: كانت تضيف 80–100 سطر وتعلن اكتمال module، بينما المصدر authoritative نفسه أكبر بكثير. لذلك تم إلغاء هذا الأسلوب.
+
+المقارنة أثبتت مثلًا أن محاولة MAIN2 القديمة كانت مجرد:
+
+82 إضافة / 25 حذف
+
+داخل New-main، وبالتالي لم تكن دمج MAIN2 الكامل. لهذا أعدنا إدخال الـmodule authoritative نفسه.
+
+كذلك اكتشفنا أن main5.md يحتوي HTML كـstrings داخل JavaScript؛ لذلك أي validator يفحص </body> أو </script> على مستوى النص الكامل سيعطي false positive. تم تصحيح هذا المنطق بدل العبث بالمصدر.
+
+الوضع المهني الآن
+
+أنا لا أعتبر المهمة مكتملة.
+
+الحالة الدقيقة هي:
+
+Parent architecture بدأت بالفعل داخل New-main + Production security alignment تم تنفيذه + MAIN1–MAIN6 محفوظة فعليًا.
+
+لكن:
+
+MAIN7–MAIN11 + final browser smoke + final production integration verification لم تُغلق بعد.
+
+ولذلك لن أقول إن التقرير نُفذ بالكامل بينما هذا غير صحيح.
+
+الأهم أننا خرجنا من الحلقة القديمة: لم نعد ننشئ “ملفات تنفيذية” ونعتبرها إنجازًا، ولم نعد نكرر MAIN1–MAIN6. الـbaseline الحقيقي الآن هو MAIN6، والتنفيذ التالي الصحيح هو MAIN7 مباشرة داخل Current/PWA/New-main، مع بقاء التطبيقات المنفصلة جزءًا من المعمارية وليس شيئًا يجب التخلص منه.
