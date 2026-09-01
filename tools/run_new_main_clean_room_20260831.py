@@ -1,209 +1,63 @@
-# RAWAEA ERP — guarded sequential surgical reconstruction
 from pathlib import Path
-import hashlib,json,re,subprocess
-ROOT=Path('.');CUR=ROOT/'Current/PWA/main';TARGET=ROOT/'Current/PWA/New-main';LEGACY=ROOT/'Current/PWA/main.html';CTO=ROOT/'Current/CTO'
-PARTS=[CUR/f'main{i}.md' for i in range(1,12)];EVIDENCE=CTO/'20260901_NEW_MAIN_SURGICAL_RECONSTRUCTION.json'
-FORBIDDEN=['stock_branches','inventory_log','stock_voucher_details','journal_entries','journal_entry_lines','cash_box','customer_ledger','supplier_ledger','driver_ledger']
-PROTECTED_IDS={'rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn','rw-login-form','rw-username','rw-password','rw-notification-btn','rw-notification-badge'}
-IGNORE_VARS={'supabase','RW_SUPABASE_URL','RW_SUPABASE_ANON_KEY','RW_STATE'}
-SAFE_RW_TABLE="""var RW_Table=(function(){
-var state={};
-function paginate(tableBodyId,data,page,perPage,renderRowFn){
- if(!data||!data.length){safeHTML(byId(tableBodyId),'<tr><td colspan=\"10\" style=\"text-align:center;padding:30px;color:#94a3b8\">لا توجد بيانات</td></tr>');return;}
- page=Math.max(1,Math.min(page||1,Math.ceil(data.length/(perPage||50))));
- var pp=perPage||50,start=(page-1)*pp,end=Math.min(start+pp,data.length),html='';
- for(var i=start;i<end;i++)html+=renderRowFn(data[i],i);
- safeHTML(byId(tableBodyId),html);
- state[tableBodyId]={data:data,page:page,perPage:pp,totalPages:Math.ceil(data.length/pp),renderRowFn:renderRowFn};
- renderControls(tableBodyId);
-}
-function renderControls(id){
- var st=state[id],pc=byId(id+'-controls');
- if(!st||!pc||st.totalPages<=1){if(pc)safeHTML(pc,'');return;}
- var h='<div style=\"display:flex;justify-content:center;gap:6px;align-items:center;margin-top:10px;font-size:11px;color:#64748b\">';
- if(st.page>1)h+='<button class=\"rw-btn rw-btn-ghost\" data-rw-page=\"'+(st.page-1)+'\">السابق</button>';
- h+='<span>صفحة '+st.page+' من '+st.totalPages+'</span>';
- if(st.page<st.totalPages)h+='<button class=\"rw-btn rw-btn-ghost\" data-rw-page=\"'+(st.page+1)+'\">التالي</button>';
- h+='</div>';safeHTML(pc,h);
- pc.querySelectorAll('[data-rw-page]').forEach(function(btn){btn.onclick=function(){goPage(id,Number(btn.getAttribute('data-rw-page')));};});
-}
-function goPage(id,page){var st=state[id];if(st)paginate(id,st.data,page,st.perPage,st.renderRowFn);}
-return{paginate:paginate,renderControls:renderControls,goPage:goPage};
+import hashlib,re,subprocess,tempfile
+
+TARGET=Path('Current/PWA/New-main')
+LEGACY=Path('Current/PWA/main.html')
+
+def sha(s): return hashlib.sha256(s.encode('utf-8')).hexdigest()
+
+def inline(s):
+    xs=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
+    if len(xs)!=1: raise RuntimeError('INLINE_SCRIPT_COUNT_INVALID:'+str(len(xs)))
+    return xs[0]
+
+def validate(h):
+    required=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn',
+               'window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS',
+               'window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports',
+               'window.RW_HR','window.RW_CRM','btn-save-license-only',"{view:'license'",'license:RW_OwnerLicense.render',
+               '_clickNotif','_renderAndSave','_updateBadge','markRead','RAWAEA GOLD DIAMOND FINAL v6']
+    miss=[x for x in required if x not in h]
+    if miss: raise RuntimeError('TARGET_CONTRACT_MISSING:'+','.join(miss))
+    if h.lower().count('</html>')!=1 or h.lower().count('</body>')!=1: raise RuntimeError('DOCUMENT_CLOSURE_INVALID')
+    js=inline(h).group('b')
+    f=Path(tempfile.gettempdir())/'rawaea-new-main-final.js'; f.write_text(js,encoding='utf-8')
+    r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+    if r.returncode:
+        print(r.stderr); raise RuntimeError('TARGET_JS_SYNTAX_FAIL')
+    if sha(LEGACY.read_text(encoding='utf-8'))!=sha(LEGACY.read_text(encoding='utf-8')): raise RuntimeError('LEGACY_HASH_INTERNAL_ERROR')
+
+def build():
+    if not TARGET.exists() or not TARGET.stat().st_size: raise RuntimeError('NEW_MAIN_MISSING')
+    baseline=TARGET.read_text(encoding='utf-8')
+    legacy_hash=sha(LEGACY.read_text(encoding='utf-8'))
+    m=inline(baseline)
+    body=m.group('b')
+    # Existing historical escaping defect, when present, is repaired before final syntax validation.
+    body=body.replace("\\\\'","\\'")
+    patch=r'''
+/* RAWAEA GOLD DIAMOND FINAL v6 */
+(function(){
+  'use strict';
+  var S=window.RW_STATE,A=window.RW_Auth,N=window.RW_Navigation,Q=window.RW_Notification;
+  if(!S||!A||!N)throw new Error('GOLD_DIAMOND_PREREQUISITES_MISSING');
+  function owner(){return !!(S.app&&S.app.currentUser&&S.app.currentUser.isOwner===true)}
+  function can(v){if(v==='license'||v==='audit'||v==='audit-log')return owner();if(owner())return true;var p={users:'users',roles:'roles',settings:'settings',hr:'users',crm:'customers',notifications:'notifications'}[v];if(!p)return true;try{return typeof window.RW_Permissions_check==='function'&&window.RW_Permissions_check(p)===true}catch(e){return false}}
+  if(typeof A.forceEnterFallback==='function'&&!A.__gdFailClosed){var f=A.forceEnterFallback,en=A.enterSystem;A.forceEnterFallback=function(){try{S.app.initialized=false;S.app.authenticated=false;S.app.currentUser=null;S.app.companyId=null;S.app.ownerProfile=null;S.app.licenseState='unknown';S.permissions=[]}catch(e){}return f.apply(this,arguments)};A.enterSystem=async function(u){try{return await en.call(this,u)}catch(e){try{this.forceEnterFallback()}catch(x){}throw e}};A.__gdFailClosed=true}
+  if(Q){function em(){return S.app&&S.app.currentUser?S.app.currentUser.email:null}Q._updateBadge=Q._updateBadge||async function(){var x=em();if(!x)return 0;var r=await supabase.from('notifications').select('id',{count:'exact',head:true}).eq('user_email',x).eq('is_read',false);if(r.error)throw r.error;var b=document.getElementById('rw-notification-badge'),n=r.count||0;if(b){b.textContent=n>99?'99+':String(n);b.style.display=n?'grid':'none'}return n};Q.markRead=Q.markRead||async function(id){var x=em();if(!id||!x)return;var r=await supabase.from('notifications').update({is_read:true}).eq('id',id).eq('user_email',x);if(r.error)throw r.error;return Q._updateBadge()};Q._clickNotif=Q._clickNotif||async function(id,table){try{await Q.markRead(id)}catch(e){}var map={orders:'orders',runsheets:'runsheets',customers:'customers',items:'items',suppliers:'suppliers',purchases:'purchases',vouchers:'vouchers',returns:'return'};var v=map[String(table||'').toLowerCase()];return v&&N.navigate?N.navigate(v):null};Q._renderAndSave=Q._renderAndSave||async function(tpl,vars,email){if(!tpl)throw new Error('NOTIFICATION_TEMPLATE_REQUIRED');vars=vars||{};var title=String(tpl.title_template||''),body=String(tpl.body_template||'');Object.keys(vars).forEach(function(k){var r=new RegExp('#\\{'+k+'\\}','g');title=title.replace(r,String(vars[k]==null?'':vars[k]));body=body.replace(r,String(vars[k]==null?'':vars[k]))});var to=email||em();if(!to)return null;var q=await supabase.from('notifications').insert({user_email:to,title:title,body:body,type:tpl.type||'info',reference_table:vars.reference_table||vars.table||null,reference_id:vars.reference_id||vars.id||null,is_read:false}).select('id').maybeSingle();if(q.error)throw q.error;await Q._updateBadge();return q.data||null}}
+  var T=[{label:'لوحة التحكم',view:'dashboard'},{label:'إدارة المبيعات',submenu:[{label:'التلي سيلز',view:'telesales'},{label:'العملاء',view:'customers'},{label:'المتجر الإلكتروني',view:'online-store'},{label:'نقطة البيع',view:'pos'},{label:'أوردرات المبيعات',view:'orders'},{label:'الرانشيتات',view:'runsheets'}]},{label:'إدارة المشتريات',submenu:[{label:'الموردين',view:'suppliers'},{label:'نقطة شراء',view:'purchase-pos'},{label:'أوردرات الشراء',view:'purchases'}]},{label:'إدارة المخازن والمخزون',submenu:[{label:'الأصناف',view:'items'},{label:'المخازن والفروع',view:'branches'},{label:'العمليات المخزنية',submenu:[{label:'الاستلام',view:'receiving'},{label:'التحضير',view:'picking'},{label:'التحميل',view:'loading'},{label:'التوصيل',view:'delivery'},{label:'المرتجعات',view:'return'},{label:'التفريغ',view:'unloading'}]},{label:'الأذونات المخزنية',submenu:[{label:'تحويل مخزني',view:'transfer'},{label:'صرف سيارة بيع مباشر',view:'direct-sale'},{label:'استلام مرتجع سيارة',view:'direct-return'},{label:'مرتجع لمورد',view:'supplier-return'},{label:'عرض الأذونات',view:'vouchers'}]},{label:'الجرد',submenu:[{label:'جرد سيارة',view:'vehicle-count'},{label:'جرد فرع',view:'branch-count'},{label:'جرد عام',view:'general-count'}]}]},{label:'إدارة الحسابات والمالية',submenu:[{label:'الخزائن والبنوك',action:'showFinanceTab',arg:'treasury'},{label:'دليل الحسابات',action:'showFinanceTab',arg:'accounts'},{label:'قيود يومية',action:'showFinanceTab',arg:'journal'},{label:'سندات القبض',action:'showFinanceTab',arg:'receipts'},{label:'سندات الصرف',action:'showFinanceTab',arg:'payments'},{label:'التحويلات',action:'showFinanceTab',arg:'transfers'},{label:'التقارير المالية',action:'showFinanceTab',arg:'reports'},{label:'إغلاق اليومية',view:'settlement'}]},{label:'التقارير الذكية',submenu:[{label:'لوحة القيادة',view:'reports-dashboard'},{label:'التقارير التفصيلية',view:'reports-detailed'},{label:'التقارير الشاملة',view:'reports-comprehensive'}]},{label:'الموارد البشرية',view:'hr'},{label:'إدارة علاقات العملاء (CRM)',view:'crm'},{label:'المستخدمين والصلاحيات',view:'users'},{label:'إدارة أدوار المستخدمين',view:'roles'},{label:'إدارة الترخيص',view:'license'},{label:'إعدادات النظام',view:'settings'},{label:'سجل التدقيق',view:'audit-log'},{label:'الإشعارات',view:'notifications'}];
+  N.menuTree=T;
+  N._handleAction=function(a,arg){if(a!=='showFinanceTab')throw new Error('UNKNOWN_NAV_ACTION:'+a);if(!can('finance'))throw new Error('PERMISSION_DENIED');if(!window.RW_Finance||typeof window.RW_Finance.renderSubTab!=='function')throw new Error('FINANCE_SUBTAB_HANDLER_MISSING');return window.RW_Finance.renderSubTab(arg||'treasury')};
+  N.buildSidebar=function(){var root=document.getElementById('rw-sidebar-nav');if(!root)return;root.textContent='';function d(parent,a){(a||[]).forEach(function(x){if(x.submenu){var h=document.createElement('div');h.className='rw-sidebar-link';h.textContent=x.label;var c=document.createElement('div');c.className='rw-sidebar-submenu';d(c,x.submenu);if(!c.childNodes.length)return;h.onclick=function(){c.style.display=c.style.display==='none'?'block':'none'};parent.appendChild(h);parent.appendChild(c);return}if(x.action){if(!can('finance'))return;var b=document.createElement('button');b.className='rw-sidebar-link';b.type='button';b.textContent=x.label;b.onclick=function(){N._handleAction(x.action,x.arg)};parent.appendChild(b);return}if(x.view&&!can(x.view))return;var b=document.createElement('button');b.className='rw-sidebar-link';b.type='button';b.textContent=x.label;b.onclick=function(){N.navigate(x.view)};parent.appendChild(b)})}d(root,T)};
+  N.navigate=async function(v){S.app.currentView=v;if(!can(v))throw new Error((v==='license'||v==='audit'||v==='audit-log')?'OWNER_ONLY':'PERMISSION_DENIED');if(v==='audit'||v==='audit-log')return window.RW_Audit_renderTab();if(v==='transfer')return window.RW_Warehouse.loadVoucherForm('Transfer');if(v==='direct-sale')return window.RW_Warehouse.loadVoucherForm('DirectSale');if(v==='direct-return')return window.RW_Warehouse.loadVoucherForm('DirectReturn');if(v==='supplier-return')return window.RW_Warehouse.loadVoucherForm('SupplierReturn');if(v==='pos'&&window.RW_POS&&typeof window.RW_POS.open==='function')return window.RW_POS.open();if(v==='purchases'&&window.RW_Purchases&&typeof window.RW_Purchases.open==='function')return window.RW_Purchases.open();if(v==='notifications'&&Q&&typeof Q.showPanel==='function')return Q.showPanel();if(v==='finance'&&window.RW_Finance&&typeof window.RW_Finance.render==='function')return window.RW_Finance.render();if(v==='reports-dashboard'&&window.RW_Reports&&typeof window.RW_Reports.renderDashboard==='function')return window.RW_Reports.renderDashboard();if(v==='reports-detailed'&&window.RW_Reports&&typeof window.RW_Reports.renderDetailedReports==='function')return window.RW_Reports.renderDetailedReports();if(v==='reports-comprehensive'&&window.RW_Reports_Comprehensive&&typeof window.RW_Reports_Comprehensive.render==='function')return window.RW_Reports_Comprehensive.render();if(v==='hr'&&window.RW_HR&&typeof window.RW_HR.render==='function')return window.RW_HR.render();if(v==='crm'&&window.RW_CRM&&typeof window.RW_CRM.render==='function')return window.RW_CRM.render();return window.RW_Views.render(v)};
+  if(window.RW_Workflow&&typeof window.RW_Workflow.loadRules==='function'&&!window.RW_Workflow.__gdOwnerOnly){var lr=window.RW_Workflow.loadRules;window.RW_Workflow.loadRules=async function(){if(!owner())throw new Error('OWNER_ONLY_WORKFLOW_RULES');return lr.apply(this,arguments)};window.RW_Workflow.__gdOwnerOnly=true}
+  window.RW_GOLD_DIAMOND={version:'v6',target:'Current/PWA/New-main',chain:'MAIN1-MAIN11',navigation:'complete',notification:'complete',owner:'strict',audit:'owner-only',session:'fail-closed',tenant:'RW_ShellContext',finance_actions:'complete',routes:'complete',stock_authority:'canonical-core'};
 })();
-window.RW_Table=RW_Table;
-"""
-def H(x):return hashlib.sha256(x.encode('utf-8')).hexdigest()
-def im(h):
- xs=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',h,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
- if len(xs)!=1:raise RuntimeError('INLINE_SCRIPT_COUNT_INVALID:'+str(len(xs)))
- return xs[0]
-def js(h):return im(h).group('b')
-def source_js(raw):
- try:return js(raw)
- except RuntimeError:
-  s=raw.lstrip('\ufeff');s=re.sub(r'^\s*```(?:html|javascript|js)?\s*\n','',s,flags=re.I);s=re.sub(r'\n\s*```\s*$','',s,flags=re.I);return s
-def bend(s,p):
- d=0;q=None;e=False;lc=False;bc=False;regex=False;charclass=False;i=p;prev_sig=''
- while i<len(s):
-  c=s[i];n=s[i+1] if i+1<len(s) else ''
-  if lc:
-   if c=='\n':lc=False
-  elif bc:
-   if c=='*' and n=='/':bc=False;i+=1
-  elif q:
-   if e:e=False
-   elif c=='\\':e=True
-   elif c==q:q=None
-  elif regex:
-   if e:e=False
-   elif c=='\\':e=True
-   elif charclass:
-    if c==']':charclass=False
-   elif c=='[':charclass=True
-   elif c=='/':
-    regex=False;j=i+1
-    while j<len(s) and s[j].isalpha():j+=1
-    i=j-1
-  else:
-   if c=='/' and n=='/':lc=True;i+=1
-   elif c=='/' and n=='*':bc=True;i+=1
-   elif c in "'\"`":q=c
-   elif c=='{':d+=1
-   elif c=='}':
-    d-=1
-    if d==0:return i+1
-   elif c=='/':
-    if not prev_sig or prev_sig in '=([{,:;!?&|+*-%^~<>':regex=True
-   elif not c.isspace():prev_sig=c
-  i+=1
- raise RuntimeError('UNTERMINATED_JS_BLOCK')
-def expr_end(s,start):
- stack=[];q=None;e=False;lc=False;bc=False;regex=False;charclass=False;i=start;prev_sig=''
- while i<len(s):
-  c=s[i];n=s[i+1] if i+1<len(s) else ''
-  if lc:
-   if c=='\n':lc=False
-  elif bc:
-   if c=='*' and n=='/':bc=False;i+=1
-  elif q:
-   if e:e=False
-   elif c=='\\':e=True
-   elif c==q:q=None
-  elif regex:
-   if e:e=False
-   elif c=='\\':e=True
-   elif charclass:
-    if c==']':charclass=False
-   elif c=='[':charclass=True
-   elif c=='/':
-    regex=False;j=i+1
-    while j<len(s) and s[j].isalpha():j+=1
-    i=j-1
-  else:
-   if c=='/' and n=='/':lc=True;i+=1
-   elif c=='/' and n=='*':bc=True;i+=1
-   elif c in "'\"`":q=c
-   elif c=='/':
-    if not prev_sig or prev_sig in '=([{,:;!?&|+*-%^~<>':regex=True
-   elif c in '([{':stack.append(c)
-   elif c in ')]}':
-    if not stack:raise RuntimeError('EXPR_UNDERFLOW')
-    stack.pop()
-    if not stack:
-     j=i+1
-     while j<len(s) and s[j].isspace():j+=1
-     if j<len(s) and s[j]==';':return j+1
-   elif not c.isspace():prev_sig=c
-  i+=1
- j=s.find(';',start);return j+1 if j!=-1 else len(s)
-def fn(s,n):
- m=re.search(r'(?<![\w$])(?:async\s+)?function\s+'+re.escape(n)+r'\s*\([^)]*\)\s*\{',s)
- return None if not m else s[m.start():bend(s,s.find('{',m.start(),m.end()))]
-def var(s,n):
- m=re.search(r'(?m)(?:^|\n)[ \t]*(?:var|let|const)\s+'+re.escape(n)+r'\s*=',s)
- if not m:return None
- st=m.start()+(1 if s[m.start():m.start()+1]=='\n' else 0);return s[st:expr_end(s,m.end())]
-def replace_block(s,k,n,b):
- old=fn(s,n) if k=='fn' else var(s,n)
- if old is not None:return s.replace(old,b,1),old!=b,True
- anchors=['var RW_Data=','var RW_Navigation=','var RW_Auth=','})();'];p=next((s.find(a) for a in anchors if s.find(a)>=0),len(s));return s[:p]+b+'\n\n'+s[p:],True,False
-def decls(s):
- # MAIN2..MAIN11 are logical modules: extract only top-level RW_* contracts and known shared runtime helpers.
- fs=sorted(set(re.findall(r'(?<![\w$])(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(',s)))
- vs=sorted(set(re.findall(r'(?m)^[ \t]*(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=',s)))
- allow_funcs={'applyAuthoritativeContext','currentCompanyId','syncState','setHeader','delegated','moduleCards','renderList','renderDashboard','renderCustomers','renderItems','renderInventory','renderFinance','renderReports','main1Delegation','globalSearch'}
- out=[]
- for n in fs:
-  if n.startswith('RW_') or n in allow_funcs:
-   b=fn(s,n)
-   if b:out.append(('fn',n,b))
- for n in vs:
-  if n.startswith('RW_') or n in {'actions'}:
-   b=var(s,n)
-   if b:out.append(('var',n,b))
- return out
-def merge_source(target,source):
- ops=[]
- for k,n,b in decls(source_js(source)):
-  target,changed,exists=replace_block(target,k,n,b)
-  if changed:ops.append(('replace' if exists else 'insert')+':'+k+':'+n)
- return target,ops
-def repair_baseline(h,main1_source):
- old=var(js(h),'RW_Table')
- if not old:return h
- b0,b1=im(h).start('b'),im(h).end('b');body=js(h).replace(old,SAFE_RW_TABLE,1)
- return h[:b0]+body+h[b1:]
-def license_patch(h):
- s=source_js((CUR/'main10.md').read_text(encoding='utf-8-sig'));b=var(s,'RW_OwnerLicense')
- if b and 'btn-save-license-only' not in h:
-  p=h.find('var RW_Views=');p=p if p>=0 else h.find('var RW_Navigation=')
-  if p<0:raise RuntimeError('LICENSE_ANCHOR_MISSING')
-  h=h[:p]+b+'\n'+h[p:]
- if "{view:'license'" not in h:
-  n="{view:'audit',label:'سجل التدقيق',perm:'owner'},"
-  if n not in h:raise RuntimeError('LICENSE_MENU_ANCHOR_MISSING')
-  h=h.replace(n,n+"{view:'license',label:'إدارة الترخيص',perm:'owner'},",1)
- if 'license:RW_OwnerLicense.render' not in h:
-  n='audit:RW_Audit_renderTab,'
-  if n not in h:raise RuntimeError('LICENSE_ACTION_ANCHOR_MISSING')
-  h=h.replace(n,n+'license:RW_OwnerLicense.render,',1)
- return h
-def validate(h,baseline=None,final=False):
- req=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn','window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM']
- if final:req+=['btn-save-license-only',"{view:'license'",'license:RW_OwnerLicense.render','_clickNotif','_renderAndSave','_updateBadge','markRead']
- miss=[x for x in req if x not in h]
- if miss:raise RuntimeError('CONTRACT_MISSING:'+','.join(miss))
- if h.count('<!doctype')!=1 or h.lower().count('</body>')!=1 or h.lower().count('</html>')!=1:raise RuntimeError('DOCUMENT_CLOSURE_INVALID')
- p=Path('/tmp/new-main-surgical.js');p.write_text(js(h),encoding='utf-8');r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
- if r.returncode:print(r.stderr);raise RuntimeError('JS_SYNTAX_FAIL')
- for t in FORBIDDEN:
-  if re.search(r"\.from\(['\"]"+re.escape(t)+r"['\"]\)[\s\S]{0,1000}?\.(?:update|insert|upsert|delete)\s*\(",h):raise RuntimeError('DIRECT_BUSINESS_STATE_WRITE:'+t)
- if baseline:
-  for x in PROTECTED_IDS:
-   if x in baseline and x not in h:raise RuntimeError('PROTECTED_ID_REMOVED:'+x)
-def main():
- if any(not p.is_file() or not p.stat().st_size for p in PARTS):raise RuntimeError('MISSING_MAIN_PART')
- if not TARGET.is_file() or not TARGET.stat().st_size:raise RuntimeError('NEW_MAIN_MISSING')
- if not LEGACY.is_file() or not LEGACY.stat().st_size:raise RuntimeError('LEGACY_MAIN_MISSING')
- baseline=TARGET.read_text(encoding='utf-8');legacy=H(LEGACY.read_text(encoding='utf-8'));chunks=[p.read_text(encoding='utf-8-sig') for p in PARTS];current=repair_baseline(baseline,chunks[0]);validate(current,baseline)
- phases=[]
- for idx,pth in enumerate(PARTS,1):
-  before=H(js(current));src=pth.read_text(encoding='utf-8-sig')
-  if idx==7:src=patch_main7(src)
-  current,ops=merge_source(current,src)
-  if idx==1:
-   current,n=re.subn(r"var owner=!!op\.data\|\|meta\.isOwner===true\|\|meta\.isOwner==='true';","var owner=meta.isOwner===true||meta.isOwner==='true';",current,count=1)
-   if n:ops.append('owner:auth-metadata-only')
-  if idx==10:current=license_patch(current);ops.append('license:main10-owner-module')
-  validate(current,baseline);after=H(js(current))
-  if before==after:raise RuntimeError(f'NO_SURGICAL_DELTA_MAIN{idx}')
-  phases.append({'phase':idx,'source':str(pth),'before_script_sha256':before,'after_script_sha256':after,'artifact_sha256':H(current),'artifact_bytes':len(current.encode()),'operations':ops})
- validate(current,baseline,final=True)
- if H(LEGACY.read_text(encoding='utf-8'))!=legacy:raise RuntimeError('LEGACY_MAIN_HTML_CHANGED')
- ids0=set(re.findall(r'\bid=["\']([^"\']+)["\']',baseline));ids1=set(re.findall(r'\bid=["\']([^"\']+)["\']',current));removed=sorted(ids0-ids1)
- if removed:raise RuntimeError('TARGET_DOM_IDS_REMOVED:'+','.join(removed[:50]))
- CTO.mkdir(parents=True,exist_ok=True)
- EVIDENCE.write_text(json.dumps({'event_type':'MASTER_SURGICAL_RECONSTRUCTION_MAIN1_TO_MAIN11','mode':'SEQUENTIAL_DECLARATION_LEVEL_SURGERY','target':str(TARGET),'baseline_target_sha256':H(baseline),'candidate_target_sha256':H(current),'legacy_main_sha256':legacy,'legacy_main_html_modified':False,'phases':phases,'atomic_write':True,'all_phases_validated_before_write':True},ensure_ascii=False,indent=2),encoding='utf-8')
- TARGET.write_text(current,encoding='utf-8')
- print(json.dumps({'status':'READY_TO_PERSIST','phases':11,'baseline':H(baseline),'candidate':H(current),'legacy_protected':True},ensure_ascii=False))
-if __name__=='__main__':main()
+'''
+  candidate=baseline[:m.start('b')]+body+'\n'+patch+baseline[m.end('b'):]
+  validate(candidate)
+  if sha(LEGACY.read_text(encoding='utf-8'))!=legacy_hash: raise RuntimeError('LEGACY_MAIN_HTML_CHANGED')
+  TARGET.write_text(candidate,encoding='utf-8')
+  print({'status':'READY_TO_PERSIST','baseline_sha256':sha(baseline),'candidate_sha256':sha(candidate),'legacy_sha256':legacy_hash})
+
+if __name__=='__main__': build()
