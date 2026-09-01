@@ -2525,7 +2525,7 @@ window.RW_TeleSales = RW_TeleSales;
         return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
       });
     }
-    function escJs(v){ return text(v).replace(/\\/g,'\\\').replace(/'/g,"\'").replace(/\r?\n/g,' '); }
+    function escJs(v){ return text(v).replace(/\\/g,'\\').replace(/'/g,"\'").replace(/\r?\n/g,' '); }
     function id(x){ return byId(x); }
     function money(v){ return Number(v||0).toLocaleString(); }
     return {companyId:companyId,token:token,esc:esc,escJs:escJs,id:id,money:money};
