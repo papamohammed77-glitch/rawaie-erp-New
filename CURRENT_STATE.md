@@ -1,8 +1,7 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
 ## TEMP EXECUTION MARKER
-Target-only closure runner trigger.
-Final closure dispatch: v4
+Final active target-only runner execution trigger.
 
 ## GOVERNANCE
 - Operational truth comes from current Git, Production Supabase, deployed Edge Functions and runtime tests.
@@ -12,11 +11,6 @@ Final closure dispatch: v4
 
 ## VERIFIED TARGET
 - `Current/PWA/New-main` contains the MAIN1→MAIN11 published module chain.
-- Verified target commits in this continuity chain include MAIN2 `ac6e55a`, MAIN3 `7805951`, MAIN4 `2c79811`, and subsequent MAIN5→MAIN11 target commits.
 
 ## PRODUCTION
 - Project: `fiilmooggumokxanwiyx` / `SMART ERP`.
-
-## SAFETY
-- No replacement of `Current/PWA/main.html`.
-- No new Golden/final target file created.
