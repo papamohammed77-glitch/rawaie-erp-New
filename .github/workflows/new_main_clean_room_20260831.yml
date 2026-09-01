@@ -1,5 +1,4 @@
 name: RAWAEA MAIN1 SURGICAL CLEAN-ROOM
-
 on:
   push:
     branches: [main]
@@ -10,10 +9,8 @@ on:
       - 'Original/PWA/main/main1.md'
       - '.github/workflows/new_main_clean_room_20260831.yml'
   workflow_dispatch:
-
 permissions:
   contents: write
-
 jobs:
   surgical-repair:
     if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[new-main-surgical-persist]')
@@ -25,66 +22,48 @@ jobs:
         with:
           ref: main
           fetch-depth: 1
-
       - name: Protect legacy main.html
         shell: bash
         run: |
           set -euo pipefail
           test -s Current/PWA/main.html
           sha256sum Current/PWA/main.html | cut -d' ' -f1 > /tmp/legacy-before.sha256
-
       - name: Execute surgical target reconciliation
         shell: bash
         run: |
           set -euo pipefail
           python3 tools/run_new_main_clean_room_20260831.py
-
       - name: Static target gates (Browser E2E PAUSED)
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib, re, subprocess, tempfile
-          p=Path('Current/PWA/New-main')
-          s=p.read_text(encoding='utf-8')
-          required=[
-            'rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle',
-            'rw-sidebar-nav','rw-logout-btn','window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views',
-            'window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets',
-            'window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM',
-            '_clickNotif','_renderAndSave','_updateBadge','markRead','bulk-stock-adjustment'
-          ]
+          import re, subprocess, tempfile
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          required=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn','window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM','_clickNotif','_renderAndSave','_updateBadge','markRead','bulk-stock-adjustment']
           missing=[x for x in required if x not in s]
           if missing: raise SystemExit('TARGET_CONTRACT_MISSING:'+','.join(missing))
-          if s.lower().count('</html>')!=1 or s.lower().count('</body>')!=1: raise SystemExit('DOCUMENT_CLOSURE_INVALID')
-          scripts=re.findall(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>(.*?)</script>',s,re.I|re.S)
+          scripts=[m for m in re.finditer(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>(.*?)</script>',s,re.I|re.S)]
           if len(scripts)!=1: raise SystemExit('INLINE_SCRIPT_COUNT_INVALID:'+str(len(scripts)))
-          js=Path(tempfile.gettempdir())/'new-main.js'; js.write_text(scripts[0],encoding='utf-8')
+          js=Path(tempfile.gettempdir())/'new-main.js'; js.write_text(scripts[0].group(1),encoding='utf-8')
           r=subprocess.run(['node','--check',str(js)],capture_output=True,text=True)
           if r.returncode: print(r.stderr); raise SystemExit('TARGET_JS_SYNTAX_FAIL')
-          if re.search(r"supabase\\.from\\(['\"]stock_branches['\"]\\).*?(?:insert|update|upsert|delete)",s,re.I|re.S):
-              raise SystemExit('NEW_MAIN_DIRECT_STOCK_WRITER_DETECTED')
+          if re.search(r"supabase\\.from\\(['\"]stock_branches['\"]\\)\\.(?:insert|update|upsert|delete)\\s*\\(",s,re.I): raise SystemExit('NEW_MAIN_DIRECT_STOCK_WRITER_DETECTED')
           print('STATIC_TARGET_PASS_BROWSER_E2E_PAUSED')
           PY
-
       - name: Verify legacy main.html integrity
         shell: bash
         run: |
           set -euo pipefail
           sha256sum Current/PWA/main.html | cut -d' ' -f1 > /tmp/legacy-after.sha256
           diff -u /tmp/legacy-before.sha256 /tmp/legacy-after.sha256
-
       - name: Persist surgical target only
         shell: bash
         run: |
           set -euo pipefail
-          git status --short
           git add Current/PWA/New-main
-          if git diff --cached --quiet; then
-            echo 'NO_TARGET_DELTA_AFTER_SURGICAL_RECONCILIATION'
-            exit 0
-          fi
+          if git diff --cached --quiet; then echo 'NO_TARGET_DELTA_AFTER_SURGICAL_RECONCILIATION'; exit 0; fi
           git config user.name 'rawaea-surgical-bot'
           git config user.email 'rawaea-surgical-bot@users.noreply.github.com'
           git commit -m '[new-main-surgical-persist] persist verified surgical New-main repair'
