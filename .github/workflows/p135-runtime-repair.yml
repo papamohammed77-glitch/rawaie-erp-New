@@ -1,0 +1,73 @@
+name: RAWAEA P135 RUNTIME REPAIR
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: startsWith(github.event.head_commit.message, '[p135-trigger]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout canonical main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Apply verified surgical runtime repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+
+          target = Path('Current/PWA/New-main')
+          s = target.read_text(encoding='utf-8')
+
+          old = "if (!window.supabase || !window.supabase.auth) {"
+          new = "if (typeof supabase === 'undefined' || !supabase || !supabase.auth) {"
+          if old not in s:
+              raise SystemExit('P135_EXPECTED_GUARD_NOT_FOUND')
+          s2 = s.replace(old, new, 1)
+
+          marker = "window.__RAWAEA_P135_RUNTIME_BUILD__ = 'P135-2026-09-01';"
+          if marker not in s2:
+              needle = "            console.log('RAWAEA ERP BOOTING...');"
+              if needle not in s2:
+                  raise SystemExit('P135_BOOT_MARKER_ANCHOR_NOT_FOUND')
+              s2 = s2.replace(needle, needle + "\n            " + marker + "\n            console.log('RAWAEA_P135_TARGET', 'New-main');", 1)
+
+          if s2 == s:
+              raise SystemExit('P135_NO_TARGET_CHANGE')
+          target.write_text(s2, encoding='utf-8')
+
+          sw = Path('Current/PWA/sw.js')
+          sws = sw.read_text(encoding='utf-8')
+          old_cache = "var STATIC_CACHE = 'rw-static-v2';"
+          new_cache = "var STATIC_CACHE = 'rw-static-p135-v1';"
+          if old_cache in sws:
+              sw.write_text(sws.replace(old_cache, new_cache, 1), encoding='utf-8')
+
+          report = Path('doc/Draft/Reprots/تقرير2.md')
+          report.write_text('''# تقرير2 — P135 Forensic Runtime Repair\n\n## 1. نقطة الانطلاق\nتم تنفيذ الجولة وفق MASTER - RAWAEA ERP.md وبأولوية الواقع الحالي ثم Git ثم Production ثم التاريخ. لم يتم حذف التقرير السابق `تقرير1` (كان موجوداً كملف حديث فارغ).\n\n## 2. الأدلة المباشرة التي ثَبُتت\n- `CURRENT_STATE.md` كان يسجل P133/P134: فشل تسجيل الدخول بـ `401 Unauthorized / Invalid API key` مع Service Worker `404` عند `/companies/sw.js`، مع عدم ثبوت هوية artifact المنشور.\n- Supabase project `fiilmooggumokxanwiyx` في حالة صحية، والمفتاح المنشور الحالي نشط. سجلات Auth أثبتت وجود runtime ناجح على `workers.dev` وفي المقابل طلبات 401 من runtime آخر؛ لذلك ليس لدينا دليل على عطل Auth عام.\n- المصدر الحالي `Current/PWA/New-main` يحتوي عنوان مشروع Supabase الصحيح وعميل `window.supabase.createClient(...)` بالمفتاح الحالي النشط. لا يوجد مبرر لتدوير المفتاح.\n- `Current/PWA/main/main11.md` يحتوي فحصاً خاطئاً: `if (!window.supabase || !window.supabase.auth)`؛ الـglobal `window.supabase` هو مكتبة UMD، بينما العميل الفعلي محفوظ في المتغير المحلي `supabase`. هذا يفسر `MAIN11_SUPABASE_UNAVAILABLE` كتشخيص زائف، ولا يفسر وحده 401.\n- `Current/PWA/New-main` يسجل `RW_Auth.login` عبر العميل المحلي `supabase.auth.signInWithPassword(...)`.\n- `Current/PWA/sw.js` موجود فعلياً في Git؛ سجل المتصفح الذي أعطى `/companies/sw.js` = 404 يعني أن النسخة الخادمة لم تكن تعرض artifact الموازي لما في Git، أو أن مسار النشر كان مختلفاً.\n- `Current/PWA/manifest.json` يعلن scope `/companies/company-1/`، بينما سجل التسجيل الفعلي كان تحت `/companies/`؛ لذلك لا يجوز إصلاح المسار بتخمين أو إضافة ملف مكرر قبل إثبات artifact النشر.\n\n## 3. سبب الفشل المحدد\nالسبب المباشر المؤكد داخل المصدر هو false guard في MAIN11. أما `Invalid API key` فمصدره runtime المنشور لا المصدر الحالي: المصدر الحالي يحمل مفتاحاً نشطاً، وسجلات Supabase تثبت أن الخدمة تقبل المصادقة من runtime آخر. الاستنتاج الأدق هو deployment/artifact drift أو cache/runtime serving غير متطابق مع `Current/PWA/New-main`.\n\n## 4. التعديل الجراحي الذي تم تنفيذه\nتم استبدال السطر المعيب فقط في `Current/PWA/New-main`:\n\n```js\nif (!window.supabase || !window.supabase.auth) {\n```\n\nبـ:\n\n```js\nif (typeof supabase === 'undefined' || !supabase || !supabase.auth) {\n```\n\nوهذا يفحص العميل الذي يستعمله login فعلياً بدلاً من مكتبة namespace.\n\nتمت إضافة بصمة تشغيلية: `window.__RAWAEA_P135_RUNTIME_BUILD__ = 'P135-2026-09-01';` مع log باسم `RAWAEA_P135_TARGET`. لا تغير أي secret.\n\nتم أيضاً رفع رقم cache الخاص بالـService Worker إلى `rw-static-p135-v1` لتجنب استمرار cache القديم بعد وصول artifact الصحيح؛ لم يتم تغيير مسار التسجيل نفسه لأنه لم يثبت أن المسار في المصدر هو المشكلة.\n\n## 5. ما فشل في المحاولات السابقة ولماذا\n- الاعتماد على `MAIN11_SUPABASE_UNAVAILABLE` كسبب جذري كان خطأ تشخيصياً؛ الحارس نفسه يقيس الكائن الخطأ.\n- افتراض أن تغيير/تدوير مفتاح Supabase سيحل 401 غير مدعوم؛ المفتاح الحالي في المصدر فعال وProduction صحية.\n- التعامل مع `main.html` كأنه المصدر الوحيد غير صحيح؛ المستودع يحتوي `main.html` قديم/مختلف، بينما `New-main` هو target موثق في P134.\n- إصلاح Service Worker بإضافة مسارات تخمينية قبل إثبات artifact كان سيخفي المشكلة بدلاً من إثباتها.\n\n## 6. ما نجح\n- الوصول إلى المصدر الحالي الحقيقي وتثبيت blob SHA الخاص بـ`New-main`.\n- التحقق المباشر من Supabase ومن سجلات Auth.\n- إثبات أن owner identity الحالي مستقرة: `isOwner=true` و wildcard `permissions=["*"]` مع owner profile فعال. هذا ليس سبب 401 الحالي.\n- تحديد false guard بدقة وتنفيذ إصلاح جراحي له.\n\n## 7. الخطوة التالية الإلزامية\n1. التأكد من أن Cloudflare/Pages نشر commit الناتج من P135 وأن الصفحة الخادمة تعرض `RAWAEA_P135_RUNTIME_BUILD` في Console.\n2. بعد ظهور marker، إعادة اختبار login.\n3. يجب أن تختفي `MAIN11_SUPABASE_UNAVAILABLE`.\n4. إذا بقي `401 Invalid API key` بعد إثبات marker، يصبح لدينا دليل جديد يثبت أن المشكلة داخل runtime/client configuration نفسه، وعندها فقط نحلل request headers/config دون تدوير السر عشوائياً.\n5. يجب التحقق من `/companies/sw.js` بعد إثبات artifact؛ إذا بقي 404 رغم تطابق artifact مع Git، ننتقل إلى إعدادات Cloudflare routing/root directory.\n\n## 8. حالة الإثبات\nهذه الجولة أصلحت العيب البرمجي المؤكد وأجبرت artifact على حمل بصمة P135 في مسار النشر. لا يُعلن إغلاق المشكلة نهائياً حتى يظهر marker في runtime المنشور ويُنجح login فعلياً؛ ذلك شرط إثبات وليس إجراءً شكلياً.\n''', encoding='utf-8')
+
+          state = Path('CURRENT_STATE.md')
+          text = state.read_text(encoding='utf-8')
+          marker_state = '### P135 — FORENSIC RUNTIME REPAIR'
+          if marker_state not in text:
+              text += '''\n\n---\n\n### P135 — FORENSIC RUNTIME REPAIR\n- Date: 2026-09-01\n- Direct source target: `Current/PWA/New-main`.\n- Confirmed Supabase source config is current/active; no key rotation performed.\n- Confirmed `MAIN11_SUPABASE_UNAVAILABLE` is caused by an incorrect guard that checks `window.supabase.auth` instead of the local client `supabase.auth`.\n- Surgical repair: `if (typeof supabase === 'undefined' || !supabase || !supabase.auth)`.\n- Added runtime marker: `RAWAEA_P135_TARGET` / `__RAWAEA_P135_RUNTIME_BUILD__`.\n- Service Worker cache namespace advanced to `rw-static-p135-v1`; registration path was not changed because source path was not proven defective.\n- Production evidence still distinguishes a successful `workers.dev` runtime from the failing Pages runtime, so `Invalid API key` remains classified as unproven deployment/artifact drift until P135 marker is observed in the served browser artifact.\n- Next gate: browser runtime must show P135 marker, then login must be re-tested; only after artifact identity is proven may any remaining 401 or SW 404 be diagnosed as a Cloudflare routing/runtime defect.\n'''
+              state.write_text(text, encoding='utf-8')
+
+          subprocess.run(['git','config','user.name','rawaea-p135-forensic-bot'],check=True)
+          subprocess.run(['git','config','user.email','rawaea-p135-forensic-bot@users.noreply.github.com'],check=True)
+          subprocess.run(['git','add','Current/PWA/New-main','Current/PWA/sw.js','doc/Draft/Reprots/تقرير2.md','CURRENT_STATE.md'],check=True)
+          subprocess.run(['git','commit','-m','[p135-runtime-repair] surgical runtime and artifact repair'],check=True)
+          subprocess.run(['git','push','origin','HEAD:main'],check=True)
+          PY
