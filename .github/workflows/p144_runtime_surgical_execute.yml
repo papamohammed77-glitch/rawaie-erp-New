@@ -1,0 +1,85 @@
+name: P144 runtime surgical repair — New-main only
+
+on:
+  push:
+    branches: [p144-runtime-surgical-fix]
+    paths:
+      - '.github/workflows/p144_runtime_surgical_execute.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Surgical target repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,re,subprocess,tempfile
+          p=Path('Current/PWA/New-main')
+          if not p.is_file() or p.stat().st_size == 0:
+              raise SystemExit('NEW_MAIN_MISSING')
+          s=p.read_text(encoding='utf-8')
+          legacy="navigator.serviceWorker.register('../sw.js',{scope:'../'})"
+          canonical="navigator.serviceWorker.register('./sw.js',{scope:'./'})"
+          n=s.count(legacy)
+          if n != 1:
+              raise SystemExit(f'LEGACY_SW_REGISTRATION_COUNT:{n}')
+          if s.count(canonical) != 0:
+              raise SystemExit('CANONICAL_SW_ALREADY_PRESENT')
+          before=hashlib.sha256(s.encode()).hexdigest()
+          s=s.replace(legacy,canonical,1)
+          if legacy in s:
+              raise SystemExit('LEGACY_SW_REMAINS')
+          if s.count(canonical) != 1:
+              raise SystemExit('CANONICAL_SW_COUNT_INVALID')
+          scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)
+          if len(scripts) != 1:
+              raise SystemExit(f'INLINE_SCRIPT_COUNT:{len(scripts)}')
+          j=Path(tempfile.gettempdir())/'p144-new-main.js'
+          j.write_text(scripts[0],encoding='utf-8')
+          r=subprocess.run(['node','--check',str(j)],capture_output=True,text=True)
+          if r.returncode:
+              print(r.stderr)
+              raise SystemExit('NEW_MAIN_JS_SYNTAX_FAIL')
+          p.write_text(s,encoding='utf-8')
+          after=hashlib.sha256(s.encode()).hexdigest()
+          print({'before_sha256':before,'after_sha256':after,'bytes':len(s.encode()),'legacy_sw_count':0,'canonical_sw_count':s.count(canonical),'js_syntax':'PASS'})
+          PY
+
+      - name: Persist evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p Current/CTO
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          p=Path('Current/PWA/New-main')
+          s=p.read_text(encoding='utf-8')
+          out={
+            'event_type':'P144_RUNTIME_SURGICAL_REPAIR_EXECUTED',
+            'target':'Current/PWA/New-main',
+            'repair':'../sw.js -> ./sw.js with scope ../ -> ./',
+            'sha256':hashlib.sha256(s.encode()).hexdigest(),
+            'bytes':len(s.encode()),
+            'production_runtime':'PENDING_MANUAL_PUBLISH_AND_BROWSER_VERIFY',
+            'supabase_credentials':'UNCHANGED; active Production key previously verified'
+          }
+          Path('Current/CTO/20260901_P144_RUNTIME_SURGICAL_REPAIR.json').write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
+          PY
+          git config user.name 'rawaea-p144-repair-bot'
+          git config user.email 'rawaea-p144-repair-bot@users.noreply.github.com'
+          git add Current/PWA/New-main Current/CTO
+          git diff --cached --quiet && { echo NO_DELTA; exit 1; }
+          git commit -m '[p144-runtime-repair-executed] repair New-main Service Worker runtime path'
+          git push origin HEAD:p144-runtime-surgical-fix
