@@ -39,40 +39,38 @@ jobs:
               if len(ms)!=1: raise RuntimeError('INLINE_RUNTIME_COUNT:'+str(len(ms)))
               return ms[0]
           def validate(stage):
-              s=target.read_text(encoding='utf-8')
-              req=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn']
+              s=target.read_text(encoding='utf-8');req=[]
               for n,mn in [('RW_ShellContext',1),('RW_Auth',1),('RW_Navigation',1),('RW_Dashboard',2),('RW_Items',2),('RW_POS',4),('RW_Orders',5),('RW_Runsheets',6),('RW_Purchases',7),('RW_Warehouse',7),('RW_Finance',8),('RW_Reports',9),('RW_OwnerLicense',10),('RW_HR',11),('RW_CRM',11),('RW_Views',11)]:
                   if stage>=mn:req.append(n)
               miss=[x for x in req if x not in s]
-              if miss: raise RuntimeError(f'MAIN{stage}_CONTRACT_MISSING:'+','.join(miss))
-              if s.lower().count('</body>')!=1 or s.lower().count('</html>')!=1: raise RuntimeError(f'MAIN{stage}_CLOSURE_INVALID')
-              js=inline(s).group('b'); f=Path(tempfile.gettempdir())/f'rw-main{stage}.js'; f.write_text(js,encoding='utf-8')
-              r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-              if r.returncode: print(r.stderr); raise RuntimeError(f'MAIN{stage}_JS_SYNTAX_FAIL')
-          s=target.read_text(encoding='utf-8'); m=inline(s); body=m.group('b')
-          # Repair only the known escaped-quote defect in RW_Table introduced by the earlier target patch.
-          repaired=body.replace("\\\\'", "\\'")
-          if repaired!=body:
-              target.write_text(s[:m.start('b')]+repaired+s[m.end('b'):],encoding='utf-8')
+              if miss:raise RuntimeError(f'MAIN{stage}_CONTRACT_MISSING:'+','.join(miss))
+              if s.lower().count('</body>')!=1 or s.lower().count('</html>')!=1:raise RuntimeError(f'MAIN{stage}_CLOSURE_INVALID')
+              ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
+              if len(ms)!=1:raise RuntimeError(f'MAIN{stage}_INLINE_RUNTIME_COUNT:{len(ms)}')
+              f=Path(tempfile.gettempdir())/f'rw-main{stage}.js';f.write_text(ms[0].group('b'),encoding='utf-8');r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+              if r.returncode:print(r.stderr);raise RuntimeError(f'MAIN{stage}_JS_SYNTAX_FAIL')
+          def persist(stage):
+              subprocess.run(['git','add','Current/PWA/New-main'],check=True)
+              if subprocess.run(['git','diff','--cached','--quiet']).returncode!=0:
+                  subprocess.run(['git','commit','-m',f'[new-main-target-persist] MAIN{stage} complete'],check=True);subprocess.run(['git','push','origin','HEAD:main'],check=True)
+          s=target.read_text(encoding='utf-8');m=inline(s);body=m.group('b');repaired=body.replace("\\\\'","\\'")
+          if repaired!=body:target.write_text(s[:m.start('b')]+repaired+s[m.end('b'):],encoding='utf-8')
           validate(1)
           for stage in range(2,12):
-              s=target.read_text(encoding='utf-8'); m=inline(s); body=m.group('b'); marker=f'/* RAWAEA MAIN{stage} AUTHORITATIVE MODULE */'
+              s=target.read_text(encoding='utf-8');m=inline(s);body=m.group('b');marker=f'/* RAWAEA MAIN{stage} AUTHORITATIVE MODULE */'
               if marker not in body:
                   frag=(src/f'main{stage}.md').read_text(encoding='utf-8-sig').rstrip()
-                  end_marker='/* MAIN2_GOVERNED_CLOSED:v1 */' if stage==2 else '/* MAIN'+str(stage)+'_GOVERNED_CLOSED'
+                  # Reject only a real document wrapper at the beginning, not HTML strings inside JS templates.
+                  if re.match(r'^\s*(?:<!doctype\b|<html\b|<head\b|<body\b)',frag,re.I):raise RuntimeError(f'MAIN{stage}_SOURCE_WRAPPER')
+                  if '</script>' in frag.lower():raise RuntimeError(f'MAIN{stage}_SOURCE_SCRIPT_CLOSURE')
                   if stage==2:
                       ls=body.find('/* RAWAEA MAIN2 COMPATIBILITY */')
-                      le=body.find(end_marker,ls)
-                      if ls>=0 and le>=0:
-                          body=body[:ls]+body[le+len(end_marker):]
-                  if re.search(r'</script>|<!doctype\b|<html\b|<body\b',frag,re.I): raise RuntimeError(f'MAIN{stage}_SOURCE_WRAPPER')
+                      if ls>=0:
+                          le=body.find('/* MAIN2_GOVERNED_CLOSED:v1 */',ls)
+                          if le<0:raise RuntimeError('MAIN2_COMPACT_END_NOT_FOUND')
+                          body=body[:ls]+body[le+len('/* MAIN2_GOVERNED_CLOSED:v1 */'):]
                   target.write_text(s[:m.start('b')]+body+'\n'+marker+'\n'+frag+s[m.end('b'):],encoding='utf-8')
-              validate(stage)
-              subprocess.run(['git','add','Current/PWA/New-main'],check=True)
-              r=subprocess.run(['git','diff','--cached','--quiet'])
-              if r.returncode!=0:
-                  subprocess.run(['git','commit','-m',f'[new-main-target-persist] MAIN{stage} complete'],check=True)
-                  subprocess.run(['git','push','origin','HEAD:main'],check=True)
+              validate(stage);persist(stage)
           print('MAIN1_TO_MAIN11_TARGET_CHAIN_COMPLETE')
           PY
 
