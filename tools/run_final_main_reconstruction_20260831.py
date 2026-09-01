@@ -8,6 +8,7 @@ import tempfile
 MAIN = Path('Current/PWA/New-main')
 CUR = Path('Current/PWA/main')
 PARTS = [CUR / f'main{i}.md' for i in range(1, 12)]
+SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpaWxtb29nZ3Vtb2t4YW53aXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDkwOTIsImV4cCI6MjA5NDI4NTA5Mn0.LZScCxnCiRrTSCCBmTryszQpY1AwBgR2dkTBbC5kOc4'
 
 
 def fp(text):
@@ -24,6 +25,32 @@ def patch_main7(raw):
     pattern = re.compile(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}", re.M)
     fixed, count = pattern.subn(r"\1));}", raw, count=1)
     return fixed if count == 1 else raw
+
+
+def repair_runtime_contracts(raw):
+    changes = {'supabase_key_replaced': False, 'service_worker_registration_replaced': False}
+
+    key_pattern = re.compile(r"var\s+RW_SUPABASE_ANON_KEY\s*=\s*(['\"])[^'\"]*\1\s*;", re.S)
+    matches = key_pattern.findall(raw)
+    if len(matches) != 1:
+        raise RuntimeError('RUNTIME_AUTH_KEY_DECLARATION_COUNT:' + str(len(matches)))
+    raw, n = key_pattern.subn("var RW_SUPABASE_ANON_KEY='" + SUPABASE_ANON_KEY + "';", raw, count=1)
+    if n != 1:
+        raise RuntimeError('RUNTIME_AUTH_KEY_REPLACEMENT_COUNT:' + str(n))
+    changes['supabase_key_replaced'] = True
+
+    sw_pattern = re.compile(r"navigator\.serviceWorker\.register\(\s*['\"][^'\"]+['\"]\s*,\s*\{\s*scope\s*:\s*['\"][^'\"]+['\"]\s*\}\s*\)", re.S)
+    sw_matches = sw_pattern.findall(raw)
+    if len(sw_matches) != 1:
+        raise RuntimeError('RUNTIME_SW_REGISTRATION_COUNT:' + str(len(sw_matches)))
+    raw, n = sw_pattern.subn("navigator.serviceWorker.register('./sw.js',{scope:'./'})", raw, count=1)
+    if n != 1:
+        raise RuntimeError('RUNTIME_SW_REPLACEMENT_COUNT:' + str(n))
+    changes['service_worker_registration_replaced'] = True
+
+    if "navigator.serviceWorker.register('../sw.js',{scope:'../'})" in raw:
+        raise RuntimeError('LEGACY_PARENT_SERVICE_WORKER_REGISTRATION_REMAINS')
+    return raw, changes
 
 
 def validate_fragment(idx, raw):
@@ -59,10 +86,9 @@ def assemble():
         validate_fragment(idx, raw)
         chunks.append(raw.rstrip())
 
-    # MAIN1 is the complete HTML shell and intentionally leaves its final
-    # inline <script> open. MAIN2..MAIN11 continue that exact runtime.
     candidate = chunks[0] + '\n\n' + '\n\n'.join(chunks[1:]) + '\n\n</script>\n</body>\n</html>\n'
-    return candidate, chunks
+    candidate, runtime_changes = repair_runtime_contracts(candidate)
+    return candidate, chunks, runtime_changes
 
 
 def validate(candidate):
@@ -77,6 +103,10 @@ def validate(candidate):
         raise RuntimeError('MISSING_REQUIRED_RECONSTRUCTION_CONTRACTS:' + ','.join(missing))
     if candidate.lower().count('</html>') != 1 or candidate.lower().count('</body>') != 1:
         raise RuntimeError('DOCUMENT_CLOSURE_INVALID')
+    if SUPABASE_ANON_KEY not in candidate:
+        raise RuntimeError('SUPABASE_ANON_KEY_CANONICAL_MISSING')
+    if "navigator.serviceWorker.register('./sw.js',{scope:'./'})" not in candidate:
+        raise RuntimeError('SERVICE_WORKER_CANONICAL_REGISTRATION_MISSING')
     scripts = re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>', candidate, re.I)
     if len(scripts) != 1:
         raise RuntimeError('INLINE_SCRIPT_COUNT_INVALID:' + str(len(scripts)))
@@ -89,7 +119,7 @@ def validate(candidate):
 
 
 def main():
-    candidate, chunks = assemble()
+    candidate, chunks, runtime_changes = assemble()
     digest = validate(candidate)
     tmp = MAIN.with_suffix('.reconstructed.tmp')
     tmp.write_text(candidate, encoding='utf-8')
@@ -101,7 +131,7 @@ def main():
         running += '\n\n' + chunks[idx-1]
         phases.append({'phase':idx,'source':f'Current/PWA/main/main{idx}.md','script_sha256':fp(running),'bytes':len(running.encode('utf-8'))})
 
-    print(json.dumps({'status':'NEW_MAIN_ASSEMBLED_AND_VALIDATED','target':str(MAIN),'sha256':digest,'bytes':len(candidate.encode('utf-8')),'phases':phases,'main1_to_main11':True}, ensure_ascii=False))
+    print(json.dumps({'status':'NEW_MAIN_ASSEMBLED_AND_VALIDATED','target':str(MAIN),'sha256':digest,'bytes':len(candidate.encode('utf-8')),'runtime_contracts':runtime_changes,'phases':phases,'main1_to_main11':True}, ensure_ascii=False))
 
 
 if __name__ == '__main__':
