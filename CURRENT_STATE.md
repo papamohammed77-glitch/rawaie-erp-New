@@ -16,20 +16,21 @@
 - Production Supabase: `SMART ERP` / `fiilmooggumokxanwiyx`
 - Staging Supabase: `rawaea-staging` / `hfzznsiprnwkpayskzhu`
 
-## CURRENT REALITY RECONCILIATION — 2026-08-31
-- `CURRENT/PWA/main.html` remains protected and was not modified by this execution.
+## CURRENT REALITY RECONCILIATION — 2026-09-01
+- The full `doc/Draft/medhat/MASTER — RAWAEA ERP.md` command was read end-to-end through section 60 and adopted as the governing execution model.
+- `Current/PWA/main.html` remains protected and was not modified.
 - The authorized reconstruction target is `Current/PWA/New-main`.
-- The present `New-main` artifact is not certified Golden/Diamond.
-- Direct inspection of `Current/CTO/FORENSIC_FRAGMENT_INVENTORY.json` proves `Current/PWA/main/main1.md` and `Original/PWA/main/main1.md` have matching function/table/ID sets for the audited MAIN1 contract, including `RW_Audit_*`, `RW_Permissions_*`, notification functions, `RW_Workflow`, and the associated audit/notification/workflow tables.
-- The current `New-main` artifact does not yet expose the full MAIN1 contract surface; its present implementation is a partial shell/consumer layer rather than a verified behavioral reconstruction of MAIN1.
-- The official clean-room workflow and builder exist, but the available GitHub integration in this execution session did not expose a runnable Actions dispatch/run result; therefore CI/browser/production runtime closure cannot be falsely declared.
-- `main` and `golden-new-main-20260831` are divergent. The Golden branch is historical evidence only and is not merged blindly into current `main`.
+- Latest verified Git HEAD before this state update was `e8da572a5b42a407c4d5f8d7493b9e4fe134f663`.
+- The most recent commit that actually modified `Current/PWA/New-main` remains `a4551e0fcfc55fd609f48109407c025b44e20641`; later commits changed workflow/tooling/prompts/documentation rather than the target.
+- Therefore executor/parser/browser-gate changes are not evidence that the target artifact itself is complete.
+- `Current/PWA/main/main1.md` and `Original/PWA/main/main1.md` remain logical contract sources and were not modified.
+- New-main currently contains substantial MAIN1 shell/auth/navigation/permissions/notification/workflow/audit functionality, but the complete MAIN1 behavioral contract is not yet proven closed.
 
 ## CURRENT PRODUCTION — LAST DIRECTLY VERIFIED SNAPSHOT
 - Production project: `fiilmooggumokxanwiyx` (`SMART ERP`)
 - Status: `ACTIVE_HEALTHY`
 - PostgreSQL: 17.6.x
-- Current business baseline observed during recent forensic execution: one company, 24 users, 2 branches, 17 items, 20 stock rows, 3 inventory-log rows, 0 orders, 0 runsheets, 2 journal headers, 0 journal lines, 0 customer/supplier/driver ledger rows, 0 daily settlements, 1 treasury.
+- Verified continuity baseline: one company, 24 users, 2 branches, 17 items, 20 stock rows, 3 inventory-log rows, 0 orders, 0 runsheets, 2 journal headers, 0 journal lines, 0 customer/supplier/driver ledger rows, 0 daily settlements, 1 treasury.
 - Authoritative identity path: authenticated user -> `public.users.auth_id` -> `public.users.company_id`.
 - Physical-stock authority: `post_stock_movement`.
 - Reservation authority: `reserve_stock` / `release_stock_reservation`.
@@ -37,40 +38,90 @@
 
 ## CURRENT OPEN SECURITY / RUNTIME FINDINGS
 - Broad authenticated/anon policies remain on some order/fulfillment and settlement tables and require controlled consumer proof before remediation.
-- Full cryptographic deployment-lineage parity for all critical Edge Functions is not yet closed.
-- No verified two-session Production concurrency proof is currently recorded for the New-main target.
+- Security Advisor findings remain open, including externally executable `SECURITY DEFINER` functions and disabled leaked-password protection.
+- Full deployment-lineage parity for critical Edge Functions is not closed.
+- No verified two-session Production concurrency proof is recorded for New-main.
 - New-main browser/runtime parity is not certified.
 - New-main Service Worker runtime is not certified.
 - Main replacement is not authorized.
 
-## MAIN1 FORENSIC CLOSURE — CURRENT SESSION
-- Command used: `doc/Draft/medhat/CTO EXECUTION COMMAND.md`.
-- Scope: `Current/PWA/New-main` against `Current/PWA/main/main1.md` and `Original/PWA/main/main1.md` only.
-- Historical/current fragment inventory was used to identify the MAIN1 contract; reports were not used as Current Truth.
-- MAIN1 current/original function parity in the inventory is verified for the audited set: `RW_Audit_*`, `RW_Permissions_*`, `_clickNotif`, `_renderAndSave`, `_updateBadge`, identity/auth/navigation helpers, notification/workflow helpers.
-- MAIN1 current/original tables are verified as: `app_settings`, `audit_log`, `branches`, `customers`, `items`, `notification_templates`, `notifications`, `suppliers`, `users`, `workflow_log`, `workflow_rules`.
-- MAIN1 current/original edge dependency is verified as `log-action`.
-- MAIN1 current/original storage key is verified as `rw_sidebar_collapsed`.
-- Current New-main is missing the complete MAIN1 audit/permissions/notification/workflow behavioral surface and therefore is not yet parity-closed.
-- No permanent third artifact was created by the MAIN1 completion command.
+## MAIN1 FORENSIC / IMPLEMENTATION STATE
+- MAIN1 forensic contract is verified in current project records.
+- MAIN1 implementation in New-main remains `OPEN`.
+- Required MAIN1 contracts include `RW_Audit_*`, `RW_Permissions_*`, `_clickNotif`, `_renderAndSave`, `_updateBadge`, `RW_Workflow`, identity/auth/navigation helpers, and associated audit/notification/workflow data contracts.
+- Direct New-main inspection found these remaining contract concerns:
+  - Owner calculation currently allows `owner_profile` existence to make `isOwner=true`; governing contract requires owner semantics to originate from authenticated metadata while preserving wildcard permissions.
+  - New-main contains only a lightweight `RW_OwnerLicense` getter object; the full MAIN10 owner/license UI and save/change-email/change-password route was not found in the target artifact.
+  - New-main notification implementation lacks the MAIN1 `_clickNotif`, `_renderAndSave`, `_updateBadge`, and `markRead` behavior including related-record navigation.
+  - New-main audit rendering is simplified relative to the MAIN1 `RW_Audit_*` contract set.
+  - Session reset/fail-closed behavior is not proven to the MAIN1 lifecycle contract.
+  - Workflow rule loading is not explicitly company-scoped in the current New-main implementation; impact remains to be proven before any production security change.
+- No New-main write was performed in this execution because the available GitHub write operation replaces the entire monolithic file and the full target bytes could not be safely reconstructed without risking unrelated content loss. This is a tooling safety limitation, not a closure claim.
 
 ## VERIFIED ARTIFACT / WORKFLOW LINEAGE
-- `Current/PWA/New-main` exists on `main` and is the sole authorized reconstruction artifact.
-- `Current/PWA/main/main1.md` is a logical contract source and is not to be copied wholesale into New-main.
-- `.github/workflows/new_main_clean_room_20260831.yml` exists as an existing project workflow; it is not a substitute for runtime proof.
-- Existing historical clean-room commits include a real JS syntax gate over main1..main11 and a browser-smoke design, but prior workflow lineage is inconsistent and must not be treated as current PASS without a current run.
+- `Current/PWA/New-main` is the sole authorized target.
+- `a4551e0...` is the latest confirmed target-changing commit in this continuity chain.
+- `6b339cc...` was an executor attempt, later reverted; it is not target proof.
+- `9507d0...`, `02da996...`, `c2c316...` and related commits primarily changed execution tooling/gates and do not substitute for target implementation.
+- No new workflow, executor, candidate, backup or parallel architecture was created by this execution.
+
+## CURRENT BUSINESS / ARCHITECTURAL CONTRACTS
+- Sales channels converge into order/runsheet/fulfillment lifecycle.
+- Physical stock authority: `post_stock_movement`.
+- Reservation authority: `reserve_stock` / `release_stock_reservation`.
+- Journal authority for inspected accounting paths: `post_journal_entry`.
+- Dedicated customer/supplier/driver ledger writers exist.
+- Specialized PWAs remain responsible for POS, Telesales, Van Sales, Purchasing/Receiving, Picking, Loading, Delivery, Returns and Stock Vouchers.
+- New-main must delegate domain ownership to existing Core/Edge/RPC paths rather than recreate business engines.
+
+## HISTORICAL SOURCE STATUS
+- Historical `rawaie-erp-review/main` is architecture/contract/forensics evidence, not current Production truth.
+- Historical CTO/Inventory memory tracks preserve prior closures and failure knowledge.
+- Inventory writer closure was scoped to the physical-stock writer boundary, not ERP-wide closure.
+- Historical reports require current re-verification before closure claims.
+
+## MEMORY 117-02
+- `Current/CTO/RAWAEA_PROJECT_MEMORY_117-02.md` remains the persistent governed memory ledger.
+- It incorporates the Master command, current Production baseline, historical reconciliation, consumer examples and current MAIN1 target-gap findings.
+- It does not claim exhaustive consumer/deployment closure or Production readiness.
+
+## KNOWN INCIDENT / ANTIPATTERN MEMORY
+- Report != current truth.
+- Historical PASS != current PASS.
+- CI PASS/Migration PASS != Production PASS.
+- Git source != deployed code unless lineage is proven.
+- Executor fix != target implementation.
+- Commit existence != runtime deployment.
+- Active function/workflow != production consumer.
+- Do not create duplicate physical-stock writers.
+- Do not repair anomalies without provenance and audit/downstream analysis.
+- Do not use `LIMIT 1` to conceal tenant ambiguity.
+- Do not byte-slice logical PWA modules.
+- Do not replace Main before parity/runtime certification.
+- Do not use a schema/advisor warning alone as authorization for Production mutation.
+
+## FORBIDDEN ACTIONS — ACTIVE
+- No blind Production DDL/DML.
+- No Production business-logic patch solely to satisfy CI.
+- No direct Physical Stock writer outside canonical engines.
+- No direct financial mutation from New-main.
+- No deletion of unknown legacy artifacts.
+- No credential/token use merely because exposed in historical workflow source.
+- No replacement of `Current/PWA/main.html` without complete evidence.
+- No artificial workflow/executor/parallel architecture.
 
 ## LAST VERIFIED EVENT
-- Event ID: `LVE-2026-08-31-020`
-- Event Type: `MAIN1_FORENSIC_RECONCILIATION_AND_CURRENT_NEW_MAIN_GAP_CONFIRMATION`
-- UTC: `2026-08-31T22:30:00Z` execution window
-- Source: direct current Git files + `FORENSIC_FRAGMENT_INVENTORY.json` + `Current/PWA/New-main` + `Current/PWA/main/main1.md` + `Original/PWA/main/main1.md` + direct Production evidence already verified in this execution thread
-- Git SHA at reconciliation point: `1f62e8a3bb76e9f97b5318791a13552f08f52242`
+- Event ID: `LVE-2026-09-01-002`
+- Event Type: `MASTER_CONTINUITY_MAIN1_TARGET_RECONCILIATION_FINAL`
+- UTC: `2026-09-01T00:15:00Z` execution window
+- Source: full MASTER command sections 0-60 + direct GitHub commit history/diff comparison + direct New-main/main1/main10 inspection + current Production evidence already verified in this chain
+- Git SHA: `e8da572a5b42a407c4d5f8d7493b9e4fe134f663`
 - Production State: `ACTIVE_HEALTHY`
-- Action: reconciled the current project against the Master governance command, rechecked the MAIN1 function/table/ID contract, compared it to the current New-main artifact, inspected Golden branch divergence, and refused to certify New-main as Golden/Diamond because the full MAIN1 behavioral surface and current runtime proof are not present.
-- Result: `MAIN1 = OPEN / NEW-MAIN = NOT GOLDEN / NOT DIAMOND`
-- Impact: no change to legacy `main.html`; no unsafe promotion; the next authorized engineering action remains completion of the MAIN1 audit/permission/notification/workflow contract inside the existing `Current/PWA/New-main`, followed by current CI/browser/runtime verification.
-- Next Authorized Action: complete only the missing MAIN1 contract inside `Current/PWA/New-main`, preserve existing correct New-main behavior, then run current structural + JS + browser + Production runtime verification before any replacement decision.
+- Action: completed the required continuity sequence, reconciled current HEAD against the last New-main target change, inspected the target and MAIN1/MAIN10 contracts, confirmed remaining target gaps, and refused unsafe whole-file replacement without complete target bytes.
+- Result: `CURRENT_STATE SYNCHRONIZED / MAIN1 OPEN / TARGET WRITE SAFETY BLOCKER RECORDED`
+- Evidence: `a4551e0...` is the latest New-main modification; current target source at HEAD was inspected; MAIN1 notification/audit/owner/license contracts were cross-checked.
+- Impact: no legacy Main change and no Production mutation; false MAIN1 closure was prevented.
+- Next Authorized Action: obtain/use a safe full-file target-write path, apply only the proven MAIN1 gaps in `Current/PWA/New-main`, then run static validation, browser/runtime verification, and authenticated Production compatibility checks before closure.
 
 ## CURRENT CLOSURE STATUS
 `CURRENT_STATE = SYNCHRONIZED`
@@ -81,6 +132,7 @@
 `NEW_MAIN_MAIN1_PARITY = OPEN`
 `NEW_MAIN_BROWSER_RUNTIME = OPEN`
 `NEW_MAIN_PRODUCTION_RUNTIME = OPEN`
+`MAIN1_TARGET_WRITE = EXTERNAL_TOOLING_SAFETY_LIMITATION`
 `DEPLOYMENT_LINEAGE = PARTIAL / OPEN`
 `SECURITY = OPEN`
 `CONCURRENCY = OPEN`
