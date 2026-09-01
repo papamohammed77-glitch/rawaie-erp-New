@@ -5,10 +5,11 @@ import hashlib
 import subprocess
 import tempfile
 
+# P143-FINAL-RETRIGGER: build authorized Current/PWA/New-main only after fragment normalization.
 MAIN = Path('Current/PWA/New-main')
 CUR = Path('Current/PWA/main')
 PARTS = [CUR / f'main{i}.md' for i in range(1, 12)]
-SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpaWxtb29nZ3Vtb2t4YW53aXl4IiwiaWF0IjoxNzc4NzA5MDkyLCJleHAiOjIwOTQyODUwOTJ9.LZScCxnCiRrTSCCBmTryszQpY1AwBgR2dkTBbC5kOc4'
+SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpaWxtb2tnZ3Vtb2t4YW53aXl4IiwiaWF0IjoxNzc4NzA5MDkyLCJleHAiOjIwOTQyODUwOTJ9.LZScCxnCiRrTSCCBmTryszQpY1AwBgR2dkTBbC5kOc4'
 
 
 def fp(text):
@@ -30,15 +31,12 @@ def patch_main7(raw):
 def normalize_document_closures(raw):
     raw = re.sub(r'</body>\s*', '', raw, flags=re.I)
     raw = re.sub(r'</html>\s*', '', raw, flags=re.I)
-    # Reconstruction fragments may end with HTML forensic sentinels which are
-    # valid as document markers but invalid inside the single application script.
     raw = re.sub(r'\s*<!--\s*RAWAEA_[^>]*-->\s*$', '', raw, flags=re.I | re.S)
     return raw
 
 
 def repair_runtime_contracts(raw):
     changes = {'supabase_key_replaced': False, 'service_worker_registration_replaced': False, 'service_worker_registration_inserted': False}
-
     key_pattern = re.compile(r"var\s+RW_SUPABASE_ANON_KEY\s*=\s*(['\"])[^'\"]*\1\s*;", re.S)
     matches = key_pattern.findall(raw)
     if len(matches) != 1:
@@ -47,7 +45,6 @@ def repair_runtime_contracts(raw):
     if n != 1:
         raise RuntimeError('RUNTIME_AUTH_KEY_REPLACEMENT_COUNT:' + str(n))
     changes['supabase_key_replaced'] = True
-
     sw_pattern = re.compile(r"(?:if\s*\(\s*['\"]serviceWorker['\"]\s*in\s*navigator\s*\)\s*)?navigator\.serviceWorker\.register\(\s*['\"][^'\"]+['\"](?:\s*,\s*\{\s*scope\s*:\s*['\"][^'\"]+['\"]\s*\})?\s*\)(?:\.catch\(\s*function\s*\([^)]*\)\s*\{[\s\S]*?\}\s*\))?\s*;?", re.S)
     sw_matches = sw_pattern.findall(raw)
     if len(sw_matches) > 1:
@@ -78,12 +75,10 @@ def validate_fragment(idx, raw):
 
 
 def validate_phase_js(chunks):
-    running = chunks[0]
-    first_script = re.search(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*)', running, re.I)
+    first_script = re.search(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*)', chunks[0], re.I)
     if not first_script:
         raise RuntimeError('MAIN1_INLINE_SCRIPT_MISSING_FOR_PHASE_VALIDATION')
     js_body = first_script.group(1)
-
     for idx in range(1, len(chunks) + 1):
         if idx > 1:
             js_body += '\n\n' + chunks[idx - 1]
@@ -108,7 +103,6 @@ def assemble():
         raw = normalize_document_closures(raw)
         validate_fragment(idx, raw)
         chunks.append(raw.rstrip())
-
     validate_phase_js(chunks)
     candidate = chunks[0] + '\n\n' + '\n\n'.join(chunks[1:]) + '\n\n</script>\n</body>\n</html>\n'
     candidate, runtime_changes = repair_runtime_contracts(candidate)
@@ -159,13 +153,11 @@ def main():
     tmp = MAIN.with_suffix('.reconstructed.tmp')
     tmp.write_text(candidate, encoding='utf-8')
     tmp.replace(MAIN)
-
     running = chunks[0]
     phases = [{'phase':1,'source':'Current/PWA/main/main1.md','script_sha256':fp(running),'bytes':len(running.encode('utf-8'))}]
     for idx in range(2,12):
         running += '\n\n' + chunks[idx-1]
         phases.append({'phase':idx,'source':f'Current/PWA/main/main{idx}.md','script_sha256':fp(running),'bytes':len(running.encode('utf-8'))})
-
     print(json.dumps({'status':'NEW_MAIN_ASSEMBLED_AND_VALIDATED','target':str(MAIN),'sha256':digest,'bytes':len(candidate.encode('utf-8')),'runtime_contracts':runtime_changes,'phases':phases,'main1_to_main11':True}, ensure_ascii=False))
 
 
