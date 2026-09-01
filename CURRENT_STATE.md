@@ -237,3 +237,134 @@ CLOSED_100_PERCENT         = NO
 3. Verify the actual output root maps to `/companies/company-1/main.html` and `/companies/sw.js`.
 4. Open a clean browser session and require the P136 marker, absence of `MAIN11_SUPABASE_UNAVAILABLE`, successful login/session restoration, owner/license tab visibility, and Service Worker HTTP 200.
 5. Only then close deployment/auth gates and resume Gold/Diamond evaluation.
+
+---
+
+## P140 — DIRECT FORENSIC RUNTIME / SOURCE / DEPLOYMENT-GATE RECONCILIATION — 2026-09-01
+### P140-01 — MASTER / MEMORY RECOVERY
+- `MASTER - RAWAEA ERP.md` was read directly from current Git through the end of the command; its governing principles were applied without treating historical stage numbers as current targets.
+- `CURRENT_STATE.md` was read directly before new mutations.
+- `doc/Draft/Reprots/تقرير1` through `تقرير6.md` were preserved and used only as historical evidence.
+- `doc/Draft/Reprots/تقرير7.md` was created as the P140 execution report; no historical report was deleted or overwritten.
+
+### P140-02 — CURRENT SOURCE
+- `Current/PWA/New-main` blob remains `5a4cc333b24de8fe66b79329db97a997ffa8ec3b`.
+- P136 shared-client repair is physically present:
+  - `window.RW_SUPABASE_CLIENT=supabase`
+  - `window.__RAWAEA_P136_SCOPE_REPAIR__='shared-client'`
+  - `var sb = window.RW_SUPABASE_CLIENT || null`
+  - `sb.auth.getSession()`
+- `Current/PWA/sw.js` remains P137 FINAL with `RAWAEA_SW_P137_FINAL`.
+- `Current/PWA/manifest.json` declares `start_url=/companies/company-1/app.html` and `scope=/companies/company-1/`.
+- `Current/PWA/_headers` declares no-cache rules for SW/manifest/HTML, subject to actual deployment-root inclusion.
+
+### P140-03 — SOURCE PATH INCONSISTENCY DISCOVERED
+- Current Git has `Current/PWA/sw.js` at the PWA root.
+- Current Git has no `Current/PWA/companies/sw.js` path.
+- `New-main` uses relative Service Worker registration `../sw.js` in a nested deployment context.
+- From `/companies/company-1/main.html`, that resolves to `/companies/sw.js`, matching the reported runtime 404.
+- This is a real source/deployment-layout inconsistency, but its correct repair depends on proving Cloudflare output-root mapping.
+- P140 therefore does NOT authorize a guessed path rewrite or duplicate SW file.
+
+### P140-04 — PRODUCTION SUPABASE
+Direct SQL inspection of Production project `fiilmooggumokxanwiyx` first exposed that `public.users` has `status`, not `is_active`; the schema was then read and the correct query executed.
+
+Verified owner state:
+- `status = Active`
+- `permissions = ["*"]`
+- `auth_id` linked to owner Auth account
+- `owner_profile.license_status = active`
+- `owner_profile.auth_user_id` matches the Auth bridge
+
+No Supabase mutation was performed.
+
+### P140-05 — RUNTIME CONFLICT
+Supplied browser evidence remains:
+- `RAWAEA_P135_TARGET New-main`
+- `MAIN11_SUPABASE_UNAVAILABLE`
+- `POST /auth/v1/token?grant_type=password → 401`
+- `AuthApiError: Invalid API key`
+- `/companies/sw.js → 404`
+
+This is incompatible with the P136 source target and indicates that the runtime artifact/path is not yet reconciled with Current Git.
+
+### P140-06 — EXTERNAL DEPLOYMENT GATE
+- Direct runtime fetch through the available web channel did not yield a usable production artifact and returned `Cache miss` for the SW URL.
+- No installable Cloudflare/Wrangler plugin was available.
+- No legitimate Cloudflare deployment-management channel is available in this session.
+- Therefore deployment ID, deployed commit, artifact identity, output root, and URL mapping remain unknown.
+
+### P140-07 — REJECTED UNSAFE REPAIRS
+The following were explicitly rejected:
+- Supabase credential rotation.
+- New JavaScript rewrite of P136.
+- New `sw.js` content rewrite.
+- Creating `Current/PWA/companies/sw.js` as a shadow copy.
+- Treating Git file existence as proof of production URL availability.
+
+### P140-08 — AUTHORIZED SURGICAL ACTION
+The only authorized surgical action is publication/redeployment of the exact existing Current target through the legitimate Cloudflare path, followed by runtime proof.
+
+Manual publication set for the current experiment:
+
+```text
+Current/PWA/New-main
+Current/PWA/sw.js
+Current/PWA/manifest.json
+Current/PWA/_headers
+```
+
+`Current/PWA/main.html` remains protected and is not part of this mutation.
+
+### P140-09 — REQUIRED VERIFICATION AFTER PUBLICATION
+1. `/companies/company-1/main.html` serves the Current target.
+2. P136 marker is observable.
+3. `MAIN11_SUPABASE_UNAVAILABLE` is absent.
+4. Password login succeeds.
+5. Session restoration succeeds.
+6. Tenant/company context resolves.
+7. Dashboard loads.
+8. Owner/license tab appears.
+9. `/companies/sw.js` returns HTTP 200 if that remains the intended mapped path.
+10. Served SW contains `RAWAEA_SW_P137_FINAL`.
+11. Effective registration/scope matches the manifest and deployment layout.
+
+### P140-10 — CURRENT STATUS
+```text
+CURRENT_SOURCE_P136        = VERIFIED
+CURRENT_SW_P137            = VERIFIED
+SUPABASE_PRODUCTION        = HEALTHY
+OWNER_WILDCARD             = VERIFIED
+OWNER_LICENSE              = ACTIVE
+BROWSER_LOGIN              = OPEN / 401
+MAIN11_UNAVAILABLE         = OPEN IN SERVED RUNTIME
+COMPANIES_SW               = OPEN / 404
+SERVICE_WORKER_SOURCE_LAYOUT = INCONSISTENT / DEPLOYMENT-ROOT DEPENDENT
+CLOUDFLARE_DEPLOYMENT_ID   = UNKNOWN
+CLOUDFLARE_ARTIFACT_ID     = UNKNOWN
+DEPLOYMENT_OUTPUT_ROOT     = UNKNOWN
+URL_TO_ARTIFACT_MAPPING    = UNKNOWN
+SOURCE_PATCH_AUTHORIZED    = NO
+MANUAL_PUBLICATION_REQUIRED = YES
+GOLD                       = UNPROVEN
+DIAMOND                    = UNPROVEN
+CLOSED_100_PERCENT         = NO
+```
+
+### P140-11 — LAST VERIFIED EVENT
+```text
+EVENT ID        = P140-01
+EVENT TYPE      = FORENSIC RECONCILIATION / PRODUCTION SQL VERIFICATION
+UTC TIMESTAMP   = 2026-09-01
+SOURCE          = Current Git + Production Supabase + user browser evidence
+GIT SHA         = 1ba72e0b915d907a32bac5794ed548c9b81755ba (reconciled Current state lineage)
+PRODUCTION      = Supabase healthy; owner wildcard/license verified
+ACTION          = Reconcile Current source, Production DB, runtime evidence, and deployment constraints
+RESULT          = Source correct; served runtime still unreconciled
+EVIDENCE        = P136 markers in Current; owner SQL verification; browser 401/404 evidence
+IMPACT          = Deployment gate remains open
+NEXT ACTION     = Manual publication of exact Current/PWA target, then clean-runtime verification
+```
+
+### P140-12 — NEXT AUTHORIZED ACTION
+Publish exactly the four files named in P140-08 through the legitimate existing Cloudflare Pages path, then return the fresh Console evidence and the actual response status/body evidence for the two critical URLs. Do not modify Supabase credentials or source logic before that verification.
