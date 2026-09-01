@@ -18,8 +18,8 @@
 ### P124-002 — CURRENT_STATE_RECONCILIATION
 - Current Git main HEAD observed as `b415c20800282ba0adcdaeafd4c7c974ce6b205e` before cleanup of an accidental temporary file.
 - `Current/PWA/New-main` was re-read from current main.
-- Historical Hany directory listing currently exposes reports `1–5`; the highest directly listed Hany execution report is `تقرير تنفيذي 5`.
-- Report 5 confirms MAIN1–MAIN11 were historically integrated, while final GOLD/DIAMOND persistence and browser verification were still unproven.
+- Historical Hany directory listing currently exposes reports `1–6`; the highest directly listed Hany execution report is `تقرير تنفيذي 6`.
+- Report 6 confirms MAIN1–MAIN11 were historically integrated, while final GOLD/DIAMOND persistence and browser verification were still unproven.
 - Prompt 124+ recovery file path supplied in the user request was not retrievable as a direct Git blob through the available GitHub connector; this is recorded as an evidence limitation, not treated as proof of absence.
 
 ## LAST VERIFIED EVENT
@@ -119,37 +119,6 @@
 - Created in commit `ad4072fe24ae106ebfcd340038a9ccb117a977a4`.
 - The report records the complete forensic sequence, successful/failed experiments, prior execution errors, direct Git/Supabase findings, competitor pattern comparison, and the exact remaining closure blocker.
 
-## CURRENT HEAD AFTER THIS EXECUTION
-- Latest documentation HEAD after Hany report creation and this state update is expected to be immediately verified after commit.
-- Target product blob remains `d657d6e4bdd90a9b60f658a8bf28560e1b10f755` unless a later target mutation is explicitly recorded.
-
-## TARGET STATUS
-- `Current/PWA/New-main`: existing artifact read and analyzed; no new target mutation performed during this continuation.
-- MAIN1 static contract closure: `PASS`.
-- MAIN1–MAIN11 historical/current artifact integration: `PRESENT` by direct Git history/evidence; not a substitute for runtime verification.
-- Production security/core foundation: `PASS` on verified read-only checks plus documented remediations.
-- Exact current-target browser runtime: `BLOCKED / UNVERIFIED` because the existing clean-room builder fails before the gate.
-- Final Git blob persistence of a newly repaired GOLD/DIAMOND target: `NOT APPLICABLE IN THIS CONTINUATION` because no new repair was justified.
-- Therefore the project is **not yet honestly CLOSED 100%**.
-
-## NEXT AUTHORIZED EXECUTION PLAN — MAX 10 STAGES
-1. `P124-N1` Obtain/restore the missing Prompt-124 source text from a trustworthy historical artifact if it becomes available; otherwise retain the documented evidence limitation.
-2. `P124-N2` Obtain an execution path that verifies the exact current target without modifying the verification harness to force green (for example, an already-approved clean-room runner that checks out current `main`).
-3. `P124-N3` Run exact-target JavaScript syntax and browser smoke against current `d657d6e4...` and capture failures.
-4. `P124-N4` For every proven runtime mismatch, perform one surgical edit directly in `Current/PWA/New-main` and immediately re-hash.
-5. `P124-N5` Re-run all closure gates after each surgical edit; never infer browser success from static success.
-6. `P124-N6` Recheck Supabase/RLS/Edge compatibility after any target behavior change affecting data access.
-7. `P124-N7` Final forensic self-audit and evidence reconciliation.
-8. `P124-N8` Only after all gates pass, declare `Closed 100% / GOLD / DIAMOND / COMPLETE` and publish Hany final report.
-
-## HARD RULES
-- Product code changes are allowed only in `Current/PWA/New-main`.
-- `Current/PWA/main.html` remains protected.
-- Do not create additional candidate artifacts, shadow files, reconstruction trees, or artificial workflows for this task.
-- Do not call something `Closed`, `Gold`, `Diamond`, or `Complete` without current evidence.
-- Do not reopen proven-closed work without new direct evidence.
-- Do not let historical stage numbers drive current execution.
-
 ## P125 — NEW CTO CONTINUITY / FORENSIC REPAIR ROUND — 2026-09-01
 ### P125-01 — MEMORY_RECOVERY_AND_LATEST_EVENT_RECONCILIATION
 - `MASTER - RAWAEA ERP.md` was read completely before execution.
@@ -168,11 +137,45 @@ The large obstacle is explicitly decomposed rather than attacked as one rewrite:
 3. Verify delegated module handlers and route-to-module bindings in the target.
 4. Run independent syntax/static checks against the exact target blob.
 5. Establish an exact-target browser/runtime execution route without changing the verifier to force green.
-6. For any proven defect, make one target-only surgical fix, re-hash the target, and update this file immediately.
+6. For any proven defect, make one surgical edit directly in `Current/PWA/New-main` and immediately re-hash.
 7. Recheck Supabase/RLS/Edge compatibility after any behavior-changing target edit.
 8. Final self-audit, evidence reconciliation, Hany final report, then only if all gates pass declare CLOSED/GOLD/DIAMOND/COMPLETE.
 
-### P125-03 — CURRENT DECISION
-- No target code has been modified in this round yet.
-- The currently known absence of literal `showFinanceTab` and `RW_GOLD_DIAMOND_PARITY` is not itself accepted as a defect; both are only meaningful if the effective target navigation/route behavior fails the governed source contract.
-- The next authorized operation is direct effective-navigation and route-binding verification on the exact target artifact.
+### P125-03 — EFFECTIVE_ORCHESTRATION_AUDIT
+- `Current/PWA/New-main` was read completely through its final MAIN11/122/notification closure blocks.
+- `MAIN10` defines `RW_Views` with explicit routes including `reports-comprehensive` → `RW_Reports_Comprehensive.render`.
+- The final `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` then redefines `RW_Navigation.navigate` and constructs its own route table.
+- In that final route table, `reports` resolves to `window.RW_Reports.render`, while `RW_Reports_Comprehensive` is not wired into that route. This is a proven orchestration regression/contract divergence because the target contains the comprehensive report module and MAIN10's router contract explicitly maps it.
+- The same 122 `clean()` function removes `online-store`, `purchase-pos`, `branches`, `vehicle-count`, `branch-count`, and `general-count` menu items from the effective tree, while the target still contains route handlers for those views. This is classified as a separate navigation-surface regression candidate and must be checked against the intended source/delegation contract before repair.
+- `MAIN11.boot()` restores session metadata and then calls `RW_Auth.enterSystem()`. `enterSystem()` uses the effective `RW_Navigation.buildSidebar()` and `RW_Navigation.navigate('dashboard')`, so the final 122 navigation override is live when DOMContentLoaded fires. This makes the 122 routing divergence operationally relevant, not dead code.
+- `MAIN11.boot()` catches `enterSystem()` errors, logs them, then still sets `RW_STATE.app.initialized = true` in `finally`. This is a fail-closed concern requiring explicit runtime verification; it is not yet classified as a production defect without observing the post-failure shell state.
+- The final notification closure remains present with `_renderAndSave`, `_updateBadge`, `markRead`, and `_clickNotif`.
+
+### P125-04 — GITHUB_ACTIONS_EXECUTION_EVIDENCE
+- Multiple workflows were triggered on the documentation HEAD, but representative action-run job queries returned `total_count=0` and no jobs.
+- Therefore those runs are not runtime evidence and must not be used to claim target syntax/browser closure.
+- The artificial `TEMP GOLD DIAMOND TARGET EXECUTOR` was inspected and intentionally not invoked because it mutates the target to install closure markers.
+
+### P125-05 — CURRENT_DECISION
+- The proven reports-route divergence is a legitimate target defect suitable for surgical repair.
+- No product mutation has yet been made in this round because the available GitHub write primitive for an existing file requires the complete replacement content; a blind reconstruction of this very large monolithic target would violate the no-reconstruction rule and risk destroying proven behavior.
+- The target blob remains `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`.
+- The next authorized step is to obtain a safe exact-target patch path or an already-existing historical blob that contains the intended orchestration fix; otherwise continue forensic validation and do not fake closure.
+
+## TARGET STATUS
+- `Current/PWA/New-main`: existing artifact read and analyzed; no new target mutation performed in P125 yet.
+- MAIN1 static contract closure: `PASS`.
+- MAIN1–MAIN11 artifact integration: `PRESENT` by direct Git evidence.
+- Production security/core foundation: `PASS` on direct read-only checks plus documented remediations.
+- Final navigation orchestration: `FAIL — proven reports route divergence in MAIN122`.
+- Exact current-target browser runtime: `BLOCKED / UNVERIFIED` because existing automation is not producing executable jobs.
+- Final `GOLD / DIAMOND / COMPLETE`: `NOT PROVEN`.
+
+## HARD RULES
+- Product code changes are allowed only in `Current/PWA/New-main`.
+- `Current/PWA/main.html` remains protected.
+- Do not create additional candidate artifacts, shadow files, reconstruction trees, or artificial workflows for this task.
+- Do not call something `Closed`, `Gold`, `Diamond`, or `Complete` without current evidence.
+- Do not reopen proven-closed work without new direct evidence.
+- Do not let historical stage numbers drive current execution.
+- Update this file after every logical execution operation.
