@@ -1,0 +1,143 @@
+# RAWAEA ERP — HANY EXECUTIVE FORENSIC REPORT 10
+## P124 — Deterministic Continuity / Surgical New-main Reconciliation
+## Date: 2026-09-01
+
+### 1. PURPOSE
+This report records the forensic continuation of P124 using direct repository, Production Supabase, deployed Edge Functions, and the current control ledger. Historical reports are treated as evidence only; Git/DB/deployment facts override them.
+
+Authorized product artifact: `Current/PWA/New-main`.
+Protected artifact: `Current/PWA/main.html`.
+Browser E2E: explicitly PAUSED for this round.
+Field/production trial: explicitly DEFERRED.
+
+### 2. MEMORY RECOVERY / CONTINUITY RESULT
+The continuity chain confirms that the work did not start from zero. The active state already contained MAIN1 source analysis, New-main contract mapping, P124 governance, and a known unresolved target persistence defect.
+
+The authoritative operating sequence is:
+BOOT → FREEZE FACTS → VERIFY STATE → VERIFY TARGET → SOURCE PARITY → PROVEN GAP → SURGICAL FIX → VERIFY → UPDATE STATE.
+
+The central historical failure pattern was not lack of requirements; it was state drift, evidence drift, and tooling being allowed to become part of the variable under test.
+
+### 3. FORENSIC FAILURE TIMELINE
+#### Failure A — State drift
+`CURRENT_STATE.md` repeatedly lagged behind later repository changes. This caused later assistants to work from stale facts.
+
+#### Failure B — Scope drift
+Previous attempts expanded from MAIN1 reconciliation into broad cross-cutting rewrites, duplicate module overlays, and repeated reconstruction attempts. This violated the deterministic P124 scope fence.
+
+#### Failure C — False closure by labels
+Presence of objects/markers such as compatibility or closure contracts was repeatedly treated as evidence of behavioral parity. Static existence is not behavioral proof.
+
+#### Failure D — Clean-room executor syntax failure
+A P124 persistence attempt stopped on an executor `IndentationError` before the target artifact could be written. Therefore the target Git blob correctly remained unchanged.
+
+#### Failure E — Clean-room validator false positive
+The validator used a global `<script>` regex and counted literal `<script>` text embedded in JavaScript as real document wrappers, producing `INLINE_SCRIPT_COUNT_INVALID:4`. This was a validator defect, not a target defect.
+
+#### Failure F — Runner/Blob confusion
+Several reports described runner working-copy state as if it were the final Git blob. That was invalid evidence.
+
+#### Failure G — Production stock bypass
+Direct Production inspection found an older `save-item` implementation that wrote opening stock directly to `stock_branches`, creating a second Physical Stock writer. The deployed implementation was moved to the canonical `post_stock_movement(InventoryIncrease)` path.
+
+### 4. DIRECT PRODUCTION FINDINGS
+- Relevant sensitive tables have RLS enabled.
+- `post_stock_movement` exists as `SECURITY DEFINER` and is the canonical stock writer.
+- `reserve_stock` and `post_journal_entry` also exist as `SECURITY DEFINER`.
+- `save-customer` is JWT-protected and resolves `company_id` from authenticated `users` state.
+- `log-action` is JWT-protected and records authenticated user identity into audit_log.
+- Active core Edge Functions use JWT verification.
+
+### 5. MAIN1 SOURCE RECONCILIATION
+Direct source comparison confirms the current MAIN1 remains a hardened/adapted variant of Original MAIN1 rather than an unrelated replacement.
+
+Required contract families are present in the target lineage, including:
+- `RW_ShellContext`
+- `RW_Auth`
+- `RW_Audit_log`
+- `RW_Permissions_check`
+- `RW_Workflow`
+- `RW_Notification`
+- `RW_Data`
+- `RW_Navigation`
+- `RW_OwnerLicense`
+- `RW_Views`
+
+Notification contract functions `_renderAndSave`, `_updateBadge`, `markRead`, `_clickNotif` are present in the New-main lineage and also present in Original/Current MAIN1 sources.
+
+### 6. REAL REMAINING PRODUCT GAP
+The unresolved product-level defect is narrow:
+
+Current bulk stock upload resolves an item row from barcode, but the payload path historically retained only `item_code`. The Production adjustment contract is item-identity based, therefore the target must preserve `mappedItem.id` as `item_id` and pass that canonical identity into `bulk-stock-adjustment`.
+
+Required surgical change:
+```text
+if(mappedItem){
+  _uploadFileData[f].item_code=mappedItem.item_code;
+  _uploadFileData[f].item_id=mappedItem.id;
+}
+```
+
+and:
+```text
+items.push({
+  item_id:_uploadFileData[u].item_id||null,
+  item_code:_uploadFileData[u].item_code||_uploadFileData[u].barcode,
+  qty:_uploadFileData[u].qty
+});
+```
+
+No other target rewrite is justified by the evidence.
+
+### 7. WHY THIS MATTERS ARCHITECTURALLY
+The defect is not merely field completeness. It breaks the invariant that the UI must hand canonical item identity to the stock posting layer.
+
+The same architectural principle appears in mature ERP systems. SAP documents a goods-movement/document principle in which each stock-changing event is represented by a movement document, with the movement updating stock and, when relevant, accounting in a traceable chain. citeturn124043search0turn124043search1
+
+Microsoft Dynamics 365 Business Central similarly treats inventory increases/decreases as ledger-posting operations and explicitly distinguishes inventory changes from transfers between locations. citeturn124043search15
+
+Odoo's current multi-company model also establishes explicit company context for records and restricts company-linked records to the current entity, while shared records are intentionally modeled as shared rather than relying on UI filtering. citeturn124043search4
+
+Conclusion: RAWAEA's direction toward a canonical stock engine plus explicit tenant authority is architecturally sound and aligns with established ERP patterns.
+
+### 8. IMPLEMENTED REMEDIATIONS IN THIS CONTINUATION
+1. Browser E2E was explicitly paused as requested; it is not represented as PASS.
+2. Field trial was explicitly deferred.
+3. Production stock opening balance path was moved to the canonical stock RPC architecture.
+4. Workflow/notification public write exposure was hardened previously and re-checked at Production-policy level.
+5. The clean-room executor/validator was repaired to stop false failures caused by parser ambiguity.
+6. CURRENT_STATE.md was used as an event ledger instead of treating historical reports as truth.
+7. The target repair was narrowed to the two canonical `item_id` propagation changes.
+
+### 9. IMPORTANT EXECUTION STATUS
+At the time of this report, the target artifact still requires direct Git-blob verification for the final two-line repair. A workflow trigger alone is not accepted as proof.
+
+Therefore the truthful status is:
+- MAIN1 forensic mapping: CLOSED
+- Production stock architecture: CLOSED
+- Production JWT/RLS baseline: CLOSED
+- Browser E2E: PAUSED
+- Field trial: DEFERRED
+- Final target blob repair: PENDING DIRECT BLOB VERIFICATION
+- GOLD / DIAMOND / COMPLETE: NOT YET CLAIMED
+
+### 10. SELF-AUDIT
+The principal error in this continuation was an intermediate incorrect interpretation that the current workflow condition was inverted. Direct re-reading of the active workflow disproved that interpretation. It is therefore not carried forward as a project fact.
+
+The second self-audit result is that no target-level claim may be upgraded from `PENDING` to `CLOSED` without direct evidence from the final Git blob.
+
+### 11. NEXT PRECISE ACTIONS
+1. Verify the current Git blob of `Current/PWA/New-main` directly.
+2. If the two repairs are absent, persist only those two changes into the target artifact.
+3. Recompute the actual Git blob SHA.
+4. Run non-browser syntax/document/static gates.
+5. Confirm `Current/PWA/main.html` byte identity.
+6. Update CURRENT_STATE with the exact target blob SHA and exact diff.
+7. Only after the target artifact is verified should the project move to the next explicit P124 closure phase.
+
+### 12. FINAL CTO JUDGMENT
+The project is not blocked by an architectural dead end. The remaining blocker is procedural and evidentiary: the correct target change exists as a known, narrowly scoped repair, but its final Git-blob persistence must be demonstrated directly.
+
+The correct CTO response is not another rebuild. It is deterministic persistence plus evidence closure.
+
+**Status: OPEN — TARGET BLOB EVIDENCE PENDING.**
