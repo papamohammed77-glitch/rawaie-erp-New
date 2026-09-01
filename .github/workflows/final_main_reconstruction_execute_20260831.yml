@@ -39,21 +39,22 @@ jobs:
           stage=int(sys.argv[1])
           s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
           required=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn']
-          for n in [('RW_ShellContext',1),('RW_Auth',1),('RW_Navigation',1),('RW_Dashboard',2),('RW_Items',3),('RW_POS',4),('RW_Orders',5),('RW_Runsheets',6),('RW_Purchases',7),('RW_Warehouse',7),('RW_Finance',8),('RW_Reports',9),('RW_OwnerLicense',10),('RW_HR',11),('RW_CRM',11),('RW_Views',11)]:
-              if stage>=n[1]: required.append(n[0])
+          for name,min_stage in [('RW_ShellContext',1),('RW_Auth',1),('RW_Navigation',1),('RW_Dashboard',2),('RW_Items',3),('RW_POS',4),('RW_Orders',5),('RW_Runsheets',6),('RW_Purchases',7),('RW_Warehouse',7),('RW_Finance',8),('RW_Reports',9),('RW_OwnerLicense',10),('RW_HR',11),('RW_CRM',11),('RW_Views',11)]:
+              if stage>=min_stage: required.append(name)
           missing=[x for x in required if x not in s]
           if missing: raise SystemExit('MAIN%d_CONTRACT_MISSING:%s'%(stage,','.join(missing)))
           if s.lower().count('</body>')!=1 or s.lower().count('</html>')!=1: raise SystemExit('MAIN%d_DOCUMENT_CLOSURE_INVALID'%stage)
-          scripts=re.findall(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*?)</script>',s,re.I)
-          if len(scripts)!=1: raise SystemExit('MAIN%d_INLINE_SCRIPT_COUNT_INVALID:%d'%(stage,len(scripts)))
-          p=Path(tempfile.gettempdir())/('rawaea-main%d.js'%stage); p.write_text(scripts[0],encoding='utf-8')
-          r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
+          matches=[]
+          for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I):
+              if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I): matches.append(m.group('b'))
+          if len(matches)!=1: raise SystemExit('MAIN%d_INLINE_SCRIPT_COUNT_INVALID:%d'%(stage,len(matches)))
+          js=Path(tempfile.gettempdir())/('rawaea-main%d.js'%stage); js.write_text(matches[0],encoding='utf-8')
+          r=subprocess.run(['node','--check',str(js)],capture_output=True,text=True)
           if r.returncode: print(r.stderr); raise SystemExit('MAIN%d_JS_SYNTAX_FAIL'%stage)
           print('MAIN%d_TARGET_VALID'%stage)
           PY
           }
 
-          test -s Current/PWA/main/main1.md
           cp Current/PWA/main/main1.md Current/PWA/New-main
           printf '\n</script>\n</body>\n</html>\n' >> Current/PWA/New-main
           validate_target 1
@@ -65,9 +66,7 @@ jobs:
             python3 - "$stage" <<'PY'
           import re,sys
           from pathlib import Path
-          stage=int(sys.argv[1])
-          target=Path('Current/PWA/New-main')
-          s=target.read_text(encoding='utf-8')
+          stage=int(sys.argv[1]); target=Path('Current/PWA/New-main'); s=target.read_text(encoding='utf-8')
           m=re.search(r'\n?</script>\s*</body>\s*</html>\s*$',s,re.I)
           if not m: raise SystemExit(f'MAIN{stage}_TARGET_CLOSURE_NOT_FOUND')
           frag=Path(f'Current/PWA/main/main{stage}.md').read_text(encoding='utf-8-sig').rstrip()
