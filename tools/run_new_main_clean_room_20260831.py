@@ -27,6 +27,36 @@ def inline_scripts(html: str):
             if not re.search(r'\bsrc\s*=\s*', m.group('a') or '', re.I)]
 
 
+def strip_scripts(html: str) -> str:
+    return re.sub(r'<script(?P<a>[^>]*)>[\s\S]*?</script>', '', html, flags=re.I)
+
+
+def repair_document_closure(html: str) -> tuple[str, bool]:
+    markup = strip_scripts(html)
+    html_open = len(re.findall(r'<html\b', markup, re.I))
+    body_open = len(re.findall(r'<body\b', markup, re.I))
+    html_close = markup.lower().count('</html>')
+    body_close = markup.lower().count('</body>')
+
+    if html_open != 1 or body_open != 1:
+        raise RuntimeError(f'DOCUMENT_ROOT_INVALID:html_open={html_open},body_open={body_open}')
+    if html_close > 1 or body_close > 1:
+        raise RuntimeError(f'DOCUMENT_CLOSURE_AMBIGUOUS:html_close={html_close},body_close={body_close}')
+    if html_close == 1 and body_close == 1:
+        return html, False
+
+    candidate = html.rstrip()
+    if html_close == 0 and body_close == 0:
+        candidate += '\n</body></html>\n'
+    elif html_close == 1 and body_close == 0:
+        # Insert a missing body close immediately before the html close.
+        pos = candidate.lower().rfind('</html>')
+        candidate = candidate[:pos].rstrip() + '\n</body>\n' + candidate[pos:]
+    elif html_close == 0 and body_close == 1:
+        candidate += '\n</html>\n'
+    return candidate, True
+
+
 def validate_target(html: str):
     missing = [x for x in REQUIRED if x not in html]
     if missing:
@@ -36,8 +66,7 @@ def validate_target(html: str):
     if len(scripts) != 1:
         raise RuntimeError('INLINE_SCRIPT_COUNT_INVALID:' + str(len(scripts)))
 
-    # Count document-closing tags only in markup, not inside JavaScript string literals.
-    markup = re.sub(r'<script(?P<a>[^>]*)>[\s\S]*?</script>', '', html, flags=re.I)
+    markup = strip_scripts(html)
     if markup.lower().count('</html>') != 1 or markup.lower().count('</body>') != 1:
         raise RuntimeError('DOCUMENT_CLOSURE_INVALID')
 
@@ -48,7 +77,6 @@ def validate_target(html: str):
         print(r.stderr)
         raise RuntimeError('TARGET_JS_SYNTAX_FAIL')
 
-    # Main PWA must never mutate physical stock directly.
     for op in ('insert','update','upsert','delete'):
         if re.search(r"supabase\.from\(['\"]stock_branches['\"]\)\s*\." + op + r"\s*\(", html, re.I):
             raise RuntimeError('NEW_MAIN_DIRECT_STOCK_WRITER_DETECTED:' + op)
@@ -98,16 +126,20 @@ def run():
     baseline = TARGET.read_text(encoding='utf-8')
     legacy_before = sha_file(LEGACY)
     compare_main1_sources(baseline)
-    candidate, changed = patch_bulk_stock_item_identity(baseline)
+    candidate, changed_bulk = patch_bulk_stock_item_identity(baseline)
+    candidate, changed_closure = repair_document_closure(candidate)
     validate_target(candidate)
     if sha_file(LEGACY) != legacy_before:
         raise RuntimeError('LEGACY_MAIN_HTML_CHANGED')
 
+    changed = changed_bulk or changed_closure
     if changed:
         TARGET.write_text(candidate, encoding='utf-8')
     print({
         'status': 'SURGICAL_REPAIR_READY',
         'changed': changed,
+        'bulk_stock_item_id_repair': changed_bulk,
+        'document_closure_repair': changed_closure,
         'target_sha256': sha_file(TARGET),
         'legacy_sha256': legacy_before,
         'browser_e2e': 'PAUSED_BY_DIRECTIVE',
