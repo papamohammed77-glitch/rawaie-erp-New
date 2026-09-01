@@ -1,0 +1,446 @@
+# تقرير تنفيذي 6 — الاستلام الجنائي واستكمال Prompt 124
+
+**التاريخ:** 2026-09-01  
+**الدور:** CTO / المسؤول التنفيذي عن الإغلاق  
+**الهدف:** استكمال المقارنة والإصلاح الجراحي للملف النهائي `Current/PWA/New-main` دون إعادة بناء أو إنشاء ملف بديل، والوصول إلى `Closed 100% / GOLD / DIAMOND / COMPLETE` فقط بأدلة حقيقية.
+
+---
+
+## 1. نطاق الجولة
+
+تم تنفيذ الجولة باعتبار المشروع في حالة استمرارية، وليس مشروعًا جديدًا. تم الرجوع أولًا إلى الذاكرة التشغيلية والوثائق التاريخية، ثم إلى GitHub وSupabase بوصفهما مصادر الحقيقة الفعلية.
+
+المصادر التي تم الرجوع إليها:
+
+1. `MASTER - RAWAEA ERP.md`.
+2. `برومبت 124+ ملحق تقرير` عبر المسار الذي قدمه المستخدم.
+3. مجلد `doc/Draft/Hany` والتقارير التنفيذية من 1 إلى 5.
+4. `CURRENT_STATE.md`.
+5. `Current/PWA/New-main` مباشرة من GitHub.
+6. `Original/PWA/main/main1.md` و`Current/PWA/main/main1.md`.
+7. Production Supabase `SMART ERP`.
+8. Git history وGitHub Actions الحالية والتاريخية.
+9. مصادر ERP العالمية الرسمية للمقارنة المعمارية.
+
+---
+
+## 2. استرجاع الذاكرة — MASTER
+
+تمت قراءة `MASTER - RAWAEA ERP.md` حتى نهايته. القواعد التي تم تثبيتها من جديد هي:
+
+- الواقع الحالي أهم من الذاكرة والتقارير.
+- Git الحالي أهم من أي ادعاء تاريخي غير مثبت.
+- Production Supabase والـEdge Functions والـruntime مصادر مستقلة يجب التحقق منها.
+- لا يجوز اعتبار رقم مرحلة تاريخي أو نسبة إنجاز دليلًا للحالة الحالية.
+- لا يجوز إعادة بناء ما هو موجود بالفعل لمجرد أن أحد التقارير وصفه بأنه ناقص.
+
+هذه القواعد هي السبب في عدم قبول أي claim تاريخي تلقائيًا.
+
+---
+
+## 3. Prompt 124 — نتيجة استعادة المصدر
+
+المسار المحدد من المستخدم للملف:
+
+`doc/Draft/medhat/برومبت 124+ ملحق تقرير`
+
+تمت محاولة قراءته مباشرة من GitHub عدة مرات، كما تم البحث عنه بالاسم والمحتوى وفي Git history/tree. النتيجة الحالية: لا يوجد Blob قابل للوصول بهذا المسار في `main`، ولم يظهر Commit موثق يحتوي الملف نفسه.
+
+هذا لا يثبت أن الملف لم يوجد تاريخيًا؛ يثبت فقط أن نسخة المصدر المطلوبة غير متاحة حاليًا من الـGit blob المتاح. تم التعامل معه كـ **Evidence Limitation** وليس كحقيقة مفترضة.
+
+تم الاعتماد بعد ذلك على خطة P124 المسجلة في `CURRENT_STATE.md` وعلى الأدلة المباشرة بدل اختلاق محتوى مفقود.
+
+---
+
+## 4. آخر حالة فعلية قبل الجولة
+
+آخر تقرير Hany متاح مباشرة هو `تقرير تنفيذي 5`.
+
+الخلاصة الفعلية التي تم التحقق منها من Git history و`CURRENT_STATE`:
+
+- MAIN1–MAIN11 كانت قد وصلت تاريخيًا إلى target artifact.
+- كانت هناك محاولات متعددة لإغلاق parent boundary.
+- بعض الإصلاحات كانت تُجرى داخل runner أو أدوات إعادة البناء دون إثبات أن الناتج النهائي أصبح هو الـGit blob الذي سيتم نشره.
+- سبق حدوث أخطاء في أدوات التنفيذ نفسها، منها `IndentationError`، ومشاكل race/indexing في إجراءات التحقق.
+- لم يكن هناك إثبات صادق وقتها للـbrowser runtime على الـtarget النهائي.
+
+---
+
+## 5. مفاجأة Git المهمة — الإصلاحات وصلت فعلًا إلى Target
+
+تم تتبع تاريخ الملف:
+
+`Current/PWA/New-main`
+
+والعثور على سلسلة commits مباشرة لهذا المسار، من أهمها:
+
+- `2310f651...` — `MAIN11 complete`
+- `3ccf236...` — `MAIN10 complete`
+- `c5d5ff19...` — `MAIN9 complete`
+- `e1ef606...` — `MAIN8 complete`
+- `31d4dc3...` — `Navigation, Owner, License, CRM closure`
+- `a5b7aa69...` — `MAIN1 notification contract closure`
+
+وبالتالي ثبت أن العبارة العامة «الإصلاحات لم تصل إلى Git blob النهائي» ليست صحيحة كقاعدة مطلقة.
+
+بل ثبت أن بعض الإصلاحات، وبالأخص notification closure، موجودة داخل الـblob الفعلي للهدف.
+
+---
+
+## 6. إثبات Persist للـNotification Closure
+
+الـcommit:
+
+`a5b7aa69f173da5002105023676b1eada0a87c42`
+
+أضاف مباشرة داخل:
+
+`Current/PWA/New-main`
+
+العقد التالي:
+
+- `_updateBadge`
+- `markRead`
+- `_clickNotif`
+- `_renderAndSave`
+
+ثم تم إعادة قراءة الملف عند نفس الـcommit، وكانت بصمة الـblob:
+
+`d657d6e4bdd90a9b60f658a8bf28560e1b10f755`
+
+وهي نفس البصمة الحالية للـtarget على `main`.
+
+**النتيجة:** persistence لهذا الإصلاح PROVEN.
+
+---
+
+## 7. إعادة فحص MAIN1 — Original / Current / Target
+
+### Original MAIN1
+
+تمت مراجعة Auth/Session/Tenant/Notification/Audit/Navigation والـdelegation.
+
+ومن أمثلة الفرق التي تم اكتشافها:
+
+- `markRead` التاريخي كان يحدّث notification حسب `id` فقط.
+- Authorship/tenant logic التاريخي كان أقل صرامة.
+
+### Current MAIN1
+
+Current MAIN1 يحتفظ بالعقود القديمة ويضيف hardening، ومن أهمها:
+
+- tenant resolution من user auth context.
+- fail-closed عند غياب tenant context.
+- owner semantics أكثر صرامة.
+- permission checks مركزية.
+
+### Target
+
+Target يحمل طبقة MAIN1 contract واضحة تشمل:
+
+- `RW_ShellContext`
+- `RW_OwnerLicense`
+- `RW_Permissions_check`
+- `RW_ParentRegistry`
+- `RW_MAIN1_CONTRACT`
+- Auth/session handling
+- Audit
+- Workflow
+- Notification
+- Navigation/delegation
+
+**النتيجة:** MAIN1 static contract closure PASS.
+
+---
+
+## 8. Duplicate Namespace Forensics
+
+تم فحص الـblob الفعلي للـtarget وليس تقريرًا عنه.
+
+تم إثبات وجود طبقتين لـMAIN2:
+
+`RAWAEA MAIN2 COMPATIBILITY`
+
+ثم لاحقًا:
+
+`RAWAEA MAIN2 AUTHORITATIVE MODULE`
+
+وتم التحقق من أن `RW_Dashboard` و`RW_Items` يظهران في الطبقتين.
+
+هذا يعني أن artifact يحتوي duplicate/redefined namespaces.
+
+لكن يجب عدم ارتكاب الخطأ القديم وحذف compatibility layer فورًا؛ لأن الحكم الصحيح هو:
+
+**هل التكرار يغيّر behavior؟**
+
+الـruntime في JavaScript يجعل التعريف اللاحق هو الفعّال، والدليل المباشر الحالي يشير إلى أن الـAuthoritative definitions هي التي تنتهي في الواجهة الفعالة.
+
+لذلك صنفت التكرار في هذه الجولة على أنه:
+
+`STRUCTURAL RISK / NOT YET PROVEN BEHAVIORAL DEFECT`
+
+ولم يتم تعديل target بسبب هذا السبب وحده.
+
+---
+
+## 9. فحص Owner / License
+
+تم التحقق من `RW_OwnerLicense` داخل target.
+
+الجزء الموجود هو MAIN10 Authoritative Module، ويصف نفسه بأنه UI/orchestration only، مع منع الكتابة المباشرة إلى Physical Stock وAccounting وLedger وtenant authority.
+
+`saveSettings` يستخدم session token ويمر عبر Edge Function `save-settings`.
+
+هذا يطابق المبدأ المعماري المطلوب: الواجهة لا تصبح مصدرًا جديدًا للـstock أو ledger.
+
+---
+
+## 10. Supabase Production Forensic Check
+
+Production project:
+
+`SMART ERP`
+
+Ref:
+
+`fiilmooggumokxanwiyx`
+
+حالة المشروع:
+
+`ACTIVE_HEALTHY`
+
+PostgreSQL:
+
+`17.6`
+
+تم فحص الدوال المركزية مباشرة من PostgreSQL:
+
+- `post_stock_movement` — SECURITY DEFINER.
+- `reserve_stock` — SECURITY DEFINER.
+- `release_stock_reservation` — SECURITY DEFINER.
+- `post_journal_entry` — SECURITY DEFINER.
+
+كما ظهر `post_stock_movement` بأكثر من signature، أحدها يحمل idempotency key.
+
+تم فحص RLS على الجداول الحساسة، وثبت وجود company-scoped / permission-scoped policies على الجداول الأساسية، مع owner-only access إلى audit log، وown-email notification access، وauthenticated workflow access.
+
+**لم يكن هناك سبب مباشر لتغيير Production في هذه الجولة.**
+
+---
+
+## 11. مقارنة مع الأنظمة العالمية
+
+تمت مراجعة مصادر رسمية لـ Odoo وMicrosoft Dynamics 365 وERPNext وSAP.
+
+### Odoo
+
+Odoo يجعل multi-company context عنصرًا أمنيًا، مع company consistency وrecord rules تمنع عبور بيانات شركة إلى أخرى.
+
+### Dynamics 365
+
+Dynamics يفصل صلاحيات العامل والمخزن والعمل المسموح به، وتظهر العمليات مثل picking/moving/counting كـwarehouse work ضمن سياق worker/warehouse access.
+
+### ERPNext
+
+ERPNext يحافظ على Stock Ledger وGeneral Ledger كسجل منشور، ولا يشجع تعديل السجلات مباشرة؛ التصحيح يتم عبر cancellation/reversal أو reposting المنضبط.
+
+### SAP
+
+SAP يربط goods movements بتحديثات المخزون والقيمة والحسابات المالية ويُظهر أن inventory movement ليس مجرد UI operation بل transaction لها أثر مالي ومخزني متكامل.
+
+**الاستنتاج المعماري:** اتجاه RAWAEA الحالي صحيح: tenant authority مركزي، صلاحيات مركزية، Physical Stock authority واحدة، Financial/Ledger authority واحدة، والواجهات المتخصصة orchestration وليست مصادر مستقلة للحقيقة.
+
+---
+
+## 12. تجربة Clean-room الأخيرة
+
+تم فحص الـjob:
+
+`99726102288`
+
+في run سابق:
+
+`33466077181`
+
+وكانت النتيجة:
+
+- Checkout source: SUCCESS.
+- Protect legacy main.html: SUCCESS.
+- Build one New-main artifact: FAILURE.
+- Structural/syntax: SKIPPED.
+- Browser smoke: SKIPPED.
+
+والخطأ الدقيق:
+
+`IndentationError: unindent does not match any outer indentation level`
+
+في:
+
+`tools/run_new_main_clean_room_20260831.py`
+
+السطر 57.
+
+والأهم أن ذلك الـrun كان قد check out لنسخة أقدم:
+
+`bfe7eab46f33708820ca3d8b614c6b0282bd2535`
+
+وليس الـHEAD الحالي.
+
+تمت إعادة تشغيل الـjob نفسه بدل تعديل الـworkflow.
+
+لكن الفشل بقي في نفس خطوة البناء وبنفس الـIndentationError.
+
+**النتيجة:** لم ننتج browser/syntax evidence للـcurrent target من هذه البوابة.
+
+---
+
+## 13. الأخطاء التي ارتكبتها المحاولات السابقة
+
+### خطأ 1 — الاعتماد على تقارير سابقة كأنها state حالي
+تم العثور على أن بعض التقارير تجمع عدة SHAs وحالات زمنية مختلفة.
+
+**الدرس:** التقرير دليل تاريخي، وليس مصدر الحقيقة الحالي.
+
+### خطأ 2 — runner-only repair
+تمت محاولات إصلاح داخل runner/reconstruction script بدون إثبات persistence.
+
+**الدرس:** لا قيمة للإصلاح إن لم يصل إلى target blob.
+
+### خطأ 3 — reconstruction / overlay
+تم في مراحل سابقة بناء طبقات compatibility فوق النظام القائم.
+
+**الدرس:** وجود namespace لا يساوي parity، والـduplicate layers تزيد احتمالات الـoverride.
+
+### خطأ 4 — tooling mutation
+حدثت سابقًا ملفات مؤقتة غير مرغوبة مثل `BAD` أثناء الاختبارات.
+
+تمت إزالتها وتسجيل ذلك رسميًا.
+
+### خطأ 5 — الخلط بين CI وruntime
+نجاح static checks لا يثبت browser runtime أو Production behavior.
+
+### خطأ 6 — القفز إلى التعديل قبل اكتمال investigation
+هذه الجولة تعمدت عدم تكرار الخطأ؛ لم يتم أي target mutation بلا defect سلوكي مثبت.
+
+---
+
+## 14. القرار الهندسي الحالي
+
+بعد المقارنة المباشرة، لا يوجد حتى الآن defect سلوكي مثبت داخل `Current/PWA/New-main` يبرر جراحة عمياء.
+
+المثبت فعليًا:
+
+- target موجود.
+- target persisted في Git.
+- عدة إصلاحات تاريخية وصلت إلى نفس blob الحالي.
+- MAIN1 static contract موجود.
+- notification persistence مثبت.
+- owner/license/navigation contracts موجودة.
+- Production core stock/accounting security foundation موجودة.
+
+غير المثبت:
+
+- browser/runtime على الـcurrent target.
+- السلوك النهائي لكل namespace مكرر في كل route عند التشغيل الفعلي.
+- final GOLD/DIAMOND browser gate.
+
+لذلك القرار الصحيح هو:
+
+**لا تعديل product code في هذه الجولة حتى يظهر failure قابل للإسناد إلى سطر فعلي داخل target.**
+
+هذا ليس توقفًا عن التنفيذ؛ بل منع لتكرار إصلاحات غير مدعومة بالأدلة.
+
+---
+
+## 15. خطة التفتيت القادمة
+
+الصخرة الحالية ليست "MAIN1 ناقص"؛ الصخرة هي **غياب runtime proof على نفس target blob**.
+
+لذلك تم تفتيتها إلى:
+
+1. تثبيت current target SHA.
+2. الحصول على runner قادر على checkout current main.
+3. syntax gate على نفس artifact.
+4. browser smoke على نفس artifact.
+5. عند أول failure: تحديد السطر المسؤول.
+6. تعديل واحد جراحي داخل target فقط.
+7. إعادة hash للblob فورًا.
+8. إعادة جميع gates.
+9. Production compatibility recheck إذا كان التعديل data-affecting.
+10. self-audit ثم closure فقط عند تحقق جميع الشروط.
+
+---
+
+## 16. الحكم النهائي لهذه الجولة
+
+`Current/PWA/New-main` **ليس CLOSED 100% بعد**.
+
+ولم يتم تزوير هذا الحكم.
+
+الحالة الصادقة الحالية:
+
+`MAIN1 STATIC = PASS`
+
+`TARGET PERSISTENCE = PROVEN`
+
+`PRODUCTION FOUNDATION = PASS`
+
+`CURRENT TARGET BROWSER RUNTIME = UNVERIFIED / BLOCKED BY EXISTING CLEAN-ROOM BUILDER`
+
+`GOLD = NOT PROVEN`
+
+`DIAMOND = NOT PROVEN`
+
+`COMPLETE = NOT PROVEN`
+
+`CLOSED 100% = NO`
+
+---
+
+## 17. القرار التنفيذي للخطوة التالية
+
+لا ينبغي إعادة بناء MAIN1–MAIN11.
+
+لا ينبغي حذف duplicate namespaces لمجرد أنها duplicate.
+
+لا ينبغي تعديل أدوات التحقق لإجبارها على النجاح.
+
+لا ينبغي إنشاء shadow artifact.
+
+المطلوب التالي تحديدًا:
+
+**توفير تنفيذ verifier قادر على فحص الـcurrent target `d657d6e4...` نفسه دون تعديل target أو تغيير معنى الاختبار.**
+
+وبعد أول runtime failure موثق يتم تطبيق مبدأ:
+
+> صخرة واحدة → حجر واحد → إصلاح واحد → تحقق واحد → تسجيل واحد → إعادة الدورة.
+
+هذا هو المسار الأقصر والأكثر أمانًا للوصول إلى `GOLD / DIAMOND / COMPLETE` دون إعادة إنتاج أخطاء المحاولات السابقة.
+
+---
+
+## SELF-AUDIT
+
+**ما تم إثباته:**
+
+- Git current state.
+- Target blob identity.
+- Persisted notification repair.
+- MAIN1 static contracts.
+- Production core functions and RLS.
+- Existing failure root cause in clean-room builder.
+- Historical mistake: confusing reports/CI with current runtime.
+
+**ما لم يتم إثباته:**
+
+- Browser execution of exact current target.
+- Complete runtime parity of every duplicated namespace.
+- Final GOLD/DIAMOND closure.
+
+**أهم خطأ يجب ألا يتكرر:**
+
+إعلان نجاح النظام بناءً على وجود الملفات أو نجاح static/CI فقط.
+
+**أهم تقدم حقيقي في هذه الجولة:**
+
+انتقلنا من سؤال عام "هل الإصلاحات وصلت؟" إلى حقيقة قابلة للفحص: بعض الإصلاحات وصلت فعلًا إلى blob النهائي، والمشكلة المتبقية ليست persistence عامة بل غياب runtime proof الحالي.
