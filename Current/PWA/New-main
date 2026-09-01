@@ -5361,6 +5361,44 @@ window.RW_Views = RW_Views;
   };
   window.RW_122_CONTRACT={version:'v1',navigation:'closed',owner:'strict',license:'closed',crm:'closed',users:'closed',roles:'closed'};
 })();
+
+/* RAWAEA MAIN1 NOTIFICATION CONTRACT CLOSURE v1 */
+(function(){
+  'use strict';
+  var N=window.RW_Notification;
+  if(!N)throw new Error('RW_NOTIFICATION_UNAVAILABLE');
+  function email(){return window.RW_STATE&&window.RW_STATE.app&&window.RW_STATE.app.currentUser?window.RW_STATE.app.currentUser.email:null;}
+  async function _updateBadge(){
+    var e=email();if(!e)return 0;
+    var r=await supabase.from('notifications').select('id',{count:'exact',head:true}).eq('user_email',e).eq('is_read',false);
+    if(r.error)throw r.error;var b=byId('rw-notification-badge');var n=r.count||0;if(b){b.textContent=n>99?'99+':String(n);b.style.display=n?'grid':'none';}return n;
+  }
+  async function markRead(notifId){
+    if(!notifId)return;
+    var e=email();if(!e)return;
+    var r=await supabase.from('notifications').update({is_read:true}).eq('id',notifId).eq('user_email',e);
+    if(r.error)throw r.error;await _updateBadge();
+  }
+  async function _clickNotif(notifId,refTable,refId){
+    try{await markRead(notifId);}catch(e){console.warn('NOTIFICATION_MARK_READ',e)}
+    try{if(window.Swal&&typeof Swal.close==='function')Swal.close();}catch(e){}
+    var viewMap={orders:'orders',order:'orders',runsheets:'runsheets',run_sheets:'runsheets',customers:'customers',customer:'customers',items:'items',item:'items',suppliers:'suppliers',supplier:'suppliers',purchases:'purchases',purchase_orders:'purchases',returns:'returns',stock_vouchers:'vouchers',vouchers:'vouchers',notifications:'notifications'};
+    var view=viewMap[String(refTable||'').toLowerCase()];
+    if(view&&window.RW_Navigation&&typeof window.RW_Navigation.navigate==='function')return window.RW_Navigation.navigate(view);
+    return null;
+  }
+  async function _renderAndSave(tpl,vars,targetEmail){
+    if(!tpl)throw new Error('NOTIFICATION_TEMPLATE_REQUIRED');
+    var title=tpl.title_template||'',body=tpl.body_template||'';Object.keys(vars||{}).forEach(function(k){var re=new RegExp('#\\{'+k+'\\}','g');title=title.replace(re,String(vars[k]==null?'':vars[k]));body=body.replace(re,String(vars[k]==null?'':vars[k]));});
+    var userEmail=targetEmail||email();if(!userEmail)return null;
+    var refTable=vars&&(vars.table||vars.reference_table)||null,refId=vars&&(vars.id||vars.order_code||vars.reference_id)||null;
+    var r=await supabase.from('notifications').insert({user_email:userEmail,title:title,body:body,type:tpl.type||'info',reference_table:refTable,reference_id:refId,is_read:false}).select('id').maybeSingle();
+    if(r.error)throw r.error;await _updateBadge();return r.data||null;
+  }
+  N._updateBadge=N._updateBadge||_updateBadge;N.markRead=N.markRead||markRead;N._clickNotif=N._clickNotif||_clickNotif;N._renderAndSave=N._renderAndSave||_renderAndSave;
+  window.RW_Notification=N;
+})();
+
 </script>
 </body>
 </html>
