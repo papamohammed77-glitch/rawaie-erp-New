@@ -6,10 +6,19 @@ permissions:
   contents: write
 jobs:
   target:
-    if: startsWith(github.event.head_commit.message, '[new-main-target-persist]')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
+      - name: Guard trigger
+        shell: bash
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          case "$COMMIT_MESSAGE" in
+            "[new-main-target-persist]"*) ;;
+            *) echo "NON_TARGET_TRIGGER_SKIP"; exit 0;;
+          esac
       - uses: actions/checkout@v4
         with:
           ref: main
