@@ -192,3 +192,16 @@
 7. Only after independent runtime evidence evaluate Gold/Diamond.
 8. Update `CURRENT_STATE.md` after every subsequent real operation; preserve all historical reports.
 9. Do not repeat clean-room reconstruction, monolithic replacement, historical-module replacement, artificial workflow/executor creation, or blind Service Worker/key patches.
+
+
+---
+
+### P135 — DIRECT SURGICAL RUNTIME REPAIR
+- Target: `Current/PWA/New-main`.
+- Confirmed Supabase source configuration is current/active; no key rotation.
+- Confirmed the failing `MAIN11_SUPABASE_UNAVAILABLE` guard was checking `!window.supabase || !supabase.auth` instead of the local client.
+- Direct regex-based surgical repair applied to the target and syntax-checked before commit.
+- Added runtime proof marker `RAWAEA_P135_TARGET` / `__RAWAEA_P135_RUNTIME_BUILD__`.
+- The prior P135 executor failed because its exact-match guard unexpectedly returned not-found; this is recorded as a tooling/execution failure.
+- Browser 401 remains unclosed until the P135 marker is observed in the deployed Pages artifact and login succeeds.
+- Service Worker 404 remains unmodified pending served-artifact/root verification.
