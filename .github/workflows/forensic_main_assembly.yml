@@ -1,6 +1,6 @@
 name: RAWAEA governed main assembly — EXECUTE AND VERIFY
 
-# P143 trigger: execute the canonical New-main reconstruction after the runtime-contract repair.
+# P143-RETRIGGER: run the canonical New-main reconstruction after runtime closure corrections.
 
 on:
   workflow_dispatch:
