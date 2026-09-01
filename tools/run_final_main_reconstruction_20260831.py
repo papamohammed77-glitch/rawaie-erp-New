@@ -30,6 +30,9 @@ def patch_main7(raw):
 def normalize_document_closures(raw):
     raw = re.sub(r'</body>\s*', '', raw, flags=re.I)
     raw = re.sub(r'</html>\s*', '', raw, flags=re.I)
+    # Reconstruction fragments may end with HTML forensic sentinels which are
+    # valid as document markers but invalid inside the single application script.
+    raw = re.sub(r'\s*<!--\s*RAWAEA_[^>]*-->\s*$', '', raw, flags=re.I | re.S)
     return raw
 
 
