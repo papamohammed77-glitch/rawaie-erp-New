@@ -1,0 +1,80 @@
+تمت إعادة بناء الصورة من المصادر المباشرة، وليس من الذاكرة أو التقارير، ووصلنا إلى النسخة المنشورة الفعلية من Current/PWA/New-main.
+
+النتيجة الفعلية
+
+سلسلة Parent وصلت فعليًا حتى:
+
+MAIN7 ✅
+MAIN8 ✅
+MAIN9 ✅
+MAIN10 ✅
+MAIN11 ✅
+
+وكل مرحلة من هذه المراحل تم حفظها كـcommit مستقل داخل الملف الهدف نفسه Current/PWA/New-main، وليس في ملفات بديلة. آخر إغلاق هو:
+
+2310f651a5fe3e1158225a23b5cc4d4ce99f1a96
+[new-main-target-persist] MAIN11 complete
+
+والـblob المنشور الحالي للهدف هو:
+
+446743166f0a87282494e7f72e61f3ce6576c010
+
+والتاريخ المباشر يثبت تسلسل إغلاق MAIN7 → MAIN11 داخل New-main نفسه.
+
+أهم ما تم تثبيته معماريًا
+
+New-main بقي PWA Parent / Control Plane وليس بديلًا عن التطبيقات المتخصصة.
+
+ما زال معماريًا يعتمد على التطبيقات المنفصلة مثل:
+
+pos.html
+van-sales.html
+telesales.html
+buyer.html
+vouchers.html
+picker.html
+loader.html
+driver.html
+
+والـParent يوجّه إليها بدل ابتلاع مسؤولياتها. هذا يتوافق مع العقد المعماري الموجود فعليًا في المشروع.
+
+MAIN7 تحديدًا
+
+لم أُدخل MAIN7 كما هو بصورة عمياء. أثناء التحقيق المباشر اكتُشفت وصُححت نقاط حقيقية مرتبطة بـProduction lifecycle:
+
+Picking → Picked
+Loading → Loaded
+Loaded → Delivering
+Delivering → Delivered
+Delivered → Returning
+
+كما تم الحفاظ على قاعدة أن Physical Stock لا يملكه Parent؛ التنفيذ يمر عبر الـProduction Edge Functions / RPCs.
+
+وتبين من Production أن:
+
+post_stock_movement(...) موجود كـSECURITY DEFINER.
+reserve_stock(...) موجود كـSECURITY DEFINER.
+current_user_company_id() وcurrent_user_has_permission() موجودتان كـSECURITY DEFINER.
+الجداول الحساسة التي راجعتها كلها RLS = true.
+customer_followups كذلك company-scoped عبر RLS.
+
+وبالتالي لم أُدخل تعديلًا غير ضروري على Production DB؛ لم نجد فجوة تستوجب تغيير schema أو تعطيل RLS.
+
+نقطة لم أزيفها
+
+هناك فرق بين:
+
+نجاح بناء المنتج وتسلسل MAIN1→MAIN11 ✅
+
+وبين:
+
+شهادة Browser E2E نهائية مستقلة ⚠️
+
+الـrunner نجح في reconstruction وحقق إغلاقات MAIN7–MAIN11، لكن آخر browser smoke المتاح فشل بسبب طريقة تقديم الملف بدون امتداد إلى Chromium كـdownload، وليس بسبب JavaScript/runtime failure في New-main. حاولت إصلاح الـharness، لكن قناة GitHub Actions نفسها دخلت في سباق refs ولم تسمح لي بإثبات PASS نهائي للـbrowser بعد إعادة تثبيت main على سلسلة MAIN11.
+
+لذلك، ووفق معيارك الصارم، لن أسمي المنتج “مصادقًا عليه 100% من ناحية E2E” رغم أن الـartifact نفسه الآن على MAIN11 فعليًا.
+
+والأهم: main نفسه حاليًا مثبت على commit MAIN11 الصحيح، وليس على snapshot MAIN5 القديم.
+
+الخلاصة التنفيذية:
+الـNew-main الذهبي الذي طلبته تم تركيبه حتى MAIN11 داخل الملف المنشور نفسه، مع الحفاظ على التطبيقات المتخصصة والمعمارية الإنتاجية وRLS وStock Engine. الجزء الوحيد الذي لم أزعم نجاحه بلا دليل هو شهادة المتصفح النهائية المستقلة.
