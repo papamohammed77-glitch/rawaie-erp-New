@@ -62,11 +62,11 @@
 - These workflows are not accepted as Gold/Diamond execution evidence.
 
 ### P131-08 — TARGET_BRANCH_VERIFICATION
-- Direct fetch of branch `p131-surgical-report-nav-20260901` confirms the target contains the three specialized routes and the expected `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` marker.
-- Branch compare from base `0bfc1ef202b4705ceaa34b9cdda99d1ffe273a08` to target mutation commit showed only `CURRENT_STATE.md` and `Current/PWA/New-main` changes; no unrelated product file changes were introduced by P131.
+- Direct fetch of branch `p131-surgical-report-nav-20260901` confirmed the target contains the three specialized routes and the expected `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` marker.
+- Branch compare from base `0bfc1ef202b4705ceaa34b9cdda99d1ffe273a08` to the target mutation commit showed only `CURRENT_STATE.md` and `Current/PWA/New-main` changes; no unrelated product file changes were introduced by P131.
 
 ### P131-09 — CONTROLLED_FAST_FORWARD
-- Main was advanced with a non-force ref update to commit:
+- Main was advanced with a non-force ref update to:
   `29ad52fbe0e4c83f80d67fc9970e9964bb06a14c`
 - Main now contains the verified target mutation.
 - The target remains `Current/PWA/New-main`; protected `Current/PWA/main.html` remains untouched.
@@ -74,11 +74,9 @@
 ### P131-10 — MAIN_POST_FAST_FORWARD_VERIFICATION
 - Direct fetch from `main` confirms `Current/PWA/New-main` blob:
   `765e812efa17662d8630c50fa3ecd3f8ed496bf3`
-- Direct content verification confirms all three specialized report route handlers are present in `RW_122_CONTRACT` navigation:
-  - `reports-dashboard` → `renderDashboard`
-  - `reports-detailed` → `renderDetailedReports`
-  - `reports-comprehensive` → `RW_Reports_Comprehensive.render`
-- This is static source verification only; browser/runtime behavior is still not independently proven.
+- Direct content verification confirms all three specialized report route handlers are present in `RW_122_CONTRACT` navigation.
+- Node syntax was already independently verified inside the target-mutating Job.
+- This remains static source verification; browser/runtime behavior is not yet independently proven.
 
 ### P131-11 — SUPABASE_READ_ONLY_RECONCILIATION
 - Read-only query executed against Production Supabase project `fiilmooggumokxanwiyx`.
@@ -89,19 +87,27 @@
   - `app_settings`: 1
   - `notifications`: 0
 - No Supabase mutation was performed.
-- These counts establish current data presence only; they do not prove the UI report navigation runtime.
 
-### P131-12 — GOLD_DIAMOND_STATUS
-- Specialized report navigation defect has been surgically corrected and persisted to `main`.
-- Static syntax and source checks passed.
+### P131-12 — HANY_EXECUTIVE_REPORT_12
+- Created `doc/Draft/Hany/تقرير تنفيذي 12.md` in commit:
+  `62c55d07981fb1bd5cd6e8e10a5106362ec3430b`
+- The report preserves the full forensic sequence, failed historical paths, root cause, successful surgical mutation, workflow observations, Supabase reconciliation, and remaining blockers.
+- No prior Hany report was deleted or overwritten.
+
+### P131-13 — PR_CLOSURE
+- PR #65 is closed with GitHub reporting `merged=true` and `merge_commit_sha=29ad52fbe0e4c83f80d67fc9970e9964bb06a14c`.
+- This reflects the already-performed fast-forward into `main`; it is not additional product evidence beyond the verified target commit.
+
+### P131-14 — GOLD_DIAMOND_STATUS
+- Specialized report navigation defect is closed at the static source level and persisted to `main`.
 - Gold/Diamond closure remains UNPROVEN because independent browser/runtime verification and the full closure gate suite have not been completed.
 - No false closure claim is permitted.
 
 ## NEXT AUTHORIZED ACTION
-1. Preserve this state and write the next Hany forensic report as `doc/Draft/Hany/تقرير تنفيذي 12.md` without deleting or overwriting prior reports.
-2. The report must include the full sequence, historical mistakes, failed workflows, exact root causes, successful target mutation, evidence, and remaining blockers.
-3. Update `CURRENT_STATE.md` immediately after report creation.
-4. The next technical phase is independent runtime/browser verification of `main` target and then the remaining Gold/Diamond closure gates. No further reconstruction is authorized unless a new forensic finding proves it necessary.
+- The next technical phase is independent browser/runtime verification from the actual deployed application, including login/session/tenant context and navigation to the three specialized report routes.
+- After runtime evidence, continue only with remaining unproven Gold/Diamond gates.
+- Do not repeat clean-room reconstruction, zero-job push execution, monolithic target reconstruction, or historical-module replacement unless new direct evidence changes the diagnosis.
+- Update this file after each subsequent operation.
 
 Do not delete historical reports.
 Do not revert to clean-room reconstruction.
