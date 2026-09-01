@@ -26,18 +26,28 @@ jobs:
           legacy = Path('Current/PWA/main.html')
           s = p.read_text(encoding='utf-8')
           legacy_before = hashlib.sha256(legacy.read_bytes()).hexdigest()
+          changed = False
 
           old1 = "if(mappedItem)_uploadFileData[f].item_code=mappedItem.item_code;"
           new1 = "if(mappedItem){_uploadFileData[f].item_code=mappedItem.item_code;_uploadFileData[f].item_id=mappedItem.id;}"
-          if s.count(old1) != 1:
-              raise SystemExit('UPLOAD_ID_MAPPING_SOURCE_NOT_UNIQUE:' + str(s.count(old1)))
-          s = s.replace(old1, new1, 1)
+          if old1 in s:
+              s = s.replace(old1, new1, 1)
+              changed = True
+          elif "_uploadFileData[f].item_id=mappedItem.id" not in s:
+              raise SystemExit('UPLOAD_ID_MAPPING_GAP_UNRECOGNIZED')
 
           old2 = "items.push({item_code:_uploadFileData[u].item_code||_uploadFileData[u].barcode,qty:_uploadFileData[u].qty});"
           new2 = "items.push({item_id:_uploadFileData[u].item_id||null,item_code:_uploadFileData[u].item_code||_uploadFileData[u].barcode,qty:_uploadFileData[u].qty});"
-          if s.count(old2) != 1:
-              raise SystemExit('UPLOAD_ID_PAYLOAD_SOURCE_NOT_UNIQUE:' + str(s.count(old2)))
-          s = s.replace(old2, new2, 1)
+          if old2 in s:
+              s = s.replace(old2, new2, 1)
+              changed = True
+          elif "items.push({item_id:_uploadFileData[u].item_id||null" not in s:
+              raise SystemExit('UPLOAD_ID_PAYLOAD_GAP_UNRECOGNIZED')
+
+          # New-main must not be a direct physical-stock writer.
+          direct_stock_writes = re.findall(r"supabase\\.from\\(['\"]stock_branches['\"]\\).*?(?:insert|update|upsert|delete)", s, re.I|re.S)
+          if direct_stock_writes:
+              raise SystemExit('NEW_MAIN_DIRECT_STOCK_WRITER_DETECTED')
 
           if s.count('</html>') != 1 or s.count('</body>') != 1:
               raise SystemExit('DOCUMENT_CLOSURE_INVALID')
@@ -54,17 +64,18 @@ jobs:
               if x not in s:
                   raise SystemExit('TARGET_CONTRACT_MISSING:'+x)
 
-          p.write_text(s, encoding='utf-8')
+          if changed:
+              p.write_text(s, encoding='utf-8')
           legacy_after = hashlib.sha256(legacy.read_bytes()).hexdigest()
           if legacy_after != legacy_before:
               raise SystemExit('LEGACY_MAIN_HTML_CHANGED')
 
-          subprocess.run(['git','config','user.name','rawaea-new-main-bot'],check=True)
-          subprocess.run(['git','config','user.email','rawaea-new-main-bot@users.noreply.github.com'],check=True)
-          subprocess.run(['git','add','Current/PWA/New-main'],check=True)
-          if subprocess.run(['git','diff','--cached','--quiet']).returncode == 0:
-              raise SystemExit('NO_SURGICAL_DELTA')
-          subprocess.run(['git','commit','-m','fix: align New-main bulk stock payload with atomic adjustment contract'],check=True)
-          subprocess.run(['git','push','origin','HEAD:main'],check=True)
-          print('SURGICAL_REPAIR_PERSISTED')
+          if changed:
+              subprocess.run(['git','config','user.name','rawaea-new-main-bot'],check=True)
+              subprocess.run(['git','config','user.email','rawaea-new-main-bot@users.noreply.github.com'],check=True)
+              subprocess.run(['git','add','Current/PWA/New-main'],check=True)
+              if subprocess.run(['git','diff','--cached','--quiet']).returncode != 0:
+                  subprocess.run(['git','commit','-m','fix: align New-main bulk stock payload with atomic adjustment contract'],check=True)
+                  subprocess.run(['git','push','origin','HEAD:main'],check=True)
+          print('SURGICAL_REPAIR_STATUS', 'CHANGED' if changed else 'ALREADY_COMPLIANT')
           PY
