@@ -5,85 +5,75 @@
 - Historical reports/prompts are evidence only.
 - Authorized target: `Current/PWA/New-main`.
 - `Current/PWA/main.html` is protected.
-- Prompt 123/124 forbid reconstruction, overlay, new workflow, new file, or speculative production mutation.
-- Every material operation is recorded here before closure.
+- Prompt 124 governs this continuation: no reconstruction, no overlay, no speculative production mutation, and no closure without direct evidence.
 
 ## LAST VERIFIED EVENT
-### P124-006 — FINAL_FORENSIC_RECONCILIATION_AND_PRODUCTION_AUTHORITY_CHECK
-- `MASTER - RAWAEA ERP.md` and Prompt 124+ were read through their terminal execution commands before continuation.
-- Actual Git `main` was reconciled directly; the branch head immediately before this state update was `8c2c21e4b103daa741e6713844e949a16728d7b0`.
-- Exact `Current/PWA/New-main` content SHA remains `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`.
-- No reconstruction or replacement of the target artifact was performed.
-- MAIN1 contract mapping remains complete at the static contract level; no evidence-backed missing MAIN1 contract was found.
-- Existing duplicate/layered JavaScript definitions remain a maintainability risk, but no broad rewrite was justified without independent runtime regression evidence.
+### P124-007 — FORENSIC CERTIFICATION CONTINUATION
+- Memory recovery completed from `MASTER - RAWAEA ERP.md`, `CURRENT_STATE.md`, Prompt 124+, and Hany execution report 7.
+- The master governance command was read through its terminal command and closure definitions. It requires current reality → current Git → current Production/runtime reconciliation, surgical changes only, and prohibits invented completion. fileciteturn683file0L2-L6 fileciteturn687file0L2-L6
+- Prompt 124 was read through `END COMMAND`; it explicitly requires latest target reconciliation, notification/owner/license/tenant checks, authenticated Owner + Non-Owner browser verification, and forbids using markers/self-attestation as evidence. fileciteturn688file0L2-L6 fileciteturn689file0L2-L6
+- Hany report 7 confirms the preceding pass reached Production `save-item` v12 with atomic opening-stock ownership and that Browser E2E remained the final unproven gate. fileciteturn681file0L2-L6
 
-## PRODUCTION FIXES CONFIRMED
-### P124-002 — WORKFLOW_NOTIFICATION_RLS_HARDENING
-- Production RLS was reviewed and permissive workflow/template `ALL` exposure was removed in favor of restricted policies.
-- No `company_id` column was invented for legacy workflow/template tables that do not contain one.
+## CURRENT SOURCE / TARGET FACTS
+- `Current/PWA/New-main` remains the authorized target.
+- Exact target content SHA: `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`.
+- The target contains the MAIN1 shell, authentication/session, tenant context, owner/license, permissions, navigation, data bootstrap, audit, workflow, notification, search, PWA lifecycle, and specialized application delegation surfaces.
+- Required notification functions are present: `_renderAndSave`, `_updateBadge`, `markRead`, `_clickNotif`.
+- No evidence-backed missing MAIN1 contract was established.
 
-### P124-003 — MAIN1_DEPENDENCY_STOCK_AUTHORITY_HARDENING
-- Historical/original `save-item` contained a direct `stock_branches.upsert` opening-balance path.
-- Current Production `save-item` no longer writes opening stock directly.
-- Production `save-item` is ACTIVE at version `12`, `verify_jwt=true`, SHA `ffc7e57e7fd57e60eaed861ebdd0f5187cc16347820007e900627fccf6486099`.
-- The function derives tenant context from authenticated `users.company_id`, validates the opening branch against that tenant, then calls `create_item_with_opening_stock`.
-- `create_item_with_opening_stock` is the atomic owner for create-item + optional opening balance and routes the balance through canonical `post_stock_movement('InventoryIncrease', ...)` with idempotency.
-- Earlier Production rollback evidence recorded zero residual synthetic items and zero residual synthetic inventory logs.
+## PRODUCTION VERIFIED
+- `post_stock_movement`, `reserve_stock`, and `post_journal_entry` exist in Production as `SECURITY DEFINER` functions.
+- Major MAIN1-sensitive tables are RLS-enabled.
+- `save-customer` v3 is ACTIVE with `verify_jwt=true` and derives tenant context from authenticated identity.
+- `log-action` v2 is ACTIVE with `verify_jwt=true`.
+- `save-item` is ACTIVE with JWT verification and no longer directly writes opening stock to `stock_branches`.
+- The live stock-opening path uses the atomic `create_item_with_opening_stock` owner, which routes to canonical `post_stock_movement('InventoryIncrease', ...)` with idempotency.
 
-## CORE VERIFICATION
-- `post_stock_movement` exists as `SECURITY DEFINER` and enforces movement-type validation, branch/company validation, row locking, idempotency where supplied, `stock_branches` mutation, and `inventory_log` creation.
-- `reserve_stock` and `post_journal_entry` exist as `SECURITY DEFINER`.
-- MAIN1-sensitive tables inspected have RLS enabled, including `users`, `companies`, `customers`, `items`, `branches`, `orders`, `stock_branches`, `journal_entries`, `audit_log`, `owner_profile`, `notifications`, `workflow_rules`, and `workflow_log`.
+## INDUSTRY / ARCHITECTURAL CHECK
+- The adopted model follows the established ERP control pattern: transactional stock posting through a canonical owner, separate reservation semantics, audit trail, and tenant-aware authorization. The project’s own reference architecture also records centralized posting/movement as the canonical pattern. fileciteturn674file2L211-L216
+- Historical inventory analysis documents that `inventory_log` is a central movement record consumed by reporting and written by multiple legacy functions; the rescue architecture consolidates ownership rather than preserving distributed mutation. fileciteturn674file3L244-L255
 
-## EDGE FUNCTION VERIFICATION
-- `save-item`: v12 ACTIVE / JWT protected; source re-read after deployment confirms RPC-based opening-balance creation.
-- `save-customer`: v3 ACTIVE / JWT protected / derives company context from authenticated identity.
-- `log-action`: v2 ACTIVE / JWT protected.
-- Core operational Edge Functions inspected are JWT protected.
-- Historical E2E harness functions exposed by Production are retired or fixture-only where inspected; they are not accepted as current New-main browser evidence.
+## RUNTIME GATE STATUS
+- Exact authenticated browser execution against the latest `New-main` remains the only material unproven closure gate currently identified.
+- Required tests: Owner login, Non-Owner login/authorization, tenant boundary, license visibility/route/render, notification behavior, audit/logout/fail-closed, console/network health, and Service Worker runtime.
+- The available execution context exposes no authenticated browser session and no qualifying prior run tied to the exact target SHA.
+- Existing repository smoke workflows are useful evidence of test design but are not themselves qualifying runtime proof unless their execution result is directly tied to the exact current target artifact.
 
-## INDUSTRY ARCHITECTURE VALIDATION
-- The canonical stock design follows established ERP principles: inventory changes are represented through controlled posting/movement records with auditability, rather than arbitrary UI-side stock writes; multi-company access is governed by tenant-aware authorization rather than navigation alone.
-
-## TARGET STATIC VERIFICATION
-- Target contains MAIN1 shell, authentication/session, tenant context, owner/license, permissions, navigation, data bootstrap, audit, workflow, notification, search, PWA lifecycle, and delegated specialized-app routes.
-- Required MAIN1 globals observed include `RW_ShellContext`, `RW_OwnerLicense`, `RW_Views`, `RW_Dashboard`, `RW_Items`, `RW_POS`, `RW_Orders`, `RW_Runsheets`, `RW_Purchases`, `RW_Warehouse`, `RW_Finance`, `RW_Reports`, `RW_HR`, and `RW_CRM`.
-- Notification contract functions `_renderAndSave`, `_updateBadge`, `markRead`, `_clickNotif` exist in the target.
-- Clean-room workflow definition contains Node syntax, DOM/contract, browser smoke, legacy-file protection, and checksum gates.
-
-## EXACT EXECUTION STATUS
-- Exact target artifact browser execution with authenticated Owner and Non-Owner identities remains **PENDING**.
-- No qualifying browser PASS tied to exact target blob `d657d6e4bdd90a9b60f658a8bf28560e1b10f755` was found in accessible GitHub evidence.
-- No credentialed browser/session is exposed by the current execution environment, and local network replay of the GitHub artifact is unavailable.
-- Static markers, commit messages, CI configuration, historical reports, or retired harnesses are not accepted as substitutes for this gate.
+## IMPORTANT DISCOVERY
+- The repository contains an older authentication verification workflow whose implementation appends a `GOLD DIAMOND FINAL v6` patch to `New-main` during a push and then performs a local Playwright smoke test. This is a historical/test mechanism, not proof that the current artifact has passed authenticated Owner/Non-Owner E2E. It must not be treated as closure evidence. fileciteturn693file0L2-L4
 
 ## CLOSURE MATRIX
 | Gate | Status |
 |---|---|
-| Master memory reconstruction read to EOF | PASS |
-| Prompt 124+ read to END COMMAND | PASS |
-| Git current-state reconciliation | PASS |
-| Exact New-main target identity | PASS |
-| MAIN1 Original/Current source mapping | PASS |
-| MAIN1 → New-main contract mapping | PASS |
-| Production RLS inspection | PASS |
+| Memory recovery / governing directives | PASS |
+| Current-state reconciliation | PASS |
+| Latest target identity | PASS |
+| MAIN1 Original/Current mapping | PASS |
+| MAIN1 → New-main mapping | PASS |
+| Owner semantics in code/contract | PASS |
+| Notification contract existence | PASS |
+| Production RLS | PASS |
 | Canonical stock authority | PASS |
 | Atomic opening-stock owner | PASS |
-| save-item Production hardening | PASS |
-| Exact static syntax/DOM independent certification | NOT INDEPENDENTLY CERTIFIED |
-| Authenticated Owner browser E2E | PENDING |
-| Authenticated Non-Owner authorization E2E | PENDING |
-| Tenant-isolation browser E2E | PENDING |
-| Service Worker browser runtime | PENDING |
+| save-item production hardening | PASS |
+| Exact browser runtime on latest artifact | PENDING |
+| Owner authenticated E2E | PENDING |
+| Non-Owner authorization E2E | PENDING |
+| Tenant isolation E2E | PENDING |
+| Service Worker runtime | PENDING |
+| CLOSED 100% / GOLD / DIAMOND / COMPLETE | NOT AUTHORIZED |
 
-## CURRENT CLASSIFICATION
-`FORENSICALLY RECONCILED; PRODUCTION HARDENED; MAIN1 STATIC CONTRACT MAPPED; RUNTIME EVIDENCE GATE PENDING`
-
-## ABSOLUTE CLOSURE RULE
-Never mark `CLOSED 100% / GOLD / DIAMOND / COMPLETE` until the exact current `Current/PWA/New-main` artifact passes the required authenticated browser gates and those results are recorded here. A false 100% is explicitly prohibited.
+## DO-NOT-REPEAT
+- Do not reconstruct MAIN1→MAIN11.
+- Do not rebuild `New-main` from Original/Historical snapshots.
+- Do not append overlay closure layers merely to satisfy structural markers.
+- Do not convert CI/static smoke into authenticated runtime evidence.
+- Do not mark GOLD/DIAMOND/COMPLETE while any required browser gate is pending.
+- Do not create a second Physical Stock writer outside the canonical stock owner.
 
 ## NEXT AUTHORIZED ACTION
-`P124-007_AUTHENTICATED_BROWSER_RUNTIME_EXECUTION`
-- Run the exact current artifact in a real browser with authorized Owner and Non-Owner identities.
-- Verify login, authoritative tenant context, dashboard, navigation, owner/license gating, notification behavior, audit/logout/fail-closed behavior, console/network health, tenant isolation, and Service Worker runtime.
-- On qualifying PASS, record exact artifact SHA plus run evidence and change classification to `CLOSED 100% / GOLD / DIAMOND / COMPLETE`.
+`P124-008 — AUTHENTICATED_BROWSER_RUNTIME_EXECUTION`
+- Obtain or invoke an existing authorized browser execution path for the exact latest artifact.
+- Execute Owner and Non-Owner authorization scenarios, tenant boundary, license route/render, notification, audit/logout/fail-closed, console/network and Service Worker checks.
+- Reconcile the resulting evidence against the exact target SHA.
+- Only after qualifying PASS may the state be promoted to `CLOSED 100% / GOLD / DIAMOND / COMPLETE`.
