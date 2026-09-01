@@ -24,26 +24,21 @@ Historical sources explain intent and prior behavior. They do not prove current 
 - Current repository: `papamohammed77-glitch/rawaie-erp-New`
 - Historical repository: `papamohammed77-glitch/rawaie-erp-review`
 - Current Git branch: `main`
-- Latest observed Git HEAD after user documentation update: `a20928631202229cf9d1dc5ee4d67f10f06165b9`
+- Latest verified HEAD at the latest reconciliation event: `e8da572a5b42a407c4d5f8d7493b9e4fe134f663`
 - Production: Supabase `SMART ERP`, ref `fiilmooggumokxanwiyx`
 - Staging: Supabase `rawaea-staging`, ref `hfzznsiprnwkpayskzhu`
 
 ## 3. MASTER COMMAND ADOPTION
 The full `doc/Draft/medhat/MASTER - RAWAEA ERP.md` command was read end-to-end through section 60.
-Its operational requirements are now adopted:
-- `CURRENT_STATE.md` first, then fresh reality verification.
-- `LAST VERIFIED EVENT`, never `LAST REPORT`, as the operational continuation point.
-- No historical-stage lock-in and no percentage-based control signal.
-- Unknown/conflict resolution before risky changes.
-- No artificial workflows/executors/shadow implementations.
-- Core ownership must be preserved; call the owner instead of copying it.
-- Production changes require root cause -> dependency/contract proof -> surgical change -> test -> deploy -> runtime/data/audit verification -> `CURRENT_STATE` update.
-- Closure is prohibited when critical unknowns/conflicts remain.
+Its operating loop is mandatory:
+`CURRENT_STATE -> LAST VERIFIED EVENT -> current reality -> reconcile -> identify target -> resolve critical unknowns -> trace owner/dependencies -> surgical change -> verify -> deploy/runtime verify -> CURRENT_STATE update -> reassess`.
+It explicitly rejects historical-stage control, percentage-based control, artificial workflows/executors, duplicate architecture, report-only closure, and invented completion claims.
 
 ## 4. CURRENT BOOT / RECONCILIATION MEMORY
-A fresh boot previously found `CURRENT_STATE.md` stale relative to Git and Production and reconciled it before memory work.
-A later user documentation update advanced Git again; that drift was identified and inspected rather than ignored.
-The latest user change was documentation-only: `a2092863...` renamed/normalized the master-command file and did not modify Production.
+- Previous `CURRENT_STATE.md` states were repeatedly reconciled when Git advanced beyond the recorded checkpoint.
+- The last confirmed commit that actually modified `Current/PWA/New-main` is `a4551e0fcfc55fd609f48109407c025b44e20641`.
+- Comparing `a4551e0...` to current `e8da572...` shows no later New-main target modification; later commits primarily changed workflows, builders/parsers, prompt/reporting and verification infrastructure.
+- A later documentation commit `a2092863...` renamed/normalized the master command file and did not modify Production.
 
 ## 5. FRESH PRODUCTION SNAPSHOT — 2026-08-31
 Direct SQL verification against Production observed:
@@ -69,199 +64,169 @@ Direct SQL verification against Production observed:
 - Treasury: 1
 Production status: `ACTIVE_HEALTHY`.
 
-These counts supersede older historical counts only for current operational use; historical snapshots remain preserved as historical evidence.
-
 ## 6. CURRENT SECURITY / AUTHORIZATION EVIDENCE
 Fresh Production privilege/RLS inspection confirmed:
-- `orders` has broad authenticated `ALL` policy plus broad INSERT paths for store/anon flows.
-- `order_details` has broad authenticated `ALL` policy.
-- `run_sheet_details` has broad authenticated `ALL` policy.
-- `daily_settlements` has public `ALL` policy with `true/true`.
-- Public `SECURITY DEFINER` functions currently executable by `anon` and/or `authenticated` include `create_vehicle_atomic`, vehicle context/guard helpers, `fn_vehicle_audit_trigger`, and `get_budget_vs_actual` (7 functions in the observed set).
-- Auth leaked-password protection is disabled according to the current Security Advisor snapshot.
-- Performance Advisor also reports unindexed FKs, RLS init-plan inefficiencies, multiple permissive policies and unused indexes.
-
-These are current evidence-backed blockers/findings, not permission to mutate Production blindly.
+- `orders` broad authenticated `ALL` policy plus broad store/anon insert paths.
+- `order_details` broad authenticated `ALL` policy.
+- `run_sheet_details` broad authenticated `ALL` policy.
+- `daily_settlements` public `ALL` with `true/true`.
+- Seven observed externally executable `SECURITY DEFINER` functions include vehicle context/guard functions, `create_vehicle_atomic`, `fn_vehicle_audit_trigger`, and `get_budget_vs_actual`.
+- Auth leaked-password protection is disabled according to Security Advisor.
+- Performance Advisor reports unindexed FKs, RLS init-plan inefficiencies, multiple permissive policies and unused indexes.
+These findings are evidence-backed security/governance blockers, not permission for blind Production mutation.
 
 ## 7. STAGING OBSERVATION
-Direct SQL against staging `hfzznsiprnwkpayskzhu` currently observed:
-- Companies: 1
-- Users: 1871
-- Branches: 2
-- Items: 1
-- Orders: 1
-- Runsheets: 2
-- Stock rows: 2
-- Inventory log: 14
-
-Therefore the existing staging environment does not currently provide a two-company harness by data count alone. A two-tenant proof cannot be claimed from staging without first creating/obtaining a controlled multi-company test environment through an authorized, safe path.
+Direct staging SQL observed one company. Therefore staging is not a two-company proof environment and cannot by itself prove tenant isolation.
 
 ## 8. BUSINESS DOMAIN MEMORY
 ### Sales
-Channels include POS, Telesales, Order Taker, Van Sales and Online Store.
-Orders feed runsheet/fulfillment and may end in delivery, return, settlement and ledger/accounting consequences.
-Inspected sales invoice path:
-`save-sales-invoice -> save_sales_invoice_atomic -> post_stock_movement + accounting/cash/ledger writers as applicable`.
+Channels include POS, Telesales, Order Taker, Van Sales and Online Store. Sales orders feed runsheet/fulfillment and may result in delivery, return, settlement and financial/ledger effects.
 
 ### Procurement
-`Purchase Order -> Receiving -> Physical Stock -> Journal -> Supplier Ledger`.
-Inspected path:
-`receive-purchase -> receive_purchase_atomic -> post_stock_movement + post_journal_entry + post_supplier_ledger_entry`.
+`Purchase Order -> Receiving -> Physical Stock -> Journal -> Supplier Ledger` through the inspected `receive-purchase -> receive_purchase_atomic` path.
 
 ### Warehouse / Fulfillment
-`Runsheet -> Picking -> Loading -> Delivery/Return/Unloading`.
-Picking reserves allocation; loading/unloading move physical stock via the central stock engine in inspected paths.
+`Runsheet -> Picking -> Loading -> Delivery/Return/Unloading`. Picking is reservation-oriented; loading/unloading inspected paths use the central physical-stock engine.
 
 ### Inventory
-`stock_branches.qty` is physical quantity.
-`allocated_qty` is reservation state; reservation is distinct from physical movement.
-Physical movement authority remains `post_stock_movement` for inspected current paths.
+`stock_branches.qty` is physical quantity; `allocated_qty` is reservation state. `post_stock_movement` is the inspected physical movement authority.
 
 ### Accounting / Ledgers
-`post_journal_entry` is the inspected journal core.
-Known dedicated ledger writers include customer, supplier and driver paths.
-The all-writer exclusivity matrix is still open.
+`post_journal_entry` is the inspected journal core. Dedicated customer/supplier/driver ledger writers exist. Full writer exclusivity remains open.
 
 ## 9. CURRENT ARCHITECTURE MEMORY
-- Multi-PWA frontend remains current operational architecture.
+- Multi-PWA frontend remains the current operational architecture.
 - `Current/PWA/main.html` is protected from replacement.
-- `Current/PWA/New-main` is clean-room candidate only.
+- `Current/PWA/New-main` is the sole authorized clean-room candidate.
 - `main1..main11` are logical modules/contracts, not byte slices.
 - Authenticated identity maps through `public.users.auth_id -> users.company_id`.
 - `app_private.current_user_company_id()` is the DB tenant resolver.
 - Specialized PWAs delegate business writes to Edge/RPC/Core owners.
-- No duplicate Physical Stock writer is permitted.
+- Duplicate Physical Stock writers are forbidden.
 
 ## 10. HISTORICAL INVENTORY MEMORY
-Historical evidence recorded that the Inventory/Core rescue established:
-- `post_stock_movement(10)` as canonical physical movement engine.
-- `reserve_stock` / `release_stock_reservation` as reservation-only engines.
-- `setup_van_stock` as initialization support.
-- legacy physical writers removed/constrained for application execution.
-- no stock/inventory trigger writer in the inspected Production scope.
-This was an Inventory writer-boundary closure, not an ERP-wide closure.
-
-Historical Receive contract evidence recorded:
-- cumulative `received_qty`;
-- partial Receive remains `Sent`;
-- full Receive changes to `Received`;
-- over-remaining rejection;
-- preserved allocation;
-- one inventory history row per successful physical receive;
-- atomic DB transaction.
+Historical rescue evidence established the Inventory writer boundary around `post_stock_movement(10)`, separated reservation engines, and constrained legacy application execution. This was an Inventory boundary closure, not ERP-wide closure.
+Historical Receive contract: cumulative `received_qty`; partial Receive remains Sent; full becomes Received; reject over-remaining; preserve allocation; one history row per physical movement; atomic transaction.
 
 ## 11. CURRENT CONSUMER MEMORY
-Representative consumer paths remain:
-- Telesales/Main sales flows -> `save-sales-invoice`.
-- Purchase receiving UI -> `receive-purchase`.
-- Picker/loader/unloader/returns PWAs -> respective fulfillment Edge/Core paths.
+Representative paths:
+- Telesales/Main -> `save-sales-invoice` -> `save_sales_invoice_atomic`.
+- Purchase receiving -> `receive-purchase` -> `receive_purchase_atomic`.
+- Loading -> `complete-loading` -> `complete_runsheet_loading`.
 - Voucher UI -> voucher Edge/Core paths.
-- New-main -> specialized PWA/Edge owners for operational mutations.
-
-Critical distinction:
-`EXISTS != ACTIVE != CONSUMED != PRODUCTION CONSUMER != CURRENT AUTHORITATIVE PATH`.
-The complete all-consumer graph is not yet proven.
+- New-main -> specialized PWA/Edge/Core owners for operational mutations.
+Full all-consumer graph remains unproven.
 
 ## 12. DEPENDENCY GRAPH RECONCILIATION
-`Current/CTO/20260831_PHASE5_SYSTEM_DEPENDENCY_GRAPH.md` previously claimed `CLOSED` while explicitly admitting that the full runtime graph was not proven.
-Under the Master Command this was a contract inconsistency.
-The file was corrected in commit `50b40e6b...` to:
-`PHASE 5 = PARTIAL / OPEN`.
-It now records the fresh Production snapshot, current authorization findings, partial consumer graph, partial deployment lineage, and the precise closure requirements.
+`Current/CTO/20260831_PHASE5_SYSTEM_DEPENDENCY_GRAPH.md` previously claimed `CLOSED` while admitting the full runtime graph was not proven. Under the Master Command this was inconsistent; it was corrected to `PARTIAL / OPEN` in commit `50b40e6b7d8d0f0ddc29dc6681fac8059cc5e110`.
 
 ## 13. DEPLOYMENT LINEAGE MEMORY
-For inspected Edge functions, current Production versions are known and selected source wrappers are aligned at contract level.
-However the exhaustive chain remains open:
-`Git SHA -> source file -> package/deployment artifact -> Production version -> runtime consumer -> runtime evidence`.
-Dated E2E/canary/recovery/harness functions remain potentially historical/test infrastructure unless consumer evidence proves otherwise.
+The complete chain
+`Git SHA -> source file -> artifact/package -> Production version -> runtime consumer -> runtime evidence`
+remains only partially proven. Deployment existence/version does not establish consumer use or runtime correctness.
 
-## 14. NEW-MAIN MEMORY
-New-main remains an expanded clean-room candidate with:
-- auth/session bootstrap;
-- tenant context;
-- owner/permission/license surfaces;
-- navigation;
-- dashboard/search;
-- customer/item CRUD through existing Edge owners;
-- operational/finance/HR/read models;
-- owner audit view;
-- Service Worker wiring;
-- explicit specialized PWA delegation;
-- no direct stock or financial mutation.
+## 14. NEW-MAIN / MAIN1 MEMORY — CURRENT
+MAIN1 current/original contract evidence is verified. The New-main target at `a4551e0...` contains substantial shell/auth/tenant/navigation/permission/notification/workflow/audit surfaces, but closure is not established.
 
-It remains unauthorized to replace `Current/PWA/main.html` until parity, runtime, concurrency and deployment gates are proven.
+Verified remaining contract gaps:
+- Owner calculation currently permits `owner_profile` existence to make `isOwner=true`; governing contract requires Auth metadata to establish owner semantics and preserves wildcard permissions.
+- New-main contains only a lightweight `RW_OwnerLicense` object; full MAIN10 license-management UI/save/email/password contract is not present.
+- Notification implementation lacks exact MAIN1 `_clickNotif`, `_renderAndSave`, `_updateBadge`, `markRead` behavior and related-record navigation.
+- Audit rendering is simpler than the full MAIN1 `RW_Audit_*` contract set.
+- Session reset/fail-closed lifecycle proof is incomplete.
+- Workflow rules are not explicitly company-scoped in the current target surface; impact needs contract proof before any Production policy decision.
 
-## 15. CURRENT ANOMALY MEMORY
-The latest continuity chain contains these Production anomalies requiring provenance:
+A previous executor attempt `6b339cc...` modified tooling rather than safely closing the target and was later reverted. Parser/browser-gate commits such as `02da996...`, `9507d0...`, `455e287...`, and `c2c316...` improve execution infrastructure but are not target implementation evidence.
+
+## 15. MAIN1 EXECUTION SAFETY RESULT
+The Master Command requires actual target modification plus verification. The available GitHub write path for `Current/PWA/New-main` performs a complete monolithic file replacement. This execution environment did not provide a safe way to reconstruct and submit the full target bytes without risking unrelated content loss. Therefore no unsafe whole-file rewrite was performed.
+
+This is a tooling safety limitation only. It is not a business or architectural blocker and not evidence of completion.
+
+## 16. CURRENT ANOMALY MEMORY
+Production anomalies requiring provenance remain:
 1. One active/non-inactive `users` row without `auth_id`.
 2. Two cancelled `VoidInvoice` journal headers with zero lines.
 3. Three `VoidInvoice` inventory-log rows.
-No deletion or synthetic repair is permitted without provenance, downstream impact and audit analysis.
+No deletion or synthetic repair without provenance, downstream impact and audit analysis.
 
-## 16. INCIDENT / FAILURE MEMORY
-Never repeat these failure modes:
-- using a historical report as current truth;
-- treating historical PASS as current PASS;
-- assuming Git equals deployed code;
-- assuming deployment existence means production consumption;
-- treating broad RLS/grants as intended authorization design;
-- creating duplicate stock writers;
-- testing Production with persistent fake data when rollback/read-only evidence is possible;
-- deleting unknown or suspicious records without provenance;
+## 17. INCIDENT / FAILURE MEMORY
+Never repeat:
+- report == current truth;
+- historical PASS == current PASS;
+- CI PASS == Production PASS;
+- Git source == deployed code without lineage;
+- executor change == target implementation;
+- deployment existence == consumer proof;
+- broad RLS/grants == intended authorization;
+- duplicate physical-stock writers;
+- destructive repair without provenance;
 - byte-slicing logical PWA modules;
-- compacting a rich legacy application into a feature-loss candidate;
+- compacting a rich application into a feature-loss candidate;
 - patching Production solely to satisfy CI.
 
-## 17. OPEN CLOSURE UNITS
-1. Full consumer graph: `CONSUMER -> CAPABILITY -> EDGE -> RPC -> TABLE`.
-2. Full deployment lineage of critical writers.
-3. Exhaustive Physical Stock writer exclusivity current proof.
-4. Exhaustive journal/ledger/treasury writer matrix.
-5. Two-tenant authorization proof via an authorized multi-tenant harness; current staging has only one company.
-6. P0 tenant isolation remediation plan.
-7. Least-privilege grant/policy remediation after consumer proof.
-8. Security Advisor remediation plan and regression suite.
-9. Provenance classification of auth-link anomaly and cancelled journal headers.
-10. New-main authenticated Production E2E and browser/runtime parity.
-11. Service Worker runtime proof.
-12. Main replacement certification.
-13. Historical inventory-log provenance reconciliation.
+## 18. OPEN CLOSURE UNITS
+1. Safe actual MAIN1 target modification in `Current/PWA/New-main`.
+2. MAIN1 static contract validation after modification.
+3. Browser/runtime verification of New-main.
+4. Auth/Owner/license lifecycle proof.
+5. Notification and audit behavior parity.
+6. Full consumer graph and deployment lineage.
+7. Two-tenant authorization harness/proof.
+8. P0 tenant-isolation remediation plan.
+9. Security Advisor remediation + regression suite.
+10. Exhaustive journal/ledger/treasury writer matrix.
+11. Data provenance for current anomalies.
+12. Service Worker runtime proof.
+13. Main replacement certification.
 
-## 18. FORBIDDEN ACTIONS
+## 19. FORBIDDEN ACTIONS
 - No blind Production DDL/DML.
-- No Production business-logic patch solely for CI.
 - No direct Physical Stock writer outside canonical engines.
 - No direct financial mutation from New-main.
 - No deletion of unknown legacy artifacts.
-- No credential/token use because historical source exposes it.
-- No Main replacement before closure evidence.
+- No credential/token use because exposed in historical workflow source.
+- No Main replacement before evidence closure.
 - No artificial workflow/executor/parallel architecture.
 
-## 19. MEMORY OPERATING LOOP
-For every task:
+## 20. MEMORY OPERATING LOOP
 1. Read `CURRENT_STATE.md` first.
-2. Read the latest `LAST VERIFIED EVENT`.
+2. Read latest `LAST VERIFIED EVENT`.
 3. Verify Git HEAD.
 4. Verify relevant Production state.
-5. Compare with this memory ledger.
+5. Compare with this ledger.
 6. Mark stale/conflict.
-7. Investigate historical contract only after current truth.
-8. Classify: PRESERVE / RECONSTRUCT / REPLACE / RETIRE / UNKNOWN.
-9. Prove root cause/ownership/dependencies.
-10. Implement the minimum safe change in the actual authorized target.
-11. Verify source, data, runtime and audit effects as applicable.
+7. Resolve critical unknowns.
+8. Identify true current target.
+9. Prove owner/dependencies/root cause.
+10. Implement minimum safe target change.
+11. Verify source/runtime/data/audit as applicable.
 12. Update `CURRENT_STATE.md` immediately.
-13. Record material knowledge changes here.
-14. Reassess the current target after each closure.
+13. Record material knowledge here.
+14. Reassess target after closure.
 
-## 20. CURRENT EXECUTION POSITION
+## 21. LAST VERIFIED MEMORY EVENT
+- Event ID: `LVE-2026-09-01-004`
+- Event Type: `MASTER_CONTINUITY_MEMORY_RECONCILIATION_FINAL`
+- UTC: `2026-09-01T00:24:00Z` execution window
+- Source: full MASTER command 0-60 + current Git history + direct New-main + MAIN1 + MAIN10 inspection + current Production evidence
+- Git SHA: `e8da572a5b42a407c4d5f8d7493b9e4fe134f663`
+- Production State: `ACTIVE_HEALTHY`
+- Action: finalized the project-memory reconciliation after fully reading the Master command; verified the latest New-main target change, separated target implementation from later tooling changes, recorded the remaining MAIN1 gaps, and preserved the no-unsafe-write decision.
+- Result: `MEMORY SYNCHRONIZED / MAIN1 OPEN / NO UNSAFE TARGET REWRITE`
+- Impact: future CTO continuity starts from the actual latest repository state and will not repeat the reverted executor/false-closure path.
+- Next Authorized Action: continue from the proven MAIN1 gaps using a safe full-file target-write path, then run structural, syntax, browser/runtime, authenticated and Production-compatibility verification before closure.
+
+## 22. CURRENT EXECUTION POSITION
 - Master continuity command: ACTIVE
 - 117-02 memory governance: ACTIVE
-- Current State: MUST BE SYNCHRONIZED AFTER EACH REAL EVENT
-- Production health: ACTIVE_HEALTHY
-- Current critical blocker: security/authorization proof
+- Current State: SYNCHRONIZED
+- Production: ACTIVE_HEALTHY
+- MAIN1 forensic contract: VERIFIED
+- New-main MAIN1 parity: OPEN
+- Target write: SAFETY LIMITATION
+- Security: OPEN
 - Consumer graph: PARTIAL / OPEN
 - Deployment lineage: PARTIAL / OPEN
-- Inventory physical-writer closure: historically verified for inspected scope; continuous proof remains open
 - New-main: candidate only
-- Legacy Main replacement: unauthorized
+- Main replacement: unauthorized
