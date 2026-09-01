@@ -46,9 +46,9 @@ def bend(s,p):
  d=0;q=None;e=False;lc=False;bc=False;regex=False;charclass=False;i=p;prev_sig=''
  while i<len(s):
   c=s[i];n=s[i+1] if i+1<len(s) else ''
-  if line:=lc:
+  if lc:
    if c=='\n':lc=False
-  elif block:=bc:
+  elif bc:
    if c=='*' and n=='/':bc=False;i+=1
   elif q:
    if e:e=False
@@ -61,8 +61,7 @@ def bend(s,p):
     if c==']':charclass=False
    elif c=='[':charclass=True
    elif c=='/':
-    regex=False
-    j=i+1
+    regex=False;j=i+1
     while j<len(s) and s[j].isalpha():j+=1
     i=j-1
   else:
@@ -74,7 +73,6 @@ def bend(s,p):
     d-=1
     if d==0:return i+1
    elif c=='/':
-    # Regex literal starts where a JavaScript expression can begin.
     if not prev_sig or prev_sig in '=([{,:;!?&|+*-%^~<>':regex=True
    elif not c.isspace():prev_sig=c
   i+=1
@@ -145,6 +143,11 @@ def merge_source(target,source):
   target,changed,exists=replace_block(target,k,n,b)
   if changed:ops.append(('replace' if exists else 'insert')+':'+k+':'+n)
  return target,ops
+def repair_baseline(h,main1_source):
+ old=var(js(h),'RW_Table')
+ if not old:return h
+ b0,b1=im(h).start('b'),im(h).end('b');body=js(h).replace(old,SAFE_RW_TABLE,1)
+ return h[:b0]+body+h[b1:]
 def license_patch(h):
  s=source_js((CUR/'main10.md').read_text(encoding='utf-8-sig'));b=var(s,'RW_OwnerLicense')
  if b and 'btn-save-license-only' not in h:
