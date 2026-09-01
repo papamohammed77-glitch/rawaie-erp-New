@@ -1,0 +1,69 @@
+name: RAWAEA P143 surgical repair
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Current/PWA/main.html'
+      - '.github/workflows/p143_surgical_fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: ${{ !contains(github.event.head_commit.message, '[P143-surgical-fix]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Surgical repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('Current/PWA/main.html')
+          s = p.read_text(encoding='utf-8')
+
+          valid_key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpaWxtb29nZ3Vtb2t4YW53aXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDkwOTIsImV4cCI6MjA5NDI4NTA5Mn0.LZScCxnCiRrTSCCBmTryszQpY1AwBgR2dkTBbC5kOc4'
+
+          key_pattern = re.compile(r"var RW_SUPABASE_ANON_KEY='[^']*';")
+          s2, nkey = key_pattern.subn("var RW_SUPABASE_ANON_KEY='" + valid_key + "';", s, count=1)
+          if nkey != 1:
+              raise SystemExit(f'Expected exactly one RW_SUPABASE_ANON_KEY declaration; found {nkey}')
+
+          old_sw = "navigator.serviceWorker.register('../sw.js',{scope:'../'})"
+          new_sw = "navigator.serviceWorker.register('./sw.js',{scope:'./'})"
+          if old_sw in s2:
+              s3 = s2.replace(old_sw, new_sw, 1)
+          else:
+              s3 = s2
+              if new_sw not in s3:
+                  raise SystemExit('Expected legacy service-worker registration was not found')
+
+          p.write_text(s3, encoding='utf-8')
+
+          final = p.read_text(encoding='utf-8')
+          if valid_key not in final:
+              raise SystemExit('Supabase anon key replacement not persisted')
+          if new_sw not in final:
+              raise SystemExit('Service-worker registration replacement not persisted')
+          if old_sw in final:
+              raise SystemExit('Legacy service-worker registration still present')
+          print('P143_SURGICAL_REPAIR_PASS')
+          PY
+
+      - name: Persist repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'rawaea-p143-repair-bot'
+          git config user.email 'rawaea-p143-repair-bot@users.noreply.github.com'
+          git add Current/PWA/main.html
+          git diff --cached --quiet && { echo 'P143_NO_DELTA'; exit 1; }
+          git commit -m '[main-reconstruction-executed] [P143-surgical-fix] repair Supabase key and SW registration'
+          git push origin HEAD:main
