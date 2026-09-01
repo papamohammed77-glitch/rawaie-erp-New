@@ -1,0 +1,170 @@
+# تقرير تنفيذي 7 — الجولة الجنائية / استعادة الذاكرة وإعادة التحقق
+
+التاريخ: 2026-09-01
+المسؤول: CTO / Forensic Continuity Execution
+النطاق: `Current/PWA/New-main` فقط كهدف منتج نهائي
+
+## 1. الغرض
+هذه الجولة لم تبدأ من الصفر. تم التعامل مع المشروع باعتباره نتيجة محاولات إصلاح متعاقبة، مع افتراض أن بعض التقارير والذاكرة قديمة أو متضاربة. لذلك تم الرجوع إلى Git وSupabase والمصادر المنشورة، وتم رفض أي claim تاريخي لا يمكن مطابقته مباشرة.
+
+## 2. تسلسل الاستلام والتنفيذ
+### P125-01 — استرجاع الذاكرة
+- تمت قراءة `MASTER - RAWAEA ERP.md` كاملًا قبل اتخاذ قرار تنفيذي.
+- تم تثبيت هرم الحقيقة: الحالة الحالية المباشرة > Git الحالي > Production/deployments/runtime > الأدلة التاريخية > التقارير > الذاكرة.
+- تم تحديد `Current/PWA/New-main` بوصفه target الوحيد المسموح بتغيير كود المنتج فيه.
+
+### P125-02 — إعادة بناء آخر حالة
+- تمت مراجعة `CURRENT_STATE.md` قبل العمل.
+- تمت مراجعة سجل Git الخاص بالهدف.
+- آخر target product commit قبل هذه الجولة: `a5b7aa69f173da5002105023676b1eada0a87c42`.
+- target blob الحالي قبل هذه الجولة: `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`.
+- تمت مراجعة أحدث سلسلة Hany، وكان `تقرير تنفيذي 6` هو آخر تقرير مباشر متاح.
+
+## 3. Prompt 124 + الملحق
+- المسار المقدم للمستخدم `doc/Draft/medhat/برومبت 124+ ملحق تقرير` لم يكن متاحًا كـGit blob، وGit code search لم يجد نسخة مطابقة.
+- لم يتم اختراع نص مفقود من الذاكرة.
+- تم التعامل مع هذا كـEvidence Limitation وليس كغياب للمحتوى التاريخي.
+
+## 4. قراءة target
+تمت قراءة `Current/PWA/New-main` كاملًا حتى آخر سطر، بما في ذلك:
+- shell / authentication / tenant context
+- MAIN1
+- MAIN2–MAIN11
+- MAIN10 owner/license/router
+- MAIN11 HR/CRM/boot
+- `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1`
+- `MAIN1 NOTIFICATION CONTRACT CLOSURE v1`
+
+## 5. نتيجة القراءة المباشرة
+### ما ثبت أنه موجود
+- MAIN1 contract stack موجود.
+- MAIN1 authentication/session/tenant/permission/owner/license logic موجود.
+- MAIN7 warehouse orchestration موجود ويمنع الكتابة المباشرة للمخزون من UI؛ الحركة delegated إلى Edge/RPC.
+- MAIN8 finance موجود.
+- MAIN9 reports و`RW_Reports_Comprehensive` موجودان.
+- MAIN10 owner/license و`RW_Views` موجودان.
+- MAIN11 HR/CRM/boot موجود.
+- Notification methods النهائية موجودة: `_renderAndSave`, `_updateBadge`, `markRead`, `_clickNotif`.
+
+### ما ثبت كفجوة orchestration
+`MAIN10` يعرّف صراحةً route لـ`reports-comprehensive` إلى `RW_Reports_Comprehensive.render`.
+لكن `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` يعيد تعريف `RW_Navigation.navigate` بجدول routes جديد، وفيه:
+- `reports -> RW_Reports.render`
+- لا يوجد فيه route مباشر لـ`reports-comprehensive`.
+
+وبالتالي توجد فجوة عقدية فعلية بين orchestration الطبقة المصدرية والـeffective final router.
+
+كما أن `MAIN122.clean()` يزيل من effective menu tree:
+- online-store
+- purchase-pos
+- branches
+- vehicle-count
+- branch-count
+- general-count
+
+مع بقاء handlers لهذه الوحدات داخل target. تم تصنيف هذا كـnavigation-surface divergence يحتاج confirmation إضافي قبل إصلاحه، لأن بعض هذه الوظائف مرتبطة بتطبيقات متخصصة في التصميم التاريخي.
+
+## 6. ملاحظة boot حرجة
+`MAIN11.boot()` يستدعي `RW_Auth.enterSystem()` داخل try/catch، ثم في finally يعيّن `RW_STATE.app.initialized = true` حتى لو فشل `enterSystem()`.
+هذا ليس كافيًا وحده لإثبات runtime defect؛ يجب رؤية الحالة الفعلية بعد فشل الدخول عبر browser/runtime test. لذلك لم يتم تعديل هذا السلوك استباقيًا.
+
+## 7. Git / persistence investigation
+تم التحقق أن الادعاء السابق بأن الإصلاحات لم تصل إلى target blob بشكل مطلق غير صحيح.
+- commit `31d4dc3afc4e59dfd9fc5ec90c4c982ee4d310dc` أضاف طبقة `MAIN122` إلى `Current/PWA/New-main`.
+- commit `a5b7aa69f173da5002105023676b1eada0a87c42` أضاف persistence لإصلاح Notification.
+- target blob النهائي قبل هذه الجولة ظل `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`.
+
+## 8. أخطاء وتجارب سابقة تم تثبيتها
+### خطأ 1 — أدوات التحقق تحولت إلى أدوات تعديل
+يوجد workflow باسم `TEMP GOLD DIAMOND TARGET EXECUTOR` يستطيع تعديل target وإضافة closure markers. تم فحصه ولم يتم تشغيله.
+سبب الرفض: لا يجوز تصنيع evidence داخل verifier نفسه.
+
+### خطأ 2 — CI اعتُبر دليل Runtime
+محاولات GitHub Actions الحالية على HEAD أعادت runs فاشلة مع `total_count=0` jobs في الاستعلامات التمثيلية. هذه ليست browser/runtime evidence.
+
+### خطأ 3 — الاعتماد على reports بدل source of truth
+تم تفكيك هذا الخطأ في هذه الجولة، وتمت مطابقة claims مع Git/Supabase.
+
+### خطأ 4 — إعادة بناء وظائف سبق إثبات وجودها
+تم تجنب إعادة بناء MAIN1–MAIN11. التركيز الحالي أصبح على effective orchestration والحد النهائي للإغلاق.
+
+## 9. Supabase direct verification
+Production project: `SMART ERP` / `fiilmooggumokxanwiyx`.
+
+Direct read confirmed:
+- RLS enabled على الجداول الحرجة، منها orders, order_details, stock_branches, inventory_log, stock_vouchers, customer_followups, journal_entries, journal_lines, notifications, users, app_settings وغيرها.
+- `customer_followups` policies تربط customer بالـcompany الحالية عبر `app_private.customer_belongs_to_current_company(customer_id)`.
+- `orders` و`order_details` مقيدان بالشركة الحالية والصلاحيات المناسبة.
+- `stock_branches` مقيد بسياق الشركة وصلاحيات warehouse/runsheets/reports.
+- notifications مقيدة بemail المستخدم مع same-company insert check.
+- finance tables مقيدة بالشركة الحالية.
+- workflow rules/templates تحتوي policies دورها public لكن qualifier يشترط `auth.role()='authenticated'`، فلا يوجد وصول unauthenticated فعلي حسب النص الذي تم التحقق منه.
+
+لا توجد mutation جديدة على Production في هذه الجولة.
+
+## 10. مقارنة الأنظمة المرجعية
+المقارنة ليست لتغيير معمارية RAWAEA، بل للتحقق من صحة الاتجاه:
+- Odoo يفرض company context وmulti-company consistency بواسطة company fields وsecurity/record rules. هذا يؤكد أن tenant isolation يجب أن يكون contract مركزيًا لا مجرد فلترة واجهة. citeturn685545search2turn685545search6
+- Dynamics 365 Warehouse Management يفصل worker identity عن صلاحيات قوائم العمل ويحدد workflow exposure حسب warehouse/work-user configuration، وهو متسق مع ضرورة فصل واجهة التشغيل عن صلاحيات المستخدم والـwarehouse context. citeturn685545search4
+- ERPNext يتعامل مع Stock/GL Ledger كآثار غير قابلة للتعديل المباشر، ويعتمد على source vouchers وreversal/correction paths بدل تعديل ledger rows؛ وهذا يطابق مبدأ RAWAEA في إبقاء physical/accounting truth داخل engines authoritative. citeturn685545search0turn685545search7
+
+## 11. تقييم أسباب التعطيل الحالية
+السبب الأول: runtime verification غير قابل للإثبات على target SHA الحالي من الـautomation المتاحة؛ الـworkflow الحالي لا يقدم jobs تنفيذية قابلة للاعتماد.
+
+السبب الثاني: final navigation closure أضافت طبقة override فوق router سابق، ما أدى إلى contract divergence (`reports-comprehensive`).
+
+السبب الثالث: monolithic target كبير جدًا، وGit write primitive المتاح يتطلب complete replacement؛ إعادة كتابة الملف كاملًا من الذاكرة ستكون أخطر من العيب نفسه ومخالفة لمبدأ surgical repair.
+
+## 12. ما الذي نجح في هذه الجولة
+- استعادة الذاكرة من MASTER prompt قبل التنفيذ.
+- قراءة target كاملًا حتى النهاية.
+- إثبات persistence التاريخية للإصلاحات بدل افتراض فشلها.
+- عزل regression حقيقي في final orchestration.
+- التحقق المباشر من Supabase/RLS بدل الاعتماد على تقارير.
+- رفض تشغيل executor المصمم لتعديل subject تحت الاختبار.
+- عدم تعديل Production دون حاجة مثبتة.
+
+## 13. ما الذي فشل
+- لم يمكن تشغيل browser/runtime gate مستقل مرتبط مباشرةً بالـtarget الحالي.
+- لم يمكن تطبيق surgical byte-level patch على monolithic blob باستخدام GitHub connector الحالي دون توفير كامل محتوى الملف مرة أخرى.
+- لم يُعثر على historical blob جاهز يحتوي الإصلاح المطلوب تحديدًا.
+- لذلك لم يتم إجراء target mutation في هذه الجولة.
+
+## 14. خطة المرحلة التالية — تفتيت الصخرة
+1. الحصول على execution route حقيقي للـtarget الحالي بدون تعديل verifier.
+2. تنفيذ syntax/browser smoke على نفس target SHA.
+3. استخراج كل runtime failures مرتبة حسب severity.
+4. إصلاح defect واحد فقط في `Current/PWA/New-main` ثم re-hash.
+5. إعادة كل gates بعد كل إصلاح.
+6. اختبار route matrix كاملة، مع التركيز على reports-comprehensive.
+7. إعادة فحص Supabase/RLS/Edge compatibility بعد أي behavior change.
+8. اختبار fail-closed auth boot بعد إثبات كيفية ظهور الفشل للمستخدم.
+9. self-audit + evidence reconciliation.
+10. فقط بعد green evidence الكامل: `Closed 100% / GOLD / DIAMOND / COMPLETE`.
+
+## 15. الحكم النهائي لهذه الجولة
+`Closed 100%`: NO — لم يتم الادعاء به.
+`GOLD`: NO — غير مثبت.
+`DIAMOND`: NO — غير مثبت.
+`COMPLETE`: NO — غير مثبت.
+
+الحالة الحالية الصادقة:
+**STATIC INTEGRATION = PASS**
+**PRODUCTION CORE/RLS = PASS (direct read-only evidence)**
+**FINAL NAVIGATION ORCHESTRATION = FAIL / CONTRACT DIVERGENCE**
+**EXACT CURRENT-TARGET RUNTIME = UNVERIFIED / BLOCKED**
+
+## 16. توصية CTO
+لا تعاد دورة reconstruction جديدة.
+لا يُشغّل TEMP GOLD DIAMOND TARGET EXECUTOR.
+لا تُصلح `CURRENT/PWA/main.html`.
+لا تُخلق candidate copies.
+المطلوب التالي هو امتلاك طريق تنفيذ حقيقي للـtarget نفسه، ثم إجراء إصلاح واحد deterministic على target، وإعادة الاختبار. هذه هي أقصر طريق مهنية للوصول إلى closure حقيقي بدل رقم 100% شكلي.
+
+## SELF-AUDIT
+- هل قرأت المصدر قبل التعديل؟ نعم.
+- هل تم تعديل target في هذه الجولة؟ لا، لأن أداة الكتابة الحالية تتطلب إعادة الملف كاملًا.
+- هل تم التلاعب بالـverifier لإجبار green؟ لا.
+- هل تم الادعاء بـClosed 100% دون runtime proof؟ لا.
+- هل تم توثيق الأخطاء السابقة؟ نعم.
+- هل تم تحديث `CURRENT_STATE.md` بعد كل logical operation؟ نعم، عبر P125 state commits.
