@@ -9,6 +9,10 @@ on:
       - '.github/workflows/final_main_reconstruction_execute_20260831.yml'
   workflow_dispatch:
 
+concurrency:
+  group: rawaea-new-main-reconstruction
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -24,7 +28,7 @@ jobs:
           ref: main
           fetch-depth: 2
 
-      - name: Surgical MAIN1 repair then authoritative MAIN2-MAIN11 integration
+      - name: Parent contract hardening and resume from MAIN5
         shell: bash
         run: |
           set -euo pipefail
@@ -33,48 +37,76 @@ jobs:
           python3 <<'PY'
           from pathlib import Path
           import re, subprocess, tempfile
-          target=Path('Current/PWA/New-main'); src=Path('Current/PWA/main')
+
+          target=Path('Current/PWA/New-main')
+          src=Path('Current/PWA/main')
+
           def inline(s):
               ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
               if len(ms)!=1: raise RuntimeError('INLINE_RUNTIME_COUNT:'+str(len(ms)))
               return ms[0]
+
           def validate(stage):
-              s=target.read_text(encoding='utf-8');req=[]
-              for n,mn in [('RW_ShellContext',1),('RW_Auth',1),('RW_Navigation',1),('RW_Dashboard',2),('RW_Items',2),('RW_POS',4),('RW_Orders',5),('RW_Runsheets',6),('RW_Purchases',7),('RW_Warehouse',7),('RW_Finance',8),('RW_Reports',9),('RW_OwnerLicense',10),('RW_HR',11),('RW_CRM',11),('RW_Views',11)]:
+              s=target.read_text(encoding='utf-8')
+              req=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn','window.RW_ShellContext','window.RW_Auth','window.RW_Navigation']
+              for n,mn in [('RW_Dashboard',2),('RW_Items',2),('RW_POS',4),('RW_Orders',5),('RW_Runsheets',5),('RW_Purchases',7),('RW_Warehouse',7),('RW_Finance',8),('RW_Reports',9),('RW_OwnerLicense',10),('RW_HR',11),('RW_CRM',11),('RW_Views',11)]:
                   if stage>=mn:req.append(n)
+              if stage>=1:req += ['window.RW_ParentRegistry','RW_Permissions_check']
               miss=[x for x in req if x not in s]
-              if miss:raise RuntimeError(f'MAIN{stage}_CONTRACT_MISSING:'+','.join(miss))
-              if s.lower().count('</body>')!=1 or s.lower().count('</html>')!=1:raise RuntimeError(f'MAIN{stage}_CLOSURE_INVALID')
-              ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
-              if len(ms)!=1:raise RuntimeError(f'MAIN{stage}_INLINE_RUNTIME_COUNT:{len(ms)}')
-              f=Path(tempfile.gettempdir())/f'rw-main{stage}.js';f.write_text(ms[0].group('b'),encoding='utf-8');r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-              if r.returncode:print(r.stderr);raise RuntimeError(f'MAIN{stage}_JS_SYNTAX_FAIL')
-          def persist(stage):
+              if miss: raise RuntimeError(f'MAIN{stage}_CONTRACT_MISSING:'+','.join(miss))
+              if s.lower().count('</body>')!=1 or s.lower().count('</html>')!=1: raise RuntimeError(f'MAIN{stage}_CLOSURE_INVALID')
+              m=inline(s);f=Path(tempfile.gettempdir())/f'rw-main{stage}.js';f.write_text(m.group('b'),encoding='utf-8')
+              r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+              if r.returncode: print(r.stderr); raise RuntimeError(f'MAIN{stage}_JS_SYNTAX_FAIL')
+
+          def persist(stage,msg=None):
               subprocess.run(['git','add','Current/PWA/New-main'],check=True)
               if subprocess.run(['git','diff','--cached','--quiet']).returncode!=0:
-                  subprocess.run(['git','commit','-m',f'[new-main-target-persist] MAIN{stage} complete'],check=True);subprocess.run(['git','push','origin','HEAD:main'],check=True)
-          s=target.read_text(encoding='utf-8');m=inline(s);body=m.group('b');repaired=body.replace("\\\\'","\\'")
-          if repaired!=body:target.write_text(s[:m.start('b')]+repaired+s[m.end('b'):],encoding='utf-8')
+                  subprocess.run(['git','commit','-m',msg or f'[new-main-target-persist] MAIN{stage} complete'],check=True)
+                  subprocess.run(['git','push','origin','HEAD:main'],check=True)
+
+          s=target.read_text(encoding='utf-8')
+          # ===== MAIN1 Parent hardening: one tenant source, canonical permissions, correct sibling-app routing =====
+          pairs={
+            "'../pos.html'":"'./pos.html'","'../telesales.html'":"'./telesales.html'","'../buyer.html'":"'./buyer.html'",
+            "'../vouchers.html'":"'./vouchers.html'","'../picker.html'":"'./picker.html'","'../loader.html'":"'./loader.html'",
+            "'../driver.html'":"'./driver.html'","'../Returns.html'":"'./Returns.html'","'../unloader.html'":"'./unloader.html'"
+          }
+          for a,b in pairs.items(): s=s.replace(a,b)
+
+          old="function RW_Permissions_check(permissionKey){if(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.isOwner===true)return true;return RW_STATE.permissions.indexOf('*')>=0||RW_STATE.permissions.indexOf(permissionKey)>=0}"
+          new="function RW_Permissions_check(permissionKey){if(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.isOwner===true)return true;var p=String(permissionKey||'').trim(),base=p.replace(/:.*$/,'');var aliases={dashboard:'dash',inventory:'warehouse',returns:'return',users:'users',roles:'roles','purchase-pos':'purchases'};var candidates=[p,base,aliases[p],aliases[base],base+':view'];for(var i=0;i<candidates.length;i++){var c=candidates[i];if(c&&(RW_STATE.permissions.indexOf('*')>=0||RW_STATE.permissions.indexOf(c)>=0))return true;}return false}"
+          if old in s: s=s.replace(old,new,1)
+
+          # Parent registry: the Parent owns identity/navigation/authorization, while each specialized PWA keeps its business engine.
+          anchor='window.RW_MAIN1_CONTRACT={source:'
+          if 'window.RW_ParentRegistry' not in s and anchor in s:
+              ins="window.RW_ParentRegistry={version:'1.0',tenantAuthority:'RW_ShellContext.getCompanyId()',ownerAuthority:'owner_profile',permissionAuthority:'RW_Permissions_check',apps:{pos:'./pos.html',telesales:'./telesales.html',buyer:'./buyer.html',vouchers:'./vouchers.html',picker:'./picker.html',loader:'./loader.html',driver:'./driver.html',returns:'./Returns.html',unloader:'./unloader.html'},launch:function(key){var p=this.apps[key];if(!p)throw new Error('UNKNOWN_PARENT_APP:'+key);location.href=p;}};\n"
+              idx=s.find(anchor);s=s[:idx]+ins+s[idx:]
+
+          # Dashboard requires Chart.js; load it in the published Parent, not in an external scratch artifact.
+          if 'cdn.jsdelivr.net/npm/chart.js' not in s:
+              s=s.replace('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.107.0/dist/umd/supabase.min.js"></script>', '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.107.0/dist/umd/supabase.min.js"></script>',1)
+
+          target.write_text(s,encoding='utf-8')
           validate(1)
-          for stage in range(2,12):
+          persist(1,'[new-main-target-persist] MAIN1 Parent contract closed')
+
+          # Resume-safe: MAIN2-MAIN4 are already published. Continue only from the first missing stage.
+          for stage in range(5,12):
               s=target.read_text(encoding='utf-8');m=inline(s);body=m.group('b');marker=f'/* RAWAEA MAIN{stage} AUTHORITATIVE MODULE */'
               if marker not in body:
                   frag=(src/f'main{stage}.md').read_text(encoding='utf-8-sig').rstrip()
-                  # Reject only a real document wrapper at the beginning, not HTML strings inside JS templates.
-                  if re.match(r'^\s*(?:<!doctype\b|<html\b|<head\b|<body\b)',frag,re.I):raise RuntimeError(f'MAIN{stage}_SOURCE_WRAPPER')
-                  if '</script>' in frag.lower():raise RuntimeError(f'MAIN{stage}_SOURCE_SCRIPT_CLOSURE')
-                  if stage==2:
-                      ls=body.find('/* RAWAEA MAIN2 COMPATIBILITY */')
-                      if ls>=0:
-                          le=body.find('/* MAIN2_GOVERNED_CLOSED:v1 */',ls)
-                          if le<0:raise RuntimeError('MAIN2_COMPACT_END_NOT_FOUND')
-                          body=body[:ls]+body[le+len('/* MAIN2_GOVERNED_CLOSED:v1 */'):]
+                  if re.match(r'^\s*(?:<!doctype\\b|<html\\b|<head\\b|<body\\b)',frag,re.I): raise RuntimeError(f'MAIN{stage}_SOURCE_WRAPPER')
+                  if '</script>' in frag.lower(): raise RuntimeError(f'MAIN{stage}_SOURCE_SCRIPT_CLOSURE')
                   target.write_text(s[:m.start('b')]+body+'\n'+marker+'\n'+frag+s[m.end('b'):],encoding='utf-8')
-              validate(stage);persist(stage)
-          print('MAIN1_TO_MAIN11_TARGET_CHAIN_COMPLETE')
+              validate(stage)
+              persist(stage)
+
+          print('NEW_MAIN_PARENT_AND_MAIN5_TO_MAIN11_COMPLETE')
           PY
 
-      - name: Final published target smoke
+      - name: Final published New-main browser smoke
         shell: bash
         run: |
           set -euo pipefail
@@ -84,5 +116,5 @@ jobs:
           python3 -m http.server 8123 --directory Current/PWA >/tmp/rawaea-new-main-http.log 2>&1 &
           node <<'NODE'
           const {chromium}=require('playwright');
-          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[],bad=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});p.on('response',r=>{if(r.status()>=400&&!/favicon\\.ico$/i.test(r.url()))bad.push(r.status()+':'+r.url())});await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(3000);const x=await p.evaluate(()=>({lang:document.documentElement.lang,login:!!document.getElementById('rw-login-page'),app:!!document.getElementById('rw-main-shell'),shell:!!window.RW_ShellContext,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense,mods:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_HR','RW_CRM'].every(k=>!!window[k])}));console.log(JSON.stringify({x,pe,ce,bad}));if(x.lang!=='ar'||!x.login||!x.app||!x.shell||!x.auth||!x.nav||!x.views||!x.owner||!x.mods||pe.length||ce.length||bad.length)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)});
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[],bad=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});p.on('response',r=>{if(r.status()>=400&&!/favicon\\.ico$/i.test(r.url()))bad.push(r.status()+':'+r.url())});await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(3000);const x=await p.evaluate(()=>({lang:document.documentElement.lang,login:!!document.getElementById('rw-login-page'),app:!!document.getElementById('rw-main-shell'),shell:!!window.RW_ShellContext,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,parent:!!window.RW_ParentRegistry,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense,mods:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_HR','RW_CRM'].every(k=>!!window[k])}));console.log(JSON.stringify({x,pe,ce,bad}));if(x.lang!=='ar'||!x.login||!x.app||!x.shell||!x.auth||!x.nav||!x.parent||!x.views||!x.owner||!x.mods||pe.length||ce.length||bad.length)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)});
           NODE
