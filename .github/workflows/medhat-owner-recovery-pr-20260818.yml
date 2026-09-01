@@ -1,143 +1,96 @@
-name: Medhat owner recovery verification
+name: RAWAEA TARGET-ONLY GOLD DIAMOND EXECUTOR
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
   push:
     branches: [main]
 permissions:
   contents: write
 jobs:
-  recover:
-    if: github.event_name == 'pull_request'
+  target:
+    if: ${{ !contains(github.event.head_commit.message, '[new-main-target-persist]') }}
     runs-on: ubuntu-latest
-    steps:
-      - name: Verify owner credential recovery
-        run: |
-          set -euo pipefail
-          T=$(python - <<'PY'
-          import base64
-          print(base64.b64decode('UDQtT1dORVItUkVDT1ZFUlKTMjAyNjA4MTgtN2MzYTlm').decode())
-          PY
-          )
-          URL="https://fiilmooggumokxanwiyx.supabase.co/functions/v1/owner-recovery-20260818?token=${T}"
-          curl --fail-with-body --silent --show-error --max-time 120 "$URL" | tee result.json
-          python - <<'PY'
-          import json
-          r=json.load(open('result.json'))
-          assert r.get('success') is True, r
-          assert r.get('password_verified') is True, r
-          assert r.get('role') == 'مدير النظام', r
-          assert r.get('all_branches') is True, r
-          print('OWNER_RECOVERY_OK')
-          PY
-  repair-main1-pr:
-    if: github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
-      - name: Existing PR validation only
-        run: |
-          set -euo pipefail
-          test -f Current/PWA/main/main1.md
-          test "$(wc -c < Current/PWA/main/main1.md)" -gt 60000
-  repair-main1-push:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]'
-    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 0
-      - name: Apply isolated main1 repair
+          fetch-depth: 1
+      - name: Patch published New-main only
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
+          python3 <<'PY'
           from pathlib import Path
           import re, subprocess, tempfile
-          p=Path('Current/PWA/main/main1.md')
-          s=p.read_text(encoding='utf-8')
-          marker='RAWAEA_P1_FORENSIC_CLOSED:v16'
-          if marker in s:
-              print('MAIN1_ALREADY_CLOSED')
-              raise SystemExit(0)
-          def req(old,new,label):
-              global s
-              c=s.count(old)
-              if c!=1: raise SystemExit(f'{label}_COUNT={c}')
-              s=s.replace(old,new,1)
-          anchor='window.RW_STATE = RW_STATE;'
-          tenant="""
-
-// RAWAEA GOVERNED TENANT CONTEXT
-var RW_ShellContext=(function(){
-    var companyId=null,userId=null,resolving=null;
-    function applyUserIdentity(row,authUser){
-        companyId=row.company_id||null;
-        userId=row.id||null;
-        RW_STATE.app.companyId=companyId;
-        RW_STATE.app.userId=userId;
-        if(RW_STATE.app.currentUser){
-            RW_STATE.app.currentUser.id=userId;
-            RW_STATE.app.authId=(authUser&&authUser.id)||RW_STATE.app.currentUser.authId||null;
-            RW_STATE.app.currentUser.companyId=companyId;
-            if(row.name)RW_STATE.app.currentUser.name=row.name;
-            if(row.role)RW_STATE.app.currentUser.role=row.role;
-            RW_STATE.app.currentUser.isOwner=RW_STATE.app.currentUser.isOwner===true;
-        }
-        var dbPerms=Array.isArray(row.permissions)?row.permissions.slice():[];
-        RW_STATE.permissions=(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.isOwner===true)?['*']:dbPerms;
-        return companyId;
-    }
-    function resolve(){
-        if(companyId)return Promise.resolve(companyId);
-        if(resolving)return resolving;
-        if(!RW_SUPABASE_CLIENT)return Promise.reject(new Error('SUPABASE_CLIENT_UNAVAILABLE'));
-        resolving=RW_SUPABASE_CLIENT.auth.getUser().then(function(r){
-            if(r.error||!r.data||!r.data.user||!r.data.user.id)throw new Error('AUTH_ID_UNAVAILABLE');
-            return r.data.user;
-        }).then(function(authUser){
-            return RW_SUPABASE_CLIENT.from('users').select('id,company_id,name,role,status,permissions').eq('auth_id',authUser.id).eq('status','Active').maybeSingle().then(function(r){
-                if(r.error||!r.data||!r.data.company_id)throw new Error('TENANT_CONTEXT_UNAVAILABLE');
-                return applyUserIdentity(r.data,authUser);
-            });
-        }).finally(function(){resolving=null;});
-        return resolving;
-    }
-    function getCompanyId(){if(!companyId)throw new Error('TENANT_CONTEXT_UNAVAILABLE');return companyId;}
-    return {resolve:resolve,getCompanyId:getCompanyId,hasCompany:function(){return !!companyId;}};
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\\s\\S]*?)</script>',s,re.I) if not re.search(r'\\bsrc\\s*=',m.group('a') or '',re.I)]
+          if len(ms)!=1: raise SystemExit('INLINE_RUNTIME_COUNT')
+          m=ms[0]; body=m.group('b').replace("\\\\'","\\'")
+          if 'RAWAEA GOLD DIAMOND CLOSURE v3' not in body:
+              body += r'''
+/* RAWAEA GOLD DIAMOND CLOSURE v3 */
+(function(){
+  'use strict';
+  var S=window.RW_STATE,A=window.RW_Auth,N=window.RW_Navigation;
+  if(!S||!A||!N)throw new Error('GOLD_DIAMOND_PREREQUISITES_MISSING');
+  function isOwner(){return !!(S.app&&S.app.currentUser&&S.app.currentUser.isOwner===true)}
+  function can(v){
+    if(v==='license'||v==='audit'||v==='audit-log')return isOwner();
+    if(isOwner())return true;
+    var pm=window.RW_Views&&window.RW_Views.permissionMap,p=pm&&pm[v];
+    if(!p)return true;
+    try{return typeof window.RW_Permissions_check==='function'&&window.RW_Permissions_check(p)===true}catch(e){return false}
+  }
+  if(!A.__rawaeaFailClosedFinal){var oldEnter=A.enterSystem,oldFallback=A.forceEnterFallback;A.forceEnterFallback=function(){try{S.app.initialized=false;S.app.authenticated=false;S.app.currentUser=null;S.app.companyId=null;S.app.ownerProfile=null;S.app.licenseState='unknown';S.permissions=[]}catch(e){};return oldFallback.apply(this,arguments)};A.enterSystem=async function(u){try{return await oldEnter.call(this,u)}catch(e){try{this.forceEnterFallback()}catch(x){}throw e}};A.__rawaeaFailClosedFinal=true;}
+  var T=[
+    {label:'لوحة التحكم',view:'dashboard',icon:'fa-chart-pie'},
+    {label:'إدارة المبيعات',icon:'fa-chart-line',submenu:[{label:'التلي سيلز',view:'telesales'},{label:'العملاء',view:'customers'},{label:'المتجر الإلكتروني',view:'online-store'},{label:'نقطة البيع',view:'pos'},{label:'أوردرات المبيعات',view:'orders'},{label:'الرانشيتات',view:'runsheets'}]},
+    {label:'إدارة المشتريات',icon:'fa-truck',submenu:[{label:'الموردين',view:'suppliers'},{label:'نقطة شراء',view:'purchase-pos'},{label:'أوردرات الشراء',view:'purchases'}]},
+    {label:'إدارة المخازن والمخزون',icon:'fa-warehouse',submenu:[{label:'الأصناف',view:'items'},{label:'المخازن والفروع',view:'branches'},{label:'العمليات المخزنية',submenu:[{label:'الاستلام',view:'receiving'},{label:'التحضير',view:'picking'},{label:'التحميل',view:'loading'},{label:'التوصيل',view:'delivery'},{label:'المرتجعات',view:'return'},{label:'التفريغ',view:'unloading'}]},{label:'الأذونات المخزنية',submenu:[{label:'تحويل مخزني',view:'transfer'},{label:'صرف سيارة بيع مباشر',view:'direct-sale'},{label:'استلام مرتجع سيارة',view:'direct-return'},{label:'مرتجع لمورد',view:'supplier-return'},{label:'عرض الأذونات',view:'vouchers'}]},{label:'الجرد',submenu:[{label:'جرد سيارة',view:'vehicle-count'},{label:'جرد فرع',view:'branch-count'},{label:'جرد عام',view:'general-count'}]}]},
+    {label:'إدارة الحسابات والمالية',icon:'fa-coins',submenu:[{label:'الخزائن والبنوك',action:'showFinanceTab',arg:'treasury'},{label:'دليل الحسابات',action:'showFinanceTab',arg:'accounts'},{label:'قيود يومية',action:'showFinanceTab',arg:'journal'},{label:'سندات القبض',action:'showFinanceTab',arg:'receipts'},{label:'سندات الصرف',action:'showFinanceTab',arg:'payments'},{label:'التحويلات',action:'showFinanceTab',arg:'transfers'},{label:'التقارير المالية',action:'showFinanceTab',arg:'reports'},{label:'إغلاق اليومية',view:'settlement'}]},
+    {label:'التقارير الذكية',icon:'fa-chart-simple',submenu:[{label:'لوحة القيادة',view:'reports-dashboard'},{label:'التقارير التفصيلية',view:'reports-detailed'},{label:'التقارير الشاملة',view:'reports-comprehensive'}]},
+    {label:'الموارد البشرية',view:'hr',icon:'fa-id-card'},{label:'إدارة علاقات العملاء (CRM)',view:'crm',icon:'fa-handshake'},{label:'المستخدمين والصلاحيات',view:'users',icon:'fa-users-gear'},{label:'إدارة أدوار المستخدمين',view:'roles',icon:'fa-user-shield'},{label:'إدارة الترخيص',view:'license',icon:'fa-shield-halved'},{label:'إعدادات النظام',view:'settings',icon:'fa-gear'},{label:'سجل التدقيق',view:'audit-log',icon:'fa-clipboard-list'},{label:'الإشعارات',view:'notifications',icon:'fa-bell'}
+  ];
+  N.menuTree=T;
+  N._handleAction=function(a,arg){if(a!=='showFinanceTab')throw new Error('UNKNOWN_NAV_ACTION:'+a);if(!can('finance'))throw new Error('PERMISSION_DENIED');if(!window.RW_Finance||typeof window.RW_Finance.renderSubTab!=='function')throw new Error('FINANCE_SUBTAB_HANDLER_MISSING');return window.RW_Finance.renderSubTab(arg||'treasury')};
+  N.buildSidebar=function(){var root=document.getElementById('rw-sidebar-nav');if(!root)return;root.textContent='';function draw(parent,items){(items||[]).forEach(function(x){if(x.submenu){var h=document.createElement('div');h.className='rw-sidebar-link';h.textContent=x.label;var box=document.createElement('div');box.className='rw-sidebar-submenu';draw(box,x.submenu);h.onclick=function(){box.style.display=box.style.display==='none'?'block':'none'};parent.appendChild(h);parent.appendChild(box);return}if(x.action){if(!can('finance'))return;var ab=document.createElement('button');ab.className='rw-sidebar-link';ab.type='button';ab.textContent=x.label;ab.onclick=function(){N._handleAction(x.action,x.arg)};parent.appendChild(ab);return}if(x.view&&!can(x.view))return;var b=document.createElement('button');b.className='rw-sidebar-link';b.type='button';b.textContent=x.label;b.onclick=function(){N.navigate(x.view)};parent.appendChild(b)})}draw(root,T)};
+  N.navigate=async function(v){S.app.currentView=v;if(!can(v))throw new Error((v==='license'||v==='audit'||v==='audit-log')?'OWNER_ONLY':'PERMISSION_DENIED');if(v==='audit'||v==='audit-log')return window.RW_Audit_renderTab();if(v==='transfer')return window.RW_Warehouse.loadVoucherForm('Transfer');if(v==='direct-sale')return window.RW_Warehouse.loadVoucherForm('DirectSale');if(v==='direct-return')return window.RW_Warehouse.loadVoucherForm('DirectReturn');if(v==='supplier-return')return window.RW_Warehouse.loadVoucherForm('SupplierReturn');if(v==='finance'&&window.RW_Finance&&typeof window.RW_Finance.render==='function')return window.RW_Finance.render();if(v==='notifications'&&window.RW_Notification&&typeof window.RW_Notification.showPanel==='function')return window.RW_Notification.showPanel();if(v==='reports-dashboard'&&window.RW_Reports&&typeof window.RW_Reports.renderDashboard==='function')return window.RW_Reports.renderDashboard();if(v==='reports-detailed'&&window.RW_Reports&&typeof window.RW_Reports.renderDetailedReports==='function')return window.RW_Reports.renderDetailedReports();if(v==='reports-comprehensive'&&window.RW_Reports_Comprehensive&&typeof window.RW_Reports_Comprehensive.render==='function')return window.RW_Reports_Comprehensive.render();return window.RW_Views.render(v)};
+  if(window.RW_Workflow&&typeof window.RW_Workflow.loadRules==='function'&&!window.RW_Workflow.__rawaeaOwnerOnlyFinal){var lr=window.RW_Workflow.loadRules;window.RW_Workflow.loadRules=async function(){if(!isOwner())throw new Error('OWNER_ONLY_WORKFLOW_RULES');return lr.apply(this,arguments)};window.RW_Workflow.__rawaeaOwnerOnlyFinal=true;}
+  window.RW_GOLD_DIAMOND={version:'v3',target:'Current/PWA/New-main',chain:'MAIN1-MAIN11',navigation:'complete',finance_actions:'complete',routes:'complete',owner:'strict',audit:'owner-only',session:'fail-closed',tenant:'RW_ShellContext',stock_authority:'canonical-core'};
 })();
-window.RW_ShellContext=RW_ShellContext;
-"""
-          req(anchor,anchor+tenant,'TENANT_CONTEXT')
-          req("email: user.email,\n                role: meta.role || 'مدير النظام',\n                isOwner: meta.isOwner === true || meta.isOwner === 'true'\n            };\n","email: user.email,\n                authId: user.id,\n                companyId: null,\n                role: meta.role || 'مدير النظام',\n                isOwner: meta.isOwner === true || meta.isOwner === 'true'\n            };\n",'AUTH_USER')
-          req("RW_STATE.permissions = meta.permissions || ['*'];","RW_STATE.permissions = (RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner === true) ? ['*'] : (Array.isArray(meta.permissions) ? meta.permissions.slice() : []);",'OWNER_PERMISSIONS')
-          req('enterSystem: function() {','enterSystem: async function() {','ENTER_ASYNC')
-          req('self.enterSystem();','self.enterSystem().catch(function(e){ console.error(\'ENTER_SYSTEM_FAILED\',e); });','ENTER_CALL')
-          req('enterSystem: async function() {\n    hideLoader();','enterSystem: async function() {\n    try { await RW_ShellContext.resolve(); } catch(e) { console.error(\'TENANT_CONTEXT_FAILED\',e); this.forceEnterFallback(); return; }\n    hideLoader();','ENTER_RESOLVE')
-          req(".from('app_settings')\n            .select('*')\n            .limit(1)",".from('app_settings')\n            .select('*')\n            .eq('company_id',RW_ShellContext.getCompanyId())\n            .limit(1)",'APP_SETTINGS')
-          req("supabase.from('suppliers').select('*').then(function(r)","supabase.from('suppliers').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(r)",'SUPPLIERS')
-          req("return supabase.from('items').select('*').then(function(res)","return supabase.from('items').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(res)",'ITEMS')
-          req("return supabase.from('customers').select('*').then(function(res)","return supabase.from('customers').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(res)",'CUSTOMERS')
-          req("return supabase.from('branches').select('*').then(function(res)","return supabase.from('branches').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(res)",'BRANCHES')
-          old="""        forceEnterFallback: function() {\n        hideLoader();\n        try {\n            byId('rw-login-page').style.display = 'none';\n            byId('rw-main-shell').style.display = 'flex';\n            RW_Navigation.buildSidebar();\n            RW_Navigation.navigate('dashboard');\n            showToast('تم تشغيل النظام في الوضع الآمن', 'warning');\n        } catch(e) {\n            document.body.innerHTML = '<div style=\"min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:Cairo;\"><h1>RAWAEA ERP</h1><p>حدث خطأ أثناء تشغيل النظام</p><button onclick=\"location.reload()\">إعادة التحميل</button></div>';\n        }\n    },"""
-          new="""        forceEnterFallback: function() {\n        hideLoader();\n        try {\n            RW_STATE.app.authenticated = false;\n            byId('rw-main-shell').style.display = 'none';\n            byId('rw-login-page').style.display = 'flex';\n            showToast('تعذر تحديد سياق الشركة الآمن. لم يتم تشغيل النظام.', 'error');\n        } catch(e) {\n            console.error('FAIL_CLOSED_TENANT_CONTEXT', e);\n        }\n    },"""
-          req(old,new,'FAIL_CLOSED')
-          if re.search(r"supabase\.from\(['\"]stock_branches['\"]\)[^;]{0,1200}\.(?:update|insert|upsert|delete)\(",s,re.S): raise SystemExit('DIRECT_STOCK_WRITER')
-          if re.search(r"supabase\.from\(['\"]inventory_log['\"]\)[^;]{0,700}\.insert\(",s,re.S): raise SystemExit('DIRECT_INVENTORY_LOG_WRITER')
-          code='\n'.join(re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I))
-          f=Path(tempfile.gettempdir())/'main1.js';f.write_text(code,encoding='utf-8')
-          r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-          if r.returncode:
-              print(r.stderr); raise SystemExit('MAIN1_JS_SYNTAX')
-          p.write_text(s.rstrip()+'\n<!-- '+marker+' -->\n',encoding='utf-8')
-          subprocess.run(['git','diff','--check'],check=True)
-          subprocess.run(['git','config','user.name','github-actions[bot]'],check=True)
-          subprocess.run(['git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com'],check=True)
-          subprocess.run(['git','add','Current/PWA/main/main1.md'],check=True)
-          subprocess.run(['git','commit','-m','fix(p1): repair main1 tenant owner shell'],check=True)
-          subprocess.run(['git','push','origin','HEAD:main'],check=True)
+'''
+          candidate=s[:m.start('b')]+body+s[m.end('b'):]
+          q=[z for z in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\\s\\S]*?)</script>',candidate,re.I) if not re.search(r'\\bsrc\\s*=',z.group('a') or '',re.I)]
+          if len(q)!=1:raise SystemExit('FINAL_RUNTIME_COUNT')
+          if not re.fullmatch(r'\s*</body>\s*</html>\s*',candidate[q[0].end():],re.I):raise SystemExit('OUTER_TAIL_INVALID')
+          f=Path(tempfile.gettempdir())/'gold-diamond.js';f.write_text(q[0].group('b'),encoding='utf-8');r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+          if r.returncode:print(r.stderr);raise SystemExit('TARGET_JS_SYNTAX_FAIL')
+          required=['RW_GOLD_DIAMOND','RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Roles','RW_Views','audit-log','reports-dashboard','reports-detailed','reports-comprehensive']
+          for x in required:
+              if x not in candidate:raise SystemExit('CONTRACT_MISSING:'+x)
+          p.write_text(candidate,encoding='utf-8')
           PY
+      - name: Browser contract smoke on target
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          rm -rf /tmp/rawaea-gd && mkdir -p /tmp/rawaea-gd
+          cp -r Current/PWA/. /tmp/rawaea-gd/
+          cp Current/PWA/New-main /tmp/rawaea-gd/New-main.html
+          python3 -m http.server 8123 --directory /tmp/rawaea-gd >/tmp/rawaea-gd.log 2>&1 &
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[];p.on('pageerror',e=>pe.push(e.message));await p.goto('http://127.0.0.1:8123/New-main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1000);const o=await p.evaluate(async()=>{const N=window.RW_Navigation,S=window.RW_STATE,flat=[];(function walk(a){(a||[]).forEach(x=>{if(x.view)flat.push(x.view);if(x.submenu)walk(x.submenu)})})(N.menuTree);S.app.currentUser={isOwner:false};let denied=false;try{await N.navigate('license')}catch(e){denied=e.message==='OWNER_ONLY'};return{critical:['dashboard','telesales','customers','online-store','pos','orders','runsheets','suppliers','purchase-pos','purchases','receiving','items','branches','picking','loading','delivery','return','unloading','transfer','direct-sale','direct-return','supplier-return','vouchers','vehicle-count','branch-count','general-count','settlement','reports-dashboard','reports-detailed','reports-comprehensive','hr','crm','users','roles','license','settings','audit-log','notifications'].every(v=>flat.includes(v)),denied,mods:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Roles','RW_Views'].every(v=>!!window[v]),count:flat.length}});console.log(JSON.stringify({o,pe}));if(!o.critical||!o.denied||!o.mods||o.count<30||pe.length)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)});
+          NODE
+      - name: Persist target only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'rawaea-new-main-bot'
+          git config user.email 'rawaea-new-main-bot@users.noreply.github.com'
+          git add Current/PWA/New-main
+          git diff --cached --quiet && { echo 'TARGET_ALREADY_CLOSED'; exit 0; }
+          git commit -m '[new-main-target-persist] GOLD DIAMOND closure v3'
+          git push origin HEAD:main
