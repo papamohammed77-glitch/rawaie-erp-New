@@ -41,22 +41,30 @@ def js(h):return im(h).group('b')
 def source_js(raw):
  try:return js(raw)
  except RuntimeError:
-  s=raw.lstrip('\ufeff')
-  s=re.sub(r'^\s*```(?:html|javascript|js)?\s*\n','',s,flags=re.I)
-  s=re.sub(r'\n\s*```\s*$','',s,flags=re.I)
-  return s
+  s=raw.lstrip('\ufeff');s=re.sub(r'^\s*```(?:html|javascript|js)?\s*\n','',s,flags=re.I);s=re.sub(r'\n\s*```\s*$','',s,flags=re.I);return s
 def bend(s,p):
- d=0;q=None;e=False;lc=False;bc=False;i=p
+ d=0;q=None;e=False;lc=False;bc=False;regex=False;charclass=False;i=p;prev_sig=''
  while i<len(s):
   c=s[i];n=s[i+1] if i+1<len(s) else ''
-  if lc:
+  if line:=lc:
    if c=='\n':lc=False
-  elif bc:
+  elif block:=bc:
    if c=='*' and n=='/':bc=False;i+=1
   elif q:
    if e:e=False
    elif c=='\\':e=True
    elif c==q:q=None
+  elif regex:
+   if e:e=False
+   elif c=='\\':e=True
+   elif charclass:
+    if c==']':charclass=False
+   elif c=='[':charclass=True
+   elif c=='/':
+    regex=False
+    j=i+1
+    while j<len(s) and s[j].isalpha():j+=1
+    i=j-1
   else:
    if c=='/' and n=='/':lc=True;i+=1
    elif c=='/' and n=='*':bc=True;i+=1
@@ -65,10 +73,14 @@ def bend(s,p):
    elif c=='}':
     d-=1
     if d==0:return i+1
+   elif c=='/':
+    # Regex literal starts where a JavaScript expression can begin.
+    if not prev_sig or prev_sig in '=([{,:;!?&|+*-%^~<>':regex=True
+   elif not c.isspace():prev_sig=c
   i+=1
  raise RuntimeError('UNTERMINATED_JS_BLOCK')
 def expr_end(s,start):
- stack=[];q=None;e=False;lc=False;bc=False;i=start
+ stack=[];q=None;e=False;lc=False;bc=False;regex=False;charclass=False;i=start;prev_sig=''
  while i<len(s):
   c=s[i];n=s[i+1] if i+1<len(s) else ''
   if lc:
@@ -79,10 +91,22 @@ def expr_end(s,start):
    if e:e=False
    elif c=='\\':e=True
    elif c==q:q=None
+  elif regex:
+   if e:e=False
+   elif c=='\\':e=True
+   elif charclass:
+    if c==']':charclass=False
+   elif c=='[':charclass=True
+   elif c=='/':
+    regex=False;j=i+1
+    while j<len(s) and s[j].isalpha():j+=1
+    i=j-1
   else:
    if c=='/' and n=='/':lc=True;i+=1
    elif c=='/' and n=='*':bc=True;i+=1
    elif c in "'\"`":q=c
+   elif c=='/':
+    if not prev_sig or prev_sig in '=([{,:;!?&|+*-%^~<>':regex=True
    elif c in '([{':stack.append(c)
    elif c in ')]}':
     if not stack:raise RuntimeError('EXPR_UNDERFLOW')
@@ -91,6 +115,7 @@ def expr_end(s,start):
      j=i+1
      while j<len(s) and s[j].isspace():j+=1
      if j<len(s) and s[j]==';':return j+1
+   elif not c.isspace():prev_sig=c
   i+=1
  j=s.find(';',start);return j+1 if j!=-1 else len(s)
 def fn(s,n):
@@ -99,17 +124,13 @@ def fn(s,n):
 def var(s,n):
  m=re.search(r'(?m)(?:^|\n)[ \t]*(?:var|let|const)\s+'+re.escape(n)+r'\s*=',s)
  if not m:return None
- st=m.start()+(1 if s[m.start():m.start()+1]=='\n' else 0)
- return s[st:expr_end(s,m.end())]
+ st=m.start()+(1 if s[m.start():m.start()+1]=='\n' else 0);return s[st:expr_end(s,m.end())]
 def replace_block(s,k,n,b):
  old=fn(s,n) if k=='fn' else var(s,n)
  if old is not None:return s.replace(old,b,1),old!=b,True
- anchors=['var RW_Data=','var RW_Navigation=','var RW_Auth=','})();'];p=next((s.find(a) for a in anchors if s.find(a)>=0),len(s))
- return s[:p]+b+'\n\n'+s[p:],True,False
+ anchors=['var RW_Data=','var RW_Navigation=','var RW_Auth=','})();'];p=next((s.find(a) for a in anchors if s.find(a)>=0),len(s));return s[:p]+b+'\n\n'+s[p:],True,False
 def decls(s):
- fs=sorted(set(re.findall(r'(?<![\w$])(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(',s)))
- vs=sorted(set(re.findall(r'(?m)^[ \t]*(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=',s)))
- out=[]
+ fs=sorted(set(re.findall(r'(?<![\w$])(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(',s)));vs=sorted(set(re.findall(r'(?m)^[ \t]*(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=',s)));out=[]
  for n in fs:
   b=fn(s,n)
   if b:out.append(('fn',n,b))
@@ -119,16 +140,11 @@ def decls(s):
    if b:out.append(('var',n,b))
  return out
 def merge_source(target,source):
- ops=[];srcjs=source_js(source)
- for k,n,b in decls(srcjs):
+ ops=[]
+ for k,n,b in decls(source_js(source)):
   target,changed,exists=replace_block(target,k,n,b)
   if changed:ops.append(('replace' if exists else 'insert')+':'+k+':'+n)
  return target,ops
-def repair_baseline(h,main1_source):
- old=var(js(h),'RW_Table')
- if not old:return h
- b0,b1=im(h).start('b'),im(h).end('b');body=js(h).replace(old,SAFE_RW_TABLE,1)
- return h[:b0]+body+h[b1:]
 def license_patch(h):
  s=source_js((CUR/'main10.md').read_text(encoding='utf-8-sig'));b=var(s,'RW_OwnerLicense')
  if b and 'btn-save-license-only' not in h:
@@ -171,8 +187,7 @@ def main():
    current,n=re.subn(r"var owner=!!op\.data\|\|meta\.isOwner===true\|\|meta\.isOwner==='true';","var owner=meta.isOwner===true||meta.isOwner==='true';",current,count=1)
    if n:ops.append('owner:auth-metadata-only')
   if idx==10:current=license_patch(current);ops.append('license:main10-owner-module')
-  validate(current,baseline)
-  after=H(js(current))
+  validate(current,baseline);after=H(js(current))
   if before==after:raise RuntimeError(f'NO_SURGICAL_DELTA_MAIN{idx}')
   phases.append({'phase':idx,'source':str(pth),'before_script_sha256':before,'after_script_sha256':after,'artifact_sha256':H(current),'artifact_bytes':len(current.encode()),'operations':ops})
  validate(current,baseline,final=True)
