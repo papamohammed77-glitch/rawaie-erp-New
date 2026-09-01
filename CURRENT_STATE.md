@@ -8,31 +8,36 @@
 - No reconstruction, overlay, new workflow, or new file is authorized by Prompt 123.
 
 ## LAST VERIFIED EVENT
-### P123-001 — STATE_RECONCILIATION
-- UTC: 2026-09-01T07:11:11Z
+### P123-002 — TARGET_FREEZE_AND_IDENTITY_VERIFICATION
+- UTC: 2026-09-01T07:11:xxZ
 - Source: `doc/Draft/medhat/برومبت 123+ملحق تقرير`
-- Git main HEAD: `5b9dbc9adbae2483419d58bd4f066fccce9cdc38`
-- CURRENT_STATE SHA before event: `1c504d03308cda6f8d4c2da203def9733529a365`
+- Git main HEAD at verification start: `e9fd4f819a384b29063d3918723f512da10ed50e`
 - TARGET `Current/PWA/New-main` blob SHA: `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`
 - CURRENT MAIN1 `Current/PWA/main/main1.md` blob SHA: `de3ea2f6c1c638447d1c34c8f6237e14d5ae3b59`
 - ORIGINAL MAIN1 `Original/PWA/main/main1.md` blob SHA: `14b12a471c20ad23a2c18f456dbc4d59783a0d1f`
-- Result: `STATE = STALE` relative to Git reality. The prior CURRENT_STATE described temporary executor/retrigger history not represented in the current verified state contract.
+- Result: `TARGET IDENTITY VERIFIED`. Re-reading the target after P123-001 produced the same New-main blob SHA. No unexpected target mutation occurred.
+- Target freeze: active.
 - Product mutation: none.
-- Evidence: direct Git file/blob reads at main HEAD.
-- Impact: prior status claims are invalid until reverified; target remains frozen and untouched.
+- Evidence: direct Git reads of frozen target and both MAIN1 sources.
+
+## RECONCILIATION HISTORY
+### P123-001 — STATE_RECONCILIATION
+- Recorded in commit `e9fd4f819a384b29063d3918723f512da10ed50e`.
+- `CURRENT_STATE` was stale relative to Git and was synchronized before target work.
 
 ## TARGET FREEZE
-- Status: `FROZEN_AFTER_RECONCILIATION`
-- Frozen HEAD SHA: `5b9dbc9adbae2483419d58bd4f066fccce9cdc38`
-- Frozen New-main SHA: `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`
+- Frozen target SHA: `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`
 - Frozen Current MAIN1 SHA: `de3ea2f6c1c638447d1c34c8f6237e14d5ae3b59`
 - Frozen Original MAIN1 SHA: `14b12a471c20ad23a2c18f456dbc4d59783a0d1f`
-- Rule: any unexpected target SHA change requires immediate STOP + investigation.
+- Frozen repository HEAD at P123-002 start: `e9fd4f819a384b29063d3918723f512da10ed50e`
+- Rule: any unexpected New-main SHA change requires STOP + forensic investigation.
 
 ## KNOWN BLOCKERS
-- Prompt 123 requires MAIN1 Original analysis, MAIN1 Current analysis, complete New-main mapping, evidence-bound gap classification, surgical fix only where proven, then static/functional/browser/production verification.
-- Historical Notification/Audit/Session/Workflow claims are not yet accepted as current truth merely because they exist in reports.
-- Browser/Production closure must be re-established with direct evidence.
+- MAIN1 Original analysis not yet completed.
+- MAIN1 Current analysis not yet completed.
+- New-main mapping not yet completed.
+- Evidence-bound gap classification not yet completed.
+- Functional/browser/production closure remains unverified.
 
 ## FAILED ATTEMPTS / DO-NOT-REPEAT
 - Do not reconstruct MAIN1→MAIN11.
@@ -42,9 +47,10 @@
 - Do not modify forensic workflows to force green status.
 - Do not modify Production unless MAIN1 is directly blocked and the minimum safe fix is proven.
 - Do not treat CI PASS, Browser PASS, or Production PASS as interchangeable.
-- Do not start the next operation until this event is reflected here and verified.
+- Do not start the next operation until the previous event is reflected here.
 
 ## NEXT AUTHORIZED ACTION
-`P123-002 TARGET_FREEZE_AND_IDENTITY_VERIFICATION`
-- Re-read the frozen target and verify no unexpected mutation occurred after reconciliation.
-- Then perform MAIN1 Original analysis before any target modification.
+`P123-003 MAIN1_ORIGINAL_ANALYSIS`
+- Read Original/PWA/main/main1.md completely.
+- Derive the actual historical MAIN1 contracts and runtime behaviors.
+- Do not modify New-main during this analysis.
