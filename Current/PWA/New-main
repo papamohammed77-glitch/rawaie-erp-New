@@ -41,7 +41,7 @@ function syncState(){RW_STATE.permissions=RW_STATE.app.currentUser&&RW_STATE.app
 window.RW_ShellContext={getUser:function(){return RW_STATE.app.currentUser},getCompanyId:currentCompanyId,getCompany:function(){return RW_STATE.app.company},isOwner:function(){return !!(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.isOwner)},getPermissions:function(){return RW_STATE.permissions.slice()},getLicenseState:function(){return RW_STATE.app.licenseState||'unknown'}};
 window.RW_OwnerLicense={isOwner:function(){return !!(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.isOwner)},permissions:function(){return RW_STATE.permissions.slice()},profile:function(){return RW_STATE.app.ownerProfile||null},licenseState:function(){return RW_STATE.app.licenseState||'unknown'},isActive:function(){return ['active','Active','licensed'].indexOf(RW_STATE.app.licenseState)>=0}};
 window.MAIN_HTML_CURRENT_CONTRACT_LEDGER={html_shell:'implemented',css_ui_shell:'implemented',authentication:'implemented',session:'implemented',user_identity:'implemented',company_identity:'implemented',OWNER_semantics:'implemented',permissions:'implemented',license_state:'implemented',navigation:'implemented',data_loading:'implemented',search:'implemented',cache:'delegated-to-core',offline:'delegated-to-core/specialized-pwa',sync:'delegated-to-core',realtime:'delegated-to-specialized-module',notifications:'implemented',pwa_lifecycle:'implemented',CRUD:'implemented-for-customers-and-items-via-edge',customers:'implemented',suppliers:'read-model',products_items:'implemented',sales_pos:'delegated-to-pos.html',Van_Sales:'delegated-to-van-sales.html',telesales:'delegated-to-telesales.html',purchasing:'delegated-to-buyer.html',receiving:'delegated-to-buyer.html',inventory:'read-only-view',stock_vouchers:'delegated-to-vouchers.html',picking:'delegated-to-picker.html',loading:'delegated-to-loader.html',delivery:'delegated-to-driver.html',returns:'delegated-to-Returns.html',vehicles:'read-model',drivers:'read-model',accounting:'read-model',audit:'owner-read-model',settings:'company-scoped',reports:'company-scoped-read-model',mobile:'implemented',error_handling:'implemented'};
-function applyAuthoritativeContext(authUser){return (async function(){if(!authUser||!authUser.id)throw new Error('AUTH_ID_UNAVAILABLE');var u=await supabase.from('users').select('id,name,email,role,company_id,status,permissions').eq('auth_id',authUser.id).maybeSingle();if(u.error)throw u.error;if(!u.data||!u.data.company_id)throw new Error('TENANT_CONTEXT_UNAVAILABLE');if(u.data.status&&u.data.status!=='Active')throw new Error('USER_INACTIVE');var c=await supabase.from('companies').select('id,name,logo_url,main_branch_id,main_branch_code').eq('id',u.data.company_id).maybeSingle();if(c.error)throw c.error;var op=await supabase.from('owner_profile').select('auth_user_id,owner_name,owner_email,license_status,trial_end_date,subscription_end_date').eq('auth_user_id',authUser.id).maybeSingle();if(op.error)throw op.error;var meta=authUser.user_metadata||{};var owner=!!op.data||meta.isOwner===true||meta.isOwner==='true';RW_STATE.app.authenticated=true;RW_STATE.app.currentUser={id:u.data.id,authId:authUser.id,email:authUser.email||u.data.email,name:u.data.name||authUser.email||u.data.email,role:u.data.role||'',companyId:u.data.company_id,isOwner:owner,permissions:owner?['*']:(Array.isArray(u.data.permissions)?u.data.permissions.slice():[])};RW_STATE.app.companyId=u.data.company_id;RW_STATE.app.company=c.data||{id:u.data.company_id,name:'الشركة الحالية'};RW_STATE.app.ownerProfile=op.data||null;RW_STATE.app.licenseState=op.data&&op.data.license_status||meta.license_state||'unknown';syncState();var settings=await supabase.from('app_settings').select('company_name,company_logo,status,subscription_end_date,trial_end_date').eq('company_id',u.data.company_id).maybeSingle();if(!settings.error&&settings.data){RW_STATE.app.company.name=settings.data.company_name||RW_STATE.app.company.name;RW_STATE.app.company.logo=settings.data.company_logo||RW_STATE.app.company.logo;if(!RW_STATE.app.licenseState||RW_STATE.app.licenseState==='unknown')RW_STATE.app.licenseState=settings.data.status||'unknown'}})()}
+function applyAuthoritativeContext(authUser){return (async function(){if(!authUser||!authUser.id)throw new Error('AUTH_ID_UNAVAILABLE');var u=await supabase.from('users').select('id,name,email,role,company_id,status,permissions').eq('auth_id',authUser.id).maybeSingle();if(u.error)throw u.error;if(!u.data||!u.data.company_id)throw new Error('TENANT_CONTEXT_UNAVAILABLE');if(u.data.status&&u.data.status!=='Active')throw new Error('USER_INACTIVE');var c=await supabase.from('companies').select('id,name,logo_url,main_branch_id,main_branch_code').eq('id',u.data.company_id).maybeSingle();if(c.error)throw c.error;var op=await supabase.from('owner_profile').select('auth_user_id,owner_name,owner_email,license_status,trial_end_date,subscription_end_date').eq('auth_user_id',authUser.id).maybeSingle();if(op.error)throw op.error;var meta=authUser.user_metadata||{};var owner=(meta.isOwner===true||meta.isOwner==='true')&&Array.isArray(u.data.permissions)&&u.data.permissions.indexOf('*')>=0&&!!op.data;RW_STATE.app.authenticated=true;RW_STATE.app.currentUser={id:u.data.id,authId:authUser.id,email:authUser.email||u.data.email,name:u.data.name||authUser.email||u.data.email,role:u.data.role||'',companyId:u.data.company_id,isOwner:owner,permissions:owner?['*']:(Array.isArray(u.data.permissions)?u.data.permissions.slice():[])};RW_STATE.app.companyId=u.data.company_id;RW_STATE.app.company=c.data||{id:u.data.company_id,name:'الشركة الحالية'};RW_STATE.app.ownerProfile=op.data||null;RW_STATE.app.licenseState=op.data&&op.data.license_status||meta.license_state||'unknown';syncState();var settings=await supabase.from('app_settings').select('company_name,company_logo,status,subscription_end_date,trial_end_date').eq('company_id',u.data.company_id).maybeSingle();if(!settings.error&&settings.data){RW_STATE.app.company.name=settings.data.company_name||RW_STATE.app.company.name;RW_STATE.app.company.logo=settings.data.company_logo||RW_STATE.app.company.logo;if(!RW_STATE.app.licenseState||RW_STATE.app.licenseState==='unknown')RW_STATE.app.licenseState=settings.data.status||'unknown'}})()}
 function RW_Audit_log(action,tableName,recordId,oldData,newData){try{var p={action:action,table_name:tableName||null,record_id:recordId||null,old_data:oldData||null,new_data:newData||null};supabase.auth.getSession().then(function(r){var token=r.data&&r.data.session?r.data.session.access_token:null;if(!token)return;return fetch(RW_SUPABASE_URL+'/functions/v1/log-action',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(p)})}).catch(function(e){console.warn('AUDIT',e)})}catch(e){console.warn('AUDIT',e)}}
 window.RW_Audit_log=RW_Audit_log;
 var RW_Table=(function(){var state={};function paginate(tableBodyId,data,page,perPage,renderRowFn){if(!data||!data.length){safeHTML(byId(tableBodyId),'<tr><td colspan="10" style="text-align:center;padding:30px;color:#94a3b8">لا توجد بيانات</td></tr>');return}page=Math.max(1,Math.min(page||1,Math.ceil(data.length/(perPage||50))));var pp=perPage||50,start=(page-1)*pp,end=Math.min(start+pp,data.length),html='';for(var i=start;i<end;i++)html+=renderRowFn(data[i],i);safeHTML(byId(tableBodyId),html);state[tableBodyId]={data:data,page:page,perPage:pp,totalPages:Math.ceil(data.length/pp),renderRowFn:renderRowFn};renderControls(tableBodyId)}function renderControls(id){var st=state[id],pc=byId(id+'-controls');if(!st||!pc||st.totalPages<=1){safeHTML(pc,'');return}var h='<div style="display:flex;justify-content:center;gap:6px;align-items:center;margin-top:10px;font-size:11px;color:#64748b">';if(st.page>1)h+='<button class="rw-btn rw-btn-ghost" onclick="RW_Table.goPage(\''+id+'\','+(st.page-1)+')">السابق</button>';h+='<span>صفحة '+st.page+' من '+st.totalPages+'</span>';if(st.page<st.totalPages)h+='<button class="rw-btn rw-btn-ghost" onclick="RW_Table.goPage(\''+id+'\','+(st.page+1)+')">التالي</button>';h+='</div>';safeHTML(pc,h)}function goPage(id,page){var st=state[id];if(st)paginate(id,st.data,page,st.perPage,st.renderRowFn)}return{paginate:paginate,renderControls:renderControls,goPage:goPage}})();window.RW_Table=RW_Table;
@@ -5295,6 +5295,72 @@ window.RW_Views = RW_Views;
     // Forensic / governance marker. This is metadata only; it owns no business logic.
     window.__RAWAEA_MAIN11_GOVERNED_CLOSED_V2__ = true;
 
-})();</script>
+})();
+
+/* RAWAEA 122 DIAMOND CONTRACT CLOSURE v1 */
+(function(){
+  'use strict';
+  var nav=window.RW_Navigation;
+  if(!nav)throw new Error('RW_NAVIGATION_UNAVAILABLE');
+
+  function hasOwner(){
+    return !!(window.RW_STATE&&window.RW_STATE.app&&window.RW_STATE.app.currentUser&&window.RW_STATE.app.currentUser.isOwner===true);
+  }
+  function permFor(view){
+    var m={dashboard:'dashboard',telesales:'telesales',customers:'customers',pos:'pos',orders:'orders',runsheets:'runsheets',suppliers:'suppliers',purchases:'purchases',receiving:'receiving',items:'items',inventory:'warehouse',vouchers:'vouchers',picking:'picking',loading:'loading',delivery:'delivery',returns:'return',return:'return',unloading:'unloading',finance:'finance',reports:'reports',audit:'owner',hr:'users',crm:'customers',users:'users',roles:'roles',license:'owner',settings:'settings',notifications:'notifications',branches:'branches','online-store':'online-store','purchase-pos':'purchases','vehicle-count':'warehouse','branch-count':'warehouse','general-count':'warehouse',settlement:'finance'};
+    return m[view]||view;
+  }
+  function allowed(view){
+    if(view==='license'||view==='audit')return hasOwner();
+    if(hasOwner())return true;
+    var p=permFor(view);
+    try{return typeof window.RW_Permissions_check==='function'&&window.RW_Permissions_check(p+':view')===true;}catch(e){return false;}
+  }
+  function clean(items){
+    var out=[];
+    (items||[]).forEach(function(x){
+      if(x&&Array.isArray(x.submenu)){
+        var y={};for(var k in x)y[k]=x[k];y.submenu=clean(x.submenu);if(y.submenu.length)out.push(y);return;
+      }
+      if(x&&['hr','crm','users','roles','license','settings','online-store','purchase-pos','branches','vehicle-count','branch-count','general-count'].indexOf(x.view)>=0)return;
+      out.push(x);
+    });return out;
+  }
+  var tree=clean(Array.isArray(nav.menuTree)?nav.menuTree:[]);
+  tree.push(
+    {view:'hr',icon:'fa-id-card',label:'الموارد البشرية',perm:'users:view'},
+    {view:'crm',icon:'fa-handshake',label:'إدارة علاقات العملاء (CRM)',perm:'customers:view'},
+    {view:'users',icon:'fa-users-gear',label:'المستخدمين والصلاحيات',perm:'users:view'},
+    {view:'roles',icon:'fa-user-shield',label:'إدارة أدوار المستخدمين',perm:'roles:view'},
+    {view:'license',icon:'fa-shield-halved',label:'إدارة الترخيص',perm:'owner'},
+    {view:'settings',icon:'fa-gear',label:'إعدادات النظام',perm:'settings:view'}
+  );
+  nav.menuTree=tree;
+
+  var routes={
+    dashboard:[window.RW_Dashboard,'render'],items:[window.RW_Items,'render'],customers:[window.RW_Customers,'render'],
+    suppliers:[window.RW_Suppliers,'render'],branches:[window.RW_Branches,'render'],settings:[window.RW_Settings,'render'],
+    hr:[window.RW_HR,'render'],crm:[window.RW_CRM,'render'],users:[window.RW_Users,'render'],roles:[window.RW_Roles,'render'],
+    license:[window.RW_OwnerLicense,'render'],telesales:[window.RW_TeleSales,'render'],pos:[window.RW_POS,'render'],
+    orders:[window.RW_Orders,'render'],runsheets:[window.RW_Runsheets,'render'],'online-store':[window.RW_OnlineStore,'render'],
+    purchases:[window.RW_Purchases,'renderOrders'],'purchase-pos':[window.RW_Purchases,'renderPOS'],
+    picking:[window.RW_Warehouse,'loadPicking'],loading:[window.RW_Warehouse,'loadLoading'],delivery:[window.RW_Warehouse,'loadDelivery'],
+    return:[window.RW_Warehouse,'loadReturn'],returns:[window.RW_Warehouse,'loadReturn'],unloading:[window.RW_Warehouse,'loadUnloading'],
+    receiving:[window.RW_Warehouse,'loadReceiving'],vouchers:[window.RW_Warehouse,'loadVouchers'],
+    'vehicle-count':[window.RW_Warehouse,'loadVehicleCount'],'branch-count':[window.RW_Warehouse,'loadBranchCount'],
+    'general-count':[window.RW_Warehouse,'loadGeneralCount'],settlement:[window.RW_Warehouse,'loadSettlement'],
+    finance:[window.RW_Finance,'render'],reports:[window.RW_Reports,'render'],audit:[null,null],notifications:[window.RW_Notification,'showPanel']
+  };
+  nav.navigate=function(view){
+    window.RW_STATE.app.currentView=view;
+    if(!allowed(view))return Promise.reject(new Error(view==='license'?'OWNER_ONLY':'PERMISSION_DENIED'));
+    if(view==='audit')return Promise.resolve(window.RW_Audit_renderTab());
+    var r=routes[view];
+    if(r&&r[0]&&typeof r[0][r[1]]==='function')return Promise.resolve(r[0][r[1]]());
+    throw new Error('ROUTE_HANDLER_MISSING:'+view);
+  };
+  window.RW_122_CONTRACT={version:'v1',navigation:'closed',owner:'strict',license:'closed',crm:'closed',users:'closed',roles:'closed'};
+})();
+</script>
 </body>
 </html>
