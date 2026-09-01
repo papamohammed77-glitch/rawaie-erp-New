@@ -1,0 +1,9 @@
+{
+  "event_type": "P144_RUNTIME_SURGICAL_REPAIR_EXECUTED",
+  "target": "Current/PWA/New-main",
+  "repair": "../sw.js -> ./sw.js with scope ../ -> ./",
+  "sha256": "7a7cfc86a197d3a56f55c1a24c5a8d319257729598a286aed8dbc7855c9df923",
+  "bytes": 599007,
+  "production_runtime": "PENDING_MANUAL_PUBLISH_AND_BROWSER_VERIFY",
+  "supabase_credentials": "UNCHANGED; active Production key previously verified"
+}
