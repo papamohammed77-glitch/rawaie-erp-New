@@ -6,7 +6,7 @@ permissions:
   contents: write
 jobs:
   target:
-    if: github.event.head_commit.message == '[new-main-target-persist] temporary GOLD DIAMOND executor'
+    if: startsWith(github.event.head_commit.message, '[new-main-target-persist]')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -22,7 +22,7 @@ jobs:
           from pathlib import Path
           import re, subprocess, tempfile
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
-          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\\s\\S]*?)</script>',s,re.I) if not re.search(r'\\bsrc\\s*=',m.group('a') or '',re.I)]
+          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
           if len(ms)!=1: raise SystemExit('INLINE_RUNTIME_COUNT')
           m=ms[0]; body=m.group('b')
           if 'RAWAEA GOLD DIAMOND SESSION FAIL-CLOSED v1' not in body:
@@ -43,7 +43,7 @@ window.RW_GOLD_DIAMOND_PARITY={version:'v2',navigation:'complete',actions:'compl
 })();
 '''
           candidate=s[:m.start('b')]+body+s[m.end('b'):]
-          m2=[z for z in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\\s\\S]*?)</script>',candidate,re.I) if not re.search(r'\\bsrc\\s*=',z.group('a') or '',re.I)]
+          m2=[z for z in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',candidate,re.I) if not re.search(r'\bsrc\s*=',z.group('a') or '',re.I)]
           if len(m2)!=1: raise SystemExit('FINAL_RUNTIME_COUNT')
           js=Path(tempfile.gettempdir())/'target.js';js.write_text(m2[0].group('b'),encoding='utf-8')
           r=subprocess.run(['node','--check',str(js)],capture_output=True,text=True)
