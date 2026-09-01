@@ -4,8 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'tools/run_final_main_reconstruction_20260831.py'
-      - 'Current/PWA/main/**'
+      - 'Current/PWA/main/main*.md'
       - 'Current/PWA/New-main'
       - '.github/workflows/final_main_reconstruction_execute_20260831.yml'
   workflow_dispatch:
@@ -19,106 +18,68 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - name: Checkout target and authoritative fragments
+      - name: Checkout source and target
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 2
 
-      - name: Sequential MAIN1 to MAIN11 reconstruction — target only
+      - name: MAIN1 to MAIN11 sequential target reconstruction
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
+          git config user.name 'rawaea-new-main-bot'
+          git config user.email 'rawaea-new-main-bot@users.noreply.github.com'
+
+          validate_target() {
+            local stage="$1"
+            python3 - "$stage" <<'PY'
+          import re, subprocess, sys, tempfile
           from pathlib import Path
-          import re, subprocess, tempfile, hashlib, json, os
-
-          target = Path('Current/PWA/New-main')
-          source_dir = Path('Current/PWA/main')
-          parts = [source_dir / f'main{i}.md' for i in range(1, 12)]
-          baseline = target.read_text(encoding='utf-8') if target.exists() else ''
-          baseline_hash = hashlib.sha256(baseline.encode()).hexdigest()
-
-          def normalize_main1(raw):
-              raw = re.sub(r'(?m)^\s*const RW_Auth\s*=\s*', 'var RW_Auth = ', raw, count=1)
-              raw = re.sub(r'(?m)^\s*const RW_Navigation\s*=\s*', 'var RW_Navigation = ', raw, count=1)
-              return raw
-
-          def patch_main7(raw):
-              p = re.compile(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}", re.M)
-              fixed, count = p.subn(r"\1));}", raw, count=1)
-              return fixed if count == 1 else raw
-
-          def validate_fragment(idx, raw):
-              if idx == 1:
-                  if not re.match(r'^\s*<!DOCTYPE html>', raw, re.I): raise RuntimeError('MAIN1_HTML_DOCTYPE_MISSING')
-                  if not re.search(r'^\s*<html\b', raw, re.I | re.M): raise RuntimeError('MAIN1_HTML_ROOT_MISSING')
-                  if not re.search(r'<script\b', raw, re.I): raise RuntimeError('MAIN1_SCRIPT_MISSING')
-                  if re.search(r'</body>|</html>', raw, re.I): raise RuntimeError('MAIN1_DOCUMENT_ALREADY_CLOSED')
-              else:
-                  if re.search(r'^\s*<!doctype\b', raw, re.I | re.M): raise RuntimeError(f'MAIN{idx}_DOCTYPE_FORBIDDEN')
-                  if re.search(r'^\s*</?(?:html|head|body)\b', raw, re.I | re.M): raise RuntimeError(f'MAIN{idx}_DOCUMENT_WRAPPER_FORBIDDEN')
-                  if re.search(r'</script>', raw, re.I): raise RuntimeError(f'MAIN{idx}_SCRIPT_CLOSURE_FORBIDDEN')
-
-          def validate_target(stage):
-              required = ['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn']
-              if stage >= 1: required += ['window.RW_ShellContext','window.RW_Auth','window.RW_Navigation']
-              if stage >= 2: required += ['window.RW_Dashboard']
-              if stage >= 3: required += ['window.RW_Items']
-              if stage >= 4: required += ['window.RW_POS']
-              if stage >= 5: required += ['window.RW_Orders']
-              if stage >= 6: required += ['window.RW_Runsheets']
-              if stage >= 7: required += ['window.RW_Purchases','window.RW_Warehouse']
-              if stage >= 8: required += ['window.RW_Finance']
-              if stage >= 9: required += ['window.RW_Reports']
-              if stage >= 10: required += ['window.RW_OwnerLicense']
-              if stage >= 11: required += ['window.RW_HR','window.RW_CRM','window.RW_Views']
-              missing = [x for x in required if x not in target.read_text(encoding='utf-8')]
-              if missing: raise RuntimeError(f'MAIN{stage}_CONTRACT_MISSING:'+','.join(missing))
-              s = target.read_text(encoding='utf-8')
-              if s.lower().count('</body>') != 1 or s.lower().count('</html>') != 1: raise RuntimeError(f'MAIN{stage}_DOCUMENT_CLOSURE_INVALID')
-              scripts = re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>', s, re.I)
-              if len(scripts) != 1: raise RuntimeError(f'MAIN{stage}_INLINE_SCRIPT_COUNT_INVALID:{len(scripts)}')
-              js_file = Path(tempfile.gettempdir()) / f'rawaea-main{stage}.js'
-              js_file.write_text(scripts[0], encoding='utf-8')
-              r = subprocess.run(['node','--check',str(js_file)], capture_output=True, text=True)
-              if r.returncode: print(r.stderr); raise RuntimeError(f'MAIN{stage}_JS_SYNTAX_FAIL')
-
-          chunks = []
-          for idx, p in enumerate(parts, 1):
-              raw = p.read_text(encoding='utf-8-sig')
-              if idx == 1: raw = normalize_main1(raw)
-              elif idx == 7: raw = patch_main7(raw)
-              validate_fragment(idx, raw)
-              chunks.append(raw.rstrip())
-
-          # Assemble MAIN1 as the shell with final closure, then replace the staged prefix
-          # before each next phase. Only New-main is ever written.
-          current = None
-          main1 = chunks[0] + '\n\n</script>\n</body>\n</html>\n'
-          target.write_text(main1, encoding='utf-8')
-          validate_target(1)
-          subprocess.run(['git','add','Current/PWA/New-main'], check=True)
-          subprocess.run(['git','diff','--cached','--quiet'], check=False)
-          subprocess.run(['git','config','user.name','rawaea-new-main-bot'], check=True)
-          subprocess.run(['git','config','user.email','rawaea-new-main-bot@users.noreply.github.com'], check=True)
-          subprocess.run(['git','commit','-m','[new-main-target-persist] MAIN1 complete'], check=True)
-          subprocess.run(['git','push','origin','HEAD:main'], check=True)
-
-          # Reload the committed target, remove the terminal wrappers, append next module, re-close.
-          for idx in range(2, 12):
-              s = target.read_text(encoding='utf-8')
-              close = re.search(r'\n?</script>\s*</body>\s*</html>\s*$', s, re.I)
-              if not close: raise RuntimeError(f'MAIN{idx}_TARGET_CLOSURE_NOT_FOUND')
-              s = s[:close.start()].rstrip() + '\n\n' + chunks[idx-1] + '\n\n</script>\n</body>\n</html>\n'
-              target.write_text(s, encoding='utf-8')
-              validate_target(idx)
-              subprocess.run(['git','add','Current/PWA/New-main'], check=True)
-              subprocess.run(['git','commit','-m',f'[new-main-target-persist] MAIN{idx} complete'], check=True)
-              subprocess.run(['git','push','origin','HEAD:main'], check=True)
-
-          print(json.dumps({'status':'MAIN1_TO_MAIN11_TARGET_COMPLETE','baseline_sha256':baseline_hash,'final_sha256':hashlib.sha256(target.read_bytes()).hexdigest(),'target':'Current/PWA/New-main'}, ensure_ascii=False))
+          stage=int(sys.argv[1])
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          required=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn']
+          for n in [('RW_ShellContext',1),('RW_Auth',1),('RW_Navigation',1),('RW_Dashboard',2),('RW_Items',3),('RW_POS',4),('RW_Orders',5),('RW_Runsheets',6),('RW_Purchases',7),('RW_Warehouse',7),('RW_Finance',8),('RW_Reports',9),('RW_OwnerLicense',10),('RW_HR',11),('RW_CRM',11),('RW_Views',11)]:
+              if stage>=n[1]: required.append(n[0])
+          missing=[x for x in required if x not in s]
+          if missing: raise SystemExit('MAIN%d_CONTRACT_MISSING:%s'%(stage,','.join(missing)))
+          if s.lower().count('</body>')!=1 or s.lower().count('</html>')!=1: raise SystemExit('MAIN%d_DOCUMENT_CLOSURE_INVALID'%stage)
+          scripts=re.findall(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*?)</script>',s,re.I)
+          if len(scripts)!=1: raise SystemExit('MAIN%d_INLINE_SCRIPT_COUNT_INVALID:%d'%(stage,len(scripts)))
+          p=Path(tempfile.gettempdir())/('rawaea-main%d.js'%stage); p.write_text(scripts[0],encoding='utf-8')
+          r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
+          if r.returncode: print(r.stderr); raise SystemExit('MAIN%d_JS_SYNTAX_FAIL'%stage)
+          print('MAIN%d_TARGET_VALID'%stage)
           PY
+          }
+
+          test -s Current/PWA/main/main1.md
+          cp Current/PWA/main/main1.md Current/PWA/New-main
+          printf '\n</script>\n</body>\n</html>\n' >> Current/PWA/New-main
+          validate_target 1
+          git add Current/PWA/New-main
+          git commit -m '[new-main-target-persist] MAIN1 complete'
+          git push origin HEAD:main
+
+          for stage in 2 3 4 5 6 7 8 9 10 11; do
+            python3 - "$stage" <<'PY'
+          import re,sys
+          from pathlib import Path
+          stage=int(sys.argv[1])
+          target=Path('Current/PWA/New-main')
+          s=target.read_text(encoding='utf-8')
+          m=re.search(r'\n?</script>\s*</body>\s*</html>\s*$',s,re.I)
+          if not m: raise SystemExit(f'MAIN{stage}_TARGET_CLOSURE_NOT_FOUND')
+          frag=Path(f'Current/PWA/main/main{stage}.md').read_text(encoding='utf-8-sig').rstrip()
+          frag=re.sub(r'\n?```(?:javascript|js)?\s*$','',frag,flags=re.I).rstrip()
+          if re.search(r'</script>',frag,re.I): raise SystemExit(f'MAIN{stage}_SOURCE_SCRIPT_CLOSURE')
+          target.write_text(s[:m.start()].rstrip()+'\n\n'+frag+'\n\n</script>\n</body>\n</html>\n',encoding='utf-8')
+          PY
+            validate_target "$stage"
+            git add Current/PWA/New-main
+            git commit -m "[new-main-target-persist] MAIN${stage} complete"
+            git push origin HEAD:main
+          done
 
       - name: Final New-main browser smoke
         shell: bash
@@ -127,16 +88,8 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null 2>&1
-          python3 -m http.server 8123 --directory Current/PWA >/tmp/new-main-http.log 2>&1 &
+          python3 -m http.server 8123 --directory Current/PWA >/tmp/rawaea-new-main-http.log 2>&1 &
           node <<'NODE'
           const {chromium}=require('playwright');
-          (async()=>{
-            const browser=await chromium.launch({headless:true}); const page=await browser.newPage();
-            const pe=[],ce=[],bad=[]; page.on('pageerror',e=>pe.push(e.message)); page.on('console',m=>{if(m.type()==='error')ce.push(m.text())}); page.on('response',r=>{if(r.status()>=400 && !/favicon\\.ico$/i.test(r.url())) bad.push(r.status()+':'+r.url())});
-            await page.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000}); await page.waitForTimeout(2500);
-            const r=await page.evaluate(()=>({lang:document.documentElement.lang,login:!!document.getElementById('rw-login-page'),app:!!document.getElementById('rw-main-shell'),shell:!!window.RW_ShellContext,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense,mods:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_HR','RW_CRM'].every(k=>!!window[k])}));
-            console.log(JSON.stringify({r,pe,ce,bad}));
-            if(r.lang!=='ar'||!r.login||!r.app||!r.shell||!r.auth||!r.nav||!r.views||!r.owner||!r.mods||pe.length||ce.length||bad.length) process.exit(2);
-            await browser.close();
-          })().catch(e=>{console.error(e);process.exit(2)});
+          (async()=>{const browser=await chromium.launch({headless:true});const page=await browser.newPage();const pe=[],ce=[],bad=[];page.on('pageerror',e=>pe.push(e.message));page.on('console',m=>{if(m.type()==='error')ce.push(m.text())});page.on('response',r=>{if(r.status()>=400&&!/favicon\\.ico$/i.test(r.url()))bad.push(r.status()+':'+r.url())});await page.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await page.waitForTimeout(2500);const x=await page.evaluate(()=>({lang:document.documentElement.lang,login:!!document.getElementById('rw-login-page'),app:!!document.getElementById('rw-main-shell'),shell:!!window.RW_ShellContext,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense,mods:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_HR','RW_CRM'].every(k=>!!window[k])}));console.log(JSON.stringify({x,pe,ce,bad}));if(x.lang!=='ar'||!x.login||!x.app||!x.shell||!x.auth||!x.nav||!x.views||!x.owner||!x.mods||pe.length||ce.length||bad.length)process.exit(2);await browser.close();})().catch(e=>{console.error(e);process.exit(2)});
           NODE
