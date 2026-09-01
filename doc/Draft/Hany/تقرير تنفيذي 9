@@ -1,0 +1,355 @@
+# RAWAEA ERP — تقرير تنفيذي 9
+## P127 — Memory Recovery + Forensic Reconciliation + Surgical Repair Attempt
+**التاريخ:** 2026-09-01
+**الهدف:** استكمال الحالة الفعلية من أحدث الأحداث، تنفيذ الخطوة المأذونة فقط، وتوثيق كل نجاح/فشل دون حذف أو إعادة كتابة التقارير التاريخية.
+
+---
+
+## 1. نطاق الجولة
+
+بدأت الجولة بقراءة `MASTER - RAWAEA ERP.md` كاملًا، ثم قراءة `CURRENT_STATE.md` قبل أي تعديل جديد، ثم مراجعة أحدث تقرير في `doc/Draft/Hany`، والتحقيق المباشر في GitHub وSupabase.
+
+تم احترام قاعدة أن التقارير والذاكرة السابقة أدلة وليست Source of Truth. تم التحقق من Git HEAD والـtarget blob وسجل commits، كما تم فحص حالة Supabase ووجود الـEdge Functions ذات الصلة.
+
+المطلوب `doc/Draft/medhat/برومبت 124+ ملحق تقرير` تم البحث عنه مباشرة في Git، ولم يظهر كـtracked Git blob في المسار المطلوب؛ لذلك لم يتم اختلاق محتواه أو إعادة بنائه من الذاكرة.
+
+---
+
+## 2. استرجاع الذاكرة والحالة
+
+### 2.1 MASTER
+
+تمت قراءة `MASTER - RAWAEA ERP.md` كاملًا، واعتماد قواعده التنفيذية:
+
+- Operational Truth = Git الحالي + Production Supabase + deployed capabilities + runtime evidence.
+- UNKNOWN ليس BUG.
+- لا reconstruction ولا replacement للـCurrent بالماضي.
+- لا حذف للتقارير التاريخية.
+- لا استخدام لـartificial executor كبديل عن runtime الحقيقي.
+- كل إصلاح يجب أن يكون surgical ومحدودًا.
+- بعد كل عملية منطقية: ACTION → VERIFY → CURRENT_STATE → LAST VERIFIED EVENT → NEXT ACTION.
+
+### 2.2 CURRENT_STATE
+
+تمت قراءة `CURRENT_STATE.md` قبل التنفيذ.
+
+الحالة المعلنة عند الدخول كانت P126/ثم P127، مع بقاء `Current/PWA/New-main` مجمدًا، ووجود divergence في الـeffective navigation، تحديدًا حول `reports-dashboard`, `reports-detailed`, `reports-comprehensive`.
+
+### 2.3 أحدث تقارير Hany
+
+تم فحص مجلد `doc/Draft/Hany`.
+
+أحدث تقرير موجود قبل هذه الجولة كان:
+
+`تقرير تنفيذي 8`
+
+ولم يوجد تقرير 9 قبل إنشاء هذا التقرير. لم يتم حذف أو overwrite أي تقرير سابق.
+
+---
+
+## 3. Git Identity / Target Identity
+
+الـtarget الرسمي:
+
+`Current/PWA/New-main`
+
+الـtarget blob الذي تم التحقق منه قبل أي محاولة product mutation:
+
+`d657d6e4bdd90a9b60f658a8bf28560e1b10f755`
+
+تم التحقق أيضًا من تاريخ تعديل الملف، والذي يوضح أن آخر تغييرات مباشرة على `New-main` كانت سلسلة الترحيل/الإغلاق السابقة:
+
+- MAIN7 … MAIN11
+- `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1`
+- `MAIN1 NOTIFICATION CONTRACT CLOSURE v1`
+
+ولم يظهر commit لاحق يقدّم نسخة بديلة موثقة للـtarget بنفس الملف مع إصلاح routing الذي نحتاجه الآن.
+
+---
+
+## 4. أهم نتيجة من التحقيق المباشر
+
+تم التحقق مباشرة من محتوى الـtarget الحالي.
+
+داخل الجزء الأساسي توجد routes متخصصة للتقارير في طبقة `RW_Views`, ومنها:
+
+- `reports`
+- `reports-dashboard`
+- `reports-detailed`
+- `reports-comprehensive`
+
+والـ`reports-comprehensive` مرتبط بـ:
+
+`RW_Reports_Comprehensive.render`
+
+لكن لاحقًا داخل نفس الـHTML توجد كتلة:
+
+`RAWAEA 122 DIAMOND CONTRACT CLOSURE v1`
+
+وتعيد تعريف `RW_Navigation.routes` بجدول جديد يحتوي على `reports` لكنه لا يضيف:
+
+- `reports-dashboard`
+- `reports-detailed`
+- `reports-comprehensive`
+
+كما أن `nav.navigate()` ينتهي بخطأ:
+
+`ROUTE_HANDLER_MISSING:<view>`
+
+إذا لم يوجد route في جدول `RW_Navigation` النهائي.
+
+### الاستنتاج
+
+هذا **static orchestration defect مثبت**، وليس مجرد اختلاف أسماء أو legacy helper.
+
+الخلل المحدد هو أن route definitions المتخصصة موجودة في طبقة سابقة، ثم يتم إخفاؤها/استبدالها بجدول routes متأخر أضيق.
+
+---
+
+## 5. محاولة التحقق runtime
+
+تم التحقيق في عدة مسارات تاريخية:
+
+- `forensic-pwa-closure.yml`
+- `new_main_clean_room_20260831.yml`
+- `medhat-auth-login-verification-20260818.yml`
+- مسارات reconstruction التاريخية
+
+لكنها جميعًا تحتوي على واحد أو أكثر من الأنماط التالية:
+
+- mutation للـtarget قبل الاختبار.
+- persist/push تلقائي.
+- reconstruction أو candidate generation.
+- عدم فصل verifier عن Subject Under Test.
+
+لذلك تم رفضها كـindependent runtime evidence طبقًا لقواعد المشروع.
+
+البيئة الحالية لا تستطيع الاتصال مباشرةً بـ`raw.githubusercontent.com` من container المحلي، لذلك فشل الاتصال الشبكي لم يتم اعتباره application failure.
+
+لم يتم إثبات public deployment مستقل للبصمة الحالية من الأدلة المتاحة.
+
+### نتيجة runtime
+
+`EXACT_TARGET_BROWSER_RUNTIME = UNVERIFIED`
+
+وليس PASS أو FAIL.
+
+---
+
+## 6. Production / Supabase
+
+تم التحقق مباشرة من Production project:
+
+`fiilmooggumokxanwiyx`
+
+وتم تأكيد وجود capabilities الأساسية المطلوبة للمعمارية الحالية، ومنها security-definer/RPC capabilities الخاصة بـ:
+
+- company resolution
+- permission checks
+- stock movement
+- stock reservation/release
+- journal posting
+
+Production بقيت read-only في هذه الجولة.
+
+لم يتم إجراء أي mutation غير ضروري على قاعدة البيانات.
+
+وجود Edge Functions لا يُعامل كدليل أنها authoritative consumer path إلا إذا ثبت استدعاؤها من التطبيق/runtime.
+
+---
+
+## 7. أخطاء المحاولات السابقة التي ثبتت من السجل
+
+### 7.1 Artificial verifier / executor
+
+تم تشغيل/تصميم مسارات تاريخية كانت تقوم بتعديل target أو إعادة بنائه ثم اختباره.
+
+**المشكلة:** النتيجة لا تثبت حالة target الأصلية، لأن أداة الإثبات نفسها تغيّر Subject Under Test.
+
+**القرار:** هذه المسارات تصلح كـhistorical evidence فقط، وليست closure evidence.
+
+### 7.2 Reconstruction / overlay
+
+تم في تاريخ المشروع الاعتماد على reconstruction/overlay لضم طبقات MAIN المختلفة.
+
+**المشكلة:** يسبب احتمال duplicate contracts وownership ambiguity ويجعل نجاح النص لا يساوي نجاح runtime.
+
+**القرار:** ممنوع تكراره في هذه الجولة.
+
+### 7.3 الاعتماد على التقارير كحقيقة
+
+التقارير السابقة كانت مفيدة لاستعادة السياق، لكنها أحيانًا سبقت الحالة الفعلية للـGit أو لم تمتلك runtime proof مستقلاً.
+
+**القرار:** Git/Supabase/runtime evidence هي المرجع، والتقارير forensic records فقط.
+
+---
+
+## 8. محاولة الإصلاح في هذه الجولة
+
+تم تحديد الإصلاح المطلوب بدقة:
+
+إضافة/استعادة route mapping المتخصص للتقارير داخل **الـeffective `RW_Navigation.routes` النهائي**، بحيث لا تُفقد:
+
+- `reports-dashboard`
+- `reports-detailed`
+- `reports-comprehensive`
+
+مع الحفاظ على `reports` العام وبقية routes، وعدم حذف MAIN122 أو MAIN1 notification closure.
+
+### لماذا لم يُطبّق التعديل؟
+
+واجهة GitHub المتاحة لتنفيذ كتابة ملف موجود توفر `update_file` الذي يتطلب **replacement content كاملًا** للملف.
+
+`Current/PWA/New-main` هو monolithic HTML كبير.
+
+لم تتوفر أداة patch/partial-blob تسمح بتعديل بضعة أسطر مع الحفاظ آليًا على بقية الـblob.
+
+لذلك تطبيق التعديل إما كان سيحتاج:
+
+1. إعادة بناء/إرسال الملف كاملًا، أو
+2. تشغيل Executor خارجي يعدّل الهدف تلقائيًا.
+
+وكلا الخيارين يتعارضان مع قواعد هذه الجولة، لأن الأول يحمل خطر corruption/reconstruction، والثاني يعيد نفس مشكلة verifier-mutates-target التي تم رفضها تاريخيًا.
+
+### القرار التنفيذي
+
+**لم يتم تزوير الإصلاح ولم يتم المساس بـ`New-main` في هذه الجولة.**
+
+هذا Failure في **وسيلة التنفيذ المتاحة**، وليس Failure مثبتًا في منطق الإصلاح نفسه.
+
+---
+
+## 9. ما نجح
+
+- استرجاع الذاكرة من MASTER.
+- قراءة `CURRENT_STATE.md` قبل mutation.
+- استعادة أحدث تسلسل Git الفعلي.
+- تحديد أحدث تقرير Hany = تقرير 8 قبل هذه الجولة.
+- إثبات غياب Prompt 124 كـtracked blob في المسار المحدد.
+- إثبات target blob الحالي.
+- إثبات divergence في effective navigation بطريقة static deterministic.
+- التحقق المباشر من Supabase capability baseline.
+- رفض workflows التاريخية غير المستقلة كدليل runtime.
+- عدم حذف أي تقرير تاريخي.
+- عدم mutation في Production.
+- عدم mutation في `New-main` عندما تعذر patch آمن.
+
+---
+
+## 10. ما فشل
+
+### F1 — exact-target browser runtime
+
+**الحالة:** UNVERIFIED.
+
+**السبب:** لا يوجد مسار public/isolated موثق للبصمة الحالية، والـcontainer المحلي لا يستطيع جلب raw GitHub.
+
+### F2 — surgical product patch
+
+**الحالة:** NOT APPLIED.
+
+**السبب:** GitHub tool المتاح للـexisting-file write يتطلب full replacement content ولا يقدم partial patch operation.
+
+### F3 — Prompt 124 direct retrieval
+
+**الحالة:** EVIDENCE LIMITATION.
+
+**السبب:** الملف غير موجود كـtracked blob في المسار المطلوب.
+
+---
+
+## 11. التقييم
+
+### Root cause الحالي
+
+المشكلة المثبتة ليست missing Reports module.
+
+المشكلة هي **late orchestration override** داخل target يجعل route map النهائي أضيق من contract surface الموجود قبله.
+
+### Confidence
+
+- Static navigation defect: **HIGH**
+- Target identity: **HIGH**
+- Production capability baseline: **HIGH**
+- Browser runtime impact: **NOT PROVEN**
+- Need for surgical route correction: **HIGH**
+
+---
+
+## 12. خطة المرحلة التالية
+
+### المرحلة A — Safe target patch
+
+يجب تنفيذ تعديل موضعي داخل `Current/PWA/New-main` فقط، مع الحفاظ على الـblob كاملًا، وإضافة routes المتخصصة إلى الـeffective routes map النهائي.
+
+المطلوب تحديدًا:
+
+```js
+'reports-dashboard':[window.RW_Reports,'renderDashboard'],
+'reports-detailed':[window.RW_Reports,'renderDetailed'],
+'reports-comprehensive':[window.RW_Reports_Comprehensive,'render']
+```
+
+والـmapping الدقيق للـmethods يجب أن يُؤخذ من target نفسه/current source، لا أن يُفترض من الاسم فقط، قبل commit النهائي.
+
+### المرحلة B — Structural verification
+
+بعد patch:
+
+- JavaScript syntax check.
+- route key inventory.
+- duplicate navigation override detection.
+- protected file integrity.
+- target hash recording.
+
+### المرحلة C — Runtime verification
+
+إنشاء/استخدام verifier **لا يغير target**، ويستخدم exact target blob كما هو، ويختبر routes المطلوبة.
+
+### المرحلة D — Supabase compatibility
+
+إعادة فحص capabilities ذات الصلة فقط بعد تغير routing.
+
+### المرحلة E — Closure
+
+لا GOLD ولا DIAMOND ولا COMPLETE ولا Closed 100% إلا بعد runtime/data/audit evidence مستقل.
+
+---
+
+## 13. التوصية الحاسمة
+
+لا تعالج العائق الحالي بإنشاء executor جديد.
+
+الحل الصحيح تقنيًا هو توفير **Git patch-capable write path** أو إجراء التعديل على نسخة محلية مطابقة للـSHA ثم commit للـblob الناتج، مع إثبات أن التغيير محدود إلى route map فقط.
+
+عند توفر هذا المسار يمكن تنفيذ الإصلاح في عملية واحدة atomic، ثم التحقق ثم تحديث `CURRENT_STATE.md` فورًا.
+
+---
+
+## 14. الحالة النهائية للجولة
+
+`MEMORY_RECOVERY = PASS`
+
+`HISTORICAL_RECONCILIATION = PASS`
+
+`TARGET_IDENTITY = PASS`
+
+`SUPABASE_BASELINE = PASS`
+
+`STATIC_NAVIGATION_DEFECT = CONFIRMED`
+
+`EXACT_TARGET_RUNTIME = UNVERIFIED`
+
+`SURGICAL_PRODUCT_PATCH = BLOCKED_BY_SAFE_WRITE_PATH`
+
+`PRODUCTION_MUTATION = NONE`
+
+`GOLD = NO`
+
+`DIAMOND = NO`
+
+`COMPLETE = NO`
+
+`CLOSED_100 = NO`
+
+**لم يتم إعلان أي إغلاق كاذب.**
