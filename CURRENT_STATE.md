@@ -139,4 +139,5 @@
 `MAIN_REPLACEMENT = NOT AUTHORIZED`
 `GOLDEN_DIAMOND = NOT CERTIFIED`
 
-<!-- TEMP CLOSURE TRIGGER: remove after runner writes Current/PWA/New-main. -->
+<!-- TEMP CLOSURE TRIGGER: final verification run -->
+<!-- TEMP CLOSURE TRIGGER 2 -->
