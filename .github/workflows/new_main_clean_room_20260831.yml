@@ -68,3 +68,5 @@ jobs:
           git config user.email 'rawaea-surgical-bot@users.noreply.github.com'
           git commit -m '[new-main-surgical-persist] persist verified surgical New-main repair'
           git push origin HEAD:main
+
+# P124 temporary trigger: Browser E2E remains explicitly PAUSED; restore this file after surgical target persistence.
