@@ -28,7 +28,7 @@ jobs:
           set -euo pipefail
           test -s Current/PWA/main.html
           sha256sum Current/PWA/main.html | cut -d' ' -f1 > /tmp/legacy-before.sha256
-      - name: Execute surgical target reconciliation
+      - name: Execute authoritative surgical reconciliation
         shell: bash
         run: |
           set -euo pipefail
