@@ -1,0 +1,304 @@
+# تقرير تنفيذي 8 — المقارنة الجنائية لـ22 مصدرًا وخطة الإصلاح الجراحي
+
+التاريخ: 2026-09-01
+المسؤول: CTO / Forensic Continuity Execution
+النطاق: `Current/PWA/New-main` كهدف منتج نهائي فقط؛ لا تعديل في `Current/PWA/main.html`
+
+## 1. هدف الجولة
+هذه الجولة لم تبدأ من الصفر. الغرض هو استرجاع آخر حالة فعلية من Git وSupabase والسجلات المنشورة، ثم فحص الوضع النهائي للهدف `Current/PWA/New-main` مقابل المصدرين:
+- `Original/PWA/main/main1.md` ... `main11.md`
+- `Current/PWA/main/main1.md` ... `main11.md`
+
+إجمالي المصادر = 22 ملفًا. لا تدخل الملفات الثلاثة المؤقتة ذات الأسماء `.new-main-*` ضمن هذه الـ22؛ تم التعامل معها كآثار تنفيذية/تشخيصية فقط، دون حذفها.
+
+الحكم لا يعتمد على التقارير وحدها، بل على Git الحالي، الملفات نفسها، وProduction Supabase، مع اعتبار التقارير والـprompts أدلة سياقية لا Source of Truth.
+
+## 2. استعادة الذاكرة
+### 2.1 MASTER
+تمت قراءة `doc/Draft/medhat/MASTER - RAWAEA ERP.md` كاملًا. تم إعادة تثبيت هرم الحقيقة:
+current Git / Production / deployed runtime / DB contracts > verified artifacts > historical contracts > reports > memory > assumptions.
+
+تم الالتزام بقاعدة: لا تعديل قبل معرفة `CURRENT_STATE` وآخر حدث متحقق، ولا يجوز اعتبار CI PASS أو وجود namespace دليلًا على runtime completion.
+
+### 2.2 Prompt 124 + الملحق
+تم طلب:
+`doc/Draft/medhat/برومبت 124+ ملحق تقرير`
+ولكن المسار لم يرجع Git blob صالحًا، وcode search لم يجد نسخة قابلة للاسترجاع. تم تصنيف ذلك صراحةً كـEvidence Limitation ولم يتم اختراع المحتوى أو إعادة بنائه من الذاكرة.
+
+### 2.3 أحدث Hany
+تمت مراجعة سلسلة تقارير `doc/Draft/Hany` حتى التقرير 7. التقرير 7 هو آخر تقرير موجود قبل هذه الجولة، وليس تقرير 6. هذا مهم لأن التقرير 7 أثبت:
+- وجود `MAIN122` داخل target.
+- persistence لإصلاحات سابقة داخل target blob.
+- divergence حقيقي في final navigation.
+- عدم وجود runtime/browser proof موثوق.
+- عدم إعلان GOLD/DIAMOND/COMPLETE.
+
+## 3. الحالة الفعلية عند بداية الجولة
+Git main الحالي:
+- HEAD: `92d35c2ebf4108e046edadd359d3176d6d04a0a4`
+- آخر commit: `docs: record P125 Hany report 7 completion`
+- parent: `dba7f07e682541ccf9f6a63a5c3751625525df42`
+
+`CURRENT_STATE.md` كان آخر سجل تشغيلي قبل هذه الجولة، وحالته المعلنة كانت: target static integration حاضر، final navigation orchestration غير مغلق، runtime exact-target غير متحقق، ولا يوجد closure claim.
+
+## 4. Supabase direct verification
+Production project: `SMART ERP`
+Project ref: `fiilmooggumokxanwiyx`
+PostgreSQL: 17.6
+
+تم الاستعلام المباشر عن الدوال الحرجة، وثبت وجود:
+- `app_private.current_user_company_id()` — SECURITY DEFINER
+- `app_private.current_user_has_permission(text)` — SECURITY DEFINER
+- `post_stock_movement(...)` — SECURITY DEFINER، بنسختين إحداهما تدعم idempotency key
+- `reserve_stock(...)` — SECURITY DEFINER
+- `release_stock_reservation(...)` — SECURITY DEFINER
+- `post_journal_entry(...)` — SECURITY DEFINER
+
+وهذا يثبت أن الـdatabase capability layer موجودة، لكنه لا يثبت أن كل UI path يستدعي العقد الصحيح في كل runtime path.
+
+لم يتم إجراء أي mutation على Production في هذه الجولة.
+
+## 5. جرد المصدرين — 22 ملفًا
+تم التحقق من وجود 11 ملفًا في Original و11 في Current. البصمات الحالية للـCurrent المصدرية هي:
+- main1 `de3ea2f6...`
+- main2 `4f612cd4...`
+- main3 `6d1f2f9a...`
+- main4 `095b2b34...`
+- main5 `8e7c50f4...`
+- main6 `af26233e...`
+- main7 `a5ae5139...`
+- main8 `da64f6e6...`
+- main9 `e487c0a7...`
+- main10 `372d216f...`
+- main11 `80585c51...`
+
+والـOriginal المقابلة موجودة ببصماتها التاريخية المثبتة في Git.
+
+## 6. نتيجة المقارنة بين Original وCurrent
+المقارنة لا تعني أن Current يجب أن يساوي Original byte-for-byte. Current يحتوي hardening وتعديلات contract مقصودة، ولذلك تم تصنيف الفروق على النحو التالي.
+
+### MAIN1
+Current أضاف tenant/context hardening وexplicit runtime identity مع الحفاظ على contracts الأساسية الخاصة بـAuth/Permissions/Audit/Notification/Workflow. لا توجد دالة أساسية مثبت فقدانها في inventory المقارن.
+الحكم: PRESERVE مع فحص runtime فقط؛ لا نسخ من Original.
+
+### MAIN2
+Current يحافظ على دوال Dashboard/Items وعمليات categories/stock matrix/upload/report. الـinventory يبين عدم فقدان functions أو IDs أو tables أو edge functions الأساسية، مع حذف عدد من global helpers التي تبدو implementation artifacts لا public contracts.
+هناك duplicate namespace داخل target: طبقة `MAIN2 COMPATIBILITY` ثم `MAIN2 AUTHORITATIVE MODULE`. هذا conflict بنيوي يجب عدم حذفه بلا proof، لكنه يحتاج ownership واحدًا واضحًا.
+الحكم: PRESERVE/RECONCILE، لا reconstruction.
+
+### MAIN3
+Current يحتوي نسخة موسعة من Users/Customers/Branches/Suppliers/Settings مقارنة بالـOriginal، وأضاف helpers وtenant-aware access patterns. الـinventory يثبت فقدان عدد من helper names وIDs التاريخية والـedge function names القديمة، لكن معظمها يبدو tied إلى implementation surface القديم لا إلى public UI contract.
+الحكم: UNKNOWN لبعض التفاصيل؛ لا يتم إحياء helper قديم إلا إذا ثبت consumer فعلي له في target/runtime.
+
+### MAIN4
+Current يحافظ على POS/Roles/Telesales contracts الأساسية، ولا توجد functions/IDs/tables/edge functions مفقودة حسب inventory المقارن. التعديل الملحوظ هو إدخال tenant/company helper ومرور عمليات البيع عبر edge capability.
+الحكم: PRESERVE.
+
+### MAIN5
+Current يحافظ على Orders/Runsheets public functions، لكن implementation أصبح أكثر اعتمادًا على runtime helpers وedge calls. الـinventory يوضح غياب edge function names التاريخية داخل هذا الملف نفسه (`append-to-runsheet`, `confirm-order`, `create-runsheet`, `delete-order`) مع بقاء الوظائف public.
+هذا ليس دليل حذف capability من النظام كله؛ إنما دليل تغير ownership إلى orchestration/edge layer.
+الحكم: RECONCILE ownership قبل أي إصلاح.
+
+### MAIN6
+Current حافظ على Online Store/Purchases functions والـIDs والجداول والـedge functions الأساسية؛ أضاف helpers للـtenant/token/safety. لا توجد functions/IDs/tables/edge functions مفقودة حسب inventory.
+الحكم: PRESERVE.
+
+### MAIN7
+Current هو Warehouse orchestration أكثر انضباطًا من Original: يستعمل `RW_ShellContext`, session token, operation/idempotency helper، ويترك physical stock mutation للـEdge/RPC. inventory يثبت بقاء public functions، لكنه يبين أن بعض historical IDs وEdge function references اختفت من الملف نفسه لأن ownership انتقل خارج UI.
+الحكم: PRESERVE architecture؛ لا إعادة كتابة للـwarehouse UI ولا frontend stock writer جديد.
+
+### MAIN8
+Current Finance أضاف cache/tenant helpers ويدعم RPCs أحدث مثل `get_profit_loss`, `get_trial_balance`, `get_balance_sheet`, `get_budget_vs_actual`. inventory يثبت أن بعض الـOriginal functions/IDs/edge function names لم تعد موجودة؛ هذا يعكس migration من direct UI endpoint patterns إلى capability layer.
+الحكم: RECONCILE by behavior، لا restore للـlegacy edge names.
+
+### MAIN9
+Current Reports أعاد تنظيم التقارير إلى Dashboard/Detailed/Comprehensive مع RPCs أحدث. inventory يثبت فقدان بعض historical IDs (`reports-list`, `reports-sections`) وبعض legacy edge functions، لكن public `RW_Reports` و`RW_Reports_Comprehensive` موجودان في target.
+الحكم: PRESERVE current report architecture مع إصلاح orchestration النهائي فقط إذا ثبت runtime gap.
+
+### MAIN10
+Current Owner/License وViews يعيد تنظيم public navigation handlers مقارنة بالـOriginal. لا توجد IDs مفقودة، لكن inventory يثبت غياب بعض helper functions الداخلية القديمة.
+الحكم: PRESERVE public behavior؛ لا إعادة helper names لمجرد التماثل النصي.
+
+### MAIN11
+Current يضيف HR/CRM tenant-aware helpers (`_getCompanyId`, `_rwCompanyId`, sequence guards، إلخ) مع بقاء public functions/IDs/listeners/storage key. inventory لا يثبت فقدان public function أو ID.
+الحكم: PRESERVE؛ runtime boot هو موضوع الاختبار، وليس النسخ من Original.
+
+## 7. الوضع الفعلي لـ New-main
+الهدف `Current/PWA/New-main` موجود كـmonolithic HTML blob، وليس كتجميع byte-for-byte للـ22 ملفًا.
+
+القراءة المباشرة تثبت وجود:
+- shell/login/header/sidebar/session infrastructure
+- `RW_ShellContext`
+- `RW_Auth`
+- `RW_Permissions`
+- `RW_Notification`
+- `RW_Audit`
+- `RW_Dashboard`
+- `RW_Items`
+- `RW_Branches`
+- `RW_Settings`
+- `RW_Users`
+- `RW_Customers` / `RW_CRM`
+- `RW_Suppliers`
+- `RW_POS`
+- `RW_Roles`
+- `RW_TeleSales`
+- `RW_Orders`
+- `RW_Runsheets`
+- `RW_OnlineStore`
+- `RW_Purchases`
+- `RW_Warehouse`
+- `RW_Finance`
+- `RW_Reports`
+- `RW_Reports_Comprehensive`
+- `RW_OwnerLicense`
+- `RW_HR`
+- `RW_Views`
+- `RW_Navigation`
+
+كما أن target نفسه يحتوي `MAIN1 SURGICAL COMPATIBILITY v3` و`RAWAEA MAIN2 COMPATIBILITY` و`MAIN2 AUTHORITATIVE MODULE` و`RAWAEA 122 DIAMOND CONTRACT CLOSURE v1`.
+
+## 8. العيوب المثبتة في target
+### 8.1 Final Navigation override
+الهدف يحتوي أولًا mapping صحيحًا داخل `RW_Views`:
+- `reports-dashboard` -> `RW_Reports.renderDashboard`
+- `reports-detailed` -> `RW_Reports.renderDetailedReports`
+- `reports-comprehensive` -> `RW_Reports_Comprehensive.render`
+
+ثم تأتي طبقة `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` التي تمسك `window.RW_Navigation` وتعيد تعريف/تغليف السلوك النهائي. في هذه الطبقة يتم اختزال `reports` إلى `RW_Reports.render` في effective route surface.
+
+هذا يخلق divergence بين contract الأصلي الصحيح وبين الـeffective navigation override.
+
+لكن البحث المباشر على target يثبت أيضًا أن `reports-comprehensive` لم تختفِ من `RW_Views` نفسها؛ إذن المشكلة **orchestration exposure** وليست غياب capability.
+
+### 8.2 Main2 duplicate namespace
+target يحتوي:
+- compatibility namespace
+- authoritative namespace لاحقًا
+
+لذلك هناك owner ambiguity وليس دليلًا على أن أحد الجزأين يجب حذفه. الحذف الآن سيكون مخاطرة.
+
+### 8.3 Boot state
+`RW_Auth.enterSystem()` يحمّل context/data ثم يضع initialized ويبدأ navigation. توجد مسارات catch تقوم بتسجيل الخطأ فقط. الـcurrent governance لا يسمح بوصف ذلك defect runtime إلا بعد browser/runtime proof على exact target.
+
+## 9. ما لا يعتبر نقصًا
+العناصر التالية لا تعتبر نقصًا لمجرد اختلافها عن Original:
+- أسماء helper الداخلية التي أزيلت بينما public API محفوظ.
+- edge functions القديمة داخل UI fragment عندما أصبحت العملية delegated إلى capability layer مثبتة في Production.
+- IDs لا يتم استدعاؤها من effective target consumers.
+- globals المحلية التي تم تنظيفها.
+- اختلاف حجم الملف.
+- اختلاف ترتيب functions.
+
+هذه فروق implementation وليست proof of behavioral regression.
+
+## 10. أخطاء ومحاولات سابقة مثبتة
+### خطأ أ — إعادة البناء بدل الإصلاح
+محاولات سابقة تعاملت مع الملفات المنطقية كأنها قطع byte slices واستُخدمت أدوات reconstruction. هذا خطر لأن MAIN1 HTML shell وMAIN2+ modules ليست جميعها من نفس النوع.
+
+### خطأ ب — validator/CI غير موثوق
+ظهرت محاولات validator رفضت HTML strings داخل JavaScript، كما فشلت clean-room runner بسبب `IndentationError` وcheckout لــSHA قديم. لذلك لا يجوز استخدام تلك النتيجة كRuntime proof للهدف الحالي.
+
+### خطأ ج — executor يكتب إلى الهدف
+يوجد workflow/tool قادر على تعديل target وإضافة closure markers. تم رفض تشغيله لأن subject-under-test يجب ألا يعدّل نفسه ليصبح green.
+
+### خطأ د — حذف التاريخ
+تم تثبيت أن تقارير Hany 1–7 محفوظة، وسيُضاف هذا التقرير كـReport 8 دون حذف أو استبدال أي تقرير سابق.
+
+## 11. ما نجح
+- استرجاع الذاكرة من MASTER قبل التنفيذ.
+- إثبات آخر HEAD الفعلي بدل الاعتماد على الذاكرة.
+- تحديد التقرير 7 كتقرير Hany الأحدث.
+- التحقق من وجود 22 مصدرًا فعلية.
+- استخدام inventory المقارن لفصل public-contract loss عن helper/global drift.
+- قراءة New-main نفسه وإثبات أن معظم capabilities موجودة داخله بالفعل.
+- إثبات أن `reports-comprehensive` capability نفسها موجودة، وأن الخلل المثبت يقع في effective orchestration.
+- التحقق المباشر من وجود capabilities حرجة في Supabase.
+- عدم إجراء أي mutation على Production.
+- عدم حذف الملفات التاريخية أو إعادة كتابة New-main بالكامل.
+
+## 12. ما فشل / ما يزال غير محسوم
+- لا يوجد browser/runtime gate موثوق مرتبط بالـtarget exact SHA حتى الآن.
+- لا يمكن اعتبار final navigation bug runtime regression بدون تنفيذ route matrix على target الحقيقي.
+- بعض الفروق بين Current/Original (خصوصًا MAIN3/5/7/8/9/10) تحتاج consumer-level proof قبل أي restoration.
+- Prompt 124 نفسه ما زال غير متاح كblob.
+
+## 13. خطة التصحيح والإصلاح — 10 مراحل كحد أقصى
+### المرحلة 1 — Baseline Freeze
+تجميد exact target SHA وHEAD و22 source SHAs وCURRENT_STATE قبل أي كود.
+
+### المرحلة 2 — Contract Matrix النهائية
+إنشاء mapping وظيفي لكل MAIN من Original + Current -> target owner، مع تصنيف كل عنصر PRESERVE / RECONCILE / UNKNOWN. لا نُدخل helper/internal names إلا عند وجود consumer.
+
+### المرحلة 3 — Effective Navigation Proof
+تنفيذ route matrix على exact target، والتأكد خصوصًا من:
+`reports-dashboard`, `reports-detailed`, `reports-comprehensive`, `audit-log`, `hr`, `crm`, `users`, `roles`, `license`.
+
+### المرحلة 4 — Surgical Navigation Repair
+إذا ثبت أن override `MAIN122` يمنع الوصول إلى `reports-comprehensive`، يتم إصلاح **موضع override المحدد فقط** داخل `Current/PWA/New-main`، دون حذف MAIN122 أو استبدال الملف.
+
+### المرحلة 5 — Namespace Ownership Audit
+تحليل MAIN2 compatibility/authoritative consumers. لا حذف إلا إذا أثبت call graph أن compatibility layer غير مستخدمة.
+
+### المرحلة 6 — Auth/Boot Runtime Gate
+اختبار signed-out, failed-context, authorized-login, owner-login على exact target. يجب أن يكون failure fail-closed ولا يعلن initialized state كحالة نجاح وهمية.
+
+### المرحلة 7 — Capability Integration Gate
+اختبار أن كل writes الحساسة delegated إلى Edge/RPC؛ خصوصًا stock movement/reservation, journal, purchase receiving, sales posting.
+
+### المرحلة 8 — Supabase Reconciliation
+بعد أي behavior change فقط: إعادة فحص RLS, policy scope, function signatures, grants, triggers، والتأكد من عدم إدخال tenant regression.
+
+### المرحلة 9 — Full Regression / Evidence Gate
+اختبار public routes + major workflows، مع إعادة hashing للهدف ومقارنة source/target contracts. لا يعتمد closure على CI alone.
+
+### المرحلة 10 — Closure / CURRENT_STATE
+بعد إثبات Git + Production + runtime + data/audit consistency: تحديث `CURRENT_STATE.md`، self-audit، ثم إعلان الحالة الحقيقية فقط. إذا لم يكتمل أي gate تبقى الحالة OPEN/BLOCKED.
+
+## 14. الخطة الجراحية الموصى بها
+لا يجوز:
+- حذف `New-main` وإعادة كتابته.
+- نسخ Original فوق Current.
+- حذف MAIN122 بالكامل.
+- حذف MAIN2 compatibility قبل consumer proof.
+- إعادة إدخال legacy Edge Functions لمجرد التماثل النصي.
+- تشغيل executor يعدّل subject-under-test.
+- الادعاء GOLD/DIAMOND/COMPLETE قبل runtime proof.
+
+الإجراء الأقرب والأقل مخاطرة هو إثبات المرحلة 3 أولًا. إذا ثبتت الفجوة نفسها في runtime، فالإصلاح المستهدف هو route mapping داخل طبقة override المتأخرة، ثم إعادة جميع gates. هذا تعديل صغير deterministic، ويحافظ على بقية التراكم التاريخي بدل هدمه.
+
+## 15. الحكم الحالي
+`22-source inventory`: PASS
+`Target capability presence`: PASS / BROADLY PRESENT
+`Public-contract loss proven`: NO broad loss proven
+`Navigation orchestration`: FAIL / DIVERGENCE PROVEN STATICALLY
+`MAIN2 ownership`: OPEN / UNKNOWN
+`Auth boot runtime`: UNVERIFIED
+`Exact-target browser/runtime`: UNVERIFIED
+`Production DB capability layer`: PASS (direct read-only verification)
+`Production mutation`: NONE
+`GOLD`: NO
+`DIAMOND`: NO
+`COMPLETE`: NO
+`Closed 100%`: NO
+
+## 16. آخر حدث متحقق لهذه الجولة
+Event ID: `P126-001`
+Type: forensic inventory + target/source reconciliation
+UTC date: 2026-09-01
+Source of truth: GitHub current main + source blobs + target blob + direct Supabase catalog
+Target SHA at investigation start: `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`
+Result: 22-source contract inventory completed; no target code mutation; one static orchestration divergence remains proven.
+Next authorized action: exact-target runtime route verification, ثم إصلاح جراحي واحد فقط إذا أثبت runtime نفس العيب.
+
+## SELF-AUDIT
+- هل تم البدء من الذاكرة/MASTER؟ نعم.
+- هل تم قراءة CURRENT_STATE قبل التنفيذ؟ نعم.
+- هل تم تتبع أحدث Hany report بدل افتراض report 6؟ نعم؛ report 7 هو الأحدث.
+- هل تم اختلاق Prompt 124 المفقود؟ لا.
+- هل تم حذف أي تقرير تاريخي؟ لا.
+- هل تم إعادة كتابة New-main بالكامل؟ لا.
+- هل تم تعديل Production؟ لا.
+- هل تم الاعتماد على reports كـSource of Truth؟ لا.
+- هل كل نقص نصي عومل كـbehavioral defect؟ لا.
+- هل تم إعلان closure غير مثبت؟ لا.
