@@ -9,9 +9,17 @@ PROTECTED_IDS={'rw-login-page','rw-main-shell','rw-page-container','rw-header-ti
 def H(x):return hashlib.sha256(x.encode('utf-8')).hexdigest()
 def im(h):
  xs=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',h,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
- if len(xs)!=1:raise RuntimeError('INLINE_SCRIPT_COUNT_INVALID:'+str(len(xs)))
+ if len(xs)!=1: raise RuntimeError('INLINE_SCRIPT_COUNT_INVALID:'+str(len(xs)))
  return xs[0]
 def js(h):return im(h).group('b')
+def source_js(raw):
+ """Read a fragment as inline JS when available, otherwise as logical JS/HTML source."""
+ try:return js(raw)
+ except RuntimeError:
+  s=raw.lstrip('\ufeff')
+  s=re.sub(r'^\s*```(?:html|javascript|js)?\s*\n','',s,flags=re.I)
+  s=re.sub(r'\n\s*```\s*$','',s,flags=re.I)
+  return s
 def bend(s,p):
  d=0;q=None;e=False;lc=False;bc=False;i=p
  while i<len(s):
@@ -56,7 +64,9 @@ def var(s,n):
    elif c=='/' and nx=='*':bc=True;i+=1
    elif c in "'\"`":q=c
    elif c in '({[':stack.append(c)
-   elif c in ')}]':stack.pop()
+   elif c in ')}]':
+    if not stack:raise RuntimeError('JS_BLOCK_UNDERFLOW:'+n)
+    stack.pop()
    elif c==';' and not stack:return s[st:i+1]
   i+=1
  raise RuntimeError('JS_VAR_TERMINATOR_MISSING:'+n)
@@ -81,8 +91,8 @@ def decls(s):
 def patch_main7(s):
  return re.sub(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}",r'\1));}',s,count=1)
 def merge_source(target,source):
- ops=[]
- for k,n,b in decls(js(source)):
+ ops=[];srcjs=source_js(source)
+ for k,n,b in decls(srcjs):
   target,changed,exists=replace_block(target,k,n,b)
   if changed:ops.append(('replace' if exists else 'insert')+':'+k+':'+n)
  return target,ops
@@ -100,7 +110,7 @@ def validate(h,baseline=None,final=False):
   for x in PROTECTED_IDS:
    if x in baseline and x not in h:raise RuntimeError('PROTECTED_ID_REMOVED:'+x)
 def license_patch(h):
- s=(CUR/'main10.md').read_text(encoding='utf-8-sig');b=var(s,'RW_OwnerLicense')
+ s=(CUR/'main10.md').read_text(encoding='utf-8-sig');b=var(source_js(s),'RW_OwnerLicense')
  if b and 'btn-save-license-only' not in h:
   p=h.find('var RW_Views=');p=p if p>=0 else h.find('var RW_Navigation=')
   if p<0:raise RuntimeError('LICENSE_ANCHOR_MISSING')
@@ -118,31 +128,29 @@ def main():
  if any(not p.is_file() or not p.stat().st_size for p in PARTS):raise RuntimeError('MISSING_MAIN_PART')
  if not TARGET.is_file() or not TARGET.stat().st_size:raise RuntimeError('NEW_MAIN_MISSING')
  if not LEGACY.is_file() or not LEGACY.stat().st_size:raise RuntimeError('LEGACY_MAIN_MISSING')
- baseline=TARGET.read_text(encoding='utf-8');legacy=H(LEGACY.read_text(encoding='utf-8'))
- chunks=[p.read_text(encoding='utf-8-sig') for p in PARTS]; current=baseline
- # Baseline repair is itself surgical and in-memory only. It imports the known-good MAIN1 RW_Table block.
- tblock=var(js(chunks[0]),'RW_Table')
- if tblock and var(js(current),'RW_Table'):
-  b0,b1=im(current).start('b'),im(current).end('b');old=var(js(current),'RW_Table');newjs=js(current).replace(old,tblock,1);current=current[:b0]+newjs+current[b1:]
+ baseline=TARGET.read_text(encoding='utf-8');legacy=H(LEGACY.read_text(encoding='utf-8'));chunks=[p.read_text(encoding='utf-8-sig') for p in PARTS];current=baseline
+ # Repair the known baseline syntax defect using only the corresponding MAIN1 block.
+ tblock=var(source_js(chunks[0]),'RW_Table')
+ if tblock and var(source_js(current),'RW_Table'):
+  b0,b1=im(current).start('b'),im(current).end('b');old=var(source_js(current),'RW_Table');newjs=source_js(current).replace(old,tblock,1);current=current[:b0]+newjs+current[b1:]
  validate(current,baseline)
  phases=[]
  for idx in range(1,12):
-  src=chunks[idx-1]
+  before=H(js(current));src=chunks[idx-1]
   if idx==7:src=patch_main7(src)
-  before=H(js(current));current,ops=merge_source(current,src)
+  current,ops=merge_source(current,src)
   if idx==1:
-   # MAIN1 owner authority is Auth metadata, never owner_profile existence.
-   b=var(js(chunks[0]),'RW_State_DOES_NOT_EXIST')
-   current=re.sub(r"var owner=!!op\.data\|\|meta\.isOwner===true\|\|meta\.isOwner==='true';","var owner=meta.isOwner===true||meta.isOwner==='true';",current,count=1)
-  if idx==10:current=license_patch(current)
+   current,n=re.subn(r"var owner=!!op\.data\|\|meta\.isOwner===true\|\|meta\.isOwner==='true';","var owner=meta.isOwner===true||meta.isOwner==='true';",current,count=1)
+   if n:ops.append('owner:auth-metadata-only')
+  if idx==10:current=license_patch(current);ops.append('license:main10-owner-module')
   validate(current,baseline)
   after=H(js(current))
   if before==after:raise RuntimeError(f'NO_SURGICAL_DELTA_MAIN{idx}')
   phases.append({'phase':idx,'source':str(PARTS[idx-1]),'before_script_sha256':before,'after_script_sha256':after,'artifact_sha256':H(current),'artifact_bytes':len(current.encode()),'operations':ops})
  validate(current,baseline,final=True)
  if H(LEGACY.read_text(encoding='utf-8'))!=legacy:raise RuntimeError('LEGACY_MAIN_HTML_CHANGED')
- ids0=set(re.findall(r'\bid=["\']([^"\']+)["\']',baseline));ids1=set(re.findall(r'\bid=["\']([^"\']+)["\']',current));
- if ids0-ids1:raise RuntimeError('TARGET_DOM_IDS_REMOVED:'+','.join(sorted(ids0-ids1)[:50]))
+ ids0=set(re.findall(r'\bid=["\']([^"\']+)["\']',baseline));ids1=set(re.findall(r'\bid=["\']([^"\']+)["\']',current));removed=sorted(ids0-ids1)
+ if removed:raise RuntimeError('TARGET_DOM_IDS_REMOVED:'+','.join(removed[:50]))
  CTO.mkdir(parents=True,exist_ok=True)
  EVIDENCE.write_text(json.dumps({'event_type':'MASTER_SURGICAL_RECONSTRUCTION_MAIN1_TO_MAIN11','mode':'SEQUENTIAL_DECLARATION_LEVEL_SURGERY','target':str(TARGET),'baseline_target_sha256':H(baseline),'candidate_target_sha256':H(current),'legacy_main_sha256':legacy,'legacy_main_html_modified':False,'phases':phases,'atomic_write':True,'all_phases_validated_before_write':True},ensure_ascii=False,indent=2),encoding='utf-8')
  TARGET.write_text(current,encoding='utf-8')
