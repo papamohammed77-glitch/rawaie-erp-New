@@ -69,19 +69,28 @@
 - The executor now checks the latest branch commit message from Git, executes only when `[P131-EXECUTE]` is present, checks out the PR head branch explicitly, and pushes the surgical target commit back to that branch.
 - This path is intended to make the Job observable and prevent accidental direct mutation of `main` during the surgical execution step.
 
+### P131-10 — ISOLATED_BRANCH_CREATED
+- Created branch `p131-surgical-report-nav-20260901` from main commit `0bfc1ef202b4705ceaa34b9cdda99d1ffe273a08`.
+- The branch is the isolated execution surface for the surgical target repair.
+- `main` remains unchanged with respect to `Current/PWA/New-main` at this checkpoint.
+
+### P131-11 — PR_EXECUTION_TRIGGER_RECORDED
+- The next branch commit will carry `[P131-EXECUTE]` and is the explicit trigger for the PR workflow.
+- The pre-trigger target remains the frozen blob `d657d6e4bdd90a9b60f658a8bf28560e1b10f755` until the workflow itself reports a target commit.
+- No target mutation is authorized outside the PR workflow execution.
+
 ## NEXT AUTHORIZED REPAIR
 ### P131 — DIRECT GIT BLOB/TREE TARGET MUTATION
 Goal: apply the already-proven surgical correction to the existing `Current/PWA/New-main` blob without reconstruction.
 
 Required sequence:
-1. establish the PR branch from the currently logged main state;
-2. trigger the PR workflow with the explicit marker;
-3. inspect the Job, steps, and logs directly;
-4. confirm the target mutation commit and resulting blob SHA on the PR branch;
-5. verify target marker/hash/static contracts;
-6. update `CURRENT_STATE.md` after the target mutation and before advancing `main`;
-7. fast-forward `main` only after verification;
-8. perform runtime verification and only then assess Gold/Diamond closure.
+1. trigger the PR workflow from this isolated branch;
+2. inspect the Job, steps, and logs directly;
+3. confirm the target mutation commit and resulting blob SHA on the PR branch;
+4. update `CURRENT_STATE.md` immediately after the target mutation;
+5. independently verify target marker/hash/static contracts;
+6. only then fast-forward `main` to the verified branch tip;
+7. perform runtime verification and only then assess Gold/Diamond closure.
 
 Do not revert to clean-room rebuild.
 Do not delete historical reports.
