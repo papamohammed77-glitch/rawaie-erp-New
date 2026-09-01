@@ -1,0 +1,1041 @@
+نعم. بعد إعادة التحقيق من المصدر الفعلي، الصورة الآن أوضح بكثير، والنتيجة المهمة هي:
+
+الحكم التدقيقي
+
+تقرير تقرير تنفيذي 3 لا يمكن اعتماده كدليل على اكتمال الـGolden/Diamond artifact.
+
+التقرير يثبت أن الملف الهدف وصل إلى commit محدد وأن MAIN7→MAIN11 أُغلقت في نفس الـartifact، كما أنه كان صريحًا في أن Browser E2E النهائي لم يُثبت. لكن هذا لا يثبت Functional Parity مع Current/PWA/main/main1.md، وهذا هو النقص الجوهري.
+
+والدليل الجنائي المباشر من الملف نفسه أقوى من التقرير:
+
+Current/PWA/main/main1.md يحتوي صراحةً على:
+crm
+users
+roles
+license
+مع license محمية بـ perm: 'owner'.
+Current/PWA/New-main لديه بالفعل:
+RW_Users
+RW_Roles
+RW_OwnerLicense
+والـrouter يربط crm وusers وroles وlicense بوحداتها المناسبة.
+لكن menuTree الفعلي في New-main لا يحتوي crm ولا license؛ كما أن users وroles يتم حقنهما لاحقًا كعناصر Top-Level بدل الموضع الموجود في العقد الحالي لـmain1.
+
+إذن لدينا حالة مهمة جدًا:
+
+FUNCTION EXISTS
+        +
+ROUTE EXISTS
+        +
+MODULE EXISTS
+        -
+NAVIGATION CONTRACT INCOMPLETE
+
+وهذا يفسر مباشرة لماذا ظل إدارة الترخيص غير ظاهر رغم وجود وحدة الترخيص نفسها.
+
+والأخطر أن الـMAIN_HTML_CURRENT_CONTRACT_LEDGER داخل New-main يعلن:
+
+license_state:'implemented'
+navigation:'implemented'
+
+وهذا ليس دليلًا على الاكتمال؛ لأنه Ledger مكتوب داخل نفس الـartifact الذي توجد فيه الفجوة. لذلك يجب اعتباره "self-attestation" وليس evidence.
+
+ما كشفه التحقيق عن الـOWNER والـWildcard
+
+هناك نقطة يجب حمايتها بشدة في التنفيذ القادم.
+
+العقد الصحيح للـOwner الذي طلبته أنت تاريخيًا هو:
+
+isOwner = true
+permissions = ["*"]
+owner_profile
+active license
+
+والـNew-main نفسه يحتوي منطقًا صريحًا يحول Owner إلى:
+
+permissions = ['*']
+
+ويجعل RW_Permissions_check() يعتبر * صلاحية شاملة.
+
+لكن على مستوى PostgreSQL، دالة app_private.current_user_has_permission() لا تعتمد على '*' كشرط wildcard عام؛ بل تعتمد على وجود owner_profile للمالك أو صلاحية محددة. هذا ليس بالضرورة خطأ للـOwner الحالي، لكنه Contract mismatch يجب على المساعد أن يثبته ويقرر مصيره بأدلة، لا أن يفترض أنه مكافئ.
+
+وهذه نقطة مهمة لأن التقرير السابق أعلن سلامة منظومة الصلاحيات دون أن يثبت تطابق semantics بين:
+
+PWA
+↕
+Supabase
+↕
+RLS
+↕
+app_private authorization
+وما كشفه Production
+
+التحقيق الحالي أكد كذلك أن طبقة قاعدة البيانات لا تزال في الاتجاه الصحيح معماريًا:
+
+post_stock_movement
+reserve_stock
+RLS
+SECURITY DEFINER
+company scoping
+
+وأن الـPWA لا يقوم مباشرةً بدور Physical Stock Engine، وهذا جزء صحيح من تقرير 3. لكن هذا لا يعوض نقص الـParity الخاص بالواجهة والوظائف.
+
+كما أن سجل audit_log يثبت نشاط تسجيل دخول واستخدام للنظام، لكنه لا يثبت أن تبويب إدارة الترخيص ظهر وعمل بنجاح. وبالتالي لا يجوز تحويل نشاط الـlogin إلى شهادة UI E2E.
+
+الأخطاء التي يجب أن يعالجها المساعد الجديد
+P0 — خطأ Navigation Contract
+
+يجب مقارنة شجرة التنقل في:
+
+Original/PWA/main/main1.md
+Current/PWA/main/main1.md
+Current/PWA/New-main
+
+وليس فقط البحث عن وجود الـfunctions.
+
+المطلوب إثبات كل عنصر من:
+
+dashboard
+telesales
+customers
+pos
+orders
+runsheets
+suppliers
+purchases
+receiving
+items
+inventory
+vouchers
+picking
+loading
+delivery
+returns
+unloading
+finance
+reports
+audit
+hr
+crm
+users
+roles
+license
+settings
+notifications
+
+مع:
+
+view
+label
+icon
+permission
+parent/submenu
+route
+handler
+guard
+P1 — إدارة الترخيص
+
+لا يكفي أن تكون:
+
+RW_OwnerLicense
+
+موجودة.
+
+بل يجب أن يكون المسار الكامل:
+
+OWNER
+↓
+isOwner=true
+↓
+navigation item visible
+↓
+view='license'
+↓
+router resolves license
+↓
+RW_OwnerLicense.render()
+↓
+license state loaded
+↓
+settings saved through intended production API
+↓
+success confirmed
+
+Current/PWA/main/main1.md يثبت أن عنصر التنقل التاريخي المقصود هو license بامتياز owner.
+
+P2 — CRM
+
+وجود:
+
+RW_CRM
+
+لا يكفي.
+
+يجب إعادة crm إلى Navigation في مكانه الصحيح وفق Current main1، ثم إثبات:
+
+menu
+→ permission
+→ route
+→ renderer
+→ data
+→ company scope
+P3 — Users / Roles
+
+لا تقبل الحل الحالي لمجرد أن:
+
+users
+roles
+
+موجودان.
+
+في Current main1 هما داخل بنية الإدارة، بينما New-main يقوم بإضافتهما لاحقًا كـTop-Level entries. وهذا ليس parity كاملًا حتى لو كانت الوظيفة نفسها تعمل.
+
+المطلوب تحديد:
+
+Historical placement
+Current approved placement
+Golden target placement
+
+ثم اختيار الوضع الصحيح بناءً على الأدلة، لا على الذوق.
+
+P4 — منع الادعاء الذاتي بالاكتمال
+
+المساعد الجديد ممنوع أن يقول:
+
+implemented
+complete
+verified
+gold
+diamond
+production-ready
+
+لمجرد أن Ledger أو تقرير سابق يقول ذلك.
+
+كل حالة يجب أن يكون لها:
+
+Evidence
+Source
+Test
+Result
+البرومبت الذي أوصي أن تسلمه للمساعد الجديد
+CTO FORENSIC CONTINUATION COMMAND
+RAWAEA ERP — GOLD / DIAMOND Current/PWA/New-main
+NAVIGATION + FUNCTIONAL PARITY + OWNER/LICENSE CONTRACT CLOSURE
+0. طبيعة المهمة
+
+هذه ليست مهمة إعادة بناء من الصفر.
+
+هذه ليست مهمة مراجعة عامة للـERP.
+
+هذه ليست مهمة إعادة كتابة Current/PWA/New-main.
+
+هذه ليست مهمة إصلاح ما تظنه أنت خطأً في الملف.
+
+هذه المهمة هي:
+
+استكمال الـGolden/Diamond artifact الحالي Current/PWA/New-main اعتمادًا على الأدلة الفعلية، وإغلاق كل فجوة مثبتة بينه وبين العقد الوظيفي المعتمد في Current/PWA/main/main1.md وOriginal/PWA/main/main1.md، مع الحفاظ الكامل على ما تم إنجازه تاريخيًا في MAIN1→MAIN11.
+
+1. STOP CONDITION — لا تبدأ التنفيذ مباشرة
+
+قبل أي تعديل:
+
+لا تعد كتابة الملف.
+
+لا تنظف الكود.
+
+لا تعيد ترتيب الأقسام.
+
+لا تعيد بناء navigation من ذاكرتك.
+
+لا تستبدل الوحدات الموجودة بوحدات جديدة.
+
+لا تنشئ ملفات بديلة.
+
+لا تنشئ نسخة backup داخل المستودع.
+
+لا تنشئ Golden2 / New-main2 / final-main / main-final / clean-main أو أي اسم مشابه.
+
+الهدف هو الملف الموجود بالفعل:
+
+Current/PWA/New-main
+
+فقط.
+
+2. ترتيب مصادر الحقيقة
+
+استخدم هذا الترتيب:
+
+Production Supabase الحالية.
+PostgreSQL functions / policies / RLS / constraints / grants.
+Edge Functions المنشورة.
+Git main الحالي.
+Current/PWA/New-main.
+Current/PWA/main/main1.md.
+Original/PWA/main/main1.md.
+core.js.
+sw.js.
+register-sw.js.
+PWA companions.
+Git history.
+Execution logs.
+التقارير والبرومبتات السابقة.
+
+التقارير السابقة والـLedger لا تُعتبر دليلًا إلا بعد مطابقتها مع المصدر.
+
+3. لا تثق في تقرير تقرير تنفيذي 3
+
+تعامل مع:
+
+doc/Draft/Hany/تقرير تنفيذي 3
+
+كمستند تاريخي فقط.
+
+لا تفترض أن:
+
+MAIN7 → MAIN11 complete
+
+تعني أن Functional Parity مكتملة.
+
+لا تفترض أن:
+
+license_state = implemented
+navigation = implemented
+
+تعني أن تبويب الترخيص موجود فعلًا في الـSidebar.
+
+يجب اكتشاف الحقيقة من New-main نفسه.
+
+4. المهمة الحالية محددة بدقة
+
+راجع فقط:
+
+Current/PWA/New-main
+
+مقابل:
+
+Current/PWA/main/main1.md
+Original/PWA/main/main1.md
+
+مع استخدام مصادر النظام الأم وPWA Parent فقط لفهم:
+
+الهدف
+العقد
+architecture
+authority
+historical intent
+dependencies
+
+ولا تعِد فتح ما تم حسمه إلا إذا ظهر دليل مباشر على regression.
+
+5. أنشئ داخليًا Parity Matrix قبل التعديل
+
+لا تنشئ ملفًا جديدًا للمصفوفة.
+
+أنشئها داخليًا أثناء التحقيق.
+
+لكل View / Module / Feature:
+
+FEATURE
+ORIGINAL
+CURRENT MAIN1
+NEW-MAIN
+ROUTE
+HANDLER
+PERMISSION
+OWNER GUARD
+UI ENTRY
+DATA SOURCE
+PRODUCTION CONTRACT
+STATUS
+EVIDENCE
+
+القيم المسموح بها:
+
+MATCH
+PARTIAL
+MISSING
+BROKEN
+CONFLICT
+UNKNOWN
+
+ممنوع استخدام:
+
+COMPLETE
+
+بدون دليل تنفيذي.
+
+6. افحص Navigation أولًا
+
+قارن شجرة التنقل كاملة بين:
+
+Original/PWA/main/main1.md
+Current/PWA/main/main1.md
+Current/PWA/New-main
+
+يجب التحقق من العناصر التالية على الأقل:
+
+dashboard
+telesales
+customers
+pos
+orders
+runsheets
+suppliers
+purchases
+receiving
+items
+inventory
+vouchers
+picking
+loading
+delivery
+returns
+unloading
+finance
+reports
+audit
+hr
+crm
+users
+roles
+license
+settings
+notifications
+
+ولكل عنصر تحقق من:
+
+view
+label
+icon
+permission
+parent/submenu
+visibility rule
+router
+handler
+7. إصلاح مثبت مسبقًا — LICENSE
+
+يوجد دليل مباشر على أن Current/PWA/main/main1.md يحتوي:
+
+view: 'license'
+label: 'إدارة الترخيص'
+perm: 'owner'
+
+لذلك يجب في Current/PWA/New-main استعادة هذا العقد كاملًا.
+
+لا تكتفِ بإضافة عنصر بصري.
+
+يجب أن يصبح المسار:
+
+OWNER
+↓
+isOwner === true
+↓
+إدارة الترخيص تظهر
+↓
+view === 'license'
+↓
+router resolves license
+↓
+RW_OwnerLicense.render()
+
+ويجب اختبار فتحه فعلًا.
+
+8. LICENSE — ممنوع كسر الـOwner Contract
+
+العقد التاريخي للمالك:
+
+isOwner = true
+permissions = ["*"]
+owner_profile
+active license state
+
+لا تستبدل:
+
+["*"]
+
+بقائمة Permission صريحة.
+
+لا تجعل:
+
+role_id
+
+هو المصدر الوحيد لهوية Owner.
+
+لا تنقل Owner authorization إلى role authorization دون دليل.
+
+لا تعدّل Owner semantics لمجرد أن role permissions تبدو مكافئة.
+
+9. LICENSE — Production Verification
+
+تحقق مباشرة من:
+
+auth user
+↓
+public.users
+↓
+owner_profile
+↓
+license state
+↓
+save-settings Edge Function
+↓
+RLS
+
+وتحقق من وجود RW_OwnerLicense.
+
+إذا كانت الوحدة موجودة ولكن الـnavigation مفقودة، فهذا إصلاح Navigation وليس إعادة بناء License Engine.
+
+إذا اكتشفت أن save/read يعمل عبر Production API، لا تستبدله بتحديث مباشر للجدول.
+
+10. CRM
+
+إذا وجدت أن:
+
+RW_CRM
+
+موجودة ولكن crm غير موجود في navigation:
+
+أعد العنصر إلى الموضع الصحيح وفق Current/PWA/main/main1.md.
+
+لا تنشئ CRM جديدة.
+
+أثبت:
+
+navigation
+→ permission
+→ route
+→ renderer
+→ data
+→ tenant scope
+11. USERS / ROLES
+
+تحقق من الفرق بين:
+
+module exists
+
+و:
+
+navigation contract exists
+
+إذا كان users وroles مضافين كـTop-Level بينما العقد الحالي يضعهما داخل submenu:
+
+لا تعتبر ذلك Parity كاملًا.
+
+حدد placement الصحيح من:
+
+Original
++
+Current main1
++
+historical intent
+
+ثم أصلحه بأقل تغيير ممكن.
+
+12. لا تكرر ما تم إنجازه
+
+لا تعِد بناء:
+
+RW_Users
+RW_Roles
+RW_OwnerLicense
+RW_TeleSales
+RW_Finance
+RW_Warehouse
+RW_ParentRegistry
+
+إذا كان المصدر يثبت أنها موجودة وتعمل.
+
+المطلوب:
+
+PRESERVE
++
+RECONNECT
++
+REPAIR
+
+وليس:
+
+DELETE
++
+REBUILD
+13. Permission Contract Audit
+
+راجع:
+
+RW_Permissions_check
+can()
+syncState()
+currentUser.isOwner
+currentUser.permissions
+
+وقارنها مع:
+
+app_private.current_user_company_id
+app_private.current_user_has_permission
+RLS policies
+
+يجب ألا يكون هناك تعارض في معنى:
+
+*
+owner
+specific permission
+role permission
+
+إذا وجدت اختلافًا:
+
+لا تصلحه بالحدس.
+
+أثبت:
+
+Historical meaning
+Current meaning
+Production meaning
+Target meaning
+
+ثم نفذ التغيير الأقل خطورة.
+
+14. لا تعطي Database صلاحيات من الواجهة
+
+حتى مع:
+
+permissions = ["*"]
+
+يجب أن تبقى:
+
+RLS
+SECURITY DEFINER
+company scope
+server-side authorization
+
+هي الحواجز الحقيقية.
+
+لا تضع Service Role Key في PWA.
+
+لا تعطّل RLS.
+
+لا تنشئ client-side bypass.
+
+15. CONTRACT LEDGER
+
+إذا وجدت داخل New-main:
+
+MAIN_HTML_CURRENT_CONTRACT_LEDGER
+
+فلا تعتبره حقيقة.
+
+أعد مطابقة حالاته مع الأدلة الفعلية.
+
+مثال:
+
+إذا كان:
+
+navigation: implemented
+
+لكن License navigation مفقودة:
+
+يجب اعتبار Navigation:
+
+PARTIAL
+
+حتى يتم الإصلاح والاختبار.
+
+16. Scope Discipline
+
+ممنوع:
+
+تعديل جميع الملفات
+
+ممنوع:
+
+إنشاء helper files
+
+ممنوع:
+
+إنشاء نسخ main جديدة
+
+ممنوع:
+
+نقل business logic إلى ملفات جديدة
+
+المسموح افتراضيًا هو:
+
+Current/PWA/New-main
+
+فقط.
+
+إذا وجدت أن إصلاحًا لا يمكن إنجازه بدون ملف آخر، لا تعدّل ذلك الملف تلقائيًا.
+
+أثبت السبب أولًا.
+
+17. Surgical Fix Rule
+
+لكل مشكلة:
+
+Observed Failure
+↓
+Root Cause
+↓
+Exact Location
+↓
+Minimal Fix
+↓
+Dependency Check
+↓
+Local Test
+↓
+Whole-File Test
+
+ممنوع:
+
+Bug
+↓
+Rewrite
+18. Required tests بعد الإصلاح
+Navigation
+
+اختبر:
+
+Owner:
+license visible
+crm visible
+users visible
+roles visible
+
+Non-owner:
+license hidden
+owner-only features protected
+Routing
+
+اختبر كل:
+
+view
+→ handler
+Permissions
+
+اختبر:
+
+owner
+*
+explicit permission
+missing permission
+Tenant
+
+اختبر:
+
+company_id
+users
+companies
+app_settings
+operational reads
+Production
+
+اختبر:
+
+license read
+license save
+owner identity
+RLS
+Edge Function response
+19. Browser verification
+
+لا تعتبر:
+
+HTML parsed
+JS syntax valid
+Git committed
+
+نجاحًا نهائيًا.
+
+يجب إثبات:
+
+Login
+↓
+Owner context loaded
+↓
+Sidebar rendered
+↓
+إدارة الترخيص visible
+↓
+Open license
+↓
+Render succeeds
+↓
+Data loads
+↓
+Expected action works
+
+إذا تعذر Browser E2E بسبب Harness أو بيئة التنفيذ:
+
+لا تقل:
+
+PASS
+
+بل اكتب:
+
+NOT VERIFIED
+
+واذكر سبب عدم التحقق بدقة.
+
+20. Git verification
+
+بعد الإصلاح فقط:
+
+git diff
+git status
+blob / file identity
+HEAD
+
+ويجب التأكد من:
+
+Current/PWA/New-main
+
+هو الملف الذي تغير فعلًا.
+
+لا تعتمد على اسم Branch أو commit message فقط.
+
+21. ممنوع Loop
+
+قبل كل تعديل تحقق من:
+
+هل تم إصلاحه سابقًا؟
+هل هو موجود بالفعل؟
+هل المشكلة في code أم navigation أم deployment؟
+هل هناك fix سابق فشل؟
+هل يعيد هذا التغيير خطأً قديمًا؟
+
+اقرأ Git history عند الحاجة.
+
+لا تحاول مرة ثانية حل حل سبق إثبات فشله إلا بعد معرفة سبب الفشل.
+
+22. لا تغيّر ما لم تثبت أنه خطأ
+
+إذا كان الجزء يعمل:
+
+KEEP
+
+إذا كان غير واضح:
+
+INVESTIGATE
+
+إذا كان خطأً مثبتًا:
+
+FIX
+
+إذا كان غير مطلوب:
+
+DO NOT TOUCH
+23. قاعدة خاصة جدًا بـ NEW-MAIN
+
+Current/PWA/New-main هو الـGolden artifact الحالي.
+
+لا تتعامل معه كنسخة قديمة.
+
+ولا تقارنه بهدف إنتاج نسخة جديدة.
+
+المطلوب:
+
+GOLDEN ARTIFACT
++
+PROVEN GAP CLOSURE
+=
+FINAL GOLD / DIAMOND STATE
+24. لا تعتبر MAIN11 نهاية التحقيق
+
+MAIN11 هو تاريخ تنفيذ، وليس شهادة اكتمال.
+
+يجب التحقق من:
+
+MAIN1 CONTRACT
++
+MAIN2
++
+...
++
+MAIN11
++
+Current main1 contract
++
+Production reality
+
+لكن لا تعِد تنفيذ MAIN1→MAIN11.
+
+استخرج فقط الفجوات التي ما زالت موجودة.
+
+25. REQUIRED FINAL REPORT
+
+في نهاية المهمة لا تقدم تقريرًا عامًا.
+
+اكتب:
+
+A. VERIFIED BASELINE
+Target file
+Commit
+Blob
+Current branch
+B. VERIFIED GAPS
+
+جدول:
+
+Gap
+Evidence
+Impact
+Fix
+Status
+C. ACTUAL CHANGES
+
+فقط التغييرات التي نفذتها فعليًا.
+
+D. TESTS
+Static
+Navigation
+Routing
+Permission
+Owner
+License
+Tenant
+Production
+Browser
+
+مع:
+
+PASS
+FAIL
+NOT VERIFIED
+E. FAILED ATTEMPTS
+
+لكل محاولة فاشلة:
+
+What was attempted
+Why
+Why it failed
+What evidence proved the failure
+What replaced it
+F. HISTORICAL EVENTS
+
+سجل ما مررت به أثناء المهمة حتى لا يعيد المساعد التالي الدوران في نفس الحلقة.
+
+G. OPEN BLOCKERS
+
+فقط المشكلات التي بقيت فعلًا.
+
+لا تستخدم:
+
+NONE
+
+إلا بعد إثباتها.
+
+26. CONTINUITY REQUIREMENT
+
+في نهاية المهمة حدّث سجل الحالة الموجود أصلًا في المشروع، ولا تنشئ ملف سجل جديدًا.
+
+يجب تسجيل:
+
+LAST VERIFIED EVENT
+TARGET FILE
+COMMIT
+FILES TOUCHED
+GAPS FOUND
+GAPS FIXED
+GAPS NOT FIXED
+FAILED ATTEMPTS
+REASON OF FAILURE
+SUCCESSFUL FIXES
+TEST RESULTS
+OPEN BLOCKERS
+NEXT EXACT STEP
+
+يجب أن يتمكن مساعد جديد من بدء العمل من هذا السجل دون إعادة تنفيذ التحقيقات المغلقة.
+
+27. FINAL STOP CONDITION
+
+لا تعلن:
+
+GOLD
+DIAMOND
+COMPLETE
+PRODUCTION READY
+
+إلا عندما يكون لدينا دليل على:
+
+Navigation parity
++
+Function parity
++
+Owner parity
++
+License parity
++
+Permission parity
++
+Tenant parity
++
+Router parity
++
+Production compatibility
++
+Runtime verification
+
+وأي عنصر لم يتم التحقق منه يجب أن يحمل صراحة:
+
+NOT VERIFIED
+28. EXECUTION ORDER
+
+نفّذ حرفيًا:
+
+1. Read continuity/state
+2. Read report 3 only for history
+3. Read Original main1
+4. Read Current main1
+5. Inspect New-main
+6. Build internal parity matrix
+7. Investigate navigation
+8. Investigate Owner/Wildcard
+9. Investigate License
+10. Investigate CRM
+11. Investigate Users/Roles placement
+12. Verify Production contracts
+13. Identify exact gaps
+14. Make minimal surgical changes
+15. Run static checks
+16. Run navigation/routing tests
+17. Run owner/license tests
+18. Run production verification
+19. Verify Git diff/blob
+20. Update existing continuity state
+21. Produce forensic execution report
+22. STOP
+
+ممنوع تجاوز خطوة لمجرد أن نتيجة سابقة تبدو مطمئنة.
+
+ممنوع إعادة تنفيذ ما ثبت أنه مغلق.
+
+وممنوع اعتبار وجود الـfunction مساويًا لوجود الـfeature.
+
+الخلاصة التنفيذية
+
+المشكلة التي ينبغي أن يبدأ منها المساعد الجديد ليست إعادة كتابة New-main.
+
+البداية الصحيحة هي هذه السلسلة:
+
+Current main1
+        ↓
+Navigation Contract
+        ↓
+New-main
+        ↓
+Missing:
+    CRM
+    LICENSE
+    Correct USERS/ROLES placement
+        ↓
+Owner / Wildcard semantic verification
+        ↓
+Production verification
+        ↓
+Surgical correction
+        ↓
+Runtime verification
+
+وهذا يختلف جوهريًا عن الطريقة التي قاد بها التقرير السابق المهمة؛ لأنه أثبت وجود الوحدات وتاريخ إعادة البناء أكثر مما أثبت اكتمال الوصول الوظيفي إليها. تقرير 3 نفسه كان صريحًا بشأن غياب شهادة Browser E2E، لكن التحقيق المباشر يكشف الآن فجوة UI/Navigation إضافية لم يغلقها التقرير.
+
+والأهم: لا أريد من المساعد الجديد أن يبدأ بإصلاح إدارة الترخيص فقط. يجب أن يستخدمها كأول حالة اختبار تكشف منهجية parity الصحيحة، ثم يطبق نفس المنهج على بقية عقد main1 بدون هدم ما تم إنجازه في MAIN1→MAIN11.
