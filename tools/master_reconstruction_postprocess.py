@@ -12,6 +12,7 @@ CUR = Path('Current/PWA/main')
 ORG = Path('Original/PWA/main')
 CTO = Path('Current/CTO')
 PARTS = [f'main{i}.md' for i in range(1,12)]
+SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpaWxtb29nZ3Vtb2t4YW53aXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDkwOTIsImV4cCI6MjA5NDI4NTA5Mn0.LZScCxnCiRrTSCCBmTryszQpY1AwBgR2dkTBbC5kOc4'
 
 
 def sha(b: bytes) -> str:
@@ -41,7 +42,6 @@ def restore_rec_offers(s: str) -> tuple[str, bool]:
     end = s.find("        safeHTML(container, html);", start)
     if end < 0:
         return s, False
-    # Replace only the recommendation renderer; keep the enclosing report intact.
     replacement = '''// توصيات الشراء — مستقلة
         if (types.indexOf('rec-purchase') !== -1) {
             var purchaseRecs = [];
@@ -92,28 +92,59 @@ def restore_rec_offers(s: str) -> tuple[str, bool]:
     return s[:start] + replacement + s[end:], True
 
 
+def repair_runtime_contracts(s: str) -> tuple[str, dict]:
+    changes = {'supabase_key_replaced': False, 'service_worker_registration_replaced': False}
+
+    key_pattern = re.compile(r"var\\s+RW_SUPABASE_ANON_KEY\\s*=\\s*['\"][^'\"]*['\"];", re.S)
+    key_matches = key_pattern.findall(s)
+    if len(key_matches) != 1:
+        raise SystemExit('expected exactly one RW_SUPABASE_ANON_KEY declaration; found ' + str(len(key_matches)))
+    s, nkey = key_pattern.subn("var RW_SUPABASE_ANON_KEY='" + SUPABASE_ANON_KEY + "';", s, count=1)
+    changes['supabase_key_replaced'] = nkey == 1
+
+    sw_pattern = re.compile(
+        r"navigator\\.serviceWorker\\.register\\(\\s*['\"][^'\"]+['\"]\\s*,\\s*\\{\\s*scope\\s*:\\s*['\"][^'\"]+['\"]\\s*\\}\\s*\\)",
+        re.S,
+    )
+    sw_matches = sw_pattern.findall(s)
+    if len(sw_matches) != 1:
+        raise SystemExit('expected exactly one ServiceWorker registration; found ' + str(len(sw_matches)))
+    s, nsw = sw_pattern.subn("navigator.serviceWorker.register('./sw.js',{scope:'./'})", s, count=1)
+    changes['service_worker_registration_replaced'] = nsw == 1
+
+    if not changes['supabase_key_replaced'] or not changes['service_worker_registration_replaced']:
+        raise SystemExit('runtime contract repair did not apply exactly once')
+    return s, changes
+
+
 def main() -> None:
     subprocess.run(['python3', 'tools/p0_main_shell_repair_v2.py'], check=True)
     s = MAIN.read_text(encoding='utf-8')
     s, rec = restore_rec_offers(s)
-    if rec:
-        MAIN.write_text(s, encoding='utf-8')
+    s, runtime_repairs = repair_runtime_contracts(s)
+    MAIN.write_text(s, encoding='utf-8')
 
-    # Hard gates after reconstruction.
     required = ['window.RW_ShellContext', 'window.RW_OwnerContract', 'RW_ShellContext.getCompanyId()', 'rec-purchase', 'rec-offers']
     missing = [x for x in required if x not in s]
     if missing:
         raise SystemExit('missing required reconstruction contracts: ' + ', '.join(missing))
     if "meta.permissions || ['*']" in s:
         raise SystemExit('wildcard fallback remains')
-    if re.search(r"\.from\(['\"]app_settings['\"]\)\.select\([^;]*?\)\.limit\(\s*1\s*\)", s, re.S):
+    if re.search(r"\\.from\\(['\"]app_settings['\"]\\)\\.select\\([^;]*?\\)\\.limit\\(\\s*1\\s*\\)", s, re.S):
         raise SystemExit('unscoped app_settings limit(1) remains')
-    if re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,500}?\.(?:update|insert|upsert|delete)\(", s):
+    if re.search(r"\\.from\\(['\"]stock_branches['\"]\\)[\\s\\S]{0,500}?\\.(?:update|insert|upsert|delete)\\(", s):
         raise SystemExit('direct stock_branches mutation remains')
-    if re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,500}?\.(?:update|insert|upsert|delete)\(", s):
+    if re.search(r"\\.from\\(['\"]inventory_log['\"]\\)[\\s\\S]{0,500}?\\.(?:update|insert|upsert|delete)\\(", s):
         raise SystemExit('direct inventory_log mutation remains')
 
-    # Full original feature surface must survive in final main.
+    # Runtime closure gates for the P143 incident.
+    if SUPABASE_ANON_KEY not in s:
+        raise SystemExit('canonical Supabase anon key missing from final main')
+    if "navigator.serviceWorker.register('./sw.js',{scope:'./'})" not in s:
+        raise SystemExit('canonical same-directory ServiceWorker registration missing')
+    if re.search(r"navigator\\.serviceWorker\\.register\\(\\s*['\"]\\.\\./sw\\.js['\"]", s):
+        raise SystemExit('legacy ../sw.js registration remains')
+
     osym = symbols(ORIGINAL.read_text(encoding='utf-8'))
     fsym = symbols(s)
     losses = {k: sorted(set(osym[k]) - set(fsym[k])) for k in osym}
@@ -127,7 +158,13 @@ def main() -> None:
         'original_main': meta(ORIGINAL),
         'current_main_after_rebuild': meta(MAIN),
         'fragment_meta': fragments,
-        'reconstruction': {'semantic_seed': 'Current/PWA/main.html', 'executor': 'tools/p0_main_shell_repair_v2.py', 'rec_offers_restored': rec, 'concat_used': False},
+        'reconstruction': {
+            'semantic_seed': 'Current/PWA/main.html',
+            'executor': 'tools/p0_main_shell_repair_v2.py',
+            'rec_offers_restored': rec,
+            'runtime_contract_repairs': runtime_repairs,
+            'concat_used': False,
+        },
         'parity': {'original_symbol_losses': losses, 'original_main_symbols': {k: len(v) for k,v in osym.items()}, 'final_main_symbols': {k: len(v) for k,v in fsym.items()}},
         'browser_runtime': 'PENDING_SEPARATE_GATE',
     }
