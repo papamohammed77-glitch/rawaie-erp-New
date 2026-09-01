@@ -14,45 +14,57 @@ jobs:
         with:
           ref: main
           fetch-depth: 1
-      - name: Execute final parity on published target only
+      - name: Execute surgical New-main repair (Browser E2E paused by explicit directive)
         shell: bash
         run: |
           set -euo pipefail
           python3 <<'PY'
           from pathlib import Path
-          import re, subprocess, tempfile
-          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
-          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\\s\\S]*?)</script>',s,re.I) if not re.search(r'\\bsrc\\s*=',m.group('a') or '',re.I)]
-          if len(ms)!=1: raise SystemExit('INLINE_RUNTIME_COUNT')
-          m=ms[0]; body=m.group('b')
-          if 'RAWAEA GOLD DIAMOND SESSION FAIL-CLOSED v1' not in body:
-              body += r'''
-/* RAWAEA GOLD DIAMOND SESSION FAIL-CLOSED v1 */
-(function(){'use strict';var A=window.RW_Auth,S=window.RW_STATE;if(!A||!S||typeof A.enterSystem!=='function'||A.__rawaeaFailClosed)return;var base=A.enterSystem;A.enterSystem=async function(user){try{return await base.call(this,user)}catch(e){try{S.app.initialized=false;S.app.authenticated=false;S.app.currentUser=null;S.app.companyId=null;S.app.ownerProfile=null;S.app.licenseState='unknown';S.permissions=[]}catch(x){}try{if(typeof this.forceEnterFallback==='function')this.forceEnterFallback()}catch(x){}throw e}};A.__rawaeaFailClosed=true})();
-'''
-          if 'RAWAEA GOLD DIAMOND NAVIGATION PARITY v2' not in body:
-              body += r'''
-/* RAWAEA GOLD DIAMOND NAVIGATION PARITY v2 */
-(function(){'use strict';var N=window.RW_Navigation,S=window.RW_STATE;if(!N||!S)throw new Error('NAVIGATION_PARITY_PREREQUISITE_MISSING');function owner(){return !!(S.app&&S.app.currentUser&&S.app.currentUser.isOwner===true)}function can(v){var o={license:true,'audit-log':true,audit:true};if(o[v])return owner();var p={users:'users:view',roles:'roles:view',settings:'settings:view',hr:'users:view',crm:'customers:view',notifications:'notifications:view'}[v];if(!p)return true;try{return typeof window.RW_Permissions_check==='function'&&window.RW_Permissions_check(p)===true}catch(e){return false}}function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(x){return{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[x]})}
-var tree=[{view:'dashboard',icon:'fa-chart-pie',label:'لوحة التحكم'},{icon:'fa-chart-line',label:'إدارة المبيعات',submenu:[{view:'telesales',label:'التلي سيلز'},{view:'customers',label:'العملاء'},{view:'online-store',label:'المتجر الإلكتروني'},{view:'pos',label:'نقطة البيع'},{view:'orders',label:'أوردرات المبيعات'},{view:'runsheets',label:'الرانشيتات'}]},{icon:'fa-truck',label:'إدارة المشتريات',submenu:[{view:'suppliers',label:'الموردين'},{view:'purchase-pos',label:'نقطة شراء'},{view:'purchases',label:'أوردرات الشراء'}]},{icon:'fa-warehouse',label:'إدارة المخازن والمخزون',submenu:[{view:'items',label:'الأصناف'},{view:'branches',label:'المخازن والفروع'},{icon:'fa-timeline',label:'العمليات المخزنية',submenu:[{view:'receiving',label:'الاستلام'},{view:'picking',label:'التحضير'},{view:'loading',label:'التحميل'},{view:'delivery',label:'التوصيل'},{view:'return',label:'المرتجعات'},{view:'unloading',label:'التفريغ'}]},{icon:'fa-file-signature',label:'الأذونات المخزنية',submenu:[{view:'transfer',label:'تحويل مخزني'},{view:'direct-sale',label:'صرف سيارة بيع مباشر'},{view:'direct-return',label:'استلام مرتجع سيارة'},{view:'supplier-return',label:'مرتجع لمورد'},{view:'vouchers',label:'عرض الأذونات'}]},{icon:'fa-clipboard-check',label:'الجرد',submenu:[{view:'vehicle-count',label:'جرد سيارة'},{view:'branch-count',label:'جرد فرع'},{view:'general-count',label:'جرد عام'}]}]},{icon:'fa-coins',label:'إدارة الحسابات والمالية',submenu:[{action:'showFinanceTab',arg:'treasury',label:'الخزائن والبنوك'},{action:'showFinanceTab',arg:'accounts',label:'دليل الحسابات'},{action:'showFinanceTab',arg:'journal',label:'قيود يومية'},{action:'showFinanceTab',arg:'receipts',label:'سندات القبض'},{action:'showFinanceTab',arg:'payments',label:'سندات الصرف'},{action:'showFinanceTab',arg:'transfers',label:'التحويلات'},{action:'showFinanceTab',arg:'reports',label:'التقارير المالية'},{view:'settlement',label:'إغلاق اليومية'}]},{icon:'fa-chart-simple',label:'التقارير الذكية',submenu:[{view:'reports-dashboard',label:'لوحة القيادة'},{view:'reports-detailed',label:'التقارير التفصيلية'},{view:'reports-comprehensive',label:'التقارير الشاملة'}]},{view:'hr',icon:'fa-id-card',label:'الموارد البشرية'},{view:'crm',icon:'fa-handshake',label:'إدارة علاقات العملاء (CRM)'},{view:'users',icon:'fa-users-gear',label:'المستخدمين والصلاحيات'},{view:'roles',icon:'fa-user-shield',label:'إدارة أدوار المستخدمين'},{view:'license',icon:'fa-shield-halved',label:'إدارة الترخيص'},{view:'settings',icon:'fa-gear',label:'إعدادات النظام'},{view:'audit-log',icon:'fa-clipboard-list',label:'سجل التدقيق'},{view:'notifications',icon:'fa-bell',label:'الإشعارات'}];
-function voucher(t){if(!window.RW_Warehouse||typeof window.RW_Warehouse.loadVoucherForm!=='function')throw new Error('VOUCHER_HANDLER_MISSING');return window.RW_Warehouse.loadVoucherForm(t)}function finance(t){if(!window.RW_Finance||typeof window.RW_Finance.renderSubTab!=='function')throw new Error('FINANCE_SUBTAB_HANDLER_MISSING');return window.RW_Finance.renderSubTab(t||'treasury')}
-var R={dashboard:[window.RW_Dashboard,'render'],items:[window.RW_Items,'render'],customers:[window.RW_Customers,'render'],suppliers:[window.RW_Suppliers,'render'],branches:[window.RW_Branches,'render'],settings:[window.RW_Settings,'render'],hr:[window.RW_HR,'render'],crm:[window.RW_CRM,'render'],users:[window.RW_Users,'render'],roles:[window.RW_Roles,'render'],license:[window.RW_OwnerLicense,'render'],telesales:[window.RW_TeleSales,'render'],pos:[window.RW_POS,'render'],orders:[window.RW_Orders,'render'],runsheets:[window.RW_Runsheets,'render'],online-store:[window.RW_OnlineStore,'render'],purchases:[window.RW_Purchases,'renderOrders'],'purchase-pos':[window.RW_Purchases,'renderPOS'],picking:[window.RW_Warehouse,'loadPicking'],loading:[window.RW_Warehouse,'loadLoading'],delivery:[window.RW_Warehouse,'loadDelivery'],return:[window.RW_Warehouse,'loadReturn'],returns:[window.RW_Warehouse,'loadReturn'],unloading:[window.RW_Warehouse,'loadUnloading'],receiving:[window.RW_Warehouse,'loadReceiving'],vouchers:[window.RW_Warehouse,'loadVouchers'],'vehicle-count':[window.RW_Warehouse,'loadVehicleCount'],'branch-count':[window.RW_Warehouse,'loadBranchCount'],'general-count':[window.RW_Warehouse,'loadGeneralCount'],settlement:[window.RW_Warehouse,'loadSettlement'],finance:[window.RW_Finance,'render'],reports:[window.RW_Reports,'render'],'reports-dashboard':[window.RW_Reports,'renderDashboard'],'reports-detailed':[window.RW_Reports,'renderDetailedReports'],'reports-comprehensive':[window.RW_Reports_Comprehensive,'render'],notifications:[window.RW_Notification,'showPanel']};
-N.menuTree=tree;N._handleAction=function(a,arg){if(a==='showFinanceTab')return finance(arg);throw new Error('UNKNOWN_NAV_ACTION:'+a)};N.buildSidebar=function(){var root=document.getElementById('rw-sidebar-nav');if(!root)return;function rec(items){var h='';(items||[]).forEach(function(x){if(x.action){if(!can('finance'))return;h+='<button class="rw-sidebar-link" data-action="'+esc(x.action)+'" data-arg="'+esc(x.arg||'')+'"><span class="rw-sidebar-link-icon"><i class="fa-solid '+esc(x.icon||'fa-coins')+'"></i></span><span>'+esc(x.label)+'</span></button>';return}if(x.submenu){var c=(x.submenu||[]).filter(function(y){return y.submenu||can(y.view)});if(!c.length)return;h+='<div class="rw-sidebar-link" data-folder="1"><span class="rw-sidebar-link-icon"><i class="fa-solid '+esc(x.icon||'fa-folder')+'"></i></span><span>'+esc(x.label)+'</span></div><div class="rw-sidebar-submenu">'+rec(c)+'</div>';return}if(x.view&&can(x.view))h+='<button class="rw-sidebar-link" data-view="'+esc(x.view)+'"><span class="rw-sidebar-link-icon"><i class="fa-solid '+esc(x.icon||'fa-circle')+'"></i></span><span>'+esc(x.label)+'</span></button>'});return h}safeHTML(root,rec(tree));root.querySelectorAll('[data-folder]').forEach(function(b){b.onclick=function(){var x=b.nextElementSibling;if(x)x.style.display=x.style.display==='none'?'block':''}});root.querySelectorAll('[data-view]').forEach(function(b){b.onclick=function(){N.navigate(b.getAttribute('data-view'))}});root.querySelectorAll('[data-action]').forEach(function(b){b.onclick=function(){N._handleAction(b.getAttribute('data-action'),b.getAttribute('data-arg'))}})};
-N.navigate=async function(v){S.app.currentView=v;if(!can(v))return Promise.reject(new Error(v==='license'||v==='audit'||v==='audit-log'?'OWNER_ONLY':'PERMISSION_DENIED'));if(v==='audit'||v==='audit-log')return Promise.resolve(window.RW_Audit_renderTab());if(v==='transfer')return Promise.resolve(voucher('Transfer'));if(v==='direct-sale')return Promise.resolve(voucher('DirectSale'));if(v==='direct-return')return Promise.resolve(voucher('DirectReturn'));if(v==='supplier-return')return Promise.resolve(voucher('SupplierReturn'));if(v==='finance')return Promise.resolve(finance('treasury'));var h=R[v];if(h&&h[0]&&typeof h[0][h[1]]==='function')return Promise.resolve(h[0][h[1]]());throw new Error('ROUTE_HANDLER_MISSING:'+v)};
-window.RW_GOLD_DIAMOND_PARITY={version:'v2',navigation:'complete',actions:'complete',reports:'complete',vouchers:'complete',owner:'strict',session:'fail-closed'};
-})();
-'''
-          candidate=s[:m.start('b')]+body+s[m.end('b'):]
-          m2=[z for z in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\\s\\S]*?)</script>',candidate,re.I) if not re.search(r'\\bsrc\\s*=',z.group('a') or '',re.I)]
-          if len(m2)!=1: raise SystemExit('FINAL_RUNTIME_COUNT')
-          js=Path(tempfile.gettempdir())/'target.js';js.write_text(m2[0].group('b'),encoding='utf-8')
-          r=subprocess.run(['node','--check',str(js)],capture_output=True,text=True)
-          if r.returncode:print(r.stderr);raise SystemExit('TARGET_JS_SYNTAX_FAIL')
-          required=['RW_GOLD_DIAMOND_PARITY','reports-dashboard','reports-detailed','reports-comprehensive','audit-log','transfer','direct-sale','direct-return','supplier-return','showFinanceTab','RW_POS','RW_Orders','RW_Runsheets','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Roles']
-          for x in required:
-              if x not in candidate:raise SystemExit('CONTRACT_MISSING:'+x)
-          p.write_text(candidate,encoding='utf-8')
-          subprocess.run(['git','config','user.name','rawaea-new-main-bot'],check=True);subprocess.run(['git','config','user.email','rawaea-new-main-bot@users.noreply.github.com'],check=True);subprocess.run(['git','add','Current/PWA/New-main'],check=True)
-          if subprocess.run(['git','diff','--cached','--quiet']).returncode!=0:
-              subprocess.run(['git','commit','-m','[new-main-target-persist] GOLD DIAMOND final parity closure'],check=True);subprocess.run(['git','push','origin','HEAD:main'],check=True)
+          import re, subprocess, tempfile, hashlib
+
+          p = Path('Current/PWA/New-main')
+          legacy = Path('Current/PWA/main.html')
+          s = p.read_text(encoding='utf-8')
+          legacy_before = hashlib.sha256(legacy.read_bytes()).hexdigest()
+
+          old1 = "if(mappedItem)_uploadFileData[f].item_code=mappedItem.item_code;"
+          new1 = "if(mappedItem){_uploadFileData[f].item_code=mappedItem.item_code;_uploadFileData[f].item_id=mappedItem.id;}"
+          if s.count(old1) != 1:
+              raise SystemExit('UPLOAD_ID_MAPPING_SOURCE_NOT_UNIQUE:' + str(s.count(old1)))
+          s = s.replace(old1, new1, 1)
+
+          old2 = "items.push({item_code:_uploadFileData[u].item_code||_uploadFileData[u].barcode,qty:_uploadFileData[u].qty});"
+          new2 = "items.push({item_id:_uploadFileData[u].item_id||null,item_code:_uploadFileData[u].item_code||_uploadFileData[u].barcode,qty:_uploadFileData[u].qty});"
+          if s.count(old2) != 1:
+              raise SystemExit('UPLOAD_ID_PAYLOAD_SOURCE_NOT_UNIQUE:' + str(s.count(old2)))
+          s = s.replace(old2, new2, 1)
+
+          if s.count('</html>') != 1 or s.count('</body>') != 1:
+              raise SystemExit('DOCUMENT_CLOSURE_INVALID')
+          scripts = [m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\\s\\S]*?)</script>', s, re.I) if not re.search(r'\\bsrc\\s*=', m.group('a') or '', re.I)]
+          if len(scripts) != 1:
+              raise SystemExit('INLINE_SCRIPT_COUNT_INVALID:' + str(len(scripts)))
+          js = Path(tempfile.gettempdir())/'new-main-surgical.js'
+          js.write_text(scripts[0].group('b'), encoding='utf-8')
+          r = subprocess.run(['node','--check',str(js)], capture_output=True, text=True)
+          if r.returncode:
+              print(r.stderr)
+              raise SystemExit('TARGET_JS_SYNTAX_FAIL')
+          for x in ['RW_ShellContext','RW_OwnerLicense','RW_Views','RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_HR','RW_CRM','_clickNotif','_renderAndSave','_updateBadge','markRead','bulk-stock-adjustment']:
+              if x not in s:
+                  raise SystemExit('TARGET_CONTRACT_MISSING:'+x)
+
+          p.write_text(s, encoding='utf-8')
+          legacy_after = hashlib.sha256(legacy.read_bytes()).hexdigest()
+          if legacy_after != legacy_before:
+              raise SystemExit('LEGACY_MAIN_HTML_CHANGED')
+
+          subprocess.run(['git','config','user.name','rawaea-new-main-bot'],check=True)
+          subprocess.run(['git','config','user.email','rawaea-new-main-bot@users.noreply.github.com'],check=True)
+          subprocess.run(['git','add','Current/PWA/New-main'],check=True)
+          if subprocess.run(['git','diff','--cached','--quiet']).returncode == 0:
+              raise SystemExit('NO_SURGICAL_DELTA')
+          subprocess.run(['git','commit','-m','fix: align New-main bulk stock payload with atomic adjustment contract'],check=True)
+          subprocess.run(['git','push','origin','HEAD:main'],check=True)
+          print('SURGICAL_REPAIR_PERSISTED')
           PY
