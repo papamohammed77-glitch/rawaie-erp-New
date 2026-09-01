@@ -23,16 +23,20 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 2
 
-      - name: Execute only for explicit P131 trigger
+      - name: Execute only for explicit surgical trigger
         shell: bash
         run: |
           set -euo pipefail
           COMMIT_MESSAGE="$(git log -1 --pretty=%B)"
-          if [[ "${COMMIT_MESSAGE:-}" != *"[P131-EXECUTE]"* ]]; then
-            echo "P131_GATE=SKIP_NO_EXPLICIT_TRIGGER"
+          if [[ "${COMMIT_MESSAGE:-}" != *"[P131-EXECUTE]"* && "${COMMIT_MESSAGE:-}" != *"[P133-EXECUTE]"* ]]; then
+            echo "SURGICAL_GATE=SKIP_NO_EXPLICIT_TRIGGER"
             exit 0
           fi
-          echo "P131_GATE=EXECUTE"
+          if [[ "${COMMIT_MESSAGE:-}" == *"[P133-EXECUTE]"* ]]; then
+            echo "SURGICAL_GATE=P133_EXECUTE"
+          else
+            echo "SURGICAL_GATE=P131_EXECUTE"
+          fi
 
       - name: Surgical patch and verification
         shell: bash
@@ -40,70 +44,105 @@ jobs:
           set -euo pipefail
           python3 <<'PY'
           from pathlib import Path
-          import os, re, subprocess, tempfile
+          import os, re, subprocess, tempfile, sys
 
           target = Path('Current/PWA/New-main')
           if not target.exists():
-              raise SystemExit('P131_TARGET_MISSING')
+              raise SystemExit('SURGICAL_TARGET_MISSING')
           s = target.read_text(encoding='utf-8')
+          COMMIT_MESSAGE = subprocess.check_output(['git','log','-1','--pretty=%B'], text=True).strip()
+
+          if '[P133-EXECUTE]' in COMMIT_MESSAGE:
+              # P133: repair only the proven authentication bootstrap defect.
+              correct_key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpaWxtb29nZ3Vtb2t4YW53aXl4IiwiaWF0IjoxNzc4NzA5MDkyLCJleHAiOjIwOTQyODUwOTJ9.LZScCxnCiRrTSCCBmTryszQpY1AwBgR2dkTBbC5kOc4'
+              duplicate_key_pattern = re.compile(r"var RW_SUPABASE_ANON_KEY='[^']*';\s*RW_SUPABASE_ANON_KEY='[^']*';", re.M)
+              s, n = duplicate_key_pattern.subn("var RW_SUPABASE_ANON_KEY='" + correct_key + "';", s, count=1)
+              if n != 1:
+                  raise SystemExit(f'P133_KEY_ANCHOR_EXPECTATION_FAIL:{n}')
+
+              old_check = "if (!window.supabase || !window.supabase.auth) {"
+              new_check = "if (!window.supabase || !supabase || !supabase.auth) {"
+              if old_check not in s:
+                  raise SystemExit('P133_BOOT_CHECK_ANCHOR_MISSING')
+              s = s.replace(old_check, new_check, 1)
+
+              old_session = "var sessionResult = await window.supabase.auth.getSession();"
+              new_session = "var sessionResult = await supabase.auth.getSession();"
+              if old_session not in s:
+                  raise SystemExit('P133_SESSION_ANCHOR_MISSING')
+              s = s.replace(old_session, new_session, 1)
+
+              if "window.supabase.auth" in s:
+                  raise SystemExit('P133_WRONG_GLOBAL_AUTH_REFERENCE_REMAINS')
+              if correct_key not in s:
+                  raise SystemExit('P133_CORRECT_KEY_MISSING')
+              if s.count('var RW_SUPABASE_ANON_KEY=') != 1:
+                  raise SystemExit('P133_KEY_ASSIGNMENT_COUNT_INVALID')
+              if 'LZScCxnCiRrTSCCBmTryszQpY1AwBgR2dkTBc5kOc4' in s:
+                  raise SystemExit('P133_OLD_INVALID_KEY_REMAINS')
+
+              mlist = [m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>', s, re.I) if not re.search(r'\bsrc\s*=', m.group('a') or '', re.I)]
+              if len(mlist) != 1:
+                  raise SystemExit(f'P133_INLINE_RUNTIME_COUNT:{len(mlist)}')
+              m = mlist[0]
+              tail = s[m.end():]
+              if not re.fullmatch(r'\s*</body>\s*</html>\s*', tail, re.I):
+                  raise SystemExit('P133_OUTER_HTML_TAIL_INVALID')
+
+              js = Path(tempfile.gettempdir()) / 'p133-new-main-runtime.js'
+              js.write_text(m.group('b'), encoding='utf-8')
+              check = subprocess.run(['node','--check',str(js)], capture_output=True, text=True)
+              if check.returncode:
+                  print(check.stderr)
+                  raise SystemExit('P133_JS_SYNTAX_FAIL')
+
+              target.write_text(s, encoding='utf-8')
+              if subprocess.run(['git','diff','--quiet','--','Current/PWA/New-main']).returncode == 0:
+                  raise SystemExit('P133_NO_TARGET_CHANGE')
+
+              subprocess.run(['git','config','user.name','rawaea-p133-bot'], check=True)
+              subprocess.run(['git','config','user.email','rawaea-p133-bot@users.noreply.github.com'], check=True)
+              subprocess.run(['git','add','Current/PWA/New-main'], check=True)
+              subprocess.run(['git','commit','-m','[P133-TARGET-MUTATION] repair Supabase auth bootstrap'], check=True)
+              branch = os.environ.get('GITHUB_HEAD_REF')
+              if not branch:
+                  raise SystemExit('P133_PR_BRANCH_UNAVAILABLE')
+              subprocess.run(['git','push','origin',f'HEAD:{branch}'], check=True)
+              print('P133_TARGET_MUTATION=COMMITTED_AND_PUSHED_TO_PR_BRANCH')
+              sys.exit(0)
+
+          # Preserve the existing P131 surgical behavior exactly for legacy use.
           if '/* RAWAEA 122 DIAMOND CONTRACT CLOSURE v1 */' not in s:
               raise SystemExit('P131_TARGET_CONTRACT_MARKER_MISSING')
-
           old_perm = "dashboard:'dashboard',telesales:'telesales',customers:'customers',pos:'pos',orders:'orders',runsheets:'runsheets',suppliers:'suppliers',purchases:'purchases',receiving:'receiving',items:'items',inventory:'warehouse',vouchers:'vouchers',picking:'picking',loading:'loading',delivery:'delivery',returns:'return',return:'return',unloading:'unloading',finance:'finance',reports:'reports',audit:'owner'"
           new_perm = "dashboard:'dashboard',telesales:'telesales',customers:'customers',pos:'pos',orders:'orders',runsheets:'runsheets',suppliers:'suppliers',purchases:'purchases',receiving:'receiving',items:'items',inventory:'warehouse',vouchers:'vouchers',picking:'picking',loading:'loading',delivery:'delivery',returns:'return',return:'return',unloading:'unloading',finance:'finance',reports:'reports','reports-dashboard':'reports','reports-detailed':'reports','reports-comprehensive':'reports',audit:'owner'"
-
           old_routes = "finance:[window.RW_Finance,'render'],reports:[window.RW_Reports,'render'],audit:[null,null],notifications:[window.RW_Notification,'showPanel']"
           new_routes = "finance:[window.RW_Finance,'render'],'reports-dashboard':[window.RW_Reports,'renderDashboard'],'reports-detailed':[window.RW_Reports,'renderDetailedReports'],'reports-comprehensive':[window.RW_Reports_Comprehensive,'render'],reports:[window.RW_Reports,'render'],audit:[null,null],notifications:[window.RW_Notification,'showPanel']"
-
           replacements = 0
           if old_perm in s:
-              s = s.replace(old_perm, new_perm, 1)
-              replacements += 1
+              s = s.replace(old_perm, new_perm, 1); replacements += 1
           if old_routes in s:
-              s = s.replace(old_routes, new_routes, 1)
-              replacements += 1
+              s = s.replace(old_routes, new_routes, 1); replacements += 1
           if replacements != 2:
               raise SystemExit(f'P131_ABORT_EXPECTED_ANCHORS_NOT_BOTH_FOUND:{replacements}')
-
-          required = [
-              "'reports-dashboard':[window.RW_Reports,'renderDashboard']",
-              "'reports-detailed':[window.RW_Reports,'renderDetailedReports']",
-              "'reports-comprehensive':[window.RW_Reports_Comprehensive,'render']",
-              "'reports-dashboard':'reports'",
-              "'reports-detailed':'reports'",
-              "'reports-comprehensive':'reports'",
-          ]
+          required = ["'reports-dashboard':[window.RW_Reports,'renderDashboard']","'reports-detailed':[window.RW_Reports,'renderDetailedReports']","'reports-comprehensive':[window.RW_Reports_Comprehensive,'render']","'reports-dashboard':'reports'","'reports-detailed':'reports'","'reports-comprehensive':'reports'"]
           for needle in required:
-              if needle not in s:
-                  raise SystemExit('P131_VERIFY_MISSING:'+needle)
-
+              if needle not in s: raise SystemExit('P131_VERIFY_MISSING:'+needle)
           mlist = [m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>', s, re.I) if not re.search(r'\bsrc\s*=', m.group('a') or '', re.I)]
-          if len(mlist) != 1:
-              raise SystemExit(f'P131_INLINE_RUNTIME_COUNT:{len(mlist)}')
+          if len(mlist) != 1: raise SystemExit(f'P131_INLINE_RUNTIME_COUNT:{len(mlist)}')
           m = mlist[0]
-          tail = s[m.end():]
-          if not re.fullmatch(r'\s*</body>\s*</html>\s*', tail, re.I):
-              raise SystemExit('P131_OUTER_HTML_TAIL_INVALID')
-
-          js = Path(tempfile.gettempdir()) / 'p131-new-main-runtime.js'
-          js.write_text(m.group('b'), encoding='utf-8')
-          check = subprocess.run(['node', '--check', str(js)], capture_output=True, text=True)
-          if check.returncode:
-              print(check.stderr)
-              raise SystemExit('P131_JS_SYNTAX_FAIL')
-
+          if not re.fullmatch(r'\s*</body>\s*</html>\s*', s[m.end():], re.I): raise SystemExit('P131_OUTER_HTML_TAIL_INVALID')
+          js = Path(tempfile.gettempdir()) / 'p131-new-main-runtime.js'; js.write_text(m.group('b'), encoding='utf-8')
+          check = subprocess.run(['node','--check',str(js)], capture_output=True, text=True)
+          if check.returncode: print(check.stderr); raise SystemExit('P131_JS_SYNTAX_FAIL')
           target.write_text(s, encoding='utf-8')
-          changed = subprocess.run(['git','diff','--quiet','--','Current/PWA/New-main'])
-          if changed.returncode == 0:
-              raise SystemExit('P131_NO_TARGET_CHANGE')
-
+          if subprocess.run(['git','diff','--quiet','--','Current/PWA/New-main']).returncode == 0: raise SystemExit('P131_NO_TARGET_CHANGE')
           subprocess.run(['git','config','user.name','rawaea-p131-bot'], check=True)
           subprocess.run(['git','config','user.email','rawaea-p131-bot@users.noreply.github.com'], check=True)
           subprocess.run(['git','add','Current/PWA/New-main'], check=True)
           subprocess.run(['git','commit','-m','[P131-TARGET-MUTATION] restore specialized report navigation routes'], check=True)
           branch = os.environ.get('GITHUB_HEAD_REF')
-          if not branch:
-              raise SystemExit('P131_PR_BRANCH_UNAVAILABLE')
+          if not branch: raise SystemExit('P131_PR_BRANCH_UNAVAILABLE')
           subprocess.run(['git','push','origin',f'HEAD:{branch}'], check=True)
           print('P131_TARGET_MUTATION=COMMITTED_AND_PUSHED_TO_PR_BRANCH')
           PY
