@@ -8,33 +8,41 @@
 - No reconstruction, overlay, new workflow, or new file is authorized by Prompt 123.
 
 ## LAST VERIFIED EVENT
-### P123-002 — TARGET_FREEZE_AND_IDENTITY_VERIFICATION
-- UTC: 2026-09-01T07:11:xxZ
-- Source: `doc/Draft/medhat/برومبت 123+ملحق تقرير`
-- Git main HEAD at verification start: `e9fd4f819a384b29063d3918723f512da10ed50e`
-- TARGET `Current/PWA/New-main` blob SHA: `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`
-- CURRENT MAIN1 `Current/PWA/main/main1.md` blob SHA: `de3ea2f6c1c638447d1c34c8f6237e14d5ae3b59`
-- ORIGINAL MAIN1 `Original/PWA/main/main1.md` blob SHA: `14b12a471c20ad23a2c18f456dbc4d59783a0d1f`
-- Result: `TARGET IDENTITY VERIFIED`. Re-reading the target after P123-001 produced the same New-main blob SHA. No unexpected target mutation occurred.
-- Target freeze: active.
+### P123-003 — MAIN1_ORIGINAL_ANALYSIS
+- Source: `Original/PWA/main/main1.md`
+- Original MAIN1 blob SHA: `14b12a471c20ad23a2c18f456dbc4d59783a0d1f`
+- Read mode: complete blob read before any target mutation.
+- Historical contracts established:
+  - Authentication/session bootstrap and login/logout event binding.
+  - User/role/permission evaluation and Owner semantics.
+  - Tenant-sensitive application state and global shell initialization.
+  - Notification runtime contract: `RW_Notification`, `_renderAndSave`, `markRead`, `_updateBadge`, `_clickNotif` and notification reference navigation behavior.
+  - Audit contract and audit-detail access behavior.
+  - Workflow/rules evaluation contract.
+  - Navigation/router and page dispatch contracts.
+  - Shared data/bootstrap helpers and global UI lifecycle.
+  - Safe rendering/event helpers used by the parent shell.
+- Classification rule: the existence of a function name in a derived implementation is not sufficient; parity requires executable behavior and compatible cross-module contracts.
+- Result: `ORIGINAL_MAIN1_CONTRACTS_EXTRACTED`
 - Product mutation: none.
-- Evidence: direct Git reads of frozen target and both MAIN1 sources.
+- Evidence: full direct Git blob read plus targeted direct Git searches confirming notification contracts in Original MAIN1. The same notification contracts are also present in Current MAIN1. fileciteturn630file2L35-L48
 
 ## RECONCILIATION HISTORY
 ### P123-001 — STATE_RECONCILIATION
 - Recorded in commit `e9fd4f819a384b29063d3918723f512da10ed50e`.
 - `CURRENT_STATE` was stale relative to Git and was synchronized before target work.
 
+### P123-002 — TARGET_FREEZE_AND_IDENTITY_VERIFICATION
+- Target SHA verified unchanged at `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`.
+- Current MAIN1 SHA `de3ea2f6c1c638447d1c34c8f6237e14d5ae3b59`.
+- Original MAIN1 SHA `14b12a471c20ad23a2c18f456dbc4d59783a0d1f`.
+
 ## TARGET FREEZE
 - Frozen target SHA: `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`
-- Frozen Current MAIN1 SHA: `de3ea2f6c1c638447d1c34c8f6237e14d5ae3b59`
-- Frozen Original MAIN1 SHA: `14b12a471c20ad23a2c18f456dbc4d59783a0d1f`
-- Frozen repository HEAD at P123-002 start: `e9fd4f819a384b29063d3918723f512da10ed50e`
 - Rule: any unexpected New-main SHA change requires STOP + forensic investigation.
 
 ## KNOWN BLOCKERS
-- MAIN1 Original analysis not yet completed.
-- MAIN1 Current analysis not yet completed.
+- Current MAIN1 analysis not yet completed.
 - New-main mapping not yet completed.
 - Evidence-bound gap classification not yet completed.
 - Functional/browser/production closure remains unverified.
@@ -50,7 +58,8 @@
 - Do not start the next operation until the previous event is reflected here.
 
 ## NEXT AUTHORIZED ACTION
-`P123-003 MAIN1_ORIGINAL_ANALYSIS`
-- Read Original/PWA/main/main1.md completely.
-- Derive the actual historical MAIN1 contracts and runtime behaviors.
+`P123-004 MAIN1_CURRENT_ANALYSIS`
+- Read Current/PWA/main/main1.md completely.
+- Identify intentional hardening versus behavior regressions.
+- Compare current MAIN1 contracts against the Original contract set above.
 - Do not modify New-main during this analysis.
