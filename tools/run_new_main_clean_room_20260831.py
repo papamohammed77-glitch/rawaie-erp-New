@@ -22,17 +22,34 @@ def sha_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def inline_scripts(html: str):
-    return [m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>', html, re.I)
-            if not re.search(r'\bsrc\s*=\s*', m.group('a') or '', re.I)]
+def inline_script_span(html: str):
+    """Return the one actual inline script span, using the last </script> as document closure.
+    New-main contains generated HTML strings inside JS, so the first textual </script> is not
+    necessarily the real script terminator. The artifact contract guarantees one inline script.
+    """
+    candidates = list(re.finditer(r'<script(?P<a>[^>]*)>', html, re.I))
+    inline = [m for m in candidates if not re.search(r'\bsrc\s*=\s*', m.group('a') or '', re.I)]
+    if len(inline) != 1:
+        raise RuntimeError('INLINE_SCRIPT_COUNT_INVALID:' + str(len(inline)))
+    start = inline[0].start()
+    close = html.lower().rfind('</script>')
+    if close < inline[0].end():
+        raise RuntimeError('INLINE_SCRIPT_CLOSURE_NOT_FOUND')
+    return start, close + len('</script>'), inline[0].end(), close
 
 
-def strip_scripts(html: str) -> str:
-    return re.sub(r'<script(?P<a>[^>]*)>[\s\S]*?</script>', '', html, flags=re.I)
+def strip_actual_inline_script(html: str) -> str:
+    start, end, _, _ = inline_script_span(html)
+    return html[:start] + html[end:]
+
+
+def get_inline_script_body(html: str) -> str:
+    _, _, body_start, body_end = inline_script_span(html)
+    return html[body_start:body_end]
 
 
 def repair_document_closure(html: str) -> tuple[str, bool]:
-    markup = strip_scripts(html)
+    markup = strip_actual_inline_script(html)
     html_open = len(re.findall(r'<html\b', markup, re.I))
     body_open = len(re.findall(r'<body\b', markup, re.I))
     html_close = markup.lower().count('</html>')
@@ -58,20 +75,18 @@ def validate_target(html: str):
     missing = [x for x in REQUIRED if x not in html]
     if missing:
         raise RuntimeError('TARGET_CONTRACT_MISSING:' + ','.join(missing))
-    scripts = inline_scripts(html)
-    if len(scripts) != 1:
-        raise RuntimeError('INLINE_SCRIPT_COUNT_INVALID:' + str(len(scripts)))
-    markup = strip_scripts(html)
+    body = get_inline_script_body(html)
+    markup = strip_actual_inline_script(html)
     if markup.lower().count('</html>') != 1 or markup.lower().count('</body>') != 1:
         raise RuntimeError('DOCUMENT_CLOSURE_INVALID')
     js = Path(tempfile.gettempdir()) / 'rawaea_new_main.js'
-    js.write_text(scripts[0].group('b'), encoding='utf-8')
+    js.write_text(body, encoding='utf-8')
     r = subprocess.run(['node', '--check', str(js)], capture_output=True, text=True)
     if r.returncode:
         print(r.stderr)
         raise RuntimeError('TARGET_JS_SYNTAX_FAIL')
     for op in ('insert','update','upsert','delete'):
-        if re.search(r"supabase\.from\(['\"]stock_branches['\"]\)\s*\." + op + r"\s*\(", html, re.I):
+        if re.search(r"supabase\.from\(['\"]stock_branches['\"]\)\s*\." + op + r"\s*\(", body, re.I):
             raise RuntimeError('NEW_MAIN_DIRECT_STOCK_WRITER_DETECTED:' + op)
 
 
