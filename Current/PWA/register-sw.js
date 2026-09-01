@@ -41,7 +41,7 @@ function RW_showUpdateBanner() {
  */
 
 if (location.pathname.indexOf('/vouchers.html') === -1 && 'serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').then(function(registration) {
+    navigator.serviceWorker.register('./sw.js').then(function(registration) {
         setInterval(function() {
             registration.update();
         }, 60000);
