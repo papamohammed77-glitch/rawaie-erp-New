@@ -26,10 +26,10 @@ def meta(p: Path) -> dict:
 
 def symbols(s: str) -> dict:
     return {
-        'functions': sorted(set(re.findall(r'(?<![\\w$])function\\s+([A-Za-z_$][\\w$]*)\\s*\\(', s))),
-        'ids': sorted(set(re.findall(r'\\bid=["\']([^"\']+)["\']', s))),
-        'rpcs': sorted(set(re.findall(r'\\.rpc\\(\\s*["\']([^"\']+)["\']', s))),
-        'tables': sorted(set(re.findall(r'\\.from\\(\\s*["\']([^"\']+)["\']', s))),
+        'functions': sorted(set(re.findall(r'(?<![\w$])function\s+([A-Za-z_$][\w$]*)\s*\(', s))),
+        'ids': sorted(set(re.findall(r'\bid=["\']([^"\']+)["\']', s))),
+        'rpcs': sorted(set(re.findall(r'\.rpc\(\s*["\']([^"\']+)["\']', s))),
+        'tables': sorted(set(re.findall(r'\.from\(\s*["\']([^"\']+)["\']', s))),
         'edge_refs': sorted(set(re.findall(r'functions/v1/([A-Za-z0-9._-]+)', s))),
     }
 
@@ -95,7 +95,7 @@ def restore_rec_offers(s: str) -> tuple[str, bool]:
 def repair_runtime_contracts(s: str) -> tuple[str, dict]:
     changes = {'supabase_key_replaced': False, 'service_worker_registration_replaced': False}
 
-    key_pattern = re.compile(r"var\\s+RW_SUPABASE_ANON_KEY\\s*=\\s*['\"][^'\"]*['\"];", re.S)
+    key_pattern = re.compile(r"var\s+RW_SUPABASE_ANON_KEY\s*=\s*['\"][^'\"]*['\"];", re.S)
     key_matches = key_pattern.findall(s)
     if len(key_matches) != 1:
         raise SystemExit('expected exactly one RW_SUPABASE_ANON_KEY declaration; found ' + str(len(key_matches)))
@@ -103,7 +103,7 @@ def repair_runtime_contracts(s: str) -> tuple[str, dict]:
     changes['supabase_key_replaced'] = nkey == 1
 
     sw_pattern = re.compile(
-        r"navigator\\.serviceWorker\\.register\\(\\s*['\"][^'\"]+['\"]\\s*,\\s*\\{\\s*scope\\s*:\\s*['\"][^'\"]+['\"]\\s*\\}\\s*\\)",
+        r"navigator\.serviceWorker\.register\(\s*['\"][^'\"]+['\"]\s*,\s*\{\s*scope\s*:\s*['\"][^'\"]+['\"]\s*\}\s*\)",
         re.S,
     )
     sw_matches = sw_pattern.findall(s)
@@ -130,11 +130,11 @@ def main() -> None:
         raise SystemExit('missing required reconstruction contracts: ' + ', '.join(missing))
     if "meta.permissions || ['*']" in s:
         raise SystemExit('wildcard fallback remains')
-    if re.search(r"\\.from\\(['\"]app_settings['\"]\\)\\.select\\([^;]*?\\)\\.limit\\(\\s*1\\s*\\)", s, re.S):
+    if re.search(r"\.from\(['\"]app_settings['\"]\)\.select\([^;]*?\)\.limit\(\s*1\s*\)", s, re.S):
         raise SystemExit('unscoped app_settings limit(1) remains')
-    if re.search(r"\\.from\\(['\"]stock_branches['\"]\\)[\\s\\S]{0,500}?\\.(?:update|insert|upsert|delete)\\(", s):
+    if re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,500}?(?:\.update|\.insert|\.upsert|\.delete)\(", s):
         raise SystemExit('direct stock_branches mutation remains')
-    if re.search(r"\\.from\\(['\"]inventory_log['\"]\\)[\\s\\S]{0,500}?\\.(?:update|insert|upsert|delete)\\(", s):
+    if re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,500}?(?:\.update|\.insert|\.upsert|\.delete)\(", s):
         raise SystemExit('direct inventory_log mutation remains')
 
     # Runtime closure gates for the P143 incident.
@@ -142,7 +142,7 @@ def main() -> None:
         raise SystemExit('canonical Supabase anon key missing from final main')
     if "navigator.serviceWorker.register('./sw.js',{scope:'./'})" not in s:
         raise SystemExit('canonical same-directory ServiceWorker registration missing')
-    if re.search(r"navigator\\.serviceWorker\\.register\\(\\s*['\"]\\.\\./sw\\.js['\"]", s):
+    if re.search(r"navigator\.serviceWorker\.register\(\s*['\"]\.\./sw\.js['\"]", s):
         raise SystemExit('legacy ../sw.js registration remains')
 
     osym = symbols(ORIGINAL.read_text(encoding='utf-8'))
