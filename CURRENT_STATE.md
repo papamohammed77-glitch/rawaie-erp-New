@@ -1,8 +1,8 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
 ## TEMP EXECUTION MARKER
-Target-only closure runner trigger. This marker is temporary and will be restored after the published target is updated.
-Target closure dispatch: final-run-v3b
+Target-only closure runner trigger.
+Final closure dispatch: v4
 
 ## GOVERNANCE
 - Operational truth comes from current Git, Production Supabase, deployed Edge Functions and runtime tests.
