@@ -153,3 +153,5 @@ def run():
 
 if __name__ == '__main__':
     run()
+
+# TEMP P124 TRIGGER: this line exists only to trigger the existing main-branch clean-room gate.
