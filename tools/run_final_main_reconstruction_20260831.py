@@ -28,7 +28,7 @@ def patch_main7(raw):
 
 
 def repair_runtime_contracts(raw):
-    changes = {'supabase_key_replaced': False, 'service_worker_registration_replaced': False}
+    changes = {'supabase_key_replaced': False, 'service_worker_registration_replaced': False, 'service_worker_registration_inserted': False}
 
     key_pattern = re.compile(r"var\s+RW_SUPABASE_ANON_KEY\s*=\s*(['\"])[^'\"]*\1\s*;", re.S)
     matches = key_pattern.findall(raw)
@@ -39,14 +39,23 @@ def repair_runtime_contracts(raw):
         raise RuntimeError('RUNTIME_AUTH_KEY_REPLACEMENT_COUNT:' + str(n))
     changes['supabase_key_replaced'] = True
 
-    sw_pattern = re.compile(r"navigator\.serviceWorker\.register\(\s*['\"][^'\"]+['\"]\s*,\s*\{\s*scope\s*:\s*['\"][^'\"]+['\"]\s*\}\s*\)", re.S)
+    canonical_sw = "navigator.serviceWorker.register('./sw.js',{scope:'./'})"
+    sw_pattern = re.compile(r"navigator\.serviceWorker\.register\(\s*['\"][^'\"]+['\"](?:\s*,\s*\{\s*scope\s*:\s*['\"][^'\"]+['\"]\s*\})?\s*\)", re.S)
     sw_matches = sw_pattern.findall(raw)
-    if len(sw_matches) != 1:
+    if len(sw_matches) > 1:
         raise RuntimeError('RUNTIME_SW_REGISTRATION_COUNT:' + str(len(sw_matches)))
-    raw, n = sw_pattern.subn("navigator.serviceWorker.register('./sw.js',{scope:'./'})", raw, count=1)
-    if n != 1:
-        raise RuntimeError('RUNTIME_SW_REPLACEMENT_COUNT:' + str(n))
-    changes['service_worker_registration_replaced'] = True
+    if len(sw_matches) == 1:
+        raw, n = sw_pattern.subn(canonical_sw, raw, count=1)
+        if n != 1:
+            raise RuntimeError('RUNTIME_SW_REPLACEMENT_COUNT:' + str(n))
+        changes['service_worker_registration_replaced'] = True
+    else:
+        insertion = "if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(function(e){console.warn('SERVICE_WORKER',e)})}"
+        close = raw.rfind('</script>')
+        if close < 0:
+            raise RuntimeError('RUNTIME_SW_INSERTION_SCRIPT_CLOSURE_MISSING')
+        raw = raw[:close] + insertion + raw[close:]
+        changes['service_worker_registration_inserted'] = True
 
     if "navigator.serviceWorker.register('../sw.js',{scope:'../'})" in raw:
         raise RuntimeError('LEGACY_PARENT_SERVICE_WORKER_REGISTRATION_REMAINS')
