@@ -1,75 +1,94 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
 ## GOVERNANCE
-- Operational truth: current Git main HEAD, Production Supabase, deployed Edge Functions, and qualifying runtime evidence.
-- Historical reports and prior assistant conclusions are leads only.
-- Authorized target: `Current/PWA/New-main`.
+- Operational truth: current Git `main` HEAD, Production Supabase, deployed Edge Functions, and qualifying runtime evidence.
+- Historical reports/prompts are evidence only and must not override direct source/DB facts.
+- Authorized product target: `Current/PWA/New-main`.
 - `Current/PWA/main.html` is protected.
-- Prompt 124 governs this continuation: no reconstruction, no overlay, no speculative production mutation, and no closure without direct evidence.
+- Browser E2E is **temporarily paused by explicit P124 directive**. It is not a PASS and must not be represented as one.
+- No reconstruction of MAIN1→MAIN11, no source-copy rewrite, no overlay-based closure, and no speculative production mutation are authorized.
 
 ## LAST VERIFIED EVENT
-### P124-008 — TARGET-ONLY RUNTIME VERIFIER / FINAL FORENSIC STATE
-- Current `main` HEAD directly verified as `6635544af89978b977d90573f18f95aad48b6d59`.
-- Current target `Current/PWA/New-main` directly inspected at that HEAD. Its MAIN1 shell, authentication/session, tenant context, owner/license, permissions, navigation, data, audit, workflow, notification, PWA lifecycle and delegated application surfaces are present.
-- Required notification functions `_renderAndSave`, `_updateBadge`, `markRead`, `_clickNotif` are present.
-- No evidence-backed missing MAIN1 contract was identified by direct static reconciliation.
-- The old mutating reconstruction workflow was replaced with a read-only exact-target runtime verifier; it no longer rewrites `New-main`, injects closure overlays, or changes production state.
+### P124-009 — SURGICAL TARGET AUDIT / NO-BROWSER MODE
+- Directly re-read the P124 memory-recovery pack, CURRENT_STATE, and Hany 7 before acting.
+- Confirmed the prior operational chain and rejected report-only conclusions where direct evidence differed.
+- `Current/PWA/New-main` contains the MAIN1 shell/runtime contracts, tenant context, owner/license surface, permissions, navigation, data, audit, workflow, notification, PWA lifecycle, and delegated specialized applications.
+- Critical notification functions are present: `_renderAndSave`, `_updateBadge`, `markRead`, `_clickNotif`.
+- Current/Original MAIN1 both contain the same core notification contract and workflow bootstrap surface.
+- `New-main` contains multiple historical namespace redefinitions/compatibility layers; this is a maintainability and determinism risk, but no destructive rewrite was performed in this pass because a full behavioral replacement is not justified without runtime proof.
 
-## PRODUCTION VERIFIED
-- PostgreSQL contains `post_stock_movement`, `reserve_stock`, and `post_journal_entry` as SECURITY DEFINER functions.
+## VERIFIED PRODUCTION ARCHITECTURE
+- PostgreSQL contains `post_stock_movement`, `reserve_stock`, and `post_journal_entry` as `SECURITY DEFINER` functions.
+- `post_stock_movement` is the canonical stock-changing engine: validates movement type/quantity, enforces company ownership of source/target branches, locks stock rows, mutates `stock_branches`, records `inventory_log`, and supports idempotency keys.
 - Major operational tables are RLS-enabled.
-- `save-customer` is ACTIVE with `verify_jwt=true` and derives `company_id` from authenticated identity.
-- `log-action` is ACTIVE with `verify_jwt=true`.
-- `save-item` is ACTIVE with JWT verification and uses the atomic opening-stock owner `create_item_with_opening_stock`, which routes opening stock through `post_stock_movement('InventoryIncrease', ...)` with idempotency.
-- Workflow/notification RLS was hardened to remove broad anonymous/public access while preserving authenticated runtime behavior.
+- Workflow/notification policies were hardened to remove broad anonymous/public mutation access while preserving authenticated reads where required.
+- Relevant production Edge Functions are JWT-protected (`verify_jwt=true`).
+- `save-customer` derives `company_id` from authenticated Auth identity.
+- `log-action` derives the audit user from the authenticated token and writes audit data through the server-side client.
+- Production `save-item` uses the hardened atomic opening-stock path described in prior verified state.
 
-## RUNTIME VERIFICATION FINDINGS
-- A prior verifier run failed on a verifier-only defect (`DOCUMENT_TAIL_INVALID`); this was not evidence of an application failure.
-- The verifier was corrected to inspect multiple inline scripts and proper document closure without altering the target.
-- The repository now contains a read-only Playwright verifier that checks the exact checked-out `New-main` artifact, JavaScript syntax, critical DOM, route surface, notification contract, owner-denial behavior at the navigation layer, and legacy `main.html` integrity.
-- However, no qualifying current GitHub Actions Run tied to the present HEAD has been obtained through the available Actions interface, and no authenticated Owner/Non-Owner browser session is available in this execution context.
-- Therefore authenticated E2E, tenant-boundary E2E, runtime Service Worker success, and final production/browser correlation remain **unproven evidence gates**. They are not application defects by themselves and must not be relabeled as PASS.
+## PROVEN CODE GAP IDENTIFIED AND REPAIRED IN PIPELINE
+### Bulk Stock Adjustment Contract Drift
+- The New-main bulk-upload UI previously mapped barcode → `item_code` but omitted `item_id` from the upload record sent to `bulk-stock-adjustment`.
+- Production `bulk-stock-adjustment` requires a valid `item_id`/resolved item identity.
+- The authoritative surgical verifier was extended to map `mappedItem.id` into `_uploadFileData[f].item_id` and include `item_id` in the final payload.
+- Runner evidence proved the surgical transformation executes successfully in a clean runner and generated target SHA `612c7cb3323b0be6a767781388cd746ac27af8c06ffe31203650393f2b5e470d` in the runner working copy.
+- The same target mutation has **not yet been independently proven persisted to `main`**; do not mark the product artifact closed on this item until its Git blob reflects the repaired payload.
 
-## IMPORTANT LINEAGE FACT
-- Production `save-item` is presently at the hardened atomic implementation path, but the exact deployed source lineage back to the canonical Git Edge Function source file has not been independently proven in this execution context.
-- No surrogate source file has been invented.
+## VERIFIER FORENSIC FIXES
+- The original structural gate incorrectly treated `</script>` strings embedded inside generated JavaScript HTML as document terminators.
+- The verifier was changed to locate the single actual inline script using the first inline `<script>` and the final `</script>` boundary, then validate the surrounding document markup.
+- The verifier now explicitly forbids direct `stock_branches` writers inside New-main.
+- Browser E2E is intentionally absent from the surgical verification pipeline for this P124 pass.
+
+## EXTERNAL / HISTORICAL ARCHITECTURE CROSS-CHECK
+- Odoo's inventory model is document/movement oriented: inventory adjustments are represented as stock movements rather than arbitrary direct balance edits.
+- SAP S/4HANA likewise follows a document principle for stock-changing transactions, with material documents and accounting documents where financially relevant.
+- This validates the project's canonical `post_stock_movement` direction and the decision to eliminate secondary physical-stock writers.
+
+## KNOWN CURRENT BLOCKERS
+- The exact repaired `New-main` blob containing the bulk-upload `item_id` correction is not yet directly proven on `main`.
+- The current Actions interface exposes reliable PR-triggered runs, but push-run visibility is limited; therefore a GitHub Actions run is not assumed merely because a push-triggered workflow exists.
+- Authenticated Owner/Non-Owner browser execution, tenant-boundary E2E, Service Worker runtime, and final Git→Production lineage remain unproven because Browser E2E is paused by directive.
+- Some legacy reconstruction/forensic workflows continue to exist and may fail independently; they are not authoritative for this target unless their evidence directly concerns `Current/PWA/New-main`.
+
+## DO-NOT-REPEAT
+- Do not treat CI workflow definition as proof of application execution.
+- Do not treat a runner working-copy SHA as a persisted Git artifact SHA.
+- Do not reconstruct MAIN1→MAIN11.
+- Do not rewrite New-main from historical snapshots.
+- Do not use markers/labels/metadata as substitutes for behavioral closure.
+- Do not introduce a second stock writer.
+- Do not claim `Closed 100% / GOLD / DIAMOND / COMPLETE` while the repaired target persistence or any required evidence gate is still unproven.
+- Do not resume Browser E2E during this temporary P124 pause.
 
 ## CLOSURE MATRIX
 | Gate | Status |
 |---|---|
-| Prompt 124 memory/governance recovery | PASS |
-| Current-state reconciliation | PASS |
-| Latest main HEAD identity | PASS |
+| Memory/governance recovery | PASS |
+| CURRENT_STATE reconciliation | PASS |
 | MAIN1 Original/Current mapping | PASS |
-| MAIN1 → New-main static mapping | PASS |
-| Main1 tenant/owner/notification contract presence | PASS |
-| Canonical stock authority | PASS |
-| Atomic opening-stock owner | PASS |
+| MAIN1 → New-main static contract presence | PASS |
+| Canonical stock authority in Production | PASS |
+| Atomic opening-stock architecture in Production | PASS |
 | Production RLS hardening | PASS |
-| Read-only exact-target verifier | PASS |
-| Exact current-artifact JavaScript/browser execution result | PENDING — no qualifying current run available |
-| Authenticated Owner E2E | PENDING |
-| Authenticated Non-Owner E2E | PENDING |
-| Tenant isolation E2E | PENDING |
-| License route/render E2E | PENDING |
-| Notification behavioral E2E | PENDING |
-| Audit/logout/fail-closed E2E | PENDING |
-| Service Worker runtime | PENDING |
-| Git→Production save-item source lineage | PENDING |
+| Bulk-upload item identity drift identified | PASS — gap proven |
+| Bulk-upload surgical repair generated by verifier | PASS — runner evidence |
+| Bulk-upload repair persisted to `main` target blob | PENDING |
+| Verifier parser corrected | PASS |
+| Browser E2E | PAUSED BY DIRECTIVE |
+| Authenticated Owner E2E | PAUSED / UNPROVEN |
+| Authenticated Non-Owner E2E | PAUSED / UNPROVEN |
+| Tenant-isolation E2E | PAUSED / UNPROVEN |
+| Service Worker runtime | PAUSED / UNPROVEN |
+| Git→Production source lineage | PENDING |
 | GOLD / DIAMOND / COMPLETE | NOT AUTHORIZED |
 
-## DO-NOT-REPEAT
-- Do not reconstruct MAIN1→MAIN11.
-- Do not rewrite `New-main` from Historical/Original snapshots.
-- Do not inject markers/overlays to simulate closure.
-- Do not mutate Production to manufacture test evidence.
-- Do not treat a static verifier, CI configuration, Git commit, or Supabase function hash as authenticated browser PASS.
-- Do not claim `Closed 100%` while any required runtime gate remains unproven.
-
 ## NEXT AUTHORIZED ACTION
-`P124-009 — QUALIFIED_AUTHENTICATED_E2E_AND_LINEAGE`
-- Run the existing read-only verifier against the exact current `main` target and capture the real job/log evidence.
-- Reuse an authorized authenticated browser path with real Owner and Non-Owner test identities; do not simulate those identities by mutating `RW_STATE`.
-- Verify tenant boundary, license, notifications, audit/logout/fail-closed, network/console and Service Worker behavior.
-- Reconcile the deployed `save-item` source with the canonical Git source.
-- Only then promote the state to `CLOSED 100% / GOLD / DIAMOND / COMPLETE`.
+`P124-010 — VERIFY_TARGET_PERSISTENCE_AND_SURGICAL_COMPLETION`
+- Directly inspect `Current/PWA/New-main` on current `main`.
+- Confirm whether the bulk-upload `item_id` repair is present in the Git blob.
+- If absent, persist only that surgical change; then re-run the non-browser static verifier.
+- Verify no direct stock writer exists in the final target.
+- Reconcile the final target SHA with this file before any closure label.
+- Browser E2E remains paused until explicitly re-authorized.
