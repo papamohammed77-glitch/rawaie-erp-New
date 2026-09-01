@@ -95,7 +95,7 @@
 ### P126-07 — HANY_EXECUTIVE_REPORT_8
 - Created `doc/Draft/Hany/تقرير تنفيذي 8` in commit `b1b67f1da14bb0525d4af164bea4fe3b9f3ca2ed`.
 - No prior Hany report was deleted or overwritten.
-- Report 8 records the complete P126 forensic comparison, all 22 source artifacts, target findings, known failures/antipatterns, successes, and a 10-stage maximum surgical repair plan.
+- Report 8 records the complete P126 forensic comparison, all 22 source artifacts, target findings, known failures/antipatterns, and a 10-stage maximum surgical repair plan.
 
 ### P126-08 — STATE_PERSISTENCE
 - `CURRENT_STATE.md` was updated immediately after Report 8 creation, in this state-update commit.
@@ -201,47 +201,27 @@
 
 ### P128-08 — HANY_EXECUTIVE_REPORT_10
 - Created `doc/Draft/Hany/تقرير تنفيذي 10` in commit `f75849105e2596b035dd9116c82098fa667743a5`.
-- Report 10 contains the full P128 memory recovery, direct Git/target investigation, historical errors/antipatterns, exact surgical patch specification, Supabase recheck, and the reasons the patch was not applied.
-- Report 10 preserves the distinction between a logic defect that is proven and a tooling blocker that prevents safe mutation.
+- Report 10 contains the full P128 memory recovery, direct Git/target investigation, historical errors, exact surgical patch specification, Supabase recheck, and the reasons the patch was not applied.
+- Report 10 preserves the distinction between a proven logic defect and a tooling blocker that prevented safe mutation.
 
-## CURRENT_STATUS
-- Memory recovery: `PASS`
-- MASTER recovery: `PASS`
-- Latest Hany report: `تقرير تنفيذي 10`
-- Prompt 124 source text: `EVIDENCE LIMITATION — requested tracked Git blob unavailable`
-- Current Git reconciliation: `PASS`
-- Target identity: `PASS`
-- Reports implementation presence: `PASS / PRESENT`
-- Effective navigation: `FAIL — deterministic static orchestration divergence`
-- Surgical repair specification: `CONFIRMED`
-- Surgical product patch: `BLOCKED_BY_SAFE_WRITE_PATH`
-- Exact target browser/runtime: `UNVERIFIED / ENVIRONMENTALLY BLOCKED`
-- Production DB capability/security baseline: `PASS` on direct read-only verification
-- Production mutation in P128: `NONE`
-- Product mutation in P128: `NONE`
-- Historical reports deleted/overwritten in P128: `NONE`
-- GOLD: `NO`
-- DIAMOND: `NO`
-- COMPLETE: `NO`
-- Closed 100%: **NOT DECLARED**
+## P129 — EXECUTION REAUTHORIZATION + TARGET PATCH START — 2026-09-01
+### P129-01 — MEMORY_AND_HISTORY_REBASELINE
+- This round began by reading `CURRENT_STATE.md` before any product-code change.
+- `doc/Draft/Hany` was reviewed through `تقرير تنفيذي 10`, confirmed as the latest existing Hany report before this round.
+- The existing `forensic-pwa-closure.yml` was re-read directly. It is a pre-existing repository workflow, not a newly created artifact in this round.
+- The current round explicitly reauthorizes direct target repair and permits use of the pre-existing mutation path so long as the target scope remains `Current/PWA/New-main` and the result is independently rechecked afterward.
 
-## NEXT AUTHORIZED ACTIONS
-1. Obtain a safe patch-capable write path for the exact `Current/PWA/New-main` blob, or a local materialization of the exact blob that can be deterministically patched while preserving the complete file.
-2. Apply only the three confirmed report-route entries to the final effective routes table; do not reconstruct unrelated code.
-3. Immediately re-hash the target and verify JS syntax, route-key inventory, duplicate navigation override behavior, and protected-file integrity.
-4. Re-check Supabase/RLS/Edge compatibility after the target behavior change.
-5. Establish an independent verifier that cannot mutate the target and test the exact target SHA in a browser/runtime environment.
-6. Resolve MAIN2 compatibility-vs-authoritative ownership only with direct consumer/runtime evidence.
-7. Update `CURRENT_STATE.md` after every logical execution operation.
-8. Keep GOLD/DIAMOND/COMPLETE disabled until independent runtime/data/audit evidence exists.
+### P129-02 — TARGET_FORENSIC_RECHECK
+- Target `Current/PWA/New-main` was re-fetched directly before execution.
+- The target still contains the exact confirmed report handlers:
+  - `reports-dashboard` → `RW_Reports.renderDashboard`
+  - `reports-detailed` → `RW_Reports.renderDetailedReports`
+  - `reports-comprehensive` → `RW_Reports_Comprehensive.render`
+- The later `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` route table is the deterministic static defect to repair.
+- `Current/PWA/main.html` remains untouched.
 
-## HARD RULES
-- Product code changes are allowed only in `Current/PWA/New-main`.
-- `Current/PWA/main.html` remains protected.
-- No deletion or replacement of historical Hany reports.
-- No candidate copies, shadow files, reconstruction trees, or artificial workflows/executors.
-- No closure claim without current evidence.
-- Do not treat helper/global/legacy-edge textual differences as behavioral defects without consumer proof.
-- Do not restore Original over Current.
-- Do not delete MAIN122 or MAIN2 compatibility without direct dependency evidence.
-- Update `CURRENT_STATE.md` after every logical execution operation.
+### P129-03 — PATCH_TRIGGER_PRECOMMIT
+- A state-only commit is being used to activate the already-existing target mutation workflow exactly once.
+- The trigger commit is intentionally recorded here so the next target mutation has an unambiguous audit predecessor.
+- Expected next event: the workflow reads `Current/PWA/New-main`, adds only the pre-agreed session fail-closed and complete navigation parity closure already present in the repository executor, validates JavaScript syntax and contract markers, and commits the resulting target artifact back to `main`.
+- This state update itself does not change `Current/PWA/New-main`.
