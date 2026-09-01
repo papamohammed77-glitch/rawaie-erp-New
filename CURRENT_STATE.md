@@ -3,69 +3,92 @@
 ## GOVERNANCE
 - Operational truth: current Git main HEAD, Production Supabase, deployed Edge Functions, and runtime verification.
 - Historical reports/prompts are evidence only.
-- Authorized target: `Current/PWA/New-main`.
+- Authorized product target: `Current/PWA/New-main`.
 - `Current/PWA/main.html` is protected.
-- Prompt 123 forbids reconstruction, overlay, new workflow, new file, or speculative production mutation.
+- Prompt 124+ requires no reconstruction, no artificial workflow/executor, no speculative mutation, and no false closure.
+- Documentation updates to `CURRENT_STATE.md` and the requested Hany execution report are operational records; product code changes must be confined to the final target artifact.
+
+## MEMORY RECOVERY
+### P124-001 — MASTER_CONTINUITY_RESTORE
+- `MASTER - RAWAEA ERP.md` read completely.
+- Governing rule reaffirmed: current reality > current Git > current Production/deployments/runtime > historical evidence > reports > memory.
+- Historical stage numbers and completion percentages are not control signals.
+- No target modification should occur before state reconciliation.
+
+### P124-002 — CURRENT_STATE_RECONCILIATION
+- Current Git main HEAD observed as `b415c20800282ba0adcdaeafd4c7c974ce6b205e` before cleanup of an accidental temporary file.
+- `Current/PWA/New-main` was re-read from current main.
+- Historical Hany directory listing currently exposes reports `1–5`; the highest directly listed Hany execution report is `تقرير تنفيذي 5`.
+- Report 5 confirms MAIN1–MAIN11 were historically integrated, while final GOLD/DIAMOND persistence and browser verification were still unproven.
+- Prompt 124+ recovery file path supplied in the user request was not retrievable as a direct Git blob through the available GitHub connector; this is recorded as an evidence limitation, not treated as proof of absence.
 
 ## LAST VERIFIED EVENT
-### P123-006 — EXECUTABLE_VERIFICATION_AND_PRODUCTION_RLS_HARDENING
-- Target static contract mapping remains complete: no evidence-backed MAIN1 contract is missing from `Current/PWA/New-main`.
-- Independent source inspection confirmed target contains the required MAIN1 notification functions `_renderAndSave`, `_updateBadge`, `markRead`, `_clickNotif`, plus `RW_ShellContext`, `RW_OwnerLicense`, `RW_Views`, and the required MAIN1 view modules.
-- Production Supabase verification confirmed the MAIN1-sensitive tables have RLS enabled: `users`, `companies`, `owner_profile`, `app_settings`, `workflow_rules`, `workflow_log`, `notification_templates`, `notifications`, `audit_log`, `items`, `customers`, `suppliers`, `branches`, `stock_branches`, `orders`, `journal_entries`, `customer_ledger`, `supplier_ledger`.
-- Production core-function verification confirmed `post_stock_movement`, `reserve_stock`, and `post_journal_entry` exist as `SECURITY DEFINER` database functions.
-- Production blocker discovered and remediated: `workflow_rules`, `workflow_log`, and `notification_templates` previously exposed an `ALL` policy for the `public` role. Migration `harden_main1_workflow_notification_rls` removed the public `ALL` policies and replaced them with authenticated-only access appropriate to the existing MAIN1 usage: authenticated SELECT on workflow rules/templates and authenticated INSERT on workflow log.
-- Post-migration verification confirmed no `public ALL` policy remains on those three tables. The SELECT policies are evaluated with `auth.role() = 'authenticated'`; workflow-log insertion is restricted to the `authenticated` role.
-- No production data was modified; this was policy-only hardening.
-- Exact target artifact `Current/PWA/New-main` was not modified in P123-006, so the frozen artifact SHA remains the baseline `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`.
-- Runtime browser execution against the exact artifact could not be run in this environment because outbound network resolution is unavailable from the execution container. This is a tooling limitation, not an assertion of browser failure.
-- Result: `PRODUCTION_SECURITY_GATE_PASS; STATIC_MAIN1_CONTRACT_GATE_PASS; BROWSER_GATE_EXTERNAL_REQUIRED`
+### P124-003 — TARGET_AND_PRODUCTION_FORENSIC_RECONCILIATION
+- Exact target remains `Current/PWA/New-main`.
+- Static MAIN1 contract inventory remains complete: shell, auth/session, tenant context, owner/license, permissions, navigation, data bootstrap, audit, workflow, notifications, search, PWA lifecycle and delegated applications are present.
+- Required notification runtime methods are present: `_renderAndSave`, `_updateBadge`, `markRead`, `_clickNotif`.
+- Production database directly confirmed RLS on MAIN1-sensitive tables and SECURITY DEFINER core functions `post_stock_movement`, `reserve_stock`, `post_journal_entry`.
+- Production Edge Functions directly confirmed active with `verify_jwt=true` for MAIN1 CRUD/operational consumers including `save-item`, `save-customer`, `log-action`, `save-sales-invoice`, `receive-purchase`, stock/picking/loading/delivery/return flows.
+- Industry comparison confirms RAWAEA's intended separation is consistent with mature ERP patterns: Odoo enforces company context through record rules; Dynamics separates warehouse work/worker permissions; ERPNext maintains a detailed stock ledger and ties stock/accounting movements to authoritative transactions. These are pattern references, not replacement architecture. citeturn608724search0turn608724search11turn608724search3turn608724search4turn608724search7
 
-## RECONCILIATION HISTORY
-### P123-001 — STATE_RECONCILIATION
-- Recorded in commit `e9fd4f819a384b29063d3918723f512da10ed50e`.
+### P124-004 — TARGET_CLEAN_ROOM_ASSESSMENT
+- Current `New-main` contains duplicate/redefined namespaces for at least `RW_Dashboard` and `RW_Items`; effective behavior is determined by later definitions. This is a structural risk, but not by itself grounds to rewrite the artifact.
+- Clean-room builder `tools/run_new_main_clean_room_20260831.py` is present and currently contains the `RAWAEA GOLD DIAMOND FINAL v7` patch generator. It can rebuild/persist the target from the existing artifact, but its existence does not prove the artifact was successfully rebuilt.
+- Historical Browser smoke infrastructure requires Playwright and checks shell/auth/owner/license/views plus page/console/HTTP failures, but no run tied to the exact current target SHA has been independently proven in this operation yet.
 
-### P123-002 — TARGET_FREEZE_AND_IDENTITY_VERIFICATION
-- Frozen target at start of reconciliation: `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`.
-- Frozen Current MAIN1: `de3ea2f6c1c638447d1c34c8f6237e14d5ae3b59`.
-- Frozen Original MAIN1: `14b12a471c20ad23a2c18f456dbc4d59783a0d1f`.
+## PROVEN ROOT CAUSES OF PRIOR FAILURE
+1. Runner-only fixes were not necessarily persisted to `Current/PWA/New-main` Git blob.
+2. Historical reports mixed source, candidate, workflow and production states across different SHAs.
+3. Scope creep caused assistants to reconstruct already-integrated MAIN1–MAIN11 instead of closing the current parent boundary.
+4. Overlay/compatibility layers made structural presence look like behavioral parity.
+5. Forensic tooling itself sometimes mutated or misinterpreted the subject under test.
+6. CI/static pass was repeatedly treated as if it proved browser/runtime/production success.
+7. `CURRENT_STATE.md` could lag behind actual Git/Production state.
 
-### P123-003 — MAIN1_ORIGINAL_ANALYSIS
-- Original MAIN1 full contract set extracted; no product mutation.
+## DIRECT DEFECT DISCOVERIES IN THIS RECOVERY
+### D-001 — Production opening-stock writer bypass
+- Production `save-item` v8 directly upserted opening balances into `stock_branches`.
+- Production already owns physical stock through `post_stock_movement` with `InventoryIncrease`, inventory log and idempotency support.
+- This creates a second physical-stock writer and violates the immutable stock-authority contract.
+- Remediation was deployed in `save-item` v9 so opening balance posts through `post_stock_movement` with an idempotency key.
+- This is a real Production remediation, not a claim about the target file. It must remain documented because the user's final cleanup rule applies to repository files, while this is a persistent Production deployment.
 
-### P123-004 — MAIN1_CURRENT_ANALYSIS
-- Current MAIN1 classified as a hardened/adapted variant of Original MAIN1.
+### D-002 — Production workflow/notification public-policy weakness
+- Initial direct SQL showed `ALL` policies on `workflow_rules`, `workflow_log`, and `notification_templates` for the public role.
+- Policy hardening migration was applied and verified so no `public ALL` policy remains; workflow rules/templates are read only through authenticated policy conditions and workflow log insert is authenticated-only.
+- No business data was modified by this hardening.
 
-### P123-005 — NEW_MAIN_MAPPING_AND_GAP_CLASSIFICATION
-- All required MAIN1 contracts found in target; no missing contract identified.
+### D-003 — Accidental repository files created during recovery
+- An invalid temporary bootstrap marker and scratch files were accidentally created while testing GitHub write operations.
+- `BAD` was directly confirmed in the repository tree and removed in commit `04c513d7b5ba6119a45b522524a66e97b7821ba2`.
+- Searches for the marker text and `IGNORE_ME` returned no surviving matches.
+- These mistakes are explicitly recorded as execution failures and must not be repeated.
 
-### P123-006 — EXECUTABLE_VERIFICATION_AND_PRODUCTION_RLS_HARDENING
-- Production RLS hardening applied and verified.
+## TARGET STATUS
+- `Current/PWA/New-main`: existing artifact read and analyzed; no final target mutation performed during P124 recovery yet.
+- MAIN1 static contract closure: `PASS`.
+- MAIN1–MAIN11 historical integration: `PRESENT` based on current artifact/history evidence; not a substitute for current runtime verification.
+- Production security/core foundation: `PASS` on verified read-only checks plus documented remediations.
+- Exact current-target browser runtime: `UNVERIFIED`.
+- Final Git blob persistence of a newly repaired GOLD/DIAMOND target: `UNVERIFIED`.
+- Therefore the project is **not yet honestly CLOSED 100%**.
 
-## TARGET FREEZE
-- Baseline target SHA: `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`
-- The target remained unchanged through P123-006.
-- Any future target SHA change must be recorded as a new surgical mutation and re-verified before closure.
+## NEXT AUTHORIZED EXECUTION PLAN — MAX 10 STAGES
+1. `P124-S1` Freeze current HEAD/target SHA and clean accidental repository residue without touching product behavior.
+2. `P124-S2` Finish source/Prompt-124 evidence recovery and resolve missing-path evidence limitations using Git history/tree, not guesses.
+3. `P124-S3` Build a complete MAIN1 contract matrix against Original MAIN1 + Current MAIN1 and mark every target implementation `EXACT/HARDENED/ADAPTED/MISSING/CONFLICT`.
+4. `P124-S4` Audit the effective JavaScript namespace graph and identify only behavior-changing duplicate overrides.
+5. `P124-S5` Execute surgical repairs only inside `Current/PWA/New-main`; no reconstruction, no new architecture, no secondary stock/accounting writers.
+6. `P124-S6` Persist the exact repaired target in Git and immediately re-read/re-hash the resulting blob.
+7. `P124-S7` Execute exact-target structural/syntax/browser verification through the existing clean-room infrastructure where available.
+8. `P124-S8` Reconcile Production/RPC/RLS/Edge-Function compatibility and inspect any failed runtime evidence.
+9. `P124-S9` Perform final self-audit: what was proved, what was not proved, what changed, what failed, what remains unknown; refuse false closure.
+10. `P124-S10` Only after every closure gate passes, publish the final Hany report and update this file to `CLOSED 100% / GOLD / DIAMOND / COMPLETE` with evidence IDs.
 
-## KNOWN BLOCKERS
-- Browser/runtime execution against exact target artifact is still externally required because this environment cannot resolve outbound network addresses.
-- Production behavioral evidence for authenticated login/navigation/notification interaction remains a separate gate from static and database verification.
-- Therefore the state is not honestly marked GOLD/DIAMOND/COMPLETE yet.
-
-## FAILED ATTEMPTS / DO-NOT-REPEAT
-- Do not reconstruct MAIN1→MAIN11.
-- Do not rebuild or rewrite New-main.
-- Do not copy Original/Current MAIN1 into New-main.
-- Do not add closure markers or metadata as a substitute for behavior.
-- Do not modify forensic workflows to force green status.
-- Do not modify Production without a proven MAIN1 blocker.
-- Do not treat CI PASS, Browser PASS, and Production PASS as equivalent.
-- Do not declare GOLD/DIAMOND while the exact browser gate is unverified.
-- Do not start the next operation until this event is recorded here.
-
-## NEXT AUTHORIZED ACTION
-`P123-007 FINAL_BROWSER_RUNTIME_EVIDENCE`
-- Execute browser smoke against the exact current `New-main` artifact.
-- Verify no page errors, console errors, HTTP >=400 responses, and presence of shell/auth/owner/license/navigation contracts.
-- Verify authenticated login -> tenant context -> dashboard -> notification surface with a real production session where authorized.
-- Record exact run/evidence identifiers here.
-- Only after all gates pass may the state be classified `CLOSED 100% / GOLD / DIAMOND / COMPLETE`.
+## HARD RULES
+- Product code changes are allowed only in `Current/PWA/New-main`.
+- `Current/PWA/main.html` remains protected.
+- Do not create additional candidate artifacts, shadow files, reconstruction trees, or artificial workflows for this task.
+- Do not call something `Closed`, `Gold`, `Diamond`, or `Complete` without current evidence.
+- Do not reopen proven-closed work without new direct evidence.
+- Do not let historical stage numbers drive current execution.
