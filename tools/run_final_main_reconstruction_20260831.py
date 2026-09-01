@@ -74,6 +74,23 @@ def validate_fragment(idx, raw):
             raise RuntimeError(f'MAIN{idx}_SCRIPT_CLOSURE_FORBIDDEN')
 
 
+def validate_phase_js(chunks):
+    running = chunks[0]
+    first_script = re.search(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*)', running, re.I)
+    if not first_script:
+        raise RuntimeError('MAIN1_INLINE_SCRIPT_MISSING_FOR_PHASE_VALIDATION')
+    js_body = first_script.group(1)
+
+    for idx in range(1, len(chunks) + 1):
+        if idx > 1:
+            js_body += '\n\n' + chunks[idx - 1]
+        temp = Path(tempfile.gettempdir()) / f'rawaea-phase-{idx}.js'
+        temp.write_text(js_body, encoding='utf-8')
+        r = subprocess.run(['node', '--check', str(temp)], capture_output=True, text=True)
+        if r.returncode:
+            raise RuntimeError(f'JS_PHASE_SYNTAX_FAIL:main{idx}:\n{r.stderr}')
+
+
 def assemble():
     missing = [str(p) for p in PARTS if not p.is_file() or p.stat().st_size == 0]
     if missing:
@@ -89,6 +106,7 @@ def assemble():
         validate_fragment(idx, raw)
         chunks.append(raw.rstrip())
 
+    validate_phase_js(chunks)
     candidate = chunks[0] + '\n\n' + '\n\n'.join(chunks[1:]) + '\n\n</script>\n</body>\n</html>\n'
     candidate, runtime_changes = repair_runtime_contracts(candidate)
     canonical_sw_tag = "<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(function(e){console.warn('SERVICE_WORKER',e)})}</script>"
