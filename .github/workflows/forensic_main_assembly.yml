@@ -1,6 +1,7 @@
 name: RAWAEA governed main assembly — EXECUTE AND VERIFY
 
 # P143-RETRIGGER: canonical reconstruction and verification of Current/PWA/New-main.
+# P143-FORENSIC-ISOLATION: phase-by-phase syntax gate isolates the first broken fragment.
 
 on:
   workflow_dispatch:
