@@ -1,111 +1,80 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
 ## GOVERNANCE
-- `CURRENT_STATE.md` is the single operational state entry point for this repository.
-- `LAST VERIFIED EVENT` is the only recency authority; `LAST REPORT` has no operational authority.
-- Historical reports/prompts, historical repositories and assistant memory are evidence/navigation only.
-- Any mismatch between this file, Git, Production, deployments or runtime must be marked `STALE` and reconciled before new engineering decisions.
-- Production changes require root-cause, dependency, contract, test, deployment and post-deployment verification before closure.
-- Project memory is maintained in `Current/CTO/RAWAEA_PROJECT_MEMORY_117-02.md`.
+- Operational truth comes from current Git, Production Supabase, deployed Edge Functions and runtime tests.
+- Historical reports/prompts/assistant memory are evidence only.
+- Authorized Golden target: `Current/PWA/New-main`.
+- `Current/PWA/main.html` remains protected and untouched.
 
-## PROJECT
-- Project: RAWAEA ERP
-- Current repository: `papamohammed77-glitch/rawaie-erp-New`
-- Historical repository: `papamohammed77-glitch/rawaie-erp-review`
-- Active Git branch: `main`
-- Production Supabase: `SMART ERP` / `fiilmooggumokxanwiyx`
-- Staging Supabase: `rawaea-staging` / `hfzznsiprnwkpayskzhu`
+## VERIFIED TARGET
+- `Current/PWA/New-main` contains the MAIN1→MAIN11 published module chain.
+- Verified target commits in this continuity chain include MAIN2 `ac6e55a`, MAIN3 `7805951`, MAIN4 `2c79811`, and subsequent MAIN5→MAIN11 target commits.
+- Latest verified target contract patch: `31d4dc3afc4e59dfd9fc5ec90c4c982ee4d310dc`.
+- That patch changed only `Current/PWA/New-main`, restoring Navigation/Owner/License/CRM/Users/Roles parity and tightening Owner semantics.
 
-## CURRENT REALITY RECONCILIATION — 2026-09-01
-- The full `doc/Draft/medhat/MASTER — RAWAEA ERP.md` command was read end-to-end through section 60 and adopted as the governing execution model.
-- The full execution order and stop conditions in `doc/Draft/medhat/برومبت + تقرير 122` were reread through the final execution section.
-- `Current/PWA/main.html` remains protected and was not modified.
-- The authorized reconstruction target is `Current/PWA/New-main`.
-- `Current/PWA/main/main1.md` and `Original/PWA/main/main1.md` remain logical contract sources and were not modified.
-- New-main contains the complete MAIN1→MAIN11 module chain plus a current navigation/owner/license/CRM closure patch.
+## PRODUCTION
+- Project: `fiilmooggumokxanwiyx` / `SMART ERP`.
+- PostgreSQL 17.6.x.
+- Owner identity directly verified: authenticated owner metadata + `public.users.permissions=['*']` + `owner_profile` + active license.
+- `app_private.current_user_has_permission(text)` was updated to require those Owner semantics while preserving explicit user/role permissions.
+- PostgreSQL JWT-sub simulation verified: Owner -> owner/random = true; non-owner delivery = true; non-owner owner = false.
 
-## CURRENT PRODUCTION — DIRECTLY VERIFIED
-- Production project: `fiilmooggumokxanwiyx` (`SMART ERP`)
-- PostgreSQL: 17.6.x
-- Direct owner identity test: owner auth identity -> public.users -> wildcard `['*']` -> owner_profile -> active license; verified.
-- Direct permission-function test: Owner receives owner/random permission; non-owner receives assigned `delivery` permission and is denied `owner`; verified using PostgreSQL session JWT-sub simulation.
-- Production physical-stock authority remains `post_stock_movement`; reservation authority remains `reserve_stock` / `release_stock_reservation`.
-- No blind Production DDL/DML was introduced for the PWA work.
+## 122 FINDINGS
+- Navigation: PATCHED to Current MAIN1 order/placement including HR, CRM, Users, Roles, License(owner), Settings.
+- License: PATCHED in target; `RW_OwnerLicense` retained and owner route protected.
+- CRM: PATCHED in target; final `RW_CRM` routed from navigation.
+- Users/Roles: PATCHED in target navigation.
+- Notification: OPEN. Current/Original MAIN1 require `_clickNotif`, `_renderAndSave`, `_updateBadge`, `markRead`; target did not contain them during direct search. A target injection was attempted but the runner failed before persistence due an incorrect script-close anchor.
+- Audit: OPEN; target has owner-only audit renderer but full historical contract parity is not certified.
+- Session fail-closed: NOT VERIFIED.
+- Workflow tenant scope: OPEN; `workflow_rules` has no `company_id`, so no speculative schema change was made.
 
-## CURRENT VERIFIED TARGET CHANGES
-- `MAIN2` target commit: `ac6e55a...`
-- `MAIN3` target commit: `7805951...`
-- `MAIN4` target commit: `2c79811...`
-- MAIN5→MAIN11 target commits are present in the current `New-main` history.
-- Navigation/Owner/License/CRM/Users/Roles closure target commit: `31d4dc3afc4e59dfd9fc5ec90c4c982ee4d310dc`.
-- The 31d commit changed only `Current/PWA/New-main` and tightened Owner semantics from owner_profile-only to authenticated metadata + wildcard + owner_profile, while adding the 122 navigation/dispatch contract. fileciteturn497file0L2-L2
+## TESTS
+- Static target validation: PASS after navigation/owner/license/CRM patch.
+- Production owner/permission semantics: PASS under PostgreSQL JWT-sub simulation.
+- Browser navigation test: NOT VERIFIED; one prior run failed because extensionless `New-main` was served as a download. Harness was corrected afterward.
+- Authenticated Production E2E: NOT VERIFIED. A separate legacy verifier endpoint is retired and returned HTTP 410; this is unrelated to New-main.
+- Notification runtime contract: NOT VERIFIED because the target injection did not persist.
+- Service Worker/deployment lineage: NOT VERIFIED.
+- Two-session Production concurrency: NOT VERIFIED.
 
-## MAIN1 / 122 GAP STATUS
-- Navigation parity: PATCHED in New-main according to Current main1 placement HR -> CRM -> Users -> Roles -> License(owner) -> Settings. fileciteturn498file0
-- Owner semantic parity: PATCHED in New-main and verified in Production permission function.
-- License route/entry: PATCHED in New-main; target contains RW_OwnerLicense and license owner guard.
-- CRM route/entry: PATCHED in New-main; target contains RW_CRM and company-scoped CRM module.
-- Users/Roles entries: PATCHED in New-main to explicit top-level entries matching the Current main1 tail placement.
-- Notification contract: source proves Current/Original MAIN1 require `_clickNotif`, `_renderAndSave`, `_updateBadge`, and `markRead`; target currently requires final runtime verification of the newly added compatibility extension. fileciteturn527file1
-- Audit contract: target has owner-only `RW_Audit_renderTab`, but full historical `RW_Audit_*` parity remains to be checked.
-- Session fail-closed lifecycle: remains NOT VERIFIED.
-- `workflow_rules` has no `company_id` column in Production; no invented tenant column was added. Workflow tenant scope remains an OPEN design/contract gap requiring provenance before any schema change.
+## FAILED ATTEMPTS / ROOT CAUSES
+- MAIN1 syntax failure: malformed escaping in earlier target patch -> corrected in target lineage.
+- MAIN2 compact merge: broken escaping -> replaced with authoritative MAIN2 source, target commit `ac6e55a`.
+- MAIN5 wrapper guard: legitimate HTML-looking JS strings falsely rejected -> guard narrowed.
+- Browser harness: extensionless target treated as download -> harness corrected to serve temporary `.html` outside repository.
+- Notification runner: exact `})();</script>` anchor did not exist -> runner corrected to final `</script>` anchor, but the subsequent target write is still unpersisted.
 
-## CURRENT RUNTIME / SECURITY OPEN ITEMS
-- Browser authenticated E2E against real credentials remains NOT VERIFIED; one stale CI check uses a retired verifier endpoint and returned HTTP 410, which is unrelated to New-main. 
-- New-main Service Worker runtime and deployment-lineage parity remain NOT VERIFIED.
-- Full two-session Production concurrency proof remains NOT VERIFIED.
-- Security Advisor findings remain OPEN unless independently remediated and verified.
-- Broad RLS/role policy hardening remains subject to controlled consumer proof.
-- Golden/Diamond certification remains NOT CERTIFIED until the full runtime and production gates pass.
-
-## KNOWN FAILED ATTEMPTS AND THEIR ROOT CAUSES
-- Early MAIN1 gate failed on inline-script detection; fixed by recognizing external `<script src>` tags and validating the single inline runtime.
-- Historical MAIN2 compact integration produced broken escaping in `RW_Table`; replaced by authoritative MAIN2 source integration.
-- MAIN5 reconstruction gate falsely rejected legitimate HTML-looking strings inside JavaScript; guard was narrowed.
-- Initial Browser smoke treated extensionless `New-main` as a download under Python http.server; harness corrected by serving a temporary `.html` copy outside the repository.
-- Notification closure runner initially failed because it assumed an exact `})();</script>` anchor; corrected to use the actual final `</script>` position.
-- A separate legacy `Verify real Production sign-in` job failed because `auth-login-verification-20260818` is retired and returns HTTP 410; it is not evidence of a target defect.
-
-## CONTINUITY RULES
-- Reports are history, not truth.
-- Commit message is not evidence without diff/runtime verification.
-- Executor/workflow changes are not target completion.
-- No duplicate stock/financial business engine is permitted in New-main.
-- No Service Role key in PWA.
-- No RLS disablement.
-- No replacement of `Current/PWA/main.html` without full certification.
+## SAFETY
+- No duplicate stock/financial writer was introduced.
+- No Service Role key was introduced into PWA.
+- RLS was not disabled.
+- No replacement of `Current/PWA/main.html`.
+- No new Golden/final target file was created.
 
 ## LAST VERIFIED EVENT
-- Event ID: `LVE-2026-09-01-003`
-- Event Type: `MASTER_122_FORENSIC_TARGET_CLOSURE_PROGRESS`
-- UTC: `2026-09-01T02:45:00Z` execution window
+- Event ID: `LVE-2026-09-01-005`
+- Event Type: `MASTER_122_FORENSIC_EXECUTION_RECONCILIATION`
 - Target: `Current/PWA/New-main`
-- Latest target change: `31d4dc3afc4e59dfd9fc5ec90c4c982ee4d310dc`
-- Production change: `app_private.current_user_has_permission(text)` strict owner semantics verified and retained.
-- Actions: read Master and full 122 through final stop condition; verified full MAIN1→MAIN11 presence; reconciled Current main1 navigation; patched New-main navigation/Owner/License/CRM/Users/Roles; verified Production owner/permission semantics; initiated notification contract closure.
-- Result: `122 CORE PARITY PATCHED / NOTIFICATION RUNTIME VERIFICATION PENDING / GOLD-DIAMOND NOT CERTIFIED`
-- Next exact step: complete notification contract runtime verification, then audit/session checks, then final authenticated Production/browser/deployment gates.
+- Target commit: `31d4dc3afc4e59dfd9fc5ec90c4c982ee4d310dc`
+- Production permission contract: corrected and directly tested.
+- Result: `122 CORE NAV+OWNER+LICENSE+CRM+USERS+ROLES PATCHED / NOTIFICATION+AUDIT+SESSION+WORKFLOW+RUNTIME OPEN`
+- Next exact step: persist notification contract, run clean browser E2E, then close audit/session/workflow scope and deployment/runtime gates.
 
-## CURRENT CLOSURE STATUS
-`CURRENT_STATE = SYNCHRONIZED`
-`MASTER_CONTINUITY_COMMAND = ACTIVE`
-`NEW_MAIN_MODULE_CHAIN = MAIN1..MAIN11_PRESENT`
-`NAVIGATION_CONTRACT = PATCHED`
-`OWNER_CONTRACT = PATCHED + PRODUCTION_VERIFIED`
-`LICENSE_CONTRACT = PATCHED`
-`CRM_CONTRACT = PATCHED`
-`USERS_ROLES_CONTRACT = PATCHED`
-`NOTIFICATION_CONTRACT = RUNTIME_VERIFICATION_PENDING`
-`AUDIT_CONTRACT = OPEN`
-`SESSION_FAIL_CLOSED = NOT_VERIFIED`
-`WORKFLOW_TENANT_SCOPE = OPEN / PROVEN_SCHEMA_GAP`
-`BROWSER_RUNTIME = OPEN`
-`PRODUCTION_RUNTIME = PARTIAL`
+## CLOSURE
+`MAIN1_TO_MAIN11 = PRESENT`
+`NAVIGATION = PATCHED`
+`OWNER = PATCHED + PRODUCTION_VERIFIED`
+`LICENSE = PATCHED`
+`CRM = PATCHED`
+`USERS_ROLES = PATCHED`
+`NOTIFICATION = OPEN`
+`AUDIT = OPEN`
+`SESSION = NOT VERIFIED`
+`WORKFLOW_SCOPE = OPEN`
+`BROWSER = NOT VERIFIED`
+`PRODUCTION_E2E = NOT VERIFIED`
 `DEPLOYMENT_LINEAGE = OPEN`
 `SECURITY = OPEN`
-`CONCURRENCY = OPEN`
-`MAIN_REPLACEMENT = NOT AUTHORIZED`
+`CONCURRENCY = NOT VERIFIED`
 `GOLDEN_DIAMOND = NOT CERTIFIED`
-
-<!-- TEMP NOTIFICATION TRIGGER -->
