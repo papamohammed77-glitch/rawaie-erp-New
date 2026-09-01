@@ -1,7 +1,7 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
 ## TEMP EXECUTION MARKER
-Final active target-only runner execution trigger.
+Active target closure runner v6.
 
 ## GOVERNANCE
 - Operational truth comes from current Git, Production Supabase, deployed Edge Functions and runtime tests.
