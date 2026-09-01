@@ -102,34 +102,68 @@
 - The update intentionally makes no product-code changes.
 - Target artifact therefore remains at the investigated target blob `d657d6e4bdd90a9b60f658a8bf28560e1b10f755` unless and until a later authorized surgical change is made.
 
+## P127 — MEMORY RECOVERY + CURRENT EXECUTION RECONCILIATION — 2026-09-01
+### P127-01 — MASTER_AND_CURRENT_STATE_RECOVERY
+- `MASTER - RAWAEA ERP.md` was fetched and read fully. Its governing loop is now the active execution protocol.
+- `CURRENT_STATE.md` was read before any product-code mutation.
+- Current declared entry point remains `P126-08`, with exact-target runtime route verification as the next authorized action.
+
+### P127-02 — LATEST_EVENT_AND_REPORT_RECONCILIATION
+- Direct Git history shows current main HEAD `6e2138340f8d11f2a716f30ab8d1f45721468d6b`, whose parent is the P126 report/state chain.
+- Latest Hany report physically present is `doc/Draft/Hany/تقرير تنفيذي 8`, blob `da9a58374524bb2c2149eec5912a47fe86a2dda0`. No report 9 exists yet.
+- The requested `doc/Draft/medhat/برومبت 124+ ملحق تقرير` still does not resolve to a tracked Git blob. This is recorded as `EVIDENCE LIMITATION`; its contents were not guessed or reconstructed.
+
+### P127-03 — CURRENT_PRODUCTION_AND_DEPLOYMENT_CHECK
+- Production Supabase project `fiilmooggumokxanwiyx` remains the verified project baseline; direct catalog previously confirmed PostgreSQL 17.6 and authoritative stock/journal/security-definer capabilities.
+- Active Edge Function existence is confirmed, but existence is not treated as proof of consumption or authoritative runtime path.
+- The latest post-P126 GitHub Actions run on the P126 state commit is `owner recovery verification`, run `33504341160`, conclusion `failure`; this verifies an Auth-recovery check failed, not that the New-main browser path failed.
+- The existing `forensic-pwa-closure.yml` and `new_main_clean_room_20260831.yml` workflows were inspected. Both ultimately include write/persist behavior; they are therefore not accepted as independent exact-target runtime evidence.
+
+### P127-04 — EXACT_TARGET_RUNTIME_PATH_ASSESSMENT
+- Exact target artifact remains `Current/PWA/New-main` blob `d657d6e4bdd90a9b60f658a8bf28560e1b10f755` before any P127 product edit.
+- Local execution from the model container cannot reach `raw.githubusercontent.com`; this is an environment limitation, not an application failure.
+- No trustworthy public deployment URL for this exact `New-main` artifact has been established from the current repository evidence.
+- Therefore `EXACT_TARGET_BROWSER_RUNTIME = UNVERIFIED`, not PASS and not FAIL.
+
+### P127-05 — STATIC_ROOT_CAUSE_CONFIRMED
+- Direct target evidence still proves an effective navigation conflict: `RW_Views` exposes `reports-comprehensive` to `RW_Reports_Comprehensive.render`, while the later `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` navigation override collapses `reports` routing to the broader `RW_Reports.render` surface.
+- This is deterministic static evidence of an orchestration defect, but runtime impact remains unproven.
+- The approved surgical path remains: repair only the late navigation mapping if the effective target contract itself requires it; do not delete MAIN122 or rebuild the monolith.
+
+### P127-06 — NEXT_AUTHORIZED_ACTION
+- Execute the minimum surgical correction of the proven effective navigation conflict only if the target source itself can be changed without reconstruction.
+- Immediately verify target syntax/structure and exact route mapping after the edit.
+- Reconcile Supabase compatibility only after the behavior change.
+- Create `doc/Draft/Hany/تقرير تنفيذي 9` only after the P127 execution facts are final enough to document.
+- Then update this file again with the new Last Verified Event.
+
 ## CURRENT_STATUS
 - Memory recovery: `PASS`
-- Latest Hany report identified: `تقرير تنفيذي 7` before this round; `تقرير تنفيذي 8` now newest.
+- Latest Hany report: `تقرير تنفيذي 8`
+- Prompt 124 content: `EVIDENCE LIMITATION — requested path absent as tracked Git blob`
+- Current Git reconciliation: `PASS`
 - 22-source inventory: `PASS`
 - Target broad capability presence: `PASS / PRESENT`
 - Broad public-contract loss: `NOT PROVEN`
-- Effective navigation: `FAIL — static orchestration divergence remains proven`
+- Effective navigation: `FAIL — deterministic static orchestration divergence`
 - MAIN2 ownership ambiguity: `OPEN / UNKNOWN`
 - Auth/boot runtime: `UNVERIFIED`
-- Exact target browser/runtime: `UNVERIFIED / BLOCKED`
+- Exact target browser/runtime: `UNVERIFIED / ENVIRONMENTALLY BLOCKED`
 - Production DB capability/security baseline: `PASS` on direct read-only verification
-- Production mutation in P126: `NONE`
+- Production mutation in P127: `NONE`
 - GOLD: `NO`
 - DIAMOND: `NO`
 - COMPLETE: `NO`
 - Closed 100%: **NOT DECLARED**
 
 ## NEXT AUTHORIZED ACTIONS
-1. Establish a trustworthy execution path for the exact target SHA without allowing the verifier to mutate the target.
-2. Execute a route/boot/browser smoke gate, including `reports-dashboard`, `reports-detailed`, `reports-comprehensive`, `audit-log`, `hr`, `crm`, `users`, `roles`, `license`.
-3. If runtime confirms the static navigation divergence, perform one surgical edit only in `Current/PWA/New-main`, preserving the monolith and all unrelated contracts.
-4. Re-hash target immediately after any product edit.
-5. Re-run syntax/runtime and source/target contract gates.
-6. Re-check Supabase/RLS/Edge compatibility after behavior changes only.
-7. Resolve MAIN2 compatibility-vs-authoritative ownership using consumer evidence before any deletion/retirement.
-8. Run final regression/evidence reconciliation.
-9. Perform self-audit.
-10. Only with complete current evidence may the project be marked CLOSED/GOLD/DIAMOND/COMPLETE.
+1. Apply only the minimum surgical navigation correction to `Current/PWA/New-main` if its static contract can be changed deterministically without reconstruction.
+2. Re-hash target and perform syntax/structure/route-map verification immediately.
+3. Re-check Supabase/RLS/Edge compatibility after the behavior change.
+4. Resolve MAIN2 compatibility-vs-authoritative ownership using consumer evidence before any deletion/retirement.
+5. Create the next Hany report only after recording actual P127 execution results.
+6. Update `CURRENT_STATE.md` after every logical execution operation.
+7. Keep GOLD/DIAMOND/COMPLETE CLOSED claims disabled until runtime/data/audit evidence exists.
 
 ## HARD RULES
 - Product code changes are allowed only in `Current/PWA/New-main`.
