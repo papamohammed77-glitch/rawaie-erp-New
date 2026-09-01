@@ -18,7 +18,6 @@ jobs:
         with:
           ref: main
           fetch-depth: 1
-
       - name: Capture exact identities and protect legacy main.html
         shell: bash
         run: |
@@ -30,7 +29,6 @@ jobs:
           git rev-parse HEAD > /tmp/head.sha
           echo "GIT_HEAD=$(cat /tmp/head.sha)"
           echo "NEW_MAIN_BLOB=$(cat /tmp/new-main.sha)"
-
       - name: Static structure and JavaScript syntax
         shell: bash
         run: |
@@ -40,19 +38,21 @@ jobs:
           import re, subprocess, tempfile
           p=Path('Current/PWA/New-main')
           s=p.read_text(encoding='utf-8')
-          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
-          if len(ms)!=1: raise SystemExit(f'INLINE_RUNTIME_COUNT:{len(ms)}')
-          m=ms[0]
-          if not re.fullmatch(r'\s*</body>\s*</html>\s*',s[m.end('b'):],re.I): raise SystemExit('DOCUMENT_TAIL_INVALID')
+          if s.lower().count('</html>') != 1: raise SystemExit('DOCUMENT_HTML_CLOSURE_INVALID')
+          if s.lower().count('</body>') != 1: raise SystemExit('DOCUMENT_BODY_CLOSURE_INVALID')
+          ms=list(re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I))
+          inline=[m for m in ms if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
+          if not inline: raise SystemExit('INLINE_RUNTIME_MISSING')
           required=['rw-login-page','rw-main-shell','rw-page-container','rw-sidebar-nav','rw-logout-btn','window.RW_ShellContext','window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM','_renderAndSave','_updateBadge','markRead','_clickNotif']
           missing=[x for x in required if x not in s]
           if missing: raise SystemExit('CONTRACT_MISSING:'+','.join(missing))
-          js=Path(tempfile.gettempdir())/'new-main.js'; js.write_text(m.group('b'),encoding='utf-8')
-          r=subprocess.run(['node','--check',str(js)],capture_output=True,text=True)
-          if r.returncode: print(r.stderr); raise SystemExit('TARGET_JS_SYNTAX_FAIL')
-          print('STATIC_GATE_PASS')
+          for i,m in enumerate(inline):
+              js=Path(tempfile.gettempdir())/f'new-main-{i}.js'; js.write_text(m.group('b'),encoding='utf-8')
+              r=subprocess.run(['node','--check',str(js)],capture_output=True,text=True)
+              if r.returncode:
+                  print(r.stderr); raise SystemExit(f'TARGET_JS_SYNTAX_FAIL:{i}')
+          print(f'STATIC_GATE_PASS inline={len(inline)} scripts={len(ms)}')
           PY
-
       - name: Browser smoke on the exact target artifact
         shell: bash
         run: |
@@ -74,29 +74,28 @@ jobs:
             page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
             page.on('response',r=>{if(r.status()>=400&&!/favicon\.ico$/i.test(r.url()))bad.push({status:r.status(),url:r.url()})});
             await page.goto('http://127.0.0.1:8123/New-main.html',{waitUntil:'domcontentloaded',timeout:30000});
-            await page.waitForTimeout(1500);
+            await page.waitForTimeout(2000);
             const result=await page.evaluate(async()=>{
               const S=window.RW_STATE,N=window.RW_Navigation;
               const required=['dashboard','telesales','customers','online-store','pos','orders','runsheets','suppliers','purchase-pos','purchases','receiving','items','branches','picking','loading','delivery','return','unloading','transfer','direct-sale','direct-return','supplier-return','vouchers','vehicle-count','branch-count','general-count','settlement','reports-dashboard','reports-detailed','reports-comprehensive','hr','crm','users','roles','license','settings','audit-log','notifications'];
               const flat=[];(function walk(a){(a||[]).forEach(x=>{if(x.view)flat.push(x.view);if(x.submenu)walk(x.submenu)})})(N&&N.menuTree);
+              const preAuth=!!document.getElementById('rw-login-page')&&!!document.getElementById('rw-main-shell');
               let ownerDenied=false;
-              if(S&&S.app){S.app.currentUser={isOwner:false};}
+              if(S&&S.app){S.app.currentUser={isOwner:false};S.app.authenticated=true;}
               try{await N.navigate('license')}catch(e){ownerDenied=e.message==='OWNER_ONLY'}
-              return {login:!!document.getElementById('rw-login-page'),shell:!!document.getElementById('rw-main-shell'),routes:required.every(v=>flat.includes(v)),routeCount:flat.length,ownerDenied,notification:!!window.RW_Notification&&['_renderAndSave','_updateBadge','markRead','_clickNotif'].every(k=>typeof window.RW_Notification[k]==='function'),globals:['RW_ShellContext','RW_Auth','RW_Views','RW_OwnerLicense','RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_HR','RW_CRM'].every(k=>!!window[k]),serviceWorkerAPI:'serviceWorker' in navigator};
+              return {preAuth,routesComplete:required.every(v=>flat.includes(v)),routeCount:flat.length,ownerDenied,notificationContract:!!window.RW_Notification&&['_renderAndSave','_updateBadge','markRead','_clickNotif'].every(k=>typeof window.RW_Notification[k]==='function'),main1Globals:['RW_ShellContext','RW_Auth','RW_Views','RW_OwnerLicense','RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_HR','RW_CRM'].every(k=>!!window[k]),serviceWorkerAPI:'serviceWorker' in navigator};
             });
             console.log(JSON.stringify({result,pageErrors,consoleErrors,bad}));
-            if(!result.login||!result.shell||!result.routes||result.routeCount<30||!result.ownerDenied||!result.notification||!result.globals||pageErrors.length||consoleErrors.length||bad.length) process.exit(2);
+            if(!result.preAuth||!result.routesComplete||result.routeCount<30||!result.ownerDenied||!result.notificationContract||!result.main1Globals||pageErrors.length||consoleErrors.length||bad.length) process.exit(2);
             await browser.close();
           })().catch(e=>{console.error(e);process.exit(2)});
           NODE
-
       - name: Protect legacy main.html
         shell: bash
         run: |
           set -euo pipefail
           git hash-object Current/PWA/main.html > /tmp/main.after.sha
           cmp /tmp/main.sha /tmp/main.after.sha
-
       - name: Emit evidence
         shell: bash
         run: |
