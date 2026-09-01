@@ -28,32 +28,29 @@ jobs:
 
           p = Path('Current/PWA/main.html')
           s = p.read_text(encoding='utf-8')
+          print('MAIN_BYTES', len(s.encode('utf-8')))
 
-          valid_key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpaWxtb29nZ3Vtb2t4YW53aXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDkwOTIsImV4cCI6MjA5NDI4NTA5Mn0.LZScCxnCiRrTSCCBmTryszQpY1AwBgR2dkTBbC5kOc4'
+          valid_key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpaWxtb29nZ3Vtb2t4YW53aWl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MDkwOTIsImV4cCI6MjA5NDI4NTA5Mn0.LZScCxnCiRrTSCCBmTryszQpY1AwBgR2dkTBbC5kOc4'
 
-          key_pattern = re.compile(r"var RW_SUPABASE_ANON_KEY='[^']*';")
-          s2, nkey = key_pattern.subn("var RW_SUPABASE_ANON_KEY='" + valid_key + "';", s, count=1)
-          if nkey != 1:
-              raise SystemExit(f'Expected exactly one RW_SUPABASE_ANON_KEY declaration; found {nkey}')
+          key_pattern = re.compile(r"var\s+RW_SUPABASE_ANON_KEY\s*=\s*'[^']*';")
+          matches = key_pattern.findall(s)
+          print('KEY_DECLARATIONS', len(matches))
+          if len(matches) != 1:
+              raise SystemExit(f'Expected exactly one RW_SUPABASE_ANON_KEY declaration; found {len(matches)}')
+          s = key_pattern.sub("var RW_SUPABASE_ANON_KEY='" + valid_key + "';", s, count=1)
 
-          old_sw = "navigator.serviceWorker.register('../sw.js',{scope:'../'})"
-          new_sw = "navigator.serviceWorker.register('./sw.js',{scope:'./'})"
-          if old_sw in s2:
-              s3 = s2.replace(old_sw, new_sw, 1)
-          else:
-              s3 = s2
-              if new_sw not in s3:
-                  raise SystemExit('Expected legacy service-worker registration was not found')
+          sw_pattern = re.compile(r"navigator\.serviceWorker\.register\(\s*['\"][^'\"]+['\"]\s*,\s*\{\s*scope\s*:\s*['\"][^'\"]+['\"]\s*\}\s*\)")
+          sw_matches = sw_pattern.findall(s)
+          print('SW_REGISTRATIONS', sw_matches)
+          if len(sw_matches) != 1:
+              raise SystemExit(f'Expected exactly one ServiceWorker registration; found {len(sw_matches)}')
+          s = sw_pattern.sub("navigator.serviceWorker.register('./sw.js',{scope:'./'})", s, count=1)
 
-          p.write_text(s3, encoding='utf-8')
-
+          p.write_text(s, encoding='utf-8')
           final = p.read_text(encoding='utf-8')
-          if valid_key not in final:
-              raise SystemExit('Supabase anon key replacement not persisted')
-          if new_sw not in final:
-              raise SystemExit('Service-worker registration replacement not persisted')
-          if old_sw in final:
-              raise SystemExit('Legacy service-worker registration still present')
+          assert valid_key in final, 'new Supabase anon key missing after write'
+          assert "navigator.serviceWorker.register('./sw.js',{scope:'./'})" in final, 'new SW registration missing after write'
+          assert not re.search(r"navigator\.serviceWorker\.register\(\s*['\"]\.\./sw\.js['\"]", final), 'legacy ../sw.js registration remains'
           print('P143_SURGICAL_REPAIR_PASS')
           PY
 
