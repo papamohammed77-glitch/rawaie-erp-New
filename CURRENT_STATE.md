@@ -8,51 +8,43 @@
 - Prompt 123 forbids reconstruction, overlay, new workflow, new file, or speculative production mutation.
 
 ## LAST VERIFIED EVENT
-### P123-004 — MAIN1_CURRENT_ANALYSIS
-- Source: `Current/PWA/main/main1.md`
-- Current MAIN1 blob SHA: `de3ea2f6c1c638447d1c34c8f6237e14d5ae3b59`
-- Complete blob read completed before target modification.
-- Confirmed intentional hardening relative to Original MAIN1:
-  - `RW_ShellContext` resolves authenticated Supabase identity to the active `users` row and establishes `company_id`/user identity before system entry.
-  - Bootstrap reads for `app_settings`, items, customers, branches, and suppliers are company-scoped where applicable.
-  - Owner permission state is not accepted from an arbitrary wildcard profile alone; `currentUser.isOwner` drives absolute-owner behavior.
-  - `enterSystem()` resolves tenant context before displaying the main application shell.
-  - tenant-resolution failure is fail-closed: main shell remains hidden and login remains visible.
-- Confirmed retained MAIN1 cross-cutting contracts:
-  - `RW_Table`
-  - `RW_Audit_log`
-  - `RW_Permissions_check` / `RW_Permissions_applyUI`
-  - `RW_Workflow`
-  - `RW_Notification`
-  - `RW_Audit_renderTab` and audit pagination/detail behavior
-  - `RW_Auth` login/logout lifecycle
-  - `RW_Data` bootstrap data loaders
-  - `RW_Navigation` menu tree/filter/router/action dispatch
-- Notification contract confirmed present in Current MAIN1: `_renderAndSave`, `_updateBadge`, `markRead`, `_clickNotif`; Original contains the same core functions. fileciteturn630file1L19-L32
-- Classification: `CURRENT_MAIN1 = HARDENED_VARIANT_OF_ORIGINAL`, not a replacement architecture.
-- No New-main mutation performed in this operation.
-- Result: `CURRENT_MAIN1_CONTRACTS_EXTRACTED_AND_HARDENING_CLASSIFIED`
+### P123-005 — NEW_MAIN_MAPPING_AND_GAP_CLASSIFICATION
+- Frozen target inspected directly: `Current/PWA/New-main`.
+- Target contains the MAIN1 shell, authentication/session surface, tenant context, owner/license surface, permissions, navigation, data bootstrap, audit, workflow, notifications, search, PWA lifecycle, and delegated specialized-app routes.
+- Target contains the notification runtime contract required by MAIN1: `_renderAndSave`, `_updateBadge`, `markRead`, `_clickNotif`.
+- Target contains `RW_ShellContext`, `RW_OwnerLicense`, `RW_Views`, `RW_Dashboard`, `RW_Items`, `RW_POS`, `RW_Orders`, `RW_Runsheets`, `RW_Purchases`, `RW_Warehouse`, `RW_Finance`, `RW_Reports`, `RW_HR`, and `RW_CRM`.
+- Owner identity is not inferred from `owner_profile` alone: target requires Auth metadata owner flag + wildcard permission + owner profile presence.
+- Tenant identity is established from authenticated Auth user -> `users.company_id`; shell remains hidden when tenant context cannot be established.
+- Main business reads observed in the target use `company_id`/resolved branch scope where applicable; specialized stock/accounting writes remain delegated to core/Edge Functions.
+- `RW_Workflow` behavior matches Current MAIN1 at the contract level; no additional tenant-scope rewrite was introduced because Current MAIN1 itself reads active workflow rules without a `company_id` filter and therefore this is not a proven parity gap for Prompt 123.
+- MAIN1 contract classification: `EXACT` or `HARDENED/ADAPTED` for all required contracts; no evidence-backed `MISSING` contract remains.
+- No source replacement, reconstruction, overlay file, new workflow, or Production mutation performed.
+- Result: `NEW_MAIN_MAIN1_MAPPING_COMPLETE_NO_MISSING_CONTRACTS_IDENTIFIED`
 
 ## RECONCILIATION HISTORY
 ### P123-001 — STATE_RECONCILIATION
 - Recorded in commit `e9fd4f819a384b29063d3918723f512da10ed50e`.
 
 ### P123-002 — TARGET_FREEZE_AND_IDENTITY_VERIFICATION
-- Frozen target: `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`.
+- Frozen target at start of reconciliation: `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`.
 - Frozen Current MAIN1: `de3ea2f6c1c638447d1c34c8f6237e14d5ae3b59`.
 - Frozen Original MAIN1: `14b12a471c20ad23a2c18f456dbc4d59783a0d1f`.
 
 ### P123-003 — MAIN1_ORIGINAL_ANALYSIS
-- Original MAIN1: full contract set extracted; no product mutation.
+- Original MAIN1 full contract set extracted; no product mutation.
+
+### P123-004 — MAIN1_CURRENT_ANALYSIS
+- Current MAIN1 classified as a hardened/adapted variant of Original MAIN1.
 
 ## TARGET FREEZE
-- Frozen target SHA: `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`
-- Unexpected target SHA change => STOP + forensic investigation.
+- Baseline target SHA: `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`
+- The target remained unchanged throughout P123-003, P123-004, and P123-005.
+- Any future target SHA change must be recorded as a new surgical mutation and re-verified before closure.
 
 ## KNOWN BLOCKERS
-- New-main complete mapping not yet completed.
-- Gap classification not yet completed.
-- Functional/browser/production closure not yet re-established.
+- MAIN1 static contract mapping: resolved.
+- Remaining closure requirement: independent execution evidence (JavaScript syntax + browser smoke + production/runtime evidence) on the exact final target artifact.
+- No claim of Production/GOLD/DIAMOND closure is valid until the evidence gates above are independently satisfied.
 
 ## FAILED ATTEMPTS / DO-NOT-REPEAT
 - Do not reconstruct MAIN1→MAIN11.
@@ -65,8 +57,8 @@
 - Do not start the next operation until this event is recorded here.
 
 ## NEXT AUTHORIZED ACTION
-`P123-005 NEW_MAIN_MAPPING_AND_GAP_CLASSIFICATION`
-- Re-read frozen New-main.
-- Map every MAIN1 contract to the target implementation.
-- Classify each contract: `EXACT`, `HARDENED/ADAPTED`, `MISSING`, `INTENTIONALLY_REMOVED`, or `BLOCKED`.
-- Only evidence-backed `MISSING/BLOCKED` behavior can enter the surgical-fix queue.
+`P123-006 EXECUTABLE_VERIFICATION_AND_CLOSURE`
+- Verify exact target syntax/DOM/contract invariants.
+- Run independent browser smoke against the exact target artifact where tooling permits.
+- Capture runtime/Production evidence where access permits.
+- Update this file after the operation with exact evidence identifiers and final classification.
