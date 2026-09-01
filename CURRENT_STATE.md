@@ -26,7 +26,7 @@
 - Commit `31d4dc3afc4e59dfd9fc5ec90c4c982ee4d310dc` directly shows the later `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` replacing the effective route table and retaining only `reports:[window.RW_Reports,'render']`; therefore the previously documented root cause is independently corroborated from Git history.
 
 ### P131-03 — FAILED_EXECUTION_PATHS_NOT_REPEATED
-- Historical clean-room execution `99726102288` remains unavailable through the artifact endpoint; no artifact can be claimed from it.
+- Historical clean-room execution `99726102288` remains unavailable through the artifact endpoint; no artifact can be claimed.
 - Historical workflow run `33508781448` has zero artifacts and previously had zero Jobs; it is not treated as target execution evidence.
 - The old workflow path was not rerun in this round.
 - Container network access again could not materialize the target blob locally; no reconstruction was attempted.
@@ -52,7 +52,7 @@
 
 ### P131-07 — SURGICAL_EXECUTOR_PREPARED
 - Created `.github/workflows/p131-new-main-navigation-surgical.yml` in commit `1786eaf9e854dfb2599b5aca63832682ca7234a0`.
-- The new executor always creates a visible Job. It performs no target mutation unless the triggering commit message explicitly contains `[P131-EXECUTE]`.
+- The executor always creates a visible Job. It performs no target mutation unless the triggering commit message explicitly contains `[P131-EXECUTE]`.
 - When explicitly triggered, the Job reads `Current/PWA/New-main` from the checkout, applies only two exact string substitutions in the existing file, runs `node --check`, verifies the specialized report routes and permission aliases, then commits and pushes only `Current/PWA/New-main`.
 - This executor is an operational mechanism only; it is not treated as Gold/Diamond evidence.
 
@@ -63,19 +63,25 @@
 - The only authorized target mutation in this execution is restoration of the three specialized report route aliases plus their shared `reports` permission aliases.
 - The executor must abort on missing anchors, malformed outer HTML, inline-runtime count mismatch, syntax failure, or missing required routes.
 
+### P131-09 — PR_EXECUTION_CHANNEL_HARDENED
+- The first push-trigger attempt produced no workflow run and was not repeated.
+- Executor commit `9991a22f67f3cc6df19999b474c56a4092f0482b` converts the executor to a `pull_request`-based execution path.
+- The executor now checks the latest branch commit message from Git, executes only when `[P131-EXECUTE]` is present, checks out the PR head branch explicitly, and pushes the surgical target commit back to that branch.
+- This path is intended to make the Job observable and prevent accidental direct mutation of `main` during the surgical execution step.
+
 ## NEXT AUTHORIZED REPAIR
 ### P131 — DIRECT GIT BLOB/TREE TARGET MUTATION
 Goal: apply the already-proven surgical correction to the existing `Current/PWA/New-main` blob without reconstruction.
 
 Required sequence:
-1. obtain the exact current blob content;
-2. apply only the navigation/session parity patch;
-3. create new blob;
-4. create tree from current HEAD replacing only `Current/PWA/New-main`;
-5. create commit;
-6. move main forward;
-7. independently verify target marker/hash/static contracts;
-8. then perform runtime verification and Gold/Diamond closure.
+1. establish the PR branch from the currently logged main state;
+2. trigger the PR workflow with the explicit marker;
+3. inspect the Job, steps, and logs directly;
+4. confirm the target mutation commit and resulting blob SHA on the PR branch;
+5. verify target marker/hash/static contracts;
+6. update `CURRENT_STATE.md` after the target mutation and before advancing `main`;
+7. fast-forward `main` only after verification;
+8. perform runtime verification and only then assess Gold/Diamond closure.
 
 Do not revert to clean-room rebuild.
 Do not delete historical reports.
