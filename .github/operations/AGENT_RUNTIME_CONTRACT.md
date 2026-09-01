@@ -39,3 +39,5 @@ The runtime is expected to acknowledge an accepted task with any 2xx response. I
 ## Runtime responsibility
 
 The external agent runtime must provide the actual agent invocation. GitHub Actions is the control-plane scheduler and durable queue/ledger, not the AI agent itself.
+
+<!-- temporary-target-runner-trigger -->
