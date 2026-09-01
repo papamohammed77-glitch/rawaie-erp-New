@@ -24,7 +24,7 @@ jobs:
           ref: main
           fetch-depth: 2
 
-      - name: Sequential surgical MAIN1-MAIN11 merge into New-main only
+      - name: Surgical MAIN1 repair then authoritative MAIN2-MAIN11 integration
         shell: bash
         run: |
           set -euo pipefail
@@ -33,69 +33,50 @@ jobs:
           python3 <<'PY'
           from pathlib import Path
           import re, subprocess, tempfile
-
-          target=Path('Current/PWA/New-main')
-          source_dir=Path('Current/PWA/main')
-
-          def runtime(s):
+          target=Path('Current/PWA/New-main'); src=Path('Current/PWA/main')
+          def inline(s):
               ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
               if len(ms)!=1: raise RuntimeError('INLINE_RUNTIME_COUNT:'+str(len(ms)))
               return ms[0]
-
           def validate(stage):
               s=target.read_text(encoding='utf-8')
-              required=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn']
-              for name,min_stage in [('RW_ShellContext',1),('RW_Auth',1),('RW_Navigation',1),('RW_Dashboard',2),('RW_Items',2),('RW_POS',4),('RW_Orders',5),('RW_Runsheets',6),('RW_Purchases',7),('RW_Warehouse',7),('RW_Finance',8),('RW_Reports',9),('RW_OwnerLicense',10),('RW_HR',11),('RW_CRM',11),('RW_Views',11)]:
-                  if stage>=min_stage: required.append(name)
-              miss=[x for x in required if x not in s]
+              req=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn']
+              for n,mn in [('RW_ShellContext',1),('RW_Auth',1),('RW_Navigation',1),('RW_Dashboard',2),('RW_Items',2),('RW_POS',4),('RW_Orders',5),('RW_Runsheets',6),('RW_Purchases',7),('RW_Warehouse',7),('RW_Finance',8),('RW_Reports',9),('RW_OwnerLicense',10),('RW_HR',11),('RW_CRM',11),('RW_Views',11)]:
+                  if stage>=mn:req.append(n)
+              miss=[x for x in req if x not in s]
               if miss: raise RuntimeError(f'MAIN{stage}_CONTRACT_MISSING:'+','.join(miss))
               if s.lower().count('</body>')!=1 or s.lower().count('</html>')!=1: raise RuntimeError(f'MAIN{stage}_CLOSURE_INVALID')
-              js=runtime(s).group('b')
-              f=Path(tempfile.gettempdir())/f'rw-stage-{stage}.js';f.write_text(js,encoding='utf-8')
+              js=inline(s).group('b'); f=Path(tempfile.gettempdir())/f'rw-main{stage}.js'; f.write_text(js,encoding='utf-8')
               r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-              if r.returncode: print(r.stderr);raise RuntimeError(f'MAIN{stage}_JS_SYNTAX_FAIL')
-
-          def persist(stage):
+              if r.returncode: print(r.stderr); raise RuntimeError(f'MAIN{stage}_JS_SYNTAX_FAIL')
+          s=target.read_text(encoding='utf-8'); m=inline(s); body=m.group('b')
+          # Repair only the known escaped-quote defect in RW_Table introduced by the earlier target patch.
+          repaired=body.replace("\\\\'", "\\'")
+          if repaired!=body:
+              target.write_text(s[:m.start('b')]+repaired+s[m.end('b'):],encoding='utf-8')
+          validate(1)
+          for stage in range(2,12):
+              s=target.read_text(encoding='utf-8'); m=inline(s); body=m.group('b'); marker=f'/* RAWAEA MAIN{stage} AUTHORITATIVE MODULE */'
+              if marker not in body:
+                  frag=(src/f'main{stage}.md').read_text(encoding='utf-8-sig').rstrip()
+                  end_marker='/* MAIN2_GOVERNED_CLOSED:v1 */' if stage==2 else '/* MAIN'+str(stage)+'_GOVERNED_CLOSED'
+                  if stage==2:
+                      ls=body.find('/* RAWAEA MAIN2 COMPATIBILITY */')
+                      le=body.find(end_marker,ls)
+                      if ls>=0 and le>=0:
+                          body=body[:ls]+body[le+len(end_marker):]
+                  if re.search(r'</script>|<!doctype\b|<html\b|<body\b',frag,re.I): raise RuntimeError(f'MAIN{stage}_SOURCE_WRAPPER')
+                  target.write_text(s[:m.start('b')]+body+'\n'+marker+'\n'+frag+s[m.end('b'):],encoding='utf-8')
+              validate(stage)
               subprocess.run(['git','add','Current/PWA/New-main'],check=True)
               r=subprocess.run(['git','diff','--cached','--quiet'])
               if r.returncode!=0:
                   subprocess.run(['git','commit','-m',f'[new-main-target-persist] MAIN{stage} complete'],check=True)
                   subprocess.run(['git','push','origin','HEAD:main'],check=True)
-
-          # MAIN1 is already the published baseline; verify it, do not recreate it.
-          validate(1)
-
-          # MAIN2: remove any previously inserted compact/compatibility implementation only,
-          # then insert the complete authoritative module from main2.md.
-          s=target.read_text(encoding='utf-8')
-          if '/* RAWAEA MAIN2 AUTHORITATIVE MODULE */' not in s:
-              m=runtime(s); a,b=m.start('b'),m.end('b'); body=m.group('b')
-              start=body.find('/* RAWAEA MAIN2 COMPATIBILITY */')
-              if start>=0:
-                  end=body.find('/* MAIN2_GOVERNED_CLOSED',start)
-                  if end<0: raise RuntimeError('MAIN2_COMPACT_END_NOT_FOUND')
-                  body=body[:start]+body[end:]
-              frag=(source_dir/'main2.md').read_text(encoding='utf-8-sig').rstrip()
-              if '</script>' in frag.lower(): raise RuntimeError('MAIN2_SOURCE_SCRIPT_CLOSURE')
-              body=body+'\n/* RAWAEA MAIN2 AUTHORITATIVE MODULE */\n'+frag
-              target.write_text(s[:a]+body+s[b:],encoding='utf-8')
-          validate(2);persist(2)
-
-          # MAIN3..MAIN11: append complete authoritative module only once.
-          for stage in range(3,12):
-              s=target.read_text(encoding='utf-8')
-              marker=f'/* RAWAEA MAIN{stage} AUTHORITATIVE MODULE */'
-              if marker not in s:
-                  m=runtime(s);a,b=m.start('b'),m.end('b');body=m.group('b')
-                  frag=(source_dir/f'main{stage}.md').read_text(encoding='utf-8-sig').rstrip()
-                  if re.search(r'</script>|<!doctype\b|<html\b|<body\b',frag,re.I): raise RuntimeError(f'MAIN{stage}_SOURCE_WRAPPER')
-                  target.write_text(s[:a]+body+'\n'+marker+'\n'+frag+s[b:],encoding='utf-8')
-              validate(stage);persist(stage)
-
           print('MAIN1_TO_MAIN11_TARGET_CHAIN_COMPLETE')
           PY
 
-      - name: Final New-main browser smoke
+      - name: Final published target smoke
         shell: bash
         run: |
           set -euo pipefail
@@ -105,5 +86,5 @@ jobs:
           python3 -m http.server 8123 --directory Current/PWA >/tmp/rawaea-new-main-http.log 2>&1 &
           node <<'NODE'
           const {chromium}=require('playwright');
-          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[],bad=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});p.on('response',r=>{if(r.status()>=400&&!/favicon\\.ico$/i.test(r.url()))bad.push(r.status()+':'+r.url())});await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(2500);const x=await p.evaluate(()=>({lang:document.documentElement.lang,login:!!document.getElementById('rw-login-page'),app:!!document.getElementById('rw-main-shell'),shell:!!window.RW_ShellContext,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense,mods:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_HR','RW_CRM'].every(k=>!!window[k])}));console.log(JSON.stringify({x,pe,ce,bad}));if(x.lang!=='ar'||!x.login||!x.app||!x.shell||!x.auth||!x.nav||!x.views||!x.owner||!x.mods||pe.length||ce.length||bad.length)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)});
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[],bad=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});p.on('response',r=>{if(r.status()>=400&&!/favicon\\.ico$/i.test(r.url()))bad.push(r.status()+':'+r.url())});await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(3000);const x=await p.evaluate(()=>({lang:document.documentElement.lang,login:!!document.getElementById('rw-login-page'),app:!!document.getElementById('rw-main-shell'),shell:!!window.RW_ShellContext,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense,mods:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_HR','RW_CRM'].every(k=>!!window[k])}));console.log(JSON.stringify({x,pe,ce,bad}));if(x.lang!=='ar'||!x.login||!x.app||!x.shell||!x.auth||!x.nav||!x.views||!x.owner||!x.mods||pe.length||ce.length||bad.length)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)});
           NODE
