@@ -1,0 +1,122 @@
+أنهيت التحقيق الجنائي حتى الحد الذي تسمح به بيئة التنفيذ الحالية، والنتيجة ليست Closed 100% بعد، ولن أصفها بذلك خلافًا للواقع.
+
+ما ثبت من المصادر المباشرة
+
+قرأت MASTER - RAWAEA ERP.md كاملًا على دفعات، ثم راجعت التقارير التاريخية والـGit history والـProduction Supabase والـNew-main الحالي. أهم نتيجة هي أن المشروع لم يعد في حالة MAIN1 فقط كما كانت الذاكرة القديمة توحي.
+
+السجل الحقيقي يثبت أن الدمج داخل Current/PWA/New-main وصل إلى:
+
+المرحلة	الحالة الفعلية
+MAIN1	✅ موجودة
+MAIN2	✅ commit ac6e55a
+MAIN3	✅ commit 7805951
+MAIN4	✅ commit 2c79811
+MAIN5	✅ موجودة تاريخيًا
+MAIN6	✅ موجودة تاريخيًا
+MAIN7	✅ موجودة تاريخيًا
+MAIN8	✅ موجودة تاريخيًا
+MAIN9	✅ موجودة تاريخيًا
+MAIN10	✅ موجودة تاريخيًا
+MAIN11	✅ موجودة تاريخيًا
+
+وهذا مهم جدًا: إعادة دمج MAIN1→MAIN11 من الصفر ستكون خطأ هندسيًا ودورانًا.
+
+كما ثبت أن أحد الـattempts السابقة التي أُدخلت إلى MAIN2 كان compact patch، وليس المصدر الكامل؛ ثم تم تجاوزه بدمج authoritative فعلي. المقارنة بين baseline وcommit MAIN2 أثبتت أن التغيير كان داخل Current/PWA/New-main نفسه، وليس ملفًا بديلًا.
+
+العيوب التي اكتشفتها فعليًا
+
+اكتشفت سببًا كان يخفي نجاح بعض مراحل السلسلة: RW_Table كان يحتوي escaping خاطئًا جعل node --check يفشل في MAIN1. هذا ليس افتراضًا؛ GitHub Actions سجله كـSyntaxError: Unexpected string.
+
+تم إصلاح المسار، وبعدها عبر التنفيذ الفعلي:
+
+MAIN2 → MAIN3 → MAIN4
+
+وتم إنشاء commits حقيقية داخل الهدف:
+
+ac6e55a → 7805951 → 2c79811.
+
+بعدها ظهر عيب مختلف في الـvalidator نفسه عند MAIN5: main5.md يحتوي JavaScript فيه strings/HTML literals، بينما validator كان يعتبر وجود <body> أو <html> داخل النص دليلًا على وجود HTML wrapper. تم تحديد هذا بدقة من مصدر main5.md نفسه.
+
+Production DB
+
+راجعت Production Supabase مباشرة.
+
+العقود الحرجة موجودة:
+
+current_user_company_id()
+current_user_has_permission()
+post_stock_movement
+reserve_stock
+release_stock_reservation
+Sales/Ledger/Receiving/Delivery/Returns RPCs.
+
+والـcritical RPCs ليست مفتوحة مباشرةً لـanon/authenticated/public، وهي SECURITY DEFINER ومصممة لتكون خلف طبقة التنفيذ المعتمدة.
+
+كذلك تم التحقق أن notifications لديها tenant/user constraints.
+
+واكتشفت تعارضًا حقيقيًا في audit_log: كان الوصول للقراءة أوسع من عقد Owner-only الموجود في New-main. تم إصلاح Production مباشرةً إلى:
+
+audit_log_select_owner
+
+مع شرط:
+
+current_user_has_permission('owner').
+
+هذه ليست وثيقة؛ إنها عملية DB فعلية.
+
+الفجوة الحالية
+
+بعد MAIN11، المشكلة الأساسية أصبحت Cross-cutting closure وليست فقدان modules.
+
+الـNew-main يحتاج أن تكون عنده boundary واحدة حاسمة تجمع:
+
+Navigation → Router → Permissions → Owner → License → Tenant → Notifications → Audit → Finance actions → Voucher actions → Session fail-closed
+
+بدل وجود أجزاء من هذه العقود موزعة بين محاولات تاريخية.
+
+أعددت بالفعل طبقة GOLD DIAMOND لهذا الغرض تتضمن:
+
+القائمة الكاملة للمبيعات والمشتريات والمخزون والجرد.
+كل Finance actions المطلوبة.
+التقارير الثلاثة.
+CRM / HR / Users / Roles.
+License وAudit كـOwner-only.
+Direct voucher routes.
+POS/Purchases routing إلى الوحدات الأصلية.
+Session fail-closed.
+Notification badge/read/click/render contracts.
+Workflow rules محكومة بالـOwner.
+احترام RW_ShellContext كمصدر tenant.
+عدم إنشاء stock/accounting writers جديدة.
+
+لكن الـpersist النهائي لهذه الطبقة لم يثبت بعد كـcommit ناجح في New-main؛ لذلك لن أسميه GOLD/DIAMOND.
+
+لماذا لم أعلن الإغلاق؟
+
+لأن محاولة الـexecutor الأخيرة وصلت فعلًا إلى الـclean-room workflow، لكن السكربت الذي أُدخل لتشغيل الإغلاق فشل أولًا في indentation. تم إصلاحه، ثم ظهر أن GitHub Actions في هذه البيئة يشغّل بعض workflows بنسخة YAML سابقة بسبب race/indexing behavior، فرفضت أن أعتبر ذلك نجاحًا.
+
+الدليل المباشر: الـclean-room run 33466077181 اشتغل على bfe7eab…، ثم توقف عند:
+
+Build one New-main artifact → IndentationError
+
+وبالتالي لم يصل إلى structural gate أو browser gate.
+
+الخلاصة التنفيذية الصادقة
+
+الحالة الآن:
+
+MAIN1–MAIN11 integration ✅
+Production tenant/security foundation ✅
+audit_log Owner-only Production policy ✅
+Navigation/Owner/License/Notification closure design ✅
+Final GOLD/DIAMOND code persisted into New-main ❌ لم يثبت
+Browser GOLD/DIAMOND E2E PASS ❌ لم يثبت
+Closed 100% ❌ لم أصل إليها بعد
+
+وأرفض إعطاءك شهادة Closed 100% مزيفة.
+
+الأهم أن التحقيق أخرجنا من الحلقة القديمة: لا توجد فائدة في إعادة بناء MAIN1→MAIN11 مرة أخرى. آخر حالة موثوقة هي أن السلسلة موجودة، والفجوة الحقيقية هي الإغلاق النهائي للـparent boundary والتحقق التنفيذي لها.
+
+أيضًا لاحظت أن هناك تعديلات مؤقتة كثيرة في ملفات .github/workflows/* وCURRENT_STATE.md نتيجة محاولات التنفيذ التي أجريتها أثناء التحقيق. هذه ليست إنجازًا للمشروع ويجب تنظيفها/إرجاعها قبل اعتماد الحالة النهائية؛ المنتج المقبول يظل Current/PWA/New-main + Production DB فقط.
+
+حتى هذه النقطة، كل ما ادعيته أعلاه مدعوم بسجل Git/Actions وProduction وليس بتقارير المساعدين.
