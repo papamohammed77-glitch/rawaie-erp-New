@@ -28,7 +28,6 @@ def patch_main7(raw):
 
 
 def normalize_document_closures(raw):
-    # Source fragments may carry legacy body/html closures; the assembler owns the single canonical closure.
     raw = re.sub(r'</body>\s*', '', raw, flags=re.I)
     raw = re.sub(r'</html>\s*', '', raw, flags=re.I)
     return raw
@@ -46,26 +45,15 @@ def repair_runtime_contracts(raw):
         raise RuntimeError('RUNTIME_AUTH_KEY_REPLACEMENT_COUNT:' + str(n))
     changes['supabase_key_replaced'] = True
 
-    canonical_sw = "navigator.serviceWorker.register('./sw.js',{scope:'./'})"
     sw_pattern = re.compile(r"navigator\.serviceWorker\.register\(\s*['\"][^'\"]+['\"](?:\s*,\s*\{\s*scope\s*:\s*['\"][^'\"]+['\"]\s*\})?\s*\)", re.S)
     sw_matches = sw_pattern.findall(raw)
     if len(sw_matches) > 1:
         raise RuntimeError('RUNTIME_SW_REGISTRATION_COUNT:' + str(len(sw_matches)))
     if len(sw_matches) == 1:
-        raw, n = sw_pattern.subn(canonical_sw, raw, count=1)
-        if n != 1:
-            raise RuntimeError('RUNTIME_SW_REPLACEMENT_COUNT:' + str(n))
+        raw, nsw = sw_pattern.subn('', raw, count=1)
+        if nsw != 1:
+            raise RuntimeError('RUNTIME_SW_REGISTRATION_REMOVAL_COUNT:' + str(nsw))
         changes['service_worker_registration_replaced'] = True
-    else:
-        insertion = "if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(function(e){console.warn('SERVICE_WORKER',e)})}"
-        close = raw.rfind('</script>')
-        if close < 0:
-            raise RuntimeError('RUNTIME_SW_INSERTION_SCRIPT_CLOSURE_MISSING')
-        raw = raw[:close] + insertion + raw[close:]
-        changes['service_worker_registration_inserted'] = True
-
-    if "navigator.serviceWorker.register('../sw.js',{scope:'../'})" in raw:
-        raise RuntimeError('LEGACY_PARENT_SERVICE_WORKER_REGISTRATION_REMAINS')
     return raw, changes
 
 
@@ -103,6 +91,12 @@ def assemble():
 
     candidate = chunks[0] + '\n\n' + '\n\n'.join(chunks[1:]) + '\n\n</script>\n</body>\n</html>\n'
     candidate, runtime_changes = repair_runtime_contracts(candidate)
+    canonical_sw_tag = "<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(function(e){console.warn('SERVICE_WORKER',e)})}</script>"
+    body_close = candidate.rfind('</body>')
+    if body_close < 0:
+        raise RuntimeError('BODY_CLOSE_MISSING_FOR_SW_TAG')
+    candidate = candidate[:body_close] + canonical_sw_tag + '\n' + candidate[body_close:]
+    runtime_changes['service_worker_registration_inserted'] = True
     return candidate, chunks, runtime_changes
 
 
@@ -120,13 +114,18 @@ def validate(candidate):
         raise RuntimeError('DOCUMENT_CLOSURE_INVALID')
     if SUPABASE_ANON_KEY not in candidate:
         raise RuntimeError('SUPABASE_ANON_KEY_CANONICAL_MISSING')
-    if "navigator.serviceWorker.register('./sw.js',{scope:'./'})" not in candidate:
-        raise RuntimeError('SERVICE_WORKER_CANONICAL_REGISTRATION_MISSING')
+    canonical_sw = "navigator.serviceWorker.register('./sw.js',{scope:'./'})"
+    if candidate.count(canonical_sw) != 1:
+        raise RuntimeError('SERVICE_WORKER_CANONICAL_REGISTRATION_COUNT:' + str(candidate.count(canonical_sw)))
+    legacy_sw = re.findall(r"navigator\.serviceWorker\.register\(\s*['\"](?:\.\./)?sw\.js['\"]", candidate)
+    if legacy_sw:
+        raise RuntimeError('LEGACY_SERVICE_WORKER_REGISTRATION_REMAINS')
     scripts = re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>', candidate, re.I)
-    if len(scripts) != 1:
-        raise RuntimeError('INLINE_SCRIPT_COUNT_INVALID:' + str(len(scripts)))
+    app_scripts = [x for x in scripts if 'serviceWorker.register' not in x]
+    if len(app_scripts) != 1:
+        raise RuntimeError('APPLICATION_INLINE_SCRIPT_COUNT_INVALID:' + str(len(app_scripts)))
     js_path = Path(tempfile.gettempdir()) / 'rawaea-new-main-assembly.js'
-    js_path.write_text(scripts[0], encoding='utf-8')
+    js_path.write_text(app_scripts[0], encoding='utf-8')
     r = subprocess.run(['node','--check',str(js_path)], capture_output=True, text=True)
     if r.returncode:
         raise RuntimeError('JS_SYNTAX_FAIL:\n' + r.stderr)
