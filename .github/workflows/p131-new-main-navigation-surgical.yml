@@ -1,15 +1,15 @@
 name: RAWAEA P131 New-main Surgical Navigation Repair
 
 on:
-  push:
+  pull_request:
     branches: [main]
-  workflow_dispatch:
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
 
 concurrency:
-  group: rawaea-p131-new-main-navigation-repair
+  group: rawaea-p131-new-main-navigation-repair-${{ github.event.pull_request.number || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -17,18 +17,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout current main
+      - name: Checkout PR head
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 2
 
       - name: Execute only for explicit P131 trigger
         shell: bash
-        env:
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           set -euo pipefail
+          COMMIT_MESSAGE="$(git log -1 --pretty=%B)"
           if [[ "${COMMIT_MESSAGE:-}" != *"[P131-EXECUTE]"* ]]; then
             echo "P131_GATE=SKIP_NO_EXPLICIT_TRIGGER"
             exit 0
@@ -41,7 +40,7 @@ jobs:
           set -euo pipefail
           python3 <<'PY'
           from pathlib import Path
-          import re, subprocess, tempfile
+          import os, re, subprocess, tempfile
 
           target = Path('Current/PWA/New-main')
           if not target.exists():
@@ -63,7 +62,6 @@ jobs:
           if old_routes in s:
               s = s.replace(old_routes, new_routes, 1)
               replacements += 1
-
           if replacements != 2:
               raise SystemExit(f'P131_ABORT_EXPECTED_ANCHORS_NOT_BOTH_FOUND:{replacements}')
 
@@ -79,12 +77,12 @@ jobs:
               if needle not in s:
                   raise SystemExit('P131_VERIFY_MISSING:'+needle)
 
-          mlist = [m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\\s\\S]*?)</script>', s, re.I) if not re.search(r'\\bsrc\\s*=', m.group('a') or '', re.I)]
+          mlist = [m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>', s, re.I) if not re.search(r'\bsrc\s*=', m.group('a') or '', re.I)]
           if len(mlist) != 1:
               raise SystemExit(f'P131_INLINE_RUNTIME_COUNT:{len(mlist)}')
           m = mlist[0]
           tail = s[m.end():]
-          if not re.fullmatch(r'\\s*</body>\\s*</html>\\s*', tail, re.I):
+          if not re.fullmatch(r'\s*</body>\s*</html>\s*', tail, re.I):
               raise SystemExit('P131_OUTER_HTML_TAIL_INVALID')
 
           js = Path(tempfile.gettempdir()) / 'p131-new-main-runtime.js'
@@ -103,6 +101,9 @@ jobs:
           subprocess.run(['git','config','user.email','rawaea-p131-bot@users.noreply.github.com'], check=True)
           subprocess.run(['git','add','Current/PWA/New-main'], check=True)
           subprocess.run(['git','commit','-m','[P131-TARGET-MUTATION] restore specialized report navigation routes'], check=True)
-          subprocess.run(['git','push','origin','HEAD:main'], check=True)
-          print('P131_TARGET_MUTATION=COMMITTED_AND_PUSHED')
+          branch = os.environ.get('GITHUB_HEAD_REF')
+          if not branch:
+              raise SystemExit('P131_PR_BRANCH_UNAVAILABLE')
+          subprocess.run(['git','push','origin',f'HEAD:{branch}'], check=True)
+          print('P131_TARGET_MUTATION=COMMITTED_AND_PUSHED_TO_PR_BRANCH')
           PY
