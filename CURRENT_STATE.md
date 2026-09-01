@@ -103,11 +103,51 @@
 - Gold/Diamond closure remains UNPROVEN because independent browser/runtime verification and the full closure gate suite have not been completed.
 - No false closure claim is permitted.
 
+## P132 — MEMORY RECOVERY + FORENSIC RECONCILIATION — 2026-09-01
+### P132-01 — STATE_RECONCILIATION
+- `CURRENT_STATE.md` was read before any new action.
+- Direct Git inspection established current `main` HEAD at entry as `c0fc7907c7c59194285bc4051f032c9ee6b0d8e3`.
+- Compare `29ad52fbe0e4c83f80d67fc9970e9964bb06a14c` → `c0fc7907c7c59194285bc4051f032c9ee6b0d8e3` showed exactly 3 commits ahead and only two changed paths: `CURRENT_STATE.md` and `doc/Draft/Hany/تقرير تنفيذي 12.md`.
+- No change to `Current/PWA/New-main` occurred after the P131 target mutation.
+- This proves the last product mutation remains the P131 target mutation; the later commits were governance/report persistence only.
+
+### P132-02 — MASTER_AND_MEMORY_RECOVERY
+- `MASTER - RAWAEA ERP.md` was read from beginning through its execution/governance rules.
+- Governing constraints reconfirmed: current truth outranks reports/memory; unknowns are not bugs; no artificial workflow/executor/reconstruction; target must be proven before patch; production/runtime evidence is mandatory for closure; `CURRENT_STATE.md` must be updated after real events.
+- The exact requested `doc/Draft/medhat/برومبت 124+ ملحق تقرير` path was queried directly and returned `404 Not Found`.
+- Git history for that exact path returned an empty commit list (`[]`), so no authoritative copy could be recovered by path history and no content was fabricated.
+
+### P132-03 — HANY_LATEST_REPORT_RECONCILIATION
+- `doc/Draft/Hany/تقرير تنفيذي 12.md` is the latest numbered Hany report found in the current repository.
+- No `تقرير تنفيذي 13` existed before this operation.
+- Report 12 was read through its final sections and confirms that the P131 specialized-report route fix is static/source-verified only; browser/runtime and Gold/Diamond remain unproven.
+
+### P132-04 — TARGET_RECHECK
+- `Current/PWA/New-main` was fetched directly from current `main` after reconciliation.
+- Its current target state corresponds to the P131 repaired artifact (`765e812efa17662d8630c50fa3ecd3f8ed496bf3`) as established by the post-fast-forward evidence chain.
+- No new target patch is authorized at this point because no new direct defect in the target has been proven.
+
+### P132-05 — PRODUCTION_RECHECK
+- Live read-only Supabase query executed against `fiilmooggumokxanwiyx` at `2026-09-01 16:14:47.531017+00`.
+- Observed: `users=24`, `companies=1`, `owner_profile=1`, `app_settings=1`, `notifications=0`.
+- No Supabase mutation was executed.
+- These counts confirm the previously observed baseline but do not prove browser/runtime report navigation.
+
+### P132-06 — DEPLOYMENT_RUNTIME_STATUS
+- Current deployment-lineage documentation still records the Cloudflare Pages production commit/artifact as UNPROVEN.
+- No public Pages URL was discoverable through the repository search performed in this round.
+- Therefore independent browser/runtime certification of `New-main` remains UNPROVEN.
+- No Gold/Diamond closure claim is permitted.
+
+### P132-07 — CURRENT_DECISION
+- The previously observed user concern that `New-main` had not been changed is only correct for changes after P131; P131 did in fact mutate `Current/PWA/New-main` and persisted that mutation to `main`.
+- The correct next technical action is runtime/deployment verification or resolution of the deployment URL/artifact lineage blocker, not another source patch.
+
 ## NEXT AUTHORIZED ACTION
-- The next technical phase is independent browser/runtime verification from the actual deployed application, including login/session/tenant context and navigation to the three specialized report routes.
-- After runtime evidence, continue only with remaining unproven Gold/Diamond gates.
-- Do not repeat clean-room reconstruction, zero-job push execution, monolithic target reconstruction, or historical-module replacement unless new direct evidence changes the diagnosis.
-- Update this file after each subsequent operation.
+- Produce the P132/Hany forensic report in `doc/Draft/Hany/` preserving all findings, successful and failed approaches, and the exact next repair plan.
+- After report creation, update this file again to record the report commit and final P132 state.
+- Then pursue only the still-open closure units supported by direct evidence: deployment lineage, runtime/browser certification, active-consumer/writer matrices, tenant/security regression, and the remaining Production data-provenance unknowns.
+- Do not repeat clean-room reconstruction, zero-job workflow retries, monolithic target replacement, or historical-module replacement unless new direct evidence changes the diagnosis.
 
 Do not delete historical reports.
 Do not revert to clean-room reconstruction.
