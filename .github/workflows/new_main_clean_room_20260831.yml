@@ -1,19 +1,13 @@
 name: RAWAEA MAIN1 SURGICAL CLEAN-ROOM
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'tools/run_new_main_clean_room_20260831.py'
-      - 'Current/PWA/New-main'
-      - 'Current/PWA/main/main1.md'
-      - 'Original/PWA/main/main1.md'
-      - '.github/workflows/new_main_clean_room_20260831.yml'
+  issues:
+    types: [opened]
   workflow_dispatch:
 permissions:
   contents: write
 jobs:
   surgical-repair:
-    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[new-main-surgical-persist]')
+    if: github.event_name == 'issues' && startsWith(github.event.issue.title, '[P124]')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -69,4 +63,4 @@ jobs:
           git commit -m '[new-main-surgical-persist] persist verified surgical New-main repair'
           git push origin HEAD:main
 
-# P124 temporary trigger: Browser E2E remains explicitly PAUSED; restore this file after surgical target persistence.
+# P124 temporary issue executor: Browser E2E remains explicitly PAUSED.
