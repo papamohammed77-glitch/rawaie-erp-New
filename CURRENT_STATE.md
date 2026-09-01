@@ -205,3 +205,16 @@
 - The prior P135 executor failed because its exact-match guard unexpectedly returned not-found; this is recorded as a tooling/execution failure.
 - Browser 401 remains unclosed until the P135 marker is observed in the deployed Pages artifact and login succeeds.
 - Service Worker 404 remains unmodified pending served-artifact/root verification.
+
+
+---
+
+### P136 — MAIN11 SUPABASE SCOPE REPAIR
+- Target: `Current/PWA/New-main`.
+- Root cause proven directly: MAIN11 is a separate IIFE and cannot see the local `supabase` client created by MAIN1.
+- P135 changed the guard text but did not resolve this scope boundary.
+- P136 exports the existing client as `window.RW_SUPABASE_CLIENT` and makes MAIN11 use an explicit shared reference `sb`.
+- No Supabase URL/key, login routine, Production data, or Service Worker routing was changed.
+- Full inline runtime passes Node syntax validation.
+- P136 browser closure remains pending until the Pages served artifact shows the P136 marker and owner login succeeds.
+- Historical reports remain preserved.
