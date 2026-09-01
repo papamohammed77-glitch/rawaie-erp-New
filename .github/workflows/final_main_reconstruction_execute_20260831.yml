@@ -32,8 +32,8 @@ jobs:
           import re, subprocess, tempfile
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
           if '/* RAWAEA MAIN1 NOTIFICATION CONTRACT CLOSURE v1 */' not in s:
-              marker=re.search(r'\(\)\);</script>\s*$',s,re.I)
-              if not marker: raise RuntimeError('TARGET_CLOSURE_ANCHOR_NOT_FOUND')
+              idx=s.lower().rfind('</script>')
+              if idx<0: raise RuntimeError('TARGET_SCRIPT_CLOSURE_ANCHOR_NOT_FOUND')
               patch=r'''
           /* RAWAEA MAIN1 NOTIFICATION CONTRACT CLOSURE v1 */
           (function(){
@@ -72,14 +72,15 @@ jobs:
             window.RW_Notification=N;
           })();
           '''
-              s=s[:marker.start()] + patch + '\n' + s[marker.start():]
+              s=s[:idx]+patch+'\n'+s[idx:]
               p.write_text(s,encoding='utf-8')
-          s=p.read_text(encoding='utf-8');
+          s=p.read_text(encoding='utf-8')
           for token in ['RW_Notification','_clickNotif','_renderAndSave','_updateBadge','markRead','RAWAEA MAIN1 NOTIFICATION CONTRACT CLOSURE v1']:
               if token not in s: raise RuntimeError('NOTIFICATION_CONTRACT_MISSING:'+token)
           ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
           if len(ms)!=1: raise RuntimeError('INLINE_RUNTIME_COUNT')
-          f=Path(tempfile.gettempdir())/'new-main.js';f.write_text(ms[0].group('b'),encoding='utf-8');r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+          f=Path(tempfile.gettempdir())/'new-main.js';f.write_text(ms[0].group('b'),encoding='utf-8')
+          r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
           if r.returncode: print(r.stderr);raise RuntimeError('TARGET_JS_SYNTAX_FAIL')
           subprocess.run(['git','add','Current/PWA/New-main'],check=True)
           if subprocess.run(['git','diff','--cached','--quiet']).returncode!=0:
