@@ -1,0 +1,804 @@
+نعم. بعد تتبّع التنفيذ الفعلي، والـcommits، والـworkflow، وقراءة سجلات الفشل، أستطيع الآن إعطاءك تحليلًا جنائيًا حقيقيًا وليس مجرد انطباع.
+
+تقرير التحقيق الجنائي
+أولًا: الخلاصة التنفيذية
+
+المشكلة الأساسية لم تكن أن MAIN2 أو MAIN5 أو MAIN6 “صعبة”.
+
+المشكلة الحقيقية كانت أن عملية البناء نفسها كانت تحتوي على عدة طبقات من الأخطاء، وبعضها كان يجعلنا نصلح أداة التنفيذ بدل إصلاح المنتج.
+
+بمعنى أبسط:
+
+كان هناك خلط بين “إصلاح المشروع” و“إصلاح طريقة إصلاح المشروع”.
+
+وهذا هو السبب الأكبر في الدوران.
+
+والدليل الأقوى ظهر عندما نجح المسار أخيرًا:
+
+MAIN2 وصل فعليًا إلى New-main في ac6e55a.
+MAIN3 وصل فعليًا في 7805951.
+MAIN4 وصل فعليًا في 2c79811.
+ثم توقف التنفيذ عند MAIN5 بسبب خطأ في الـvalidator نفسه، وليس لأن MAIN5 غير صالح.
+
+إذن لدينا الآن دليل عملي أن المشكلة كانت في آلية الدمج والتحقق بدرجة كبيرة.
+
+1. السبب الجذري الأول: كنا نعالج الأداة بدل المنتج
+
+في عدة محاولات سابقة تم تعديل:
+
+workflows
+parsers
+extractors
+reconstruction scripts
+validation logic
+
+ثم كان يتم التعامل مع نجاح هذه الأدوات وكأنه إنجاز للمشروع.
+
+وهذا خطأ إداري وهندسي كبير.
+
+أنت وضعت القاعدة الصحيحة:
+
+الإنجاز = تعديل Current/PWA/New-main + Production DB فقط.
+
+لذلك أي commit في workflow أو parser أو script ليس إنجازًا، بل هو مجرد وسيلة.
+
+لماذا هذا مهم؟
+
+لأننا وصلنا إلى عشرات الـcommits من نوع:
+
+fix
+refactor
+reconstruction
+repair
+executor
+workflow
+
+لكن معظمها لم يغير المنتج النهائي.
+
+وهذا بالضبط هو تعريف الحلقة المفرغة.
+
+2. السبب الجذري الثاني: كانت عملية الدمج تفكك JavaScript بطريقة هشة
+
+هذا ظهر بوضوح في فشل MAIN1.
+
+الـvalidator كان يستخرج <script> ثم يحاول فحص المحتوى.
+
+لكن الملف نفسه يحتوي JavaScript معقدًا، مثل:
+
+RW_Table
+
+وفيه نصوص HTML وquotes وescaping.
+
+النتيجة:
+
+SyntaxError: Unexpected string
+
+والأخطر أن الخطأ كان سببه نسخة New-main الموجودة بالفعل، وليس main1.md.
+
+أي أن:
+
+الـmerge السابق أنتج JavaScript غير صالح نحويًا.
+
+السبب الحقيقي
+
+تم التعامل مع JavaScript كما لو كان نصًا بسيطًا يمكن تعديله بـstring replacement.
+
+وهذا غير آمن عندما يكون عندك:
+
+strings
+escaped quotes
+template-like HTML
+nested functions
+IIFE
+regular expressions
+الحل الصحيح
+
+لا نفك JavaScript بالدوال النصية البسيطة.
+
+لدينا ثلاثة خيارات احترافية:
+
+عدم تفكيك JavaScript أصلًا.
+دمج وحدات كاملة كما هي.
+استخدام parser/AST حقيقي إذا احتجنا تعديلًا داخليًا.
+
+وفي مشروعنا الخيار الثاني هو الأفضل.
+
+وهذا ما نجح فعليًا مع MAIN2→MAIN4.
+
+3. السبب الجذري الثالث: الـvalidator كان نفسه يرفض كودًا صحيحًا
+
+هذه نقطة مهمة جدًا.
+
+عند MAIN5 حدث:
+
+RuntimeError: MAIN5_SOURCE_WRAPPER
+
+لكن عند فحص main5.md وجدنا أنه JavaScript صحيح يحتوي HTML داخل strings.
+
+الـvalidator كان يبحث عن:
+
+</script>
+<html>
+<body>
+
+في النص.
+
+وهذا منطق خاطئ.
+
+لأن JavaScript قد يحتوي:
+
+'<div>...</div>'
+
+وهذا ليس HTML wrapper.
+
+أي أن الـvalidator قال:
+
+“هناك HTML، إذًا الملف HTML.”
+
+بينما الحقيقة:
+
+“الملف JavaScript ويولد HTML داخليًا.”
+
+الحل
+
+يجب أن يفحص الـvalidator بنية الملف وليس مجرد وجود الكلمات.
+
+مثلًا:
+
+هل يبدأ بـ <!doctype>؟
+هل يوجد <html> في مستوى الملف؟
+هل يوجد <script> خارجي؟
+هل المصدر كله JS؟
+هل المصدر مغلف فعلًا بـ <script> أم مجرد JS fragment؟
+
+هذا فرق جوهري.
+
+4. السبب الجذري الرابع: تم خلط “module source” مع “HTML document”
+
+السلسلة ليست كلها من نفس النوع.
+
+هناك مراحل عبارة عن:
+
+Full document
+
+مثل MAIN1:
+
+<!doctype html>
+<html>
+...
+<script>
+...
+</script>
+</html>
+
+وهناك مراحل عبارة عن:
+
+JavaScript module
+
+مثل MAIN5.
+
+وهناك وحدات أخرى قد تكون:
+
+IIFE
+module fragment
+view definitions
+service code
+
+لذلك لا يجوز استخدام قاعدة واحدة مثل:
+
+“كل mainX يجب أن يكون HTML.”
+
+هذا كان من أسباب التعطيل.
+
+الحل
+
+نعرف لكل مرحلة:
+
+المرحلة	النوع	طريقة الدمج
+MAIN1	HTML Shell	الأساس
+MAIN2	JS Module	داخل runtime
+MAIN3	JS Module	داخل runtime
+MAIN4	JS Module	داخل runtime
+MAIN5	JS Module	داخل runtime
+...	...	...
+
+أي أن لدينا Module Contract لكل Main.
+
+5. السبب الجذري الخامس: الدمج الكامل كان غير ذري
+
+كان هناك نمط مثل:
+
+MAIN2
+push
+MAIN3
+push
+MAIN4
+push
+...
+
+وهذا من جهة جيد لأنه يحقق checkpoint.
+
+لكن المشكلة أن كل push يطلق workflow جديدًا.
+
+أي لدينا:
+
+Run A
+  MAIN2
+  push
+
+Run B يبدأ بسبب push
+
+Run A
+  MAIN3
+  push
+
+Run C يبدأ بسبب push
+
+ومع وجود تعديلات أخرى في main أصبح لدينا احتمال:
+
+concurrent runs
+stale checkout
+conflicting assumptions
+multiple workflows examining different repository states
+
+وهذا يضاعف احتمالات السباق.
+
+الحل الاحترافي
+
+إضافة:
+
+concurrency:
+  group: rawaea-new-main-reconstruction
+  cancel-in-progress: true
+
+أو الأفضل:
+
+Runner واحد sequential owner للعملية كلها.
+
+ويجب أن يكون هناك:
+
+مصدر تنفيذ واحد فقط active reconstruction run.
+
+6. السبب الجذري السادس: الـworkflow كان يعيد بناء التاريخ بدل استكمال الحالة الحالية
+
+في بعض المحاولات كان التنفيذ يبدأ:
+
+MAIN1
+MAIN2
+MAIN3
+...
+
+كل مرة.
+
+لكن بعد أن يصبح:
+
+MAIN2 ✅
+MAIN3 ✅
+MAIN4 ✅
+
+لا معنى لإعادة MAIN1.
+
+الأصح:
+
+Discover current state
+↓
+MAIN1 = closed
+MAIN2 = closed
+MAIN3 = closed
+MAIN4 = closed
+↓
+Resume at MAIN5
+
+وهذا هو Resume-safe architecture.
+
+7. السبب الجذري السابع: الفحص كان أحيانًا Syntax فقط
+
+وجود:
+
+node --check
+
+مهم جدًا.
+
+لكنه لا يعني أن التطبيق يعمل.
+
+هو يجيب على سؤال واحد:
+
+هل JavaScript صالح نحويًا؟
+
+ولا يجيب على:
+
+هل DOM صحيح؟
+هل RW_Dashboard يعمل؟
+هل Supabase client initialized؟
+هل auth يعمل؟
+هل navigation يعمل؟
+هل query تعمل؟
+هل RLS تمنع/تسمح بشكل صحيح؟
+هل module يتصل بالـUI فعليًا؟
+
+لذلك كان يجب أن يكون لدينا:
+
+Layer 1
+
+Syntax
+
+Layer 2
+
+Contract
+
+Layer 3
+
+DOM
+
+Layer 4
+
+Runtime
+
+Layer 5
+
+Integration
+
+Layer 6
+
+Production DB
+
+Layer 7
+
+Browser smoke
+
+وهذا هو المستوى الذي يجب أن نصل إليه.
+
+8. السبب الجذري الثامن: كان هناك خلط بين “وجود module” و“اكتمال module”
+
+مثلًا وجود:
+
+window.RW_Items
+
+لا يعني أن Items module مكتمل.
+
+قد يكون:
+
+RW_Items = {}
+
+موجودًا فقط حتى يمر الـvalidator.
+
+وهذا خطر كبير.
+
+لذلك يجب أن يكون Contract لكل Module أعمق
+
+ليس:
+
+window.RW_Items exists
+
+فقط.
+
+بل:
+
+RW_Items.list
+RW_Items.search
+RW_Items.load
+RW_Items.create
+RW_Items.update
+RW_Items.delete
+RW_Items.permissions
+RW_Items.company_scope
+RW_Items.error_handling
+
+بحسب العقد الحقيقي للمشروع.
+
+9. السبب الجذري التاسع: لم يكن هناك فصل صارم بين UI Contract وDB Contract
+
+وهذه نقطة خطيرة جدًا.
+
+الواجهة قد تقول:
+
+company_id
+
+لكن قاعدة البيانات قد تعتمد على:
+
+tenant_id
+
+أو:
+
+user.company_id
+
+أو RLS context.
+
+إذا لم نثبت العلاقة، فقد يبدو الـUI سليمًا لكنه يفشل في Production.
+
+10. السبب الجذري العاشر: Production DB لم تكن جزءًا حقيقيًا من عملية الإغلاق حتى الآن
+
+وهذه نقطة يجب أن أكون فيها صريحًا جدًا:
+
+حتى هذه اللحظة، لا يجوز اعتبار الـbackend/Production DB مغلقًا لمجرد أن New-main تقدم.
+
+لم يكن هناك تغيير Production DB مصحوبًا بإغلاق MAIN stages.
+
+وهذا ليس عيبًا بحد ذاته.
+
+بل بالعكس:
+
+عدم تعديل Production DB بلا دليل كان القرار الصحيح.
+
+لكن الآن يجب أن ندخل مرحلة DB verification رسميًا.
+
+11. ماذا حدث فعليًا في التنفيذ الحالي؟
+
+هذه أهم نتيجة في التحقيق.
+
+الـrunner الأخير أثبت التالي:
+
+MAIN1
+
+تم إصلاح مشكلة syntax الموجودة في New-main ثم تجاوزها.
+
+MAIN2
+
+تم دمج المصدر authoritative الحقيقي.
+
+النتيجة:
+
+ac6e55a
+[new-main-target-persist] MAIN2 complete
+
+والتغيير كان:
+
+328 insertions(+)
+5 deletions(-)
+MAIN3
+
+تم دمجه كاملًا:
+
+7805951
+[new-main-target-persist] MAIN3 complete
+
+مع:
+
+592 insertions(+)
+1 deletion(-)
+MAIN4
+
+تم دمجه كاملًا:
+
+2c79811
+[new-main-target-persist] MAIN4 complete
+
+مع:
+
+1155 insertions(+)
+1 deletion(-)
+
+ثم MAIN5 توقف فقط لأن الـvalidator اعتبر JavaScript يحتوي HTML “wrapper” بطريقة خاطئة.
+
+إذن هذه المرة لدينا دليل Git حقيقي على الإنجاز، وليس مجرد ادعاء.
+
+12. السبب الأكبر وراء شعورك أننا ندور في دائرة
+
+أعتقد أن هذه أهم نقطة بالنسبة لك.
+
+الدائرة كانت:
+
+مشكلة
+↓
+نبني أداة
+↓
+الأداة تفشل
+↓
+نصلح الأداة
+↓
+الأداة تصلح شيئًا
+↓
+لكن الهدف لا يتغير
+↓
+نبني أداة جديدة
+↓
+نكرر
+
+بينما المطلوب:
+
+مشكلة
+↓
+تحقيق
+↓
+تحديد السبب
+↓
+تعديل New-main
+↓
+اختبار New-main
+↓
+Commit New-main
+↓
+المرحلة التالية
+
+وهذا هو الفرق بين:
+
+Engineering
+
+و
+
+Tooling around Engineering
+
+13. الحل المعماري الذي أوصي به
+
+أوصي الآن بتثبيت نظام عمل نهائي اسمه:
+
+TARGET-FIRST SEQUENTIAL RECONSTRUCTION
+
+ويعمل هكذا:
+
+SOURCE
+Current/PWA/main/mainX.md
+        ↓
+   CONTRACT CHECK
+        ↓
+   MERGE INTO TARGET
+        ↓
+Current/PWA/New-main
+        ↓
+   SYNTAX CHECK
+        ↓
+   CONTRACT CHECK
+        ↓
+   RUNTIME CHECK
+        ↓
+   BROWSER CHECK
+        ↓
+   COMMIT TARGET
+        ↓
+   NEXT MAIN
+
+ولا توجد مرحلة اسمها:
+
+“نجح الـexecutor.”
+
+النجاح الوحيد:
+
+“Target changed and passed.”
+
+14. طريقة إغلاق كل MAIN
+
+كل Main يجب أن يحصل على أربع شهادات:
+
+شهادة 1 — Source Integrity
+
+هل أخذنا المصدر الصحيح؟
+
+شهادة 2 — Merge Integrity
+
+هل دخل كاملًا إلى New-main؟
+
+شهادة 3 — Runtime Integrity
+
+هل JavaScript يعمل؟
+
+شهادة 4 — Functional Contract
+
+هل الوظائف المطلوبة تعمل؟
+
+بعدها فقط:
+
+MAINX CLOSED
+15. الحل الخاص بالـworkflow
+
+الـworkflow الحالي يحتاج إعادة ضبط هندسي، وليس إعادة اختراع.
+
+أهم الإصلاحات:
+
+أولًا
+
+concurrency
+
+حتى لا تعمل reconstruction runs متوازية.
+
+ثانيًا
+
+resume state
+
+يقرأ:
+
+آخر MAIN مغلق
+
+ثم يبدأ من بعده.
+
+ثالثًا
+
+لا يستخدم string heuristics للحكم على JS.
+
+رابعًا
+
+يعرف module type لكل Main.
+
+خامسًا
+
+لا يلمس أي ملف غير:
+
+Current/PWA/New-main
+
+إلا ملفات المصدر التي يقرأ منها.
+
+سادسًا
+
+لا يكتب artifacts جديدة داخل repository.
+
+16. الحل الخاص بالـNew-main
+
+يجب أن يكون عندنا داخل الملف نفسه سجل داخلي واضح:
+
+window.RW_BUILD_CONTRACT = {
+    main1: 'closed',
+    main2: 'closed',
+    main3: 'closed',
+    main4: 'closed',
+    main5: 'pending',
+    ...
+};
+
+لكن هذا السجل لا يكفي وحده.
+
+كل حالة يجب أن تعكس حقيقة مثبتة بالـruntime.
+
+17. الحل الخاص بـProduction DB
+
+بعد إغلاق MAIN11 لا نذهب مباشرة إلى:
+
+“عدّل قاعدة البيانات.”
+
+بل نعمل:
+
+Production Contract Audit
+
+ونقارن:
+
+New-main
+      ↕
+Edge Functions
+      ↕
+RPC
+      ↕
+Tables
+      ↕
+RLS
+      ↕
+Indexes
+      ↕
+Triggers
+
+ثم نسأل لكل module:
+
+هل الـfrontend يستخدم contract موجود بالفعل في Production؟
+
+إذا نعم:
+
+لا تعديل.
+
+إذا لا:
+
+ننشئ migration محددة ومدروسة.
+
+18. شيء مهم جدًا اكتشفناه
+
+من وجهة النظر الجنائية، MAIN5 ليس المشكلة الحقيقية الآن.
+
+MAIN5 هو فقط أول مكان كشف عيبًا في طريقة التحقق.
+
+وهذا يعني أن احتمال ظهور أخطاء مشابهة في:
+
+MAIN6
+MAIN7
+MAIN8
+MAIN9
+MAIN10
+MAIN11
+
+مرتفع جدًا إذا استمر validator الحالي.
+
+لذلك العلاج الصحيح ليس:
+
+“أصلح MAIN5.”
+
+بل:
+
+أصلح قاعدة التحقق قبل مواصلة MAIN5→MAIN11.
+
+وهذا يمنع تكرار نفس المشكلة ست مرات.
+
+19. ترتيب الإصلاح الذي أوصي به الآن
+المرحلة A — تثبيت المحرك
+
+نصلح:
+
+module classification
+wrapper detection
+concurrency
+resume logic
+validation architecture
+المرحلة B — استئناف الهدف
+
+نبدأ من:
+
+MAIN5
+
+لأن:
+
+MAIN1 ✅
+MAIN2 ✅
+MAIN3 ✅
+MAIN4 ✅
+
+ولا نعيدهم.
+
+المرحلة C
+MAIN5
+MAIN6
+MAIN7
+MAIN8
+MAIN9
+MAIN10
+MAIN11
+
+كل مرحلة:
+
+merge
+→ syntax
+→ contract
+→ runtime
+→ commit
+المرحلة D
+
+بعد MAIN11:
+
+PWA Final Browser Audit
+
+ثم:
+
+Production DB Contract Audit
+
+ثم فقط migrations المطلوبة.
+
+20. الحكم النهائي للتحقيق
+ما كان خطأ؟
+
+أخطاء تشغيلية ومنهجية:
+
+اعتبار أدوات البناء إنجازًا.
+استخدام string manipulation مع JavaScript معقد.
+validator غير واعٍ بطبيعة JavaScript.
+عدم التمييز بين HTML document وJS module.
+عدم وجود resume architecture واضح.
+احتمال تعدد reconstruction runs.
+الاعتماد أحيانًا على وجود اسم function بدل اختبار contract الحقيقي.
+الخلط بين نجاح syntax ونجاح النظام.
+عدم إدخال Production DB في مرحلة الإغلاق النهائي.
+ما لم يكن خطأ؟
+MAIN5 نفسه ليس معطوبًا لمجرد أن validator رفضه.
+عدم تعديل Production DB حتى الآن ليس فشلًا؛ كان أفضل من إدخال تغييرات غير مثبتة.
+وجود commits فعلية لـMAIN2–MAIN4 الآن إنجاز حقيقي لأن التغيير وقع داخل Current/PWA/New-main نفسه.
+القرار الهندسي
+
+أنا لا أوصي بالاستمرار من الوضع السابق.
+
+أوصي بإغلاق محرك التنفيذ نفسه أولًا، ثم استئناف السلسلة من MAIN5 فقط.
+
+الهدف النهائي يصبح واضحًا جدًا:
+
+MAIN1 ✅
+MAIN2 ✅
+MAIN3 ✅
+MAIN4 ✅
+MAIN5 → NEXT
+MAIN6
+MAIN7
+MAIN8
+MAIN9
+MAIN10
+MAIN11
+   ↓
+FINAL New-main
+   ↓
+Production Contract Audit
+   ↓
+Production DB reconciliation
+   ↓
+FINAL PRODUCTION CLOSE
+
+وهذا، في رأيي، هو أول مسار في هذه العملية يمكن الدفاع عنه هندسيًا أمام مراجعة CTO مستقلة؛ لأنه يفصل السبب الحقيقي عن أعراض التنفيذ، ويجعل كل مرحلة قابلة للإثبات من Git والـruntime والـProduction بدل الاعتماد على كلام الـworkflow.
