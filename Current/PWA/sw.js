@@ -2,7 +2,7 @@
 // RAWAEA ERP — Production Service Worker
 // Contract:
 // - HTML/navigation/API/runtime code are network-backed and never cached.
-// - The shared update coordinator is injected into HTML controlled by this SW.
+// - The shared update coordinator is injected into controlled HTML.
 // - Static presentation assets use a versioned cache.
 // - Every new SW build activates immediately and reloads in-scope windows.
 // - No authentication or business-data caching.
@@ -37,16 +37,6 @@ function activateAndReloadClients() {
                 }
             }
             return Promise.all(tasks);
-        })
-        .then(function() {
-            return self.clients.matchAll({ type: 'window' });
-        })
-        .then(function(clientsList) {
-            for (var i = 0; i < clientsList.length; i++) {
-                if (isInScopeClient(clientsList[i])) {
-                    clientsList[i].postMessage({ type: 'RW_SW_UPDATED', build: SW_BUILD, at: Date.now() });
-                }
-            }
         });
 }
 
@@ -119,11 +109,10 @@ function injectUpdateCoordinator(response) {
             html = script + html;
         }
 
-        var headers = new Headers(response.headers);
         return new Response(html, {
             status: response.status,
             statusText: response.statusText,
-            headers: headers
+            headers: new Headers(response.headers)
         });
     }).catch(function(error) {
         console.warn('[SW] coordinator injection skipped:', error);
@@ -134,6 +123,7 @@ function injectUpdateCoordinator(response) {
 self.addEventListener('fetch', function(event) {
     var request = event.request;
     if (request.method !== 'GET') return;
+
     var url = new URL(request.url);
 
     if (isAPIRequest(url) || isRuntimeRequest(url)) {
@@ -152,7 +142,9 @@ self.addEventListener('fetch', function(event) {
                 return cache.match(request).then(function(cached) {
                     if (cached) return cached;
                     return fetch(request).then(function(networkResponse) {
-                        return putStatic(cache, request, networkResponse).then(function() { return networkResponse; });
+                        return putStatic(cache, request, networkResponse).then(function() {
+                            return networkResponse;
+                        });
                     });
                 });
             })
@@ -163,7 +155,9 @@ self.addEventListener('fetch', function(event) {
     event.respondWith(
         fetch(request).then(function(networkResponse) {
             return caches.open(STATIC_CACHE).then(function(cache) {
-                return putStatic(cache, request, networkResponse).then(function() { return networkResponse; });
+                return putStatic(cache, request, networkResponse).then(function() {
+                    return networkResponse;
+                });
             });
         }).catch(function() {
             return caches.match(request);
