@@ -2,7 +2,7 @@
 
 ## TEMP EXECUTION MARKER
 Target-only closure runner trigger. This marker is temporary and will be restored after the published target is updated.
-Target closure dispatch: final-run-v3
+Target closure dispatch: final-run-v3b
 
 ## GOVERNANCE
 - Operational truth comes from current Git, Production Supabase, deployed Edge Functions and runtime tests.
