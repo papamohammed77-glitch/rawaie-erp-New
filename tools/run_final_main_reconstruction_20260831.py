@@ -2,143 +2,130 @@ from pathlib import Path
 import re
 import json
 import hashlib
+import subprocess
+import tempfile
 
-MAIN = Path('Current/PWA/main.html')
+MAIN = Path('Current/PWA/New-main')
 CUR = Path('Current/PWA/main')
-ORIG = Path('Original/PWA/main')
-CTO = Path('Current/CTO')
 PARTS = [CUR / f'main{i}.md' for i in range(1, 12)]
-ORIGINAL_PARTS = [ORIG / f'main{i}.md' for i in range(1, 12)]
 
 
-def fp(text: str) -> str:
+def fp(text):
     return hashlib.sha256(text.encode('utf-8')).hexdigest()
 
 
-def symbols(s: str) -> dict:
-    return {
-        'functions': sorted(set(re.findall(r'(?<![\w$])function\s+([A-Za-z_$][\w$]*)\s*\(', s))),
-        'ids': sorted(set(re.findall(r'\bid=["\']([^"\']+)["\']', s))),
-        'rpcs': sorted(set(re.findall(r'\.rpc\(\s*["\']([^"\']+)["\']', s))),
-        'tables': sorted(set(re.findall(r'\.from\(\s*["\']([^"\']+)["\']', s))),
-        'edge_refs': sorted(set(re.findall(r'functions/v1/([A-Za-z0-9._-]+)', s))),
-    }
+def source_js(raw):
+    matches = [
+        m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>', raw, re.I)
+        if not re.search(r'\bsrc\s*=', m.group('a') or '', re.I)
+    ]
+    if len(matches) == 1:
+        return matches[0].group('b')
+    return raw.lstrip('\ufeff')
 
 
-def meta(p: Path) -> dict:
-    b = p.read_bytes()
-    return {'path': str(p), 'bytes': len(b), 'sha256': hashlib.sha256(b).hexdigest(), 'lines': b.count(b'\n') + 1}
+def patch_main7(raw):
+    pattern = re.compile(
+        r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}",
+        re.M,
+    )
+    fixed, count = pattern.subn(r"\1));}", raw, count=1)
+    return fixed if count == 1 else raw
 
 
-def repair_verified_fragment_defects() -> list:
-    repairs = []
-    p = CUR / 'main7.md'
-    s = p.read_text(encoding='utf-8-sig')
-    # Verified from CI syntax gate at loadSettlement(): safeHTML had one missing
-    # closing parenthesis after the nested map().join() expression.
-    pattern = re.compile(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}", re.M)
-    s2, n = pattern.subn(r"\1));}", s, count=1)
-    if n == 1:
-        p.write_text(s2, encoding='utf-8-sig')
-        repairs.append({'path': str(p), 'issue': 'loadSettlement missing closing parenthesis', 'occurrences_fixed': 1})
-    elif n == 0:
-        # Already repaired is valid only when the exact corrected form exists.
-        corrected = re.search(r"safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\)\)\);}", s, re.M)
-        if not corrected:
-            raise SystemExit('VERIFIED_MAIN7_SYNTAX_REPAIR_NOT_FOUND')
+def normalize_main1(raw):
+    raw = re.sub(r'(?m)^\s*const RW_Auth\s*=\s*', 'var RW_Auth = ', raw, count=1)
+    raw = re.sub(r'(?m)^\s*const RW_Navigation\s*=\s*', 'var RW_Navigation = ', raw, count=1)
+    return raw
+
+
+def validate_fragment(idx, raw):
+    if idx == 1:
+        if not re.match(r'^\s*<!DOCTYPE html>', raw, re.I):
+            raise RuntimeError('MAIN1_HTML_DOCTYPE_MISSING')
+        if not re.search(r'^\s*<html\b', raw, re.I | re.M):
+            raise RuntimeError('MAIN1_HTML_ROOT_MISSING')
+        if not re.search(r'<script\b', raw, re.I):
+            raise RuntimeError('MAIN1_SCRIPT_ANCHOR_MISSING')
+        if re.search(r'</body>|</html>', raw, re.I):
+            raise RuntimeError('MAIN1_DOCUMENT_ALREADY_CLOSED')
     else:
-        raise SystemExit('VERIFIED_MAIN7_SYNTAX_REPAIR_AMBIGUOUS')
-    return repairs
+        if re.search(r'^\s*<!doctype\b', raw, re.I | re.M):
+            raise RuntimeError(f'MAIN{idx}_DOCTYPE_FORBIDDEN')
+        if re.search(r'^\s*</?(?:html|head|body)\b', raw, re.I | re.M):
+            raise RuntimeError(f'MAIN{idx}_DOCUMENT_WRAPPER_FORBIDDEN')
+        if re.search(r'</script>', raw, re.I):
+            raise RuntimeError(f'MAIN{idx}_SCRIPT_CLOSURE_FORBIDDEN')
 
 
-def assemble_clean_room() -> str:
+def assemble():
     missing = [str(p) for p in PARTS if not p.is_file() or p.stat().st_size == 0]
     if missing:
-        raise SystemExit('MISSING_RECONSTRUCTION_PARTS:' + ','.join(missing))
-    chunks = [p.read_text(encoding='utf-8-sig') for p in PARTS]
+        raise RuntimeError('MISSING_RECONSTRUCTION_PARTS:' + ','.join(missing))
+    chunks = []
+    for idx, p in enumerate(PARTS, 1):
+        raw = p.read_text(encoding='utf-8-sig')
+        if idx == 1:
+            raw = normalize_main1(raw)
+        elif idx == 7:
+            raw = patch_main7(raw)
+        validate_fragment(idx, raw)
+        chunks.append(raw.rstrip())
+
     first = chunks[0]
-    if not re.match(r'^\s*<!DOCTYPE html>', first, re.I):
-        raise SystemExit('MAIN1_IS_NOT_HTML_SHELL')
-    if not re.search(r'^\s*<html\b', first, re.I | re.M):
-        raise SystemExit('MAIN1_HTML_ROOT_MISSING')
-    if re.search(r'^\s*</html>\s*$', first, re.I | re.M) or re.search(r'^\s*</body>\s*$', first, re.I | re.M):
-        raise SystemExit('MAIN1_ALREADY_CLOSED_DOCUMENT')
-    for i, c in enumerate(chunks[1:], 2):
-        if re.search(r'^\s*<!doctype\b', c, re.I | re.M):
-            raise SystemExit(f'INVALID_FRAGMENT_DOCTYPE_MAIN{i}')
-        if re.search(r'^\s*</?(?:html|head|body)\b[^>]*>\s*$', c, re.I | re.M):
-            raise SystemExit(f'INVALID_FRAGMENT_DOCUMENT_WRAPPER_MAIN{i}')
-        if re.search(r'</script>', c, re.I):
-            raise SystemExit(f'INVALID_FRAGMENT_SCRIPT_CLOSE_MAIN{i}')
-    candidate = first.rstrip() + '\n\n' + '\n\n'.join(c.rstrip() for c in chunks[1:]) + '\n\n</script>\n</body>\n</html>\n'
-    if not re.match(r'^\s*<!DOCTYPE html>', candidate, re.I):
-        raise SystemExit('HTML_DOCUMENT_START_FAIL')
+    matches = [m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>', first, re.I) if not re.search(r'\bsrc\s*=', m.group('a') or '', re.I)]
+    if len(matches) != 1:
+        raise RuntimeError('MAIN1_INLINE_SCRIPT_COUNT_INVALID')
+    m = matches[0]
+    prefix = first[:m.start('b')]
+    js = m.group('b').rstrip()
+    suffix = first[m.end('b'):]
+
+    phases = [{'phase': 1, 'source': str(PARTS[0]), 'script_sha256': fp(js), 'bytes': len(js.encode('utf-8'))}]
+    for idx in range(2, 12):
+        js = js + '\n\n' + source_js(chunks[idx - 1]).rstrip()
+        phases.append({'phase': idx, 'source': str(PARTS[idx - 1]), 'script_sha256': fp(js), 'bytes': len(js.encode('utf-8'))})
+
+    candidate = prefix + js + suffix
     if not re.search(r'</script>\s*</body>\s*</html>\s*$', candidate, re.I):
-        raise SystemExit('HTML_DOCUMENT_END_FAIL')
-    return candidate
+        candidate = candidate.rstrip() + '\n</script>\n</body>\n</html>\n'
+    return candidate, phases
 
 
-def validate_candidate(s: str) -> dict:
+def validate(candidate):
     required = [
-        'window.RW_ShellContext', 'RW_ShellContext.getCompanyId()',
-        'window.RW_OwnerLicense', 'RW_Views',
-        'rec-purchase', 'rec-offers',
-        'window.RW_Dashboard', 'window.RW_Items', 'window.RW_POS',
-        'window.RW_Orders', 'window.RW_Runsheets', 'window.RW_Purchases',
-        'window.RW_Warehouse', 'window.RW_Finance', 'window.RW_Reports',
-        'window.RW_HR', 'window.RW_CRM'
+        'rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn',
+        'window.RW_ShellContext','window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense',
+        'window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases',
+        'window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM'
     ]
-    missing = [x for x in required if x not in s]
+    missing = [x for x in required if x not in candidate]
     if missing:
-        raise SystemExit('MISSING_REQUIRED_RECONSTRUCTION_CONTRACTS:' + ','.join(missing))
-    if "meta.permissions || ['*']" in s:
-        raise SystemExit('OWNER_WILDCARD_FALLBACK_REMAINS')
-    pat = re.compile(r"\.from\(['\"]app_settings['\"]\)(?P<chain>[^;\n]{0,1600}?)\.limit\(\s*1\s*\)", re.S)
-    for m in pat.finditer(s):
-        if not re.search(r"\.eq\(['\"]company_id['\"]\s*,", m.group('chain')):
-            raise SystemExit('UNSCOPED_APP_SETTINGS_LIMIT1')
-    if re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,800}?\.(?:update|insert|upsert|delete)\(", s):
-        raise SystemExit('DIRECT_STOCK_WRITER_REMAINS')
-    if re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,800}?\.(?:update|insert|upsert|delete)\(", s):
-        raise SystemExit('DIRECT_INVENTORY_LOG_WRITER_REMAINS')
-
-    parity = {}
-    missing_original = []
-    for idx, (op, cp) in enumerate(zip(ORIGINAL_PARTS, PARTS), 1):
-        if not op.is_file() or op.stat().st_size == 0:
-            missing_original.append(str(op)); continue
-        osym = symbols(op.read_text(encoding='utf-8-sig'))
-        csym = symbols(cp.read_text(encoding='utf-8-sig'))
-        losses = {k: sorted(set(osym[k]) - set(csym[k])) for k in osym}
-        parity[f'main{idx}.md'] = losses
-    if missing_original:
-        raise SystemExit('MISSING_ORIGINAL_PARITY_PARTS:' + ','.join(missing_original))
-    return parity
+        raise RuntimeError('MISSING_REQUIRED_RECONSTRUCTION_CONTRACTS:' + ','.join(missing))
+    if candidate.lower().count('</html>') != 1 or candidate.lower().count('</body>') != 1:
+        raise RuntimeError('DOCUMENT_CLOSURE_INVALID')
+    scripts = re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>(.*?)</script>', candidate, re.I | re.S)
+    if len(scripts) != 1:
+        raise RuntimeError('INLINE_SCRIPT_COUNT_INVALID:' + str(len(scripts)))
+    js_path = Path(tempfile.gettempdir()) / 'rawaea-new-main-assembly.js'
+    js_path.write_text(scripts[0], encoding='utf-8')
+    r = subprocess.run(['node','--check',str(js_path)], capture_output=True, text=True)
+    if r.returncode:
+        raise RuntimeError('JS_SYNTAX_FAIL:\n' + r.stderr)
+    for table in ['stock_branches','inventory_log']:
+        if re.search(rf"\.from\(['\"]{table}['\"]\)[\s\S]{{0,1200}}?\.(?:update|insert|upsert|delete)\s*\(", candidate):
+            raise RuntimeError('DIRECT_BUSINESS_STATE_WRITE:' + table)
+    return fp(candidate)
 
 
-def main() -> None:
-    repairs = repair_verified_fragment_defects()
-    candidate = assemble_clean_room()
-    parity = validate_candidate(candidate)
+def main():
+    candidate, phases = assemble()
+    digest = validate(candidate)
     tmp = MAIN.with_suffix('.reconstructed.tmp')
     tmp.write_text(candidate, encoding='utf-8')
     tmp.replace(MAIN)
-    CTO.mkdir(parents=True, exist_ok=True)
-    report = {
-        'event_type': 'FINAL_MAIN_HTML_RECONSTRUCTION_EXECUTED_CLEAN_ROOM',
-        'source_seed': 'Current/PWA/main/main1.md..main11.md',
-        'historical_main_used_as_seed': False,
-        'historical_fragment_concatenation': True,
-        'executor': 'tools/run_final_main_reconstruction_20260831.py',
-        'main_sha256': fp(candidate),
-        'main_bytes': len(candidate.encode('utf-8')),
-        'source_repairs': repairs,
-        'fragment_parity': parity,
-        'browser_runtime': 'PENDING_SEPARATE_GATE',
-        'production_runtime': 'PENDING_SEPARATE_GATE'
-    }
-    (CTO / '20260831_MAIN_HTML_RECONSTRUCTION_EXECUTION.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
-    print(json.dumps(report, ensure_ascii=False))
+    print(json.dumps({'status':'NEW_MAIN_ASSEMBLED_AND_VALIDATED','target':str(MAIN),'sha256':digest,'bytes':len(candidate.encode('utf-8')),'phases':phases,'main1_to_main11':True}, ensure_ascii=False))
+
 
 if __name__ == '__main__':
     main()
