@@ -147,36 +147,93 @@
 - Historical mutating workflows were not used because they violate the project’s independent-verification/anti-reconstruction rules.
 - This is a **tooling/safe-write-path blocker**, not evidence that the proposed navigation correction is wrong.
 
+## P128 — FORENSIC MEMORY RECOVERY + SURGICAL PATCH DECISION — 2026-09-01
+### P128-01 — MASTER_AND_MEMORY_RECOVERY
+- `MASTER - RAWAEA ERP.md` was read completely before any new product mutation.
+- `CURRENT_STATE.md` was read before any new product mutation.
+- `doc/Draft/Hany` was reviewed through `تقرير تنفيذي 9`.
+- Prompt 124 direct source path was retried through GitHub path/history/tree and remained unavailable as a tracked blob. No content was fabricated.
+
+### P128-02 — HISTORICAL_RECONCILIATION
+- `تقرير تنفيذي 9` was confirmed as the latest Hany report before this round.
+- Git history proves that some historical target repairs did persist; in particular `a5b7aa69f173da5002105023676b1eada0a87c42` directly modified `Current/PWA/New-main` and produced target blob `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`, which remains current.
+- Historical statements that all repairs failed to reach the final target are therefore not accepted as operational truth.
+- No historical Hany report was deleted or overwritten.
+
+### P128-03 — TARGET_FORENSIC_RECONCILIATION
+- Exact target remains `Current/PWA/New-main` with current blob `d657d6e4bdd90a9b60f658a8bf28560e1b10f755` before this P128 state-only update.
+- Direct target evidence confirms `RW_Reports`, `RW_Reports_Comprehensive`, `renderDashboard`, and `renderDetailedReports` are present.
+- Direct target evidence also confirms `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` later replaces the effective navigation route table.
+- The final table contains `reports` but not `reports-dashboard`, `reports-detailed`, `reports-comprehensive`.
+- The same closure redefines `nav.navigate`, which resolves only through the final table and raises `ROUTE_HANDLER_MISSING:<view>` when a specialized key is absent.
+
+### P128-04 — SURGICAL_PATCH_SPEC_CONFIRMED
+- The exact target/current handlers were confirmed directly; no method-name guess is involved:
+  - `'reports-dashboard':[window.RW_Reports,'renderDashboard']`
+  - `'reports-detailed':[window.RW_Reports,'renderDetailedReports']`
+  - `'reports-comprehensive':[window.RW_Reports_Comprehensive,'render']`
+- The correction is limited to the final effective routes map and must preserve the generic `reports` route and all existing MAIN122/MAIN1 closures.
+- No MAIN1–MAIN11 reconstruction is authorized.
+- No Supabase mutation is required for this specific UI/navigation correction.
+
+### P128-05 — HISTORICAL_EXECUTOR_REJECTED
+- `.github/workflows/forensic-pwa-closure.yml` was inspected directly.
+- It is explicitly a temporary/target-mutating executor and contains a `RAWAEA GOLD DIAMOND NAVIGATION PARITY v2` patch with the same three specialized report routes.
+- It was **not executed** because it combines mutation with verification and violates the current anti-reconstruction/independent-evidence rules.
+
+### P128-06 — WRITE_PATH_FORENSICS
+- Available GitHub write API for an existing UTF-8 file is full-content replacement (`update_file`), not a partial patch.
+- Low-level blob/tree/commit APIs do not apply a textual patch without supplying the complete new blob.
+- Container access to GitHub is network/DNS blocked; no local exact-blob materialization was possible.
+- Therefore `SAFE_PARTIAL_PATCH_PATH = UNAVAILABLE`.
+- `Current/PWA/New-main` was not mutated in P128.
+
+### P128-07 — SUPABASE_DIRECT_RECHECK
+- Production project `fiilmooggumokxanwiyx` was inspected directly with read-only SQL.
+- Confirmed SECURITY DEFINER functions:
+  - `app_private.current_user_company_id()`
+  - `app_private.current_user_has_permission(text)`
+  - `post_stock_movement(...)` (including idempotency-key overload)
+  - `reserve_stock(...)`
+  - `release_stock_reservation(...)`
+  - `post_journal_entry(...)`
+- No Production mutation was performed.
+
+### P128-08 — HANY_EXECUTIVE_REPORT_10
+- Created `doc/Draft/Hany/تقرير تنفيذي 10` in commit `f75849105e2596b035dd9116c82098fa667743a5`.
+- Report 10 contains the full P128 memory recovery, direct Git/target investigation, historical errors/antipatterns, exact surgical patch specification, Supabase recheck, and the reasons the patch was not applied.
+- Report 10 preserves the distinction between a logic defect that is proven and a tooling blocker that prevents safe mutation.
+
 ## CURRENT_STATUS
 - Memory recovery: `PASS`
-- Latest Hany report: `تقرير تنفيذي 9`
-- Prompt 124 content: `EVIDENCE LIMITATION — requested path absent as tracked Git blob`
+- MASTER recovery: `PASS`
+- Latest Hany report: `تقرير تنفيذي 10`
+- Prompt 124 source text: `EVIDENCE LIMITATION — requested tracked Git blob unavailable`
 - Current Git reconciliation: `PASS`
-- 22-source inventory: `PASS`
-- Target broad capability presence: `PASS / PRESENT`
-- Broad public-contract loss: `NOT PROVEN`
+- Target identity: `PASS`
+- Reports implementation presence: `PASS / PRESENT`
 - Effective navigation: `FAIL — deterministic static orchestration divergence`
-- MAIN2 ownership ambiguity: `OPEN / UNKNOWN`
-- Auth/boot runtime: `UNVERIFIED`
+- Surgical repair specification: `CONFIRMED`
+- Surgical product patch: `BLOCKED_BY_SAFE_WRITE_PATH`
 - Exact target browser/runtime: `UNVERIFIED / ENVIRONMENTALLY BLOCKED`
 - Production DB capability/security baseline: `PASS` on direct read-only verification
-- Production mutation in P127: `NONE`
-- Product mutation in P127: `NONE`
-- Surgical product patch: `BLOCKED_BY_SAFE_WRITE_PATH`
+- Production mutation in P128: `NONE`
+- Product mutation in P128: `NONE`
+- Historical reports deleted/overwritten in P128: `NONE`
 - GOLD: `NO`
 - DIAMOND: `NO`
 - COMPLETE: `NO`
 - Closed 100%: **NOT DECLARED**
 
 ## NEXT AUTHORIZED ACTIONS
-1. Obtain a safe patch-capable write path for the exact `Current/PWA/New-main` blob, or use a locally materialized exact blob with deterministic patching while preserving the entire file.
-2. Apply only the minimum navigation correction; do not reconstruct or replace unrelated sections.
-3. Re-hash target and perform syntax/structure/route-map verification immediately.
-4. Re-check Supabase/RLS/Edge compatibility after the behavior change.
-5. Establish an independent browser/runtime verifier that cannot mutate the target, then test the specialized reports routes and other required routes.
-6. Resolve MAIN2 compatibility-vs-authoritative ownership using consumer evidence before any deletion/retirement.
+1. Obtain a safe patch-capable write path for the exact `Current/PWA/New-main` blob, or a local materialization of the exact blob that can be deterministically patched while preserving the complete file.
+2. Apply only the three confirmed report-route entries to the final effective routes table; do not reconstruct unrelated code.
+3. Immediately re-hash the target and verify JS syntax, route-key inventory, duplicate navigation override behavior, and protected-file integrity.
+4. Re-check Supabase/RLS/Edge compatibility after the target behavior change.
+5. Establish an independent verifier that cannot mutate the target and test the exact target SHA in a browser/runtime environment.
+6. Resolve MAIN2 compatibility-vs-authoritative ownership only with direct consumer/runtime evidence.
 7. Update `CURRENT_STATE.md` after every logical execution operation.
-8. Keep GOLD/DIAMOND/COMPLETE closure claims disabled until runtime/data/audit evidence exists.
+8. Keep GOLD/DIAMOND/COMPLETE disabled until independent runtime/data/audit evidence exists.
 
 ## HARD RULES
 - Product code changes are allowed only in `Current/PWA/New-main`.
