@@ -27,6 +27,13 @@ def patch_main7(raw):
     return fixed if count == 1 else raw
 
 
+def normalize_document_closures(raw):
+    # Source fragments may carry legacy body/html closures; the assembler owns the single canonical closure.
+    raw = re.sub(r'</body>\s*', '', raw, flags=re.I)
+    raw = re.sub(r'</html>\s*', '', raw, flags=re.I)
+    return raw
+
+
 def repair_runtime_contracts(raw):
     changes = {'supabase_key_replaced': False, 'service_worker_registration_replaced': False, 'service_worker_registration_inserted': False}
 
@@ -70,8 +77,6 @@ def validate_fragment(idx, raw):
             raise RuntimeError('MAIN1_HTML_ROOT_MISSING')
         if not re.search(r'<script\b', raw, re.I):
             raise RuntimeError('MAIN1_SCRIPT_MISSING')
-        if re.search(r'</body>|</html>', raw, re.I):
-            raise RuntimeError('MAIN1_DOCUMENT_ALREADY_CLOSED')
     else:
         if re.search(r'^\s*<!doctype\b', raw, re.I | re.M):
             raise RuntimeError(f'MAIN{idx}_DOCTYPE_FORBIDDEN')
@@ -92,6 +97,7 @@ def assemble():
             raw = normalize_main1(raw)
         elif idx == 7:
             raw = patch_main7(raw)
+        raw = normalize_document_closures(raw)
         validate_fragment(idx, raw)
         chunks.append(raw.rstrip())
 
