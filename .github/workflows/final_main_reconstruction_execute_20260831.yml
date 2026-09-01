@@ -53,11 +53,11 @@ jobs:
                   if stage>=mn:req.append(n)
               if stage>=1:req += ['window.RW_ParentRegistry','RW_Permissions_check']
               miss=[x for x in req if x not in s]
-              if miss: raise RuntimeError(f'MAIN{stage}_CONTRACT_MISSING:'+','.join(miss))
-              if s.lower().count('</body>')!=1 or s.lower().count('</html>')!=1: raise RuntimeError(f'MAIN{stage}_CLOSURE_INVALID')
+              if miss:raise RuntimeError(f'MAIN{stage}_CONTRACT_MISSING:'+','.join(miss))
+              if not re.search(r'</body>\s*</html>\s*$',s,re.I): raise RuntimeError(f'MAIN{stage}_OUTER_HTML_CLOSURE_INVALID')
               m=inline(s);f=Path(tempfile.gettempdir())/f'rw-main{stage}.js';f.write_text(m.group('b'),encoding='utf-8')
               r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-              if r.returncode: print(r.stderr); raise RuntimeError(f'MAIN{stage}_JS_SYNTAX_FAIL')
+              if r.returncode:print(r.stderr);raise RuntimeError(f'MAIN{stage}_JS_SYNTAX_FAIL')
 
           def persist(stage,msg=None):
               subprocess.run(['git','add','Current/PWA/New-main'],check=True)
@@ -72,36 +72,29 @@ jobs:
             "'../vouchers.html'":"'./vouchers.html'","'../picker.html'":"'./picker.html'","'../loader.html'":"'./loader.html'",
             "'../driver.html'":"'./driver.html'","'../Returns.html'":"'./Returns.html'","'../unloader.html'":"'./unloader.html'"
           }
-          for a,b in pairs.items(): s=s.replace(a,b)
-
+          for a,b in pairs.items():s=s.replace(a,b)
           old="function RW_Permissions_check(permissionKey){if(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.isOwner===true)return true;return RW_STATE.permissions.indexOf('*')>=0||RW_STATE.permissions.indexOf(permissionKey)>=0}"
           new="function RW_Permissions_check(permissionKey){if(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.isOwner===true)return true;var p=String(permissionKey||'').trim(),base=p.replace(/:.*$/,'');var aliases={dashboard:'dash',inventory:'warehouse',returns:'return',users:'users',roles:'roles','purchase-pos':'purchases'};var candidates=[p,base,aliases[p],aliases[base],base+':view'];for(var i=0;i<candidates.length;i++){var c=candidates[i];if(c&&(RW_STATE.permissions.indexOf('*')>=0||RW_STATE.permissions.indexOf(c)>=0))return true;}return false}"
-          if old in s: s=s.replace(old,new,1)
-
+          if old in s:s=s.replace(old,new,1)
           anchor='window.RW_MAIN1_CONTRACT={source:'
           if 'window.RW_ParentRegistry' not in s and anchor in s:
               ins="window.RW_ParentRegistry={version:'1.0',tenantAuthority:'RW_ShellContext.getCompanyId()',ownerAuthority:'owner_profile',permissionAuthority:'RW_Permissions_check',apps:{pos:'./pos.html',telesales:'./telesales.html',buyer:'./buyer.html',vouchers:'./vouchers.html',picker:'./picker.html',loader:'./loader.html',driver:'./driver.html',returns:'./Returns.html',unloader:'./unloader.html'},launch:function(key){var p=this.apps[key];if(!p)throw new Error('UNKNOWN_PARENT_APP:'+key);location.href=p;}};\n"
-              idx=s.find(anchor); s=s[:idx]+ins+s[idx:]
-
+              idx=s.find(anchor);s=s[:idx]+ins+s[idx:]
           if 'cdn.jsdelivr.net/npm/chart.js' not in s:
-              s=s.replace('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.107.0/dist/umd/supabase.min.js"></script>', '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.107.0/dist/umd/supabase.min.js"></script>',1)
-
+              s=s.replace('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.107.0/dist/umd/supabase.min.js"></script>','<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.107.0/dist/umd/supabase.min.js"></script>',1)
           target.write_text(s,encoding='utf-8')
           validate(1)
           persist(1,'[new-main-target-persist] MAIN1 Parent contract closed')
 
-          # Resume-safe: MAIN2-MAIN4 already exist in the published target; continue from MAIN5.
           for stage in range(5,12):
               s=target.read_text(encoding='utf-8');m=inline(s);body=m.group('b');marker=f'/* RAWAEA MAIN{stage} AUTHORITATIVE MODULE */'
               if marker not in body:
                   frag=(src/f'main{stage}.md').read_text(encoding='utf-8-sig').rstrip()
-                  if re.match(r'^\s*(?:<!doctype\\b|<html\\b|<head\\b|<body\\b)',frag,re.I): raise RuntimeError(f'MAIN{stage}_SOURCE_WRAPPER')
-                  # JS modules may legitimately contain HTML strings. Escape only a literal script end tag so it stays inside the outer runtime.
-                  frag=re.sub(r'</script>', '<\\/script>', frag, flags=re.I)
+                  if re.match(r'^\s*(?:<!doctype\\b|<html\\b|<head\\b|<body\\b)',frag,re.I):raise RuntimeError(f'MAIN{stage}_SOURCE_WRAPPER')
+                  frag=re.sub(r'</script>','<\\/script>',frag,flags=re.I)
                   target.write_text(s[:m.start('b')]+body+'\n'+marker+'\n'+frag+s[m.end('b'):],encoding='utf-8')
               validate(stage)
               persist(stage)
-
           print('NEW_MAIN_PARENT_AND_MAIN5_TO_MAIN11_COMPLETE')
           PY
 
