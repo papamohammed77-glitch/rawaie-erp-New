@@ -1,0 +1,27 @@
+تم تنفيذ الجولة فعليًا، وليس مجرد إعادة تقييم للتقارير.
+
+ما تم إنجازه فعليًا
+تمت قراءة MASTER - RAWAEA ERP.md حتى النهاية.
+تمت قراءة Prompt 124 + الملحق حتى آخر أمر تنفيذي.
+تمت إعادة مطابقة CURRENT_STATE.md مع Git الفعلي.
+تمت مراجعة Current/PWA/New-main وCurrent/PWA/main/main1.md وOriginal/PWA/main/main1.md.
+تمت مراجعة Production Supabase مباشرة.
+تم تأكيد وجود post_stock_movement وreserve_stock وpost_journal_entry كـSECURITY DEFINER.
+تم اكتشاف ومعالجة مسار حقيقي كان يسمح لـsave-item بتجاوز محرك المخزون عبر الرصيد الافتتاحي.
+Production save-item الحالي v12 / JWT protected ويستخدم create_item_with_opening_stock بدل الكتابة المباشرة على stock_branches.
+تم التحقق من وظائف save-customer وlog-action وربطها بسياق Auth/tenant.
+تم فحص بنية RLS والـEdge Functions.
+تمت مراجعة الحل معماريًا مقابل أنماط SAP / Odoo / Business Central، وكانت قاعدة centralized posting + auditable movement + tenant security متسقة معها.
+تم تحديث CURRENT_STATE.md بنجاح في آخر خطوة، والـcommit الناتج هو:
+7cbf0fde0802670cafe5debdc681a4149d84c93a
+والـblob الجديد للملف:
+1ce68a45dc6e78b69b12fff4fc6bef1fa37fc8db
+النتيجة الدقيقة
+
+لم أضع CLOSED 100% / GOLD / DIAMOND / COMPLETE عمدًا.
+
+السبب ليس وجود نقص برمجي واضح جديد في MAIN1؛ بل لأن شرط Prompt 124 النهائي يتطلب Browser E2E موثّق على الـartifact نفسه، بهوية Owner وNon-Owner، مع التحقق من runtime وtenant isolation وService Worker والـconsole/network.
+
+هذا الدليل غير متاح في بيئة التنفيذ الحالية، ولم أجد في GitHub دليلاً صالحًا مربوطًا بالبصمة الحالية d657d6e4bdd90a9b60f658a8bf28560e1b10f755. لذلك تزوير GOLD/DIAMOND كان سيخالف مباشرةً القاعدة التي وضعناها للمشروع. وحالة الملف الآن تسجل ذلك صراحةً.
+
+المشروع إذن ليس متوقفًا من الناحية الهندسية؛ المتبقي Gate إثبات Runtime حقيقي، وليس إعادة بناء أو ترقيع جديد
