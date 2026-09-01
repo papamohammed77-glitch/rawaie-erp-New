@@ -49,12 +49,12 @@ jobs:
           import re, subprocess, tempfile
           p=Path('Current/PWA/New-main')
           s=p.read_text(encoding='utf-8')
-          required=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn','window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM','btn-save-license-only',"{view:'license'",'license:RW_OwnerLicense.render']
+          required=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn','window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM','btn-save-license-only',"{view:'license'",'license:RW_OwnerLicense.render','_clickNotif','_renderAndSave','_updateBadge','markRead']
           missing=[x for x in required if x not in s]
           if missing: raise SystemExit('STRUCTURAL_CONTRACT_MISSING:'+','.join(missing))
           if "var owner=!!op.data" in s: raise SystemExit('OWNER_INFERENCE_FROM_PROFILE_REMAINS')
           if s.lower().count('</html>')!=1 or s.lower().count('</body>')!=1: raise SystemExit('DOCUMENT_CLOSURE_INVALID')
-          scripts=re.findall(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>(.*?)</script>',s,re.I|re.S)
+          scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>(.*?)</script>',s,re.I|re.S)
           if len(scripts)!=1: raise SystemExit('INLINE_SCRIPT_COUNT_INVALID:'+str(len(scripts)))
           js=Path(tempfile.gettempdir())/'new-main.js'; js.write_text(scripts[0],encoding='utf-8')
           r=subprocess.run(['node','--check',str(js)],capture_output=True,text=True)
@@ -82,7 +82,7 @@ jobs:
             const pageErrors=[]; const consoleErrors=[]; const bad=[];
             page.on('pageerror',e=>pageErrors.push(e.message));
             page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
-            page.on('response',r=>{if(r.status()>=400 && !/favicon\\.ico$/i.test(r.url())) bad.push({status:r.status(),url:r.url()})});
+            page.on('response',r=>{if(r.status()>=400 && !/favicon\.ico$/i.test(r.url())) bad.push({status:r.status(),url:r.url()})});
             await page.goto('http://127.0.0.1:8124/New-main.html',{waitUntil:'domcontentloaded',timeout:30000});
             await page.waitForTimeout(3000);
             const r=await page.evaluate(()=>({
@@ -98,7 +98,7 @@ jobs:
               requiredViews:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_HR','RW_CRM'].every(k=>!!window[k])
             }));
             console.log(JSON.stringify({result:r,pageErrors,consoleErrors,bad}));
-            if(r.lang!=='ar'||!r.body||!r.login||!r.app||!r.shell||!r.views||!r.owner||!r.licenseRoute||r.pageErrors||pageErrors.length||consoleErrors.length||bad.length) process.exit(2);
+            if(r.lang!=='ar'||!r.body||!r.login||!r.app||!r.shell||!r.views||!r.owner||!r.licenseRoute||!r.requiredViews||pageErrors.length||consoleErrors.length||bad.length) process.exit(2);
             await browser.close();
           })().catch(e=>{console.error(e);process.exit(2)});
           NODE
@@ -121,9 +121,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test -s Current/CTO/20260901_NEW_MAIN_SURGICAL_RECONSTRUCTION.json
           git config user.name 'rawaea-master-reconstruction-bot'
           git config user.email 'rawaea-master-reconstruction-bot@users.noreply.github.com'
-          git add Current/PWA/New-main Current/CTO/20260831_NEW_MAIN_CLEAN_ROOM_EXECUTION.json
+          git add Current/PWA/New-main Current/CTO/20260901_NEW_MAIN_SURGICAL_RECONSTRUCTION.json
           git diff --cached --quiet && { echo 'NO_NEW_MAIN_ARTIFACT_DELTA'; exit 1; }
           git commit -m '[new-main-clean-room-persist] persist single Golden New-main artifact'
           git push origin HEAD:main
