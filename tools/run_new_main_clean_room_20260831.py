@@ -6,6 +6,7 @@ import tempfile
 
 # P124 surgical continuation: trigger the existing clean-room persistence pipeline;
 # no reconstruction, no overlay, no new artifact class, Browser E2E remains paused.
+# P124: trigger the repaired existing writer so the CURRENT New-main artifact is persisted.
 TARGET = Path('Current/PWA/New-main')
 LEGACY = Path('Current/PWA/main.html')
 CURRENT_MAIN1 = Path('Current/PWA/main/main1.md')
@@ -25,10 +26,6 @@ def sha_file(path: Path) -> str:
 
 
 def inline_script_span(html: str):
-    """Return the one actual inline script span, using the last </script> as document closure.
-    New-main contains generated HTML strings inside JS, so the first textual </script> is not
-    necessarily the real script terminator. The artifact contract guarantees one inline script.
-    """
     candidates = list(re.finditer(r'<script(?P<a>[^>]*)>', html, re.I))
     inline = [m for m in candidates if not re.search(r'\bsrc\s*=\s*', m.group('a') or '', re.I)]
     if len(inline) != 1:
