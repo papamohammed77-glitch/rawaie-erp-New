@@ -6,7 +6,7 @@ permissions:
   contents: write
 jobs:
   target:
-    if: github.event.head_commit.message == '[new-main-target-persist] temporary GOLD DIAMOND executor'
+    if: github.event_name == 'push' && (contains(github.event.head_commit.message, '[new-main-surgical-persist]') || contains(github.event.head_commit.message, 'P124 surgical'))
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -44,7 +44,6 @@ jobs:
           elif "items.push({item_id:_uploadFileData[u].item_id||null" not in s:
               raise SystemExit('UPLOAD_ID_PAYLOAD_GAP_UNRECOGNIZED')
 
-          # New-main must not be a direct physical-stock writer.
           direct_stock_writes = re.findall(r"supabase\\.from\\(['\"]stock_branches['\"]\\).*?(?:insert|update|upsert|delete)", s, re.I|re.S)
           if direct_stock_writes:
               raise SystemExit('NEW_MAIN_DIRECT_STOCK_WRITER_DETECTED')
