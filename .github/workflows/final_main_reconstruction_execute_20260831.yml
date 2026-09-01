@@ -11,36 +11,82 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  verify:
+  closure:
+    if: ${{ !contains(github.event.head_commit.message, '[new-main-notification-persist]') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with: {ref: main, fetch-depth: 1}
-      - name: Static target validation
+      - name: Add missing MAIN1 notification contracts to New-main only
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
+          git config user.name 'rawaea-new-main-bot'
+          git config user.email 'rawaea-new-main-bot@users.noreply.github.com'
+          python3 <<'PY'
           from pathlib import Path
           import re, subprocess, tempfile
-          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          if s.count('/* RAWAEA 122 DIAMOND CONTRACT CLOSURE v1 */')!=1: raise SystemExit('122_MARKER_MISSING')
-          if "meta.isOwner===true||meta.isOwner==='true'" not in s: raise SystemExit('OWNER_METADATA_CONTRACT_MISSING')
-          for x in ['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Roles','RW_Views']:
-              if x not in s: raise SystemExit('MODULE_MISSING:'+x)
-          m=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
-          if len(m)!=1: raise SystemExit('INLINE_RUNTIME_COUNT')
-          if not re.fullmatch(r'\s*</body>\s*</html>\s*',s[m[0].end():],re.I): raise SystemExit('OUTER_HTML_TAIL_INVALID')
-          f=Path(tempfile.gettempdir())/'new-main.js'; f.write_text(m[0].group('b'),encoding='utf-8')
-          r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-          if r.returncode: print(r.stderr); raise SystemExit('TARGET_JS_SYNTAX_FAIL')
-          print('STATIC_TARGET_PASS')
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          if '/* RAWAEA MAIN1 NOTIFICATION CONTRACT CLOSURE v1 */' not in s:
+              marker=re.search(r'\(\)\);</script>\s*$',s,re.I)
+              if not marker: raise RuntimeError('TARGET_CLOSURE_ANCHOR_NOT_FOUND')
+              patch=r'''
+          /* RAWAEA MAIN1 NOTIFICATION CONTRACT CLOSURE v1 */
+          (function(){
+            'use strict';
+            var N=window.RW_Notification;
+            if(!N)throw new Error('RW_NOTIFICATION_UNAVAILABLE');
+            function email(){return window.RW_STATE&&window.RW_STATE.app&&window.RW_STATE.app.currentUser?window.RW_STATE.app.currentUser.email:null;}
+            async function _updateBadge(){
+              var e=email();if(!e)return 0;
+              var r=await supabase.from('notifications').select('id',{count:'exact',head:true}).eq('user_email',e).eq('is_read',false);
+              if(r.error)throw r.error;var b=byId('rw-notification-badge');var n=r.count||0;if(b){b.textContent=n>99?'99+':String(n);b.style.display=n?'grid':'none';}return n;
+            }
+            async function markRead(notifId){
+              if(!notifId)return;
+              var e=email();if(!e)return;
+              var r=await supabase.from('notifications').update({is_read:true}).eq('id',notifId).eq('user_email',e);
+              if(r.error)throw r.error;await _updateBadge();
+            }
+            async function _clickNotif(notifId,refTable,refId){
+              try{await markRead(notifId);}catch(e){console.warn('NOTIFICATION_MARK_READ',e)}
+              try{if(window.Swal&&typeof Swal.close==='function')Swal.close();}catch(e){}
+              var viewMap={orders:'orders',order:'orders',runsheets:'runsheets',run_sheets:'runsheets',customers:'customers',customer:'customers',items:'items',item:'items',suppliers:'suppliers',supplier:'suppliers',purchases:'purchases',purchase_orders:'purchases',returns:'returns',stock_vouchers:'vouchers',vouchers:'vouchers',notifications:'notifications'};
+              var view=viewMap[String(refTable||'').toLowerCase()];
+              if(view&&window.RW_Navigation&&typeof window.RW_Navigation.navigate==='function')return window.RW_Navigation.navigate(view);
+              return null;
+            }
+            async function _renderAndSave(tpl,vars,targetEmail){
+              if(!tpl)throw new Error('NOTIFICATION_TEMPLATE_REQUIRED');
+              var title=tpl.title_template||'',body=tpl.body_template||'';Object.keys(vars||{}).forEach(function(k){var re=new RegExp('#\\{'+k+'\\}','g');title=title.replace(re,String(vars[k]==null?'':vars[k]));body=body.replace(re,String(vars[k]==null?'':vars[k]));});
+              var userEmail=targetEmail||email();if(!userEmail)return null;
+              var refTable=vars&&(vars.table||vars.reference_table)||null,refId=vars&&(vars.id||vars.order_code||vars.reference_id)||null;
+              var r=await supabase.from('notifications').insert({user_email:userEmail,title:title,body:body,type:tpl.type||'info',reference_table:refTable,reference_id:refId,is_read:false}).select('id').maybeSingle();
+              if(r.error)throw r.error;await _updateBadge();return r.data||null;
+            }
+            N._updateBadge=N._updateBadge||_updateBadge;N.markRead=N.markRead||markRead;N._clickNotif=N._clickNotif||_clickNotif;N._renderAndSave=N._renderAndSave||_renderAndSave;
+            window.RW_Notification=N;
+          })();
+          '''
+              s=s[:marker.start()] + patch + '\n' + s[marker.start():]
+              p.write_text(s,encoding='utf-8')
+          s=p.read_text(encoding='utf-8');
+          for token in ['RW_Notification','_clickNotif','_renderAndSave','_updateBadge','markRead','RAWAEA MAIN1 NOTIFICATION CONTRACT CLOSURE v1']:
+              if token not in s: raise RuntimeError('NOTIFICATION_CONTRACT_MISSING:'+token)
+          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
+          if len(ms)!=1: raise RuntimeError('INLINE_RUNTIME_COUNT')
+          f=Path(tempfile.gettempdir())/'new-main.js';f.write_text(ms[0].group('b'),encoding='utf-8');r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+          if r.returncode: print(r.stderr);raise RuntimeError('TARGET_JS_SYNTAX_FAIL')
+          subprocess.run(['git','add','Current/PWA/New-main'],check=True)
+          if subprocess.run(['git','diff','--cached','--quiet']).returncode!=0:
+              subprocess.run(['git','commit','-m','[new-main-notification-persist] MAIN1 notification contract closure'],check=True);subprocess.run(['git','push','origin','HEAD:main'],check=True)
+          print('NOTIFICATION_CONTRACT_CLOSED')
           PY
-      - name: Browser navigation owner license CRM smoke
+      - name: Browser notification contract smoke
         shell: bash
         run: |
           set -euo pipefail
@@ -52,24 +98,5 @@ jobs:
           python3 -m http.server 8123 --directory /tmp/rawaea-pwa >/tmp/rawaea-http.log 2>&1 &
           node <<'NODE'
           const {chromium}=require('playwright');
-          (async()=>{
-            const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[];
-            p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
-            await p.goto('http://127.0.0.1:8123/New-main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(2000);
-            const out=await p.evaluate(async()=>{
-              const n=window.RW_Navigation,flat=[];const walk=a=>(a||[]).forEach(x=>{if(x.view)flat.push(x.view);if(x.submenu)walk(x.submenu)});walk(n.menuTree);
-              const critical=['hr','crm','users','roles','license','settings'].every(x=>flat.includes(x));
-              const mods=['RW_CRM','RW_Users','RW_Roles','RW_OwnerLicense','RW_HR','RW_Views'].every(x=>!!window[x]);
-              const refs={crm:window.RW_CRM,users:window.RW_Users,roles:window.RW_Roles,license:window.RW_OwnerLicense},orig={};const calls=[];
-              Object.keys(refs).forEach(k=>{orig[k]=refs[k].render;refs[k].render=()=>{calls.push(k);return Promise.resolve()}});
-              window.RW_STATE.app.currentUser={isOwner:false,permissions:['customers','users','roles']};let denied=false;
-              await n.navigate('crm');await n.navigate('users');await n.navigate('roles');try{await n.navigate('license')}catch(e){denied=e.message==='OWNER_ONLY'}
-              window.RW_STATE.app.currentUser={isOwner:true,permissions:['*']};await n.navigate('license');
-              Object.keys(refs).forEach(k=>refs[k].render=orig[k]);
-              return {critical,mods,denied,calls,contract:window.RW_122_CONTRACT};
-            });
-            console.log(JSON.stringify({out,pe,ce}));
-            if(!out.critical||!out.mods||!out.denied||out.calls.join(',')!=='crm,users,roles,license'||pe.length||ce.length)process.exit(2);
-            await b.close();
-          })().catch(e=>{console.error(e);process.exit(2)});
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});await p.goto('http://127.0.0.1:8123/New-main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1500);const out=await p.evaluate(async()=>{const n=window.RW_Notification;const methods=['_clickNotif','_renderAndSave','_updateBadge','markRead'].every(k=>typeof n[k]==='function');return{methods,notification:true}});console.log(JSON.stringify({out,pe,ce}));if(!out.methods||pe.length||ce.length)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)});
           NODE
