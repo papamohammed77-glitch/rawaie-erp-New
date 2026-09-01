@@ -218,3 +218,65 @@
 - Full inline runtime passes Node syntax validation.
 - P136 browser closure remains pending until the Pages served artifact shows the P136 marker and owner login succeeds.
 - Historical reports remain preserved.
+
+## P137 — SERVICE WORKER FINALIZATION — 2026-09-01
+### P137-01 — MEMORY_AND_HISTORY_RECONCILIATION
+- `MASTER - RAWAEA ERP.md` was read completely through the final command.
+- `CURRENT_STATE.md` was read before the P137 mutation.
+- `doc/Draft/Reprots/تقرير1`, `تقرير2.md`, and `تقرير3.md` were opened directly; `تقرير3.md` is the latest report in that folder and records P136.
+- `doc/Draft/Hany/تقرير تنفيذي 15.md` was reviewed as the latest Hany forensic report.
+- Historical reports were preserved; none were overwritten or deleted.
+
+### P137-02 — DIRECT_SOURCE_RECONCILIATION
+- `Original/PWA/sw.js` was opened directly and preserved unchanged.
+- `Current/PWA/sw.js` was opened directly before change.
+- `Current/PWA/register-sw.js` was opened directly; it registers local `sw.js`.
+- `Current/PWA/app.html` was opened directly; it registers local `sw.js`.
+- `Current/PWA/manifest.json` was opened directly; `start_url=/companies/company-1/app.html` and `scope=/companies/company-1/`.
+- `Current/PWA/New-main` was opened directly; prior forensic evidence records its relative `../sw.js` registration context.
+
+### P137-03 — SURGICAL_CURRENT_SW_UPDATE
+- Updated only `Current/PWA/sw.js`.
+- New version: `2.2 FINAL`.
+- Added non-secret build marker: `RAWAEA_SW_P137_FINAL`.
+- Preserved Network Only for HTML/navigation, Supabase/API, and runtime JS/MJS/TS.
+- Preserved Cache First only for presentation/static assets.
+- Added cache version `rw-static-v3`.
+- Hardened cache trimming and cache failure handling.
+- Prevented opaque/non-200 responses from being cached.
+- No authentication logic, Supabase credentials, business-data caching, `New-main`, `main.html`, or Production Supabase was changed.
+
+### P137-04 — VERIFICATION
+- Direct re-fetch after mutation confirmed `Current/PWA/sw.js` contains the P137 final source.
+- Committed content SHA: `2befbcc9bda526055e066fd9ec3e932f67159c1b`.
+- Product source mutation commit: `d36e7783e3934628bb63e7f2c5f3e95e0e5301ac`.
+- JavaScript syntax check passed in the execution environment.
+
+### P137-05 — IMPORTANT_LIMITATION
+- P137 does NOT prove that production URL `/companies/sw.js` now serves this file.
+- A 404 at the Service Worker resource URL occurs before Service Worker code can execute; source content cannot by itself create a new deployment path.
+- The remaining issue is `DEPLOYMENT PLACEMENT / BASE-PATH / CLOUDFLARE ARTIFACT LINEAGE`, not a proven defect in the internal SW fetch logic.
+- Therefore `/companies/sw.js` remains OPEN until the exact deployed artifact/root and direct URL response are proven.
+
+### P137-06 — REPORTING
+- Created `doc/Draft/Reprots/تقرير4.md` recording the full P137 evidence, source-vs-runtime distinction, exact change, verification, historical mistakes to avoid, and next closure gate.
+- Report 4 was created in commit `cbc31b9da78f377dce834989d5bae38362186d7e`.
+
+## CURRENT SURVIVING STATE AFTER P137
+- `Current/PWA/sw.js`: UPDATED TO P137 FINAL / source verified.
+- `Original/PWA/sw.js`: PRESERVED / untouched.
+- `Current/PWA/New-main`: untouched by P137.
+- `Current/PWA/main.html`: protected / untouched.
+- Production Supabase: untouched.
+- `/companies/sw.js`: OPEN / direct production URL existence not yet proven.
+- Cloudflare Pages artifact lineage: OPEN.
+- Browser Auth/session closure: OPEN.
+- Gold/Diamond: UNPROVEN.
+- Closed 100%: NO.
+
+## NEXT AUTHORIZED GATE — P137 CONTINUATION
+1. Prove the actual Cloudflare Pages deployment root/output and deployed commit/artifact identity.
+2. Prove that the final artifact maps `Current/PWA/sw.js` to the runtime URL required by the `../sw.js` registration context, specifically `/companies/sw.js`.
+3. Fetch `/companies/sw.js` directly and verify HTTP 200 plus `RAWAEA_SW_P137_FINAL` in the served source.
+4. Register the Service Worker in a fresh browser session and verify scope/activation.
+5. Then continue P136 browser Auth/session verification and only afterward evaluate Gold/Diamond.
