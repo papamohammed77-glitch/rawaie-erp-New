@@ -5,7 +5,33 @@ ROOT=Path('.');CUR=ROOT/'Current/PWA/main';TARGET=ROOT/'Current/PWA/New-main';LE
 PARTS=[CUR/f'main{i}.md' for i in range(1,12)];EVIDENCE=CTO/'20260901_NEW_MAIN_SURGICAL_RECONSTRUCTION.json'
 FORBIDDEN=['stock_branches','inventory_log','stock_voucher_details','journal_entries','journal_entry_lines','cash_box','customer_ledger','supplier_ledger','driver_ledger']
 PROTECTED_IDS={'rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn','rw-login-form','rw-username','rw-password','rw-notification-btn','rw-notification-badge'}
-
+IGNORE_VARS={'supabase','RW_SUPABASE_URL','RW_SUPABASE_ANON_KEY','RW_STATE'}
+SAFE_RW_TABLE="""var RW_Table=(function(){
+var state={};
+function paginate(tableBodyId,data,page,perPage,renderRowFn){
+ if(!data||!data.length){safeHTML(byId(tableBodyId),'<tr><td colspan=\"10\" style=\"text-align:center;padding:30px;color:#94a3b8\">لا توجد بيانات</td></tr>');return;}
+ page=Math.max(1,Math.min(page||1,Math.ceil(data.length/(perPage||50))));
+ var pp=perPage||50,start=(page-1)*pp,end=Math.min(start+pp,data.length),html='';
+ for(var i=start;i<end;i++)html+=renderRowFn(data[i],i);
+ safeHTML(byId(tableBodyId),html);
+ state[tableBodyId]={data:data,page:page,perPage:pp,totalPages:Math.ceil(data.length/pp),renderRowFn:renderRowFn};
+ renderControls(tableBodyId);
+}
+function renderControls(id){
+ var st=state[id],pc=byId(id+'-controls');
+ if(!st||!pc||st.totalPages<=1){if(pc)safeHTML(pc,'');return;}
+ var h='<div style=\"display:flex;justify-content:center;gap:6px;align-items:center;margin-top:10px;font-size:11px;color:#64748b\">';
+ if(st.page>1)h+='<button class=\"rw-btn rw-btn-ghost\" data-rw-page=\"'+(st.page-1)+'\">السابق</button>';
+ h+='<span>صفحة '+st.page+' من '+st.totalPages+'</span>';
+ if(st.page<st.totalPages)h+='<button class=\"rw-btn rw-btn-ghost\" data-rw-page=\"'+(st.page+1)+'\">التالي</button>';
+ h+='</div>';safeHTML(pc,h);
+ pc.querySelectorAll('[data-rw-page]').forEach(function(btn){btn.onclick=function(){goPage(id,Number(btn.getAttribute('data-rw-page')));};});
+}
+function goPage(id,page){var st=state[id];if(st)paginate(id,st.data,page,st.perPage,st.renderRowFn);}
+return{paginate:paginate,renderControls:renderControls,goPage:goPage};
+})();
+window.RW_Table=RW_Table;
+"""
 def H(x):return hashlib.sha256(x.encode('utf-8')).hexdigest()
 def im(h):
  xs=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',h,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
@@ -42,7 +68,6 @@ def bend(s,p):
   i+=1
  raise RuntimeError('UNTERMINATED_JS_BLOCK')
 def expr_end(s,start):
- # start points at the first token of the assigned expression.
  stack=[];q=None;e=False;lc=False;bc=False;i=start
  while i<len(s):
   c=s[i];n=s[i+1] if i+1<len(s) else ''
@@ -60,19 +85,14 @@ def expr_end(s,start):
    elif c in "'\"`":q=c
    elif c in '([{':stack.append(c)
    elif c in ')]}':
-    if not stack: raise RuntimeError('EXPR_UNDERFLOW')
+    if not stack:raise RuntimeError('EXPR_UNDERFLOW')
     stack.pop()
-    # IIFE/function expressions often end after a balanced call, followed by ; or newline/window export.
     if not stack:
      j=i+1
-     while j<len(s) and s[j].isspace(): j+=1
-     if j<len(s) and s[j]==';': return j+1
-     if s.startswith('window.',j) or (j<len(s) and s[j]=='\n'): return i+1
+     while j<len(s) and s[j].isspace():j+=1
+     if j<len(s) and s[j]==';':return j+1
   i+=1
- # Primitive assignment with no delimiters: consume to semicolon/newline.
- j=s.find(';',start)
- if j!=-1:return j+1
- return len(s)
+ j=s.find(';',start);return j+1 if j!=-1 else len(s)
 def fn(s,n):
  m=re.search(r'(?<![\w$])(?:async\s+)?function\s+'+re.escape(n)+r'\s*\([^)]*\)\s*\{',s)
  return None if not m else s[m.start():bend(s,s.find('{',m.start(),m.end()))]
@@ -89,37 +109,26 @@ def replace_block(s,k,n,b):
 def decls(s):
  fs=sorted(set(re.findall(r'(?<![\w$])(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(',s)))
  vs=sorted(set(re.findall(r'(?m)^[ \t]*(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=',s)))
- allow={'applyAuthoritativeContext','currentCompanyId','syncState','setHeader','delegated','moduleCards','renderList','renderDashboard','renderCustomers','renderItems','renderInventory','renderFinance','renderReports','main1Delegation','globalSearch'};out=[]
+ out=[]
  for n in fs:
-  if n.startswith('RW_') or n in allow:
-   b=fn(s,n)
-   if b:out.append(('fn',n,b))
+  b=fn(s,n)
+  if b:out.append(('fn',n,b))
  for n in vs:
-  if n.startswith('RW_') or n=='actions':
+  if n not in IGNORE_VARS:
    b=var(s,n)
    if b:out.append(('var',n,b))
  return out
-def patch_main7(s):
- return re.sub(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}",r'\1));}',s,count=1)
 def merge_source(target,source):
  ops=[];srcjs=source_js(source)
  for k,n,b in decls(srcjs):
   target,changed,exists=replace_block(target,k,n,b)
   if changed:ops.append(('replace' if exists else 'insert')+':'+k+':'+n)
  return target,ops
-def validate(h,baseline=None,final=False):
- req=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn','window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM']
- if final:req+=['btn-save-license-only',"{view:'license'",'license:RW_OwnerLicense.render','_clickNotif','_renderAndSave','_updateBadge','markRead']
- miss=[x for x in req if x not in h]
- if miss:raise RuntimeError('CONTRACT_MISSING:'+','.join(miss))
- if h.count('<!doctype')!=1 or h.lower().count('</body>')!=1 or h.lower().count('</html>')!=1:raise RuntimeError('DOCUMENT_CLOSURE_INVALID')
- p=Path('/tmp/new-main-surgical.js');p.write_text(js(h),encoding='utf-8');r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
- if r.returncode:print(r.stderr);raise RuntimeError('JS_SYNTAX_FAIL')
- for t in FORBIDDEN:
-  if re.search(r"\.from\(['\"]"+re.escape(t)+r"['\"]\)[\s\S]{0,1000}?\.(?:update|insert|upsert|delete)\s*\(",h):raise RuntimeError('DIRECT_BUSINESS_STATE_WRITE:'+t)
- if baseline:
-  for x in PROTECTED_IDS:
-   if x in baseline and x not in h:raise RuntimeError('PROTECTED_ID_REMOVED:'+x)
+def repair_baseline(h,main1_source):
+ old=var(js(h),'RW_Table')
+ if not old:return h
+ b0,b1=im(h).start('b'),im(h).end('b');body=js(h).replace(old,SAFE_RW_TABLE,1)
+ return h[:b0]+body+h[b1:]
 def license_patch(h):
  s=source_js((CUR/'main10.md').read_text(encoding='utf-8-sig'));b=var(s,'RW_OwnerLicense')
  if b and 'btn-save-license-only' not in h:
@@ -135,31 +144,37 @@ def license_patch(h):
   if n not in h:raise RuntimeError('LICENSE_ACTION_ANCHOR_MISSING')
   h=h.replace(n,n+'license:RW_OwnerLicense.render,',1)
  return h
+def validate(h,baseline=None,final=False):
+ req=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn','window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM']
+ if final:req+=['btn-save-license-only',"{view:'license'",'license:RW_OwnerLicense.render','_clickNotif','_renderAndSave','_updateBadge','markRead']
+ miss=[x for x in req if x not in h]
+ if miss:raise RuntimeError('CONTRACT_MISSING:'+','.join(miss))
+ if h.count('<!doctype')!=1 or h.lower().count('</body>')!=1 or h.lower().count('</html>')!=1:raise RuntimeError('DOCUMENT_CLOSURE_INVALID')
+ p=Path('/tmp/new-main-surgical.js');p.write_text(js(h),encoding='utf-8');r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
+ if r.returncode:print(r.stderr);raise RuntimeError('JS_SYNTAX_FAIL')
+ for t in FORBIDDEN:
+  if re.search(r"\.from\(['\"]"+re.escape(t)+r"['\"]\)[\s\S]{0,1000}?\.(?:update|insert|upsert|delete)\s*\(",h):raise RuntimeError('DIRECT_BUSINESS_STATE_WRITE:'+t)
+ if baseline:
+  for x in PROTECTED_IDS:
+   if x in baseline and x not in h:raise RuntimeError('PROTECTED_ID_REMOVED:'+x)
 def main():
  if any(not p.is_file() or not p.stat().st_size for p in PARTS):raise RuntimeError('MISSING_MAIN_PART')
  if not TARGET.is_file() or not TARGET.stat().st_size:raise RuntimeError('NEW_MAIN_MISSING')
  if not LEGACY.is_file() or not LEGACY.stat().st_size:raise RuntimeError('LEGACY_MAIN_MISSING')
- baseline=TARGET.read_text(encoding='utf-8');legacy=H(LEGACY.read_text(encoding='utf-8'));chunks=[p.read_text(encoding='utf-8-sig') for p in PARTS];current=baseline
- # Baseline syntax repair comes from the authoritative MAIN1 RW_Table block only; it is never written separately.
- tblock=var(source_js(chunks[0]),'RW_Table')
- if tblock and var(js(current),'RW_Table'):
-  b0,b1=im(current).start('b'),im(current).end('b');old=var(js(current),'RW_Table');newjs=js(current).replace(old,tblock,1);current=current[:b0]+newjs+current[b1:]
- validate(current,baseline)
+ baseline=TARGET.read_text(encoding='utf-8');legacy=H(LEGACY.read_text(encoding='utf-8'));chunks=[p.read_text(encoding='utf-8-sig') for p in PARTS];current=repair_baseline(baseline,chunks[0]);validate(current,baseline)
  phases=[]
- for idx in range(1,12):
-  before=H(js(current));src=chunks[idx-1]
+ for idx,pth in enumerate(PARTS,1):
+  before=H(js(current));src=pth.read_text(encoding='utf-8-sig')
   if idx==7:src=patch_main7(src)
   current,ops=merge_source(current,src)
   if idx==1:
    current,n=re.subn(r"var owner=!!op\.data\|\|meta\.isOwner===true\|\|meta\.isOwner==='true';","var owner=meta.isOwner===true||meta.isOwner==='true';",current,count=1)
    if n:ops.append('owner:auth-metadata-only')
-  if idx==10:
-   before_license=H(current);current=license_patch(current)
-   if H(current)!=before_license:ops.append('license:main10-owner-module')
+  if idx==10:current=license_patch(current);ops.append('license:main10-owner-module')
   validate(current,baseline)
   after=H(js(current))
   if before==after:raise RuntimeError(f'NO_SURGICAL_DELTA_MAIN{idx}')
-  phases.append({'phase':idx,'source':str(PARTS[idx-1]),'before_script_sha256':before,'after_script_sha256':after,'artifact_sha256':H(current),'artifact_bytes':len(current.encode()),'operations':ops})
+  phases.append({'phase':idx,'source':str(pth),'before_script_sha256':before,'after_script_sha256':after,'artifact_sha256':H(current),'artifact_bytes':len(current.encode()),'operations':ops})
  validate(current,baseline,final=True)
  if H(LEGACY.read_text(encoding='utf-8'))!=legacy:raise RuntimeError('LEGACY_MAIN_HTML_CHANGED')
  ids0=set(re.findall(r'\bid=["\']([^"\']+)["\']',baseline));ids1=set(re.findall(r'\bid=["\']([^"\']+)["\']',current));removed=sorted(ids0-ids1)
