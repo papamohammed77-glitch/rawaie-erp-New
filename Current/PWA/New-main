@@ -5307,7 +5307,7 @@ window.RW_Views = RW_Views;
     return !!(window.RW_STATE&&window.RW_STATE.app&&window.RW_STATE.app.currentUser&&window.RW_STATE.app.currentUser.isOwner===true);
   }
   function permFor(view){
-    var m={dashboard:'dashboard',telesales:'telesales',customers:'customers',pos:'pos',orders:'orders',runsheets:'runsheets',suppliers:'suppliers',purchases:'purchases',receiving:'receiving',items:'items',inventory:'warehouse',vouchers:'vouchers',picking:'picking',loading:'loading',delivery:'delivery',returns:'return',return:'return',unloading:'unloading',finance:'finance',reports:'reports',audit:'owner',hr:'users',crm:'customers',users:'users',roles:'roles',license:'owner',settings:'settings',notifications:'notifications',branches:'branches','online-store':'online-store','purchase-pos':'purchases','vehicle-count':'warehouse','branch-count':'warehouse','general-count':'warehouse',settlement:'finance'};
+    var m={dashboard:'dashboard',telesales:'telesales',customers:'customers',pos:'pos',orders:'orders',runsheets:'runsheets',suppliers:'suppliers',purchases:'purchases',receiving:'receiving',items:'items',inventory:'warehouse',vouchers:'vouchers',picking:'picking',loading:'loading',delivery:'delivery',returns:'return',return:'return',unloading:'unloading',finance:'finance',reports:'reports','reports-dashboard':'reports','reports-detailed':'reports','reports-comprehensive':'reports',audit:'owner',hr:'users',crm:'customers',users:'users',roles:'roles',license:'owner',settings:'settings',notifications:'notifications',branches:'branches','online-store':'online-store','purchase-pos':'purchases','vehicle-count':'warehouse','branch-count':'warehouse','general-count':'warehouse',settlement:'finance'};
     return m[view]||view;
   }
   function allowed(view){
@@ -5349,7 +5349,7 @@ window.RW_Views = RW_Views;
     receiving:[window.RW_Warehouse,'loadReceiving'],vouchers:[window.RW_Warehouse,'loadVouchers'],
     'vehicle-count':[window.RW_Warehouse,'loadVehicleCount'],'branch-count':[window.RW_Warehouse,'loadBranchCount'],
     'general-count':[window.RW_Warehouse,'loadGeneralCount'],settlement:[window.RW_Warehouse,'loadSettlement'],
-    finance:[window.RW_Finance,'render'],reports:[window.RW_Reports,'render'],audit:[null,null],notifications:[window.RW_Notification,'showPanel']
+    finance:[window.RW_Finance,'render'],'reports-dashboard':[window.RW_Reports,'renderDashboard'],'reports-detailed':[window.RW_Reports,'renderDetailedReports'],'reports-comprehensive':[window.RW_Reports_Comprehensive,'render'],reports:[window.RW_Reports,'render'],audit:[null,null],notifications:[window.RW_Notification,'showPanel']
   };
   nav.navigate=function(view){
     window.RW_STATE.app.currentView=view;
