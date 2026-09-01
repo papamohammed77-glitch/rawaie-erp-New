@@ -90,6 +90,47 @@
 - Current target remains unchanged at `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`.
 - Current workflow modifications remain explicitly documented as temporary executor changes and are not part of the product target.
 
+## P131 — FORENSIC CONTINUATION — 2026-09-01
+### P131-01 — MEMORY_AND_HISTORY_RECONCILIATION
+- Read `MASTER - RAWAEA ERP.md` from Git before initiating this round's new product mutation work.
+- Re-read `CURRENT_STATE.md` before acting; latest declared state was P130 with target blob `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`.
+- Searched `doc/Draft/Hany`; current Git contains `تقرير تنفيذي 11.md` as the latest numbered Hany report discovered.
+- Re-checked the requested Prompt 124+appendix path. Direct Git retrieval remains unavailable as a tracked blob; this limitation is preserved rather than fabricated.
+
+### P131-02 — DIRECT_SOURCE_FORENSICS
+- Current `New-main` blob was retrieved directly through the Git Blob API.
+- Direct search across the repository confirms the historical route contract in `Current/PWA/main/main10.md`:
+  - `reports-dashboard` → `window.RW_Reports.renderDashboard`
+  - `reports-detailed` → `window.RW_Reports.renderDetailedReports`
+  - `reports-comprehensive` → `window.RW_Reports_Comprehensive.render`
+- Direct search also confirms `Current/PWA/main/main1.md` contains all three specialized report views in its menu tree.
+- Commit `31d4dc3afc4e59dfd9fc5ec90c4c982ee4d310dc` directly shows the later `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` replacing the effective route table and retaining only `reports:[window.RW_Reports,'render']`; therefore the previously documented root cause is independently corroborated from Git history.
+
+### P131-03 — FAILED_EXECUTION_PATHS_NOT_REPEATED
+- Historical clean-room execution `99726102288` remains unavailable through the artifact endpoint; no artifact can be claimed from it.
+- Historical workflow run `33508781448` has zero artifacts and previously had zero Jobs; it is not treated as target execution evidence.
+- The old workflow path was not rerun in this round.
+- Container network access again could not materialize the target blob locally; no reconstruction was attempted.
+
+### P131-04 — HISTORICAL_ARTIFACT_REUSE_ASSESSMENT
+- `Current/PWA/main/main10.md` is a real historical artifact containing the desired report route mappings, but it is a module file, not a full `Current/PWA/New-main` replacement. Replacing `New-main` with it would be destructive and is explicitly rejected.
+- No already-verified complete `New-main` blob with the corrected late route table has yet been located.
+- Direct Git low-level blob/tree tooling exists, but a safe mutation still requires exact full current blob content or an existing complete corrected blob.
+
+### P131-05 — TARGET_MUTATION_STATUS
+- `Current/PWA/New-main` has NOT been mutated in P131.
+- No clean-room reconstruction was performed.
+- No `Current/PWA/main.html` change was performed.
+- No Supabase production mutation was performed.
+- Gold/Diamond closure remains UNPROVEN.
+
+### P131-06 — NEXT_AUTHORIZED_ACTION
+- Locate a complete historical `New-main` blob/commit that contains both the current target contracts and the corrected specialized report navigation, or establish a trustworthy exact-content transport path for the current blob.
+- Before any target mutation, record a new pre-mutation state event.
+- Apply only the proven navigation correction; preserve all unrelated target content byte-for-byte where technically possible.
+- Verify blob/tree/commit identity independently, then perform runtime verification before any Gold/Diamond claim.
+- Do not repeat the failed zero-job workflow path or clean-room reconstruction path.
+
 ## NEXT AUTHORIZED REPAIR
 ### P131 — DIRECT GIT BLOB/TREE TARGET MUTATION
 Goal: apply the already-proven surgical correction to the existing `Current/PWA/New-main` blob without reconstruction.
