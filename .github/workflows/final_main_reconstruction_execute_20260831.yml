@@ -81,11 +81,12 @@ jobs:
                           "_renderRsTable(q('dv-table'),d,'Delivered',": "_renderRsTable(q('dv-table'),d,'Delivering',",
                           "eq('status','Returned');if(r.error)throw r.error;window._returnData": "eq('status','Returning');if(r.error)throw r.error;window._returnData",
                           "_renderRsTable(q('rt-table'),d,'Returned',": "_renderRsTable(q('rt-table'),d,'Returning',",
-                          "hideLoader();showToast('تم إنهاء التوصيل','success');RW_Main7.refreshRunsheets();": "await RW_Main7.edge('complete-delivery',{runsheet_code:code});hideLoader();showToast('تم إنهاء التوصيل','success');RW_Main7.refreshRunsheets();"
+                          "hideLoader();showToast('تم إنهاء التوصيل','success');RW_Main7.refreshRunsheets();": "await RW_Main7.edge('complete-delivery',{runsheet_code:code});hideLoader();showToast('تم إنهاء التوصيل','success');RW_Main7.refreshRunsheets();",
+                          "join(''));}": "join('')));}"
                       }
                       for old,new in repairs.items():frag=frag.replace(old,new)
                       if len(frag)<50000:raise RuntimeError('MAIN7_SOURCE_TOO_SMALL')
-                      for needle in ["eq('status','Picking')","eq('status','Loading')","eq('status','Delivering')","eq('status','Returning')","complete-delivery"]:
+                      for needle in ["eq('status','Picking')","eq('status','Loading')","eq('status','Delivering')","eq('status','Returning')","complete-delivery","join('')));"]:
                           if needle not in frag:raise RuntimeError('MAIN7_SOURCE_REPAIR_FAILED:'+needle)
                   if re.match(r'^\s*(?:<!doctype\b|<html\b|<head\b|<body\b)',frag,re.I):raise RuntimeError(f'MAIN{stage}_SOURCE_WRAPPER')
                   frag=re.sub(r'</script>','<\\/script>',frag,flags=re.I)
