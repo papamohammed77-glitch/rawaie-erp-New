@@ -156,3 +156,84 @@ The exact Cloudflare deployed commit, artifact identity, output/root directory, 
 5. After deployment, perform a fresh browser session test: boot, shared client availability, login, session restoration, tenant resolution, dashboard, owner/license tab, and Service Worker registration/scope.
 6. Only after independent runtime closure re-test specialized reports and evaluate Gold/Diamond.
 7. Continue appending forensic state/report evidence; do not delete historical evidence.
+
+---
+
+## P139 — DIRECT RUNTIME / CURRENT-SOURCE RECONCILIATION — 2026-09-01
+### P139-01 — MASTER / STATE / REPORT RECOVERY
+- `doc/Draft/medhat/MASTER - RAWAEA ERP.md` was opened from the repository and its current-truth/continuity/governance command was followed: read current state first, reconcile against current Git/Production/runtime, do not patch unknowns.
+- `CURRENT_STATE.md` was read directly before mutation.
+- `doc/Draft/Reprots/تقرير1` through `تقرير5.md` were reviewed as the historical sequence; no historical report was deleted or overwritten.
+- P139 report created as `doc/Draft/Reprots/تقرير6.md` in commit `48cfcc012cf1d4e13ba9b0cf70ab6df2bf7ad878`.
+
+### P139-02 — CURRENT TARGET DIRECT PROOF
+- Current `Current/PWA/New-main` was read directly from Git/Raw.
+- P136 is physically present in the current target:
+  - `window.RW_SUPABASE_CLIENT=supabase`
+  - `window.__RAWAEA_P136_SCOPE_REPAIR__='shared-client'`
+  - `var sb = window.RW_SUPABASE_CLIENT || null`
+  - `sb.auth.getSession()`
+- Current target still contains the P135 continuity marker; that marker alone does not identify the runtime as P135.
+- Therefore the previous P136 source repair was not lost or silently reverted.
+
+### P139-03 — GIT HISTORY RECONCILIATION
+- Direct Git comparison of P136 commit `65b2ef057cba3f2f507495a37f124f6d9225ac39` to current HEAD `1ba72e0b915d907a32bac5794ed548c9b81755ba` shows no subsequent modification to `Current/PWA/New-main`.
+- Later product modification in this lineage was `Current/PWA/sw.js` for P137.
+- Current source therefore remains P136-correct.
+
+### P139-04 — RUNTIME CONFLICT REMAINS
+User runtime evidence continues to show:
+- `RAWAEA_P135_TARGET New-main`
+- `MAIN11_SUPABASE_UNAVAILABLE`
+- `POST /auth/v1/token?grant_type=password → 401`
+- `AuthApiError: Invalid API key`
+- `/companies/sw.js → 404`
+
+This cannot be reconciled with the current source because the current source contains the P136 marker and shared-client guard.
+
+### P139-05 — SERVICE WORKER / HEADERS DIRECT REVIEW
+- `Current/PWA/sw.js` remains the P137 final source.
+- `Current/PWA/_headers` contains `no-cache/no-store/must-revalidate` rules for `/sw.js`, nested `sw.js`, `/manifest.json`, root HTML, and nested HTML.
+- These rules are only effective if `_headers` is included in the actual Cloudflare Pages output root; that root is still unproven.
+
+### P139-06 — DIRECT EXTERNAL ACCESS LIMITS
+- A direct repository clone from the execution container failed at DNS resolution (`Could not resolve host: github.com`); this was treated as an environment limitation, not repository evidence.
+- Direct public fetch of `https://rawaea-erp.pages.dev/companies/sw.js` through the available web channel returned `Cache miss`; no false HTTP-200 claim was made.
+- No Cloudflare Pages deployment-management connector or installable Cloudflare plugin was available in this session.
+
+### P139-07 — SUPABASE / OWNER / LICENSE RECONFIRMATION
+- Production Supabase remains healthy by direct connector evidence.
+- Active legacy anon key and publishable key exist.
+- Owner contract remains verified: `public.users.permissions=["*"]`, Auth `isOwner=true`, Auth `permissions=["*"]`, linked active owner profile, `license_status=active`.
+- No P139 Supabase mutation was performed.
+
+### P139-08 — SURGICAL DECISION
+- No new JavaScript patch is authorized.
+- No new Supabase credential change is authorized.
+- No new `sw.js` content patch is authorized.
+- No duplicate `/companies/sw.js` file is to be added by guesswork.
+- The only valid surgical action remaining is to publish the exact current P136/P137 artifacts through the legitimate Cloudflare Pages path and prove the resulting URL-to-artifact mapping.
+
+### P139-09 — CURRENT STATUS
+```text
+CURRENT_SOURCE_P136        = VERIFIED
+CURRENT_SW_P137            = VERIFIED
+SUPABASE_PRODUCTION        = HEALTHY
+OWNER_WILDCARD             = VERIFIED
+OWNER_LICENSE              = ACTIVE
+BROWSER_LOGIN              = OPEN / 401
+MAIN11_UNAVAILABLE         = OPEN IN SERVED RUNTIME
+COMPANIES_SW               = OPEN / 404
+CLOUDFLARE_ARTIFACT_ID     = UNKNOWN
+DEPLOYMENT_ROOT_MAPPING    = UNKNOWN
+GOLD                       = UNPROVEN
+DIAMOND                    = UNPROVEN
+CLOSED_100_PERCENT         = NO
+```
+
+### P139-10 — NEXT AUTHORIZED EXECUTION
+1. Publish the exact `Current/PWA/New-main` artifact containing P136.
+2. Publish the exact `Current/PWA/sw.js` containing `RAWAEA_SW_P137_FINAL`.
+3. Verify the actual output root maps to `/companies/company-1/main.html` and `/companies/sw.js`.
+4. Open a clean browser session and require the P136 marker, absence of `MAIN11_SUPABASE_UNAVAILABLE`, successful login/session restoration, owner/license tab visibility, and Service Worker HTTP 200.
+5. Only then close deployment/auth gates and resume Gold/Diamond evaluation.
