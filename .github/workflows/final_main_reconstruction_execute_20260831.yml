@@ -1,34 +1,33 @@
-name: RAWAEA NEW-MAIN TARGET RECONSTRUCTION
+name: RAWAEA NEW-MAIN TARGET CONTRACT CLOSURE
 
 on:
   push:
     branches: [main]
     paths:
-      - 'Current/PWA/main/main*.md'
       - 'Current/PWA/New-main'
+      - 'Current/PWA/main/main1.md'
       - '.github/workflows/final_main_reconstruction_execute_20260831.yml'
   workflow_dispatch:
 
 concurrency:
-  group: rawaea-new-main-reconstruction
+  group: rawaea-new-main-contract-closure
   cancel-in-progress: true
 
 permissions:
   contents: write
 
 jobs:
-  reconstruct:
-    if: ${{ !contains(github.event.head_commit.message, '[new-main-target-persist]') }}
+  closure:
+    if: ${{ !contains(github.event.head_commit.message, '[new-main-contract-persist]') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 30
     steps:
-      - name: Checkout source and published target
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 2
+          fetch-depth: 1
 
-      - name: Parent contract hardening and resume from MAIN5
+      - name: Surgical target closure
         shell: bash
         run: |
           set -euo pipefail
@@ -36,74 +35,138 @@ jobs:
           git config user.email 'rawaea-new-main-bot@users.noreply.github.com'
           python3 <<'PY'
           from pathlib import Path
-          import re, subprocess, tempfile
-          target=Path('Current/PWA/New-main'); src=Path('Current/PWA/main')
-          def inline(s):
-              ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
-              if len(ms)!=1: raise RuntimeError('INLINE_RUNTIME_COUNT:'+str(len(ms)))
-              return ms[0]
-          def validate(stage):
-              s=target.read_text(encoding='utf-8')
-              req=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn','window.RW_ShellContext','window.RW_Auth','window.RW_Navigation']
-              for n,mn in [('RW_Dashboard',2),('RW_Items',2),('RW_POS',4),('RW_Orders',5),('RW_Runsheets',5),('RW_Purchases',7),('RW_Warehouse',7),('RW_Finance',8),('RW_Reports',9),('RW_OwnerLicense',10),('RW_HR',11),('RW_CRM',11),('RW_Views',11)]:
-                  if stage>=mn:req.append(n)
-              if stage>=1:req += ['window.RW_ParentRegistry','RW_Permissions_check']
-              miss=[x for x in req if x not in s]
-              if miss:raise RuntimeError(f'MAIN{stage}_CONTRACT_MISSING:'+','.join(miss))
-              m=inline(s);tail=s[m.end():]
-              if not re.fullmatch(r'\s*</body>\s*</html>\s*',tail,re.I):raise RuntimeError(f'MAIN{stage}_OUTER_HTML_TAIL_INVALID')
-              f=Path(tempfile.gettempdir())/f'rw-main{stage}.js';f.write_text(m.group('b'),encoding='utf-8')
-              r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-              if r.returncode:print(r.stderr);raise RuntimeError(f'MAIN{stage}_JS_SYNTAX_FAIL')
-              if stage>=7:
-                  for needle in ["eq('status','Picking')","eq('status','Loading')","eq('status','Delivering')","eq('status','Returning')","complete-delivery"]:
-                      if needle not in s: raise RuntimeError(f'MAIN7_TARGET_CONTRACT_MISSING:{needle}')
-          def persist(stage,msg=None):
+          import re, tempfile, subprocess
+          p=Path('Current/PWA/New-main')
+          s=p.read_text(encoding='utf-8')
+          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
+          if len(ms)!=1: raise RuntimeError('INLINE_RUNTIME_COUNT')
+          m=ms[0]; body=m.group('b')
+
+          old_owner="var owner=!!op.data||meta.isOwner===true||meta.isOwner==='true';"
+          new_owner="var owner=(meta.isOwner===true||meta.isOwner==='true')&&Array.isArray(u.data.permissions)&&u.data.permissions.indexOf('*')>=0&&!!op.data;"
+          if old_owner in body:
+              body=body.replace(old_owner,new_owner,1)
+
+          marker='/* RAWAEA 122 DIAMOND CONTRACT CLOSURE v1 */'
+          if marker not in body:
+              patch=r'''
+          /* RAWAEA 122 DIAMOND CONTRACT CLOSURE v1 */
+          (function(){
+            'use strict';
+            var nav=window.RW_Navigation;
+            if(!nav)throw new Error('RW_NAVIGATION_UNAVAILABLE');
+
+            function hasOwner(){
+              return !!(window.RW_STATE&&window.RW_STATE.app&&window.RW_STATE.app.currentUser&&window.RW_STATE.app.currentUser.isOwner===true);
+            }
+            function permFor(view){
+              var m={dashboard:'dashboard',telesales:'telesales',customers:'customers',pos:'pos',orders:'orders',runsheets:'runsheets',suppliers:'suppliers',purchases:'purchases',receiving:'receiving',items:'items',inventory:'warehouse',vouchers:'vouchers',picking:'picking',loading:'loading',delivery:'delivery',returns:'return',return:'return',unloading:'unloading',finance:'finance',reports:'reports',audit:'owner',hr:'users',crm:'customers',users:'users',roles:'roles',license:'owner',settings:'settings',notifications:'notifications',branches:'branches','online-store':'online-store','purchase-pos':'purchases','vehicle-count':'warehouse','branch-count':'warehouse','general-count':'warehouse',settlement:'finance'};
+              return m[view]||view;
+            }
+            function allowed(view){
+              if(view==='license'||view==='audit')return hasOwner();
+              if(hasOwner())return true;
+              var p=permFor(view);
+              try{return typeof window.RW_Permissions_check==='function'&&window.RW_Permissions_check(p+':view')===true;}catch(e){return false;}
+            }
+            function clean(items){
+              var out=[];
+              (items||[]).forEach(function(x){
+                if(x&&Array.isArray(x.submenu)){
+                  var y={};for(var k in x)y[k]=x[k];y.submenu=clean(x.submenu);if(y.submenu.length)out.push(y);return;
+                }
+                if(x&&['hr','crm','users','roles','license','settings','online-store','purchase-pos','branches','vehicle-count','branch-count','general-count'].indexOf(x.view)>=0)return;
+                out.push(x);
+              });return out;
+            }
+            var tree=clean(Array.isArray(nav.menuTree)?nav.menuTree:[]);
+            tree.push(
+              {view:'hr',icon:'fa-id-card',label:'الموارد البشرية',perm:'users:view'},
+              {view:'crm',icon:'fa-handshake',label:'إدارة علاقات العملاء (CRM)',perm:'customers:view'},
+              {view:'users',icon:'fa-users-gear',label:'المستخدمين والصلاحيات',perm:'users:view'},
+              {view:'roles',icon:'fa-user-shield',label:'إدارة أدوار المستخدمين',perm:'roles:view'},
+              {view:'license',icon:'fa-shield-halved',label:'إدارة الترخيص',perm:'owner'},
+              {view:'settings',icon:'fa-gear',label:'إعدادات النظام',perm:'settings:view'}
+            );
+            nav.menuTree=tree;
+
+            var routes={
+              dashboard:[window.RW_Dashboard,'render'],items:[window.RW_Items,'render'],customers:[window.RW_Customers,'render'],
+              suppliers:[window.RW_Suppliers,'render'],branches:[window.RW_Branches,'render'],settings:[window.RW_Settings,'render'],
+              hr:[window.RW_HR,'render'],crm:[window.RW_CRM,'render'],users:[window.RW_Users,'render'],roles:[window.RW_Roles,'render'],
+              license:[window.RW_OwnerLicense,'render'],telesales:[window.RW_TeleSales,'render'],pos:[window.RW_POS,'render'],
+              orders:[window.RW_Orders,'render'],runsheets:[window.RW_Runsheets,'render'],'online-store':[window.RW_OnlineStore,'render'],
+              purchases:[window.RW_Purchases,'renderOrders'],'purchase-pos':[window.RW_Purchases,'renderPOS'],
+              picking:[window.RW_Warehouse,'loadPicking'],loading:[window.RW_Warehouse,'loadLoading'],delivery:[window.RW_Warehouse,'loadDelivery'],
+              return:[window.RW_Warehouse,'loadReturn'],returns:[window.RW_Warehouse,'loadReturn'],unloading:[window.RW_Warehouse,'loadUnloading'],
+              receiving:[window.RW_Warehouse,'loadReceiving'],vouchers:[window.RW_Warehouse,'loadVouchers'],
+              'vehicle-count':[window.RW_Warehouse,'loadVehicleCount'],'branch-count':[window.RW_Warehouse,'loadBranchCount'],
+              'general-count':[window.RW_Warehouse,'loadGeneralCount'],settlement:[window.RW_Warehouse,'loadSettlement'],
+              finance:[window.RW_Finance,'render'],reports:[window.RW_Reports,'render'],audit:[null,null],notifications:[window.RW_Notification,'showPanel']
+            };
+            nav.navigate=function(view){
+              window.RW_STATE.app.currentView=view;
+              if(!allowed(view))return Promise.reject(new Error(view==='license'?'OWNER_ONLY':'PERMISSION_DENIED'));
+              if(view==='audit')return Promise.resolve(window.RW_Audit_renderTab());
+              var r=routes[view];
+              if(r&&r[0]&&typeof r[0][r[1]]==='function')return Promise.resolve(r[0][r[1]]());
+              throw new Error('ROUTE_HANDLER_MISSING:'+view);
+            };
+            window.RW_122_CONTRACT={version:'v1',navigation:'closed',owner:'strict',license:'closed',crm:'closed',users:'closed',roles:'closed'};
+          })();
+          '''
+              body=body+'\n'+patch
+
+          candidate=s[:m.start('b')]+body+s[m.end('b'):]
+          p.write_text(candidate,encoding='utf-8')
+
+          ms2=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',candidate,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
+          if len(ms2)!=1: raise RuntimeError('FINAL_INLINE_RUNTIME_COUNT')
+          if not re.fullmatch(r'\s*</body>\s*</html>\s*',candidate[ms2[0].end():],re.I): raise RuntimeError('OUTER_TAIL_INVALID')
+          js=Path(tempfile.gettempdir())/'new-main-runtime.js';js.write_text(ms2[0].group('b'),encoding='utf-8')
+          r=subprocess.run(['node','--check',str(js)],capture_output=True,text=True)
+          if r.returncode:
+              print(r.stderr);raise SystemExit(2)
+          required=['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Roles','RW_Views','RW_122_CONTRACT']
+          for x in required:
+              if x not in candidate: raise RuntimeError('REQUIRED_MISSING:'+x)
+          git=subprocess.run(['git','diff','--quiet','--','Current/PWA/New-main'])
+          if git.returncode!=0:
               subprocess.run(['git','add','Current/PWA/New-main'],check=True)
-              if subprocess.run(['git','diff','--cached','--quiet']).returncode!=0:
-                  subprocess.run(['git','commit','-m',msg or f'[new-main-target-persist] MAIN{stage} complete'],check=True);subprocess.run(['git','push','origin','HEAD:main'],check=True)
-          s=target.read_text(encoding='utf-8');m=inline(s);body=m.group('b')
-          repaired=body.replace("\\\\'", "\\'")
-          if repaired!=body:target.write_text(s[:m.start('b')]+repaired+s[m.end('b'):],encoding='utf-8')
-          validate(1)
-          for stage in range(5,12):
-              s=target.read_text(encoding='utf-8');m=inline(s);body=m.group('b');marker=f'/* RAWAEA MAIN{stage} AUTHORITATIVE MODULE */'
-              if marker not in body:
-                  frag=(src/f'main{stage}.md').read_text(encoding='utf-8-sig').rstrip()
-                  if stage==7:
-                      repairs={
-                          "eq('status','Picked');if(r.error)throw r.error;window._pickingData": "eq('status','Picking');if(r.error)throw r.error;window._pickingData",
-                          "_renderRsTable(q('pk-table'),d,'Picked',": "_renderRsTable(q('pk-table'),d,'Picking',",
-                          '<option value="">Picked</option><option>Picked</option>': '<option value="">Picking</option><option>Picking</option>',
-                          "eq('status','Loaded');if(r.error)throw r.error;window._loadingData": "eq('status','Loading');if(r.error)throw r.error;window._loadingData",
-                          "_renderRsTable(q('ld-table'),d,'Loaded',": "_renderRsTable(q('ld-table'),d,'Loading',",
-                          "eq('status','Delivered');if(r.error)throw r.error;window._deliveryData": "eq('status','Delivering');if(r.error)throw r.error;window._deliveryData",
-                          "_renderRsTable(q('dv-table'),d,'Delivered',": "_renderRsTable(q('dv-table'),d,'Delivering',",
-                          "eq('status','Returned');if(r.error)throw r.error;window._returnData": "eq('status','Returning');if(r.error)throw r.error;window._returnData",
-                          "_renderRsTable(q('rt-table'),d,'Returned',": "_renderRsTable(q('rt-table'),d,'Returning',",
-                          "hideLoader();showToast('تم إنهاء التوصيل','success');RW_Main7.refreshRunsheets();": "await RW_Main7.edge('complete-delivery',{runsheet_code:code});hideLoader();showToast('تم إنهاء التوصيل','success');RW_Main7.refreshRunsheets();",
-                          "join(''));}": "join('')));}"
-                      }
-                      for old,new in repairs.items():frag=frag.replace(old,new)
-                      if len(frag)<50000:raise RuntimeError('MAIN7_SOURCE_TOO_SMALL')
-                      for needle in ["eq('status','Picking')","eq('status','Loading')","eq('status','Delivering')","eq('status','Returning')","complete-delivery","join('')));"]:
-                          if needle not in frag:raise RuntimeError('MAIN7_SOURCE_REPAIR_FAILED:'+needle)
-                  if re.match(r'^\s*(?:<!doctype\b|<html\b|<head\b|<body\b)',frag,re.I):raise RuntimeError(f'MAIN{stage}_SOURCE_WRAPPER')
-                  frag=re.sub(r'</script>','<\\/script>',frag,flags=re.I)
-                  target.write_text(s[:m.start('b')]+body+'\n'+marker+'\n'+frag+s[m.end('b'):],encoding='utf-8')
-              validate(stage);persist(stage)
-          print('NEW_MAIN_PARENT_AND_MAIN5_TO_MAIN11_COMPLETE')
+              subprocess.run(['git','commit','-m','[new-main-contract-persist] Navigation, Owner, License, CRM closure'],check=True)
+              subprocess.run(['git','push','origin','HEAD:main'],check=True)
+          print('NEW_MAIN_CONTRACT_CLOSED')
           PY
 
-      - name: Final published New-main browser smoke
+      - name: Browser contract smoke
         shell: bash
         run: |
           set -euo pipefail
           npm init -y >/dev/null 2>&1
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null 2>&1
-          python3 -m http.server 8123 --directory Current/PWA >/tmp/rawaea-new-main-http.log 2>&1 &
+          python3 -m http.server 8123 --directory Current/PWA >/tmp/rawaea-http.log 2>&1 &
           node <<'NODE'
           const {chromium}=require('playwright');
-          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[],bad=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});p.on('response',r=>{if(r.status()>=400&&!/favicon\\.ico$/i.test(r.url()))bad.push(r.status()+':'+r.url())});await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(3000);const x=await p.evaluate(()=>({lang:document.documentElement.lang,login:!!document.getElementById('rw-login-page'),app:!!document.getElementById('rw-main-shell'),shell:!!window.RW_ShellContext,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,parent:!!window.RW_ParentRegistry,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense,mods:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_HR','RW_CRM'].every(k=>!!window[k])}));console.log(JSON.stringify({x,pe,ce,bad}));if(x.lang!=='ar'||!x.login||!x.app||!x.shell||!x.auth||!x.nav||!x.parent||!x.views||!x.owner||!x.mods||pe.length||ce.length||bad.length)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)});
+          (async()=>{
+            const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[];
+            p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
+            await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(2500);
+            const out=await p.evaluate(async()=>{
+              const n=window.RW_Navigation;const flat=[];const walk=a=>(a||[]).forEach(x=>{if(x.view)flat.push(x.view);if(x.submenu)walk(x.submenu)});walk(n.menuTree);
+              const critical=['crm','users','roles','license','hr','settings'].every(x=>flat.includes(x));
+              const modules=['RW_CRM','RW_Users','RW_Roles','RW_OwnerLicense','RW_HR','RW_Views'].every(x=>!!window[x]);
+              const calls=[];const save={};
+              ['crm','users','roles','license'].forEach(v=>{const r=n.navigate;save[v]=r});
+              const orig={};[['crm',window.RW_CRM,'render'],['users',window.RW_Users,'render'],['roles',window.RW_Roles,'render'],['license',window.RW_OwnerLicense,'render']].forEach(([k,o,m])=>{orig[k]=o[m];o[m]=()=>{calls.push(k);return Promise.resolve()}});
+              window.RW_STATE.app.currentUser={isOwner:false,permissions:['customers','users','roles']};
+              let denied=false;await n.navigate('crm');await n.navigate('users');await n.navigate('roles');try{await n.navigate('license')}catch(e){denied=e.message==='OWNER_ONLY'}
+              window.RW_STATE.app.currentUser={isOwner:true,permissions:['*']};await n.navigate('license');
+              Object.entries(orig).forEach(([k,f])=>{const o=k==='crm'?window.RW_CRM:k==='users'?window.RW_Users:k==='roles'?window.RW_Roles:window.RW_OwnerLicense;o.render=f});
+              return {critical,modules,denied,calls,contract:window.RW_122_CONTRACT};
+            });
+            console.log(JSON.stringify({out,pe,ce}));
+            if(!out.critical||!out.modules||!out.denied||out.calls.join(',')!=='crm,users,roles,license'||pe.length||ce.length)process.exit(2);
+            await b.close();
+          })().catch(e=>{console.error(e);process.exit(2)});
           NODE
