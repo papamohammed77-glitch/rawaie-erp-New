@@ -1,0 +1,8 @@
+{
+  "event": "P124-013-target-persistence-input",
+  "purpose": "Existing P124 clean-room gate input; temporary operational evidence only",
+  "browser_e2e": "PAUSED_BY_DIRECTIVE",
+  "authorized_target": "Current/PWA/New-main",
+  "mutation_scope": "item_id upload mapping and bulk-stock-adjustment payload only",
+  "legacy_main_protected": true
+}
