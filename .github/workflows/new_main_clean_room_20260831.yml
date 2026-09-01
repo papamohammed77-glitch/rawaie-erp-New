@@ -58,7 +58,8 @@ jobs:
           required=['rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn','window.RW_ShellContext','window.RW_OwnerLicense','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM','_clickNotif','_renderAndSave','_updateBadge','markRead','bulk-stock-adjustment']
           missing=[x for x in required if x not in s]
           if missing: raise SystemExit('TARGET_CONTRACT_MISSING:'+','.join(missing))
-          if s.lower().count('</html>')!=1 or s.lower().count('</body>')!=1: raise SystemExit('DOCUMENT_CLOSURE_INVALID')
+          markup=re.sub(r'<script(?P<a>[^>]*)>[\\s\\S]*?</script>', '', s, flags=re.I)
+          if markup.lower().count('</html>')!=1 or markup.lower().count('</body>')!=1: raise SystemExit('DOCUMENT_CLOSURE_INVALID')
           scripts=[m for m in re.finditer(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>(.*?)</script>',s,re.I|re.S)]
           if len(scripts)!=1: raise SystemExit('INLINE_SCRIPT_COUNT_INVALID:'+str(len(scripts)))
           js=Path(tempfile.gettempdir())/'new-main.js'; js.write_text(scripts[0].group(1),encoding='utf-8')
