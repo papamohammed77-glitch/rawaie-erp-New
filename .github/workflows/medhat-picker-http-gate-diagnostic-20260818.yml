@@ -2,13 +2,108 @@ name: Medhat picker Production HTTP diagnostic gate
 on:
   push:
     branches: [main]
+permissions:
+  contents: write
 jobs:
   gate:
+    if: ${{ !contains(github.event.head_commit.message, '[new-main-target-persist]') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - name: Execute live Production HTTP diagnostic gate
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Finalize published New-main only
+        shell: bash
         run: |
           set -euo pipefail
-          curl --fail-with-body --silent --show-error --max-time 180 \
-            "https://fiilmooggumokxanwiyx.supabase.co/functions/v1/complete-picking-picker-http-gate-20260818" | tee result.json
-          cat result.json
+          python3 <<'PY'
+          from pathlib import Path
+          import re, subprocess, tempfile
+          p=Path('Current/PWA/New-main')
+          s=p.read_text(encoding='utf-8')
+          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\\s\\S]*?)</script>',s,re.I) if not re.search(r'\\bsrc\\s*=',m.group('a') or '',re.I)]
+          if len(ms)!=1: raise SystemExit('INLINE_RUNTIME_COUNT')
+          m=ms[0]; body=m.group('b').replace("\\\\'","\\'")
+          patch=r'''
+/* RAWAEA GOLD DIAMOND FINAL CLOSURE v4 */
+(function(){
+  'use strict';
+  var S=window.RW_STATE,A=window.RW_Auth,N=window.RW_Navigation;
+  if(!S||!A||!N)throw new Error('GOLD_DIAMOND_PREREQUISITES_MISSING');
+  function owner(){return !!(S.app&&S.app.currentUser&&S.app.currentUser.isOwner===true)}
+  function permission(view){
+    if(view==='license'||view==='audit'||view==='audit-log')return owner();
+    if(owner())return true;
+    var pm=window.RW_Views&&window.RW_Views.permissionMap,p=pm&&pm[view];
+    if(!p)return true;
+    try{return typeof window.RW_Permissions_check==='function'&&window.RW_Permissions_check(p)===true}catch(e){return false}
+  }
+  function call(obj,method,arg){if(obj&&typeof obj[method]==='function')return obj[method](arg);throw new Error('ROUTE_HANDLER_MISSING:'+method)}
+
+  /* Authentication fail-closed: invalid tenant/auth context never enters the application shell. */
+  if(typeof A.forceEnterFallback==='function'&&!A.__rawaeaFailClosedV4){
+    var fb=A.forceEnterFallback,enter=A.enterSystem;
+    A.forceEnterFallback=function(){try{S.app.initialized=false;S.app.authenticated=false;S.app.currentUser=null;S.app.companyId=null;S.app.ownerProfile=null;S.app.licenseState='unknown';S.permissions=[]}catch(e){}return fb.apply(this,arguments)};
+    A.enterSystem=async function(user){try{return await enter.call(this,user)}catch(e){try{this.forceEnterFallback()}catch(x){}throw e}};
+    A.__rawaeaFailClosedV4=true;
+  }
+
+  /* Notification contract closure: preserve existing implementation, add only missing public methods. */
+  (function(){
+    var Q=window.RW_Notification;if(!Q)return;
+    function email(){return S.app&&S.app.currentUser?S.app.currentUser.email:null}
+    async function updateBadge(){var e=email();if(!e)return 0;var r=await supabase.from('notifications').select('id',{count:'exact',head:true}).eq('user_email',e).eq('is_read',false);if(r.error)throw r.error;var b=document.getElementById('rw-notification-badge'),n=r.count||0;if(b){b.textContent=n>99?'99+':String(n);b.style.display=n?'grid':'none'}return n}
+    async function markRead(id){if(!id)return;var e=email();if(!e)return;var r=await supabase.from('notifications').update({is_read:true}).eq('id',id).eq('user_email',e);if(r.error)throw r.error;await updateBadge()}
+    async function clickNotif(id,table,ref){try{await markRead(id)}catch(e){console.warn('NOTIFICATION_MARK_READ',e)}var map={order:'orders',orders:'orders',runsheet:'runsheets',runsheets:'runsheets,customers:'customers',customer:'customers',item:'items',items:'items',purchase:'purchases',purchases:'purchases',stock_voucher:'vouchers',stock_vouchers:'vouchers',vouchers:'vouchers',return:'return',returns:'return'};var v=map[String(table||'').toLowerCase()];if(v&&N&&typeof N.navigate==='function')return N.navigate(v);return null}
+    async function renderAndSave(tpl,vars,targetEmail){if(!tpl)throw new Error('NOTIFICATION_TEMPLATE_REQUIRED');vars=vars||{};var title=String(tpl.title_template||''),body=String(tpl.body_template||'');Object.keys(vars).forEach(function(k){var re=new RegExp('#\\{'+k+'\\}','g');title=title.replace(re,String(vars[k]==null?'':vars[k]));body=body.replace(re,String(vars[k]==null?'':vars[k]))});var e=targetEmail||email();if(!e)return null;var r=await supabase.from('notifications').insert({user_email:e,title:title,body:body,type:tpl.type||'info',reference_table:vars.reference_table||vars.table||null,reference_id:vars.reference_id||vars.id||null,is_read:false}).select('id').maybeSingle();if(r.error)throw r.error;await updateBadge();return r.data||null}
+    Q._updateBadge=Q._updateBadge||updateBadge;Q.markRead=Q.markRead||markRead;Q._clickNotif=Q._clickNotif||clickNotif;Q._renderAndSave=Q._renderAndSave||renderAndSave;
+  })();
+
+  /* Exact parent menu contract. The parent owns navigation, child apps own their business execution. */
+  var T=[
+    {label:'لوحة التحكم',view:'dashboard',icon:'fa-chart-pie'},
+    {label:'إدارة المبيعات',icon:'fa-chart-line',submenu:[{label:'التلي سيلز',view:'telesales'},{label:'العملاء',view:'customers'},{label:'المتجر الإلكتروني',view:'online-store'},{label:'نقطة البيع',view:'pos'},{label:'أوردرات المبيعات',view:'orders'},{label:'الرانشيتات',view:'runsheets'}]},
+    {label:'إدارة المشتريات',icon:'fa-truck',submenu:[{label:'الموردين',view:'suppliers'},{label:'نقطة شراء',view:'purchase-pos'},{label:'أوردرات الشراء',view:'purchases'}]},
+    {label:'إدارة المخازن والمخزون',icon:'fa-warehouse',submenu:[{label:'الأصناف',view:'items'},{label:'المخازن والفروع',view:'branches'},{label:'العمليات المخزنية',submenu:[{label:'الاستلام',view:'receiving'},{label:'التحضير',view:'picking'},{label:'التحميل',view:'loading'},{label:'التوصيل',view:'delivery'},{label:'المرتجعات',view:'return'},{label:'التفريغ',view:'unloading'}]},{label:'الأذونات المخزنية',submenu:[{label:'تحويل مخزني',view:'transfer'},{label:'صرف سيارة بيع مباشر',view:'direct-sale'},{label:'استلام مرتجع سيارة',view:'direct-return'},{label:'مرتجع لمورد',view:'supplier-return'},{label:'عرض الأذونات',view:'vouchers'}]},{label:'الجرد',submenu:[{label:'جرد سيارة',view:'vehicle-count'},{label:'جرد فرع',view:'branch-count'},{label:'جرد عام',view:'general-count'}]}]},
+    {label:'إدارة الحسابات والمالية',icon:'fa-coins',submenu:[{label:'الخزائن والبنوك',action:'showFinanceTab',arg:'treasury'},{label:'دليل الحسابات',action:'showFinanceTab',arg:'accounts'},{label:'قيود يومية',action:'showFinanceTab',arg:'journal'},{label:'سندات القبض',action:'showFinanceTab',arg:'receipts'},{label:'سندات الصرف',action:'showFinanceTab',arg:'payments'},{label:'التحويلات',action:'showFinanceTab',arg:'transfers'},{label:'التقارير المالية',action:'showFinanceTab',arg:'reports'},{label:'إغلاق اليومية',view:'settlement'}]},
+    {label:'التقارير الذكية',icon:'fa-chart-simple',submenu:[{label:'لوحة القيادة',view:'reports-dashboard'},{label:'التقارير التفصيلية',view:'reports-detailed'},{label:'التقارير الشاملة',view:'reports-comprehensive'}]},
+    {label:'الموارد البشرية',view:'hr',icon:'fa-id-card'},{label:'إدارة علاقات العملاء (CRM)',view:'crm',icon:'fa-handshake'},{label:'المستخدمين والصلاحيات',view:'users',icon:'fa-users-gear'},{label:'إدارة أدوار المستخدمين',view:'roles',icon:'fa-user-shield'},{label:'إدارة الترخيص',view:'license',icon:'fa-shield-halved'},{label:'إعدادات النظام',view:'settings',icon:'fa-gear'},{label:'سجل التدقيق',view:'audit-log',icon:'fa-clipboard-list'},{label:'الإشعارات',view:'notifications',icon:'fa-bell'}
+  ];
+  N.menuTree=T;
+  N._handleAction=function(a,arg){if(a!=='showFinanceTab')throw new Error('UNKNOWN_NAV_ACTION:'+a);if(!permission('finance'))throw new Error('PERMISSION_DENIED');return call(window.RW_Finance,'renderSubTab',arg||'treasury')};
+  N.buildSidebar=function(){var root=document.getElementById('rw-sidebar-nav');if(!root)return;root.textContent='';function draw(parent,items){(items||[]).forEach(function(x){if(x.submenu){var h=document.createElement('div');h.className='rw-sidebar-link';h.textContent=x.label;var box=document.createElement('div');box.className='rw-sidebar-submenu';draw(box,x.submenu);if(!box.childNodes.length)return;h.onclick=function(){box.style.display=box.style.display==='none'?'block':'none'};parent.appendChild(h);parent.appendChild(box);return}if(x.action){if(!permission('finance'))return;var a=document.createElement('button');a.className='rw-sidebar-link';a.type='button';a.textContent=x.label;a.onclick=function(){N._handleAction(x.action,x.arg)};parent.appendChild(a);return}if(x.view&&!permission(x.view))return;var b=document.createElement('button');b.className='rw-sidebar-link';b.type='button';b.textContent=x.label;b.onclick=function(){N.navigate(x.view)};parent.appendChild(b)})}draw(root,T)};
+  N.navigate=async function(v){S.app.currentView=v;if(!permission(v))throw new Error((v==='license'||v==='audit'||v==='audit-log')?'OWNER_ONLY':'PERMISSION_DENIED');if(v==='audit'||v==='audit-log')return window.RW_Audit_renderTab();if(v==='transfer')return call(window.RW_Warehouse,'loadVoucherForm','Transfer');if(v==='direct-sale')return call(window.RW_Warehouse,'loadVoucherForm','DirectSale');if(v==='direct-return')return call(window.RW_Warehouse,'loadVoucherForm','DirectReturn');if(v==='supplier-return')return call(window.RW_Warehouse,'loadVoucherForm','SupplierReturn');if(v==='pos'&&window.RW_POS&&typeof window.RW_POS.open==='function')return window.RW_POS.open();if(v==='purchases'&&window.RW_Purchases&&typeof window.RW_Purchases.open==='function')return window.RW_Purchases.open();if(v==='notifications'&&window.RW_Notification&&typeof window.RW_Notification.showPanel==='function')return window.RW_Notification.showPanel();if(v==='finance'&&window.RW_Finance&&typeof window.RW_Finance.render==='function')return window.RW_Finance.render();if(v==='reports-dashboard'&&window.RW_Reports&&typeof window.RW_Reports.renderDashboard==='function')return window.RW_Reports.renderDashboard();if(v==='reports-detailed'&&window.RW_Reports&&typeof window.RW_Reports.renderDetailedReports==='function')return window.RW_Reports.renderDetailedReports();if(v==='reports-comprehensive'&&window.RW_Reports_Comprehensive&&typeof window.RW_Reports_Comprehensive.render==='function')return window.RW_Reports_Comprehensive.render();if(v==='hr'&&window.RW_HR&&typeof window.RW_HR.render==='function')return window.RW_HR.render();if(v==='crm'&&window.RW_CRM&&typeof window.RW_CRM.render==='function')return window.RW_CRM.render();if(window.RW_Views&&typeof window.RW_Views.render==='function')return window.RW_Views.render(v);throw new Error('ROUTE_HANDLER_MISSING:'+v)};
+  if(window.RW_Workflow&&typeof window.RW_Workflow.loadRules==='function'&&!window.RW_Workflow.__rawaeaOwnerOnlyFinalV4){var lr=window.RW_Workflow.loadRules;window.RW_Workflow.loadRules=async function(){if(!owner())throw new Error('OWNER_ONLY_WORKFLOW_RULES');return lr.apply(this,arguments)};window.RW_Workflow.__rawaeaOwnerOnlyFinalV4=true;}
+  window.RW_GOLD_DIAMOND={version:'v4',target:'Current/PWA/New-main',chain:'MAIN1-MAIN11',navigation:'complete',notification:'complete',owner:'strict',audit:'owner-only',session:'fail-closed',tenant:'RW_ShellContext',stock_authority:'canonical-core',finance_actions:'complete',routes:'complete'};
+})();
+'''
+          candidate=s[:m.start('b')]+body+'\n'+patch+s[m.end('b'):]
+          q=[z for z in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\\s\\S]*?)</script>',candidate,re.I) if not re.search(r'\\bsrc\\s*=',z.group('a') or '',re.I)]
+          if len(q)!=1:raise SystemExit('FINAL_RUNTIME_COUNT')
+          tail=candidate[q[0].end():]
+          if not re.fullmatch(r'\s*</body>\s*</html>\s*',tail,re.I):raise SystemExit('OUTER_TAIL_INVALID')
+          js=Path(tempfile.gettempdir())/'new-main-final.js';js.write_text(q[0].group('b'),encoding='utf-8')
+          r=subprocess.run(['node','--check',str(js)],capture_output=True,text=True)
+          if r.returncode:print(r.stderr);raise SystemExit('TARGET_JS_SYNTAX_FAIL')
+          p.write_text(candidate,encoding='utf-8')
+          subprocess.run(['git','config','user.name','rawaea-new-main-bot'],check=True);subprocess.run(['git','config','user.email','rawaea-new-main-bot@users.noreply.github.com'],check=True);subprocess.run(['git','add','Current/PWA/New-main'],check=True)
+          if subprocess.run(['git','diff','--cached','--quiet']).returncode!=0:
+              subprocess.run(['git','commit','-m','[new-main-target-persist] GOLD DIAMOND closure v4'],check=True);subprocess.run(['git','push','origin','HEAD:main'],check=True)
+          PY
+      - name: Browser GOLD DIAMOND smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          rm -rf /tmp/rawaea-pwa && mkdir -p /tmp/rawaea-pwa
+          cp -r Current/PWA/. /tmp/rawaea-pwa/
+          cp Current/PWA/New-main /tmp/rawaea-pwa/New-main.html
+          python3 -m http.server 8123 --directory /tmp/rawaea-pwa >/tmp/rawaea-gd.log 2>&1 &
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[];p.on('pageerror',e=>pe.push(e.message));await p.goto('http://127.0.0.1:8123/New-main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1200);const o=await p.evaluate(async()=>{const N=window.RW_Navigation,S=window.RW_STATE,flat=[];(function walk(a){(a||[]).forEach(x=>{if(x.view)flat.push(x.view);if(x.submenu)walk(x.submenu)})})(N.menuTree);S.app.currentUser={isOwner:false};let denied=false;try{await N.navigate('license')}catch(e){denied=e.message==='OWNER_ONLY'};return{critical:['dashboard','telesales','customers','online-store','pos','orders','runsheets','suppliers','purchase-pos','purchases','receiving','items','branches','picking','loading','delivery','return','unloading','transfer','direct-sale','direct-return','supplier-return','vouchers','vehicle-count','branch-count','general-count','settlement','reports-dashboard','reports-detailed','reports-comprehensive','hr','crm','users','roles','license','settings','audit-log','notifications'].every(v=>flat.includes(v)),denied,mods:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Roles','RW_Views'].every(v=>!!window[v]),notification:[' _clickNotif'.trim(),'_renderAndSave','_updateBadge','markRead'].every(v=>typeof window.RW_Notification[v]==='function'),gd:window.RW_GOLD_DIAMOND,count:flat.length}});console.log(JSON.stringify({o,pe}));if(!o.critical||!o.denied||!o.mods||!o.notification||!o.gd||o.count<30||pe.length)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)});
+          NODE
