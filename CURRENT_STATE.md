@@ -118,8 +118,8 @@
 - Git history for that exact path returned an empty commit list (`[]`), so no authoritative copy could be recovered by path history and no content was fabricated.
 
 ### P132-03 — HANY_LATEST_REPORT_RECONCILIATION
-- `doc/Draft/Hany/تقرير تنفيذي 12.md` is the latest numbered Hany report found in the current repository.
-- No `تقرير تنفيذي 13` existed before this operation.
+- `doc/Draft/Hany/تقرير تنفيذي 12.md` was the latest numbered Hany report before this round.
+- No `تقرير تنفيذي 13` existed before P132.
 - Report 12 was read through its final sections and confirms that the P131 specialized-report route fix is static/source-verified only; browser/runtime and Gold/Diamond remain unproven.
 
 ### P132-04 — TARGET_RECHECK
@@ -135,19 +135,39 @@
 
 ### P132-06 — DEPLOYMENT_RUNTIME_STATUS
 - Current deployment-lineage documentation still records the Cloudflare Pages production commit/artifact as UNPROVEN.
-- No public Pages URL was discoverable through the repository search performed in this round.
+- Repository searches for a public Pages/Workers deployment identifier did not produce a usable public runtime URL in this round.
 - Therefore independent browser/runtime certification of `New-main` remains UNPROVEN.
 - No Gold/Diamond closure claim is permitted.
 
 ### P132-07 — CURRENT_DECISION
-- The previously observed user concern that `New-main` had not been changed is only correct for changes after P131; P131 did in fact mutate `Current/PWA/New-main` and persisted that mutation to `main`.
-- The correct next technical action is runtime/deployment verification or resolution of the deployment URL/artifact lineage blocker, not another source patch.
+- P131 did in fact mutate `Current/PWA/New-main` and persist that mutation to `main`.
+- There has been no target mutation after P131.
+- The correct next technical action is deployment identity/runtime verification or resolution of the deployment URL/artifact lineage blocker, not another source patch.
+
+### P132-08 — HANY_EXECUTIVE_REPORT_13
+- Created `doc/Draft/Hany/تقرير تنفيذي 13.md` in commit:
+  `6d33157a44efaf687a5d5e5da9ca93c8552d2456`.
+- Report 13 documents the complete P132 forensic reconciliation, the successful and failed historical approaches, the absence of Prompt 124 at the specified Git path, the direct target/Supabase checks, the current blockers, and the next authorized repair plan.
+- No historical Hany report was deleted or overwritten.
+
+## CURRENT SURVIVING STATE AFTER P132
+- `New-main` source repair: PRESENT and persisted in `main`.
+- Last product mutation commit: `bdb74d365839c87e61fe4f1df5c4f4f940c76a41`.
+- Last target blob after P131 repair: `765e812efa17662d8630c50fa3ecd3f8ed496bf3`.
+- `Current/PWA/main.html`: PROTECTED / not modified by P131/P132.
+- Production Supabase: read-only reconciled; no mutation in P132.
+- Prompt 124+appendix at requested path: NOT RECOVERABLE FROM CURRENT GIT PATH/HISTORY.
+- Browser/runtime New-main certification: UNPROVEN.
+- Cloudflare Pages deployment identity/lineage: UNPROVEN.
+- Gold: UNPROVEN.
+- Diamond: UNPROVEN.
 
 ## NEXT AUTHORIZED ACTION
-- Produce the P132/Hany forensic report in `doc/Draft/Hany/` preserving all findings, successful and failed approaches, and the exact next repair plan.
-- After report creation, update this file again to record the report commit and final P132 state.
-- Then pursue only the still-open closure units supported by direct evidence: deployment lineage, runtime/browser certification, active-consumer/writer matrices, tenant/security regression, and the remaining Production data-provenance unknowns.
-- Do not repeat clean-room reconstruction, zero-job workflow retries, monolithic target replacement, or historical-module replacement unless new direct evidence changes the diagnosis.
+- Establish the actual deployed application artifact identity and public runtime URL through direct deployment evidence.
+- Then perform browser/runtime certification for login/session/tenant context and the three specialized report routes.
+- Then continue only with closure units supported by direct evidence: active consumers/writers, deployment lineage, tenant/security regression, and remaining Production provenance unknowns.
+- Do not repeat clean-room reconstruction, zero-job workflow retries, monolithic target replacement, historical-module replacement, or the already-corrected report-route patch unless new direct evidence changes the diagnosis.
+- Update this file after each subsequent real operation.
 
 Do not delete historical reports.
 Do not revert to clean-room reconstruction.
