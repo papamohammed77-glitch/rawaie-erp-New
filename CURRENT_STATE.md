@@ -149,3 +149,30 @@
 - Do not call something `Closed`, `Gold`, `Diamond`, or `Complete` without current evidence.
 - Do not reopen proven-closed work without new direct evidence.
 - Do not let historical stage numbers drive current execution.
+
+## P125 — NEW CTO CONTINUITY / FORENSIC REPAIR ROUND — 2026-09-01
+### P125-01 — MEMORY_RECOVERY_AND_LATEST_EVENT_RECONCILIATION
+- `MASTER - RAWAEA ERP.md` was read completely before execution.
+- `تقرير تنفيذي 6` is the latest Hany execution report currently visible; it confirms that prior target repairs persisted and that the unresolved blocker is exact-target runtime proof.
+- Current `CURRENT_STATE.md` was read before the new investigation.
+- Direct Git history for `Current/PWA/New-main` was inspected. The latest product-target commit is `a5b7aa69f173da5002105023676b1eada0a87c42` (`[new-main-notification-persist] MAIN1 notification contract closure`). Earlier commits explicitly persisted MAIN1 through MAIN11 contracts.
+- The current target blob is `d657d6e4bdd90a9b60f658a8bf28560e1b10f755`.
+- The existing artificial `TEMP GOLD DIAMOND TARGET EXECUTOR` workflow was inspected and is not an acceptable verification path because it can mutate the target to add closure markers. It will not be used to manufacture proof.
+- Supabase direct read confirms the governed production core is active and healthy; no new production mutation was required during this round.
+- The direct Prompt-124 path remains unavailable as a Git blob. Its absence is retained as an evidence limitation rather than reconstructed from memory.
+
+### P125-02 — REPAIR_STRATEGY
+The large obstacle is explicitly decomposed rather than attacked as one rewrite:
+1. Verify the exact target orchestration contract against MAIN10/MAIN11 source contracts.
+2. Verify session/auth fail-closed behavior against Current MAIN1.
+3. Verify delegated module handlers and route-to-module bindings in the target.
+4. Run independent syntax/static checks against the exact target blob.
+5. Establish an exact-target browser/runtime execution route without changing the verifier to force green.
+6. For any proven defect, make one target-only surgical fix, re-hash the target, and update this file immediately.
+7. Recheck Supabase/RLS/Edge compatibility after any behavior-changing target edit.
+8. Final self-audit, evidence reconciliation, Hany final report, then only if all gates pass declare CLOSED/GOLD/DIAMOND/COMPLETE.
+
+### P125-03 — CURRENT DECISION
+- No target code has been modified in this round yet.
+- The currently known absence of literal `showFinanceTab` and `RW_GOLD_DIAMOND_PARITY` is not itself accepted as a defect; both are only meaningful if the effective target navigation/route behavior fails the governed source contract.
+- The next authorized operation is direct effective-navigation and route-binding verification on the exact target artifact.
