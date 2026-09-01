@@ -4,6 +4,8 @@ import re
 import subprocess
 import tempfile
 
+# P124 surgical continuation: trigger the existing clean-room persistence pipeline;
+# no reconstruction, no overlay, no new artifact class, Browser E2E remains paused.
 TARGET = Path('Current/PWA/New-main')
 LEGACY = Path('Current/PWA/main.html')
 CURRENT_MAIN1 = Path('Current/PWA/main/main1.md')
