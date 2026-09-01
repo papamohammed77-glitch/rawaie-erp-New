@@ -157,6 +157,53 @@ Current/core.js
 هذا المبدأ موثق تفصيليًا في:
 `Current/CTO/20260828_VOUCHERS_CORE_SINGLE_SOURCE_GOVERNANCE.md`
 
+مبدأ إضافي حاكم — PWA Source-to-Publish Mapping
+
+المصدر الحاكم للإصدار هو Git في `rawaie-erp-New/Current/PWA`، بينما `erp-frontend/companies/company-1` هو مرآة نشر يتم تحديثها يدويًا بواسطة المالك.
+
+الربط الرسمي غير قابل للتخمين:
+
+`Current/PWA/New-main`
+    →
+`erp-frontend/companies/company-1/main.html`
+
+وجميع الملفات الأخرى تحت:
+
+`Current/PWA/<filename>`
+    →
+`erp-frontend/companies/company-1/<filename>`
+
+ويجب عدم اعتبار أي ملفين "مرتبطين" أو "متطابقين" من الاسم فقط. إثبات التطابق أو الانحراف يكون بالمحتوى أو SHA من المصدرين مباشرة.
+
+القواعد التنفيذية لهذا الربط:
+
+1. لا تُعدّل النسخة المنشورة باعتبارها Source of Truth.
+2. أي تعديل يبدأ من `Current/PWA` ثم يُنقل يدويًا إلى مستودع النشر.
+3. قبل أي Copy/Paste يجب الاحتفاظ بنسخة rollback من الملف المنشور الحالي.
+4. لا يُطلب من المالك نشر ملف لمجرد ظهوره ضمن Current؛ تُنشر فقط الملفات التي ثبت تغيرها بالمقارنة المباشرة.
+5. يجب أن ينتهي كل تقرير تنفيذي بقائمة صريحة للملفات المطلوب نقلها يدويًا.
+6. لا يُعتبر Git success أو CI success أو تطابق Current مع نفسه دليلًا على نجاح Cloudflare؛ النجاح النهائي يحتاج artifact منشورًا وRuntime proof من URL الفعلي.
+7. وجود ملف دعم صحيح مثل `sw.js` أو `register-sw.js` في Git لا يعالج تلقائيًا خطأ مسار من داخل `main.html`؛ يجب تتبع URL الفعلي الناتج في المتصفح.
+8. أي Drift بين Current/PWA و`erp-frontend/companies/company-1` يُسجل كـdeployment drift، ولا يُعالج بحذف أحد المصدرين أو اختراع نسخة ثالثة.
+
+مبدأ إضافي حاكم — No Silent Rollback / Reconstruction Continuity
+
+لا يجوز اعتبار إصلاح سابق مستمرًا لمجرد أن أداة الإصلاح ما زالت موجودة.
+
+في كل جولة يجب مطابقة:
+
+CURRENT GIT ARTIFACT
++
+LAST EXECUTED COMMIT
++
+LAST VERIFIED REPORT
++
+PRODUCTION/PUBLISHED ARTIFACT
+
+لأن `revert` أو commit لاحق قد يعيد Artifact قديمًا مع بقاء أدوات الإصلاح في المستودع.
+
+أي Revert أو حذف لجزء من إصلاح سابق يجب أن يظهر صراحةً في Git history وفي التقرير التالي، ويجب ألا يُخفى داخل إعادة بناء لاحقة.
+
 قاعدة أعلى من الجميع
 
 الدراسة تسبق التعديل.
