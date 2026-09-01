@@ -6,10 +6,11 @@ import subprocess
 import tempfile
 
 # P143-FINAL-RETRIGGER: build authorized Current/PWA/New-main only after fragment normalization.
+# P144-AUTHORIZED-TRIGGER: this comment deliberately retriggers the governed assembly after retiring stale push executors.
 MAIN = Path('Current/PWA/New-main')
 CUR = Path('Current/PWA/main')
 PARTS = [CUR / f'main{i}.md' for i in range(1, 12)]
-SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpaWxtb2tnZ3Vtb2t4YW53aXl4IiwiaWF0IjoxNzc4NzA5MDkyLCJleHAiOjIwOTQyODUwOTJ9.LZScCxnCiRrTSCCBmTryszQpY1AwBgR2dkTBbC5kOc4'
+SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpaWxtb2dnZ3Vtb2t4YW53aXl4IiwiaWF0IjoxNzc4NzA5MDkyLCJleHAiOjIwOTQyODUwOTJ9.LZScCxnCiRrTSCCBmTryszQpY1AwBgR2dkTBbC5kOc4'
 
 
 def fp(text):
