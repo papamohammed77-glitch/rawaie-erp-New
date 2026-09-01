@@ -1,12 +1,13 @@
-// sw.js – إصدار 3.0 AUTO-UPDATE FINAL
+// sw.js – إصدار 3.1 AUTO-UPDATE FINAL
 // RAWAEA ERP — Production Service Worker
 // Contract:
-// - HTML/navigation/API/runtime code: Network Only.
-// - Static presentation assets: versioned Cache First.
-// - Every new SW build activates immediately and reloads all app windows in-scope.
+// - HTML/navigation/API/runtime code are network-backed and never cached.
+// - The shared update coordinator is injected into HTML controlled by this SW.
+// - Static presentation assets use a versioned cache.
+// - Every new SW build activates immediately and reloads in-scope windows.
 // - No authentication or business-data caching.
 
-var SW_BUILD = 'RAWAEA_SW_P150_AUTO_UPDATE';
+var SW_BUILD = 'RAWAEA_SW_P151_AUTO_UPDATE_COORDINATOR';
 var STATIC_CACHE = 'rw-static-' + SW_BUILD;
 var STATIC_EXTENSIONS = ['.css', '.woff', '.woff2', '.ttf', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.webp'];
 var MAX_STATIC_ITEMS = 200;
@@ -31,7 +32,7 @@ function activateAndReloadClients() {
                 if (!isInScopeClient(client)) continue;
                 if (typeof client.navigate === 'function') {
                     tasks.push(client.navigate(client.url).catch(function(error) {
-                        console.warn('[SW] Auto-reload failed for client:', error);
+                        console.warn('[SW] Auto-reload failed:', error);
                     }));
                 }
             }
@@ -100,13 +101,48 @@ function putStatic(cache, request, response) {
     });
 }
 
+function injectUpdateCoordinator(response) {
+    if (!response || response.status !== 200) return response;
+    var contentType = response.headers.get('content-type') || '';
+    if (contentType.indexOf('text/html') === -1) return response;
+
+    return response.text().then(function(html) {
+        if (html.indexOf('RAWAEA_UPDATE_COORDINATOR') !== -1) return response;
+
+        var scopeUrl = new URL(self.registration.scope);
+        var coordinatorUrl = new URL('register-sw.js', scopeUrl).pathname;
+        var script = '<script id="RAWAEA_UPDATE_COORDINATOR" src="' + coordinatorUrl + '"></script>';
+        var marker = html.indexOf('</head>');
+        if (marker >= 0) {
+            html = html.slice(0, marker) + script + html.slice(marker);
+        } else {
+            html = script + html;
+        }
+
+        var headers = new Headers(response.headers);
+        return new Response(html, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: headers
+        });
+    }).catch(function(error) {
+        console.warn('[SW] coordinator injection skipped:', error);
+        return response;
+    });
+}
+
 self.addEventListener('fetch', function(event) {
     var request = event.request;
     if (request.method !== 'GET') return;
     var url = new URL(request.url);
 
-    if (isAPIRequest(url) || isHTMLRequest(request) || isRuntimeRequest(url)) {
+    if (isAPIRequest(url) || isRuntimeRequest(url)) {
         event.respondWith(fetch(request));
+        return;
+    }
+
+    if (isHTMLRequest(request)) {
+        event.respondWith(fetch(request).then(injectUpdateCoordinator));
         return;
     }
 
