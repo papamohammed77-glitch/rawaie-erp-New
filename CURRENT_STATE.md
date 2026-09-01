@@ -170,3 +170,190 @@ immediate + periodic update checks
 This removes the historical requirement for manual cache clearing and the old manual "Update now" interaction.
 
 The only remaining gap is external to the source change itself: direct proof that the live Cloudflare Worker is now serving P151 and that real user devices have consumed the new deployment. Until that runtime fact is observed, `CLOSED_100_PERCENT` remains `NO`.
+
+## P152 — FORENSIC AUTH / DEPLOYMENT RECONCILIATION — 2026-09-02
+
+### Scope
+This closure unit was executed from the Master Continuity command rather than from memory or previous percentages. The following were reconciled directly:
+- Master governance command;
+- continuation directive;
+- Reports 9–11 and the complete report directory listing;
+- `CURRENT_STATE.md`;
+- `Current/PWA/New-main`;
+- `Current/PWA/sw.js`;
+- `Current/PWA/register-sw.js`;
+- `Current/Edge_Functions/create-stock-voucher`;
+- `Current/Edge_Functions/receive-purchase`;
+- `Current/CTO/20260901_P144_RUNTIME_SURGICAL_REPAIR.json`;
+- `erp-frontend/companies/company-1/main.html`;
+- `erp-frontend/companies/company-1/sw.js`;
+- `erp-frontend/companies/company-1/register-sw.js`;
+- `erp-frontend/README.md`;
+- Production Supabase Auth/API/Postgres evidence;
+- Git history/status evidence available to the executor.
+
+### Current ↔ Published main artifact
+Direct Git blob comparison proved:
+
+```text
+Current/PWA/New-main
+SHA = 5bf6907747d807dfa9f10979f5a63685c8bae64e
+
+erp-frontend/companies/company-1/main.html
+SHA = 5bf6907747d807dfa9f10979f5a63685c8bae64e
+```
+
+Therefore the two files are byte-identical Git blobs. There is no remaining manual copy operation for the owner to perform between these repositories.
+
+### P151 source proof
+Current and Published Service Workers contain the P151 marker:
+
+```text
+RAWAEA_SW_P151_AUTO_UPDATE_COORDINATOR
+```
+
+Current and Published `register-sw.js` contain the permanent update coordinator behavior.
+
+### Production Supabase Auth proof
+Production project `fiilmooggumokxanwiyx` remains active and exposes both:
+- legacy `anon` key: enabled;
+- publishable key: enabled.
+
+No evidence justified replacing the current key in source.
+
+Production Auth logs also prove a real successful login from:
+
+```text
+https://erp-frontend.mh0537413487.workers.dev
+```
+
+at:
+
+```text
+2026-09-01T16:16:33Z
+```
+
+with `/token = 200`, Login event, and `/user = 200` shortly after.
+
+Therefore the current `401 Invalid API key` cannot be attributed solely to a globally invalid Supabase key without contradicting direct Production evidence.
+
+### Browser failure remains real
+The new browser evidence still reports:
+
+```text
+POST /auth/v1/token?grant_type=password → 401
+AuthApiError: Invalid API key
+```
+
+This is a genuine Auth-layer rejection and remains unresolved at live-runtime level.
+
+### Runtime lineage finding
+The live runtime hostname observed in Auth logs is a Cloudflare Worker hostname:
+
+```text
+erp-frontend.mh0537413487.workers.dev
+```
+
+`erp-frontend` identifies itself in Git as a Cloudflare Pages frontend. The current execution environment has no direct Cloudflare control-plane connector capable of inspecting the Worker source, deployment version, environment bindings, route mapping, or exact served artifact.
+
+Therefore the unresolved lineage is:
+
+```text
+Git source
+   ↓
+Published repository
+   ↓
+[UNVERIFIED DEPLOYMENT BRIDGE]
+   ↓
+Cloudflare Worker live artifact
+   ↓
+Browser
+```
+
+### Important correction
+The console marker:
+
+```text
+RAWAEA_P135_TARGET New-main
+```
+
+is **not** treated as proof of a stale P135 artifact because the marker remained part of the `New-main` source across later stages. Using it as sole stale-runtime evidence would violate the no-assumption rule.
+
+### Current Edge evidence relevant to Inventory
+`Current/Edge_Functions/create-stock-voucher` is now a company-context wrapper and routes creation through the manual voucher RPC instead of being a standalone Physical Stock writer.
+
+`Current/Edge_Functions/receive-purchase` now obtains company context from the authenticated user and carries a deterministic/client-supplied `operation_id` into `receive_purchase_atomic`.
+
+These are source findings only; no Inventory Writer is marked 100% closed without independent Production runtime verification.
+
+### What was intentionally NOT changed in P152
+Because no defect was proven in the source Login call and no global Supabase key defect was proven, P152 did not:
+- replace the Supabase key;
+- rewrite `signInWithPassword`;
+- add a fallback authentication path;
+- disable JWT/auth verification;
+- modify protected `Current/PWA/main.html`.
+
+### P152 error / correction record
+- Risk initially identified: interpreting the P135 marker as proof of stale runtime. Corrected after source/history reconciliation.
+- Unsupported hypothesis rejected: changing the Supabase key merely because the browser reported `Invalid API key`.
+- Unsupported hypothesis rejected: rewriting the login call without a proven defect.
+- External inspection limitation: Cloudflare Worker deployment/source could not be read through the available connectors. This remains an evidence boundary, not a fabricated success.
+
+### P152 report
+Full forensic record:
+
+```text
+doc/Draft/Reprots/تقرير12.md
+```
+
+Report commit:
+
+```text
+9ccd822a02c6d6e40552ce4817cb8568c458f06e
+```
+
+## P152 STATUS FLAGS
+```text
+P152_GOVERNANCE_REVIEW             = VERIFIED
+P152_REPORT_CREATED                = VERIFIED
+P152_REPORT_HISTORY_PRESERVED      = VERIFIED
+CURRENT_MAIN_BLOB                  = 5bf6907747d807dfa9f10979f5a63685c8bae64e
+PUBLISHED_MAIN_BLOB                = 5bf6907747d807dfa9f10979f5a63685c8bae64e
+CURRENT_PUBLISHED_MAIN_MATCH       = VERIFIED
+CURRENT_P151_SW                    = VERIFIED_IN_GIT
+PUBLISHED_P151_SW                  = VERIFIED_IN_GIT
+CURRENT_REGISTER_COORDINATOR       = VERIFIED_IN_GIT
+PUBLISHED_REGISTER_COORDINATOR     = VERIFIED_IN_GIT
+SUPABASE_PROJECT                   = ACTIVE_HEALTHY
+SUPABASE_LEGACY_ANON               = ENABLED
+SUPABASE_PUBLISHABLE               = ENABLED
+SAME_WORKER_SUCCESSFUL_AUTH        = PROVEN_2026-09-01T16:16:33Z
+CURRENT_BROWSER_AUTH               = OPEN / 401_INVALID_API_KEY
+RW_AUTH_SOURCE_DEFECT              = NOT_PROVEN
+LIVE_WORKER_ARTIFACT               = UNREADABLE_HERE
+LIVE_WORKER_DEPLOYMENT             = UNVERIFIED
+GIT_TO_WORKER_LINEAGE              = UNPROVEN
+P152_AUTH_CLOSURE                  = OPEN
+GLOBAL_INVENTORY_100_PERCENT       = NO
+CLOSED_100_PERCENT                 = NO
+```
+
+## REQUIRED NEXT CLOSURE
+The next closure unit must be **CLOUDFLARE RUNTIME ARTIFACT RECONCILIATION**, not another speculative Login patch.
+
+Required proof:
+1. exact Worker route and deployment/version;
+2. exact Worker source/environment binding without exposing secrets;
+3. live served main artifact fingerprint compared with Git SHA `5bf6907747d807dfa9f10979f5a63685c8bae64e`;
+4. live P151 Service Worker marker;
+5. live register coordinator;
+6. compatibility routes;
+7. fresh browser Login after verified live deployment;
+8. no new uncaught console error.
+
+Until then:
+
+```text
+CLOUDFLARE_RUNTIME_AUTH_CLOSURE = OPEN
+```
