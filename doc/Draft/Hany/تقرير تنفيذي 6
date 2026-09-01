@@ -1,0 +1,216 @@
+تم استنفاذ المسارات المتاحة فعليًا، وتم تنفيذ إصلاحات حقيقية في GitHub وSupabase، وليس مجرد تعديل تقارير أو إضافة علامات إغلاق.
+
+ما تم إنجازه فعليًا
+1. تم تشخيص سبب الحلقة السابقة
+
+المشكلة لم تكن غياب MAIN1. التقرير نفسه يثبت أن معظم العقود كانت موجودة، لكن التنفيذ كان يدور بسبب:
+
+CURRENT_STATE.md المتأخر عن الواقع.
+خلط Git/CI/Browser/Production وكأنها دليل واحد.
+الانزلاق من MAIN1 إلى reconstruction وcross-cutting fixes.
+استخدام Overlay Contracts بدل إثبات السلوك.
+وجود طبقات وإعادة تعريفات متعددة جعلت “آخر تعريف JavaScript” هو العامل الفعلي.
+أدوات التحقيق نفسها كانت تتغير أثناء التحقيق.
+والأهم: وجود dependency حقيقية لـMAIN1 كان تتجاوز قاعدة المخزون المركزية.
+
+هذه الأسباب متسقة مع التشخيص الوارد في التقرير الأصلي.
+
+2. تم إصلاح مشكلة Production حقيقية
+
+اكتشفت أن save-item كان يكتب:
+
+stock_branches
+
+مباشرة عند إضافة الرصيد الافتتاحي، بدل المرور بمحرك المخزون المركزي:
+
+post_stock_movement
+
+وهذا كان يمثل Second Stock Mutation Path.
+
+تم إصلاحه فعليًا.
+
+الآن:
+
+save-item v11
+→ يتحقق من Auth
+→ يستخرج company_id من هوية المستخدم
+→ يتحقق من الفرع
+→ يستدعي create_item_with_opening_stock()
+→ والـRPC ينفذ إنشاء الصنف + InventoryIncrease عبر post_stock_movement داخل Transaction واحدة.
+
+والـRPC نفسه:
+
+SECURITY DEFINER
+غير قابل للتنفيذ من public
+قابل للتنفيذ من service_role
+
+وقد تم اختبار rollback فعليًا داخل Production transaction؛ الدالة نجحت، ثم تم ROLLBACK، وبعدها:
+
+test_items = 0
+test_logs = 0
+
+أي أن الاختبار لم يترك بيانات اصطناعية.
+
+3. تم إصلاح طبقة أمان أخرى في Production
+
+وجدت سياسات:
+
+public ALL
+
+على:
+
+workflow_rules
+workflow_log
+notification_templates
+
+وتم استبدالها بسياسات authenticated-only متوافقة مع استخدام MAIN1.
+
+كما تم التحقق لاحقًا من عدم بقاء public ALL.
+
+وهذا يتوافق مع النموذج الأمني في الأنظمة المؤسسية: Odoo يعتمد على record rules المرتبطة بـcompany_id/company_ids، وSalesforce يبني الوصول من طبقات صلاحيات وسجلات مع baseline مقيد ثم فتح الوصول صراحةً.
+
+4. تم التحقق من Core Production
+
+تم التأكد من وجود وتشغيل:
+
+post_stock_movement
+reserve_stock
+post_journal_entry
+
+كـSECURITY DEFINER.
+
+كما تم التحقق من Edge Functions الأساسية، ومنها:
+
+save-item → v11 ACTIVE
+save-customer → v3 ACTIVE
+log-action → v2 ACTIVE
+
+وجميعها محمية بـJWT.
+
+5. تم إكمال MAIN1 forensic mapping
+
+تمت مقارنة:
+
+Original MAIN1
+→ Current MAIN1
+→ Current/PWA/New-main
+
+والنتيجة المثبتة:
+
+لا يوجد MAIN1 contract مفقود مثبت بالأدلة داخل New-main.
+
+ويحتوي الهدف بالفعل على العقود الأساسية، ومنها:
+
+RW_ShellContext
+RW_OwnerLicense
+RW_Views
+RW_Dashboard
+RW_Items
+RW_POS
+RW_Orders
+RW_Runsheets
+RW_Purchases
+RW_Warehouse
+RW_Finance
+RW_Reports
+RW_HR
+RW_CRM
+
+وكذلك notification contract:
+
+_renderAndSave
+_updateBadge
+markRead
+_clickNotif
+
+6. تم الحفاظ على Freeze
+
+لم يتم العبث بـ:
+
+Current/PWA/New-main
+
+والبصمة المجمدة ما زالت:
+
+d657d6e4bdd90a9b60f658a8bf28560e1b10f755
+
+وهذا مهم جدًا: لم أقم بنسخ MAIN1، ولم أعد بناء New-main، ولم أعد تشغيل reconstruction.
+
+7. تم تحديث CURRENT_STATE.md
+
+أصبح CURRENT_STATE.md الآن Event Ledger فعليًا وليس مجرد Status Report.
+
+آخر commit:
+
+e576c76890d39f962e4fe918871886f370d3d7af
+
+ويتضمن:
+
+Root Cause Study
+P123-001 → P123-008
+Production mutations
+Edge versions
+rollback evidence
+security evidence
+target freeze
+closure matrix
+known blockers
+next authorized action
+
+والملف أصبح صريحًا بشأن الفرق بين:
+
+STATIC PASS
+PRODUCTION PASS
+BROWSER PASS
+
+بدل دمجها في نتيجة واحدة.
+
+النتيجة الحالية
+البند	الحالة
+قراءة Prompt 123 كاملًا	✅
+تحليل أسباب الفشل	✅
+State Reconciliation	✅
+Target Freeze	✅
+Original MAIN1	✅
+Current MAIN1	✅
+New-main Mapping	✅
+MAIN1 Static Contract	✅
+Production Security	✅
+Stock Authority	✅
+Atomic Item Creation	✅
+Rollback Test	✅
+Edge Deployment	✅
+Git State Ledger	✅
+Browser Runtime	⏳
+Authenticated Browser E2E	⏳
+نقطة واحدة فقط تمنعني من كتابة CLOSED 100%
+
+Browser Runtime Evidence على الـartifact نفسه.
+
+ليس لأنني أعلنت فشل التنفيذ؛ بالعكس، تم تجاوز الجزء البرمجي والـProduction الذي كان يمكنني الوصول إليه.
+
+لكن البيئة الحالية لا توفر لي browser runner موثوقًا بجلسة Auth حقيقية، كما أن شبكة التنفيذ المحلية لا تستطيع الوصول إلى artifact المنشور. ولم أعثر على Browser PASS سابق مرتبط بالبصمة المجمدة نفسها.
+
+لذلك كتابة:
+
+CLOSED 100% / GOLD / DIAMOND / COMPLETE
+
+الآن ستكون تزييفًا للدليل، وهو تحديدًا الخطأ الذي عالجه Prompt 123.
+
+والأفضل هندسيًا هو أن يبقى CURRENT_STATE.md على:
+
+TECHNICALLY_RECONCILED; PRODUCTION_HARDENED; STATIC_MAIN1_CLOSED; BROWSER_RUNTIME_GATE_PENDING
+
+بدل أن نحصل على “100%” وهمية.
+
+روابط الحالة
+
+CURRENT_STATE.md
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/CURRENT_STATE.md
+
+New-main
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Current/PWA/New-main
+
+Prompt 123 + التقرير
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/medhat/%D8%A8%D8%B1%D9%88%D9%85%D8%A8%D8%AA%20123%2B%D9%85%D9%84%D8%AD%D9%82%20%D8%AA%D9%82%D8%B1%D9%8A%D8%B1
+
+الخلاصة CTO: لم نتوقف، ولم نعلن فشلًا. تم الوصول إلى إغلاق Static + Production حقيقي، وتم اكتشاف وإزالة blocker معماري لم يكن ظاهرًا في الفحص السطحي. البوابة الوحيدة المتبقية هي إثبات السلوك في متصفح موثّق على النسخة نفسها؛ ولا يوجد أساس مهني يسمح بتسمية المشروع CLOSED 100% قبل ذلك.
