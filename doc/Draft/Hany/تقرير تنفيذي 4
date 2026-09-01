@@ -1,0 +1,105 @@
+النتيجة الفعلية حتى هذه اللحظة
+
+نفذت التحقيق وفق منهج MASTER وبرومبت + تقرير 122، وليس اعتمادًا على التقرير السابق أو الذاكرة. وتمت مراجعة تسلسل المهمة حتى آخر أمر تنفيذي في 122.
+
+ما تم إثباته وإغلاقه
+المجال	النتيجة
+MAIN1 → MAIN11 داخل New-main	PRESENT
+Navigation parity الأساسي	PATCHED
+Owner semantics	PATCHED + Production VERIFIED
+License entry/route	PATCHED
+CRM entry/route	PATCHED
+Users / Roles placement	PATCHED
+Production current_user_has_permission()	PATCHED + VERIFIED
+Static JS/HTML validation	PASS
+
+تحديدًا، Current/PWA/main/main1.md يثبت ترتيب عناصر الإدارة: HR → CRM → Users → Roles → License(owner) → Settings، وتم تطبيق ذلك في New-main.
+
+والتعديل الفعلي على New-main موجود في commit:
+
+31d4dc3afc4e59dfd9fc5ec90c4c982ee4d310dc
+
+وهذا الـcommit غيّر Current/PWA/New-main فقط، كما شدد Owner contract وأضاف Navigation/dispatch المطلوبين.
+
+Production
+
+تم التحقيق مباشرة في Production Supabase، وليس في التقرير.
+
+تم إصلاح:
+
+app_private.current_user_has_permission(text)
+
+ليصبح Owner مبنيًا على:
+
+authenticated metadata isOwner
++
+permissions = ['*']
++
+owner_profile
+
+ثم اختُبر بمحاكاة JWT subject داخل PostgreSQL:
+
+Owner → owner = true
+Owner → permission عشوائي = true
+Non-owner → delivery = true
+Non-owner → owner = false
+
+وهذا PASS حقيقي لعقد الصلاحيات.
+
+ما اكتشفناه ولم أعتبره منجزًا
+
+هناك فجوة حقيقية في Notification contract. المصدر الحالي والـOriginal يحتويان:
+
+_clickNotif
+_renderAndSave
+_updateBadge
+markRead
+
+بينما البحث المباشر في New-main لم يثبت وجود هذه العقود بالشكل المطلوب. المصدر نفسه يثبت هذه الوظائف صراحة.
+
+حاولت حقنها داخل New-main مباشرة من خلال مسار التنفيذ، لكن المحاولة فشلت قبل persistence بسبب مرساة إدراج خاطئة في الـrunner؛ لذلك لم أحتسبها إصلاحًا. وهذا مسجل الآن كـOPEN، لا كـPASS.
+
+هناك كذلك:
+
+Audit parity: OPEN
+Session fail-closed: NOT VERIFIED
+Workflow tenant scope: OPEN؛ لأن workflow_rules في Production لا يحتوي company_id، ولذلك لم أخترع schema جديدًا.
+Browser E2E الحقيقي: NOT VERIFIED
+Service Worker / deployment lineage: NOT VERIFIED
+Two-session Production concurrency: NOT VERIFIED
+Security Advisor / بقية hardening: OPEN
+أخطاء المساعدين السابقين التي ثبتت أسبابها
+
+ظهر أثناء التحقيق عدد من الأخطاء المهمة، وتم تجنب تكرارها:
+
+RW_Table كان يحتوي escaping مكسورًا تسبب في SyntaxError.
+MAIN2 السابق كان compact patch وليس دمجًا حقيقيًا؛ أُعيد إدخاله من المصدر authoritative.
+MAIN5 كان يُرفض بسبب validator يعتبر نصوص HTML داخل JavaScript wrappers.
+Browser harness كان يعامل New-main كـdownload لأنه بلا extension.
+اختبار Production قديم كان يستدعي verifier متقاعدًا وأعاد HTTP 410; وهذا ليس عيبًا في New-main.
+محاولة Notification الأخيرة فشلت في الـrunner قبل الكتابة؛ لذلك لم أحتسبها إنجازًا.
+حالة المشروع الآن
+
+حدثت أيضًا CURRENT_STATE.md لتسجيل الحقيقة الحالية بدل ترك السجل القديم يكرر معلومات غير صحيحة. commit تحديث الحالة:
+
+e13d9e008b121500663b8544a28f22367bd68a41
+
+والحالة المسجلة فيه صراحة:
+
+MAIN1_TO_MAIN11 = PRESENT
+NAVIGATION = PATCHED
+OWNER = PATCHED + PRODUCTION_VERIFIED
+LICENSE = PATCHED
+CRM = PATCHED
+USERS_ROLES = PATCHED
+NOTIFICATION = OPEN
+AUDIT = OPEN
+SESSION = NOT VERIFIED
+WORKFLOW_SCOPE = OPEN
+BROWSER = NOT VERIFIED
+PRODUCTION_E2E = NOT VERIFIED
+GOLDEN_DIAMOND = NOT CERTIFIED
+
+وهذا يتفق تمامًا مع شرط 122 الذي يمنع إعلان GOLD / DIAMOND / COMPLETE ما لم تُثبت Navigation + Function + Owner + License + Permission + Tenant + Router + Production + Runtime.
+
+إذًا: لم أصل بعد إلى Closed 100%، ولن أزيف ذلك. وصلت فعليًا إلى إغلاق جوهري لـNavigation/Owner/License/CRM/Users/Roles، مع Production permission verification، لكن Notification/Audit/Session/Browser/Deployment ما زالت مثبتة كفجوات حقيقية وليست مجرد فجوات تقريرية
