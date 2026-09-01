@@ -1,0 +1,29 @@
+تم تنفيذ الجولة كـ CTO forensic continuation وليس كإعادة بدء.
+
+ما تم إنجازه فعليًا
+تمت إعادة قراءة حزمة الاسترجاع، CURRENT_STATE.md، Prompt 124، وتقرير Hany 7، ثم إعادة بناء التسلسل من Git وSupabase بدل الاعتماد على الذاكرة أو التقارير.
+تم تثبيت أن Current/PWA/New-main يحتوي عقود MAIN1 الأساسية، بما فيها:
+RW_ShellContext, RW_OwnerLicense, RW_Views, RW_Dashboard, RW_Items, RW_POS, RW_Orders, RW_Runsheets, RW_Purchases, RW_Warehouse, RW_Finance, RW_Reports, RW_HR, RW_CRM، وعقد الإشعارات الأربعة.
+تم التحقق من Production: post_stock_movement, reserve_stock, post_journal_entry موجودة كـSECURITY DEFINER، مع RLS على الجداول التشغيلية.
+تم اكتشاف نقص برمجي حقيقي في Bulk Stock Upload: الواجهة كانت ترسل item_code وqty بدون item_id، بينما الـEdge Function يعتمد على item_id.
+تم بناء إصلاح جراحي لهذا المسار، وأثبت GitHub Actions في runner تنفيذ الإصلاح فعليًا، مع بصمة مؤقتة للـartifact:
+612c7cb3323b0be6a767781388cd746ac27af8c06ffe31203650393f2b5e470d.
+تم إصلاح مشكلة أخرى في أداة التحقق نفسها: parser كان يخلط </script> الموجودة داخل HTML المولد من JavaScript مع إغلاق script الحقيقي.
+تم تحويل مسار التحقق إلى Surgical / No Reconstruction / No Overlay / Browser E2E Paused.
+تم تحديث CURRENT_STATE.md إلى P124-009 وتسجيل كل ذلك بشكل صريح.
+تم إجراء cross-check معماري مع Odoo وSAP، والاتجاه المؤكد هو أن تعديلات المخزون يجب أن تمر كـstock/document movements عبر محرك مركزي، لا عبر كتابات مباشرة متفرقة.
+النتيجة الصادقة الآن
+
+لم أضع GOLD / DIAMOND / COMPLETE عمدًا.
+
+السبب ليس فشلًا جديدًا في النظام، بل لأن هناك نقطتين لم أستطع إثباتهما نهائيًا من خلال الأدوات المتاحة:
+
+أن الإصلاح الناتج في runner انتقل فعلًا إلى Git blob النهائي لـCurrent/PWA/New-main على main.
+Browser E2E مطلوب أصلًا للإغلاق النهائي، وأنت طلبت صراحةً تعليقه مؤقتًا، لذلك لا يجوز تحويله إلى PASS اصطناعي.
+
+والأهم: CURRENT_STATE.md نفسه الآن يسجل ذلك صراحة، بما في ذلك قاعدة عدم الادعاء بـClosed 100% دون دليل.
+
+إذن الحالة الحالية ليست “فشل”.
+هي: Surgical repair executed → verifier corrected → production architecture verified → final artifact persistence still unproven → Browser E2E intentionally paused.
+
+وهذا هو آخر وضع موثق قابل للاستئناف دون إعادة العمل من الصفر.
