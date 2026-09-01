@@ -2525,7 +2525,7 @@ window.RW_TeleSales = RW_TeleSales;
         return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
       });
     }
-    function escJs(v){ return text(v).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,' '); }
+    function escJs(v){ return text(v).replace(/\\/g,'\\\').replace(/'/g,"\'").replace(/\r?\n/g,' '); }
     function id(x){ return byId(x); }
     function money(v){ return Number(v||0).toLocaleString(); }
     return {companyId:companyId,token:token,esc:esc,escJs:escJs,id:id,money:money};
@@ -2595,7 +2595,7 @@ window.RW_TeleSales = RW_TeleSales;
       f.forEach(function(it){
         var code=js(it.item_code),qty=Number(cart[it.item_code]||0),img=it.image_url||fallbackImage();
         h+='<div class="bg-white rounded-xl p-3 border cursor-pointer shadow-sm hover:shadow-md" onclick="RW_OnlineStore._showProduct(\''+code+'\')">';
-        h+='<img src="'+esc(img)+'" class="w-full h-35 object-cover rounded-lg mb-2" onerror="this.src=\''+fallbackImage().replace(/'/g,"\\'")+'\'">';
+        h+='<img src="'+esc(img)+'" class="w-full h-35 object-cover rounded-lg mb-2" onerror="this.src=\''+fallbackImage().replace(/'/g,"\'")+'\'">';
         h+='<div class="font-bold text-sm">'+esc(it.name)+'</div><div class="font-black text-blue-600 mb-2">'+money(it.sales_price)+' EGP</div>';
         if(qty===0){
           h+='<button onclick="event.stopPropagation();RW_OnlineStore._addToCart(\''+code+'\')" class="bg-blue-600 text-white w-full py-1 rounded-lg text-sm font-bold">إضافة للسلة</button>';
