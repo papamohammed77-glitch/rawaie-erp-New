@@ -60,19 +60,12 @@ jobs:
               if n != 1:
                   raise SystemExit(f'P133_KEY_ANCHOR_EXPECTATION_FAIL:{n}')
 
-              old_check = "if (!window.supabase || !window.supabase.auth) {"
-              new_check = "if (!window.supabase || !supabase || !supabase.auth) {"
-              if old_check not in s:
-                  raise SystemExit('P133_BOOT_CHECK_ANCHOR_MISSING')
-              s = s.replace(old_check, new_check, 1)
+              wrong_auth_refs = s.count('window.supabase.auth')
+              if wrong_auth_refs == 0:
+                  raise SystemExit('P133_NO_WRONG_GLOBAL_AUTH_REFERENCE_FOUND')
+              s = s.replace('window.supabase.auth', 'supabase.auth')
 
-              old_session = "var sessionResult = await window.supabase.auth.getSession();"
-              new_session = "var sessionResult = await supabase.auth.getSession();"
-              if old_session not in s:
-                  raise SystemExit('P133_SESSION_ANCHOR_MISSING')
-              s = s.replace(old_session, new_session, 1)
-
-              if "window.supabase.auth" in s:
+              if 'window.supabase.auth' in s:
                   raise SystemExit('P133_WRONG_GLOBAL_AUTH_REFERENCE_REMAINS')
               if correct_key not in s:
                   raise SystemExit('P133_CORRECT_KEY_MISSING')
@@ -108,7 +101,7 @@ jobs:
               if not branch:
                   raise SystemExit('P133_PR_BRANCH_UNAVAILABLE')
               subprocess.run(['git','push','origin',f'HEAD:{branch}'], check=True)
-              print('P133_TARGET_MUTATION=COMMITTED_AND_PUSHED_TO_PR_BRANCH')
+              print(f'P133_TARGET_MUTATION=COMMITTED_AND_PUSHED_TO_PR_BRANCH; WRONG_AUTH_REFS_REPAIRED={wrong_auth_refs}')
               sys.exit(0)
 
           # Preserve the existing P131 surgical behavior exactly for legacy use.
