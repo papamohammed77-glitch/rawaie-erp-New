@@ -9,11 +9,10 @@ PROTECTED_IDS={'rw-login-page','rw-main-shell','rw-page-container','rw-header-ti
 def H(x):return hashlib.sha256(x.encode('utf-8')).hexdigest()
 def im(h):
  xs=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',h,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
- if len(xs)!=1: raise RuntimeError('INLINE_SCRIPT_COUNT_INVALID:'+str(len(xs)))
+ if len(xs)!=1:raise RuntimeError('INLINE_SCRIPT_COUNT_INVALID:'+str(len(xs)))
  return xs[0]
 def js(h):return im(h).group('b')
 def source_js(raw):
- """Read a fragment as inline JS when available, otherwise as logical JS/HTML source."""
  try:return js(raw)
  except RuntimeError:
   s=raw.lstrip('\ufeff')
@@ -42,34 +41,46 @@ def bend(s,p):
     if d==0:return i+1
   i+=1
  raise RuntimeError('UNTERMINATED_JS_BLOCK')
+def expr_end(s,start):
+ # start points at the first token of the assigned expression.
+ stack=[];q=None;e=False;lc=False;bc=False;i=start
+ while i<len(s):
+  c=s[i];n=s[i+1] if i+1<len(s) else ''
+  if lc:
+   if c=='\n':lc=False
+  elif bc:
+   if c=='*' and n=='/':bc=False;i+=1
+  elif q:
+   if e:e=False
+   elif c=='\\':e=True
+   elif c==q:q=None
+  else:
+   if c=='/' and n=='/':lc=True;i+=1
+   elif c=='/' and n=='*':bc=True;i+=1
+   elif c in "'\"`":q=c
+   elif c in '([{':stack.append(c)
+   elif c in ')]}':
+    if not stack: raise RuntimeError('EXPR_UNDERFLOW')
+    stack.pop()
+    # IIFE/function expressions often end after a balanced call, followed by ; or newline/window export.
+    if not stack:
+     j=i+1
+     while j<len(s) and s[j].isspace(): j+=1
+     if j<len(s) and s[j]==';': return j+1
+     if s.startswith('window.',j) or (j<len(s) and s[j]=='\n'): return i+1
+  i+=1
+ # Primitive assignment with no delimiters: consume to semicolon/newline.
+ j=s.find(';',start)
+ if j!=-1:return j+1
+ return len(s)
 def fn(s,n):
  m=re.search(r'(?<![\w$])(?:async\s+)?function\s+'+re.escape(n)+r'\s*\([^)]*\)\s*\{',s)
  return None if not m else s[m.start():bend(s,s.find('{',m.start(),m.end()))]
 def var(s,n):
  m=re.search(r'(?m)(?:^|\n)[ \t]*(?:var|let|const)\s+'+re.escape(n)+r'\s*=',s)
  if not m:return None
- st=m.start()+(1 if s[m.start():m.start()+1]=='\n' else 0);i=m.end();stack=[];q=None;e=False;lc=False;bc=False
- while i<len(s):
-  c=s[i];nx=s[i+1] if i+1<len(s) else ''
-  if lc:
-   if c=='\n':lc=False
-  elif bc:
-   if c=='*' and nx=='/':bc=False;i+=1
-  elif q:
-   if e:e=False
-   elif c=='\\':e=True
-   elif c==q:q=None
-  else:
-   if c=='/' and nx=='/':lc=True;i+=1
-   elif c=='/' and nx=='*':bc=True;i+=1
-   elif c in "'\"`":q=c
-   elif c in '({[':stack.append(c)
-   elif c in ')}]':
-    if not stack:raise RuntimeError('JS_BLOCK_UNDERFLOW:'+n)
-    stack.pop()
-   elif c==';' and not stack:return s[st:i+1]
-  i+=1
- raise RuntimeError('JS_VAR_TERMINATOR_MISSING:'+n)
+ st=m.start()+(1 if s[m.start():m.start()+1]=='\n' else 0)
+ return s[st:expr_end(s,m.end())]
 def replace_block(s,k,n,b):
  old=fn(s,n) if k=='fn' else var(s,n)
  if old is not None:return s.replace(old,b,1),old!=b,True
@@ -110,7 +121,7 @@ def validate(h,baseline=None,final=False):
   for x in PROTECTED_IDS:
    if x in baseline and x not in h:raise RuntimeError('PROTECTED_ID_REMOVED:'+x)
 def license_patch(h):
- s=(CUR/'main10.md').read_text(encoding='utf-8-sig');b=var(source_js(s),'RW_OwnerLicense')
+ s=source_js((CUR/'main10.md').read_text(encoding='utf-8-sig'));b=var(s,'RW_OwnerLicense')
  if b and 'btn-save-license-only' not in h:
   p=h.find('var RW_Views=');p=p if p>=0 else h.find('var RW_Navigation=')
   if p<0:raise RuntimeError('LICENSE_ANCHOR_MISSING')
@@ -129,10 +140,10 @@ def main():
  if not TARGET.is_file() or not TARGET.stat().st_size:raise RuntimeError('NEW_MAIN_MISSING')
  if not LEGACY.is_file() or not LEGACY.stat().st_size:raise RuntimeError('LEGACY_MAIN_MISSING')
  baseline=TARGET.read_text(encoding='utf-8');legacy=H(LEGACY.read_text(encoding='utf-8'));chunks=[p.read_text(encoding='utf-8-sig') for p in PARTS];current=baseline
- # Repair the known baseline syntax defect using only the corresponding MAIN1 block.
+ # Baseline syntax repair comes from the authoritative MAIN1 RW_Table block only; it is never written separately.
  tblock=var(source_js(chunks[0]),'RW_Table')
- if tblock and var(source_js(current),'RW_Table'):
-  b0,b1=im(current).start('b'),im(current).end('b');old=var(source_js(current),'RW_Table');newjs=source_js(current).replace(old,tblock,1);current=current[:b0]+newjs+current[b1:]
+ if tblock and var(js(current),'RW_Table'):
+  b0,b1=im(current).start('b'),im(current).end('b');old=var(js(current),'RW_Table');newjs=js(current).replace(old,tblock,1);current=current[:b0]+newjs+current[b1:]
  validate(current,baseline)
  phases=[]
  for idx in range(1,12):
@@ -142,7 +153,9 @@ def main():
   if idx==1:
    current,n=re.subn(r"var owner=!!op\.data\|\|meta\.isOwner===true\|\|meta\.isOwner==='true';","var owner=meta.isOwner===true||meta.isOwner==='true';",current,count=1)
    if n:ops.append('owner:auth-metadata-only')
-  if idx==10:current=license_patch(current);ops.append('license:main10-owner-module')
+  if idx==10:
+   before_license=H(current);current=license_patch(current)
+   if H(current)!=before_license:ops.append('license:main10-owner-module')
   validate(current,baseline)
   after=H(js(current))
   if before==after:raise RuntimeError(f'NO_SURGICAL_DELTA_MAIN{idx}')
