@@ -131,6 +131,12 @@
 - Verify blob/tree/commit identity independently, then perform runtime verification before any Gold/Diamond claim.
 - Do not repeat the failed zero-job workflow path or clean-room reconstruction path.
 
+### P131-07 — SURGICAL_EXECUTOR_PREPARED
+- Created `.github/workflows/p131-new-main-navigation-surgical.yml` in commit `1786eaf9e854dfb2599b5aca63832682ca7234a0`.
+- The new executor always creates a visible Job. It performs no target mutation unless the triggering commit message explicitly contains `[P131-EXECUTE]`.
+- When explicitly triggered, the Job reads `Current/PWA/New-main` from the checkout, applies only two exact string substitutions in the existing file, runs `node --check`, verifies the specialized report routes and permission aliases, then commits and pushes only `Current/PWA/New-main`.
+- This executor is an operational mechanism only; it is not treated as Gold/Diamond evidence.
+
 ## NEXT AUTHORIZED REPAIR
 ### P131 — DIRECT GIT BLOB/TREE TARGET MUTATION
 Goal: apply the already-proven surgical correction to the existing `Current/PWA/New-main` blob without reconstruction.
