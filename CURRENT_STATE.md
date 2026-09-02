@@ -7,7 +7,7 @@
 - `Current/PWA/main.html` is a separate protected artifact; do not replace it by filename similarity.
 - Historical reports must not be deleted or overwritten.
 - No 100% closure without fresh Production/runtime proof.
-- In the present P157 continuity round, the owner authorized direct forensic verification of the latest New-main changes and exact surgical correction instructions.
+- The governing continuity process is: CURRENT_STATE → LAST VERIFIED EVENT → CURRENT GIT → CURRENT PRODUCTION → DEPLOYMENTS/RUNTIME → RECONCILIATION → CURRENT TARGET → SURGICAL CHANGE → VERIFY → CURRENT_STATE UPDATE.
 
 ## HISTORICAL CONTINUITY
 - P133–P151: authentication, deployment, Service Worker, compatibility-route, and auto-update reconstruction/closures as previously recorded.
@@ -17,14 +17,32 @@
 - P154: Original main1 vs `Current/PWA/main.html` comparison; separate artifact scope.
 - P155 / `تقرير16.md`: first direct forensic comparison of `Original/PWA/main/main1.md` vs `Current/PWA/New-main` and initial surgical findings.
 - P156 / `تقرير17.md`: corrected forensic pass focused on actual missing/reduced functions and surgical replacement instructions; no target-code modification in that report.
-- P157 / `تقرير18.md`: direct verification after the owner-side New-main update; SP-NEW-01/02/04 present, SP-NEW-03/04 structurally affected by misplaced CSS text inside body; exact correction documented.
+- P157 / `تقرير18.md`: direct verification after owner-side New-main update; four UI changes were present but password/footer CSS was misplaced in body text.
+- P158 / `تقرير19.md`: direct verification after the subsequent owner-side correction commit; CSS was moved correctly into `<style>`, raw CSS body text was removed, but one `</div>` closing `rw-form-group` remains missing before `rw-login-options`.
 
 ## CURRENT SOURCE IDENTITIES
 - `Original/PWA/main/main1.md` SHA `14b12a471c20ad23a2c18f456dbc4d59783a0d1f`.
 - `Current/PWA/main.html` SHA `27b777528665dcc985809648f006452c861ae36e` was the previous verified identity; do not infer that this remains unchanged solely from history.
-- `Current/PWA/New-main` is the authorized target and has a new latest Git commit `70aaad76c53b6d8fae045e5868938e718b30ee13` as of 2026-09-02 07:18:06 +03:00.
-- The latest New-main commit is titled `Update New-main` and contains the four surgical UI changes from P156/P157 review.
+- `Current/PWA/New-main` current Git blob SHA `963e8a6b498ad4544997339ce5ffbd74b332cb64`.
+- Latest verified commit affecting `Current/PWA/New-main`: `c3871ef49e5ed40c550f23359d75c1e380093dbd`, message `Update New-main`, author timestamp `2026-09-02T04:31:33Z`.
+- Previous target commit `70aaad76c53b6d8fae045e5868938e718b30ee13` was superseded by `c3871ef...`.
+- Latest CURRENT_STATE reconciliation report commit: `5d39122ea73fcceeeb6b3c483bd473bb1ecc2a0d` for `doc/Draft/Reprots/تقرير19.md`.
 - Do not replace `Current/PWA/New-main` with `Current/PWA/main.html` or with Original by filename similarity.
+
+## LAST VERIFIED EVENT
+```text
+EVENT ID        = P158-NEW-MAIN-C3871EF
+EVENT TYPE      = Direct source verification
+UTC TIMESTAMP   = 2026-09-02T04:31:33Z (latest target commit)
+SOURCE          = Current/PWA/New-main + Git history + historical reports + Production migration lineage
+GIT SHA         = c3871ef49e5ed40c550f23359d75c1e380093dbd
+TARGET BLOB     = 963e8a6b498ad4544997339ce5ffbd74b332cb64
+ACTION          = Verify owner-side correction against P157 instructions
+RESULT          = CSS relocation fixed; one HTML wrapper closure remains missing
+EVIDENCE        = direct New-main source + commit diff + report19
+IMPACT          = source is not fully closed; runtime must not be declared passed
+NEXT AUTHORIZED ACTION = add exactly one missing `</div>` before `.rw-login-options`, re-open/verify, then runtime verification
+```
 
 ## INVENTORY CONTINUITY
 Contract remains:
@@ -38,120 +56,108 @@ stock_branches + inventory_log
 `reserve_stock` is reservation-only.
 Direct Production anomalies remain unclosed: 143 `stock_branches` branch/item-company mismatches, 86 `inventory_log` item/company mismatches, and 6 `order_details` item/company mismatches. They were not rewritten without historical/source/business-impact proof.
 
-## P157 — DIRECT VERIFICATION OF OWNER-SIDE NEW-MAIN SURGICAL UPDATE — 2026-09-02
+Production migration lineage relevant to prior Inventory work has been re-confirmed from Supabase, including manual-voucher tenant/item hardening, receive-purchase idempotency/tenant work, legacy receive-v2 closure, return/delivery centralization, legacy `post_stock_movement` retirement, and the 20260819 inventory write-boundary closure. This does not constitute final Inventory Core closure by itself.
+
+## P158 — DIRECT VERIFICATION OF OWNER-SIDE NEW-MAIN CORRECTION — 2026-09-02
 ### Scope
 - Target: `Current/PWA/New-main`
-- Latest target commit: `70aaad76c53b6d8fae045e5868938e718b30ee13`
-- Supporting sources: `MASTER - RAWAEA ERP.md`, `CURRENT_STATE.md`, `doc/Draft/Reprots/تقرير17.md`, `تقرير16.md`, direct Git file content, direct commit diff.
+- Latest target commit: `c3871ef49e5ed40c550f23359d75c1e380093dbd`
+- Current blob: `963e8a6b498ad4544997339ce5ffbd74b332cb64`
+- Supporting sources: `MASTER - RAWAEA ERP.md`, `CURRENT_STATE.md`, `تقرير16.md`, `تقرير17.md`, `تقرير18.md`, direct Git file content, direct commit history, Production migration lineage.
 - Historical reports retained.
-- Production was not modified by this UI verification round.
+- Production data was not modified by this P158 source-verification round.
 
-### Current verdict
-The owner-side update did apply the intended four UI recoveries, but it introduced a structural HTML defect: CSS declarations for the password toggle and login footer were inserted as raw text nodes inside the login `<form>` rather than inside the existing `<style>` block.
+### P158 current verdict
+The owner-side correction fixed the original CSS placement defect from P157/P157 findings. The password toggle CSS and login footer CSS are now inside the existing `<style>` block and the previous raw CSS text is no longer present in the login body.
+
+However, the resulting HTML structure is not an exact match to the required correction because the outer password `.rw-form-group` is not closed before `.rw-login-options`.
 
 ### SP-NEW-01 — Notification
-- Applied in latest New-main.
+- `RW_Notification` remains singular.
 - `قراءة الكل` invokes `RW_Notification.markAllRead()`.
-- Notification rows invoke `RW_Notification._clickNotif(...)` with `reference_table` and `reference_id`.
-- No duplicate notification module/helper is required.
+- Notification rows invoke `RW_Notification._clickNotif(...)` using `reference_table` and `reference_id`.
+- No duplicate notification helper/module was introduced.
+- SOURCE STATUS = VERIFIED.
 
 ### SP-NEW-02 — Audit
-- Applied in latest New-main.
-- Current source contains search, action filter, date-from/date-to filters, exact count, 50-row pagination, numbered pages, detail action, old_data and new_data rendering.
-- No RW_Table rewrite is authorized or required for this task.
+- Owner-only guard remains present.
+- Search, action filter, date-from/date-to filters, `count: 'exact'`, 50-row pagination, numbered pages, previous/next, detail view, `old_data`, and `new_data` remain present in the target source.
+- No `RW_Table` rewrite was introduced.
+- SOURCE STATUS = VERIFIED.
 
 ### SP-NEW-03 — Password visibility
-- Password toggle HTML is present.
-- Existing `window.togglePasswordVisibility` helper is present.
-- CSS declarations are currently misplaced in body text immediately after the password field.
-- This is the only correction required for the password toggle package.
+- Password toggle HTML exists.
+- Existing `window.togglePasswordVisibility` helper remains the hook.
+- Required password CSS rules are now in `<style>`.
+- Previous raw CSS body text is removed.
+- Remaining defect: missing outer `</div>` for `.rw-form-group` before `.rw-login-options`.
+- SOURCE STATUS = PARTIALLY CLOSED.
 
 ### SP-NEW-04 — Login footer
-- Footer element is present in the login form.
-- Footer CSS is currently misplaced in body text after the form.
-- This is the same structural correction as SP-NEW-03.
+- Footer element exists inside the login form.
+- Footer CSS is now in `<style>`.
+- Remaining defect is the same shared missing `</div>` in the password form-group, not footer CSS placement.
+- SOURCE STATUS = PARTIALLY CLOSED.
 
-### EXACT REQUIRED CORRECTION
-In `Current/PWA/New-main`:
-1. Remove the raw CSS text currently located in the login body:
-```text
-</div>.rw-password-wrap{position:relative;width:100%}
-.rw-password-wrap .rw-input{padding-left:52px}
-.rw-password-toggle{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;border-radius:10px;background:transparent;color:#64748b;display:grid;place-items:center;cursor:pointer;font-size:17px}
-.rw-password-toggle:hover{background:#f1f5f9;color:#2563eb}
-```
-The password group must be followed directly by:
+### EXACT REMAINING CORRECTION
+Required source transition:
 ```html
+  </div>
 </div>
 <div class="rw-login-options">
 ```
-2. Remove from body:
-```text
-.rw-login-footer{margin-top:4px;text-align:center;color:#64748b;font-size:11px;font-weight:700;line-height:1.8}
+Current source has:
+```html
+  </div>
+<div class="rw-login-options">
 ```
-3. Add the following rules inside the existing `<style>` block in `<head>`, immediately before `.rw-login-options`:
-```css
-.rw-password-wrap{position:relative;width:100%}
-.rw-password-wrap .rw-input{padding-left:52px}
-.rw-password-toggle{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;border-radius:10px;background:transparent;color:#64748b;display:grid;place-items:center;cursor:pointer;font-size:17px}
-.rw-password-toggle:hover{background:#f1f5f9;color:#2563eb}
-.rw-login-footer{margin-top:4px;text-align:center;color:#64748b;font-size:11px;font-weight:700;line-height:1.8}
-```
+Only one `</div>` must be inserted between those two lines.
 
-### What remains unproven
-- Cloudflare live served artifact parity after commit `70aaad76...`.
-- Browser runtime behavior after the CSS relocation.
-- Full runtime closure of all P156 UI packages until the corrected artifact is served and exercised.
+## KNOWN FAILURE MEMORY
+- F-06: inserting CSS rules as raw text into HTML body; corrected in P158.
+- F-07: CURRENT_STATE becoming stale after owner-side Git changes; reconciled in P158.
+- F-08: CSS relocation can still leave HTML nesting errors; source structure must be checked independently of CSS placement.
+- Historical Inventory/Receive-Purchase experiments must not be repeated by reconstructing operation identity from mutable `qty_received_before` alone; use explicit operation identity where the current contract supports it.
 
-### P157 SELF-AUDIT
-```text
-MASTER RECOVERY                 = VERIFIED
-CURRENT_STATE REVIEW            = VERIFIED / UPDATED
-RECENT REPORT CHAIN             = VERIFIED
-LATEST NEW-MAIN COMMIT          = VERIFIED
-NEW-MAIN SOURCE                 = OPENED DIRECTLY
-SP-NEW-01                       = APPLIED
-SP-NEW-02                       = APPLIED
-SP-NEW-03                       = APPLIED / CSS MISPLACED
-SP-NEW-04                       = APPLIED / CSS MISPLACED
-TARGET CODE MODIFIED THIS ROUND = NO
-PRODUCTION MODIFIED             = NO
-HISTORICAL REPORTS DELETED      = NO
-CLOUDFLARE RUNTIME VERIFIED     = NO
-100_PERCENT_CLOSED              = NO
-
-FINAL CURRENT TARGET
-= Current/PWA/New-main
-
-NEXT AUTHORIZED ACTION
-= Correct the two CSS placement errors only, then re-open and verify the target before runtime verification.
-```
+## CURRENT PRODUCTION / DEPLOYMENT STATUS
+- Production migration history was re-read directly from Supabase during continuity recovery.
+- No Production business data or inventory rows were modified by P158.
+- Cloudflare served-artifact parity for the current `New-main` commit is NOT proven in this round.
+- Browser runtime behavior after `c3871ef...` is NOT proven in this round.
+- Git/source verification must not be promoted to runtime/production verification.
 
 ## REPORTS
 - P155: `doc/Draft/Reprots/تقرير16.md`
 - P156: `doc/Draft/Reprots/تقرير17.md`
 - P157: `doc/Draft/Reprots/تقرير18.md`
-- P157 report commit: `64c25c0b9ef2301ea02e94e50ea5d29d4d49761f`
+- P158: `doc/Draft/Reprots/تقرير19.md`
+- P158 report commit: `5d39122ea73fcceeeb6b3c483bd473bb1ecc2a0d`
 
 ## REQUIRED NEXT STATE
-1. Correct the exact CSS placement defect in `Current/PWA/New-main`.
-2. Verify the password toggle and footer rules are inside `<style>` and absent as raw body text.
-3. Verify SP-NEW-01 and SP-NEW-02 remain intact.
-4. Verify the corrected Git file and commit identity.
-5. Then perform runtime verification against the served artifact.
-6. Keep Inventory Core Integrity and Cloudflare runtime as separate open tracks.
+1. Correct the single missing `</div>` in `Current/PWA/New-main`.
+2. Re-open the target file and verify exact login DOM nesting.
+3. Verify the five CSS rules are inside `<style>` and absent as raw body text.
+4. Verify SP-NEW-01 and SP-NEW-02 remain intact after the correction.
+5. Verify current blob and commit identity again.
+6. Then perform Cloudflare/browser runtime verification.
+7. Keep Inventory Core Integrity as a separate open track.
 
 ## FINAL STATE
 ```text
-P155_FORENSIC_COMPARISON        = COMPLETE
-P156_SURGICAL_FINDINGS          = COMPLETE
-P157_SOURCE_VERIFICATION        = COMPLETE
-TARGET_NEW_MAIN_MODIFIED        = OWNER-SIDE COMMIT PRESENT
-OWNER_PATCHES_01_02             = APPLIED
-PASSWORD_TOGGLE_UI              = APPLIED / CSS PLACEMENT NEEDS CORRECTION
-LOGIN_FOOTER                    = APPLIED / CSS PLACEMENT NEEDS CORRECTION
-PAGINATION                      = UX REDUCTION ONLY
-INVENTORY CORE                  = OPEN
-CLOUDFLARE RUNTIME              = OPEN
+MASTER_RECOVERY                 = COMPLETE
+CURRENT_STATE_RECONCILIATION    = COMPLETE
+P158_SOURCE_FORENSIC            = COMPLETE
+TARGET_NEW_MAIN_BLOB            = 963e8a6b498ad4544997339ce5ffbd74b332cb64
+TARGET_NEW_MAIN_COMMIT          = c3871ef49e5ed40c550f23359d75c1e380093dbd
+SP-NEW-01                       = SOURCE VERIFIED
+SP-NEW-02                       = SOURCE VERIFIED
+SP-NEW-03                       = PARTIAL / ONE HTML CLOSURE ERROR
+SP-NEW-04                       = PARTIAL / SHARED HTML CLOSURE ERROR
+CSS_RELOCATION                  = VERIFIED
+RAW_BODY_CSS                    = REMOVED
+CLOUDFLARE_RUNTIME              = OPEN
+BROWSER_RUNTIME                 = OPEN
+INVENTORY_CORE                  = OPEN
 CLOSED_100_PERCENT              = NO
+NEXT_AUTHORIZED_ACTION          = INSERT ONE MISSING </div>, RE-VERIFY, THEN RUNTIME VERIFY
 ```
