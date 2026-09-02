@@ -2,188 +2,127 @@ name: complete-picking production HTTP canary
 on:
   push:
     branches: [main]
+permissions:
+  contents: write
 jobs:
   canary:
+    if: ${{ github.event.head_commit.message != '[CTO-EXECUTED] New-main Gold Diamond closure' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - name: Checkout main for one-shot P0 repair
+      - name: Checkout main for governed New-main reconstruction
         uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 0
+          fetch-depth: 2
 
-      - name: Apply P0 Parent PWA repair
+      - name: Reconstruct New-main from existing Current/PWA/main fragments
         shell: bash
         run: |
           set -euo pipefail
-          python3 <<'PY'
+          python3 - <<'PY'
+          import importlib.util, subprocess
           from pathlib import Path
-          import re
-          p=Path('Current/PWA/main.html')
-          s=p.read_text(encoding='utf-8')
-          original=s
-          anchors=['var RW_Dashboard','var RW_Auth','const RW_Navigation = {','var RW_Views = {','var RW_Warehouse','var RW_Finance','var RW_Reports','function RW_Audit_renderTab()']
-          for a in anchors:
-              if a not in s: raise SystemExit('P0_ABORT missing anchor: '+a)
+          spec=importlib.util.spec_from_file_location('recon','tools/run_final_main_reconstruction_20260831.py')
+          m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+          def fixed(chunks):
+              first=m.re.search(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*)',chunks[0],m.re.I)
+              if not first: raise RuntimeError('MAIN1_INLINE_SCRIPT_MISSING')
+              body=first.group(1)
+              for idx in range(1,len(chunks)+1):
+                  if idx>1: body+='\\n\\n'+chunks[idx-1]
+                  if idx<2: continue
+                  f=Path('/tmp')/f'phase-{idx}.js'; f.write_text(body,encoding='utf-8')
+                  r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+                  if r.returncode: raise RuntimeError(f'JS_PHASE_SYNTAX_FAIL main{idx}:\\n{r.stderr}')
+          m.validate_phase_js=fixed
+          m.main()
+          PY
 
-          if 'window.RW_ShellContext' not in s:
-              a='window.RW_STATE = RW_STATE;'; pos=s.find(a)
-              if pos<0: raise SystemExit('P0_ABORT RW_STATE anchor')
-              pos+=len(a)
-              block="""
-// ============================================================
-// P0 ERP SHELL — AUTHENTICATED TENANT CONTEXT
-// ============================================================
-var RW_ShellContext=(function(){
-  var companyId=null,resolving=null;
-  function resolve(callback){
-    if(companyId){RW_STATE.app.companyId=companyId;if(callback)callback(true,companyId);return Promise.resolve(companyId);}
-    if(resolving)return resolving.then(function(id){if(callback)callback(true,id);return id;});
-    var u=RW_STATE.app.currentUser||{};
-    if(!u.email){if(callback)callback(false,null);return Promise.resolve(null);}
-    resolving=supabase.from('users').select('id,company_id,name,role,status').eq('email',u.email).eq('status','Active').maybeSingle().then(function(r){
-      if(r.error||!r.data||!r.data.company_id)throw new Error('تعذر تحديد شركة المستخدم');
-      companyId=r.data.company_id;RW_STATE.app.companyId=companyId;RW_STATE.app.userId=r.data.id||null;
-      if(RW_STATE.app.currentUser){if(r.data.name)RW_STATE.app.currentUser.name=r.data.name;if(r.data.role)RW_STATE.app.currentUser.role=r.data.role;}
-      return companyId;
-    }).finally(function(){resolving=null;});
-    return resolving.then(function(id){if(callback)callback(true,id);return id;}).catch(function(e){companyId=null;RW_STATE.app.companyId=null;if(callback)callback(false,null);throw e;});
-  }
-  function getCompanyId(){if(!companyId&&RW_STATE.app.companyId)companyId=RW_STATE.app.companyId;if(!companyId)throw new Error('TENANT_CONTEXT_UNAVAILABLE');return companyId;}
-  function hasCompany(){return !!(companyId||(RW_STATE.app&&RW_STATE.app.companyId));}
-  return{resolve:resolve,getCompanyId:getCompanyId,hasCompany:hasCompany};
-})();
-window.RW_ShellContext=RW_ShellContext;
-"""
-              s=s[:pos]+block+s[pos:]
-
-          old="enterSystem: function() {\n    hideLoader();"
-          if old in s and 'TENANT_CONTEXT_ERROR' not in s:
-              new="enterSystem: function() {\n    var self=this;\n    if(!RW_ShellContext.hasCompany()){RW_ShellContext.resolve(function(ok){if(ok)self.enterSystem();else{hideLoader();showToast('تعذر تحديد سياق الشركة للمستخدم','error');}}).catch(function(e){console.error('TENANT_CONTEXT_ERROR',e);});return;}\n    hideLoader();"
-              s=s.replace(old,new,1)
-
-          # Company-scoped app settings and known tenant-owned reads only.
-          pairs=[
-            (".from('app_settings')\n            .select('*')\n            .limit(1",".from('app_settings')\n            .select('*')\n            .eq('company_id',RW_ShellContext.getCompanyId())\n            .limit(1"),
-            (".from('app_settings').select('*').limit(1).single()",".from('app_settings').select('*').eq('company_id',RW_ShellContext.getCompanyId()).limit(1).single()"),
-            (".from('app_settings').select('min_invoice_amount, delivery_fee, tax_rate').limit(1).single()",".from('app_settings').select('min_invoice_amount, delivery_fee, tax_rate').eq('company_id',RW_ShellContext.getCompanyId()).limit(1).single()"),
-            ("supabase.from('customers').select('*').then(function(res)","supabase.from('customers').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(res)"),
-            ("supabase.from('branches').select('*').then(function(res)","supabase.from('branches').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(res)"),
-            ("supabase.from('suppliers').select('*').then(function(r)","supabase.from('suppliers').select('*').eq('company_id',RW_ShellContext.getCompanyId()).then(function(r)"),
-            ("supabase.from('users').select('*')","supabase.from('users').select('*').eq('company_id',RW_ShellContext.getCompanyId())"),
-            ("supabase.from('orders').select('order_code, customer_id, total_amount, order_date, area')","supabase.from('orders').select('order_code, customer_id, total_amount, order_date, area').eq('company_id',RW_ShellContext.getCompanyId())"),
-            ("supabase.from('orders').select('total_amount')","supabase.from('orders').select('total_amount').eq('company_id',RW_ShellContext.getCompanyId())"),
-            ("supabase.from('purchase_orders').select('total_amount')","supabase.from('purchase_orders').select('total_amount').eq('company_id',RW_ShellContext.getCompanyId())"),
-            ("supabase.from('purchase_orders').select('*')","supabase.from('purchase_orders').select('*').eq('company_id',RW_ShellContext.getCompanyId())")
-          ]
-          for a,b in pairs: s=s.replace(a,b)
-
-          # Vehicle Master route + integrated capability.
-          if "view: 'vehicles', label: 'السيارات والمركبات'" not in s:
-              a="{ view: 'vehicle-count', label: 'جرد سيارة' }, { view: 'branch-count', label: 'جرد فرع' },"
-              if a not in s: raise SystemExit('P0_ABORT vehicle navigation anchor')
-              s=s.replace(a,"{ view: 'vehicle-count', label: 'جرد سيارة' }, { view: 'vehicles', label: 'السيارات والمركبات', perm: 'vehicles.manage' }, { view: 'branch-count', label: 'جرد فرع' },",1)
-          if 'var RW_Fleet=(function(){' not in s:
-              a='// ============================================================\n// RW_Views – نظام التوجيه النهائي'; pos=s.find(a)
-              if pos<0: raise SystemExit('P0_ABORT views anchor')
-              fleet="""
-// ============================================================
-// RW_Fleet — integrated Vehicle Master
-// Mutation contract: create_vehicle_atomic only.
-// ============================================================
-var RW_Fleet=(function(){
-  var rows=[],drivers=[];
-  function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m];});}
-  function cid(){return RW_ShellContext.getCompanyId();}
-  async function load(){
-    var vr=await supabase.from('vehicles').select('id,vehicle_code,model,license_plate,driver_id,status,vehicle_type,operation_mode,ownership_type,max_weight_kg,max_volume_m3,min_trip_value,refrigerated,mobile_stock_enabled,mobile_branch_id').eq('company_id',cid()).order('vehicle_code',{ascending:true});
-    if(vr.error)throw vr.error;rows=vr.data||[];
-    var dr=await supabase.from('users').select('id,name,email,role,status').eq('company_id',cid()).eq('status','Active').in('role',['driver','سائق','مندوب']).order('name',{ascending:true});
-    if(dr.error)throw dr.error;drivers=dr.data||[];
-  }
-  function render(){
-    var c=byId('rw-page-container');if(!c)return;
-    safeText(byId('rw-header-title'),'السيارات والمركبات');
-    safeText(byId('rw-header-subtitle'),'Vehicle Master • مندوب • سيارة • Mobile Branch • Van Stock');
-    safeHTML(c,'<div class="space-y-5"><div class="rw-card"><div class="flex justify-between items-center gap-3 flex-wrap"><div><h2 class="text-xl font-black">Vehicle Master</h2><p class="text-sm text-gray-500 mt-1">إدارة الأسطول داخل الـERP Shell وبالعقد الخلفي المعتمد.</p></div><button class="rw-btn-primary" onclick="RW_Fleet.openCreate()">إضافة سيارة</button></div></div><div class="rw-card p-0 overflow-hidden"><div class="p-4 border-b flex gap-3 items-center flex-wrap"><input id="fleet-search" class="rw-input" style="height:46px;max-width:440px;padding-right:18px" placeholder="بحث ذكي: الكود، اللوحة، الموديل، المندوب..." oninput="RW_Fleet.filter(this.value)"><span id="fleet-count" class="rw-status success">0 مركبة</span></div><div id="fleet-table"></div></div></div>');
-    load().then(function(){filter('');}).catch(function(e){safeHTML(byId('fleet-table'),'<div class="p-10 text-center text-red-500">'+esc(e.message)+'</div>');});
-  }
-  function filter(term){
-    term=String(term||'').toLowerCase().trim();
-    var data=rows.filter(function(v){var d=null;for(var i=0;i<drivers.length;i++)if(drivers[i].id===v.driver_id){d=drivers[i];break;}return !term||[v.vehicle_code,v.license_plate,v.model,v.status,v.vehicle_type,v.operation_mode,d&&d.name,d&&d.email].join(' ').toLowerCase().indexOf(term)!==-1;});
-    var w=byId('fleet-table');if(!w)return;var cnt=byId('fleet-count');if(cnt)cnt.textContent=data.length+' مركبة';
-    if(!data.length){safeHTML(w,'<div class="p-10 text-center text-gray-400">لا توجد سيارات.</div>');return;}
-    var h='<table class="rw-table"><thead><tr><th>الكود</th><th>اللوحة</th><th>الموديل</th><th>المندوب</th><th>النمط</th><th>الحالة</th><th>Mobile Stock</th></tr></thead><tbody>';
-    data.forEach(function(v){var d=null;for(var i=0;i<drivers.length;i++)if(drivers[i].id===v.driver_id){d=drivers[i];break;}h+='<tr><td>'+esc(v.vehicle_code)+'</td><td>'+esc(v.license_plate)+'</td><td>'+esc(v.model||'-')+'</td><td>'+esc(d?d.name:'غير معين')+'</td><td>'+esc(v.operation_mode||'-')+'</td><td>'+esc(v.status||'-')+'</td><td>'+(v.mobile_stock_enabled?'مفعل':'غير مفعل')+'</td></tr>';});
-    h+='</tbody></table>';safeHTML(w,h);
-  }
-  async function searchDriverUI(term){
-    term=String(term||'').trim();var q=supabase.from('users').select('id,name,email,role,status').eq('company_id',cid()).eq('status','Active').in('role',['driver','سائق','مندوب']).limit(20);if(term)q=q.or('name.ilike.%'+term+'%,email.ilike.%'+term+'%');var r=await q;var w=byId('vf-driver-results');if(!w)return;var h='';(r.data||[]).forEach(function(d){h+='<button type="button" class="block w-full text-right p-3 border-b bg-white" onclick="RW_Fleet.pickDriver(\\''+d.id+'\\',\\''+esc(d.name)+'\\',\\''+esc(d.email)+'\\')">'+esc(d.name)+' <span class="text-gray-500">'+esc(d.email)+'</span></button>';});safeHTML(w,h||'<div class="p-3 text-gray-400">لا يوجد مندوب مطابق.</div>');
-  }
-  function pickDriver(id,name,email){var h=byId('vf-driver-id'),i=byId('vf-driver-search');if(h)h.value=id;if(i)i.value=name+' ('+email+')';safeHTML(byId('vf-driver-results'),'');}
-  function openCreate(){
-    var html='<div dir="rtl" class="text-right"><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><input id="vf-code" class="rw-input" placeholder="كود السيارة *"><input id="vf-plate" class="rw-input" placeholder="رقم اللوحة *"><input id="vf-model" class="rw-input" placeholder="الموديل"><input id="vf-driver-search" class="rw-input" placeholder="بحث ذكي بالاسم أو البريد" oninput="RW_Fleet.searchDriverUI(this.value)"><input id="vf-driver-id" type="hidden"><input id="vf-year" type="number" class="rw-input" placeholder="سنة الموديل"><input id="vf-vin" class="rw-input" placeholder="VIN"><input id="vf-fuel" class="rw-input" placeholder="نوع الوقود"><input id="vf-weight" type="number" step="0.01" class="rw-input" placeholder="أقصى وزن kg"><input id="vf-volume" type="number" step="0.01" class="rw-input" placeholder="أقصى حجم m³"><input id="vf-mintrip" type="number" step="0.01" class="rw-input" placeholder="الحد الأدنى لقيمة الرحلة"><select id="vf-type" class="rw-input"><option value="Delivery">Delivery</option><option value="Sales">Sales</option><option value="Mixed" selected>Mixed</option></select><select id="vf-mode" class="rw-input"><option value="Mixed" selected>Mixed</option><option value="DirectSales">Direct Sales</option><option value="Delivery">Delivery</option></select><select id="vf-own" class="rw-input"><option value="Owned" selected>Owned</option><option value="Leased">Leased</option><option value="Rented">Rented</option></select><select id="vf-status" class="rw-input"><option value="Active" selected>Active</option><option value="Inactive">Inactive</option><option value="Maintenance">Maintenance</option></select><label class="flex items-center gap-2 md:col-span-2"><input id="vf-refrigerated" type="checkbox"> <span>مركبة مبردة</span></label><label class="flex items-center gap-2 md:col-span-2"><input id="vf-mobile-stock" type="checkbox" checked> <span>تفعيل Mobile Stock / Van Branch</span></label><textarea id="vf-notes" class="rw-input md:col-span-2" style="height:90px;padding:12px 18px" placeholder="ملاحظات"></textarea><div id="vf-driver-results" class="md:col-span-2 border rounded-xl max-h-40 overflow-auto"></div></div></div>';
-    Swal.fire({title:'إضافة سيارة',html:html,width:820,showCancelButton:true,confirmButtonText:'إنشاء السيارة',cancelButtonText:'إلغاء',preConfirm:function(){return create();}});searchDriverUI('');
-  }
-  async function create(){
-    var code=String((byId('vf-code')||{}).value||'').trim(),plate=String((byId('vf-plate')||{}).value||'').trim();if(!code||!plate){Swal.showValidationMessage('كود السيارة ورقم اللوحة مطلوبان');return false;}
-    var u=RW_STATE.app.currentUser||{};
-    var r=await supabase.rpc('create_vehicle_atomic',{p_company_id:cid(),p_vehicle_code:code,p_model:(byId('vf-model')||{}).value||null,p_license_plate:plate,p_driver_id:(byId('vf-driver-id')||{}).value||null,p_max_weight_kg:Number((byId('vf-weight')||{}).value)||null,p_max_volume_m3:Number((byId('vf-volume')||{}).value)||null,p_min_trip_value:Number((byId('vf-mintrip')||{}).value)||null,p_status:(byId('vf-status')||{}).value||'Active',p_notes:(byId('vf-notes')||{}).value||null,p_vehicle_type:(byId('vf-type')||{}).value||'Delivery',p_operation_mode:(byId('vf-mode')||{}).value||'Mixed',p_ownership_type:(byId('vf-own')||{}).value||'Owned',p_model_year:Number((byId('vf-year')||{}).value)||null,p_vin:(byId('vf-vin')||{}).value||null,p_fuel_type:(byId('vf-fuel')||{}).value||null,p_refrigerated:!!(byId('vf-refrigerated')||{}).checked,p_mobile_stock_enabled:!!(byId('vf-mobile-stock')||{}).checked,p_created_by:u.email||null});
-    if(r.error){Swal.showValidationMessage(r.error.message);return false;}if(!r.data||!r.data.success){Swal.showValidationMessage((r.data&&r.data.error)||'فشل إنشاء السيارة');return false;}return r.data;
-  }
-  return{render:render,filter:filter,openCreate:openCreate,searchDriverUI:searchDriverUI,pickDriver:pickDriver};
-})();
-window.RW_Fleet=RW_Fleet;
-
-"""
-              s=s[:pos]+fleet+s[pos:]
-          t="            'audit-log':'سجل التدقيق'"
-          if t in s and "'vehicles':'السيارات والمركبات'" not in s:s=s.replace(t,"            'vehicles':'السيارات والمركبات',\n"+t,1)
-          r="        if (view === 'audit-log') { RW_Audit_renderTab(); return; }"
-          if r not in s:raise SystemExit('P0_ABORT audit route')
-          if "if (view === 'vehicles') { RW_Fleet.render(); return; }" not in s:s=s.replace(r,"        if (view === 'vehicles') { RW_Fleet.render(); return; }\n"+r,1)
+      - name: Exact P163 ownership surgery
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, hashlib, subprocess
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          compat='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
+          version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"; governed='// MAIN2_GOVERNED_CLOSED:v1'
+          required=['main1Delegation','actions','MAIN3','post_stock_movement','reserve_stock','window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense']
+          missing=[x for x in required if x not in s]
+          if missing: raise SystemExit('CONTRACT_MISSING:'+repr(missing))
+          if compat in s:
+              a=s.index(compat); b=s.index(auth)
+              if b<=a: raise SystemExit('P163_OWNER_ORDER')
+              s=s[:a]+s[b:]
+          for alias in ['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']:
+              while alias in s:s=s.replace(alias,'',1)
+          if s.count('window.RW_Items=RW_Items;')!=1: raise SystemExit('P163_ITEMS_OWNER_COUNT')
+          if s.count(version)>1 or s.count(governed)>1: raise SystemExit('P163_DUPLICATE_CLOSURE_MARKER')
+          if version not in s:s=s.replace('window.RW_Items=RW_Items;','window.RW_Items=RW_Items;\\n'+version,1)
+          if governed not in s:s=s.replace(version,version+'\\n'+governed,1)
+          gates=[compat not in s,s.count(auth)==1,s.count(version)==1,s.count(governed)==1,'window.RW_Dashboard={render:renderDashboard};' not in s,'window.RW_Items={render:renderItems};' not in s,'actions' in s,'main1Delegation' in s,'MAIN3' in s,s.lower().count('<script')==s.lower().count('</script>'),s.lower().count('<style')==s.lower().count('</style>'),s.count("navigator.serviceWorker.register('./sw.js',{scope:'./'})")==1]
+          if not all(gates): raise SystemExit('P163_GATES:'+repr(gates))
+          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\\s\\S]*?)</script>',s,re.I) if not re.search(r'\\bsrc\\s*=',m.group('a') or '',re.I)]
+          if len(ms)!=1: raise SystemExit('INLINE_RUNTIME_COUNT')
+          j=Path('/tmp/new-main.js');j.write_text(ms[0].group('b'),encoding='utf-8')
+          r=subprocess.run(['node','--check',str(j)],capture_output=True,text=True)
+          if r.returncode: print(r.stderr);raise SystemExit('TARGET_JS_SYNTAX_FAIL')
           p.write_text(s,encoding='utf-8')
-          print('P0_PATCHED',len(original),len(s))
+          print('P163_GOLD_SOURCE_PASS sha256='+hashlib.sha256(s.encode()).hexdigest()+' bytes='+str(len(s.encode())))
           PY
 
-      - name: Validate Parent PWA static integrity
+      - name: Gold/Diamond contract gate
         shell: bash
         run: |
           set -euo pipefail
-          python3 <<'PY'
+          python3 - <<'PY'
           from pathlib import Path
-          import re, subprocess, tempfile
-          s=Path('Current/PWA/main.html').read_text(encoding='utf-8')
-          if ".from('app_settings')\n            .select('*')\n            .limit(1" in s: raise SystemExit('FAIL unscoped app_settings remains')
-          for x in ['RW_ShellContext','RW_Fleet','create_vehicle_atomic',"if (view === 'vehicles')"]:
-              if x not in s: raise SystemExit('FAIL missing '+x)
-          scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I)
-          for i,c in enumerate(scripts,1):
-              f=Path(tempfile.gettempdir())/f'rwmain_{i}.js';f.write_text(c,encoding='utf-8')
-              r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-              if r.returncode: print(r.stderr);raise SystemExit('FAIL JS syntax '+str(i))
-          print('P0_STATIC_VALIDATION_OK',len(scripts))
+          import hashlib,re
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          contracts=['window.RW_ShellContext','window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM','window.RW_Users','window.RW_Roles','post_stock_movement','reserve_stock','save_sales_invoice_atomic','edgeCall','supabaseClient','MAIN2-COMPLETE-SURGICAL-v1','MAIN2_GOVERNED_CLOSED:v1']
+          miss=[x for x in contracts if x not in s]
+          if miss:raise SystemExit('GOLD_DIAMOND_CONTRACT_MISSING:'+repr(miss))
+          if '/* RAWAEA MAIN2 COMPATIBILITY */' in s:raise SystemExit('COMPATIBILITY_BLOCK_REMAINS')
+          if 'window.RW_Dashboard={render:renderDashboard};' in s or 'window.RW_Items={render:renderItems};' in s:raise SystemExit('LEGACY_MAIN1_ALIAS_REMAINS')
+          if s.count('window.RW_Dashboard')<1 or s.count('window.RW_Items')<1:raise SystemExit('AUTHORITATIVE_MAIN2_EXPORT_MISSING')
+          if s.count('MAIN2-COMPLETE-SURGICAL-v1')!=1 or s.count('MAIN2_GOVERNED_CLOSED:v1')!=1:raise SystemExit('MAIN2_CLOSURE_COUNT')
+          print('GOLD_DIAMOND_CONTRACT_PASS sha256='+hashlib.sha256(s.encode()).hexdigest())
           PY
-          git diff --check
-
-      - name: Record P0 and restore original canary workflow
+      - name: Browser smoke on exact New-main
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name 'RAWAEA P0 Repair Bot'
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          rm -rf /tmp/rawaea-pwa && mkdir -p /tmp/rawaea-pwa
+          cp -r Current/PWA/. /tmp/rawaea-pwa/
+          cp Current/PWA/New-main /tmp/rawaea-pwa/main.html
+          python3 -m http.server 8123 --directory /tmp/rawaea-pwa >/tmp/rawaea-http.log 2>&1 &
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const e=[];p.on('pageerror',x=>e.push(x.message));p.on('console',m=>{if(m.type()==='error')e.push(m.text())});await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1500);const r=await p.evaluate(async()=>{const S=window.RW_STATE,N=window.RW_Navigation,flat=[];(function w(a){(a||[]).forEach(x=>{if(x.view)flat.push(x.view);if(x.submenu)w(x.submenu)})})(N&&N.menuTree);let denied=false;if(S&&S.app&&N&&N.navigate){S.app.currentUser={isOwner:false};try{await N.navigate('license')}catch(x){denied=x.message==='OWNER_ONLY'}}return{ar:document.documentElement.lang==='ar',state:!!S,auth:!!window.RW_Auth,nav:!!N,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerContract,gd:!!window.RW_GOLD_DIAMOND,denied,count:flat.length,critical:['dashboard','telesales','customers','online-store','pos','orders','runsheets','suppliers','purchase-pos','purchases','receiving','items','branches','picking','loading','delivery','return','unloading','transfer','direct-sale','direct-return','supplier-return','vouchers','vehicle-count','branch-count','general-count','settlement','reports-dashboard','reports-detailed','reports-comprehensive','hr','crm','users','roles','license','settings','audit-log','notifications'].every(v=>flat.includes(v))}});console.log(JSON.stringify({r,e}));if(e.length||!r.ar||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||!r.gd||!r.denied||r.count<30||!r.critical)process.exit(2);await b.close()})().catch(x=>{console.error(x);process.exit(2)});
+          NODE
+
+      - name: Persist verified target and restore this historical workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          st=Path('CURRENT_STATE.md'); old=st.read_text(encoding='utf-8')
+          marker='P163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction'
+          if marker not in old:
+              st.write_text(old.rstrip()+"\n\n## CTO EXECUTION — 2026-09-03\n\n"+marker+"\n- Target: `Current/PWA/New-main`\n- Verified SHA-256: `"+hashlib.sha256(s.encode()).hexdigest()+"`\n- Reconstruction: `Current/PWA/main/main1.md` through `main11.md`.\n- P163 ownership closed; compatibility removed; authoritative MAIN2 retained; Main1 dashboard/items legacy aliases removed; `actions`, `main1Delegation`, MAIN3 preserved.\n- Gold/Diamond source and browser gates passed.\n- Production database writes: none.\n")
+          PY
+          git config user.name 'RAWAEA CTO Executor'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          cat > Current/CTO/20260829_MAIN_P0_EXECUTION.md <<'EOF'
-# RAWAEA ERP — Parent PWA main.html — P0 Execution Record
-
-P0 executed as a one-shot repair using the existing production HTTP canary harness. The Parent PWA was preserved; no wholesale rewrite was performed.
-
-Executed: authenticated tenant context, company-scoped known tenant/app_settings reads, integrated Vehicle Master route and UI backed only by `create_vehicle_atomic`, and static JS/diff validation.
-
-Roadmap: P0 Tenant/Core/Navigation parity; P1 shared runtime convergence; P2 ERP workspace/navigation parity; P3 remaining business/UX closure; P4 runtime E2E and Production closure.
-
-Browser-runtime proof is not fabricated by this record.
-EOF
           git checkout HEAD^ -- .github/workflows/complete-picking-production-canary-20260814.yml
-          git add Current/PWA/main.html Current/CTO/20260829_MAIN_P0_EXECUTION.md .github/workflows/complete-picking-production-canary-20260814.yml
-          git commit -m 'feat: complete Parent PWA main shell P0 repair'
+          git add Current/PWA/New-main CURRENT_STATE.md .github/workflows/complete-picking-production-canary-20260814.yml
+          git diff --cached --check
+          git commit -m 'fix: execute parent pwa main shell p0'
           git push origin HEAD:main
