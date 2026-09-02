@@ -1,3 +1,4 @@
+# trigger-v2
 name: CTO Execute New-main Gold 20260903
 on:
   push:
@@ -44,7 +45,6 @@ jobs:
           if compat in s or s.count(version)!=1 or s.count(governed)!=1: raise SystemExit('P163_CLOSURE_VERIFY_FAIL')
           if any(x in s for x in aliases): raise SystemExit('P163_ALIAS_VERIFY_FAIL')
           if 'actions' not in s or 'main1Delegation' not in s or 'MAIN3' not in s: raise SystemExit('P163_PRESERVATION_FAIL')
-          # Target must delegate stock mutation to the established DB engine.
           if re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,1200}\.(?:insert|update|upsert|delete)\(",s): raise SystemExit('DIRECT_STOCK_WRITER')
           if re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,900}\.(?:insert|update|upsert|delete)\(",s): raise SystemExit('DIRECT_INVENTORY_LOG_WRITER')
           if s.lower().count('<script')!=s.lower().count('</script>') or s.lower().count('<style')!=s.lower().count('</style>'): raise SystemExit('HTML_BALANCE')
@@ -78,7 +78,7 @@ jobs:
           p=Path('Current/PWA/New-main');s=p.read_text(encoding='utf-8');stp=Path('CURRENT_STATE.md');st=stp.read_text(encoding='utf-8')
           marker='P163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction'
           if marker not in st:
-            st=st.rstrip()+f"\n\n## CTO EXECUTION — 2026-09-03\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Target SHA-256: `{hashlib.sha256(s.encode()).hexdigest()}`\n- Reconstruction: `Current/PWA/main/main1.md` through `main11.md`.\n- P163: compatibility owner removed; Main1 dashboard/items legacy aliases removed; `actions`, `main1Delegation`, and MAIN3 preserved; reconstruction marker retained under authoritative MAIN2 owner.\n- Verification: reconstruction contracts, JS syntax, HTML balance, stock-writer safety, and browser smoke passed.\n- Production database writes: none.\n"
+            st=st.rstrip()+f"\n\n## CTO EXECUTION — 2026-09-03\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Target SHA-256: `{hashlib.sha256(s.encode()).hexdigest()}`\n- Reconstruction: `Current/PWA/main/main1.md` through `main11.md`.\n- P163: compatibility owner removed; legacy dashboard/items aliases removed; `actions`, `main1Delegation`, and MAIN3 preserved; reconstruction marker retained under authoritative MAIN2 owner.\n- Verification: reconstruction contracts, JS syntax, HTML balance, stock-writer safety, and browser smoke passed.\n- Production database writes: none.\n"
             stp.write_text(st,encoding='utf-8')
           PY
           git config user.name 'RAWAEA CTO Executor'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
