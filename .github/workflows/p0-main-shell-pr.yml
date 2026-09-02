@@ -6,130 +6,89 @@ permissions:
   contents: write
   pull-requests: write
 jobs:
-  repair_p1:
-    if: github.event.pull_request.base.ref == 'main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
-      - name: Repair existing main1.md only
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import re, subprocess, tempfile
-          p=Path('Current/PWA/main/main1.md')
-          s=p.read_text(encoding='utf-8')
-          marker='RAWAEA_P1_FORENSIC_CLOSED:v4'
-          if marker in s:
-              print('P1_ALREADY_CLOSED')
-              raise SystemExit(0)
-          def req(old,new,label):
-              global s
-              c=s.count(old)
-              if c!=1: raise SystemExit(f'{label}_COUNT={c}')
-              s=s.replace(old,new,1)
-          anchor='window.RW_STATE = RW_STATE;'
-          context="""
-// RAWAEA GOVERNED TENANT CONTEXT
-var RW_ShellContext=(function(){
- var companyId=null,userId=null,resolving=null;
- function resolve(){
-  if(companyId)return Promise.resolve(companyId);
-  if(resolving)return resolving;
-  var u=RW_STATE.app.currentUser||{};
-  if(u.companyId){companyId=u.companyId;userId=u.id||null;RW_STATE.app.companyId=companyId;RW_STATE.app.userId=userId;return Promise.resolve(companyId);}
-  if(!u.authId)return Promise.reject(new Error('AUTH_ID_UNAVAILABLE'));
-  resolving=RW_SUPABASE_CLIENT.from('users').select('id,company_id,name,role,status').eq('auth_id',u.authId).eq('status','Active').maybeSingle().then(function(r){
-   if(r.error||!r.data||!r.data.company_id)throw new Error('TENANT_CONTEXT_UNAVAILABLE');
-   companyId=r.data.company_id;userId=r.data.id||null;RW_STATE.app.companyId=companyId;RW_STATE.app.userId=userId;
-   if(RW_STATE.app.currentUser){RW_STATE.app.currentUser.id=userId;RW_STATE.app.currentUser.companyId=companyId;if(r.data.name)RW_STATE.app.currentUser.name=r.data.name;if(r.data.role)RW_STATE.app.currentUser.role=r.data.role;}
-   return companyId;
-  }).finally(function(){resolving=null;});
-  return resolving;
- }
- function getCompanyId(){if(!companyId)companyId=RW_STATE.app.companyId||(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId)||null;if(!companyId)throw new Error('TENANT_CONTEXT_UNAVAILABLE');return companyId;}
- return {resolve:resolve,getCompanyId:getCompanyId,hasCompany:function(){return !!(companyId||RW_STATE.app.companyId||(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.companyId));}};
-})();
-window.RW_ShellContext=RW_ShellContext;
-"""
-          req(anchor,anchor+'\n'+context,'P1_CONTEXT')
-          req("email: user.email,\n                role: meta.role || 'مدير النظام',\n                isOwner: meta.isOwner === true || meta.isOwner === 'true'\n            };\n","email: user.email,\n                authId: user.id,\n                companyId: null,\n                role: meta.role || 'مدير النظام',\n                isOwner: meta.isOwner === true || meta.isOwner === 'true'\n            };\n",'P1_USER')
-          req("RW_STATE.permissions = meta.permissions || ['*'];","RW_STATE.permissions = (RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner === true) ? ['*'] : (Array.isArray(meta.permissions) ? meta.permissions.slice() : []);",'P1_PERMISSIONS')
-          req('enterSystem: function() {','enterSystem: async function() {','P1_ENTER')
-          req('self.enterSystem();','return self.enterSystem();','P1_ENTER_CALL')
-          req('enterSystem: async function() {\n    hideLoader();','enterSystem: async function() {\n    await RW_ShellContext.resolve();\n    hideLoader();','P1_ENTER_BODY')
-          req(".from('app_settings')\n            .select('*')\n            .limit(1)",".from('app_settings')\n            .select('*')\n            .eq('company_id',RW_ShellContext.getCompanyId())\n            .limit(1",'P1_SETTINGS')
-          safe="showToast('تم تشغيل النظام في الوضع الآمن', 'warning');"
-          if safe in s: s=s.replace(safe,"throw new Error('FAIL_CLOSED_TENANT_CONTEXT');",1)
-          if re.search(r"supabase\.from\(['\"]stock_branches['\"]\)[^;]{0,1200}\.(?:update|insert|upsert|delete)\(",s,re.S): raise SystemExit('P1_DIRECT_STOCK_WRITER')
-          if re.search(r"supabase\.from\(['\"]inventory_log['\"]\)[^;]{0,700}\.insert\(",s,re.S): raise SystemExit('P1_DIRECT_INVENTORY_LOG_WRITER')
-          code='\n'.join(re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I))
-          f=Path(tempfile.gettempdir())/'p1.js';f.write_text(code,encoding='utf-8')
-          r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-          if r.returncode: print(r.stderr); raise SystemExit('P1_JS_SYNTAX')
-          p.write_text(s.rstrip()+'\n<!-- '+marker+' -->\n',encoding='utf-8')
-          subprocess.run(['git','diff','--check'],check=True)
-          subprocess.run(['git','config','user.name','github-actions[bot]'],check=True)
-          subprocess.run(['git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com'],check=True)
-          subprocess.run(['git','add',str(p)],check=True)
-          subprocess.run(['git','commit','-m','fix(p1): repair existing main1 tenant and owner shell'],check=True)
-          subprocess.run(['git','push','origin',f"HEAD:${{ github.event.pull_request.head.ref }}"],check=True)
-          PY
   cto_executor:
     if: github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
-      - name: Rebuild candidate and execute P163
+      - name: Reconstruct and surgically repair New-main
         shell: bash
         run: |
           set -euo pipefail
-          cp Current/PWA/New-main /tmp/New-main.before
-          python3 tools/run_final_main_reconstruction_20260831.py
-          python3 - <<'PY'
-          from pathlib import Path
-          import hashlib
-          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
-          required=['main1Delegation','actions','/* RAWAEA MAIN2 AUTHORITATIVE MODULE */','MAIN3','post_stock_movement','reserve_stock','save_sales_invoice_atomic','edgeCall','supabaseClient']
-          miss=[x for x in required if x not in s]
-          if miss: raise SystemExit('RECONSTRUCTION_REQUIRED_CONTRACTS_MISSING '+repr(miss))
-          compat='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
-          if s.count(compat)!=1 or s.count(auth)!=1: raise SystemExit(f'P163_OWNER_COUNTS compat={s.count(compat)} auth={s.count(auth)}')
-          a=s.index(compat); b=s.index(auth)
-          if b<=a: raise SystemExit('P163_OWNER_ORDER')
-          s=s[:a]+s[b:]
-          for alias in ['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']:
-            if s.count(alias)!=1: raise SystemExit(f'P163_ALIAS_COUNT {alias!r}={s.count(alias)}')
-            s=s.replace(alias,'',1)
-          close='window.RW_Items=RW_Items;'; version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"; governed='// MAIN2_GOVERNED_CLOSED:v1'
-          if s.count(close)!=1: raise SystemExit('P163_RW_ITEMS_OWNER_COUNT')
-          if s.count(version)==0: s=s.replace(close,close+'\n'+version,1)
-          if s.count(governed)==0: s=s.replace(version,version+'\n'+governed,1)
-          checks=[compat not in s,s.count(auth)==1,s.count(version)==1,s.count(governed)==1,'window.RW_Dashboard={render:renderDashboard};' not in s,'window.RW_Items={render:renderItems};' not in s,'main1Delegation' in s,'actions' in s,'MAIN3' in s]
-          if not all(checks): raise SystemExit('P163_GATES '+repr(checks))
-          p.write_text(s,encoding='utf-8')
-          print('P163_OK bytes',len(s.encode()),'sha256',hashlib.sha256(s.encode()).hexdigest())
-          PY
           python3 - <<'PY'
           from pathlib import Path
           import re
-          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)
-          if not scripts: raise SystemExit('NO_INLINE_SCRIPT')
-          Path('/tmp/new-main-inline.js').write_text('\n\n'.join(scripts),encoding='utf-8')
+          p=Path('Current/PWA/New-main')
+          s=p.read_text(encoding='utf-8')
+          if "window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';" in s and '/* RAWAEA MAIN2 COMPATIBILITY */' not in s and 'window.RW_Dashboard={render:renderDashboard};' not in s:
+              print('TARGET_ALREADY_P163_CLOSED'); raise SystemExit(0)
+          Path('/tmp/New-main.before').write_text(s,encoding='utf-8')
           PY
-          node --check /tmp/new-main-inline.js
+          python3 tools/run_final_main_reconstruction_20260831.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,hashlib
+          p=Path('Current/PWA/New-main');s=p.read_text(encoding='utf-8')
+          required=['main1Delegation','actions','/* RAWAEA MAIN2 AUTHORITATIVE MODULE */','MAIN3','post_stock_movement','reserve_stock','save_sales_invoice_atomic','edgeCall','supabaseClient']
+          miss=[x for x in required if x not in s]
+          if miss: raise SystemExit('RECONSTRUCTION_CONTRACT_MISSING:'+repr(miss))
+          compat='/* RAWAEA MAIN2 COMPATIBILITY */';auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
+          if s.count(compat)!=1 or s.count(auth)!=1: raise SystemExit(f'P163_COUNTS compat={s.count(compat)} auth={s.count(auth)}')
+          a=s.index(compat);b=s.index(auth)
+          if b<=a: raise SystemExit('P163_ORDER')
+          s=s[:a]+s[b:]
+          for alias in ['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']:
+            if s.count(alias)!=1: raise SystemExit('P163_ALIAS_COUNT:'+alias+':'+str(s.count(alias)))
+            s=s.replace(alias,'',1)
+          close='window.RW_Items=RW_Items;';version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';";governed='// MAIN2_GOVERNED_CLOSED:v1'
+          if s.count(close)!=1: raise SystemExit('P163_RW_ITEMS_OWNER')
+          if s.count(version)>1 or s.count(governed)>1: raise SystemExit('P163_DUPLICATE_CLOSURE')
+          if version not in s:s=s.replace(close,close+'\n'+version,1)
+          if governed not in s:s=s.replace(version,version+'\n'+governed,1)
+          if compat in s or s.count(version)!=1 or s.count(governed)!=1 or 'window.RW_Dashboard={render:renderDashboard};' in s or 'window.RW_Items={render:renderItems};' in s: raise SystemExit('P163_VERIFY_FAIL')
+          if 'actions' not in s or 'main1Delegation' not in s or 'MAIN3' not in s: raise SystemExit('P163_PRESERVATION_FAIL')
+          if re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,1200}\.(?:insert|update|upsert|delete)\(",s):raise SystemExit('DIRECT_STOCK_WRITER')
+          if re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,800}\.insert\(",s):raise SystemExit('DIRECT_INVENTORY_LOG_WRITER')
+          if s.lower().count('<script')!=s.lower().count('</script>') or s.lower().count('<style')!=s.lower().count('</style>'):raise SystemExit('HTML_BALANCE')
+          if len(re.findall(r'navigator\.serviceWorker\.register',s))>1:raise SystemExit('SW_DUPLICATE')
+          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
+          if len(ms)!=1:raise SystemExit('INLINE_RUNTIME_COUNT:'+str(len(ms)))
+          Path('/tmp/new-main.js').write_text(ms[0].group('b'),encoding='utf-8')
+          p.write_text(s,encoding='utf-8')
+          print('P163_GOLD_OK sha256='+hashlib.sha256(s.encode()).hexdigest())
+          PY
+          node --check /tmp/new-main.js
           git diff --check
-          git status --short
-          git add Current/PWA/New-main
-          if ! git diff --cached --quiet; then
-            git commit -m 'fix(cto): complete New-main reconstruction and P163 ownership [skip ci]'
-            git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
-          fi
+      - name: Browser smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          python3 -m http.server 8123 --directory Current/PWA >/tmp/rawaea-http.log 2>&1 &
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1000);const x=await p.evaluate(async()=>{const flat=[];(function walk(a){(a||[]).forEach(v=>{if(v.view)flat.push(v.view);if(v.submenu)walk(v.submenu)})})(window.RW_Navigation&&window.RW_Navigation.menuTree);const req=['dashboard','telesales','customers','online-store','pos','orders','runsheets','suppliers','purchase-pos','purchases','receiving','items','branches','picking','loading','delivery','return','unloading','transfer','direct-sale','direct-return','supplier-return','vouchers','vehicle-count','branch-count','general-count','settlement','reports-dashboard','reports-detailed','reports-comprehensive','hr','crm','users','roles','license','settings','audit-log','notifications'];const mods=['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Roles','RW_Views'];let denied=false;try{if(window.RW_Navigation&&window.RW_Navigation.navigate){window.RW_STATE.app.currentUser={isOwner:false};await window.RW_Navigation.navigate('license')}}catch(e){denied=e.message==='OWNER_ONLY'}return{menuCount:flat.length,missing:req.filter(v=>!flat.includes(v)),modsMissing:mods.filter(v=>!window[v]),denied};});console.log(JSON.stringify({x,pe,ce}));if(pe.length||ce.length||x.missing.length||x.modsMissing.length||!x.denied||x.menuCount<30)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)});
+          NODE
+      - name: Commit target and state only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path('Current/PWA/New-main');s=p.read_text(encoding='utf-8');state=Path('CURRENT_STATE.md');st=state.read_text(encoding='utf-8')
+          marker='P163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction'
+          if marker not in st:
+              st=st.rstrip()+f"\n\n## CTO EXECUTION — 2026-09-03\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Target SHA-256: `{hashlib.sha256(s.encode()).hexdigest()}`\n- Historical sources: `Current/PWA/main/main1.md` through `main11.md`; `Original/PWA/main/*` immutable.\n- P163: duplicate MAIN2 compatibility removed; two legacy Main1 aliases removed; `actions`, `main1Delegation`, MAIN3 preserved; governed reconstruction marker retained under authoritative MAIN2 owner.\n- Validation: reconstruction contracts, JavaScript syntax, HTML structure, stock-writer safety and browser smoke passed.\n- Supabase production data writes: none.\n"
+              state.write_text(st,encoding='utf-8')
+          PY
+          git config user.name 'RAWAEA CTO Executor'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Current/PWA/New-main CURRENT_STATE.md
+          if git diff --cached --quiet; then echo 'NO_TARGET_CHANGE'; else git commit -m 'fix(cto): complete New-main forensic reconstruction and P163 [CTO-EXECUTED] [skip ci]'; git push origin "HEAD:${{ github.event.pull_request.head.ref }}"; fi
