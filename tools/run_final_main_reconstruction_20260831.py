@@ -10,7 +10,7 @@ import tempfile
 MAIN = Path('Current/PWA/New-main')
 CUR = Path('Current/PWA/main')
 PARTS = [CUR / f'main{i}.md' for i in range(1, 12)]
-SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc3ODcwOTA5MiwiZXhwIjoyMDk0Mjg1MDkyfQ.LZScCxnCiRrTSCCBmTryszQpY1AwBgR2dkTBbC5kOc4'
+SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpbG1vZ2d1bW9reGFud2FpeXIsImlhdCI6MTc3ODcwOTA5MiwiZXhwIjoyMDk0Mjg1MDkyfQ.LZScCxnCiRrTSCCBmTryszQpY1AwBgR2dkTBbC5kOc4'
 
 
 def fp(text):
@@ -79,8 +79,8 @@ def validate_phase_js(chunks):
     first_script = re.search(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*)', chunks[0], re.I)
     if not first_script:
         raise RuntimeError('MAIN1_INLINE_SCRIPT_MISSING_FOR_PHASE_VALIDATION')
-    # MAIN1 is an intentionally open fragment; syntax becomes meaningful only
-    # after MAIN2 supplies the continuation/closing context. Validate phases 2..11.
+    # main1 is intentionally open and is completed by later fragments; validate
+    # progressively only after main2 has supplied the continuation context.
     js_body = first_script.group(1)
     for idx in range(2, len(chunks) + 1):
         js_body += '\n\n' + chunks[idx - 1]
