@@ -1,51 +1,138 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
 ## GOVERNANCE
-- Current truth is established from direct Git, Production, deployment/runtime evidence, and verified artifacts.
-- Historical reports are evidence, not current truth.
-- `Current/PWA/New-main` is the authorized product target for `erp-frontend/companies/company-1/main.html`.
-- `Current/PWA/main.html` is a separate protected artifact; do not replace it by filename similarity.
-- Historical reports must not be deleted or overwritten.
-- No 100% closure without fresh Production/runtime proof.
-- The governing continuity process is: CURRENT_STATE → LAST VERIFIED EVENT → CURRENT GIT → CURRENT PRODUCTION → DEPLOYMENTS/RUNTIME → RECONCILIATION → CURRENT TARGET → SURGICAL CHANGE → VERIFY → CURRENT_STATE UPDATE.
+- Current truth is established from direct Git, direct Production evidence, deployment/runtime evidence when available, and verified artifacts.
+- Historical reports are evidence of what was done; they are not current truth by themselves.
+- `Current/PWA/New-main` is the current authorized target for the ongoing PWA reconstruction track.
+- `Current/PWA/main.html` is a separate protected artifact; never substitute it for `New-main` by filename similarity.
+- Historical reports are sacred: do not delete or overwrite them.
+- `UNKNOWN ≠ BUG`, `UNKNOWN ≠ REMOVE`.
+- `Git/source verified ≠ runtime verified` and `runtime verified ≠ Production data repair`.
+- Governing loop: CURRENT_STATE → LAST VERIFIED EVENT → CURRENT GIT → CURRENT PRODUCTION → DEPLOYMENTS/RUNTIME → RECONCILE → SURGICAL CHANGE → VERIFY → CURRENT_STATE.
 
 ## HISTORICAL CONTINUITY
-- P133–P151: authentication, deployment, Service Worker, compatibility-route, and auto-update reconstruction/closures as previously recorded.
-- P151 final Git state included the permanent update coordinator; live Cloudflare propagation remained unverified.
-- P152: Auth/deployment reconciliation; successful Production auth existed despite browser-side 401; Supabase key rotation was not justified.
-- P153: Current-state reconciliation; Report13 Production compatibility migration `20260902023122 / compatibility_company_main_branch_projection_20260902` verified; `main.html` already contained Idempotency-Key + operation_id; Inventory closure remained open.
-- P154: Original main1 vs `Current/PWA/main.html` comparison; separate artifact scope.
-- P155 / `تقرير16.md`: first direct forensic comparison of `Original/PWA/main/main1.md` vs `Current/PWA/New-main` and initial surgical findings.
-- P156 / `تقرير17.md`: corrected forensic pass focused on actual missing/reduced functions and surgical replacement instructions; no target-code modification in that report.
-- P157 / `تقرير18.md`: direct verification after owner-side New-main update; four UI changes were present but password/footer CSS was misplaced in body text.
-- P158 / `تقرير19.md`: direct verification after the subsequent owner-side correction commit; CSS was moved correctly into `<style>`, raw CSS body text was removed, but one `</div>` closing `rw-form-group` remains missing before `rw-login-options`.
+- P133–P151: authentication, deployment, Service Worker, compatibility-route, and update-coordinator reconstruction/closures as historically recorded.
+- P152–P154: auth/deployment reconciliation and separate `main.html` comparison track.
+- P155 / `تقرير16.md`: first direct forensic comparison of `Original/PWA/main/main1.md` vs `Current/PWA/New-main`.
+- P156 / `تقرير17.md`: corrected main1 comparison and earlier surgical findings.
+- P157 / `تقرير18.md`: owner-side New-main correction verified with CSS initially misplaced in body.
+- P158 / `تقرير19.md`: CSS relocation verified, but one missing HTML closing tag was then present.
+- P159 / `تقرير20.md`: fresh direct comparison of `Original/PWA/main/main2.md` vs current `New-main`; discovered that Main2 Dashboard/Items code is present in Current source but runtime dispatch and final global aliases shadow it with compact legacy renderers. No target-code modification was made by the assistant in P159.
 
 ## CURRENT SOURCE IDENTITIES
-- `Original/PWA/main/main1.md` SHA `14b12a471c20ad23a2c18f456dbc4d59783a0d1f`.
-- `Current/PWA/main.html` SHA `27b777528665dcc985809648f006452c861ae36e` was the previous verified identity; do not infer that this remains unchanged solely from history.
-- `Current/PWA/New-main` current Git blob SHA `963e8a6b498ad4544997339ce5ffbd74b332cb64`.
-- Latest verified commit affecting `Current/PWA/New-main`: `c3871ef49e5ed40c550f23359d75c1e380093dbd`, message `Update New-main`, author timestamp `2026-09-02T04:31:33Z`.
-- Previous target commit `70aaad76c53b6d8fae045e5868938e718b30ee13` was superseded by `c3871ef...`.
-- Latest CURRENT_STATE reconciliation report commit: `5d39122ea73fcceeeb6b3c483bd473bb1ecc2a0d` for `doc/Draft/Reprots/تقرير19.md`.
-- Do not replace `Current/PWA/New-main` with `Current/PWA/main.html` or with Original by filename similarity.
+```text
+Original/PWA/main/main2.md
+SHA = 45d5e760a4b53e3be574346e3d9d192dbad309af
+
+Current/PWA/New-main
+Latest commit = da5af424360239c0571bf9c118871a635b96f8de
+Commit message = Update New-main
+Commit UTC = 2026-09-02T04:40:53Z
+Current blob = fa7c0fcf78a3b217d781fe543b6e5a5ed7411c63
+```
+
+The latest `da5af...` commit superseded the P158 `c3871ef...` state and added the missing password form-group `</div>` before `rw-login-options`.
 
 ## LAST VERIFIED EVENT
 ```text
-EVENT ID        = P158-NEW-MAIN-C3871EF
-EVENT TYPE      = Direct source verification
-UTC TIMESTAMP   = 2026-09-02T04:31:33Z (latest target commit)
-SOURCE          = Current/PWA/New-main + Git history + historical reports + Production migration lineage
-GIT SHA         = c3871ef49e5ed40c550f23359d75c1e380093dbd
-TARGET BLOB     = 963e8a6b498ad4544997339ce5ffbd74b332cb64
-ACTION          = Verify owner-side correction against P157 instructions
-RESULT          = CSS relocation fixed; one HTML wrapper closure remains missing
-EVIDENCE        = direct New-main source + commit diff + report19
-IMPACT          = source is not fully closed; runtime must not be declared passed
-NEXT AUTHORIZED ACTION = add exactly one missing `</div>` before `.rw-login-options`, re-open/verify, then runtime verification
+EVENT ID        = P159-MAIN2-FORENSIC-DA5AF
+EVENT TYPE      = Direct source forensic comparison
+UTC             = 2026-09-02T04:40:53Z (latest target commit examined)
+SOURCE          = MASTER + CURRENT_STATE + Reports16-19 + Original main2 + Current New-main + Git history + relevant Production evidence
+GIT SHA         = da5af424360239c0571bf9c118871a635b96f8de
+TARGET BLOB     = fa7c0fcf78a3b217d781fe543b6e5a5ed7411c63
+RESULT          = Main2 Dashboard/Items implementations are present in Current source; runtime route/alias shadowing is proven.
+TARGET EDITED BY ASSISTANT = NO
+REPORT         = doc/Draft/Reprots/تقرير20.md
+REPORT COMMIT  = 8e59be597d5676c822ee9d0dd1a0e34f0a6aadd6
 ```
 
+## MAIN2 FORENSIC STATUS
+### Scope fact
+`Original/PWA/main/main2.md` is not a full ERP snapshot. It contains the historical `RW_Dashboard` and `RW_Items` modules.
+
+### Proven source parity
+```text
+RW_Dashboard full implementation = PRESENT in New-main
+RW_Items full implementation     = PRESENT in New-main
+Main2 source function loss       = 0 proven
+```
+
+### Proven runtime-shadow defects
+1. Current contains a compact legacy `renderDashboard()` and the `actions` map points `dashboard:renderDashboard` instead of the full `RW_Dashboard.render()`.
+2. Current contains a compact legacy `renderItems()` and the `actions` map points `items:renderItems` instead of the full `RW_Items.render()`.
+3. Current later executes `window.RW_Dashboard={render:renderDashboard};` and `window.RW_Items={render:renderItems};`, overwriting the full module objects and their public APIs.
+
+### Exact owner surgical patches from P159
+```text
+PATCH-01
+Find:
+ dashboard:renderDashboard,
+Replace with:
+ dashboard:function(){return RW_Dashboard.render();},
+
+PATCH-02
+Find:
+ items:renderItems,
+Replace with:
+ items:function(){return RW_Items.render();},
+
+PATCH-03
+Find:
+ window.RW_Dashboard={render:renderDashboard};
+ window.RW_Items={render:renderItems};
+Replace with:
+ window.RW_Dashboard=RW_Dashboard;
+ window.RW_Items=RW_Items;
+```
+
+Do not delete `renderDashboard()` or `renderItems()` yet; their removal is not proven safe until broader consumer tracing is complete.
+
+## MAIN2 CAPABILITIES CURRENTLY SHADOWED AT RUNTIME
+### Dashboard
+```text
+5 KPI cards
+Date range filter
+Previous-period comparison
+Daily sales chart
+Region chart + order/area drill-down
+Top 10 items chart
+Top 10 customers chart
+Dashboard → Orders / Items navigation
+```
+These capabilities are present in the full Current `RW_Dashboard` implementation but are not the handlers used by the current route map.
+
+### Items
+```text
+Stock-aware item list
+Stock status classification
+Per-branch quantities
+Item editor
+Image view/upload
+Category CRUD + replacement flow
+Movement report
+Branch stock matrix
+Excel export
+CSV/XLSX upload preview
+Bulk stock adjustment UI
+Barcode search
+Status filters
+Branch-aware sorting
+Stock-to-movement drill-down
+```
+These capabilities are present in the full Current `RW_Items` module but are shadowed by the compact `renderItems()` route.
+
+## P158 HTML CORRECTION — CURRENT STATUS
+```text
+Password form-group closing tag = CLOSED AT SOURCE
+Password CSS placement          = VERIFIED
+Login footer                    = PRESENT
+Raw CSS body text               = REMOVED
+```
+The P158 missing-div finding is superseded by the newer `da5af...` commit.
+
 ## INVENTORY CONTINUITY
-Contract remains:
+Reference contract remains:
 ```text
 PHYSICAL STOCK MOVEMENT
         ↓
@@ -53,111 +140,59 @@ post_stock_movement
         ↓
 stock_branches + inventory_log
 ```
-`reserve_stock` is reservation-only.
-Direct Production anomalies remain unclosed: 143 `stock_branches` branch/item-company mismatches, 86 `inventory_log` item/company mismatches, and 6 `order_details` item/company mismatches. They were not rewritten without historical/source/business-impact proof.
-
-Production migration lineage relevant to prior Inventory work has been re-confirmed from Supabase, including manual-voucher tenant/item hardening, receive-purchase idempotency/tenant work, legacy receive-v2 closure, return/delivery centralization, legacy `post_stock_movement` retirement, and the 20260819 inventory write-boundary closure. This does not constitute final Inventory Core closure by itself.
-
-## P158 — DIRECT VERIFICATION OF OWNER-SIDE NEW-MAIN CORRECTION — 2026-09-02
-### Scope
-- Target: `Current/PWA/New-main`
-- Latest target commit: `c3871ef49e5ed40c550f23359d75c1e380093dbd`
-- Current blob: `963e8a6b498ad4544997339ce5ffbd74b332cb64`
-- Supporting sources: `MASTER - RAWAEA ERP.md`, `CURRENT_STATE.md`, `تقرير16.md`, `تقرير17.md`, `تقرير18.md`, direct Git file content, direct commit history, Production migration lineage.
-- Historical reports retained.
-- Production data was not modified by this P158 source-verification round.
-
-### P158 current verdict
-The owner-side correction fixed the original CSS placement defect from P157/P157 findings. The password toggle CSS and login footer CSS are now inside the existing `<style>` block and the previous raw CSS text is no longer present in the login body.
-
-However, the resulting HTML structure is not an exact match to the required correction because the outer password `.rw-form-group` is not closed before `.rw-login-options`.
-
-### SP-NEW-01 — Notification
-- `RW_Notification` remains singular.
-- `قراءة الكل` invokes `RW_Notification.markAllRead()`.
-- Notification rows invoke `RW_Notification._clickNotif(...)` using `reference_table` and `reference_id`.
-- No duplicate notification helper/module was introduced.
-- SOURCE STATUS = VERIFIED.
-
-### SP-NEW-02 — Audit
-- Owner-only guard remains present.
-- Search, action filter, date-from/date-to filters, `count: 'exact'`, 50-row pagination, numbered pages, previous/next, detail view, `old_data`, and `new_data` remain present in the target source.
-- No `RW_Table` rewrite was introduced.
-- SOURCE STATUS = VERIFIED.
-
-### SP-NEW-03 — Password visibility
-- Password toggle HTML exists.
-- Existing `window.togglePasswordVisibility` helper remains the hook.
-- Required password CSS rules are now in `<style>`.
-- Previous raw CSS body text is removed.
-- Remaining defect: missing outer `</div>` for `.rw-form-group` before `.rw-login-options`.
-- SOURCE STATUS = PARTIALLY CLOSED.
-
-### SP-NEW-04 — Login footer
-- Footer element exists inside the login form.
-- Footer CSS is now in `<style>`.
-- Remaining defect is the same shared missing `</div>` in the password form-group, not footer CSS placement.
-- SOURCE STATUS = PARTIALLY CLOSED.
-
-### EXACT REMAINING CORRECTION
-Required source transition:
-```html
-  </div>
-</div>
-<div class="rw-login-options">
+`reserve_stock` remains reservation-only.
+Previously measured Production anomalies remain separately open pending evidence-driven remediation:
+```text
+stock_branches branch/item-company mismatches = 143
+inventory_log item/company mismatches         = 86
+order_details item/company mismatches         = 6
 ```
-Current source has:
-```html
-  </div>
-<div class="rw-login-options">
+These anomalies are not used as a reason to alter `New-main` during P159.
+
+Historical Inventory/Receive-Purchase lessons remain: do not reconstruct operation identity from mutable `qty_received_before` alone; use explicit operation identity when supported by the current contract.
+
+## PRODUCTION / RUNTIME STATUS
+```text
+CURRENT GIT SOURCE IDENTITY       = VERIFIED
+P159 SOURCE COMPARISON             = VERIFIED
+TARGET CODE MODIFIED BY ASSISTANT = NO
+CLOUDFLARE SERVED ARTIFACT         = NOT PROVEN IN P159
+BROWSER LIVE RUNTIME               = NOT PROVEN IN P159
+Main2 runtime restoration          = OWNER SURGERY REQUIRED
+Inventory Core 100% closure        = NO
 ```
-Only one `</div>` must be inserted between those two lines.
-
-## KNOWN FAILURE MEMORY
-- F-06: inserting CSS rules as raw text into HTML body; corrected in P158.
-- F-07: CURRENT_STATE becoming stale after owner-side Git changes; reconciled in P158.
-- F-08: CSS relocation can still leave HTML nesting errors; source structure must be checked independently of CSS placement.
-- Historical Inventory/Receive-Purchase experiments must not be repeated by reconstructing operation identity from mutable `qty_received_before` alone; use explicit operation identity where the current contract supports it.
-
-## CURRENT PRODUCTION / DEPLOYMENT STATUS
-- Production migration history was re-read directly from Supabase during continuity recovery.
-- No Production business data or inventory rows were modified by P158.
-- Cloudflare served-artifact parity for the current `New-main` commit is NOT proven in this round.
-- Browser runtime behavior after `c3871ef...` is NOT proven in this round.
-- Git/source verification must not be promoted to runtime/production verification.
 
 ## REPORTS
-- P155: `doc/Draft/Reprots/تقرير16.md`
-- P156: `doc/Draft/Reprots/تقرير17.md`
-- P157: `doc/Draft/Reprots/تقرير18.md`
-- P158: `doc/Draft/Reprots/تقرير19.md`
-- P158 report commit: `5d39122ea73fcceeeb6b3c483bd473bb1ecc2a0d`
-
-## REQUIRED NEXT STATE
-1. Correct the single missing `</div>` in `Current/PWA/New-main`.
-2. Re-open the target file and verify exact login DOM nesting.
-3. Verify the five CSS rules are inside `<style>` and absent as raw body text.
-4. Verify SP-NEW-01 and SP-NEW-02 remain intact after the correction.
-5. Verify current blob and commit identity again.
-6. Then perform Cloudflare/browser runtime verification.
-7. Keep Inventory Core Integrity as a separate open track.
-
-## FINAL STATE
 ```text
-MASTER_RECOVERY                 = COMPLETE
-CURRENT_STATE_RECONCILIATION    = COMPLETE
-P158_SOURCE_FORENSIC            = COMPLETE
-TARGET_NEW_MAIN_BLOB            = 963e8a6b498ad4544997339ce5ffbd74b332cb64
-TARGET_NEW_MAIN_COMMIT          = c3871ef49e5ed40c550f23359d75c1e380093dbd
-SP-NEW-01                       = SOURCE VERIFIED
-SP-NEW-02                       = SOURCE VERIFIED
-SP-NEW-03                       = PARTIAL / ONE HTML CLOSURE ERROR
-SP-NEW-04                       = PARTIAL / SHARED HTML CLOSURE ERROR
-CSS_RELOCATION                  = VERIFIED
-RAW_BODY_CSS                    = REMOVED
-CLOUDFLARE_RUNTIME              = OPEN
-BROWSER_RUNTIME                 = OPEN
-INVENTORY_CORE                  = OPEN
-CLOSED_100_PERCENT              = NO
-NEXT_AUTHORIZED_ACTION          = INSERT ONE MISSING </div>, RE-VERIFY, THEN RUNTIME VERIFY
+P155 = doc/Draft/Reprots/تقرير16.md
+P156 = doc/Draft/Reprots/تقرير17.md
+P157 = doc/Draft/Reprots/تقرير18.md
+P158 = doc/Draft/Reprots/تقرير19.md
+P159 = doc/Draft/Reprots/تقرير20.md
 ```
+
+No historical report was deleted or overwritten.
+
+## P159 SELF-AUDIT
+```text
+MASTER RECOVERY                     = COMPLETE
+CURRENT_STATE RECONCILIATION        = COMPLETE
+LATEST TARGET GIT                   = VERIFIED
+ORIGINAL MAIN2                      = VERIFIED
+CURRENT NEW-MAIN                    = VERIFIED
+MAIN2 FULL MODULE PRESENCE          = PROVEN
+DASHBOARD SHADOWING                 = PROVEN
+ITEMS SHADOWING                     = PROVEN
+FINAL GLOBAL ALIAS OVERWRITE        = PROVEN
+SOURCE FUNCTION LOSS                = 0 PROVEN
+RUNTIME CAPABILITY LOSS             = 2 MAJOR SURFACES
+TARGET CODE MODIFIED BY ASSISTANT   = NO
+REPORT20 CREATED                    = YES
+CURRENT_STATE UPDATED               = YES
+CLOUDFLARE RUNTIME VERIFIED         = NO
+BROWSER RUNTIME VERIFIED            = NO
+100_PERCENT_CLOSURE                 = NO
+```
+
+## NEXT AUTHORIZED STEP
+Owner applies only PATCH-01, PATCH-02, PATCH-03 from `تقرير20.md`. After that, the next engineering action is live source/runtime verification of Dashboard and Items. Do not replace New-main wholesale with Original, do not rewrite `RW_Dashboard` or `RW_Items`, and do not touch Inventory Core as part of this Main2 routing correction.
