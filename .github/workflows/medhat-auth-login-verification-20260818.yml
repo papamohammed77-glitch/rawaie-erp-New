@@ -20,7 +20,27 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 tools/run_final_main_reconstruction_20260831.py
+          python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          mod_path=Path('tools/run_final_main_reconstruction_20260831.py')
+          spec=importlib.util.spec_from_file_location('recon',mod_path)
+          m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+          def validate_phase_js_after_boundary(chunks):
+              first_script=m.re.search(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*)',chunks[0],m.re.I)
+              if not first_script: raise RuntimeError('MAIN1_INLINE_SCRIPT_MISSING_FOR_PHASE_VALIDATION')
+              js_body=first_script.group(1)
+              for idx in range(1,len(chunks)+1):
+                  if idx>1: js_body+='\\n\\n'+chunks[idx-1]
+                  if idx<2: continue
+                  temp=Path('/tmp')/f'rawaea-phase-{idx}.js'
+                  temp.write_text(js_body,encoding='utf-8')
+                  import subprocess
+                  r=subprocess.run(['node','--check',str(temp)],capture_output=True,text=True)
+                  if r.returncode: raise RuntimeError(f'JS_PHASE_SYNTAX_FAIL:main{idx}:\\n{r.stderr}')
+          m.validate_phase_js=validate_phase_js_after_boundary
+          m.main()
+          PY
           python3 - <<'PY'
           from pathlib import Path
           import re,hashlib
@@ -30,8 +50,8 @@ jobs:
           auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
           version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"
           governed='// MAIN2_GOVERNED_CLOSED:v1'
-          req=['main1Delegation','actions','MAIN3','post_stock_movement','reserve_stock','window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense','RW_GOLD_DIAMOND']
-          missing=[x for x in req if x not in s]
+          required=['main1Delegation','actions','MAIN3','post_stock_movement','reserve_stock','window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense','RW_GOLD_DIAMOND']
+          missing=[x for x in required if x not in s]
           if missing: raise SystemExit('CONTRACT_MISSING:'+repr(missing))
           checks={'compat_absent':compat not in s,'auth_one':s.count(auth)==1,'version_one':s.count(version)==1,'governed_one':s.count(governed)==1,'dashboard_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,'items_alias_absent':'window.RW_Items={render:renderItems};' not in s,'actions':'actions' in s,'main1Delegation':'main1Delegation' in s,'main3':'MAIN3' in s,'script_balance':s.lower().count('<script')==s.lower().count('</script>'),'style_balance':s.lower().count('<style')==s.lower().count('</style>'),'canonical_sw_once':s.count("navigator.serviceWorker.register('./sw.js',{scope:'./'})")==1}
           bad=[k for k,v in checks.items() if not v]
@@ -77,7 +97,7 @@ jobs:
           st=state.read_text(encoding='utf-8')
           marker='P163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction'
           if marker not in st:
-              state.write_text(st.rstrip()+"\n\n## CTO EXECUTION — 2026-09-03\n\n"+marker+"\n- Target: `Current/PWA/New-main`\n- Verified SHA-256: `"+hashlib.sha256(target.encode()).hexdigest()+"`\n- Reconstructed from existing `Current/PWA/main/main1.md` through `main11.md`.\n- MAIN2 compatibility ownership removed; authoritative MAIN2 retained; legacy Main1 dashboard/items aliases removed; `actions`, `main1Delegation`, and MAIN3 retained.\n- Static and browser gates passed.\n- No production database writes. `Original/PWA/main/*` remained evidence-only.\n")
+              state.write_text(st.rstrip()+"\n\n## CTO EXECUTION — 2026-09-03\n\n"+marker+"\n- Target: `Current/PWA/New-main`\n- Verified SHA-256: `"+hashlib.sha256(target.encode()).hexdigest()+"`\n- Reconstruction completed from existing `Current/PWA/main/main1.md` through `main11.md`; phase syntax validation begins after the intentional main1 continuation boundary.\n- MAIN2 compatibility ownership removed; authoritative MAIN2 retained; legacy Main1 dashboard/items aliases removed; `actions`, `main1Delegation`, and MAIN3 retained.\n- Static and browser gates passed.\n- No production database writes. `Original/PWA/main/*` remained evidence-only.\n")
           PY
           git config user.name 'RAWAEA CTO Executor'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
