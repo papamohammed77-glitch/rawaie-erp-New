@@ -7,6 +7,7 @@ import tempfile
 
 # P143-FINAL-RETRIGGER: build authorized Current/PWA/New-main only after fragment normalization.
 # P144-AUTHORIZED-TRIGGER: this comment deliberately retriggers the governed assembly after retiring stale push executors.
+# CTO-20260903: reconstruction now includes the already-authorized P163 ownership closure as a deterministic post-assembly invariant.
 MAIN = Path('Current/PWA/New-main')
 CUR = Path('Current/PWA/main')
 PARTS = [CUR / f'main{i}.md' for i in range(1, 12)]
@@ -56,6 +57,60 @@ def repair_runtime_contracts(raw):
             raise RuntimeError('RUNTIME_SW_REGISTRATION_REMOVAL_COUNT:' + str(nsw))
         changes['service_worker_registration_replaced'] = True
     return raw, changes
+
+
+def apply_p163_ownership_surgery(raw):
+    """Apply the already-approved Main2 ownership closure to every deterministic rebuild."""
+    compatibility = '/* RAWAEA MAIN2 COMPATIBILITY */'
+    authoritative = '/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
+    version = "window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"
+    governed = '// MAIN2_GOVERNED_CLOSED:v1'
+    legacy_aliases = [
+        'window.RW_Dashboard={render:renderDashboard};',
+        'window.RW_Items={render:renderItems};',
+    ]
+    if compatibility not in raw:
+        raise RuntimeError('P163_COMPATIBILITY_OWNER_MISSING')
+    if raw.count(compatibility) != 1 or raw.count(authoritative) != 1:
+        raise RuntimeError('P163_OWNER_MARKER_COUNT:%d:%d' % (raw.count(compatibility), raw.count(authoritative)))
+    start = raw.index(compatibility)
+    end = raw.index(authoritative)
+    if end <= start:
+        raise RuntimeError('P163_OWNER_ORDER_INVALID')
+    compatibility_region = raw[start:end]
+    # This block is intentionally discarded as compatibility/legacy residue; it must not become a second business owner.
+    raw = raw[:start] + raw[end:]
+    for alias in legacy_aliases:
+        if raw.count(alias) != 1:
+            raise RuntimeError('P163_LEGACY_ALIAS_COUNT:%r:%d' % (alias, raw.count(alias)))
+        raw = raw.replace(alias, '', 1)
+    owner_pattern = re.compile(r'window\.RW_Items\s*=\s*RW_Items;')
+    owners = list(owner_pattern.finditer(raw))
+    if len(owners) != 1:
+        raise RuntimeError('P163_RW_ITEMS_AUTHORITY_COUNT:%d' % len(owners))
+    owner_end = owners[0].end()
+    tail = raw[owner_end:owner_end + 240]
+    if raw.count(version) > 1 or raw.count(governed) > 1:
+        raise RuntimeError('P163_CLOSURE_MARKER_DUPLICATE')
+    insertion = ''
+    if version not in raw:
+        insertion += '\n' + version
+    if governed not in tail:
+        insertion += '\n' + governed
+    raw = raw[:owner_end] + insertion + raw[owner_end:]
+    # Strong invariant: reconstruction marker is now owned by authoritative MAIN2, not by compatibility residue.
+    auth_start = raw.index(authoritative)
+    owner_pos = raw.index('window.RW_Items=RW_Items;') if 'window.RW_Items=RW_Items;' in raw else raw.index('window.RW_Items = RW_Items;')
+    version_pos = raw.index(version)
+    if not (auth_start < owner_pos < version_pos):
+        raise RuntimeError('P163_RECONSTRUCTION_MARKER_NOT_UNDER_AUTHORITATIVE_OWNER')
+    if compatibility_region and compatibility in raw:
+        raise RuntimeError('P163_COMPATIBILITY_RESIDUE_REMAINS')
+    if any(alias in raw for alias in legacy_aliases):
+        raise RuntimeError('P163_LEGACY_ALIAS_RESIDUE_REMAINS')
+    if 'actions' not in raw or 'main1Delegation' not in raw or 'MAIN3' not in raw:
+        raise RuntimeError('P163_REQUIRED_SURFACES_LOST')
+    return raw
 
 
 def validate_fragment(idx, raw):
@@ -113,6 +168,8 @@ def assemble():
         raise RuntimeError('BODY_CLOSE_MISSING_FOR_SW_TAG')
     candidate = candidate[:body_close] + canonical_sw_tag + '\n' + candidate[body_close:]
     runtime_changes['service_worker_registration_inserted'] = True
+    candidate = apply_p163_ownership_surgery(candidate)
+    runtime_changes['p163_ownership_surgery'] = 'closed'
     return candidate, chunks, runtime_changes
 
 
@@ -121,11 +178,17 @@ def validate(candidate):
         'rw-login-page','rw-main-shell','rw-page-container','rw-header-title','rw-header-subtitle','rw-sidebar-nav','rw-logout-btn',
         'window.RW_ShellContext','window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense',
         'window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases',
-        'window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM'
+        'window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM',
+        'window.RW_PWA_RECONSTRUCTION_VERSION=\'MAIN2-COMPLETE-SURGICAL-v1\'',
+        '// MAIN2_GOVERNED_CLOSED:v1'
     ]
     missing = [x for x in required if x not in candidate]
     if missing:
         raise RuntimeError('MISSING_REQUIRED_RECONSTRUCTION_CONTRACTS:' + ','.join(missing))
+    if '/* RAWAEA MAIN2 COMPATIBILITY */' in candidate:
+        raise RuntimeError('P163_COMPATIBILITY_RESIDUE')
+    if 'window.RW_Dashboard={render:renderDashboard};' in candidate or 'window.RW_Items={render:renderItems};' in candidate:
+        raise RuntimeError('P163_LEGACY_ALIAS_RESIDUE')
     if candidate.lower().count('</html>') != 1 or candidate.lower().count('</body>') != 1:
         raise RuntimeError('DOCUMENT_CLOSURE_INVALID')
     if SUPABASE_ANON_KEY not in candidate:
@@ -159,7 +222,7 @@ def main():
     for idx in range(2,12):
         running += '\n\n' + chunks[idx-1]
         phases.append({'phase':idx,'source':f'Current/PWA/main/main{idx}.md','script_sha256':fp(running),'bytes':len(running.encode('utf-8'))})
-    print(json.dumps({'status':'NEW_MAIN_ASSEMBLED_AND_VALIDATED','target':str(MAIN),'sha256':digest,'bytes':len(candidate.encode('utf-8')),'runtime_contracts':runtime_changes,'phases':phases,'main1_to_main11':True}, ensure_ascii=False))
+    print(json.dumps({'status':'NEW_MAIN_ASSEMBLED_AND_VALIDATED','target':str(MAIN),'sha256':digest,'bytes':len(candidate.encode('utf-8')),'runtime_contracts':runtime_changes,'phases':phases,'main1_to_main11':True,'p163':'CLOSED'}, ensure_ascii=False))
 
 
 if __name__ == '__main__':
