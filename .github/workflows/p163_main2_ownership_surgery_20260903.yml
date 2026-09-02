@@ -1,5 +1,7 @@
 name: P163 exact Main2 ownership surgery
 
+# P163-TRIGGER-20260903: activate the guarded surgical closure after workflow registration.
+
 on:
   push:
     paths:
