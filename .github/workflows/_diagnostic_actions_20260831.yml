@@ -1,3 +1,4 @@
+# RUN 2026-09-03
 name: ACTIONS DIAGNOSTIC 20260831
 on:
   push:
@@ -47,16 +48,17 @@ jobs:
               a=s.index(compat); b=s.index(auth)
               if b<=a: raise SystemExit('OWNER_ORDER')
               s=s[:a]+s[b:]
-          for alias in ['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']:
-              s=s.replace(alias,'',1)
+          for alias in ['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']: s=s.replace(alias,'',1)
           if s.count('window.RW_Items=RW_Items;')!=1: raise SystemExit('ITEMS_OWNER_COUNT')
           if s.count(ver)>1 or s.count(gov)>1: raise SystemExit('CLOSURE_DUPLICATE')
           if ver not in s: s=s.replace('window.RW_Items=RW_Items;','window.RW_Items=RW_Items;\n'+ver,1)
           if gov not in s: s=s.replace(ver,ver+'\n'+gov,1)
-          gates=[compat not in s,s.count(auth)==1,s.count(ver)==1,s.count(gov)==1,'window.RW_Dashboard={render:renderDashboard};' not in s,'window.RW_Items={render:renderItems};' not in s,'actions' in s,'main1Delegation' in s,'MAIN3' in s]
+          gates=[compat not in s,s.count(auth)==1,s.count(ver)==1,s.count(gov)==1,'window.RW_Dashboard={render:renderDashboard};' not in s,'window.RW_Items={render:renderItems};' not in s,'actions' in s,'main1Delegation' in s,'MAIN3' in s,s.lower().count('<script')==s.lower().count('</script>'),s.lower().count('<style')==s.lower().count('</style>')]
           if not all(gates): raise SystemExit('GATES:'+repr(gates))
           p.write_text(s,encoding='utf-8')
-          Path('/tmp/new-main.js').write_text('\n'.join(m.group('b') for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)),encoding='utf-8')
+          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
+          if len(ms)!=1: raise SystemExit('INLINE_RUNTIME_COUNT')
+          Path('/tmp/new-main.js').write_text(ms[0].group('b'),encoding='utf-8')
           print('NEW_MAIN_GOLD',hashlib.sha256(s.encode()).hexdigest(),len(s.encode()))
           PY
           node --check /tmp/new-main.js
