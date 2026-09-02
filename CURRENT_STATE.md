@@ -1,82 +1,105 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
 ## GOVERNANCE
-- Current truth is established from direct Git, direct Production evidence, deployment/runtime evidence when available, and verified artifacts.
+- Current truth must be reconstructed from direct Git, direct Production/database evidence, active deployments/runtime evidence when available, and verified artifacts.
 - Historical reports are evidence of what was done; they are not current truth by themselves.
-- `Current/PWA/New-main` is the current authorized target for the ongoing PWA reconstruction track.
-- `Current/PWA/main.html` is a separate protected artifact; never substitute it for `New-main` by filename similarity.
+- `Current/PWA/New-main` is the authorized target for the current PWA reconstruction track.
+- `Current/PWA/main.html` is a separate artifact and must not be substituted for `New-main` by filename similarity.
 - Historical reports are sacred: do not delete or overwrite them.
 - `UNKNOWN ≠ BUG`, `UNKNOWN ≠ REMOVE`.
-- `Git/source verified ≠ runtime verified` and `runtime verified ≠ Production data repair`.
-- Governing loop: CURRENT_STATE → LAST VERIFIED EVENT → CURRENT GIT → CURRENT PRODUCTION → DEPLOYMENTS/RUNTIME → RECONCILE → SURGICAL CHANGE → VERIFY → CURRENT_STATE.
+- `Git/source verified ≠ runtime verified`.
+- `Runtime verified ≠ Production data repair`.
+- Governing loop: CURRENT_STATE → LAST VERIFIED EVENT → CURRENT GIT → CURRENT PRODUCTION → DEPLOYMENTS/RUNTIME → CURRENT FILES → RECONCILE → SURGICAL CHANGE → VERIFY → CURRENT_STATE.
 
-## HISTORICAL CONTINUITY
-- P133–P151: authentication, deployment, Service Worker, compatibility-route, and update-coordinator reconstruction/closures as historically recorded.
-- P152–P154: auth/deployment reconciliation and separate `main.html` comparison track.
-- P155 / `تقرير16.md`: first direct forensic comparison of `Original/PWA/main/main1.md` vs `Current/PWA/New-main`.
-- P156 / `تقرير17.md`: corrected main1 comparison and earlier surgical findings.
-- P157 / `تقرير18.md`: owner-side New-main correction verified with CSS initially misplaced in body.
-- P158 / `تقرير19.md`: CSS relocation verified, but one missing HTML closing tag was then present.
-- P159 / `تقرير20.md`: direct comparison of `Original/PWA/main/main2.md` vs `Current/PWA/New-main`; reported Main2 runtime shadowing.
-- P160 / `تقرير21.md`: revalidated the same current New-main source and corrected the P159 interpretation. Full Main2 source capability loss remained 0 proven, but Current contained duplicate `RW_Dashboard` and duplicate `RW_Items` definitions, a legacy Main1 compatibility router/alias surface, incomplete compatibility stubs, and later Main3 routing.
-- P161 / `تقرير22.md`: repeated the comparison from direct source after checking the post-P160 Git history. Confirmed that later Sep-02 `New-main` commits did not remove the Main2 capability set. Main2 functional feature loss remains 0 proven. The remaining issue is ownership/routing debt, not missing Main2 functionality.
+## CURRENT REPOSITORY / HEAD
+```text
+REPOSITORY = papamohammed77-glitch/rawaie-erp-New
+BRANCH     = main
+CURRENT HEAD = 0a76f5e76cef5b6b86f78dd7a951c5522706fd9e
+HEAD MESSAGE = docs: record P162 Main2 surgical handoff
+HEAD UTC    = 2026-09-02T09:59:19Z
+```
 
-## CURRENT SOURCE IDENTITIES
+`0a76f5e...` is a documentation commit. It did not modify `Current/PWA/New-main`.
+
+## CURRENT TARGET IDENTITIES
 ```text
 Original/PWA/main/main2.md
 SHA = 45d5e760a4b53e3be574346e3d9d192dbad309af
 
 Current/PWA/New-main
-Latest commit = da5af424360239c0571bf9c118871a635b96f8de
-Commit message = Update New-main
-Commit UTC = 2026-09-02T04:40:53Z
-Current blob = fa7c0fcf78a3b217d781fe543b6e5a5ed7411c63
-File header timestamp = 2026-09-02 05:20 UTC
+LATEST TARGET CODE COMMIT = da5af424360239c0571bf9c118871a635b96f8de
+TARGET BLOB = fa7c0fcf78a3b217d781fe543b6e5a5ed7411c63
+TARGET CODE MODIFIED BY ASSISTANT IN P163 = NO
 ```
 
-Latest-source note: Git history after P160 included `70aaad76c53b6d8fae045e5868938e718b30ee13`, `c3871ef49e5ed40c550f23359d75c1e380093dbd`, and the final `da5af424360239c0571bf9c118871a635b96f8de`. The latest `da5af...` commit added the missing password form-group closing `</div>` before `rw-login-options`; it did not remove the Main2 duplicate/authoritative module structure.
+The `da5af...` target commit, created at `2026-09-02T04:40:53Z`, only added the missing login-form `</div>` before `rw-login-options`; it did not remove the Main2 duplicate/authoritative structure.
+
+## HISTORICAL CONTINUITY
+```text
+P155 = doc/Draft/Reprots/تقرير16.md
+P156 = doc/Draft/Reprots/تقرير17.md
+P157 = doc/Draft/Reprots/تقرير18.md
+P158 = doc/Draft/Reprots/تقرير19.md
+P159 = doc/Draft/Reprots/تقرير20.md
+P160 = doc/Draft/Reprots/تقرير21.md
+P161 = doc/Draft/Reprots/تقرير22.md
+P162 = doc/Draft/Reprots/تقرير23.md
+P163 = doc/Draft/Reprots/تقرير24.md
+```
+
+No historical report was deleted or overwritten.
 
 ## LAST VERIFIED EVENT
 ```text
-EVENT ID        = P161-MAIN2-FUNCTIONAL-GAP
-EVENT TYPE      = Direct source gap analysis + continuity recovery
+EVENT ID        = P163-NEWMAIN-MAIN2-SURGICAL-HANDOFF
 DATE            = 2026-09-02
-SOURCE          = MASTER + CURRENT_STATE + Reports14-21 + Original main2 + Current New-main + Git history
-GIT SHA         = da5af424360239c0571bf9c118871a635b96f8de
+SOURCE          = MASTER + CURRENT_STATE + Report16 + Report22 + Report23 + direct Git + direct Production/deployment checks + direct Original/main2 + direct Current/New-main
+CURRENT HEAD    = 0a76f5e76cef5b6b86f78dd7a951c5522706fd9e
+TARGET          = Current/PWA/New-main
 TARGET BLOB     = fa7c0fcf78a3b217d781fe543b6e5a5ed7411c63
-RESULT          = Main2 functional capability loss = 0 proven. RW_Dashboard/RW_Items duplicate ownership, Main1 legacy routing residue, compatibility false-capability stubs, and later Main3 routing remain present. Final live runtime winner remains unproven.
-TARGET CODE EDITED BY ASSISTANT = NO
-PRODUCTION DATA EDITED THIS ROUND = NO
-REPORT         = doc/Draft/Reprots/تقرير22.md
-REPORT COMMIT  = 32a9f9400159aea30aba13694df18cdf652ef02c
+ORIGINAL SHA    = 45d5e760a4b53e3be574346e3d9d192dbad309af
+RESULT          = MAIN2 FEATURE LOSS 0 PROVEN; DUPLICATE OWNERSHIP PROVEN; SURGICAL EDITS SPECIFIED
+TARGET EDITED BY ASSISTANT = NO
+ORIGINAL EDITED = NO
+PRODUCTION DATA EDITED IN P163 = NO
+REPORT = doc/Draft/Reprots/تقرير24.md
+REPORT COMMIT = 61a93644b7f04f6ffa45b67ccc47114a4c6a356d
 ```
 
 ## MAIN2 FORENSIC STATUS
-### Scope fact
-`Original/PWA/main/main2.md` is not a full ERP snapshot. It contains the historical `RW_Dashboard` and `RW_Items` modules.
+`Original/PWA/main/main2.md` is a historical source for the Main2 `RW_Dashboard` and `RW_Items` modules, not a full ERP snapshot.
 
-### Proven source parity
+### Proven capability parity
 ```text
 RW_Dashboard full capability set = PRESENT in New-main
 RW_Items full capability set     = PRESENT in New-main
-Main2 source function loss       = 0 proven
+MAIN2 FUNCTIONAL FEATURE LOSS    = 0 PROVEN
 ```
 
-### Direct source evidence
-- `Original/PWA/main/main2.md` opens directly with the historical `RW_Dashboard` implementation.
-- `Current/PWA/New-main` contains a `MAIN2 COMPATIBILITY` surface followed by a real `RW_Dashboard` implementation, and later contains another `RW_Dashboard` / `RW_Items` implementation set.
-- The later `RW_Items` implementation contains real stock loading, filtering, matrix, movement, category, export, and upload responsibilities; therefore the presence of the earlier stub copy must not be interpreted as Main2 feature loss.
-
-### Current duplicate ownership defects
+Direct source review found two definitions of `RW_Dashboard` and two definitions of `RW_Items` in `New-main`:
 ```text
-RW_Dashboard definitions = 2
-RW_Items definitions     = 2
+MAIN2 COMPATIBILITY
+  ├─ RW_Dashboard #1
+  └─ RW_Items #1
+
+MAIN2 AUTHORITATIVE MODULE
+  ├─ RW_Dashboard #2
+  └─ RW_Items #2
 ```
 
-The first pair is under `MAIN2 COMPATIBILITY`; the later pair is the stronger authoritative implementation.
+The first pair is compatibility/legacy residue and contains false-capability stubs; the later pair contains the real authoritative implementations. The source also contains a later Main3 authoritative routing module.
 
-### Legacy compatibility defects
-The compatibility `RW_Items` copy exposes false-capability/stub surfaces for functions including:
+## PROVEN MAIN2 OWNERSHIP DEFECTS
+```text
+RW_Dashboard duplicate ownership = PROVEN
+RW_Items duplicate ownership     = PROVEN
+Compatibility false-capability   = PROVEN
+Legacy Main1 dashboard/items aliases = PROVEN
+Main3 later routing               = PROVEN
+```
+
+Compatibility stubs directly identified include:
 ```text
 _openCategoryModal
 _addCategory
@@ -87,88 +110,171 @@ _exportMatrixToExcel
 _handleFileSelect
 _executeUpload
 ```
-These are duplicate/legacy residue, not proof of missing Main2 functionality.
 
-### Navigation ownership status
-A legacy Main1 compatibility surface remains, including:
-```text
-window.RW_Dashboard={render:renderDashboard}
-window.RW_Items={render:renderItems}
-```
-A later Main3 route surface also resolves through:
-```text
-window.RW_Dashboard
-window.RW_Items
-```
-Therefore final runtime ownership is not proven from source order alone.
+`_handleSaveFromPage` and `_handleDeleteFromPage` in the compatibility surface are also delegation/placeholder implementations rather than the authoritative business implementation.
 
-## P161 FINAL DECISION FOR MAIN2 QUESTION
-```text
-MAIN2 FUNCTIONAL FEATURE LOSS = 0 PROVEN
-MAIN2 WHOLE-FILE REPLACEMENT  = REJECTED
-MAIN2 RE-INTEGRATION           = NOT REQUIRED
-MAIN2 FEATURE REWRITE          = NOT REQUIRED
+## AUTHORIZED SURGICAL EDIT — OWNER MANUAL ONLY
 
-OWNERSHIP / ROUTING CLEANUP    = OPEN
-SERVED ARTIFACT VERIFICATION   = OPEN
-BROWSER RUNTIME VERIFICATION   = OPEN
+### 1) Delete the whole duplicate Main2 Compatibility block
+
+Search exactly:
+```javascript
+/* RAWAEA MAIN2 COMPATIBILITY */
 ```
 
-## AUTHORIZED NEXT STATE
-The next technical work for this PWA comparison track is NOT adding Main2 features. It is surgical ownership cleanup:
-```text
-TRACE LEGACY MAIN1 CONSUMERS
-        ↓
-REMOVE DUPLICATE MAIN2 COMPATIBILITY OWNER
-        ↓
-KEEP ONE AUTHORITATIVE RW_Dashboard
-KEEP ONE AUTHORITATIVE RW_Items
-        ↓
-REMOVE / NEUTRALIZE OBSOLETE ROUTER / ALIASES
-        ↓
-KEEP ONE NAVIGATION AUTHORITY
-        ↓
-VERIFY SERVED ARTIFACT
-        ↓
-VERIFY BROWSER RUNTIME
+Delete everything from that marker through this exact compatibility close:
+```javascript
+window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';
+})();
 ```
 
-Do not replace `New-main` wholesale with `Original/main2`. Do not create a third `RW_Dashboard` or `RW_Items`. Do not repair legacy stubs one-by-one when the authoritative implementation already exists.
-
-## INVENTORY CONTINUITY
-Reference contract remains:
-```text
-PHYSICAL STOCK MOVEMENT
-        ↓
-post_stock_movement
-        ↓
-stock_branches + inventory_log
+The next retained marker must be:
+```javascript
+/* RAWAEA MAIN2 AUTHORITATIVE MODULE */
 ```
-`reserve_stock` remains reservation-only.
-Previously measured Production anomalies remain separately open pending evidence-driven remediation:
+
+Do not delete the authoritative Main2 module or any Main3 module.
+
+### 2) Preserve the reconstruction marker under the authoritative owner
+
+Inside the authoritative Main2 module, locate exactly:
+```javascript
+window.RW_Items = RW_Items;
+// MAIN2_GOVERNED_CLOSED:v1
+```
+
+Insert immediately between them:
+```javascript
+window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';
+```
+
+The resulting sequence must be:
+```javascript
+window.RW_Items = RW_Items;
+window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';
+// MAIN2_GOVERNED_CLOSED:v1
+```
+
+### 3) Remove only the Main1 dashboard/items global aliases
+
+Inside the long Main1 assignment, remove exactly these two fragments:
+```javascript
+window.RW_Dashboard={render:renderDashboard};
+window.RW_Items={render:renderItems};
+```
+
+Do not remove the surrounding assignment, and do not remove:
+```text
+RW_POS
+RW_Orders
+RW_Runsheets
+RW_Purchases
+RW_Warehouse
+RW_Finance
+RW_Reports
+RW_HR
+RW_CRM
+```
+
+Do not remove:
+```text
+var actions=...
+main1Delegation(...)
+```
+
+Those require a separate consumer-closure unit.
+
+## EXPLICIT NON-ACTIONS FOR P163
+```text
+NO whole-file replacement
+NO rewrite of RW_Dashboard
+NO rewrite of RW_Items
+NO new Main2 implementation
+NO third RW_Dashboard
+NO third RW_Items
+NO one-by-one repair of compatibility stubs
+NO deletion of actions
+NO deletion of main1Delegation
+NO modification of Original/main2.md
+NO modification of Current/PWA/New-main by the assistant
+```
+
+## RUNTIME STATUS
+```text
+TARGET SOURCE IDENTITY           = VERIFIED
+MAIN2 SOURCE PARITY              = VERIFIED
+MAIN2 FUNCTIONAL FEATURE LOSS    = 0 PROVEN
+DUPLICATE OWNERSHIP              = PROVEN
+COMPATIBILITY FALSE-CAPABILITY   = PROVEN
+MAIN1 DASHBOARD/ITEM ALIASES     = PROVEN
+MAIN3 ROUTING                    = PROVEN
+SERVED ARTIFACT                  = NOT VERIFIED
+BROWSER LIVE RUNTIME             = NOT VERIFIED
+FINAL RUNTIME WINNER             = NOT PROVEN
+```
+
+## PRODUCTION / INVENTORY CONTINUITY — SEPARATE TRACK
+The current Production database has continued to receive Inventory/Finance/Voucher migrations after the earlier PWA comparison work. The latest recorded Production migration is:
+```text
+20260902023122 compatibility_company_main_branch_projection_20260902
+```
+
+Current Production Edge Functions are also at newer versions than those recorded in older reports. This does not alter the P163 New-main surgical finding.
+
+Relevant schema facts directly verified during continuity work:
+```text
+items.item_code = UNIQUE globally
+stock_branches = UNIQUE(branch_id,item_id)
+receiving.operation_id = UNIQUE
+```
+
+Previously measured data anomalies are kept separate from this PWA track and were not deleted in P163 merely from suspicion:
 ```text
 stock_branches branch/item-company mismatches = 143
 inventory_log item/company mismatches         = 86
 order_details item/company mismatches         = 6
 ```
-Inventory is a separate closure track and was not modified as part of the P161 Main2 comparison.
 
-## PRODUCTION / RUNTIME STATUS
+These counts do not by themselves prove corruption because the current Item Master contract is globally unique by `item_code`.
+
+## RECORDED PRIOR FAILURES / LESSONS
+
+The following are preserved as continuity memory and must not be hidden:
+
+1. Earlier comparisons sometimes used the wrong target file (`Current/PWA/main.html` instead of `Current/PWA/New-main`). This was corrected by direct source comparison.
+2. An earlier claim that the current receive-purchase flow had no `Idempotency-Key` was later disproved by direct source evidence.
+3. Earlier Inventory/Production work was sometimes performed before the current PWA scope was re-established. Those changes are historical and separate from the New-main surgical track.
+4. Transactional Receive Purchase experiments exposed ordering issues between duplicate/idempotency detection and quantity/state guards.
+5. Operation identity based only on mutable state such as `qty_received_before` is not a robust independent operation identity; the later direction was explicit operation identity.
+6. Several early judgments about tenant/item scoping were corrected after direct schema verification showed `items.item_code` is globally unique under the current contract.
+7. No such historical Inventory experiment changed `Current/PWA/New-main` in P163.
+8. Git/source success must not be represented as browser/runtime success.
+
+## P162 / P163 HANDOFF
 ```text
-CURRENT GIT SOURCE IDENTITY        = VERIFIED
-MAIN2 SOURCE COMPARISON            = VERIFIED
-MAIN2 SOURCE FEATURE LOSS          = 0 PROVEN
-RW_DASHBOARD DUPLICATE             = PROVEN
-RW_ITEMS DUPLICATE                 = PROVEN
-COMPATIBILITY FALSE-CAPABILITY     = PROVEN
-LEGACY MAIN1 ROUTER RESIDUE        = PROVEN
-LATER MAIN3 ROUTING                = PROVEN
-SERVED ARTIFACT                    = NOT VERIFIED
-BROWSER LIVE RUNTIME               = NOT VERIFIED
-FINAL MAIN2 RUNTIME WINNER         = NOT PROVEN
+P162 = ownership surgery was specified; owner edit pending.
+P163 = continuity was rebuilt from direct sources; the same surgery was revalidated; no New-main code was changed by the assistant; report24 was created.
 ```
 
-## REPORTS
+### Next authorized action
+```text
+OWNER MANUAL SURGERY ON Current/PWA/New-main
+        ↓
+DIRECT RE-READ OF NEW-MAIN
+        ↓
+PROVE RW_Dashboard DEFINITIONS = 1
+PROVE RW_Items DEFINITIONS     = 1
+PROVE MARKER LOCATION
+PROVE MAIN3 ROUTING INTACT
+        ↓
+SERVED ARTIFACT VERIFICATION
+        ↓
+BROWSER RUNTIME VERIFICATION
+        ↓
+NEXT CURRENT_STATE UPDATE
+```
+
+## REPORT INDEX
 ```text
 P155 = doc/Draft/Reprots/تقرير16.md
 P156 = doc/Draft/Reprots/تقرير17.md
@@ -178,137 +284,30 @@ P159 = doc/Draft/Reprots/تقرير20.md
 P160 = doc/Draft/Reprots/تقرير21.md
 P161 = doc/Draft/Reprots/تقرير22.md
 P162 = doc/Draft/Reprots/تقرير23.md
+P163 = doc/Draft/Reprots/تقرير24.md
 ```
 
-No historical report was deleted or overwritten.
-
-## P161 SELF-AUDIT
+## FINAL SELF-AUDIT
 ```text
 MASTER READ                         = DONE
-CURRENT_STATE READ                  = DONE
-REPORT CHAIN REVIEW                 = DONE
-RECENT GIT HISTORY                  = DONE
-ORIGINAL main2 DIRECT REVIEW        = DONE
-CURRENT New-main DIRECT REVIEW      = DONE
-LATEST GIT IDENTITY                 = VERIFIED
-MAIN2 SOURCE FEATURE PARITY         = PROVEN
+CURRENT_STATE RECONCILIATION       = DONE
+P163 REPORT CREATED                 = DONE
+LATEST GIT HEAD                     = VERIFIED
+TARGET NEW-MAIN BLOB                = VERIFIED
+ORIGINAL main2 BLOB                 = VERIFIED
+CURRENT PRODUCTION MIGRATIONS       = CHECKED
+CURRENT EDGE DEPLOYMENTS            = CHECKED
 MAIN2 FEATURE LOSS                  = 0 PROVEN
 RW_DASHBOARD DUPLICATE              = PROVEN
 RW_ITEMS DUPLICATE                  = PROVEN
 COMPATIBILITY STUBS                 = PROVEN
-LEGACY MAIN1 ROUTER RESIDUE         = PROVEN
-MAIN3 ROUTE TABLE                   = PROVEN
-FINAL LIVE RUNTIME WINNER           = UNKNOWN
-TARGET CODE MODIFIED BY ASSISTANT   = NO
-PRODUCTION DATA MODIFIED THIS ROUND = NO
-HISTORICAL REPORTS DELETED          = NO
-REPORT22 CREATED                    = YES
-CURRENT_STATE UPDATED               = YES (P161)
-SERVED ARTIFACT VERIFIED            = NO
-BROWSER RUNTIME VERIFIED             = NO
+MAIN1 ALIASES                       = PROVEN
+MAIN3 ROUTING                       = PROVEN
+TARGET CODE MODIFIED BY ASSISTANT  = NO
+ORIGINAL MODIFIED                  = NO
+HISTORICAL REPORTS DELETED         = NO
+OWNER SURGICAL EDIT                 = PENDING
+SERVED ARTIFACT                     = NOT VERIFIED
+BROWSER RUNTIME                     = NOT VERIFIED
 100_PERCENT_CLOSURE                 = NO
-```
-
-## P162 SURGICAL HANDOFF
-```text
-EVENT ID        = P162-MAIN2-OWNERSHIP-SURGERY-SPEC
-DATE            = 2026-09-02
-REPORT          = doc/Draft/Reprots/تقرير23.md
-REPORT COMMIT   = 3a5865aa15ecf9c8bea74d6e94322337ec8c4fba
-TARGET          = Current/PWA/New-main
-TARGET MODIFIED BY ASSISTANT = NO
-ORIGINAL MODIFIED = NO
-PRODUCTION DATA MODIFIED = NO
-HISTORICAL REPORTS DELETED = NO
-```
-
-### P162 finding
-```text
-MAIN2 FUNCTIONAL FEATURE LOSS = 0 PROVEN
-RW_Dashboard duplicate ownership = PROVEN
-RW_Items duplicate ownership = PROVEN
-Compatibility false-capability = PROVEN
-Main1 Dashboard/Items global aliases = PROVEN
-Main3 route table = PROVEN
-```
-
-### P162 owner-side surgical edit
-1. Delete the complete duplicate block beginning at:
-```javascript
-/* RAWAEA MAIN2 COMPATIBILITY */
-```
-and ending at the compatibility close:
-```javascript
-window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';
-})();
-```
-The next marker must be:
-```javascript
-/* RAWAEA MAIN2 AUTHORITATIVE MODULE */
-```
-
-2. Preserve the reconstruction version marker by adding, inside the authoritative module, immediately after:
-```javascript
-window.RW_Items = RW_Items;
-```
-this line:
-```javascript
-window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';
-```
-so the authoritative end contains:
-```javascript
-window.RW_Items = RW_Items;
-window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';
-// MAIN2_GOVERNED_CLOSED:v1
-```
-
-3. Inside the long Main1 assignment, remove only these two assignments:
-```javascript
-window.RW_Dashboard={render:renderDashboard};
-window.RW_Items={render:renderItems};
-```
-Do not remove the surrounding Main1 `actions` closure or `main1Delegation` in P162; their final external-consumer closure is a separate unit.
-
-### P162 explicit non-actions
-```text
-NO whole-file replacement
-NO Main2 feature rewrite
-NO third RW_Dashboard
-NO third RW_Items
-NO one-by-one repair of compatibility stubs
-NO deletion of actions in this unit
-NO deletion of main1Delegation in this unit
-```
-
-### P162 closure state
-```text
-MAIN2 SOURCE PARITY              = CLOSED
-MAIN2 FUNCTIONAL FEATURE LOSS    = 0 PROVEN
-OWNERSHIP SURGERY SPECIFIED      = YES
-OWNER MANUAL EDIT                = PENDING
-SERVED ARTIFACT                  = OPEN
-BROWSER RUNTIME                  = OPEN
-100_PERCENT_CLOSURE              = NO
-```
-
-### P162 self-audit
-```text
-MASTER RE-READ                   = DONE
-CURRENT_STATE RE-READ            = DONE
-REPORT22 RE-READ                 = DONE
-REPORT21 RE-READ                 = DONE
-RECENT GIT DIRECT CHECK          = DONE
-Original main2 DIRECT CHECK      = DONE
-Current New-main DIRECT CHECK    = DONE
-LATEST TARGET COMMIT             = VERIFIED
-LATEST TARGET BLOB               = VERIFIED
-FEATURE LOSS CLAIM               = 0 PROVEN
-DUPLICATE OWNERSHIP              = PROVEN
-COMPATIBILITY STUBS              = PROVEN
-MAIN1 ALIASES                    = PROVEN
-MAIN3 ROUTING                    = PROVEN
-TARGET EDITED BY ASSISTANT       = NO
-PRODUCTION DATA EDITED           = NO
-REPORT23 CREATED                 = YES
-HISTORICAL REPORTS PRESERVED     = YES
 ```
