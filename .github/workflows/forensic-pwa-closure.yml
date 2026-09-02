@@ -22,24 +22,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import importlib.util, subprocess
-          from pathlib import Path
-          spec=importlib.util.spec_from_file_location('recon','tools/run_final_main_reconstruction_20260831.py')
-          m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
-          def fixed(chunks):
-              first=m.re.search(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*)',chunks[0],m.re.I)
-              if not first: raise RuntimeError('MAIN1_INLINE_SCRIPT_MISSING')
-              body=first.group(1)
-              for idx in range(1,len(chunks)+1):
-                  if idx>1: body+='\\n\\n'+chunks[idx-1]
-                  if idx<2: continue
-                  f=Path('/tmp')/f'phase-{idx}.js'; f.write_text(body,encoding='utf-8')
-                  r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-                  if r.returncode: raise RuntimeError(f'JS_PHASE_SYNTAX_FAIL:main{idx}:\\n{r.stderr}')
-          m.validate_phase_js=fixed
-          m.main()
-          PY
+          python3 tools/run_final_main_reconstruction_20260831.py
 
       - name: Execute P163 and prove Gold/Diamond invariants
         shell: bash
@@ -59,7 +42,7 @@ jobs:
               if b<=a: raise SystemExit('P163_OWNER_ORDER')
               s=s[:a]+s[b:]
           for alias in ['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']:
-              s=s.replace(alias,'',1)
+              if alias in s: s=s.replace(alias,'',1)
           if s.count('window.RW_Items=RW_Items;')!=1: raise SystemExit('P163_OWNER_COUNT')
           if s.count(ver)>1 or s.count(gov)>1: raise SystemExit('P163_CLOSURE_DUPLICATE')
           if ver not in s: s=s.replace('window.RW_Items=RW_Items;','window.RW_Items=RW_Items;\n'+ver,1)
