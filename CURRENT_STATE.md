@@ -59,7 +59,6 @@ SOURCE          = MASTER + CURRENT_STATE + direct Git history + direct Current/N
 CURRENT HEAD    = 5d3a97fe9d2361d8e2edb7990df157c140456e44
 TARGET          = Current/PWA/New-main
 TARGET BLOB     = fa7c0fcf78a3b217d781fe543b6e5a5ed7411c63
-ORIGINAL SHA    = 45d5e760a4b53e3be574346e3d9d192dbad309af
 RESULT          = P163 MAIN2 OWNERSHIP SURGERY STILL OPEN; DUPLICATE OWNERSHIP RECONFIRMED; NO TARGET CODE OR PRODUCTION DATA MODIFIED
 TARGET EDITED BY ASSISTANT = NO
 ORIGINAL EDITED = NO
@@ -241,7 +240,7 @@ Direct Production read-only verification during P165 confirmed security-definer 
 A first SQL verification query referenced a non-existent `pg_tables.forcerowsecurity` column and failed without modifying data; the query was corrected and the read-only function/trigger checks then succeeded. This failure is preserved as execution history.
 
 ## PRODUCTION / INVENTORY CONTINUITY — SEPARATE TRACK
-The Production database has continued to receive Inventory/Finance/Voucher migrations after earlier PWA work. Inventory must remain a separate closure track unless current New-main evidence demonstrates a direct dependency.
+The Production database has continued to receive Inventory/Finance/Voucher migrations after earlier PWA work. Inventory must remain a separate closure track unless current New-main scope demonstrates a direct dependency.
 
 Relevant schema facts directly verified during continuity work:
 ```text
