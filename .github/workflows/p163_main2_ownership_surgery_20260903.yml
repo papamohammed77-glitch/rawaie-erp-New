@@ -1,0 +1,168 @@
+name: P163 exact Main2 ownership surgery
+
+on:
+  push:
+    paths:
+      - '.github/workflows/p163_main2_ownership_surgery_20260903.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  surgical-closure:
+    if: ${{ !contains(github.event.head_commit.message, '[P163-EXECUTED]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact pushed state
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Preconditions and exact surgical edit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s Current/PWA/New-main
+          test "$(git rev-parse HEAD)" != ""
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, re
+
+          p = Path('Current/PWA/New-main')
+          s = p.read_text(encoding='utf-8')
+
+          expected_blob = 'fa7c0fcf78a3b217d781fe543b6e5a5ed7411c63'
+          import subprocess
+          actual_blob = subprocess.check_output(['git','rev-parse','HEAD:Current/PWA/New-main'], text=True).strip()
+          if actual_blob != expected_blob:
+              raise SystemExit(f'PRECONDITION_TARGET_BLOB_MISMATCH expected={expected_blob} actual={actual_blob}')
+
+          marker = '/* RAWAEA MAIN2 COMPATIBILITY */'
+          authoritative = '/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
+          close = "window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';\n})();"
+          if s.count(marker) != 1:
+              raise SystemExit(f'EXPECTED_ONE_COMPAT_MARKER got={s.count(marker)}')
+          if s.count(authoritative) != 1:
+              raise SystemExit(f'EXPECTED_ONE_AUTHORITATIVE_MARKER got={s.count(authoritative)}')
+          start = s.index(marker)
+          auth_after = s.index(authoritative, start)
+          block = s[start:auth_after]
+          if close not in block:
+              raise SystemExit('COMPATIBILITY_CLOSE_NOT_FOUND_IN_EXPECTED_BLOCK')
+
+          s = s[:start] + s[auth_after:]
+
+          # Move the reconstruction marker under the authoritative RW_Items owner.
+          pat = re.compile(r"window\.RW_Items\s*=\s*RW_Items;\s*\n// MAIN2_GOVERNED_CLOSED:v1")
+          if len(pat.findall(s)) != 1:
+              raise SystemExit(f'AUTHORITATIVE_ITEMS_CLOSE_NOT_UNIQUE got={len(pat.findall(s))}')
+          s = pat.sub("window.RW_Items=RW_Items;\nwindow.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';\n// MAIN2_GOVERNED_CLOSED:v1", s, count=1)
+
+          # Remove only the two legacy Main1 global aliases.
+          aliases = [
+              'window.RW_Dashboard={render:renderDashboard};',
+              'window.RW_Items={render:renderItems};',
+          ]
+          for a in aliases:
+              if s.count(a) != 1:
+                  raise SystemExit(f'ALIAS_NOT_UNIQUE {a!r} count={s.count(a)}')
+              s = s.replace(a + '\n', '', 1)
+
+          # Post-edit invariants.
+          if marker in s:
+              raise SystemExit('COMPATIBILITY_MARKER_STILL_PRESENT')
+          if s.count(authoritative) != 1:
+              raise SystemExit('AUTHORITATIVE_MARKER_COUNT_INVALID')
+          if s.count("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';") != 1:
+              raise SystemExit('RECONSTRUCTION_MARKER_COUNT_INVALID')
+          if "window.RW_Items={render:renderItems};" in s or "window.RW_Dashboard={render:renderDashboard};" in s:
+              raise SystemExit('MAIN1_ALIAS_STILL_PRESENT')
+          if 'var actions=' not in s:
+              raise SystemExit('ACTIONS_DELETED_OR_LOST')
+          if 'function main1Delegation(' not in s:
+              raise SystemExit('MAIN1_DELEGATION_DELETED_OR_LOST')
+          if '/* RAWAEA MAIN3' not in s and 'MAIN3' not in s:
+              raise SystemExit('MAIN3_SURFACE_NOT_FOUND')
+
+          p.write_text(s, encoding='utf-8')
+          print('P163_SURGICAL_EDIT_PASS')
+          print('bytes=', len(s.encode('utf-8')))
+          print('sha256=', hashlib.sha256(s.encode('utf-8')).hexdigest())
+          PY
+
+      - name: Structural and ownership verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,re
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          checks={
+            'compatibility_removed':'/* RAWAEA MAIN2 COMPATIBILITY */' not in s,
+            'authoritative_present':'/* RAWAEA MAIN2 AUTHORITATIVE MODULE */' in s,
+            'reconstruction_marker_once':s.count("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';")==1,
+            'governed_closed_once':s.count('MAIN2_GOVERNED_CLOSED:v1')==1,
+            'legacy_dashboard_alias_removed':'window.RW_Dashboard={render:renderDashboard};' not in s,
+            'legacy_items_alias_removed':'window.RW_Items={render:renderItems};' not in s,
+            'actions_preserved':'var actions=' in s,
+            'delegation_preserved':'function main1Delegation(' in s,
+            'shell_preserved':'window.RW_ShellContext' in s,
+            'owner_preserved':'window.RW_OwnerContract' in s,
+            'doctype':'<!doctype html' in s.lower(),
+            'script_balance':s.lower().count('<script')==s.lower().count('</script>'),
+            'style_balance':s.lower().count('<style')==s.lower().count('</style>'),
+            'stock_writer':not re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,500}?\.(?:update|insert|upsert|delete)\(",s),
+            'log_writer':not re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,500}?\.(?:update|insert|upsert|delete)\(",s),
+          }
+          print(json.dumps(checks,ensure_ascii=False))
+          if not all(checks.values()): raise SystemExit('P163_STRUCTURAL_FAIL')
+          PY
+          git diff --check
+
+      - name: HTML JavaScript syntax gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>', s, re.I)
+          Path('/tmp/newmain-script-1.js').write_text('\n'.join(scripts), encoding='utf-8')
+          print('SCRIPT_BLOCKS',len(scripts))
+          PY
+          node --check /tmp/newmain-script-1.js
+
+      - name: Browser smoke against actual edited New-main
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          rm -rf /tmp/rw-pwa; mkdir -p /tmp/rw-pwa
+          cp -r Current/PWA/. /tmp/rw-pwa/
+          cp Current/PWA/New-main /tmp/rw-pwa/main.html
+          python3 -m http.server 8123 --directory /tmp/rw-pwa >/tmp/rw-http.log 2>&1 &
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[];p.on('pageerror',e=>pe.push(e.message));await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(3000);const r=await p.evaluate(()=>({lang:document.documentElement.lang,body:!!document.body,state:!!window.RW_STATE,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerContract,main2version:window.RW_PWA_RECONSTRUCTION_VERSION||null}));console.log(JSON.stringify({r,pe}));if(r.lang!=='ar'||!r.body||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||r.main2version!=='MAIN2-COMPLETE-SURGICAL-v1'||pe.length)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)})
+          NODE
+
+      - name: Commit exact surgical closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'rawaea-surgical-bot'
+          git config user.email 'rawaea-surgical-bot@users.noreply.github.com'
+          git add Current/PWA/New-main .github/workflows/p163_main2_ownership_surgery_20260903.yml
+          git rm --cached .github/workflows/p163_main2_ownership_surgery_20260903.yml || true
+          git add -A
+          git diff --cached --check
+          git diff --cached -- Current/PWA/New-main
+          test -n "$(git diff --cached --name-only | grep '^Current/PWA/New-main$')"
+          git commit -m '[P163-EXECUTED] exact Main2 ownership surgery with source and runtime gates'
+          git push origin HEAD:main
