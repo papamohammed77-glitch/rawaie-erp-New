@@ -360,3 +360,29 @@ SERVED ARTIFACT                     = NOT VERIFIED
 BROWSER RUNTIME                     = NOT VERIFIED
 PROJECT-WIDE CLOSURE                = NOT CLAIMED
 ```
+
+## CTO EXECUTOR DIAGNOSTIC — 2026-09-03
+```text
+Traceback (most recent call last):
+  File "/home/runner/work/rawaie-erp-New/rawaie-erp-New/tools/run_final_main_reconstruction_20260831.py", line 238, in <module>
+    main()
+  File "/home/runner/work/rawaie-erp-New/rawaie-erp-New/tools/run_final_main_reconstruction_20260831.py", line 216, in main
+    candidate, chunks, runtime_changes, p163_gates = assemble()
+                                                     ^^^^^^^^^^
+  File "/home/runner/work/rawaie-erp-New/rawaie-erp-New/tools/run_final_main_reconstruction_20260831.py", line 155, in assemble
+    validate_phase_js(chunks)
+  File "/home/runner/work/rawaie-erp-New/rawaie-erp-New/tools/run_final_main_reconstruction_20260831.py", line 90, in validate_phase_js
+    raise RuntimeError(f'JS_PHASE_SYNTAX_FAIL:main{idx}:\n{r.stderr}')
+RuntimeError: JS_PHASE_SYNTAX_FAIL:main2:
+/tmp/rawaea-phase-2.js:1214
+// MAIN2_GOVERNED_CLOSED:v1
+                           
+
+SyntaxError: Unexpected end of input
+    at wrapSafe (node:internal/modules/cjs/loader:1713:18)
+    at checkSyntax (node:internal/main/check_syntax:78:3)
+
+Node.js v22.23.2
+
+
+```
