@@ -177,6 +177,7 @@ P158 = doc/Draft/Reprots/تقرير19.md
 P159 = doc/Draft/Reprots/تقرير20.md
 P160 = doc/Draft/Reprots/تقرير21.md
 P161 = doc/Draft/Reprots/تقرير22.md
+P162 = doc/Draft/Reprots/تقرير23.md
 ```
 
 No historical report was deleted or overwritten.
@@ -206,4 +207,108 @@ CURRENT_STATE UPDATED               = YES (P161)
 SERVED ARTIFACT VERIFIED            = NO
 BROWSER RUNTIME VERIFIED             = NO
 100_PERCENT_CLOSURE                 = NO
+```
+
+## P162 SURGICAL HANDOFF
+```text
+EVENT ID        = P162-MAIN2-OWNERSHIP-SURGERY-SPEC
+DATE            = 2026-09-02
+REPORT          = doc/Draft/Reprots/تقرير23.md
+REPORT COMMIT   = 3a5865aa15ecf9c8bea74d6e94322337ec8c4fba
+TARGET          = Current/PWA/New-main
+TARGET MODIFIED BY ASSISTANT = NO
+ORIGINAL MODIFIED = NO
+PRODUCTION DATA MODIFIED = NO
+HISTORICAL REPORTS DELETED = NO
+```
+
+### P162 finding
+```text
+MAIN2 FUNCTIONAL FEATURE LOSS = 0 PROVEN
+RW_Dashboard duplicate ownership = PROVEN
+RW_Items duplicate ownership = PROVEN
+Compatibility false-capability = PROVEN
+Main1 Dashboard/Items global aliases = PROVEN
+Main3 route table = PROVEN
+```
+
+### P162 owner-side surgical edit
+1. Delete the complete duplicate block beginning at:
+```javascript
+/* RAWAEA MAIN2 COMPATIBILITY */
+```
+and ending at the compatibility close:
+```javascript
+window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';
+})();
+```
+The next marker must be:
+```javascript
+/* RAWAEA MAIN2 AUTHORITATIVE MODULE */
+```
+
+2. Preserve the reconstruction version marker by adding, inside the authoritative module, immediately after:
+```javascript
+window.RW_Items = RW_Items;
+```
+this line:
+```javascript
+window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';
+```
+so the authoritative end contains:
+```javascript
+window.RW_Items = RW_Items;
+window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';
+// MAIN2_GOVERNED_CLOSED:v1
+```
+
+3. Inside the long Main1 assignment, remove only these two assignments:
+```javascript
+window.RW_Dashboard={render:renderDashboard};
+window.RW_Items={render:renderItems};
+```
+Do not remove the surrounding Main1 `actions` closure or `main1Delegation` in P162; their final external-consumer closure is a separate unit.
+
+### P162 explicit non-actions
+```text
+NO whole-file replacement
+NO Main2 feature rewrite
+NO third RW_Dashboard
+NO third RW_Items
+NO one-by-one repair of compatibility stubs
+NO deletion of actions in this unit
+NO deletion of main1Delegation in this unit
+```
+
+### P162 closure state
+```text
+MAIN2 SOURCE PARITY              = CLOSED
+MAIN2 FUNCTIONAL FEATURE LOSS    = 0 PROVEN
+OWNERSHIP SURGERY SPECIFIED      = YES
+OWNER MANUAL EDIT                = PENDING
+SERVED ARTIFACT                  = OPEN
+BROWSER RUNTIME                  = OPEN
+100_PERCENT_CLOSURE              = NO
+```
+
+### P162 self-audit
+```text
+MASTER RE-READ                   = DONE
+CURRENT_STATE RE-READ            = DONE
+REPORT22 RE-READ                 = DONE
+REPORT21 RE-READ                 = DONE
+RECENT GIT DIRECT CHECK          = DONE
+Original main2 DIRECT CHECK      = DONE
+Current New-main DIRECT CHECK    = DONE
+LATEST TARGET COMMIT             = VERIFIED
+LATEST TARGET BLOB               = VERIFIED
+FEATURE LOSS CLAIM               = 0 PROVEN
+DUPLICATE OWNERSHIP              = PROVEN
+COMPATIBILITY STUBS              = PROVEN
+MAIN1 ALIASES                    = PROVEN
+MAIN3 ROUTING                    = PROVEN
+TARGET EDITED BY ASSISTANT       = NO
+PRODUCTION DATA EDITED           = NO
+REPORT23 CREATED                 = YES
+HISTORICAL REPORTS PRESERVED     = YES
 ```
