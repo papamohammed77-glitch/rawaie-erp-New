@@ -1,4 +1,4 @@
-# TRIGGER FINAL EXECUTION 2026-09-03
+# TRIGGER FINAL EXECUTION 2026-09-03-NOW
 name: Medhat auth login verification
 on:
   push:
@@ -50,9 +50,8 @@ jobs:
           compat='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'; version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"; governed='// MAIN2_GOVERNED_CLOSED:v1'
           for x in ['main1Delegation','actions','MAIN3','post_stock_movement','reserve_stock','window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense','RW_GOLD_DIAMOND']:
               if x not in s: raise SystemExit('CONTRACT_MISSING:'+x)
-          # Apply the ownership surgery to the just-built target, not to historical fragments.
           if compat in s:
-              a=s.index(compat); b=s.index(auth); 
+              a=s.index(compat); b=s.index(auth)
               if b<=a: raise SystemExit('P163_OWNER_ORDER')
               s=s[:a]+s[b:]
           for alias in ['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']:
@@ -61,7 +60,7 @@ jobs:
           if s.count(close)!=1: raise SystemExit('P163_RW_ITEMS_OWNER_COUNT='+str(s.count(close)))
           if version not in s: s=s.replace(close,close+'\n'+version,1)
           if governed not in s: s=s.replace(version,version+'\n'+governed,1)
-          checks={'compat_absent':compat not in s,'auth_one':s.count(auth)==1,'version_one':s.count(version)==1,'governed_one':s.count(governed)==1,'dashboard_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,'items_alias_absent':'window.RW_Items={render:renderItems};' not in s,'actions': 'actions' in s,'main1Delegation':'main1Delegation' in s,'main3':'MAIN3' in s,'script_balance':s.lower().count('<script')==s.lower().count('</script>'),'style_balance':s.lower().count('<style')==s.lower().count('</style>'),'canonical_sw_once':s.count("navigator.serviceWorker.register('./sw.js',{scope:'./'})")==1}
+          checks={'compat_absent':compat not in s,'auth_one':s.count(auth)==1,'version_one':s.count(version)==1,'governed_one':s.count(governed)==1,'dashboard_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,'items_alias_absent':'window.RW_Items={render:renderItems};' not in s,'actions':'actions' in s,'main1Delegation':'main1Delegation' in s,'main3':'MAIN3' in s,'script_balance':s.lower().count('<script')==s.lower().count('</script>'),'style_balance':s.lower().count('<style')==s.lower().count('</style>'),'canonical_sw_once':s.count("navigator.serviceWorker.register('./sw.js',{scope:'./'})")==1}
           bad=[k for k,v in checks.items() if not v]
           if bad: raise SystemExit('P163_GOLD_FAIL:'+repr(bad))
           p.write_text(s,encoding='utf-8')
