@@ -1,5 +1,5 @@
 name: CTO executor temporary 20260903
-# trigger-v2: target file is never overwritten to trigger execution.
+# trigger-v3: execution is driven by the existing PR CI on the main branch.
 on:
   push:
     branches: [cto-new-main-gold-20260903]
@@ -13,72 +13,4 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 0
-      - name: Rebuild candidate from Current fragments
-        run: |
-          set -euo pipefail
-          cp Current/PWA/New-main /tmp/New-main.before
-          python3 tools/run_final_main_reconstruction_20260831.py
-          cp Current/PWA/New-main /tmp/New-main.reconstructed
-      - name: P163 ownership surgery and Gold gates
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import re, hashlib
-          p=Path('Current/PWA/New-main')
-          s=p.read_text(encoding='utf-8')
-          before=Path('/tmp/New-main.before').read_text(encoding='utf-8')
-          reconstructed=Path('/tmp/New-main.reconstructed').read_text(encoding='utf-8')
-          print('before_bytes',len(before),'reconstructed_bytes',len(reconstructed))
-          required=['MAIN1_DELEGATION_STARTED','main1Delegation','actions','/* RAWAEA MAIN2 AUTHORITATIVE MODULE */','MAIN3','post_stock_movement','reserve_stock','save_sales_invoice_atomic','edgeCall','supabaseClient']
-          missing=[x for x in required if x not in s]
-          if missing: raise SystemExit('RECONSTRUCTION_LOST_REQUIRED_CONTRACTS '+repr(missing))
-          compat='/* RAWAEA MAIN2 COMPATIBILITY */'
-          auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
-          if s.count(compat)!=1: raise SystemExit(f'P163_EXPECTED_ONE_COMPAT_BLOCK got={s.count(compat)}')
-          if s.count(auth)!=1: raise SystemExit(f'P163_EXPECTED_ONE_AUTH_OWNER got={s.count(auth)}')
-          a=s.index(compat); b=s.index(auth)
-          if b<=a: raise SystemExit('P163_ORDER_INVALID')
-          s=s[:a]+s[b:]
-          for alias in ['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']:
-              if s.count(alias)!=1: raise SystemExit(f'P163_ALIAS_COUNT_INVALID {alias!r} count={s.count(alias)}')
-              s=s.replace(alias,'',1)
-          version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"
-          governed='// MAIN2_GOVERNED_CLOSED:v1'
-          if s.count(version)>1 or s.count(governed)>1: raise SystemExit('P163_CLOSURE_DUPLICATE')
-          close='window.RW_Items=RW_Items;'
-          if s.count(close)!=1: raise SystemExit(f'P163_RW_ITEMS_OWNER_INVALID count={s.count(close)}')
-          if version not in s: s=s.replace(close,close+'\n'+version+'\n'+governed,1)
-          elif governed not in s: s=s.replace(version,version+'\n'+governed,1)
-          gates={'compat_absent':compat not in s,'auth_one':s.count(auth)==1,'reconstruction_one':s.count(version)==1,'governed_one':s.count(governed)==1,'dashboard_legacy_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,'items_legacy_absent':'window.RW_Items={render:renderItems};' not in s,'actions_survives':'actions' in s,'delegation_survives':'main1Delegation' in s,'main3_survives':'MAIN3' in s,'rw_items_authority':s.count(close)==1}
-          bad=[k for k,v in gates.items() if not v]
-          if bad: raise SystemExit('P163_GATE_FAILURE '+repr(bad))
-          p.write_text(s,encoding='utf-8')
-          print('P163_GATES_OK',gates)
-          print('final_bytes',len(s.encode()),'sha256',hashlib.sha256(s.encode()).hexdigest())
-          PY
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          html=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',html,re.I)
-          if not scripts: raise SystemExit('NO_INLINE_SCRIPTS')
-          Path('/tmp/new-main-scripts.js').write_text('\n\n'.join(scripts),encoding='utf-8')
-          print('inline_scripts',len(scripts),'script_bytes',Path('/tmp/new-main-scripts.js').stat().st_size)
-          PY
-          node --check /tmp/new-main-scripts.js
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          checks={'html_script_balance':s.lower().count('<script')==s.lower().count('</script>'),'html_style_balance':s.lower().count('<style')==s.lower().count('</style>'),'one_sw_registration':len(re.findall(r'navigator\.serviceWorker\.register',s))<=1,'no_legacy_dashboard_alias':'window.RW_Dashboard={render:renderDashboard};' not in s,'no_legacy_items_alias':'window.RW_Items={render:renderItems};' not in s,'one_main2_version':s.count(version:="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';")==1}
-          if not all(checks.values()): raise SystemExit('STRUCTURAL_GATE_FAILURE '+repr(checks))
-          print('STRUCTURAL_GATES_OK',checks)
-          PY
-      - name: Commit candidate only when gates pass
-        run: |
-          set -euo pipefail
-          git config user.name 'RAWAEA CTO Executor'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add Current/PWA/New-main
-          if git diff --cached --quiet; then echo 'NO_TARGET_DIFF'; else git diff --cached --stat; git diff --cached --check; git commit -m 'fix(cto): execute New-main reconstruction and P163 ownership surgery [P163-EXECUTED] [main-reconstruction-executed] [skip ci]'; git push origin HEAD:${{ github.ref_name }}; fi
+      - run: echo 'executor is intentionally dormant; main P0 PR workflow performs the gated operation'
