@@ -1,4 +1,4 @@
-# CTO-TRIGGER-2026-09-03
+# CTO-TRIGGER-2026-09-03-NOW
 name: RAWAEA CTO New-main Gold Diamond Executor
 
 on:
@@ -24,10 +24,8 @@ jobs:
         with:
           ref: main
           fetch-depth: 2
-
       - name: Reconstruct from governed 11-part current fragments
         run: python3 tools/run_final_main_reconstruction_20260831.py
-
       - name: Enforce P163 ownership surgery
         shell: bash
         run: |
@@ -35,10 +33,8 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re, hashlib
-          p=Path('Current/PWA/New-main')
-          s=p.read_text(encoding='utf-8')
-          compat='/* RAWAEA MAIN2 COMPATIBILITY */'
-          auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          compat='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
           legacy=['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']
           if s.count(compat)!=1: raise SystemExit(f'P163_COMPAT_COUNT={s.count(compat)}')
           if s.count(auth)!=1: raise SystemExit(f'P163_AUTH_COUNT={s.count(auth)}')
@@ -48,57 +44,41 @@ jobs:
           for x in legacy:
               if s.count(x)!=1: raise SystemExit(f'P163_ALIAS_COUNT {x} {s.count(x)}')
               s=s.replace(x,'',1)
-          owner="window.RW_Items=RW_Items;"
-          version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"
-          governed='// MAIN2_GOVERNED_CLOSED:v1'
+          owner='window.RW_Items=RW_Items;'; version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"; governed='// MAIN2_GOVERNED_CLOSED:v1'
           if s.count(owner)!=1: raise SystemExit(f'P163_OWNER_COUNT={s.count(owner)}')
-          s=s.replace(owner, owner+'\n'+version, 1) if version not in s else s
-          s=s.replace(version, version+'\n'+governed, 1) if governed not in s else s
-          gates={
-            'compat_absent':compat not in s,
-            'auth_one':s.count(auth)==1,
-            'version_one':s.count(version)==1,
-            'governed_one':s.count(governed)==1,
-            'dashboard_alias_absent':legacy[0] not in s,
-            'items_alias_absent':legacy[1] not in s,
-            'actions_preserved':'actions' in s,
-            'main1Delegation_preserved':'main1Delegation' in s,
-            'MAIN3_preserved':'MAIN3' in s,
-            'core_stock_engine':'post_stock_movement' in s and 'reserve_stock' in s,
-            'core_finance_engine':'post_journal_entry' in s,
-            'save_invoice_atomic':'save_sales_invoice_atomic' in s,
-            'edge_call':'edgeCall' in s,
-            'supabase_client':'supabaseClient' in s,
-            'script_balance':s.lower().count('<script')==s.lower().count('</script>'),
-            'style_balance':s.lower().count('<style')==s.lower().count('</style>')
-          }
+          if version not in s: s=s.replace(owner,owner+'\n'+version,1)
+          if governed not in s: s=s.replace(version,version+'\n'+governed,1)
+          gates={'compat_absent':compat not in s,'auth_one':s.count(auth)==1,'version_one':s.count(version)==1,'governed_one':s.count(governed)==1,'dashboard_alias_absent':legacy[0] not in s,'items_alias_absent':legacy[1] not in s,'actions_preserved':'actions' in s,'main1Delegation_preserved':'main1Delegation' in s,'MAIN3_preserved':'MAIN3' in s,'core_stock_engine':'post_stock_movement' in s and 'reserve_stock' in s,'core_finance_engine':'post_journal_entry' in s,'save_invoice_atomic':'save_sales_invoice_atomic' in s,'edge_call':'edgeCall' in s,'supabase_client':'supabaseClient' in s,'script_balance':s.lower().count('<script')==s.lower().count('</script>'),'style_balance':s.lower().count('<style')==s.lower().count('</style>')}
           bad=[k for k,v in gates.items() if not v]
           if bad: raise SystemExit('GOLD_GATE_FAIL '+repr(bad))
           Path('/tmp/new-main-inline.js').write_text('\n'.join(re.findall(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*?)</script>',s,re.I)),encoding='utf-8')
-          print('GOLD_STATIC_PASS',gates)
-          print('TARGET_SHA256',hashlib.sha256(s.encode()).hexdigest())
-          p.write_text(s,encoding='utf-8')
+          node=''
+          print('GOLD_STATIC_PASS',gates); print('TARGET_SHA256',hashlib.sha256(s.encode()).hexdigest()); p.write_text(s,encoding='utf-8')
           PY
           node --check /tmp/new-main-inline.js
           git diff --check
-
+      - name: Browser smoke gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          python3 -m http.server 8123 --directory Current/PWA >/tmp/rawaea-http.log 2>&1 &
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1500);const x=await p.evaluate(async()=>{const flat=[];(function walk(a){(a||[]).forEach(v=>{if(v.view)flat.push(v.view);if(v.submenu)walk(v.submenu)})})(window.RW_Navigation&&window.RW_Navigation.menuTree);const req=['dashboard','telesales','customers','online-store','pos','orders','runsheets','suppliers','purchase-pos','purchases','receiving','items','branches','picking','loading','delivery','return','unloading','transfer','direct-sale','direct-return','supplier-return','vouchers','vehicle-count','branch-count','general-count','settlement','reports-dashboard','reports-detailed','reports-comprehensive','hr','crm','users','roles','license','settings','audit-log','notifications'];const critical=req.every(v=>flat.includes(v));const mods=['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Roles','RW_Views'].every(v=>!!window[v]);let denied=false;if(window.RW_Navigation&&window.RW_Navigation.navigate){window.RW_STATE.app.currentUser={isOwner:false};try{await window.RW_Navigation.navigate('license')}catch(e){denied=e.message==='OWNER_ONLY'}}return{critical,mods,denied,menuCount:flat.length};});console.log(JSON.stringify({x,pe,ce}));if(pe.length||ce.length||!x.critical||!x.mods||!x.denied||x.menuCount<30)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)})
+          NODE
       - name: Persist target and state
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib,re,datetime
-          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
-          state=Path('CURRENT_STATE.md'); st=state.read_text(encoding='utf-8')
-          digest=hashlib.sha256(s.encode()).hexdigest()
-          marker='P163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction'
+          import hashlib
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8'); state=Path('CURRENT_STATE.md'); st=state.read_text(encoding='utf-8'); digest=hashlib.sha256(s.encode()).hexdigest(); marker='P163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction'
           if marker not in st:
-              st=st.rstrip()+"\n\n## CTO EXECUTION — 2026-09-03\n\n"+marker+"\n- Target: `Current/PWA/New-main`\n- Target SHA-256: `"+digest+"`\n- Reconstruction source: `Current/PWA/main/main1.md` through `main11.md`.\n- P163: compatibility block removed; Main1 legacy dashboard/items aliases removed; `actions`, `main1Delegation`, and MAIN3 preserved; governed Main2 closure retained.\n- Static verification: reconstruction + ownership gates + JS syntax passed.\n- Production DB writes: none.\n"
+              st=st.rstrip()+"\n\n## CTO EXECUTION — 2026-09-03\n\n"+marker+"\n- Target: `Current/PWA/New-main`\n- Target SHA-256: `"+digest+"`\n- Reconstruction source: `Current/PWA/main/main1.md` through `main11.md`.\n- P163: compatibility block removed; Main1 legacy dashboard/items aliases removed; `actions`, `main1Delegation`, and MAIN3 preserved; governed Main2 closure retained.\n- Static verification: reconstruction + ownership gates + JS syntax passed.\n- Browser smoke: required menu/module and owner-boundary checks passed.\n- Production DB writes: none.\n"
               state.write_text(st,encoding='utf-8')
           PY
-          git config user.name 'RAWAEA CTO Executor'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add Current/PWA/New-main CURRENT_STATE.md
-          git commit -m '[GOLD-CLOSED] complete New-main P163 ownership and governed reconstruction'
-          git push origin HEAD:main
+          git config user.name 'RAWAEA CTO Executor'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'; git add Current/PWA/New-main CURRENT_STATE.md; git diff --cached --check; git commit -m '[GOLD-CLOSED] complete New-main P163 ownership and governed reconstruction'; git push origin HEAD:main
