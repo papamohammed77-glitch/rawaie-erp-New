@@ -357,3 +357,149 @@ Until then:
 ```text
 CLOUDFLARE_RUNTIME_AUTH_CLOSURE = OPEN
 ```
+
+## P153 — FORENSIC CONTINUITY / MAIN.HTML SURGICAL VERIFICATION — 2026-09-02
+
+### Purpose
+This event reconciled the real current state against the Master Continuity command, the Inventory continuation directive, Report 13, and the live Production database contracts. It specifically resolves the owner's question about whether `main.html` currently requires a manual surgical replacement.
+
+### LAST VERIFIED PRODUCTION EVENT
+The latest directly verified Production migration remains:
+
+```text
+20260902023122
+compatibility_company_main_branch_projection_20260902
+```
+
+The Production migration history was queried directly and confirmed this version exists.
+
+### CURRENT_STATE DRIFT FOUND
+`CURRENT_STATE.md` previously stopped at P152 while `doc/Draft/Reprots/تقرير13` already recorded a Production database repair. Therefore the file was stale relative to the latest documented execution event.
+
+This update closes that documentation drift without rewriting or deleting historical reports.
+
+### MAIN.HTML FINDING — DEFINITIVE
+A direct current Git read shows that the current purchase-receiving flow already generates an operation id and sends it in both places:
+
+```javascript
+headers:{'Content-Type':'application/json','Authorization':'Bearer '+t,'Idempotency-Key':opId},
+body:JSON.stringify({po_code:poCode,itemsReceived:r.value,notes:notes,operation_id:opId})
+```
+
+Therefore:
+
+```text
+MAIN.HTML_IDEMPOTENCY_KEY = ALREADY PRESENT
+MANUAL REPLACEMENT        = NOT REQUIRED
+```
+
+A previous statement in the execution conversation claiming that `main.html` did not send `Idempotency-Key` was incorrect. That statement is superseded by direct current-source evidence and must not be used to justify a manual edit.
+
+### MAIN BRANCH COMPATIBILITY FINDING
+Current code reads:
+
+```javascript
+var c=await supabase.from('companies').select('id,name,logo_url,main_branch_id,main_branch_code').eq('id',u.data.company_id).maybeSingle();
+```
+
+This lookup is company-scoped. The historical failure was the absence of the requested columns in `companies`, which Report 13 addressed through a compatibility projection sourced from `app_settings.main_branch_id`. No manual edit to this line is presently justified.
+
+### FILE LINEAGE
+Current product target:
+
+```text
+Current/PWA/New-main
+SHA = 5bf6907747d807dfa9f10979f5a63685c8bae64e
+```
+
+Separate protected file:
+
+```text
+Current/PWA/main.html
+SHA = 27b777528665dcc985809648f006452c861ae36e
+```
+
+These are different blobs. They must not be merged, copied, or substituted based only on name similarity.
+
+### CURRENT EDGE CONTRACTS
+- `create-stock-voucher` is currently RPC-backed and resolves company context through `users.auth_id`.
+- `receive-purchase` currently resolves company context through `users.auth_id`, accepts `operation_id` / `Idempotency-Key`, and calls the operation-aware Production `receive_purchase_atomic` contract.
+
+### PRODUCTION RPC SIGNATURE SNAPSHOT
+Current Production PostgreSQL directly reports:
+
+```text
+create_manual_stock_voucher_atomic(...10 args)
+create_manual_stock_voucher_atomic(...12 args, p_operation_id text)
+post_inventory_adjustment_atomic(...7 args)
+post_manual_stock_voucher_atomic(...6 args, p_operation_id text)
+receive_purchase_atomic(...5 args, p_operation_id uuid)
+send_stock_voucher_atomic(...3 args)
+```
+
+### INVENTORY STATUS
+The Inventory Zero-Debt Sweep remains open. The immutable stock contract is still:
+
+```text
+PHYSICAL STOCK MOVEMENT
+        ↓
+post_stock_movement
+        ↓
+stock_branches + inventory_log
+```
+
+No global Inventory 100% closure is claimed.
+
+### DATA ANOMALY STATUS
+Direct Production inspection found cross-company item metadata relationships in `stock_branches` and `inventory_log`. They were not deleted or rewritten because the evidence does not yet prove that all such rows are invalid fixtures rather than legitimate global-item/legacy relationships.
+
+Status:
+
+```text
+DETECT = YES
+TRACE  = REQUIRED
+REPAIR = NOT AUTHORIZED YET
+```
+
+### WHAT WAS NOT CHANGED IN P153
+- No manual `main.html` patch for `Idempotency-Key`.
+- No replacement of `Current/PWA/main.html` with `New-main`.
+- No Supabase credential rotation.
+- No deletion of historical reports.
+- No false Inventory closure claim.
+
+### P153 SELF-AUDIT
+```text
+MASTER_GOVERNANCE_REVIEW          = VERIFIED
+CONTINUATION_PROMPT               = VERIFIED
+REPORT_HISTORY                    = PRESERVED
+CURRENT_STATE_DRIFT               = FOUND_AND_CORRECTED
+REPORT13_PRODUCTION_MIGRATION     = VERIFIED_IN_PRODUCTION
+NEW_MAIN_SHA                       = VERIFIED
+CURRENT_MAIN_HTML_SHA              = VERIFIED
+MAIN_HTML_IDEMPOTENCY_FIX         = ALREADY_PRESENT
+MAIN_HTML_MANUAL_PATCH             = NOT_REQUIRED
+MAIN_BRANCH_COMPAT_FIX            = DATABASE_SIDE / VERIFIED
+RECEIVE_PURCHASE_OPERATION_CONTRACT= VERIFIED_IN_PRODUCTION
+CLOUDFLARE_LIVE_ARTIFACT           = UNVERIFIED
+GLOBAL_INVENTORY_CLOSURE            = OPEN
+```
+
+### NEXT AUTHORIZED STATE
+```text
+1. Do not manually modify main.html for the already-present Idempotency-Key contract.
+2. Continue the GLOBAL INVENTORY CORE INTEGRITY SWEEP one Writer Closure Unit at a time.
+3. Preserve the Cloudflare runtime boundary as OPEN until direct evidence exists.
+4. Any Production data cleanup must follow source/history/business-impact tracing first.
+```
+
+### P153 REPORT
+```text
+doc/Draft/Reprots/تقرير14.md
+```
+
+Report commit:
+
+```text
+92d82f54d726f8ac3804e4dff80007b89f786b5d
+```
