@@ -15,12 +15,12 @@
 ```text
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH     = main
-CURRENT HEAD = 239643c353cb2aeb0daa92ce4ee4c4d60b805603
-HEAD MESSAGE = docs: add P164 Master CTO continuity and execution report
-HEAD UTC    = 2026-09-02T22:16Z (session state update)
+CURRENT HEAD = 5d3a97fe9d2361d8e2edb7990df157c140456e44
+HEAD MESSAGE = docs: update CURRENT_STATE with P164 CTO master continuity handoff
+HEAD UTC    = 2026-09-02T22:19:51Z
 ```
 
-The current HEAD includes the P164 documentation and continuity artifacts; it did not modify `Current/PWA/New-main`.
+The direct Git HEAD is a documentation-only reconciliation commit; it did not modify `Current/PWA/New-main`.
 
 ## CURRENT TARGET IDENTITIES
 ```text
@@ -33,7 +33,7 @@ TARGET BLOB = fa7c0fcf78a3b217d781fe543b6e5a5ed7411c63
 TARGET CODE MODIFIED BY ASSISTANT IN P164 = NO
 ```
 
-The `da5af...` target commit, created at `2026-09-02T04:40:53Z`, only added the missing login-form `</div>` before `rw-login-options`; it did not remove the Main2 duplicate/authoritative structure.
+The `da5af...` target commit, created at `2026-09-02T04:40:53Z`, only added the missing login-form `</div>` before `rw-login-options`; it did not remove the Main2 duplicate/authoritative structure. Direct inspection of the current target blob confirms the duplicate blocks remain.
 
 ## HISTORICAL CONTINUITY
 ```text
@@ -53,17 +53,17 @@ No historical report was deleted or overwritten.
 
 ## LAST VERIFIED EVENT
 ```text
-EVENT ID        = P164-MASTER-CTO-CONTINUITY-PROMPT
+EVENT ID        = P165-NEWMAIN-CONTINUITY-REVALIDATION
 DATE            = 2026-09-03
-SOURCE          = MASTER + CURRENT_STATE + Report22 + Report23 + Report24 + direct Git history + direct Current/New-main + direct Original/main index
-CURRENT HEAD    = 239643c353cb2aeb0daa92ce4ee4c4d60b805603
+SOURCE          = MASTER + CURRENT_STATE + direct Git history + direct Current/New-main blob + direct Production SQL verification
+CURRENT HEAD    = 5d3a97fe9d2361d8e2edb7990df157c140456e44
 TARGET          = Current/PWA/New-main
 TARGET BLOB     = fa7c0fcf78a3b217d781fe543b6e5a5ed7411c63
 ORIGINAL SHA    = 45d5e760a4b53e3be574346e3d9d192dbad309af
-RESULT          = MASTER CTO CONTINUITY PROMPT CREATED; P163 MAIN2 OWNERSHIP SURGERY REMAINS OPEN; TARGET CODE UNCHANGED
+RESULT          = P163 MAIN2 OWNERSHIP SURGERY STILL OPEN; DUPLICATE OWNERSHIP RECONFIRMED; NO TARGET CODE OR PRODUCTION DATA MODIFIED
 TARGET EDITED BY ASSISTANT = NO
 ORIGINAL EDITED = NO
-PRODUCTION DATA EDITED IN P164 = NO
+PRODUCTION DATA EDITED IN P165 = NO
 MASTER PROMPT = doc/Draft/Reprots/MASTER_CTO_NEW_MAIN_CONTINUITY_EXECUTION.md
 REPORT = doc/Draft/Reprots/تقرير25.md
 ```
@@ -226,6 +226,20 @@ FINAL RUNTIME WINNER             = NOT PROVEN
 P163 SURGERY                     = OPEN
 ```
 
+## P165 DIRECT REVALIDATION
+```text
+DIRECT GIT HEAD                    = 5d3a97fe9d2361d8e2edb7990df157c140456e44
+CURRENT_STATE PRIOR HEAD           = 239643c353cb2aeb0daa92ce4ee4c4d60b805603
+TARGET BLOB STILL                  = fa7c0fcf78a3b217d781fe543b6e5a5ed7411c63
+P163 SURGERY                       = CONFIRMED OPEN
+SOURCE DUPLICATE DEFINITIONS       = CONFIRMED
+SERVING / BROWSER                  = UNVERIFIED
+```
+
+Direct Production read-only verification during P165 confirmed security-definer core functions remain present, including `post_journal_entry`, `post_stock_movement` (two overloads), `reserve_stock`, and `release_stock_reservation`. Non-internal audit triggers are present on `items`, `journal_entries`, and `journal_lines`. No Production data was changed.
+
+A first SQL verification query referenced a non-existent `pg_tables.forcerowsecurity` column and failed without modifying data; the query was corrected and the read-only function/trigger checks then succeeded. This failure is preserved as execution history.
+
 ## PRODUCTION / INVENTORY CONTINUITY — SEPARATE TRACK
 The Production database has continued to receive Inventory/Finance/Voucher migrations after earlier PWA work. Inventory must remain a separate closure track unless current New-main evidence demonstrates a direct dependency.
 
@@ -253,10 +267,11 @@ These counts do not by themselves prove corruption because the current Item Mast
 4. Transactional Receive Purchase experiments exposed ordering issues between duplicate/idempotency detection and quantity/state guards.
 5. Operation identity built only from mutable state such as `qty_received_before` is not a robust independent operation identity; explicit operation identity is preferred where the contract supports it.
 6. Early tenant/item-scope assumptions were corrected after direct schema verification showed `items.item_code` is globally unique.
-7. No such historical Inventory experiment changed `Current/PWA/New-main` in P163/P164.
+7. No such historical Inventory experiment changed `Current/PWA/New-main` in P163/P164/P165.
 8. Git/source success must not be represented as browser/runtime success.
 9. `CURRENT_STATE.md` can itself be stale relative to Git; it must be reconciled every session.
 10. Historical reports are sacred and are never deleted to simplify continuity.
+11. The available GitHub mutation contract is full-file replacement for an existing file; without a safe atomic range-edit capability, speculative whole-file reconstruction of the large `New-main` blob is prohibited by the Master Prompt.
 
 ## P164 HANDOFF
 ```text
@@ -269,6 +284,23 @@ retain Original/main1..main11 as historical reconstruction sources
 retain P163 Main2 ownership surgery as the next verified open target
       ↓
 force direct evidence / no-guessing / current-production reconciliation
+```
+
+## P165 CURRENT HANDOFF
+```text
+P165 = direct continuity revalidation
+      ↓
+reconcile Git HEAD vs CURRENT_STATE
+      ↓
+reconfirm target blob and open ownership defect
+      ↓
+reconfirm Production core RPC/audit contract read-only
+      ↓
+DO NOT mutate New-main by whole-file replacement
+      ↓
+NEXT = execute exact Main2 ownership surgery only through a safe range-edit/full-source mutation path
+      ↓
+then source verify → served artifact verify → browser runtime verify → CURRENT_STATE update
 ```
 
 ## NEXT AUTHORIZED ACTION
@@ -313,14 +345,16 @@ MASTER = doc/Draft/Reprots/MASTER_CTO_NEW_MAIN_CONTINUITY_EXECUTION.md
 ```text
 MASTER READ                         = DONE
 CURRENT_STATE READ                  = DONE
-LATEST GIT HISTORY CHECK            = DONE
+LATEST GIT HISTORY CHECK            = VERIFIED (HEAD 5d3a97f...)
 LATEST TARGET IDENTITY              = VERIFIED
 LATEST REPORT CHAIN                 = REVIEWED THROUGH P164
 Original main1..main11 INDEX        = VERIFIED
 MASTER CTO PROMPT CREATED           = DONE
 P164 REPORT CREATED                 = DONE
+P165 DIRECT REVALIDATION             = DONE
 TARGET CODE MODIFIED BY ASSISTANT  = NO
 ORIGINAL MODIFIED                  = NO
+PRODUCTION DATA MODIFIED            = NO
 HISTORICAL REPORTS DELETED          = NO
 P163 MAIN2 SURGERY                  = PENDING / OPEN
 SERVED ARTIFACT                     = NOT VERIFIED
