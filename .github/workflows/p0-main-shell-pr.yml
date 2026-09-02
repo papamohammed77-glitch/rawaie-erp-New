@@ -62,12 +62,12 @@ window.RW_ShellContext=RW_ShellContext;
           req('enterSystem: function() {','enterSystem: async function() {','P1_ENTER')
           req('self.enterSystem();','return self.enterSystem();','P1_ENTER_CALL')
           req('enterSystem: async function() {\n    hideLoader();','enterSystem: async function() {\n    await RW_ShellContext.resolve();\n    hideLoader();','P1_ENTER_BODY')
-          req(".from('app_settings')\n            .select('*')\n            .limit(1)",".from('app_settings')\n            .select('*')\n            .eq('company_id',RW_ShellContext.getCompanyId())\n            .limit(1)",'P1_SETTINGS')
+          req(".from('app_settings')\n            .select('*')\n            .limit(1)",".from('app_settings')\n            .select('*')\n            .eq('company_id',RW_ShellContext.getCompanyId())\n            .limit(1",'P1_SETTINGS')
           safe="showToast('تم تشغيل النظام في الوضع الآمن', 'warning');"
           if safe in s: s=s.replace(safe,"throw new Error('FAIL_CLOSED_TENANT_CONTEXT');",1)
           if re.search(r"supabase\.from\(['\"]stock_branches['\"]\)[^;]{0,1200}\.(?:update|insert|upsert|delete)\(",s,re.S): raise SystemExit('P1_DIRECT_STOCK_WRITER')
           if re.search(r"supabase\.from\(['\"]inventory_log['\"]\)[^;]{0,700}\.insert\(",s,re.S): raise SystemExit('P1_DIRECT_INVENTORY_LOG_WRITER')
-          code='\n'.join(re.findall(r'<script(?![^>]*\\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I))
+          code='\n'.join(re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',s,re.S|re.I))
           f=Path(tempfile.gettempdir())/'p1.js';f.write_text(code,encoding='utf-8')
           r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
           if r.returncode: print(r.stderr); raise SystemExit('P1_JS_SYNTAX')
@@ -79,3 +79,57 @@ window.RW_ShellContext=RW_ShellContext;
           subprocess.run(['git','commit','-m','fix(p1): repair existing main1 tenant and owner shell'],check=True)
           subprocess.run(['git','push','origin',f"HEAD:${{ github.event.pull_request.head.ref }}"],check=True)
           PY
+  cto_executor:
+    if: github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - name: Rebuild candidate and execute P163
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp Current/PWA/New-main /tmp/New-main.before
+          python3 tools/run_final_main_reconstruction_20260831.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          required=['main1Delegation','actions','/* RAWAEA MAIN2 AUTHORITATIVE MODULE */','MAIN3','post_stock_movement','reserve_stock','save_sales_invoice_atomic','edgeCall','supabaseClient']
+          miss=[x for x in required if x not in s]
+          if miss: raise SystemExit('RECONSTRUCTION_REQUIRED_CONTRACTS_MISSING '+repr(miss))
+          compat='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
+          if s.count(compat)!=1 or s.count(auth)!=1: raise SystemExit(f'P163_OWNER_COUNTS compat={s.count(compat)} auth={s.count(auth)}')
+          a=s.index(compat); b=s.index(auth)
+          if b<=a: raise SystemExit('P163_OWNER_ORDER')
+          s=s[:a]+s[b:]
+          for alias in ['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']:
+            if s.count(alias)!=1: raise SystemExit(f'P163_ALIAS_COUNT {alias!r}={s.count(alias)}')
+            s=s.replace(alias,'',1)
+          close='window.RW_Items=RW_Items;'; version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"; governed='// MAIN2_GOVERNED_CLOSED:v1'
+          if s.count(close)!=1: raise SystemExit('P163_RW_ITEMS_OWNER_COUNT')
+          if s.count(version)==0: s=s.replace(close,close+'\n'+version,1)
+          if s.count(governed)==0: s=s.replace(version,version+'\n'+governed,1)
+          checks=[compat not in s,s.count(auth)==1,s.count(version)==1,s.count(governed)==1,'window.RW_Dashboard={render:renderDashboard};' not in s,'window.RW_Items={render:renderItems};' not in s,'main1Delegation' in s,'actions' in s,'MAIN3' in s]
+          if not all(checks): raise SystemExit('P163_GATES '+repr(checks))
+          p.write_text(s,encoding='utf-8')
+          print('P163_OK bytes',len(s.encode()),'sha256',hashlib.sha256(s.encode()).hexdigest())
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)
+          if not scripts: raise SystemExit('NO_INLINE_SCRIPT')
+          Path('/tmp/new-main-inline.js').write_text('\n\n'.join(scripts),encoding='utf-8')
+          PY
+          node --check /tmp/new-main-inline.js
+          git diff --check
+          git status --short
+          git add Current/PWA/New-main
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix(cto): complete New-main reconstruction and P163 ownership [skip ci]'
+            git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+          fi
