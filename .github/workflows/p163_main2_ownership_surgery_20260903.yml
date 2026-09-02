@@ -1,6 +1,6 @@
 name: P163 exact Main2 ownership surgery
 
-# P163-TRIGGER-20260903: activate the guarded surgical closure after workflow registration.
+# P163-FIX-20260903: harden alias removal; target blob remains SHA-locked.
 
 on:
   push:
@@ -27,39 +27,34 @@ jobs:
         run: |
           set -euo pipefail
           test -s Current/PWA/New-main
-          test "$(git rev-parse HEAD)" != ""
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib, re
-          import subprocess
+          import hashlib, re, subprocess
           p = Path('Current/PWA/New-main')
           s = p.read_text(encoding='utf-8')
           expected_blob = 'fa7c0fcf78a3b217d781fe543b6e5a5ed7411c63'
           actual_blob = subprocess.check_output(['git','rev-parse','HEAD:Current/PWA/New-main'], text=True).strip()
           if actual_blob != expected_blob:
               raise SystemExit(f'PRECONDITION_TARGET_BLOB_MISMATCH expected={expected_blob} actual={actual_blob}')
+
           marker = '/* RAWAEA MAIN2 COMPATIBILITY */'
           authoritative = '/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
           close = "window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';\n})();"
-          if s.count(marker) != 1:
-              raise SystemExit(f'EXPECTED_ONE_COMPAT_MARKER got={s.count(marker)}')
-          if s.count(authoritative) != 1:
-              raise SystemExit(f'EXPECTED_ONE_AUTHORITATIVE_MARKER got={s.count(authoritative)}')
-          start = s.index(marker)
-          auth_after = s.index(authoritative, start)
-          block = s[start:auth_after]
-          if close not in block:
-              raise SystemExit('COMPATIBILITY_CLOSE_NOT_FOUND_IN_EXPECTED_BLOCK')
+          if s.count(marker) != 1: raise SystemExit(f'EXPECTED_ONE_COMPAT_MARKER got={s.count(marker)}')
+          if s.count(authoritative) != 1: raise SystemExit(f'EXPECTED_ONE_AUTHORITATIVE_MARKER got={s.count(authoritative)}')
+          start = s.index(marker); auth_after = s.index(authoritative, start); block = s[start:auth_after]
+          if close not in block: raise SystemExit('COMPATIBILITY_CLOSE_NOT_FOUND_IN_EXPECTED_BLOCK')
           s = s[:start] + s[auth_after:]
+
           pat = re.compile(r"window\.RW_Items\s*=\s*RW_Items;\s*\n// MAIN2_GOVERNED_CLOSED:v1")
-          if len(pat.findall(s)) != 1:
-              raise SystemExit(f'AUTHORITATIVE_ITEMS_CLOSE_NOT_UNIQUE got={len(pat.findall(s))}')
+          if len(pat.findall(s)) != 1: raise SystemExit(f'AUTHORITATIVE_ITEMS_CLOSE_NOT_UNIQUE got={len(pat.findall(s))}')
           s = pat.sub("window.RW_Items=RW_Items;\nwindow.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';\n// MAIN2_GOVERNED_CLOSED:v1", s, count=1)
+
           aliases = ['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']
           for a in aliases:
-              if s.count(a) != 1:
-                  raise SystemExit(f'ALIAS_NOT_UNIQUE {a!r} count={s.count(a)}')
-              s = s.replace(a + '\n', '', 1)
+              if s.count(a) != 1: raise SystemExit(f'ALIAS_NOT_UNIQUE {a!r} count={s.count(a)}')
+              s = s.replace(a, '', 1)
+
           if marker in s: raise SystemExit('COMPATIBILITY_MARKER_STILL_PRESENT')
           if s.count(authoritative) != 1: raise SystemExit('AUTHORITATIVE_MARKER_COUNT_INVALID')
           if s.count("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';") != 1: raise SystemExit('RECONSTRUCTION_MARKER_COUNT_INVALID')
@@ -139,11 +134,9 @@ jobs:
           set -euo pipefail
           git config user.name 'rawaea-surgical-bot'
           git config user.email 'rawaea-surgical-bot@users.noreply.github.com'
-          git add Current/PWA/New-main .github/workflows/p163_main2_ownership_surgery_20260903.yml
-          git rm --cached .github/workflows/p163_main2_ownership_surgery_20260903.yml || true
-          git add -A
+          git add Current/PWA/New-main
+          test -n "$(git diff --cached --name-only | grep '^Current/PWA/New-main$')"
           git diff --cached --check
           git diff --cached -- Current/PWA/New-main
-          test -n "$(git diff --cached --name-only | grep '^Current/PWA/New-main$')"
           git commit -m '[P163-EXECUTED] [main-reconstruction-executed] exact Main2 ownership surgery with source and runtime gates'
           git push origin HEAD:main
