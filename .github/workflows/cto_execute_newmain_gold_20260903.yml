@@ -1,0 +1,88 @@
+name: CTO Execute New-main Gold 20260903
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  execute:
+    if: ${{ !contains(github.event.head_commit.message, '[CTO-EXECUTED]') && !contains(github.event.head_commit.message, '[CTO-TRIGGER]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+      - name: Rebuild New-main from governed fragments
+        run: python3 tools/run_final_main_reconstruction_20260831.py
+      - name: P163 exact ownership surgery
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,hashlib
+          p=Path('Current/PWA/New-main');s=p.read_text(encoding='utf-8')
+          required=['main1Delegation','actions','/* RAWAEA MAIN2 AUTHORITATIVE MODULE */','MAIN3','post_stock_movement','reserve_stock','save_sales_invoice_atomic','edgeCall','supabaseClient']
+          miss=[x for x in required if x not in s]
+          if miss: raise SystemExit('REQUIRED_CONTRACTS_MISSING '+repr(miss))
+          compat='/* RAWAEA MAIN2 COMPATIBILITY */';auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
+          if s.count(compat)!=1 or s.count(auth)!=1: raise SystemExit(f'OWNER_COUNTS compat={s.count(compat)} auth={s.count(auth)}')
+          a=s.index(compat);b=s.index(auth)
+          if b<=a: raise SystemExit('OWNER_ORDER_INVALID')
+          s=s[:a]+s[b:]
+          aliases=['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']
+          for x in aliases:
+            if s.count(x)!=1: raise SystemExit('ALIAS_COUNT_INVALID '+repr(x)+' '+str(s.count(x)))
+            s=s.replace(x,'',1)
+          close='window.RW_Items=RW_Items;';version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';";governed='// MAIN2_GOVERNED_CLOSED:v1'
+          if s.count(close)!=1: raise SystemExit('RW_ITEMS_OWNER_COUNT')
+          if s.count(version)>1 or s.count(governed)>1: raise SystemExit('CLOSURE_DUPLICATE')
+          if version not in s:s=s.replace(close,close+'\n'+version,1)
+          if governed not in s:s=s.replace(version,version+'\n'+governed,1)
+          if compat in s or s.count(version)!=1 or s.count(governed)!=1: raise SystemExit('P163_CLOSURE_VERIFY_FAIL')
+          if any(x in s for x in aliases): raise SystemExit('P163_ALIAS_VERIFY_FAIL')
+          if 'actions' not in s or 'main1Delegation' not in s or 'MAIN3' not in s: raise SystemExit('P163_PRESERVATION_FAIL')
+          # Target must delegate stock mutation to the established DB engine.
+          if re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,1200}\.(?:insert|update|upsert|delete)\(",s): raise SystemExit('DIRECT_STOCK_WRITER')
+          if re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,900}\.(?:insert|update|upsert|delete)\(",s): raise SystemExit('DIRECT_INVENTORY_LOG_WRITER')
+          if s.lower().count('<script')!=s.lower().count('</script>') or s.lower().count('<style')!=s.lower().count('</style>'): raise SystemExit('HTML_BALANCE')
+          if len(re.findall(r'navigator\.serviceWorker\.register',s))>1: raise SystemExit('SW_DUPLICATE')
+          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
+          if len(ms)!=1: raise SystemExit('INLINE_SCRIPT_COUNT '+str(len(ms)))
+          Path('/tmp/new-main.js').write_text(ms[0].group('b'),encoding='utf-8')
+          p.write_text(s,encoding='utf-8')
+          print('P163_GOLD_OK',len(s.encode()),hashlib.sha256(s.encode()).hexdigest())
+          PY
+          node --check /tmp/new-main.js
+      - name: Browser smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          rm -rf /tmp/rw;mkdir -p /tmp/rw;cp -r Current/PWA/. /tmp/rw/;cp Current/PWA/New-main /tmp/rw/main.html
+          python3 -m http.server 8123 --directory /tmp/rw >/tmp/rw-http.log 2>&1 &
+          node <<'NODE'
+          const {chromium}=require('playwright');(async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[];p.on('pageerror',e=>pe.push(e.message));await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1500);const r=await p.evaluate(()=>({lang:document.documentElement.lang,state:!!window.RW_STATE,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerContract,main2:document.body.innerHTML.includes('MAIN2-COMPLETE-SURGICAL-v1')}));console.log(JSON.stringify({r,pe}));if(r.lang!=='ar'||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||!r.main2||pe.length)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)});
+          NODE
+      - name: Update CURRENT_STATE and commit successful target
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path('Current/PWA/New-main');s=p.read_text(encoding='utf-8');stp=Path('CURRENT_STATE.md');st=stp.read_text(encoding='utf-8')
+          marker='P163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction'
+          if marker not in st:
+            st=st.rstrip()+f"\n\n## CTO EXECUTION — 2026-09-03\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Target SHA-256: `{hashlib.sha256(s.encode()).hexdigest()}`\n- Reconstruction: `Current/PWA/main/main1.md` through `main11.md`.\n- P163: compatibility owner removed; Main1 dashboard/items legacy aliases removed; `actions`, `main1Delegation`, and MAIN3 preserved; reconstruction marker retained under authoritative MAIN2 owner.\n- Verification: reconstruction contracts, JS syntax, HTML balance, stock-writer safety, and browser smoke passed.\n- Production database writes: none.\n"
+            stp.write_text(st,encoding='utf-8')
+          PY
+          git config user.name 'RAWAEA CTO Executor'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Current/PWA/New-main CURRENT_STATE.md
+          git diff --cached --check
+          git commit -m 'fix(cto): complete New-main reconstruction and P163 [CTO-EXECUTED] [main-reconstruction-executed] [skip ci]'
+          git push origin HEAD:main
