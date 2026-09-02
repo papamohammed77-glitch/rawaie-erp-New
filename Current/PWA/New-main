@@ -31,6 +31,7 @@
     <input id="rw-password" class="rw-input" type="password" autocomplete="current-password">
     <button type="button" class="rw-password-toggle" aria-label="إظهار كلمة المرور" title="إظهار كلمة المرور" onclick="window.togglePasswordVisibility('rw-password', this)"><i class="fa-solid fa-eye"></i></button>
   </div>
+</div>
 <div class="rw-login-options"><label><input id="rw-remember" type="checkbox"> تذكرني</label><a href="#" id="rw-forgot">نسيت كلمة المرور؟</a></div><button id="rw-login-btn" class="rw-login-btn" type="submit">تسجيل الدخول</button>
 <div id="rw-login-error" class="rw-notice rw-notice-bad hidden"></div><div class="rw-login-footer">منصة الروائع ERP — إدارة المبيعات والمخزون والتوزيع والحسابات من نظام واحد.</div></form>
 </div></section></div>
