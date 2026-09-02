@@ -1,0 +1,105 @@
+تم تنفيذ الإصلاح الجراحي المطلوب على Production، مع الالتزام بتسلسل تقرير 11 وعدم تحويل أي استنتاج غير مثبت إلى حقيقة.
+
+ما ثبتته قبل التعديل
+
+المشكلة لم تكن في تسجيل الدخول نفسه.
+
+Production أثبتت أن:
+
+owner@alrawae.com ينجح في Supabase Auth بـ HTTP 200.
+حساب المالك موجود وActive.
+permissions = ["*"].
+owner_profile موجود.
+license_status = active.
+الشركة هي الروائع.
+المصدر الصحيح للـMain Branch هو app_settings.main_branch_id.
+الـMain Branch الفعلي هو BR-01 / الفرع الرئيسي.
+
+وفي المقابل كان main.html يطلب:
+
+companies.main_branch_id
+companies.main_branch_code
+
+بينما هذان العمودان لم يكونا موجودين، ولذلك كان PostgreSQL يعيد:
+
+column companies.main_branch_id does not exist
+
+وهذا مطابق تمامًا لما ظهر في Production logs.
+
+الإصلاح الذي تم تنفيذه
+
+بدل إضافة مصدر حقيقة جديد للـMain Branch أو تعديل منطق الأعمال، تم إنشاء Compatibility Read Projection في companies:
+
+companies.main_branch_id
+companies.main_branch_code
+
+مع قاعدة واضحة:
+
+AUTHORITATIVE SOURCE
+        ↓
+app_settings.main_branch_id
+        ↓
+branches.branch_code
+        ↓
+companies.*   ← compatibility projection فقط
+
+وأضفت Trigger يقوم بالمزامنة تلقائيًا عند تغيير app_settings.main_branch_id.
+
+أي أن هذا ليس Dual Source of Truth، وليس ترقيعًا يدويًا للبيانات.
+
+تحقق Production
+
+تم التحقق مباشرة من Production بعد التنفيذ:
+
+companies.main_branch_id
+=
+app_settings.main_branch_id
+
+companies.main_branch_code
+=
+branches.branch_code
+
+projection_in_sync
+=
+true
+
+كما تم تنفيذ اختبار Transactional للـTrigger والتأكد من بقاء الـProjection متزامنًا، ثم ROLLBACK حتى لا يترك الاختبار أي تغيير تشغيلي.
+
+Migration Production المسجل هو:
+
+20260902023122
+compatibility_company_main_branch_projection_20260902
+
+وهو الآن موثق أيضًا في Git.
+
+التوثيق
+
+تم إنشاء:
+
+Production Migration
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/supabase/migrations/20260902023122_compatibility_company_main_branch_projection.sql
+
+وسجل التنفيذ والتحقق:
+
+Production Evidence — Owner Login
+https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/Evidence/Production/09-login-company-main-branch-compatibility.md
+نقطة مهمة جدًا
+
+تقرير 11 نفسه شدد على عدم مساواة Git/Source مع Runtime، وأنا ملتزم بذلك. التقرير سجل أن Live Cloudflare artifact غير قابل للقراءة مباشرة من قناة التنفيذ الحالية.
+
+لذلك حالة الإغلاق الدقيقة الآن هي:
+
+البند	الحالة
+Auth Login	✅ مثبت Production
+Owner Context	✅ مثبت
+Company Context	✅ مثبت
+Main Branch	✅ مثبت
+42703 Root Cause	✅ محدد
+Production DB Fix	✅ منفذ
+Projection Sync	✅ مثبت
+Git Documentation	✅ منفذ
+Browser Retry HTTP 200	⚠️ لم أختلق ادعاءً به؛ لم أمتلك جلسة المتصفح نفسها لإثباته مباشرة
+
+والأهم: لم أقم بإضافة main_branch_id كحقيقة تجارية جديدة إلى companies؛ بل أغلقت Contract القديم الذي يطلبه الـfrontend بدون كسر الـSource of Truth الحالي.
+
+كما أن عقد المالك التاريخي لم يتم المساس به؛ الـmigration الموجود أصلًا يعيد permissions=["*"] وisOwner=true كما ينص العقد.
