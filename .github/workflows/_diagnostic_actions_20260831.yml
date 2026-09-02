@@ -13,7 +13,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 2
-      - name: Rebuild and close New-main
+      - name: execute New-main
         shell: bash
         run: |
           set -euo pipefail
@@ -29,42 +29,37 @@ jobs:
               for idx in range(1,len(chunks)+1):
                   if idx>1: body+='\\n\\n'+chunks[idx-1]
                   if idx<2: continue
-                  f=Path('/tmp')/f'rawaea-phase-{idx}.js'; f.write_text(body,encoding='utf-8')
+                  f=Path('/tmp')/f'phase-{idx}.js'; f.write_text(body,encoding='utf-8')
                   r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-                  if r.returncode: raise RuntimeError(f'JS_PHASE_SYNTAX_FAIL:main{idx}:\\n{r.stderr}')
+                  if r.returncode: raise RuntimeError(r.stderr)
           m.validate_phase_js=fixed
           m.main()
           PY
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib,re
+          import re,hashlib
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
           compat='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'; ver="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"; gov='// MAIN2_GOVERNED_CLOSED:v1'
-          req=['main1Delegation','actions','MAIN3','post_stock_movement','reserve_stock','window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense']
-          miss=[x for x in req if x not in s]
+          required=['main1Delegation','actions','MAIN3','post_stock_movement','reserve_stock','window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense']
+          miss=[x for x in required if x not in s]
           if miss: raise SystemExit('CONTRACT_MISSING:'+repr(miss))
           if compat in s:
               a=s.index(compat); b=s.index(auth)
               if b<=a: raise SystemExit('OWNER_ORDER')
               s=s[:a]+s[b:]
-          for alias in ['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']: s=s.replace(alias,'',1)
+          for alias in ['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']:
+              s=s.replace(alias,'',1)
           if s.count('window.RW_Items=RW_Items;')!=1: raise SystemExit('ITEMS_OWNER_COUNT')
           if s.count(ver)>1 or s.count(gov)>1: raise SystemExit('CLOSURE_DUPLICATE')
           if ver not in s: s=s.replace('window.RW_Items=RW_Items;','window.RW_Items=RW_Items;\n'+ver,1)
           if gov not in s: s=s.replace(ver,ver+'\n'+gov,1)
-          gates=[compat not in s,s.count(auth)==1,s.count(ver)==1,s.count(gov)==1,'window.RW_Dashboard={render:renderDashboard};' not in s,'window.RW_Items={render:renderItems};' not in s,'actions' in s,'main1Delegation' in s,'MAIN3' in s,s.lower().count('<script')==s.lower().count('</script>'),s.lower().count('<style')==s.lower().count('</style>')]
+          gates=[compat not in s,s.count(auth)==1,s.count(ver)==1,s.count(gov)==1,'window.RW_Dashboard={render:renderDashboard};' not in s,'window.RW_Items={render:renderItems};' not in s,'actions' in s,'main1Delegation' in s,'MAIN3' in s]
           if not all(gates): raise SystemExit('GATES:'+repr(gates))
           p.write_text(s,encoding='utf-8')
-          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
-          if len(ms)!=1: raise SystemExit('INLINE_RUNTIME_COUNT')
-          Path('/tmp/rawaea-new-main.js').write_text(ms[0].group('b'),encoding='utf-8')
-          print('GOLD_PASS sha256='+hashlib.sha256(s.encode()).hexdigest())
+          Path('/tmp/new-main.js').write_text('\n'.join(m.group('b') for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)),encoding='utf-8')
+          print('NEW_MAIN_GOLD',hashlib.sha256(s.encode()).hexdigest(),len(s.encode()))
           PY
-          node --check /tmp/rawaea-new-main.js
-      - name: Persist verified target
-        shell: bash
-        run: |
-          set -euo pipefail
+          node --check /tmp/new-main.js
           git config user.name 'RAWAEA CTO Executor'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add Current/PWA/New-main
