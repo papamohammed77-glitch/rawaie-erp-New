@@ -4,13 +4,14 @@ import json
 import hashlib
 import subprocess
 import tempfile
+import traceback
 
 # CTO-TRIGGER-2026-09-03: execution trigger only; governed reconstruction/P163
 # remains deterministic and fail-closed.
 MAIN = Path('Current/PWA/New-main')
 CUR = Path('Current/PWA/main')
 PARTS = [CUR / f'main{i}.md' for i in range(1, 12)]
-SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc3ODcwOTA5MiwiZXhwIjoyMDk0Mjg1MDkyfQ.LZScCxnCiRrTSCCBmTryszQpY1AwBgR2dkTBcC5kOc4'
+SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJmaWxtb2dndW1va3hhbndhaXl4IiwiaWF0IjoxNzc4NzA5MDkyLCJleHAiOjIwOTQyODUwOTJ9.LZScCxnCiRrTSCCBmTryszQpY1AwBgR2dkTBcC5kOc4'
 
 
 def fp(text):
@@ -193,14 +194,30 @@ def validate(candidate):
     return fp(candidate)
 
 
+def persist_failure(exc):
+    message = ''.join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+    try:
+        st = Path('CURRENT_STATE.md')
+        if st.exists():
+            old = st.read_text(encoding='utf-8')
+            marker = '## CTO EXECUTOR DIAGNOSTIC — 2026-09-03'
+            if marker not in old:
+                st.write_text(old.rstrip() + '\n\n' + marker + '\n```text\n' + message + '\n```\n', encoding='utf-8')
+                subprocess.run(['git','config','user.name','RAWAEA CTO Executor'], check=True)
+                subprocess.run(['git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com'], check=True)
+                subprocess.run(['git','add','CURRENT_STATE.md'], check=True)
+                subprocess.run(['git','commit','-m','[CTO-DIAGNOSTIC] reconstruction failure captured'], check=True)
+                subprocess.run(['git','push','origin','HEAD:main'], check=True)
+    except Exception:
+        pass
+
+
 def main():
     candidate, chunks, runtime_changes, p163_gates = assemble()
     digest = validate(candidate)
     tmp = MAIN.with_suffix('.reconstructed.tmp')
     tmp.write_text(candidate, encoding='utf-8')
     tmp.replace(MAIN)
-
-    # Persist the verified target immediately, before any downstream runtime/canary gate.
     subprocess.run(['git','config','user.name','RAWAEA CTO Executor'], check=True)
     subprocess.run(['git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com'], check=True)
     subprocess.run(['git','add',str(MAIN)], check=True)
@@ -208,7 +225,6 @@ def main():
     if staged.returncode != 0:
         subprocess.run(['git','commit','-m','[CTO-EXECUTED] New-main Gold Diamond closure'], check=True)
         subprocess.run(['git','push','origin','HEAD:main'], check=True)
-
     running = chunks[0]
     phases = [{'phase':1,'source':'Current/PWA/main/main1.md','script_sha256':fp(running),'bytes':len(running.encode('utf-8'))}]
     for idx in range(2,12):
@@ -218,4 +234,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as exc:
+        persist_failure(exc)
+        raise
