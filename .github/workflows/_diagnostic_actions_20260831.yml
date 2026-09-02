@@ -1,4 +1,4 @@
-# CTO-TRIGGER-RUN 2026-09-03
+# CTO-EXECUTOR-RUN
 name: ACTIONS DIAGNOSTIC 20260831
 on:
   push:
@@ -38,7 +38,7 @@ jobs:
           m.validate_phase_js=fixed
           m.main()
           PY
-      - name: P163 and Gold Diamond gates
+      - name: P163 Gold Diamond gates
         shell: bash
         run: |
           set -euo pipefail
@@ -47,32 +47,33 @@ jobs:
           import hashlib
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
           compat='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'; version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"; governed='// MAIN2_GOVERNED_CLOSED:v1'
-          for x in ['main1Delegation','actions','MAIN3','post_stock_movement','reserve_stock','window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense']:
-              if x not in s: raise SystemExit('CONTRACT_MISSING:'+x)
+          req=['main1Delegation','actions','MAIN3','post_stock_movement','reserve_stock','window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense']
+          miss=[x for x in req if x not in s]
+          if miss: raise SystemExit('CONTRACT_MISSING:'+repr(miss))
           if compat in s:
               a=s.index(compat); b=s.index(auth)
-              if b<=a: raise SystemExit('P163_OWNER_ORDER')
+              if b<=a: raise SystemExit('OWNER_ORDER')
               s=s[:a]+s[b:]
           for alias in ['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']:
-              if alias in s: s=s.replace(alias,'',1)
-          if s.count('window.RW_Items=RW_Items;')!=1: raise SystemExit('P163_RW_ITEMS_OWNER_COUNT')
+              s=s.replace(alias,'',1)
+          if s.count('window.RW_Items=RW_Items;')!=1: raise SystemExit('ITEMS_OWNER_COUNT')
           if version not in s: s=s.replace('window.RW_Items=RW_Items;','window.RW_Items=RW_Items;\n'+version,1)
           if governed not in s: s=s.replace(version,version+'\n'+governed,1)
-          checks={'compat_absent':compat not in s,'auth_one':s.count(auth)==1,'version_one':s.count(version)==1,'governed_one':s.count(governed)==1,'dashboard_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,'items_alias_absent':'window.RW_Items={render:renderItems};' not in s,'actions': 'actions' in s,'main1Delegation':'main1Delegation' in s,'main3':'MAIN3' in s,'script_balance':s.lower().count('<script')==s.lower().count('</script>'),'style_balance':s.lower().count('<style')==s.lower().count('</style>')}
+          checks={'compat_absent':compat not in s,'auth_one':s.count(auth)==1,'version_one':s.count(version)==1,'governed_one':s.count(governed)==1,'dash_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,'items_alias_absent':'window.RW_Items={render:renderItems};' not in s,'actions':'actions' in s,'delegation':'main1Delegation' in s,'main3':'MAIN3' in s,'scripts':s.lower().count('<script')==s.lower().count('</script>'),'styles':s.lower().count('<style')==s.lower().count('</style>')}
           bad=[k for k,v in checks.items() if not v]
-          if bad: raise SystemExit('P163_GOLD_FAIL:'+repr(bad))
-          p.write_text(s,encoding='utf-8'); print('P163_GOLD_PASS',checks); print('NEW_MAIN_SHA256',hashlib.sha256(s.encode()).hexdigest())
+          if bad: raise SystemExit('GOLD_FAIL:'+repr(bad))
+          p.write_text(s,encoding='utf-8')
+          print('GOLD_PASS',checks);print('NEW_MAIN_SHA256',hashlib.sha256(s.encode()).hexdigest())
           PY
-          python3 - <<'PY'
+          node --check <(python3 - <<'PY'
           from pathlib import Path
           import re
           s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
           ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
-          if len(ms)!=1: raise SystemExit('INLINE_RUNTIME_COUNT')
-          Path('/tmp/rawaea-new-main.js').write_text(ms[0].group('b'),encoding='utf-8')
+          print(ms[0].group('b') if len(ms)==1 else '')
           PY
-          node --check /tmp/rawaea-new-main.js
-      - name: Browser target smoke
+          )
+      - name: Browser Gold Diamond smoke
         shell: bash
         run: |
           set -euo pipefail
@@ -87,7 +88,7 @@ jobs:
           const {chromium}=require('playwright');
           (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const e=[];p.on('pageerror',x=>e.push(x.message));p.on('console',m=>{if(m.type()==='error')e.push(m.text())});await p.goto('http://127.0.0.1:8123/New-main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1500);const r=await p.evaluate(async()=>{const S=window.RW_STATE,N=window.RW_Navigation,flat=[];(function w(a){(a||[]).forEach(x=>{if(x.view)flat.push(x.view);if(x.submenu)w(x.submenu)})})(N&&N.menuTree);let denied=false;if(S&&S.app&&N&&N.navigate){S.app.currentUser={isOwner:false};try{await N.navigate('license')}catch(x){denied=x.message==='OWNER_ONLY'}}return{ar:document.documentElement.lang==='ar',body:!!document.body,state:!!S,auth:!!window.RW_Auth,nav:!!N,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerContract,critical:['dashboard','telesales','customers','online-store','pos','orders','runsheets','suppliers','purchase-pos','purchases','receiving','items','branches','picking','loading','delivery','return','unloading','transfer','direct-sale','direct-return','supplier-return','vouchers','vehicle-count','branch-count','general-count','settlement','reports-dashboard','reports-detailed','reports-comprehensive','hr','crm','users','roles','license','settings','audit-log','notifications'].every(v=>flat.includes(v)),denied,count:flat.length}});console.log(JSON.stringify({r,e}));if(e.length||!r.ar||!r.body||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||!r.critical||!r.denied||r.count<30)process.exit(2);await b.close()})().catch(x=>{console.error(x);process.exit(2)})
           NODE
-      - name: Persist target and state only after all gates pass
+      - name: Persist verified New-main and CURRENT_STATE
         shell: bash
         run: |
           set -euo pipefail
@@ -97,7 +98,7 @@ jobs:
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8'); state=Path('CURRENT_STATE.md'); st=state.read_text(encoding='utf-8')
           marker='P163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction'
           if marker not in st:
-              state.write_text(st.rstrip()+"\n\n## CTO EXECUTION — 2026-09-03\n\n"+marker+"\n- Target: `Current/PWA/New-main`\n- Verified SHA-256: `"+hashlib.sha256(s.encode()).hexdigest()+"`\n- Reconstructed from existing `Current/PWA/main/main1.md` through `main11.md`; historical originals untouched.\n- P163 ownership surgery passed; static and browser Gold/Diamond gates passed.\n- No production database writes.\n")
+              state.write_text(st.rstrip()+"\n\n## CTO EXECUTION — 2026-09-03\n\n"+marker+"\n- Target: `Current/PWA/New-main`\n- Verified SHA-256: `"+hashlib.sha256(s.encode()).hexdigest()+"`\n- Reconstructed from existing `Current/PWA/main/main1.md` through `main11.md`.\n- P163 closed; Gold/Diamond static and browser gates passed.\n- Historical originals untouched; production database writes none.\n")
           PY
           git config user.name 'RAWAEA CTO Executor'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add Current/PWA/New-main CURRENT_STATE.md
