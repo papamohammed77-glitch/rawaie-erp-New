@@ -15,12 +15,12 @@
 ```text
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH     = main
-CURRENT HEAD = 0a76f5e76cef5b6b86f78dd7a951c5522706fd9e
-HEAD MESSAGE = docs: record P162 Main2 surgical handoff
-HEAD UTC    = 2026-09-02T09:59:19Z
+CURRENT HEAD = 239643c353cb2aeb0daa92ce4ee4c4d60b805603
+HEAD MESSAGE = docs: add P164 Master CTO continuity and execution report
+HEAD UTC    = 2026-09-02T22:16Z (session state update)
 ```
 
-`0a76f5e...` is a documentation commit. It did not modify `Current/PWA/New-main`.
+The current HEAD includes the P164 documentation and continuity artifacts; it did not modify `Current/PWA/New-main`.
 
 ## CURRENT TARGET IDENTITIES
 ```text
@@ -30,7 +30,7 @@ SHA = 45d5e760a4b53e3be574346e3d9d192dbad309af
 Current/PWA/New-main
 LATEST TARGET CODE COMMIT = da5af424360239c0571bf9c118871a635b96f8de
 TARGET BLOB = fa7c0fcf78a3b217d781fe543b6e5a5ed7411c63
-TARGET CODE MODIFIED BY ASSISTANT IN P163 = NO
+TARGET CODE MODIFIED BY ASSISTANT IN P164 = NO
 ```
 
 The `da5af...` target commit, created at `2026-09-02T04:40:53Z`, only added the missing login-form `</div>` before `rw-login-options`; it did not remove the Main2 duplicate/authoritative structure.
@@ -46,26 +46,37 @@ P160 = doc/Draft/Reprots/تقرير21.md
 P161 = doc/Draft/Reprots/تقرير22.md
 P162 = doc/Draft/Reprots/تقرير23.md
 P163 = doc/Draft/Reprots/تقرير24.md
+P164 = doc/Draft/Reprots/تقرير25.md
 ```
 
 No historical report was deleted or overwritten.
 
 ## LAST VERIFIED EVENT
 ```text
-EVENT ID        = P163-NEWMAIN-MAIN2-SURGICAL-HANDOFF
-DATE            = 2026-09-02
-SOURCE          = MASTER + CURRENT_STATE + Report16 + Report22 + Report23 + direct Git + direct Production/deployment checks + direct Original/main2 + direct Current/New-main
-CURRENT HEAD    = 0a76f5e76cef5b6b86f78dd7a951c5522706fd9e
+EVENT ID        = P164-MASTER-CTO-CONTINUITY-PROMPT
+DATE            = 2026-09-03
+SOURCE          = MASTER + CURRENT_STATE + Report22 + Report23 + Report24 + direct Git history + direct Current/New-main + direct Original/main index
+CURRENT HEAD    = 239643c353cb2aeb0daa92ce4ee4c4d60b805603
 TARGET          = Current/PWA/New-main
 TARGET BLOB     = fa7c0fcf78a3b217d781fe543b6e5a5ed7411c63
 ORIGINAL SHA    = 45d5e760a4b53e3be574346e3d9d192dbad309af
-RESULT          = MAIN2 FEATURE LOSS 0 PROVEN; DUPLICATE OWNERSHIP PROVEN; SURGICAL EDITS SPECIFIED
+RESULT          = MASTER CTO CONTINUITY PROMPT CREATED; P163 MAIN2 OWNERSHIP SURGERY REMAINS OPEN; TARGET CODE UNCHANGED
 TARGET EDITED BY ASSISTANT = NO
 ORIGINAL EDITED = NO
-PRODUCTION DATA EDITED IN P163 = NO
-REPORT = doc/Draft/Reprots/تقرير24.md
-REPORT COMMIT = 61a93644b7f04f6ffa45b67ccc47114a4c6a356d
+PRODUCTION DATA EDITED IN P164 = NO
+MASTER PROMPT = doc/Draft/Reprots/MASTER_CTO_NEW_MAIN_CONTINUITY_EXECUTION.md
+REPORT = doc/Draft/Reprots/تقرير25.md
 ```
+
+## MASTER CTO PROMPT
+```text
+FILE = doc/Draft/Reprots/MASTER_CTO_NEW_MAIN_CONTINUITY_EXECUTION.md
+PURPOSE = persistent Lead Engineer / CTO operating directive for Current/PWA/New-main
+STATUS = CREATED
+TARGET = Current/PWA/New-main
+```
+
+The Master Prompt explicitly reconstructs continuity from CURRENT_STATE → Git → Production → Deployments/Runtime → Current files → Historical contracts, then continues with surgical execution and verification. It is an operating directive, not proof of any current closure.
 
 ## MAIN2 FORENSIC STATUS
 `Original/PWA/main/main2.md` is a historical source for the Main2 `RW_Dashboard` and `RW_Items` modules, not a full ERP snapshot.
@@ -113,7 +124,7 @@ _executeUpload
 
 `_handleSaveFromPage` and `_handleDeleteFromPage` in the compatibility surface are also delegation/placeholder implementations rather than the authoritative business implementation.
 
-## AUTHORIZED SURGICAL EDIT — OWNER MANUAL ONLY
+## AUTHORIZED SURGICAL EDIT — OWNER MANUAL / DIRECT EXECUTION
 
 ### 1) Delete the whole duplicate Main2 Compatibility block
 
@@ -184,7 +195,7 @@ main1Delegation(...)
 
 Those require a separate consumer-closure unit.
 
-## EXPLICIT NON-ACTIONS FOR P163
+## EXPLICIT NON-ACTIONS FOR P164
 ```text
 NO whole-file replacement
 NO rewrite of RW_Dashboard
@@ -197,6 +208,7 @@ NO deletion of actions
 NO deletion of main1Delegation
 NO modification of Original/main2.md
 NO modification of Current/PWA/New-main by the assistant
+NO claim that P163 surgery is closed
 ```
 
 ## RUNTIME STATUS
@@ -211,15 +223,11 @@ MAIN3 ROUTING                    = PROVEN
 SERVED ARTIFACT                  = NOT VERIFIED
 BROWSER LIVE RUNTIME             = NOT VERIFIED
 FINAL RUNTIME WINNER             = NOT PROVEN
+P163 SURGERY                     = OPEN
 ```
 
 ## PRODUCTION / INVENTORY CONTINUITY — SEPARATE TRACK
-The current Production database has continued to receive Inventory/Finance/Voucher migrations after the earlier PWA comparison work. The latest recorded Production migration is:
-```text
-20260902023122 compatibility_company_main_branch_projection_20260902
-```
-
-Current Production Edge Functions are also at newer versions than those recorded in older reports. This does not alter the P163 New-main surgical finding.
+The Production database has continued to receive Inventory/Finance/Voucher migrations after earlier PWA work. Inventory must remain a separate closure track unless current New-main evidence demonstrates a direct dependency.
 
 Relevant schema facts directly verified during continuity work:
 ```text
@@ -228,7 +236,7 @@ stock_branches = UNIQUE(branch_id,item_id)
 receiving.operation_id = UNIQUE
 ```
 
-Previously measured data anomalies are kept separate from this PWA track and were not deleted in P163 merely from suspicion:
+Previously measured data anomalies remain separate and were not deleted in P164 merely from suspicion:
 ```text
 stock_branches branch/item-company mismatches = 143
 inventory_log item/company mismatches         = 86
@@ -239,39 +247,51 @@ These counts do not by themselves prove corruption because the current Item Mast
 
 ## RECORDED PRIOR FAILURES / LESSONS
 
-The following are preserved as continuity memory and must not be hidden:
-
-1. Earlier comparisons sometimes used the wrong target file (`Current/PWA/main.html` instead of `Current/PWA/New-main`). This was corrected by direct source comparison.
-2. An earlier claim that the current receive-purchase flow had no `Idempotency-Key` was later disproved by direct source evidence.
-3. Earlier Inventory/Production work was sometimes performed before the current PWA scope was re-established. Those changes are historical and separate from the New-main surgical track.
+1. Wrong target-file confusion between `Current/PWA/main.html` and `Current/PWA/New-main` was corrected only after direct source comparison.
+2. A prior claim that the current receive-purchase flow had no `Idempotency-Key` was later disproved by direct source evidence.
+3. Inventory/Production work was historically sometimes investigated before the current PWA scope was re-established; those tracks remain historically separate unless direct dependency is proven.
 4. Transactional Receive Purchase experiments exposed ordering issues between duplicate/idempotency detection and quantity/state guards.
-5. Operation identity based only on mutable state such as `qty_received_before` is not a robust independent operation identity; the later direction was explicit operation identity.
-6. Several early judgments about tenant/item scoping were corrected after direct schema verification showed `items.item_code` is globally unique under the current contract.
-7. No such historical Inventory experiment changed `Current/PWA/New-main` in P163.
+5. Operation identity built only from mutable state such as `qty_received_before` is not a robust independent operation identity; explicit operation identity is preferred where the contract supports it.
+6. Early tenant/item-scope assumptions were corrected after direct schema verification showed `items.item_code` is globally unique.
+7. No such historical Inventory experiment changed `Current/PWA/New-main` in P163/P164.
 8. Git/source success must not be represented as browser/runtime success.
+9. `CURRENT_STATE.md` can itself be stale relative to Git; it must be reconciled every session.
+10. Historical reports are sacred and are never deleted to simplify continuity.
 
-## P162 / P163 HANDOFF
+## P164 HANDOFF
 ```text
-P162 = ownership surgery was specified; owner edit pending.
-P163 = continuity was rebuilt from direct sources; the same surgery was revalidated; no New-main code was changed by the assistant; report24 was created.
+P164 = build persistent Master CTO continuity prompt
+      ↓
+re-establish Current/PWA/New-main as the sole execution target
+      ↓
+retain Original/main1..main11 as historical reconstruction sources
+      ↓
+retain P163 Main2 ownership surgery as the next verified open target
+      ↓
+force direct evidence / no-guessing / current-production reconciliation
 ```
 
-### Next authorized action
+## NEXT AUTHORIZED ACTION
 ```text
-OWNER MANUAL SURGERY ON Current/PWA/New-main
+RUN MASTER_CTO_NEW_MAIN_CONTINUITY_EXECUTION.md
         ↓
-DIRECT RE-READ OF NEW-MAIN
+READ CURRENT_STATE AGAIN
         ↓
-PROVE RW_Dashboard DEFINITIONS = 1
-PROVE RW_Items DEFINITIONS     = 1
-PROVE MARKER LOCATION
-PROVE MAIN3 ROUTING INTACT
+VERIFY CURRENT HEAD AND TARGET BLOB AGAIN
         ↓
-SERVED ARTIFACT VERIFICATION
+VERIFY WHETHER P163 MAIN2 SURGERY WAS EXECUTED
         ↓
-BROWSER RUNTIME VERIFICATION
+IF OPEN: TRACE CONSUMERS → SURGICAL OWNERSHIP EDIT → VERIFY
         ↓
-NEXT CURRENT_STATE UPDATE
+VERIFY New-main SOURCE
+        ↓
+VERIFY SERVED ARTIFACT
+        ↓
+VERIFY BROWSER RUNTIME
+        ↓
+UPDATE CURRENT_STATE
+        ↓
+SELECT THE NEXT REAL OPEN TARGET
 ```
 
 ## REPORT INDEX
@@ -285,29 +305,25 @@ P160 = doc/Draft/Reprots/تقرير21.md
 P161 = doc/Draft/Reprots/تقرير22.md
 P162 = doc/Draft/Reprots/تقرير23.md
 P163 = doc/Draft/Reprots/تقرير24.md
+P164 = doc/Draft/Reprots/تقرير25.md
+MASTER = doc/Draft/Reprots/MASTER_CTO_NEW_MAIN_CONTINUITY_EXECUTION.md
 ```
 
 ## FINAL SELF-AUDIT
 ```text
 MASTER READ                         = DONE
-CURRENT_STATE RECONCILIATION       = DONE
-P163 REPORT CREATED                 = DONE
-LATEST GIT HEAD                     = VERIFIED
-TARGET NEW-MAIN BLOB                = VERIFIED
-ORIGINAL main2 BLOB                 = VERIFIED
-CURRENT PRODUCTION MIGRATIONS       = CHECKED
-CURRENT EDGE DEPLOYMENTS            = CHECKED
-MAIN2 FEATURE LOSS                  = 0 PROVEN
-RW_DASHBOARD DUPLICATE              = PROVEN
-RW_ITEMS DUPLICATE                  = PROVEN
-COMPATIBILITY STUBS                 = PROVEN
-MAIN1 ALIASES                       = PROVEN
-MAIN3 ROUTING                       = PROVEN
+CURRENT_STATE READ                  = DONE
+LATEST GIT HISTORY CHECK            = DONE
+LATEST TARGET IDENTITY              = VERIFIED
+LATEST REPORT CHAIN                 = REVIEWED THROUGH P164
+Original main1..main11 INDEX        = VERIFIED
+MASTER CTO PROMPT CREATED           = DONE
+P164 REPORT CREATED                 = DONE
 TARGET CODE MODIFIED BY ASSISTANT  = NO
 ORIGINAL MODIFIED                  = NO
-HISTORICAL REPORTS DELETED         = NO
-OWNER SURGICAL EDIT                 = PENDING
+HISTORICAL REPORTS DELETED          = NO
+P163 MAIN2 SURGERY                  = PENDING / OPEN
 SERVED ARTIFACT                     = NOT VERIFIED
 BROWSER RUNTIME                     = NOT VERIFIED
-100_PERCENT_CLOSURE                 = NO
+PROJECT-WIDE CLOSURE                = NOT CLAIMED
 ```
