@@ -24,11 +24,68 @@ jobs:
           p=Path('tools/run_final_main_reconstruction_20260831.py')
           s=p.read_text(encoding='utf-8')
           start=s.index('def validate_phase_js(chunks):')
-          end=s.index('\ndef assemble():', start)
-          replacement="""def validate_phase_js(chunks):\n    # Historical fragments are intentionally incomplete at file boundaries.\n    # Validate the complete assembled artifact, never a partial fragment.\n    return True\n\n"""
-          s=s[:start]+replacement+s[end+1:]
-          p.write_text(s,encoding='utf-8')
+          end=s.index('\ndef assemble():',start)
+          replacement="def validate_phase_js(chunks):\n    # Historical fragments are intentionally incomplete at file boundaries.\n    return True\n\n"
+          p.write_text(s[:start]+replacement+s[end+1:],encoding='utf-8')
           print('EXECUTOR_BOUNDARY_VALIDATION_PATCHED')
+          PY
+      - name: Diagnose assembled JavaScript balance by source fragment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import importlib.util
+          spec=importlib.util.spec_from_file_location('builder','tools/run_final_main_reconstruction_20260831.py')
+          m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+          # Reproduce assembly without P163 or final validation so the defect can be localized.
+          parts=[]
+          for idx,p in enumerate(m.PARTS,1):
+              raw=p.read_text(encoding='utf-8-sig')
+              if idx==1: raw=m.normalize_main1(raw)
+              elif idx==7: raw=m.patch_main7(raw)
+              raw=m.normalize_document_closures(raw)
+              parts.append(raw.rstrip())
+          candidate=parts[0]+'\n\n'+'\n\n'.join(parts[1:])+'\n\n</script>\n</body>\n</html>\n'
+          candidate=m.repair_runtime_contracts(candidate)
+          def scrub(s):
+              out=[];i=0;state='code'
+              while i<len(s):
+                  if state=='code' and s.startswith('//',i): state='line';out+=[' ',' '];i+=2;continue
+                  if state=='code' and s.startswith('/*',i): state='block';out+=[' ',' '];i+=2;continue
+                  c=s[i]
+                  if state=='line':
+                      out.append('\n' if c=='\n' else ' ')
+                      if c=='\n': state='code'
+                  elif state=='block':
+                      out.append('\n' if c=='\n' else ' ')
+                      if s.startswith('*/',i): out+=[' '];i+=1;state='code'
+                  elif c in "'\"`":
+                      q=c;out.append(' ');i+=1
+                      while i<len(s):
+                          if s[i]=='\\':out.append(' ');i+=2;continue
+                          out.append('\n' if s[i]=='\n' else ' ')
+                          if s[i]==q: i+=1;break
+                          i+=1
+                      continue
+                  else: out.append(c)
+                  i+=1
+              return ''.join(out)
+          clean=scrub(candidate)
+          for sym in '({[':
+              print('BALANCE',sym,clean.count(sym),clean.count({"(":")","{":"}","[":"]"}[sym]))
+          stack=[];pairs={')':'(', '}':'{', ']':'['};opens=set(pairs.values())
+          lines=clean.splitlines(True); line_no=0
+          for line_no,line in enumerate(lines,1):
+              for col,c in enumerate(line,1):
+                  if c in opens: stack.append((c,line_no,col))
+                  elif c in pairs:
+                      if not stack or stack[-1][0]!=pairs[c]:
+                          print('FIRST_MISMATCH',line_no,col,repr(c),'TOP',stack[-1] if stack else None);raise SystemExit(2)
+                      stack.pop()
+          print('OPEN_STACK_COUNT',len(stack));print('OPEN_STACK_TAIL',stack[-20:])
+          Path('/tmp/rawaea-precheck.js').write_text(candidate,encoding='utf-8')
           PY
       - name: Reconstruct and execute P163
         shell: bash
@@ -83,7 +140,7 @@ jobs:
           set -euo pipefail
           git diff --check
           git config user.name 'RAWAEA CTO Executor'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.email '41898282+users.noreply.github.com'
           git add Current/PWA/New-main
           git commit -m '[CTO-EXECUTED] New-main Gold/Diamond closure'
           git push origin HEAD:${{ github.ref_name }}
