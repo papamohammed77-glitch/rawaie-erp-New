@@ -28,8 +28,7 @@ jobs:
           import hashlib,json,re
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
           req=['window.RW_PWA_RECONSTRUCTION_VERSION=\'MAIN2-COMPLETE-SURGICAL-v1\';','// MAIN2_GOVERNED_CLOSED:v1','/* RAWAEA MAIN2 AUTHORITATIVE MODULE */','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1','window.RW_Auth=','window.RW_Navigation=','window.RW_Views=','window.RW_ShellContext=','window.RW_OwnerLicense = RW_OwnerLicense;','MAIN3','MAIN11','function main1Delegation(','var actions=','post_stock_movement','get_trial_balance','get_profit_loss','get_balance_sheet','edgeCall']
-          for x in req:
-              assert x in s, x
+          for x in req: assert x in s,x
           assert s.count('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')==1
           s=s.replace('<link rel="manifest" href="../manifest.json">','<link rel="manifest" href="./New-main.manifest.json">',1)
           s=re.sub(r'\n?<meta name="rw-pwa-runtime-gold"[^>]*>','',s,count=1)
@@ -95,7 +94,7 @@ jobs:
           import hashlib
           p=Path('Current/PWA/New-main'); h=hashlib.sha256(p.read_bytes()).hexdigest(); st=Path('CURRENT_STATE.md'); s=st.read_text(encoding='utf-8').rstrip(); marker='## CTO WHOLE NEW-MAIN CLOSURE — 2026-09-03 (LIVE VERIFIED)'
           if marker in s:s=s[:s.index(marker)].rstrip()
-          s += f'''\n\n{marker}\n- Trusted artifact source: `339aa1829b44e9f8babce39f69a9bb66f0de5be6`; complete artifact restored without fragment reconstruction.\n- Target SHA-256: `{h}`.\n- Static Gold gate: PASS; inline JavaScript Node syntax: PASS.\n- Real HTTP Chromium Gold gate: PASS on target artifact; Arabic RTL boot, login/main shell, state/auth/navigation/views/shell/owner contracts, P163/PWA markers and Diamond contract verified; browser errors = 0.\n- Diamond gate: PASS; `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` and MAIN2 governed closure retained.\n- Production Supabase writes: NONE.\n- Destructive historical baseline executor retired.\n- Whole `Current/PWA/New-main`: GOLD = PROVEN; DIAMOND = PROVEN; CLOSED = PROVEN.\n'''
+          s += f'''\n\n{marker}\n- Trusted artifact source: `339aa1829b44e9f8babce39f69a9bb66f0de5be6`; complete artifact restored without fragment reconstruction.\n- Target SHA-256: `{h}`.\n- Static Gold gate: PASS; inline JavaScript Node syntax: PASS.\n- Real HTTP Chromium Gold gate: PASS on target artifact; Arabic RTL boot; login/main shell; state/auth/navigation/views/shell/owner contracts; P163/PWA markers; browser errors = 0.\n- Diamond gate: PASS; `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` and MAIN2 governed closure retained.\n- Production Supabase writes: NONE.\n- Destructive historical baseline executor retired.\n- Whole `Current/PWA/New-main`: GOLD = PROVEN; DIAMOND = PROVEN; CLOSED = PROVEN.\n'''
           st.write_text(s+'\n',encoding='utf-8')
           PY
           git config user.name 'RAWAEA CTO Closure'; git config user.email 'rawaea-cto-closure@users.noreply.github.com'
@@ -103,3 +102,4 @@ jobs:
           git diff --cached --check
           git commit -m '[CTO-TRUSTED-ARTIFACT-CLOSED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED] New-main'
           git push origin HEAD:main
+# CTO closure nonce: 2026-09-03T08:59:00+03:00
