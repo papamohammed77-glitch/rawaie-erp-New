@@ -20,14 +20,14 @@ def normalize_main1(raw):
     raw = raw.lstrip('\ufeff')
     raw = re.sub(r'(?m)^\s*const RW_Auth\s*=\s*', 'var RW_Auth = ', raw, count=1)
     raw = re.sub(r'(?m)^\s*const RW_Navigation\s*=\s*', 'var RW_Navigation = ', raw, count=1)
+    # main1 is an intentionally OPEN application script fragment; main2..main11
+    # continue the same JavaScript program. Do not require a closing </script> here.
     opens = list(INLINE_RE.finditer(raw))
-    if not opens: raise RuntimeError('MAIN1_INLINE_RUNTIME_OPENER_MISSING')
+    if not opens:
+        raise RuntimeError('MAIN1_INLINE_RUNTIME_OPENER_MISSING')
     app_open = opens[-1]
-    close = raw.rfind('</script>')
-    if close >= app_open.end():
-        raw = raw[:close] + raw[close + len('</script>'):]
-    raw = re.sub(r'</body>\s*', '', raw, flags=re.I)
-    raw = re.sub(r'</html>\s*', '', raw, flags=re.I)
+    raw = raw[app_open.start():]
+    raw = HTML_COMMENT_TAIL.sub('', raw)
     return raw.rstrip()
 
 def normalize_fragment(raw, idx):
@@ -37,10 +37,9 @@ def normalize_fragment(raw, idx):
     return raw.rstrip()
 
 def extract_main1_application_js(chunk):
-    opens=list(INLINE_RE.finditer(chunk))
-    if not opens: raise RuntimeError('MAIN1_INLINE_RUNTIME_MISSING')
-    app_open=opens[-1]; close=chunk.rfind('</script>'); end=close if close>=app_open.end() else len(chunk)
-    return chunk[app_open.end():end]
+    m=re.match(r'<script[^>]*>([\s\S]*)$', chunk, re.I)
+    if not m: raise RuntimeError('MAIN1_INLINE_RUNTIME_MISSING')
+    return m.group(1)
 
 def p163(s):
     if s.count(COMPAT)>1: raise RuntimeError('P163_COMPAT_DUPLICATE')
@@ -74,20 +73,22 @@ class StructureParser(HTMLParser):
     def handle_startendtag(self,tag,attrs): self.starts.append(tag.lower())
     def handle_endtag(self,tag): self.ends.append(tag.lower())
 
+def validate_fragments(parts):
+    # Fragments can legitimately end inside JS blocks. They are therefore not
+    # validated as standalone programs; only assembly boundaries are validated here.
+    if not parts or not parts[0].lstrip().lower().startswith('<script'):
+        raise RuntimeError('MAIN1_OPEN_SCRIPT_BOUNDARY_MISSING')
+    report=[]
+    for idx, part in enumerate(parts,1):
+        if idx>1 and re.search(r'<script|</script>|<!doctype\b|</?(?:html|head|body)\b',part,re.I):
+            raise RuntimeError(f'FRAGMENT_HTML_BOUNDARY_VIOLATION:main{idx}')
+        report.append({'part':idx,'bytes':len(part.encode('utf-8')),'lines':part.count('\n')+1})
+    return report
+
 def _app_js(s):
     apps=[m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I) if 'serviceWorker.register' not in m.group(1)]
     if len(apps)!=1: raise RuntimeError('APPLICATION_INLINE_SCRIPT_COUNT:'+str(len(apps)))
     return apps[0]
-
-def validate_phase_js(parts):
-    js_body=extract_main1_application_js(parts[0]); report=[]
-    for idx in range(1,len(parts)+1):
-        if idx>1: js_body+='\n\n'+parts[idx-1]
-        t=Path(tempfile.gettempdir())/f'rawaea-phase-{idx}.js'; t.write_text(js_body,encoding='utf-8')
-        r=subprocess.run(['node','--check',str(t)],capture_output=True,text=True); report.append((idx,len(js_body.encode('utf-8'))))
-        if r.returncode:
-            tail='\n'.join(js_body.splitlines()[-60:]); raise RuntimeError('JS_PHASE_SYNTAX_FAIL:main%d\n%s\n---TAIL---\n%s'%(idx,r.stderr,tail))
-    return report
 
 def validate(s):
     start=s.lstrip().lower(); required=['window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense','var RW_Dashboard','var RW_Items','window.RW_Items=RW_Items;','RW_SUPABASE_CLIENT','MAIN3']; missing=[x for x in required if x not in s]
@@ -104,7 +105,8 @@ def main():
     for idx,p in enumerate(PARTS,1):
         if not p.is_file() or not p.stat().st_size: raise RuntimeError('MISSING_PART:'+str(p))
         raw=p.read_text(encoding='utf-8-sig'); parts.append(normalize_main1(raw) if idx==1 else normalize_fragment(raw,idx))
-    phases=validate_phase_js(parts); candidate=parts[0]+'\n\n'+'\n\n'.join(parts[1:])+'\n\n</script>\n</body>\n</html>\n'; candidate=p163(candidate); candidate=inject_canonical_sw(candidate); gates=validate(candidate)
-    tmp=MAIN.with_suffix('.tmp'); tmp.write_text(candidate,encoding='utf-8'); tmp.replace(MAIN); print({'status':'NEW_MAIN_GOLD_DIAMOND_READY','target':str(MAIN),'sha256':hashlib.sha256(candidate.encode()).hexdigest(),'bytes':len(candidate.encode()),'gates':gates,'phase_bytes':phases})
+    phases=validate_fragments(parts)
+    candidate=parts[0]+'\n\n'+'\n\n'.join(parts[1:])+'\n\n</script>\n</body>\n</html>\n'; candidate=p163(candidate); candidate=inject_canonical_sw(candidate); gates=validate(candidate)
+    tmp=MAIN.with_suffix('.tmp'); tmp.write_text(candidate,encoding='utf-8'); tmp.replace(MAIN); print({'status':'NEW_MAIN_GOLD_DIAMOND_READY','target':str(MAIN),'sha256':hashlib.sha256(candidate.encode()).hexdigest(),'bytes':len(candidate.encode()),'gates':gates,'phase_report':phases})
 
 if __name__=='__main__': main()
