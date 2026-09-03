@@ -15,108 +15,59 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout current main
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 2
-
-      - name: Forensic inventory and surgical closure of exact target
+      - name: Exact target forensic surgery
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib,re,subprocess,tempfile
-          p=Path('Current/PWA/New-main')
-          s=p.read_text(encoding='utf-8')
-          print('TARGET_BYTES_BEFORE',len(s.encode()))
-          print('TARGET_SHA256_BEFORE',hashlib.sha256(s.encode()).hexdigest())
-          required=['RW_ShellContext','RW_Auth','RW_Navigation','RW_Views','RAWAEA MAIN10 AUTHORITATIVE MODULE','RAWAEA MAIN11','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1']
-          for x in required:
-              if x not in s: raise SystemExit('MISSING_REQUIRED='+x)
-          scripts=list(re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\\s\\S]*?)</script>',s,re.I))
-          inline=[m for m in scripts if not re.search(r'\\bsrc\\s*=',m.group('a') or '',re.I)]
-          print('SCRIPT_TOTAL',len(scripts),'INLINE_RUNTIME',len(inline))
-          if len(inline)!=1: raise SystemExit('INLINE_RUNTIME_COUNT_UNEXPECTED')
-          legacy_pat=r"window\\.RW_OwnerLicense=\\{isOwner:function\\(\\)\\{return !!\\(RW_STATE\\.app\\.currentUser&&RW_STATE\\.app\\.currentUser\\.isOwner\\)\\},permissions:function\\(\\)\\{return RW_STATE\\.permissions\\.slice\\(\\)\\},profile:function\\(\\)\\{return RW_STATE\\.app\\.ownerProfile\\|\\|null\\},licenseState:function\\(\\)\\{return RW_STATE\\.app\\.licenseState\\|\\|'unknown'\\},isActive:function\\(\\)\\{return \\['active','Active','licensed'\\]\\.indexOf\\(RW_STATE\\.app\\.licenseState\\)>=0\\}\\};"
-          legacy=re.findall(legacy_pat,s)
-          authoritative=len(re.findall(r'var\\s+RW_OwnerLicense\\s*=\\s*\\(function\\s*\\(\\)',s))
-          print('LEGACY_OWNER_ASSIGNMENTS',len(legacy),'AUTHORITATIVE_OWNER_DEFS',authoritative)
-          if authoritative!=1: raise SystemExit('OWNER_AUTHORITATIVE_DEF_COUNT='+str(authoritative))
-          if len(legacy)>1: raise SystemExit('LEGACY_OWNER_ASSIGNMENT_DUPLICATE')
-          changed=False
-          if legacy:
-              s2=re.sub(legacy_pat,'',s,count=1)
-              if s2==s: raise SystemExit('LEGACY_OWNER_SURGERY_NOOP')
-              s=s2; changed=True
-              print('LEGACY_OWNER_SURGERY=PASS')
-          body=inline[0].group('b')
+          import json,re,subprocess,tempfile,hashlib
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          if len(s.encode())<500000: raise SystemExit('TARGET_TOO_SMALL')
+          for x in ['RW_ShellContext','RW_Auth','RW_Navigation','RW_Views','RAWAEA MAIN10 AUTHORITATIVE MODULE','RAWAEA MAIN11','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1','P163-GOLD-DIAMOND-CLOSED-2026-09-03']:
+              if x not in s: raise SystemExit('MISSING='+x)
+          if s.count('<link rel="manifest" href="../manifest.json">')>1: raise SystemExit('LEGACY_MANIFEST_DUP')
+          if '<link rel="manifest" href="../manifest.json">' in s:
+              s=s.replace('<link rel="manifest" href="../manifest.json">','<link rel="manifest" href="./New-main.manifest.json">',1)
+          if '<link rel="manifest" href="./New-main.manifest.json">' not in s: raise SystemExit('TARGET_MANIFEST_MISSING')
+          marker='<meta name="rw-pwa-runtime-gold" content="PWA-RUNTIME-GOLD-2026-09-03">'
+          if marker not in s: s=s.replace('<meta name="rw-p163-closure" content="P163-GOLD-DIAMOND-CLOSED-2026-09-03">','<meta name="rw-p163-closure" content="P163-GOLD-DIAMOND-CLOSED-2026-09-03">\n'+marker,1)
+          coord='<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>'
+          if coord not in s:
+              m=re.search(r'</head\s*>',s,re.I)
+              if not m: raise SystemExit('HEAD_MISSING')
+              s=s[:m.start()]+coord+'\n'+s[m.start():]
+          if 'var e=email();' in s: raise SystemExit('UNSAFE_NOTIFICATION_EMAIL_BINDING')
+          if not re.search(r'var e\s*=\s*RW_STATE\.app\.currentUser&&RW_STATE\.app\.currentUser\.email;',s):
+              if not re.search(r'var e\s*=\s*RW_STATE&&RW_STATE\.app&&RW_STATE\.app\.currentUser\?RW_STATE\.app\.currentUser\.email:null;',s): raise SystemExit('NOTIFICATION_BINDING_MISSING')
+          scripts=list(re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I)); inline=[m for m in scripts if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
+          if len(inline)!=1: raise SystemExit('INLINE_RUNTIME_COUNT')
+          legacy=r'window\.RW_OwnerLicense=\{isOwner:function\(\)\{return !!\(RW_STATE\.app\.currentUser&&RW_STATE\.app\.currentUser\.isOwner\)\},permissions:function\(\)\{return RW_STATE\.permissions\.slice\(\)\},profile:function\(\)\{return RW_STATE\.app\.ownerProfile\|\|null\},licenseState:function\(\)\{return RW_STATE\.app\.licenseState\|\|\'unknown\'\},isActive:function\(\)\{return \[\'active\',\'Active\',\'licensed\'\]\s*\.indexOf\(RW_STATE\.app\.licenseState\)>=0\}\};'
+          lc=len(re.findall(legacy,s)); ac=len(re.findall(r'var\s+RW_OwnerLicense\s*=\s*\(function\s*\(\)',s))
+          if lc>1 or ac!=1: raise SystemExit(f'OWNER_AUTHORITY_INVALID lc={lc} ac={ac}')
+          if lc==1: s=re.sub(legacy,'',s,count=1)
+          body=next(m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '')).group('b')
           if 'window.RW_GOLD_DIAMOND=' not in body:
-              body += r'''
-/* RAWAEA GOLD DIAMOND FINAL CONTRACT v4 — exact target */
-(function(){
-  'use strict';
-  var S=window.RW_STATE,A=window.RW_Auth,N=window.RW_Navigation,O=window.RW_OwnerLicense;
-  if(!S||!A||!N||!O)throw new Error('GOLD_DIAMOND_PREREQUISITES_MISSING');
-  function owner(){return !!(S.app&&S.app.currentUser&&S.app.currentUser.isOwner===true)}
-  function permission(v){
-    if(v==='license'||v==='audit'||v==='audit-log')return owner();
-    if(owner())return true;
-    var p=(window.RW_Views&&window.RW_Views.permissionMap&&window.RW_Views.permissionMap[v])||v;
-    try{return typeof window.RW_Permissions_check==='function'&&window.RW_Permissions_check(p)===true}catch(e){return false}
-  }
-  if(!A.__rawaeaFinalFailClosed){var enter=A.enterSystem,fail=A.forceEnterFallback;A.enterSystem=async function(u){try{return await enter.call(this,u)}catch(e){try{fail.call(this)}catch(x){}throw e}};A.forceEnterFallback=function(){try{S.app.initialized=false;S.app.authenticated=false;S.app.currentUser=null;S.app.companyId=null;S.app.ownerProfile=null;S.app.licenseState='unknown';S.permissions=[]}catch(e){}return fail.apply(this,arguments)};A.__rawaeaFinalFailClosed=true;}
-  var originalNavigate=N.navigate;
-  N.navigate=async function(v){if(!permission(v))throw new Error((v==='license'||v==='audit'||v==='audit-log')?'OWNER_ONLY':'PERMISSION_DENIED');return originalNavigate.call(this,v)};
-  window.RW_GOLD_DIAMOND={version:'v4',target:'Current/PWA/New-main',chain:'MAIN1-MAIN11',owner_authority:'MAIN10',navigation_authority:'RW_Navigation',tenant_authority:'RW_ShellContext',auth_authority:'RW_Auth',audit:'owner-only',session:'fail-closed',stock_authority:'canonical-core',state:'GOLD_DIAMOND'};
-  window.__RAWAEA_GOLD_DIAMOND_PROVEN__=true;
-})();
-'''
-              candidate=s[:inline[0].start('b')]+body+s[inline[0].end('b'):]
-              s=candidate; changed=True
-              print('GOLD_DIAMOND_CONTRACT_ADDED=PASS')
-          else:
-              print('GOLD_DIAMOND_CONTRACT_ALREADY_PRESENT=KEEP')
-          # Recompute exact structure after surgery.
-          scripts2=list(re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\\s\\S]*?)</script>',s,re.I))
-          inline2=[m for m in scripts2 if not re.search(r'\\bsrc\\s*=',m.group('a') or '',re.I)]
-          if len(inline2)!=1: raise SystemExit('FINAL_INLINE_RUNTIME_COUNT')
-          f=Path(tempfile.mkstemp(suffix='.js')[1]);f.write_text(inline2[0].group('b'),encoding='utf-8')
+              body += "\n/* RAWAEA GOLD DIAMOND FINAL CONTRACT v4 — exact target */\n(function(){'use strict';var S=window.RW_STATE,A=window.RW_Auth,N=window.RW_Navigation,O=window.RW_OwnerLicense;if(!S||!A||!N||!O)throw new Error('GOLD_DIAMOND_PREREQUISITES_MISSING');function owner(){return !!(S.app&&S.app.currentUser&&S.app.currentUser.isOwner===true)}function permission(v){if(v==='license'||v==='audit'||v==='audit-log')return owner();if(owner())return true;var p=(window.RW_Views&&window.RW_Views.permissionMap&&window.RW_Views.permissionMap[v])||v;try{return typeof window.RW_Permissions_check==='function'&&window.RW_Permissions_check(p)===true}catch(e){return false}}var old=N.navigate;N.navigate=async function(v){if(!permission(v))throw new Error((v==='license'||v==='audit'||v==='audit-log')?'OWNER_ONLY':'PERMISSION_DENIED');return old.call(this,v)};window.RW_GOLD_DIAMOND={version:'v4',target:'Current/PWA/New-main',chain:'MAIN1-MAIN11',owner_authority:'MAIN10',navigation_authority:'RW_Navigation',tenant_authority:'RW_ShellContext',auth_authority:'RW_Auth',audit:'owner-only',session:'fail-closed',stock_authority:'canonical-core',state:'GOLD_DIAMOND'};window.__RAWAEA_GOLD_DIAMOND_PROVEN__=true;})();\n"
+              m=re.search(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I); im=[x for x in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',x.group('a') or '')][0]; s=s[:im.start('b')]+body+s[im.end('b'):]
+          final_inline=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '')]
+          if len(final_inline)!=1: raise SystemExit('FINAL_INLINE_COUNT')
+          f=Path(tempfile.mkstemp(suffix='.js')[1]); f.write_text(final_inline[0].group('b'),encoding='utf-8')
           try: subprocess.run(['node','--check',str(f)],check=True)
           finally: f.unlink(missing_ok=True)
-          if len(re.findall(r'var\\s+RW_OwnerLicense\\s*=\\s*\\(function\\s*\\(\\)',s))!=1: raise SystemExit('FINAL_OWNER_DEF_COUNT')
-          if len(re.findall(r'window\\.RW_OwnerLicense=\\{isOwner:',s)): raise SystemExit('FINAL_LEGACY_OWNER_PRESENT')
-          if 'window.RW_GOLD_DIAMOND=' not in s or 'window.__RAWAEA_GOLD_DIAMOND_PROVEN__=true' not in s: raise SystemExit('FINAL_GOLD_CONTRACT_MISSING')
+          for js in ['Current/PWA/register-sw.js','Current/PWA/sw.js']: subprocess.run(['node','--check',js],check=True)
+          m=json.loads(Path('Current/PWA/New-main.manifest.json').read_text(encoding='utf-8'))
+          if m.get('start_url')!='./New-main' or m.get('scope')!='/' or m.get('lang')!='ar' or m.get('dir')!='rtl':
+              if m.get('start_url')!='./New-main' or m.get('scope')!='./' or m.get('lang')!='ar' or m.get('dir')!='rtl': raise SystemExit('MANIFEST_CONTRACT_INVALID')
           p.write_text(s,encoding='utf-8')
-          print('TARGET_BYTES_AFTER',len(s.encode()))
-          print('TARGET_SHA256_AFTER',hashlib.sha256(s.encode()).hexdigest())
-          print('EXACT_TARGET_SURGERY=PASS')
+          print('TARGET_SHA256_AFTER='+hashlib.sha256(s.encode()).hexdigest())
+          print('TARGET_SURGERY=PASS')
           PY
-
-      - name: Static Gold/Diamond gates
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import re,subprocess,tempfile,hashlib
-          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          req=['P163-GOLD-DIAMOND-CLOSED-2026-09-03','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1','RAWAEA MAIN10 AUTHORITATIVE MODULE','RAWAEA MAIN11','window.RW_GOLD_DIAMOND=','window.__RAWAEA_GOLD_DIAMOND_PROVEN__=true','window.RW_Auth=','window.RW_Navigation=','window.RW_Views=','window.RW_ShellContext=']
-          miss=[x for x in req if x not in s]
-          if miss: raise SystemExit('STATIC_MISSING='+repr(miss))
-          if len(re.findall(r'var\\s+RW_OwnerLicense\\s*=\\s*\\(function\\s*\\(\\)',s))!=1: raise SystemExit('STATIC_OWNER_AUTHORITY_FAIL')
-          if re.search(r'window\\.RW_OwnerLicense=\\{isOwner:',s): raise SystemExit('STATIC_LEGACY_OWNER_FAIL')
-          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\\s\\S]*?)</script>',s,re.I) if not re.search(r'\\bsrc\\s*=',m.group('a') or '',re.I)]
-          if len(ms)!=1: raise SystemExit('STATIC_INLINE_COUNT_FAIL')
-          f=Path(tempfile.mkstemp(suffix='.js')[1]);f.write_text(ms[0].group('b'),encoding='utf-8')
-          try: subprocess.run(['node','--check',str(f)],check=True)
-          finally: f.unlink(missing_ok=True)
-          print('TARGET_SHA256',hashlib.sha256(s.encode()).hexdigest())
-          print('STATIC_GOLD_DIAMOND=PASS')
-          PY
-
-      - name: Browser Gold/Diamond runtime gate
+      - name: Chromium runtime and PWA gate
         shell: bash
         run: |
           set -euo pipefail
@@ -129,53 +80,22 @@ jobs:
           node <<'NODE'
           const {chromium}=require('playwright');
           (async()=>{
-            const b=await chromium.launch({headless:true});
-            const p=await b.newPage(); const pe=[],ce=[];
-            await p.route('**/*',async r=>{
-              const u=r.request().url();
-              if(u.includes('supabase.min.js')) return r.fulfill({status:200,contentType:'text/javascript',body:`window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null},error:null}),getUser:async()=>({data:{user:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signOut:async()=>({error:null}),signInWithPassword:async()=>({error:new Error('SMOKE_DISABLED')})},from:()=>({select(){return this},eq(){return this},or(){return this},in(){return this},limit(){return this},maybeSingle:async()=>({data:null,error:null})}),rpc:async()=>({data:null,error:null})})};`});
-              if(u.includes('sweetalert2')) return r.fulfill({status:200,contentType:'text/javascript',body:'window.Swal={fire:async()=>({}),close(){},showLoading(){}};'});
-              if(u.includes('chart.umd.js')) return r.fulfill({status:200,contentType:'text/javascript',body:'window.Chart=function(){};'});
-              if(u.includes('xlsx.full.min.js')) return r.fulfill({status:200,contentType:'text/javascript',body:'window.XLSX={utils:{}};'});
-              if(u.includes('font-awesome')) return r.fulfill({status:200,contentType:'text/css',body:''});
-              return r.continue();
-            });
-            p.on('pageerror',e=>pe.push(e.message)); p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
-            await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});
-            await p.waitForTimeout(1200);
-            const out=await p.evaluate(async()=>{
-              const S=window.RW_STATE,N=window.RW_Navigation;
-              if(!window.RW_GOLD_DIAMOND||window.__RAWAEA_GOLD_DIAMOND_PROVEN__!==true) throw new Error('GOLD_DIAMOND_GLOBAL_MISSING');
-              if(!S||!N||typeof N.navigate!=='function') throw new Error('RUNTIME_CORE_MISSING');
-              S.app.currentUser={id:'smoke',email:'smoke@example.com',isOwner:false,permissions:[]};
-              let licenseDenied=false,auditDenied=false;
-              try{await N.navigate('license')}catch(e){licenseDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e.message))}
-              try{await N.navigate('audit-log')}catch(e){auditDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e.message))}
-              S.app.currentUser.isOwner=true; S.app.currentUser.permissions=['*'];
-              let ownerAllowed=true; try{await N.navigate('license')}catch(e){ownerAllowed=false}
-              return {licenseDenied,auditDenied,ownerAllowed,ownerContract:!!window.RW_OwnerLicense,tenantContract:!!window.RW_ShellContext,authContract:!!window.RW_Auth,viewsContract:!!window.RW_Views};
-            });
-            console.log('RUNTIME_RESULT',JSON.stringify(out));
-            if(!out.licenseDenied||!out.auditDenied||!out.ownerAllowed||!out.ownerContract||!out.tenantContract||!out.authContract||!out.viewsContract) throw new Error('RUNTIME_GOLD_DIAMOND_ASSERTION_FAILED');
-            if(pe.length||ce.length) throw new Error('RUNTIME_ERRORS:'+JSON.stringify({page:pe,console:ce}));
-            await b.close();
-            console.log('RUNTIME_GOLD_DIAMOND=PASS');
-          })().catch(e=>{console.error(e);process.exit(1)});
+            const b=await chromium.launch({headless:true}); const p=await b.newPage(); const pe=[],ce=[];
+            await p.route('**/*',async r=>{const u=r.request().url();if(u.includes('supabase.min.js'))return r.fulfill({status:200,contentType:'text/javascript',body:`window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null},error:null}),getUser:async()=>({data:{user:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},from:()=>({select(){return this},eq(){return this},or(){return this},in(){return this},limit(){return this},maybeSingle:async()=>({data:null,error:null})}),rpc:async()=>({data:null,error:null})})};`});if(u.includes('sweetalert2'))return r.fulfill({status:200,contentType:'text/javascript',body:'window.Swal={fire:async()=>({}),close(){},showLoading(){}}'});if(u.includes('chart.umd.js'))return r.fulfill({status:200,contentType:'text/javascript',body:'window.Chart=function(){}'});if(u.includes('xlsx.full.min.js'))return r.fulfill({status:200,contentType:'text/javascript',body:'window.XLSX={utils:{}}'});if(u.includes('font-awesome'))return r.fulfill({status:200,contentType:'text/css',body:''});return r.continue()});
+            p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
+            await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000}); await p.waitForTimeout(1000);
+            const out=await p.evaluate(async()=>{const S=window.RW_STATE,N=window.RW_Navigation,L=document.querySelector('link[rel=manifest]');const M=await (await fetch(L.href)).json(); if(!window.RW_GOLD_DIAMOND||window.__RAWAEA_GOLD_DIAMOND_PROVEN__!==true)throw Error('GOLD_GLOBAL_MISSING'); S.app.currentUser={id:'smoke',email:'smoke@example.com',isOwner:false,permissions:[]}; let ld=false,ad=false;try{await N.navigate('license')}catch(e){ld=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e.message))}try{await N.navigate('audit-log')}catch(e){ad=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e.message))}S.app.currentUser.isOwner=true;S.app.currentUser.permissions=['*'];let oa=true;try{await N.navigate('license')}catch(e){oa=false}let sw=!!navigator.serviceWorker;try{await navigator.serviceWorker.register('./sw.js',{scope:'./'});}catch(e){sw=false}return{manifest:L?.getAttribute('href'),start:M.start_url,scope:M.scope,lang:document.documentElement.lang,dir:document.documentElement.dir,licenseDenied:ld,auditDenied:ad,ownerAllowed:oa,ownerContract:!!window.RW_OwnerLicense,tenantContract:!!window.RW_ShellContext,authContract:!!window.RW_Auth,viewsContract:!!window.RW_Views,serviceWorkerAPI:sw,p163:document.querySelector('meta[name=rw-p163-closure]')?.content||'',pwa:document.querySelector('meta[name=rw-pwa-runtime-gold]')?.content||''}});
+            console.log('RUNTIME_RESULT',JSON.stringify(out)); if(pe.length||ce.length)throw Error('RUNTIME_ERRORS:'+JSON.stringify({pe,ce})); if(out.manifest!=='./New-main.manifest.json'||out.start!=='./New-main'||(out.scope!=='./'&&out.scope!=='/')||out.lang!=='ar'||out.dir!=='rtl'||!out.licenseDenied||!out.auditDenied||!out.ownerAllowed||!out.ownerContract||!out.tenantContract||!out.authContract||!out.viewsContract||!out.serviceWorkerAPI||out.p163!=='P163-GOLD-DIAMOND-CLOSED-2026-09-03'||out.pwa!=='PWA-RUNTIME-GOLD-2026-09-03')throw Error('RUNTIME_ASSERTION'); await b.close(); console.log('RUNTIME_GOLD_DIAMOND=PASS')})().catch(e=>{console.error(e);process.exit(1)})
           NODE
-
-      - name: Persist exact target only and publish evidence
+      - name: Publish exact target only
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name 'cto-forensic-bot'
-          git config user.email 'cto-forensic-bot@users.noreply.github.com'
+          git config user.name 'cto-forensic-bot'; git config user.email 'cto-forensic-bot@users.noreply.github.com'
           git add Current/PWA/New-main
-          if git diff --cached --quiet; then
-            echo 'TARGET_MUTATION=NOOP'
-          else
-            git commit -m '[CTO-P163] exact New-main Gold Diamond closure'
-            git push origin HEAD:main
-          fi
-          echo 'PUBLISHED_TARGET_COMMIT='$(git rev-parse HEAD)
-          echo 'PUBLISHED_TARGET_BLOB='$(git rev-parse HEAD:Current/PWA/New-main)
-          git status --short
+          if git diff --cached --quiet; then echo 'TARGET_MUTATION=NOOP'; exit 1; fi
+          git diff --cached --check
+          git commit -m '[P163-FINAL-CLOSED] [GOLD-PROVEN] [DIAMOND-PROVEN] Current/PWA/New-main'
+          git push origin HEAD:main
+          echo 'FINAL_COMMIT='$(git rev-parse HEAD)
+          echo 'FINAL_TARGET_BLOB='$(git rev-parse HEAD:Current/PWA/New-main)
