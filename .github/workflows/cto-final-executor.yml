@@ -6,49 +6,73 @@ permissions:
   contents: write
 jobs:
   close:
-    if: github.event.head_commit.message != '[CTO-CLOSED] New-main final target-only closure'
+    if: github.event.head_commit.message == '[CTO-EXEC] New-main final closure trigger'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with: {ref: main, fetch-depth: 2}
-      - name: Apply target-only closure
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - name: Apply safe target-only closure
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re
+          import re, subprocess, hashlib, json, tempfile
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
-          assert len(s.encode())>500000
-          s=s.replace('await window.RW_Auth.enterSystem();','await window.RW_Auth.enterSystem(authUser);')
-          s=re.sub(r'<script[^>]+src=["\']\./register-sw\.js["\'][^>]*>\s*</script>','',s,flags=re.I)
-          for a,b in [('./pos.html','pos'),('./telesales.html','telesales'),('./buyer.html','purchases'),('./vouchers.html','vouchers'),('./picker.html','picking'),('./loader.html','loading'),('./driver.html','delivery'),('./Returns.html','returns'),('./unloader.html','unloading')]:s=s.replace(a,b)
-          for z in ['./pos.html','./telesales.html','./buyer.html','./vouchers.html','./picker.html','./loader.html','./driver.html','./Returns.html','./unloader.html','./register-sw.js']:assert z not in s,z
-          marker='RAWAEA_CTO_FINAL_TARGET_LAYER'
-          if marker not in s:
-            layer=r'''<!-- RAWAEA_CTO_FINAL_TARGET_LAYER --><style>.rw-login-card{position:relative;overflow:hidden}.rw-login-card:before{content:"";position:absolute;inset:0 0 auto 0;height:7px;background:linear-gradient(90deg,#2563eb,#06b6d4)}.rw-login-logo{width:112px!important;height:112px!important;border-radius:28px!important;overflow:hidden;box-shadow:0 18px 38px rgba(37,99,235,.22);display:grid;place-items:center}.rw-login-brand-image{width:100%;height:100%;object-fit:contain;padding:10px}.rw-sidebar-user{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border-radius:14px;background:#f8fafc;border:1px solid #f1f5f9}.rw-sidebar-user-avatar{width:38px;height:38px;min-width:38px;border-radius:12px;background:linear-gradient(135deg,#0ea5e9,#2563eb);color:#fff;display:grid;place-items:center;font-weight:900}.rw-sidebar-user-name{font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rw-sidebar-user-role{font-size:10px;color:#64748b;margin-top:2px}</style><script id="RAWAEA_CTO_FINAL_TARGET_RUNTIME">(function(){'use strict';function by(i){return document.getElementById(i)}function db(){return window.RW_SUPABASE_CLIENT||window.__RAWAEA_SUPABASE_CLIENT__||null}function brand(n,l){n=String(n||'الروائع ERP').trim()||'الروائع ERP';var t=by('rw-login-company-name')||document.querySelector('.rw-company-name');if(t){t.id='rw-login-company-name';t.textContent=n}var b=document.querySelector('.rw-login-logo');if(b){var im=by('rw-login-brand-image');if(!im){im=document.createElement('img');im.id='rw-login-brand-image';im.className='rw-login-brand-image';im.alt='شعار الشركة';b.textContent='';b.appendChild(im)}if(l){im.src=String(l);im.style.display='block'}else im.style.display='none'}var s=by('rw-sidebar-company-name');if(s)s.textContent=n}async function sync(){try{var a=window.RW_STATE&&RW_STATE.app||{},c=a.company||{},n=c.name||'الروائع ERP',l=c.logo||c.logo_url||'',q=db();if(q){var r=await q.from('app_settings').select('company_name,company_logo').limit(1).maybeSingle();if(!r.error&&r.data){n=r.data.company_name||n;l=r.data.company_logo||l}}brand(n,l);if(a.currentUser){var top=document.querySelector('.rw-sidebar-top'),box=by('rw-sidebar-user-card');if(top&&!box){box=document.createElement('div');box.id='rw-sidebar-user-card';box.className='rw-sidebar-user';box.innerHTML='<div id="rw-sidebar-user-avatar" class="rw-sidebar-user-avatar"></div><div><div id="rw-sidebar-user-name" class="rw-sidebar-user-name"></div><div id="rw-sidebar-user-role" class="rw-sidebar-user-role"></div></div>';top.appendChild(box)}if(by('rw-sidebar-user-name'))by('rw-sidebar-user-name').textContent=String(a.currentUser.name||'مستخدم');if(by('rw-sidebar-user-role'))by('rw-sidebar-user-role').textContent=String(a.currentUser.role||'—');if(by('rw-sidebar-user-avatar'))by('rw-sidebar-user-avatar').textContent=String(a.currentUser.name||'م').trim().charAt(0)||'م'}}catch(e){}}window.RW_UX=window.RW_UX||{};RW_UX.sync=sync;RW_UX.syncBrand=sync;if(window.RW_Auth){var e0=RW_Auth.enterSystem;RW_Auth.enterSystem=async function(u){var z=await e0.call(this,u);await sync();return z};if(typeof RW_Auth.forgotPassword!=='function')RW_Auth.forgotPassword=async function(){var e=(by('rw-username')&&by('rw-username').value||'').trim();if(!e)throw new Error('أدخل البريد الإلكتروني أولاً');var q=db();if(!q)throw new Error('خدمة المصادقة غير متاحة');var r=await q.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin+window.location.pathname});if(r.error)throw r.error;return true}}if(window.RW_Navigation&&typeof RW_Navigation.navigate==='function'){var n0=RW_Navigation.navigate;RW_Navigation.navigate=function(v){var t={transfer:'Transfer','direct-sale':'DirectSale','direct-return':'DirectReturn','supplier-return':'SupplierReturn'}[v];if(t&&window.RW_Warehouse&&typeof window.RW_Warehouse.loadVoucherForm==='function'){window.RW_STATE.app.currentView=v;return Promise.resolve(window.RW_Warehouse.loadVoucherForm(t))}return n0.apply(this,arguments)}}sync();setTimeout(sync,500);setTimeout(sync,1500)})();</script>'''
-            s=s.replace('</body>',layer+'</body>',1)
+          assert len(s.encode('utf-8'))>400000
+          assert '<html lang="ar" dir="rtl">' in s
+          assert s.count('window.byId=byId;')==1 and s.count('window.safeText=safeText;')==1
           assert s.count('<link rel="manifest" href="./manifest.json">')==1
           assert './New-main.manifest.json' not in s
-          p.write_text(s,encoding='utf-8')
+          for ident in ('RAWAEA_PRODUCT_UX_RUNTIME','RAWAEA_LOGIN_PRODUCT_UX_V1','RAWAEA_CTO_FINAL_TARGET_LAYER','RAWAEA_FINAL_PRODUCT_CLOSURE','RAWAEA_FINAL_PRODUCT_CLOSURE_20260903'):
+              s=re.sub(r'<script\b[^>]*\bid=["\']'+re.escape(ident)+r'["\'][^>]*>[\s\S]*?</script>', '', s, count=1, flags=re.I)
+          # Preserve the governed auth flow; repair only an exact empty-argument call.
+          if 'await window.RW_Auth.enterSystem();' in s and 'authUser' in s: s=s.replace('await window.RW_Auth.enterSystem();','await window.RW_Auth.enterSystem(authUser);')
+          if 'await RW_Auth.enterSystem();' in s and 'authUser' in s: s=s.replace('await RW_Auth.enterSystem();','await RW_Auth.enterSystem(authUser);')
+          s=s.replace('<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>','')
+          assert 'register-sw.js' not in s
+          for a,b in [('./pos.html','pos'),('./telesales.html','telesales'),('./buyer.html','purchases'),('./vouchers.html','vouchers'),('./picker.html','picking'),('./loader.html','loading'),('./driver.html','delivery'),('./Returns.html','returns'),('./unloader.html','unloading')]: s=s.replace(a,b)
+          for z in ['./pos.html','./telesales.html','./buyer.html','./vouchers.html','./picker.html','./loader.html','./driver.html','./Returns.html','./unloader.html']: assert z not in s,z
+          marker='RAWAEA_CTO_SAFE_PRODUCT_CLOSURE_20260903'
+          if marker not in s:
+              layer=r'''<!-- RAWAEA_CTO_SAFE_PRODUCT_CLOSURE_20260903 --><style id="RAWAEA_CTO_SAFE_PRODUCT_STYLE">.rw-login-card{position:relative;overflow:hidden}.rw-login-card:before{content:"";position:absolute;inset:0 0 auto 0;height:6px;background:linear-gradient(90deg,#2563eb,#06b6d4);z-index:2}.rw-login-logo{width:108px!important;height:108px!important;border-radius:27px!important;overflow:hidden;box-shadow:0 18px 40px rgba(37,99,235,.22)}.rw-login-brand-image{width:100%;height:100%;object-fit:contain;padding:10px}.rw-sidebar-user{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border-radius:14px;background:#f8fafc;border:1px solid #eef2f7}.rw-sidebar-user-avatar{width:38px;height:38px;min-width:38px;border-radius:12px;background:linear-gradient(135deg,#0ea5e9,#2563eb);color:#fff;display:grid;place-items:center;font-weight:900}.rw-sidebar-user-name{font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rw-sidebar-user-role{font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@media(max-width:650px){.rw-login-logo{width:92px!important;height:92px!important}}</style><script id="RAWAEA_CTO_SAFE_PRODUCT_RUNTIME">(function(){'use strict';var e=function(i){return document.getElementById(i)},q=function(s){return document.querySelector(s)},d=function(x,f){return x==null||x===''?f:x};function sync(){try{var a=window.RW_STATE&&RW_STATE.app||{},c=a.company||{},u=a.currentUser||{},n=String(d(c.name,'الروائع ERP')).trim()||'الروائع ERP',logo=String(c.logo||'').trim(),ln=e('rw-login-company-name')||q('.rw-company-name'),sn=e('rw-sidebar-company-name'),lb=e('rw-login-company-logo')||q('.rw-login-logo'),sl=e('rw-sidebar-brand-logo');if(ln)ln.textContent=n;if(sn)sn.textContent=n;if(lb&&logo){var im=e('rw-login-brand-image');if(!im){im=document.createElement('img');im.id='rw-login-brand-image';im.className='rw-login-brand-image';im.alt='شعار الشركة';lb.textContent='';lb.appendChild(im)}im.src=logo;im.style.display='block'}if(sl&&logo)sl.src=logo;var top=q('.rw-sidebar-top');if(top&&(u.name||u.email)){var card=e('rw-sidebar-user-card');if(!card){card=document.createElement('div');card.id='rw-sidebar-user-card';card.className='rw-sidebar-user';card.innerHTML='<div id="rw-sidebar-user-avatar" class="rw-sidebar-user-avatar">م</div><div><div id="rw-sidebar-user-name" class="rw-sidebar-user-name">مستخدم</div><div id="rw-sidebar-user-role" class="rw-sidebar-user-role">—</div></div>';top.appendChild(card)}var un=String(d(u.name,u.email||'مستخدم'));e('rw-sidebar-user-name').textContent=un;e('rw-sidebar-user-role').textContent=String(d(u.role,'—'));e('rw-sidebar-user-avatar').textContent=un.trim().charAt(0)||'م'}}catch(x){}}window.RW_CTO_SafeProduct={sync:sync};sync();setInterval(sync,1000);try{var r=e('rw-remember'),u=e('rw-username'),s=localStorage.getItem('rawaea_remember_email')||'';if(r&&u&&s){u.value=s;r.checked=true}var f=e('rw-login-form');if(f&&!f.dataset.ctoRemember){f.dataset.ctoRemember='1';f.addEventListener('submit',function(){try{if(r&&u&&r.checked)localStorage.setItem('rawaea_remember_email',u.value||'');else localStorage.removeItem('rawaea_remember_email')}catch(x){}})}}catch(x){}})();</script>'''
+              cut=s.rfind('</body>'); assert cut>0; s=s[:cut]+'\n'+layer+'\n'+s[cut:]
+          assert s.count(marker)==1
+          assert s.count('RAWAEA_CTO_SAFE_PRODUCT_RUNTIME')==1
+          assert s.count('RAWAEA_CTO_SAFE_PRODUCT_STYLE')==1
+          mp=s.find(marker); pw=[m.start() for m in re.finditer(r'printWindow\.document\.write',s)]
+          assert not pw or mp>max(pw)+10000
+          m=re.search(r'<script id="RAWAEA_CTO_SAFE_PRODUCT_RUNTIME">([\s\S]*?)</script>',s); assert m
+          f=Path(tempfile.mkstemp(suffix='.js')[1]); f.write_text(m.group(1),encoding='utf-8'); rc=subprocess.run(['node','--check',str(f)],capture_output=True,text=True); f.unlink(missing_ok=True); assert rc.returncode==0,rc.stderr
+          mf=json.loads(Path('Current/PWA/manifest.json').read_text(encoding='utf-8')); assert (mf.get('start_url'),mf.get('scope'),mf.get('dir'),mf.get('lang'))==('./New-main','./','rtl','ar')
+          p.write_text(s,encoding='utf-8'); print('TARGET_STATIC_GATE=PASS'); print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest())
           PY
-      - name: Browser gate
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm init -y >/dev/null 2>&1; npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1; npx playwright install chromium >/dev/null 2>&1
-          node <<'NODE'
-          const fs=require('fs');const {chromium}=require('playwright');
-          (async()=>{const html=fs.readFileSync('Current/PWA/New-main','utf8');const b=await chromium.launch({headless:true,args:['--no-sandbox']});const p=await b.newPage({serviceWorkers:'block'});const pe=[],ce=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});await p.route('**/*',async r=>{const u=r.request().url();if(u.includes('@supabase/supabase-js'))return r.fulfill({status:200,contentType:'application/javascript',body:'window.supabase={createClient:function(){const q=t=>{const o={};for(const k of ["select","eq","neq","in","or","order","limit","range","gte","lte","is","not","contains","filter","update","delete","upsert"])o[k]=function(){return o};o.maybeSingle=async()=>({data:t==="users"?{id:"u",name:"مالك النظام",email:"owner@alrawae.com",role:"Owner",company_id:"00000000-0000-0000-0000-000000000001",status:"Active",permissions:["*"]}:t==="companies"?{id:"00000000-0000-0000-0000-000000000001",name:"الروائع",logo_url:null}:t==="owner_profile"?{auth_user_id:"auth-owner",license_status:"Active"}:t==="app_settings"?{company_name:"الروائع",company_logo:null}:[],error:null});o.then=(f,j)=>Promise.resolve({data:[],error:null}).then(f,j);return o};return{from:q,auth:{getSession:async()=>({data:{session:null}}),getUser:async()=>({data:{user:{id:"auth-owner",email:"owner@alrawae.com",user_metadata:{isOwner:true}}},error:null}),resetPasswordForEmail:async()=>({error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})}}}};'});if(u.includes('chart.js'))return r.fulfill({status:200,contentType:'application/javascript',body:'window.Chart=function(){};'});if(u.includes('sweetalert2'))return r.fulfill({status:200,contentType:'application/javascript',body:'window.Swal={fire:async()=>({}),close(){},showLoading(){}};'});if(u.includes('xlsx'))return r.fulfill({status:200,contentType:'application/javascript',body:'window.XLSX={};'});return r.continue()});await p.setContent(html,{waitUntil:'load'});await p.waitForTimeout(4000);const x=await p.evaluate(async()=>{const out={login:!!document.getElementById('rw-login-form'),manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||'',rtl:document.documentElement.dir,types:{auth:typeof RW_Auth,nav:typeof RW_Navigation,wh:typeof RW_Warehouse},routes:{}};if(typeof RW_Auth!=='object')return out;await RW_Auth.enterSystem({id:'auth-owner',email:'owner@alrawae.com',user_metadata:{isOwner:true}});for(const [v,t] of Object.entries({transfer:'Transfer','direct-sale':'DirectSale','direct-return':'DirectReturn','supplier-return':'SupplierReturn'})){const old=RW_Warehouse.loadVoucherForm;RW_Warehouse.loadVoucherForm=async function(k){window.__route=k;return true};await RW_Navigation.navigate(v);RW_Warehouse.loadVoucherForm=old;out.routes[v]=window.__route}out.company=RW_STATE.app.company.name;out.loginName=document.getElementById('rw-login-company-name')?.textContent||'';return out});console.log('CTO_FINAL_GATE='+JSON.stringify({x,pe,ce}));const ok=!pe.length&&!ce.length&&x.login&&x.manifest==='./manifest.json'&&x.rtl==='rtl'&&x.types.auth==='object'&&x.types.nav==='object'&&x.types.wh==='object'&&x.company==='الروائع'&&x.loginName==='الروائع'&&JSON.stringify(x.routes)===JSON.stringify({transfer:'Transfer','direct-sale':'DirectSale','direct-return':'DirectReturn','supplier-return':'SupplierReturn'});await b.close();if(!ok)process.exit(2)})().catch(e=>{console.error(e.stack||e);process.exit(2)})
-          NODE
-      - name: Persist target only
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'CTO Automation';git config user.email 'cto-automation@users.noreply.github.com'
           git add Current/PWA/New-main
-          test "$(git diff --cached --name-only | wc -l)" -eq 1
-          git diff --cached --name-only | grep -Fx 'Current/PWA/New-main'
-          git commit -m '[CTO-CLOSED] New-main final target-only closure'
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
+      - name: Real browser gate over served HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
+          python3 -m http.server 4173 --directory . >/tmp/rawaea-http.log 2>&1 & pid=$!; trap 'kill $pid 2>/dev/null || true' EXIT; sleep 1
+          node <<'NODE'
+          const {chromium}=require(process.cwd()+'/node_modules/playwright');
+          (async()=>{const b=await chromium.launch({headless:true,args:['--no-sandbox']});const p=await b.newPage({viewport:{width:1440,height:900}}),pe=[],ce=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});await p.addInitScript(()=>localStorage.setItem('rawaea_remember_email','remembered@example.com'));await p.route('https://**/*',r=>r.fulfill({status:200,contentType:'application/javascript',body:'window.Chart=function(){};window.Swal={fire:async()=>({}),close(){}};window.XLSX={};window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signInWithPassword:async()=>({error:null}),signOut:async()=>({error:null}),resetPasswordForEmail:async()=>({error:null}),getUser:async()=>({data:{user:null},error:null})},from(){return{select(){return this},eq(){return this},limit(){return this},maybeSingle:async()=>({data:null,error:null})}}})};'}));await p.goto('http://127.0.0.1:4173/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1800);const a=await p.evaluate(()=>({rtl:document.documentElement.dir==='rtl',arabic:document.documentElement.lang==='ar',login:!!document.getElementById('rw-login-form'),visible:getComputedStyle(document.getElementById('rw-login-page')).display!=='none',sidebar:!!document.querySelector('.rw-sidebar'),brand:!!document.getElementById('rw-login-company-name'),remember:document.getElementById('rw-username')?.value==='remembered@example.com',auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',owner:typeof RW_OwnerLicense==='object',warehouse:typeof RW_Warehouse==='object',byId:typeof window.byId==='function',safeText:typeof window.safeText==='function',closure:typeof RW_CTO_SafeProduct==='object',manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href'),menuCount:Array.isArray(RW_Navigation?.menuTree)?RW_Navigation.menuTree.filter(x=>x&&x.view).length:0,logoSize:document.querySelector('.rw-login-logo')?.getBoundingClientRect().width||0}));if(pe.length||ce.length)throw new Error('RUNTIME_ERRORS:'+JSON.stringify({pe,ce}));for(const k of ['rtl','arabic','login','visible','sidebar','brand','remember','auth','nav','views','shell','owner','warehouse','byId','safeText','closure'])if(!a[k])throw new Error('CONTRACT:'+k);if(a.manifest!=='./manifest.json'||a.menuCount<10||a.logoSize<80)throw new Error('VISUAL_CONTRACT:'+JSON.stringify(a));await p.setViewportSize({width:390,height:844});await p.waitForTimeout(300);const m=await p.evaluate(()=>({visible:getComputedStyle(document.getElementById('rw-login-page')).display!=='none',mobile:getComputedStyle(document.querySelector('.rw-mobile-menu-btn')).display!=='none'}));if(!m.visible||!m.mobile)throw new Error('MOBILE:'+JSON.stringify(m));console.log('BROWSER_GATE_PASS='+JSON.stringify({a,m}));await b.close()})().catch(e=>{console.error(e.stack||e);process.exit(2)})
+          NODE
+      - name: Persist verified target and retire executor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add Current/PWA/New-main
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
+          git config user.name 'RAWAEA CTO Controlled Writer'
+          git config user.email 'cto-controlled-writer@users.noreply.github.com'
+          git commit -m '[CTO-CLOSED] New-main product UX closure — verified'
           git push origin HEAD:main
