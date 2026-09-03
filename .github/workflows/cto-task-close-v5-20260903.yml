@@ -1,0 +1,148 @@
+name: CTO temporary forensic task closer v5
+on:
+  push:
+    branches: [cto-task-close-v3-20260903]
+permissions:
+  contents: write
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply surgical target patch and static gates
+        shell: bash
+        env:
+          EXPECTED_MAIN_SHA: 067c1228ea6e56fccbc11734fe35f4dbe94a12d2
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, hashlib
+          t=Path('Current/PWA/New-main'); p=Path('Current/PWA/manifest.json'); l=Path('Current/PWA/New-main.manifest.json')
+          s=t.read_text(encoding='utf-8')
+          assert len(s.encode())>500000, 'TARGET_TOO_SMALL'
+          old_ref='<link rel="manifest" href="./New-main.manifest.json">'; new_ref='<link rel="manifest" href="./manifest.json">'
+          assert s.count(old_ref)<=1 and s.count(new_ref)<=1
+          if old_ref in s: s=s.replace(old_ref,new_ref,1)
+          old_client="var supabase=window.supabase.createClient(RW_SUPABASE_URL,RW_SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});\nwindow.RW_SUPABASE_CLIENT=supabase;"
+          new_client="var RW_SUPABASE_SDK=window.supabase;\nvar supabase=RW_SUPABASE_SDK.createClient(RW_SUPABASE_URL,RW_SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});\nwindow.RW_SUPABASE_CLIENT=supabase;\nwindow.supabase=supabase;\ntry{if(!window.supabase.createClient&&RW_SUPABASE_SDK.createClient)window.supabase.createClient=RW_SUPABASE_SDK.createClient;}catch(e){}"
+          assert s.count(old_client)==1, 'SUPABASE_INIT_PATTERN_NOT_FOUND'
+          s=s.replace(old_client,new_client,1)
+          marker='RAWAEA_MAIN_SIDEBAR_COMPLETENESS_V2'
+          if marker not in s:
+              patch=r'''<script id="RAWAEA_MAIN_SIDEBAR_COMPLETENESS_V2">
+          (function(){
+            'use strict';
+            var nav=window.RW_Navigation;if(!nav||!Array.isArray(nav.menuTree))return;
+            function group(label,icon){var g=nav.menuTree.find(function(x){return x&&x.label===label&&Array.isArray(x.submenu);});if(!g){g={label:label,icon:icon,submenu:[]};nav.menuTree.push(g);}return g;}
+            function child(g,view,label,perm,icon){if(!g.submenu.some(function(x){return x&&x.view===view;}))g.submenu.push({view:view,label:label,perm:perm,icon:icon||'fa-circle'});}
+            var sales=group('إدارة المبيعات','fa-chart-line'); child(sales,'online-store','المتجر الإلكتروني','online-store:view','fa-store');
+            var purchases=group('إدارة المشتريات','fa-truck'); child(purchases,'purchase-pos','نقطة شراء','purchase-pos:view','fa-cash-register');
+            var wh=group('المخازن والمخزون','fa-warehouse');
+            [['branches','المخازن والفروع','branches:view','fa-code-branch'],['receiving','الاستلام','receiving:view','fa-box-open'],['picking','التحضير','picking:view','fa-hand-pointer'],['loading','التحميل','loading:view','fa-dolly'],['delivery','التوصيل','delivery:view','fa-truck-fast'],['return','المرتجعات','return:view','fa-rotate-left'],['unloading','التفريغ','unloading:view','fa-boxes-stacked'],['vouchers','الأذونات المخزنية','vouchers:view','fa-file-invoice'],['transfer','تحويل مخزني','transfer:view','fa-right-left'],['direct-sale','صرف سيارة بيع مباشر','direct-sale:view','fa-car-side'],['direct-return','استلام مرتجع سيارة','direct-return:view','fa-rotate-right'],['supplier-return','مرتجع لمورد','supplier-return:view','fa-rotate-left'],['vehicle-count','جرد سيارة','vehicle-count:view','fa-truck-ramp-box'],['branch-count','جرد فرع','branch-count:view','fa-building'],['general-count','جرد عام','general-count:view','fa-clipboard-check']].forEach(function(x){child(wh,x[0],x[1],x[2],x[3]);});
+            var fa=group('المالية والإدارة','fa-coins'); child(fa,'finance','الحسابات والمالية','finance:view','fa-coins'); child(fa,'settlement','التسويات','finance:view','fa-scale-balanced'); child(fa,'reports-dashboard','لوحة التقارير الذكية','reports:view','fa-chart-pie'); child(fa,'reports-detailed','التقارير التفصيلية','reports:view','fa-table-list'); child(fa,'reports-comprehensive','التقارير الشاملة','reports:view','fa-chart-column'); child(fa,'reports','التقارير','reports:view','fa-chart-line'); child(fa,'audit','سجل التدقيق','owner','fa-list-check');
+            [['hr','الموارد البشرية','users:view','fa-id-card'],['crm','إدارة علاقات العملاء (CRM)','customers:view','fa-handshake'],['users','المستخدمون والصلاحيات','users:view','fa-users-gear'],['roles','أدوار المستخدمين','roles:view','fa-user-shield'],['license','إدارة الترخيص','owner','fa-shield-halved'],['settings','إعدادات النظام','settings:view','fa-gear'],['notifications','الإشعارات','notifications:view','fa-bell']].forEach(function(x){if(!nav.menuTree.some(function(m){return m&&m.view===x[0];}))nav.menuTree.push({view:x[0],label:x[1],perm:x[2],icon:x[3]});});
+          })();
+          </script>'''
+              i=s.rfind('</body>'); assert i>=0,'BODY_CLOSE_NOT_FOUND'; s=s[:i]+patch+'\n'+s[i:]
+          t.write_text(s,encoding='utf-8')
+          a=json.loads(p.read_text(encoding='utf-8')); b=json.loads(l.read_text(encoding='utf-8')); merged=dict(a)
+          for k,v in b.items():
+              if k=='icons':
+                  icons=list(merged.get('icons') or []); seen={x.get('src') for x in icons if isinstance(x,dict)}
+                  for x in v or []:
+                      if isinstance(x,dict) and x.get('src') in seen: continue
+                      icons.append(x); seen.add(x.get('src'))
+                  merged['icons']=icons
+              elif k not in merged or merged[k] in (None,''): merged[k]=v
+          merged.update({'start_url':'./New-main','scope':'./','display':'standalone','dir':'rtl','lang':'ar'})
+          p.write_text(json.dumps(merged,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          for token in ["from('companies')","from('app_settings')","from('owner_profile')",'post_stock_movement','reserve_stock','release_stock_reservation']:
+              assert token in s, token
+          assert s.count('RAWAEA_MAIN_SIDEBAR_COMPLETENESS_V2')==1
+          print('TARGET_BYTES='+str(len(s.encode())))
+          print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest())
+          print('MANIFEST_SHA256='+hashlib.sha256(p.read_bytes()).hexdigest())
+          PY
+          node --check Current/PWA/register-sw.js
+          node --check Current/PWA/sw.js
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          import subprocess,tempfile,json
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          assert s.count('<link rel="manifest" href="./manifest.json">')==1
+          class P(HTMLParser):
+              def __init__(self):super().__init__(convert_charrefs=False);self.cur=None;self.inline=[]
+              def handle_starttag(self,t,a):
+                  if t.lower()=='script':self.cur=(dict(a).get('src'),'')
+              def handle_data(self,d):
+                  if self.cur is not None and not self.cur[0]:self.cur=(self.cur[0],self.cur[1]+d)
+              def handle_endtag(self,t):
+                  if t.lower()=='script' and self.cur is not None:
+                      if not self.cur[0] and self.cur[1].strip():self.inline.append(self.cur[1])
+                      self.cur=None
+          q=P();q.feed(s);q.close();assert q.inline
+          for code in q.inline:
+              f=Path(tempfile.mkstemp(suffix='.js')[1]);f.write_text(code,encoding='utf-8')
+              try:subprocess.run(['node','--check',str(f)],check=True)
+              finally:f.unlink(missing_ok=True)
+          m=json.loads(Path('Current/PWA/manifest.json').read_text(encoding='utf-8'));assert m['start_url']=='./New-main' and m['scope']=='./' and m['display']=='standalone' and m['dir']=='rtl' and m['lang']=='ar'
+          print('STATIC_GATE=PASS')
+          PY
+      - name: Browser forensic gate and target-only publish
+        shell: bash
+        env:
+          EXPECTED_MAIN_SHA: 067c1228ea6e56fccbc11734fe35f4dbe94a12d2
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
+          cat >/tmp/server.py <<'PY'
+          from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+          class H(SimpleHTTPRequestHandler):
+              def guess_type(self,path):
+                  if path.rstrip('/').endswith('/New-main'): return 'text/html; charset=utf-8'
+                  return super().guess_type(path)
+          ThreadingHTTPServer(('127.0.0.1',4173),H).serve_forever()
+          PY
+          (cd Current/PWA && python3 /tmp/server.py >/tmp/http.log 2>&1) & pid=$!; trap 'kill "$pid" 2>/dev/null || true' EXIT; sleep 2
+          node <<'NODE'
+          const {chromium}=require(process.cwd()+'/node_modules/playwright');
+          (async()=>{const b=await chromium.launch({headless:true,args:['--no-sandbox']});const p=await b.newPage({serviceWorkers:'block'});const errors=[];
+          await p.route('**/*',async r=>{const u=r.request().url();
+            if(u.endsWith('/register-sw.js'))return r.fulfill({status:200,contentType:'application/javascript',body:'/* SW harness bypass */'});
+            if(u.endsWith('/sw.js'))return r.fulfill({status:200,contentType:'application/javascript',body:'/* SW harness bypass */'});
+            if(u.includes('cdn.jsdelivr.net/npm/@supabase/'))return r.fulfill({status:200,contentType:'application/javascript',body:`const __auth={getSession:async()=>({data:{session:null}}),getUser:async()=>({data:{user:{id:'owner-auth',email:'owner@fixture',user_metadata:{isOwner:true}}},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signInWithPassword:async()=>({error:new Error('stub')}),signOut:async()=>({})};const __client={auth:__auth,from:()=>({select(){return this},eq(){return this},in(){return this},or(){return this},order(){return this},limit(){return this},maybeSingle:async()=>({data:{id:'fixture',company_id:'fixture-company',company_name:'الروائع',company_logo:null,status:'trial',auth_id:'owner-auth',email:'owner@fixture',name:'Owner',role:'owner',permissions:['*'],license_status:'trial',trial_end_date:null,subscription_end_date:null},error:null}),then:()=>Promise.resolve({data:[],error:null,count:0}),insert:async()=>({data:null,error:null}),update(){return this},delete(){return this}})};window.supabase={createClient:()=>__client};`});
+            if(u.includes('cdn.jsdelivr.net/npm/chart.js'))return r.fulfill({status:200,contentType:'application/javascript',body:'window.Chart=function(){};'});
+            if(u.includes('cdn.jsdelivr.net/npm/sweetalert2'))return r.fulfill({status:200,contentType:'application/javascript',body:'window.Swal={fire:async()=>({}),close(){}};'});
+            if(u.includes('cdn.sheetjs.com'))return r.fulfill({status:200,contentType:'application/javascript',body:'window.XLSX={};'});
+            return r.continue()});
+          p.on('pageerror',e=>errors.push('PAGE:'+e.message));p.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE:'+m.text())});
+          await p.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1000);
+          const base=await p.evaluate(async()=>{const l=document.querySelector('link[rel="manifest"]');const m=await (await fetch(l.href)).json();const c=document.querySelector('.rw-login-card')?.getBoundingClientRect();return {login:!!document.getElementById('rw-login-form'),card:!!document.querySelector('.rw-login-card'),title:!!document.querySelector('.rw-login-title'),logo:!!document.querySelector('.rw-login-logo'),cardArea:c?c.width*c.height:0,sidebar:!!document.getElementById('rw-sidebar'),nav:!!document.getElementById('rw-sidebar-nav'),shell:!!document.getElementById('rw-main-shell'),auth:typeof RW_Auth==='object',navObj:typeof RW_Navigation==='object',owner:typeof RW_OwnerLicense==='object',safeText:typeof safeText==='function',globalFrom:typeof window.supabase?.from==='function',manifestHref:l?.getAttribute('href')||'',start:m.start_url,scope:m.scope,display:m.display,dir:m.dir,lang:m.lang,p163:document.querySelector('meta[name="rw-p163-closure"]')?.content||'',pwa:document.querySelector('meta[name="rw-pwa-runtime-gold"]')?.content||''}});
+          const menu=await p.evaluate(()=>{RW_STATE.app.currentUser={id:'owner-fixture',email:'owner@fixture',isOwner:true,permissions:['*'],name:'Owner',role:'owner'};RW_STATE.permissions=['*'];window.RW_Permissions_check=()=>true;RW_Navigation.buildSidebar();return Array.from(document.querySelectorAll('#rw-sidebar-nav [data-view]')).map(x=>x.getAttribute('data-view')).filter(Boolean)});
+          const lic=await p.evaluate(async()=>{try{RW_STATE.app.companyId='fixture-company';await RW_Navigation.navigate('license');await new Promise(r=>setTimeout(r,300));return {ok:true,container:!!document.getElementById('license-main-container'),view:RW_STATE.app.currentView}}catch(e){return {ok:false,error:String(e.message||e)}}});
+          const expected=['dashboard','telesales','customers','pos','orders','runsheets','online-store','suppliers','purchase-pos','purchases','receiving','items','inventory','branches','picking','loading','delivery','return','unloading','vouchers','transfer','direct-sale','direct-return','supplier-return','vehicle-count','branch-count','general-count','finance','settlement','reports-dashboard','reports-detailed','reports-comprehensive','reports','audit','hr','crm','users','roles','license','settings','notifications'];
+          const menuOk=expected.every(v=>menu.includes(v)||(v==='return'&&menu.includes('returns')));const visual=base.login&&base.card&&base.title&&base.logo&&base.cardArea>0&&base.sidebar&&base.nav;const runtime=base.shell&&base.auth&&base.navObj&&base.owner&&base.safeText&&base.globalFrom;const man=base.manifestHref==='./manifest.json'&&base.start==='./New-main'&&base.scope==='.'+'/'&&base.display==='standalone'&&base.dir==='rtl'&&base.lang==='ar';const markers=base.p163==='P163-GOLD-DIAMOND-CLOSED-2026-09-03'&&base.pwa==='PWA-RUNTIME-GOLD-2026-09-03';
+          console.log('CTO_FORENSIC_GATE='+JSON.stringify({base,menu,lic,errors}));const ok=!errors.length&&visual&&runtime&&man&&markers&&menuOk&&lic.ok&&lic.container&&lic.view==='license';await b.close();if(!ok)process.exit(2)})().catch(e=>{console.error(e.stack||e);process.exit(2)});
+          NODE
+          echo BROWSER_GOLD_DIAMOND=PASS
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$EXPECTED_MAIN_SHA"
+          cp Current/PWA/New-main /tmp/New-main.patched
+          cp Current/PWA/manifest.json /tmp/manifest.patched
+          git checkout -B final-publish origin/main
+          cp /tmp/New-main.patched Current/PWA/New-main
+          cp /tmp/manifest.patched Current/PWA/manifest.json
+          git add Current/PWA/New-main Current/PWA/manifest.json
+          git diff --cached --check
+          [ "$(git diff --cached --name-only | tr '\n' ' ')" = 'Current/PWA/New-main Current/PWA/manifest.json ' ]
+          git config user.name 'RAWAEA CTO Final Closure'
+          git config user.email 'rawaea-cto-final@users.noreply.github.com'
+          git commit -m '[CTO-CLOSED] New-main forensic visual/menu/PWA closure'
+          git push origin HEAD:main
