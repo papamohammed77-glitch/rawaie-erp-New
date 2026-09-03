@@ -2,6 +2,7 @@ name: P163 exact Main2 ownership surgery
 
 # CTO CONTINUATION: live-target surgical closure only.
 # No fragment reconstruction. No production writes. Rebase/reset to latest main before persistence.
+# P163 direct-source trigger: execute against the current target blob, then independently recheck the persisted target.
 
 on:
   push:
