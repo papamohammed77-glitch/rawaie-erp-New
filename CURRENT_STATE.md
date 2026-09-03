@@ -51,7 +51,7 @@ FRAGMENT RECONSTRUCTION   = NOT USED
 - `MASTER_CTO_UNIFIED_CONTINUITY_EXECUTION_GOLD_DIAMOND.md` was read end-to-end before execution.
 - Direct Git evidence found a regression after the earlier closure: commit `3fe15e747e9a99441be5f96584b7935ac4840b2c` replaced `Current/PWA/New-main` with a truncated 3-line artifact and deleted 5,423 lines relative to the prior complete target.
 - A subsequent automated repair path existed, but its runs were not accepted as persistence authority; the governing rule `TRIGGER ≠ SUCCESS` was applied.
-- The authorized repair restored the exact trusted blob `f26581b58f101671f96bdc23c58867b985182955` directly at Git object level. No fragment reconstruction was used.
+- The authorized repair restored the exact trusted blob `f26581b58f101671f96bdc23c58867b985182d52c3b005de58300f093d0b0f23ca` directly at Git object level. No fragment reconstruction was used.
 - Final restoration commit: `2c02361ba01f37839a6fb4ad0f44c9eac60ef44a` with message `[FINAL-CLOSED] [GOLD-PROVEN] [DIAMOND-PROVEN] Restore trusted New-main artifact`.
 - Commit comparison proves the restoration changed only `Current/PWA/New-main`, with `+5,423 / -3` relative to the immediately preceding truncated target.
 - Current target identity was re-fetched after deployment and returned the trusted blob SHA above.
@@ -94,7 +94,7 @@ SUPABASE PROD WRITES      = 0
 ## CTO SUPER-ORCHESTRATOR RECONCILIATION — 2026-09-03
 - Unified prompt persisted at `doc/Draft/medhat/MASTER_CTO_SUPER_ORCHESTRATOR_GOLD_DIAMOND.md`.
 - Report 30 and Report 31 were persisted; historical reports remain untouched.
-- Direct Supabase verification confirmed the Owner contract: `public.users.permissions=["*"]`, Auth `isOwner=true`, Auth `permissions=["*"]`, valid `owner_profile` linkage through `public.users.auth_id`, and `license_status=active`.
+- Direct Supabase verification confirmed the Owner contract: `public.users.permissions=["*"]`, Auth `isOwner=true`, Auth `permissions=["*" ]`, valid `owner_profile` linkage through `public.users.auth_id`, and `license_status=active`.
 - During this session multiple CTO workflow writers were discovered. `.github/workflows/cto_p163_final_execution_20260903.yml` was retired; `.github/workflows/cto_p163_independent_verify_20260903.yml` was subsequently discovered with `contents: write` and retired in commit `253debe46327761805388a956882e2221637f0b0`.
 - The canonical `.github/workflows/p163_main2_ownership_surgery_20260903.yml` was converted to verifier-only with `permissions: contents: read`, no target writes, no reconstruction, and no production writes.
 - The current target was deliberately **not modified by this continuity session**; the only application target remains `Current/PWA/New-main`.
@@ -173,3 +173,128 @@ STATIC GOLD/DIAMOND              = PASS
 FRESH CHROMIUM PROOF            = PENDING AT THIS SNAPSHOT
 ERP-WIDE GOLD/DIAMOND           = NOT CLAIMED
 ```
+
+## CTO CONTINUITY / REPORT 33 RECONCILIATION — 2026-09-03
+
+### Direct current Git identity after latest documentation commits
+```text
+CURRENT HEAD                    = b3d2d9ed9f090443850def3d7c577c7b1f506531 (prompt V4 commit)
+LATEST REPORT COMMIT            = 112f86ca102fdec3dba988b2352c399e03dbe23b (report 33)
+CURRENT_STATE UPDATE COMMIT     = this commit
+TARGET                          = Current/PWA/New-main
+CURRENT TARGET BLOB             = c7f5b6badcc0ca060913e31f14b0b797565b05c1
+```
+
+The target blob itself was not changed by the V4 prompt/report/state documentation operations.
+
+### Fresh Actions evidence — decisive current runtime finding
+Run `33738498913` of `CTO independent Gold Diamond runtime gate — READ ONLY` was directly inspected.
+
+```text
+Static exact-target contract gate       = PASS
+Chromium runtime + owner-license gate  = FAIL
+```
+
+The static job itself recorded:
+
+```text
+TARGET_BLOB   = c7f5b6badcc0ca060913e31f14b0b797565b05c1
+TARGET_SHA256 = 3b0011e105b34f759880d747ac6fb0c35edbc172995838624047b8bb31430e26
+STATIC_GOLD_DIAMOND = PASS
+```
+
+The Chromium result was:
+
+```text
+owner.ok = false
+owner.error = safeText is not defined
+ownerCheck.hasLicenseText = false
+ownerCheck.hasLicenseContainer = false
+currentView = license
+pageerrors = 0 in captured runtime result
+console errors = 0 in captured runtime result
+```
+
+This proves the verifier reached the real target owner-license route and the target render failed on a missing runtime symbol. It is therefore a **current target/runtime defect**, not evidence for changing the verifier to accept an empty owner view.
+
+### User-observed runtime incident retained
+The user also supplied a live browser log showing:
+
+```text
+RAWAEA ERP BOOTING...
+RAWAEA_P135_TARGET New-main
+Session restored
+ENTER_SYSTEM_FAILED Error: AUTH_ID_UNAVAILABLE
+at applyAuthoritativeContext
+at Object.enterSystem
+SYSTEM READY
+ReferenceError: safeText is not defined
+at Object.render
+at nav.navigate
+at Object.enterSystem
+```
+
+`safeText` is independently proven by Actions. `AUTH_ID_UNAVAILABLE` remains an open incident lead whose root cause must be independently traced through the auth/authoritative-context lifecycle.
+
+### Owner / License current contract
+Production Supabase direct evidence remains:
+
+```text
+public.users.permissions = ["*"]
+Auth isOwner            = true
+Auth permissions        = ["*"]
+owner_profile linkage  = valid through public.users.auth_id
+license_status         = active
+```
+
+This contract must remain wildcard + owner identity. Do not replace it with ordinary role enumeration.
+
+### Historical Original UI evidence
+`Original/PWA/main/main1.md` was directly inspected. Its login surface is materially richer than the current New-main surface, including Cairo/Tailwind, larger title/logo/card treatment, icon-bearing inputs, and original visual hierarchy. This proves a login UI parity investigation is justified, but it does not authorize blind full-file replacement.
+
+### Mandatory next closure queue
+```text
+P0  safeText scope/declaration forensically resolve
+P0  AUTH_ID_UNAVAILABLE root-cause trace
+P1  login visual + functional parity against Original contract
+P1  company identity/logo source + tenant rendering
+P1  dashboard functional/runtime verification
+P1  all current Sales surfaces runtime verification
+P1  full navigation/refresh regression
+P1  Owner/non-owner license authorization runtime proof
+P1  tenant/security/RLS verification relevant to repaired paths
+P1  fresh Gold gate
+P1  fresh Diamond gate
+```
+
+### Governance
+- `doc/Draft/medhat/MASTER_CTO_CONTINUITY_EXECUTION_GOLD_DIAMOND_V4.md` is the current unified succession/execution directive.
+- Report `doc/Draft/Reprots/تقرير33.md` is the current forensic session record; historical reports remain untouched.
+- No production Supabase business-data writes were performed.
+- No blind reconstruction was performed.
+- No competing application writer was intentionally introduced by this session.
+
+### Honest current closure
+```text
+TARGET IDENTITY             = PROVEN
+TARGET INTEGRITY            = PROVEN AS FULL HTML ARTIFACT
+STATIC GOLD/DIAMOND         = PASS
+FRESH CHROMIUM              = FAIL
+PRIMARY RUNTIME BLOCKER     = safeText is not defined
+SECONDARY INCIDENT          = AUTH_ID_UNAVAILABLE (ROOT CAUSE OPEN)
+OWNER WILDCARD              = PROVEN
+LICENSE                     = ACTIVE / PROVEN
+LOGIN PARITY                = OPEN
+COMPANY/LOGO                = OPEN
+DASHBOARD                   = OPEN
+SALES                       = OPEN
+GOLD                        = NOT CURRENTLY PROVEN
+DIAMOND                     = NOT CURRENTLY PROVEN
+CURRENT/PWA/New-main        = NOT CLOSED 100% IN THE CURRENT RUNTIME STATE
+```
+
+## NEXT AUTHORIZED ACTION
+- Do not restore an older trusted blob merely because its historical Gold/Diamond label is closed.
+- Preserve current target and investigate `safeText` and `AUTH_ID_UNAVAILABLE` first.
+- After each material repair, re-fetch `main`, verify the exact target blob, run static + Chromium gates, update this state, and continue to the next blocker.
+- Do not declare `Gold`, `Diamond`, or `Closed 100%` until current runtime evidence satisfies the full acceptance contract.
