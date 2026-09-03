@@ -1,0 +1,104 @@
+name: CTO New-main Runtime Verify 2026-09-03
+on:
+  push:
+    paths:
+      - '.github/workflows/_cto_newmain_runtime_verify_20260903.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Static forensic gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f Current/PWA/New-main
+          test "$(wc -c < Current/PWA/New-main)" -gt 500000
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import re, subprocess, hashlib
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          assert s.count("loginForm.addEventListener('submit'") == 1, 'MAIN11_LOGIN_BIND_COUNT'
+          assert s.count("byId('rw-login-form').addEventListener('submit'") == 1, 'FALLBACK_LOGIN_BIND_COUNT'
+          assert "if(window.__RAWAEA_MAIN11_EVENTS_BOUND__)return;" in s, 'LOGIN_GUARD_MISSING'
+          assert s.count('rw-p163-closure') == 1, 'P163_MARKER_COUNT'
+          assert s.count('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1') == 1, 'DIAMOND_122_COUNT'
+          assert s.count('__RAWAEA_MAIN11_GOVERNED_CLOSED_V2__') == 1, 'MAIN11_GOVERNED_COUNT'
+          class P(HTMLParser):
+            def __init__(self): super().__init__(); self.stack=[]
+            def handle_starttag(self,t,a):
+              if t not in {'meta','link','input','img','br','hr','source','area','base','embed','param','track','wbr'}: self.stack.append(t)
+            def handle_endtag(self,t):
+              if self.stack and self.stack[-1]==t: self.stack.pop()
+          p=P(); p.feed(s); assert not p.stack, f'HTML_UNBALANCED {p.stack[-10:]}'
+          start=s.find('<script>')
+          end=s.rfind('</script>')
+          # Syntax-check all executable inline script bodies independently.
+          scripts=re.findall(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*?)</script>',s,re.I)
+          assert scripts, 'NO_INLINE_SCRIPT'
+          Path('/tmp/inline.js').write_text('\n'.join(scripts),encoding='utf-8')
+          r=subprocess.run(['node','--check','/tmp/inline.js'],capture_output=True,text=True)
+          assert r.returncode==0, r.stderr
+          print('STATIC_FORENSIC_GATE=PASS')
+          print('TARGET_BLOB='+subprocess.check_output(['git','rev-parse','HEAD:Current/PWA/New-main'],text=True).strip())
+          print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest())
+          PY
+      - name: Browser runtime gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory Current/PWA >/tmp/pwa-http.log 2>&1 &
+          echo $! >/tmp/pwa.pid
+          sleep 2
+          npx --yes playwright@1.55.0 install chromium
+          cat >/tmp/newmain.spec.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch({headless:true});
+          const page = await browser.newPage();
+          const errors=[];
+          page.on('pageerror',e=>errors.push('PAGE:'+String(e)));
+          page.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE:'+m.text())});
+          await page.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded',timeout:60000});
+          await page.waitForTimeout(2500);
+          const result=await page.evaluate(()=>({
+            lang:document.documentElement.lang,
+            dir:document.documentElement.dir,
+            loginForm:!!document.getElementById('rw-login-form'),
+            loginButton:!!document.getElementById('rw-login-btn'),
+            passwordToggle:typeof window.togglePasswordVisibility==='function',
+            auth:typeof window.RW_Auth==='object',
+            navigation:typeof window.RW_Navigation==='object',
+            views:typeof window.RW_Views==='object',
+            shell:typeof window.RW_ShellContext==='object',
+            ownerLicense:typeof window.RW_OwnerLicense==='object',
+            diamond122:!!window.__RAWAEA_122_DIAMOND_CONTRACT__ || !!document.querySelector('script'),
+            main11:!!window.__RAWAEA_MAIN11_GOVERNED_CLOSED_V2__,
+            p163:document.querySelectorAll('meta[name="rw-p163-closure"]').length,
+            guardText:document.documentElement.outerHTML.includes("if(window.__RAWAEA_MAIN11_EVENTS_BOUND__)return;")
+          }));
+          if(result.lang!=='ar'||result.dir!=='rtl')throw new Error('DOCUMENT_LOCALE_FAILURE');
+          for(const [k,v] of Object.entries(result)){if(['diamond122'].includes(k))continue;if(v===false)throw new Error('CONTRACT_FAILURE:'+k)}
+          if(result.p163!==1)throw new Error('P163_MARKER_FAILURE');
+          if(errors.length)throw new Error('RUNTIME_ERRORS:'+errors.join(' | '));
+          console.log('BROWSER_RUNTIME_GATE=PASS');
+          console.log(JSON.stringify(result));
+          await browser.close();
+          EOF
+          node /tmp/newmain.spec.mjs
+      - name: Verify only target was functionally modified in latest surgical commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          parent=$(git rev-parse HEAD^)
+          git diff --name-only "$parent" HEAD
+          test "$(git diff --name-only "$parent" HEAD)" = "Current/PWA/New-main"
+          git diff --check "$parent" HEAD
+          echo "TARGET_ONLY_COMMIT_GATE=PASS"
