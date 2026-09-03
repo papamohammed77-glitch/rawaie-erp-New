@@ -44,7 +44,8 @@ jobs:
           required=['<!doctype html>','<html lang="ar" dir="rtl">','rw-p163-closure','P163-GOLD-DIAMOND-CLOSED-2026-09-03',"window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';",'// MAIN2_GOVERNED_CLOSED:v1','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1','window.RW_Auth=','window.RW_Navigation=','window.RW_Views=','window.RW_ShellContext=','window.RW_OwnerLicense=','applyAuthoritativeContext','window.MAIN_HTML_CURRENT_CONTRACT_LEDGER=']
           missing=[x for x in required if x not in s]
           if missing: raise SystemExit('STATIC_MISSING='+repr(missing))
-          if 'var e=email();' in s: raise SystemExit('LEGACY_NOTIFICATION_EMAIL_BUG_PRESENT')
+          if 'async function showPanel(){\n  var e=email();' in s: raise SystemExit('LEGACY_NOTIFICATION_SCOPE_BUG_PRESENT')
+          if 'async function showPanel(){\n  var e=RW_STATE.app.currentUser&&RW_STATE.app.currentUser.email;' not in s: raise SystemExit('NOTIFICATION_BINDING_MISSING')
           class P(HTMLParser):
             def __init__(self): super().__init__(convert_charrefs=False); self.cur=None; self.inline=[]; self.scripts=0; self.styles=0
             def handle_starttag(self,t,a):
@@ -94,4 +95,4 @@ jobs:
           echo 'CLOSED=100%'
 
 # verifier-only; no git writes
-# closure_nonce=2026-09-03T09:18+03:00
+# closure_nonce=2026-09-03T10:10+03:00
