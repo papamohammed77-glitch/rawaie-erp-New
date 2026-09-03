@@ -1,0 +1,46 @@
+name: CTO Surgical Login Dedup 2026-09-03
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+concurrency:
+  group: cto-surgical-login-dedup
+  cancel-in-progress: true
+jobs:
+  patch:
+    if: startsWith(github.event.head_commit.message, '[CTO-LOGIN-DEDUPE-TRIGGER]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Surgical patch New-main only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('Current/PWA/New-main')
+          s = p.read_text(encoding='utf-8')
+          old = "byId('rw-login-form').addEventListener('submit',function(e){e.preventDefault();var email=byId('rw-username').value.trim(),password=byId('rw-password').value;RW_Auth.login(email,password).catch(function(err){safeText(byId('rw-login-error'),err.message||String(err));byId('rw-login-error').classList.remove('hidden')})});"
+          new = "byId('rw-login-form').addEventListener('submit',function(e){if(window.__RAWAEA_MAIN11_EVENTS_BOUND__)return;e.preventDefault();var email=byId('rw-username').value.trim(),password=byId('rw-password').value;RW_Auth.login(email,password).catch(function(err){safeText(byId('rw-login-error'),err.message||String(err));byId('rw-login-error').classList.remove('hidden')})});"
+          if s.count(old) != 1:
+              raise SystemExit(f'EXPECTED_LOGIN_FALLBACK_LISTENER_ONCE got={s.count(old)}')
+          if s.count("loginForm.addEventListener('submit'") != 1:
+              raise SystemExit(f'EXPECTED_MAIN11_LOGIN_BIND_ONCE got={s.count("loginForm.addEventListener(\'submit\'")}')
+          if 'window.__RAWAEA_MAIN11_EVENTS_BOUND__' not in s:
+              raise SystemExit('MAIN11_EVENT_GUARD_MISSING')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+          print('SURGICAL_LOGIN_DEDUPE=PASS')
+          PY
+          git diff --check
+          git diff -- Current/PWA/New-main
+          test "$(git diff --name-only)" = "Current/PWA/New-main"
+          git config user.name "cto-surgical-login-dedup"
+          git config user.email "cto-surgical-login-dedup@users.noreply.github.com"
+          git add -- Current/PWA/New-main
+          git commit -m "[CTO-LOGIN-DEDUPE] Surgical New-main listener guard"
+          git push origin HEAD:main
