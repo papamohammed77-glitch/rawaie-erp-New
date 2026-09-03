@@ -109,6 +109,7 @@ WHOLE ERP CLOSED               = NO
 ## NEXT AUTHORIZED ACTION
 Start from the now-current target and run the unified orchestrator against the **next open material Closure Unit**. Do not reopen P163 without new evidence. Prioritize direct evidence of core ownership, critical writers/consumers, tenant/security drift, accounting/ledger/treasury contracts, deployment lineage, browser/runtime gaps, stubs/dead surfaces, and UX blockers. Close each unit only through evidence → decision → surgical fix → static test → runtime verification → record → continuation.
 
-## CTO CLOSURE TRIGGER NONCE — 2026-09-03
-- Purpose: trigger the serialized target-preserving trusted-artifact closure verifier against the latest `main` HEAD.
-- This nonce does not change application behavior and is not a closure claim.
+## CTO FINAL CLOSURE TRIGGER — 2026-09-03
+- Purpose: invoke the temporary trusted-artifact Closure Unit runner on the proven GitHub Actions execution path.
+- Target artifact source locked to `339aa1829b44e9f8babce39f69a9bb66f0de5be6`; no fragment reconstruction.
+- This record is a trigger only; final status must be emitted by the runner after static and browser gates pass.
