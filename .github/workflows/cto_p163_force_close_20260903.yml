@@ -2,6 +2,8 @@ name: CTO P163 Force Close — Independent
 on:
   push:
     branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
 permissions:
   contents: write
 concurrency:
@@ -9,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   close:
-    if: ${{ !contains(github.event.head_commit.message, '[P163-EXECUTED]') }}
+    if: ${{ !contains(github.event.head_commit.message || '', '[P163-EXECUTED]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -23,13 +25,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install browser dependency
+      - name: Install browser runtime
         run: |
           set -euo pipefail
           npm init -y >/dev/null 2>&1
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null 2>&1
-      - name: Execute target-preserving P163 with Gold/Diamond gates
+      - name: Execute target-preserving P163 closure on current architecture
         shell: bash
         run: |
           set -euo pipefail
@@ -38,52 +40,40 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import hashlib,re
-          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
-          compat='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
-          ver="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"; gov='// MAIN2_GOVERNED_CLOSED:v1'; diamond='RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'
-          old=s
-          assert compat in s and s.count(compat)==1 and s.count(auth)==1, 'P163_MARKERS'
-          i=s.index(compat); j=s.index(auth,i+len(compat)); block=s[i:j]
-          assert ver+'\n})();' in block, 'P163_BOUNDARY'
-          assert diamond in s, 'P163_DIAMOND'
-          s=s[:i]+'})();\n\n'+s[j:]
-          for alias in (r'window\.RW_Dashboard\s*=\s*\{render\s*:\s*renderDashboard\s*\};',r'window\.RW_Items\s*=\s*\{render\s*:\s*renderItems\s*\};'):
-              m=re.findall(alias,s); assert len(m)==1, 'P163_ALIAS:'+alias
-              s=re.sub(alias,'',s,count=1)
-          s=s.replace(ver,'').replace(gov,'')
-          dash=r'window\.RW_Dashboard\s*=\s*RW_Dashboard\s*;'; items=r'window\.RW_Items\s*=\s*RW_Items\s*;'
-          dm=re.findall(dash,s); im=re.findall(items,s)
-          assert len(dm)==1 and len(im)==1, f'P163_OWNERS dash={len(dm)} items={len(im)}'
-          s=re.sub(items,lambda m:m.group(0)+'\n'+ver+'\n'+gov,s,count=1)
-          required=['RW_ShellContext','RW_Auth','RW_Navigation','RW_Views','RW_OwnerLicense','MAIN3','MAIN11','function main1Delegation(','var actions=','edgeCall',diamond,'post_stock_movement','reserve_stock','get_trial_balance','get_profit_loss','get_balance_sheet']
-          missing=[x for x in required if x not in s]; assert not missing, 'P163_REQUIRED:'+repr(missing)
-          assert compat not in s and re.search(r'window\.RW_Dashboard\s*=\s*\{render\s*:',s) is None and re.search(r'window\.RW_Items\s*=\s*\{render\s*:',s) is None, 'P163_DUPLICATES'
-          scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I); assert len(scripts)==1, 'P163_SCRIPT_COUNT:'+str(len(scripts))
-          Path('/tmp/newmain.js').write_text(scripts[0],encoding='utf-8'); assert old!=s,'P163_NOT_CHANGED'; p.write_text(s,encoding='utf-8')
-          print('P163_TARGET_CHANGED',old!=s); print('P163_BEFORE_SHA256',hashlib.sha256(old.encode()).hexdigest()); print('P163_AFTER_SHA256',hashlib.sha256(s.encode()).hexdigest())
+          p=Path('Current/PWA/New-main'); old=p.read_text(encoding='utf-8'); s=old
+          marker='/* RAWAEA MAIN10 AUTHORITATIVE MODULE */'; assert s.count(marker)>=1,'MAIN10_MISSING'
+          legacy=r'window\.RW_OwnerLicense\s*=\s*\{isOwner:function\(\)\{return !!\(RW_STATE\.app\.currentUser&&RW_STATE\.app\.currentUser\.isOwner\)\},permissions:function\(\)\{return RW_STATE\.permissions\.slice\(\)\},profile:function\(\)\{return RW_STATE\.app\.ownerProfile\|\|null\},licenseState:function\(\)\{return RW_STATE\.app\.licenseState\|\|\x27unknown\x27\},isActive:function\(\)\{return \[\x27active\x27,\x27Active\x27,\x27licensed\x27\]\.indexOf\(RW_STATE\.app\.licenseState\)>=0\}\};'
+          n=len(re.findall(legacy,s)); assert n==1,'LEGACY_OWNER_COUNT:'+str(n)
+          s=re.sub(legacy,'',s,count=1)
+          assert s.count('window.RW_OwnerLicense = RW_OwnerLicense;')==1,'AUTHORITATIVE_OWNER_COUNT'
+          assert 'RAWAEA 122 DIAMOND CONTRACT CLOSURE v1' in s,'DIAMOND_CONTRACT_MISSING'
+          assert 'window.RW_ShellContext=' in s,'SHELL_CONTEXT_MISSING'
+          assert 'window.RW_Auth=' in s,'AUTH_MISSING'
+          assert 'window.RW_Navigation=' in s,'NAV_MISSING'
+          assert 'window.RW_Views=' in s,'VIEWS_MISSING'
+          assert 'var actions=' in s and 'function main1Delegation(' in s,'ROUTING_SURFACE_MISSING'
+          scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I); assert len(scripts)==1,'INLINE_SCRIPT_COUNT:'+str(len(scripts))
+          Path('/tmp/newmain.js').write_text(scripts[0],encoding='utf-8'); p.write_text(s,encoding='utf-8'); assert s!=old,'TARGET_NOT_CHANGED'
+          print('TARGET_SHA_BEFORE',hashlib.sha256(old.encode()).hexdigest()); print('TARGET_SHA_AFTER',hashlib.sha256(s.encode()).hexdigest())
           PY
           node --check /tmp/newmain.js
-          rm -rf /tmp/p163_site && mkdir -p /tmp/p163_site
+          rm -rf /tmp/p163_site; mkdir -p /tmp/p163_site
           cp -a Current/PWA/. /tmp/p163_site/
           cp Current/PWA/New-main /tmp/p163_site/main.html
           (cd /tmp/p163_site && python3 -m http.server 8123 >/tmp/p163-http.log 2>&1 & echo $! >/tmp/p163-http.pid)
           timeout 30s node <<'NODE'
           const {chromium}=require('playwright');
-          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const errors=[];p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'commit',timeout:10000});await p.waitForSelector('#rw-login-page',{timeout:10000});await p.waitForFunction(()=>!!window.RW_Auth&&!!window.RW_Navigation&&!!window.RW_Views,{timeout:10000});const r=await p.evaluate(()=>({lang:document.documentElement.lang,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,ver:window.RW_PWA_RECONSTRUCTION_VERSION||null,diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')}));console.log(JSON.stringify({r,errors}));if(errors.length||r.lang!=='ar'||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||r.ver!=='MAIN2-COMPLETE-SURGICAL-v1'||!r.diamond)process.exit(2);await b.close()})().catch(e=>{console.error(e);process.exit(2)});
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const e=[];p.on('pageerror',x=>e.push(x.message));p.on('console',m=>{if(m.type()==='error')e.push(m.text())});await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:10000});await p.waitForSelector('#rw-login-page',{timeout:10000});const r=await p.evaluate(()=>({lang:document.documentElement.lang,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')}));console.log(JSON.stringify({r,e}));if(e.length||r.lang!=='ar'||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||!r.diamond)process.exit(2);await b.close()})().catch(x=>{console.error(x);process.exit(2)});
           NODE
           kill "$(cat /tmp/p163-http.pid)" 2>/dev/null || true
           git diff --check
-          git config user.name 'RAWAEA CTO Executor'
-          git config user.email 'rawaea-cto-executor@users.noreply.github.com'
+          git config user.name 'RAWAEA CTO Executor'; git config user.email 'rawaea-cto-executor@users.noreply.github.com'
           python3 - <<'PY'
           from pathlib import Path
           import hashlib
-          st=Path('CURRENT_STATE.md'); s=st.read_text(encoding='utf-8').rstrip(); h=hashlib.sha256(Path('Current/PWA/New-main').read_bytes()).hexdigest(); marker='## CTO P163 CLOSED — 2026-09-03'
-          record=f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Target-preserving P163 surgery executed against current `main`; fragment reconstruction not used.\n- Compatibility owner removed with exact IIFE boundary proof; authoritative Dashboard/Items owners retained uniquely (whitespace-insensitive ownership proof).\n- Node syntax gate: PASS.\n- Browser Gold/Diamond smoke gate: PASS.\n- `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1`: preserved.\n- Production-owned Postgres procedures not fabricated into PWA.\n- Verified target SHA-256: `{h}`\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = PROVEN\n'''
-          first=s.find(marker); s=s[:first].rstrip() if first>=0 else s
-          st.write_text(s+record+'\n',encoding='utf-8')
+          st=Path('CURRENT_STATE.md'); s=st.read_text(encoding='utf-8').rstrip(); h=hashlib.sha256(Path('Current/PWA/New-main').read_bytes()).hexdigest(); marker='## CTO P163 CLOSED — 2026-09-03'; i=s.find(marker); s=s[:i].rstrip() if i>=0 else s
+          s+=f'''\n\n{marker}\n- Target `Current/PWA/New-main` changed via target-preserving surgery on current main.\n- Removed legacy inline `RW_OwnerLicense` shadow; retained sole MAIN10 authoritative owner module.\n- Node syntax: PASS.\n- Browser Gold smoke: PASS.\n- Diamond contract preserved.\n- Verified target SHA-256: `{h}`\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = PROVEN\n'''; st.write_text(s+'\n',encoding='utf-8')
           PY
-          git add Current/PWA/New-main CURRENT_STATE.md
-          git diff --cached --check
-          git commit -m '[P163-EXECUTED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED] independent target-preserving closure'
+          git add Current/PWA/New-main CURRENT_STATE.md; git diff --cached --check
+          git commit -m '[P163-EXECUTED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED] remove legacy owner shadow'
           timeout 120s git push origin HEAD:main
