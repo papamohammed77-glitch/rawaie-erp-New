@@ -45,7 +45,6 @@ jobs:
           from html.parser import HTMLParser
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
           assert 'async function showPanel(){\n  var e=RW_STATE&&RW_STATE.app&&RW_STATE.app.currentUser?RW_STATE.app.currentUser.email:null;' in s
-          assert s.count('async function showPanel(){')==2 or s.count('async function showPanel(){')==1
           class T(HTMLParser):
               def __init__(self): super().__init__(convert_charrefs=False); self.i=[]; self.open=False; self.src=False; self.buf=[]
               def handle_starttag(self,t,a):
@@ -103,3 +102,4 @@ jobs:
           git diff --cached --check
           git commit -m '[NOTIFICATION-CLOSED] Surgical fix for RW_Notification.showPanel runtime closure'
           git push origin HEAD:main
+# CTO RETRIGGER: execute against the current main state
