@@ -27,27 +27,17 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import hashlib
-          p=Path('Current/PWA/New-main')
-          s=p.read_text(encoding='utf-8')
-          byid_decl="function byId(id){return document.getElementById(id)}"
-          byid_bridge="window.byId=byId;"
-          safetext_decl="function safeText(el,text){if(el)el.textContent=text==null?'':String(text)}"
-          safetext_bridge="window.safeText=safeText;"
-          assert s.count(byid_decl)==1,'BYID_DECLARATION_COUNT_INVALID'
-          assert s.count(safetext_decl)==1,'SAFETEXT_DECLARATION_COUNT_INVALID'
-          assert s.count(byid_bridge)<=1,'BYID_BRIDGE_DUPLICATED'
-          assert s.count(safetext_bridge)<=1,'SAFETEXT_BRIDGE_DUPLICATED'
-          before=hashlib.sha256(s.encode()).hexdigest()
-          changed=[]
-          if s.count(safetext_bridge)==0:
-              s=s.replace(safetext_decl,safetext_decl+'\n'+safetext_bridge,1); changed.append('safeText-global-bridge')
-          if s.count(byid_bridge)==0:
-              s=s.replace(byid_decl,byid_decl+'\n'+byid_bridge,1); changed.append('byId-global-bridge')
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          byid_decl="function byId(id){return document.getElementById(id)}"; byid_bridge="window.byId=byId;"
+          safetext_decl="function safeText(el,text){if(el)el.textContent=text==null?'':String(text)}"; safetext_bridge="window.safeText=safeText;"
+          assert s.count(byid_decl)==1 and s.count(safetext_decl)==1, 'HELPER_DECLARATION_COUNT_INVALID'
+          assert s.count(byid_bridge)<=1 and s.count(safetext_bridge)<=1, 'HELPER_BRIDGE_DUPLICATED'
+          before=hashlib.sha256(s.encode()).hexdigest(); changed=[]
+          if byid_bridge not in s: s=s.replace(byid_decl,byid_decl+'\n'+byid_bridge,1); changed.append('byId-global-bridge')
+          if safetext_bridge not in s: s=s.replace(safetext_decl,safetext_decl+'\n'+safetext_bridge,1); changed.append('safeText-global-bridge')
           if not changed: raise SystemExit('NO_TARGET_RUNTIME_BRIDGE_CHANGE')
           p.write_text(s,encoding='utf-8')
-          print('PATCH=APPLIED:'+','.join(changed))
-          print('BEFORE_SHA256='+before)
-          print('AFTER_SHA256='+hashlib.sha256(s.encode()).hexdigest())
+          print('PATCH=APPLIED:'+','.join(changed)); print('BEFORE_SHA256='+before); print('AFTER_SHA256='+hashlib.sha256(s.encode()).hexdigest())
           PY
           python3 - <<'PY'
           from pathlib import Path
@@ -58,8 +48,6 @@ jobs:
           Path('/tmp/new-main-inline.js').write_text(scripts[0],encoding='utf-8')
           PY
           node --check /tmp/new-main-inline.js
-          grep -o 'window.safeText=safeText;' Current/PWA/New-main | wc -l | grep '^1$'
-          grep -o 'window.byId=byId;' Current/PWA/New-main | wc -l | grep '^1$'
           echo 'STATIC_PATCH_GATE=PASS'
       - name: Chromium telemetry and regression gate
         shell: bash
@@ -78,42 +66,26 @@ jobs:
           ThreadingHTTPServer(('127.0.0.1',4173),H).serve_forever()
           PY
           SERVE_DIR="$PWD/Current/PWA" python3 /tmp/p135-http.py >/tmp/p135-http.log 2>&1 &
-          pid=$!
-          trap 'kill "$pid" 2>/dev/null || true' EXIT
-          sleep 2
+          pid=$!; trap 'kill "$pid" 2>/dev/null || true' EXIT; sleep 2
           cat >/tmp/p135.cjs <<'NODE'
           const {chromium}=require(process.cwd()+'/node_modules/playwright');
           (async()=>{
             const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
-            async function open(){
-              const errors=[];
-              const p=await browser.newPage({serviceWorkers:'block'});
-              p.setDefaultTimeout(12000);p.setDefaultNavigationTimeout(20000);
-              p.on('pageerror',e=>errors.push('PAGE:'+String(e.message||e)));
-              p.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE:'+m.text())});
-              let navigationError='';
-              try{await p.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded'});}catch(e){navigationError=String(e.message||e);}
-              await p.waitForTimeout(3500);
-              return {p,errors,navigationError};
-            }
-            const base=await open();
-            const initial=await base.p.evaluate(()=>({
-              title:document.title,locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',
-              state:!!window.RW_STATE,auth:typeof window.RW_Auth==='object',nav:typeof window.RW_Navigation==='object',
-              views:typeof window.RW_Views==='object',shell:typeof window.RW_ShellContext==='object',ownerLicense:typeof window.RW_OwnerLicense==='object',
-              notification:typeof window.RW_Notification?.showPanel==='function',byId:typeof window.byId==='function',safeText:typeof window.safeText==='function',
-              body:(document.body?.innerText||'').slice(0,500)
-            }));
-            let denied={skipped:true},owner={skipped:true};
+            const errors=[]; let navigationError='';
+            const p=await browser.newPage({serviceWorkers:'block'}); p.setDefaultTimeout(12000); p.setDefaultNavigationTimeout(20000);
+            p.on('pageerror',e=>errors.push('PAGE:'+String(e.message||e))); p.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE:'+m.text())});
+            try{await p.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded'});}catch(e){navigationError=String(e.message||e)}
+            await p.waitForTimeout(3500);
+            const initial=await p.evaluate(()=>({locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',state:!!RW_STATE,auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',ownerLicense:typeof RW_OwnerLicense==='object',notification:typeof RW_Notification?.showPanel==='function',byId:typeof window.byId==='function',safeText:typeof window.safeText==='function',body:(document.body?.innerText||'').slice(0,400)}));
+            let denied=null, owner=null;
             if(initial.nav&&initial.state){
-              denied=await base.p.evaluate(async()=>{RW_STATE.app.currentUser={id:'smoke',email:'smoke@example.com',isOwner:false,permissions:[]};RW_STATE.permissions=[];try{await RW_Navigation.navigate('license');return {ok:false,error:'NO_REJECTION'};}catch(e){return {ok:e?.message==='OWNER_ONLY',error:String(e?.message||e)}}});
-              owner=await base.p.evaluate(async()=>{RW_STATE.app.currentUser={id:'smoke',email:'owner@smoke.local',isOwner:true,permissions:['*']};RW_STATE.permissions=['*'];try{await RW_Navigation.navigate('license');return {ok:true,view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container'),text:(document.getElementById('rw-page-container')?.innerText||'')};}catch(e){return {ok:false,error:String(e?.message||e)}}});
+              denied=await p.evaluate(async()=>{RW_STATE.app.currentUser={id:'smoke',email:'smoke@example.com',isOwner:false,permissions:[]};RW_STATE.permissions=[];try{await RW_Navigation.navigate('license');return {ok:false,error:'NO_REJECTION'};}catch(e){return {ok:e?.message==='OWNER_ONLY',error:String(e?.message||e)}}});
+              owner=await p.evaluate(async()=>{RW_STATE.app.currentUser={id:'smoke',email:'owner@smoke.local',isOwner:true,permissions:['*']};RW_STATE.permissions=['*'];try{await RW_Navigation.navigate('license');return {ok:true,view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container'),text:(document.getElementById('rw-page-container')?.innerText||'')};}catch(e){return {ok:false,error:String(e?.message||e)}}});
             }
-            const finalState=await base.p.evaluate(()=>({view:window.RW_STATE?.app?.currentView||null,license:!!document.getElementById('license-main-container'),licenseText:(document.getElementById('rw-page-container')?.innerText||'').includes('إدارة الترخيص')}));
-            const result={initial,denied,owner,finalState,navigationError,errors:base.errors};
-            console.log('P135_RUNTIME='+JSON.stringify(result));
-            const ok=!result.errors.length&&initial.locale&&initial.state&&initial.auth&&initial.nav&&initial.views&&initial.shell&&initial.ownerLicense&&initial.notification&&initial.byId&&initial.safeText&&denied.skipped===false&&denied.ok&&owner.ok&&owner.view==='license'&&finalState.license&&finalState.licenseText;
-            await base.p.close();await browser.close();if(!ok)process.exit(2);
+            const finalState=await p.evaluate(()=>({view:RW_STATE?.app?.currentView||null,license:!!document.getElementById('license-main-container'),licenseText:(document.getElementById('rw-page-container')?.innerText||'').includes('إدارة الترخيص')}));
+            const result={initial,denied,owner,finalState,navigationError,errors}; console.log('P135_RUNTIME='+JSON.stringify(result));
+            const ok=!errors.length&&!navigationError&&initial.locale&&initial.state&&initial.auth&&initial.nav&&initial.views&&initial.shell&&initial.ownerLicense&&initial.notification&&initial.byId&&initial.safeText&&denied?.ok&&owner?.ok&&owner.view==='license'&&finalState.license&&finalState.licenseText;
+            await p.close(); await browser.close(); if(!ok)process.exit(2);
           })().catch(e=>{console.error(e.stack||e);process.exit(2)});
           NODE
           node /tmp/p135.cjs
@@ -122,12 +94,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name 'papamohammed77-glitch'
-          git config user.email 'papamohammed77-glitch@users.noreply.github.com'
-          git add Current/PWA/New-main
-          git diff --cached --check
-          if git diff --cached --quiet; then echo 'NO_TARGET_CHANGE'; exit 1; fi
-          git commit -m '[CTO-FORENSIC] Export byId bridge across governed runtime scope'
+          git config user.name 'papamohammed77-glitch'; git config user.email 'papamohammed77-glitch@users.noreply.github.com'
+          git add Current/PWA/New-main; git diff --cached --check
+          git commit -m '[CTO-FORENSIC] Export audited global helper bridges from New-main'
           git rm .github/workflows/p135-runtime-repair.yml
           git commit -m '[CTO-GOVERNANCE] Retire one-time runtime repair writer'
           git push origin HEAD:main
