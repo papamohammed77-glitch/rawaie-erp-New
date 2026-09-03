@@ -13,54 +13,40 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 2
-      - name: Diagnose exact reconstruction boundary
+      - name: Diagnose exact final JS syntax failure
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
           import importlib.util,re,subprocess,tempfile
-          spec=importlib.util.spec_from_file_location('b','tools/run_final_main_reconstruction_20260831.py');b=importlib.util.module_from_spec(spec);spec.loader.exec_module(b)
+          spec=importlib.util.spec_from_file_location('b','tools/run_final_main_reconstruction_20260831.py')
+          b=importlib.util.module_from_spec(spec);spec.loader.exec_module(b)
           parts=[]
           for i,p in enumerate(b.PARTS,1):
-              r=p.read_text(encoding='utf-8-sig')
-              if i==1:r=b.normalize_main1(r)
-              elif i==7:r=b.patch_main7(r)
-              r=b.normalize_document_closures(r);parts.append(r.rstrip())
-          def scan(s):
-              stack=[];pairs={')':'(',']':'[','}':'{'};opens=set(pairs.values());i=0;line=1;state='code';q=None
-              while i<len(s):
-                  c=s[i]
-                  if c=='\n':line+=1
-                  if state=='line':
-                      if c=='\n':state='code'
-                      i+=1;continue
-                  if state=='block':
-                      if s.startswith('*/',i):state='code';i+=2;continue
-                      i+=1;continue
-                  if state=='code' and s.startswith('//',i):state='line';i+=2;continue
-                  if state=='code' and s.startswith('/*',i):state='block';i+=2;continue
-                  if state=='code' and c in "'\"`":
-                      q=c;i+=1
-                      while i<len(s):
-                          if s[i]=='\\':i+=2;continue
-                          if s[i]==q:i+=1;break
-                          if s[i]=='\n':line+=1
-                          i+=1
-                      continue
-                  if c in opens:stack.append((c,line))
-                  elif c in pairs:
-                      if not stack or stack[-1][0]!=pairs[c]:return ('MISMATCH',line,c,stack[-1] if stack else None)
-                      stack.pop()
-                  i+=1
-              return ('OPEN',stack[-20:])
-          for i in range(1,12):
-              c=parts[0]+'\n\n'+'\n\n'.join(parts[1:i])+'\n\n'
-              print('PART',i,scan(c))
-          c=parts[0]+'\n\n'+'\n\n'.join(parts[1:])+'\n\n</script>\n</body>\n</html>\n'
-          c=b.repair_runtime_contracts(c)[0]
-          print('FINAL',scan(c))
-          Path('/tmp/pre.js').write_text(c,encoding='utf-8')
-          x=subprocess.run(['node','--check','/tmp/pre.js'],capture_output=True,text=True)
-          print('NODE',x.returncode,x.stderr)
+              raw=p.read_text(encoding='utf-8-sig')
+              if i==1: raw=b.normalize_main1(raw)
+              elif i==7: raw=b.patch_main7(raw)
+              raw=b.normalize_document_closures(raw)
+              parts.append(raw.rstrip())
+          def js_body(fragment,first=False):
+              if first:
+                  m=re.search(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*)',fragment,re.I)
+                  if not m: raise RuntimeError('MAIN1_INLINE_SCRIPT_MISSING')
+                  return m.group(1)
+              return fragment
+          js_parts=[js_body(parts[0],True)]+parts[1:]
+          running=''
+          for i,x in enumerate(js_parts,1):
+              running += ('\n\n' if running else '') + x
+              print(f'SOURCE main{i} cumulative_js_lines={running.count(chr(10))+1} chars={len(running)}')
+          candidate=b.repair_runtime_contracts(running+'\n\n') [0]
+          out=Path('/tmp/final.js');out.write_text(candidate,encoding='utf-8')
+          r=subprocess.run(['node','--check',str(out)],capture_output=True,text=True)
+          print('NODE_EXIT',r.returncode)
+          print(r.stderr)
+          lines=candidate.splitlines()
+          for center in (6035,6034,6036):
+              print('--- AROUND',center,'---')
+              for n in range(max(1,center-12),min(len(lines),center+12)+1): print(f'{n}: {lines[n-1]}')
           PY
