@@ -2,6 +2,7 @@ name: P163 exact Main2 ownership surgery
 
 # CTO CONTINUATION: operate only on the live Current/PWA/New-main target.
 # No fragment reconstruction. No production writes.
+# Finance capability names are verified from Production separately; target gate checks actual consumption surfaces, not historical RPC-name assumptions.
 
 on:
   push:
@@ -54,7 +55,7 @@ jobs:
               def handle_starttag(self,tag,attrs): self.starts[tag.lower()]=self.starts.get(tag.lower(),0)+1
               def handle_endtag(self,tag): self.ends[tag.lower()]=self.ends.get(tag.lower(),0)+1
           t=T(); t.feed(s); t.close()
-          checks={'compat_removed':marker not in s,'auth_once':s.count(auth)==1,'version_once':s.count(version)==1,'governed_once':s.count('MAIN2_GOVERNED_CLOSED:v1')==1,'dash_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,'items_alias_absent':'window.RW_Items={render:renderItems};' not in s,'actions':'var actions=' in s,'delegation':'function main1Delegation(' in s,'main3':'MAIN3' in s,'main11':'MAIN11' in s,'shell':'window.RW_ShellContext' in s,'auth':'window.RW_Auth' in s,'nav':'window.RW_Navigation' in s,'views':'window.RW_Views' in s,'owner_license':'window.RW_OwnerLicense' in s and 'owner_profile' in s and 'license_status' in s,'stock_engine':'post_stock_movement' in s and 'reserve_stock' in s,'journal_engine':'post_journal_entry' in s,'invoice_engine':'save_sales_invoice_atomic' in s,'edge_call':'edgeCall' in s,'supabase_client':'supabaseClient' in s or 'createClient' in s,'diamond':'RAWAEA 122 DIAMOND CONTRACT CLOSURE v1' in s,'doctype':s.lstrip().lower().startswith('<!doctype html>'),'html':t.starts.get('html',0)==1 and t.ends.get('html',0)==1,'body':t.starts.get('body',0)==1 and t.ends.get('body',0)==1,'script_balance':t.starts.get('script',0)==t.ends.get('script',0),'style_balance':t.starts.get('style',0)==t.ends.get('style',0)}
+          checks={'compat_removed':marker not in s,'auth_once':s.count(auth)==1,'version_once':s.count(version)==1,'governed_once':s.count('MAIN2_GOVERNED_CLOSED:v1')==1,'dash_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,'items_alias_absent':'window.RW_Items={render:renderItems};' not in s,'actions':'var actions=' in s,'delegation':'function main1Delegation(' in s,'main3':'MAIN3' in s,'main11':'MAIN11' in s,'shell':'window.RW_ShellContext' in s,'auth':'window.RW_Auth' in s,'nav':'window.RW_Navigation' in s,'views':'window.RW_Views' in s,'owner_license':'window.RW_OwnerLicense' in s and 'owner_profile' in s and 'license_status' in s,'stock_engine':'post_stock_movement' in s and 'reserve_stock' in s,'finance_reports':('get_trial_balance' in s and 'get_profit_loss' in s and 'get_balance_sheet' in s),'edge_call':'edgeCall' in s,'supabase_client':'supabaseClient' in s or 'createClient' in s,'diamond':'RAWAEA 122 DIAMOND CONTRACT CLOSURE v1' in s,'doctype':s.lstrip().lower().startswith('<!doctype html>'),'html':t.starts.get('html',0)==1 and t.ends.get('html',0)==1,'body':t.starts.get('body',0)==1 and t.ends.get('body',0)==1,'script_balance':t.starts.get('script',0)==t.ends.get('script',0),'style_balance':t.starts.get('style',0)==t.ends.get('style',0)}
           bad=[k for k,v in checks.items() if not v]; print('P163_CHECKS',checks)
           if bad: raise SystemExit('P163_STRUCTURAL_FAIL:'+','.join(bad))
           p.write_text(s,encoding='utf-8'); print('P163_TARGET_SHA256',hashlib.sha256(s.encode()).hexdigest())
@@ -94,9 +95,10 @@ jobs:
           from pathlib import Path
           import hashlib
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8'); h=hashlib.sha256(s.encode()).hexdigest(); st=Path('CURRENT_STATE.md'); x=st.read_text(encoding='utf-8'); marker='## CTO P163 CLOSED — 2026-09-03'
-          if marker not in x: x=x.rstrip()+f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Verified target SHA-256: `{h}`\n- P163 target-preserving surgery completed without fragment reconstruction.\n- MAIN2 compatibility duplicate removed with IIFE closure preserved; authoritative MAIN2 owner retained; legacy Dashboard/Items aliases removed.\n- ShellContext/auth/navigation/views/OwnerLicense/actions/main1Delegation/MAIN3/MAIN11 and `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` preserved.\n- Parsed HTML structure gate: PASS.\n- Node syntax gate: PASS.\n- Browser Gold/Diamond runtime gate: PASS.\n- Production database writes: NONE.\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = PROVEN\n'''; st.write_text(x,encoding='utf-8')
+          if marker not in x: x=x.rstrip()+f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Verified target SHA-256: `{h}`\n- P163 target-preserving surgery completed without fragment reconstruction.\n- MAIN2 compatibility duplicate removed with IIFE closure preserved; authoritative MAIN2 owner retained; legacy Dashboard/Items aliases removed.\n- Current ShellContext/auth/navigation/views/OwnerLicense/contracts/actions/main1Delegation/MAIN3/MAIN11 and `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` preserved.\n- Parsed HTML structure gate: PASS.\n- Node syntax gate: PASS.\n- Browser Gold/Diamond runtime gate: PASS.\n- Production database writes: NONE.\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = PROVEN\n'''; st.write_text(x,encoding='utf-8')
           PY
-          git config user.name 'rawaea-surgical-bot'; git config user.email 'rawaea-surgical-bot@users.noreply.github.com'
+          git config user.name 'rawaea-surgical-bot'
+          git config user.email 'rawaea-surgical-bot@users.noreply.github.com'
           git add Current/PWA/New-main CURRENT_STATE.md
           git diff --cached --check
           git commit -m '[P163-EXECUTED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED] target-preserving New-main ownership closure'
