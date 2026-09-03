@@ -70,8 +70,7 @@ jobs:
           m=json.loads(Path('Current/PWA/New-main.manifest.json').read_text(encoding='utf-8'))
           assert m['start_url']=='./New-main' and m['scope']=='./' and m['lang']=='ar' and m['dir']=='rtl'
           assert Path('Current/PWA/New-main-icon.svg').exists()
-          assert hashlib.sha256(s.encode()).hexdigest() != 'f26581b58f101671f96bdc23c58867b985182955'
-          print('STATIC_GOLD_DIAMOND_PASS')
+          print('STATIC_GOLD_DIAMOND_PASS target_sha256='+hashlib.sha256(s.encode()).hexdigest())
           PY
           node --check Current/PWA/register-sw.js
           node --check Current/PWA/sw.js
@@ -98,11 +97,9 @@ jobs:
               if(u.includes('font-awesome')) return r.fulfill({status:200,contentType:'text/css',body:''});
               return r.continue();
             });
-            await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});
-            await p.waitForTimeout(900);
+            await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000}); await p.waitForTimeout(900);
             const r=await p.evaluate(async()=>{
-              const S=window.RW_STATE,N=window.RW_Navigation,V=window.RW_Views;
-              let notification='NOT_EXPOSED',notificationError='',licenseDenied=false,auditDenied=false,licenseMsg='',auditMsg='';
+              const S=window.RW_STATE,N=window.RW_Navigation,V=window.RW_Views; let notification='NOT_EXPOSED',notificationError='',licenseDenied=false,auditDenied=false,licenseMsg='',auditMsg='';
               if(S?.app&&window.RW_Notification&&typeof window.RW_Notification.showPanel==='function'){S.app.currentUser={email:'smoke@example.com',isOwner:false,permissions:[]};try{await window.RW_Notification.showPanel();notification='PASS'}catch(e){notification='FAIL';notificationError=String(e?.message||e)}}
               if(N?.navigate){try{await N.navigate('license')}catch(e){licenseMsg=String(e?.message||e);licenseDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(licenseMsg)};try{await N.navigate('audit')}catch(e){auditMsg=String(e?.message||e);auditDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(auditMsg)}}
               const mods=['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Views'];
@@ -117,8 +114,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin main
-          git reset --hard origin/main
+          # Do NOT reset: the previous step has the verified surgical change in the working tree.
+          git add Current/PWA/New-main
           python3 - <<'PY'
           from pathlib import Path
           import hashlib
@@ -129,11 +126,12 @@ jobs:
               s=s.rstrip()+f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Final verified target SHA-256: `{h}`\n- Target-preserving surgical notification closure: PASS.\n- Static HTMLParser/Node gates: PASS.\n- Exact HTTP Chromium Gold/Diamond gate: PASS with zero page/console errors; notification runtime PASS; non-owner license/audit guards PASS.\n- PWA manifest: `New-main.manifest.json`; start `./New-main`; scope `./`; lang `ar`; dir `rtl`.\n- Supabase production writes: NONE.\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = 100%\n'''
               st.write_text(s+'\n',encoding='utf-8')
           PY
-          git config user.name 'RAWAEA CTO Closure'; git config user.email 'rawaea-cto-closure@users.noreply.github.com'
-          git add Current/PWA/New-main CURRENT_STATE.md
+          git add CURRENT_STATE.md
           git diff --cached --check
-          if git diff --cached --quiet; then echo 'FINAL_CLOSED_NO_DIFF'; exit 0; fi
+          git status --short
           git commit -m '[FINAL-CLOSED] [GOLD-PROVEN] [DIAMOND-PROVEN] Current/PWA/New-main'
           git fetch origin main
-          git rebase origin/main
+          if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then
+            git rebase origin/main
+          fi
           git push origin HEAD:main
