@@ -2,7 +2,7 @@ name: P163 exact Main2 ownership surgery
 
 # CTO CONTINUATION: one deterministic live-target executor. No fragment reconstruction. No production writes.
 # Observable PR trigger is temporary and exists only to expose the real executor result.
-# Harness corrected on main; this synchronize commit forces the PR execution against current main.
+# Browser harness now serves the exact New-main blob as main.html before runtime validation.
 
 on:
   push:
