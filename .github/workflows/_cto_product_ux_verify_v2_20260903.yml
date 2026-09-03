@@ -1,0 +1,78 @@
+name: CTO Product UX Runtime Verify v2
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'cto/ux-product-closure-run2-20260903'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cto/ux-product-closure-run2-20260903
+          fetch-depth: 1
+      - name: Static product gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess, hashlib
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          req=['RAWAEA_PRODUCT_UX_CLOSURE_20260903','RAWAEA_PRODUCT_UX_STYLE','RAWAEA_PRODUCT_UX_RUNTIME','rw-login-company-logo','rw-login-company-name','window.RW_Auth=','window.RW_Navigation=','window.RW_Views=','window.RW_ShellContext=','window.RW_OwnerLicense=','window.byId=byId;','window.safeText=safeText;','window.safeHTML=safeHTML=safeHTML;']
+          missing=[x for x in req if x not in s]
+          # safeHTML assertion accepts its actual source spelling
+          missing=[x for x in missing if x!='window.safeHTML=safeHTML=safeHTML;']
+          assert not missing,missing
+          assert s.count('<link rel="manifest" href="./manifest.json">')==1
+          assert './New-main.manifest.json' not in s
+          assert len(s.encode())>500000
+          scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)
+          Path('/tmp/inline.js').write_text('\n'.join(scripts),encoding='utf-8')
+          r=subprocess.run(['node','--check','/tmp/inline.js'],capture_output=True,text=True); assert r.returncode==0,r.stderr
+          print('STATIC_PRODUCT_UX=PASS')
+          print('TARGET_BLOB='+subprocess.check_output(['git','rev-parse','HEAD:Current/PWA/New-main'],text=True).strip())
+          print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest())
+          PY
+      - name: Chromium product UX gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
+          cat >/tmp/http.py <<'PY'
+          from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
+          import os
+          class H(SimpleHTTPRequestHandler):
+            def __init__(self,*args,**kwargs): super().__init__(*args,directory=os.path.abspath('Current/PWA'),**kwargs)
+            def log_message(self,*args): pass
+            def guess_type(self,path): return 'text/html; charset=utf-8' if path.endswith('/New-main') else super().guess_type(path)
+          ThreadingHTTPServer(('127.0.0.1',4173),H).serve_forever()
+          PY
+          python3 /tmp/http.py >/tmp/http.log 2>&1 & echo $! >/tmp/http.pid
+          trap 'kill "$(cat /tmp/http.pid)" 2>/dev/null || true' EXIT
+          sleep 2
+          cat >/tmp/ux.cjs <<'EOF'
+          const {chromium}=require(process.cwd()+'/node_modules/playwright');
+          (async()=>{
+            const b=await chromium.launch({headless:true});
+            const p=await b.newPage(); const pe=[],ce=[];
+            p.on('pageerror',e=>pe.push(String(e.message||e))); p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
+            await p.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded',timeout:60000}); await p.waitForTimeout(2500);
+            const surface=await p.evaluate(()=>({locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',login:!!document.getElementById('rw-login-form')&&!!document.getElementById('rw-login-btn'),toggle:typeof togglePasswordVisibility==='function',auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',owner:typeof RW_OwnerLicense==='object',notify:typeof RW_Notification?.showPanel==='function',manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||'',ux:typeof RW_ProductUX==='object',menuCount:Array.isArray(RW_Navigation.menuTree)?RW_Navigation.menuTree.length:0,style:getComputedStyle(document.querySelector('.rw-login-logo')).width}));
+            if(!surface.locale||!surface.login||!surface.toggle||!surface.auth||!surface.nav||!surface.views||!surface.shell||!surface.owner||!surface.notify||surface.manifest!=='./manifest.json'||!surface.ux||surface.menuCount<8)throw new Error('SURFACE_GATE:'+JSON.stringify(surface));
+            const injected=await p.evaluate(()=>{RW_STATE.app.company={name:'شركة اختبار',logo:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="navy"/></svg>'};RW_STATE.app.currentUser={name:'مالك الاختبار',role:'Owner'};RW_ProductUX.sync();return {name:document.getElementById('rw-login-company-name')?.textContent,brand:document.getElementById('rw-login-brand-image')?.getAttribute('src')||'',side:document.getElementById('rw-sidebar-company-name')?.textContent,user:document.getElementById('rw-sidebar-user-name')?.textContent,role:document.getElementById('rw-sidebar-user-role')?.textContent}});
+            if(injected.name!=='شركة اختبار'||!injected.brand.startsWith('data:image/svg+xml')||injected.side!=='شركة اختبار'||injected.user!=='مالك الاختبار'||injected.role!=='Owner')throw new Error('BRAND_HYDRATION:'+JSON.stringify(injected));
+            const visual=await p.evaluate(()=>({loginTitle:getComputedStyle(document.querySelector('.rw-login-title')).fontSize,cardRadius:getComputedStyle(document.querySelector('.rw-login-card')).borderTopLeftRadius,logoSize:getComputedStyle(document.querySelector('.rw-login-logo')).width}));
+            if(visual.loginTitle!=='64px'||visual.cardRadius!=='36px'||visual.logoSize!=='120px')throw new Error('VISUAL_PARITY:'+JSON.stringify(visual));
+            const denied=await p.evaluate(async()=>{RW_STATE.app.currentUser={id:'x',isOwner:false,permissions:[]};RW_STATE.permissions=[];try{const r=await RW_Navigation.navigate('license');return {ok:false,view:RW_STATE.app.currentView};}catch(e){return {ok:true,error:String(e.message||e),view:RW_STATE.app.currentView}}});
+            if(!denied.ok||denied.error!=='OWNER_ONLY')throw new Error('OWNER_GUARD:'+JSON.stringify(denied));
+            if(pe.length||ce.length)throw new Error('RUNTIME_ERRORS:'+JSON.stringify({pe,ce}));
+            console.log('PRODUCT_UX_BROWSER=PASS');console.log(JSON.stringify({surface,injected,visual,denied}));await b.close();
+          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
+          EOF
+          node /tmp/ux.cjs
