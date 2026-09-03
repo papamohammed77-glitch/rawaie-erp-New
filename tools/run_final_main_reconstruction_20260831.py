@@ -33,44 +33,39 @@ def normalize_main1(raw):
 def normalize_fragment(raw, idx):
     raw = raw.lstrip('\ufeff')
     if idx == 7:
-        # Verified production-source defect in loadSettlement(): safeHTML(... +
-        # ((...).map(...).join('')) is missing the final close for safeHTML.
         defect = ".join(''));}"
         count = raw.count(defect)
-        if count != 1:
-            raise RuntimeError('MAIN7_EXPECTED_SETTLEMENT_SYNTAX_DEFECT_COUNT:' + str(count))
+        if count != 1: raise RuntimeError('MAIN7_EXPECTED_SETTLEMENT_SYNTAX_DEFECT_COUNT:' + str(count))
         raw = raw.replace(defect, ".join('')));}", 1)
     return raw.rstrip()
 
 def extract_main1_application_js(chunk):
     opens = list(INLINE_RE.finditer(chunk))
     if not opens: raise RuntimeError('MAIN1_INLINE_RUNTIME_MISSING')
-    app_open = opens[-1]
-    close = chunk.rfind('</script>')
-    end = close if close >= app_open.end() else len(chunk)
+    app_open = opens[-1]; close = chunk.rfind('</script>'); end = close if close >= app_open.end() else len(chunk)
     return chunk[app_open.end():end]
 
 def p163(s):
     if s.count(COMPAT) > 1: raise RuntimeError('P163_COMPAT_DUPLICATE')
     if COMPAT in s:
-        a = s.index(COMPAT); b = s.find(AUTH, a + len(COMPAT))
-        if b < 0: raise RuntimeError('P163_AUTH_AFTER_COMPAT_MISSING')
-        s = s[:a] + s[b:]
+        a=s.index(COMPAT); b=s.find(AUTH,a+len(COMPAT))
+        if b<0: raise RuntimeError('P163_AUTH_AFTER_COMPAT_MISSING')
+        s=s[:a]+s[b:]
     if AUTH not in s:
-        m = re.search(r'(?m)^\s*var\s+RW_Dashboard\s*=\s*', s)
+        m=re.search(r'(?m)^\s*var\s+RW_Dashboard\s*=\s*',s)
         if not m: raise RuntimeError('MAIN2_DASHBOARD_ANCHOR_MISSING')
-        s = s[:m.start()] + AUTH + '\n' + s[m.start():]
-    if s.count(AUTH) != 1: raise RuntimeError('P163_AUTH_COUNT:' + str(s.count(AUTH)))
-    s = re.sub(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}\s*;?', '', s, count=1)
-    s = re.sub(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}\s*;?', '', s, count=1)
-    s = re.sub(r'window\.RW_Items\s*=\s*RW_Items\s*;', 'window.RW_Items=RW_Items;', s, count=1)
-    s = s.replace(VERSION, '').replace(GOVERNED, '')
-    if s.count('window.RW_Items=RW_Items;') != 1: raise RuntimeError('P163_ITEMS_OWNER_COUNT:' + str(s.count('window.RW_Items=RW_Items;')))
-    owner = s.index('window.RW_Items=RW_Items;') + len('window.RW_Items=RW_Items;')
-    return s[:owner] + '\n' + VERSION + '\n' + GOVERNED + s[owner:]
+        s=s[:m.start()]+AUTH+'\n'+s[m.start():]
+    if s.count(AUTH)!=1: raise RuntimeError('P163_AUTH_COUNT:'+str(s.count(AUTH)))
+    s=re.sub(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}\s*;?','',s,count=1)
+    s=re.sub(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}\s*;?','',s,count=1)
+    s=re.sub(r'window\.RW_Items\s*=\s*RW_Items\s*;','window.RW_Items=RW_Items;',s,count=1)
+    s=s.replace(VERSION,'').replace(GOVERNED,'')
+    if s.count('window.RW_Items=RW_Items;')!=1: raise RuntimeError('P163_ITEMS_OWNER_COUNT:'+str(s.count('window.RW_Items=RW_Items;')))
+    owner=s.index('window.RW_Items=RW_Items;')+len('window.RW_Items=RW_Items;')
+    return s[:owner]+'\n'+VERSION+'\n'+GOVERNED+s[owner:]
 
 def inject_canonical_sw(s):
-    legacy = re.compile(r"if\s*\(\s*['\"]serviceWorker['\"]\s*in\s*navigator\s*\)\s*navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*\.catch\(\s*function\(e\)\s*\{\s*console\.warn\(\s*['\"]SERVICE_WORKER['\"]\s*,\s*e\s*\)\s*\}\s*\)\s*;?",re.I)
+    legacy=re.compile(r"if\s*\(\s*['\"]serviceWorker['\"]\s*in\s*navigator\s*\)\s*navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*\.catch\(\s*function\(e\)\s*\{\s*console\.warn\(\s*['\"]SERVICE_WORKER['\"]\s*,\s*e\s*\)\s*\}\s*\)\s*;?",re.I)
     s=legacy.sub('',s)
     bare=re.compile(r"navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*;?",re.I)
     s=bare.sub('',s)
@@ -92,11 +87,14 @@ def validate_fragments(parts):
     return [{'part':idx,'bytes':len(part.encode('utf-8')),'lines':part.count('\n')+1} for idx,part in enumerate(parts,1)]
 
 def delimiter_diagnostics(js):
+    # Diagnostic-only lexical scanner. Strings/comments/templates are ignored; JS regex literals
+    # are treated as opaque where detectable to avoid counting braces inside regex character classes.
     pairs={')':'(',']':'[','}':'{'}; opens={'(','[','{'}; stack=[]
-    state='code'; quote=''; esc=False; template_expr=0; line=1; col=0; i=0
-    while i < len(js):
-        ch=js[i]; col += 1
-        if ch=='\n': line += 1; col=0
+    state='code'; quote=''; esc=False; template_depth=0; line=1; col=0; i=0; regex_allowed=True
+    ident_re=re.compile(r'[A-Za-z_$][\w$]*')
+    while i<len(js):
+        ch=js[i]; col+=1
+        if ch=='\n': line+=1; col=0
         if state=='line_comment':
             if ch=='\n': state='code'
             i+=1; continue
@@ -106,30 +104,47 @@ def delimiter_diagnostics(js):
         if state in ('single','double'):
             if esc: esc=False
             elif ch=='\\': esc=True
-            elif ch==quote: state='code'
+            elif ch==quote: state='code'; regex_allowed=False
+            i+=1; continue
+        if state=='regex':
+            if esc: esc=False
+            elif ch=='\\': esc=True
+            elif ch=='[': regex_allowed=False
+            elif ch==']': regex_allowed=True
+            elif ch=='/' and regex_allowed:
+                state='code'; regex_allowed=False; i+=1
+                while i<len(js) and js[i].isalpha(): i+=1
+                continue
             i+=1; continue
         if state=='template':
             if esc: esc=False; i+=1; continue
             if ch=='\\': esc=True; i+=1; continue
-            if ch=='`' and template_expr==0: state='code'; i+=1; continue
-            if ch=='$' and i+1<len(js) and js[i+1]=='{':
-                stack.append(('{',line,col,'template-expr')); template_expr+=1; i+=2; col+=1; state='code'; continue
+            if ch=='`' and template_depth==0: state='code'; regex_allowed=False; i+=1; continue
+            if ch=='$' and i+1<len(js) and js[i+1]=='{': stack.append(('{',line,col,'template-expr')); template_depth+=1; state='code'; regex_allowed=True; i+=2; col+=1; continue
             i+=1; continue
         if ch=='/' and i+1<len(js) and js[i+1]=='/': state='line_comment'; i+=2; col+=1; continue
         if ch=='/' and i+1<len(js) and js[i+1]=='*': state='block_comment'; i+=2; col+=1; continue
         if ch in "'\"": quote=ch; state='single' if ch=="'" else 'double'; i+=1; continue
-        if ch=='`': state='template'; i+=1; continue
-        if ch in opens: stack.append((ch,line,col,'code'))
+        if ch=='`': state='template'; template_depth=0; i+=1; continue
+        if ch=='/' and regex_allowed:
+            state='regex'; regex_allowed=False; i+=1; continue
+        if ch in opens: stack.append((ch,line,col,'code')); regex_allowed=True
         elif ch in pairs:
             expected=pairs[ch]
             if not stack or stack[-1][0]!=expected:
-                return {'status':'MISMATCH','at':(line,col,ch),'offending_line':js.splitlines()[line-1] if line-1 < len(js.splitlines()) else '','top':stack[-10:]}
+                return {'status':'MISMATCH','at':(line,col,ch),'offending_line':js.splitlines()[line-1] if line-1<len(js.splitlines()) else '','top':stack[-12:]}
             opener=stack.pop()
+            regex_allowed=False
             if opener[3]=='template-expr' and ch=='}':
-                template_expr=max(0,template_expr-1)
-                if template_expr==0: state='template'
+                template_depth=max(0,template_depth-1)
+                if template_depth==0: state='template'
+        elif ch.strip():
+            # Conservative token heuristic: after these tokens a slash may start a regex.
+            if ch in '([{=,:;!&|?+-*%^~<>': regex_allowed=True
+            elif js[i:i+3] in ('let','var','new'): regex_allowed=True
+            else: regex_allowed=False
         i+=1
-    return {'status':'UNBALANCED' if stack or state!='code' else 'BALANCED','stack':stack[-20:],'state':state,'template_expr':template_expr,'lines':line}
+    return {'status':'UNBALANCED' if stack or state!='code' else 'BALANCED','stack':stack[-20:],'state':state,'template_depth':template_depth,'lines':line}
 
 def _app_js(s):
     apps=[m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I) if 'serviceWorker.register' not in m.group(1)]
