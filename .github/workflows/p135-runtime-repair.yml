@@ -1,4 +1,5 @@
 name: RAWAEA P135 One-Time Surgical Runtime Repair
+# CTO closure execution: controlled, serialized, target-only mutation.
 on:
   push:
     branches: [main]
