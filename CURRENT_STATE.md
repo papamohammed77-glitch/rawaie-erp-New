@@ -40,3 +40,20 @@ PURPOSE = trigger the existing main push executor to perform governed eleven-par
 NO PRODUCTION DATA WRITE.
 ORIGINAL/PWA/main/* = immutable evidence.
 ```
+
+## CTO EXECUTOR DIAGNOSTIC — 2026-09-03
+```text
+Traceback (most recent call last):
+  File "/home/runner/work/rawaie-erp-New/rawaie-erp-New/tools/run_final_main_reconstruction_20260831.py", line 230, in <module>
+    main()
+  File "/home/runner/work/rawaie-erp-New/rawaie-erp-New/tools/run_final_main_reconstruction_20260831.py", line 208, in main
+    candidate, chunks, runtime_changes, p163_gates = assemble()
+                                                     ^^^^^^^^^^
+  File "/home/runner/work/rawaie-erp-New/rawaie-erp-New/tools/run_final_main_reconstruction_20260831.py", line 156, in assemble
+    candidate, p163_gates = p163_owner_surgery(candidate)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/rawaie-erp-New/rawaie-erp-New/tools/run_final_main_reconstruction_20260831.py", line 90, in p163_owner_surgery
+    raise RuntimeError('P163_COMPAT_COUNT:' + str(s.count(compat)))
+RuntimeError: P163_COMPAT_COUNT:0
+
+```
