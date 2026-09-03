@@ -1,209 +1,22 @@
-name: P163 exact Main2 ownership surgery
+name: P163 exact Main2 ownership surgery — RETIRED
+
+# Retired after forensic review.
+# The historical executor could rewrite Current/PWA/New-main.
+# P163 closure evidence is retained in Git history and reports; verification is now read-only.
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/p163_main2_ownership_surgery_20260903.yml'
 
 permissions:
-  contents: write
-
-concurrency:
-  group: p163-main2-final-closure
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  close:
-    if: ${{ !contains(github.event.head_commit.message || '', '[P163-FINAL-CLOSED]') }}
+  retired:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-
-      - name: Target preserving surgery and static gates
-        shell: bash
+      - name: Retired writer notice
         run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          from html.parser import HTMLParser
-          import hashlib, json, re, subprocess, tempfile
-
-          p = Path('Current/PWA/New-main')
-          s = p.read_text(encoding='utf-8')
-          if len(s.encode('utf-8')) < 500000:
-              raise SystemExit('TARGET_TOO_SMALL')
-
-          old_manifest = '<link rel="manifest" href="../manifest.json">'
-          new_manifest = '<link rel="manifest" href="./New-main.manifest.json">'
-          if old_manifest in s:
-              if s.count(old_manifest) != 1:
-                  raise SystemExit('MANIFEST_REFERENCE_COUNT')
-              s = s.replace(old_manifest, new_manifest, 1)
-          elif new_manifest not in s:
-              raise SystemExit('MANIFEST_CONTRACT_MISSING')
-
-          anchor = '<meta name="rw-p163-closure" content="P163-GOLD-DIAMOND-CLOSED-2026-09-03">'
-          if s.count(anchor) != 1:
-              raise SystemExit('P163_ANCHOR_COUNT')
-
-          pwa = '<meta name="rw-pwa-runtime-gold" content="PWA-RUNTIME-GOLD-2026-09-03">'
-          if pwa not in s:
-              s = s.replace(anchor, anchor + '\n' + pwa, 1)
-
-          coord = '<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>'
-          if coord not in s:
-              m = re.search(r'</head\s*>', s, re.I)
-              if not m:
-                  raise SystemExit('HEAD_CLOSE_MISSING')
-              s = s[:m.start()] + coord + '\n' + s[m.start():]
-
-          pos = s.find('async function showPanel(){')
-          if pos < 0:
-              raise SystemExit('NOTIFICATION_SHOWPANEL_MISSING')
-          show_panel_window = s[pos:pos + 2500]
-          if 'RW_STATE.app.currentUser&&RW_STATE.app.currentUser.email' not in show_panel_window and 'RW_STATE&&RW_STATE.app&&RW_STATE.app.currentUser' not in show_panel_window:
-              raise SystemExit('NOTIFICATION_EMAIL_CONTEXT_MISSING')
-
-          required = [
-              'P163-GOLD-DIAMOND-CLOSED-2026-09-03',
-              'PWA-RUNTIME-GOLD-2026-09-03',
-              'RAWAEA 122 DIAMOND CONTRACT CLOSURE v1',
-              'window.RW_Auth=',
-              'window.RW_Navigation=',
-              'window.RW_Views=',
-              'window.RW_ShellContext',
-              'applyAuthoritativeContext',
-              'window.MAIN_HTML_CURRENT_CONTRACT_LEDGER='
-          ]
-          missing = [x for x in required if x not in s]
-          if missing:
-              raise SystemExit('STATIC_MISSING=' + repr(missing))
-
-          class P(HTMLParser):
-              def __init__(self):
-                  super().__init__(convert_charrefs=False)
-                  self.cur = None
-                  self.inline = []
-              def handle_starttag(self, t, attrs):
-                  if t.lower() == 'script':
-                      self.cur = {'src': dict(attrs).get('src'), 'text': ''}
-              def handle_data(self, data):
-                  if self.cur is not None and not self.cur['src']:
-                      self.cur['text'] += data
-              def handle_endtag(self, t):
-                  if t.lower() == 'script' and self.cur is not None:
-                      if not self.cur['src'] and self.cur['text'].strip():
-                          self.inline.append(self.cur['text'])
-                      self.cur = None
-
-          h = P(); h.feed(s); h.close()
-          if len(h.inline) != 1:
-              raise SystemExit('INLINE_SCRIPT_COUNT=' + str(len(h.inline)))
-
-          jsfile = Path(tempfile.mkstemp(suffix='.js')[1])
-          jsfile.write_text(h.inline[0], encoding='utf-8')
-          try:
-              subprocess.run(['node', '--check', str(jsfile)], check=True)
-          finally:
-              jsfile.unlink(missing_ok=True)
-
-          for js in ('Current/PWA/register-sw.js', 'Current/PWA/sw.js'):
-              subprocess.run(['node', '--check', js], check=True)
-
-          m = json.loads(Path('Current/PWA/New-main.manifest.json').read_text(encoding='utf-8'))
-          if not (m.get('start_url') == './New-main' and m.get('scope') in ('./','/') and m.get('lang') == 'ar' and m.get('dir') == 'rtl'):
-              raise SystemExit('MANIFEST_CONTRACT_VALUES')
-
-          p.write_text(s, encoding='utf-8')
-          print('STATIC_GOLD_DIAMOND=PASS')
-          print('TARGET_SHA256=' + hashlib.sha256(s.encode('utf-8')).hexdigest())
-          print('TARGET_BYTES=' + str(len(s.encode('utf-8'))))
-          PY
-
-      - name: Chromium Gold Diamond gate
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm init -y >/dev/null 2>&1
-          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
-          npx playwright install --with-deps chromium >/dev/null 2>&1
-          rm -rf /tmp/site && mkdir -p /tmp/site
-          cp -a Current /tmp/site/Current
-          cat >/tmp/site/server.py <<'PY'
-          import os
-          from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-          class Handler(SimpleHTTPRequestHandler):
-              def guess_type(self, path):
-                  if path.endswith('/New-main'):
-                      return 'text/html; charset=utf-8'
-                  return super().guess_type(path)
-          os.chdir('/tmp/site')
-          ThreadingHTTPServer(('127.0.0.1',8123),Handler).serve_forever()
-          PY
-          (cd /tmp/site && python3 /tmp/site/server.py >/tmp/p163-http.log 2>&1 & echo $! >/tmp/p163-http.pid)
-          trap 'kill "$(cat /tmp/p163-http.pid)" 2>/dev/null || true' EXIT
-          node > /tmp/p163-browser-result.txt <<'NODE'
-          const {chromium}=require('playwright');
-          (async()=>{
-            const b=await chromium.launch({headless:true});
-            const p=await b.newPage();
-            const pe=[],ce=[];
-            p.on('pageerror',e=>pe.push(String(e.message||e)));
-            p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
-            await p.route('**/*',async r=>{
-              const u=r.request().url();
-              if(u.includes('supabase.min.js')) return r.fulfill({status:200,contentType:'text/javascript',body:`window.supabase={createClient:()=>({auth:{onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),getSession:async()=>({data:{session:null},error:null}),getUser:async()=>({data:{user:null},error:null}),signOut:async()=>({error:null}),signInWithPassword:async()=>({error:new Error('SMOKE_DISABLED')})},from:()=>({select(){return this},eq(){return this},or(){return this},order(){return this},limit(){return Promise.resolve({data:[],error:null,count:0})},maybeSingle(){return Promise.resolve({data:null,error:null,count:0})},update(){return this},insert(){return Promise.resolve({data:null,error:null})},delete(){return this}})})};`});
-              if(u.includes('chart.umd.js')) return r.fulfill({status:200,contentType:'text/javascript',body:'window.Chart=function(){};'});
-              if(u.includes('sweetalert2')) return r.fulfill({status:200,contentType:'text/javascript',body:'window.Swal={fire:()=>Promise.resolve(),close:()=>{},showLoading:()=>{}};'});
-              if(u.includes('xlsx.full.min.js')) return r.fulfill({status:200,contentType:'text/javascript',body:'window.XLSX={};'});
-              if(u.includes('font-awesome')) return r.fulfill({status:200,contentType:'text/css',body:''});
-              return r.continue();
-            });
-            await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});
-            await p.waitForTimeout(1200);
-            const r=await p.evaluate(async()=>{
-              const S=window.RW_STATE, N=window.RW_Navigation, V=window.RW_Views;
-              const manifestLink=document.querySelector('link[rel="manifest"]');
-              const m=manifestLink ? await (await fetch(manifestLink.href)).json() : null;
-              let notification='NOT_EXPOSED';
-              if(S?.app&&window.RW_Notification?.showPanel){
-                S.app.currentUser={email:'smoke@example.com',isOwner:false,permissions:[]};
-                try{await window.RW_Notification.showPanel();notification='PASS'}catch(e){notification='FAIL:'+String(e?.message||e)}
-              }
-              let licenseDenied=false,auditDenied=false;
-              try{ if(V?.render) await V.render('license'); }catch(e){licenseDenied=String(e?.message||e)==='OWNER_ONLY'}
-              try{ if(V?.render) await V.render('audit'); }catch(e){auditDenied=String(e?.message||e)==='OWNER_ONLY'}
-              const nonOwnerOwnerDenied=typeof window.RW_Permissions_check==='function'&&window.RW_Permissions_check('owner')===false;
-              S.app.currentUser={email:'owner-smoke@example.com',isOwner:true,permissions:['*']};
-              const ownerAllowed=typeof window.RW_Permissions_check==='function'&&window.RW_Permissions_check('owner')===true;
-              return {lang:document.documentElement.lang,dir:document.documentElement.dir,body:!!document.body,state:!!S,auth:typeof window.RW_Auth==='object',nav:typeof N==='object',views:typeof V==='object',shell:typeof window.RW_ShellContext==='object',owner:typeof window.RW_OwnerLicense==='object',notification,licenseDenied,auditDenied,nonOwnerOwnerDenied,ownerAllowed,diamond:document.documentElement.innerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),p163:document.querySelector('meta[name="rw-p163-closure"]')?.content||'',pwa:document.querySelector('meta[name="rw-pwa-runtime-gold"]')?.content||'',manifest:manifestLink?.getAttribute('href')||'',start:m?.start_url||'',scope:m?.scope||'',sw:(await fetch('./register-sw.js')).status};
-            });
-            console.log('FINAL_GOLD_DIAMOND='+JSON.stringify({r,pe,ce}));
-            await b.close();
-            const manifestOK=!!r.manifest&&r.manifest.endsWith('/New-main.manifest.json');
-            const ok=!pe.length&&!ce.length&&r.lang==='ar'&&r.dir==='rtl'&&r.body&&r.state&&r.auth&&r.nav&&r.views&&r.shell&&r.owner&&r.notification==='PASS'&&r.licenseDenied&&r.auditDenied&&r.nonOwnerOwnerDenied&&r.ownerAllowed&&r.diamond&&r.p163==='P163-GOLD-DIAMOND-CLOSED-2026-09-03'&&r.pwa==='PWA-RUNTIME-GOLD-2026-09-03'&&manifestOK&&r.start==='./New-main'&&['./','/'].includes(r.scope)&&r.sw===200;
-            console.log('GATE_OK='+ok); process.exit(ok?0:2);
-          })().catch(e=>{console.error(e);process.exit(2)});
-          NODE
-          cat /tmp/p163-browser-result.txt
-
-      - name: Commit verified target on main
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'RAWAEA CTO Final Closure'
-          git config user.email 'rawaea-cto-final@users.noreply.github.com'
-          git add Current/PWA/New-main
-          git diff --cached --check
-          if git diff --cached --quiet; then
-            echo 'NO_TARGET_CHANGE'
-            exit 1
-          fi
-          git commit -m '[P163-FINAL-CLOSED] [GOLD-PROVEN] [DIAMOND-PROVEN] Current/PWA/New-main'
-          git push origin HEAD:main
+          echo 'RETIRED: historical P163 target-writing executor disabled.'
+          echo 'P163 historical evidence remains preserved in Git history.'
+          echo 'Use the read-only exact New-main verifiers for fresh verification.'
+          echo 'No target mutation. No reconstruction. No production writes.'
