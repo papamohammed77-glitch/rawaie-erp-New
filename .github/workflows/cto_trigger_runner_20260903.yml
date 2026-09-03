@@ -1,73 +1,20 @@
-name: CTO Direct Exact Target Runner
+name: CTO Direct Exact Target Runner — RETIRED
+
+# Retired after forensic review.
+# Historical runner could mutate Current/PWA/New-main and push to main.
+# Preserved in Git history as evidence only.
+
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+
 permissions:
-  contents: write
-concurrency:
-  group: cto-direct-exact-target
-  cancel-in-progress: false
+  contents: read
+
 jobs:
-  forensic:
+  retired:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-        with: {ref: main, fetch-depth: 2}
-      - name: Forensic surgical closure
-        shell: bash
+      - name: Retired runner notice
         run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import re,hashlib,subprocess,tempfile
-          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
-          print('TARGET_SHA256_BEFORE',hashlib.sha256(s.encode()).hexdigest())
-          print('TARGET_BYTES_BEFORE',len(s.encode()))
-          for x in ['RW_ShellContext','RW_Auth','RW_Navigation','RW_Views','RAWAEA MAIN10 AUTHORITATIVE MODULE','RAWAEA MAIN11','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1']:
-              if x not in s: raise SystemExit('MISSING='+x)
-          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
-          print('INLINE_RUNTIME',len(ms))
-          if len(ms)!=1: raise SystemExit('INLINE_RUNTIME_COUNT')
-          legacy=r"window\.RW_OwnerLicense=\{isOwner:function\(\)\{return !!\(RW_STATE\.app\.currentUser&&RW_STATE\.app\.currentUser\.isOwner\)\},permissions:function\(\)\{return RW_STATE\.permissions\.slice\(\)\},profile:function\(\)\{return RW_STATE\.app\.ownerProfile\|\|null\},licenseState:function\(\)\{return RW_STATE\.app\.licenseState\|\|'unknown'\},isActive:function\(\)\{return \['active','Active','licensed'\]\s*\.indexOf\(RW_STATE\.app\.licenseState\)>=0\}\};"
-          lc=len(re.findall(legacy,s)); ac=len(re.findall(r'var\s+RW_OwnerLicense\s*=\s*\(function\s*\(\)',s))
-          print('LEGACY_OWNER_ASSIGNMENTS',lc); print('AUTHORITATIVE_OWNER_DEFS',ac)
-          if ac!=1: raise SystemExit('OWNER_AUTHORITY_COUNT')
-          if lc>1: raise SystemExit('LEGACY_OWNER_DUPLICATE')
-          if lc==1:
-              s2=re.sub(legacy,'',s,count=1)
-              if s2==s: raise SystemExit('OWNER_SURGERY_NOOP')
-              s=s2; print('OWNER_SURGERY=PASS')
-          body=ms[0].group('b')
-          if 'window.RW_GOLD_DIAMOND=' not in body:
-              body += '''\n/* RAWAEA GOLD DIAMOND FINAL CONTRACT v4 — exact target */\n(function(){'use strict';var S=window.RW_STATE,A=window.RW_Auth,N=window.RW_Navigation,O=window.RW_OwnerLicense;if(!S||!A||!N||!O)throw new Error('GOLD_DIAMOND_PREREQUISITES_MISSING');function owner(){return !!(S.app&&S.app.currentUser&&S.app.currentUser.isOwner===true)}function permission(v){if(v==='license'||v==='audit'||v==='audit-log')return owner();if(owner())return true;var p=(window.RW_Views&&window.RW_Views.permissionMap&&window.RW_Views.permissionMap[v])||v;try{return typeof window.RW_Permissions_check==='function'&&window.RW_Permissions_check(p)===true}catch(e){return false}}var old=N.navigate;N.navigate=async function(v){if(!permission(v))throw new Error((v==='license'||v==='audit'||v==='audit-log')?'OWNER_ONLY':'PERMISSION_DENIED');return old.call(this,v)};window.RW_GOLD_DIAMOND={version:'v4',target:'Current/PWA/New-main',chain:'MAIN1-MAIN11',owner_authority:'MAIN10',navigation_authority:'RW_Navigation',tenant_authority:'RW_ShellContext',auth_authority:'RW_Auth',audit:'owner-only',session:'fail-closed',stock_authority:'canonical-core',state:'GOLD_DIAMOND'};window.__RAWAEA_GOLD_DIAMOND_PROVEN__=true;})();\n'''
-              s=s[:ms[0].start('b')]+body+s[ms[0].end('b'):]; print('GOLD_DIAMOND_CONTRACT=ADDED')
-          else: print('GOLD_DIAMOND_CONTRACT=EXISTS')
-          ms2=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
-          if len(ms2)!=1: raise SystemExit('FINAL_INLINE_COUNT')
-          f=Path(tempfile.mkstemp(suffix='.js')[1]);f.write_text(ms2[0].group('b'),encoding='utf-8')
-          try: subprocess.run(['node','--check',str(f)],check=True)
-          finally: f.unlink(missing_ok=True)
-          if len(re.findall(r'var\s+RW_OwnerLicense\s*=\s*\(function\s*\(\)',s))!=1: raise SystemExit('FINAL_OWNER_COUNT')
-          if re.search(r'window\.RW_OwnerLicense=\{isOwner:',s): raise SystemExit('FINAL_LEGACY_OWNER')
-          if 'window.RW_GOLD_DIAMOND=' not in s: raise SystemExit('FINAL_GOLD_MISSING')
-          p.write_text(s,encoding='utf-8')
-          print('TARGET_SHA256_AFTER',hashlib.sha256(s.encode()).hexdigest());print('EXACT_TARGET_PATCH=PASS')
-          PY
-      - name: Browser runtime Gold/Diamond gate
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm init -y >/dev/null 2>&1; npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1; npx playwright install chromium >/dev/null 2>&1
-          python3 -m http.server 8123 --directory Current/PWA >/tmp/http.log 2>&1 & pid=$!; trap 'kill "$pid" 2>/dev/null || true' EXIT; sleep 2
-          node <<'NODE'
-          const {chromium}=require('playwright');(async()=>{const b=await chromium.launch({headless:true}),p=await b.newPage(),pe=[],ce=[];await p.route('**/*',async r=>{const u=r.request().url();if(u.includes('supabase.min.js'))return r.fulfill({status:200,contentType:'text/javascript',body:`window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null},error:null}),getUser:async()=>({data:{user:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signOut:async()=>({error:null}),signInWithPassword:async()=>({error:new Error('SMOKE_DISABLED')})},from:()=>({select(){return this},eq(){return this},or(){return this},in(){return this},limit(){return this},maybeSingle:async()=>({data:null,error:null})}),rpc:async()=>({data:null,error:null})})};`});if(u.includes('sweetalert2'))return r.fulfill({status:200,contentType:'text/javascript',body:'window.Swal={fire:async()=>({}),close(){},showLoading(){}};'});if(u.includes('chart.umd.js'))return r.fulfill({status:200,contentType:'text/javascript',body:'window.Chart=function(){};'});if(u.includes('xlsx.full.min.js'))return r.fulfill({status:200,contentType:'text/javascript',body:'window.XLSX={utils:{}};'});if(u.includes('font-awesome'))return r.fulfill({status:200,contentType:'text/css',body:''});return r.continue()});p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1000);const o=await p.evaluate(async()=>{const S=window.RW_STATE,N=window.RW_Navigation;if(!window.RW_GOLD_DIAMOND||window.__RAWAEA_GOLD_DIAMOND_PROVEN__!==true)throw Error('GOLD_GLOBAL_MISSING');S.app.currentUser={isOwner:false,permissions:[]};let l=false,a=false;try{await N.navigate('license')}catch(e){l=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e.message))}try{await N.navigate('audit-log')}catch(e){a=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e.message))}S.app.currentUser.isOwner=true;S.app.currentUser.permissions=['*'];let ok=true;try{await N.navigate('license')}catch(e){ok=false}return{licenseDenied:l,auditDenied:a,ownerAllowed:ok,owner:!!window.RW_OwnerLicense,tenant:!!window.RW_ShellContext,auth:!!window.RW_Auth,views:!!window.RW_Views}});console.log('RUNTIME_RESULT',JSON.stringify(o));if(!o.licenseDenied||!o.auditDenied||!o.ownerAllowed||!o.owner||!o.tenant||!o.auth||!o.views)throw Error('RUNTIME_ASSERTION');if(pe.length||ce.length)throw Error('RUNTIME_ERRORS:'+JSON.stringify({pe,ce}));await b.close();console.log('RUNTIME_GOLD_DIAMOND=PASS')})().catch(e=>{console.error(e);process.exit(1)})
-          NODE
-      - name: Persist only exact target
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'cto-forensic-bot'; git config user.email 'cto-forensic-bot@users.noreply.github.com'; git add Current/PWA/New-main
-          if git diff --cached --quiet; then echo TARGET_MUTATION=NOOP; else git commit -m '[CTO-P163] exact New-main Gold Diamond closure' && git push origin HEAD:main; fi
-          echo PUBLISHED_TARGET_BLOB=$(git rev-parse HEAD:Current/PWA/New-main)
-      # forensic trigger comment — no runtime behavior
+          echo 'RETIRED: direct target writer disabled.'
+          echo 'No target mutation. No reconstruction. No production writes.'
