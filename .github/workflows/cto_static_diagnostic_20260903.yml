@@ -1,0 +1,59 @@
+name: CTO New-main static diagnostics — READ ONLY
+on:
+  push:
+    branches: [main]
+    paths: ['Current/PWA/New-main','.github/workflows/cto_static_diagnostic_20260903.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: main, fetch-depth: 1}
+      - name: Diagnose static contract
+        shell: bash
+        run: |
+          set -u
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,json,re,subprocess,tempfile
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          checks={
+            'target_exists':p.exists(),
+            'bytes_gt_500k':len(s.encode())>500000,
+            'doctype':'<!doctype html>' in s,
+            'locale':'<html lang="ar" dir="rtl">' in s,
+            'p163':'P163-GOLD-DIAMOND-CLOSED-2026-09-03' in s,
+            'pwa_runtime':'PWA-RUNTIME-GOLD-2026-09-03' in s,
+            'diamond':'RAWAEA 122 DIAMOND CONTRACT CLOSURE v1' in s,
+            'rw_auth':'window.RW_Auth=' in s,
+            'rw_nav':'window.RW_Navigation=' in s,
+            'rw_views':'window.RW_Views=' in s,
+            'rw_shell':'window.RW_ShellContext=' in s,
+            'rw_owner_license':'window.RW_OwnerLicense=' in s,
+            'apply_context':'applyAuthoritativeContext' in s,
+            'parent_manifest_count':s.count('<link rel="manifest" href="../manifest.json">'),
+            'self_manifest_absent':'./New-main.manifest.json' not in s,
+            'unsafe_email_absent':'var e=email();' not in s,
+          }
+          m=json.loads(Path('Current/manifest.json').read_text())
+          checks['root_manifest_contract']=(m.get('start_url'),m.get('scope'),m.get('lang'),m.get('dir'))==('./PWA/New-main','./PWA/','ar','rtl')
+          checks['sha256']=hashlib.sha256(s.encode()).hexdigest()
+          checks['bytes']=len(s.encode())
+          print(json.dumps(checks,ensure_ascii=False,indent=2))
+          inline=len(re.findall(r'<script\b[^>]*>(?:(?!</script>).)*</script>',s,re.I|re.S))
+          src=len(re.findall(r'<script\b[^>]*\bsrc\s*=',s,re.I))
+          print(f'SCRIPT_INLINE={inline} SCRIPT_SRC={src} SCRIPT_TOTAL={inline+src}')
+          js=Path(tempfile.mkstemp(suffix='.js')[1]); js.write_text(s,encoding='utf-8')
+          js.unlink(missing_ok=True)
+          PY
+      - name: JavaScript syntax diagnostics
+        shell: bash
+        run: |
+          set -u
+          echo 'register-sw:'
+          node --check Current/PWA/register-sw.js; echo "rc=$?"
+          echo 'sw:'
+          node --check Current/PWA/sw.js; echo "rc=$?"
