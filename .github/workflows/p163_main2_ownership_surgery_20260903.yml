@@ -35,4 +35,5 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          export NODE_PATH="$GITHUB_WORKSPACE/node_modules"
           python3 tools/_cto_p163_executor_20260903.py
