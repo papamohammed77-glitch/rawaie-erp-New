@@ -21,9 +21,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
+        with: {ref: main, fetch-depth: 0}
       - uses: actions/setup-node@v4
         with: {node-version: 20}
       - name: Install Playwright
@@ -41,10 +39,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import json
-          p=Path('Current/PWA/New-main')
-          s=p.read_text(encoding='utf-8')
-          before=s
-          # Preserve target lineage; correct the known concrete notification runtime bug only if present.
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8'); before=s
           oldn="async function showPanel(){\n  var e=email();"
           newn="async function showPanel(){\n  var e=RW_STATE&&RW_STATE.app&&RW_STATE.app.currentUser?RW_STATE.app.currentUser.email:null;"
           if oldn in s:
@@ -52,7 +47,6 @@ jobs:
               s=s.replace(oldn,newn,1)
           elif newn not in s:
               raise SystemExit('NOTIFICATION_CONTRACT_MISSING')
-          # Remove only the legacy owner-shadow block; preserve authoritative Main10 binding.
           auth='window.RW_OwnerLicense = RW_OwnerLicense;'
           if auth not in s: raise SystemExit('OWNER_AUTHORITATIVE_BINDING_MISSING')
           legacy='window.RW_OwnerLicense='
@@ -60,25 +54,21 @@ jobs:
           while True:
               i=s.find(legacy,pos)
               if i<0: break
-              if s.startswith(auth,i):
-                  pos=i+1; continue
+              if s.startswith(auth,i): pos=i+1; continue
               starts.append(i); pos=i+1
           if len(starts)>1: raise SystemExit(f'OWNER_LEGACY_MULTIPLE={len(starts)}')
           if len(starts)==1:
-              st=starts[0]
-              en=s.find('};',st)
+              st=starts[0]; en=s.find('};',st)
               if en<0: raise SystemExit('OWNER_LEGACY_END_MISSING')
               block=s[st:en+2]
-              if not all(x in block for x in ('isOwner:function','permissions:function','licenseState:function','isActive:function')):
-                  raise SystemExit('OWNER_LEGACY_BLOCK_SIGNATURE_MISMATCH')
+              if not all(x in block for x in ('isOwner:function','permissions:function','licenseState:function','isActive:function')): raise SystemExit('OWNER_LEGACY_BLOCK_SIGNATURE_MISMATCH')
               s=s[:st]+s[en+2:]
           p.write_text(s,encoding='utf-8')
           mpath=Path('Current/PWA/New-main.manifest.json')
           if not mpath.exists():
               mpath.write_text(json.dumps({'name':'الروائع ERP','short_name':'الروائع ERP','start_url':'./New-main','scope':'./','display':'standalone','dir':'rtl','lang':'ar','background_color':'#f8fafc','theme_color':'#2563eb','icons':[{'src':'./New-main-icon.svg','sizes':'any','type':'image/svg+xml','purpose':'any maskable'}]},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
           icon=Path('Current/PWA/New-main-icon.svg')
-          if not icon.exists():
-              icon.write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#2563eb"/><text x="256" y="325" text-anchor="middle" font-family="Arial,Tahoma,sans-serif" font-size="270" font-weight="900" fill="#fff">ر</text></svg>\n',encoding='utf-8')
+          if not icon.exists(): icon.write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#2563eb"/><text x="256" y="325" text-anchor="middle" font-family="Arial,Tahoma,sans-serif" font-size="270" font-weight="900" fill="#fff">ر</text></svg>\n',encoding='utf-8')
           print('TARGET_CHANGED',s!=before)
           PY
           node --check Current/PWA/register-sw.js
@@ -88,11 +78,10 @@ jobs:
           import json
           from html.parser import HTMLParser
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
-          assert 'rw-p163-closure' in s
-          assert 'P163-GOLD-DIAMOND-CLOSED-2026-09-03' in s
-          assert 'rw-pwa-runtime-gold' in s
-          assert 'PWA-RUNTIME-GOLD-2026-09-03' in s
+          assert 'rw-p163-closure' in s and 'P163-GOLD-DIAMOND-CLOSED-2026-09-03' in s
+          assert 'rw-pwa-runtime-gold' in s and 'PWA-RUNTIME-GOLD-2026-09-03' in s
           assert 'RAWAEA 122 DIAMOND CONTRACT CLOSURE v1' in s
+          assert ('RAWAEA MAIN2 AUTHORITATIVE MODULE' in s) or ('RAWAEA MAIN10 AUTHORITATIVE MODULE' in s)
           assert 'window.RW_Auth=' in s and 'window.RW_Navigation=' in s and 'window.RW_Views=' in s and 'window.RW_ShellContext=' in s
           assert s.count('window.RW_OwnerLicense = RW_OwnerLicense;')==1
           assert 'var e=email();' not in s
@@ -125,8 +114,8 @@ jobs:
           from pathlib import Path
           import re
           p=Path('/tmp/site/main.html'); s=p.read_text(encoding='utf-8')
-          s=re.sub(r'<script\\s+(?:defer\\s+)?src="https://cdn\\.jsdelivr\\.net/[^>]+></script>','',s,flags=re.I)
-          s=re.sub(r'<script\\s+src="https://cdn\\.sheetjs\\.com/[^>]+></script>','',s,flags=re.I)
+          s=re.sub(r'<script\s+(?:defer\s+)?src="https://cdn\.jsdelivr\.net/[^>]+></script>','',s,flags=re.I)
+          s=re.sub(r'<script\s+src="https://cdn\.sheetjs\.com/[^>]+></script>','',s,flags=re.I)
           stub='<script>window.supabase=window.supabase||{createClient:()=>({auth:{getSession:async()=>({data:{session:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),getUser:async()=>({data:{user:null},error:null}),signOut:async()=>({error:null})},from:()=>({select:()=>({eq:()=>({limit:()=>Promise.resolve({data:[],error:null})}),maybeSingle:()=>Promise.resolve({data:null,error:null}),in:()=>Promise.resolve({data:[],error:null})})})})};window.Swal=window.Swal||{fire:async()=>({isConfirmed:false}),close(){},showLoading(){}};window.Chart=window.Chart||function(){};window.XLSX=window.XLSX||{};</script>'
           s=s.replace('<head>','<head>'+stub,1)
           p.write_text(s,encoding='utf-8')
@@ -136,21 +125,17 @@ jobs:
           node <<'NODE'
           const {chromium}=require('playwright');
           (async()=>{
-            const b=await chromium.launch({headless:true});
-            const p=await b.newPage(); const pe=[],ce=[];
-            p.on('pageerror',e=>pe.push(e.message));
-            p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
+            const b=await chromium.launch({headless:true}); const p=await b.newPage(); const pe=[],ce=[];
+            p.on('pageerror',e=>pe.push(e.message)); p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
             await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:15000});
             await p.waitForSelector('#rw-login-page',{timeout:15000});
             const r=await p.evaluate(async()=>{
-              const l=document.querySelector('link[rel="manifest"]');
-              const m=await (await fetch(l.href)).json();
+              const l=document.querySelector('link[rel="manifest"]'); const m=await (await fetch(l.href)).json();
               const out={lang:document.documentElement.lang,dir:document.documentElement.dir,manifest:l?.getAttribute('href'),start:m.start_url,scope:m.scope,state:!!window.RW_STATE,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,diamond:document.documentElement.innerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),p163:document.querySelector('meta[name="rw-p163-closure"]')?.content||null,pwa:document.querySelector('meta[name="rw-pwa-runtime-gold"]')?.content||null};
               if(window.RW_Notification&&typeof window.RW_Notification.showPanel==='function'){window.RW_STATE.app.currentUser={email:'smoke@example.com'};try{await window.RW_Notification.showPanel();out.notification='PASS'}catch(e){out.notification='FAIL:'+String(e?.message||e)}} else out.notification='NOT-EXPOSED';
               return out;
             });
-            console.log(JSON.stringify({r,pe,ce},null,2));
-            await b.close();
+            console.log(JSON.stringify({r,pe,ce},null,2)); await b.close();
             const ok=!pe.length&&!ce.length&&r.lang==='ar'&&r.dir==='rtl'&&r.manifest==='./New-main.manifest.json'&&r.start==='./New-main'&&r.scope==='./'&&r.state&&r.auth&&r.nav&&r.views&&r.shell&&r.owner&&r.diamond&&r.p163==='P163-GOLD-DIAMOND-CLOSED-2026-09-03'&&r.pwa==='PWA-RUNTIME-GOLD-2026-09-03'&&r.notification!=='FAIL:undefined';
             if(!ok) process.exit(2);
           })().catch(e=>{console.error(e.stack||e);process.exit(2)});
@@ -162,8 +147,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import hashlib
-          p=Path('Current/PWA/New-main')
-          h=hashlib.sha256(p.read_bytes()).hexdigest()
+          p=Path('Current/PWA/New-main'); h=hashlib.sha256(p.read_bytes()).hexdigest()
           st=Path('CURRENT_STATE.md'); s=st.read_text(encoding='utf-8').rstrip() if st.exists() else ''
           marker='## CTO CURRENT-PATH GOLD DIAMOND CLOSED — 2026-09-03'
           if marker not in s:
