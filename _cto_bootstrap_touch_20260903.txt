@@ -1,1 +1,1 @@
-CTO bootstrap trigger — 2026-09-03 continuity recovery v3. Base main now uses target-preserving direct P163 closure; executor must prove target mutation and Gold/Diamond gates.
+CTO bootstrap trigger — 2026-09-03 continuity recovery v4. Base main now uses target-preserving direct P163 closure; executor must prove target mutation and Gold/Diamond gates. Nonce 07:03 Cairo.
