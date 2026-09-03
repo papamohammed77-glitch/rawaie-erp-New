@@ -1,13 +1,13 @@
 # TRIGGER V2
 name: CTO Close New-main
 on:
-  push:
+  pull_request:
     branches: [main]
 permissions:
   contents: write
 jobs:
   close:
-    if: ${{ !contains(github.event.head_commit.message, '[CTO-CLOSURE-EXECUTED]') }}
+    if: ${{ !contains(github.event.pull_request.title, '[CTO-CLOSURE-EXECUTED]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
