@@ -9,13 +9,13 @@ permissions:
   contents: write
 jobs:
   surgical-fix:
-    if: ${{ !contains(github.event.head_commit.message || '', '[CTO-SURGICAL] Fix Notification showPanel scope in New-main') }}
+    if: ${{ !contains(github.event.head_commit.message || '', '[CTO-NOTIF-FIX]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with: {ref: main, fetch-depth: 1}
-      - name: Apply exact surgical fix to New-main only
+      - name: Apply exact one-location fix to New-main
         shell: bash
         run: |
           set -euo pipefail
@@ -32,10 +32,9 @@ jobs:
           p.write_text(s.replace(old,new,1),encoding='utf-8')
           PY
           git diff --check
-          test "$(git diff --name-only | wc -l | tr -d ' ')" = 1
           test "$(git diff --name-only)" = 'Current/PWA/New-main'
           git config user.name 'rawaea-cto-surgical-bot'
           git config user.email 'rawaea-cto-surgical-bot@users.noreply.github.com'
           git add Current/PWA/New-main
-          git commit -m '[CTO-SURGICAL] Fix Notification showPanel scope in New-main'
+          git commit -m '[CTO-NOTIF-FIX] Fix Notification showPanel scope in New-main'
           git push origin HEAD:main
