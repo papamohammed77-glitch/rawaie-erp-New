@@ -14,24 +14,23 @@ VERSION = "window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"
 GOVERNED = '// MAIN2_GOVERNED_CLOSED:v1'
 CANONICAL_SW = "navigator.serviceWorker.register('./sw.js',{scope:'./'})"
 INLINE_RE = re.compile(r'<script(?![^>]*\bsrc\s*=)[^>]*>', re.I)
+HTML_COMMENT_TAIL = re.compile(r'<!--(?:[\s\S]*?)-->\s*$', re.I)
 
 def normalize_main1(raw):
     raw = raw.lstrip('\ufeff')
     raw = re.sub(r'(?m)^\s*const RW_Auth\s*=\s*', 'var RW_Auth = ', raw, count=1)
     raw = re.sub(r'(?m)^\s*const RW_Navigation\s*=\s*', 'var RW_Navigation = ', raw, count=1)
+    # main1 is intentionally an open application <script> fragment; main2..main11
+    # continue the same program and the final assembler closes the script. Therefore
+    # looking for a closing </script> inside main1 is incorrect and was the cause of
+    # the prior false boundary failure.
     opens = list(INLINE_RE.finditer(raw))
     if not opens:
         raise RuntimeError('MAIN1_INLINE_RUNTIME_OPENER_MISSING')
     app_open = opens[-1]
-    close = raw.rfind('</script>')
-    if close < app_open.end():
-        raise RuntimeError('MAIN1_INLINE_RUNTIME_CLOSURE_MISSING')
-    # main1 is the shell plus the application runtime. Preserve the complete shell
-    # from <!doctype> through the application script opener, then continue JS from EOF.
-    prefix = raw[:app_open.start()]
-    body = raw[app_open.start():close]
-    body = re.sub(r'</body>\s*|</html>\s*', '', body, flags=re.I)
-    return prefix + body.rstrip()
+    raw = raw[app_open.start():]
+    raw = HTML_COMMENT_TAIL.sub('', raw)
+    return raw.rstrip()
 
 def normalize_fragment(raw, idx):
     raw = raw.lstrip('\ufeff')
@@ -82,12 +81,14 @@ def _app_js(s):
     return apps[0]
 
 def validate_phase_js(parts):
-    # Never guess which fragment is corrupt. Validate the running logical program after
-    # every fragment and persist the exact first failing phase/error.
-    first = re.search(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*)', parts[0], re.I)
-    if not first:
-        raise RuntimeError('MAIN1_INLINE_RUNTIME_MISSING_FOR_PHASE')
-    js_body = first.group(1)
+    # main1 deliberately contains an OPEN script with no closing tag. Extract exactly
+    # its JS payload and then validate the cumulative program after every fragment.
+    if not parts or not parts[0].lstrip().lower().startswith('<script'):
+        raise RuntimeError('MAIN1_OPEN_SCRIPT_BOUNDARY_MISSING')
+    m=re.match(r'<script[^>]*>([\s\S]*)$',parts[0],re.I)
+    if not m:
+        raise RuntimeError('MAIN1_SCRIPT_PAYLOAD_MISSING')
+    js_body = m.group(1)
     phase_report=[]
     for idx in range(1, len(parts)+1):
         if idx > 1:
@@ -97,7 +98,7 @@ def validate_phase_js(parts):
         r=subprocess.run(['node','--check',str(temp)],capture_output=True,text=True)
         phase_report.append((idx,len(js_body.encode('utf-8'))))
         if r.returncode:
-            tail='\n'.join(js_body.splitlines()[-40:])
+            tail='\n'.join(js_body.splitlines()[-60:])
             raise RuntimeError('JS_PHASE_SYNTAX_FAIL:main%d\n%s\n---TAIL---\n%s' % (idx,r.stderr,tail))
     return phase_report
 
