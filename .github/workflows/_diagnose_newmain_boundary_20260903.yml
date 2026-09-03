@@ -1,0 +1,59 @@
+name: Diagnose New-main assembly boundary
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+      - name: Find first failing cumulative fragment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess, tempfile
+          CUR=Path('Current/PWA/main')
+          INLINE_RE=re.compile(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>',re.I)
+          def norm1(raw):
+              raw=raw.lstrip('\\ufeff')
+              raw=re.sub(r'(?m)^\\s*const RW_Auth\\s*=\\s*','var RW_Auth = ',raw,count=1)
+              raw=re.sub(r'(?m)^\\s*const RW_Navigation\\s*=\\s*','var RW_Navigation = ',raw,count=1)
+              opens=list(INLINE_RE.finditer(raw))
+              if not opens: raise RuntimeError('MAIN1_INLINE_RUNTIME_OPENER_MISSING')
+              op=opens[-1]; cl=raw.find('</script>',op.end())
+              if cl>=0: raw=raw[:cl]+raw[cl+len('</script>'):]
+              raw=re.sub(r'</body>\\s*','',raw,flags=re.I); raw=re.sub(r'</html>\\s*','',raw,flags=re.I)
+              return raw.rstrip()
+          def norm(raw,idx):
+              raw=raw.lstrip('\\ufeff'); raw=re.sub(r'</body>\\s*|</html>\\s*','',raw,flags=re.I)
+              if re.search(r'</script>',raw,re.I): raise RuntimeError(f'BAD_FRAGMENT_SCRIPT_CLOSE:{idx}')
+              if idx==7: raw=re.sub(r"(safeHTML\\(q\\(['\"]settlement-rs-select['\"]\\),[\\s\\S]*?\\.join\\(''\\))\\);}",r"\\1));}",raw,count=1)
+              return raw.rstrip()
+          parts=[]
+          for i in range(1,12):
+              raw=(CUR/f'main{i}.md').read_text(encoding='utf-8-sig')
+              parts.append(norm1(raw) if i==1 else norm(raw,i))
+          body=''
+          for i,part in enumerate(parts,1):
+              body += ('\\n\\n' if body else '')+part
+              f=Path(tempfile.gettempdir())/f'cum-{i}.js'; f.write_text(body,encoding='utf-8')
+              r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+              print(f'MAIN{i}_CUMULATIVE', 'PASS' if r.returncode==0 else 'FAIL', 'lines', body.count(chr(10))+1, 'bytes', len(body.encode()))
+              if r.returncode:
+                  print(r.stderr)
+                  lines=body.splitlines()
+                  import re as rr
+                  m=rr.search(r':(\\d+)',r.stderr)
+                  if m:
+                      n=int(m.group(1));
+                      for j in range(max(1,n-15),min(len(lines),n+15)+1): print(f'{j}: {lines[j-1]}')
+                  break
+          PY
