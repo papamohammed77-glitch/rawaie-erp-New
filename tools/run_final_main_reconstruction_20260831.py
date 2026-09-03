@@ -20,25 +20,28 @@ def normalize_main1(raw):
     raw = raw.lstrip('\ufeff')
     raw = re.sub(r'(?m)^\s*const RW_Auth\s*=\s*', 'var RW_Auth = ', raw, count=1)
     raw = re.sub(r'(?m)^\s*const RW_Navigation\s*=\s*', 'var RW_Navigation = ', raw, count=1)
-    # main1 is an intentionally OPEN application script fragment; main2..main11
-    # continue the same JavaScript program. Do not require a closing </script> here.
     opens = list(INLINE_RE.finditer(raw))
     if not opens:
         raise RuntimeError('MAIN1_INLINE_RUNTIME_OPENER_MISSING')
     app_open = opens[-1]
     raw = raw[app_open.start():]
+    # main1 ends with a source annotation rather than a real HTML close.
     raw = HTML_COMMENT_TAIL.sub('', raw)
     return raw.rstrip()
 
 def normalize_fragment(raw, idx):
-    raw=raw.lstrip('\ufeff'); raw=re.sub(r'</body>\s*|</html>\s*','',raw,flags=re.I)
-    if re.search(r'^\s*<!doctype\b|^\s*</?(?:html|head|body)\b|</script>',raw,re.I|re.M): raise RuntimeError(f'BAD_FRAGMENT_BOUNDARY:main{idx}')
-    if idx==7: raw=re.sub(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}",r"\1));}",raw,count=1)
+    # main2..main11 are continuous JavaScript fragments. Do not regex-strip HTML
+    # tags from their content because '<body>'/'</body>' may be legitimate data or
+    # strings. The final assembler supplies the one real closing script/body/html.
+    raw = raw.lstrip('\ufeff')
+    if idx == 7:
+        raw = re.sub(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}", r"\1));}", raw, count=1)
     return raw.rstrip()
 
 def extract_main1_application_js(chunk):
-    m=re.match(r'<script[^>]*>([\s\S]*)$', chunk, re.I)
-    if not m: raise RuntimeError('MAIN1_INLINE_RUNTIME_MISSING')
+    m = re.match(r'<script[^>]*>([\s\S]*)$', chunk, re.I)
+    if not m:
+        raise RuntimeError('MAIN1_INLINE_RUNTIME_MISSING')
     return m.group(1)
 
 def p163(s):
@@ -74,16 +77,11 @@ class StructureParser(HTMLParser):
     def handle_endtag(self,tag): self.ends.append(tag.lower())
 
 def validate_fragments(parts):
-    # Fragments can legitimately end inside JS blocks. They are therefore not
-    # validated as standalone programs; only assembly boundaries are validated here.
+    # These are one continuous program; structural/syntax validation is done after
+    # joining all fragments, while this phase records complete source coverage only.
     if not parts or not parts[0].lstrip().lower().startswith('<script'):
         raise RuntimeError('MAIN1_OPEN_SCRIPT_BOUNDARY_MISSING')
-    report=[]
-    for idx, part in enumerate(parts,1):
-        if idx>1 and re.search(r'<script|</script>|<!doctype\b|</?(?:html|head|body)\b',part,re.I):
-            raise RuntimeError(f'FRAGMENT_HTML_BOUNDARY_VIOLATION:main{idx}')
-        report.append({'part':idx,'bytes':len(part.encode('utf-8')),'lines':part.count('\n')+1})
-    return report
+    return [{'part':idx,'bytes':len(part.encode('utf-8')),'lines':part.count('\n')+1} for idx,part in enumerate(parts,1)]
 
 def _app_js(s):
     apps=[m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I) if 'serviceWorker.register' not in m.group(1)]
@@ -105,8 +103,7 @@ def main():
     for idx,p in enumerate(PARTS,1):
         if not p.is_file() or not p.stat().st_size: raise RuntimeError('MISSING_PART:'+str(p))
         raw=p.read_text(encoding='utf-8-sig'); parts.append(normalize_main1(raw) if idx==1 else normalize_fragment(raw,idx))
-    phases=validate_fragments(parts)
-    candidate=parts[0]+'\n\n'+'\n\n'.join(parts[1:])+'\n\n</script>\n</body>\n</html>\n'; candidate=p163(candidate); candidate=inject_canonical_sw(candidate); gates=validate(candidate)
+    phases=validate_fragments(parts); candidate=parts[0]+'\n\n'+'\n\n'.join(parts[1:])+'\n\n</script>\n</body>\n</html>\n'; candidate=p163(candidate); candidate=inject_canonical_sw(candidate); gates=validate(candidate)
     tmp=MAIN.with_suffix('.tmp'); tmp.write_text(candidate,encoding='utf-8'); tmp.replace(MAIN); print({'status':'NEW_MAIN_GOLD_DIAMOND_READY','target':str(MAIN),'sha256':hashlib.sha256(candidate.encode()).hexdigest(),'bytes':len(candidate.encode()),'gates':gates,'phase_report':phases})
 
 if __name__=='__main__': main()
