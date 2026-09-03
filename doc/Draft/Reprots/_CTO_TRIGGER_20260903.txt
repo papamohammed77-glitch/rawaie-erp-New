@@ -1,2 +1,1 @@
-CTO trigger marker — temporary operational trigger only.
-This file is not part of the product and must not be used as runtime evidence.
+CTO trigger marker v2 — temporary operational trigger only.
