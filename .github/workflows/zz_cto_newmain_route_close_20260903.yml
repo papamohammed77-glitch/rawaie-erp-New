@@ -1,0 +1,124 @@
+name: CTO One-shot New-main Route Closure
+on:
+  push:
+    branches: [cto-newmain-route-close-20260903]
+permissions:
+  contents: write
+concurrency:
+  group: cto-newmain-route-close-20260903
+  cancel-in-progress: false
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Surgical patch and static validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('Current/PWA/New-main')
+          s=p.read_text(encoding='utf-8')
+          assert len(s.encode('utf-8')) > 500000
+          assert s.count('function loadVoucherForm(type)') == 1
+          assert s.count("nav.navigate=function(view)") == 1
+          assert 'RAWAEA_MAIN_WAREHOUSE_VOUCHER_ROUTES_FINAL_V1' not in s
+          closing='</script>\n</body>\n</html>'
+          assert s.count(closing) == 1
+          block='''<script id="RAWAEA_MAIN_WAREHOUSE_VOUCHER_ROUTES_FINAL_V1">\n(function(){\n  'use strict';\n  var n=window.RW_Navigation, w=window.RW_Warehouse;\n  if(!n || typeof n.navigate!=='function' || !w || typeof w.loadVoucherForm!=='function') return;\n  var prev=n.navigate;\n  var special={\n    transfer:'Transfer',\n    'direct-sale':'DirectSale',\n    'direct-return':'DirectReturn',\n    'supplier-return':'SupplierReturn'\n  };\n  n.navigate=function(view){\n    if(Object.prototype.hasOwnProperty.call(special,view)){\n      return Promise.resolve(w.loadVoucherForm(special[view]));\n    }\n    return prev(view);\n  };\n})();\n</script>'''
+          s=s.replace(closing, block+'\n'+closing, 1)
+          assert s.count('RAWAEA_MAIN_WAREHOUSE_VOUCHER_ROUTES_FINAL_V1') == 1
+          assert s.count("transfer:'Transfer'") == 1
+          assert s.count("'direct-sale':'DirectSale'") == 1
+          assert s.count("'direct-return':'DirectReturn'") == 1
+          assert s.count("'supplier-return':'SupplierReturn'") == 1
+          p.write_text(s, encoding='utf-8')
+          print('ROUTE_SURGERY_STATIC_PASS')
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess, tempfile, re
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          class P:
+              pass
+          scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>', s, flags=re.I|re.S)
+          assert scripts
+          for code in scripts:
+              f=Path(tempfile.mkstemp(suffix='.js')[1])
+              f.write_text(code, encoding='utf-8')
+              try: subprocess.run(['node','--check',str(f)],check=True)
+              finally: f.unlink(missing_ok=True)
+          print('NODE_INLINE_GOLD_PASS')
+          PY
+      - name: Browser route contract gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          rm -rf /tmp/site && mkdir -p /tmp/site/Current/PWA
+          cp -a Current/. /tmp/site/Current/
+          cat >/tmp/newmain_server.py <<'PY'
+          from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+          import os
+          class Handler(SimpleHTTPRequestHandler):
+              extensions_map = SimpleHTTPRequestHandler.extensions_map.copy()
+              extensions_map.update({'': 'text/html; charset=utf-8'})
+              def guess_type(self, path):
+                  if path.endswith('/New-main') or path.endswith('/New-main/'): return 'text/html; charset=utf-8'
+                  return super().guess_type(path)
+          os.chdir('/tmp/site')
+          ThreadingHTTPServer(('127.0.0.1',8123),Handler).serve_forever()
+          PY
+          python3 /tmp/newmain_server.py >/tmp/newmain-http.log 2>&1 & echo $! >/tmp/newmain-http.pid
+          trap 'kill "$(cat /tmp/newmain-http.pid)" 2>/dev/null || true' EXIT
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const b=await chromium.launch({headless:true});
+            const p=await b.newPage(); const pe=[],ce=[];
+            await p.route('**/*',async route=>{
+              const u=route.request().url();
+              if(u.includes('cdn.jsdelivr.net/npm/@supabase/')) return route.fulfill({status:200,contentType:'application/javascript',body:`window.supabase={createClient:function(){return {auth:{signInWithPassword:async()=>({error:new Error('stub')}),getSession:async()=>({data:{session:null}}),getUser:async()=>({data:{user:null},error:new Error('stub')}),onAuthStateChange:function(){return {data:{subscription:{unsubscribe:function(){}}}}},signOut:async()=>({}),updateUser:async()=>({}),resetPasswordForEmail:async()=>({})},from:function(){var q={select:function(){return q},eq:function(){return q},in:function(){return q},or:function(){return q},order:function(){return q},limit:function(){return q},maybeSingle:function(){return Promise.resolve({data:null,error:null})},then:function(){return Promise.resolve({data:[],error:null,count:0})}};return q}}};`});
+              if(u.includes('cdn.jsdelivr.net/npm/chart.js@')) return route.fulfill({status:200,contentType:'application/javascript',body:'window.Chart=function(){};'});
+              if(u.includes('cdn.jsdelivr.net/npm/sweetalert2@')) return route.fulfill({status:200,contentType:'application/javascript',body:'window.Swal={fire:function(){return Promise.resolve({});},close:function(){}};'});
+              if(u.includes('cdn.sheetjs.com/')) return route.fulfill({status:200,contentType:'application/javascript',body:'window.XLSX={utils:{},read:function(){return {}}};'});
+              return route.continue();
+            });
+            p.on('pageerror',e=>pe.push(e.message)); p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
+            await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});
+            await p.waitForTimeout(900);
+            const result=await p.evaluate(async()=>{
+              const w=window.RW_Warehouse, n=window.RW_Navigation;
+              if(!w || !n) throw new Error('RUNTIME_CONTRACT_MISSING');
+              const seen=[]; const original=w.loadVoucherForm;
+              w.loadVoucherForm=function(type){seen.push(type);return Promise.resolve({route:type});};
+              const out={};
+              for(const v of ['transfer','direct-sale','direct-return','supplier-return']) out[v]=await n.navigate(v);
+              w.loadVoucherForm=original;
+              return {seen,out,manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||'',p163:document.querySelector('meta[name="rw-p163-closure"]')?.content||'',pwa:document.querySelector('meta[name="rw-pwa-runtime-gold"]')?.content||''};
+            });
+            console.log('NEWMAN_ROUTE_BROWSER_GATE='+JSON.stringify({result,pe,ce}));
+            await b.close();
+            const ok=!pe.length&&!ce.length&&JSON.stringify(result.seen)===JSON.stringify(['Transfer','DirectSale','DirectReturn','SupplierReturn'])&&result.manifest==='manifest.json'&&result.p163==='P163-GOLD-DIAMOND-CLOSED-2026-09-03'&&result.pwa==='PWA-RUNTIME-GOLD-2026-09-03';
+            if(!ok) process.exit(2);
+          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
+          NODE
+      - name: Commit only target file
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add Current/PWA/New-main
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
+          git config user.name 'RAWAEA CTO Route Executor'
+          git config user.email 'rawaea-cto-route-executor@users.noreply.github.com'
+          git commit -m '[CTO-CLOSED] New-main warehouse voucher routes'
+          git push origin HEAD:cto-newmain-route-close-20260903
