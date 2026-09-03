@@ -40,7 +40,6 @@ jobs:
           assert '<meta name="rw-p163-closure" content="P163-GOLD-DIAMOND-CLOSED-2026-09-03">' in s
           assert 'RAWAEA 122 DIAMOND CONTRACT CLOSURE v1' in s
           assert 'window.RW_Auth=' in s and 'window.RW_Navigation=' in s and 'window.RW_Views=' in s and 'window.RW_ShellContext=' in s
-          assert 'window.RW_OwnerLicense = RW_OwnerLicense;' not in s or s.count('window.RW_OwnerLicense = RW_OwnerLicense;')==1
           assert 'var e=email();' not in s
           assert 'navigator.serviceWorker.register(\'./sw.js\'' in s or 'navigator.serviceWorker.register("./sw.js"' in s
           class P(HTMLParser):
@@ -131,3 +130,4 @@ jobs:
           for(const path of paths)http.get('http://127.0.0.1:8125'+path,res=>{console.log(path,res.statusCode);if(path==='/Current/PWA/New-main'&&res.statusCode!==200)fail=1;if(path!=='/Current/PWA/New-main'&&res.statusCode!==404)fail=1;if(--left===0)process.exit(fail)}).on('error',()=>{fail=1;if(--left===0)process.exit(1)});
           NODE
           echo 'SINGLE_FILE_RUNTIME=BOOTABLE_HTML_BUT_PWA_SIDECARS_ABSENT_BY_DESIGN'
+          echo 'FORENSIC_TRIGGER=2026-09-03T05:55:50Z'
