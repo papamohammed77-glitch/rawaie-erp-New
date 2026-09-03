@@ -1,106 +1,11 @@
-name: CTO Surgical Login Dedup 2026-09-03
+name: CTO Surgical Login Dedup 2026-09-03 — RETIRED
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 permissions:
-  contents: write
-concurrency:
-  group: cto-surgical-login-dedup
-  cancel-in-progress: true
+  contents: read
 jobs:
-  patch:
-    if: startsWith(github.event.head_commit.message, '[CTO-SURGICAL-TRIGGER]')
+  archived:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 2
-      - name: Surgical forensic patch New-main only
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import re, subprocess, hashlib
-          p=Path('Current/PWA/New-main')
-          s=p.read_text(encoding='utf-8')
-          changes=[]
-          old="await window.RW_Auth.enterSystem();"; new="await window.RW_Auth.enterSystem(authUser);"
-          assert s.count(old)==1
-          s=s.replace(old,new); changes.append('AUTH_SESSION_RESTORE')
-          old='<link rel="manifest" href="../manifest.json">'; assert s.count(old)==1
-          s=s.replace(old,'<meta name="rw-single-file-deployment" content="NEW-MAIN-ONLY-2026-09-03">'); changes.append('MANIFEST_DECOUPLING')
-          old='<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>'; assert s.count(old)==1
-          s=s.replace(old,''); changes.append('SW_COORDINATOR_DECOUPLING')
-          old="if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(function(e){console.warn('SERVICE_WORKER',e)});"; assert s.count(old)==1
-          s=s.replace(old,''); changes.append('SW_DIRECT_DECOUPLING')
-          old="window.RW_ParentRegistry={version:'1.0',tenantAuthority:'RW_ShellContext.getCompanyId()',ownerAuthority:'owner_profile',permissionAuthority:'RW_Permissions_check',apps:{pos:'./pos.html',telesales:'./telesales.html',buyer:'./buyer.html',vouchers:'./vouchers.html',picker:'./picker.html',loader:'./loader.html',driver:'./driver.html',returns:'./Returns.html',unloader:'./unloader.html'},launch:function(key){var p=this.apps[key];if(!p)throw new Error('UNKNOWN_PARENT_APP:'+key);location.href=p;}};"
-          new="window.RW_ParentRegistry={version:'2.0',tenantAuthority:'RW_ShellContext.getCompanyId()',ownerAuthority:'owner_profile',permissionAuthority:'RW_Permissions_check',apps:{pos:'pos',telesales:'telesales,buyer:'purchases',vouchers:'vouchers',picker:'picking',loader:'loading',driver:'delivery',returns:'returns',unloader:'unloading'},launch:function(key){var view=this.apps[key];if(!view)throw new Error('UNKNOWN_PARENT_APP:'+key);if(!window.RW_Navigation||typeof window.RW_Navigation.navigate!=='function')throw new Error('RW_NAVIGATION_UNAVAILABLE');return window.RW_Navigation.navigate(view);}};"
-          # Correct the intentionally split replacement key into the exact desired object.
-          new="window.RW_ParentRegistry={version:'2.0',tenantAuthority:'RW_ShellContext.getCompanyId()',ownerAuthority:'owner_profile',permissionAuthority:'RW_Permissions_check',apps:{pos:'pos',telesales:'telesales',buyer:'purchases',vouchers:'vouchers',picker:'picking',loader:'loading',driver:'delivery',returns:'returns',unloader:'unloading'},launch:function(key){var view=this.apps[key];if(!view)throw new Error('UNKNOWN_PARENT_APP:'+key);if(!window.RW_Navigation||typeof window.RW_Navigation.navigate!=='function')throw new Error('RW_NAVIGATION_UNAVAILABLE');return window.RW_Navigation.navigate(view);}};"
-          assert s.count(old)==1
-          s=s.replace(old,new); changes.append('PARENT_REGISTRY_INTERNALIZED')
-          for x in ['delegated-to-pos.html','delegated-to-van-sales.html','delegated-to-telesales.html','delegated-to-buyer.html','delegated-to-vouchers.html','delegated-to-picker.html','delegated-to-loader.html','delegated-to-driver.html','delegated-to-Returns.html']:
-              s=s.replace(x,'implemented-in-New-main')
-          changes.append('LEDGER_NORMALIZED')
-          anchor="window.RW_OwnerLicense={isOwner:function(){return !!(RW_STATE.app.currentUser&&RW_STATE.app.currentUser.isOwner)},permissions:function(){return RW_STATE.permissions.slice()},profile:function(){return RW_STATE.app.ownerProfile||null},licenseState:function(){return RW_STATE.app.licenseState||'unknown'},isActive:function(){return ['active','Active','licensed'].indexOf(RW_STATE.app.licenseState)>=0}};"
-          block=r'''\n/* RAWAEA NEW-MAIN OWNER LICENSE RENDER CLOSURE v1 */\n(function(){\n  'use strict';\n  var L=window.RW_OwnerLicense;\n  if(!L)throw new Error('RW_OWNER_LICENSE_UNAVAILABLE');\n  L.render=function(){\n    if(!RW_STATE.app.currentUser||RW_STATE.app.currentUser.isOwner!==true)return Promise.reject(new Error('OWNER_ONLY'));\n    var c=byId('rw-page-container');if(!c)return Promise.resolve();\n    setHeader('إدارة الترخيص','Owner-only license control');\n    var p=RW_STATE.app.ownerProfile||{},state=RW_STATE.app.licenseState||'unknown',active=['active','Active','licensed'].indexOf(state)>=0;\n    var badge=active?'ساري':'يحتاج مراجعة',badgeClass=active?'background:#dcfce7;color:#166534':'background:#fef3c7;color:#92400e';\n    var escDate=function(v){return v?esc(new Date(v).toLocaleDateString('ar-EG')):'—';};\n    safeHTML(c,'<div class="rw-card" style="padding:28px;max-width:1100px;margin:auto"><div style="display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap"><div><div style="font-size:12px;color:#64748b;font-weight:800">حالة ترخيص المؤسسة</div><h2 style="margin:5px 0 0;font-size:28px;font-weight:900">'+esc(RW_STATE.app.company&&RW_STATE.app.company.name||'الشركة الحالية')+'</h2></div><span style="padding:9px 15px;border-radius:999px;font-weight:900;'+badgeClass+'">'+badge+'</span></div><div class="rw-grid2" style="margin-top:22px"><div class="rw-card"><div class="rw-muted">حالة الترخيص</div><strong style="display:block;margin-top:6px;font-size:18px">'+esc(state)+'</strong></div><div class="rw-card"><div class="rw-muted">مالك الحساب</div><strong style="display:block;margin-top:6px;font-size:18px">'+esc(p.owner_name||RW_STATE.app.currentUser.email||'—')+'</strong></div><div class="rw-card"><div class="rw-muted">البريد</div><strong style="display:block;margin-top:6px;font-size:16px">'+esc(p.owner_email||RW_STATE.app.currentUser.email||'—')+'</strong></div><div class="rw-card"><div class="rw-muted">نهاية التجربة</div><strong style="display:block;margin-top:6px;font-size:18px">'+escDate(p.trial_end_date)+'</strong></div><div class="rw-card"><div class="rw-muted">نهاية الاشتراك</div><strong style="display:block;margin-top:6px;font-size:18px">'+escDate(p.subscription_end_date)+'</strong></div></div><div class="rw-notice rw-notice-ok" style="margin-top:20px">بيانات الترخيص للعرض والتحقق فقط، ومصدرها السياق الموثق للمالك والشركة الحالية.</div></div>');\n    return Promise.resolve();\n  };\n  L.__renderContract='owner-profile-read-only';\n})();\n'''
-          assert s.count(anchor)==1
-          assert 'L.__renderContract=\'owner-profile-read-only\';' not in s
-          s=s.replace(anchor,anchor+block,1); changes.append('OWNER_LICENSE_RENDER')
-          marker='<!-- RAWAEA NEW-MAIN SINGLE-FILE GOLD-DIAMOND SURGICAL CLOSURE v1 -->'
-          assert marker not in s
-          s=s.replace('</script>','\n'+marker+'\n</script>',1); changes.append('CLOSURE_MARKER')
-          assert s.count("await window.RW_Auth.enterSystem(authUser);")==1
-          assert "await window.RW_Auth.enterSystem();" not in s
-          assert 'RW_OwnerLicense.render=function' in s and "license:[window.RW_OwnerLicense,'render']" in s
-          for forbidden in ['../manifest.json','RAWAEA_TARGET_SW_COORDINATOR','register-sw.js',"serviceWorker.register('./sw.js'",'./pos.html','./telesales.html','./buyer.html','./vouchers.html','./picker.html','./loader.html','./driver.html','./Returns.html','./unloader.html']:
-              assert forbidden not in s, f'REMAINS:{forbidden}'
-          class P(__import__('html.parser').parser.HTMLParser):
-              def __init__(self): super().__init__(); self.stack=[]
-              def handle_starttag(self,t,a):
-                  if t not in {'meta','link','input','img','br','hr','source','area','base','embed','param','track','wbr'}: self.stack.append(t)
-              def handle_endtag(self,t):
-                  if self.stack and self.stack[-1]==t:self.stack.pop()
-          q=P();q.feed(s);assert not q.stack,q.stack
-          scripts=re.findall(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*?)</script>',s,re.I);assert scripts
-          Path('/tmp/newmain.js').write_text('\\n'.join(scripts),encoding='utf-8')
-          rr=subprocess.run(['node','--check','/tmp/newmain.js'],capture_output=True,text=True);assert rr.returncode==0,rr.stderr
-          p.write_text(s,encoding='utf-8')
-          print('PATCH='+'|'.join(changes));print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest())
-          PY
-      - name: Browser forensic gate
-        shell: bash
-        run: |
-          set -euo pipefail
-          npx --yes playwright@1.55.0 install chromium >/dev/null 2>&1
-          cat >/tmp/gold.mjs <<'EOF'
-          import {chromium} from 'playwright'; import fs from 'fs';
-          const raw=fs.readFileSync('Current/PWA/New-main','utf8');
-          const html=raw.replace(/<script[^>]+src=["'][^"']+["'][^>]*><\\/script>/gi,'');
-          const b=await chromium.launch({headless:true});const p=await b.newPage();const errs=[];
-          p.on('pageerror',e=>errs.push('PAGE:'+e));p.on('console',m=>{if(m.type()==='error')errs.push('CONSOLE:'+m.text())});
-          await p.setContent(html,{waitUntil:'domcontentloaded'});
-          await p.evaluate(()=>{window.Swal={fire:async()=>({isConfirmed:false}),close(){},showLoading(){},getPopup(){return null}};window.Chart=function(){return{destroy(){}}};window.XLSX={read(){return{}},utils:{sheet_to_json(){return[]}}};window.supabase={auth:{getSession:async()=>({data:{session:null}}),getUser:async()=>({data:{user:null}}),onAuthStateChange(){return{data:{subscription:{unsubscribe(){}}}}}},from(){return{select(){return{eq(){return{maybeSingle:async()=>({data:null,error:null}),then:async()=>({data:[],error:null,count:0})}},order:async()=>({data:[],error:null}),limit:async()=>({data:[],error:null})}},insert:async()=>({data:null,error:null}),update(){return{eq(){return{eq:async()=>({data:[],error:null})}}}}}},rpc:async()=>({data:[],error:null})};window.RW_SUPABASE_CLIENT=window.supabase});
-          await p.waitForTimeout(250);
-          const base=await p.evaluate(()=>({locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',license:typeof RW_OwnerLicense==='object'&&typeof RW_OwnerLicense.render==='function',diamond:!!RW_122_CONTRACT,p163:document.querySelectorAll('meta[name="rw-p163-closure"]').length===1,single:document.querySelectorAll('meta[name="rw-single-file-deployment"]').length===1}));
-          for(const [k,v] of Object.entries(base))if(!v)throw new Error('BASE_FAIL:'+k);
-          const lic=await p.evaluate(async()=>{RW_STATE.app.currentUser={isOwner:true,email:'owner@test'};RW_STATE.app.company={name:'شركة اختبار'};RW_STATE.app.licenseState='active';RW_STATE.app.ownerProfile={owner_name:'Owner',owner_email:'owner@test'};await RW_Navigation.navigate('license');return{view:RW_STATE.app.currentView,text:document.getElementById('rw-page-container')?.textContent||''}});
-          if(lic.view!=='license'||!lic.text.includes('حالة الترخيص'))throw new Error('LICENSE_GATE_FAIL');
-          if(errs.length)throw new Error('RUNTIME_ERRORS:'+errs.join('|'));
-          console.log('BROWSER_GOLD_DIAMOND_PASS');console.log(JSON.stringify({base,lic,errs}));await b.close();
-          EOF
-          node /tmp/gold.mjs
-      - name: Commit target only
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'cto-surgical-login-dedup'
-          git config user.email 'cto-surgical-login-dedup@users.noreply.github.com'
-          git add -- Current/PWA/New-main
-          test "$(git diff --cached --name-only)" = 'Current/PWA/New-main'
-          git diff --cached --check
-          git commit -m '[CTO-NEWMAIN-CLOSED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED-100]'
-          git push origin HEAD:main
+      - name: Archive notice
+        run: echo 'Historical login/license surgical writer retired after forensic review. No target mutation.'
