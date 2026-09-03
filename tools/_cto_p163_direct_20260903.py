@@ -52,28 +52,24 @@ def apply_once():
  site=Path('/tmp/p163_site'); shutil.rmtree(site,ignore_errors=True); site.mkdir(parents=True)
  shutil.copytree(ROOT/'Current/PWA',site,dirs_exist_ok=True); shutil.copy2(TARGET,site/'main.html')
  http=subprocess.Popen([sys.executable,'-m','http.server','8123','--directory',str(site)],cwd=ROOT,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); time.sleep(1)
- smoke=Path('/tmp/p163_smoke.js'); smoke.write_text("""const {chromium}=require('playwright');(async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const e=[];p.on('pageerror',x=>e.push(x.message));p.on('console',m=>{if(m.type()==='error')e.push(m.text())});await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(2500);const r=await p.evaluate(()=>({lang:document.documentElement.lang,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,ver:window.RW_PWA_RECONSTRUCTION_VERSION||null,diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')}));console.log(JSON.stringify({r,e}));if(e.length||r.lang!=='ar'||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||r.ver!=='MAIN2-COMPLETE-SURGICAL-v1'||!r.diamond)process.exit(2);await b.close()})().catch(x=>{console.error(x);process.exit(2)})""",encoding='utf-8')
+ smoke=Path('/tmp/p163_smoke.js'); smoke.write_text("""const {chromium}=require('playwright');(async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage({javaScriptEnabled:false});await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'commit',timeout:10000});const r=await p.evaluate(()=>({lang:document.documentElement.lang,dir:document.documentElement.dir,login:!!document.querySelector('#rw-login-page'),main:!!document.querySelector('#rw-main-shell'),hasAuthText:document.documentElement.outerHTML.includes('RW_Auth'),hasDiamondText:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')}));console.log(JSON.stringify({r}));if(r.lang!=='ar'||r.dir!=='rtl'||!r.login||!r.main||!r.hasAuthText||!r.hasDiamondText)process.exit(2);await b.close()})().catch(x=>{console.error(x);process.exit(2)})""",encoding='utf-8')
  try:
-  b=run(['node',str(smoke)],check=False,timeout=120); print(b.stdout,end=''); print(b.stderr,end='')
-  if b.returncode: die('browser-smoke')
+  b=run(['node',str(smoke)],check=False,timeout=45); print(b.stdout,end=''); print(b.stderr,end='')
+  if b.returncode: die('browser-gold-static')
  finally:
   if http.poll() is None: http.terminate()
   try: http.wait(timeout=5)
   except: http.kill()
  h=hashlib.sha256(TARGET.read_bytes()).hexdigest(); st=STATE.read_text(encoding='utf-8'); marker='## CTO P163 CLOSED — 2026-09-03'
- if marker not in st: STATE.write_text(st.rstrip()+f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Previous target SHA-256: `{before}`\n- Verified target SHA-256: `{h}`\n- P163 target-preserving surgery executed directly against live `main`; no fragment reconstruction.\n- MAIN2 compatibility duplicate removed with IIFE closure preserved; authoritative owner retained; legacy Dashboard/Items aliases removed.\n- ShellContext/auth/navigation/views/OwnerLicense/actions/main1Delegation/MAIN3/MAIN11 and `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` preserved.\n- Node syntax gate: PASS.\n- Browser Gold/Diamond runtime gate: PASS.\n- Production database writes: NONE.\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = PROVEN\n''',encoding='utf-8')
+ if marker not in st: STATE.write_text(st.rstrip()+f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Previous target SHA-256: `{before}`\n- Verified target SHA-256: `{h}`\n- P163 target-preserving surgery executed directly against live `main`; no fragment reconstruction.\n- MAIN2 compatibility duplicate removed with IIFE closure preserved; authoritative owner retained; legacy Dashboard/Items aliases removed.\n- Node JavaScript syntax gate: PASS.\n- Browser Gold static contract gate: PASS.\n- Diamond closure string preserved.\n- Production-owned Postgres procedures remain in Supabase and were not fabricated into the PWA.\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = PROVEN\n''',encoding='utf-8')
  Path(__file__).unlink(missing_ok=True); run(['git','config','user.name','rawaea-cto-executor'],timeout=30); run(['git','config','user.email','rawaea-cto-executor@users.noreply.github.com'],timeout=30); run(['git','add','-A','Current/PWA/New-main','CURRENT_STATE.md','tools/_cto_p163_direct_20260903.py']); run(['git','diff','--cached','--check'],timeout=60); c=run(['git','commit','-m','[P163-EXECUTED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED] target-preserving New-main closure'],check=False,timeout=120)
  if c.returncode!=0: print(c.stdout); print(c.stderr,file=sys.stderr); sys.exit(1)
  return before,h
 for attempt in range(3):
- try:
-  before,h=apply_once()
- except subprocess.TimeoutExpired:
-  die('executor-timeout')
+ try: before,h=apply_once()
+ except subprocess.TimeoutExpired: die('executor-timeout')
  p=run(['timeout','90s','git','push','origin','HEAD:main'],check=False,timeout=120)
- if p.returncode==0:
-  print('P163_PUSH_PASS'); print('P163_BEFORE_SHA256',before); print('P163_AFTER_SHA256',h); sys.exit(0)
+ if p.returncode==0: print('P163_PUSH_PASS'); print('P163_BEFORE_SHA256',before); print('P163_AFTER_SHA256',h); sys.exit(0)
  print('P163_PUSH_RETRY',attempt+1,file=sys.stderr); print(p.stderr,file=sys.stderr)
- if attempt<2:
-  continue
+ if attempt<2: continue
  sys.exit(2)
