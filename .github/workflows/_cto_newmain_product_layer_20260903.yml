@@ -1,0 +1,108 @@
+name: CTO New-main Product UX One Pass 2026-09-03
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  close:
+    if: github.event.head_commit.message == '[CTO-UX-ONEPASS] Persist New-main product UX closure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: main, fetch-depth: 2}
+      - name: Patch only Current/PWA/New-main
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          assert len(s.encode())>500000
+          marker='<!-- RAWAEA UX PRODUCT LAYER 2026-09-03 -->'
+          assert marker not in s,'UX_LAYER_ALREADY_PRESENT'
+          layer=r'''<!-- RAWAEA UX PRODUCT LAYER 2026-09-03 -->
+          <style>
+          .rw-login-title{font-size:64px!important;line-height:1.15!important}
+          .rw-login-card{padding:48px!important;border-radius:36px!important;position:relative;overflow:hidden}
+          .rw-login-card:before{content:"";position:absolute;inset:0 0 auto 0;height:7px;background:linear-gradient(90deg,#2563eb,#06b6d4);z-index:2}
+          .rw-login-logo{width:120px!important;height:120px!important;border-radius:30px!important;overflow:hidden;position:relative;box-shadow:0 18px 38px rgba(37,99,235,.22);margin-bottom:18px!important}
+          .rw-login-brand-image{width:100%;height:100%;object-fit:contain;padding:10px}.rw-login-brand-fallback{display:grid;place-items:center;width:100%;height:100%;font-size:44px;font-weight:900}
+          .rw-company-name{font-size:34px!important}.rw-company-description{font-size:13px!important}.rw-login-form{gap:24px!important}.rw-input{height:56px!important}.rw-login-btn{height:64px!important;border-radius:16px!important}
+          .rw-form-label{display:flex;align-items:center;gap:7px}.rw-form-group:first-child .rw-form-label:before{content:"\\f007";font-family:"Font Awesome 6 Free";font-weight:900}.rw-form-group:nth-child(2) .rw-form-label:before{content:"\\f023";font-family:"Font Awesome 6 Free";font-weight:900}
+          .rw-login-footer{margin-top:8px!important}.rw-sidebar-user{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border-radius:14px;background:#f8fafc;border:1px solid #f1f5f9}.rw-sidebar-user-avatar{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#0ea5e9,#2563eb);color:#fff;display:grid;place-items:center;font-weight:900;flex:0 0 auto}.rw-sidebar-user-name{font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rw-sidebar-user-role{font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rw-sidebar-link.active{background:var(--pl)!important;color:var(--p)!important;box-shadow:0 4px 12px rgba(37,99,235,.10)}
+          @media(max-width:1100px){.rw-login-title{font-size:42px!important}.rw-login-card{padding:36px!important}}
+          @media(max-width:650px){.rw-login-title{font-size:34px!important}.rw-login-card{padding:28px 22px!important}.rw-login-logo{width:104px!important;height:104px!important}.rw-company-name{font-size:28px!important}}
+          </style>
+          <script>
+          (function(){'use strict';
+            function by(id){return document.getElementById(id)}
+            function setBrand(name,logo){var n=document.querySelector('.rw-company-name');if(n)n.textContent=name||'الروائع ERP';var im=by('rw-login-brand-image'),fb=by('rw-login-brand-fallback');if(im&&logo){im.src=logo;im.classList.remove('hidden');if(fb)fb.classList.add('hidden')}else{if(im)im.classList.add('hidden');if(fb)fb.classList.remove('hidden')}var sn=by('rw-sidebar-company-name');if(sn&&name)sn.textContent=name;var si=by('rw-sidebar-brand-logo');if(si&&logo)si.src=logo}
+            function syncUi(){var desc=document.querySelector('.rw-login-description');if(desc)desc.textContent='نظام ERP احترافي متكامل لإدارة المبيعات والمخزون والحسابات واللوجستيات والتوزيع.';var d=document.querySelector('.rw-company-description');if(d)d.textContent='Enterprise Management System';var f=document.querySelector('.rw-login-footer');if(f)f.textContent='جميع الحقوق محفوظة © الروائع ERP 2026';var u=by('rw-username'),pw=by('rw-password');if(u){u.placeholder='أدخل بريدك الإلكتروني';u.setAttribute('aria-label','البريد الإلكتروني')}if(pw){pw.placeholder='أدخل كلمة المرور';pw.setAttribute('aria-label','كلمة المرور')}}
+            function addLogoShell(){var logo=by('rw-login-logo');if(!logo||by('rw-login-brand-image'))return;logo.innerHTML='<img id="rw-login-brand-image" class="rw-login-brand-image hidden" alt="شعار الشركة"><span id="rw-login-brand-fallback" class="rw-login-brand-fallback">ر</span>'}
+            function addSidebarUser(u){var top=document.querySelector('.rw-sidebar-top');if(!top||by('rw-sidebar-user-name'))return;var box=document.createElement('div');box.className='rw-sidebar-user';box.innerHTML='<div id="rw-sidebar-user-avatar" class="rw-sidebar-user-avatar">م</div><div><div id="rw-sidebar-user-name" class="rw-sidebar-user-name">مستخدم</div><div id="rw-sidebar-user-role" class="rw-sidebar-user-role">—</div></div>';top.appendChild(box);var name=(u&&u.name)||'مستخدم';by('rw-sidebar-user-name').textContent=name;by('rw-sidebar-user-role').textContent=(u&&u.role)||'—';by('rw-sidebar-user-avatar').textContent=name.trim().charAt(0)||'م'}
+            window.RW_UX=window.RW_UX||{};RW_UX.syncBrand=setBrand;RW_UX.syncUi=syncUi;
+            try{addLogoShell();syncUi();var cachedName=localStorage.getItem('rawaea_company_name')||'الروائع ERP',cachedLogo=localStorage.getItem('rawaea_company_logo')||'';setBrand(cachedName,cachedLogo);var rem=localStorage.getItem('rawaea_remember_email')||'';if(rem&&by('rw-username')){by('rw-username').value=rem;if(by('rw-remember'))by('rw-remember').checked=true}}catch(e){}
+            if(window.RW_Auth){var enter=RW_Auth.enterSystem;RW_Auth.enterSystem=async function(authUser){var out=await enter.call(this,authUser);try{var c=RW_STATE.app.company||{},name=c.name||'الروائع ERP',logo=c.logo||'';setBrand(name,logo);try{localStorage.setItem('rawaea_company_name',name);if(logo)localStorage.setItem('rawaea_company_logo',logo)}catch(e){}addSidebarUser(RW_STATE.app.currentUser)}catch(e){}return out};var login=RW_Auth.login;RW_Auth.login=async function(username,password){try{if(by('rw-remember')&&by('rw-remember').checked)localStorage.setItem('rawaea_remember_email',username);else localStorage.removeItem('rawaea_remember_email')}catch(e){}return login.call(this,username,password)};if(typeof RW_Auth.forgotPassword!=='function'&&typeof window.resetPassword==='function')RW_Auth.forgotPassword=window.resetPassword}
+            if(window.RW_Navigation){var nav=RW_Navigation.navigate;RW_Navigation.navigate=function(view){var out=nav.call(this,view);setTimeout(function(){document.querySelectorAll('#rw-sidebar-nav [data-view]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-view')===view)})},0);return out}}
+          })();
+          </script>'''
+          s=s.replace('</body>',layer+'\n</body>',1)
+          p.write_text(s,encoding='utf-8')
+          print('UX_LAYER_PATCHED')
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,tempfile,subprocess,json
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          required=['RAWAEA UX PRODUCT LAYER 2026-09-03','rw-login-brand-image','RW_UX=','rawaea_company_name','rawaea_company_logo','rawaea_remember_email','window.RW_Auth=','window.RW_Navigation=','window.RW_Views=','window.RW_ShellContext=','window.RW_OwnerLicense=','window.safeText=safeText;','RAWAEA_MAIN_SIDEBAR_COMPLETENESS_FINAL_V1']
+          missing=[x for x in required if x not in s];assert not missing,missing
+          assert s.count("byId('rw-login-form').addEventListener('submit'")==1
+          assert s.count('rw-p163-closure')==1 and s.count('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')==1 and s.count('__RAWAEA_MAIN11_GOVERNED_CLOSED_V2__')==1
+          m=re.search(r'<!-- RAWAEA UX PRODUCT LAYER 2026-09-03 -->\\s*<style>[\\s\\S]*?</style>\\s*<script>([\\s\\S]*?)</script>',s)
+          assert m,'UX_LAYER_NOT_EXTRACTED'
+          f=Path(tempfile.mkstemp(suffix='.js')[1]);f.write_text(m.group(1),encoding='utf-8')
+          try:
+              r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+              assert r.returncode==0,r.stderr
+          finally:f.unlink(missing_ok=True)
+          mf=json.loads(Path('Current/PWA/manifest.json').read_text(encoding='utf-8'));assert (mf.get('start_url'),mf.get('scope'),mf.get('dir'),mf.get('lang'))==('./New-main','./','rtl','ar')
+          print('STATIC_UX_ONEPASS=PASS')
+          PY
+          git add Current/PWA/New-main
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
+      - name: Browser product gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
+          rm -rf /tmp/rawaea && mkdir -p /tmp/rawaea/Current/PWA && cp Current/PWA/New-main /tmp/rawaea/Current/PWA/New-main && cp Current/PWA/manifest.json /tmp/rawaea/Current/PWA/manifest.json
+          cat >/tmp/http.py <<'PY'
+          from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
+          import os
+          class H(SimpleHTTPRequestHandler):
+              def guess_type(self,p): return 'text/html; charset=utf-8' if p.endswith('/New-main') else super().guess_type(p)
+              def log_message(self,*a): pass
+          os.chdir('/tmp/rawaea');ThreadingHTTPServer(('127.0.0.1',8123),H).serve_forever()
+          PY
+          python3 /tmp/http.py >/tmp/http.log 2>&1 & echo $! >/tmp/pid;trap 'kill $(cat /tmp/pid) 2>/dev/null || true' EXIT
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage({serviceWorkers:'block'});const pe=[],ce=[];p.on('pageerror',e=>pe.push(String(e.message||e)));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(900);const r=await p.evaluate(()=>{const q=s=>Array.from(document.querySelectorAll(s)).map(x=>x.getAttribute('data-view')).filter(Boolean),l=document.querySelector('link[rel="manifest"]'),card=document.querySelector('.rw-login-card'),logo=document.querySelector('.rw-login-logo'),title=document.querySelector('.rw-login-title'),desc=document.querySelector('.rw-login-description'),footer=document.querySelector('.rw-login-footer'),company=document.querySelector('.rw-company-name'),sub=document.querySelector('.rw-company-description'),u=document.getElementById('rw-username'),pw=document.getElementById('rw-password');const menu=(window.RW_Navigation&&RW_Navigation.menuTree)||[];const views=[];(function walk(a){(a||[]).forEach(x=>{if(x.view)views.push(x.view);if(Array.isArray(x.submenu))walk(x.submenu)})})(menu);return{locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',login:!!document.getElementById('rw-login-form'),brand:!!document.getElementById('rw-login-brand-image'),sidebar:!!document.getElementById('rw-sidebar'),nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',auth:typeof RW_Auth==='object',shell:typeof RW_ShellContext==='object',owner:typeof RW_OwnerLicense==='object',safeText:typeof window.safeText==='function',reset:typeof window.resetPassword==='function',ux:typeof RW_UX==='object',sidebarContract:document.getElementById('RAWAEA_MAIN_SIDEBAR_COMPLETENESS_FINAL_V1')!==null,menuViews:views,menuRendered:q('#rw-sidebar-nav [data-view]'),titleSize:parseFloat(getComputedStyle(title).fontSize),cardPad:parseFloat(getComputedStyle(card).paddingTop),logoSize:logo.getBoundingClientRect().width,desc:desc?.textContent,footer:footer?.textContent,company:company?.textContent,sub:sub?.textContent,uPlaceholder:u?.placeholder,pwPlaceholder:pw?.placeholder,manifest:l?.getAttribute('href')||''}});console.log('PRODUCT_BROWSER='+JSON.stringify({r,pe,ce}));await b.close();const required=['dashboard','telesales','customers','pos','orders','runsheets','suppliers','purchases','receiving','items','inventory','vouchers','picking','loading','delivery','return','unloading','branches','transfer','direct-sale','direct-return','supplier-return','vehicle-count','branch-count','general-count','finance','settlement','reports-dashboard','reports-detailed','reports-comprehensive','reports','audit','hr','crm','users','roles','license','settings','notifications'];const missing=required.filter(v=>!r.menuViews.includes(v));if(pe.length||ce.length||!r.locale||!r.login||!r.brand||!r.sidebar||!r.nav||!r.views||!r.auth||!r.shell||!r.owner||!r.safeText||!r.reset||!r.ux||!r.sidebarContract||missing.length||r.titleSize<60||r.cardPad<40||r.logoSize<100||r.manifest!=='./manifest.json'||r.desc!=='نظام ERP احترافي متكامل لإدارة المبيعات والمخزون والحسابات واللوجستيات والتوزيع.'||r.footer!=='جميع الحقوق محفوظة © الروائع ERP 2026'||r.company!=='الروائع ERP'||r.sub!=='Enterprise Management System'||!r.uPlaceholder||!r.pwPlaceholder){console.error('PRODUCT_BROWSER_FAIL',JSON.stringify({missing,requiredChecks:r,pe,ce}));process.exit(2)} })().catch(e=>{console.error(e.stack||e);process.exit(2)})
+          NODE
+          echo PRODUCT_BROWSER_GATE=PASS
+      - name: Persist target only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add Current/PWA/New-main
+          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
+          git config user.name 'CTO Controlled Writer'
+          git config user.email 'cto-controlled-writer@users.noreply.github.com'
+          git commit -m '[CTO-UX] Persist New-main product layer only'
+          git push origin HEAD:main
+          echo PERSISTED_TARGET_ONLY=PASS
