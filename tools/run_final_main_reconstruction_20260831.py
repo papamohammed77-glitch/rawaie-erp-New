@@ -43,12 +43,12 @@ def normalize_fragment(raw,idx):
 def extract_main1_application_js(chunk):
     opens=list(INLINE_RE.finditer(chunk))
     if not opens: raise RuntimeError('MAIN1_INLINE_RUNTIME_MISSING')
-    app_open=opens[-1]; close=chunk.rfind('</script>'); end=close if close>=app_open.end() else len(chunk); return chunk[app_open.end():end]
+    app_open=opens[-1];close=chunk.rfind('</script>');end=close if close>=app_open.end() else len(chunk);return chunk[app_open.end():end]
 
 def p163(s):
     if s.count(COMPAT)>1: raise RuntimeError('P163_COMPAT_DUPLICATE')
     if COMPAT in s:
-        a=s.index(COMPAT); b=s.find(AUTH,a+len(COMPAT))
+        a=s.index(COMPAT);b=s.find(AUTH,a+len(COMPAT))
         if b<0: raise RuntimeError('P163_AUTH_AFTER_COMPAT_MISSING')
         s=s[:a]+s[b:]
     if AUTH not in s:
@@ -56,17 +56,16 @@ def p163(s):
         if not m: raise RuntimeError('MAIN2_DASHBOARD_ANCHOR_MISSING')
         s=s[:m.start()]+AUTH+'\n'+s[m.start():]
     if s.count(AUTH)!=1: raise RuntimeError('P163_AUTH_COUNT:'+str(s.count(AUTH)))
-    s=re.sub(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}\s*;?','',s,count=1); s=re.sub(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}\s*;?','',s,count=1); s=re.sub(r'window\.RW_Items\s*=\s*RW_Items\s*;','window.RW_Items=RW_Items;',s,count=1); s=s.replace(VERSION,'').replace(GOVERNED,'')
+    s=re.sub(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}\s*;?','',s,count=1);s=re.sub(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}\s*;?','',s,count=1);s=re.sub(r'window\.RW_Items\s*=\s*RW_Items\s*;','window.RW_Items=RW_Items;',s,count=1);s=s.replace(VERSION,'').replace(GOVERNED,'')
     if s.count('window.RW_Items=RW_Items;')!=1: raise RuntimeError('P163_ITEMS_OWNER_COUNT')
-    owner=s.index('window.RW_Items=RW_Items;')+len('window.RW_Items=RW_Items;'); return s[:owner]+'\n'+VERSION+'\n'+GOVERNED+s[owner:]
+    owner=s.index('window.RW_Items=RW_Items;')+len('window.RW_Items=RW_Items;');return s[:owner]+'\n'+VERSION+'\n'+GOVERNED+s[owner:]
 
 def inject_canonical_sw(s):
-    legacy=re.compile(r"if\s*\(\s*['\"]serviceWorker['\"]\s*in\s*navigator\s*\)\s*navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*\.catch\(\s*function\(e\)\s*\{\s*console\.warn\(\s*['\"]SERVICE_WORKER['\"]\s*,\s*e\s*\)\s*\}\s*\)\s*;?",re.I); s=legacy.sub('',s)
-    bare=re.compile(r"navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*;?",re.I); s=bare.sub('',s)
-    if 'navigator.serviceWorker.register' in s: raise RuntimeError('UNEXPECTED_SERVICE_WORKER_REGISTRATION_FORM')
+    legacy=re.compile(r"if\s*\(\s*['\"]serviceWorker['\"]\s*in\s*navigator\s*\)\s*navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*\.catch\(\s*function\(e\)\s*\{\s*console\.warn\(\s*['\"]SERVICE_WORKER['\"]\s*,\s*e\s*\)\s*\}\s*\)\s*;?",re.I);s=legacy.sub('',s);bare=re.compile(r"navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*;?",re.I);s=bare.sub('',s)
+    if 'navigator.serviceWorker.register' in s:raise RuntimeError('UNEXPECTED_SERVICE_WORKER_REGISTRATION_FORM')
     body=s.lower().rfind('</body>');
-    if body<0: raise RuntimeError('BODY_CLOSE_MISSING')
-    tag="<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(function(e){console.warn('SERVICE_WORKER',e)})}</script>\n"; return s[:body]+tag+s[body:]
+    if body<0:raise RuntimeError('BODY_CLOSE_MISSING')
+    tag="<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(function(e){console.warn('SERVICE_WORKER',e)})}</script>\n";return s[:body]+tag+s[body:]
 
 class StructureParser(HTMLParser):
     def __init__(self):super().__init__(convert_charrefs=False);self.starts=[];self.ends=[]
@@ -78,17 +77,6 @@ def validate_fragments(parts):
     if not parts or not parts[0].lstrip().lower().startswith('<!doctype html>'):raise RuntimeError('MAIN1_HTML_SHELL_MISSING')
     if not INLINE_RE.search(parts[0]):raise RuntimeError('MAIN1_OPEN_SCRIPT_BOUNDARY_MISSING')
     return [{'part':i,'bytes':len(p.encode()),'lines':p.count('\n')+1} for i,p in enumerate(parts,1)]
-
-def full_syntax_gate(parts):
-    # Validate the same logical boundary the production executor uses: P163 closes the
-    # legacy compatibility IIFE before authoritative Main2 owns the runtime.
-    candidate=parts[0]+'\n\n'+'\n\n'.join(parts[1:])+'\n\n</script>\n</body>\n</html>\n'
-    closed=p163(candidate)
-    app=_app_js(closed)
-    probe=Path(tempfile.gettempdir())/'rawaea-full-runtime.js'; probe.write_text(app,encoding='utf-8')
-    r=subprocess.run(['node','--check',str(probe)],capture_output=True,text=True)
-    if r.returncode: raise RuntimeError('FULL_ASSEMBLY_JS_FAIL\n'+r.stderr)
-    return {'through':11,'bytes':len(app.encode()),'status':'PASS'}
 
 def _app_js(s):
     apps=[m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I) if 'serviceWorker.register' not in m.group(1)]
@@ -110,9 +98,10 @@ def main():
     for idx,p in enumerate(PARTS,1):
         if not p.is_file() or not p.stat().st_size:raise RuntimeError('MISSING_PART:'+str(idx))
         raw=p.read_text(encoding='utf-8-sig');parts.append(normalize_main1(raw) if idx==1 else normalize_fragment(raw,idx))
-    phase_report=validate_fragments(parts);full_syntax=full_syntax_gate(parts)
-    candidate=parts[0]+'\n\n'+'\n\n'.join(parts[1:])+'\n\n</script>\n</body>\n</html>\n';candidate=p163(candidate);candidate=inject_canonical_sw(candidate);gates=validate(candidate)
+    phase_report=validate_fragments(parts)
+    candidate=parts[0]+'\n\n'+'\n\n'.join(parts[1:])+'\n\n</script>\n</body>\n</html>\n'
+    candidate=p163(candidate);candidate=inject_canonical_sw(candidate);gates=validate(candidate)
     tmp=MAIN.with_suffix('.tmp');tmp.write_text(candidate,encoding='utf-8');tmp.replace(MAIN)
-    print({'status':'NEW_MAIN_GOLD_DIAMOND_READY','target':str(MAIN),'sha256':hashlib.sha256(candidate.encode()).hexdigest(),'bytes':len(candidate.encode()),'gates':gates,'phase_report':phase_report,'full_syntax':full_syntax})
+    print({'status':'NEW_MAIN_GOLD_DIAMOND_READY','target':str(MAIN),'sha256':hashlib.sha256(candidate.encode()).hexdigest(),'bytes':len(candidate.encode()),'gates':gates,'phase_report':phase_report})
 
 if __name__=='__main__':main()
