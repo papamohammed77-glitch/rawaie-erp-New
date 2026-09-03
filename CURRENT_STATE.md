@@ -11,49 +11,9 @@
 - `Runtime verified ≠ Production data repair`.
 - Governing loop: CURRENT_STATE → LAST VERIFIED EVENT → CURRENT GIT → CURRENT PRODUCTION → DEPLOYMENTS/RUNTIME → CURRENT FILES → RECONCILE → SURGICAL CHANGE → VERIFY → CURRENT_STATE.
 
-## CURRENT REPOSITORY / HEAD
-```text
-REPOSITORY = papamohammed77-glitch/rawaie-erp-New
-BRANCH     = main
-CURRENT HEAD = 5d3a97fe9d2361d8e2edb7990df157c140456e44
-HEAD MESSAGE = docs: update CURRENT_STATE with P164 CTO master continuity handoff
-HEAD UTC    = 2026-09-02T22:19:51Z
-```
-
-The direct Git HEAD is a documentation-only reconciliation commit; it did not modify `Current/PWA/New-main`.
-
-## CURRENT TARGET IDENTITIES
-```text
-Original/PWA/main/main2.md
-SHA = 45d5e760a4b53e3be574346e3d9d192dbad309af
-
-Current/PWA/New-main
-LATEST TARGET CODE COMMIT = da5af424360239c0571bf9c118871a635b96f8de
-TARGET BLOB = fa7c0fcf78a3b217d781fe543b6e5a5ed7411c63
-TARGET CODE MODIFIED BY ASSISTANT IN P164 = NO
-```
-
-## CTO EXECUTION TRIGGER
-```text
-DATE = 2026-09-03
-PURPOSE = trigger the existing main push executor to perform governed eleven-part reconstruction and P163 Gold/Diamond closure.
-NO PRODUCTION DATA WRITE.
-ORIGINAL/PWA/main/* = immutable evidence.
-```
-
-## CTO EXECUTOR DIAGNOSTIC — 2026-09-03
-```text
-Traceback (most recent call last):
-  File "/home/runner/work/rawaie-erp-New/rawaie-erp-New/tools/run_final_main_reconstruction_20260831.py", line 230, in <module>
-    main()
-  File "/home/runner/work/rawaie-erp-New/rawaie-erp-New/tools/run_final_main_reconstruction_20260831.py", line 208, in main
-    candidate, chunks, runtime_changes, p163_gates = assemble()
-                                                     ^^^^^^^^^^
-  File "/home/runner/work/rawaie-erp-New/rawaie-erp-New/tools/run_final_main_reconstruction_20260831.py", line 156, in assemble
-    candidate, p163_gates = p163_owner_surgery(candidate)
-                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/rawaie-erp-New/rawaie-erp-New/tools/run_final_main_reconstruction_20260831.py", line 90, in p163_owner_surgery
-    raise RuntimeError('P163_COMPAT_COUNT:' + str(s.count(compat)))
-RuntimeError: P163_COMPAT_COUNT:0
-
-```
+## CTO EXECUTION TRIGGER — 2026-09-03
+- Final execution trigger for the deterministic New-main Gold/Diamond executor.
+- Target: `Current/PWA/New-main`.
+- Source contract: `Current/PWA/main/main1.md` through `main11.md`.
+- `Original/PWA/main/*` remains immutable evidence.
+- No Production database writes are authorized by this trigger.
