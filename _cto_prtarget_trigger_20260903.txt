@@ -1,1 +1,1 @@
-Trigger-only PR synchronization after deterministic cumulative-boundary diagnosis was armed on main.
+Trigger-only PR synchronization after main1 runtime-boundary fix.
