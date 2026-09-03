@@ -1,0 +1,74 @@
+name: CTO P163 Independent Gold Diamond Verify
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Static contract gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f Current/PWA/New-main
+          grep -F "window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';" Current/PWA/New-main
+          grep -F "// MAIN2_GOVERNED_CLOSED:v1" Current/PWA/New-main
+          grep -F "RAWAEA 122 DIAMOND CONTRACT CLOSURE v1" Current/PWA/New-main
+          grep -F "window.RW_Navigation=RW_Navigation;" Current/PWA/New-main
+          grep -F "window.RW_Auth=RW_Auth;" Current/PWA/New-main
+          grep -F "window.RW_Items=RW_Items;" Current/PWA/New-main
+          ! grep -F "/* RAWAEA MAIN2 COMPATIBILITY */" Current/PWA/New-main
+          ! grep -F "window.RW_Dashboard={render:renderDashboard};" Current/PWA/New-main
+          ! grep -F "window.RW_Items={render:renderItems};" Current/PWA/New-main
+          grep -F "post_stock_movement" Current/PWA/New-main
+          grep -F "reserve_stock" Current/PWA/New-main
+          grep -F "get_trial_balance" Current/PWA/New-main
+          grep -F "get_profit_loss" Current/PWA/New-main
+          grep -F "get_balance_sheet" Current/PWA/New-main
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,hashlib
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          inline=re.findall(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*?)</script>',s,re.I)
+          assert len(inline)==1, f'INLINE_SCRIPT_COUNT={len(inline)}'
+          Path('/tmp/newmain.js').write_text(inline[0],encoding='utf-8')
+          assert s.count("window.RW_Dashboard=RW_Dashboard;")==1
+          assert s.count("window.RW_Items=RW_Items;")==1
+          print('TARGET_BYTES',len(s.encode()))
+          print('TARGET_SHA256',hashlib.sha256(s.encode()).hexdigest())
+          print('GOLD_STATIC_PASS')
+          PY
+          node --check /tmp/newmain.js
+          echo GOLD_SYNTAX_PASS
+      - name: Diamond browser document gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          rm -rf /tmp/p163site && mkdir -p /tmp/p163site
+          cp -a Current/PWA/. /tmp/p163site/
+          cp Current/PWA/New-main /tmp/p163site/main.html
+          python3 -m http.server 8123 --directory /tmp/p163site >/tmp/p163http.log 2>&1 & echo $! >/tmp/p163pid
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const b=await chromium.launch({headless:true});
+            const p=await b.newPage({javaScriptEnabled:false});
+            await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'commit',timeout:10000});
+            const r=await p.evaluate(()=>({lang:document.documentElement.lang,dir:document.documentElement.dir,login:!!document.querySelector('#rw-login-page'),shell:!!document.querySelector('#rw-main-shell'),diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),main2:document.documentElement.outerHTML.includes('MAIN2-COMPLETE-SURGICAL-v1')}));
+            console.log(JSON.stringify(r));
+            if(r.lang!=='ar'||r.dir!=='rtl'||!r.login||!r.shell||!r.diamond||!r.main2)process.exit(2);
+            await b.close();
+          })().catch(e=>{console.error(e);process.exit(2)});
+          NODE
+          kill "$(cat /tmp/p163pid)" 2>/dev/null || true
+          echo DIAMOND_BROWSER_PASS
