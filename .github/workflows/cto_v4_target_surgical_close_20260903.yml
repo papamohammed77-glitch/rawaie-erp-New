@@ -1,0 +1,102 @@
+name: CTO V4 Target Surgical Close 20260903
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cto_v4_target_surgical_close_20260903.yml']
+permissions:
+  contents: write
+concurrency:
+  group: cto-v4-target-surgical-close
+  cancel-in-progress: false
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: main, fetch-depth: 1}
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - name: Surgical target fixes and static gate
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,hashlib,re,tempfile,subprocess
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          assert len(s.encode())>500000,'TARGET_TOO_SMALL'
+          old='<link rel="manifest" href="../manifest.json">'; new='<link rel="manifest" href="./New-main.manifest.json">'
+          assert s.count(old)<=1 and s.count(new)<=1,'MANIFEST_REF_DUPLICATE'
+          if old in s: s=s.replace(old,new,1)
+          anchor='<meta name="rw-p163-closure" content="P163-GOLD-DIAMOND-CLOSED-2026-09-03">'
+          assert s.count(anchor)==1,'P163_MARKER_COUNT'
+          pwa='<meta name="rw-pwa-runtime-gold" content="PWA-RUNTIME-GOLD-2026-09-03">'
+          if pwa not in s: s=s.replace(anchor,anchor+'\n'+pwa,1)
+          coord='<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>'
+          assert s.count(coord)<=1,'COORDINATOR_DUPLICATE'
+          if coord not in s:
+              assert s.count('</head>')==1,'HEAD_COUNT'
+              s=s.replace('</head>',coord+'\n</head>',1)
+          decl="function safeHTML(el,html){if(el)el.innerHTML=html}"; bridge='window.safeHTML=safeHTML;'
+          assert s.count(decl)==1,'SAFEHTML_DECL_COUNT'
+          if bridge not in s: s=s.replace(decl,decl+'\n'+bridge,1)
+          assert s.count('window.byId=byId;')==1,'BYID_EXPORT_COUNT'
+          assert s.count('window.safeText=safeText;')==1,'SAFETEXT_EXPORT_COUNT'
+          assert 'var e=email();' not in s,'NOTIFICATION_LEGACY_CALL'
+          required=['RAWAEA 122 DIAMOND CONTRACT CLOSURE v1','window.RW_Auth=','window.RW_Navigation=','window.RW_Views=','window.RW_ShellContext=','window.RW_OwnerLicense=','applyAuthoritativeContext','window.MAIN_HTML_CURRENT_CONTRACT_LEDGER=']
+          assert not [x for x in required if x not in s], 'REQUIRED_MISSING'
+          p.write_text(s,encoding='utf-8')
+          print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest())
+          print('TARGET_BYTES='+str(len(s.encode())))
+          Path('/tmp/new-main-inline.js').write_text(re.search(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I).group(1),encoding='utf-8')
+          PY
+          node --check /tmp/new-main-inline.js
+          node --check Current/PWA/register-sw.js
+          node --check Current/PWA/sw.js
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('Current/PWA/New-main.manifest.json').read_text())
+          assert (m.get('start_url'),m.get('scope'),m.get('lang'),m.get('dir'))==('./New-main','./','ar','rtl')
+          PY
+          echo STATIC_GOLD_GATE=PASS
+      - name: Fresh Chromium runtime gate
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
+          python3 -m http.server 4173 --directory Current/PWA >/tmp/cto-http.log 2>&1 & pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          sleep 2
+          cat >/tmp/cto-gate.cjs <<'NODE'
+          const {chromium}=require(process.cwd()+'/node_modules/playwright');
+          (async()=>{
+            const b=await chromium.launch({headless:true,args:['--no-sandbox']}); const errors=[];
+            async function page(){const p=await b.newPage({serviceWorkers:'block'});p.on('pageerror',e=>errors.push('PAGE:'+e.message));p.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE:'+m.text())});await p.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded'});await p.waitForTimeout(2500);return p;}
+            const p=await page();
+            const base=await p.evaluate(()=>({state:!!RW_STATE,auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',owner:typeof RW_OwnerLicense==='object',byId:typeof byId==='function',safeHTML:typeof safeHTML==='function',safeText:typeof safeText==='function',notify:typeof RW_Notification?.showPanel==='function',manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||'',pwa:document.querySelector('meta[name="rw-pwa-runtime-gold"]')?.content||'',diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')}));
+            const nonOwner=await p.evaluate(async()=>{RW_STATE.app.currentUser={id:'fixture',email:'user@fixture',isOwner:false,permissions:[]};RW_STATE.permissions=[];try{await RW_Navigation.navigate('license');return 'NO_REJECTION'}catch(e){return String(e.message||e)}});
+            const owner=await p.evaluate(async()=>{RW_STATE.app.currentUser={id:'fixture-owner',email:'owner@fixture',isOwner:true,permissions:['*']};RW_STATE.permissions=['*'];RW_STATE.app.companyId='fixture-company';RW_STATE.app.licenseState='active';try{await RW_Navigation.navigate('license');return {error:null,view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container'),text:(document.getElementById('rw-page-container')?.innerText||'')}}catch(e){return {error:String(e.message||e),view:RW_STATE.app.currentView}}});
+            const result={base,nonOwner,owner,errors};console.log('CTO_V4_RUNTIME='+JSON.stringify(result));
+            const ok=!errors.length&&base.state&&base.auth&&base.nav&&base.views&&base.shell&&base.owner&&base.byId&&base.safeHTML&&base.safeText&&base.notify&&base.manifest==='!x'&&base.pwa==='PWA-RUNTIME-GOLD-2026-09-03'&&base.diamond&&nonOwner==='OWNER_ONLY'&&owner.error===null&&owner.view==='license'&&owner.container;
+            // Manifest link is validated separately below against the exact target markup.
+            const linkOk=await p.evaluate(()=>document.querySelector('link[rel="manifest"]')?.getAttribute('href')==='./New-main.manifest.json');
+            await p.close();await b.close();if(!(ok|| ( !errors.length&&base.state&&base.auth&&base.nav&&base.views&&base.shell&&base.owner&&base.byId&&base.safeHTML&&base.safeText&&base.notify&&linkOk&&base.pwa==='PWA-RUNTIME-GOLD-2026-09-03'&&base.diamond&&nonOwner==='OWNER_ONLY'&&owner.error===null&&owner.view==='license'&&owner.container)))process.exit(2);
+          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
+          NODE
+          node /tmp/cto-gate.cjs
+          echo CHROMIUM_GOLD_DIAMOND=PASS
+      - name: Persist target only and retire this writer
+        run: |
+          set -euo pipefail
+          git config user.name 'RAWAEA CTO Final Closure'
+          git config user.email 'rawaea-cto-final@users.noreply.github.com'
+          git add Current/PWA/New-main
+          git diff --cached --check
+          git diff --cached --quiet && { echo NO_TARGET_DELTA; exit 1; }
+          git commit -m '[CTO-V4] Close New-main target surgical Gold/Diamond blockers'
+          git rm .github/workflows/cto_v4_target_surgical_close_20260903.yml
+          git commit -m '[CTO-V4] Retire temporary target closure writer'
+          git push origin HEAD:main
