@@ -5,6 +5,8 @@ PARTS=Path('Current/PWA/main')
 TARGET=Path('Current/PWA/New-main')
 LEGACY=Path('Current/PWA/main.html')
 
+# CTO-EXECUTE-2026-09-03: canonical eleven-part reconstruction; no auxiliary app file.
+
 def sha(s): return hashlib.sha256(s.encode('utf-8')).hexdigest()
 
 def main():
@@ -20,6 +22,7 @@ def main():
             s=re.sub(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}",r"\1));}",s,count=1)
         if i>1 and re.search(r'^\s*<!doctype\b|^\s*</?(?:html|head|body)\b|</script>',s,re.I|re.M):
             raise RuntimeError('BAD_WRAPPER_MAIN'+str(i))
+        s=re.sub(r'</body>\s*|</html>\s*','',s,flags=re.I)
         chunks.append(s.rstrip())
     s='\n\n'.join(chunks)+'\n\n</script>\n</body>\n</html>\n'
     if not LEGACY.exists() or not LEGACY.stat().st_size: raise RuntimeError('LEGACY_MAIN_MISSING')
@@ -31,8 +34,7 @@ def main():
         a,b=s.index(compat),s.index(auth)
         if b<=a: raise RuntimeError('P163_OWNER_ORDER')
         s=s[:a]+s[b:]
-    for x in ('window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};'):
-        s=s.replace(x,'')
+    for x in ('window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};'): s=s.replace(x,'')
     owner='window.RW_Items=RW_Items;'; ver="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"; gov='// MAIN2_GOVERNED_CLOSED:v1'
     if s.count(owner)!=1: raise RuntimeError('P163_OWNER_EXPORT_COUNT:'+str(s.count(owner)))
     if ver in s or gov in s: raise RuntimeError('P163_MARKER_ALREADY_PRESENT')
@@ -46,7 +48,7 @@ def main():
     f=Path(tempfile.gettempdir())/'rawaea-new-main.js';f.write_text(apps[0],encoding='utf-8')
     r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
     if r.returncode:
-        print(r.stderr);raise RuntimeError('FINAL_JS_SYNTAX_FAIL')
+        print(r.stderr); raise RuntimeError('FINAL_JS_SYNTAX_FAIL')
     TARGET.write_text(s,encoding='utf-8')
     print({'status':'READY_TO_PERSIST','sha256':sha(s),'bytes':len(s.encode()),'p163':'closed','gold_diamond':'v7'})
 
