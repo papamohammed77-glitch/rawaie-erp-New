@@ -20,9 +20,14 @@ def normalize_main1(raw):
     raw = re.sub(r'(?m)^\s*const RW_Auth\s*=\s*', 'var RW_Auth = ', raw, count=1)
     raw = re.sub(r'(?m)^\s*const RW_Navigation\s*=\s*', 'var RW_Navigation = ', raw, count=1)
     opens = list(INLINE_RE.finditer(raw))
-    if not opens: raise RuntimeError('MAIN1_INLINE_RUNTIME_OPENER_MISSING')
-    app_open = opens[-1]; close = raw.find('</script>', app_open.end())
-    if close >= 0: raw = raw[:close] + raw[close + len('</script>'):]
+    if not opens:
+        raise RuntimeError('MAIN1_INLINE_RUNTIME_OPENER_MISSING')
+    app_open = opens[-1]
+    close = raw.rfind('</script>')
+    if close < app_open.end():
+        raise RuntimeError('MAIN1_INLINE_RUNTIME_CLOSURE_MISSING')
+    # Keep exactly the authoritative application runtime script and discard the outer HTML shell.
+    raw = raw[app_open.start():close]
     raw = re.sub(r'</body>\s*', '', raw, flags=re.I)
     raw = re.sub(r'</html>\s*', '', raw, flags=re.I)
     return raw.rstrip()
@@ -37,7 +42,8 @@ def normalize_fragment(raw, idx):
     return raw.rstrip()
 
 def p163(s):
-    if s.count(COMPAT) > 1: raise RuntimeError('P163_COMPAT_DUPLICATE')
+    if s.count(COMPAT) > 1:
+        raise RuntimeError('P163_COMPAT_DUPLICATE')
     if COMPAT in s:
         a=s.index(COMPAT); b=s.find(AUTH,a+len(COMPAT))
         if b<0: raise RuntimeError('P163_AUTH_AFTER_COMPAT_MISSING')
@@ -75,10 +81,10 @@ def validate(s):
     missing=[x for x in required if x not in s]
     if missing: raise RuntimeError('CURRENT_CONTRACT_MISSING:'+repr(missing))
     parser=StructureParser(); parser.feed(s); parser.close()
-    ah=parser.starts.count('html'); eb=parser.ends.count('html'); ab=parser.starts.count('body'); ebod=parser.ends.count('body'); ass=parser.starts.count('script'); ess=parser.ends.count('script'); ast=parser.starts.count('style'); est=parser.ends.count('style')
-    gates={'doctype_start':start.startswith('<!doctype html>'),'one_html_root':ah==1 and eb==1,'one_body_root':ab==1 and ebod==1,'script_balance':ass==ess,'style_balance':ast==est,'auth_one':s.count(AUTH)==1,'version_one':s.count(VERSION)==1,'governed_one':s.count(GOVERNED)==1,'compat_absent':COMPAT not in s,'dash_alias_absent':not re.search(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}',s),'items_alias_absent':not re.search(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}',s),'dash_owner_one':len(re.findall(r'(?m)^\s*var\s+RW_Dashboard\s*=\s*',s))==1,'items_owner_one':len(re.findall(r'(?m)^\s*var\s+RW_Items\s*=\s*',s))==1,'items_export_one':s.count('window.RW_Items=RW_Items;')==1,'canonical_sw_one':s.count(CANONICAL_SW)==1,'rpc_present':'.rpc(' in s,'edge_present':'/functions/v1/' in s}
+    ah=parser.starts.count('html'); eh=parser.ends.count('html'); ab=parser.starts.count('body'); eb=parser.ends.count('body'); ass=parser.starts.count('script'); ess=parser.ends.count('script'); ast=parser.starts.count('style'); est=parser.ends.count('style')
+    gates={'doctype_start':start.startswith('<!doctype html>'),'one_html_root':ah==1 and eh==1,'one_body_root':ab==1 and eb==1,'script_balance':ass==ess,'style_balance':ast==est,'auth_one':s.count(AUTH)==1,'version_one':s.count(VERSION)==1,'governed_one':s.count(GOVERNED)==1,'compat_absent':COMPAT not in s,'dash_alias_absent':not re.search(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}',s),'items_alias_absent':not re.search(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}',s),'dash_owner_one':len(re.findall(r'(?m)^\s*var\s+RW_Dashboard\s*=\s*',s))==1,'items_owner_one':len(re.findall(r'(?m)^\s*var\s+RW_Items\s*=\s*',s))==1,'items_export_one':s.count('window.RW_Items=RW_Items;')==1,'canonical_sw_one':s.count(CANONICAL_SW)==1,'rpc_present':'.rpc(' in s,'edge_present':'/functions/v1/' in s}
     bad=[k for k,v in gates.items() if not v]
-    if bad: raise RuntimeError(f'P163_GOLD_GATE_FAIL:{bad} structural html={ah}/{eb} body={ab}/{ebod} script={ass}/{ess} style={ast}/{est}')
+    if bad: raise RuntimeError(f'P163_GOLD_GATE_FAIL:{bad} structural html={ah}/{eh} body={ab}/{eb} script={ass}/{ess} style={ast}/{est}')
     app=[m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I) if 'serviceWorker.register' not in m.group(1)]
     if len(app)!=1: raise RuntimeError('APPLICATION_INLINE_SCRIPT_COUNT:'+str(len(app)))
     js=Path(tempfile.gettempdir())/'rawaea-new-main.js'; js.write_text(app[0],encoding='utf-8')
