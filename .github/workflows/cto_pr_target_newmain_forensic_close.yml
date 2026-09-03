@@ -1,120 +1,12 @@
-name: CTO PR-target forensic New-main closure
+name: CTO PR-target forensic New-main closure — RETIRED
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened]
+  workflow_dispatch:
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 jobs:
-  close:
-    if: ${{ !startsWith(github.event.pull_request.head.label, 'github-actions') }}
+  retired:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
     steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Patch only Current/PWA/New-main
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('Current/PWA/New-main')
-          s=p.read_text(encoding='utf-8')
-          old='<link rel="manifest" href="../manifest.json">'
-          if old in s:
-              s=s.replace(old,'<!-- PWA manifest intentionally external: deployment contract must provide a same-origin manifest -->',1)
-          old="async function showPanel(){\n  var e=email();"
-          new="async function showPanel(){\n  var e=RW_STATE&&RW_STATE.app&&RW_STATE.app.currentUser?RW_STATE.app.currentUser.email:null;"
-          if old in s:
-              s=s.replace(old,new,1)
-          elif 'var e=email();' in s:
-              raise SystemExit('NOTIFICATION_SCOPE_UNEXPECTED')
-          p.write_text(s,encoding='utf-8')
-          print('TARGET_PATCHED')
-          PY
-      - name: Static target gate
-        run: |
-          set -euo pipefail
-          node --version
-          python3 - <<'PY'
-          from pathlib import Path
-          from html.parser import HTMLParser
-          import tempfile,subprocess,hashlib
-          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
-          req=['rw-p163-closure','P163-GOLD-DIAMOND-CLOSED-2026-09-03','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1','applyAuthoritativeContext','MAIN_HTML_CURRENT_CONTRACT_LEDGER','window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_ShellContext']
-          miss=[x for x in req if x not in s]
-          if miss: raise SystemExit('STATIC_CONTRACT_MISSING='+repr(miss))
-          class P(HTMLParser):
-              def __init__(self): super().__init__(convert_charrefs=False); self.inline=[]; self.cur=None
-              def handle_starttag(self,t,a):
-                  if t.lower()=='script': self.cur={'src':dict(a).get('src'),'text':''}
-              def handle_data(self,d):
-                  if self.cur is not None and not self.cur['src']: self.cur['text']+=d
-              def handle_endtag(self,t):
-                  if t.lower()=='script' and self.cur is not None:
-                      if self.cur['text'].strip() and not self.cur['src']: self.inline.append(self.cur['text'])
-                      self.cur=None
-          hp=P(); hp.feed(s)
-          if len(hp.inline)!=1: raise SystemExit('INLINE_COUNT='+str(len(hp.inline)))
-          f=Path(tempfile.mkstemp(suffix='.js')[1]); f.write_text(hp.inline[0],encoding='utf-8')
-          try: subprocess.run(['node','--check',str(f)],check=True)
-          finally: f.unlink(missing_ok=True)
-          print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest())
-          print('STATIC_GOLD_PASS')
-          PY
-      - name: Runtime Gold gate
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm init -y >/dev/null 2>&1
-          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
-          npx playwright install --with-deps chromium >/dev/null 2>&1
-          mkdir -p /tmp/site/Current/PWA
-          cp Current/PWA/New-main /tmp/site/Current/PWA/New-main
-          (cd /tmp/site && python3 -m http.server 8123 >/tmp/serve.log 2>&1 & echo $! >/tmp/pid)
-          trap 'kill "$(cat /tmp/pid)" 2>/dev/null || true' EXIT
-          node <<'NODE'
-          const {chromium}=require('playwright');
-          (async()=>{
-            const b=await chromium.launch({headless:true});
-            const p=await b.newPage(); const pe=[],ce=[];
-            p.on('pageerror',e=>pe.push(String(e.message||e))); p.on('console',m=>{if(m.type()==='error')ce.push(String(m.text()||''))});
-            await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:20000});
-            const r=await p.evaluate(async()=>{
-              const S=window.RW_STATE,N=window.RW_Navigation;
-              let note='NOAPI',ld=false,ad=false;
-              if(S?.app&&window.RW_Notification?.showPanel){S.app.currentUser={email:'smoke@example.com',isOwner:false,permissions:[]};try{await window.RW_Notification.showPanel();note='PASS'}catch(e){note='FAIL:'+String(e?.message||e)}}
-              if(N?.navigate){try{await N.navigate('license')}catch(e){ld=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e?.message||e))}try{await N.navigate('audit')}catch(e){ad=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e?.message||e))}}
-              return {lang:document.documentElement.lang,dir:document.documentElement.dir,state:!!S,auth:!!window.RW_Auth,nav:!!N,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,note,ld,ad,diamond:document.documentElement.innerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),p163:document.querySelector('meta[name="rw-p163-closure"]')?.content||''};
-            });
-            console.log('RUNTIME='+JSON.stringify({r,pe,ce}));
-            const ok=!pe.length&&!ce.length&&r.lang==='ar'&&r.dir==='rtl'&&r.state&&r.auth&&r.nav&&r.views&&r.shell&&r.owner&&r.note==='PASS'&&r.ld&&r.ad&&r.diamond&&r.p163==='P163-GOLD-DIAMOND-CLOSED-2026-09-03';
-            await b.close(); if(!ok)process.exit(2);
-          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
-          NODE
-          echo RUNTIME_GOLD_PASS
-      - name: Record and close
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import hashlib
-          s=Path('Current/PWA/New-main').read_text(encoding='utf-8'); h=hashlib.sha256(s.encode()).hexdigest(); st=Path('CURRENT_STATE.md'); old=st.read_text(encoding='utf-8') if st.exists() else ''
-          marker='## FORENSIC PR-TARGET CLOSURE — CURRENT/PWA/NEW-MAIN — 2026-09-03'
-          if marker not in old:
-              st.write_text(old.rstrip()+f'''\n\n{marker}\n- Target-only surgical closure executed on the PR branch.\n- Target SHA-256: `{h}`\n- Notification scope bug: fixed inside `Current/PWA/New-main`.\n- Legacy manifest dependency removed from target; no auxiliary file is required by the target for runtime Gold.\n- Static Gold: PASS. Runtime Gold: PASS. Diamond contract surface: PASS. Supabase writes: NONE.\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = 100%\n''',encoding='utf-8')
-          PY
-          git rm -f .github/workflows/cto_pr_target_newmain_forensic_close.yml CTO_TRIGGER_NEWMAIN_FORENSIC.txt || true
-          git config user.name 'RAWAEA CTO Executor'; git config user.email 'rawaea-cto-executor@users.noreply.github.com'
-          git add Current/PWA/New-main CURRENT_STATE.md
-          git commit -m '[FINAL-CLOSED] [FORENSIC-CLOSED] [GOLD-PROVEN] [DIAMOND-PROVEN] Current/PWA/New-main'
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+      - run: |
+          echo 'RETIRED: historical pull_request_target New-main writer disabled.'
+          echo 'No target mutation. No reconstruction. No production writes.'
