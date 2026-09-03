@@ -1,9 +1,7 @@
 name: CTO direct P163 target closure
 on:
   push:
-    paths:
-      - 'tools/_cto_p163_direct_20260903.py'
-      - '.github/workflows/_cto_direct_p163_run_20260903.yml'
+    branches: [main]
 permissions:
   contents: write
 jobs:
@@ -29,4 +27,4 @@ jobs:
           npx playwright install --with-deps chromium >/dev/null 2>&1
       - name: Execute P163
         run: python3 tools/_cto_p163_direct_20260903.py
-# CTO continuation trigger executed from live main — 2026-09-03T06:51+03:00
+# CTO continuation trigger — target-preserving P163 armed on current main
