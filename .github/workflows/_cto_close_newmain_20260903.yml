@@ -1,0 +1,88 @@
+name: CTO Close New-main
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  close:
+    if: ${{ !contains(github.event.head_commit.message, '[CTO-CLOSURE-EXECUTED]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+      - name: Reconstruct and repair target
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/run_final_main_reconstruction_20260831.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,hashlib
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          compat='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
+          if s.count(compat)!=0:
+              a=s.index(compat); b=s.index(auth)
+              if b<=a: raise SystemExit('P163_OWNER_ORDER')
+              s=s[:a]+s[b:]
+          for alias in ['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']:
+              s=s.replace(alias,'')
+          close='window.RW_Items=RW_Items;'; version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"; governed='// MAIN2_GOVERNED_CLOSED:v1'
+          if s.count(close)!=1: raise SystemExit('P163_RW_ITEMS_OWNER')
+          if s.count(version)>1 or s.count(governed)>1: raise SystemExit('P163_DUPLICATE_CLOSURE')
+          if version not in s: s=s.replace(close,close+'\n'+version,1)
+          if governed not in s: s=s.replace(version,version+'\n'+governed,1)
+          for x in ['actions','main1Delegation','MAIN3','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM']:
+              if x not in s: raise SystemExit('CONTRACT_MISSING:'+x)
+          if s.count(auth)!=1 or s.count(version)!=1 or s.count(governed)!=1: raise SystemExit('P163_CLOSURE_COUNTS')
+          if '/* RAWAEA MAIN2 COMPATIBILITY */' in s: raise SystemExit('P163_COMPAT_REMAINS')
+          if 'window.RW_Dashboard={render:renderDashboard};' in s or 'window.RW_Items={render:renderItems};' in s: raise SystemExit('P163_ALIAS_REMAINS')
+          if s.lower().count('<script')!=s.lower().count('</script>') or s.lower().count('<style')!=s.lower().count('</style>'): raise SystemExit('HTML_BALANCE')
+          ms=[m.group(1) for m in re.finditer(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*?)</script>',s,re.I)]
+          app=[x for x in ms if 'serviceWorker.register' not in x]
+          if len(app)!=1: raise SystemExit('INLINE_RUNTIME_COUNT')
+          Path('/tmp/newmain.js').write_text(app[0],encoding='utf-8')
+          print('TARGET_SHA256',hashlib.sha256(s.encode()).hexdigest())
+          p.write_text(s,encoding='utf-8')
+          PY
+          node --check /tmp/newmain.js
+          git diff --check
+      - name: Browser smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          rm -rf /tmp/rw && mkdir -p /tmp/rw
+          cp -r Current/PWA/. /tmp/rw/
+          cp Current/PWA/New-main /tmp/rw/main.html
+          python3 -m http.server 8123 --directory /tmp/rw >/tmp/rw.log 2>&1 &
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[];p.on('pageerror',e=>pe.push(e.message));await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(2000);const r=await p.evaluate(()=>({state:!!window.RW_STATE,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerContract,main2:window.RW_PWA_RECONSTRUCTION_VERSION||null}));console.log(JSON.stringify({r,pe}));if(pe.length||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||r.main2!=='MAIN2-COMPLETE-SURGICAL-v1')process.exit(2);await b.close()})().catch(e=>{console.error(e);process.exit(2)})
+          NODE
+      - name: Persist target and cleanup executor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'RAWAEA CTO Executor'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          st=Path('CURRENT_STATE.md'); x=st.read_text(encoding='utf-8')
+          if 'P163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction' not in x:
+              x=x.rstrip()+"\n\n## CTO CLOSURE 2026-09-03\n\nP163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction\n- Target: `Current/PWA/New-main`\n- SHA-256: `"+hashlib.sha256(s.encode()).hexdigest()+"`\n- MAIN2 compatibility ownership removed; authoritative owner retained.\n- Main1 dashboard/items legacy aliases removed.\n- `actions`, `main1Delegation`, and MAIN3 preserved.\n- JavaScript syntax and browser smoke passed.\n- No production database writes.\n"
+              st.write_text(x,encoding='utf-8')
+          Path('.github/workflows/_cto_close_newmain_20260903.yml').unlink(missing_ok=True)
+          Path('_cto_trigger_20260903.txt').unlink(missing_ok=True)
+          PY
+          git add Current/PWA/New-main CURRENT_STATE.md .github/workflows/_cto_close_newmain_20260903.yml _cto_trigger_20260903.txt
+          git diff --cached --check
+          git commit -m '[CTO-CLOSURE-EXECUTED] close New-main Gold Diamond and cleanup executor'
+          git push origin HEAD:main
