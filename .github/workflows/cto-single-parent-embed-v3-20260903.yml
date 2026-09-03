@@ -1,0 +1,112 @@
+name: CTO single-parent embed gate v3
+on:
+  push:
+    branches: [cto-single-parent-embed-20260903]
+permissions:
+  contents: write
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Reuse proven embedded build
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess
+          w=Path('.github/workflows/cto-single-parent-embed-v2-20260903.yml').read_text(encoding='utf-8')
+          m=re.search(r'- name: Build embedded legacy modules\n\s+shell: bash\n\s+run: \|\n((?: {10}.*\n)+?)\s+- name: Browser and embedded-module gate',w)
+          assert m,'BUILD_STEP_NOT_FOUND'
+          run=''.join(line[10:] for line in m.group(1).splitlines(True))
+          Path('/tmp/reuse-build.sh').write_text(run,encoding='utf-8')
+          subprocess.run(['bash','/tmp/reuse-build.sh'],check=True)
+          PY
+      - name: Deep browser module gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
+          cat >/tmp/server.py <<'PY'
+          from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
+          class H(SimpleHTTPRequestHandler):
+              def guess_type(self,path):
+                  if path.rstrip('/').endswith('/New-main'): return 'text/html; charset=utf-8'
+                  return super().guess_type(path)
+          ThreadingHTTPServer(('127.0.0.1',4173),H).serve_forever()
+          PY
+          (cd Current/PWA && python3 /tmp/server.py >/tmp/http.log 2>&1)& pid=$!; trap 'kill "$pid" 2>/dev/null || true' EXIT; sleep 2
+          node <<'NODE'
+          const {chromium}=require(process.cwd()+'/node_modules/playwright');
+          const modules=['pos','telesales','purchases','receiving','vouchers','picking','loading','delivery','returns','unloading'];
+          const forbidden=['pos.html','telesales.html','buyer.html','vouchers.html','picker.html','loader.html','driver.html','Returns.html','unloader.html'];
+          (async()=>{
+            const b=await chromium.launch({headless:true,args:['--no-sandbox']});
+            const p=await b.newPage({serviceWorkers:'block'});
+            const errs=[];
+            await p.route('**/*',async r=>{
+              const u=r.request().url();
+              if(u.endsWith('/register-sw.js')||u.endsWith('/sw.js')) return r.fulfill({status:200,contentType:'application/javascript',body:'/* bypass */'});
+              if(u.includes('cdn.jsdelivr.net/npm/@supabase/')) return r.fulfill({status:200,contentType:'application/javascript',body:`window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),getUser:async()=>({data:{user:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signInWithPassword:async()=>({error:new Error("stub")}),signOut:async()=>({}),resetPasswordForEmail:async()=>({})},from:()=>({select(){return this},eq(){return this},in(){return this},or(){return this},order(){return this},limit(){return this},maybeSingle:async()=>({data:null,error:null}),then:r=>Promise.resolve({data:[],error:null,count:0})})})};`});
+              if(u.includes('chart.js')) return r.fulfill({status:200,contentType:'application/javascript',body:'window.Chart=function(){};'});
+              if(u.includes('sweetalert2')) return r.fulfill({status:200,contentType:'application/javascript',body:'window.Swal={fire:async()=>({}),close(){}};'});
+              if(u.includes('sheetjs')) return r.fulfill({status:200,contentType:'application/javascript',body:'window.XLSX={};'});
+              return r.continue();
+            });
+            p.on('pageerror',e=>errs.push('PAGE:'+e.message));
+            p.on('console',m=>{if(m.type()==='error')errs.push('CONSOLE:'+m.text());});
+            await p.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded',timeout:30000});
+            await p.waitForTimeout(900);
+            const base=await p.evaluate(async()=>{
+              const l=document.querySelector('link[rel="manifest"]');
+              const m=await(await fetch(l.href)).json();
+              return {login:!!document.getElementById('rw-login-form'),logo:!!document.getElementById('rw-login-company-logo'),name:!!document.getElementById('rw-login-company-name'),sidebar:!!document.getElementById('rw-sidebar'),nav:!!document.getElementById('rw-sidebar-nav'),shell:!!document.getElementById('rw-main-shell'),auth:!!window.RW_Auth,navigation:!!window.RW_Navigation,views:!!window.RW_Views,embedded:!!window.RW_EmbeddedApps,parent:!!window.RW_ParentRegistry,from:typeof window.supabase?.from==='function',brand:typeof window.RW_ApplyCanonicalCompanyBranding==='function',wrap:!!(window.RW_Auth.enterSystem&&window.RW_Auth.enterSystem.__rwCanonicalBrandingWrapped),href:l?.getAttribute('href')||'',start:m.start_url,scope:m.scope,display:m.display,dir:m.dir,lang:m.lang};
+            });
+            const menu=await p.evaluate(()=>{RW_STATE.app.currentUser={id:'owner',isOwner:true,permissions:['*'],name:'Owner',role:'owner'};RW_STATE.permissions=['*'];window.RW_Permissions_check=()=>true;RW_Navigation.buildSidebar();return [...document.querySelectorAll('#rw-sidebar-nav [data-view]')].map(x=>x.getAttribute('data-view')).filter(Boolean)});
+            const detail=await p.evaluate(async ({mods,bad})=>{
+              const out={};
+              for(const v of mods){
+                try{
+                  const box=document.getElementById('rw-page-container');
+                  const f=RW_EmbeddedApps.render(v,box,v,'');
+                  await new Promise(r=>setTimeout(r,150));
+                  const fr=[...document.querySelectorAll('iframe')].find(x=>x===f) || document.querySelector('#rw-page-container iframe');
+                  const src=fr?.srcdoc||'';
+                  const frame=fr?.contentWindow;
+                  const html=frame?.document?.documentElement?.outerHTML||'';
+                  const body=frame?.document?.body?.innerText||'';
+                  const localRefs=[...html.matchAll(/(?:src|href)=["']\.\/[^"]+["']/gi)].map(x=>x[0]);
+                  const badRefs=bad.filter(x=>html.includes(x));
+                  out[v]={ok:!!fr,srcdocBytes:src.length,bodyChars:body.length,badRefs,localRefs:localRefs.slice(0,20),frameReady:!!frame?.document?.body};
+                }catch(e){out[v]={ok:false,error:String(e.message||e)}}
+              }
+              return out;
+            },{mods:modules,bad:forbidden});
+            const brand=await p.evaluate(()=>{RW_ApplyCanonicalCompanyBranding({company_name:'شركة اختبار',company_logo:'https://example.com/logo.svg'});return {name:document.getElementById('rw-login-company-name')?.textContent,logo:document.getElementById('rw-login-company-logo')?.getAttribute('data-branded'),side:document.getElementById('rw-sidebar-company-name')?.textContent};});
+            console.log('CTO_EMBEDDED_V3='+JSON.stringify({base,menu,detail,brand,errs}));
+            const clean=Object.values(detail).every(x=>x.ok&&x.srcdocBytes>1000&&x.bodyChars>100&&(!x.badRefs||!x.badRefs.length)&&(!x.localRefs||!x.localRefs.some(r=>forbidden.some(f=>r.includes(f)))));
+            const ok=!errs.length&&base.login&&base.logo&&base.name&&base.sidebar&&base.nav&&base.shell&&base.auth&&base.navigation&&base.views&&base.embedded&&base.parent&&base.from&&base.brand&&base.wrap&&base.href==='./manifest.json'&&base.start==='./New-main'&&base.scope==='./'&&base.display==='standalone'&&base.dir==='rtl'&&base.lang==='ar'&&menu.length>20&&clean&&brand.name==='شركة اختبار'&&brand.logo==='1'&&brand.side==='شركة اختبار';
+            await b.close(); if(!ok)process.exit(2);
+          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
+          NODE
+          echo DEEP_BROWSER_EMBEDDED=PASS
+      - name: Publish New-main only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp Current/PWA/New-main /tmp/New-main.final
+          git fetch origin main
+          git checkout -B final-publish origin/main
+          cp /tmp/New-main.final Current/PWA/New-main
+          git add Current/PWA/New-main
+          git diff --cached --check
+          test "$(git diff --cached --name-only | tr '\n' ' ')" = 'Current/PWA/New-main '
+          git config user.name 'RAWAEA CTO Final Closure'
+          git config user.email 'rawaea-cto-final@users.noreply.github.com'
+          git commit -m '[CTO-CLOSED] New-main single-parent embedded legacy modules'
+          git push origin HEAD:main
