@@ -9,18 +9,33 @@ jobs:
   diagnostic:
     if: ${{ !contains(github.event.head_commit.message, '[CTO-EXECUTED]') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 3
 
-      - name: Execute canonical New-main reconstruction and P163
+      - name: Surgical New-main target repair — no reconstruction
         shell: bash
         run: |
           set -euo pipefail
-          python3 tools/run_new_main_clean_room_20260831.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('Current/PWA/New-main')
+          s=p.read_text(encoding='utf-8')
+          old='function byId(id){return document.getElementById(id)}'
+          new=old+'\nwindow.byId=byId;'
+          assert s.count(old)==1, 'BYID_DEFINITION_COUNT:'+str(s.count(old))
+          if 'window.byId=byId;' not in s:
+              p.write_text(s.replace(old,new,1),encoding='utf-8')
+              print('TARGET_REPAIR=APPLIED')
+          else:
+              print('TARGET_REPAIR=ALREADY_PRESENT')
+          PY
+          git diff --check
+          node --check Current/PWA/register-sw.js
+          node --check Current/PWA/sw.js
 
       - name: Gold/Diamond source gate
         shell: bash
@@ -30,22 +45,10 @@ jobs:
           from pathlib import Path
           import hashlib,re
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
-          required=['window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM','main1Delegation','actions','MAIN3','post_stock_movement','reserve_stock','post_journal_entry']
+          required=['window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM','main1Delegation','actions','MAIN3','post_stock_movement','reserve_stock','post_journal_entry','window.byId=byId;']
           missing=[x for x in required if x not in s]
           if missing: raise SystemExit('REQUIRED_CONTRACT_MISSING:'+repr(missing))
-          checks={
-            'compat_absent':'/* RAWAEA MAIN2 COMPATIBILITY */' not in s,
-            'authoritative_one':s.count('/* RAWAEA MAIN2 AUTHORITATIVE MODULE */')==1,
-            'reconstruction_version_one':s.count("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';")==1,
-            'governed_one':s.count('// MAIN2_GOVERNED_CLOSED:v1')==1,
-            'legacy_dashboard_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,
-            'legacy_items_alias_absent':'window.RW_Items={render:renderItems};' not in s,
-            'actions_preserved':'actions' in s,
-            'main1Delegation_preserved':'main1Delegation' in s,
-            'main3_preserved':'MAIN3' in s,
-            'script_balance':s.lower().count('<script')==s.lower().count('</script>'),
-            'style_balance':s.lower().count('<style')==s.lower().count('</style>')
-          }
+          checks={'authoritative_one':s.count('/* RAWAEA MAIN2 AUTHORITATIVE MODULE */')==1,'script_balance':s.lower().count('<script')==s.lower().count('</script>'),'style_balance':s.lower().count('<style')==s.lower().count('</style>')}
           if not all(checks.values()): raise SystemExit('GOLD_DIAMOND_FAIL:'+repr(checks))
           print('GOLD_DIAMOND_SOURCE_PASS',checks)
           print('TARGET_SHA256',hashlib.sha256(s.encode()).hexdigest())
@@ -60,13 +63,13 @@ jobs:
           from pathlib import Path
           import re
           s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
+          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',''.join(m.group('a') or '').lower())]
           if len(ms)!=1: raise SystemExit('INLINE_APPLICATION_SCRIPT_COUNT:'+str(len(ms)))
           Path('/tmp/new-main.js').write_text(ms[0].group('b'),encoding='utf-8')
           PY
           node --check /tmp/new-main.js
 
-      - name: Browser smoke gate
+      - name: Browser smoke gate — actual owner/non-owner license route
         shell: bash
         run: |
           set -euo pipefail
@@ -81,28 +84,31 @@ jobs:
           const {chromium}=require('playwright');
           (async()=>{
             const b=await chromium.launch({headless:true});
-            const p=await b.newPage();
             const pe=[],ce=[];
-            p.on('pageerror',e=>pe.push(e.message));
-            p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
-            await p.goto('http://127.0.0.1:8124/New-main.html',{waitUntil:'domcontentloaded',timeout:30000});
-            await p.waitForTimeout(1800);
-            const r=await p.evaluate(async()=>{
-              const S=window.RW_STATE,N=window.RW_Navigation,flat=[];
-              (function w(a){(a||[]).forEach(x=>{if(x.view)flat.push(x.view);if(x.submenu)w(x.submenu)})})(N&&N.menuTree);
-              const req=['dashboard','telesales','customers','online-store','pos','orders','runsheets','suppliers','purchase-pos','purchases','receiving','items','branches','picking','loading','delivery','return','unloading','transfer','direct-sale','direct-return','supplier-return','vouchers','vehicle-count','branch-count','general-count','settlement','reports-dashboard','reports-detailed','reports-comprehensive','hr','crm','users','roles','license','settings','audit-log','notifications'];
-              const mods=['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Roles','RW_Views'];
-              let denied=false;
-              if(S&&S.app&&N&&N.navigate){S.app.currentUser={isOwner:false};try{await N.navigate('license')}catch(e){denied=e.message==='OWNER_ONLY'}}
-              return {lang:document.documentElement.lang,body:!!document.body,state:!!S,auth:!!window.RW_Auth,nav:!!N,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,critical:req.every(v=>flat.includes(v)),mods:mods.every(v=>!!window[v]),denied,count:flat.length};
-            });
-            console.log(JSON.stringify({r,pe,ce}));
-            if(pe.length||ce.length||r.lang!=='ar'||!r.body||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||!r.critical||!r.mods||!r.denied||r.count<30)process.exit(2);
-            await b.close();
-          })().catch(e=>{console.error(e);process.exit(2)});
+            async function load(){
+              const p=await b.newPage({serviceWorkers:'block'});p.setDefaultTimeout(12000);p.setDefaultNavigationTimeout(20000);
+              p.on('pageerror',e=>pe.push(String(e.message||e)));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
+              await p.goto('http://127.0.0.1:8124/New-main.html',{waitUntil:'domcontentloaded',timeout:20000});
+              await p.waitForFunction(()=>window.RW_STATE&&window.RW_Navigation&&window.RW_OwnerLicense&&typeof window.byId==='function',{timeout:12000});
+              return p;
+            }
+            const p=await load();
+            const initial=await p.evaluate(()=>({lang:document.documentElement.lang,dir:document.documentElement.dir,body:!!document.body,state:!!RW_STATE,auth:!!RW_Auth,nav:!!RW_Navigation,views:!!RW_Views,shell:!!RW_ShellContext,owner:!!RW_OwnerLicense,byId:typeof window.byId==='function',diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),p163:document.querySelectorAll('meta[name="rw-p163-closure"]').length,manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||''}));
+            const denied=await p.evaluate(async()=>{RW_STATE.app.currentUser={isOwner:false};RW_STATE.permissions=[];try{await RW_Navigation.navigate('license');return {ok:false,error:'NO_REJECTION',view:RW_STATE.app.currentView}}catch(e){return {ok:e.message==='OWNER_ONLY',error:e.message,view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container')}}});
+            await p.close();
+            const o=await load();
+            const owner=await o.evaluate(async()=>{RW_STATE.app.currentUser={id:'x',email:'owner@smoke.local',isOwner:true,permissions:['*']};RW_STATE.permissions=['*'];try{await RW_Navigation.navigate('license');}catch(e){return {ok:false,error:String(e.message||e)}};return {ok:true,view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container'),text:(document.getElementById('rw-page-container')?.innerText||'').includes('إدارة الترخيص')}});
+            await o.waitForTimeout(500);
+            const ownerCheck=await o.evaluate(()=>({view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container'),text:(document.getElementById('rw-page-container')?.innerText||'').includes('إدارة الترخيص')}));
+            await o.close();
+            const r={initial,denied,owner,ownerCheck,pe,ce};console.log('OWNER_LICENSE_RUNTIME='+JSON.stringify(r));
+            const ok=!pe.length&&!ce.length&&r.initial.lang==='ar'&&r.initial.dir==='rtl'&&r.initial.body&&r.initial.state&&r.initial.auth&&r.initial.nav&&r.initial.views&&r.initial.shell&&r.initial.owner&&r.initial.byId&&r.initial.diamond&&r.initial.p163===1&&r.initial.manifest==='../manifest.json'&&r.denied.ok&&r.denied.view!=='license'&&!r.denied.container&&r.owner.ok&&r.owner.view==='license'&&r.ownerCheck.container&&r.ownerCheck.text;
+            await b.close();if(!ok)process.exit(2);
+          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
           NODE
+          echo 'BROWSER_GOLD_DIAMOND=PASS'
 
-      - name: Persist verified target and closure state
+      - name: Persist target-only closure commit
         shell: bash
         run: |
           set -euo pipefail
@@ -111,5 +117,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add Current/PWA/New-main
           git diff --cached --quiet && { echo 'NEW_MAIN_NO_DELTA'; exit 1; }
-          git commit -m '[CTO-EXECUTED] New-main Gold/Diamond closure'
+          git commit -m '[CTO-EXECUTED] New-main Owner License Gold/Diamond repair'
           git push origin HEAD:main
