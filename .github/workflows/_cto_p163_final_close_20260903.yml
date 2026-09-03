@@ -1,0 +1,29 @@
+name: CTO Final P163 Closure 2026-09-03
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/_cto_p163_final_close_20260903.yml'
+permissions:
+  contents: write
+jobs:
+  close:
+    if: ${{ !contains(github.event.head_commit.message, '[P163-EXECUTED]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Browser runtime
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+      - name: Execute direct target-preserving closure
+        run: python3 tools/_cto_p163_direct_20260903.py
