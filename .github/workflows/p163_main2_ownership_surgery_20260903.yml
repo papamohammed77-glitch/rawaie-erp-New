@@ -35,18 +35,24 @@ jobs:
               if s.count(old)!=1: raise SystemExit('MANIFEST_REFERENCE_COUNT')
               s=s.replace(old,new,1)
           elif new not in s: raise SystemExit('MANIFEST_CONTRACT_MISSING')
+          anchor='<meta name="rw-p163-closure" content="P163-GOLD-DIAMOND-CLOSED-2026-09-03">'
+          if s.count(anchor)!=1: raise SystemExit('P163_ANCHOR_COUNT')
           pwa='<meta name="rw-pwa-runtime-gold" content="PWA-RUNTIME-GOLD-2026-09-03">'
-          if pwa not in s: s=s.replace('<meta name="rw-p163-closure" content="P163-GOLD-DIAMOND-CLOSED-2026-09-03">','<meta name="rw-p163-closure" content="P163-GOLD-DIAMOND-CLOSED-2026-09-03">\n'+pwa,1)
+          if pwa not in s: s=s.replace(anchor,anchor+'\n'+pwa,1)
           coord='<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>'
-          if coord not in s: s=s.replace('</head>',coord+'\n</head>',1)
+          if coord not in s:
+              if s.count('</head>')!=1: raise SystemExit('HEAD_CLOSE_COUNT')
+              s=s.replace('</head>',coord+'\n</head>',1)
           old_email="async function showPanel(){\n  var e=email();"; new_email="async function showPanel(){\n  var e=RW_STATE&&RW_STATE.app&&RW_STATE.app.currentUser?RW_STATE.app.currentUser.email:null;"
           if old_email in s:
               if s.count(old_email)!=1: raise SystemExit('NOTIFICATION_EMAIL_COUNT')
               s=s.replace(old_email,new_email,1)
           elif 'var e=email();' in s: raise SystemExit('NOTIFICATION_EMAIL_UNEXPECTED')
           p.write_text(s,encoding='utf-8')
-          assert all(x in s for x in ['P163-GOLD-DIAMOND-CLOSED-2026-09-03','PWA-RUNTIME-GOLD-2026-09-03','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1','window.RW_Auth=','window.RW_Navigation=','window.RW_Views=','window.RW_ShellContext','applyAuthoritativeContext','window.MAIN_HTML_CURRENT_CONTRACT_LEDGER='])
-          assert 'var e=email();' not in s
+          required=['P163-GOLD-DIAMOND-CLOSED-2026-09-03','PWA-RUNTIME-GOLD-2026-09-03','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1','window.RW_Auth=','window.RW_Navigation=','window.RW_Views=','window.RW_ShellContext','applyAuthoritativeContext','window.MAIN_HTML_CURRENT_CONTRACT_LEDGER=']
+          missing=[x for x in required if x not in s]
+          if missing: raise SystemExit('STATIC_MISSING='+repr(missing))
+          if 'var e=email();' in s: raise SystemExit('NOTIFICATION_EMAIL_BUG_PRESENT')
           class P(HTMLParser):
             def __init__(self): super().__init__(convert_charrefs=False); self.cur=None; self.inline=[]
             def handle_starttag(self,t,a):
@@ -57,12 +63,14 @@ jobs:
               if t.lower()=='script' and self.cur is not None:
                 if not self.cur['src'] and self.cur['text'].strip(): self.inline.append(self.cur['text'])
                 self.cur=None
-          h=P(); h.feed(s); h.close(); assert len(h.inline)==1
+          h=P(); h.feed(s); h.close();
+          if len(h.inline)!=1: raise SystemExit('INLINE_SCRIPT_COUNT='+str(len(h.inline)))
           f=Path(tempfile.mkstemp(suffix='.js')[1]); f.write_text(h.inline[0],encoding='utf-8')
           try: subprocess.run(['node','--check',str(f)],check=True)
           finally: f.unlink(missing_ok=True)
           subprocess.run(['node','--check','Current/PWA/register-sw.js'],check=True); subprocess.run(['node','--check','Current/PWA/sw.js'],check=True)
-          m=json.loads(Path('Current/PWA/New-main.manifest.json').read_text(encoding='utf-8')); assert m['start_url']=='./New-main' and m['scope']=='.//' and m['lang']=='ar' and m['dir']=='rtl'
+          m=json.loads(Path('Current/PWA/New-main.manifest.json').read_text(encoding='utf-8'))
+          if not (m['start_url']=='./New-main' and m['scope']=='./' and m['lang']=='ar' and m['dir']=='rtl'): raise SystemExit('MANIFEST_CONTRACT_VALUES')
           print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest()); print('STATIC_GOLD_DIAMOND=PASS')
           PY
           npm init -y >/dev/null 2>&1
