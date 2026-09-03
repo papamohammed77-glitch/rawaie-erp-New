@@ -1,109 +1,11 @@
-name: RAWAEA P131 New-main Surgical Navigation Repair
-
+name: RAWAEA P131 New-main Navigation — RETIRED
 on:
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened]
-
+  workflow_dispatch:
 permissions:
-  contents: write
-
-concurrency:
-  group: rawaea-p131-new-main-navigation-repair-${{ github.event.pull_request.number || github.ref_name }}
-  cancel-in-progress: true
-
+  contents: read
 jobs:
-  surgical-repair:
+  archived:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
-      - name: Checkout PR head
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 2
-
-      - name: Execute only for explicit P131 trigger
-        shell: bash
-        run: |
-          set -euo pipefail
-          COMMIT_MESSAGE="$(git log -1 --pretty=%B)"
-          if [[ "${COMMIT_MESSAGE:-}" != *"[P131-EXECUTE]"* ]]; then
-            echo "P131_GATE=SKIP_NO_EXPLICIT_TRIGGER"
-            exit 0
-          fi
-          echo "P131_GATE=EXECUTE"
-
-      - name: Surgical patch and verification
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 <<'PY'
-          from pathlib import Path
-          import os, re, subprocess, tempfile
-
-          target = Path('Current/PWA/New-main')
-          if not target.exists():
-              raise SystemExit('P131_TARGET_MISSING')
-          s = target.read_text(encoding='utf-8')
-          if '/* RAWAEA 122 DIAMOND CONTRACT CLOSURE v1 */' not in s:
-              raise SystemExit('P131_TARGET_CONTRACT_MARKER_MISSING')
-
-          old_perm = "dashboard:'dashboard',telesales:'telesales',customers:'customers',pos:'pos',orders:'orders',runsheets:'runsheets',suppliers:'suppliers',purchases:'purchases',receiving:'receiving',items:'items',inventory:'warehouse',vouchers:'vouchers',picking:'picking',loading:'loading',delivery:'delivery',returns:'return',return:'return',unloading:'unloading',finance:'finance',reports:'reports',audit:'owner'"
-          new_perm = "dashboard:'dashboard',telesales:'telesales',customers:'customers',pos:'pos',orders:'orders',runsheets:'runsheets',suppliers:'suppliers',purchases:'purchases',receiving:'receiving',items:'items',inventory:'warehouse',vouchers:'vouchers',picking:'picking',loading:'loading',delivery:'delivery',returns:'return',return:'return',unloading:'unloading',finance:'finance',reports:'reports','reports-dashboard':'reports','reports-detailed':'reports','reports-comprehensive':'reports',audit:'owner'"
-
-          old_routes = "finance:[window.RW_Finance,'render'],reports:[window.RW_Reports,'render'],audit:[null,null],notifications:[window.RW_Notification,'showPanel']"
-          new_routes = "finance:[window.RW_Finance,'render'],'reports-dashboard':[window.RW_Reports,'renderDashboard'],'reports-detailed':[window.RW_Reports,'renderDetailedReports'],'reports-comprehensive':[window.RW_Reports_Comprehensive,'render'],reports:[window.RW_Reports,'render'],audit:[null,null],notifications:[window.RW_Notification,'showPanel']"
-
-          replacements = 0
-          if old_perm in s:
-              s = s.replace(old_perm, new_perm, 1)
-              replacements += 1
-          if old_routes in s:
-              s = s.replace(old_routes, new_routes, 1)
-              replacements += 1
-          if replacements != 2:
-              raise SystemExit(f'P131_ABORT_EXPECTED_ANCHORS_NOT_BOTH_FOUND:{replacements}')
-
-          required = [
-              "'reports-dashboard':[window.RW_Reports,'renderDashboard']",
-              "'reports-detailed':[window.RW_Reports,'renderDetailedReports']",
-              "'reports-comprehensive':[window.RW_Reports_Comprehensive,'render']",
-              "'reports-dashboard':'reports'",
-              "'reports-detailed':'reports'",
-              "'reports-comprehensive':'reports'",
-          ]
-          for needle in required:
-              if needle not in s:
-                  raise SystemExit('P131_VERIFY_MISSING:'+needle)
-
-          mlist = [m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>', s, re.I) if not re.search(r'\bsrc\s*=', m.group('a') or '', re.I)]
-          if len(mlist) != 1:
-              raise SystemExit(f'P131_INLINE_RUNTIME_COUNT:{len(mlist)}')
-          m = mlist[0]
-          tail = s[m.end():]
-          if not re.fullmatch(r'\s*</body>\s*</html>\s*', tail, re.I):
-              raise SystemExit('P131_OUTER_HTML_TAIL_INVALID')
-
-          js = Path(tempfile.gettempdir()) / 'p131-new-main-runtime.js'
-          js.write_text(m.group('b'), encoding='utf-8')
-          check = subprocess.run(['node', '--check', str(js)], capture_output=True, text=True)
-          if check.returncode:
-              print(check.stderr)
-              raise SystemExit('P131_JS_SYNTAX_FAIL')
-
-          target.write_text(s, encoding='utf-8')
-          changed = subprocess.run(['git','diff','--quiet','--','Current/PWA/New-main'])
-          if changed.returncode == 0:
-              raise SystemExit('P131_NO_TARGET_CHANGE')
-
-          subprocess.run(['git','config','user.name','rawaea-p131-bot'], check=True)
-          subprocess.run(['git','config','user.email','rawaea-p131-bot@users.noreply.github.com'], check=True)
-          subprocess.run(['git','add','Current/PWA/New-main'], check=True)
-          subprocess.run(['git','commit','-m','[P131-TARGET-MUTATION] restore specialized report navigation routes'], check=True)
-          branch = os.environ.get('GITHUB_HEAD_REF')
-          if not branch:
-              raise SystemExit('P131_PR_BRANCH_UNAVAILABLE')
-          subprocess.run(['git','push','origin',f'HEAD:{branch}'], check=True)
-          print('P131_TARGET_MUTATION=COMMITTED_AND_PUSHED_TO_PR_BRANCH')
-          PY
+      - name: Archive notice
+        run: echo 'P131 target-writer retired; preserved only as forensic evidence.'
