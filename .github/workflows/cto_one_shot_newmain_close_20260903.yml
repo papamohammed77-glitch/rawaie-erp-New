@@ -1,12 +1,13 @@
 name: CTO One-Shot New-main Gold Diamond Close
 on:
-  push:
+  pull_request_target:
+    types: [opened, synchronize]
     branches: [main]
 permissions:
   contents: write
 jobs:
   close:
-    if: ${{ !contains(github.event.head_commit.message, 'CTO-GOLD-DIAMOND-CLOSED') }}
+    if: ${{ !contains(github.event.pull_request.title, 'CTO-GOLD-DIAMOND-CLOSED') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -34,11 +35,9 @@ jobs:
           block=s[a:b]
           closure=block.rfind('})();')
           if closure<0: raise SystemExit('P163_MAIN1_IIFE_CLOSURE_NOT_FOUND')
-          # Remove compatibility implementation, preserving only the closure that terminates the open Main1 shell.
           s=s[:a]+'})();\n\n'+s[b:]
           for alias in ('window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};'):
               if s.count(alias)>0: s=s.replace(alias,'')
-          # Normalize authoritative Items export and place the reconstruction marker under the authoritative owner.
           s=re.sub(r'window\.RW_Items\s*=\s*RW_Items\s*;','window.RW_Items=RW_Items;',s)
           s=s.replace("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';",'')
           s=s.replace('// MAIN2_GOVERNED_CLOSED:v1','')
@@ -46,34 +45,15 @@ jobs:
           if s.count(marker)!=1: raise SystemExit(f'P163_ITEMS_OWNER_COUNT:{s.count(marker)}')
           i=s.index(marker)+len(marker)
           s=s[:i]+"\nwindow.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';\n// MAIN2_GOVERNED_CLOSED:v1"+s[i:]
-          checks={
-            'compat_absent':compat not in s,
-            'auth_one':s.count(auth)==1,
-            'version_one':s.count("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';")==1,
-            'governed_one':s.count('// MAIN2_GOVERNED_CLOSED:v1')==1,
-            'dash_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,
-            'items_alias_absent':'window.RW_Items={render:renderItems};' not in s,
-            'items_export_one':s.count(marker)==1,
-            'actions':'var actions=' in s,
-            'delegation':'main1Delegation' in s,
-            'main3':'MAIN3' in s,
-            'main11':'MAIN11' in s,
-            'html':'<html' in s and '</html>' in s,
-            'body':'<body' in s and '</body>' in s,
-            'script_balance':s.lower().count('<script')==s.lower().count('</script>'),
-            'style_balance':s.lower().count('<style')==s.lower().count('</style>'),
-            'doctype':s.lstrip().lower().startswith('<!doctype html>')}
+          checks={'compat_absent':compat not in s,'auth_one':s.count(auth)==1,'version_one':s.count("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';")==1,'governed_one':s.count('// MAIN2_GOVERNED_CLOSED:v1')==1,'dash_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,'items_alias_absent':'window.RW_Items={render:renderItems};' not in s,'items_export_one':s.count(marker)==1,'actions':'var actions=' in s,'delegation':'main1Delegation' in s,'main3':'MAIN3' in s,'main11':'MAIN11' in s,'html':'<html' in s and '</html>' in s,'body':'<body' in s and '</body>' in s,'script_balance':s.lower().count('<script')==s.lower().count('</script>'),'style_balance':s.lower().count('<style')==s.lower().count('</style>'),'doctype':s.lstrip().lower().startswith('<!doctype html>')}
           bad=[k for k,v in checks.items() if not v]
           if bad: raise SystemExit('GOLD_SOURCE_GATE_FAIL:'+','.join(bad))
           scripts=[m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)]
           if len(scripts)!=2: raise SystemExit('INLINE_SCRIPT_COUNT_EXPECTED_2:'+str(len(scripts)))
-          # The only application runtime is the larger inline script; validate it with Node.
           app=max(scripts,key=len)
           f=Path(tempfile.gettempdir())/'newmain-app.js'; f.write_text(app,encoding='utf-8')
           r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-          if r.returncode:
-              print(r.stderr)
-              raise SystemExit('GOLD_JS_SYNTAX_FAIL')
+          if r.returncode: print(r.stderr); raise SystemExit('GOLD_JS_SYNTAX_FAIL')
           p.write_text(s,encoding='utf-8')
           print('P163_SOURCE_CLOSED',hashlib.sha256(s.encode()).hexdigest(),len(s.encode()))
           PY
@@ -101,11 +81,11 @@ jobs:
           x=x.rstrip()+f"\n\n## CTO GOLD / DIAMOND CLOSURE — 2026-09-03\n\nP163 / Main2 ownership surgery = CLOSED\nTarget = `Current/PWA/New-main`\nTarget SHA-256 = `{h}`\nGold source gates = PASS\nGold JavaScript syntax = PASS\nDiamond browser smoke = PASS\nMain1 IIFE closure preserved = YES\nMain2 compatibility implementation = REMOVED\nAuthoritative Main2 Dashboard/Items = RETAINED\nMain1 dashboard/items aliases = REMOVED\nActions / main1Delegation / MAIN3 / MAIN11 = RETAINED\nProduction database writes = NONE\n"
           st.write_text(x,encoding='utf-8')
           Path('.github/workflows/cto_one_shot_newmain_close_20260903.yml').unlink(missing_ok=True)
-          Path('_cto_prtarget_trigger_20260903.txt').unlink(missing_ok=True)
+          Path('_cto_gold_diamond_trigger_20260903.txt').unlink(missing_ok=True)
           PY
           git config user.name 'RAWAEA CTO Executor'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add Current/PWA/New-main CURRENT_STATE.md .github/workflows/cto_one_shot_newmain_close_20260903.yml _cto_prtarget_trigger_20260903.txt
+          git add Current/PWA/New-main CURRENT_STATE.md .github/workflows/cto_one_shot_newmain_close_20260903.yml _cto_gold_diamond_trigger_20260903.txt
           git diff --cached --check
           git commit -m '[CTO-GOLD-DIAMOND-CLOSED] persist verified New-main closure'
           git push origin HEAD:main
