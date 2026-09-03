@@ -65,12 +65,6 @@ Obtain a directly verifiable execution path for the target-preserving surgical P
 - Production database writes remain forbidden in this track.
 - This entry is a trigger-only continuity record; it does not assert Gold, Diamond, or Closed.
 
-## FORENSIC EXECUTION — DIRECT PRIMARY-SOURCE TRIGGER — 2026-09-03
-- The current `Current/PWA/New-main` target was directly re-read and still contains the `RAWAEA MAIN2 COMPATIBILITY` surface immediately before this trigger.
-- The current `.github/workflows/_cto_close_newmain_20260903.yml` workflow was directly re-read and confirmed to perform target-preserving P163 surgery, static gates, browser smoke, then persistence and cleanup.
-- This commit intentionally triggers that executor without modifying Production data and without reconstructing `New-main` from fragments.
-- This section is not a success claim; only the resulting target, gate results, and final commit may prove closure.
-
 ## CTO CONTINUATION TRIGGER — 2026-09-03
 - HEAD before trigger: `efb2d469f9ea0276570658070033e7f935e1e7cb`.
 - Purpose: trigger the already-reviewed target-preserving P163 executor against the exact current `main` state.
@@ -114,3 +108,7 @@ WHOLE ERP CLOSED               = NO
 
 ## NEXT AUTHORIZED ACTION
 Start from the now-current target and run the unified orchestrator against the **next open material Closure Unit**. Do not reopen P163 without new evidence. Prioritize direct evidence of core ownership, critical writers/consumers, tenant/security drift, accounting/ledger/treasury contracts, deployment lineage, browser/runtime gaps, stubs/dead surfaces, and UX blockers. Close each unit only through evidence → decision → surgical fix → static test → runtime verification → record → continuation.
+
+## CTO CLOSURE TRIGGER NONCE — 2026-09-03
+- Purpose: trigger the serialized target-preserving trusted-artifact closure verifier against the latest `main` HEAD.
+- This nonce does not change application behavior and is not a closure claim.
