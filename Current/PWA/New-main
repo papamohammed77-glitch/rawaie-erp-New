@@ -46,6 +46,7 @@ window.RW_SUPABASE_CLIENT=supabase;
 var RW_STATE={app:{initialized:false,authenticated:false,loading:false,currentView:'dashboard',currentUser:null,company:{name:'الروائع ERP',logo:null}},data:{items:[],customers:[],suppliers:[],branches:[]},permissions:[],ui:{sidebarOpen:false,sidebarCollapsed:false}};
 window.RW_STATE=RW_STATE;
 function byId(id){return document.getElementById(id)}
+window.byId=byId;
 function safeHTML(el,html){if(el)el.innerHTML=html}
 function safeText(el,text){if(el)el.textContent=text==null?'':String(text)}
 function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]})}
