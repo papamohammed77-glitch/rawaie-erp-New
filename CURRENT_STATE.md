@@ -56,3 +56,10 @@ Obtain a directly verifiable execution path for the target-preserving surgical P
 - `owner_profile.license_status` is `active`, while `app_settings.status` is `trial`; this conflict is recorded as an unresolved Production contract fact and was not altered by this closure action.
 - The historical reconstruction executor was independently confirmed failed at `30f1526fa8a926c638aa62bb63d9e88457f73670`; it is not being treated as proof of target state.
 - The target-preserving push executor is now being re-evaluated from this commit.
+
+## FORENSIC EXECUTION — DIRECT CTO HANDOFF — 2026-09-03
+- Direct primary-source verification reconfirmed the target-preserving `_cto_close_newmain_20260903.yml` executor remains the correct execution path.
+- The fragment-rebuilding `cto_one_shot_newmain_close_20260903.yml` path is not used because it violates the target-preservation rule by reconstructing before surgery.
+- The target-preserving executor is authorized by the current continuity plan to perform P163 surgery only after its static and browser gates pass.
+- Production database writes remain forbidden in this track.
+- This entry is a trigger-only continuity record; it does not assert Gold, Diamond, or Closed.
