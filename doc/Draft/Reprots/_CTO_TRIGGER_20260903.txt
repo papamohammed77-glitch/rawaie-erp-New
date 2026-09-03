@@ -1,1 +1,1 @@
-CTO trigger marker v4 — temporary operational trigger only.
+CTO single-target trigger.
