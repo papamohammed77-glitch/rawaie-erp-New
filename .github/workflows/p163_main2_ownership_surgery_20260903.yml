@@ -1,12 +1,15 @@
 name: P163 exact Main2 ownership surgery
 
 # CTO CONTINUATION: one deterministic live-target executor. No fragment reconstruction. No production writes.
+# Observable PR trigger is temporary and exists only to expose the real executor result.
 
 on:
   push:
     paths:
       - '.github/workflows/p163_main2_ownership_surgery_20260903.yml'
       - 'tools/_cto_p163_executor_20260903.py'
+  pull_request:
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
@@ -14,7 +17,7 @@ permissions:
 
 jobs:
   surgical-closure:
-    if: ${{ !contains(github.event.head_commit.message, '[P163-EXECUTED]') }}
+    if: ${{ !contains(github.event.head_commit.message || '', '[P163-EXECUTED]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
