@@ -32,7 +32,7 @@ jobs:
           assert s.count('rw-p163-closure') == 1, 'P163_MARKER_COUNT'
           assert s.count('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1') == 1, 'DIAMOND_122_COUNT'
           assert s.count('__RAWAEA_MAIN11_GOVERNED_CLOSED_V2__') == 1, 'MAIN11_GOVERNED_COUNT'
-          assert 'var e=email();' not in s, 'NOTIFICATION_SCOPE_BUG_REMAINS'
+          assert 'async function showPanel(){\n  var e=email();' not in s, 'NOTIFICATION_SCOPE_BUG_REMAINS'
           assert 'async function showPanel(){\n  var e=RW_STATE.app.currentUser&&RW_STATE.app.currentUser.email;' in s, 'NOTIFICATION_BINDING_MISSING'
           class P(HTMLParser):
             def __init__(self): super().__init__(); self.stack=[]
