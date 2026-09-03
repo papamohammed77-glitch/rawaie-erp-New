@@ -1,7 +1,6 @@
 name: P163 exact Main2 ownership surgery
 
 # Final CTO continuation: verifier-only. No target rewrite, no fragment reconstruction, no production writes.
-# The target was already restored through its complete Git blob; this gate proves the current artifact and runtime.
 
 on:
   push:
@@ -14,24 +13,25 @@ on:
       - 'Current/PWA/sw.js'
       - 'Current/manifest.json'
       - '.github/workflows/p163_main2_ownership_surgery_20260903.yml'
+  pull_request:
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: p163-final-verifier
+  group: p163-final-verifier-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
   verify:
-    if: ${{ !contains(github.event.head_commit.message || '', '[P163-FINAL-VERIFIED]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.ref }}
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -56,7 +56,7 @@ jobs:
           if miss: raise SystemExit('STATIC_MISSING='+repr(miss))
           if s.count('window.RW_OwnerLicense = RW_OwnerLicense;')!=1: raise SystemExit('OWNER_BINDING_NOT_EXACTLY_ONE')
           if 'var e=email();' in s: raise SystemExit('LEGACY_NOTIFICATION_EMAIL_CALL_PRESENT')
-          if 'window.RW_PWA_RECONSTRUCTION_VERSION=\'MAIN2-COMPLETE-SURGICAL-v1\';' not in s: raise SystemExit('MAIN2_SURGICAL_VERSION_MISSING')
+          if "window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';" not in s: raise SystemExit('MAIN2_SURGICAL_VERSION_MISSING')
           class P(HTMLParser):
             def __init__(self): super().__init__(convert_charrefs=False); self.inline=[]; self.cur=None; self.scripts=0; self.styles=0
             def handle_starttag(self,t,a):
@@ -79,6 +79,7 @@ jobs:
           f=json.loads(Path('Current/manifest.json').read_text(encoding='utf-8'))
           assert m['start_url']=='./New-main' and m['scope']=='./' and m['lang']=='ar' and m['dir']=='rtl'
           assert f['start_url']=='./PWA/New-main' and f['scope']=='./PWA/' and f['lang']=='ar' and f['dir']=='rtl'
+          print('TARGET_GIT_BLOB='+subprocess.check_output(['git','hash-object',str(p)],text=True).strip())
           print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest())
           print('STATIC_GOLD_DIAMOND=PASS')
           PY
@@ -118,25 +119,17 @@ jobs:
             if(!ok) process.exit(2);
           })().catch(e=>{console.error(e.stack||e);process.exit(2)});
           NODE
-      - name: Record immutable final verification
-        shell: bash
+      - name: Print immutable final evidence
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib
-          p=Path('Current/PWA/New-main'); h=hashlib.sha256(p.read_bytes()).hexdigest()
-          st=Path('CURRENT_STATE.md'); s=st.read_text(encoding='utf-8') if st.exists() else ''
-          marker='## P163 FINAL VERIFIED — CURRENT/PWA/NEW-MAIN — 2026-09-03'
-          entry=f'''\n\n{marker}\n- Current target Git blob SHA-1: `{__import__("subprocess").check_output(["git","hash-object",str(p)],text=True).strip()}`.\n- Current target SHA-256 at verification: `{h}`.\n- Static HTML/Node gates: PASS.\n- Exact HTTP Chromium Gold/Diamond gate: PASS; zero page/console errors; notification runtime PASS; non-owner license/audit guards denied; required modules and manifests/service worker verified.\n- Target-preserving verification only; no fragment reconstruction; no Supabase production writes.\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = 100%\n'''
-          if marker not in s: st.write_text(s.rstrip()+entry,encoding='utf-8')
+          import hashlib,subprocess
+          p=Path('Current/PWA/New-main')
+          print('FINAL_TARGET_BLOB='+subprocess.check_output(['git','hash-object',str(p)],text=True).strip())
+          print('FINAL_TARGET_SHA256='+hashlib.sha256(p.read_bytes()).hexdigest())
+          print('GOLD=PROVEN')
+          print('DIAMOND=PROVEN')
+          print('CLOSED=100%')
+          print('SUPABASE_PROD_WRITES=0')
           PY
-          git config user.name 'RAWAEA P163 Final Verifier'
-          git config user.email 'rawaea-p163-final-verifier@users.noreply.github.com'
-          git add CURRENT_STATE.md
-          git diff --cached --check
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m '[P163-FINAL-VERIFIED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED-100%] Current/PWA/New-main'
-          git fetch origin main
-          if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then git rebase origin/main; fi
-          git push origin HEAD:main
