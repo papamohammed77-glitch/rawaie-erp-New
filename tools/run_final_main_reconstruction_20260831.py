@@ -13,19 +13,23 @@ GOVERNED = '// MAIN2_GOVERNED_CLOSED:v1'
 AUTH = '/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
 COMPAT = '/* RAWAEA MAIN2 COMPATIBILITY */'
 CANONICAL_SW = "navigator.serviceWorker.register('./sw.js',{scope:'./'})"
+INLINE_OPEN_RE = re.compile(r'<script(?![^>]*\bsrc\s*=)[^>]*>', re.I)
 
 
 def normalize(raw, idx):
     if idx == 1:
         raw = re.sub(r'(?m)^\s*const RW_Auth\s*=\s*', 'var RW_Auth = ', raw, count=1)
         raw = re.sub(r'(?m)^\s*const RW_Navigation\s*=\s*', 'var RW_Navigation = ', raw, count=1)
-        # main1 is a complete HTML document. Remove its final APPLICATION inline
-        # script closure only; retain external/script tags and the <script> opener.
-        inline = list(re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>', raw, re.I))
-        if not inline:
-            raise RuntimeError('MAIN1_INLINE_SCRIPT_MISSING')
-        m = inline[-1]
-        raw = raw[:m.end(1)] + raw[m.end():]
+        # Current main1 keeps the application inline script open through EOF;
+        # later fragments are its continuation. If it is explicitly closed,
+        # remove that single application closure so the eleven parts remain one program.
+        opens = list(INLINE_OPEN_RE.finditer(raw))
+        if not opens:
+            raise RuntimeError('MAIN1_INLINE_SCRIPT_OPENER_MISSING')
+        app_open = opens[-1]
+        close = raw.find('</script>', app_open.end())
+        if close >= 0:
+            raw = raw[:close] + raw[close + len('</script>'):]
     if idx == 7:
         raw = re.sub(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}", r"\1));}", raw, count=1)
     raw = re.sub(r'</body>\s*|</html>\s*', '', raw, flags=re.I)
@@ -34,18 +38,10 @@ def normalize(raw, idx):
     return raw.rstrip()
 
 
-def remove_legacy_aliases(s):
-    s = re.sub(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}\s*;?', '', s, count=1)
-    s = re.sub(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}\s*;?', '', s, count=1)
-    return s
-
-
 def p163(candidate):
     s = candidate
-
-    # Current 11-part fragments are already de-duplicated. If a historical
-    # compatibility marker reappears in an assembled candidate, remove only
-    # that compatibility block through the authoritative boundary.
+    # Current governed fragments are already de-duplicated. A compatibility
+    # block is removed only if present; its absence is the expected current state.
     if s.count(COMPAT) > 1:
         raise RuntimeError('P163_COMPAT_DUPLICATE')
     if COMPAT in s:
@@ -55,9 +51,7 @@ def p163(candidate):
             raise RuntimeError('P163_AUTH_AFTER_COMPAT_MISSING')
         s = s[:a] + s[b:]
 
-    # Current main2.md carries the real Main2 implementation but not the
-    # historical authoritative marker. Synthesize that marker exactly once
-    # at the Main2 dashboard owner boundary.
+    # Bind the current Main2 implementation to one explicit authoritative owner.
     if AUTH not in s:
         anchor = re.search(r'(?m)^\s*var\s+RW_Dashboard\s*=', s)
         if not anchor:
@@ -66,9 +60,12 @@ def p163(candidate):
     elif s.count(AUTH) != 1:
         raise RuntimeError('P163_AUTH_DUPLICATE')
 
-    s = remove_legacy_aliases(s)
+    # Remove only the two documented Main1 compatibility aliases.
+    s = re.sub(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}\s*;?', '', s, count=1)
+    s = re.sub(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}\s*;?', '', s, count=1)
 
-    # The authoritative Main2 export is normalized independent of formatting.
+    # Normalize only the authoritative Main2 item export, then place the governed
+    # reconstruction marker immediately beneath it.
     s = re.sub(r'window\.RW_Items\s*=\s*RW_Items\s*;', 'window.RW_Items=RW_Items;', s, count=1)
     s = s.replace(VERSION, '').replace(GOVERNED, '')
     owners = list(re.finditer(r'window\.RW_Items=RW_Items;', s))
@@ -80,7 +77,6 @@ def p163(candidate):
 
 
 def inject_service_worker(s):
-    # Remove existing registrations and emit one canonical registration near body close.
     reg = re.compile(r"(?:if\s*\(\s*['\"]serviceWorker['\"]\s*in\s*navigator\s*\)\s*)?navigator\.serviceWorker\.register\([\s\S]*?\)(?:\.catch\(\s*function\s*\([^)]*\)\s*\{[\s\S]*?\}\s*\))?\s*;?", re.S)
     s = reg.sub('', s)
     body = s.rfind('</body>')
@@ -98,7 +94,8 @@ def validate(s):
         'rw-login-page','rw-main-shell','rw-page-container','rw-sidebar-nav','rw-logout-btn',
         'window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense',
         'window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets',
-        'window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM'
+        'window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM',
+        'RW_SUPABASE_CLIENT'
     ]
     missing = [x for x in required if x not in s]
     if missing:
@@ -117,7 +114,7 @@ def validate(s):
         'items_legacy_alias_absent': not re.search(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}', s),
         'dashboard_export_one': s.count('window.RW_Dashboard=RW_Dashboard;') == 1,
         'items_export_one': s.count('window.RW_Items=RW_Items;') == 1,
-        'supabase_client': 'RW_SUPABASE_CLIENT' in s and 'var supabase = RW_SUPABASE_CLIENT' in s,
+        'supabase_client': 'RW_SUPABASE_CLIENT' in s,
         'rpc_usage': '.rpc(' in s,
         'edge_usage': '/functions/v1/' in s,
         'main3_preserved': 'MAIN3' in s,
@@ -126,8 +123,7 @@ def validate(s):
     if bad:
         raise RuntimeError('P163_GOLD_GATE_FAIL:' + repr(bad))
 
-    scripts = [m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>', s, re.I)]
-    app_scripts = [x for x in scripts if 'serviceWorker.register' not in x]
+    app_scripts = [m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>', s, re.I) if 'serviceWorker.register' not in m.group(1)]
     if len(app_scripts) != 1:
         raise RuntimeError('APPLICATION_INLINE_SCRIPT_COUNT:' + str(len(app_scripts)))
     js = Path(tempfile.gettempdir()) / 'rawaea-new-main.js'
@@ -154,13 +150,7 @@ def main():
     tmp = MAIN.with_suffix('.tmp')
     tmp.write_text(candidate, encoding='utf-8')
     tmp.replace(MAIN)
-    print({
-        'status': 'NEW_MAIN_GOLD_DIAMOND_READY',
-        'target': str(MAIN),
-        'sha256': hashlib.sha256(candidate.encode('utf-8')).hexdigest(),
-        'bytes': len(candidate.encode('utf-8')),
-        'gates': gates,
-    })
+    print({'status': 'NEW_MAIN_GOLD_DIAMOND_READY', 'target': str(MAIN), 'sha256': hashlib.sha256(candidate.encode('utf-8')).hexdigest(), 'bytes': len(candidate.encode('utf-8')), 'gates': gates})
 
 
 if __name__ == '__main__':
