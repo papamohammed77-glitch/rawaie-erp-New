@@ -129,4 +129,4 @@ jobs:
           if git diff --cached --quiet; then echo 'NO_TARGET_CHANGE'; exit 1; fi
           git commit -m '[P163-FINAL-CLOSED] [GOLD-PROVEN] [DIAMOND-PROVEN] Current/PWA/New-main'
           git push origin HEAD:main
-# CTO forensic hardening: accept the target's already-correct notification context binding without weakening the runtime gate
+# CTO forensic trigger: execute the already-validated target-preserving closure gate from the live main state
