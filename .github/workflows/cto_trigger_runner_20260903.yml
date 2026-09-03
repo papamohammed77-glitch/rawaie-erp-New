@@ -26,11 +26,11 @@ jobs:
           print('TARGET_BYTES_BEFORE',len(s.encode()))
           for x in ['RW_ShellContext','RW_Auth','RW_Navigation','RW_Views','RAWAEA MAIN10 AUTHORITATIVE MODULE','RAWAEA MAIN11','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1']:
               if x not in s: raise SystemExit('MISSING='+x)
-          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\\s\\S]*?)</script>',s,re.I) if not re.search(r'\\bsrc\\s*=',m.group('a') or '',re.I)]
+          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
           print('INLINE_RUNTIME',len(ms))
           if len(ms)!=1: raise SystemExit('INLINE_RUNTIME_COUNT')
-          legacy=r"window\\.RW_OwnerLicense=\\{isOwner:function\\(\\)\\{return !!\\(RW_STATE\\.app\\.currentUser&&RW_STATE\\.app\\.currentUser\\.isOwner\\)\\},permissions:function\\(\\)\\{return RW_STATE\\.permissions\\.slice\\(\\)\\},profile:function\\(\\)\\{return RW_STATE\\.app\\.ownerProfile\\|\\|null\\},licenseState:function\\(\\)\\{return RW_STATE\\.app\\.licenseState\\|\\|'unknown'\\},isActive:function\\(\\)\\{return \\['active','Active','licensed'\\]\\.indexOf\\(RW_STATE\\.app\\.licenseState\\)>=0\\}\\};"
-          lc=len(re.findall(legacy,s)); ac=len(re.findall(r'var\\s+RW_OwnerLicense\\s*=\\s*\\(function\\s*\\(\\)',s))
+          legacy=r"window\.RW_OwnerLicense=\{isOwner:function\(\)\{return !!\(RW_STATE\.app\.currentUser&&RW_STATE\.app\.currentUser\.isOwner\)\},permissions:function\(\)\{return RW_STATE\.permissions\.slice\(\)\},profile:function\(\)\{return RW_STATE\.app\.ownerProfile\|\|null\},licenseState:function\(\)\{return RW_STATE\.app\.licenseState\|\|'unknown'\},isActive:function\(\)\{return \['active','Active','licensed'\]\s*\.indexOf\(RW_STATE\.app\.licenseState\)>=0\}\};"
+          lc=len(re.findall(legacy,s)); ac=len(re.findall(r'var\s+RW_OwnerLicense\s*=\s*\(function\s*\(\)',s))
           print('LEGACY_OWNER_ASSIGNMENTS',lc); print('AUTHORITATIVE_OWNER_DEFS',ac)
           if ac!=1: raise SystemExit('OWNER_AUTHORITY_COUNT')
           if lc>1: raise SystemExit('LEGACY_OWNER_DUPLICATE')
@@ -43,13 +43,13 @@ jobs:
               body += '''\n/* RAWAEA GOLD DIAMOND FINAL CONTRACT v4 — exact target */\n(function(){'use strict';var S=window.RW_STATE,A=window.RW_Auth,N=window.RW_Navigation,O=window.RW_OwnerLicense;if(!S||!A||!N||!O)throw new Error('GOLD_DIAMOND_PREREQUISITES_MISSING');function owner(){return !!(S.app&&S.app.currentUser&&S.app.currentUser.isOwner===true)}function permission(v){if(v==='license'||v==='audit'||v==='audit-log')return owner();if(owner())return true;var p=(window.RW_Views&&window.RW_Views.permissionMap&&window.RW_Views.permissionMap[v])||v;try{return typeof window.RW_Permissions_check==='function'&&window.RW_Permissions_check(p)===true}catch(e){return false}}var old=N.navigate;N.navigate=async function(v){if(!permission(v))throw new Error((v==='license'||v==='audit'||v==='audit-log')?'OWNER_ONLY':'PERMISSION_DENIED');return old.call(this,v)};window.RW_GOLD_DIAMOND={version:'v4',target:'Current/PWA/New-main',chain:'MAIN1-MAIN11',owner_authority:'MAIN10',navigation_authority:'RW_Navigation',tenant_authority:'RW_ShellContext',auth_authority:'RW_Auth',audit:'owner-only',session:'fail-closed',stock_authority:'canonical-core',state:'GOLD_DIAMOND'};window.__RAWAEA_GOLD_DIAMOND_PROVEN__=true;})();\n'''
               s=s[:ms[0].start('b')]+body+s[ms[0].end('b'):]; print('GOLD_DIAMOND_CONTRACT=ADDED')
           else: print('GOLD_DIAMOND_CONTRACT=EXISTS')
-          ms2=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\\s\\S]*?)</script>',s,re.I) if not re.search(r'\\bsrc\\s*=',m.group('a') or '',re.I)]
+          ms2=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
           if len(ms2)!=1: raise SystemExit('FINAL_INLINE_COUNT')
           f=Path(tempfile.mkstemp(suffix='.js')[1]);f.write_text(ms2[0].group('b'),encoding='utf-8')
           try: subprocess.run(['node','--check',str(f)],check=True)
           finally: f.unlink(missing_ok=True)
-          if len(re.findall(r'var\\s+RW_OwnerLicense\\s*=\\s*\\(function\\s*\\(\\)',s))!=1: raise SystemExit('FINAL_OWNER_COUNT')
-          if re.search(r'window\\.RW_OwnerLicense=\\{isOwner:',s): raise SystemExit('FINAL_LEGACY_OWNER')
+          if len(re.findall(r'var\s+RW_OwnerLicense\s*=\s*\(function\s*\(\)',s))!=1: raise SystemExit('FINAL_OWNER_COUNT')
+          if re.search(r'window\.RW_OwnerLicense=\{isOwner:',s): raise SystemExit('FINAL_LEGACY_OWNER')
           if 'window.RW_GOLD_DIAMOND=' not in s: raise SystemExit('FINAL_GOLD_MISSING')
           p.write_text(s,encoding='utf-8')
           print('TARGET_SHA256_AFTER',hashlib.sha256(s.encode()).hexdigest());print('EXACT_TARGET_PATCH=PASS')
@@ -70,3 +70,4 @@ jobs:
           git config user.name 'cto-forensic-bot'; git config user.email 'cto-forensic-bot@users.noreply.github.com'; git add Current/PWA/New-main
           if git diff --cached --quiet; then echo TARGET_MUTATION=NOOP; else git commit -m '[CTO-P163] exact New-main Gold Diamond closure' && git push origin HEAD:main; fi
           echo PUBLISHED_TARGET_BLOB=$(git rev-parse HEAD:Current/PWA/New-main)
+      # forensic trigger comment — no runtime behavior
