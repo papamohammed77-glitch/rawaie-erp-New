@@ -40,13 +40,10 @@ jobs:
           before=hashlib.sha256(s.encode()).hexdigest()
           changed=[]
           if s.count(safetext_bridge)==0:
-              s=s.replace(safetext_decl,safetext_decl+'\n'+safetext_bridge,1)
-              changed.append('safeText-global-bridge')
+              s=s.replace(safetext_decl,safetext_decl+'\n'+safetext_bridge,1); changed.append('safeText-global-bridge')
           if s.count(byid_bridge)==0:
-              s=s.replace(byid_decl,byid_decl+'\n'+byid_bridge,1)
-              changed.append('byId-global-bridge')
-          if not changed:
-              raise SystemExit('NO_TARGET_RUNTIME_BRIDGE_CHANGE')
+              s=s.replace(byid_decl,byid_decl+'\n'+byid_bridge,1); changed.append('byId-global-bridge')
+          if not changed: raise SystemExit('NO_TARGET_RUNTIME_BRIDGE_CHANGE')
           p.write_text(s,encoding='utf-8')
           print('PATCH=APPLIED:'+','.join(changed))
           print('BEFORE_SHA256='+before)
@@ -57,8 +54,8 @@ jobs:
           import re
           s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
           scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)
-          assert scripts,'INLINE_SCRIPT_NOT_FOUND'
-          Path('/tmp/new-main-inline.js').write_text('\n'.join(scripts),encoding='utf-8')
+          assert len(scripts)==1,'INLINE_SCRIPT_COUNT_INVALID'
+          Path('/tmp/new-main-inline.js').write_text(scripts[0],encoding='utf-8')
           PY
           node --check /tmp/new-main-inline.js
           grep -o 'window.safeText=safeText;' Current/PWA/New-main | wc -l | grep '^1$'
@@ -71,7 +68,16 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
           npx playwright install chromium >/dev/null 2>&1
-          python3 -m http.server 4173 --directory Current/PWA >/tmp/p135-http.log 2>&1 &
+          cat >/tmp/p135-http.py <<'PY'
+          from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
+          class H(SimpleHTTPRequestHandler):
+            def log_message(self, fmt, *args): pass
+            def guess_type(self,path):
+              if path.endswith('/New-main') or path.endswith('New-main'): return 'text/html; charset=utf-8'
+              return super().guess_type(path)
+          ThreadingHTTPServer(('127.0.0.1',4173),H).serve_forever()
+          PY
+          python3 /tmp/p135-http.py --directory Current/PWA >/tmp/p135-http.log 2>&1 &
           pid=$!
           trap 'kill "$pid" 2>/dev/null || true' EXIT
           sleep 2
@@ -114,12 +120,9 @@ jobs:
           git config user.name 'papamohammed77-glitch'
           git config user.email 'papamohammed77-glitch@users.noreply.github.com'
           git add Current/PWA/New-main
-          if git diff --cached --quiet; then
-            echo 'NO_TARGET_CHANGE'
-          else
-            git diff --cached --check
-            git commit -m '[CTO-FORENSIC] Export byId and safeText across governed runtime scope'
-          fi
+          git diff --cached --check
+          if git diff --cached --quiet; then echo 'NO_TARGET_CHANGE'; exit 1; fi
+          git commit -m '[CTO-FORENSIC] Export byId bridge across governed runtime scope'
           git rm .github/workflows/p135-runtime-repair.yml
           git commit -m '[CTO-GOVERNANCE] Retire one-time runtime repair writer'
           git push origin HEAD:main
