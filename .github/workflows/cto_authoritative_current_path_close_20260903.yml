@@ -37,17 +37,13 @@ jobs:
         run: |
           set -euo pipefail
           TRUSTED_COMMIT='a14c589dd969449168fac1c0ad4ed4a9e1281e0c'
-          TRUSTED_BLOB=''
           CURRENT_BLOB="$(git rev-parse 'HEAD:Current/PWA/New-main')"
           LINE_COUNT="$(wc -l < Current/PWA/New-main | tr -d ' ')"
           echo "CURRENT_BLOB=$CURRENT_BLOB CURRENT_LINE_COUNT=$LINE_COUNT"
           if [ "$CURRENT_BLOB" = '4ffaf5f1f5a9fb1bbc0cc555904a42017fd096a5' ] || [ "$LINE_COUNT" -lt 20 ]; then
             TRUSTED_BLOB="$(git rev-parse "$TRUSTED_COMMIT:Current/PWA/New-main")"
             echo "TRUSTED_BLOB=$TRUSTED_BLOB"
-            if [ -z "$TRUSTED_BLOB" ]; then
-              echo 'TRUSTED_TARGET_UNAVAILABLE' >&2
-              exit 10
-            fi
+            test -n "$TRUSTED_BLOB"
             git checkout "$TRUSTED_COMMIT" -- Current/PWA/New-main
             RESTORED_BLOB="$(git hash-object Current/PWA/New-main)"
             test "$RESTORED_BLOB" = "$TRUSTED_BLOB"
@@ -62,19 +58,25 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           from html.parser import HTMLParser
-          import json,subprocess,tempfile,hashlib
-          p=Path('Current/PWA/New-main')
-          s=p.read_text(encoding='utf-8')
-          old_manifest='<link rel="manifest" href="../manifest.json">'
-          new_manifest='<link rel="manifest" href="./New-main.manifest.json">'
+          import json,subprocess,tempfile,hashlib,re
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          old_manifest='<link rel="manifest" href="../manifest.json">'; new_manifest='<link rel="manifest" href="./New-main.manifest.json">'
           if old_manifest in s:
               if s.count(old_manifest)!=1: raise SystemExit(f'MANIFEST_LEGACY_COUNT={s.count(old_manifest)}')
               s=s.replace(old_manifest,new_manifest,1); p.write_text(s,encoding='utf-8'); print('PWA_MANIFEST_SURGERY_APPLIED')
           elif new_manifest in s: print('PWA_MANIFEST_ALREADY_FIXED')
           else: raise SystemExit('PWA_MANIFEST_CONTRACT_MISSING')
+          # Remove only the known pre-MAIN10 legacy owner shim; preserve MAIN10 authoritative implementation verbatim.
+          legacy=re.compile(r'\n?window\.RW_OwnerLicense\s*=\s*\{\s*isOwner\s*:\s*function\([^)]*\)\s*\{.*?\}\s*\};\s*',re.S)
+          matches=list(legacy.finditer(s))
+          for m in matches:
+              block=m.group(0)
+              if 'MAIN10' not in block and 'license_status' not in block:
+                  s=s[:m.start()]+"\n"+s[m.end():]; print('LEGACY_OWNER_SHIM_REMOVED')
+          p.write_text(s,encoding='utf-8')
           auth='window.RW_OwnerLicense = RW_OwnerLicense;'
           req=['rw-p163-closure','P163-GOLD-DIAMOND-CLOSED-2026-09-03','rw-pwa-runtime-gold','PWA-RUNTIME-GOLD-2026-09-03','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1','window.RW_Auth=','window.RW_Navigation=','window.RW_Views=','window.RW_ShellContext=',auth,'applyAuthoritativeContext','window.MAIN_HTML_CURRENT_CONTRACT_LEDGER=']
-          miss=[x for x in req if x not in s]
+          miss=[x for x in req if x not in s];
           if miss: raise SystemExit('CLOSURE_CONTRACT_MISSING '+repr(miss))
           if s.count(auth)!=1: raise SystemExit(f'OWNER_BINDING_COUNT={s.count(auth)}')
           class P(HTMLParser):
@@ -87,14 +89,12 @@ jobs:
                   if t.lower()=='script' and self.cur is not None:
                       if not self.cur['src'] and self.cur['text'].strip(): self.inline.append(self.cur['text'])
                       self.cur=None
-          hp=P(); hp.feed(s); hp.close(); assert len(hp.inline)==1, len(hp.inline)
+          hp=P(); hp.feed(s); hp.close(); print('INLINE_SCRIPT_COUNT='+str(len(hp.inline))); assert len(hp.inline)==1
           f=Path(tempfile.mkstemp(suffix='.js')[1]); f.write_text(hp.inline[0],encoding='utf-8')
           try: subprocess.run(['node','--check',str(f)],check=True)
           finally: f.unlink(missing_ok=True)
-          m=json.loads(Path('Current/PWA/New-main.manifest.json').read_text(encoding='utf-8'))
-          assert m['start_url']=='./New-main' and m['scope']=='./' and m['lang']=='ar' and m['dir']=='rtl'
-          fallback=json.loads(Path('Current/manifest.json').read_text(encoding='utf-8'))
-          assert fallback['start_url']=='./PWA/New-main' and fallback['scope']=='./PWA/' and fallback['lang']=='ar' and fallback['dir']=='rtl'
+          m=json.loads(Path('Current/PWA/New-main.manifest.json').read_text(encoding='utf-8')); assert m['start_url']=='./New-main' and m['scope']=='./' and m['lang']=='ar' and m['dir']=='rtl'
+          fallback=json.loads(Path('Current/manifest.json').read_text(encoding='utf-8')); assert fallback['start_url']=='./PWA/New-main' and fallback['scope']=='./PWA/' and fallback['lang']=='ar' and fallback['dir']=='rtl'
           assert Path('Current/PWA/New-main-icon.svg').exists()
           print('STATIC_GOLD_DIAMOND_PASS target_sha256='+hashlib.sha256(s.encode()).hexdigest())
           PY
@@ -105,7 +105,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf /tmp/site && mkdir /tmp/site
-          cp -a Current/. /tmp/site/Current/
+          mkdir -p /tmp/site/Current && cp -a Current/. /tmp/site/Current/
           (cd /tmp/site && python3 -m http.server 8123 >/tmp/newmain-http.log 2>&1 & echo $! >/tmp/newmain-http.pid)
           trap 'kill "$(cat /tmp/newmain-http.pid)" 2>/dev/null || true' EXIT
           node <<'NODE'
@@ -113,11 +113,11 @@ jobs:
           (async()=>{
             const b=await chromium.launch({headless:true}); const p=await b.newPage(); const pe=[],ce=[];
             p.on('pageerror',e=>pe.push(e.message)); p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
-            await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000}); await p.waitForTimeout(900);
+            await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000}); await p.waitForTimeout(1200);
             const r=await p.evaluate(async()=>{
               const S=window.RW_STATE,N=window.RW_Navigation,V=window.RW_Views; let notification='NOT_EXPOSED',licenseDenied=false,auditDenied=false;
               if(S?.app&&window.RW_Notification&&typeof window.RW_Notification.showPanel==='function'){S.app.currentUser={email:'smoke@example.com',isOwner:false,permissions:[]};try{await window.RW_Notification.showPanel();notification='PASS'}catch(e){notification='FAIL:'+String(e?.message||e)}}
-              if(N?.navigate){try{await N.navigate('license')}catch(e){licenseDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e?.message||e))}try{await N.navigate('audit')}catch(e){auditDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e?.message||e))}}
+              if(N?.navigate){try{await N.navigate('license'); licenseDenied=false}catch(e){licenseDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e?.message||e))}try{await N.navigate('audit'); auditDenied=false}catch(e){auditDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e?.message||e))}}
               const mods=['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Views'];
               const l=document.querySelector('link[rel="manifest"]'); const mj=await (await fetch(l.href)).json(); const side=await (await fetch('/Current/manifest.json')).json(); const sw=await fetch('./register-sw.js');
               return {lang:document.documentElement.lang,dir:document.documentElement.dir,state:!!S,auth:!!window.RW_Auth,nav:!!N,views:!!V,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,notification,licenseDenied,auditDenied,missingMods:mods.filter(x=>!window[x]),diamond:document.documentElement.innerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),p163:document.querySelector('meta[name="rw-p163-closure"]')?.content||'',pwa:document.querySelector('meta[name="rw-pwa-runtime-gold"]')?.content||'',manifest:l?.getAttribute('href')||'',start:mj.start_url,scope:mj.scope,sideStart:side.start_url,sideScope:side.scope,sw:sw.status};
@@ -137,7 +137,7 @@ jobs:
           p=Path('Current/PWA/New-main'); h=hashlib.sha256(p.read_bytes()).hexdigest(); st=Path('CURRENT_STATE.md'); s=st.read_text(encoding='utf-8') if st.exists() else ''
           marker='## FINAL-CLOSED — CURRENT/PWA/NEW-MAIN — 2026-09-03'
           if marker not in s:
-              s=s.rstrip()+f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Final verified target SHA-256: `{h}`\n- Trusted complete artifact recovery: PASS only when truncated-target fingerprint detected.\n- Target-preserving PWA manifest repair: PASS.\n- Static HTMLParser/Node gates: PASS.\n- Exact HTTP Chromium Gold/Diamond gate: PASS with zero page/console errors; notification runtime PASS; non-owner license/audit guards PASS; manifest and service-worker fetch PASS.\n- Manifest: `New-main.manifest.json`; start `./New-main`; scope `./`; lang `ar`; dir `rtl`.\n- Fallback `Current/manifest.json` valid and resolves `./PWA/New-main` with scope `./PWA/`.\n- Diamond 122 and P163 closure retained.\n- Supabase production writes: NONE.\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = 100%\n'''
+              s=s.rstrip()+f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Final verified target SHA-256: `{h}`\n- Trusted complete artifact recovery: PASS when the known truncated fingerprint is detected.\n- Target-preserving PWA manifest repair: PASS.\n- Static HTMLParser/Node gates: PASS.\n- Exact HTTP Chromium Gold/Diamond gate: PASS with zero page/console errors; notification runtime PASS; non-owner license/audit guards PASS; manifest and service-worker fetch PASS.\n- Manifest: `New-main.manifest.json`; start `./New-main`; scope `./`; lang `ar`; dir `rtl`.\n- Fallback `Current/manifest.json` valid and resolves `./PWA/New-main` with scope `./PWA/`.\n- Diamond 122 and P163 closure retained.\n- Supabase production writes: NONE.\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = 100%\n'''
               st.write_text(s+'\n',encoding='utf-8')
           PY
           git config user.name 'RAWAEA CTO Executor'; git config user.email 'rawaea-cto-executor@users.noreply.github.com'
@@ -149,4 +149,4 @@ jobs:
           if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then git rebase origin/main; fi
           git push origin HEAD:main
 # Sole authoritative writer; legacy writers frozen.
-# closure_nonce: 2026-09-03T05:32Z
+# closure_nonce: 2026-09-03T05:40Z
