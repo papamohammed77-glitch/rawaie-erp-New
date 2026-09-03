@@ -114,7 +114,7 @@ jobs:
           subprocess.run(['node','--check','Current/PWA/sw.js'],check=True)
           m=json.loads(Path('Current/PWA/New-main.manifest.json').read_text(encoding='utf-8'))
           side=json.loads(Path('Current/manifest.json').read_text(encoding='utf-8'))
-          assert m['start_url']=='./New-main' and m['scope']=='.//' and m['lang']=='ar' and m['dir']=='rtl'
+          assert m['start_url']=='./New-main' and m['scope']=='./' and m['lang']=='ar' and m['dir']=='rtl'
           assert side['start_url']=='./PWA/New-main' and side['scope']=='./PWA/' and side['lang']=='ar' and side['dir']=='rtl'
           assert Path('Current/PWA/New-main-icon.svg').exists()
           print('TARGET_GIT_BLOB='+subprocess.check_output(['git','hash-object',str(p)],text=True).strip())
@@ -174,10 +174,11 @@ jobs:
           PY
           git config user.name 'RAWAEA CTO Final Closure'
           git config user.email 'rawaea-cto-final-closure@users.noreply.github.com'
-          git add Current/PWA/New-main Current/PWA/New-main.manifest.json Current/PWA/New-main-icon.svg CURRENT_STATE.md .github/workflows/cto_p163_final_execution_20260903.yml
+          git add Current/PWA/New-main Current/PWA/New-main.manifest.json Current/PWA/New-main-icon.svg CURRENT_STATE.md
           git diff --cached --check
           if git diff --cached --quiet; then echo 'NO_CHANGES_AFTER_FINAL_PROOF'; exit 0; fi
           git commit -m '[P163-FINAL-CLOSED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED-100%] Current/PWA/New-main'
           git fetch origin main
           if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then git rebase origin/main; fi
           git push origin HEAD:main
+# CTO final execution nonce: 2026-09-03T09:00+03:00
