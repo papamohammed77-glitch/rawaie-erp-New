@@ -51,13 +51,10 @@ jobs:
               m=re.search(r'</head\s*>',s,re.I)
               if not m: raise SystemExit('HEAD_CLOSE_MISSING')
               s=s[:m.start()]+coord+'\n'+s[m.start():]
-          old_email="async function showPanel(){\n  var e=email();"
-          new_email="async function showPanel(){\n  var e=RW_STATE&&RW_STATE.app&&RW_STATE.app.currentUser?RW_STATE.app.currentUser.email:null;"
-          if old_email in s:
-              if s.count(old_email)!=1: raise SystemExit('NOTIFICATION_EMAIL_COUNT')
-              s=s.replace(old_email,new_email,1)
-          elif 'var e=email();' in s:
-              raise SystemExit('NOTIFICATION_EMAIL_UNEXPECTED')
+          old_email='var e=email();'
+          if old_email in s: raise SystemExit('NOTIFICATION_EMAIL_UNEXPECTED')
+          notif_patterns=('var e=RW_STATE.app.currentUser&&RW_STATE.app.currentUser.email;','var e=RW_STATE&&RW_STATE.app&&RW_STATE.app.currentUser?RW_STATE.app.currentUser.email:null;')
+          if not any(x in s for x in notif_patterns): raise SystemExit('NOTIFICATION_EMAIL_CONTEXT_MISSING')
           required=['P163-GOLD-DIAMOND-CLOSED-2026-09-03','PWA-RUNTIME-GOLD-2026-09-03','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1','window.RW_Auth=','window.RW_Navigation=','window.RW_Views=','window.RW_ShellContext','applyAuthoritativeContext','window.MAIN_HTML_CURRENT_CONTRACT_LEDGER=']
           missing=[x for x in required if x not in s]
           if missing: raise SystemExit('STATIC_MISSING='+repr(missing))
@@ -76,8 +73,7 @@ jobs:
           f=Path(tempfile.mkstemp(suffix='.js')[1]); f.write_text(h.inline[0],encoding='utf-8')
           try: subprocess.run(['node','--check',str(f)],check=True)
           finally: f.unlink(missing_ok=True)
-          for js in ('Current/PWA/register-sw.js','Current/PWA/sw.js'):
-              subprocess.run(['node','--check',js],check=True)
+          for js in ('Current/PWA/register-sw.js','Current/PWA/sw.js'): subprocess.run(['node','--check',js],check=True)
           m=json.loads(Path('Current/PWA/New-main.manifest.json').read_text(encoding='utf-8'))
           if not (m.get('start_url')=='./New-main' and m.get('scope')=='./' and m.get('lang')=='ar' and m.get('dir')=='rtl'): raise SystemExit('MANIFEST_CONTRACT_VALUES')
           p.write_text(s,encoding='utf-8')
@@ -133,4 +129,4 @@ jobs:
           if git diff --cached --quiet; then echo 'NO_TARGET_CHANGE'; exit 1; fi
           git commit -m '[P163-FINAL-CLOSED] [GOLD-PROVEN] [DIAMOND-PROVEN] Current/PWA/New-main'
           git push origin HEAD:main
-# CTO forensic hardening: replace brittle literal head-count gate with parser-safe first closing-head insertion
+# CTO forensic hardening: accept the target's already-correct notification context binding without weakening the runtime gate
