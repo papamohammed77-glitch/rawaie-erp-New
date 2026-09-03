@@ -1,135 +1,19 @@
-name: CTO New-main Gold Diamond Executor
+name: CTO New-main Gold Diamond Executor — RETIRED
+
+# Historical executor retained for audit/history only.
+# It previously had contents:write and mutated Current/PWA/New-main plus CURRENT_STATE.
+# The historical source is preserved in Git history.
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write
-
-concurrency:
-  group: rawaea-newmain-gold-diamond
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  cto:
-    if: ${{ !contains(github.event.head_commit.message, '[CTO-EXECUTED]') && !contains(github.event.head_commit.message, '[skip ci]') }}
+  retired:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 20
-
-      - name: Verify trusted complete New-main artifact
-        shell: bash
-        run: |
-          set -euo pipefail
-          TARGET_SHA="$(git hash-object Current/PWA/New-main)"
-          TRUSTED_SHA="f26581b58f101671f96bdc23c58867b985182955"
-          if [ "$TARGET_SHA" != "$TRUSTED_SHA" ]; then
-            if grep -q 'PWA-RUNTIME-GOLD-2026-09-03' Current/PWA/New-main; then
-              echo "TARGET_ALREADY_GOLD=$TARGET_SHA"
-            else
-              echo "UNTRUSTED_TARGET_BLOB=$TARGET_SHA" >&2
-              exit 41
-            fi
-          fi
-          BYTES="$(wc -c < Current/PWA/New-main)"
-          test "$BYTES" -gt 500000
-          echo "TRUSTED_COMPLETE_TARGET_PASS sha=$TARGET_SHA bytes=$BYTES"
-
-      - name: Apply idempotent PWA Gold surgical closure
-        shell: python
-        run: |
-          from pathlib import Path
-          p=Path('Current/PWA/New-main')
-          s=p.read_text(encoding='utf-8')
-          marker='<meta name="pwa-runtime-gold" content="PWA-RUNTIME-GOLD-2026-09-03">'
-          sw='<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>'
-          canonical='<link rel="manifest" href="./New-main.manifest.json">'
-          legacy='<link rel="manifest" href="../manifest.json">'
-          assert len(s) > 500000
-          if marker in s:
-              assert s.count(marker)==1
-              assert s.count(sw)==1
-              assert s.count(canonical)==1
-          else:
-              assert s.count(legacy)==1, f'legacy manifest count={s.count(legacy)}'
-              assert s.count('</head>')==1
-              s=s.replace(legacy,canonical,1)
-              s=s.replace('</head>',marker+'\n'+sw+'\n</head>',1)
-          assert s.count(marker)==1
-          assert s.count(sw)==1
-          assert s.count(canonical)==1
-          assert '../manifest.json' not in s
-          p.write_text(s,encoding='utf-8')
-          print('PWA_SURGICAL_CLOSURE_PASS')
-
-      - name: Static Gold/Diamond contract gate
-        shell: python
-        run: |
-          from pathlib import Path
-          import json, re, subprocess, tempfile
-          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          m=json.loads(Path('Current/PWA/New-main.manifest.json').read_text(encoding='utf-8'))
-          sw=Path('Current/PWA/register-sw.js').read_text(encoding='utf-8')
-          required=['window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense','RW_SUPABASE_CLIENT']
-          miss=[x for x in required if x not in s]
-          assert not miss, miss
-          assert '<meta name="rw-p163-closure" content="P163-GOLD-DIAMOND-CLOSED-2026-09-03">' in s
-          assert s.count('<meta name="pwa-runtime-gold" content="PWA-RUNTIME-GOLD-2026-09-03">')==1
-          assert s.count('<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>')==1
-          assert s.count('<link rel="manifest" href="./New-main.manifest.json">')==1
-          assert m['id']=='./New-main'
-          assert m['start_url']=='./New-main'
-          assert m['scope']=='./'
-          assert m['x_cto_gate_nonce']=='2026-09-03-final-gold-diamond'
-          assert "navigator.serviceWorker.register('./sw.js',{scope:'./'})" in sw
-          assert 'registration.update()' in sw
-          apps=[x for x in re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I) if 'serviceWorker.register' not in x]
-          assert len(apps)==1
-          f=Path(tempfile.gettempdir())/'rawaea-main.js'; f.write_text(apps[0],encoding='utf-8')
-          r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-          if r.returncode: print(r.stderr); raise SystemExit('TARGET_JS_SYNTAX_FAIL')
-          print('STATIC_GOLD_DIAMOND_PASS bytes='+str(len(s.encode())))
-
-      - name: Browser Gold/Diamond runtime gate
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm init -y >/dev/null 2>&1
-          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
-          npx playwright install --with-deps chromium >/dev/null 2>&1
-          rm -rf /tmp/rawaea-pwa && mkdir -p /tmp/rawaea-pwa
-          cp -r Current/PWA/. /tmp/rawaea-pwa/
-          python3 -m http.server 8123 --directory /tmp/rawaea-pwa >/tmp/rawaea-http.log 2>&1 &
-          node <<'NODE'
-          const {chromium}=require('playwright');
-          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const e=[];p.on('pageerror',x=>e.push(x.message));p.on('console',m=>{if(m.type()==='error')e.push(m.text())});await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1800);const r=await p.evaluate(async()=>{const regs='serviceWorker'in navigator?await navigator.serviceWorker.getRegistrations():[];const meta=document.querySelector('meta[name="pwa-runtime-gold"]');const link=document.querySelector('link[rel="manifest"]');return{ar:document.documentElement.lang==='ar',gold:!!meta,manifest:link?.getAttribute('href'),regs:regs.length,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views}});console.log(JSON.stringify({r,e}));if(e.length||!r.ar||!r.gold||r.manifest!=='./New-main.manifest.json'||r.regs<1||!r.auth||!r.nav||!r.views)process.exit(2);await b.close()})().catch(x=>{console.error(x);process.exit(2)});
-          NODE
-          echo BROWSER_GOLD_DIAMOND_PASS
-
-      - name: Persist immutable closure evidence
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import hashlib, subprocess
-          target=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          sha256=hashlib.sha256(target.encode()).hexdigest(); blob=subprocess.check_output(['git','hash-object','Current/PWA/New-main'],text=True).strip(); size=len(target.encode())
-          report=Path('doc/Draft/Reprots/CTO/2026-09-03_pwa_gold_diamond_closure.md')
-          report.parent.mkdir(parents=True,exist_ok=True)
-          report.write_text(f'''# PWA Gold/Diamond Closure — 2026-09-03\n\nClosure Unit: `Current/PWA/New-main`\nStatus: `CLOSED 100%`\n\nTrusted pre-patch Git blob: `f26581b58f101671f96bdc23c58867b985182955`\nClosed target Git blob: `{blob}`\nSHA-256: `{sha256}`\nBytes: `{size}`\n\nGates passed:\n- Trusted complete artifact gate\n- Idempotent PWA surgical closure\n- Static Gold/Diamond contract gate\n- Node application JavaScript syntax gate\n- HTTP-served manifest resolution\n- Chromium runtime/service-worker registration gate\n\nExact PWA change:\n- manifest: `../manifest.json` -> `./New-main.manifest.json`\n- added `pwa-runtime-gold` marker\n- added `RAWAEA_TARGET_SW_COORDINATOR` -> `./register-sw.js`\n\nP163 closure metadata was preserved; no P163 reconstruction was performed.\nNo database schema or production data writes were performed by this closure unit.\nNo whole-file reconstruction was used.\n\nFinal: `CLOSED 100% — GOLD/DIAMOND PROVEN`.\n''',encoding='utf-8')
-          state=Path('CURRENT_STATE.md'); st=state.read_text(encoding='utf-8'); marker='CTO CONTINUITY EVENT — PWA GOLD/DIAMOND CLOSED — 2026-09-03'
-          if marker not in st: state.write_text(st.rstrip()+f'''\n\n## {marker}\n- Target: `Current/PWA/New-main`\n- Trusted blob: `f26581b58f101671f96bdc23c58867b985182955`\n- Closed blob: `{blob}`\n- SHA-256: `{sha256}`\n- Bytes: `{size}`\n- Static gate: PASS\n- Chromium runtime gate: PASS\n- P163 preserved; no reconstruction used\n- Status: `CLOSED 100%`\n''',encoding='utf-8')
-          PY
-          git config user.name 'RAWAEA CTO Executor'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add Current/PWA/New-main doc/Draft/Reprots/CTO/2026-09-03_pwa_gold_diamond_closure.md CURRENT_STATE.md
-          git diff --cached --check
-          git commit -m '[CTO-EXECUTED] New-main Gold Diamond closure [skip ci]'
-          git push origin HEAD:main
+      - run: |
+          echo 'RETIRED: legacy New-main Gold Diamond executor disabled.'
+          echo 'No target mutation. No reconstruction. No production writes.'
