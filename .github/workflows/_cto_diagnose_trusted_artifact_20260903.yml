@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/_cto_diagnose_trusted_artifact_20260903.yml'
+      - '.cto/trigger-20260903'
   workflow_dispatch:
 permissions:
   contents: write
@@ -99,6 +100,6 @@ jobs:
             git diff --cached --check
             git commit -m '[CTO-FORENSIC] Export byId across governed runtime scope'
           fi
-          git rm .github/workflows/_cto_diagnose_trusted_artifact_20260903.yml
-          git commit -m '[CTO-GOVERNANCE] Retire one-time trusted artifact writer'
+          git rm .github/workflows/_cto_diagnose_trusted_artifact_20260903.yml .cto/trigger-20260903 || true
+          git commit -m '[CTO-GOVERNANCE] Retire one-time trusted artifact writer and trigger'
           git push origin HEAD:main
