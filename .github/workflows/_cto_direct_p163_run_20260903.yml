@@ -29,4 +29,4 @@ jobs:
           npx playwright install --with-deps chromium >/dev/null 2>&1
       - name: Execute P163
         run: python3 tools/_cto_p163_direct_20260903.py
-# CTO continuation trigger executed from live main
+# CTO continuation trigger executed from live main — 2026-09-03T06:51+03:00
