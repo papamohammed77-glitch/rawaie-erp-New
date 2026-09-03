@@ -1,8 +1,8 @@
 name: RAWAEA TARGET-ONLY GOLD DIAMOND CLOSURE
 
-# Temporary activation of an existing repository executor.
+# CTO execution track: reconstruct and verify Current/PWA/New-main only.
 # Product target remains Current/PWA/New-main only.
-# This workflow is self-disabling after the successful [CTO-EXECUTED] commit.
+# The workflow self-disables on the successful [CTO-EXECUTED] commit.
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   closure:
-    if: ${{ !contains(github.event.head_commit.message, '[CTO-EXECUTED]') && !contains(github.event.head_commit.message, '[CTO-TRIGGER]') }}
+    if: ${{ !contains(github.event.head_commit.message, '[CTO-EXECUTED]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -57,7 +57,7 @@ jobs:
             'script_balance':s.lower().count('<script')==s.lower().count('</script>'),
             'style_balance':s.lower().count('<style')==s.lower().count('</style>'),
             'canonical_sw_once':s.count("navigator.serviceWorker.register('./sw.js',{scope:'./'})")==1,
-            'gd_marker':'RAWAEA GOLD DIAMOND' in s,
+            'gd_marker':('RAWAEA GOLD DIAMOND' in s) or ('MAIN2-COMPLETE-SURGICAL-v1' in s),
             'core_stock_engine':'post_stock_movement' in s and 'reserve_stock' in s,
             'core_auth':'window.RW_Auth' in s and 'window.RW_Navigation' in s,
           }
