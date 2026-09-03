@@ -17,7 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: {ref: main, fetch-depth: 1}
-      - name: Forensic preflight and exact surgical patch
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - name: Exact target surgical patch
         shell: bash
         run: |
           set -euo pipefail
@@ -26,20 +28,19 @@ jobs:
           import hashlib
           p=Path('Current/PWA/New-main')
           s=p.read_text(encoding='utf-8')
-          byid_needle="function byId(id){return document.getElementById(id)}"
-          byid_bridge="window.byId=byId;"
-          safe_bridge="window.safeText=safeText;"
-          assert s.count(byid_needle)==1, 'byId declaration count changed'
-          assert s.count(safe_bridge)==1, 'safeText bridge must already be singular before this step'
-          if s.count(byid_bridge)==0:
+          needle="function byId(id){return document.getElementById(id)}"
+          bridge="window.byId=byId;"
+          assert s.count(needle)==1,'BYID_DECLARATION_COUNT_INVALID'
+          assert s.count('window.safeText=safeText;')==1,'SAFETEXT_BRIDGE_INVALID'
+          if s.count(bridge)==0:
               before=hashlib.sha256(s.encode()).hexdigest()
-              s=s.replace(byid_needle, byid_needle+'\n'+byid_bridge, 1)
+              s=s.replace(needle,needle+'\n'+bridge,1)
               p.write_text(s,encoding='utf-8')
-              print('BYID_BRIDGE=APPLIED')
+              print('PATCH=APPLIED')
               print('BEFORE_SHA256='+before)
               print('AFTER_SHA256='+hashlib.sha256(s.encode()).hexdigest())
           else:
-              print('BYID_BRIDGE=ALREADY_PRESENT')
+              print('PATCH=ALREADY_PRESENT')
           PY
           python3 - <<'PY'
           from pathlib import Path
@@ -50,52 +51,62 @@ jobs:
           Path('/tmp/new-main-inline.js').write_text('\n'.join(scripts),encoding='utf-8')
           PY
           node --check /tmp/new-main-inline.js
-          test "$(grep -o 'window.safeText=safeText;' Current/PWA/New-main | wc -l)" -eq 1
-          test "$(grep -o 'window.byId=byId;' Current/PWA/New-main | wc -l)" -eq 1
-          echo 'SURGICAL_STATIC=PASS'
-      - name: Chromium runtime proof on patched exact target
+          grep -o 'window.safeText=safeText;' Current/PWA/New-main | wc -l | grep '^1$'
+          grep -o 'window.byId=byId;' Current/PWA/New-main | wc -l | grep '^1$'
+          echo 'STATIC_PATCH_GATE=PASS'
+      - name: Chromium exact target regression gate
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes playwright@1.55.0 install chromium
-          python3 -m http.server 4173 --directory Current/PWA >/tmp/pwa-http.log 2>&1 &
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
+          python3 -m http.server 4173 --directory Current/PWA >/tmp/p135-http.log 2>&1 &
           pid=$!
           trap 'kill "$pid" 2>/dev/null || true' EXIT
           sleep 2
           cat >/tmp/p135.mjs <<'NODE'
-          import { chromium } from 'playwright';
-          const browser=await chromium.launch({headless:true});
-          const page=await browser.newPage({serviceWorkers:'block'});
-          const errors=[];
-          page.on('pageerror',e=>errors.push('PAGE:'+String(e.message||e)));
-          page.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE:'+m.text())});
-          await page.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded',timeout:60000});
-          await page.waitForFunction(()=>window.RW_STATE&&window.RW_Navigation&&window.RW_OwnerLicense&&typeof window.byId==='function'&&typeof window.safeText==='function',{timeout:15000});
-          const initial=await page.evaluate(()=>({locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',auth:typeof window.RW_Auth==='object',navigation:typeof window.RW_Navigation==='object',views:typeof window.RW_Views==='object',shell:typeof window.RW_ShellContext==='object',ownerLicense:typeof window.RW_OwnerLicense==='object',notification:typeof window.RW_Notification?.showPanel==='function',byId:typeof window.byId==='function',safeText:typeof window.safeText==='function'}));
-          await page.evaluate(()=>{RW_STATE.app.authenticated=true;RW_STATE.app.companyId='00000000-0000-0000-0000-000000000001';RW_STATE.app.currentUser={id:'probe',email:'owner@smoke.local',name:'المالك العام',role:'مدير النظام',isOwner:true,permissions:['*']};RW_STATE.permissions=['*'];RW_STATE.app.licenseState='active';});
-          await page.evaluate(async()=>{await RW_Navigation.navigate('license')});
-          await page.waitForTimeout(250);
-          const owner=await page.evaluate(()=>({view:RW_STATE.app.currentView,text:document.getElementById('rw-page-container')?.innerText||'',container:!!document.getElementById('license-main-container')}));
-          await page.evaluate(()=>{RW_STATE.app.currentUser={id:'probe',email:'smoke@example.com',name:'مستخدم',role:'مستخدم',isOwner:false,permissions:[]};RW_STATE.permissions=[];});
-          let denied='';
-          try{await page.evaluate(async()=>{await RW_Navigation.navigate('license')});denied='NO_REJECTION';}catch(e){denied=String(e.message||e)}
-          if(!initial.locale||!initial.auth||!initial.navigation||!initial.views||!initial.shell||!initial.ownerLicense||!initial.notification||!initial.byId||!initial.safeText)throw new Error('INITIAL_CONTRACT_FAILURE');
-          if(owner.view!=='license'||!owner.container||!/إدارة الترخيص/.test(owner.text))throw new Error('OWNER_LICENSE_FAILURE');
-          if(denied!=='OWNER_ONLY')throw new Error('NON_OWNER_GATE_FAILURE:'+denied);
-          if(errors.length)throw new Error('RUNTIME_ERRORS:'+errors.join(' | '));
-          console.log('CHROMIUM_P135_GATE=PASS');
-          console.log(JSON.stringify({initial,owner,denied,errors}));
-          await browser.close();
+          const {chromium}=require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+            const errors=[];
+            async function open(){
+              const p=await browser.newPage({serviceWorkers:'block'});
+              p.setDefaultTimeout(12000);p.setDefaultNavigationTimeout(20000);
+              p.on('pageerror',e=>errors.push('PAGE:'+String(e.message||e)));
+              p.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE:'+m.text())});
+              await p.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded'});
+              await p.waitForFunction(()=>window.RW_STATE&&window.RW_Navigation&&window.RW_OwnerLicense&&typeof window.byId==='function'&&typeof window.safeText==='function');
+              return p;
+            }
+            const p=await open();
+            const initial=await p.evaluate(()=>({lang:document.documentElement.lang,dir:document.documentElement.dir,auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',ownerLicense:typeof RW_OwnerLicense==='object',notification:typeof RW_Notification?.showPanel==='function',byId:typeof window.byId==='function',safeText:typeof window.safeText==='function'}));
+            await p.evaluate(()=>{RW_STATE.app.currentUser={id:'probe',email:'owner@smoke.local',isOwner:true,permissions:['*']};RW_STATE.permissions=['*'];RW_STATE.app.companyId='00000000-0000-0000-0000-000000000001';RW_STATE.app.licenseState='active';});
+            let owner={ok:false};
+            try{await p.evaluate(async()=>{await RW_Navigation.navigate('license')});owner=await p.evaluate(()=>({ok:true,view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container'),text:(document.getElementById('rw-page-container')?.innerText||'')}));}catch(e){owner={ok:false,error:String(e.message||e)};}
+            const afterOwner=await p.evaluate(()=>({view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container'),text:(document.getElementById('rw-page-container')?.innerText||'')}));
+            await p.evaluate(()=>{RW_STATE.app.currentUser={id:'probe',email:'user@smoke.local',isOwner:false,permissions:[]};RW_STATE.permissions=[];});
+            let denied='';try{await p.evaluate(async()=>{await RW_Navigation.navigate('license')});denied='NO_REJECTION';}catch(e){denied=String(e.message||e)}
+            await p.close();
+            const result={initial,owner,afterOwner,denied,errors};
+            console.log('P135_RUNTIME='+JSON.stringify(result));
+            const ok=initial.lang==='ar'&&initial.dir==='rtl'&&initial.auth&&initial.nav&&initial.views&&initial.shell&&initial.ownerLicense&&initial.notification&&initial.byId&&initial.safeText&&owner.ok&&afterOwner.view==='license'&&afterOwner.container&&/إدارة الترخيص/.test(afterOwner.text)&&denied==='OWNER_ONLY'&&!errors.length;
+            await browser.close();
+            if(!ok)process.exit(2);
+          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
           NODE
           node /tmp/p135.mjs
-      - name: Commit exact target change and retire one-time writer
+          echo 'CHROMIUM_SURGICAL_GATE=PASS'
+      - name: Persist target and retire one-time writer
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'papamohammed77-glitch'
           git config user.email 'papamohammed77-glitch@users.noreply.github.com'
           git add Current/PWA/New-main
-          if ! git diff --cached --quiet; then
+          if git diff --cached --quiet; then
+            echo 'NO_TARGET_CHANGE'
+          else
             git diff --cached --check
             git commit -m '[CTO-FORENSIC] Export byId across governed runtime scope'
           fi
