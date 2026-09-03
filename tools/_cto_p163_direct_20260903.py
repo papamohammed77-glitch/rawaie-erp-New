@@ -56,10 +56,10 @@ def patch_target(text):
         raise RuntimeError('P163_FAIL: version/closed cardinality')
 
     if P163_META not in text:
-        anchor = '<meta charset="utf-8">'
-        if text.count(anchor) != 1:
-            raise RuntimeError('P163_FAIL: deterministic meta insertion anchor missing')
-        text = text.replace(anchor, anchor + '\n' + P163_META, 1)
+        head = re.search(r'<head\b[^>]*>', text, flags=re.IGNORECASE)
+        if not head:
+            raise RuntimeError('P163_FAIL: live HTML head tag missing')
+        text = text[:head.end()] + '\n' + P163_META + text[head.end():]
     elif text.count(P163_META) != 1:
         raise RuntimeError('P163_FAIL: P163 meta cardinality')
 
@@ -214,8 +214,7 @@ def commit_push():
         raise RuntimeError('P163_FAIL: staged paths unexpected: ' + repr(staged))
     run(['git', 'config', 'user.name', 'cto-p163-executor'])
     run(['git', 'config', 'user.email', 'cto-p163-executor@users.noreply.github.com'])
-    git_message = '[P163-EXECUTED] close New-main Gold Diamond from live target'
-    run(['git', 'commit', '-m', git_message])
+    run(['git', 'commit', '-m', '[P163-EXECUTED] close New-main Gold Diamond from live target'])
     r = run(['git', 'push', 'origin', 'HEAD:main'], check=False)
     return r.returncode, r.stdout
 
@@ -241,7 +240,8 @@ def main():
             if rc == 0:
                 run(['git', 'fetch', 'origin', 'main'])
                 remote_target_hash = run(['git', 'rev-parse', 'origin/main:Current/PWA/New-main']).stdout.strip()
-                if remote_target_hash == run(['git', 'rev-parse', 'HEAD:Current/PWA/New-main']).stdout.strip():
+                local_target_hash = run(['git', 'rev-parse', 'HEAD:Current/PWA/New-main']).stdout.strip()
+                if remote_target_hash == local_target_hash:
                     print('P163_SUCCESS', before, after, 'REMOTE_TARGET_BLOB', remote_target_hash)
                     return 0
                 raise RuntimeError('P163_FAIL: remote target blob mismatch after push')
