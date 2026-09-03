@@ -41,6 +41,7 @@ jobs:
           if '</head>' not in text:
               raise SystemExit('HEAD_CLOSE_NOT_FOUND')
 
+          # Target-preserving surgical patch only: isolate this PWA entry from unrelated shared manifest ownership.
           text = text.replace(old_manifest, new_manifest, 1)
           marker = '<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>'
           text = text.replace('</head>', marker + '\n</head>', 1)
@@ -48,10 +49,36 @@ jobs:
           target.write_text(text, encoding='utf-8')
 
           manifest = root / 'Current/PWA/New-main.manifest.json'
-          manifest.write_text('''{\n  "name": "الروائع ERP",\n  "short_name": "الروائع ERP",\n  "description": "منصة إدارة الأعمال الذكية والمتكاملة - الروائع ERP",\n  "start_url": "./New-main",\n  "scope": "./",\n  "display": "standalone",\n  "background_color": "#f8fafc",\n  "theme_color": "#2563eb",\n  "orientation": "any",\n  "dir": "rtl",\n  "lang": "ar",\n  "icons": [\n    {\n      "src": "./New-main-icon.svg",\n      "sizes": "any",\n      "type": "image/svg+xml",\n      "purpose": "any maskable"\n    }\n  ]\n}\n''', encoding='utf-8')
+          manifest.write_text('''{
+  "name": "الروائع ERP",
+  "short_name": "الروائع ERP",
+  "description": "منصة إدارة الأعمال الذكية والمتكاملة - الروائع ERP",
+  "start_url": "./New-main",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "orientation": "any",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "./New-main-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+''', encoding='utf-8')
 
           icon = root / 'Current/PWA/New-main-icon.svg'
-          icon.write_text('''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">\n  <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient></defs>\n  <rect width="512" height="512" rx="112" fill="url(#g)"/>\n  <text x="256" y="318" text-anchor="middle" font-family="Arial,Tahoma,sans-serif" font-size="250" font-weight="900" fill="#fff">ر</text>\n</svg>\n''', encoding='utf-8')
+          icon.write_text('''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient></defs>
+  <rect width="512" height="512" rx="112" fill="url(#g)"/>
+  <text x="256" y="318" text-anchor="middle" font-family="Arial,Tahoma,sans-serif" font-size="250" font-weight="900" fill="#fff">ر</text>
+</svg>
+''', encoding='utf-8')
 
           print('PATCHED_TARGET_PWA_RUNTIME')
           PY
@@ -64,14 +91,17 @@ jobs:
           test "$(grep -o 'RAWAEA_TARGET_SW_COORDINATOR' Current/PWA/New-main | wc -l)" -eq 1
           test -f Current/PWA/New-main.manifest.json
           test -f Current/PWA/New-main-icon.svg
+          test -f Current/PWA/sw.js
+          test -f Current/PWA/register-sw.js
           node --check Current/PWA/register-sw.js
+          node --check Current/PWA/sw.js
           python - <<'PY'
           import json
           from pathlib import Path
           m=json.loads(Path('Current/PWA/New-main.manifest.json').read_text(encoding='utf-8'))
           assert m['start_url']=='./New-main'
           assert m['scope']=='./'
-          assert Path('Current/PWA/New-main-icon.svg').exists()
+          assert m['lang']=='ar' and m['dir']=='rtl'
           print('STATIC_PWA_CONTRACT_PASS')
           PY
 
@@ -97,11 +127,9 @@ jobs:
             const browser = await chromium.launch({headless:true});
             const context = await browser.newContext();
             const errors=[];
-            context.on('page', page=>{
-              page.on('pageerror', e=>errors.push('pageerror:'+e.message));
-              page.on('console', m=>{ if(m.type()==='error') errors.push('console:'+m.text()); });
-            });
             const page = await context.newPage();
+            page.on('pageerror', e=>errors.push('pageerror:'+e.message));
+            page.on('console', m=>{ if(m.type()==='error') errors.push('console:'+m.text()); });
             await page.goto('http://127.0.0.1:8765/New-main', {waitUntil:'domcontentloaded'});
             await page.waitForTimeout(1800);
 
@@ -165,3 +193,5 @@ jobs:
           git add Current/PWA/New-main Current/PWA/New-main.manifest.json Current/PWA/New-main-icon.svg CURRENT_STATE.md .github/workflows/_cto_pwa_runtime_gold_20260903.yml
           git commit -m '[PWA-RUNTIME] [GOLD-PROVEN] New-main manifest and Service Worker closure' || exit 0
           git push origin HEAD:main
+
+# CTO continuation nonce: 2026-09-03T08:12:00+03:00
