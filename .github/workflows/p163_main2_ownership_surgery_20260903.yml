@@ -63,11 +63,20 @@ jobs:
           git diff --check
           python3 - <<'PY'
           from pathlib import Path
-          import re
-          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          scripts=[m.group(1) for m in re.finditer(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group(0),re.I)]
-          if len(scripts)!=1: raise SystemExit('P163_INLINE_SCRIPT_COUNT='+str(len(scripts)))
-          Path('/tmp/newmain.js').write_text(scripts[0],encoding='utf-8')
+          from html.parser import HTMLParser
+          class Scripts(HTMLParser):
+              def __init__(self): super().__init__(convert_charrefs=False); self.inline=[]; self._capture=False; self._attrs=None; self._buf=[]
+              def handle_starttag(self,tag,attrs):
+                  if tag.lower()=='script': self._capture=True; self._attrs=dict(attrs); self._buf=[]
+              def handle_data(self,data):
+                  if self._capture and not self._attrs.get('src'): self._buf.append(data)
+              def handle_endtag(self,tag):
+                  if tag.lower()=='script':
+                      if self._capture and not self._attrs.get('src'): self.inline.append(''.join(self._buf))
+                      self._capture=False; self._attrs=None; self._buf=[]
+          s=Scripts(); s.feed(Path('Current/PWA/New-main').read_text(encoding='utf-8')); s.close()
+          if len(s.inline)!=1: raise SystemExit('P163_INLINE_APPLICATION_SCRIPT_COUNT='+str(len(s.inline)))
+          Path('/tmp/newmain.js').write_text(s.inline[0],encoding='utf-8')
           PY
           node --check /tmp/newmain.js
 
@@ -95,8 +104,9 @@ jobs:
           from pathlib import Path
           import hashlib
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8'); h=hashlib.sha256(s.encode()).hexdigest(); st=Path('CURRENT_STATE.md'); x=st.read_text(encoding='utf-8'); marker='## CTO P163 CLOSED — 2026-09-03'
-          if marker not in x: x=x.rstrip()+f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Verified target SHA-256: `{h}`\n- P163 target-preserving surgery completed without fragment reconstruction.\n- MAIN2 compatibility duplicate removed with IIFE closure preserved; authoritative MAIN2 owner retained; legacy Dashboard/Items aliases removed.\n- Current ShellContext/auth/navigation/views/OwnerLicense/contracts/actions/main1Delegation/MAIN3/MAIN11 and `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` preserved.\n- Parsed HTML structure gate: PASS.\n- Node syntax gate: PASS.\n- Browser Gold/Diamond runtime gate: PASS.\n- Production database writes: NONE.\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = PROVEN\n'''; st.write_text(x,encoding='utf-8')
-          PY
+          if marker not in x:
+              x=x.rstrip()+f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Verified target SHA-256: `{h}`\n- P163 target-preserving surgery completed without fragment reconstruction.\n- MAIN2 compatibility duplicate removed; authoritative owner retained; legacy Dashboard/Items aliases removed.\n- Current ShellContext/auth/navigation/views/OwnerLicense/contracts/actions/main1Delegation/MAIN3/MAIN11 and `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` preserved.\n- Parsed HTML structure gate: PASS.\n- Node syntax gate: PASS.\n- Browser Gold/Diamond runtime gate: PASS.\n- Production database writes: NONE.\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = PROVEN\n'''
+              st.write_text(x,encoding='utf-8')
           git config user.name 'rawaea-surgical-bot'
           git config user.email 'rawaea-surgical-bot@users.noreply.github.com'
           git add Current/PWA/New-main CURRENT_STATE.md
