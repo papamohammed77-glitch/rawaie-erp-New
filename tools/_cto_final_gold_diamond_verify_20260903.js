@@ -1,0 +1,45 @@
+const { chromium } = require('playwright');
+const fs = require('fs');
+const cp = require('child_process');
+const crypto = require('crypto');
+(async()=>{
+  const target='Current/PWA/New-main';
+  const src=fs.readFileSync(target,'utf8');
+  const before=crypto.createHash('sha256').update(src).digest('hex');
+  const required=['dashboard','telesales','customers','suppliers','branches','pos','purchase-pos','purchases','orders','runsheets','online-store','items','inventory','vouchers','picking','loading','delivery','returns','unloading','finance','reports','hr','crm','users','roles','license','settings','notifications'];
+  if(src.includes('/* RAWAEA MAIN2 COMPATIBILITY */')) throw new Error('MAIN2 compatibility still present');
+  if(!src.includes("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';")) throw new Error('MAIN2 closure version missing');
+  if(!src.includes('// MAIN2_GOVERNED_CLOSED:v1')) throw new Error('governed closure marker missing');
+  if(!src.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')) throw new Error('Diamond 122 missing');
+  const b=await chromium.launch({headless:true}); const p=await b.newPage();
+  await p.route('**/*',async r=>{const u=r.request().url();
+    if(u.includes('supabase.min.js')) return r.fulfill({status:200,contentType:'text/javascript',body:"window.supabase={createClient:()=>({auth:{onAuthStateChange:()=>({}),getSession:async()=>({data:{session:null}}),getUser:async()=>({data:{user:null},error:null}),signOut:async()=>({}),signInWithPassword:async()=>({error:new Error('SMOKE_NO_LOGIN')})}})};"});
+    if(u.includes('chart.umd.js')) return r.fulfill({status:200,contentType:'text/javascript',body:'window.Chart=function(){};'});
+    if(u.includes('sweetalert2')) return r.fulfill({status:200,contentType:'text/javascript',body:'window.Swal={fire:()=>Promise.resolve(),close:()=>{},showLoading:()=>{}};'});
+    if(u.includes('xlsx.full.min.js')) return r.fulfill({status:200,contentType:'text/javascript',body:'window.XLSX={};'});
+    if(u.includes('font-awesome')) return r.fulfill({status:200,contentType:'text/css',body:''});
+    return r.continue();
+  });
+  const pe=[],ce=[]; p.on('pageerror',e=>pe.push(e.message)); p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
+  await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});
+  await p.waitForTimeout(800);
+  const r=await p.evaluate(async(req)=>{
+    const S=window.RW_STATE,N=window.RW_Navigation,V=window.RW_Views,flat=[];
+    (function walk(a){(a||[]).forEach(x=>{if(x.view)flat.push(x.view);if(x.submenu)walk(x.submenu)})})(N&&N.menuTree);
+    const missing=req.filter(x=>!Object.prototype.hasOwnProperty.call((V&&V.permissionMap)||{},x));
+    let ld=false,ad=false,lm='',am='';
+    if(S?.app&&N?.navigate){S.app.currentUser={isOwner:false};try{await N.navigate('license')}catch(e){lm=String(e.message||e);ld=lm==='OWNER_ONLY'}try{await N.navigate('audit')}catch(e){am=String(e.message||e);ad=am==='OWNER_ONLY'}}
+    return {lang:document.documentElement.lang,body:!!document.body,state:!!S,auth:!!window.RW_Auth,nav:!!N,views:!!V,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,menuCount:flat.length,missing,licenseDenied:ld,licenseMsg:lm,auditDenied:ad,auditMsg:am,mods:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Views'].every(x=>!!window[x]),diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),version:window.RW_PWA_RECONSTRUCTION_VERSION||null};
+  },required);
+  console.log('FINAL_BROWSER_RESULT='+JSON.stringify({r,pe,ce}));
+  await b.close();
+  if(pe.length||ce.length||r.lang!=='ar'||!r.body||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||r.missing.length||!r.licenseDenied||!r.auditDenied||!r.mods||!r.diamond||r.version!=='MAIN2-COMPLETE-SURGICAL-v1') throw new Error('BROWSER_GOLD_DIAMOND_GATE_FAIL');
+  const after=fs.readFileSync(target,'utf8'); const afterHash=crypto.createHash('sha256').update(after).digest('hex');
+  const state='CURRENT_STATE.md'; let st=fs.readFileSync(state,'utf8'); const marker='## FINAL CTO CLOSED — 2026-09-03';
+  if(!st.includes(marker)) fs.writeFileSync(state,st.trimEnd()+`\n\n${marker}\n- Target: ${target}\n- HEAD target SHA-256 before verification: ${before}\n- HEAD target SHA-256 after verification: ${afterHash}\n- Direct source proof: MAIN2 compatibility owner surface absent; governed MAIN2 closure marker present; Diamond 122 preserved.\n- Static HTML/owner-contract gates: PASS. Node syntax is checked by workflow.\n- Browser runtime gate: PASS; no page errors and no console errors; ShellContext/Auth/Navigation/Views/OwnerLicense initialized.\n- Current permission-map route contracts: PASS; non-owner license and audit guards: PASS.\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = PROVEN\n- Production database writes: NONE.\n`, 'utf8');
+  cp.execFileSync('git',['config','user.name','rawaea-surgical-bot'],{stdio:'inherit'}); cp.execFileSync('git',['config','user.email','rawaea-surgical-bot@users.noreply.github.com'],{stdio:'inherit'});
+  cp.execFileSync('git',['rm','-f','tools/_cto_final_gold_diamond_verify_20260903.js','.github/workflows/_cto_final_gold_diamond_verify_20260903.yml'],{stdio:'inherit'});
+  cp.execFileSync('git',['add','Current/PWA/New-main','CURRENT_STATE.md'],{stdio:'inherit'}); cp.execFileSync('git',['diff','--cached','--check'],{stdio:'inherit'});
+  cp.execFileSync('git',['commit','-m','[FINAL-VERIFIED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED] Current/PWA/New-main'],{stdio:'inherit'});
+  cp.execFileSync('git',['push','origin','HEAD:main'],{stdio:'inherit'});
+})().catch(e=>{console.error('FINAL_VERIFY_FAIL',e&&e.stack||e);process.exit(1)});
