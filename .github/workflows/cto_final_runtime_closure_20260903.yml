@@ -130,4 +130,4 @@ jobs:
           for(const path of paths)http.get('http://127.0.0.1:8125'+path,res=>{console.log(path,res.statusCode);if(path==='/Current/PWA/New-main'&&res.statusCode!==200)fail=1;if(path!=='/Current/PWA/New-main'&&res.statusCode!==404)fail=1;if(--left===0)process.exit(fail)}).on('error',()=>{fail=1;if(--left===0)process.exit(1)});
           NODE
           echo 'SINGLE_FILE_RUNTIME=BOOTABLE_HTML_BUT_PWA_SIDECARS_ABSENT_BY_DESIGN'
-          echo 'FORENSIC_TRIGGER=2026-09-03T05:55:50Z'
+          echo 'FORENSIC_TRIGGER=2026-09-03T06:00:00Z'
