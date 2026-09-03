@@ -32,3 +32,4 @@ No Production SQL has been executed by this curated baseline.
 <!-- CTO-PR-SYNC-TRIGGER-2026-09-03-02 -->
 <!-- CTO-PR-SYNC-TRIGGER-2026-09-03-03 -->
 <!-- CTO-PR-SYNC-TRIGGER-2026-09-03-04 -->
+<!-- CTO-PR-SYNC-TRIGGER-2026-09-03-05 -->
