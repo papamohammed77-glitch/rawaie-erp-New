@@ -1,0 +1,126 @@
+name: CTO Final New-main Executor
+on:
+  push:
+    branches: [cto-final-newmain-closed-20260903]
+permissions:
+  contents: write
+concurrency:
+  group: cto-final-newmain-closed-20260903
+  cancel-in-progress: false
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Surgical target update and static gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, subprocess, tempfile
+          from html.parser import HTMLParser
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          assert len(s.splitlines())>5000
+          assert s.count('rw-p163-closure')==1
+          assert s.count('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')==1
+          old='<link rel="manifest" href="./New-main.manifest.json">'; new='<link rel="manifest" href="./manifest.json">'
+          if old in s: assert s.count(old)==1; s=s.replace(old,new,1)
+          assert s.count(new)==1
+          start=s.find("\nbyId('rw-login-form').addEventListener('submit',function(e){")
+          if start>=0:
+              end=s.find("});byId('rw-logout-btn')",start); assert end>start
+              s=s[:start]+'\n'+s[end+3:]
+          assert "byId('rw-login-form').addEventListener('submit'" not in s
+          assert s.count("loginForm.addEventListener('submit'")==1
+          assert s.count('function safeText')==1
+          m=json.loads(Path('Current/PWA/manifest.json').read_text(encoding='utf-8'))
+          assert m['start_url']=='./New-main' and m['scope']=='.//' if False else True
+          assert m['start_url']=='./New-main' and m['scope']=='./'
+          assert m['display']=='standalone' and m['dir']=='rtl' and m['lang']=='ar'
+          class P(HTMLParser):
+              def __init__(self): super().__init__(convert_charrefs=False); self.cur=None; self.inline=[]
+              def handle_starttag(self,t,a):
+                  if t.lower()=='script': self.cur={'src':dict(a).get('src'),'text':''}
+              def handle_data(self,d):
+                  if self.cur is not None and not self.cur['src']: self.cur['text']+=d
+              def handle_endtag(self,t):
+                  if t.lower()=='script' and self.cur is not None:
+                      if not self.cur['src'] and self.cur['text'].strip(): self.inline.append(self.cur['text'])
+                      self.cur=None
+          q=P(); q.feed(s); q.close(); assert q.inline
+          for code in q.inline:
+              f=Path(tempfile.mkstemp(suffix='.js')[1]); f.write_text(code,encoding='utf-8')
+              try: subprocess.run(['node','--check',str(f)],check=True)
+              finally: f.unlink(missing_ok=True)
+          subprocess.run(['node','--check','Current/PWA/register-sw.js'],check=True)
+          subprocess.run(['node','--check','Current/PWA/sw.js'],check=True)
+          p.write_text(s,encoding='utf-8')
+          print('STATIC_GOLD_PASS')
+          PY
+      - name: Browser Gold Diamond gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          rm -rf /tmp/site && mkdir -p /tmp/site/Current/PWA
+          cp -a Current/. /tmp/site/Current/
+          cat >/tmp/newmain_server.py <<'PY'
+          from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+          import os
+          class Handler(SimpleHTTPRequestHandler):
+              extensions_map = SimpleHTTPRequestHandler.extensions_map.copy()
+              extensions_map.update({'': 'text/html; charset=utf-8'})
+              def guess_type(self, path):
+                  if path.endswith('/New-main') or path.endswith('/New-main/'): return 'text/html; charset=utf-8'
+                  return super().guess_type(path)
+          os.chdir('/tmp/site')
+          ThreadingHTTPServer(('127.0.0.1',8123),Handler).serve_forever()
+          PY
+          python3 /tmp/newmain_server.py >/tmp/newmain-http.log 2>&1 & echo $! >/tmp/newmain-http.pid
+          trap 'kill "$(cat /tmp/newmain-http.pid)" 2>/dev/null || true' EXIT
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const b=await chromium.launch({headless:true});
+            const p=await b.newPage(); const pe=[],ce=[];
+            await p.route('**/*',async route=>{
+              const u=route.request().url();
+              if(u.includes('cdn.jsdelivr.net/npm/@supabase/')) return route.fulfill({status:200,contentType:'application/javascript',body:`window.supabase={createClient:function(){return {auth:{signInWithPassword:async()=>({error:new Error('stub')}),getSession:async()=>({data:{session:null}}),getUser:async()=>({data:{user:null},error:new Error('stub')}),onAuthStateChange:function(){return {data:{subscription:{unsubscribe:function(){}}}}},signOut:async()=>({}),updateUser:async()=>({}),resetPasswordForEmail:async()=>({})},from:function(){var q={select:function(){return q},eq:function(){return q},in:function(){return q},or:function(){return q},order:function(){return q},limit:function(){return q},maybeSingle:function(){return Promise.resolve({data:null,error:null})},then:function(){return Promise.resolve({data:[],error:null,count:0})}};return q}}};`});
+              if(u.includes('cdn.jsdelivr.net/npm/chart.js@')) return route.fulfill({status:200,contentType:'application/javascript',body:'window.Chart=function(){};'});
+              if(u.includes('cdn.jsdelivr.net/npm/sweetalert2@')) return route.fulfill({status:200,contentType:'application/javascript',body:'window.Swal={fire:function(){return Promise.resolve({});},close:function(){}};'});
+              if(u.includes('cdn.sheetjs.com/')) return route.fulfill({status:200,contentType:'application/javascript',body:'window.XLSX={utils:{},read:function(){return {}}};'});
+              return route.continue();
+            });
+            await p.addInitScript(()=>{window.__submitBindings=0;const add=EventTarget.prototype.addEventListener;EventTarget.prototype.addEventListener=function(t){if(t==='submit'&&this&&this.id==='rw-login-form')window.__submitBindings++;return add.apply(this,arguments)};});
+            p.on('pageerror',e=>pe.push(e.message)); p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
+            await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});
+            await p.waitForTimeout(800);
+            const r=await p.evaluate(async()=>{const l=document.querySelector('link[rel="manifest"]');const mj=await(await fetch(l.href)).json();return{login:!!document.getElementById('rw-login-form'),sidebar:!!document.getElementById('rw-sidebar'),sidebarNav:!!document.getElementById('rw-sidebar-nav'),shell:!!window.RW_ShellContext,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,safeText:typeof window.safeText==='function',submitBindings:window.__submitBindings||0,manifest:l?.getAttribute('href')||'',start:mj.start_url,scope:mj.scope,lang:mj.lang,dir:mj.dir,p163:document.querySelector('meta[name="rw-p163-closure"]')?.content||'',pwa:document.querySelector('meta[name="rw-pwa-runtime-gold"]')?.content||''};});
+            console.log('NEWMAIN_BROWSER_GATE='+JSON.stringify({r,pe,ce})); await b.close();
+            const ok=!pe.length&&!ce.length&&r.login&&r.sidebar&&r.sidebarNav&&r.shell&&r.auth&&r.nav&&r.views&&r.safeText&&r.submitBindings===1&&r.manifest==='manifest.json'&&r.start==='./New-main'&&r.scope==='.'+'/'&&r.lang==='ar'&&r.dir==='rtl'&&r.p163==='P163-GOLD-DIAMOND-CLOSED-2026-09-03'&&r.pwa==='PWA-RUNTIME-GOLD-2026-09-03';
+            if(!ok) process.exit(2);
+          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
+          NODE
+      - name: Persist target only and self-clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add Current/PWA/New-main
+          git diff --cached --check
+          git diff --cached --name-only | grep -qx 'Current/PWA/New-main'
+          git rm -f .github/workflows/cto-final-newmain-executor.yml
+          git add Current/PWA/New-main
+          git diff --cached --check
+          git diff --cached --name-only | grep -qx 'Current/PWA/New-main'
+          git config user.name 'RAWAEA CTO Executor'
+          git config user.email 'rawaea-cto-executor@users.noreply.github.com'
+          git commit -m '[CTO-CLOSED] New-main forensic Gold Diamond final'
+          git push origin HEAD:cto-final-newmain-closed-20260903
