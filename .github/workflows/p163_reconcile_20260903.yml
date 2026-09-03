@@ -1,0 +1,38 @@
+name: CTO P163 live-target reconciliation
+on:
+  push:
+    paths:
+      - '.github/workflows/p163_reconcile_20260903.yml'
+      - 'tools/_cto_p163_reconcile_20260903.py'
+  workflow_dispatch:
+concurrency:
+  group: cto-p163-live-target
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  reconcile:
+    if: ${{ !contains(github.event.head_commit.message || '', '[CTO-RECONCILE]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install browser runtime
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+      - name: Execute live-target reconciliation
+        run: |
+          set -euo pipefail
+          export NODE_PATH="$GITHUB_WORKSPACE/node_modules"
+          git fetch origin main
+          git reset --hard origin/main
+          python3 tools/_cto_p163_reconcile_20260903.py
