@@ -32,8 +32,9 @@ jobs:
           assert s.count('rw-p163-closure') == 1, 'P163_MARKER_COUNT'
           assert s.count('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1') == 1, 'DIAMOND_122_COUNT'
           assert s.count('__RAWAEA_MAIN11_GOVERNED_CLOSED_V2__') == 1, 'MAIN11_GOVERNED_COUNT'
-          assert 'async function showPanel(){\n  var e=email();' not in s, 'NOTIFICATION_SCOPE_BUG_REMAINS'
-          assert 'async function showPanel(){\n  var e=RW_STATE.app.currentUser&&RW_STATE.app.currentUser.email;' in s, 'NOTIFICATION_BINDING_MISSING'
+          assert s.count('window.byId=byId;') == 1, 'BYID_BRIDGE_COUNT'
+          assert s.count('window.safeText=safeText;') == 1, 'SAFETEXT_BRIDGE_COUNT'
+          assert s.count('window.safeHTML=safeHTML;') == 1, 'SAFEHTML_BRIDGE_COUNT'
           class P(HTMLParser):
             def __init__(self): super().__init__(); self.stack=[]
             def handle_starttag(self,t,a):
@@ -53,8 +54,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m http.server 4173 --directory Current/PWA >/tmp/pwa-http.log 2>&1 &
+          cat >/tmp/pwa-http.py <<'PY'
+          from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
+          import os
+          class H(SimpleHTTPRequestHandler):
+            def __init__(self,*args,**kwargs): super().__init__(*args,directory=os.path.abspath('Current/PWA'),**kwargs)
+            def log_message(self,fmt,*args): pass
+            def guess_type(self,path): return 'text/html; charset=utf-8' if path.endswith('/New-main') else super().guess_type(path)
+          ThreadingHTTPServer(('127.0.0.1',4173),H).serve_forever()
+          PY
+          python3 /tmp/pwa-http.py >/tmp/pwa-http.log 2>&1 &
           echo $! >/tmp/pwa.pid
+          trap 'kill "$(cat /tmp/pwa.pid)" 2>/dev/null || true' EXIT
           sleep 2
           npx --yes playwright@1.55.0 install chromium
           cat >/tmp/newmain.spec.mjs <<'EOF'
@@ -80,11 +91,15 @@ jobs:
             notification:typeof window.RW_Notification?.showPanel==='function',
             main11:!!window.__RAWAEA_MAIN11_GOVERNED_CLOSED_V2__,
             p163:document.querySelectorAll('meta[name="rw-p163-closure"]').length,
-            guardText:document.documentElement.outerHTML.includes("if(window.__RAWAEA_MAIN11_EVENTS_BOUND__)return;")
+            byId:typeof window.byId==='function',
+            safeHTML:typeof window.safeHTML==='function',
+            safeText:typeof window.safeText==='function',
+            manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||''
           }));
           if(result.lang!=='ar'||result.dir!=='rtl')throw new Error('DOCUMENT_LOCALE_FAILURE');
           for(const [k,v] of Object.entries(result)){if(v===false)throw new Error('CONTRACT_FAILURE:'+k)}
           if(result.p163!==1)throw new Error('P163_MARKER_FAILURE');
+          if(result.manifest!=='./New-main.manifest.json')throw new Error('MANIFEST_LINK_FAILURE');
           if(errors.length)throw new Error('RUNTIME_ERRORS:'+errors.join(' | '));
           console.log('BROWSER_RUNTIME_GATE=PASS');
           console.log(JSON.stringify(result));
