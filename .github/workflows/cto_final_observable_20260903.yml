@@ -1,0 +1,35 @@
+name: CTO final observable Gold Diamond verification
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: write
+jobs:
+  final:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+      - name: Install runtime
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+      - name: Serve exact New-main target
+        run: |
+          set -euo pipefail
+          cp Current/PWA/New-main Current/PWA/main.html
+          python3 -m http.server 8123 --directory Current/PWA >/tmp/final-http.log 2>&1 &
+          echo $! >/tmp/final-http.pid
+          sleep 1
+      - name: Verify target on main
+        env:
+          NODE_PATH: ${{ github.workspace }}/node_modules
+        run: |
+          set -euo pipefail
+          node --check tools/_cto_final_gold_diamond_verify_20260903.js
+          node tools/_cto_final_gold_diamond_verify_20260903.js
