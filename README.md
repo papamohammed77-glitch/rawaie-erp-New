@@ -27,3 +27,5 @@ Every implementation decision must follow:
 **NO GO — Inventory / Manual Vouchers / Van Sales reconciliation remains open.**
 
 No Production SQL has been executed by this curated baseline.
+
+<!-- CTO-PR-SYNC-TRIGGER-2026-09-03 -->
