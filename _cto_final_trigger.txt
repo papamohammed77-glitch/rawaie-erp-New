@@ -1,0 +1,1 @@
+Trigger-only commit for the armed one-shot executor.
