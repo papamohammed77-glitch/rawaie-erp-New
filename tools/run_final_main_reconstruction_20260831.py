@@ -43,12 +43,12 @@ def normalize_fragment(raw,idx):
 def extract_main1_application_js(chunk):
     opens=list(INLINE_RE.finditer(chunk))
     if not opens: raise RuntimeError('MAIN1_INLINE_RUNTIME_MISSING')
-    app_open=opens[-1]; close=chunk.rfind('</script>'); end=close if close>=app_open.end() else len(chunk); return chunk[app_open.end():end]
+    app_open=opens[-1];close=chunk.rfind('</script>');end=close if close>=app_open.end() else len(chunk);return chunk[app_open.end():end]
 
 def p163(s):
     if s.count(COMPAT)>1: raise RuntimeError('P163_COMPAT_DUPLICATE')
     if COMPAT in s:
-        a=s.index(COMPAT); b=s.find(AUTH,a+len(COMPAT))
+        a=s.index(COMPAT);b=s.find(AUTH,a+len(COMPAT))
         if b<0: raise RuntimeError('P163_AUTH_AFTER_COMPAT_MISSING')
         s=s[:a]+s[b:]
     if AUTH not in s:
@@ -61,51 +61,100 @@ def p163(s):
     owner=s.index('window.RW_Items=RW_Items;')+len('window.RW_Items=RW_Items;'); return s[:owner]+'\n'+VERSION+'\n'+GOVERNED+s[owner:]
 
 def inject_canonical_sw(s):
-    legacy=re.compile(r"if\s*\(\s*['\"]serviceWorker['\"]\s*in\s*navigator\s*\)\s*navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*\.catch\(\s*function\(e\)\s*\{\s*console\.warn\(\s*['\"]SERVICE_WORKER['\"]\s*,\s*e\)\s*\}\s*\)\s*;?",re.I); s=legacy.sub('',s)
-    bare=re.compile(r"navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*;?",re.I); s=bare.sub('',s)
+    legacy=re.compile(r"if\s*\(\s*['\"]serviceWorker['\"]\s*in\s*navigator\s*\)\s*navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*\.catch\(\s*function\(e\)\s*\{\s*console\.warn\(\s*['\"]SERVICE_WORKER['\"]\s*,\s*e\s*\)\s*\}\s*\)\s*;?",re.I);s=legacy.sub('',s); bare=re.compile(r"navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*;?",re.I);s=bare.sub('',s)
     if 'navigator.serviceWorker.register' in s: raise RuntimeError('UNEXPECTED_SERVICE_WORKER_REGISTRATION_FORM')
     body=s.lower().rfind('</body>');
-    if body<0: raise RuntimeError('BODY_CLOSE_MISSING')
-    tag="<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(function(e){console.warn('SERVICE_WORKER',e)})}</script>\n"; return s[:body]+tag+s[body:]
+    if body<0:raise RuntimeError('BODY_CLOSE_MISSING')
+    tag="<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(function(e){console.warn('SERVICE_WORKER',e)})}</script>\n";return s[:body]+tag+s[body:]
 
 class StructureParser(HTMLParser):
-    def __init__(self): super().__init__(convert_charrefs=False); self.starts=[]; self.ends=[]
-    def handle_starttag(self,tag,attrs): self.starts.append(tag.lower())
-    def handle_startendtag(self,tag,attrs): self.starts.append(tag.lower())
-    def handle_endtag(self,tag): self.ends.append(tag.lower())
+    def __init__(self):super().__init__(convert_charrefs=False);self.starts=[];self.ends=[]
+    def handle_starttag(self,tag,attrs):self.starts.append(tag.lower())
+    def handle_startendtag(self,tag,attrs):self.starts.append(tag.lower())
+    def handle_endtag(self,tag):self.ends.append(tag.lower())
 
 def validate_fragments(parts):
-    if not parts or not parts[0].lstrip().lower().startswith('<!doctype html>'): raise RuntimeError('MAIN1_HTML_SHELL_MISSING')
-    if not INLINE_RE.search(parts[0]): raise RuntimeError('MAIN1_OPEN_SCRIPT_BOUNDARY_MISSING')
+    if not parts or not parts[0].lstrip().lower().startswith('<!doctype html>'):raise RuntimeError('MAIN1_HTML_SHELL_MISSING')
+    if not INLINE_RE.search(parts[0]):raise RuntimeError('MAIN1_OPEN_SCRIPT_BOUNDARY_MISSING')
     return [{'part':i,'bytes':len(p.encode()),'lines':p.count('\n')+1} for i,p in enumerate(parts,1)]
 
 def _app_js(s):
     apps=[m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I) if 'serviceWorker.register' not in m.group(1)]
-    if len(apps)!=1: raise RuntimeError('APPLICATION_INLINE_SCRIPT_COUNT:'+str(len(apps)))
+    if len(apps)!=1:raise RuntimeError('APPLICATION_INLINE_SCRIPT_COUNT:'+str(len(apps)))
     return apps[0]
 
+def delimiter_gate(js):
+    stack=[];state='code';quote=None;line=1;col=0;i=0;can_regex=True
+    pairs={')':'(',']':'[','}':'{'}
+    opens={'(','[','{'}
+    while i<len(js):
+        ch=js[i];col+=1
+        if ch=='\n':line+=1;col=0
+        if state=='line':
+            if ch=='\n':state='code';can_regex=True
+            i+=1;continue
+        if state=='block':
+            if ch=='*' and i+1<len(js) and js[i+1]=='/':state='code';i+=2;col+=1;can_regex=True;continue
+            i+=1;continue
+        if state in ('single','double'):
+            if ch=='\\':i+=2;col+=1;continue
+            if ch==quote:state='code';quote=None;can_regex=False
+            i+=1;continue
+        if state=='template':
+            if ch=='\\':i+=2;col+=1;continue
+            if ch=='`':state='code';can_regex=False
+            i+=1;continue
+        if state=='regex':
+            if ch=='\\':i+=2;col+=1;continue
+            if ch=='[': state='regex_class'; i+=1; continue
+            if ch=='/':
+                state='code'; can_regex=False; i+=1
+                while i<len(js) and js[i].isalpha(): i+=1
+                continue
+            i+=1;continue
+        if state=='regex_class':
+            if ch=='\\':i+=2;col+=1;continue
+            if ch==']':state='regex';
+            i+=1;continue
+        if ch=='/' and i+1<len(js) and js[i+1]=='/':state='line';i+=2;col+=1;continue
+        if ch=='/' and i+1<len(js) and js[i+1]=='*':state='block';i+=2;col+=1;continue
+        if ch in "'\"`":quote=ch;state={'\'':'single','"':'double','`':'template'}[ch];i+=1;continue
+        if ch=='/' and can_regex:
+            state='regex';i+=1;continue
+        if ch in opens:stack.append((ch,line,col));can_regex=True
+        elif ch in pairs:
+            if not stack or stack[-1][0]!=pairs[ch]:
+                raise RuntimeError('DELIMITER_MISMATCH at %d:%d got %s top=%r'%(line,col,ch,stack[-10:]))
+            stack.pop();can_regex=False
+        elif ch.strip():
+            can_regex = ch in '([{=,:;!&|?+-*%^~<>'
+        i+=1
+    if state!='code' or stack:raise RuntimeError('DELIMITER_EOF stack=%r state=%s last_line=%d'%(stack[-30:],state,line))
+    return {'status':'BALANCED','lines':line}
+
 def _node_check(js,label):
-    path=Path(tempfile.gettempdir())/f'rawaea-{label}.js'; path.write_text(js+'\n',encoding='utf-8'); r=subprocess.run(['node','--check',str(path)],capture_output=True,text=True)
+    path=Path(tempfile.gettempdir())/f'rawaea-{label}.js';path.write_text(js+'\n',encoding='utf-8');r=subprocess.run(['node','--check',str(path)],capture_output=True,text=True)
     if r.returncode:
-        print(r.stderr)
-        lines=js.splitlines(); m=re.search(r':(\d+)',r.stderr)
+        print(r.stderr); lines=js.splitlines();m=re.search(r':(\d+)',r.stderr)
         if m:
-            n=int(m.group(1)); print('--- NODE FAILURE CONTEXT ---'); print('\n'.join(f'{j}: {lines[j-1]}' for j in range(max(1,n-30),min(len(lines),n+30)+1))); print('--- END NODE FAILURE CONTEXT ---')
+            n=int(m.group(1));print('--- NODE FAILURE CONTEXT ---');print('\n'.join(f'{j}: {lines[j-1]}' for j in range(max(1,n-30),min(len(lines),n+30)+1)));print('--- END NODE FAILURE CONTEXT ---')
         raise RuntimeError('FINAL_JS_SYNTAX_FAIL:'+label)
 
 def validate(s):
     start=s.lstrip().lower();required=['window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense','var RW_Dashboard','var RW_Items','window.RW_Items=RW_Items;','RW_SUPABASE_CLIENT','MAIN3'];missing=[x for x in required if x not in s]
-    if missing: raise RuntimeError('CURRENT_CONTRACT_MISSING:'+repr(missing))
+    if missing:raise RuntimeError('CURRENT_CONTRACT_MISSING:'+repr(missing))
     parser=StructureParser();parser.feed(s);parser.close();ah=parser.starts.count('html');eh=parser.ends.count('html');ab=parser.starts.count('body');eb=parser.ends.count('body');ass=parser.starts.count('script');ess=parser.ends.count('script');ast=parser.starts.count('style');est=parser.ends.count('style')
-    gates={'doctype_start':start.startswith('<!doctype html>'),'one_html_root':ah==1 and eh==1,'one_body_root':ab==1 and eb==1,'script_balance':ass==ess,'style_balance':ast==est,'auth_one':s.count(AUTH)==1,'version_one':s.count(VERSION)==1,'governed_one':s.count(GOVERNED)==1,'compat_absent':COMPAT not in s,'dash_alias_absent':not re.search(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}',s),'items_alias_absent':not re.search(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}',s),'dash_owner_one':len(re.findall(r'(?m)^\s*var\s+RW_Dashboard\s*=\s*',s))==1,'items_owner_one':len(re.findall(r'(?m)^\s*var\s+RW_Items\s*=\s*',s))==1,'items_export_one':s.count('window.RW_Items=RW_Items;')==1,'canonical_sw_one':s.count(CANONICAL_SW)==1,'rpc_present':'.rpc(' in s,'edge_present':'/functions/v1/' in s}; bad=[k for k,v in gates.items() if not v]
-    if bad: raise RuntimeError(f'P163_GOLD_GATE_FAIL:{bad} structural html={ah}/{eh} body={ab}/{eb} script={ass}/{ess} style={ast}/{est}')
-    _node_check(_app_js(s),'new-main-final')
+    gates={'doctype_start':start.startswith('<!doctype html>'),'one_html_root':ah==1 and eh==1,'one_body_root':ab==1 and eb==1,'script_balance':ass==ess,'style_balance':ast==est,'auth_one':s.count(AUTH)==1,'version_one':s.count(VERSION)==1,'governed_one':s.count(GOVERNED)==1,'compat_absent':COMPAT not in s,'dash_alias_absent':not re.search(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}',s),'items_alias_absent':not re.search(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}',s),'dash_owner_one':len(re.findall(r'(?m)^\s*var\s+RW_Dashboard\s*=\s*',s))==1,'items_owner_one':len(re.findall(r'(?m)^\s*var\s+RW_Items\s*=\s*',s))==1,'items_export_one':s.count('window.RW_Items=RW_Items;')==1,'canonical_sw_one':s.count(CANONICAL_SW)==1,'rpc_present':'.rpc(' in s,'edge_present':'/functions/v1/' in s};bad=[k for k,v in gates.items() if not v]
+    if bad:raise RuntimeError(f'P163_GOLD_GATE_FAIL:{bad} structural html={ah}/{eh} body={ab}/{eb} script={ass}/{ess} style={ast}/{est}')
+    app=_app_js(s)
+    delimiter_gate(app)
+    _node_check(app,'new-main-final')
     return gates
 
 def main():
     parts=[]
     for idx,p in enumerate(PARTS,1):
-        if not p.is_file() or not p.stat().st_size: raise RuntimeError('MISSING_PART:'+str(idx))
+        if not p.is_file() or not p.stat().st_size:raise RuntimeError('MISSING_PART:'+str(idx))
         raw=p.read_text(encoding='utf-8-sig');parts.append(normalize_main1(raw) if idx==1 else normalize_fragment(raw,idx))
     phase_report=validate_fragments(parts);candidate=parts[0]+'\n\n'+'\n\n'.join(parts[1:])+'\n\n</script>\n</body>\n</html>\n';candidate=p163(candidate);candidate=inject_canonical_sw(candidate);gates=validate(candidate)
     tmp=MAIN.with_suffix('.tmp');tmp.write_text(candidate,encoding='utf-8');tmp.replace(MAIN);print({'status':'NEW_MAIN_GOLD_DIAMOND_READY','target':str(MAIN),'sha256':hashlib.sha256(candidate.encode()).hexdigest(),'bytes':len(candidate.encode()),'gates':gates,'phase_report':phase_report})
