@@ -1,4 +1,5 @@
 name: CTO independent Gold Diamond runtime gate — READ ONLY
+# 2026-09-03 forensic rerun: execute against the exact current main HEAD after direct source/Supabase reconciliation.
 # 2026-09-03 forensic rerun marker: validate exact current HEAD after writer retirement.
 on:
   push:
