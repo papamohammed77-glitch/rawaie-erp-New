@@ -1,4 +1,4 @@
-# TRIGGER V5
+# TRIGGER V6
 name: CTO Close New-main
 on:
   pull_request_target:
@@ -65,7 +65,7 @@ jobs:
           python3 -m http.server 8123 --directory /tmp/rw >/tmp/rw.log 2>&1 &
           node <<'NODE'
           const {chromium}=require('playwright');
-          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(2500);const r=await p.evaluate(()=>({state:!!window.RW_STATE,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerContract,main2:window.RW_PWA_RECONSTRUCTION_VERSION||null}));console.log(JSON.stringify({r,pe,ce}));if(pe.length||ce.length||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||r.main2!=='MAIN2-COMPLETE-SURGICAL-v1')process.exit(2);await b.close()})().catch(e=>{console.error(e);process.exit(2)})
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(2500);const r=await p.evaluate(()=>({state:!!window.RW_STATE,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense&&typeof window.RW_OwnerLicense.isOwner==='function'&&typeof window.RW_OwnerLicense.licenseState==='function',main2:window.RW_PWA_RECONSTRUCTION_VERSION||null}));console.log(JSON.stringify({r,pe,ce}));if(pe.length||ce.length||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||r.main2!=='MAIN2-COMPLETE-SURGICAL-v1')process.exit(2);await b.close()})().catch(e=>{console.error(e);process.exit(2)})
           NODE
       - name: Persist target and cleanup executor
         shell: bash
@@ -79,7 +79,7 @@ jobs:
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
           st=Path('CURRENT_STATE.md'); x=st.read_text(encoding='utf-8')
           if 'P163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction' not in x:
-              x=x.rstrip()+"\n\n## CTO CLOSURE 2026-09-03\n\nP163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction\n- Target: `Current/PWA/New-main`\n- SHA-256: `"+hashlib.sha256(s.encode()).hexdigest()+"`\n- MAIN2 compatibility ownership removed; authoritative owner retained.\n- Main1 dashboard/items legacy aliases removed.\n- `actions`, `main1Delegation`, and MAIN3 preserved.\n- JavaScript syntax and browser smoke passed.\n- No production database writes.\n"
+              x=x.rstrip()+"\n\n## CTO CLOSURE 2026-09-03\n\nP163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction\n- Target: `Current/PWA/New-main`\n- SHA-256: `"+hashlib.sha256(s.encode()).hexdigest()+"`\n- MAIN2 compatibility ownership removed; authoritative owner retained.\n- Main1 dashboard/items legacy aliases removed.\n- `actions`, `main1Delegation`, and MAIN3 preserved.\n- JavaScript syntax and browser smoke passed.\n- Owner authority verified through `RW_OwnerLicense`.\n- No production database writes.\n"
               st.write_text(x,encoding='utf-8')
           Path('.github/workflows/_cto_close_newmain_20260903.yml').unlink(missing_ok=True)
           Path('_cto_bootstrap_touch_20260903.txt').unlink(missing_ok=True)
