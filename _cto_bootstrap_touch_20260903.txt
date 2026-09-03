@@ -1,1 +1,1 @@
-PR workflow synchronization trigger. Temporary; closure executor removes this file when it runs successfully.
+CTO bootstrap trigger — 2026-09-03 continuity recovery v2. Executor must prove target mutation and all Gold/Diamond gates.
