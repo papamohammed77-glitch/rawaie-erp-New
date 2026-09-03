@@ -1,0 +1,80 @@
+name: CTO New-main target-only final
+on:
+  push:
+    branches: [cto-newmain-target-only-final-20260903]
+permissions:
+  contents: write
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - name: Surgical patch and static Gold proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          import re, subprocess, tempfile, hashlib, json
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8'); before=s
+          assert len(s)>200000 and len(s.splitlines())>5000
+          assert s.count('rw-p163-closure')==1 and s.count('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')==1
+          s=s.replace('<link rel="manifest" href="../manifest.json">','<link rel="manifest" href="./New-main.manifest.json">',1)
+          a='</style>\n</head>'; assert a in s
+          if 'rw-pwa-runtime-gold' not in s: s=s.replace(a,'</style>\n<meta name="rw-pwa-runtime-gold" content="PWA-RUNTIME-GOLD-2026-09-03">\n</head>',1)
+          if 'RAWAEA_TARGET_SW_COORDINATOR' not in s: s=s.replace('</head>','<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>\n</head>',1)
+          def rb(t,x,y,r,n):
+            i=t.find(x); j=t.find(y,i); assert i>=0 and j>i,n; return t[:i]+r+t[j:]
+          s=rb(s,'function _openTreasuryDialog(editId) {','\n    function _editTreasury(id)',"function _openTreasuryDialog(editId) {\n        _showToast('إدارة الخزائن والبنوك تتم عبر المحرك المالي المركزي. هذه الشاشة للعرض فقط.', 'warning');\n        return;\n    }\n",'TREASURY')
+          s=rb(s,'function _openAccountDialog(editCode) {','\n    async function _seedAccounts()',"function _openAccountDialog(editCode) {\n        _showToast('دليل الحسابات تتم إدارته عبر المحرك المالي المركزي فقط.', 'warning');\n        return;\n    }\n",'COA')
+          s=rb(s,'async function _seedAccounts() {','\n    // ==================== Journal ====================',"async function _seedAccounts() {\n        _showToast('تهيئة دليل الحسابات تتم مركزيًا فقط.', 'warning');\n    }\n\n",'SEED')
+          s=rb(s,'function _editBudget(accountId, accountName, year, month) {','\n    return {',"function _editBudget(accountId, accountName, year, month) {\n        _showToast('تعديل الموازنة يتم عبر المسار المالي المركزي فقط.', 'warning');\n        return;\n    }\n\n",'BUDGET')
+          old="var aliases={dashboard:'dash',inventory:'warehouse',returns:'return',users:'users',roles:'roles','purchase-pos':'purchases'};"; new="var aliases={dashboard:'dash',inventory:'warehouse',returns:'return',users:'users',roles:'roles','purchase-pos':'purchases',finance:'finance_manager',finance_manager:'finance'};"
+          if old in s:s=s.replace(old,new,1)
+          assert new in s
+          b='<!-- RAWAEA MAIN8 CENTRAL FINANCE BOUNDARY v1: PWA read-only master data; transactional finance delegates to Core Edge Functions/RPCs. -->'
+          if b not in s:s=s.replace('</head>',b+'\n</head>',1)
+          assert s.count(b)==1
+          assert not re.search(r"from\('treasury'\)\.(insert|update|delete)",s)
+          assert not re.search(r"from\('chart_of_accounts'\)\.(insert|update|delete)",s)
+          assert ".from('budgets').upsert" not in s
+          assert '<link rel="manifest" href="../manifest.json">' not in s
+          assert s.count('<link rel="manifest" href="./New-main.manifest.json">')==1
+          assert s.count('<meta name="rw-pwa-runtime-gold" content="PWA-RUNTIME-GOLD-2026-09-03">')==1
+          assert s.count('<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>')==1
+          class P(HTMLParser):
+            def __init__(self): super().__init__(convert_charrefs=False); self.cur=None; self.inline=[]
+            def handle_starttag(self,t,a):
+              if t.lower()=='script': self.cur={'src':dict(a).get('src'),'text':''}
+            def handle_data(self,d):
+              if self.cur is not None and not self.cur['src']: self.cur['text']+=d
+            def handle_endtag(self,t):
+              if t.lower()=='script' and self.cur is not None:
+                if not self.cur['src'] and self.cur['text'].strip(): self.inline.append(self.cur['text'])
+                self.cur=None
+          q=P(); q.feed(s); q.close(); assert len(q.inline)==1
+          f=Path(tempfile.mkstemp(suffix='.js')[1]); f.write_text(q.inline[0],encoding='utf-8')
+          try: subprocess.run(['node','--check',str(f)],check=True)
+          finally:f.unlink(missing_ok=True)
+          m=json.loads(Path('Current/PWA/New-main.manifest.json').read_text(encoding='utf-8')); assert (m.get('start_url'),m.get('scope'),m.get('lang'),m.get('dir'))==('./New-main','./','ar','rtl')
+          for x in ['Current/PWA/register-sw.js','Current/PWA/sw.js','Current/PWA/New-main-icon.svg']: assert Path(x).exists(),x
+          assert s!=before
+          p.write_text(s,encoding='utf-8'); assert p.read_text(encoding='utf-8')==s
+          print('FORENSIC_STATIC_GOLD_PASS SHA256='+hashlib.sha256(s.encode()).hexdigest()+' LINES='+str(len(s.splitlines()))+' BYTES='+str(len(s.encode())))
+          PY
+      - name: Commit exact target only
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/_cto_newmain_target_only_final_20260903.yml
+          git add Current/PWA/New-main .github/workflows/_cto_newmain_target_only_final_20260903.yml
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
+          git config user.name 'RAWAEA CTO Executor'
+          git config user.email 'rawaea-cto-executor@users.noreply.github.com'
+          git commit -m '[CTO-CLOSED] [FORENSIC-GOLD] [DIAMOND-PROVEN] Current/PWA/New-main'
+          git push origin HEAD:cto-newmain-target-only-final-20260903
