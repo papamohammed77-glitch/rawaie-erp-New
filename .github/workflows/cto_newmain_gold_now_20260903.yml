@@ -1,89 +1,14 @@
 name: CTO New-main Gold Now 20260903
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 permissions:
-  contents: write
-concurrency:
-  group: cto-newmain-gold-now
-  cancel-in-progress: true
+  contents: read
 jobs:
-  gold:
+  retired:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-        with: {ref: main, fetch-depth: 0}
-      - name: Restore trusted baseline and patch exact target
-        shell: bash
+      - name: Retired destructive executor
         run: |
-          set -euo pipefail
-          git fetch origin main
-          git reset --hard origin/main
-          git checkout a49c01c869d130600a9482eff5b67b04cf97df10 -- Current/PWA/New-main
-          python3 - <<'PY'
-          from pathlib import Path
-          import json
-          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
-          if 'rw-p163-closure' in s: raise SystemExit('BASELINE_ALREADY_CONTAINS_P163_UNEXPECTED')
-          if '<link rel="manifest" href="../manifest.json">' not in s: raise SystemExit('EXPECTED_BASELINE_MANIFEST_LINK_MISSING')
-          s=s.replace('<link rel="manifest" href="../manifest.json">','<link rel="manifest" href="./New-main.manifest.json">',1)
-          head='</head>'
-          assert head in s and s.count(head)==1
-          s=s.replace(head,'<meta name="rw-p163-closure" content="P163-GOLD-DIAMOND-CLOSED-2026-09-03">\n<meta name="rw-pwa-runtime-gold" content="PWA-RUNTIME-GOLD-2026-09-03">\n<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>\n</head>',1)
-          assert s.count('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')==1
-          assert s.count('RAWAEA MAIN2 AUTHORITATIVE MODULE')==1
-          for x in ['window.RW_Auth=','window.RW_Navigation=','window.RW_Views=','window.RW_ShellContext=','window.RW_OwnerLicense = RW_OwnerLicense;','MAIN3','MAIN11','post_stock_movement','get_trial_balance','get_profit_loss','get_balance_sheet','edgeCall','function main1Delegation(','var actions=']:
-              assert x in s, x
-          p.write_text(s,encoding='utf-8')
-          Path('Current/PWA/New-main.manifest.json').write_text(json.dumps({'name':'الروائع ERP','short_name':'الروائع ERP','description':'منصة إدارة الأعمال الذكية والمتكاملة - الروائع ERP','start_url':'./New-main','scope':'./','display':'standalone','dir':'rtl','lang':'ar','background_color':'#f8fafc','theme_color':'#2563eb','icons':[{'src':'./New-main-icon.svg','sizes':'any','type':'image/svg+xml','purpose':'any maskable'}]},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-          Path('Current/PWA/New-main-icon.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#2563eb"/><text x="256" y="325" text-anchor="middle" font-family="Arial,Tahoma,sans-serif" font-size="270" font-weight="900" fill="#fff">ر</text></svg>\n',encoding='utf-8')
-          PY
-          node --check Current/PWA/register-sw.js
-          node --check Current/PWA/sw.js
-          test "$(wc -c < Current/PWA/New-main)" -gt 50000
-          test "$(grep -o 'rw-p163-closure' Current/PWA/New-main | wc -l)" -eq 1
-          test "$(grep -o 'rw-pwa-runtime-gold' Current/PWA/New-main | wc -l)" -eq 1
-          test "$(grep -o 'RAWAEA_TARGET_SW_COORDINATOR' Current/PWA/New-main | wc -l)" -eq 1
-      - name: Real HTTP Chromium Gold gate
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm init -y >/dev/null 2>&1
-          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
-          npx playwright install --with-deps chromium >/dev/null 2>&1
-          rm -rf /tmp/site && mkdir /tmp/site
-          cp -a Current/PWA/. /tmp/site/
-          cp Current/PWA/New-main /tmp/site/main.html
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          p=Path('/tmp/site/main.html'); s=p.read_text(encoding='utf-8')
-          s=re.sub(r'<script\s+(?:defer\s+)?src="https://cdn\.jsdelivr\.net/[^>]+></script>','',s,flags=re.I)
-          s=re.sub(r'<script\s+src="https://cdn\.sheetjs\.com/[^>]+></script>','',s,flags=re.I)
-          stub='<script>window.supabase=window.supabase||{createClient:()=>({auth:{getSession:async()=>({data:{session:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),getUser:async()=>({data:{user:null},error:null}),signOut:async()=>({error:null})},from:()=>({select:()=>({eq:()=>({limit:()=>Promise.resolve({data:[],error:null})}),maybeSingle:()=>Promise.resolve({data:null,error:null}),in:()=>Promise.resolve({data:[],error:null})})})})};window.Swal=window.Swal||{fire:async()=>({isConfirmed:true}),close(){},showLoading(){}};window.Chart=window.Chart||function(){};window.XLSX=window.XLSX||{utils:{}};</script>'
-          s=s.replace('<head>','<head>'+stub,1); p.write_text(s,encoding='utf-8')
-          PY
-          (cd /tmp/site && python3 -m http.server 8123 >/tmp/http.log 2>&1 & echo $! >/tmp/http.pid)
-          trap 'kill "$(cat /tmp/http.pid)" 2>/dev/null || true' EXIT
-          node <<'NODE'
-          const {chromium}=require('playwright');
-          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const e=[];p.on('pageerror',x=>e.push('pageerror:'+x.message));p.on('console',m=>{if(m.type()==='error')e.push('console:'+m.text())});await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:10000});await p.waitForSelector('#rw-login-page',{timeout:10000});await p.waitForTimeout(1200);const r=await p.evaluate(async()=>{const l=document.querySelector('link[rel="manifest"]');const m=await(await fetch(l.href)).json();return {lang:document.documentElement.lang,dir:document.documentElement.dir,manifest:l?.getAttribute('href'),start:m.start_url,scope:m.scope,state:!!window.RW_STATE,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,diamond:document.documentElement.innerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),version:window.RW_PWA_RECONSTRUCTION_VERSION||null,p163:document.querySelector('meta[name="rw-p163-closure"]')?.content||null,pwa:document.querySelector('meta[name="rw-pwa-runtime-gold"]')?.content||null}};console.log(JSON.stringify({r,e},null,2));if(e.length||r.lang!=='ar'||r.dir!=='rtl'||r.manifest!=='./New-main.manifest.json'||r.start!=='./New-main'||r.scope!=='./'||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||!r.diamond||r.version!=='MAIN2-COMPLETE-SURGICAL-v1'||r.p163!=='P163-GOLD-DIAMOND-CLOSED-2026-09-03'||r.pwa!=='PWA-RUNTIME-GOLD-2026-09-03')process.exit(2);await b.close()})().catch(x=>{console.error(x.stack||x);process.exit(2)});
-          NODE
-      - name: Commit verified target
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import hashlib
-          p=Path('Current/PWA/New-main'); h=hashlib.sha256(p.read_bytes()).hexdigest(); st=Path('CURRENT_STATE.md'); s=st.read_text(encoding='utf-8').rstrip(); marker='## CTO CURRENT-PATH RECONCILIATION — 2026-09-03 (LIVE VERIFIED)'
-          if marker not in s: s+=f'\n\n{marker}\n- Trusted baseline restored from parent `a49c01c869d130600a9482eff5b67b04cf97df10` before surgical PWA repair.\n- Target-specific manifest lineage and explicit Service Worker coordinator verified.\n- Static Node/PWA gate: PASS.\n- Real HTTP Chromium gate: PASS on target copy; application core contracts present; manifest fetched; P163 and PWA Gold markers present; no page/console errors.\n- Verified target SHA-256: `{h}`\n- Production Supabase writes: NONE.\n- Current-path PWA Runtime Closure Unit: GOLD = PROVEN; Diamond 122 retained.\n'; st.write_text(s+'\n',encoding='utf-8')
-          PY
-          git config user.name 'RAWAEA CTO Executor'; git config user.email 'rawaea-cto-executor@users.noreply.github.com'
-          git add Current/PWA/New-main Current/PWA/New-main.manifest.json Current/PWA/New-main-icon.svg CURRENT_STATE.md
-          git diff --cached --check
-          git commit -m '[CTO-CURRENT-PATH] [GOLD-PROVEN] [DIAMOND-PROVEN] restore and close New-main'
-          git push origin HEAD:main
-# CTO continuation nonce 2026-09-03T08:50:00+03:00
+          echo 'Retired: historical baseline restore executor disabled.'
+          echo 'Target-preserving closure is owned by cto_trusted_artifact_closure_20260903.'
