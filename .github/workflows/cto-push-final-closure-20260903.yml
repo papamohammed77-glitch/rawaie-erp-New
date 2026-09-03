@@ -1,0 +1,62 @@
+name: CTO Push Final New-main Closure 2026-09-03
+on:
+  push:
+    branches: [main]
+    paths: ['.cto-final-newmain-trigger']
+permissions:
+  contents: write
+jobs:
+  close:
+    if: contains(github.event.head_commit.message, '[CTO-RUN-FINAL-NEWM')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: main, fetch-depth: 1}
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - name: Apply exact target closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, hashlib, subprocess, json
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          assert len(s.encode())>400000 and '<html lang="ar" dir="rtl">' in s
+          assert '<link rel="manifest" href="./manifest.json">' in s
+          s=s.replace('await window.RW_Auth.enterSystem();','await window.RW_Auth.enterSystem(authUser);')
+          assert 'await window.RW_Auth.enterSystem(authUser);' in s
+          s=s.replace('<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>','')
+          assert 'register-sw.js' not in s
+          assert not re.search(r'<link[^>]+href=["\']\./[^"\']+\.html["\'][^>]*>',s,re.I)
+          layer=r'''<script id="RAWAEA_FINAL_PRODUCT_CLOSURE">(function(){'use strict';function e(x){return document.getElementById(x)}function brand(){try{var a=window.RW_STATE&&RW_STATE.app||{},c=a.company||{},n=String(c.name||'الروائع ERP').trim()||'الروائع ERP',logo=String(c.logo||'').trim(),ln=e('rw-login-company-name')||document.querySelector('.rw-company-name'),sn=e('rw-sidebar-company-name'),lb=e('rw-login-company-logo')||document.querySelector('.rw-login-logo'),sl=e('rw-sidebar-brand-logo');if(ln)ln.textContent=n;if(sn)sn.textContent=n;if(lb&&logo){var im=e('rw-login-brand-image');if(!im){im=document.createElement('img');im.id='rw-login-brand-image';im.alt='شعار الشركة';im.style.cssText='width:100%;height:100%;object-fit:contain;padding:10px';lb.innerHTML='';lb.appendChild(im)}im.src=logo}if(sl&&logo)sl.src=logo}catch(x){}}function routes(){try{var n=window.RW_Navigation,w=window.RW_Warehouse;if(!n||!w||typeof n.navigate!=='function'||typeof w.loadVoucherForm!=='function')return false;if(n.__finalRoutePatch)return true;var old=n.navigate.bind(n);n.navigate=function(v){if(v==='transfer')return w.loadVoucherForm('Transfer');if(v==='direct-sale')return w.loadVoucherForm('DirectSale');if(v==='direct-return')return w.loadVoucherForm('DirectReturn');if(v==='supplier-return')return w.loadVoucherForm('SupplierReturn');return old.apply(null,arguments)};n.__finalRoutePatch=true;return true}catch(x){return false}}function wire(){brand();if(!routes())setTimeout(function(){if(!routes())setTimeout(routes,500)},100)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire,{once:true});else wire();window.RW_FinalProductClosure={brand:brand,routes:routes}})();</script>'''
+          if 'RAWAEA_FINAL_PRODUCT_CLOSURE' not in s:
+              cut=s.rfind('</body>'); assert cut>0; s=s[:cut]+'\n'+layer+'\n'+s[cut:]
+          assert s.count('RAWAEA_FINAL_PRODUCT_CLOSURE')==1
+          assert all(x in s for x in ("w.loadVoucherForm('Transfer')","w.loadVoucherForm('DirectSale')","w.loadVoucherForm('DirectReturn')","w.loadVoucherForm('SupplierReturn')"))
+          m=re.search(r'<script id="RAWAEA_FINAL_PRODUCT_CLOSURE">([\s\S]*?)</script>',s); assert m
+          Path('/tmp/final.js').write_text(m.group(1),encoding='utf-8'); subprocess.run(['node','--check','/tmp/final.js'],check=True)
+          mf=json.loads(Path('Current/PWA/manifest.json').read_text(encoding='utf-8')); assert (mf.get('start_url'),mf.get('scope'),mf.get('dir'),mf.get('lang'))==('./New-main','./','rtl','ar')
+          p.write_text(s,encoding='utf-8'); print('TARGET_BYTES',len(s.encode())); print('TARGET_SHA256',hashlib.sha256(s.encode()).hexdigest())
+          PY
+          git add Current/PWA/New-main; git diff --cached --check; test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
+      - name: Chromium final product gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1; npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1; npx playwright install chromium >/dev/null 2>&1
+          mkdir -p /tmp/pwa/Current/PWA; cp Current/PWA/New-main /tmp/pwa/Current/PWA/New-main; cp Current/PWA/manifest.json /tmp/pwa/Current/PWA/manifest.json
+          python3 -m http.server 4173 --directory /tmp/pwa >/tmp/pwa-http.log 2>&1 & pid=$!; trap 'kill $pid 2>/dev/null || true' EXIT; sleep 1
+          node <<'NODE'
+          const {chromium}=require('playwright');(async()=>{const b=await chromium.launch({headless:true,args:['--no-sandbox']}),p=await b.newPage({viewport:{width:1440,height:900}}),errs=[];p.on('pageerror',e=>errs.push('PAGE:'+e.message));p.on('console',m=>{if(m.type()==='error')errs.push('CONSOLE:'+m.text())});await p.route('https://**/*',r=>r.fulfill({status:200,contentType:'application/javascript',body:'window.Chart=function(){};window.Swal={fire:async()=>({}),close(){}};window.XLSX={};window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},from(){return{select(){return this},eq(){return this},limit(){return this},maybeSingle:async()=>({data:null,error:null})}}})};'}));await p.addInitScript(()=>localStorage.setItem('rawaea_remember_email','remembered@example.com'));await p.goto('http://127.0.0.1:4173/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1400);const a=await p.evaluate(()=>({lang:document.documentElement.lang,dir:document.documentElement.dir,login:!!document.getElementById('rw-login-form'),sidebar:!!document.querySelector('.rw-sidebar'),brand:!!document.getElementById('rw-login-company-name'),remember:document.getElementById('rw-username')?.value==='remembered@example.com',auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',owner:typeof RW_OwnerLicense==='object',warehouse:typeof RW_Warehouse==='object',notif:typeof RW_Notification?.showPanel==='function',closure:typeof RW_FinalProductClosure==='object',routePatch:!!RW_Navigation?.__finalRoutePatch,manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href'),sw:[...document.scripts].some(s=>(s.src||'').includes('register-sw.js')),menuCount:Array.isArray(RW_Navigation?.menuTree)?RW_Navigation.menuTree.filter(x=>x&&x.view).length:0,logoSize:document.querySelector('.rw-login-logo')?.getBoundingClientRect().width||0}));await p.evaluate(()=>{window.__calls=[];RW_Warehouse.loadVoucherForm=x=>(window.__calls.push(x),x)});for(const v of ['transfer','direct-sale','direct-return','supplier-return'])await p.evaluate(v=>RW_Navigation.navigate(v),v);const q=await p.evaluate(()=>window.__calls);console.log('FINAL_PRODUCT_GATE',JSON.stringify({a,q,errs}));await b.close();if(errs.length||a.lang!=='ar'||a.dir!=='rtl'||!a.login||!a.sidebar||!a.brand||!a.remember||!a.auth||!a.nav||!a.views||!a.shell||!a.owner||!a.warehouse||!a.notif||!a.closure||!a.routePatch||a.manifest!=='./manifest.json'||a.sw||a.menuCount<10||a.logoSize<80||JSON.stringify(q)!==JSON.stringify(['Transfer','DirectSale','DirectReturn','SupplierReturn']))process.exit(2)})().catch(e=>{console.error(e.stack||e);process.exit(2)})
+          NODE
+          echo FINAL_PRODUCT_GATE_PASS=YES
+      - name: Persist only New-main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add Current/PWA/New-main; git diff --cached --check; test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
+          git config user.name 'RAWAEA CTO Final Executor'; git config user.email 'rawaea-cto-final@users.noreply.github.com'
+          git commit -m '[CTO-CLOSED] [GOLD] [DIAMOND] New-main final product closure'
+          git push origin HEAD:main
