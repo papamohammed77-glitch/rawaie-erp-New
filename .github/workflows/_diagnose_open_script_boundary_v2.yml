@@ -14,7 +14,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 1
-      - name: Boundary matrix
+      - name: Cumulative runtime boundary matrix
         shell: bash
         run: |
           set -euo pipefail
@@ -26,19 +26,25 @@ jobs:
           op=re.compile(r'<script(?![^>]*\bsrc\s*=)[^>]*>',re.I)
           matches=list(op.finditer(parts[0])); assert matches
           p1=parts[0][matches[-1].end():]
-          p1=re.sub(r'<!-- RAWAEA_P1_FORENSIC_CLOSED:v18 -->\s*$','',p1,flags=re.I)
-          frags=[re.sub(r'</body>\s*|</html>\s*','',x,flags=re.I).strip() for x in parts[1:]]
-          print('COUNTS')
-          for i,p in enumerate(parts,1): print(i,'IIFE_OPEN',p.count('(function'),'IIFE_CLOSE',p.count('})();'),'BYTES',len(p.encode()))
-          def test(name,body):
-              f=Path(tempfile.gettempdir())/(name+'.js'); f.write_text(body+'\n',encoding='utf-8')
+          p1=re.sub(r'(?m)^\s*<!--\s*RAWAEA_P1_FORENSIC_CLOSED:[^>]*-->\s*$','',p1,flags=re.I)
+          frags=[x.rstrip() for x in parts[1:]]
+          print('PART_COUNTS')
+          for i,p in enumerate(parts,1):
+              print(i,'IIFE_OPEN',p.count('(function'),'IIFE_CLOSE',p.count('})();'),'TRY_OPEN',p.count('try{')+p.count('try {'),'TRY_CLOSE',p.count('catch(e)'),'BYTES',len(p.encode()))
+          js=p1
+          for i in range(1,12):
+              if i>1: js += '\n\n'+frags[i-2]
+              f=Path(tempfile.gettempdir())/f'cum-runtime-{i}.js'; f.write_text(js+'\n',encoding='utf-8')
               r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-              print('CANDIDATE',name,'PASS' if r.returncode==0 else 'FAIL')
-              if r.returncode: print(r.stderr.splitlines()[-8:])
-              return r.returncode==0
-          base=p1+'\n\n'+'\n\n'.join(frags)
-          candidates={'base':base,'close_after_main1':p1+'\n})();\n\n'+'\n\n'.join(frags),'close_before_main11':p1+'\n\n'+'\n\n'.join(frags[:9])+'\n})();\n\n'+'\n\n'.join(frags[9:]),'close_end':base+'\n})();'}
-          passes=[n for n,b in candidates.items() if test(n,b)]
-          print('PASSING_CANDIDATES',passes)
-          if not passes: raise SystemExit('NO_BOUNDARY_CANDIDATE_PASSES')
+              status='PASS' if r.returncode==0 else 'FAIL'
+              print(f'MAIN{i}_RUNTIME_CUMULATIVE {status} lines={js.count(chr(10))+1} bytes={len(js.encode())}')
+              if r.returncode:
+                  print(r.stderr)
+                  lines=js.splitlines(); m=re.search(r':(\d+)',r.stderr)
+                  if m:
+                      n=int(m.group(1));
+                      for j in range(max(1,n-20),min(len(lines),n+20)+1): print(f'{j}: {lines[j-1]}')
+                  raise SystemExit(f'FIRST_RUNTIME_SYNTAX_FAILURE_MAIN{i}')
+          print('ALL_RUNTIME_FRAGMENTS_PASS')
+          print('PAREN_COUNTS',js.count('{'),js.count('}'),js.count('('),js.count(')'),js.count('['),js.count(']'))
           PY
