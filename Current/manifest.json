@@ -1,0 +1,23 @@
+{
+  "name": "الروائع ERP",
+  "short_name": "الروائع ERP",
+  "description": "منصة إدارة الأعمال الذكية والمتكاملة - الروائع ERP",
+  "id": "./PWA/New-main",
+  "start_url": "./PWA/New-main",
+  "scope": "./PWA/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "dir": "rtl",
+  "lang": "ar",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "./PWA/New-main-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"]
+}
