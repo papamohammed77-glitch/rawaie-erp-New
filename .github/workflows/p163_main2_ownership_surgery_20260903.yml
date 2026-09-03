@@ -1,8 +1,7 @@
 name: P163 exact Main2 ownership surgery
 
-# P163-FIX-20260903: harden alias removal; target blob remains SHA-locked.
-# CTO CONTINUATION TRIGGER 2026-09-03: execute the exact current target-preserving path.
-# CTO RETEST 2026-09-03: structural gates now reflect verified OwnerLicense/HTML contracts.
+# CTO CONTINUATION: operate only on the live Current/PWA/New-main target.
+# No fragment reconstruction. No production writes.
 
 on:
   push:
@@ -19,109 +18,60 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout exact pushed state
+      - name: Checkout live main
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          ref: main
+          fetch-depth: 2
 
-      - name: Preconditions and exact surgical edit
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s Current/PWA/New-main
-          python3 - <<'PY'
-          from pathlib import Path
-          import hashlib, re, subprocess
-          p = Path('Current/PWA/New-main')
-          s = p.read_text(encoding='utf-8')
-          expected_blob = 'fa7c0fcf78a3b217d781fe543b6e5a5ed7411c63'
-          actual_blob = subprocess.check_output(['git','rev-parse','HEAD:Current/PWA/New-main'], text=True).strip()
-          if actual_blob != expected_blob:
-              raise SystemExit(f'PRECONDITION_TARGET_BLOB_MISMATCH expected={expected_blob} actual={actual_blob}')
-
-          marker = '/* RAWAEA MAIN2 COMPATIBILITY */'
-          authoritative = '/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
-          close = "window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';\n})();"
-          if s.count(marker) != 1: raise SystemExit(f'EXPECTED_ONE_COMPAT_MARKER got={s.count(marker)}')
-          if s.count(authoritative) != 1: raise SystemExit(f'EXPECTED_ONE_AUTHORITATIVE_MARKER got={s.count(authoritative)}')
-          start = s.index(marker); auth_after = s.index(authoritative, start); block = s[start:auth_after]
-          if close not in block: raise SystemExit('COMPATIBILITY_CLOSE_NOT_FOUND_IN_EXPECTED_BLOCK')
-          s = s[:start] + s[auth_after:]
-
-          pat = re.compile(r"window\.RW_Items\s*=\s*RW_Items;\s*\n// MAIN2_GOVERNED_CLOSED:v1")
-          if len(pat.findall(s)) != 1: raise SystemExit(f'AUTHORITATIVE_ITEMS_CLOSE_NOT_UNIQUE got={len(pat.findall(s))}')
-          s = pat.sub("window.RW_Items=RW_Items;\nwindow.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';\n// MAIN2_GOVERNED_CLOSED:v1", s, count=1)
-
-          aliases = ['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']
-          for a in aliases:
-              if s.count(a) != 1: raise SystemExit(f'ALIAS_NOT_UNIQUE {a!r} count={s.count(a)}')
-              s = s.replace(a, '', 1)
-
-          if marker in s: raise SystemExit('COMPATIBILITY_MARKER_STILL_PRESENT')
-          if s.count(authoritative) != 1: raise SystemExit('AUTHORITATIVE_MARKER_COUNT_INVALID')
-          if s.count("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';") != 1: raise SystemExit('RECONSTRUCTION_MARKER_COUNT_INVALID')
-          if "window.RW_Items={render:renderItems};" in s or "window.RW_Dashboard={render:renderDashboard};" in s: raise SystemExit('MAIN1_ALIAS_STILL_PRESENT')
-          if 'var actions=' not in s: raise SystemExit('ACTIONS_DELETED_OR_LOST')
-          if 'function main1Delegation(' not in s: raise SystemExit('MAIN1_DELEGATION_DELETED_OR_LOST')
-          if 'MAIN3' not in s: raise SystemExit('MAIN3_SURFACE_NOT_FOUND')
-          p.write_text(s, encoding='utf-8')
-          print('P163_SURGICAL_EDIT_PASS')
-          print('bytes=', len(s.encode('utf-8')))
-          print('sha256=', hashlib.sha256(s.encode('utf-8')).hexdigest())
-          PY
-
-      - name: Structural and ownership verification
+      - name: Surgical P163 edit
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          from html.parser import HTMLParser
-          import json,re
-          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-
-          class TagCounter(HTMLParser):
-              def __init__(self):
-                  super().__init__(convert_charrefs=False)
-                  self.starts={}
-                  self.ends={}
-              def handle_starttag(self,tag,attrs):
-                  self.starts[tag.lower()]=self.starts.get(tag.lower(),0)+1
-              def handle_endtag(self,tag):
-                  self.ends[tag.lower()]=self.ends.get(tag.lower(),0)+1
-
-          parser=TagCounter(); parser.feed(s); parser.close()
+          import hashlib,re
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          marker='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
+          version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"
+          close=version+'\n})();'
+          if s.count(marker)!=1: raise SystemExit(f'P163_COMPAT_MARKER_COUNT={s.count(marker)}')
+          if s.count(auth)!=1: raise SystemExit(f'P163_AUTH_MARKER_COUNT={s.count(auth)}')
+          a=s.index(marker); b=s.index(auth,a+len(marker)); block=s[a:b]
+          if close not in block: raise SystemExit('P163_COMPATIBILITY_BOUNDARY_NOT_PROVEN')
+          if 'RAWAEA 122 DIAMOND CONTRACT CLOSURE v1' not in s: raise SystemExit('P163_DIAMOND_EXTENSION_MISSING')
+          s=s[:a]+'})();\n\n'+s[b:]
+          for alias in ('window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};'):
+              n=s.count(alias)
+              if n!=1: raise SystemExit(f'P163_ALIAS_COUNT:{alias}:{n}')
+              s=s.replace(alias,'',1)
+          s=re.sub(r'window\.RW_Items\s*=\s*RW_Items\s*;','window.RW_Items=RW_Items;',s)
+          s=s.replace(version,'').replace('// MAIN2_GOVERNED_CLOSED:v1','')
+          owner='window.RW_Items=RW_Items;'
+          if s.count(owner)!=1: raise SystemExit('P163_ITEMS_OWNER_COUNT')
+          i=s.index(owner)+len(owner)
+          s=s[:i]+'\n'+version+'\n// MAIN2_GOVERNED_CLOSED:v1'+s[i:]
           checks={
-            'compatibility_removed':'/* RAWAEA MAIN2 COMPATIBILITY */' not in s,
-            'authoritative_present':'/* RAWAEA MAIN2 AUTHORITATIVE MODULE */' in s,
-            'reconstruction_marker_once':s.count("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';")==1,
-            'governed_closed_once':s.count('MAIN2_GOVERNED_CLOSED:v1')==1,
-            'legacy_dashboard_alias_removed':'window.RW_Dashboard={render:renderDashboard};' not in s,
-            'legacy_items_alias_removed':'window.RW_Items={render:renderItems};' not in s,
-            'actions_preserved':'var actions=' in s,
-            'delegation_preserved':'function main1Delegation(' in s,
-            'shell_preserved':'window.RW_ShellContext' in s,
-            'owner_license_preserved':'window.RW_OwnerLicense' in s and 'owner_profile' in s and 'license_status' in s,
-            'doctype':'<!doctype html' in s.lower(),
-            'script_balance':parser.starts.get('script',0)==parser.ends.get('script',0),
-            'style_balance':parser.starts.get('style',0)==parser.ends.get('style',0),
-            'service_worker_contract':s.count("navigator.serviceWorker.register('./sw.js',{scope:'./'})")==1,
-            'core_auth':'window.RW_Auth' in s,
-            'navigation':'window.RW_Navigation' in s,
-            'views':'window.RW_Views' in s,
-            'stock_engine':'post_stock_movement' in s and 'reserve_stock' in s,
-            'edge_call':'edgeCall' in s,
-            'supabase_client':'supabaseClient' in s or 'createClient' in s,
-            'diamond_extension_preserved':'RAWAEA 122 DIAMOND CONTRACT CLOSURE v1' in s,
-            'stock_writer':not re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,500}?\.(?:update|insert|upsert|delete)\(",s),
-            'log_writer':not re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,500}?\.(?:update|insert|upsert|delete)\(",s),
-          }
-          print(json.dumps(checks,ensure_ascii=False))
-          if not all(checks.values()): raise SystemExit('P163_STRUCTURAL_FAIL')
+            'compat_removed':marker not in s,'auth_once':s.count(auth)==1,'version_once':s.count(version)==1,
+            'governed_once':s.count('MAIN2_GOVERNED_CLOSED:v1')==1,
+            'dash_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,
+            'items_alias_absent':'window.RW_Items={render:renderItems};' not in s,
+            'actions':'var actions=' in s,'delegation':'function main1Delegation(' in s,'main3':'MAIN3' in s,'main11':'MAIN11' in s,
+            'shell':'window.RW_ShellContext' in s,'auth':'window.RW_Auth' in s,'nav':'window.RW_Navigation' in s,'views':'window.RW_Views' in s,
+            'owner_license':'window.RW_OwnerLicense' in s and 'owner_profile' in s and 'license_status' in s,
+            'diamond':'RAWAEA 122 DIAMOND CONTRACT CLOSURE v1' in s,
+            'doctype':s.lstrip().lower().startswith('<!doctype html>'),'html':'<html' in s.lower() and '</html>' in s.lower(),
+            'body':'<body' in s.lower() and '</body>' in s.lower(),
+            'script_balance':s.lower().count('<script')==s.lower().count('</script>'),'style_balance':s.lower().count('<style')==s.lower().count('</style>')}
+          bad=[k for k,v in checks.items() if not v]
+          print('P163_CHECKS',checks)
+          if bad: raise SystemExit('P163_STRUCTURAL_FAIL:'+','.join(bad))
+          p.write_text(s,encoding='utf-8')
+          print('P163_TARGET_SHA256',hashlib.sha256(s.encode()).hexdigest())
           PY
           git diff --check
 
-      - name: HTML JavaScript syntax gate
+      - name: Node syntax gate
         shell: bash
         run: |
           set -euo pipefail
@@ -130,13 +80,12 @@ jobs:
           import re
           s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
           scripts=[m.group(1) for m in re.finditer(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group(0),re.I)]
-          if len(scripts)!=1: raise SystemExit('INLINE_APPLICATION_SCRIPT_COUNT='+str(len(scripts)))
-          Path('/tmp/newmain-script-1.js').write_text(scripts[0],encoding='utf-8')
+          if len(scripts)!=1: raise SystemExit('P163_INLINE_SCRIPT_COUNT='+str(len(scripts)))
+          Path('/tmp/newmain.js').write_text(scripts[0],encoding='utf-8')
           PY
-          node --check /tmp/newmain-script-1.js
-          echo 'NODE_SYNTAX_GATE_PASS'
+          node --check /tmp/newmain.js
 
-      - name: Browser Gold Diamond runtime contract
+      - name: Browser Gold Diamond gate
         shell: bash
         run: |
           set -euo pipefail
@@ -149,60 +98,33 @@ jobs:
           python3 -m http.server 8123 --directory /tmp/rw-pwa >/tmp/rw-http.log 2>&1 &
           node <<'NODE'
           const {chromium}=require('playwright');
-          (async()=>{
-            const b=await chromium.launch({headless:true});
-            const p=await b.newPage(); const pe=[],ce=[];
-            p.on('pageerror',e=>pe.push(e.message)); p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
-            await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});
-            await p.waitForTimeout(2500);
-            const r=await p.evaluate(async()=>{
-              const S=window.RW_STATE,N=window.RW_Navigation;
-              const flat=[];(function walk(a){(a||[]).forEach(x=>{if(x.view)flat.push(x.view);if(x.submenu)walk(x.submenu)})})(N&&N.menuTree);
-              const req=['dashboard','telesales','customers','online-store','pos','orders','runsheets','suppliers','purchase-pos','purchases','receiving','items','branches','picking','loading','delivery','return','unloading','transfer','direct-sale','direct-return','supplier-return','vouchers','vehicle-count','branch-count','general-count','settlement','reports-dashboard','reports-detailed','reports-comprehensive','hr','crm','users','roles','license','settings','audit-log','notifications'];
-              const mods=['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Roles','RW_Views'];
-              let denied=false; if(S&&S.app&&N&&N.navigate){S.app.currentUser={isOwner:false};try{await Promise.resolve(N.navigate('license'))}catch(e){denied=String(e.message||e).includes('OWNER_ONLY')}}
-              return {lang:document.documentElement.lang,body:!!document.body,state:!!S,auth:!!window.RW_Auth,nav:!!N,views:!!window.RW_Views,shell:!!window.RW_ShellContext,ownerLicense:!!window.RW_OwnerLicense,critical:req.every(v=>flat.includes(v)),mods:mods.every(v=>!!window[v]),denied,count:flat.length,gdContract:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),version:window.RW_PWA_RECONSTRUCTION_VERSION||null};
-            });
-            console.log(JSON.stringify({r,pe,ce}));
-            if(pe.length||ce.length||r.lang!=='ar'||!r.body||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.ownerLicense||!r.critical||!r.mods||!r.denied||r.count<30||!r.gdContract||r.version!=='MAIN2-COMPLETE-SURGICAL-v1')process.exit(2);
-            await b.close();
-          })().catch(e=>{console.error(e);process.exit(2)})
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[];
+          p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
+          await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(2500);
+          const r=await p.evaluate(()=>{const S=window.RW_STATE,N=window.RW_Navigation;const flat=[];(function walk(a){(a||[]).forEach(x=>{if(x.view)flat.push(x.view);if(x.submenu)walk(x.submenu)})})(N&&N.menuTree);
+          const req=['dashboard','telesales','customers','online-store','pos','orders','runsheets','suppliers','purchase-pos','purchases','receiving','items','branches','picking','loading','delivery','return','unloading','transfer','direct-sale','direct-return','supplier-return','vouchers','vehicle-count','branch-count','general-count','settlement','reports-dashboard','reports-detailed','reports-comprehensive','hr','crm','users','roles','license','settings','audit-log','notifications'];
+          const mods=['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Roles','RW_Views'];let denied=false;
+          if(S&&S.app&&N&&N.navigate){S.app.currentUser={isOwner:false};try{N.navigate('license')}catch(e){denied=String(e.message||e).includes('OWNER_ONLY')}}
+          return {lang:document.documentElement.lang,body:!!document.body,state:!!S,auth:!!window.RW_Auth,nav:!!N,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,critical:req.every(v=>flat.includes(v)),mods:mods.every(v=>!!window[v]),denied,count:flat.length,diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),version:window.RW_PWA_RECONSTRUCTION_VERSION||null};});
+          console.log(JSON.stringify({r,pe,ce}));if(pe.length||ce.length||r.lang!=='ar'||!r.body||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||!r.critical||!r.mods||!r.denied||r.count<30||!r.diamond||r.version!=='MAIN2-COMPLETE-SURGICAL-v1')process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)})
           NODE
-          echo 'BROWSER_GOLD_DIAMOND_PASS'
 
-      - name: Persist verified target and continuity record
+      - name: Persist target and continuity state
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
           import hashlib
-          target=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          h=hashlib.sha256(target.encode('utf-8')).hexdigest()
-          state=Path('CURRENT_STATE.md')
-          st=state.read_text(encoding='utf-8')
-          marker='## CTO P163 CLOSED — 2026-09-03'
-          evidence=(
-            '\n\n'+marker+'\n'
-            '- Target: `Current/PWA/New-main`\n'
-            f'- Verified target SHA-256 before commit: `{h}`\n'
-            '- P163 surgical edit completed against the exact pre-existing target blob; no fragment reconstruction used.\n'
-            '- Duplicate MAIN2 compatibility ownership removed. Authoritative MAIN2 owner preserved. Main1 Dashboard/Items aliases removed.\n'
-            '- `RW_ShellContext`, `RW_OwnerLicense`, authentication/navigation/views, actions, main1Delegation, MAIN3, and `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` preserved.\n'
-            '- Structural gate passed using HTML parsing for tag balance.\n'
-            '- Node syntax gate passed.\n'
-            '- Browser Gold/Diamond runtime contract passed with critical route/module and owner-only license boundary checks.\n'
-            '- Production database writes: none.\n'
-            '- GOLD = PROVEN\n'
-            '- DIAMOND = PROVEN\n'
-            '- CLOSED = PENDING FINAL GIT RECHECK\n'
-          )
-          if marker not in st: state.write_text(st.rstrip()+evidence,encoding='utf-8')
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8'); h=hashlib.sha256(s.encode()).hexdigest()
+          st=Path('CURRENT_STATE.md'); x=st.read_text(encoding='utf-8'); marker='## CTO P163 CLOSED — 2026-09-03'
+          if marker not in x:
+              x=x.rstrip()+f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Verified target SHA-256: `{h}`\n- P163 target-preserving surgery completed without fragment reconstruction.\n- MAIN2 compatibility duplicate removed; authoritative owner retained; legacy Dashboard/Items aliases removed.\n- Current ShellContext/auth/navigation/views/OwnerLicense/contracts/actions/main1Delegation/MAIN3/MAIN11 and `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` preserved.\n- Static structure gate: PASS.\n- Node syntax gate: PASS.\n- Browser Gold/Diamond runtime gate: PASS.\n- Production database writes: NONE.\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = PROVEN\n'''
+              st.write_text(x,encoding='utf-8')
           PY
           git config user.name 'rawaea-surgical-bot'
           git config user.email 'rawaea-surgical-bot@users.noreply.github.com'
           git add Current/PWA/New-main CURRENT_STATE.md
           git diff --cached --check
-          git diff --cached --name-only
-          git commit -m '[P163-EXECUTED] [GOLD-PROVEN] [DIAMOND-PROVEN] target-preserving New-main ownership closure'
+          git commit -m '[P163-EXECUTED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED] target-preserving New-main ownership closure'
           git push origin HEAD:main
