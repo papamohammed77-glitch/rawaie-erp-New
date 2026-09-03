@@ -53,21 +53,21 @@ def extract_main1_application_js(chunk):
 def p163(s):
     if s.count(COMPAT) > 1: raise RuntimeError('P163_COMPAT_DUPLICATE')
     if COMPAT in s:
-        a=s.index(COMPAT); b=s.find(AUTH,a+len(COMPAT))
-        if b<0: raise RuntimeError('P163_AUTH_AFTER_COMPAT_MISSING')
-        s=s[:a]+s[b:]
+        a = s.index(COMPAT); b = s.find(AUTH, a + len(COMPAT))
+        if b < 0: raise RuntimeError('P163_AUTH_AFTER_COMPAT_MISSING')
+        s = s[:a] + s[b:]
     if AUTH not in s:
-        m=re.search(r'(?m)^\s*var\s+RW_Dashboard\s*=\s*',s)
+        m = re.search(r'(?m)^\s*var\s+RW_Dashboard\s*=\s*', s)
         if not m: raise RuntimeError('MAIN2_DASHBOARD_ANCHOR_MISSING')
-        s=s[:m.start()]+AUTH+'\n'+s[m.start():]
-    if s.count(AUTH)!=1: raise RuntimeError('P163_AUTH_COUNT:'+str(s.count(AUTH)))
-    s=re.sub(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}\s*;?','',s,count=1)
-    s=re.sub(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}\s*;?','',s,count=1)
-    s=re.sub(r'window\.RW_Items\s*=\s*RW_Items\s*;','window.RW_Items=RW_Items;',s,count=1)
-    s=s.replace(VERSION,'').replace(GOVERNED,'')
-    if s.count('window.RW_Items=RW_Items;')!=1: raise RuntimeError('P163_ITEMS_OWNER_COUNT:'+str(s.count('window.RW_Items=RW_Items;')))
-    owner=s.index('window.RW_Items=RW_Items;')+len('window.RW_Items=RW_Items;')
-    return s[:owner]+'\n'+VERSION+'\n'+GOVERNED+s[owner:]
+        s = s[:m.start()] + AUTH + '\n' + s[m.start():]
+    if s.count(AUTH) != 1: raise RuntimeError('P163_AUTH_COUNT:' + str(s.count(AUTH)))
+    s = re.sub(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}\s*;?', '', s, count=1)
+    s = re.sub(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}\s*;?', '', s, count=1)
+    s = re.sub(r'window\.RW_Items\s*=\s*RW_Items\s*;', 'window.RW_Items=RW_Items;', s, count=1)
+    s = s.replace(VERSION, '').replace(GOVERNED, '')
+    if s.count('window.RW_Items=RW_Items;') != 1: raise RuntimeError('P163_ITEMS_OWNER_COUNT:' + str(s.count('window.RW_Items=RW_Items;')))
+    owner = s.index('window.RW_Items=RW_Items;') + len('window.RW_Items=RW_Items;')
+    return s[:owner] + '\n' + VERSION + '\n' + GOVERNED + s[owner:]
 
 def inject_canonical_sw(s):
     legacy = re.compile(r"if\s*\(\s*['\"]serviceWorker['\"]\s*in\s*navigator\s*\)\s*navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*\.catch\(\s*function\(e\)\s*\{\s*console\.warn\(\s*['\"]SERVICE_WORKER['\"]\s*,\s*e\s*\)\s*\}\s*\)\s*;?",re.I)
@@ -122,7 +122,8 @@ def delimiter_diagnostics(js):
         if ch in opens: stack.append((ch,line,col,'code'))
         elif ch in pairs:
             expected=pairs[ch]
-            if not stack or stack[-1][0]!=expected: return {'status':'MISMATCH','at':(line,col,ch),'top':stack[-10:]}
+            if not stack or stack[-1][0]!=expected:
+                return {'status':'MISMATCH','at':(line,col,ch),'offending_line':js.splitlines()[line-1] if line-1 < len(js.splitlines()) else '','top':stack[-10:]}
             opener=stack.pop()
             if opener[3]=='template-expr' and ch=='}':
                 template_expr=max(0,template_expr-1)
