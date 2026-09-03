@@ -1,146 +1,66 @@
 name: CTO executor temporary 20260903
-# FINAL EXECUTION RUNNER — isolated branch only.
 on:
   push:
     branches: [cto-new-main-gold-20260903]
 permissions:
   contents: write
 jobs:
-  execute:
+  diagnose:
     if: ${{ !contains(github.event.head_commit.message, '[CTO-EXECUTED]') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 2
-      - name: Patch executor boundary-validation bug on runner
+      - name: Diagnose exact reconstruction boundary
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('tools/run_final_main_reconstruction_20260831.py')
-          s=p.read_text(encoding='utf-8')
-          start=s.index('def validate_phase_js(chunks):')
-          end=s.index('\ndef assemble():',start)
-          replacement="def validate_phase_js(chunks):\n    # Historical fragments are intentionally incomplete at file boundaries.\n    return True\n\n"
-          p.write_text(s[:start]+replacement+s[end+1:],encoding='utf-8')
-          print('EXECUTOR_BOUNDARY_VALIDATION_PATCHED')
-          PY
-      - name: Diagnose assembled JavaScript balance by source fragment
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          import importlib.util
-          spec=importlib.util.spec_from_file_location('builder','tools/run_final_main_reconstruction_20260831.py')
-          m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-          # Reproduce assembly without P163 or final validation so the defect can be localized.
+          import importlib.util,re,subprocess,tempfile
+          spec=importlib.util.spec_from_file_location('b','tools/run_final_main_reconstruction_20260831.py');b=importlib.util.module_from_spec(spec);spec.loader.exec_module(b)
           parts=[]
-          for idx,p in enumerate(m.PARTS,1):
-              raw=p.read_text(encoding='utf-8-sig')
-              if idx==1: raw=m.normalize_main1(raw)
-              elif idx==7: raw=m.patch_main7(raw)
-              raw=m.normalize_document_closures(raw)
-              parts.append(raw.rstrip())
-          candidate=parts[0]+'\n\n'+'\n\n'.join(parts[1:])+'\n\n</script>\n</body>\n</html>\n'
-          candidate=m.repair_runtime_contracts(candidate)
-          def scrub(s):
-              out=[];i=0;state='code'
+          for i,p in enumerate(b.PARTS,1):
+              r=p.read_text(encoding='utf-8-sig')
+              if i==1:r=b.normalize_main1(r)
+              elif i==7:r=b.patch_main7(r)
+              r=b.normalize_document_closures(r);parts.append(r.rstrip())
+          def scan(s):
+              stack=[];pairs={')':'(',']':'[','}':'{'};opens=set(pairs.values());i=0;line=1;state='code';q=None
               while i<len(s):
-                  if state=='code' and s.startswith('//',i): state='line';out+=[' ',' '];i+=2;continue
-                  if state=='code' and s.startswith('/*',i): state='block';out+=[' ',' '];i+=2;continue
                   c=s[i]
+                  if c=='\n':line+=1
                   if state=='line':
-                      out.append('\n' if c=='\n' else ' ')
-                      if c=='\n': state='code'
-                  elif state=='block':
-                      out.append('\n' if c=='\n' else ' ')
-                      if s.startswith('*/',i): out+=[' '];i+=1;state='code'
-                  elif c in "'\"`":
-                      q=c;out.append(' ');i+=1
+                      if c=='\n':state='code'
+                      i+=1;continue
+                  if state=='block':
+                      if s.startswith('*/',i):state='code';i+=2;continue
+                      i+=1;continue
+                  if state=='code' and s.startswith('//',i):state='line';i+=2;continue
+                  if state=='code' and s.startswith('/*',i):state='block';i+=2;continue
+                  if state=='code' and c in "'\"`":
+                      q=c;i+=1
                       while i<len(s):
-                          if s[i]=='\\':out.append(' ');i+=2;continue
-                          out.append('\n' if s[i]=='\n' else ' ')
-                          if s[i]==q: i+=1;break
+                          if s[i]=='\\':i+=2;continue
+                          if s[i]==q:i+=1;break
+                          if s[i]=='\n':line+=1
                           i+=1
                       continue
-                  else: out.append(c)
-                  i+=1
-              return ''.join(out)
-          clean=scrub(candidate)
-          for sym in '({[':
-              print('BALANCE',sym,clean.count(sym),clean.count({"(":")","{":"}","[":"]"}[sym]))
-          stack=[];pairs={')':'(', '}':'{', ']':'['};opens=set(pairs.values())
-          lines=clean.splitlines(True); line_no=0
-          for line_no,line in enumerate(lines,1):
-              for col,c in enumerate(line,1):
-                  if c in opens: stack.append((c,line_no,col))
+                  if c in opens:stack.append((c,line))
                   elif c in pairs:
-                      if not stack or stack[-1][0]!=pairs[c]:
-                          print('FIRST_MISMATCH',line_no,col,repr(c),'TOP',stack[-1] if stack else None);raise SystemExit(2)
+                      if not stack or stack[-1][0]!=pairs[c]:return ('MISMATCH',line,c,stack[-1] if stack else None)
                       stack.pop()
-          print('OPEN_STACK_COUNT',len(stack));print('OPEN_STACK_TAIL',stack[-20:])
-          Path('/tmp/rawaea-precheck.js').write_text(candidate,encoding='utf-8')
+                  i+=1
+              return ('OPEN',stack[-20:])
+          for i in range(1,12):
+              c=parts[0]+'\n\n'+'\n\n'.join(parts[1:i])+'\n\n'
+              print('PART',i,scan(c))
+          c=parts[0]+'\n\n'+'\n\n'.join(parts[1:])+'\n\n</script>\n</body>\n</html>\n'
+          c=b.repair_runtime_contracts(c)[0]
+          print('FINAL',scan(c))
+          Path('/tmp/pre.js').write_text(c,encoding='utf-8')
+          x=subprocess.run(['node','--check','/tmp/pre.js'],capture_output=True,text=True)
+          print('NODE',x.returncode,x.stderr)
           PY
-      - name: Reconstruct and execute P163
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 tools/run_final_main_reconstruction_20260831.py
-      - name: Gold/Diamond gates
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import re,hashlib
-          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          checks={'compat_absent':'/* RAWAEA MAIN2 COMPATIBILITY */' not in s,'auth_one':s.count('/* RAWAEA MAIN2 AUTHORITATIVE MODULE */')==1,'version_one':s.count("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';")==1,'governed_one':s.count('// MAIN2_GOVERNED_CLOSED:v1')==1,'dashboard_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,'items_alias_absent':'window.RW_Items={render:renderItems};' not in s,'actions':'actions' in s,'delegation':'main1Delegation' in s,'main3':'MAIN3' in s,'stock':'post_stock_movement' in s and 'reserve_stock' in s,'journal':'post_journal_entry' in s,'invoice':'save_sales_invoice_atomic' in s,'edge':'edgeCall' in s,'client':'supabaseClient' in s,'script_balance':s.lower().count('<script')==s.lower().count('</script>'),'style_balance':s.lower().count('<style')==s.lower().count('</style>'),'sw':s.count("navigator.serviceWorker.register('./sw.js',{scope:'./'})")==1}
-          bad=[k for k,v in checks.items() if not v]
-          if bad: raise SystemExit('GOLD_DIAMOND_FAIL:'+repr(bad))
-          print('GOLD_DIAMOND_PASS',checks)
-          print('TARGET_SHA256',hashlib.sha256(s.encode()).hexdigest())
-          PY
-      - name: Final JavaScript syntax gate
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          m=[x for x in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',x.group('a') or '',re.I)]
-          if len(m)!=1: raise SystemExit('INLINE_APP_SCRIPT_COUNT:'+str(len(m)))
-          Path('/tmp/new-main.js').write_text(m[0].group('b'),encoding='utf-8')
-          PY
-          node --check /tmp/new-main.js
-      - name: Browser smoke gate
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm init -y >/dev/null 2>&1
-          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
-          npx playwright install --with-deps chromium >/dev/null 2>&1
-          mkdir -p /tmp/rawaea-pwa
-          cp -r Current/PWA/. /tmp/rawaea-pwa/
-          cp Current/PWA/New-main /tmp/rawaea-pwa/New-main.html
-          python3 -m http.server 8123 --directory /tmp/rawaea-pwa >/tmp/rawaea.log 2>&1 &
-          node <<'NODE'
-          const {chromium}=require('playwright');
-          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const errors=[];p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});await p.goto('http://127.0.0.1:8123/New-main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1500);const r=await p.evaluate(async()=>{const S=window.RW_STATE,N=window.RW_Navigation,flat=[];(function w(a){(a||[]).forEach(x=>{if(x.view)flat.push(x.view);if(x.submenu)w(x.submenu)})})(N&&N.menuTree);const req=['dashboard','telesales','customers','online-store','pos','orders','runsheets','suppliers','purchase-pos','purchases','receiving','items','branches','picking','loading','delivery','return','unloading','transfer','direct-sale','direct-return','supplier-return','vouchers','vehicle-count','branch-count','general-count','settlement','reports-dashboard','reports-detailed','reports-comprehensive','hr','crm','users','roles','license','settings','audit-log','notifications'];const mods=['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Roles','RW_Views'];let denied=false;if(S&&S.app&&N&&N.navigate){S.app.currentUser={isOwner:false};try{await N.navigate('license')}catch(e){denied=e.message==='OWNER_ONLY'}}return{lang:document.documentElement.lang,state:!!S,auth:!!window.RW_Auth,nav:!!N,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerContract,critical:req.every(v=>flat.includes(v)),mods:mods.every(v=>!!window[v]),denied,count:flat.length}});console.log(JSON.stringify({r,errors}));if(errors.length||r.lang!=='ar'||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||!r.critical||!r.mods||!r.denied||r.count<30)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)});
-          NODE
-      - name: Commit verified New-main
-        shell: bash
-        run: |
-          set -euo pipefail
-          git diff --check
-          git config user.name 'RAWAEA CTO Executor'
-          git config user.email '41898282+users.noreply.github.com'
-          git add Current/PWA/New-main
-          git commit -m '[CTO-EXECUTED] New-main Gold/Diamond closure'
-          git push origin HEAD:${{ github.ref_name }}
