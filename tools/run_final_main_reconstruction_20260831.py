@@ -20,30 +20,30 @@ def normalize_main1(raw):
     raw = raw.lstrip('\ufeff')
     raw = re.sub(r'(?m)^\s*const RW_Auth\s*=\s*', 'var RW_Auth = ', raw, count=1)
     raw = re.sub(r'(?m)^\s*const RW_Navigation\s*=\s*', 'var RW_Navigation = ', raw, count=1)
-    # main1 is intentionally an open application <script> fragment; main2..main11
-    # continue the same program and the final assembler closes the script. Therefore
-    # looking for a closing </script> inside main1 is incorrect and was the cause of
-    # the prior false boundary failure.
     opens = list(INLINE_RE.finditer(raw))
-    if not opens:
-        raise RuntimeError('MAIN1_INLINE_RUNTIME_OPENER_MISSING')
+    if not opens: raise RuntimeError('MAIN1_INLINE_RUNTIME_OPENER_MISSING')
     app_open = opens[-1]
-    raw = raw[app_open.start():]
-    raw = HTML_COMMENT_TAIL.sub('', raw)
+    close = raw.rfind('</script>')
+    if close >= app_open.end():
+        raw = raw[:close] + raw[close + len('</script>'):]
+    raw = re.sub(r'</body>\s*', '', raw, flags=re.I)
+    raw = re.sub(r'</html>\s*', '', raw, flags=re.I)
     return raw.rstrip()
 
 def normalize_fragment(raw, idx):
-    raw = raw.lstrip('\ufeff')
-    raw = re.sub(r'</body>\s*|</html>\s*', '', raw, flags=re.I)
-    if re.search(r'^\s*<!doctype\b|^\s*</?(?:html|head|body)\b|</script>', raw, re.I | re.M):
-        raise RuntimeError(f'BAD_FRAGMENT_BOUNDARY:main{idx}')
-    if idx == 7:
-        raw = re.sub(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}", r"\1));}", raw, count=1)
+    raw=raw.lstrip('\ufeff'); raw=re.sub(r'</body>\s*|</html>\s*','',raw,flags=re.I)
+    if re.search(r'^\s*<!doctype\b|^\s*</?(?:html|head|body)\b|</script>',raw,re.I|re.M): raise RuntimeError(f'BAD_FRAGMENT_BOUNDARY:main{idx}')
+    if idx==7: raw=re.sub(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}",r"\1));}",raw,count=1)
     return raw.rstrip()
 
+def extract_main1_application_js(chunk):
+    opens=list(INLINE_RE.finditer(chunk))
+    if not opens: raise RuntimeError('MAIN1_INLINE_RUNTIME_MISSING')
+    app_open=opens[-1]; close=chunk.rfind('</script>'); end=close if close>=app_open.end() else len(chunk)
+    return chunk[app_open.end():end]
+
 def p163(s):
-    if s.count(COMPAT) > 1:
-        raise RuntimeError('P163_COMPAT_DUPLICATE')
+    if s.count(COMPAT)>1: raise RuntimeError('P163_COMPAT_DUPLICATE')
     if COMPAT in s:
         a=s.index(COMPAT); b=s.find(AUTH,a+len(COMPAT))
         if b<0: raise RuntimeError('P163_AUTH_AFTER_COMPAT_MISSING')
@@ -69,8 +69,7 @@ def inject_canonical_sw(s):
     return s[:body]+tag+s[body:]
 
 class StructureParser(HTMLParser):
-    def __init__(self):
-        super().__init__(convert_charrefs=False); self.starts=[]; self.ends=[]
+    def __init__(self): super().__init__(convert_charrefs=False); self.starts=[]; self.ends=[]
     def handle_starttag(self,tag,attrs): self.starts.append(tag.lower())
     def handle_startendtag(self,tag,attrs): self.starts.append(tag.lower())
     def handle_endtag(self,tag): self.ends.append(tag.lower())
@@ -81,40 +80,22 @@ def _app_js(s):
     return apps[0]
 
 def validate_phase_js(parts):
-    # main1 deliberately contains an OPEN script with no closing tag. Extract exactly
-    # its JS payload and then validate the cumulative program after every fragment.
-    if not parts or not parts[0].lstrip().lower().startswith('<script'):
-        raise RuntimeError('MAIN1_OPEN_SCRIPT_BOUNDARY_MISSING')
-    m=re.match(r'<script[^>]*>([\s\S]*)$',parts[0],re.I)
-    if not m:
-        raise RuntimeError('MAIN1_SCRIPT_PAYLOAD_MISSING')
-    js_body = m.group(1)
-    phase_report=[]
-    for idx in range(1, len(parts)+1):
-        if idx > 1:
-            js_body += '\n\n' + parts[idx-1]
-        temp=Path(tempfile.gettempdir())/f'rawaea-phase-{idx}.js'
-        temp.write_text(js_body, encoding='utf-8')
-        r=subprocess.run(['node','--check',str(temp)],capture_output=True,text=True)
-        phase_report.append((idx,len(js_body.encode('utf-8'))))
+    js_body=extract_main1_application_js(parts[0]); report=[]
+    for idx in range(1,len(parts)+1):
+        if idx>1: js_body+='\n\n'+parts[idx-1]
+        t=Path(tempfile.gettempdir())/f'rawaea-phase-{idx}.js'; t.write_text(js_body,encoding='utf-8')
+        r=subprocess.run(['node','--check',str(t)],capture_output=True,text=True); report.append((idx,len(js_body.encode('utf-8'))))
         if r.returncode:
-            tail='\n'.join(js_body.splitlines()[-60:])
-            raise RuntimeError('JS_PHASE_SYNTAX_FAIL:main%d\n%s\n---TAIL---\n%s' % (idx,r.stderr,tail))
-    return phase_report
+            tail='\n'.join(js_body.splitlines()[-60:]); raise RuntimeError('JS_PHASE_SYNTAX_FAIL:main%d\n%s\n---TAIL---\n%s'%(idx,r.stderr,tail))
+    return report
 
 def validate(s):
-    start=s.lstrip().lower()
-    required=['window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense','var RW_Dashboard','var RW_Items','window.RW_Items=RW_Items;','RW_SUPABASE_CLIENT','MAIN3']
-    missing=[x for x in required if x not in s]
+    start=s.lstrip().lower(); required=['window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense','var RW_Dashboard','var RW_Items','window.RW_Items=RW_Items;','RW_SUPABASE_CLIENT','MAIN3']; missing=[x for x in required if x not in s]
     if missing: raise RuntimeError('CURRENT_CONTRACT_MISSING:'+repr(missing))
-    parser=StructureParser(); parser.feed(s); parser.close()
-    ah=parser.starts.count('html'); eh=parser.ends.count('html'); ab=parser.starts.count('body'); eb=parser.ends.count('body'); ass=parser.starts.count('script'); ess=parser.ends.count('script'); ast=parser.starts.count('style'); est=parser.ends.count('style')
-    gates={'doctype_start':start.startswith('<!doctype html>'),'one_html_root':ah==1 and eh==1,'one_body_root':ab==1 and eb==1,'script_balance':ass==ess,'style_balance':ast==est,'auth_one':s.count(AUTH)==1,'version_one':s.count(VERSION)==1,'governed_one':s.count(GOVERNED)==1,'compat_absent':COMPAT not in s,'dash_alias_absent':not re.search(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}',s),'items_alias_absent':not re.search(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}',s),'dash_owner_one':len(re.findall(r'(?m)^\s*var\s+RW_Dashboard\s*=\s*',s))==1,'items_owner_one':len(re.findall(r'(?m)^\s*var\s+RW_Items\s*=\s*',s))==1,'items_export_one':s.count('window.RW_Items=RW_Items;')==1,'canonical_sw_one':s.count(CANONICAL_SW)==1,'rpc_present':'.rpc(' in s,'edge_present':'/functions/v1/' in s}
-    bad=[k for k,v in gates.items() if not v]
+    parser=StructureParser(); parser.feed(s); parser.close(); ah=parser.starts.count('html'); eh=parser.ends.count('html'); ab=parser.starts.count('body'); eb=parser.ends.count('body'); ass=parser.starts.count('script'); ess=parser.ends.count('script'); ast=parser.starts.count('style'); est=parser.ends.count('style')
+    gates={'doctype_start':start.startswith('<!doctype html>'),'one_html_root':ah==1 and eh==1,'one_body_root':ab==1 and eb==1,'script_balance':ass==ess,'style_balance':ast==est,'auth_one':s.count(AUTH)==1,'version_one':s.count(VERSION)==1,'governed_one':s.count(GOVERNED)==1,'compat_absent':COMPAT not in s,'dash_alias_absent':not re.search(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}',s),'items_alias_absent':not re.search(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}',s),'dash_owner_one':len(re.findall(r'(?m)^\s*var\s+RW_Dashboard\s*=\s*',s))==1,'items_owner_one':len(re.findall(r'(?m)^\s*var\s+RW_Items\s*=\s*',s))==1,'items_export_one':s.count('window.RW_Items=RW_Items;')==1,'canonical_sw_one':s.count(CANONICAL_SW)==1,'rpc_present':'.rpc(' in s,'edge_present':'/functions/v1/' in s}; bad=[k for k,v in gates.items() if not v]
     if bad: raise RuntimeError(f'P163_GOLD_GATE_FAIL:{bad} structural html={ah}/{eh} body={ab}/{eb} script={ass}/{ess} style={ast}/{est}')
-    js=_app_js(s)
-    path=Path(tempfile.gettempdir())/'rawaea-new-main.js'; path.write_text(js,encoding='utf-8')
-    r=subprocess.run(['node','--check',str(path)],capture_output=True,text=True)
+    js=_app_js(s); path=Path(tempfile.gettempdir())/'rawaea-new-main.js'; path.write_text(js,encoding='utf-8'); r=subprocess.run(['node','--check',str(path)],capture_output=True,text=True)
     if r.returncode: print(r.stderr); raise RuntimeError('FINAL_JS_SYNTAX_FAIL')
     return gates
 
@@ -123,10 +104,7 @@ def main():
     for idx,p in enumerate(PARTS,1):
         if not p.is_file() or not p.stat().st_size: raise RuntimeError('MISSING_PART:'+str(p))
         raw=p.read_text(encoding='utf-8-sig'); parts.append(normalize_main1(raw) if idx==1 else normalize_fragment(raw,idx))
-    phases=validate_phase_js(parts)
-    candidate=parts[0]+'\n\n'+'\n\n'.join(parts[1:])+'\n\n</script>\n</body>\n</html>\n'
-    candidate=p163(candidate); candidate=inject_canonical_sw(candidate); gates=validate(candidate)
-    tmp=MAIN.with_suffix('.tmp'); tmp.write_text(candidate,encoding='utf-8'); tmp.replace(MAIN)
-    print({'status':'NEW_MAIN_GOLD_DIAMOND_READY','target':str(MAIN),'sha256':hashlib.sha256(candidate.encode()).hexdigest(),'bytes':len(candidate.encode()),'gates':gates,'phase_bytes':phases})
+    phases=validate_phase_js(parts); candidate=parts[0]+'\n\n'+'\n\n'.join(parts[1:])+'\n\n</script>\n</body>\n</html>\n'; candidate=p163(candidate); candidate=inject_canonical_sw(candidate); gates=validate(candidate)
+    tmp=MAIN.with_suffix('.tmp'); tmp.write_text(candidate,encoding='utf-8'); tmp.replace(MAIN); print({'status':'NEW_MAIN_GOLD_DIAMOND_READY','target':str(MAIN),'sha256':hashlib.sha256(candidate.encode()).hexdigest(),'bytes':len(candidate.encode()),'gates':gates,'phase_bytes':phases})
 
 if __name__=='__main__': main()
