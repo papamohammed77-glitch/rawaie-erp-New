@@ -1,0 +1,39 @@
+name: CTO single-target notification surgical fix
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  surgical-fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: main, fetch-depth: 1}
+      - name: Apply exact surgical fix to New-main only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('Current/PWA/New-main')
+          s=p.read_text(encoding='utf-8')
+          old='async function showPanel(){\n  var e=email();\n  if(!e)return;'
+          new='async function showPanel(){\n  var e=RW_STATE.app.currentUser&&RW_STATE.app.currentUser.email;\n  if(!e)return;'
+          if old not in s:
+              raise SystemExit('EXPECTED_NOTIFICATION_SCOPE_BUG_NOT_FOUND')
+          if s.count(old)!=1:
+              raise SystemExit(f'EXPECTED_NOTIFICATION_SCOPE_BUG_MULTIPLE:{s.count(old)}')
+          s2=s.replace(old,new,1)
+          if 'async function showPanel(){\n  var e=email();' in s2:
+              raise SystemExit('NOTIFICATION_SCOPE_FIX_FAILED')
+          p.write_text(s2,encoding='utf-8')
+          PY
+          git diff --check
+          git diff -- Current/PWA/New-main
+          test "$(git diff --name-only | wc -l | tr -d ' ')" = 1
+          git config user.name 'rawaea-cto-surgical-bot'
+          git config user.email 'rawaea-cto-surgical-bot@users.noreply.github.com'
+          git add Current/PWA/New-main
+          git commit -m '[CTO-SURGICAL] Fix Notification showPanel scope in New-main'
+          git push origin HEAD:main
