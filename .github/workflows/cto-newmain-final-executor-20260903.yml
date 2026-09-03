@@ -15,8 +15,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Target-only surgical update, static gate, browser gate, and persist
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -26,7 +24,7 @@ jobs:
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
           assert len(s.splitlines())>5000
           old='<link rel="manifest" href="./New-main.manifest.json">'
-          new='<link rel="manifest" href="../manifest.json">'
+          new='<link rel="manifest" href="./manifest.json">'
           if old in s:
               assert s.count(old)==1
               s=s.replace(old,new,1)
@@ -37,10 +35,8 @@ jobs:
               end=s.find("});byId('rw-logout-btn')",start)
               assert end>start
               s=s[:start]+s[end+3:]
-          assert marker not in s
-          assert s.count("loginForm.addEventListener('submit'")==1
-          assert s.count('function safeText')==1
-          assert 'window.safeText=safeText' in s
+          assert marker not in s and s.count("loginForm.addEventListener('submit'")==1
+          assert s.count('function safeText')==1 and 'window.safeText=safeText' in s
           m=json.loads(Path('Current/PWA/manifest.json').read_text(encoding='utf-8'))
           assert m['start_url']=='./New-main' and m['scope']=='./' and m['display']=='standalone' and m['dir']=='rtl' and m['lang']=='ar'
           class P(HTMLParser):
@@ -58,14 +54,12 @@ jobs:
               f=Path(tempfile.mkstemp(suffix='.js')[1]);f.write_text(code,encoding='utf-8')
               try:subprocess.run(['node','--check',str(f)],check=True)
               finally:f.unlink(missing_ok=True)
-          p.write_text(s,encoding='utf-8')
-          print('TARGET_ONLY_SURGERY_PASS')
+          p.write_text(s,encoding='utf-8');print('TARGET_ONLY_STATIC_PASS')
           PY
           npm init -y >/dev/null 2>&1
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null 2>&1
-          rm -rf /tmp/site
-          mkdir -p /tmp/site/Current
+          rm -rf /tmp/site; mkdir -p /tmp/site/Current
           cp -a Current/. /tmp/site/Current
           cat >/tmp/server.py <<'PY'
           from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
@@ -92,8 +86,9 @@ jobs:
           await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(800);
           const r=await p.evaluate(async()=>{const l=document.querySelector('link[rel="manifest"]');const m=await(await fetch(l.href)).json();return{login:!!document.getElementById('rw-login-form'),sidebar:!!document.getElementById('rw-sidebar'),nav:!!document.getElementById('rw-sidebar-nav'),shell:!!document.getElementById('rw-main-shell'),auth:!!window.RW_Auth,navigation:!!window.RW_Navigation,views:!!window.RW_Views,safeText:typeof window.safeText==='function',bindings:window.__bindings||0,manifestHref:l?.getAttribute('href')||'',manifestPath:new URL(l?.getAttribute('href')||'',location.href).pathname,start:m.start_url,scope:m.scope,dir:m.dir,lang:m.lang}});
           console.log('NEWMAIN_BROWSER_GATE='+JSON.stringify({r,pe,ce}));await b.close();
-          if(pe.length||ce.length||!r.login||!r.sidebar||!r.nav||!r.shell||!r.auth||!r.navigation||!r.views||!r.safeText||r.bindings!==1||r.manifestHref!=='../manifest.json'||r.manifestPath!=='/Current/PWA/manifest.json'||r.start!=='./New-main'||r.scope!=='./'||r.dir!=='rtl'||r.lang!=='ar')process.exit(2)})().catch(e=>{console.error(e.stack||e);process.exit(2)})
+          if(pe.length||ce.length||!r.login||!r.sidebar||!r.nav||!r.shell||!r.auth||!r.navigation||!r.views||!r.safeText||r.bindings!==1||r.manifestHref!=='./manifest.json'||r.manifestPath!=='/Current/PWA/manifest.json'||r.start!=='./New-main'||r.scope!=='./'||r.dir!=='rtl'||r.lang!=='ar')process.exit(2)})().catch(e=>{console.error(e.stack||e);process.exit(2)})
           NODE
+          echo BROWSER_GOLD_PASS
           git add Current/PWA/New-main
           git diff --cached --check
           test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
