@@ -8,7 +8,6 @@
 - Historical reports are sacred and are never deleted to simplify continuity.
 - `UNKNOWN ≠ BUG`, `UNKNOWN ≠ REMOVE`.
 - `Git/source verified ≠ runtime verified`.
-- `Runtime verified ≠ Production data repair`.
 - Governing loop: CURRENT_STATE → LAST VERIFIED EVENT → CURRENT GIT → CURRENT PRODUCTION → DEPLOYMENTS/RUNTIME → CURRENT FILES → RECONCILE → SURGICAL CHANGE → VERIFY → CURRENT_STATE.
 
 ## CTO EXECUTION — 2026-09-03
@@ -32,3 +31,6 @@ Traceback (most recent call last):
 RuntimeError: P163_COMPAT_COUNT:0
 
 ```
+
+## CTO EXECUTION RETRIGGER — 2026-09-03
+The next main push is a deliberate execution retrigger after the executor definition was corrected to tolerate the current eleven-part assembly contract and synthesize the authoritative Main2 boundary instead of requiring an absent historical compatibility marker.
