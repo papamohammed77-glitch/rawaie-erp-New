@@ -6,13 +6,13 @@ permissions:
   contents: write
 jobs:
   execute:
-    if: github.event.pull_request.head.ref == 'cto/newmain-product-ux-audit-execute-20260903'
+    if: github.event.pull_request.head.ref == 'cto/newmain-product-ux-execute-20260903'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: cto/newmain-product-ux-audit-execute-20260903
+          ref: cto/newmain-product-ux-execute-20260903
           fetch-depth: 2
       - name: Surgical product UX patch — New-main only
         shell: bash
@@ -45,6 +45,7 @@ jobs:
           try: subprocess.run(['node','--check',str(f)],check=True)
           finally: f.unlink(missing_ok=True)
           p.write_text(s,encoding='utf-8')
+          assert s.count(marker)==1 and s.count('RAWAEA_UX_PRODUCT_RUNTIME')==1
           print('STATIC_PRODUCT_UX_PASS SHA256='+hashlib.sha256(s.encode()).hexdigest()+' BYTES='+str(len(s.encode())))
           PY
           git add Current/PWA/New-main
@@ -86,4 +87,4 @@ jobs:
           git commit -m '[CTO-CLOSED] [GOLD] [DIAMOND] New-main product UX closure'
           git rm .github/workflows/_cto_product_ux_surgery_20260903.yml
           git commit -m 'CTO: retire temporary New-main UX executor'
-          git push origin HEAD:cto/newmain-product-ux-audit-execute-20260903
+          git push origin HEAD:cto/newmain-product-ux-execute-20260903
