@@ -33,8 +33,22 @@ def normalize_main1(raw):
 def normalize_fragment(raw, idx):
     raw = raw.lstrip('\ufeff')
     if idx == 7:
-        raw = re.sub(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}", r"\1));}", raw, count=1)
+        # Verified production-source defect in loadSettlement(): safeHTML(... +
+        # ((...).map(...).join('')) is missing the final close for safeHTML.
+        defect = ".join(''));}"
+        count = raw.count(defect)
+        if count != 1:
+            raise RuntimeError('MAIN7_EXPECTED_SETTLEMENT_SYNTAX_DEFECT_COUNT:' + str(count))
+        raw = raw.replace(defect, ".join('')));}", 1)
     return raw.rstrip()
+
+def extract_main1_application_js(chunk):
+    opens = list(INLINE_RE.finditer(chunk))
+    if not opens: raise RuntimeError('MAIN1_INLINE_RUNTIME_MISSING')
+    app_open = opens[-1]
+    close = chunk.rfind('</script>')
+    end = close if close >= app_open.end() else len(chunk)
+    return chunk[app_open.end():end]
 
 def p163(s):
     if s.count(COMPAT) > 1: raise RuntimeError('P163_COMPAT_DUPLICATE')
@@ -79,8 +93,7 @@ def validate_fragments(parts):
 
 def delimiter_diagnostics(js):
     pairs={')':'(',']':'[','}':'{'}; opens={'(','[','{'}; stack=[]
-    state='code'; quote=''; esc=False; template_expr=0
-    line=1; col=0; i=0
+    state='code'; quote=''; esc=False; template_expr=0; line=1; col=0; i=0
     while i < len(js):
         ch=js[i]; col += 1
         if ch=='\n': line += 1; col=0
@@ -99,7 +112,6 @@ def delimiter_diagnostics(js):
             if esc: esc=False; i+=1; continue
             if ch=='\\': esc=True; i+=1; continue
             if ch=='`' and template_expr==0: state='code'; i+=1; continue
-            # Treat ${ ... } as normal code, but resume template when that expression closes.
             if ch=='$' and i+1<len(js) and js[i+1]=='{':
                 stack.append(('{',line,col,'template-expr')); template_expr+=1; i+=2; col+=1; state='code'; continue
             i+=1; continue
@@ -110,8 +122,7 @@ def delimiter_diagnostics(js):
         if ch in opens: stack.append((ch,line,col,'code'))
         elif ch in pairs:
             expected=pairs[ch]
-            if not stack or stack[-1][0]!=expected:
-                return {'status':'MISMATCH','at':(line,col,ch),'top':stack[-10:]}
+            if not stack or stack[-1][0]!=expected: return {'status':'MISMATCH','at':(line,col,ch),'top':stack[-10:]}
             opener=stack.pop()
             if opener[3]=='template-expr' and ch=='}':
                 template_expr=max(0,template_expr-1)
