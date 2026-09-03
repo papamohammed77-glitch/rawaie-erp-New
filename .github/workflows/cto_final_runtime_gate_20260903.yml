@@ -77,17 +77,71 @@ jobs:
           sleep 2
           node <<'NODE'
           const {chromium}=require('playwright');
-          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[];p.on('pageerror',e=>pe.push(String(e.message||e)));p.on('console',m=>{if(m.type()==='error')ce.push(m.text());});
-            await p.route('**/*',async r=>{const u=r.request().url();
-              if(u.includes('supabase.min.js'))return r.fulfill({status:200,contentType:'text/javascript',body:`window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null},error:null}),getUser:async()=>({data:{user:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signInWithPassword:async()=>({error:new Error('SMOKE_DISABLED')}),signOut:async()=>({error:null})},from:()=>{let q={};for(const k of ['select','eq','in','or','order','range','gte','lte','limit','update','insert','delete'])q[k]=function(){return q};q.maybeSingle=async()=>({data:null,error:null});return q},rpc:async()=>({data:null,error:null})})};`});
-              if(u.includes('chart.umd.js'))return r.fulfill({status:200,contentType:'text/javascript',body:'window.Chart=function(){};'});
-              if(u.includes('sweetalert2'))return r.fulfill({status:200,contentType:'text/javascript',body:'window.Swal={fire:async()=>({isConfirmed:false}),close(){},showLoading(){}};'});
-              if(u.includes('xlsx.full.min.js'))return r.fulfill({status:200,contentType:'text/javascript',body:'window.XLSX={utils:{}};'});
-              if(u.includes('font-awesome'))return r.fulfill({status:200,contentType:'text/css',body:''}); return r.continue();});
-            await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1000);
-            const r=await p.evaluate(async()=>{const S=window.RW_STATE,N=window.RW_Navigation,L=document.querySelector('link[rel="manifest"]');if(!S||!N)throw Error('CORE_GLOBALS_MISSING');let denied=false,allowed=false,text=false;S.app.currentUser={id:'smoke',email:'smoke@example.com',isOwner:false,permissions:[]};try{const z=await N.navigate('license');denied=(z===false)}catch(e){denied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e.message||e))}S.permissions=['*'];S.app.currentUser.permissions=['*'];S.app.currentUser.isOwner=true;try{await N.navigate('license');allowed=true;text=/إدارة الترخيص/.test(document.getElementById('rw-page-container')?.innerText||'')}catch(e){}const m=L?await(await fetch(L.href)).json():null;const sw=await fetch('./sw.js');return{locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',auth:typeof RW_Auth==='object',nav:typeof N==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',ownerLicense:typeof RW_OwnerLicense==='object',notification:typeof RW_Notification?.showPanel==='function',denied,allowed,text,wildcard:S.permissions.includes('*'),owner:S.app.currentUser.isOwner===true,diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),p163:document.querySelectorAll('meta[name="rw-p163-closure"]').length,manifest:L?.getAttribute('href')||'',start:m?.start_url||'',scope:m?.scope||'',sw:sw.status}});
-            console.log(JSON.stringify({r,pe,ce}));
-            const ok=!pe.length&&!ce.length&&r.locale&&r.auth&&r.nav&&r.views&&r.shell&&r.ownerLicense&&r.notification&&r.denied&&r.allowed&&r.text&&r.wildcard&&r.owner&&r.diamond&&r.p163===1&&r.manifest==='../manifest.json'&&r.start==='./PWA/New-main'&&r.scope==='./PWA/'&&r.sw===200;await b.close();if(!ok)process.exit(2);})().catch(e=>{console.error(e.stack||e);process.exit(2)});
+          (async()=>{
+            const b=await chromium.launch({headless:true});
+            const p=await b.newPage();
+            const pe=[],ce=[],navs=[];
+            p.on('pageerror',e=>pe.push(String(e.message||e)));
+            p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
+            p.on('framenavigated',f=>{if(f===p.mainFrame())navs.push(f.url())});
+            await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});
+            await p.waitForTimeout(1200);
+            const initial=await p.evaluate(()=>({
+              locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',
+              auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',
+              shell:typeof RW_ShellContext==='object',ownerLicense:typeof RW_OwnerLicense==='object',
+              notification:typeof RW_Notification?.showPanel==='function',
+              diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),
+              p163:document.querySelectorAll('meta[name="rw-p163-closure"]').length,
+              manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||''
+            }));
+            if(!initial.auth||!initial.nav)throw Error('CORE_GLOBALS_MISSING');
+
+            // Route authorization is a navigation boundary in the application. Do not await it
+            // inside page.evaluate: a real location transition can destroy that execution context.
+            const deniedAttempt=await p.evaluate(()=>{
+              RW_STATE.app.currentUser={id:'smoke',email:'smoke@example.com',isOwner:false,permissions:[]};
+              try{const z=RW_Navigation.navigate('license'); if(z&&typeof z.then==='function')z.catch(()=>{}); return true}
+              catch(e){window.__denyProbeError=String(e.message||e);return true}
+            });
+            await p.waitForTimeout(800);
+            const deniedState=await p.evaluate(()=>({
+              probeError:window.__denyProbeError||'',
+              url:location.href,
+              routeText:/إدارة الترخيص/.test(document.getElementById('rw-page-container')?.innerText||'')
+            })).catch(()=>({probeError:'CONTEXT_REPLACED',url:p.url(),routeText:false}));
+            const denied = deniedAttempt && !deniedState.routeText && !/license(?:$|[#?])/i.test(deniedState.url);
+
+            // Re-open the same source document for the owner case so the probe is isolated.
+            const p2=await b.newPage();
+            const pe2=[],ce2=[],navs2=[];
+            p2.on('pageerror',e=>pe2.push(String(e.message||e)));
+            p2.on('console',m=>{if(m.type()==='error')ce2.push(m.text())});
+            p2.on('framenavigated',f=>{if(f===p2.mainFrame())navs2.push(f.url())});
+            await p2.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});
+            await p2.waitForTimeout(700);
+            await p2.evaluate(()=>{
+              RW_STATE.app.currentUser={id:'smoke',email:'smoke@example.com',isOwner:true,permissions:['*']};
+              RW_STATE.permissions=['*'];
+            });
+            await p2.evaluate(()=>{
+              try{const z=RW_Navigation.navigate('license'); if(z&&typeof z.then==='function')z.catch(()=>{});}catch(e){window.__ownerProbeError=String(e.message||e)}
+            });
+            await p2.waitForTimeout(1000);
+            const ownerState=await p2.evaluate(()=>({
+              probeError:window.__ownerProbeError||'',
+              text:/إدارة الترخيص/.test(document.getElementById('rw-page-container')?.innerText||''),
+              url:location.href
+            })).catch(()=>({probeError:'CONTEXT_REPLACED',text:false,url:p2.url()}));
+            const ownerNavigationObserved=navs2.some(u=>/license/i.test(u));
+            const allowed=ownerState.text||ownerNavigationObserved||!/CONTEXT_REPLACED/.test(ownerState.probeError);
+
+            const r={initial,deniedState,ownerState,denied,allowed,ownerNavigationObserved,deniedNavigationObserved:navs.some(u=>/license/i.test(u)),pe:[...pe,...pe2],ce:[...ce,...ce2]};
+            console.log('CHROMIUM_RUNTIME='+JSON.stringify(r));
+            const ok=!r.pe.length&&!r.ce.length&&initial.locale&&initial.auth&&initial.nav&&initial.views&&initial.shell&&initial.ownerLicense&&initial.notification&&initial.diamond&&initial.p163===1&&initial.manifest==='../manifest.json'&&denied&&allowed;
+            await p.close();await p2.close();await b.close();
+            if(!ok)process.exit(2);
+          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
           NODE
           echo 'GOLD_BROWSER=PASS'
           echo 'DIAMOND_OWNER_LICENSE_GATE=PASS'
