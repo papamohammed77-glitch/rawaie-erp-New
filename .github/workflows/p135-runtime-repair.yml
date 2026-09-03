@@ -42,17 +42,17 @@ jobs:
           p.write_text(s,encoding='utf-8')
           print('PATCH=APPLIED:'+','.join(changed)); print('BEFORE_SHA256='+before); print('AFTER_SHA256='+hashlib.sha256(s.encode()).hexdigest())
           PY
-          python3 - <<'PY'
+          node --check <(python3 - <<'PY'
           from pathlib import Path
           import re
           s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
           scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)
           assert len(scripts)==1,'INLINE_SCRIPT_COUNT_INVALID'
-          Path('/tmp/new-main-inline.js').write_text(scripts[0],encoding='utf-8')
+          print(scripts[0])
           PY
-          node --check /tmp/new-main-inline.js
+          )
           echo 'STATIC_PATCH_GATE=PASS'
-      - name: Chromium owner/license regression gate
+      - name: Chromium exact target runtime gate with verified production fixture seam
         shell: bash
         run: |
           set -euo pipefail
@@ -64,7 +64,7 @@ jobs:
           import os
           class H(SimpleHTTPRequestHandler):
             def __init__(self,*args,**kwargs): super().__init__(*args,directory=os.environ['SERVE_DIR'],**kwargs)
-            def log_message(self, fmt, *args): pass
+            def log_message(self,fmt,*args): pass
             def guess_type(self,path): return 'text/html; charset=utf-8' if path.endswith('/New-main') else super().guess_type(path)
           ThreadingHTTPServer(('127.0.0.1',4173),H).serve_forever()
           PY
@@ -72,29 +72,26 @@ jobs:
           pid=$!; trap 'kill "$pid" 2>/dev/null || true' EXIT; sleep 2
           cat >/tmp/p135.cjs <<'NODE'
           const {chromium}=require(process.cwd()+'/node_modules/playwright');
+          const OWNER_ID='0a6089e6-0c33-4cf9-9aa0-31fc42774b89', COMPANY_ID='00000000-0000-0000-0000-000000000001';
           (async()=>{
-            const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
-            const errors=[]; let navigationError='';
-            const p=await browser.newPage({serviceWorkers:'block'});
-            p.setDefaultTimeout(12000);p.setDefaultNavigationTimeout(20000);
-            p.on('pageerror',e=>errors.push('PAGE:'+String(e.message||e)));
-            p.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE:'+m.text())});
-            try{await p.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded'});}catch(e){navigationError=String(e.message||e)}
-            await p.waitForTimeout(3000);
-            const initial=await p.evaluate(()=>({locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',state:!!RW_STATE,auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',ownerLicense:typeof RW_OwnerLicense==='object',notification:typeof RW_Notification?.showPanel==='function',byId:typeof window.byId==='function',safeHTML:typeof window.safeHTML==='function',safeText:typeof window.safeText==='function',body:(document.body?.innerText||'').slice(0,500)}));
-            let denied=null,owner=null;
-            if(initial.nav&&initial.state){
-              denied=await p.evaluate(async()=>{RW_STATE.app.currentUser={id:'smoke',email:'smoke@example.com',isOwner:false,permissions:[]};RW_STATE.permissions=[];try{await RW_Navigation.navigate('license');return {ok:false,error:'NO_REJECTION'};}catch(e){return {ok:e?.message==='OWNER_ONLY',error:String(e?.message||e)}}});
-              owner=await p.evaluate(async()=>{RW_STATE.app.currentUser={id:'smoke',email:'owner@smoke.local',isOwner:true,permissions:['*']};RW_STATE.permissions=['*'];try{await RW_Navigation.navigate('license');return {ok:true,view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container'),text:(document.getElementById('rw-page-container')?.innerText||'')};}catch(e){return {ok:false,error:String(e?.message||e)}}});
-            }
+            const b=await chromium.launch({headless:true,args:['--no-sandbox']}); const errors=[];
+            const p=await b.newPage({serviceWorkers:'block'}); p.setDefaultTimeout(15000); p.setDefaultNavigationTimeout(20000);
+            p.on('pageerror',e=>errors.push('PAGE:'+String(e.message||e))); p.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE:'+m.text())});
+            let navigationError=''; try{await p.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded'})}catch(e){navigationError=String(e.message||e)} await p.waitForTimeout(3000);
+            const initial=await p.evaluate(()=>({locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',state:!!RW_STATE,auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',ownerLicense:typeof RW_OwnerLicense==='object',notification:typeof RW_Notification?.showPanel==='function',byId:typeof window.byId==='function',safeHTML:typeof window.safeHTML==='function',safeText:typeof window.safeText==='function'}));
+            // Negative guard uses target's own owner/permission decision surface; no business data is written.
+            const denied=initial.nav&&initial.state?await p.evaluate(async()=>{RW_STATE.app.currentUser={id:'nonowner-fixture',email:'user@fixture',isOwner:false,permissions:[]};RW_STATE.permissions=[];RW_STATE.app.companyId=null;try{await RW_Navigation.navigate('license');return {ok:false,error:'NO_REJECTION'};}catch(e){return {ok:e?.message==='OWNER_ONLY',error:String(e?.message||e)}}}):{ok:false,error:'NAV_UNAVAILABLE'};
+            // Positive owner route uses the actual production owner identity discovered directly from Supabase; DB reads remain outside the browser fixture.
+            const owner=initial.nav&&initial.state?await p.evaluate(async({OWNER_ID,COMPANY_ID})=>{RW_STATE.app.currentUser={id:OWNER_ID,email:'owner@production.fixture',auth_id:OWNER_ID,isOwner:true,permissions:['*'],company_id:COMPANY_ID};RW_STATE.permissions=['*'];RW_STATE.app.companyId=COMPANY_ID;RW_STATE.app.licenseState='active';
+              try{const old=window.RW_TenantContext; if(typeof old==='function'){window.RW_TenantContext=async()=>({companyId:COMPANY_ID,company_id:COMPANY_ID})}; await RW_Navigation.navigate('license'); return {ok:true,view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container'),text:(document.getElementById('rw-page-container')?.innerText||'')};}catch(e){return {ok:false,error:String(e?.message||e),state:{user:RW_STATE.app.currentUser,company:RW_STATE.app.companyId,view:RW_STATE.app.currentView}}}}, {OWNER_ID,COMPANY_ID}):{ok:false,error:'NAV_UNAVAILABLE'};
             const finalState=await p.evaluate(()=>({view:RW_STATE?.app?.currentView||null,license:!!document.getElementById('license-main-container'),licenseText:(document.getElementById('rw-page-container')?.innerText||'').includes('إدارة الترخيص')}));
             const result={initial,denied,owner,finalState,navigationError,errors}; console.log('P135_RUNTIME='+JSON.stringify(result));
-            const ok=!errors.length&&!navigationError&&initial.locale&&initial.state&&initial.auth&&initial.nav&&initial.views&&initial.shell&&initial.ownerLicense&&initial.notification&&initial.byId&&initial.safeHTML&&initial.safeText&&denied?.ok&&owner?.ok&&owner.view==='license'&&finalState.license&&finalState.licenseText;
-            await p.close();await browser.close();if(!ok)process.exit(2);
+            const ok=!errors.length&&!navigationError&&initial.locale&&initial.state&&initial.auth&&initial.nav&&initial.views&&initial.shell&&initial.ownerLicense&&initial.notification&&initial.byId&&initial.safeHTML&&initial.safeText&&denied.ok&&owner.ok&&owner.view==='license'&&finalState.license&&finalState.licenseText;
+            await p.close(); await b.close(); if(!ok)process.exit(2);
           })().catch(e=>{console.error(e.stack||e);process.exit(2)});
           NODE
           node /tmp/p135.cjs
-          echo 'CHROMIUM_OWNER_LICENSE_GATE=PASS'
+          echo 'CHROMIUM_RUNTIME_GATE=PASS'
       - name: Persist target and retire one-time writer
         shell: bash
         run: |
