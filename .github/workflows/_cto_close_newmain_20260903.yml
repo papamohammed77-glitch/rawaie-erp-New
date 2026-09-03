@@ -50,7 +50,15 @@ jobs:
           p.write_text(s,encoding='utf-8')
           print('TARGET_SHA256',hashlib.sha256(s.encode()).hexdigest())
           PY
+          set +e
           node --check /tmp/newmain.js
+          rc=$?
+          if [ "$rc" -ne 0 ]; then
+            echo '--- NEW-MAIN SYNTAX FAILURE CONTEXT ---'
+            nl -ba /tmp/newmain.js | sed -n '5980,6070p'
+            echo '--- END CONTEXT ---'
+            exit "$rc"
+          fi
           git diff --check
       - name: Browser smoke
         shell: bash
