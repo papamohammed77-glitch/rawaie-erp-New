@@ -142,3 +142,4 @@ jobs:
           git fetch origin main
           if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then git rebase origin/main; fi
           git push origin HEAD:main
+# Sole authoritative writer; legacy writers frozen.
