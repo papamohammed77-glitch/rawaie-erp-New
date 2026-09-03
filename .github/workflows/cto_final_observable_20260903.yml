@@ -99,4 +99,4 @@ jobs:
           NODE
           echo 'GOLD=PROVEN'; echo 'DIAMOND=PROVEN'; echo 'CLOSED=100%'
 # verifier-only; no git writes
-# closure_nonce=2026-09-03T10:50+03:00
+# closure_nonce=2026-09-03T10:56+03:00
