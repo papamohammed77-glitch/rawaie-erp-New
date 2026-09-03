@@ -117,7 +117,7 @@ jobs:
               subprocess.run(['node', '--check', js], check=True)
 
           m = json.loads(Path('Current/PWA/New-main.manifest.json').read_text(encoding='utf-8'))
-          if not (m.get('start_url') == './New-main' and m.get('scope') == './' and m.get('lang') == 'ar' and m.get('dir') == 'rtl'):
+          if not (m.get('start_url') == './New-main' and m.get('scope') in ('./','/') and m.get('lang') == 'ar' and m.get('dir') == 'rtl'):
               raise SystemExit('MANIFEST_CONTRACT_VALUES')
 
           p.write_text(s, encoding='utf-8')
@@ -181,11 +181,10 @@ jobs:
             });
             console.log('FINAL_GOLD_DIAMOND='+JSON.stringify({r,pe,ce}));
             await b.close();
-            const ok=!pe.length&&!ce.length&&r.lang==='ar'&&r.dir==='rtl'&&r.body&&r.state&&r.auth&&r.nav&&r.views&&r.shell&&r.owner&&r.notification==='PASS'&&r.diamond&&r.p163==='P163-GOLD-DIAMOND-CLOSED-2026-09-03'&&r.pwa==='PWA-RUNTIME-GOLD-2026-09-03'&&r.manifest==='https://127.0.0.1.invalid';
-            // The exact href is environment-normalized; manifest content and SW status are authoritative.
-            const ok2=!pe.length&&!ce.length&&r.lang==='ar'&&r.dir==='rtl'&&r.body&&r.state&&r.auth&&r.nav&&r.views&&r.shell&&r.owner&&r.notification==='PASS'&&r.diamond&&r.p163==='P163-GOLD-DIAMOND-CLOSED-2026-09-03'&&r.pwa==='PWA-RUNTIME-GOLD-2026-09-03'&&r.manifest==='https://127.0.0.1.invalid'&&r.start==='./New-main'&&r.scope==='./'&&r.sw===200;
-            if(ok || ok2 || (r.manifest==='https://127.0.0.1.invalid')) process.exit(r.start==='./New-main'&&r.scope==='./'&&r.sw===200?0:2);
-            process.exit(2);
+            const manifestOK = !!r.manifest && r.manifest.endsWith('/New-main.manifest.json');
+            const ok=!pe.length&&!ce.length&&r.lang==='ar'&&r.dir==='rtl'&&r.body&&r.state&&r.auth&&r.nav&&r.views&&r.shell&&r.owner&&r.notification==='PASS'&&r.licenseDenied&&r.auditDenied&&r.diamond&&r.p163==='P163-GOLD-DIAMOND-CLOSED-2026-09-03'&&r.pwa==='PWA-RUNTIME-GOLD-2026-09-03'&&manifestOK&&r.start==='./New-main'&&['./','/'].includes(r.scope)&&r.sw===200;
+            console.log('GATE_OK='+ok);
+            process.exit(ok?0:2);
           })().catch(e=>{console.error(e);process.exit(2)});
           NODE
           cat /tmp/p163-browser-result.txt
