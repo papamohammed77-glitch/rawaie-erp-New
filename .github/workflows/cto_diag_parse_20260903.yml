@@ -1,0 +1,53 @@
+name: CTO New-main parse diagnostic 2026-09-03
+on:
+  push:
+    branches: [cto/newmain-script-parse-fix-20260903]
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cto/newmain-script-parse-fix-20260903
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Diagnose all inline script boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,tempfile,subprocess
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          # Work on a copy exactly as the controlled repair does.
+          start=s.find('<script>\n(function(){')
+          marker='\n</script>\n<script id="RAWAEA_MAIN_SIDEBAR_COMPLETENESS_FINAL_V1"'
+          end=s.find(marker,start)
+          assert start>=0 and end>start
+          body=s[start+len('<script>\n'):end]
+          print('RAW_EMBEDDED_CLOSES=',body.count('</script>'))
+          repaired=body.replace('</script>','<\\/script>')
+          f=Path(tempfile.mkstemp(suffix='.js')[1]); f.write_text(repaired,encoding='utf-8')
+          try:
+            r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+            print('NODE_RETURN=',r.returncode)
+            print('NODE_STDERR_BEGIN')
+            print(r.stderr)
+            print('NODE_STDERR_END')
+            if r.returncode!=0:
+              # Also print nearby source around the reported line when available.
+              m=re.search(r'<stdin>|:(\d+):\d+',r.stderr)
+              if m and m.group(1):
+                ln=int(m.group(1)); lines=repaired.splitlines();
+                for i in range(max(0,ln-4),min(len(lines),ln+3)):
+                  print(f'{i+1}: {lines[i]}')
+          finally: f.unlink(missing_ok=True)
+          # Detect any literal </script> remaining inside all possible string-template zones.
+          print('TARGET_SCRIPT_TAG_COUNT=',s.count('<script'))
+          print('TARGET_SCRIPT_END_COUNT=',s.count('</script>'))
+          PY
