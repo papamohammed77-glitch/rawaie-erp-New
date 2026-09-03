@@ -1,0 +1,1 @@
+Trigger synchronization after guarded Gold/Diamond executor was installed in active forensic workflow.
