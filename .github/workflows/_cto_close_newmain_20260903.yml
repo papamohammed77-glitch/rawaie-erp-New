@@ -1,13 +1,14 @@
-# TRIGGER V2
+# TRIGGER V5
 name: CTO Close New-main
 on:
-  push:
+  pull_request_target:
+    types: [opened, synchronize]
     branches: [main]
 permissions:
   contents: write
 jobs:
   close:
-    if: ${{ !contains(github.event.head_commit.message, '[CTO-CLOSURE-EXECUTED]') }}
+    if: ${{ !contains(github.event.pull_request.title, '[CTO-CLOSURE-EXECUTED]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -81,9 +82,9 @@ jobs:
               x=x.rstrip()+"\n\n## CTO CLOSURE 2026-09-03\n\nP163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction\n- Target: `Current/PWA/New-main`\n- SHA-256: `"+hashlib.sha256(s.encode()).hexdigest()+"`\n- MAIN2 compatibility ownership removed; authoritative owner retained.\n- Main1 dashboard/items legacy aliases removed.\n- `actions`, `main1Delegation`, and MAIN3 preserved.\n- JavaScript syntax and browser smoke passed.\n- No production database writes.\n"
               st.write_text(x,encoding='utf-8')
           Path('.github/workflows/_cto_close_newmain_20260903.yml').unlink(missing_ok=True)
-          Path('_cto_trigger_20260903.txt').unlink(missing_ok=True)
+          Path('_cto_bootstrap_touch_20260903.txt').unlink(missing_ok=True)
           PY
-          git add Current/PWA/New-main CURRENT_STATE.md .github/workflows/_cto_close_newmain_20260903.yml _cto_trigger_20260903.txt
+          git add Current/PWA/New-main CURRENT_STATE.md .github/workflows/_cto_close_newmain_20260903.yml _cto_bootstrap_touch_20260903.txt
           git diff --cached --check
           git commit -m '[CTO-CLOSURE-EXECUTED] close New-main Gold Diamond and cleanup executor'
           git push origin HEAD:main
