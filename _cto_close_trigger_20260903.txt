@@ -1,0 +1,1 @@
+Controlled CTO closure trigger 2026-09-03. Workflow must pass static and browser gates before target persistence.
