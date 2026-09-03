@@ -66,6 +66,7 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          from html.parser import HTMLParser
           import re,hashlib,subprocess,tempfile
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
           compat='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'; export_line='window.RW_Items=RW_Items;'
@@ -80,12 +81,21 @@ jobs:
           if s.count(export_line)!=1: raise SystemExit(f'P163_ITEMS_EXPORT_COUNT:{s.count(export_line)}')
           i=s.index(export_line)+len(export_line)
           s=s[:i]+"\nwindow.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';\n// MAIN2_GOVERNED_CLOSED:v1"+s[i:]
-          required={'compat_removed':compat not in s,'auth_one':s.count(auth)==1,'version_one':s.count("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';")==1,'governed_one':s.count('// MAIN2_GOVERNED_CLOSED:v1')==1,'dash_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,'items_alias_absent':'window.RW_Items={render:renderItems};' not in s,'actions':'var actions=' in s,'main1Delegation':'main1Delegation' in s,'main3':'MAIN3' in s,'main11':'MAIN11' in s,'html':'<html' in s and '</html>' in s,'body':'<body' in s and '</body>' in s,'scripts_balanced':s.lower().count('<script')==s.lower().count('</script>'),'styles_balanced':s.lower().count('<style')==s.lower().count('</style>'),'doctype':s.lstrip().lower().startswith('<!doctype html>')}
+          class P(HTMLParser):
+              def __init__(self): super().__init__(convert_charrefs=False); self.starts={}; self.ends={}; self.inline=[]
+              def handle_starttag(self,t,attrs):
+                  t=t.lower(); self.starts[t]=self.starts.get(t,0)+1
+                  if t=='script' and not any(k.lower()=='src' for k,v in attrs): self.inline.append(attrs)
+              def handle_startendtag(self,t,attrs):
+                  t=t.lower(); self.starts[t]=self.starts.get(t,0)+1
+              def handle_endtag(self,t): t=t.lower(); self.ends[t]=self.ends.get(t,0)+1
+          hp=P(); hp.feed(s); hp.close()
+          required={'compat_removed':compat not in s,'auth_one':s.count(auth)==1,'version_one':s.count("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';")==1,'governed_one':s.count('// MAIN2_GOVERNED_CLOSED:v1')==1,'dash_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,'items_alias_absent':'window.RW_Items={render:renderItems};' not in s,'items_export_one':s.count(export_line)==1,'actions':'var actions=' in s,'main1Delegation':'main1Delegation' in s,'main3':'MAIN3' in s,'main11':'MAIN11' in s,'html_balance':hp.starts.get('html',0)==hp.ends.get('html',0)==1,'body_balance':hp.starts.get('body',0)==hp.ends.get('body',0)==1,'script_balance':hp.starts.get('script',0)==hp.ends.get('script',0),'style_balance':hp.starts.get('style',0)==hp.ends.get('style',0),'doctype':s.lstrip().lower().startswith('<!doctype html>')}
           bad=[k for k,v in required.items() if not v]
           if bad: raise SystemExit('GOLD_SOURCE_GATE_FAIL:'+','.join(bad))
           scripts=[m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)]
-          if len(scripts)!=2: raise SystemExit('GOLD_INLINE_SCRIPT_COUNT:'+str(len(scripts)))
-          app=max(scripts,key=len); f=Path(tempfile.gettempdir())/'newmain-app.js'; f.write_text(app,encoding='utf-8')
+          if len(scripts)!=1: raise SystemExit('GOLD_APP_INLINE_SCRIPT_COUNT:'+str(len(scripts)))
+          app=scripts[0]; f=Path(tempfile.gettempdir())/'newmain-app.js'; f.write_text(app,encoding='utf-8')
           r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
           if r.returncode: print(r.stderr); raise SystemExit('GOLD_JS_SYNTAX_FAIL')
           p.write_text(s,encoding='utf-8'); print('GOLD_TARGET_SHA256',hashlib.sha256(s.encode()).hexdigest(),len(s.encode()))
@@ -112,8 +122,7 @@ jobs:
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8'); h=hashlib.sha256(s.encode()).hexdigest()
           st=Path('CURRENT_STATE.md'); x=st.read_text(encoding='utf-8')
           x=x.rstrip()+f"\n\n## CTO P163 GOLD / DIAMOND VERIFIED — 2026-09-03\n\nTarget = `Current/PWA/New-main`\nTarget SHA-256 = `{h}`\nP163 ownership surgery = CLOSED\nGold source gates = PASS\nGold JavaScript syntax = PASS\nDiamond browser smoke = PASS\nMain1 IIFE closure preserved = YES\nMain2 compatibility implementation removed = YES\nAuthoritative Main2 retained = YES\nMain1 Dashboard/Items aliases removed = YES\nActions/main1Delegation/MAIN3/MAIN11 retained = YES\nProduction database writes = NONE\n"
-          st.write_text(x,encoding='utf-8')
-          Path('_cto_execution_done.txt').write_text(h,encoding='utf-8')
+          st.write_text(x,encoding='utf-8'); Path('_cto_execution_done.txt').write_text(h,encoding='utf-8')
           PY
           git config user.name 'RAWAEA CTO Executor'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
