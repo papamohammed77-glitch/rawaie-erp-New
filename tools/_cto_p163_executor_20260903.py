@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
 from html.parser import HTMLParser
-import hashlib,re,subprocess,sys,time
+import hashlib,re,subprocess,sys,time,shutil
 
 ROOT=Path(__file__).resolve().parents[1]
 TARGET=ROOT/'Current/PWA/New-main'
@@ -61,7 +61,11 @@ if len(p.inline)!=1: fail('inline application script count '+str(len(p.inline)))
 Path('/tmp/newmain.js').write_text(p.inline[0],encoding='utf-8')
 r=sh(['node','--check','/tmp/newmain.js'],check=False)
 if r.returncode: print(r.stderr,file=sys.stderr); fail('node syntax')
-http=subprocess.Popen([sys.executable,'-m','http.server','8123','--directory',str(ROOT/'Current/PWA')],cwd=ROOT,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+http_root=ROOT/'_p163_web'
+if http_root.exists(): shutil.rmtree(http_root)
+http_root.mkdir(parents=True)
+shutil.copy2(TARGET,http_root/'main.html')
+http=subprocess.Popen([sys.executable,'-m','http.server','8123','--directory',str(http_root)],cwd=ROOT,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
 time.sleep(1)
 try:
     smoke=Path('/tmp/p163_smoke.js')
@@ -72,7 +76,7 @@ try:
  const pe=[],ce=[];
  p.on('pageerror',e=>pe.push(e.message));
  p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
- await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});
+ await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});
  await p.waitForTimeout(2500);
  const r=await p.evaluate(()=>{
   const S=window.RW_STATE,N=window.RW_Navigation,flat=[];
@@ -93,12 +97,12 @@ try:
     print(r.stdout,end='')
     if r.returncode: print(r.stderr,file=sys.stderr); fail('browser smoke')
 finally:
-    http.terminate(); http.wait(timeout=5)
+    http.terminate(); http.wait(timeout=5); shutil.rmtree(http_root,ignore_errors=True)
 new_hash=hashlib.sha256(TARGET.read_text(encoding='utf-8').encode()).hexdigest()
 st=STATE.read_text(encoding='utf-8'); marker='## CTO P163 CLOSED — 2026-09-03'
 if marker not in st:
     STATE.write_text(st.rstrip()+f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Previous target SHA-256: `{before}`\n- Verified target SHA-256: `{new_hash}`\n- Target-preserving P163 ownership surgery executed without fragment reconstruction.\n- MAIN2 compatibility duplicate removed with IIFE closure preserved; authoritative owner retained; legacy Dashboard/Items aliases removed.\n- Current ShellContext/auth/navigation/views/OwnerLicense/actions/main1Delegation/MAIN3/MAIN11 and `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` preserved.\n- Parsed HTML structure gate: PASS.\n- Node syntax gate: PASS.\n- Browser Gold/Diamond runtime gate: PASS.\n- Production database writes: NONE.\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = PROVEN\n''',encoding='utf-8')
-# Remove transient executor and its workflow after verified closure.
+# Remove transient orchestration after verified closure.
 Path(__file__).unlink(missing_ok=True)
 WORKFLOW.unlink(missing_ok=True)
 sh(['git','config','user.name','rawaea-surgical-bot'])
