@@ -1,0 +1,1 @@
+CTO Gold/Diamond one-shot trigger. The executor itself is self-cleaning after successful verification.
