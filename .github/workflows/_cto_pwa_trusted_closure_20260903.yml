@@ -147,3 +147,4 @@ jobs:
           echo "CLOSED_COMMIT=$(git rev-parse HEAD)"
           echo "CLOSED_TARGET_BLOB=$TARGET_BLOB"
           echo "CLOSED_TARGET_BYTES=$TARGET_BYTES"
+# final_retrigger_nonce: 2026-09-03T09:30+03:00
