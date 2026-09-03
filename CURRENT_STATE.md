@@ -60,16 +60,16 @@ FRAGMENT RECONSTRUCTION   = NOT USED
 
 ## REQUIRED CONTINUITY MAP
 ```text
-CURRENT HEAD                = 2c02361ba01f37839a6fb4ad0f44c9eac60ef44a
-TARGET                      = Current/PWA/New-main
-LAST VERIFIED EVENT         = Trusted target restored and live Git identity re-verified
-CLOSED UNITS                = P163; MAIN2 governance; Diamond 122; target Gold/Diamond closure; regression recovery
-OPEN UNITS                  = No known target-blocking Gold/Diamond unit for New-main; ERP-wide closure is out of scope
-FAILED ATTEMPTS             = Truncated target regression; prior reconstruction-based executors; non-authoritative workflow-only proofs
-KNOWN CONFLICTS             = Historical automation could mutate target; final-closed commit guard is now used
-KNOWN UNKNOWNS              = Unrelated ERP-wide contracts are not claimed closed by this target closure
-NEXT AUTHORIZED ACTION      = Preserve New-main blob; investigate only new evidence-based regressions or the next explicitly scoped closure unit
-FORBIDDEN ACTIONS           = Fragment-only persistence; blind whole-file reconstruction; production business-data writes; disabling RLS; treating workflow labels as proof
+CURRENT HEAD AT LAST LIVE VERIFICATION = 19a528a913076424339614ed7ed1a10600e97761
+TARGET                                  = Current/PWA/New-main
+LAST VERIFIED EVENT                     = Trusted target restored and live Git identity re-verified
+CLOSED UNITS                            = P163; MAIN2 governance; Diamond 122; target Gold/Diamond closure; regression recovery
+OPEN UNITS                              = No known target-blocking Gold/Diamond unit for New-main; ERP-wide closure is out of scope
+FAILED ATTEMPTS                         = Truncated target regression; prior reconstruction-based executors; non-authoritative workflow-only proofs
+KNOWN CONFLICTS                         = Historical automation could mutate target; final-closed commit guard is now used
+KNOWN UNKNOWNS                          = Unrelated ERP-wide contracts are not claimed closed by this target closure
+NEXT AUTHORIZED ACTION                  = Preserve New-main blob; investigate only new evidence-based regressions or the next explicitly scoped closure unit
+FORBIDDEN ACTIONS                       = Fragment-only persistence; blind whole-file reconstruction; production business-data writes; disabling RLS; treating workflow labels as proof
 ```
 
 ## SELF-AUDIT
