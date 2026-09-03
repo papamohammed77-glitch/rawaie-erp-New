@@ -52,7 +52,6 @@ jobs:
           assert 'isOwner:function' in legacy_block and 'permissions:function' in legacy_block and 'licenseState:function' in legacy_block and 'isActive:function' in legacy_block,'LEGACY_OWNER_BLOCK_UNEXPECTED'
           assert 'RW_OwnerLicense = RW_OwnerLicense' not in legacy_block,'AUTHORITATIVE_OWNER_SELECTED'
           s=s[:start]+s[end+2:]
-          # Next closure unit: remove the real notification runtime ReferenceError without introducing a second owner.
           notif_old="async function showPanel(){\n  var e=email();"
           notif_new="async function showPanel(){\n  var e=RW_STATE&&RW_STATE.app&&RW_STATE.app.currentUser?RW_STATE.app.currentUser.email:null;"
           assert s.count(notif_old)==1,'NOTIFICATION_LEGACY_COUNT:'+str(s.count(notif_old))
@@ -68,8 +67,7 @@ jobs:
           scripts=[]
           for m in re.finditer(r'<script[^>]*>([\s\S]*?)</script>',s,re.I):
               opening=m.group(0).split('>',1)[0]
-              if re.search(r'\bsrc\s*=',opening,re.I):
-                  continue
+              if re.search(r'\bsrc\s*=',opening,re.I): continue
               scripts.append(m.group(1))
           assert len(scripts)==1,'INLINE_SCRIPT_COUNT:'+str(len(scripts))
           Path('/tmp/newmain.js').write_text(scripts[0],encoding='utf-8'); p.write_text(s,encoding='utf-8'); assert s!=old,'TARGET_NOT_CHANGED'
@@ -96,4 +94,4 @@ jobs:
           git add Current/PWA/New-main CURRENT_STATE.md; git diff --cached --check
           git commit -m '[P163-EXECUTED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED] reconcile owner and notification runtime gaps'
           timeout 120s git push origin HEAD:main
-# CTO continuation nonce 2026-09-03T08:25:00+03:00
+# PR continuation nonce 2026-09-03T08:35:00+03:00
