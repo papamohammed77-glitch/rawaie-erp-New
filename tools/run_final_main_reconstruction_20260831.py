@@ -17,14 +17,12 @@ INLINE_RE = re.compile(r'<script(?![^>]*\bsrc\s*=)[^>]*>', re.I)
 HTML_COMMENT_TAIL = re.compile(r'<!--(?:[\s\S]*?)-->\s*$', re.I)
 P1_FORENSIC_MARKER = re.compile(r'(?m)^\s*<!--\s*RAWAEA_P1_FORENSIC_CLOSED:[^>]*-->\s*$', re.I)
 
-
 def normalize_main1(raw):
     raw = raw.lstrip('\ufeff')
     raw = re.sub(r'(?m)^\s*const RW_Auth\s*=\s*', 'var RW_Auth = ', raw, count=1)
     raw = re.sub(r'(?m)^\s*const RW_Navigation\s*=\s*', 'var RW_Navigation = ', raw, count=1)
     opens = list(INLINE_RE.finditer(raw))
-    if not opens:
-        raise RuntimeError('MAIN1_INLINE_RUNTIME_OPENER_MISSING')
+    if not opens: raise RuntimeError('MAIN1_INLINE_RUNTIME_OPENER_MISSING')
     app_open = opens[-1]
     prefix = raw[:app_open.start()]
     body = raw[app_open.start():]
@@ -32,13 +30,9 @@ def normalize_main1(raw):
     body = HTML_COMMENT_TAIL.sub('', body)
     return prefix + body.rstrip()
 
-
 def normalize_fragment(raw, idx):
     raw = raw.lstrip('\ufeff')
     if idx == 2:
-        # The current MAIN2 source contains a malformed inline onclick string inside
-        # _openCategoryModal. Replace that function with equivalent event-bound DOM
-        # handlers so category names cannot break JavaScript quoting or HTML markup.
         start = raw.find('    function _openCategoryModal(){')
         end = raw.find('    function _addCategory', start)
         if start < 0 or end < 0 or end <= start:
@@ -77,23 +71,18 @@ def normalize_fragment(raw, idx):
     if idx == 7:
         defect = ".join(''));}"
         count = raw.count(defect)
-        if count != 1:
-            raise RuntimeError('MAIN7_EXPECTED_SETTLEMENT_SYNTAX_DEFECT_COUNT:' + str(count))
+        if count != 1: raise RuntimeError('MAIN7_EXPECTED_SETTLEMENT_SYNTAX_DEFECT_COUNT:' + str(count))
         raw = raw.replace(defect, ".join('')));}", 1)
     return raw.rstrip()
-
 
 def extract_main1_application_js(chunk):
     opens = list(INLINE_RE.finditer(chunk))
     if not opens: raise RuntimeError('MAIN1_INLINE_RUNTIME_MISSING')
-    app_open = opens[-1]
-    close = chunk.rfind('</script>')
-    end = close if close >= app_open.end() else len(chunk)
+    app_open = opens[-1]; close = chunk.rfind('</script>'); end = close if close >= app_open.end() else len(chunk)
     return chunk[app_open.end():end]
 
-
 def p163(s):
-    if s.count(COMPAT) > 1: raise RuntimeError('P163_COMPAT_DUPLICATE')
+    if s.count(COMPAT)>1: raise RuntimeError('P163_COMPAT_DUPLICATE')
     if COMPAT in s:
         a=s.index(COMPAT); b=s.find(AUTH,a+len(COMPAT))
         if b<0: raise RuntimeError('P163_AUTH_AFTER_COMPAT_MISSING')
@@ -111,7 +100,6 @@ def p163(s):
     owner=s.index('window.RW_Items=RW_Items;')+len('window.RW_Items=RW_Items;')
     return s[:owner]+'\n'+VERSION+'\n'+GOVERNED+s[owner:]
 
-
 def inject_canonical_sw(s):
     legacy=re.compile(r"if\s*\(\s*['\"]serviceWorker['\"]\s*in\s*navigator\s*\)\s*navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*\.catch\(\s*function\(e\)\s*\{\s*console\.warn\(\s*['\"]SERVICE_WORKER['\"]\s*,\s*e\s*\)\s*\}\s*\)\s*;?",re.I)
     s=legacy.sub('',s)
@@ -123,25 +111,21 @@ def inject_canonical_sw(s):
     tag="<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(function(e){console.warn('SERVICE_WORKER',e)})}</script>\n"
     return s[:body]+tag+s[body:]
 
-
 class StructureParser(HTMLParser):
     def __init__(self): super().__init__(convert_charrefs=False); self.starts=[]; self.ends=[]
     def handle_starttag(self,tag,attrs): self.starts.append(tag.lower())
     def handle_startendtag(self,tag,attrs): self.starts.append(tag.lower())
     def handle_endtag(self,tag): self.ends.append(tag.lower())
 
-
 def validate_fragments(parts):
     if not parts or not parts[0].lstrip().lower().startswith('<!doctype html>'): raise RuntimeError('MAIN1_HTML_SHELL_MISSING')
     if not INLINE_RE.search(parts[0]): raise RuntimeError('MAIN1_OPEN_SCRIPT_BOUNDARY_MISSING')
     return [{'part':idx,'bytes':len(part.encode('utf-8')),'lines':part.count('\n')+1} for idx,part in enumerate(parts,1)]
 
-
 def _app_js(s):
     apps=[m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I) if 'serviceWorker.register' not in m.group(1)]
     if len(apps)!=1: raise RuntimeError('APPLICATION_INLINE_SCRIPT_COUNT:'+str(len(apps)))
     return apps[0]
-
 
 def validate(s):
     start=s.lstrip().lower(); required=['window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense','var RW_Dashboard','var RW_Items','window.RW_Items=RW_Items;','RW_SUPABASE_CLIENT','MAIN3']; missing=[x for x in required if x not in s]
@@ -152,7 +136,6 @@ def validate(s):
     js=_app_js(s); path=Path(tempfile.gettempdir())/'rawaea-new-main.js'; path.write_text(js,encoding='utf-8'); r=subprocess.run(['node','--check',str(path)],capture_output=True,text=True)
     if r.returncode: print(r.stderr); raise RuntimeError('FINAL_JS_SYNTAX_FAIL')
     return gates
-
 
 def main():
     parts=[]
