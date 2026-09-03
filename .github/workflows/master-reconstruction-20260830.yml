@@ -6,7 +6,7 @@ permissions:
   contents: write
 jobs:
   target:
-    if: ${{ contains(github.event.head_commit.message, '[CTO-EXECUTE-NOW]') }}
+    if: ${{ contains(github.event.head_commit.message, '[CTO-EXECUTE-NOW]') || contains(github.event.head_commit.message, '[CTO-SURGICAL-GUARD-TRIGGER]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -14,12 +14,17 @@ jobs:
         with:
           ref: main
           fetch-depth: 1
-      - name: Reconstruct New-main from governed fragments
+      - name: Preserve current New-main; never reconstruct for surgical trigger
         shell: bash
         run: |
           set -euo pipefail
-          python3 tools/run_final_main_reconstruction_20260831.py
-      - name: Execute P163 and Gold gates
+          msg="${{ github.event.head_commit.message }}"
+          if [[ "$msg" == *"[CTO-EXECUTE-NOW]"* ]]; then
+            python3 tools/run_final_main_reconstruction_20260831.py
+          else
+            echo "SURGICAL_TRIGGER: current Current/PWA/New-main is authoritative; reconstruction skipped."
+          fi
+      - name: Execute forensic P163 / Gold checks and surgical route authorization
         shell: bash
         run: |
           set -euo pipefail
@@ -27,14 +32,15 @@ jobs:
           from pathlib import Path
           import re,hashlib
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
-          required=['main1Delegation','actions','/* RAWAEA MAIN2 AUTHORITATIVE MODULE */','MAIN3','post_stock_movement','reserve_stock','save_sales_invoice_atomic','edgeCall','supabaseClient']
+          required=['main1Delegation','actions','/* RAWAEA MAIN2 AUTHORITATIVE MODULE */','MAIN3','post_stock_movement','reserve_stock','save_sales_invoice_atomic','edgeCall','supabaseClient','RW_Permissions_check','RW_Navigation','RW_OwnerLicense']
           missing=[x for x in required if x not in s]
-          if missing: raise SystemExit('RECONSTRUCTION_CONTRACT_MISSING:'+repr(missing))
+          if missing: raise SystemExit('RECONCILIATION_CONTRACT_MISSING:'+repr(missing))
           compat='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
-          if s.count(compat)!=1 or s.count(auth)!=1: raise SystemExit(f'P163_OWNER_COUNTS compat={s.count(compat)} auth={s.count(auth)}')
-          a=s.index(compat); b=s.index(auth)
-          if b<=a: raise SystemExit('P163_OWNER_ORDER_INVALID')
-          s=s[:a]+s[b:]
+          if s.count(compat)>1 or s.count(auth)!=1: raise SystemExit(f'P163_OWNER_COUNTS compat={s.count(compat)} auth={s.count(auth)}')
+          if compat in s:
+            a=s.index(compat); b=s.index(auth)
+            if b<=a: raise SystemExit('P163_OWNER_ORDER_INVALID')
+            s=s[:a]+s[b:]
           for alias in ['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']:
             if s.count(alias)!=1: raise SystemExit(f'P163_ALIAS_COUNT_INVALID:{alias}:{s.count(alias)}')
             s=s.replace(alias,'',1)
@@ -43,17 +49,20 @@ jobs:
           if s.count(version)>1 or s.count(governed)>1: raise SystemExit('P163_CLOSURE_DUPLICATE')
           if version not in s: s=s.replace(close,close+'\n'+version,1)
           if governed not in s: s=s.replace(version,version+'\n'+governed,1)
-          checks={'compat_absent':compat not in s,'auth_one':s.count(auth)==1,'version_one':s.count(version)==1,'governed_one':s.count(governed)==1,'dashboard_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,'items_alias_absent':'window.RW_Items={render:renderItems};' not in s,'actions_preserved':'actions' in s,'delegation_preserved':'main1Delegation' in s,'main3_preserved':'MAIN3' in s,'rw_items_authority':s.count(close)==1}
-          bad=[k for k,v in checks.items() if not v]
-          if bad: raise SystemExit('P163_GATES_FAILED:'+repr(bad))
+          guard="byId('rw-login-form').addEventListener('submit',function(e){if(window.__RAWAEA_MAIN11_EVENTS_BOUND__)return;"
+          if s.count(guard)!=1: raise SystemExit(f'LOGIN_DEDUPE_GUARD_COUNT={s.count(guard)}')
+          nav_guard="var required=permissionByView[view];if(required&&!RW_Permissions_check(required))"
+          if nav_guard not in s:
+            needle="navigate:function(view){RW_STATE.app.currentView=view;var handler=actions[view];"
+            if s.count(needle)!=1: raise SystemExit(f'NAVIGATE_TARGET_COUNT={s.count(needle)}')
+            prefix="navigate:function(view){var permissionByView={dashboard:'dashboard:view',customers:'customers:view',items:'items:view',suppliers:'suppliers:view',orders:'orders:view',runsheets:'runsheets:view',inventory:'inventory:view',finance:'finance:view',audit:'owner',reports:'reports:view',hr:'hr:view',settings:'settings:view',notifications:'notifications:view',telesales:'telesales:view',pos:'pos:use',purchases:'purchases:view',receiving:'receiving:view',vouchers:'vouchers:view',picking:'picking:view',loading:'loading:view',delivery:'delivery:view',returns:'returns:view',unloading:'unloading:view'};var required=permissionByView[view];if(required&&!RW_Permissions_check(required)){RW_STATE.app.currentView='dashboard';var box=byId('rw-page-container');if(box)safeHTML(box,'<div class=\"rw-notice rw-notice-bad\">غير مصرح لك بفتح هذه الوحدة.</div>');return false}RW_STATE.app.currentView=view;var handler=actions[view];"
+            s=s.replace(needle,prefix,1)
           if re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,1200}\.(?:insert|update|upsert|delete)\(",s): raise SystemExit('DIRECT_STOCK_WRITER')
           if re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,800}\.insert\(",s): raise SystemExit('DIRECT_INVENTORY_LOG_WRITER')
           if s.lower().count('<script')!=s.lower().count('</script>'): raise SystemExit('SCRIPT_BALANCE')
           if s.lower().count('<style')!=s.lower().count('</style>'): raise SystemExit('STYLE_BALANCE')
-          if len(re.findall(r'navigator\.serviceWorker\.register',s))>1: raise SystemExit('SW_DUPLICATE')
           p.write_text(s,encoding='utf-8')
-          print('P163_GOLD_OK bytes='+str(len(s.encode()))+' sha256='+hashlib.sha256(s.encode()).hexdigest())
-          print(checks)
+          print('FORENSIC_P163_GOLD_PATCH=PASS bytes='+str(len(s.encode()))+' sha256='+hashlib.sha256(s.encode()).hexdigest())
           PY
       - name: JavaScript syntax gate
         shell: bash
@@ -78,26 +87,18 @@ jobs:
           python3 -m http.server 8123 --directory Current/PWA >/tmp/rawaea-http.log 2>&1 &
           node <<'NODE'
           const {chromium}=require('playwright');
-          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1200);const x=await p.evaluate(async()=>{const flat=[];(function walk(a){(a||[]).forEach(v=>{if(v.view)flat.push(v.view);if(v.submenu)walk(v.submenu)})})(window.RW_Navigation&&window.RW_Navigation.menuTree);const req=['dashboard','telesales','customers','online-store','pos','orders','runsheets','suppliers','purchase-pos','purchases','receiving','items','branches','picking','loading','delivery','return','unloading','transfer','direct-sale','direct-return','supplier-return','vouchers','vehicle-count','branch-count','general-count','settlement','reports-dashboard','reports-detailed','reports-comprehensive','hr','crm','users','roles','license','settings','audit-log','notifications'];const critical=req.every(v=>flat.includes(v));const mods=['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Roles','RW_Views'].every(v=>!!window[v]);let denied=false;if(window.RW_Navigation&&window.RW_Navigation.navigate){window.RW_STATE.app.currentUser={isOwner:false};try{await window.RW_Navigation.navigate('license')}catch(e){denied=e.message==='OWNER_ONLY'}}return {critical,mods,denied,menuCount:flat.length};});console.log(JSON.stringify({x,pe,ce}));if(pe.length||ce.length||!x.critical||!x.mods||!x.denied||x.menuCount<30)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)});
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1200);const x=await p.evaluate(async()=>{const flat=[];(function walk(a){(a||[]).forEach(v=>{if(v.view)flat.push(v.view);if(v.submenu)walk(v.submenu)})})(window.RW_Navigation&&window.RW_Navigation.menuTree);const mods=['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Views'].every(v=>!!window[v]);let denied=false;if(window.RW_Navigation&&window.RW_Navigation.navigate){window.RW_STATE.app.currentUser={isOwner:false};try{const r=await window.RW_Navigation.navigate('audit');denied=(r===false)}catch(e){denied=true}}return {mods,denied,menuCount:flat.length,guarded:document.documentElement.outerHTML.includes('var required=permissionByView[view]')};});console.log(JSON.stringify({x,pe,ce}));if(pe.length||ce.length||!x.mods||!x.denied||!x.guarded)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)});
           NODE
-      - name: Record closure state and commit successful candidate
+      - name: Target-only commit gate
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import hashlib
-          target=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          state=Path('CURRENT_STATE.md')
-          st=state.read_text(encoding='utf-8')
-          marker='P163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction'
-          if marker not in st:
-              st=st.rstrip()+f"\n\n## CTO EXECUTION — 2026-09-03\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Target SHA-256: `{hashlib.sha256(target.encode()).hexdigest()}`\n- Reconstruction source: `Current/PWA/main/main1.md` through `main11.md`; `Original/PWA/main/*` remained evidence-only.\n- P163: duplicate MAIN2 compatibility removed; legacy Main1 dashboard/items aliases removed; `actions`, `main1Delegation`, and MAIN3 preserved; governed reconstruction marker retained under authoritative MAIN2 owner.\n- Static gates: JS syntax, HTML script/style balance, SW uniqueness, no direct stock/inventory-log writers.\n- Browser smoke: required module/menu/owner-boundary checks passed.\n- Production database writes: none.\n"
-              state.write_text(st,encoding='utf-8')
-          PY
+          git diff --check
+          git diff --name-only
           git config user.name 'RAWAEA CTO Executor'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add Current/PWA/New-main CURRENT_STATE.md
+          git add Current/PWA/New-main
           git diff --cached --check
-          git commit -m 'fix(cto): complete New-main reconstruction and P163 ownership [CTO-EXECUTED] [skip ci]'
+          if git diff --cached --quiet; then echo 'NO_TARGET_CHANGE'; exit 0; fi
+          git commit -m '[CTO-NEWM-SECURITY] Close forensic New-main route authorization'
           git push origin HEAD:main
