@@ -69,3 +69,9 @@ Obtain a directly verifiable execution path for the target-preserving surgical P
 - The current `.github/workflows/_cto_close_newmain_20260903.yml` workflow was directly re-read and confirmed to perform target-preserving P163 surgery, static gates, browser smoke, then persistence and cleanup.
 - This commit intentionally triggers that executor without modifying Production data and without reconstructing `New-main` from fragments.
 - This section is not a success claim; only the resulting target, gate results, and final commit may prove closure.
+
+## CTO CONTINUATION TRIGGER — 2026-09-03
+- HEAD before trigger: `efb2d469f9ea0276570658070033e7f935e1e7cb`.
+- Purpose: trigger the already-reviewed target-preserving P163 executor against the exact current `main` state.
+- Expected mutation is limited to the existing `Current/PWA/New-main`: remove duplicate `RAWAEA MAIN2 COMPATIBILITY`, retain the authoritative MAIN2 owner and `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1`, then execute Node and browser gates before persistence.
+- This record does not assert closure; closure remains unproven until the target changes and the gates are directly verified.
