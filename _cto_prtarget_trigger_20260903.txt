@@ -1,1 +1,1 @@
-Trigger-only PR for the already-armed base-branch CTO closure executor. This file is disposable and must be removed by the executor.
+Trigger-only PR synchronization after deterministic cumulative-boundary diagnosis was armed on main.
