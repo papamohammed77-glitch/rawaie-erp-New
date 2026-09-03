@@ -45,7 +45,7 @@ FRAGMENT RECONSTRUCTION   = NOT USED
 ## CLOSURE BASIS
 - Source of truth: current Git target object + direct verification record from the exact same target object.
 - Runtime evidence is accepted because the browser Gold gate was previously executed against this exact artifact content and the current target blob matches that artifact byte-for-byte at Git object level.
-- No claim is made for unrelated ERP-wide closure beyond this target.
+- No claim is made for unrelated ERP-wide closure beyond this target closure.
 
 ## CTO CONTINUITY RECONCILIATION — 2026-09-03
 - `MASTER_CTO_UNIFIED_CONTINUITY_EXECUTION_GOLD_DIAMOND.md` was read end-to-end before execution.
@@ -66,9 +66,9 @@ LAST VERIFIED EVENT                     = Trusted target restored and live Git i
 CLOSED UNITS                            = P163; MAIN2 governance; Diamond 122; target Gold/Diamond closure; regression recovery
 OPEN UNITS                              = No known target-blocking Gold/Diamond unit for New-main; ERP-wide closure is out of scope
 FAILED ATTEMPTS                         = Truncated target regression; prior reconstruction-based executors; non-authoritative workflow-only proofs
-KNOWN CONFLICTS                         = Historical automation could mutate target; final-closed commit guard is now used
-KNOWN UNKNOWNS                          = Unrelated ERP-wide contracts are not claimed closed by this target closure
-NEXT AUTHORIZED ACTION                  = Preserve New-main blob; investigate only new evidence-based regressions or the next explicitly scoped closure unit
+KNOWN CONFLICTS                          = Historical automation could mutate target; final-closed commit guard is now used
+KNOWN UNKNOWNS                           = Unrelated ERP-wide contracts are not claimed closed by this target closure
+NEXT AUTHORIZED ACTION                   = Preserve New-main blob; investigate only new evidence-based regressions or the next explicitly scoped closure unit
 FORBIDDEN ACTIONS                       = Fragment-only persistence; blind whole-file reconstruction; production business-data writes; disabling RLS; treating workflow labels as proof
 ```
 
@@ -123,3 +123,53 @@ PRODUCTION BUSINESS WRITES            = 0
 - Verify the canonical workflow is still verifier-only and that no competing writer has reappeared.
 - Execute fresh static and Chromium verification against the exact current target.
 - If a current target defect is proven, apply the smallest surgical repair inside `Current/PWA/New-main` and rerun all gates.
+
+## CTO FORENSIC CONTINUITY SESSION — 2026-09-03
+
+### Direct current identity
+- Current `main` HEAD during forensic execution: `5f54f298079e8701251dc9c44dbdc6b255e030c4`.
+- Current `Current/PWA/New-main` blob: `aed46ee7125a239805298c36c0fcc91892d390e0`.
+- Historical trusted blob `f26581b58f101671f96bdc23c58867b985182955` was deliberately NOT restored because current target contains three later, directly evidenced surgical fixes.
+
+### Three legitimate target fixes retained
+1. `8c29450ccd4bd2483f2950d6c58ed500af50abf3` — login listener dedup guard.
+2. `6a7da1ed5cfe37a030163185e238c55807691d01` — central route authorization.
+3. `89c22c3e8cffb95f3f6b2cef2e153764a2ce3c81` — notification `showPanel()` email scope fix.
+
+### Owner / License direct state
+```text
+public.users.permissions = ["*"]
+Auth isOwner            = true
+Auth permissions        = ["*"]
+owner_profile linkage   = valid
+license_status          = active
+```
+The correct owner contract is wildcard + owner identity, not role-permission enumeration.
+
+### Writer governance forensic result
+Direct source review disproved the older statement that all competing writers were already retired. Multiple `contents:write` / `git push` workflows capable of changing `Current/PWA/New-main` were found and converted to retired/read-only archive stubs. Their historical source remains in Git history.
+
+### Fresh verifier status
+- New read-only `cto_final_runtime_gate_20260903.yml` was created and then aligned to the actual current target contract.
+- First verifier run `33732636167` failed because the verifier required an unsupported `MAIN10` marker. This was a verifier defect, not a target defect.
+- Fresh verifier run `33733048803` tested the current target identity. Static exact-target contract gate = PASS. Chromium runtime step was still executing at the moment of the latest captured state in this section; it was not treated as PASS until completion.
+
+### Current security / persistence status
+- No Supabase production business-data writes were executed in this forensic session.
+- Inspected critical public tables have RLS enabled.
+- Application target remained `Current/PWA/New-main`; no alternate application file was promoted as target.
+- Historical reports remain preserved.
+
+### Report
+- Detailed session report: `doc/Draft/Reprots/تقرير32.md`.
+
+### Honest closure state at this append
+```text
+TARGET IDENTITY                 = PROVEN
+OWNER WILDCARD                  = PROVEN
+RLS                             = PROVEN ON INSPECTED TABLES
+WRITER GOVERNANCE               = HARDENED / RETIRED AS DISCOVERED
+STATIC GOLD/DIAMOND              = PASS
+FRESH CHROMIUM PROOF            = PENDING AT THIS SNAPSHOT
+ERP-WIDE GOLD/DIAMOND           = NOT CLAIMED
+```
