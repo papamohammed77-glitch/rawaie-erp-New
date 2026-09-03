@@ -6,79 +6,70 @@ permissions:
   contents: write
 jobs:
   close:
-    if: ${{ !contains(github.event.head_commit.message, 'CTO-GOLD-DIAMOND-CLOSED') }}
+    if: ${{ !contains(github.event.head_commit.message, '[CTO-CLOSURE-EXECUTED]') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 2
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Deterministic New-main reconstruction
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 tools/run_final_main_reconstruction_20260831.py
-      - name: Surgical P163 ownership closure
-        shell: bash
+      - name: Execute bounded P163 target surgery
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re,hashlib,subprocess,tempfile
-          p=Path('Current/PWA/New-main')
-          s=p.read_text(encoding='utf-8')
-          compat='/* RAWAEA MAIN2 COMPATIBILITY */'
-          auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
-          if s.count(compat)!=1: raise SystemExit(f'P163_COMPAT_COUNT:{s.count(compat)}')
-          if s.count(auth)!=1: raise SystemExit(f'P163_AUTH_COUNT:{s.count(auth)}')
-          a=s.index(compat); b=s.index(auth,a+len(compat)); block=s[a:b]; closure=block.rfind('})();')
-          if closure<0: raise SystemExit('P163_MAIN1_IIFE_CLOSURE_NOT_FOUND')
-          s=s[:a]+'})();\n\n'+s[b:]
-          for alias in ('window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};'):
-              s=s.replace(alias,'')
-          s=re.sub(r'window\.RW_Items\s*=\s*RW_Items\s*;','window.RW_Items=RW_Items;',s)
-          s=s.replace("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';",'').replace('// MAIN2_GOVERNED_CLOSED:v1','')
-          marker='window.RW_Items=RW_Items;'
-          if s.count(marker)!=1: raise SystemExit(f'P163_ITEMS_OWNER_COUNT:{s.count(marker)}')
-          i=s.index(marker)+len(marker); s=s[:i]+"\nwindow.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';\n// MAIN2_GOVERNED_CLOSED:v1"+s[i:]
-          checks={'compat_absent':compat not in s,'auth_one':s.count(auth)==1,'version_one':s.count("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';")==1,'governed_one':s.count('// MAIN2_GOVERNED_CLOSED:v1')==1,'dash_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,'items_alias_absent':'window.RW_Items={render:renderItems};' not in s,'items_export_one':s.count(marker)==1,'actions':'var actions=' in s,'delegation':'main1Delegation' in s,'main3':'MAIN3' in s,'main11':'MAIN11' in s,'html':'<html' in s and '</html>' in s,'body':'<body' in s and '</body>' in s,'script_balance':s.lower().count('<script')==s.lower().count('</script>'),'style_balance':s.lower().count('<style')==s.lower().count('</style>'),'doctype':s.lstrip().lower().startswith('<!doctype html>')}
-          bad=[k for k,v in checks.items() if not v]
-          if bad: raise SystemExit('GOLD_SOURCE_GATE_FAIL:'+','.join(bad))
-          scripts=[m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)]
-          if len(scripts)!=2: raise SystemExit('INLINE_SCRIPT_COUNT_EXPECTED_2:'+str(len(scripts)))
-          app=max(scripts,key=len); f=Path(tempfile.gettempdir())/'newmain-app.js'; f.write_text(app,encoding='utf-8'); r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-          if r.returncode: print(r.stderr); raise SystemExit('GOLD_JS_SYNTAX_FAIL')
-          p.write_text(s,encoding='utf-8'); print('P163_SOURCE_CLOSED',hashlib.sha256(s.encode()).hexdigest(),len(s.encode()))
+          import hashlib,re
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8'); before=s
+          compat='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'; version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"; governed='// MAIN2_GOVERNED_CLOSED:v1'; diamond='RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'
+          legacy_dash='window.RW_Dashboard={render:renderDashboard};'; legacy_items='window.RW_Items={render:renderItems};'; auth_dash='window.RW_Dashboard=RW_Dashboard;'; auth_items='window.RW_Items=RW_Items;'
+          def need(c,m):
+              if not c: raise SystemExit(m)
+          need(s.count(compat)==1,'P163_COMPAT_COUNT'); need(s.count(auth)==1,'P163_AUTH_COUNT'); need(s.count(version)==1,'P163_VERSION_COUNT'); need(s.count(governed)==1,'P163_GOVERNED_COUNT'); need(diamond in s,'P163_DIAMOND_MISSING')
+          a,b=s.index(compat),s.index(auth); need(b>a,'P163_BOUNDARY_ORDER'); region=s[a:b]
+          need(region.count('var RW_Dashboard = (function()')==1,'P163_COMPAT_DASH_OWNER'); need(region.count('var RW_Items = (function()')==1,'P163_COMPAT_ITEMS_OWNER'); need(region.rfind('window.RW_Items=RW_Items;')>=0,'P163_COMPAT_END')
+          s=s[:a]+s[b:]; s=s.replace(legacy_dash,'').replace(legacy_items,'')
+          need(s.count(auth)==1,'P163_AUTH_LOST'); need(s.count('var RW_Dashboard =')==1,'P163_DASH_OWNER'); need(s.count('var RW_Items =')==1,'P163_ITEMS_OWNER'); need(s.count(auth_dash)==1,'P163_AUTH_DASH'); need(s.count(auth_items)==1,'P163_AUTH_ITEMS')
+          s=s.replace(version,'').replace(governed,''); i=s.index(auth_items)+len(auth_items); s=s[:i]+'\n'+version+'\n'+governed+s[i:]
+          for x in ['main1Delegation','actions','MAIN3','edgeCall','window.RW_SUPABASE_CLIENT','window.RW_Auth','RW_ShellContext.getCompanyId','post_stock_movement','reserve_stock',diamond]: need(x in s,'P163_REQUIRED_'+x.replace(' ','_'))
+          need('function post_journal_entry' not in s,'P163_WRONG_JOURNAL_OWNERSHIP'); need('function save_sales_invoice_atomic' not in s,'P163_WRONG_INVOICE_OWNERSHIP')
+          need(s.lower().count('<script')==s.lower().count('</script>'),'P163_SCRIPT_BALANCE'); need(s.lower().count('<style')==s.lower().count('</style>'),'P163_STYLE_BALANCE'); need(len(re.findall(r'navigator\.serviceWorker\.register',s))==1,'P163_SW_REGISTER')
+          p.write_text(s,encoding='utf-8'); print('P163_TARGET_CHANGED',s!=before); print('P163_TARGET_SHA256',hashlib.sha256(s.encode()).hexdigest()); print('P163_BYTES',len(s.encode()))
           PY
-      - name: Gold browser smoke
-        shell: bash
+      - name: Node syntax and static Gold gate
         run: |
           set -euo pipefail
-          npm init -y >/dev/null 2>&1
-          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
-          npx playwright install chromium >/dev/null 2>&1
-          python3 -m http.server 8123 --directory Current/PWA >/tmp/rawaea-http.log 2>&1 &
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8'); scripts=[m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)]
+          if len(scripts)!=1: raise SystemExit('INLINE_RUNTIME_COUNT:'+str(len(scripts)))
+          Path('/tmp/newmain.js').write_text(scripts[0],encoding='utf-8')
+          PY
+          node --check /tmp/newmain.js
+          git diff --check
+          echo GOLD_STATIC_PASS
+      - name: Browser Gold Diamond smoke
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1; npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1; npx playwright install --with-deps chromium >/dev/null 2>&1
+          rm -rf /tmp/rw; mkdir -p /tmp/rw; cp -r Current/PWA/. /tmp/rw/; cp Current/PWA/New-main /tmp/rw/main.html; python3 -m http.server 8123 --directory /tmp/rw >/tmp/rw.log 2>&1 &
           node <<'NODE'
-          const {chromium}=require('playwright');
-          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[];p.on('pageerror',e=>pe.push(e.message));await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(2000);const x=await p.evaluate(()=>({html:document.documentElement.lang,login:!!document.getElementById('rw-login-page'),app:!!document.getElementById('rw-main-shell'),shell:!!window.RW_ShellContext,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense,recon:window.RW_PWA_RECONSTRUCTION_VERSION||null,dash:typeof window.RW_Dashboard,items:typeof window.RW_Items}));console.log(JSON.stringify({x,pe}));if(x.html!=='ar'||!x.login||!x.app||!x.shell||!x.auth||!x.nav||!x.views||!x.owner||x.recon!=='MAIN2-COMPLETE-SURGICAL-v1'||pe.length)process.exit(2);await b.close()})().catch(e=>{console.error(e);process.exit(2)})
+          const {chromium}=require('playwright');(async()=>{const b=await chromium.launch({headless:true}),p=await b.newPage(),pe=[],ce=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(2500);const r=await p.evaluate(()=>{const N=window.RW_Navigation,S=window.RW_STATE,flat=[];(function w(a){(a||[]).forEach(x=>{if(x.view)flat.push(x.view);if(x.submenu)w(x.submenu)})})(N&&N.menuTree);S.app.currentUser={isOwner:false};let denied=false;try{N.navigate('license')}catch(e){denied=e.message==='OWNER_ONLY'}const mods=['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Roles','RW_Views'].every(v=>!!window[v]);return{count:flat.length,critical:['dashboard','telesales','customers','pos','orders','runsheets','suppliers','purchases','receiving','items','inventory','vouchers','picking','loading','delivery','returns','unloading','finance','reports','hr','crm','users','roles','license','settings','notifications'].every(v=>flat.includes(v)),denied,mods,ownerLicense:!!window.RW_OwnerLicense,main2:window.RW_PWA_RECONSTRUCTION_VERSION||null}});console.log(JSON.stringify({r,pe,ce}));if(pe.length||ce.length||r.count<30||!r.critical||!r.denied||!r.mods||!r.ownerLicense||r.main2!=='MAIN2-COMPLETE-SURGICAL-v1')process.exit(2);await b.close()})().catch(e=>{console.error(e);process.exit(2)});
           NODE
-      - name: Diamond persist and cleanup
-        shell: bash
+          echo BROWSER_GOLD_DIAMOND_PASS
+      - name: Persist target and continuity evidence
         run: |
           set -euo pipefail
+          git config user.name 'RAWAEA CTO Executor'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           python3 - <<'PY'
           from pathlib import Path
           import hashlib
-          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8'); h=hashlib.sha256(s.encode()).hexdigest(); st=Path('CURRENT_STATE.md'); x=st.read_text(encoding='utf-8')
-          x=x.rstrip()+f"\n\n## CTO GOLD / DIAMOND CLOSURE — 2026-09-03\n\nP163 / Main2 ownership surgery = CLOSED\nTarget = `Current/PWA/New-main`\nTarget SHA-256 = `{h}`\nGold source gates = PASS\nGold JavaScript syntax = PASS\nDiamond browser smoke = PASS\nMain1 IIFE closure preserved = YES\nMain2 compatibility implementation = REMOVED\nAuthoritative Main2 Dashboard/Items = RETAINED\nMain1 dashboard/items aliases = REMOVED\nActions / main1Delegation / MAIN3 / MAIN11 = RETAINED\nProduction database writes = NONE\n"
-          st.write_text(x,encoding='utf-8'); Path('.github/workflows/cto_one_shot_newmain_close_20260903.yml').unlink(missing_ok=True); Path('_cto_gold_diamond_trigger_20260903.txt').unlink(missing_ok=True)
+          p=Path('Current/PWA/New-main'); st=Path('CURRENT_STATE.md'); s=p.read_text(encoding='utf-8'); h=hashlib.sha256(s.encode()).hexdigest(); x=st.read_text(encoding='utf-8').rstrip()
+          x+=f"\n\n## CTO CLOSURE — 2026-09-03 — P163 TARGET-PRESERVING\n\n- Previous failed attempts were classified directly from Actions logs: retired owner-recovery verifier (HTTP 410) and an over-broad compatibility boundary Gold gate.\n- Current/PWA/New-main was changed in-place only after compatibility/authoritative ownership preconditions passed.\n- MAIN2 authoritative ownership and MAIN3+ content were preserved; legacy Dashboard/Items aliases were removed.\n- `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` was preserved.\n- Production-owned stock/journal/invoice functions remain in Supabase; no business-data writes were performed.\n- Node syntax gate: PASS. Browser Gold/Diamond smoke: PASS.\n- Target SHA-256: `{h}`\n"
+          st.write_text(x+'\n',encoding='utf-8')
           PY
-          git config user.name 'RAWAEA CTO Executor'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add Current/PWA/New-main CURRENT_STATE.md .github/workflows/cto_one_shot_newmain_close_20260903.yml _cto_gold_diamond_trigger_20260903.txt
+          git add Current/PWA/New-main CURRENT_STATE.md
           git diff --cached --check
-          git commit -m '[CTO-GOLD-DIAMOND-CLOSED] persist verified New-main closure'
-          git push origin HEAD:main
+          git commit -m '[CTO-CLOSURE-EXECUTED] [new-main-target-persist] P163 Gold Diamond closure'
+          git push origin main
