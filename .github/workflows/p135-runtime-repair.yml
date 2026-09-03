@@ -29,19 +29,28 @@ jobs:
           import hashlib
           p=Path('Current/PWA/New-main')
           s=p.read_text(encoding='utf-8')
-          needle="function byId(id){return document.getElementById(id)}"
-          bridge="window.byId=byId;"
-          assert s.count(needle)==1,'BYID_DECLARATION_COUNT_INVALID'
-          assert s.count('window.safeText=safeText;')==1,'SAFETEXT_BRIDGE_INVALID'
-          if s.count(bridge)==0:
-              before=hashlib.sha256(s.encode()).hexdigest()
-              s=s.replace(needle,needle+'\n'+bridge,1)
-              p.write_text(s,encoding='utf-8')
-              print('PATCH=APPLIED')
-              print('BEFORE_SHA256='+before)
-              print('AFTER_SHA256='+hashlib.sha256(s.encode()).hexdigest())
-          else:
-              print('PATCH=ALREADY_PRESENT')
+          byid_decl="function byId(id){return document.getElementById(id)}"
+          byid_bridge="window.byId=byId;"
+          safetext_decl="function safeText(el,text){if(el)el.textContent=text==null?'':String(text)}"
+          safetext_bridge="window.safeText=safeText;"
+          assert s.count(byid_decl)==1,'BYID_DECLARATION_COUNT_INVALID'
+          assert s.count(safetext_decl)==1,'SAFETEXT_DECLARATION_COUNT_INVALID'
+          assert s.count(byid_bridge)<=1,'BYID_BRIDGE_DUPLICATED'
+          assert s.count(safetext_bridge)<=1,'SAFETEXT_BRIDGE_DUPLICATED'
+          before=hashlib.sha256(s.encode()).hexdigest()
+          changed=[]
+          if s.count(safetext_bridge)==0:
+              s=s.replace(safetext_decl,safetext_decl+'\n'+safetext_bridge,1)
+              changed.append('safeText-global-bridge')
+          if s.count(byid_bridge)==0:
+              s=s.replace(byid_decl,byid_decl+'\n'+byid_bridge,1)
+              changed.append('byId-global-bridge')
+          if not changed:
+              raise SystemExit('NO_TARGET_RUNTIME_BRIDGE_CHANGE')
+          p.write_text(s,encoding='utf-8')
+          print('PATCH=APPLIED:'+','.join(changed))
+          print('BEFORE_SHA256='+before)
+          print('AFTER_SHA256='+hashlib.sha256(s.encode()).hexdigest())
           PY
           python3 - <<'PY'
           from pathlib import Path
@@ -109,7 +118,7 @@ jobs:
             echo 'NO_TARGET_CHANGE'
           else
             git diff --cached --check
-            git commit -m '[CTO-FORENSIC] Export byId across governed runtime scope'
+            git commit -m '[CTO-FORENSIC] Export byId and safeText across governed runtime scope'
           fi
           git rm .github/workflows/p135-runtime-repair.yml
           git commit -m '[CTO-GOVERNANCE] Retire one-time runtime repair writer'
