@@ -20,10 +20,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund esprima@4.0.1 >/dev/null 2>&1
           python3 tools/run_final_main_reconstruction_20260831.py
           python3 - <<'PY'
           from pathlib import Path
-          import re,hashlib
+          import hashlib
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
           compat='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
           if s.count(compat)!=0:
@@ -43,7 +45,9 @@ jobs:
           if compat in s: raise SystemExit('P163_COMPAT_REMAINS')
           if 'window.RW_Dashboard={render:renderDashboard};' in s or 'window.RW_Items={render:renderItems};' in s: raise SystemExit('P163_ALIAS_REMAINS')
           if s.lower().count('<script')!=s.lower().count('</script>') or s.lower().count('<style')!=s.lower().count('</style>'): raise SystemExit('HTML_BALANCE')
-          ms=[m.group(1) for m in re.finditer(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*?)</script>',s,re.I)]
+          ms=[]
+          import re
+          for m in re.finditer(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*?)</script>',s,re.I): ms.append(m.group(1))
           app=[x for x in ms if 'serviceWorker.register' not in x]
           if len(app)!=1: raise SystemExit('INLINE_RUNTIME_COUNT')
           Path('/tmp/newmain.js').write_text(app[0],encoding='utf-8')
@@ -54,9 +58,27 @@ jobs:
           node --check /tmp/newmain.js
           rc=$?
           if [ "$rc" -ne 0 ]; then
-            echo '--- NEW-MAIN SYNTAX FAILURE CONTEXT ---'
-            nl -ba /tmp/newmain.js | sed -n '5980,6070p'
-            echo '--- END CONTEXT ---'
+            echo '--- NODE SYNTAX ERROR ---'
+            cat /tmp/newmain.js | tail -80
+            echo '--- ESPRIMA TOKEN DELIMITER FORENSICS ---'
+            node <<'NODE'
+            const fs=require('fs'), esprima=require('esprima');
+            const src=fs.readFileSync('/tmp/newmain.js','utf8');
+            const toks=esprima.tokenize(src,{loc:true,range:true,comment:true,tolerant:true});
+            const stack=[]; const closeToOpen={')':'(',']':'[','}':'{'};
+            for(const t of toks){
+              if(t.type!=='Punctuator') continue;
+              const v=t.value;
+              if(v==='('||v==='['||v==='{') stack.push({v,line:t.loc.start.line,col:t.loc.start.column+1,range:t.range});
+              else if(v===')'||v===']'||v==='}'){
+                if(!stack.length || stack[stack.length-1].v!==closeToOpen[v]){console.log('MISMATCH',v,t.loc.start,stack.slice(-12));break;}
+                stack.pop();
+              }
+            }
+            console.log('UNRESOLVED_STACK',stack.slice(-40));
+            console.log('TOTAL_TOKENS',toks.length,'LINES',src.split(/\n/).length);
+            NODE
+            echo '--- END FORENSICS ---'
             exit "$rc"
           fi
           git diff --check
@@ -64,7 +86,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm init -y >/dev/null 2>&1
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null 2>&1
           rm -rf /tmp/rw && mkdir -p /tmp/rw
