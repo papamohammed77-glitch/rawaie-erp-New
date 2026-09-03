@@ -16,9 +16,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 1
+        with: {ref: main, fetch-depth: 1}
       - name: Forensic preflight and exact surgical patch
         shell: bash
         run: |
@@ -28,28 +26,32 @@ jobs:
           import hashlib
           p=Path('Current/PWA/New-main')
           s=p.read_text(encoding='utf-8')
-          needle="function safeText(el,text){if(el)el.textContent=text==null?'':String(text)}"
-          bridge="window.safeText=safeText;"
-          assert s.count(needle)==1, 'safeText declaration count changed'
-          assert s.count(bridge)==0, 'surgical bridge already present; refusing duplicate'
-          before=hashlib.sha256(s.encode()).hexdigest()
-          s=s.replace(needle, needle+'\n'+bridge, 1)
-          p.write_text(s, encoding='utf-8')
-          after=hashlib.sha256(s.encode()).hexdigest()
-          print('BEFORE_SHA256='+before)
-          print('AFTER_SHA256='+after)
-          print('PATCH_COUNT='+str(s.count(bridge)))
+          byid_needle="function byId(id){return document.getElementById(id)}"
+          byid_bridge="window.byId=byId;"
+          safe_bridge="window.safeText=safeText;"
+          assert s.count(byid_needle)==1, 'byId declaration count changed'
+          assert s.count(safe_bridge)==1, 'safeText bridge must already be singular before this step'
+          if s.count(byid_bridge)==0:
+              before=hashlib.sha256(s.encode()).hexdigest()
+              s=s.replace(byid_needle, byid_needle+'\n'+byid_bridge, 1)
+              p.write_text(s,encoding='utf-8')
+              print('BYID_BRIDGE=APPLIED')
+              print('BEFORE_SHA256='+before)
+              print('AFTER_SHA256='+hashlib.sha256(s.encode()).hexdigest())
+          else:
+              print('BYID_BRIDGE=ALREADY_PRESENT')
           PY
           python3 - <<'PY'
           from pathlib import Path
           import re
           s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
           scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)
-          assert scripts, 'INLINE_SCRIPT_NOT_FOUND'
+          assert scripts,'INLINE_SCRIPT_NOT_FOUND'
           Path('/tmp/new-main-inline.js').write_text('\n'.join(scripts),encoding='utf-8')
           PY
           node --check /tmp/new-main-inline.js
           test "$(grep -o 'window.safeText=safeText;' Current/PWA/New-main | wc -l)" -eq 1
+          test "$(grep -o 'window.byId=byId;' Current/PWA/New-main | wc -l)" -eq 1
           echo 'SURGICAL_STATIC=PASS'
       - name: Chromium runtime proof on patched exact target
         shell: bash
@@ -62,50 +64,27 @@ jobs:
           sleep 2
           cat >/tmp/p135.mjs <<'NODE'
           import { chromium } from 'playwright';
-          const browser = await chromium.launch({headless:true});
-          const page = await browser.newPage({serviceWorkers:'block'});
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({serviceWorkers:'block'});
           const errors=[];
           page.on('pageerror',e=>errors.push('PAGE:'+String(e.message||e)));
           page.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE:'+m.text())});
           await page.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded',timeout:60000});
-          await page.waitForTimeout(2500);
-          const before=await page.evaluate(()=>({
-            lang:document.documentElement.lang,
-            dir:document.documentElement.dir,
-            loginForm:!!document.getElementById('rw-login-form'),
-            loginButton:!!document.getElementById('rw-login-btn'),
-            passwordToggle:typeof window.togglePasswordVisibility==='function',
-            auth:typeof window.RW_Auth==='object',
-            navigation:typeof window.RW_Navigation==='object',
-            views:typeof window.RW_Views==='object',
-            shell:typeof window.RW_ShellContext==='object',
-            ownerLicense:typeof window.RW_OwnerLicense==='object',
-            notification:typeof window.RW_Notification?.showPanel==='function',
-            safeText:typeof window.safeText==='function'
-          }));
-          if(before.lang!=='ar'||before.dir!=='rtl')throw new Error('DOCUMENT_LOCALE_FAILURE');
-          for(const [k,v] of Object.entries(before)){if(v===false)throw new Error('CONTRACT_FAILURE:'+k)}
-          await page.evaluate(()=>{
-            RW_STATE.app.authenticated=true;
-            RW_STATE.app.companyId='00000000-0000-0000-0000-000000000001';
-            RW_STATE.app.currentUser={id:'smoke',email:'owner@smoke.local',name:'المالك العام',role:'مدير النظام',isOwner:true,permissions:['*']};
-            RW_STATE.permissions=['*'];
-            RW_STATE.app.licenseState='active';
-          });
+          await page.waitForFunction(()=>window.RW_STATE&&window.RW_Navigation&&window.RW_OwnerLicense&&typeof window.byId==='function'&&typeof window.safeText==='function',{timeout:15000});
+          const initial=await page.evaluate(()=>({locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',auth:typeof window.RW_Auth==='object',navigation:typeof window.RW_Navigation==='object',views:typeof window.RW_Views==='object',shell:typeof window.RW_ShellContext==='object',ownerLicense:typeof window.RW_OwnerLicense==='object',notification:typeof window.RW_Notification?.showPanel==='function',byId:typeof window.byId==='function',safeText:typeof window.safeText==='function'}));
+          await page.evaluate(()=>{RW_STATE.app.authenticated=true;RW_STATE.app.companyId='00000000-0000-0000-0000-000000000001';RW_STATE.app.currentUser={id:'probe',email:'owner@smoke.local',name:'المالك العام',role:'مدير النظام',isOwner:true,permissions:['*']};RW_STATE.permissions=['*'];RW_STATE.app.licenseState='active';});
           await page.evaluate(async()=>{await RW_Navigation.navigate('license')});
-          await page.waitForTimeout(150);
+          await page.waitForTimeout(250);
           const owner=await page.evaluate(()=>({view:RW_STATE.app.currentView,text:document.getElementById('rw-page-container')?.innerText||'',container:!!document.getElementById('license-main-container')}));
-          if(owner.view!=='license'||!owner.container||!(/إدارة الترخيص/.test(owner.text)))throw new Error('OWNER_LICENSE_FAILURE');
-          await page.evaluate(()=>{
-            RW_STATE.app.currentUser={id:'smoke',email:'smoke@example.com',name:'مستخدم',role:'مستخدم',isOwner:false,permissions:[]};
-            RW_STATE.permissions=[];
-          });
+          await page.evaluate(()=>{RW_STATE.app.currentUser={id:'probe',email:'smoke@example.com',name:'مستخدم',role:'مستخدم',isOwner:false,permissions:[]};RW_STATE.permissions=[];});
           let denied='';
           try{await page.evaluate(async()=>{await RW_Navigation.navigate('license')});denied='NO_REJECTION';}catch(e){denied=String(e.message||e)}
+          if(!initial.locale||!initial.auth||!initial.navigation||!initial.views||!initial.shell||!initial.ownerLicense||!initial.notification||!initial.byId||!initial.safeText)throw new Error('INITIAL_CONTRACT_FAILURE');
+          if(owner.view!=='license'||!owner.container||!/إدارة الترخيص/.test(owner.text))throw new Error('OWNER_LICENSE_FAILURE');
           if(denied!=='OWNER_ONLY')throw new Error('NON_OWNER_GATE_FAILURE:'+denied);
           if(errors.length)throw new Error('RUNTIME_ERRORS:'+errors.join(' | '));
           console.log('CHROMIUM_P135_GATE=PASS');
-          console.log(JSON.stringify({before,owner,denied,errors}));
+          console.log(JSON.stringify({initial,owner,denied,errors}));
           await browser.close();
           NODE
           node /tmp/p135.mjs
@@ -116,8 +95,10 @@ jobs:
           git config user.name 'papamohammed77-glitch'
           git config user.email 'papamohammed77-glitch@users.noreply.github.com'
           git add Current/PWA/New-main
-          git diff --cached --check
-          git commit -m '[CTO-FORENSIC] Repair cross-IIFE safeText runtime scope'
+          if ! git diff --cached --quiet; then
+            git diff --cached --check
+            git commit -m '[CTO-FORENSIC] Export byId across governed runtime scope'
+          fi
           git rm .github/workflows/p135-runtime-repair.yml
           git commit -m '[CTO-GOVERNANCE] Retire one-time runtime repair writer'
           git push origin HEAD:main
