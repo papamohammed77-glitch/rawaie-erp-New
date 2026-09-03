@@ -42,7 +42,15 @@ jobs:
           print('AFTER_SHA256='+after)
           print('PATCH_COUNT=',s.count(bridge))
           PY
-          node --check <(sed -n '/<script>/,/<\/script>/p' Current/PWA/New-main | sed '1d;$d')
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          m=re.search(r'<script>(.*?)</script>',s,re.S)
+          assert m, 'inline script block missing'
+          Path('/tmp/new-main-inline.js').write_text(m.group(1),encoding='utf-8')
+          PY
+          node --check /tmp/new-main-inline.js
           test $(grep -o 'window.safeText=safeText;' Current/PWA/New-main | wc -l) -eq 1
           echo 'SURGICAL_STATIC=PASS'
       - name: Commit exact target change and retire writer
