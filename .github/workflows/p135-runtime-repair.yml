@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/p135-runtime-repair.yml'
+      - 'Current/PWA/New-main'
   workflow_dispatch:
 permissions:
   contents: write
