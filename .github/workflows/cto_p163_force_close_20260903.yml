@@ -4,6 +4,9 @@ on:
     branches: [main]
 permissions:
   contents: write
+concurrency:
+  group: cto-p163-force-close
+  cancel-in-progress: true
 jobs:
   close:
     if: ${{ !contains(github.event.head_commit.message, '[P163-EXECUTED]') }}
@@ -44,17 +47,18 @@ jobs:
           assert ver+'\n})();' in block, 'P163_BOUNDARY'
           assert diamond in s, 'P163_DIAMOND'
           s=s[:i]+'})();\n\n'+s[j:]
-          for alias in ('window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};'):
-              assert s.count(alias)==1, 'P163_ALIAS'
-              s=s.replace(alias,'',1)
+          for alias in (r'window\.RW_Dashboard\s*=\s*\{render\s*:\s*renderDashboard\s*\};',r'window\.RW_Items\s*=\s*\{render\s*:\s*renderItems\s*\};'):
+              m=re.findall(alias,s); assert len(m)==1, 'P163_ALIAS:'+alias
+              s=re.sub(alias,'',s,count=1)
           s=s.replace(ver,'').replace(gov,'')
-          dash='window.RW_Dashboard=RW_Dashboard;'; items='window.RW_Items=RW_Items;'
-          assert s.count(dash)==1 and s.count(items)==1, 'P163_OWNERS'
-          k=s.index(items)+len(items); s=s[:k]+'\n'+ver+'\n'+gov+s[k:]
+          dash=r'window\.RW_Dashboard\s*=\s*RW_Dashboard\s*;'; items=r'window\.RW_Items\s*=\s*RW_Items\s*;'
+          dm=re.findall(dash,s); im=re.findall(items,s)
+          assert len(dm)==1 and len(im)==1, f'P163_OWNERS dash={len(dm)} items={len(im)}'
+          s=re.sub(items,lambda m:m.group(0)+'\n'+ver+'\n'+gov,s,count=1)
           required=['RW_ShellContext','RW_Auth','RW_Navigation','RW_Views','RW_OwnerLicense','MAIN3','MAIN11','function main1Delegation(','var actions=','edgeCall',diamond,'post_stock_movement','reserve_stock','get_trial_balance','get_profit_loss','get_balance_sheet']
           missing=[x for x in required if x not in s]; assert not missing, 'P163_REQUIRED:'+repr(missing)
-          assert compat not in s and 'window.RW_Dashboard={render:renderDashboard};' not in s and 'window.RW_Items={render:renderItems};' not in s, 'P163_DUPLICATES'
-          scripts=re.findall(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*?)</script>',s,re.I); assert len(scripts)==1, 'P163_SCRIPT_COUNT'
+          assert compat not in s and re.search(r'window\.RW_Dashboard\s*=\s*\{render\s*:',s) is None and re.search(r'window\.RW_Items\s*=\s*\{render\s*:',s) is None, 'P163_DUPLICATES'
+          scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I); assert len(scripts)==1, 'P163_SCRIPT_COUNT:'+str(len(scripts))
           Path('/tmp/newmain.js').write_text(scripts[0],encoding='utf-8'); assert old!=s,'P163_NOT_CHANGED'; p.write_text(s,encoding='utf-8')
           print('P163_TARGET_CHANGED',old!=s); print('P163_BEFORE_SHA256',hashlib.sha256(old.encode()).hexdigest()); print('P163_AFTER_SHA256',hashlib.sha256(s.encode()).hexdigest())
           PY
@@ -63,7 +67,7 @@ jobs:
           cp -a Current/PWA/. /tmp/p163_site/
           cp Current/PWA/New-main /tmp/p163_site/main.html
           (cd /tmp/p163_site && python3 -m http.server 8123 >/tmp/p163-http.log 2>&1 & echo $! >/tmp/p163-http.pid)
-          node <<'NODE'
+          timeout 30s node <<'NODE'
           const {chromium}=require('playwright');
           (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const errors=[];p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'commit',timeout:10000});await p.waitForSelector('#rw-login-page',{timeout:10000});await p.waitForFunction(()=>!!window.RW_Auth&&!!window.RW_Navigation&&!!window.RW_Views,{timeout:10000});const r=await p.evaluate(()=>({lang:document.documentElement.lang,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,ver:window.RW_PWA_RECONSTRUCTION_VERSION||null,diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')}));console.log(JSON.stringify({r,errors}));if(errors.length||r.lang!=='ar'||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||r.ver!=='MAIN2-COMPLETE-SURGICAL-v1'||!r.diamond)process.exit(2);await b.close()})().catch(e=>{console.error(e);process.exit(2)});
           NODE
@@ -75,11 +79,11 @@ jobs:
           from pathlib import Path
           import hashlib
           st=Path('CURRENT_STATE.md'); s=st.read_text(encoding='utf-8').rstrip(); h=hashlib.sha256(Path('Current/PWA/New-main').read_bytes()).hexdigest(); marker='## CTO P163 CLOSED — 2026-09-03'
-          if marker not in s:
-              s += f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Target-preserving P163 surgery executed directly against current `main`; fragment reconstruction not used.\n- MAIN2 compatibility owner removed with exact IIFE boundary proof; authoritative owners retained uniquely.\n- Node syntax gate: PASS.\n- Browser Gold/Diamond smoke gate: PASS.\n- `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1`: preserved.\n- Production-owned Postgres procedures not fabricated into PWA.\n- Verified target SHA-256: `{h}`\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = PROVEN\n'''
-              st.write_text(s+'\n',encoding='utf-8')
+          record=f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Target-preserving P163 surgery executed against current `main`; fragment reconstruction not used.\n- Compatibility owner removed with exact IIFE boundary proof; authoritative Dashboard/Items owners retained uniquely (whitespace-insensitive ownership proof).\n- Node syntax gate: PASS.\n- Browser Gold/Diamond smoke gate: PASS.\n- `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1`: preserved.\n- Production-owned Postgres procedures not fabricated into PWA.\n- Verified target SHA-256: `{h}`\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = PROVEN\n'''
+          first=s.find(marker); s=s[:first].rstrip() if first>=0 else s
+          st.write_text(s+record+'\n',encoding='utf-8')
           PY
-          git add Current/PWA/New-main CURRENT_STATE.md .github/workflows/cto_p163_force_close_20260903.yml
+          git add Current/PWA/New-main CURRENT_STATE.md
           git diff --cached --check
           git commit -m '[P163-EXECUTED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED] independent target-preserving closure'
           timeout 120s git push origin HEAD:main
