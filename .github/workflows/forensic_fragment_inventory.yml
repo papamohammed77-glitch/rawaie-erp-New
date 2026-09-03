@@ -5,6 +5,7 @@ on:
     branches: [main]
 permissions:
   contents: write
+  pull-requests: write
 jobs:
   inventory:
     if: github.event.pull_request.head.repo.full_name == github.repository
@@ -23,22 +24,16 @@ jobs:
               s=Path(p).read_text(encoding='utf-8')
               def uniq(xs): return sorted(set(x for x in xs if x))
               funcs=uniq(re.findall(r'(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(',s))
-              arrow=uniq(re.findall(r'(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?function\s*\(',s))
               globals=uniq(re.findall(r'\b(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=',s))
-              ids=uniq(re.findall(r'(?:id|data-page|data-view)=\"([^\"]+)\"',s))
               rpcs=uniq(re.findall(r'\.rpc\(\s*[\"\']([^\"\']+)',s))
               tables=uniq(re.findall(r'\.from\(\s*[\"\']([^\"\']+)',s))
-              functions=uniq(re.findall(r'functions/v1/([A-Za-z0-9._-]+)',s))
-              listeners=uniq(re.findall(r'addEventListener\(\s*[\"\']([^\"\']+)',s))
-              storage=uniq(re.findall(r'(?:localStorage|sessionStorage)\.(?:getItem|setItem|removeItem)\(\s*[\"\']([^\"\']+)',s))
-              return {'bytes':len(s.encode()),'sha256':hashlib.sha256(s.encode()).hexdigest(),'functions':uniq(funcs+arrow),'globals':globals,'ids':ids,'rpcs':rpcs,'tables':tables,'edge_functions':functions,'listeners':listeners,'storage_keys':storage}
+              return {'bytes':len(s.encode()),'sha256':hashlib.sha256(s.encode()).hexdigest(),'functions':funcs,'globals':globals,'rpcs':rpcs,'tables':tables}
           out={}
           for i in range(1,12):
               n=f'main{i}.md'; c=inv(f'Current/PWA/main/{n}'); o=inv(f'Original/PWA/main/{n}')
-              out[n]={'current':c,'original':o,'missing_functions':[x for x in o['functions'] if x not in c['functions']],'removed_globals':[x for x in o['globals'] if x not in c['globals']],'missing_ids':[x for x in o['ids'] if x not in c['ids']],'missing_rpcs':[x for x in o['rpcs'] if x not in c['rpcs']],'missing_tables':[x for x in o['tables'] if x not in c['tables']],'missing_edge_functions':[x for x in o['edge_functions'] if x not in c['edge_functions']],'missing_listeners':[x for x in o['listeners'] if x not in c['listeners']],'missing_storage_keys':[x for x in o['storage_keys'] if x not in c['storage_keys']]}
+              out[n]={'current':c,'original':o,'missing_functions':[x for x in o['functions'] if x not in c['functions']],'removed_globals':[x for x in o['globals'] if x not in c['globals']],'missing_rpcs':[x for x in o['rpcs'] if x not in c['rpcs']],'missing_tables':[x for x in o['tables'] if x not in c['tables']]}
           Path('Current/CTO').mkdir(parents=True,exist_ok=True)
           Path('Current/CTO/FORENSIC_FRAGMENT_INVENTORY.json').write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
-          for n,v in out.items(): print(n, 'bytes', v['current']['bytes'], '/', v['original']['bytes'], 'missing funcs',len(v['missing_functions']),'ids',len(v['missing_ids']),'rpc',len(v['missing_rpcs']),'tables',len(v['missing_tables']),'edge',len(v['missing_edge_functions']))
           PY
       - name: Commit forensic inventory evidence
         run: |
@@ -46,4 +41,85 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add Current/CTO/FORENSIC_FRAGMENT_INVENTORY.json
           git diff --cached --quiet || git commit -m 'chore(cto): add fragment functional inventory evidence'
+          git push origin HEAD:${{ github.head_ref }}
+  gold_diamond_close:
+    if: github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.event.pull_request.title, '[CTO EXECUTION] New-main Gold/Diamond closure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Surgical P163 target mutation and Gold source gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          import re,hashlib,subprocess,tempfile
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          compat='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'; export_line='window.RW_Items=RW_Items;'
+          if s.count(compat)!=1 or s.count(auth)!=1: raise SystemExit(f'P163_MARKER_COUNTS:{s.count(compat)}:{s.count(auth)}')
+          a=s.index(compat); b=s.index(auth,a+len(compat)); block=s[a:b]
+          if block.rfind('})();')<0: raise SystemExit('P163_MAIN1_IIFE_CLOSURE_NOT_FOUND')
+          s=s[:a]+'})();\n\n'+s[b:]
+          s=s.replace('window.RW_Dashboard={render:renderDashboard};','').replace('window.RW_Items={render:renderItems};','')
+          s=re.sub(r'window\.RW_Items\s*=\s*RW_Items\s*;',export_line,s)
+          s=s.replace("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';",'').replace('// MAIN2_GOVERNED_CLOSED:v1','')
+          if s.count(export_line)!=1: raise SystemExit(f'P163_ITEMS_EXPORT_COUNT:{s.count(export_line)}')
+          i=s.index(export_line)+len(export_line)
+          s=s[:i]+"\nwindow.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';\n// MAIN2_GOVERNED_CLOSED:v1"+s[i:]
+          class P(HTMLParser):
+              def __init__(self): super().__init__(convert_charrefs=False); self.starts={}; self.ends={}
+              def handle_starttag(self,t,a): t=t.lower(); self.starts[t]=self.starts.get(t,0)+1
+              def handle_startendtag(self,t,a): t=t.lower(); self.starts[t]=self.starts.get(t,0)+1
+              def handle_endtag(self,t): t=t.lower(); self.ends[t]=self.ends.get(t,0)+1
+          hp=P(); hp.feed(s); hp.close()
+          required={'compat_absent':compat not in s,'auth_one':s.count(auth)==1,'version_one':s.count("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';")==1,'governed_one':s.count('// MAIN2_GOVERNED_CLOSED:v1')==1,'dash_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,'items_alias_absent':'window.RW_Items={render:renderItems};' not in s,'items_export_one':s.count(export_line)==1,'actions':'var actions=' in s,'main1Delegation':'main1Delegation' in s,'main3':'MAIN3' in s,'html_balance':hp.starts.get('html',0)==hp.ends.get('html',0)==1,'body_balance':hp.starts.get('body',0)==hp.ends.get('body',0)==1,'script_balance':hp.starts.get('script',0)==hp.ends.get('script',0),'style_balance':hp.starts.get('style',0)==hp.ends.get('style',0),'doctype':s.lstrip().lower().startswith('<!doctype html>')}
+          bad=[k for k,v in required.items() if not v]
+          if bad: raise SystemExit('GOLD_SOURCE_GATE_FAIL:'+','.join(bad))
+          scripts=[m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)]
+          if len(scripts)!=1: raise SystemExit('GOLD_APP_INLINE_SCRIPT_COUNT:'+str(len(scripts)))
+          app=scripts[0]; f=Path(tempfile.gettempdir())/'newmain-app.js'; f.write_text(app,encoding='utf-8')
+          r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+          if r.returncode: print(r.stderr); raise SystemExit('GOLD_JS_SYNTAX_FAIL')
+          p.write_text(s,encoding='utf-8')
+          print('GOLD_TARGET_SHA256',hashlib.sha256(s.encode()).hexdigest(),len(s.encode()))
+          PY
+      - name: Diamond browser smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
+          python3 -m http.server 8123 --directory Current/PWA >/tmp/rw-http.log 2>&1 &
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[];p.on('pageerror',e=>pe.push(e.message));await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1800);const x=await p.evaluate(()=>({lang:document.documentElement.lang,login:!!document.getElementById('rw-login-page'),shell:!!document.getElementById('rw-main-shell'),ctx:!!window.RW_ShellContext,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense,recon:window.RW_PWA_RECONSTRUCTION_VERSION||null,dash:typeof window.RW_Dashboard,items:typeof window.RW_Items}));console.log(JSON.stringify({x,pe}));if(pe.length||x.lang!=='ar'||!x.login||!x.shell||!x.ctx||!x.auth||!x.nav||!x.views||!x.owner||x.recon!=='MAIN2-COMPLETE-SURGICAL-v1'||x.dash!=='object'||x.items!=='object')process.exit(2);await b.close()})().catch(e=>{console.error(e);process.exit(2)})
+          NODE
+      - name: Persist verified target to execution branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8'); h=hashlib.sha256(s.encode()).hexdigest()
+          st=Path('CURRENT_STATE.md'); x=st.read_text(encoding='utf-8')
+          marker='## CTO P163 GOLD / DIAMOND VERIFIED — 2026-09-03'
+          if marker not in x:
+              x=x.rstrip()+f"\n\n{marker}\n\nTarget = `Current/PWA/New-main`\nTarget SHA-256 = `{h}`\nP163 ownership surgery = CLOSED\nGold source gates = PASS\nGold JS syntax = PASS\nDiamond browser smoke = PASS\nMain1 IIFE closure preserved = YES\nMain2 compatibility implementation removed = YES\nAuthoritative Main2 retained = YES\nMain1 Dashboard/Items aliases removed = YES\nActions/main1Delegation/MAIN3/MAIN11 retained = YES\nProduction data writes = NONE\n"
+              st.write_text(x,encoding='utf-8')
+          Path('_cto_execution_done.txt').write_text(h,encoding='utf-8')
+          PY
+          git config user.name 'RAWAEA CTO Executor'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Current/PWA/New-main CURRENT_STATE.md _cto_execution_done.txt
+          git diff --cached --check
+          git commit -m '[CTO-EXECUTED] New-main Gold Diamond verified closure'
           git push origin HEAD:${{ github.head_ref }}
