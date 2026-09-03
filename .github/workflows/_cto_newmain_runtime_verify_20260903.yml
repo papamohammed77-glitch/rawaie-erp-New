@@ -26,15 +26,15 @@ jobs:
           from pathlib import Path
           import re, subprocess, hashlib
           s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          assert s.count("loginForm.addEventListener('submit'") == 1, 'MAIN11_LOGIN_BIND_COUNT'
-          assert s.count("byId('rw-login-form').addEventListener('submit'") == 1, 'FALLBACK_LOGIN_BIND_COUNT'
-          assert "if(window.__RAWAEA_MAIN11_EVENTS_BOUND__)return;" in s, 'LOGIN_GUARD_MISSING'
-          assert s.count('rw-p163-closure') == 1, 'P163_MARKER_COUNT'
-          assert s.count('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1') == 1, 'DIAMOND_122_COUNT'
-          assert s.count('__RAWAEA_MAIN11_GOVERNED_CLOSED_V2__') == 1, 'MAIN11_GOVERNED_COUNT'
-          assert s.count('window.byId=byId;') == 1, 'BYID_BRIDGE_COUNT'
-          assert s.count('window.safeText=safeText;') == 1, 'SAFETEXT_BRIDGE_COUNT'
-          assert s.count('window.safeHTML=safeHTML;') == 1, 'SAFEHTML_BRIDGE_COUNT'
+          assert s.count("loginForm.addEventListener('submit'") == 1
+          assert s.count("byId('rw-login-form').addEventListener('submit'") == 1
+          assert "if(window.__RAWAEA_MAIN11_EVENTS_BOUND__)return;" in s
+          assert s.count('rw-p163-closure') == 1
+          assert s.count('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1') == 1
+          assert s.count('__RAWAEA_MAIN11_GOVERNED_CLOSED_V2__') == 1
+          assert s.count('window.byId=byId;') == 1
+          assert s.count('window.safeText=safeText;') == 1
+          assert s.count('window.safeHTML=safeHTML;') == 1
           class P(HTMLParser):
             def __init__(self): super().__init__(); self.stack=[]
             def handle_starttag(self,t,a):
@@ -43,7 +43,7 @@ jobs:
               if self.stack and self.stack[-1]==t: self.stack.pop()
           p=P(); p.feed(s); assert not p.stack, f'HTML_UNBALANCED {p.stack[-10:]}'
           scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)
-          assert scripts, 'NO_INLINE_SCRIPT'
+          assert scripts
           Path('/tmp/inline.js').write_text('\n'.join(scripts),encoding='utf-8')
           r=subprocess.run(['node','--check','/tmp/inline.js'],capture_output=True,text=True); assert r.returncode==0,r.stderr
           print('STATIC_FORENSIC_GATE=PASS')
@@ -69,44 +69,25 @@ jobs:
           echo $! >/tmp/pwa.pid
           trap 'kill "$(cat /tmp/pwa.pid)" 2>/dev/null || true' EXIT
           sleep 2
-          npx playwright install chromium >/dev/null 2>&1
-          cat >/tmp/newmain.spec.mjs <<'EOF'
-          import { chromium } from 'playwright';
-          const browser = await chromium.launch({headless:true});
-          const page = await browser.newPage();
-          const errors=[];
-          page.on('pageerror',e=>errors.push('PAGE:'+String(e)));
-          page.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE:'+m.text())});
-          await page.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded',timeout:60000});
-          await page.waitForTimeout(3000);
-          const result=await page.evaluate(async()=>({
-            lang:document.documentElement.lang,
-            dir:document.documentElement.dir,
-            loginForm:!!document.getElementById('rw-login-form'),
-            loginButton:!!document.getElementById('rw-login-btn'),
-            passwordToggle:typeof window.togglePasswordVisibility==='function',
-            auth:typeof window.RW_Auth==='object',
-            navigation:typeof window.RW_Navigation==='object',
-            views:typeof window.RW_Views==='object',
-            shell:typeof window.RW_ShellContext==='object',
-            ownerLicense:typeof window.RW_OwnerLicense==='object',
-            notification:typeof window.RW_Notification?.showPanel==='function',
-            main11:!!window.__RAWAEA_MAIN11_GOVERNED_CLOSED_V2__,
-            p163:document.querySelectorAll('meta[name="rw-p163-closure"]').length,
-            byId:typeof window.byId==='function',
-            safeHTML:typeof window.safeHTML==='function',
-            safeText:typeof window.safeText==='function',
-            manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||''
-          }));
-          if(result.lang!=='ar'||result.dir!=='rtl')throw new Error('DOCUMENT_LOCALE_FAILURE');
-          for(const [k,v] of Object.entries(result)){if(v===false)throw new Error('CONTRACT_FAILURE:'+k)}
-          if(result.p163!==1)throw new Error('P163_MARKER_FAILURE');
-          if(result.manifest!=='./New-main.manifest.json')throw new Error('MANIFEST_LINK_FAILURE');
-          if(errors.length)throw new Error('RUNTIME_ERRORS:'+errors.join(' | '));
-          console.log('BROWSER_RUNTIME_GATE=PASS');
-          console.log(JSON.stringify(result));
-          await browser.close();
+          cat >/tmp/newmain.spec.cjs <<'EOF'
+          const { chromium } = require(process.cwd()+'/node_modules/playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const page=await browser.newPage(); const errors=[];
+            page.on('pageerror',e=>errors.push('PAGE:'+String(e)));
+            page.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE:'+m.text())});
+            await page.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded',timeout:60000});
+            await page.waitForTimeout(3000);
+            const result=await page.evaluate(()=>({lang:document.documentElement.lang,dir:document.documentElement.dir,loginForm:!!document.getElementById('rw-login-form'),loginButton:!!document.getElementById('rw-login-btn'),passwordToggle:typeof window.togglePasswordVisibility==='function',auth:typeof window.RW_Auth==='object',navigation:typeof window.RW_Navigation==='object',views:typeof window.RW_Views==='object',shell:typeof window.RW_ShellContext==='object',ownerLicense:typeof window.RW_OwnerLicense==='object',notification:typeof window.RW_Notification?.showPanel==='function',main11:!!window.__RAWAEA_MAIN11_GOVERNED_CLOSED_V2__,p163:document.querySelectorAll('meta[name="rw-p163-closure"]').length,byId:typeof window.byId==='function',safeHTML:typeof window.safeHTML==='function',safeText:typeof window.safeText==='function',manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||''}));
+            if(result.lang!=='ar'||result.dir!=='rtl')throw new Error('DOCUMENT_LOCALE_FAILURE');
+            for(const [k,v] of Object.entries(result)){if(v===false)throw new Error('CONTRACT_FAILURE:'+k)}
+            if(result.p163!==1)throw new Error('P163_MARKER_FAILURE');
+            if(result.manifest!=='./New-main.manifest.json')throw new Error('MANIFEST_LINK_FAILURE');
+            if(errors.length)throw new Error('RUNTIME_ERRORS:'+errors.join(' | '));
+            console.log('BROWSER_RUNTIME_GATE=PASS'); console.log(JSON.stringify(result));
+            await browser.close();
+          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
           EOF
-          node /tmp/newmain.spec.mjs
+          node /tmp/newmain.spec.cjs
 # verifier-only; no git writes
 # closure_nonce=2026-09-03T09:48+03:00
