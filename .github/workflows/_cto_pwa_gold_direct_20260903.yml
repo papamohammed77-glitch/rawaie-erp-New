@@ -12,3 +12,4 @@ jobs:
         run: |
           echo 'Retired: replaced by the serialized trusted-artifact closure executor.'
           echo 'Target-preserving closure remains under CTO Trusted Artifact Closure 20260903.'
+# forensic PR synchronization marker 2026-09-03
