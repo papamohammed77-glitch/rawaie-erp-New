@@ -92,7 +92,7 @@ Obtain a directly verifiable execution path for the target-preserving surgical P
 
 ## CTO CONTINUITY RECONCILIATION — 2026-09-03
 - Direct Git history resolved the apparent conflict between `تقرير27.md` / `تقرير28.md` and the newer `CURRENT_STATE.md`: reports 27/28 accurately recorded the state at their timestamps; later commits changed the target and closed P163.
-- The latest verified commit is `339aa1829b44e9f8babce39f69a9bb66f0de5be6`; its direct commit data shows the target and state updates associated with the final P163 verification.
+- The latest verified P163 closure commit is `339aa1829b44e9f8babce39f69a9bb66f0de5be6`; its direct commit data shows the target and state updates associated with the final P163 verification.
 - `Current/PWA/New-main` is therefore treated as **P163 CLOSED**, but this does NOT constitute whole-`New-main` or whole-ERP closure.
 - `P163 CLOSED ≠ New-main FULLY CLOSED`.
 - `P163 GOLD ≠ Whole-System GOLD`.
@@ -113,4 +113,4 @@ WHOLE ERP CLOSED               = NO
 ```
 
 ## NEXT AUTHORIZED ACTION
-Start from the now-current target and run the unified orchestrator against the **next open material Closure Unit**. Do not reopen P163 without new evidence. Prioritize direct evidence of core ownership, critical writers/consumers, tenant/security drift, accounting/ledger/treatury contracts, deployment lineage, browser/runtime gaps, stubs/dead surfaces, and UX blockers. Close each unit only through evidence → decision → surgical fix → static test → runtime verification → record → continuation.
+Start from the now-current target and run the unified orchestrator against the **next open material Closure Unit**. Do not reopen P163 without new evidence. Prioritize direct evidence of core ownership, critical writers/consumers, tenant/security drift, accounting/ledger/treasury contracts, deployment lineage, browser/runtime gaps, stubs/dead surfaces, and UX blockers. Close each unit only through evidence → decision → surgical fix → static test → runtime verification → record → continuation.
