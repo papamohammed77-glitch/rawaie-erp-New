@@ -34,3 +34,10 @@ Trigger commit created after the executor definition was corrected: `edb549009f3
 - The temporary executor `.github/workflows/_cto_close_newmain_20260903.yml` is intentionally push-triggered and performs the exact P163 ownership surgery, Node syntax verification, browser smoke, then persists the target and cleans itself up.
 - Trigger execution remains the authorized next action; no closure claim is valid before target mutation and Gold/Diamond verification.
 - Production remains read-only for this track.
+
+## LIVE CTO EXECUTION — 2026-09-03
+- Triggering the corrected existing closure executor from a non-closure commit.
+- Target must be changed and verified before any closure status is written.
+
+## CTO LIVE TRIGGER
+The corrected existing closure executor is armed on `main`; this state-only commit exists solely to trigger the verified server-side reconstruction path.
