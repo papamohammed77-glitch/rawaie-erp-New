@@ -56,12 +56,12 @@ def p163(s):
         if not m: raise RuntimeError('MAIN2_DASHBOARD_ANCHOR_MISSING')
         s=s[:m.start()]+AUTH+'\n'+s[m.start():]
     if s.count(AUTH)!=1: raise RuntimeError('P163_AUTH_COUNT:'+str(s.count(AUTH)))
-    s=re.sub(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}\s*;?','',s,count=1); s=re.sub(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}\s*;?','',s,count=1); s=re.sub(r'window\.RW_Items\s*=\s*RW_Items\s*;','window.RW_Items=RW_Items;',s,count=1); s=s.replace(VERSION,'').replace(GOVERNED,'')
+    s=re.sub(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}\s*;?','',s,count=1);s=re.sub(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}\s*;?','',s,count=1);s=re.sub(r'window\.RW_Items\s*=\s*RW_Items\s*;','window.RW_Items=RW_Items;',s,count=1);s=s.replace(VERSION,'').replace(GOVERNED,'')
     if s.count('window.RW_Items=RW_Items;')!=1: raise RuntimeError('P163_ITEMS_OWNER_COUNT')
-    owner=s.index('window.RW_Items=RW_Items;')+len('window.RW_Items=RW_Items;'); return s[:owner]+'\n'+VERSION+'\n'+GOVERNED+s[owner:]
+    owner=s.index('window.RW_Items=RW_Items;')+len('window.RW_Items=RW_Items;');return s[:owner]+'\n'+VERSION+'\n'+GOVERNED+s[owner:]
 
 def inject_canonical_sw(s):
-    legacy=re.compile(r"if\s*\(\s*['\"]serviceWorker['\"]\s*in\s*navigator\s*\)\s*navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*\.catch\(\s*function\(e\)\s*\{\s*console\.warn\(\s*['\"]SERVICE_WORKER['\"]\s*,\s*e\s*\)\s*\}\s*\)\s*;?",re.I);s=legacy.sub('',s); bare=re.compile(r"navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*;?",re.I);s=bare.sub('',s)
+    legacy=re.compile(r"if\s*\(\s*['\"]serviceWorker['\"]\s*in\s*navigator\s*\)\s*navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*\.catch\(\s*function\(e\)\s*\{\s*console\.warn\(\s*['\"]SERVICE_WORKER['\"]\s*,\s*e\)\s*\}\s*\)\s*;?",re.I);s=legacy.sub('',s);bare=re.compile(r"navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*;?",re.I);s=bare.sub('',s)
     if 'navigator.serviceWorker.register' in s: raise RuntimeError('UNEXPECTED_SERVICE_WORKER_REGISTRATION_FORM')
     body=s.lower().rfind('</body>');
     if body<0:raise RuntimeError('BODY_CLOSE_MISSING')
@@ -83,61 +83,15 @@ def _app_js(s):
     if len(apps)!=1:raise RuntimeError('APPLICATION_INLINE_SCRIPT_COUNT:'+str(len(apps)))
     return apps[0]
 
-def delimiter_gate(js):
-    stack=[];state='code';quote=None;line=1;col=0;i=0;can_regex=True
-    pairs={')':'(',']':'[','}':'{'}
-    opens={'(','[','{'}
-    while i<len(js):
-        ch=js[i];col+=1
-        if ch=='\n':line+=1;col=0
-        if state=='line':
-            if ch=='\n':state='code';can_regex=True
-            i+=1;continue
-        if state=='block':
-            if ch=='*' and i+1<len(js) and js[i+1]=='/':state='code';i+=2;col+=1;can_regex=True;continue
-            i+=1;continue
-        if state in ('single','double'):
-            if ch=='\\':i+=2;col+=1;continue
-            if ch==quote:state='code';quote=None;can_regex=False
-            i+=1;continue
-        if state=='template':
-            if ch=='\\':i+=2;col+=1;continue
-            if ch=='`':state='code';can_regex=False
-            i+=1;continue
-        if state=='regex':
-            if ch=='\\':i+=2;col+=1;continue
-            if ch=='[': state='regex_class'; i+=1; continue
-            if ch=='/':
-                state='code'; can_regex=False; i+=1
-                while i<len(js) and js[i].isalpha(): i+=1
-                continue
-            i+=1;continue
-        if state=='regex_class':
-            if ch=='\\':i+=2;col+=1;continue
-            if ch==']':state='regex';
-            i+=1;continue
-        if ch=='/' and i+1<len(js) and js[i+1]=='/':state='line';i+=2;col+=1;continue
-        if ch=='/' and i+1<len(js) and js[i+1]=='*':state='block';i+=2;col+=1;continue
-        if ch in "'\"`":quote=ch;state={'\'':'single','"':'double','`':'template'}[ch];i+=1;continue
-        if ch=='/' and can_regex:
-            state='regex';i+=1;continue
-        if ch in opens:stack.append((ch,line,col));can_regex=True
-        elif ch in pairs:
-            if not stack or stack[-1][0]!=pairs[ch]:
-                raise RuntimeError('DELIMITER_MISMATCH at %d:%d got %s top=%r'%(line,col,ch,stack[-10:]))
-            stack.pop();can_regex=False
-        elif ch.strip():
-            can_regex = ch in '([{=,:;!&|?+-*%^~<>'
-        i+=1
-    if state!='code' or stack:raise RuntimeError('DELIMITER_EOF stack=%r state=%s last_line=%d'%(stack[-30:],state,line))
-    return {'status':'BALANCED','lines':line}
-
 def _node_check(js,label):
     path=Path(tempfile.gettempdir())/f'rawaea-{label}.js';path.write_text(js+'\n',encoding='utf-8');r=subprocess.run(['node','--check',str(path)],capture_output=True,text=True)
     if r.returncode:
-        print(r.stderr); lines=js.splitlines();m=re.search(r':(\d+)',r.stderr)
-        if m:
-            n=int(m.group(1));print('--- NODE FAILURE CONTEXT ---');print('\n'.join(f'{j}: {lines[j-1]}' for j in range(max(1,n-30),min(len(lines),n+30)+1)));print('--- END NODE FAILURE CONTEXT ---')
+        print(r.stderr);lines=js.splitlines();m=re.search(r':(\d+)',r.stderr);n=int(m.group(1)) if m else len(lines)
+        print('--- NODE HEAD ---');print('\n'.join(f'{j}: {lines[j-1]}' for j in range(1,min(30,len(lines))+1)))
+        print('--- NODE TAIL ---');print('\n'.join(f'{j}: {lines[j-1]}' for j in range(max(1,len(lines)-30),len(lines)+1)));print('--- CLOSURE PROBES ---')
+        probes=['}','})','})();','};','});','\n})();','\n})();\n})();']
+        for extra in probes:
+            q=Path(tempfile.gettempdir())/f'rawaea-probe-{label}.js';q.write_text(js+'\n'+extra+'\n',encoding='utf-8');pr=subprocess.run(['node','--check',str(q)],capture_output=True,text=True);print(repr(extra), 'PASS' if pr.returncode==0 else 'FAIL')
         raise RuntimeError('FINAL_JS_SYNTAX_FAIL:'+label)
 
 def validate(s):
@@ -146,10 +100,7 @@ def validate(s):
     parser=StructureParser();parser.feed(s);parser.close();ah=parser.starts.count('html');eh=parser.ends.count('html');ab=parser.starts.count('body');eb=parser.ends.count('body');ass=parser.starts.count('script');ess=parser.ends.count('script');ast=parser.starts.count('style');est=parser.ends.count('style')
     gates={'doctype_start':start.startswith('<!doctype html>'),'one_html_root':ah==1 and eh==1,'one_body_root':ab==1 and eb==1,'script_balance':ass==ess,'style_balance':ast==est,'auth_one':s.count(AUTH)==1,'version_one':s.count(VERSION)==1,'governed_one':s.count(GOVERNED)==1,'compat_absent':COMPAT not in s,'dash_alias_absent':not re.search(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}',s),'items_alias_absent':not re.search(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}',s),'dash_owner_one':len(re.findall(r'(?m)^\s*var\s+RW_Dashboard\s*=\s*',s))==1,'items_owner_one':len(re.findall(r'(?m)^\s*var\s+RW_Items\s*=\s*',s))==1,'items_export_one':s.count('window.RW_Items=RW_Items;')==1,'canonical_sw_one':s.count(CANONICAL_SW)==1,'rpc_present':'.rpc(' in s,'edge_present':'/functions/v1/' in s};bad=[k for k,v in gates.items() if not v]
     if bad:raise RuntimeError(f'P163_GOLD_GATE_FAIL:{bad} structural html={ah}/{eh} body={ab}/{eb} script={ass}/{ess} style={ast}/{est}')
-    app=_app_js(s)
-    delimiter_gate(app)
-    _node_check(app,'new-main-final')
-    return gates
+    _node_check(_app_js(s),'new-main-final');return gates
 
 def main():
     parts=[]
