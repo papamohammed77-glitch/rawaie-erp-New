@@ -1,0 +1,68 @@
+name: CTO Forensic Source Boundaries
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  forensic:
+    if: contains(github.event.pull_request.title, '[CTO-FORENSIC-20260903]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Analyze source boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund esprima@4.0.1 >/dev/null 2>&1
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,subprocess,tempfile,hashlib,json
+          root=Path('Current/PWA/main')
+          parts=[root/f'main{i}.md' for i in range(1,12)]
+          p1=parts[0].read_text(encoding='utf-8-sig')
+          m=list(re.finditer(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>',p1,re.I))[-1]
+          app=p1[m.end():]
+          cut=app.rfind('</script>')
+          if cut>=0: app=app[:cut]
+          app=re.sub(r'(?m)^\\s*<!--\\s*RAWAEA_P1_FORENSIC_CLOSED:[^>]*-->\\s*$','',app,flags=re.I)
+          chunks=[app.rstrip()]
+          for i in range(2,12):
+              s=parts[i-1].read_text(encoding='utf-8-sig')
+              # known deterministic source repair from concurrent work
+              if i==7:
+                  defect=".join(''));}"
+                  if s.count(defect)==1: s=s.replace(defect,".join('')));}",1)
+              chunks.append(s.rstrip())
+          js='\\n\\n'.join(chunks)+'\\n'
+          Path('/tmp/raw-runtime.js').write_text(js,encoding='utf-8')
+          def check(src,label):
+              p=Path('/tmp/'+label+'.js');p.write_text(src+'\\n',encoding='utf-8')
+              r=subprocess.run(['node','--check',str(p)],capture_output=True,text=True)
+              print(label, 'PASS' if r.returncode==0 else 'FAIL')
+              if r.returncode: print(r.stderr.strip().splitlines()[-3:])
+              return r.returncode==0
+          print('TOTAL_SHA256',hashlib.sha256(js.encode()).hexdigest(),'LINES',js.count(chr(10))+1,'BYTES',len(js.encode()))
+          first=None
+          prefix=chunks[0]
+          for i in range(2,12):
+              prefix+='\\n\\n'+chunks[i-1]
+              probe=prefix+'\\n})();\\n' if i<11 else prefix+'\\n'
+              ok=check(probe,f'boundary-{i}')
+              if not ok and first is None: first=i
+          okfinal=check(js,'final-raw')
+          if not okfinal:
+              print('--- ESprima delimiter stack ---')
+              Path('/tmp/forensic.js').write_text("const fs=require('fs'),esprima=require('esprima');const src=fs.readFileSync('/tmp/raw-runtime.js','utf8');const toks=esprima.tokenize(src,{loc:true,range:true,comment:true,tolerant:true});const stack=[];const closeToOpen={')':'(',']':'[','}':'{'};for(const t of toks){if(t.type!=='Punctuator')continue;const v=t.value;if(v==='('||v==='['||v==='{')stack.push({v,line:t.loc.start.line,col:t.loc.start.column+1,range:t.range});else if(v===')'||v===']'||v==='}'){if(!stack.length||stack[stack.length-1].v!==closeToOpen[v]){console.log('MISMATCH',v,t.loc.start,stack.slice(-15));break;}stack.pop();}}console.log('UNRESOLVED',stack.slice(-50));console.log('TOKENS',toks.length);",encoding='utf-8')
+              subprocess.run(['node','/tmp/forensic.js'],check=False)
+              print('--- END ESprima ---')
+          print('FIRST_FAILING_BOUNDARY',first)
+          print('FINAL_STATUS', 'PASS' if okfinal else 'FAIL')
+          if not okfinal: raise SystemExit(1)
+          PY
