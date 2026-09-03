@@ -63,3 +63,9 @@ Obtain a directly verifiable execution path for the target-preserving surgical P
 - The target-preserving executor is authorized by the current continuity plan to perform P163 surgery only after its static and browser gates pass.
 - Production database writes remain forbidden in this track.
 - This entry is a trigger-only continuity record; it does not assert Gold, Diamond, or Closed.
+
+## FORENSIC EXECUTION — DIRECT PRIMARY-SOURCE TRIGGER — 2026-09-03
+- The current `Current/PWA/New-main` target was directly re-read and still contains the `RAWAEA MAIN2 COMPATIBILITY` surface immediately before this trigger.
+- The current `.github/workflows/_cto_close_newmain_20260903.yml` workflow was directly re-read and confirmed to perform target-preserving P163 surgery, static gates, browser smoke, then persistence and cleanup.
+- This commit intentionally triggers that executor without modifying Production data and without reconstructing `New-main` from fragments.
+- This section is not a success claim; only the resulting target, gate results, and final commit may prove closure.
