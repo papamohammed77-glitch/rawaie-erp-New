@@ -3,6 +3,7 @@ name: P163 exact Main2 ownership surgery
 # CTO CONTINUATION: one deterministic live-target executor. No fragment reconstruction. No production writes.
 # Observable PR trigger is temporary and exists only to expose the real executor result.
 # Gold gate is contract-driven: current RW_Views permissionMap + actual owner guard.
+# CTO continuation nonce: 2026-09-03T06:59+03:00
 
 on:
   push:
