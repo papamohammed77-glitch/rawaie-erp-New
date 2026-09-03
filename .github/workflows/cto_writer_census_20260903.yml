@@ -1,0 +1,27 @@
+name: CTO repository writer census — READ ONLY
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cto_writer_census_20260903.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  census:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: main, fetch-depth: 1}
+      - name: Enumerate workflow write authorities
+        shell: bash
+        run: |
+          set +e
+          echo '=== CONTENTS WRITE ==='
+          grep -RniE 'contents:[[:space:]]*write' .github/workflows --include='*.yml' --include='*.yaml' || true
+          echo '=== GIT PUSH ==='
+          grep -RniE 'git[[:space:]]+push([[:space:]]|$)' .github/workflows --include='*.yml' --include='*.yaml' || true
+          echo '=== TARGET MUTATION TOKENS ==='
+          grep -RniE 'Current/PWA/New-main|CURRENT_STATE\.md' .github/workflows --include='*.yml' --include='*.yaml' | head -n 300 || true
+          echo '=== SUMMARY ==='
+          writers=$(grep -RlE 'contents:[[:space:]]*write|git[[:space:]]+push([[:space:]]|$)' .github/workflows --include='*.yml' --include='*.yaml' | sort -u)
+          if [ -n "$writers" ]; then printf '%s\n' "$writers"; else echo 'NO_WORKFLOW_WRITERS_FOUND'; fi
