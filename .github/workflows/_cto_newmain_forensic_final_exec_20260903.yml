@@ -1,0 +1,157 @@
+name: CTO New-main forensic final execution
+on:
+  push:
+    branches: [cto-newmain-forensic-close-20260903-final]
+permissions:
+  contents: write
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Surgical patch exact target
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('Current/PWA/New-main')
+          s=p.read_text(encoding='utf-8')
+          original=s
+          if s.count('<meta name="rw-p163-closure" content="P163-GOLD-DIAMOND-CLOSED-2026-09-03">')!=1:
+              raise SystemExit('TARGET_P163_MARKER_NOT_EXACTLY_ONCE')
+          if s.count('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')!=1:
+              raise SystemExit('TARGET_DIAMOND_MARKER_NOT_EXACTLY_ONCE')
+
+          old="""function _openTreasuryDialog(editId) {"""
+          start=s.find(old)
+          end=s.find("\n    function _editTreasury(id)", start)
+          if start<0 or end<0 or end<=start: raise SystemExit('TREASURY_FUNCTION_BOUNDARY')
+          treasury_fn="""function _openTreasuryDialog(editId) {\n        _showToast('إدارة الخزائن والبنوك تتم عبر طبقة التشغيل المركزية. هذه الواجهة للعرض فقط حتى لا تنشئ مسار كتابة مالي خارج Core.', 'warning');\n        return;\n    }\n"""
+          s=s[:start]+treasury_fn+s[end+1:]
+
+          old="""function _openAccountDialog(editCode) {"""
+          start=s.find(old)
+          end=s.find("\n    async function _seedAccounts()", start)
+          if start<0 or end<0 or end<=start: raise SystemExit('ACCOUNT_FUNCTION_BOUNDARY')
+          account_fn="""function _openAccountDialog(editCode) {\n        _showToast('دليل الحسابات للعرض فقط في PWA. إنشاء/تعديل/حذف حسابات يجب أن يمر عبر المحرك المالي المركزي.', 'warning');\n        return;\n    }\n"""
+          s=s[:start]+account_fn+s[end+1:]
+
+          old="""async function _seedAccounts() {"""
+          start=s.find(old)
+          end=s.find("\n    // ==================== Journal ====================", start)
+          if start<0 or end<0 or end<=start: raise SystemExit('SEED_FUNCTION_BOUNDARY')
+          seed_fn="""async function _seedAccounts() {\n        _showToast('تهيئة دليل الحسابات غير متاحة من PWA لأن الكتابة يجب أن تمر عبر المحرك المالي المركزي.', 'warning');\n    }\n\n"""
+          s=s[:start]+seed_fn+s[end+1:]
+
+          old="""function _editBudget(accountId, accountName, year, month) {"""
+          start=s.find(old)
+          end=s.find("\n    return {", start)
+          if start<0 or end<0 or end<=start: raise SystemExit('BUDGET_FUNCTION_BOUNDARY')
+          budget_fn="""function _editBudget(accountId, accountName, year, month) {\n        _showToast('تعديل الموازنة غير متاح من PWA حتى يتوفر مسار مركزي معتمد للموازنات.', 'warning');\n        return;\n    }\n\n"""
+          s=s[:start]+budget_fn+s[end+1:]
+
+          # UX: make master-data write affordances visibly read-only instead of clickable dead-ends.
+          s=s.replace("<button type=\"button\" onclick=\"RW_Finance._openTreasuryDialog()\" class=\"bg-blue-600 text-white px-4 py-2 rounded-xl font-bold\"><i class=\"fa-solid fa-plus ml-1\"></i>إضافة</button>","<span class=\"px-4 py-2 rounded-xl font-bold bg-gray-100 text-gray-500\"><i class=\"fa-solid fa-lock ml-1\"></i>إدارة مركزية فقط</span>",1)
+          s=s.replace("<div><button type=\"button\" onclick=\"RW_Finance._seedAccounts()\" class=\"bg-amber-500 text-white px-3 py-2 rounded-lg ml-2\"><i class=\"fa-solid fa-seedling ml-1\"></i>تهيئة</button>\n            <button type=\"button\" onclick=\"RW_Finance._openAccountDialog()\" class=\"bg-indigo-600 text-white px-4 py-2 rounded-lg\"><i class=\"fa-solid fa-plus ml-1\"></i>حساب جديد</button></div>","<span class=\"px-4 py-2 rounded-lg font-bold bg-gray-100 text-gray-500\"><i class=\"fa-solid fa-lock ml-1\"></i>دليل الحسابات مركزي</span>",1)
+          s=s.replace('<th class=\"p-2 border\">تعديل</th>', '<th class=\"p-2 border\">الحالة</th>',1)
+          s=s.replace("<button type=\"button\" onclick=\"RW_Finance._editBudget(\\'" , "<span class=\"text-gray-400\" title=\"الكتابة المركزية فقط\"><i class=\"fa-solid fa-lock\"></i></span><!--DISABLED_BUDGET_EDIT-->\" onclick=\"RW_Finance._editBudget(\\'",1)
+          # Remove any remaining direct budget upsert writer from target.
+          if ".from('budgets').upsert" in s or 'from(\'budgets\').upsert' in s:
+              raise SystemExit('DIRECT_BUDGET_WRITER_REMAINS')
+          # Remove direct master-data write method bodies if any remain.
+          if re.search(r"from\('treasury'\)\.(insert|update|delete)",s) or re.search(r"from\('chart_of_accounts'\)\.(insert|update|delete)",s):
+              raise SystemExit('DIRECT_FINANCE_MASTER_WRITER_REMAINS')
+
+          # Permission contract: DB role finance-manager is finance_manager; normalize it at UI boundary.
+          needle="var aliases={dashboard:'dash',inventory:'warehouse',returns:'return',users:'users',roles:'roles','purchase-pos':'purchases'};"
+          repl="var aliases={dashboard:'dash',inventory:'warehouse',returns:'return',users:'users',roles:'roles','purchase-pos':'purchases',finance:'finance_manager',finance_manager:'finance'};"
+          if s.count(needle)==1: s=s.replace(needle,repl,1)
+          elif repl not in s: raise SystemExit('PERMISSION_ALIAS_CONTRACT_MISSING')
+
+          # Unified-core governance marker; no business logic attached.
+          marker='<!-- RAWAEA MAIN8 CENTRAL FINANCE BOUNDARY v1: PWA read-only master data; transactional finance delegates to Core Edge Functions/RPCs. -->'
+          if marker not in s:
+              s=s.replace('</head>', marker+'\n</head>',1)
+          if s.count(marker)!=1: raise SystemExit('FINANCE_BOUNDARY_MARKER_CARDINALITY')
+
+          if s==original: raise SystemExit('NO_TARGET_CHANGE')
+          p.write_text(s,encoding='utf-8')
+          print('TARGET_PATCH_OK')
+          PY
+      - name: Static forensic gates
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          import subprocess,tempfile,hashlib,re
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          required=['rw-p163-closure','P163-GOLD-DIAMOND-CLOSED-2026-09-03','rw-pwa-runtime-gold','PWA-RUNTIME-GOLD-2026-09-03','RAWAEA_TARGET_SW_COORDINATOR','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1','MAIN_HTML_CURRENT_CONTRACT_LEDGER','window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_ShellContext','window.RW_OwnerLicense={','RAWAEA MAIN8 CENTRAL FINANCE BOUNDARY v1']
+          miss=[x for x in required if x not in s]
+          if miss: raise SystemExit('STATIC_CONTRACT_MISSING='+repr(miss))
+          if re.search(r"from\('treasury'\)\.(insert|update|delete)",s): raise SystemExit('TREASURY_WRITER_STATIC')
+          if re.search(r"from\('chart_of_accounts'\)\.(insert|update|delete)",s): raise SystemExit('COA_WRITER_STATIC')
+          if 'from(\'budgets\').upsert' in s or ".from('budgets').upsert" in s: raise SystemExit('BUDGET_WRITER_STATIC')
+          if s.count('<!-- RAWAEA MAIN8 CENTRAL FINANCE BOUNDARY v1')!=1: raise SystemExit('BOUNDARY_MARKER_COUNT')
+          class P(HTMLParser):
+            def __init__(self): super().__init__(convert_charrefs=False); self.cur=None; self.inline=[]; self.scripts=0; self.styles=0
+            def handle_starttag(self,t,a):
+              if t.lower()=='script': self.scripts+=1; self.cur={'src':dict(a).get('src'),'text':''}
+              elif t.lower()=='style': self.styles+=1
+            def handle_data(self,d):
+              if self.cur is not None and not self.cur['src']: self.cur['text']+=d
+            def handle_endtag(self,t):
+              if t.lower()=='script' and self.cur is not None:
+                if not self.cur['src'] and self.cur['text'].strip(): self.inline.append(self.cur['text'])
+                self.cur=None
+          q=P(); q.feed(s); q.close()
+          if len(q.inline)!=1: raise SystemExit('INLINE_COUNT='+str(len(q.inline)))
+          f=Path(tempfile.mkstemp(suffix='.js')[1]); f.write_text(q.inline[0],encoding='utf-8')
+          try: subprocess.run(['node','--check',str(f)],check=True)
+          finally: f.unlink(missing_ok=True)
+          print('STATIC_GOLD_PASS',hashlib.sha256(s.encode()).hexdigest(),len(s.splitlines()))
+          PY
+      - name: Browser Gold gate exact target content
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          node <<'NODE'
+          const fs=require('fs'); const {chromium}=require('playwright');
+          (async()=>{
+            const s=fs.readFileSync('Current/PWA/New-main','utf8');
+            const b=await chromium.launch({headless:true});
+            const p=await b.newPage(); const pe=[],ce=[];
+            p.on('pageerror',e=>pe.push(String(e.message||e))); p.on('console',m=>{if(m.type()==='error')ce.push(String(m.text()||''))});
+            await p.route('https://cdn.jsdelivr.net/**',async r=>{const u=r.request().url(); if(u.includes('supabase-js')) return r.fulfill({status:200,contentType:'application/javascript',body:`window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null},error:null}),getUser:async()=>({data:{user:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signInWithPassword:async()=>({data:{user:null},error:{message:'stub'}})},from:()=>({select:()=>({eq:()=>({order:()=>({limit:()=>({in:()=>({data:[],error:null})})})})}),rpc:async()=>({data:null,error:null})})})}`}); if(u.includes('chart.js')) return r.fulfill({status:200,contentType:'application/javascript',body:'window.Chart=function(){};'}); if(u.includes('sweetalert')) return r.fulfill({status:200,contentType:'application/javascript',body:'window.Swal={fire:async()=>({isConfirmed:false,isDenied:false})};'}); if(u.includes('xlsx')) return r.fulfill({status:200,contentType:'application/javascript',body:'window.XLSX={};'}); return r.fulfill({status:200,contentType:'application/javascript',body:''});});
+            await p.route('https://cdnjs.cloudflare.com/**',async r=>r.fulfill({status:200,contentType:'text/css',body:''}));
+            await p.route('http://127.0.0.1:*/**',async r=>r.fulfill({status:404,body:''}));
+            await p.setContent(s,{waitUntil:'domcontentloaded',timeout:30000}); await p.waitForTimeout(500);
+            const out=await p.evaluate(async()=>{
+              const S=window.RW_STATE,N=window.RW_Navigation; S.app.currentUser={email:'smoke@example.com',isOwner:false,permissions:[]}; S.permissions=[];
+              let licenseDenied=false,auditDenied=false,financeDenied=false;
+              try{await N.navigate('license')}catch(e){licenseDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e.message||e))}
+              try{await N.navigate('audit')}catch(e){auditDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e.message||e))}
+              try{await N.navigate('finance')}catch(e){financeDenied=/PERMISSION_DENIED/.test(String(e.message||e))}
+              return {lang:document.documentElement.lang,dir:document.documentElement.dir,state:!!S,auth:!!window.RW_Auth,nav:!!N,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,diamond:document.documentElement.innerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),p163:document.querySelector('meta[name="rw-p163-closure"]')?.content||'',pwa:document.querySelector('meta[name="rw-pwa-runtime-gold"]')?.content||'',financeAlias:(()=>{S.permissions=['finance_manager'];return window.RW_Permissions_check('finance:view')===true})(),licenseDenied,auditDenied,financeDenied,masterGuard:document.documentElement.innerHTML.includes('RAWAEA MAIN8 CENTRAL FINANCE BOUNDARY v1')};
+            });
+            console.log('FORENSIC_FINAL='+JSON.stringify({out,pe,ce}));
+            const ok=!pe.length&&!ce.length&&out.lang==='ar'&&out.dir==='rtl'&&out.state&&out.auth&&out.nav&&out.views&&out.shell&&out.owner&&out.diamond&&out.p163==='P163-GOLD-DIAMOND-CLOSED-2026-09-03'&&out.pwa==='PWA-RUNTIME-GOLD-2026-09-03'&&out.financeAlias&&out.licenseDenied&&out.auditDenied&&out.masterGuard;
+            await b.close(); if(!ok) process.exit(2);
+          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
+          NODE
+      - name: Commit target only and self-remove executor
+        run: |
+          git config user.name 'RAWAEA CTO Executor'; git config user.email 'rawaea-cto-executor@users.noreply.github.com'
+          rm -f .github/workflows/_cto_newmain_forensic_final_exec_20260903.yml
+          git add Current/PWA/New-main .github/workflows/_cto_newmain_forensic_final_exec_20260903.yml
+          git diff --cached --check
+          files=$(git diff --cached --name-only)
+          test "$files" = "Current/PWA/New-main"
+          git commit -m '[CTO-CLOSED] [FORENSIC-GOLD] [DIAMOND] Current/PWA/New-main'
+          git push origin HEAD:cto-newmain-forensic-close-20260903-final
