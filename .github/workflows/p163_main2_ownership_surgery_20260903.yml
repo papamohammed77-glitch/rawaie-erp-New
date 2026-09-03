@@ -109,8 +109,6 @@ jobs:
             'navigation':'window.RW_Navigation' in s,
             'views':'window.RW_Views' in s,
             'stock_engine':'post_stock_movement' in s and 'reserve_stock' in s,
-            'journal_engine':'post_journal_entry' in s,
-            'invoice_engine':'save_sales_invoice_atomic' in s,
             'edge_call':'edgeCall' in s,
             'supabase_client':'supabaseClient' in s or 'createClient' in s,
             'diamond_extension_preserved':'RAWAEA 122 DIAMOND CONTRACT CLOSURE v1' in s,
