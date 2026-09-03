@@ -25,6 +25,23 @@ jobs:
         with: {ref: main, fetch-depth: 1}
       - uses: actions/setup-node@v4
         with: {node-version: 20}
+      - name: Read-only source diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== TARGET IDENTITY ==='
+          git rev-parse HEAD
+          git rev-parse HEAD:Current/PWA/New-main
+          sha256sum Current/PWA/New-main
+          echo '=== safeText REFERENCES ==='
+          grep -n -E '\bsafeText\b' Current/PWA/New-main | head -120 || true
+          echo '=== AUTH_ID REFERENCES ==='
+          grep -n -E 'AUTH_ID_UNAVAILABLE|applyAuthoritativeContext|auth_id|auth\.uid\(\)|currentSession|currentUser' Current/PWA/New-main | head -200 || true
+          echo '=== FUNCTION/HELPER CANDIDATES ==='
+          grep -n -E 'function (safeText|byId|setText|escape|sanitize)|window\.(safeText|byId|setText|escape|sanitize)' Current/PWA/New-main | head -160 || true
+          echo '=== TARGET SCRIPT BOUNDARIES ==='
+          grep -n '<script' Current/PWA/New-main | head -30 || true
+          grep -n '</script>' Current/PWA/New-main | tail -30 || true
       - name: Static exact-target contract gate
         shell: bash
         run: |
