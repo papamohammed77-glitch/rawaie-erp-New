@@ -18,7 +18,7 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re, subprocess, hashlib
+          import subprocess, hashlib
           p=Path('Current/PWA/New-main')
           s=p.read_text(encoding='utf-8')
           assert len(s.encode())>500000, 'TARGET_TOO_SMALL'
@@ -26,11 +26,6 @@ jobs:
           if old in s:
               s=s.replace(old,'await window.RW_Auth.enterSystem(authUser);',1)
           assert 'await window.RW_Auth.enterSystem();' not in s, 'AUTH_BOOT_DEFECT_REMAINS'
-          # Make the canonical Supabase client available to the single-file UX layer.
-          if 'window.__RAWAEA_SUPABASE_CLIENT__=supabase;' not in s:
-              m=re.search(r"(var supabase=window\\.supabase\\.createClient\\([^;]+\\);)",s)
-              assert m, 'SUPABASE_CLIENT_DECL_NOT_FOUND'
-              s=s[:m.end()]+'window.__RAWAEA_SUPABASE_CLIENT__=supabase;'+s[m.end():]
           # Remove direct dependencies on disposable sibling application pages.
           for oldp,newp in [('./pos.html','pos'),('./telesales.html','telesales'),('./buyer.html','purchases'),('./vouchers.html','vouchers'),('./picker.html','picking'),('./loader.html','loading'),('./driver.html','delivery'),('./Returns.html','returns'),('./unloader.html','unloading')]:
               s=s.replace(oldp,newp)
@@ -73,7 +68,6 @@ jobs:
           })();
           </script>'''
               s=s.replace('</body>',layer+'</body>',1)
-          # Published manifest is authoritative.
           assert s.count('<link rel="manifest" href="./manifest.json">')==1, 'PUBLISHED_MANIFEST_REQUIRED'
           assert './New-main.manifest.json' not in s, 'LEGACY_MANIFEST_REFERENCE'
           p.write_text(s,encoding='utf-8')
@@ -113,9 +107,9 @@ jobs:
               return a;
             });
             console.log('CTO_FINAL='+JSON.stringify({out,pe,ce}));
-            const ok=!pe.length&&!ce.length&&out.lang==='ar'&&out.dir==='rtl'&&out.login&&out.manifest==='./manifest.json'&&out.brand&&out.nav&&out.warehouse&&Object.values(out.routes).every(x=>x===({transfer:'Transfer','direct-sale':'DirectSale','direct-return':'DirectReturn','supplier-return':'SupplierReturn'}[Object.keys(out.routes).find(k=>out.routes[k]===x)]));
-            const exact=Object.entries(out.routes).every(([k,v])=>v===({transfer:'Transfer','direct-sale':'DirectSale','direct-return':'DirectReturn','supplier-return':'SupplierReturn'}[k]));
-            await b.close();if(!ok||!exact)process.exit(2);
+            const expected={transfer:'Transfer','direct-sale':'DirectSale','direct-return':'DirectReturn','supplier-return':'SupplierReturn'};
+            const exact=Object.entries(expected).every(([k,v])=>out.routes[k]===v);
+            await b.close();if(pe.length||ce.length||out.lang!=='ar'||out.dir!=='rtl'||!out.login||out.manifest!=='./manifest.json'||!out.brand||!out.nav||!out.warehouse||!exact)process.exit(2);
           })().catch(e=>{console.error(e.stack||e);process.exit(2)});
           NODE
       - name: Persist only New-main
