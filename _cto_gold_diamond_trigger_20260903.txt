@@ -1,2 +1,2 @@
 One-shot Gold/Diamond closure trigger. Executor must reconstruct Current/PWA/New-main, run Gold source/JS gates, run Diamond browser smoke, persist CURRENT_STATE, and self-remove this trigger.
-Nonce: 2026-09-03T01:27:00Z
+Nonce: 2026-09-03T01:31:00Z
