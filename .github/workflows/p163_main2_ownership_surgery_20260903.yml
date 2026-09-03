@@ -3,6 +3,7 @@ name: P163 exact Main2 ownership surgery
 # CTO CONTINUATION: operate only on the live Current/PWA/New-main target.
 # No fragment reconstruction. No production writes.
 # Finance capability names are verified from Production separately; target gate checks actual consumption surfaces, not historical RPC-name assumptions.
+# CTO RETRIGGER: reuse the established surgical path; no reconstruction builder.
 
 on:
   push:
