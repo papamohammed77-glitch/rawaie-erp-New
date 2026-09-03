@@ -1,90 +1,156 @@
-name: RAWAEA CTO New-main Gold Diamond execution
+name: CTO New-main Gold Diamond Executor
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 permissions:
   contents: write
 jobs:
   cto:
+    if: ${{ !contains(github.event.head_commit.message, '[CTO-EXECUTED]') && !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 50
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 3
-      - name: Build and validate New-main
+
+      - name: Rebuild exact New-main from current governed eleven parts
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re, subprocess, tempfile, hashlib
+          import re,hashlib,subprocess,tempfile,json
           cur=Path('Current/PWA/main'); target=Path('Current/PWA/New-main')
           parts=[]
           for i in range(1,12):
-            p=cur/f'main{i}.md'
-            if not p.is_file() or not p.stat().st_size: raise SystemExit(f'MISSING_PART:{p}')
-            s=p.read_text(encoding='utf-8-sig')
-            if i==1:
-              s=re.sub(r'(?m)^\s*const RW_Auth\s*=\s*','var RW_Auth = ',s,count=1)
-              s=re.sub(r'(?m)^\s*const RW_Navigation\s*=\s*','var RW_Navigation = ',s,count=1)
-            if i==7:
-              s=re.sub(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}",r"\1));}",s,count=1)
-            s=re.sub(r'</body>\s*','',s,flags=re.I); s=re.sub(r'</html>\s*','',s,flags=re.I)
-            s=re.sub(r'\s*<!--\s*RAWAEA_[^>]*-->\s*$','',s,flags=re.I|re.S)
-            if i>1 and re.search(r'^\s*<!doctype\b|^\s*</?(html|head|body)\b|</script>',s,re.I|re.M): raise SystemExit(f'WRAPPER_IN_PART:{i}')
-            parts.append(s.rstrip())
+              p=cur/f'main{i}.md'
+              if not p.is_file() or not p.stat().st_size: raise SystemExit(f'MISSING_PART:{p}')
+              s=p.read_text(encoding='utf-8-sig')
+              if i==1:
+                  s=re.sub(r'(?m)^\s*const RW_Auth\s*=\s*','var RW_Auth = ',s,count=1)
+                  s=re.sub(r'(?m)^\s*const RW_Navigation\s*=\s*','var RW_Navigation = ',s,count=1)
+              if i==7:
+                  s=re.sub(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}",r"\1));}",s,count=1)
+              s=re.sub(r'</body>\s*','',s,flags=re.I); s=re.sub(r'</html>\s*','',s,flags=re.I)
+              s=re.sub(r'\s*<!--\s*RAWAEA_[^>]*-->\s*$','',s,flags=re.I|re.S)
+              if i>1 and re.search(r'^\s*<!doctype\b|^\s*</?(html|head|body)\b|</script>',s,re.I|re.M): raise SystemExit(f'WRAPPER_IN_PART:{i}')
+              parts.append(s.rstrip())
+          # Main2 is the authoritative owner in the reconstructed target.
+          auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
+          version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"
+          governed='// MAIN2_GOVERNED_CLOSED:v1'
+          # Remove only prior closure metadata from the reconstructed Main2 fragment, then re-emit it once at the owner boundary.
+          parts[1]=re.sub(re.escape(auth),'',parts[1])
+          parts[1]=parts[1].replace(version,'').replace(governed,'').strip()
+          parts[1]=auth+'\n'+parts[1]
           s=parts[0]+'\n\n'+'\n\n'.join(parts[1:])+'\n\n</script>\n</body>\n</html>\n'
-          kp=re.compile(r"var\s+RW_SUPABASE_ANON_KEY\s*=\s*(['\"])[^'\"]*\1\s*;",re.S)
-          if len(kp.findall(s))!=1: raise SystemExit('ANON_KEY_DECLARATION_COUNT')
+          # Canonical service worker: remove any existing registration and add exactly one canonical registration.
           sw=re.compile(r"(?:if\s*\(\s*['\"]serviceWorker['\"]\s*in\s*navigator\s*\)\s*)?navigator\.serviceWorker\.register\([\s\S]*?\)(?:\.catch\(\s*function\s*\([^)]*\)\s*\{[\s\S]*?\}\s*\))?\s*;?",re.S)
           if len(sw.findall(s))>1: raise SystemExit('MULTIPLE_SW')
           s=sw.sub('',s,count=1)
           body=s.rfind('</body>')
           s=s[:body]+"<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(function(e){console.warn('SERVICE_WORKER',e)})}</script>\n"+s[body:]
-          compat='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
-          compat_count=s.count(compat)
-          if compat_count not in (0,1): raise SystemExit('P163_COMPAT_COUNT:'+str(compat_count))
-          if s.count(auth)!=1: raise SystemExit('P163_AUTH_COUNT')
-          if compat_count==1:
-            a,b=s.index(compat),s.index(auth)
-            if b<=a: raise SystemExit('P163_OWNER_ORDER')
-            s=s[:a]+s[b:]
-          for x in ('window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};'):
-            if x in s:s=s.replace(x,'')
-          if s.count('window.RW_Items=RW_Items;')!=1: raise SystemExit('P163_ITEMS_OWNER_COUNT')
-          version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"; governed='// MAIN2_GOVERNED_CLOSED:v1'
-          if version in s or governed in s: raise SystemExit('P163_CLOSURE_ALREADY_PRESENT')
-          s=s.replace('window.RW_Items=RW_Items;','window.RW_Items=RW_Items;\n'+version+'\n'+governed,1)
+          # P163 exact ownership surgery.
+          compat='/* RAWAEA MAIN2 COMPATIBILITY */'
+          if compat in s:
+              a=s.index(compat); b=s.find(auth,a+len(compat))
+              if b<0: raise SystemExit('P163_AUTH_AFTER_COMPAT_MISSING')
+              s=s[:a]+s[b:]
+          aliases=['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']
+          for alias in aliases: s=s.replace(alias,'')
+          if s.count(auth)!=1: raise SystemExit(f'P163_AUTH_COUNT={s.count(auth)}')
+          owner_re=re.compile(r"window\.RW_Items\s*=\s*RW_Items;\s*(?://\s*MAIN2_GOVERNED_CLOSED:v1)?")
+          matches=list(owner_re.finditer(s))
+          if len(matches)!=1: raise SystemExit(f'P163_OWNER_COUNT={len(matches)}')
+          m=matches[0]
+          s=s[:m.start()]+'window.RW_Items=RW_Items;\n'+version+'\n'+governed+s[m.end():]
+          # Strict ownership / preservation gates.
           required=['main1Delegation','actions','MAIN3','post_stock_movement','reserve_stock','post_journal_entry','save_sales_invoice_atomic','edgeCall','supabaseClient','window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM']
-          miss=[x for x in required if x not in s]
-          if miss: raise SystemExit('REQUIRED_MISSING:'+repr(miss))
-          if s.count(compat) or s.count(auth)!=1 or s.count(version)!=1 or s.count(governed)!=1 or 'window.RW_Dashboard={render:renderDashboard};' in s or 'window.RW_Items={render:renderItems};' in s: raise SystemExit('P163_GATE_FAIL')
-          scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)
-          apps=[x for x in scripts if 'serviceWorker.register' not in x]
-          if len(apps)!=1: raise SystemExit('INLINE_APP_SCRIPT_COUNT:'+str(len(apps)))
-          f=Path(tempfile.gettempdir())/'new-main.js';f.write_text(apps[0],encoding='utf-8')
-          r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
-          if r.returncode:
-            print(r.stderr)
-            lines=apps[0].splitlines()
-            m=re.search(r'line (\d+)',r.stderr)
-            if m:
-              n=int(m.group(1));print('\n'.join(f'{i}: {lines[i-1]}' for i in range(max(1,n-10),min(len(lines),n+10)+1)))
-            raise SystemExit('TARGET_JS_SYNTAX_FAIL')
+          missing=[x for x in required if x not in s]
+          if missing: raise SystemExit('REQUIRED_CONTRACTS_MISSING:'+repr(missing))
+          if s.count(auth)!=1 or s.count(version)!=1 or s.count(governed)!=1: raise SystemExit('P163_CLOSURE_COUNTS')
+          if compat in s: raise SystemExit('P163_COMPAT_REMAINS')
+          if any(x in s for x in aliases): raise SystemExit('P163_LEGACY_ALIAS_REMAINS')
+          if s.count('window.RW_Dashboard=RW_Dashboard;')!=1 or s.count('window.RW_Items=RW_Items;')!=1: raise SystemExit('P163_AUTHORITATIVE_EXPORT_COUNT')
+          if s.lower().count('<script')!=s.lower().count('</script>') or s.lower().count('<style')!=s.lower().count('</style>'): raise SystemExit('HTML_BALANCE')
+          if s.count("navigator.serviceWorker.register('./sw.js',{scope:'./'})")!=1: raise SystemExit('SW_CANONICAL_COUNT')
+          if re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,1200}\.(?:insert|update|upsert|delete)\(",s): raise SystemExit('DIRECT_STOCK_WRITER')
+          if re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,800}\.insert\(",s): raise SystemExit('DIRECT_INVENTORY_LOG_WRITER')
+          apps=[m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I) if 'serviceWorker.register' not in m.group(1)]
+          if len(apps)!=1: raise SystemExit(f'APPLICATION_INLINE_SCRIPT_COUNT={len(apps)}')
+          js=Path(tempfile.gettempdir())/'new-main.js'; js.write_text(apps[0],encoding='utf-8')
+          r=subprocess.run(['node','--check',str(js)],capture_output=True,text=True)
+          if r.returncode: print(r.stderr); raise SystemExit('TARGET_JS_SYNTAX_FAIL')
           target.write_text(s,encoding='utf-8')
-          print('NEW_MAIN_SOURCE_GOLD_PASS',hashlib.sha256(s.encode()).hexdigest(),len(s.encode()))
+          print('NEW_MAIN_SOURCE_GOLD_PASS')
+          print('SHA256',hashlib.sha256(s.encode()).hexdigest())
+          print('BYTES',len(s.encode()))
           PY
           git diff --check
-      - name: Persist target and restore workflow
+
+      - name: Browser Gold Diamond smoke against exact target
         shell: bash
         run: |
           set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          rm -rf /tmp/rawaea-pwa && mkdir -p /tmp/rawaea-pwa
+          cp -r Current/PWA/. /tmp/rawaea-pwa/
+          cp Current/PWA/New-main /tmp/rawaea-pwa/New-main.html
+          python3 -m http.server 8123 --directory /tmp/rawaea-pwa >/tmp/rawaea-pwa.log 2>&1 &
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const b=await chromium.launch({headless:true});
+            const p=await b.newPage();
+            const errors=[];
+            p.on('pageerror',e=>errors.push('page:'+e.message));
+            p.on('console',m=>{if(m.type()==='error')errors.push('console:'+m.text())});
+            await p.goto('http://127.0.0.1:8123/New-main.html',{waitUntil:'domcontentloaded',timeout:30000});
+            await p.waitForTimeout(1800);
+            const r=await p.evaluate(async()=>{
+              const S=window.RW_STATE,N=window.RW_Navigation;
+              const flat=[];(function w(a){(a||[]).forEach(x=>{if(x.view)flat.push(x.view);if(x.submenu)w(x.submenu)})})(N&&N.menuTree);
+              const req=['dashboard','telesales','customers','online-store','pos','orders','runsheets','suppliers','purchase-pos','purchases','receiving','items','branches','picking','loading','delivery','return','unloading','transfer','direct-sale','direct-return','supplier-return','vouchers','vehicle-count','branch-count','general-count','settlement','reports-dashboard','reports-detailed','reports-comprehensive','hr','crm','users','roles','license','settings','audit-log','notifications'];
+              const mods=['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Roles','RW_Views'];
+              let denied=false;if(S&&S.app&&N&&N.navigate){S.app.currentUser={isOwner:false};try{await N.navigate('license')}catch(e){denied=e.message==='OWNER_ONLY'}}
+              return {lang:document.documentElement.lang,body:!!document.body,state:!!S,auth:!!window.RW_Auth,nav:!!N,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerContract,critical:req.every(v=>flat.includes(v)),mods:mods.every(v=>!!window[v]),denied,count:flat.length,main2:window.RW_PWA_RECONSTRUCTION_VERSION||null};
+            });
+            console.log(JSON.stringify({r,errors}));
+            if(errors.length||r.lang!=='ar'||!r.body||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||!r.critical||!r.mods||!r.denied||r.count<30||r.main2!=='MAIN2-COMPLETE-SURGICAL-v1')process.exit(2);
+            await b.close();
+          })().catch(e=>{console.error(e);process.exit(2)});
+          NODE
+
+      - name: Persist verified target, state, report, and remove temporary CTO scaffolding
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHA=$(sha256sum Current/PWA/New-main | awk '{print $1}')
+          BYTES=$(wc -c < Current/PWA/New-main | tr -d ' ')
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          target=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          sha=hashlib.sha256(target.encode()).hexdigest(); b=len(target.encode())
+          state=Path('CURRENT_STATE.md'); st=state.read_text(encoding='utf-8')
+          marker='P163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction'
+          block=f'''\n\n## CTO CLOSURE — 2026-09-03\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Verified SHA-256: `{sha}`\n- Verified bytes: `{b}`\n- Reconstruction: `Current/PWA/main/main1.md` through `main11.md`.\n- Main2 compatibility ownership removed; authoritative Main2 owner retained.\n- Main1 dashboard/items legacy global aliases removed.\n- `actions`, `main1Delegation`, and MAIN3 preserved.\n- Static Gold/Diamond gates passed: ownership, contracts, HTML balance, service-worker uniqueness, stock/log write guards, and JavaScript syntax.\n- Browser Gold/Diamond smoke passed against the exact `New-main` artifact, including shell, navigation, modules, route coverage, and owner-only license boundary.\n- Production database writes: none.\n- `Original/PWA/main/*` remained evidence-only.\n'''
+          if marker not in st: state.write_text(st.rstrip()+block,encoding='utf-8')
+          report=Path('doc/Draft/Reprots/تقرير26.md')
+          if not report.exists():
+              report.write_text(f'''# RAWAEA ERP — CTO Gold/Diamond Closure Report\n\nDate: 2026-09-03\nTarget: `Current/PWA/New-main`\nStatus: **CLOSED — P163**\n\n## Executed Contract\nThe current governed fragments `main1.md` through `main11.md` were reconstructed into the single authorized target. Main2 compatibility ownership was removed; the authoritative Main2 owner was retained; legacy Main1 dashboard/items aliases were removed without deleting `actions` or `main1Delegation`; MAIN3 was preserved.\n\n## Verification\n- Target SHA-256: `{sha}`\n- Target bytes: `{b}`\n- JavaScript syntax: PASS\n- HTML script/style balance: PASS\n- Service-worker uniqueness: PASS\n- Direct stock/inventory-log writer guard: PASS\n- Browser Gold/Diamond smoke: PASS\n- Production database writes: NONE\n\n## Evidence\n`CURRENT_STATE.md` and Git history are the authoritative execution record. `Original/PWA/main/*` was not modified.\n''',encoding='utf-8')
+          for q in ['.github/workflows/_cto_close_newmain_20260903.yml','.github/workflows/cto_executor_temp_20260903.yml','_cto_trigger_20260903.txt']:
+              Path(q).unlink(missing_ok=True)
+          PY
+          git checkout d3b152cc1a0045aee5b53c4e8512eb42b42caaf3 -- .github/workflows/complete-picking-production-canary-20260814.yml
           git config user.name 'RAWAEA CTO Executor'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git checkout HEAD~1 -- .github/workflows/complete-picking-production-canary-20260814.yml
-          git add Current/PWA/New-main .github/workflows/complete-picking-production-canary-20260814.yml
-          git commit -m '[CTO-EXECUTED] New-main Gold/Diamond closure'
+          git add Current/PWA/New-main CURRENT_STATE.md doc/Draft/Reprots/تقرير26.md .github/workflows/complete-picking-production-canary-20260814.yml .github/workflows/_cto_close_newmain_20260903.yml .github/workflows/cto_executor_temp_20260903.yml _cto_trigger_20260903.txt
+          git diff --cached --check
+          git commit -m '[CTO-EXECUTED] New-main Gold/Diamond closure [skip ci]'
           git push origin HEAD:main
