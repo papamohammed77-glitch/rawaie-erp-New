@@ -1,0 +1,113 @@
+name: CTO direct New-main runtime closure 2026-09-03
+on:
+  push:
+    branches: [cto/newmain-script-parse-fix-20260903]
+permissions:
+  contents: write
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cto/newmain-script-parse-fix-20260903
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Repair target only and validate source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,subprocess
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          start=s.find('<script>\n(function(){')
+          marker='\n</script>\n<script id="RAWAEA_MAIN_SIDEBAR_COMPLETENESS_FINAL_V1"'
+          end=s.find(marker,start)
+          assert start>=0 and end>start
+          body=s[start+len('<script>\n'):end]
+          n=body.count('</script>')
+          if n: body=body.replace('</script>','<\\/script>')
+          s=s[:start+len('<script>\n')]+body+s[end:]
+          assert s.count('<link rel="manifest" href="./manifest.json">')==1
+          assert './New-main.manifest.json' not in s
+          assert s.count('window.byId=byId;')==1 and s.count('window.safeText=safeText;')==1 and s.count('window.safeHTML=safeHTML;')==1
+          p.write_text(s,encoding='utf-8')
+          subprocess.run(['git','diff','--check'],check=True)
+          print('ESCAPED_EMBEDDED_SCRIPT_CLOSES='+str(n))
+          print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest())
+          PY
+      - name: Chromium full product gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
+          cat >/tmp/server.py <<'PY'
+          from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
+          import os
+          class H(SimpleHTTPRequestHandler):
+              def log_message(self,*a): pass
+              def guess_type(self,path): return 'text/html; charset=utf-8' if path.endswith('/New-main') else super().guess_type(path)
+          os.chdir('Current/PWA')
+          ThreadingHTTPServer(('127.0.0.1',8123),H).serve_forever()
+          PY
+          python3 /tmp/server.py >/tmp/http.log 2>&1 & echo $! >/tmp/pid
+          trap 'kill $(cat /tmp/pid) 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8123/New-main >/dev/null && break; sleep 1; done
+          test -s /tmp/pid
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const b=await chromium.launch({headless:true,args:['--no-sandbox']});
+            const p=await b.newPage({serviceWorkers:'block'}); p.setDefaultTimeout(15000);
+            const pe=[],ce=[]; p.on('pageerror',e=>pe.push(String(e.message||e)));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
+            await p.route('**/*',async r=>{const u=r.request().url();
+              if(u.includes('@supabase/supabase-js')) return r.fulfill({status:200,contentType:'application/javascript',body:`window.supabase={createClient:function(){function q(t){let o={_t:t,_f:[],select(){return o},eq(){return o},neq(){return o},in(){return o},or(){return o},order(){return o},limit(){return o},range(){return o},gte(){return o},lte(){return o},is(){return o},not(){return o},contains(){return o},filter(){return o},insert:async()=>({data:null,error:null}),update(){return o},delete(){return o},upsert:async()=>({data:null,error:null}),then(f){let d=[];if(t==='users')d=[{id:'u1',name:'المالك العام',email:'owner@alrawae.com',role:'مدير النظام',company_id:'00000000-0000-0000-0000-000000000001',status:'Active',permissions:['*']}];else if(t==='companies')d=[{id:'00000000-0000-0000-0000-000000000001',name:'الروائع',logo_url:null,main_branch_id:'b1',main_branch_code:'BR-01'}];else if(t==='owner_profile')d=[{auth_user_id:'auth-owner',owner_name:'المالك العام',owner_email:'owner@alrawae.com',license_status:'active'}];else if(t==='app_settings')d=[{company_name:'الروائع',company_logo:null,status:'trial'}];else if(t==='branches')d=[{id:'b1',name:'الفرع الرئيسي',branch_code:'BR-01',company_id:'00000000-0000-0000-0000-000000000001'}];else if(t==='items')d=[{id:'i1',item_code:'I-001',name:'صنف اختبار',company_id:'00000000-0000-0000-0000-000000000001'}];else if(t==='customers')d=[{id:'c1',customer_code:'C-001',name:'عميل اختبار',company_id:'00000000-0000-0000-0000-000000000001'}];else if(t==='orders')d=[{id:'o1',order_code:'O-001',customer_name:'عميل اختبار',total_amount:100,order_status:'Draft',order_date:'2026-09-03',company_id:'00000000-0000-0000-0000-000000000001'}];o._d=d;return Promise.resolve({data:d,error:null,count:d.length}).then(f)};o.maybeSingle=async()=>({data:(o._t==='users'?{id:'u1',name:'المالك العام',email:'owner@alrawae.com',role:'مدير النظام',company_id:'00000000-0000-0000-0000-000000000001',status:'Active',permissions:['*']}:o._t==='companies'?{id:'00000000-0000-0000-0000-000000000001',name:'الروائع',logo_url:null,main_branch_id:'b1',main_branch_code:'BR-01'}:o._t==='owner_profile'?{auth_user_id:'auth-owner',owner_name:'المالك العام',owner_email:'owner@alrawae.com',license_status:'active'}:o._t==='app_settings'?{company_name:'الروائع',company_logo:null,status:'trial'}:null),error:null});return o}return{from:q,rpc:async()=>({data:null,error:null}),auth:{getSession:async()=>({data:{session:null}}),getUser:async()=>({data:{user:{id:'auth-owner',email:'owner@alrawae.com',user_metadata:{isOwner:true}}},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signInWithPassword:async()=>({data:{user:{id:'auth-owner',email:'owner@alrawae.com',user_metadata:{isOwner:true}}},error:null}),signOut:async()=>({error:null}),resetPasswordForEmail:async()=>({error:null})}}};`});
+              if(u.includes('chart.js')) return r.fulfill({status:200,contentType:'application/javascript',body:'window.Chart=function(){};'});
+              if(u.includes('sweetalert2')) return r.fulfill({status:200,contentType:'application/javascript',body:'window.Swal={fire:async()=>({}),close(){},showLoading(){}};'});
+              if(u.includes('xlsx')) return r.fulfill({status:200,contentType:'application/javascript',body:'window.XLSX={};'});
+              if(u.includes('fonts.googleapis.com')) return r.fulfill({status:200,contentType:'text/css',body:''});
+              if(u.includes('cdnjs.cloudflare.com')) return r.fulfill({status:200,contentType:'text/css',body:''});
+              return r.continue();
+            });
+            await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:60000}); await p.waitForTimeout(1200);
+            const initial=await p.evaluate(()=>({login:!!document.querySelector('#rw-login-form'),auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',owner:typeof RW_OwnerLicense==='object',safeText:typeof safeText==='function',manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||'',title:getComputedStyle(document.querySelector('.rw-login-title')).fontSize,logo:document.querySelector('.rw-login-logo')?.getBoundingClientRect().width||0,menus:Array.isArray(RW_Navigation?.menuTree)?RW_Navigation.menuTree.length:0}));
+            if(pe.length||ce.length)throw new Error('INITIAL_RUNTIME_ERRORS '+JSON.stringify({pe,ce,initial}));
+            if(!initial.login||!initial.auth||!initial.nav||!initial.views||!initial.shell||!initial.owner||!initial.safeText||initial.manifest!=='./manifest.json'||initial.title!=='64px'||initial.logo<100||initial.menus<10)throw new Error('INITIAL_GATE '+JSON.stringify(initial));
+            await p.evaluate(async()=>{await RW_Auth.enterSystem({id:'auth-owner',email:'owner@alrawae.com',user_metadata:{isOwner:true}})});
+            const company=await p.evaluate(()=>({companyId:RW_STATE.app.companyId,name:RW_STATE.app.company?.name,owner:RW_STATE.app.currentUser?.isOwner,license:RW_STATE.app.licenseState,sidebar:document.getElementById('rw-sidebar-company-name')?.textContent,visible:!document.getElementById('rw-main-shell')?.classList.contains('hidden')}));
+            if(company.companyId!=='00000000-0000-0000-0000-000000000001'||company.name!=='الروائع'||!company.owner||company.license!=='active'||company.sidebar!=='الروائع'||!company.visible)throw new Error('COMPANY_GATE '+JSON.stringify(company));
+            const dash=await p.evaluate(()=>({view:RW_STATE.app.currentView,text:document.getElementById('rw-page-container')?.innerText||'',menu:document.getElementById('rw-sidebar-nav')?.innerText||''}));
+            if(dash.view!=='dashboard'||!dash.text.includes('مرحباً بك في الروائع ERP'))throw new Error('DASHBOARD_GATE '+JSON.stringify(dash));
+            await p.evaluate(async()=>{await RW_Navigation.navigate('orders')});
+            const sales=await p.evaluate(()=>({view:RW_STATE.app.currentView,text:document.getElementById('rw-page-container')?.innerText||''}));
+            if(sales.view!=='orders'||!sales.text.includes('أوردرات المبيعات'))throw new Error('SALES_GATE '+JSON.stringify(sales));
+            await p.evaluate(async()=>{await RW_Navigation.navigate('license')});
+            const gold=await p.evaluate(()=>({view:RW_STATE.app.currentView,text:document.getElementById('rw-page-container')?.innerText||'',container:!!document.getElementById('license-main-container')}));
+            if(gold.view!=='license'||!gold.container||!gold.text.includes('إدارة الترخيص'))throw new Error('GOLD_GATE '+JSON.stringify(gold));
+            await p.evaluate(async()=>{RW_STATE.app.currentUser={id:'u2',isOwner:false,permissions:[]};RW_STATE.permissions=[];});
+            const diamond=await p.evaluate(async()=>{try{await RW_Navigation.navigate('license');return {ok:false,error:'NO_REJECTION'}}catch(e){return {ok:true,error:String(e.message||e)}}});
+            if(!diamond.ok||diamond.error!=='OWNER_ONLY')throw new Error('DIAMOND_GATE '+JSON.stringify(diamond));
+            console.log('GOLD=PASS');console.log('DIAMOND=PASS');console.log('CLOSED_100=PASS');console.log(JSON.stringify({initial,company,dash:{view:dash.view},sales,gold,diamond}));
+            await b.close();
+          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
+          NODE
+      - name: Persist only New-main to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout -B close-main origin/main
+          git checkout cto/newmain-script-parse-fix-20260903 -- Current/PWA/New-main
+          git add Current/PWA/New-main
+          test "$(git diff --cached --name-only)" = 'Current/PWA/New-main'
+          git diff --cached --check
+          git config user.name 'RAWAEA CTO Controlled Writer'
+          git config user.email 'rawaea-cto@users.noreply.github.com'
+          git commit -m '[CTO-CLOSED] New-main runtime product closure'
+          git push origin HEAD:main
