@@ -26,68 +26,45 @@ def normalize_main1(raw):
     app_open = opens[-1]
     prefix = raw[:app_open.start()]
     body = raw[app_open.start():]
-    # main1's forensic closure marker is source metadata, not JavaScript. Remove only
-    # the known marker form while preserving all actual application source.
     body = P1_FORENSIC_MARKER.sub('', body)
     body = HTML_COMMENT_TAIL.sub('', body)
     return prefix + body.rstrip()
 
 def normalize_fragment(raw, idx):
     raw = raw.lstrip('\ufeff')
-    # main2..main11 are continuous JavaScript fragments. Do not strip HTML-looking
-    # text from their bodies; it may be data/template content.
     if idx == 7:
         raw = re.sub(r"(safeHTML\(q\(['\"]settlement-rs-select['\"]\),[\s\S]*?\.join\(''\))\);}", r"\1));}", raw, count=1)
     return raw.rstrip()
 
-def extract_main1_application_js(chunk):
-    opens = list(INLINE_RE.finditer(chunk))
-    if not opens: raise RuntimeError('MAIN1_INLINE_RUNTIME_MISSING')
-    app_open = opens[-1]
-    close = chunk.rfind('</script>')
-    end = close if close >= app_open.end() else len(chunk)
-    return chunk[app_open.end():end]
-
 def p163(s):
     if s.count(COMPAT) > 1: raise RuntimeError('P163_COMPAT_DUPLICATE')
     if COMPAT in s:
-        a = s.index(COMPAT); b = s.find(AUTH, a + len(COMPAT))
-        if b < 0: raise RuntimeError('P163_AUTH_AFTER_COMPAT_MISSING')
-        s = s[:a] + s[b:]
+        a=s.index(COMPAT); b=s.find(AUTH,a+len(COMPAT))
+        if b<0: raise RuntimeError('P163_AUTH_AFTER_COMPAT_MISSING')
+        s=s[:a]+s[b:]
     if AUTH not in s:
-        m = re.search(r'(?m)^\s*var\s+RW_Dashboard\s*=\s*', s)
+        m=re.search(r'(?m)^\s*var\s+RW_Dashboard\s*=\s*',s)
         if not m: raise RuntimeError('MAIN2_DASHBOARD_ANCHOR_MISSING')
-        s = s[:m.start()] + AUTH + '\n' + s[m.start():]
-    if s.count(AUTH) != 1: raise RuntimeError('P163_AUTH_COUNT:' + str(s.count(AUTH)))
-    s = re.sub(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}\s*;?', '', s, count=1)
-    s = re.sub(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}\s*;?', '', s, count=1)
-    s = re.sub(r'window\.RW_Items\s*=\s*RW_Items\s*;', 'window.RW_Items=RW_Items;', s, count=1)
-    s = s.replace(VERSION, '').replace(GOVERNED, '')
-    if s.count('window.RW_Items=RW_Items;') != 1: raise RuntimeError('P163_ITEMS_OWNER_COUNT:' + str(s.count('window.RW_Items=RW_Items;')))
-    owner = s.index('window.RW_Items=RW_Items;') + len('window.RW_Items=RW_Items;')
-    return s[:owner] + '\n' + VERSION + '\n' + GOVERNED + s[owner:]
+        s=s[:m.start()]+AUTH+'\n'+s[m.start():]
+    if s.count(AUTH)!=1: raise RuntimeError('P163_AUTH_COUNT:'+str(s.count(AUTH)))
+    s=re.sub(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}\s*;?','',s,count=1)
+    s=re.sub(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}\s*;?','',s,count=1)
+    s=re.sub(r'window\.RW_Items\s*=\s*RW_Items\s*;','window.RW_Items=RW_Items;',s,count=1)
+    s=s.replace(VERSION,'').replace(GOVERNED,'')
+    if s.count('window.RW_Items=RW_Items;')!=1: raise RuntimeError('P163_ITEMS_OWNER_COUNT:'+str(s.count('window.RW_Items=RW_Items;')))
+    owner=s.index('window.RW_Items=RW_Items;')+len('window.RW_Items=RW_Items;')
+    return s[:owner]+'\n'+VERSION+'\n'+GOVERNED+s[owner:]
 
 def inject_canonical_sw(s):
-    # Remove only the exact legacy registration form observed in main1.
-    legacy = re.compile(
-        r"if\s*\(\s*['\"]serviceWorker['\"]\s*in\s*navigator\s*\)\s*"
-        r"navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*"
-        r"\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*"
-        r"\.catch\(\s*function\(e\)\s*\{\s*console\.warn\(\s*['\"]SERVICE_WORKER['\"]\s*,\s*e\s*\)\s*\}\s*\)\s*;?",
-        re.I,
-    )
-    s = legacy.sub('', s)
-    bare = re.compile(
-        r"navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*"
-        r"\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*;?",
-        re.I,
-    )
-    s = bare.sub('', s)
+    legacy = re.compile(r"if\s*\(\s*['\"]serviceWorker['\"]\s*in\s*navigator\s*\)\s*navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*\.catch\(\s*function\(e\)\s*\{\s*console\.warn\(\s*['\"]SERVICE_WORKER['\"]\s*,\s*e\s*\)\s*\}\s*\)\s*;?",re.I)
+    s=legacy.sub('',s)
+    bare=re.compile(r"navigator\.serviceWorker\.register\(\s*['\"]\./sw\.js['\"]\s*,\s*\{\s*scope\s*:\s*['\"]\./['\"]\s*\}\s*\)\s*;?",re.I)
+    s=bare.sub('',s)
     if 'navigator.serviceWorker.register' in s: raise RuntimeError('UNEXPECTED_SERVICE_WORKER_REGISTRATION_FORM')
-    body = s.lower().rfind('</body>')
-    if body < 0: raise RuntimeError('BODY_CLOSE_MISSING')
-    tag = "<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(function(e){console.warn('SERVICE_WORKER',e)})}</script>\n"
-    return s[:body] + tag + s[body:]
+    body=s.lower().rfind('</body>')
+    if body<0: raise RuntimeError('BODY_CLOSE_MISSING')
+    tag="<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(function(e){console.warn('SERVICE_WORKER',e)})}</script>\n"
+    return s[:body]+tag+s[body:]
 
 class StructureParser(HTMLParser):
     def __init__(self): super().__init__(convert_charrefs=False); self.starts=[]; self.ends=[]
@@ -100,6 +77,48 @@ def validate_fragments(parts):
     if not INLINE_RE.search(parts[0]): raise RuntimeError('MAIN1_OPEN_SCRIPT_BOUNDARY_MISSING')
     return [{'part':idx,'bytes':len(part.encode('utf-8')),'lines':part.count('\n')+1} for idx,part in enumerate(parts,1)]
 
+def delimiter_diagnostics(js):
+    pairs={')':'(',']':'[','}':'{'}; opens={'(','[','{'}; stack=[]
+    state='code'; quote=''; esc=False; template_expr=0
+    line=1; col=0; i=0
+    while i < len(js):
+        ch=js[i]; col += 1
+        if ch=='\n': line += 1; col=0
+        if state=='line_comment':
+            if ch=='\n': state='code'
+            i+=1; continue
+        if state=='block_comment':
+            if ch=='*' and i+1<len(js) and js[i+1]=='/': state='code'; i+=2; col+=1; continue
+            i+=1; continue
+        if state in ('single','double'):
+            if esc: esc=False
+            elif ch=='\\': esc=True
+            elif ch==quote: state='code'
+            i+=1; continue
+        if state=='template':
+            if esc: esc=False; i+=1; continue
+            if ch=='\\': esc=True; i+=1; continue
+            if ch=='`' and template_expr==0: state='code'; i+=1; continue
+            # Treat ${ ... } as normal code, but resume template when that expression closes.
+            if ch=='$' and i+1<len(js) and js[i+1]=='{':
+                stack.append(('{',line,col,'template-expr')); template_expr+=1; i+=2; col+=1; state='code'; continue
+            i+=1; continue
+        if ch=='/' and i+1<len(js) and js[i+1]=='/': state='line_comment'; i+=2; col+=1; continue
+        if ch=='/' and i+1<len(js) and js[i+1]=='*': state='block_comment'; i+=2; col+=1; continue
+        if ch in "'\"": quote=ch; state='single' if ch=="'" else 'double'; i+=1; continue
+        if ch=='`': state='template'; i+=1; continue
+        if ch in opens: stack.append((ch,line,col,'code'))
+        elif ch in pairs:
+            expected=pairs[ch]
+            if not stack or stack[-1][0]!=expected:
+                return {'status':'MISMATCH','at':(line,col,ch),'top':stack[-10:]}
+            opener=stack.pop()
+            if opener[3]=='template-expr' and ch=='}':
+                template_expr=max(0,template_expr-1)
+                if template_expr==0: state='template'
+        i+=1
+    return {'status':'UNBALANCED' if stack or state!='code' else 'BALANCED','stack':stack[-20:],'state':state,'template_expr':template_expr,'lines':line}
+
 def _app_js(s):
     apps=[m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I) if 'serviceWorker.register' not in m.group(1)]
     if len(apps)!=1: raise RuntimeError('APPLICATION_INLINE_SCRIPT_COUNT:'+str(len(apps)))
@@ -111,7 +130,9 @@ def validate(s):
     parser=StructureParser(); parser.feed(s); parser.close(); ah=parser.starts.count('html'); eh=parser.ends.count('html'); ab=parser.starts.count('body'); eb=parser.ends.count('body'); ass=parser.starts.count('script'); ess=parser.ends.count('script'); ast=parser.starts.count('style'); est=parser.ends.count('style')
     gates={'doctype_start':start.startswith('<!doctype html>'),'one_html_root':ah==1 and eh==1,'one_body_root':ab==1 and eb==1,'script_balance':ass==ess,'style_balance':ast==est,'auth_one':s.count(AUTH)==1,'version_one':s.count(VERSION)==1,'governed_one':s.count(GOVERNED)==1,'compat_absent':COMPAT not in s,'dash_alias_absent':not re.search(r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}',s),'items_alias_absent':not re.search(r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}',s),'dash_owner_one':len(re.findall(r'(?m)^\s*var\s+RW_Dashboard\s*=\s*',s))==1,'items_owner_one':len(re.findall(r'(?m)^\s*var\s+RW_Items\s*=\s*',s))==1,'items_export_one':s.count('window.RW_Items=RW_Items;')==1,'canonical_sw_one':s.count(CANONICAL_SW)==1,'rpc_present':'.rpc(' in s,'edge_present':'/functions/v1/' in s}; bad=[k for k,v in gates.items() if not v]
     if bad: raise RuntimeError(f'P163_GOLD_GATE_FAIL:{bad} structural html={ah}/{eh} body={ab}/{eb} script={ass}/{ess} style={ast}/{est}')
-    js=_app_js(s); path=Path(tempfile.gettempdir())/'rawaea-new-main.js'; path.write_text(js,encoding='utf-8'); r=subprocess.run(['node','--check',str(path)],capture_output=True,text=True)
+    js=_app_js(s); diag=delimiter_diagnostics(js)
+    if diag['status']!='BALANCED': raise RuntimeError('JS_DELIMITER_DIAG:'+repr(diag))
+    path=Path(tempfile.gettempdir())/'rawaea-new-main.js'; path.write_text(js,encoding='utf-8'); r=subprocess.run(['node','--check',str(path)],capture_output=True,text=True)
     if r.returncode: print(r.stderr); raise RuntimeError('FINAL_JS_SYNTAX_FAIL')
     return gates
 
