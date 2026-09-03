@@ -1,2 +1,2 @@
-Trigger-only PR synchronization after canonical owner-gate repair.
-Synchronization nonce: 2026-09-03T04:18:00+03:00
+Trigger-only PR synchronization after cumulative Main1 boundary + owner-gate repairs.
+Synchronization nonce: 2026-09-03T04:20:00+03:00
