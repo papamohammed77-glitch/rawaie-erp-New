@@ -1,20 +1,25 @@
 name: P163 exact Main2 ownership surgery
 
 # CTO CONTINUATION: one deterministic live-target executor. No fragment reconstruction. No production writes.
+# Observable PR trigger is temporary and exists only to expose the real executor result.
+# Gold gate is contract-driven: current RW_Views permissionMap + actual owner guard.
+# CTO continuation nonce: 2026-09-03T07:01+03:00
 
 on:
   push:
     paths:
       - '.github/workflows/p163_main2_ownership_surgery_20260903.yml'
       - 'tools/_cto_p163_executor_20260903.py'
-  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch
 
 permissions:
   contents: write
 
 jobs:
   surgical-closure:
-    if: ${{ !contains(github.event.head_commit.message, '[P163-EXECUTED]') }}
+    if: ${{ !contains(github.event.head_commit.message || '', '[P163-EXECUTED]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -22,7 +27,6 @@ jobs:
         with:
           ref: main
           fetch-depth: 2
-
       - name: Install browser test runtime
         shell: bash
         run: |
@@ -30,7 +34,6 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null 2>&1
-
       - name: Execute target-preserving P163 closure
         shell: bash
         run: |
