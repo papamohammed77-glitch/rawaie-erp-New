@@ -1,0 +1,50 @@
+name: CTO New-main Surgical Guard 2026-09-03
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+concurrency:
+  group: cto-newmain-surgical-guard
+  cancel-in-progress: true
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+      - name: Patch exact target only
+        shell: bash
+        run: |
+          set -euo pipefail
+          msg=$(git log -1 --pretty=%s)
+          case "$msg" in
+            "[CTO-SURGICAL-GUARD-TRIGGER]") ;;
+            *) echo "Not a surgical trigger: $msg"; exit 0;;
+          esac
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('Current/PWA/New-main')
+          s=p.read_text(encoding='utf-8')
+          login_guard="byId('rw-login-form').addEventListener('submit',function(e){if(window.__RAWAEA_MAIN11_EVENTS_BOUND__)return;"
+          if s.count(login_guard)!=1: raise SystemExit(f'LOGIN_GUARD_COUNT={s.count(login_guard)}')
+          if s.count("loginForm.addEventListener('submit'")!=1: raise SystemExit(f'MAIN11_LOGIN_HANDLER_COUNT={s.count("loginForm.addEventListener(\'submit\'")}')
+          if "var RW_Navigation={" not in s: raise SystemExit('NAV_OBJECT_MISSING')
+          if "var required=permissionByView[view];if(required&&!RW_Permissions_check(required))" not in s:
+              needle="navigate:function(view){RW_STATE.app.currentView=view;var handler=actions[view];"
+              if s.count(needle)!=1: raise SystemExit(f'NAVIGATE_BASE_COUNT={s.count(needle)}')
+              guard="navigate:function(view){var permissionByView={dashboard:'dashboard:view',customers:'customers:view',items:'items:view',suppliers:'suppliers:view',orders:'orders:view',runsheets:'runsheets:view',inventory:'inventory:view',finance:'finance:view',audit:'owner',reports:'reports:view',hr:'hr:view',settings:'settings:view',notifications:'notifications:view',telesales:'telesales:view',pos:'pos:use',purchases:'purchases:view',receiving:'receiving:view',vouchers:'vouchers:view',picking:'picking:view',loading:'loading:view',delivery:'delivery:view',returns:'returns:view',unloading:'unloading:view'};var required=permissionByView[view];if(required&&!RW_Permissions_check(required)){RW_STATE.app.currentView='dashboard';var box=byId('rw-page-container');if(box)safeHTML(box,'<div class=\"rw-notice rw-notice-bad\">غير مصرح لك بفتح هذه الوحدة.</div>');return false}RW_STATE.app.currentView=view;var handler=actions[view];"
+              s=s.replace(needle,guard,1)
+          p.write_text(s,encoding='utf-8')
+          print('TARGET_SURGERY=PASS')
+          PY
+          git diff --check
+          test "$(git diff --name-only)" = "Current/PWA/New-main"
+          git config user.name "cto-newmain-surgical-guard"
+          git config user.email "cto-newmain-surgical-guard@users.noreply.github.com"
+          git add -- Current/PWA/New-main
+          git commit -m "[CTO-NEWM-SECURITY] Enforce central route authorization"
+          git push origin HEAD:main
