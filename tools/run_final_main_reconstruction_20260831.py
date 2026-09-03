@@ -6,8 +6,8 @@ import subprocess
 import tempfile
 import traceback
 
-# CTO-TRIGGER-2026-09-03: execution trigger only; governed reconstruction/P163
-# remains deterministic and fail-closed.
+# CTO-TRIGGER-2026-09-03-FINAL: activate existing governed Gold/Diamond workflow.
+# The reconstruction remains deterministic, fail-closed, and target-only.
 MAIN = Path('Current/PWA/New-main')
 CUR = Path('Current/PWA/main')
 PARTS = [CUR / f'main{i}.md' for i in range(1, 12)]
@@ -77,9 +77,8 @@ def validate_fragment(idx, raw):
 
 
 def validate_phase_js(chunks):
-    # Historical main1..main11 fragments are intentionally incomplete at some
-    # boundaries. Partial-file syntax validation is therefore not a valid gate.
-    # The complete assembled artifact is validated in validate() below.
+    # Historical fragments are intentionally incomplete at boundaries.
+    # Validate the complete assembled artifact instead of partial fragments.
     return True
 
 
