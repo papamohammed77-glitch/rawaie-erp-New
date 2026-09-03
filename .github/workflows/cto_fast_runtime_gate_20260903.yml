@@ -1,0 +1,58 @@
+name: CTO fast New-main runtime verifier — READ ONLY
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: main, fetch-depth: 1}
+      - name: Locate installed Chromium/Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          BROWSER=$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)
+          test -n "$BROWSER"
+          echo "BROWSER=$BROWSER"
+          "$BROWSER" --version
+          echo "BROWSER_PATH=$BROWSER" >> "$GITHUB_ENV"
+      - name: Install Playwright core only
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright-core@1.55.0 >/dev/null 2>&1
+      - name: Read-only Chromium contract test
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -a Current /tmp/rawaea-current
+          cat >/tmp/rawaea-http.py <<'PY'
+          from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
+          class H(SimpleHTTPRequestHandler):
+            def guess_type(self,path): return 'text/html; charset=utf-8' if path.endswith('/New-main') else super().guess_type(path)
+          ThreadingHTTPServer(('127.0.0.1',8124),H).serve_forever()
+          PY
+          (cd /tmp && python3 /tmp/rawaea-http.py >/tmp/rawaea-http.log 2>&1 & echo $! >/tmp/rawaea-http.pid)
+          trap 'kill "$(cat /tmp/rawaea-http.pid)" 2>/dev/null || true' EXIT
+          sleep 2
+          node <<'NODE'
+          const {chromium}=require('playwright-core');
+          (async()=>{
+            const b=await chromium.launch({headless:true,executablePath:process.env.BROWSER_PATH,args:['--no-sandbox']});
+            const p=await b.newPage(); const pe=[],ce=[];
+            p.on('pageerror',e=>pe.push(String(e.message||e))); p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
+            await p.goto('http://127.0.0.1:8124/rawaea-current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});
+            await p.waitForTimeout(800);
+            const r=await p.evaluate(async()=>{const S=window.RW_STATE,N=window.RW_Navigation,L=document.querySelector('link[rel="manifest"]');if(!S||!N)throw Error('CORE_GLOBALS_MISSING');
+              const before=JSON.stringify(S.app.currentUser||null);let denied=false,allowed=false,text=false;S.app.currentUser={id:'x',email:'x@example.com',isOwner:false,permissions:[]};try{const z=await N.navigate('license');denied=(z===false)}catch(e){denied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e.message||e))}
+              S.permissions=['*'];S.app.currentUser.permissions=['*'];S.app.currentUser.isOwner=true;try{await N.navigate('license');allowed=true;text=/إدارة الترخيص/.test(document.getElementById('rw-page-container')?.innerText||'')}catch(e){}
+              return {locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',ownerLicense:typeof RW_OwnerLicense==='object',notification:typeof RW_Notification?.showPanel==='function',denied,allowed,text,wildcard:S.permissions.includes('*'),owner:S.app.currentUser.isOwner===true,diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),p163:document.querySelectorAll('meta[name="rw-p163-closure"]').length,manifest:L?.getAttribute('href')||''};});
+            console.log('FAST_RUNTIME='+JSON.stringify({r,pe,ce}));
+            const ok=!pe.length&&!ce.length&&Object.values({locale:r.locale,auth:r.auth,nav:r.nav,views:r.views,shell:r.shell,ownerLicense:r.ownerLicense,notification:r.notification,denied:r.denied,allowed:r.allowed,text:r.text,wildcard:r.wildcard,owner:r.owner,diamond:r.diamond,p163:r.p163===1,manifest:r.manifest==='../manifest.json'}).every(Boolean);if(!ok)process.exit(2);await b.close();
+          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
+          NODE
+          echo 'FAST_BROWSER_GOLD_DIAMOND=PASS'
