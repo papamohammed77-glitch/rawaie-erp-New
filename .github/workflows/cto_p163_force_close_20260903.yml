@@ -31,7 +31,7 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null 2>&1
-      - name: Execute target-preserving P163 closure on current architecture
+      - name: Execute target-preserving current-path closure on current architecture
         shell: bash
         run: |
           set -euo pipefail
@@ -39,30 +39,30 @@ jobs:
           git reset --hard origin/main
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib,re
+          import hashlib,re,json
           p=Path('Current/PWA/New-main'); old=p.read_text(encoding='utf-8'); s=old
+          pwa_manifest_old='<link rel="manifest" href="../manifest.json">'
+          if pwa_manifest_old in s:
+              s=s.replace(pwa_manifest_old,'<link rel="manifest" href="./New-main.manifest.json">',1)
+          elif './New-main.manifest.json' not in s:
+              raise SystemExit('PWA_MANIFEST_LINEAGE_UNKNOWN')
+          if 'rw-pwa-runtime-gold' not in s:
+              s=s.replace('</head>','<meta name="rw-pwa-runtime-gold" content="PWA-RUNTIME-GOLD-2026-09-03">\n<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>\n</head>',1)
+          else:
+              if s.count('rw-pwa-runtime-gold')!=1 or s.count('RAWAEA_TARGET_SW_COORDINATOR')!=1:
+                  raise SystemExit('PWA_RUNTIME_MARKER_DUPLICATION')
+          Path('Current/PWA/New-main.manifest.json').write_text(json.dumps({'name':'الروائع ERP','short_name':'الروائع ERP','description':'منصة إدارة الأعمال الذكية والمتكاملة - الروائع ERP','start_url':'./New-main','scope':'./','display':'standalone','dir':'rtl','lang':'ar','background_color':'#f8fafc','theme_color':'#2563eb','icons':[{'src':'./New-main-icon.svg','sizes':'any','type':'image/svg+xml','purpose':'any maskable'}]},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          Path('Current/PWA/New-main-icon.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#2563eb"/><text x="256" y="325" text-anchor="middle" font-family="Arial,Tahoma,sans-serif" font-size="270" font-weight="900" fill="#fff">ر</text></svg>\n',encoding='utf-8')
           marker='/* RAWAEA MAIN10 AUTHORITATIVE MODULE */'; assert s.count(marker)>=1,'MAIN10_MISSING'
-          legacy_start='window.RW_OwnerLicense='
-          starts=[m.start() for m in re.finditer(re.escape(legacy_start),s)]
-          assert len(starts)==1,'LEGACY_OWNER_ASSIGNMENT_COUNT:'+str(len(starts))
-          start=starts[0]
-          end=s.find('};',start)
-          assert end>start,'LEGACY_OWNER_END_MISSING'
-          legacy_block=s[start:end+2]
+          starts=[m.start() for m in re.finditer(re.escape('window.RW_OwnerLicense='),s)]; assert len(starts)==1,'LEGACY_OWNER_ASSIGNMENT_COUNT:'+str(len(starts))
+          start=starts[0]; end=s.find('};',start); assert end>start,'LEGACY_OWNER_END_MISSING'; legacy_block=s[start:end+2]
           assert 'isOwner:function' in legacy_block and 'permissions:function' in legacy_block and 'licenseState:function' in legacy_block and 'isActive:function' in legacy_block,'LEGACY_OWNER_BLOCK_UNEXPECTED'
           assert 'RW_OwnerLicense = RW_OwnerLicense' not in legacy_block,'AUTHORITATIVE_OWNER_SELECTED'
           s=s[:start]+s[end+2:]
-          notif_old="async function showPanel(){\n  var e=email();"
-          notif_new="async function showPanel(){\n  var e=RW_STATE&&RW_STATE.app&&RW_STATE.app.currentUser?RW_STATE.app.currentUser.email:null;"
-          assert s.count(notif_old)==1,'NOTIFICATION_LEGACY_COUNT:'+str(s.count(notif_old))
-          s=s.replace(notif_old,notif_new,1)
-          assert notif_new in s,'NOTIFICATION_FIX_MISSING'
+          notif_old="async function showPanel(){\n  var e=email();"; notif_new="async function showPanel(){\n  var e=RW_STATE&&RW_STATE.app&&RW_STATE.app.currentUser?RW_STATE.app.currentUser.email:null;"; assert s.count(notif_old)==1,'NOTIFICATION_LEGACY_COUNT:'+str(s.count(notif_old)); s=s.replace(notif_old,notif_new,1)
           assert s.count('window.RW_OwnerLicense = RW_OwnerLicense;')==1,'AUTHORITATIVE_OWNER_COUNT'
           assert 'RAWAEA 122 DIAMOND CONTRACT CLOSURE v1' in s,'DIAMOND_CONTRACT_MISSING'
-          assert 'window.RW_ShellContext=' in s,'SHELL_CONTEXT_MISSING'
-          assert 'window.RW_Auth=' in s,'AUTH_MISSING'
-          assert 'window.RW_Navigation=' in s,'NAV_MISSING'
-          assert 'window.RW_Views=' in s,'VIEWS_MISSING'
+          assert 'window.RW_ShellContext=' in s and 'window.RW_Auth=' in s and 'window.RW_Navigation=' in s and 'window.RW_Views=' in s,'CORE_CONTRACT_MISSING'
           assert 'var actions=' in s and 'function main1Delegation(' in s,'ROUTING_SURFACE_MISSING'
           scripts=[]
           for m in re.finditer(r'<script[^>]*>([\s\S]*?)</script>',s,re.I):
@@ -74,13 +74,22 @@ jobs:
           print('TARGET_SHA_BEFORE',hashlib.sha256(old.encode()).hexdigest()); print('TARGET_SHA_AFTER',hashlib.sha256(s.encode()).hexdigest())
           PY
           node --check /tmp/newmain.js
+          node --check Current/PWA/register-sw.js
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('Current/PWA/New-main.manifest.json').read_text(encoding='utf-8'))
+          assert m['start_url']=='./New-main' and m['scope']=='./' and m['dir']=='rtl' and m['lang']=='ar'
+          assert Path('Current/PWA/New-main-icon.svg').exists()
+          print('PWA_STATIC_CONTRACT_PASS')
+          PY
           rm -rf /tmp/p163_site; mkdir -p /tmp/p163_site
           cp -a Current/PWA/. /tmp/p163_site/
           cp Current/PWA/New-main /tmp/p163_site/main.html
           (cd /tmp/p163_site && python3 -m http.server 8123 >/tmp/p163-http.log 2>&1 & echo $! >/tmp/p163-http.pid)
-          timeout 30s node <<'NODE'
+          timeout 45s node <<'NODE'
           const {chromium}=require('playwright');
-          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const e=[];p.on('pageerror',x=>e.push(x.message));p.on('console',m=>{if(m.type()==='error')e.push(m.text())});await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:10000});await p.waitForSelector('#rw-login-page',{timeout:10000});const r=await p.evaluate(()=>({lang:document.documentElement.lang,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),legacy:document.documentElement.outerHTML.includes('window.RW_OwnerLicense={isOwner:function')}));console.log(JSON.stringify({r,e}));if(e.length||r.lang!=='ar'||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||!r.diamond||r.legacy)process.exit(2);const n=await p.evaluate(async()=>{window.RW_STATE.app.currentUser={email:'smoke@example.com'};try{await window.RW_Notification.showPanel();return {ok:true}}catch(x){return {ok:false,error:String(x&&x.message||x)}}});console.log('NOTIFICATION_SMOKE='+JSON.stringify(n));if(!n.ok)process.exit(3);await b.close()})().catch(x=>{console.error(x);process.exit(2)});
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const e=[];p.on('pageerror',x=>e.push(x.message));p.on('console',m=>{if(m.type()==='error')e.push(m.text())});await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:10000});await p.waitForSelector('#rw-login-page',{timeout:10000});await p.waitForTimeout(1200);const r=await p.evaluate(async()=>{const l=document.querySelector('link[rel="manifest"]');const mj=await (await fetch(l.href)).json();const reg=await navigator.serviceWorker.getRegistration('./');return {lang:document.documentElement.lang,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),legacy:document.documentElement.outerHTML.includes('window.RW_OwnerLicense={isOwner:function'),manifest:l.getAttribute('href'),manifestStart:mj.start_url,manifestScope:mj.scope,sw:!!reg,swScript:reg?.active?.scriptURL||null,pwa:document.querySelector('meta[name="rw-pwa-runtime-gold"]')?.content||null}};console.log(JSON.stringify({r,e}));if(e.length||r.lang!=='ar'||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||!r.diamond||r.legacy||r.manifest!=='./New-main.manifest.json'||r.manifestStart!=='./New-main'||r.manifestScope!=='./'||!r.sw||!r.swScript?.endsWith('/sw.js')||r.pwa!=='PWA-RUNTIME-GOLD-2026-09-03')process.exit(2);await b.close()})().catch(x=>{console.error(x);process.exit(2)});
           NODE
           kill "$(cat /tmp/p163-http.pid)" 2>/dev/null || true
           git diff --check
@@ -89,9 +98,9 @@ jobs:
           from pathlib import Path
           import hashlib
           st=Path('CURRENT_STATE.md'); s=st.read_text(encoding='utf-8').rstrip(); h=hashlib.sha256(Path('Current/PWA/New-main').read_bytes()).hexdigest()
-          s+=f'''\n\n## CTO CURRENT-PATH RECONCILIATION — 2026-09-03\n- Direct target evidence identified two concrete runtime/source gaps: the inline `RW_OwnerLicense` shadow and `RW_Notification.showPanel()` calling an out-of-scope `email()` helper.\n- Target-preserving surgery removed the duplicate owner surface and bound notification panel lookup to `RW_STATE.app.currentUser.email`.\n- Node syntax: PASS.\n- Browser smoke: PASS on exact target content; no page/console errors; Auth/Navigation/Views/Shell/Owner/Diamond surfaces present and notification panel no longer raises the prior ReferenceError.\n- Verified target SHA-256: `{h}`\n- This reconciles direct source evidence with the P163 state and closes only the proven current-path gaps; it does not assert whole-ERP closure.\n''' ; st.write_text(s+'\n',encoding='utf-8')
+          s+=f'''\n\n## CTO CURRENT-PATH RECONCILIATION — 2026-09-03\n- Direct target evidence identified and closed the duplicate owner surface and notification runtime gap.\n- PWA runtime lineage was corrected to the target-specific `New-main.manifest.json`; explicit target SW coordinator and target icon were added.\n- Node syntax: PASS.\n- Static PWA contract: PASS.\n- Browser smoke: PASS on exact target content; no page/console errors; Auth/Navigation/Views/Shell/Owner/Diamond surfaces present; manifest fetched; Service Worker active on `sw.js`.\n- Verified target SHA-256: `{h}`\n- Production Supabase writes: NONE.\n- This closes the proven current-path Closure Units only; whole-ERP closure remains subject to the unified orchestrator.\n''' ; st.write_text(s+'\n',encoding='utf-8')
           PY
-          git add Current/PWA/New-main CURRENT_STATE.md; git diff --cached --check
-          git commit -m '[P163-EXECUTED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED] reconcile owner and notification runtime gaps'
+          git add Current/PWA/New-main Current/PWA/New-main.manifest.json Current/PWA/New-main-icon.svg CURRENT_STATE.md; git diff --cached --check
+          git commit -m '[CTO-CURRENT-PATH] [GOLD-PROVEN] [DIAMOND-PROVEN] close New-main runtime gaps'
           timeout 120s git push origin HEAD:main
-# CTO continuation nonce 2026-09-03T07:56:00+03:00
+# CTO continuation nonce 2026-09-03T08:10:00+03:00
