@@ -1,121 +1,18 @@
-# RUN 2026-09-03 — CTO FINAL TARGET EXECUTOR
-name: ACTIONS DIAGNOSTIC 20260831
+# RETIRED 2026-09-03
+# This historical diagnostic executor is intentionally disabled.
+# It previously had contents: write and could mutate Current/PWA/New-main.
+# Use cto_final_runtime_gate_20260903.yml for read-only verification.
+name: ACTIONS DIAGNOSTIC 20260831 — RETIRED
+
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+
 permissions:
-  contents: write
+  contents: read
+
 jobs:
-  diagnostic:
-    if: ${{ !contains(github.event.head_commit.message, '[CTO-EXECUTED]') }}
+  retired:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 3
-
-      - name: Surgical New-main target repair — no reconstruction
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('Current/PWA/New-main')
-          s=p.read_text(encoding='utf-8')
-          old='function byId(id){return document.getElementById(id)}'
-          new=old+'\nwindow.byId=byId;'
-          assert s.count(old)==1, 'BYID_DEFINITION_COUNT:'+str(s.count(old))
-          if 'window.byId=byId;' not in s:
-              p.write_text(s.replace(old,new,1),encoding='utf-8')
-              print('TARGET_REPAIR=APPLIED')
-          else:
-              print('TARGET_REPAIR=ALREADY_PRESENT')
-          PY
-          git diff --check
-          node --check Current/PWA/register-sw.js
-          node --check Current/PWA/sw.js
-
-      - name: Gold/Diamond source gate
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import hashlib,re
-          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
-          required=['window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM','main1Delegation','actions','MAIN3','post_stock_movement','reserve_stock','post_journal_entry','window.byId=byId;']
-          missing=[x for x in required if x not in s]
-          if missing: raise SystemExit('REQUIRED_CONTRACT_MISSING:'+repr(missing))
-          checks={'authoritative_one':s.count('/* RAWAEA MAIN2 AUTHORITATIVE MODULE */')==1,'script_balance':s.lower().count('<script')==s.lower().count('</script>'),'style_balance':s.lower().count('<style')==s.lower().count('</style>')}
-          if not all(checks.values()): raise SystemExit('GOLD_DIAMOND_FAIL:'+repr(checks))
-          print('GOLD_DIAMOND_SOURCE_PASS',checks)
-          print('TARGET_SHA256',hashlib.sha256(s.encode()).hexdigest())
-          print('TARGET_BYTES',len(s.encode()))
-          PY
-
-      - name: Final JavaScript syntax gate
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',''.join(m.group('a') or '').lower())]
-          if len(ms)!=1: raise SystemExit('INLINE_APPLICATION_SCRIPT_COUNT:'+str(len(ms)))
-          Path('/tmp/new-main.js').write_text(ms[0].group('b'),encoding='utf-8')
-          PY
-          node --check /tmp/new-main.js
-
-      - name: Browser smoke gate — actual owner/non-owner license route
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm init -y >/dev/null 2>&1
-          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
-          npx playwright install --with-deps chromium >/dev/null 2>&1
-          rm -rf /tmp/rawaea-new-main-pwa && mkdir -p /tmp/rawaea-new-main-pwa
-          cp -r Current/PWA/. /tmp/rawaea-new-main-pwa/
-          cp Current/PWA/New-main /tmp/rawaea-new-main-pwa/New-main.html
-          python3 -m http.server 8124 --directory /tmp/rawaea-new-main-pwa >/tmp/rawaea-new-main-http.log 2>&1 &
-          node <<'NODE'
-          const {chromium}=require('playwright');
-          (async()=>{
-            const b=await chromium.launch({headless:true});
-            const pe=[],ce=[];
-            async function load(){
-              const p=await b.newPage({serviceWorkers:'block'});p.setDefaultTimeout(12000);p.setDefaultNavigationTimeout(20000);
-              p.on('pageerror',e=>pe.push(String(e.message||e)));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
-              await p.goto('http://127.0.0.1:8124/New-main.html',{waitUntil:'domcontentloaded',timeout:20000});
-              await p.waitForFunction(()=>window.RW_STATE&&window.RW_Navigation&&window.RW_OwnerLicense&&typeof window.byId==='function',{timeout:12000});
-              return p;
-            }
-            const p=await load();
-            const initial=await p.evaluate(()=>({lang:document.documentElement.lang,dir:document.documentElement.dir,body:!!document.body,state:!!RW_STATE,auth:!!RW_Auth,nav:!!RW_Navigation,views:!!RW_Views,shell:!!RW_ShellContext,owner:!!RW_OwnerLicense,byId:typeof window.byId==='function',diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),p163:document.querySelectorAll('meta[name="rw-p163-closure"]').length,manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||''}));
-            const denied=await p.evaluate(async()=>{RW_STATE.app.currentUser={isOwner:false};RW_STATE.permissions=[];try{await RW_Navigation.navigate('license');return {ok:false,error:'NO_REJECTION',view:RW_STATE.app.currentView}}catch(e){return {ok:e.message==='OWNER_ONLY',error:e.message,view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container')}}});
-            await p.close();
-            const o=await load();
-            const owner=await o.evaluate(async()=>{RW_STATE.app.currentUser={id:'x',email:'owner@smoke.local',isOwner:true,permissions:['*']};RW_STATE.permissions=['*'];try{await RW_Navigation.navigate('license');}catch(e){return {ok:false,error:String(e.message||e)}};return {ok:true,view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container'),text:(document.getElementById('rw-page-container')?.innerText||'').includes('إدارة الترخيص')}});
-            await o.waitForTimeout(500);
-            const ownerCheck=await o.evaluate(()=>({view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container'),text:(document.getElementById('rw-page-container')?.innerText||'').includes('إدارة الترخيص')}));
-            await o.close();
-            const r={initial,denied,owner,ownerCheck,pe,ce};console.log('OWNER_LICENSE_RUNTIME='+JSON.stringify(r));
-            const ok=!pe.length&&!ce.length&&r.initial.lang==='ar'&&r.initial.dir==='rtl'&&r.initial.body&&r.initial.state&&r.initial.auth&&r.initial.nav&&r.initial.views&&r.initial.shell&&r.initial.owner&&r.initial.byId&&r.initial.diamond&&r.initial.p163===1&&r.initial.manifest==='../manifest.json'&&r.denied.ok&&r.denied.view!=='license'&&!r.denied.container&&r.owner.ok&&r.owner.view==='license'&&r.ownerCheck.container&&r.ownerCheck.text;
-            await b.close();if(!ok)process.exit(2);
-          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
-          NODE
-          echo 'BROWSER_GOLD_DIAMOND=PASS'
-
-      - name: Persist target-only closure commit
-        shell: bash
-        run: |
-          set -euo pipefail
-          git diff --check
-          git config user.name 'RAWAEA CTO Executor'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add Current/PWA/New-main
-          git diff --cached --quiet && { echo 'NEW_MAIN_NO_DELTA'; exit 1; }
-          git commit -m '[CTO-EXECUTED] New-main Owner License Gold/Diamond repair'
-          git push origin HEAD:main
+      - name: Historical workflow retired
+        run: echo "RETIRED — no repository mutation permitted"
