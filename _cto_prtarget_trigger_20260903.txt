@@ -1,2 +1,2 @@
-Trigger-only PR synchronization after final syntax-diagnostic repair.
-Synchronization nonce: 2026-09-03T04:25:00+03:00
+Trigger-only PR synchronization for independent forensic source-boundary analysis.
+Synchronization nonce: 2026-09-03T04:38:00+03:00
