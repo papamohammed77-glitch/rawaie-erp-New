@@ -48,8 +48,9 @@ jobs:
           if pwa not in s: s=s.replace(anchor,anchor+'\n'+pwa,1)
           coord='<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>'
           if coord not in s:
-              if s.count('</head>')!=1: raise SystemExit('HEAD_CLOSE_COUNT')
-              s=s.replace('</head>',coord+'\n</head>',1)
+              m=re.search(r'</head\s*>',s,re.I)
+              if not m: raise SystemExit('HEAD_CLOSE_MISSING')
+              s=s[:m.start()]+coord+'\n'+s[m.start():]
           old_email="async function showPanel(){\n  var e=email();"
           new_email="async function showPanel(){\n  var e=RW_STATE&&RW_STATE.app&&RW_STATE.app.currentUser?RW_STATE.app.currentUser.email:null;"
           if old_email in s:
@@ -132,4 +133,4 @@ jobs:
           if git diff --cached --quiet; then echo 'NO_TARGET_CHANGE'; exit 1; fi
           git commit -m '[P163-FINAL-CLOSED] [GOLD-PROVEN] [DIAMOND-PROVEN] Current/PWA/New-main'
           git push origin HEAD:main
-# CTO trigger marker: forensic gate inputs revalidated on 2026-09-03
+# CTO forensic hardening: replace brittle literal head-count gate with parser-safe first closing-head insertion
