@@ -6,6 +6,7 @@ TARGET=Path('Current/PWA/New-main')
 LEGACY=Path('Current/PWA/main.html')
 
 # CTO-EXECUTE-2026-09-03: canonical eleven-part reconstruction; no auxiliary app file.
+# Merge-trigger revision: execute the existing clean-room workflow on main.
 
 def sha(s): return hashlib.sha256(s.encode('utf-8')).hexdigest()
 
