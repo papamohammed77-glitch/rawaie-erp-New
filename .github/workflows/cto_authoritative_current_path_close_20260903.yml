@@ -126,3 +126,4 @@ jobs:
           if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then git rebase origin/main; fi
           git push origin HEAD:main
 # Sole authoritative writer; legacy writers frozen.
+# closure_nonce: 2026-09-03T05:29Z
