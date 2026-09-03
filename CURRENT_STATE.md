@@ -46,3 +46,47 @@ FRAGMENT RECONSTRUCTION   = NOT USED
 - Source of truth: current Git target object + direct verification record from the exact same target object.
 - Runtime evidence is accepted because the browser Gold gate was previously executed against this exact artifact content and the current target blob matches that artifact byte-for-byte at Git object level.
 - No claim is made for unrelated ERP-wide closure beyond this target.
+
+## CTO CONTINUITY RECONCILIATION — 2026-09-03
+- `MASTER_CTO_UNIFIED_CONTINUITY_EXECUTION_GOLD_DIAMOND.md` was read end-to-end before execution.
+- Direct Git evidence found a regression after the earlier closure: commit `3fe15e747e9a99441be5f96584b7935ac4840b2c` replaced `Current/PWA/New-main` with a truncated 3-line artifact and deleted 5,423 lines relative to the prior complete target.
+- A subsequent automated repair path existed, but its runs were not accepted as persistence authority; the governing rule `TRIGGER ≠ SUCCESS` was applied.
+- The authorized repair restored the exact trusted blob `f26581b58f101671f96bdc23c58867b985182955` directly at Git object level. No fragment reconstruction was used.
+- Final restoration commit: `2c02361ba01f37839a6fb4ad0f44c9eac60ef44a` with message `[FINAL-CLOSED] [GOLD-PROVEN] [DIAMOND-PROVEN] Restore trusted New-main artifact`.
+- Commit comparison proves the restoration changed only `Current/PWA/New-main`, with `+5,423 / -3` relative to the immediately preceding truncated target.
+- Current target identity was re-fetched after deployment and returned the trusted blob SHA above.
+- `Current/manifest.json` was directly verified; its `start_url` is `./PWA/New-main`, `scope` is `./PWA/`, and language/direction are `ar`/`rtl`.
+- No production Supabase data writes were performed.
+
+## REQUIRED CONTINUITY MAP
+```text
+CURRENT HEAD                = 2c02361ba01f37839a6fb4ad0f44c9eac60ef44a
+TARGET                      = Current/PWA/New-main
+LAST VERIFIED EVENT         = Trusted target restored and live Git identity re-verified
+CLOSED UNITS                = P163; MAIN2 governance; Diamond 122; target Gold/Diamond closure; regression recovery
+OPEN UNITS                  = No known target-blocking Gold/Diamond unit for New-main; ERP-wide closure is out of scope
+FAILED ATTEMPTS             = Truncated target regression; prior reconstruction-based executors; non-authoritative workflow-only proofs
+KNOWN CONFLICTS             = Historical automation could mutate target; final-closed commit guard is now used
+KNOWN UNKNOWNS              = Unrelated ERP-wide contracts are not claimed closed by this target closure
+NEXT AUTHORIZED ACTION      = Preserve New-main blob; investigate only new evidence-based regressions or the next explicitly scoped closure unit
+FORBIDDEN ACTIONS           = Fragment-only persistence; blind whole-file reconstruction; production business-data writes; disabling RLS; treating workflow labels as proof
+```
+
+## SELF-AUDIT
+- Scope followed: yes; only `Current/PWA/New-main` was restored in the target closure commit.
+- Historical record preservation: yes; previous records were not deleted or rewritten.
+- Evidence hierarchy followed: direct Git target identity outranked stale automation state.
+- No unsupported ERP-wide Gold/Diamond claim is made.
+- No production business-data mutation occurred.
+
+## FINAL STATUS — RECONCILED
+```text
+CURRENT/PWA/New-main      = CLOSED 100%
+TARGET REGRESSION         = FIXED
+GOLD                      = PROVEN
+DIAMOND                   = PROVEN
+P163                      = PROVEN / CLOSED
+TARGET BLOB               = f26581b58f101671f96bdc23c58867b985182955
+AUTHORITATIVE COMMIT      = 2c02361ba01f37839a6fb4ad0f44c9eac60ef44a
+SUPABASE PROD WRITES      = 0
+```
