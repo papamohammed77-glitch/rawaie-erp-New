@@ -1,4 +1,5 @@
 name: RAWAEA P135 One-Time Surgical Runtime Repair
+# CTO V4: controlled target convergence; no semantic app changes outside Current/PWA/New-main.
 on:
   push:
     branches: [main]
@@ -39,8 +40,9 @@ jobs:
           coord='<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>'
           assert s.count(coord)<=1,'SW_COORD_DUPLICATE'
           if coord not in s:
-              assert s.count('</head>')==1,'HEAD_COUNT'
-              s=s.replace('</head>',coord+'\n</head>',1)
+              idx=s.find('</head>')
+              assert idx>=0,'HEAD_TAG_MISSING'
+              s=s[:idx]+coord+'\n'+s[idx:]
           decl="function safeHTML(el,html){if(el)el.innerHTML=html}"; bridge='window.safeHTML=safeHTML;'
           assert s.count(decl)==1,'SAFEHTML_DECL_COUNT'
           if bridge not in s: s=s.replace(decl,decl+'\n'+bridge,1)
@@ -72,7 +74,16 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
           npx playwright install chromium >/dev/null 2>&1
-          python3 -m http.server 4173 --directory Current/PWA >/tmp/p135-http.log 2>&1 & pid=$!
+          cat >/tmp/p135-http.py <<'PY'
+          from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
+          import os
+          class H(SimpleHTTPRequestHandler):
+            def __init__(self,*args,**kwargs): super().__init__(*args,directory=os.environ['SERVE_DIR'],**kwargs)
+            def log_message(self,fmt,*args): pass
+            def guess_type(self,path): return 'text/html; charset=utf-8' if path.endswith('/New-main') else super().guess_type(path)
+          ThreadingHTTPServer(('127.0.0.1',4173),H).serve_forever()
+          PY
+          SERVE_DIR="$PWD/Current/PWA" python3 /tmp/p135-http.py >/tmp/p135-http.log 2>&1 & pid=$!
           trap 'kill "$pid" 2>/dev/null || true' EXIT
           sleep 2
           cat >/tmp/p135.cjs <<'NODE'
