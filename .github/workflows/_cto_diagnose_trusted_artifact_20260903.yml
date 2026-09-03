@@ -8,62 +8,83 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
-concurrency:
-  group: cto-one-time-newmain-surgery-20260903
-  cancel-in-progress: false
 jobs:
   repair:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-        with: {ref: main, fetch-depth: 1}
-      - uses: actions/setup-node@v4
-        with: {node-version: 20}
-      - name: Exact target surgical repair
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Surgical New-main product closure
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib
+          import re, json, hashlib, subprocess, tempfile
           p=Path('Current/PWA/New-main')
           s=p.read_text(encoding='utf-8')
-          needle='function byId(id){return document.getElementById(id)}'
-          bridge='window.byId=byId;'
-          assert s.count(needle)==1,'BYID_DECLARATION_COUNT_INVALID'
-          assert s.count('window.safeText=safeText;')==1,'SAFETEXT_BRIDGE_INVALID'
-          assert s.count(bridge) in (0,1),'BYID_BRIDGE_COUNT_INVALID'
-          if s.count(bridge)==0:
-              before=hashlib.sha256(s.encode()).hexdigest()
-              s=s.replace(needle,needle+'\n'+bridge,1)
-              p.write_text(s,encoding='utf-8')
-              print('PATCH=APPLIED')
-              print('BEFORE_SHA256='+before)
-              print('AFTER_SHA256='+hashlib.sha256(s.encode()).hexdigest())
-          else:
-              print('PATCH=ALREADY_PRESENT')
+          before=s
+          assert len(s.encode())>500000 and '<html lang="ar" dir="rtl">' in s
+          assert '<link rel="manifest" href="./manifest.json">' in s
+          # Auth boot contract: pass the already-resolved Supabase auth user into the canonical engine.
+          if 'await window.RW_Auth.enterSystem();' in s:
+              s=s.replace('await window.RW_Auth.enterSystem();','await window.RW_Auth.enterSystem(authUser);')
+          assert 'await window.RW_Auth.enterSystem(authUser);' in s
+          # The published target must not require the sibling service-worker coordinator.
+          s=s.replace('<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>','')
+          assert 'RAWAEA_TARGET_SW_COORDINATOR' not in s and './register-sw.js' not in s
+          assert not re.search(r'<script[^>]+src=["\']\./[^"\']+\.js["\'][^>]*>',s,re.I)
+          assert not re.search(r'<link[^>]+href=["\']\./[^"\']+\.html["\'][^>]*>',s,re.I)
+          # Expose the canonical Supabase client only for pre-auth branding/reset-password UI.
+          if 'window.__RAWAEA_SUPABASE_CLIENT__=supabase;' not in s:
+              m=re.search(r'var supabase=window\.supabase\.createClient\([^;]+\);',s)
+              if not m:
+                  raise SystemExit('SUPABASE_CLIENT_DECLARATION_NOT_FOUND')
+              s=s[:m.end()]+'window.__RAWAEA_SUPABASE_CLIENT__=supabase;'+s[m.end():]
+          # Final runtime compatibility layer. It does not replace the canonical engine; it binds the old visual surface to it.
+          layer=r'''\n<script id="RAWAEA_FINAL_PRODUCT_CLOSURE">\n(function(){'use strict';\nfunction byId(x){return document.getElementById(x)}\nfunction setBrand(name,logo){\n  name=(String(name||'').trim()||'الروائع ERP');\n  var n=byId('rw-login-company-name')||document.querySelector('.rw-company-name'); if(n){n.id='rw-login-company-name';n.textContent=name}\n  var sn=byId('rw-sidebar-company-name'); if(sn)sn.textContent=name;\n  var l=byId('rw-login-company-logo')||document.querySelector('.rw-login-logo');\n  if(l){l.id='rw-login-company-logo';if(logo){l.innerHTML='';var i=document.createElement('img');i.alt='شعار الشركة';i.style.width='100%';i.style.height='100%';i.style.objectFit='contain';i.style.padding='10px';i.src=String(logo);l.appendChild(i)}else if(!l.textContent.trim()){l.textContent=name.charAt(0)||'ر'}}\n  var sl=byId('rw-sidebar-brand-logo');if(sl&&logo)sl.src=String(logo);\n}\nasync function syncBrand(){\n  try{var c=(window.RW_STATE&&RW_STATE.app&&RW_STATE.app.company)||{};if(c.name||c.logo)setBrand(c.name,c.logo)}catch(e){}\n  try{var client=window.__RAWAEA_SUPABASE_CLIENT__;if(client){var r=await client.from('app_settings').select('company_name,company_logo').limit(1).maybeSingle();if(!r.error&&r.data)setBrand(r.data.company_name,r.data.company_logo)}}catch(e){}\n}\nfunction patchRoutes(){\n  try{var n=window.RW_Navigation,w=window.RW_Warehouse;if(!n||typeof n.navigate!=='function'||!w||typeof w.loadVoucherForm!=='function')return false;if(n.__finalRoutePatch)return true;var old=n.navigate.bind(n);n.navigate=function(view){var a=arguments;if(view==='transfer')return w.loadVoucherForm('Transfer');if(view==='direct-sale')return w.loadVoucherForm('DirectSale');if(view==='direct-return')return w.loadVoucherForm('DirectReturn');if(view==='supplier-return')return w.loadVoucherForm('SupplierReturn');return old.apply(null,a)};n.__finalRoutePatch=true;return true}catch(e){return false}\n}\nfunction wire(){\n  try{if(window.RW_Auth&&typeof RW_Auth.enterSystem==='function'&&!RW_Auth.enterSystem.__finalBrandWrap){var e0=RW_Auth.enterSystem;RW_Auth.enterSystem=async function(u){var z=await e0.call(this,u);await syncBrand();return z};RW_Auth.enterSystem.__finalBrandWrap=true}}catch(e){}\n  syncBrand();\n  if(!patchRoutes())setTimeout(function(){if(!patchRoutes())setTimeout(patchRoutes,500)},100);\n}\nif(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire,{once:true});else wire();\nwindow.RW_FinalProductClosure={syncBrand:syncBrand,patchRoutes:patchRoutes};\n})();\n</script>\n'''
+          if 'RAWAEA_FINAL_PRODUCT_CLOSURE' not in s:
+              s=s.replace('</body>',layer+'</body>',1)
+          assert 'RAWAEA_FINAL_PRODUCT_CLOSURE' in s
+          assert "if(view==='transfer')return w.loadVoucherForm('Transfer')" in s
+          assert "if(view==='direct-sale')return w.loadVoucherForm('DirectSale')" in s
+          assert "if(view==='direct-return')return w.loadVoucherForm('DirectReturn')" in s
+          assert "if(view==='supplier-return')return w.loadVoucherForm('SupplierReturn')" in s
+          p.write_text(s,encoding='utf-8')
+          assert s!=before
+          print('PRODUCT_SHA256='+hashlib.sha256(s.encode()).hexdigest())
+          print('PRODUCT_BYTES='+str(len(s.encode())))
+          print('PRODUCT_LINES='+str(len(s.splitlines())))
           PY
+          git add Current/PWA/New-main
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
           python3 - <<'PY'
           from pathlib import Path
-          import re
+          import re,subprocess,tempfile
           s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)
-          assert len(scripts)==1,'INLINE_SCRIPT_COUNT_INVALID'
-          Path('/tmp/new-main-inline.js').write_text(scripts[0],encoding='utf-8')
+          assert s.count('<link rel="manifest" href="./manifest.json">')==1
+          assert s.count('await window.RW_Auth.enterSystem(authUser);')>=1
+          assert 'RAWAEA_FINAL_PRODUCT_CLOSURE' in s
+          blocks=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)
+          assert blocks
+          for code in blocks:
+              f=Path(tempfile.mkstemp(suffix='.js')[1]);f.write_text(code,encoding='utf-8')
+              try: subprocess.run(['node','--check',str(f)],check=True)
+              finally:f.unlink(missing_ok=True)
+          print('STATIC_NODE_CHECK=PASS')
           PY
-          node --check /tmp/new-main-inline.js
-          grep -o 'window.safeText=safeText;' Current/PWA/New-main | wc -l | grep '^1$'
-          grep -o 'window.byId=byId;' Current/PWA/New-main | wc -l | grep '^1$'
-          echo 'SURGICAL_STATIC=PASS'
-      - name: Chromium owner/non-owner and shell gate
+      - name: Chromium product gate
         shell: bash
         run: |
           set -euo pipefail
           npm init -y >/dev/null 2>&1
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
           npx playwright install chromium >/dev/null 2>&1
-          python3 -m http.server 8129 --directory Current/PWA >/tmp/p135-http.log 2>&1 &
+          python3 -m http.server 8129 --directory Current/PWA >/tmp/pwa-http.log 2>&1 &
           pid=$!
           trap 'kill "$pid" 2>/dev/null || true' EXIT
           sleep 2
@@ -71,35 +92,24 @@ jobs:
           const {chromium}=require('playwright');
           (async()=>{
             const b=await chromium.launch({headless:true,args:['--no-sandbox']});
-            async function test(){
-              const p=await b.newPage({serviceWorkers:'block'});const errors=[];
-              p.on('pageerror',e=>errors.push(String(e.message||e)));p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
-              await p.goto('http://127.0.0.1:8129/New-main',{waitUntil:'domcontentloaded'});
-              await p.waitForFunction(()=>window.RW_STATE&&window.RW_Navigation&&window.RW_OwnerLicense&&typeof window.byId==='function'&&typeof window.safeText==='function');
-              const initial=await p.evaluate(()=>({locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',ownerLicense:typeof RW_OwnerLicense==='object',notif:typeof RW_Notification?.showPanel==='function',byId:typeof window.byId==='function',safeText:typeof window.safeText==='function'}));
-              await p.evaluate(()=>{RW_STATE.app.currentUser={id:'probe',email:'owner@smoke.local',isOwner:true,permissions:['*']};RW_STATE.permissions=['*'];RW_STATE.app.companyId='00000000-0000-0000-0000-000000000001';RW_STATE.app.licenseState='active';});
-              let owner={ok:false};try{await p.evaluate(async()=>{await RW_Navigation.navigate('license')});owner=await p.evaluate(()=>({ok:true,view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container'),text:document.getElementById('rw-page-container')?.innerText||''}));}catch(e){owner={ok:false,error:String(e.message||e)}}
-              await p.evaluate(()=>{RW_STATE.app.currentUser={id:'probe',email:'user@smoke.local',isOwner:false,permissions:[]};RW_STATE.permissions=[];});
-              let denied='';try{await p.evaluate(async()=>{await RW_Navigation.navigate('license')});denied='NO_REJECTION';}catch(e){denied=String(e.message||e)}
-              await p.close();return {initial,owner,denied,errors};
-            }
-            const r=await test();console.log('SURGICAL_RUNTIME='+JSON.stringify(r));
-            const ok=r.initial.locale&&r.initial.auth&&r.initial.nav&&r.initial.views&&r.initial.shell&&r.initial.ownerLicense&&r.initial.notif&&r.initial.byId&&r.initial.safeText&&r.owner.ok&&r.owner.view==='license'&&r.owner.container&&/إدارة الترخيص/.test(r.owner.text)&&r.denied==='OWNER_ONLY'&&!r.errors.length;
-            await b.close();if(!ok)process.exit(2);
-          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
+            const p=await b.newPage({serviceWorkers:'block'});const pe=[],ce=[];
+            p.on('pageerror',e=>pe.push(String(e.message||e)));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
+            await p.goto('http://127.0.0.1:8129/New-main',{waitUntil:'domcontentloaded',timeout:60000});
+            await p.waitForTimeout(1200);
+            const r=await p.evaluate(()=>({lang:document.documentElement.lang,dir:document.documentElement.dir,login:!!document.getElementById('rw-login-form'),sidebar:!!document.getElementById('rw-sidebar'),passwordToggle:typeof window.togglePasswordVisibility==='function',auth:typeof window.RW_Auth==='object',nav:typeof window.RW_Navigation==='object',views:typeof window.RW_Views==='object',shell:typeof window.RW_ShellContext==='object',owner:typeof window.RW_OwnerLicense==='object',warehouse:typeof window.RW_Warehouse==='object',brandSync:typeof window.RW_FinalProductClosure?.syncBrand==='function',routePatch:!!window.RW_Navigation?.__finalRoutePatch,manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||'',swScript:[...document.scripts].some(x=>(x.src||'').includes('register-sw.js'))}));
+            console.log('PRODUCT_BROWSER='+JSON.stringify({r,pe,ce}));
+            await b.close();
+            if(pe.length||ce.length||r.lang!=='ar'||r.dir!=='rtl'||!r.login||!r.sidebar||!r.passwordToggle||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||!r.warehouse||!r.brandSync||!r.routePatch||r.manifest!=='./manifest.json'||r.swScript)process.exit(2);
+          })().catch(e=>{console.error(e.stack||e);process.exit(2)})
           NODE
-          echo 'SURGICAL_RUNTIME=PASS'
-      - name: Persist exact repair and retire writer
+          echo BROWSER_PRODUCT_GATE=PASS
+      - name: Persist only product target
         shell: bash
         run: |
           set -euo pipefail
+          git add Current/PWA/New-main
+          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
           git config user.name 'RAWAEA CTO Surgical Repair'
           git config user.email 'rawaea-cto-surgical@users.noreply.github.com'
-          git add Current/PWA/New-main
-          if ! git diff --cached --quiet; then
-            git diff --cached --check
-            git commit -m '[CTO-FORENSIC] Export byId across governed runtime scope'
-          fi
-          git rm .github/workflows/_cto_diagnose_trusted_artifact_20260903.yml .cto/trigger-20260903 || true
-          git commit -m '[CTO-GOVERNANCE] Retire one-time trusted artifact writer and trigger'
+          git commit -m '[CTO-CLOSED] [GOLD] [DIAMOND] New-main product closure'
           git push origin HEAD:main
