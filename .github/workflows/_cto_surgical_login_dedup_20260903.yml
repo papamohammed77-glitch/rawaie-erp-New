@@ -16,23 +16,40 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 1
+          fetch-depth: 2
       - name: Surgical patch New-main only
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p = Path('Current/PWA/New-main')
           s = p.read_text(encoding='utf-8')
           guarded = "byId('rw-login-form').addEventListener('submit',function(e){if(window.__RAWAEA_MAIN11_EVENTS_BOUND__)return;"
           if s.count(guarded) != 1:
               raise SystemExit(f'LOGIN_DEDUPE_GUARD_MISSING_OR_DUPLICATE={s.count(guarded)}')
-          old = "navigate:function(view){RW_STATE.app.currentView=view;var handler=actions[view];if(handler){Promise.resolve(handler()).catch(function(e){safeHTML(byId('rw-page-container'),'<div class=\\\"rw-notice rw-notice-bad\\\">'+esc(e.message||e)+'</div>')})}else{main1Delegation(view)}}"
-          new = "navigate:function(view){var permissionByView={dashboard:'dashboard:view',customers:'customers:view',items:'items:view',suppliers:'suppliers:view',orders:'orders:view',runsheets:'runsheets:view',inventory:'inventory:view',finance:'finance:view',audit:'owner',reports:'reports:view',hr:'hr:view',settings:'settings:view',notifications:'notifications:view',telesales:'telesales:view',pos:'pos:use',purchases:'purchases:view',receiving:'receiving:view',vouchers:'vouchers:view',picking:'picking:view',loading:'loading:view',delivery:'delivery:view',returns:'returns:view',unloading:'unloading:view',online-store:'online-store:view',purchase-pos:'purchase-pos:view',branches:'branches:view',vehicle-count:'vehicle-count:view',branch-count:'branch-count:view',general-count:'general-count:view',users:'users:view',roles:'roles:view'};var required=permissionByView[view];if(required&&!RW_Permissions_check(required)){RW_STATE.app.currentView='dashboard';var box=byId('rw-page-container');if(box)safeHTML(box,'<div class=\\\"rw-notice rw-notice-bad\\\">غير مصرح لك بفتح هذه الوحدة.</div>');return false}RW_STATE.app.currentView=view;var handler=actions[view];if(handler){Promise.resolve(handler()).catch(function(e){safeHTML(byId('rw-page-container'),'<div class=\\\"rw-notice rw-notice-bad\\\">'+esc(e.message||e)+'</div>')})}else{main1Delegation(view)}return true}"
-          if s.count(old) != 1:
-              raise SystemExit(f'NAVIGATE_TARGET_NOT_FOUND_OR_DUPLICATE={s.count(old)}')
-          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          marker = "var RW_Navigation={"
+          end_marker = "window.RW_Navigation=RW_Navigation;"
+          start = s.find(marker)
+          end = s.find(end_marker, start)
+          if start < 0 or end < 0 or end <= start:
+              raise SystemExit('NAVIGATION_OBJECT_BOUNDARY_NOT_FOUND')
+          segment = s[start:end]
+          required_guard = "var required=permissionByView[view];if(required&&!RW_Permissions_check(required))"
+          if "navigate:function(view)" not in segment:
+              raise SystemExit('NAVIGATE_METHOD_NOT_FOUND')
+          if required_guard not in segment:
+              old = re.search(r"navigate:function\(view\)\{.*?\},\s*$", segment)
+              if not old:
+                  raise SystemExit('NAVIGATE_METHOD_SHAPE_NOT_SUPPORTED')
+              old_text = old.group(0)
+              new_text = "navigate:function(view){var permissionByView={dashboard:'dashboard:view',customers:'customers:view',items:'items:view',suppliers:'suppliers:view',orders:'orders:view',runsheets:'runsheets:view',inventory:'inventory:view',finance:'finance:view',audit:'owner',reports:'reports:view',hr:'hr:view',settings:'settings:view',notifications:'notifications:view',telesales:'telesales:view',pos:'pos:use',purchases:'purchases:view',receiving:'receiving:view',vouchers:'vouchers:view',picking:'picking:view',loading:'loading:view',delivery:'delivery:view',returns:'returns:view',unloading:'unloading:view'};var required=permissionByView[view];if(required&&!RW_Permissions_check(required)){RW_STATE.app.currentView='dashboard';var box=byId('rw-page-container');if(box)safeHTML(box,'<div class=\"rw-notice rw-notice-bad\">غير مصرح لك بفتح هذه الوحدة.</div>');return false}RW_STATE.app.currentView=view;var handler=actions[view];if(handler){Promise.resolve(handler()).catch(function(e){safeHTML(byId('rw-page-container'),'<div class=\"rw-notice rw-notice-bad\">'+esc(e.message||e)+'</div>')})}else{main1Delegation(view)}return true},"
+              segment = segment.replace(old_text,new_text,1)
+              s = s[:start] + segment + s[end:]
+          else:
+              print('ROUTE_AUTH_GUARD_ALREADY_PRESENT=PASS')
+          p.write_text(s,encoding='utf-8')
           print('ROUTE_AUTH_GUARD_PATCH=PASS')
           PY
           git diff --check
