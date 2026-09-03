@@ -2,6 +2,8 @@ name: CTO direct P163 target closure
 on:
   push:
     branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
 permissions:
   contents: write
 concurrency:
@@ -9,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   p163:
-    if: ${{ !contains(github.event.head_commit.message, '[P163-EXECUTED]') }}
+    if: ${{ !contains(github.event.head_commit.message || '', '[P163-EXECUTED]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
