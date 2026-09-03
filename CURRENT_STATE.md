@@ -28,3 +28,9 @@ A new non-workflow push is deliberately issued now to execute the corrected temp
 
 ## EXECUTION EVENT
 Trigger commit created after the executor definition was corrected: `edb549009f39cfaf48fe4d79f45ef101118ad662`.
+
+## P165/P166 CONTINUITY REVALIDATION — 2026-09-03
+- Direct Git revalidation confirms the target remains `Current/PWA/New-main` and the file has not yet been changed by the closure executor.
+- The temporary executor `.github/workflows/_cto_close_newmain_20260903.yml` is intentionally push-triggered and performs the exact P163 ownership surgery, Node syntax verification, browser smoke, then persists the target and cleans itself up.
+- Trigger execution remains the authorized next action; no closure claim is valid before target mutation and Gold/Diamond verification.
+- Production remains read-only for this track.
