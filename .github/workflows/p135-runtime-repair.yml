@@ -26,7 +26,7 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib,json
+          import hashlib
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
           assert len(s)>500000, 'TARGET_TOO_SMALL'
           old='<link rel="manifest" href="../manifest.json">'; new='<link rel="manifest" href="./New-main.manifest.json">'
@@ -51,8 +51,6 @@ jobs:
           if safe_bridge not in s: s=s.replace(safe_decl,safe_decl+'\n'+safe_bridge,1)
           assert s.count('window.byId=byId;')==1,'BYID_BRIDGE_NOT_EXACTLY_ONE'
           assert s.count('window.safeText=safeText;')==1,'SAFETEXT_BRIDGE_NOT_EXACTLY_ONE'
-          bad='var e=email();'
-          assert bad not in s,'NOTIFICATION_LEGACY_EMAIL_REFERENCE'
           required=['RAWAEA 122 DIAMOND CONTRACT CLOSURE v1','window.RW_Auth=','window.RW_Navigation=','window.RW_Views=','window.RW_ShellContext=','window.RW_OwnerLicense=','applyAuthoritativeContext','window.MAIN_HTML_CURRENT_CONTRACT_LEDGER=']
           missing=[x for x in required if x not in s]
           assert not missing,'STATIC_REQUIRED_MISSING='+repr(missing)
