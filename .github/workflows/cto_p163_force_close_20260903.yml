@@ -2,6 +2,8 @@ name: CTO P163 Force Close — Independent
 on:
   push:
     branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
 permissions:
   contents: write
 concurrency:
@@ -9,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   close:
-    if: ${{ !contains(github.event.head_commit.message, '[P163-EXECUTED]') }}
+    if: ${{ !contains(github.event.head_commit.message || '', '[P163-EXECUTED]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -79,9 +81,9 @@ jobs:
           from pathlib import Path
           import hashlib
           st=Path('CURRENT_STATE.md'); s=st.read_text(encoding='utf-8').rstrip(); h=hashlib.sha256(Path('Current/PWA/New-main').read_bytes()).hexdigest(); marker='## CTO P163 CLOSED — 2026-09-03'
-          record=f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Target-preserving P163 surgery executed against current `main`; fragment reconstruction not used.\n- Compatibility owner removed with exact IIFE boundary proof; authoritative Dashboard/Items owners retained uniquely (whitespace-insensitive ownership proof).\n- Node syntax gate: PASS.\n- Browser Gold/Diamond smoke gate: PASS.\n- `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1`: preserved.\n- Production-owned Postgres procedures not fabricated into PWA.\n- Verified target SHA-256: `{h}`\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = PROVEN\n'''
           first=s.find(marker); s=s[:first].rstrip() if first>=0 else s
-          st.write_text(s+record+'\n',encoding='utf-8')
+          s += f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Target-preserving P163 surgery executed against current `main`; fragment reconstruction not used.\n- Compatibility owner removed with exact IIFE boundary proof; authoritative Dashboard/Items owners retained uniquely (whitespace-insensitive ownership proof).\n- Node syntax gate: PASS.\n- Browser Gold/Diamond smoke gate: PASS.\n- `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1`: preserved.\n- Production-owned Postgres procedures not fabricated into PWA.\n- Verified target SHA-256: `{h}`\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = PROVEN\n'''
+          st.write_text(s+'\n',encoding='utf-8')
           PY
           git add Current/PWA/New-main CURRENT_STATE.md
           git diff --cached --check
