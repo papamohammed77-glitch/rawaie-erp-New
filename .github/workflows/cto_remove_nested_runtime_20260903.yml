@@ -1,0 +1,44 @@
+name: CTO remove nested New-main runtime safely
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  repair:
+    if: github.event.head_commit.message == 'test(cto): trigger nested-runtime repair'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: main, fetch-depth: 2}
+      - name: Surgical target repair only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('Current/PWA/New-main')
+          s=p.read_text(encoding='utf-8')
+          marker='RAWAEA_PRODUCT_UX_RUNTIME'
+          assert marker in s, 'EXPECTED_NESTED_RUNTIME_NOT_FOUND'
+          pat=r'<script id=\\"RAWAEA_PRODUCT_UX_RUNTIME\\">[\\s\\S]*?</script>'
+          out,n=re.subn(pat,'',s,count=1)
+          if n!=1:
+              pat=r'<script id="RAWAEA_PRODUCT_UX_RUNTIME">[\\s\\S]*?</script>'
+              out,n=re.subn(pat,'',s,count=1)
+          assert n==1, 'NESTED_RUNTIME_BOUNDARY_NOT_FOUND'
+          assert 'RAWAEA_PRODUCT_UX_RUNTIME' not in out, 'NESTED_RUNTIME_REMAINS'
+          assert len(out.encode())>500000, 'TARGET_TOO_SMALL'
+          p.write_text(out,encoding='utf-8')
+          print('NESTED_RUNTIME_REMOVED_ONLY')
+          PY
+          git diff --check
+          git diff --name-only | grep -Fx 'Current/PWA/New-main'
+          test "$(git diff --name-only | wc -l)" -eq 1
+          git config user.name 'CTO Automation'
+          git config user.email 'cto-automation@users.noreply.github.com'
+          git add Current/PWA/New-main
+          git commit -m '[CTO-CLOSED] New-main nested script boundary repair'
+          git push origin HEAD:main
