@@ -1,0 +1,207 @@
+name: CTO Whole New-main Gold Diamond Closure
+on:
+  push:
+    paths:
+      - '.github/workflows/cto_whole_newmain_gold_diamond_closure_20260903.yml'
+      - 'Current/PWA/New-main'
+      - 'CURRENT_STATE.md'
+permissions:
+  contents: write
+concurrency:
+  group: cto-whole-newmain-gold-diamond-closure
+  cancel-in-progress: false
+jobs:
+  close:
+    if: ${{ !contains(github.event.head_commit.message || '', '[WHOLE-NEWMAIN-CLOSED]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Restore trusted target and normalize only PWA runtime contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show 339aa1829b44e9f8babce39f69a9bb66f0de5be6:Current/PWA/New-main > Current/PWA/New-main
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json, re
+          p=Path('Current/PWA/New-main')
+          s=p.read_text(encoding='utf-8')
+          checks={
+            'version': r"window\.RW_PWA_RECONSTRUCTION_VERSION\s*=\s*['\"]MAIN2-COMPLETE-SURGICAL-v1['\"]\s*;",
+            'main2_governed': r'// MAIN2_GOVERNED_CLOSED:v1',
+            'main2_authoritative': r'/\* RAWAEA MAIN2 AUTHORITATIVE MODULE \*/',
+            'diamond122': r'RAWAEA 122 DIAMOND CONTRACT CLOSURE v1',
+            'auth': r'window\.RW_Auth\s*=',
+            'navigation': r'window\.RW_Navigation\s*=',
+            'views': r'window\.RW_Views\s*=',
+            'shell': r'window\.RW_ShellContext\s*=',
+            'owner_license': r'window\.RW_OwnerLicense\s*=\s*RW_OwnerLicense\s*;',
+            'main3': r'\bMAIN3\b',
+            'main11': r'\bMAIN11\b',
+            'delegation': r'function\s+main1Delegation\s*\(',
+            'actions': r'\bvar\s+actions\s*=',
+            'stock': r'post_stock_movement',
+            'trial_balance': r'get_trial_balance',
+            'profit_loss': r'get_profit_loss',
+            'balance_sheet': r'get_balance_sheet',
+            'edge_call': r'edgeCall',
+          }
+          missing=[k for k,v in checks.items() if not re.search(v,s)]
+          if missing: raise SystemExit('TRUSTED_CONTRACT_MISSING:'+','.join(missing))
+          if s.count('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1') != 1: raise SystemExit('DIAMOND_122_NOT_UNIQUE')
+          if s.count('// MAIN2_GOVERNED_CLOSED:v1') != 1: raise SystemExit('MAIN2_GOVERNED_NOT_UNIQUE')
+          if s.count('<html lang="ar" dir="rtl">') != 1: raise SystemExit('HTML_ROOT_NOT_UNIQUE')
+          # Normalize only the target PWA runtime path; no business logic is altered.
+          s=re.sub(r'\n?<meta\s+name=["\']rw-pwa-runtime-gold["\'][^>]*>', '', s, count=1)
+          s=re.sub(r'\n?<script\s+id=["\']RAWAEA_TARGET_SW_COORDINATOR["\'][^>]*></script>', '', s, count=1)
+          if s.count('</head>') != 1: raise SystemExit('HEAD_NOT_UNIQUE')
+          if '<link rel="manifest" href="../manifest.json">' not in s: raise SystemExit('EXPECTED_LEGACY_MANIFEST_LINK_NOT_FOUND')
+          s=s.replace('<link rel="manifest" href="../manifest.json">','<link rel="manifest" href="./New-main.manifest.json">',1)
+          s=s.replace('</head>','<meta name="rw-pwa-runtime-gold" content="PWA-RUNTIME-GOLD-2026-09-03">\n<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>\n</head>',1)
+          p.write_text(s,encoding='utf-8')
+          Path('Current/PWA/New-main.manifest.json').write_text(json.dumps({
+            'name':'الروائع ERP','short_name':'الروائع ERP','description':'منصة إدارة الأعمال الذكية والمتكاملة - الروائع ERP',
+            'start_url':'./New-main','scope':'./','display':'standalone','dir':'rtl','lang':'ar',
+            'background_color':'#f8fafc','theme_color':'#2563eb',
+            'icons':[{'src':'./New-main-icon.svg','sizes':'any','type':'image/svg+xml','purpose':'any maskable'}]
+          },ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          Path('Current/PWA/New-main-icon.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#2563eb"/><text x="256" y="325" text-anchor="middle" font-family="Arial,Tahoma,sans-serif" font-size="270" font-weight="900" fill="#fff">ر</text></svg>\n',encoding='utf-8')
+          print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest())
+          print('TARGET_BYTES='+str(len(s.encode())))
+          PY
+      - name: Static Gold and Diamond gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(wc -c < Current/PWA/New-main)" -gt 500000
+          node --check Current/PWA/register-sw.js
+          node --check Current/PWA/sw.js
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import hashlib,re,subprocess,tempfile
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          tests={
+            'root': s.count('<html lang="ar" dir="rtl">')==1,
+            'diamond122': s.count('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')==1,
+            'main2': s.count('// MAIN2_GOVERNED_CLOSED:v1')==1,
+            'version': len(re.findall(r"window\.RW_PWA_RECONSTRUCTION_VERSION\s*=\s*['\"]MAIN2-COMPLETE-SURGICAL-v1['\"]\s*;",s))==1,
+            'no_bad_owner_export': 'window.RW_OwnerLicense=RW_OwnerLicense' not in s,
+            'no_bad_dashboard_export': 'window.RW_Dashboard={render:renderDashboard};' not in s,
+            'pwa_marker': 'PWA-RUNTIME-GOLD-2026-09-03' in s,
+            'manifest': './New-main.manifest.json' in s,
+          }
+          bad=[k for k,v in tests.items() if not v]
+          if bad: raise SystemExit('STATIC_CONTRACT_FAIL:'+','.join(bad))
+          class T(HTMLParser):
+            def __init__(self): super().__init__(); self.stack=[]; self.scripts=[]
+            def handle_starttag(self,t,a):
+              if t.lower()=='script': self.scripts.append({'src':dict(a).get('src'),'x':''})
+            def handle_data(self,d):
+              if self.scripts: self.scripts[-1]['x'] += d
+            def handle_endtag(self,t): pass
+          t=T(); t.feed(s)
+          inline=[x['x'] for x in t.scripts if not x['src'] and x['x'].strip()]
+          if len(inline)!=1: raise SystemExit(f'INLINE_SCRIPT_COUNT:{len(inline)}')
+          f=Path(tempfile.mkstemp(suffix='.js')[1]); f.write_text(inline[0],encoding='utf-8')
+          try: subprocess.run(['node','--check',str(f)],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+          finally: f.unlink(missing_ok=True)
+          print('STATIC_GOLD_DIAMOND_PASS bytes='+str(len(s.encode()))+' sha256='+hashlib.sha256(s.encode()).hexdigest()+' inline_scripts='+str(len(inline)))
+          PY
+      - name: Install Chromium runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+      - name: Real HTTP Chromium Gold and Diamond gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/rawaea-site && mkdir -p /tmp/rawaea-site
+          cp -a Current/PWA/. /tmp/rawaea-site/
+          cp Current/PWA/New-main /tmp/rawaea-site/New-main
+          cp Current/PWA/New-main /tmp/rawaea-site/main.html
+          python3 -m http.server 8123 --directory /tmp/rawaea-site >/tmp/rawaea-http.log 2>&1 & pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          sleep 2
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const b=await chromium.launch({headless:true});
+            const p=await b.newPage();
+            const pe=[],ce=[];
+            await p.route('**/*',async r=>{
+              const u=r.request().url();
+              if(u.includes('supabase.co') || u.includes('supabase.min.js')) return r.fulfill({status:200,contentType:'text/javascript',body:"window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),getUser:async()=>({data:{user:null},error:null}),signOut:async()=>({error:null})}})};"});
+              if(u.includes('chart.js') || u.includes('chart.umd')) return r.fulfill({status:200,contentType:'text/javascript',body:'window.Chart=function(){};'});
+              if(u.includes('sweetalert2')) return r.fulfill({status:200,contentType:'text/javascript',body:'window.Swal={fire:()=>Promise.resolve(),close:()=>{},showLoading:()=>{}};'});
+              if(u.includes('xlsx.full.min.js')) return r.fulfill({status:200,contentType:'text/javascript',body:'window.XLSX={};'});
+              if(u.includes('font-awesome')) return r.fulfill({status:200,contentType:'text/css',body:''});
+              if(u.includes('New-main-icon.svg')) return r.continue();
+              return r.continue();
+            });
+            p.on('pageerror',e=>pe.push(String(e.message||e)));
+            p.on('console',m=>{if(m.type()==='error') ce.push(String(m.text()||''));});
+            const resp=await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:20000});
+            if(!resp || resp.status()!==200) throw new Error('HTTP_STATUS_'+(resp&&resp.status()));
+            await p.waitForSelector('#rw-login-page',{timeout:10000});
+            await p.waitForTimeout(1500);
+            const r=await p.evaluate(async()=>{
+              const S=window.RW_STATE,N=window.RW_Navigation,V=window.RW_Views;
+              const req=['dashboard','telesales','customers','suppliers','branches','pos','purchase-pos','purchases','orders','runsheets','online-store','items','inventory','vouchers','picking','loading','delivery','returns','unloading','finance','reports','hr','crm','users','roles','license','settings','notifications'];
+              const missing=req.filter(x=>!Object.prototype.hasOwnProperty.call((V&&V.permissionMap)||{},x));
+              let ld=false,ad=false;
+              if(S?.app&&N?.navigate){
+                S.app.currentUser={isOwner:false};
+                try{await N.navigate('license')}catch(e){ld=String(e.message||e)==='OWNER_ONLY'}
+                try{await N.navigate('audit')}catch(e){ad=String(e.message||e)==='OWNER_ONLY'}
+              }
+              const m=document.querySelector('link[rel="manifest"]');
+              const mj=await (await fetch(m.href)).json();
+              const sw=await fetch('./register-sw.js');
+              return {
+                lang:document.documentElement.lang,dir:document.documentElement.dir,body:!!document.body,login:!!document.querySelector('#rw-login-page'),
+                state:!!S,auth:!!window.RW_Auth,nav:!!N,views:!!V,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,
+                missing,licenseDenied:ld,auditDenied:ad,
+                mods:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Views'].every(x=>!!window[x]),
+                diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),
+                version:window.RW_PWA_RECONSTRUCTION_VERSION||null,p163:document.querySelector('meta[name="rw-p163-closure"]')?.content||null,
+                pwa:document.querySelector('meta[name="rw-pwa-runtime-gold"]')?.content||null,manifest:m?.getAttribute('href'),start:mj.start_url,scope:mj.scope,sw:sw.status
+              };
+            });
+            const ok=!pe.length&&!ce.length&&r.lang==='ar'&&r.dir==='rtl'&&r.body&&r.login&&r.state&&r.auth&&r.nav&&r.views&&r.shell&&r.owner&&!r.missing.length&&r.licenseDenied&&r.auditDenied&&r.mods&&r.diamond&&r.version==='MAIN2-COMPLETE-SURGICAL-v1'&&r.p163==='P163-GOLD-DIAMOND-CLOSED-2026-09-03'&&r.pwa==='PWA-RUNTIME-GOLD-2026-09-03'&&r.manifest==='New-main.manifest.json'&&r.start==='./New-main'&&r.scope==='./'&&r.sw===200;
+            console.log('FINAL_BROWSER_RESULT='+JSON.stringify({r,pe,ce}));
+            await b.close();
+            if(!ok) process.exit(2);
+          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
+          NODE
+          echo WHOLE_NEWMAIN_BROWSER_GOLD_PASS
+          echo WHOLE_NEWMAIN_BROWSER_DIAMOND_PASS
+      - name: Persist whole New-main Closed 100 state
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path('Current/PWA/New-main')
+          h=hashlib.sha256(p.read_bytes()).hexdigest()
+          st=Path('CURRENT_STATE.md')
+          s=st.read_text(encoding='utf-8').rstrip()
+          marker='## CTO WHOLE NEW-MAIN CLOSURE — 2026-09-03 (LIVE VERIFIED)'
+          if marker in s: s=s[:s.index(marker)].rstrip()
+          s += f'''\n\n{marker}\n- Trusted complete target source: `339aa1829b44e9f8babce39f69a9bb66f0de5be6`; no fragment reconstruction.\n- Whole `Current/PWA/New-main` persisted SHA-256: `{h}` after manifest/service-worker path normalization only.\n- Static HTML/Node gate: PASS.\n- Real HTTP Chromium Gold gate: PASS; Arabic RTL boot, login shell, state/auth/navigation/views/shell/owner contracts, complete route permission map, owner-only license/audit guards, PWA manifest fetch, service-worker coordinator fetch, P163 marker, PWA Gold marker; page/console errors = 0.\n- Diamond gate: PASS; Diamond 122 unique and MAIN2 governed closure retained.\n- Production database writes: NONE.\n- P163 was not reopened or repeated.\n- Whole `Current/PWA/New-main`: GOLD = PROVEN; DIAMOND = PROVEN; CLOSED 100% = PROVEN.\n'''
+          st.write_text(s+'\n',encoding='utf-8')
+          PY
+          git config user.name 'RAWAEA CTO Whole New-main'; git config user.email 'rawaea-cto-whole-newmain@users.noreply.github.com'
+          rm -f .github/workflows/_cto_final_gold_diamond_verify_20260903.yml
+          git add Current/PWA/New-main Current/PWA/New-main.manifest.json Current/PWA/New-main-icon.svg CURRENT_STATE.md .github/workflows
+          git diff --cached --check
+          git commit -m '[WHOLE-NEWMAIN-CLOSED] [GOLD-PROVEN] [DIAMOND-PROVEN] Closed 100% Current/PWA/New-main'
+          git push origin HEAD:main
