@@ -54,6 +54,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
           cat >/tmp/pwa-http.py <<'PY'
           from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
           import os
@@ -67,7 +69,7 @@ jobs:
           echo $! >/tmp/pwa.pid
           trap 'kill "$(cat /tmp/pwa.pid)" 2>/dev/null || true' EXIT
           sleep 2
-          npx --yes playwright@1.55.0 install chromium
+          npx playwright install chromium >/dev/null 2>&1
           cat >/tmp/newmain.spec.mjs <<'EOF'
           import { chromium } from 'playwright';
           const browser = await chromium.launch({headless:true});
@@ -76,7 +78,7 @@ jobs:
           page.on('pageerror',e=>errors.push('PAGE:'+String(e)));
           page.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE:'+m.text())});
           await page.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded',timeout:60000});
-          await page.waitForTimeout(2500);
+          await page.waitForTimeout(3000);
           const result=await page.evaluate(async()=>({
             lang:document.documentElement.lang,
             dir:document.documentElement.dir,
