@@ -1,0 +1,43 @@
+name: CTO forensic MAIN1 parity gate
+on:
+  push:
+    branches: [cto-forensic-main1-parity-20260903]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Compare MAIN1 contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, json
+          old=Path('Current/PWA/main/main1.md').read_text(encoding='utf-8-sig')
+          new=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          def sigs(s):
+              out=set()
+              for m in re.finditer(r'\b(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(',s): out.add('fn:'+m.group(1))
+              for m in re.finditer(r'\b(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?function\s*\(',s): out.add('fn:'+m.group(1))
+              for m in re.finditer(r'window\.([A-Za-z_$][\w$]*)\s*=',s): out.add('window:'+m.group(1))
+              for m in re.finditer(r'\b([A-Za-z_$][\w$]*)\s*:\s*function\s*\(',s): out.add('propfn:'+m.group(1))
+              return out
+          a,b=sigs(old),sigs(new)
+          missing=sorted(a-b)
+          extra=sorted(b-a)
+          print('OLD_SIGNATURES',len(a));print('NEW_SIGNATURES',len(b));print('MISSING_COUNT',len(missing));print('MISSING',json.dumps(missing,ensure_ascii=False));print('EXTRA_COUNT',len(extra))
+          required=['RW_Auth','RW_Navigation','RW_Data','RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_HR','RW_CRM','RW_OwnerLicense','RW_Notification','generateQRInvoiceBase64','resetPassword']
+          missreq=[x for x in required if 'window:'+x not in b and x not in new]
+          print('REQUIRED_MISSING',json.dumps(missreq,ensure_ascii=False))
+          # Verify no parent route needs a sibling HTML file for known navigation views.
+          ext=sorted(set(re.findall(r"(?:window\.location\.href|location\.href)\s*=\s*['\"]([^'\"]+\.html(?:#[^'\"]*)?)['\"]",new)))
+          dynamic_external = bool(re.search(r"window\.location\.href\s*=\s*el\.getAttribute\(['\"]data-href['\"]\)",new))
+          print('LITERAL_EXTERNAL_HTML_NAV',json.dumps(ext,ensure_ascii=False));print('DYNAMIC_EXTERNAL_HTML_NAV',dynamic_external)
+          if missreq or any(x.startswith('fn:') and x not in {'fn:delegated'} for x in missing):
+              raise SystemExit(2)
+          print('FORENSIC_MAIN1_PARITY=PASS')
+          PY
