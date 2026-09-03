@@ -1,0 +1,162 @@
+name: CTO final runtime Gold Diamond verifier
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Current/PWA/New-main'
+      - 'Current/PWA/New-main.manifest.json'
+      - 'Current/PWA/New-main-icon.svg'
+      - 'Current/PWA/register-sw.js'
+      - 'Current/PWA/sw.js'
+      - 'Current/manifest.json'
+      - '.github/workflows/cto_final_runtime_closure_20260903.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cto-final-runtime-closure
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: ${{ !contains(github.event.head_commit.message || '', '[CTO-FINAL-VERIFIED]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install browser runtime
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+      - name: Static target gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          import hashlib,json,subprocess,tempfile
+          p=Path('Current/PWA/New-main')
+          s=p.read_text(encoding='utf-8')
+          assert '<meta name="rw-p163-closure" content="P163-GOLD-DIAMOND-CLOSED-2026-09-03">' in s
+          assert '<meta name="rw-pwa-runtime-gold" content="PWA-RUNTIME-GOLD-2026-09-03">' in s
+          assert 'RAWAEA 122 DIAMOND CONTRACT CLOSURE v1' in s
+          assert 'applyAuthoritativeContext' in s
+          assert 'window.MAIN_HTML_CURRENT_CONTRACT_LEDGER=' in s
+          assert 'window.RW_Auth=' in s and 'window.RW_Navigation=' in s and 'window.RW_Views=' in s and 'window.RW_ShellContext=' in s
+          assert 'window.RW_OwnerLicense = RW_OwnerLicense;' in s
+          assert s.count('window.RW_OwnerLicense = RW_OwnerLicense;') == 1
+          assert 'var e=email();' not in s
+          class P(HTMLParser):
+              def __init__(self): super().__init__(convert_charrefs=False); self.cur=None; self.inline=[]; self.scripts=0; self.styles=0
+              def handle_starttag(self,t,a):
+                  if t.lower()=='script': self.scripts+=1; self.cur={'src':dict(a).get('src'),'text':''}
+                  elif t.lower()=='style': self.styles+=1
+              def handle_data(self,d):
+                  if self.cur is not None and not self.cur['src']: self.cur['text']+=d
+              def handle_endtag(self,t):
+                  if t.lower()=='script' and self.cur is not None:
+                      if not self.cur['src'] and self.cur['text'].strip(): self.inline.append(self.cur['text'])
+                      self.cur=None
+          hp=P(); hp.feed(s); hp.close()
+          assert len(hp.inline)==1, ('inline',len(hp.inline))
+          assert hp.scripts==5, ('scripts',hp.scripts)
+          assert hp.styles==1, ('styles',hp.styles)
+          f=Path(tempfile.mkstemp(suffix='.js')[1]); f.write_text(hp.inline[0],encoding='utf-8')
+          try: subprocess.run(['node','--check',str(f)],check=True)
+          finally: f.unlink(missing_ok=True)
+          subprocess.run(['node','--check','Current/PWA/register-sw.js'],check=True)
+          subprocess.run(['node','--check','Current/PWA/sw.js'],check=True)
+          m=json.loads(Path('Current/PWA/New-main.manifest.json').read_text(encoding='utf-8'))
+          assert m['start_url']=='./New-main' and m['scope']=='./' and m['lang']=='ar' and m['dir']=='rtl'
+          f=json.loads(Path('Current/manifest.json').read_text(encoding='utf-8'))
+          assert f['start_url']=='./PWA/New-main' and f['scope']=='./PWA/' and f['lang']=='ar' and f['dir']=='rtl'
+          print('TARGET_SHA1_BLOB='+str(p))
+          print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest())
+          print('STATIC_GOLD_DIAMOND=PASS')
+          PY
+      - name: Browser Gold Diamond gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/site && mkdir -p /tmp/site/Current
+          cp -a Current/. /tmp/site/Current/
+          (cd /tmp/site && python3 -m http.server 8123 >/tmp/newmain-http.log 2>&1 & echo $! >/tmp/newmain-http.pid)
+          trap 'kill "$(cat /tmp/newmain-http.pid)" 2>/dev/null || true' EXIT
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const b=await chromium.launch({headless:true});
+            const p=await b.newPage();
+            const pe=[],ce=[];
+            p.on('pageerror',e=>pe.push(e.message));
+            p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
+            await p.route('**/*',async r=>{
+              const u=r.request().url();
+              if(u.includes('supabase.min.js')) return r.fulfill({status:200,contentType:'text/javascript',body:`(function(){function q(){let o={};['select','eq','in','or','order','range','gte','lte','limit','single','maybeSingle'].forEach(k=>o[k]=async function(){return k==='maybeSingle'||k==='single'?{data:null,error:null}:o});return o}window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null},error:null}),getUser:async()=>({data:{user:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signOut:async()=>({error:null}),signInWithPassword:async()=>({error:new Error('SMOKE_DISABLED')})},from:()=>q(),rpc:async()=>({data:null,error:null})})})();`});
+              if(u.includes('chart.umd.js')) return r.fulfill({status:200,contentType:'text/javascript',body:'window.Chart=function(){};'});
+              if(u.includes('sweetalert2')) return r.fulfill({status:200,contentType:'text/javascript',body:'window.Swal={fire:async()=>({isConfirmed:false}),close(){},showLoading(){}};'});
+              if(u.includes('xlsx.full.min.js')) return r.fulfill({status:200,contentType:'text/javascript',body:'window.XLSX={utils:{}};'});
+              if(u.includes('font-awesome')) return r.fulfill({status:200,contentType:'text/css',body:''});
+              return r.continue();
+            });
+            await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});
+            await p.waitForTimeout(1200);
+            const r=await p.evaluate(async()=>{
+              const S=window.RW_STATE,N=window.RW_Navigation,V=window.RW_Views;
+              let notification='NOT_EXPOSED',licenseDenied=false,auditDenied=false;
+              if(S?.app&&window.RW_Notification&&typeof window.RW_Notification.showPanel==='function'){
+                S.app.currentUser={email:'smoke@example.com',isOwner:false,permissions:[]};
+                try{await window.RW_Notification.showPanel();notification='PASS'}catch(e){notification='FAIL:'+String(e?.message||e)}
+              }
+              if(N?.navigate){
+                try{await N.navigate('license')}catch(e){licenseDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e?.message||e))}
+                try{await N.navigate('audit')}catch(e){auditDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e?.message||e))}
+              }
+              const mods=['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Views'];
+              const l=document.querySelector('link[rel="manifest"]');
+              const mj=await (await fetch(l.href)).json();
+              const side=await (await fetch('/Current/manifest.json')).json();
+              const sw=await fetch('./register-sw.js');
+              return {lang:document.documentElement.lang,dir:document.documentElement.dir,state:!!S,auth:!!window.RW_Auth,nav:!!N,views:!!V,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,notification,licenseDenied,auditDenied,missingMods:mods.filter(x=>!window[x]),diamond:document.documentElement.innerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),p163:document.querySelector('meta[name="rw-p163-closure"]')?.content||'',pwa:document.querySelector('meta[name="rw-pwa-runtime-gold"]')?.content||'',manifest:l?.getAttribute('href')||'',start:mj.start_url,scope:mj.scope,sideStart:side.start_url,sideScope:side.scope,sw:sw.status};
+            });
+            console.log('FINAL_GOLD_DIAMOND='+JSON.stringify({r,pe,ce}));
+            await b.close();
+            const ok=!pe.length&&!ce.length&&r.lang==='ar'&&r.dir==='rtl'&&r.state&&r.auth&&r.nav&&r.views&&r.shell&&r.owner&&r.notification==='PASS'&&r.licenseDenied&&r.auditDenied&&!r.missingMods.length&&r.diamond&&r.p163==='P163-GOLD-DIAMOND-CLOSED-2026-09-03'&&r.pwa==='PWA-RUNTIME-GOLD-2026-09-03'&&r.manifest==='New-main.manifest.json'&&r.start==='./New-main'&&r.scope==='./'&&r.sideStart==='./PWA/New-main'&&r.sideScope==='./PWA/'&&r.sw===200;
+            if(!ok) process.exit(2);
+          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
+          NODE
+      - name: Record final verification evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path('Current/PWA/New-main'); h=hashlib.sha256(p.read_bytes()).hexdigest()
+          st=Path('CURRENT_STATE.md'); s=st.read_text(encoding='utf-8') if st.exists() else ''
+          marker='## CTO FINAL RUNTIME VERIFIED — CURRENT/PWA/NEW-MAIN — 2026-09-03'
+          if marker not in s:
+              s=s.rstrip()+f'''\n\n{marker}\n- Target blob at verification: `{h}`.\n- Static HTMLParser + Node gates: PASS.\n- Exact HTTP Chromium Gold/Diamond gate: PASS with zero page/console errors; notification runtime PASS; non-owner license/audit guards PASS; all required module globals present; manifests and service worker served successfully.\n- Target-preserving execution; no fragment reconstruction; no Supabase production writes.\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = 100%\n'''
+              st.write_text(s+'\n',encoding='utf-8')
+          PY
+          git config user.name 'RAWAEA CTO Final Verifier'
+          git config user.email 'rawaea-cto-final-verifier@users.noreply.github.com'
+          git add CURRENT_STATE.md
+          git diff --cached --check
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m '[CTO-FINAL-VERIFIED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED-100%] Current/PWA/New-main'
+          git fetch origin main
+          if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then git rebase origin/main; fi
+          git push origin HEAD:main
