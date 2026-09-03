@@ -48,6 +48,7 @@ window.RW_STATE=RW_STATE;
 function byId(id){return document.getElementById(id)}
 function safeHTML(el,html){if(el)el.innerHTML=html}
 function safeText(el,text){if(el)el.textContent=text==null?'':String(text)}
+window.safeText=safeText;
 function esc(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]})}
 function fmt(v){return Number(v||0).toLocaleString('ar-EG',{maximumFractionDigits:2})}
 function showLoader(title){Swal.fire({title:title||'جاري التنفيذ...',allowOutsideClick:false,didOpen:function(){Swal.showLoading()}})}
