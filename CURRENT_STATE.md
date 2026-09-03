@@ -33,4 +33,11 @@ RuntimeError: P163_COMPAT_COUNT:0
 ```
 
 ## CTO EXECUTION RETRIGGER — 2026-09-03
-The next main push is a deliberate execution retrigger after the executor definition was corrected to tolerate the current eleven-part assembly contract and synthesize the authoritative Main2 boundary instead of requiring an absent historical compatibility marker.
+The next main push is a deliberate execution retrigger after the executor definition was corrected to:
+- build the single logical document from `main1.md` through `main11.md`;
+- remove only the final application inline-script closure from `main1` before concatenation;
+- synthesize the authoritative Main2 ownership boundary where the current `main2.md` contract lacks the historical marker;
+- remove the two legacy Main1 dashboard/items aliases without touching other exports;
+- normalize and retain the single Main2 governed closure;
+- emit one canonical service-worker registration;
+- validate the real current module/client contracts rather than obsolete historical symbol names.
