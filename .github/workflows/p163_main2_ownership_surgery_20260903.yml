@@ -1,6 +1,7 @@
 name: P163 exact Main2 ownership surgery
 
 # P163-FIX-20260903: harden alias removal; target blob remains SHA-locked.
+# CTO CONTINUATION TRIGGER 2026-09-03: execute the exact current target-preserving path.
 
 on:
   push:
