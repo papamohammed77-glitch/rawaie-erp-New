@@ -1,12 +1,21 @@
 name: CTO fast New-main runtime verifier — READ ONLY
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'Current/PWA/New-main'
+      - 'Current/manifest.json'
+      - '.github/workflows/cto_fast_runtime_gate_20260903.yml'
   workflow_dispatch:
+concurrency:
+  group: rawaea-fast-runtime
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
   runtime:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with: {ref: main, fetch-depth: 1}
@@ -29,30 +38,50 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cp -a Current /tmp/rawaea-current
+          rm -rf /tmp/rawaea-current && mkdir -p /tmp/rawaea-current
+          cp -a Current /tmp/rawaea-current/Current
           cat >/tmp/rawaea-http.py <<'PY'
           from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
           class H(SimpleHTTPRequestHandler):
+            def log_message(self, fmt, *args): pass
             def guess_type(self,path): return 'text/html; charset=utf-8' if path.endswith('/New-main') else super().guess_type(path)
           ThreadingHTTPServer(('127.0.0.1',8124),H).serve_forever()
           PY
-          (cd /tmp && python3 /tmp/rawaea-http.py >/tmp/rawaea-http.log 2>&1 & echo $! >/tmp/rawaea-http.pid)
+          (cd /tmp/rawaea-current && python3 /tmp/rawaea-http.py >/tmp/rawaea-http.log 2>&1 & echo $! >/tmp/rawaea-http.pid)
           trap 'kill "$(cat /tmp/rawaea-http.pid)" 2>/dev/null || true' EXIT
-          sleep 2
+          sleep 1
           node <<'NODE'
           const {chromium}=require('playwright-core');
           (async()=>{
             const b=await chromium.launch({headless:true,executablePath:process.env.BROWSER_PATH,args:['--no-sandbox']});
-            const p=await b.newPage(); const pe=[],ce=[];
-            p.on('pageerror',e=>pe.push(String(e.message||e))); p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
-            await p.goto('http://127.0.0.1:8124/rawaea-current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});
-            await p.waitForTimeout(800);
-            const r=await p.evaluate(async()=>{const S=window.RW_STATE,N=window.RW_Navigation,L=document.querySelector('link[rel="manifest"]');if(!S||!N)throw Error('CORE_GLOBALS_MISSING');
-              const before=JSON.stringify(S.app.currentUser||null);let denied=false,allowed=false,text=false;S.app.currentUser={id:'x',email:'x@example.com',isOwner:false,permissions:[]};try{const z=await N.navigate('license');denied=(z===false)}catch(e){denied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e.message||e))}
-              S.permissions=['*'];S.app.currentUser.permissions=['*'];S.app.currentUser.isOwner=true;try{await N.navigate('license');allowed=true;text=/إدارة الترخيص/.test(document.getElementById('rw-page-container')?.innerText||'')}catch(e){}
-              return {locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',ownerLicense:typeof RW_OwnerLicense==='object',notification:typeof RW_Notification?.showPanel==='function',denied,allowed,text,wildcard:S.permissions.includes('*'),owner:S.app.currentUser.isOwner===true,diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),p163:document.querySelectorAll('meta[name="rw-p163-closure"]').length,manifest:L?.getAttribute('href')||''};});
-            console.log('FAST_RUNTIME='+JSON.stringify({r,pe,ce}));
-            const ok=!pe.length&&!ce.length&&Object.values({locale:r.locale,auth:r.auth,nav:r.nav,views:r.views,shell:r.shell,ownerLicense:r.ownerLicense,notification:r.notification,denied:r.denied,allowed:r.allowed,text:r.text,wildcard:r.wildcard,owner:r.owner,diamond:r.diamond,p163:r.p163===1,manifest:r.manifest==='../manifest.json'}).every(Boolean);if(!ok)process.exit(2);await b.close();
+            const pe=[],ce=[];
+            async function load(){
+              const p=await b.newPage({serviceWorkers:'block'});p.setDefaultTimeout(12000);p.setDefaultNavigationTimeout(20000);
+              p.on('pageerror',e=>pe.push(String(e.message||e)));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
+              await p.goto('http://127.0.0.1:8124/Current/PWA/New-main',{waitUntil:'domcontentloaded'});
+              await p.waitForFunction(()=>window.RW_STATE&&window.RW_Navigation&&window.RW_OwnerLicense,{timeout:12000});
+              await p.waitForTimeout(300);return p;
+            }
+            const p=await load();
+            const initial=await p.evaluate(()=>({
+              locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',ownerLicense:typeof RW_OwnerLicense==='object',notification:!!(window.RW_Notification&&typeof RW_Notification.showPanel==='function'),diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),p163:document.querySelectorAll('meta[name="rw-p163-closure"]').length,manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||''
+            }));
+            const denied=await p.evaluate(async()=>{RW_STATE.app.currentUser={id:'x',email:'x@example.com',isOwner:false,permissions:[]};RW_STATE.permissions=[];try{await RW_Navigation.navigate('license');return {ok:false,error:'NO_REJECTION'}}catch(e){return {ok:/OWNER_ONLY/.test(String(e.message||e)),error:String(e.message||e),view:RW_STATE.app.currentView}}});
+            const deniedCheck=await p.evaluate(()=>({view:RW_STATE.app.currentView,hasLicenseContainer:!!document.getElementById('license-main-container')}));
+            await p.close();
+            const o=await load();
+            const owner=await o.evaluate(async()=>{RW_STATE.app.currentUser={id:'x',email:'owner@smoke.local',isOwner:true,permissions:['*']};RW_STATE.permissions=['*'];try{await RW_Navigation.navigate('license');return {ok:true,view:RW_STATE.app.currentView,text:(document.getElementById('rw-page-container')?.innerText||'')};}catch(e){return {ok:false,error:String(e.message||e)}}});
+            const ownerCheck=await o.evaluate(()=>({view:RW_STATE.app.currentView,hasLicenseContainer:!!document.getElementById('license-main-container'),hasLicenseText:(document.getElementById('rw-page-container')?.innerText||'').includes('إدارة الترخيص')}));
+            await o.close();
+            const r={initial,denied,deniedCheck,owner,ownerCheck,pe,ce};console.log('FAST_RUNTIME='+JSON.stringify(r));
+            const ok=!pe.length&&!ce.length&&initial.locale&&initial.auth&&initial.nav&&initial.views&&initial.shell&&initial.ownerLicense&&initial.notification&&initial.diamond&&initial.p163===1&&initial.manifest==='../manifest.json'&&denied.ok&&deniedCheck.view!=='license'&&owner.ok&&owner.view==='license'&&ownerCheck.hasLicenseContainer&&ownerCheck.hasLicenseText;
+            await b.close();if(!ok)process.exit(2);
           })().catch(e=>{console.error(e.stack||e);process.exit(2)});
           NODE
           echo 'FAST_BROWSER_GOLD_DIAMOND=PASS'
+      - name: Persistence boundary
+        run: |
+          test -f Current/PWA/New-main
+          echo 'TARGET=Current/PWA/New-main'
+          echo 'VERIFIER=READ_ONLY'
+          echo 'NO_TARGET_WRITE=TRUE'
