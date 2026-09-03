@@ -67,11 +67,12 @@ jobs:
           cat >/tmp/newmain-http.py <<'PY'
           from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
           class Handler(SimpleHTTPRequestHandler):
-              extensions_map=dict(SimpleHTTPRequestHandler.extensions_map); extensions_map['']='text/html; charset=utf-8'
+              extensions_map=dict(SimpleHTTPRequestHandler.extensions_map)
+              extensions_map['']='text/html; charset=utf-8'
           ThreadingHTTPServer(('127.0.0.1',8123),Handler).serve_forever()
           PY
-          (cd . && python3 /tmp/newmain-http.py >/tmp/newmain-http.log 2>&1 &) ; echo $! >/tmp/newmain-http.pid
-          trap 'kill "$(cat /tmp/newmain-http.pid)" 2>/dev/null || true' EXIT
+          python3 /tmp/newmain-http.py >/tmp/newmain-http.log 2>&1 & pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
           sleep 2
           node <<'NODE'
           const {chromium}=require('playwright');
@@ -91,9 +92,11 @@ jobs:
               if(S?.app){S.app.currentUser={id:'smoke',email:'smoke@example.com',isOwner:false,permissions:[]};if(window.RW_Notification?.showPanel){try{await window.RW_Notification.showPanel();notification='PASS'}catch(e){notification='FAIL:'+String(e?.message||e)}}if(N?.navigate){try{licenseDenied=(await N.navigate('license'))===false}catch(e){licenseDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e?.message||e))}try{auditDenied=(await N.navigate('audit'))===false}catch(e){auditDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e?.message||e))}}}
               const l=document.querySelector('link[rel="manifest"]'); const mj=l?await(await fetch(l.href)).json():null; const sw=await fetch('./sw.js');
               return{lang:document.documentElement.lang,dir:document.documentElement.dir,login:!!document.querySelector('#rw-login-page'),state:!!S,auth:!!window.RW_Auth,nav:!!N,views:!!V,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,notification,licenseDenied,auditDenied,diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),p163:document.querySelector('meta[name="rw-p163-closure"]')?.content||'',version:window.RW_PWA_RECONSTRUCTION_VERSION||null,manifest:l?.getAttribute('href')||'',manifestStart:mj?.start_url||null,manifestScope:mj?.scope||null,sw:sw.status};});
-            console.log('FINAL_GOLD_DIAMOND='+JSON.stringify({r,pe,ce})); const ok=!pe.length&&!ce.length&&r.lang==='ar'&&r.dir==='rtl'&&r.login&&r.state&&r.auth&&r.nav&&r.views&&r.shell&&r.owner&&r.notification==='PASS'&&r.licenseDenied&&r.auditDenied&&r.diamond&&r.p163==='P163-GOLD-DIAMOND-CLOSED-2026-09-03'&&r.version==='MAIN2-COMPLETE-SURGICAL-v1'&&r.manifest==='../manifest.json'&&r.manifestStart==='./PWA/New-main'&&r.manifestScope==='./PWA/'&&r.sw===200; await b.close(); if(!ok)process.exit(2);
+            console.log('FINAL_GOLD_DIAMOND='+JSON.stringify({r,pe,ce}));
+            const ok=!pe.length&&!ce.length&&r.lang==='ar'&&r.dir==='rtl'&&r.login&&r.state&&r.auth&&r.nav&&r.views&&r.shell&&r.owner&&r.notification==='PASS'&&r.licenseDenied&&r.auditDenied&&r.diamond&&r.p163==='P163-GOLD-DIAMOND-CLOSED-2026-09-03'&&r.version==='MAIN2-COMPLETE-SURGICAL-v1'&&r.manifest==='../manifest.json'&&r.manifestStart==='./PWA/New-main'&&r.manifestScope==='./PWA/'&&r.sw===200;
+            await b.close(); if(!ok)process.exit(2);
           })().catch(e=>{console.error(e.stack||e);process.exit(2)});
           NODE
           echo 'GOLD=PROVEN'; echo 'DIAMOND=PROVEN'; echo 'CLOSED=100%'
 # verifier-only; no git writes
-# closure_nonce=2026-09-03T10:40+03:00
+# closure_nonce=2026-09-03T10:50+03:00
