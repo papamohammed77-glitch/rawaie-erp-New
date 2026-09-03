@@ -72,7 +72,6 @@ jobs:
           if pwa_meta not in s: s=s.replace('</head>',pwa_meta+'\n</head>',1)
           sw_coord='<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>'
           if sw_coord not in s: s=s.replace('</head>',sw_coord+'\n</head>',1)
-          # Remove only the known pre-MAIN10 owner shim; the authoritative assignment is preserved below.
           legacy=re.compile(r'\n?window\.RW_OwnerLicense\s*=\s*\{\s*isOwner\s*:\s*function\([^)]*\)\s*\{.*?\}\s*\};\s*',re.S)
           matches=list(legacy.finditer(s))
           for m in matches:
@@ -81,7 +80,6 @@ jobs:
                   s=s[:m.start()]+'\n'+s[m.end():]
                   print('LEGACY_OWNER_SHIM_REMOVED')
                   break
-          # Normalize the current owner surface into one local authority plus one explicit export.
           owner_direct='window.RW_OwnerLicense={'
           owner_export='window.RW_OwnerLicense = RW_OwnerLicense;'
           if owner_direct in s and owner_export not in s:
@@ -177,4 +175,4 @@ jobs:
           if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then git rebase origin/main; fi
           git push origin HEAD:main
 # Sole authoritative writer; legacy writers frozen.
-# closure_nonce: 2026-09-03T06:02Z
+# closure_nonce: 2026-09-03T08:58Z
