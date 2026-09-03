@@ -1,0 +1,81 @@
+name: CTO New-main PR Execution Gold Diamond
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [main]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  execute:
+    if: ${{ !contains(github.event.pull_request.title, '[CTO-EXECUTED]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Surgical target mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,hashlib,subprocess,tempfile
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          compat='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'; marker='window.RW_Items=RW_Items;'
+          assert s.count(compat)==1, f'P163_COMPAT_COUNT:{s.count(compat)}'
+          assert s.count(auth)==1, f'P163_AUTH_COUNT:{s.count(auth)}'
+          a=s.index(compat); b=s.index(auth,a+len(compat)); block=s[a:b]; c=block.rfind('})();')
+          assert c>=0,'P163_MAIN1_IIFE_CLOSURE_NOT_FOUND'
+          s=s[:a]+'})();\n\n'+s[b:]
+          s=s.replace('window.RW_Dashboard={render:renderDashboard};','').replace('window.RW_Items={render:renderItems};','')
+          s=re.sub(r'window\.RW_Items\s*=\s*RW_Items\s*;',marker,s)
+          s=s.replace("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';",'').replace('// MAIN2_GOVERNED_CLOSED:v1','')
+          assert s.count(marker)==1, f'P163_ITEMS_OWNER_COUNT:{s.count(marker)}'
+          i=s.index(marker)+len(marker); s=s[:i]+"\nwindow.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';\n// MAIN2_GOVERNED_CLOSED:v1"+s[i:]
+          checks={'compat_absent':compat not in s,'auth_one':s.count(auth)==1,'version_one':s.count("window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';")==1,'governed_one':s.count('// MAIN2_GOVERNED_CLOSED:v1')==1,'dash_alias_absent':'window.RW_Dashboard={render:renderDashboard};' not in s,'items_alias_absent':'window.RW_Items={render:renderItems};' not in s,'items_export_one':s.count(marker)==1,'actions':'var actions=' in s,'delegation':'main1Delegation' in s,'main3':'MAIN3' in s,'main11':'MAIN11' in s,'html':'<html' in s and '</html>' in s,'body':'<body' in s and '</body>' in s,'scripts_balance':s.lower().count('<script')==s.lower().count('</script>'),'style_balance':s.lower().count('<style')==s.lower().count('</style>'),'doctype':s.lstrip().lower().startswith('<!doctype html>')}
+          bad=[k for k,v in checks.items() if not v]
+          if bad: raise SystemExit('GOLD_SOURCE_GATE_FAIL:'+','.join(bad))
+          scripts=[m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)]
+          if len(scripts)!=2: raise SystemExit('INLINE_SCRIPT_COUNT:'+str(len(scripts)))
+          app=max(scripts,key=len); f=Path(tempfile.gettempdir())/'newmain.js'; f.write_text(app,encoding='utf-8')
+          r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+          if r.returncode: print(r.stderr); raise SystemExit('GOLD_JS_SYNTAX_FAIL')
+          p.write_text(s,encoding='utf-8')
+          print('TARGET_GOLD_READY',hashlib.sha256(s.encode()).hexdigest(),len(s.encode()))
+          PY
+      - name: Diamond browser smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
+          python3 -m http.server 8123 --directory Current/PWA >/tmp/rw.log 2>&1 &
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[];p.on('pageerror',e=>pe.push(e.message));await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1500);const x=await p.evaluate(()=>({lang:document.documentElement.lang,login:!!document.getElementById('rw-login-page'),shell:!!document.getElementById('rw-main-shell'),ctx:!!window.RW_ShellContext,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,owner:!!window.RW_OwnerLicense,recon:window.RW_PWA_RECONSTRUCTION_VERSION||null,dash:typeof window.RW_Dashboard,items:typeof window.RW_Items}));console.log(JSON.stringify({x,pe}));if(pe.length||x.lang!=='ar'||!x.login||!x.shell||!x.ctx||!x.auth||!x.nav||!x.views||!x.owner||x.recon!=='MAIN2-COMPLETE-SURGICAL-v1')process.exit(2);await b.close()})().catch(e=>{console.error(e);process.exit(2)})
+          NODE
+      - name: Persist evidence and mark branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8'); h=hashlib.sha256(s.encode()).hexdigest()
+          st=Path('CURRENT_STATE.md'); x=st.read_text(encoding='utf-8')
+          x=x.rstrip()+f"\n\n## CTO P163 GOLD / DIAMOND — 2026-09-03\n\nP163 / Main2 ownership surgery = CLOSED\nTarget = `Current/PWA/New-main`\nSHA-256 = `{h}`\nGold source gates = PASS\nGold JS syntax = PASS\nDiamond browser smoke = PASS\nMain1 IIFE closure preserved = YES\nCompatibility implementation removed = YES\nAuthoritative Main2 retained = YES\nActions/main1Delegation/MAIN3/MAIN11 retained = YES\nProduction data writes = NONE\n"
+          st.write_text(x,encoding='utf-8'); Path('_cto_execution_done.txt').write_text(h,encoding='utf-8')
+          PY
+          git config user.name 'RAWAEA CTO Executor'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Current/PWA/New-main CURRENT_STATE.md _cto_execution_done.txt
+          git diff --cached --check
+          git commit -m '[CTO-EXECUTED] New-main Gold Diamond verified closure'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
