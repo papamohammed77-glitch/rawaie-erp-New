@@ -39,37 +39,41 @@ jobs:
           s=parts[0]+'\n\n'+'\n\n'.join(parts[1:])+'\n\n</script>\n</body>\n</html>\n'
           kp=re.compile(r"var\s+RW_SUPABASE_ANON_KEY\s*=\s*(['\"])[^'\"]*\1\s*;",re.S)
           if len(kp.findall(s))!=1: raise SystemExit('ANON_KEY_DECLARATION_COUNT')
-          s=kp.sub(lambda m:m.group(0),s,count=1)
           sw=re.compile(r"(?:if\s*\(\s*['\"]serviceWorker['\"]\s*in\s*navigator\s*\)\s*)?navigator\.serviceWorker\.register\([\s\S]*?\)(?:\.catch\(\s*function\s*\([^)]*\)\s*\{[\s\S]*?\}\s*\))?\s*;?",re.S)
           if len(sw.findall(s))>1: raise SystemExit('MULTIPLE_SW')
           s=sw.sub('',s,count=1)
           body=s.rfind('</body>')
           s=s[:body]+"<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(function(e){console.warn('SERVICE_WORKER',e)})}</script>\n"+s[body:]
           compat='/* RAWAEA MAIN2 COMPATIBILITY */'; auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
-          if s.count(compat)!=1 or s.count(auth)!=1: raise SystemExit('P163_OWNER_COUNTS')
-          a,b=s.index(compat),s.index(auth)
-          s=s[:a]+s[b:]
+          compat_count=s.count(compat)
+          if compat_count not in (0,1): raise SystemExit('P163_COMPAT_COUNT:'+str(compat_count))
+          if s.count(auth)!=1: raise SystemExit('P163_AUTH_COUNT')
+          if compat_count==1:
+            a,b=s.index(compat),s.index(auth)
+            if b<=a: raise SystemExit('P163_OWNER_ORDER')
+            s=s[:a]+s[b:]
           for x in ('window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};'):
-            if s.count(x)!=1: raise SystemExit('P163_ALIAS_COUNT:'+x)
-            s=s.replace(x,'',1)
-          owner='window.RW_Items=RW_Items;'; version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"; governed='// MAIN2_GOVERNED_CLOSED:v1'
-          if s.count(owner)!=1 or version in s or governed in s: raise SystemExit('P163_OWNER_MARKER_STATE')
-          s=s.replace(owner,owner+'\n'+version+'\n'+governed,1)
+            if x in s:s=s.replace(x,'')
+          if s.count('window.RW_Items=RW_Items;')!=1: raise SystemExit('P163_ITEMS_OWNER_COUNT')
+          version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"; governed='// MAIN2_GOVERNED_CLOSED:v1'
+          if version in s or governed in s: raise SystemExit('P163_CLOSURE_ALREADY_PRESENT')
+          s=s.replace('window.RW_Items=RW_Items;','window.RW_Items=RW_Items;\n'+version+'\n'+governed,1)
           required=['main1Delegation','actions','MAIN3','post_stock_movement','reserve_stock','post_journal_entry','save_sales_invoice_atomic','edgeCall','supabaseClient','window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_Dashboard','window.RW_Items','window.RW_POS','window.RW_Orders','window.RW_Runsheets','window.RW_Purchases','window.RW_Warehouse','window.RW_Finance','window.RW_Reports','window.RW_HR','window.RW_CRM']
-          missing=[x for x in required if x not in s]
-          if missing: raise SystemExit('REQUIRED_MISSING:'+repr(missing))
+          miss=[x for x in required if x not in s]
+          if miss: raise SystemExit('REQUIRED_MISSING:'+repr(miss))
           if s.count(compat) or s.count(auth)!=1 or s.count(version)!=1 or s.count(governed)!=1 or 'window.RW_Dashboard={render:renderDashboard};' in s or 'window.RW_Items={render:renderItems};' in s: raise SystemExit('P163_GATE_FAIL')
-          scripts=[m.group(1) for m in re.finditer(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)]
+          scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)
           apps=[x for x in scripts if 'serviceWorker.register' not in x]
           if len(apps)!=1: raise SystemExit('INLINE_APP_SCRIPT_COUNT:'+str(len(apps)))
-          f=Path(tempfile.gettempdir())/'new-main.js'; f.write_text(apps[0],encoding='utf-8')
+          f=Path(tempfile.gettempdir())/'new-main.js';f.write_text(apps[0],encoding='utf-8')
           r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
           if r.returncode:
             print(r.stderr)
-            lines=apps[0].splitlines(); m=re.search(r'line (\d+)',r.stderr)
+            lines=apps[0].splitlines()
+            m=re.search(r'line (\d+)',r.stderr)
             if m:
-              n=int(m.group(1)); print('\n'.join(f'{i}: {lines[i-1]}' for i in range(max(1,n-12),min(len(lines),n+12)+1)))
-            raise SystemExit('FINAL_JS_SYNTAX_FAIL')
+              n=int(m.group(1));print('\n'.join(f'{i}: {lines[i-1]}' for i in range(max(1,n-10),min(len(lines),n+10)+1)))
+            raise SystemExit('TARGET_JS_SYNTAX_FAIL')
           target.write_text(s,encoding='utf-8')
           print('NEW_MAIN_SOURCE_GOLD_PASS',hashlib.sha256(s.encode()).hexdigest(),len(s.encode()))
           PY
