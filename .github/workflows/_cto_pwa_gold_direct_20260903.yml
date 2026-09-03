@@ -60,7 +60,7 @@ jobs:
           import json
           from pathlib import Path
           m=json.loads(Path('Current/PWA/New-main.manifest.json').read_text(encoding='utf-8'))
-          assert m['start_url']=='./New-main' and m['scope']=='.//' and m['dir']=='rtl' and m['lang']=='ar'
+          assert m['start_url']=='./New-main' and m['scope']=='./' and m['dir']=='rtl' and m['lang']=='ar'
           print('PWA_STATIC_CONTRACT_PASS')
           PY
       - name: HTTP browser gate
@@ -94,10 +94,7 @@ jobs:
           git config user.email cto-pwa-executor@users.noreply.github.com
           git add Current/PWA/New-main Current/PWA/New-main.manifest.json Current/PWA/New-main-icon.svg CURRENT_STATE.md
           git diff --cached --check
-          if git diff --cached --quiet; then
-            echo 'TARGET_ALREADY_VERIFIED_NO_COMMIT'
-            exit 0
-          fi
+          if git diff --cached --quiet; then echo 'TARGET_ALREADY_VERIFIED_NO_COMMIT'; exit 0; fi
           git commit -m '[PWA-RUNTIME] [GOLD-PROVEN] close New-main manifest and Service Worker runtime'
           git push origin HEAD:main
 
