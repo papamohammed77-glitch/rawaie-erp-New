@@ -1,5 +1,4 @@
 name: CTO exact New-main Gold Diamond verifier
-
 on:
   push:
     branches: [main]
@@ -9,28 +8,20 @@ on:
       - 'Current/PWA/sw.js'
       - '.github/workflows/cto_final_observable_20260903.yml'
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
   group: cto-exact-newmain-verifier
   cancel-in-progress: true
-
 jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 1
-
+        with: {ref: main, fetch-depth: 1}
       - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
+        with: {node-version: 20}
       - name: Static exact-target gate
         shell: bash
         run: |
@@ -39,13 +30,14 @@ jobs:
           from pathlib import Path
           from html.parser import HTMLParser
           import hashlib,json,subprocess,tempfile
-          p=Path('Current/PWA/New-main')
-          s=p.read_text(encoding='utf-8')
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
           required=['<!doctype html>','<html lang="ar" dir="rtl">','rw-p163-closure','P163-GOLD-DIAMOND-CLOSED-2026-09-03',"window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';",'// MAIN2_GOVERNED_CLOSED:v1','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1','window.RW_Auth=','window.RW_Navigation=','window.RW_Views=','window.RW_ShellContext=','window.RW_OwnerLicense=','applyAuthoritativeContext','window.MAIN_HTML_CURRENT_CONTRACT_LEDGER=']
           missing=[x for x in required if x not in s]
           if missing: raise SystemExit('STATIC_MISSING='+repr(missing))
-          if 'async function showPanel(){\n  var e=email();' in s: raise SystemExit('LEGACY_NOTIFICATION_SCOPE_BUG_PRESENT')
-          if 'async function showPanel(){\n  var e=RW_STATE.app.currentUser&&RW_STATE.app.currentUser.email;' not in s: raise SystemExit('NOTIFICATION_BINDING_MISSING')
+          import re
+          blocks=list(re.finditer(r'async function showPanel\(\)\{\s*var e=([^;]+);',s))
+          if len(blocks)!=1: raise SystemExit(f'SHOWPANEL_COUNT={len(blocks)}')
+          if 'RW_STATE.app.currentUser&&RW_STATE.app.currentUser.email' not in blocks[0].group(1): raise SystemExit('NOTIFICATION_BINDING_MISSING')
           class P(HTMLParser):
             def __init__(self): super().__init__(convert_charrefs=False); self.cur=None; self.inline=[]; self.scripts=0; self.styles=0
             def handle_starttag(self,t,a):
@@ -58,18 +50,15 @@ jobs:
                 if not self.cur['src'] and self.cur['text'].strip(): self.inline.append(self.cur['text'])
                 self.cur=None
           hp=P(); hp.feed(s); hp.close()
-          if hp.scripts != 5 or hp.styles != 1 or len(hp.inline) != 1: raise SystemExit(f'HTML_STRUCTURE={hp.scripts},{hp.styles},{len(hp.inline)}')
+          if hp.scripts!=5 or hp.styles!=1 or len(hp.inline)!=1: raise SystemExit(f'HTML_STRUCTURE={hp.scripts},{hp.styles},{len(hp.inline)}')
           f=Path(tempfile.mkstemp(suffix='.js')[1]); f.write_text(hp.inline[0],encoding='utf-8')
           try: subprocess.run(['node','--check',str(f)],check=True)
           finally: f.unlink(missing_ok=True)
           subprocess.run(['node','--check','Current/PWA/sw.js'],check=True)
           m=json.loads(Path('Current/manifest.json').read_text(encoding='utf-8'))
           assert m['start_url']=='./PWA/New-main' and m['scope']=='./PWA/' and m['lang']=='ar' and m['dir']=='rtl'
-          print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest())
-          print('TARGET_BYTES='+str(len(s.encode())))
-          print('STATIC_GOLD_DIAMOND=PASS')
+          print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest()); print('TARGET_BYTES='+str(len(s.encode()))); print('STATIC_GOLD_DIAMOND=PASS')
           PY
-
       - name: Exact HTTP Chromium gate
         shell: bash
         run: |
@@ -80,26 +69,33 @@ jobs:
           cat >/tmp/newmain-http.py <<'PY'
           from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
           class Handler(SimpleHTTPRequestHandler):
-              extensions_map = dict(SimpleHTTPRequestHandler.extensions_map)
-              extensions_map[''] = 'text/html; charset=utf-8'
-          ThreadingHTTPServer(('127.0.0.1',8123), Handler).serve_forever()
+              extensions_map=dict(SimpleHTTPRequestHandler.extensions_map); extensions_map['']='text/html; charset=utf-8'
+          ThreadingHTTPServer(('127.0.0.1',8123),Handler).serve_forever()
           PY
-          python3 /tmp/newmain-http.py >/tmp/newmain-http.log 2>&1 &
-          echo $! >/tmp/newmain-http.pid
+          python3 /tmp/newmain-http.py >/tmp/newmain-http.log 2>&1 & echo $! >/tmp/newmain-http.pid
           trap 'kill "$(cat /tmp/newmain-http.pid)" 2>/dev/null || true' EXIT
           sleep 2
           node <<'NODE'
           const {chromium}=require('playwright');
           (async()=>{
             const b=await chromium.launch({headless:true}); const p=await b.newPage(); const pe=[],ce=[];
+            await p.route('**/*',async r=>{const u=r.request().url();
+              if(u.includes('supabase.min.js'))return r.fulfill({status:200,contentType:'text/javascript',body:`window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null},error:null}),getUser:async()=>({data:{user:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signOut:async()=>({error:null}),signInWithPassword:async()=>({error:new Error('SMOKE_DISABLED')})},from:()=>({select(){return this},eq(){return this},or(){return this},limit(){return this},maybeSingle:async()=>({data:null,error:null})}),rpc:async()=>({data:null,error:null})})};`});
+              if(u.includes('chart.umd.js'))return r.fulfill({status:200,contentType:'text/javascript',body:'window.Chart=function(){};'});
+              if(u.includes('sweetalert2'))return r.fulfill({status:200,contentType:'text/javascript',body:'window.Swal={fire:async()=>({isConfirmed:false}),close(){},showLoading(){}};'});
+              if(u.includes('xlsx.full.min.js'))return r.fulfill({status:200,contentType:'text/javascript',body:'window.XLSX={utils:{}};'});
+              if(u.includes('font-awesome'))return r.fulfill({status:200,contentType:'text/css',body:''});
+              return r.continue();});
             p.on('pageerror',e=>pe.push(e.message)); p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
-            await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000}); await p.waitForSelector('#rw-login-page',{timeout:10000}); await p.waitForTimeout(1200);
-            const r=await p.evaluate(async()=>{const S=window.RW_STATE,N=window.RW_Navigation,V=window.RW_Views;let notification='NOT_EXPOSED',licenseDenied=false,auditDenied=false;if(S?.app){S.app.currentUser={id:'smoke',email:'smoke@example.com',isOwner:false,permissions:[]};if(window.RW_Notification?.showPanel){try{await window.RW_Notification.showPanel();notification='PASS'}catch(e){notification='FAIL:'+String(e?.message||e)}}if(N?.navigate){try{licenseDenied=(await N.navigate('license'))===false}catch(e){licenseDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e?.message||e))}try{auditDenied=(await N.navigate('audit'))===false}catch(e){auditDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e?.message||e))}}}const l=document.querySelector('link[rel="manifest"]');const mj=l?await(await fetch(l.href)).json():null;const sw=await fetch('./sw.js');return{lang:document.documentElement.lang,dir:document.documentElement.dir,login:!!document.querySelector('#rw-login-page'),state:!!S,auth:!!window.RW_Auth,nav:!!N,views:!!V,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,notification,licenseDenied,auditDenied,diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),p163:document.querySelector('meta[name="rw-p163-closure"]')?.content||'',version:window.RW_PWA_RECONSTRUCTION_VERSION||null,manifest:l?.getAttribute('href')||'',manifestStart:mj?.start_url||null,manifestScope:mj?.scope||null,sw:sw.status}});
-            console.log('FINAL_GOLD_DIAMOND='+JSON.stringify({r,pe,ce})); await b.close(); const ok=!pe.length&&!ce.length&&r.lang==='ar'&&r.dir==='rtl'&&r.login&&r.state&&r.auth&&r.nav&&r.views&&r.shell&&r.owner&&r.notification==='PASS'&&r.licenseDenied&&r.auditDenied&&r.diamond&&r.p163==='P163-GOLD-DIAMOND-CLOSED-2026-09-03'&&r.version==='MAIN2-COMPLETE-SURGICAL-v1'&&r.manifest==='../manifest.json'&&r.manifestStart==='./PWA/New-main'&&r.manifestScope==='./PWA/'&&r.sw===200;if(!ok)process.exit(2)})();
+            await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});
+            await p.waitForFunction(()=>!!document.querySelector('#rw-login-page'),null,{timeout:10000}); await p.waitForTimeout(1000);
+            const r=await p.evaluate(async()=>{const S=window.RW_STATE,N=window.RW_Navigation,V=window.RW_Views;let notification='NOT_EXPOSED',licenseDenied=false,auditDenied=false;
+              if(S?.app){S.app.currentUser={id:'smoke',email:'smoke@example.com',isOwner:false,permissions:[]};if(window.RW_Notification?.showPanel){try{await window.RW_Notification.showPanel();notification='PASS'}catch(e){notification='FAIL:'+String(e?.message||e)}}if(N?.navigate){try{licenseDenied=(await N.navigate('license'))===false}catch(e){licenseDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e?.message||e))}try{auditDenied=(await N.navigate('audit'))===false}catch(e){auditDenied=/OWNER_ONLY|PERMISSION_DENIED/.test(String(e?.message||e))}}}
+              const l=document.querySelector('link[rel="manifest"]'); const mj=l?await(await fetch(l.href)).json():null; const sw=await fetch('./sw.js');
+              return{lang:document.documentElement.lang,dir:document.documentElement.dir,login:!!document.querySelector('#rw-login-page'),state:!!S,auth:!!window.RW_Auth,nav:!!N,views:!!V,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,notification,licenseDenied,auditDenied,diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),p163:document.querySelector('meta[name="rw-p163-closure"]')?.content||'',version:window.RW_PWA_RECONSTRUCTION_VERSION||null,manifest:l?.getAttribute('href')||'',manifestStart:mj?.start_url||null,manifestScope:mj?.scope||null,sw:sw.status};});
+            console.log('FINAL_GOLD_DIAMOND='+JSON.stringify({r,pe,ce})); const ok=!pe.length&&!ce.length&&r.lang==='ar'&&r.dir==='rtl'&&r.login&&r.state&&r.auth&&r.nav&&r.views&&r.shell&&r.owner&&r.notification==='PASS'&&r.licenseDenied&&r.auditDenied&&r.diamond&&r.p163==='P163-GOLD-DIAMOND-CLOSED-2026-09-03'&&r.version==='MAIN2-COMPLETE-SURGICAL-v1'&&r.manifest==='../manifest.json'&&r.manifestStart==='./PWA/New-main'&&r.manifestScope==='./PWA/'&&r.sw===200; await b.close(); if(!ok)process.exit(2);
+          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
           NODE
-          echo 'GOLD=PROVEN'
-          echo 'DIAMOND=PROVEN'
-          echo 'CLOSED=100%'
-
+          echo 'GOLD=PROVEN'; echo 'DIAMOND=PROVEN'; echo 'CLOSED=100%'
 # verifier-only; no git writes
-# closure_nonce=2026-09-03T10:20+03:00
+# closure_nonce=2026-09-03T10:30+03:00
