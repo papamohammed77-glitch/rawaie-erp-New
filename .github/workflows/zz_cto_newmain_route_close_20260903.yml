@@ -2,6 +2,8 @@ name: CTO One-shot New-main Route Closure
 on:
   push:
     branches: [cto-newmain-route-close-20260903]
+  pull_request:
+    branches: [main]
 permissions:
   contents: write
 concurrency:
@@ -28,7 +30,9 @@ jobs:
           assert len(s.encode('utf-8')) > 500000
           assert s.count('function loadVoucherForm(type)') == 1
           assert s.count("nav.navigate=function(view)") == 1
-          assert 'RAWAEA_MAIN_WAREHOUSE_VOUCHER_ROUTES_FINAL_V1' not in s
+          if 'RAWAEA_MAIN_WAREHOUSE_VOUCHER_ROUTES_FINAL_V1' in s:
+              print('ROUTE_SURGERY_ALREADY_PRESENT')
+              raise SystemExit(0)
           closing='</script>\n</body>\n</html>'
           assert s.count(closing) == 1
           block='''<script id="RAWAEA_MAIN_WAREHOUSE_VOUCHER_ROUTES_FINAL_V1">\n(function(){\n  'use strict';\n  var n=window.RW_Navigation, w=window.RW_Warehouse;\n  if(!n || typeof n.navigate!=='function' || !w || typeof w.loadVoucherForm!=='function') return;\n  var prev=n.navigate;\n  var special={\n    transfer:'Transfer',\n    'direct-sale':'DirectSale',\n    'direct-return':'DirectReturn',\n    'supplier-return':'SupplierReturn'\n  };\n  n.navigate=function(view){\n    if(Object.prototype.hasOwnProperty.call(special,view)){\n      return Promise.resolve(w.loadVoucherForm(special[view]));\n    }\n    return prev(view);\n  };\n})();\n</script>'''
@@ -45,8 +49,6 @@ jobs:
           from pathlib import Path
           import subprocess, tempfile, re
           s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          class P:
-              pass
           scripts=re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>', s, flags=re.I|re.S)
           assert scripts
           for code in scripts:
