@@ -1,12 +1,12 @@
 name: CTO Product UX Single-Target Surgery
 on:
-  push:
-    branches: [cto/product-ux-surgery-20260903]
+  pull_request:
+    types: [opened, synchronize]
 permissions:
   contents: write
 jobs:
   surgery:
-    if: github.event.head_commit.message != 'CTO: apply product UX surgery to New-main'
+    if: github.event.pull_request.head.ref == 'cto/product-ux-surgery-20260903'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,7 +19,7 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re, subprocess
+          import re
           p=Path('Current/PWA/New-main')
           s=p.read_text(encoding='utf-8')
           marker='RAWAEA_PRODUCT_UX_CLOSURE_20260903'
@@ -32,7 +32,6 @@ jobs:
           assert 'window.RW_ShellContext=' in s and 'window.RW_OwnerLicense=' in s
           assert 'window.byId=byId;' in s and 'window.safeText=safeText;' in s
           assert 'link rel="manifest" href="./manifest.json"' in s
-          # Only change this exact application file. No other application file is touched.
           css=r'''
 /* RAWAEA_PRODUCT_UX_CLOSURE_20260903 */
 .rw-login-page{background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 35%,#2563eb 100%);position:relative;overflow:hidden}
@@ -61,64 +60,35 @@ jobs:
 @media(max-width:1100px){.rw-login-left{display:none}.rw-login-right{width:100%}.rw-sidebar{transform:translateX(100%)}.rw-sidebar.active{transform:translateX(0)}.rw-main-content,.rw-main-content.expanded{margin-right:0}.rw-kpi-grid{grid-template-columns:repeat(2,1fr)}.rw-module-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:650px){.rw-page-container{padding:12px}.rw-kpi-grid,.rw-grid2,.rw-grid3,.rw-module-grid,.rw-modal-grid{grid-template-columns:1fr}.rw-header{padding:0 12px}.rw-header-search{display:none}.rw-header-profile>div:first-child{display:none}.rw-login-right{padding:15px}.rw-login-card{padding:30px 24px}.rw-login-logo{width:96px;height:96px}}
 '''
-          pos=s.rfind('</style>')
-          assert pos!=-1
-          s=s[:pos]+css+s[pos:]
-          # Add a user context strip without altering the navigation model.
-          slot='<div id="rw-sidebar-user-slot"></div><div id="rw-sidebar-nav" class="rw-sidebar-nav">'
-          assert s.count('<div id="rw-sidebar-nav" class="rw-sidebar-nav">')==1
-          s=s.replace('<div id="rw-sidebar-nav" class="rw-sidebar-nav">',slot,1)
+          pos=s.rfind('</style>'); assert pos!=-1; s=s[:pos]+css+s[pos:]
+          nav='<div id="rw-sidebar-nav" class="rw-sidebar-nav">'; assert s.count(nav)==1
+          s=s.replace(nav,'<div id="rw-sidebar-user-slot"></div>'+nav,1)
           js=r'''
 /* Product-level parity: restore the old UX services while preserving the unified core. */
 (function(){
   function text(el,v){if(el)el.textContent=v==null?'':String(v)}
   function hydrate(){
-    var st=window.RW_STATE&&RW_STATE.app?RW_STATE.app:null;
-    var u=st&&st.currentUser?st.currentUser:null;
-    var c=st&&st.company?st.company:null;
-    if(c){
-      text(document.querySelector('.rw-company-name'),c.name||'الروائع ERP');
-      var li=document.querySelector('.rw-login-logo');
-      if(li && c.logo){li.style.background='center/contain no-repeat url("'+String(c.logo).replace(/"/g,'%22')+'")';li.textContent='';}
-      var si=byId('rw-sidebar-brand-logo');
-      if(si&&c.logo)si.src=c.logo;
-      if(si&&!c.logo){si.removeAttribute('src');si.alt='شعار الروائع';si.textContent='';}
-    }
-    var slot=byId('rw-sidebar-user-slot');
-    if(slot&&u){
-      var name=u.name||u.email||'المستخدم';
-      var role=u.role||'مستخدم النظام';
-      slot.innerHTML='<div class="rw-sidebar-user"><div class="rw-sidebar-user-avatar">'+esc(name.slice(0,1))+'</div><div><div class="rw-sidebar-user-name">'+esc(name)+'</div><div class="rw-sidebar-user-role">'+esc(role)+'</div></div></div>';
-    }
+    var st=window.RW_STATE&&RW_STATE.app?RW_STATE.app:null,u=st&&st.currentUser?st.currentUser:null,c=st&&st.company?st.company:null;
+    if(c){text(document.querySelector('.rw-company-name'),c.name||'الروائع ERP');var li=document.querySelector('.rw-login-logo');if(li&&c.logo){li.style.background='center/contain no-repeat url("'+String(c.logo).replace(/"/g,'%22')+'")';li.textContent='';}var si=byId('rw-sidebar-brand-logo');if(si&&c.logo)si.src=c.logo;}
+    var slot=byId('rw-sidebar-user-slot');if(slot&&u){var name=u.name||u.email||'المستخدم',role=u.role||'مستخدم النظام';slot.innerHTML='<div class="rw-sidebar-user"><div class="rw-sidebar-user-avatar">'+esc(name.slice(0,1))+'</div><div><div class="rw-sidebar-user-name">'+esc(name)+'</div><div class="rw-sidebar-user-role">'+esc(role)+'</div></div></div>';}
   }
-  try{
-    var saved=localStorage.getItem('rawaea_remember_email');
-    var inp=byId('rw-username'),remember=byId('rw-remember');
-    if(saved&&inp){inp.value=saved;if(remember)remember.checked=true;}
-  }catch(e){}
-  var forgot=byId('rw-forgot');
-  if(forgot){forgot.addEventListener('click',function(e){e.preventDefault();var email=(byId('rw-username')||{}).value||'';email=email.trim();if(!email){toast('أدخل البريد الإلكتروني أولاً','warning');return;}showLoader('جاري إرسال رابط إعادة تعيين كلمة المرور...');supabase.auth.resetPasswordForEmail(email,{redirectTo:location.href}).then(function(r){hideLoader();toast(r.error?r.error.message:'تم إرسال رابط إعادة تعيين كلمة المرور',r.error?'error':'success')}).catch(function(e){hideLoader();toast(e.message||'تعذر الاتصال بالخادم','error')})});}
-  var form=byId('rw-login-form');
-  if(form)form.addEventListener('submit',function(){try{var rem=byId('rw-remember'),email=byId('rw-username');if(rem&&email){if(rem.checked)localStorage.setItem('rawaea_remember_email',email.value.trim());else localStorage.removeItem('rawaea_remember_email')}}catch(e){}});
-  hydrate();
-  setTimeout(hydrate,900);
-  setTimeout(hydrate,2200);
-  window.RW_ProductUX={hydrateCompanyBrand:hydrate,version:'2026-09-03'};
+  try{var saved=localStorage.getItem('rawaea_remember_email'),inp=byId('rw-username'),remember=byId('rw-remember');if(saved&&inp){inp.value=saved;if(remember)remember.checked=true;}}catch(e){}
+  var forgot=byId('rw-forgot');if(forgot){forgot.addEventListener('click',function(e){e.preventDefault();var email=((byId('rw-username')||{}).value||'').trim();if(!email){toast('أدخل البريد الإلكتروني أولاً','warning');return;}showLoader('جاري إرسال رابط إعادة تعيين كلمة المرور...');supabase.auth.resetPasswordForEmail(email,{redirectTo:location.href}).then(function(r){hideLoader();toast(r.error?r.error.message:'تم إرسال رابط إعادة تعيين كلمة المرور',r.error?'error':'success')}).catch(function(e){hideLoader();toast(e.message||'تعذر الاتصال بالخادم','error')})});}
+  var form=byId('rw-login-form');if(form)form.addEventListener('submit',function(){try{var rem=byId('rw-remember'),email=byId('rw-username');if(rem&&email){if(rem.checked)localStorage.setItem('rawaea_remember_email',email.value.trim());else localStorage.removeItem('rawaea_remember_email');}}catch(e){}});
+  hydrate();setTimeout(hydrate,900);setTimeout(hydrate,2200);window.RW_ProductUX={hydrateCompanyBrand:hydrate,version:'2026-09-03'};
 })();
 '''
-          end=s.rfind('</script>')
-          assert end!=-1
-          s=s[:end]+js+s[end:]
+          end=s.rfind('</script>'); assert end!=-1; s=s[:end]+js+s[end:]
           p.write_text(s,encoding='utf-8')
           print('TARGET_SIZE',len(s.encode()))
-          print('ONLY_TARGET_NEWMAIN=PASS')
           PY
           git diff --name-only
           test "$(git diff --name-only)" = "Current/PWA/New-main"
           git add Current/PWA/New-main
           git commit -m 'CTO: apply product UX surgery to New-main'
           git push origin HEAD:cto/product-ux-surgery-20260903
-      - name: Verify only target was changed
+      - name: Verify target-only boundary
         if: always()
         run: |
-          git diff-tree --no-commit-id --name-only -r HEAD | grep -Fx 'Current/PWA/New-main'
+          changed="$(git diff-tree --no-commit-id --name-only -r HEAD)"
+          test "$changed" = 'Current/PWA/New-main' || { echo "$changed"; exit 1; }
