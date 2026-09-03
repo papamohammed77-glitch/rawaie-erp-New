@@ -17,27 +17,20 @@ No Production database writes are authorized by this execution.
 
 ## CTO EXECUTOR DIAGNOSTIC — 2026-09-03
 ```text
-Traceback (most recent call last):
-  File "/home/runner/work/rawaie-erp-New/rawaie-erp-New/tools/run_final_main_reconstruction_20260831.py", line 230, in <module>
-    main()
-  File "/home/runner/work/rawaie-erp-New/rawaie-erp-New/tools/run_final_main_reconstruction_20260831.py", line 208, in main
-    candidate, chunks, runtime_changes, p163_gates = assemble()
-                                                     ^^^^^^^^^^
-  File "/home/runner/work/rawaie-erp-New/rawaie-erp-New/tools/run_final_main_reconstruction_20260831.py", line 156, in assemble
-    candidate, p163_gates = p163_owner_surgery(candidate)
-                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/rawaie-erp-New/rawaie-erp-New/tools/run_final_main_reconstruction_20260831.py", line 90, in p163_owner_surgery
-    raise RuntimeError('P163_COMPAT_COUNT:' + str(s.count(compat)))
-RuntimeError: P163_COMPAT_COUNT:0
-
+Historical executor failure recorded: P163_COMPAT_COUNT:0 on a prior executor revision. Current tool has been corrected to synthesize the authoritative Main2 boundary when the current main2 fragment has no historical compatibility marker.
 ```
 
 ## CTO EXECUTION RETRIGGER — 2026-09-03
-The next main push is a deliberate execution retrigger after the executor definition was corrected to:
+The current execution contract is:
 - build the single logical document from `main1.md` through `main11.md`;
 - remove only the final application inline-script closure from `main1` before concatenation;
-- synthesize the authoritative Main2 ownership boundary where the current `main2.md` contract lacks the historical marker;
-- remove the two legacy Main1 dashboard/items aliases without touching other exports;
-- normalize and retain the single Main2 governed closure;
+- synthesize the authoritative Main2 ownership boundary where the current `main2.md` lacks the historical marker;
+- remove only the two Main1 dashboard/items aliases;
+- preserve other exports and MAIN3;
+- normalize one governed Main2 closure;
 - emit one canonical service-worker registration;
-- validate the real current module/client contracts rather than obsolete historical symbol names.
+- run source and browser Gold/Diamond gates;
+- write `Current/PWA/New-main` only after those gates pass.
+
+## ACTIONS RETRIGGER
+This state-only commit deliberately retriggers the already-installed push executor without modifying application source directly.
