@@ -19,7 +19,7 @@ The historical regression/reconstruction incidents, verifier failures, competing
 ```text
 REPOSITORY          = papamohammed77-glitch/rawaie-erp-New
 BRANCH              = main
-CURRENT HEAD        = <UPDATED BY THIS STATE COMMIT>
+CURRENT HEAD        = be816159ec5ecd648ec4f0cf2beb2e009e12959d
 TARGET              = Current/PWA/New-main
 CURRENT TARGET BLOB = 22f4ee1a666141be62127159337beffb05e8b146
 ```
@@ -33,7 +33,7 @@ Update New-main
 
 Its direct target diff changed only the embedded timestamp from `18:00 UTC` to `22:00 UTC`.
 
-After that target-affecting line, the repository changes were continuity/documentation work only until Report 36 was added and this file was reconciled again. No evidence currently shows a `Current/PWA/New-main` change after `282cce...`.
+After that target-affecting line, the repository changes were continuity/documentation work only. No evidence currently shows a `Current/PWA/New-main` change after `282cce...`.
 
 ### Latest continuity commits
 ```text
@@ -43,11 +43,13 @@ ac77379f529ce4e8325af277e48dee692703ba5f
 287bcc4d1b73de8843d8466267a78634c5d2995d
 [CTO] Add forensic continuity Report 36 and offline successor mission packet
 
-<state commit created immediately after the Report-36 commit>
+be816159ec5ecd648ec4f0cf2beb2e009e12959d
 [CTO] Reconcile CURRENT_STATE with Report 36 and offline successor mission
+
+<current state was then corrected to record the exact HEAD above>
 ```
 
-The exact final SHA of the state commit is the Git HEAD produced by this update. The target blob remains unchanged.
+The current state file itself was reconciled again solely to record the exact new HEAD; the application target remains unchanged.
 
 ## CURRENT TARGET — DIRECT EVIDENCE
 
@@ -421,11 +423,11 @@ Do not create competing writers or parallel business cores.
 TARGET                       = Current/PWA/New-main
 TARGET BLOB                  = 22f4ee1a666141be62127159337beffb05e8b146
 LATEST TARGET-AFFECTING SHA  = 282cce040c51b2f4f926a8ca9227ef89ee742713
-LATEST CONTINUITY RECORD     = Report 36
+LATEST CONTINUITY HEAD       = be816159ec5ecd648ec4f0cf2beb2e009e12959d
 LATEST APPLICATION CHANGE    = none after 282cce...
 OWNER                        = isOwner=true + permissions=["*"] + active owner profile
 MANIFEST                     = ./manifest.json / consistent
-SAFEText                     = needs current trace
+SAFETEXT                     = needs current trace
 AUTH_ID                      = needs current trace
 GOLD                         = not claimed
 DIAMOND                      = not claimed
