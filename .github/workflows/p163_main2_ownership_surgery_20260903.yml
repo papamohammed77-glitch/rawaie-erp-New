@@ -29,9 +29,6 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
       - name: Surgical target repair
         shell: bash
         run: |
@@ -45,8 +42,7 @@ jobs:
           if old_manifest in s:
               if s.count(old_manifest)!=1: raise SystemExit('MANIFEST_REFERENCE_COUNT')
               s=s.replace(old_manifest,new_manifest,1)
-          elif new_manifest not in s:
-              raise SystemExit('MANIFEST_CONTRACT_MISSING')
+          elif new_manifest not in s: raise SystemExit('MANIFEST_CONTRACT_MISSING')
           marker='<meta name="rw-pwa-runtime-gold" content="PWA-RUNTIME-GOLD-2026-09-03">'
           if marker not in s:
               anchor='<meta name="rw-p163-closure" content="P163-GOLD-DIAMOND-CLOSED-2026-09-03">'
@@ -61,8 +57,7 @@ jobs:
           if old_email in s:
               if s.count(old_email)!=1: raise SystemExit('NOTIFICATION_EMAIL_COUNT')
               s=s.replace(old_email,new_email,1)
-          elif 'var e=email();' in s:
-              raise SystemExit('NOTIFICATION_EMAIL_UNEXPECTED_SHAPE')
+          elif 'var e=email();' in s: raise SystemExit('NOTIFICATION_EMAIL_UNEXPECTED')
           p.write_text(s,encoding='utf-8')
           print('TARGET_SURGERIES_APPLIED')
           PY
@@ -110,7 +105,7 @@ jobs:
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null 2>&1
           rm -rf /tmp/site && mkdir -p /tmp/site/Current
-          cp -a Current/. /tmp/site/Current/
+          cp -a Current/. /tmp/site/Current
           (cd /tmp/site && python3 -m http.server 8123 >/tmp/p163-http.log 2>&1 & echo $! >/tmp/p163-http.pid)
           trap 'kill "$(cat /tmp/p163-http.pid)" 2>/dev/null || true' EXIT
           node <<'NODE'
@@ -151,3 +146,4 @@ jobs:
           git fetch origin main
           test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD)" || { echo MAIN_MOVED_DURING_FINALIZATION; exit 20; }
           git push origin HEAD:main
+# nonce: 2026-09-03T09:18+03:00
