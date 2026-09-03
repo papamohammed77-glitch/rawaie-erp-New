@@ -1,0 +1,127 @@
+name: CTO Surgical New-main UX 2026-09-03
+on:
+  push:
+    branches: [cto/surgical-newmain-ux-20260903]
+permissions:
+  contents: write
+jobs:
+  surgery:
+    if: github.event.head_commit.message != 'chore(cto): finalize New-main UX surgery'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: cto/surgical-newmain-ux-20260903, fetch-depth: 2}
+      - name: Surgical target-only repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess, hashlib
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+
+          # 1) Restore legacy visual language for login inputs without changing auth semantics.
+          css="""
+          .rw-input-wrapper{position:relative;width:100%}
+          .rw-input-icon{position:absolute;top:50%;right:16px;transform:translateY(-50%);color:#94a3b8;font-size:16px;z-index:2;pointer-events:none}
+          .rw-input-wrapper .rw-input{padding-right:46px}
+          .rw-sidebar-user{display:flex;align-items:center;gap:12px;margin-top:14px;padding:12px;border-radius:16px;background:#f8fafc;border:1px solid #eef2f7;min-width:0}
+          .rw-sidebar-user-avatar{width:42px;height:42px;min-width:42px;border-radius:13px;background:linear-gradient(135deg,#0ea5e9,#2563eb);color:#fff;display:grid;place-items:center;font-weight:900}
+          .rw-sidebar-user-name{font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+          .rw-sidebar-user-role{font-size:10px;color:#64748b;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+          .rw-sidebar.collapsed .rw-sidebar-user{justify-content:center;padding:10px}
+          .rw-sidebar.collapsed .rw-sidebar-user-name,.rw-sidebar.collapsed .rw-sidebar-user-role{display:none}
+          .rw-login-logo img{width:100%;height:100%;object-fit:contain;border-radius:inherit}
+          """
+          assert '</style>' in s
+          if '.rw-input-wrapper{position:relative;width:100%}' not in s:
+              s=s.replace('</style>',css+'</style>',1)
+
+          old_user='<div class="rw-sidebar-top"><div class="rw-sidebar-brand"><img id="rw-sidebar-brand-logo" class="rw-sidebar-brand-logo" alt="شعار الشركة"><div><div id="rw-sidebar-company-name" class="rw-sidebar-company-name">الروائع ERP</div><div id="rw-sidebar-company-subtitle" class="rw-sidebar-company-subtitle">Production Context</div></div></div></div>'
+          new_user=old_user.replace('</div></div></div>','</div></div><div id="rw-sidebar-user" class="rw-sidebar-user"><div id="rw-sidebar-user-avatar" class="rw-sidebar-user-avatar">م</div><div style="min-width:0"><div id="rw-sidebar-user-name" class="rw-sidebar-user-name">مستخدم</div><div id="rw-sidebar-user-role" class="rw-sidebar-user-role">—</div></div></div></div>')
+          assert s.count(old_user)==1, 'SIDEBAR_ANCHOR_MISSING'
+          s=s.replace(old_user,new_user,1)
+
+          old_login='<div class="rw-login-logo">ر</div><div class="rw-company-name">الروائع ERP</div><div class="rw-company-description">Clean-room MAIN1 contract surface</div>'
+          new_login='<div class="rw-login-logo" aria-label="شعار الشركة"><img id="rw-login-company-logo" alt="شعار الشركة" style="display:none"><span id="rw-login-company-fallback">ر</span></div><div id="rw-login-company-name" class="rw-company-name">الروائع ERP</div><div class="rw-company-description">منصة إدارة الأعمال الذكية والمتكاملة</div>'
+          assert s.count(old_login)==1, 'LOGIN_BRAND_ANCHOR_MISSING'
+          s=s.replace(old_login,new_login,1)
+
+          old_username='<label class="rw-form-label" for="rw-username">اسم المستخدم</label><input id="rw-username" class="rw-input" type="email" autocomplete="username">'
+          new_username='<label class="rw-form-label" for="rw-username">اسم المستخدم</label><div class="rw-input-wrapper"><span class="rw-input-icon"><i class="fa-solid fa-user"></i></span><input id="rw-username" class="rw-input" type="email" autocomplete="username"></div>'
+          assert s.count(old_username)==1, 'USERNAME_ANCHOR_MISSING'
+          s=s.replace(old_username,new_username,1)
+
+          old_password='<input id="rw-password" class="rw-input" type="password" autocomplete="current-password">'
+          new_password='<span class="rw-input-icon"><i class="fa-solid fa-lock"></i></span><input id="rw-password" class="rw-input" type="password" autocomplete="current-password">'
+          assert s.count(old_password)==1, 'PASSWORD_ANCHOR_MISSING'
+          s=s.replace(old_password,new_password,1)
+
+          old_enter="var img=byId('rw-sidebar-brand-logo');if(img&&RW_STATE.app.company.logo)img.src=RW_STATE.app.company.logo;byId('rw-login-page').classList.add('hidden');"
+          new_enter="var img=byId('rw-sidebar-brand-logo');if(img&&RW_STATE.app.company.logo)img.src=RW_STATE.app.company.logo;var su=byId('rw-sidebar-user-name');if(su)su.textContent=RW_STATE.app.currentUser.name||RW_STATE.app.currentUser.email||'مستخدم';var sr=byId('rw-sidebar-user-role');if(sr)sr.textContent=RW_STATE.app.currentUser.role||'—';var sa=byId('rw-sidebar-user-avatar');if(sa)sa.textContent=String((RW_STATE.app.currentUser.name||RW_STATE.app.currentUser.email||'م').trim()).charAt(0)||'م';var li=byId('rw-login-company-logo'),lf=byId('rw-login-company-fallback'),ln=byId('rw-login-company-name');if(ln)ln.textContent=RW_STATE.app.company.name||'الروائع ERP';if(li&&RW_STATE.app.company.logo){li.src=RW_STATE.app.company.logo;li.style.display='block';if(lf)lf.style.display='none'}byId('rw-login-page').classList.add('hidden');"
+          assert s.count(old_enter)==1, 'ENTER_ANCHOR_MISSING'
+          s=s.replace(old_enter,new_enter,1)
+
+          anchor="byId('rw-login-form').addEventListener('submit',function(e){"
+          assert s.count(anchor)==1, 'LOGIN_BIND_EXPECTED_ONCE'
+          helper="""
+          var rwRemember=byId('rw-remember'),rwUsername=byId('rw-username');
+          try{if(localStorage.getItem('rw_login_remember')==='1'){if(rwRemember)rwRemember.checked=true;if(rwUsername)rwUsername.value=localStorage.getItem('rw_login_email')||''}}catch(e){}
+          var rwForgot=byId('rw-forgot');if(rwForgot)rwForgot.addEventListener('click',function(e){e.preventDefault();var email=rwUsername&&rwUsername.value.trim();if(!email){safeText(byId('rw-login-error'),'اكتب البريد الإلكتروني أولاً لاستعادة كلمة المرور.');byId('rw-login-error').classList.remove('hidden');return}showLoader('جاري إرسال رابط الاستعادة...');supabase.auth.resetPasswordForEmail(email,{redirectTo:location.href}).then(function(r){if(r.error)throw r.error;toast('تم إرسال رابط استعادة كلمة المرور','success')}).catch(function(err){safeText(byId('rw-login-error'),err.message||String(err));byId('rw-login-error').classList.remove('hidden')}).finally(hideLoader)});
+          """
+          # Insert just before the existing guarded submit binding; no second submit handler.
+          s=s.replace(anchor,helper+"\n"+anchor,1)
+
+          old_submit="var email=byId('rw-username').value.trim(),password=byId('rw-password').value;RW_Auth.login(email,password).catch(function(err){"
+          new_submit="var email=byId('rw-username').value.trim(),password=byId('rw-password').value;try{if(byId('rw-remember')&&byId('rw-remember').checked){localStorage.setItem('rw_login_remember','1');localStorage.setItem('rw_login_email',email)}else{localStorage.removeItem('rw_login_remember');localStorage.removeItem('rw_login_email')}}catch(e){}RW_Auth.login(email,password).catch(function(err){"
+          assert s.count(old_submit)==1, 'SUBMIT_BODY_ANCHOR_MISSING'
+          s=s.replace(old_submit,new_submit,1)
+
+          p.write_text(s,encoding='utf-8')
+          print('TARGET_SIZE',len(s.encode()))
+          print('TARGET_SHA256',hashlib.sha256(s.encode()).hexdigest())
+          print('TARGET_BLOB',subprocess.check_output(['git','hash-object','Current/PWA/New-main'],text=True).strip())
+          PY
+
+          node --version
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess, tempfile
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          assert len(s.encode())>500000
+          assert s.count('function safeText')==1 and s.count('window.safeText=safeText;')==1
+          assert s.count('window.byId=byId;')==1
+          assert s.count('window.safeHTML=safeHTML;')==1
+          assert s.count("byId('rw-login-form').addEventListener('submit'")==1
+          assert s.count("loginForm.addEventListener('submit'")==1
+          assert 'rw-sidebar-user-name' in s and 'rw-sidebar-user-role' in s and 'rw-login-company-logo' in s
+          assert 'supabase.auth.resetPasswordForEmail' in s
+          blocks=re.findall(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*?)</script>',s,re.I)
+          Path('/tmp/inline.js').write_text('\n'.join(blocks),encoding='utf-8')
+          r=subprocess.run(['node','--check','/tmp/inline.js'],capture_output=True,text=True)
+          assert r.returncode==0,r.stderr
+          print('STATIC_TARGET_ONLY=PASS')
+          PY
+
+          git add Current/PWA/New-main
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
+          git config user.name 'RAWAEA CTO Surgical Executor'
+          git config user.email 'rawaea-cto-surgical@users.noreply.github.com'
+          git commit -m 'chore(cto): finalize New-main UX surgery'
+          git push origin HEAD:cto/surgical-newmain-ux-20260903
+      - name: Retire surgical workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin cto/surgical-newmain-ux-20260903
+          git checkout cto/surgical-newmain-ux-20260903
+          git rm -f .github/workflows/cto_surgical_newmain_ux_20260903.yml
+          git add -u
+          git diff --cached --check
+          git config user.name 'RAWAEA CTO Surgical Executor'
+          git config user.email 'rawaea-cto-surgical@users.noreply.github.com'
+          git commit -m 'chore(cto): retire temporary surgical workflow'
+          git push origin HEAD:cto/surgical-newmain-ux-20260903
