@@ -41,3 +41,6 @@ Trigger commit created after the executor definition was corrected: `edb549009f3
 
 ## CTO LIVE TRIGGER
 The corrected existing closure executor is armed on `main`; this state-only commit exists solely to trigger the verified server-side reconstruction path.
+
+## CTO FINAL MERGE TRIGGER
+This commit exists solely to make a real GitHub merge event from a clean branch so the existing push-triggered CTO executor is invoked. No product claim is recorded here.
