@@ -28,13 +28,16 @@ jobs:
           from pathlib import Path
           import hashlib
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
-          byid_decl="function byId(id){return document.getElementById(id)}"; byid_bridge="window.byId=byId;"
-          safetext_decl="function safeText(el,text){if(el)el.textContent=text==null?'':String(text)}"; safetext_bridge="window.safeText=safeText;"
-          assert s.count(byid_decl)==1 and s.count(safetext_decl)==1, 'HELPER_DECLARATION_COUNT_INVALID'
-          assert s.count(byid_bridge)<=1 and s.count(safetext_bridge)<=1, 'HELPER_BRIDGE_DUPLICATED'
-          before=hashlib.sha256(s.encode()).hexdigest(); changed=[]
-          if byid_bridge not in s: s=s.replace(byid_decl,byid_decl+'\n'+byid_bridge,1); changed.append('byId-global-bridge')
-          if safetext_bridge not in s: s=s.replace(safetext_decl,safetext_decl+'\n'+safetext_bridge,1); changed.append('safeText-global-bridge')
+          helpers=[
+            ("function byId(id){return document.getElementById(id)}","window.byId=byId;","byId-global-bridge"),
+            ("function safeHTML(el,html){if(el)el.innerHTML=html}","window.safeHTML=safeHTML;","safeHTML-global-bridge"),
+            ("function safeText(el,text){if(el)el.textContent=text==null?'':String(text)}","window.safeText=safeText;","safeText-global-bridge")]
+          changed=[]; before=hashlib.sha256(s.encode()).hexdigest()
+          for decl,bridge,label in helpers:
+              assert s.count(decl)==1, label+'_DECLARATION_COUNT_INVALID'
+              assert s.count(bridge)<=1, label+'_DUPLICATED'
+              if bridge not in s:
+                  s=s.replace(decl,decl+'\n'+bridge,1); changed.append(label)
           if not changed: raise SystemExit('NO_TARGET_RUNTIME_BRIDGE_CHANGE')
           p.write_text(s,encoding='utf-8')
           print('PATCH=APPLIED:'+','.join(changed)); print('BEFORE_SHA256='+before); print('AFTER_SHA256='+hashlib.sha256(s.encode()).hexdigest())
@@ -49,7 +52,7 @@ jobs:
           PY
           node --check /tmp/new-main-inline.js
           echo 'STATIC_PATCH_GATE=PASS'
-      - name: Chromium telemetry and regression gate
+      - name: Chromium owner/license regression gate
         shell: bash
         run: |
           set -euo pipefail
@@ -72,31 +75,33 @@ jobs:
           (async()=>{
             const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
             const errors=[]; let navigationError='';
-            const p=await browser.newPage({serviceWorkers:'block'}); p.setDefaultTimeout(12000); p.setDefaultNavigationTimeout(20000);
-            p.on('pageerror',e=>errors.push('PAGE:'+String(e.message||e))); p.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE:'+m.text())});
+            const p=await browser.newPage({serviceWorkers:'block'});
+            p.setDefaultTimeout(12000);p.setDefaultNavigationTimeout(20000);
+            p.on('pageerror',e=>errors.push('PAGE:'+String(e.message||e)));
+            p.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE:'+m.text())});
             try{await p.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded'});}catch(e){navigationError=String(e.message||e)}
-            await p.waitForTimeout(3500);
-            const initial=await p.evaluate(()=>({locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',state:!!RW_STATE,auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',ownerLicense:typeof RW_OwnerLicense==='object',notification:typeof RW_Notification?.showPanel==='function',byId:typeof window.byId==='function',safeText:typeof window.safeText==='function',body:(document.body?.innerText||'').slice(0,400)}));
-            let denied=null, owner=null;
+            await p.waitForTimeout(3000);
+            const initial=await p.evaluate(()=>({locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',state:!!RW_STATE,auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',ownerLicense:typeof RW_OwnerLicense==='object',notification:typeof RW_Notification?.showPanel==='function',byId:typeof window.byId==='function',safeHTML:typeof window.safeHTML==='function',safeText:typeof window.safeText==='function',body:(document.body?.innerText||'').slice(0,500)}));
+            let denied=null,owner=null;
             if(initial.nav&&initial.state){
               denied=await p.evaluate(async()=>{RW_STATE.app.currentUser={id:'smoke',email:'smoke@example.com',isOwner:false,permissions:[]};RW_STATE.permissions=[];try{await RW_Navigation.navigate('license');return {ok:false,error:'NO_REJECTION'};}catch(e){return {ok:e?.message==='OWNER_ONLY',error:String(e?.message||e)}}});
               owner=await p.evaluate(async()=>{RW_STATE.app.currentUser={id:'smoke',email:'owner@smoke.local',isOwner:true,permissions:['*']};RW_STATE.permissions=['*'];try{await RW_Navigation.navigate('license');return {ok:true,view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container'),text:(document.getElementById('rw-page-container')?.innerText||'')};}catch(e){return {ok:false,error:String(e?.message||e)}}});
             }
             const finalState=await p.evaluate(()=>({view:RW_STATE?.app?.currentView||null,license:!!document.getElementById('license-main-container'),licenseText:(document.getElementById('rw-page-container')?.innerText||'').includes('إدارة الترخيص')}));
             const result={initial,denied,owner,finalState,navigationError,errors}; console.log('P135_RUNTIME='+JSON.stringify(result));
-            const ok=!errors.length&&!navigationError&&initial.locale&&initial.state&&initial.auth&&initial.nav&&initial.views&&initial.shell&&initial.ownerLicense&&initial.notification&&initial.byId&&initial.safeText&&denied?.ok&&owner?.ok&&owner.view==='license'&&finalState.license&&finalState.licenseText;
-            await p.close(); await browser.close(); if(!ok)process.exit(2);
+            const ok=!errors.length&&!navigationError&&initial.locale&&initial.state&&initial.auth&&initial.nav&&initial.views&&initial.shell&&initial.ownerLicense&&initial.notification&&initial.byId&&initial.safeHTML&&initial.safeText&&denied?.ok&&owner?.ok&&owner.view==='license'&&finalState.license&&finalState.licenseText;
+            await p.close();await browser.close();if(!ok)process.exit(2);
           })().catch(e=>{console.error(e.stack||e);process.exit(2)});
           NODE
           node /tmp/p135.cjs
-          echo 'CHROMIUM_RUNTIME_TELEMETRY_GATE=PASS'
+          echo 'CHROMIUM_OWNER_LICENSE_GATE=PASS'
       - name: Persist target and retire one-time writer
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'papamohammed77-glitch'; git config user.email 'papamohammed77-glitch@users.noreply.github.com'
           git add Current/PWA/New-main; git diff --cached --check
-          git commit -m '[CTO-FORENSIC] Export audited global helper bridges from New-main'
+          git commit -m '[CTO-FORENSIC] Export audited DOM helper bridges from New-main'
           git rm .github/workflows/p135-runtime-repair.yml
           git commit -m '[CTO-GOVERNANCE] Retire one-time runtime repair writer'
           git push origin HEAD:main
