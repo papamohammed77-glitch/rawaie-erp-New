@@ -1,73 +1,23 @@
-name: owner recovery verification
+name: RAWAEA final New-main verifier
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: rawaea-final-new-main-verifier
+  cancel-in-progress: true
 permissions:
-  contents: write
+  contents: read
 jobs:
-  recover:
+  verify:
     runs-on: ubuntu-latest
-    steps:
-      - name: Recover owner auth credential and verify sign-in
-        run: |
-          set -euo pipefail
-          curl --fail-with-body --silent --show-error --max-time 120 \
-            "https://fiilmooggumokxanwiyx.supabase.co/functions/v1/owner-recovery-20260818?token=P4-OWNER-RECOVERY-20260818-7c3a9f" | tee result.json
-          python - <<'PY'
-          import json
-          r=json.load(open('result.json'))
-          assert r.get('success') is True, r
-          assert r.get('password_verified') is True, r
-          assert r.get('role') == 'مدير النظام', r
-          assert r.get('all_branches') is True, r
-          print(json.dumps({k:r[k] for k in ['success','auth_user_id','public_user_id','role','permissions_count','all_branches','password_verified']}, ensure_ascii=False))
-          PY
-  repair-newmain:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with: {ref: main, fetch-depth: 2}
-      - name: Surgical repair — expose existing byId contract globally
-        shell: bash
-        env:
-          GIT_AUTHOR_NAME: papamohammed77-glitch
-          GIT_AUTHOR_EMAIL: papamohammed77@gmail.com
-          GIT_COMMITTER_NAME: papamohammed77-glitch
-          GIT_COMMITTER_EMAIL: papamohammed77@gmail.com
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('Current/PWA/New-main')
-          s=p.read_text(encoding='utf-8')
-          old='function byId(id){return document.getElementById(id)}'
-          new=old+'\nwindow.byId=byId;'
-          if 'window.byId=byId;' in s:
-              print('BYID_GLOBAL_ALREADY_PRESENT=TRUE')
-          else:
-              count=s.count(old)
-              assert count==1, f'expected exactly one byId definition, found {count}'
-              p.write_text(s.replace(old,new,1),encoding='utf-8')
-              print('BYID_GLOBAL_PATCH=APPLIED')
-          PY
-          if git diff --quiet -- Current/PWA/New-main; then
-            echo 'NO_TARGET_CHANGE=TRUE'
-            exit 0
-          fi
-          git diff --check -- Current/PWA/New-main
-          git add Current/PWA/New-main
-          git commit -m '[P0-OWNER] Expose existing byId helper to Owner License runtime'
-          git push origin HEAD:main
-          echo 'TARGET_PATCH_PUSHED=TRUE'
-  runtime-proof:
-    needs: repair-newmain
-    runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with: {ref: main, fetch-depth: 1}
       - uses: actions/setup-node@v4
         with: {node-version: 20}
-      - name: Static target identity
+      - name: Static target gate
         shell: bash
         run: |
           set -euo pipefail
@@ -79,54 +29,57 @@ jobs:
           import hashlib,subprocess
           s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
           req=['<!doctype html>','<html lang="ar" dir="rtl">','P163-GOLD-DIAMOND-CLOSED-2026-09-03','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1','window.RW_Auth=','window.RW_Navigation=','window.RW_Views=','window.RW_ShellContext=','window.RW_OwnerLicense=','RW_Permissions_check','window.byId=byId;']
-          assert not [x for x in req if x not in s]
+          missing=[x for x in req if x not in s]
+          assert not missing,missing
           assert s.count('<link rel="manifest" href="../manifest.json">')==1
           print('TARGET_BLOB='+subprocess.check_output(['git','rev-parse','HEAD:Current/PWA/New-main'],text=True).strip())
           print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest())
           print('STATIC_TARGET=PASS')
           PY
-      - name: Chromium owner-license runtime proof
+      - name: Chromium runtime gate
         shell: bash
         run: |
           set -euo pipefail
           npm init -y >/dev/null 2>&1
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
-          npx playwright install --with-deps chromium >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
           rm -rf /tmp/rawaea-site && mkdir -p /tmp/rawaea-site
           cp -a Current /tmp/rawaea-site/Current
-          cat >/tmp/rawaea-http.py <<'PY'
-          from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
-          class H(SimpleHTTPRequestHandler):
-            def log_message(self,fmt,*args): pass
-            def guess_type(self,path): return 'text/html; charset=utf-8' if path.endswith('/New-main') else super().guess_type(path)
-          ThreadingHTTPServer(('127.0.0.1',8127),H).serve_forever()
-          PY
-          (cd /tmp/rawaea-site && python3 /tmp/rawaea-http.py >/tmp/http.log 2>&1 & echo $! >/tmp/http.pid)
-          trap 'kill "$(cat /tmp/http.pid)" 2>/dev/null || true' EXIT
+          python3 -m http.server 8129 --directory /tmp/rawaea-site >/tmp/rawaea-http.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" 2>/dev/null || true' EXIT
           sleep 1
           node <<'NODE'
           const {chromium}=require('playwright');
           (async()=>{
-            const b=await chromium.launch({headless:true});
+            const b=await chromium.launch({headless:true,args:['--no-sandbox']});
             const pe=[],ce=[];
-            async function page(){
-              const p=await b.newPage({serviceWorkers:'block'});p.setDefaultTimeout(12000);p.setDefaultNavigationTimeout(20000);
+            async function openPage(){
+              const p=await b.newPage({serviceWorkers:'block'});p.setDefaultTimeout(10000);p.setDefaultNavigationTimeout(15000);
               p.on('pageerror',e=>pe.push(String(e.message||e)));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
-              await p.goto('http://127.0.0.1:8127/Current/PWA/New-main',{waitUntil:'domcontentloaded'});
-              await p.waitForFunction(()=>window.RW_STATE&&window.RW_Navigation&&window.RW_OwnerLicense&&typeof window.byId==='function',{timeout:12000});return p;
+              await p.goto('http://127.0.0.1:8129/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:15000});
+              await p.waitForFunction(()=>window.RW_STATE&&window.RW_Navigation&&window.RW_OwnerLicense&&typeof window.byId==='function',{timeout:10000});return p;
             }
-            const p=await page();
-            const initial=await p.evaluate(()=>({locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',ownerLicense:typeof RW_OwnerLicense==='object',notification:!!(window.RW_Notification&&typeof RW_Notification.showPanel==='function'),diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),p163:document.querySelectorAll('meta[name="rw-p163-closure"]').length,manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||'',byId:typeof window.byId==='function'}));
-            const denied=await p.evaluate(async()=>{RW_STATE.app.currentUser={id:'x',email:'x@example.com',isOwner:false,permissions:[]};RW_STATE.permissions=[];try{await RW_Navigation.navigate('license');return {ok:false,error:'NO_REJECTION'}}catch(e){return {ok:String(e.message||e)==='OWNER_ONLY',error:String(e.message||e),view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container')}}});
+            const p=await openPage();
+            const initial=await p.evaluate(()=>({locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',ownerLicense:typeof RW_OwnerLicense==='object',notification:!!(window.RW_Notification&&typeof window.RW_Notification.showPanel==='function'),diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),p163:document.querySelectorAll('meta[name="rw-p163-closure"]').length,manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||'',byId:typeof window.byId==='function'}));
+            const denied=await p.evaluate(async()=>{RW_STATE.app.currentUser={id:'probe',email:'probe@example.com',isOwner:false,permissions:[]};RW_STATE.permissions=[];try{await RW_Navigation.navigate('license');return {ok:false,error:'NO_REJECTION'}}catch(e){return {ok:e&&e.message==='OWNER_ONLY',error:String(e.message||e),view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container')}}});
+            const deniedCheck=await p.evaluate(()=>({view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container')}));
             await p.close();
-            const o=await page();
-            const owner=await o.evaluate(()=>{RW_STATE.app.currentUser={id:'x',email:'owner@smoke.local',isOwner:true,permissions:['*']};RW_STATE.permissions=['*'];try{RW_Navigation.navigate('license');return {ok:true,view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container'),text:(document.getElementById('rw-page-container')?.innerText||'').includes('إدارة الترخيص')}catch(e){return {ok:false,error:String(e.message||e)}}});
-            await o.waitForTimeout(700);
-            const ownerCheck=await o.evaluate(()=>({view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container'),text:(document.getElementById('rw-page-container')?.innerText||'').includes('إدارة الترخيص'),header:(document.getElementById('rw-header-title')?.innerText||'')}));
+            const o=await openPage();
+            const owner=await o.evaluate(()=>{RW_STATE.app.currentUser={id:'probe',email:'owner@smoke.local',isOwner:true,permissions:['*']};RW_STATE.permissions=['*'];try{RW_Navigation.navigate('license');}catch(e){return {ok:false,error:String(e.message||e)}};return {ok:true,view:RW_STATE.app.currentView}});
+            await o.waitForTimeout(500);
+            const ownerCheck=await o.evaluate(()=>({view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container'),text:(document.getElementById('rw-page-container')?.innerText||'').includes('إدارة الترخيص')}));
             await o.close();
-            const r={initial,denied,owner,ownerCheck,pe,ce};console.log('OWNER_LICENSE_RUNTIME='+JSON.stringify(r));
-            const ok=!pe.length&&!ce.length&&initial.locale&&initial.auth&&initial.nav&&initial.views&&initial.shell&&initial.ownerLicense&&initial.notification&&initial.diamond&&initial.p163===1&&initial.manifest==='../manifest.json'&&initial.byId&&denied.ok&&denied.view!=='license'&&!denied.container&&owner.ok&&owner.view==='license'&&ownerCheck.container&&ownerCheck.text;
+            const r={initial,denied,deniedCheck,owner,ownerCheck,pe,ce};console.log('FINAL_RUNTIME_PROOF='+JSON.stringify(r));
+            const ok=!pe.length&&!ce.length&&initial.locale&&initial.auth&&initial.nav&&initial.views&&initial.shell&&initial.ownerLicense&&initial.notification&&initial.diamond&&initial.p163===1&&initial.manifest==='../manifest.json'&&initial.byId&&denied.ok&&deniedCheck.view!=='license'&&!deniedCheck.container&&owner.ok&&owner.view==='license'&&ownerCheck.container&&ownerCheck.text;
             await b.close();if(!ok)process.exit(2);
           })().catch(e=>{console.error(e.stack||e);process.exit(2)});
           NODE
           echo 'CHROMIUM_OWNER_LICENSE_GOLD_DIAMOND=PASS'
+      - name: Persistence boundary
+        shell: bash
+        run: |
+          test -f Current/PWA/New-main
+          echo 'TARGET=Current/PWA/New-main'
+          echo 'VERIFIER=READ_ONLY'
+          echo 'NO_TARGET_WRITE=TRUE'
