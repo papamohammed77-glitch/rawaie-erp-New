@@ -1,1 +1,1 @@
-temporary trigger v2; must be removed by closure workflow
+temporary trigger v3
