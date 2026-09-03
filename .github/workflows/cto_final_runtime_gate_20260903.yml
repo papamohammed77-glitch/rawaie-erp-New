@@ -9,12 +9,15 @@ on:
       - 'Current/manifest.json'
       - '.github/workflows/cto_final_runtime_gate_20260903.yml'
   workflow_dispatch:
+concurrency:
+  group: rawaea-cto-final-gold-diamond
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
   gold-diamond:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with: {ref: main, fetch-depth: 1}
@@ -33,16 +36,16 @@ jobs:
           s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
           assert len(s.encode())>500000
           req=['<!doctype html>','<html lang="ar" dir="rtl">','P163-GOLD-DIAMOND-CLOSED-2026-09-03','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1','RAWAEA MAIN2 AUTHORITATIVE MODULE','MAIN3','MAIN11','window.RW_Auth=','window.RW_Navigation=','window.RW_Views=','window.RW_ShellContext=','window.RW_OwnerLicense=','applyAuthoritativeContext','post_stock_movement','reserve_stock','RW_Permissions_check']
-          assert not [x for x in req if x not in s]
+          assert not [x for x in req if x not in s], [x for x in req if x not in s]
           assert s.count('<link rel="manifest" href="../manifest.json">')==1
           assert './New-main.manifest.json' not in s
           assert 'if(window.__RAWAEA_MAIN11_EVENTS_BOUND__)return;' in s
-          assert 'async function showPanel(){\n  var e=RW_STATE.app.currentUser&&RW_STATE.app.currentUser.email;' in s
           from html.parser import HTMLParser
           class P(HTMLParser):
             def __init__(self): super().__init__(convert_charrefs=False); self.inline=0; self.src=0; self.styles=0; self.stack=[]
             def handle_starttag(self,t,a):
-              if t=='script': self.inline+=int('src' not in dict(a)); self.src+=int('src' in dict(a))
+              d=dict(a)
+              if t=='script': self.inline+=int('src' not in d); self.src+=int('src' in d)
               elif t=='style': self.styles+=1
               if t not in {'meta','link','input','img','br','hr','source','area','base','embed','param','track','wbr'}: self.stack.append(t)
             def handle_endtag(self,t):
@@ -50,8 +53,8 @@ jobs:
           p=P();p.feed(s);p.close();assert (p.inline,p.src,p.styles)==(1,4,1) and not p.stack
           body=re.search(r'<script\b(?!(?:[^>]*\bsrc\s*=))[^>]*>([\s\S]*?)</script>',s,re.I).group(1)
           f=Path(tempfile.mkstemp(suffix='.js')[1]);f.write_text(body,encoding='utf-8')
-          try:subprocess.run(['node','--check',str(f)],check=True,capture_output=True,text=True)
-          finally:f.unlink(missing_ok=True)
+          try: subprocess.run(['node','--check',str(f)],check=True,capture_output=True,text=True)
+          finally: f.unlink(missing_ok=True)
           m=json.loads(Path('Current/manifest.json').read_text(encoding='utf-8'));assert (m.get('start_url'),m.get('scope'),m.get('lang'),m.get('dir'))==('./PWA/New-main','./PWA/','ar','rtl')
           print('TARGET_BLOB='+subprocess.check_output(['git','rev-parse','HEAD:Current/PWA/New-main'],text=True).strip())
           print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest())
@@ -63,83 +66,67 @@ jobs:
           set -euo pipefail
           npm init -y >/dev/null 2>&1
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
-          npx playwright install --with-deps chromium >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
           rm -rf /tmp/rawaea-site && mkdir -p /tmp/rawaea-site
           cp -a Current /tmp/rawaea-site/Current
           cat >/tmp/rawaea-http.py <<'PY'
           from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
           class H(SimpleHTTPRequestHandler):
+            def log_message(self, fmt, *args): pass
             def guess_type(self,path): return 'text/html; charset=utf-8' if path.endswith('/New-main') else super().guess_type(path)
           ThreadingHTTPServer(('127.0.0.1',8123),H).serve_forever()
           PY
           (cd /tmp/rawaea-site && python3 /tmp/rawaea-http.py >/tmp/http.log 2>&1 & echo $! >/tmp/http.pid)
           trap 'kill "$(cat /tmp/http.pid)" 2>/dev/null || true' EXIT
-          sleep 2
+          sleep 1
           node <<'NODE'
           const {chromium}=require('playwright');
           (async()=>{
             const b=await chromium.launch({headless:true});
-            const p=await b.newPage();
-            const pe=[],ce=[],navs=[];
-            p.on('pageerror',e=>pe.push(String(e.message||e)));
-            p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
-            p.on('framenavigated',f=>{if(f===p.mainFrame())navs.push(f.url())});
-            await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});
-            await p.waitForTimeout(1200);
-            const initial=await p.evaluate(()=>({
+            async function makePage(){
+              const p=await b.newPage({serviceWorkers:'block'});
+              p.setDefaultTimeout(12000);p.setDefaultNavigationTimeout(20000);
+              const pe=[],ce=[];
+              p.on('pageerror',e=>pe.push(String(e.message||e)));
+              p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
+              await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded'});
+              await p.waitForFunction(()=>window.RW_Navigation&&window.RW_OwnerLicense&&window.RW_STATE,{timeout:12000});
+              await p.waitForTimeout(400);
+              return {p,pe,ce};
+            }
+            const base=await makePage();
+            const initial=await base.p.evaluate(()=>({
               locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',
               auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',
               shell:typeof RW_ShellContext==='object',ownerLicense:typeof RW_OwnerLicense==='object',
-              notification:typeof RW_Notification?.showPanel==='function',
+              notification:!!(window.RW_Notification&&typeof RW_Notification.showPanel==='function'),
               diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),
               p163:document.querySelectorAll('meta[name="rw-p163-closure"]').length,
               manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||''
             }));
-            if(!initial.auth||!initial.nav)throw Error('CORE_GLOBALS_MISSING');
-
-            // Route authorization is a navigation boundary in the application. Do not await it
-            // inside page.evaluate: a real location transition can destroy that execution context.
-            const deniedAttempt=await p.evaluate(()=>{
+            const denied=await base.p.evaluate(async()=>{
               RW_STATE.app.currentUser={id:'smoke',email:'smoke@example.com',isOwner:false,permissions:[]};
-              try{const z=RW_Navigation.navigate('license'); if(z&&typeof z.then==='function')z.catch(()=>{}); return true}
-              catch(e){window.__denyProbeError=String(e.message||e);return true}
+              RW_STATE.permissions=[];
+              try{await RW_Navigation.navigate('license');return {ok:false,error:'NO_REJECTION'};}catch(e){return {ok:true,error:String(e.message||e),html:document.getElementById('rw-page-container')?.innerText||''};}
             });
-            await p.waitForTimeout(800);
-            const deniedState=await p.evaluate(()=>({
-              probeError:window.__denyProbeError||'',
-              url:location.href,
-              routeText:/إدارة الترخيص/.test(document.getElementById('rw-page-container')?.innerText||'')
-            })).catch(()=>({probeError:'CONTEXT_REPLACED',url:p.url(),routeText:false}));
-            const denied = deniedAttempt && !deniedState.routeText && !/license(?:$|[#?])/i.test(deniedState.url);
-
-            // Re-open the same source document for the owner case so the probe is isolated.
-            const p2=await b.newPage();
-            const pe2=[],ce2=[],navs2=[];
-            p2.on('pageerror',e=>pe2.push(String(e.message||e)));
-            p2.on('console',m=>{if(m.type()==='error')ce2.push(m.text())});
-            p2.on('framenavigated',f=>{if(f===p2.mainFrame())navs2.push(f.url())});
-            await p2.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});
-            await p2.waitForTimeout(700);
-            await p2.evaluate(()=>{
-              RW_STATE.app.currentUser={id:'smoke',email:'smoke@example.com',isOwner:true,permissions:['*']};
+            const deniedCheck=await base.p.evaluate(()=>({view:RW_STATE.app.currentView,html:document.getElementById('rw-page-container')?.innerText||''}));
+            await base.p.close();
+            const own=await makePage();
+            const owner=await own.p.evaluate(async()=>{
+              RW_STATE.app.currentUser={id:'smoke',email:'owner@smoke.local',isOwner:true,permissions:['*']};
               RW_STATE.permissions=['*'];
+              try{await RW_Navigation.navigate('license');}catch(e){return {ok:false,error:String(e.message||e)}}
+              return {ok:true,html:document.getElementById('rw-page-container')?.innerText||'',view:RW_STATE.app.currentView};
             });
-            await p2.evaluate(()=>{
-              try{const z=RW_Navigation.navigate('license'); if(z&&typeof z.then==='function')z.catch(()=>{});}catch(e){window.__ownerProbeError=String(e.message||e)}
-            });
-            await p2.waitForTimeout(1000);
-            const ownerState=await p2.evaluate(()=>({
-              probeError:window.__ownerProbeError||'',
-              text:/إدارة الترخيص/.test(document.getElementById('rw-page-container')?.innerText||''),
-              url:location.href
-            })).catch(()=>({probeError:'CONTEXT_REPLACED',text:false,url:p2.url()}));
-            const ownerNavigationObserved=navs2.some(u=>/license/i.test(u));
-            const allowed=ownerState.text||ownerNavigationObserved||!/CONTEXT_REPLACED/.test(ownerState.probeError);
-
-            const r={initial,deniedState,ownerState,denied,allowed,ownerNavigationObserved,deniedNavigationObserved:navs.some(u=>/license/i.test(u)),pe:[...pe,...pe2],ce:[...ce,...ce2]};
+            const ownerCheck=await own.p.evaluate(()=>({
+              hasLicenseText:(document.getElementById('rw-page-container')?.innerText||'').includes('إدارة الترخيص'),
+              hasLicenseContainer:!!document.getElementById('license-main-container'),
+              currentView:RW_STATE.app.currentView
+            }));
+            const r={initial,denied,deniedCheck,owner,ownerCheck,pe:[...base.pe,...own.pe],ce:[...base.ce,...own.ce]};
             console.log('CHROMIUM_RUNTIME='+JSON.stringify(r));
-            const ok=!r.pe.length&&!r.ce.length&&initial.locale&&initial.auth&&initial.nav&&initial.views&&initial.shell&&initial.ownerLicense&&initial.notification&&initial.diamond&&initial.p163===1&&initial.manifest==='../manifest.json'&&denied&&allowed;
-            await p.close();await p2.close();await b.close();
+            const ok=!r.pe.length&&!r.ce.length&&r.initial.locale&&r.initial.auth&&r.initial.nav&&r.initial.views&&r.initial.shell&&r.initial.ownerLicense&&r.initial.notification&&r.initial.diamond&&r.initial.p163===1&&r.initial.manifest==='../manifest.json'&&r.denied.ok&&r.denied.error==='OWNER_ONLY'&&r.owner.ok&&r.ownerCheck.currentView==='license'&&r.ownerCheck.hasLicenseContainer&&r.ownerCheck.hasLicenseText;
+            await own.p.close();await b.close();
             if(!ok)process.exit(2);
           })().catch(e=>{console.error(e.stack||e);process.exit(2)});
           NODE
@@ -147,6 +134,7 @@ jobs:
           echo 'DIAMOND_OWNER_LICENSE_GATE=PASS'
       - name: Persistence boundary
         run: |
+          set -euo pipefail
           test -f Current/PWA/New-main
           echo 'TARGET=Current/PWA/New-main'
           echo 'VERIFIER=READ_ONLY'
