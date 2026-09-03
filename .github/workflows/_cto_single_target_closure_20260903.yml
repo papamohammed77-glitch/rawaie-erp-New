@@ -1,74 +1,11 @@
-name: CTO Single Target Closure 2026-09-03
+name: CTO Single Target Closure 2026-09-03 — RETIRED
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 permissions:
-  contents: write
-concurrency:
-  group: cto-single-target-closure
-  cancel-in-progress: true
+  contents: read
 jobs:
-  patch:
-    if: contains(github.event.head_commit.message, '[CTO-SINGLE-TARGET]')
+  archived:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 2
-      - name: Surgical New-main closure
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('Current/PWA/New-main')
-          s=p.read_text(encoding='utf-8')
-          changed=False
-          old='<link rel="manifest" href="../manifest.json">'
-          new='<link rel="manifest" href="./New-main.manifest.json">'
-          if old in s:
-              if s.count(old)!=1: raise SystemExit(f'LEGACY_MANIFEST_COUNT={s.count(old)}')
-              s=s.replace(old,new,1); changed=True
-          elif new not in s: raise SystemExit('MANIFEST_CONTRACT_MISSING')
-          meta='<meta name="rw-pwa-runtime-gold" content="PWA-RUNTIME-GOLD-2026-09-03">'
-          if meta not in s:
-              if s.count('</head>')!=1: raise SystemExit(f'HEAD_COUNT={s.count("</head>")}')
-              s=s.replace('</head>',meta+'\n</head>',1); changed=True
-          coord='<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>'
-          if coord not in s:
-              if s.count('</head>')!=1: raise SystemExit(f'HEAD_COUNT_COORD={s.count("</head>")}')
-              s=s.replace('</head>',coord+'\n</head>',1); changed=True
-          old_nav="""nav.navigate=function(view){\n    window.RW_STATE.app.currentView=view;\n    if(!allowed(view))return Promise.reject(new Error(view==='license'?'OWNER_ONLY':'PERMISSION_DENIED'));"""
-          new_nav="""nav.navigate=function(view){\n    if(!allowed(view))return Promise.reject(new Error(view==='license'?'OWNER_ONLY':'PERMISSION_DENIED'));\n    window.RW_STATE.app.currentView=view;"""
-          if s.count(old_nav)==1:
-              s=s.replace(old_nav,new_nav,1); changed=True
-          elif new_nav not in s:
-              raise SystemExit(f'NAV_CLOSURE_SHAPE_UNSUPPORTED old={s.count(old_nav)}')
-          if s.count('rw-pwa-runtime-gold')!=1: raise SystemExit('PWA_META_CARDINALITY')
-          if s.count('RAWAEA_TARGET_SW_COORDINATOR')!=1: raise SystemExit('SW_COORD_CARDINALITY')
-          if s.count('rw-p163-closure')!=1: raise SystemExit('P163_CARDINALITY')
-          if s.count('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')!=1: raise SystemExit('DIAMOND_122_CARDINALITY')
-          if 'if(!allowed(view))return Promise.reject(new Error(view===\'license\'?\'OWNER_ONLY\':\'PERMISSION_DENIED\'));\n    window.RW_STATE.app.currentView=view;' not in s: raise SystemExit('NAV_STATE_ORDER_INVALID')
-          p.write_text(s,encoding='utf-8')
-          print('TARGET_ONLY_PATCH', 'CHANGED' if changed else 'ALREADY_CLOSED')
-          PY
-          node --check <(python3 - <<'PY'
-          from pathlib import Path
-          import re
-          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          xs=re.findall(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*?)</script>',s,re.I)
-          assert len(xs)==1, len(xs)
-          print(xs[0],end='')
-          PY
-          )
-          git diff --check
-          names=$(git diff --name-only)
-          test "$names" = "Current/PWA/New-main"
-          if git diff --quiet -- Current/PWA/New-main; then echo 'NO_TARGET_CHANGE'; exit 0; fi
-          git config user.name 'RAWAEA CTO Single Target'
-          git config user.email 'rawaea-cto-single-target@users.noreply.github.com'
-          git add Current/PWA/New-main
-          git commit -m '[CTO-SINGLE-TARGET] Close New-main PWA and authorization invariants'
-          git push origin HEAD:main
+      - name: Archive notice
+        run: echo 'Destructive single-target closure writer retired after forensic review.'
