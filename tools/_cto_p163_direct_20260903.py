@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import re,hashlib,subprocess,sys,time
+import os,re,hashlib,subprocess,sys,time
 from html.parser import HTMLParser
 ROOT=Path(__file__).resolve().parents[1]; TARGET=ROOT/'Current/PWA/New-main'; STATE=ROOT/'CURRENT_STATE.md'
-def run(cmd,check=True): return subprocess.run(cmd,cwd=ROOT,text=True,capture_output=True,check=check)
+def run(cmd,check=True):
+ env=os.environ.copy(); env['NODE_PATH']=str(ROOT/'node_modules')
+ return subprocess.run(cmd,cwd=ROOT,text=True,capture_output=True,check=check,env=env)
 def die(x): print('P163_FAIL:'+x,file=sys.stderr); sys.exit(1)
 def scripts(html):
  class P(HTMLParser):
@@ -37,7 +39,6 @@ def surgery(s):
 for attempt in range(1,4):
  run(['git','fetch','origin','main']); run(['git','reset','--hard','origin/main'])
  before=hashlib.sha256(TARGET.read_bytes()).hexdigest(); old=TARGET.read_text(encoding='utf-8'); new=surgery(old); TARGET.write_text(new,encoding='utf-8')
- # static gates
  req=['RW_ShellContext','RW_Auth','RW_Navigation','RW_Views','RW_OwnerLicense','MAIN3','MAIN11','function main1Delegation(','var actions=','post_stock_movement','get_trial_balance','get_profit_loss','get_balance_sheet','edgeCall','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1']
  if any(x not in new for x in req): die('required-contract-missing')
  if '/* RAWAEA MAIN2 COMPATIBILITY */' in new or 'window.RW_Dashboard={render:renderDashboard};' in new or 'window.RW_Items={render:renderItems};' in new: die('duplicate-owner-remains')
@@ -45,8 +46,7 @@ for attempt in range(1,4):
  if len(inline)!=1: die('inline-script-count:'+str(len(inline)))
  js=Path('/tmp/newmain.js'); js.write_text(inline[0],encoding='utf-8')
  if run(['node','--check',str(js)],check=False).returncode: die('node-syntax')
- # browser smoke
- run(['npm','init','-y'],check=False); run(['npm','install','--no-audit','--no-fund','playwright@1.55.0'],check=False); run(['npx','playwright','install','chromium'],check=False)
+ run(['npm','init','-y'],check=False); run(['npm','install','--no-audit','--no-fund','playwright@1.55.0']); run(['npx','playwright','install','chromium'])
  http=subprocess.Popen([sys.executable,'-m','http.server','8123','--directory',str(ROOT/'Current/PWA')],cwd=ROOT,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); time.sleep(1)
  Path('/tmp/p163_smoke.js').write_text("""const {chromium}=require('playwright');(async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const e=[];p.on('pageerror',x=>e.push(x.message));p.on('console',m=>{if(m.type()==='error')e.push(m.text())});await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(2000);const r=await p.evaluate(()=>({lang:document.documentElement.lang,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,ver:window.RW_PWA_RECONSTRUCTION_VERSION||null,diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')}));console.log(JSON.stringify({r,e}));if(e.length||r.lang!=='ar'||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||r.ver!=='MAIN2-COMPLETE-SURGICAL-v1'||!r.diamond)process.exit(2);await b.close()})().catch(x=>{console.error(x);process.exit(2)})""",encoding='utf-8')
  try:
