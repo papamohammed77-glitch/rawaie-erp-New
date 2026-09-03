@@ -9,6 +9,8 @@ on:
   push:
     paths:
       - '.github/workflows/p163_main2_ownership_surgery_20260903.yml'
+  pull_request:
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
