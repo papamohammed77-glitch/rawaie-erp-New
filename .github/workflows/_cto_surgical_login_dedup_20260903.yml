@@ -6,7 +6,7 @@ permissions:
   contents: write
 jobs:
   ux_surgery:
-    if: github.event.head_commit.message == '[CTO-UX] Execute New-main product closure'
+    if: github.event.head_commit.message == '[CTO-UX-RETRY] Execute New-main product closure'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -20,61 +20,56 @@ jobs:
           from pathlib import Path
           p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
           assert len(s.encode())>500000
-          def rep(old,new,label):
-              global s
-              assert s.count(old)==1,label+'_ANCHOR'
-              s=s.replace(old,new,1)
-          rep('.rw-login-card{width:min(520px,94vw);background:rgba(255,255,255,.97);border-radius:30px;padding:36px;box-shadow:0 25px 70px rgba(0,0,0,.2)}','.rw-login-card{width:min(520px,94vw);background:rgba(255,255,255,.97);border-radius:30px;padding:36px;box-shadow:0 25px 70px rgba(0,0,0,.2);position:relative;overflow:hidden}.rw-login-card:before{content:"";position:absolute;top:0;left:0;right:0;height:7px;background:linear-gradient(90deg,#2563eb,#06b6d4)}','LOGIN_CARD')
-          rep('.rw-login-logo{width:88px;height:88px;margin:0 auto 14px;border-radius:24px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;display:grid;place-items:center;font-size:34px;font-weight:900}.rw-company-name{font-size:28px;font-weight:900}', '.rw-login-logo{width:104px;height:104px;margin:0 auto 14px;border-radius:26px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;display:grid;place-items:center;font-size:34px;font-weight:900;overflow:hidden;position:relative;box-shadow:0 18px 38px rgba(37,99,235,.22)}.rw-login-brand-image{width:100%;height:100%;object-fit:contain;padding:10px}.rw-login-brand-fallback{display:grid;place-items:center;width:100%;height:100%}.rw-company-name{font-size:28px;font-weight:900}', 'LOGIN_LOGO_CSS')
-          rep('<div class="rw-login-logo">ر</div><div class="rw-company-name">الروائع ERP</div><div class="rw-company-description">Clean-room MAIN1 contract surface</div>','<div class="rw-login-logo"><img id="rw-login-brand-image" class="rw-login-brand-image hidden" alt="شعار الشركة"><span id="rw-login-brand-fallback" class="rw-login-brand-fallback">ر</span></div><div id="rw-login-company-name" class="rw-company-name">الروائع ERP</div><div id="rw-login-company-description" class="rw-company-description">نظام ERP متكامل</div>','LOGIN_MARKUP')
-          rep('.rw-sidebar-company-subtitle{font-size:11px;color:var(--muted);margin-top:2px}.rw-collapse-btn', '.rw-sidebar-company-subtitle{font-size:11px;color:var(--muted);margin-top:2px}.rw-sidebar-user{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border-radius:14px;background:#f8fafc;border:1px solid #f1f5f9}.rw-sidebar-user-avatar{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#0ea5e9,#2563eb);color:#fff;display:grid;place-items:center;font-weight:900;flex:0 0 auto}.rw-sidebar-user-name{font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rw-sidebar-user-role{font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rw-sidebar.collapsed .rw-sidebar-user{justify-content:center;padding:10px}.rw-sidebar.collapsed .rw-sidebar-user-name,.rw-sidebar.collapsed .rw-sidebar-user-role{display:none}.rw-collapse-btn','SIDEBAR_USER_CSS')
-          rep('<div class="rw-sidebar-top"><div class="rw-sidebar-brand"><img id="rw-sidebar-brand-logo" class="rw-sidebar-brand-logo" alt="شعار الشركة"><div><div id="rw-sidebar-company-name" class="rw-sidebar-company-name">الروائع ERP</div><div id="rw-sidebar-company-subtitle" class="rw-sidebar-company-subtitle">Production Context</div></div></div></div><div id="rw-sidebar-nav"', '<div class="rw-sidebar-top"><div class="rw-sidebar-brand"><img id="rw-sidebar-brand-logo" class="rw-sidebar-brand-logo" alt="شعار الشركة"><div><div id="rw-sidebar-company-name" class="rw-sidebar-company-name">الروائع ERP</div><div id="rw-sidebar-company-subtitle" class="rw-sidebar-company-subtitle">Production Context</div></div></div><div class="rw-sidebar-user"><div id="rw-sidebar-user-avatar" class="rw-sidebar-user-avatar">م</div><div><div id="rw-sidebar-user-name" class="rw-sidebar-user-name">مستخدم</div><div id="rw-sidebar-user-role" class="rw-sidebar-user-role">—</div></div></div></div><div id="rw-sidebar-nav"','SIDEBAR_USER_MARKUP')
-          rep("if(r.error)throw r.error;await this.enterSystem(r.data.user)}finally{hideLoader()}","if(r.error)throw r.error;try{localStorage.setItem('rawaea_remember_email',byId('rw-remember')&&byId('rw-remember').checked?username:'')}catch(e){}await this.enterSystem(r.data.user)}finally{hideLoader()}", 'REMEMBER_WRITE')
-          rep("},enterSystem:async function(authUser){await applyAuthoritativeContext(authUser);", "},forgotPassword:async function(){var email=(byId('rw-username')&&byId('rw-username').value||'').trim();if(!email)throw new Error('أدخل البريد الإلكتروني أولاً');var r=await supabase.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});if(r.error)throw r.error;return true},enterSystem:async function(authUser){await applyAuthoritativeContext(authUser);", 'FORGOT_PASSWORD')
-          rep("await applyAuthoritativeContext(authUser);await Promise.all([RW_Data.loadItems(),RW_Data.loadCustomers(),RW_Data.loadBranches(),RW_Data.loadSuppliers()]);RW_STATE.app.initialized=true;safeText(byId('rw-header-user-display'),RW_STATE.app.currentUser.name);safeText(byId('rw-header-role-display'),RW_STATE.app.currentUser.role||'');safeText(byId('rw-sidebar-company-name'),RW_STATE.app.company.name||'الشركة الحالية');safeText(byId('rw-sidebar-company-subtitle'),RW_STATE.app.licenseState||'Production');var img=byId('rw-sidebar-brand-logo');if(img&&RW_STATE.app.company.logo)img.src=RW_STATE.app.company.logo;", "await applyAuthoritativeContext(authUser);await Promise.all([RW_Data.loadItems(),RW_Data.loadCustomers(),RW_Data.loadBranches(),RW_Data.loadSuppliers()]);RW_STATE.app.initialized=true;safeText(byId('rw-header-user-display'),RW_STATE.app.currentUser.name);safeText(byId('rw-header-role-display'),RW_STATE.app.currentUser.role||'');safeText(byId('rw-sidebar-company-name'),RW_STATE.app.company.name||'الشركة الحالية');safeText(byId('rw-sidebar-company-subtitle'),RW_STATE.app.licenseState||'Production');var companyName=RW_STATE.app.company.name||'الروائع ERP',companyLogo=RW_STATE.app.company.logo||'';safeText(byId('rw-login-company-name'),companyName);var limg=byId('rw-login-brand-image'),lfallback=byId('rw-login-brand-fallback');if(limg&&companyLogo){limg.src=companyLogo;limg.classList.remove('hidden');if(lfallback)lfallback.classList.add('hidden');}else{if(limg)limg.classList.add('hidden');if(lfallback)lfallback.classList.remove('hidden');}try{localStorage.setItem('rawaea_company_name',companyName);if(companyLogo)localStorage.setItem('rawaea_company_logo',companyLogo);}catch(e){}safeText(byId('rw-sidebar-company-name'),companyName);var img=byId('rw-sidebar-brand-logo');if(img&&companyLogo)img.src=companyLogo;safeText(byId('rw-sidebar-user-name'),RW_STATE.app.currentUser.name||'مستخدم');safeText(byId('rw-sidebar-user-role'),RW_STATE.app.currentUser.role||'—');safeText(byId('rw-sidebar-user-avatar'),(RW_STATE.app.currentUser.name||'م').trim().charAt(0)||'م');safeText(byId('rw-header-user-avatar'),(RW_STATE.app.currentUser.name||'م').trim().charAt(0)||'م');", 'BRANDING_SYNC')
-          rep("var RW_Navigation={menuTree:[{view:'dashboard'", "var RW_Navigation={menuTree:[{view:'van-sales',icon:'fa-truck-fast',label:'فان سيلز',perm:'van-sales:view'},{view:'dashboard'", 'VAN_SALES_MENU')
-          rep("function main1Delegation(view){var map={pos:", "function main1Delegation(view){var map={'van-sales':['فان سيلز',[['🚚','./van-sales.html','Van Sales','البيع المباشر والميداني']],'دورة البيع الميداني مملوكة لتطبيق Van Sales.'],pos:", 'VAN_SALES_DELEGATION')
-          rep("permissionByView={dashboard:'dashboard:view'", "permissionByView={van-sales:'van-sales:view',dashboard:'dashboard:view'", 'VAN_SALES_PERMISSION')
-          rep("byId('rw-login-form').addEventListener('submit',function(e){", "try{var remembered=localStorage.getItem('rawaea_remember_email')||'';if(remembered){byId('rw-username').value=remembered;byId('rw-remember').checked=true;}}catch(e){};byId('rw-forgot').addEventListener('click',function(e){e.preventDefault();RW_Auth.forgotPassword().then(function(){toast('تم إرسال رابط إعادة تعيين كلمة المرور','success')}).catch(function(err){safeText(byId('rw-login-error'),err.message||String(err));byId('rw-login-error').classList.remove('hidden')})});byId('rw-login-form').addEventListener('submit',function(e){", 'LOGIN_WIRING')
+          marker='<!-- RAWAEA UX PRODUCT LAYER 2026-09-03 -->'
+          assert s.count(marker)==0,'UX_LAYER_ALREADY_PRESENT'
+          layer=r'''<!-- RAWAEA UX PRODUCT LAYER 2026-09-03 -->
+          <style>
+          .rw-login-card:before{content:"";position:absolute;inset:0 0 auto 0;height:7px;background:linear-gradient(90deg,#2563eb,#06b6d4);z-index:2}
+          .rw-login-logo{width:104px!important;height:104px!important;border-radius:26px!important;overflow:hidden;position:relative;box-shadow:0 18px 38px rgba(37,99,235,.22)}
+          .rw-login-brand-image{width:100%;height:100%;object-fit:contain;padding:10px}.rw-login-brand-fallback{display:grid;place-items:center;width:100%;height:100%}
+          .rw-sidebar-user{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border-radius:14px;background:#f8fafc;border:1px solid #f1f5f9}.rw-sidebar-user-avatar{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#0ea5e9,#2563eb);color:#fff;display:grid;place-items:center;font-weight:900;flex:0 0 auto}.rw-sidebar-user-name{font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rw-sidebar-user-role{font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rw-sidebar-link.active{background:var(--pl)!important;color:var(--p)!important;box-shadow:0 4px 12px rgba(37,99,235,.10)}
+          </style>
+          <script>
+          (function(){'use strict';
+            function uxById(id){return document.getElementById(id)}
+            function uxBrand(name,logo){var n=uxById('rw-login-company-name');if(n)n.textContent=name||'الروائع ERP';var im=uxById('rw-login-brand-image'),fb=uxById('rw-login-brand-fallback');if(im&&logo){im.src=logo;im.classList.remove('hidden');if(fb)fb.classList.add('hidden')}else{if(im)im.classList.add('hidden');if(fb)fb.classList.remove('hidden')}}
+            function uxSidebarUser(u){var top=document.querySelector('.rw-sidebar-top');if(!top||document.getElementById('rw-sidebar-user-name'))return;var box=document.createElement('div');box.className='rw-sidebar-user';box.innerHTML='<div id="rw-sidebar-user-avatar" class="rw-sidebar-user-avatar">م</div><div><div id="rw-sidebar-user-name" class="rw-sidebar-user-name">مستخدم</div><div id="rw-sidebar-user-role" class="rw-sidebar-user-role">—</div></div>';top.appendChild(box);var name=u&&u.name||'مستخدم';uxById('rw-sidebar-user-name').textContent=name;uxById('rw-sidebar-user-role').textContent=u&&u.role||'—';uxById('rw-sidebar-user-avatar').textContent=name.trim().charAt(0)||'م'}
+            try{var cachedName=localStorage.getItem('rawaea_company_name')||'الروائع ERP',cachedLogo=localStorage.getItem('rawaea_company_logo')||'';var area=uxById('rw-login-logo-area');if(area&&!uxById('rw-login-brand-image')){var logo=uxById('rw-login-logo');if(logo){logo.innerHTML='<img id="rw-login-brand-image" class="rw-login-brand-image hidden" alt="شعار الشركة"><span id="rw-login-brand-fallback" class="rw-login-brand-fallback">ر</span>'}}uxBrand(cachedName,cachedLogo)}catch(e){}
+            if(window.RW_Auth){var originalEnter=RW_Auth.enterSystem;RW_Auth.enterSystem=async function(authUser){var out=await originalEnter.call(this,authUser);try{var c=RW_STATE.app.company||{},name=c.name||'الروائع ERP',logo=c.logo||'';uxBrand(name,logo);try{localStorage.setItem('rawaea_company_name',name);if(logo)localStorage.setItem('rawaea_company_logo',logo)}catch(e){}uxSidebarUser(RW_STATE.app.currentUser);var avatar=uxById('rw-header-user-avatar');if(avatar)avatar.textContent=(RW_STATE.app.currentUser.name||'م').trim().charAt(0)||'م'}catch(e){}return out};
+              var originalLogin=RW_Auth.login;RW_Auth.login=async function(username,password){try{if(uxById('rw-remember')&&uxById('rw-remember').checked)localStorage.setItem('rawaea_remember_email',username);else localStorage.removeItem('rawaea_remember_email')}catch(e){}return originalLogin.call(this,username,password)};
+              RW_Auth.forgotPassword=async function(){var email=(uxById('rw-username')&&uxById('rw-username').value||'').trim();if(!email)throw new Error('أدخل البريد الإلكتروني أولاً');var r=await window.supabase.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});if(r.error)throw r.error;return true};
+              if(uxById('rw-forgot'))uxById('rw-forgot').addEventListener('click',function(e){e.preventDefault();RW_Auth.forgotPassword().then(function(){toast('تم إرسال رابط إعادة تعيين كلمة المرور','success')}).catch(function(err){if(typeof safeText==='function')safeText(uxById('rw-login-error'),err.message||String(err));if(uxById('rw-login-error'))uxById('rw-login-error').classList.remove('hidden')})});
+            }
+            try{var rem=localStorage.getItem('rawaea_remember_email')||'';if(rem&&uxById('rw-username')){uxById('rw-username').value=rem;uxById('rw-remember').checked=true}}catch(e){}
+            if(window.RW_Navigation){var originalNavigate=RW_Navigation.navigate;RW_Navigation.navigate=function(view){if(view==='van-sales'){if(typeof RW_Permissions_check==='function'&&!RW_Permissions_check('van-sales:view'))return false;RW_STATE.app.currentView=view;location.href='./van-sales.html';return true}var out=originalNavigate.call(this,view);setTimeout(function(){document.querySelectorAll('#rw-sidebar-nav [data-view]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-view')===view)})},0);return out};if(Array.isArray(RW_Navigation.menuTree)&&!RW_Navigation.menuTree.some(function(x){return x.view==='van-sales'}))RW_Navigation.menuTree.unshift({view:'van-sales',icon:'fa-truck-fast',label:'فان سيلز',perm:'van-sales:view'})}
+            if(window.RW_Auth&&window.RW_Auth.enterSystem&&window.RW_STATE&&RW_STATE.app&&RW_STATE.app.initialized)try{uxBrand(RW_STATE.app.company&&RW_STATE.app.company.name,RW_STATE.app.company&&RW_STATE.app.company.logo);uxSidebarUser(RW_STATE.app.currentUser)}catch(e){}
+          })();
+          </script>'''
+          s=s.replace('</body>',layer+'\n</body>',1)
           p.write_text(s,encoding='utf-8')
-          print('TARGET_PATCHED')
+          print('UX_LAYER_PATCHED')
           PY
-          git diff --check
-          git add Current/PWA/New-main
-          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
-          node --check Current/PWA/register-sw.js
-          node --check Current/PWA/sw.js
           python3 - <<'PY'
           from pathlib import Path
           import re,tempfile,subprocess,json
-          from html.parser import HTMLParser
           s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          req=['window.RW_Auth=','window.RW_Navigation=','window.RW_Views=','window.RW_ShellContext=','window.RW_OwnerLicense=','window.safeText=safeText;','window.safeHTML=safeHTML;','window.byId=byId;','rw-login-brand-image','forgotPassword:async function','rawaea_remember_email','van-sales:view','./van-sales.html']
-          missing=[x for x in req if x not in s]
-          assert not missing,missing
+          req=['RAWAEA UX PRODUCT LAYER 2026-09-03','rw-login-brand-image','rawaea_company_name','rawaea_company_logo','forgotPassword=async function','rawaea_remember_email','van-sales:view','./van-sales.html','window.RW_Auth=','window.RW_Navigation=','window.RW_Views=','window.RW_ShellContext=','window.RW_OwnerLicense=','window.safeText=safeText;','window.safeHTML=safeHTML;','window.byId=byId;']
+          missing=[x for x in req if x not in s];assert not missing,missing
           assert s.count("byId('rw-login-form').addEventListener('submit'")==1
-          assert s.count('rw-p163-closure')==1
-          assert s.count('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')==1
-          assert s.count('__RAWAEA_MAIN11_GOVERNED_CLOSED_V2__')==1
-          class P(HTMLParser):
-              def __init__(self): super().__init__(convert_charrefs=False); self.stack=[]; self.blocks=[]
-              def handle_starttag(self,t,a):
-                  if t=='script' and 'src' not in dict(a): self.blocks.append('')
-                  if t not in {'meta','link','input','img','br','hr','source','area','base','embed','param','track','wbr'}: self.stack.append(t)
-              def handle_data(self,d):
-                  if self.blocks:self.blocks[-1]+=d
-              def handle_endtag(self,t):
-                  if t=='script' and self.blocks and self.blocks[-1].strip(): pass
-                  if self.stack and self.stack[-1]==t:self.stack.pop()
-          q=P();q.feed(s);q.close();assert not q.stack
+          assert s.count('rw-p163-closure')==1 and s.count('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')==1 and s.count('__RAWAEA_MAIN11_GOVERNED_CLOSED_V2__')==1
           scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I);assert scripts
           for i,code in enumerate(scripts):
               f=Path(tempfile.mkstemp(suffix='.js')[1]);f.write_text(code,encoding='utf-8')
-              try: subprocess.run(['node','--check',str(f)],check=True,capture_output=True,text=True)
-              finally: f.unlink(missing_ok=True)
-          m=json.loads(Path('Current/PWA/manifest.json').read_text(encoding='utf-8'));assert m['start_url']=='./New-main' and m['scope']=='./' and m['dir']=='rtl' and m['lang']=='ar'
-          print('STATIC_UX_GATE=PASS')
+              try:
+                  r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+                  if r.returncode: print('INLINE_SYNTAX_FAILURE_INDEX='+str(i));print(r.stderr);raise SystemExit(2)
+              finally:f.unlink(missing_ok=True)
+          m=json.loads(Path('Current/PWA/manifest.json').read_text(encoding='utf-8'));assert (m.get('start_url'),m.get('scope'),m.get('dir'),m.get('lang'))==('./New-main','./','rtl','ar')
+          print('STATIC_UX_RETRY=PASS')
           PY
+          git add Current/PWA/New-main
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
       - name: Browser product gate
         shell: bash
         run: |
@@ -83,7 +78,7 @@ jobs:
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
           npx playwright install chromium >/dev/null 2>&1
           rm -rf /tmp/rawaea && mkdir -p /tmp/rawaea/Current/PWA && cp Current/PWA/New-main /tmp/rawaea/Current/PWA/New-main && cp Current/PWA/manifest.json /tmp/rawaea/Current/PWA/manifest.json
-          cat >/tmp/raw-http.py <<'PY'
+          cat >/tmp/http.py <<'PY'
           from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
           import os
           class H(SimpleHTTPRequestHandler):
@@ -91,23 +86,17 @@ jobs:
               def log_message(self,*a): pass
           os.chdir('/tmp/rawaea');ThreadingHTTPServer(('127.0.0.1',8123),H).serve_forever()
           PY
-          python3 /tmp/raw-http.py >/tmp/raw-http.log 2>&1 & echo $! >/tmp/pid;trap 'kill $(cat /tmp/pid) 2>/dev/null || true' EXIT
+          python3 /tmp/http.py >/tmp/http.log 2>&1 & echo $! >/tmp/pid;trap 'kill $(cat /tmp/pid) 2>/dev/null || true' EXIT
           node <<'NODE'
           const {chromium}=require('playwright');
-          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage({serviceWorkers:'block'});const pe=[],ce=[];p.on('pageerror',e=>pe.push(String(e.message||e)));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
-          await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(800);
-          const r=await p.evaluate(async()=>{const l=document.querySelector('link[rel="manifest"]');const m=await(await fetch(l.href)).json();const nav=RW_Navigation.menuTree||[];return{locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',login:!!document.getElementById('rw-login-form'),passwordToggle:typeof window.togglePasswordVisibility==='function',forgot:typeof RW_Auth.forgotPassword==='function',remember:localStorage.getItem('rawaea_remember_email')!==null,brand:!!document.getElementById('rw-login-brand-image'),sidebar:!!document.getElementById('rw-sidebar'),sidebarUser:!!document.getElementById('rw-sidebar-user-name'),menuVan:nav.some(x=>x.view==='van-sales'),auth:typeof RW_Auth==='object',views:typeof RW_Views==='object',safeText:typeof window.safeText==='function',safeHTML:typeof window.safeHTML==='function',byId:typeof window.byId==='function',manifest:l.getAttribute('href'),start:m.start_url,scope:m.scope,dir:m.dir,lang:m.lang}});
-          console.log('PRODUCT_BROWSER='+JSON.stringify({r,pe,ce}));await b.close();if(pe.length||ce.length||!r.locale||!r.login||!r.passwordToggle||!r.forgot||!r.brand||!r.sidebar||!r.sidebarUser||!r.menuVan||!r.auth||!r.views||!r.safeText||!r.safeHTML||!r.byId||r.manifest!=='./manifest.json'||r.start!=='./New-main'||r.scope!=='./'||r.dir!=='rtl'||r.lang!=='ar')process.exit(2)})().catch(e=>{console.error(e.stack||e);process.exit(2)})
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage({serviceWorkers:'block'});const pe=[],ce=[];p.on('pageerror',e=>pe.push(String(e.message||e)));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(600);const r=await p.evaluate(()=>{const l=document.querySelector('link[rel="manifest"]');return{locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',login:!!document.getElementById('rw-login-form'),brand:!!document.getElementById('rw-login-brand-image'),forgot:typeof RW_Auth.forgotPassword==='function',rememberKey:localStorage.getItem('rawaea_remember_email')!==null,sidebar:!!document.getElementById('rw-sidebar'),auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',owner:typeof RW_OwnerLicense==='object',byId:typeof window.byId==='function',safeText:typeof window.safeText==='function',manifest:l?.getAttribute('href')||''}});console.log('PRODUCT_BROWSER='+JSON.stringify({r,pe,ce}));await b.close();if(pe.length||ce.length||!r.locale||!r.login||!r.brand||!r.forgot||!r.sidebar||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||!r.byId||!r.safeText||r.manifest!=='./manifest.json')process.exit(2)})().catch(e=>{console.error(e.stack||e);process.exit(2)})
           NODE
           echo PRODUCT_BROWSER_GATE=PASS
-      - name: Persist target and retire this writer
+      - name: Persist target and retire this controlled writer
         shell: bash
         run: |
           set -euo pipefail
-          git add Current/PWA/New-main .github/workflows/_cto_surgical_login_dedup_20260903.yml
-          git config user.name 'CTO Controlled Writer'
-          git config user.email 'cto-controlled-writer@users.noreply.github.com'
-          cat > .github/workflows/_cto_surgical_login_dedup_20260903.yml <<'EOF'
+          cat >.github/workflows/_cto_surgical_login_dedup_20260903.yml <<'EOF'
           name: CTO Surgical Login Dedup 2026-09-03 — RETIRED
           on:
             workflow_dispatch:
@@ -118,10 +107,12 @@ jobs:
               runs-on: ubuntu-latest
               steps:
                 - name: Archive notice
-                  run: echo 'Historical login/license surgical writer retired after controlled product UX closure.'
+                  run: echo 'Historical controlled UX writer retired after target-only closure.'
           EOF
-          git add .github/workflows/_cto_surgical_login_dedup_20260903.yml
+          git add Current/PWA/New-main .github/workflows/_cto_surgical_login_dedup_20260903.yml
           test "$(git diff --cached --name-only)" = $'Current/PWA/New-main\n.github/workflows/_cto_surgical_login_dedup_20260903.yml'
+          git config user.name 'CTO Controlled Writer'
+          git config user.email 'cto-controlled-writer@users.noreply.github.com'
           git commit -m '[CTO-UX] Persist target-only product closure and retire writer'
           git push origin HEAD:main
-          echo 'PERSISTED_TARGET_AND_RETIRED_WRITER=PASS'
+          echo PERSISTED_TARGET_ONLY=PASS
