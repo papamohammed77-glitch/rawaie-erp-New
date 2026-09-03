@@ -1,68 +1,104 @@
-name: CTO diagnose trusted New-main artifact
+name: CTO one-time trusted New-main surgical repair
 on:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/_cto_diagnose_trusted_artifact_20260903.yml'
-      - 'CURRENT_STATE.md'
+  workflow_dispatch:
 permissions:
   contents: write
 concurrency:
-  group: cto-diagnose-newmain-20260903
+  group: cto-one-time-newmain-surgery-20260903
   cancel-in-progress: false
 jobs:
-  diagnose:
+  repair:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-        with: {ref: main, fetch-depth: 0}
-      - name: Diagnose trusted artifact requirements
+        with: {ref: main, fetch-depth: 1}
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - name: Exact target surgical repair
         shell: bash
         run: |
           set -euo pipefail
-          git show 339aa1829b44e9f8babce39f69a9bb66f0de5be6:Current/PWA/New-main > /tmp/trusted-new-main.html
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib,re
-          s=Path('/tmp/trusted-new-main.html').read_text(encoding='utf-8')
-          req=[
-            r"window\.RW_PWA_RECONSTRUCTION_VERSION\s*=\s*['\"]MAIN2-COMPLETE-SURGICAL-v1['\"]\s*;",
-            r"// MAIN2_GOVERNED_CLOSED:v1",
-            r"/\* RAWAEA MAIN2 AUTHORITATIVE MODULE \*/",
-            r"RAWAEA 122 DIAMOND CONTRACT CLOSURE v1",
-            r"window\.RW_Auth\s*=",
-            r"window\.RW_Navigation\s*=",
-            r"window\.RW_Views\s*=",
-            r"window\.RW_ShellContext\s*=",
-            r"window\.RW_OwnerLicense\s*=\s*RW_OwnerLicense\s*;",
-            r"MAIN3",
-            r"MAIN11",
-            r"function main1Delegation\(",
-            r"\bvar actions\s*=",
-            r"post_stock_movement",
-            r"get_trial_balance",
-            r"get_profit_loss",
-            r"get_balance_sheet",
-            r"edgeCall",
-          ]
-          lines=['# CTO Trusted Artifact Contract Diagnosis — 2026-09-03','',f'- Bytes: {len(s.encode())}',f'- SHA-256: `{hashlib.sha256(s.encode()).hexdigest()}`','']
-          for x in req:
-            ok=bool(re.search(x,s))
-            lines.append(f'- {"PASS" if ok else "MISS"}: `{x}`')
-          lines += ['',f'- Diamond 122 count: {s.count("RAWAEA 122 DIAMOND CONTRACT CLOSURE v1")}',f'- MAIN2 governed count: {s.count("// MAIN2_GOVERNED_CLOSED:v1")}',f'- MAIN11 count: {s.count("MAIN11")}',f'- Script tags: {s.count("<script")}',f'- Script end tags: {s.count("</script>")}']
-          Path('/tmp/trusted-diagnosis.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
-          print('\n'.join(lines))
+          import hashlib
+          p=Path('Current/PWA/New-main')
+          s=p.read_text(encoding='utf-8')
+          needle='function byId(id){return document.getElementById(id)}'
+          bridge='window.byId=byId;'
+          assert s.count(needle)==1,'BYID_DECLARATION_COUNT_INVALID'
+          assert s.count('window.safeText=safeText;')==1,'SAFETEXT_BRIDGE_INVALID'
+          assert s.count(bridge) in (0,1),'BYID_BRIDGE_COUNT_INVALID'
+          if s.count(bridge)==0:
+              before=hashlib.sha256(s.encode()).hexdigest()
+              s=s.replace(needle,needle+'\n'+bridge,1)
+              p.write_text(s,encoding='utf-8')
+              print('PATCH=APPLIED')
+              print('BEFORE_SHA256='+before)
+              print('AFTER_SHA256='+hashlib.sha256(s.encode()).hexdigest())
+          else:
+              print('PATCH=ALREADY_PRESENT')
           PY
-      - name: Persist diagnosis artifact
-        if: ${{ always() }}
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)
+          assert len(scripts)==1,'INLINE_SCRIPT_COUNT_INVALID'
+          Path('/tmp/new-main-inline.js').write_text(scripts[0],encoding='utf-8')
+          PY
+          node --check /tmp/new-main-inline.js
+          grep -o 'window.safeText=safeText;' Current/PWA/New-main | wc -l | grep '^1$'
+          grep -o 'window.byId=byId;' Current/PWA/New-main | wc -l | grep '^1$'
+          echo 'SURGICAL_STATIC=PASS'
+      - name: Chromium owner/non-owner and shell gate
         shell: bash
         run: |
           set -euo pipefail
-          if [ ! -f /tmp/trusted-diagnosis.md ]; then printf '%s\n' '# Diagnosis did not execute' > /tmp/trusted-diagnosis.md; fi
-          mkdir -p doc/Draft/Reprots/CTO
-          cp /tmp/trusted-diagnosis.md doc/Draft/Reprots/CTO/2026-09-03_trusted_newmain_contract_diagnosis.md
-          git config user.name 'RAWAEA CTO Diagnosis'; git config user.email 'rawaea-cto-diagnosis@users.noreply.github.com'
-          git add doc/Draft/Reprots/CTO/2026-09-03_trusted_newmain_contract_diagnosis.md .github/workflows/_cto_diagnose_trusted_artifact_20260903.yml
-          git diff --cached --check
-          git commit -m '[CTO] Persist trusted New-main contract diagnosis' || true
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
+          python3 -m http.server 8129 --directory Current/PWA >/tmp/p135-http.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          sleep 2
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const b=await chromium.launch({headless:true,args:['--no-sandbox']});
+            async function test(){
+              const p=await b.newPage({serviceWorkers:'block'});const errors=[];
+              p.on('pageerror',e=>errors.push(String(e.message||e)));p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
+              await p.goto('http://127.0.0.1:8129/New-main',{waitUntil:'domcontentloaded'});
+              await p.waitForFunction(()=>window.RW_STATE&&window.RW_Navigation&&window.RW_OwnerLicense&&typeof window.byId==='function'&&typeof window.safeText==='function');
+              const initial=await p.evaluate(()=>({locale:document.documentElement.lang==='ar'&&document.documentElement.dir==='rtl',auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',ownerLicense:typeof RW_OwnerLicense==='object',notif:typeof RW_Notification?.showPanel==='function',byId:typeof window.byId==='function',safeText:typeof window.safeText==='function'}));
+              await p.evaluate(()=>{RW_STATE.app.currentUser={id:'probe',email:'owner@smoke.local',isOwner:true,permissions:['*']};RW_STATE.permissions=['*'];RW_STATE.app.companyId='00000000-0000-0000-0000-000000000001';RW_STATE.app.licenseState='active';});
+              let owner={ok:false};try{await p.evaluate(async()=>{await RW_Navigation.navigate('license')});owner=await p.evaluate(()=>({ok:true,view:RW_STATE.app.currentView,container:!!document.getElementById('license-main-container'),text:document.getElementById('rw-page-container')?.innerText||''}));}catch(e){owner={ok:false,error:String(e.message||e)}}
+              await p.evaluate(()=>{RW_STATE.app.currentUser={id:'probe',email:'user@smoke.local',isOwner:false,permissions:[]};RW_STATE.permissions=[];});
+              let denied='';try{await p.evaluate(async()=>{await RW_Navigation.navigate('license')});denied='NO_REJECTION';}catch(e){denied=String(e.message||e)}
+              await p.close();return {initial,owner,denied,errors};
+            }
+            const r=await test();console.log('SURGICAL_RUNTIME='+JSON.stringify(r));
+            const ok=r.initial.locale&&r.initial.auth&&r.initial.nav&&r.initial.views&&r.initial.shell&&r.initial.ownerLicense&&r.initial.notif&&r.initial.byId&&r.initial.safeText&&r.owner.ok&&r.owner.view==='license'&&r.owner.container&&/إدارة الترخيص/.test(r.owner.text)&&r.denied==='OWNER_ONLY'&&!r.errors.length;
+            await b.close();if(!ok)process.exit(2);
+          })().catch(e=>{console.error(e.stack||e);process.exit(2)});
+          NODE
+          echo 'SURGICAL_RUNTIME=PASS'
+      - name: Persist exact repair and retire writer
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'RAWAEA CTO Surgical Repair'
+          git config user.email 'rawaea-cto-surgical@users.noreply.github.com'
+          git add Current/PWA/New-main
+          if ! git diff --cached --quiet; then
+            git diff --cached --check
+            git commit -m '[CTO-FORENSIC] Export byId across governed runtime scope'
+          fi
+          git rm .github/workflows/_cto_diagnose_trusted_artifact_20260903.yml
+          git commit -m '[CTO-GOVERNANCE] Retire one-time trusted artifact writer'
           git push origin HEAD:main
