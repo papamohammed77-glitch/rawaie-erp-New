@@ -25,36 +25,58 @@ def p163(candidate):
     s = candidate
     compat = '/* RAWAEA MAIN2 COMPATIBILITY */'
     auth = '/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
-    if auth not in s:
-        anchor = 'var RW_Dashboard ='
-        if anchor not in s:
-            raise RuntimeError('MAIN2_AUTHORITATIVE_ANCHOR_MISSING')
-        s = s.replace(anchor, auth + '\n' + anchor, 1)
+    version = "window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"
+    governed = '// MAIN2_GOVERNED_CLOSED:v1'
+
+    # The eleven current governed fragments are already de-duplicated. Main2's
+    # historical compatibility marker is therefore not required to exist.
     if s.count(compat) > 1:
         raise RuntimeError('P163_COMPAT_DUPLICATE')
     if compat in s:
-        a, b = s.index(compat), s.index(auth)
-        if b <= a:
-            raise RuntimeError('P163_OWNER_ORDER')
+        a = s.index(compat)
+        b = s.find(auth, a + len(compat))
+        if b < 0:
+            raise RuntimeError('P163_AUTH_AFTER_COMPAT_MISSING')
         s = s[:a] + s[b:]
-    for alias in ('window.RW_Dashboard={render:renderDashboard};', 'window.RW_Items={render:renderItems};'):
-        if alias in s:
-            s = s.replace(alias, '', 1)
-    owner = 'window.RW_Items=RW_Items;'
-    version = "window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"
-    governed = '// MAIN2_GOVERNED_CLOSED:v1'
-    if s.count(owner) != 1:
-        raise RuntimeError('P163_ITEMS_OWNER_COUNT:' + str(s.count(owner)))
-    if version in s or governed in s:
-        raise RuntimeError('P163_MARKER_ALREADY_PRESENT')
-    s = s.replace(owner, owner + '\n' + version + '\n' + governed, 1)
+
+    # Normalize the one Main2 authoritative boundary. Current main2.md uses
+    # whitespace around '=', while earlier assemblies used the compact form.
+    if s.count(auth) == 0:
+        anchor_re = re.compile(r'(?m)^\s*var\s+RW_Dashboard\s*=')
+        m = anchor_re.search(s)
+        if not m:
+            raise RuntimeError('MAIN2_AUTHORITATIVE_ANCHOR_MISSING')
+        s = s[:m.start()] + auth + '\n' + s[m.start():]
+    elif s.count(auth) > 1:
+        raise RuntimeError('P163_AUTH_DUPLICATE')
+
+    # Remove only the two Main1 legacy aliases, accepting harmless formatting
+    # differences but refusing to remove other RW_* exports.
+    alias_patterns = (
+        r'window\.RW_Dashboard\s*=\s*\{\s*render\s*:\s*renderDashboard\s*\}\s*;',
+        r'window\.RW_Items\s*=\s*\{\s*render\s*:\s*renderItems\s*\}\s*;'
+    )
+    for pat in alias_patterns:
+        s = re.sub(pat, '', s, count=1)
+
+    # Normalize the authoritative Main2 export and closure. Any pre-existing
+    # closure metadata is stripped first so reconstruction remains idempotent.
+    s = re.sub(r'window\.RW_Items\s*=\s*RW_Items\s*;', 'window.RW_Items=RW_Items;', s, count=1)
+    s = s.replace(version, '').replace(governed, '')
+    owner_matches = list(re.finditer(r'window\.RW_Items=RW_Items;', s))
+    if len(owner_matches) != 1:
+        raise RuntimeError('P163_ITEMS_OWNER_COUNT:' + str(len(owner_matches)))
+    owner = owner_matches[0]
+    end = owner.end()
+    s = s[:end] + '\n' + version + '\n' + governed + s[end:]
+
     gates = {
         'compat_absent': compat not in s,
         'authoritative_one': s.count(auth) == 1,
         'version_one': s.count(version) == 1,
         'governed_one': s.count(governed) == 1,
-        'dashboard_alias_absent': 'window.RW_Dashboard={render:renderDashboard};' not in s,
-        'items_alias_absent': 'window.RW_Items={render:renderItems};' not in s,
+        'dashboard_alias_absent': not re.search(alias_patterns[0], s),
+        'items_alias_absent': not re.search(alias_patterns[1], s),
         'actions_preserved': 'actions' in s,
         'main1Delegation_preserved': 'main1Delegation' in s,
         'MAIN3_preserved': 'MAIN3' in s,
