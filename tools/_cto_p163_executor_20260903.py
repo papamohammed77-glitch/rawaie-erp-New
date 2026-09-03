@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# CTO LIVE EXECUTION TRIGGER — reuse verified target-preserving executor; no fragment reconstruction.
 from pathlib import Path
 from html.parser import HTMLParser
 import hashlib,re,subprocess,sys,os,time
@@ -57,7 +58,6 @@ s=TARGET.read_text(encoding='utf-8')
 original_hash=hashlib.sha256(s.encode()).hexdigest()
 s=surgical_edit(s)
 
-# Static semantic gates against the resulting target.
 checks={
 'compat_removed':'/* RAWAEA MAIN2 COMPATIBILITY */' not in s,
 'auth_once':s.count('/* RAWAEA MAIN2 AUTHORITATIVE MODULE */')==1,
@@ -92,7 +92,6 @@ Path('/tmp/newmain.js').write_text(t.inline[0],encoding='utf-8')
 r=sh(['node','--check','/tmp/newmain.js'],check=False)
 if r.returncode: print(r.stderr); fail('node syntax')
 
-# Browser smoke. Playwright is installed by the workflow before invoking this executor.
 run=ROOT/'Current/PWA'
 http=subprocess.Popen([sys.executable,'-m','http.server','8123','--directory',str(run)],cwd=ROOT,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
 time.sleep(1)
@@ -106,30 +105,21 @@ try:
 finally:
     http.terminate(); http.wait(timeout=5)
 
-# Persist evidence only after all gates.
 new_hash=hashlib.sha256(TARGET.read_text(encoding='utf-8').encode()).hexdigest()
 st=STATE.read_text(encoding='utf-8'); marker='## CTO P163 CLOSED — 2026-09-03'
 if marker not in st:
     STATE.write_text(st.rstrip()+f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Previous target SHA-256: `{original_hash}`\n- Verified target SHA-256: `{new_hash}`\n- Target-preserving P163 surgery executed without fragment reconstruction.\n- MAIN2 compatibility duplicate removed with IIFE closure preserved; authoritative owner retained; legacy Dashboard/Items aliases removed.\n- Current ShellContext/auth/navigation/views/OwnerLicense/actions/main1Delegation/MAIN3/MAIN11 and `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1` preserved.\n- Parsed HTML structure gate: PASS.\n- Node syntax gate: PASS.\n- Browser Gold/Diamond runtime gate: PASS.\n- Production database writes: NONE.\n- GOLD = PROVEN\n- DIAMOND = PROVEN\n- CLOSED = PROVEN\n''',encoding='utf-8')
 
-# Remove transient executor before persistence; final commit is the target + continuity only.
 Path(__file__).unlink(missing_ok=True)
+Path(ROOT/'.github/workflows/p163_main2_ownership_surgery_20260903.yml').unlink(missing_ok=True)
 sh(['git','config','user.name','rawaea-surgical-bot'])
 sh(['git','config','user.email','rawaea-surgical-bot@users.noreply.github.com'])
-sh(['git','add','-A','Current/PWA/New-main','CURRENT_STATE.md','tools/_cto_p163_executor_20260903.py'])
+sh(['git','add','-A','Current/PWA/New-main','CURRENT_STATE.md','tools/_cto_p163_executor_20260903.py','.github/workflows/p163_main2_ownership_surgery_20260903.yml'])
 sh(['git','diff','--cached','--check'])
 if sh(['git','diff','--cached','--quiet'],check=False).returncode==0:
     print('P163_ALREADY_CLOSED'); sys.exit(0)
 sh(['git','commit','-m','[P163-EXECUTED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED] target-preserving New-main ownership closure'])
-for attempt in range(1,4):
-    r=sh(['git','push','origin','HEAD:main'],check=False)
-    print(r.stdout,end=''); print(r.stderr,end='')
-    if r.returncode==0: print('P163_PUSH_PASS'); sys.exit(0)
-    # Refresh and replay on latest main only if a concurrent team commit won the race.
-    if attempt<3:
-        sh(['git','fetch','origin','main']); sh(['git','reset','--soft','origin/main']);
-        # Re-add the working target/state from index/worktree after reset and recommit.
-        sh(['git','add','-A','Current/PWA/New-main','CURRENT_STATE.md','tools/_cto_p163_executor_20260903.py'])
-        if sh(['git','diff','--cached','--quiet'],check=False).returncode!=0:
-            sh(['git','commit','-m','[P163-EXECUTED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED] target-preserving New-main ownership closure'])
-fail('push retry exhausted')
+r=sh(['git','push','origin','HEAD:main'],check=False)
+print(r.stdout,end=''); print(r.stderr,end='')
+if r.returncode: fail('push')
+print('P163_PUSH_PASS')
