@@ -66,3 +66,5 @@ for attempt in range(1,4):
  print('P163_PUSH_RACE',p.stderr); continue
 
 die('push-race-exhausted')
+
+# CTO trigger marker: 2026-09-03T03:51:09Z
