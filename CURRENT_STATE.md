@@ -76,16 +76,15 @@ Obtain a directly verifiable execution path for the target-preserving surgical P
 - Expected mutation is limited to the existing `Current/PWA/New-main`: remove duplicate `RAWAEA MAIN2 COMPATIBILITY`, retain the authoritative MAIN2 owner and `RAWAEA 122 DIAMOND CONTRACT CLOSURE v1`, then execute Node and browser gates before persistence.
 - This record does not assert closure; closure remains unproven until the target changes and the gates are directly verified.
 
-## CTO P163 CLOSED — 2026-09-03
+## CTO P163 CLOSED — 2026-09-03 (LIVE VERIFIED)
 - Target: `Current/PWA/New-main`
-- Previous target SHA-256: `20f476fb4ced6b3ac61638a884a57ef452f7f21479312fe2f7a43795bbf07946`
-- Verified target SHA-256: `4e315af85dff897dcac75f35d77ae94292a260e7a2e5b5ee32aa55bdf3214f47`
-- P163 target-preserving surgery executed directly against live `main`; no fragment reconstruction.
-- MAIN2 compatibility duplicate removed with IIFE closure preserved; authoritative owner retained; legacy Dashboard/Items aliases removed.
-- Node JavaScript syntax gate: PASS.
-- Browser Gold static contract gate: PASS.
-- Diamond closure string preserved.
-- Production-owned Postgres procedures remain in Supabase and were not fabricated into the PWA.
+- Previous SHA-256: `4e315af85dff897dcac75f35d77ae94292a260e7a2e5b5ee32aa55bdf3214f47`
+- Verified SHA-256: `96fc751407cec2c248198297a10c8cdf182d52c3b005de58300f093d0b0f23ca`
+- Existing MAIN2 surgical closure preserved; no compatibility/legacy-alias surgery repeated.
+- P163 closure metadata added exactly once.
+- Static HTML + Node syntax gates: PASS (`scripts=5`, `styles=1`, `inline=1`).
+- Browser Gold gate: PASS on exact target content; Auth/Navigation/Views/Shell/Owner contracts initialized with no page/console errors; route source surface verified; non-owner license/audit guards denied.
+- Diamond gate: PASS; governed MAIN2 marker, Diamond 122, and P163 closure metadata verified.
 - GOLD = PROVEN
 - DIAMOND = PROVEN
 - CLOSED = PROVEN
