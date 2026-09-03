@@ -48,3 +48,11 @@ Obtain a directly verifiable execution path for the target-preserving surgical P
 - Production database writes are NOT authorized in this New-main closure track.
 - Production reads may be used for contract verification.
 - No historical report may be deleted.
+
+## FORENSIC EXECUTION — 2026-09-03
+- Direct Production verification performed against Supabase project `fiilmooggumokxanwiyx`.
+- Production currently has one company (`MAIN` / `الروائع`), one `owner_profile`, and 24 users.
+- Direct Production state is intentionally left unchanged during P163 closure.
+- `owner_profile.license_status` is `active`, while `app_settings.status` is `trial`; this conflict is recorded as an unresolved Production contract fact and was not altered by this closure action.
+- The historical reconstruction executor was independently confirmed failed at `30f1526fa8a926c638aa62bb63d9e88457f73670`; it is not being treated as proof of target state.
+- The target-preserving push executor is now being re-evaluated from this commit.
