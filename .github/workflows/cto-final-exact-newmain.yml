@@ -1,0 +1,85 @@
+name: CTO Final Exact New-main
+on:
+  push:
+    branches: [cto-final-exact-newmain-20260903]
+permissions:
+  contents: write
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Surgical modify target only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          p=Path('Current/PWA/New-main')
+          s=p.read_text(encoding='utf-8')
+          assert len(s.splitlines())>5000
+          old='<link rel="manifest" href="./New-main.manifest.json">'
+          new='<link rel="manifest" href="../manifest.json">'
+          if old in s:
+              assert s.count(old)==1
+              s=s.replace(old,new,1)
+          assert s.count(new)==1
+          marker="byId('rw-login-form').addEventListener('submit',function(e){"
+          start=s.find(marker)
+          if start>=0:
+              end=s.find("});byId('rw-logout-btn')",start)
+              assert end>start
+              s=s[:start]+s[end+3:]
+          assert marker not in s
+          assert s.count("loginForm.addEventListener('submit'")==1
+          assert s.count('function safeText')==1
+          assert 'window.safeText=safeText' in s
+          m=json.loads(Path('Current/PWA/manifest.json').read_text(encoding='utf-8'))
+          assert m['start_url']=='./New-main' and m['scope']=='./' and m['display']=='standalone' and m['dir']=='rtl' and m['lang']=='ar'
+          p.write_text(s,encoding='utf-8')
+          print('TARGET_ONLY_SURGERY_PASS')
+          PY
+      - name: Static gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check <(python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          class P(HTMLParser):
+              def __init__(self): super().__init__(convert_charrefs=False); self.cur=None; self.code=''
+              def handle_starttag(self,t,a):
+                  if t.lower()=='script' and not self.cur:self.cur=dict(a).get('src')
+              def handle_data(self,d):
+                  if self.cur is None:self.code+=d
+              def handle_endtag(self,t):
+                  if t.lower()=='script':self.cur=None
+          q=P();q.feed(Path('Current/PWA/New-main').read_text(encoding='utf-8'));print(q.code)
+          PY
+          )
+          node --check Current/PWA/register-sw.js
+          node --check Current/PWA/sw.js
+          git diff --check
+      - name: Exact target diff gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add Current/PWA/New-main
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
+      - name: Persist target and clean executor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm -f .github/workflows/cto-final-exact-newmain.yml
+          git add Current/PWA/New-main
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
+          git config user.name 'RAWAEA CTO Executor'
+          git config user.email 'rawaea-cto-executor@users.noreply.github.com'
+          git commit -m '[CTO-CLOSED] exact New-main surgical finalization'
+          git push origin HEAD:cto-final-exact-newmain-20260903
