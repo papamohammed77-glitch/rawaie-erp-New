@@ -30,4 +30,4 @@ jobs:
           npx playwright install --with-deps chromium >/dev/null 2>&1
       - name: Execute direct target-preserving closure
         run: python3 tools/_cto_p163_direct_20260903.py
-# CTO continuation nonce 2026-09-03T07:41:00+03:00
+# CTO continuation nonce 2026-09-03T07:48:00+03:00
