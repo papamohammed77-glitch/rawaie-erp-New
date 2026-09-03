@@ -1,0 +1,119 @@
+name: CTO single-parent embed gate v2
+on:
+  push:
+    branches: [cto-single-parent-embed-20260903]
+permissions:
+  contents: write
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Build embedded legacy modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, hashlib, json, re
+          p=Path('Current/PWA/New-main')
+          s=p.read_text(encoding='utf-8')
+          assert len(s.encode())>500000
+          s=s.replace('<div class="rw-login-logo">ر</div><div class="rw-company-name">الروائع ERP</div><div class="rw-company-description">Clean-room MAIN1 contract surface</div>', '<div id="rw-login-company-logo" class="rw-login-logo" aria-label="شعار الشركة">ر</div><div id="rw-login-company-name" class="rw-company-name">الروائع ERP</div><div class="rw-company-description">نظام إدارة الأعمال المتكامل</div>', 1)
+          s=s.replace('await window.RW_Auth.enterSystem();','await window.RW_Auth.enterSystem(authUser);',1)
+          parent_old=re.compile(r"window\.RW_ParentRegistry=\{version:'1\.0',[\s\S]*?\};",re.M)
+          parent_new="window.RW_ParentRegistry={version:'2.0',tenantAuthority:'RW_ShellContext.getCompanyId()',ownerAuthority:'owner_profile',permissionAuthority:'RW_Permissions_check',apps:{pos:'pos',telesales:'telesales',buyer:'purchases',vouchers:'vouchers',picker:'picking',loader:'loading',driver:'delivery',returns:'returns',unloader:'unloading'},launch:function(key){var v=this.apps[key];if(!v)throw new Error('UNKNOWN_PARENT_APP:'+key);return window.RW_Navigation.navigate(v);}};"
+          s,n=parent_old.subn(parent_new,s,count=1)
+          if not n: assert "version:'2.0'" in s
+          pat_del=re.compile(r"function delegated\(title,links,description\)\{[\s\S]*?\}\nasync function renderDashboard",re.M)
+          s,n=pat_del.subn("function delegated(title,links,description){setHeader(title,'الوحدة تعمل داخل القلب المركزي الموحد');var box=byId('rw-page-container');if(!box)return;if(window.RW_EmbeddedApps&&window.RW_EmbeddedApps.render)return window.RW_EmbeddedApps.render(RW_STATE.app.currentView,box,title,description);safeHTML(box,'<div class=\\\"rw-card\\\"><h2>'+esc(title)+'</h2><p class=\\\"rw-muted\\\">تعذر تحميل الوحدة المضمنة.</p></div>')}\nasync function renderDashboard",s,count=1); assert n==1
+          pat_main=re.compile(r"function main1Delegation\(view\)\{[\s\S]*?\}\nvar actions=",re.M)
+          s,n=pat_main.subn("function main1Delegation(view){if(window.RW_EmbeddedApps&&window.RW_EmbeddedApps.render)return window.RW_EmbeddedApps.render(view,byId('rw-page-container'),'الوحدة المتخصصة','وحدة أصلية مدمجة داخل New-main');throw new Error('RW_EMBEDDED_APPS_UNAVAILABLE')}\nvar actions=",s,count=1); assert n==1
+          if 'RAWAEA_CANONICAL_COMPANY_BRANDING_V3' not in s:
+              brand="<script id=\"RAWAEA_CANONICAL_COMPANY_BRANDING_V3\">(function(){'use strict';function apply(b){b=b||{};var n=String(b.company_name||b.name||'الروائع ERP').trim()||'الروائع ERP',l=String(b.company_logo||b.logo_url||'').trim(),a=document.getElementById('rw-login-company-name'),i=document.getElementById('rw-login-company-logo'),sn=document.getElementById('rw-sidebar-company-name'),si=document.getElementById('rw-sidebar-brand-logo');if(a)a.textContent=n;if(sn)sn.textContent=n;if(i){i.textContent=l?'':'ر';i.style.backgroundImage=l?'url('+JSON.stringify(l)+')':'';i.style.backgroundSize=l?'contain':'';i.style.backgroundRepeat=l?'no-repeat':'';i.style.backgroundPosition=l?'center':'';i.setAttribute('data-branded',l?'1':'0')}if(si){if(l)si.src=l;else si.removeAttribute('src')}}window.RW_ApplyCanonicalCompanyBranding=apply;function sync(){try{var c=window.RW_STATE&&window.RW_STATE.app&&window.RW_STATE.app.company;if(c)apply({name:c.name,logo_url:c.logo})}catch(e){}}function wrap(){try{var a=window.RW_Auth;if(!a||typeof a.enterSystem!=='function'||a.enterSystem.__rwCanonicalBrandingWrapped)return;var o=a.enterSystem;a.enterSystem=async function(u){var r=await o.call(this,u);sync();return r};a.enterSystem.__rwCanonicalBrandingWrapped=true}catch(e){}}function ready(){wrap();sync()}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready,{once:true});else ready();setTimeout(function(){wrap();sync()},0)})();</script>"
+              i=s.rfind('</body>'); assert i>=0; s=s[:i]+brand+'\n'+s[i:]
+          module_paths={'pos':'Current/PWA/pos.html','telesales':'Current/PWA/telesales.html','purchases':'Current/PWA/buyer.html','receiving':'Current/PWA/buyer.html','vouchers':'Current/PWA/vouchers.html','picking':'Current/PWA/picker.html','loading':'Current/PWA/loader.html','delivery':'Current/PWA/driver.html','returns':'Current/PWA/Returns.html','unloading':'Current/PWA/unloader.html'}
+          local_script=re.compile(r'<script\b([^>]*?)\bsrc=["\']([^"\']+)["\']([^>]*)>\s*</script>',re.I)
+          local_css=re.compile(r'<link\b([^>]*?)\brel=["\']stylesheet["\']([^>]*?)\bhref=["\']([^"\']+)["\']([^>]*)>',re.I)
+          def inline_assets(html,base):
+              for _ in range(12):
+                  def js(m):
+                      src=m.group(2); q=(base/src).resolve()
+                      if not q.exists() or q.suffix.lower()!='.js': return m.group(0)
+                      return '<script>'+q.read_text(encoding='utf-8')+'</script>'
+                  html2=local_script.sub(js,html)
+                  def css(m):
+                      href=m.group(3); q=(base/href).resolve()
+                      if not q.exists() or q.suffix.lower()!='.css': return m.group(0)
+                      return '<style>'+q.read_text(encoding='utf-8')+'</style>'
+                  html2=local_css.sub(css,html2)
+                  if html2==html: break
+                  html=html2
+              routes={'pos.html':'pos','telesales.html':'telesales','buyer.html':'purchases','vouchers.html':'vouchers','picker.html':'picking','loader.html':'loading','driver.html':'delivery','Returns.html':'returns','unloader.html':'unloading'}
+              for fn,v in routes.items():
+                  html=re.sub(r"(?:window\.)?location\.href\s*=\s*['\"][^'\"]*"+re.escape(fn)+r"['\"]", "parent.RW_ParentRegistry.launch('"+v+"')", html)
+                  html=re.sub(r"(?:window\.)?location\.assign\(\s*['\"][^'\"]*"+re.escape(fn)+r"['\"]\s*\)", "parent.RW_ParentRegistry.launch('"+v+"')", html)
+                  html=html.replace('href="./'+fn+'"','href="#" data-rw-parent-view="'+v+'"')
+                  html=html.replace("href='./"+fn+"'",'href="#" data-rw-parent-view="'+v+'"')
+              bridge="<script>(function(){document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('[data-rw-parent-view]'):null;if(a){e.preventDefault();try{parent.RW_ParentRegistry.launch(a.getAttribute('data-rw-parent-view'))}catch(x){}}},true);try{window.RW_PARENT_CONTEXT=parent.RW_ShellContext;window.RW_PARENT_CLIENT=parent.RW_SUPABASE_CLIENT}catch(e){}})();</script>"
+              if '</body>' in html: html=html.replace('</body>',bridge+'</body>',1)
+              else: html+=bridge
+              html=re.sub(r'<link\b[^>]*rel=["\']manifest["\'][^>]*>','',html,flags=re.I)
+              return html
+          reg={}
+          for view,path in module_paths.items():
+              q=Path(path); assert q.exists(),path
+              reg[view]=base64.b64encode(inline_assets(q.read_text(encoding='utf-8'),q.parent).encode('utf-8')).decode('ascii')
+          reg_json=json.dumps({'version':'1.0','encoding':'base64','modules':reg},ensure_ascii=False,separators=(',',':'))
+          script='<script id="RAWAEA_EMBEDDED_APPS_V2">(function(){\'use strict\';var R='+reg_json+';function dec(b){var bin=atob(b),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new TextDecoder("utf-8").decode(u)}function render(view,box,title,description){var b=R.modules&&R.modules[view];if(!b){safeHTML(box,"<div class=\\"rw-card\\"><h2>"+esc(title||view)+"</h2><p class=\\"rw-muted\\">لا يوجد محتوى مضمن لهذه الوحدة.</p></div>");return}safeHTML(box,"");var f=document.createElement("iframe");f.className="rw-embedded-app-frame";f.title=title||view;f.style.cssText="width:100%;min-height:calc(100vh - 150px);border:1px solid #e5e7eb;border-radius:20px;background:#fff;display:block";box.appendChild(f);f.srcdoc=dec(b);return f}window.RW_EmbeddedApps={version:R.version,render:render,has:function(v){return !!(R.modules&&R.modules[v])}};})();</script>'
+          if 'RAWAEA_EMBEDDED_APPS_V2' in s: s=re.sub(r'<script id="RAWAEA_EMBEDDED_APPS_V2">[\s\S]*?</script>',script,s,count=1)
+          else: i=s.rfind('</body>'); assert i>=0; s=s[:i]+script+'\n'+s[i:]
+          if 'RAWAEA_EMBEDDED_ROUTE_ALIASES_V2' not in s:
+              alias='<script id="RAWAEA_EMBEDDED_ROUTE_ALIASES_V2">(function(){function bind(){var a=window.RW_Views&&window.RW_Views.actions;if(!a||!window.RW_EmbeddedApps)return;[\'pos\',\'telesales\',\'purchases\',\'receiving\',\'vouchers\',\'picking\',\'loading\',\'delivery\',\'returns\',\'unloading\'].forEach(function(v){a[v]=function(){return window.RW_EmbeddedApps.render(v,byId(\'rw-page-container\'),v,\'\')}})}setTimeout(bind,0);setTimeout(bind,100)})();</script>'
+              i=s.rfind('</body>'); assert i>=0; s=s[:i]+alias+'\n'+s[i:]
+          p.write_text(s,encoding='utf-8')
+          forbidden=['./pos.html','./telesales.html','./buyer.html','./vouchers.html','./picker.html','./loader.html','./driver.html','./Returns.html','./unloader.html']
+          for x in forbidden: assert x not in s,x
+          print('TARGET_BYTES='+str(len(s.encode())));print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest());print('MODULES='+','.join(reg.keys()))
+          PY
+          node --check Current/PWA/register-sw.js
+          node --check Current/PWA/sw.js
+      - name: Browser and embedded-module gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
+          cat >/tmp/server.py <<'PY'
+          from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
+          class H(SimpleHTTPRequestHandler):
+              def guess_type(self,path):
+                  if path.rstrip('/').endswith('/New-main'): return 'text/html; charset=utf-8'
+                  return super().guess_type(path)
+          ThreadingHTTPServer(('127.0.0.1',4173),H).serve_forever()
+          PY
+          (cd Current/PWA && python3 /tmp/server.py >/tmp/http.log 2>&1)& pid=$!;trap 'kill "$pid" 2>/dev/null || true' EXIT;sleep 2
+          node <<'NODE'
+          const {chromium}=require(process.cwd()+'/node_modules/playwright');
+          const views=['pos','telesales','purchases','receiving','vouchers','picking','loading','delivery','returns','unloading'];
+          (async()=>{const b=await chromium.launch({headless:true,args:['--no-sandbox']});const p=await b.newPage({serviceWorkers:'block'});const errs=[];await p.route('**/*',async r=>{const u=r.request().url();if(u.endsWith('/register-sw.js')||u.endsWith('/sw.js'))return r.fulfill({status:200,contentType:'application/javascript',body:'/* bypass */'});if(u.includes('cdn.jsdelivr.net/npm/@supabase/'))return r.fulfill({status:200,contentType:'application/javascript',body:'window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),getUser:async()=>({data:{user:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signInWithPassword:async()=>({error:new Error("stub")}),signOut:async()=>({})},from:()=>({select(){return this},eq(){return this},in(){return this},or(){return this},order(){return this},limit(){return this},maybeSingle:async()=>({data:null,error:null}),then:r=>Promise.resolve({data:[],error:null,count:0})})})};'});if(u.includes('chart.js'))return r.fulfill({status:200,contentType:'application/javascript',body:'window.Chart=function(){};'});if(u.includes('sweetalert2'))return r.fulfill({status:200,contentType:'application/javascript',body:'window.Swal={fire:async()=>({}),close(){}};'});if(u.includes('sheetjs'))return r.fulfill({status:200,contentType:'application/javascript',body:'window.XLSX={};'});return r.continue()});p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text());});await p.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(800);const base=await p.evaluate(async()=>{const l=document.querySelector('link[rel="manifest"]');const m=await(await fetch(l.href)).json();return{login:!!document.getElementById('rw-login-form'),loginBrand:!!document.getElementById('rw-login-company-name'),sidebar:!!document.getElementById('rw-sidebar'),nav:!!document.getElementById('rw-sidebar-nav'),auth:!!window.RW_Auth,navObj:!!window.RW_Navigation,embedded:!!window.RW_EmbeddedApps,parent:!!window.RW_ParentRegistry,from:typeof window.supabase?.from==='function',href:l?.getAttribute('href')||'',start:m.start_url,scope:m.scope,display:m.display,dir:m.dir,lang:m.lang,brand:typeof RW_ApplyCanonicalCompanyBranding==='function',wrap:!!(RW_Auth.enterSystem&&RW_Auth.enterSystem.__rwCanonicalBrandingWrapped)}});const menu=await p.evaluate(()=>{RW_STATE.app.currentUser={id:'owner',isOwner:true,permissions:['*'],name:'Owner',role:'owner'};RW_STATE.permissions=['*'];window.RW_Permissions_check=()=>true;RW_Navigation.buildSidebar();return [...document.querySelectorAll('#rw-sidebar-nav [data-view]')].map(x=>x.getAttribute('data-view')).filter(Boolean)});const emb=await p.evaluate(vs=>{const o={};for(const v of vs){try{RW_STATE.app.currentView=v;const f=RW_EmbeddedApps.render(v,document.getElementById('rw-page-container'),v,'');o[v]={ok:!!f,bytes:f?.srcdoc?.length||0};}catch(e){o[v]={ok:false,error:String(e.message||e)}}}return o;},views);console.log('CTO_EMBEDDED_V2='+JSON.stringify({base,menu,emb,errs}));const ok=!errs.length&&base.login&&base.loginBrand&&base.sidebar&&base.nav&&base.auth&&base.navObj&&base.embedded&&base.parent&&base.from&&base.href==='manifest.json'&&base.start==='./New-main'&&base.scope==='./'&&base.display==='standalone'&&base.dir==='rtl'&&base.lang==='ar'&&base.brand&&base.wrap&&menu.length>20&&views.every(v=>emb[v]&&emb[v].ok&&emb[v].bytes>1000);await b.close();if(!ok)process.exit(2)})().catch(e=>{console.error(e.stack||e);process.exit(2)});
+          NODE
+          echo BROWSER_EMBEDDED_V2=PASS
+      - name: Final publish to main, target only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp Current/PWA/New-main /tmp/New-main.final
+          git fetch origin main
+          git checkout -B final-publish origin/main
+          cp /tmp/New-main.final Current/PWA/New-main
+          git add Current/PWA/New-main
+          git diff --cached --check
+          test "$(git diff --cached --name-only | tr '\n' ' ')" = 'Current/PWA/New-main '
+          git config user.name 'RAWAEA CTO Final Closure'
+          git config user.email 'rawaea-cto-final@users.noreply.github.com'
+          git commit -m '[CTO-CLOSED] New-main single-parent embedded legacy modules'
+          git push origin HEAD:main
