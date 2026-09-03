@@ -10,11 +10,6 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-      - name: Final target evidence marker
-        run: echo "FINAL_TARGET_VERIFICATION=Current/PWA/New-main"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
       - name: Static contract gate
         shell: bash
         run: |
@@ -41,9 +36,8 @@ jobs:
           inline=re.findall(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*?)</script>',s,re.I)
           assert len(inline)==1, f'INLINE_SCRIPT_COUNT={len(inline)}'
           Path('/tmp/newmain.js').write_text(inline[0],encoding='utf-8')
-          assert s.count("window.RW_Dashboard=RW_Dashboard;")==1
-          assert s.count("window.RW_Items=RW_Items;")==1
-          print('TARGET_BYTES',len(s.encode()))
+          assert s.count('window.RW_Dashboard=RW_Dashboard;')==1
+          assert s.count('window.RW_Items=RW_Items;')==1
           print('TARGET_SHA256',hashlib.sha256(s.encode()).hexdigest())
           print('GOLD_STATIC_PASS')
           PY
@@ -74,4 +68,3 @@ jobs:
           NODE
           kill "$(cat /tmp/p163pid)" 2>/dev/null || true
           echo DIAMOND_BROWSER_PASS
-# Independent final verification trigger — target is already changed and must not be rewritten.
