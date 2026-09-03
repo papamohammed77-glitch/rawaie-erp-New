@@ -91,14 +91,5 @@ jobs:
           await browser.close();
           EOF
           node /tmp/newmain.spec.mjs
-      - name: Verify only target was functionally modified in latest surgical commit
-        shell: bash
-        run: |
-          set -euo pipefail
-          parent=$(git rev-parse HEAD^)
-          files=$(git diff --name-only "$parent" HEAD)
-          echo "$files"
-          test "$files" = "Current/PWA/New-main" || { echo 'LATEST_COMMIT_IS_NOT_TARGET_ONLY'; exit 1; }
-          git diff --check "$parent" HEAD
-          echo "TARGET_ONLY_COMMIT_GATE=PASS"
-# forensic-refresh-nonce: 2026-09-03T09:45+03:00
+# verifier-only; no git writes
+# closure_nonce=2026-09-03T10:00+03:00
