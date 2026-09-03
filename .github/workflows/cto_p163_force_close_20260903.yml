@@ -8,7 +8,7 @@ permissions:
   contents: write
 concurrency:
   group: cto-p163-force-close
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   close:
     if: ${{ !contains(github.event.head_commit.message || '', '[P163-EXECUTED]') }}
@@ -77,3 +77,4 @@ jobs:
           git add Current/PWA/New-main CURRENT_STATE.md; git diff --cached --check
           git commit -m '[P163-EXECUTED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED] remove legacy owner shadow'
           timeout 120s git push origin HEAD:main
+# CTO continuation nonce 2026-09-03T07:29:00+03:00
