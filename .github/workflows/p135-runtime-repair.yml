@@ -58,7 +58,15 @@ jobs:
           print('TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest())
           print('TARGET_SIZE='+str(len(s)))
           PY
-          node --check <(python3 -c "from pathlib import Path; import re; s=Path('Current/PWA/New-main').read_text(); x=re.findall(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>([\\s\\S]*?)</script>',s,re.I); print(x[0])")
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)
+          assert len(scripts)==1,'INLINE_SCRIPT_COUNT_INVALID'
+          Path('/tmp/new-main-inline.js').write_text(scripts[0],encoding='utf-8')
+          PY
+          node --check /tmp/new-main-inline.js
           node --check Current/PWA/register-sw.js
           node --check Current/PWA/sw.js
           python3 - <<'PY'
