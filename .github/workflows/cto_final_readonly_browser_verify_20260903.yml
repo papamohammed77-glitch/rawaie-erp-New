@@ -21,41 +21,33 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
           npx playwright install chromium >/dev/null 2>&1
-          mkdir -p /tmp/rw/Current/PWA
-          cp Current/PWA/New-main /tmp/rw/Current/PWA/New-main
-          cp Current/PWA/manifest.json /tmp/rw/Current/PWA/manifest.json
-          cat >/tmp/rw/http.py <<'PY'
-          from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
-          import os
-          class H(SimpleHTTPRequestHandler):
-              def guess_type(self,path):
-                  return 'text/html; charset=utf-8' if path.endswith('/New-main') else super().guess_type(path)
-              def log_message(self,*a): pass
-          os.chdir('/tmp/rw'); ThreadingHTTPServer(('127.0.0.1',8123),H).serve_forever()
-          PY
-          python3 /tmp/rw/http.py >/tmp/http.log 2>&1 & echo $! >/tmp/pid
-          trap 'kill $(cat /tmp/pid) 2>/dev/null || true' EXIT
           node <<'NODE'
+          const fs=require('fs');
           const {chromium}=require('playwright');
           (async()=>{
-            const b=await chromium.launch({headless:true,args:['--no-sandbox']}),p=await b.newPage({serviceWorkers:'block'}),pe=[],ce=[];
-            p.on('pageerror',e=>pe.push(String(e.message||e)));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
-            await p.addInitScript(()=>{window.__RESET_CALLS=0});
-            await p.route('**/*',async r=>{const u=r.request().url();
-              if(u.includes('cdn.jsdelivr.net/npm/@supabase/')) return r.fulfill({status:200,contentType:'application/javascript',body:`window.supabase={createClient:()=>({from:()=>({select(){return this},limit(){return this},maybeSingle(){return Promise.resolve({data:{company_name:'الروائع ERP',company_logo:''},error:null})}}),auth:{getSession:async()=>({data:{session:null}}),getUser:async()=>({data:{user:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signInWithPassword:async()=>({error:new Error('stub')}),signOut:async()=>({}),resetPasswordForEmail:async()=>{window.__RESET_CALLS++;return{error:null}}}})};`});
-              if(u.includes('font-awesome')||u.includes('fontawesome')) return r.fulfill({status:200,contentType:'text/css',body:''});
+            const html=fs.readFileSync('Current/PWA/New-main','utf8');
+            const manifest=JSON.parse(fs.readFileSync('Current/PWA/manifest.json','utf8'));
+            if(!html.includes('<html lang="ar" dir="rtl">')) throw new Error('RTL_HTML_MISSING');
+            const b=await chromium.launch({headless:true,args:['--no-sandbox']});
+            const p=await b.newPage({serviceWorkers:'block'}),pe=[],ce=[];
+            p.on('pageerror',e=>pe.push(String(e.message||e)));
+            p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
+            await p.route('**/*',async r=>{
+              const u=r.request().url();
+              if(u.includes('@supabase/')) return r.fulfill({status:200,contentType:'application/javascript',body:`window.supabase={createClient:()=>({from:()=>({select(){return this},limit(){return this},maybeSingle(){return Promise.resolve({data:{company_name:'الروائع ERP',company_logo:''},error:null})}}),auth:{getSession:async()=>({data:{session:null}}),getUser:async()=>({data:{user:null},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signInWithPassword:async()=>({error:new Error('stub')}),signOut:async()=>({}),resetPasswordForEmail:async()=>({error:null})}})};`});
               if(u.includes('chart.js')) return r.fulfill({status:200,contentType:'application/javascript',body:'window.Chart=function(){};'});
               if(u.includes('sweetalert2')) return r.fulfill({status:200,contentType:'application/javascript',body:'window.Swal={fire:async()=>({}),close(){},showLoading(){}};'});
               if(u.includes('xlsx')) return r.fulfill({status:200,contentType:'application/javascript',body:'window.XLSX={};'});
+              if(u.startsWith('http')) return r.fulfill({status:200,contentType:u.endsWith('.css')?'text/css':'application/javascript',body:''});
               return r.continue();
             });
-            await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});
+            await p.setContent(html,{waitUntil:'domcontentloaded',timeout:30000});
             await p.waitForTimeout(1800);
-            const a=await p.evaluate(()=>({login:!!document.querySelector('#rw-login-form'),sidebar:!!document.querySelector('#rw-sidebar'),brand:!!document.querySelector('#rw-login-company-name'),logo:!!document.querySelector('#rw-login-logo, #rw-login-brand-image, .rw-login-logo'),remember:!!document.querySelector('#rw-remember'),forgot:!!document.querySelector('#rw-forgot'),auth:typeof window.RW_Auth==='object',nav:typeof window.RW_Navigation==='object',views:typeof window.RW_Views==='object',shell:typeof window.RW_ShellContext==='object',owner:typeof window.RW_OwnerLicense==='object',byId:typeof window.byId==='function',safeText:typeof window.safeText==='function',manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||'',title:document.querySelector('.rw-login-title')?parseFloat(getComputedStyle(document.querySelector('.rw-login-title')).fontSize):0,logoSize:document.querySelector('.rw-login-logo')?.getBoundingClientRect().width||0,files:document.querySelectorAll('script').length}));
-            const navigable=await p.evaluate(()=>Array.isArray(RW_Navigation?.menuTree)?RW_Navigation.menuTree.filter(x=>x&&x.view).length:0);
-            const valid=pe.length===0&&ce.length===0&&a.login&&a.sidebar&&a.brand&&a.remember&&a.forgot&&a.auth&&a.nav&&a.views&&a.shell&&a.owner&&a.byId&&a.safeText&&a.manifest==='./manifest.json'&&a.title>0&&a.logoSize>0&&navigable>=10;
-            console.log('FINAL_READONLY_BROWSER='+JSON.stringify({a,navigable,pe,ce,resetCalls:await p.evaluate(()=>window.__RESET_CALLS||0)}));
-            await b.close(); if(!valid) process.exit(2);
+            const r=await p.evaluate(()=>({login:!!document.querySelector('#rw-login-form'),sidebar:!!document.querySelector('#rw-sidebar'),brand:!!document.querySelector('#rw-login-company-name'),logo:!!document.querySelector('#rw-login-logo, #rw-login-brand-image, .rw-login-logo'),remember:!!document.querySelector('#rw-remember'),forgot:!!document.querySelector('#rw-forgot'),auth:typeof window.RW_Auth==='object',nav:typeof window.RW_Navigation==='object',views:typeof window.RW_Views==='object',shell:typeof window.RW_ShellContext==='object',owner:typeof window.RW_OwnerLicense==='object',byId:typeof window.byId==='function',safeText:typeof window.safeText==='function',title:document.querySelector('.rw-login-title')?parseFloat(getComputedStyle(document.querySelector('.rw-login-title')).fontSize):0,logoSize:document.querySelector('.rw-login-logo')?.getBoundingClientRect().width||0,menuCount:Array.isArray(window.RW_Navigation?.menuTree)?window.RW_Navigation.menuTree.filter(x=>x&&x.view).length:0,reset:typeof window.RW_Auth?.forgotPassword==='function',manifestHref:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||''}));
+            console.log('FINAL_READONLY_BROWSER='+JSON.stringify({r,manifest:{start_url:manifest.start_url,scope:manifest.scope,dir:manifest.dir,lang:manifest.lang,icons:(manifest.icons||[]).length},pe,ce}));
+            await b.close();
+            const ok=!pe.length&&!ce.length&&r.login&&r.sidebar&&r.brand&&r.logo&&r.remember&&r.forgot&&r.auth&&r.nav&&r.views&&r.shell&&r.owner&&r.byId&&r.safeText&&r.reset&&manifest.start_url==='./New-main'&&manifest.scope==='./'&&manifest.dir==='rtl'&&manifest.lang==='ar'&&manifest.icons.length>=3&&r.menuCount>=10;
+            if(!ok) process.exit(2);
           })().catch(e=>{console.error(e.stack||e);process.exit(2)})
           NODE
           echo FINAL_READONLY_BROWSER_GOLD=PASS
