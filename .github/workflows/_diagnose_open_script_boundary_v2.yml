@@ -1,0 +1,53 @@
+name: Diagnose Main1 open-script boundary v2
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Boundary matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess, tempfile
+          CUR=Path('Current/PWA/main')
+          parts=[(CUR/f'main{i}.md').read_text(encoding='utf-8-sig') for i in range(1,12)]
+          op=re.compile(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>',re.I)
+          m=list(op.finditer(parts[0]))
+          assert m, 'no inline opener'
+          p1=parts[0][m[-1].start():]
+          p1=re.sub(r'<!-- RAWAEA_P1_FORENSIC_CLOSED:v18 -->\s*$','',p1,flags=re.I)
+          frags=[re.sub(r'</body>\\s*|</html>\\s*','',x,flags=re.I).strip() for x in parts[1:]]
+          print('COUNTS')
+          for i,p in enumerate(parts,1): print(i,'IIFE_OPEN',len(re.findall(r'\\(function\\s*\\(',p)),'IIFE_CLOSE',len(re.findall(r'\\}\\)\\(\\);',p)),'EOF',p[-80:].replace('\\n',' '))
+          def test(name,body):
+              s=body+'\\n\\n</script>\\n</body>\\n</html>\\n'
+              f=Path(tempfile.gettempdir())/(name+'.js'); f.write_text(s,encoding='utf-8')
+              r=subprocess.run(['node','--check',str(f)],capture_output=True,text=True)
+              print('CANDIDATE',name,'PASS' if r.returncode==0 else 'FAIL')
+              if r.returncode: print(r.stderr.splitlines()[-8:])
+              return r.returncode==0
+          base=p1+'\\n\\n'+'\\n\\n'.join(frags)
+          candidates={
+            'base':base,
+            'close_after_main1':p1+'\\n})();\\n\\n'+'\\n\\n'.join(frags),
+            'close_before_main11':p1+'\\n\\n'+'\\n\\n'.join(frags[:9])+'\\n})();\\n\\n'+'\\n\\n'.join(frags[9:]),
+            'close_end':base+'\\n})();'
+          }
+          passes=[]
+          for n,b in candidates.items():
+              if test(n,b): passes.append(n)
+          if not passes: raise SystemExit('NO_BOUNDARY_CANDIDATE_PASSES')
+          print('PASSING_CANDIDATES',passes)
+          PY
