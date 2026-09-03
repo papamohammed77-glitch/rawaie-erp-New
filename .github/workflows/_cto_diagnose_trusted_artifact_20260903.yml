@@ -1,0 +1,68 @@
+name: CTO diagnose trusted New-main artifact
+on:
+  push:
+    paths:
+      - '.github/workflows/_cto_diagnose_trusted_artifact_20260903.yml'
+      - 'CURRENT_STATE.md'
+permissions:
+  contents: write
+concurrency:
+  group: cto-diagnose-newmain-20260903
+  cancel-in-progress: false
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: main, fetch-depth: 0}
+      - name: Diagnose trusted artifact requirements
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show 339aa1829b44e9f8babce39f69a9bb66f0de5be6:Current/PWA/New-main > /tmp/trusted-new-main.html
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,re
+          s=Path('/tmp/trusted-new-main.html').read_text(encoding='utf-8')
+          req=[
+            r"window\.RW_PWA_RECONSTRUCTION_VERSION\s*=\s*['\"]MAIN2-COMPLETE-SURGICAL-v1['\"]\s*;",
+            r"// MAIN2_GOVERNED_CLOSED:v1",
+            r"/\* RAWAEA MAIN2 AUTHORITATIVE MODULE \*/",
+            r"RAWAEA 122 DIAMOND CONTRACT CLOSURE v1",
+            r"window\.RW_Auth\s*=",
+            r"window\.RW_Navigation\s*=",
+            r"window\.RW_Views\s*=",
+            r"window\.RW_ShellContext\s*=",
+            r"window\.RW_OwnerLicense\s*=\s*RW_OwnerLicense\s*;",
+            r"MAIN3",
+            r"MAIN11",
+            r"function main1Delegation\(",
+            r"\bvar actions\s*=",
+            r"post_stock_movement",
+            r"get_trial_balance",
+            r"get_profit_loss",
+            r"get_balance_sheet",
+            r"edgeCall",
+          ]
+          lines=['# CTO Trusted Artifact Contract Diagnosis — 2026-09-03','',f'- Bytes: {len(s.encode())}',f'- SHA-256: `{hashlib.sha256(s.encode()).hexdigest()}`','']
+          for x in req:
+            ok=bool(re.search(x,s))
+            lines.append(f'- {"PASS" if ok else "MISS"}: `{x}`')
+          lines += ['',f'- Diamond 122 count: {s.count("RAWAEA 122 DIAMOND CONTRACT CLOSURE v1")}',f'- MAIN2 governed count: {s.count("// MAIN2_GOVERNED_CLOSED:v1")}',f'- MAIN11 count: {s.count("MAIN11")}',f'- Script tags: {s.count("<script")}',f'- Script end tags: {s.count("</script>")}']
+          Path('/tmp/trusted-diagnosis.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
+          print('\n'.join(lines))
+          PY
+      - name: Persist diagnosis artifact
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f /tmp/trusted-diagnosis.md ]; then printf '%s\n' '# Diagnosis did not execute' > /tmp/trusted-diagnosis.md; fi
+          mkdir -p doc/Draft/Reprots/CTO
+          cp /tmp/trusted-diagnosis.md doc/Draft/Reprots/CTO/2026-09-03_trusted_newmain_contract_diagnosis.md
+          git config user.name 'RAWAEA CTO Diagnosis'; git config user.email 'rawaea-cto-diagnosis@users.noreply.github.com'
+          git add doc/Draft/Reprots/CTO/2026-09-03_trusted_newmain_contract_diagnosis.md .github/workflows/_cto_diagnose_trusted_artifact_20260903.yml
+          git diff --cached --check
+          git commit -m '[CTO] Persist trusted New-main contract diagnosis' || true
+          git push origin HEAD:main
