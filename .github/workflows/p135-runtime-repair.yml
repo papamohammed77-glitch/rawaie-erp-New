@@ -46,6 +46,9 @@ jobs:
           decl="function safeHTML(el,html){if(el)el.innerHTML=html}"; bridge='window.safeHTML=safeHTML;'
           assert s.count(decl)==1,'SAFEHTML_DECL_COUNT'
           if bridge not in s: s=s.replace(decl,decl+'\n'+bridge,1)
+          safe_decl="function safeText(el,text){if(el)el.textContent=text==null?'':String(text)}"; safe_bridge='window.safeText=safeText;'
+          assert s.count(safe_decl)==1,'SAFETEXT_DECL_COUNT'
+          if safe_bridge not in s: s=s.replace(safe_decl,safe_decl+'\n'+safe_bridge,1)
           assert s.count('window.byId=byId;')==1,'BYID_BRIDGE_NOT_EXACTLY_ONE'
           assert s.count('window.safeText=safeText;')==1,'SAFETEXT_BRIDGE_NOT_EXACTLY_ONE'
           bad='var e=email();'
