@@ -19,19 +19,19 @@ The historical regression/reconstruction incidents, verifier failures, competing
 ```text
 REPOSITORY          = papamohammed77-glitch/rawaie-erp-New
 BRANCH              = main
-LATEST DOCUMENTATION COMMIT BEFORE THIS STATE UPDATE = 5887566c091fe978345125422cfe9d1239000569
+CURRENT HEAD        = 7cff6ce39c5bab347fb92638ddd029adf12cad36
 TARGET              = Current/PWA/New-main
 CURRENT TARGET BLOB = 22f4ee1a666141be62127159337beffb05e8b146
 ```
 
-The most recent target-affecting commit inspected before this state update was:
+The current HEAD is documentation/continuity work following the latest target-affecting line. The most recent target-affecting commit inspected remains:
 
 ```text
 282cce040c51b2f4f926a8ca9227ef89ee742713
 Update New-main
 ```
 
-Its direct target diff changed only the embedded timestamp comment from `18:00 UTC` to `22:00 UTC`; it did not introduce another functional rewrite.
+Its direct target diff changed only the embedded timestamp comment from `18:00 UTC` to `22:00 UTC`.
 
 A materially earlier post-Report-33 target commit was:
 
@@ -52,11 +52,9 @@ That commit DID modify the application target, including Login/Logo DOM surface 
 <link rel="manifest" href="./manifest.json">
 ```
 
-Its current opening surface includes the Login layout and the current dependency stack. It is not a three-line fragment or an automatically reconstructed placeholder.
+Its current opening surface includes the Login layout and current dependencies. It is not a three-line fragment or an automatically reconstructed placeholder.
 
 ## CURRENT PWA MANIFEST RECONCILIATION
-
-The older discrepancy recorded in previous sections is now obsolete.
 
 Current target:
 ```text
@@ -85,16 +83,19 @@ OLD MANIFEST DISCREPANCY = RESOLVED IN CURRENT SOURCE
 
 Do not reopen this issue unless new direct evidence appears.
 
-## OWNER / LICENSE CONTRACT — VERIFIED
+## OWNER / LICENSE CONTRACT — VERIFIED AGAIN 2026-09-03
 
-Direct Supabase evidence already obtained in the forensic continuity work remains the authoritative production contract:
+Fresh direct Supabase verification was performed against project `fiilmooggumokxanwiyx` for `owner@alrawae.com`.
+
+Verified result:
 
 ```text
 public.users.permissions = ["*"]
-Auth isOwner            = true
-Auth permissions        = ["*"]
-owner_profile linkage  = valid through public.users.auth_id
-license_status          = active
+public wildcard           = true
+Auth isOwner              = true
+Auth permissions         = ["*"]
+owner_profile linkage    = valid
+license_status           = active
 ```
 
 The correct semantic contract is:
@@ -115,6 +116,9 @@ ACTIVE license
 
 Do not replace this with role-permission enumeration.
 
+### Investigation note
+The first verification SQL used an incompatible `text[]` operator against a `jsonb` permissions value and failed. The query was corrected and the direct verification succeeded. This is recorded as an investigator/query-type error, not a production defect.
+
 ## REPORT 33 RUNTIME INCIDENT — RECLASSIFIED
 
 Report 33 recorded:
@@ -131,13 +135,13 @@ STATIC = PASS
 CHROMIUM = FAIL
 ```
 
-However, the target changed after Report 33. Therefore both incidents are now classified as:
+However, the target changed after Report 33. Therefore both incidents remain:
 
 ```text
 CARRIED-FORWARD INCIDENT LEADS
 ```
 
-They must be traced against the current `New-main` source before any patch is attempted. Do not blindly repeat the historical repair.
+They must be traced against the current `New-main` source before any patch is attempted.
 
 ## HISTORICAL UX CONTRACT
 
@@ -157,13 +161,7 @@ forgot-password
 password visibility
 ```
 
-This is historical UX evidence and a parity reference, not authorization for blind copy/replace.
-
-`Original/PWA/main/` contains all eleven historical contract fragments:
-
-```text
-main1.md ... main11.md
-```
+`Original/PWA/main/` contains all eleven historical contract fragments `main1.md ... main11.md`.
 
 ## CURRENT PRODUCT COMPLETION OBJECTIVE
 
@@ -203,152 +201,102 @@ Sales management
 
 The architecture must remain ready for the remaining tabs without creating islands.
 
-## REQUIRED OFFLINE CTO HANDOFF
+## OFFLINE SUCCESSOR HANDOFF — V6
 
-The new CTO has no external access. The mandatory handoff packet is therefore:
+The successor CTO has no external access. The canonical offline directive is now:
 
-### A — CURRENT TARGET
 ```text
-Current/PWA/New-main (FULL CONTENT)
+doc/Draft/medhat/MASTER_CTO_OFFLINE_CONTINUITY_GOLD_DIAMOND_V6.md
 ```
 
-### B — CONTINUITY / EVIDENCE
+Commit:
 ```text
-CURRENT_STATE.md
-Report 32
-Report 33
-Report 34
-Latest direct runtime logs / screenshots for open incidents
-MASTER_CTO_OFFLINE_CONTINUITY_GOLD_DIAMOND_V5.md
+1ba30f011d1d79b6430d7e190a3e8ba09cdf16f9
 ```
 
-### C — ORIGINAL MAIN CONTRACTS — ALL 11
+V6 strengthens V5 with:
+
 ```text
-Original/PWA/main/main1.md
-Original/PWA/main/main2.md
-Original/PWA/main/main3.md
-Original/PWA/main/main4.md
-Original/PWA/main/main5.md
-Original/PWA/main/main6.md
-Original/PWA/main/main7.md
-Original/PWA/main/main8.md
-Original/PWA/main/main9.md
-Original/PWA/main/main10.md
-Original/PWA/main/main11.md
+packet receipt ledger
+no-analysis-before-complete-packet gate
+offline evidence hierarchy
+current/history/conflict/unknown classification
+exact target-only application law
+central-core/no-islands rules
+Login/Company/Logo contract
+Master Sidebar contract
+Dashboard contract
+Sales contract
+full-file replacement / exact-patch output discipline
+verification pyramid
+Gold / Diamond gates
+successor handoff protocol
 ```
 
-### D — ORIGINAL PWA SUPPORT CONTRACTS
+V5 remains preserved unchanged.
+
+## REPORT 35
+
+Created and preserved:
+
 ```text
-Original/PWA/main.html
-Original/PWA/core.js
-Original/PWA/app.html
-Original/PWA/index.html
-Original/PWA/manifest.json
-Original/PWA/register-sw.js
-Original/PWA/schema-validator.js
+doc/Draft/Reprots/تقرير35.md
 ```
 
-### E — BUSINESS MODULES
-Send the complete contents of:
+Commit:
 ```text
-Original/PWA/sales/
+7cff6ce39c5bab347fb92638ddd029adf12cad36
+```
+
+Report 35 records:
+
+```text
+latest Git continuity audit
+current target identity
+Post-Report-33 target drift
+fresh Owner/License verification
+V5 review
+CTO EXECUTION COMMAND review
+historical UX findings
+investigation query error
+optimized five-file offline handoff
+creation of V6
+honest open-work state
+```
+
+## OPTIMIZED FIVE-FILE OFFLINE PACKET
+
+For the successor with a 4–5 file limit, use these five logical attachments:
+
+```text
+1. Current/PWA/New-main — FULL CONTENT
+2. Original/PWA/main.html — FULL CONTENT
+3. Original/PWA/core.js — FULL CONTENT
+4. One concatenated text pack containing Original/PWA/main/main1.md ... main11.md
+5. One concatenated text pack containing every complete file under Original/PWA/sales/
+```
+
+For each concatenated pack preserve exact source path headers.
+
+Future domain packets:
+
+```text
 Original/PWA/purchasing/
 Original/PWA/delivery/
 Original/PWA/office/
 ```
 
-Optional only when relevant:
-```text
-Original/PWA/_headers
-Original/PWA/icon-512.png
-```
+## DO-NOT-REOPEN ITEMS
 
-## BATCH PROTOCOL FOR OFFLINE CTO
-
-Because these files are large, send in labeled batches:
+Unless new direct evidence appears:
 
 ```text
-PART 1/N
-PART 2/N
-...
-PART N/N
-```
-
-The successor CTO must maintain:
-
-```text
-RECEIVED FILES
-MISSING FILES
-WAITING FOR REMAINING PACKET
-```
-
-No premature reconstruction or patching before the required packet for the active scope is complete.
-
-## MASTER SUCCESSOR PROMPT
-
-Created and persisted:
-
-```text
-doc/Draft/medhat/MASTER_CTO_OFFLINE_CONTINUITY_GOLD_DIAMOND_V5.md
-```
-
-Commit:
-```text
-0c67842b003e6b892ae460791c828e70b9134c11
-```
-
-It explicitly governs:
-
-```text
-continuity recovery
-forensic reconciliation
-anti-guessing
-current-vs-historical separation
-single application target
-central core compatibility
-owner wildcard semantics
-login parity
-company/logo contract
-master sidebar
-dashboard
-sales
-no-islands architecture
-full-function validation
-UX completeness
-Gold/Diamond acceptance
-offline evidence discipline
-handoff packet
-```
-
-## REPORT 34
-
-Created and persisted:
-
-```text
-doc/Draft/Reprots/تقرير34.md
-```
-
-Commit:
-```text
-5887566c091fe978345125422cfe9d1239000569
-```
-
-Report 34 records the forensic reconciliation, the post-Report-33 target drift, the current manifest resolution, Owner wildcard contract, offline handoff packet, and the creation of V5.
-
-## GOVERNANCE / SAFETY
-
-```text
-ONE APPLICATION TARGET = Current/PWA/New-main
-NO BLIND RECONSTRUCTION
-NO COMPETING APPLICATION WRITER
-READ-ONLY VERIFICATION PREFERRED
-NO PRODUCTION BUSINESS-DATA WRITES
-RLS MUST NOT BE DISABLED
-UNKNOWN != BUG
-UNKNOWN != REMOVE
-REPORT != TRUTH
-TRIGGER != SUCCESS
-STATIC PASS != RUNTIME PASS
+Old manifest discrepancy
+Historical Report-33 target hash as current
+Owner role enumeration as owner proof
+Historical safeText repair without current trace
+Historical AUTH_ID repair without current trace
+Historical Gold/Diamond labels
 ```
 
 ## CURRENT OPEN WORK
@@ -375,8 +323,8 @@ P1  Fresh Diamond gate
 CURRENT TARGET                 = 22f4ee1a666141be62127159337beffb05e8b146
 TARGET TYPE                    = COMPLETE HTML ARTIFACT
 MANIFEST                      = CURRENT / CONSISTENT
-OWNER WILDCARD                = PROVEN
-OWNER LICENSE                = ACTIVE / PROVEN
+OWNER WILDCARD                = PROVEN AGAIN
+OWNER LICENSE                = ACTIVE / PROVEN AGAIN
 REPORT 33 TARGET              = HISTORICAL, NOT CURRENT
 SAFEText CURRENT STATUS       = NEEDS RE-AUDIT
 AUTH_ID CURRENT STATUS        = NEEDS RE-AUDIT
@@ -393,22 +341,19 @@ CURRENT 100% CLOSURE          = NOT CLAIMED
 
 ## NEXT AUTHORIZED ACTION
 
-The successor CTO must start from this reconciled state, then read the complete supplied New-main and complete Original/reference packet before modifying the application.
-
-First actual engineering action after handoff:
+The successor CTO must start from this reconciled state, receive and fully read the optimized five-file packet, then execute:
 
 ```text
 AUDIT CURRENT TARGET
 → TRACE safeText
 → TRACE AUTH_ID
 → VERIFY THEY STILL EXIST AS DEFECTS
-→ PATCH ONLY PROVEN DEFECTS
-→ VERIFY
-→ LOGIN/COMPANY
-→ SIDEBAR
+→ CLOSE OR PATCH ONLY WHEN PROVEN
+→ LOGIN / COMPANY / LOGO
+→ MASTER SIDEBAR
 → DASHBOARD
 → SALES
-→ INTEGRATION
+→ NO-ISLANDS
 → REGRESSION
 → GOLD
 → DIAMOND
