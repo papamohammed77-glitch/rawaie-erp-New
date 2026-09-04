@@ -24,7 +24,7 @@ REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
 CANONICAL TARGET = Current/PWA/New-main
 
-CURRENT REPOSITORY HEAD = 0c1b719655f685dbcf5509624bf7cf55a0e1f40b
+CURRENT REPOSITORY HEAD = 33f2d9628a4d614d30635c344ab404198a26ff2a
 
 LATEST TARGET-AFFECTING COMMIT = 282cce040c51b2f4f926a8ca9227ef89ee742713
 CURRENT TARGET BLOB = 22f4ee1a666141be62127159337beffb05e8b146
@@ -51,21 +51,34 @@ e7c58332cc1dc5473852ee075066961712c38520
 0c1b719655f685dbcf5509624bf7cf55a0e1f40b
 [CTO] Add Report 45 — forensic reconciliation and V8 successor onboarding
 
+f95ae5dc55cd9beec81ce9573eb29cd4a532d7ba
+[CTO] Update CURRENT_STATE after Report45 and RAW-only Successor CTO V8
+
+80839143d836a926bd7c6459a6c7beb880236b6c
+[CTO] Add V9 surgical patch successor execution directive
+
+33f2d9628a4d614d30635c344ab404198a26ff2a
+[CTO] Add Report 46 — forensic recovery and surgical patch successor V9
+
 THIS CURRENT_STATE UPDATE
 → documentation/state synchronization only
 ```
 
-A direct compare between `856c886...` and `4a85e...` showed only:
+### Target chronology finding
+
+A direct compare between:
 
 ```text
-CURRENT_STATE.md
-تقرير44.md
-MASTER_CTO_RAW_ONLY_SUCCESSOR_V7.md
+282cce040c51b2f4f926a8ca9227ef89ee742713
 ```
 
-No `Current/PWA/New-main` mutation was present in those commits.
+and the current documentation head:
 
-The V8 and Report45 commits are documentation-only.
+```text
+33f2d9628a4d614d30635c344ab404198a26ff2a
+```
+
+showed the post-checkpoint commits are documentation / memory / directive / report updates and do not include a `Current/PWA/New-main` mutation.
 
 Therefore:
 
@@ -73,20 +86,23 @@ Therefore:
 NO VERIFIED TARGET-AFFECTING CHANGE HAS BEEN FOUND AFTER 282cce...
 ```
 
-Do not confuse a newer documentation HEAD with a changed application target.
+Do not confuse the latest repository HEAD with a changed application target.
 
 ---
 
 # 2. LATEST FORENSIC RECORD
 
 ```text
-REPORT = doc/Draft/Reprots/تقرير45.md
-COMMIT = 0c1b719655f685dbcf5509624bf7cf55a0e1f40b
+REPORT = doc/Draft/Reprots/تقرير46.md
+COMMIT = 33f2d9628a4d614d30635c344ab404198a26ff2a
 ```
 
-Previous reports remain preserved and must not be deleted:
+Previous reports remain preserved and must not be deleted.
+
+Latest preserved sequence:
 
 ```text
+تقرير45.md
 تقرير44.md
 تقرير43.md
 تقرير42.md
@@ -96,46 +112,45 @@ Previous reports remain preserved and must not be deleted:
 تقرير38.md
 ```
 
-Report45 is the latest forensic reconciliation at this station.
+Report46 is the latest forensic recovery + surgical-patch operating station.
 
 ---
 
 # 3. LATEST SUCCESSOR CTO DIRECTIVE
 
 ```text
-FILE = doc/Draft/medhat/MASTER_CTO_RAW_ONLY_SUCCESSOR_V8_FINAL.md
-COMMIT = e7c58332cc1dc5473852ee075066961712c38520
+FILE = doc/Draft/medhat/MASTER_CTO_SURGICAL_PATCH_SUCCESSOR_V9.md
+COMMIT = 80839143d836a926bd7c6459a6c7beb880236b6c
 ```
 
 Purpose:
 
 ```text
-RAW-only capability ceiling
-+
-Anti-hallucination behavior control
-+
-Mandatory first boot
-+
-EOF / partial-read protection
-+
-Commit-snapshot discipline
-+
-No-repair-loop rule
-+
-Small Closure Units
-+
-Behavioral brakes
-+
-Surgical patch law
-+
-Exact report/handoff contract
+Forensic continuity
+Evidence-first execution
+Exact Closure Unit control
+Exact Patch Window control
+Minimum safe delta
+No whole-file rewrite
+No collateral cleanup
+Pre/post forensic diff
+Test + rollback gate
+Runtime/deployment separation
+Exact handoff
 ```
 
-V8 supersedes V7 as the latest combined RAW-only operating layer while preserving the earlier contracts.
+V9 is the latest surgical execution layer and must be used together with the earlier continuity and RAW-only directives.
 
 ---
 
 # 4. IMPORTANT SUPPORTING DIRECTIVES
+
+### RAW-only V8
+
+```text
+= doc/Draft/medhat/MASTER_CTO_RAW_ONLY_SUCCESSOR_V8_FINAL.md
+COMMIT = e7c58332cc1dc5473852ee075066961712c38520
+```
 
 ### RAW-only V7
 
@@ -151,7 +166,7 @@ COMMIT = 88c9b3df9e39e0ef26e24e216f04bc424444b4ac
 COMMIT = 76951a06a3034bc9cf682f5acb74cab79d85315d
 ```
 
-### Current Company/Brand closure V6
+### Company / Brand closure V6
 
 ```text
 = doc/Draft/medhat/MASTER_CTO_NEWM_LIMITED_ASSISTANT_TASK_COMPANY_IDENTITY_V6.md
@@ -175,9 +190,9 @@ COMMIT = 98877acdd1a61bcabb7fb934c13f277e7daaf96f
 
 # 5. MASTER RECOVERY DIRECTIVE — PRESERVED CONTEXT
 
-The historical master recovery directive was read to EOF in the continuity reconstruction.
+The historical master recovery directive was read to EOF in continuity reconstruction.
 
-Its controlling principles remain:
+Controlling principles:
 
 ```text
 Production evidence > reports > memory
@@ -217,13 +232,13 @@ Van Sale = VAN → Customer
 Unloading = VAN → MAIN
 ```
 
-These are preserved architectural contracts. They are not a license for the current limited successor to reopen Inventory without a direct blocking dependency.
+These remain preserved architecture and are not an authorization to reopen Inventory unless a direct blocking dependency is proven.
 
 ---
 
 # 7. OWNER / LICENSE CONTRACT — DO NOT CORRUPT
 
-Preserved direct Production evidence establishes:
+Preserved direct evidence establishes:
 
 ```text
 public.users.permissions = ["*"]
@@ -260,7 +275,7 @@ In RAW-only mode this is preserved evidence, not a fresh live verification.
 
 # 8. CURRENT TARGET EVIDENCE
 
-Direct source inspection of `Current/PWA/New-main` confirmed that it is the canonical PWA artifact and contains current Login/Shell identity surfaces, including:
+Direct source inspection of `Current/PWA/New-main` confirms it is the canonical PWA artifact and contains Login/Shell identity surfaces including:
 
 ```text
 RAWAEA ERP ENTERPRISE
@@ -274,7 +289,7 @@ rw-sidebar-company-subtitle
 rw-header-profile
 ```
 
-Known historical/current visual differences previously established:
+Known historical/current visual differences:
 
 ```text
 Current login title = 58px
@@ -283,7 +298,9 @@ Current logo        = 88×88
 Historical logo     = 120×120
 ```
 
-These differences are not automatically regressions.
+These are not automatically regressions.
+
+The target source also contains historical markers such as P163/PWA GOLD strings; these are not accepted as independent runtime proof.
 
 ---
 
@@ -299,76 +316,82 @@ ASSISTANT 5 = INTEGRATION / REGRESSION / GOLD READINESS
 
 The chain is sequential.
 
-The successor must not silently expand its Closure Unit.
+No successor may silently expand its Closure Unit.
 
 ---
 
-# 10. CURRENT NEXT CLOSURE
+# 10. CURRENT NEXT OPERATING MODE
 
-The next limited assistant starts with:
+The project is now prepared for:
 
 ```text
-BOOT / FORENSIC QUALIFICATION
-→
-COMPANY / BRAND IDENTITY PARITY
+SURGICAL PATCH EXECUTION
 ```
 
-Comparison:
+The successor must begin every task with:
 
 ```text
-Current/PWA/New-main
-↕
-Original/PWA/main/main1.md
+BOOT / RECONCILE
+→ READ TO EOF
+→ REALITY MATRIX
+→ PROVE ROOT CAUSE
+→ DEFINE PATCH WINDOW
+→ SELF-AUDIT
+→ PATCH / NO PATCH
+→ FORENSIC DIFF
+→ TEST
+→ ROLLBACK CHECK
+→ RUNTIME / DEPLOYMENT GATE
+→ REPORT
+→ HANDOFF
 ```
 
-Identity scope only:
+The active Product Closure Unit remains the one explicitly assigned by the user / successor directive. No new unit is opened merely because a historical issue exists.
+
+---
+
+# 11. SURGICAL PATCH RULES
+
+Before writing, the successor must identify:
 
 ```text
-Company name
-Logo
-Brand badge
-Company description
-Login brand identity
-Login → Shell identity continuity
-Sidebar branding
-Header/profile identity where directly relevant
-Static vs dynamic branding source
-Responsive identity behavior
+TARGET FILE
+TARGET FUNCTION / BLOCK / SELECTOR
+TARGET BEHAVIOR
+ROOT CAUSE
+PRESERVED BEHAVIOR
+PATCH WINDOW
+EXPECTED DIFF
+ROLLBACK SOURCE
 ```
 
-Out of scope unless a proven blocking dependency exists:
+Allowed change scope expands only when evidence requires it:
 
 ```text
-Login authentication
-Remember-me
-Forgot-password
-Password logic
-License
-Owner authorization
-Permissions
-Sidebar navigation
-CRUD
-Users
-Roles
-Customers
-Suppliers
-Branches
-Dashboard business logic
-Sales
-Warehouse
-Inventory
-Accounting
-Edge Functions
-RPCs
-Supabase schema
-Production business data
+single expression
+→ small local block
+→ whole function
+→ whole section
+```
+
+Never perform:
+
+```text
+whole-file rewrite
+whole-source reformat
+unrelated cleanup
+library version changes
+unrelated renaming
+architectural refactor
+wholesale Original copy
+parallel Current file
 ```
 
 ---
 
-# 11. RAW-ONLY EVIDENCE MODEL
+# 12. EVIDENCE CLASSIFICATION
 
-Allowed evidence states:
+Use only:
 
 ```text
 CONFIRMED
@@ -379,16 +402,13 @@ CONFLICT
 UNKNOWN
 ```
 
-Never promote:
+Never use absence language from partial visibility:
 
 ```text
-REPORTED → CONFIRMED
-HISTORICAL → CURRENT
-INFERRED → FACT
-UNKNOWN → FALSE
+NOT SEEN ≠ NOT PRESENT
 ```
 
-Production states:
+Deployment states must remain distinct:
 
 ```text
 THEORETICAL
@@ -399,141 +419,90 @@ PRODUCTION RUNTIME VERIFIED
 100% CLOSED
 ```
 
-Do not confuse them.
+---
+
+# 13. REPORTING CONTRACT
+
+Every substantive Patch or No-Patch decision must create a new report under:
+
+```text
+doc/Draft/Reprots/
+```
+
+and preserve all historical reports.
+
+Minimum report contents:
+
+```text
+Mission
+Starting checkpoint
+Sources actually opened
+EOF status
+Git chronology
+Reality Matrix
+Closure Unit
+Root cause
+Patch Window
+Exact patch
+Files changed
+Before/After evidence
+Tests
+Rollback
+Runtime status
+Deployment status
+Investigator errors
+Tool limitations
+Remaining UNKNOWN
+Decision
+Handoff
+Self-Audit
+```
 
 ---
 
-# 12. REQUIRED RAW BOOT PACK
-
-Use the following Raw URLs before acting. If the user supplies a newer Raw URL, the newer source wins.
+# 14. GOLD / DIAMOND STATUS
 
 ```text
-CURRENT_STATE
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/CURRENT_STATE.md
-
-LATEST FORENSIC REPORT
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/doc/Draft/Reprots/%D8%AA%D9%82%D8%B1%D9%8A%D8%B145.md
-
-RAW-ONLY SUCCESSOR V8
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/doc/Draft/medhat/MASTER_CTO_RAW_ONLY_SUCCESSOR_V8_FINAL.md
-
-RAW-ONLY SUCCESSOR V7
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/doc/Draft/medhat/MASTER_CTO_RAW_ONLY_SUCCESSOR_V7.md
-
-UNIFIED SUCCESSOR V6
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/doc/Draft/medhat/MASTER_CTO_NEWM_SUCCESSOR_CHAIN_UNIFIED_V6.md
-
-COMPANY / BRAND V6
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/doc/Draft/medhat/MASTER_CTO_NEWM_LIMITED_ASSISTANT_TASK_COMPANY_IDENTITY_V6.md
-
-CTO EXECUTION COMMAND
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/doc/Draft/medhat/CTO%20EXECUTION%20COMMAND.md
-
-CURRENT TARGET
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/Current/PWA/New-main
-
-HISTORICAL MAIN1 CONTRACT
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/Original/PWA/main/main1.md
-
-TARGET AT LAST VERIFIED TARGET-AFFECTING COMMIT
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/282cce040c51b2f4f926a8ca9227ef89ee742713/Current/PWA/New-main
-
-CURRENT_STATE AT CURRENT VERIFIED DOCUMENTATION HEAD
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/0c1b719655f685dbcf5509624bf7cf55a0e1f40b/CURRENT_STATE.md
-```
-
-The master recovery directive may exist as a supplied conversation artifact rather than a repository Raw file. Do not claim a Raw URL for it unless one is actually supplied.
-
----
-
-# 13. MANDATORY FIRST-BOOT BEHAVIOR FOR THE NEXT SUCCESSOR
-
-```text
-READ CURRENT_STATE TO EOF
-↓
-READ LATEST REPORT TO EOF
-↓
-READ LATEST SUCCESSOR DIRECTIVE TO EOF
-↓
-RE-CHECK CURRENT TARGET CHECKPOINT
-↓
-READ TARGET
-↓
-READ HISTORICAL BASELINE FOR ACTIVE UNIT
-↓
-BUILD REALITY MATRIX
-↓
-ONLY THEN DECIDE PATCH / NO PATCH
-```
-
-If EOF cannot be established:
-
-```text
-UNKNOWN
-```
-
-Do not convert partial visibility into absence.
-
----
-
-# 14. LATEST FORENSIC STATION RESULT
-
-At the current station:
-
-```text
-New-main target changed in this documentation cycle = NO
-V8 documentation added = YES
-Report45 added = YES
-CURRENT_STATE synchronization = YES
-```
-
-No Login, License, Owner, Navigation, Inventory, Accounting, or backend repair was reopened in this station.
-
----
-
-# 15. GOLD / DIAMOND STATUS
-
-```text
-FRESH GOLD PROOF = NOT ESTABLISHED
-FRESH DIAMOND PROOF = NOT ESTABLISHED
+FRESH GOLD = NOT PROVEN
+FRESH DIAMOND = NOT PROVEN
 WHOLE-PROJECT 100% = NOT PROVEN
 ```
 
-Any historical marker inside the source is not sufficient for fresh acceptance.
+Historical markers are not fresh acceptance evidence.
 
 ---
 
-# 16. FINAL DO-NOT-REPEAT
+# 15. LATEST FORENSIC ERRORS / DO-NOT-REPEAT
 
 ```text
 Do not start from zero.
-Do not trust memory as truth.
 Do not trust reports as current truth.
-Do not use partial read to claim absence.
-Do not invent schema fields.
-Do not turn owner ["*"] into enumerated permissions.
+Do not trust memory as current truth.
+Do not use partial reads to claim absence.
+Do not treat documentation HEAD as Target change.
+Do not treat Git as deployment proof.
+Do not treat static source as runtime proof.
+Do not turn Owner ["*"] into enumerated permissions.
 Do not reopen closed units without new contradictory evidence.
 Do not copy Original wholesale.
-Do not treat Current/Original differences as automatic regressions.
-Do not treat Git as deployment proof.
-Do not treat static verification as runtime verification.
 Do not create parallel Current versions.
-Do not create a new business core in PWA.
-Do not expand the active Closure Unit.
+Do not create new business authority inside PWA.
+Do not allow patch scope to expand silently.
+Do not leave collateral changes unexplained.
 ```
 
 ---
 
-# 17. HANDOFF
+# 16. HANDOFF
 
 ```text
-CURRENT HEAD = 0c1b719655f685dbcf5509624bf7cf55a0e1f40b
+CURRENT HEAD = 33f2d9628a4d614d30635c344ab404198a26ff2a
 LATEST TARGET-AFFECTING COMMIT = 282cce040c51b2f4f926a8ca9227ef89ee742713
 TARGET BLOB = 22f4ee1a666141be62127159337beffb05e8b146
-LATEST REPORT = doc/Draft/Reprots/تقرير45.md
-LATEST SUCCESSOR = doc/Draft/medhat/MASTER_CTO_RAW_ONLY_SUCCESSOR_V8_FINAL.md
+LATEST REPORT = doc/Draft/Reprots/تقرير46.md
+LATEST SUCCESSOR = doc/Draft/medhat/MASTER_CTO_SURGICAL_PATCH_SUCCESSOR_V9.md
 TARGET MUTATION IN THIS STATION = NONE
-NEXT CLOSURE = Company / Brand Identity parity
+NEXT MODE = SURGICAL PATCH EXECUTION
 RUNTIME = NOT VERIFIED
 GOLD = NOT FRESHLY PROVEN
 DIAMOND = NOT FRESHLY PROVEN
@@ -549,10 +518,6 @@ DIAMOND = NOT FRESHLY PROVEN
 
 > Contract outranks superficial source difference.
 
-> A historical difference is not automatically a regression.
+> Smaller tool capability requires smaller Closure Units, never lower evidence standards.
 
-> A Git snapshot cannot prove Production deployment.
-
-> A limited toolset requires smaller Closure Units, never lower evidence standards.
-
-> The correct next action is the smallest currently proven safe blocker.
+> The safest patch is the smallest proven change with an explicit rollback and verification path.
