@@ -1,3 +1,7 @@
+function _rwCompanyId() {
+    return window.RW_STATE && RW_STATE.app && RW_STATE.app.company && RW_STATE.app.company.id ? RW_STATE.app.company.id : null;
+}
+
 // ============================================================
 // RW_Dashboard – لوحة التحكم الاحترافية (الإنترو)
 // ============================================================
@@ -81,7 +85,7 @@ var RW_Dashboard = (function() {
         destroyCharts();
 
         // 1. الأوردرات
-        supabase.from('orders').select('order_code, customer_id, total_amount, order_date, area').gte('order_date', fromDate).lte('order_date', toDate).then(function(res) {
+        supabase.from('orders').select('id, order_code, customer_id, customer_name, total_amount, order_date, area').eq('company_id', companyId).gte('order_date', fromDate).lte('order_date', toDate).then(function(res) {
             var orders = res.data || [];
             var totalSales = 0;
             for (var i = 0; i < orders.length; i++) { totalSales += Number(orders[i].total_amount) || 0; }
@@ -91,7 +95,7 @@ var RW_Dashboard = (function() {
             // مقارنة بالفترة السابقة
             var prevFrom = shiftDate(fromDate, -30);
             var prevTo = shiftDate(toDate, -30);
-            supabase.from('orders').select('total_amount').gte('order_date', prevFrom).lte('order_date', prevTo).then(function(prevRes) {
+            supabase.from('orders').select('total_amount').eq('company_id', companyId).gte('order_date', prevFrom).lte('order_date', prevTo).then(function(prevRes) {
                 var prevOrders = prevRes.data || [];
                 var prevTotal = 0;
                 for (var p = 0; p < prevOrders.length; p++) { prevTotal += Number(prevOrders[p].total_amount) || 0; }
@@ -117,7 +121,7 @@ var RW_Dashboard = (function() {
         }).catch(function() {});
 
         // 2. المشتريات لصافي الربح
-        supabase.from('purchase_orders').select('total_amount').gte('po_date', fromDate).lte('po_date', toDate).then(function(poRes) {
+        supabase.from('purchase_orders').select('total_amount').eq('company_id', companyId).gte('po_date', fromDate).lte('po_date', toDate).then(function(poRes) {
             var poData = poRes.data || [];
             var totalPurchases = 0;
             for (var i = 0; i < poData.length; i++) { totalPurchases += Number(poData[i].total_amount) || 0; }
@@ -136,17 +140,17 @@ var RW_Dashboard = (function() {
         }).catch(function() {});
 
         // 3. العملاء
-        supabase.from('customers').select('customer_code').then(function(res) {
+        supabase.from('customers').select('customer_code').eq('company_id', companyId).then(function(res) {
             safeText(byId('dash-customer-count'), (res.data || []).length);
         }).catch(function() {});
 
         // 4. الأصناف
-        supabase.from('items').select('item_code').then(function(res) {
+        supabase.from('items').select('item_code').eq('company_id', companyId).then(function(res) {
             safeText(byId('dash-item-count'), (res.data || []).length);
         }).catch(function() {});
 
         // 5. أفضل الأصناف
-        supabase.from('order_details').select('item_code, item_name, qty, unit_price').gte('created_at', fromDate).lte('created_at', toDate).then(function(res) {
+        supabase.from('order_details').select('item_code, item_name, qty, unit_price').in('order_id', orderIds).then(function(res) {
             renderTopItemsChart(res.data || []);
         }).catch(function() {});
     }
@@ -335,17 +339,16 @@ var RW_Items = (function() {
         if (!branches.length) {
             try { branches = await RW_Data.loadBranches(); } catch(e) {}
         }
-        var stockRes = await supabase.from('stock_branches').select('item_id, branch_id, qty, allocated_qty');
+        var branchIds = [];
+        for (var b = 0; b < branches.length; b++) branchIds.push(branches[b].id || branches[b].branch_code);
+        var stockRes = branchIds.length ? await supabase.from('stock_branches').select('item_id, branch_id, qty, allocated_qty').in('branch_id', branchIds) : { data: [], error: null };
+        if (stockRes.error) throw stockRes.error;
         var stockRows = stockRes.data || [];
         var stockMap = {};
         for (var s = 0; s < stockRows.length; s++) {
             var row = stockRows[s];
             if (!stockMap[row.item_id]) stockMap[row.item_id] = {};
             stockMap[row.item_id][row.branch_id] = { qty: Number(row.qty) || 0, allocated: Number(row.allocated_qty) || 0 };
-        }
-        var branchIds = [];
-        for (var b = 0; b < branches.length; b++) {
-            branchIds.push(branches[b].id || branches[b].branch_code);
         }
         window._itemsBranchIds = branchIds;
         window._itemsBranches = branches;
@@ -927,7 +930,7 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
     async function _showBranchStockMovement(itemCode, itemName, branchId, branchName) {
         showLoader('جاري تحميل حركة المخزون...');
         try {
-            var vouchersRes = await supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').or('from_branch_id.eq.'+branchId+',to_branch_id.eq.'+branchId).order('voucher_date',{ascending:true});
+            var vouchersRes = await supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').eq('company_id', companyId).or('from_branch_id.eq.'+branchId+',to_branch_id.eq.'+branchId).order('voucher_date',{ascending:true});
             var vouchers = vouchersRes.data||[]; if(vouchers.length===0){hideLoader();Swal.fire({title:'حركة المخزون',text:'لا توجد حركات لهذا الفرع',icon:'info'});return;}
             var voucherIds=vouchers.map(function(v){return v.id;});
             var detailsRes=await supabase.from('stock_voucher_details').select('*').in('voucher_id',voucherIds).eq('item_code',itemCode);
@@ -945,7 +948,7 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
       var select = byId('item-cat');
       if (!select) return;
       
-      supabase.from('categories').select('id, category_name').order('category_name').then(function(res) {
+      supabase.from('categories').select('id, category_name').eq('company_id', companyId).order('category_name').then(function(res) {
         var categories = res.data || [];
         var html = '<option value="">بدون تصنيف</option>';
         var currentCategoryId = window._currentEditItem ? window._currentEditItem.category_id : null;
@@ -962,7 +965,7 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
     }
 
     function _openCategoryModal() {
-      supabase.from('categories').select('id, category_name').order('category_name').then(function(res) {
+      supabase.from('categories').select('id, category_name').eq('company_id', companyId).order('category_name').then(function(res) {
         var categories = res.data || [];
         
         var html = '<div class="text-right" dir="rtl">';
@@ -1114,7 +1117,7 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
     }
 
     function _deleteCategory(id, name) {
-      supabase.from('items').select('id').eq('category_id', id).limit(1).then(function(checkRes) {
+      supabase.from('items').select('id').eq('company_id', companyId).eq('category_id', id).limit(1).then(function(checkRes) {
         var hasItems = checkRes.data && checkRes.data.length > 0;
         
         if (hasItems) {
@@ -1207,7 +1210,7 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
     function _buildCategoryFilterFromDB() {
         var sel = byId('items-cat-filter');
         if (!sel) return;
-        supabase.from('categories').select('id, category_name').order('category_name').then(function(res) {
+        supabase.from('categories').select('id, category_name').eq('company_id', companyId).order('category_name').then(function(res) {
             var categories = res.data || [];
             var html = '<option value="">كل التصنيفات</option>';
             for (var i = 0; i < categories.length; i++) {
