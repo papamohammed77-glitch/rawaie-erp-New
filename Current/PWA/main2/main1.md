@@ -674,7 +674,7 @@ const showLoader = (title = 'جاري التحميل...') => { try { Swal.fire({
 const hideLoader = () => { try { Swal.close(); } catch(e) {} };
 const showToast = (message, type = 'success') => { try { Swal.fire({ title: message, icon: type, timer: 2000, showConfirmButton: false }); } catch(e) { alert(message); } };
 
-const RW_STATE = { app: { initialized: false, authenticated: false, loading: false, currentView: 'dashboard', currentUser: null, company: { name: 'الروائع ERP', logo: 'ر' } }, data: { items: [], customers: [], suppliers: [], branches: [] }, permissions: [], ui: { sidebarOpen: false, sidebarCollapsed: false } };
+const RW_STATE = { app: { initialized: false, authenticated: false, loading: false, currentView: 'dashboard', currentUser: null, company: { id: null, name: 'الروائع ERP', logo: 'ر' } }, data: { items: [], customers: [], suppliers: [], branches: [] }, permissions: [], ui: { sidebarOpen: false, sidebarCollapsed: false } };
 window.RW_STATE = RW_STATE;
 const RW_Auth = {
     login: function(username, password) {
@@ -700,25 +700,46 @@ const RW_Auth = {
                 showToast('فشل الدخول: ' + msg, 'error');
                 return;
             }
-            var user = authRes.data.user;
-            var meta = user.user_metadata || {};
+var user = authRes.data.user;
+var meta = user.user_metadata || {};
 
-            RW_STATE.app.authenticated = true;
-            RW_STATE.app.currentUser = {
-                name: meta.name || user.email,
-                email: user.email,
-                role: meta.role || 'مدير النظام',
-                isOwner: meta.isOwner === true || meta.isOwner === 'true'
-            };
-            RW_STATE.permissions = meta.permissions || ['*'];
-            RW_STATE.app.company = {
-                name: meta.companyName || 'الروائع ERP',
-                logo: meta.companyLogo || 'ر'
-            };
+return RW_SUPABASE_CLIENT
+    .from('users')
+    .select('company_id, status')
+    .eq('auth_id', user.id)
+    .maybeSingle()
+    .then(function(profileRes) {
+        if (profileRes.error) throw profileRes.error;
+        if (!profileRes.data || !profileRes.data.company_id) {
+            throw new Error('بيانات سياق الشركة للمستخدم غير مكتملة');
+        }
+        if (profileRes.data.status === 'Inactive') {
+            throw new Error('حساب المستخدم غير نشط');
+        }
 
-            RW_Audit_log('login', 'auth', user.id, null, { email: user.email, role: meta.role || 'مدير النظام' });
+        RW_STATE.app.authenticated = true;
+        RW_STATE.app.currentUser = {
+            name: meta.name || user.email,
+            email: user.email,
+            role: meta.role || 'مدير النظام',
+            isOwner: meta.isOwner === true || meta.isOwner === 'true'
+        };
 
-            self.enterSystem();
+        RW_STATE.permissions = Array.isArray(meta.permissions) ? meta.permissions : [];
+        RW_STATE.app.company = {
+            id: profileRes.data.company_id,
+            name: meta.companyName || 'الروائع ERP',
+            logo: meta.companyLogo || 'ر'
+        };
+
+        RW_Audit_log('login', 'auth', user.id, null, {
+            email: user.email,
+            role: meta.role || 'مدير النظام',
+            company_id: profileRes.data.company_id
+        });
+
+        return self.enterSystem();
+    });
         }).catch(function(e) {
             hideLoader();
             showToast('حدث خطأ أثناء الاتصال', 'error');
@@ -741,6 +762,8 @@ enterSystem: function() {
         RW_SUPABASE_CLIENT
             .from('app_settings')
             .select('*')
+            .eq('company_id', RW_STATE.app.company.id)
+            .order('created_at', { ascending: true })
             .limit(1)
             .then(function(r){
 
@@ -783,7 +806,7 @@ enterSystem: function() {
     console.log('SUPPLIERS COUNT', window.RW_STATE.data.suppliers?.length);
     console.log('BRANCHES COUNT', window.RW_STATE.data.branches?.length);
             // تحميل الموردين (اختياري، لا يمنع الدخول)
-            supabase.from('suppliers').select('*').then(function(r) {
+            supabase.from('suppliers').select('*').eq('company_id', RW_STATE.app.company.id).then(function(r) {
                 RW_STATE.data.suppliers = r.data || [];
                 console.log('✅ Suppliers loaded.');
             });
@@ -830,7 +853,7 @@ enterSystem: function() {
 
 var RW_Data = {
     loadItems: function() {
-        return supabase.from('items').select('*').then(function(res) {
+        return supabase.from('items').select('*').eq('company_id', RW_STATE.app.company.id).then(function(res) {
             if (res.error) throw res.error;
             RW_STATE.data.items = res.data || [];
             return RW_STATE.data.items;
@@ -841,7 +864,7 @@ var RW_Data = {
         });
     },
     loadCustomers: function() {
-        return supabase.from('customers').select('*').then(function(res) {
+        return supabase.from('customers').select('*').eq('company_id', RW_STATE.app.company.id).then(function(res) {
             if (res.error) throw res.error;
             RW_STATE.data.customers = res.data || [];
             return RW_STATE.data.customers;
@@ -852,7 +875,7 @@ var RW_Data = {
         });
     },
     loadBranches: function() {
-        return supabase.from('branches').select('*').then(function(res) {
+        return supabase.from('branches').select('*').eq('company_id', RW_STATE.app.company.id).then(function(res) {
             if (res.error) throw res.error;
             RW_STATE.data.branches = res.data || [];
             return RW_STATE.data.branches;
