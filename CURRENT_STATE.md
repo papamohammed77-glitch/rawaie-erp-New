@@ -3,15 +3,14 @@
 ## 0. GOVERNANCE
 
 - Direct Production/runtime/database evidence outranks reports, prompts, memory, and closure labels.
-- In RAW-only mode, Production/runtime cannot be claimed unless direct evidence is supplied in the conversation.
-- `Current/PWA/New-main` is the sole canonical application target for the current product-completion track.
-- `Original/PWA/*` is historical/contract reference only and must not be treated as a competing deployment target.
-- Reports are preserved evidence/history; they are not current truth by themselves.
-- Function existence is not product completion.
+- Git proves repository chronology and source content; it does not prove deployment or browser runtime.
 - Static source verification is not runtime verification.
-- Git chronology is chronology authority, not Production truth.
-- Historical Gold/Diamond markers are not fresh acceptance proof.
-- No new business authority may be created inside the PWA; New-main remains an application/orchestration surface over authoritative backend/core contracts.
+- Historical Original is reference/contract evidence only; `Current/PWA/New-main` is the sole canonical application target for the current product-completion track.
+- Reports are preserved evidence/history, not current truth by themselves.
+- Never infer absence from partial reads.
+- Never create a new business authority inside the PWA.
+- One active Closure Unit at a time.
+- The smallest proven patch outranks speculative whole-file repair.
 
 ---
 
@@ -23,189 +22,130 @@
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
 CANONICAL TARGET = Current/PWA/New-main
+HISTORICAL REPOSITORY = papamohammed77-glitch/rawaie-erp-review
 
-LATEST VERIFIED PRE-STATE-SYNC HEAD = 65d74d9aa551e630e0d14f8ac2cb7f128d41541b
-PREVIOUS HEAD BEFORE REPORT48 = b9dd781f266c2addb0a3ad4f4cb3890e22046946
+CURRENT VERIFIED HEAD = cbdd90797629f6410290583efdbbb68011274f98
 LATEST TARGET-AFFECTING COMMIT = 282cce040c51b2f4f926a8ca9227ef89ee742713
 CURRENT TARGET BLOB = 22f4ee1a666141be62127159337beffb05e8b146
-CURRENT_TARGET_SIZE = 575336 bytes
-CURRENT_STATE UPDATE = THIS COMMIT
+CURRENT TARGET SIZE = 575336 bytes
+
+LATEST REPORT = doc/Draft/Reprots/تقرير49.md
+LATEST SUCCESSOR = doc/Draft/medhat/MASTER_CTO_FORENSIC_BRAND_PATCH_SUCCESSOR_V12.md
 ```
 
-This `CURRENT_STATE.md` write is documentation/state synchronization only. Its own final commit SHA is discoverable as the newest Git commit and must not be self-hard-coded inside the file.
-
-## Direct chronology at the latest station
+Important: documentation/state commits occurred after the latest Product mutation. A direct compare from `282cce...` to `cbdd907...` shows 53 commits ahead with no `Current/PWA/New-main` in the changed-file set. Therefore:
 
 ```text
-b9dd781f266c2addb0a3ad4f4cb3890e22046946
-[CTO] Sync CURRENT_STATE with Report47 and V10 forensic successor
-
-18db0c743bd7f6311df6cc8d9d4c14274e98fa16
-[CTO] Add Report47 forensic memory recovery and V10 successor handoff
-
-26069e6a005d048a1e2adc86891f4d5cbc2c75c0
-[CTO] Add V10 forensic memory completion and surgical execution successor directive
-
-0eb40ab4a28752316b9057088bce9e8e4201c880
-Create النقص المعرفي للمساعد الجديد
-
-02d403eca900533fff7c4273ee5f615ab56c64fe
-[CTO] Correct CURRENT_STATE self-reference and finalize V9 handoff
-
-649a7c6f9fe340e15d55cd8d79a4e9d7af5c84d1
-[CTO] Add V11 forensic continuity and zero-redundancy surgical execution successor
-
-65d74d9aa551e630e0d14f8ac2cb7f128d41541b
-[CTO] Add Report48 forensic continuity recovery and V11 handoff
-
-THIS CURRENT_STATE UPDATE
-→ documentation/state synchronization only
+LATEST REPOSITORY HEAD != LATEST PRODUCT MUTATION
+NO VERIFIED New-main MUTATION AFTER 282cce...
 ```
 
-### Target compare
+The current file is synchronized by this commit, but its own final SHA must be discovered from Git and must not be hard-coded here.
 
-A direct Git compare was performed:
+---
+
+# 2. LATEST FORENSIC STATION
+
+The previous CURRENT_STATE was stale: it stopped at a documentation checkpoint before the latest Knowledge-Gap 2 report.
+
+Current sequence includes:
 
 ```text
-BASE = 282cce040c51b2f4f926a8ca9227ef89ee742713
-HEAD = b9dd781f266c2addb0a3ad4f4cb3890e22046946
+Report48
+V11 successor
+CURRENT_STATE sync
+Knowledge-Gap 2 report
+Report49
+V12 successor
+CURRENT_STATE sync (this commit)
 ```
 
-Result:
+Latest Git commit before this state sync was:
 
 ```text
-49 commits ahead
+cbdd90797629f6410290583efdbbb68011274f98
+Create comprehensive report for surgical patch decisions
 ```
 
-The compare file set contained documentation, memory, reports, successor directives and state records, with no `Current/PWA/New-main` mutation.
+This commit added the latest knowledge-gap request and did not mutate New-main.
 
-The subsequent Report48/V11 commits likewise only added reporting/directive documents before this state synchronization.
+---
+
+# 3. LATEST PRODUCT TARGET REALITY
+
+Direct source inspection confirms that `Current/PWA/New-main` is a real HTML/CSS/JS PWA artifact, not the previously alleged short descriptive file.
+
+Known current Login source values:
+
+```text
+rw-login-title = 58px
+rw-login-logo = 88 × 88
+```
+
+Current identity surface includes:
+
+```text
+RAWAEA ERP ENTERPRISE
+الروائع ERP
+منصة إدارة الأعمال الذكية والمتكاملة
+Clean-room MAIN1 contract surface
+```
+
+The application metadata also uses `الروائع ERP`.
+
+Historical claim that New-main was absent/only a tiny descriptive file is classified as an investigator reading error and must not be repeated.
+
+---
+
+# 4. HISTORICAL BRAND EVIDENCE
+
+Direct inspection of `Original/PWA/main/main1.md` confirms:
+
+```text
+<title>الروائع ERP | نظام متكامل</title>
+rw-login-title = 64px
+rw-login-logo = 120 × 120
+rw-company-name = 34px
+```
 
 Therefore:
 
 ```text
-LATEST PRODUCT MUTATION = 282cce...
-LATEST REPOSITORY HEAD BEFORE THIS STATE SYNC = 65d74d9...
-NO VERIFIED TARGET MUTATION AFTER 282cce...
+Current vs Original title size difference = CONFIRMED
+Current vs Original logo size difference = CONFIRMED
+Historical canonical product title = الروائع ERP
 ```
 
-Never confuse documentation HEAD with application-target mutation.
+But:
+
+```text
+TRUE REGRESSION = NOT PROVEN
+INTENTIONAL MODERNIZATION = PLAUSIBLE / NOT PROVEN
+```
+
+Do not change 58→64 or 88→120 solely because Original is larger.
+
+The exact historical phrase `نظام إدارة الأعمال الذكي والمتكامل` is NOT proven by the inspected `main1.md`; only `نظام متكامل` is directly proven there.
+
+Therefore:
+
+```text
+Current tagline = PRESERVE BY DEFAULT
+Exact historical full tagline parity = NOT PROVEN
+```
 
 ---
 
-# 2. LATEST FORENSIC RECORDS
+# 5. OWNER / LICENSE CONTRACT — PROTECTED
 
-```text
-LATEST REPORT = doc/Draft/Reprots/تقرير48.md
-PREVIOUS REPORT = doc/Draft/Reprots/تقرير47.md
-LATEST SUCCESSOR = doc/Draft/medhat/MASTER_CTO_FORENSIC_EXECUTION_SUCCESSOR_V11.md
-PREVIOUS SUCCESSOR = doc/Draft/medhat/MASTER_CTO_FORENSIC_MEMORY_COMPLETION_SUCCESSOR_V10.md
-```
-
-Preserved historical sequence remains intact and must never be deleted.
-
----
-
-# 3. LATEST SUCCESSOR DIRECTIVE
-
-```text
-V11 = doc/Draft/medhat/MASTER_CTO_FORENSIC_EXECUTION_SUCCESSOR_V11.md
-COMMIT = 649a7c6f9fe340e15d55cd8d79a4e9d7af5c84d1
-```
-
-V11 is the current operating layer for:
-
-```text
-forensic continuity
-zero-redundancy boot
-latest-head reconciliation
-latest-target-mutation separation
-anti-partial-read controls
-Owner wildcard protection
-License false-absence correction
-Closure Unit discipline
-exact Patch Window
-No-Patch authority
-forensic diff
-rollback
-runtime/deployment gate
-reporting/current-state handoff
-```
-
-V10 remains preserved as the previous memory-completion layer.
-
----
-
-# 4. KNOWLEDGE-GAP STATUS
-
-The historical `النقص المعرفي للمساعد الجديد` report identified eight blockers. Current forensic reconciliation changes their classification:
-
-```text
-GAP 1 — New-main identity/path/size
-= RESOLVED / CONFIRMED
-
-GAP 2 — Browser runtime
-= OPEN / UNKNOWN
-
-GAP 3 — Live Supabase owner/license state
-= RESOLVED FOR THE RECOVERY STATION / must be rechecked when material
-
-GAP 4 — Current target artifact topology
-= RESOLVED FOR TARGET; broader inventory remains scope-dependent
-
-GAP 5 — Final branding intent
-= OPEN / OWNER DECISION
-
-GAP 6 — CSS location
-= RESOLVED / INLINE IN New-main
-
-GAP 7 — Full downstream runtime impact
-= OPEN UNTIL NARROWED BY ACTIVE CLOSURE UNIT
-
-GAP 8 — Commit chronology / target drift
-= RESOLVED / CONFIRMED
-```
-
-The old `FULL FREEZE` conclusion must not be carried forward as a universal current state because several of its premises were later disproven by direct evidence.
-
----
-
-# 5. CURRENT TARGET EVIDENCE
-
-Direct repository inspection confirms:
-
-```text
-Current/PWA/New-main EXISTS
-SHA = 22f4ee1a666141be62127159337beffb05e8b146
-SIZE = 575336 bytes
-```
-
-It is a real HTML/CSS/JS PWA artifact containing Login, Shell, Navigation, Authentication, Owner handling and License routing.
-
-Known source values:
-
-```text
-.rw-login-title = 58px
-.rw-login-logo = 88×88
-```
-
-Historical Original values differ; that difference is not a regression by itself.
-
-Historical claim that New-main was merely a 56-line descriptive file is classified as an investigator/reading error, not current file absence.
-
----
-
-# 6. OWNER / LICENSE CONTRACT — PROTECTED
-
-Fresh recovery evidence established:
+Fresh direct Supabase verification for the recovery station proves:
 
 ```text
 public.users.permissions = ["*"]
-users.status = Active
+status = Active
 role = مدير النظام
-Auth user_metadata.isOwner = true
-Auth user_metadata.permissions = ["*"]
-auth identity linked
+Auth isOwner = true
+Auth permissions = ["*"]
 owner_profile linked
 license_status = active
 ```
@@ -226,14 +166,17 @@ VALID owner_profile
 ACTIVE LICENSE
 ```
 
-Do not replace the owner wildcard with enumerated role permissions.
-Do not use `role_id` as a substitute for `isOwner`.
+Never:
 
-This live DB result is valid for the recovery station and is not an eternal future-session guarantee.
+```text
+replace ["*"] with enumerated role permissions
+use role_id as substitute for isOwner
+modify owner authorization to make UI work
+```
 
 ---
 
-# 7. LICENSE MANAGEMENT — SOURCE-CONFIRMED, RUNTIME-UNKNOWN
+# 6. LICENSE MANAGEMENT — SOURCE CONFIRMED, RUNTIME UNKNOWN
 
 Current source contains:
 
@@ -241,30 +184,31 @@ Current source contains:
 view = license
 label = إدارة الترخيص
 perm = owner
-license → RW_OwnerLicense.render
-license → owner
-license/audit → hasOwner()
+route = RW_OwnerLicense.render
+owner gate = hasOwner()
 ```
 
 Therefore:
 
 ```text
-LICENSE MENU ENTRY = CONFIRMED
-LICENSE ROUTE = CONFIRMED
-LICENSE OWNER GATE = CONFIRMED
+LICENSE MENU/ROUTE SOURCE = CONFIRMED
+OWNER GATE = CONFIRMED
 LIVE BROWSER VISIBILITY = UNKNOWN
+DEPLOYED REVISION = UNKNOWN
+SERVICE WORKER/CACHE = UNKNOWN
 ```
 
-If the tab is not visible in the browser, investigate instead of adding another route:
+If the user still cannot see the tab, investigate rather than duplicate the route:
 
 ```text
 Auth session
 → authoritative context
 → currentUser.isOwner
 → RW_STATE.permissions
+→ sidebar/menu filtering
 → buildSidebar
-→ menu filter
 → navigation
+→ license route
 → renderer
 → deployed artifact
 → service worker/cache
@@ -273,9 +217,106 @@ Auth session
 
 ---
 
-# 8. ARCHITECTURAL CONTRACT
+# 7. KNOWLEDGE-GAP 2 — CURRENT DECISION STATUS
 
-Historical major failure:
+Latest report `تقرير نقص معرفي للمساعد 2` asked for five groups: brand decision, runtime capability, dynamic identity dependencies, patch/commit scope, and rollback.
+
+Current evidence-based decisions:
+
+### Company name
+
+`الروائع ERP` is the strongest canonical display identity because it is proven by the historical title and current app metadata/current company-name surface.
+
+`RAWAEA ERP ENTERPRISE` appears as a current badge but is not proven to represent a complete intentional rebrand.
+
+Treat the difference as an identity inconsistency requiring exact-surface classification, not a justification for global rewrite.
+
+### Tagline
+
+Keep:
+
+```text
+منصة إدارة الأعمال الذكية والمتكاملة
+```
+
+because the exact historical full alternative is not proven.
+
+### Login visual sizes
+
+```text
+58px vs 64px
+88×88 vs 120×120
+```
+
+Difference is proven; regression is not.
+
+### Runtime
+
+```text
+Static source = available
+Supabase direct evidence = available
+Fresh browser runtime proof = unavailable in this station
+```
+
+### Dynamic branding
+
+Current Login identity contains hard-coded literals. Full Sidebar/Header identity dataflow has not been completely proven in this station.
+
+Do not introduce dynamic branding through `app_settings` / `company_profile` as a side-effect of a narrow parity patch.
+
+### Patch scope
+
+Canonical product patch target is:
+
+```text
+Current/PWA/New-main
+```
+
+Any product patch must be surgical, exact, auditable, and limited to the proven Patch Window.
+
+### Commit / rollback
+
+For a proven Product Patch:
+
+```text
+record starting HEAD
+record starting target blob
+record exact Patch Window
+apply one focused change
+forensic diff
+source recheck
+functional test
+rollback if acceptance fails
+record exact resulting commit SHA
+```
+
+---
+
+# 8. CURRENT CLOSURE-UNIT RULE
+
+Choose exactly one active unit.
+
+```text
+CU-A = License visibility / runtime-context path
+CU-B = Company / Brand identity parity
+CU-C = Login visual parity
+```
+
+Selection rule:
+
+```text
+Active user contradiction + fresh direct evidence
+```
+
+Do not select CU-C solely from 58/88 vs 64/120.
+
+Do not run CU-A and CU-B in parallel.
+
+---
+
+# 9. ARCHITECTURAL CONTINUITY
+
+Historical core failure:
 
 ```text
 DISTRIBUTED BUSINESS LOGIC
@@ -285,174 +326,154 @@ Target architecture remains:
 
 ```text
 PWA / Consumer
-      ↓
-Application / Edge Boundary
-      ↓
-Central Core / RPC
-      ↓
-SSOT / DB
+→ Application / Edge Boundary
+→ Central Core / RPC
+→ SSOT / DB
 ```
 
-No new business authority may be created in the PWA.
-
-Inventory rescue contract remains preserved:
+Inventory/business-engine history remains context, not automatic scope.
 
 ```text
-post_stock_movement = central physical movement engine
-reserve_stock = reservation engine
-allocated_qty ≠ physical qty
-Picking ≠ Physical Movement
+post_stock_movement = central movement authority
+reserve_stock = reservation authority
+allocated_qty != physical qty
+Picking != physical movement
 Loading = MAIN → VAN
 Van Sale = VAN → Customer
 Unloading = VAN → MAIN
 ```
 
-Do not reopen Inventory unless current direct evidence makes it the active Closure Unit.
-
----
-
-# 9. CLOSURE UNIT / PATCH LAW
-
-There is exactly one active Closure Unit at a time.
-
-Before mutation, record:
-
-```text
-Target
-Current behavior
-Expected behavior
-Observed contradiction
-Root cause
-Dependencies
-Patch Window
-Expected diff
-Rollback
-Test
-Acceptance gate
-```
-
-Allowed scope expands only when evidence requires it:
-
-```text
-single expression
-→ small local block
-→ whole function
-→ whole section
-```
-
-Never perform speculative whole-file rewrites, unrelated cleanup, library changes, architectural refactors, wholesale Original copies, parallel Current versions, or owner permission redesigns.
+Do not reopen Inventory, Accounting, Ledger, or Treasury unless a current Closure Unit proves a blocking dependency.
 
 ---
 
 # 10. LATEST PATCH RESULT
 
-Report48 establishes:
+For the current forensic station:
 
 ```text
-PRODUCT PATCH THIS RECOVERY STATION = NONE
-CURRENT/PWA/New-main MUTATION = NONE
-DATABASE MUTATION = NONE
-DEPLOYMENT MUTATION = NONE
+PRODUCT PATCH = NONE
+DATABASE PATCH = NONE
+DEPLOYMENT PATCH = NONE
 ```
 
-This was intentional because the station's purpose was forensic continuity reconstruction and successor preparation, not an evidence-backed product repair.
-
-Thus:
+This is intentional. The station's verified work was continuity reconstruction, Knowledge-Gap resolution, and successor preparation.
 
 ```text
-NO-PATCH = SUCCESSFUL / INTENTIONAL
+NO-PATCH = CORRECT / INTENTIONAL
 ```
 
 ---
 
-# 11. CURRENT NEXT OPERATING MODE
+# 11. REPORT / SUCCESSOR RECORDS
 
-The next successor must begin with V11:
+Latest preserved evidence:
 
 ```text
-BOOT
-→ READ TO EOF
-→ RECHECK GIT HEAD
-→ RECHECK TARGET-AFFECTING COMMIT
-→ RECHECK CURRENT TARGET
-→ RECHECK LIVE DB WHEN MATERIAL
-→ REALITY MATRIX
-→ EXACT CLOSURE UNIT
-→ ROOT-CAUSE PROOF
-→ EXACT PATCH WINDOW
-→ PRE-CHANGE SELF-AUDIT
-→ PATCH / NO-PATCH
-→ FORENSIC DIFF
-→ TEST
-→ ROLLBACK CHECK
-→ DEPLOYMENT GATE
-→ RUNTIME GATE
-→ REPORT
-→ CURRENT_STATE UPDATE
-→ HANDOFF
+Report49 = doc/Draft/Reprots/تقرير49.md
+V12 = doc/Draft/medhat/MASTER_CTO_FORENSIC_BRAND_PATCH_SUCCESSOR_V12.md
 ```
+
+Previous preserved evidence remains:
+
+```text
+Report48
+V11
+V10
+V9
+V8
+V7
+V6
+V5
+and all earlier reports/directives
+```
+
+Never delete historical reports.
 
 ---
 
-# 12. KNOWN INVESTIGATOR ERRORS / DO-NOT-REPEAT
+# 12. RAW SOURCE PACK FOR NEXT ASSISTANT
+
+Use raw URLs:
+
+```text
+https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/CURRENT_STATE.md
+https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/Current/PWA/New-main
+https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/Original/PWA/main/main1.md
+https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/doc/Draft/Reprots/%D8%AA%D9%82%D8%B1%D9%8A%D8%B148.md
+https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/doc/Draft/Reprots/%D8%AA%D9%82%D8%B1%D9%8A%D8%B949.md
+https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/doc/Draft/Reprots/%D8%AA%D9%82%D8%B1%D9%8A%D8%B1%20%D9%86%D9%82%D8%B5%20%D9%85%D8%B9%D8%B1%D9%81%D9%8A%20%D9%84%D9%84%D9%85%D8%B3%D8%A7%D8%B9%D8%AF%202
+https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/doc/Draft/medhat/MASTER_CTO_FORENSIC_EXECUTION_SUCCESSOR_V11.md
+https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/doc/Draft/medhat/MASTER_CTO_FORENSIC_BRAND_PATCH_SUCCESSOR_V12.md
+https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/doc/Draft/medhat/MASTER_CTO_NEWM_LIMITED_ASSISTANT_TASK_COMPANY_IDENTITY_V6.md
+https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/doc/Draft/medhat/MASTER_CTO_NEWM_LIMITED_ASSISTANT_TASK_LOGIN_PARITY_V5.md
+https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/doc/Draft/medhat/MASTER_CTO_NEWM_PRODUCT_COMPLETION_SUCCESSOR.md
+https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/doc/Draft/medhat/MASTER_OFFLINE_CTO_NEW_MAIN_COMPLETION.md
+https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-review/main/README.md
+```
+
+`MASTER - RAWAEA ERP.md` could not be independently retrieved as a standalone current-repository/current-file-surface artifact during this station. Do not invent its content; search it independently if a future source becomes available.
+
+---
+
+# 13. KNOWN INVESTIGATOR ERRORS — DO NOT REPEAT
 
 ```text
 Do not start from zero.
-Do not trust reports as current truth without direct verification.
-Do not trust memory as current truth.
-Do not use partial reads to prove absence.
-Do not confuse documentation HEAD with product mutation.
-Do not treat Git as deployment proof.
-Do not treat static source as runtime proof.
+Do not trust stale CURRENT_STATE for current HEAD.
+Do not confuse documentation commits with product commits.
+Do not declare New-main absent from partial display.
 Do not treat Original differences as automatic regressions.
-Do not re-add License route that already exists in Current.
-Do not convert Owner ["*"] to enumerated permissions.
-Do not reopen a closed issue without contradictory evidence.
-Do not broaden Patch Window silently.
-Do not leave collateral changes unexplained.
+Do not duplicate License route because browser visibility is unknown.
+Do not replace Owner ["*"] with role enumeration.
+Do not treat Git as deployment proof.
+Do not treat source as browser proof.
+Do not treat closure metadata as fresh Gold/Diamond proof.
+Do not expand Patch Window without evidence.
+Do not perform speculative whole-file rewrites.
+Do not introduce future architecture into a narrow fix.
 ```
 
 ---
 
-# 13. RUNTIME / DEPLOYMENT STATUS
+# 14. RUNTIME / DEPLOYMENT STATUS
 
 ```text
 RUNTIME = UNKNOWN
 DEPLOYMENT = UNKNOWN
-SERVICE WORKER/CACHE = UNKNOWN
+SERVICE WORKER / CACHE = UNKNOWN
 FRESH GOLD = NOT PROVEN
 FRESH DIAMOND = NOT PROVEN
 WHOLE-PROJECT 100% = NOT PROVEN
 ```
 
-These states remain intentionally conservative.
-
 ---
 
-# 14. HANDOFF
+# 15. HANDOFF
 
 ```text
-LATEST PRE-STATE-SYNC HEAD = 65d74d9aa551e630e0d14f8ac2cb7f128d41541b
+STARTING HEAD FOR NEXT SUCCESSOR = cbdd90797629f6410290583efdbbb68011274f98
 LATEST TARGET-AFFECTING COMMIT = 282cce040c51b2f4f926a8ca9227ef89ee742713
 TARGET = Current/PWA/New-main
 TARGET BLOB = 22f4ee1a666141be62127159337beffb05e8b146
-LATEST REPORT = doc/Draft/Reprots/تقرير48.md
-LATEST SUCCESSOR = doc/Draft/medhat/MASTER_CTO_FORENSIC_EXECUTION_SUCCESSOR_V11.md
-V11 COMMIT = 649a7c6f9fe340e15d55cd8d79a4e9d7af5c84d1
-CURRENT_STATE UPDATE = this commit
-PRODUCT MUTATION IN THIS STATION = NONE
+TARGET SIZE = 575336 bytes
+LATEST REPORT = doc/Draft/Reprots/تقرير49.md
+LATEST SUCCESSOR = doc/Draft/medhat/MASTER_CTO_FORENSIC_BRAND_PATCH_SUCCESSOR_V12.md
+PRODUCT MUTATION THIS STATION = NONE
+DATABASE MUTATION THIS STATION = NONE
+DEPLOYMENT MUTATION THIS STATION = NONE
+OWNER WILDCARD = VERIFIED AT RECOVERY STATION
+LICENSE SOURCE = VERIFIED
+LICENSE RUNTIME = UNKNOWN
+BRAND TRUE REGRESSION = NOT PROVEN
+TAGLINE EXACT HISTORICAL PARITY = NOT PROVEN
 ```
 
 ## FINAL CONTINUITY RULE
 
 > The successor inherits evidence trails, not confidence.
-
 > Reality outranks narrative.
-
 > EOF outranks partial visibility.
-
-> The smallest proven patch outranks the cleanest speculative rewrite.
-
-> Unknown runtime behavior remains UNKNOWN until observed.
-
 > Historical continuity is preserved, but historical assumptions do not outrank fresh evidence.
+> The smallest proven patch outranks the cleanest speculative rewrite.
+> Unknown runtime behavior remains UNKNOWN until observed.
