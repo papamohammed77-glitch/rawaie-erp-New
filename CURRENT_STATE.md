@@ -21,7 +21,7 @@ BRANCH     = main
 TARGET     = Current/PWA/New-main
 
 LATEST VERIFIED HEAD BEFORE THIS CURRENT_STATE WRITE
-= e663e2256b88805d52d1d7d212b5436b1f9e8a0b
+= 756b0900fc096417d06f256ad66c106010ff55be
 
 CURRENT TARGET BLOB
 = 22f4ee1a666141be62127159337beffb05e8b146
@@ -34,12 +34,12 @@ Direct Git comparison:
 
 ```text
 BASE = 282cce...
-HEAD = e663e225...
-AHEAD = 27
+HEAD = 756b0900...
+AHEAD = 29
 BEHIND = 0
 ```
 
-The commits after `282cce...` in this reconciliation are documentation/report/continuity changes only. `Current/PWA/New-main` does not appear in the compare file set.
+The commits after `282cce...` are continuity/documentation/report/prompt updates only. `Current/PWA/New-main` does not appear in that compare file set.
 
 Therefore:
 
@@ -48,18 +48,19 @@ TARGET CHANGED AFTER 282cce...? = NO VERIFIED EVIDENCE
 TARGET CONTENT = still blob 22f4ee1a...
 ```
 
-Git remains the chronology authority. The HEAD value stored here will become stale when the next documentation commit is made.
+Git remains the chronology authority. The HEAD recorded here becomes stale whenever the next documentation commit is made.
 
 ## LATEST FORENSIC REPORT
 
 ```text
-= doc/Draft/Reprots/تقرير41.md
-COMMIT = 4d12dcce2c4e5eaa247e57c72fb08ef7599d1b69
+= doc/Draft/Reprots/تقرير42.md
+COMMIT = 756b0900fc096417d06f256ad66c106010ff55be
 ```
 
 Previous preserved reports:
 
 ```text
+تقرير41.md
 تقرير40.md
 تقرير39.md
 تقرير38.md
@@ -72,7 +73,7 @@ Previous preserved reports:
 BLOB = 1da9d45a5705eb0bd334d8a943ba67aa4d91e808
 ```
 
-The limited assistant did not reach New-main EOF, did not perform current Supabase investigation, and did not have Git history/runtime browser tools. Its high-value observations remain useful leads, but its conclusions about missing License UI and dead routes are not current facts.
+The limited assistant did not reach New-main EOF, did not independently prove current Supabase state in its attempt, and did not have Git history/runtime browser tools. Its observations remain useful leads only.
 
 After direct EOF inspection of New-main:
 
@@ -84,18 +85,30 @@ license renderer contract = PRESENT
 
 Runtime reachability is still not automatically proven.
 
-## SUCCESSOR DIRECTIVES
-
-Latest limited-assistant successor directive:
+## LATEST SUCCESSOR DIRECTIVE
 
 ```text
-= doc/Draft/medhat/MASTER_CTO_NEWM_LIMITED_ASSISTANT_SUCCESSOR_V4_CONTINUATION.md
-COMMIT = e663e2256b88805d52d1d7d212b5436b1f9e8a0b
+= doc/Draft/medhat/MASTER_CTO_NEWM_LIMITED_ASSISTANT_TASK_LOGIN_PARITY_V5.md
+COMMIT = 98877acdd1a61bcabb7fb934c13f277e7daaf96f
 ```
+
+Purpose:
+
+```text
+ONE CLOSURE UNIT
+Current/PWA/New-main
+↕
+Original/PWA/main/main1.md
+↓
+LOGIN PARITY ONLY
+```
+
+The V5 directive explicitly forbids restarting the project, rebuilding Login wholesale, reopening License/navigation repairs, or touching unrelated modules.
 
 Previous canonical directives remain preserved:
 
 ```text
+MASTER_CTO_NEWM_LIMITED_ASSISTANT_SUCCESSOR_V4_CONTINUATION.md
 MASTER_CTO_NEWM_LIMITED_ASSISTANT_SUCCESSOR_V3.md
 MASTER_CTO_NEWM_PRODUCT_COMPLETION_SUCCESSOR_V2.md
 MASTER_CTO_NEWM_PRODUCT_COMPLETION_SUCCESSOR.md
@@ -106,7 +119,7 @@ CTO EXECUTION COMMAND.md
 
 ## DIRECT CURRENT SOURCE FINDINGS — NEW-MAIN EOF
 
-Current New-main blob `22f4ee1a...` was inspected through its ending sections. The EOF contains:
+Current New-main was inspected through its ending sections in the preceding forensic work. The EOF contains:
 
 ```text
 RAWAEA 122 DIAMOND CONTRACT CLOSURE v1
@@ -145,8 +158,6 @@ branch-count
 general-count
 ```
 
-This disproves the limited assistant's claims that these are absent from the current source.
-
 Important distinction:
 
 ```text
@@ -169,7 +180,7 @@ owner_profile.auth_user_id exists
 owner_profile.license_status exists
 ```
 
-There is no `users.is_active` field in the current schema.
+There is no `users.is_active` field and no `roles.name` field in the inspected schema.
 
 Current owner state:
 
@@ -210,21 +221,19 @@ Do not replace wildcard semantics with role-permission enumeration.
 
 ## INVESTIGATOR ERRORS RECORDED
 
-Two query-shape mistakes occurred during this cycle/history:
-
 ```text
-users.is_active  → field does not exist; actual status = users.status
-roles.name       → field does not exist; actual name = roles.role_name
+users.is_active  → field does not exist; actual field = users.status
+roles.name       → field does not exist; actual field = roles.role_name
 ```
 
-Both are classified as:
+Classification:
 
 ```text
 INVESTIGATOR QUERY ERROR
 NOT PRODUCTION DEFECT
 ```
 
-Future rule:
+Permanent rule:
 
 ```text
 inspect information_schema.columns before querying an uncertain field
@@ -239,7 +248,12 @@ safeText is not defined
 AUTH_ID_UNAVAILABLE
 ```
 
-Current source visibly contains a `window.safeText` definition and an explicit `AUTH_ID_UNAVAILABLE` defensive guard.
+Current source visibly contains:
+
+```text
+window.safeText
+AUTH_ID_UNAVAILABLE defensive guard
+```
 
 Status:
 
@@ -248,140 +262,186 @@ CURRENT DEFECT = NOT PROVEN
 TRACE REQUIRED BEFORE PATCH
 ```
 
-## LOGIN PARITY
+## LOGIN PARITY — CURRENTLY SELECTED NEXT CLOSURE UNIT
 
-Current source:
+Direct comparison proved:
 
 ```text
-58px title
-88x88 logo
+Current/PWA/New-main
+    title = 58px
+    logo  = 88px × 88px
+
+Original/PWA/main/main1.md
+    title = 64px
+    logo  = 120px × 120px
 ```
 
-Historical richer contract remains documented around:
+New-main also already contains functional Login elements including:
 
 ```text
-64px title
-120x120 logo
-Cairo
-glass card
-gradient background
-feature list
-icon-bearing inputs
 remember-me
 forgot-password
-password visibility
+password visibility toggle
+responsive behavior
 ```
 
-Status:
+Therefore the next assistant must NOT replace the Login with Original wholesale.
+
+Current classification:
 
 ```text
-PARITY GAP LEAD
-NOT YET A PATCH ORDER
+LOGIN PARITY GAP = CONFIRMED LEAD
+FULL LOGIN REGRESSION = NOT CLAIMED
+RUNTIME SUCCESS = NOT PROVEN
 ```
 
-Prove current requirement/impact before modifying.
+## LIMITED ASSISTANT V5 EXECUTION CONTRACT
 
-## LIMITED-ASSISTANT FINDINGS — RECLASSIFIED
-
-### License Management
+The next assistant has exactly one closure unit:
 
 ```text
-Previous claim: missing
-Current source: present
-Status: DISPROVEN AS CURRENT-SOURCE ABSENCE
-Runtime: NOT PROVEN HERE
+Current/PWA/New-main
+↕
+Original/PWA/main/main1.md
+↓
+Login parity only
 ```
 
-### Eight alleged dead routes
+It must:
 
 ```text
-Previous claim: dead
-Current route map: handlers present
-Status: DISPROVEN AS CURRENT-SOURCE ABSENCE
-Runtime: NOT PROVEN HERE
+1. Re-prove Git checkpoint.
+2. Read the two relevant files directly.
+3. Build a comparison matrix.
+4. Classify differences.
+5. Patch only proven Login regressions.
+6. Preserve current functional Login capabilities.
+7. Avoid all unrelated modules.
+8. Verify the changed source.
+9. Record runtime as NOT PROVEN unless actual runtime evidence exists.
+10. Create the next numbered report.
 ```
 
-### Customers / Suppliers / Branches / Settings / Users / Roles parity
-
-These remain high-value parity leads only.
-
-Each difference must be classified as:
+If no regression is proven:
 
 ```text
-INTENTIONAL SIMPLIFICATION
-DELEGATION
-MIGRATION
-MISSING FEATURE
-TRUE REGRESSION
-UNKNOWN
+DO NOT PATCH
 ```
 
-No blind CRUD restoration.
+## FIVE-ASSISTANT EXECUTION CHAIN
+
+The execution plan created in Report42 is:
+
+```text
+ASSISTANT 1
+LOGIN PARITY
+    ↓
+ASSISTANT 2
+COMPANY / BRAND IDENTITY
+    ↓
+ASSISTANT 3
+MASTER SIDEBAR / NAVIGATION / REACHABILITY
+    ↓
+ASSISTANT 4
+MASTER DATA PARITY
+    ↓
+ASSISTANT 5
+INTEGRATION / REGRESSION / GOLD READINESS
+```
+
+### Assistant 1
+
+Scope:
+
+```text
+New-main ↔ Original main1
+Login only
+```
+
+### Assistant 2
+
+Scope:
+
+```text
+Company identity
+Logo
+Shell identity
+Login-to-shell identity continuity
+```
+
+### Assistant 3
+
+Scope:
+
+```text
+menu
+→ permission
+→ view key
+→ route
+→ renderer/delegation
+→ runtime/re-entry where available
+```
+
+License is verified as source-present and should not be rebuilt.
+
+### Assistant 4
+
+Scope:
+
+```text
+customers
+suppliers
+branches
+settings
+users
+roles
+```
+
+Every difference must be classified before patching; blind CRUD restoration is forbidden.
+
+### Assistant 5
+
+Scope:
+
+```text
+cross-unit reconciliation
+refresh/re-entry regression
+authorization proof
+tenant/security evidence relevant to touched surfaces
+fresh Gold/Diamond readiness evidence
+```
+
+No Gold/Diamond/100% claim without fresh evidence.
+
+## HANDOFF CONTRACT
+
+Every assistant must leave:
+
+```text
+Starting HEAD
+Starting target state
+Sources actually opened
+Claims disproven
+Facts proven
+Files changed
+Patch result
+Verification result
+Runtime status
+Remaining unknowns
+DO-NOT-REPEAT list
+Next exact scope
+Final Self-Audit
+```
+
+A later assistant may override a previous report only when newer direct evidence proves a contradiction.
 
 ## MASTER - RAWAEA ERP.md
 
-The requested file:
+The supplied attachment containing the requested master recovery directive was read fully to EOF in the current conversation.
 
-```text
-MASTER - RAWAEA ERP.md
-```
+A separately verifiable repository copy with that exact filename was not found in GitHub during the repository search, so no fabricated repository path is recorded.
 
-was searched in available Library/Conversation material and GitHub repository search but no verifiable copy was found/opened.
-
-Status:
-
-```text
-NOT VERIFIED / NOT OPENED
-```
-
-Its content must not be invented. Existing validated continuity directives remain the usable substitutes until the exact file is supplied/found.
-
-## ACTIVE PRODUCT MISSION
-
-The product-completion mission remains:
-
-```text
-A — Company information / identity / logo
-B — Login visual + functional parity
-C — Full master sidebar / header / navigation
-D — Dashboard
-E — Sales Management
-F — No-islands integration
-G — Navigation / refresh / re-entry regression
-H — Owner / non-owner authorization proof
-I — Tenant / security proof
-J — Fresh Gold gate
-K — Fresh Diamond gate
-```
-
-## NO-ISLANDS CONSTITUTION
-
-```text
-RAWAEA MASTER SYSTEM
-        ↓
-CENTRAL BUSINESS HEART
-        ↓
-DOMAIN ENGINES
-        ↓
-OPERATING APPLICATIONS
-```
-
-New-main remains a client/orchestrator/presentation surface.
-
-Every restored feature must answer:
-
-```text
-Who owns it?
-Who opens it?
-What state feeds it?
-What backend contract feeds it?
-What happens after action?
-What happens after refresh?
-What happens on re-entry?
-Who consumes the result?
-How is authorization enforced?
-How is tenant scope enforced?
-```
+The attachment remains a valid task input; GitHub continuity files remain the persistent handoff source.
 
 ## OUT OF SCOPE UNLESS BLOCKING DEPENDENCY IS PROVEN
 
@@ -408,44 +468,6 @@ CURRENT 100% = NOT PROVEN
 
 Historical markers inside New-main are metadata only and do not constitute fresh acceptance evidence.
 
-## REQUIRED NEXT EXECUTION
-
-```text
-1. Re-verify current Git HEAD and target blob.
-2. Read current continuity artifacts, especially Report 41 and V4.
-3. Use New-main EOF evidence to avoid replaying disproven patches.
-4. Select the first currently proven blocker.
-5. Patch only the smallest safe surface.
-6. Verify source + relevant DB contracts.
-7. If runtime is available, perform runtime regression.
-8. Record exact result.
-9. Update CURRENT_STATE again.
-10. Continue without asking the owner to choose the next block.
-```
-
-## PERMANENT PROCESS RULES
-
-```text
-Do not trust CURRENT_STATE for chronology without Git verification.
-Do not trust reports as Truth Source.
-Do not replay obsolete target snapshots.
-Do not equate function existence with product completion.
-Do not equate static pass with runtime pass.
-Do not use historical Gold/Diamond markers as proof.
-Do not use partial reads to assert absence.
-Do not create disconnected UI islands.
-Do not create parallel business authority in New-main.
-Do not replace owner wildcard with role enumeration.
-Do not guess schema fields.
-Do not use Production business data as a playground.
-Do not classify investigator query errors as product defects.
-Do not claim GitHub writes that did not occur.
-Do not stop merely because the message budget is small.
-Do not ask the owner to select an already-defined next block.
-Do not claim complete source reading until EOF was reached.
-Do not announce Gold/Diamond without fresh evidence.
-```
-
 ## CHAIN OF CUSTODY
 
 Preserved:
@@ -455,10 +477,12 @@ Report 38
 Report 39
 Report 40
 Report 41
+Report 42
 Limited Assistant Report
 V2 successor
 V3 successor
 V4 successor
+V5 limited Login task
 CTO EXECUTION COMMAND
 Historical prompts and reports
 ```
@@ -469,4 +493,6 @@ Historical prompts and reports
 
 > The correct next change is the first currently proven safe blocker — not the loudest historical report.
 
-> If a claim was disproven by the current EOF/source, do not repair it again.
+> If a claim was disproven by the current source/EOF, do not repair it again.
+
+> One assistant closes one unit; the next assistant starts from the exact handoff, not from memory.
