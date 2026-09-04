@@ -7,7 +7,7 @@ This file is the continuity checkpoint. It is a declared state and must always b
 ```text
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
-CURRENT GIT HEAD BEFORE THIS STATE UPDATE = e829b747d811e40b402f0e6ba00c366818939a6f
+CURRENT GIT HEAD BEFORE THIS STATE UPDATE = ef338627204ed6ba689887c0025b034fd361c750
 HISTORICAL REPOSITORY = papamohammed77-glitch/rawaie-erp-review
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
 ```
@@ -35,34 +35,32 @@ d26695ccca675fb85936bda1707398326ce882ec
 e829b747d811e40b402f0e6ba00c366818939a6f
 [CTO] Add unified continuity and Main1 execution command
 = GOVERNANCE ARTIFACT
+
+a561147f57abe5738990e715acb525e9abc236c6
+[CTO] Add MASTER FORENSIC CONTINUITY GOVERNANCE v2
+= GOVERNANCE ARTIFACT
+
+ef338627204ed6ba689887c0025b034fd361c750
+[CTO] Add Report55 forensic continuity and Main1 closure assessment
+= FORENSIC REPORT
 ```
-
-### Reconciliation result
-
-The previous 2026-09-04 state became stale after `ed4e91...`. Direct Git verification proves the four Main1 repair windows were actually applied in `Current/PWA/main2/main1.md`.
-
-The latest New-main browser gate examined in this round failed for a different reason: `page.goto: Download is starting` while the workflow targeted `Current/PWA/New-main`. This does not invalidate Main1 source Patch 1–4 and does not prove Main1 browser failure.
 
 ---
 
-# 1. LAST VERIFIED STATE
+# 1. LAST VERIFIED STATE — 2026-09-05 FORENSIC CONTINUATION
 
-The project did NOT stop at Report51.
+This round explicitly continued from the prior state; it did not restart Main1 patches.
 
-Continuity chain verified in this round:
+The following historical/current distinctions were re-verified:
 
 ```text
-2bffd02...  Report52 forensic Main1 closure design
-7e07088...  CURRENT_STATE sync with Report53 checkpoint
-ed4e91e...  ACTUAL Main1 source repair — Patch 1–4
-76a5fdd...  External Main1 analysis created
-8399ff5...  External Main1 analysis updated
-4baace1...  State reconciliation
- d26695c... Report54
- e829b74... Unified governance command
+ed4e91 = real Main1 source mutation
+Previous session-restore concern = already repaired in current source
+Previous New-main browser failure = not evidence of Main1 browser failure
+External Main1 report = historical/design reference, not current truth
 ```
 
-Older checkpoint claims that Main1 Patch 1–4 were pending are historical and superseded by `ed4e91...`.
+The latest direct Production query at this checkpoint shows one visible company and one corresponding `app_settings` row. Historical multi-company counts from older snapshots must not be reused as current Production facts without re-querying Production.
 
 ---
 
@@ -92,10 +90,16 @@ Primary governance source:
 doc/Draft/medhat/MASTER - RAWAEA ERP.md
 ```
 
-Unified successor command now also exists at:
+Unified governance successor:
 
 ```text
 doc/Draft/medhat/MASTER - RAWAEA ERP - UNIFIED CONTINUITY & MAIN1 EXECUTION.md
+```
+
+Latest forensic governance v2:
+
+```text
+doc/Draft/medhat/MASTER - RAWAEA ERP FORENSIC CONTINUITY GOVERNANCE v2.md
 ```
 
 ---
@@ -104,8 +108,9 @@ doc/Draft/medhat/MASTER - RAWAEA ERP - UNIFIED CONTINUITY & MAIN1 EXECUTION.md
 
 ```text
 ACTIVE SOURCE REPAIR PACK = Current/PWA/main2/
-CURRENT VERIFIED CLOSURE UNIT = Current/PWA/main2/main1.md
-NEXT TARGET = cumulative Main1→Main2 source/integration verification, subject to reassessment
+CURRENT CLOSURE UNIT = Current/PWA/main2/main1.md
+NEXT AUTHORIZED TARGET = Main1 deployment/runtime proof
+MAIN2 SOURCE IMPLEMENTATION = NOT STARTED
 ```
 
 The fragments are logical parts of one parent application contract, not eleven independent products.
@@ -119,7 +124,7 @@ PATH = Current/PWA/main2/main1.md
 SOURCE PATCH COMMIT = ed4e91ec595234ba7ede3f08558c660c1b100d3e
 ```
 
-Direct current-source inspection confirms:
+Direct source verification confirms:
 
 ```text
 PATCH 1 = RW_STATE.app.company.id exists
@@ -127,303 +132,151 @@ PATCH 2 = public.users lookup by auth_id supplies company_id + status
 PATCH 2 = generic missing-permissions fallback is []
 PATCH 3 = app_settings is company-scoped and ordered before limit(1)
 PATCH 4 = items/customers/branches/suppliers bootstrap reads use company_id
+SESSION RESTORE = present in current source
 ```
 
-The current file still contains:
-
-```text
-login title = 64px
-login logo = 120×120
-company-name = 34px
-```
-
-These visual values were intentionally preserved because no direct current evidence proves them defective.
-
-The file remains a logical open-script fragment whose assembly continues through later Main2 fragments.
+These source repairs are not to be repeated without new contradictory evidence.
 
 ---
 
-# 5. HISTORICAL REPORT STATUS — RECONCILED
+# 5. SYSTEM SETTINGS / BRANDING CONTRACT
 
-Historical Report52/53 status:
-
-```text
-FORENSIC ANALYSIS = CLOSED
-ROOT CAUSE = PROVEN
-PATCH DESIGN = PROVEN
-SOURCE MUTATION = NO   [historical at that time]
-PRODUCTION DEPLOYMENT = NO
-RUNTIME = NO
-```
-
-Current reconciled status:
+The source contract is:
 
 ```text
-FORENSIC DESIGN = CLOSED
-SOURCE PATCH 1–4 = APPLIED
-DIRECT SOURCE VERIFICATION = CONFIRMED
-PRODUCTION PRODUCT DEPLOYMENT = NOT PROVEN
-MAIN1 INDEPENDENT BROWSER RUNTIME = NOT PROVEN
-MAIN1→MAIN2 RUNTIME = NOT PROVEN
+Authenticated User
+→ users.company_id
+→ app_settings(company_id)
+→ company branding/configuration
 ```
 
-Do not reopen historical patch work without new contradictory evidence.
+Current Main1 uses `app_settings` as the authoritative branding/configuration source for company identity shown after entering the system.
+
+Static strings/defaults found in HTML or state are presentation fallbacks only unless direct evidence proves otherwise.
+
+Do NOT replace `app_settings` with static company name/logo values.
+
+Current Production checkpoint:
+
+```text
+companies rows = 1
+app_settings rows = 1
+```
+
+The current `app_settings` record includes:
+
+```text
+company_name = الروائع
+company_logo = NULL
+main_branch_id = a38332b6-6cea-480a-ada1-6eb6ab0590db
+delivery_fee = 0.00
+tax_rate = 0.00
+min_invoice_amount = 0.00
+```
+
+This is a configuration readiness fact, not permission to invent missing settings.
 
 ---
 
-# 6. MAIN1 DEFECTS — CURRENT RESULT
+# 6. MAIN1 CLOSURE STATUS — CURRENT
 
 ```text
-Unsafe wildcard default                 = FIXED IN SOURCE
-Missing authoritative company bootstrap = FIXED IN SOURCE
-Global app_settings lookup              = FIXED IN SOURCE
-Unscoped bootstrap reads                = FIXED IN SOURCE
+HISTORICAL RECONCILIATION = CLOSED for addressed Patch 1–4
+SOURCE PATCH 1–4 = CLOSED
+SOURCE SESSION RESTORE = VERIFIED
+SYSTEM SETTINGS AUTHORITY = VERIFIED AS app_settings
+PRODUCTION CONFIGURATION = DIRECTLY VERIFIED, CURRENTLY 1 COMPANY / 1 SETTINGS ROW
+INDEPENDENT CURRENT MAIN1 RUNTIME = NOT PROVEN
+DEPLOYED ARTIFACT EQUIVALENCE = NOT PROVEN
+FULL MAIN1 PRODUCT CLOSURE = OPEN
+MAIN2 = NOT STARTED
 ```
 
-Owner wildcard semantics remain protected. `permissions=[]` is only the generic fallback; an actual Owner with `permissions=['*']` remains valid under the established Owner contract.
+The absence of runtime proof is not to be converted into a runtime failure.
 
 ---
 
-# 7. VISUAL / BRANDING FINDINGS INTENTIONALLY PRESERVED
-
-Do not change these only because the external report mentions a different Parent/New-main recommendation:
+# 7. HISTORICAL FAILURES / LESSONS PRESERVED
 
 ```text
-64px login title
-120×120 login logo
-34px company-name
-historical Owner semantics
+stale CURRENT_STATE ≠ current truth
+commit ≠ deployment proof
+source ≠ runtime proof
+New-main browser failure ≠ Main1 browser failure
+historical Main1 analysis ≠ current Main1 source
+static fallback ≠ authoritative configuration
 ```
 
-The external report is useful for architecture and design direction, but it is not evidence of Current Main2/Main1 defect by itself.
+Do not repeat these failure modes.
 
 ---
 
-# 8. SOURCE-LINEAGE DISTINCTION
+# 8. CURRENT REPORTS
+
+Latest forensic report created in this continuation:
 
 ```text
-Current/PWA/main/main1.md = different current lineage/reference
-Current/PWA/main2/main1.md = active source-repair target
-Current/PWA/New-main = integrated parent artifact
-Original/PWA/main/main1.md = historical reference
+doc/Draft/Reprots/تقرير55.md
 ```
 
-No lineage may be overwritten by another merely because their content looks similar.
-
----
-
-# 9. CORE / PARENT VISION
-
-The desired Parent direction is:
+It records:
 
 ```text
-Historical UI identity
-+
-Current parent application shell
-+
-Shared Core where ownership is proven
-+
-Production-compatible backend contracts
-+
-Tenant-safe data flow
-+
-Preserved historical functionality
-+
-No duplicated business engines
-+
-Runtime-verifiable assembly
-```
-
-Main1 is not treated as a login-only artifact. It is the first logical segment of the current Main2 application and must be repaired/assembled by contract, not by byte-copying.
-
----
-
-# 10. PRODUCTION / DATABASE CONTINUITY
-
-Production evidence used in this stream confirms, among other relevant constraints:
-
-```text
-PostgreSQL 17.6
-users self-row is addressable by auth_id = auth.uid()
-app_private.current_user_company_id() exists
-items.item_code is globally UNIQUE
-stock_branches is UNIQUE(branch_id, item_id)
-stock_vouchers is UNIQUE(company_id, voucher_code)
-receiving.operation_id is UNIQUE
-```
-
-Therefore Item identity must not be incorrectly “repaired” as company-local merely from a cross-company comparison of metadata.
-
----
-
-# 11. INVENTORY CONTRACT — PROTECTED
-
-```text
-PHYSICAL STOCK MOVEMENT
-→ post_stock_movement
-→ stock_branches + inventory_log
-
-reserve_stock / release_stock_reservation
-= reservation only
-```
-
-Inventory cleanup remains a separate workstream. Do not mix it into Main2/Main1 closure unless new evidence makes it the true current root cause.
-
----
-
-# 12. FAILURE MEMORY / ANTIPATTERNS
-
-Never repeat:
-
-```text
-stale CURRENT_STATE treated as current Git
-historical report treated as live production truth
-commit message treated as deployment proof
-source treated as runtime proof
-whole-file overwrite for a surgical repair
-missing permissions treated as Owner wildcard
-external report treated as definitive current scope
-wrong runtime target used to judge a different source fragment
-```
-
-Latest known runtime-harness failure:
-
-```text
-Workflow = CTO Emergency New-main Closure
-Run = 33925065487
-Target = Current/PWA/New-main
-Patch target = SUCCESS
-Browser smoke = FAILURE
-Failure = page.goto: Download is starting
-```
-
-This is not a Main1 source verdict.
-
----
-
-# 13. REPORT54 STATUS
-
-```text
-REPORT = doc/Draft/Reprots/تقرير54.md
-COMMIT = d26695ccca675fb85936bda1707398326ce882ec
-STATUS = CURRENT FORENSIC RECONCILIATION
-```
-
-Report54 records:
-
-```text
-successes
-failures
-errors
-stale-state discovery
-ed4e91 source mutation
-external-analysis correction
-runtime gate failure classification
-Production schema evidence
-Main1 vision correction
+last verified state
+source findings
+Production findings
+historical contradictions
+mistakes and lessons
+Main1 verdict
+runtime gap
 next authorized action
-self-audit
+final self-audit
 ```
 
 ---
 
-# 14. UNIFIED GOVERNANCE COMMAND
+# 9. NEXT AUTHORIZED ACTION
+
+Do not start Main2 source work merely because Main1 source is patched.
+
+First close:
 
 ```text
-FILE = doc/Draft/medhat/MASTER - RAWAEA ERP - UNIFIED CONTINUITY & MAIN1 EXECUTION.md
-COMMIT = e829b747d811e40b402f0e6ba00c366818939a6f
+Current Main1 source
++
+actual deployment
++
+current runtime evidence
++
+Production compatibility
++
+login/session/branding/navigation smoke evidence
 ```
 
-It consolidates:
-
-```text
-MASTER continuity governance
-مبادئ حاكمة
-Inventory integrity directives
-Main1/Parent vision
-Historical-vs-current reconciliation
-Production-first verification
-Failure memory
-Current-state handoff
-Gold/Diamond closure rules
-```
-
-It remains subordinate to direct Production evidence.
+Only then reassess Main1 Full Closure and authorize Main2.
 
 ---
 
-# 15. CURRENT CLOSURE STATUS
+# 10. FINAL SELF-AUDIT — 2026-09-05
 
 ```text
-MAIN1 FORENSIC ROOT CAUSE = CLOSED
-MAIN1 PATCH DESIGN = CLOSED
-MAIN1 PATCH 1–4 = APPLIED
-MAIN1 DIRECT SOURCE VERIFICATION = CLOSED
-CURRENT_STATE RECONCILIATION = CLOSED FOR THIS EVENT
-EXTERNAL ANALYSIS CLASSIFICATION = CLOSED
-MAIN1 INDEPENDENT BROWSER RUNTIME = OPEN
-MAIN1→MAIN2 CUMULATIVE RUNTIME = OPEN
-NEW-MAIN RUNTIME = OPEN
-CORE.JS CENTRALIZATION = OPEN FOLLOW-UP
-FULL GOLD/DIAMOND PARENT = OPEN
+Business Understanding = CONFIRMED for Main1 boundary
+Architecture Understanding = CONFIRMED
+Database Understanding = CONFIRMED for current app_settings/company state
+Historical Understanding = RECONCILED
+Current Source Understanding = CONFIRMED
+Production Understanding = DIRECTLY VERIFIED for current configuration snapshot
+Deployment Understanding = INSUFFICIENT for Full Closure
+Runtime Understanding = NOT PROVEN
+
+Unknowns = current independent Main1 browser/runtime verification; deployed artifact equivalence
+Conflicts = historical external report vs current Main1 source; old snapshot company counts vs current Production snapshot
+Unverified Claims = Main1 is not yet fully runtime-closed
+
+WHAT WAS PROVED = Main1 source Patch 1–4, session restore, app_settings authority
+WHAT WAS NOT PROVED = Full runtime closure
+WHAT WAS FIXED THIS ROUND = continuity/governance/report/state documentation only; no unjustified Main1 source rewrite
+WHAT WAS INITIALLY MISSED = System Settings source needed direct confirmation; Production company count needed fresh query
+FINAL CLOSURE STATUS = MAIN1 SOURCE-CLOSED / FULL-CLOSURE-OPEN
+MAIN2 STATUS = NOT STARTED
 ```
-
-Therefore:
-
-```text
-DO NOT CLAIM MAIN1 PRODUCTION DEPLOYED
-DO NOT CLAIM MAIN1 BROWSER RUNTIME VERIFIED
-DO NOT CLAIM NEW-MAIN RUNTIME CLOSED
-DO NOT CLAIM PROJECT CLOSED
-DO NOT CLAIM GOLD/DIAMOND
-```
-
----
-
-# 16. NEXT AUTHORIZED ACTION
-
-```text
-1. Treat ed4e91... as the authoritative Main1 source mutation.
-2. Run cumulative Main1→Main2 source/static verification using the actual open-script contract.
-3. Verify the complete assembled JavaScript structure and dependency boundaries.
-4. Reassess whether Main2 remains the correct next target.
-5. Only then perform the next surgical change.
-```
-
-Do not reapply Patch 1–4 unless a new regression is proven.
-
----
-
-# 17. SUCCESSOR BOOT
-
-Any successor CTO must:
-
-```text
-READ CURRENT_STATE.md TO EOF
-READ REPORT54 TO EOF
-READ MASTER GOVERNANCE TO EOF
-READ UNIFIED GOVERNANCE COMMAND
-DISCOVER CURRENT GIT HEAD DIRECTLY
-VERIFY CURRENT MAIN1 DIRECTLY
-VERIFY RELEVANT PRODUCTION CONTRACTS
-VERIFY ACTIVE DEPLOYMENTS
-CHECK RUNTIME EVIDENCE
-RECONCILE DRIFT
-DO NOT REPEAT REPORT52/53 PATCH WORK
-DO NOT TREAT 8399ff DOCUMENTATION AS A SOURCE PATCH
-DO NOT TREAT New-main BROWSER FAILURE AS MAIN1 FAILURE
-DO NOT MOVE TO MAIN2 WITHOUT CUMULATIVE MAIN1 VERIFICATION
-```
-
----
-
-# 18. LAST VERIFIED EVENT
-
-```text
-SOURCE EVENT = ed4e91ec595234ba7ede3f08558c660c1b100d3e
-REPORT EVENT = d26695ccca675fb85936bda1707398326ce882ec
-GOVERNANCE EVENT = e829b747d811e40b402f0e6ba00c366818939a6f
-STATE RECONCILIATION = this update
-```
-
-Current Git HEAD must always be rediscovered directly after any future state/documentation commit.
