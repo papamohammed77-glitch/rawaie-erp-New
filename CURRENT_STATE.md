@@ -7,7 +7,7 @@ This file is the continuity checkpoint. It is a declared state and must always b
 ```text
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
-CURRENT GIT HEAD BEFORE THIS STATE UPDATE = d845ad63485fb9093f18bfeb86479846bd8f6eb9
+CURRENT GIT HEAD BEFORE THIS STATE UPDATE = e925dc516b7a67ae237d0fe77251cf5fc8d41c9e
 HISTORICAL REPOSITORY = papamohammed77-glitch/rawaie-erp-review
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
 ```
@@ -48,6 +48,18 @@ d845ad63485fb9093f18bfeb86479846bd8f6eb9
 [CTO] Add Report56 forensic continuity review and Main1 closure verdict
 = CURRENT FORENSIC REPORT
 = MAIN1 SOURCE CLOSED / FULL CLOSURE OPEN
+
+e2dc8da6982a50328d700bc48421282ed782c7cc
+[CTO] Add Report57 forensic Main1 closure continuation
+= FORENSIC REPORT
+
+e925dc516b7a67ae237d0fe77251cf5fc8d41c9e
+[CTO] Add Report57 and reconcile CURRENT_STATE after Main1 forensic continuation
+= STATE RECONCILIATION
+
+c12967d903c6fccf1f437ec460c276c2967ed919
+[CTO] Add Report58 — Main1 forensic closure gate after latest-state recovery
+= FORENSIC REPORT
 ```
 
 ---
@@ -56,28 +68,28 @@ d845ad63485fb9093f18bfeb86479846bd8f6eb9
 
 This round explicitly continued from the prior state; it did not restart Main1 patches.
 
-The following historical/current distinctions were re-verified directly:
+The following distinctions were re-verified directly:
 
 ```text
 ed4e91 = real Main1 source mutation
-Previous session-restore concern = already repaired in current source
-Previous New-main browser failure = not evidence of Main1 browser failure
-External Main1 report = historical/design reference, not current truth
-Report55 = prior forensic checkpoint
-Report56 = latest forensic checkpoint
+No commit after ed4e91 currently touches Current/PWA/main2/main1.md
+Report57 = prior forensic continuation
+Report58 = current forensic closure-gate report
+Latest repository HEAD = e925dc5 before this report commit, then c12967 after Report58 creation
 ```
 
-The latest direct Production query at this checkpoint:
+Latest direct Production query in this continuation:
 
 ```text
-UTC = 2026-09-04 23:03:02.821465
-companies rows = 1
-app_settings rows = 1
+UTC = 2026-09-04 23:38:14.94761
+companies = 1
+app_settings = 1
 company_name = الروائع
 company_logo = NULL
+main_branch_id = a38332b6-6cea-480a-ada1-6eb6ab0590db
 ```
 
-Historical multi-company counts from older snapshots must not be reused as current Production facts without re-querying Production.
+Historical multi-company snapshots must not be reused as current Production facts without re-querying Production.
 
 ---
 
@@ -107,34 +119,22 @@ Primary governance source:
 doc/Draft/medhat/MASTER - RAWAEA ERP.md
 ```
 
-Unified governance successor:
-
-```text
-doc/Draft/medhat/MASTER - RAWAEA ERP - UNIFIED CONTINUITY & MAIN1 EXECUTION.md
-```
-
-Latest forensic governance v2:
-
-```text
-doc/Draft/medhat/MASTER - RAWAEA ERP FORENSIC CONTINUITY GOVERNANCE v2.md
-```
-
 ---
 
 # 3. CURRENT REPAIR TARGET
 
 ```text
 ACTIVE SOURCE REPAIR PACK = Current/PWA/main2/
-CURRENT CLOSURE UNIT = Main1 deployment/runtime proof
-NEXT AUTHORIZED ACTION = establish current assembly/deployment lineage and prove runtime
+CURRENT CLOSURE UNIT = Main1 full product closure gate
+NEXT AUTHORIZED ACTION = final 11-part assembly lineage before runtime closure
 MAIN2 SOURCE FILES = PRESENT
 MAIN2 HISTORICAL SURGERY = PRESENT
-MAIN2 FRESH CLOSURE EXECUTION = NOT AUTHORIZED YET
+MAIN2 FRESH CLOSURE EXECUTION = HOLD
 ```
 
 The fragments are logical parts of one parent application contract, not eleven independent products.
 
-IMPORTANT: `Main2 NOT STARTED` must NOT be interpreted as `Main2 source files absent`. The current repository contains `main1.md` through `main11.md` and historical Main2 surgery commits. Full current Main2 closure remains unproven.
+Current strategy is to preserve the 11 logical parts, perform surgical corrections part-by-part, then assemble the parent artifact before final publish/runtime testing.
 
 ---
 
@@ -156,7 +156,7 @@ PATCH 4 = items/customers/branches/suppliers bootstrap reads use company_id
 SESSION RESTORE = present in current source
 ```
 
-These source repairs are not to be repeated without new contradictory evidence.
+These source repairs are closed and must not be repeated without new contradictory direct evidence.
 
 ---
 
@@ -171,22 +171,17 @@ Authenticated User
 → company branding/configuration
 ```
 
-Current Main1 uses `app_settings` as the authoritative branding/configuration source for company identity shown after entering the system.
+Static strings/defaults in HTML/state are presentation fallbacks unless direct evidence proves otherwise.
 
-Static strings/defaults found in HTML or state are presentation fallbacks only unless direct evidence proves otherwise.
-
-Do NOT replace `app_settings` with static company name/logo values.
-
-Current Production checkpoint:
+Current Production verification:
 
 ```text
-companies rows = 1
-app_settings rows = 1
+companies = 1
+app_settings = 1
 company_name = الروائع
 company_logo = NULL
+main_branch_id = a38332b6-6cea-480a-ada1-6eb6ab0590db
 ```
-
-The current `app_settings` record also exposes the existing main branch/configuration values recorded at the same verification point. Missing values are not to be invented.
 
 ---
 
@@ -198,20 +193,19 @@ SOURCE PATCH 1–4 = CLOSED
 SOURCE SESSION RESTORE = VERIFIED
 SYSTEM SETTINGS AUTHORITY = VERIFIED AS app_settings
 PRODUCTION CONFIGURATION = DIRECTLY VERIFIED
-INDEPENDENT CURRENT MAIN1 RUNTIME = NOT PROVEN
+EXACT ASSEMBLY LINEAGE = NOT PROVEN
 DEPLOYED ARTIFACT EQUIVALENCE = NOT PROVEN
+INDEPENDENT CURRENT MAIN1 RUNTIME = NOT PROVEN
 FULL MAIN1 PRODUCT CLOSURE = OPEN
 ```
 
 Therefore:
 
 ```text
-MAIN1.md = NOT Closed 100% as a production/runtime product
+MAIN1.md = SOURCE-CLOSED, but NOT Closed 100% as an integrated production/runtime product
 ```
 
-The source patch itself is closed. The full product closure is deliberately still open because deployment lineage and current runtime evidence have not been proven.
-
-The absence of runtime proof is not to be converted into a runtime failure.
+The source itself does not require new patching.
 
 ---
 
@@ -221,37 +215,20 @@ Current direct investigation established:
 
 ```text
 Current/PWA/New-main = separate current artifact
-New-main architecture = not proven to be current assembly output of main2/main1.md
+New-main architecture = not proven to be the current assembly output of main2/main1.md
 ```
 
-The latest CI evidence:
+Known CI evidence remains scoped to New-main:
 
 ```text
 RUN = 33927339279
 JOB = 101198600466
-HEAD CHECKED BY RUN = c4dbbe6f8fc96dcd781a3dd6b5769b1c5fd361b7
 RESULT = FAILURE
 FAILED STEP = Immutable audited target
-CHROMIUM STEP = SKIPPED
+CHROMIUM = SKIPPED
 ```
 
-The verifier executed:
-
-```text
-test git hash-object Current/PWA/New-main == 28612a6e76fb0f58cf6b0677c43a8828d0e4436d
-```
-
-and failed before browser execution.
-
-Therefore:
-
-```text
-CI failure = stale/pinned target verification failure
-CI failure != Main1 browser failure
-CI failure != Main1 runtime failure
-```
-
-Do not use this run as proof against Main1 runtime.
+The failure is not valid proof of Main1 browser failure.
 
 ---
 
@@ -266,13 +243,9 @@ historical Main1 analysis ≠ current Main1 source
 static fallback ≠ authoritative configuration
 ```
 
-Previous browser symptoms such as `page.goto: Download is starting` belonged to the New-main verification context and must not be reinterpreted as Main1 defects without fresh direct evidence.
-
 ---
 
 # 9. MAIN2 CURRENT FACTS
-
-Direct repository inspection and Git history established:
 
 ```text
 Current/PWA/main2/main1.md = present
@@ -298,7 +271,7 @@ fix(cto): start cumulative syntax gate at closed Main1+Main2 boundary
 fix(cto): preserve main2 compatibility IIFE boundary during P163 surgery
 ```
 
-Correct current interpretation:
+Current interpretation:
 
 ```text
 MAIN2 SOURCE FILES = PRESENT
@@ -307,40 +280,16 @@ MAIN2 FULL CURRENT CLOSURE = NOT PROVEN
 MAIN2 FRESH EXECUTION = HOLD
 ```
 
-We do NOT re-run Main2 from zero.
+Do not restart Main2 from zero.
 
 ---
 
 # 10. CURRENT REPORTS
 
-Latest forensic report created in this continuation:
-
 ```text
-doc/Draft/Reprots/تقرير56.md
-```
-
-Commit:
-
-```text
-d845ad63485fb9093f18bfeb86479846bd8f6eb9
-```
-
-It records:
-
-```text
-continuity recovery
-latest Git sequence
-Main1 source findings
-System Settings contract
-Production configuration evidence
-New-main vs Main1 separation
-CI evidence
-Main2 source/history reconciliation
-conflicts
-mistakes and lessons
-Main1 verdict
-next authorized action
-final self-audit
+Report56 = d845ad63485fb9093f18bfeb86479846bd8f6eb9
+Report57 = e2dc8da6982a50328d700bc48421282ed782c7cc
+Report58 = c12967d903c6fccf1f437ec460c276c2967ed919
 ```
 
 All previous reports remain preserved. No report was deleted.
@@ -351,32 +300,21 @@ All previous reports remain preserved. No report was deleted.
 
 Do NOT re-patch Main1 Patch 1–4.
 
-Do NOT start Main2 as a fresh repair wave.
+Do NOT declare Main1 Full Closed yet.
 
-First close the actual open boundary:
+Do NOT open `main2.md` as a fresh repair wave yet.
 
-```text
-CURRENT main2/main1 source
-+
-CURRENT assembly lineage
-+
-actual deployment target
-+
-current runtime/browser verification
-+
-Production compatibility
-+
-login/session/branding/navigation smoke evidence
-```
-
-Only after that evidence passes may Main1 be declared Full Closed.
-
-Then and only then:
+The current authorized path is:
 
 ```text
-reconcile Main2 historical surgery
-→ compare current Main2 files with runtime/production
-→ open Main2 as one Closure Unit
+preserve Main1 source closure
+→ continue surgical review of the remaining main2/ fragments as authorized by the project owner
+→ complete the planned 11-part assembly
+→ reconcile core.js / sw.js / register-sw.js / manifest.json with the final assembled parent artifact
+→ perform final deployment + runtime/browser + Production compatibility verification
+→ update CURRENT_STATE with evidence
+→ then close Main1 Full Product
+→ then reassess/open Main2 closure unit
 ```
 
 ---
@@ -384,183 +322,79 @@ reconcile Main2 historical surgery
 # 12. FINAL SELF-AUDIT — 2026-09-05
 
 ```text
-Business Understanding = CONFIRMED for Main1 boundary
-Architecture Understanding = CONFIRMED for Main1/source-vs-runtime boundary
-Database Understanding = CONFIRMED for current app_settings/company state
-Historical Understanding = RECONCILED through Report56
-Current Source Understanding = CONFIRMED
-Production Understanding = DIRECTLY VERIFIED for current configuration snapshot
-Deployment Understanding = INSUFFICIENT for Full Closure
-Runtime Understanding = NOT PROVEN
+Business Understanding = CONFIRMED for Main1 source-vs-runtime boundary
+Architecture Understanding = CONFIRMED
+Database / Production = DIRECTLY VERIFIED at 2026-09-04 23:38:14.94761 UTC
+Historical Understanding = RECONCILED through Report58
+Current Git Understanding = DIRECTLY VERIFIED
+Current Main1 Source = DIRECTLY VERIFIED
+Deployment Understanding = OPEN
+Runtime Understanding = OPEN
 
 CONFIRMED FACTS
-- Main1 Patch 1–4 are already in current Git source
-- Session restore is present
-- app_settings is the authoritative branding/configuration source
-- Production currently shows 1 company and 1 app_settings row
-- Main2 files exist in the repository
-- Main2 historical surgery exists in Git history
-- latest New-main CI failed at its immutable target check before Chromium
+- ed4e91 is the last commit touching main1.md
+- Patch 1–4 remain present
+- no source regression was found
+- Production currently has 1 company and 1 app_settings row
+- main2 fragments 1–11 exist
+- Main2 historical surgery exists
+- latest HEAD e925dc5 was documentation/state reconciliation before Report58 commit
 
 UNKNOWN
-- actual current runtime artifact assembled from main2/main1 lineage
-- deployment equivalence between that assembly and Production
+- exact final assembly artifact
+- exact deployment target of the final assembly
+- exact browser/runtime mapping
 
-CONFLICTS
-- older CURRENT_STATE wording said Main2 not started, while repository/history prove Main2 files and historical surgery exist
-- New-main verification is not Main1 verification
+CONFLICTS RESOLVED
+- Main1 source closure vs full product closure
+- New-main CI failure vs Main1 runtime
+- historical stage wording vs current repository state
 
-UNVERIFIED CLAIMS
-- Main1 full runtime/production closure
-- Main2 full closure
+WHAT I PROVED
+- Main1 source changes survived
+- no reason to repeat them
+- current Production configuration remains coherent
+- Main1 full closure is not yet provable
 
-WHAT WAS PROVED
-- Main1 source closure for addressed Patch 1–4
-- app_settings authority
-- current Production configuration snapshot
-- latest repository/CI state
+WHAT I DID NOT PROVE
+- Main1 exact runtime
+- deployment equivalence
+- final assembled artifact
+- production browser behavior
 
-WHAT WAS NOT PROVED
-- Main1 runtime closure
-- deployed artifact equivalence
-- Main2 current closure
+WHAT I CHANGED
+- documentation only: Report58 and this CURRENT_STATE reconciliation
 
-WHAT WAS FIXED THIS ROUND
-- continuity documentation
-- Report56
-- CURRENT_STATE reconciliation
-- no unjustified Main1 source rewrite
-
-WHAT WAS INITIALLY MISSED / CORRECTED
-- Main2 should not be described as source-absent
-- New-main should not be treated as Main1 runtime proof
-- source closure must not be conflated with production closure
+WHAT I DID NOT CHANGE
+- main1.md
+- main2.md
+- main3.md through main11.md
+- New-main
+- core.js
+- sw.js
+- register-sw.js
+- manifest.json
 
 FINAL CLOSURE STATUS
-MAIN1 = SOURCE-CLOSED / FULL-CLOSURE-OPEN
-MAIN2 = SOURCE-PRESENT / HISTORICAL-SURGERY-PRESENT / FULL-CLOSURE-HOLD
+MAIN1 = SOURCE-CLOSED / FULL-PRODUCT-CLOSURE-OPEN
+MAIN2 = SOURCE-PRESENT / FULL-CLOSURE-HOLD
 ```
 
 ---
 
 # 13. CONTINUITY LOCK
 
-The next CTO or assistant must begin from this file and must not repeat already-closed Main1 source patches without contradictory direct evidence.
+The next CTO or assistant must begin from `c12967d903c6fccf1f437ec460c276c2967ed919` and must not repeat Main1 Patch 1–4 without contradictory direct evidence.
 
-The next first questions are:
-
-```text
-What exact artifact is served to the user?
-How is it assembled from Current/PWA/main2/?
-Where is it deployed?
-Can the current runtime artifact be mapped byte-for-byte or by a reproducible build lineage to Git?
-Can browser verification be executed against that exact artifact?
-```
-
-Only those answers can move Main1 from:
+The exact current facts to preserve are:
 
 ```text
-SOURCE-CLOSED / FULL-CLOSURE-OPEN
+MAIN1 SOURCE = CLOSED
+MAIN1 FULL PRODUCT = OPEN
+LATEST MAIN1-SOURCE COMMIT = ed4e91ec595234ba7ede3f08558c660c1b100d3e
+LATEST REPORT = Report58
+LATEST PRODUCTION VERIFICATION = 2026-09-04 23:38:14.94761 UTC
+MAIN2 = PRESENT / HISTORICAL SURGERY PRESENT / FRESH CLOSURE HOLD
 ```
 
-to:
-
-```text
-FULL MAIN1 PRODUCT CLOSURE = CLOSED
-```
-
----
-
-# 14. CONTINUATION FORENSIC RECONCILIATION — 2026-09-05
-
-This section supersedes only the stale checkpoint metadata above; all historical sections remain preserved.
-
-## Last verified state at start of this continuation
-
-```text
-CURRENT STATE CHECKPOINT = Report56 / d845ad...
-CURRENT DIRECT GIT HEAD AT INVESTIGATION START = 313d623764eb4c8c7cedac1ff9134975195c49db
-CURRENT DIRECT MAIN1-AFFECTING COMMIT = ed4e91ec595234ba7ede3f08558c660c1b100d3e
-CURRENT MAIN1 BLOB = 4d1b42250cfe2b3a8ec7d02b7b482eca8e27bade
-```
-
-The current HEAD `313d...` was verified as a `CURRENT_STATE` documentation reconciliation commit; it did not mutate `main1.md`.
-
-The current Main1 path history was re-queried directly. No commit after `ed4e91...` currently touches `Current/PWA/main2/main1.md`.
-
-## Direct findings
-
-```text
-Main1 source Patch 1–4 = still present
-Main1 source blob = unchanged since ed4e91
-No source regression discovered
-No justification to re-run Patch 1–4
-```
-
-## Files rechecked
-
-```text
-Current/PWA/main2/main1.md
-Current/PWA/main2/main2.md
-Current/PWA/core.js
-Current/PWA/sw.js
-Current/PWA/register-sw.js
-Current/PWA/manifest.json
-```
-
-Current manifest contract remains:
-
-```text
-start_url = ./New-main
-scope = ./
-```
-
-This does not prove that `New-main` is assembled from `main2/main1.md`.
-
-## Production evidence boundary
-
-The latest directly recorded Production configuration checkpoint remains:
-
-```text
-UTC = 2026-09-04 23:03:02.821465
-companies = 1
-app_settings = 1
-company_name = الروائع
-company_logo = NULL
-```
-
-No historical multi-company snapshot is allowed to override a fresh current query.
-
-## Runtime/deployment boundary
-
-Still unresolved:
-
-```text
-exact assembly process for main2/main1 → served artifact
-exact deployment target for that artifact
-fresh browser/runtime verification against that exact artifact
-```
-
-The prior New-main CI failure remains scoped to New-main target verification and cannot close Main1.
-
-## Report created in this continuation
-
-```text
-doc/Draft/Reprots/تقرير57.md
-commit = e2dc8da6982a50328d700bc48421282ed782c7cc
-```
-
-Report57 records the full forensic continuation, the current Main1 verdict, the evidence boundaries, the historical mistakes avoided, and the exact next closure unit.
-
-## Final status after this continuation
-
-```text
-MAIN1 SOURCE CLOSURE = CLOSED
-MAIN1 FULL PRODUCT CLOSURE = OPEN
-MAIN2 SOURCE FILES = PRESENT
-MAIN2 FULL CLOSURE = HOLD
-
-NEXT CLOSURE UNIT = ASSEMBLY / DEPLOYMENT / RUNTIME LINEAGE FOR MAIN2/MAIN1
-```
-
-This is the authoritative continuation state until contradicted by newer direct evidence.
+The next closure proof must not use New-main as a substitute for the final assembly.
