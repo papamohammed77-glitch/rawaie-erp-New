@@ -1,0 +1,89 @@
+name: CTO Main2 Surgical Transformer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cto-main2-surgical.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  surgical-main2:
+    if: github.actor == 'papamohammed77-glitch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Apply exact surgical replacements
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('Current/PWA/main2/main2.md')
+          s = p.read_text(encoding='utf-8')
+          original = s
+
+          helper = """function _rwCompanyId() {\n    return window.RW_STATE && RW_STATE.app && RW_STATE.app.company && RW_STATE.app.company.id ? RW_STATE.app.company.id : null;\n}\n\n"""
+          if "function _rwCompanyId()" not in s:
+              marker = "// ============================================================\n// RW_Dashboard"
+              if marker not in s:
+                  raise SystemExit('Dashboard marker not found')
+              s = s.replace(marker, helper + marker, 1)
+
+          replacements = [
+            ("supabase.from('orders').select('order_code, customer_id, total_amount, order_date, area').gte('order_date', fromDate).lte('order_date', toDate)",
+             "supabase.from('orders').select('id, order_code, customer_id, customer_name, total_amount, order_date, area').eq('company_id', companyId).gte('order_date', fromDate).lte('order_date', toDate)"),
+            ("supabase.from('orders').select('total_amount').gte('order_date', prevFrom).lte('order_date', prevTo)",
+             "supabase.from('orders').select('total_amount').eq('company_id', companyId).gte('order_date', prevFrom).lte('order_date', prevTo)"),
+            ("supabase.from('purchase_orders').select('total_amount').gte('po_date', fromDate).lte('po_date', toDate)",
+             "supabase.from('purchase_orders').select('total_amount').eq('company_id', companyId).gte('po_date', fromDate).lte('po_date', toDate)"),
+            ("supabase.from('customers').select('customer_code').then(function(res)",
+             "supabase.from('customers').select('customer_code').eq('company_id', companyId).then(function(res)"),
+            ("supabase.from('items').select('item_code').then(function(res)",
+             "supabase.from('items').select('item_code').eq('company_id', companyId).then(function(res)"),
+            ("supabase.from('order_details').select('item_code, item_name, qty, unit_price').gte('created_at', fromDate).lte('created_at', toDate)",
+             "supabase.from('order_details').select('item_code, item_name, qty, unit_price').in('order_id', orderIds)"),
+            ("var poData = poRes.data || [];", "var poData = poRes.data || [];"),
+            ("var branches = window._itemsBranches || RW_STATE.data.branches || [];\n        if (!branches.length) {\n            try { branches = await RW_Data.loadBranches(); } catch(e) {}\n        }\n        var stockRes = await supabase.from('stock_branches').select('item_id, branch_id, qty, allocated_qty');\n        var stockRows = stockRes.data || [];",
+             "var branches = window._itemsBranches || RW_STATE.data.branches || [];\n        if (!branches.length) {\n            try { branches = await RW_Data.loadBranches(); } catch(e) {}\n        }\n        var branchIds = [];\n        for (var b = 0; b < branches.length; b++) branchIds.push(branches[b].id || branches[b].branch_code);\n        var stockRes = branchIds.length ? await supabase.from('stock_branches').select('item_id, branch_id, qty, allocated_qty').in('branch_id', branchIds) : { data: [], error: null };\n        if (stockRes.error) throw stockRes.error;\n        var stockRows = stockRes.data || [];"),
+            ("        var branchIds = [];\n        for (var b = 0; b < branches.length; b++) {\n            branchIds.push(branches[b].id || branches[b].branch_code);\n        }\n", ""),
+            ("supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').order('voucher_date',{ascending:true})",
+             "supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').eq('company_id', companyId).order('voucher_date',{ascending:true})"),
+            ("supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').or('from_branch_id.eq.'+branchId+',to_branch_id.eq.'+branchId).order('voucher_date',{ascending:true})",
+             "supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').eq('company_id', companyId).or('from_branch_id.eq.'+branchId+',to_branch_id.eq.'+branchId).order('voucher_date',{ascending:true})"),
+            ("supabase.from('categories').select('id, category_name').eq('company_id', companyId).order('category_name')", "supabase.from('categories').select('id, category_name').eq('company_id', companyId).order('category_name')"),
+            ("supabase.from('categories').select('id, category_name').order('category_name')", "supabase.from('categories').select('id, category_name').eq('company_id', companyId).order('category_name')"),
+            ("supabase.from('items').select('id').eq('category_id', id).limit(1)", "supabase.from('items').select('id').eq('company_id', companyId).eq('category_id', id).limit(1)"),
+            ("supabase.from('items').select('id,item_code,barcode,name').in('barcode',barcodes)", "supabase.from('items').select('id,item_code,barcode,name').eq('company_id', companyId).in('barcode',barcodes)"),
+          ]
+          for old, new in replacements:
+              s = s.replace(old, new)
+
+          if "function _rwCompanyId()" not in s:
+              raise SystemExit('Company helper insertion failed')
+          if "eq('company_id', companyId)" not in s:
+              raise SystemExit('Tenant scoping replacements did not apply')
+          if s == original:
+              raise SystemExit('No changes produced')
+
+          p.write_text(s, encoding='utf-8')
+          PY
+
+          git diff --check
+          git diff -- Current/PWA/main2/main2.md
+
+      - name: Commit surgical result
+        shell: bash
+        run: |
+          git config user.name 'CTO Surgical Automation'
+          git config user.email 'actions@github.com'
+          git add Current/PWA/main2/main2.md
+          git diff --cached --check
+          git commit -m "fix(main2): surgical tenant-scoping and dashboard integrity"
+          git push origin main
