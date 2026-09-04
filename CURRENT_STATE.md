@@ -20,8 +20,8 @@ REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH     = main
 TARGET     = Current/PWA/New-main
 
-LATEST VERIFIED HEAD BEFORE THIS CURRENT_STATE WRITE
-= 756b0900fc096417d06f256ad66c106010ff55be
+LATEST DOCUMENTATION HEAD BEFORE THIS CURRENT_STATE WRITE
+= 76951a06a3034bc9cf682f5acb74cab79d85315d
 
 CURRENT TARGET BLOB
 = 22f4ee1a666141be62127159337beffb05e8b146
@@ -30,66 +30,73 @@ LATEST VERIFIED TARGET-AFFECTING COMMIT
 = 282cce040c51b2f4f926a8ca9227ef89ee742713
 ```
 
-Direct Git comparison:
+Recent documentation-only commits at this station include:
 
 ```text
-BASE = 282cce...
-HEAD = 756b0900...
-AHEAD = 29
-BEHIND = 0
+b14373ebddedcc4fd3d80fd0daf7281eea67c38c
+[CTO] Reconcile CURRENT_STATE with Report 42 and V5 Login closure task
+
+d8e462bbe0ef0675179a81e89a8c39f441fcc0ff
+[CTO] Add Report 43 — forensic continuity and next limited assistant design
+
+95abacb027d4d698ae7013e8a4a28cfb2b5ab9d4
+[CTO] Add V6 limited assistant — Company and Brand Identity parity closure unit
+
+76951a06a3034bc9cf682f5acb74cab79d85315d
+[CTO] Add unified V6 successor continuity and five-assistant execution directive
 ```
 
-The commits after `282cce...` are continuity/documentation/report/prompt updates only. `Current/PWA/New-main` does not appear in that compare file set.
-
-Therefore:
+Direct Git chronology remains:
 
 ```text
-TARGET CHANGED AFTER 282cce...? = NO VERIFIED EVIDENCE
-TARGET CONTENT = still blob 22f4ee1a...
+LAST TARGET-AFFECTING COMMIT = 282cce...
+TARGET BLOB = 22f4ee1...
+NO VERIFIED TARGET CHANGE AFTER 282cce
 ```
 
-Git remains the chronology authority. The HEAD recorded here becomes stale whenever the next documentation commit is made.
+The current-state file itself becomes stale whenever another documentation commit is made; Git remains chronology authority.
 
 ## LATEST FORENSIC REPORT
 
 ```text
-= doc/Draft/Reprots/تقرير42.md
-COMMIT = 756b0900fc096417d06f256ad66c106010ff55be
+= doc/Draft/Reprots/تقرير43.md
+COMMIT = d8e462bbe0ef0675179a81e89a8c39f441fcc0ff
 ```
 
-Previous preserved reports:
+Previous preserved reports remain intact:
 
 ```text
+تقرير42.md
 تقرير41.md
 تقرير40.md
 تقرير39.md
 تقرير38.md
 ```
 
-## LATEST LIMITED-ASSISTANT EVIDENCE
+## LATEST SUCCESSOR DIRECTIVES
+
+### Unified continuity directive
 
 ```text
-= doc/Draft/Reprots/تقرير مساعد جديد محدود
-BLOB = 1da9d45a5705eb0bd334d8a943ba67aa4d91e808
+= doc/Draft/medhat/MASTER_CTO_NEWM_SUCCESSOR_CHAIN_UNIFIED_V6.md
+COMMIT = 76951a06a3034bc9cf682f5acb74cab79d85315d
 ```
 
-The limited assistant did not reach New-main EOF, did not independently prove current Supabase state in its attempt, and did not have Git history/runtime browser tools. Its observations remain useful leads only.
-
-After direct EOF inspection of New-main:
+Purpose:
 
 ```text
-license route = PRESENT
-license renderer contract = PRESENT
-8 alleged dead routes = CURRENT ROUTES PRESENT
+Unified operating doctrine
++
+Five-assistant sequential closure architecture
++
+Evidence → reconciliation → patch → verify → handoff
 ```
 
-Runtime reachability is still not automatically proven.
-
-## LATEST SUCCESSOR DIRECTIVE
+### Current next limited assistant
 
 ```text
-= doc/Draft/medhat/MASTER_CTO_NEWM_LIMITED_ASSISTANT_TASK_LOGIN_PARITY_V5.md
-COMMIT = 98877acdd1a61bcabb7fb934c13f277e7daaf96f
+= doc/Draft/medhat/MASTER_CTO_NEWM_LIMITED_ASSISTANT_TASK_COMPANY_IDENTITY_V6.md
+COMMIT = 95abacb027d4d698ae7013e8a4a28cfb2b5ab9d4
 ```
 
 Purpose:
@@ -100,105 +107,128 @@ Current/PWA/New-main
 ↕
 Original/PWA/main/main1.md
 ↓
-LOGIN PARITY ONLY
+COMPANY / BRAND IDENTITY PARITY ONLY
 ```
 
-The V5 directive explicitly forbids restarting the project, rebuilding Login wholesale, reopening License/navigation repairs, or touching unrelated modules.
+The V6 task explicitly forbids reopening Login, License, owner authorization, navigation, CRUD, inventory, accounting, or unrelated backend work.
 
-Previous canonical directives remain preserved:
+### Previous Login task preserved
 
 ```text
-MASTER_CTO_NEWM_LIMITED_ASSISTANT_SUCCESSOR_V4_CONTINUATION.md
-MASTER_CTO_NEWM_LIMITED_ASSISTANT_SUCCESSOR_V3.md
-MASTER_CTO_NEWM_PRODUCT_COMPLETION_SUCCESSOR_V2.md
-MASTER_CTO_NEWM_PRODUCT_COMPLETION_SUCCESSOR.md
-MASTER_OFFLINE_CTO_NEW_MAIN_COMPLETION.md
-MASTER_CTO_CONTINUITY_DIRECTIVE_RAWAEA_ERP.md
-CTO EXECUTION COMMAND.md
+= doc/Draft/medhat/MASTER_CTO_NEWM_LIMITED_ASSISTANT_TASK_LOGIN_PARITY_V5.md
+COMMIT = 98877acdd1a61bcabb7fb934c13f277e7daaf96f
 ```
 
-## DIRECT CURRENT SOURCE FINDINGS — NEW-MAIN EOF
+## LIMITED ASSISTANT — FORENSIC CAPABILITY PROFILE
 
-Current New-main was inspected through its ending sections in the preceding forensic work. The EOF contains:
+The prior limited assistant report is preserved and remains evidence of the actual constraints encountered:
 
 ```text
-RAWAEA 122 DIAMOND CONTRACT CLOSURE v1
-RAWAEA MAIN1 NOTIFICATION CONTRACT CLOSURE v1
-RAWAEA MAIN SIDEBAR COMPLETENESS FINAL V1
+No dependable Git history/diff capability
+No real browser runtime
+Partial-read risk on very large files
+Could access raw source in some conditions
+Could perform textual comparison
+Could access Supabase only where connection/tooling permitted
 ```
 
-The current source explicitly contains:
+Its important process failure was treating partial source reading as evidence of absence. Report41 later disproved its claims that License and eight route handlers were absent.
+
+Operational lesson:
 
 ```text
-permFor(view)
-allowed(view)
-nav.navigate(view)
-routes{}
+LIMITED TOOLS REQUIRE SMALLER CLOSURE UNITS
+NOT LOWER EVIDENCE STANDARDS
 ```
 
-Owner/license path:
+## MASTER RECOVERY DIRECTIVE — DIRECTLY READ
+
+The supplied CTO handover/recovery directive was directly read to EOF in the current conversation across 1260 lines.
+
+Its controlling principles are:
 
 ```text
-license:'owner'
-if(view==='license'||view==='audit') return hasOwner()
-license:[window.RW_OwnerLicense,'render']
-{view:'license',label:'إدارة الترخيص',perm:'owner'}
+Production evidence > reports > memory
+Current is working source for approved development
+Git is chronology authority
+One Core / One Source of Truth
+Observe → Reproduce → Trace → Root Cause → Repair → Test → Deploy → Verify → Close
+One Closure Unit at a time
+No 100% while required gates are Unknown/Unverified
+Do not use BLOCKED as an excuse where a practical alternative exists
 ```
 
-Current route map also contains handlers for:
+The handover also defines the Inventory rescue architecture:
 
 ```text
-branches
-users
-roles
-online-store
-purchase-pos
-vehicle-count
-branch-count
-general-count
+Physical Stock Movement → post_stock_movement
+Reservation → reserve_stock
+Picking ≠ Physical Movement
+Loading = MAIN → VAN
+VanSale = VAN → Customer
+Unloading = VAN → MAIN
 ```
 
-Important distinction:
+These Inventory contracts are preserved context and are out of scope for the current PWA identity unit unless a proven blocking dependency appears.
+
+## DIRECT CURRENT SOURCE FINDINGS — NEW-MAIN
+
+Current `Current/PWA/New-main` source contains:
 
 ```text
-SOURCE ROUTE EXISTS != RUNTIME ROUTE PROVEN
+rw-login-title = 58px
+rw-login-logo  = 88px × 88px
+
+remember-me
+forgot-password
+password visibility toggle
+responsive Login shell
 ```
 
-## OWNER / LICENSE — DIRECT PRODUCTION VERIFICATION
-
-Current Supabase schema was inspected before querying values.
-
-Relevant schema facts:
+It also contains company/brand presentation surfaces including:
 
 ```text
-users.status exists
-users.permissions exists (jsonb)
-users.role_id exists
-users.auth_id exists
-roles.role_name exists
-owner_profile.auth_user_id exists
-owner_profile.license_status exists
+RAWAEA ERP ENTERPRISE
+الروائع ERP
+Clean-room MAIN1 contract surface
+rw-login-logo
+rw-company-name
+rw-company-description
+rw-sidebar-brand-logo
+rw-sidebar-company-name
+rw-sidebar-company-subtitle
 ```
 
-There is no `users.is_active` field and no `roles.name` field in the inspected schema.
+The source contains the License route/renderer contract and the previously alleged eight dead routes were proven present in the current source. Runtime reachability is not thereby proven.
 
-Current owner state:
+## DIRECT HISTORICAL MAIN1 FINDINGS
+
+`Original/PWA/main/main1.md` was directly opened.
+
+Confirmed historical Login/identity characteristics include:
 
 ```text
-email = owner@alrawae.com
-status = Active
+.rw-login-title = 64px
+.rw-login-logo  = 120px × 120px
+```
+
+It also contains richer historical visual treatment around the Login card, input/icon presentation, typography, and branding presentation.
+
+A historical difference is not automatically a regression. The successor must classify each difference before changing Current.
+
+## OWNER / LICENSE — PROVEN CONTRACT
+
+Current direct Production evidence retained and revalidated:
+
+```text
 public.users.permissions = ["*"]
+users.status = Active
 role_name = مدير النظام
-auth_id = linked
-owner_profile linkage = valid
+auth identity linked
+owner_profile linked
 license_status = active
-```
-
-Direct Auth verification:
-
-```text
-user_metadata.isOwner = true
-user_metadata.permissions = ["*"]
+Auth user_metadata.isOwner = true
+Auth user_metadata.permissions = ["*"]
 ```
 
 Canonical owner contract:
@@ -217,13 +247,32 @@ VALID owner_profile
 ACTIVE LICENSE
 ```
 
-Do not replace wildcard semantics with role-permission enumeration.
+Do not replace wildcard semantics with enumerated role permissions.
 
-## INVESTIGATOR ERRORS RECORDED
+License source contract is present in Current.
+
+## SUPABASE SCHEMA — DIRECTLY VERIFIED
+
+Before schema-dependent querying, `information_schema.columns` was inspected directly.
+
+Relevant actual fields:
 
 ```text
-users.is_active  → field does not exist; actual field = users.status
-roles.name       → field does not exist; actual field = roles.role_name
+users.status
+users.permissions (jsonb)
+users.role_id
+users.auth_id
+roles.role_name
+roles.permissions (jsonb)
+owner_profile.auth_user_id
+owner_profile.license_status
+```
+
+Known investigator query errors remain recorded:
+
+```text
+users.is_active  → nonexistent field
+roles.name       → nonexistent field
 ```
 
 Classification:
@@ -233,104 +282,7 @@ INVESTIGATOR QUERY ERROR
 NOT PRODUCTION DEFECT
 ```
 
-Permanent rule:
-
-```text
-inspect information_schema.columns before querying an uncertain field
-```
-
-## SAFE-TEXT / AUTH-ID LEADS
-
-Historical leads remain:
-
-```text
-safeText is not defined
-AUTH_ID_UNAVAILABLE
-```
-
-Current source visibly contains:
-
-```text
-window.safeText
-AUTH_ID_UNAVAILABLE defensive guard
-```
-
-Status:
-
-```text
-CURRENT DEFECT = NOT PROVEN
-TRACE REQUIRED BEFORE PATCH
-```
-
-## LOGIN PARITY — CURRENTLY SELECTED NEXT CLOSURE UNIT
-
-Direct comparison proved:
-
-```text
-Current/PWA/New-main
-    title = 58px
-    logo  = 88px × 88px
-
-Original/PWA/main/main1.md
-    title = 64px
-    logo  = 120px × 120px
-```
-
-New-main also already contains functional Login elements including:
-
-```text
-remember-me
-forgot-password
-password visibility toggle
-responsive behavior
-```
-
-Therefore the next assistant must NOT replace the Login with Original wholesale.
-
-Current classification:
-
-```text
-LOGIN PARITY GAP = CONFIRMED LEAD
-FULL LOGIN REGRESSION = NOT CLAIMED
-RUNTIME SUCCESS = NOT PROVEN
-```
-
-## LIMITED ASSISTANT V5 EXECUTION CONTRACT
-
-The next assistant has exactly one closure unit:
-
-```text
-Current/PWA/New-main
-↕
-Original/PWA/main/main1.md
-↓
-Login parity only
-```
-
-It must:
-
-```text
-1. Re-prove Git checkpoint.
-2. Read the two relevant files directly.
-3. Build a comparison matrix.
-4. Classify differences.
-5. Patch only proven Login regressions.
-6. Preserve current functional Login capabilities.
-7. Avoid all unrelated modules.
-8. Verify the changed source.
-9. Record runtime as NOT PROVEN unless actual runtime evidence exists.
-10. Create the next numbered report.
-```
-
-If no regression is proven:
-
-```text
-DO NOT PATCH
-```
-
-## FIVE-ASSISTANT EXECUTION CHAIN
-
-The execution plan created in Report42 is:
+## CURRENT FIVE-ASSISTANT CHAIN
 
 ```text
 ASSISTANT 1
@@ -351,42 +303,42 @@ INTEGRATION / REGRESSION / GOLD READINESS
 
 ### Assistant 1
 
-Scope:
+Closure Unit:
 
 ```text
-New-main ↔ Original main1
+Current ↔ Original main1
 Login only
 ```
 
-### Assistant 2
+Directive = V5.
 
-Scope:
+### Assistant 2 — NEXT
+
+Closure Unit:
 
 ```text
-Company identity
-Logo
-Shell identity
-Login-to-shell identity continuity
+Current ↔ Original main1
+Company / Brand Identity only
 ```
+
+Directive = V6.
 
 ### Assistant 3
 
-Scope:
+Closure Unit:
 
 ```text
 menu
 → permission
-→ view key
+→ view
 → route
 → renderer/delegation
 → runtime/re-entry where available
 ```
 
-License is verified as source-present and should not be rebuilt.
-
 ### Assistant 4
 
-Scope:
+Closure Unit:
 
 ```text
 customers
@@ -397,65 +349,40 @@ users
 roles
 ```
 
-Every difference must be classified before patching; blind CRUD restoration is forbidden.
-
 ### Assistant 5
 
-Scope:
+Closure Unit:
 
 ```text
-cross-unit reconciliation
-refresh/re-entry regression
-authorization proof
-tenant/security evidence relevant to touched surfaces
-fresh Gold/Diamond readiness evidence
+cross-unit integration
+refresh/re-entry
+authorization
+tenant/security evidence
+fresh Gold/Diamond readiness
 ```
 
-No Gold/Diamond/100% claim without fresh evidence.
+No assistant may silently expand its Closure Unit.
 
-## HANDOFF CONTRACT
+## HANDOFF CONTRACT — MANDATORY
 
-Every assistant must leave:
+Each assistant must leave:
 
 ```text
 Starting HEAD
-Starting target state
+Starting target state/blob
 Sources actually opened
 Claims disproven
 Facts proven
+Comparison matrix
+Patch decision
 Files changed
-Patch result
 Verification result
 Runtime status
 Remaining unknowns
+Errors made
 DO-NOT-REPEAT list
 Next exact scope
 Final Self-Audit
-```
-
-A later assistant may override a previous report only when newer direct evidence proves a contradiction.
-
-## MASTER - RAWAEA ERP.md
-
-The supplied attachment containing the requested master recovery directive was read fully to EOF in the current conversation.
-
-A separately verifiable repository copy with that exact filename was not found in GitHub during the repository search, so no fabricated repository path is recorded.
-
-The attachment remains a valid task input; GitHub continuity files remain the persistent handoff source.
-
-## OUT OF SCOPE UNLESS BLOCKING DEPENDENCY IS PROVEN
-
-```text
-inventory business-engine redesign
-stock posting redesign
-reservation-engine redesign
-accounting core redesign
-ledger core redesign
-treasury redesign
-unrelated backend redesign
-Original files as targets
-parallel PWA targets
-production business-data experimentation
 ```
 
 ## GOLD / DIAMOND
@@ -466,33 +393,38 @@ CURRENT DIAMOND = NOT PROVEN
 CURRENT 100% = NOT PROVEN
 ```
 
-Historical markers inside New-main are metadata only and do not constitute fresh acceptance evidence.
+Historical markers are not fresh acceptance evidence.
 
-## CHAIN OF CUSTODY
-
-Preserved:
+## OUT OF SCOPE FOR THE NEXT ASSISTANT
 
 ```text
-Report 38
-Report 39
-Report 40
-Report 41
-Report 42
-Limited Assistant Report
-V2 successor
-V3 successor
-V4 successor
-V5 limited Login task
-CTO EXECUTION COMMAND
-Historical prompts and reports
+License
+Owner authorization
+permissions
+Sidebar/navigation
+Customers
+Suppliers
+Branches CRUD
+Users
+Roles
+Dashboard business logic
+Sales
+Warehouse
+Inventory
+Accounting
+Edge Functions
+Core RPCs
+Production business data
 ```
 
 ## FINAL CONTINUITY RULE
 
 > The successor inherits evidence trails, not confidence.
 
-> The correct next change is the first currently proven safe blocker — not the loudest historical report.
+> Never replay a disproven repair without newer contradictory evidence.
 
-> If a claim was disproven by the current source/EOF, do not repair it again.
+> A partial read cannot establish absence.
 
-> One assistant closes one unit; the next assistant starts from the exact handoff, not from memory.
+> One assistant closes one unit; the next starts from the exact handoff.
+
+> The next correct action is the smallest currently proven safe blocker.
