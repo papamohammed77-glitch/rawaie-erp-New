@@ -1,0 +1,25 @@
+name: Medhat picker Production HTTP PR gate
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute live Production picker HTTP E2E
+        run: |
+          set -euo pipefail
+          echo "fixture contract: generated order_details.line_amount is intentionally omitted"
+          curl --fail-with-body --silent --show-error --max-time 180 \
+            "https://fiilmooggumokxanwiyx.supabase.co/functions/v1/complete-picking-picker-http-gate-20260818" | tee result.json
+          python - <<'PY'
+          import json
+          r=json.load(open('result.json'))
+          print(json.dumps(r,ensure_ascii=False))
+          assert r.get('success') is True, r
+          assert r.get('production_http_e2e') is True, r
+          assert r.get('picker_login') is True, r
+          assert r.get('first_status')==200, r
+          assert r.get('retry_status')!=200, r
+          assert r.get('residue_zero') is True and r.get('baseline_restored') is True, r
+          PY
