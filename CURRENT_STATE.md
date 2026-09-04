@@ -20,8 +20,11 @@ REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH     = main
 TARGET     = Current/PWA/New-main
 
-LATEST DOCUMENTATION HEAD BEFORE THIS CURRENT_STATE WRITE
-= 76951a06a3034bc9cf682f5acb74cab79d85315d
+CURRENT DOCUMENTATION HEAD BEFORE THIS CURRENT_STATE WRITE
+= f2d72d56a689e2383e2430276058943f09cbae35
+
+CURRENT REPOSITORY HEAD AFTER THIS WRITE
+= THIS COMMIT (see Git chronology)
 
 CURRENT TARGET BLOB
 = 22f4ee1a666141be62127159337beffb05e8b146
@@ -30,42 +33,47 @@ LATEST VERIFIED TARGET-AFFECTING COMMIT
 = 282cce040c51b2f4f926a8ca9227ef89ee742713
 ```
 
-Recent documentation-only commits at this station include:
+Direct Git chronology at this station:
 
 ```text
-b14373ebddedcc4fd3d80fd0daf7281eea67c38c
-[CTO] Reconcile CURRENT_STATE with Report 42 and V5 Login closure task
+CURRENT_STATE predecessor = 856c88698a0f034086212de0be28fef293556a4a
+[CTO] Update CURRENT_STATE after Report 43 and V6 identity successor
 
-d8e462bbe0ef0675179a81e89a8c39f441fcc0ff
-[CTO] Add Report 43 — forensic continuity and next limited assistant design
+88c9b3df9e39e0ef26e24e216f04bc424444b4ac
+[CTO] Add RAW-only successor CTO V7 onboarding and anti-hallucination execution directive
 
-95abacb027d4d698ae7013e8a4a28cfb2b5ab9d4
-[CTO] Add V6 limited assistant — Company and Brand Identity parity closure unit
-
-76951a06a3034bc9cf682f5acb74cab79d85315d
-[CTO] Add unified V6 successor continuity and five-assistant execution directive
+f2d72d56a689e2383e2430276058943f09cbae35
+[CTO] Add Report 44 — forensic RAW-only successor takeover and V7 design
 ```
 
-Direct Git chronology remains:
+Important chronology rule:
 
 ```text
-LAST TARGET-AFFECTING COMMIT = 282cce...
-TARGET BLOB = 22f4ee1...
-NO VERIFIED TARGET CHANGE AFTER 282cce
+856c886...
+→ documentation/state update
+88c9b3...
+→ documentation-only V7 directive
+f2d72d...
+→ documentation-only Report44
+CURRENT_STATE write
+→ documentation-only state synchronization
 ```
 
-The current-state file itself becomes stale whenever another documentation commit is made; Git remains chronology authority.
+No verified target-affecting change has been found after `282cce...`.
+
+Git is chronology authority; a newer documentation commit does not imply a New-main code change.
 
 ## LATEST FORENSIC REPORT
 
 ```text
-= doc/Draft/Reprots/تقرير43.md
-COMMIT = d8e462bbe0ef0675179a81e89a8c39f441fcc0ff
+= doc/Draft/Reprots/تقرير44.md
+COMMIT = f2d72d56a689e2383e2430276058943f09cbae35
 ```
 
 Previous preserved reports remain intact:
 
 ```text
+تقرير43.md
 تقرير42.md
 تقرير41.md
 تقرير40.md
@@ -74,6 +82,31 @@ Previous preserved reports remain intact:
 ```
 
 ## LATEST SUCCESSOR DIRECTIVES
+
+### RAW-only successor onboarding V7
+
+```text
+= doc/Draft/medhat/MASTER_CTO_RAW_ONLY_SUCCESSOR_V7.md
+COMMIT = 88c9b3df9e39e0ef26e24e216f04bc424444b4ac
+```
+
+Purpose:
+
+```text
+Raw-only successor onboarding
++
+Capability ceiling
++
+Anti-hallucination rules
++
+EOF / partial-read protection
++
+Commit-snapshot discipline
++
+Closure-unit governance
++
+Exact handoff contract
+```
 
 ### Unified continuity directive
 
@@ -92,7 +125,7 @@ Five-assistant sequential closure architecture
 Evidence → reconciliation → patch → verify → handoff
 ```
 
-### Current next limited assistant
+### Current limited assistant task
 
 ```text
 = doc/Draft/medhat/MASTER_CTO_NEWM_LIMITED_ASSISTANT_TASK_COMPANY_IDENTITY_V6.md
@@ -121,7 +154,7 @@ COMMIT = 98877acdd1a61bcabb7fb934c13f277e7daaf96f
 
 ## LIMITED ASSISTANT — FORENSIC CAPABILITY PROFILE
 
-The prior limited assistant report is preserved and remains evidence of the actual constraints encountered:
+The constrained assistant profile is now treated as a governance input, not a reason to lower evidence standards:
 
 ```text
 No dependable Git history/diff capability
@@ -129,10 +162,16 @@ No real browser runtime
 Partial-read risk on very large files
 Could access raw source in some conditions
 Could perform textual comparison
-Could access Supabase only where connection/tooling permitted
+No dependable direct Supabase verification in RAW-only mode
 ```
 
-Its important process failure was treating partial source reading as evidence of absence. Report41 later disproved its claims that License and eight route handlers were absent.
+Historical process failure:
+
+```text
+partial read
+→ absence claim
+→ false repair lead
+```
 
 Operational lesson:
 
@@ -143,9 +182,9 @@ NOT LOWER EVIDENCE STANDARDS
 
 ## MASTER RECOVERY DIRECTIVE — DIRECTLY READ
 
-The supplied CTO handover/recovery directive was directly read to EOF in the current conversation across 1260 lines.
+The master CTO recovery directive was read to EOF in the current conversation.
 
-Its controlling principles are:
+Its controlling principles remain:
 
 ```text
 Production evidence > reports > memory
@@ -158,7 +197,7 @@ No 100% while required gates are Unknown/Unverified
 Do not use BLOCKED as an excuse where a practical alternative exists
 ```
 
-The handover also defines the Inventory rescue architecture:
+The Inventory rescue architecture remains:
 
 ```text
 Physical Stock Movement → post_stock_movement
@@ -169,11 +208,13 @@ VanSale = VAN → Customer
 Unloading = VAN → MAIN
 ```
 
-These Inventory contracts are preserved context and are out of scope for the current PWA identity unit unless a proven blocking dependency appears.
+These Inventory contracts remain preserved context and are outside the current PWA identity closure unless a direct blocking dependency is proven.
 
 ## DIRECT CURRENT SOURCE FINDINGS — NEW-MAIN
 
-Current `Current/PWA/New-main` source contains:
+Current `Current/PWA/New-main` source is the active target artifact.
+
+Known source evidence preserved from direct inspection includes:
 
 ```text
 rw-login-title = 58px
@@ -185,40 +226,38 @@ password visibility toggle
 responsive Login shell
 ```
 
-It also contains company/brand presentation surfaces including:
+Company/brand-facing surfaces include:
 
 ```text
 RAWAEA ERP ENTERPRISE
 الروائع ERP
-Clean-room MAIN1 contract surface
 rw-login-logo
 rw-company-name
 rw-company-description
 rw-sidebar-brand-logo
 rw-sidebar-company-name
 rw-sidebar-company-subtitle
+rw-header-profile
 ```
 
-The source contains the License route/renderer contract and the previously alleged eight dead routes were proven present in the current source. Runtime reachability is not thereby proven.
+License route/renderer contracts are present in source. Source presence does not prove runtime reachability.
 
 ## DIRECT HISTORICAL MAIN1 FINDINGS
 
-`Original/PWA/main/main1.md` was directly opened.
+`Original/PWA/main/main1.md` remains the historical contract reference.
 
-Confirmed historical Login/identity characteristics include:
+Known historical Login evidence:
 
 ```text
 .rw-login-title = 64px
 .rw-login-logo  = 120px × 120px
 ```
 
-It also contains richer historical visual treatment around the Login card, input/icon presentation, typography, and branding presentation.
-
-A historical difference is not automatically a regression. The successor must classify each difference before changing Current.
+Historical visual differences are not automatically regressions.
 
 ## OWNER / LICENSE — PROVEN CONTRACT
 
-Current direct Production evidence retained and revalidated:
+Current direct Production evidence retained from prior verified inspection:
 
 ```text
 public.users.permissions = ["*"]
@@ -249,13 +288,9 @@ ACTIVE LICENSE
 
 Do not replace wildcard semantics with enumerated role permissions.
 
-License source contract is present in Current.
+## SUPABASE SCHEMA — DIRECTLY VERIFIED IN PRIOR EVIDENCE
 
-## SUPABASE SCHEMA — DIRECTLY VERIFIED
-
-Before schema-dependent querying, `information_schema.columns` was inspected directly.
-
-Relevant actual fields:
+Actual relevant fields previously checked directly:
 
 ```text
 users.status
@@ -268,7 +303,7 @@ owner_profile.auth_user_id
 owner_profile.license_status
 ```
 
-Known investigator query errors remain recorded:
+Known investigator query errors:
 
 ```text
 users.is_active  → nonexistent field
@@ -281,6 +316,8 @@ Classification:
 INVESTIGATOR QUERY ERROR
 NOT PRODUCTION DEFECT
 ```
+
+RAW-only successors must not claim they independently ran this inspection unless they actually have a supplied Raw evidence artifact showing it.
 
 ## CURRENT FIVE-ASSISTANT CHAIN
 
@@ -301,78 +338,60 @@ ASSISTANT 5
 INTEGRATION / REGRESSION / GOLD READINESS
 ```
 
-### Assistant 1
+The chain is sequential. No assistant may silently expand its Closure Unit.
 
-Closure Unit:
+## V7 RAW-ONLY SUCCESSOR RULES
 
-```text
-Current ↔ Original main1
-Login only
-```
-
-Directive = V5.
-
-### Assistant 2 — NEXT
-
-Closure Unit:
+The new RAW-only successor must:
 
 ```text
-Current ↔ Original main1
-Company / Brand Identity only
+Read CURRENT_STATE first
+Read latest report named there
+Read latest successor directive named there
+Read target source to EOF / deterministic chunks
+Read historical baseline to EOF / deterministic chunks
+Build Reality Matrix
+Classify claims
+Patch only proven regression
+Verify source
+Report exact status
+Hand off
 ```
 
-Directive = V6.
-
-### Assistant 3
-
-Closure Unit:
+RAW-only capability ceiling:
 
 ```text
-menu
-→ permission
-→ view
-→ route
-→ renderer/delegation
-→ runtime/re-entry where available
+LIVE SUPABASE = NOT AVAILABLE
+LIVE BROWSER = NOT AVAILABLE
+LIVE PRODUCTION RUNTIME = NOT AVAILABLE
 ```
 
-### Assistant 4
-
-Closure Unit:
+Therefore:
 
 ```text
-customers
-suppliers
-branches
-settings
-users
-roles
+CURRENT SOURCE VERIFIED
 ```
 
-### Assistant 5
-
-Closure Unit:
+may be claimed after source inspection, while:
 
 ```text
-cross-unit integration
-refresh/re-entry
-authorization
-tenant/security evidence
-fresh Gold/Diamond readiness
+PRODUCTION RUNTIME VERIFIED
 ```
 
-No assistant may silently expand its Closure Unit.
+requires independent direct evidence.
 
 ## HANDOFF CONTRACT — MANDATORY
 
-Each assistant must leave:
+Every successor must leave:
 
 ```text
 Starting HEAD
 Starting target state/blob
 Sources actually opened
+EOF status
 Claims disproven
 Facts proven
+Reported-but-not-live-verified facts
 Comparison matrix
 Patch decision
 Files changed
@@ -388,20 +407,21 @@ Final Self-Audit
 ## GOLD / DIAMOND
 
 ```text
-CURRENT GOLD = NOT PROVEN
-CURRENT DIAMOND = NOT PROVEN
+CURRENT GOLD = NOT PROVEN BY FRESH FINAL INTEGRATION EVIDENCE
+CURRENT DIAMOND = NOT PROVEN BY FRESH FINAL INTEGRATION EVIDENCE
 CURRENT 100% = NOT PROVEN
 ```
 
 Historical markers are not fresh acceptance evidence.
 
-## OUT OF SCOPE FOR THE NEXT ASSISTANT
+## OUT OF SCOPE FOR CURRENT COMPANY / BRAND SUCCESSOR
 
 ```text
+Login authentication logic
 License
 Owner authorization
-permissions
-Sidebar/navigation
+Permissions
+Sidebar/navigation behavior
 Customers
 Suppliers
 Branches CRUD
@@ -421,10 +441,35 @@ Production business data
 
 > The successor inherits evidence trails, not confidence.
 
-> Never replay a disproven repair without newer contradictory evidence.
+> Reality outranks narrative.
+
+> EOF outranks assumption.
+
+> Contract outranks source shape.
+
+> A historical difference is not automatically a regression.
 
 > A partial read cannot establish absence.
 
-> One assistant closes one unit; the next starts from the exact handoff.
+> A Git snapshot cannot prove Production deployment.
+
+> A report cannot prove runtime.
+
+> A limited toolset requires a smaller Closure Unit, never a lower evidence standard.
+
+> Never replay a disproven repair without new contradictory evidence.
 
 > The next correct action is the smallest currently proven safe blocker.
+
+## LAST STATE SYNCHRONIZATION
+
+```text
+STATE UPDATED FOR:
+- Report44
+- RAW-only Successor CTO V7
+- Current HEAD chronology correction
+- Target baseline preservation
+- Five-assistant successor continuity
+
+CURRENT TARGET CHANGE IN THIS SYNCHRONIZATION = NONE
+```
