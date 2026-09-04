@@ -12,52 +12,95 @@ This file is the verified cross-system memory snapshot for the daily review.
 - Git chronology/source content does not prove deployment or browser runtime.
 - `Current/PWA/New-main` is the canonical current application target; PWA consumers remain interface/orchestration surfaces, not business authorities.
 - Preserve owner authorization semantics; do not replace owner wildcard permissions with guessed role enumerations.
+- Do not reopen a closed knowledge baseline without fresh contradictory evidence.
 
 ## Historical context
 ### 2026-09-03 — initial and forensic continuity baseline
 - Supabase connectivity verified.
 - Prior reviews recorded the PWA/Core/Edge-Function/PostgreSQL separation, Supabase Auth + bearer JWT pattern, and owner/license continuity constraints.
-- The production owner record was previously verified as active with wildcard permissions `["*"]`, linked owner profile, and active license; no production write was performed.
+- Production owner was verified as active with wildcard permissions `["*"]`, linked owner profile, and active license; no production write was performed in the baseline review.
 - Earlier continuity notes recorded security/performance advisories, stale recovery/test function surface, and lack of fresh full-browser Gold/Diamond proof.
 
-## Verified review — 2026-09-04
-### GitHub
-- Latest observed `main` HEAD: `4b93e9178397028b6345c3a863d65e659a696331`, committed `2026-09-04T10:10:10Z`, message: `[CTO] Sync CURRENT_STATE with Report50 and corrected main ancestry`.
-- Immediately preceding commits include Report50 forensic inventory/reconciliation (`391de3fb38cb63f5c9ea6a3e62a91a5a3727a1a6`) and the prior CURRENT_STATE sync (`8d64f747cdf06cd4197a379b7697b1855ecefeca`).
-- `CURRENT_STATE.md` now explicitly corrects chronology: several 2026-09-03 commits touched `Current/PWA/New-main`, but their parent chains are alternate/independent; they are not proof that their intermediate artifacts are current `main` state.
-- Current-state direct evidence identifies `Current/PWA/New-main` as a full HTML/CSS/JS PWA artifact with blob `22f4ee1a666141be62127159337beffb05e8b146` and size `575336` bytes. Current login source values include `rw-login-title = 58px` and `rw-login-logo = 88 × 88`; historical Original values are larger, but regression is not proven.
-- Current source contract includes Supabase Auth restoration, derived `isOwner`/permissions, `RW_API` Edge Function calls using the authenticated session token, shared Dexie/local-storage runtime, and service-worker update/reload coordination. License route/source is confirmed; browser visibility, deployed revision, and cache state remain unknown.
-- Current PWA consumer inventory is broad (sales/order, warehouse, driver/delivery, purchasing/finance/management, owner/general, store, vouchers) and is documented as consumers of the shared RAWAEA ERP boundary.
-- Combined status query for the latest HEAD returned an empty status list. This is not evidence of passing CI; CI visibility remains unresolved.
-- No verified new product-source mutation beyond the documented chronology correction was established in this review; no deployment proof was established.
+## Verified continuity — 2026-09-04
+### Git chronology
+- `67fd5b327139be15964e4ecaa98218b0b7345ccf` refreshed this memory with verified cross-system evidence.
+- `4b93e9178397028b6345c3a863d65e659a696331` synchronized `CURRENT_STATE` with Report50 and corrected earlier main-ancestry assumptions.
+- `391de3fb38cb63f5c9ea6a3e62a91a5a3727a1a` added Report50 forensic PWA consumer inventory/state reconciliation.
+- `8d64f747cdf06cd4197a379b7697b1855ecefeca` synchronized CURRENT_STATE with Report49/V12.
+- Subsequent continuity commits created during this recovery are documentation/knowledge closure only: `f66d38575d6e3d8c76e8536e3c63beb23aea43a5` (knowledge pack) and `71c9c3f5682cbadbfbc759392f8e0daa07a95b85` (Report51).
+- New-main-targeting commits `2118dff...`, `94ffee...`, and `6d729...` exist in Git history on independent parent chains and are not, by message alone, evidence of current-main state.
 
-### Supabase production
-- Project `SMART ERP` is `ACTIVE_HEALTHY`, region `eu-west-1`, PostgreSQL `17.6.1.121`.
-- Public business tables observed include companies, branches, users, roles/role_permissions, app_settings, items, customers, suppliers, orders/order_details, runsheets/run_sheet_details, stock and voucher tables, purchasing, accounting/treasury, audit/workflow/notification tables, vehicle/delivery/complaint/credit tables, and supporting registries. All observed public tables in the reviewed schema had RLS enabled.
-- Schema confirms the owner/auth model fields (`users.auth_id`, `users.role_id`, `users.permissions`, `owner_profile.auth_user_id`, `owner_profile.license_status`) and the inventory invariant (`stock_branches.available_qty = qty - allocated_qty`).
-- Edge Functions: a large active business surface is present for CRUD, orders/sales, runsheet/picking/loading/delivery/returns, stock vouchers, purchasing, accounting/reporting, audit, and supporting workflows. Observed business functions use `verify_jwt = true`.
-- Separate historical/test/recovery-style functions remain active with `verify_jwt = false`, including canary, fixture, runtime-E2E, owner-recovery, and auth-verification names. This is a confirmed authorization/attack-surface risk until each function is classified as intentionally public, test-only, or obsolete.
-- No schema migration or Edge Function deployment was performed by this review.
+### Knowledge baseline completion — Report51
+- Direct current-main fetch proves `Current/PWA/New-main` is a full HTML/CSS/JS artifact, not a small descriptive placeholder.
+- Inline current CSS directly contains the login dimensions (`rw-login-title=58px`, `rw-login-logo=88x88`) and current login identity surfaces.
+- `Current/PWA/core.js` directly proves the shared runtime boundary (`RW_Auth`, `RW_DB`, `RW_API`, `RW_UI`), Supabase Auth metadata usage, owner/wildcard frontend permission semantics, Dexie/local sync, and bearer-token Edge Function calls.
+- Direct historical `Current/PWA/main/main1.md` proves the historical parent/main HTML contract and Original-era visual values such as 64px title and 120x120 login logo; the difference is proven but regression is not.
+- Current PWA consumer inventory is documented in `doc/Draft/Reprots/MASTER_RAWAEA_SYSTEM_PWA_KNOWLEDGE_PACK_2026-09-04.md`; consumers are not business authorities.
+- Production Supabase is `ACTIVE_HEALTHY`, `eu-west-1`, PostgreSQL 17.6. Business Edge Functions observed directly include sales/orders, runsheet/picking/loading/delivery/returns, stock vouchers, purchasing, accounting/reporting, and audit/supporting workflows.
+- Example deployed production versions observed directly: `save-sales-invoice v15`, `create-runsheet v26`, `start-picking v34`, `complete-picking v17`, `start-loading v5`, `complete-loading v11`, `start-delivery v7`, `complete-delivery v4`, `complete-return v25`, `unload-runsheet v6`, `send-stock-voucher v20`, `receive-stock-voucher v22`, `receive-purchase v12`, `save-journal-entry v8`.
+- Owner production DB was freshly rechecked: `permissions=["*"]`, status `Active`, role `مدير النظام`, `auth_id` linked to `owner_profile`, `license_status=active`.
+- License source contract remains confirmed, but browser tab visibility, deployed revision, and service-worker/cache state are not fresh-runtime verified.
+- A fresh Edge Function log query returned no rows at the time of this review. Historical/current memory of repeated `owner-recovery-20260818` HTTP 410 calls remains an evidence lead, not a fresh log result from this exact query.
 
-### Logs / advisories
-- Prior and current review evidence includes successful `log-action` traffic (HTTP 200; OPTIONS 204) and repeated HTTP 410 calls to `owner-recovery-20260818`, proving that a retired/expired recovery path is still being called by some actor or test path.
-- Security advisories observed `2026-09-04`: anonymous and authenticated roles can execute SECURITY DEFINER functions `public.create_item_with_opening_stock(...)` and `public.sync_company_main_branch_projection()`; Supabase Auth leaked-password protection is disabled.
-- Performance advisories observed `2026-09-04`: many unindexed foreign keys across business tables; repeated RLS init-plan warnings where `auth.*()`/`current_setting()` are re-evaluated per row; multiple permissive policies on customer assignments, receiving, receiving details, and related surfaces; and multiple unused indexes. These are database-level findings, not proof of a current PWA regression.
+## Production risk baseline
+- Separate historical/test/recovery/E2E Edge Functions remain active with `verify_jwt=false`; this is a confirmed attack-surface/lifecycle review item.
+- Previously observed security advisories include anonymous/authenticated EXECUTE exposure on `public.create_item_with_opening_stock(...)` and `public.sync_company_main_branch_projection()`, plus disabled leaked-password protection.
+- Previously observed performance advisories include unindexed foreign keys, RLS init-plan warnings, duplicate/multiple permissive policies, and unused indexes.
+- Empty combined Git status is not equivalent to CI PASS.
 
-## Reconciliation / material changes
-- GitHub and Supabase remain architecturally consistent: PWA/UI → shared runtime → Edge Functions/RPC → PostgreSQL as system of record.
-- No verified auth-flow redesign, RLS disablement, schema-breaking change, or production deployment was established in this review.
-- The material change since the prior snapshot is documentation/continuity correction on GitHub, not a proven application or database deployment change.
+## Canonical system model
+```text
+RAWAEA ERP BUSINESS SYSTEM
+    ↓
+PWA consumers / shared runtime
+    ↓
+Edge Functions / RPC contracts
+    ↓
+PostgreSQL / Supabase SSOT
+```
 
-## Open risks / next actions
-1. Revoke or narrow `EXECUTE` on the two exposed SECURITY DEFINER RPCs unless public access is intentional.
-2. Enable leaked-password protection in Supabase Auth.
-3. Identify and remove/update the caller of repeated `owner-recovery-20260818` 410 requests.
-4. Review every `verify_jwt = false` Edge Function and retire obsolete/test-only functions or add explicit custom authentication where required.
-5. Restore meaningful CI status visibility for the current `main` HEAD; empty status is not pass.
-6. Plan a controlled DB performance pass for FK indexes, RLS init-plan rewrites, duplicate permissive policies, and unused-index review.
-7. Obtain fresh browser/runtime evidence before claiming deployed revision, cache correctness, login success, license-tab visibility, or whole-system Gold/Diamond closure.
+PWA files are consumers/interfaces. Business authority remains in backend/database contracts.
+
+Inventory continuity remains protected:
+```text
+post_stock_movement = physical stock movement authority
+reserve_stock = reservation authority
+allocated_qty != physical qty
+PWA != stock authority
+```
+
+Owner continuity remains protected:
+```text
+OWNER
+=
+AUTH OWNER IDENTITY
++
+isOwner=true
++
+permissions=["*"]
++
+VALID owner_profile
++
+ACTIVE LICENSE
+```
+
+## Runtime / deployment confidence boundary
+```text
+STATIC SOURCE = CONFIRMED
+SUPABASE OWNER/DB STATE = CONFIRMED
+FRESH BROWSER E2E = UNKNOWN
+DEPLOYED REVISION = UNKNOWN
+SERVICE WORKER/CACHE = UNKNOWN
+FRESH GOLD = NOT PROVEN
+FRESH DIAMOND = NOT PROVEN
+WHOLE-PROJECT 100% = NOT PROVEN
+```
+
+## Canonical successor files
+- `doc/Draft/Reprots/MASTER_RAWAEA_SYSTEM_PWA_KNOWLEDGE_PACK_2026-09-04.md`
+- `doc/Draft/Reprots/تقرير51.md`
+- `CURRENT_STATE.md`
 
 ## Confidence boundary
-- Confirmed: repository/project identity, current `main` HEAD and continuity documents, current New-main source contract, Supabase health, reviewed schema/RLS posture, Edge Function inventory pattern and `verify_jwt` split, advisory categories, and known 410 recovery-call pattern.
-- Not confirmed: full current PR/issue closure history, fresh end-to-end browser execution, exact current production login success for a real user, deployed revision/cached artifact identity, or whole-system acceptance closure.
+- Confirmed: repository/project identity, current main continuity documents, canonical New-main source shape, shared runtime boundary, Supabase health/schema owner contract, broad Edge Function deployment surface, and PWA consumer model.
+- Not confirmed: fresh browser E2E, exact deployed revision/cache identity, full PR/issue closure history, complete lifecycle classification of every `verify_jwt=false` function, and whole-system Gold/Diamond acceptance.
