@@ -1,563 +1,464 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
-## 0. AUTHORITATIVE UPDATE — 2026-09-04
+## 0. AUTHORITATIVE CONTINUITY UPDATE — 2026-09-04
 
-This file is the continuity checkpoint. Git chronology and direct Production evidence outrank narrative; historical reports are preserved evidence, not truth by themselves.
+This file is the continuity checkpoint. It is a declared state and must always be reconciled against direct Git, Production, deployments, and runtime evidence.
 
 ```text
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
 HISTORICAL REPOSITORY = papamohammed77-glitch/rawaie-erp-review
-CANONICAL PRODUCT TARGET = Current/PWA/New-main
-LATEST FORENSIC REPORT = doc/Draft/Reprots/تقرير51.md
-LATEST KNOWLEDGE PACK = doc/Draft/Reprots/MASTER_RAWAEA_SYSTEM_PWA_KNOWLEDGE_PACK_2026-09-04.md
-LATEST SUCCESSOR = doc/Draft/medhat/MASTER_CTO_FORENSIC_BRAND_PATCH_SUCCESSOR_V12.md
+PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
 ```
 
-The immediately preceding verified HEAD before this state update was:
+### Latest verified Git event before this update
 
 ```text
-0ee91c707aa969b279a98a2c63d59ed3cd63aeb8
+2bffd02f09f757424e4bfa38f3411ee9cf74b2ba
+[CTO] Add Report52 forensic Main1 source repair closure
 ```
 
-That commit updated `PROJECT_MEMORY.md` with the knowledge completion. This `CURRENT_STATE.md` update becomes the new continuity commit; do not hard-code a self-referential SHA. Discover the exact current `main` HEAD directly from Git.
+### This continuity update
+
+```text
+Report53 = doc/Draft/Reprots/تقرير53.md
+Purpose = reconcile latest Git reality and preserve Main2/Main1 repair checkpoint
+```
+
+Discover the exact current `main` HEAD directly from Git after any documentation commit; never hard-code this file's own future SHA.
 
 ---
 
-# 1. LATEST VERIFIED MILESTONE
+# 1. LAST VERIFIED STATE
 
-The latest mission was **knowledge recovery and system/PWA topology completion**, not a product patch.
+The project did NOT stop at Report51.
 
-Created:
+Direct Git investigation discovered:
 
 ```text
-Report51
-MASTER_RAWAEA_SYSTEM_PWA_KNOWLEDGE_PACK_2026-09-04.md
+2bffd02...  Report52 forensic Main1 closure
+8049d898...  Delete Current/PWA/main2/Test
+c55ce8b3...  Add files via upload (Main2 source pack)
 ```
 
-The Knowledge Pack closes the previous assistant's false/obsolete assumptions about the identity of `Current/PWA/New-main`, the location and role of CSS/runtime, the PWA consumer map, and the parent-system boundary.
-
-No Product Patch, Database Patch, or deployment was performed in this milestone.
+Therefore older `CURRENT_STATE` entries that named Report51 as latest were stale and have now been reconciled.
 
 ---
 
-# 2. CRITICAL GIT CHRONOLOGY
-
-Verified recent `main` sequence before this state update:
+# 2. GOVERNING ENGINEERING RULES
 
 ```text
-71c9c3f5682cbadbfbc759392f8e0daa07a95b85
-[CTO] Add Report51 verified system and PWA knowledge completion
+CURRENT REALITY > CURRENT GIT > CURRENT PRODUCTION > DEPLOYMENTS > DATABASE CONTRACTS > HISTORY > REPORTS > MEMORY > ASSUMPTIONS
 
-f66d38575d6e3d8c76e8536e3c63beb23aea43a5
-[CTO] Add verified RAWAEA system and PWA consumer knowledge pack
+UNKNOWN != BUG
+UNKNOWN != REMOVE
 
-67fd5b327139be15964e4ecaa98218b0b7345ccf
-[CTO] Refresh PROJECT_MEMORY with verified GitHub/Supabase review 2026-09-04
+READ → VERIFY → RECONCILE → UNDERSTAND → PATCH → VERIFY
 
-4b93e9178397028b6345c3a863d65e659a696331
-[CTO] Sync CURRENT_STATE with Report50 and corrected main ancestry
+ONE CLOSURE UNIT AT A TIME
 
-391de3fb38cb63f5c9ea6a3e62a91a5a3727a1a
-[CTO] Add Report50 forensic PWA consumer inventory and state reconciliation
+NO WHOLE-FILE REWRITE FOR A NARROW DEFECT
+
+GIT != DEPLOYMENT PROOF
+SOURCE != RUNTIME PROOF
+
+NO CLOSURE CLAIM WITHOUT EVIDENCE
 ```
 
-Historical `Current/PWA/New-main` mutation commits were also found:
+The complete governance source is:
 
 ```text
-2118dff88f25ff09a397211293753898d1d9316a
-94ffee68ee6d039661fe8eb0d3b06a15a789b830
-6d7291026cf658e4d4c3b0b02f771dbefbe62ad1
-```
-
-Their parent chains are independent from the current documentation chain; therefore they are historical/alternate attempts, not proof of current-main state.
-
-Rule:
-
-```text
-CURRENT main ancestry > alternate/orphan repair chain
-COMMIT MESSAGE != DEPLOYMENT PROOF
-GIT SOURCE != BROWSER RUNTIME PROOF
+doc/Draft/medhat/MASTER - RAWAEA ERP.md
 ```
 
 ---
 
-# 3. CURRENT TARGET — `Current/PWA/New-main`
+# 3. CURRENT REPAIR TARGET
 
-Direct current-main fetch proves `New-main` is a complete HTML/CSS/JS PWA artifact, not a 56-line descriptive placeholder.
-
-Current target blob previously verified:
+The owner explicitly changed the active repair target for this stream.
 
 ```text
-22f4ee1a666141be62127159337beffb05e8b146
-575336 bytes
+ACTIVE SOURCE REPAIR PACK = Current/PWA/main2/
+CURRENT CLOSURE UNIT = Current/PWA/main2/main1.md
 ```
 
-Known current source values:
+This does NOT redefine Production's deployed product target; it defines the source-repair workstream requested for the 11-part Main2 composite.
+
+`Current/PWA/main2` contains:
 
 ```text
-rw-login-title = 58px
-rw-login-logo = 88 × 88
+main1.md
+main2.md
+main3.md
+main4.md
+main5.md
+main6.md
+main7.md
+main8.md
+main9.md
+main10.md
+main11.md
 ```
 
-Current login identity includes:
-
-```text
-RAWAEA ERP ENTERPRISE
-الروائع ERP
-منصة إدارة الأعمال الذكية والمتكاملة
-```
-
-Current source includes an inline CSS shell, Supabase client, manifest link, and service-worker coordinator.
-
-Historical Original evidence (`Original/PWA/main/main1.md`) proves:
-
-```text
-<title>الروائع ERP | نظام متكامل</title>
-rw-login-title = 64px
-rw-login-logo = 120 × 120
-rw-company-name = 34px
-```
-
-Difference is confirmed. Regression is NOT proven; do not patch branding/visual dimensions solely from Original comparison.
+The fragments are logical parts of one parent application contract, not eleven independent products.
 
 ---
 
-# 4. SYSTEM / PWA ARCHITECTURE CONTRACT
-
-The whole RAWAEA ERP system is not a single HTML file. The verified topology is:
+# 4. MAIN1 VERIFIED SOURCE STATE
 
 ```text
-RAWAEA ERP BUSINESS SYSTEM
-        |
-        +--> PWA / UI CONSUMERS
-        |       |
-        |       +--> New-main / main.html / role-specific PWAs / store / vouchers
-        |
-        +--> Shared PWA Runtime
-        |       |
-        |       +--> core.js
-        |       +--> service-worker coordination
-        |
-        +--> Supabase Edge Functions / RPC contracts
-        |
-        +--> PostgreSQL / Supabase SSOT
+PATH = Current/PWA/main2/main1.md
+BLOB SHA = 14b12a471c20ad23a2c18f456dbc4d59783a0d1f
+SIZE = 63126 bytes
+INSERTION COMMIT = c55ce8b3e0ecdfffc5739afdac53910009208f43
 ```
 
-PWA is interface/orchestration. Business authority remains in Edge/RPC/DB contracts. Do not create competing business authority inside an HTML consumer.
-
----
-
-# 5. SHARED RUNTIME — `Current/PWA/core.js`
-
-Direct source inspection proves:
+Direct source inspection confirms Main1 contains:
 
 ```text
+HTML shell
+CSS
+Supabase client bootstrap
+RW_Table
+RW_Audit_log
+RW_Permissions_check
+RW_Permissions_applyUI
+RW_Workflow
+RW_Notification
+RW_Audit UI
+RW_STATE
 RW_Auth
-RW_DB
-RW_API
-RW_UI
+RW_Data
+RW_Navigation
 ```
 
-`RW_Auth` restores Supabase session, reads Auth metadata, derives `isOwner`/permissions, and implements wildcard semantics:
-
-```text
-isOwner=true -> full frontend permission
-permissions contains '*' -> full frontend permission
-```
-
-`RW_DB` is the shared Dexie/local persistence/sync layer for customers/items/stock/branches/orders/pending updates.
-
-`RW_API` calls `/functions/v1/<function>` using the authenticated bearer token and provides retry behavior.
-
-`register-sw.js` coordinates `sw.js`, update checks, and reload after controller change. Source/deployed/browser cache remain distinct evidence layers.
+The fragment ends at `RW_Navigation` without closing the global script, while `main2.md` continues with the next logical application section.
 
 ---
 
-# 6. CURRENT PWA CONSUMER INVENTORY
+# 5. REPORT52 STATUS — CRITICAL CONTINUITY FACT
 
-## Parent / Main
+Report52 did NOT change Main1 source bytes.
+
+Its actual status was:
+
 ```text
-New-main
-main.html
+FORENSIC ANALYSIS = CLOSED
+ROOT CAUSE = PROVEN
+SURGICAL PATCH WINDOWS = PROVEN
+SOURCE MUTATION = NO
+PRODUCTION DEPLOYMENT = NO
+BROWSER RUNTIME = NO
 ```
 
-## Sales / Orders
-```text
-telesales.html
-order-taker.html
-van-sales.html
-pos.html
-```
+The four proven Main1 repair windows were:
 
-## Warehouse / Physical Operations
 ```text
-picker.html
-loader.html
-receiver.html
-unloader.html
-warehouse.manager.html
-warehouse.supervisor
-Returns.html
+PATCH 1 = add company id to RW_STATE.app.company
+PATCH 2 = resolve authoritative company_id from public.users during login
+PATCH 3 = company-scope app_settings lookup
+PATCH 4 = explicit company scope on bootstrap reads
 ```
-
-## Driver / Delivery
-```text
-driver.html
-driver.supervisor.html
-```
-
-## Purchasing / Finance / Management
-```text
-buyer.html
-buyers.supervisor.html
-accountant.html
-finance-manager.html
-general-manager.html
-hr.html
-sales.manager.html
-sales.supervisor.html
-```
-
-## Owner / General Entry
-```text
-owner.html
-counter.html
-index.html
-app.html
-```
-
-## Online Store
-```text
-store.index.html
-store.track.html
-```
-
-## Vouchers
-```text
-vouchers.html
-```
-
-These are consumer/entry surfaces, not separate business authorities.
 
 ---
 
-# 7. SHARED SUPPORT FILES — NOT SEPARATE APPLICATIONS
+# 6. PROVEN MAIN1 DEFECTS
 
-```text
-core.js
-sw.js
-register-sw.js
-New-main.manifest.json
-manifest.json
-schema-validator.js
-vouchers-gold-master-ui.js
-New-main-icon.svg
-_headers
+## A — Unsafe wildcard default
+
+Current source contains:
+
+```javascript
+RW_STATE.permissions = meta.permissions || ['*'];
 ```
 
-`Current/PWA/main/` contains `main1.md` … `main11.md` plus trigger/history materials. These are Parent PWA contract/history materials, not eleven independent apps.
+This is a confirmed frontend authorization default defect.
+
+Owner wildcard semantics remain protected and must NOT be enumerated or replaced.
+
+## B — Missing authoritative company bootstrap
+
+Login uses Auth metadata without obtaining the authoritative `public.users.company_id`.
+
+## C — Global app_settings lookup
+
+Current source uses an unscoped:
+
+```javascript
+.from('app_settings').select('*').limit(1)
+```
+
+## D — Bootstrap reads have no explicit company scope
+
+Current Main1 loads items/customers/branches/suppliers without explicit `company_id` filters. Current RLS protects them, so a security incident is not proven, but explicit tenant propagation is the authorized hardening.
 
 ---
 
-# 8. PRODUCTION SUPABASE — VERIFIED
+# 7. FINDINGS INTENTIONALLY PRESERVED
+
+No direct evidence authorizes changing these in Main1:
 
 ```text
-PROJECT = SMART ERP
-REF = fiilmooggumokxanwiyx
-STATUS = ACTIVE_HEALTHY
-REGION = eu-west-1
-POSTGRESQL = 17.6
+login title 64px
+login logo 120×120
+company-name 34px
+RAWAEA ERP ENTERPRISE
+منصة إدارة الأعمال الذكية والمتكاملة
+owner wildcard semantics
+workflow_rules global-read contract
+notification_templates global-read contract
+audit_log owner contract
 ```
 
-Direct production Edge Function inventory confirms active business functions including sales/orders, runsheet/picking/loading/delivery/returns, stock vouchers, purchasing, accounting/reporting, and audit/supporting workflows.
-
-Examples of observed deployed production versions:
-
-```text
-save-sales-invoice       v15
-create-runsheet          v26
-start-picking            v34
-complete-picking         v17
-start-loading            v5
-complete-loading         v11
-start-delivery           v7
-complete-delivery        v4
-complete-return          v25
-unload-runsheet          v6
-send-stock-voucher       v20
-receive-stock-voucher    v22
-receive-purchase         v12
-save-journal-entry       v8
-```
-
-Most observed business functions use `verify_jwt=true`. A separate active surface of test/recovery/E2E functions uses `verify_jwt=false` and remains an open lifecycle/security classification item.
+Historical/current difference alone is not a defect.
 
 ---
 
-# 9. OWNER / LICENSE CONTRACT — PROTECTED
+# 8. IMPORTANT CROSS-SOURCE DISTINCTION
 
-Fresh direct Production DB query verifies:
+`Current/PWA/main/main1.md` is a DIFFERENT source file and already contains a newer `RW_ShellContext` hardening pattern.
+
+Do not copy it wholesale into Main2/Main1.
+
+Classification:
 
 ```text
-owner@alrawae.com
+main/main1 = current different lineage/reference
+main2/main1 = active source-repair target
+```
+
+Only proven patch windows may cross the boundary.
+
+---
+
+# 9. PRODUCTION / DATABASE CONTINUITY
+
+Production evidence relevant to this workstream confirms:
+
+```text
+PostgreSQL 17.6
+RLS protects company-scoped app_settings/items/customers/branches
+users self-row is addressable by auth_id = auth.uid()
+app_private.current_user_company_id() exists as a company-context helper
+```
+
+Owner/license contract remains protected:
+
+```text
+isOwner = true
 permissions = ["*"]
-status = Active
-role = مدير النظام
-role_id = e8a76adb-8efe-4bc5-b760-0ee660f10e9f
-auth_id = 0a6089e6-0c33-4cf9-9aa0-31fc42774b89
-owner_profile.auth_user_id = same auth_id
+owner_profile valid
 license_status = active
 ```
 
-Canonical owner contract:
-
-```text
-OWNER
-=
-AUTH OWNER IDENTITY
-+
-isOwner=true
-+
-permissions=["*"]
-+
-VALID owner_profile
-+
-ACTIVE LICENSE
-```
-
-Never replace `*` with role-permission enumeration and never use `role_id` as substitute for owner identity.
+No Main2/Main1 production deployment was proven or performed by Report52/Report53.
 
 ---
 
-# 10. LICENSE MANAGEMENT — CURRENT KNOWLEDGE
-
-Current source contract is recorded as:
+# 10. INVENTORY CONTRACT — PROTECTED
 
 ```text
-view = license
-label = إدارة الترخيص
-perm = owner
-route = RW_OwnerLicense.render
-owner gate = hasOwner()
+PHYSICAL STOCK MOVEMENT
+→ post_stock_movement
+→ stock_branches + inventory_log
+
+reserve_stock / release_stock_reservation
+= reservation only
 ```
 
-Together with `core.js` wildcard/owner handling, this proves the authorization design at source level.
-
-Current evidence boundary remains:
-
-```text
-SOURCE CONTRACT = VERIFIED
-OWNER DB CONTRACT = VERIFIED
-FRESH BROWSER TAB VISIBILITY = NOT VERIFIED
-DEPLOYED REVISION = NOT VERIFIED
-SERVICE WORKER/CACHE = NOT VERIFIED
-```
-
-Do not invent a duplicate route before fresh runtime proof.
+No PWA fragment may become a competing physical stock authority.
 
 ---
 
-# 11. INVENTORY CONTINUITY — PROTECTED
+# 11. FAILURE MEMORY / ANTIPATTERNS
+
+Do not repeat:
 
 ```text
-post_stock_movement = physical stock movement authority
-reserve_stock = reservation authority
-allocated_qty != physical qty
-PWA != stock authority
+stale CURRENT_STATE treated as current Git
+historical Original treated as automatic target
+commit message treated as deployment proof
+source treated as browser runtime proof
+whole-file overwrite for surgical repair
+missing Auth permissions treated as owner wildcard
+reports/self-attestation treated as current production truth
 ```
 
-Do not reopen Inventory/Accounting/Ledger/Treasury merely because a historical report references them. Reopen only when the next Closure Unit proves a blocking dependency.
+When a write tool only supports complete-file replacement, do not use it for a narrow repair unless the full file has first been reconstructed and re-read safely.
 
 ---
 
-# 12. CURRENT RUNTIME / DEPLOYMENT CONFIDENCE
+# 12. CURRENT MAIN1 PATCH INSTRUCTIONS
 
-```text
-STATIC SOURCE = CONFIRMED
-SUPABASE OWNER/DB STATE = CONFIRMED
-FRESH BROWSER E2E = UNKNOWN
-DEPLOYED REVISION = UNKNOWN
-SERVICE WORKER/CACHE = UNKNOWN
-FRESH GOLD = NOT PROVEN
-FRESH DIAMOND = NOT PROVEN
-WHOLE-PROJECT 100% = NOT PROVEN
+The exact approved surgical replacements remain in Report52 and Report53.
+
+### PATCH 1
+Search for this exact line:
+
+```javascript
+const RW_STATE = { app: { initialized: false, authenticated: false, loading: false, currentView: 'dashboard', currentUser: null, company: { name: 'الروائع ERP', logo: 'ر' } }, data: { items: [], customers: [], suppliers: [], branches: [] }, permissions: [], ui: { sidebarOpen: false, sidebarCollapsed: false } };
 ```
 
-A fresh Edge Function log query during this recovery returned no rows. Prior reports/memory mention repeated HTTP 410 calls to `owner-recovery-20260818`; that historical evidence remains a lead and was not re-presented as fresh log output in this run.
+Replace only the `company` object with:
+
+```javascript
+company: { id: null, name: 'الروائع ERP', logo: 'ر' }
+```
+
+### PATCH 2
+Replace the Main1 login block beginning exactly with:
+
+```javascript
+var user = authRes.data.user;
+var meta = user.user_metadata || {};
+```
+
+and ending at:
+
+```javascript
+self.enterSystem();
+```
+
+with the authoritative `public.users` lookup shown in Report53 / Report52.
+
+### PATCH 3
+Replace the first unscoped `app_settings` lookup inside `enterSystem()` with:
+
+```javascript
+RW_SUPABASE_CLIENT
+    .from('app_settings')
+    .select('*')
+    .eq('company_id', RW_STATE.app.company.id)
+    .order('created_at', { ascending: true })
+    .limit(1)
+```
+
+### PATCH 4
+Add explicit company scope to the four bootstrap reads:
+
+```javascript
+.eq('company_id', RW_STATE.app.company.id)
+```
+
+for:
+
+```text
+items
+customers
+branches
+suppliers
+```
+
+No other Main1 change is authorized by the current evidence at this checkpoint.
 
 ---
 
-# 13. OPEN PRODUCTION RISKS
+# 13. CURRENT CLOSURE STATUS
 
 ```text
-SECURITY DEFINER EXECUTE exposure was previously observed for:
-  public.create_item_with_opening_stock(...)
-  public.sync_company_main_branch_projection(...)
-
-Supabase Auth leaked-password protection = previously observed disabled
-
-verify_jwt=false historical/test/recovery/E2E functions remain active
-
-Repeated historical owner-recovery-20260818 HTTP 410 calls remain an unresolved caller/lifecycle lead
-
-Database advisories include unindexed foreign keys, RLS init-plan warnings,
-multiple permissive policies, and unused indexes
-
-Empty combined CI status != PASS
+MAIN1 TARGET IDENTIFIED = CONFIRMED
+MAIN1 SOURCE INSPECTED = CONFIRMED
+MAIN1 PRODUCTION CONTRACT CHECKED = CONFIRMED
+MAIN1 ROOT CAUSES = PROVEN
+MAIN1 PATCH DESIGN = CLOSED
+MAIN1 SOURCE BYTES = UNCHANGED
+MAIN1 PRODUCTION DEPLOYMENT = NOT PERFORMED
+MAIN1 RUNTIME = NOT VERIFIED
+MAIN1 SOURCE APPLICATION = MANUAL SURGICAL PATCH PENDING
+MAIN2 = NOT STARTED
 ```
 
-These are independent Closure Units; they are not evidence that the PWA consumer map is wrong.
-
----
-
-# 14. HISTORICAL EVIDENCE POLICY
-
-Use historical files to recover intent, architecture, chronology, prior failures, and contracts:
+Therefore:
 
 ```text
-rawaie-erp-review/
-Edge_Functions/original/03_loading/
-Original/PWA/main/main1.md
-Current/PWA/main/main1.md ... main11.md
-doc/Draft/Reprots/*
-doc/Draft/Hussin/*
-doc/Draft/Hytham/*
-doc/Draft/Khalid/*
-doc/Draft/medhat/*
-```
-
-Authority ordering:
-
-```text
-CURRENT PRODUCTION REALITY
->
-CURRENT main SOURCE
->
-CURRENT EVIDENCE / DEPLOYMENT RECORDS
->
-HISTORICAL SOURCE / ARCHITECTURE
->
-REPORTS / PROMPTS AS SEARCH LEADS
-```
-
-If current Production and a historical conclusion conflict, investigate and classify the drift; do not silently revive the historical state.
-
----
-
-# 15. SUCCESSOR BOOT — MANDATORY
-
-Every Successor CTO must:
-
-```text
-1. Read CURRENT_STATE.md to EOF.
-2. Read the latest numbered forensic report to EOF.
-3. Read MASTER_RAWAEA_SYSTEM_PWA_KNOWLEDGE_PACK_2026-09-04.md to EOF.
-4. Discover current `main` HEAD directly.
-5. Verify the current `Current/PWA/New-main` blob directly.
-6. Check relevant Production version/schema/log evidence.
-7. Classify every claim:
-   THEORETICAL / CURRENT ONLY / STAGING VERIFIED /
-   PRODUCTION DEPLOYED / PRODUCTION RUNTIME VERIFIED / 100% CLOSED
-8. Select exactly ONE Closure Unit.
-9. READ → VERIFY → RECONCILE → PLAN → PATCH (only if proven)
-   → TEST → REVIEW → RECORD → NEXT GATE.
-10. Write the next report without deleting historical reports.
-11. Update CURRENT_STATE last.
-```
-
-Never use:
-
-```text
-READ → GUESS → PATCH → DEPLOY
+DO NOT CLAIM MAIN1 CLOSED
+DO NOT CLAIM PRODUCTION FIXED
+DO NOT CLAIM RUNTIME VERIFIED
+DO NOT CLAIM GOLD/DIAMOND
 ```
 
 ---
 
-# 16. KNOWLEDGE GAPS — STATUS AFTER REPORT51
-
-Resolved by direct evidence:
+# 14. NEXT AUTHORIZED ACTION
 
 ```text
-New-main is full source, not placeholder = RESOLVED
-Login CSS location = RESOLVED
-Shared runtime location/role = RESOLVED
-Current PWA consumer inventory = RESOLVED
-Mother-system ↔ consumer boundary = RESOLVED
-Owner wildcard DB contract = RESOLVED
+1. Apply PATCH 1–4 manually to Current/PWA/main2/main1.md.
+2. Re-read the complete modified Main1 from line 1 to EOF.
+3. Confirm exactly one RW_STATE and one RW_Auth bootstrap remain.
+4. Confirm no historical code was unintentionally reintroduced.
+5. Establish the new Main1 SHA.
+6. Run fragment/static syntax and Main1→Main2 integration checks.
+7. Record the event in the next numbered forensic report.
+8. Only after Main1 source gate closes, begin Main2.
 ```
 
-Still open:
+Do not reopen historical login-brand visual work without fresh contradictory evidence.
+
+---
+
+# 15. LATEST DOCUMENTATION ARTIFACTS
 
 ```text
-Fresh browser E2E
-Exact deployed revision/cache identity
-Full PR/issue closure history
-Lifecycle classification of every verify_jwt=false function
-Intent behind all historical/current branding differences
-Whole-system Gold/Diamond acceptance
+MASTER GOVERNANCE:
+doc/Draft/medhat/MASTER - RAWAEA ERP.md
+
+LATEST FORENSIC REPORT:
+doc/Draft/Reprots/تقرير53.md
+
+PREVIOUS FORENSIC REPORT:
+doc/Draft/Reprots/تقرير52.md
+
+KNOWLEDGE PACK:
+doc/Draft/Reprots/MASTER_RAWAEA_SYSTEM_PWA_KNOWLEDGE_PACK_2026-09-04.md
+
+PROJECT MEMORY:
+PROJECT_MEMORY.md
+
+ACTIVE SOURCE PACK:
+Current/PWA/main2/
+```
+
+No historical report was deleted or overwritten.
+
+---
+
+# 16. SUCCESSOR BOOT
+
+Any successor CTO must first:
+
+```text
+READ CURRENT_STATE.md TO EOF
+READ LATEST NUMBERED REPORT TO EOF
+DISCOVER CURRENT GIT HEAD DIRECTLY
+VERIFY MAIN2/MAIN1 BLOB DIRECTLY
+VERIFY RELEVANT PRODUCTION CONTRACTS
+RECONCILE ANY DRIFT
+DO NOT REPEAT REPORT52 FORENSIC WORK AS IF IT WERE UNDONE
+DO NOT ASSUME REPORT52 PATCH WAS APPLIED
+DO NOT MOVE TO MAIN2 BEFORE MAIN1 SOURCE GATE
+```
+
+The successor must distinguish:
+
+```text
+PROVEN
+DESIGNED
+APPLIED
+DEPLOYED
+RUNTIME VERIFIED
+CLOSED
 ```
 
 ---
 
-# 17. KNOWN INVESTIGATOR ERRORS — DO NOT REPEAT
+# 17. LAST VERIFIED EVENT
 
 ```text
-Do not start from zero.
-Do not treat stale CURRENT_STATE as current HEAD.
-Do not confuse Git history with current branch ancestry.
-Do not treat an alternate repair commit as active from its message.
-Do not infer file absence from partial/failed reads.
-Do not treat Original differences as regressions automatically.
-Do not treat source route existence as browser visibility proof.
-Do not replace owner ["*"] with role enumeration.
-Do not assume schema column names in Production.
-Do not treat reports/self-attestation as source truth.
-Do not treat Git as deployment proof.
-Do not introduce speculative architecture into a narrow defect.
-Do not rewrite a whole PWA for a small proven change.
-Do not delete historical reports.
+EVENT ID = 2bffd02f09f757424e4bfa38f3411ee9cf74b2ba
+EVENT TYPE = FORENSIC DOCUMENTATION / MAIN1 SOURCE REPAIR CLOSURE DESIGN
+DATE = 2026-09-04
+RESULT = Main1 root causes and exact surgical patch windows proven; source left unchanged intentionally.
+NEXT AUTHORIZED ACTION = manual application of PATCH 1–4 followed by full EOF re-read and SHA verification.
 ```
 
----
-
-# 18. RAW CONTINUITY PACK
-
-```text
-CURRENT_STATE
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/CURRENT_STATE.md
-
-PROJECT_MEMORY
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/PROJECT_MEMORY.md
-
-LATEST FORENSIC REPORT
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/doc/Draft/Reprots/%D8%AA%D9%82%D8%B1%D9%8A%D8%B151.md
-
-SYSTEM + PWA KNOWLEDGE PACK
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/doc/Draft/Reprots/MASTER_RAWAEA_SYSTEM_PWA_KNOWLEDGE_PACK_2026-09-04.md
-
-NEW-MAIN
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/Current/PWA/New-main
-
-MAIN.HTML
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/Current/PWA/main.html
-
-CORE
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/Current/PWA/core.js
-
-REGISTER SW
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/Current/PWA/register-sw.js
-
-SERVICE WORKER
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/Current/PWA/sw.js
-
-CURRENT MAIN1
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/Current/PWA/main/main1.md
-
-ORIGINAL MAIN1
-https://raw.githubusercontent.com/papamohammed77-glitch/rawaie-erp-New/main/Original/PWA/main/main1.md
-```
-
-## FINAL CONTINUITY RULE
-
-> Inherit evidence trails, not confidence. Reality outranks narrative. Current `main` ancestry outranks alternate history. Production evidence outranks reports. Current PWA consumers are interfaces of one RAWAEA ERP system, not competing business authorities. Owner wildcard semantics are protected.
+This file is the new continuity checkpoint. Exact current `main` HEAD must still be rediscovered directly from Git after this state commit.
