@@ -19,7 +19,7 @@ The historical regression/reconstruction incidents, verifier failures, competing
 ```text
 REPOSITORY          = papamohammed77-glitch/rawaie-erp-New
 BRANCH              = main
-CURRENT HEAD        = 10e0395339263a09c69b9cf00c1485421144746e
+CURRENT HEAD        = 838a5268273c74e3a955edc5a7d4cadfb42d71f3
 TARGET              = Current/PWA/New-main
 CURRENT TARGET BLOB = 22f4ee1a666141be62127159337beffb05e8b146
 ```
@@ -37,6 +37,9 @@ After that target-affecting line, repository changes were continuity/documentati
 
 ### Latest continuity commits
 ```text
+838a5268273c74e3a955edc5a7d4cadfb42d71f3
+[CTO] Add master offline CTO New-main completion directive
+
 10e0395339263a09c69b9cf00c1485421144746e
 [CTO] Reconcile CURRENT_STATE with Report 37 forensic handoff
 
@@ -45,9 +48,6 @@ cc26dd7d78862e7ae442edfca136c7dda44c7438
 
 4f8ca70570ca3a31fb9cf4634fb19f0ae4720ef5
 [CTO] Record final CURRENT_STATE HEAD for Report 36 continuity
-
-be816159ec5ecd6484ec0cf2beb2e009e12959d
-[CTO] Reconcile CURRENT_STATE with Report 36 and offline successor mission
 ```
 
 ## REPORT 37 — CURRENT FORENSIC CONTINUITY STATION
@@ -57,7 +57,14 @@ doc/Draft/Reprots/تقرير37.md
 commit = cc26dd7d78862e7ae442edfca136c7dda44c7438
 ```
 
-Report 37 reconciles the latest Git line, current target identity, owner/license semantics, current New-main product reality, authorized target modification surface, and the offline successor CTO package.
+## OFFLINE CTO MASTER DIRECTIVE
+
+```text
+doc/Draft/medhat/MASTER_OFFLINE_CTO_NEW_MAIN_COMPLETION.md
+commit = 838a5268273c74e3a955edc5a7d4cadfb42d71f3
+```
+
+This is the canonical unified prompt for the offline successor CTO. It incorporates the continuity, evidence hierarchy, packet completeness gate, exact target scope, no-islands architecture, product-level Gold/Diamond gates, and the mandatory execution sequence.
 
 ## CURRENT TARGET — DIRECT EVIDENCE
 
@@ -421,7 +428,7 @@ Do not claim current HEAD from a stale CURRENT_STATE.
 TARGET                       = Current/PWA/New-main
 TARGET BLOB                  = 22f4ee1a666141be62127159337beffb05e8b146
 LATEST TARGET-AFFECTING SHA  = 282cce040c51b2f4f926a8ca9227ef89ee742713
-CURRENT REPOSITORY HEAD      = 10e0395339263a09c69b9cf00c1485421144746e
+CURRENT REPOSITORY HEAD      = 838a5268273c74e3a955edc5a7d4cadfb42d71f3
 LATEST APPLICATION CHANGE    = none after 282cce...
 OWNER                        = isOwner=true + permissions=["*"] + active owner profile
 MANIFEST                     = ./manifest.json / consistent
@@ -430,6 +437,7 @@ AUTH_ID                      = needs current trace
 GOLD                         = not claimed
 DIAMOND                      = not claimed
 REPORT                       = تقرير37.md
+DIRECTIVE                    = MASTER_OFFLINE_CTO_NEW_MAIN_COMPLETION.md
 ```
 
 No historical closure label overrides this state.
