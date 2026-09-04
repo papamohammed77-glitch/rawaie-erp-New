@@ -19,7 +19,7 @@ The historical regression/reconstruction incidents, verifier failures, competing
 ```text
 REPOSITORY          = papamohammed77-glitch/rawaie-erp-New
 BRANCH              = main
-LATEST VERIFIED HEAD BEFORE THIS UPDATE = 4f8ca70570ca3a31fb9cf4634fb19f0ae4720ef5
+CURRENT HEAD        = 10e0395339263a09c69b9cf00c1485421144746e
 TARGET              = Current/PWA/New-main
 CURRENT TARGET BLOB = 22f4ee1a666141be62127159337beffb05e8b146
 ```
@@ -35,16 +35,19 @@ Its direct target diff changed only the embedded timestamp from `18:00 UTC` to `
 
 After that target-affecting line, repository changes were continuity/documentation work only. No evidence shows a `Current/PWA/New-main` change after `282cce...`.
 
-### Latest continuity commits before this Report 37 update
+### Latest continuity commits
 ```text
+10e0395339263a09c69b9cf00c1485421144746e
+[CTO] Reconcile CURRENT_STATE with Report 37 forensic handoff
+
+cc26dd7d78862e7ae442edfca136c7dda44c7438
+[CTO] Add Report 37 — forensic reconciliation and offline successor mission
+
 4f8ca70570ca3a31fb9cf4634fb19f0ae4720ef5
 [CTO] Record final CURRENT_STATE HEAD for Report 36 continuity
 
 be816159ec5ecd6484ec0cf2beb2e009e12959d
 [CTO] Reconcile CURRENT_STATE with Report 36 and offline successor mission
-
-287bcc4d1b73de8843d8466267a78634c5d2995d
-[CTO] Add forensic continuity Report 36 and offline successor mission packet
 ```
 
 ## REPORT 37 — CURRENT FORENSIC CONTINUITY STATION
@@ -418,7 +421,7 @@ Do not claim current HEAD from a stale CURRENT_STATE.
 TARGET                       = Current/PWA/New-main
 TARGET BLOB                  = 22f4ee1a666141be62127159337beffb05e8b146
 LATEST TARGET-AFFECTING SHA  = 282cce040c51b2f4f926a8ca9227ef89ee742713
-LATEST VERIFIED CONTINUITY HEAD BEFORE THIS UPDATE = 4f8ca70570ca3a31fb9cf4634fb19f0ae4720ef5
+CURRENT REPOSITORY HEAD      = 10e0395339263a09c69b9cf00c1485421144746e
 LATEST APPLICATION CHANGE    = none after 282cce...
 OWNER                        = isOwner=true + permissions=["*"] + active owner profile
 MANIFEST                     = ./manifest.json / consistent
