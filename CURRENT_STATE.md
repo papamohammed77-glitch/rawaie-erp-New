@@ -468,3 +468,99 @@ to:
 ```text
 FULL MAIN1 PRODUCT CLOSURE = CLOSED
 ```
+
+---
+
+# 14. CONTINUATION FORENSIC RECONCILIATION — 2026-09-05
+
+This section supersedes only the stale checkpoint metadata above; all historical sections remain preserved.
+
+## Last verified state at start of this continuation
+
+```text
+CURRENT STATE CHECKPOINT = Report56 / d845ad...
+CURRENT DIRECT GIT HEAD AT INVESTIGATION START = 313d623764eb4c8c7cedac1ff9134975195c49db
+CURRENT DIRECT MAIN1-AFFECTING COMMIT = ed4e91ec595234ba7ede3f08558c660c1b100d3e
+CURRENT MAIN1 BLOB = 4d1b42250cfe2b3a8ec7d02b7b482eca8e27bade
+```
+
+The current HEAD `313d...` was verified as a `CURRENT_STATE` documentation reconciliation commit; it did not mutate `main1.md`.
+
+The current Main1 path history was re-queried directly. No commit after `ed4e91...` currently touches `Current/PWA/main2/main1.md`.
+
+## Direct findings
+
+```text
+Main1 source Patch 1–4 = still present
+Main1 source blob = unchanged since ed4e91
+No source regression discovered
+No justification to re-run Patch 1–4
+```
+
+## Files rechecked
+
+```text
+Current/PWA/main2/main1.md
+Current/PWA/main2/main2.md
+Current/PWA/core.js
+Current/PWA/sw.js
+Current/PWA/register-sw.js
+Current/PWA/manifest.json
+```
+
+Current manifest contract remains:
+
+```text
+start_url = ./New-main
+scope = ./
+```
+
+This does not prove that `New-main` is assembled from `main2/main1.md`.
+
+## Production evidence boundary
+
+The latest directly recorded Production configuration checkpoint remains:
+
+```text
+UTC = 2026-09-04 23:03:02.821465
+companies = 1
+app_settings = 1
+company_name = الروائع
+company_logo = NULL
+```
+
+No historical multi-company snapshot is allowed to override a fresh current query.
+
+## Runtime/deployment boundary
+
+Still unresolved:
+
+```text
+exact assembly process for main2/main1 → served artifact
+exact deployment target for that artifact
+fresh browser/runtime verification against that exact artifact
+```
+
+The prior New-main CI failure remains scoped to New-main target verification and cannot close Main1.
+
+## Report created in this continuation
+
+```text
+doc/Draft/Reprots/تقرير57.md
+commit = e2dc8da6982a50328d700bc48421282ed782c7cc
+```
+
+Report57 records the full forensic continuation, the current Main1 verdict, the evidence boundaries, the historical mistakes avoided, and the exact next closure unit.
+
+## Final status after this continuation
+
+```text
+MAIN1 SOURCE CLOSURE = CLOSED
+MAIN1 FULL PRODUCT CLOSURE = OPEN
+MAIN2 SOURCE FILES = PRESENT
+MAIN2 FULL CLOSURE = HOLD
+
+NEXT CLOSURE UNIT = ASSEMBLY / DEPLOYMENT / RUNTIME LINEAGE FOR MAIN2/MAIN1
+```
+
+This is the authoritative continuation state until contradicted by newer direct evidence.
