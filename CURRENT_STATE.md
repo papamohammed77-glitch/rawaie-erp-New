@@ -13,13 +13,13 @@ Earlier closure evidence proved trusted artifacts and earlier Gold/Diamond state
 
 The historical regression/reconstruction incidents, verifier failures, competing-writer discovery, P163, MAIN2 governance, Diamond 122 and earlier closure evidence remain preserved in Git history and under `doc/Draft/Reprots/`.
 
-## CURRENT AUTHORITATIVE RECONCILIATION — 2026-09-03
+## CURRENT AUTHORITATIVE RECONCILIATION — 2026-09-04
 
 ### Git identity
 ```text
 REPOSITORY          = papamohammed77-glitch/rawaie-erp-New
 BRANCH              = main
-CURRENT HEAD        = be816159ec5ecd648ec4f0cf2beb2e009e12959d
+LATEST VERIFIED HEAD BEFORE THIS UPDATE = 4f8ca70570ca3a31fb9cf4634fb19f0ae4720ef5
 TARGET              = Current/PWA/New-main
 CURRENT TARGET BLOB = 22f4ee1a666141be62127159337beffb05e8b146
 ```
@@ -33,27 +33,32 @@ Update New-main
 
 Its direct target diff changed only the embedded timestamp from `18:00 UTC` to `22:00 UTC`.
 
-After that target-affecting line, the repository changes were continuity/documentation work only. No evidence currently shows a `Current/PWA/New-main` change after `282cce...`.
+After that target-affecting line, repository changes were continuity/documentation work only. No evidence shows a `Current/PWA/New-main` change after `282cce...`.
 
-### Latest continuity commits
+### Latest continuity commits before this Report 37 update
 ```text
-ac77379f529ce4e8325af277e48dee692703ba5f
-[CTO] Update CURRENT_STATE with Report 35 and offline V6 handoff
+4f8ca70570ca3a31fb9cf4634fb19f0ae4720ef5
+[CTO] Record final CURRENT_STATE HEAD for Report 36 continuity
+
+be816159ec5ecd6484ec0cf2beb2e009e12959d
+[CTO] Reconcile CURRENT_STATE with Report 36 and offline successor mission
 
 287bcc4d1b73de8843d8466267a78634c5d2995d
 [CTO] Add forensic continuity Report 36 and offline successor mission packet
-
-be816159ec5ecd648ec4f0cf2beb2e009e12959d
-[CTO] Reconcile CURRENT_STATE with Report 36 and offline successor mission
-
-<current state was then corrected to record the exact HEAD above>
 ```
 
-The current state file itself was reconciled again solely to record the exact new HEAD; the application target remains unchanged.
+## REPORT 37 — CURRENT FORENSIC CONTINUITY STATION
+
+```text
+doc/Draft/Reprots/تقرير37.md
+commit = cc26dd7d78862e7ae442edfca136c7dda44c7438
+```
+
+Report 37 reconciles the latest Git line, current target identity, owner/license semantics, current New-main product reality, authorized target modification surface, and the offline successor CTO package.
 
 ## CURRENT TARGET — DIRECT EVIDENCE
 
-`Current/PWA/New-main` was fetched directly and is a complete HTML artifact beginning with:
+`Current/PWA/New-main` remains a complete HTML artifact beginning with:
 
 ```html
 <!doctype html>
@@ -61,15 +66,15 @@ The current state file itself was reconciled again solely to record the exact ne
 <html lang="ar" dir="rtl">
 ```
 
-It currently references:
+It references:
 
 ```html
 <link rel="manifest" href="./manifest.json">
 ```
 
-and contains the Login surface, application shell, sidebar/header, navigation, Dashboard/data logic, and multiple application modules.
+and contains the Login surface, application shell, sidebar/header/navigation, Dashboard/data logic, and multiple application modules.
 
-A historical Gold/Diamond meta marker exists in the file but is not treated as fresh closure evidence.
+A historical Gold/Diamond meta marker exists in the file but is not treated as fresh Gold/Diamond runtime evidence.
 
 ## CURRENT PWA MANIFEST — CLOSED
 
@@ -97,8 +102,8 @@ Fresh direct Supabase evidence in the continuity chain establishes:
 
 ```text
 public.users.permissions = ["*"]
-public wildcard           = true
-Auth isOwner              = true
+public wildcard          = true
+Auth isOwner             = true
 Auth permissions         = ["*"]
 owner_profile linkage    = valid
 license_status           = active
@@ -163,11 +168,7 @@ forgot-password
 password visibility
 ```
 
-The `Original/PWA/main/` directory contains:
-
-```text
-main1.md ... main11.md
-```
+The `Original/PWA/main/` directory contains `main1.md ... main11.md`.
 
 These are historical contract evidence. They are not alternative deployment targets.
 
@@ -300,9 +301,9 @@ OPERATING APPLICATIONS
 
 Use existing authoritative backend/core contracts; do not duplicate stock/accounting/ledger authority inside the PWA.
 
-## OPTIMIZED FIVE-FILE OFFLINE SUCCESSOR PACKET
+## OPTIMIZED OFFLINE SUCCESSOR PACKET
 
-Because the successor CTO has no GitHub/Supabase/external file access, use these five logical attachments:
+Because the successor CTO has no GitHub/Supabase/external file access, the canonical minimum packet is:
 
 ```text
 1. Current/PWA/New-main — FULL CONTENT
@@ -312,7 +313,7 @@ Because the successor CTO has no GitHub/Supabase/external file access, use these
 5. One exact-content pack: every complete file under Original/PWA/sales/
 ```
 
-Current Sales pack contains:
+Sales pack:
 
 ```text
 Original/PWA/sales/order-taker.html
@@ -324,6 +325,15 @@ Original/PWA/sales/van-sales.html
 ```
 
 Preserve exact source-path headers in concatenated packs.
+
+Optional tiny runtime-reference supplements when message budget permits:
+
+```text
+Original/PWA/manifest.json
+Original/PWA/register-sw.js
+```
+
+These are reference supplements, not alternative targets.
 
 Important distinction:
 
@@ -341,6 +351,7 @@ RECEIVE PACKET
 → COMPLETE-PACKET GATE
 → READ FULL New-main
 → READ ALL REFERENCE PACKS
+→ BUILD FACT / CLAIM / UNKNOWN MAP
 → RECONCILE CURRENT / HISTORICAL
 → TRACE safeText
 → TRACE AUTH_ID
@@ -367,8 +378,6 @@ CURRENT DIAMOND   = NOT CLAIMED
 CURRENT 100%      = NOT CLAIMED
 ```
 
-Required proof includes functional behavior, runtime evidence, visual/product parity, security/tenant correctness, cross-feature integration, and no critical unresolved drift/unknowns.
-
 ## CURRENT OPEN WORK
 
 ```text
@@ -387,22 +396,6 @@ P1  Fresh Gold gate
 P1  Fresh Diamond gate
 ```
 
-## REPORT RECORD
-
-### Report 35
-```text
-doc/Draft/Reprots/تقرير35.md
-commit = 7cff6ce39c5bab347fb92638ddd029adf12cad36
-```
-
-### Report 36
-```text
-doc/Draft/Reprots/تقرير36.md
-commit = 287bcc4d1b73de8843d8466267a78634c5d2995d
-```
-
-Report 36 is the current forensic continuity record for this handoff and must not be replaced by a shorter success claim.
-
 ## HISTORICAL / PROCESS ERRORS TO REMEMBER
 
 ```text
@@ -415,6 +408,8 @@ Do not reconstruct a monolithic target from fragments alone.
 Do not treat trigger/marker files as success proof.
 Do not fix a verifier instead of the actual target without evidence.
 Do not create competing writers or parallel business cores.
+Do not mistake a documentation commit for a target change.
+Do not claim current HEAD from a stale CURRENT_STATE.
 ```
 
 ## OFFLINE SUCCESSOR CANONICAL STARTING STATE
@@ -423,7 +418,7 @@ Do not create competing writers or parallel business cores.
 TARGET                       = Current/PWA/New-main
 TARGET BLOB                  = 22f4ee1a666141be62127159337beffb05e8b146
 LATEST TARGET-AFFECTING SHA  = 282cce040c51b2f4f926a8ca9227ef89ee742713
-LATEST CONTINUITY HEAD       = be816159ec5ecd648ec4f0cf2beb2e009e12959d
+LATEST VERIFIED CONTINUITY HEAD BEFORE THIS UPDATE = 4f8ca70570ca3a31fb9cf4634fb19f0ae4720ef5
 LATEST APPLICATION CHANGE    = none after 282cce...
 OWNER                        = isOwner=true + permissions=["*"] + active owner profile
 MANIFEST                     = ./manifest.json / consistent
@@ -431,6 +426,7 @@ SAFETEXT                     = needs current trace
 AUTH_ID                      = needs current trace
 GOLD                         = not claimed
 DIAMOND                      = not claimed
+REPORT                       = تقرير37.md
 ```
 
 No historical closure label overrides this state.
