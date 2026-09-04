@@ -1,31 +1,36 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
-## 0. AUTHORITATIVE CONTINUITY UPDATE — 2026-09-04
+## 0. AUTHORITATIVE CONTINUITY UPDATE — 2026-09-05
 
 This file is the continuity checkpoint. It is a declared state and must always be reconciled against direct Git, Production, deployments, and runtime evidence.
 
 ```text
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
+CURRENT GIT HEAD = 8399ff50664b76c776f01a9e941cc2bdfd247b59
 HISTORICAL REPOSITORY = papamohammed77-glitch/rawaie-erp-review
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
 ```
 
-### Latest verified Git event before this update
+### Latest verified Git events
 
 ```text
-2bffd02f09f757424e4bfa38f3411ee9cf74b2ba
-[CTO] Add Report52 forensic Main1 source repair closure
+ed4e91ec595234ba7ede3f08558c660c1b100d3e
+Update main1.md
+= ACTUAL SOURCE MUTATION
+= Main1 Patch 1–4 applied
+
+8399ff50664b76c776f01a9e941cc2bdfd247b59
+Update تحليل مساعد خارجي -main1
+= DOCUMENTATION UPDATE ONLY
+= CURRENT HEAD
 ```
 
-### This continuity update
+### Reconciliation result
 
-```text
-Report53 = doc/Draft/Reprots/تقرير53.md
-Purpose = reconcile latest Git reality and preserve Main2/Main1 repair checkpoint
-```
+The previous 2026-09-04 state was stale because it pre-dated `ed4e91...`. The four Main1 patch windows formerly marked pending are now present in `Current/PWA/main2/main1.md` and were introduced by `ed4e91...`.
 
-Discover the exact current `main` HEAD directly from Git after any documentation commit; never hard-code this file's own future SHA.
+The latest browser gate observed after the newer HEAD was **not a Main1 source-runtime failure**. The `CTO Emergency New-main Closure` workflow failed on the `Browser smoke` step with `page.goto: Download is starting` while targeting `Current/PWA/New-main`. Its `Patch target` step passed, but the workflow was not able to establish browser runtime closure for New-main. This result must not be used to declare Main1 runtime failure.
 
 ---
 
@@ -33,15 +38,17 @@ Discover the exact current `main` HEAD directly from Git after any documentation
 
 The project did NOT stop at Report51.
 
-Direct Git investigation discovered:
+Direct Git investigation discovered the following continuity chain:
 
 ```text
-2bffd02...  Report52 forensic Main1 closure
-8049d898...  Delete Current/PWA/main2/Test
-c55ce8b3...  Add files via upload (Main2 source pack)
+2bffd02...  Report52 forensic Main1 closure design
+7e07088...  CURRENT_STATE sync with Report53 checkpoint
+ed4e91e...  ACTUAL Main1 source repair (Patch 1–4)
+76a5fdd...  External Main1 analysis report created
+8399ff5...  External Main1 analysis report updated — CURRENT HEAD
 ```
 
-Therefore older `CURRENT_STATE` entries that named Report51 as latest were stale and have now been reconciled.
+Therefore older `CURRENT_STATE` entries that named Report52/Report53 as the latest actionable state were reconciled against the actual source mutation at `ed4e91...`.
 
 ---
 
@@ -75,14 +82,14 @@ doc/Draft/medhat/MASTER - RAWAEA ERP.md
 
 # 3. CURRENT REPAIR TARGET
 
-The owner explicitly changed the active repair target for this stream.
+For this source-repair stream:
 
 ```text
 ACTIVE SOURCE REPAIR PACK = Current/PWA/main2/
 CURRENT CLOSURE UNIT = Current/PWA/main2/main1.md
 ```
 
-This does NOT redefine Production's deployed product target; it defines the source-repair workstream requested for the 11-part Main2 composite.
+This does NOT redefine Production's deployed product target; it defines the source-repair workstream for the 11-part Main2 composite.
 
 `Current/PWA/main2` contains:
 
@@ -108,39 +115,36 @@ The fragments are logical parts of one parent application contract, not eleven i
 
 ```text
 PATH = Current/PWA/main2/main1.md
-BLOB SHA = 14b12a471c20ad23a2c18f456dbc4d59783a0d1f
-SIZE = 63126 bytes
-INSERTION COMMIT = c55ce8b3e0ecdfffc5739afdac53910009208f43
+SOURCE STATUS = PATCHED BY ed4e91ec595234ba7ede3f08558c660c1b100d3e
 ```
 
-Direct source inspection confirms Main1 contains:
+Direct source inspection after the mutation confirms the following repair state:
 
 ```text
-HTML shell
-CSS
-Supabase client bootstrap
-RW_Table
-RW_Audit_log
-RW_Permissions_check
-RW_Permissions_applyUI
-RW_Workflow
-RW_Notification
-RW_Audit UI
-RW_STATE
-RW_Auth
-RW_Data
-RW_Navigation
+PATCH 1 = RW_STATE.app.company now includes id: null
+PATCH 2 = login resolves public.users.company_id by auth_id and rejects incomplete/inactive context
+PATCH 2 = permissions fallback is [] rather than implicit ['*']
+PATCH 3 = app_settings lookup is explicitly scoped by RW_STATE.app.company.id
+PATCH 4 = items/customers/branches/suppliers bootstrap reads explicitly carry company_id scope
 ```
 
-The fragment ends at `RW_Navigation` without closing the global script, while `main2.md` continues with the next logical application section.
+The current Main1 also retains the previously established UI identity values:
+
+```text
+login title = 64px
+login logo = 120×120
+company-name = 34px
+```
+
+These were not reclassified as defects merely because the external report mentioned different parent-file values.
+
+The fragment remains an intentional open-script logical fragment whose JavaScript assembly boundary is continued by later Main2 fragments. It must not be treated as an independently deployable HTML application solely because its filename is `.md`.
 
 ---
 
-# 5. REPORT52 STATUS — CRITICAL CONTINUITY FACT
+# 5. REPORT52 / REPORT53 STATUS — RECONCILED
 
-Report52 did NOT change Main1 source bytes.
-
-Its actual status was:
+The historical status was:
 
 ```text
 FORENSIC ANALYSIS = CLOSED
@@ -151,59 +155,89 @@ PRODUCTION DEPLOYMENT = NO
 BROWSER RUNTIME = NO
 ```
 
-The four proven Main1 repair windows were:
+That status is now **historical and superseded** for the source mutation itself by `ed4e91...`.
+
+Current status is:
 
 ```text
-PATCH 1 = add company id to RW_STATE.app.company
-PATCH 2 = resolve authoritative company_id from public.users during login
-PATCH 3 = company-scope app_settings lookup
-PATCH 4 = explicit company scope on bootstrap reads
+FORENSIC DESIGN = CLOSED
+SOURCE PATCH DESIGN = CLOSED
+SOURCE MUTATION = APPLIED
+SOURCE VERIFICATION = CONFIRMED BY DIRECT CONTENT INSPECTION
+PRODUCTION PRODUCT DEPLOYMENT = NOT PROVEN
+MAIN1 INDEPENDENT BROWSER RUNTIME = NOT PROVEN
 ```
+
+Do not reopen Report52/53 patch work unless fresh contradictory evidence appears.
 
 ---
 
-# 6. PROVEN MAIN1 DEFECTS
+# 6. PROVEN MAIN1 DEFECTS — CURRENT RESULT
 
 ## A — Unsafe wildcard default
 
-Current source contains:
+Historical defect:
 
 ```javascript
 RW_STATE.permissions = meta.permissions || ['*'];
 ```
 
-This is a confirmed frontend authorization default defect.
+Current source result:
 
-Owner wildcard semantics remain protected and must NOT be enumerated or replaced.
+```javascript
+RW_STATE.permissions = Array.isArray(meta.permissions) ? meta.permissions : [];
+```
+
+Owner wildcard semantics remain protected at the Owner contract level. The absence of a generic `['*']` fallback must not be converted into removal of legitimate Owner `permissions = ['*']` semantics.
 
 ## B — Missing authoritative company bootstrap
 
-Login uses Auth metadata without obtaining the authoritative `public.users.company_id`.
+Historical defect:
+
+Login depended on Auth metadata alone.
+
+Current source result:
+
+```text
+Auth user
+→ public.users by auth_id
+→ company_id + status
+→ RW_STATE.app.company.id
+```
 
 ## C — Global app_settings lookup
 
-Current source uses an unscoped:
+Historical defect:
 
 ```javascript
 .from('app_settings').select('*').limit(1)
 ```
 
-## D — Bootstrap reads have no explicit company scope
+Current source result is explicitly company-scoped and deterministically ordered before `.limit(1)`.
 
-Current Main1 loads items/customers/branches/suppliers without explicit `company_id` filters. Current RLS protects them, so a security incident is not proven, but explicit tenant propagation is the authorized hardening.
+## D — Bootstrap reads had no explicit company scope
+
+Current source result adds explicit company scope to:
+
+```text
+items
+customers
+branches
+suppliers
+```
+
+This is hardening plus tenant propagation; it does not replace database-side RLS.
 
 ---
 
 # 7. FINDINGS INTENTIONALLY PRESERVED
 
-No direct evidence authorizes changing these in Main1:
+No current direct evidence authorizes changing these in Main1 merely because an external analysis suggested a parent-file target:
 
 ```text
 login title 64px
 login logo 120×120
 company-name 34px
-RAWAEA ERP ENTERPRISE
-منصة إدارة الأعمال الذكية والمتكاملة
 owner wildcard semantics
 workflow_rules global-read contract
 notification_templates global-read contract
@@ -212,28 +246,39 @@ audit_log owner contract
 
 Historical/current difference alone is not a defect.
 
+The external report's branding claims must be understood as a **cross-file Parent/New-main recommendation**, not as proof that the active Main2/Main1 source is visually defective.
+
 ---
 
 # 8. IMPORTANT CROSS-SOURCE DISTINCTION
 
-`Current/PWA/main/main1.md` is a DIFFERENT source file and already contains a newer `RW_ShellContext` hardening pattern.
+There are multiple Main1 lineages:
 
-Do not copy it wholesale into Main2/Main1.
+```text
+Current/PWA/main/main1.md
+Current/PWA/main2/main1.md
+Original/PWA/main/main1.md
+Current/PWA/New-main
+```
+
+They are not automatically byte-identical and must not be overwritten onto one another.
 
 Classification:
 
 ```text
 main/main1 = current different lineage/reference
 main2/main1 = active source-repair target
+New-main = integrated parent application artifact
+Original/main1 = historical contract evidence
 ```
 
-Only proven patch windows may cross the boundary.
+Only proven responsibilities and patch windows may cross lineage boundaries.
 
 ---
 
 # 9. PRODUCTION / DATABASE CONTINUITY
 
-Production evidence relevant to this workstream confirms:
+Production evidence relevant to the broader project confirms:
 
 ```text
 PostgreSQL 17.6
@@ -251,7 +296,7 @@ owner_profile valid
 license_status = active
 ```
 
-No Main2/Main1 production deployment was proven or performed by Report52/Report53.
+No claim is made that the Main2/Main1 source fragment itself is a separately deployed Production artifact.
 
 ---
 
@@ -284,72 +329,37 @@ missing Auth permissions treated as owner wildcard
 reports/self-attestation treated as current production truth
 ```
 
+Known recent failure:
+
+```text
+CTO Emergency New-main Closure / Browser smoke
+HEAD tested = 8399ff...
+Patch target = PASS
+Browser smoke = FAIL
+Failure = page.goto: Download is starting
+Target = Current/PWA/New-main
+```
+
+This failure mode is an **integration/runtime-harness issue**, not proof that Main1's `ed4e91...` source mutation is wrong.
+
 When a write tool only supports complete-file replacement, do not use it for a narrow repair unless the full file has first been reconstructed and re-read safely.
 
 ---
 
-# 12. CURRENT MAIN1 PATCH INSTRUCTIONS
+# 12. CURRENT MAIN1 PATCH STATUS
 
-The exact approved surgical replacements remain in Report52 and Report53.
-
-### PATCH 1
-Search for this exact line:
-
-```javascript
-const RW_STATE = { app: { initialized: false, authenticated: false, loading: false, currentView: 'dashboard', currentUser: null, company: { name: 'الروائع ERP', logo: 'ر' } }, data: { items: [], customers: [], suppliers: [], branches: [] }, permissions: [], ui: { sidebarOpen: false, sidebarCollapsed: false } };
-```
-
-Replace only the `company` object with:
-
-```javascript
-company: { id: null, name: 'الروائع ERP', logo: 'ر' }
-```
-
-### PATCH 2
-Replace the Main1 login block beginning exactly with:
-
-```javascript
-var user = authRes.data.user;
-var meta = user.user_metadata || {};
-```
-
-and ending at:
-
-```javascript
-self.enterSystem();
-```
-
-with the authoritative `public.users` lookup shown in Report53 / Report52.
-
-### PATCH 3
-Replace the first unscoped `app_settings` lookup inside `enterSystem()` with:
-
-```javascript
-RW_SUPABASE_CLIENT
-    .from('app_settings')
-    .select('*')
-    .eq('company_id', RW_STATE.app.company.id)
-    .order('created_at', { ascending: true })
-    .limit(1)
-```
-
-### PATCH 4
-Add explicit company scope to the four bootstrap reads:
-
-```javascript
-.eq('company_id', RW_STATE.app.company.id)
-```
-
-for:
+The four previously approved patch windows are now **applied** by `ed4e91...`.
 
 ```text
-items
-customers
-branches
-suppliers
+PATCH 1 = APPLIED
+PATCH 2 = APPLIED
+PATCH 3 = APPLIED
+PATCH 4 = APPLIED
 ```
 
-No other Main1 change is authorized by the current evidence at this checkpoint.
+Direct current-source inspection confirms all four.
+
+No additional Main1 source mutation is currently authorized solely from the external analysis report.
 
 ---
 
@@ -361,35 +371,40 @@ MAIN1 SOURCE INSPECTED = CONFIRMED
 MAIN1 PRODUCTION CONTRACT CHECKED = CONFIRMED
 MAIN1 ROOT CAUSES = PROVEN
 MAIN1 PATCH DESIGN = CLOSED
-MAIN1 SOURCE BYTES = UNCHANGED
-MAIN1 PRODUCTION DEPLOYMENT = NOT PERFORMED
-MAIN1 RUNTIME = NOT VERIFIED
-MAIN1 SOURCE APPLICATION = MANUAL SURGICAL PATCH PENDING
-MAIN2 = NOT STARTED
+MAIN1 SOURCE PATCH = APPLIED
+MAIN1 DIRECT SOURCE RE-READ = CONFIRMED
+MAIN1 PRODUCTION PRODUCT DEPLOYMENT = NOT PROVEN
+MAIN1 INDEPENDENT BROWSER RUNTIME = NOT PROVEN
+MAIN2 SOURCE = NOT MODIFIED BY THIS MAIN1 EVENT
 ```
 
 Therefore:
 
 ```text
-DO NOT CLAIM MAIN1 CLOSED
-DO NOT CLAIM PRODUCTION FIXED
-DO NOT CLAIM RUNTIME VERIFIED
+DO NOT CLAIM MAIN1 PRODUCTION DEPLOYED
+DO NOT CLAIM MAIN1 BROWSER RUNTIME VERIFIED
+DO NOT CLAIM PROJECT CLOSED
 DO NOT CLAIM GOLD/DIAMOND
 ```
+
+The source-level Main1 closure may be described as:
+
+```text
+SOURCE PATCH APPLIED + SOURCE VERIFIED
+```
+
+not as a full runtime/product closure.
 
 ---
 
 # 14. NEXT AUTHORIZED ACTION
 
 ```text
-1. Apply PATCH 1–4 manually to Current/PWA/main2/main1.md.
-2. Re-read the complete modified Main1 from line 1 to EOF.
-3. Confirm exactly one RW_STATE and one RW_Auth bootstrap remain.
-4. Confirm no historical code was unintentionally reintroduced.
-5. Establish the new Main1 SHA.
-6. Run fragment/static syntax and Main1→Main2 integration checks.
-7. Record the event in the next numbered forensic report.
-8. Only after Main1 source gate closes, begin Main2.
+1. Preserve ed4e91... as the authoritative Main1 source mutation.
+2. Re-run a safe cumulative Main1→Main2 static/syntax verification against the actual open-script fragment contract.
+3. Do not use the failed New-main Download-is-starting browser gate as a Main1 verdict.
+4. If the cumulative source gate passes, reassess whether Main2 is truly the next target.
+5. Any Main2 mutation must start from the newly verified state, not from Report53's stale pending-patch state.
 ```
 
 Do not reopen historical login-brand visual work without fresh contradictory evidence.
@@ -402,11 +417,14 @@ Do not reopen historical login-brand visual work without fresh contradictory evi
 MASTER GOVERNANCE:
 doc/Draft/medhat/MASTER - RAWAEA ERP.md
 
-LATEST FORENSIC REPORT:
-doc/Draft/Reprots/تقرير53.md
+LATEST SOURCE-REPAIR REPORT:
+doc/Draft/Reprots/تقرير54.md
 
 PREVIOUS FORENSIC REPORT:
-doc/Draft/Reprots/تقرير52.md
+doc/Draft/Reprots/تقرير53.md
+
+EXTERNAL MAIN1 ANALYSIS:
+doc/Draft/Reprots/تحليل مساعد خارجي -main1
 
 KNOWLEDGE PACK:
 doc/Draft/Reprots/MASTER_RAWAEA_SYSTEM_PWA_KNOWLEDGE_PACK_2026-09-04.md
@@ -430,12 +448,12 @@ Any successor CTO must first:
 READ CURRENT_STATE.md TO EOF
 READ LATEST NUMBERED REPORT TO EOF
 DISCOVER CURRENT GIT HEAD DIRECTLY
-VERIFY MAIN2/MAIN1 BLOB DIRECTLY
+VERIFY CURRENT Main1 BLOB DIRECTLY
 VERIFY RELEVANT PRODUCTION CONTRACTS
 RECONCILE ANY DRIFT
-DO NOT REPEAT REPORT52 FORENSIC WORK AS IF IT WERE UNDONE
-DO NOT ASSUME REPORT52 PATCH WAS APPLIED
-DO NOT MOVE TO MAIN2 BEFORE MAIN1 SOURCE GATE
+DO NOT REPEAT REPORT52/53 FORENSIC WORK AS IF IT WERE UNDONE
+DO NOT ASSUME REPORT52 PATCH WAS PENDING
+DO NOT MOVE TO MAIN2 BEFORE THE CURRENT MAIN1 SOURCE GATE IS RE-EVALUATED
 ```
 
 The successor must distinguish:
@@ -454,11 +472,21 @@ CLOSED
 # 17. LAST VERIFIED EVENT
 
 ```text
-EVENT ID = 2bffd02f09f757424e4bfa38f3411ee9cf74b2ba
-EVENT TYPE = FORENSIC DOCUMENTATION / MAIN1 SOURCE REPAIR CLOSURE DESIGN
-DATE = 2026-09-04
-RESULT = Main1 root causes and exact surgical patch windows proven; source left unchanged intentionally.
-NEXT AUTHORIZED ACTION = manual application of PATCH 1–4 followed by full EOF re-read and SHA verification.
+EVENT ID = ed4e91ec595234ba7ede3f08558c660c1b100d3e
+EVENT TYPE = MAIN1 SOURCE SURGICAL REPAIR
+DATE = 2026-09-04T21:45:51Z
+RESULT = Main1 Patch 1–4 actually applied and confirmed in the current source.
+EVIDENCE = direct current Git content + commit diff
+NEXT AUTHORIZED ACTION = cumulative Main1→Main2 source verification, then reassess target.
 ```
 
-This file is the new continuity checkpoint. Exact current `main` HEAD must still be rediscovered directly from Git after this state commit.
+### Current HEAD documentation-only event
+
+```text
+EVENT ID = 8399ff50664b76c776f01a9e941cc2bdfd247b59
+EVENT TYPE = EXTERNAL MAIN1 ANALYSIS DOCUMENT UPDATE
+DATE = 2026-09-04T22:20:03Z
+RESULT = analysis report updated; no Main1 source mutation in this commit.
+```
+
+This file is the new continuity checkpoint. Exact current `main` HEAD must still be rediscovered directly from Git after any future state commit.
