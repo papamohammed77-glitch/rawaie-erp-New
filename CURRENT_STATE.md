@@ -24,33 +24,17 @@ REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
 CANONICAL TARGET = Current/PWA/New-main
 
-CURRENT REPOSITORY HEAD = 33f2d9628a4d614d30635c344ab404198a26ff2a
-
+LATEST VERIFIED REPOSITORY HEAD AT LAST DIRECT READ = d1d50a10b8a084a40dd532adafe7155cf5925030
 LATEST TARGET-AFFECTING COMMIT = 282cce040c51b2f4f926a8ca9227ef89ee742713
 CURRENT TARGET BLOB = 22f4ee1a666141be62127159337beffb05e8b146
+CURRENT_STATE UPDATE = THIS COMMIT
 ```
+
+The final `CURRENT_STATE` update itself is a documentation/state synchronization commit. Its own SHA is discoverable as the latest commit in Git chronology; do not hard-code a self-referential SHA inside this file.
 
 ### Direct chronology around the latest station
 
 ```text
-856c88698a0f034086212de0be28fef293556a4a
-[CTO] Update CURRENT_STATE after Report 43 and V6 identity successor
-
-88c9b3df9e39e0ef26e24e216f04bc424444b4ac
-[CTO] Add RAW-only successor CTO V7 onboarding and anti-hallucination execution directive
-
-f2d72d56a689e2383e2430276058943f09cbae35
-[CTO] Add Report 44 — forensic RAW-only successor takeover and V7 design
-
-4a85e436e0058fe1536255e7b8ca54b6f1fb3a27
-[CTO] Sync CURRENT_STATE with Report44 and RAW-only Successor V7
-
-e7c58332cc1dc5473852ee075066961712c38520
-[CTO] Add RAW-only Successor CTO V8 Final — controlled small-closure onboarding
-
-0c1b719655f685dbcf5509624bf7cf55a0e1f40b
-[CTO] Add Report 45 — forensic reconciliation and V8 successor onboarding
-
 f95ae5dc55cd9beec81ce9573eb29cd4a532d7ba
 [CTO] Update CURRENT_STATE after Report45 and RAW-only Successor CTO V8
 
@@ -59,6 +43,9 @@ f95ae5dc55cd9beec81ce9573eb29cd4a532d7ba
 
 33f2d9628a4d614d30635c344ab404198a26ff2a
 [CTO] Add Report 46 — forensic recovery and surgical patch successor V9
+
+d1d50a10b8a084a40dd532adafe7155cf5925030
+[CTO] Sync CURRENT_STATE with Report46 and Surgical Patch Successor V9
 
 THIS CURRENT_STATE UPDATE
 → documentation/state synchronization only
@@ -72,13 +59,13 @@ A direct compare between:
 282cce040c51b2f4f926a8ca9227ef89ee742713
 ```
 
-and the current documentation head:
+and the last verified repository head:
 
 ```text
-33f2d9628a4d614d30635c344ab404198a26ff2a
+d1d50a10b8a084a40dd532adafe7155cf5925030
 ```
 
-showed the post-checkpoint commits are documentation / memory / directive / report updates and do not include a `Current/PWA/New-main` mutation.
+showed the post-checkpoint commits represented in the inspected chain are documentation / memory / directive / report updates and do not include a `Current/PWA/New-main` mutation.
 
 Therefore:
 
@@ -86,7 +73,7 @@ Therefore:
 NO VERIFIED TARGET-AFFECTING CHANGE HAS BEEN FOUND AFTER 282cce...
 ```
 
-Do not confuse the latest repository HEAD with a changed application target.
+Do not confuse the latest documentation/state commit with a changed application target.
 
 ---
 
@@ -94,7 +81,7 @@ Do not confuse the latest repository HEAD with a changed application target.
 
 ```text
 REPORT = doc/Draft/Reprots/تقرير46.md
-COMMIT = 33f2d9628a4d614d30635c344ab404198a26ff2a
+CREATED IN COMMIT = 33f2d9628a4d614d30635c344ab404198a26ff2a
 ```
 
 Previous reports remain preserved and must not be deleted.
@@ -102,6 +89,7 @@ Previous reports remain preserved and must not be deleted.
 Latest preserved sequence:
 
 ```text
+تقرير46.md
 تقرير45.md
 تقرير44.md
 تقرير43.md
@@ -496,12 +484,13 @@ Do not leave collateral changes unexplained.
 # 16. HANDOFF
 
 ```text
-CURRENT HEAD = 33f2d9628a4d614d30635c344ab404198a26ff2a
+LATEST VERIFIED REPOSITORY HEAD AT LAST DIRECT READ = d1d50a10b8a084a40dd532adafe7155cf5925030
 LATEST TARGET-AFFECTING COMMIT = 282cce040c51b2f4f926a8ca9227ef89ee742713
 TARGET BLOB = 22f4ee1a666141be62127159337beffb05e8b146
 LATEST REPORT = doc/Draft/Reprots/تقرير46.md
 LATEST SUCCESSOR = doc/Draft/medhat/MASTER_CTO_SURGICAL_PATCH_SUCCESSOR_V9.md
 TARGET MUTATION IN THIS STATION = NONE
+CURRENT_STATE FINALIZATION = THIS COMMIT
 NEXT MODE = SURGICAL PATCH EXECUTION
 RUNTIME = NOT VERIFIED
 GOLD = NOT FRESHLY PROVEN
