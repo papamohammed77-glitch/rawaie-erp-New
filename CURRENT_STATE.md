@@ -1,74 +1,123 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
 ## GOVERNANCE
-- Direct Production/runtime/database evidence outranks historical reports, prompts, memory, and closure labels.
-- `Current/PWA/New-main` is the only authorized application target for this product-completion track.
-- `Current/PWA/main.html` and `Original/PWA/main/*` are references/contracts, not alternative publish targets.
-- Fragment-only reconstruction is forbidden as persistence authority.
-- Production Supabase business-data writes remain forbidden in this closure track.
-- Historical reports are preserved; this file is the reconciled current-state index.
 
-## HISTORICAL CLOSURE RECORD — PRESERVED
-Earlier closure evidence proved trusted artifacts and earlier Gold/Diamond states. Those historical states are not silently promoted to current truth.
+- Direct Production/runtime/database evidence outranks reports, prompts, memory, and closure labels.
+- `Current/PWA/New-main` is the sole application target for the current product-completion track.
+- `Original/PWA/*` is historical reference/contract material and must not be modified or used as a competing deployment target.
+- Reports are preserved as evidence/history; they are not current Truth Source.
+- Function existence is not product completion.
+- Static verification is not runtime verification.
+- Historical Gold/Diamond markers are not fresh Gold/Diamond proof.
+- No new business authority may be created in the PWA; New-main remains a client/orchestrator over authoritative backend/core contracts.
 
-The historical regression/reconstruction incidents, verifier failures, competing-writer discovery, P163, MAIN2 governance, Diamond 122 and earlier closure evidence remain preserved in Git history and under `doc/Draft/Reprots/`.
+## CURRENT RECONCILIATION — 2026-09-04
 
-## CURRENT AUTHORITATIVE RECONCILIATION — 2026-09-04
+### Git / Target
 
-### Git identity
 ```text
-REPOSITORY          = papamohammed77-glitch/rawaie-erp-New
-BRANCH              = main
-CURRENT HEAD        = 838a5268273c74e3a955edc5a7d4cadfb42d71f3
-TARGET              = Current/PWA/New-main
+REPOSITORY = papamohammed77-glitch/rawaie-erp-New
+BRANCH     = main
+
+HEAD VERIFIED IMMEDIATELY BEFORE THIS CURRENT_STATE WRITE
+= 3b9b752e5fe046599d132e102e00c68bddc9d813
+
+TARGET = Current/PWA/New-main
 CURRENT TARGET BLOB = 22f4ee1a666141be62127159337beffb05e8b146
+LATEST TARGET-AFFECTING COMMIT = 282cce040c51b2f4f926a8ca9227ef89ee742713
 ```
 
-The latest application target-affecting commit remains:
+### Important chronology finding
 
-```text
-282cce040c51b2f4f926a8ca9227ef89ee742713
-Update New-main
+`282cce...` remains the latest direct application target change. Its direct target diff is only:
+
+```diff
+-<!-- 2026-09-03 18:00 UTC -->
++<!-- 2026-09-03 22:00 UTC -->
 ```
 
-Its direct target diff changed only the embedded timestamp from `18:00 UTC` to `22:00 UTC`.
+Later commits are continuity/documentation work. The latest repository commits in the current chain are:
 
-After that target-affecting line, repository changes were continuity/documentation work only. No evidence shows a `Current/PWA/New-main` change after `282cce...`.
-
-### Latest continuity commits
 ```text
+3b9b752e5fe046599d132e102e00c68bddc9d813
+[CTO] Add Report 38 — forensic recovery and successor CTO directive
+
+705f7730f11cc87319b8be7d6abefe0a5c1e6c09
+[CTO] Add unified New-main successor CTO Gold/Diamond directive
+
+8170de8b147f59035461db7f5da283992a4276e7
+[CTO] Finalize CURRENT_STATE after offline CTO directive
+
 838a5268273c74e3a955edc5a7d4cadfb42d71f3
 [CTO] Add master offline CTO New-main completion directive
+
+77e6d39067cbbc30f238190c7cb24bef7c642d3f
+[CTO] Correct CURRENT_STATE to final Report 37 reconciliation HEAD
 
 10e0395339263a09c69b9cf00c1485421144746e
 [CTO] Reconcile CURRENT_STATE with Report 37 forensic handoff
 
 cc26dd7d78862e7ae442edfca136c7dda44c7438
 [CTO] Add Report 37 — forensic reconciliation and offline successor mission
-
-4f8ca70570ca3a31fb9cf4634fb19f0ae4720ef5
-[CTO] Record final CURRENT_STATE HEAD for Report 36 continuity
 ```
 
-## REPORT 37 — CURRENT FORENSIC CONTINUITY STATION
+The current-state file was previously behind its own latest documentation commit. Therefore future CTOs must always re-prove Git HEAD directly rather than trusting the HEAD value stored in this file.
+
+## REPORTS / CONTINUITY
 
 ```text
-doc/Draft/Reprots/تقرير37.md
-commit = cc26dd7d78862e7ae442edfca136c7dda44c7438
+LATEST FORENSIC REPORT
+= doc/Draft/Reprots/تقرير38.md
+
+PREVIOUS FORENSIC STATION
+= doc/Draft/Reprots/تقرير37.md
 ```
 
-## OFFLINE CTO MASTER DIRECTIVE
+Report 38 records the latest forensic reconciliation, the CURRENT_STATE/Git chronology discrepancy, owner/license verification, current New-main evidence, and the new successor CTO directive.
+
+## SUCCESSOR CTO DIRECTIVE
+
+```text
+TARGET DIRECTIVE
+= doc/Draft/medhat/MASTER_CTO_NEWM_PRODUCT_COMPLETION_SUCCESSOR.md
+COMMIT
+= 705f7730f11cc87319b8be7d6abefe0a5c1e6c09
+```
+
+This is the canonical directive for a successor CTO that has:
+
+```text
+GitHub = READ ONLY
+Supabase = READ / WRITE
+GitHub commit/write = OWNER ONLY
+```
+
+The existing offline directive remains preserved:
 
 ```text
 doc/Draft/medhat/MASTER_OFFLINE_CTO_NEW_MAIN_COMPLETION.md
-commit = 838a5268273c74e3a955edc5a7d4cadfb42d71f3
+COMMIT = 838a5268273c74e3a955edc5a7d4cadfb42d71f3
 ```
 
-This is the canonical unified prompt for the offline successor CTO. It incorporates the continuity, evidence hierarchy, packet completeness gate, exact target scope, no-islands architecture, product-level Gold/Diamond gates, and the mandatory execution sequence.
+The new directive supersedes the offline execution model for this successor role but does not delete or invalidate the offline directive.
 
 ## CURRENT TARGET — DIRECT EVIDENCE
 
-`Current/PWA/New-main` remains a complete HTML artifact beginning with:
+`Current/PWA/New-main` is a real complete HTML artifact, not an empty skeleton. It currently includes implementation for:
+
+```text
+Login
+Application shell
+Sidebar / header / navigation
+Dashboard/data logic
+Customers paths
+Items/stock paths
+Suppliers paths
+Owner-sensitive audit path
+Company-scoped reads
+```
+
+Current file begins with:
 
 ```html
 <!doctype html>
@@ -82,11 +131,9 @@ It references:
 <link rel="manifest" href="./manifest.json">
 ```
 
-and contains the Login surface, application shell, sidebar/header/navigation, Dashboard/data logic, and multiple application modules.
+The file contains historical meta markers such as P163 Gold/Diamond markers. These are historical metadata only and are not accepted as fresh closure evidence.
 
-A historical Gold/Diamond meta marker exists in the file but is not treated as fresh Gold/Diamond runtime evidence.
-
-## CURRENT PWA MANIFEST — CLOSED
+## MANIFEST — PREVIOUSLY CLOSED
 
 ```text
 Current/PWA/manifest.json
@@ -95,20 +142,13 @@ scope     = ./
 dir       = rtl
 lang      = ar
 icons     = 3
-SHA       = f2f52998fd04094905f09afa9fbcb64b2bd38190
 ```
 
-Therefore:
+Do not reopen the old manifest issue without new direct evidence.
 
-```text
-OLD MANIFEST DISCREPANCY = CLOSED
-```
+## OWNER / LICENSE — VERIFIED
 
-Do not reopen without new direct evidence.
-
-## OWNER / LICENSE CONTRACT — VERIFIED
-
-Fresh direct Supabase evidence in the continuity chain establishes:
+Fresh Supabase evidence confirms:
 
 ```text
 public.users.permissions = ["*"]
@@ -119,7 +159,7 @@ owner_profile linkage    = valid
 license_status           = active
 ```
 
-Correct owner semantics:
+Canonical owner contract:
 
 ```text
 OWNER
@@ -135,38 +175,33 @@ VALID owner_profile
 ACTIVE license
 ```
 
-Do not replace this with role-permission enumeration.
+Do not replace the wildcard owner contract with role-permission enumeration.
 
-An initial verification query incorrectly treated JSONB permissions as a PostgreSQL `text[]`; it failed, was corrected, and the direct verification succeeded. This is an investigator/query-type error, not a production defect.
+A prior verification query incorrectly treated JSONB permissions as PostgreSQL `text[]`; that was corrected successfully. It is an investigator/query-type error, not a production defect.
 
-## REPORT 33 INCIDENTS — CURRENTLY RECLASSIFIED AS LEADS
-
-Historical runtime incidents:
+## HISTORICAL RUNTIME LEADS
 
 ```text
 safeText is not defined
 AUTH_ID_UNAVAILABLE
 ```
 
-The Report-33 target snapshot is obsolete as current source because `New-main` changed afterward.
-
 Current status:
 
 ```text
-CARRIED-FORWARD INCIDENT LEADS
+LEADS ONLY
 CURRENT TRACE REQUIRED
 NO BLIND HISTORICAL PATCH
 ```
 
-No fresh Chromium run is claimed in this continuity cycle.
+No fresh Chromium runtime proof was obtained in this continuity cycle.
 
 ## HISTORICAL UX CONTRACT
 
-Direct inspection of `Original/PWA/main/main1.md` proved a richer historical Login contract including:
+`Original/PWA/main/main1.md` established a richer Login contract including:
 
 ```text
 Cairo
-Tailwind
 64px title
 120x120 logo
 large glass login card
@@ -178,87 +213,86 @@ forgot-password
 password visibility
 ```
 
-The `Original/PWA/main/` directory contains `main1.md ... main11.md`.
-
-These are historical contract evidence. They are not alternative deployment targets.
-
-## CURRENT PRODUCT COMPLETION OBJECTIVE
-
-The next CTO must not confuse:
+Current `New-main` contains many of these concepts but visual parity is not yet proven. Current source was observed with values including approximately:
 
 ```text
-FUNCTIONS EXIST
+58px title
+88x88 logo
 ```
 
-with:
+Therefore Login visual/product parity remains open.
+
+The historical directory contains:
 
 ```text
-PRODUCT IS COMPLETE
+main1.md ... main11.md
 ```
 
-Completion of the current scope requires:
+`main1` alone is insufficient for safe reconstruction.
+
+## ACTIVE PRODUCT MISSION
+
+The current target is not an Inventory rebuild.
+
+The active product-completion scope is:
+
+```text
+A — Company information / identity / logo
+B — Login visual + functional parity
+C — Full master sidebar / header / navigation
+D — Dashboard
+E — Sales Management
+F — No-islands integration
+G — Navigation / refresh / re-entry regression
+H — Owner / non-owner authorization proof
+I — Tenant / security proof
+J — Fresh Gold gate
+K — Fresh Diamond gate
+```
+
+Completion means:
 
 ```text
 STRUCTURE
-+ VISUAL IDENTITY
-+ FUNCTIONAL CAPABILITY
-+ RUNTIME INTEGRITY
-+ BUSINESS SEMANTICS
-+ SECURITY / TENANCY
-+ PRODUCT EXPERIENCE
++
+VISUAL IDENTITY
++
+FUNCTIONAL CAPABILITY
++
+RUNTIME INTEGRITY
++
+BUSINESS SEMANTICS
++
+AUTHORIZATION
++
+TENANCY
++
+INTEGRATION
++
+PRODUCT EXPERIENCE
 ```
 
-Immediate scoped product work:
+## AUTHORIZED TARGET MODIFICATION SURFACE
 
-```text
-Company information / Logo
-Login visual + functional parity
-Full master sidebar
-Dashboard
-Sales management
-```
+### Block A — Login / Company / Logo
 
-The target must remain architecturally ready for the remaining tabs and must not become a set of islands.
-
-## CURRENT `New-main` REALITY
-
-Current source evidence shows real implementations, not an empty skeleton:
-
-```text
-Login surface
-Owner-only audit path
-Company-scoped Dashboard/data queries
-Customers data/CRUD path
-Items/stock data path
-Suppliers data/CRUD path
-Navigation/application shell
-```
-
-However, function presence is not completion proof.
-
-A current Dashboard implementation exists, including company-scoped reads and chart/data logic, but product-level closure is still OPEN pending visual, runtime, business, navigation, security, and UX verification.
-
-## EXACT AUTHORIZED TARGET MODIFICATION SURFACE
-
-Do not define changes by brittle numeric line ranges. Use semantic anchors in `Current/PWA/New-main`.
-
-### BLOCK A — LOGIN / COMPANY / LOGO
 ```text
 <style> sections for .rw-login-* and .rw-company-*
 <div id="rw-login-page"> ... </div>
 ```
 
-### BLOCK B — MASTER SHELL / SIDEBAR / HEADER
+### Block B — Master Shell / Sidebar / Header
+
 ```text
 <div id="rw-main-shell">
 <aside id="rw-sidebar">
 <header id="rw-header">
 #rw-page-container
 ```
-plus directly associated CSS/navigation renderers.
 
-### BLOCK C — AUTH / SESSION / COMPANY CONTEXT BRIDGE
-Modify only existing code responsible for:
+### Block C — Auth / Session / Company Context
+
+Only existing code for:
 
 ```text
 session acquisition
@@ -267,35 +301,34 @@ isOwner
 permissions
 company context
 company identity
-logo source resolution
+logo source
 ```
-when evidence proves a defect.
 
-### BLOCK D — DASHBOARD
-Modify only the existing Dashboard renderer and its direct presentation/data wiring for the active scope.
+### Block D — Dashboard
 
-### BLOCK E — SALES MANAGEMENT
-Modify only the existing Sales Management surface and direct client-side orchestration/navigation wiring.
+Existing Dashboard renderer and direct data/presentation wiring only.
 
-Historical Sales files are references/contracts, not six new deployable applications inside the master app.
+### Block E — Sales Management
+
+Existing Sales surface and direct client orchestration/navigation wiring only.
 
 ## OUT OF SCOPE UNLESS A BLOCKING DEPENDENCY IS PROVEN
 
 ```text
-inventory business engines
-stock posting logic
-reservation engines
-accounting core
-ledger core
-treasury
+inventory business engine redesign
+stock posting redesign
+reservation engine redesign
+accounting core redesign
+ledger core redesign
+treasury redesign
 unrelated purchasing internals
-delivery backend logic
-Original files as application targets
-Supabase production data
+unrelated delivery backend redesign
+Original files as targets
 parallel application targets
+production business-data experimentation
 ```
 
-## CENTRAL CORE / NO-ISLANDS CONSTITUTION
+## NO-ISLANDS CONSTITUTION
 
 ```text
 RAWAEA MASTER SYSTEM
@@ -307,137 +340,140 @@ DOMAIN ENGINES
 OPERATING APPLICATIONS
 ```
 
-`New-main` is a client/orchestrator and must not become a parallel ERP business core.
+New-main is a client/orchestrator.
 
-Use existing authoritative backend/core contracts; do not duplicate stock/accounting/ledger authority inside the PWA.
+It must not become a second business core or duplicate authoritative stock/accounting/ledger behavior.
 
-## OPTIMIZED OFFLINE SUCCESSOR PACKET
+Every restored feature must answer:
 
-Because the successor CTO has no GitHub/Supabase/external file access, the canonical minimum packet is:
+```text
+Who owns it?
+Who opens it?
+What state feeds it?
+What backend contract feeds it?
+What happens after the action?
+What happens on refresh?
+What happens on re-entry?
+Who consumes the result?
+How is authorization enforced?
+How is tenant scope enforced?
+```
+
+## HISTORICAL BUSINESS TRAPS TO REMEMBER
+
+```text
+Vehicle = mobile operating unit / mobile stock container
+Representative/Driver = custody/accountability holder
+
+DirectSale = MAIN → VAN
+VanSale    = VAN → Customer
+DirectReturn = VAN → MAIN
+
+Loading ≠ DirectSale
+Unloading ≠ Customer Return
+```
+
+Do not reopen these historical contracts unless current evidence contradicts them.
+
+## SUCCESSOR CTO PACKET
+
+The successor should receive:
 
 ```text
 1. Current/PWA/New-main — FULL CONTENT
 2. Original/PWA/main.html — FULL CONTENT
 3. Original/PWA/core.js — FULL CONTENT
-4. One exact-content pack: Original/PWA/main/main1.md ... main11.md
-5. One exact-content pack: every complete file under Original/PWA/sales/
+4. Original/PWA/main/main1.md ... main11.md — COMPLETE PACK
+5. Original/PWA/sales/order-taker.html
+6. Original/PWA/sales/pos.html
+7. Original/PWA/sales/sales.manager.html
+8. Original/PWA/sales/sales.supervisor.html
+9. Original/PWA/sales/telesales.html
+10. Original/PWA/sales/van-sales.html
 ```
 
-Sales pack:
-
-```text
-Original/PWA/sales/order-taker.html
-Original/PWA/sales/pos.html
-Original/PWA/sales/sales.manager.html
-Original/PWA/sales/sales.supervisor.html
-Original/PWA/sales/telesales.html
-Original/PWA/sales/van-sales.html
-```
-
-Preserve exact source-path headers in concatenated packs.
-
-Optional tiny runtime-reference supplements when message budget permits:
+Useful optional runtime references:
 
 ```text
 Original/PWA/manifest.json
 Original/PWA/register-sw.js
 ```
 
-These are reference supplements, not alternative targets.
+Preserve exact source-path headers inside concatenated packs.
 
-Important distinction:
+## NEXT EXECUTION SEQUENCE
 
 ```text
-SEND FULL TARGET
-BUT MODIFY ONLY THE AUTHORIZED INTERNAL BLOCKS
+STAGE 0  Current-state / handoff reconciliation
+STAGE 1  Git forensic verification
+STAGE 2  Supabase / Auth / License forensic verification
+STAGE 3  Full New-main reading
+STAGE 4  Full historical reference reading
+STAGE 5  Fact / Claim / Inference / Unknown / Conflict map
+STAGE 6  Trace safeText and AUTH_ID
+STAGE 7  Company / Logo
+STAGE 8  Login
+STAGE 9  Master Shell / Sidebar / Header
+STAGE 10 Navigation
+STAGE 11 Dashboard
+STAGE 12 Sales Management
+STAGE 13 No-islands integration
+STAGE 14 Owner / non-owner proof
+STAGE 15 Tenant / security proof
+STAGE 16 Runtime regression
+STAGE 17 Fresh Gold gate
+STAGE 18 Fresh Diamond gate
+STAGE 19 Final patch package / handoff
 ```
 
-`main1` alone is insufficient for strict no-guessing completion of the master application.
+No material UNKNOWN or unresolved CONFLICT in the active scope permits a Gold/Diamond claim.
 
-## REQUIRED OFFLINE CTO SEQUENCE
+## CURRENT STATUS
 
 ```text
-RECEIVE PACKET
-→ COMPLETE-PACKET GATE
-→ READ FULL New-main
-→ READ ALL REFERENCE PACKS
-→ BUILD FACT / CLAIM / UNKNOWN MAP
-→ RECONCILE CURRENT / HISTORICAL
-→ TRACE safeText
-→ TRACE AUTH_ID
-→ LOGIN / COMPANY / LOGO
-→ MASTER SIDEBAR / HEADER / NAVIGATION
-→ DASHBOARD
-→ SALES MANAGEMENT
-→ NO-ISLANDS / INTEGRATION AUDIT
-→ NAVIGATION / REFRESH / RE-ENTRY REGRESSION
-→ OWNER / NON-OWNER AUTHORIZATION REVIEW
-→ TENANT / SECURITY REVIEW OF TOUCHED PATHS
-→ PRODUCT COMPLETENESS REVIEW
-→ GOLD
-→ DIAMOND
+CURRENT GOLD    = NOT PROVEN
+CURRENT DIAMOND = NOT PROVEN
+CURRENT 100%    = NOT PROVEN
 ```
 
-## GOLD / DIAMOND STATUS
-
-Current status remains:
+Open items:
 
 ```text
-CURRENT GOLD      = NOT CLAIMED
-CURRENT DIAMOND   = NOT CLAIMED
-CURRENT 100%      = NOT CLAIMED
+safeText current trace
+AUTH_ID current trace
+Login parity
+Company / logo product closure
+Master navigation completeness
+Dashboard product closure
+Sales product closure
+No-islands proof
+Owner/non-owner runtime proof
+Tenant/security proof
+Fresh runtime regression proof
+Fresh Gold gate
+Fresh Diamond gate
 ```
 
-## CURRENT OPEN WORK
+## PROCESS ERRORS TO PRESERVE
 
 ```text
-P0  Trace current safeText path; patch only if current defect is proven
-P0  Trace current AUTH_ID/session lifecycle; patch only if current defect is proven
-P1  Login visual + functional parity
-P1  Company identity / logo source + tenant rendering
-P1  Full master sidebar and navigation
-P1  Dashboard product/runtime completeness
-P1  Sales product/runtime completeness
-P1  No-islands integration audit
-P1  Navigation / refresh / re-entry regression
-P1  Owner / non-owner runtime authorization proof
-P1  Tenant/security proof for touched paths
-P1  Fresh Gold gate
-P1  Fresh Diamond gate
-```
-
-## HISTORICAL / PROCESS ERRORS TO REMEMBER
-
-```text
-Do not trust report labels as current truth.
+Do not trust CURRENT_STATE for HEAD without Git verification.
+Do not trust report closure labels as current truth.
 Do not replay obsolete target snapshots.
 Do not equate function existence with product completion.
-Do not equate static pass with runtime pass.
+Do not equate static pass with runtime proof.
 Do not convert owner wildcard into role enumeration.
-Do not reconstruct a monolithic target from fragments alone.
-Do not treat trigger/marker files as success proof.
-Do not fix a verifier instead of the actual target without evidence.
-Do not create competing writers or parallel business cores.
-Do not mistake a documentation commit for a target change.
-Do not claim current HEAD from a stale CURRENT_STATE.
+Do not use main1 alone for reconstruction.
+Do not create disconnected UI islands.
+Do not create parallel business authority in New-main.
+Do not guess schema, field, permission, company, or runtime behavior.
+Do not mutate Production business data for convenience.
+Do not claim Gold/Diamond from markers.
+Do not claim runtime verification without runtime evidence.
 ```
 
-## OFFLINE SUCCESSOR CANONICAL STARTING STATE
+## CONTINUITY RULE
 
-```text
-TARGET                       = Current/PWA/New-main
-TARGET BLOB                  = 22f4ee1a666141be62127159337beffb05e8b146
-LATEST TARGET-AFFECTING SHA  = 282cce040c51b2f4f926a8ca9227ef89ee742713
-CURRENT REPOSITORY HEAD      = 838a5268273c74e3a955edc5a7d4cadfb42d71f3
-LATEST APPLICATION CHANGE    = none after 282cce...
-OWNER                        = isOwner=true + permissions=["*"] + active owner profile
-MANIFEST                     = ./manifest.json / consistent
-SAFETEXT                     = needs current trace
-AUTH_ID                      = needs current trace
-GOLD                         = not claimed
-DIAMOND                      = not claimed
-REPORT                       = تقرير37.md
-DIRECTIVE                    = MASTER_OFFLINE_CTO_NEW_MAIN_COMPLETION.md
-```
+This file is a navigation aid and reconciled index. It must be refreshed after meaningful continuity milestones, but every future CTO must still verify current Git and Production evidence directly.
 
-No historical closure label overrides this state.
+The latest application target remains unchanged after `282cce...` unless direct Git evidence proves otherwise.
