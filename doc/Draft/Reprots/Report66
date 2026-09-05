@@ -1,0 +1,143 @@
+تمت المراجعة الجنائية من الحالة الحالية الفعلية، وليس من Report65 فقط. والنتيجة المهمة: Report65 نفسه أصبح جزئيًا متجاوزًا لأن هناك commit يدويًا أحدث غيّر main2.md بعده. الـHEAD الحالي هو e4d97c78… وmain2.md الحالي بالـblob d68437d4….
+
+كما تحققت من Production مباشرة في 2026-09-05 06:47:05 UTC، والحالة الحالية: companies=1, orders=0, purchase_orders=0, branches=2, items=17, stock_branches=20, inventory_log=3, وduplicate_nonempty_barcode_groups=0.
+
+المطلوب منك الآن — فقط هذه التعديلات
+1) _renderTable() — لا تعدل شيئًا
+
+هذا الجزء أصبح صحيحًا بالفعل. القوس } موجود الآن قبل status-cell.
+
+لا تضف القوس مرة أخرى.
+
+2) إصلاح _renderBranchStockMatrix() — rowHtml
+
+ابحث عن:
+
+function _renderBranchStockMatrix() {
+
+ثم داخل:
+
+RW_Table.paginate('matrix-tbody', sorted, 1, 50, function(item, idx) {
+
+ستجد سطرين متتاليين.
+
+السطر الأول يبدأ بـ:
+
+var rowHtml = '<tr class=\"border-t hover:bg-gray-50\"><td class=\"p-3 cursor-pointer font-bold text-blue-600\" onclick=\"RW_Items._switchSubTab(\\\\'movement\\\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(
+
+وينتهي بالكامل عند:
+
++ (item._totalStock||0) + '</td>';
+
+ثم مباشرة السطر الثاني يبدأ بحرف setTimeout(function(){ ويكمل بقايا النص وينتهي أيضًا عند:
+
++ (item._totalStock||0) + '</td>';
+
+احذف السطرين معًا بالكامل من بدايتهما إلى نهايتهما، ولا تترك أي جزء من السطر الثاني.
+
+واستبدلهما بسطر واحد فقط كاملًا:
+
+            var rowHtml = '<tr class=\"border-t hover:bg-gray-50\"><td class=\"p-3 cursor-pointer font-bold text-blue-600\" onclick=\"RW_Items._switchSubTab(\\\\'movement\\\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',null); },200);\">' + _esc(item.name) + ' <span class=\"text-xs text-gray-400\">(' + _esc(item.item_code) + ')</span></td><td class=\"p-3 text-center font-bold\">' + (item._totalStock||0) + '</td>';
+
+وجود البقايا الزائدة مثبت مباشرة في المصدر الحالي.
+
+3) إصلاح خلية الفرع داخل _renderBranchStockMatrix()
+
+في نفس الدالة ابحث عن سطر rowHtml += '<td ... الخاص بالفرع، وستعرفه لأنه يحتوي على هذا الجزء:
+
+_esc(item.item_code)
+
+ثم:
+
+.replace(/'/g, ...)
+
+وعلى نفس السطر توجد أيضًا بقايا تبدأ بعد:
+
++ st.qty + '</td>'; + _esc(item.item_code)
+
+هذا هو السطر المعيب كاملًا.
+
+احذف السطر كاملًا من rowHtml += حتى آخر '</td>'; في نفس السطر.
+
+واستبدله بهذا السطر الكامل:
+
+                rowHtml += '<td class=\"p-3 text-center cursor-pointer underline text-blue-600 text-xs\" onclick=\"RW_Items._switchSubTab(\\\\'movement\\\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',' + _jsAttr(bid2) + ',' + _jsAttr(branchName2) + '); },200);\">' + st.qty + '</td>';
+
+المصدر الحالي يثبت أن السطر يحتوي بالفعل على + _esc(item.item_code) وبقايا الـescape القديمة بعد التعبير الصحيح.
+
+4) إصلاح _renderBranchStockMatrixFiltered() — rowHtml
+
+ابحث عن:
+
+function _renderBranchStockMatrixFiltered(data) {
+
+ثم داخل:
+
+RW_Table.paginate('matrix-tbody', data, 1, 50, function(item, idx) {
+
+ابحث عن السطر الذي يبدأ حرفيًا بـ:
+
+var rowHtml = '<tr class=\"border-t hover:bg-gray-50\"><td class=\"p-3 cursor-pointer font-bold text-blue-600\" onclick=\"RW_Items._switchSubTab(\\\\'movement\\\\');
+
+هذا السطر الحالي مقطوع وينتهي عند نهاية السطر مباشرة بعد:
+
+onclick=\"RW_Items._switchSubTab(\\\\'movement\\\\'); 
+
+أي لا يوجد setTimeout صحيح بعده.
+
+احذف هذا السطر كاملًا من var rowHtml حتى نهاية السطر، ولا تترك أي جزء منه.
+
+واستبدله بهذا السطر الكامل:
+
+            var rowHtml = '<tr class=\"border-t hover:bg-gray-50\"><td class=\"p-3 cursor-pointer font-bold text-blue-600\" onclick=\"RW_Items._switchSubTab(\\\\'movement\\\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',null); },200);\">' + _esc(item.name) + ' <span class=\"text-xs text-gray-400\">(' + _esc(item.item_code) + ')</span></td><td class=\"p-3 text-center font-bold\">' + (item._totalStock||0) + '</td>';
+
+الموضع المكسور مثبت مباشرة في النسخة الحالية.
+
+5) إصلاح خلية الفرع داخل _renderBranchStockMatrixFiltered()
+
+في نفس الدالة ابحث عن:
+
+rowHtml += '<td class="p-3 text-center cursor-pointer underline text-blue-600 text-xs"
+
+وابحث على نفس السطر عن:
+
+_esc(item.item_code).replace(/'/g, ...)
+
+هذا هو السطر القديم.
+
+احذف السطر كاملًا حتى آخر '</td>'; في نفس السطر.
+
+واستبدله بهذا السطر الكامل:
+
+                rowHtml += '<td class=\"p-3 text-center cursor-pointer underline text-blue-600 text-xs\" onclick=\"RW_Items._switchSubTab(\\\\'movement\\\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',' + _jsAttr(bid2) + ',' + _jsAttr(branchName2) + '); },200);\">' + st.qty + '</td>';
+
+المصدر الحالي يثبت أن هذا الموضع ما زال يستخدم الـescape القديم.
+
+ممنوع تعديل أي شيء آخر الآن
+
+لا تضف _jsAttr؛ هو موجود بالفعل.
+
+لا تعدل:
+
+M2-07R
+M2-09
+M2-12
+main1.md
+main3..main11
+core.js
+sw.js
+register-sw.js
+manifest.json
+Production data
+النتيجة الحالية
+M2-10 = OPEN
+M2-11 = OPEN
+main2.md = OPEN
+Browser Runtime = NOT VERIFIED
+Static/Syntax = NOT VERIFIED
+Assembly = NOT VERIFIED
+Production Equivalence = NOT VERIFIED
+
+المهم جدًا: لا تنفذ بند Report65 القديم الخاص بإضافة }؛ هذا الإصلاح تم بالفعل في آخر commit. المطلوب الآن هو الأربعة إصلاحات الفعلية أعلاه فقط.
+
+ملاحظة تنفيذية: استطعت قراءة ومطابقة Git وProduction مباشرة، لكن لم أُجْرِ تعديل main2.md بنفسي كما طلبت. كما لم أتمكن هنا من تسجيل Report66 وCURRENT_STATE.md داخل Git بنفس دورة الكتابة؛ لذلك لا أصفهما على أنهما محدّثان.
