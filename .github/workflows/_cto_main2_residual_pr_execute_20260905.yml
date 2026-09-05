@@ -39,12 +39,12 @@ jobs:
               raise SystemExit('Unscoped barcode lookup remains')
           p.write_text(s, encoding='utf-8')
           PY
-          rm -f .github/workflows/_cto_main2_residual_pr_execute_20260905.yml
+          rm -f .github/workflows/_cto_main2_residual_pr_execute_20260905.yml Current/CTO/MAIN2_PR_EXECUTOR_NOTE_20260905.md
           git diff --check
           git diff -- Current/PWA/main2/main2.md
           git config user.name 'CTO Main2 Closure Automation'
           git config user.email 'actions@github.com'
-          git add Current/PWA/main2/main2.md .github/workflows/_cto_main2_residual_pr_execute_20260905.yml
+          git add Current/PWA/main2/main2.md .github/workflows/_cto_main2_residual_pr_execute_20260905.yml Current/CTO/MAIN2_PR_EXECUTOR_NOTE_20260905.md
           git diff --cached --check
           git commit -m "fix(main2): close residual surgical defects"
           git push origin HEAD:${{ github.head_ref }}
