@@ -159,10 +159,6 @@ var RW_Dashboard = (function() {
             safeText(byId('dash-item-count'), (res.data || []).length);
         }).catch(function() {});
 
-        // 5. أفضل الأصناف
-        supabase.from('order_details').select('item_code, item_name, qty, unit_price').in('order_id', orderIds).then(function(res) {
-            renderTopItemsChart(res.data || []);
-        }).catch(function() {});
     }
 
     function shiftDate(dateStr, days) {
@@ -1328,7 +1324,7 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
         if (!branchId) { safeHTML(previewTable, '<div class="text-center py-8 text-red-500">يرجى اختيار الفرع أولاً</div>'); if (executeBtn) executeBtn.disabled = true; return; }
 
         // جلب الأصناف
-        supabase.from('items').select('id, item_code, barcode, name').in('barcode', barcodes).then(function(itemsRes) {
+        supabase.from('items').select('id, item_code, barcode, name').eq('company_id', companyId).in('barcode', barcodes).then(function(itemsRes) {
             var itemMap = {};
             var itemCodes = [];
             for (var im = 0; im < (itemsRes.data || []).length; im++) {
