@@ -42,6 +42,22 @@ This file is the verified cross-system memory snapshot for the daily review.
 - License source contract remains confirmed, but browser tab visibility, deployed revision, and service-worker/cache state are not fresh-runtime verified.
 - A fresh Edge Function log query returned no rows at the time of this review. Historical/current memory of repeated `owner-recovery-20260818` HTTP 410 calls remains an evidence lead, not a fresh log result from this exact query.
 
+## Verified continuity — 2026-09-05
+### GitHub current snapshot
+- Repository identity and permissions were rechecked directly: `papamohammed77-glitch/rawaie-erp-New`, default branch `main`, repository remains public and writable by the connected account.
+- Latest visible commit is `c10631479e1e0a9168841636d976dcb51370f712` (`docs(memory): record 2026-09-05 verified GitHub and Supabase snapshot`, 2026-09-05T03:10:26Z). The immediately prior code-bearing commit is `8e5fe0d7427f8e16a8094da9e86a26e486c9cea3` (`Refactor functions and enhance voucher query logic`, 2026-09-05T01:42:35Z), describing escaping/JSON-stringify refactors, voucher date filters, and duplicate-barcode handling.
+- `Current/PWA/New-main` was fetched directly. It is a full RTL Arabic HTML/CSS/JS artifact with the login page, password visibility control, sidebar shell, dashboard/layout styles, manifest link `./manifest.json`, and service-worker coordinator `./register-sw.js`. Current blob SHA returned by GitHub: `22f4ee1a666141be62127159337beffb05e8b146`.
+- Latest Actions run observed for the current head is run `33941121039` for `CTO New-main Single Writer Closure 2026-09-03`; it completed with conclusion `skipped`. This is not a CI PASS and does not constitute fresh browser proof.
+- Open PRs currently visible include #127, #126, #125, #123, #119, #118, #117, #115, and #113. Their descriptions are closure/execution triggers or target-only surgery plans; none is merged based on the current direct search result. Closed PRs in the same surface include #128, #124, #122, #121, #120, #116, #114, #112, #111, #110, and #109, with mixed merged/unmerged history.
+- The GitHub snapshot contains many documentation/continuity commits after the prior memory update; commit messages alone were not treated as runtime or deployment proof.
+
+### Supabase current snapshot
+- Project `fiilmooggumokxanwiyx` remains `ACTIVE_HEALTHY` in `eu-west-1`, PostgreSQL `17.6.1.121`.
+- The deployed Edge Function catalog remains broad and active. Business functions are predominantly `verify_jwt=true`; a distinct set of canary, fixture, runtime-E2E, gate, and recovery functions remains active with `verify_jwt=false`, including `start-picking-production-harness`, `cp-prod-auth-canary-20260814`, `cp-prod-fixture-canary-20260814`, `start-picking-e2e-fixture-20260815`, `start-picking-real-identity-e2e-20260815`, `send-stock-voucher-runtime-e2e-20260818`, `prompt2-complete-picking-http-e2e-20260818`, `complete-picking-runtime-e2e-20260818`, `owner-recovery-20260818`, `owner-recover-gate-20260818-7f2d9c41`, `auth-login-verification-20260818`, `complete-picking-picker-http-gate-20260818`, `receive-purchase-runtime-e2e-20260819`, and `save-sales-production-canary-20260819`.
+- Fresh Edge Function logs for the last 24 hours returned an empty result. Therefore, no current incident is proven by this query; historical 410 evidence for `owner-recovery-20260818` remains unresolved historical evidence only.
+- Fresh security advisors still report: anonymous/authenticated EXECUTE exposure for `public.create_item_with_opening_stock(...)` and `public.sync_company_main_branch_projection()`, both `SECURITY DEFINER`, plus leaked-password protection disabled.
+- Fresh performance advisors still report unindexed foreign keys across multiple business tables, RLS init-plan warnings on multiple policies/tables, multiple permissive policies (notably `customer_assignments`, `receiving`, `receiving_details`), and unused-index notices. These are advisory findings, not proof of a production outage.
+
 ## Production risk baseline
 - Separate historical/test/recovery/E2E Edge Functions remain active with `verify_jwt=false`; this is a confirmed attack-surface/lifecycle review item.
 - Previously observed security advisories include anonymous/authenticated EXECUTE exposure on `public.create_item_with_opening_stock(...)` and `public.sync_company_main_branch_projection()`, plus disabled leaked-password protection.
@@ -102,5 +118,5 @@ WHOLE-PROJECT 100% = NOT PROVEN
 - `CURRENT_STATE.md`
 
 ## Confidence boundary
-- Confirmed: repository/project identity, current main continuity documents, canonical New-main source shape, shared runtime boundary, Supabase health/schema owner contract, broad Edge Function deployment surface, and PWA consumer model.
+- Confirmed: repository/project identity, current main continuity documents, canonical New-main source shape, shared runtime boundary, Supabase health/schema owner contract, broad Edge Function deployment surface, PWA consumer model, fresh 2026-09-05 security/performance advisor output, and fresh empty 24-hour Edge Function log result.
 - Not confirmed: fresh browser E2E, exact deployed revision/cache identity, full PR/issue closure history, complete lifecycle classification of every `verify_jwt=false` function, and whole-system Gold/Diamond acceptance.
