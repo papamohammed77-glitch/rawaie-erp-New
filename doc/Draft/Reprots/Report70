@@ -1,0 +1,235 @@
+# Report70 — إغلاق عقد branch attribution في Production
+
+التاريخ: 2026-09-05
+المستودع: papamohammed77-glitch/rawaie-erp-New
+الفرع: main
+مرجع البداية: e53c0de15fd29273d1388713d940f7792577a540
+Report69: ba750f3707560b7c2bf4e6ebaa8d0eeca3f2db47
+Production: SMART ERP / fiilmooggumokxanwiyx
+
+## 1. سبب التنفيذ
+
+Report69 أثبت أن `main2` لا يمكن أن ينتقل إلى التقرير المركزي للحركة قبل أن تصبح branch attribution جزءًا من سجل الحركة المركزي في Production.
+
+العقد المطلوب:
+
+```text
+Physical Movement
+→ post_stock_movement
+→ stock_branches + inventory_log
+```
+
+مع حفظ:
+
+```text
+source_branch_id
+ target_branch_id
+```
+
+داخل كل `inventory_log` جديد.
+
+## 2. ما تم تنفيذه فعليًا في Production
+
+تم تنفيذ migration على Production تضمنت:
+
+1. إضافة `inventory_log.source_branch_id uuid` كحقل nullable.
+2. إضافة `inventory_log.target_branch_id uuid` كحقل nullable.
+3. إضافة FK إلى `branches(id)` لكل حقل مع `ON DELETE SET NULL`.
+4. تحديث overload الـ10-argument لـ`post_stock_movement` بحيث يسجل branch attribution في كل log جديد.
+5. توسيع idempotency conflict check ليشمل source/target branch identity.
+6. الإبقاء على الوظيفة 9-argument wrapper دون تغيير في واجهتها العامة.
+7. عدم تعديل أي Production business row دائمًا.
+
+## 3. Production verification
+
+التحقق المباشر أثبت:
+
+```text
+source_branch_id exists = true
+target_branch_id exists = true
+source FK = true
+target FK = true
+```
+
+كما تمت قراءة تعريف `post_stock_movement` بعد النشر وثبت أنه يكتب:
+
+```text
+source_branch_id = p_source_branch_id
+target_branch_id = p_target_branch_id
+```
+
+داخل `inventory_log`.
+
+## 4. Runtime verification
+
+تم تنفيذ اختبار حقيقي داخل Transaction واحدة:
+
+```text
+movement_type = InventoryIncrease
+qty = 1
+idempotency_key = REPORT69-TEST-IDEM
+```
+
+تم التحقق أثناء الاختبار من أن سجل `inventory_log` الجديد يحمل:
+
+```text
+target_branch_id = target branch
+source_branch_id = NULL
+movement_type = InventoryIncrease
+qty = 1
+```
+
+ثم تم تنفيذ `ROLLBACK`.
+
+النتيجة بعد rollback:
+
+```text
+REPORT69-TEST-IDEM rows = 0
+```
+
+إذن:
+
+`Production branch attribution = DEPLOYED + TRANSACTIONALLY VERIFIED`
+
+## 5. الحالة الحالية لـ main2 بعد هذا الإغلاق
+
+لا يزال `main2.md` غير معدل بواسطة المساعد.
+
+Blob الحالي قبل تغييرات المستخدم:
+
+`089453ca6412df986fa11c2df4ce9235091a4647`
+
+وقد ثبت:
+
+- Patch A (`item.unit`) موجود بالفعل.
+- `_loadMovementReport()` ما زال voucher-based.
+- `_showBranchStockMovement()` ما زال duplicate voucher-based reader.
+
+## 6. التعليمات الجراحية التي أصبحت الآن قابلة للتنفيذ
+
+### PATCH B — `_loadMovementReport()`
+
+ابحث عن الدالة الكاملة التي تبدأ حرفيًا بـ:
+
+```javascript
+async function _loadMovementReport() {
+```
+
+واستمر في الحذف حتى القوس `}` الأخير للدالة مباشرة قبل هذا السطر:
+
+```javascript
+// ==================== مصفوفة الفروع – بدون تغيير ====================
+```
+
+احذف الدالة كاملة.
+
+ثم استبدلها **بالنسخة الكاملة الموجودة في Report68 — القسم 8** دون حذف أي سطر أو اختصار.
+
+النسخة المطلوبة تقرأ `inventory_log` فقط وتستخدم:
+
+```text
+company_id
+item_id
+movement_date
+source_branch_id
+target_branch_id
+```
+
+ولا تستخدم:
+
+```text
+stock_vouchers
+stock_voucher_details
+```
+
+### PATCH C — `_showBranchStockMovement()`
+
+ابحث عن الدالة الكاملة التي تبدأ حرفيًا بـ:
+
+```javascript
+async function _showBranchStockMovement(itemCode, itemName, branchId, branchName) {
+```
+
+واحذفها كاملة حتى **السطر الذي يسبق مباشرة**:
+
+```javascript
+function _loadCategoriesIntoSelect() {
+```
+
+ثم استبدلها حرفيًا بهذا المقطع الكامل:
+
+```javascript
+    async function _showBranchStockMovement(itemCode, itemName, branchId, branchName) {
+        _switchSubTab('movement');
+        window._movementItemCode = itemCode || null;
+        window._movementItemName = itemName || '';
+        window._movementBranchId = branchId || null;
+        window._movementBranchName = branchName || '';
+        setTimeout(function() {
+            _renderStockMovementReport(itemCode || null, itemName || '', branchId || null, branchName || '');
+        }, 0);
+    }
+```
+
+## 7. لا تنفذ PATCH A
+
+السطر التالي موجود بالفعل في Git الحالي:
+
+```javascript
+html += '<div class="flex flex-col"><label class="text-sm font-bold">الوحدة الأساسية</label><input id="item-unit" value="' + _esc(item ? (item.unit || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+```
+
+لا تغيّره ولا تستبدله.
+
+## 8. Patch D
+
+ما زال مفتوحًا فقط للمراجعة التاريخية:
+
+```text
+_handleFileSelect / _renderUploadPreview
+```
+
+السبب المثبت هو أن `item_code` مقبول كرأس ملف لكن lookup الفعلي يستخدم `items.barcode`.
+
+لم يتم تغيير هذا السلوك لعدم وجود دليل تاريخي كافٍ يحدد هل `item_code` alias مقصود أم بقايا قديمة.
+
+## 9. البيانات التاريخية
+
+لا تزال سجلات `VoidInvoice` القديمة محفوظة كما هي.
+لا backfill.
+لا حذف.
+لا استنتاج للـbranch identity بالتخمين.
+
+## 10. SELF-AUDIT
+
+### What I Proved
+
+- Production branch attribution columns موجودة.
+- Foreign keys موجودة.
+- `post_stock_movement` يكتب source/target إلى `inventory_log`.
+- idempotency check يشمل branch identity.
+- اختبار runtime حقيقي نجح داخل Transaction.
+- rollback أعاد البيانات إلى حالتها دون سجل اختبار.
+- `main2` لم يتغير في هذه العملية.
+
+### What I Did Not Prove
+
+- Browser runtime بعد Patch B/C اليدوي.
+- Static/syntax بعد تعديل المستخدم.
+- final 11-part assembly.
+- final PWA production equivalence.
+- M2-10 closure.
+- Patch D historical contract.
+
+### Final Status
+
+```text
+PRODUCTION BRANCH ATTRIBUTION = CLOSED / DEPLOYED / TRANSACTIONALLY VERIFIED
+MAIN2 PATCH B = READY FOR MANUAL APPLICATION
+MAIN2 PATCH C = READY FOR MANUAL APPLICATION
+PATCH A = ALREADY PRESENT
+PATCH D = OPEN / NO PATCH
+M2-10 = OPEN
+M2-11 = OPEN UNTIL USER MAIN2 PATCH + STATIC/RUNTIME VERIFICATION
+PROJECT CLOSURE = NOT CLAIMED
+```
