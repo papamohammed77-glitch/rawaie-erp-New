@@ -1,119 +1,44 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
-## 0. AUTHORITATIVE CONTINUITY UPDATE — 2026-09-05
+## 0. AUTHORITATIVE CONTINUITY CHECKPOINT — 2026-09-05
 
-This file is the continuity checkpoint. It is a declared state and must always be reconciled against direct Git, Production, deployments, and runtime evidence.
+This file is the current continuity checkpoint. It is a declared state and must be reconciled against direct Git, Production, deployments, and runtime evidence.
 
 ```text
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
-CURRENT GIT HEAD BEFORE THIS STATE UPDATE = dde004b94b639dd715655f7be5607320a14e6f4c
+CURRENT GIT HEAD BEFORE THIS STATE UPDATE = dd6da64a1615ffbedd3d548c4f9668a2efa3b9f5
 HISTORICAL REPOSITORY = papamohammed77-glitch/rawaie-erp-review
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
 ```
 
-### Latest verified events
+---
+
+# 1. LAST VERIFIED EVENTS
 
 ```text
-ed4e91ec595234ba7ede3f08558c660c1b100d3e
-Update main1.md
-= ACTUAL MAIN1 SOURCE MUTATION
-= Patch 1–4 applied
-
-8399ff50664b76c776f01a9e941cc2bdfd247b59
-Update تحليل مساعد خارجي -main1
-= DOCUMENTATION UPDATE ONLY
-
-4baace12f19ab70a063d985a06488ca53cf2e799
-[CTO] Reconcile CURRENT_STATE with Main1 source mutation ed4e91
-= STATE RECONCILIATION
-
-d26695ccca675fb85936bda1707398326ce882ec
-[CTO] Add Report54 Main1 current-state forensic reconciliation
-= FORENSIC REPORT
-
-e829b747d811e40b402f0e6ba00c366818939a6f
-[CTO] Add unified continuity and Main1 execution command
-= GOVERNANCE ARTIFACT
-
-a561147f57abe5738990e715acb525e9abc236c6
-[CTO] Add MASTER FORENSIC CONTINUITY GOVERNANCE v2
-= GOVERNANCE ARTIFACT
-
-ef338627204ed6ba689887c0025b034fd361c750
-[CTO] Add Report55 forensic continuity and Main1 closure assessment
-= FORENSIC REPORT
-
-d845ad63485fb9093f18bfeb86479846bd8f6eb9
-[CTO] Add Report56 forensic continuity review and Main1 closure verdict
-= CURRENT FORENSIC REPORT
-= MAIN1 SOURCE CLOSED / FULL CLOSURE OPEN
-
-e2dc8da6982a50328d700bc48421282ed782c7cc
-[CTO] Add Report57 forensic Main1 closure continuation
-= FORENSIC REPORT
-
-e925dc516b7a67ae237d0fe77251cf5fc8d41c9e
-[CTO] Add Report57 and reconcile CURRENT_STATE after Main1 forensic continuation
-= STATE RECONCILIATION
-
-c12967d903c6fccf1f437ec460c276c2967ed919
-[CTO] Add Report58 — Main1 forensic closure gate after latest-state recovery
-= FORENSIC REPORT
-
 a6556235c5768d9514ee3e910ae795391e3ab868
 fix(main2): surgical tenant-scoping and dashboard integrity
 = ACTUAL MAIN2 SOURCE MUTATION
 
- dde004b94b639dd715655f7be5607320a14e6f4c
-[CTO] Add Report59 Main2 surgical forensic continuation
+ac360fbe6626979e4dd43cec34b04a1c3e61b210
+fix(main2): remove residual undefined orderIds and scope barcode lookup
+= ACTUAL MAIN2 SOURCE MUTATION
+= CLOSED M2-02 + M2-04 IN CURRENT GIT
+
+e9d0ec685737abf9b752d40acc2d97cd2aa4907e
+docs(cto): add Report60 Main2 surgical completion and self-audit
 = FORENSIC REPORT
+
+dd6da64a1615ffbedd3d548c4f9668a2efa3b9f5
+docs(cto): add Report61 Main2 deep forensic continuation
+= CURRENT FORENSIC RECONCILIATION
+
+STATE UPDATE AFTER THIS CHECKPOINT
+= THIS COMMIT
 ```
 
----
-
-# 1. LAST VERIFIED STATE — 2026-09-05 MAIN2 FORENSIC CONTINUATION
-
-This round explicitly continued from existing Main2 work. It did not restart Main1 patches and did not repeat already-applied Main2 surgery.
-
-The following distinctions were re-verified directly:
-
-```text
-ed4e91 = real Main1 source mutation
-
-a655623 = real Main2 source mutation
-message = fix(main2): surgical tenant-scoping and dashboard integrity
-
-Current/PWA/main2/main2.md blob verified from the current commit lineage = b1096fdadd4734881d2c16c341dea769fc306fc5
-
-Report59 = current Main2 forensic continuation report
-Report59 commit = dde004b94b639dd715655f7be5607320a14e6f4c
-
-Current Main2 source surgery in this session = NOT committed
-Only Report59 documentation was added before this CURRENT_STATE reconciliation.
-```
-
-Latest direct Production query in this continuation:
-
-```text
-UTC = 2026-09-05 00:21:30.867647
-companies = 1
-app_settings = 1
-orders = 0
-purchase_orders = 0
-```
-
-The current Production `post_inventory_adjustment_atomic` was read directly and is `SECURITY DEFINER`; it validates user/company context, delegates Physical Stock movement to `post_stock_movement`, and returns:
-
-```text
-success
- duplicate
- movement_count
- voucher_code
- company_id
-```
-
-Historical multi-company snapshots must not be reused as current Production facts without re-querying Production.
+Historical reports remain preserved. No report was deleted.
 
 ---
 
@@ -128,13 +53,12 @@ UNKNOWN != REMOVE
 READ → VERIFY → RECONCILE → UNDERSTAND → PATCH → VERIFY
 
 ONE CLOSURE UNIT AT A TIME
-
-NO WHOLE-FILE REWRITE FOR A NARROW DEFECT
+NO UNSAFE WHOLE-FILE REWRITE FOR A NARROW DEFECT
 
 GIT != DEPLOYMENT PROOF
 SOURCE != RUNTIME PROOF
 
-NO CLOSURE CLAIM WITHOUT EVIDENCE
+NO CLOSURE CLAIM WITHOUT CURRENT EVIDENCE
 ```
 
 Primary governance source:
@@ -145,357 +69,387 @@ doc/Draft/medhat/MASTER - RAWAEA ERP.md
 
 ---
 
-# 3. CURRENT REPAIR TARGET
+# 3. CURRENT PRODUCTION TRUTH — DIRECT SNAPSHOT
+
+Latest direct Production verification in the 2026-09-05 session:
 
 ```text
-ACTIVE SOURCE REPAIR PACK = Current/PWA/main2/
-CURRENT FORENSIC CLOSURE UNIT = Main2 surgical source closure
-CURRENT SUBTASK = forensic review of main2.md
-NEXT SAFE ACTION = apply line-level replacements recorded in Report59
-MAIN2 SOURCE FILES = PRESENT
-MAIN2 HISTORICAL SURGERY = PRESENT
-MAIN2 FRESH SURGICAL CLOSURE = OPEN
-MAIN2 PRODUCTION/RUNTIME CLOSURE = OPEN
+companies       = 1
+app_settings    = 1
+orders          = 0
+purchase_orders = 0
+branches        = 2
+items           = 17
+stock_branches  = 20
+inventory_log   = 3
 ```
 
-The fragments are logical parts of one parent application contract, not eleven independent products.
+Additional schema facts verified directly:
 
-Current strategy is to preserve the 11 logical parts, perform surgical corrections part-by-part, then assemble the parent artifact before final publish/runtime testing.
+```text
+items.item_code UNIQUE globally
+stock_branches UNIQUE(branch_id,item_id)
+receiving.operation_id UNIQUE
+```
+
+Current duplicate-barcode check:
+
+```text
+DUPLICATE NON-EMPTY BARCODES = 0
+```
+
+No permanent Production business data was introduced by the Main2 forensic session.
+Transactional adjustment testing was rolled back.
 
 ---
 
-# 4. MAIN1 VERIFIED SOURCE STATE
+# 4. CURRENT GIT / MAIN2 SOURCE TRUTH
+
+Current Git HEAD before this state update:
+
+```text
+dd6da64a1615ffbedd3d548c4f9668a2efa3b9f5
+```
+
+Current Main2 source file:
+
+```text
+PATH = Current/PWA/main2/main2.md
+BLOB = 15f101d3bea93baa5419bdca48e401ad71bbac6c
+```
+
+Important reconciliation:
+
+```text
+Report60 said M2-02 + M2-04 were still open.
+CURRENT GIT proves they were subsequently fixed in ac360fbe.
+```
+
+Therefore Report60 is historical evidence, not current source truth.
+
+---
+
+# 5. MAIN1 CURRENT SOURCE STATE
 
 ```text
 PATH = Current/PWA/main2/main1.md
 SOURCE PATCH COMMIT = ed4e91ec595234ba7ede3f08558c660c1b100d3e
 ```
 
-Direct source verification confirms:
+Verified source contract includes:
 
 ```text
-PATCH 1 = RW_STATE.app.company.id exists
-PATCH 2 = public.users lookup by auth_id supplies company_id + status
-PATCH 2 = generic missing-permissions fallback is []
-PATCH 3 = app_settings is company-scoped and ordered before limit(1)
-PATCH 4 = items/customers/branches/suppliers bootstrap reads use company_id
-SESSION RESTORE = present in current source
+RW_STATE.app.company.id
+users.auth_id → users.company_id
+app_settings scoped by company_id
+items/customers/branches/suppliers scoped by company_id
 ```
 
-These source repairs are closed and must not be repeated without new contradictory direct evidence.
+Main1 Patch 1–4 remain source-closed.
+Do not repeat them without new contradictory evidence.
 
 ---
 
-# 5. SYSTEM SETTINGS / BRANDING CONTRACT
-
-The source contract is:
+# 6. MAIN2 CURRENT CLOSED / OPEN MATRIX
 
 ```text
-Authenticated User
-→ users.company_id
-→ app_settings(company_id)
-→ company branding/configuration
+M2-01 = CLOSED IN CURRENT SOURCE
+M2-02 = CLOSED IN CURRENT SOURCE — ac360f
+M2-03 = CLOSED IN CURRENT SOURCE
+M2-04 = CLOSED IN CURRENT SOURCE — ac360f
+M2-05 = CLOSED IN CURRENT SOURCE
+M2-06 = CLOSED IN CURRENT SOURCE
+M2-07 = REOPENED AS M2-07R — replay after successful upload remains possible
+M2-08 = CLOSED IN CURRENT SOURCE
+M2-09 = OPEN — movement report date/branch filters are not wired into voucher query
+M2-10 = OPEN — item deletion authorization is not enforced server-side
 ```
 
-Static strings/defaults in HTML/state are presentation fallbacks unless direct evidence proves otherwise.
-
-Latest Production verification:
+Current Main2 is therefore:
 
 ```text
-companies = 1
-app_settings = 1
-```
-
----
-
-# 6. MAIN1 CLOSURE STATUS — CURRENT
-
-```text
-HISTORICAL RECONCILIATION = CLOSED for addressed Patch 1–4
-SOURCE PATCH 1–4 = CLOSED
-SOURCE SESSION RESTORE = VERIFIED
-SYSTEM SETTINGS AUTHORITY = VERIFIED AS app_settings
-PRODUCTION CONFIGURATION = DIRECTLY VERIFIED
-EXACT ASSEMBLY LINEAGE = NOT PROVEN
-DEPLOYED ARTIFACT EQUIVALENCE = NOT PROVEN
-INDEPENDENT CURRENT MAIN1 RUNTIME = NOT PROVEN
-FULL MAIN1 PRODUCT CLOSURE = OPEN
-```
-
-Therefore:
-
-```text
-MAIN1.md = SOURCE-CLOSED, but NOT Closed 100% as an integrated production/runtime product
-```
-
-The source itself does not require new patching.
-
----
-
-# 7. NEW-MAIN / RUNTIME EVIDENCE
-
-Current direct investigation established:
-
-```text
-Current/PWA/New-main = separate current artifact
-New-main architecture = not proven to be the current assembly output of main2/main1.md
-```
-
-Known CI evidence remains scoped to New-main:
-
-```text
-RUN = 33927339279
-JOB = 101198600466
-RESULT = FAILURE
-FAILED STEP = Immutable audited target
-CHROMIUM = SKIPPED
-```
-
-The failure is not valid proof of Main1 browser failure.
-
----
-
-# 8. HISTORICAL FAILURES / LESSONS PRESERVED
-
-```text
-stale CURRENT_STATE ≠ current truth
-commit ≠ deployment proof
-source ≠ runtime proof
-New-main browser failure ≠ Main1 browser failure
-historical Main1 analysis ≠ current Main1 source
-static fallback ≠ authoritative configuration
+FORENSIC REVIEW = UPDATED / CURRENT
+SOURCE CLOSURE = OPEN
+RUNTIME CLOSURE = OPEN
+ASSEMBLY CLOSURE = OPEN
 ```
 
 ---
 
-# 9. MAIN2 CURRENT FACTS
+# 7. M2-07R — OPEN ROOT CAUSE
 
-```text
-Current/PWA/main2/main1.md = present
-Current/PWA/main2/main2.md = present
-Current/PWA/main2/main3.md = present
-Current/PWA/main2/main4.md = present
-Current/PWA/main2/main5.md = present
-Current/PWA/main2/main6.md = present
-Current/PWA/main2/main7.md = present
-Current/PWA/main2/main8.md = present
-Current/PWA/main2/main9.md = present
-Current/PWA/main2/main10.md = present
-Current/PWA/main2/main11.md = present
+Main2 `_executeUpload()` clears:
+
+```javascript
+_uploadOperationId = null;
+_uploadOperationFingerprint = null;
 ```
 
-Historical Main2 surgery commits include:
+after success but leaves `_uploadFileData` populated.
+
+Consequently another click can create a new voucherCode for the same in-memory file and submit the same adjustment again.
+
+Production `post_inventory_adjustment_atomic` uses voucherCode inside the physical-movement idempotency key:
 
 ```text
-cc949417c635295f71218df036aeca2fd5846cda
-fix(cto): start cumulative syntax gate at closed Main1+Main2 boundary
-
-26ad9bc1880749dd0d3f6d43a99c0221630b5a68
-fix(cto): preserve main2 compatibility IIFE boundary during P163 surgery
-
-a6556235c5768d9514ee3e910ae795391e3ab868
-fix(main2): surgical tenant-scoping and dashboard integrity
+InventoryAdjustment:<company_id>:<voucher_code>:<item_id>
 ```
 
-Current interpretation:
+A different voucherCode is a different idempotency identity.
+
+The required Main2 surgical replacement is recorded verbatim in:
 
 ```text
-MAIN2 SOURCE FILES = PRESENT
-MAIN2 HISTORICAL SURGERY = EXISTS
-MAIN2 FORENSIC REVIEW = COMPLETED IN REPORT59
-MAIN2 SURGICAL SOURCE CLOSURE = OPEN
-MAIN2 PRODUCTION/RUNTIME CLOSURE = OPEN
+doc/Draft/Reprots/Report61_Main2_Deep_Forensic_Continuation_20260905.md
 ```
 
-Do not restart Main2 from zero.
+Required replacement:
+
+```javascript
+_uploadFileData = [];
+_uploadOperationId = null;
+_uploadOperationFingerprint = null;
+var uploadFileInput = byId('upload-file-input');
+if (uploadFileInput) uploadFileInput.value = '';
+```
+
+Do not weaken or bypass the Production idempotency contract.
 
 ---
 
-# 10. MAIN2 FORENSIC FINDINGS — REPORT59
+# 8. M2-09 — OPEN ROOT CAUSE
 
-The following are confirmed by direct source inspection and/or Production contract inspection.
+`_loadMovementReport()` reads `fromDate`, `toDate`, and stores `_movementBranchId`, but the `stock_vouchers` query currently applies only `company_id` and `order`.
 
-```text
-M2-01 = Dashboard net-profit order query missing company_id predicate
-M2-02 = Dashboard Top Items query references undefined orderIds
-M2-03 = Category replacement selector missing company_id predicate
-M2-04 = Upload preview item lookup uses barcode without company scope
-M2-05 = Upload preview validates rows but execution payload includes unvalidated rows
-M2-06 = Upload success handler expects json.results[] while Production returns movement_count
-M2-07 = Adjustment voucherCode is random, weakening retry idempotency against the current backend key contract
-M2-08 = Stock movement report voucher query missing company_id predicate
-```
+The required surgical replacement that wires date and branch filters is recorded in Report61.
 
-Ready-to-swap replacements are preserved verbatim in:
-
-```text
-doc/Draft/Reprots/Report59_Main2_Surgical_Forensic_20260905.md
-```
-
-No replacement has been silently generalized or invented.
+Do not broaden this into an unrelated reporting redesign.
 
 ---
 
-# 11. WHY MAIN2 SOURCE WAS NOT REWRITTEN IN THIS PASS
+# 9. M2-10 — CROSS-LAYER SECURITY OPEN
 
-The governing rule forbids a whole-file rewrite for a narrow defect.
+Main2 exposes item deletion from the edit page without an independent permission gate.
 
-The available Git connector write operation replaces a file as a complete payload; it does not expose an atomic line-range patch primitive. The directly fetched Main2 source exceeds the safe manual reconstruction surface of the connector responses, which are truncated for large files.
+Current Production `delete-item` authenticates the caller but uses service-role deletion without proving the caller is authorized to delete an item.
 
-Therefore:
+This is:
 
 ```text
-Reconstructing main2.md from truncated tool output = UNSAFE
-Whole-file replacement for 8 narrow defects = GOVERNANCE VIOLATION
-
-Chosen action = preserve source unchanged + record exact surgical replacements
+AUTHENTICATION = PRESENT
+AUTHORIZATION = NOT PROVEN
 ```
 
-This is a tooling/patch-surface constraint, not a declaration that the defects are harmless or acceptable.
+Main2 can mitigate the visible button using the existing permission contract, but the security closure cannot be declared until the server-side `delete-item` authorization contract is fixed and verified.
+
+Do not close this by UI hiding alone.
 
 ---
 
-# 12. PRODUCTION DATA INTEGRITY
+# 10. SEMANTIC REVIEW ITEMS — DO NOT PATCH BY ASSUMPTION
 
-Current Production at the final verification point of this session:
+These findings were proven at source level but their intended business contract is not yet proven:
 
 ```text
-companies = 1
-app_settings = 1
-orders = 0
-purchase_orders = 0
+Dashboard "صافي الربح" currently calculates:
+net = totalSales - totalPurchases
+
+Top Customers currently aggregates by customer_name rather than customer_id.
 ```
 
-No destructive data repair was executed from Main2 in this session.
+Classification:
 
-Historical contamination observations from earlier multi-company snapshots must not be promoted into current-state metrics without a fresh Production query.
+```text
+SEMANTIC CONTRACT UNKNOWN
+NO PATCH AUTHORIZED YET
+```
+
+Resolve the historical/current accounting and customer-identity contract first.
 
 ---
 
-# 13. CURRENT REPORTS
+# 11. ADDITIONAL SECURITY OBSERVATION
+
+Main2 contains HTML construction paths that insert database-controlled category/item values without consistent escaping, including Category Modal paths.
+
+Classification:
 
 ```text
-Report56 = d845ad63485fb9093f18bfeb86479846bd8f6eb9
-Report57 = e2dc8da6982a50328d700bc48421282ed782c7cc
-Report58 = c12967d903c6fccf1f437ec460c276c2967ed919
-Report59 = dde004b94b639dd715655f7be5607320a14e6f4c
+POTENTIAL STORED/DOM XSS
+SEPARATE SECURITY CLOSURE UNIT
+NO PATCH IN THIS STATE UPDATE
 ```
 
-All previous reports remain preserved. No report was deleted.
+Do not mix this with the operational Main2 closure unit until the exact DOM contract and safe event-binding strategy are mapped.
 
 ---
 
-# 14. NEXT AUTHORIZED ACTION
-
-Do NOT re-patch Main1 Patch 1–4.
-
-Do NOT repeat Main2 fixes already contained in `a6556235...`.
-
-Do NOT declare Main2 source closed yet.
-
-The next authorized source action is:
+# 12. INVENTORY CORE CONTRACT CURRENTLY RECONFIRMED
 
 ```text
-apply M2-01 … M2-08 as controlled line-level edits to Current/PWA/main2/main2.md
-→ syntax/static analysis
-→ compare resulting diff against Report59 exactly
-→ commit Main2 source patch
-→ re-query Production contract if backend contract changes are introduced
-→ assemble 11 parts
-→ reconcile core.js / sw.js / register-sw.js / manifest.json
-→ deployment
-→ runtime/browser verification
-→ Production verification
-→ update CURRENT_STATE
+PHYSICAL STOCK MOVEMENT
+    ↓
+post_stock_movement
+    ↓
+stock_branches
++
+inventory_log
 ```
 
-M2-07 must be solved with an explicit stable operation identity contract; do not manufacture an idempotency token in the UI without backend support.
+Reservation capabilities remain separate:
+
+```text
+reserve_stock
+release_stock_reservation
+```
+
+No new Physical Stock Writer was introduced by this Main2 review.
+
+The current Production adjustment RPC delegates Physical Movement to `post_stock_movement`.
 
 ---
 
-# 15. FINAL SELF-AUDIT — 2026-09-05 MAIN2 PASS
+# 13. KNOWN FAILURE MEMORY — MUST NOT REPEAT
 
 ```text
-Business Understanding = CONFIRMED for Main2 dashboard/items/upload/report surfaces
-Architecture Understanding = CONFIRMED for tenant-scoping and inventory-adjustment contract boundary
-Database / Production = DIRECTLY VERIFIED at 2026-09-05 00:21:30.867647 UTC
-Historical Understanding = RECONCILED sufficiently to avoid repeating prior Main2 surgery
-Current Git Understanding = DIRECTLY VERIFIED
-Current Main2 Source = DIRECTLY VERIFIED
-Deployment Understanding = OPEN
-Runtime Understanding = OPEN
-Source Patch Execution = OPEN
+Do not trust Report60 over CURRENT GIT.
+Do not infer current state from historical snapshots.
+Do not perform unsafe full-file replacement of a large logical fragment.
+Do not treat source commit as runtime proof.
+Do not treat a generated/temporary executor as authoritative production source.
+Do not clear a client operation identity while retaining executable stale input state.
+Do not weaken backend idempotency to compensate for UI lifecycle errors.
+Do not close a permission issue by hiding a button only.
+```
 
-CONFIRMED FACTS
-- a655623 is an actual Main2 source mutation
-- current Main2 blob = b1096fdadd4734881d2c16c341dea769fc306fc5
-- Report59 contains the confirmed remaining source defects and exact ready-to-swap replacements
-- Production adjustment RPC returns movement_count and not results[]
-- Production currently has no orders or purchase orders for a realistic positive fixture
-- no Main2 source write was executed in this pass
+---
 
-UNKNOWNS
-- final line-level application of M2-01…M2-08
-- final assembled 11-part parent artifact
-- final browser/runtime deployment mapping
-- stable adjustment operation-identity contract after source patch
+# 14. DOCUMENTATION / EVIDENCE TRAIL
 
-CONFLICTS RESOLVED
-- stale CURRENT_STATE head vs actual Main2 commit a655623
-- historical Main2 hold vs current explicit owner authorization
-- current Production single-company reality vs historical multi-company contamination snapshots
+Current key reports:
+
+```text
+Report59_Main2_Surgical_Forensic_20260905.md
+Report60_Main2_Surgical_Completion_20260905.md
+Report61_Main2_Deep_Forensic_Continuation_20260905.md
+```
+
+Current governing document:
+
+```text
+MASTER - RAWAEA ERP.md
+```
+
+Current state is reconciled against the latest available Main2 commits through Report61.
+
+---
+
+# 15. WHAT THIS SESSION DID / DID NOT CHANGE
+
+```text
+MAIN2 SOURCE FILE = NOT MODIFIED BY THIS SESSION
+MAIN1 SOURCE FILE = NOT MODIFIED
+MAIN3…MAIN11 = NOT MODIFIED
+New-main = NOT MODIFIED
+core.js = NOT MODIFIED
+sw.js = NOT MODIFIED
+register-sw.js = NOT MODIFIED
+manifest.json = NOT MODIFIED
+
+Production business data = NOT permanently modified
+Production schema/business functions = not modified by Main2 session
+
+Documentation:
+Report61 = ADDED
+CURRENT_STATE = RECONCILED
+```
+
+This satisfies the user's explicit instruction that the Main2 file itself is to be changed manually by the owner, not by the assistant.
+
+---
+
+# 16. CURRENT TARGET
+
+```text
+PRIMARY TARGET = Current/PWA/main2/main2.md
+CURRENT OBJECTIVE = MAIN2 SURGICAL SOURCE CLOSURE
+```
+
+Authorized next actions:
+
+```text
+1. Apply M2-07R exact surgical replacement in Main2.
+2. Apply M2-09 exact voucher-query replacement in Main2.
+3. Re-read changed regions from Git.
+4. Perform syntax/static review and unrelated-diff review.
+5. Commit Main2 source mutation.
+6. Reconcile CURRENT_STATE again.
+7. Then address M2-10 as a dedicated cross-layer security closure.
+8. Only after Main2 source closure proceed to 11-part assembly and companion-file reconciliation.
+```
+
+Do not reopen M2-02 or M2-04 unless new direct evidence contradicts their current Git state.
+
+---
+
+# 17. FINAL SELF-AUDIT
+
+```text
+CURRENT GIT = DIRECTLY VERIFIED
+CURRENT MAIN2 SOURCE = DIRECTLY VERIFIED
+CURRENT PRODUCTION = DIRECTLY VERIFIED
+CURRENT INVENTORY CONTRACT = DIRECTLY VERIFIED
+CURRENT EDGE CONTRACTS RELEVANT TO MAIN2 = DIRECTLY VERIFIED
+HISTORICAL REPORTS = RECONCILED
 
 WHAT I PROVED
-- Main2 previous surgical commit exists
-- Main2 current source contains 8 remaining confirmed findings listed above
-- current Production adjustment engine contract differs from the frontend expectation
-- a safe full-file rewrite is not justified for narrow defects under the governing rules
+- Current main2 contains the post-Report60 fixes for M2-02/M2-04.
+- Production adjustment idempotency is keyed by voucherCode and changing it permits a new movement identity.
+- M2-07R replay risk is real at the client lifecycle level.
+- M2-09 query-filter omission is real at source level.
+- delete-item authorization is not proven server-side.
 
 WHAT I DID NOT PROVE
-- Main2 runtime/browser success
-- final assembly equivalence
-- production deployment of a newly patched Main2
-- 100% inventory/source closure
+- Main2 assembled parent artifact.
+- Browser/runtime success of the 11-part application.
+- Full production PWA equivalence.
+- Business-contract verdict for net profit formula.
+- Business-contract verdict for customer-name aggregation.
+- Full server-side delete authorization closure.
 
 WHAT I CHANGED
-- Report59 forensic report
-- CURRENT_STATE reconciliation
+- Added Report61.
+- Reconciled CURRENT_STATE.
 
 WHAT I DID NOT CHANGE
-- Current/PWA/main2/main2.md
-- Current/PWA/main2/main1.md
-- main3.md through main11.md
-- New-main
-- core.js
-- sw.js
-- register-sw.js
-- manifest.json
+- Main2 source.
+- Production business state.
+- Companion files.
 
-FINAL CLOSURE STATUS
-MAIN1 = SOURCE-CLOSED / FULL-PRODUCT-CLOSURE-OPEN
-MAIN2 = FORENSIC-REVIEW-COMPLETE / SURGICAL-SOURCE-CLOSURE-OPEN
+CURRENT CLOSURE
+MAIN1 SOURCE PATCHES = CLOSED
+MAIN2 FORENSIC REVIEW = CURRENT
+MAIN2 SOURCE = OPEN
+MAIN2 RUNTIME = OPEN
+ASSEMBLY = OPEN
 INVENTORY CORE = NOT 100% CLOSED
 ```
 
 ---
 
-# 16. CONTINUITY LOCK
+# 18. CONTINUITY LOCK FOR NEXT CTO
 
-The next CTO or assistant must begin from `dde004b94b639dd715655f7be5607320a14e6f4c` and preserve the following facts:
+Start from this CURRENT_STATE, then independently verify the latest Git HEAD and Production before acting.
+
+Do not start from Report60.
+Do not start from Report59.
+Do not start from historical Main2 blob `b1096fd...`.
+Do not restart Main1.
+
+The immediate human-executable Main2 edits are fully specified in:
 
 ```text
-MAIN1 SOURCE = CLOSED FOR PATCHES 1–4
-MAIN1 FULL PRODUCT = OPEN
-MAIN2 PRIOR SURGERY COMMIT = a6556235c5768d9514ee3e910ae795391e3ab868
-MAIN2 CURRENT BLOB = b1096fdadd4734881d2c16c341dea769fc306fc5
-MAIN2 REPORT59 = dde004b94b639dd715655f7be5607320a14e6f4c
-LATEST PRODUCTION VERIFICATION = 2026-09-05 00:21:30.867647 UTC
-PRODUCTION COMPANIES = 1
-PRODUCTION APP_SETTINGS = 1
-PRODUCTION ORDERS = 0
-PRODUCTION PURCHASE_ORDERS = 0
-MAIN2 SOURCE PATCH = OPEN
-MAIN2 RUNTIME = NOT VERIFIED
+doc/Draft/Reprots/Report61_Main2_Deep_Forensic_Continuation_20260905.md
 ```
 
-The next source operation must apply only the explicit Report59 replacements and must not recreate Main1 or reopen already-closed Main2 surgery without contradictory direct evidence.
+The Main2 file remains intentionally unmodified by this session.
