@@ -600,60 +600,184 @@ function _jsAttr(s) {
         }
     }
 
-    async function _loadMovementReport() {
-        var itemCode = byId('mov-item-select') ? byId('mov-item-select').value : '';
-        if (!itemCode) { showToast('يرجى اختيار صنف', 'warning'); return; }
-        var fromDate = byId('mov-date-from') ? byId('mov-date-from').value : '';
-        var toDate = byId('mov-date-to') ? byId('mov-date-to').value : '';
-        showLoader('جاري تحميل الحركات...');
-        try {
-            var vouchersQuery = supabase.from('stock_vouchers')
-    .select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id')
-    .eq('company_id', companyId);
+async function _loadMovementReport() {
+    var itemCode = byId('mov-item-select') ? byId('mov-item-select').value : '';
+    if (!itemCode) { showToast('يرجى اختيار صنف', 'warning'); return; }
 
-if (fromDate) {
-    vouchersQuery = vouchersQuery.gte('voucher_date', fromDate);
-}
-if (toDate) {
-    vouchersQuery = vouchersQuery.lte('voucher_date', toDate);
-}
-if (window._movementBranchId) {
-    vouchersQuery = vouchersQuery.or(
-        'from_branch_id.eq.' + window._movementBranchId + ',to_branch_id.eq.' + window._movementBranchId
-    );
-}
+    var item = null;
+    for (var ii = 0; ii < itemsData.length; ii++) {
+        if (itemsData[ii].item_code === itemCode) { item = itemsData[ii]; break; }
+    }
+    if (!item || !item.id) { showToast('تعذر تحديد هوية الصنف', 'error'); return; }
 
-var vouchersRes = await vouchersQuery.order('voucher_date', { ascending: true });
-            var vouchers = vouchersRes.data || [];
-            var voucherIds = vouchers.map(function(v) { return v.id; });
-            if (voucherIds.length === 0) { hideLoader(); safeHTML(byId('movement-report-result'), '<div class="text-center py-8 text-gray-500">لا توجد حركات مسجلة بعد</div>'); return; }
-            var detailsRes = await supabase.from('stock_voucher_details').select('*').in('voucher_id', voucherIds).eq('item_code', itemCode);
-            var details = detailsRes.data || [];
-            if (details.length === 0) { hideLoader(); safeHTML(byId('movement-report-result'), '<div class="text-center py-8 text-gray-500">لا توجد حركات لهذا الصنف</div>'); return; }
-            var voucherMap = {};
-            for (var v = 0; v < vouchers.length; v++) { voucherMap[vouchers[v].id] = vouchers[v]; }
-            var branchIds = window._itemsBranchIds || [];
-            var branches = window._itemsBranches || [];
-            var html = '<table class="w-full text-sm border"><thead><tr class="bg-gray-100"><th class="p-2">#</th><th class="p-2">التاريخ</th><th class="p-2">نوع الحركة</th><th class="p-2 text-center">الكمية</th><th class="p-2 text-center">الرصيد التراكمي</th><th class="p-2">الفرع</th><th class="p-2">المرجع</th></tr></thead><tbody>';
-            var runningBalance = 0;
-            for (var d = 0; d < details.length; d++) {
-                var det = details[d]; var qty = Number(det.qty) || 0; var voucher = voucherMap[det.voucher_id] || {};
-                var branchName = ''; var isOut = false;
-                for (var b = 0; b < branches.length; b++) {
-                    var bid = branches[b].id || branches[b].branch_code;
-                    if (bid === voucher.from_branch_id) { branchName = branches[b].name || bid; isOut = true; break; }
-                    if (bid === voucher.to_branch_id) { branchName = branches[b].name || bid; isOut = false; break; }
-                }
-                var movementQty = isOut ? -qty : qty;
-                runningBalance += movementQty;
-                html += '<tr class="border-t"><td class="p-2 text-xs">' + (d+1) + '</td><td class="p-2">' + _esc(voucher.voucher_date||'') + '</td><td class="p-2">' + _esc(voucher.type||'') + '</td><td class="p-2 text-center font-bold ' + (movementQty>=0?'text-green-600':'text-red-600') + '">' + (movementQty>=0?'+':'') + movementQty + '</td><td class="p-2 text-center font-bold">' + runningBalance + '</td><td class="p-2">' + (branchName||'-') + '</td><td class="p-2 text-xs">' + _esc(voucher.voucher_code||'') + '</td></tr>';
-            }
-            html += '</tbody></table>';
-            hideLoader();
-            safeHTML(byId('movement-report-result'), html);
-        } catch(e) { hideLoader(); console.error(e); showToast('فشل تحميل الحركات', 'error'); }
+    var fromDate = byId('mov-date-from') ? byId('mov-date-from').value : '';
+    var toDate = byId('mov-date-to') ? byId('mov-date-to').value : '';
+    var branchId = window._movementBranchId || null;
+    var branches = window._itemsBranches || RW_STATE.data.branches || [];
+    var branchMap = {};
+
+    for (var bi = 0; bi < branches.length; bi++) {
+        var branchKey = branches[bi].id || branches[bi].branch_code;
+        branchMap[branchKey] = branches[bi].name || branches[bi].branch_code || branchKey;
     }
 
+    var physicalTypes = [
+        'PurchaseIn','TransferOut','TransferIn','POSSale','VanSale','DirectSale',
+        'SalesReturn','DirectReturn','SupplierReturn','InventoryIncrease',
+        'InventoryDecrease','Loading','Unloading'
+    ];
+
+    function buildQuery() {
+        var q = supabase.from('inventory_log').select(
+            'id, log_code, movement_date, voucher_id, item_id, item_code, item_name, movement_type, qty, reference, user_email, created_at, source_branch_id, target_branch_id'
+        ).eq('company_id', companyId).eq('item_id', item.id);
+
+        if (branchId) {
+            q = q.or('source_branch_id.eq.' + branchId + ',target_branch_id.eq.' + branchId);
+        }
+        return q;
+    }
+
+    function movementImpact(log) {
+        var qty = Number(log.qty) || 0;
+        if (qty <= 0) return 0;
+
+        if (branchId) {
+            if (log.source_branch_id === branchId) return -qty;
+            if (log.target_branch_id === branchId) return qty;
+            return 0;
+        }
+
+        if (log.source_branch_id && log.target_branch_id && log.source_branch_id !== log.target_branch_id) {
+            return 0;
+        }
+
+        if (log.movement_type === 'PurchaseIn' || log.movement_type === 'TransferIn' ||
+            log.movement_type === 'SalesReturn' || log.movement_type === 'DirectReturn' ||
+            log.movement_type === 'InventoryIncrease') return qty;
+
+        if (log.movement_type === 'TransferOut' || log.movement_type === 'POSSale' ||
+            log.movement_type === 'VanSale' || log.movement_type === 'DirectSale' ||
+            log.movement_type === 'SupplierReturn' || log.movement_type === 'InventoryDecrease') return -qty;
+
+        return 0;
+    }
+
+    function branchLabel(log) {
+        var sourceName = log.source_branch_id ? (branchMap[log.source_branch_id] || log.source_branch_id) : '';
+        var targetName = log.target_branch_id ? (branchMap[log.target_branch_id] || log.target_branch_id) : '';
+
+        if (branchId) {
+            if (log.source_branch_id === branchId) return sourceName || '-';
+            if (log.target_branch_id === branchId) return targetName || '-';
+        }
+
+        if (sourceName && targetName && log.source_branch_id !== log.target_branch_id) {
+            return sourceName + ' → ' + targetName;
+        }
+        return sourceName || targetName || '-';
+    }
+
+    showLoader('جاري تحميل الحركات المركزية...');
+
+    try {
+        var allQuery = buildQuery();
+        if (toDate) allQuery = allQuery.lte('movement_date', toDate);
+        allQuery = allQuery
+            .order('movement_date', { ascending: true })
+            .order('created_at', { ascending: true })
+            .order('id', { ascending: true });
+
+        var allRes = await allQuery;
+        if (allRes.error) throw allRes.error;
+
+        var allLogs = allRes.data || [];
+        var physicalLogs = [];
+        var legacyCount = 0;
+
+        for (var ai = 0; ai < allLogs.length; ai++) {
+            if (physicalTypes.indexOf(allLogs[ai].movement_type) !== -1) {
+                physicalLogs.push(allLogs[ai]);
+            } else {
+                legacyCount++;
+            }
+        }
+
+        var openingBalance = 0;
+
+        if (fromDate) {
+            for (var oi = 0; oi < physicalLogs.length; oi++) {
+                if (physicalLogs[oi].movement_date < fromDate) {
+                    openingBalance += movementImpact(physicalLogs[oi]);
+                }
+            }
+        }
+
+        var reportLogs = [];
+
+        for (var ri = 0; ri < physicalLogs.length; ri++) {
+            if (!fromDate || physicalLogs[ri].movement_date >= fromDate) {
+                reportLogs.push(physicalLogs[ri]);
+            }
+        }
+
+        var result = byId('movement-report-result');
+
+        if (!reportLogs.length) {
+            hideLoader();
+
+            var emptyHtml = '<div class="text-center py-8 text-gray-500">لا توجد حركات لهذا الصنف في الفترة المحددة</div>';
+
+            if (legacyCount > 0) {
+                emptyHtml += '<div class="text-center text-xs text-gray-400 mt-2">تم استبعاد ' + legacyCount + ' سجل تاريخي غير مطابق لعقد الحركة المادي الحالي.</div>';
+            }
+
+            safeHTML(result, emptyHtml);
+            return;
+        }
+
+        var runningBalance = openingBalance;
+
+        var html = '<div class="mb-3 text-sm font-bold text-gray-600">الرصيد الافتتاحي للفترة: ' + openingBalance + '</div>';
+
+        if (legacyCount > 0) {
+            html += '<div class="mb-3 text-xs text-gray-400">تم استبعاد ' + legacyCount + ' سجل تاريخي غير مطابق لعقد الحركة المادي الحالي.</div>';
+        }
+
+        html += '<table class="w-full text-sm border"><thead><tr class="bg-gray-100">';
+        html += '<th class="p-2">#</th><th class="p-2">التاريخ</th><th class="p-2">نوع الحركة</th><th class="p-2 text-center">الكمية</th><th class="p-2 text-center">الرصيد التراكمي</th><th class="p-2">الفرع</th><th class="p-2">المرجع</th><th class="p-2">المستخدم</th>';
+        html += '</tr></thead><tbody>';
+
+        for (var d = 0; d < reportLogs.length; d++) {
+            var log = reportLogs[d];
+            var impact = movementImpact(log);
+            runningBalance += impact;
+
+            var displayQty = impact >= 0 ? '+' + impact : String(impact);
+
+            html += '<tr class="border-t">';
+            html += '<td class="p-2 text-xs">' + (d + 1) + '</td>';
+            html += '<td class="p-2">' + _esc(log.movement_date || '') + '</td>';
+            html += '<td class="p-2">' + _esc(log.movement_type || '') + '</td>';
+            html += '<td class="p-2 text-center font-bold ' + (impact >= 0 ? 'text-green-600' : 'text-red-600') + '">' + displayQty + '</td>';
+            html += '<td class="p-2 text-center font-bold">' + runningBalance + '</td>';
+            html += '<td class="p-2">' + _esc(branchLabel(log)) + '</td>';
+            html += '<td class="p-2 text-xs">' + _esc(log.reference || log.voucher_id || '') + '</td>';
+            html += '<td class="p-2 text-xs">' + _esc(log.user_email || '') + '</td>';
+            html += '</tr>';
+        }
+
+        html += '</tbody></table>';
+
+        hideLoader();
+        safeHTML(result, html);
+
+    } catch (e) {
+        hideLoader();
+        console.error('فشل تحميل تقرير الحركة المركزي:', e);
+        showToast('فشل تحميل الحركات المركزية', 'error');
+    }
+}
     // ==================== مصفوفة الفروع – بدون تغيير ====================
     function _renderBranchStockMatrix() {
         var content = byId('items-sub-content');
@@ -956,22 +1080,15 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
     }
 
     async function _showBranchStockMovement(itemCode, itemName, branchId, branchName) {
-        showLoader('جاري تحميل حركة المخزون...');
-        try {
-            var vouchersRes = await supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').eq('company_id', companyId).or('from_branch_id.eq.'+branchId+',to_branch_id.eq.'+branchId).order('voucher_date',{ascending:true});
-            var vouchers = vouchersRes.data||[]; if(vouchers.length===0){hideLoader();Swal.fire({title:'حركة المخزون',text:'لا توجد حركات لهذا الفرع',icon:'info'});return;}
-            var voucherIds=vouchers.map(function(v){return v.id;});
-            var detailsRes=await supabase.from('stock_voucher_details').select('*').in('voucher_id',voucherIds).eq('item_code',itemCode);
-            var details=detailsRes.data||[]; if(details.length===0){hideLoader();Swal.fire({title:'حركة المخزون',text:'لا توجد حركات لهذا الصنف في الفرع',icon:'info'});return;}
-            var voucherMap={}; for(var v=0;v<vouchers.length;v++){voucherMap[vouchers[v].id]=vouchers[v];}
-            var html='<div class="text-right"><h4 class="font-bold mb-3">حركة: '+_esc(itemName)+' - '+_esc(branchName)+'</h4><table class="w-full border text-sm"><thead><tr class="bg-gray-100"><th class="p-2">التاريخ</th><th class="p-2">النوع</th><th class="p-2 text-center">الكمية</th><th class="p-2">المرجع</th></tr></thead><tbody>';
-            var rb=0;
-            for(var d=0;d<details.length;d++){var det=details[d];var qty=Number(det.qty)||0;var voucher=voucherMap[det.voucher_id]||{};var isOut=(voucher.from_branch_id===branchId);var mq=isOut?-qty:qty;rb+=mq;html+='<tr class="border-t"><td class="p-2">'+(voucher.voucher_date||'')+'</td><td class="p-2">'+(voucher.type||'')+'</td><td class="p-2 text-center font-bold '+(mq>=0?'text-green-600':'text-red-600')+'">'+(mq>=0?'+':'')+mq+'</td><td class="p-2">'+(voucher.voucher_code||'')+'</td></tr>';}
-            html+='<tr class="font-bold bg-gray-50"><td colspan="3" class="p-2 text-left">الرصيد النهائي</td><td class="p-2 text-center">'+rb+'</td></tr></tbody></table></div>';
-            hideLoader(); Swal.fire({title:'حركة المخزون',html:html,width:'800px',showCloseButton:true,showConfirmButton:false});
-        } catch(e) { hideLoader(); console.error(e); showToast('فشل التحميل','error'); }
+        _switchSubTab('movement');
+        window._movementItemCode = itemCode || null;
+        window._movementItemName = itemName || '';
+        window._movementBranchId = branchId || null;
+        window._movementBranchName = branchName || '';
+        setTimeout(function() {
+            _renderStockMovementReport(itemCode || null, itemName || '', branchId || null, branchName || '');
+        }, 0);
     }
-
     function _loadCategoriesIntoSelect() {
       var select = byId('item-cat');
       if (!select) return;
