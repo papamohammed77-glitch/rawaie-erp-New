@@ -1,0 +1,390 @@
+# Report68 — إعادة فتح M2-11 وفق عقد الحركة المركزي الجديد
+
+التاريخ: 2026-09-05
+المستودع: papamohammed77-glitch/rawaie-erp-New
+الفرع: main
+مرجع آخر حالة منشورة: 60c71a7d2d091bed5c7d127c90e1f221a8863063 (Report67)
+ملف الهدف: Current/PWA/main2/main2.md
+Blob الهدف المفحوص: c503fde4d2da73d241d693e81f67405445d85747
+Production: SMART ERP / fiilmooggumokxanwiyx
+
+## 1. مصادر التحقق
+
+تمت مراجعة MASTER Continuity بالكامل عبر blob الحالي.
+تمت مراجعة CURRENT_STATE.md بالكامل.
+تمت مراجعة Report66 بالكامل.
+تمت مراجعة Report67 بالكامل.
+تمت قراءة main2.md من blob الحالي الكامل.
+تمت مراجعة عقد PostgreSQL الحالي مباشرة في Production.
+تمت مراجعة التعريف الحالي لـ post_stock_movement.
+تمت مراجعة inventory_log الحالية وبياناتها الفعلية.
+تمت مراجعة المسارات الحالية ذات الصلة بالحركة.
+
+## 2. الحالة الحالية التي ثبتت
+
+Report66 corrections موجودة في main2 الحالية بالفعل، ولا يجب إعادة تنفيذها.
+العيب المؤكد الخاص بحقل الوحدة الأساسية ما زال موجودًا في source الحالي:
+item-unit يقرأ item.alt_unit بينما _handleSaveFromPage يرسل القيمة باسم unit.
+
+Production الحالية في آخر reconciliation لهذه الجلسة:
+companies = 1
+app_settings = 1
+orders = 0
+purchase_orders = 0
+branches = 2
+items = 17
+stock_branches = 20
+inventory_log = 3
+
+## 3. الاكتشاف الجديد الحاسم في M2-11
+
+main2 الحالية تستخدم:
+stock_vouchers + stock_voucher_details
+كمصدر لتقرير حركة الصنف.
+
+وهذا يخالف العقد المركزي الحالي الذي يثبت أن:
+Physical Stock Movement
+-> post_stock_movement
+-> stock_branches + inventory_log
+
+التعريف الحالي لـ post_stock_movement يستقبل أصلًا:
+p_source_branch_id
+p_target_branch_id
+لكنه لا يحفظهما في inventory_log.
+
+لذلك لا يجوز لـmain2 أن تستنتج الفرع من voucher بعد أن يصبح inventory_log هو سجل الحركة المركزي، لأن ذلك يعيد توزيع مسؤولية الحركة بين أكثر من مصدر.
+
+## 4. دليل Production على وجود تاريخ Legacy يجب عدم خلطه بالحركة المركزية
+
+inventory_log الحالية تحتوي 3 سجلات:
+movement_type = VoidInvoice
+voucher_id = ORD-1015 / ORD-1016
+ولا يوجد لها stock_voucher مطابق حاليًا.
+كما أن orders الحالية لا تحتوي ORD-1015 أو ORD-1016.
+
+هذا يثبت أن تاريخ inventory_log يحتوي آثارًا منطقية قديمة لا يمكن اعتبارها تلقائيًا جزءًا من عقد Physical Stock الحالي.
+
+القرار:
+لا تُحذف هذه السجلات.
+لا تُعاد كتابتها بالتخمين.
+لا تُستخدم لتكوين رصيد Physical Stock.
+ولا تُدمج داخل الحركة الحالية إلا بعقد موثق لاحقًا.
+
+## 5. التعديل المعماري الدائم المطلوب قبل إصلاح main2 للحركة
+
+يجب أولًا إضافة عمودين nullable إلى inventory_log:
+
+source_branch_id uuid
+ target_branch_id uuid
+
+ثم إضافة مفاتيح Foreign Key إلى branches(id) مع الإبقاء على السماح بـNULL للسجلات التاريخية غير القابلة لإعادة البناء.
+
+ثم تعديل post_stock_movement بحيث يكتب:
+source_branch_id = p_source_branch_id
+target_branch_id = p_target_branch_id
+داخل كل inventory_log جديد.
+
+لا تقم بعمل backfill للسجلات القديمة التي لا يثبت مصدرها.
+
+السجلات القديمة التي يمكن إثبات مصدرها مستقبلًا تُعالج في data-repair منفصل مع audit preservation.
+
+## 6. لا تستخدم main2 أي stock_vouchers لتقرير الحركة بعد اكتمال عقد السجل المركزي
+
+بعد إضافة branch attribution إلى inventory_log، يكون مصدر تقرير الحركة في main2 هو:
+
+inventory_log
+
+بواسطة:
+company_id
++
+item_id
++
+movement_date
++
+source_branch_id
++
+target_branch_id
+
+ولا يعتمد التقرير على stock_vouchers أو stock_voucher_details لإثبات وقوع الحركة.
+
+## 7. التعديل الجراحي الأول داخل main2 — الوحدة الأساسية
+
+ابحث عن السطر الكامل الذي يبدأ بـ:
+
+html += '<div class="flex flex-col"><label class="text-sm font-bold">الوحدة الأساسية</label>
+
+وينتهي بـ:
+
+class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+
+احذف السطر كاملًا واستبدله بالسطر الكامل التالي:
+
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">الوحدة الأساسية</label><input id="item-unit" value="' + _esc(item ? (item.unit || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+
+لا تغيّر أي جزء آخر من هذا السطر.
+
+## 8. التعديل الجراحي الثاني داخل main2 — التقرير المركزي للحركة
+
+ابحث عن:
+
+async function _loadMovementReport() {
+
+واحذف الدالة كاملة من بدايتها حتى القوس الأخير مباشرة قبل التعليق:
+
+// ==================== مصفوفة الفروع – بدون تغيير ====================
+
+ثم استبدل الدالة كاملة بهذا المحتوى:
+
+async function _loadMovementReport() {
+    var itemCode = byId('mov-item-select') ? byId('mov-item-select').value : '';
+    if (!itemCode) { showToast('يرجى اختيار صنف', 'warning'); return; }
+
+    var item = null;
+    for (var ii = 0; ii < itemsData.length; ii++) {
+        if (itemsData[ii].item_code === itemCode) { item = itemsData[ii]; break; }
+    }
+    if (!item || !item.id) { showToast('تعذر تحديد هوية الصنف', 'error'); return; }
+
+    var fromDate = byId('mov-date-from') ? byId('mov-date-from').value : '';
+    var toDate = byId('mov-date-to') ? byId('mov-date-to').value : '';
+    var branchId = window._movementBranchId || null;
+    var branches = window._itemsBranches || RW_STATE.data.branches || [];
+    var branchMap = {};
+
+    for (var bi = 0; bi < branches.length; bi++) {
+        var branchKey = branches[bi].id || branches[bi].branch_code;
+        branchMap[branchKey] = branches[bi].name || branches[bi].branch_code || branchKey;
+    }
+
+    var physicalTypes = [
+        'PurchaseIn','TransferOut','TransferIn','POSSale','VanSale','DirectSale',
+        'SalesReturn','DirectReturn','SupplierReturn','InventoryIncrease',
+        'InventoryDecrease','Loading','Unloading'
+    ];
+
+    function buildQuery() {
+        var q = supabase.from('inventory_log').select(
+            'id, log_code, movement_date, voucher_id, item_id, item_code, item_name, movement_type, qty, reference, user_email, created_at, source_branch_id, target_branch_id'
+        ).eq('company_id', companyId).eq('item_id', item.id);
+
+        if (branchId) {
+            q = q.or('source_branch_id.eq.' + branchId + ',target_branch_id.eq.' + branchId);
+        }
+        return q;
+    }
+
+    function movementImpact(log) {
+        var qty = Number(log.qty) || 0;
+        if (qty <= 0) return 0;
+
+        if (branchId) {
+            if (log.source_branch_id === branchId) return -qty;
+            if (log.target_branch_id === branchId) return qty;
+            return 0;
+        }
+
+        if (log.source_branch_id && log.target_branch_id && log.source_branch_id !== log.target_branch_id) {
+            return 0;
+        }
+
+        if (log.movement_type === 'PurchaseIn' || log.movement_type === 'TransferIn' ||
+            log.movement_type === 'SalesReturn' || log.movement_type === 'DirectReturn' ||
+            log.movement_type === 'InventoryIncrease') return qty;
+
+        if (log.movement_type === 'TransferOut' || log.movement_type === 'POSSale' ||
+            log.movement_type === 'VanSale' || log.movement_type === 'DirectSale' ||
+            log.movement_type === 'SupplierReturn' || log.movement_type === 'InventoryDecrease') return -qty;
+
+        return 0;
+    }
+
+    function branchLabel(log) {
+        var sourceName = log.source_branch_id ? (branchMap[log.source_branch_id] || log.source_branch_id) : '';
+        var targetName = log.target_branch_id ? (branchMap[log.target_branch_id] || log.target_branch_id) : '';
+
+        if (branchId) {
+            if (log.source_branch_id === branchId) return sourceName || '-';
+            if (log.target_branch_id === branchId) return targetName || '-';
+        }
+
+        if (sourceName && targetName && log.source_branch_id !== log.target_branch_id) {
+            return sourceName + ' → ' + targetName;
+        }
+        return sourceName || targetName || '-';
+    }
+
+    showLoader('جاري تحميل الحركات المركزية...');
+
+    try {
+        var allQuery = buildQuery();
+        if (toDate) allQuery = allQuery.lte('movement_date', toDate);
+        allQuery = allQuery.order('movement_date', { ascending: true }).order('created_at', { ascending: true }).order('id', { ascending: true });
+
+        var allRes = await allQuery;
+        if (allRes.error) throw allRes.error;
+
+        var allLogs = allRes.data || [];
+        var physicalLogs = [];
+        var legacyCount = 0;
+
+        for (var ai = 0; ai < allLogs.length; ai++) {
+            if (physicalTypes.indexOf(allLogs[ai].movement_type) !== -1) physicalLogs.push(allLogs[ai]);
+            else legacyCount++;
+        }
+
+        var openingBalance = 0;
+        if (fromDate) {
+            for (var oi = 0; oi < physicalLogs.length; oi++) {
+                if (physicalLogs[oi].movement_date < fromDate) openingBalance += movementImpact(physicalLogs[oi]);
+            }
+        }
+
+        var reportLogs = [];
+        for (var ri = 0; ri < physicalLogs.length; ri++) {
+            if (!fromDate || physicalLogs[ri].movement_date >= fromDate) reportLogs.push(physicalLogs[ri]);
+        }
+
+        var result = byId('movement-report-result');
+        if (!reportLogs.length) {
+            hideLoader();
+            var emptyHtml = '<div class="text-center py-8 text-gray-500">لا توجد حركات لهذا الصنف في الفترة المحددة</div>';
+            if (legacyCount > 0) {
+                emptyHtml += '<div class="text-center text-xs text-gray-400 mt-2">تم استبعاد ' + legacyCount + ' سجل تاريخي غير مطابق لعقد الحركة المادي الحالي.</div>';
+            }
+            safeHTML(result, emptyHtml);
+            return;
+        }
+
+        var runningBalance = openingBalance;
+        var html = '<div class="mb-3 text-sm font-bold text-gray-600">الرصيد الافتتاحي للفترة: ' + openingBalance + '</div>';
+        if (legacyCount > 0) {
+            html += '<div class="mb-3 text-xs text-gray-400">تم استبعاد ' + legacyCount + ' سجل تاريخي غير مطابق لعقد الحركة المادي الحالي.</div>';
+        }
+        html += '<table class="w-full text-sm border"><thead><tr class="bg-gray-100">';
+        html += '<th class="p-2">#</th><th class="p-2">التاريخ</th><th class="p-2">نوع الحركة</th><th class="p-2 text-center">الكمية</th><th class="p-2 text-center">الرصيد التراكمي</th><th class="p-2">الفرع</th><th class="p-2">المرجع</th><th class="p-2">المستخدم</th>';
+        html += '</tr></thead><tbody>';
+
+        for (var d = 0; d < reportLogs.length; d++) {
+            var log = reportLogs[d];
+            var impact = movementImpact(log);
+            runningBalance += impact;
+            var displayQty = impact >= 0 ? '+' + impact : String(impact);
+            html += '<tr class="border-t">';
+            html += '<td class="p-2 text-xs">' + (d + 1) + '</td>';
+            html += '<td class="p-2">' + _esc(log.movement_date || '') + '</td>';
+            html += '<td class="p-2">' + _esc(log.movement_type || '') + '</td>';
+            html += '<td class="p-2 text-center font-bold ' + (impact >= 0 ? 'text-green-600' : 'text-red-600') + '">' + displayQty + '</td>';
+            html += '<td class="p-2 text-center font-bold">' + runningBalance + '</td>';
+            html += '<td class="p-2">' + _esc(branchLabel(log)) + '</td>';
+            html += '<td class="p-2 text-xs">' + _esc(log.reference || log.voucher_id || '') + '</td>';
+            html += '<td class="p-2 text-xs">' + _esc(log.user_email || '') + '</td>';
+            html += '</tr>';
+        }
+
+        html += '</tbody></table>';
+        hideLoader();
+        safeHTML(result, html);
+    } catch (e) {
+        hideLoader();
+        console.error('فشل تحميل تقرير الحركة المركزي:', e);
+        showToast('فشل تحميل الحركات المركزية', 'error');
+    }
+}
+
+## 9. التعديل الجراحي الثالث داخل main2 — إزالة duplicate movement reader
+
+ابحث عن الدالة الكاملة التي تبدأ بـ:
+
+async function _showBranchStockMovement(itemCode, itemName, branchId, branchName) {
+
+وتنتهي مباشرة قبل:
+
+function _loadCategoriesIntoSelect() {
+
+احذف الدالة كاملة واستبدلها بهذه الدالة فقط:
+
+    async function _showBranchStockMovement(itemCode, itemName, branchId, branchName) {
+        _switchSubTab('movement');
+        window._movementItemCode = itemCode || null;
+        window._movementItemName = itemName || '';
+        window._movementBranchId = branchId || null;
+        window._movementBranchName = branchName || '';
+        setTimeout(function() {
+            _renderStockMovementReport(itemCode || null, itemName || '', branchId || null, branchName || '');
+        }, 0);
+    }
+
+هذا يلغي مسار قراءة الحركة القديم الثاني ويجعل واجهة الحركة تعتمد على مسار مركزي واحد فقط.
+
+## 10. لا تعدل
+
+لا تعدل أيًا من إصلاحات Report66 الأربعة.
+لا تضف } إلى _renderTable().
+لا تضف _jsAttr جديدًا.
+لا تعدل _renderBranchStockMatrix().
+لا تعدل _renderBranchStockMatrixFiltered().
+لا تعدل main1 أو main3..main11.
+لا تعدل core.js أو sw.js أو register-sw.js أو manifest.json في هذه المرحلة.
+لا تحذف سجلات inventory_log القديمة.
+لا تحاول إصلاح VoidInvoice بالتخمين.
+لا تنشئ تقرير حركة يعتمد على stock_vouchers بعد اكتمال عقد inventory_log المركزي.
+
+## 11. اختبار ما بعد التعديل اليدوي
+
+بعد أن تنفذ أنت التعديلات، لا تعتبر main2 مغلقًا.
+
+نفذ بالترتيب:
+
+1. أعد قراءة main2.md كاملًا من Git.
+2. ابحث عن item-unit وتأكد أن القيمة الوحيدة هي item.unit.
+3. ابحث عن _loadMovementReport وتأكد أن مصدر البيانات الوحيد داخلها هو inventory_log.
+4. ابحث داخل _loadMovementReport عن stock_vouchers. يجب أن تكون النتيجة صفر.
+5. ابحث داخل _showBranchStockMovement عن stock_vouchers. يجب أن تكون النتيجة صفر.
+6. تحقق من وجود source_branch_id وtarget_branch_id في select المركزي.
+7. تحقق من بقاء إصلاحات Report66 الأربعة.
+8. نفذ static/syntax review للملف كاملًا.
+9. سجل commit main2 الفعلي.
+10. بعد وجود commit، تتم مراجعة Production/Runtime والـ11-part assembly في closure منفصل.
+
+## 12. SELF-AUDIT
+
+### What I Proved
+
+- MASTER الحالي قرئ كاملًا.
+- CURRENT_STATE الحالي قرئ كاملًا.
+- Report66 قرئ كاملًا.
+- Report67 قرئ كاملًا.
+- main2 الحالي قُرئ من blob كامل.
+- عقد post_stock_movement الحالي فُحص مباشرة في Production.
+- inventory_log الحالية فُحصت مباشرة.
+- ثبت أن inventory_log لا تحفظ branch attribution حاليًا.
+- ثبت أن post_stock_movement يعرف source/target branches بالفعل.
+- ثبت وجود 3 سجلات VoidInvoice قديمة غير مرتبطة حاليًا بorders أو stock_vouchers.
+- ثبت أن الحركة في main2 تعتمد حاليًا على stock_vouchers.
+- ثبت أن الحل الدائم يتطلب نقل branch attribution إلى سجل الحركة المركزي بدل إعادة بناء الحركة من vouchers.
+
+### What I Did Not Prove
+
+- Browser Runtime بعد تعديل المستخدم.
+- Static/Syntax PASS بعد تعديل المستخدم.
+- Production Runtime لتقرير الحركة المركزي بعد إضافة branch attribution.
+- backfill تاريخي كامل للسجلات القديمة.
+- closure لـM2-10.
+- final 11-part assembly.
+
+### What I Changed
+
+لم أعدل main2.
+لم أعدل Production business data.
+أضفت هذا التقرير إلى السجلات.
+وسيتم تحديث CURRENT_STATE ليحفظ هذه النقطة كآخر حالة موثقة.
+
+### Final Status
+
+MAIN2 = OPEN
+M2-11 = OPEN — الآن محدد كـcentral movement contract + unit field.
+Browser Runtime = NOT VERIFIED
+Static/Syntax = NOT VERIFIED
+Assembly = NOT VERIFIED
+Production Equivalence = NOT VERIFIED
+Project Closure = NOT CLAIMED
