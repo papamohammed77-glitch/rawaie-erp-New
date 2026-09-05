@@ -118,6 +118,16 @@ var RW_Dashboard = (function() {
             renderSalesChart(orders, fromDate, toDate);
             renderRegionChart(orders);
             renderTopCustomersChart(orders);
+
+            var topOrderIds = [];
+            for (var oi = 0; oi < orders.length; oi++) { if (orders[oi].id) topOrderIds.push(orders[oi].id); }
+            if (topOrderIds.length) {
+                supabase.from('order_details').select('item_code, item_name, qty, unit_price').in('order_id', topOrderIds).then(function(res) {
+                    renderTopItemsChart(res.data || []);
+                }).catch(function() { renderTopItemsChart([]); });
+            } else {
+                renderTopItemsChart([]);
+            }
         }).catch(function() {});
 
         // 2. المشتريات لصافي الربح
@@ -125,7 +135,7 @@ var RW_Dashboard = (function() {
             var poData = poRes.data || [];
             var totalPurchases = 0;
             for (var i = 0; i < poData.length; i++) { totalPurchases += Number(poData[i].total_amount) || 0; }
-            supabase.from('orders').select('total_amount').gte('order_date', fromDate).lte('order_date', toDate).then(function(ordRes) {
+            supabase.from('orders').select('total_amount').eq('company_id', companyId).gte('order_date', fromDate).lte('order_date', toDate).then(function(ordRes) {
                 var ordData = ordRes.data || [];
                 var totalSales = 0;
                 for (var j = 0; j < ordData.length; j++) { totalSales += Number(ordData[j].total_amount) || 0; }
@@ -595,7 +605,7 @@ var RW_Items = (function() {
         var toDate = byId('mov-date-to') ? byId('mov-date-to').value : '';
         showLoader('جاري تحميل الحركات...');
         try {
-            var vouchersRes = await supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').order('voucher_date', { ascending: true });
+            var vouchersRes = await supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').eq('company_id', companyId).order('voucher_date', { ascending: true });
             var vouchers = vouchersRes.data || [];
             var voucherIds = vouchers.map(function(v) { return v.id; });
             if (voucherIds.length === 0) { hideLoader(); safeHTML(byId('movement-report-result'), '<div class="text-center py-8 text-gray-500">لا توجد حركات مسجلة بعد</div>'); return; }
@@ -1121,7 +1131,7 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
         var hasItems = checkRes.data && checkRes.data.length > 0;
         
         if (hasItems) {
-          supabase.from('categories').select('id, category_name').neq('id', id).order('category_name').then(function(catRes) {
+          supabase.from('categories').select('id, category_name').eq('company_id', companyId).neq('id', id).order('category_name').then(function(catRes) {
             var cats = catRes.data || [];
             var options = '';
             for (var i = 0; i < cats.length; i++) {
@@ -1221,6 +1231,8 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
     }
     // ==================== تبويب تحديث الأرصدة ====================
     var _uploadFileData = []; // تخزين بيانات الملف بعد التحليل
+    var _uploadOperationId = null;
+    var _uploadOperationFingerprint = null;
 
     function _renderUploadTab() {
         var content = byId('items-sub-content');
@@ -1250,6 +1262,8 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
     function _handleFileSelect(input) {
         var file = input.files[0];
         if (!file) return;
+        _uploadOperationId = null;
+        _uploadOperationFingerprint = null;
 
         var reader = new FileReader();
         reader.onload = function(e) {
@@ -1353,6 +1367,7 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
                         else if (adjType === 'deduct') { newQty = currentQty - inputQty; if (newQty < 0) { status = '⚠️ سيصبح الرصيد سالباً'; statusClass = 'bg-yellow-50'; } }
                         if (!status) { status = '✅ صالح'; statusClass = 'bg-green-50'; validCount++; }
                     }
+                    entry._valid = !!item && !status;
                     html += '<tr class="' + statusClass + '"><td class="p-2 font-mono">' + entry.barcode + '</td><td class="p-2">' + (item ? item.name : '---') + '</td><td class="p-2 text-center font-bold">' + currentQty + '</td><td class="p-2 text-center font-bold text-indigo-600">' + inputQty + '</td><td class="p-2 text-center font-bold">' + newQty + '</td><td class="p-2 text-center text-xs">' + status + '</td></tr>';
                 }
                 html += '</tbody></table>';
@@ -1373,10 +1388,23 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
 
         var items = [];
         for (var u = 0; u < _uploadFileData.length; u++) {
-            items.push({ item_code: _uploadFileData[u].item_code || _uploadFileData[u].barcode, qty: _uploadFileData[u].qty });
+            var row = _uploadFileData[u];
+            if (!row._valid || !row.item_code) continue;
+            items.push({ item_code: row.item_code, qty: row.qty });
         }
 
-        var voucherCode = 'ADJ-' + new Date().toISOString().split('T')[0].replace(/-/g, '') + '-' + Math.floor(Math.random() * 1000);
+        if (!items.length) {
+            showToast('لا توجد صفوف صالحة للتنفيذ', 'warning');
+            return;
+        }
+
+        var operationFingerprint = branchId + '|' + adjType + '|' + reason + '|' + items.map(function(x) { return x.item_code + ':' + x.qty; }).sort().join('|');
+        if (!_uploadOperationId || _uploadOperationFingerprint !== operationFingerprint) {
+            var randomPart = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') ? crypto.randomUUID() : (Date.now() + '-' + Math.floor(Math.random() * 1000000));
+            _uploadOperationId = 'ADJ-' + new Date().toISOString().split('T')[0].replace(/-/g, '') + '-' + randomPart;
+            _uploadOperationFingerprint = operationFingerprint;
+        }
+        var voucherCode = _uploadOperationId;
         var payload = { branch_id: branchId, adjustment_type: adjType, voucher_code: voucherCode, reason: reason, items: items };
 
         var executeBtn = byId('btn-execute-upload');
@@ -1398,12 +1426,14 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
         }).then(function(json) {
             hideLoader();
             if (json && json.success) {
-                var successCount = 0, failCount = 0;
-                for (var r = 0; r < (json.results || []).length; r++) { if (json.results[r].status === 'success') successCount++; else failCount++; }
-                showToast('تم تحديث ' + successCount + ' صنف بنجاح' + (failCount > 0 ? ' (فشل ' + failCount + ')' : ''), successCount > 0 ? 'success' : 'warning');
+                var successCount = Number(json.movement_count || 0);
+                var failCount = 0;
+                showToast('تم تحديث ' + successCount + ' صنف بنجاح', successCount > 0 ? 'success' : 'warning');
                 
                 // ✅ إعادة تحميل الأصناف والمخزون فوراً بعد التحديث
                 showLoader('جاري تحديث البيانات...');
+                _uploadOperationId = null;
+                _uploadOperationFingerprint = null;
                 RW_Data.loadItems().then(function(newData) {
                     itemsData = newData;
                     return _loadStockData();
