@@ -556,8 +556,6 @@ function _jsAttr(s) {
                     if ((branches[bn2].id || branches[bn2].branch_code) === bid2) { branchName2 = branches[bn2].name || branches[bn2].branch_code || bid2; break; }
                 }
                 rowHtml += '<td class="p-4 text-center cursor-pointer underline text-blue-600 text-xs" onclick="RW_Items._switchSubTab(\\'movement\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',' + _jsAttr(bid2) + ',' + _jsAttr(branchName2) + '); },200);">' + st.qty + '</td>';
-\'' + _esc(item.item_code) + '\',\'' + _esc(item.name).replace(/'/g, "\\'") + '\',' + _jsAttr(bid2) + ',' + _jsAttr(branchName2) + ') + '\'); },200);">' + st.qty + '</td>';
-            }
             rowHtml += '<td class="p-4 text-center"><span class="px-2 py-1 rounded-full text-xs font-bold ' + status.color + '">' + status.label + '</span></td></tr>';
             return rowHtml;
         });
