@@ -7,7 +7,7 @@ This file is the current continuity checkpoint. It is a declared state and must 
 ```text
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
-CURRENT GIT HEAD BEFORE THIS STATE UPDATE = dd6da64a1615ffbedd3d548c4f9668a2efa3b9f5
+CURRENT GIT HEAD VERIFIED = e12d6d910f298dddbd17d9af2781a78ca9560050
 HISTORICAL REPOSITORY = papamohammed77-glitch/rawaie-erp-review
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
 ```
@@ -28,11 +28,15 @@ fix(main2): remove residual undefined orderIds and scope barcode lookup
 
 e9d0ec685737abf9b752d40acc2d97cd2aa4907e
 docs(cto): add Report60 Main2 surgical completion and self-audit
-= FORENSIC REPORT
+= HISTORICAL FORENSIC REPORT
 
 dd6da64a1615ffbedd3d548c4f9668a2efa3b9f5
 docs(cto): add Report61 Main2 deep forensic continuation
-= CURRENT FORENSIC RECONCILIATION
+= HISTORICAL FORENSIC RECONCILIATION
+
+cd1fcb9c126d43b238360cf0b795c1cf5e1c7b61
+docs(cto): add Report62 Main2 surgical re-check
+= CURRENT FORENSIC REPORT
 
 STATE UPDATE AFTER THIS CHECKPOINT
 = THIS COMMIT
@@ -71,9 +75,10 @@ doc/Draft/medhat/MASTER - RAWAEA ERP.md
 
 # 3. CURRENT PRODUCTION TRUTH — DIRECT SNAPSHOT
 
-Latest direct Production verification in the 2026-09-05 session:
+Latest direct Production verification in this continuity pass:
 
 ```text
+UTC = 2026-09-05 01:21:11.637601+00
 companies       = 1
 app_settings    = 1
 orders          = 0
@@ -82,6 +87,7 @@ branches        = 2
 items           = 17
 stock_branches  = 20
 inventory_log   = 3
+DUPLICATE NON-EMPTY BARCODES = 0
 ```
 
 Additional schema facts verified directly:
@@ -90,42 +96,30 @@ Additional schema facts verified directly:
 items.item_code UNIQUE globally
 stock_branches UNIQUE(branch_id,item_id)
 receiving.operation_id UNIQUE
+items.barcode NOT UNIQUE
 ```
 
-Current duplicate-barcode check:
-
-```text
-DUPLICATE NON-EMPTY BARCODES = 0
-```
-
-No permanent Production business data was introduced by the Main2 forensic session.
-Transactional adjustment testing was rolled back.
+No permanent Production business data was introduced by the Main2 forensic review in this pass.
 
 ---
 
 # 4. CURRENT GIT / MAIN2 SOURCE TRUTH
 
-Current Git HEAD before this state update:
-
 ```text
-dd6da64a1615ffbedd3d548c4f9668a2efa3b9f5
+CURRENT GIT HEAD = e12d6d910f298dddbd17d9af2781a78ca9560050
+CURRENT MAIN2 PATH = Current/PWA/main2/main2.md
+CURRENT MAIN2 BLOB = 15f101d3bea93baa5419bdca48e401ad71bbac6c
 ```
 
-Current Main2 source file:
-
-```text
-PATH = Current/PWA/main2/main2.md
-BLOB = 15f101d3bea93baa5419bdca48e401ad71bbac6c
-```
+Current Main2 source was re-read directly during this pass and was not modified by the assistant.
 
 Important reconciliation:
 
 ```text
-Report60 said M2-02 + M2-04 were still open.
-CURRENT GIT proves they were subsequently fixed in ac360fbe.
+Report60/Report61 are historical evidence.
+Git history subsequently added ac360fbe, closing M2-02 + M2-04.
+HEAD e12d6d9 is a documentation/state reconciliation commit.
 ```
-
-Therefore Report60 is historical evidence, not current source truth.
 
 ---
 
@@ -159,16 +153,18 @@ M2-03 = CLOSED IN CURRENT SOURCE
 M2-04 = CLOSED IN CURRENT SOURCE — ac360f
 M2-05 = CLOSED IN CURRENT SOURCE
 M2-06 = CLOSED IN CURRENT SOURCE
-M2-07 = REOPENED AS M2-07R — replay after successful upload remains possible
+M2-07R = OPEN — stale upload state after success can replay same input under a new voucher identity
 M2-08 = CLOSED IN CURRENT SOURCE
 M2-09 = OPEN — movement report date/branch filters are not wired into voucher query
 M2-10 = OPEN — item deletion authorization is not enforced server-side
+M2-11 = OPEN — HTML/DOM/inline-JS injection hardening required
+M2-12 = OPEN — preventive barcode ambiguity guard required; current Production duplicates = 0
 ```
 
-Current Main2 is therefore:
+Current Main2:
 
 ```text
-FORENSIC REVIEW = UPDATED / CURRENT
+FORENSIC REVIEW = CURRENT
 SOURCE CLOSURE = OPEN
 RUNTIME CLOSURE = OPEN
 ASSEMBLY CLOSURE = OPEN
@@ -176,34 +172,32 @@ ASSEMBLY CLOSURE = OPEN
 
 ---
 
-# 7. M2-07R — OPEN ROOT CAUSE
+# 7. M2-07R — OPEN ROOT CAUSE / EXACT MANUAL PATCH
 
-Main2 `_executeUpload()` clears:
+Current success branch of `_executeUpload()` clears:
 
 ```javascript
 _uploadOperationId = null;
 _uploadOperationFingerprint = null;
 ```
 
-after success but leaves `_uploadFileData` populated.
+while `_uploadFileData` remains populated.
 
-Consequently another click can create a new voucherCode for the same in-memory file and submit the same adjustment again.
-
-Production `post_inventory_adjustment_atomic` uses voucherCode inside the physical-movement idempotency key:
+Production adjustment idempotency is keyed by:
 
 ```text
 InventoryAdjustment:<company_id>:<voucher_code>:<item_id>
 ```
 
-A different voucherCode is a different idempotency identity.
-
-The required Main2 surgical replacement is recorded verbatim in:
+Exact manual change:
 
 ```text
-doc/Draft/Reprots/Report61_Main2_Deep_Forensic_Continuation_20260905.md
-```
+SEARCH inside _executeUpload() success branch immediately before RW_Data.loadItems():
+_uploadOperationId = null;
+_uploadOperationFingerprint = null;
 
-Required replacement:
+DELETE both lines and replace with:
+```
 
 ```javascript
 _uploadFileData = [];
@@ -217,44 +211,167 @@ Do not weaken or bypass the Production idempotency contract.
 
 ---
 
-# 8. M2-09 — OPEN ROOT CAUSE
+# 8. M2-09 — OPEN ROOT CAUSE / EXACT MANUAL PATCH
 
-`_loadMovementReport()` reads `fromDate`, `toDate`, and stores `_movementBranchId`, but the `stock_vouchers` query currently applies only `company_id` and `order`.
+Current `_loadMovementReport()` reads `fromDate`, `toDate`, and uses `window._movementBranchId`, but the voucher query applies only company scope.
 
-The required surgical replacement that wires date and branch filters is recorded in Report61.
+Exact manual replacement:
 
-Do not broaden this into an unrelated reporting redesign.
+```text
+SEARCH inside _loadMovementReport() for the current one-line vouchersRes query.
+DELETE that line.
+REPLACE it with:
+```
+
+```javascript
+var vouchersQuery = await supabase.from('stock_vouchers')
+    .select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id')
+    .eq('company_id', companyId);
+
+if (fromDate) {
+    vouchersQuery = vouchersQuery.gte('voucher_date', fromDate);
+}
+if (toDate) {
+    vouchersQuery = vouchersQuery.lte('voucher_date', toDate);
+}
+if (window._movementBranchId) {
+    vouchersQuery = vouchersQuery.or(
+        'from_branch_id.eq.' + window._movementBranchId + ',to_branch_id.eq.' + window._movementBranchId
+    );
+}
+
+var vouchersRes = { data: null, error: null };
+```
+
+IMPORTANT: the exact replacement above would be wrong if written this way because `vouchersQuery` must remain a query builder and `vouchersRes` must receive its result. The correct final manual replacement is:
+
+```javascript
+var vouchersQuery = supabase.from('stock_vouchers')
+    .select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id')
+    .eq('company_id', companyId);
+
+if (fromDate) {
+    vouchersQuery = vouchersQuery.gte('voucher_date', fromDate);
+}
+if (toDate) {
+    vouchersQuery = vouchersQuery.lte('voucher_date', toDate);
+}
+if (window._movementBranchId) {
+    vouchersQuery = vouchersQuery.or(
+        'from_branch_id.eq.' + window._movementBranchId + ',to_branch_id.eq.' + window._movementBranchId
+    );
+}
+
+var vouchersRes = await vouchersQuery.order('voucher_date', { ascending: true });
+```
+
+Also inside `_renderStockMovementReport()` replace the current `if (itemCode) { ... }` state-update block with:
+
+```javascript
+window._movementItemCode = itemCode || null;
+window._movementItemName = itemName || '';
+window._movementBranchId = branchId || null;
+window._movementBranchName = branchName || '';
+
+if (itemCode) {
+    setTimeout(function() { _loadMovementReport(); }, 300);
+}
+```
+
+Purpose: prevent stale branch filters from a previous report context.
 
 ---
 
 # 9. M2-10 — CROSS-LAYER SECURITY OPEN
 
-Main2 exposes item deletion from the edit page without an independent permission gate.
+Production `delete-item` Version 2 proves authentication, but its deletion path does not prove role/permission authorization.
 
-Current Production `delete-item` authenticates the caller but uses service-role deletion without proving the caller is authorized to delete an item.
+Main2 currently shows delete action on edit pages.
 
-This is:
+Do not invent a permission key.
+Do not treat UI hiding as a security closure.
+
+Authorized next step:
 
 ```text
-AUTHENTICATION = PRESENT
-AUTHORIZATION = NOT PROVEN
+Fix server-side Authorization in delete-item
+→ prove the exact existing permission contract
+→ then align Main2 button behavior with that proven contract
 ```
-
-Main2 can mitigate the visible button using the existing permission contract, but the security closure cannot be declared until the server-side `delete-item` authorization contract is fixed and verified.
-
-Do not close this by UI hiding alone.
 
 ---
 
-# 10. SEMANTIC REVIEW ITEMS — DO NOT PATCH BY ASSUMPTION
+# 10. M2-11 — OPEN SECURITY SURGERY
 
-These findings were proven at source level but their intended business contract is not yet proven:
+`core.js` `safeHTML()` is direct `innerHTML`; it is not a sanitizer.
+
+Main2 has raw values from DB/upload data entering HTML and inline JavaScript contexts.
+
+Confirmed surfaces include:
+
+```text
+Category Modal names
+Category option text/values
+Item names/categories/descriptions/images
+Current category name in edit dialog
+Upload preview barcode/name values
+Inline handler arguments using _esc()
+```
+
+Main2 local `_esc()` currently does not escape quotes and is used in JS-string contexts where HTML escaping is insufficient.
+
+Manual hardening begins with replacing the local `_esc()` with:
+
+```javascript
+function _esc(s) {
+    return esc(s == null ? '' : String(s));
+}
+
+function _jsString(s) {
+    return JSON.stringify(s == null ? '' : String(s));
+}
+```
+
+Then:
+
+```text
+HTML text / attribute values → _esc(...)
+Inline JavaScript string arguments → _jsString(...)
+```
+
+Do not replace every context mechanically; inspect each use so HTML context and JavaScript context are not mixed.
+
+The first exact proven replacements are recorded in Report62.
+
+---
+
+# 11. M2-12 — PREVENTIVE BARCODE INTEGRITY HARDENING
+
+Production currently has zero duplicate non-empty barcodes, but the schema has no UNIQUE constraint on `items.barcode`.
+
+Main2 currently builds:
+
+```javascript
+itemMap[it.barcode] = it;
+```
+
+This is last-write-wins if duplicates appear later.
+
+Authorized preventive patch is recorded in Report62: detect duplicate barcode keys, mark the corresponding upload rows invalid, and never silently choose one item.
+
+This is preventive hardening, not a current data-corruption finding.
+
+---
+
+# 12. SEMANTIC REVIEW ITEMS — DO NOT PATCH BY ASSUMPTION
 
 ```text
 Dashboard "صافي الربح" currently calculates:
 net = totalSales - totalPurchases
 
 Top Customers currently aggregates by customer_name rather than customer_id.
+
+branchIds fallback behavior has not been proven defective.
 ```
 
 Classification:
@@ -264,27 +381,9 @@ SEMANTIC CONTRACT UNKNOWN
 NO PATCH AUTHORIZED YET
 ```
 
-Resolve the historical/current accounting and customer-identity contract first.
-
 ---
 
-# 11. ADDITIONAL SECURITY OBSERVATION
-
-Main2 contains HTML construction paths that insert database-controlled category/item values without consistent escaping, including Category Modal paths.
-
-Classification:
-
-```text
-POTENTIAL STORED/DOM XSS
-SEPARATE SECURITY CLOSURE UNIT
-NO PATCH IN THIS STATE UPDATE
-```
-
-Do not mix this with the operational Main2 closure unit until the exact DOM contract and safe event-binding strategy are mapped.
-
----
-
-# 12. INVENTORY CORE CONTRACT CURRENTLY RECONFIRMED
+# 13. INVENTORY CORE CONTRACT CURRENTLY RECONFIRMED
 
 ```text
 PHYSICAL STOCK MOVEMENT
@@ -303,48 +402,46 @@ reserve_stock
 release_stock_reservation
 ```
 
-No new Physical Stock Writer was introduced by this Main2 review.
+Current Production `post_inventory_adjustment_atomic` is `SECURITY DEFINER` and delegates physical movement to `post_stock_movement`.
 
-The current Production adjustment RPC delegates Physical Movement to `post_stock_movement`.
+Current Production `bulk-stock-adjustment` Version 6 obtains `company_id` via `users.auth_id` and is tenant-safe at the wrapper layer.
 
 ---
 
-# 13. KNOWN FAILURE MEMORY — MUST NOT REPEAT
+# 14. KNOWN FAILURE MEMORY — MUST NOT REPEAT
 
 ```text
-Do not trust Report60 over CURRENT GIT.
+Do not trust historical Report60/Report61 over current Git.
 Do not infer current state from historical snapshots.
-Do not perform unsafe full-file replacement of a large logical fragment.
+Do not perform unsafe whole-file replacement of a large logical fragment.
 Do not treat source commit as runtime proof.
-Do not treat a generated/temporary executor as authoritative production source.
-Do not clear a client operation identity while retaining executable stale input state.
-Do not weaken backend idempotency to compensate for UI lifecycle errors.
-Do not close a permission issue by hiding a button only.
+Do not clear operation identity while retaining executable stale input state.
+Do not weaken backend idempotency to compensate for UI lifecycle defects.
+Do not close authorization issues by hiding UI controls only.
+Do not invent permission keys.
+Do not treat current zero barcode duplicates as proof that barcode is globally unique.
 ```
 
 ---
 
-# 14. DOCUMENTATION / EVIDENCE TRAIL
-
-Current key reports:
+# 15. DOCUMENTATION / EVIDENCE TRAIL
 
 ```text
 Report59_Main2_Surgical_Forensic_20260905.md
 Report60_Main2_Surgical_Completion_20260905.md
 Report61_Main2_Deep_Forensic_Continuation_20260905.md
+Report62_Main2_Surgical_Recheck_20260905.md
 ```
 
-Current governing document:
+Primary governing document:
 
 ```text
-MASTER - RAWAEA ERP.md
+doc/Draft/medhat/MASTER - RAWAEA ERP.md
 ```
-
-Current state is reconciled against the latest available Main2 commits through Report61.
 
 ---
 
-# 15. WHAT THIS SESSION DID / DID NOT CHANGE
+# 16. WHAT THIS SESSION DID / DID NOT CHANGE
 
 ```text
 MAIN2 SOURCE FILE = NOT MODIFIED BY THIS SESSION
@@ -356,19 +453,17 @@ sw.js = NOT MODIFIED
 register-sw.js = NOT MODIFIED
 manifest.json = NOT MODIFIED
 
-Production business data = NOT permanently modified
-Production schema/business functions = not modified by Main2 session
+Production business data = NO PERMANENT CHANGE BY THIS MAIN2 FORENSIC PASS
 
-Documentation:
-Report61 = ADDED
+Report62 = ADDED
 CURRENT_STATE = RECONCILED
 ```
 
-This satisfies the user's explicit instruction that the Main2 file itself is to be changed manually by the owner, not by the assistant.
+This satisfies the explicit instruction that `main2.md` is to be changed manually by the project owner, not by the assistant.
 
 ---
 
-# 16. CURRENT TARGET
+# 17. CURRENT TARGET
 
 ```text
 PRIMARY TARGET = Current/PWA/main2/main2.md
@@ -378,53 +473,63 @@ CURRENT OBJECTIVE = MAIN2 SURGICAL SOURCE CLOSURE
 Authorized next actions:
 
 ```text
-1. Apply M2-07R exact surgical replacement in Main2.
-2. Apply M2-09 exact voucher-query replacement in Main2.
-3. Re-read changed regions from Git.
-4. Perform syntax/static review and unrelated-diff review.
-5. Commit Main2 source mutation.
-6. Reconcile CURRENT_STATE again.
-7. Then address M2-10 as a dedicated cross-layer security closure.
-8. Only after Main2 source closure proceed to 11-part assembly and companion-file reconciliation.
+1. Owner manually applies M2-07R.
+2. Owner manually applies M2-09.
+3. Owner manually applies M2-11 security hardening.
+4. Owner manually applies M2-12 preventive barcode hardening.
+5. Re-read changed regions from Git.
+6. Static/syntax verification.
+7. Unrelated-diff review.
+8. Commit Main2 source mutation.
+9. Reconcile CURRENT_STATE again.
+10. Then dedicated M2-10 server-side delete authorization closure.
+11. Only after Main2 source closure proceed to 11-part assembly and companion-file reconciliation.
 ```
 
-Do not reopen M2-02 or M2-04 unless new direct evidence contradicts their current Git state.
+Do not reopen M2-02 or M2-04 without new contradictory direct evidence.
 
 ---
 
-# 17. FINAL SELF-AUDIT
+# 18. FINAL SELF-AUDIT
 
 ```text
 CURRENT GIT = DIRECTLY VERIFIED
 CURRENT MAIN2 SOURCE = DIRECTLY VERIFIED
 CURRENT PRODUCTION = DIRECTLY VERIFIED
 CURRENT INVENTORY CONTRACT = DIRECTLY VERIFIED
-CURRENT EDGE CONTRACTS RELEVANT TO MAIN2 = DIRECTLY VERIFIED
+CURRENT BULK-STOCK-ADJUSTMENT EDGE = DIRECTLY VERIFIED
+CURRENT DELETE-ITEM EDGE = DIRECTLY VERIFIED
+CURRENT CORE ESC/SafeHTML CONTRACT = DIRECTLY VERIFIED
 HISTORICAL REPORTS = RECONCILED
 
 WHAT I PROVED
-- Current main2 contains the post-Report60 fixes for M2-02/M2-04.
-- Production adjustment idempotency is keyed by voucherCode and changing it permits a new movement identity.
-- M2-07R replay risk is real at the client lifecycle level.
-- M2-09 query-filter omission is real at source level.
-- delete-item authorization is not proven server-side.
+- HEAD is e12d6d9, newer than the CURRENT_STATE checkpoint that preceded this report.
+- Main2 current blob remains 15f101d3bea93baa5419bdca48e401ad71bbac6c.
+- M2-02 and M2-04 are closed in current Git.
+- M2-07R remains open and its root cause is proven.
+- M2-09 remains open and its root cause is proven.
+- M2-10 is a real cross-layer authorization gap.
+- M2-11 is a real source-level HTML/inline-JS injection hardening gap.
+- M2-12 is a valid preventive guard because barcode is not UNIQUE in schema.
+- Current Production barcode duplicate groups = 0.
 
 WHAT I DID NOT PROVE
-- Main2 assembled parent artifact.
-- Browser/runtime success of the 11-part application.
-- Full production PWA equivalence.
-- Business-contract verdict for net profit formula.
-- Business-contract verdict for customer-name aggregation.
+- Browser/runtime Main2 after manual edits.
+- 11-part assembled parent artifact.
+- Final PWA production equivalence.
+- Business contract for net-profit formula.
+- Business contract for customer-name aggregation.
 - Full server-side delete authorization closure.
 
 WHAT I CHANGED
-- Added Report61.
-- Reconciled CURRENT_STATE.
+- Added Report62.
+- Reconciled CURRENT_STATE to current Git and current Production evidence.
 
 WHAT I DID NOT CHANGE
 - Main2 source.
-- Production business state.
-- Companion files.
+- Main1 source.
+- Companion PWA files.
+- Production business data in this Main2 forensic pass.
 
 CURRENT CLOSURE
 MAIN1 SOURCE PATCHES = CLOSED
@@ -432,24 +537,25 @@ MAIN2 FORENSIC REVIEW = CURRENT
 MAIN2 SOURCE = OPEN
 MAIN2 RUNTIME = OPEN
 ASSEMBLY = OPEN
-INVENTORY CORE = NOT 100% CLOSED
+INVENTORY CORE = NOT YET 100% CLOSED
 ```
 
 ---
 
-# 18. CONTINUITY LOCK FOR NEXT CTO
+# 19. CONTINUITY LOCK FOR NEXT CTO
 
 Start from this CURRENT_STATE, then independently verify the latest Git HEAD and Production before acting.
 
 Do not start from Report60.
-Do not start from Report59.
-Do not start from historical Main2 blob `b1096fd...`.
+Do not start from Report61.
+Do not start from historical Main2 blobs.
 Do not restart Main1.
+Do not assume that a manual patch was applied until Git re-read proves it.
 
-The immediate human-executable Main2 edits are fully specified in:
+Immediate human-executable Main2 edits are fully specified in:
 
 ```text
-doc/Draft/Reprots/Report61_Main2_Deep_Forensic_Continuation_20260905.md
+doc/Draft/Reprots/Report62_Main2_Surgical_Recheck_20260905.md
 ```
 
 The Main2 file remains intentionally unmodified by this session.
