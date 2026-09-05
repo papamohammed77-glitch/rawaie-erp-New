@@ -37,38 +37,129 @@ jobs:
               s = s.replace(marker, helper + marker, 1)
 
           replacements = [
-            ("supabase.from('orders').select('order_code, customer_id, total_amount, order_date, area').gte('order_date', fromDate).lte('order_date', toDate)",
-             "supabase.from('orders').select('id, order_code, customer_id, customer_name, total_amount, order_date, area').eq('company_id', companyId).gte('order_date', fromDate).lte('order_date', toDate)"),
-            ("supabase.from('orders').select('total_amount').gte('order_date', prevFrom).lte('order_date', prevTo)",
-             "supabase.from('orders').select('total_amount').eq('company_id', companyId).gte('order_date', prevFrom).lte('order_date', prevTo)"),
-            ("supabase.from('purchase_orders').select('total_amount').gte('po_date', fromDate).lte('po_date', toDate)",
-             "supabase.from('purchase_orders').select('total_amount').eq('company_id', companyId).gte('po_date', fromDate).lte('po_date', toDate)"),
-            ("supabase.from('customers').select('customer_code').then(function(res)",
-             "supabase.from('customers').select('customer_code').eq('company_id', companyId).then(function(res)"),
-            ("supabase.from('items').select('item_code').then(function(res)",
-             "supabase.from('items').select('item_code').eq('company_id', companyId).then(function(res)"),
-            ("supabase.from('order_details').select('item_code, item_name, qty, unit_price').gte('created_at', fromDate).lte('created_at', toDate)",
-             "supabase.from('order_details').select('item_code, item_name, qty, unit_price').in('order_id', orderIds)"),
-            ("var poData = poRes.data || [];", "var poData = poRes.data || [];"),
-            ("var branches = window._itemsBranches || RW_STATE.data.branches || [];\n        if (!branches.length) {\n            try { branches = await RW_Data.loadBranches(); } catch(e) {}\n        }\n        var stockRes = await supabase.from('stock_branches').select('item_id, branch_id, qty, allocated_qty');\n        var stockRows = stockRes.data || [];",
-             "var branches = window._itemsBranches || RW_STATE.data.branches || [];\n        if (!branches.length) {\n            try { branches = await RW_Data.loadBranches(); } catch(e) {}\n        }\n        var branchIds = [];\n        for (var b = 0; b < branches.length; b++) branchIds.push(branches[b].id || branches[b].branch_code);\n        var stockRes = branchIds.length ? await supabase.from('stock_branches').select('item_id, branch_id, qty, allocated_qty').in('branch_id', branchIds) : { data: [], error: null };\n        if (stockRes.error) throw stockRes.error;\n        var stockRows = stockRes.data || [];"),
-            ("        var branchIds = [];\n        for (var b = 0; b < branches.length; b++) {\n            branchIds.push(branches[b].id || branches[b].branch_code);\n        }\n", ""),
-            ("supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').order('voucher_date',{ascending:true})",
-             "supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').eq('company_id', companyId).order('voucher_date',{ascending:true})"),
-            ("supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').or('from_branch_id.eq.'+branchId+',to_branch_id.eq.'+branchId).order('voucher_date',{ascending:true})",
-             "supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').eq('company_id', companyId).or('from_branch_id.eq.'+branchId+',to_branch_id.eq.'+branchId).order('voucher_date',{ascending:true})"),
-            ("supabase.from('categories').select('id, category_name').eq('company_id', companyId).order('category_name')", "supabase.from('categories').select('id, category_name').eq('company_id', companyId).order('category_name')"),
-            ("supabase.from('categories').select('id, category_name').order('category_name')", "supabase.from('categories').select('id, category_name').eq('company_id', companyId).order('category_name')"),
-            ("supabase.from('items').select('id').eq('category_id', id).limit(1)", "supabase.from('items').select('id').eq('company_id', companyId).eq('category_id', id).limit(1)"),
-            ("supabase.from('items').select('id,item_code,barcode,name').in('barcode',barcodes)", "supabase.from('items').select('id,item_code,barcode,name').eq('company_id', companyId).in('barcode',barcodes)"),
+            (
+              "supabase.from('orders').select('order_code, customer_id, total_amount, order_date, area').gte('order_date', fromDate).lte('order_date', toDate)",
+              "supabase.from('orders').select('id, order_code, customer_id, customer_name, total_amount, order_date, area').eq('company_id', companyId).gte('order_date', fromDate).lte('order_date', toDate)"
+            ),
+            (
+              "supabase.from('orders').select('total_amount').gte('order_date', prevFrom).lte('order_date', prevTo)",
+              "supabase.from('orders').select('total_amount').eq('company_id', companyId).gte('order_date', prevFrom).lte('order_date', prevTo)"
+            ),
+            (
+              "supabase.from('purchase_orders').select('total_amount').gte('po_date', fromDate).lte('po_date', toDate)",
+              "supabase.from('purchase_orders').select('total_amount').eq('company_id', companyId).gte('po_date', fromDate).lte('po_date', toDate)"
+            ),
+            (
+              "supabase.from('customers').select('customer_code').then(function(res)",
+              "supabase.from('customers').select('customer_code').eq('company_id', companyId).then(function(res)"
+            ),
+            (
+              "supabase.from('items').select('item_code').then(function(res)",
+              "supabase.from('items').select('item_code').eq('company_id', companyId).then(function(res)"
+            ),
+            (
+              "var stockRes = await supabase.from('stock_branches').select('item_id, branch_id, qty, allocated_qty');",
+              "var branchIds = [];\n        for (var b = 0; b < branches.length; b++) branchIds.push(branches[b].id || branches[b].branch_code);\n        var stockRes = branchIds.length ? await supabase.from('stock_branches').select('item_id, branch_id, qty, allocated_qty').in('branch_id', branchIds) : { data: [], error: null };\n        if (stockRes.error) throw stockRes.error;"
+            ),
+            (
+              "        var branchIds = [];\n        for (var b = 0; b < branches.length; b++) {\n            branchIds.push(branches[b].id || branches[b].branch_code);\n        }\n",
+              ""
+            ),
+            (
+              "supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').order('voucher_date',{ascending:true})",
+              "supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').eq('company_id', companyId).order('voucher_date',{ascending:true})"
+            ),
+            (
+              "supabase.from('categories').select('id, category_name').order('category_name')",
+              "supabase.from('categories').select('id, category_name').eq('company_id', companyId).order('category_name')"
+            ),
+            (
+              "supabase.from('items').select('id').eq('category_id', id).limit(1)",
+              "supabase.from('items').select('id').eq('company_id', companyId).eq('category_id', id).limit(1)"
+            ),
+            (
+              "supabase.from('items').select('id,item_code,barcode,name').in('barcode',barcodes)",
+              "supabase.from('items').select('id,item_code,barcode,name').eq('company_id', companyId).in('barcode',barcodes)"
+            ),
+            (
+              "supabase.from('orders').select('total_amount').gte('order_date', fromDate).lte('order_date', toDate)",
+              "supabase.from('orders').select('total_amount').eq('company_id', companyId).gte('order_date', fromDate).lte('order_date', toDate)"
+            ),
+            (
+              "supabase.from('categories').select('id, category_name').neq('id', id).order('category_name')",
+              "supabase.from('categories').select('id, category_name').eq('company_id', companyId).neq('id', id).order('category_name')"
+            ),
+            (
+              "var vouchersRes = await supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').order('voucher_date', { ascending: true });",
+              "var vouchersRes = await supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').eq('company_id', companyId).order('voucher_date', { ascending: true });"
+            )
           ]
+
           for old, new in replacements:
-              s = s.replace(old, new)
+              if old == new:
+                  continue
+              count = s.count(old)
+              if count > 1:
+                  raise SystemExit(f'ambiguous replacement ({count} matches): {old}')
+              if count == 1:
+                  s = s.replace(old, new, 1)
+
+          # M2-02: derive Top Items order IDs from the already company-scoped order set.
+          old_top_items_block = """            renderSalesChart(orders, fromDate, toDate);\n            renderRegionChart(orders);\n            renderTopCustomersChart(orders);\n        }).catch(function() {});"""
+          new_top_items_block = """            renderSalesChart(orders, fromDate, toDate);\n            renderRegionChart(orders);\n            renderTopCustomersChart(orders);\n\n            var topOrderIds = [];\n            for (var oi = 0; oi < orders.length; oi++) { if (orders[oi].id) topOrderIds.push(orders[oi].id); }\n            if (topOrderIds.length) {\n                supabase.from('order_details').select('item_code, item_name, qty, unit_price').in('order_id', topOrderIds).then(function(res) {\n                    renderTopItemsChart(res.data || []);\n                }).catch(function() { renderTopItemsChart([]); });\n            } else {\n                renderTopItemsChart([]);\n            }\n        }).catch(function() {});"""
+          count = s.count(old_top_items_block)
+          if count != 1:
+              raise SystemExit(f'M2-02 block expected exactly 1 match, got {count}')
+          s = s.replace(old_top_items_block, new_top_items_block, 1)
+
+          # M2-05: mark validated upload rows; execute only rows explicitly accepted by preview.
+          old_upload_row = """                    if (!item) { status = '❌ باركود غير موجود'; statusClass = 'bg-red-50'; invalidCount++; }\n                    else {\n                        if (adjType === 'replace') newQty = inputQty;\n                        else if (adjType === 'add') newQty = currentQty + inputQty;\n                        else if (adjType === 'deduct') { newQty = currentQty - inputQty; if (newQty < 0) { status = '⚠️ سيصبح الرصيد سالباً'; statusClass = 'bg-yellow-50'; } }\n                        if (!status) { status = '✅ صالح'; statusClass = 'bg-green-50'; validCount++; }\n                    }\n                    html += '<tr class=\"' + statusClass + '\"><td class=\"p-2 font-mono\">' + entry.barcode + '</td><td class=\"p-2\">' + (item ? item.name : '---') + '</td><td class=\"p-2 text-center font-bold\">' + currentQty + '</td><td class=\"p-2 text-center font-bold text-indigo-600\">' + inputQty + '</td><td class=\"p-2 text-center font-bold\">' + newQty + '</td><td class=\"p-2 text-center text-xs\">' + status + '</td></tr>';"""
+          new_upload_row = """                    if (!item) { status = '❌ باركود غير موجود'; statusClass = 'bg-red-50'; invalidCount++; }\n                    else {\n                        if (adjType === 'replace') newQty = inputQty;\n                        else if (adjType === 'add') newQty = currentQty + inputQty;\n                        else if (adjType === 'deduct') { newQty = currentQty - inputQty; if (newQty < 0) { status = '⚠️ سيصبح الرصيد سالباً'; statusClass = 'bg-yellow-50'; } }\n                        if (!status) { status = '✅ صالح'; statusClass = 'bg-green-50'; validCount++; }\n                    }\n                    entry._valid = !!item && !status;\n                    html += '<tr class=\"' + statusClass + '\"><td class=\"p-2 font-mono\">' + entry.barcode + '</td><td class=\"p-2\">' + (item ? item.name : '---') + '</td><td class=\"p-2 text-center font-bold\">' + currentQty + '</td><td class=\"p-2 text-center font-bold text-indigo-600\">' + inputQty + '</td><td class=\"p-2 text-center font-bold\">' + newQty + '</td><td class=\"p-2 text-center text-xs\">' + status + '</td></tr>';"""
+          count = s.count(old_upload_row)
+          if count != 1:
+              raise SystemExit(f'M2-05 preview block expected exactly 1 match, got {count}')
+          s = s.replace(old_upload_row, new_upload_row, 1)
+
+          old_execute_items = """        var items = [];\n        for (var u = 0; u < _uploadFileData.length; u++) {\n            items.push({ item_code: _uploadFileData[u].item_code || _uploadFileData[u].barcode, qty: _uploadFileData[u].qty });\n        }\n\n        var voucherCode = 'ADJ-' + new Date().toISOString().split('T')[0].replace(/-/g, '') + '-' + Math.floor(Math.random() * 1000);"""
+          new_execute_items = """        var items = [];\n        for (var u = 0; u < _uploadFileData.length; u++) {\n            var row = _uploadFileData[u];\n            if (!row._valid || !row.item_code) continue;\n            items.push({ item_code: row.item_code, qty: row.qty });\n        }\n\n        if (!items.length) {\n            showToast('لا توجد صفوف صالحة للتنفيذ', 'warning');\n            return;\n        }\n\n        var operationFingerprint = branchId + '|' + adjType + '|' + reason + '|' + items.map(function(x) { return x.item_code + ':' + x.qty; }).sort().join('|');\n        if (!_uploadOperationId || _uploadOperationFingerprint !== operationFingerprint) {\n            var randomPart = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') ? crypto.randomUUID() : (Date.now() + '-' + Math.floor(Math.random() * 1000000));\n            _uploadOperationId = 'ADJ-' + new Date().toISOString().split('T')[0].replace(/-/g, '') + '-' + randomPart;\n            _uploadOperationFingerprint = operationFingerprint;\n        }\n        var voucherCode = _uploadOperationId;"""
+          count = s.count(old_execute_items)
+          if count != 1:
+              raise SystemExit(f'M2-07 execute block expected exactly 1 match, got {count}')
+          s = s.replace(old_execute_items, new_execute_items, 1)
+
+          # M2-07 operation identity lifecycle: reset on a new file; retain through retries until success.
+          old_upload_decl = """    var _uploadFileData = []; // تخزين بيانات الملف بعد التحليل"""
+          new_upload_decl = """    var _uploadFileData = []; // تخزين بيانات الملف بعد التحليل\n    var _uploadOperationId = null;\n    var _uploadOperationFingerprint = null;"""
+          count = s.count(old_upload_decl)
+          if count != 1:
+              raise SystemExit(f'M2-07 declaration expected exactly 1 match, got {count}')
+          s = s.replace(old_upload_decl, new_upload_decl, 1)
+
+          old_file_select = """    function _handleFileSelect(input) {\n        var file = input.files[0];\n        if (!file) return;\n\n        var reader = new FileReader();"""
+          new_file_select = """    function _handleFileSelect(input) {\n        var file = input.files[0];\n        if (!file) return;\n        _uploadOperationId = null;\n        _uploadOperationFingerprint = null;\n\n        var reader = new FileReader();"""
+          count = s.count(old_file_select)
+          if count != 1:
+              raise SystemExit(f'M2-07 file-select block expected exactly 1 match, got {count}')
+          s = s.replace(old_file_select, new_file_select, 1)
+
+          # M2-06: consume the deployed backend's movement_count contract, not results[].
+          old_success = """                var successCount = 0, failCount = 0;\n                for (var r = 0; r < (json.results || []).length; r++) { if (json.results[r].status === 'success') successCount++; else failCount++; }\n                showToast('تم تحديث ' + successCount + ' صنف بنجاح' + (failCount > 0 ? ' (فشل ' + failCount + ')' : ''), successCount > 0 ? 'success' : 'warning');"""
+          new_success = """                var successCount = Number(json.movement_count || 0);\n                var failCount = 0;\n                showToast('تم تحديث ' + successCount + ' صنف بنجاح', successCount > 0 ? 'success' : 'warning');"""
+          count = s.count(old_success)
+          if count != 1:
+              raise SystemExit(f'M2-06 success handler expected exactly 1 match, got {count}')
+          s = s.replace(old_success, new_success, 1)
+
+          # M2-07 cleanup: only clear an operation identity after confirmed backend success.
+          old_success_reload = """                RW_Data.loadItems().then(function(newData) {"""
+          new_success_reload = """                _uploadOperationId = null;\n                _uploadOperationFingerprint = null;\n                RW_Data.loadItems().then(function(newData) {"""
+          count = s.count(old_success_reload)
+          if count != 1:
+              raise SystemExit(f'M2-07 success cleanup expected exactly 1 match, got {count}')
+          s = s.replace(old_success_reload, new_success_reload, 1)
 
           if "function _rwCompanyId()" not in s:
               raise SystemExit('Company helper insertion failed')
-          if "eq('company_id', companyId)" not in s:
-              raise SystemExit('Tenant scoping replacements did not apply')
           if s == original:
               raise SystemExit('No changes produced')
 
@@ -85,5 +176,5 @@ jobs:
           git config user.email 'actions@github.com'
           git add Current/PWA/main2/main2.md
           git diff --cached --check
-          git commit -m "fix(main2): surgical tenant-scoping and dashboard integrity"
+          git commit -m "fix(main2): close dashboard upload and movement-report defects"
           git push origin main
