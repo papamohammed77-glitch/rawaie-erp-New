@@ -1,0 +1,538 @@
+# Report71 — المراجعة الجنائية لـ main3 وإعداد التعديلات الجراحية
+
+التاريخ: 2026-09-05
+المستودع: papamohammed77-glitch/rawaie-erp-New
+الفرع: main
+Git HEAD عند بدء المراجعة: 36482301223c07ddd256c87a2bc712198d955b7a
+Current/PWA/main2/main3.md Blob: 1bfedd3b16abb804d83e2b7d5671f1b31f320a14
+Production: SMART ERP / fiilmooggumokxanwiyx
+
+## 1. قاعدة الاستمرار
+
+تم الالتزام بـ MASTER Continuity Governance: لا اعتماد على التقرير وحده، ولا على الذاكرة، ولا على نسبة إنجاز. تم التحقق من CURRENT_STATE ثم Git الحالي ثم Production ذات الصلة، مع فصل المصدر الحالي عن Runtime وProduction.
+
+المصادر التي تمت مراجعتها:
+- `doc/Draft/medhat/MASTER - RAWAEA ERP.md` بالكامل.
+- `CURRENT_STATE.md` بالكامل.
+- `doc/Draft/Reprots/MASTER_RAWAEA_SYSTEM_PWA_KNOWLEDGE_PACK_2026-09-04.md` بالكامل.
+- `doc/Draft/Reprots/Report69` بالكامل.
+- `doc/Draft/Reprots/Report70` بالكامل.
+- `Current/PWA/main2/main2.md` من Git الحالي.
+- `Current/PWA/main2/main3.md` من Git الحالي حتى نهاية الملف.
+- `Original/PWA/main/main3.md` للتحقق من العقد التاريخي.
+- Production PostgreSQL لـ users / roles / customers / suppliers / branches / app_settings / customer_assignments.
+- Production Edge Functions ذات الصلة: save-customer, save-supplier, save-branch, save-settings, save-employee, delete-employee.
+
+## 2. Reconciliation — main2
+
+Git branch `main` الحالي ليس عند HEAD المسجل قديمًا في CURRENT_STATE؛ بل هو:
+
+`36482301223c07ddd256c87a2bc712198d955b7a`
+
+ورسالة الـcommit:
+
+`Update main2.md`
+
+الـmain2 الحالي أصبح Blob:
+
+`58dd0da232ccca4c62bc17d87220bf8b705d85e8`
+
+والمراجعة الحالية وجدت داخل قارئ الحركة:
+
+`inventory_log`
+
+مع branch attribution، ولم تجد `stock_vouchers` أو `stock_voucher_details` داخل قارئ الحركة. لذلك B/C موجودان في المصدر الحالي. لا يوجد سبب لإعادة فتح main2 في هذه الجلسة.
+
+لكن Browser Runtime و11-part final assembly ما زالا غير مثبتين؛ لذلك لا يتم إعلان Project Closure.
+
+## 3. الحالة الفعلية لـ main3
+
+تمت قراءة `Current/PWA/main2/main3.md` كاملًا من بدايته حتى القوس الأخير.
+
+المسؤوليات الحالية:
+
+```text
+RW_Customers
+RW_Suppliers
+RW_Branches
+RW_Settings
+RW_Users
+```
+
+المصدر التاريخي `Original/PWA/main/main3.md` يطابق جوهر هذا الجزء؛ ولذلك لا توجد قيمة في إعادة بناء الوحدات من الصفر.
+
+## 4. Production Evidence
+
+RLS الحالي:
+
+```text
+users                = enabled
+roles                = enabled
+customers            = enabled
+suppliers            = enabled
+branches             = enabled
+app_settings         = enabled
+customer_assignments = enabled
+```
+
+لكن `roles` لديها حاليًا policy عامة:
+
+`Allow all for all`
+
+بـ`qual=true` و`with_check=true`.
+
+وفي Production يوجد `company_id` داخل `roles`، لذلك لا يجوز أن يعتمد الـUI على القراءة العالمية للجدول حتى لو كانت الـRLS الحالية تسمح بذلك.
+
+Production counts في آخر reconciliation:
+
+```text
+companies       = 1
+app_settings    = 1
+orders          = 0
+purchase_orders = 0
+branches        = 2
+items           = 17
+stock_branches  = 20
+inventory_log   = 3
+```
+
+## 5. ما ثبت أنه سليم ولا يحتاج Patch
+
+### RW_Customers
+- القراءة تستخدم `RW_Data.loadCustomers()`.
+- الحفظ والحذف يمران عبر `save-customer` و`delete-customer`.
+- Production `save-customer` يستخرج company context من `users.auth_id` ويضع `company_id` بنفسه.
+- لا يوجد سبب لتكرار company filter داخل هذه الوحدة الآن.
+
+### RW_Branches
+- القراءة تستخدم `RW_Data.loadBranches()`.
+- الحفظ والحذف يمران عبر `save-branch` و`delete-branch`.
+- Production `save-branch` يفرض company context.
+- لا يوجد Patch مطلوب هنا.
+
+### RW_Settings — الكتابة
+- الكتابة تمر عبر `save-settings`.
+- Production `save-settings` يتحقق من `users.auth_id` و`company_id`.
+- Owner/license semantics في backend ليست جزءًا من Patch main3.
+
+## 6. PATCH S1 — Suppliers Company Scope
+
+### الموضع الأول
+ابحث حرفيًا عن هذا السطر الكامل:
+
+```javascript
+const { data: d } = await supabase.from('suppliers').select('*');
+```
+
+احذف السطر كاملًا واستبدله بالسطر الكامل:
+
+```javascript
+const { data: d } = await supabase.from('suppliers').select('*').eq('company_id', _rwCompanyId());
+```
+
+### الموضع الثاني
+ابحث حرفيًا عن هذا السطر الكامل:
+
+```javascript
+supabase.from('suppliers').select('*').then(function(res) { data = res.data || []; renderTable(data); });
+```
+
+احذف السطر كاملًا واستبدله بالسطر الكامل:
+
+```javascript
+supabase.from('suppliers').select('*').eq('company_id', _rwCompanyId()).then(function(res) { data = res.data || []; renderTable(data); });
+```
+
+### الموضع الثالث
+ابحث عن نفس السطر الكامل السابق مرة ثانية، في مسار الحذف:
+
+```javascript
+supabase.from('suppliers').select('*').then(function(res) { data = res.data || []; renderTable(data); });
+```
+
+واستبدله مرة ثانية بـ:
+
+```javascript
+supabase.from('suppliers').select('*').eq('company_id', _rwCompanyId()).then(function(res) { data = res.data || []; renderTable(data); });
+```
+
+سبب Patch: `suppliers` جدول company-scoped، والقراءة الحالية غير محددة الشركة. التعديل لا يغير Business Contract؛ فقط يمنع اعتماد الوحدة على global read.
+
+## 7. PATCH S2 — Settings Company Scope + Currency Contract
+
+### S2-A — قراءة الإعدادات
+
+ابحث حرفيًا عن السطر الكامل:
+
+```javascript
+const { data: appSets, error } = await supabase.from('app_settings').select('*').limit(1).single();
+```
+
+احذفه واستبدله بالسطر الكامل:
+
+```javascript
+const { data: appSets, error } = await supabase.from('app_settings').select('*').eq('company_id', _rwCompanyId()).order('created_at', { ascending: true }).limit(1).maybeSingle();
+```
+
+### S2-B — حفظ currency من Production
+
+ابحث داخل الكتلة التي تبدأ حرفيًا بـ:
+
+```javascript
+currentSettings = {
+                    delivery_fee: appSets.delivery_fee || 0,
+```
+
+وينتهي حرفيًا عند:
+
+```javascript
+                    business_address: appSets.business_address || ''
+                };
+```
+
+احذف الكتلة كاملة واستبدلها كاملة بهذا النص:
+
+```javascript
+currentSettings = {
+                    delivery_fee: appSets.delivery_fee || 0,
+                    min_invoice_amount: appSets.min_invoice_amount || 0,
+                    tax_rate: appSets.tax_rate || 0,
+                    currency: appSets.currency || 'SAR',
+                    company_name: appSets.company_name || 'الروائع',
+                    company_logo: appSets.company_logo || '',
+                    vat_number: appSets.vat_number || '',
+                    registered_name: appSets.registered_name || '',
+                    business_address: appSets.business_address || ''
+                };
+```
+
+### S2-C — default currency عند فشل/عدم وجود الإعداد
+
+ابحث حرفيًا عن السطر الكامل:
+
+```javascript
+currentSettings = { delivery_fee: 0, min_invoice_amount: 0, tax_rate: 0, company_name: 'الروائع', company_logo: '', vat_number: '', registered_name: '', business_address: '' };
+```
+
+احذفه واستبدله بـ:
+
+```javascript
+currentSettings = { delivery_fee: 0, min_invoice_amount: 0, tax_rate: 0, currency: 'SAR', company_name: 'الروائع', company_logo: '', vat_number: '', registered_name: '', business_address: '' };
+```
+
+سبب Patch: الواجهة تعرض `settings-currency` وتستخدم `currentSettings.currency`، لكن الكائن الحالي لا يحمل `currency` أصلًا. Production schema يثبت وجود `app_settings.currency`. هذا إصلاح عقد بيانات مفقود، وليس تغييرًا في Business Rule.
+
+## 8. PATCH S3 — Users Company Scope
+
+### S3-A — قراءة Users
+
+ابحث عن السطر الكامل:
+
+```javascript
+var usersRes = await supabase.from('users').select('*');
+```
+
+واستبدله بـ:
+
+```javascript
+var usersRes = await supabase.from('users').select('*').eq('company_id', _rwCompanyId());
+```
+
+### S3-B — قراءة Roles
+
+ابحث عن السطر الكامل:
+
+```javascript
+try { var rRes = await supabase.from('roles').select('*'); rolesList = rRes.data || []; } catch(e) { rolesList = []; }
+```
+
+واستبدله بـ:
+
+```javascript
+try { var rRes = await supabase.from('roles').select('*').eq('company_id', _rwCompanyId()); rolesList = rRes.data || []; } catch(e) { rolesList = []; }
+```
+
+### S3-C — refresh بعد الحفظ
+
+ابحث عن هذا المقطع الكامل:
+
+```javascript
+                            var usersRes = await supabase.from('users').select('*'); 
+                            employeesData = usersRes.data || []; 
+                            renderTable(employeesData); 
+```
+
+احذفه واستبدله بـ:
+
+```javascript
+                            var usersRes = await supabase.from('users').select('*').eq('company_id', _rwCompanyId());
+                            employeesData = usersRes.data || [];
+                            renderTable(employeesData);
+```
+
+### S3-D — refresh بعد الحذف
+
+ابحث عن هذا المقطع الكامل:
+
+```javascript
+                            if (json.success) { showToast('تم الحذف', 'success'); Swal.close(); var usersRes = await supabase.from('users').select('*'); employeesData = usersRes.data || []; renderTable(employeesData); }
+```
+
+احذف المقطع كاملًا واستبدله بـ:
+
+```javascript
+                            if (json.success) { showToast('تم الحذف', 'success'); Swal.close(); var usersRes = await supabase.from('users').select('*').eq('company_id', _rwCompanyId()); employeesData = usersRes.data || []; renderTable(employeesData); }
+```
+
+سبب Patch: `users` و`roles` company-scoped، بينما `roles` تحديدًا لديها RLS عامة حاليًا؛ لذلك يجب ألا يعتمد هذا الجزء على policy leakage كأنه عقد تصميم.
+
+## 9. PATCH S4 — assigned_by UUID بدل Email
+
+هذا Patch مؤكد وليس افتراضًا.
+
+Schema الحالي لـ`customer_assignments` يثبت:
+
+```text
+assigned_by uuid
+```
+
+بينما main3 يرسل:
+
+```javascript
+assigned_by: (RW_STATE.app.currentUser && RW_STATE.app.currentUser.email) || null,
+```
+
+وهذا تعارض نوعي مباشر: Email نصي إلى عمود UUID.
+
+ابحث عن هذا السطر الكامل:
+
+```javascript
+assigned_by: (RW_STATE.app.currentUser && RW_STATE.app.currentUser.email) || null,
+```
+
+احذفه واستبدله بالسطر الكامل:
+
+```javascript
+assigned_by: RW_Auth.getUser().id || null,
+```
+
+مهم: لا تغيّر `user_id` ولا `customer_id` ولا `onConflict`.
+
+## 10. PATCH S5 — لا تترك حالة assignment كاذبة عند فشل الكتابة
+
+هذا Patch جراحي لتحسين reliability بعد S4، لأن الكود الحالي يغير الواجهة أولًا ثم يهمل خطأ Supabase.
+
+ابحث عن المقطع الكامل الذي يبدأ حرفيًا بـ:
+
+```javascript
+            if (idx === -1) {
+                supabase.from('customer_assignments').upsert({
+```
+
+وينتهي حرفيًا عند:
+
+```javascript
+            }
+            
+            _renderAssignedCustomersListFromIds();
+```
+
+احذف المقطع كاملًا واستبدله بهذا المقطع الكامل:
+
+```javascript
+            var assignmentRequest;
+            if (idx === -1) {
+                assignmentRequest = supabase.from('customer_assignments').upsert({
+                    user_id: emp.id,
+                    customer_id: customerId,
+                    assigned_by: RW_Auth.getUser().id || null,
+                    is_active: true
+                }, { onConflict: 'user_id,customer_id' });
+            } else {
+                assignmentRequest = supabase.from('customer_assignments').update({ is_active: false }).eq('user_id', emp.id).eq('customer_id', customerId);
+            }
+
+            assignmentRequest.then(function(res) {
+                if (res && res.error) throw res.error;
+                _renderAssignedCustomersListFromIds();
+            }).catch(function(error) {
+                if (idx === -1) {
+                    var rollbackIdx = window._assignedCustomerIds.indexOf(customerId);
+                    if (rollbackIdx !== -1) window._assignedCustomerIds.splice(rollbackIdx, 1);
+                } else if (window._assignedCustomerIds.indexOf(customerId) === -1) {
+                    window._assignedCustomerIds.push(customerId);
+                }
+                _renderAssignedCustomersListFromIds();
+                console.error('فشل تحديث تعيين العميل:', error);
+            });
+```
+
+هذا يحافظ على نفس Database contract الموجود، لكنه يمنع واجهة المستخدم من الادعاء بأن العملية نجحت إذا رفضتها Production.
+
+## 11. PATCH S6 — حذف assignment لا يخفي الخطأ
+
+ابحث عن الدالة الكاملة التي تبدأ حرفيًا بـ:
+
+```javascript
+        _removeAssignedCustomer: function(customerId) {
+```
+
+وتنتهي عند:
+
+```javascript
+        }
+```
+
+مباشرة قبل:
+
+```javascript
+    };
+})();
+```
+
+احذف الدالة كاملة واستبدلها بالدالة الكاملة التالية:
+
+```javascript
+        _removeAssignedCustomer: function(customerId) {
+            var idx = window._assignedCustomerIds.indexOf(customerId);
+            if (idx !== -1) window._assignedCustomerIds.splice(idx, 1);
+            var emp = null;
+            for (var i = 0; i < employeesData.length; i++) {
+                if (employeesData[i].email === window._currentEmpEmail) { emp = employeesData[i]; break; }
+            }
+            if (!emp || !emp.id) {
+                _renderAssignedCustomersListFromIds();
+                return;
+            }
+
+            supabase.from('customer_assignments')
+                .update({ is_active: false })
+                .eq('user_id', emp.id)
+                .eq('customer_id', customerId)
+                .then(function(res) {
+                    if (res && res.error) throw res.error;
+                    _renderAssignedCustomersListFromIds();
+                })
+                .catch(function(error) {
+                    if (window._assignedCustomerIds.indexOf(customerId) === -1) {
+                        window._assignedCustomerIds.push(customerId);
+                    }
+                    _renderAssignedCustomersListFromIds();
+                    console.error('فشل إزالة تعيين العميل:', error);
+                });
+        }
+```
+
+## 12. ما لم أعدّله
+
+```text
+RW_Customers = NO PATCH
+RW_Branches  = NO PATCH
+save-customer Edge = NO PATCH
+save-supplier Edge = NO PATCH
+save-branch Edge = NO PATCH
+save-settings Edge = NO PATCH
+Owner semantics = NO PATCH
+license semantics = NO PATCH
+Physical inventory code = NO PATCH
+main2 = NO PATCH in this session
+core.js = NO PATCH
+sw.js = NO PATCH
+register-sw.js = NO PATCH
+manifest = NO PATCH
+```
+
+## 13. Backend defect مستقل مكتشف أثناء التحقيق
+
+Production `delete-employee` الحالي يتحقق من Authentication فقط، ثم ينفذ:
+
+```text
+users.delete().eq("email", email)
+```
+
+من دون Company Scope.
+
+هذا لا يُضم إلى main3 لأن إصلاحه الصحيح يخص Edge Function authority وليس واجهة PWA. تم تصنيفه:
+
+```text
+BACKEND CLOSURE OPEN
+```
+
+ولا ينبغي إعلان Users module أو Employee lifecycle مغلقًا 100% قبل حسمه.
+
+## 14. ما تم وما لم يتم
+
+```text
+main3 source = READ / ANALYZED / NOT MODIFIED BY ASSISTANT
+main2 source = current Git verified
+Production related schema = verified
+Production related RLS = verified
+Production Edge contracts = verified
+Surgical main3 patches = PREPARED FOR USER MANUAL APPLICATION
+main3 runtime = NOT VERIFIED
+11-part assembly = NOT VERIFIED
+full PWA runtime = NOT VERIFIED
+Project closure = NOT CLAIMED
+```
+
+## 15. أخطاء/محاذير يجب عدم تكرارها
+
+- لا تجعل `assigned_by` Email مرة أخرى؛ العمود UUID.
+- لا تعد إلى global `select('*')` في جداول company-scoped.
+- لا تستخدم `LIMIT 1` على `app_settings` دون `company_id`.
+- لا تعتبر RLS الحالية في `roles` عقدًا تصميميًا؛ السياسة العامة الحالية هي residue يحتاج معالجة مستقلة.
+- لا تعتبر نجاح الـsource مساويًا لنجاح الـbrowser runtime.
+- لا تعدل main2 أثناء تنفيذ main3.
+- لا تعلن إغلاق main3 قبل إعادة قراءة الملف كاملًا بعد تعديل المستخدم ثم static/runtime verification.
+
+## 16. NEXT AUTHORIZED ACTION
+
+```text
+1. المستخدم يطبق S1 إلى S6 حرفيًا داخل Current/PWA/main2/main3.md.
+2. لا يغير أي شيء آخر في main3 أثناء هذه الجولة.
+3. يعيد قراءة main3.md كاملًا بعد الحفظ.
+4. يتأكد أن جميع `suppliers` reads تحتوي `company_id`.
+5. يتأكد أن `app_settings` query تحتوي `company_id` ولا تستخدم global LIMIT 1.
+6. يتأكد أن `currentSettings.currency` أصبح محملًا.
+7. يتأكد أن users/roles reads كلها company-scoped.
+8. يتأكد أن `assigned_by` أصبح `RW_Auth.getUser().id`.
+9. يسجل Commit المستخدم الفعلي.
+10. بعد commit تتم مراجعة main3 من Git الحالي، ثم static/syntax، ثم integration/runtime.
+11. Backend `delete-employee` يُعالج في Closure Unit مستقل.
+```
+
+## 17. SELF-AUDIT
+
+### WHAT I PROVED
+- MASTER Continuity تم قراءته كاملًا.
+- Knowledge Pack الأحدث تم قراءته كاملًا.
+- Report69 وReport70 تم قراءتهما كاملين.
+- Git main الحالي عند `3648230...`.
+- main2 الحالي تغير بعد Report70 وأصبحت حركة المصدر الحالية تستخدم `inventory_log`.
+- main3 Blob الحالي `1bfedd3...` وتمت قراءته كاملًا.
+- Original main3 تمت مراجعته للتحقق من historical contract.
+- Production RLS والجداول ذات الصلة تم فحصها مباشرة.
+- Production `roles` policy العامة موجودة فعلًا.
+- `customer_assignments.assigned_by` هو UUID، بينما main3 يرسل Email.
+- `app_settings.currency` موجودة في Production بينما main3 لا يحملها إلى `currentSettings`.
+- save-customer / save-supplier / save-branch / save-settings / save-employee تستخدم company context في المسارات التي تمت مراجعتها.
+- delete-employee يحتوي global email delete بلا company scope.
+
+### WHAT I DID NOT PROVE
+- Browser runtime بعد تطبيق S1-S6.
+- Static/syntax بعد تعديل المستخدم.
+- Assignment write runtime بعد إصلاح `assigned_by`.
+- Final 11-part assembly.
+- Final full PWA Production equivalence.
+- Backend closure لـdelete-employee.
+
+### FINAL STATUS
+
+```text
+MAIN3 = FORENSICALLY REVIEWED / NOT YET PATCHED
+PATCH S1-S6 = READY FOR MANUAL APPLICATION
+MAIN3 SOURCE CLOSURE = OPEN
+RUNTIME CLOSURE = OPEN
+BACKEND EMPLOYEE DELETE CLOSURE = OPEN
+PROJECT CLOSURE = NOT CLAIMED
+```
