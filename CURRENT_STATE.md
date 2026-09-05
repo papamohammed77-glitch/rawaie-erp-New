@@ -6,9 +6,9 @@
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
 CURRENT GIT HEAD = THIS STATE COMMIT
-PREVIOUS VERIFIED HEAD = 03eeb944481605fc1756be13ff56860fd22c56de
-REPORT66 COMMIT = 03eeb944481605fc1756be13ff56860fd22c56de
+PREVIOUS VERIFIED MAIN2 SOURCE = c503fde4d2da73d241d693e81f67405445d85747
 REPORT67 COMMIT = 60c71a7d2d091bed5c7d127c90e1f221a8863063
+REPORT68 COMMIT = 918809db231139e38550f23dd690c65fb4d72035
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
 ```
 
@@ -30,42 +30,30 @@ Primary governance source:
 
 ## LAST VERIFIED EVENTS
 
-### 1. Main2 refactor
-
-```text
-efde7f74bd47f9b8c6480878f53594025a11a00d
-Refactor rowHtml construction in main2.md
-```
-
-This commit contains the four structural/inline-JS corrections requested by Report66.
-
-### 2. Report66
-
-```text
-03eeb944481605fc1756be13ff56860fd22c56de
-Create Report66
-```
-
-Report66 documented the exact four Main2 corrections and explicitly stated that `_renderTable()` no longer needed the old missing-brace fix.
-
-### 3. Report67
+### Report67
 
 ```text
 60c71a7d2d091bed5c7d127c90e1f221a8863063
 Report67 — forensic reconciliation after Report66
 ```
 
-Report67 was created after re-reading CURRENT_STATE, MASTER, Report66, current Main2, Git history, current Production, and active save-item deployment.
+Report67 proved the `item-unit` field-source defect and documented the earlier deferred movement-report issue.
+
+### Report68
+
+```text
+918809db231139e38550f23dd690c65fb4d72035
+Report68 — reopen M2-11 according to the central inventory movement contract
+```
+
+Report68 re-investigated the deferred movement-report issue against current Production instead of assuming the Report67 boundary was still sufficient.
 
 ## PRODUCTION TRUTH — DIRECT
 
-Verified directly at:
+Latest direct reconciliation in this session:
 
 ```text
-2026-09-05 07:13:34.611727 UTC
-```
-
-```text
+2026-09-05 — current session
 companies       = 1
 app_settings    = 1
 orders          = 0
@@ -74,18 +62,9 @@ branches        = 2
 items           = 17
 stock_branches  = 20
 inventory_log   = 3
-duplicate_nonempty_barcode_groups = 0
 ```
 
-Production project is healthy:
-
-```text
-SMART ERP / fiilmooggumokxanwiyx
-PostgreSQL 17.6.1.121
-region = eu-west-1
-```
-
-Relevant schema facts re-confirmed:
+Relevant current schema facts:
 
 ```text
 items.item_code UNIQUE globally
@@ -94,69 +73,109 @@ receiving.operation_id UNIQUE
 items.barcode NOT UNIQUE
 ```
 
-No Production business data was permanently changed by this Main2 review.
+Current `post_stock_movement` contract accepts:
+
+```text
+p_source_branch_id
+p_target_branch_id
+```
+
+but the current `inventory_log` schema does not store those two identities.
 
 ## MAIN2 SOURCE TRUTH
 
 ```text
 PATH = Current/PWA/main2/main2.md
-CURRENT SOURCE BLOB = c503fde4d2da73d241d693e81f67405445d85747
-MAIN2 SOURCE MODIFIED BY THIS SESSION = NO
+SOURCE BLOB VERIFIED = c503fde4d2da73d241d693e81f67405445d85747
+MAIN2 MODIFIED IN THIS SESSION = NO
 ```
 
-The four corrections described in Report66 are already present in the current source.
+The four Report66 corrections remain present in current source and must not be repeated.
 
-### Report66 corrections confirmed present
+`_renderTable()` already contains the required closing brace before the status cell. Do not add another brace.
 
-```text
-1. _renderBranchStockMatrix() rowHtml = corrected
-2. _renderBranchStockMatrix() branch cell = corrected to _jsAttr
-3. _renderBranchStockMatrixFiltered() rowHtml = corrected
-4. _renderBranchStockMatrixFiltered() branch cell = corrected to _jsAttr
-```
-
-`_renderTable()` already contains the closing brace required before status-cell. Do not add another brace.
-
-## NEW CONFIRMED MAIN2 DEFECT
+## CONFIRMED UNIT DEFECT
 
 Location:
 
 ```text
 Current/PWA/main2/main2.md
 function openItemPage(itemCode)
-field id = item-unit
+id = item-unit
 ```
 
-Current bad expression:
+Current incorrect source:
 
 ```javascript
 item.alt_unit
 ```
 
-The current field builder uses `alt_unit` as the value of the field labeled `الوحدة الأساسية`.
-
-`_handleSaveFromPage()` then sends that field as:
+Required manual correction remains:
 
 ```javascript
-unit: (byId('item-unit') ? byId('item-unit').value : '').trim(),
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">الوحدة الأساسية</label><input id="item-unit" value="' + _esc(item ? (item.unit || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
 ```
 
-Production `save-item` version 12 stores the received `item.unit` value.
+The defect is proven because `_handleSaveFromPage()` sends `item-unit` as `unit`, and Production `save-item` persists the submitted `unit`.
 
-Therefore the currently proven risk is:
+## M2-11 — CENTRAL MOVEMENT REPORT CONTRACT
+
+The current main2 movement report still reads:
 
 ```text
-Edit existing item
-→ openItemPage loads alt_unit into item-unit
-→ save sends alt_unit as unit
-→ save-item persists it as unit
+stock_vouchers + stock_voucher_details
 ```
 
-This is a confirmed data/function defect, not a hypothesis.
+This is no longer an acceptable final architecture because the current Inventory Contract is:
 
-## EXACT NEXT MANUAL PATCH
+```text
+Physical Movement
+→ post_stock_movement
+→ stock_branches + inventory_log
+```
 
-The user must manually modify `main2.md` only.
+Direct Production evidence proved that `post_stock_movement` already knows the source/target branches but `inventory_log` does not store them.
+
+Therefore the permanent solution is NOT to make main2 infer branch attribution from vouchers.
+
+### Required backend contract before the final main2 movement patch
+
+Add nullable columns to `inventory_log`:
+
+```text
+source_branch_id uuid
+ target_branch_id uuid
+```
+
+Add foreign keys to `branches(id)` while preserving NULL for historical rows that cannot be safely reconstructed.
+
+Modify `post_stock_movement` so every newly created inventory_log row records:
+
+```text
+source_branch_id = p_source_branch_id
+target_branch_id = p_target_branch_id
+```
+
+Do not delete historical inventory_log rows.
+Do not invent branch attribution for rows where the source cannot be proven.
+
+### Historical legacy evidence
+
+The current `inventory_log` has 3 records with:
+
+```text
+movement_type = VoidInvoice
+voucher_id = ORD-1015 / ORD-1016
+```
+
+No current `stock_vouchers` match these codes.
+No current `orders` match these codes.
+
+These records are therefore retained as historical/legacy records and must not be used to manufacture current Physical Stock balances.
+
+## EXACT MAIN2 SURGICAL PATCH — AFTER THE BACKEND CONTRACT EXISTS
+
+### PATCH A — unit field
 
 Search for the complete line beginning with:
 
@@ -170,50 +189,84 @@ and ending with:
 class="p-2.5 bg-gray-50 border rounded-lg"></div>';
 ```
 
-Delete the complete line and replace it with:
+Delete that entire line and replace it with the exact line in the UNIT DEFECT section above.
+
+### PATCH B — replace `_loadMovementReport()` completely
+
+Delete the complete function beginning exactly with:
 
 ```javascript
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">الوحدة الأساسية</label><input id="item-unit" value="' + _esc(item ? (item.unit || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+async function _loadMovementReport() {
 ```
 
-Only intended change:
+and ending with the closing brace immediately before:
+
+```javascript
+// ==================== مصفوفة الفروع – بدون تغيير ====================
+```
+
+Replace the entire function with the exact version recorded in Report68 section 8.
+
+Required architectural properties of the replacement:
 
 ```text
-item.alt_unit → item.unit
+SOURCE = inventory_log only
+IDENTITY = item_id
+TENANT = company_id
+BRANCH = source_branch_id / target_branch_id
+NO stock_vouchers lookup
+NO stock_voucher_details lookup
+OPENING BALANCE = calculated from earlier central logs
+RUNNING BALANCE = movement impact by branch
+TRANSFER = source negative / target positive
+LOADING = source negative / target positive
+UNLOADING = source negative / target positive
+UNKNOWN LEGACY MOVEMENT TYPES = not used to manufacture Physical Stock balance
 ```
+
+### PATCH C — remove the duplicate movement reader
+
+Delete the complete function beginning exactly with:
+
+```javascript
+async function _showBranchStockMovement(itemCode, itemName, branchId, branchName) {
+```
+
+and ending immediately before:
+
+```javascript
+function _loadCategoriesIntoSelect() {
+```
+
+Replace it with:
+
+```javascript
+    async function _showBranchStockMovement(itemCode, itemName, branchId, branchName) {
+        _switchSubTab('movement');
+        window._movementItemCode = itemCode || null;
+        window._movementItemName = itemName || '';
+        window._movementBranchId = branchId || null;
+        window._movementBranchName = branchName || '';
+        setTimeout(function() {
+            _renderStockMovementReport(itemCode || null, itemName || '', branchId || null, branchName || '');
+        }, 0);
+    }
+```
+
+This makes the movement UI use one reader path instead of two independent implementations.
 
 ## DO NOT REPEAT
 
 ```text
-Do NOT re-add the _renderTable() closing brace.
-Do NOT repeat the four Report66 rowHtml/branch-cell fixes.
+Do NOT re-add the _renderTable() brace.
+Do NOT repeat the four Report66 fixes.
 Do NOT add another _jsAttr helper.
-Do NOT change category handling based on this review; save-item resolves category_id to category_name.
 Do NOT modify main1.md or main3..main11.
-Do NOT modify core.js, sw.js, register-sw.js, manifest.json.
-Do NOT modify Production business data.
-Do NOT invent a new contract for the stock-movement report.
+Do NOT modify core.js, sw.js, register-sw.js, manifest.json in this closure.
+Do NOT delete legacy inventory_log records.
+Do NOT infer historical branch_id when it cannot be proven.
+Do NOT make main2 derive Physical Stock movement from stock_vouchers after the central inventory_log contract is established.
 ```
-
-## OPEN / DEFERRED INTEGRATION ISSUE
-
-`_renderStockMovementReport()` currently derives movement history from:
-
-```text
-stock_vouchers + stock_voucher_details
-```
-
-while the current Inventory Contract defines:
-
-```text
-Physical Movement
-→ post_stock_movement
-→ stock_branches + inventory_log
-```
-
-`inventory_log` does not currently expose branch_id directly, so a safe full rewrite of the movement report requires a proven branch-attribution contract.
-
-This is recorded as an open integration/design issue, not a guessed patch.
 
 ## CURRENT MAIN2 STATUS
 
@@ -228,7 +281,7 @@ M2-07R = CLOSED IN CURRENT SOURCE
 M2-08 = CLOSED
 M2-09 = CLOSED IN CURRENT SOURCE
 M2-10 = OPEN / CROSS-LAYER SERVER AUTHORIZATION
-M2-11 = OPEN / one confirmed unit-field source defect remains
+M2-11 = OPEN / unit-field defect + central movement-report contract
 M2-12 = CLOSED IN CURRENT SOURCE
 ```
 
@@ -236,8 +289,13 @@ M2-12 = CLOSED IN CURRENT SOURCE
 
 ```text
 Report66 source corrections = VERIFIED IN CURRENT GIT
+Current main2 source = VERIFIED DIRECTLY
 Production snapshot = VERIFIED DIRECTLY
-save-item deployment = VERIFIED DIRECTLY (version 12)
+post_stock_movement current definition = VERIFIED DIRECTLY
+inventory_log current rows = VERIFIED DIRECTLY
+Unit-field correction = NOT APPLIED IN main2
+Central branch-attribution schema = NOT YET ADDED
+Central movement-report main2 patch = NOT YET APPLIED
 Browser runtime after unit fix = NOT VERIFIED
 Static/syntax after unit fix = NOT VERIFIED
 11-part assembly = NOT VERIFIED
@@ -248,31 +306,36 @@ Final PWA production equivalence = NOT VERIFIED
 
 ### What I Proved
 
-- MASTER governance was read through its final section.
-- CURRENT_STATE was reconciled against the current Git HEAD.
-- Report66 was read in full.
-- Main2 current blob was read directly.
-- Git history proved the Report66 four corrections already exist in current Main2.
-- Current Production was rechecked directly.
-- `save-item` Production version 12 was inspected.
-- The `item.alt_unit` → `item.unit` defect was proven from the combined source/runtime path.
-- Category handling was checked and explicitly not classified as a defect.
+- MASTER Continuity command was read completely.
+- CURRENT_STATE was reconciled.
+- Report66 was read completely.
+- Report67 was read completely.
+- Current main2 blob was read directly and in full.
+- Current Production counts were rechecked directly.
+- Current `post_stock_movement` was inspected directly.
+- `inventory_log` current rows were inspected directly.
+- The movement report's dependence on `stock_vouchers` was confirmed from current main2.
+- The missing branch attribution in `inventory_log` was confirmed from Production schema.
+- The existence of legacy `VoidInvoice` log records without currently matching vouchers/orders was confirmed.
+- The permanent architectural boundary was therefore proven: main2 cannot safely infer a complete central movement history until branch attribution is part of the central movement record.
 
 ### What I Did Not Prove
 
-- Browser runtime after the new unit-field correction.
-- Final static/syntax execution after that correction.
-- Complete 11-part assembly.
-- Final PWA production equivalence.
+- Browser runtime after manual main2 changes.
+- Static/syntax PASS after manual changes.
+- Production runtime of the rewritten movement report.
+- Complete historical backfill of old inventory_log records.
 - Closure of M2-10.
-- Closure of the branch-attribution contract for the item movement report.
+- Final 11-part assembly.
+- Final PWA production equivalence.
 
 ### What Changed In This Session
 
 ```text
 main2.md = NOT MODIFIED
-Report67 = ADDED
+Report68 = ADDED
 CURRENT_STATE.md = UPDATED
+Production business data = NOT MODIFIED
 ```
 
 ### Final Closure
@@ -287,12 +350,16 @@ PROJECT CLOSURE = NOT CLAIMED
 ## NEXT AUTHORIZED ACTION
 
 ```text
-1. Apply the single unit-field correction in main2.md exactly as specified above.
-2. Re-read main2.md from Git after the manual save.
-3. Verify item-unit now uses item.unit.
-4. Verify all four Report66 corrections remain intact.
-5. Run static/syntax review and unrelated-diff review.
-6. Record the actual Main2 commit.
-7. Update CURRENT_STATE again.
-8. Only then reassess M2-10 and the deferred movement-report contract.
+1. Implement the inventory_log branch-attribution contract first.
+2. Deploy/update post_stock_movement to populate source_branch_id and target_branch_id.
+3. Verify the new Production schema and writer contract.
+4. Apply PATCH A (unit field) manually in main2.md.
+5. Apply PATCH B (central movement report) manually in main2.md.
+6. Apply PATCH C (remove duplicate movement reader) manually in main2.md.
+7. Re-read main2.md completely from Git.
+8. Verify Report66 corrections remain intact.
+9. Run static/syntax review.
+10. Record the actual Main2 commit.
+11. Then perform runtime and Production verification.
+12. Reassess M2-10 and the remaining Main2 closures from the new verified state.
 ```
