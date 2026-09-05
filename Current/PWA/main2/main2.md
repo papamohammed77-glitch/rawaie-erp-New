@@ -321,10 +321,12 @@ var RW_Items = (function() {
     var currentSubTab = 'list';
 
     function _esc(s) {
-        return String(s || '').replace(/[&<>]/g, function(m) {
-            return m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;';
-        });
-    }
+    return esc(s == null ? '' : String(s));
+}
+
+function _jsString(s) {
+    return JSON.stringify(s == null ? '' : String(s));
+}
 
     function _fmtNum(n) {
         return Number(n || 0).toLocaleString();
@@ -585,11 +587,12 @@ var RW_Items = (function() {
                 sel.innerHTML += '<option value="' + _esc(it.item_code) + '"' + selected + '>' + (it.name||'') + ' (' + (it.item_code||'') + ')</option>';
             }
         }
-        if (itemCode) {
             window._movementItemCode = itemCode;
             window._movementItemName = itemName || '';
             window._movementBranchId = branchId || null;
             window._movementBranchName = branchName || '';
+		
+		if (itemCode) {
             setTimeout(function() { _loadMovementReport(); }, 300);
         }
     }
@@ -601,7 +604,23 @@ var RW_Items = (function() {
         var toDate = byId('mov-date-to') ? byId('mov-date-to').value : '';
         showLoader('جاري تحميل الحركات...');
         try {
-            var vouchersRes = await supabase.from('stock_vouchers').select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id').eq('company_id', companyId).order('voucher_date', { ascending: true });
+            var vouchersQuery = supabase.from('stock_vouchers')
+    .select('id, voucher_code, voucher_date, type, reference, from_branch_id, to_branch_id')
+    .eq('company_id', companyId);
+
+if (fromDate) {
+    vouchersQuery = vouchersQuery.gte('voucher_date', fromDate);
+}
+if (toDate) {
+    vouchersQuery = vouchersQuery.lte('voucher_date', toDate);
+}
+if (window._movementBranchId) {
+    vouchersQuery = vouchersQuery.or(
+        'from_branch_id.eq.' + window._movementBranchId + ',to_branch_id.eq.' + window._movementBranchId
+    );
+}
+
+var vouchersRes = await vouchersQuery.order('voucher_date', { ascending: true });
             var vouchers = vouchersRes.data || [];
             var voucherIds = vouchers.map(function(v) { return v.id; });
             if (voucherIds.length === 0) { hideLoader(); safeHTML(byId('movement-report-result'), '<div class="text-center py-8 text-gray-500">لا توجد حركات مسجلة بعد</div>'); return; }
@@ -964,7 +983,7 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
           var selected = '';
           if (currentCategoryId && categories[i].id === currentCategoryId) selected = ' selected';
           if (!currentCategoryId && currentCategoryText && categories[i].category_name === currentCategoryText) selected = ' selected';
-          html += '<option value="' + categories[i].id + '"' + selected + '>' + categories[i].category_name + '</option>';
+          html += '<option value="' + _esc(categories[i].id) + '"' + selected + '>' + _esc(categories[i].category_name) + '</option>';
         }
         safeHTML(select, html);
       });
@@ -1325,20 +1344,28 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
 
         // جلب الأصناف
         supabase.from('items').select('id, item_code, barcode, name').eq('company_id', companyId).in('barcode', barcodes).then(function(itemsRes) {
-            var itemMap = {};
-            var itemCodes = [];
-            for (var im = 0; im < (itemsRes.data || []).length; im++) {
-                var it = itemsRes.data[im];
-                if (it.barcode) itemMap[it.barcode] = it;
-                itemCodes.push(it.item_code);
-            }
-            // ✅ تحديث _uploadFileData بـ item_code الحقيقي من قاعدة البيانات
-            for (var f = 0; f < _uploadFileData.length; f++) {
-                var mappedItem = itemMap[_uploadFileData[f].barcode];
-                if (mappedItem) {
-                    _uploadFileData[f].item_code = mappedItem.item_code;
-                }
-            }
+var itemMap = {};
+var duplicateBarcodeMap = {};
+for (var im = 0; im < (itemsRes.data || []).length; im++) {
+    var it = itemsRes.data[im];
+    if (!it.barcode) continue;
+    if (itemMap[it.barcode]) {
+        duplicateBarcodeMap[it.barcode] = true;
+    } else {
+        itemMap[it.barcode] = it;
+    }
+}
+
+for (var f = 0; f < _uploadFileData.length; f++) {
+    var barcodeValue = _uploadFileData[f].barcode;
+    if (duplicateBarcodeMap[barcodeValue]) {
+        _uploadFileData[f]._invalidReason = 'باركود غير فريد';
+        delete _uploadFileData[f].item_code;
+    } else {
+        var mappedItem = itemMap[barcodeValue];
+        if (mappedItem) _uploadFileData[f].item_code = mappedItem.item_code;
+    }
+}
             // جلب الأرصدة الحالية
             supabase.from('stock_branches').select('item_id, qty').eq('branch_id', branchId).in('item_id', (itemsRes.data || []).map(function(x) { return x.id; })).then(function(stockRes) {
                 var stockMap = {};
@@ -1356,8 +1383,15 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
                     var newQty = currentQty;
                     var status = '', statusClass = '';
 
-                    if (!item) { status = '❌ باركود غير موجود'; statusClass = 'bg-red-50'; invalidCount++; }
-                    else {
+                    if (duplicateBarcodeMap[entry.barcode]) {
+    status = '❌ الباركود غير فريد';
+    statusClass = 'bg-red-50';
+    invalidCount++;
+} else if (!item) {
+    status = '❌ باركود غير موجود';
+    statusClass = 'bg-red-50';
+    invalidCount++;
+} else {
                         if (adjType === 'replace') newQty = inputQty;
                         else if (adjType === 'add') newQty = currentQty + inputQty;
                         else if (adjType === 'deduct') { newQty = currentQty - inputQty; if (newQty < 0) { status = '⚠️ سيصبح الرصيد سالباً'; statusClass = 'bg-yellow-50'; } }
@@ -1428,8 +1462,11 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
                 
                 // ✅ إعادة تحميل الأصناف والمخزون فوراً بعد التحديث
                 showLoader('جاري تحديث البيانات...');
+				_uploadFileData = [];
                 _uploadOperationId = null;
                 _uploadOperationFingerprint = null;
+				var uploadFileInput = byId('upload-file-input');
+				if (uploadFileInput) uploadFileInput.value = '';
                 RW_Data.loadItems().then(function(newData) {
                     itemsData = newData;
                     return _loadStockData();
