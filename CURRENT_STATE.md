@@ -5,9 +5,8 @@
 ```text
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
-PREVIOUS GIT STATE HEAD = e53c0de15fd29273d1388713d940f7792577a540
-REPORT69 COMMIT = ba750f3707560b7c2bf4e6ebaa8d0eeca3f2db47
-REPORT70 COMMIT = 5f0a018c92a8c74415039e5016899a9af9d29c69
+LAST VERIFIED WORK COMMIT = 5d08da67982ba4a9e4e1524a221081b1118f731d
+LAST VERIFIED WORK = Report71 — forensic main3 review and surgical patch instructions
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
 ```
 
@@ -24,32 +23,39 @@ SOURCE != RUNTIME PROOF
 NO CLOSURE CLAIM WITHOUT CURRENT EVIDENCE
 ```
 
-Primary governance source:
+Primary governance:
 `doc/Draft/medhat/MASTER - RAWAEA ERP.md`
 
 ## LAST VERIFIED EVENTS
 
 ### Report69
 
-```text
-ba750f3707560b7c2bf4e6ebaa8d0eeca3f2db47
-Report69 — forensic main2 review and CURRENT_STATE reconciliation
-```
+`ba750f3707560b7c2bf4e6ebaa8d0eeca3f2db47`
 
-Report69 proved the actual `main2.md` Blob at the current HEAD and found that Patch A was already present while movement readers remained open.
+Forensic reconciliation of main2 and its stale Blob reference.
 
 ### Report70
 
-```text
-5f0a018c92a8c74415039e5016899a9af9d29c69
-Report70 — Production branch-attribution contract deployment and verification
-```
+`5f0a018c92a8c74415039e5016899a9af9d29c69`
 
-Report70 closed the Production prerequisite for the central movement-report rewrite.
+Production branch-attribution deployment and transactional verification.
 
-## PRODUCTION TRUTH — DIRECT
+### Main2 user commit
 
-Latest direct reconciliation before/after the branch-attribution deployment:
+`36482301223c07ddd256c87a2bc712198d955b7a`
+
+Message: `Update main2.md`
+
+Current main2 source Blob after that commit:
+`58dd0da232ccca4c62bc17d87220bf8b705d85e8`
+
+### Report71
+
+`5d08da67982ba4a9e4e1524a221081b1118f731d`
+
+Forensic main3 review, Production scope verification, exact surgical patch instructions, and backend defect classification.
+
+## PRODUCTION TRUTH — DIRECT RECONCILIATION
 
 ```text
 companies       = 1
@@ -69,208 +75,240 @@ items.item_code UNIQUE globally
 stock_branches UNIQUE(branch_id,item_id)
 receiving.operation_id UNIQUE
 items.barcode NOT UNIQUE
+roles.company_id PRESENT
+customer_assignments.assigned_by = uuid
 ```
 
-### Production branch attribution status
+Relevant RLS facts:
+
+```text
+users                = RLS ENABLED
+roles                = RLS ENABLED
+customers            = RLS ENABLED
+suppliers            = RLS ENABLED
+branches             = RLS ENABLED
+app_settings         = RLS ENABLED
+customer_assignments = RLS ENABLED
+```
+
+Important residue:
+
+```text
+roles policy `Allow all for all` = qual=true / with_check=true
+```
+
+This is a backend governance/security closure item; the main3 UI is still required to query roles by company and must not depend on the broad policy.
+
+Production branch attribution remains verified:
 
 ```text
 inventory_log.source_branch_id = PRESENT
 inventory_log.target_branch_id = PRESENT
 source FK = PRESENT
- target FK = PRESENT
-post_stock_movement writes source_branch_id / target_branch_id = VERIFIED
+target FK = PRESENT
+post_stock_movement persists source/target = VERIFIED
 ```
 
-A real transactional `InventoryIncrease` test was executed and rolled back. The test log contained the expected target branch and NULL source; after rollback, the test idempotency key had zero rows. No business-data mutation remains from the test.
-
-## MAIN2 SOURCE TRUTH
+## MAIN2 SOURCE STATE
 
 ```text
 PATH = Current/PWA/main2/main2.md
-CURRENT SOURCE BLOB = 089453ca6412df986fa11c2df4ce9235091a4647
+CURRENT BLOB = 58dd0da232ccca4c62bc17d87220bf8b705d85e8
 ```
 
-This is the source verified at the pre-report current Git HEAD. `main2.md` was NOT modified by the assistant.
+The current source was rechecked after the user commit. The movement reader now references `inventory_log` and branch attribution, and the current search found no `stock_vouchers` / `stock_voucher_details` references inside that movement reader.
 
-## MAIN2 VERIFIED STATE
-
-### Report66
-
-All four Report66 corrections remain present. Do not repeat them.
-
-`_renderTable()` already has the required brace before the status cell. Do not add another `}`.
-
-### PATCH A — UNIT FIELD
+Therefore:
 
 ```text
-STATUS = ALREADY APPLIED
+MAIN2 B/C SOURCE INTEGRATION = VERIFIED IN CURRENT GIT
+MAIN2 BROWSER RUNTIME = NOT VERIFIED
+MAIN2 FINAL 11-PART ASSEMBLY = NOT VERIFIED
+PROJECT CLOSURE = NOT CLAIMED
 ```
 
-The current source already uses `item.unit` in the `item-unit` field.
+Do not reopen main2 during the main3 surgical pass unless new direct evidence appears.
 
-### PATCH B — CENTRAL MOVEMENT REPORT
+## MAIN3 SOURCE STATE
 
 ```text
-STATUS = READY FOR MANUAL APPLICATION
+PATH = Current/PWA/main2/main3.md
+CURRENT BLOB = 1bfedd3b16abb804d83e2b7d5671f1b31f320a14
+STATUS = NOT MODIFIED BY ASSISTANT
+STATUS = FORENSICALLY REVIEWED
 ```
 
-Production prerequisite is now CLOSED.
+The file was read completely from start to final closing brace and compared to `Original/PWA/main/main3.md`.
 
-User must replace the complete `_loadMovementReport()` function using the exact full function recorded in Report68 section 8.
+Current logical modules:
 
-Deletion starts exactly at:
+```text
+RW_Customers
+RW_Suppliers
+RW_Branches
+RW_Settings
+RW_Users
+```
+
+### Proven safe / no patch
+
+```text
+RW_Customers = NO PATCH
+RW_Branches  = NO PATCH
+save-customer Edge = COMPANY SCOPED
+save-supplier Edge = COMPANY SCOPED
+save-branch Edge = COMPANY SCOPED
+save-settings Edge = COMPANY SCOPED + OWNER/LICENSE checks
+save-employee Edge = COMPANY SCOPED
+```
+
+### Main3 manual patches prepared
+
+```text
+S1 = suppliers company-scoped reads
+S2 = app_settings company-scoped read + currency hydration
+S3 = users/roles company-scoped reads and refreshes
+S4 = customer_assignments.assigned_by UUID correction
+S5 = assignment write error/rollback handling
+S6 = assignment removal error/rollback handling
+```
+
+Exact instructions are recorded in `doc/Draft/Reprots/Report71`.
+
+### Why S4 is mandatory
+
+Production schema:
+
+```text
+customer_assignments.assigned_by = uuid
+```
+
+Current main3 sends:
 
 ```javascript
-async function _loadMovementReport() {
+assigned_by: (RW_STATE.app.currentUser && RW_STATE.app.currentUser.email) || null,
 ```
 
-and ends at the closing brace immediately before:
+This is a direct type-contract mismatch.
 
-```javascript
-// ==================== مصفوفة الفروع – بدون تغيير ====================
-```
+### Why S2 is mandatory
 
-The replacement must query `inventory_log` only and use:
+Production `app_settings` contains:
 
 ```text
-company_id
-item_id
-movement_date
-source_branch_id
-target_branch_id
+currency
 ```
 
-No `stock_vouchers`.
-No `stock_voucher_details`.
+Current main3 renders a currency selector from `currentSettings.currency` but does not hydrate that property from `appSets.currency`.
 
-### PATCH C — DUPLICATE MOVEMENT READER
+### Why S1/S3 are mandatory
+
+`suppliers`, `users`, `roles` are company-scoped entities in the current schema. Current main3 uses global reads for them. `roles` is especially sensitive because its current RLS policy is broad.
+
+## BACKEND OPEN ITEM
+
+Production `delete-employee` currently authenticates the caller but performs the database delete using email only, without a `company_id` predicate.
+
+Classification:
 
 ```text
-STATUS = READY FOR MANUAL APPLICATION
+BACKEND DEFECT = PROVEN
+TARGET = delete-employee Edge Function
+MAIN3 PATCH = NOT SUBSTITUTE FOR BACKEND FIX
+STATUS = OPEN / SEPARATE CLOSURE UNIT
 ```
 
-User must replace the complete `_showBranchStockMovement()` function.
+Do not declare the Employee lifecycle fully closed until this closure is addressed and verified.
 
-Delete from exactly:
-
-```javascript
-async function _showBranchStockMovement(itemCode, itemName, branchId, branchName) {
-```
-
-through the line immediately before:
-
-```javascript
-function _loadCategoriesIntoSelect() {
-```
-
-Replace with:
-
-```javascript
-    async function _showBranchStockMovement(itemCode, itemName, branchId, branchName) {
-        _switchSubTab('movement');
-        window._movementItemCode = itemCode || null;
-        window._movementItemName = itemName || '';
-        window._movementBranchId = branchId || null;
-        window._movementBranchName = branchName || '';
-        setTimeout(function() {
-            _renderStockMovementReport(itemCode || null, itemName || '', branchId || null, branchName || '');
-        }, 0);
-    }
-```
-
-### PATCH D — FILE IMPORT IDENTITY
+## PATCHES NOT TO DO
 
 ```text
-STATUS = OPEN / DO NOT PATCH YET
-```
-
-Current code accepts `item_code` as an input header but later looks only in `items.barcode`. This inconsistency is proven, but its historical import-file contract is not yet proven. Do not change it by assumption.
-
-## HISTORICAL LEGACY DATA
-
-The 3 historical `VoidInvoice` records remain untouched. Do not delete them, invent branch identities, or use them to manufacture current Physical Stock balance.
-
-## CURRENT MAIN2 STATUS
-
-```text
-M2-01 = CLOSED
-M2-02 = CLOSED
-M2-03 = CLOSED
-M2-04 = CLOSED
-M2-05 = CLOSED
-M2-06 = CLOSED
-M2-07R = CLOSED IN CURRENT SOURCE
-M2-08 = CLOSED
-M2-09 = CLOSED IN CURRENT SOURCE
-M2-10 = OPEN / CROSS-LAYER SERVER AUTHORIZATION
-M2-11 = OPEN / MAIN2 MOVEMENT READER PATCH + VERIFICATION
-M2-12 = CLOSED IN CURRENT SOURCE
+Do not modify main2 during main3 closure.
+Do not modify core.js / sw.js / register-sw.js / manifest during main3 closure.
+Do not patch RW_Customers or RW_Branches without new evidence.
+Do not change Owner ["*"] semantics.
+Do not replace roles policy blindly inside this main3 task.
+Do not invent an Edge Function for assignments unless a later closure proves the existing direct-write contract must be replaced.
+Do not claim browser/runtime closure from source inspection.
 ```
 
 ## VALIDATION STATUS
 
 ```text
-Git HEAD before Report69 = VERIFIED e53c0de...
-Current main2 Blob = VERIFIED 089453ca...
-Production branch attribution = DEPLOYED
-Production branch attribution runtime test = VERIFIED TRANSACTIONALLY
-Patch A = ALREADY PRESENT
-Patch B = NOT APPLIED
-Patch C = NOT APPLIED
-Patch D = OPEN / NO PATCH
-Browser Runtime after B/C = NOT VERIFIED
-Static/Syntax after B/C = NOT VERIFIED
+MASTER continuity = READ TO EOF
+Knowledge Pack 2026-09-04 = READ TO EOF
+Report69 = READ TO EOF
+Report70 = READ TO EOF
+Report71 = CREATED
+Current Git main ref = VERIFIED
+Main2 current Blob = VERIFIED
+Main3 current Blob = VERIFIED
+Main3 full read = VERIFIED
+Production relevant schema = VERIFIED
+Production relevant RLS = VERIFIED
+Production relevant Edge Functions = VERIFIED
+Main3 manual patches = PREPARED, NOT APPLIED BY ASSISTANT
+Main3 runtime = NOT VERIFIED
+Main3 static/syntax after user edit = NOT VERIFIED
 11-part assembly = NOT VERIFIED
-Final PWA Production Equivalence = NOT VERIFIED
+Full PWA runtime = NOT VERIFIED
 Project Closure = NOT CLAIMED
 ```
 
-## SELF-AUDIT
+## WHAT I PROVED
 
-### WHAT I PROVED
+- The repository moved after Report70; the current main ref is now on the user's main2 update followed by Report71.
+- The stale main2 Blob recorded by the old state is no longer current.
+- Main2 B/C source integration is present in current Git.
+- Main3 Blob is still `1bfedd3...` and was read to EOF.
+- Main3 is not a Physical Stock writer.
+- Main3 contains direct company-scoped reads for suppliers/users/roles that should be explicitly scoped.
+- Main3 contains a concrete `assigned_by` UUID vs email mismatch.
+- Main3 contains a concrete missing `currency` hydration.
+- Production current RLS and schema were directly checked.
+- Production `delete-employee` has a separate unscoped email-delete defect.
 
-- MASTER, CURRENT_STATE, Report67 and Report68 were reviewed.
-- Current Git HEAD was verified from the `main` ref.
-- Current `main2.md` was read directly; actual Blob is `089453ca...`.
-- The stale `c503...` Blob reference in the previous CURRENT_STATE was corrected.
-- Patch A is already present in current main2 and must not be repeated.
-- Movement readers B/C remain voucher-based in current main2.
-- Production now has source/target branch attribution fields and FKs.
-- `post_stock_movement` now persists source/target branch identity.
-- A transactional runtime test proved the new branch attribution behavior and was rolled back.
-- The upload `item_code`/`barcode` inconsistency is proven but not safely patchable without historical contract evidence.
+## WHAT I DID NOT PROVE
 
-### WHAT I DID NOT PROVE
-
-- Browser runtime after the user's manual B/C changes.
-- Static/syntax PASS after the user's manual B/C changes.
+- Browser E2E after the manual main3 edits.
+- Static/syntax after the manual main3 edits.
+- Runtime success of customer assignment after S4-S6.
 - Final 11-part assembly.
 - Final PWA Production equivalence.
-- M2-10 closure.
-- Patch D historical contract.
+- Closure of backend `delete-employee`.
+- Closure of the broad `roles` RLS policy.
 
-## WHAT CHANGED IN THIS SESSION
+## CURRENT TARGET
 
 ```text
-main2.md = NOT MODIFIED BY ASSISTANT
-Production business data = NO PERMANENT TEST DATA ADDED
-Production schema/function = MODIFIED AND VERIFIED
-Report69 = CREATED
-Report70 = CREATED
-CURRENT_STATE.md = UPDATED
+PRIMARY TARGET = Current/PWA/main2/main3.md
+MODE = USER MANUAL SURGICAL EDIT
 ```
 
-## NEXT AUTHORIZED ACTION — USER MANUAL MAIN2 EDIT
+## NEXT AUTHORIZED ACTION
 
 ```text
-1. DO NOT touch Patch A; it is already correct.
-2. In Current/PWA/main2/main2.md, replace the entire _loadMovementReport() function exactly as specified in Report68 §8.
-3. Replace the entire _showBranchStockMovement() function exactly as specified in Report68 §9 / Report70.
-4. Do not edit any other Main2 section during this closure.
-5. Re-read main2.md completely after saving.
-6. Verify there is no stock_vouchers / stock_voucher_details usage inside either movement reader.
-7. Verify Report66 fixes remain intact.
-8. Record the user's actual Main2 commit.
-9. Then perform static/syntax and runtime verification.
-10. After that, investigate Patch D from historical evidence only.
+1. Apply S1-S6 in main3 exactly as written in Report71.
+2. Do not change any other main3 code in the same edit.
+3. Re-read main3.md completely after saving.
+4. Verify the exact replacement text is intact and no surrounding code was lost.
+5. Commit the user's main3 change.
+6. Re-fetch the new main3 Blob from Git.
+7. Perform static/syntax review.
+8. Verify the affected Production contracts again.
+9. Then address the separate delete-employee backend closure.
+10. After main3 closure, reassess the next target from fresh evidence rather than historical stage numbering.
+```
+
+## CLOSURE STATUS
+
+```text
+Production branch attribution = CLOSED / DEPLOYED / TRANSACTIONALLY VERIFIED
+Main2 source B/C = INTEGRATED IN CURRENT GIT / RUNTIME OPEN
+Main3 = FORENSIC REVIEW COMPLETE / MANUAL PATCH PENDING
+Main3 source closure = OPEN
+Main3 runtime closure = OPEN
+Employee delete backend = OPEN
+11-part integration = OPEN
+Project Closure = NOT CLAIMED
 ```
