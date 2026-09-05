@@ -684,13 +684,12 @@ var vouchersRes = await vouchersQuery.order('voucher_date', { ascending: true })
         var controlsHtml = '<div id="matrix-tbody-controls"></div>';
         safeHTML(content, html + controlsHtml);
         RW_Table.paginate('matrix-tbody', sorted, 1, 50, function(item, idx) {
-            var rowHtml = '<tr class="border-t hover:bg-gray-50"><td class="p-3 cursor-pointer font-bold text-blue-600" onclick="RW_Items._switchSubTab(\\'movement\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',null); },200);">' + _esc(item.name) + ' <span class="text-xs text-gray-400">(' + _esc(item.item_code) + ')</span></td><td class="p-3 text-center font-bold">' + (item._totalStock||0) + '</td>'; 
- setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',null); },200);">' + _esc(item.name||'') + ' <span class="text-xs text-gray-400">(' + (item.item_code||'') + ')</span></td><td class="p-3 text-center font-bold">' + (item._totalStock||0) + '</td>';
+        var rowHtml = '<tr class=\"border-t hover:bg-gray-50\"><td class=\"p-3 cursor-pointer font-bold text-blue-600\" onclick=\"RW_Items._switchSubTab(\\\\'movement\\\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',null); },200);\">' + _esc(item.name) + ' <span class=\"text-xs text-gray-400\">(' + _esc(item.item_code) + ')</span></td><td class=\"p-3 text-center font-bold\">' + (item._totalStock||0) + '</td>';
             var branchStock = item._branchStock || {};
             for (var b2 = 0; b2 < branchIds.length; b2++) {
                 var bid2 = branchIds[b2]; var st = branchStock[bid2] || { qty: 0, allocated: 0 }; var branchName2 = '';
                 for (var bn2 = 0; bn2 < branches.length; bn2++) { if ((branches[bn2].id || branches[bn2].branch_code) === bid2) { branchName2 = branches[bn2].name || bid2; break; } }
-                                rowHtml += '<td class="p-3 text-center cursor-pointer underline text-blue-600 text-xs" onclick="RW_Items._switchSubTab(\\'movement\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',' + _jsAttr(bid2) + ',' + _jsAttr(branchName2) + '); },200);">' + st.qty + '</td>'; + _esc(item.item_code) + '\',\'' + _esc(item.name).replace(/'/g, "\\'") + '\',\'' + _esc(bid2) + '\',\'' + _esc(branchName2).replace(/'/g, "\\'") + '\'); },200);">' + st.qty + '</td>';
+         rowHtml += '<td class=\"p-3 text-center cursor-pointer underline text-blue-600 text-xs\" onclick=\"RW_Items._switchSubTab(\\\\'movement\\\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',' + _jsAttr(bid2) + ',' + _jsAttr(branchName2) + '); },200);\">' + st.qty + '</td>';
             }
             rowHtml += '</tr>'; return rowHtml;
         });
@@ -718,12 +717,12 @@ var vouchersRes = await vouchersQuery.order('voucher_date', { ascending: true })
         var branchIds = window._itemsBranchIds || [];
         var branches = window._itemsBranches || [];
         RW_Table.paginate('matrix-tbody', data, 1, 50, function(item, idx) {
-            var rowHtml = '<tr class="border-t hover:bg-gray-50"><td class="p-3 cursor-pointer font-bold text-blue-600" onclick="RW_Items._switchSubTab(\\'movement\\'); 
+            var rowHtml = '<tr class=\"border-t hover:bg-gray-50\"><td class=\"p-3 cursor-pointer font-bold text-blue-600\" onclick=\"RW_Items._switchSubTab(\\\\'movement\\\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',null); },200);\">' + _esc(item.name) + ' <span class=\"text-xs text-gray-400\">(' + _esc(item.item_code) + ')</span></td><td class=\"p-3 text-center font-bold\">' + (item._totalStock||0) + '</td>';
             var branchStock = item._branchStock || {};
             for (var b2 = 0; b2 < branchIds.length; b2++) {
                 var bid2 = branchIds[b2]; var st = branchStock[bid2] || { qty: 0, allocated: 0 }; var branchName2 = '';
                 for (var bn2 = 0; bn2 < branches.length; bn2++) { if ((branches[bn2].id || branches[bn2].branch_code) === bid2) { branchName2 = branches[bn2].name || bid2; break; } }
-                rowHtml += '<td class="p-3 text-center cursor-pointer underline text-blue-600 text-xs" onclick="RW_Items._switchSubTab(\'movement\'); setTimeout(function(){ RW_Items._renderStockMovementReport(\'' + _esc(item.item_code) + '\',\'' + _esc(item.name).replace(/'/g, "\\'") + '\',\'' + _esc(bid2) + '\',\'' + _esc(branchName2).replace(/'/g, "\\'") + '\'); },200);">' + st.qty + '</td>';
+    rowHtml += '<td class=\"p-3 text-center cursor-pointer underline text-blue-600 text-xs\" onclick=\"RW_Items._switchSubTab(\\\\'movement\\\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',' + _jsAttr(bid2) + ',' + _jsAttr(branchName2) + '); },200);\">' + st.qty + '</td>';
             }
             rowHtml += '</tr>'; return rowHtml;
         });
