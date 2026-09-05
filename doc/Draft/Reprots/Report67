@@ -1,0 +1,209 @@
+# Report67 — مراجعة جنائية جديدة لـ main2 بعد Report66
+
+التاريخ: 2026-09-05
+المستودع: papamohammed77-glitch/rawaie-erp-New
+الفرع: main
+Git HEAD الحالي: 03eeb944481605fc1756be13ff56860fd22c56de
+Parent الذي يحتوي تعديل main2: efde7f74bd47f9b8c6480878f53594025a11a00d
+ملف الهدف: Current/PWA/main2/main2.md
+Blob الحالي للهدف: c503fde4d2da73d241d693e81f67405445d85747
+Production: SMART ERP / fiilmooggumokxanwiyx
+
+## 1. مصادر التحقيق
+
+تمت مراجعة:
+- MASTER - RAWAEA ERP.md بالكامل وعلى دفعات متتابعة حتى النهاية.
+- CURRENT_STATE.md.
+- Report66 بالكامل.
+- Current/PWA/main2/main2.md من الـblob الحالي الكامل.
+- Git commit efde7f74bd47f9b8c6480878f53594025a11a00d الخاص بتعديل main2.
+- Git HEAD الحالي 03eeb944481605fc1756be13ff56860fd22c56de.
+- Production Supabase مباشرة.
+- Production Edge Function save-item الحالية، الإصدار 12.
+
+## 2. حالة Report66
+
+ثبت مباشرة من Git أن commit:
+
+`efde7f74bd47f9b8c6480878f53594025a11a00d`
+
+نفذ بالفعل الإصلاحات الأربعة التي طلبها Report66:
+
+1. _renderBranchStockMatrix() — rowHtml أصبح سطرًا واحدًا صحيحًا.
+2. _renderBranchStockMatrix() — خلية الفرع أصبحت تستخدم _jsAttr.
+3. _renderBranchStockMatrixFiltered() — rowHtml أصبح سطرًا واحدًا صحيحًا.
+4. _renderBranchStockMatrixFiltered() — خلية الفرع أصبحت تستخدم _jsAttr.
+
+كما أن `_renderTable()` في المصدر الحالي يحتوي على قوس إغلاق loop قبل status-cell، وبالتالي بند Report65 القديم الخاص بإضافة `}` لا يجب تنفيذه مرة أخرى.
+
+النتيجة:
+
+`Report66 instructions = APPLIED IN CURRENT SOURCE`
+
+لا يجب إعادة تنفيذها.
+
+## 3. Production reconciliation
+
+تم التحقق مباشرة في:
+
+`2026-09-05 07:13:34.611727 UTC`
+
+والنتيجة:
+
+```text
+companies       = 1
+app_settings    = 1
+orders          = 0
+purchase_orders = 0
+branches        = 2
+items           = 17
+stock_branches  = 20
+inventory_log   = 3
+duplicate_nonempty_barcode_groups = 0
+```
+
+هذه الأرقام لا تثبت Browser Runtime ولا تثبت إغلاق main2، لكنها تثبت أن Production الحالية لم تتغير إلى حالة مختلفة أثناء هذا التحقيق.
+
+## 4. الفحص الجديد داخل main2
+
+ثبت وجود عيب مستقل عن Report66 داخل `openItemPage()`.
+
+السطر الحالي لحقل «الوحدة الأساسية» هو:
+
+```javascript
+html += '<div class="flex flex-col"><label class="text-sm font-bold">الوحدة الأساسية</label><input id="item-unit" value="' + _esc(item ? (item.alt_unit || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+```
+
+العيب:
+
+واجهة الحقل تحمل `alt_unit` بدل `unit`.
+
+وفي `_handleSaveFromPage()` يتم إرسال:
+
+```javascript
+unit: (byId('item-unit') ? byId('item-unit').value : '').trim(),
+```
+
+كما أن Production `save-item` الحالية (version 12) تحفظ `item.unit` كما يصلها في payload.
+
+وبالتالي:
+
+فتح صنف موجود ثم الحفظ دون تصحيح هذا السطر يمكن أن يستبدل `unit` الحالية بقيمة `alt_unit`.
+
+هذا عيب بيانات/وظيفة مثبت، وليس استنتاجًا أو افتراضًا.
+
+## 5. التعديل الجراحي المطلوب الآن
+
+لا تعدل أي شيء آخر في main2 الآن.
+
+ابحث عن السطر الكامل الذي يبدأ بـ:
+
+```javascript
+html += '<div class="flex flex-col"><label class="text-sm font-bold">الوحدة الأساسية</label>
+```
+
+والذي ينتهي بـ:
+
+```javascript
+class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+```
+
+يجب حذف السطر كاملًا واستبداله بالسطر التالي كاملًا:
+
+```javascript
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">الوحدة الأساسية</label><input id="item-unit" value="' + _esc(item ? (item.unit || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+```
+
+الفرق الوحيد المقصود هو:
+
+```text
+item.alt_unit
+```
+
+تصبح:
+
+```text
+item.unit
+```
+
+## 6. ما لا يجب تعديله
+
+لا تضف `_jsAttr`.
+لا تعيد إضافة `}` إلى `_renderTable()`.
+لا تعيد تنفيذ إصلاحات Report66 الأربعة.
+لا تعدل `_renderBranchStockMatrix()` مرة أخرى.
+لا تعدل `_renderBranchStockMatrixFiltered()` مرة أخرى.
+لا تعدل `category` في هذا الوقت؛ التحقيق أثبت أن save-item يحول `category_id` إلى `category_name` عند الحفظ، لذلك ليست عيبًا مثبتًا في هذا المسار.
+لا تعدل `main1.md` أو `main3..main11`.
+لا تعدل `core.js` أو `sw.js` أو `register-sw.js` أو `manifest.json`.
+لا تعدل Production business data.
+لا تنشئ Patch جديدًا لمشكلة غير مثبتة.
+
+## 7. ملاحظة معمارية مؤجلة — لا تُنفذ الآن
+
+تبين من المصدر الحالي أن:
+
+`_renderStockMovementReport()`
+
+يعتمد على `stock_vouchers + stock_voucher_details` لعرض «حركة الصنف».
+
+وفي نفس الوقت، Production inventory contract يثبت أن `post_stock_movement` هو الذي يسجل Physical Movements في `inventory_log`.
+
+لكن `inventory_log` الحالية لا تحتوي `branch_id` مباشرًا، وبالتالي لا توجد حاليًا أدلة كافية لإعادة كتابة تقرير الحركة بالكامل بطريقة آمنة دون إعادة بناء عقد branch attribution.
+
+لذلك تُسجل هذه كمشكلة تكامل/تصميم مفتوحة وليست Patch تُنفذ بالتخمين في هذه الجلسة.
+
+## 8. حالة الجلسة
+
+```text
+Report66 corrections = PRESENT IN CURRENT SOURCE
+New confirmed main2 defect = unit field reads alt_unit
+Current main2 = OPEN
+Browser Runtime = NOT VERIFIED
+Static/Syntax Runtime = NOT VERIFIED
+Assembly = NOT VERIFIED
+Production Equivalence = NOT VERIFIED
+M2-10 = OPEN
+```
+
+## 9. Next Authorized Action
+
+1. تنفيذ تعديل «الوحدة الأساسية» المحدد في القسم 5 فقط داخل `Current/PWA/main2/main2.md`.
+2. إعادة قراءة الملف من Git بعد الحفظ.
+3. التحقق أن السطر يستخدم `item.unit` فقط.
+4. التحقق من عدم إعادة ظهور أي من أخطاء Report66 الأربعة.
+5. تنفيذ static/syntax review للملف.
+6. تسجيل commit Main2 الفعلي.
+7. تحديث CURRENT_STATE مرة أخرى.
+8. بعد إغلاق هذا الـclosure فقط، يُعاد تقييم `M2-10` والمشكلة المؤجلة الخاصة بمصدر تقرير الحركة.
+
+## 10. SELF-AUDIT
+
+### What I Proved
+- قرأت MASTER حتى النهاية.
+- قرأت CURRENT_STATE.
+- قرأت Report66 كاملًا.
+- قرأت main2 الحالي من الـblob الكامل.
+- أثبت Git أن إصلاحات Report66 موجودة فعلًا.
+- أثبت Production الحالية مباشرة.
+- أثبت عيب `item.alt_unit` في حقل `item-unit`.
+- أثبت أن save-item Production تحفظ `item.unit` كما يُرسل.
+
+### What I Did Not Prove
+- Browser Runtime بعد أي تعديل جديد.
+- Static/Syntax execution داخل المتصفح.
+- الإغلاق النهائي لـM2-11.
+- M2-10.
+- Assembly النهائي للـ11 أجزاء.
+- Production equivalence للملف الأم الكامل.
+
+### What I Changed
+- لم أعدل `main2.md`.
+- أضفت هذا التقرير فقط.
+- سيتم تحديث CURRENT_STATE منفصلًا لتسجيل الحالة الحالية.
+
+### Final Status
+
+`MAIN2 = OPEN`
+
+ولا يوجد ادعاء بإغلاق المشروع أو Runtime أو Production equivalence.
