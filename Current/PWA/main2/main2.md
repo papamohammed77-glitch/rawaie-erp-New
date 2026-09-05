@@ -328,6 +328,9 @@ function _jsString(s) {
     return JSON.stringify(s == null ? '' : String(s));
 }
 
+function _jsAttr(s) {
+    return _esc(_jsString(s));
+}
     function _fmtNum(n) {
         return Number(n || 0).toLocaleString();
     }
@@ -537,13 +540,13 @@ function _jsString(s) {
             var img = item.image_url || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22150%22%3E%3Crect fill=%22%23e2e8f0%22 width=%22150%22 height=%22150%22/%3E%3Ctext fill=%22%2394a3b8%22 font-family=%22Arial%22 font-size=%2214%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3E📦%3C/text%3E%3C/svg%3E';
             var status = _getStockStatus(item);
             var rowHtml = '<tr class="hover:bg-blue-50"><td class="p-3 text-center text-xs text-gray-400">' + (idx + 1) + '</td>' +
-                '<td class="p-4 cursor-pointer" onclick="RW_Items.openItemPage(\'' + _esc(item.item_code) + '\')"><div class="flex items-center gap-3">' +
-                '<img src="' + img + '" class="h-24 w-24 rounded-xl object-cover border-2 border-gray-100 shadow-sm cursor-pointer" onerror="this.src=\'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22150%22%3E%3Crect fill=%22%23e2e8f0%22 width=%22150%22 height=%22150%22/%3E%3Ctext fill=%22%2394a3b8%22 font-family=%22Arial%22 font-size=%2214%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3E📦%3C/text%3E%3C/svg%3E\'" onclick="event.stopPropagation(); RW_Items._viewImage(\'' + img + '\')" title="اضغط لتكبير الصورة">' +
-                '<div><span class="font-bold text-base">' + (item.name||'') + '</span><br><span class="text-xs text-gray-400">' + (item.item_code||'') + '</span></div></div></td>' +
-                '<td class="p-4 text-gray-500">' + (item.category||'-') + '</td>' +
+                '<td class="p-4 cursor-pointer" onclick="RW_Items.openItemPage(' + _jsAttr(item.item_code) + ')"><div class="flex items-center gap-3">' +
+                '<img src="' + _esc(img) + '" class="h-24 w-24 rounded-xl object-cover border-2 border-gray-100 shadow-sm cursor-pointer" onerror="this.src=\'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22150%22%3E%3Crect fill=%22%23e2e8f0%22 width=%22150%22 height=%22150%22/%3E%3Ctext fill=%22%2394a3b8%22 font-family=%22Arial%22 font-size=%2214%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3E📦%3C/text%3E%3C/svg%3E\'" onclick="event.stopPropagation(); RW_Items._viewImage(' + _jsAttr(img) + ')" title="اضغط لتكبير الصورة">' +
+                '<div><span class="font-bold text-base">' + _esc(item.name||'') + '</span><br><span class="text-xs text-gray-400">' + _esc(item.item_code||'') + '</span></div></div></td>' +
+                '<td class="p-4 text-gray-500">' + _esc(item.category||'-') + '</td>' +
                 '<td class="p-4 text-center font-bold text-blue-600">' + _fmtNum(item.sales_price) + ' EGP</td>';
             var totalStock = item._totalStock || 0;
-            rowHtml += '<td class="p-4 text-center font-bold cursor-pointer underline text-blue-600" onclick="RW_Items._switchSubTab(\'movement\'); setTimeout(function(){ RW_Items._renderStockMovementReport(\'' + _esc(item.item_code) + '\',\'' + _esc(item.name).replace(/'/g, "\\'") + '\',null); },200);">' + totalStock + '</td>';
+            rowHtml += '<td class="p-4 text-center font-bold cursor-pointer underline text-blue-600" onclick="RW_Items._switchSubTab(\'movement\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',null); },200);">' + totalStock + '</td>';
             var branchStock = item._branchStock || {};
             for (var b2 = 0; b2 < branchIds.length; b2++) {
                 var bid2 = branchIds[b2];
@@ -552,7 +555,8 @@ function _jsString(s) {
                 for (var bn2 = 0; bn2 < branches.length; bn2++) {
                     if ((branches[bn2].id || branches[bn2].branch_code) === bid2) { branchName2 = branches[bn2].name || branches[bn2].branch_code || bid2; break; }
                 }
-                rowHtml += '<td class="p-4 text-center cursor-pointer underline text-blue-600 text-xs" onclick="RW_Items._switchSubTab(\'movement\'); setTimeout(function(){ RW_Items._renderStockMovementReport(\'' + _esc(item.item_code) + '\',\'' + _esc(item.name).replace(/'/g, "\\'") + '\',\'' + _esc(bid2) + '\',\'' + _esc(branchName2).replace(/'/g, "\\'") + '\'); },200);">' + st.qty + '</td>';
+                rowHtml += '<td class="p-4 text-center cursor-pointer underline text-blue-600 text-xs" onclick="RW_Items._switchSubTab(\\'movement\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',' + _jsAttr(bid2) + ',' + _jsAttr(branchName2) + '); },200);">' + st.qty + '</td>';
+\'' + _esc(item.item_code) + '\',\'' + _esc(item.name).replace(/'/g, "\\'") + '\',' + _jsAttr(bid2) + ',' + _jsAttr(branchName2) + ') + '\'); },200);">' + st.qty + '</td>';
             }
             rowHtml += '<td class="p-4 text-center"><span class="px-2 py-1 rounded-full text-xs font-bold ' + status.color + '">' + status.label + '</span></td></tr>';
             return rowHtml;
@@ -584,7 +588,7 @@ function _jsString(s) {
                 var it = itemsData[i];
                 var selected = '';
                 if (itemCode && it.item_code === itemCode) selected = ' selected';
-                sel.innerHTML += '<option value="' + _esc(it.item_code) + '"' + selected + '>' + (it.name||'') + ' (' + (it.item_code||'') + ')</option>';
+                sel.innerHTML += '<option value="' + _esc(it.item_code) + '"' + selected + '>' + _esc(it.name||'') + ' (' + _esc(it.item_code||'') + ')</option>';
             }
         }
             window._movementItemCode = itemCode;
@@ -643,7 +647,7 @@ var vouchersRes = await vouchersQuery.order('voucher_date', { ascending: true })
                 }
                 var movementQty = isOut ? -qty : qty;
                 runningBalance += movementQty;
-                html += '<tr class="border-t"><td class="p-2 text-xs">' + (d+1) + '</td><td class="p-2">' + (voucher.voucher_date||'') + '</td><td class="p-2">' + (voucher.type||'') + '</td><td class="p-2 text-center font-bold ' + (movementQty>=0?'text-green-600':'text-red-600') + '">' + (movementQty>=0?'+':'') + movementQty + '</td><td class="p-2 text-center font-bold">' + runningBalance + '</td><td class="p-2">' + (branchName||'-') + '</td><td class="p-2 text-xs">' + (voucher.voucher_code||'') + '</td></tr>';
+                html += '<tr class="border-t"><td class="p-2 text-xs">' + (d+1) + '</td><td class="p-2">' + _esc(voucher.voucher_date||'') + '</td><td class="p-2">' + _esc(voucher.type||'') + '</td><td class="p-2 text-center font-bold ' + (movementQty>=0?'text-green-600':'text-red-600') + '">' + (movementQty>=0?'+':'') + movementQty + '</td><td class="p-2 text-center font-bold">' + runningBalance + '</td><td class="p-2">' + (branchName||'-') + '</td><td class="p-2 text-xs">' + _esc(voucher.voucher_code||'') + '</td></tr>';
             }
             html += '</tbody></table>';
             hideLoader();
@@ -667,7 +671,7 @@ var vouchersRes = await vouchersQuery.order('voucher_date', { ascending: true })
         // بناء قائمة منسدلة للفروع
         var branchSelectHTML = '<select id="matrix-branch-select" class="p-2.5 bg-gray-50 border rounded-lg text-sm w-full md:w-60" onchange="RW_Items._filterMatrix()"><option value="">جميع الفروع</option>';
         for (var bi = 0; bi < branches.length; bi++) {
-            branchSelectHTML += '<option value="' + branches[bi].id + '">' + (branches[bi].name || branches[bi].branch_code) + '</option>';
+            branchSelectHTML += '<option value="' + _esc(branches[bi].id) + '">' + _esc(branches[bi].name || branches[bi].branch_code) + '</option>';
         }
         branchSelectHTML += '</select>';
 
@@ -681,7 +685,8 @@ var vouchersRes = await vouchersQuery.order('voucher_date', { ascending: true })
         var controlsHtml = '<div id="matrix-tbody-controls"></div>';
         safeHTML(content, html + controlsHtml);
         RW_Table.paginate('matrix-tbody', sorted, 1, 50, function(item, idx) {
-            var rowHtml = '<tr class="border-t hover:bg-gray-50"><td class="p-3 cursor-pointer font-bold text-blue-600" onclick="RW_Items._switchSubTab(\'movement\'); setTimeout(function(){ RW_Items._renderStockMovementReport(\'' + _esc(item.item_code) + '\',\'' + _esc(item.name).replace(/'/g, "\\'") + '\',null); },200);">' + (item.name||'') + ' <span class="text-xs text-gray-400">(' + (item.item_code||'') + ')</span></td><td class="p-3 text-center font-bold">' + (item._totalStock||0) + '</td>';
+            var rowHtml = '<tr class="border-t hover:bg-gray-50"><td class="p-3 cursor-pointer font-bold text-blue-600" onclick="RW_Items._switchSubTab(\\'movement\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',null); },200);">' + _esc(item.name) + ' <span class="text-xs text-gray-400">(' + _esc(item.item_code) + ')</span></td><td class="p-3 text-center font-bold">' + (item._totalStock||0) + '</td>';
+ setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',null); },200);">' + _esc(item.name||'') + ' <span class="text-xs text-gray-400">(' + (item.item_code||'') + ')</span></td><td class="p-3 text-center font-bold">' + (item._totalStock||0) + '</td>';
             var branchStock = item._branchStock || {};
             for (var b2 = 0; b2 < branchIds.length; b2++) {
                 var bid2 = branchIds[b2]; var st = branchStock[bid2] || { qty: 0, allocated: 0 }; var branchName2 = '';
@@ -714,7 +719,8 @@ var vouchersRes = await vouchersQuery.order('voucher_date', { ascending: true })
         var branchIds = window._itemsBranchIds || [];
         var branches = window._itemsBranches || [];
         RW_Table.paginate('matrix-tbody', data, 1, 50, function(item, idx) {
-            var rowHtml = '<tr class="border-t hover:bg-gray-50"><td class="p-3 cursor-pointer font-bold text-blue-600" onclick="RW_Items._switchSubTab(\'movement\'); setTimeout(function(){ RW_Items._renderStockMovementReport(\'' + _esc(item.item_code) + '\',\'' + _esc(item.name).replace(/'/g, "\\'") + '\',null); },200);">' + (item.name||'') + ' <span class="text-xs text-gray-400">(' + (item.item_code||'') + ')</span></td><td class="p-3 text-center font-bold">' + (item._totalStock||0) + '</td>';
+            var rowHtml = '<tr class="border-t hover:bg-gray-50"><td class="p-3 cursor-pointer font-bold text-blue-600" onclick="RW_Items._switchSubTab(\\'movement\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',null); },200);">' + _esc(item.name) + ' <span class="text-xs text-gray-400">(' + _esc(item.item_code) + ')</span></td><td class="p-3 text-center font-bold">' + (item._totalStock||0) + '</td>';
+ setTimeout(function(){ RW_Items._renderStockMovementReport(\'' + _esc(item.item_code) + '\',\'' + _esc(item.name).replace(/'/g, "\\'") + '\',null); },200);">' + _esc(item.name||'') + ' <span class="text-xs text-gray-400">(' + (item.item_code||'') + ')</span></td><td class="p-3 text-center font-bold">' + (item._totalStock||0) + '</td>';
             var branchStock = item._branchStock || {};
             for (var b2 = 0; b2 < branchIds.length; b2++) {
                 var bid2 = branchIds[b2]; var st = branchStock[bid2] || { qty: 0, allocated: 0 }; var branchName2 = '';
@@ -739,7 +745,7 @@ var vouchersRes = await vouchersQuery.order('voucher_date', { ascending: true })
         for (var br = 0; br < branches.length; br++) {
             var bv = branches[br].branch_code || branches[br].id || '';
             var bn = branches[br].name || bv;
-            branchOptions += '<option value="' + bv + '">' + bn + '</option>';
+            branchOptions += '<option value="' + _esc(bv) + '">' + _esc(bn) + '</option>';
         }
         var container = byId('rw-page-container');
         if (!container) return;
@@ -753,25 +759,25 @@ var vouchersRes = await vouchersQuery.order('voucher_date', { ascending: true })
         html += '<button onclick="RW_Items._switchItemTab(\'marketing\')" class="px-4 py-2 rounded-xl font-bold text-sm text-gray-500" id="item-tab-marketing">العروض والتسويق</button>';
         html += '</div>';
         // تبويب الأساسي
-        html += '<div id="item-panel-basic"><div class="bg-white rounded-2xl shadow-sm border p-6 space-y-4"><input type="hidden" id="item-code-hidden" value="' + (item ? item.item_code : '') + '"><input type="hidden" id="item-existing-image" value="' + (item ? (item.image_url || '') : '') + '"><div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">الباركود</label><input id="item-barcode" value="' + (item ? (item.barcode || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">اسم المنتج *</label><input id="item-name" value="' + (item ? (item.name || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+        html += '<div id="item-panel-basic"><div class="bg-white rounded-2xl shadow-sm border p-6 space-y-4"><input type="hidden" id="item-code-hidden" value="' + _esc(item ? item.item_code : '') + '"><input type="hidden" id="item-existing-image" value="' + _esc(item ? (item.image_url || '') : '') + '"><div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">الباركود</label><input id="item-barcode" value="' + _esc(item ? (item.barcode || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">اسم المنتج *</label><input id="item-name" value="' + _esc(item ? (item.name || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
         html += '<div class="flex flex-col"><label class="text-sm font-bold">التصنيف</label><select id="item-cat" class="p-2.5 bg-gray-50 border rounded-lg"><option value="">بدون تصنيف</option></select></div>';
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">الوحدة الأساسية</label><input id="item-unit" value="' + (item ? (item.unit || 'حبة') : 'حبة') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">الوحدة البديلة</label><input id="item-altunit" value="' + (item ? (item.alt_unit || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">عدد الوحدات البديلة</label><input id="item-altqty" type="number" value="' + (item ? (item.alt_unit_qty || 0) : 0) + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">الوزن</label><input id="item-weight" value="' + (item ? (item.weight_kg || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">الحجم</label><input id="item-vol" value="' + (item ? (item.volume_m3 || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
-        html += '<div class="md:col-span-2 flex flex-col"><label class="text-sm font-bold">الوصف</label><textarea id="item-desc" rows="3" class="p-2.5 bg-gray-50 border rounded-lg">' + (item ? (item.description || '') : '') + '</textarea></div>';
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">الوحدة الأساسية</label><input id="item-unit" value="' + _esc(item ? (item.alt_unit || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">الوحدة البديلة</label><input id="item-altunit" value="' + _esc(item ? (item.alt_unit || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">عدد الوحدات البديلة</label><input id="item-altqty" type="number" value="'+ _esc(item ? (item.alt_unit_qty || 0) : 0) + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">الوزن</label><input id="item-weight" value="' + _esc(item ? (item.weight_kg || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">الحجم</label><input id="item-vol" value="' + _esc(item ? (item.volume_m3 || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+        html += '<div class="md:col-span-2 flex flex-col"><label class="text-sm font-bold">الوصف</label><textarea id="item-desc" rows="3" class="p-2.5 bg-gray-50 border rounded-lg">' + _esc(item ? (item.description || '') : '') + '</textarea></div>';
         html += '</div></div></div>';
         // تبويب الأسعار والمخزون
         html += '<div id="item-panel-pricing" class="hidden"><div class="bg-white rounded-2xl shadow-sm border p-6 space-y-4"><div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">سعر البيع</label><input id="item-price" type="number" value="' + (item ? (item.sales_price || 0) : 0) + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">السعر القديم</label><input id="item-oprice" type="number" value="' + (item ? (item.old_price || 0) : 0) + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">حد إعادة الطلب</label><input id="item-reorder" type="number" value="' + (item ? (item.reorder_point || 5) : 5) + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">الحد الأقصى للطلب</label><input id="item-maxqty" type="number" value="' + (item ? (item.max_qty || 0) : 0) + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">الحد الأقصى في الطلب الواحد</label><input id="item-maxqty-per-order" type="number" value="' + (item ? (item.max_qty_per_order || 0) : 0) + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">الترتيب في المتجر</label><input id="item-sort-order" type="number" value="' + (item ? (item.sort_order || 0) : 0) + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">سعر البيع</label><input id="item-price" type="number" value="' + _esc(item ? (item.sales_price || 0) : 0) + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">السعر القديم</label><input id="item-oprice" type="number" value="' + _esc(item ? (item.old_price || 0) : 0) + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">حد إعادة الطلب</label><input id="item-reorder" type="number" value="' + _esc(item ? (item.reorder_point || 5) : 5) + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">الحد الأقصى للطلب</label><input id="item-maxqty" type="number" value="' + _esc(item ? (item.max_qty || 0) : 0) + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">الحد الأقصى في الطلب الواحد</label><input id="item-maxqty-per-order" type="number" value="' + _esc(item ? (item.max_qty_per_order || 0) : 0) + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">الترتيب في المتجر</label><input id="item-sort-order" type="number" value="' + _esc(item ? (item.sort_order || 0) : 0) + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
         html += '</div>';
         if (!isEdit) {
             html += '<div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4"><h4 class="font-bold text-amber-700 mb-3"><i class="fa-solid fa-boxes-stacked ml-2"></i>الرصيد الافتتاحي (اختياري)</h4><div class="grid grid-cols-2 gap-4"><div class="flex flex-col"><label class="text-sm text-amber-700">الفرع</label><select id="item-opening-branch" class="p-2.5 bg-white border rounded-lg"><option value="">-- اختر فرعاً --</option>' + branchOptions + '</select></div><div class="flex flex-col"><label class="text-sm text-amber-700">الكمية الافتتاحية</label><input id="item-opening-qty" type="number" value="0" min="0" class="p-2.5 bg-white border rounded-lg"></div></div></div>';
@@ -779,17 +785,17 @@ var vouchersRes = await vouchersQuery.order('voucher_date', { ascending: true })
         html += '</div></div>';
         // تبويب العروض والتسويق
         html += '<div id="item-panel-marketing" class="hidden"><div class="bg-white rounded-2xl shadow-sm border p-6 space-y-4"><h3 class="font-bold text-lg text-indigo-600"><i class="fa-solid fa-rectangle-ad ml-2"></i>إعدادات العروض والتسويق</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">نسبة الخصم (%)</label><input id="item-discount-percent" type="number" value="' + (item ? (item.discount_percent || 0) : 0) + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">نص الشارة</label><input id="item-badge-text" value="' + (item ? (item.badge_text || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg" placeholder="جديد، الأكثر مبيعاً، عرض محدود"></div>';
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">تاريخ بداية العرض</label><input id="item-discount-start" type="date" value="' + (item ? (item.discount_start || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
-        html += '<div class="flex flex-col"><label class="text-sm font-bold">تاريخ نهاية العرض</label><input id="item-discount-end" type="date" value="' + (item ? (item.discount_end || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">نسبة الخصم (%)</label><input id="item-discount-percent" type="number" value="' + _esc(item ? (item.discount_percent || 0) : 0) + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">نص الشارة</label><input id="item-badge-text" value="' + _esc(item ? (item.badge_text || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg" placeholder="جديد، الأكثر مبيعاً، عرض محدود"></div>';
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">تاريخ بداية العرض</label><input id="item-discount-start" type="date" value="' + _esc(item ? (item.discount_start || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+        html += '<div class="flex flex-col"><label class="text-sm font-bold">تاريخ نهاية العرض</label><input id="item-discount-end" type="date" value="' + _esc(item ? (item.discount_end || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
         html += '</div><div class="flex items-center gap-8 p-4 bg-gray-50 rounded-xl mt-4">';
         html += '<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="item-is-daily-deal" ' + (item && item.is_daily_deal ? 'checked' : '') + '><span class="font-bold text-sm">عرض اليوم</span></label>';
         html += '<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="item-is-active" ' + (item && item.is_active !== false ? 'checked' : '') + '><span class="font-bold text-sm">نشط</span></label>';
         html += '<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="item-show-in-store" ' + (item && item.show_in_store !== false ? 'checked' : '') + '><span class="font-bold text-sm">الظهور في المتجر الإلكتروني</span></label>';
         html += '</div></div></div>';
         // قسم الصورة
-        html += '<div class="bg-white rounded-2xl shadow-sm border p-6 mt-4"><h4 class="font-bold mb-3">صورة المنتج</h4><div class="flex items-center gap-4"><div class="w-32 h-32 rounded-xl border-2 border-dashed bg-gray-50 flex items-center justify-center overflow-hidden"><img id="item-img-preview" src="' + (item && item.image_url ? item.image_url : 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22128%22 height=%22128%22%3E%3Crect fill=%22%23e2e8f0%22 width=%22128%22 height=%22128%22/%3E%3Ctext fill=%22%2394a3b8%22 font-size=%2216%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3E📦%3C/text%3E%3C/svg%3E') + '" class="max-w-full max-h-full object-contain"></div><div><input type="file" id="item-image-file" accept="image/*" class="text-xs file:py-2 file:px-4 file:rounded-lg file:bg-blue-50 file:text-blue-700"><p class="text-xs text-gray-500 mt-1">يفضل صورة مربعة</p></div></div></div>';
+        html += '<div class="bg-white rounded-2xl shadow-sm border p-6 mt-4"><h4 class="font-bold mb-3">صورة المنتج</h4><div class="flex items-center gap-4"><div class="w-32 h-32 rounded-xl border-2 border-dashed bg-gray-50 flex items-center justify-center overflow-hidden"><img id="item-img-preview" src="' + _esc(item && item.image_url ? item.image_url : 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22128%22 height=%22128%22%3E%3Crect fill=%22%23e2e8f0%22 width=%22128%22 height=%22128%22/%3E%3Ctext fill=%22%2394a3b8%22 font-size=%2216%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3E📦%3C/text%3E%3C/svg%3E') + '" class="max-w-full max-h-full object-contain"></div><div><input type="file" id="item-image-file" accept="image/*" class="text-xs file:py-2 file:px-4 file:rounded-lg file:bg-blue-50 file:text-blue-700"><p class="text-xs text-gray-500 mt-1">يفضل صورة مربعة</p></div></div></div>';
         // أزرار
         html += '<div class="flex justify-end gap-3 mt-6">';
         if (isEdit) html += '<button onclick="RW_Items._handleDeleteFromPage()" class="px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold mr-auto"><i class="fa-solid fa-trash ml-1"></i> حذف الصنف</button>';
@@ -1003,8 +1009,8 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
           for (var i = 0; i < categories.length; i++) {
             var catId = categories[i].id;
             var catName = categories[i].category_name || '';
-            html += '<div class="flex justify-between items-center p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-indigo-50" onclick="RW_Items._editCategory(\'' + catId + '\', \'' + catName.replace(/'/g, "\\'") + '\')">';
-            html += '<span class="font-bold text-sm">' + catName + '</span>';
+            html += '<div class="flex justify-between items-center p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-indigo-50" onclick="RW_Items._editCategory(' + _jsAttr(catId) + ', ' + _jsAttr(catName) + ')">';
+            html += '<span class="font-bold text-sm">' + _esc(catName) + '</span>';
             html += '</div>';
           }
           html += '</div>';
@@ -1080,7 +1086,7 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
     function _editCategory(id, currentName) {
       Swal.fire({
         title: 'تعديل التصنيف',
-        html: '<div class="text-right"><label class="block text-sm font-bold mb-2">الاسم</label><input id="swal-edit-cat-name" class="swal2-input w-full text-right rounded-xl" value="' + (currentName || '') + '"></div>',
+        html: '<div class="text-right"><label class="block text-sm font-bold mb-2">الاسم</label><input id="swal-edit-cat-name" class="swal2-input w-full text-right rounded-xl" value="' + _esc(currentName || '') + '"></div>',
         showCancelButton: true,
         confirmButtonText: 'حفظ',
         cancelButtonText: 'إلغاء',
@@ -1150,12 +1156,12 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
             var cats = catRes.data || [];
             var options = '';
             for (var i = 0; i < cats.length; i++) {
-              options += '<option value="' + cats[i].id + '">' + cats[i].category_name + '</option>';
+              options += '<option value="' + _esc(cats[i].id) + '">' + _esc(cats[i].category_name) + '</option>';
             }
             
             Swal.fire({
               title: 'لا يمكن حذف التصنيف',
-              html: '<p class="text-sm">يوجد أصناف تستخدم تصنيف "' + name + '".</p><p class="text-sm mt-2">اختر تصنيفًا بديلاً لنقلها إليه:</p><select id="replacement-cat" class="swal2-input">' + options + '</select>',
+              html: '<p class="text-sm">يوجد أصناف تستخدم تصنيف "' + _esc(name) + '".</p><p class="text-sm mt-2">اختر تصنيفًا بديلاً لنقلها إليه:</p><select id="replacement-cat" class="swal2-input">' + options + '</select>',
               showCancelButton: true,
               confirmButtonText: 'نقل وحذف',
               cancelButtonText: 'إلغاء',
@@ -1239,7 +1245,7 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
             var categories = res.data || [];
             var html = '<option value="">كل التصنيفات</option>';
             for (var i = 0; i < categories.length; i++) {
-                html += '<option value="' + _esc(categories[i].category_name) + '">' + categories[i].category_name + '</option>';
+                html += '<option value="' + _esc(categories[i].category_name) + '">' + _esc(categories[i].category_name) + '</option>';
             }
             safeHTML(sel, html);
         });
@@ -1277,6 +1283,7 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
     function _handleFileSelect(input) {
         var file = input.files[0];
         if (!file) return;
+		_uploadFileData = [];
         _uploadOperationId = null;
         _uploadOperationFingerprint = null;
 
