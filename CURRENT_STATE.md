@@ -6,18 +6,15 @@
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
 CURRENT GIT HEAD AFTER THIS STATE UPDATE = THIS COMMIT
-PREVIOUS VERIFIED HEAD = d9509d06a14ee8dde9621f79c72c212022179ef4
-MAIN2 SOURCE MUTATION COMMIT = 8e5fe0d7427f8e16a8094da9e86a26e486c9cea3
-REPORT62 COMMIT = cd1fcb9c126d43b238360cf0b795c1cf5e1c7b61
-REPORT63 COMMIT = c8b2f094dd44bcadf2ff2571acf73ec96ca091f0
-REPORT64 COMMIT = THIS DOCUMENTATION UPDATE
+PREVIOUS VERIFIED HEAD = c02d937f88604c22520c7f2a63651d5997a8b885
+REPORT65 COMMIT = 7dfe2e7da5058f97c50990ed1e0be30b241f9a51
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
 ```
 
 ## GOVERNANCE
 
 ```text
-CURRENT REALITY > CURRENT GIT > CURRENT PRODUCTION > DEPLOYMENTS > DATABASE CONTRACTS > HISTORY > REPORTS > MEMORY > ASSUMPTIONS
+CURRENT REALITY > CURRENT GIT > CURRENT PRODUCTION > CURRENT DEPLOYMENTS > CURRENT DATABASE CONTRACTS > HISTORICAL CONTRACTS > REPORTS > MEMORY > ASSUMPTIONS
 UNKNOWN != BUG
 UNKNOWN != REMOVE
 READ → VERIFY → RECONCILE → UNDERSTAND → PATCH → VERIFY
@@ -32,38 +29,29 @@ Primary governance source: `doc/Draft/medhat/MASTER - RAWAEA ERP.md`.
 ## LAST VERIFIED EVENTS
 
 ```text
-8e5fe0d7427f8e16a8094da9e86a26e486c9cea3
-Refactor functions and enhance voucher query logic
-= ACTUAL MAIN2 SOURCE MUTATION
-= M2-07R source cleanup
-= M2-09 voucher query/date/branch wiring
-= M2-12 duplicate-barcode handling
-= M2-11 _esc/_jsString helper addition
-
-c8b2f094dd44bcadf2ff2571acf73ec96ca091f0
-Report63 Main2 inline-JS surgical re-check
-= DOCUMENTATION ONLY
-= main2.md NOT modified by this report
-
 40a7fdc94b8c1feae64f2de40c6a3322c9b50e9d
-Current Main2 source recheck target
-= main2.md contains manual Report63-derived changes
-= _jsAttr exists
-= three residual legacy fragments remain in targeted row builders
+Report63-derived manual Main2 changes
+= _jsAttr added
+= corrected inline-JS expressions added
 
-681ac43d50cbe16f5fb85f847b9594a8db6c0c92
-Report64 Main2 surgical reconciliation
+c02d937f88604c22520c7f2a63651d5997a8b885
+Latest Main2 source mutation before this session
+= current Main2 blob became 567224df...
+= introduced/retained structural corruption in matrix rowHtml
+= followed earlier manual deletion that removed a required loop brace
+
+7dfe2e7da5058f97c50990ed1e0be30b241f9a51
+Report65 current-source reconciliation
 = DOCUMENTATION ONLY
-= main2.md NOT modified by Report64
-
-CURRENT_STATE FINAL UPDATE = THIS COMMIT
+= main2.md NOT modified by this session
+= current Git/Production/state reconciled
 ```
 
-Historical reports are preserved. No prior report was deleted.
+Historical reports are preserved. No previous report was deleted.
 
 ## PRODUCTION TRUTH — DIRECT
 
-Verified directly at `2026-09-05 05:53:42.840035 UTC`:
+Verified directly at `2026-09-05 06:25:09.463307 UTC`:
 
 ```text
 companies       = 1
@@ -74,10 +62,10 @@ branches        = 2
 items           = 17
 stock_branches  = 20
 inventory_log   = 3
-DUPLICATE NON-EMPTY BARCODES = 0
+duplicate non-empty barcode groups = 0
 ```
 
-Schema facts re-confirmed from Production evidence:
+Relevant schema facts re-confirmed from Production evidence:
 
 ```text
 items.item_code UNIQUE globally
@@ -86,19 +74,31 @@ receiving.operation_id UNIQUE
 items.barcode NOT UNIQUE
 ```
 
+No permanent business data was added or changed by this Main2 review session.
+
 ## MAIN2 SOURCE TRUTH
 
 ```text
 PATH = Current/PWA/main2/main2.md
-CURRENT SOURCE BLOB = b9d1249b390935e51d784836de7f4473969ece77
-MAIN2 SOURCE MODIFIED BY Report64 = NO
-MAIN2 SOURCE CONTAINS Report63-derived manual changes = YES
-CURRENT GIT HEAD BEFORE THIS STATE UPDATE = 681ac43d50cbe16f5fb85f847b9594a8db6c0c92
+CURRENT SOURCE BLOB BEFORE REPORT65 = 567224dfb0429f62849d2e82ba5414c070add4bb
+CURRENT GIT HEAD BEFORE REPORT65 = c02d937f88604c22520c7f2a63651d5997a8b885
+MAIN2 SOURCE MODIFIED BY THIS SESSION = NO
 ```
 
-The earlier statement that `_jsAttr` was absent is now superseded by direct inspection of the current Main2 source.
+The earlier `b9d1249...` blob recorded by Report64/CURRENT_STATE is historical and superseded by later direct Git evidence.
 
-## MAIN2 MATRIX
+## REPORT64 RECONCILIATION
+
+Report64 was valid for the source state it inspected (`40a7...`). However, later manual commits changed Main2.
+
+```text
+Report64 target state = historical
+Current target state = c02d937... / blob 567224...
+```
+
+Therefore Report64's delete-only instructions are superseded by the exact current-source corrections in Report65.
+
+## CURRENT MAIN2 MATRIX
 
 ```text
 M2-01 = CLOSED
@@ -111,13 +111,15 @@ M2-07R = CLOSED IN CURRENT SOURCE
 M2-08 = CLOSED
 M2-09 = CLOSED IN CURRENT SOURCE
 M2-10 = OPEN / CROSS-LAYER SERVER AUTHORIZATION
-M2-11 = OPEN / REMAINING RAW HTML + INLINE-JS HARDENING
+M2-11 = OPEN / STRUCTURAL + INLINE-JS SOURCE CLEANUP REQUIRED
 M2-12 = CLOSED IN CURRENT SOURCE
 ```
 
+No closed M2 item was reopened based only on old reports; the current findings are limited to directly observed current-source breakage.
+
 ## M2-11 — CURRENT EXACT MANUAL PATCH STATUS
 
-Current source already contains:
+The helper already exists and must not be duplicated:
 
 ```javascript
 function _esc(s) {
@@ -133,150 +135,158 @@ function _jsAttr(s) {
 }
 ```
 
-Therefore `_jsAttr` must NOT be added again.
+### Required correction 1 — `_renderTable()`
 
-The remaining manual task is limited to removing three residual legacy fragments introduced alongside the new `_jsAttr` expressions:
+The current source contains the correct branch-cell builder but the closing brace of its `for (var b2...)` loop is missing.
+
+Exact action:
 
 ```text
-1. One orphan legacy fragment in _renderTable() immediately after the correct branch-stock row builder.
-2. One orphan legacy fragment in _renderBranchStockMatrix() immediately after the correct first rowHtml builder.
-3. One orphan legacy fragment in _renderBranchStockMatrixFiltered() immediately after the correct first rowHtml builder.
+ابحث داخل function _renderTable(data) عن السطر الذي يبني خلية الفرع باستخدام _jsAttr(item.item_code) و _jsAttr(branchName2).
+اترك هذا السطر كما هو.
+ابحث بعده مباشرة عن سطر status-cell الذي يبدأ بـ rowHtml += '<td class="p-4 text-center">.
+أضف فوق status-cell مباشرة:
+            }
 ```
 
-The exact delete-only instructions are documented in:
+### Required correction 2 — `_renderBranchStockMatrix()` first row
 
-```text
-Report64_Main2_Surgical_Reconciliation_20260905.md
+ابحث عن السطر المقطوع الذي يبدأ بـ:
+
+```javascript
+var rowHtml = '<tr class="border-t hover:bg-gray-50"><td class="p-3 cursor-pointer font-bold text-blue-600" onclick="RW_Items._switchSubTab(\\'movement\\');
 ```
 
-## M2-07R / M2-09 / M2-12 CURRENT SOURCE STATUS
+احذف السطر المقطوع كاملًا واستبدله بـ:
 
-Commit `8e5fe0d...` contains the previously authorized source changes:
-
-```text
-M2-07R = _uploadFileData cleared + file input reset after success
-M2-09 = stock_vouchers query now uses date + branch filters
-M2-12 = duplicate barcode rows are invalid instead of silently last-write-wins
+```javascript
+            var rowHtml = '<tr class="border-t hover:bg-gray-50"><td class="p-3 cursor-pointer font-bold text-blue-600" onclick="RW_Items._switchSubTab(\\'movement\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',null); },200);">' + _esc(item.name) + ' <span class="text-xs text-gray-400">(' + _esc(item.item_code) + ')</span></td><td class="p-3 text-center font-bold">' + (item._totalStock||0) + '</td>';
 ```
 
-These remain closed in current source unless new contradictory direct evidence appears.
+### Required correction 3 — `_renderBranchStockMatrix()` branch cell
 
-## M2-10 — OPEN
+ابحث داخل نفس الدالة عن خلية الفرع التي تستخدم `_esc(item.item_code).replace(/'/g, ...)`.
 
-Production `delete-item` authorization remains a separate server-side closure. Do not claim closure by UI hiding alone and do not invent a permission key.
+احذف السطر كاملًا واستبدله بـ:
 
-## M2-11 — OPEN
-
-The current Main2 source is not yet cleanly closed because the manual Report63-derived changes contain three residual legacy fragments. The correct helper and new row-builder expressions are already present. Browser/runtime and final syntax validation remain pending after the manual deletes.
-
-## M2-12 — CLOSED IN CURRENT SOURCE
-
-The current upload-preview mapping now detects duplicate barcode keys and marks them invalid. Production currently has zero duplicate non-empty barcodes, so this is preventive hardening rather than data cleanup.
-
-## SEMANTIC UNKNOWN — DO NOT PATCH
-
-```text
-Dashboard net profit = totalSales - totalPurchases
-Top Customers = grouped by customer_name
-branchIds fallback
+```javascript
+                rowHtml += '<td class="p-3 text-center cursor-pointer underline text-blue-600 text-xs" onclick="RW_Items._switchSubTab(\\'movement\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',' + _jsAttr(bid2) + ',' + _jsAttr(branchName2) + '); },200);">' + st.qty + '</td>';
 ```
 
-Business contract is unproven; do not change these in this closure.
+### Required correction 4 — `_renderBranchStockMatrixFiltered()` first row
 
-## INVENTORY CONTRACT
+ابحث عن:
 
-```text
-PHYSICAL STOCK MOVEMENT
-    ↓
-post_stock_movement
-    ↓
-stock_branches + inventory_log
+```javascript
+function _renderBranchStockMatrixFiltered(data) {
 ```
 
-`reserve_stock` and `release_stock_reservation` remain reservation capabilities.
+ثم ابحث عن نفس السطر المقطوع الذي يبدأ بـ:
 
-## EVIDENCE / REPORTS
-
-```text
-Report59_Main2_Surgical_Forensic_20260905.md
-Report60_Main2_Surgical_Completion_20260905.md
-Report61_Main2_Deep_Forensic_Continuation_20260905.md
-Report62_Main2_Surgical_Recheck_20260905.md
-Report63_Main2_Surgical_InlineJS_Recheck_20260905.md
-Report64_Main2_Surgical_Reconciliation_20260905.md
+```javascript
+var rowHtml = '<tr class="border-t hover:bg-gray-50"><td class="p-3 cursor-pointer font-bold text-blue-600" onclick="RW_Items._switchSubTab(\\'movement\\');
 ```
 
-## WHAT THIS SESSION CHANGED
+احذفه كاملًا واستبدله بنفس السطر المصحح:
 
-```text
-Report64 = ADDED
-CURRENT_STATE = UPDATED
-main2.md = NOT MODIFIED BY Report64
-New-main = NOT MODIFIED
-main1.md = NOT MODIFIED BY Report64
-main3…main11 = NOT MODIFIED BY Report64
-core.js = NOT MODIFIED BY Report64
-sw.js = NOT MODIFIED BY Report64
-register-sw.js = NOT MODIFIED BY Report64
-manifest.json = NOT MODIFIED BY Report64
-Production business data = NOT MODIFIED BY Report64
+```javascript
+            var rowHtml = '<tr class="border-t hover:bg-gray-50"><td class="p-3 cursor-pointer font-bold text-blue-600" onclick="RW_Items._switchSubTab(\\'movement\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',null); },200);">' + _esc(item.name) + ' <span class="text-xs text-gray-400">(' + _esc(item.item_code) + ')</span></td><td class="p-3 text-center font-bold">' + (item._totalStock||0) + '</td>';
 ```
 
-## CURRENT SOURCE EXECUTION STATUS
+### Required correction 5 — `_renderBranchStockMatrixFiltered()` branch cell
+
+ابحث داخل نفس الدالة عن خلية الفرع التي تستخدم:
+
+```javascript
+_esc(item.item_code).replace(/'/g, ...)
+```
+
+احذف السطر كاملًا واستبدله بـ:
+
+```javascript
+                rowHtml += '<td class="p-3 text-center cursor-pointer underline text-blue-600 text-xs" onclick="RW_Items._switchSubTab(\\'movement\\'); setTimeout(function(){ RW_Items._renderStockMovementReport(' + _jsAttr(item.item_code) + ',' + _jsAttr(item.name) + ',' + _jsAttr(bid2) + ',' + _jsAttr(branchName2) + '); },200);">' + st.qty + '</td>';
+```
+
+## DO NOT DO
 
 ```text
-M2-07R source fix = present
-M2-09 source fix = present
-M2-12 source fix = present
-M2-11 _esc/_jsString = present
-M2-11 _jsAttr = present
-M2-11 three targeted row builders = corrected form present + three residual fragments still present
-M2-11 = MANUAL / OPEN
+لا تضف _jsAttr مرة أخرى.
+لا تحذف أي قوس إضافي غير القوس المحدد في _renderTable().
+لا تستخدم _esc(...).replace(/'/g, ...) في خلايا الفرع المستهدفة.
+لا تستخدم _jsAttr(null)؛ يجب أن تبقى ,null,
+لا تعدل M2-07R أو M2-09 أو M2-12 الآن.
+لا تعدل main1 أو main3..main11.
+لا تعدل core.js أو sw.js أو register-sw.js أو manifest.json في هذه الخطوة.
+لا تعدل Production business data.
+```
+
+## WHY THE CURRENT INSTRUCTIONS DIFFER FROM REPORT64
+
+Report64 كان مبنيًا على `40a7...`، بينما Git الحالي تجاوزه بثلاثة commits يدوية.
+
+الأدلة الحالية تثبت:
+
+```text
+a5d9 = حذف البقايا مع حذف قوس loop في _renderTable()
+ce435 = كسر var rowHtml في _renderBranchStockMatrix()
+c02d = أبقى/كرر الكسر في الحالة الحالية
+```
+
+لذلك لا يجوز الآن تنفيذ Report64 حرفيًا.
+
+## SOURCE / RUNTIME STATUS
+
+```text
+Main2 source current = OPEN
+Browser runtime after correction = NOT VERIFIED
+Static/syntax pass after correction = NOT VERIFIED
+M2-10 server authorization = OPEN
+M2-11 = OPEN
+11-part assembly = NOT VERIFIED
+Final PWA production equivalence = NOT VERIFIED
+```
+
+## SELF-AUDIT
+
+### ما تم إثباته
+
+- تمت قراءة MASTER واستخدامه كمرجع الحوكمة.
+- تمت قراءة CURRENT_STATE السابق واكتشاف أنه stale.
+- تمت قراءة Report63 وReport64 بالكامل ومقارنتهما بالمصدر الحالي.
+- تمت قراءة Main2 الحالي مباشرة من Git بصورة متتابعة.
+- تم تتبع Git history بعد Report64 حتى `c02d...`.
+- تم إثبات القوس المفقود والسطرين المقطوعين وخلايا الفروع القديمة بالـsource الحالي.
+- تم إثبات Production مباشرة عند `2026-09-05 06:25:09.463307 UTC`.
+- لم يتم تعديل `main2.md` في هذه الجلسة.
+- تم إنشاء Report65 فقط وتحديث CURRENT_STATE.
+
+### ما لم يتم إثباته
+
+- نجاح Browser Runtime بعد الإصلاح اليدوي.
+- نجاح static/syntax بعد الإصلاح اليدوي.
+- الإغلاق النهائي لـM2-11.
+- الإغلاق الأمني لـM2-10.
+- تجميع Main1..Main11 النهائي.
+
+### FINAL CLOSURE
+
+```text
+MAIN2 = OPEN
 M2-10 = OPEN
+M2-11 = OPEN
+PROJECT CLOSURE = NOT CLAIMED
 ```
 
 ## NEXT AUTHORIZED ACTION
 
 ```text
-1. Owner deletes the three exact residual legacy lines identified in Report64.
-2. Owner does not add _jsAttr again because it already exists.
-3. Re-read main2.md from current Git.
-4. Run static/syntax review and unrelated-diff review.
-5. If clean, commit the manual Main2 source mutation.
-6. Reconcile CURRENT_STATE again with the new commit.
-7. Continue dedicated M2-10 server-side authorization closure.
-8. Only after Main2 closure proceed to 11-part assembly and companion-file reconciliation.
+1. نفّذ التصحيحات الخمسة أعلاه يدويًا داخل main2.md فقط.
+2. أعد قراءة main2.md من Git بعد الحفظ.
+3. تحقق أن _jsAttr موجود مرة واحدة فقط.
+4. تحقق أن _renderTable() يحتوي على } قبل status-cell.
+5. تحقق أن أول rowHtml في الدالتين المصفوفتين هو السطر المصحح كاملًا وبدون newline داخلي.
+6. تحقق أن خلايا الفرع الأربع المستهدفة تستخدم _jsAttr بدل escape اليدوي.
+7. نفّذ static/syntax review وunrelated-diff review.
+8. بعد نجاحها، سجّل commit Main2 الفعلي ثم حدّث CURRENT_STATE من جديد.
+9. بعدها فقط انتقل إلى M2-10.
 ```
-
-Do not reopen M2-02 or M2-04 without new contradictory direct evidence.
-
-## FINAL SELF-AUDIT
-
-```text
-CURRENT GIT = DIRECTLY VERIFIED AT 40a7fdc... BEFORE DOCUMENTATION UPDATES
-CURRENT PRODUCTION = DIRECTLY VERIFIED AT 2026-09-05 05:53:42 UTC
-CURRENT MAIN2 = DIRECTLY RE-READ AT CURRENT SOURCE BLOB b9d1249...
-HISTORICAL REPORTS = PRESERVED AND RECONCILED
-REPORT64 = CREATED
-
-PROVED:
-- Main2 has Report63-derived manual changes in the current source.
-- _jsAttr exists in the current source.
-- Three residual legacy fragments remain and are precisely located.
-- Production remains stable with zero duplicate non-empty barcodes.
-- No closed M2 item was reopened.
-
-NOT PROVED:
-- Browser/runtime after deleting the three residual fragments.
-- Final Main2 syntax pass after the manual cleanup.
-- Complete M2-11 closure across every raw HTML/inline-JS sink.
-- M2-10 server-side authorization closure.
-- Final assembled parent artifact.
-- Final PWA production equivalence.
-
-CLOSURE = NOT CLAIMED
-```
-
-## CONTINUITY LOCK
-
-The immediate target is NOT to reapply Report63 from the beginning. The current Main2 source already contains the helper and corrected expressions. The only current manual correction is deletion of the three exact residual legacy fragments described in Report64.
