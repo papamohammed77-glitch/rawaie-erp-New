@@ -1,0 +1,294 @@
+# Report69 — المراجعة الجنائية لـ main2 بعد Report68
+
+التاريخ: 2026-09-05
+المستودع: papamohammed77-glitch/rawaie-erp-New
+الفرع: main
+Git HEAD المؤكد: e53c0de15fd29273d1388713d940f7792577a540
+ملف الهدف: Current/PWA/main2/main2.md
+Blob الهدف الحالي: 089453ca6412df986fa11c2df4ce9235091a4647
+Production: SMART ERP / fiilmooggumokxanwiyx
+
+## 1. مصادر التحقيق
+
+تمت قراءة وتحليل:
+- `doc/Draft/medhat/MASTER - RAWAEA ERP.md` بالكامل.
+- `CURRENT_STATE.md` بالكامل.
+- `doc/Draft/Reprots/Report66`.
+- `doc/Draft/Reprots/Report67` بالكامل.
+- `doc/Draft/Reprots/Report68` بالكامل.
+- `Current/PWA/main2/main2.md` مباشرة من Git وبأكثر من نطاق قراءة حتى اكتمال الملف.
+- commit `e53c0de15fd29273d1388713d940f7792577a540` مباشرة.
+- Production PostgreSQL الحالية مباشرة.
+- التعريف الحالي لـ `post_stock_movement`.
+- المخطط الحالي وقيود `inventory_log`.
+
+## 2. حسم نقطة البداية
+
+Git نفسه يثبت أن `e53c0de...` هو HEAD الحالي لفرع `main`.
+
+لكن `CURRENT_STATE.md` كان يحمل Blob قديمًا للـmain2 هو:
+`c503fde4d2da73d241d693e81f67405445d85747`
+
+بينما القراءة المباشرة من نفس HEAD الحالي تعطي:
+`089453ca6412df986fa11c2df4ce9235091a4647`
+
+إذن حالة الملف في `CURRENT_STATE.md` كانت STALE، وليس Git هو المتعارض.
+
+## 3. الحالة الفعلية لـ main2
+
+القراءة المباشرة للـBlob الحالي أثبتت:
+
+### الوحدة الأساسية
+التعديل المطلوب في Report67/68 موجود بالفعل في المصدر الحالي:
+
+```javascript
+html += '<div class="flex flex-col"><label class="text-sm font-bold">الوحدة الأساسية</label><input id="item-unit" value="' + _esc(item ? (item.unit || '') : '') + '" class="p-2.5 bg-gray-50 border rounded-lg"></div>';
+```
+
+لذلك:
+
+`PATCH A = ALREADY PRESENT`
+
+ولا يجوز إعادة تنفيذه.
+
+### تقرير الحركة
+`_loadMovementReport()` الحالي ما زال يعتمد على:
+
+```text
+stock_vouchers + stock_voucher_details
+```
+
+ويجب عدم اعتباره النسخة النهائية لعقد الحركة المركزي.
+
+### قارئ الحركة المكرر
+`_showBranchStockMovement()` الحالي ما زال قارئًا مستقلاً يعتمد على `stock_vouchers + stock_voucher_details`.
+
+إذن `PATCH C` ما زال مفتوحًا.
+
+## 4. Production reconciliation الحالية
+
+إعادة التحقق المباشر الحالية:
+
+```text
+companies       = 1
+app_settings    = 1
+orders          = 0
+purchase_orders = 0
+branches        = 2
+items           = 17
+stock_branches  = 20
+inventory_log   = 3
+```
+
+القيود المثبتة:
+
+```text
+items.item_code UNIQUE globally
+stock_branches UNIQUE(branch_id,item_id)
+receiving.operation_id UNIQUE
+items.barcode NOT UNIQUE
+```
+
+## 5. شرط Production السابق لـ M2-11 ما زال مفتوحًا
+
+الفحص المباشر أثبت أن `inventory_log` لا تحتوي حاليًا على:
+
+```text
+source_branch_id
+ target_branch_id
+```
+
+بينما `post_stock_movement` الحالي يستقبل بالفعل:
+
+```text
+p_source_branch_id
+p_target_branch_id
+```
+
+ويستخدمهما لتحديث المخزون، لكنه لا يحفظهما في `inventory_log`.
+
+لذلك لا يجوز تنفيذ Patch B في main2 قبل إغلاق هذا العقد في Production.
+
+العقد الدائم:
+
+```text
+Physical Movement
+→ post_stock_movement
+→ stock_branches + inventory_log
+```
+
+والـmovement report في main2 بعد الإغلاق يجب أن يقرأ `inventory_log` فقط، مع branch attribution من `source_branch_id / target_branch_id`.
+
+## 6. السجلات التاريخية
+
+Production ما زالت تحتوي 3 سجلات `VoidInvoice` تاريخية مرتبطة بـ`ORD-1015` و`ORD-1016`، ولا توجد لها مطابقات حالية في `orders` أو `stock_vouchers`.
+
+القرار المثبت:
+- لا حذف.
+- لا backfill بالتخمين.
+- لا استخدامها لصناعة رصيد Physical Stock.
+
+## 7. مراجعة إضافية داخل main2 — تحديث الأرصدة بالملف
+
+تم إثبات تناقض داخلي في `_handleFileSelect()` / `_renderUploadPreview()`:
+
+الـparser يقبل رأس:
+
+```text
+barcode
+item_code
+باركود
+الكود
+```
+
+ويضع القيمة كلها في متغير باسم `barcode`، ثم `_renderUploadPreview()` يبحث في قاعدة البيانات باستخدام:
+
+```javascript
+.in('barcode', barcodes)
+```
+
+أي أن ملفًا يحمل `item_code` كرأس عمود لا يُفسر فعليًا كـ`item_code`؛ بل يُعامل كـbarcode.
+
+هذا خلل حقيقي في اتساق الواجهة، لكنه ليس Patch معتمدًا بعد، لأن العقد التاريخي لملف الاستيراد يجب إثباته أولًا: هل `item_code` كان مدخلًا مقصودًا أم مجرد alias قديم غير مكتمل؟
+
+لذلك:
+
+`PATCH D = OPEN / NO PATCH YET`
+
+ولا يجوز تغيير السلوك قبل حسم هذا الـcontract.
+
+## 8. التعليمات الجراحية الحالية للمستخدم
+
+### PATCH A — لا تنفذه
+
+`item-unit` صحيح بالفعل في Git الحالي.
+
+### PATCH B — لا تنفذه الآن
+
+لا تستبدل `_loadMovementReport()` قبل إغلاق Production contract الخاص بـ`inventory_log.source_branch_id` و`inventory_log.target_branch_id`.
+
+وعند إغلاقه:
+
+ابحث عن الدالة كاملة التي تبدأ بـ:
+
+```javascript
+async function _loadMovementReport() {
+```
+
+واحذفها كاملة حتى القوس الأخير مباشرة قبل:
+
+```javascript
+// ==================== مصفوفة الفروع – بدون تغيير ====================
+```
+
+ثم ضع مكانها **النص الكامل الموجود في Report68، القسم 8، كما هو دون اختصار أو إعادة صياغة**.
+
+### PATCH C — أبقه مفتوحًا حتى يتم B
+
+ابحث عن الدالة الكاملة التي تبدأ بـ:
+
+```javascript
+async function _showBranchStockMovement(itemCode, itemName, branchId, branchName) {
+```
+
+واحذفها كاملة حتى السطر الذي يسبق:
+
+```javascript
+function _loadCategoriesIntoSelect() {
+```
+
+ثم استبدلها بالنص التالي كاملًا:
+
+```javascript
+    async function _showBranchStockMovement(itemCode, itemName, branchId, branchName) {
+        _switchSubTab('movement');
+        window._movementItemCode = itemCode || null;
+        window._movementItemName = itemName || '';
+        window._movementBranchId = branchId || null;
+        window._movementBranchName = branchName || '';
+        setTimeout(function() {
+            _renderStockMovementReport(itemCode || null, itemName || '', branchId || null, branchName || '');
+        }, 0);
+    }
+```
+
+### PATCH D — لا تنفذه الآن
+
+العنصر المراد حسمه أولًا:
+
+```javascript
+if (headerStr === 'barcode' || headerStr === 'item_code' || headerStr === 'باركود' || headerStr === 'الكود') barcodeCol = h;
+```
+
+ثم يجب إثبات contract الملف التاريخي قبل تقرير هل سيتم دعم identity مزدوج أم إزالة alias غير العامل.
+
+## 9. ممنوعات هذه المرحلة
+
+```text
+لا تعيد Patch A.
+لا تعيد أيًا من إصلاحات Report66 الأربعة.
+لا تضف } إلى _renderTable().
+لا تضف _jsAttr مرة أخرى.
+لا تعدل main1 أو main3..main11.
+لا تعدل core.js أو sw.js أو register-sw.js أو manifest.json.
+لا تحذف VoidInvoice.
+لا تعمل backfill للفرع بالتخمين.
+لا تستبدل movement report بمصدر vouchers جديد أو مؤقت.
+لا تُنشئ Patch لـPatch D قبل حسم contract ملف الاستيراد.
+```
+
+## 10. SELF-AUDIT
+
+### ما تم إثباته
+- `e53c0de...` هو HEAD الحالي.
+- `main2.md` الحالي هو Blob `089453ca...`.
+- `CURRENT_STATE.md` كان متأخرًا في تسجيل Blob main2.
+- `item-unit` مصحح بالفعل في Git الحالي.
+- `_loadMovementReport()` ما زال قارئ vouchers.
+- `_showBranchStockMovement()` ما زال قارئًا مستقلاً للحركة.
+- Production الحالية ما زالت بدون branch attribution داخل inventory_log.
+- `post_stock_movement` هو مالك Physical Movement الحالي.
+- بيانات Production الحالية تم قياسها مباشرة.
+- هناك تناقض داخلي في دعم `item_code` داخل استيراد الأرصدة، لكنه يحتاج Contract تاريخيًا قبل Patch.
+
+### ما لم يتم إثباته
+- Browser Runtime بعد أي تعديل يدوي جديد.
+- Static/Syntax PASS للملف بعد تعديلات المستخدم المستقبلية.
+- Production Runtime لـmovement report المركزي بعد branch attribution.
+- الإغلاق النهائي لـM2-10.
+- الإغلاق النهائي لـM2-11.
+- التجميع النهائي للأجزاء الـ11.
+- Production equivalence للملف الأم الكامل.
+
+### ما تم تغييره في هذه الجلسة
+
+```text
+main2.md = NOT MODIFIED
+Production business data = NOT MODIFIED
+Report69 = CREATED
+CURRENT_STATE.md = سيتم تحديثه في commit الحالة التالي
+```
+
+### حالة الإغلاق
+
+```text
+MAIN2 = OPEN
+M2-10 = OPEN
+M2-11 = OPEN
+PROJECT CLOSURE = NOT CLAIMED
+```
+
+## 11. NEXT AUTHORIZED ACTION
+
+```text
+1. تنفيذ/إغلاق contract branch attribution في Production أولًا.
+2. إعادة التحقق المباشر من inventory_log وpost_stock_movement.
+3. عندها فقط ينفذ المستخدم Patch B في main2.
+4. ثم ينفذ Patch C في main2.
+5. إعادة قراءة main2.md كاملًا من Git.
+6. إجراء static/syntax review.
+7. تسجيل commit main2 الفعلي.
+8. تنفيذ Runtime/Production verification.
+9. حسم Patch D من الأدلة التاريخية لملف الاستيراد.
+10. تحديث CURRENT_STATE بعد كل حدث فعلي.
+```
