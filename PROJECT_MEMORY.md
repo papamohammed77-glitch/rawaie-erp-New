@@ -21,48 +21,40 @@ This file is the verified cross-system memory snapshot for the daily review.
 - Production owner was verified as active with wildcard permissions `["*"]`, linked owner profile, and active license; no production write was performed in the baseline review.
 - Earlier continuity notes recorded security/performance advisories, stale recovery/test function surface, and lack of fresh full-browser Gold/Diamond proof.
 
-## Verified continuity — 2026-09-04
-### Git chronology
-- `67fd5b327139be15964e4ecaa98218b0b7345ccf` refreshed this memory with verified cross-system evidence.
-- `4b93e9178397028b6345c3a863d65e659a696331` synchronized `CURRENT_STATE` with Report50 and corrected earlier main-ancestry assumptions.
-- `391de3fb38cb63f5c9ea6a3e62a91a5a3727a1a` added Report50 forensic PWA consumer inventory/state reconciliation.
-- `8d64f747cdf06cd4197a379b7697b1855ecefeca` synchronized CURRENT_STATE with Report49/V12.
-- Subsequent continuity commits created during this recovery are documentation/knowledge closure only: `f66d38575d6e3d8c76e8536e3c63beb23aea43a5` (knowledge pack) and `71c9c3f5682cbadbfbc759392f8e0daa07a95b85` (Report51).
-- New-main-targeting commits `2118dff...`, `94ffee...`, and `6d729...` exist in Git history on independent parent chains and are not, by message alone, evidence of current-main state.
+### 2026-09-04 — continuity and knowledge baseline
+- `CURRENT_STATE.md` and project-memory continuity were refreshed around the canonical `Current/PWA/New-main` target.
+- The shared runtime boundary remains `RW_Auth`, `RW_DB`, `RW_API`, and `RW_UI`; Supabase Auth metadata, owner wildcard permissions, Dexie/local sync, and bearer-token Edge Function calls are part of the verified source contract.
+- Historical `Current/PWA/main/main1.md` remains useful for comparison only; visual differences from New-main are not by themselves regressions.
+- Production owner continuity remains: active owner, `permissions=["*"]`, valid `owner_profile`, active license.
 
-### Knowledge baseline completion — Report51
-- Direct current-main fetch proves `Current/PWA/New-main` is a full HTML/CSS/JS artifact, not a small descriptive placeholder.
-- Inline current CSS directly contains the login dimensions (`rw-login-title=58px`, `rw-login-logo=88x88`) and current login identity surfaces.
-- `Current/PWA/core.js` directly proves the shared runtime boundary (`RW_Auth`, `RW_DB`, `RW_API`, `RW_UI`), Supabase Auth metadata usage, owner/wildcard frontend permission semantics, Dexie/local sync, and bearer-token Edge Function calls.
-- Direct historical `Current/PWA/main/main1.md` proves the historical parent/main HTML contract and Original-era visual values such as 64px title and 120x120 login logo; the difference is proven but regression is not.
-- Current PWA consumer inventory is documented in `doc/Draft/Reprots/MASTER_RAWAEA_SYSTEM_PWA_KNOWLEDGE_PACK_2026-09-04.md`; consumers are not business authorities.
-- Production Supabase is `ACTIVE_HEALTHY`, `eu-west-1`, PostgreSQL 17.6. Business Edge Functions observed directly include sales/orders, runsheet/picking/loading/delivery/returns, stock vouchers, purchasing, accounting/reporting, and audit/supporting workflows.
-- Example deployed production versions observed directly: `save-sales-invoice v15`, `create-runsheet v26`, `start-picking v34`, `complete-picking v17`, `start-loading v5`, `complete-loading v11`, `start-delivery v7`, `complete-delivery v4`, `complete-return v25`, `unload-runsheet v6`, `send-stock-voucher v20`, `receive-stock-voucher v22`, `receive-purchase v12`, `save-journal-entry v8`.
-- Owner production DB was freshly rechecked: `permissions=["*"]`, status `Active`, role `مدير النظام`, `auth_id` linked to `owner_profile`, `license_status=active`.
-- License source contract remains confirmed, but browser tab visibility, deployed revision, and service-worker/cache state are not fresh-runtime verified.
-- A fresh Edge Function log query returned no rows at the time of this review. Historical/current memory of repeated `owner-recovery-20260818` HTTP 410 calls remains an evidence lead, not a fresh log result from this exact query.
-
-## Verified continuity — 2026-09-05
+## Verified continuity — 2026-09-05 automation run 2
 ### GitHub current snapshot
-- Repository identity and permissions were rechecked directly: `papamohammed77-glitch/rawaie-erp-New`, default branch `main`, repository remains public and writable by the connected account.
-- Latest visible commit is `c10631479e1e0a9168841636d976dcb51370f712` (`docs(memory): record 2026-09-05 verified GitHub and Supabase snapshot`, 2026-09-05T03:10:26Z). The immediately prior code-bearing commit is `8e5fe0d7427f8e16a8094da9e86a26e486c9cea3` (`Refactor functions and enhance voucher query logic`, 2026-09-05T01:42:35Z), describing escaping/JSON-stringify refactors, voucher date filters, and duplicate-barcode handling.
-- `Current/PWA/New-main` was fetched directly. It is a full RTL Arabic HTML/CSS/JS artifact with the login page, password visibility control, sidebar shell, dashboard/layout styles, manifest link `./manifest.json`, and service-worker coordinator `./register-sw.js`. Current blob SHA returned by GitHub: `22f4ee1a666141be62127159337beffb05e8b146`.
-- Latest Actions run observed for the current head is run `33941121039` for `CTO New-main Single Writer Closure 2026-09-03`; it completed with conclusion `skipped`. This is not a CI PASS and does not constitute fresh browser proof.
-- Open PRs currently visible include #127, #126, #125, #123, #119, #118, #117, #115, and #113. Their descriptions are closure/execution triggers or target-only surgery plans; none is merged based on the current direct search result. Closed PRs in the same surface include #128, #124, #122, #121, #120, #116, #114, #112, #111, #110, and #109, with mixed merged/unmerged history.
-- The GitHub snapshot contains many documentation/continuity commits after the prior memory update; commit messages alone were not treated as runtime or deployment proof.
+- Repository identity rechecked directly: `papamohammed77-glitch/rawaie-erp-New`, public, default branch `main`, connected account has repository write/admin-level permissions.
+- Latest visible `main` commit: `36482301223c07ddd256c87a2bc712198d955b7a` (`Update main2.md`, 2026-09-05T10:26:28Z).
+- Immediately preceding continuity commits include Report70/Report69 reconciliation and branch-attribution closure: `c984be5...`, `5f0a018...`, `7e16c744...`, `ba750f3...`.
+- Latest code-bearing change is material: `Current/PWA/main2/main2.md` rewrote `_loadMovementReport()` from `stock_vouchers` + `stock_voucher_details` reads to the central `inventory_log` contract. The new reader resolves the item by `item_code` to `item.id`, filters by company/item and optional branch, computes physical movement impact from `source_branch_id`/`target_branch_id`, calculates opening balance for `fromDate`, and excludes non-physical legacy movement types from the physical report.
+- The same latest diff also replaces the branch-stock movement reader with the shared movement-report path; this is the source-level closure expected by the prior Patch C plan.
+- `CURRENT_STATE.md` still records the governance rule `GIT != DEPLOYMENT PROOF`. Prior state listed Patch B/C as manual and runtime verification as unknown; the new commit is source evidence that the corresponding Main2 changes are now present on current `main`, but browser/runtime proof is still not established.
+- Combined commit status for `364823...` returned no status records; the commit-specific workflow-run lookup returned no runs. This is not a CI PASS.
+- Current PR search still shows many closure/execution-trigger PRs, including #128, #127, #126, #125, #124, #123, #122, #121, #120, #119, #118, #117, #116, #115, #114, #113, #112, #111, and #110. Their descriptions emphasize target-only surgery, temporary executors, or verifier triggers; no deployment proof is implied by PR presence or wording.
 
 ### Supabase current snapshot
-- Project `fiilmooggumokxanwiyx` remains `ACTIVE_HEALTHY` in `eu-west-1`, PostgreSQL `17.6.1.121`.
-- The deployed Edge Function catalog remains broad and active. Business functions are predominantly `verify_jwt=true`; a distinct set of canary, fixture, runtime-E2E, gate, and recovery functions remains active with `verify_jwt=false`, including `start-picking-production-harness`, `cp-prod-auth-canary-20260814`, `cp-prod-fixture-canary-20260814`, `start-picking-e2e-fixture-20260815`, `start-picking-real-identity-e2e-20260815`, `send-stock-voucher-runtime-e2e-20260818`, `prompt2-complete-picking-http-e2e-20260818`, `complete-picking-runtime-e2e-20260818`, `owner-recovery-20260818`, `owner-recover-gate-20260818-7f2d9c41`, `auth-login-verification-20260818`, `complete-picking-picker-http-gate-20260818`, `receive-purchase-runtime-e2e-20260819`, and `save-sales-production-canary-20260819`.
-- Fresh Edge Function logs for the last 24 hours returned an empty result. Therefore, no current incident is proven by this query; historical 410 evidence for `owner-recovery-20260818` remains unresolved historical evidence only.
-- Fresh security advisors still report: anonymous/authenticated EXECUTE exposure for `public.create_item_with_opening_stock(...)` and `public.sync_company_main_branch_projection()`, both `SECURITY DEFINER`, plus leaked-password protection disabled.
-- Fresh performance advisors still report unindexed foreign keys across multiple business tables, RLS init-plan warnings on multiple policies/tables, multiple permissive policies (notably `customer_assignments`, `receiving`, `receiving_details`), and unused-index notices. These are advisory findings, not proof of a production outage.
+- Project `fiilmooggumokxanwiyx` remains `ACTIVE_HEALTHY` in `eu-west-1`, PostgreSQL `17.6.1.121`, release channel `ga`.
+- Public tables observed in the current schema are RLS-enabled. Current production row-count anchors remain: `companies=1`, `branches=2`, `users=24`, `app_settings=1`, `items=17`, `stock_branches=20`, `inventory_log=3`, `stock_vouchers=0`, `orders=0`, `purchase_orders=0`, `journal_entries=2`, `owner_profile=1`, `audit_log=1868`; the remaining operational tables are mostly empty or low-volume.
+- Inventory invariants remain verified: `items.item_code` is globally unique; `items.barcode` is not unique; `stock_branches` has generated `available_qty = qty - allocated_qty`; `inventory_log` has `item_id`, `item_code`, `movement_type`, `qty`, `idempotency_key`, `source_branch_id`, and `target_branch_id`, with foreign keys to company/item/branches; `inventory_log.movement_type` rejects `Picking`.
+- Branch attribution remains part of the production schema contract: `source_branch_id` and `target_branch_id` are present on `inventory_log`, both have branch foreign keys, and the earlier transactional `InventoryIncrease` verification was rolled back with no permanent test-data mutation.
+- Owner continuity remains protected: `users.auth_id` references `auth.users`; `owner_profile` remains present; prior verified owner semantics remain active-owner + wildcard permissions + active license.
 
-## Production risk baseline
-- Separate historical/test/recovery/E2E Edge Functions remain active with `verify_jwt=false`; this is a confirmed attack-surface/lifecycle review item.
-- Previously observed security advisories include anonymous/authenticated EXECUTE exposure on `public.create_item_with_opening_stock(...)` and `public.sync_company_main_branch_projection()`, plus disabled leaked-password protection.
-- Previously observed performance advisories include unindexed foreign keys, RLS init-plan warnings, duplicate/multiple permissive policies, and unused indexes.
-- Empty combined Git status is not equivalent to CI PASS.
+### Edge Functions and auth boundary
+- The deployed function catalog remains broad and active. Representative business functions remain `verify_jwt=true`, including `save-item v12`, `save-settings v13`, `save-sales-invoice v15`, `create-runsheet v26`, `start-picking v34`, `complete-picking v17`, `start-loading v5`, `complete-loading v11`, `start-delivery v7`, `complete-delivery v4`, `complete-return v25`, `send-stock-voucher v20`, `receive-stock-voucher v22`, `receive-purchase v12`, `save-journal-entry v8`, and `bulk-stock-adjustment v6`.
+- A distinct active test/canary/fixture/gate/recovery surface remains `verify_jwt=false`, including `start-picking-production-harness`, `cp-prod-auth-canary-20260814`, `cp-prod-fixture-canary-20260814`, `start-picking-e2e-fixture-20260815`, `start-picking-real-identity-e2e-20260815`, `send-stock-voucher-runtime-e2e-20260818`, `prompt2-complete-picking-http-e2e-20260818`, `complete-picking-runtime-e2e-20260818`, `owner-recovery-20260818`, `owner-recover-gate-20260818-7f2d9c41`, `auth-login-verification-20260818`, `complete-picking-picker-http-gate-20260818`, `receive-purchase-runtime-e2e-20260819`, and `save-sales-production-canary-20260819`.
+- This is a confirmed attack-surface and lifecycle-management risk. It is not proof that every such function is exploitable, but each requires explicit retention/authorization justification or retirement.
+
+### Logs, advisories, and unresolved risks
+- Fresh `edge-function` logs returned an empty result and fresh `auth` logs returned an empty result at review time. No current incident is proven by those empty queries. Historical references to `owner-recovery-20260818` HTTP 410 traffic remain unresolved historical evidence only.
+- Fresh security advisors at `2026-09-05T10:40:08.704Z` still report anonymous and authenticated EXECUTE exposure for SECURITY DEFINER RPCs `public.create_item_with_opening_stock(...)` and `public.sync_company_main_branch_projection()`, plus leaked-password protection disabled.
+- Fresh performance advisors at `2026-09-05T10:40:11.362Z` still report many unindexed foreign keys (including both `inventory_log` branch foreign keys), RLS init-plan warnings across many policies/tables, multiple permissive policies on `customer_assignments`, `fulfillment_backorders`, `receiving`, and `receiving_details`, and multiple unused indexes. These are backlog findings, not outage proof.
+- No production schema write, Edge Function deployment, credential rotation, or business-data mutation was performed in this run.
 
 ## Canonical system model
 ```text
@@ -103,8 +95,11 @@ ACTIVE LICENSE
 ## Runtime / deployment confidence boundary
 ```text
 STATIC SOURCE = CONFIRMED
-SUPABASE OWNER/DB STATE = CONFIRMED
+CURRENT MAIN2 SOURCE PATCH = CONFIRMED IN GIT (2026-09-05)
+SUPABASE HEALTH/SCHEMA = CONFIRMED
+FRESH AUTH/EDGE LOG RESULTS = EMPTY AT REVIEW TIME
 FRESH BROWSER E2E = UNKNOWN
+COMMIT-SPECIFIC CI PASS = NOT PROVEN
 DEPLOYED REVISION = UNKNOWN
 SERVICE WORKER/CACHE = UNKNOWN
 FRESH GOLD = NOT PROVEN
@@ -112,11 +107,13 @@ FRESH DIAMOND = NOT PROVEN
 WHOLE-PROJECT 100% = NOT PROVEN
 ```
 
-## Canonical successor files
-- `doc/Draft/Reprots/MASTER_RAWAEA_SYSTEM_PWA_KNOWLEDGE_PACK_2026-09-04.md`
-- `doc/Draft/Reprots/تقرير51.md`
-- `CURRENT_STATE.md`
+## Open risks / next evidence
+1. Prove current deployed runtime revision and browser behavior for Main2 after the 2026-09-05 source rewrite.
+2. Close or explicitly justify all active `verify_jwt=false` test/canary/gate/recovery functions.
+3. Revoke or harden public EXECUTE on the two SECURITY DEFINER RPCs and enable leaked-password protection.
+4. Resolve the unindexed-FK, RLS init-plan, and multiple-permissive-policy backlog, prioritizing movement and tenant-scoping paths.
+5. Preserve Patch D as open: import input accepts `item_code` while downstream lookup behavior historically used `items.barcode`; do not change by assumption without historical contract evidence.
 
 ## Confidence boundary
-- Confirmed: repository/project identity, current main continuity documents, canonical New-main source shape, shared runtime boundary, Supabase health/schema owner contract, broad Edge Function deployment surface, PWA consumer model, fresh 2026-09-05 security/performance advisor output, and fresh empty 24-hour Edge Function log result.
-- Not confirmed: fresh browser E2E, exact deployed revision/cache identity, full PR/issue closure history, complete lifecycle classification of every `verify_jwt=false` function, and whole-system Gold/Diamond acceptance.
+- Confirmed: repository/project identity, current `main` continuity docs, latest Main2 source rewrite, Supabase health, RLS-enabled public schema, inventory branch-attribution contract, broad Edge Function deployment surface, fresh empty auth/edge log queries, and fresh security/performance advisory output.
+- Not confirmed: browser E2E, exact deployed revision/cache identity, commit-specific CI PASS, full PR/issue closure state, complete lifecycle classification of every `verify_jwt=false` function, Patch D historical import contract, and whole-system Gold/Diamond acceptance.
