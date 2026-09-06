@@ -56,6 +56,24 @@ This file is the verified cross-system memory snapshot for the daily review.
 - Fresh performance advisors at `2026-09-05T10:40:11.362Z` still report many unindexed foreign keys (including both `inventory_log` branch foreign keys), RLS init-plan warnings across many policies/tables, multiple permissive policies on `customer_assignments`, `fulfillment_backorders`, `receiving`, and `receiving_details`, and multiple unused indexes. These are backlog findings, not outage proof.
 - No production schema write, Edge Function deployment, credential rotation, or business-data mutation was performed in this run.
 
+## Verified continuity — 2026-09-06 automation run 3
+### GitHub delta since prior snapshot
+- New documentation/continuity commits are present after the prior snapshot: `e4a860d7e14b76b0e9fa52042edc06b185beae44` (`Sync CURRENT_STATE with Report71 and current main2 state`), `5d08da67982ba4a9e4e1524a221081b1118f731d` (`Add Report71 forensic main3 review and surgical patch instructions`), and `9d947007d973ad6a22f449946baaca158023b7c4` (`docs(memory): refresh 2026-09-05 verified GitHub and Supabase snapshot`).
+- The latest visible commit is memory/documentation maintenance rather than a newly proven application deployment. A commit-specific workflow-run lookup for `9d947007...` returned no runs; therefore no CI PASS is inferred.
+- The repository now contains a new continuity artifact that updates the project memory baseline. No secrets or credentials were stored.
+
+### Supabase delta since prior snapshot
+- Supabase project `SMART ERP` remains `ACTIVE_HEALTHY`; the observed database version remains PostgreSQL `17.6.1.121`.
+- A new migration is now present after the previous snapshot: `20260905080418` — `inventory_log_branch_attribution_contract`. This strengthens the current schema contract around inventory movement attribution and is consistent with the GitHub/Main2 reader direction.
+- The active Edge Function catalog remains broad; representative business functions are still `verify_jwt=true`. The non-production/test/canary/gate/recovery functions remain active with `verify_jwt=false`, including owner-recovery and multiple E2E harnesses. No function deployment change was directly proven in this run.
+- Fresh security advisors observed at `2026-09-06T03:44:09.420Z` still report public execution exposure for `public.create_item_with_opening_stock(...)` and `public.sync_company_main_branch_projection()` for both `anon` and `authenticated`, and leaked-password protection remains disabled.
+- Fresh performance advisors observed at `2026-09-06T03:44:14.462Z` continue to report unindexed foreign keys, RLS init-plan warnings, multiple permissive policies, and unused indexes. The findings include `inventory_log` branch foreign keys and policy hotspots in receiving, notifications, users, owner_profile, customer_assignments, and related accounting/operations tables.
+- No production DDL, Edge Function deployment, credential rotation, or business-data write was performed during this run.
+
+### Cross-system interpretation
+- GitHub Main2 source direction and Supabase `inventory_log` branch-attribution migration are aligned: the frontend/report reader is moving toward the centralized movement ledger while the backend schema records source/target branch identity.
+- This alignment is source/schema evidence only. It does not establish that the currently deployed browser build consumes the latest GitHub source, nor that all runtime gates pass.
+
 ## Canonical system model
 ```text
 RAWAEA ERP BUSINESS SYSTEM
@@ -113,7 +131,8 @@ WHOLE-PROJECT 100% = NOT PROVEN
 3. Revoke or harden public EXECUTE on the two SECURITY DEFINER RPCs and enable leaked-password protection.
 4. Resolve the unindexed-FK, RLS init-plan, and multiple-permissive-policy backlog, prioritizing movement and tenant-scoping paths.
 5. Preserve Patch D as open: import input accepts `item_code` while downstream lookup behavior historically used `items.barcode`; do not change by assumption without historical contract evidence.
+6. Reconcile the new `inventory_log_branch_attribution_contract` migration with the deployed application revision and verify no stale browser/service-worker asset bypasses the current movement reader.
 
 ## Confidence boundary
-- Confirmed: repository/project identity, current `main` continuity docs, latest Main2 source rewrite, Supabase health, RLS-enabled public schema, inventory branch-attribution contract, broad Edge Function deployment surface, fresh empty auth/edge log queries, and fresh security/performance advisory output.
+- Confirmed: repository/project identity, current `main` continuity docs, latest Main2 source rewrite, Supabase health, latest migration `20260905080418`, RLS-enabled public schema, inventory branch-attribution contract, broad Edge Function deployment surface, fresh empty auth/edge log queries, and fresh security/performance advisory output.
 - Not confirmed: browser E2E, exact deployed revision/cache identity, commit-specific CI PASS, full PR/issue closure state, complete lifecycle classification of every `verify_jwt=false` function, Patch D historical import contract, and whole-system Gold/Diamond acceptance.
