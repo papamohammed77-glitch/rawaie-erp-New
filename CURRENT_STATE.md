@@ -8,7 +8,7 @@ BRANCH = main
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
 LATEST VERIFIED MAIN3 COMMIT = e5a340b0a2c3de8a38a2d09375753afe1538230b
 LATEST VERIFIED MAIN3 BLOB = 479060e3d4bea5e2203c87f822b1dbc0e2f7d456
-LATEST REPORT = doc/Draft/Reprots/Report72_Main3_PostPatch_Forensic_Verification_20260907.md
+LATEST REPORT = doc/Draft/Reprots/Report73_Main4_Surgical_Forensic_20260907.md
 ```
 
 ## GOVERNANCE
@@ -56,6 +56,10 @@ Current main3 Blob: `479060e3d4bea5e2203c87f822b1dbc0e2f7d456`
 `7cd86940e7ef729907872785c2f9aa5414f021d3`
 Main3 post-patch forensic verification and Production contract reconciliation.
 
+### Report73
+`4489997677ed593f1567a9fbb398ea6172c8eef5`
+Main4 full forensic review and exact surgical patch specification. No main4 source code was changed by the assistant.
+
 ## PRODUCTION TRUTH — 2026-09-07
 
 ```text
@@ -67,6 +71,7 @@ customers            = 3
 suppliers            = 1
 branches             = 2
 customer_assignments = 0
+items                = 17
 ```
 
 Current `app_settings`:
@@ -75,6 +80,17 @@ Current `app_settings`:
 company_id = 00000000-0000-0000-0000-000000000001
 currency = SAR
 company_name = الروائع
+delivery_fee = 0
+min_invoice_amount = 0
+tax_rate = 0
+main_branch_id = configured
+```
+
+Current branches:
+
+```text
+BR-01 = الفرع الرئيسي
+BR-2  = فرع إسكندرية
 ```
 
 Relevant schema facts:
@@ -84,8 +100,10 @@ items.item_code UNIQUE globally
 stock_branches UNIQUE(branch_id,item_id)
 receiving.operation_id UNIQUE
 roles.company_id PRESENT
-customer_assignments.assigned_by = uuid
-customer_assignments has no company_id column
+branches.company_id PRESENT
+app_settings.company_id PRESENT
+app_settings.main_branch_id PRESENT
+stock_branches derives company through branch_id; no company_id column
 ```
 
 Relevant RLS facts:
@@ -98,11 +116,10 @@ suppliers            = ENABLED
 branches             = ENABLED
 app_settings         = ENABLED
 customer_assignments = ENABLED
+stock_branches       = company-aware through branch relationship
 ```
 
-`roles` still has broad policy `Allow all for all` with `qual=true / with_check=true`; keep this as a separate backend/security closure.
-
-`customer_assignments` currently has company-aware RLS through the customer/company relationship and permission checks. Do not invent a new `company_id` column without direct evidence.
+`roles` still has broad policy `Allow all for all` with `qual=true / with_check=true`; keep this as a separate security/governance closure.
 
 ## MAIN2 SOURCE STATE
 
@@ -114,7 +131,7 @@ BROWSER RUNTIME = NOT VERIFIED
 FINAL 11-PART ASSEMBLY = NOT VERIFIED
 ```
 
-Do not reopen main2 during main3 closure without new direct evidence.
+Do not reopen main2 during main4 closure without new direct evidence.
 
 ## MAIN3 SOURCE STATE
 
@@ -146,32 +163,85 @@ S5 assignment rollback handling   = APPLIED / VERIFIED
 S6 removal rollback handling      = APPLIED / VERIFIED
 ```
 
-The current source was re-read from the beginning through the final closing `})();` after the user commit.
-
 ### MAIN3 POST-PATCH DECISION
 
 ```text
 NEW MAIN3 SURGICAL PATCH = NOT JUSTIFIED BY CURRENT EVIDENCE
 ```
 
-The six Report71 patches are present in the current Blob. No additional main3 change is authorized without fresh evidence.
+Do not reopen main3 without direct new evidence.
+
+## MAIN4 SOURCE STATE — NEW CURRENT TARGET
+
+```text
+PATH = Current/PWA/main2/main4.md
+SOURCE = CURRENT ORIGINAL PART
+MODULES = RW_POS + RW_Roles + RW_TeleSales
+FULL SOURCE READ TO EOF = VERIFIED
+USER PATCH = NOT YET APPLIED
+ASSISTANT SOURCE EDIT = NONE
+STATUS = OPEN / SURGICAL PATCH SPEC READY
+```
+
+### MAIN4 PROVEN FINDINGS
+
+```text
+RW_POS
+- app_settings lookup is globally unscoped via limit(1)
+- POS sends branchId instead of branchCode
+- POS defaults to hardcoded MAIN while Production main branch code is BR-01
+- currency display is hardcoded to EGP
+
+RW_Roles
+- initial roles read is unscoped
+- post-save roles read is unscoped
+- post-delete roles read is unscoped
+- post-seed roles read is unscoped
+- save-role backend is company-aware
+- delete-role backend remains a separate backend closure because its delete path is not company-scoped
+
+RW_TeleSales
+- app_settings reads are unscoped
+- branches read is unscoped
+- stock_branches read is not explicitly restricted through current company branches
+- _getAvailable sums all branches when no branch is selected
+- _saveOrder silently falls back to local values when app_settings read fails
+- currency is hardcoded to EGP in several UI messages
+```
+
+### MAIN4 SURGICAL DECISION
+
+```text
+NO MAIN4 SOURCE PATCH WAS APPLIED BY THE ASSISTANT.
+
+REQUIRED USER ACTION = APPLY THE EXACT SURGICAL PATCHES IN REPORT73.
+
+AFTER USER PATCH:
+READ MAIN4 TO EOF AGAIN
+→ VERIFY EACH REPLACEMENT
+→ VERIFY GIT/BLOB
+→ RECONCILE PRODUCTION AGAIN
+→ ONLY THEN PROCEED TO NEXT CLOSURE
+```
+
+Do not mark main4 Closed before this post-patch re-read.
 
 ## BACKEND OPEN ITEMS
 
 ### delete-employee
 
-Production `delete-employee` remains a separate proven closure issue: the database delete path was identified as email-based without an explicit company predicate.
+Production `delete-employee` remains a separate backend closure issue. It must be opened only after a fresh reconciliation following main4 closure.
 
 ```text
 TARGET = delete-employee Edge Function
-MAIN3 PATCH = NOT SUBSTITUTE FOR BACKEND FIX
-STATUS = OPEN / SEPARATE CLOSURE UNIT
+MAIN4 PATCH = NOT SUBSTITUTE FOR BACKEND FIX
+STATUS = OPEN / NEXT BACKEND CLOSURE AFTER FRESH RECONCILIATION
 ```
 
-### roles RLS
+### roles RLS / delete-role backend
 
 ```text
-STATUS = OPEN / SEPARATE GOVERNANCE CLOSURE
+STATUS = OPEN / SEPARATE GOVERNANCE + BACKEND CLOSURE
 ```
 
 Do not change Owner wildcard semantics while addressing this.
@@ -179,18 +249,19 @@ Do not change Owner wildcard semantics while addressing this.
 ## VALIDATION STATUS
 
 ```text
-MASTER = READ
+MASTER = READ TO EOF
 CURRENT_STATE = READ / RECONCILED / UPDATED
-Report71 = READ TO EOF
-Report72 = CREATED
+Report72 = READ TO EOF
+Report73 = CREATED
 main3 current Blob = VERIFIED
 main3 full read after user patch = VERIFIED
-main3 S1-S6 = VERIFIED IN CURRENT GIT
-Production schema relevant to main3 = VERIFIED
-Production RLS relevant to main3 = VERIFIED
-Production current counts = VERIFIED
+main3 S1-S6 = VERIFIED
+main4 full source read = VERIFIED
+Production schema relevant to main4 = VERIFIED
+Production RLS relevant to main4 = VERIFIED
+Active Edge contracts relevant to main4 = VERIFIED
 Browser E2E = NOT VERIFIED
-Assignment runtime with authenticated browser session = NOT VERIFIED
+main4 post-patch runtime = NOT VERIFIED
 11-part assembly = NOT VERIFIED
 Full PWA runtime = NOT VERIFIED
 Final Production equivalence = NOT VERIFIED
@@ -198,41 +269,54 @@ Final Production equivalence = NOT VERIFIED
 
 ## WHAT I PROVED
 
-- The user's main3 changes are actually committed in Git on 2026-09-07.
-- Current `main3.md` Blob is `479060e3...` and differs from the Blob recorded in Report71.
-- S1–S6 are present in the current source.
-- Production currently has one company and one settings row; `currency = SAR`.
-- `customer_assignments.assigned_by` is UUID in Production and main3 now supplies the authenticated user's UUID.
-- `customer_assignments` RLS is company-aware.
-- No additional main3 patch is proven necessary at this point.
+- Current Git HEAD after Report72 was verified before this session.
+- main3 remains at the previously verified user patch and was not reopened.
+- main4 was read completely from beginning to end.
+- main4 contains three logical modules: POS, Roles, TeleSales.
+- Production currently has one company, one settings row, 24 users, 20 roles, 3 customers, and 2 active branches.
+- Production currency is SAR and the main branch code is BR-01.
+- `items.item_code` is globally unique.
+- main4 contains confirmed company-scope gaps.
+- POS currently mismatches the deployed `save-sales-invoice` parameter contract by sending `branchId` instead of `branchCode`.
+- TeleSales has a confirmed silent-settings-fallback path that can alter order total behavior when settings read fails.
+- The next surgical target is main4, and delete-employee remains a separate closure after fresh reconciliation.
 
 ## WHAT I DID NOT PROVE
 
-- Browser E2E after the manual patch.
-- Assignment runtime from an authenticated browser session.
+- Browser E2E after user-applied main4 patches.
+- Main4 post-patch runtime behavior.
 - Final 11-part assembly.
 - Full PWA Production equivalence.
-- Closure of `delete-employee`.
-- Closure of the broad `roles` RLS policy.
+- delete-employee closure.
+- roles RLS closure.
+- delete-role backend closure.
 
-## CURRENT TARGET
+## WHAT MUST NOT BE REPEATED
 
 ```text
-PRIMARY = main3 source verified; no additional main3 patch currently authorized
-NEXT CLOSURE UNIT = delete-employee backend, subject to fresh reconciliation before edit
+Do not reopen main3 merely because main4 work has issues.
+Do not fix backend delete-role inside main4 UI.
+Do not use EGP where Production currency is SAR.
+Do not send branchId to save-sales-invoice; use branchCode.
+Do not allow TeleSales to continue with a silent local-settings fallback.
+Do not sum stock across all branches when a single branch will own the order.
+Do not declare main4 closed before full post-patch source re-read and current-state reconciliation.
 ```
 
 ## NEXT AUTHORIZED ACTION
 
 ```text
-1. Do not modify main3 again without new evidence.
-2. Keep Blob 479060e3... as the current main3 baseline.
-3. Reconcile delete-employee Historical / Current / Production / Target contracts.
-4. Fix that backend closure as a separate unit and verify Production.
-5. Reconcile fresh state before selecting the next target.
-6. Complete the remaining PWA source parts independently.
-7. Only after all 11 parts are closed, perform final assembly.
-8. Then integrate core.js / sw.js / register-sw.js / manifest and perform final runtime verification.
+1. User applies the exact Report73 surgical patches to main4.md.
+2. Re-read main4.md from beginning to EOF.
+3. Verify no unintended deletion or truncation.
+4. Verify the new Git blob/commit.
+5. Reconcile Production again at the same reporting moment.
+6. Perform main4 runtime/integration verification where possible.
+7. Only after main4 is actually closed, perform a fresh reconciliation.
+8. Open delete-employee as its own Closure Unit.
+9. Continue remaining PWA parts independently.
+10. Assemble the 11 parts only after their source closures are independently verified.
+11. Then integrate core.js / sw.js / register-sw.js / manifest and perform final runtime verification.
 ```
 
 ## CLOSURE STATUS
@@ -242,9 +326,12 @@ Production branch attribution = CLOSED / VERIFIED
 Main2 source B/C = INTEGRATED / RUNTIME OPEN
 Main3 source = VERIFIED AFTER USER PATCH
 Main3 S1-S6 = VERIFIED
-Main3 runtime = OPEN
+Main4 source forensic review = COMPLETE
+Main4 user patch = PENDING
+Main4 runtime = OPEN
 Employee delete backend = OPEN
 Roles RLS governance = OPEN
+Delete-role backend = OPEN
 11-part integration = OPEN
 Full PWA runtime = OPEN
 PROJECT CLOSURE = NOT CLAIMED
