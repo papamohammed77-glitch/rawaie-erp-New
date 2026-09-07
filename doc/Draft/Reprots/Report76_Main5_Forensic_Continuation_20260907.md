@@ -31,7 +31,7 @@ CURRENT BLOB = e89d29e4164c68784c109292f27d4d77df240557
 
 ## 3. Main4 Recheck
 
-تمت إعادة قراءة أجزاء main4 الحالية التي تغطي RW_POS وRW_Roles وRW_TeleSales حتى الإغلاق.
+تمت إعادة قراءة main4 الحالية التي تغطي RW_POS وRW_Roles وRW_TeleSales حتى الإغلاق.
 
 النتيجة:
 
@@ -42,7 +42,7 @@ legacy duplicate _saveOrder = غير موجود
 M4-01 corrected try/catch = موجود
 ```
 
-كتلة M4-01 الحالية تبدأ بـ `try {` بعد `var token = ...` وتنتهي بـ `} catch(e) { ... }` قبل `if (isEdit) {`.
+الكتلة الحالية بعد `var token = ...` تحتوي `try / if(success) / else / catch` كاملة، ثم `if (isEdit) {` كما يجب. 
 
 الاستنتاج:
 
@@ -182,7 +182,7 @@ supabase.from('runsheets').select('id').eq('runsheet_code', v.value).maybeSingle
 الاستعلام الحالي:
 
 ```javascript
-supabase.from('runsheets').select('id, runsheet_code')
+return supabase.from('runsheets').select('id, runsheet_code').then(function(res) {
 ```
 
 يجب إضافة company scope.
@@ -204,8 +204,8 @@ var ordRes = await supabase.from('orders').select('*, runsheets(runsheet_code)')
 الموجود:
 
 ```javascript
-supabase.from('users').select('email, name').in('role', ['driver','سائق','مندوب']);
-supabase.from('vehicles').select('id, license_plate, model');
+var dRes = await supabase.from('users').select('email, name').in('role', ['driver','سائق','مندوب']);
+var vRes = await supabase.from('vehicles').select('id, license_plate, model');
 ```
 
 يجب إضافة `.eq('company_id', _rwCompanyId())` لكليهما.
@@ -215,7 +215,7 @@ supabase.from('vehicles').select('id, license_plate, model');
 الموجود:
 
 ```javascript
-supabase.from('runsheets').select('*').order('run_date', { ascending: false });
+var res = await supabase.from('runsheets').select('*').order('run_date', { ascending: false });
 ```
 
 يجب إضافة company scope.
@@ -225,13 +225,13 @@ supabase.from('runsheets').select('*').order('run_date', { ascending: false });
 يجب إضافة Company Scope إلى:
 
 ```javascript
-supabase.from('runsheets').select('*').eq('runsheet_code', code).maybeSingle()
+supabase.from('runsheets').select('*').eq('runsheet_code', code).maybeSingle();
 ```
 
 و:
 
 ```javascript
-supabase.from('orders').select('order_code, customer_name, total_amount').eq('runsheet_id', rs.id)
+supabase.from('orders').select('order_code, customer_name, total_amount').eq('runsheet_id', rs.id);
 ```
 
 وترك `run_sheet_details` مع `runsheet_id` بعد إثبات Tenant عبر الأب `runsheets`.
@@ -249,6 +249,28 @@ await supabase.from('runsheets').delete().eq('id', rsId)
 ولا توجد Production capability حالية باسم `delete-runsheet` أو RPC مماثل ثبت أنها owner لهذا العقد.
 
 لذلك **لا يتم اختراع Backend جديد داخل هذه الوحدة**. يظل هذا `OPEN CONTRACT` حتى يُعاد بناء contract الحذف من المصدر التاريخي/الـbusiness owner.
+
+### M5-14 — Currency is incorrectly hardcoded as EGP
+
+Production الحالية تثبت:
+
+```text
+currency = SAR
+```
+
+بينما main5 يحتوي `EGP` في العرض والطباعة عدة مرات، منها:
+
+```text
+القيمة (EGP)
+...toLocaleString() + ' EGP'</n
+مجموع الأصناف ... EGP
+رسوم التوصيل ... EGP
+الإجمالي ... EGP
+بيان الرحلة ... EGP
+الأوردرات المرتبطة ... EGP
+```
+
+هذا اختلاف تشغيلي مباشر يجب إصلاحه قبل الدمج النهائي.
 
 ## 7. Syntax / Structure Assessment
 
@@ -277,7 +299,7 @@ _printManifest closed
 var ordRes = await supabase.from('orders').select('*, runsheets(runsheet_code)');
 ```
 
-استبدله بالسطر:
+استبدله بـ:
 
 ```javascript
 var companyId = _rwCompanyId();
@@ -304,20 +326,13 @@ var detRes = orderIds.length
 
 ### PATCH M5-03
 
-ابحث عن المقطع الكامل الذي يبدأ بـ:
+ابحث عن السطر الكامل:
 
 ```javascript
-var channel = supabase
-    .channel('orders-realtime')
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, function(payload) {
 ```
 
-وينتهي مباشرة عند:
-
-```javascript
-    .subscribe();
-```
-
-استبدل فقط تعريف `.on(...)` بالمقطع:
+واستبدله بـ:
 
 ```javascript
     .on('postgres_changes', {
@@ -328,7 +343,7 @@ var channel = supabase
     }, function(payload) {
 ```
 
-واترك callback وبقية السلسلة كما هي.
+واترك بقية callback حتى `.subscribe();` كما هي.
 
 ### PATCH M5-04
 
@@ -352,7 +367,7 @@ supabase.from('orders').select('*').eq('company_id', _rwCompanyId()).eq('order_c
 return supabase.from('app_settings').select('*').limit(1).single();
 ```
 
-استبدله بـ:
+واستبدله بـ:
 
 ```javascript
 return supabase.from('app_settings').select('*').eq('company_id', _rwCompanyId()).order('created_at', { ascending: true }).limit(1).single();
@@ -360,7 +375,7 @@ return supabase.from('app_settings').select('*').eq('company_id', _rwCompanyId()
 
 ### PATCH M5-06
 
-ابحث عن المقطع الكامل الذي يبدأ بـ:
+ابحث عن المقطع الكامل:
 
 ```javascript
 await supabase
@@ -369,17 +384,11 @@ await supabase
     .in('order_code', selected);
 ```
 
-وينتهي عند السطر:
-
-```text
-.in('order_code', selected);
-```
-
-**احذفه كاملًا ولا تضف بديلًا.**
+احذفه كاملًا ولا تضف بديلًا.
 
 ### PATCH M5-07
 
-ابحث عن السطر:
+ابحث عن:
 
 ```javascript
 var rsRes = await supabase.from('runsheets').select('runsheet_code, status').in('status', ['Open', 'Confirmed']);
@@ -405,7 +414,7 @@ var targetRsRes = await supabase.from('runsheets').select('id').eq('company_id',
 
 ### PATCH M5-08
 
-ابحث عن السطر:
+ابحث عن:
 
 ```javascript
 return supabase.from('runsheets').select('id, runsheet_code').then(function(res) {
@@ -419,13 +428,13 @@ return supabase.from('runsheets').select('id, runsheet_code').eq('company_id', _
 
 ### PATCH M5-09
 
-ابحث عن السطر:
+داخل `_refreshData` ابحث عن:
 
 ```javascript
 var ordRes = await supabase.from('orders').select('*, runsheets(runsheet_code)');
 ```
 
-داخل `_refreshData` تحديدًا، واستبدله بـ:
+واستبدله بـ:
 
 ```javascript
 var ordRes = await supabase.from('orders').select('*, runsheets(runsheet_code)').eq('company_id', _rwCompanyId());
@@ -466,7 +475,7 @@ var dRes = await supabase.from('users').select('email, name').eq('company_id', _
 var vRes = await supabase.from('vehicles').select('id, license_plate, model');
 ```
 
-استبدله بـ:
+واستبدله بـ:
 
 ```javascript
 var vRes = await supabase.from('vehicles').select('id, license_plate, model').eq('company_id', _rwCompanyId());
@@ -480,7 +489,7 @@ var vRes = await supabase.from('vehicles').select('id, license_plate, model').eq
 var res = await supabase.from('runsheets').select('*').order('run_date', { ascending: false });
 ```
 
-استبدله بـ:
+واستبدله بـ:
 
 ```javascript
 var res = await supabase.from('runsheets').select('*').eq('company_id', _rwCompanyId()).order('run_date', { ascending: false });
@@ -494,7 +503,7 @@ var res = await supabase.from('runsheets').select('*').eq('company_id', _rwCompa
 var rsRes = await supabase.from('runsheets').select('*').eq('runsheet_code', code).maybeSingle();
 ```
 
-استبدله بـ:
+واستبدله بـ:
 
 ```javascript
 var rsRes = await supabase.from('runsheets').select('*').eq('company_id', _rwCompanyId()).eq('runsheet_code', code).maybeSingle();
@@ -512,15 +521,227 @@ var ordersRes = await supabase.from('orders').select('order_code, customer_name,
 var ordersRes = await supabase.from('orders').select('order_code, customer_name, total_amount').eq('company_id', _rwCompanyId()).eq('runsheet_id', rs.id);
 ```
 
-## 9. Production Status
+## 9. Exact Currency Patch — M5-14
 
-لا توجد حاجة إلى تعديل Production بسبب PATCH M5-01..M5-12 نفسها؛ هذه تعديلات مصدر Frontend.
+### 14-A — RW_Orders currency state
 
-Production RLS الحالي يؤكد أن إزالة الـdirect order update في `_createRS` مطلوبة.
+ابحث عن أول سطر داخل `RW_Orders`:
 
-لا يتم إنشاء `delete-runsheet` capability في هذه الجلسة لأن owner/business contract غير مثبت.
+```javascript
+var sortField = 'order_code', sortAsc = true, ordersData = [];
+```
 
-## 10. Final Self-Audit
+استبدله بـ:
+
+```javascript
+var sortField = 'order_code', sortAsc = true, ordersData = [], currency = 'SAR';
+```
+
+### 14-B — تحميل عملة الشركة مرة واحدة
+
+بعد إضافة M5-01 مباشرة، ابحث عن هذا المقطع:
+
+```javascript
+var companyId = _rwCompanyId();
+if (!companyId) { hideLoader(); showToast('سياق الشركة غير محدد', 'error'); return; }
+```
+
+وأضف فوق السطر التالي مباشرة:
+
+```javascript
+var settingsRes = await supabase.from('app_settings')
+    .select('currency')
+    .eq('company_id', companyId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+if (settingsRes.error || !settingsRes.data) {
+    hideLoader();
+    showToast('تعذر تحميل عملة الشركة', 'error');
+    return;
+}
+currency = settingsRes.data.currency || 'SAR';
+```
+
+### 14-C — Orders UI
+
+ابحث عن السطر كاملًا:
+
+```javascript
+'<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\'total_amount\')">القيمة (EGP) <i class="fa-solid fa-sort"></i></th>' +
+```
+
+استبدله بـ:
+
+```javascript
+'<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\'total_amount\')">القيمة (' + currency + ') <i class="fa-solid fa-sort"></i></th>' +
+```
+
+ابحث عن السطر:
+
+```javascript
+'<td class="p-3 text-center font-bold">' + Number(o.total_amount || 0).toLocaleString() + ' EGP</td>' +
+```
+
+واستبدله بـ:
+
+```javascript
+'<td class="p-3 text-center font-bold">' + Number(o.total_amount || 0).toLocaleString() + ' ' + currency + '</td>' +
+```
+
+ابحث داخل `_showDetails` عن:
+
+```javascript
+'<div class="flex justify-between mb-2"><span>مجموع الأصناف:</span><span>' + Number(itemsTotal).toLocaleString() + ' EGP</span></div>' +
+```
+
+استبدله بـ:
+
+```javascript
+'<div class="flex justify-between mb-2"><span>مجموع الأصناف:</span><span>' + Number(itemsTotal).toLocaleString() + ' ' + currency + '</span></div>' +
+```
+
+ثم:
+
+```javascript
+'<div class="flex justify-between mb-2"><span class="text-blue-600">رسوم التوصيل:</span><span class="text-blue-600">' + Number(deliveryFee).toLocaleString() + ' EGP</span></div>' +
+```
+
+يستبدل بـ:
+
+```javascript
+'<div class="flex justify-between mb-2"><span class="text-blue-600">رسوم التوصيل:</span><span class="text-blue-600">' + Number(deliveryFee).toLocaleString() + ' ' + currency + '</span></div>' +
+```
+
+ثم:
+
+```javascript
+'<div class="flex justify-between pt-2 border-t"><span class="font-bold">الإجمالي:</span><span class="font-bold text-emerald-600 text-lg">' + Number(grandTotal).toLocaleString() + ' EGP</span></div>' +
+```
+
+يستبدل بـ:
+
+```javascript
+'<div class="flex justify-between pt-2 border-t"><span class="font-bold">الإجمالي:</span><span class="font-bold text-emerald-600 text-lg">' + Number(grandTotal).toLocaleString() + ' ' + currency + '</span></div>' +
+```
+
+### 14-D — Order print
+
+ابحث عن السطر الكامل داخل `_buildPrintWindow`:
+
+```javascript
+'<div style="font-weight:bold;font-size:18px;margin-top:20px">الإجمالي: ' + Number(order.total_amount || 0).toLocaleString() + ' EGP</div>' +
+```
+
+استبدله بـ:
+
+```javascript
+'<div style="font-weight:bold;font-size:18px;margin-top:20px">الإجمالي: ' + Number(order.total_amount || 0).toLocaleString() + ' ' + currency + '</div>' +
+```
+
+### 14-E — RW_Runsheets currency state
+
+ابحث عن أول declaration داخل `RW_Runsheets`:
+
+```javascript
+var sortField = 'runsheet_code';
+var sortAsc = true;
+```
+
+أضف بعدهما مباشرة:
+
+```javascript
+var currency = 'SAR';
+```
+
+ثم داخل `RW_Runsheets.render` وبعد:
+
+```javascript
+safeText(byId('rw-header-title'), 'الرانشيتات');
+```
+
+أضف:
+
+```javascript
+var settingsRes = await supabase.from('app_settings')
+    .select('currency')
+    .eq('company_id', _rwCompanyId())
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+if (settingsRes.error || !settingsRes.data) {
+    showToast('تعذر تحميل عملة الشركة', 'error');
+    return;
+}
+currency = settingsRes.data.currency || 'SAR';
+```
+
+ثم استبدل كل موضع `EGP` الظاهر حرفيًا داخل `RW_Runsheets` بالعملة التالية:
+
+```javascript
+' ' + currency
+```
+
+والاستبدالات الحرفية المثبتة في المصدر هي:
+
+```javascript
+'<td class="p-3 text-center font-bold">' + _fmtNum(r.total_amount) + ' EGP</td>' +
+```
+بـ:
+```javascript
+'<td class="p-3 text-center font-bold">' + _fmtNum(r.total_amount) + ' ' + currency + '</td>' +
+```
+
+```javascript
+'(' + _fmtNum(orders[o].total_amount) + ' EGP)'
+```
+بـ:
+```javascript
+'(' + _fmtNum(orders[o].total_amount) + ' ' + currency + ')'
+```
+
+```javascript
+'إجمالي الأصناف: ' + _fmtNum(grandTotal) + ' EGP'
+```
+بـ:
+```javascript
+'إجمالي الأصناف: ' + _fmtNum(grandTotal) + ' ' + currency
+```
+
+```javascript
+'<div><p class="text-xs text-gray-400">القيمة الإجمالية</p><p class="font-bold text-xl text-emerald-600">' + _fmtNum(rs.total_amount) + ' EGP</p></div>' +
+```
+بـ:
+```javascript
+'<div><p class="text-xs text-gray-400">القيمة الإجمالية</p><p class="font-bold text-xl text-emerald-600">' + _fmtNum(rs.total_amount) + ' ' + currency + '</p></div>' +
+```
+
+```javascript
+'(' + _fmtNum(orders[o].total_amount) + ' EGP)'
+```
+في `_printManifest` يستبدل بنفس صيغة العملة.
+
+```javascript
+'<div class="info-item"><label>القيمة الإجمالية</label><span>' + _fmtNum(rs.total_amount) + ' EGP</span></div>' +
+```
+بـ:
+```javascript
+'<div class="info-item"><label>القيمة الإجمالية</label><span>' + _fmtNum(rs.total_amount) + ' ' + currency + '</span></div>' +
+```
+
+```javascript
+'<div style="text-align:left;font-size:20px;font-weight:bold;margin-top:20px;">الإجمالي: ' + _fmtNum(grandTotal) + ' EGP</div>' +
+```
+بـ:
+```javascript
+'<div style="text-align:left;font-size:20px;font-weight:bold;margin-top:20px;">الإجمالي: ' + _fmtNum(grandTotal) + ' ' + currency + '</div>' +
+```
+
+## 10. Main5 deletion contract — DO NOT PATCH NOW
+
+لا تعدّل `_deleteRunsheet` أو تنشئ له RPC جديدًا في هذه الدورة. السبب مثبت: لا يوجد owner Production حالي للحذف الذري، وهناك اختلاف بين RLS والعقود. هذا يحتاج Closure Unit مستقلة بعد الرجوع إلى التاريخ والكود الأصلي والـbusiness contract.
+
+## 11. Final Self-Audit
 
 ### ما تم إثباته
 
@@ -534,7 +755,7 @@ Production RLS الحالي يؤكد أن إزالة الـdirect order update �
 - Production was rechecked at `2026-09-07 10:12:16 UTC`.
 - Production currently has no orders or runsheets.
 - Orders have SELECT-only authenticated RLS; runsheets have company-aware write policies.
-- Main5 has the listed company-scope defects and an unauthorized/redundant direct order update.
+- Main5 has the listed company-scope defects, the redundant direct order update, and the EGP currency defect.
 - No Production delete-runsheet owner was found.
 
 ### ما لم يتم إثباته
@@ -558,11 +779,12 @@ Production = no new main5-specific migration/deployment
 Documentation = Report76
 ```
 
-## 11. NEXT AUTHORIZED ACTION
+## 12. NEXT AUTHORIZED ACTION
 
 ```text
 USER:
-  Apply PATCH M5-01 → M5-12 exactly to Current/PWA/main2/main5.md.
+  Apply PATCH M5-01 → M5-12 and M5-14 exactly to Current/PWA/main2/main5.md.
+  Do not change M5-13.
 
 THEN:
   commit main5.md
@@ -577,13 +799,14 @@ THEN:
   continue to the next main2 part only after M5 source closure
 ```
 
-## 12. Closure Status
+## 13. Closure Status
 
 ```text
 MAIN4 SOURCE = CLOSED
 MAIN4 RUNTIME = OPEN
 MAIN5 SOURCE = OPEN / USER PATCH REQUIRED
 MAIN5 RUNTIME = OPEN
+M5-13 DELETE-RUNSHEET CONTRACT = OPEN
 11-PART INTEGRATION = OPEN
 PROJECT = OPEN
 ```
