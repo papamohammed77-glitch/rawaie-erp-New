@@ -156,7 +156,7 @@ var RW_Suppliers = (function() {
             <input type="text" id="supp-search" placeholder="بحث..." class="w-full p-3 border rounded-xl mb-4">
             <div class="bg-white rounded-2xl shadow-sm border overflow-y-auto" id="supp-table-wrapper" style="max-height:65vh"></div>
         </div>`);
-        const { data: d } = await supabase.from('suppliers').select('*');
+        const { data: d } = await supabase.from('suppliers').select('*').eq('company_id', _rwCompanyId());
         data = d || [];
         renderTable(data);
         byId('supp-search')?.addEventListener('input', filterTable);
@@ -253,7 +253,7 @@ var RW_Suppliers = (function() {
                 RW_Audit_log(isEdit ? 'update' : 'create', 'suppliers', json.supplier_code || (s ? s.supplier_code : ''), isEdit ? s : null, payload);
                 showToast(isEdit ? 'تم التعديل' : 'تمت الإضافة', 'success');
                 Swal.close();
-                supabase.from('suppliers').select('*').then(function(res) { data = res.data || []; renderTable(data); });
+                supabase.from('suppliers').select('*').eq('company_id', _rwCompanyId()).then(function(res) { data = res.data || []; renderTable(data); });
             } else {
                 showToast(json.error || 'فشل الحفظ', 'error');
             }
@@ -276,7 +276,7 @@ var RW_Suppliers = (function() {
                     RW_Audit_log('delete', 'suppliers', s.supplier_code, s, null);
                     showToast('تم الحذف', 'success');
                     Swal.close();
-                    supabase.from('suppliers').select('*').then(function(res) { data = res.data || []; renderTable(data); });
+                    supabase.from('suppliers').select('*').eq('company_id', _rwCompanyId()).then(function(res) { data = res.data || []; renderTable(data); });
                 } else {
                     showToast(json.error || 'فشل الحذف', 'error');
                 }
@@ -387,12 +387,13 @@ var RW_Settings = (function() {
         safeText(byId('rw-header-title'), 'إعدادات النظام');
         showLoader('جاري تحميل الإعدادات...');
         try {
-            const { data: appSets, error } = await supabase.from('app_settings').select('*').limit(1).single();
+            const { data: appSets, error } = await supabase.from('app_settings').select('*').eq('company_id', _rwCompanyId()).order('created_at', { ascending: true }).limit(1).maybeSingle();
             if (!error && appSets) {
                 currentSettings = {
                     delivery_fee: appSets.delivery_fee || 0,
                     min_invoice_amount: appSets.min_invoice_amount || 0,
                     tax_rate: appSets.tax_rate || 0,
+                    currency: appSets.currency || 'SAR',
                     company_name: appSets.company_name || 'الروائع',
                     company_logo: appSets.company_logo || '',
                     vat_number: appSets.vat_number || '',
@@ -400,7 +401,7 @@ var RW_Settings = (function() {
                     business_address: appSets.business_address || ''
                 };
             } else {
-                currentSettings = { delivery_fee: 0, min_invoice_amount: 0, tax_rate: 0, company_name: 'الروائع', company_logo: '', vat_number: '', registered_name: '', business_address: '' };
+                currentSettings = { delivery_fee: 0, min_invoice_amount: 0, tax_rate: 0, currency: 'SAR', company_name: 'الروائع', company_logo: '', vat_number: '', registered_name: '', business_address: '' };
             }
         } catch(e) { console.error(e); }
         hideLoader();
@@ -520,9 +521,9 @@ async function render() {
         '<div class="bg-white rounded-2xl shadow-sm border overflow-y-auto" id="emp-table-wrapper" style="max-height:65vh"></div>' +
     '</div>');
 
-    var usersRes = await supabase.from('users').select('*');
+    var usersRes = await supabase.from('users').select('*').eq('company_id', _rwCompanyId());
     employeesData = usersRes.data || [];
-    try { var rRes = await supabase.from('roles').select('*'); rolesList = rRes.data || []; } catch(e) { rolesList = []; }
+    try { var rRes = await supabase.from('roles').select('*').eq('company_id', _rwCompanyId()); rolesList = rRes.data || []; } catch(e) { rolesList = []; }
     try { branchesList = await RW_Data.loadBranches(); } catch(e) { branchesList = []; }
 
     renderTable(employeesData);
@@ -886,7 +887,7 @@ function openModal(email) {
                         if (json.success) { 
                             showToast(isEdit ? 'تم التعديل' : 'تمت الإضافة', 'success'); 
                             Swal.close(); 
-                            var usersRes = await supabase.from('users').select('*'); 
+                            var usersRes = await supabase.from('users').select('*').eq('company_id', _rwCompanyId());
                             employeesData = usersRes.data || []; 
                             renderTable(employeesData); 
                         }
@@ -910,7 +911,7 @@ function openModal(email) {
                             var res = await fetch(RW_SUPABASE_URL + '/functions/v1/delete-employee', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ email: emp.email }) });
                             var json = await res.json();
                             hideLoader();
-                            if (json.success) { showToast('تم الحذف', 'success'); Swal.close(); var usersRes = await supabase.from('users').select('*'); employeesData = usersRes.data || []; renderTable(employeesData); }
+                            if (json.success) { showToast('تم الحذف', 'success'); Swal.close(); var usersRes = await supabase.from('users').select('*').eq('company_id', _rwCompanyId()); employeesData = usersRes.data || []; renderTable(employeesData); }
                             else { showToast(json.error || 'فشل الحذف', 'error'); }
                         } catch(e) { hideLoader(); showToast('فشل الاتصال بـ Edge Function', 'error'); }
                     });
@@ -1009,18 +1010,31 @@ function openModal(email) {
             }
             if (!emp || !emp.id) return;
             
+            var assignmentRequest;
             if (idx === -1) {
-                supabase.from('customer_assignments').upsert({
+                assignmentRequest = supabase.from('customer_assignments').upsert({
                     user_id: emp.id,
                     customer_id: customerId,
-                    assigned_by: (RW_STATE.app.currentUser && RW_STATE.app.currentUser.email) || null,
+                    assigned_by: RW_Auth.getUser().id || null,
                     is_active: true
-                }, { onConflict: 'user_id,customer_id' }).then(function() {});
+                }, { onConflict: 'user_id,customer_id' });
             } else {
-                supabase.from('customer_assignments').update({ is_active: false }).eq('user_id', emp.id).eq('customer_id', customerId).then(function() {});
+                assignmentRequest = supabase.from('customer_assignments').update({ is_active: false }).eq('user_id', emp.id).eq('customer_id', customerId);
             }
-            
-            _renderAssignedCustomersListFromIds();
+
+            assignmentRequest.then(function(res) {
+                if (res && res.error) throw res.error;
+                _renderAssignedCustomersListFromIds();
+            }).catch(function(error) {
+                if (idx === -1) {
+                    var rollbackIdx = window._assignedCustomerIds.indexOf(customerId);
+                    if (rollbackIdx !== -1) window._assignedCustomerIds.splice(rollbackIdx, 1);
+                } else if (window._assignedCustomerIds.indexOf(customerId) === -1) {
+                    window._assignedCustomerIds.push(customerId);
+                }
+                _renderAssignedCustomersListFromIds();
+                console.error('فشل تحديث تعيين العميل:', error);
+            });
         },
         _removeAssignedCustomer: function(customerId) {
             var idx = window._assignedCustomerIds.indexOf(customerId);
@@ -1029,10 +1043,26 @@ function openModal(email) {
             for (var i = 0; i < employeesData.length; i++) {
                 if (employeesData[i].email === window._currentEmpEmail) { emp = employeesData[i]; break; }
             }
-            if (emp && emp.id) {
-                supabase.from('customer_assignments').update({ is_active: false }).eq('user_id', emp.id).eq('customer_id', customerId).then(function() {});
+            if (!emp || !emp.id) {
+                _renderAssignedCustomersListFromIds();
+                return;
             }
-            _renderAssignedCustomersListFromIds();
+
+            supabase.from('customer_assignments')
+                .update({ is_active: false })
+                .eq('user_id', emp.id)
+                .eq('customer_id', customerId)
+                .then(function(res) {
+                    if (res && res.error) throw res.error;
+                    _renderAssignedCustomersListFromIds();
+                })
+                .catch(function(error) {
+                    if (window._assignedCustomerIds.indexOf(customerId) === -1) {
+                        window._assignedCustomerIds.push(customerId);
+                    }
+                    _renderAssignedCustomersListFromIds();
+                    console.error('فشل إزالة تعيين العميل:', error);
+                });
         }
     };
 })();
