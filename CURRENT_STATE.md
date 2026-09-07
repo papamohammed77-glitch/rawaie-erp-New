@@ -6,9 +6,9 @@
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
-LATEST VERIFIED GIT COMMIT = 42ab7aeb113d64ea08becb134a8e114165594dc1
+LATEST VERIFIED MAIN4 SOURCE COMMIT = 42ab7aeb113d64ea08becb134a8e114165594dc1
 LATEST VERIFIED MAIN4 BLOB = 7e99ce1d81e2f594f9c2ed811ce5666914b4ceef
-LATEST REPORT = doc/Draft/Reprots/Report74_Main4_PostPatch_Forensic_Recheck_20260907.md
+LATEST STATE REPORT = doc/Draft/Reprots/Report74_Main4_PostPatch_Forensic_Recheck_20260907.md
 ```
 
 ## GOVERNANCE
@@ -288,15 +288,15 @@ Final Production equivalence = NOT VERIFIED
 ## WHAT I PROVED
 
 - The project was resumed from the current verified state rather than historical stage numbers.
-- The latest Git commit after Report73 is `42ab7a...`, and it modified main4 directly.
+- The latest main4 source commit after Report73 is `42ab7a...`, and it modified main4 directly.
 - The main4 patch from Report73 is present in the current blob.
-- The full main4 file was read again from start to EOF after that patch.
+- The full main4 file was read again from start to EOF after the user patch.
 - Production currently has one company, one app_settings row, 24 users, 20 roles, 3 customers, one supplier, two branches, and 17 items.
 - Production currency is SAR.
 - Production main branch code is BR-01.
 - Production `save_sales_invoice_atomic` requires `p_branch_code`.
 - POS is now aligned with that contract.
-- The remaining main4 problems are source-level defects introduced or exposed by the patch application, not unresolved Report73 findings.
+- The remaining main4 problems are source-level defects discovered by post-patch forensic review.
 
 ## WHAT I DID NOT PROVE
 
@@ -350,7 +350,7 @@ THEN:
   → VERIFY EACH REPLACEMENT
   → VERIFY SINGLE _saveOrder
   → VERIFY ROLE REFRESH QUERY
-  → VERIFY CURRENT GIT BLOB
+  → VERIFY CURRENT MAIN4 SOURCE BLOB
   → RECONCILE CURRENT PRODUCTION
   → PERFORM MAIN4 INTEGRATION/RUNTIME VERIFICATION
   → ONLY AFTER MAIN4 CLOSES, OPEN DELETE-EMPLOYEE AS A SEPARATE CLOSURE UNIT
