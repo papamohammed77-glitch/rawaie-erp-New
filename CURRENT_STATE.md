@@ -6,81 +6,78 @@
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
-LATEST VERIFIED MAIN4 SOURCE COMMIT = ee5638b3d71b1c94b4c611003ce8be6831ef8342
-LATEST VERIFIED MAIN4 BLOB = 932c22c7e0a0285a437729a84b9a1f909bd5f573
-LATEST FORENSIC REPORT = doc/Draft/Reprots/Report75_Main4_CurrentHead_Forensic_Recheck_20260907.md
+CURRENT GIT HEAD = c7aee872815564b910d7258d5918e550e66dc9da
+LATEST FORENSIC REPORT = doc/Draft/Reprots/Report76_Main5_Forensic_Continuation_20260907.md
 ```
 
 ## GOVERNANCE
 
 ```text
-CURRENT REALITY > CURRENT GIT > CURRENT PRODUCTION > CURRENT DEPLOYMENTS > CURRENT DATABASE CONTRACTS > HISTORICAL CONTRACTS > REPORTS > MEMORY > ASSUMPTIONS
+CURRENT REALITY > CURRENT GIT > CURRENT PRODUCTION > CURRENT DEPLOYMENTS > CURRENT DATABASE CONTRACTS > VERIFIED ARTIFACTS > HISTORY > REPORTS > MEMORY > ASSUMPTIONS
 UNKNOWN != BUG
 UNKNOWN != REMOVE
-READ → VERIFY → RECONCILE → UNDERSTAND → PATCH → VERIFY
 ONE CLOSURE UNIT AT A TIME
-GIT != DEPLOYMENT PROOF
 SOURCE != RUNTIME PROOF
+GIT != PRODUCTION PROOF
 NO CLOSURE CLAIM WITHOUT CURRENT EVIDENCE
 ```
 
 Primary governance:
 `doc/Draft/medhat/MASTER - RAWAEA ERP.md`
 
-## LAST VERIFIED MAIN4 LINEAGE
+## LAST VERIFIED LINEAGE
 
-### Report73
-`4489997677ed593f1567a9fbb398ea6172c8eef5`
-Main4 forensic review and exact surgical patch specification.
-
-### Main4 user patch
-`42ab7aeb113d64ea08becb134a8e114165594dc1`
-`Refactor app settings retrieval and currency usage`
-`2026-09-07 09:09:21 UTC`
-Historical main4 blob: `7e99ce1d81e2f594f9c2ed811ce5666914b4ceef`
-
-### Report74
-`bd287ebb11760bb0a1f6aba063d6ae3be606d1f4`
-Main4 post-patch forensic recheck. It identified M4-01 and M4-02 as open at that time.
-
-### Newer Main4 user commit discovered during this recovery
-`ee5638b3d71b1c94b4c611003ce8be6831ef8342`
-`Update main4.md`
-`2026-09-07 09:48:36 UTC`
-Current main4 blob: `932c22c7e0a0285a437729a84b9a1f909bd5f573`
-
-This is the current source truth for main4 and was fully re-read during this session.
-
-### Report75
-Current-head forensic recheck created during this session. It records the latest main4 state and the remaining source defect.
-
-## PRODUCTION TRUTH — 2026-09-07
+### Main4 historical lineage
 
 ```text
-companies            = 1
-app_settings         = 1
-users                = 24
-roles                = 20
-customers            = 3
-suppliers            = 1
-branches             = 2
-customer_assignments = 0
-items                = 17
+Report73 = 4489997677ed593f1567a9fbb398ea6172c8eef5
+User Main4 Patch = 42ab7aeb113d64ea08becb134a8e114165594dc1
+Report74 = bd287ebb11760bb0a1f6aba063d6ae3be606d1f4
+Previous Main4 Commit = ee5638b3d71b1c94b4c611003ce8be6831ef8342
+Previous Main4 Blob = 932c22c7e0a0285a437729a84b9a1f909bd5f573
+Current Main4 Blob = e89d29e4164c68784c109292f27d4d77df240557
 ```
 
-Current app settings:
+The current main4 commit after Report75 contains the corrected M4-01 `try / if / else / catch` block. M4-02 remains intact. The main4 source was re-read during the current session.
+
+### Current documentation events
 
 ```text
-company_id     = 00000000-0000-0000-0000-000000000001
-currency       = SAR
-company_name   = الروائع
-delivery_fee   = 0.00
-min_invoice_amount = 0.00
-tax_rate       = 0.00
-main_branch_id = a38332b6-6cea-480a-ada1-6eb6ab0590db
+Report75 = historical forensic recheck
+Report76 = c7aee872815564b910d7258d5918e550e66dc9da
+CURRENT_STATE = updated after Report76
 ```
 
-Current branches:
+## PRODUCTION TRUTH — 2026-09-07 10:12:16 UTC
+
+```text
+companies      = 1
+app_settings   = 1
+users          = 24
+roles          = 20
+customers      = 3
+suppliers      = 1
+branches      = 2
+items          = 17
+orders         = 0
+runsheets      = 0
+stock_rows     = 20
+inventory_logs = 3
+```
+
+Current company settings:
+
+```text
+company_id          = 00000000-0000-0000-0000-000000000001
+currency            = SAR
+company_name        = الروائع
+delivery_fee        = 0.00
+min_invoice_amount  = 0.00
+tax_rate             = 0.00
+main_branch_id      = a38332b6-6cea-480a-ada1-6eb6ab0590db
+```
+
+Branches:
 
 ```text
 BR-01 = الفرع الرئيسي
@@ -96,33 +93,29 @@ receiving.operation_id UNIQUE
 roles.company_id PRESENT
 branches.company_id PRESENT
 app_settings.company_id PRESENT
-app_settings.main_branch_id PRESENT
-stock_branches derives company through branch_id; no company_id column
+stock_branches derives company through branch_id
 ```
 
-Relevant RLS facts previously verified:
+Relevant RLS facts verified directly in Production:
 
 ```text
-users                = ENABLED
-roles                = ENABLED
-customers            = ENABLED
-suppliers            = ENABLED
-branches             = ENABLED
-app_settings         = ENABLED
-customer_assignments = ENABLED
-stock_branches       = company-aware through branch relationship
+orders = authenticated SELECT only; no authenticated UPDATE/DELETE policy
+runsheets = SELECT/INSERT/UPDATE/DELETE with current-company checks
+order_details = current-tenant SELECT policy
+run_sheet_details = current-tenant SELECT policy
+users = company-aware policies
+vehicles = company-aware SELECT policy
+app_settings = company-aware policies
 ```
 
-`roles` still has broad policy `Allow all for all` with `qual=true / with_check=true`; this remains a separate security/governance closure.
+`roles` broad `Allow all for all` policy remains a separate governance closure.
 
 ## MAIN2
 
 ```text
-PATH = Current/PWA/main2/main2.md
-CURRENT BLOB = 58dd0da232ccca4c62bc17d87220bf8b705d85e8
-SOURCE INTEGRATION = VERIFIED
-BROWSER RUNTIME = NOT VERIFIED
-FINAL 11-PART ASSEMBLY = NOT VERIFIED
+main2 source = previously verified
+Browser runtime = NOT VERIFIED
+11-part final assembly = NOT VERIFIED
 ```
 
 Do not reopen main2 without new direct evidence.
@@ -130,257 +123,174 @@ Do not reopen main2 without new direct evidence.
 ## MAIN3
 
 ```text
-PATH = Current/PWA/main2/main3.md
-CURRENT BLOB = 479060e3d4bea5e2203c87f822b1dbc0e2f7d456
-USER PATCH = APPLIED
-FULL SOURCE RE-READ = VERIFIED
+main3 source = VERIFIED AFTER USER PATCH
 S1-S6 = VERIFIED
 ```
 
 Do not reopen main3 without new direct evidence.
 
-## MAIN4 — CURRENT TARGET
+## MAIN4 — SOURCE CLOSED / RUNTIME OPEN
 
 ```text
 PATH = Current/PWA/main2/main4.md
-CURRENT BLOB = 932c22c7e0a0285a437729a84b9a1f909bd5f573
-FULL SOURCE RE-READ TO EOF = VERIFIED
-STATUS = OPEN
+BLOB = e89d29e4164c68784c109292f27d4d77df240557
+FULL SOURCE RE-READ = VERIFIED
+M4-01 = CORRECTED IN CURRENT GIT
+M4-02 = VERIFIED
+_saveOrder definitions = 1
+legacy duplicate _saveOrder = absent
 ```
 
-### RW_POS
+No new main4 patch is authorized from current evidence.
+
+Remaining main4 verification:
 
 ```text
-app_settings = company-scoped
-main_branch_id = company-scoped + branch validation
-main branch code = derived from configured branch
-currency = app_settings
-save-sales-invoice = branchCode
-EGP hardcode in reviewed POS path = none
+Browser runtime = OPEN
+11-part integration = OPEN
+Full PWA runtime = OPEN
 ```
 
-### RW_Roles
+## MAIN5 — CURRENT TARGET
 
 ```text
-initial roles read = company-scoped
-post-delete roles read = company-scoped
-post-seed roles read = company-scoped
-save-role backend = company-aware
-save-role success refresh = company-scoped
-CURRENT DEFECT = try block after save-role token has no catch/finally before callback closes
-CURRENT DEFECT = backend failure else branch was removed during patch
+PATH = Current/PWA/main2/main5.md
+BLOB = caffc0187b54444e96491dc6f00a238b2e870b32
+SOURCE FULL READ = VERIFIED BY SEQUENTIAL FORENSIC REVIEW
+SOURCE SYNTAX CLOSURE = NO MAIN4-LIKE DEFECT FOUND
+RUNTIME = OPEN
 ```
 
-### RW_TeleSales
+### Main5 open surgical changes
 
 ```text
-app_settings = company-scoped
-branches = company-scoped
-stock_branches = restricted to current company's branch IDs
-_getAvailable = requires selected branch
-currency = settings currency
-settings failure = blocks save
-_saveOrder = exactly one async execution path
-legacy duplicate _saveOrder chain = absent
+M5-01 = RW_Orders orders query must be company-scoped
+M5-02 = order_details must be constrained by loaded order IDs
+M5-03 = orders realtime subscription must be company-filtered
+M5-04 = _showDetails orders lookup must be company-scoped
+M5-05 = _printOrder app_settings must be company-scoped
+M5-06 = remove direct orders UPDATE before create-runsheet
+M5-07 = _appendRS runsheet lookups must be company-scoped
+M5-08 = _loadRunsheetCodes must be company-scoped
+M5-09 = _refreshData orders + order_details must be company-scoped/bounded
+M5-10 = drivers and vehicles helper queries must be company-scoped
+M5-11 = RW_Runsheets main list must be company-scoped
+M5-12 = RW_Runsheets _details runsheet/orders lookups must be company-scoped
+M5-14 = replace hardcoded EGP presentation with app_settings.currency
 ```
 
-## EXACT OPEN PATCH — M4-01
-
-The 11-part system-parent file is edited by the user, not by the assistant.
-
-In `Current/PWA/main2/main4.md`, inside `RW_Roles`, locate exactly:
-
-```javascript
-var token = sessionRes.data.session ? sessionRes.data.session.access_token : null;
-try {
-    var res = await fetch(RW_SUPABASE_URL + '/functions/v1/save-role', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify(payload) });
-```
-
-Delete starting at that `try {` and continue through the `});` immediately before:
-
-```javascript
-if (isEdit) {
-```
-
-Replace the deleted block with:
-
-```javascript
-try {
-    var res = await fetch(RW_SUPABASE_URL + '/functions/v1/save-role', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Bearer ' + token
-        },
-        body: JSON.stringify(payload)
-    });
-
-    var json = await res.json();
-    hideLoader();
-
-    if (json.success) {
-        showToast(isEdit ? 'تم التعديل' : 'تمت الإضافة', 'success');
-        Swal.close();
-
-        var refreshedRoles = await supabase.from('roles')
-            .select('*')
-            .eq('company_id', _rwCompanyId())
-            .order('created_at', { ascending: true });
-
-        if (refreshedRoles.error) {
-            showToast('تم الحفظ لكن تعذر تحديث قائمة الأدوار', 'warning');
-            return;
-        }
-
-        rolesData = refreshedRoles.data || [];
-        renderTable(rolesData);
-    } else {
-        showToast(json.error || 'فشل الحفظ', 'error');
-    }
-} catch(e) {
-    hideLoader();
-    showToast('فشل الاتصال بـ Edge Function', 'error');
-}
-```
-
-Leave the following line unchanged:
-
-```javascript
-if (isEdit) {
-```
-
-Do NOT reapply M4-02.
-
-## VALIDATION STATUS
+### M5-13 — OPEN CONTRACT / DO NOT PATCH YET
 
 ```text
-MASTER = READ TO EOF
-CURRENT_STATE = READ / RECONCILED / UPDATED
-Report74 = READ TO EOF
-Report75 = CREATED
-main4 current Blob = VERIFIED
-main4 full source read to EOF = VERIFIED
-M4-02 = VERIFIED APPLIED
-M4-01 = OPEN / SYNTAX DEFECT PROVEN
-Production counts/settings/branches = VERIFIED
-Production save-sales-invoice contract = VERIFIED
-core.js shared primitives = VERIFIED PRESENT
-Browser E2E = NOT VERIFIED
-main4 browser runtime after corrected M4-01 = NOT VERIFIED
-11-part assembly = NOT VERIFIED
-Full PWA runtime = NOT VERIFIED
-Final Production equivalence = NOT VERIFIED
+_deleteRunsheet currently performs three direct Frontend writes
+orders UPDATE is not permitted by current authenticated RLS
+run_sheet_details write ownership is not proven
+no Production delete-runsheet RPC/Edge capability was found
 ```
 
-## WHAT I PROVED
+Do not invent a delete capability or change delete semantics until the historical/source/Business Contract is reconstructed.
 
-- The project was resumed from current evidence, not historical stage numbers.
-- `MASTER - RAWAEA ERP.md` was read to EOF.
-- `CURRENT_STATE.md` was reconciled with current Git and Production.
-- A newer main4 commit existed after Report74: `ee5638b3...`.
-- Current `main4.md` blob is `932c22c7...` and was read to EOF.
-- The Report74 M4-02 replacement is present.
-- There is exactly one `_saveOrder` definition.
-- The obsolete duplicate `_saveOrder` chain is absent.
-- The M4-01 company-scoped refresh query is present.
-- M4-01 is not closed because its surrounding `try` statement lacks `catch`/`finally`.
-- Production currently contains one company, two branches, 17 items, 20 roles, 24 users, currency SAR.
-- Production `save_sales_invoice_atomic` requires `p_branch_code` and is Security Definer.
-- `core.js` contains the shared `supabase`, `byId`, `safeHTML`, `safeText`, `showLoader`, and `hideLoader` primitives used by main4.
+## EXACT NEXT USER ACTION
 
-## WHAT I DID NOT PROVE
+Apply exactly the surgical blocks in Report76 to `Current/PWA/main2/main5.md`:
 
 ```text
-Browser E2E after M4-01 correction
-Production runtime of corrected main4
-Final 11-part assembly
-Full PWA runtime equivalence
-Final production equivalence
-Delete-employee closure
-Roles RLS closure
-Delete-role backend closure
+M5-01
+M5-02
+M5-03
+M5-04
+M5-05
+M5-06
+M5-07
+M5-08
+M5-09
+M5-10
+M5-11
+M5-12
+M5-14
 ```
 
-## SESSION ACTIONS
+Do NOT change M5-13.
+
+After the manual edits:
 
 ```text
-READ:
-  MASTER
-  CURRENT_STATE
-  Report74
-  current Git HEAD
-  current main4
-  current core.js
-  Production PostgreSQL
-
-VERIFY:
-  current main4 commit/blob
-  M4-01 current structure
-  M4-02 current structure
-  Production counts/settings/branches
-  save-sales-invoice contract
-  core.js shared primitives
-
-DOCUMENT:
-  Report75 created
-  CURRENT_STATE updated
-
-SOURCE MODIFICATION BY ASSISTANT:
-  NONE for main4, by explicit user instruction
-
-PRODUCTION MODIFICATION:
-  NONE required for current main4 defect
+commit main5.md
+return new main5 commit SHA + blob SHA
 ```
 
-## WHAT MUST NOT BE REPEATED
+Then the next authorized step is:
 
 ```text
-Do not reapply M4-02.
-Do not edit the removed legacy _saveOrder block; it is already absent.
-Do not delete the entire RW_Roles callback.
-Do not remove save-role error handling; restore it with catch + else as specified.
-Do not change delete-role backend inside main4.
-Do not reopen main3 without new direct evidence.
-Do not declare main4 closed before a fresh full-file read after M4-01 correction.
-Do not treat source verification as browser/runtime verification.
+full main5 read from first line to EOF
+structural/source recheck
+Production reconciliation
+runtime/integration assessment
+```
+
+## WHAT IS PROVEN / NOT PROVEN
+
+### Proven
+
+```text
+MASTER read to EOF
+CURRENT_STATE reconciled against current Git and Production
+Report75 treated as historical evidence
+current Git HEAD identified
+current main4 source re-read
+M4-01 correction present
+M4-02 intact
+main5 source reviewed in sequential ranges
+Production current counts/settings/RLS verified
+main5 company-scope defects identified
+main5 hardcoded EGP defects identified
+```
+
+### Not proven
+
+```text
+main4 browser runtime
+main5 browser runtime
+11-part final assembly
+full PWA runtime equivalence
+final Production equivalence
+atomic delete-runsheet business contract
+```
+
+## KNOWN ANTIPATTERNS — DO NOT REPEAT
+
+```text
+Do not treat reports as current Production truth.
+Do not treat source closure as runtime closure.
+Do not use LIMIT 1 for company-scoped operational identity.
+Do not add a new database column when an existing operation identity contract is available.
+Do not invent a delete-runsheet backend without proven owner/contract.
+Do not modify the 11-part system parent files directly from the assistant.
 ```
 
 ## CLOSURE STATUS
 
 ```text
-Production branch attribution = CLOSED / VERIFIED
-Main2 source = VERIFIED / RUNTIME OPEN
-Main3 source = VERIFIED AFTER USER PATCH
-Main3 S1-S6 = VERIFIED
-Main4 M4-02 = SOURCE CLOSED / VERIFIED
-Main4 M4-01 = SOURCE OPEN / SYNTAX DEFECT
-Main4 runtime = OPEN
-Employee delete backend = OPEN
-Roles RLS governance = OPEN
-Delete-role backend = OPEN
-11-part integration = OPEN
-Full PWA runtime = OPEN
-PROJECT CLOSURE = NOT CLAIMED
+MAIN4 SOURCE = CLOSED
+MAIN4 RUNTIME = OPEN
+MAIN5 SOURCE = OPEN / USER PATCH REQUIRED
+MAIN5 RUNTIME = OPEN
+M5-13 DELETE-RUNSHEET CONTRACT = OPEN
+11-PART INTEGRATION = OPEN
+PROJECT = OPEN
 ```
 
-## NEXT AUTHORIZED ACTION
+## LAST VERIFIED EVENT
 
 ```text
-USER:
-  Apply M4-01 corrected block exactly.
-  Do not touch M4-02.
-
-THEN:
-  commit main4.md
-  provide the new commit SHA + new main4 blob SHA
-
-THEN:
-  full main4 read to EOF
-  verify RW_Roles try/catch/else
-  verify exactly one _saveOrder
-  reconcile Production again
-  continue main4 integration/runtime verification
-
-ONLY AFTER MAIN4 SOURCE + RUNTIME CLOSURE:
-  open delete-employee as the next independent Closure Unit.
+EVENT TYPE = FORENSIC CONTINUATION / MAIN5
+UTC = 2026-09-07 10:12:16
+SOURCE = Production Supabase + current Git
+GIT HEAD = c7aee872815564b910d7258d5918e550e66dc9da
+MAIN4 BLOB = e89d29e4164c68784c109292f27d4d77df240557
+MAIN5 BLOB = caffc0187b54444e96491dc6f00a238b2e870b32
+ACTION = Reconcile current state, re-read main4/main5, identify exact surgical patches
+RESULT = Main4 source closed; Main5 patch specification issued; delete-runsheet contract remains open
+EVIDENCE = Report76 + direct Production SQL verification
+NEXT AUTHORIZED ACTION = User applies Main5 M5-01..M5-12 + M5-14, then source commit/recheck
 ```
