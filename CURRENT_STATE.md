@@ -1,13 +1,14 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
-## CURRENT CHECKPOINT — 2026-09-05
+## CURRENT CHECKPOINT — 2026-09-07
 
 ```text
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
-LAST VERIFIED WORK COMMIT = 5d08da67982ba4a9e4e1524a221081b1118f731d
-LAST VERIFIED WORK = Report71 — forensic main3 review and surgical patch instructions
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
+LATEST VERIFIED MAIN3 COMMIT = e5a340b0a2c3de8a38a2d09375753afe1538230b
+LATEST VERIFIED MAIN3 BLOB = 479060e3d4bea5e2203c87f822b1dbc0e2f7d456
+LATEST REPORT = doc/Draft/Reprots/Report72_Main3_PostPatch_Forensic_Verification_20260907.md
 ```
 
 ## GOVERNANCE
@@ -29,43 +30,51 @@ Primary governance:
 ## LAST VERIFIED EVENTS
 
 ### Report69
-
 `ba750f3707560b7c2bf4e6ebaa8d0eeca3f2db47`
-
-Forensic reconciliation of main2 and its stale Blob reference.
+Forensic reconciliation of main2 and stale Blob reference.
 
 ### Report70
-
 `5f0a018c92a8c74415039e5016899a9af9d29c69`
-
 Production branch-attribution deployment and transactional verification.
 
 ### Main2 user commit
-
 `36482301223c07ddd256c87a2bc712198d955b7a`
-
 Message: `Update main2.md`
-
-Current main2 source Blob after that commit:
-`58dd0da232ccca4c62bc17d87220bf8b705d85e8`
+Current main2 Blob: `58dd0da232ccca4c62bc17d87220bf8b705d85e8`
 
 ### Report71
-
 `5d08da67982ba4a9e4e1524a221081b1118f731d`
+Forensic main3 review and exact manual patch instructions.
 
-Forensic main3 review, Production scope verification, exact surgical patch instructions, and backend defect classification.
+### Main3 user patch commit
+`e5a340b0a2c3de8a38a2d09375753afe1538230b`
+Message: `Update main3.md`
+UTC: `2026-09-07 04:19:49`
+Current main3 Blob: `479060e3d4bea5e2203c87f822b1dbc0e2f7d456`
 
-## PRODUCTION TRUTH — DIRECT RECONCILIATION
+### Report72
+`7cd86940e7ef729907872785c2f9aa5414f021d3`
+Main3 post-patch forensic verification and Production contract reconciliation.
+
+## PRODUCTION TRUTH — 2026-09-07
 
 ```text
-companies       = 1
-app_settings    = 1
-orders          = 0
-purchase_orders = 0
-branches        = 2
-items           = 17
-stock_branches  = 20
-inventory_log   = 3
+companies            = 1
+app_settings         = 1
+users                = 24
+roles                = 20
+customers            = 3
+suppliers            = 1
+branches             = 2
+customer_assignments = 0
+```
+
+Current `app_settings`:
+
+```text
+company_id = 00000000-0000-0000-0000-000000000001
+currency = SAR
+company_name = الروائع
 ```
 
 Relevant schema facts:
@@ -74,73 +83,49 @@ Relevant schema facts:
 items.item_code UNIQUE globally
 stock_branches UNIQUE(branch_id,item_id)
 receiving.operation_id UNIQUE
-items.barcode NOT UNIQUE
 roles.company_id PRESENT
 customer_assignments.assigned_by = uuid
+customer_assignments has no company_id column
 ```
 
 Relevant RLS facts:
 
 ```text
-users                = RLS ENABLED
-roles                = RLS ENABLED
-customers            = RLS ENABLED
-suppliers            = RLS ENABLED
-branches             = RLS ENABLED
-app_settings         = RLS ENABLED
-customer_assignments = RLS ENABLED
+users                = ENABLED
+roles                = ENABLED
+customers            = ENABLED
+suppliers            = ENABLED
+branches             = ENABLED
+app_settings         = ENABLED
+customer_assignments = ENABLED
 ```
 
-Important residue:
+`roles` still has broad policy `Allow all for all` with `qual=true / with_check=true`; keep this as a separate backend/security closure.
 
-```text
-roles policy `Allow all for all` = qual=true / with_check=true
-```
-
-This is a backend governance/security closure item; the main3 UI is still required to query roles by company and must not depend on the broad policy.
-
-Production branch attribution remains verified:
-
-```text
-inventory_log.source_branch_id = PRESENT
-inventory_log.target_branch_id = PRESENT
-source FK = PRESENT
-target FK = PRESENT
-post_stock_movement persists source/target = VERIFIED
-```
+`customer_assignments` currently has company-aware RLS through the customer/company relationship and permission checks. Do not invent a new `company_id` column without direct evidence.
 
 ## MAIN2 SOURCE STATE
 
 ```text
 PATH = Current/PWA/main2/main2.md
 CURRENT BLOB = 58dd0da232ccca4c62bc17d87220bf8b705d85e8
+SOURCE INTEGRATION = VERIFIED
+BROWSER RUNTIME = NOT VERIFIED
+FINAL 11-PART ASSEMBLY = NOT VERIFIED
 ```
 
-The current source was rechecked after the user commit. The movement reader now references `inventory_log` and branch attribution, and the current search found no `stock_vouchers` / `stock_voucher_details` references inside that movement reader.
-
-Therefore:
-
-```text
-MAIN2 B/C SOURCE INTEGRATION = VERIFIED IN CURRENT GIT
-MAIN2 BROWSER RUNTIME = NOT VERIFIED
-MAIN2 FINAL 11-PART ASSEMBLY = NOT VERIFIED
-PROJECT CLOSURE = NOT CLAIMED
-```
-
-Do not reopen main2 during the main3 surgical pass unless new direct evidence appears.
+Do not reopen main2 during main3 closure without new direct evidence.
 
 ## MAIN3 SOURCE STATE
 
 ```text
 PATH = Current/PWA/main2/main3.md
-CURRENT BLOB = 1bfedd3b16abb804d83e2b7d5671f1b31f320a14
-STATUS = NOT MODIFIED BY ASSISTANT
-STATUS = FORENSICALLY REVIEWED
+CURRENT BLOB = 479060e3d4bea5e2203c87f822b1dbc0e2f7d456
+USER PATCH = APPLIED
+FULL SOURCE RE-READ = VERIFIED
 ```
 
-The file was read completely from start to final closing brace and compared to `Original/PWA/main/main3.md`.
-
-Current logical modules:
+Logical modules:
 
 ```text
 RW_Customers
@@ -150,165 +135,117 @@ RW_Settings
 RW_Users
 ```
 
-### Proven safe / no patch
+### S1–S6
 
 ```text
-RW_Customers = NO PATCH
-RW_Branches  = NO PATCH
-save-customer Edge = COMPANY SCOPED
-save-supplier Edge = COMPANY SCOPED
-save-branch Edge = COMPANY SCOPED
-save-settings Edge = COMPANY SCOPED + OWNER/LICENSE checks
-save-employee Edge = COMPANY SCOPED
+S1 Suppliers company scope       = APPLIED / VERIFIED
+S2 Settings scope + currency     = APPLIED / VERIFIED
+S3 Users + Roles company scope   = APPLIED / VERIFIED
+S4 assigned_by UUID               = APPLIED / VERIFIED
+S5 assignment rollback handling   = APPLIED / VERIFIED
+S6 removal rollback handling      = APPLIED / VERIFIED
 ```
 
-### Main3 manual patches prepared
+The current source was re-read from the beginning through the final closing `})();` after the user commit.
+
+### MAIN3 POST-PATCH DECISION
 
 ```text
-S1 = suppliers company-scoped reads
-S2 = app_settings company-scoped read + currency hydration
-S3 = users/roles company-scoped reads and refreshes
-S4 = customer_assignments.assigned_by UUID correction
-S5 = assignment write error/rollback handling
-S6 = assignment removal error/rollback handling
+NEW MAIN3 SURGICAL PATCH = NOT JUSTIFIED BY CURRENT EVIDENCE
 ```
 
-Exact instructions are recorded in `doc/Draft/Reprots/Report71`.
+The six Report71 patches are present in the current Blob. No additional main3 change is authorized without fresh evidence.
 
-### Why S4 is mandatory
+## BACKEND OPEN ITEMS
 
-Production schema:
+### delete-employee
+
+Production `delete-employee` remains a separate proven closure issue: the database delete path was identified as email-based without an explicit company predicate.
 
 ```text
-customer_assignments.assigned_by = uuid
-```
-
-Current main3 sends:
-
-```javascript
-assigned_by: (RW_STATE.app.currentUser && RW_STATE.app.currentUser.email) || null,
-```
-
-This is a direct type-contract mismatch.
-
-### Why S2 is mandatory
-
-Production `app_settings` contains:
-
-```text
-currency
-```
-
-Current main3 renders a currency selector from `currentSettings.currency` but does not hydrate that property from `appSets.currency`.
-
-### Why S1/S3 are mandatory
-
-`suppliers`, `users`, `roles` are company-scoped entities in the current schema. Current main3 uses global reads for them. `roles` is especially sensitive because its current RLS policy is broad.
-
-## BACKEND OPEN ITEM
-
-Production `delete-employee` currently authenticates the caller but performs the database delete using email only, without a `company_id` predicate.
-
-Classification:
-
-```text
-BACKEND DEFECT = PROVEN
 TARGET = delete-employee Edge Function
 MAIN3 PATCH = NOT SUBSTITUTE FOR BACKEND FIX
 STATUS = OPEN / SEPARATE CLOSURE UNIT
 ```
 
-Do not declare the Employee lifecycle fully closed until this closure is addressed and verified.
-
-## PATCHES NOT TO DO
+### roles RLS
 
 ```text
-Do not modify main2 during main3 closure.
-Do not modify core.js / sw.js / register-sw.js / manifest during main3 closure.
-Do not patch RW_Customers or RW_Branches without new evidence.
-Do not change Owner ["*"] semantics.
-Do not replace roles policy blindly inside this main3 task.
-Do not invent an Edge Function for assignments unless a later closure proves the existing direct-write contract must be replaced.
-Do not claim browser/runtime closure from source inspection.
+STATUS = OPEN / SEPARATE GOVERNANCE CLOSURE
 ```
+
+Do not change Owner wildcard semantics while addressing this.
 
 ## VALIDATION STATUS
 
 ```text
-MASTER continuity = READ TO EOF
-Knowledge Pack 2026-09-04 = READ TO EOF
-Report69 = READ TO EOF
-Report70 = READ TO EOF
-Report71 = CREATED
-Current Git main ref = VERIFIED
-Main2 current Blob = VERIFIED
-Main3 current Blob = VERIFIED
-Main3 full read = VERIFIED
-Production relevant schema = VERIFIED
-Production relevant RLS = VERIFIED
-Production relevant Edge Functions = VERIFIED
-Main3 manual patches = PREPARED, NOT APPLIED BY ASSISTANT
-Main3 runtime = NOT VERIFIED
-Main3 static/syntax after user edit = NOT VERIFIED
+MASTER = READ
+CURRENT_STATE = READ / RECONCILED / UPDATED
+Report71 = READ TO EOF
+Report72 = CREATED
+main3 current Blob = VERIFIED
+main3 full read after user patch = VERIFIED
+main3 S1-S6 = VERIFIED IN CURRENT GIT
+Production schema relevant to main3 = VERIFIED
+Production RLS relevant to main3 = VERIFIED
+Production current counts = VERIFIED
+Browser E2E = NOT VERIFIED
+Assignment runtime with authenticated browser session = NOT VERIFIED
 11-part assembly = NOT VERIFIED
 Full PWA runtime = NOT VERIFIED
-Project Closure = NOT CLAIMED
+Final Production equivalence = NOT VERIFIED
 ```
 
 ## WHAT I PROVED
 
-- The repository moved after Report70; the current main ref is now on the user's main2 update followed by Report71.
-- The stale main2 Blob recorded by the old state is no longer current.
-- Main2 B/C source integration is present in current Git.
-- Main3 Blob is still `1bfedd3...` and was read to EOF.
-- Main3 is not a Physical Stock writer.
-- Main3 contains direct company-scoped reads for suppliers/users/roles that should be explicitly scoped.
-- Main3 contains a concrete `assigned_by` UUID vs email mismatch.
-- Main3 contains a concrete missing `currency` hydration.
-- Production current RLS and schema were directly checked.
-- Production `delete-employee` has a separate unscoped email-delete defect.
+- The user's main3 changes are actually committed in Git on 2026-09-07.
+- Current `main3.md` Blob is `479060e3...` and differs from the Blob recorded in Report71.
+- S1–S6 are present in the current source.
+- Production currently has one company and one settings row; `currency = SAR`.
+- `customer_assignments.assigned_by` is UUID in Production and main3 now supplies the authenticated user's UUID.
+- `customer_assignments` RLS is company-aware.
+- No additional main3 patch is proven necessary at this point.
 
 ## WHAT I DID NOT PROVE
 
-- Browser E2E after the manual main3 edits.
-- Static/syntax after the manual main3 edits.
-- Runtime success of customer assignment after S4-S6.
+- Browser E2E after the manual patch.
+- Assignment runtime from an authenticated browser session.
 - Final 11-part assembly.
-- Final PWA Production equivalence.
-- Closure of backend `delete-employee`.
+- Full PWA Production equivalence.
+- Closure of `delete-employee`.
 - Closure of the broad `roles` RLS policy.
 
 ## CURRENT TARGET
 
 ```text
-PRIMARY TARGET = Current/PWA/main2/main3.md
-MODE = USER MANUAL SURGICAL EDIT
+PRIMARY = main3 source verified; no additional main3 patch currently authorized
+NEXT CLOSURE UNIT = delete-employee backend, subject to fresh reconciliation before edit
 ```
 
 ## NEXT AUTHORIZED ACTION
 
 ```text
-1. Apply S1-S6 in main3 exactly as written in Report71.
-2. Do not change any other main3 code in the same edit.
-3. Re-read main3.md completely after saving.
-4. Verify the exact replacement text is intact and no surrounding code was lost.
-5. Commit the user's main3 change.
-6. Re-fetch the new main3 Blob from Git.
-7. Perform static/syntax review.
-8. Verify the affected Production contracts again.
-9. Then address the separate delete-employee backend closure.
-10. After main3 closure, reassess the next target from fresh evidence rather than historical stage numbering.
+1. Do not modify main3 again without new evidence.
+2. Keep Blob 479060e3... as the current main3 baseline.
+3. Reconcile delete-employee Historical / Current / Production / Target contracts.
+4. Fix that backend closure as a separate unit and verify Production.
+5. Reconcile fresh state before selecting the next target.
+6. Complete the remaining PWA source parts independently.
+7. Only after all 11 parts are closed, perform final assembly.
+8. Then integrate core.js / sw.js / register-sw.js / manifest and perform final runtime verification.
 ```
 
 ## CLOSURE STATUS
 
 ```text
-Production branch attribution = CLOSED / DEPLOYED / TRANSACTIONALLY VERIFIED
-Main2 source B/C = INTEGRATED IN CURRENT GIT / RUNTIME OPEN
-Main3 = FORENSIC REVIEW COMPLETE / MANUAL PATCH PENDING
-Main3 source closure = OPEN
-Main3 runtime closure = OPEN
+Production branch attribution = CLOSED / VERIFIED
+Main2 source B/C = INTEGRATED / RUNTIME OPEN
+Main3 source = VERIFIED AFTER USER PATCH
+Main3 S1-S6 = VERIFIED
+Main3 runtime = OPEN
 Employee delete backend = OPEN
+Roles RLS governance = OPEN
 11-part integration = OPEN
-Project Closure = NOT CLAIMED
+Full PWA runtime = OPEN
+PROJECT CLOSURE = NOT CLAIMED
 ```
