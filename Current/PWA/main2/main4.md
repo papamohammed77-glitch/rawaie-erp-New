@@ -560,11 +560,24 @@ var RW_Roles = (function() {
                         try {
                             var res = await fetch(RW_SUPABASE_URL + '/functions/v1/save-role', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify(payload) });
                             var json = await res.json();
-                            hideLoader();
-                            if (json.success) { showToast(isEdit ? 'تم التعديل' : 'تمت الإضافة', 'success'); Swal.close();  rolesData = dRes.data || []; renderTable(rolesData); }
-                            else { showToast(json.error || 'فشل الحفظ', 'error'); }
-                        } catch(e) { hideLoader(); showToast('فشل الاتصال بـ Edge Function', 'error'); }
-                    });
+                            hideLoader();if (json.success) {
+    showToast(isEdit ? 'تم التعديل' : 'تمت الإضافة', 'success');
+    Swal.close();
+
+    var refreshedRoles = await supabase.from('roles')
+        .select('*')
+        .eq('company_id', _rwCompanyId())
+        .order('created_at', { ascending: true });
+
+    if (refreshedRoles.error) {
+        showToast('تم الحفظ لكن تعذر تحديث قائمة الأدوار', 'warning');
+        return;
+    }
+
+    rolesData = refreshedRoles.data || [];
+    renderTable(rolesData);
+}
+});
                 }
                 if (isEdit) {
                     var deleteBtn = byId('btn-delete-role');
@@ -1087,45 +1100,60 @@ function _getAvailable(itemId) {
     safeText(byId('ts-cart-count'),String(cart.length));
   }
 
-function _saveOrder() {
+async function _saveOrder() {
     if (!selectedCustomer) {
         showToast('يرجى اختيار عميل أولاً', 'warning');
         return;
     }
+
     if (!cart.length) {
         showToast('أضف أصنافاً إلى السلة', 'warning');
         return;
     }
+
     var branchSelect = byId('ts-branch-select');
-var branchCode = branchSelect ? branchSelect.value : '';
+    var branchCode = branchSelect ? branchSelect.value : '';
 
-if (!branchCode) {
-    showToast('اختر الفرع المصروف منه أولاً', 'warning');
-    return;
-}
+    if (!branchCode) {
+        showToast('اختر الفرع المصروف منه أولاً', 'warning');
+        return;
+    }
 
-    // جلب الإعدادات للتحقق من الحد الأدنى للفاتورة
-    supabase.from('app_settings')
-    .select('min_invoice_amount, delivery_fee, tax_rate, currency')
-    .eq('company_id', _rwCompanyId())
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle()
-    .then(function(sRes) {
-if (sRes.error || !sRes.data) {
-    showToast('تعذر تحميل إعدادات الشركة، لم يتم حفظ الأوردر', 'error');
-    return;
-}
-        var settings = sRes.data || {};
+    showLoader('جاري حفظ الأوردر...');
+
+    try {
+        var companyId = _rwCompanyId();
+
+        if (!companyId) {
+            throw new Error('سياق الشركة غير محدد');
+        }
+
+        var settingsRes = await supabase.from('app_settings')
+            .select('min_invoice_amount,delivery_fee,tax_rate,currency')
+            .eq('company_id', companyId)
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+        if (settingsRes.error || !settingsRes.data) {
+            throw new Error('تعذر تحميل إعدادات الشركة، لم يتم حفظ الأوردر');
+        }
+
+        var settings = settingsRes.data;
+
+        deliveryFee = Number(settings.delivery_fee) || 0;
+        taxRate = Number(settings.tax_rate) || 0;
+        currency = settings.currency || 'SAR';
+
         var minInvoice = Number(settings.min_invoice_amount) || 0;
-        var deliveryFeeSetting = Number(settings.delivery_fee) || 0;
-        var taxRateSetting = Number(settings.tax_rate) || 0;
-currency = settings.currency || 'SAR';
+
         var subtotal = 0;
         var itemsList = [];
+
         for (var i = 0; i < cart.length; i++) {
             var line = cart[i].price * cart[i].qty;
             subtotal += line;
+
             itemsList.push({
                 code: cart[i].code,
                 name: cart[i].name,
@@ -1135,40 +1163,57 @@ currency = settings.currency || 'SAR';
             });
         }
 
-        var del = deliveryFee || deliveryFeeSetting;
-        var before = subtotal + del;
+        var before = subtotal + deliveryFee;
         var taxAmt = Math.round(before * taxRate) / 100;
         var total = before + taxAmt;
 
-        // التحقق من الحد الأدنى للفاتورة
         if (minInvoice > 0 && total < minInvoice) {
             showToast(
-  'الحد الأدنى للفاتورة: ' + minInvoice + ' ' + currency +
-  '. الإجمالي الحالي: ' + total.toLocaleString() + ' ' + currency,
-  'warning'
-);
+                'الحد الأدنى للفاتورة: ' + minInvoice + ' ' + currency +
+                '. الإجمالي الحالي: ' + total.toLocaleString() + ' ' + currency,
+                'warning'
+            );
             return;
         }
 
-        // التحقق النهائي من الرصيد المتاح لجميع الأصناف (باستخدام _getAvailable الدائمة)
         var items = RW_STATE.data.items || [];
+
         for (var k = 0; k < cart.length; k++) {
             var cartItem = cart[k];
             var item = null;
+
             for (var m = 0; m < items.length; m++) {
-                if (items[m].item_code === cartItem.code) { item = items[m]; break; }
+                if (items[m].item_code === cartItem.code) {
+                    item = items[m];
+                    break;
+                }
             }
-            if (item) {
-                var available = _getAvailable(item.id);
-                if (cartItem.qty > available) {
-                    showToast('الرصيد المتاح للصنف "' + (item.name || cartItem.code) + '" غير كافٍ. المتاح: ' + available, 'warning');
-                    return;
-                }
-                var maxQty = item.max_qty ? Number(item.max_qty) : 0;
-                if (maxQty > 0 && cartItem.qty > maxQty) {
-                    showToast('الكمية المطلوبة للصنف "' + (item.name || cartItem.code) + '" تتجاوز الحد الأقصى: ' + maxQty, 'warning');
-                    return;
-                }
+
+            if (!item) {
+                showToast('الصنف غير موجود: ' + cartItem.code, 'error');
+                return;
+            }
+
+            var available = _getAvailable(item.id);
+
+            if (cartItem.qty > available) {
+                showToast(
+                    'الرصيد المتاح للصنف "' + (item.name || cartItem.code) +
+                    '" غير كافٍ. المتاح: ' + available,
+                    'warning'
+                );
+                return;
+            }
+
+            var maxQty = item.max_qty ? Number(item.max_qty) : 0;
+
+            if (maxQty > 0 && cartItem.qty > maxQty) {
+                showToast(
+                    'الكمية المطلوبة للصنف "' + (item.name || cartItem.code) +
+                    '" تتجاوز الحد الأقصى: ' + maxQty,
+                    'warning'
+                );
+                return;
             }
         }
 
@@ -1178,96 +1223,72 @@ currency = settings.currency || 'SAR';
             custName: selectedCustomer.name,
             area: selectedCustomer.area || '',
             total: total,
-            deliveryFees: del,
+            deliveryFees: deliveryFee,
             status: 'Confirmed',
             paymentType: selectedCustomer.payment_type || 'أجل',
             taxAmount: taxAmt,
             taxRate: taxRate
         };
 
-        showLoader('جاري حفظ الأوردر...');
+        var ses = await supabase.auth.getSession();
+        var token = ses.data.session
+            ? ses.data.session.access_token
+            : null;
 
-        supabase.auth.getSession().then(function(ses) {
-            var token = (ses && ses.data && ses.data.session) ? ses.data.session.access_token : null;
-            var branchCode = byId('ts-branch-select') ? byId('ts-branch-select').value : null;
-            return fetch(RW_SUPABASE_URL + '/functions/v1/save-sales-invoice', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-                body: JSON.stringify({ orderHeader: orderHeader, itemsList: itemsList, branchCode: branchCode || 'MAIN' })
-            });
-        }).then(function(res) {
-            return res.json();
-        }).then(function(json) {
-            hideLoader();
-            if (json.success) {
-                RW_Audit_log('create', 'orders', json.orderID || '', null, orderHeader);
-                showToast('تم حفظ الأوردر بنجاح: ' + (json.orderID || ''), 'success');
-                cart = [];
-                selectedCustomer = null;
-                byId('ts-customer-search').value = '';
-                byId('ts-customer-info').classList.add('hidden');
-                updateCartDisplay();
-            } else {
-                showToast(json.msg || 'فشل حفظ الأوردر', 'error');
-            }
-        }).catch(function(e) {
-            hideLoader();
-            showToast('فشل الاتصال', 'error');
-            console.error(e);
-        });
-}).catch(function(e) {
-    console.error('فشل جلب إعدادات الشركة:', e);
-    showToast('تعذر تحميل إعدادات الشركة، لم يتم حفظ الأوردر', 'error');
-});
+        if (!token) {
+            throw new Error('انتهت الجلسة');
         }
-        var total = subtotal + (deliveryFee || 0);
 
-        var orderHeader = {
-            operation_id: crypto.randomUUID(),
-            customer_code: selectedCustomer.customer_code,
-            custName: selectedCustomer.name,
-            area: selectedCustomer.area || '',
-            total: total,
-            deliveryFees: deliveryFee || 0,
-            status: 'Confirmed',
-            paymentType: selectedCustomer.payment_type || 'أجل',
-            taxAmount: 0,
-            taxRate: 0
-        };
-
-        showLoader('جاري حفظ الأوردر...');
-        supabase.auth.getSession().then(function(ses) {
-            var token = (ses && ses.data && ses.data.session) ? ses.data.session.access_token : null;
-            
-            return fetch(RW_SUPABASE_URL + '/functions/v1/save-sales-invoice', {
+        var res = await fetch(
+            RW_SUPABASE_URL + '/functions/v1/save-sales-invoice',
+            {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: 'Bearer ' + token
+                },
                 body: JSON.stringify({
-    orderHeader: orderHeader,
-    itemsList: itemsList,
-    branchCode: branchCode
-})
-            });
-        }).then(function(res) {
-            return res.json();
-        }).then(function(json) {
-            hideLoader();
-            if (json.success) {
-                showToast('تم حفظ الأوردر بنجاح: ' + (json.orderID || ''), 'success');
-                cart = [];
-                selectedCustomer = null;
-                byId('ts-customer-search').value = '';
-                byId('ts-customer-info').classList.add('hidden');
-                updateCartDisplay();
-            } else {
-                showToast(json.msg || 'فشل حفظ الأوردر', 'error');
+                    orderHeader: orderHeader,
+                    itemsList: itemsList,
+                    branchCode: branchCode
+                })
             }
-        }).catch(function(e2) {
-            hideLoader();
-            showToast('فشل الاتصال', 'error');
-            console.error(e2);
-        });
-    });
+        );
+
+        var json = await res.json();
+
+        if (!json.success) {
+            throw new Error(json.msg || 'فشل حفظ الأوردر');
+        }
+
+        RW_Audit_log(
+            'create',
+            'orders',
+            json.orderID || '',
+            null,
+            orderHeader
+        );
+
+        showToast(
+            'تم حفظ الأوردر بنجاح: ' + (json.orderID || ''),
+            'success'
+        );
+
+        cart = [];
+        selectedCustomer = null;
+
+        byId('ts-customer-search').value = '';
+        byId('ts-customer-info').classList.add('hidden');
+
+        updateCartDisplay();
+
+    } catch (e) {
+        console.error(e);
+        showToast(e.message || 'فشل الاتصال', 'error');
+
+    } finally {
+        hideLoader();
+    }
 }
 function loadBranches() {
   var sel = byId('ts-branch-select');
