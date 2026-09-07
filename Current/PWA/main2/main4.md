@@ -557,27 +557,42 @@ var RW_Roles = (function() {
                         showLoader('جاري الحفظ...');
                         var sessionRes = await supabase.auth.getSession();
                         var token = sessionRes.data.session ? sessionRes.data.session.access_token : null;
-                        try {
-                            var res = await fetch(RW_SUPABASE_URL + '/functions/v1/save-role', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify(payload) });
-                            var json = await res.json();
-                            hideLoader();if (json.success) {
-    showToast(isEdit ? 'تم التعديل' : 'تمت الإضافة', 'success');
-    Swal.close();
+try {
+    var res = await fetch(RW_SUPABASE_URL + '/functions/v1/save-role', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + token
+        },
+        body: JSON.stringify(payload)
+    });
 
-    var refreshedRoles = await supabase.from('roles')
-        .select('*')
-        .eq('company_id', _rwCompanyId())
-        .order('created_at', { ascending: true });
+    var json = await res.json();
+    hideLoader();
 
-    if (refreshedRoles.error) {
-        showToast('تم الحفظ لكن تعذر تحديث قائمة الأدوار', 'warning');
-        return;
+    if (json.success) {
+        showToast(isEdit ? 'تم التعديل' : 'تمت الإضافة', 'success');
+        Swal.close();
+
+        var refreshedRoles = await supabase.from('roles')
+            .select('*')
+            .eq('company_id', _rwCompanyId())
+            .order('created_at', { ascending: true });
+
+        if (refreshedRoles.error) {
+            showToast('تم الحفظ لكن تعذر تحديث قائمة الأدوار', 'warning');
+            return;
+        }
+
+        rolesData = refreshedRoles.data || [];
+        renderTable(rolesData);
+    } else {
+        showToast(json.error || 'فشل الحفظ', 'error');
     }
-
-    rolesData = refreshedRoles.data || [];
-    renderTable(rolesData);
+} catch(e) {
+    hideLoader();
+    showToast('فشل الاتصال بـ Edge Function', 'error');
 }
-});
                 }
                 if (isEdit) {
                     var deleteBtn = byId('btn-delete-role');
