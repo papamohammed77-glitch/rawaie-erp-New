@@ -1,1 +1,1 @@
-PR workflow synchronization trigger. Temporary; closure executor removes this file when it runs successfully.
+CTO bootstrap trigger — 2026-09-03 continuity recovery v4. Base main now uses target-preserving direct P163 closure; executor must prove target mutation and Gold/Diamond gates. Nonce 07:03 Cairo.
