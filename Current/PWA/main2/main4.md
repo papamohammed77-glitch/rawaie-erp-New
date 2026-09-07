@@ -5,6 +5,9 @@ var RW_POS = (function() {
     var cart = [];
     var deliveryFee = 0;
     var minInvoice = 0;
+    var currency = 'SAR';
+    var mainBranchId = null;
+    var mainBranchCode = '';
     var taxRate = 0;
 
     function esc(s) {
@@ -18,12 +21,47 @@ var RW_POS = (function() {
         if (!container) return;
         safeText(byId('rw-header-title'), 'نقطة البيع');
 
-        var settingsRes = await supabase.from('app_settings').select('*').limit(1).single();
-        if (!settingsRes.error && settingsRes.data) {
-            deliveryFee = Number(settingsRes.data.delivery_fee) || 0;
-            minInvoice = Number(settingsRes.data.min_invoice_amount) || 0;
-            taxRate = Number(settingsRes.data.tax_rate) || 0;
-        }
+        var companyId = _rwCompanyId();
+if (!companyId) {
+    showToast('سياق الشركة غير محدد', 'error');
+    return;
+}
+
+var settingsRes = await supabase.from('app_settings')
+    .select('delivery_fee,min_invoice_amount,tax_rate,currency,main_branch_id')
+    .eq('company_id', companyId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+if (settingsRes.error || !settingsRes.data) {
+    showToast('تعذر تحميل إعدادات الشركة', 'error');
+    return;
+}
+
+deliveryFee = Number(settingsRes.data.delivery_fee) || 0;
+minInvoice = Number(settingsRes.data.min_invoice_amount) || 0;
+taxRate = Number(settingsRes.data.tax_rate) || 0;
+currency = settingsRes.data.currency || 'SAR';
+mainBranchId = settingsRes.data.main_branch_id || null;
+
+if (!mainBranchId) {
+    showToast('الفرع الرئيسي غير محدد في إعدادات الشركة', 'error');
+    return;
+}
+
+var mainBranchRes = await supabase.from('branches')
+    .select('id,branch_code')
+    .eq('id', mainBranchId)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+if (mainBranchRes.error || !mainBranchRes.data || !mainBranchRes.data.branch_code) {
+    showToast('تعذر تحديد كود الفرع الرئيسي', 'error');
+    return;
+}
+
+mainBranchCode = mainBranchRes.data.branch_code;
         cart = [];
                 if (!RW_STATE.data.items || !RW_STATE.data.items.length) { showLoader('جاري تحميل الأصناف...'); await RW_Data.loadItems(); hideLoader(); }
         if (!RW_STATE.data.customers || !RW_STATE.data.customers.length) { await RW_Data.loadCustomers(); }
@@ -130,7 +168,7 @@ var RW_POS = (function() {
             var it = filtered[i];
             html += '<div onclick="RW_POS._addItem(\'' + it.item_code + '\')" class="p-3 hover:bg-blue-50 cursor-pointer flex justify-between border-b">' +
                 '<div><div class="font-bold">' + (it.name || '') + '</div></div>' +
-                '<div class="font-bold text-blue-600">' + Number(it.sales_price || 0).toLocaleString() + ' EGP</div>' +
+                '<div class="font-bold text-blue-600">' + Number(it.sales_price || 0).toLocaleString() + ' ' + currency</div>' +
             '</div>';
         }
         safeHTML(dd, html);
@@ -228,11 +266,11 @@ var RW_POS = (function() {
                     '<p class="font-black">' + esc(it.name) + '</p>' +
                     '<p class="text-xs text-gray-400">' + it.code + '</p>' +
                 '</td>' +
-                '<td class="p-4 border-y font-bold text-blue-600">' + it.price.toLocaleString() + ' EGP</td>' +
+                '<td class="p-4 border-y font-bold text-blue-600">' + it.price.toLocaleString() + ' ' + currency</td>' +
                 '<td class="p-4 border-y">' +
                     '<input type="number" value="' + it.qty + '" onchange="RW_POS._updateQty(' + i + ',this.value)" class="w-20 p-2 bg-slate-50 border-2 rounded-xl text-center font-black" min="1">' +
                 '</td>' +
-                '<td class="p-4 border-y font-black">' + line.toLocaleString() + ' EGP</td>' +
+                '<td class="p-4 border-y font-black">' + line.toLocaleString() + ' ' + currency</td>' +
                 '<td class="p-4 rounded-l-2xl border-y border-l text-center">' +
                     '<button onclick="RW_POS._removeItem(' + i + ')" class="text-red-400"><i class="fa-solid fa-circle-xmark text-xl"></i></button>' +
                 '</td>' +
@@ -279,7 +317,7 @@ var RW_POS = (function() {
         var taxAmt = Math.round(before * taxRate) / 100;
         var total = before + taxAmt;
         if (minInvoice > 0 && total < minInvoice) {
-            showToast('الحد الأدنى للفاتورة: ' + minInvoice + ' EGP', 'warning');
+            showToast('الحد الأدنى للفاتورة: ' + minInvoice + ' ' + currency, 'warning');
             return;
         }
         var customers = RW_STATE.data.customers || [];
@@ -334,7 +372,7 @@ var RW_POS = (function() {
                 body: JSON.stringify({
                     orderHeader: orderHeader,
                     itemsList: itemsList,
-                    branchId: 'MAIN'
+                    branchCode: mainBranchCode
                 })
             });
             var json = await res.json();
@@ -383,7 +421,10 @@ var RW_Roles = (function() {
             '<button id="btn-add-role" class="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold"><i class="fa-solid fa-plus ml-1"></i> إضافة دور</button></div></div>' +
             '<div class="bg-white rounded-2xl shadow-sm border overflow-y-auto" id="roles-table-wrapper" style="max-height:65vh"></div>' +
         '</div>');
-        var dRes = await supabase.from('roles').select('*');
+        var dRes = await supabase.from('roles')
+            .select('*')
+            .eq('company_id', _rwCompanyId())
+            .order('created_at', { ascending: true });
         rolesData = dRes.data || [];
         renderTable(rolesData);
         var addBtn = byId('btn-add-role');
@@ -520,7 +561,7 @@ var RW_Roles = (function() {
                             var res = await fetch(RW_SUPABASE_URL + '/functions/v1/save-role', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify(payload) });
                             var json = await res.json();
                             hideLoader();
-                            if (json.success) { showToast(isEdit ? 'تم التعديل' : 'تمت الإضافة', 'success'); Swal.close(); var dRes = await supabase.from('roles').select('*'); rolesData = dRes.data || []; renderTable(rolesData); }
+                            if (json.success) { showToast(isEdit ? 'تم التعديل' : 'تمت الإضافة', 'success'); Swal.close();  rolesData = dRes.data || []; renderTable(rolesData); }
                             else { showToast(json.error || 'فشل الحفظ', 'error'); }
                         } catch(e) { hideLoader(); showToast('فشل الاتصال بـ Edge Function', 'error'); }
                     });
@@ -538,7 +579,11 @@ var RW_Roles = (function() {
                                 var res = await fetch(RW_SUPABASE_URL + '/functions/v1/delete-role', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ roleId: role.id }) });
                                 var json = await res.json();
                                 hideLoader();
-                                if (json.success) { showToast('تم الحذف', 'success'); Swal.close(); var dRes = await supabase.from('roles').select('*'); rolesData = dRes.data || []; renderTable(rolesData); }
+                                if (json.success) { showToast('تم الحذف', 'success'); Swal.close(); var dRes = await supabase.from('roles')
+    .select('*')
+    .eq('company_id', _rwCompanyId())
+    .order('created_at', { ascending: true });
+    rolesData = dRes.data || []; renderTable(rolesData); }
                                 else { showToast(json.error || 'فشل الحذف', 'error'); }
                             } catch(e) { hideLoader(); showToast('فشل الاتصال بـ Edge Function', 'error'); }
                         });
@@ -579,7 +624,11 @@ var RW_Roles = (function() {
             var res = await fetch(RW_SUPABASE_URL + '/functions/v1/seed-roles', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token } });
             var json = await res.json();
             hideLoader();
-            if (json.success) { showToast(json.message || 'تمت التهيئة', 'success'); var dRes = await supabase.from('roles').select('*'); rolesData = dRes.data || []; renderTable(rolesData); }
+            if (json.success) { showToast(json.message || 'تمت التهيئة', 'success'); var dRes = await supabase.from('roles')
+    .select('*')
+    .eq('company_id', _rwCompanyId())
+    .order('created_at', { ascending: true });
+    rolesData = dRes.data || []; renderTable(rolesData); }
             else { showToast(json.error || 'فشل التهيئة', 'error'); }
         } catch(e) { hideLoader(); showToast('فشل الاتصال', 'error'); }
     }
@@ -595,7 +644,7 @@ var RW_TeleSales = (function() {
   var selectedCustomer = null;
   var deliveryFee = 0;
   var taxRate = 0;
-
+  var currency = 'SAR';
   function esc(s) {
     return String(s || '').replace(/[&<>]/g, function(m) {
       return m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;';
@@ -617,11 +666,27 @@ var RW_TeleSales = (function() {
     window._teleStockCache = {};    // { itemId: { branchId: { qty, allocated } } }
     window._teleBranchMap = {};     // { branchCode: branchId }
 
-    var settingsRes = await supabase.from('app_settings').select('*').limit(1).single();
-    if (!settingsRes.error && settingsRes.data) {
-      deliveryFee = Number(settingsRes.data.delivery_fee) || 0;
-      taxRate = Number(settingsRes.data.tax_rate) || 0;
-    }
+var companyId = _rwCompanyId();
+if (!companyId) {
+  showToast('سياق الشركة غير محدد', 'error');
+  return;
+}
+
+var settingsRes = await supabase.from('app_settings')
+  .select('delivery_fee,tax_rate,currency')
+  .eq('company_id', companyId)
+  .order('created_at', { ascending: true })
+  .limit(1)
+  .maybeSingle();
+
+if (settingsRes.error || !settingsRes.data) {
+  showToast('تعذر تحميل إعدادات الشركة', 'error');
+  return;
+}
+
+deliveryFee = Number(settingsRes.data.delivery_fee) || 0;
+taxRate = Number(settingsRes.data.tax_rate) || 0;
+currency = settingsRes.data.currency || 'SAR';
 
     if (!RW_STATE.data.items || !RW_STATE.data.items.length) {
       showLoader('جاري تحميل الأصناف...');
@@ -633,31 +698,60 @@ var RW_TeleSales = (function() {
       await RW_Data.loadCustomers();
     }
 
-    var branchesRes = await supabase.from('branches').select('id, branch_code, name');
-    var branches = branchesRes.data || [];
-    var branchMap = {};
-    for (var b = 0; b < branches.length; b++) {
-      branchMap[branches[b].branch_code] = branches[b].id;
-    }
-    window._teleBranchMap = branchMap;
-    window._teleBranches = branches;
+var branchesRes = await supabase.from('branches')
+  .select('id, branch_code, name')
+  .eq('company_id', companyId)
+  .order('created_at', { ascending: true });
 
-    try {
-      var stockRes = await supabase.from('stock_branches').select('item_id, branch_id, qty, allocated_qty');
-      var stockRows = stockRes.data || [];
-      var stockCache = {};
-      for (var s = 0; s < stockRows.length; s++) {
-        var row = stockRows[s];
-        if (!stockCache[row.item_id]) stockCache[row.item_id] = {};
-        stockCache[row.item_id][row.branch_id] = {
-          qty: Number(row.qty) || 0,
-          allocated: Number(row.allocated_qty) || 0
-        };
-      }
-      window._teleStockCache = stockCache;
-    } catch(e) {
-      console.error('فشل تحميل المخزون', e);
-    }
+if (branchesRes.error) {
+  showToast('تعذر تحميل فروع الشركة', 'error');
+  return;
+}
+
+var branches = branchesRes.data || [];
+if (!branches.length) {
+  showToast('لا توجد فروع متاحة للشركة الحالية', 'error');
+  return;
+}
+
+var branchMap = {};
+var branchIds = [];
+
+for (var b = 0; b < branches.length; b++) {
+  branchMap[branches[b].branch_code] = branches[b].id;
+  branchIds.push(branches[b].id);
+}
+
+window._teleBranchMap = branchMap;
+window._teleBranches = branches;
+
+try {
+  var stockRes = await supabase.from('stock_branches')
+    .select('item_id, branch_id, qty, allocated_qty')
+    .in('branch_id', branchIds);
+
+  if (stockRes.error) {
+    throw stockRes.error;
+  }
+
+  var stockRows = stockRes.data || [];
+  var stockCache = {};
+
+  for (var s = 0; s < stockRows.length; s++) {
+    var row = stockRows[s];
+    if (!stockCache[row.item_id]) stockCache[row.item_id] = {};
+
+    stockCache[row.item_id][row.branch_id] = {
+      qty: Number(row.qty) || 0,
+      allocated: Number(row.allocated_qty) || 0
+    };
+  }
+
+  window._teleStockCache = stockCache;
+} catch(e) {
+  console.error('فشل تحميل المخزون', e);
+  window._teleStockCache = {};
+}
 
     safeHTML(container, buildHTML());
     loadBranches();
@@ -763,7 +857,7 @@ var RW_TeleSales = (function() {
       var c = filtered[i];
       h += '<div onclick="RW_TeleSales._selectCustomer(\'' + c.customer_code + '\')" class="p-3 hover:bg-blue-50 cursor-pointer flex justify-between border-b">';
       h += '<div><div class="font-bold">' + (c.name || '') + '</div><div class="text-xs text-gray-400">' + (c.customer_code || '') + '</div></div>';
-      h += '<div class="text-left text-xs text-gray-500">' + (c.area || '') + ' | ' + _fmtNum(c.debt) + ' EGP</div>';
+      h += '<div class="text-left text-xs text-gray-500">' + (c.area || '') + ' | ' + _fmtNum(c.debt) + ' ' + currency</div>';
       h += '</div>';
     }
     safeHTML(div, h);
@@ -785,7 +879,7 @@ var RW_TeleSales = (function() {
       detailsHtml += '<div><i class="fa-solid fa-map-pin ml-1 text-blue-400"></i> المنطقة: <strong>' + (selectedCustomer.area || 'غير محددة') + '</strong></div>';
       detailsHtml += '<div><i class="fa-solid fa-credit-card ml-1 text-blue-400"></i> طريقة الدفع: <strong>' + (selectedCustomer.payment_type || 'غير محدد') + '</strong></div>';
       detailsHtml += '<div><i class="fa-solid fa-phone ml-1 text-blue-400"></i> هاتف: <strong>' + (selectedCustomer.phone || 'غير مسجل') + '</strong></div>';
-      detailsHtml += '<div><i class="fa-solid fa-money-bill-wave ml-1 text-blue-400"></i> الرصيد: <strong>' + _fmtNum(selectedCustomer.debt) + ' EGP</strong></div>';
+      detailsHtml += '<div><i class="fa-solid fa-money-bill-wave ml-1 text-blue-400"></i> الرصيد: <strong>' + _fmtNum(selectedCustomer.debt) + currency</strong></div>';
       safeHTML(byId('ts-cust-details'), detailsHtml);
     }
   }
@@ -804,7 +898,7 @@ var RW_TeleSales = (function() {
     '<div class="flex flex-col"><label>العنوان التفصيلي</label><input id="cust-location" class="p-2.5 bg-gray-50 border rounded-lg"></div>' +
     '<div class="flex flex-col"><label>نوع العميل</label><select id="cust-type" class="p-2.5 bg-gray-50 border rounded-lg"><option value="عادي">عادي</option><option value="جملة">جملة</option><option value="VIP">VIP</option></select></div>' +
     '<div class="flex flex-col"><label>طريقة الدفع</label><select id="cust-payment" class="p-2.5 bg-gray-50 border rounded-lg"><option value="نقدي">نقدي</option><option value="أجل">أجل</option></select></div>' +
-    '<div class="flex flex-col"><label>الرصيد الحالي (EGP)</label><input id="cust-debt" type="number" value="0" class="p-2.5 bg-gray-50 border rounded-lg"></div>' +
+    '<div class="flex flex-col"><label>الرصيد الحالي (' + currency + ')</label><input id="cust-debt" type="number" value="0" class="p-2.5 bg-gray-50 border rounded-lg"></div>' +
     '<div class="flex flex-col"><label>يوم الزيارة</label><select id="cust-visit" class="p-2.5 bg-gray-50 border rounded-lg"><option value="">اختر</option>' + ['السبت','الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس'].map(function(d){return '<option value="'+d+'">'+d+'</option>';}).join('') + '</select></div>' +
     '<div class="flex flex-col"><label>مسؤول التواصل</label><input id="cust-contact" class="p-2.5 bg-gray-50 border rounded-lg"></div>' +
     '<div class="md:col-span-2 flex flex-col"><label>ملاحظات</label><textarea id="cust-notes" rows="2" class="p-2.5 bg-gray-50 border rounded-lg"></textarea></div>' +
@@ -861,26 +955,24 @@ var RW_TeleSales = (function() {
   }
 
   // ---------- حساب المتاح من الـ Cache ----------
-  function _getAvailable(itemId) {
-    var branchCode = byId('ts-branch-select') ? byId('ts-branch-select').value : '';
-    var branchId = window._teleBranchMap ? (window._teleBranchMap[branchCode] || null) : null;
-    var cache = window._teleStockCache || {};
-    var itemStock = cache[itemId];
-    if (!itemStock) return 0;
-    if (branchId && itemStock[branchId]) {
-      var s = itemStock[branchId];
-      return Math.max(0, s.qty - s.allocated);
-    }
-    // لا يوجد فرع محدد: مجموع المتاح لكل الفروع
-    var total = 0;
-    for (var bid in itemStock) {
-      if (itemStock.hasOwnProperty(bid)) {
-        var st = itemStock[bid];
-        total += Math.max(0, st.qty - st.allocated);
-      }
-    }
-    return total;
-  }
+function _getAvailable(itemId) {
+  var branchSelect = byId('ts-branch-select');
+  var branchCode = branchSelect ? branchSelect.value : '';
+
+  if (!branchCode) return 0;
+
+  var branchId = window._teleBranchMap ? (window._teleBranchMap[branchCode] || null) : null;
+  if (!branchId) return 0;
+
+  var cache = window._teleStockCache || {};
+  var itemStock = cache[itemId];
+
+  if (!itemStock || !itemStock[branchId]) return 0;
+
+  var s = itemStock[branchId];
+
+  return Math.max(0, Number(s.qty || 0) - Number(s.allocated || 0));
+}
 
   // ---------- الأصناف ----------
   function _searchItems(query) {
@@ -904,7 +996,7 @@ var RW_TeleSales = (function() {
       if (!branchCode) qtyInfo += ' (اختر فرعاً)';
       h += '<div onclick="RW_TeleSales._addToCart(\''+it.item_code+'\')" class="p-3 hover:bg-blue-50 cursor-pointer flex justify-between border-b">';
       h += '<div><div class="font-bold">'+(it.name||'')+'</div><div class="text-xs text-gray-400">'+(it.item_code||'')+' | '+qtyInfo+'</div></div>';
-      h += '<div class="font-bold text-blue-600">'+_fmtNum(it.sales_price)+' EGP</div>';
+      h += '<div class="font-bold text-blue-600">'+_fmtNum(it.sales_price)+ ' ' + currency</div>';
       h += '</div>';
     }
     safeHTML(div,h);
@@ -912,6 +1004,13 @@ var RW_TeleSales = (function() {
   }
 
   function _addToCart(code) {
+    var branchSelect = byId('ts-branch-select');
+    var branchCode = branchSelect ? branchSelect.value : '';
+    
+    if (!branchCode) {
+      showToast('اختر الفرع المصروف منه أولاً', 'warning');
+      return;
+    }
     var items = RW_STATE.data.items || [];
     var item = null;
     for (var i=0;i<items.length;i++) { if (items[i].item_code===code) { item=items[i]; break; } }
@@ -971,9 +1070,9 @@ var RW_TeleSales = (function() {
       var it = cart[i]; var line = it.price * it.qty; subtotal += line;
       h += '<tr class="bg-white shadow-sm rounded-2xl overflow-hidden">';
       h += '<td class="p-4 rounded-r-2xl border-y border-r"><p class="font-black">'+(it.name||'')+'</p><p class="text-xs text-gray-400">'+(it.code||'')+'</p></td>';
-      h += '<td class="p-4 border-y font-bold text-blue-600">'+_fmtNum(it.price)+' EGP</td>';
+      h += '<td class="p-4 border-y font-bold text-blue-600">'+_fmtNum(it.price)+ ' ' + currency</td>';
       h += '<td class="p-4 border-y"><input type="number" value="'+it.qty+'" onchange="RW_TeleSales._updateQty('+i+',this.value)" class="w-20 p-2 bg-slate-50 border-2 rounded-xl text-center font-black" min="1"></td>';
-      h += '<td class="p-4 border-y font-black">'+_fmtNum(line)+' EGP</td>';
+      h += '<td class="p-4 border-y font-black">'+_fmtNum(line)+ ' ' + currency</td>';
       h += '<td class="p-4 rounded-l-2xl border-y border-l text-center"><button onclick="RW_TeleSales._removeItem('+i+')" class="text-red-400"><i class="fa-solid fa-circle-xmark text-xl"></i></button></td>';
       h += '</tr>';
     }
@@ -997,14 +1096,31 @@ function _saveOrder() {
         showToast('أضف أصنافاً إلى السلة', 'warning');
         return;
     }
+    var branchSelect = byId('ts-branch-select');
+var branchCode = branchSelect ? branchSelect.value : '';
+
+if (!branchCode) {
+    showToast('اختر الفرع المصروف منه أولاً', 'warning');
+    return;
+}
 
     // جلب الإعدادات للتحقق من الحد الأدنى للفاتورة
-    supabase.from('app_settings').select('min_invoice_amount, delivery_fee, tax_rate').limit(1).single().then(function(sRes) {
+    supabase.from('app_settings')
+    .select('min_invoice_amount, delivery_fee, tax_rate, currency')
+    .eq('company_id', _rwCompanyId())
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+    .then(function(sRes) {
+if (sRes.error || !sRes.data) {
+    showToast('تعذر تحميل إعدادات الشركة، لم يتم حفظ الأوردر', 'error');
+    return;
+}
         var settings = sRes.data || {};
         var minInvoice = Number(settings.min_invoice_amount) || 0;
         var deliveryFeeSetting = Number(settings.delivery_fee) || 0;
         var taxRateSetting = Number(settings.tax_rate) || 0;
-
+currency = settings.currency || 'SAR';
         var subtotal = 0;
         var itemsList = [];
         for (var i = 0; i < cart.length; i++) {
@@ -1026,7 +1142,11 @@ function _saveOrder() {
 
         // التحقق من الحد الأدنى للفاتورة
         if (minInvoice > 0 && total < minInvoice) {
-            showToast('الحد الأدنى للفاتورة: ' + minInvoice + ' EGP. الإجمالي الحالي: ' + total.toLocaleString() + ' EGP', 'warning');
+            showToast(
+  'الحد الأدنى للفاتورة: ' + minInvoice + ' ' + currency +
+  '. الإجمالي الحالي: ' + total.toLocaleString() + ' ' + currency,
+  'warning'
+);
             return;
         }
 
@@ -1095,20 +1215,10 @@ function _saveOrder() {
             showToast('فشل الاتصال', 'error');
             console.error(e);
         });
-    }).catch(function(e) {
-        console.error('فشل جلب الإعدادات:', e);
-        // في حالة فشل جلب الإعدادات، نستخدم القيم المحلية
-        var subtotal = 0;
-        var itemsList = [];
-        for (var i = 0; i < cart.length; i++) {
-            subtotal += cart[i].price * cart[i].qty;
-            itemsList.push({
-                code: cart[i].code,
-                name: cart[i].name,
-                price: cart[i].price,
-                qty: cart[i].qty,
-                unit: cart[i].unit
-            });
+}).catch(function(e) {
+    console.error('فشل جلب إعدادات الشركة:', e);
+    showToast('تعذر تحميل إعدادات الشركة، لم يتم حفظ الأوردر', 'error');
+});
         }
         var total = subtotal + (deliveryFee || 0);
 
@@ -1128,11 +1238,15 @@ function _saveOrder() {
         showLoader('جاري حفظ الأوردر...');
         supabase.auth.getSession().then(function(ses) {
             var token = (ses && ses.data && ses.data.session) ? ses.data.session.access_token : null;
-            var branchCode = byId('ts-branch-select') ? byId('ts-branch-select').value : null;
+            
             return fetch(RW_SUPABASE_URL + '/functions/v1/save-sales-invoice', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-                body: JSON.stringify({ orderHeader: orderHeader, itemsList: itemsList, branchCode: branchCode || 'MAIN' })
+                body: JSON.stringify({
+    orderHeader: orderHeader,
+    itemsList: itemsList,
+    branchCode: branchCode
+})
             });
         }).then(function(res) {
             return res.json();
@@ -1155,16 +1269,27 @@ function _saveOrder() {
         });
     });
 }
-  function loadBranches() {
-    var sel = byId('ts-branch-select');
-    if (!sel) return;
-    supabase.from('branches').select('branch_code, name').then(function(res){
-      var branches = res.data||[];
-      var h = '<option value="">-- اختر الفرع --</option>';
-      for (var i=0;i<branches.length;i++) { h += '<option value="'+branches[i].branch_code+'">'+(branches[i].name||branches[i].branch_code)+'</option>'; }
-      safeHTML(sel,h);
-    }).catch(function(){ safeHTML(sel,'<option value="">تعذر تحميل الفروع</option>'); });
+function loadBranches() {
+  var sel = byId('ts-branch-select');
+  if (!sel) return;
+
+  var branches = window._teleBranches || [];
+
+  if (!branches.length) {
+    safeHTML(sel, '<option value="">لا توجد فروع متاحة</option>');
+    return;
   }
+
+  var h = '<option value="">-- اختر الفرع --</option>';
+
+  for (var i = 0; i < branches.length; i++) {
+    h += '<option value="' + branches[i].branch_code + '">' +
+      (branches[i].name || branches[i].branch_code) +
+      '</option>';
+  }
+
+  safeHTML(sel, h);
+}
 
   return {
     render: render,
