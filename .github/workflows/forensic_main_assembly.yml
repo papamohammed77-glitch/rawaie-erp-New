@@ -1,6 +1,7 @@
 name: RAWAEA governed main assembly — CTO GOLD EXECUTOR
 # Governed assembly: Current/PWA/main2 is the authoritative editable fragment source.
 # Original/PWA/main remains historical evidence only; New-main is the generated assembly target.
+# [CTO_EXECUTE_P163] canonical-source verification execution trigger.
 on:
   push:
     branches: [main]
@@ -31,7 +32,6 @@ jobs:
           test -f Current/PWA/main2/main1.md
           test -f Current/PWA/main2/main7.md
           test -f Current/PWA/main2/main11.md
-          test ! -f Current/PWA/main/main1.md || true
           grep -n "Current/PWA/main2" tools/run_final_main_reconstruction_20260831.py
       - name: Reconstruct governed target from Current/main2 fragments
         shell: bash
@@ -91,15 +91,13 @@ jobs:
             rpcs=set(re.findall(r'\.rpc\(\s*["\']([^"\']+)',s))
             tables=set(re.findall(r'\.from\(\s*["\']([^"\']+)',s))
             return funcs,ids,rpcs,tables
-          tf,ti,tr,tt=inventory(target)
-          losses={}
+          tf,ti,tr,tt=inventory(target); losses={}
           for i in range(1,12):
-            p=Path(f'Current/PWA/main2/main{i}.md')
-            o=Path(f'Original/PWA/main/main{i}.md')
+            p=Path(f'Current/PWA/main2/main{i}.md'); o=Path(f'Original/PWA/main/main{i}.md')
             if not p.is_file(): raise SystemExit(f'MAIN2_FRAGMENT_MISSING:{i}')
-            of,oi,orpc,ot=inventory(o.read_text(encoding='utf-8'))
-            cf,ci,cr,ct=inventory(p.read_text(encoding='utf-8'))
-            losses[f'main{i}']={'main2_function_not_in_target':[x for x in sorted(cf) if x not in tf], 'original_function_not_anywhere_in_target':[x for x in sorted(of) if x not in tf], 'original_ids_not_anywhere_in_target':[x for x in sorted(oi) if x not in ti], 'original_rpcs_not_anywhere_in_target':[x for x in sorted(orpc) if x not in tr], 'original_tables_not_anywhere_in_target':[x for x in sorted(ot) if x not in tt]}
+            if not o.is_file(): raise SystemExit(f'HISTORICAL_ORIGINAL_MISSING:{i}')
+            of,oi,orpc,ot=inventory(o.read_text(encoding='utf-8')); cf,ci,cr,ct=inventory(p.read_text(encoding='utf-8'))
+            losses[f'main{i}']={'main2_function_not_in_target':[x for x in sorted(cf) if x not in tf],'original_function_not_anywhere_in_target':[x for x in sorted(of) if x not in tf],'original_ids_not_anywhere_in_target':[x for x in sorted(oi) if x not in ti],'original_rpcs_not_anywhere_in_target':[x for x in sorted(orpc) if x not in tr],'original_tables_not_anywhere_in_target':[x for x in sorted(ot) if x not in tt]}
           print(json.dumps(losses,ensure_ascii=False,indent=2))
           PY
       - name: Browser smoke — generated New-main
@@ -123,8 +121,7 @@ jobs:
           from pathlib import Path
           import hashlib
           target=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          state=Path('CURRENT_STATE.md')
-          st=state.read_text(encoding='utf-8')
+          state=Path('CURRENT_STATE.md'); st=state.read_text(encoding='utf-8')
           marker='P163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction'
           if marker not in st:
             st=st.rstrip()+f"\n\n## CTO EXECUTION — MAIN2 CANONICAL ASSEMBLY\n\n{marker}\n- Canonical editable source: `Current/PWA/main2/main1.md` through `main11.md`.\n- Generated target: `Current/PWA/New-main`.\n- Historical evidence: `Original/PWA/main/*` only; `Current/PWA/main/*` is not a Source of Truth.\n- Target SHA-256: `{hashlib.sha256(target.encode()).hexdigest()}`\n"
