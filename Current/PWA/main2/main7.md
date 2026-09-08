@@ -142,17 +142,20 @@ async function _showReceivingDetails(opId) {
                     <button onclick="RW_Warehouse.loadVouchers()" class="text-gray-500 hover:text-gray-700"><i class="fa-solid fa-xmark text-xl"></i></button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                        <label class="block text-sm font-bold mb-1">${cfg.entityLabel}</label>
-                        <select id="voucherEntitySelect" class="border rounded-lg p-2 w-full"><option value="">-- اختر --</option></select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold mb-1">ملاحظات</label>
-                        <textarea id="voucherNotesLarge" rows="2" class="border rounded-lg p-2 w-full" placeholder="ملاحظات..."></textarea>
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-bold mb-1">بحث عن صنف</label>
+    <div>
+        <label class="block text-sm font-bold mb-1">${cfg.entityLabel}</label>
+        <select id="voucherEntitySelect" class="border rounded-lg p-2 w-full"><option value="">-- اختر --</option></select>
+    </div>
+    <div>
+        <label class="block text-sm font-bold mb-1">مرجع الإذن</label>
+        <input id="voucherReference" class="border rounded-lg p-2 w-full" placeholder="مرجع الإذن...">
+    </div>
+    <div>
+        <label class="block text-sm font-bold mb-1">ملاحظات</label>
+        <textarea id="voucherNotesLarge" rows="2" class="border rounded-lg p-2 w-full" placeholder="ملاحظات..."></textarea>
+    </div>
+</div> 
+<label class="block text-sm font-bold mb-1">بحث عن صنف</label>
                     <div class="relative">
                         <input type="text" id="voucherItemSearch" oninput="RW_Warehouse._searchVoucherItem(this.value)" autocomplete="off" placeholder="ابحث بالاسم أو الباركود..." class="border rounded-lg p-2 w-full">
                         <div id="voucherSearchResults" class="absolute z-50 left-0 right-0 mt-1 bg-white shadow-xl rounded-xl max-h-60 overflow-y-auto hidden border"></div>
@@ -959,7 +962,8 @@ async function _openNewVoucherModal() {
             var itemsMap = {};
             for (var i = 0; i < loadedItems.length; i++) {
                 var it = loadedItems[i];
-                itemsMap[it.item_code] = { itemCode: it.item_code, itemName: it.item_name, unit: it.unit, loadedQty: Number(it.qty_loaded) || 0, deliveredQty: 0, returnedQty: 0, countedQty: 0, unitPrice: Number(it.unit_price) || 0 };
+                itemsMap[it.item_code] = { itemCode: it.item_code, itemName: it.item_name, unit: it.unit, loadedQty: Number(it.qty_loaded) || 0, deliveredQty: 0, returnedQty: 0, countedQty: Number(countedByItem[it.item_code]) || 0, unitPrice: Number(it.unit_price) || 0 };
+
             }
             for (var i = 0; i < orderDetails.length; i++) {
                 var od = orderDetails[i];
@@ -1189,88 +1193,161 @@ function _openLoadingModal(rsCode) {
             }).catch(function(e) { hideLoader(); showToast('فشل الاتصال', 'error'); });
         }).catch(function(e) { hideLoader(); showToast('فشل تحميل بيانات الرانشيت', 'error'); });
     }).catch(function(e) { hideLoader(); showToast('فشل تحميل بيانات الرانشيت', 'error'); });
-}
-function _openDeliveryModal(rsCode) {
+}function _openDeliveryModal(rsCode) {
     if (!rsCode) { showToast('رقم الرانشيت غير صالح', 'error'); return; }
     showLoader('جاري تحميل بيانات التوصيل...');
-    
-    supabase.from('runsheets').select('id').eq('runsheet_code', rsCode).maybeSingle().then(function(rsRes) {
-        var rs = rsRes.data;
-        if (!rs) { hideLoader(); showToast('الرانشيت غير موجود', 'error'); return; }
-        
-        supabase.from('run_sheet_details').select('*').eq('runsheet_id', rs.id).then(function(itemsRes) {
-            var items = itemsRes.data || [];
-            if (items.length === 0) { hideLoader(); showToast('لا توجد أصناف في هذا الرانشيت', 'info'); return; }
-            
+
+    var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+    if (!companyId) { hideLoader(); showToast('سياق الشركة غير محدد', 'error'); return; }
+
+    supabase.from('runsheets')
+        .select('id,status')
+        .eq('company_id', companyId)
+        .eq('runsheet_code', rsCode)
+        .maybeSingle()
+        .then(function(rsRes) {
+            if (rsRes.error) throw rsRes.error;
+            var rs = rsRes.data;
+            if (!rs) { hideLoader(); showToast('الرانشيت غير موجود', 'error'); return null; }
+
             showLoader('جاري بدء التوصيل...');
-            supabase.auth.getSession().then(function(ses) {
+            return supabase.auth.getSession().then(function(ses) {
                 var t = ses.data.session ? ses.data.session.access_token : null;
+                if (!t) throw new Error('انتهت الجلسة');
                 return fetch(RW_SUPABASE_URL + '/functions/v1/start-delivery', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t },
                     body: JSON.stringify({ runsheet_code: rsCode })
                 });
-            }).then(function(res) { return res.json(); }).then(function(startJson) {
-                hideLoader();
-                if (!startJson.success) { showToast(startJson.msg || 'فشل بدء التوصيل', 'error'); return; }
-                
-                supabase.from('orders').select('order_code, customer_name').eq('runsheet_id', rs.id).then(function(ordersRes) {
-                    var orders = ordersRes.data || [];
-                    var html = '<div class="text-right" dir="rtl"><div class="max-h-[400px] overflow-y-auto">';
-                    for (var o = 0; o < orders.length; o++) {
-                        var order = orders[o];
-                        html += '<div class="mb-4 p-3 bg-gray-50 rounded-lg"><h4 class="font-bold text-blue-600 mb-2">' + (order.order_code || '') + ' - ' + (order.customer_name || '') + '</h4>';
-                        html += '<p class="text-xs text-gray-500">سيتم إنهاء التوصيل لهذا الأوردر مع جميع كمياته المحمّلة.</p>';
-                        html += '</div>';
-                    }
-                    html += '<p class="text-sm text-gray-500 mt-4">سيتم إنشاء قيد محاسبي تلقائي لجميع الأوردرات.</p>';
-                    html += '</div></div>';
-                    
-                    Swal.fire({
-                        title: 'توصيل الرانشيت: ' + rsCode,
-                        html: html,
-                        width: '700px',
-                        showCancelButton: true,
-                        confirmButtonText: 'إنهاء التوصيل',
-                        cancelButtonText: 'إلغاء'
-                    }).then(function(result) {
-                        if (!result.isConfirmed) return;
-                        var ordersData = [];
-                        for (var o2 = 0; o2 < orders.length; o2++) {
-                            var ord = orders[o2];
-                            var orderItems = [];
-                            for (var it = 0; it < items.length; it++) {
-                                orderItems.push({
-                                    itemCode: items[it].item_code,
-                                    deliveredQty: items[it].qty_loaded || 0,
-                                    refusedQty: 0,
-                                    reason: ''
+            }).then(function(res) {
+                return res.json();
+            }).then(function(startJson) {
+                if (!startJson.success) { hideLoader(); showToast(startJson.msg || 'فشل بدء التوصيل', 'error'); return null; }
+
+                return supabase.from('orders')
+                    .select('id,order_code,customer_name')
+                    .eq('company_id', companyId)
+                    .eq('runsheet_id', rs.id)
+                    .order('created_at', { ascending: true })
+                    .then(function(ordersRes) {
+                        if (ordersRes.error) throw ordersRes.error;
+                        var orders = ordersRes.data || [];
+                        if (!orders.length) { hideLoader(); showToast('لا توجد أوردرات في الرانشيت', 'info'); return null; }
+
+                        function deliverOrder(index) {
+                            if (index >= orders.length) {
+                                showLoader('جاري إنهاء الرانشيت...');
+                                return supabase.auth.getSession().then(function(ses2) {
+                                    var t2 = ses2.data.session ? ses2.data.session.access_token : null;
+                                    if (!t2) throw new Error('انتهت الجلسة');
+                                    return fetch(RW_SUPABASE_URL + '/functions/v1/complete-delivery', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t2 },
+                                        body: JSON.stringify({ runsheet_code: rsCode })
+                                    });
+                                }).then(function(res) {
+                                    return res.json();
+                                }).then(function(finalJson) {
+                                    hideLoader();
+                                    if (finalJson.success) {
+                                        showToast('تم إنهاء التوصيل بالكامل', 'success');
+                                        if (typeof RW_Runsheets !== 'undefined' && RW_Runsheets._apply) RW_Runsheets._apply();
+                                    } else {
+                                        showToast(finalJson.msg || 'فشل إنهاء الرانشيت', 'error');
+                                    }
                                 });
                             }
-                            ordersData.push({ orderId: ord.order_code, items: orderItems });
+
+                            var order = orders[index];
+                            showLoader('جاري تحميل بيانات الأوردر ' + (order.order_code || '') + '...');
+                            return supabase.from('order_details')
+                                .select('id,item_code,item_name,unit,qty,qty_loaded,qty_delivered,qty_refused,unit_price')
+                                .eq('order_id', order.id)
+                                .order('created_at', { ascending: true })
+                                .then(function(detailsRes) {
+                                    if (detailsRes.error) throw detailsRes.error;
+                                    var details = detailsRes.data || [];
+                                    hideLoader();
+                                    if (!details.length) {
+                                        return deliverOrder(index + 1);
+                                    }
+
+                                    var html = '<div class="text-right" dir="rtl"><div class="max-h-[420px] overflow-y-auto">';
+                                    html += '<div class="mb-3 p-3 bg-blue-50 rounded-lg"><div class="font-black text-blue-700">' + (order.order_code || '') + '</div><div class="text-sm text-gray-600">' + (order.customer_name || '') + '</div></div>';
+                                    html += '<table class="w-full border"><thead class="bg-slate-100"><tr><th class="p-2">الصنف</th><th class="p-2 text-center">محمّل</th><th class="p-2 text-center">مسلّم سابقًا</th><th class="p-2 text-center">المتبقي</th><th class="p-2 text-center">تسليم الآن</th></tr></thead><tbody>';
+
+                                    for (var i = 0; i < details.length; i++) {
+                                        var d = details[i];
+                                        var loaded = Number(d.qty_loaded || 0);
+                                        var delivered = Number(d.qty_delivered || 0);
+                                        var remaining = Math.max(0, loaded - delivered);
+                                        html += '<tr><td class="p-2 border"><div class="font-bold">' + (d.item_name || '') + '</div><div class="text-xs text-gray-400">' + (d.item_code || '') + '</div></td>'
+                                            + '<td class="p-2 border text-center">' + loaded + '</td>'
+                                            + '<td class="p-2 border text-center">' + delivered + '</td>'
+                                            + '<td class="p-2 border text-center font-bold text-blue-700">' + remaining + '</td>'
+                                            + '<td class="p-2 border text-center"><input type="number" id="dv_order_qty_' + i + '" value="' + remaining + '" min="0" max="' + remaining + '" step="0.01" class="w-24 p-1 border rounded text-center"></td></tr>';
+                                    }
+                                    html += '</tbody></table></div></div>';
+
+                                    return Swal.fire({
+                                        title: 'توصيل الأوردر ' + (order.order_code || ''),
+                                        html: html,
+                                        width: '850px',
+                                        showCancelButton: true,
+                                        confirmButtonText: 'تأكيد تسليم الأوردر',
+                                        cancelButtonText: 'إلغاء',
+                                        preConfirm: function() {
+                                            var items = [];
+                                            var hasQty = false;
+                                            for (var j = 0; j < details.length; j++) {
+                                                var maxRemaining = Math.max(0, Number(details[j].qty_loaded || 0) - Number(details[j].qty_delivered || 0));
+                                                var q = parseFloat((document.getElementById('dv_order_qty_' + j) || {}).value) || 0;
+                                                if (q < 0 || q > maxRemaining) {
+                                                    Swal.showValidationMessage('كمية التسليم تتجاوز المتبقي للصنف: ' + (details[j].item_code || ''));
+                                                    return false;
+                                                }
+                                                if (q > 0) hasQty = true;
+                                                items.push({ itemCode: details[j].item_code, deliveredQty: q, reason: '' });
+                                            }
+                                            if (!hasQty) {
+                                                Swal.showValidationMessage('أدخل كمية تسليم واحدة على الأقل');
+                                                return false;
+                                            }
+                                            return items;
+                                        }
+                                    }).then(function(result) {
+                                        if (!result.isConfirmed) return;
+                                        showLoader('جاري حفظ تسليم ' + (order.order_code || '') + '...');
+                                        return supabase.auth.getSession().then(function(ses3) {
+                                            var t3 = ses3.data.session ? ses3.data.session.access_token : null;
+                                            if (!t3) throw new Error('انتهت الجلسة');
+                                            return fetch(RW_SUPABASE_URL + '/functions/v1/complete-order-delivery', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t3 },
+                                                body: JSON.stringify({ runsheet_code: rsCode, order_code: order.order_code, items: result.value })
+                                            });
+                                        }).then(function(res) {
+                                            return res.json();
+                                        }).then(function(orderJson) {
+                                            hideLoader();
+                                            if (!orderJson.success) {
+                                                showToast(orderJson.msg || 'فشل تسليم الأوردر', 'error');
+                                                return;
+                                            }
+                                            return deliverOrder(index + 1);
+                                        });
+                                    });
+                                });
                         }
-                        showLoader('جاري إنهاء التوصيل...');
-                        supabase.auth.getSession().then(function(ses2) {
-                            var t2 = ses2.data.session ? ses2.data.session.access_token : null;
-                            return fetch(RW_SUPABASE_URL + '/functions/v1/complete-delivery', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t2 },
-                                body: JSON.stringify({ runsheet_code: rsCode, ordersData: ordersData })
-                            });
-                        }).then(function(res) { return res.json(); }).then(function(compJson) {
-                            hideLoader();
-                            if (compJson.success) {
-                                showToast('تم إنهاء التوصيل بنجاح', 'success');
-                                if (typeof RW_Runsheets !== 'undefined' && RW_Runsheets._apply) RW_Runsheets._apply();
-                            } else {
-                                showToast(compJson.msg || 'فشل إنهاء التوصيل', 'error');
-                            }
-                        }).catch(function(e) { hideLoader(); showToast('فشل الاتصال', 'error'); });
+
+                        return deliverOrder(0);
                     });
-                }).catch(function(e) { hideLoader(); showToast('فشل جلب الأوردرات', 'error'); });
-            }).catch(function(e) { hideLoader(); showToast('فشل الاتصال', 'error'); });
-        }).catch(function(e) { hideLoader(); showToast('فشل تحميل بيانات الرانشيت', 'error'); });
-    }).catch(function(e) { hideLoader(); showToast('فشل تحميل بيانات الرانشيت', 'error'); });
+            });
+        })
+        .catch(function(e) {
+            hideLoader();
+            showToast(e.message || 'فشل تحميل بيانات التوصيل', 'error');
+        });
 }
 function _openReturnModal(rsCode) {
     if (!rsCode) { showToast('رقم الرانشيت غير صالح', 'error'); return; }
