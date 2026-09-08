@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 from html.parser import HTMLParser
 
-MAIN=Path('Current/PWA/New-main'); CUR=Path('Current/PWA/main')
+MAIN=Path('Current/PWA/New-main'); CUR=Path('Current/PWA/main2')
 PARTS=[CUR/f'main{i}.md' for i in range(1,12)]
 AUTH='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'; COMPAT='/* RAWAEA MAIN2 COMPATIBILITY */'
 VERSION="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';"; GOVERNED='// MAIN2_GOVERNED_CLOSED:v1'
@@ -88,11 +88,7 @@ def _node_check(js,label):
     if r.returncode:
         print(r.stderr);lines=js.splitlines();m=re.search(r':(\d+)',r.stderr);n=int(m.group(1)) if m else len(lines)
         print('--- NODE HEAD ---');print('\n'.join(f'{j}: {lines[j-1]}' for j in range(1,min(30,len(lines))+1)))
-        print('--- NODE TAIL ---');print('\n'.join(f'{j}: {lines[j-1]}' for j in range(max(1,len(lines)-30),len(lines)+1)));print('--- CLOSURE PROBES ---')
-        probes=['}','})','})();','};','});','\n})();','\n})();\n})();']
-        for extra in probes:
-            q=Path(tempfile.gettempdir())/f'rawaea-probe-{label}.js';q.write_text(js+'\n'+extra+'\n',encoding='utf-8');pr=subprocess.run(['node','--check',str(q)],capture_output=True,text=True);print(repr(extra), 'PASS' if pr.returncode==0 else 'FAIL')
-        raise RuntimeError('FINAL_JS_SYNTAX_FAIL:'+label)
+        print('--- NODE TAIL ---');print('\n'.join(f'{j}: {lines[j-1]}' for j in range(max(1,len(lines)-30),len(lines)+1)));raise RuntimeError('FINAL_JS_SYNTAX_FAIL:'+label)
 
 def validate(s):
     start=s.lstrip().lower();required=['window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense','var RW_Dashboard','var RW_Items','window.RW_Items=RW_Items;','RW_SUPABASE_CLIENT','MAIN3'];missing=[x for x in required if x not in s]
@@ -108,6 +104,6 @@ def main():
         if not p.is_file() or not p.stat().st_size:raise RuntimeError('MISSING_PART:'+str(idx))
         raw=p.read_text(encoding='utf-8-sig');parts.append(normalize_main1(raw) if idx==1 else normalize_fragment(raw,idx))
     phase_report=validate_fragments(parts);candidate=parts[0]+'\n\n'+'\n\n'.join(parts[1:])+'\n\n</script>\n</body>\n</html>\n';candidate=p163(candidate);candidate=inject_canonical_sw(candidate);gates=validate(candidate)
-    tmp=MAIN.with_suffix('.tmp');tmp.write_text(candidate,encoding='utf-8');tmp.replace(MAIN);print({'status':'NEW_MAIN_GOLD_DIAMOND_READY','target':str(MAIN),'sha256':hashlib.sha256(candidate.encode()).hexdigest(),'bytes':len(candidate.encode()),'gates':gates,'phase_report':phase_report})
+    tmp=MAIN.with_suffix('.tmp');tmp.write_text(candidate,encoding='utf-8');tmp.replace(MAIN);print({'status':'NEW_MAIN_GOLD_DIAMOND_READY','target':str(MAIN),'source_root':str(CUR),'sha256':hashlib.sha256(candidate.encode()).hexdigest(),'bytes':len(candidate.encode()),'gates':gates,'phase_report':phase_report})
 
 if __name__=='__main__':main()
