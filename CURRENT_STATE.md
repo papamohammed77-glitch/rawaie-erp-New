@@ -6,7 +6,7 @@
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
-LATEST FORENSIC REPORT = doc/Draft/Reprots/Report82_Main5_M5-20_Historical_Contract_Reconciliation_20260908.md
+LATEST FORENSIC REPORT = doc/Draft/Reprots/Report83_Main6_M6-Forensic_Surgical_Reconciliation_20260908.md
 ```
 
 ## GOVERNANCE
@@ -428,43 +428,6 @@ BROWSER E2E = OPEN
 MAIN5 FINAL RELEASE GATE = OPEN
 ```
 
-## NEXT AUTHORIZED ACTION
-
-The user applies only M5-20-A, M5-20-B, and M5-20-C above to `Current/PWA/main2/main5.md`.
-
-Then the next session must:
-
-```text
-READ main5 FROM SOF TO EOF
-VERIFY THE THREE SURGERIES
-RUN SYNTAX / STRUCTURE CHECK
-VERIFY DELETE-ORDER CONSUMER PATH
-VERIFY CURRENT PRODUCTION AGAIN
-VERIFY EDGE v9 AGAIN
-WHEN AN ACTUAL Invoiced POS ORDER EXISTS:
-RUN LIVE REVERSAL TEST
-VERIFY STOCK
-VERIFY INVENTORY LOG
-VERIFY JOURNAL REVERSAL
-VERIFY CUSTOMER / DRIVER LEDGERS
-VERIFY AUDIT
-VERIFY REALTIME UI
-```
-
-## FORBIDDEN ACTIONS
-
-```text
-Do not remove Invoiced support from main5.
-Do not revert delete-order to the old v8 guard.
-Do not expose delete_order_atomic to authenticated/anon.
-Do not copy Original delete-order directly into Production.
-Do not add direct stock writes to main5 or Edge.
-Do not grant the cashier Invoiced deletion authority.
-Do not apply Report81 blindly.
-Do not modify main5 anywhere except the exact three surgery windows above.
-Do not declare M5-20 Fully Closed before live/runtime evidence exists.
-```
-
 ## LAST VERIFIED EVENT
 
 ```text
@@ -479,4 +442,102 @@ REPORT = doc/Draft/Reprots/Report82_Main5_M5-20_Historical_Contract_Reconciliati
 RESULT = Historical contract reconciled; backend capability restored; main5 source surgery still open; live Invoiced runtime closure not yet proven
 ```
 
-This state intentionally distinguishes Production/backend closure from Main5 source and runtime closure so the next CTO does not reopen or repeat the superseded Report81 decision.
+## MAIN6 — 2026-09-08 FORENSIC SURGICAL RECONCILIATION
+
+Target:
+
+```text
+PATH = Current/PWA/main2/main6.md
+BLOB = 87287d8da56a5411f9f31243b38b9c06dbf91d2b
+SOURCE = OPEN / SURGERY SPECIFIED
+RUNTIME = OPEN
+```
+
+### Production verification
+
+```text
+submit-online-order = v7 ACTIVE / verify_jwt=true
+save-purchase-order = v3 ACTIVE / verify_jwt=true
+receive-purchase = v12 ACTIVE / verify_jwt=true
+receive_purchase_atomic = p_company_id uuid, p_po_code text, p_user_email text, p_items jsonb, p_operation_id uuid
+```
+
+`receive_purchase_atomic` currently uses `receiving.operation_id` as the existing idempotency identity and delegates Physical Stock to `post_stock_movement`.
+
+### Main6 confirmed source defects
+
+```text
+M6-01 = Online Store app_settings global lookup
+M6-02 = Track Order missing company scope + wrong order_details key
+M6-03 = Purchase Orders list missing company scope
+M6-04 = Open Receive missing company scope + checks PO after details lookup
+M6-05 = Suppliers read missing company scope
+M6-06 = Purchase refresh missing company scope
+M6-07 = Receive dialog defaults to ordered quantity instead of remaining quantity
+M6-08 = Track Order item_name not passed through existing esc() helper
+M6-09 = savePO missing explicit session-token guard
+```
+
+### Exact source instruction status
+
+Full replacement blocks for the above Main6 surgeries are recorded in:
+
+```text
+doc/Draft/Reprots/Report83_Main6_M6-Forensic_Surgical_Reconciliation_20260908.md
+```
+
+The user must apply the Main6 source surgeries manually. The assistant must not modify `Current/PWA/main2/main6.md` directly.
+
+### Main6 — no Production patch required now
+
+Current Production backend contracts were reverified and are consistent with the Main6 source consumers for online order, purchase order, and purchase receiving.
+
+No new Main6-specific Production migration was justified at this checkpoint.
+
+### Main6 Realtime decision
+
+No new local Realtime subscription was added to Main6 without first proving the shared `core.js` / runtime subscription architecture after full-parent merge.
+
+### Main6 closure gate
+
+```text
+SOURCE SURGERY = PENDING USER EXECUTION
+FULL SOURCE RE-READ = PENDING
+MAIN2 FULL MERGE = PENDING
+FULL PARENT SYNTAX CHECK = PENDING
+BROWSER/PWA E2E = PENDING
+REALTIME CROSS-APP VERIFICATION = PENDING
+MAIN6 100% CLOSED = NOT CLAIMED
+```
+
+## CONTINUITY RULE FOR NEXT SESSION
+
+Do not start from zero.
+
+The next session must begin from:
+
+```text
+LATEST REPORT = Report83
+LATEST STATE = CURRENT_STATE.md
+MAIN6 TARGET = Current/PWA/main2/main6.md
+MAIN6 BLOB = 87287d8da56a5411f9f31243b38b9c06dbf91d2b
+MAIN6 PRODUCTION BACKEND = VERIFIED
+MAIN6 SOURCE = SURGERY PENDING
+MAIN5 SOURCE = STILL OPEN IN CURRENT GIT BLOB
+```
+
+The first action after the user applies Main6 changes is:
+
+```text
+READ MAIN6 FROM SOF TO EOF
+VERIFY EVERY SURGERY WINDOW
+VERIFY EOF CLOSURE
+THEN MERGE WITH MAIN2
+THEN RUN FULL PARENT INTEGRATION / BROWSER TEST
+```
+
+Do not transfer any closure claim from `Current/PWA/main/main6.md` to `Current/PWA/main2/main6.md`.
+
+Do not claim Production Pass from source-only evidence.
+
+Do not reopen the superseded Report81 Invoiced-removal decision.
