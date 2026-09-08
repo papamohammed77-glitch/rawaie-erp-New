@@ -1,0 +1,664 @@
+تمت إعادة المراجعة من جديد وليس اعتماد Report86 كما هو. والنتيجة الأهم: أنا لا أعتبر Picked / Loaded / Delivered / Returned أخطاءً بحد ذاتها؛ بعد مطابقة دورة Production اتضح أنها حالات ناتجة عن إتمام المرحلة السابقة، بينما شاشة المرحلة التالية يجب أن تعرض الحالة التي تقبلها العملية التالية. هذا تصحيح جوهري لـM7-08 في Report86.
+
+كذلك ثبت من Production أن:
+
+Open / Confirmed → Picking → Picked → Loading → Loaded → Delivering → Delivered → Returning → Returned
+
+وأن complete_runsheet_picking ينفذ Reservation + Fulfillment ولا ينفذ حركة Physical Stock، بينما الـPhysical Stock يبقى عبر post_stock_movement. وcomplete_order_delivery_atomic يعمل على مستوى Order، ثم complete-delivery ينهي حالة الـRunsheet فقط.
+
+كما ثبت أن inventory_counts وinventory_count_details هما مصدر الجرد الفعلي، وأن save-inventory-count يربط جرد السيارة بالمركبة/المخزن المتنقل، مع reference يمكن أن يحمل رقم الـRunsheet.
+
+النتيجة التنفيذية
+أولًا: Production
+
+لا يوجد الآن داعٍ لتغيير Physical Stock Core بسبب Main7.
+
+المطابقة الحالية تؤكد:
+
+Physical Movement = post_stock_movement
+
+ولا أريد إدخال تعديل جديد في Production لمجرد تجميل Main7، لأن ذلك سيعيدنا إلى المشكلة التي نحاول إغلاقها.
+
+كما أن complete_return_atomic وcomplete_order_delivery_atomic الحاليين متوافقان مع المعمارية المستهدفة، لذلك لا يتم العبث بهما.
+
+ثانيًا: Main7 — الجراحات التي ستنفذها أنت
+
+مهم جدًا: لم أعدل Current/PWA/main2/main7.md، التزامًا بملكية هذا الملف كما طلبت. النسخة الحالية التي راجعتها هي نفسها ذات SHA:
+
+6f7aef60ac137cd7f6b74281a17835dbd29595be
+
+وبسبب أن أداة GitHub التي أستخدمها لا تعرض أرقام أسطر المصدر الأصلية كـline labels موثوقة، لن أخترع أرقامًا. سأعطيك anchor كاملًا وفاصلًا واضحًا جدًا، بحيث لا يمكن أن تقص نصف المقطع.
+
+M7-00 — إصلاح reconstruction syntax
+
+ابحث عن النص كاملًا:
+
+.join(''));}
+
+احذفه واستبدله فقط بـ:
+
+.join('')));}
+
+هذا هو الإصلاح نفسه الذي يعتمد عليه reconstruction الحالي.
+
+M7-01 — Receiving company scope
+
+ابحث عن هذا السطر كاملًا:
+
+var res = await supabase.from('receiving').select('*');
+
+واستبدله بالكامل بـ:
+
+var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+if (!companyId) { showToast('سياق الشركة غير محدد', 'error'); return; }
+var res = await supabase.from('receiving').select('*').eq('company_id', companyId).order('date', { ascending: false });
+
+وهذا يعالج الـquery المثبت في loadReceiving().
+
+M7-02 — Receiving Details
+
+ابحث عن:
+
+async function _showReceivingDetails(opId) {
+
+واحذف الدالة كاملة حتى القوس الذي يسبق مباشرة:
+
+// ==================== VOUCHER FORM – نماذج الأذونات الأربعة ====================
+
+ثم ضع هذه الدالة كاملة:
+
+async function _showReceivingDetails(opId) {
+    var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+    if (!companyId) { showToast('سياق الشركة غير محدد', 'error'); return; }
+    showLoader('جاري التحميل...');
+    var opRes = await supabase.from('receiving')
+        .select('operation_id')
+        .eq('company_id', companyId)
+        .eq('operation_id', opId)
+        .maybeSingle();
+
+    if (opRes.error || !opRes.data) {
+        hideLoader();
+        showToast('عملية الاستلام غير موجودة في الشركة الحالية', 'error');
+        return;
+    }
+
+    var detRes = await supabase.from('receiving_details')
+        .select('*')
+        .eq('operation_id', opRes.data.operation_id);
+
+    hideLoader();
+
+    var details = detRes.data || [];
+    if (!details.length) {
+        showToast('لا توجد تفاصيل', 'info');
+        return;
+    }
+
+    var h = '<div class="text-right"><table class="w-full border text-sm"><thead class="bg-gray-100"><tr>' +
+        '<th class="p-2">الكود</th>' +
+        '<th class="p-2">الصنف</th>' +
+        '<th class="p-2 text-center">الوحدة</th>' +
+        '<th class="p-2 text-center">المطلوب</th>' +
+        '<th class="p-2 text-center">الفعلي</th>' +
+        '<th class="p-2 text-center">الفرق</th>' +
+        '<th class="p-2">السبب</th>' +
+        '</tr></thead><tbody>';
+
+    details.forEach(function(d) {
+        h += '<tr>' +
+            '<td class="p-2 border">' + esc(d.item_code || '') + '</td>' +
+            '<td class="p-2 border font-semibold">' + esc(d.item_name || '') + '</td>' +
+            '<td class="p-2 border text-center">' + esc(d.unit || '') + '</td>' +
+            '<td class="p-2 border text-center">' + (d.qty_expected || 0) + '</td>' +
+            '<td class="p-2 border text-center font-bold">' + (d.qty_received || 0) + '</td>' +
+            '<td class="p-2 border text-center">' + (d.difference || 0) + '</td>' +
+            '<td class="p-2 border">' + esc(d.reason || '') + '</td>' +
+            '</tr>';
+    });
+
+    h += '</tbody></table></div>';
+
+    Swal.fire({
+        title: 'تفاصيل الاستلام: ' + esc(opRes.data.operation_id),
+        html: h,
+        width: '800px',
+        showCloseButton: true,
+        showConfirmButton: false
+    });
+}
+
+هذا يحافظ على operation_id كهوية العملية، لكنه يتحقق أولًا أن العملية تنتمي إلى الشركة الحالية.
+
+M7-03 — Drivers
+
+ابحث عن هذا السطر كاملًا:
+
+var res = await supabase.from('users').select('email, name').in('role', ['driver','سائق','مندوب']);
+
+واستبدله بـ:
+
+var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+if (!companyId) { showToast('سياق الشركة غير محدد', 'error'); return; }
+var res = await supabase.from('users').select('email, name').eq('company_id', companyId).in('role', ['driver','سائق','مندوب']);
+
+والـProduction الحالية نفسها تتعامل مع المندوب والمركبة داخل Company Scope.
+
+M7-04 — Voucher List
+
+ابحث عن هذا السطر كاملًا:
+
+var res = await supabase.from('stock_vouchers').select('*').order('voucher_date', { ascending: false });
+
+واستبدله بـ:
+
+var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+if (!companyId) { showToast('سياق الشركة غير محدد', 'error'); return; }
+var res = await supabase.from('stock_vouchers').select('*').eq('company_id', companyId).order('voucher_date', { ascending: false });
+M7-05 — Voucher Details
+
+ابحث عن الدالة:
+
+async function _viewVoucherDetails(voucherCode) {
+
+واحذفها حتى القوس الذي يسبق مباشرة:
+
+async function _sendVoucher(voucherCode) {
+
+واستبدلها بالدالة الكاملة:
+
+async function _viewVoucherDetails(voucherCode) {
+    var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+    if (!companyId) { showToast('سياق الشركة غير محدد', 'error'); return; }
+
+    showLoader('جاري التحميل...');
+
+    var voucherRes = await supabase.from('stock_vouchers')
+        .select('id,voucher_code')
+        .eq('company_id', companyId)
+        .eq('voucher_code', voucherCode)
+        .maybeSingle();
+
+    if (voucherRes.error || !voucherRes.data) {
+        hideLoader();
+        showToast('الإذن غير موجود في الشركة الحالية', 'error');
+        return;
+    }
+
+    var detRes = await supabase.from('stock_voucher_details')
+        .select('*')
+        .eq('voucher_id', voucherRes.data.id)
+        .order('item_code');
+
+    hideLoader();
+
+    var details = detRes.data || [];
+    if (!details.length) {
+        showToast('لا توجد تفاصيل', 'info');
+        return;
+    }
+
+    var h = '<table class="w-full border text-sm"><thead class="bg-gray-100"><tr>' +
+        '<th class="p-2">الكود</th>' +
+        '<th class="p-2">الصنف</th>' +
+        '<th class="p-2 text-center">الكمية</th>' +
+        '<th class="p-2 text-center">المستلمة</th>' +
+        '</tr></thead><tbody>';
+
+    details.forEach(function(d) {
+        h += '<tr>' +
+            '<td class="p-2 border">' + esc(d.item_code || '') + '</td>' +
+            '<td class="p-2 border font-semibold">' + esc(d.item_name || '') + '</td>' +
+            '<td class="p-2 border text-center">' + (d.qty || 0) + '</td>' +
+            '<td class="p-2 border text-center">' + (d.received_qty || 0) + '</td>' +
+            '</tr>';
+    });
+
+    h += '</tbody></table>';
+
+    Swal.fire({
+        title: 'تفاصيل الإذن: ' + esc(voucherRes.data.voucher_code),
+        html: h,
+        width: '600px',
+        showCloseButton: true,
+        showConfirmButton: false
+    });
+}
+M7-06 — Receive
+
+هذه الجراحة مهمة جدًا لأنها تربط الواجهة بالعقد الموجود فعليًا في Production.
+
+ابحث عن:
+
+async function _receiveVoucher(voucherCode) {
+
+واحذف الدالة كاملة حتى القوس الذي يسبق:
+
+async function _openNewVoucherModal() {
+
+واستخدم نسخة Report86 M7-06 كاملة، بما فيها:
+
+var remaining = Math.max(0, totalQty - receivedBefore);
+
+ثم إنشاء:
+
+var operationId = 'UI-RECEIVE:' + companyId + ':' + voucherRes.data.id + ':' +
+    positiveItems.map(function(x) {
+        return String(x.itemCode) + ':' + Number(x.receivedQty);
+    }).join('|');
+
+ويجب أن ينتهي استدعاء الـEdge بهذا الشكل:
+
+headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ' + token,
+    'Idempotency-Key': operationId
+},
+body: JSON.stringify({
+    voucher_code: voucherCode,
+    receivedItems: positiveItems,
+    operation_id: operationId
+})
+
+ولا تترك النسخة القديمة التي ترسل:
+
+body: JSON.stringify({ voucher_code: voucherCode, receivedItems: result.value })
+
+لأنها هي العيب الذي ثبتناه في المصدر الحالي.
+
+M7-07 — إنشاء الإذن
+
+هنا يوجد تصحيحان وليس واحدًا.
+
+7-A — _openNewVoucherModal
+
+احذف الدالة كاملة:
+
+async function _openNewVoucherModal() {
+
+حتى القوس الذي يسبق مباشرة:
+
+// ==================== PICKING ====================
+
+واستبدلها بـ:
+
+async function _openNewVoucherModal() {
+    var typeOptions =
+        '<option value="Transfer">تحويل داخلي</option>' +
+        '<option value="DirectSale">صرف سيارة بيع مباشر</option>' +
+        '<option value="DirectReturn">استلام مرتجع سيارة</option>' +
+        '<option value="SupplierReturn">مرتجع لمورد</option>';
+
+    var html =
+        '<div class="text-right space-y-3">' +
+            '<div>' +
+                '<label class="text-xs font-bold">نوع الإذن</label>' +
+                '<select id="newVoucherType" class="swal2-input w-full">' +
+                    typeOptions +
+                '</select>' +
+            '</div>' +
+        '</div>';
+
+    var result = await Swal.fire({
+        title: 'إنشاء إذن مخزني جديد',
+        html: html,
+        showCancelButton: true,
+        confirmButtonText: 'متابعة',
+        cancelButtonText: 'إلغاء',
+        preConfirm: function() {
+            var type = document.getElementById('newVoucherType').value;
+            if (!type) {
+                Swal.showValidationMessage('اختر نوع الإذن');
+                return false;
+            }
+            return { type: type };
+        }
+    });
+
+    if (!result.isConfirmed) return;
+
+    loadVoucherForm(result.value.type);
+}
+
+ولا تعيد إطلاق create-stock-voucher من هذه الدالة.
+
+لأن Production الحالية تشترط وجود Item واحد على الأقل، والـEdge الحالي بالفعل يمرر الطلب إلى create_manual_stock_voucher_atomic.
+
+7-B — إصلاح loadVoucherForm
+
+لكن هناك شيء لم يكن موجودًا في Report86: الـProduction contract الحالي يطلب:
+
+reference
+
+ولا يجوز أن يرسل _saveAndSendVoucher():
+
+reference: ''
+
+لذلك داخل نموذج الإذن نفسه يجب وجود مرجع إلزامي.
+
+في loadVoucherForm(type) ابحث عن هذا الجزء الكامل:
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+    ...
+</div>
+
+واجعل أول بيانات النموذج تحتوي على حقل:
+
+<div>
+    <label class="block text-sm font-bold mb-1">المرجع</label>
+    <input
+        type="text"
+        id="voucherReference"
+        class="border rounded-lg p-2 w-full"
+        placeholder="رقم أو مرجع العملية"
+    >
+</div>
+
+ثم داخل _saveAndSendVoucher() ابحث عن:
+
+var notes = byId('voucherNotesLarge') ? byId('voucherNotesLarge').value : '';
+
+وأضف بعدها مباشرة:
+
+var reference = byId('voucherReference') ? byId('voucherReference').value.trim() : '';
+if (!reference) {
+    showToast('مرجع الإذن مطلوب', 'warning');
+    return;
+}
+
+ثم ابحث عن:
+
+reference: '',
+
+واستبدلها بـ:
+
+reference: reference,
+
+هذه ليست إضافة تجميلية؛ Production الحالية تحتوي صراحة:
+
+IF NULLIF(btrim(p_reference),'') IS NULL
+THEN RAISE EXCEPTION 'المرجع مطلوب';
+END IF;
+M7-08 — تصحيح مهم جدًا من Report86
+
+لا تنفذ M7-08 الموجودة في Report86.
+
+التعليمات القديمة كانت ستبدل:
+
+Picked → Picking
+Loaded → Loading
+Delivered → Delivering
+Returned → Returning
+
+وهذا غير صحيح بهذه الصورة.
+
+التصحيح الصحيح هو:
+
+Picking
+
+في loadPicking():
+
+<option>Picked</option>
+
+استبدله بـ:
+
+<option value="Open">Open</option>
+<option value="Confirmed">Confirmed</option>
+
+واستبدل:
+
+.in('status', ['Picked'])
+
+بـ:
+
+.in('status', ['Open', 'Confirmed'])
+
+وفي badge لا تكتب Picking ثابتة؛ اجعلها:
+
+r.status
+
+لأن هذه الشاشة تعرض الرانشيتات التي يمكن بدء Picking عليها.
+
+Loading
+
+ابقِ:
+
+.in('status', ['Picked'])
+
+كما هو.
+
+ولا تحوله إلى Loading.
+
+لأن:
+
+Picked → start-loading → Loading
+Delivery
+
+ابقِ مرحلة العرض على:
+
+.in('status', ['Loaded'])
+
+لأن:
+
+Loaded → start-delivery → Delivering
+Return
+
+هذه الشاشة يجب أن تعرض:
+
+.in('status', ['Delivered'])
+
+لأن:
+
+Delivered → start-return → Returning
+Unloading
+
+هذه أيضًا يجب أن تعمل على:
+
+.in('status', ['Loaded'])
+
+لأن Production complete_runsheet_unloading لا يقبل إلا Runsheet في حالة Loaded.
+
+وهذا هو التصحيح الأهم في هذه الجلسة.
+
+M7-09 — Delivery
+
+هذه الجراحة تبقى صحيحة.
+
+الدالة الحالية:
+
+function _openDeliveryModal(rsCode) {
+
+حتى القوس الذي يسبق مباشرة:
+
+function _openReturnModal(rsCode) {
+
+يجب حذفها كاملة واستبدالها بنسخة M7-09 التي تجعل التدفق:
+
+Runsheet
+   ↓
+Orders
+   ↓
+Order Details
+   ↓
+qty_loaded - qty_delivered
+   ↓
+complete-order-delivery لكل Order
+   ↓
+complete-delivery للـRunsheet
+
+وهذا متوافق مباشرة مع Production الحالية.
+
+ولا يجوز إطلاق:
+
+complete-delivery
+
+بـ:
+
+ordersData
+
+لأن complete-delivery ليس Fulfillment Writer.
+
+M7-10 — Settlement
+
+وهنا أصبح لدينا الآن الدليل الكافي لإصلاح الجزء الذي تركناه مفتوحًا في Report86.
+
+Production الحالية لديها:
+
+inventory_counts
+inventory_count_details
+
+وsave-inventory-count يقوم بإنشاء:
+
+inventory_counts
+    ↓
+inventory_count_details
+
+وعند جرد المركبة يحول entity_id إلى Mobile Branch للمركبة إن كان موجودًا.
+
+لذلك لا تستخدم:
+
+countedQty = 0;
+
+ولا تستخدم stock_branches.qty كبديل للجرد.
+
+المصدر الصحيح هو آخر Inventory Count خاص بـ:
+
+type = 'vehicle'
+company_id = companyId
+reference = rsCode
+entity_id = vehicle.mobile_branch_id || vehicle.id
+
+ثم تفاصيله من:
+
+inventory_count_details.count_id
+
+وبالتالي داخل _onSettlementRsChange() لا تستخدم Query order_details بـrunsheet_id؛ لأن order_details لا يحتوي أصلًا على هذا العمود في Production الحالية.
+
+استخدم run_sheet_details كمصدر الـFulfillment aggregate؛ فهو يحتوي:
+
+qty_loaded
+qty_delivered
+qty_refused
+qty_returned
+
+وهو يتم تحديثه من عمليات الـDelivery/Return الحالية. وهذا يحافظ على:
+
+order_details
+     ↓ aggregate
+run_sheet_details
+
+بدل Dual Write جديد.
+
+M7-11 — Unloading Details
+
+لا أنصح بتعديلها الآن.
+
+وجدنا أن:
+
+_showUnloadingDetails()
+
+ما زالت Placeholder، لكننا لم نثبت بعد Contract تاريخيًا يحدد ما الذي يجب أن تعرضه بالضبط.
+
+والأهم أن Production complete_runsheet_unloading واضحة بالفعل:
+
+Loaded
+ ↓
+Unloading
+ ↓
+post_stock_movement
+ ↓
+MAIN
+ ↓
+Runsheet = Picked
+
+لكن هذا لا يثبت وحده شكل شاشة “تفاصيل التفريغ”.
+
+إذًا:
+
+لا نختلق هذه الشاشة.
+
+إضافة ضرورية خارج قائمة Report86
+
+هناك مجموعة استعلامات داخل Main7 ما زالت بلا Company Scope، ويجب إصلاحها أيضًا قبل إغلاق Main7.
+
+في:
+
+loadVehicleCount()
+
+استعلام Runsheet يجب أن يكون:
+
+var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+if (!companyId) { showToast('سياق الشركة غير محدد', 'error'); return; }
+
+var runsheetsRes = await supabase
+    .from('runsheets')
+    .select('runsheet_code, driver_id')
+    .eq('company_id', companyId)
+    .in('status', ['Loaded', 'Delivering', 'Delivered', 'Returning']);
+
+وفي _searchDriver() يجب استخدام Company Scope أيضًا.
+
+وأي lookup للـRunsheet في:
+
+_openPickingModal
+_openLoadingModal
+_openDeliveryModal
+_openReturnModal
+_showPickingDetails
+_showLoadingDetails
+_showDeliveryDetails
+_showReturnDetails
+_onSettlementRsChange
+
+يجب أن يبدأ من:
+
+.eq('company_id', companyId)
+
+قبل التعامل مع تفاصيله.
+
+أهم نتيجة في هذه الجلسة
+
+هناك تصحيح واحد كان يجب إيقافه ولم يعد مسموحًا بتنفيذه:
+
+لا تغيّر Picked → Picking أو Loaded → Loading أو Delivered → Delivering أو Returned → Returning كاستبدالات عامة.
+
+لأن ذلك كان سيكسر دورة العمل الأصلية التي صُممت على مدى أشهر.
+
+المعنى الصحيح هو:
+
+الشاشة	الحالة التي تبحث عنها
+Picking	Open, Confirmed
+Loading	Picked
+Delivery	Loaded
+Return	Delivered
+Unloading	Loaded
+
+وهذا هو التفسير الذي يطابق دورة Production الحالية بدل تشويهها.
+
+الحالة الحالية بعد هذه المراجعة
+
+PRODUCTION PHYSICAL STOCK CORE = CLOSED
+
+PRODUCTION RETURN / DELIVERY CORE = VERIFIED
+
+MAIN2 SOURCE PATH = CLOSED
+
+MAIN7 SOURCE = NOT YET MODIFIED
+
+M7-00..M7-07 = SURGERY DEFINED
+
+M7-08 = CORRECTED / Report86 OLD INSTRUCTION SUPERSEDED
+
+M7-09 = SURGERY DEFINED
+
+M7-10 = NOW PROVEN AND REPAIRABLE
+
+M7-11 = REMAINS OPEN BY DESIGN
+
+FULL MAIN2 ASSEMBLY = OPEN
+
+PARENT GOLD / DIAMOND = NOT CLOSED
+
+والسبب الأخير متعمد: لن أصف Main7 بأنه مكتمل قبل أن تطبق أنت الجراحات على main7.md ثم نعيد قراءته من SOF إلى EOF ونعمل Reconstruction فعليًا. هذا متوافق مع قاعدة الملكية المثبتة في الحالة الحالية.
+
+أهم شيء الآن: لا تنفذ M7-08 القديمة من Report86؛ نفّذ النسخة المصححة أعلاه فقط.
