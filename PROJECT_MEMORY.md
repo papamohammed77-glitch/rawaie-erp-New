@@ -110,49 +110,59 @@ GOLD/DIAMOND/100% CLOSURE = NOT PROVEN
 
 ## Verified continuity — 2026-09-08 automation refresh
 ### GitHub
-- Latest observed `main` commit before this memory write is `4768d861c840f5f16fcc423abff1d381be2e5788`, `Update main5.md`, created `2026-09-08T03:48:26Z`.
-- The immediately preceding direct commits include `641cebcce50f2861b1167779dead4f38d4f10736` (Report83/Main6 forensic surgical reconciliation), `53456ecabea3d979942481b16fae371953b5c683` (CURRENT_STATE update for Main6), `fc96167566a1d96740663e43c11472194a7068d9` (Report83), and `dc83dfae85b94d40e47b0f94e9070e4e9006f9d9` (cross-system memory snapshot).
-- Commit-scoped workflow lookup for `4768d861c840f5f16fcc423abff1d381be2e5788` returned no workflow runs. This is absence of CI evidence, not a pass or failure.
-- The newest GitHub change is source-level (`main5.md`); no deployment, browser E2E, or runtime-parity proof was returned in this refresh.
+- Latest observed commit in repository history is `ae39cc98c5fd9e22d377e052560522f7a2d3a101`, `docs(cto): add Main7 surgical forensic review 20260908`, created `2026-09-08T10:22:45Z`.
+- The latest observed commits are documentation/forensic-review changes plus a source update to `Current/PWA/main2/main7.md`; no fresh deployment or browser runtime proof was returned by the commit listing.
+- Direct `CURRENT_STATE.md` is current as a 2026-09-08 checkpoint and identifies Main7 as the active open closure unit. It records Main6 source CLOSED, Main7 source surgery OPEN, full Main2 assembly OPEN/NOT PROVEN, and Parent Gold/Diamond NOT CLOSED.
+- Main7 current fragment identity is directly recorded as `0962e20262e77e9e6d8905c83098c2d5fac9210c` and the file is structurally intact at EOF. Open items are M7-07B, M7-09, M7-10, M7-10B, and M7-12; the current delivery lifecycle is intentionally preserved and must not be relabeled without evidence.
+- `Current/PWA/New-main` remains a generated target and was not the authorized manual target for this Main7 recheck.
 
-### Supabase health, migrations, and Edge Functions
-- `SMART ERP` remains `ACTIVE_HEALTHY` in `eu-west-1` on PostgreSQL `17.6.1.121`.
-- New migrations after the prior snapshot are confirmed: `20260908010304` `enable_realtime_orders_runsheets_fulfillment`, `20260908010601` `add_app_settings_realtime_currency_contract`, `20260908020115` `manage_runsheet_atomic_capability_m5_13_v2`, `20260908030522` `close_parent_pos_invoiced_order_deletion`, `20260908030539` `fix_pos_invoiced_delete_authorization_aggregation`, and `20260908030813` `harden_delete_order_atomic_permission_core`.
-- Edge Function inventory now includes `manage-runsheet` ACTIVE with `verify_jwt=true`. The core business function inventory remains overwhelmingly ACTIVE with `verify_jwt=true`.
-- Historical test/canary/fixture/gate/recovery functions remain ACTIVE with `verify_jwt=false`, including picking harness/E2E, owner recovery, auth verification, receive-purchase runtime E2E, and sales canary surfaces. No retirement or hardening was performed in this refresh.
+### Supabase health, schema, migrations, and Edge Functions
+- Direct project check confirms `SMART ERP` (`fiilmooggumokxanwiyx`) is `ACTIVE_HEALTHY`, region `eu-west-1`, PostgreSQL `17.6.1.121`, release channel `ga`.
+- Latest migration is now `20260908061516` `revoke_legacy_inventory_core_execution_20260908`.
+- Direct schema inspection confirms RLS enabled on the inspected public tables and confirms the tenant/branch relationships for companies, branches, users, app_settings, orders, order_details, runsheets, run_sheet_details, vehicles, inventory_log, stock vouchers, purchasing, accounting, notifications, and audit_log.
+- Confirmed current contract fields include `inventory_log.source_branch_id`, `inventory_log.target_branch_id`, `stock_branches.available_qty` as generated `qty - allocated_qty`, `runsheets.vehicle_id`, `vehicles.mobile_branch_id`, `inventory_counts.entity_id`, `inventory_count_details.count_id`, and `stock_voucher_details.voucher_id`.
+- Direct Edge Function inventory shows core operational functions ACTIVE with `verify_jwt=true`, including `complete-order-delivery` v14, `complete-delivery` v4, `save-inventory-count` v2, `complete-return` v25, and `manage-runsheet` v1.
+- Direct Edge Function inventory also confirms the historical test/canary/fixture/gate/recovery surface remains ACTIVE with `verify_jwt=false`, including picking harness/E2E, owner recovery, auth verification, receive-purchase runtime E2E, and sales canary functions.
+- No Edge Function deployment, retirement, or hardening was performed by this refresh.
 
-### Fresh Supabase security advisories — observed 2026-09-08T03:51:02.697Z
-- Public execution warnings remain for `public.create_item_with_opening_stock(...)` and `public.sync_company_main_branch_projection()` as `SECURITY DEFINER` by both `anon` and `authenticated`.
-- Supabase Auth leaked-password protection remains disabled.
+### Fresh Supabase advisories — observed 2026-09-08T10:23:18Z to 2026-09-08T10:23:22Z
+- Security advisories remain: two public `SECURITY DEFINER` functions executable by `anon` and `authenticated` (`create_item_with_opening_stock(...)` and `sync_company_main_branch_projection()`), plus disabled leaked-password protection.
+- Performance advisories remain: 61 unindexed foreign-key findings, 36 RLS init-plan findings, 29 unused-index findings, and 12 multiple-permissive-policy findings, including concrete findings on inventory_log branch keys, orders/runsheets/purchasing/accounting/vehicle/workflow relations, and receiving/assignment/backorder policy surfaces.
+- No security or performance remediation was applied in this refresh.
 
-### Cross-system reconciliation and open work
-- GitHub and Supabase remain directionally aligned around centralized/tenant-aware operations, realtime enablement for orders/runsheets/fulfillment, and explicit hardening of parent POS invoiced-order deletion.
-- The main evidence gap remains deployment/runtime parity: no fresh browser E2E result, deployed revision identity, or service-worker/cache identity was directly proven in this run.
-- High-priority unresolved items remain: stale/fragmented continuity records, active `verify_jwt=false` historical surface, public EXECUTE on the two SECURITY DEFINER functions, disabled leaked-password protection, and outstanding RLS/index/policy debt.
+### Cross-system reconciliation — 2026-09-08
+- GitHub current-state evidence and Supabase current schema are directionally aligned on centralized physical-stock ownership, branch attribution, vehicle/mobile-branch identity, order-by-order delivery contracts, and tenant-aware relationships.
+- The current evidence gap remains fresh runtime/deployment parity: no commit-specific CI run, deployed revision identity, service-worker/cache identity, or browser E2E result was returned in this refresh.
+- The next evidence-backed work unit is Main7 source surgery only; it must be performed on `Current/PWA/main2/main7.md`, followed by full-source re-read, syntax/structure checks, canonical Main2 assembly, and only then runtime verification.
 - Production business-data writes in this refresh: `0`.
 - Secrets, passwords, keys, tokens, or credential material stored/disclosed: `0`.
 
 ### 2026-09-08 confidence boundary
 ```text
-LATEST MAIN COMMIT = CONFIRMED (4768d861c840f5f16fcc423abff1d381be2e5788 before this write)
-COMMIT-SCOPED CI FOR LATEST COMMIT = NO RUNS RETURNED
+LATEST OBSERVED MAIN COMMIT = CONFIRMED (ae39cc98c5fd9e22d377e052560522f7a2d3a101)
+CURRENT_STATE CHECKPOINT = CONFIRMED (2026-09-08)
+MAIN7 SOURCE STATUS = CONFIRMED OPEN / OWNER ACTION REQUIRED
+FULL MAIN2 ASSEMBLY = OPEN / NOT PROVEN
+PARENT GOLD/DIAMOND = NOT CLOSED
 SUPABASE HEALTH = CONFIRMED
-NEW MIGRATIONS = CONFIRMED
-MANAGE-RUNSHEET = CONFIRMED ACTIVE / JWT-PROTECTED
+LATEST MIGRATION = CONFIRMED (20260908061516)
+CORE EDGE FUNCTIONS = CONFIRMED ACTIVE / JWT-PROTECTED
 VERIFY_JWT_FALSE HISTORICAL SURFACE = CONFIRMED ACTIVE
 SECURITY ADVISORIES = CONFIRMED (fresh)
+PERFORMANCE ADVISORIES = CONFIRMED (fresh)
 DEPLOYED REVISION = UNKNOWN
 BROWSER E2E / RUNTIME PARITY = UNKNOWN
 GOLD/DIAMOND/WHOLE-SYSTEM CLOSURE = NOT PROVEN
 ```
 
 ### Open risks / next evidence — 2026-09-08
-1. Reconcile `CURRENT_STATE.md` and Report83/Main6 continuity records against latest `main5.md` changes.
-2. Obtain commit-specific CI and fresh browser/runtime proof for the current product target.
-3. Verify deployment revision and service-worker/cache lineage.
-4. Review the six new migrations against Git consumers and tenant/RLS contracts.
-5. Retire or harden obsolete `verify_jwt=false` functions only after dependency proof.
-6. Revoke or narrow public EXECUTE on the two exposed SECURITY DEFINER functions.
-7. Enable leaked-password protection.
-8. Prioritize FK indexes, RLS init-plan rewrites, permissive-policy consolidation, and unused-index review.
-9. Keep `PROJECT_MEMORY.md` append-only and preserve all earlier evidence classifications.
+1. Owner-only surgical changes remain open for Main7: M7-07B, M7-09, M7-10, M7-10B, and M7-12.
+2. Re-read Main7 SOF→EOF from the new SHA and validate syntax/structure.
+3. Run canonical Main2 assembly from `Current/PWA/main2/main1..main11` and compare the parent against current Production contracts.
+4. Obtain fresh browser/runtime proof against the exact assembled target and verify deployment/cache lineage.
+5. Review the 20260908 migrations against Git consumers and tenant/RLS contracts.
+6. Retire or harden obsolete `verify_jwt=false` functions only after dependency proof.
+7. Revoke or narrow public EXECUTE on the two exposed SECURITY DEFINER functions.
+8. Enable leaked-password protection.
+9. Prioritize the 61 FK-index findings, 36 RLS init-plan findings, 12 multiple-permissive-policy findings, and 29 unused-index findings.
+10. Preserve this file append-only and retain all earlier evidence classifications.
