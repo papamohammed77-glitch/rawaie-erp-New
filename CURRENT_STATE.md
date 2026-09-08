@@ -1,13 +1,12 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
-## CURRENT CHECKPOINT — 2026-09-07
+## CURRENT CHECKPOINT — 2026-09-08
 
 ```text
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
-CURRENT GIT HEAD = c7aee872815564b910d7258d5918e550e66dc9da
-LATEST FORENSIC REPORT = doc/Draft/Reprots/Report76_Main5_Forensic_Continuation_20260907.md
+LATEST FORENSIC REPORT = doc/Draft/Reprots/Report77_Main5_PostPatch_Forensic_Recheck_20260908.md
 ```
 
 ## GOVERNANCE
@@ -22,275 +21,180 @@ GIT != PRODUCTION PROOF
 NO CLOSURE CLAIM WITHOUT CURRENT EVIDENCE
 ```
 
-Primary governance:
-`doc/Draft/medhat/MASTER - RAWAEA ERP.md`
-
-## LAST VERIFIED LINEAGE
-
-### Main4 historical lineage
+## MAIN4
 
 ```text
-Report73 = 4489997677ed593f1567a9fbb398ea6172c8eef5
-User Main4 Patch = 42ab7aeb113d64ea08becb134a8e114165594dc1
-Report74 = bd287ebb11760bb0a1f6aba063d6ae3be606d1f4
-Previous Main4 Commit = ee5638b3d71b1c94b4c611003ce8be6831ef8342
-Previous Main4 Blob = 932c22c7e0a0285a437729a84b9a1f909bd5f573
-Current Main4 Blob = e89d29e4164c68784c109292f27d4d77df240557
-```
-
-The current main4 commit after Report75 contains the corrected M4-01 `try / if / else / catch` block. M4-02 remains intact. The main4 source was re-read during the current session.
-
-### Current documentation events
-
-```text
-Report75 = historical forensic recheck
-Report76 = c7aee872815564b910d7258d5918e550e66dc9da
-CURRENT_STATE = updated after Report76
-```
-
-## PRODUCTION TRUTH — 2026-09-07 10:12:16 UTC
-
-```text
-companies      = 1
-app_settings   = 1
-users          = 24
-roles          = 20
-customers      = 3
-suppliers      = 1
-branches      = 2
-items          = 17
-orders         = 0
-runsheets      = 0
-stock_rows     = 20
-inventory_logs = 3
-```
-
-Current company settings:
-
-```text
-company_id          = 00000000-0000-0000-0000-000000000001
-currency            = SAR
-company_name        = الروائع
-delivery_fee        = 0.00
-min_invoice_amount  = 0.00
-tax_rate             = 0.00
-main_branch_id      = a38332b6-6cea-480a-ada1-6eb6ab0590db
-```
-
-Branches:
-
-```text
-BR-01 = الفرع الرئيسي
-BR-2  = فرع إسكندرية
-```
-
-Relevant schema facts:
-
-```text
-items.item_code UNIQUE globally
-stock_branches UNIQUE(branch_id,item_id)
-receiving.operation_id UNIQUE
-roles.company_id PRESENT
-branches.company_id PRESENT
-app_settings.company_id PRESENT
-stock_branches derives company through branch_id
-```
-
-Relevant RLS facts verified directly in Production:
-
-```text
-orders = authenticated SELECT only; no authenticated UPDATE/DELETE policy
-runsheets = SELECT/INSERT/UPDATE/DELETE with current-company checks
-order_details = current-tenant SELECT policy
-run_sheet_details = current-tenant SELECT policy
-users = company-aware policies
-vehicles = company-aware SELECT policy
-app_settings = company-aware policies
-```
-
-`roles` broad `Allow all for all` policy remains a separate governance closure.
-
-## MAIN2
-
-```text
-main2 source = previously verified
-Browser runtime = NOT VERIFIED
-11-part final assembly = NOT VERIFIED
-```
-
-Do not reopen main2 without new direct evidence.
-
-## MAIN3
-
-```text
-main3 source = VERIFIED AFTER USER PATCH
-S1-S6 = VERIFIED
-```
-
-Do not reopen main3 without new direct evidence.
-
-## MAIN4 — SOURCE CLOSED / RUNTIME OPEN
-
-```text
-PATH = Current/PWA/main2/main4.md
+SOURCE = CLOSED
+RUNTIME = OPEN
 BLOB = e89d29e4164c68784c109292f27d4d77df240557
-FULL SOURCE RE-READ = VERIFIED
-M4-01 = CORRECTED IN CURRENT GIT
-M4-02 = VERIFIED
-_saveOrder definitions = 1
-legacy duplicate _saveOrder = absent
-```
-
-No new main4 patch is authorized from current evidence.
-
-Remaining main4 verification:
-
-```text
-Browser runtime = OPEN
-11-part integration = OPEN
-Full PWA runtime = OPEN
 ```
 
 ## MAIN5 — CURRENT TARGET
 
 ```text
 PATH = Current/PWA/main2/main5.md
-BLOB = caffc0187b54444e96491dc6f00a238b2e870b32
-SOURCE FULL READ = VERIFIED BY SEQUENTIAL FORENSIC REVIEW
-SOURCE SYNTAX CLOSURE = NO MAIN4-LIKE DEFECT FOUND
+BLOB = 34182a5a2380a0b4704503a964af07b92982b86f
+FULL SOURCE READ = VERIFIED 2026-09-08
 RUNTIME = OPEN
 ```
 
-### Main5 open surgical changes
+Report76 patches present in current source:
 
 ```text
-M5-01 = RW_Orders orders query must be company-scoped
-M5-02 = order_details must be constrained by loaded order IDs
-M5-03 = orders realtime subscription must be company-filtered
-M5-04 = _showDetails orders lookup must be company-scoped
-M5-05 = _printOrder app_settings must be company-scoped
-M5-06 = remove direct orders UPDATE before create-runsheet
-M5-07 = _appendRS runsheet lookups must be company-scoped
-M5-08 = _loadRunsheetCodes must be company-scoped
-M5-09 = _refreshData orders + order_details must be company-scoped/bounded
-M5-10 = drivers and vehicles helper queries must be company-scoped
-M5-11 = RW_Runsheets main list must be company-scoped
-M5-12 = RW_Runsheets _details runsheet/orders lookups must be company-scoped
-M5-14 = replace hardcoded EGP presentation with app_settings.currency
+M5-01 = PRESENT
+M5-02 = PRESENT
+M5-03 = PARTIAL — company filter exists; full realtime coverage still required
+M5-04..M5-12 = PRESENT
+M5-14 = PRESENT — currency comes from app_settings
 ```
 
-### M5-13 — OPEN CONTRACT / DO NOT PATCH YET
+New open source issues found after reread:
 
 ```text
-_deleteRunsheet currently performs three direct Frontend writes
-orders UPDATE is not permitted by current authenticated RLS
-run_sheet_details write ownership is not proven
-no Production delete-runsheet RPC/Edge capability was found
+M5-15 = _printOrder order lookup not company-scoped
+M5-16 = _createRS new runsheet lookup not company-scoped
+M5-17-A = syntax error in ordersHtml currency concatenation
+M5-17-B = syntax error in itemsHtml currency concatenation
+M5-18 = orders realtime subscription incomplete
+M5-19 = runsheets realtime subscription missing
 ```
 
-Do not invent a delete capability or change delete semantics until the historical/source/Business Contract is reconstructed.
+Assistant MUST NOT edit main5. User performs the mother-file edits.
 
-## EXACT NEXT USER ACTION
-
-Apply exactly the surgical blocks in Report76 to `Current/PWA/main2/main5.md`:
+## M5-13 — OPEN CONTRACT
 
 ```text
-M5-01
-M5-02
-M5-03
-M5-04
-M5-05
-M5-06
-M5-07
-M5-08
-M5-09
-M5-10
-M5-11
-M5-12
-M5-14
+_deleteRunsheet and _cancelRunsheet perform direct frontend DB writes
+orders has no authenticated UPDATE/DELETE policy
+no proven delete/cancel backend owner established
+DO NOT INVENT A BACKEND CONTRACT YET
 ```
 
-Do NOT change M5-13.
-
-After the manual edits:
+## PRODUCTION TRUTH — 2026-09-08 01:07 UTC
 
 ```text
-commit main5.md
-return new main5 commit SHA + blob SHA
+companies      = 1
+app_settings   = 1
+users          = 24
+branches       = 2
+items          = 17
+orders         = 0
+runsheets      = 0
+stock_rows     = 20
+inventory_logs = 3
+currency       = SAR
 ```
 
-Then the next authorized step is:
+Schema facts:
 
 ```text
-full main5 read from first line to EOF
-structural/source recheck
-Production reconciliation
-runtime/integration assessment
+items.item_code UNIQUE globally
+stock_branches UNIQUE(branch_id,item_id)
+receiving.operation_id UNIQUE
+order_details has NO company_id
+run_sheet_details has NO company_id
 ```
 
-## WHAT IS PROVEN / NOT PROVEN
+RLS facts:
 
-### Proven
+```text
+orders = authenticated SELECT only
+runsheets = company-aware SELECT/INSERT/UPDATE/DELETE
+order_details = current-tenant SELECT
+run_sheet_details = current-tenant SELECT
+users = company-aware
+vehicles = company-aware SELECT
+app_settings = company-aware
+```
+
+## PRODUCTION REALTIME — FOUNDATION CLOSED
+
+Publication includes:
+
+```text
+app_settings
+order_details
+orders
+run_sheet_details
+runsheets
+```
+
+All five use `REPLICA IDENTITY FULL`.
+
+Migrations:
+
+```text
+20260908010304 = enable_realtime_orders_runsheets_fulfillment
+20260908010601 = add_app_settings_realtime_currency_contract
+```
+
+Browser realtime E2E remains unverified because Production has zero orders and zero runsheets.
+
+## PRODUCTION EDGE — append-to-runsheet
+
+```text
+VERSION = 7
+STATUS = ACTIVE
+VERIFY_JWT = true
+```
+
+Fixed the invalid `order_details.company_id` predicate. Git source aligned with deployed v7.
+
+## create-runsheet
+
+```text
+VERSION = 26
+VERIFY_JWT = true
+OWNER = create_runsheet_atomic
+```
+
+## WHAT IS PROVEN
 
 ```text
 MASTER read to EOF
-CURRENT_STATE reconciled against current Git and Production
-Report75 treated as historical evidence
-current Git HEAD identified
-current main4 source re-read
-M4-01 correction present
-M4-02 intact
-main5 source reviewed in sequential ranges
-Production current counts/settings/RLS verified
-main5 company-scope defects identified
-main5 hardcoded EGP defects identified
+Report76 read
+CURRENT_STATE stale state detected
+main5 read to EOF
+current main5 blob verified
+Report76 changes rechecked
+Production snapshot verified directly
+Realtime publication verified directly
+Replica identity verified directly
+append-to-runsheet corrected and redeployed v7
+create-runsheet owner verified
+currency = SAR verified directly
+Report77 written
 ```
 
-### Not proven
+## WHAT IS NOT PROVEN
 
 ```text
-main4 browser runtime
+main5 source closure
 main5 browser runtime
 11-part final assembly
 full PWA runtime equivalence
-final Production equivalence
-atomic delete-runsheet business contract
+Realtime browser E2E with actual order/runsheet records
+_deleteRunsheet contract
+_cancelRunsheet contract
+final Production equivalence of assembled PWA
 ```
 
-## KNOWN ANTIPATTERNS — DO NOT REPEAT
+## NEXT AUTHORIZED ACTION
 
 ```text
-Do not treat reports as current Production truth.
-Do not treat source closure as runtime closure.
-Do not use LIMIT 1 for company-scoped operational identity.
-Do not add a new database column when an existing operation identity contract is available.
-Do not invent a delete-runsheet backend without proven owner/contract.
-Do not modify the 11-part system parent files directly from the assistant.
-```
-
-## CLOSURE STATUS
-
-```text
-MAIN4 SOURCE = CLOSED
-MAIN4 RUNTIME = OPEN
-MAIN5 SOURCE = OPEN / USER PATCH REQUIRED
-MAIN5 RUNTIME = OPEN
-M5-13 DELETE-RUNSHEET CONTRACT = OPEN
-11-PART INTEGRATION = OPEN
-PROJECT = OPEN
+User applies exact M5-15..M5-19 blocks from Report77 to main5
+Commit main5 and return commit/blob SHA
+Then full EOF recheck + syntax + dependency + Production reconciliation
+Then continue integration/runtime verification
 ```
 
 ## LAST VERIFIED EVENT
 
 ```text
-EVENT TYPE = FORENSIC CONTINUATION / MAIN5
-UTC = 2026-09-07 10:12:16
-SOURCE = Production Supabase + current Git
-GIT HEAD = c7aee872815564b910d7258d5918e550e66dc9da
-MAIN4 BLOB = e89d29e4164c68784c109292f27d4d77df240557
-MAIN5 BLOB = caffc0187b54444e96491dc6f00a238b2e870b32
-ACTION = Reconcile current state, re-read main4/main5, identify exact surgical patches
-RESULT = Main4 source closed; Main5 patch specification issued; delete-runsheet contract remains open
-EVIDENCE = Report76 + direct Production SQL verification
-NEXT AUTHORIZED ACTION = User applies Main5 M5-01..M5-12 + M5-14, then source commit/recheck
+EVENT TYPE = MAIN5 POST-PATCH FORENSIC RECHECK + PRODUCTION REALTIME INTEGRATION
+UTC = 2026-09-08 01:07:16+00
+MAIN5 BLOB = 34182a5a2380a0b4704503a964af07b92982b86f
+PRODUCTION = companies=1, users=24, branches=2, items=17, orders=0, runsheets=0, stock_rows=20, inventory_logs=3, currency=SAR
+RESULT = Production realtime foundation closed; append-to-runsheet v7 corrected; main5 remains open for exact user surgical patches M5-15..M5-19
+EVIDENCE = current Git + direct Production SQL + active Edge Function deployment + Report77
 ```
