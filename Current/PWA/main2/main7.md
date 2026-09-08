@@ -19,7 +19,9 @@ var RW_Warehouse = (function() {
             </div></div>
             <div class="bg-white rounded-2xl shadow-sm border overflow-auto" style="max-height:65vh"><table class="w-full"><thead class="bg-gray-50 sticky top-0"><tr><th class="p-3">رقم العملية</th><th class="p-3">التاريخ</th><th class="p-3">أمر الشراء</th><th class="p-3">المسؤول</th><th class="p-3">الأصناف</th><th class="p-3">الحالة</th><th class="p-3 text-center">عرض</th></tr></thead><tbody id="rec-table"><tr><td colspan="7" class="text-center py-8">جاري التحميل...</td></tr></tbody></table></div>
         </div>`);
-        var res = await supabase.from('receiving').select('*');
+        var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+if (!companyId) { showToast('سياق الشركة غير محدد', 'error'); return; }
+var res = await supabase.from('receiving').select('*').eq('company_id', companyId).order('date', { ascending: false });
         window._receivingData = res.data || [];
         _applyReceiving();
     }
@@ -51,17 +53,66 @@ var RW_Warehouse = (function() {
         });
         safeHTML(tb, h);
     }
-    async function _showReceivingDetails(opId) {
-        showLoader('جاري التحميل...');
-        var detRes = await supabase.from('receiving_details').select('*').eq('operation_id', opId);
+async function _showReceivingDetails(opId) {
+    var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+    if (!companyId) { showToast('سياق الشركة غير محدد', 'error'); return; }
+    showLoader('جاري التحميل...');
+    var opRes = await supabase.from('receiving')
+        .select('operation_id')
+        .eq('company_id', companyId)
+        .eq('operation_id', opId)
+        .maybeSingle();
+
+    if (opRes.error || !opRes.data) {
         hideLoader();
-        var details = detRes.data || [];
-        if (!details.length) { showToast('لا توجد تفاصيل', 'info'); return; }
-        var h = '<div class="text-right"><table class="w-full border text-sm"><thead class="bg-gray-100"><tr><th class="p-2">الكود</th><th class="p-2">الصنف</th><th class="p-2 text-center">الوحدة</th><th class="p-2 text-center">المطلوب</th><th class="p-2 text-center">الفعلي</th><th class="p-2 text-center">الفرق</th><th class="p-2">السبب</th></tr></thead><tbody>';
-        details.forEach(d => { h += `<tr><td class="p-2 border">${d.item_code||''}</td><td class="p-2 border font-semibold">${d.item_name||''}</td><td class="p-2 border text-center">${d.unit||''}</td><td class="p-2 border text-center">${d.qty_expected||0}</td><td class="p-2 border text-center font-bold">${d.qty_received||0}</td><td class="p-2 border text-center">${d.difference||0}</td><td class="p-2 border">${d.reason||''}</td></tr>`; });
-        h += '</tbody></table></div>';
-        Swal.fire({ title: 'تفاصيل الاستلام: ' + opId, html: h, width: '800px', showCloseButton: true, showConfirmButton: false });
+        showToast('عملية الاستلام غير موجودة في الشركة الحالية', 'error');
+        return;
     }
+
+    var detRes = await supabase.from('receiving_details')
+        .select('*')
+        .eq('operation_id', opRes.data.operation_id);
+
+    hideLoader();
+
+    var details = detRes.data || [];
+    if (!details.length) {
+        showToast('لا توجد تفاصيل', 'info');
+        return;
+    }
+
+    var h = '<div class="text-right"><table class="w-full border text-sm"><thead class="bg-gray-100"><tr>' +
+        '<th class="p-2">الكود</th>' +
+        '<th class="p-2">الصنف</th>' +
+        '<th class="p-2 text-center">الوحدة</th>' +
+        '<th class="p-2 text-center">المطلوب</th>' +
+        '<th class="p-2 text-center">الفعلي</th>' +
+        '<th class="p-2 text-center">الفرق</th>' +
+        '<th class="p-2">السبب</th>' +
+        '</tr></thead><tbody>';
+
+    details.forEach(function(d) {
+        h += '<tr>' +
+            '<td class="p-2 border">' + esc(d.item_code || '') + '</td>' +
+            '<td class="p-2 border font-semibold">' + esc(d.item_name || '') + '</td>' +
+            '<td class="p-2 border text-center">' + esc(d.unit || '') + '</td>' +
+            '<td class="p-2 border text-center">' + (d.qty_expected || 0) + '</td>' +
+            '<td class="p-2 border text-center font-bold">' + (d.qty_received || 0) + '</td>' +
+            '<td class="p-2 border text-center">' + (d.difference || 0) + '</td>' +
+            '<td class="p-2 border">' + esc(d.reason || '') + '</td>' +
+            '</tr>';
+    });
+
+    h += '</tbody></table></div>';
+
+    Swal.fire({
+        title: 'تفاصيل الاستلام: ' + esc(opRes.data.operation_id),
+        html: h,
+        width: '800px',
+        showCloseButton: true,
+        showConfirmButton: false
+    });
+}
 
     // ==================== VOUCHER FORM – نماذج الأذونات الأربعة ====================
     var voucherCart = [];
@@ -138,7 +189,9 @@ var RW_Warehouse = (function() {
             for (var i = 0; i < suppliers.length; i++) html += '<option value="' + (suppliers[i].supplier_code || suppliers[i].code || '') + '">' + (suppliers[i].name || '') + '</option>';
             safeHTML(select, html);
         } else if (type === 'DirectSale' || type === 'DirectReturn') {
-            var res = await supabase.from('users').select('email, name').in('role', ['driver','سائق','مندوب']);
+            var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+if (!companyId) { showToast('سياق الشركة غير محدد', 'error'); return; }
+var res = await supabase.from('users').select('email, name').eq('company_id', companyId).in('role', ['driver','سائق','مندوب']);
             var drivers = res.data || [];
             var html = '<option value="">-- اختر مندوباً --</option>';
             for (var i = 0; i < drivers.length; i++) html += '<option value="' + (drivers[i].email || '') + '">' + (drivers[i].name || '') + ' (' + (drivers[i].email || '') + ')</option>';
@@ -206,6 +259,11 @@ var RW_Warehouse = (function() {
         var entity = byId('voucherEntitySelect') ? byId('voucherEntitySelect').value : '';
         if (!entity) { showToast('يرجى اختيار ' + currentVoucherConfig.entityLabel, 'warning'); return; }
         var notes = byId('voucherNotesLarge') ? byId('voucherNotesLarge').value : '';
+        var reference = byId('voucherReference') ? byId('voucherReference').value.trim() : '';
+if (!reference) {
+    showToast('مرجع الإذن مطلوب', 'warning');
+    return;
+}
         var cfg = currentVoucherConfig;
         var toId = cfg.toId || entity;
         var fromId = cfg.fromId || entity;
@@ -222,7 +280,7 @@ var RW_Warehouse = (function() {
         showLoader('جاري حفظ وإرسال الإذن...');
         var ses = await supabase.auth.getSession(), token = ses.data.session ? ses.data.session.access_token : null;
         try {
-            var createRes = await fetch(RW_SUPABASE_URL + '/functions/v1/create-stock-voucher', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ type: currentVoucherType, reference: '', fromType: cfg.fromType, fromId: fromId, toType: cfg.toType, toId: toId, items: items, notes: notes }) });
+            var createRes = await fetch(RW_SUPABASE_URL + '/functions/v1/create-stock-voucher', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ type: currentVoucherType, reference: reference, fromType: cfg.fromType, fromId: fromId, toType: cfg.toType, toId: toId, items: items, notes: notes }) });
             var createJson = await createRes.json();
             if (!createJson.success) { hideLoader(); showToast(createJson.msg || 'فشل الحفظ', 'error'); return; }
             var sendRes = await fetch(RW_SUPABASE_URL + '/functions/v1/send-stock-voucher', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ voucher_code: createJson.voucherId }) });
@@ -255,7 +313,9 @@ var RW_Warehouse = (function() {
                 <table class="w-full"><thead class="bg-gray-800 text-white sticky top-0"><tr><th class="p-3">رقم الإذن</th><th class="p-3">النوع</th><th class="p-3">التاريخ</th><th class="p-3">الحالة</th><th class="p-3">المرجع</th><th class="p-3">من</th><th class="p-3">إلى</th><th class="p-3 text-center">إجراءات</th></tr></thead><tbody id="vouchers-tbody"><tr><td colspan="8" class="text-center py-8">جاري التحميل...</td></tr></tbody></table>
             </div>
         </div>`);
-        var res = await supabase.from('stock_vouchers').select('*').order('voucher_date', { ascending: false });
+        var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+if (!companyId) { showToast('سياق الشركة غير محدد', 'error'); return; }
+var res = await supabase.from('stock_vouchers').select('*').eq('company_id', companyId).order('voucher_date', { ascending: false });
         window._vouchersData = res.data || [];
         _applyVouchers();
     }
@@ -290,17 +350,63 @@ var RW_Warehouse = (function() {
         });
     }
 
-    async function _viewVoucherDetails(voucherCode) {
-        showLoader('جاري التحميل...');
-        var detRes = await supabase.from('stock_voucher_details').select('*').eq('voucher_code', voucherCode);
+async function _viewVoucherDetails(voucherCode) {
+    var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+    if (!companyId) { showToast('سياق الشركة غير محدد', 'error'); return; }
+
+    showLoader('جاري التحميل...');
+
+    var voucherRes = await supabase.from('stock_vouchers')
+        .select('id,voucher_code')
+        .eq('company_id', companyId)
+        .eq('voucher_code', voucherCode)
+        .maybeSingle();
+
+    if (voucherRes.error || !voucherRes.data) {
         hideLoader();
-        var details = detRes.data || [];
-        if (!details.length) { showToast('لا توجد تفاصيل', 'info'); return; }
-        var h = '<table class="w-full border text-sm"><thead class="bg-gray-100"><tr><th class="p-2">الكود</th><th class="p-2">الصنف</th><th class="p-2 text-center">الكمية</th><th class="p-2 text-center">المستلمة</th></tr></thead><tbody>';
-        details.forEach(d => { h += '<tr><td class="p-2 border">' + (d.item_code||'') + '</td><td class="p-2 border font-semibold">' + (d.item_name||'') + '</td><td class="p-2 border text-center">' + (d.qty||0) + '</td><td class="p-2 border text-center">' + (d.received_qty||0) + '</td></tr>'; });
-        h += '</tbody></table>';
-        Swal.fire({ title: 'تفاصيل الإذن: ' + voucherCode, html: h, width: '600px', showCloseButton: true, showConfirmButton: false });
+        showToast('الإذن غير موجود في الشركة الحالية', 'error');
+        return;
     }
+
+    var detRes = await supabase.from('stock_voucher_details')
+        .select('*')
+        .eq('voucher_id', voucherRes.data.id)
+        .order('item_code');
+
+    hideLoader();
+
+    var details = detRes.data || [];
+    if (!details.length) {
+        showToast('لا توجد تفاصيل', 'info');
+        return;
+    }
+
+    var h = '<table class="w-full border text-sm"><thead class="bg-gray-100"><tr>' +
+        '<th class="p-2">الكود</th>' +
+        '<th class="p-2">الصنف</th>' +
+        '<th class="p-2 text-center">الكمية</th>' +
+        '<th class="p-2 text-center">المستلمة</th>' +
+        '</tr></thead><tbody>';
+
+    details.forEach(function(d) {
+        h += '<tr>' +
+            '<td class="p-2 border">' + esc(d.item_code || '') + '</td>' +
+            '<td class="p-2 border font-semibold">' + esc(d.item_name || '') + '</td>' +
+            '<td class="p-2 border text-center">' + (d.qty || 0) + '</td>' +
+            '<td class="p-2 border text-center">' + (d.received_qty || 0) + '</td>' +
+            '</tr>';
+    });
+
+    h += '</tbody></table>';
+
+    Swal.fire({
+        title: 'تفاصيل الإذن: ' + esc(voucherRes.data.voucher_code),
+        html: h,
+        width: '600px',
+        showCloseButton: true,
+        showConfirmButton: false
+    });
+}
 
     async function _sendVoucher(voucherCode) {
         var confirm = await Swal.fire({ title: 'تأكيد الإرسال', text: 'سيتم إرسال الإذن ' + voucherCode + ' وخصم المخزون من المصدر. متابعة؟', icon: 'warning', showCancelButton: true, confirmButtonColor: '#2563eb', confirmButtonText: 'نعم، أرسل', cancelButtonText: 'إلغاء' });
@@ -315,54 +421,108 @@ var RW_Warehouse = (function() {
         } catch(e) { hideLoader(); showToast('فشل الاتصال بـ Edge Function', 'error'); }
     }
 
-    async function _receiveVoucher(voucherCode) {
-        showLoader('جاري تحميل تفاصيل الإذن...');
-        var detRes = await supabase.from('stock_voucher_details').select('*').eq('voucher_code', voucherCode);
-        var details = detRes.data || []; hideLoader();
-        if (!details.length) { showToast('لا توجد تفاصيل لهذا الإذن', 'info'); return; }
-        var html = '<div class="text-right"><table class="w-full border text-sm"><thead class="bg-gray-100"><tr><th class="p-2 border">الصنف</th><th class="p-2 border text-center">الكمية المرسلة</th><th class="p-2 border text-center">الكمية المستلمة</th></tr></thead><tbody>';
-        for (var i = 0; i < details.length; i++) {
-            var d = details[i];
-            html += '<tr><td class="p-2 border font-semibold">' + esc(d.item_name || '') + ' (' + esc(d.item_code || '') + ')</td><td class="p-2 border text-center font-bold">' + (d.qty || 0) + '</td><td class="p-2 border text-center"><input type="number" id="vrec_qty_' + i + '" value="' + (d.qty || 0) + '" class="w-20 p-1 border rounded text-center" min="0"></td></tr>';
-        }
-        html += '</tbody></table></div>';
-        var result = await Swal.fire({ title: 'استلام الإذن: ' + voucherCode, html: html, width: '700px', showCancelButton: true, confirmButtonText: 'تأكيد الاستلام', confirmButtonColor: '#10b981', cancelButtonText: 'إلغاء',
-            preConfirm: function() { var items = []; for (var j = 0; j < details.length; j++) { var qty = parseFloat(document.getElementById('vrec_qty_' + j).value) || 0; items.push({ itemCode: details[j].item_code || '', itemName: details[j].item_name || '', unit: details[j].unit || 'حبة', receivedQty: qty }); } return items; }
-        });
-        if (!result.isConfirmed) return;
-        showLoader('جاري الاستلام...');
-        var ses = await supabase.auth.getSession(), token = ses.data.session ? ses.data.session.access_token : null;
-        try {
-            var res = await fetch(RW_SUPABASE_URL + '/functions/v1/receive-stock-voucher', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ voucher_code: voucherCode, receivedItems: result.value }) });
-            var json = await res.json(); hideLoader();
-            if (json.success) { showToast(json.msg || 'تم الاستلام', 'success'); loadVouchers(); }
-            else showToast(json.error || json.msg || 'فشل الاستلام', 'error');
-        } catch(e) { hideLoader(); showToast('فشل الاتصال بـ Edge Function', 'error'); }
+async function _receiveVoucher(voucherCode) {
+    var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+    if (!companyId) { showToast('سياق الشركة غير محدد', 'error'); return; }
+    showLoader('جاري تحميل تفاصيل الإذن...');
+    var voucherRes = await supabase.from('stock_vouchers').select('id,status,voucher_code,to_id').eq('company_id', companyId).eq('voucher_code', voucherCode).maybeSingle();
+    if (voucherRes.error || !voucherRes.data) { hideLoader(); showToast('الإذن غير موجود في الشركة الحالية', 'error'); return; }
+    if (voucherRes.data.status !== 'Sent') { hideLoader(); showToast('الإذن غير جاهز للاستلام: ' + (voucherRes.data.status || ''), 'warning'); return; }
+    var detRes = await supabase.from('stock_voucher_details').select('*').eq('voucher_id', voucherRes.data.id).order('item_code');
+    var details = detRes.data || [];
+    hideLoader();
+    if (!details.length) { showToast('لا توجد تفاصيل لهذا الإذن', 'info'); return; }
+    var html = '<div class="text-right"><table class="w-full border text-sm"><thead class="bg-gray-100"><tr><th class="p-2 border">الصنف</th><th class="p-2 border text-center">المرسل</th><th class="p-2 border text-center">المستلم سابقًا</th><th class="p-2 border text-center">المتبقي</th><th class="p-2 border text-center">استلام الآن</th></tr></thead><tbody>';
+    for (var i = 0; i < details.length; i++) {
+        var d = details[i];
+        var totalQty = Number(d.qty || 0);
+        var receivedBefore = Number(d.received_qty || 0);
+        var remaining = Math.max(0, totalQty - receivedBefore);
+        html += '<tr><td class="p-2 border font-semibold">' + esc(d.item_name || '') + ' (' + esc(d.item_code || '') + ')</td><td class="p-2 border text-center font-bold">' + totalQty + '</td><td class="p-2 border text-center">' + receivedBefore + '</td><td class="p-2 border text-center font-bold text-blue-700">' + remaining + '</td><td class="p-2 border text-center"><input type="number" id="vrec_qty_' + i + '" value="' + remaining + '" class="w-24 p-1 border rounded text-center" min="0" max="' + remaining + '" step="0.01"></td></tr>';
     }
-
-    async function _openNewVoucherModal() {
-        var typeOptions = '<option value="Transfer">تحويل داخلي</option><option value="DirectSale">صرف سيارة بيع مباشر</option><option value="DirectReturn">استلام مرتجع سيارة</option><option value="SupplierReturn">مرتجع لمورد</option><option value="Adjustment">جرد</option>';
-        var html = '<div class="text-right space-y-3"><div><label class="text-xs font-bold">نوع الإذن</label><select id="newVoucherType" class="swal2-input w-full">' + typeOptions + '</select></div><div><label class="text-xs font-bold">المرجع (اختياري)</label><input id="newVoucherRef" class="swal2-input w-full" placeholder="رقم مرجعي"></div><div><label class="text-xs font-bold">ملاحظات</label><textarea id="newVoucherNotes" rows="2" class="swal2-input w-full"></textarea></div></div>';
-        var result = await Swal.fire({ title: 'إنشاء إذن مخزني جديد', html: html, showCancelButton: true, confirmButtonText: 'إنشاء', cancelButtonText: 'إلغاء',
-            preConfirm: function() {
-                var type = document.getElementById('newVoucherType').value;
-                var ref = document.getElementById('newVoucherRef').value.trim();
-                var notes = document.getElementById('newVoucherNotes').value.trim();
-                if (!type) { Swal.showValidationMessage('اختر نوع الإذن'); return false; }
-                return { type: type, ref: ref, notes: notes };
+    html += '</tbody></table></div>';
+    var result = await Swal.fire({
+        title: 'استلام الإذن: ' + esc(voucherCode),
+        html: html,
+        width: '850px',
+        showCancelButton: true,
+        confirmButtonText: 'تأكيد الاستلام',
+        confirmButtonColor: '#10b981',
+        cancelButtonText: 'إلغاء',
+        preConfirm: function() {
+            var items = [];
+            var hasQty = false;
+            for (var j = 0; j < details.length; j++) {
+                var maxRemaining = Math.max(0, Number(details[j].qty || 0) - Number(details[j].received_qty || 0));
+                var qty = parseFloat((document.getElementById('vrec_qty_' + j) || {}).value) || 0;
+                if (qty < 0 || qty > maxRemaining) {
+                    Swal.showValidationMessage('كمية الاستلام تتجاوز المتبقي للصنف: ' + (details[j].item_code || ''));
+                    return false;
+                }
+                if (qty > 0) hasQty = true;
+                items.push({ itemCode: details[j].item_code || '', itemName: details[j].item_name || '', unit: details[j].unit || 'حبة', receivedQty: qty });
             }
+            if (!hasQty) { Swal.showValidationMessage('أدخل كمية واحدة على الأقل للاستلام'); return false; }
+            return items;
+        }
+    });
+    if (!result.isConfirmed) return;
+    var positiveItems = (result.value || []).filter(function(x) { return Number(x.receivedQty || 0) > 0; }).sort(function(a,b) { return String(a.itemCode).localeCompare(String(b.itemCode)); });
+    var operationId = 'UI-RECEIVE:' + companyId + ':' + voucherRes.data.id + ':' + positiveItems.map(function(x) { return String(x.itemCode) + ':' + Number(x.receivedQty); }).join('|');
+    showLoader('جاري الاستلام...');
+    var ses = await supabase.auth.getSession();
+    var token = ses.data.session ? ses.data.session.access_token : null;
+    if (!token) { hideLoader(); showToast('انتهت الجلسة', 'error'); return; }
+    try {
+        var res = await fetch(RW_SUPABASE_URL + '/functions/v1/receive-stock-voucher', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'Idempotency-Key': operationId },
+            body: JSON.stringify({ voucher_code: voucherCode, receivedItems: positiveItems, operation_id: operationId })
         });
-        if (!result.isConfirmed) return;
-        var d = result.value;
-        showLoader('جاري الإنشاء...');
-        var ses = await supabase.auth.getSession(), token = ses.data.session ? ses.data.session.access_token : null;
-        try {
-            var res = await fetch(RW_SUPABASE_URL + '/functions/v1/create-stock-voucher', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ type: d.type, reference: d.ref, fromType: 'Branch', fromId: 'MAIN', toType: 'Branch', toId: '', items: [], notes: d.notes }) });
-            var json = await res.json(); hideLoader();
-            if (json.success) { showToast('تم إنشاء الإذن ' + json.voucherId, 'success'); loadVouchers(); }
-            else showToast(json.error || json.msg || 'فشل الإنشاء', 'error');
-        } catch(e) { hideLoader(); showToast('فشل الاتصال بـ Edge Function', 'error'); }
-    }
+        var json = await res.json();
+        hideLoader();
+        if (json.success) { showToast(json.msg || (json.duplicate ? 'تم تأكيد العملية السابقة' : 'تم الاستلام'), 'success'); loadVouchers(); }
+        else showToast(json.error || json.msg || 'فشل الاستلام', 'error');
+    } catch (e) { hideLoader(); showToast('فشل الاتصال بـ Edge Function', 'error'); }
+}
+
+async function _openNewVoucherModal() {
+    var typeOptions =
+        '<option value="Transfer">تحويل داخلي</option>' +
+        '<option value="DirectSale">صرف سيارة بيع مباشر</option>' +
+        '<option value="DirectReturn">استلام مرتجع سيارة</option>' +
+        '<option value="SupplierReturn">مرتجع لمورد</option>';
+
+    var html =
+        '<div class="text-right space-y-3">' +
+            '<div>' +
+                '<label class="text-xs font-bold">نوع الإذن</label>' +
+                '<select id="newVoucherType" class="swal2-input w-full">' +
+                    typeOptions +
+                '</select>' +
+            '</div>' +
+        '</div>';
+
+    var result = await Swal.fire({
+        title: 'إنشاء إذن مخزني جديد',
+        html: html,
+        showCancelButton: true,
+        confirmButtonText: 'متابعة',
+        cancelButtonText: 'إلغاء',
+        preConfirm: function() {
+            var type = document.getElementById('newVoucherType').value;
+            if (!type) {
+                Swal.showValidationMessage('اختر نوع الإذن');
+                return false;
+            }
+            return { type: type };
+        }
+    });
+
+    if (!result.isConfirmed) return;
+
+    loadVoucherForm(result.value.type);
+}
 
     // ==================== PICKING ====================
     async function loadPicking() {
@@ -371,12 +531,13 @@ var RW_Warehouse = (function() {
         safeHTML(c, `<div class="p-4">
             <div class="bg-white rounded-2xl shadow-sm border p-4 mb-4"><div class="grid grid-cols-2 md:grid-cols-6 gap-2">
                 <input type="text" id="pk-f-id" placeholder="رقم الرانشيت..." class="p-2 bg-slate-50 rounded text-sm" oninput="RW_Warehouse._applyPicking()">
-                <select id="pk-f-st" class="p-2 bg-slate-50 rounded text-sm" onchange="RW_Warehouse._applyPicking()"><option value="">كل الحالات</option><option>Picked</option></select>
+                <select id="pk-f-st" class="p-2 bg-slate-50 rounded text-sm" onchange="RW_Warehouse._applyPicking()"><option value="">كل الحالات</option><option value="Open">Open</option>
+<option value="Confirmed">Confirmed</option></select>
                 <button onclick="RW_Warehouse._applyPicking()" class="bg-gray-600 text-white px-3 rounded text-sm">تطبيق</button>
             </div></div>
             <div class="bg-white rounded-2xl shadow-sm border overflow-auto" style="max-height:65vh"><table class="w-full"><thead class="bg-gray-50 sticky top-0"><tr><th class="p-3">الرانشيت</th><th class="p-3">التاريخ</th><th class="p-3">السائق</th><th class="p-3">الحالة</th><th class="p-3 text-center">عرض</th></tr></thead><tbody id="pk-table"><tr><td colspan="5" class="text-center py-8">جاري التحميل...</td></tr></tbody></table></div>
         </div>`);
-        var res = await supabase.from('runsheets').select('*').in('status', ['Picked']);
+        var res = await supabase.from('runsheets').select('*').in('status', ['Open', 'Confirmed']);
         window._pickingData = res.data || [];
         _applyPicking();
     }
@@ -702,7 +863,7 @@ var RW_Warehouse = (function() {
         var branches = RW_STATE.data.branches || [];
         safeHTML(c, `<div class="p-4">
             <div class="bg-white rounded-2xl shadow-sm border p-4 mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div><label class="text-xs font-bold block mb-1">الفرع</label><select id="bc-branch-select" class="w-full p-3 bg-slate-50 rounded-xl border-2 border-slate-200 font-bold"><option value="">-- اختر --</option>${branches.map(b => '<option value="' + (b.branch_code || b.id || '') + '">' + (b.name || b.branch_name || '') + '</option>').join('')}</select></div>
+                <div><label class="text-xs font-bold block mb-1">الفرع</label><select id="bc-branch-select" class="w-full p-3 bg-slate-50 rounded-xl border-2 border-slate-200 font-bold"><option value="">-- اختر --</option>${branches.map(b => '<option value="' + (b.branch_code || b.id || '') + '">' + (b.name || b.branch_name || '') + '</option>').join(''))}</select></div>
                 <div><label class="text-xs font-bold block mb-1">القسم / الرف</label><input id="bc-section" class="w-full p-3 bg-slate-50 rounded-xl border-2 border-slate-200" placeholder="مثلاً: رف A-1"></div>
                 <div><label class="text-xs font-bold block mb-1">ملاحظات</label><input id="bc-notes" class="w-full p-3 bg-slate-50 rounded-xl border-2 border-slate-200" placeholder="ملاحظات..."></div>
             </div>
