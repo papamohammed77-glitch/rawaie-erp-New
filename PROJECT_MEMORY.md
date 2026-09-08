@@ -58,7 +58,7 @@ This file is the verified cross-system memory snapshot for the daily review.
 ## Cross-system reconciliation
 - GitHub and Supabase remain directionally aligned around a centralized core, tenant-aware operations, explicit branch attribution, and JWT-protected business APIs.
 - No new material product regression was proven in this refresh. Material evidence regressions are the stale `CURRENT_STATE.md` head reference and the continued absence of commit-specific CI/runtime/deployment proof.
-- Primary unresolved risks: open Main5 patch set; unverified deployment/runtime parity; active `verify_jwt=false` historical surface; public EXECUTE on two `SECURITY DEFINER` functions; disabled leaked-password protection; RLS/index/policy debt; broad roles policy; and unresolved delete-runsheet business ownership.
+- Primary unresolved risks: open Main5 patch set; unverified deployment/runtime parity; active `verify_jwt=false` historical surface; public EXECUTE on two exposed SECURITY DEFINER functions; disabled leaked-password protection; RLS/index/policy debt; broad roles policy; and unresolved delete-runsheet business ownership.
 - Secrets, passwords, keys, tokens, or credential material stored/disclosed: `0`.
 
 ## Confidence boundary
@@ -110,53 +110,49 @@ GOLD/DIAMOND/100% CLOSURE = NOT PROVEN
 
 ## Verified continuity — 2026-09-08 automation refresh
 ### GitHub
-- Latest observed `main` commit before this memory write is `d9b30602549190ca15fbdaa45d4263e88eb7a510`, `docs(memory): append 2026-09-08 verified cross-system snapshot`, created `2026-09-08T03:14:35Z`.
-- Recent direct commit history also includes `4540d048496a282ddae84ca1c7b3bd18b0b954b5` (continuity state after Main5 M5-20 reconciliation), `be610db2fdafe4f959581bc107dcff2e1f6f507a` (Report82 historical contract reconciliation for Main5 M5-20), `9c2dab4cb7a5f04a36472ae92324f90f1c2380fe` (canonicalize atomic parent POS Invoiced deletion capability), `a4c26d7c5e1a0ebfb0d394b04810126c497b18a4` (restore parent POS Invoiced deletion through atomic core capability), and `c1cade237d0929b8f1a18de7e3c9b2d38fdb8101` (Report81 Main5 M5-20 forensic reverification).
-- The latest commit-specific workflow lookup returned no workflow runs. This is absence of commit-scoped CI evidence, not a pass or failure.
-- A direct job inspection for run `34071150899` showed the `control-plane` job completed successfully, with completed steps for checkout, operations-queue build/dispatch, and control-plane summary publication. This proves the control-plane job only; it does not prove application build, deployment, browser E2E, or production parity.
-- Open PR topology remains fragmented: #127, #126, #125, #123, #119, #118, #117, #115 are open in the retrieved set; #128 is closed without merge; #122, #121, #120, #112, #111, and #109 are merged. Open PR descriptions continue to identify temporary trigger/verifier/executor paths rather than a single authoritative product release.
-- Open issues retrieved remain #64, #36, #25, and #26. Their bodies identify execution/reconciliation and Phase-0 technical-baseline work; issue presence is not proof of completion.
+- Latest observed `main` commit before this memory write is `4768d861c840f5f16fcc423abff1d381be2e5788`, `Update main5.md`, created `2026-09-08T03:48:26Z`.
+- The immediately preceding direct commits include `641cebcce50f2861b1167779dead4f38d4f10736` (Report83/Main6 forensic surgical reconciliation), `53456ecabea3d979942481b16fae371953b5c683` (CURRENT_STATE update for Main6), `fc96167566a1d96740663e43c11472194a7068d9` (Report83), and `dc83dfae85b94d40e47b0f94e9070e4e9006f9d9` (cross-system memory snapshot).
+- Commit-scoped workflow lookup for `4768d861c840f5f16fcc423abff1d381be2e5788` returned no workflow runs. This is absence of CI evidence, not a pass or failure.
+- The newest GitHub change is source-level (`main5.md`); no deployment, browser E2E, or runtime-parity proof was returned in this refresh.
 
 ### Supabase health, migrations, and Edge Functions
-- The current Supabase migration list contains new entries after the prior snapshot: `20260908010304` `enable_realtime_orders_runsheets_fulfillment`, `20260908010601` `add_app_settings_realtime_currency_contract`, `20260908020115` `manage_runsheet_atomic_capability_m5_13_v2`, `20260908030522` `close_parent_pos_invoiced_order_deletion`, `20260908030539` `fix_pos_invoiced_delete_authorization_aggregation`, and `20260908030813` `harden_delete_order_atomic_permission_core`.
-- Edge Function inventory now includes `manage-runsheet` as ACTIVE `verify_jwt=true`; the core business function set remains predominantly ACTIVE with `verify_jwt=true`.
-- Historical test/canary/fixture/gate/recovery functions remain ACTIVE with `verify_jwt=false`, including picking harness/E2E, owner recovery, auth verification, receive-purchase runtime E2E, and sales canary functions. No retirement or hardening was performed in this refresh.
+- `SMART ERP` remains `ACTIVE_HEALTHY` in `eu-west-1` on PostgreSQL `17.6.1.121`.
+- New migrations after the prior snapshot are confirmed: `20260908010304` `enable_realtime_orders_runsheets_fulfillment`, `20260908010601` `add_app_settings_realtime_currency_contract`, `20260908020115` `manage_runsheet_atomic_capability_m5_13_v2`, `20260908030522` `close_parent_pos_invoiced_order_deletion`, `20260908030539` `fix_pos_invoiced_delete_authorization_aggregation`, and `20260908030813` `harden_delete_order_atomic_permission_core`.
+- Edge Function inventory now includes `manage-runsheet` ACTIVE with `verify_jwt=true`. The core business function inventory remains overwhelmingly ACTIVE with `verify_jwt=true`.
+- Historical test/canary/fixture/gate/recovery functions remain ACTIVE with `verify_jwt=false`, including picking harness/E2E, owner recovery, auth verification, receive-purchase runtime E2E, and sales canary surfaces. No retirement or hardening was performed in this refresh.
 
-### Fresh Supabase advisories — observed 2026-09-08
-- Security warnings remain for public execution of `public.create_item_with_opening_stock(...)` and `public.sync_company_main_branch_projection()` as `SECURITY DEFINER` by both `anon` and `authenticated`.
+### Fresh Supabase security advisories — observed 2026-09-08T03:51:02.697Z
+- Public execution warnings remain for `public.create_item_with_opening_stock(...)` and `public.sync_company_main_branch_projection()` as `SECURITY DEFINER` by both `anon` and `authenticated`.
 - Supabase Auth leaked-password protection remains disabled.
-- Performance findings remain for unindexed foreign keys across operational tables, including `inventory_log.source_branch_id` and `inventory_log.target_branch_id`; RLS init-plan warnings across operational, notification, owner, receiving, financial, and workflow tables; multiple permissive policies on `customer_assignments`, `fulfillment_backorders`, `receiving`, and `receiving_details`; and unused indexes across items, vehicles, orders, finance, workflow, coupons, installments, and related tables.
-- No DDL, DML, Edge Function deployment, security remediation, performance remediation, or production-data write was performed by this refresh.
 
-### Logs and cross-system reconciliation
-- The connected Supabase actions did not expose a fresh auth/API/Edge log result in this run; no new log-based incident conclusion is recorded.
-- GitHub and Supabase are directionally aligned around continued Main5 reconciliation and a centralized/tenant-aware backend, including new realtime contracts and hardening of parent POS invoiced-order deletion.
+### Cross-system reconciliation and open work
+- GitHub and Supabase remain directionally aligned around centralized/tenant-aware operations, realtime enablement for orders/runsheets/fulfillment, and explicit hardening of parent POS invoiced-order deletion.
 - The main evidence gap remains deployment/runtime parity: no fresh browser E2E result, deployed revision identity, or service-worker/cache identity was directly proven in this run.
+- High-priority unresolved items remain: stale/fragmented continuity records, active `verify_jwt=false` historical surface, public EXECUTE on the two SECURITY DEFINER functions, disabled leaked-password protection, and outstanding RLS/index/policy debt.
+- Production business-data writes in this refresh: `0`.
 - Secrets, passwords, keys, tokens, or credential material stored/disclosed: `0`.
 
 ### 2026-09-08 confidence boundary
 ```text
-LATEST MAIN COMMIT = CONFIRMED (d9b30602549190ca15fbdaa45d4263e88eb7a510 before this write)
-COMMIT-SCOPED CI FOR LATEST COMMITS = NO RUNS RETURNED
-CONTROL-PLANE RUN 34071150899 = JOB SUCCESS CONFIRMED
-OPEN PR/ISSUE SURFACE = CONFIRMED FROM DIRECT GITHUB RESULTS
-NEW SUPABASE MIGRATIONS = CONFIRMED
-MANAGE-RUNSHEET FUNCTION = CONFIRMED ACTIVE / JWT-PROTECTED
+LATEST MAIN COMMIT = CONFIRMED (4768d861c840f5f16fcc423abff1d381be2e5788 before this write)
+COMMIT-SCOPED CI FOR LATEST COMMIT = NO RUNS RETURNED
+SUPABASE HEALTH = CONFIRMED
+NEW MIGRATIONS = CONFIRMED
+MANAGE-RUNSHEET = CONFIRMED ACTIVE / JWT-PROTECTED
+VERIFY_JWT_FALSE HISTORICAL SURFACE = CONFIRMED ACTIVE
 SECURITY ADVISORIES = CONFIRMED (fresh)
-PERFORMANCE ADVISORIES = CONFIRMED (fresh)
-FRESH SUPABASE LOGS = NOT EXPOSED
 DEPLOYED REVISION = UNKNOWN
 BROWSER E2E / RUNTIME PARITY = UNKNOWN
 GOLD/DIAMOND/WHOLE-SYSTEM CLOSURE = NOT PROVEN
 ```
 
 ### Open risks / next evidence — 2026-09-08
-1. Reconcile `CURRENT_STATE.md` against the observed `main` head and recent Main5 M5-20 commits.
+1. Reconcile `CURRENT_STATE.md` and Report83/Main6 continuity records against latest `main5.md` changes.
 2. Obtain commit-specific CI and fresh browser/runtime proof for the current product target.
 3. Verify deployment revision and service-worker/cache lineage.
-4. Review the new realtime and M5-13/M5-20 database changes against Git consumers and tenant/RLS contracts.
+4. Review the six new migrations against Git consumers and tenant/RLS contracts.
 5. Retire or harden obsolete `verify_jwt=false` functions only after dependency proof.
-6. Revoke or narrow public EXECUTE on the two exposed `SECURITY DEFINER` functions.
+6. Revoke or narrow public EXECUTE on the two exposed SECURITY DEFINER functions.
 7. Enable leaked-password protection.
 8. Prioritize FK indexes, RLS init-plan rewrites, permissive-policy consolidation, and unused-index review.
 9. Keep `PROJECT_MEMORY.md` append-only and preserve all earlier evidence classifications.
