@@ -2,7 +2,7 @@
 // RW_Orders – أوردرات المبيعات (فلترة، تأكيد، حذف، رانشيت)
 // ============================================================
 var RW_Orders = (function() {
-    var sortField = 'order_code', sortAsc = true, ordersData = [];
+    var sortField = 'order_code', sortAsc = true, ordersData = [], currency = 'SAR';
     var _sortIcons = {};
 
     function esc(s) {
@@ -57,7 +57,7 @@ async function render() {
                         '<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\'order_date\')">التاريخ <i class="fa-solid fa-sort"></i></th>' +
                         '<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\'customer_name\')">العميل والمنطقة <i class="fa-solid fa-sort"></i></th>' +
                         '<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\'itemsCount\')">عدد الأصناف <i class="fa-solid fa-sort"></i></th>' +
-                        '<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\'total_amount\')">القيمة (EGP) <i class="fa-solid fa-sort"></i></th>' +
+                        '<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\'total_amount\')">القيمة (' + currency + ') <i class="fa-solid fa-sort"></i></th>' +
                         '<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\'order_status\')">الحالة <i class="fa-solid fa-sort"></i></th>' +
                         '<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\'runsheet_id\')">الرانشيت <i class="fa-solid fa-sort"></i></th>' +
                         '<th class="p-3 text-center text-xs font-bold uppercase">إجراءات</th>' +
@@ -73,9 +73,26 @@ async function render() {
 
 showLoader('جاري تحميل الأوردرات...');
 try {
-    var ordRes = await supabase.from('orders').select('*, runsheets(runsheet_code)');
+    var companyId = _rwCompanyId();
+if (!companyId) { hideLoader(); showToast('سياق الشركة غير محدد', 'error'); return; }
+var settingsRes = await supabase.from('app_settings')
+    .select('currency')
+    .eq('company_id', companyId)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+if (settingsRes.error || !settingsRes.data) {
+    hideLoader();
+    showToast('تعذر تحميل عملة الشركة', 'error');
+    return;
+}
+currency = settingsRes.data.currency || 'SAR';
+var ordRes = await supabase.from('orders').select('*, runsheets(runsheet_code)').eq('company_id', companyId);
     ordersData = ordRes.data || [];
-    var detRes = await supabase.from('order_details').select('order_id, item_code');
+    var orderIds = ordersData.map(function(o) { return o.id; }).filter(Boolean);
+var detRes = orderIds.length
+    ? await supabase.from('order_details').select('order_id, item_code').in('order_id', orderIds)
+    : { data: [] };
     var details = detRes.data || [];
     var itemsCountMap = {};
     for (var i = 0; i < details.length; i++) {
@@ -101,7 +118,12 @@ window._ordersRefreshInterval = setInterval(function() {
 // ✅ مستمع Supabase Realtime للمزامنة اللحظية
 var channel = supabase
     .channel('orders-realtime')
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, function(payload) {
+    .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'orders',
+        filter: 'company_id=eq.' + companyId
+    }, function(payload) {
         var updatedOrder = payload.new;
         if (updatedOrder && updatedOrder.id) {
             // تحديث الصف مباشرة في المصفوفة المحلية
@@ -242,7 +264,7 @@ if (canDelete) {
                 '<td class="p-3 text-center">' + (o.order_date ? new Date(o.order_date).toLocaleDateString('ar-EG') : '') + '</td>' +
                 '<td class="p-3 text-center"><p class="font-semibold">' + (o.customer_name || '') + '</p><p class="text-xs text-gray-500">' + (o.area || '') + '</p></td>' +
                 '<td class="p-3 text-center font-bold">' + (o.itemsCount || 0) + '</td>' +
-                '<td class="p-3 text-center font-bold">' + Number(o.total_amount || 0).toLocaleString() + ' EGP</td>' +
+                '<td class="p-3 text-center font-bold">' + Number(o.total_amount || 0).toLocaleString() + ' ' + currency + '</td>' +
                 '<td class="p-3 text-center"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + sc + '">' + (o.order_status || '') + '</span></td>' +
                 '<td class="p-3 text-center">' + (o._runsheetCode || '---') + '</td>' +
                 '<td class="p-3 text-center">' + actions + '</td>' +
@@ -410,7 +432,7 @@ function _confirmOrderFromDetails(code) {
     // ========== مودال التفاصيل ==========
 function _showDetails(code) {
     showLoader('جاري تحميل التفاصيل...');
-    supabase.from('orders').select('*').eq('order_code', code).maybeSingle().then(function(oRes) {
+    supabase.from('orders').select('*').eq('company_id', _rwCompanyId()).eq('order_code', code).maybeSingle().then(function(oRes) {
         var order = oRes.data;
         if (!order) { hideLoader(); showToast('الأوردر غير موجود', 'error'); return; }
 
@@ -474,9 +496,9 @@ if (canDelete) {
                 '</div>' +
                 '<div class="overflow-x-auto">' + itemsHtml + '</div>' +
                 '<div class="bg-gray-50 p-4 rounded-2xl mt-4">' +
-                    '<div class="flex justify-between mb-2"><span>مجموع الأصناف:</span><span>' + Number(itemsTotal).toLocaleString() + ' EGP</span></div>' +
-                    '<div class="flex justify-between mb-2"><span class="text-blue-600">رسوم التوصيل:</span><span class="text-blue-600">' + Number(deliveryFee).toLocaleString() + ' EGP</span></div>' +
-                    '<div class="flex justify-between pt-2 border-t"><span class="font-bold">الإجمالي:</span><span class="font-bold text-emerald-600 text-lg">' + Number(grandTotal).toLocaleString() + ' EGP</span></div>' +
+                    '<div class="flex justify-between mb-2"><span>مجموع الأصناف:</span><span>' + Number(itemsTotal).toLocaleString() + ' ' + currency + '</span></div>' +
+                    '<div class="flex justify-between mb-2"><span class="text-blue-600">رسوم التوصيل:</span><span class="text-blue-600">' + Number(deliveryFee).toLocaleString() + ' ' + currency + '</span></div>' +
+                    '<div class="flex justify-between pt-2 border-t"><span class="font-bold">الإجمالي:</span><span class="font-bold text-emerald-600 text-lg">' + Number(grandTotal).toLocaleString() + ' ' + currency + '</span></div>' +
                 '</div>' +
                 '<div class="flex justify-center gap-3 mt-6 pt-4 border-t">' +
                     actionButtons +
@@ -529,7 +551,7 @@ if (canDelete) {
             })
             .then(function(itRes) {
                 items = itRes.data || [];
-                return supabase.from('app_settings').select('*').limit(1).single();
+                return supabase.from('app_settings').select('*').eq('company_id', _rwCompanyId()).order('created_at', { ascending: true }).limit(1).single();
             })
             .then(function(sRes) {
                 if (sRes.data) settings = sRes.data;
@@ -585,7 +607,7 @@ if (canDelete) {
             '<p><strong>البائع:</strong> ' + esc(registeredName) + ' | <strong>رقم ضريبي:</strong> ' + esc(vatNumber) + '</p>' +
             '<p><strong>العميل:</strong> ' + esc(order.customer_name || '') + '</p><p><strong>المنطقة:</strong> ' + esc(order.area || '') + '</p>' +
             '<table><thead><tr><th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>' + itemsHtml + '</tbody></table>' +
-            '<div style="font-weight:bold;font-size:18px;margin-top:20px">الإجمالي: ' + Number(order.total_amount || 0).toLocaleString() + ' EGP</div>' +
+            '<div style="font-weight:bold;font-size:18px;margin-top:20px">الإجمالي: ' + Number(order.total_amount || 0).toLocaleString() + ' ' + currency + '</div>' +
             '<div style="text-align:center;margin-top:20px;padding-top:15px;border-top:1px dashed #ccc;"><p style="font-weight:bold">رمز الفاتورة الإلكترونية</p><div id="print-qrcode-container" style="display:inline-block;"></div><p style="font-size:11px;color:#888">امسح الكود للتحقق من الفاتورة</p></div>' +
             '<script>window.onload=function(){try{var c=document.getElementById("print-qrcode-container");if(c&&typeof QRCode!=="undefined"){c.innerHTML="";new QRCode(c,{text:"' + qrBase64 + '",width:150,height:150,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});}}catch(e){}window.print();};<\/script></body></html>';
         printWindow.document.write(html);
@@ -616,12 +638,7 @@ if (canDelete) {
         }
 
         try {
-            await supabase
-                .from('orders')
-                .update({ runsheet_id: null, order_status: 'Confirmed' })
-                .in('order_code', selected);
-
-            var res = await fetch(RW_SUPABASE_URL + '/functions/v1/create-runsheet', {
+                        var res = await fetch(RW_SUPABASE_URL + '/functions/v1/create-runsheet', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t },
                 body: JSON.stringify({ selectedOrders: selected })
@@ -652,7 +669,7 @@ if (canDelete) {
         var selected = _getSelectedOrders();
         if (!selected.length) { showToast('اختر أوردراً واحداً على الأقل', 'warning'); return; }
         try {
-            var rsRes = await supabase.from('runsheets').select('runsheet_code, status').in('status', ['Open', 'Confirmed']);
+            var rsRes = await supabase.from('runsheets').select('runsheet_code, status').eq('company_id', _rwCompanyId()).in('status', ['Open', 'Confirmed']);
             if (!rsRes.data || !rsRes.data.length) { showToast('لا توجد رانشيتات مفتوحة', 'info'); return; }
             var opts = {};
             rsRes.data.forEach(function(rs) { opts[rs.runsheet_code] = rs.runsheet_code + ' - ' + rs.status; });
@@ -683,7 +700,7 @@ if (canDelete) {
             var json = await res.json(); hideLoader();
             if (json.success) {
                 showToast('تم الضم', 'success');
-                var targetRsRes = await supabase.from('runsheets').select('id').eq('runsheet_code', v.value).maybeSingle();
+                var targetRsRes = await supabase.from('runsheets').select('id').eq('company_id', _rwCompanyId()).eq('runsheet_code', v.value).maybeSingle();
                 var rsUuid = (targetRsRes && targetRsRes.data) ? targetRsRes.data.id : v.value;
                 for (var i = 0; i < ordersData.length; i++) {
                     if (selected.indexOf(ordersData[i].order_code) !== -1) {
@@ -697,7 +714,7 @@ if (canDelete) {
     }
 
 function _loadRunsheetCodes() {
-    return supabase.from('runsheets').select('id, runsheet_code').then(function(res) {
+    return supabase.from('runsheets').select('id, runsheet_code').eq('company_id', _rwCompanyId()).then(function(res) {
         var map = {};
         var data = res.data || [];
         for (var i = 0; i < data.length; i++) {
@@ -721,7 +738,7 @@ function _loadRunsheetCodes() {
 }
 
 async function _refreshData() {
-    var ordRes = await supabase.from('orders').select('*, runsheets(runsheet_code)');
+    var ordRes = await supabase.from('orders').select('*, runsheets(runsheet_code)').eq('company_id', _rwCompanyId());
     ordersData = (ordRes.data || []).map(function(o) {
         if (o.runsheets && o.runsheets.runsheet_code) {
             o._runsheetCode = o.runsheets.runsheet_code;
@@ -730,7 +747,10 @@ async function _refreshData() {
         }
         return o;
     });
-    var detRes = await supabase.from('order_details').select('order_id, item_code');
+    var orderIds = ordersData.map(function(o) { return o.id; }).filter(Boolean);
+var detRes = orderIds.length
+    ? await supabase.from('order_details').select('order_id, item_code').in('order_id', orderIds)
+    : { data: [] };
     var details = detRes.data || [];
     var itemsCountMap = {};
     for (var i = 0; i < details.length; i++) {
@@ -764,6 +784,7 @@ window.RW_Orders = RW_Orders;
 var RW_Runsheets = (function() {
     var sortField = 'runsheet_code';
     var sortAsc = true;
+    var currency = 'SAR';
     var data = [];
     var driversCache = [];
     var vehiclesCache = [];
@@ -773,9 +794,9 @@ var RW_Runsheets = (function() {
 
     async function loadHelpers() {
         try {
-            var dRes = await supabase.from('users').select('email, name').in('role', ['driver','سائق','مندوب']);
+            var dRes = await supabase.from('users').select('email, name').eq('company_id', _rwCompanyId()).in('role', ['driver','سائق','مندوب']);
             driversCache = dRes.data || [];
-            var vRes = await supabase.from('vehicles').select('id, license_plate, model');
+            var vRes = await supabase.from('vehicles').select('id, license_plate, model').eq('company_id', _rwCompanyId());
             vehiclesCache = vRes.data || [];
         } catch(e) { console.error(e); }
     }
@@ -784,9 +805,19 @@ var RW_Runsheets = (function() {
         var c = byId('rw-page-container');
         if (!c) return;
         safeText(byId('rw-header-title'), 'الرانشيتات');
-        
+        var settingsRes = await supabase.from('app_settings')
+    .select('currency')
+    .eq('company_id', _rwCompanyId())
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+if (settingsRes.error || !settingsRes.data) {
+    showToast('تعذر تحميل عملة الشركة', 'error');
+    return;
+}
+currency = settingsRes.data.currency || 'SAR';
         await loadHelpers();
-        var res = await supabase.from('runsheets').select('*').order('run_date', { ascending: false });
+        var res = await supabase.from('runsheets').select('*').eq('company_id', _rwCompanyId()).order('run_date', { ascending: false });
         data = res.data || [];
 
         // واجهة التبويب (بدون عمود إجراءات)
@@ -890,7 +921,7 @@ var RW_Runsheets = (function() {
                 '<td class="p-3 text-center">' + (r.run_date ? new Date(r.run_date).toLocaleDateString('ar-EG') : '') + '</td>' +
                 '<td class="p-3 text-center">' + driverName + '</td>' +
                 '<td class="p-3 text-center">' + vehiclePlate + '</td>' +
-                '<td class="p-3 text-center font-bold">' + _fmtNum(r.total_amount) + ' EGP</td>' +
+                '<td class="p-3 text-center font-bold">' + _fmtNum(r.total_amount) + ' ' + currency + '</td>' +
                 '<td class="p-3 text-center"><span class="px-2 py-1 rounded-full text-xs ' + _statusClass(r.status) + '">' + (r.status||'') + '</span></td>' +
             '</tr>';
         });
@@ -900,11 +931,11 @@ var RW_Runsheets = (function() {
 async function _details(code) {
     showLoader('جاري تحميل تفاصيل الرانشيت...');
     try {
-        var rsRes = await supabase.from('runsheets').select('*').eq('runsheet_code', code).maybeSingle();
+        var rsRes = await supabase.from('runsheets').select('*').eq('company_id', _rwCompanyId()).eq('runsheet_code', code).maybeSingle();
         var rs = rsRes.data;
         if (!rs) { hideLoader(); showToast('الرانشيت غير موجود', 'error'); return; }
 
-        var ordersRes = await supabase.from('orders').select('order_code, customer_name, total_amount').eq('runsheet_id', rs.id);
+        var ordersRes = await supabase.from('orders').select('order_code, customer_name, total_amount').eq('company_id', _rwCompanyId()).eq('runsheet_id', rs.id);
         var orders = ordersRes.data || [];
 
         var itemsRes = await supabase.from('run_sheet_details').select('*').eq('runsheet_id', rs.id);
@@ -931,7 +962,7 @@ async function _details(code) {
         if (orders.length > 0) {
             ordersHtml = '<div class="mb-4"><h4 class="font-bold text-lg mb-2">الأوردرات المرتبطة</h4><div class="bg-gray-50 rounded-lg p-3 flex flex-wrap gap-2">';
             for (var o = 0; o < orders.length; o++) {
-                ordersHtml += '<span class="inline-block bg-white rounded px-3 py-1 text-sm shadow-sm">' + orders[o].order_code + ' - ' + orders[o].customer_name + ' (' + _fmtNum(orders[o].total_amount) + ' EGP)</span>';
+                ordersHtml += '<span class="inline-block bg-white rounded px-3 py-1 text-sm shadow-sm">' + orders[o].order_code + ' - ' + orders[o].customer_name + ' (' + _fmtNum(orders[o].total_amount) + ' ' ' + currency)</span>';
             }
             ordersHtml += '</div></div>';
         } else {
@@ -959,7 +990,7 @@ async function _details(code) {
                     '<td class="p-2 border text-center font-bold">' + _fmtNum(lineTotal) + '</td></tr>';
             }
             itemsHtml += '</tbody></table></div>';
-            itemsHtml += '<div class="mt-3 text-left font-bold text-lg">إجمالي الأصناف: ' + _fmtNum(grandTotal) + ' EGP</div>';
+            itemsHtml += '<div class="mt-3 text-left font-bold text-lg">إجمالي الأصناف: ' + _fmtNum(grandTotal) + ' ' ' + currency</div>';
             itemsHtml += '</div>';
         } else {
             itemsHtml = '<div class="text-center py-8 text-gray-500 mt-4">لا توجد أصناف مجمعة في هذا الرانشيت بعد.</div>';
@@ -975,7 +1006,7 @@ async function _details(code) {
                 '<div><p class="text-xs text-gray-400">السائق</p><select id="rs-driver-select" class="w-full p-2 border rounded-lg bg-white text-sm">' + driverOptions + '</select></div>' +
                 '<div><p class="text-xs text-gray-400">السيارة</p><select id="rs-vehicle-select" class="w-full p-2 border rounded-lg bg-white text-sm">' + vehicleOptions + '</select></div>' +
                 '<div><p class="text-xs text-gray-400">عدد الأوردرات</p><p class="font-bold text-xl">' + orders.length + '</p></div>' +
-                '<div><p class="text-xs text-gray-400">القيمة الإجمالية</p><p class="font-bold text-xl text-emerald-600">' + _fmtNum(rs.total_amount) + ' EGP</p></div>' +
+                '<div><p class="text-xs text-gray-400">القيمة الإجمالية</p><p class="font-bold text-xl text-emerald-600">' + _fmtNum(rs.total_amount) + ' ' + currency + '</p></div>' +
             '</div>' +
             ordersHtml +
             itemsHtml +
@@ -1162,7 +1193,7 @@ if (idx > -1) {
     var ordersHtml = '';
     if (orders.length > 0) {
         for (var o = 0; o < orders.length; o++) {
-            ordersHtml += '<span style="display:inline-block;background:#fff;border-radius:8px;padding:4px 12px;margin:4px;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">' + orders[o].order_code + ' - ' + orders[o].customer_name + ' (' + _fmtNum(orders[o].total_amount) + ' EGP)</span>';
+            ordersHtml += '<span style="display:inline-block;background:#fff;border-radius:8px;padding:4px 12px;margin:4px;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">' + orders[o].order_code + ' - ' + orders[o].customer_name + '(' + _fmtNum(orders[o].total_amount) + ' ' + currency + ')'</span>';
         }
     } else {
         ordersHtml = '<p>لا توجد أوردرات مرتبطة</p>';
@@ -1211,13 +1242,13 @@ if (idx > -1) {
         '<div class="info-item"><label>السائق</label><span>' + (rs.driver_id || '---') + '</span></div>' +
         '<div class="info-item"><label>السيارة</label><span>' + (rs.vehicle_id || '---') + '</span></div>' +
         '<div class="info-item"><label>عدد الأوردرات</label><span>' + orders.length + '</span></div>' +
-        '<div class="info-item"><label>القيمة الإجمالية</label><span>' + _fmtNum(rs.total_amount) + ' EGP</span></div>' +
+        '<div class="info-item"><label>القيمة الإجمالية</label><span>' + _fmtNum(rs.total_amount) + ' ' + currency + '</span></div>' +
         '</div>' +
         '<h3 style="margin-top:20px;margin-bottom:8px;">الأوردرات المرتبطة</h3>' +
         '<div style="margin-bottom:20px;">' + ordersHtml + '</div>' +
         '<h3 style="margin-bottom:8px;">الأصناف المجمعة</h3>' +
         itemsHtml +
-        '<div style="text-align:left;font-size:20px;font-weight:bold;margin-top:20px;">الإجمالي: ' + _fmtNum(grandTotal) + ' EGP</div>' +
+        '<div style="text-align:left;font-size:20px;font-weight:bold;margin-top:20px;">الإجمالي: ' + _fmtNum(grandTotal) + ' ' + currency + '</div>' +
         '<p style="text-align:center;margin-top:40px;color:#9ca3af;font-size:12px;">تم إنشاء هذا البيان بواسطة نظام الروائع ERP</p>' +
         '<script>window.print();<\/script></body></html>';
 
