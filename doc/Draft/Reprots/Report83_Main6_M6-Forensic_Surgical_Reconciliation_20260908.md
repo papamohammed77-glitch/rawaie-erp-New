@@ -2,112 +2,88 @@
 
 ## 1. نطاق الجلسة
 
-المستهدف الوحيد في هذه الجلسة هو:
+المستهدف الوحيد:
 
 `Current/PWA/main2/main6.md`
 
 وهو الجزء الرابع من الملف الأصلي المجزأ `main2`.
 
-تم الالتزام بقاعدة أن ملف النظام الأم المجزأ لا يتم تعديله مباشرة من المساعد؛ لذلك لا يحتوي هذا التقرير على ادعاء بأن `main6.md` نفسه تم تغييره في Git.
-
-تم فحص Production Supabase والمستودع والوثائق التاريخية قبل تحديد أي تعديل.
+وفق الاتفاق الحاكم، لا يقوم المساعد بتعديل `main2/main6.md` مباشرة؛ المستخدم ينفذ الجراحات المصدرية يدويًا. أما Production فيتم تعديلها من خلال المساعد عند ثبوت الحاجة.
 
 ---
 
 ## 2. المصادر التي تمت مراجعتها
 
-### الحوكمة والاستمرارية
+تمت مراجعة:
 
 - `doc/Draft/medhat/MASTER - RAWAEA ERP.md`
 - `doc/Draft/medhat/MASTER - RAWAEA ERP FORENSIC CONTINUITY GOVERNANCE v2.md`
 - `doc/Draft/medhat/MASTER - RAWAEA ERP - UNIFIED CONTINUITY & MAIN1 EXECUTION.md`
-
-### الحالة والتاريخ
-
 - `CURRENT_STATE.md`
 - `doc/Draft/Reprots/Report82_Main5_M5-20_Historical_Contract_Reconciliation_20260908.md`
 - `doc/Draft/medhat/تقرير 100 - main6 forensic closure.md`
-- تاريخ Git والـcommits ذات الصلة بـMAIN6.
-
-### المصدر المستهدف
-
 - `Current/PWA/main2/main5.md`
 - `Current/PWA/main2/main6.md`
+- تاريخ Git والـcommits المرتبطة بـMAIN6.
 
-### Production
-
-تمت مطابقة:
-
-- PostgreSQL schema الحالي.
-- RPC signatures والـdefinitions.
-- Edge Functions الفعالة وإصداراتها.
-- العلاقات بين `orders` / `order_details` / `purchase_orders` / `purchase_order_details` / `suppliers` / `app_settings`.
+كما تمت مطابقة Production Supabase: schema، RPCs، Edge Functions، dependencies، وTenant/Item identity contracts.
 
 ---
 
-## 3. نتيجة استرجاع الحالة
+## 3. تصحيح نقطة الاستمرارية المهمة
 
-### Main5
+التقرير السابق:
 
-الحالة المسجلة سابقًا في `CURRENT_STATE.md` تشير إلى أن `main5` ما زال:
+`doc/Draft/medhat/تقرير 100 - main6 forensic closure.md`
+
+كان خاصًا بالمسار:
+
+`Current/PWA/main/main6.md`
+
+وليس:
+
+`Current/PWA/main2/main6.md`
+
+لذلك لم يتم نقل أي closure claim من الملف الأول إلى الملف المستهدف هنا.
+
+---
+
+## 4. حالة Main5 أثناء التدقيق
+
+Current Git ما زال يسجل:
 
 ```text
+PATH = Current/PWA/main2/main5.md
+BLOB = 9f9926511c47f0295019daaf09ff4b5a1a2efc50
 SOURCE = OPEN
 RUNTIME = OPEN
 ```
 
-كما أن blob الحالي في Git ما زال يحمل النسخة القديمة وقت هذا التدقيق. لذلك لا يمكن اعتماد `main5 = CLOSED 100%` من مصدر Git الحالي حتى بعد قول المستخدم إن التعديلات تم تنفيذها محليًا.
+وعليه لا يمكن اعتماد `main5 = Closed 100%` من المصدر المنشور حاليًا، حتى مع تنفيذ المستخدم لتعديلات محلية لم تُدفع إلى Git بعد.
 
-هذا ليس رفضًا لما تم تنفيذه محليًا، بل قاعدة Evidence: المصدر الفعلي المنشور في Git لم يثبت الإغلاق بعد.
-
-### Main6
-
-لم يتم نقل أي إغلاق سابق من:
-
-`Current/PWA/main/main6.md`
-
-إلى:
-
-`Current/PWA/main2/main6.md`
-
-لأنهما مساران مختلفان.
-
-تقرير `تقرير 100 - main6 forensic closure.md` تناول المسار الأول، وليس ملف `main2/main6.md` المستهدف هنا.
+لم يتم تعديل Main5 في هذه الجلسة.
 
 ---
 
-## 4. Production Reality — Main6 Backends
+## 5. Production Reality — Main6 Backend
 
-### submit-online-order
-
-Production:
+### Online Store
 
 ```text
-submit-online-order v7
+submit-online-order = v7 ACTIVE
 VERIFY_JWT = true
 ```
 
-ويستخرج `company_id` من المستخدم المصادق عليه ثم يستدعي:
+ويستخرج `company_id` من `users.auth_id` ثم يستدعي:
 
 `submit_online_order_atomic`
 
-الـRPC نفسه:
+والـRPC يحسب القيمة اعتمادًا على Item Master الحالي، ويقرأ إعدادات المتجر ضمن الشركة، وينشئ `orders` و`order_details` داخل الشركة.
 
-- يتحقق من وجود الشركة.
-- يقرأ `app_settings` باستخدام `company_id`.
-- يقرأ `items` بواسطة `item_code` العالمي الفريد رسميًا.
-- يحسب السعر من `sales_price` الموجود في Item Master، وليس من السعر المرسل من العميل.
-- ينشئ `orders` داخل الشركة.
-- ينشئ `order_details` مرتبطة بـ`order_id`.
-
-لا يوجد مبرر حالي لتعديل Production لهذا المسار بسبب main6.
-
-### save-purchase-order
-
-Production:
+### Purchase Order
 
 ```text
-save-purchase-order v3
+save-purchase-order = v3 ACTIVE
 VERIFY_JWT = true
 ```
 
@@ -115,35 +91,16 @@ VERIFY_JWT = true
 
 `save_purchase_order_atomic`
 
-الـRPC:
+والـRPC يتحقق من المورد والشركة والصنف ولا ينفذ Physical Stock مباشرة.
 
-- يتحقق من الشركة.
-- يتحقق من المورد داخل الشركة.
-- يستعمل Item Master بالهوية العالمية المثبتة في Schema.
-- لا ينفذ Physical Stock Movement.
-
-لا يوجد مبرر حالي لتعديل Production لهذا المسار بسبب main6.
-
-### receive-purchase
-
-Production:
+### Purchase Receiving
 
 ```text
-receive-purchase v12
+receive-purchase = v12 ACTIVE
 VERIFY_JWT = true
 ```
 
-ويستخرج `company_id` من `users.auth_id`.
-
-ويُرسل:
-
-`p_operation_id`
-
-إلى:
-
-`receive_purchase_atomic`
-
-وتوقيع Production الحالي هو:
+والتوقيع الحالي في Production:
 
 ```text
 receive_purchase_atomic(
@@ -155,224 +112,96 @@ receive_purchase_atomic(
 )
 ```
 
-الـRPC الحالي يحقق idempotency قبل إعادة تنفيذ Physical Movement باستخدام `receiving.operation_id` الموجود أصلًا والمقيد بـUNIQUE.
+والـRPC الحالي:
 
-ويحوّل Physical Stock فقط عبر:
+- يتطلب `p_operation_id`.
+- يثبت العملية داخل `receiving.operation_id` الموجود أصلًا والمقيد بـUNIQUE.
+- يتحقق من الشركة والـPO والـitem identity.
+- يمرر Physical Stock إلى `post_stock_movement`.
+- يمرر accounting إلى `post_journal_entry`.
+- يمرر Supplier Ledger إلى `post_supplier_ledger_entry`.
 
-`post_stock_movement(..., 'PurchaseIn', ...)`
-
-إذن Production backend لهذا المسار متوافق مع الهدف، ولا توجد migration جديدة لازمة بسبب main6 في هذه اللحظة.
+إذن Main6 Production backend متوافق حاليًا مع العقد ولم يثبت احتياج Migration جديدة تخص هذه المسارات.
 
 ---
 
-## 5. Schema Evidence المهمة
+## 6. Production Schema Evidence
 
-ثبت في Production:
+تم إثبات:
 
 ```text
 items.item_code = UNIQUE globally
-stock_branches(branch_id,item_id) = UNIQUE
+order_details لا يحتوي order_code
+order_details يرتبط بالطلب عبر order_id
 purchase_orders.company_id = NOT NULL
-purchase_order_details.item_id = FK -> items.id
-purchase_orders.branch_id = FK -> branches.id
 suppliers.company_id = NOT NULL
-orders.company_id = NOT NULL
-order_details.order_id = FK -> orders.id
 app_settings.company_id = NOT NULL
-receiving.operation_id = NOT NULL + UNIQUE
+receiving.operation_id = UNIQUE
 ```
 
-ومن ثم:
-
-- `order_code` ليس عمودًا في `order_details`.
-- أي بحث عن تفاصيل الطلب يجب أن يتم عبر `order_id`.
-- `app_settings` لا يجوز قراءتها بـ`LIMIT 1` بدون `company_id` عندما تكون العملية tenant-bound.
-- `suppliers` و`purchase_orders` و`orders` تحتاج Company Scope في قراءات الواجهة.
+وهذه الحقائق هي أساس الجراحات المصدرية أدناه.
 
 ---
 
-## 6. Main6 — النتائج الجنائية
+## 7. Main6 Forensic Findings
 
-تم تحديد مجموعة الإصلاحات المصدرية التالية في `Current/PWA/main2/main6.md`.
+### M6-01
 
-### M6-01 — Online Store Settings Scope
-
-المشكلة:
-
-المصدر يستخدم:
+`RW_OnlineStore.render()` يستخدم Global Lookup على `app_settings`:
 
 ```js
-var sRes = await supabase.from('app_settings').select('*').limit(1).single();
+supabase.from('app_settings').select('*').limit(1).single()
 ```
 
-وهذا Global Lookup غير صحيح في نظام متعدد الشركات.
+هذا Tenant-unscoped.
 
-الحالة:
+### M6-02
 
-```text
-FOUND = TRUE
-ROOT CAUSE = Tenant-unscoped settings lookup
-PRODUCTION CORE = SAFE
-SOURCE FIX = REQUIRED
-```
+`RW_OnlineStore.trackOrder()`:
 
-### M6-02 — Track Order Company Scope
+1. يبحث عن `orders` بدون `company_id`.
+2. يبحث عن `order_details` بواسطة `order_code`، بينما هذا العمود غير موجود في Production Schema.
 
-المصدر الحالي يبحث عن الطلب بهذه الصورة:
+الصحيح هو `order_id` بعد العثور على الطلب.
 
-```js
-.eq('order_code', input.value)
-```
+### M6-03
 
-بدون `company_id`.
+`RW_Purchases.renderOrders()` يقرأ `purchase_orders` بدون `company_id`.
 
-كما يبحث عن `order_details` باستخدام `order_code`، وهو عمود غير موجود في Production Schema.
+### M6-04
 
-الحالة:
+`RW_Purchases.openReceive()`:
 
-```text
-FOUND = TRUE
-ROOT CAUSE = Missing tenant scope + wrong relational key
-SOURCE FIX = REQUIRED
-```
+- يقرأ PO بدون `company_id`.
+- يحاول قراءة التفاصيل قبل الحارس الصريح على وجود PO/خطئه.
 
-### M6-03 — Purchase Orders List Scope
+### M6-05
 
-المصدر الحالي:
+تحميل الموردين يستخدم Global Lookup بدون Company Scope.
 
-```js
-supabase.from('purchase_orders').select('*')
-```
+### M6-06
 
-بدون `company_id`.
+إعادة تحميل قائمة أوامر الشراء بعد العملية تستخدم Global Lookup.
 
-الحالة:
+### M6-07
 
-```text
-FOUND = TRUE
-ROOT CAUSE = Tenant-unscoped read
-SOURCE FIX = REQUIRED
-```
+حوار الاستلام الافتراضي يعرض `qty_ordered` بدل الكمية المتبقية:
 
-### M6-04 — Open Receive Scope and Error Order
+`qty_ordered - qty_received`
 
-المصدر الحالي:
+### M6-08
 
-```js
-var poRes=await supabase.from('purchase_orders').select('*').eq('po_code',poCode).maybeSingle();
-var itemsRes=await supabase.from('purchase_order_details').select('*').eq('po_id',poRes.data?poRes.data.id:null);
-hideLoader();
-if(!poRes.data){ ... }
-```
+يوجد helper باسم `esc()` داخل Online Store، لكن `item_name` في Track Order لا يمر عبره قبل إدخاله في HTML.
 
-المشكلات:
+### M6-09
 
-- PO Lookup غير Company-scoped.
-- Details request يسبق التحقق الصريح من وجود PO/خطئه.
-
-الحالة:
-
-```text
-FOUND = TRUE
-ROOT CAUSE = Unscoped document lookup + wrong error ordering
-SOURCE FIX = REQUIRED
-```
-
-### M6-05 — Supplier Read Scope
-
-المصدر الحالي:
-
-```js
-supabase.from('suppliers').select('*')
-```
-
-بدون `company_id`.
-
-الحالة:
-
-```text
-FOUND = TRUE
-ROOT CAUSE = Tenant-unscoped read
-SOURCE FIX = REQUIRED
-```
-
-### M6-06 — Purchase Refresh Scope
-
-بعد الاستلام توجد إعادة تحميل لـ`purchase_orders` بدون Company Scope.
-
-الحالة:
-
-```text
-FOUND = TRUE
-ROOT CAUSE = Tenant-unscoped refresh
-SOURCE FIX = REQUIRED
-```
-
-### M6-07 — Receive Dialog Remaining Quantity
-
-واجهة الاستلام الحالية تضبط القيمة الافتراضية على:
-
-```js
-value="'+(it.qty_ordered||0)+'"
-```
-
-وهذا يعرض الكمية الأصلية بدل الكمية المتبقية عندما يكون هناك Partial Receiving سابق.
-
-الحالة:
-
-```text
-FOUND = TRUE
-ROOT CAUSE = UI uses ordered quantity instead of remaining quantity
-SOURCE FIX = REQUIRED
-```
-
-### M6-08 — Track Order HTML Escaping
-
-الملف يحتوي على `esc()`، لكن اسم الصنف يبنى مباشرة داخل HTML في `itemsH`.
-
-هذا ليس Physical Stock defect، لكنه hardening صحيح ومحدود في نفس المقطع.
-
-الحالة:
-
-```text
-FOUND = TRUE
-ROOT CAUSE = Existing escape helper not applied to item_name
-SOURCE FIX = REQUIRED
-```
-
-### M6-09 — Session Token Guard in savePO
-
-المصدر يستخرج token ثم يستعمله مباشرة في Authorization header.
-
-يلزم حارس صريح قبل `fetch()` عند عدم وجود session token.
-
-الحالة:
-
-```text
-FOUND = TRUE
-ROOT CAUSE = Missing explicit session guard
-SOURCE FIX = REQUIRED
-```
+`savePO()` يستخرج access token لكن لا يحتوي حارسًا صريحًا قبل `fetch()` إذا كانت الجلسة منتهية.
 
 ---
 
-## 7. ما لم يتم تغييره عمدًا
+## 8. التعليمات الجراحية الدقيقة للمستخدم
 
-لم تتم إضافة Realtime Channels جديدة إلى `main6` بشكل مستقل.
-
-السبب:
-
-Realtime هو جزء من البنية المشتركة (`core.js` / runtime)، وإضافة listener محلي جديد دون مطابقة الـshared infrastructure قد تنتج duplicate subscriptions أو تضارب state.
-
-سيتم حسم Realtime بعد دمج الأجزاء في الملف الكامل واختبار runtime النهائي.
-
-كذلك لم تتم إعادة بناء Business Logic الخاص بـPurchase / Online Order لأن Production RPCs الحالية تقوم بالفعل بالمسؤوليات الأساسية بصورة صحيحة.
-
----
-
-## 8. التعليمات الجراحية المطلوب تنفيذها على main6.md
-
-### الجراحة 1 — M6-01
+## M6-01 — Online Store Settings
 
 ابحث عن **المقطع الكامل** الذي يبدأ بـ:
 
@@ -411,21 +240,21 @@ Realtime هو جزء من البنية المشتركة (`core.js` / runtime)، 
     }
 ```
 
-### الجراحة 2 — M6-02
+## M6-02 — Track Order
 
-ابحث عن المقطع الذي يبدأ بالسطر:
+ابحث عن المقطع الكامل الذي يبدأ بـ:
 
 ```js
       var o = await supabase.from('orders').select('*').eq('order_code', input.value).maybeSingle();
 ```
 
-وينتهي بالسطر:
+وينتهي بالسطر الكامل:
 
 ```js
       var it = await supabase.from('order_details').select('*').eq('order_code', input.value);
 ```
 
-احذف المقطعين كاملين واستبدلهما بـ:
+احذف المقطع كاملًا واستبدله بـ:
 
 ```js
       var companyId = _rwCompanyId();
@@ -449,37 +278,31 @@ Realtime هو جزء من البنية المشتركة (`core.js` / runtime)، 
       Swal.fire({ title: 'تفاصيل الطلب: ' + input.value, html: detailH, width: '700px', showCloseButton: true, showConfirmButton: false });
 ```
 
-واستبدله بـ:
+واحذفه واستبدله بـ:
 
 ```js
       Swal.fire({ title: 'تفاصيل الطلب: ' + code, html: detailH, width: '700px', showCloseButton: true, showConfirmButton: false });
 ```
 
-ثم داخل بناء `itemsH` ابحث عن:
+ثم ابحث عن **السطر الكامل الذي يبدأ** بـ:
+
+```js
+        itemsH += '<tr><td class="p-2">'
+```
+
+وفيه التعبير:
 
 ```js
 (i.item_name || '')
 ```
 
-داخل السطر الكامل الذي يبدأ بـ:
-
-```js
-itemsH += '<tr>
-```
-
-واستبدل **فقط** التعبير:
-
-```js
-(i.item_name || '')
-```
-
-بـ:
+احذف هذا التعبير فقط واستبدله بـ:
 
 ```js
 esc(i.item_name || '')
 ```
 
-### الجراحة 3 — M6-03
+## M6-03 — Purchase Orders List
 
 ابحث عن السطر الكامل:
 
@@ -487,7 +310,7 @@ esc(i.item_name || '')
     var res=await supabase.from('purchase_orders').select('*'); poData=res.data||[]; renderPOTable(poData);
 ```
 
-واحذف السطر كاملًا واستبدله بـ:
+احذفه واستبدله بـ:
 
 ```js
     var companyId = _rwCompanyId();
@@ -501,9 +324,9 @@ esc(i.item_name || '')
     renderPOTable(poData);
 ```
 
-### الجراحة 4 — M6-04
+## M6-04 — Open Receive
 
-ابحث عن المقطع الكامل داخل `openReceive` الذي يبدأ بـ:
+ابحث داخل `async function openReceive(poCode){` عن المقطع الكامل الذي يبدأ بـ:
 
 ```js
     var poRes=await supabase.from('purchase_orders').select('*').eq('po_code',poCode).maybeSingle();
@@ -536,15 +359,15 @@ esc(i.item_name || '')
     hideLoader();
 ```
 
-### الجراحة 5 — M6-05
+## M6-05 — Suppliers
 
-ابحث عن السطر الكامل:
+ابحث عن **السطر الكامل**:
 
 ```js
     if (!RW_STATE.data.suppliers || !RW_STATE.data.suppliers.length) { try { var sRes = await supabase.from('suppliers').select('*'); RW_STATE.data.suppliers = sRes.data || []; } catch(e) {} }
 ```
 
-احذف السطر كاملًا واستبدله بـ:
+احذفه واستبدله بـ:
 
 ```js
     if (!RW_STATE.data.suppliers || !RW_STATE.data.suppliers.length) {
@@ -564,21 +387,21 @@ esc(i.item_name || '')
     }
 ```
 
-### الجراحة 6 — M6-06
+## M6-06 — Purchase Refresh
 
-ابحث في `savePO`/success block عن إعادة تحميل `purchase_orders` التي تبدأ بـ:
+ابحث داخل نجاح حفظ أمر الشراء عن **كتلة إعادة التحميل التي تحتوي حرفيًا على**:
 
 ```js
 supabase.from('purchase_orders').select('*')
 ```
 
-وفي المقطع الذي ينتهي باستدعاء:
+والتي تنتهي باستدعاء:
 
 ```js
 renderPOTable(poData);
 ```
 
-استبدل **كتلة إعادة التحميل كاملة** بـ:
+واستبدل **كتلة إعادة التحميل كاملة** بـ:
 
 ```js
               var companyId = _rwCompanyId();
@@ -595,149 +418,168 @@ renderPOTable(poData);
               }
 ```
 
-### الجراحة 7 — M6-07
+## M6-07 — Remaining Quantity
 
-ابحث عن السطر الكامل داخل `openReceive` الذي يحتوي على:
-
-```js
-value="'+(it.qty_ordered||0)+'"
-```
-
-واجعل قيمة الـinput هي **المتبقي**:
+ابحث عن **السطر الكامل** داخل `items.forEach(function(it,idx){...` الذي يحتوي:
 
 ```js
-value="'+Math.max(0, Number(it.qty_ordered||0)-Number(it.qty_received||0))+'"
+<td class="p-2 text-center"><input type="number" id="rec-qty-
 ```
 
-وفي نفس السطر أضف `max` مساويًا لنفس المتبقي حتى لا تسمح الواجهة بإدخال كمية أكبر من الرصيد المتبقي.
+وينتهي بهذه البنية الحالية:
 
-### الجراحة 8 — M6-09
+```js
+value="'+(it.qty_ordered||0)+'" class="w-20 p-1 border rounded text-center" min="0"></td></tr>
+```
 
-ابحث عن المقطع الكامل الذي يبدأ بـ:
+احذف السطر كاملًا واستبدله بـ:
+
+```js
+      items.forEach(function(it,idx){ var remaining=Math.max(0,Number(it.qty_ordered||0)-Number(it.qty_received||0)); itemsH+='<tr><td class="p-2 font-semibold">'+(it.item_name||'')+'</td><td class="p-2 text-center font-bold">'+(it.qty_ordered||0)+'</td><td class="p-2 text-center"><input type="number" id="rec-qty-'+idx+'" value="'+remaining+'" max="'+remaining+'" class="w-20 p-1 border rounded text-center" min="0"></td></tr>'; });
+```
+
+هذا السطر كامل وينتهي بـ:
+
+```text
+});
+```
+
+## M6-09 — Session Token Guard
+
+ابحث عن المقطع الكامل:
 
 ```js
     var ses=await supabase.auth.getSession(),t=ses.data.session&&ses.data.session.access_token;
-```
-
-وينتهي قبل:
-
-```js
     try{
 ```
 
-اجعل الكتلة:
+واستبدله بـ:
 
 ```js
     var ses=await supabase.auth.getSession(),t=ses.data.session&&ses.data.session.access_token;
     if(!t){ hideLoader(); showToast('انتهت الجلسة','error'); return; }
+    try{
 ```
 
 ---
 
-## 9. قاعدة الدمج
+## 9. Realtime
 
-بعد تنفيذ المستخدم للتعديلات أعلاه على `Current/PWA/main2/main6.md`:
+لم تتم إضافة listener جديد داخل Main6.
 
-1. تتم قراءة الملف كاملًا من أوله إلى آخر سطر.
-2. تتم مراجعة أقواس/quotes/template literals/closures.
-3. يتم مطابقة `window.RW_OnlineStore` و`window.RW_Purchases`.
-4. يتم دمج الجزء مع بقية `main2`.
-5. تتم مراجعة التكامل مع `core.js` / `sw.js` / `register-sw.js` / `manifest.json` قبل إعلان runtime closure.
-6. يتم تنفيذ Browser/PWA verification على الملف الكامل، وليس على fragment فقط.
+السبب الحاكم: يجب ألا نكرر Realtime infrastructure محليًا قبل مراجعة `core.js` والملف الكامل بعد الدمج؛ وإلا يمكن إنتاج duplicate subscriptions أو state races.
+
+Realtime Main6 ينتقل إلى بوابة التكامل بعد الدمج.
 
 ---
 
-## 10. التجارب التي تمت
+## 10. ما تم اختباره في Production
+
+تم إثبات:
+
+```text
+submit-online-order v7 = ACTIVE
+save-purchase-order v3 = ACTIVE
+receive-purchase v12 = ACTIVE
+receive_purchase_atomic signature = ALIGNED WITH EDGE v12
+receiving.operation_id = UNIQUE
+items.item_code = UNIQUE
+order_details.order_code = DOES NOT EXIST
+order_details.order_id = EXISTS
+```
+
+لم يتم إدخال بيانات اختبار دائمة.
+
+لم يتم تعديل بيانات أعمال Production بسبب Main6 في هذه الجلسة.
+
+---
+
+## 11. ما نجح وما لم يُغلق
 
 ### نجح
 
-- مطابقة Production PostgreSQL الحالية مع Edge Function contracts.
-- التحقق من توقيع `receive_purchase_atomic` الحالي.
-- التحقق من وجود `receiving.operation_id` وUNIQUE identity mechanism.
-- التحقق من Company-scoped backend paths لـonline order وpurchase order وpurchase receiving.
-- التحقق من `items.item_code` كـUNIQUE عالمي رسميًا.
-- التحقق من عدم وجود `order_code` في `order_details`.
+- الاسترداد الجنائي للسياق.
+- تمييز Main6 المستهدف عن Main6 القديم في مسار مختلف.
+- مطابقة Production backend الحالية مع عقود Main6.
+- إثبات جميع نقاط القراءة tenant-unsafe الموجودة في المصدر الحالي.
+- تحديد بدائل جراحية كاملة ومحددة.
 
-### لم يتم اعتباره Pass
+### لم يُغلق
 
-لم يتم اعتبار `main6.md` Source Closed لأن الإصلاحات المصدرية لم تُدمج بعد في الملف المستهدف.
-
-لم يتم اعتبار Browser Runtime Closed لأن التجربة النهائية يجب أن تتم على الملف الكامل بعد الدمج، وهو ما ينص عليه الإجراء المرحلي.
+```text
+main6.md source surgery = PENDING USER EXECUTION
+main6 full source re-read = PENDING
+main2 full merge = PENDING
+full parent syntax validation = PENDING
+browser/PWA E2E = PENDING
+Realtime cross-app verification = PENDING
+```
 
 ---
 
-## 11. ما تم إثباته
+## 12. Self-Audit
+
+### Confirmed Facts
+
+- Production الحالية هي `fiilmooggumokxanwiyx`.
+- Active backend versions المذكورة أعلاه تم التحقق منها مباشرة.
+- `receive_purchase_atomic` الحالي يستخدم `p_operation_id` و`receiving.operation_id`.
+- Physical Stock في Purchase Receiving يمر عبر `post_stock_movement`.
+- `order_details` لا يملك `order_code`.
+- `items.item_code` فريد عالميًا رسميًا.
+
+### Unknowns
+
+- لا يوجد حاليًا Browser E2E نهائي بعد دمج Main6 مع الملف الأم الكامل.
+- لم يتم إثبات runtime closure للجزء قبل تنفيذ الجراحات.
+
+### Conflicts
+
+- يوجد فرق بين claim المستخدم بأن Main5 أُغلق محليًا وبين حالة Main5 المنشورة في Git.
+- يوجد تقرير تاريخي عن `Current/PWA/main/main6.md` لا يجوز تطبيقه على `main2/main6.md`.
+
+### Unverified Claims
 
 ```text
-Production backend contract for Main6 = VERIFIED
-Production tenant extraction for active Main6 Edge flows = VERIFIED
-Production receiving idempotency contract = VERIFIED
-Production item identity contract = VERIFIED
-Main6 source contains tenant/read-key defects = VERIFIED
-Main6 source surgical fixes = IDENTIFIED EXACTLY
+MAIN6 CLOSED 100% = UNVERIFIED
+FULL-PARENT RUNTIME PASS = UNVERIFIED
+REALTIME FINAL PASS = UNVERIFIED
 ```
-
-## 12. ما لم يتم إثباته بعد
-
-```text
-main2/main6.md final source after user edits = NOT YET VERIFIED
-full main2 merged file syntax = NOT YET VERIFIED
-browser runtime of merged full parent file = NOT YET VERIFIED
-realtime cross-app propagation after final merge = NOT YET VERIFIED
-Main5 source sync to Git = NOT YET VERIFIED
-```
-
-## 13. القرار النهائي لهذه الجلسة
-
-`MAIN6 SOURCE = OPEN / SURGERY SPECIFIED`
-
-`MAIN6 PRODUCTION BACKEND = VERIFIED FOR CURRENT CONTRACT`
-
-`MAIN6 RUNTIME = OPEN UNTIL FULL MERGE TEST`
-
-ولا يجوز تسجيل `MAIN6 CLOSED 100%` قبل إعادة قراءة الملف بعد تنفيذ الجراحات والاختبار على الملف الأم الكامل.
 
 ---
 
-## 14. Self-Audit
-
-### What I Proved
-
-- قارنت Main6 المستهدف نفسه، وليس Main6 آخر.
-- راجعت Production الحالية بدل الاعتماد على تقرير تاريخي وحده.
-- أثبت أن `order_details` لا يحتوي `order_code` وأن `order_id` هو الرابط الصحيح.
-- أثبت أن active purchase/online backends الحالية Company-scoped.
-- حددت إصلاحات source دقيقة وقابلة للتنفيذ اليدوي.
-
-### What I Did Not Prove
-
-- لم أثبت Browser Runtime بعد الدمج الكامل.
-- لم أثبت أن المستخدم نفذ كل الجراحات في `main6.md`، لأن هذا التنفيذ خارج المساعد وفق القاعدة المتفق عليها.
-
-### What I Fixed
-
-Production backend لم يحتج لتعديل جديد خاص بـMain6 بعد المطابقة؛ source surgical instructions تم تحديدها.
-
-### What I Initially Missed
-
-تمت ملاحظة أن Report100 السابق كان خاصًا بمسار `Current/PWA/main/main6.md` وليس `Current/PWA/main2/main6.md`، وتم تصحيح ذلك قبل اعتماد أي closure claim.
-
-### What Could Still Be Wrong
-
-أخطر نقطة متبقية هي تنفيذ الجراحات يدويًا بشكل غير كامل ثم محاولة اعتبار الملف مغلقًا؛ لذلك يجب إعادة القراءة الكاملة بعد التنفيذ قبل الانتقال للدمج.
-
-### Final Confidence
+## 13. النتيجة النهائية
 
 ```text
-Production contract confidence = HIGH
-Source surgical diagnosis = HIGH
-Final source closure confidence = NOT CLAIMED YET
-Runtime closure confidence = NOT CLAIMED YET
+MAIN6 FORENSIC UNDERSTANDING = COMPLETE
+MAIN6 SURGERIES = IDENTIFIED EXACTLY
+MAIN6 PRODUCTION BACKEND = VERIFIED
+MAIN6 SOURCE = OPEN
+MAIN6 RUNTIME = OPEN
+MAIN6 100% CLOSED = NOT CLAIMED
 ```
 
-### Final Closure Status
+لا يوجد نصف حل معلن كحل نهائي.
+
+---
+
+## 14. بوابة الجلسة التالية
+
+بعد أن ينفذ المستخدم الجراحات أعلاه:
 
 ```text
-MAIN6 = NOT CLOSED YET
-REASON = Source surgical edits pending + full-parent runtime test pending
+1. إعادة قراءة Current/PWA/main2/main6.md من SOF إلى EOF.
+2. التحقق من كل نافذة استبدال.
+3. التحقق من الأقواس والـquotes والـclosures.
+4. مطابقة نهاية الملف:
+   window.RW_OnlineStore = RW_OnlineStore;
+   window.RW_Purchases = RW_Purchases;
+5. دمج main2.
+6. مراجعة core.js / sw.js / register-sw.js / manifest.json.
+7. Full parent syntax check.
+8. Browser/PWA E2E.
+9. Realtime verification.
+10. Production re-snapshot في لحظة التقرير.
 ```
+
+حتى ذلك الحين لا يُسمح بإعلان Main6 Closed 100%.
