@@ -6,7 +6,7 @@
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
-LATEST FORENSIC REPORT = doc/Draft/Reprots/Report77_Main5_PostPatch_Forensic_Recheck_20260908.md
+LATEST FORENSIC REPORT = doc/Draft/Reprots/Report78_Main5_Final_Recheck_20260908.md
 ```
 
 ## GOVERNANCE
@@ -33,44 +33,39 @@ BLOB = e89d29e4164c68784c109292f27d4d77df240557
 
 ```text
 PATH = Current/PWA/main2/main5.md
-BLOB = 34182a5a2380a0b4704503a964af07b92982b86f
+BLOB = fac9f9bf55e2ecdc27e5de3c7e44c5ef769d49b9
 FULL SOURCE READ = VERIFIED 2026-09-08
 RUNTIME = OPEN
 ```
 
-Report76 patches present in current source:
+## MAIN5 — CLOSED SOURCE PATCHES
 
 ```text
-M5-01 = PRESENT
-M5-02 = PRESENT
-M5-03 = PARTIAL — company filter exists; full realtime coverage still required
-M5-04..M5-12 = PRESENT
-M5-14 = PRESENT — currency comes from app_settings
+M5-15 = CLOSED BY SOURCE — _printOrder order lookup company-scoped
+M5-16 = CLOSED BY SOURCE — _createRS new runsheet lookup company-scoped
+M5-17-A = CLOSED BY SOURCE — ordersHtml syntax corrected
+M5-17-B = CLOSED BY SOURCE — itemsHtml currency syntax corrected
+M5-18 = CLOSED BY SOURCE + PRODUCTION REALTIME FOUNDATION
+M5-19 = CLOSED BY SOURCE + PRODUCTION REALTIME FOUNDATION
 ```
 
-New open source issues found after reread:
-
-```text
-M5-15 = _printOrder order lookup not company-scoped
-M5-16 = _createRS new runsheet lookup not company-scoped
-M5-17-A = syntax error in ordersHtml currency concatenation
-M5-17-B = syntax error in itemsHtml currency concatenation
-M5-18 = orders realtime subscription incomplete
-M5-19 = runsheets realtime subscription missing
-```
-
-Assistant MUST NOT edit main5. User performs the mother-file edits.
+`main5.md` was re-read from line 1 through EOF after the user-applied patches. The above fixes are present in the current blob. The assistant did not edit `main5.md`.
 
 ## M5-13 — OPEN CONTRACT
 
 ```text
-_deleteRunsheet and _cancelRunsheet perform direct frontend DB writes
-orders has no authenticated UPDATE/DELETE policy
-no proven delete/cancel backend owner established
-DO NOT INVENT A BACKEND CONTRACT YET
+preConfirm updates runsheets directly from the frontend and does not inspect result.error
+_deleteRunsheet performs multiple independent frontend DB mutations
+_cancelRunsheet performs multiple independent frontend DB mutations
+no proven canonical update-runsheet capability
+no proven canonical delete-runsheet capability
+no proven canonical cancel-runsheet capability
+DO NOT INVENT A BACKEND CONTRACT
 ```
 
-## PRODUCTION TRUTH — 2026-09-08 01:07 UTC
+This remains the only blocker preventing main5 from being authorized for the next part.
+
+## PRODUCTION TRUTH — 2026-09-08
 
 ```text
 companies      = 1
@@ -80,6 +75,8 @@ branches       = 2
 items          = 17
 orders         = 0
 runsheets      = 0
+order_details  = 0
+run_sheet_details = 0
 stock_rows     = 20
 inventory_logs = 3
 currency       = SAR
@@ -95,7 +92,7 @@ order_details has NO company_id
 run_sheet_details has NO company_id
 ```
 
-RLS facts:
+RLS facts relevant to main5:
 
 ```text
 orders = authenticated SELECT only
@@ -130,71 +127,75 @@ Migrations:
 
 Browser realtime E2E remains unverified because Production has zero orders and zero runsheets.
 
-## PRODUCTION EDGE — append-to-runsheet
+## PRODUCTION EDGE — CURRENT RELEVANT DEPLOYMENTS
 
 ```text
-VERSION = 7
-STATUS = ACTIVE
-VERIFY_JWT = true
+create-runsheet = ACTIVE v26
+complete-return = ACTIVE v25
+complete-order-delivery = ACTIVE v14
+create-stock-voucher = ACTIVE v10
+send-stock-voucher = ACTIVE v20
+receive-stock-voucher = ACTIVE v22
+complete-stock-voucher = ACTIVE v4
+cancel-stock-voucher = ACTIVE v4
+receive-purchase = ACTIVE v12
 ```
 
-Fixed the invalid `order_details.company_id` predicate. Git source aligned with deployed v7.
+## PRODUCTION INVENTORY / DATA GOVERNANCE
 
-## create-runsheet
+The current Production schema confirms `items.item_code` is globally unique. This is the current global Item Master contract; therefore a branch/company-to-item metadata mismatch must not be classified as a defect merely from company_id inequality without tracing the established global-item contract.
 
-```text
-VERSION = 26
-VERIFY_JWT = true
-OWNER = create_runsheet_atomic
-```
-
-## WHAT IS PROVEN
+## WHAT IS PROVEN — 2026-09-08 RECHECK
 
 ```text
-MASTER read to EOF
-Report76 read
-CURRENT_STATE stale state detected
-main5 read to EOF
-current main5 blob verified
-Report76 changes rechecked
-Production snapshot verified directly
-Realtime publication verified directly
-Replica identity verified directly
-append-to-runsheet corrected and redeployed v7
-create-runsheet owner verified
-currency = SAR verified directly
-Report77 written
+MASTER reviewed
+Report77 reviewed
+CURRENT_STATE reviewed
+main5 read from first line to EOF
+main5 current blob = fac9f9bf55e2ecdc27e5de3c7e44c5ef769d49b9
+M5-15 present
+M5-16 present
+M5-17-A present
+M5-17-B present
+M5-18 present
+M5-19 present
+main4 boundary reviewed
+main6 boundary reviewed
+Production schema reviewed
+Production Edge Function inventory reviewed
+Production Realtime foundation reviewed
+M5-13 direct frontend mutation defect re-confirmed
+Report78 written
 ```
 
 ## WHAT IS NOT PROVEN
 
 ```text
-main5 source closure
 main5 browser runtime
+Realtime browser E2E with actual order/runsheet records
 11-part final assembly
 full PWA runtime equivalence
-Realtime browser E2E with actual order/runsheet records
-_deleteRunsheet contract
-_cancelRunsheet contract
+M5-13 canonical backend mutation owner
 final Production equivalence of assembled PWA
 ```
 
 ## NEXT AUTHORIZED ACTION
 
 ```text
-User applies exact M5-15..M5-19 blocks from Report77 to main5
-Commit main5 and return commit/blob SHA
-Then full EOF recheck + syntax + dependency + Production reconciliation
-Then continue integration/runtime verification
+DO NOT move to main6 yet.
+Close M5-13 first using a proven backend capability and the historical/current lifecycle contract.
+Then re-read main5 to EOF.
+Then syntax + structure + consumers + Production reconciliation again.
+Only then authorize continuation to the next part.
 ```
 
 ## LAST VERIFIED EVENT
 
 ```text
-EVENT TYPE = MAIN5 POST-PATCH FORENSIC RECHECK + PRODUCTION REALTIME INTEGRATION
-UTC = 2026-09-08 01:07:16+00
-MAIN5 BLOB = 34182a5a2380a0b4704503a964af07b92982b86f
+EVENT TYPE = MAIN5 POST-PATCH FINAL FORENSIC RECHECK
+UTC DATE = 2026-09-08
+MAIN5 BLOB = fac9f9bf55e2ecdc27e5de3c7e44c5ef769d49b9
+RESULT = M5-15..M5-19 verified in current source; M5-13 remains the sole demonstrated blocker
 PRODUCTION = companies=1, users=24, branches=2, items=17, orders=0, runsheets=0, stock_rows=20, inventory_logs=3, currency=SAR
-RESULT = Production realtime foundation closed; append-to-runsheet v7 corrected; main5 remains open for exact user surgical patches M5-15..M5-19
-EVIDENCE = current Git + direct Production SQL + active Edge Function deployment + Report77
+REPORT = doc/Draft/Reprots/Report78_Main5_Final_Recheck_20260908.md
 ```
