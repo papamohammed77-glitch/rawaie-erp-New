@@ -24,7 +24,7 @@ Current relevant commits remain the previously recorded reconstruction/path clos
 المصدر الجاري العمل عليه يدويًا بواسطة المالك هو:
 `Current/PWA/main2/main1.md ... main11.md`
 
-Current fragment identities recorded before the Main7 recheck remain valid except for Main7, whose current SHA is now:
+Current fragment identities recorded before the Main7 recheck remain valid except for Main7, whose current SHA is:
 - main7: `0962e20262e77e9e6d8905c83098c2d5fac9210c`
 
 The other fragment identities remain as previously recorded:
@@ -43,12 +43,13 @@ The other fragment identities remain as previously recorded:
 Target: `Current/PWA/main2/main6.md`
 Report84 surgeries M6-01..M6-09 were previously verified in the actual current source. Main6 closure remains CLOSED.
 
-### 5. Report85 -> Report86 -> Report87 -> Report88 reconciliation
+### 5. Report85 -> Report86 -> Report87 -> Report88 -> Report89 -> Report90 reconciliation
 Report85 established the main2/main assembly source conflict.
 Report86 continued with Production reconciliation and Main7 forensic review.
 Report87 re-reviewed the evidence and corrected M7-08: lifecycle stage labels must not be changed from the established business lifecycle.
 Report88 re-read the CURRENT Main7 SHA directly and reconciled Production against the current source again.
 Report89 added the current full surgical review and expanded Main7 closure requirements where direct Production schema proved additional Main7 defects.
+Report90 added the final tenant-scope findings discovered while continuing the Main7 forensic pass.
 
 ### 6. Production Reality — current checkpoint
 Supabase project: `fiilmooggumokxanwiyx`
@@ -215,6 +216,16 @@ In `_saveGeneralCount()`, delete the use of literal `MAIN` as `entityId`.
 
 Resolve `app_settings.main_branch_id` by `company_id`, then call `_saveInvCount('general', mainBranchId, ...)`.
 
+#### M7-14 — Additional Tenant Scope closures
+The following Main7 queries were found in the continued forensic pass and must also be company-scoped:
+- `loadPicking()` — runsheets query with `status in ('Open','Confirmed')`.
+- `_showPickingDetails(code)` — runsheet lookup must include `company_id`.
+- `loadVehicleCount()` — runsheets selector must include `company_id`.
+- `_searchDriver(query)` — users lookup must include `company_id`.
+- `loadUnloading()` — runsheets query with `status in ('Open','New')` must include `company_id`.
+
+No business behavior is changed by these surgeries; only tenant boundary is closed.
+
 ### 13. Main7 items intentionally NOT changed
 - M7-08 lifecycle labels: NOT an error; Report87 is authoritative on this point.
 - `complete_order_delivery_atomic`: NOT modified.
@@ -237,6 +248,9 @@ A previous temporary Purchase Receive idempotency experiment exposed a sequencin
 
 ### 15. Reports
 Latest:
+`doc/Draft/Reprots/Report90_Main7_Final_Tenant_Scope_Addendum_20260908.md`
+
+Core surgical report:
 `doc/Draft/Reprots/Report89_Main7_Surgical_Review_20260908.md`
 
 Previous:
@@ -249,7 +263,7 @@ Older reports remain preserved.
 `.github/workflows/forensic_main_assembly.yml` was re-read and is already correctly configured to use `Current/PWA/main2/**` as the canonical editable source and `Current/PWA/New-main` as generated target. No path change is required.
 
 ### 17. Next controlled action
-1. Owner applies only the exact Main7 surgical items recorded in Report89.
+1. Owner applies only the exact Main7 surgical items recorded in Report89 and Report90.
 2. Re-read Main7 SOF→EOF from the new SHA.
 3. Run JavaScript syntax validation on the reconstructed Main7 fragment.
 4. Verify all brackets, template strings and function closures.
@@ -258,18 +272,20 @@ Older reports remain preserved.
 7. Verify Delivery details use `order_id`.
 8. Verify Settlement uses latest vehicle Inventory Count by vehicle/mobile-branch identity.
 9. Verify Branch/General/Vehicle count entity IDs match `save-inventory-count` contract.
-10. Run canonical reconstruction from `Current/PWA/main2/main1..main11`.
-11. Only after source and assembly evidence pass, proceed to browser/runtime verification.
-12. Production deployment of the assembled parent remains a separate controlled gate.
+10. Verify Picking/Vehicle Count/Driver/Unloading reads are company-scoped.
+11. Run canonical reconstruction from `Current/PWA/main2/main1..main11`.
+12. Only after source and assembly evidence pass, proceed to browser/runtime verification.
+13. Production deployment of the assembled parent remains a separate controlled gate.
 
 ### 18. Closure statement
 `PRODUCTION INVENTORY WRITER CORE = CLOSED`
 `LEGACY INVENTORY CORE EXECUTION = CLOSED`
 `MAIN2 RECONSTRUCTION SOURCE PATH = CLOSED`
 `MAIN6 SOURCE SURGERY = CLOSED`
-`MAIN7 FORENSIC RECHECK = COMPLETE`
+`MAIN7 FORENSIC REVIEW = COMPLETE`
 `MAIN7 SOURCE SURGERY = OPEN / OWNER ACTION REQUIRED`
 `DELIVERY CONTRACT = PROVEN`
 `INVENTORY COUNT CONTRACT = PROVEN`
+`MAIN7 TENANT SCOPE REVIEW = OPEN / OWNER ACTION REQUIRED`
 `FULL MAIN2 ASSEMBLY = OPEN / NOT PROVEN`
 `PARENT GOLD/DIAMOND = NOT CLOSED`
