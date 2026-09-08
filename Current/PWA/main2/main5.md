@@ -268,9 +268,11 @@ window._rwOrdersRealtimeChannel = supabase
             if (o.order_status === 'Draft') {
                 actions += '<button onclick="event.stopPropagation();RW_Orders._confirm(\'' + o.order_code + '\')" class="text-green-600 mx-1" title="تأكيد"><i class="fa-solid fa-check-circle"></i></button>';
             }
-            // ✅ تعديل: إضافة Invoiced للحالات التي يمكن حذفها (طالما لا يوجد runsheet_id)
-			console.log('DEBUG_DELETE:', o.order_code, o.order_status, o.runsheet_id);
-var canDelete = (o.order_status === 'Draft' || o.order_status === 'Confirmed' || o.order_status === 'Invoiced') && !o.runsheet_id;
+            var currentUser = (typeof RW_STATE !== 'undefined' && RW_STATE.app) ? RW_STATE.app.currentUser : null;
+var permissions = (currentUser && Array.isArray(currentUser.permissions)) ? currentUser.permissions : [];
+var canDeleteInvoiced = !!(currentUser && (currentUser.isOwner === true || permissions.indexOf('*') !== -1 || permissions.indexOf('general_manager') !== -1 || permissions.indexOf('sales_manager') !== -1 || permissions.indexOf('sales_supervisor') !== -1));
+var canDelete = (o.order_status === 'Draft' || o.order_status === 'Confirmed' || o.order_status === 'Pending' || (o.order_status === 'Invoiced' && canDeleteInvoiced)) && !o.runsheet_id;
+
 if (canDelete) {
     actions += '<button onclick="event.stopPropagation();RW_Orders._delete(\'' + o.order_code + '\')" class="text-red-500 mx-1" title="حذف"><i class="fa-solid fa-trash-can"></i></button>';
 }
@@ -493,11 +495,12 @@ function _showDetails(code) {
                 actionButtons += '<button id="btn-confirm-order-modal" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold shadow"><i class="fa-solid fa-check-circle ml-2"></i> تأكيد الأوردر</button>';
             }
 
-            // ✅ زر حذف الأوردر – يظهر لـ Draft، Pending، Confirmed غير المرتبطة برانشيت
-            // ✅ تعديل: إضافة Invoiced واستبعاد Returned/Partially Returned
-var cannotDeleteStatuses = ['Returned', 'Partially Returned', 'Cancelled'];
-var isDeletable = (order.order_status === 'Draft' || order.order_status === 'Pending' || order.order_status === 'Confirmed' || order.order_status === 'Invoiced');
-var canDelete = isDeletable && !order.runsheet_id && cannotDeleteStatuses.indexOf(order.order_status) === -1;
+// ✅ حذف Invoiced من النظام الأم متاح فقط للمستخدم المصرح له تاريخيًا.
+var currentUser = (typeof RW_STATE !== 'undefined' && RW_STATE.app) ? RW_STATE.app.currentUser : null;
+var permissions = (currentUser && Array.isArray(currentUser.permissions)) ? currentUser.permissions : [];
+var canDeleteInvoiced = !!(currentUser && (currentUser.isOwner === true || permissions.indexOf('*') !== -1 || permissions.indexOf('general_manager') !== -1 || permissions.indexOf('sales_manager') !== -1 || permissions.indexOf('sales_supervisor') !== -1));
+var isDeletable = (order.order_status === 'Draft' || order.order_status === 'Pending' || order.order_status === 'Confirmed' || (order.order_status === 'Invoiced' && canDeleteInvoiced));
+var canDelete = isDeletable && !order.runsheet_id;
 if (canDelete) {
     actionButtons += '<button id="btn-delete-order-modal" class="bg-red-600 text-white px-6 py-2 rounded-xl font-bold shadow"><i class="fa-solid fa-trash ml-2"></i> حذف الأوردر</button>';
 }
