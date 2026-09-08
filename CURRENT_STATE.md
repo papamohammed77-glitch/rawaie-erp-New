@@ -1,119 +1,47 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
-## Checkpoint — 2026-09-08 — Report93 Recheck
+## CURRENT CHECKPOINT — 2026-09-08 — Report95 Main8 Forensic Surgical Reconciliation
 
-### Governing Rules
-- Production is the execution reference; reports are investigative indexes.
-- No assumption-based patches; historical contract is required before change.
+### Source-of-Truth Governance
+- Production Supabase is the execution reference.
+- Historical reports are evidence indexes; they do not override current Production.
+- No assumption-based patching.
 - UNKNOWN != BUG and UNKNOWN != REMOVE.
 - One Closure Unit at a time.
-- Physical Stock: `post_stock_movement -> stock_branches + inventory_log`.
-- `reserve_stock` / `release_stock_reservation` are Reservation only.
-- Parent editable Source of Truth: `Current/PWA/main2/main1.md ... main11.md`.
-- `Current/PWA/main/*` is historical evidence only.
-- `Current/PWA/New-main` is generated target only.
+- Physical Stock contract remains:
+  `post_stock_movement -> stock_branches + inventory_log`
+- `reserve_stock` / `release_stock_reservation` remain Reservation-only.
+- Editable Parent Source of Truth:
+  `Current/PWA/main2/main1.md ... main11.md`
+- `Current/PWA/main/*` = historical evidence only.
+- `Original/PWA/main/*` = historical reference only.
+- `Current/PWA/New-main` = generated target only; never Source of Truth.
 
-### Current Git
-Repository: `papamohammed77-glitch/rawaie-erp-New`
-Branch: `main`
-Main7 current source SHA: `b6d19e0b9c775d02594e4cba868e63455b009824`
-Latest Main7 report: `Report93_Main7_Exact_Surgical_Recheck_20260908.md`
-Report93 commit: `d52032e51609429278d227880d73a2ce0e0ad16b`
+## Current Git
+- Repository: `papamohammed77-glitch/rawaie-erp-New`
+- Branch: `main`
+- Latest session HEAD before Report95/state writes: `e1b6168a091ebb5188828d479a5bab4254b9aae4`
+- Current Main8 source SHA:
+  `20f77481133d3e55ced949de16f88dadb0a69980`
+- Current Main7 source SHA confirmed by Report94:
+  `d6ee5ed58faf82d23bd8d0ab73f70d5979d41f19`
+- Latest Main7 source commit referenced by Report94:
+  `bf9baf2571790e9000a7db99ca93bf250d07c9e6`
 
-### Main7 Verified Historical/Production Contract
-Lifecycle is preserved exactly:
-`Open / Confirmed → Picking → Picked → Loading → Loaded → Delivering → Delivered → Returning → Returned`
+## Latest Reports / State Record
+- `Report95_Main8_Forensic_Surgical_Reconciliation_20260908.md` = latest session report.
+- `Report94_Main7_Exact_Surgical_Reconciliation_20260908.md` = latest Main7 forensic reconciliation before Main8.
+- `CURRENT_STATE_Report94_Update.md` = owner-supplied state checkpoint incorporated into this file.
 
-Delivery ownership is split correctly:
-- `complete_order_delivery_atomic` = Order-level fulfillment owner.
-- `complete-order-delivery` = Order-level wrapper.
-- `complete-delivery` = Runsheet finalization only.
-- `driver.html` already submits Order-level delivery using `runsheet_code + order_code`.
+## Production Snapshot — latest verified before this state write
+Checked directly at:
+`2026-09-08 13:48:15.956937+00 UTC`
 
-Inventory ownership remains:
-`Physical Stock -> post_stock_movement -> stock_branches + inventory_log`.
-
-### Main7 Source Status
-The assistant DID NOT modify `Current/PWA/main2/main7.md`; the user owns these source surgeries.
-EOF remains structurally intact: `})();` followed by `window.RW_Warehouse = RW_Warehouse;`.
-
-### Main7 Already Applied in Current Source — DO NOT RE-REQUEST
-- M7-07B `voucherReference` field is already present in `loadVoucherForm(type)`.
-- M7-09 Order-by-Order `_openDeliveryModal(rsCode)` is already present.
-- Receiving company scope.
-- Receiving Details company validation.
-- Voucher list company scope.
-- Voucher detail resolution by company + voucher_code then voucher_id.
-- Driver lookup company scope in voucher form.
-- Receive remaining-quantity logic and Idempotency-Key/operation_id payload.
-- `_openNewVoucherModal()` -> `loadVoucherForm()`.
-- Picking source status list `Open / Confirmed`.
-
-### Main7 OPEN Owner Surgeries
-#### M7-10 — Settlement
-- `loadSettlement()` Runsheet query must use `company_id`.
-- `_onSettlementRsChange()` must be replaced as one complete function because current source has: unscoped Runsheet lookup, invalid `order_details.runsheet_id` lookup, invalid return-detail linkage through voucher code, and `countedByItem` referenced before definition.
-- Latest vehicle count must resolve `vehicles.id,mobile_branch_id` and then `inventory_counts.entity_id`.
-
-#### M7-11 — `loadBranchCount()`
-Option value must be `branches.id`, not `branch_code`.
-
-#### M7-12 — `_saveVehicleCount()`
-Resolve selected driver -> `users.id` -> company-scoped `vehicles.id`; prefer `runsheets.vehicle_id` when a Runsheet is selected; pass the vehicle UUID to `save-inventory-count`.
-
-#### M7-13 — `_saveGeneralCount()`
-Resolve `app_settings.main_branch_id` by `company_id`; never send literal `MAIN` as entity ID.
-
-#### M7-14 / M7-16 — Company Scope
-Open reads requiring exact company scoping remain in:
-- `loadPicking()` — current mapping around line 540.
-- `_showPickingDetails(code)` Runsheet lookup.
-- `loadVehicleCount()` Runsheet selector.
-- `_searchDriver(query)` Users lookup.
-- `loadUnloading()` Runsheet query.
-- `loadLoading()` — current mapping around line 580.
-- `loadDelivery()` — current mapping around line 619.
-- `loadReturn()` Runsheet query.
-- `_showLoadingDetails(code)`.
-- `_showDeliveryDetails(code)`.
-- `_showReturnDetails(code)`.
-- `_openPickingModal(rsCode)`.
-- `_openLoadingModal(rsCode)`.
-- `_openReturnModal(rsCode)`.
-
-#### M7-15 — Voucher Entity UUID + DirectSale representative
-Production schema/Core confirms:
-- `stock_vouchers.from_id` and `to_id` are UUID.
-- `branches.id` and `vehicles.id` are UUID.
-- `items.item_code` is globally UNIQUE.
-- `create_manual_stock_voucher_atomic` has a 12-argument contract with `p_rep_id` and `p_operation_id`.
-- `DirectSale` requires Vehicle UUID plus valid `p_rep_id` when executed by the warehouse voucher role.
-- `DirectReturn` requires Vehicle UUID -> Branch UUID.
-- `SupplierReturn` requires Branch UUID -> Supplier UUID.
-
-Main7 required owner changes:
-- Remove all `fromId:'MAIN'` / `toId:'MAIN'` values from voucher config.
-- `_loadVoucherEntityOptions(type)` must use Branch UUIDs, Vehicle UUIDs, and Supplier UUIDs; DirectSale must expose vehicles attached to `مندوب بيع مباشر`.
-- `_saveAndSendVoucher()` must resolve `main_branch_id` by current company, use entity UUIDs, and send `rep_id` for DirectSale.
-
-### Protected No-Change List
-- M7-08 lifecycle labels.
-- `Current/PWA/driver.html` Delivery workflow/business idea.
-- `_openDeliveryModal(rsCode)` current Order-by-Order design.
-- `complete_order_delivery_atomic`.
-- `complete_return_atomic`.
-- Physical Stock Core.
-- `_showUnloadingDetails()` placeholder behavior.
-- `.github/workflows/forensic_main_assembly.yml` path.
-- `Current/PWA/main2` as canonical editable fragment source.
-
-### Fresh Production Snapshot
-Checked directly at `2026-09-08 11:31:28.54266+00 UTC`:
 - companies = 1
 - branches = 2
 - users = 24
 - items = 17
-- stock_rows = 20
+- stock_branches = 20
 - orders = 0
 - order_details = 0
 - runsheets = 0
@@ -123,82 +51,148 @@ Checked directly at `2026-09-08 11:31:28.54266+00 UTC`:
 - inventory_counts = 0
 - inventory_count_details = 0
 
-### Production Core Verification
-Current relevant functions include:
-- `complete_order_delivery_atomic(p_company_id, p_runsheet_code, p_order_code, p_user_email, p_items)`
-- `complete_return_atomic(p_company_id, p_runsheet_code, p_order_code, p_is_pos_return, p_user_email, p_items)`
-- `post_inventory_adjustment_atomic(...)`
-- `post_stock_movement(...)` with idempotency-capable 10-argument overload
-- `receive_purchase_atomic(..., p_operation_id uuid)`
-- `complete_runsheet_picking(...)`
-- `complete_runsheet_loading(...)`
+## Production Change Executed in Report95
+### `get_balance_sheet_data(date)`
+- Previous defect: SECURITY DEFINER function read `chart_of_accounts` without current-company filtering.
+- Fixed in Production by deriving:
+  `v_company_id := app_private.current_user_company_id()`
+  and applying `ca.company_id = v_company_id` to assets/liabilities/equity queries.
+- EXECUTE surface was restricted to authenticated/service_role; anon/public execution was removed.
+- Production migration version:
+  `20260908134417`
+- Canonical Git migration:
+  `supabase/migrations/20260908134417_fix_balance_sheet_company_scope_20260908.sql`
+- Audit entry recorded in `audit_log` using the schema-approved `action='update'`.
 
-Current Edge versions verified in Production:
-- `start-delivery` v7
-- `complete-delivery` v4
-- `complete-order-delivery` v14
-- `complete-return` v25
-- `create-stock-voucher` v10
-- `send-stock-voucher` v20
-- `receive-stock-voucher` v22
-- `save-inventory-count` v2
-- `receive-purchase` v12
+## Main7 — Current Status
+`Current/PWA/main2/main7.md` was NOT modified by the assistant.
 
-### Inventory Writer Discovery
-PostgreSQL function discovery found the following routines touching `stock_branches` or `inventory_log`:
-- `post_stock_movement`
-- `post_inventory_adjustment_atomic` -> delegates to `post_stock_movement`
-- `post_manual_stock_voucher_atomic_core_20260828` -> delegates to `post_stock_movement`
-- `send_stock_voucher_atomic_core_20260828` -> delegates to `post_stock_movement`
-- `complete_runsheet_picking` -> reservation/fulfillment only; no Physical Stock movement
-- `reserve_stock` / `release_stock_reservation` -> reservation only
-- `setup_van_stock` -> zero-row initialization only; not a movement engine
+The Report94 owner surgeries remain the only Main7 source actions blocking assembly:
 
-No evidence was found in this sweep of a second independent Physical Stock movement engine outside `post_stock_movement`.
+### M7-15A
+Replace the four configuration values using string sentinel `'null'` with real JavaScript `null` values at the exact four lines documented in Report94 (current lines 126–129 in that checkpoint).
 
-### Delivery / Driver Protection
-`driver.html` continues to submit Order-level delivery using `runsheet_code + order_code`; no source change was made to it.
-Main7 current `_openDeliveryModal(rsCode)` follows the same Order-by-Order contract.
+### M7-14
+Replace the complete `_showLoadingDetails(code)` function documented in Report94 (current lines 762–772 in that checkpoint) with its company-scoped version, ending immediately before:
+`// ==================== DELIVERY ====================`
 
-### Assembly
-`.github/workflows/forensic_main_assembly.yml` remains correct:
-`Current/PWA/main2/**` = canonical editable fragment source.
-`Current/PWA/New-main` = generated target.
-`Current/PWA/main/**` = historical evidence only.
-No workflow path correction is required.
+Protected Main7 contracts remain unchanged:
+- lifecycle: `Open / Confirmed -> Picking -> Picked -> Loading -> Loaded -> Delivering -> Delivered -> Returning -> Returned`
+- driver order-by-order delivery
+- `complete_order_delivery_atomic`
+- `complete_return_atomic`
+- `_openDeliveryModal(rsCode)`
+- `_showUnloadingDetails()`
 
-### Reports
-Latest:
-`doc/Draft/Reprots/Report93_Main7_Exact_Surgical_Recheck_20260908.md`
-Previous:
-`Report92_Main7_Exact_Surgical_Execution_20260908.md`
-`Report91_Main7_Gold_Diamond_Surgical_Recheck_20260908.md`
-`Report90_Main7_Final_Tenant_Scope_Addendum_20260908.md`
-`Report89_Main7_Surgical_Review_20260908.md`
-`Report88_Main7_Forensic_Recheck_20260908.md`
-`Report87`
+## Main8 — Current Status
+Target file:
+`Current/PWA/main2/main8.md`
 
-### Last Verified Event
-`EVENT: MAIN7-EXACT-SURGICAL-RECHECK-20260908`
-- Governing source files re-read.
-- Production snapshot re-read directly.
-- Main7 SHA confirmed as `b6d19e0b9c775d02594e4cba868e63455b009824`.
-- M7-07B and M7-09 confirmed already present; not re-requested.
-- Delivery/driver contract confirmed and protected.
-- Current Main7 remaining owner surgeries enumerated exactly in Report93.
-- No Main7 source modification performed by the assistant.
+The file was read/reconciled against:
+- Governance masters
+- Report94
+- `Current/PWA/accountant.html`
+- Production schema, constraints, RLS and Edge contracts
+- historical finance reconstruction evidence
 
-### Closure
-`PRODUCTION INVENTORY WRITER CORE = CLOSED / VERIFIED`
-`MAIN2 RECONSTRUCTION SOURCE PATH = CLOSED / VERIFIED`
-`MAIN7 FORENSIC REVIEW = COMPLETE`
-`MAIN7 DELIVERY CONTRACT = PROVEN / PROTECTED`
-`MAIN7 SOURCE SURGERY = OPEN / OWNER ACTION REQUIRED`
-`M7-10 SETTLEMENT = OPEN`
-`M7-11 BRANCH COUNT IDENTITY = OPEN`
-`M7-12 VEHICLE COUNT IDENTITY = OPEN`
-`M7-13 GENERAL COUNT IDENTITY = OPEN`
-`M7-14/16 TENANT SCOPE = OPEN`
-`M7-15 VOUCHER UUID + REP CONTRACT = OPEN`
-`FULL MAIN2 ASSEMBLY = OPEN / NOT PROVEN`
-`PARENT GOLD/DIAMOND = NOT CLOSED`
+### Confirmed Main8 gaps
+1. `_loadAllData()` performs treasury/account reads without explicit company scope and builds the account tree using account-code keys while `parent_account_id` is UUID.
+2. `_openAccountDialog()` sends account-code values into `parent_account_id`, which is a UUID foreign key; CRUD calls also omit explicit tenant filters.
+3. `_seedAccounts()` uses account codes as parent IDs and `onConflict: account_code` against a company-scoped unique contract.
+4. Treasury creation omits required `company_id`; treasury update/delete omit explicit company scope.
+5. Receipt/payment lists read `cash_box` without company scope.
+6. Receipt/payment UI currently sends `cashBoxId` as `account_code` and sends no `operationId`, while Production requires Treasury UUID + Account UUID + operation identity in `header`.
+7. Transfer UI currently sends `fromCashId/toCashId` only, while Production requires operation identity plus source/target Treasury UUIDs and source/target Account UUIDs.
+
+### Confirmed Main8 contracts that are already correct and should not be changed
+- Journal posting is delegated to `save-journal-entry` and already carries an operation identity.
+- Financial reporting RPCs are company-scoped in Production.
+- Budget RLS binds `budgets.account_id` to the current company's chart of accounts.
+- `cost_centers` is currently global in schema; no company column was invented.
+
+### Exact Main8 owner surgery list
+All are documented completely in Report95; the assistant MUST NOT edit `Current/PWA/main2/main8.md` directly.
+
+- M8-01 add `_companyId()` helper.
+- M8-02 replace `_loadAllData()`.
+- M8-03 replace `_buildAccountTree()`.
+- M8-04 replace `_openTreasuryDialog()`.
+- M8-05 replace `_editTreasury()`.
+- M8-06 replace `_openAccountDialog()`.
+- M8-07 replace `_seedAccounts()`.
+- M8-08 add company scoping to receipt/payment list reads.
+- M8-09 replace `_newReceipt()` to use Treasury UUID and Account UUID selections.
+- M8-10 replace `_saveReceipt()` to match the deployed receipt Edge contract and persist operation identity during retry.
+- M8-11 replace `_newPayment()` / `_savePayment()` with the same UUID + operation identity contract.
+- M8-12 add company scoping to `_renderTransfers()`.
+- M8-13 change `_newTransfer()` option values to Treasury UUID / Account UUID.
+- M8-14 replace `_saveTransfer()` with the deployed transfer contract.
+
+## Finance Production Contract Evidence
+Current Production Edge versions:
+- `save-journal-entry` v8
+- `save-receipt-voucher` v7
+- `save-payment-voucher` v5
+- `save-transfer-voucher` v4
+- `get-trial-balance` v1
+- `get-profit-loss` v1
+- `get-balance-sheet` v1
+- `get-pnl-by-cost-center` v1
+
+Current financial cores include:
+- `post_journal_entry`
+- `post_cash_receipt_atomic`
+- `post_cash_payment_atomic`
+- `post_treasury_transfer_atomic`
+
+## Accountant App Reference
+`Current/PWA/accountant.html` is the modern financial workbench reference.
+It resolves authenticated `users.company_id`, loads Treasury and Chart of Accounts with company scope, and uses UUID-based financial identities plus operation IDs for transactional posting.
+This is a behavioral contract reference, not a reason to replace Main8 wholesale.
+
+## Assembly
+`.github/workflows/forensic_main_assembly.yml` is verified correct:
+- canonical fragment source = `Current/PWA/main2/**`
+- generated target = `Current/PWA/New-main`
+- historical evidence = `Current/PWA/main/**` and `Original/PWA/main/**`
+
+### Assembly status
+`FULL MAIN2 ASSEMBLY = BLOCKED`
+
+Blocking reasons:
+1. Main7 M7-15A not yet owner-applied.
+2. Main7 M7-14 not yet owner-applied.
+3. Main8 M8-01..M8-14 not yet owner-applied.
+
+## Closure Matrix
+- `PRODUCTION INVENTORY WRITER CORE` = CLOSED / VERIFIED
+- `MAIN2 RECONSTRUCTION SOURCE PATH` = VERIFIED
+- `MAIN7 FORENSIC RECONCILIATION` = COMPLETE / SOURCE SURGERY OPEN
+- `MAIN7 DELIVERY CONTRACT` = PROVEN / PROTECTED
+- `MAIN8 FINANCE FORENSIC RECONCILIATION` = COMPLETE / SOURCE SURGERY OPEN
+- `PRODUCTION BALANCE SHEET TENANT REPAIR` = CLOSED / DEPLOYED / MIGRATION RECORDED / AUDITED
+- `FULL MAIN2 ASSEMBLY` = NOT STARTED / BLOCKED
+- `PARENT GOLD/DIAMOND` = NOT CLOSED
+
+## Self-Audit — Report95
+### What was proved
+- Report94 is newer than the stale Report93 checkpoint and its Main7 SHA is confirmed.
+- `CURRENT_STATE_Report94_Update.md` is the correct owner-supplied Main7 state checkpoint.
+- Current editable source remains `Current/PWA/main2`.
+- Assembly workflow path is already correct.
+- Main8 current source is identified and its finance behavior was compared with the modern accountant application and deployed Production contracts.
+- Production `get_balance_sheet_data` tenant leakage was real and was fixed in Production.
+- The Production repair is represented in canonical Git migration form and audited.
+
+### What was not proved
+- Main7 owner surgeries have not been confirmed as applied after Report94.
+- Main8 owner surgeries have not been applied.
+- Full Main2 reconstruction has not been run after those source surgeries.
+- Browser/E2E of the resulting assembled Parent has not been run.
+
+### Next execution gate
+After the owner applies the exact Main7 and Main8 source surgeries:
+`READ SOF -> EOF -> syntax check -> full Main2 reconstruction -> browser/integration checks -> Production reconciliation -> final closure report`
+
+## Last Verified Event
+`EVENT: MAIN8-FORENSIC-RECONCILIATION-20260908`
