@@ -5,539 +5,484 @@
 ```text
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
+CURRENT MAIN HEAD = 523fce99b65c0cd7614cf31d6cbff9c649590429
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
-LATEST FORENSIC REPORT = doc/Draft/Reprots/Report83_Main6_M6-Forensic_Surgical_Reconciliation_20260908.md
+LATEST FORENSIC REPORT = doc/Draft/Reprots/Report84_Main6_M6-Source_Surgical_Execution_20260908.md
 ```
 
-## GOVERNANCE
+## GOVERNANCE — NON-NEGOTIABLE
 
 ```text
 CURRENT REALITY > CURRENT GIT > CURRENT PRODUCTION > CURRENT DEPLOYMENTS > CURRENT DATABASE CONTRACTS > VERIFIED ARTIFACTS > HISTORY > REPORTS > MEMORY > ASSUMPTIONS
+
+READ → VERIFY → RECONCILE → UNDERSTAND → PATCH → TEST → DEPLOY → VERIFY PRODUCTION → DOCUMENT → UPDATE CURRENT_STATE
+
 UNKNOWN != BUG
 UNKNOWN != REMOVE
-ONE CLOSURE UNIT AT A TIME
 SOURCE != RUNTIME PROOF
 GIT != PRODUCTION PROOF
 NO CLOSURE CLAIM WITHOUT CURRENT EVIDENCE
+ONE CLOSURE UNIT AT A TIME
 ```
+
+## ARCHITECTURAL CONTRACTS
+
+### Physical Stock
+
+```text
+PHYSICAL STOCK MOVEMENT
+        ↓
+post_stock_movement
+        ↓
+stock_branches + inventory_log
+```
+
+`reserve_stock` / `release_stock_reservation` are Reservation Engines only.
+No other Writer may mutate Physical Stock independently.
+
+### Tenant / Company
+
+Authenticated user must resolve through `users.auth_id → users.company_id` and all company-bound operational reads/writes must use that company context.
+Do not use global `LIMIT 1` for company-bound identity.
+
+### Item Identity
+
+Current Production Schema proves:
+
+```text
+items.item_code = UNIQUE globally
+```
+
+Therefore `item_code` may remain the global Item Master identity where the schema contract explicitly makes it global. Company-bound tables still require their own `company_id` / branch relationship checks.
+
+### Fulfillment Identity
+
+```text
+order_details.order_id → orders.id
+```
+`order_details.order_code` does not exist in Production and must not be used.
+
+### Realtime
+
+Realtime infrastructure should be centralized after full-parent integration. Do not create duplicate local subscriptions in individual fragments before `core.js` / parent runtime architecture is verified.
 
 ## MAIN4
 
 ```text
+PATH = Current/PWA/main2/main4.md
+BLOB = e89d29e4164c68784c109292f27d4d77df240557
 SOURCE = CLOSED
 RUNTIME = OPEN
-BLOB = e89d29e4164c68784c109292f27d4d77df240557
 ```
 
-## MAIN5 — CURRENT TARGET
+## MAIN5
+
+Current Git has moved beyond the stale state reference that was previously stored in `CURRENT_STATE.md`.
 
 ```text
 PATH = Current/PWA/main2/main5.md
-BLOB = 9f9926511c47f0295019daaf09ff4b5a1a2efc50
-FULL SOURCE READ = REVERIFIED 2026-09-08 THROUGH EOF
-EOF = window.RW_Runsheets = RW_Runsheets;
-SOURCE = OPEN
-RUNTIME = OPEN
+CURRENT BLOB = c4518d05ada50830e819563a55169843679d3e94
+CURRENT SOURCE EOF = window.RW_Runsheets = RW_Runsheets;
 ```
 
-`main5.md` was not modified during this session.
+M5-20 source reconciliation is present in the current Git source. The `Invoiced` deletion capability remains intentionally preserved for the historical/authorized manager path and must NOT be reverted to Report81's superseded remove-Invoiced decision.
 
-## MAIN5 — VERIFIED CLOSED ITEMS
-
-```text
-M5-15 = CLOSED BY SOURCE
-M5-16 = CLOSED BY SOURCE
-M5-17-A = CLOSED BY SOURCE
-M5-17-B = CLOSED BY SOURCE
-M5-18 = CLOSED BY SOURCE + PRODUCTION REALTIME FOUNDATION
-M5-19 = CLOSED BY SOURCE + PRODUCTION REALTIME FOUNDATION
-M5-13-A = SOURCE VERIFIED / APPLIED
-M5-13-B = SOURCE VERIFIED / APPLIED
-M5-13-C = SOURCE VERIFIED / APPLIED
-```
-
-## M5-13 — BACKEND + SOURCE ROUTING
+Production M5-20 capability remains:
 
 ```text
-RPC = public.manage_runsheet_atomic
-OPERATIONS = UPDATE / CANCEL / DELETE
-SECURITY = SECURITY DEFINER
-EDGE = manage-runsheet v1 ACTIVE
+public.delete_order_atomic
+Edge = delete-order v9 ACTIVE
 VERIFY_JWT = true
 ```
 
-M5-13 remains closed and was not reopened.
+Main5 runtime/browser/full-parent closure remains OPEN until demonstrated after final integration.
 
-## M5-20 — CURRENT RECONCILED STATE
-
-The previous Report81 conclusion that `Invoiced` must be removed from main5 is superseded by newly re-opened historical evidence and the owner’s explicit historical contract.
-
-### Historical Contract
-
-The original `rawaie-erp-review/Edge_Functions/original/01_order_lifecycle/delete-order.ts` proves that the historical parent system supported deletion of executed orders after reversal of stock/accounting effects.
-
-The current owner clarification confirms the specific business rule:
-
-```text
-Cashier POS may create the invoice.
-Cashier must NOT receive the authority to modify/delete an executed POS invoice.
-Parent system / authorized manager / authorized supervisor may delete it.
-Deleting an Invoiced POS order returns the system to the pre-order state by reversing effects and hard-deleting the order.
-```
-
-### Current Target Contract
-
-`Invoiced` deletion is preserved, but is now owned by the Production Core capability rather than by UI logic alone.
-
-```text
-Invoiced
-+
-source = pos
-+
-no runsheet_id
-+
-privileged effective permission
-→ delete_order_atomic
-→ reverse stock/accounting/ledgers
-→ audit
-→ hard delete
-```
-
-### Privileged effective permissions verified in Production
-
-```text
-*
-general_manager
-sales_manager
-sales_supervisor
-```
-
-Current active user population matching these authorities = 4.
-
-Current active non-privileged users = 20.
-
-The current cashier record has:
-
-```text
-role = كاشير
-permissions = ["pos"]
-role_id = NULL
-```
-
-and does not match the privileged authority set.
-
-## M5-20 — PRODUCTION IMPLEMENTATION
-
-### Database Core
-
-Created/updated:
-
-```text
-public.delete_order_atomic(uuid,text,text)
-```
-
-Properties:
-
-```text
-SECURITY DEFINER = true
-anon EXECUTE = false
-authenticated EXECUTE = false
-service_role EXECUTE = true
-```
-
-The function:
-
-```text
-preserves Draft / Confirmed / Pending deletion
-restricts Invoiced deletion to POS-origin invoices
-requires privileged effective permission
-requires no runsheet linkage
-reverses Physical Stock through post_stock_movement
-reverses Journal through post_journal_entry
-reverses Customer Ledger through post_customer_ledger_entry when applicable
-reverses Driver Ledger through post_driver_ledger_entry when applicable
-records delete operation in erp_operation_registry
-writes audit_log
-then deletes order_details and orders
-```
-
-### Inventory Ownership
-
-The Physical Stock contract remains immutable:
-
-```text
-PHYSICAL STOCK MOVEMENT
-→ post_stock_movement
-→ stock_branches + inventory_log
-```
-
-The new order deletion capability contains no direct `stock_branches.qty` mutation.
-
-### Edge Function
-
-`delete-order` was updated and deployed:
-
-```text
-VERSION = 9
-STATUS = ACTIVE
-VERIFY_JWT = true
-DEPLOYMENT ID = cd9b6859-725b-4286-8a7d-e7d503da0280
-DEPLOYMENT UTC = 2026-09-08 03:12:17.477000+
-```
-
-Git source was updated at:
-
-```text
-Current/Edge_Functions/delete-order
-```
-
-Source update commit:
-
-```text
-a4c26d7c5e1a0ebfb0d394b04810126c497b18a4
-```
-
-Canonical migration recorded in Git:
-
-```text
-supabase/migrations/20260908_close_parent_pos_invoiced_order_deletion.sql
-```
-
-Migration commit:
-
-```text
-9c2dab4cb7a5f04a36472ae92324f90f1c2380fe
-```
-
-## M5-20 — SOURCE INSTRUCTIONS FOR MAIN5
-
-`main5.md` is owned by the user for surgical source editing. Do not modify it through tools.
-
-Do NOT apply Report81's old instruction to remove `Invoiced` entirely.
-
-Apply exactly these source changes:
-
-### M5-20-A — RW_Orders._renderTable
-
-Find this complete block:
-
-```js
-// ✅ تعديل: إضافة Invoiced للحالات التي يمكن حذفها (طالما لا يوجد runsheet_id)
-console.log('DEBUG_DELETE:', o.order_code, o.order_status, o.runsheet_id);
-var canDelete = (o.order_status === 'Draft' || o.order_status === 'Confirmed' || o.order_status === 'Invoiced') && !o.runsheet_id;
-```
-
-Delete the complete block through the line ending:
-
-```text
-!o.runsheet_id;
-```
-
-Replace it with:
-
-```js
-var currentUser = (typeof RW_STATE !== 'undefined' && RW_STATE.app) ? RW_STATE.app.currentUser : null;
-var permissions = (currentUser && Array.isArray(currentUser.permissions)) ? currentUser.permissions : [];
-var canDeleteInvoiced = !!(currentUser && (currentUser.isOwner === true || permissions.indexOf('*') !== -1 || permissions.indexOf('general_manager') !== -1 || permissions.indexOf('sales_manager') !== -1 || permissions.indexOf('sales_supervisor') !== -1));
-var canDelete = (o.order_status === 'Draft' || o.order_status === 'Confirmed' || o.order_status === 'Pending' || (o.order_status === 'Invoiced' && canDeleteInvoiced)) && !o.runsheet_id;
-```
-
-### M5-20-B — Debug removal
-
-Find this complete line:
-
-```js
-console.log('DEBUG_DELETE:', o.order_code, o.order_status, o.runsheet_id);
-```
-
-Delete the complete line, including `);`.
-
-### M5-20-C — RW_Orders._showDetails
-
-Find this complete five-line block:
-
-```js
-// ✅ زر حذف الأوردر – يظهر لـ Draft، Pending، Confirmed غير المرتبطة برانشيت
-// ✅ تعديل: إضافة Invoiced واستبعاد Returned/Partially Returned
-var cannotDeleteStatuses = ['Returned', 'Partially Returned', 'Cancelled'];
-var isDeletable = (order.order_status === 'Draft' || order.order_status === 'Pending' || order.order_status === 'Confirmed' || order.order_status === 'Invoiced');
-var canDelete = isDeletable && !order.runsheet_id && cannotDeleteStatuses.indexOf(order.order_status) === -1;
-```
-
-Delete the complete block through the line ending:
-
-```text
-cannotDeleteStatuses.indexOf(order.order_status) === -1;
-```
-
-Replace it with:
-
-```js
-// ✅ حذف Invoiced من النظام الأم متاح فقط للمستخدم المصرح له تاريخيًا.
-var currentUser = (typeof RW_STATE !== 'undefined' && RW_STATE.app) ? RW_STATE.app.currentUser : null;
-var permissions = (currentUser && Array.isArray(currentUser.permissions)) ? currentUser.permissions : [];
-var canDeleteInvoiced = !!(currentUser && (currentUser.isOwner === true || permissions.indexOf('*') !== -1 || permissions.indexOf('general_manager') !== -1 || permissions.indexOf('sales_manager') !== -1 || permissions.indexOf('sales_supervisor') !== -1));
-var isDeletable = (order.order_status === 'Draft' || order.order_status === 'Pending' || order.order_status === 'Confirmed' || (order.order_status === 'Invoiced' && canDeleteInvoiced));
-var canDelete = isDeletable && !order.runsheet_id;
-```
-
-No other main5 edits are authorized in M5-20.
-
-## TESTING / EVIDENCE
-
-### Production current data
-
-Fresh SQL verification:
-
-```text
-UTC = 2026-09-08 03:10:41.530622+
-orders = 0
-invoiced_orders = 0
-pos_origin_orders = 0
-```
-
-Therefore no live operational Invoiced POS order existed to execute a destructive reversal test.
-
-### Production database verification
-
-Verified:
-
-```text
-post_stock_movement exists and remains canonical
-post_journal_entry exists
-post_customer_ledger_entry exists
-post_driver_ledger_entry exists
-delete_order_atomic exists
-```
-
-### Runtime limitations
-
-Full live success path for deleting an actual Invoiced POS order remains unproven because the current Production database contains no eligible order and the safe fixture injection path was blocked by execution safety controls.
-
-No permanent test data was inserted.
-
-No Production business order was modified or deleted in this closure.
-
-## FAILED ATTEMPTS / FAILURE MEMORY
-
-### Test harness failure 1
-A Transaction test was initially written with `DECLARE` outside a PL/pgSQL block.
-
-Result: test did not reach business execution.
-
-### Test harness failure 2
-A test fixture attempted to write `order_details.line_amount` directly.
-
-Production schema proved it is a generated column.
-
-Result: test method corrected; production schema was not changed.
-
-### Test harness failure 3
-Direct fixture DML for a full Invoiced-order runtime test was blocked by tool safety.
-
-Result: no persistent test pollution and no bypass of safety controls.
-
-### Important reconciliation failure avoided
-Report81's previous recommendation to remove Invoiced from main5 was NOT reapplied. Historical contract evidence was reopened before source modification and changed the decision.
-
-## DATA REPAIR
-
-No Production data repair was required in this closure because current Production contains no Orders and no Invoiced POS orders.
-
-No permanent fixture data was introduced.
-
-## CURRENT GIT STATE
-
-Main5 source remains:
-
-```text
-9f9926511c47f0295019daaf09ff4b5a1a2efc50
-```
-
-The current main branch now also contains:
-
-```text
-Edge source update commit = a4c26d7c5e1a0ebfb0d394b04810126c497b18a4
-Canonical migration commit = 9c2dab4cb7a5f04a36472ae92324f90f1c2380fe
-Report82 commit = be610db2fdafe4f959581bc107dcff2e1f6f507a
-```
-
-The state file update is the current administrative continuity update; the Main5 source blob itself is unchanged.
-
-## REPORT HISTORY
-
-```text
-Report79 = M5-13 backend closure + source instructions
-Report80 = M5-13 source reconciliation + M5-20 discovery
-Report81 = M5-20 previous consumer-drift conclusion
-Report82 = M5-20 historical contract reconciliation + Production capability restoration
-```
-
-No report was deleted.
-
-## WHAT CHANGED THIS SESSION
-
-```text
-Current/PWA/main2/main5.md = NOT MODIFIED
-Current/Edge_Functions/delete-order = UPDATED
-Production delete_order_atomic = CREATED / HARDENED
-Production delete-order = DEPLOYED v9
-Canonical migration = ADDED TO GIT
-Report82 = CREATED
-CURRENT_STATE.md = UPDATED
-Production business data = NOT MODIFIED
-```
-
-## WHAT WAS PROVEN
-
-```text
-main5 was read from SOF through EOF
-Historical delete-order contract supports executed-order reversal/delete
-The owner’s historical POS Invoiced deletion rule is consistent with the historical implementation
-Current Production had dropped that capability
-The capability is now rebuilt in the current Core architecture
-Physical Stock reversal is delegated to post_stock_movement
-Accounting reversal is delegated to post_journal_entry
-Customer/Driver reversal uses their current ledger engines
-Backend grants do not expose delete_order_atomic to authenticated/anon
-Edge delete-order v9 is ACTIVE and verify_jwt=true
-main5 remains untouched
-```
-
-## WHAT WAS NOT PROVEN
-
-```text
-Live successful deletion of an actual Invoiced POS order in current Production
-Live browser E2E for M5-20
-Post-delete realtime browser behavior
-Final parent release closure
-```
-
-## FINAL STATUS
-
-```text
-HISTORICAL CONTRACT = RECONCILED
-PRODUCTION DB CAPABILITY = IMPLEMENTED
-PRODUCTION DEPLOYMENT = CLOSED
-GIT EDGE SOURCE = ALIGNED
-CANONICAL MIGRATION = RECORDED
-MAIN5 SOURCE = OPEN / USER PATCH REQUIRED
-MAIN5 RUNTIME = OPEN
-LIVE INVOICED REVERSAL TEST = OPEN
-BROWSER E2E = OPEN
-MAIN5 FINAL RELEASE GATE = OPEN
-```
-
-## LAST VERIFIED EVENT
-
-```text
-EVENT = Main5 M5-20 historical contract reconciliation + Production capability restoration
-UTC = 2026-09-08 03:12:17.477000+
-PRODUCTION = fiilmooggumokxanwiyx
-GIT SOURCE EVENT = a4c26d7c5e1a0ebfb0d394b04810126c497b18a4
-PRODUCTION EDGE = delete-order v9 ACTIVE
-PRODUCTION RPC = public.delete_order_atomic
-MAIN5 BLOB = 9f9926511c47f0295019daaf09ff4b5a1a2efc50
-REPORT = doc/Draft/Reprots/Report82_Main5_M5-20_Historical_Contract_Reconciliation_20260908.md
-RESULT = Historical contract reconciled; backend capability restored; main5 source surgery still open; live Invoiced runtime closure not yet proven
-```
-
-## MAIN6 — 2026-09-08 FORENSIC SURGICAL RECONCILIATION
-
-Target:
+## MAIN6 — CURRENT TARGET
 
 ```text
 PATH = Current/PWA/main2/main6.md
 BLOB = 87287d8da56a5411f9f31243b38b9c06dbf91d2b
+PART = fourth fragment of main2
 SOURCE = OPEN / SURGERY SPECIFIED
 RUNTIME = OPEN
 ```
 
-### Production verification
+The file was read from SOF through EOF. Current EOF is:
+
+```js
+window.RW_Purchases = RW_Purchases;
+```
+
+No source modification to Main6 was performed by the assistant. This is intentional and must remain so: the user owns manual source surgery for `Current/PWA/main2/main6.md`.
+
+## MAIN6 — PRODUCTION REALITY VERIFIED
 
 ```text
 submit-online-order = v7 ACTIVE / verify_jwt=true
 save-purchase-order = v3 ACTIVE / verify_jwt=true
 receive-purchase = v12 ACTIVE / verify_jwt=true
-receive_purchase_atomic = p_company_id uuid, p_po_code text, p_user_email text, p_items jsonb, p_operation_id uuid
 ```
 
-`receive_purchase_atomic` currently uses `receiving.operation_id` as the existing idempotency identity and delegates Physical Stock to `post_stock_movement`.
+Current `receive_purchase_atomic` signature:
 
-### Main6 confirmed source defects
+```text
+p_company_id uuid,
+p_po_code text,
+p_user_email text,
+p_items jsonb,
+p_operation_id uuid
+```
+
+`receive_purchase_atomic` uses existing `receiving.operation_id`, which is UNIQUE, and delegates Physical Stock to `post_stock_movement`.
+
+No new Main6-specific Production migration was justified at this checkpoint; no Production business data was changed because of Main6 in this session.
+
+## MAIN6 — VERIFIED SOURCE DEFECTS
 
 ```text
 M6-01 = Online Store app_settings global lookup
-M6-02 = Track Order missing company scope + wrong order_details key
+M6-02 = Track Order missing company scope + invalid order_details.order_code lookup
 M6-03 = Purchase Orders list missing company scope
-M6-04 = Open Receive missing company scope + checks PO after details lookup
-M6-05 = Suppliers read missing company scope
+M6-04 = Open Receive missing company scope + detail query before PO guard
+M6-05 = Suppliers load missing company scope
 M6-06 = Purchase refresh missing company scope
-M6-07 = Receive dialog defaults to ordered quantity instead of remaining quantity
-M6-08 = Track Order item_name not passed through existing esc() helper
-M6-09 = savePO missing explicit session-token guard
+M6-07 = Receive dialog defaults to qty_ordered instead of remaining quantity
+M6-08 = Track Order item_name not escaped before HTML insertion
+M6-09 = savePO lacks explicit token guard before fetch
 ```
 
-### Exact source instruction status
+## MAIN6 — EXACT SURGERY REFERENCE
 
-Full replacement blocks for the above Main6 surgeries are recorded in:
+The exact complete replacement windows are recorded in:
 
 ```text
 doc/Draft/Reprots/Report83_Main6_M6-Forensic_Surgical_Reconciliation_20260908.md
+doc/Draft/Reprots/Report84_Main6_M6-Source_Surgical_Execution_20260908.md
 ```
 
-The user must apply the Main6 source surgeries manually. The assistant must not modify `Current/PWA/main2/main6.md` directly.
+The user must execute all nine source surgeries exactly and not alter adjacent code outside the specified windows.
 
-### Main6 — no Production patch required now
+### M6-01
+Replace the complete settings-load try/catch in `RW_OnlineStore.render()`:
 
-Current Production backend contracts were reverified and are consistent with the Main6 source consumers for online order, purchase order, and purchase receiving.
+```js
+    try {
+      var sRes = await supabase.from('app_settings').select('*').limit(1).single();
+      if (!sRes.error && sRes.data) {
+        deliveryFee = Number(sRes.data.delivery_fee) || 0;
+        taxRate = Number(sRes.data.tax_rate) || 0;
+      }
+    } catch(e) {}
+```
 
-No new Main6-specific Production migration was justified at this checkpoint.
+with:
 
-### Main6 Realtime decision
+```js
+    try {
+      var companyId = _rwCompanyId();
+      if (!companyId) throw new Error('سياق الشركة غير محدد');
+      var sRes = await supabase.from('app_settings')
+        .select('delivery_fee, tax_rate')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (sRes.error) throw sRes.error;
+      if (sRes.data) {
+        deliveryFee = Number(sRes.data.delivery_fee) || 0;
+        taxRate = Number(sRes.data.tax_rate) || 0;
+      }
+    } catch(e) {
+      deliveryFee = 0;
+      taxRate = 0;
+      console.error('Online Store settings load failed:', e);
+    }
+```
 
-No new local Realtime subscription was added to Main6 without first proving the shared `core.js` / runtime subscription architecture after full-parent merge.
+### M6-02-A
+In `trackOrder()` replace the complete block beginning with:
 
-### Main6 closure gate
+```js
+      var o = await supabase.from('orders').select('*').eq('order_code', input.value).maybeSingle();
+```
+
+and ending with:
+
+```js
+      var it = await supabase.from('order_details').select('*').eq('order_code', input.value);
+```
+
+with:
+
+```js
+      var companyId = _rwCompanyId();
+      if (!companyId) throw new Error('سياق الشركة غير محدد');
+      var code = String(input.value || '').trim();
+      var o = await supabase.from('orders')
+        .select('id, order_code, customer_name, area, total_amount, order_status')
+        .eq('company_id', companyId)
+        .eq('order_code', code)
+        .maybeSingle();
+      if (o.error || !o.data) { hideLoader(); Swal.fire({ title: 'الطلب غير موجود', text: 'لم يتم العثور على طلب بهذا الرقم', icon: 'error' }); return; }
+      var it = await supabase.from('order_details')
+        .select('item_name, qty, unit_price, line_amount')
+        .eq('order_id', o.data.id);
+      if (it.error) throw it.error;
+```
+
+### M6-02-B
+Replace the full title line:
+
+```js
+      Swal.fire({ title: 'تفاصيل الطلب: ' + input.value, html: detailH, width: '700px', showCloseButton: true, showConfirmButton: false });
+```
+
+with:
+
+```js
+      Swal.fire({ title: 'تفاصيل الطلب: ' + code, html: detailH, width: '700px', showCloseButton: true, showConfirmButton: false });
+```
+
+### M6-08
+In the complete Track Order item row, replace only the expression:
+
+```js
+(i.item_name || '')
+```
+
+with:
+
+```js
+esc(i.item_name || '')
+```
+
+Do not delete the rest of the line.
+
+### M6-03
+Replace this complete line:
+
+```js
+    var res=await supabase.from('purchase_orders').select('*'); poData=res.data||[]; renderPOTable(poData);
+```
+
+with:
+
+```js
+    var companyId = _rwCompanyId();
+    if (!companyId) { showToast('سياق الشركة غير محدد','error'); return; }
+    var res=await supabase.from('purchase_orders')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('po_date', { ascending: false });
+    if (res.error) { showToast('تعذر تحميل أوامر الشراء','error'); return; }
+    poData=res.data||[];
+    renderPOTable(poData);
+```
+
+### M6-04
+Inside `async function openReceive(poCode){`, replace the complete block beginning with:
+
+```js
+    var poRes=await supabase.from('purchase_orders').select('*').eq('po_code',poCode).maybeSingle();
+```
+
+and ending with:
+
+```js
+    if(!poRes.data){ showToast('أمر الشراء غير موجود','error'); return; }
+```
+
+with:
+
+```js
+    var companyId = _rwCompanyId();
+    if (!companyId) { hideLoader(); showToast('سياق الشركة غير محدد','error'); return; }
+
+    var poRes=await supabase.from('purchase_orders')
+      .select('*')
+      .eq('company_id',companyId)
+      .eq('po_code',poCode)
+      .maybeSingle();
+    if(poRes.error){ hideLoader(); showToast('تعذر تحميل أمر الشراء','error'); return; }
+    if(!poRes.data){ hideLoader(); showToast('أمر الشراء غير موجود','error'); return; }
+
+    var itemsRes=await supabase.from('purchase_order_details')
+      .select('*')
+      .eq('po_id',poRes.data.id);
+    if(itemsRes.error){ hideLoader(); showToast('تعذر تحميل تفاصيل أمر الشراء','error'); return; }
+    hideLoader();
+```
+
+### M6-05
+Replace this complete line:
+
+```js
+    if (!RW_STATE.data.suppliers || !RW_STATE.data.suppliers.length) { try { var sRes = await supabase.from('suppliers').select('*'); RW_STATE.data.suppliers = sRes.data || []; } catch(e) {} }
+```
+
+with:
+
+```js
+    if (!RW_STATE.data.suppliers || !RW_STATE.data.suppliers.length) {
+      try {
+        var companyId = _rwCompanyId();
+        if (!companyId) throw new Error('سياق الشركة غير محدد');
+        var sRes = await supabase.from('suppliers')
+          .select('*')
+          .eq('company_id', companyId)
+          .order('name', { ascending: true });
+        if (sRes.error) throw sRes.error;
+        RW_STATE.data.suppliers = sRes.data || [];
+      } catch(e) {
+        console.error('Suppliers load failed:', e);
+        RW_STATE.data.suppliers = [];
+      }
+    }
+```
+
+### M6-06
+After successful purchase-order save, replace this complete reload block:
+
+```js
+              supabase.from('purchase_orders').select('*').then(function(d) {
+                  poData = d.data || [];
+                  renderPOTable(poData);
+              });
+```
+
+with:
+
+```js
+              var companyId = _rwCompanyId();
+              if (companyId) {
+                supabase.from('purchase_orders')
+                  .select('*')
+                  .eq('company_id', companyId)
+                  .order('po_date', { ascending: false })
+                  .then(function(d) {
+                    if (d.error) { showToast('تعذر تحديث قائمة أوامر الشراء','error'); return; }
+                    poData = d.data || [];
+                    renderPOTable(poData);
+                  });
+              }
+```
+
+### M6-07
+Replace the complete receive-row line:
+
+```js
+      items.forEach(function(it,idx){ itemsH+='<tr><td class="p-2 font-semibold">'+(it.item_name||'')+'</td><td class="p-2 text-center font-bold">'+(it.qty_ordered||0)+'</td><td class="p-2 text-center"><input type="number" id="rec-qty-'+idx+'" value="'+(it.qty_ordered||0)+'" class="w-20 p-1 border rounded text-center" min="0"></td></tr>'; });
+```
+
+with:
+
+```js
+      items.forEach(function(it,idx){ var remaining=Math.max(0,Number(it.qty_ordered||0)-Number(it.qty_received||0)); itemsH+='<tr><td class="p-2 font-semibold">'+(it.item_name||'')+'</td><td class="p-2 text-center font-bold">'+(it.qty_ordered||0)+'</td><td class="p-2 text-center"><input type="number" id="rec-qty-'+idx+'" value="'+remaining+'" max="'+remaining+'" class="w-20 p-1 border rounded text-center" min="0"></td></tr>'; });
+```
+
+### M6-09
+Replace the complete adjacent pair:
+
+```js
+    var ses=await supabase.auth.getSession(),t=ses.data.session&&ses.data.session.access_token;
+    try{
+```
+
+with:
+
+```js
+    var ses=await supabase.auth.getSession(),t=ses.data.session&&ses.data.session.access_token;
+    if(!t){ hideLoader(); showToast('انتهت الجلسة','error'); return; }
+    try{
+```
+
+## MAIN6 — TESTED / VERIFIED BEFORE USER SURGERY
+
+Confirmed from current Production:
 
 ```text
+items.item_code UNIQUE globally
+order_details.order_code DOES NOT EXIST
+order_details.order_id EXISTS
+purchase_orders.company_id NOT NULL
+suppliers.company_id NOT NULL
+app_settings.company_id NOT NULL
+receiving.operation_id UNIQUE
+```
+
+Confirmed current backend consumers are aligned:
+
+```text
+submit-online-order v7
+save-purchase-order v3
+receive-purchase v12
+```
+
+No new Main6 Production migration is justified at this checkpoint.
+
+## MAIN6 — FAILURE MEMORY
+
+```text
+1. Do not apply the old Report100 closure because it targeted Current/PWA/main/main6.md, not Current/PWA/main2/main6.md.
+2. Do not trust the stale Main5 SHA in older CURRENT_STATE entries; current Git source is the authority for current source state.
+3. Do not add local Main6 Realtime listeners before shared core.js / parent runtime integration is checked.
+4. Do not use order_details.order_code.
+5. Do not use global LIMIT 1 for company-bound operational data.
+6. Do not declare source success as runtime success.
+```
+
+## MAIN6 — CURRENT GATE
+
+```text
+FORENSIC UNDERSTANDING = COMPLETE
+PRODUCTION BACKEND VERIFICATION = COMPLETE
 SOURCE SURGERY = PENDING USER EXECUTION
-FULL SOURCE RE-READ = PENDING
-MAIN2 FULL MERGE = PENDING
-FULL PARENT SYNTAX CHECK = PENDING
+SOURCE RE-READ = PENDING
+EOF VALIDATION = PENDING
+MAIN2 MERGE = PENDING
+PARENT core.js/sw.js/register-sw.js/manifest.json REVIEW = PENDING
+FULL PARENT SYNTAX = PENDING
 BROWSER/PWA E2E = PENDING
-REALTIME CROSS-APP VERIFICATION = PENDING
+REALTIME CROSS-APP = PENDING
+PRODUCTION SNAPSHOT AT FINAL REPORT = PENDING
 MAIN6 100% CLOSED = NOT CLAIMED
 ```
 
-## CONTINUITY RULE FOR NEXT SESSION
+## REPORT HISTORY
+
+```text
+Report82 = Main5 M5-20 historical contract reconciliation + Production capability restoration
+Report83 = Main6 forensic surgical reconciliation
+Report84 = Main6 current-source revalidation + exact surgical execution record
+```
+
+No previous report was deleted.
+
+## NEXT SESSION ENTRY POINT
 
 Do not start from zero.
 
-The next session must begin from:
+Start with:
 
 ```text
-LATEST REPORT = Report83
+LATEST REPORT = Report84
 LATEST STATE = CURRENT_STATE.md
+LATEST MAIN HEAD = 523fce99b65c0cd7614cf31d6cbff9c649590429
 MAIN6 TARGET = Current/PWA/main2/main6.md
 MAIN6 BLOB = 87287d8da56a5411f9f31243b38b9c06dbf91d2b
-MAIN6 PRODUCTION BACKEND = VERIFIED
-MAIN6 SOURCE = SURGERY PENDING
-MAIN5 SOURCE = STILL OPEN IN CURRENT GIT BLOB
+MAIN6 SOURCE SURGERY = USER PENDING
+MAIN6 PRODUCTION BACKEND = VERIFIED / NO NEW PATCH REQUIRED
+MAIN5 CURRENT BLOB = c4518d05ada50830e819563a55169843679d3e94
 ```
 
-The first action after the user applies Main6 changes is:
+The first action after the user completes the Main6 source edits is:
 
 ```text
-READ MAIN6 FROM SOF TO EOF
-VERIFY EVERY SURGERY WINDOW
-VERIFY EOF CLOSURE
-THEN MERGE WITH MAIN2
-THEN RUN FULL PARENT INTEGRATION / BROWSER TEST
+READ MAIN6 SOF → EOF
+COMPARE EVERY SURGERY WINDOW
+CHECK BRACES / QUOTES / IIFEs
+VERIFY EOF = window.RW_Purchases = RW_Purchases;
+THEN PROCEED TO MAIN2 FULL MERGE
 ```
 
-Do not transfer any closure claim from `Current/PWA/main/main6.md` to `Current/PWA/main2/main6.md`.
-
-Do not claim Production Pass from source-only evidence.
-
-Do not reopen the superseded Report81 Invoiced-removal decision.
+Do not claim Main6 Closed 100% before source, merge, parent syntax, browser/PWA E2E, Realtime verification, and a fresh Production snapshot are all proven.
