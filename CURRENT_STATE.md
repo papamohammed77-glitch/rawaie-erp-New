@@ -48,6 +48,7 @@ Report85 established the main2/main assembly source conflict.
 Report86 continued with Production reconciliation and Main7 forensic review.
 Report87 re-reviewed the evidence and corrected M7-08: lifecycle stage labels must not be changed from the established business lifecycle.
 Report88 re-read the CURRENT Main7 SHA directly and reconciled Production against the current source again.
+Report89 added the current full surgical review and expanded Main7 closure requirements where direct Production schema proved additional Main7 defects.
 
 ### 6. Production Reality — current checkpoint
 Supabase project: `fiilmooggumokxanwiyx`
@@ -59,6 +60,8 @@ Direct Production verification during the current Main7 recheck confirmed the re
 - `save-inventory-count` Production v2 stores vehicle counts against `mobile_branch_id || vehicle.id` and writes details to `inventory_count_details`.
 - `runsheets` enforces `UNIQUE(company_id, runsheet_code)`.
 - `stock_voucher_details` uses `voucher_id` for parent linkage; it does not have `voucher_code` as a detail column.
+- `items.item_code` is globally UNIQUE in Production.
+- `order_details` does not contain `runsheet_id`; Order-to-Runsheet traversal is through `orders.runsheet_id -> orders.id -> order_details.order_id`.
 
 No persistent Delivery/Order fixture was created merely to test Main7.
 
@@ -169,9 +172,14 @@ Replace that hardcoded `countedQty: 0` logic by:
 - set `inventoryEntityId = mobile_branch_id || vehicle.id`;
 - read the latest `inventory_counts` row using:
   `company_id = companyId`, `type = 'vehicle'`, `entity_id = inventoryEntityId`, ordered by `created_at DESC`;
-- read its `inventory_count_details` by `count_id`;
+- read `inventory_count_details` by `count_id`;
 - build `countedByItem[item_code] = counted_qty`;
 - use that value in `itemsMap`.
+
+#### M7-10A — Settlement Runsheet company scope
+In `loadSettlement()`, replace the current `runsheets` query:
+`var runsheetsRes = await supabase.from('runsheets').select('runsheet_code, driver_id').in('status', ['Delivered', 'Returned']);`
+with a company-scoped query using `RW_STATE.app.companyId`.
 
 #### M7-10B — broken stock-voucher detail lookup inside settlement
 Exact current area: `_onSettlementRsChange()`, current lines approximately 950–955.
@@ -183,25 +191,29 @@ through:
 
 Replace it with a company-scoped `stock_vouchers` lookup selecting `id,voucher_code`, build `voucherIds` from `id`, then query `stock_voucher_details` with `.in('voucher_id', voucherIds)`.
 
-Production Schema proof: `stock_voucher_details` has `voucher_id` and no `voucher_code` detail column.
+#### M7-10C — invalid order_details Runsheet lookup
+Delete the current line:
+`var orderDetailsRes = await supabase.from('order_details').select('*').eq('runsheet_id', rs.id);`
+
+Replace it with an `orders` lookup by `company_id + runsheet_id`, extract `orders.id`, then load `order_details` with `.in('order_id', orderIds)`.
 
 #### M7-12 — Vehicle Count entity identity
-Current `_saveVehicleCount()` uses:
-`var entityId = window._selectedDriver || '';`
-then calls:
-`await _saveInvCount('vehicle', entityId, reference || 'جرد سيارة');`
+Current `_saveVehicleCount()` begins approximately at line 835. It currently sends `window._selectedDriver` as the vehicle entity.
 
-This is incompatible with Production `save-inventory-count`, which validates vehicle `entityId` against `vehicles.id` and then maps to `mobile_branch_id` when present.
+Delete the complete current `_saveVehicleCount()` function and replace it with the vehicle-resolution function recorded in Report89:
+- preserve selected driver UI;
+- resolve selected driver to `users.id` within company;
+- when a Runsheet is selected, use its company-scoped `vehicle_id`;
+- otherwise resolve a company-scoped vehicle by `vehicles.driver_id`;
+- pass `vehicle.id` to `_saveInvCount('vehicle', ...)`.
 
-Owner replacement for the complete `_saveVehicleCount()` function:
-- keep the selected driver UI;
-- resolve the selected driver to `users.id` inside current company;
-- when a Runsheet is selected, resolve that Runsheet by `company_id + runsheet_code` and use its `vehicle_id`;
-- when no Runsheet is selected, resolve the driver's active vehicle from `vehicles.driver_id` within company scope;
-- reject only when no vehicle can be resolved;
-- call `_saveInvCount('vehicle', vehicleId, reference || 'جرد سيارة')`.
+#### M7-11 — Branch Inventory Count entity
+In `loadBranchCount()`, change the option value from `b.branch_code || b.id` to `b.id || b.branch_code`, so the selected entity is the branch UUID expected by `save-inventory-count`.
 
-Do not pass driver email as `entityId` to the vehicle inventory-count contract.
+#### M7-13 — General Inventory Count entity
+In `_saveGeneralCount()`, delete the use of literal `MAIN` as `entityId`.
+
+Resolve `app_settings.main_branch_id` by `company_id`, then call `_saveInvCount('general', mainBranchId, ...)`.
 
 ### 13. Main7 items intentionally NOT changed
 - M7-08 lifecycle labels: NOT an error; Report87 is authoritative on this point.
@@ -209,12 +221,15 @@ Do not pass driver email as `entityId` to the vehicle inventory-count contract.
 - `complete_return_atomic`: NOT modified.
 - Physical Stock Core: NOT modified for Main7.
 - `_showUnloadingDetails()`: remains placeholder; no behavior invented without a proven contract.
+- `Current/PWA/driver.html` business workflow: not redesigned.
 
 ### 14. Tests and failures in current recheck
 - Production Delivery contracts were read directly.
 - Production vehicle inventory-count contract was read directly.
 - Production schema for Runsheet and stock voucher detail linkage was verified.
-- Main7 current SHA was re-read after discovering the previously recorded SHA was stale.
+- Production `items.item_code` uniqueness was verified.
+- Production `order_details` was verified not to contain `runsheet_id`.
+- Main7 current SHA was re-read directly.
 - Historical lifecycle was reconciled before prescribing any status change.
 - No permanent Order/Runsheet fixture was created to manufacture a passing Delivery test.
 
@@ -222,28 +237,39 @@ A previous temporary Purchase Receive idempotency experiment exposed a sequencin
 
 ### 15. Reports
 Latest:
-`doc/Draft/Reprots/Report88_Main7_Forensic_Recheck_20260908.md`
+`doc/Draft/Reprots/Report89_Main7_Surgical_Review_20260908.md`
 
 Previous:
+`doc/Draft/Reprots/Report88_Main7_Forensic_Recheck_20260908.md`
 `doc/Draft/Reprots/Report87`
 
 Older reports remain preserved.
 
-### 16. Next controlled action
-1. Owner applies only the exact Main7 surgical items in Section 12.
+### 16. Assembly path
+`.github/workflows/forensic_main_assembly.yml` was re-read and is already correctly configured to use `Current/PWA/main2/**` as the canonical editable source and `Current/PWA/New-main` as generated target. No path change is required.
+
+### 17. Next controlled action
+1. Owner applies only the exact Main7 surgical items recorded in Report89.
 2. Re-read Main7 SOF→EOF from the new SHA.
 3. Run JavaScript syntax validation on the reconstructed Main7 fragment.
 4. Verify all brackets, template strings and function closures.
-5. Run canonical reconstruction from `Current/PWA/main2/main1..main11`.
-6. Compare reconstructed Parent against Production Delivery/Inventory contracts.
-7. Only after source and assembly evidence pass, proceed to browser/runtime verification.
-8. Deployment to Production is a later controlled step; no Main7 production deployment is claimed now.
+5. Verify the Delivery flow does not contain `ordersData`.
+6. Verify Order lookup selects `id,order_code,customer_name`.
+7. Verify Delivery details use `order_id`.
+8. Verify Settlement uses latest vehicle Inventory Count by vehicle/mobile-branch identity.
+9. Verify Branch/General/Vehicle count entity IDs match `save-inventory-count` contract.
+10. Run canonical reconstruction from `Current/PWA/main2/main1..main11`.
+11. Only after source and assembly evidence pass, proceed to browser/runtime verification.
+12. Production deployment of the assembled parent remains a separate controlled gate.
 
-### 17. Closure statement
+### 18. Closure statement
 `PRODUCTION INVENTORY WRITER CORE = CLOSED`
 `LEGACY INVENTORY CORE EXECUTION = CLOSED`
 `MAIN2 RECONSTRUCTION SOURCE PATH = CLOSED`
 `MAIN6 SOURCE SURGERY = CLOSED`
+`MAIN7 FORENSIC RECHECK = COMPLETE`
 `MAIN7 SOURCE SURGERY = OPEN / OWNER ACTION REQUIRED`
+`DELIVERY CONTRACT = PROVEN`
+`INVENTORY COUNT CONTRACT = PROVEN`
 `FULL MAIN2 ASSEMBLY = OPEN / NOT PROVEN`
 `PARENT GOLD/DIAMOND = NOT CLOSED`
