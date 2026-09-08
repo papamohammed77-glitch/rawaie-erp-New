@@ -6,7 +6,7 @@
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
-LATEST FORENSIC REPORT = doc/Draft/Reprots/Report79_Main5_M5-13_Backend_Closure_20260908.md
+LATEST FORENSIC REPORT = doc/Draft/Reprots/Report80_Main5_M5-13_Source_Reconciliation_20260908.md
 ```
 
 ## GOVERNANCE
@@ -33,12 +33,12 @@ BLOB = e89d29e4164c68784c109292f27d4d77df240557
 
 ```text
 PATH = Current/PWA/main2/main5.md
-BLOB = fac9f9bf55e2ecdc27e5de3c7e44c5ef769d49b9
+BLOB = 9f9926511c47f0295019daaf09ff4b5a1a2efc50
 FULL SOURCE READ = VERIFIED 2026-09-08
 RUNTIME = OPEN
 ```
 
-## MAIN5 — CLOSED SOURCE PATCHES
+## MAIN5 — VERIFIED CLOSED SOURCE PATCHES
 
 ```text
 M5-15 = CLOSED BY SOURCE
@@ -47,23 +47,36 @@ M5-17-A = CLOSED BY SOURCE
 M5-17-B = CLOSED BY SOURCE
 M5-18 = CLOSED BY SOURCE + PRODUCTION REALTIME FOUNDATION
 M5-19 = CLOSED BY SOURCE + PRODUCTION REALTIME FOUNDATION
+M5-13-A = SOURCE VERIFIED / APPLIED
+M5-13-B = SOURCE VERIFIED / APPLIED
+M5-13-C = SOURCE VERIFIED / APPLIED
 ```
 
-## M5-13 — BACKEND CLOSED / SOURCE HANDOFF PENDING
+## M5-13 — BACKEND + SOURCE ROUTING
 
-Report78 identified three direct frontend mutation paths: `_details` `preConfirm`, `_deleteRunsheet`, `_cancelRunsheet`.
-
-Production now has the canonical capability:
+Production canonical capability:
 
 ```text
 RPC = public.manage_runsheet_atomic
 OPERATIONS = UPDATE / CANCEL / DELETE
 SECURITY = SECURITY DEFINER
-DIRECT EXECUTE = anon NO / authenticated NO / service_role YES
+DIRECT EXECUTE = postgres + service_role
+anon EXECUTE = NO
+authenticated EXECUTE = NO
 EDGE = manage-runsheet v1 ACTIVE
+VERIFY_JWT = true
 ```
 
-Contract:
+Source verification:
+
+```text
+main5 preConfirm -> manage-runsheet UPDATE
+main5 _deleteRunsheet -> manage-runsheet DELETE
+main5 _cancelRunsheet -> manage-runsheet CANCEL
+Direct M5-13 runsheets/orders/run_sheet_details writers in main5 = 0
+```
+
+## M5-13 PRODUCTION CONTRACT
 
 ```text
 UPDATE only Open/Confirmed; preserve current status
@@ -71,24 +84,39 @@ UPDATE validates driver and vehicle company scope
 CANCEL only Open/Confirmed
 DELETE only Open/Confirmed
 CANCEL/DELETE reject Orders outside Pending/Confirmed
-CANCEL/DELETE reject any fulfillment quantity or driver liability already posted
+CANCEL/DELETE reject fulfillment quantities or driver liability already posted
 CANCEL => Orders Confirmed + runsheet_id NULL + details deleted + Runsheet Cancelled
 DELETE => Orders Confirmed + runsheet_id NULL + details deleted + Runsheet deleted
 ALL MUTATIONS = ONE DATABASE TRANSACTION
 ```
 
-## M5-13 TEST RESULT
+## M5-20 — CURRENT OPEN SOURCE DEFECT
+
+Full-file reconciliation found a real Consumer/Backend contract drift:
 
 ```text
-UPDATE -> CANCEL transactional test = PASS
-DELETE transactional test = PASS
-FULFILLMENT GUARD qty_picked=1 = PASS; mutation rejected and data preserved
-TENANT GUARD = PASS
-RPC privilege isolation = PASS
-Production test residue = 0
+main5 UI currently offers DELETE for Invoiced orders
+Production delete-order v8 officially rejects Invoiced
+Production accepts deletion only for Draft / Confirmed / Pending
 ```
 
-After tests Production counts remain:
+Therefore:
+
+```text
+M5-20-A = OPEN
+M5-20-B = OPEN
+M5-20-C = OPEN
+```
+
+Required source corrections are documented exactly in:
+
+```text
+doc/Draft/Reprots/Report80_Main5_M5-13_Source_Reconciliation_20260908.md
+```
+
+No Production change is required for M5-20 because the backend guard is already correct.
+
+## PRODUCTION CURRENT SNAPSHOT
 
 ```text
 companies=1
@@ -99,50 +127,91 @@ orders=0
 runsheets=0
 order_details=0
 run_sheet_details=0
-stock_rows=20
-inventory_logs=3
-currency=SAR
+stock_branches=20
+inventory_log=3
 ```
 
-## FILES ADDED THIS SESSION
+## PRODUCTION REALTIME / TENANT CHECK
 
 ```text
-supabase/migrations/20260908050000_manage_runsheet_atomic_capability_m5_13.sql
-Current/Edge_Functions/manage-runsheet/index.ts
-doc/Draft/Reprots/Report79_Main5_M5-13_Backend_Closure_20260908.md
+orders SELECT = company scoped
+runsheets SELECT/UPDATE/DELETE policies = company scoped
+order_details SELECT = tenant scoped through orders
+run_sheet_details SELECT = tenant scoped through runsheets
 ```
 
-`main5.md` was NOT modified by the assistant. The user must apply the exact M5-13-A/B/C blocks in Report79.
+The absence of a direct `company_id` filter on `order_details` / `run_sheet_details` Realtime subscriptions is not currently classified as a defect because those tables are tenant-protected through their parent relations and no evidence of cross-tenant exposure was found.
 
-## NEXT ACTION
+## MASTER CONTINUITY FILES VERIFIED THIS SESSION
 
 ```text
-DO NOT move to main6 yet.
-Apply M5-13-A: replace the complete preConfirm block in _details with the manage-runsheet UPDATE block from Report79.
-Apply M5-13-B: replace complete _deleteRunsheet(code) with the DELETE capability block from Report79.
-Apply M5-13-C: replace complete _cancelRunsheet(code) with the CANCEL capability block from Report79.
-Then re-read main5 line 1 -> EOF.
-Then syntax/structure/direct-write/consumer scan.
-Then Production reconciliation again.
-Only then authorize the next part.
+MASTER - RAWAEA ERP FORENSIC CONTINUITY GOVERNANCE v2.md = READ TO EOF
+MASTER - RAWAEA ERP - UNIFIED CONTINUITY & MAIN1 EXECUTION.md = READ TO EOF
+MASTER - RAWAEA ERP.md = READ TO EOF
+```
+
+## GIT LAST VERIFIED EVENT
+
+```text
+COMMIT = bf87eac7b1623058402db1495114dd4523ebe92d
+DATE = 2026-09-08T02:22:34Z
+MESSAGE = Refactor runsheet management with async/await
+TARGET = Current/PWA/main2/main5.md
+RESULT = M5-13-A/B/C source routing applied
+```
+
+## REPORTS
+
+```text
+Report79 = backend closure + exact M5-13 source instructions
+Report80 = current source reconciliation + M5-20 contract drift discovery
+```
+
+No previous report was deleted.
+
+## FINAL STATE FOR THIS SESSION
+
+```text
+M5-13 BACKEND = CLOSED
+M5-13 SOURCE = VERIFIED / APPLIED
+M5-20 = OPEN / EXACT SOURCE PATCH REQUIRED FROM USER
+MAIN5 FINAL RELEASE GATE = OPEN
+```
+
+## NEXT AUTHORIZED ACTION
+
+```text
+Apply M5-20-A:
+replace the exact one-line canDelete expression in RW_Orders._renderTable as specified in Report80.
+
+Apply M5-20-B:
+remove the exact DEBUG_DELETE console.log line specified in Report80.
+
+Apply M5-20-C:
+replace the exact three-line canDelete block in RW_Orders._showDetails as specified in Report80.
+
+Do NOT modify main5 in any other place yet.
+Then re-read main5 from line 1 -> EOF.
+Then perform syntax/structure/direct-write/consumer scan again.
+Then reconcile Production again.
+Only after that reassess the next authorized main5 closure.
+```
+
+## FORBIDDEN ACTIONS AT THIS CHECKPOINT
+
+```text
+Do not re-apply M5-13-A/B/C; they are already present in source.
+Do not enable DELETE for Invoiced in the UI.
+Do not weaken the Production delete-order guard.
+Do not add a second runsheet mutation path.
+Do not declare MAIN5 CLOSED before M5-20 and final EOF recheck are verified.
+Do not claim Browser E2E; Production currently has zero orders and zero runsheets.
 ```
 
 ## MASTER FILE NOTE
 
-The exact root filename `MASTER - RAWAEA ERP.md` could not be resolved in the current accessible `main` tree. No replacement content was invented.
+The exact root filename was verified and read this session:
 
-## PRODUCTION REALTIME
+`doc/Draft/medhat/MASTER - RAWAEA ERP.md`
 
-Publication includes `app_settings`, `order_details`, `orders`, `run_sheet_details`, `runsheets`; all use `REPLICA IDENTITY FULL`. Browser E2E remains unverified because Production currently has zero orders and zero runsheets.
-
-## LAST VERIFIED EVENT
-
-```text
-EVENT TYPE = MAIN5 M5-13 BACKEND CLOSURE + SURGICAL SOURCE HANDOFF
-UTC DATE = 2026-09-08
-MAIN5 BLOB = fac9f9bf55e2ecdc27e5de3c7e44c5ef769d49b9
-BACKEND RPC = manage_runsheet_atomic
-EDGE = manage-runsheet v1 ACTIVE
-RESULT = M5-13 backend contract closed; main5 source awaits exact user-applied blocks + EOF recheck
-REPORT = doc/Draft/Reprots/Report79_Main5_M5-13_Backend_Closure_20260908.md
-```
+No replacement content was invented.
