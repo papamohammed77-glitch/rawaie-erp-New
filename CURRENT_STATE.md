@@ -6,7 +6,7 @@
 REPOSITORY = papamohammed77-glitch/rawaie-erp-New
 BRANCH = main
 PRODUCTION = SMART ERP / fiilmooggumokxanwiyx
-LATEST FORENSIC REPORT = doc/Draft/Reprots/Report81_Main5_M5-20_Consumer_Drift_Reverification_20260908.md
+LATEST FORENSIC REPORT = doc/Draft/Reprots/Report82_Main5_M5-20_Historical_Contract_Reconciliation_20260908.md
 ```
 
 ## GOVERNANCE
@@ -34,11 +34,13 @@ BLOB = e89d29e4164c68784c109292f27d4d77df240557
 ```text
 PATH = Current/PWA/main2/main5.md
 BLOB = 9f9926511c47f0295019daaf09ff4b5a1a2efc50
-FULL SOURCE READ = REVERIFIED 2026-09-08
+FULL SOURCE READ = REVERIFIED 2026-09-08 THROUGH EOF
 EOF = window.RW_Runsheets = RW_Runsheets;
 SOURCE = OPEN
 RUNTIME = OPEN
 ```
+
+`main5.md` was not modified during this session.
 
 ## MAIN5 — VERIFIED CLOSED ITEMS
 
@@ -60,233 +62,421 @@ M5-13-C = SOURCE VERIFIED / APPLIED
 RPC = public.manage_runsheet_atomic
 OPERATIONS = UPDATE / CANCEL / DELETE
 SECURITY = SECURITY DEFINER
-DIRECT EXECUTE = postgres + service_role
-anon EXECUTE = NO
-authenticated EXECUTE = NO
 EDGE = manage-runsheet v1 ACTIVE
 VERIFY_JWT = true
 ```
 
-Source verification:
+M5-13 remains closed and was not reopened.
+
+## M5-20 — CURRENT RECONCILED STATE
+
+The previous Report81 conclusion that `Invoiced` must be removed from main5 is superseded by newly re-opened historical evidence and the owner’s explicit historical contract.
+
+### Historical Contract
+
+The original `rawaie-erp-review/Edge_Functions/original/01_order_lifecycle/delete-order.ts` proves that the historical parent system supported deletion of executed orders after reversal of stock/accounting effects.
+
+The current owner clarification confirms the specific business rule:
 
 ```text
-main5 preConfirm -> manage-runsheet UPDATE
-main5 _deleteRunsheet -> manage-runsheet DELETE
-main5 _cancelRunsheet -> manage-runsheet CANCEL
-Direct M5-13 runsheets/orders/run_sheet_details writers in main5 = 0
+Cashier POS may create the invoice.
+Cashier must NOT receive the authority to modify/delete an executed POS invoice.
+Parent system / authorized manager / authorized supervisor may delete it.
+Deleting an Invoiced POS order returns the system to the pre-order state by reversing effects and hard-deleting the order.
 ```
 
-M5-13 remains CLOSED and was not reopened because no new direct evidence contradicted its current contract.
+### Current Target Contract
 
-## M5-20 — CURRENT OPEN SOURCE DEFECT
-
-Production `delete-order v8` rejects `Invoiced` and accepts deletion only for:
+`Invoiced` deletion is preserved, but is now owned by the Production Core capability rather than by UI logic alone.
 
 ```text
-Draft / Confirmed / Pending
+Invoiced
++
+source = pos
++
+no runsheet_id
++
+privileged effective permission
+→ delete_order_atomic
+→ reverse stock/accounting/ledgers
+→ audit
+→ hard delete
 ```
 
-Current `main5.md` still exposes DELETE for `Invoiced` in two UI locations and still contains the associated debug log. This remains a real Consumer/Backend Contract Drift.
+### Privileged effective permissions verified in Production
 
 ```text
-M5-20-A = OPEN
-M5-20-B = OPEN
-M5-20-C = OPEN
+*
+general_manager
+sales_manager
+sales_supervisor
 ```
 
-Exact source instructions are recorded in:
+Current active user population matching these authorities = 4.
+
+Current active non-privileged users = 20.
+
+The current cashier record has:
 
 ```text
-doc/Draft/Reprots/Report81_Main5_M5-20_Consumer_Drift_Reverification_20260908.md
+role = كاشير
+permissions = ["pos"]
+role_id = NULL
 ```
 
-Production action for M5-20:
+and does not match the privileged authority set.
+
+## M5-20 — PRODUCTION IMPLEMENTATION
+
+### Database Core
+
+Created/updated:
 
 ```text
-NONE
+public.delete_order_atomic(uuid,text,text)
 ```
 
-Do not weaken the Production `delete-order` guard.
-
-## CURRENT PRODUCTION SNAPSHOT
-
-Fresh direct SQL verification:
+Properties:
 
 ```text
-verified_at = 2026-09-08 02:49:23.779943+00
-companies = 1
-users = 24
-branches = 2
-items = 17
+SECURITY DEFINER = true
+anon EXECUTE = false
+authenticated EXECUTE = false
+service_role EXECUTE = true
+```
+
+The function:
+
+```text
+preserves Draft / Confirmed / Pending deletion
+restricts Invoiced deletion to POS-origin invoices
+requires privileged effective permission
+requires no runsheet linkage
+reverses Physical Stock through post_stock_movement
+reverses Journal through post_journal_entry
+reverses Customer Ledger through post_customer_ledger_entry when applicable
+reverses Driver Ledger through post_driver_ledger_entry when applicable
+records delete operation in erp_operation_registry
+writes audit_log
+then deletes order_details and orders
+```
+
+### Inventory Ownership
+
+The Physical Stock contract remains immutable:
+
+```text
+PHYSICAL STOCK MOVEMENT
+→ post_stock_movement
+→ stock_branches + inventory_log
+```
+
+The new order deletion capability contains no direct `stock_branches.qty` mutation.
+
+### Edge Function
+
+`delete-order` was updated and deployed:
+
+```text
+VERSION = 9
+STATUS = ACTIVE
+VERIFY_JWT = true
+DEPLOYMENT ID = cd9b6859-725b-4286-8a7d-e7d503da0280
+DEPLOYMENT UTC = 2026-09-08 03:12:17.477000+
+```
+
+Git source was updated at:
+
+```text
+Current/Edge_Functions/delete-order
+```
+
+Source update commit:
+
+```text
+a4c26d7c5e1a0ebfb0d394b04810126c497b18a4
+```
+
+Canonical migration recorded in Git:
+
+```text
+supabase/migrations/20260908_close_parent_pos_invoiced_order_deletion.sql
+```
+
+Migration commit:
+
+```text
+9c2dab4cb7a5f04a36472ae92324f90f1c2380fe
+```
+
+## M5-20 — SOURCE INSTRUCTIONS FOR MAIN5
+
+`main5.md` is owned by the user for surgical source editing. Do not modify it through tools.
+
+Do NOT apply Report81's old instruction to remove `Invoiced` entirely.
+
+Apply exactly these source changes:
+
+### M5-20-A — RW_Orders._renderTable
+
+Find this complete block:
+
+```js
+// ✅ تعديل: إضافة Invoiced للحالات التي يمكن حذفها (طالما لا يوجد runsheet_id)
+console.log('DEBUG_DELETE:', o.order_code, o.order_status, o.runsheet_id);
+var canDelete = (o.order_status === 'Draft' || o.order_status === 'Confirmed' || o.order_status === 'Invoiced') && !o.runsheet_id;
+```
+
+Delete the complete block through the line ending:
+
+```text
+!o.runsheet_id;
+```
+
+Replace it with:
+
+```js
+var currentUser = (typeof RW_STATE !== 'undefined' && RW_STATE.app) ? RW_STATE.app.currentUser : null;
+var permissions = (currentUser && Array.isArray(currentUser.permissions)) ? currentUser.permissions : [];
+var canDeleteInvoiced = !!(currentUser && (currentUser.isOwner === true || permissions.indexOf('*') !== -1 || permissions.indexOf('general_manager') !== -1 || permissions.indexOf('sales_manager') !== -1 || permissions.indexOf('sales_supervisor') !== -1));
+var canDelete = (o.order_status === 'Draft' || o.order_status === 'Confirmed' || o.order_status === 'Pending' || (o.order_status === 'Invoiced' && canDeleteInvoiced)) && !o.runsheet_id;
+```
+
+### M5-20-B — Debug removal
+
+Find this complete line:
+
+```js
+console.log('DEBUG_DELETE:', o.order_code, o.order_status, o.runsheet_id);
+```
+
+Delete the complete line, including `);`.
+
+### M5-20-C — RW_Orders._showDetails
+
+Find this complete five-line block:
+
+```js
+// ✅ زر حذف الأوردر – يظهر لـ Draft، Pending، Confirmed غير المرتبطة برانشيت
+// ✅ تعديل: إضافة Invoiced واستبعاد Returned/Partially Returned
+var cannotDeleteStatuses = ['Returned', 'Partially Returned', 'Cancelled'];
+var isDeletable = (order.order_status === 'Draft' || order.order_status === 'Pending' || order.order_status === 'Confirmed' || order.order_status === 'Invoiced');
+var canDelete = isDeletable && !order.runsheet_id && cannotDeleteStatuses.indexOf(order.order_status) === -1;
+```
+
+Delete the complete block through the line ending:
+
+```text
+cannotDeleteStatuses.indexOf(order.order_status) === -1;
+```
+
+Replace it with:
+
+```js
+// ✅ حذف Invoiced من النظام الأم متاح فقط للمستخدم المصرح له تاريخيًا.
+var currentUser = (typeof RW_STATE !== 'undefined' && RW_STATE.app) ? RW_STATE.app.currentUser : null;
+var permissions = (currentUser && Array.isArray(currentUser.permissions)) ? currentUser.permissions : [];
+var canDeleteInvoiced = !!(currentUser && (currentUser.isOwner === true || permissions.indexOf('*') !== -1 || permissions.indexOf('general_manager') !== -1 || permissions.indexOf('sales_manager') !== -1 || permissions.indexOf('sales_supervisor') !== -1));
+var isDeletable = (order.order_status === 'Draft' || order.order_status === 'Pending' || order.order_status === 'Confirmed' || (order.order_status === 'Invoiced' && canDeleteInvoiced));
+var canDelete = isDeletable && !order.runsheet_id;
+```
+
+No other main5 edits are authorized in M5-20.
+
+## TESTING / EVIDENCE
+
+### Production current data
+
+Fresh SQL verification:
+
+```text
+UTC = 2026-09-08 03:10:41.530622+
 orders = 0
-runsheets = 0
-order_details = 0
-run_sheet_details = 0
-stock_branches = 20
-inventory_log = 3
+invoiced_orders = 0
+pos_origin_orders = 0
 ```
 
-No Orders or Runsheets currently exist in Production, so Browser E2E for M5-13/M5-20 remains unproven without introducing test state.
+Therefore no live operational Invoiced POS order existed to execute a destructive reversal test.
 
-## CURRENT GIT LINEAGE
+### Production database verification
+
+Verified:
 
 ```text
-LAST SOURCE-RELEVANT MAIN5 COMMIT = bf87eac7b1623058402db1495114dd4523ebe92d
-CURRENT MAIN HEAD BEFORE THIS STATE UPDATE = a80d0709e94e5a04c642db2ffe4ad74b42fa2afa
-CURRENT MAIN5 BLOB = 9f9926511c47f0295019daaf09ff4b5a1a2efc50
+post_stock_movement exists and remains canonical
+post_journal_entry exists
+post_customer_ledger_entry exists
+post_driver_ledger_entry exists
+delete_order_atomic exists
 ```
 
-`a80d0709...` is the administrative state update following Report80; no `main5.md` source change occurred after the source blob above.
+### Runtime limitations
 
-This state update itself is an administrative continuity commit and must not be interpreted as a `main5` source change.
+Full live success path for deleting an actual Invoiced POS order remains unproven because the current Production database contains no eligible order and the safe fixture injection path was blocked by execution safety controls.
 
-## MASTER CONTINUITY SOURCES VERIFIED
+No permanent test data was inserted.
+
+No Production business order was modified or deleted in this closure.
+
+## FAILED ATTEMPTS / FAILURE MEMORY
+
+### Test harness failure 1
+A Transaction test was initially written with `DECLARE` outside a PL/pgSQL block.
+
+Result: test did not reach business execution.
+
+### Test harness failure 2
+A test fixture attempted to write `order_details.line_amount` directly.
+
+Production schema proved it is a generated column.
+
+Result: test method corrected; production schema was not changed.
+
+### Test harness failure 3
+Direct fixture DML for a full Invoiced-order runtime test was blocked by tool safety.
+
+Result: no persistent test pollution and no bypass of safety controls.
+
+### Important reconciliation failure avoided
+Report81's previous recommendation to remove Invoiced from main5 was NOT reapplied. Historical contract evidence was reopened before source modification and changed the decision.
+
+## DATA REPAIR
+
+No Production data repair was required in this closure because current Production contains no Orders and no Invoiced POS orders.
+
+No permanent fixture data was introduced.
+
+## CURRENT GIT STATE
+
+Main5 source remains:
 
 ```text
-MASTER - RAWAEA ERP FORENSIC CONTINUITY GOVERNANCE v2.md = READ / REVERIFIED
-MASTER - RAWAEA ERP - UNIFIED CONTINUITY & MAIN1 EXECUTION.md = READ / REVERIFIED
-MASTER - RAWAEA ERP.md = READ TO EOF / REVERIFIED
+9f9926511c47f0295019daaf09ff4b5a1a2efc50
 ```
 
-Key enforced rules:
+The current main branch now also contains:
 
 ```text
-study before modification
-current reality before report
-one closure unit at a time
-unknown != bug
-original != current
-source != runtime proof
-do not weaken backend guards
-do not invent data
-safe production testing
-update state after real events
-no closure without evidence
+Edge source update commit = a4c26d7c5e1a0ebfb0d394b04810126c497b18a4
+Canonical migration commit = 9c2dab4cb7a5f04a36472ae92324f90f1c2380fe
+Report82 commit = be610db2fdafe4f959581bc107dcff2e1f6f507a
 ```
+
+The state file update is the current administrative continuity update; the Main5 source blob itself is unchanged.
 
 ## REPORT HISTORY
 
 ```text
-Report79 = M5-13 backend closure + exact source instructions
+Report79 = M5-13 backend closure + source instructions
 Report80 = M5-13 source reconciliation + M5-20 discovery
-Report81 = M5-20 forensic reverification + exact source instructions
+Report81 = M5-20 previous consumer-drift conclusion
+Report82 = M5-20 historical contract reconciliation + Production capability restoration
 ```
 
-No previous report was deleted.
+No report was deleted.
 
 ## WHAT CHANGED THIS SESSION
 
 ```text
 Current/PWA/main2/main5.md = NOT MODIFIED
-Production delete-order = NOT MODIFIED
-Production database data = NOT MODIFIED
-doc/Draft/Reprots/Report81_Main5_M5-20_Consumer_Drift_Reverification_20260908.md = CREATED
+Current/Edge_Functions/delete-order = UPDATED
+Production delete_order_atomic = CREATED / HARDENED
+Production delete-order = DEPLOYED v9
+Canonical migration = ADDED TO GIT
+Report82 = CREATED
 CURRENT_STATE.md = UPDATED
+Production business data = NOT MODIFIED
 ```
 
-## WHAT WAS PROVEN THIS SESSION
+## WHAT WAS PROVEN
 
 ```text
-M5-13 remains valid and closed.
-M5-20 remains present in current main5 source.
-Current main5 source is still blob 9f9926511c47f0295019daaf09ff4b5a1a2efc50.
-main5 was re-read through EOF.
-Production snapshot was freshly re-measured.
-Production delete-order contract remains the authoritative backend contract.
-No Production modification is required for M5-20.
+main5 was read from SOF through EOF
+Historical delete-order contract supports executed-order reversal/delete
+The owner’s historical POS Invoiced deletion rule is consistent with the historical implementation
+Current Production had dropped that capability
+The capability is now rebuilt in the current Core architecture
+Physical Stock reversal is delegated to post_stock_movement
+Accounting reversal is delegated to post_journal_entry
+Customer/Driver reversal uses their current ledger engines
+Backend grants do not expose delete_order_atomic to authenticated/anon
+Edge delete-order v9 is ACTIVE and verify_jwt=true
+main5 remains untouched
 ```
 
 ## WHAT WAS NOT PROVEN
 
 ```text
-M5-20 source application = NOT YET APPLIED
-M5-20 post-change syntax = NOT YET VERIFIED
-M5-20 post-change runtime = NOT YET VERIFIED
-Browser E2E = NOT PROVEN
-MAIN5 FINAL RELEASE = NOT CLOSED
+Live successful deletion of an actual Invoiced POS order in current Production
+Live browser E2E for M5-20
+Post-delete realtime browser behavior
+Final parent release closure
 ```
 
-## FAILURE / LESSON MEMORY
+## FINAL STATUS
 
 ```text
-DO NOT equate exact instructions with source application.
-DO NOT equate historical business reasoning with the current Production contract.
-DO NOT reopen a closed backend unit without new evidence.
-DO NOT claim Browser E2E when Production has zero operational Orders/Runsheets.
+HISTORICAL CONTRACT = RECONCILED
+PRODUCTION DB CAPABILITY = IMPLEMENTED
+PRODUCTION DEPLOYMENT = CLOSED
+GIT EDGE SOURCE = ALIGNED
+CANONICAL MIGRATION = RECORDED
+MAIN5 SOURCE = OPEN / USER PATCH REQUIRED
+MAIN5 RUNTIME = OPEN
+LIVE INVOICED REVERSAL TEST = OPEN
+BROWSER E2E = OPEN
+MAIN5 FINAL RELEASE GATE = OPEN
 ```
 
 ## NEXT AUTHORIZED ACTION
 
-Apply these three source changes to `Current/PWA/main2/main5.md` and only these three changes:
+The user applies only M5-20-A, M5-20-B, and M5-20-C above to `Current/PWA/main2/main5.md`.
+
+Then the next session must:
 
 ```text
-M5-20-A:
-replace the exact one-line canDelete expression in RW_Orders._renderTable:
-var canDelete = (o.order_status === 'Draft' || o.order_status === 'Confirmed' || o.order_status === 'Invoiced') && !o.runsheet_id;
-WITH:
-var canDelete = (o.order_status === 'Draft' || o.order_status === 'Confirmed' || o.order_status === 'Pending') && !o.runsheet_id;
-
-M5-20-B:
-remove the exact complete line:
-console.log('DEBUG_DELETE:', o.order_code, o.order_status, o.runsheet_id);
-
-M5-20-C:
-replace the exact three-line block in RW_Orders._showDetails:
-var cannotDeleteStatuses = ['Returned', 'Partially Returned', 'Cancelled'];
-var isDeletable = (order.order_status === 'Draft' || order.order_status === 'Pending' || order.order_status === 'Confirmed' || order.order_status === 'Invoiced');
-var canDelete = isDeletable && !order.runsheet_id && cannotDeleteStatuses.indexOf(order.order_status) === -1;
-WITH:
-var isDeletable = (order.order_status === 'Draft' || order.order_status === 'Pending' || order.order_status === 'Confirmed');
-var canDelete = isDeletable && !order.runsheet_id;
+READ main5 FROM SOF TO EOF
+VERIFY THE THREE SURGERIES
+RUN SYNTAX / STRUCTURE CHECK
+VERIFY DELETE-ORDER CONSUMER PATH
+VERIFY CURRENT PRODUCTION AGAIN
+VERIFY EDGE v9 AGAIN
+WHEN AN ACTUAL Invoiced POS ORDER EXISTS:
+RUN LIVE REVERSAL TEST
+VERIFY STOCK
+VERIFY INVENTORY LOG
+VERIFY JOURNAL REVERSAL
+VERIFY CUSTOMER / DRIVER LEDGERS
+VERIFY AUDIT
+VERIFY REALTIME UI
 ```
 
-After application:
+## FORBIDDEN ACTIONS
 
 ```text
-READ main5 line 1 -> EOF
-SYNTAX / STRUCTURE SCAN
-DIRECT-WRITE SCAN
-CONSUMER / BACKEND CONTRACT SCAN
-FRESH PRODUCTION RECONCILIATION
-```
-
-Only then may M5-20 be considered for closure.
-
-## FORBIDDEN ACTIONS AT THIS CHECKPOINT
-
-```text
-Do not modify main5 in any other place.
-Do not re-apply M5-13-A/B/C.
-Do not enable DELETE for Invoiced.
-Do not weaken delete-order v8.
-Do not alter Production data for this UI defect.
-Do not create Browser test data permanently when transactional testing can be used.
-Do not declare MAIN5 CLOSED before post-M5-20 full-file verification.
-```
-
-## FINAL STATE
-
-```text
-M5-13 BACKEND = CLOSED
-M5-13 SOURCE = VERIFIED / APPLIED
-M5-20-A = OPEN
-M5-20-B = OPEN
-M5-20-C = OPEN
-MAIN5 SOURCE = OPEN
-MAIN5 RUNTIME = OPEN
-MAIN5 FINAL RELEASE GATE = OPEN
+Do not remove Invoiced support from main5.
+Do not revert delete-order to the old v8 guard.
+Do not expose delete_order_atomic to authenticated/anon.
+Do not copy Original delete-order directly into Production.
+Do not add direct stock writes to main5 or Edge.
+Do not grant the cashier Invoiced deletion authority.
+Do not apply Report81 blindly.
+Do not modify main5 anywhere except the exact three surgery windows above.
+Do not declare M5-20 Fully Closed before live/runtime evidence exists.
 ```
 
 ## LAST VERIFIED EVENT
 
 ```text
-EVENT = Report81 Main5 M5-20 forensic reverification
-UTC = 2026-09-08 02:49:23.779943+
-SOURCE = Production SQL + Current Git source
+EVENT = Main5 M5-20 historical contract reconciliation + Production capability restoration
+UTC = 2026-09-08 03:12:17.477000+
+PRODUCTION = fiilmooggumokxanwiyx
+GIT SOURCE EVENT = a4c26d7c5e1a0ebfb0d394b04810126c497b18a4
+PRODUCTION EDGE = delete-order v9 ACTIVE
+PRODUCTION RPC = public.delete_order_atomic
 MAIN5 BLOB = 9f9926511c47f0295019daaf09ff4b5a1a2efc50
-REPORT = doc/Draft/Reprots/Report81_Main5_M5-20_Consumer_Drift_Reverification_20260908.md
-REPORT COMMIT = c1cade237d0929b8f1a18de7e3c9b2d38fdb8101
-RESULT = M5-20 remains open; exact source patch required
+REPORT = doc/Draft/Reprots/Report82_Main5_M5-20_Historical_Contract_Reconciliation_20260908.md
+RESULT = Historical contract reconciled; backend capability restored; main5 source surgery still open; live Invoiced runtime closure not yet proven
 ```
 
-This file intentionally records the verified pre-patch state. The next state transition must be written after M5-20 is actually applied and reverified.
+This state intentionally distinguishes Production/backend closure from Main5 source and runtime closure so the next CTO does not reopen or repeat the superseded Report81 decision.
