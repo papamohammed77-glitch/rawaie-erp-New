@@ -1,10 +1,11 @@
 name: RAWAEA governed main assembly — CTO GOLD EXECUTOR
-# Temporary CTO execution mode. Runs once on [CTO_EXECUTE_P163]; its successful result is committed with [CTO-EXECUTED], which is excluded by the guard.
+# Governed assembly: Current/PWA/main2 is the authoritative editable fragment source.
+# Original/PWA/main remains historical evidence only; New-main is the generated assembly target.
 on:
   push:
     branches: [main]
     paths:
-      - 'Current/PWA/main/**'
+      - 'Current/PWA/main2/**'
       - 'Current/PWA/main.html'
       - 'Current/PWA/New-main'
       - 'tools/run_final_main_reconstruction_20260831.py'
@@ -23,7 +24,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
-      - name: Reconstruct governed target from Current fragments
+      - name: Assert canonical fragment source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f Current/PWA/main2/main1.md
+          test -f Current/PWA/main2/main7.md
+          test -f Current/PWA/main2/main11.md
+          test ! -f Current/PWA/main/main1.md || true
+          grep -n "Current/PWA/main2" tools/run_final_main_reconstruction_20260831.py
+      - name: Reconstruct governed target from Current/main2 fragments
         shell: bash
         run: |
           set -euo pipefail
@@ -67,7 +77,7 @@ jobs:
           PY
           node --check /tmp/new-main.js
           git diff --check
-      - name: Deep source capability audit against original fragments
+      - name: Deep source capability audit — main2 current vs historical original
         shell: bash
         run: |
           set -euo pipefail
@@ -84,15 +94,15 @@ jobs:
           tf,ti,tr,tt=inventory(target)
           losses={}
           for i in range(1,12):
-            p=Path(f'Current/PWA/main/main{i}.md')
+            p=Path(f'Current/PWA/main2/main{i}.md')
             o=Path(f'Original/PWA/main/main{i}.md')
+            if not p.is_file(): raise SystemExit(f'MAIN2_FRAGMENT_MISSING:{i}')
             of,oi,orpc,ot=inventory(o.read_text(encoding='utf-8'))
             cf,ci,cr,ct=inventory(p.read_text(encoding='utf-8'))
-            losses[f'main{i}']={'current_fragment_function_loss':[x for x in sorted(cf) if x not in tf], 'original_function_not_anywhere_in_target':[x for x in sorted(of) if x not in tf], 'original_ids_not_anywhere_in_target':[x for x in sorted(oi) if x not in ti], 'original_rpcs_not_anywhere_in_target':[x for x in sorted(orpc) if x not in tr], 'original_tables_not_anywhere_in_target':[x for x in sorted(ot) if x not in tt]}
-          # Main1..11 parity is evidence, not a blind requirement: reconstructed wrappers may replace historical names.
+            losses[f'main{i}']={'main2_function_not_in_target':[x for x in sorted(cf) if x not in tf], 'original_function_not_anywhere_in_target':[x for x in sorted(of) if x not in tf], 'original_ids_not_anywhere_in_target':[x for x in sorted(oi) if x not in ti], 'original_rpcs_not_anywhere_in_target':[x for x in sorted(orpc) if x not in tr], 'original_tables_not_anywhere_in_target':[x for x in sorted(ot) if x not in tt]}
           print(json.dumps(losses,ensure_ascii=False,indent=2))
           PY
-      - name: Browser smoke — New-main local application
+      - name: Browser smoke — generated New-main
         shell: bash
         run: |
           set -euo pipefail
@@ -105,7 +115,7 @@ jobs:
           const {chromium}=require('playwright');
           (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[];p.on('pageerror',e=>pe.push(e.message));await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1500);const r=await p.evaluate(()=>({lang:document.documentElement.lang,body:!!document.body,state:!!window.RW_STATE,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerContract,main2:document.body.innerHTML.includes('MAIN2-COMPLETE-SURGICAL-v1')}));console.log(JSON.stringify({r,pe}));if(r.lang!=='ar'||!r.body||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||!r.main2||pe.length)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)})
           NODE
-      - name: Persist only target plus current state
+      - name: Persist only generated target plus current state
         shell: bash
         run: |
           set -euo pipefail
@@ -117,11 +127,11 @@ jobs:
           st=state.read_text(encoding='utf-8')
           marker='P163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction'
           if marker not in st:
-            st=st.rstrip()+f"\n\n## CTO EXECUTION — 2026-09-03\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Target SHA-256: `{hashlib.sha256(target.encode()).hexdigest()}`\n- Reconstructed from `Current/PWA/main/main1.md` through `main11.md`; `Original/PWA/main/*` remained immutable evidence.\n- P163 closed by deterministic ownership surgery: compatibility owner removed, legacy dashboard/items aliases removed, reconstruction marker retained under authoritative MAIN2 owner; `actions`, `main1Delegation`, and MAIN3 preserved.\n- Static gates and browser smoke passed.\n- Supabase production data writes: none.\n"
+            st=st.rstrip()+f"\n\n## CTO EXECUTION — MAIN2 CANONICAL ASSEMBLY\n\n{marker}\n- Canonical editable source: `Current/PWA/main2/main1.md` through `main11.md`.\n- Generated target: `Current/PWA/New-main`.\n- Historical evidence: `Original/PWA/main/*` only; `Current/PWA/main/*` is not a Source of Truth.\n- Target SHA-256: `{hashlib.sha256(target.encode()).hexdigest()}`\n"
             state.write_text(st,encoding='utf-8')
           PY
           git config user.name 'RAWAEA CTO Executor'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add Current/PWA/New-main CURRENT_STATE.md
           git diff --cached --check
-          git commit -m 'fix(cto): complete New-main reconstruction and P163 [CTO-EXECUTED] [main-reconstruction-executed]'
+          git commit -m 'fix(cto): rebuild PWA from canonical main2 fragments [CTO-EXECUTED]'
           git push origin HEAD:main
