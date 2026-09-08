@@ -116,34 +116,50 @@ window._ordersRefreshInterval = setInterval(function() {
     }
 }, 30000);
 // ✅ مستمع Supabase Realtime للمزامنة اللحظية
-var channel = supabase
-    .channel('orders-realtime')
+if (window._rwOrdersRealtimeChannel) {
+    supabase.removeChannel(window._rwOrdersRealtimeChannel);
+    window._rwOrdersRealtimeChannel = null;
+}
+window._rwOrdersRealtimeChannel = supabase
+    .channel('orders-realtime-' + companyId)
     .on('postgres_changes', {
-        event: 'UPDATE',
+        event: '*',
         schema: 'public',
         table: 'orders',
         filter: 'company_id=eq.' + companyId
-    }, function(payload) {
-        var updatedOrder = payload.new;
-        if (updatedOrder && updatedOrder.id) {
-            // تحديث الصف مباشرة في المصفوفة المحلية
-            var found = false;
-            for (var i = 0; i < ordersData.length; i++) {
-                if (ordersData[i].id === updatedOrder.id) {
-                    // دمج البيانات الجديدة مع القديمة للحفاظ على الحقول المخصصة مثل _runsheetCode و itemsCount
-                    ordersData[i].total_amount = updatedOrder.total_amount;
-                    ordersData[i].order_status = updatedOrder.order_status;
-                    ordersData[i].amount_paid = updatedOrder.amount_paid;
-                    // يمكن إضافة حقول أخرى حسب الحاجة
-                    found = true;
-                    break;
-                }
-            }
-            if (found) {
-                console.log('🔄 تحديث لحظي للأوردر:', updatedOrder.order_code, '| القيمة الجديدة:', updatedOrder.total_amount);
-                // إعادة عرض الجدول بالبيانات المحدثة
+    }, function() {
+        if (RW_STATE.app.currentView === 'orders') {
+            _refreshData().catch(function(e) { console.error('Orders realtime refresh failed:', e); });
+        }
+    })
+    .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'order_details'
+    }, function() {
+        if (RW_STATE.app.currentView === 'orders') {
+            _refreshData().catch(function(e) { console.error('Order details realtime refresh failed:', e); });
+        }
+    })
+    .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'app_settings',
+        filter: 'company_id=eq.' + companyId
+    }, async function() {
+        try {
+            var currencyRes = await supabase.from('app_settings')
+                .select('currency')
+                .eq('company_id', companyId)
+                .order('created_at', { ascending: true })
+                .limit(1)
+                .maybeSingle();
+            if (currencyRes.data) {
+                currency = currencyRes.data.currency || 'SAR';
                 _applyFilters();
             }
+        } catch(e) {
+            console.error('Currency realtime refresh failed:', e);
         }
     })
     .subscribe();
@@ -543,7 +559,7 @@ if (canDelete) {
         var items = [];
         var settings = {};
         
-        supabase.from('orders').select('*').eq('order_code', code).maybeSingle()
+        supabase.from('orders').select('*').eq('company_id', _rwCompanyId()).eq('order_code', code).maybeSingle()
             .then(function(oRes) {
                 order = oRes.data;
                 if (!order) throw new Error('ORDER_NOT_FOUND');
@@ -647,7 +663,7 @@ if (canDelete) {
             hideLoader();
             if (json.success) {
                 showToast('تم إنشاء الرانشيت: ' + json.rsId, 'success');
-                var newRsRes = await supabase.from('runsheets').select('id').eq('runsheet_code', json.rsId).maybeSingle();
+                var newRsRes = await supabase.from('runsheets').select('id').eq('company_id', _rwCompanyId()).eq('runsheet_code', json.rsId).maybeSingle();
                 var rsUuid = (newRsRes && newRsRes.data) ? newRsRes.data.id : json.rsId;
                 for (var i = 0; i < ordersData.length; i++) {
                     if (selected.indexOf(ordersData[i].order_code) !== -1) {
@@ -855,6 +871,62 @@ currency = settingsRes.data.currency || 'SAR';
             '</div>' +
         '</div>';
         safeHTML(c, html);
+		if (window._rwRunsheetsRealtimeChannel) {
+    supabase.removeChannel(window._rwRunsheetsRealtimeChannel);
+    window._rwRunsheetsRealtimeChannel = null;
+}
+var runsheetsCompanyId = _rwCompanyId();
+window._rwRunsheetsRealtimeChannel = supabase
+    .channel('runsheets-realtime-' + runsheetsCompanyId)
+    .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'runsheets',
+        filter: 'company_id=eq.' + runsheetsCompanyId
+    }, function() {
+        if (RW_STATE.app.currentView === 'runsheets') {
+            render();
+        }
+    })
+    .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'run_sheet_details'
+    }, function() {
+        if (RW_STATE.app.currentView === 'runsheets') {
+            render();
+        }
+    })
+    .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'order_details'
+    }, function() {
+        if (RW_STATE.app.currentView === 'runsheets') {
+            render();
+        }
+    })
+    .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'orders',
+        filter: 'company_id=eq.' + runsheetsCompanyId
+    }, function() {
+        if (RW_STATE.app.currentView === 'runsheets') {
+            render();
+        }
+    })
+    .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'app_settings',
+        filter: 'company_id=eq.' + runsheetsCompanyId
+    }, function() {
+        if (RW_STATE.app.currentView === 'runsheets') {
+            render();
+        }
+    })
+    .subscribe();
         _apply();
     }
 
@@ -962,7 +1034,7 @@ async function _details(code) {
         if (orders.length > 0) {
             ordersHtml = '<div class="mb-4"><h4 class="font-bold text-lg mb-2">الأوردرات المرتبطة</h4><div class="bg-gray-50 rounded-lg p-3 flex flex-wrap gap-2">';
             for (var o = 0; o < orders.length; o++) {
-                ordersHtml += '<span class="inline-block bg-white rounded px-3 py-1 text-sm shadow-sm">' + orders[o].order_code + ' - ' + orders[o].customer_name + ' (' + _fmtNum(orders[o].total_amount) + ' ' ' + currency)</span>';
+                ordersHtml += '<span class="inline-block bg-white rounded px-3 py-1 text-sm shadow-sm">' + orders[o].order_code + ' - ' + orders[o].customer_name + ' (' + _fmtNum(orders[o].total_amount) + ' ' + currency + ')</span>';
             }
             ordersHtml += '</div></div>';
         } else {
@@ -990,7 +1062,7 @@ async function _details(code) {
                     '<td class="p-2 border text-center font-bold">' + _fmtNum(lineTotal) + '</td></tr>';
             }
             itemsHtml += '</tbody></table></div>';
-            itemsHtml += '<div class="mt-3 text-left font-bold text-lg">إجمالي الأصناف: ' + _fmtNum(grandTotal) + ' ' ' + currency</div>';
+            itemsHtml += '<div class="mt-3 text-left font-bold text-lg">إجمالي الأصناف: ' + _fmtNum(grandTotal) + ' ' + currency + '</div>';
             itemsHtml += '</div>';
         } else {
             itemsHtml = '<div class="text-center py-8 text-gray-500 mt-4">لا توجد أصناف مجمعة في هذا الرانشيت بعد.</div>';
