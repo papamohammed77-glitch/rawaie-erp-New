@@ -2,290 +2,176 @@
 
 ## Checkpoint — 2026-09-08
 
-### 1. Governance
-العمل محكوم بمبادئ Engineering Governance المثبتة في ملفات MASTER وتقارير المراجعة:
-- Production الحالية هي المرجع التنفيذي.
-- لا تعديل قبل فهم التاريخ والعقد والسلوك الحالي.
-- UNKNOWN لا يساوي BUG ولا يبرر الحذف.
-- يتم العمل بوحدات Closure منفصلة، ولا ينتقل العمل إلى الوحدة التالية قبل إغلاق السابقة.
-- Physical Stock Contract:
-  `Physical Stock Movement -> post_stock_movement -> stock_branches + inventory_log`
-- `reserve_stock` / `release_stock_reservation` مسؤولية Reservation فقط.
-- ملفات `Current/PWA/main2/main1..main11` هي Source of Truth للعمل اليدوي على الأجزاء الأم.
-- `Current/PWA/main/*` مرحلة مختلفة/تاريخية ولا تُستخدم كمصدر assembly canonical.
-- `Current/PWA/New-main` ناتج تجميع generated target وليس مصدرًا يدويًا مستقلًا.
+### Governing Rules
+- Production is the execution reference; reports are investigative indexes.
+- No assumption-based patches; historical contract is required before change.
+- UNKNOWN != BUG and UNKNOWN != REMOVE.
+- One Closure Unit at a time.
+- Physical Stock: `post_stock_movement -> stock_branches + inventory_log`.
+- `reserve_stock` / `release_stock_reservation` are Reservation only.
+- Parent editable Source of Truth: `Current/PWA/main2/main1.md ... main11.md`.
+- `Current/PWA/main/*` is historical evidence only.
+- `Current/PWA/New-main` is generated target only.
 
-### 2. Current Git Reality
+### Current Git
 Repository: `papamohammed77-glitch/rawaie-erp-New`
 Branch: `main`
-Current relevant commits remain the previously recorded reconstruction/path closures plus the current Main7 forensic record.
+Latest documentation checkpoint: `bd880910fa58857a9823eaf41f7db25d697d9c7b`
+Main7 current code SHA: `0962e20262e77e9e6d8905c83098c2d5fac9210c`
+Latest report commit: `bd880910fa58857a9823eaf41f7db25d697d9c7b`
 
-### 3. Main2 fragments
-المصدر الجاري العمل عليه يدويًا بواسطة المالك هو:
-`Current/PWA/main2/main1.md ... main11.md`
+### Main7 Verified Historical/Production Contract
+Lifecycle is preserved exactly:
+`Open / Confirmed → Picking → Picked → Loading → Loaded → Delivering → Delivered → Returning → Returned`
 
-Current fragment identities recorded before the Main7 recheck remain valid except for Main7, whose current SHA is:
-- main7: `0962e20262e77e9e6d8905c83098c2d5fac9210c`
+Delivery ownership is split correctly:
+- `complete_order_delivery_atomic` = Order-level fulfillment owner.
+- `complete-order-delivery` = Order-level wrapper.
+- `complete-delivery` = Runsheet finalization only.
+- `driver.html` already submits Order-level delivery using `runsheet_code + order_code`.
 
-The other fragment identities remain as previously recorded:
-- main1: `4d1b42250cfe2b3a8ec7d02b7b482eca8e27bade`
-- main2: `58dd0da232ccca4c62bc17d87220bf8b705d85e8`
-- main3: `479060e3d4bea5e2203c87f822b1dbc0e2f7d456`
-- main4: `e89d29e4164c68784c109292f27d4d77df240557`
-- main5: `c4518d05ada50830e819563a55169843679d3e94`
-- main6: `3b20758459c28ab0b6c055f9a0ad3992f1bd07e5`
-- main8: `20f77481133d3e55ced949de16f88dadb0a69980`
-- main9: `288b642d050f8b5ddeb6d43a7fd2a992fb05bb03`
-- main10: `d57cef3bd7e42f7ba7ddc90bde81bdbabd5579a1`
-- main11: `cad8bafa94da839ffb3a61f1a4581f52b98289f4`
+Inventory ownership remains:
+`Physical Stock -> post_stock_movement -> stock_branches + inventory_log`.
 
-### 4. Main6 Closure
-Target: `Current/PWA/main2/main6.md`
-Report84 surgeries M6-01..M6-09 were previously verified in the actual current source. Main6 closure remains CLOSED.
+### Main7 Source Status
+The assistant DID NOT modify `Current/PWA/main2/main7.md`.
+EOF remains structurally intact: `})();` followed by `window.RW_Warehouse = RW_Warehouse;`.
 
-### 5. Report85 -> Report86 -> Report87 -> Report88 -> Report89 -> Report90 reconciliation
-Report85 established the main2/main assembly source conflict.
-Report86 continued with Production reconciliation and Main7 forensic review.
-Report87 re-reviewed the evidence and corrected M7-08: lifecycle stage labels must not be changed from the established business lifecycle.
-Report88 re-read the CURRENT Main7 SHA directly and reconciled Production against the current source again.
-Report89 added the current full surgical review and expanded Main7 closure requirements where direct Production schema proved additional Main7 defects.
-Report90 added the final tenant-scope findings discovered while continuing the Main7 forensic pass.
-
-### 6. Production Reality — current checkpoint
-Supabase project: `fiilmooggumokxanwiyx`
-
-Direct Production verification during the current Main7 recheck confirmed the relevant current contracts:
-- `complete_order_delivery_atomic(p_company_id, p_runsheet_code, p_order_code, p_user_email, p_items)` is the authoritative Order-level Delivery fulfillment RPC.
-- `complete-order-delivery` Production v14 calls the Order-level RPC.
-- `complete-delivery` Production v4 transitions a Runsheet from `Delivering` to `Delivered` and handles meter/tracking state; it is not the Order fulfillment writer.
-- `save-inventory-count` Production v2 stores vehicle counts against `mobile_branch_id || vehicle.id` and writes details to `inventory_count_details`.
-- `runsheets` enforces `UNIQUE(company_id, runsheet_code)`.
-- `stock_voucher_details` uses `voucher_id` for parent linkage; it does not have `voucher_code` as a detail column.
-- `items.item_code` is globally UNIQUE in Production.
-- `order_details` does not contain `runsheet_id`; Order-to-Runsheet traversal is through `orders.runsheet_id -> orders.id -> order_details.order_id`.
-
-No persistent Delivery/Order fixture was created merely to test Main7.
-
-### 7. Production Inventory Core Closure
-A fresh PostgreSQL writer scan remains consistent with the earlier closure:
-`direct_physical_writers_outside_allowed = 0`
-
-Allowed responsibilities confirmed:
-- `post_stock_movement` — Physical Stock Engine.
-- `reserve_stock` / `release_stock_reservation` — Reservation only.
-- `setup_van_stock` / `create_vehicle_atomic` — stock-row initialization, not operational movement.
-- `complete_runsheet_picking` changes fulfillment/reservation and does not independently mutate `stock_branches.qty`.
-
-Legacy executable inventory capabilities remain explicitly closed. The legacy definitions are retained as historical evidence and are not deleted.
-
-### 8. Current Production return/delivery contracts
-- `complete-return` authenticates the user, derives company from the authenticated user context, and calls `complete_return_atomic`.
-- `complete_return_atomic` performs physical return through `post_stock_movement`.
-- `complete-order-delivery` processes one Order at a time.
-- `complete_order_delivery_atomic` uses `erp_operation_registry` for idempotency and does not mutate physical stock.
-- `complete-delivery` finishes Runsheet state only.
-
-### 9. Assembly Source-of-Truth correction
-The reconstruction path was corrected from `Current/PWA/main/` to `Current/PWA/main2/`.
-The forensic assembly configuration also uses `Current/PWA/main2/**` as the canonical editable source and `Current/PWA/New-main` as generated target.
-
-### 10. Assembly verification status
-A controlled assembly execution was previously triggered, but full Main2 assembly has not been proven Gold/Diamond.
-No unsupported causal claim is recorded for the historical CI failure.
-
-Therefore:
-`MAIN2 RECONSTRUCTION SOURCE PATH = CLOSED`
-`FULL MAIN2 ASSEMBLY = OPEN / NOT PROVEN`
-
-### 11. Main7 Forensic Status — CURRENT SHA `0962e20262e77e9e6d8905c83098c2d5fac9210c`
-Target:
-`Current/PWA/main2/main7.md`
-
-The current source was read directly from Git. EOF remains structurally intact:
-`})();`
-followed by:
-`window.RW_Warehouse = RW_Warehouse;`
-
-Already applied and therefore NOT to be re-requested:
-- Receiving company scope and Receiving Details company validation.
-- Driver lookup company scope for voucher form.
+Already applied in Main7 and NOT to be re-requested:
+- Receiving company scope.
+- Receiving Details company validation.
 - Voucher list company scope.
-- Voucher details resolved by company + voucher_code, then details by voucher_id.
-- Receive UI remaining-quantity logic and Idempotency-Key/operation_id payload.
-- `_openNewVoucherModal()` opens `loadVoucherForm()` rather than creating an empty voucher.
-- Picking source list uses `Open / Confirmed`; lifecycle itself remains unchanged.
+- Voucher detail resolution by company + voucher_code then voucher_id.
+- Driver lookup company scope in voucher form.
+- Receive remaining-quantity logic and Idempotency-Key/operation_id payload.
+- `_openNewVoucherModal()` -> `loadVoucherForm()`.
+- Picking source status list `Open / Confirmed`.
 
-### 12. Main7 OPEN surgical items — owner applies to main7 only
-The assistant must NOT edit `Current/PWA/main2/main7.md`.
+### Main7 OPEN Owner Surgeries
+#### M7-07B
+`loadVoucherForm(type)` lines 145–154: add the missing `voucherReference` field in the existing 3-column grid. Preserve the following `بحث عن صنف` block.
 
-#### M7-07B — missing Reference input
-Current `_saveAndSendVoucher()` reads `byId('voucherReference')`, but current `loadVoucherForm(type)` does not render that element.
+#### M7-09
+`function _openDeliveryModal(rsCode)` starts at line 1193 and ends immediately before `function _openReturnModal(rsCode) {`.
+Replace the whole function with the Report89 Order-by-Order version:
+- Runsheet lookup = `company_id + runsheet_code`.
+- `start-delivery` once.
+- Orders = `company_id + runsheet_id`, ordered `created_at ASC`, fields `id,order_code,customer_name`.
+- One Order per modal.
+- Order items from `order_details` by `order_id`.
+- `remaining = qty_loaded - qty_delivered`.
+- Submit only current Order to `/functions/v1/complete-order-delivery` with `runsheet_code,order_code,items`.
+- Next Order only after success.
+- Final `/functions/v1/complete-delivery` with `{runsheet_code: rsCode}` only.
+- No `ordersData`.
+- No Order quantity derivation from `run_sheet_details`.
 
-Exact source area: `loadVoucherForm(type)`, current lines approximately 145–154. Replace the whole grid beginning with:
-`<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">`
-and ending immediately before:
-`<div class="mb-4">`
-with a grid containing:
-- `voucherEntitySelect`
-- `voucherReference`
-- `voucherNotesLarge`
+#### M7-10 / M7-10A / M7-10B / M7-10C / M7-10D
+Settlement changes:
+- line 962 hardcoded `countedQty: 0` -> latest vehicle Inventory Count.
+- `loadSettlement()` Runsheet query -> company-scoped.
+- Return voucher lookup -> `stock_vouchers.id` then `stock_voucher_details.voucher_id`.
+- Remove `order_details.runsheet_id` lookup; traverse `orders.runsheet_id -> orders.id -> order_details.order_id`.
+- Resolve `vehicles.id,mobile_branch_id`, then latest vehicle count by `inventoryEntityId`.
 
-Do not alter the item-search block after that boundary.
+#### M7-11
+`loadBranchCount()` option value: `(b.branch_code || b.id || '')` -> `(b.id || b.branch_code || '')`.
 
-#### M7-09 — Delivery must execute Order-by-Order
-Exact current function:
-`_openDeliveryModal(rsCode)`
-starts at line `1193` and ends immediately before `function _openReturnModal(rsCode)`; current closing boundary is the final `}` of `_openDeliveryModal`.
+#### M7-12
+`_saveVehicleCount()` starts at line 835. Replace the complete function before `_saveInvCount(type, entityId, reference)` with the Report89 vehicle-resolution function. Preserve the selected-driver UI; resolve driver -> user.id -> company-scoped vehicle.id; prefer Runsheet.vehicle_id.
 
-The current implementation is proven wrong because it:
-- starts the Runsheet correctly;
-- reads Runsheet items;
-- reads all Orders;
-- builds the same Runsheet item set for every Order;
-- calls `complete-delivery` with `ordersData`.
+#### M7-13
+`_saveGeneralCount()` must resolve `app_settings.main_branch_id` by `company_id`; never use literal `MAIN` as `entityId`.
 
-This contradicts the Production contract where `complete_order_delivery_atomic` receives one `order_code` plus that Order's item quantities, while `complete-delivery` only closes the Runsheet state.
+#### M7-14
+Company-scope:
+- `loadPicking()` exact current Runsheet query is line 540.
+- `_showPickingDetails(code)` Runsheet lookup.
+- `loadVehicleCount()` Runsheet selector.
+- `_searchDriver(query)` Users lookup.
+- `loadUnloading()` Runsheet query.
 
-Owner replacement requirements for the full `_openDeliveryModal(rsCode)` function:
-1. Resolve Runsheet with `company_id + runsheet_code`.
-2. Call `start-delivery` once.
-3. Read Orders using the resolved Runsheet ID, ordered by `created_at ASC`; select `id,order_code,customer_name`.
-4. Open one Order at a time.
-5. Read only that Order's `order_details` by `order_id`.
-6. For each item calculate `remaining = qty_loaded - qty_delivered`.
-7. Submit only that Order to `/functions/v1/complete-order-delivery` with:
-   `runsheet_code`, `order_code`, `items`.
-8. After the Order succeeds, open the next Order.
-9. After all Orders succeed, call `/functions/v1/complete-delivery` with only `{ runsheet_code: rsCode }`.
-10. Do not send `ordersData`.
-11. Do not derive an Order's delivered quantity from `run_sheet_details`.
+#### M7-15 — NEW
+Production schema proves `stock_vouchers.from_id` and `to_id` are UUIDs; `branches.id` and `vehicles.id` are UUIDs.
+Current Main7 can send `MAIN`, branch_code, or driver email into these UUID fields.
+Actions:
+- remove `fromId:'MAIN'` / `toId:'MAIN'` literals from voucher configs.
+- Transfer option value = `branches.id`.
+- DirectSale/DirectReturn option value = `vehicles.id`.
+- `_saveAndSendVoucher()` must pass resolved UUIDs; never `MAIN`, branch_code, or driver email for UUID columns.
+- SupplierReturn keeps its existing supplier business contract.
 
-The current delivery lifecycle is intentionally preserved:
-`Open / Confirmed → Picking → Picked → Loading → Loaded → Delivering → Delivered → Returning → Returned`.
+#### M7-16 — NEW
+Additional company-scope closures found in the current source:
+- `loadLoading()` exact query line 580 is unscoped.
+- `loadDelivery()` exact query line 619 is unscoped.
+- `loadReturn()` Runsheet query is unscoped.
+- `_showLoadingDetails(code)` Runsheet lookup is unscoped.
+- `_showDeliveryDetails(code)` Runsheet lookup is unscoped.
+- `_showReturnDetails(code)` Runsheet lookup is unscoped.
+- `_openPickingModal(rsCode)` Runsheet lookup is unscoped.
+- `_openLoadingModal(rsCode)` Runsheet lookup is unscoped.
+- `_openReturnModal(rsCode)` Runsheet lookup is unscoped.
+Patch only the tenant boundary; do not alter business flow or lifecycle.
 
-#### M7-10 — Settlement must read the latest Vehicle Inventory Count
-Exact current line containing the defect: line `962` inside `_onSettlementRsChange()`:
-`itemsMap[it.item_code] = { itemCode: it.item_code, itemName: it.item_name, unit: it.unit, loadedQty: Number(it.qty_loaded) || 0, deliveredQty: 0, returnedQty: 0, countedQty: 0, unitPrice: Number(it.unit_price) || 0 };`
+### Protected No-Change List
+- M7-08 lifecycle labels.
+- `Current/PWA/driver.html` Delivery workflow/business idea.
+- `complete_order_delivery_atomic`.
+- `complete_return_atomic`.
+- Physical Stock Core.
+- `_showUnloadingDetails()` placeholder behavior.
+- `.github/workflows/forensic_main_assembly.yml` path.
 
-Replace that hardcoded `countedQty: 0` logic by:
-- resolve `rs.vehicle_id` from the company-scoped Runsheet;
-- resolve `vehicles.id,mobile_branch_id` inside the same company;
-- set `inventoryEntityId = mobile_branch_id || vehicle.id`;
-- read the latest `inventory_counts` row using:
-  `company_id = companyId`, `type = 'vehicle'`, `entity_id = inventoryEntityId`, ordered by `created_at DESC`;
-- read `inventory_count_details` by `count_id`;
-- build `countedByItem[item_code] = counted_qty`;
-- use that value in `itemsMap`.
+### Production Checkpoint
+Supabase project: `fiilmooggumokxanwiyx`.
+Verified relevant contracts:
+- `complete_order_delivery_atomic(...)` is Order-level delivery owner.
+- `complete-delivery` is Runsheet finalization.
+- `save-inventory-count` uses `mobile_branch_id || vehicle.id` for vehicle counts.
+- `runsheets` is unique by `(company_id, runsheet_code)`.
+- `stock_voucher_details` links by `voucher_id`.
+- `items.item_code` is globally UNIQUE.
+- `order_details` does not contain `runsheet_id`.
+- `stock_vouchers.from_id/to_id` are UUID columns.
 
-#### M7-10A — Settlement Runsheet company scope
-In `loadSettlement()`, replace the current `runsheets` query:
-`var runsheetsRes = await supabase.from('runsheets').select('runsheet_code, driver_id').in('status', ['Delivered', 'Returned']);`
-with a company-scoped query using `RW_STATE.app.companyId`.
+No persistent Delivery/Order fixture was created for testing.
 
-#### M7-10B — broken stock-voucher detail lookup inside settlement
-Exact current area: `_onSettlementRsChange()`, current lines approximately 950–955.
+### Assembly
+`.github/workflows/forensic_main_assembly.yml` was re-read directly and remains correct:
+`Current/PWA/main2/**` = canonical editable source.
+`Current/PWA/New-main` = generated target.
+No path correction required.
 
-Delete this complete block:
-`var vouchersRes = await supabase.from('stock_vouchers').select('voucher_code').eq('reference', rsCode).eq('type', 'Return');`
-through:
-`returnDetails = retRes.data || [];`
+Full Main2 assembly remains OPEN / NOT PROVEN because Main7 owner surgeries are still pending.
 
-Replace it with a company-scoped `stock_vouchers` lookup selecting `id,voucher_code`, build `voucherIds` from `id`, then query `stock_voucher_details` with `.in('voucher_id', voucherIds)`.
-
-#### M7-10C — invalid order_details Runsheet lookup
-Delete the current line:
-`var orderDetailsRes = await supabase.from('order_details').select('*').eq('runsheet_id', rs.id);`
-
-Replace it with an `orders` lookup by `company_id + runsheet_id`, extract `orders.id`, then load `order_details` with `.in('order_id', orderIds)`.
-
-#### M7-12 — Vehicle Count entity identity
-Current `_saveVehicleCount()` begins approximately at line 835. It currently sends `window._selectedDriver` as the vehicle entity.
-
-Delete the complete current `_saveVehicleCount()` function and replace it with the vehicle-resolution function recorded in Report89:
-- preserve selected driver UI;
-- resolve selected driver to `users.id` within company;
-- when a Runsheet is selected, use its company-scoped `vehicle_id`;
-- otherwise resolve a company-scoped vehicle by `vehicles.driver_id`;
-- pass `vehicle.id` to `_saveInvCount('vehicle', ...)`.
-
-#### M7-11 — Branch Inventory Count entity
-In `loadBranchCount()`, change the option value from `b.branch_code || b.id` to `b.id || b.branch_code`, so the selected entity is the branch UUID expected by `save-inventory-count`.
-
-#### M7-13 — General Inventory Count entity
-In `_saveGeneralCount()`, delete the use of literal `MAIN` as `entityId`.
-
-Resolve `app_settings.main_branch_id` by `company_id`, then call `_saveInvCount('general', mainBranchId, ...)`.
-
-#### M7-14 — Additional Tenant Scope closures
-The following Main7 queries were found in the continued forensic pass and must also be company-scoped:
-- `loadPicking()` — runsheets query with `status in ('Open','Confirmed')`.
-- `_showPickingDetails(code)` — runsheet lookup must include `company_id`.
-- `loadVehicleCount()` — runsheets selector must include `company_id`.
-- `_searchDriver(query)` — users lookup must include `company_id`.
-- `loadUnloading()` — runsheets query with `status in ('Open','New')` must include `company_id`.
-
-No business behavior is changed by these surgeries; only tenant boundary is closed.
-
-### 13. Main7 items intentionally NOT changed
-- M7-08 lifecycle labels: NOT an error; Report87 is authoritative on this point.
-- `complete_order_delivery_atomic`: NOT modified.
-- `complete_return_atomic`: NOT modified.
-- Physical Stock Core: NOT modified for Main7.
-- `_showUnloadingDetails()`: remains placeholder; no behavior invented without a proven contract.
-- `Current/PWA/driver.html` business workflow: not redesigned.
-
-### 14. Tests and failures in current recheck
-- Production Delivery contracts were read directly.
-- Production vehicle inventory-count contract was read directly.
-- Production schema for Runsheet and stock voucher detail linkage was verified.
-- Production `items.item_code` uniqueness was verified.
-- Production `order_details` was verified not to contain `runsheet_id`.
-- Main7 current SHA was re-read directly.
-- Historical lifecycle was reconciled before prescribing any status change.
-- No permanent Order/Runsheet fixture was created to manufacture a passing Delivery test.
-
-A previous temporary Purchase Receive idempotency experiment exposed a sequencing issue and was diagnosed rather than converted into a false success; it is not being used as evidence for Main7 closure.
-
-### 15. Reports
-Latest:
-`doc/Draft/Reprots/Report90_Main7_Final_Tenant_Scope_Addendum_20260908.md`
-
-Core surgical report:
-`doc/Draft/Reprots/Report89_Main7_Surgical_Review_20260908.md`
-
+### Reports
+Latest Main7 report:
+`doc/Draft/Reprots/Report92_Main7_Exact_Surgical_Execution_20260908.md`
 Previous:
-`doc/Draft/Reprots/Report88_Main7_Forensic_Recheck_20260908.md`
-`doc/Draft/Reprots/Report87`
+`Report91_Main7_Gold_Diamond_Surgical_Recheck_20260908.md`
+`Report90_Main7_Final_Tenant_Scope_Addendum_20260908.md`
+`Report89_Main7_Surgical_Review_20260908.md`
+`Report88_Main7_Forensic_Recheck_20260908.md`
+`Report87`
 
-Older reports remain preserved.
+### Last Verified Event
+`EVENT: MAIN7-FORENSIC-RECHECK-20260908`
+- Direct Git source verification.
+- Direct Production Supabase verification.
+- Main7 SHA: `0962e20262e77e9e6d8905c83098c2d5fac9210c`.
+- Latest report: Report92.
+- Production change required for Main7 in this session: none.
+- Main7 source surgery remains OWNER ACTION REQUIRED.
 
-### 16. Assembly path
-`.github/workflows/forensic_main_assembly.yml` was re-read and is already correctly configured to use `Current/PWA/main2/**` as the canonical editable source and `Current/PWA/New-main` as generated target. No path change is required.
-
-### 17. Next controlled action
-1. Owner applies only the exact Main7 surgical items recorded in Report89 and Report90.
-2. Re-read Main7 SOF→EOF from the new SHA.
-3. Run JavaScript syntax validation on the reconstructed Main7 fragment.
-4. Verify all brackets, template strings and function closures.
-5. Verify the Delivery flow does not contain `ordersData`.
-6. Verify Order lookup selects `id,order_code,customer_name`.
-7. Verify Delivery details use `order_id`.
-8. Verify Settlement uses latest vehicle Inventory Count by vehicle/mobile-branch identity.
-9. Verify Branch/General/Vehicle count entity IDs match `save-inventory-count` contract.
-10. Verify Picking/Vehicle Count/Driver/Unloading reads are company-scoped.
-11. Run canonical reconstruction from `Current/PWA/main2/main1..main11`.
-12. Only after source and assembly evidence pass, proceed to browser/runtime verification.
-13. Production deployment of the assembled parent remains a separate controlled gate.
-
-### 18. Closure statement
+### Closure
 `PRODUCTION INVENTORY WRITER CORE = CLOSED`
-`LEGACY INVENTORY CORE EXECUTION = CLOSED`
 `MAIN2 RECONSTRUCTION SOURCE PATH = CLOSED`
-`MAIN6 SOURCE SURGERY = CLOSED`
 `MAIN7 FORENSIC REVIEW = COMPLETE`
 `MAIN7 SOURCE SURGERY = OPEN / OWNER ACTION REQUIRED`
 `DELIVERY CONTRACT = PROVEN`
 `INVENTORY COUNT CONTRACT = PROVEN`
-`MAIN7 TENANT SCOPE REVIEW = OPEN / OWNER ACTION REQUIRED`
+`MAIN7 TENANT SCOPE = OPEN / OWNER ACTION REQUIRED`
+`MAIN7 VOUCHER UUID INTEGRATION = OPEN / OWNER ACTION REQUIRED`
 `FULL MAIN2 ASSEMBLY = OPEN / NOT PROVEN`
 `PARENT GOLD/DIAMOND = NOT CLOSED`
