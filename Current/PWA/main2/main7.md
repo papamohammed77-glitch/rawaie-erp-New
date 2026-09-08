@@ -123,10 +123,10 @@ async function _showReceivingDetails(opId) {
         voucherCart = [];
         currentVoucherType = type;
         var configs = {
-            'Transfer':      { title: 'تحويل مخزني', entityLabel: 'الفرع المحول إليه', showPrice: false, fromType: 'Branch', fromId: 'null', toType: 'Branch', toId: '', endpoint: 'save-voucher' },
-            'DirectSale':    { title: 'صرف سيارة بيع مباشر', entityLabel: 'المندوب / السيارة', showPrice: true, fromType: 'Branch', fromId: 'null', toType: 'Vehicle', toId: '', endpoint: 'save-voucher' },
-            'DirectReturn':  { title: 'استلام مرتجع سيارة', entityLabel: 'المندوب / السيارة', showPrice: true, fromType: 'Vehicle', fromId: '', toType: 'Branch', toId: 'null', endpoint: 'save-voucher' },
-            'SupplierReturn':{ title: 'مرتجع لمورد', entityLabel: 'المورد', showPrice: true, fromType: 'Branch', fromId: 'null', toType: 'Supplier', toId: '', endpoint: 'save-voucher' }
+            'Transfer':      { title: 'تحويل مخزني', entityLabel: 'الفرع المحول إليه', showPrice: false, fromType: 'Branch', fromId: null, toType: 'Branch', toId: null, endpoint: 'save-voucher' },
+'DirectSale':    { title: 'صرف سيارة بيع مباشر', entityLabel: 'المندوب / السيارة', showPrice: true, fromType: 'Branch', fromId: null, toType: 'Vehicle', toId: null, endpoint: 'save-voucher' },
+'DirectReturn':  { title: 'استلام مرتجع سيارة', entityLabel: 'المندوب / السيارة', showPrice: true, fromType: 'Vehicle', fromId: null, toType: 'Branch', toId: null, endpoint: 'save-voucher' },
+'SupplierReturn':{ title: 'مرتجع لمورد', entityLabel: 'المورد', showPrice: true, fromType: 'Branch', fromId: null, toType: 'Supplier', toId: null, endpoint: 'save-voucher' }
         };
         var cfg = configs[type];
         if (!cfg) { showToast('نوع غير معروف', 'error'); return; }
@@ -759,18 +759,64 @@ var res = await supabase.from('runsheets')
             return '<tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="RW_Warehouse._showLoadingDetails(\'' + r.runsheet_code + '\')"><td class="p-3 font-bold">' + (r.runsheet_code||'') + '</td><td class="p-3">' + (r.run_date||'') + '</td><td class="p-3">' + (r.driver_id||'---') + '</td><td class="p-3"><span class="px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-700">Loaded</span></td><td class="p-3 text-center"><button class="text-blue-600"><i class="fa-solid fa-eye"></i></button></td></tr>';
         });
     }
-    async function _showLoadingDetails(code) {
-        showLoader('جاري التحميل...');
-        var rsRes = await supabase.from('runsheets').select('id').eq('runsheet_code', code).maybeSingle();
-        var itemsRes = await supabase.from('run_sheet_details').select('*').eq('runsheet_id', rsRes.data?.id);
+async function _showLoadingDetails(code) {
+    showLoader('جاري التحميل...');
+
+    var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+    if (!companyId) {
         hideLoader();
-        var items = itemsRes.data || [];
-        if (!items.length) { showToast('لا توجد أصناف', 'info'); return; }
-        var h = '<div class="text-right"><table class="w-full border"><thead class="bg-slate-100"><tr><th class="p-2">الصنف</th><th class="p-2 text-center">الكمية المحضّرة</th><th class="p-2 text-center">الكمية المحمّلة</th></tr></thead><tbody>';
-        items.forEach(it => { h += '<tr><td class="p-2 font-bold">' + (it.item_name||'') + '</td><td class="p-2 text-center">' + (it.qty_picked||0) + '</td><td class="p-2 text-center font-bold text-orange-600">' + (it.qty_loaded||0) + '</td></tr>'; });
-        h += '</tbody></table></div>';
-        Swal.fire({ title: 'تفاصيل التحميل: ' + code, html: h, width: '700px', showCloseButton: true, showConfirmButton: false });
+        showToast('سياق الشركة غير محدد', 'error');
+        return;
     }
+
+    try {
+        var rsRes = await supabase.from('runsheets')
+            .select('id')
+            .eq('company_id', companyId)
+            .eq('runsheet_code', code)
+            .maybeSingle();
+
+        if (rsRes.error) throw rsRes.error;
+        if (!rsRes.data) {
+            hideLoader();
+            showToast('الرانشيت غير موجود في الشركة الحالية', 'error');
+            return;
+        }
+
+        var itemsRes = await supabase.from('run_sheet_details')
+            .select('*')
+            .eq('runsheet_id', rsRes.data.id);
+
+        if (itemsRes.error) throw itemsRes.error;
+
+        hideLoader();
+
+        var items = itemsRes.data || [];
+        if (!items.length) {
+            showToast('لا توجد أصناف', 'info');
+            return;
+        }
+
+        var h = '<div class="text-right"><table class="w-full border"><thead class="bg-slate-100"><tr><th class="p-2">الصنف</th><th class="p-2 text-center">الكمية المحضّرة</th><th class="p-2 text-center">الكمية المحمّلة</th></tr></thead><tbody>';
+
+        items.forEach(it => {
+            h += '<tr><td class="p-2 font-bold">' + (it.item_name||'') + '</td><td class="p-2 text-center">' + (it.qty_picked||0) + '</td><td class="p-2 text-center font-bold text-orange-600">' + (it.qty_loaded||0) + '</td></tr>';
+        });
+
+        h += '</tbody></table></div>';
+
+        Swal.fire({
+            title: 'تفاصيل التحميل: ' + code,
+            html: h,
+            width: '700px',
+            showCloseButton: true,
+            showConfirmButton: false
+        });
+    } catch (e) {
+        hideLoader();
+        showToast('فشل تحميل تفاصيل التحميل: ' + (e.message || ''), 'error');
+    }
+}
 
     // ==================== DELIVERY ====================
     async function loadDelivery() {
