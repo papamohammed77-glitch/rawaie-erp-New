@@ -1099,24 +1099,60 @@ async function _details(code) {
             showDenyButton: true,
             denyButtonText: '<i class="fa-solid fa-print ml-1"></i> طباعة',
             denyButtonColor: '#2563eb',
-            preConfirm: function() {
+                        preConfirm: async function() {
                 var newDriver = document.getElementById('rs-driver-select').value;
                 var newVehicle = document.getElementById('rs-vehicle-select').value;
                 showLoader('جاري تحديث الرانشيت...');
-                return supabase.from('runsheets').update({
-                    driver_id: newDriver || null,
-                    vehicle_id: newVehicle || null,
-                    status: 'Open'
-                }).eq('id', rs.id).then(function() {
-                    hideLoader();
-                    rs.driver_id = newDriver;
-                    rs.vehicle_id = newVehicle;
+                try {
+                    var ses = await supabase.auth.getSession();
+                    var t = (ses && ses.data && ses.data.session) ? ses.data.session.access_token : null;
+                    if (!t) {
+                        Swal.showValidationMessage('انتهت الجلسة. يرجى إعادة تسجيل الدخول.');
+                        return false;
+                    }
+
+                    var res = await fetch(RW_SUPABASE_URL + '/functions/v1/manage-runsheet', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: 'Bearer ' + t
+                        },
+                        body: JSON.stringify({
+                            operation: 'UPDATE',
+                            runsheet_code: rs.runsheet_code || code,
+                            driver_id: newDriver || null,
+                            vehicle_id: newVehicle || null
+                        })
+                    });
+
+                    var json = await res.json().catch(function() { return {}; });
+                    if (!res.ok || !json.success) {
+                        Swal.showValidationMessage(json.msg || 'فشل تحديث الرانشيت');
+                        return false;
+                    }
+
+                    rs.driver_id = json.driver_id || null;
+                    rs.vehicle_id = json.vehicle_id || null;
+                    rs.status = json.status || rs.status;
+
+                    for (var k = 0; k < data.length; k++) {
+                        if (data[k].id === rs.id) {
+                            data[k].driver_id = rs.driver_id;
+                            data[k].vehicle_id = rs.vehicle_id;
+                            data[k].status = rs.status;
+                            break;
+                        }
+                    }
+
                     _apply();
-                    showToast('تم تحديث الرانشيت', 'success');
-                }).catch(function(e) {
+                    showToast('تم تحديث الرانشيت بنجاح', 'success');
+                    return true;
+                } catch (e) {
+                    Swal.showValidationMessage('فشل التحديث: ' + (e.message || 'خطأ غير معروف'));
+                    return false;
+                } finally {
                     hideLoader();
-                    showToast('فشل التحديث: ' + e.message, 'error');
-                });
+                }
             },
             didOpen: function() {
                 // ✅ زر الطباعة
@@ -1159,26 +1195,46 @@ async function _details(code) {
             confirmButtonColor: '#dc2626'
         });
         if (!cf.isConfirmed) return;
+
+        var ses = await supabase.auth.getSession();
+        var t = (ses && ses.data && ses.data.session) ? ses.data.session.access_token : null;
+        if (!t) { showToast('انتهت الجلسة. يرجى إعادة تسجيل الدخول.', 'error'); return; }
+
         showLoader('جاري حذف الرانشيت...');
         try {
-            var rsId = found.id;
-            // 1. تحرير الأوردرات
-            await supabase.from('orders').update({ order_status: 'Confirmed', runsheet_id: null }).eq('runsheet_id', rsId);
-            // 2. حذف التفاصيل
-            await supabase.from('run_sheet_details').delete().eq('runsheet_id', rsId);
-            // 3. حذف الرانشيت
-            await supabase.from('runsheets').delete().eq('id', rsId);
+            var res = await fetch(RW_SUPABASE_URL + '/functions/v1/manage-runsheet', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: 'Bearer ' + t
+                },
+                body: JSON.stringify({
+                    operation: 'DELETE',
+                    runsheet_code: code
+                })
+            });
 
-            // إزالة العنصر من المصفوفة المحلية
+            var json = await res.json().catch(function() { return {}; });
+            if (!res.ok || !json.success) {
+                throw new Error(json.msg || 'فشل حذف الرانشيت');
+            }
+
+            for (var o = 0; o < ordersData.length; o++) {
+                if (ordersData[o].runsheet_id === found.id) {
+                    ordersData[o].runsheet_id = null;
+                    ordersData[o].order_status = 'Confirmed';
+                }
+            }
+
             var idx = data.indexOf(found);
             if (idx > -1) data.splice(idx, 1);
 
-            hideLoader();
             _apply();
             showToast('تم حذف الرانشيت وتحرير الأوردرات بنجاح', 'success');
-        } catch(e) {
-            hideLoader();
+        } catch (e) {
             showToast('فشل الحذف: ' + (e.message || 'خطأ غير معروف'), 'error');
+        } finally {
+            hideLoader();
         }
     }
     async function _cancelRunsheet(code) {
@@ -1187,10 +1243,12 @@ async function _details(code) {
             if (data[i].runsheet_code === code) { found = data[i]; break; }
         }
         if (!found) { showToast('الرانشيت غير موجود', 'error'); return; }
+
         if (found.status !== 'Open' && found.status !== 'Confirmed') {
             showToast('لا يمكن إلغاء رانشيت في حالة: ' + found.status, 'error');
             return;
         }
+
         var cf = await Swal.fire({
             title: 'إلغاء الرانشيت',
             text: 'سيتم إلغاء الرانشيت ' + code + ' وتحرير جميع الأوردرات المرتبطة.',
@@ -1201,38 +1259,48 @@ async function _details(code) {
             confirmButtonColor: '#dc2626'
         });
         if (!cf.isConfirmed) return;
-        showLoader('جاري إلغاء الرانشيت...');
-        var hasError = false, errMsg = '';
-        try {
-            var rsId = found.id;
-            var r1 = await supabase.from('runsheets').update({ status: 'Cancelled' }).eq('id', rsId);
-            if (r1.error) { hasError = true; errMsg = r1.error.message; }
-            if (!hasError) {
-                var r2 = await supabase.from('orders').update({ order_status: 'Confirmed', runsheet_id: null }).eq('runsheet_id', rsId);
-                if (r2.error) { hasError = true; errMsg = r2.error.message; }
-            }
-            if (!hasError) {
-                var r3 = await supabase.from('run_sheet_details').delete().eq('runsheet_id', rsId);
-                if (r3.error) { hasError = true; errMsg = r3.error.message; }
-            }
-        } catch(e) {
-            hasError = true;
-            errMsg = e.message || 'خطأ غير معروف';
-        }
-        hideLoader();
-        if (hasError) {
-            showToast('فشل الإلغاء: ' + errMsg, 'error');
-            return;
-        }
-        // إزالة العنصر من المصفوفة المحلية لضمان المزامنة الفورية
-var idx = data.indexOf(found);
-if (idx > -1) {
-    data.splice(idx, 1);
-}
-        _apply();
-        showToast('تم إلغاء الرانشيت وتحرير الأوردرات بنجاح', 'success');
-    }
 
+        var ses = await supabase.auth.getSession();
+        var t = (ses && ses.data && ses.data.session) ? ses.data.session.access_token : null;
+        if (!t) { showToast('انتهت الجلسة. يرجى إعادة تسجيل الدخول.', 'error'); return; }
+
+        showLoader('جاري إلغاء الرانشيت...');
+        try {
+            var res = await fetch(RW_SUPABASE_URL + '/functions/v1/manage-runsheet', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: 'Bearer ' + t
+                },
+                body: JSON.stringify({
+                    operation: 'CANCEL',
+                    runsheet_code: code
+                })
+            });
+
+            var json = await res.json().catch(function() { return {}; });
+            if (!res.ok || !json.success) {
+                throw new Error(json.msg || 'فشل إلغاء الرانشيت');
+            }
+
+            for (var o = 0; o < ordersData.length; o++) {
+                if (ordersData[o].runsheet_id === found.id) {
+                    ordersData[o].runsheet_id = null;
+                    ordersData[o].order_status = 'Confirmed';
+                }
+            }
+
+            var idx = data.indexOf(found);
+            if (idx > -1) data.splice(idx, 1);
+
+            _apply();
+            showToast('تم إلغاء الرانشيت وتحرير الأوردرات بنجاح', 'success');
+        } catch (e) {
+            showToast('فشل الإلغاء: ' + (e.message || 'خطأ غير معروف'), 'error');
+        } finally {
+            hideLoader();
+        }
+    }
     function _changeStatus(code, funcName) {
         showLoader('جاري تحديث الحالة...');
         supabase.auth.getSession().then(function(ses) {
