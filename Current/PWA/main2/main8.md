@@ -8,30 +8,73 @@ var RW_Finance = (function() {
     function _fmtNum(n) { return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
     function _esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
+    function _companyId() {
+        var id = null;
+        if (typeof RW_STATE !== 'undefined' && RW_STATE && RW_STATE.app) {
+            id = RW_STATE.app.companyId || null;
+        }
+        if (!id && typeof RW_STATE !== 'undefined' && RW_STATE && RW_STATE.user) {
+            id = RW_STATE.user.companyId || null;
+        }
+        if (!id) throw new Error('سياق الشركة غير محدد');
+        return id;
+    }
     var _cache = { loaded: false, accountsTree: [], accountsFlat: [], treasury: [] };
 
     function _loadAllData(callback) {
         if (_cache.loaded) { if (callback) callback(); return; }
+        var companyId;
+        try {
+            companyId = _companyId();
+        } catch (e) {
+            _showToast(e.message || 'سياق الشركة غير محدد', 'error');
+            if (callback) callback();
+            return;
+        }
+
         _showLoader('جاري تحميل البيانات المالية...');
         Promise.all([
-            supabase.from('treasury').select('*'),
-            supabase.from('chart_of_accounts').select('*'),
-            supabase.from('cost_centers').select('*')
+            supabase.from('treasury')
+                .select('*')
+                .eq('company_id', companyId)
+                .eq('is_active', true)
+                .order('account_code'),
+            supabase.from('chart_of_accounts')
+                .select('*')
+                .eq('company_id', companyId)
+                .eq('is_active', true)
+                .order('account_code'),
+            supabase.from('cost_centers')
+                .select('*')
+                .eq('is_active', true)
+                .order('code')
         ]).then(function(results) {
             var tRes = results[0], aRes = results[1], ccRes = results[2];
+            if (tRes.error) throw tRes.error;
+            if (aRes.error) throw aRes.error;
+            if (ccRes.error) throw ccRes.error;
+
             _cache.treasury = tRes.data || [];
             _cache.accountsFlat = aRes.data || [];
             _cache.costCenters = ccRes.data || [];
-            var map = {}, roots = [];
+
+            var mapById = {}, roots = [];
             for (var i = 0; i < _cache.accountsFlat.length; i++) {
                 var a = _cache.accountsFlat[i];
-                map[a.account_code] = { id: a.account_code, name: a.account_name, type: a.account_type, parent: a.parent_account_id, children: [] };
+                mapById[a.id] = {
+                    id: a.account_code,
+                    uuid: a.id,
+                    name: a.account_name,
+                    type: a.account_type,
+                    parent: a.parent_account_id,
+                    children: []
+                };
             }
-            for (var code in map) {
-                if (map.hasOwnProperty(code)) {
-                    var node = map[code];
-                    if (node.parent && map[node.parent]) {
-                        map[node.parent].children.push(node);
+            for (var code in mapById) {
+                if (mapById.hasOwnProperty(code)) {
+                    var node = mapById[code];
+                    if (node.parent && mapById[node.parent]) {
+                        mapById[node.parent].children.push(node);
                     } else {
                         roots.push(node);
                     }
@@ -41,7 +84,11 @@ var RW_Finance = (function() {
             _cache.loaded = true;
             _hideLoader();
             if (callback) callback();
-        }).catch(function(e) { console.error(e); _hideLoader(); });
+        }).catch(function(e) {
+            console.error('RW_Finance load error:', e);
+            _hideLoader();
+            _showToast(e.message || 'فشل تحميل البيانات المالية', 'error');
+        });
     }
     function _refreshCache() { _cache.loaded = false; }
 
@@ -107,24 +154,28 @@ var RW_Finance = (function() {
             preConfirm: function() {
                 var name = document.getElementById('tr-name').value.trim();
                 if (!name) { Swal.showValidationMessage('الاسم مطلوب'); return false; }
+                var balance = parseFloat(document.getElementById('tr-balance').value) || 0;
                 return {
+                    company_id: _companyId(),
                     account_code: 'CASH-' + Date.now().toString().slice(-5),
                     account_name: name,
                     type: document.getElementById('tr-type').value,
-                    opening_balance: parseFloat(document.getElementById('tr-balance').value) || 0,
-                    current_balance: parseFloat(document.getElementById('tr-balance').value) || 0,
+                    opening_balance: balance,
+                    current_balance: balance,
                     is_active: true
                 };
             }
         }).then(function(r) {
-            if (r.isConfirmed) {
-                _showLoader();
-                supabase.from('treasury').insert(r.value).then(function() {
-                    _refreshCache();
-                    renderSubTab('treasury');
-                    _showToast('تمت الإضافة', 'success');
-                }).catch(function() { _showToast('فشل الحفظ', 'error'); });
-            }
+            if (!r.isConfirmed) return;
+            _showLoader('جاري حفظ الخزينة...');
+            supabase.from('treasury').insert(r.value).then(function(res) {
+                if (res.error) throw res.error;
+                _refreshCache();
+                renderSubTab('treasury');
+                _showToast('تمت الإضافة', 'success');
+            }).catch(function(e) {
+                _showToast(e.message || 'فشل الحفظ', 'error');
+            }).finally(_hideLoader);
         });
     }
     function _editTreasury(code) {
@@ -133,6 +184,7 @@ var RW_Finance = (function() {
             if (_cache.treasury[i].account_code === code) { item = _cache.treasury[i]; break; }
         }
         if (!item) { _showToast('غير موجود', 'error'); return; }
+
         Swal.fire({
             title: 'تعديل ' + item.account_name,
             html: '<div class="text-right"><div class="mb-4"><label class="block text-sm font-bold">الاسم</label><input id="tr-name" class="swal2-input" value="' + _esc(item.account_name) + '"></div><div class="mb-4"><label class="block text-sm font-bold">النوع</label><select id="tr-type" class="swal2-input"><option value="Cash"' + (item.type === 'Cash' ? ' selected' : '') + '>خزينة</option><option value="Bank"' + (item.type === 'Bank' ? ' selected' : '') + '>بنك</option></select></div><div class="mb-4"><label class="block text-sm font-bold">الرصيد الافتتاحي</label><input id="tr-balance" type="number" step="0.01" value="' + item.opening_balance + '" class="swal2-input"></div></div>',
@@ -148,34 +200,35 @@ var RW_Finance = (function() {
                     account_name: name,
                     type: document.getElementById('tr-type').value,
                     opening_balance: parseFloat(document.getElementById('tr-balance').value) || 0,
-                    current_balance: parseFloat(document.getElementById('tr-balance').value) || 0
+                    current_balance: parseFloat(document.getElementById('tr-balance').value) || 0,
+                    updated_at: new Date().toISOString()
                 };
             }
         }).then(function(r) {
             if (r.isConfirmed) {
-                _showLoader();
-                supabase.from('treasury').update(r.value).eq('account_code', code).then(function() {
-                    _refreshCache();
-                    renderSubTab('treasury');
-                    _showToast('تم التعديل', 'success');
-                }).catch(function() { _showToast('فشل', 'error'); });
+                _showLoader('جاري الحفظ...');
+                supabase.from('treasury')
+                    .update(r.value)
+                    .eq('id', item.id)
+                    .eq('company_id', _companyId())
+                    .then(function(res) {
+                        if (res.error) throw res.error;
+                        _refreshCache(); renderSubTab('treasury'); _showToast('تم التعديل', 'success');
+                    }).catch(function(e) { _showToast(e.message || 'فشل', 'error'); })
+                    .finally(_hideLoader);
             } else if (r.isDenied) {
-                Swal.fire({
-                    title: 'تأكيد الحذف',
-                    text: 'حذف ' + item.account_name + '؟',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#ef4444',
-                    confirmButtonText: 'حذف'
-                }).then(function(dr) {
-                    if (dr.isConfirmed) {
-                        _showLoader();
-                        supabase.from('treasury').delete().eq('account_code', code).then(function() {
-                            _refreshCache();
-                            renderSubTab('treasury');
-                            _showToast('تم الحذف', 'success');
-                        }).catch(function() { _showToast('فشل', 'error'); });
-                    }
+                Swal.fire({ title: 'تأكيد الحذف', text: 'حذف ' + item.account_name + '؟', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'حذف' }).then(function(dr) {
+                    if (!dr.isConfirmed) return;
+                    _showLoader('جاري الحذف...');
+                    supabase.from('treasury')
+                        .delete()
+                        .eq('id', item.id)
+                        .eq('company_id', _companyId())
+                        .then(function(res) {
+                            if (res.error) throw res.error;
+                            _refreshCache(); renderSubTab('treasury'); _showToast('تم الحذف', 'success');
+                        }).catch(function(e) { _showToast(e.message || 'فشل', 'error'); })
+                        .finally(_hideLoader);
                 });
             }
         });
@@ -192,7 +245,11 @@ var RW_Finance = (function() {
         var html = '';
         for (var i = 0; i < nodes.length; i++) {
             var node = nodes[i], hasChildren = node.children && node.children.length > 0;
-            html += '<div class="border-b border-gray-100 py-2" style="margin-right:' + (level * 20) + 'px"><div class="flex items-center justify-between hover:bg-gray-50 cursor-pointer rounded px-2 py-1" onclick="RW_Finance._openAccountDialog(\'' + _esc(node.id) + '\')"><div class="flex items-center"><i class="fa-solid fa-' + (hasChildren ? 'folder text-yellow-500' : 'file-invoice text-gray-400') + ' ml-2"></i><span class="font-bold">' + _esc(node.name) + '</span><span class="text-xs text-gray-400 mr-2">(' + _esc(node.id) + ')</span></div></div>';
+            html += '<div class="border-b border-gray-100 py-2" style="margin-right:' + (level * 20) + 'px">' +
+                '<div class="flex items-center justify-between hover:bg-gray-50 cursor-pointer rounded px-2 py-1" onclick="RW_Finance._openAccountDialog(\'' + _esc(node.id) + '\')">' +
+                '<div class="flex items-center"><i class="fa-solid fa-' + (hasChildren ? 'folder text-yellow-500' : 'file-invoice text-gray-400') + ' ml-2"></i>' +
+                '<span class="font-bold">' + _esc(node.name) + '</span>' +
+                '<span class="text-xs text-gray-400 mr-2">(' + _esc(node.id) + ')</span></div></div>';
             if (hasChildren) html += '<div>' + _buildAccountTree(node.children, level + 1) + '</div>';
             html += '</div>';
         }
@@ -221,10 +278,18 @@ var RW_Finance = (function() {
             }
         }
         var isEdit = !!item;
+        var companyId = _companyId();
         var types = ['asset:أصول', 'liability:خصوم', 'equity:حقوق ملكية', 'revenue:إيرادات', 'expense:مصروفات'];
-        var typeOptions = types.map(function(t) { var v = t.split(':'); return '<option value="' + v[0] + '"' + (isEdit && item.account_type === v[0] ? ' selected' : '') + '>' + v[1] + '</option>'; }).join('');
-        var parentOptions = _cache.accountsFlat.filter(function(a) { return !isEdit || a.account_code !== editId; }).map(function(a) { return '<option value="' + _esc(a.account_code) + '"' + (isEdit && item.parent_account_id === a.account_code ? ' selected' : '') + '>' + _esc(a.account_name) + '</option>'; }).join('');
-        
+        var typeOptions = types.map(function(t) {
+            var v = t.split(':');
+            return '<option value="' + v[0] + '"' + (isEdit && item.account_type === v[0] ? ' selected' : '') + '>' + v[1] + '</option>';
+        }).join('');
+        var parentOptions = _cache.accountsFlat.filter(function(a) {
+            return !isEdit || a.account_code !== editId;
+        }).map(function(a) {
+            return '<option value="' + _esc(a.id) + '"' + (isEdit && item.parent_account_id === a.id ? ' selected' : '') + '>' + _esc(a.account_name) + ' (' + _esc(a.account_code) + ')</option>';
+        }).join('');
+
         Swal.fire({
             title: isEdit ? 'تعديل حساب' : 'إضافة حساب جديد',
             html: '<div class="text-right"><div class="mb-3"><label class="block text-sm font-bold">كود الحساب</label><input id="acc-code" class="swal2-input" value="' + (isEdit ? _esc(item.account_code) : '') + '" readonly></div><div class="mb-3"><label class="block text-sm font-bold">اسم الحساب *</label><input id="acc-name" class="swal2-input" value="' + (isEdit ? _esc(item.account_name) : '') + '"></div><div class="mb-3"><label class="block text-sm font-bold">النوع</label><select id="acc-type" class="swal2-input">' + typeOptions + '</select></div><div class="mb-3"><label class="block text-sm font-bold">الحساب الأب</label><select id="acc-parent" class="swal2-input"><option value="">لا يوجد</option>' + parentOptions + '</select></div></div>',
@@ -236,76 +301,89 @@ var RW_Finance = (function() {
             preConfirm: function() {
                 var name = document.getElementById('acc-name').value.trim();
                 if (!name) { Swal.showValidationMessage('الاسم مطلوب'); return false; }
+                var accountType = document.getElementById('acc-type').value;
                 return {
+                    company_id: companyId,
                     account_code: document.getElementById('acc-code').value.trim(),
                     account_name: name,
-                    account_type: document.getElementById('acc-type').value,
+                    account_type: accountType,
                     parent_account_id: document.getElementById('acc-parent').value || null,
-                    normal_balance: 'debit',
+                    normal_balance: ['liability', 'equity', 'revenue'].indexOf(accountType) !== -1 ? 'credit' : 'debit',
                     is_active: true
                 };
             }
         }).then(function(r) {
             if (r.isConfirmed) {
-                _showLoader();
+                _showLoader('جاري حفظ الحساب...');
                 var payload = r.value;
-                if (isEdit) {
-                    supabase.from('chart_of_accounts').update(payload).eq('account_code', editId).then(function() {
-                        _refreshCache();
-                        renderSubTab('accounts');
-                        _showToast('تم التعديل', 'success');
-                    }).catch(function() { _showToast('فشل', 'error'); });
-                } else {
-                    supabase.from('chart_of_accounts').insert(payload).then(function() {
-                        _refreshCache();
-                        renderSubTab('accounts');
-                        _showToast('تمت الإضافة', 'success');
-                    }).catch(function() { _showToast('فشل', 'error'); });
-                }
+                var promise = isEdit
+                    ? supabase.from('chart_of_accounts').update({ account_name: payload.account_name, account_type: payload.account_type, parent_account_id: payload.parent_account_id, normal_balance: payload.normal_balance, is_active: true, updated_at: new Date().toISOString() }).eq('id', item.id).eq('company_id', companyId)
+                    : supabase.from('chart_of_accounts').insert(payload);
+                promise.then(function(res) {
+                    if (res.error) throw res.error;
+                    _refreshCache(); renderSubTab('accounts'); _showToast('تم الحفظ', 'success');
+                }).catch(function(e) { _showToast(e.message || 'فشل الحفظ', 'error'); })
+                  .finally(_hideLoader);
             } else if (r.isDenied) {
-                Swal.fire({
-                    title: 'تأكيد الحذف',
-                    text: 'حذف ' + item.account_name + '؟',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#ef4444',
-                    confirmButtonText: 'حذف'
-                }).then(function(dr) {
-                    if (dr.isConfirmed) {
-                        _showLoader();
-                        supabase.from('chart_of_accounts').delete().eq('account_code', editId).then(function() {
-                            _refreshCache();
-                            renderSubTab('accounts');
-                            _showToast('تم الحذف', 'success');
-                        }).catch(function() { _showToast('فشل', 'error'); });
-                    }
+                Swal.fire({ title: 'تأكيد الحذف', text: 'حذف ' + item.account_name + '؟', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'حذف' }).then(function(dr) {
+                    if (!dr.isConfirmed) return;
+                    _showLoader('جاري الحذف...');
+                    supabase.from('chart_of_accounts').delete().eq('id', item.id).eq('company_id', companyId).then(function(res) {
+                        if (res.error) throw res.error;
+                        _refreshCache(); renderSubTab('accounts'); _showToast('تم الحذف', 'success');
+                    }).catch(function(e) { _showToast(e.message || 'فشل الحذف', 'error'); })
+                      .finally(_hideLoader);
                 });
             }
         });
     }
-    function _seedAccounts() {
-        _showLoader('جاري التهيئة...');
-        var accounts = [
-            {account_code:"1",account_name:"الأصول",account_type:"asset",parent_account_id:null,normal_balance:"debit",is_active:true},
-            {account_code:"11",account_name:"الأصول الثابتة",account_type:"asset",parent_account_id:"1",normal_balance:"debit",is_active:true},
-            {account_code:"12",account_name:"الأصول المتداولة",account_type:"asset",parent_account_id:"1",normal_balance:"debit",is_active:true},
-            {account_code:"121",account_name:"النقدية (الخزينة الرئيسية)",account_type:"asset",parent_account_id:"12",normal_balance:"debit",is_active:true},
-            {account_code:"123",account_name:"العملاء (ذمم مدينة)",account_type:"asset",parent_account_id:"12",normal_balance:"debit",is_active:true},
-            {account_code:"124",account_name:"المخزون السلعي",account_type:"asset",parent_account_id:"12",normal_balance:"debit",is_active:true},
-            {account_code:"2",account_name:"الخصوم",account_type:"liability",parent_account_id:null,normal_balance:"credit",is_active:true},
-            {account_code:"21",account_name:"الخصوم المتداولة",account_type:"liability",parent_account_id:"2",normal_balance:"credit",is_active:true},
-            {account_code:"211",account_name:"الموردون (ذمم دائنة)",account_type:"liability",parent_account_id:"21",normal_balance:"credit",is_active:true},
-            {account_code:"216",account_name:"ضريبة القيمة المضافة المستحقة",account_type:"liability",parent_account_id:"21",normal_balance:"credit",is_active:true},
-            {account_code:"3",account_name:"حقوق الملكية",account_type:"equity",parent_account_id:null,normal_balance:"credit",is_active:true},
-            {account_code:"31",account_name:"رأس المال",account_type:"equity",parent_account_id:"3",normal_balance:"credit",is_active:true},
-            {account_code:"4",account_name:"الإيرادات",account_type:"revenue",parent_account_id:null,normal_balance:"credit",is_active:true},
-            {account_code:"41",account_name:"إيرادات المبيعات",account_type:"revenue",parent_account_id:"4",normal_balance:"credit",is_active:true},
-            {account_code:"5",account_name:"المصروفات",account_type:"expense",parent_account_id:null,normal_balance:"debit",is_active:true},
-            {account_code:"51",account_name:"تكلفة المبيعات",account_type:"expense",parent_account_id:"5",normal_balance:"debit",is_active:true}
+    async function _seedAccounts() {
+        var definitions = [
+            ['1', 'الأصول', 'asset', null, 'debit'], ['11', 'الأصول الثابتة', 'asset', '1', 'debit'], ['12', 'الأصول المتداولة', 'asset', '1', 'debit'],
+            ['121', 'النقدية (الخزينة الرئيسية)', 'asset', '12', 'debit'], ['123', 'العملاء (ذمم مدينة)', 'asset', '12', 'debit'], ['124', 'المخزون السلعي', 'asset', '12', 'debit'],
+            ['2', 'الخصوم', 'liability', null, 'credit'], ['21', 'الخصوم المتداولة', 'liability', '2', 'credit'], ['211', 'الموردون (ذمم دائنة)', 'liability', '21', 'credit'], ['216', 'ضريبة القيمة المضافة المستحقة', 'liability', '21', 'credit'],
+            ['3', 'حقوق الملكية', 'equity', null, 'credit'], ['31', 'رأس المال', 'equity', '3', 'credit'],
+            ['4', 'الإيرادات', 'revenue', null, 'credit'], ['41', 'إيرادات المبيعات', 'revenue', '4', 'credit'],
+            ['5', 'المصروفات', 'expense', null, 'debit'], ['51', 'تكلفة المبيعات', 'expense', '5', 'debit']
         ];
-        Promise.all(accounts.map(function(a) { return supabase.from('chart_of_accounts').upsert(a, { onConflict: 'account_code' }); }))
-            .then(function() { _refreshCache(); renderSubTab('accounts'); _showToast('تمت التهيئة', 'success'); })
-            .catch(function() { _showToast('فشلت التهيئة', 'error'); });
+        _showLoader('جاري تهيئة دليل الحسابات...');
+        try {
+            var companyId = _companyId();
+            var codeMap = {};
+            for (var i = 0; i < definitions.length; i++) {
+                var d = definitions[i];
+                var existingRes = await supabase.from('chart_of_accounts').select('id').eq('company_id', companyId).eq('account_code', d[0]).maybeSingle();
+                if (existingRes.error) throw existingRes.error;
+                if (existingRes.data) {
+                    codeMap[d[0]] = existingRes.data.id;
+                    continue;
+                }
+                var parentId = d[3] ? (codeMap[d[3]] || null) : null;
+                var res = await supabase.from('chart_of_accounts').insert({
+                    company_id: companyId,
+                    account_code: d[0],
+                    account_name: d[1],
+                    account_type: d[2],
+                    parent_account_id: parentId,
+                    normal_balance: d[4],
+                    is_active: true
+                }).select('id').single();
+                if (res.error) throw res.error;
+                codeMap[d[0]] = res.data.id;
+            }
+            for (var j = 0; j < definitions.length; j++) {
+                var x = definitions[j], p = x[3] ? (codeMap[x[3]] || null) : null;
+                var u = await supabase.from('chart_of_accounts').update({ parent_account_id: p }).eq('id', codeMap[x[0]]).eq('company_id', companyId);
+                if (u.error) throw u.error;
+            }
+            _refreshCache();
+            renderSubTab('accounts');
+            _showToast('تمت التهيئة', 'success');
+        } catch (e) {
+            _showToast(e.message || 'فشلت التهيئة', 'error');
+        } finally {
+            _hideLoader();
+        }
     }
 
     // ==================== القيود اليومية ====================
@@ -676,7 +754,8 @@ function _saveJournalEntry() {
     function _renderReceipts() {
         var content = byId('finance-content'); if (!content) return;
         content.innerHTML = '<div class="text-center py-8">جاري تحميل سندات القبض...</div>';
-        supabase.from('cash_box').select('*').eq('type', 'Receipt').then(function(r) {
+                supabase.from('cash_box').select('*').eq('company_id', _companyId()).eq('type', 'Receipt').order('voucher_date', { ascending: false }).then(function(r) {
+            if (r.error) throw r.error;
             var data = r.data || [];
             var html = '<div class="bg-white rounded-2xl shadow-sm border p-4"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold"><i class="fa-solid fa-arrow-down ml-2 text-green-600"></i>سندات القبض</h2><button onclick="RW_Finance._newReceipt()" class="bg-green-600 text-white px-4 py-2 rounded-xl"><i class="fa-solid fa-plus ml-1"></i> سند قبض جديد</button></div><div id="receipts-list">' + _buildReceiptsTable(data) + '</div></div>';
             safeHTML(content, html);
@@ -690,7 +769,13 @@ function _saveJournalEntry() {
     }
     function _newReceipt() {
         var content = byId('finance-content'); if (!content) return;
-        var html = '<div class="bg-white rounded-2xl shadow-sm border p-4"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold"><i class="fa-solid fa-arrow-down ml-2 text-green-600"></i>سند قبض جديد</h2><button onclick="RW_Finance.renderSubTab(\'receipts\')" class="text-gray-500 hover:text-gray-700"><i class="fa-solid fa-xmark text-xl"></i></button></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold">التاريخ</label><input type="date" id="rcpt-date" class="border rounded-lg p-2 w-full" value="' + new Date().toISOString().slice(0,10) + '"></div><div><label class="block text-sm font-bold">الخزينة</label><select id="rcpt-cashbox" class="border rounded-lg p-2 w-full">' + _cache.treasury.map(function(t) { return '<option value="' + _esc(t.account_code) + '">' + _esc(t.account_name) + '</option>'; }).join('') + '</select></div><div><label class="block text-sm font-bold">الحساب الرئيسي</label><input type="text" id="rcpt-main-account" class="border rounded-lg p-2 w-full" placeholder="إيرادات المبيعات"></div></div><div class="mb-4"><h4 class="font-bold mb-2">بنود السند</h4><div id="rcpt-lines"></div><button onclick="RW_Finance._addReceiptLine()" class="mt-2 text-green-600 font-bold"><i class="fa-solid fa-plus-circle ml-1"></i> إضافة بند</button></div><div class="p-3 bg-gray-50 rounded-lg flex justify-between mb-4"><span>الإجمالي: <span id="rcpt-total">0.00</span></span></div><div class="flex justify-end gap-3"><button onclick="RW_Finance.renderSubTab(\'receipts\')" class="px-4 py-2 border rounded-lg">إلغاء</button><button onclick="RW_Finance._saveReceipt()" class="px-6 py-2 bg-green-600 text-white rounded-lg font-bold"><i class="fa-solid fa-check ml-1"></i> حفظ</button></div></div>';
+        var treasuryOptions = _cache.treasury.map(function(t) {
+            return '<option value="' + _esc(t.id) + '">' + _esc(t.account_name) + ' (' + _esc(t.account_code) + ')</option>';
+        }).join('');
+        var accountOptions = _cache.accountsFlat.map(function(a) {
+            return '<option value="' + _esc(a.id) + '">' + _esc(a.account_name) + ' (' + _esc(a.account_code) + ')</option>';
+        }).join('');
+        var html = '<div class="bg-white rounded-2xl shadow-sm border p-4"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold"><i class="fa-solid fa-arrow-down ml-2 text-green-600"></i>سند قبض جديد</h2><button type="button" onclick="RW_Finance.renderSubTab(\\'receipts\\')" class="text-gray-500 hover:text-gray-700"><i class="fa-solid fa-xmark text-xl"></i></button></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold">التاريخ</label><input type="date" id="rcpt-date" class="border rounded-lg p-2 w-full" value="' + new Date().toISOString().slice(0,10) + '"></div><div><label class="block text-sm font-bold">الخزينة</label><select id="rcpt-cashbox" class="border rounded-lg p-2 w-full">' + treasuryOptions + '</select></div><div><label class="block text-sm font-bold">الحساب المقابل</label><select id="rcpt-main-account" class="border rounded-lg p-2 w-full"><option value="">اختر الحساب</option>' + accountOptions + '</select></div></div><div class="mb-4"><h4 class="font-bold mb-2">بنود السند</h4><div id="rcpt-lines"></div><button type="button" onclick="RW_Finance._addReceiptLine()" class="mt-2 text-green-600 font-bold"><i class="fa-solid fa-plus-circle ml-1"></i> إضافة بند</button></div><div class="p-3 bg-gray-50 rounded-lg flex justify-between mb-4"><span>الإجمالي: <span id="rcpt-total">0.00</span></span></div><div class="flex justify-end gap-3"><button type="button" onclick="RW_Finance.renderSubTab(\\'receipts\\')" class="px-4 py-2 border rounded-lg">إلغاء</button><button type="button" onclick="RW_Finance._saveReceipt()" class="px-6 py-2 bg-green-600 text-white rounded-lg font-bold"><i class="fa-solid fa-check ml-1"></i> حفظ</button></div></div>';
         safeHTML(content, html);
         _addReceiptLine();
     }
@@ -701,26 +786,71 @@ function _saveJournalEntry() {
     function _removeReceiptLine(btn) { btn.closest('.rcpt-line').remove(); _recalcReceiptTotal(); }
     function _recalcReceiptTotal() { var total = 0; document.querySelectorAll('.rcpt-line-amount').forEach(function(el) { total += parseFloat(el.value) || 0; }); safeText(byId('rcpt-total'), _fmtNum(total)); }
     async function _saveReceipt() {
+        var host = byId('finance-content');
         var lines = [];
         document.querySelectorAll('.rcpt-line').forEach(function(l) {
-            var account = l.querySelector('.rcpt-line-account').value, amount = parseFloat(l.querySelector('.rcpt-line-amount').value)||0;
-            if (account && amount > 0) lines.push({ accountName: account, description: l.querySelector('.rcpt-line-desc').value, amount: amount });
+            var account = l.querySelector('.rcpt-line-account').value.trim();
+            var amount = parseFloat(l.querySelector('.rcpt-line-amount').value) || 0;
+            if (account && amount > 0) {
+                lines.push({ accountName: account, description: l.querySelector('.rcpt-line-desc').value || '', amount: amount });
+            }
         });
         if (!lines.length) { _showToast('أضف بنداً', 'warning'); return; }
-        var payload = { date: byId('rcpt-date').value, cashBoxId: byId('rcpt-cashbox').value, mainAccountName: byId('rcpt-main-account').value, notes: '', lines: lines };
-        _showLoader();
+
+        var treasuryId = byId('rcpt-cashbox').value;
+        var offsetAccountId = byId('rcpt-main-account').value;
+        var cashAccount = null;
+        for (var i = 0; i < _cache.accountsFlat.length; i++) {
+            if (_cache.accountsFlat[i].account_code === '121') { cashAccount = _cache.accountsFlat[i]; break; }
+        }
+        if (!treasuryId || !offsetAccountId || !cashAccount) {
+            _showToast('بيانات الخزينة أو الحساب المقابل غير مكتملة', 'error');
+            return;
+        }
+
+        var op = host.dataset.receiptOperationId || (window.crypto && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + '-' + Math.random());
+        host.dataset.receiptOperationId = op;
+        _showLoader('جاري حفظ سند القبض...');
         try {
-            var ses = await supabase.auth.getSession(), t = ses.data.session.access_token;
-            var res = await fetch(RW_SUPABASE_URL + '/functions/v1/save-receipt-voucher', { method:'POST', headers: {'Content-Type':'application/json', Authorization:'Bearer '+t}, body: JSON.stringify(payload) });
-            var json = await res.json(); _hideLoader();
-            if (json.success) { _showToast('تم الحفظ', 'success'); renderSubTab('receipts'); } else _showToast(json.error||'فشل', 'error');
-        } catch(e) { _hideLoader(); _showToast('فشل الاتصال', 'error'); }
+            var ses = await supabase.auth.getSession();
+            var token = ses.data && ses.data.session ? ses.data.session.access_token : null;
+            if (!token) throw new Error('انتهت الجلسة');
+            var selected = byId('rcpt-main-account').selectedOptions[0];
+            var payload = {
+                header: {
+                    operationId: op,
+                    treasuryId: treasuryId,
+                    cashAccountId: cashAccount.id,
+                    offsetAccountId: offsetAccountId,
+                    date: byId('rcpt-date').value,
+                    reference: null,
+                    mainAccountName: selected ? selected.textContent : null,
+                    notes: ''
+                },
+                lines: lines
+            };
+            var res = await fetch(RW_SUPABASE_URL + '/functions/v1/save-receipt-voucher', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify(payload)
+            });
+            var json = await res.json();
+            if (!res.ok || !json || json.success === false) throw new Error((json && (json.error || json.msg)) || 'فشل الحفظ');
+            delete host.dataset.receiptOperationId;
+            _showToast(json.duplicate ? 'السند موجود بالفعل ولم يُكرر.' : 'تم الحفظ', 'success');
+            renderSubTab('receipts');
+        } catch (e) {
+            _showToast(e.message || 'فشل الحفظ', 'error');
+        } finally {
+            _hideLoader();
+        }
     }
 
     function _renderPayments() {
         var content = byId('finance-content'); if (!content) return;
         content.innerHTML = '<div class="text-center py-8">جاري تحميل سندات الصرف...</div>';
-        supabase.from('cash_box').select('*').eq('type', 'Payment').then(function(r) {
+                supabase.from('cash_box').select('*').eq('company_id', _companyId()).eq('type', 'Payment').order('voucher_date', { ascending: false }).then(function(r) {
+            if (r.error) throw r.error;
             var data = r.data || [];
             var html = '<div class="bg-white rounded-2xl shadow-sm border p-4"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold"><i class="fa-solid fa-arrow-up ml-2 text-red-600"></i>سندات الصرف</h2><button onclick="RW_Finance._newPayment()" class="bg-red-600 text-white px-4 py-2 rounded-xl"><i class="fa-solid fa-plus ml-1"></i> سند صرف جديد</button></div><div id="payments-list">' + _buildReceiptsTable(data) + '</div></div>';
             safeHTML(content, html);
@@ -758,7 +888,8 @@ function _saveJournalEntry() {
     function _renderTransfers() {
         var content = byId('finance-content'); if (!content) return;
         content.innerHTML = '<div class="text-center py-8">جاري تحميل التحويلات...</div>';
-        supabase.from('cash_box').select('*').in('type', ['Transfer-Out','Transfer-In']).then(function(r) {
+        supabase.from('cash_box').select('*').eq('company_id', _companyId()).in('type', ['Transfer-Out', 'Transfer-In']).order('voucher_date', { ascending: false }).then(function(r) {
+            if (r.error) throw r.error;
             var data = r.data || [], merged = {};
             for (var i = 0; i < data.length; i++) { var t = data[i]; if (!merged[t.reference]) merged[t.reference] = { date: t.voucher_date, fromCash: '', toCash: '', amount: 0, ref: t.reference }; if (t.type === 'Transfer-Out') merged[t.reference].fromCash = t.treasury_id; else merged[t.reference].toCash = t.treasury_id; merged[t.reference].amount = Math.max(merged[t.reference].amount, t.amount||0); }
             var transfers = Object.values(merged);
@@ -779,15 +910,49 @@ function _saveJournalEntry() {
         safeHTML(content, html);
     }
     async function _saveTransfer() {
-        var fromCash = byId('trf-from').value, toCash = byId('trf-to').value, amount = parseFloat(byId('trf-amount').value)||0;
-        if (!fromCash || !toCash || fromCash === toCash || amount <= 0) { _showToast('بيانات غير صحيحة', 'warning'); return; }
-        _showLoader();
+        var fromId = byId('trf-from').value;
+        var toId = byId('trf-to').value;
+        var sourceAccountId = byId('trf-source-account').value;
+        var targetAccountId = byId('trf-target-account').value;
+        var amount = parseFloat(byId('trf-amount').value) || 0;
+        if (!fromId || !toId || fromId === toId || !sourceAccountId || !targetAccountId || amount <= 0) {
+            _showToast('بيانات التحويل غير صحيحة أو غير مكتملة', 'warning');
+            return;
+        }
+
+        var host = byId('finance-content');
+        var op = host.dataset.transferOperationId || (window.crypto && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + '-' + Math.random());
+        host.dataset.transferOperationId = op;
+        _showLoader('جاري تنفيذ التحويل...');
         try {
-            var ses = await supabase.auth.getSession(), t = ses.data.session.access_token;
-            var res = await fetch(RW_SUPABASE_URL + '/functions/v1/save-transfer-voucher', { method:'POST', headers: {'Content-Type':'application/json', Authorization:'Bearer '+t}, body: JSON.stringify({ fromCashId: fromCash, toCashId: toCash, amount: amount, notes: '' }) });
-            var json = await res.json(); _hideLoader();
-            if (json.success) { _showToast('تم التحويل', 'success'); renderSubTab('transfers'); } else _showToast(json.error||'فشل', 'error');
-        } catch(e) { _hideLoader(); _showToast('فشل الاتصال', 'error'); }
+            var ses = await supabase.auth.getSession();
+            var token = ses.data && ses.data.session ? ses.data.session.access_token : null;
+            if (!token) throw new Error('انتهت الجلسة');
+            var res = await fetch(RW_SUPABASE_URL + '/functions/v1/save-transfer-voucher', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({
+                    operationId: op,
+                    sourceTreasuryId: fromId,
+                    targetTreasuryId: toId,
+                    sourceAccountId: sourceAccountId,
+                    targetAccountId: targetAccountId,
+                    amount: amount,
+                    transferDate: new Date().toISOString().slice(0, 10),
+                    reference: null,
+                    notes: ''
+                })
+            });
+            var json = await res.json();
+            if (!res.ok || !json || json.success === false) throw new Error((json && (json.error || json.msg)) || 'فشل تنفيذ التحويل');
+            delete host.dataset.transferOperationId;
+            _showToast(json.duplicate ? 'التحويل موجود بالفعل ولم يُكرر.' : 'تم التحويل', 'success');
+            renderSubTab('transfers');
+        } catch (e) {
+            _showToast(e.message || 'فشل التنفيذ', 'error');
+        } finally {
+            _hideLoader();
+        }
     }
 
     // ==================== التقارير المالية ====================
