@@ -4,7 +4,23 @@
 var RW_Reports = (function() {
     function _fmtNum(n) { return Number(n || 0).toLocaleString(); }
     function _esc(s) { return String(s||'').replace(/[&<>]/g, function(m) { return m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'; }); }
+    function _companyId() {
+        var id = null;
+        if (typeof RW_STATE !== 'undefined' && RW_STATE && RW_STATE.app) {
+            id = RW_STATE.app.companyId || null;
+        }
+        if (!id && typeof RW_STATE !== 'undefined' && RW_STATE && RW_STATE.user) {
+            id = RW_STATE.user.companyId || null;
+        }
+        if (!id) throw new Error('سياق الشركة غير محدد');
+        return id;
+    }
 
+    function _nextDate(dateText) {
+        var d = new Date(dateText + 'T00:00:00');
+        d.setDate(d.getDate() + 1);
+        return d.toISOString().slice(0, 10);
+    }
     // ========== لوحة القيادة ==========
     async function renderDashboard() {
         var container = byId('rw-page-container');
