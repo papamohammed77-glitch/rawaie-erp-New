@@ -1,51 +1,54 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
-## CURRENT CHECKPOINT — 2026-09-09 — Report102 Main9 Forensic Recheck
+## CURRENT CHECKPOINT — 2026-09-09 — Report103 Main9 Forensic Recheck
 
-### Governing Target — NON-NEGOTIABLE
+### GOVERNING TARGET — NON-NEGOTIABLE
 **هناك نقص شديد في كل التبويبات، وكثير منها هيكلي فقط. الهدف ليس مجرد إكمال الشاشات، بل استكمالها وظيفيًا لتصبح منافسًا حقيقيًا لـ Odoo وDynamics وSAP وDaftra وManager.io وغيرها. هذا جزء من هدف Gold/Diamond للمشروع، ولا يجوز التعامل معه كإضافات شكلية.**
 
 الحوكمة التنفيذية:
 
 UNDERSTAND → RECONSTRUCT HISTORICAL CONTRACT → TRACE CURRENT BEHAVIOR → TRACE DATA/AUTH CONTROL FLOW → IDENTIFY ACTUAL GAP → SURGICAL FIX → TEST → PRODUCTION VERIFY.
 
-### Source-of-Truth Governance
-- Production Supabase is the execution reference.
-- Historical reports are evidence, not authority over current Production.
+### SOURCE-OF-TRUTH GOVERNANCE
+- Production Runtime / Database is the execution reference.
+- Historical reports are evidence, not current truth.
+- `CURRENT_STATE.md` is a continuity checkpoint and must be reconciled against Git/Production.
 - Unknown != bug; Unknown != remove.
 - One Closure Unit at a time.
 - Parent editable source = `Current/PWA/main2/main1.md ... main11.md`.
-- `Current/PWA/main/*` = historical evidence only.
-- `Current/PWA/New-main` = generated target only.
-- `.github/workflows/forensic_main_assembly.yml` currently points to `Current/PWA/main2/**`; this path is correct and was not changed.
+- `Original/PWA/main/*` = historical reference only.
+- `Current/PWA/New-main` = generated assembly target only.
+- `.github/workflows/forensic_main_assembly.yml` already points to `Current/PWA/main2/**`; this is correct and must not be changed without new evidence.
 - Physical Stock contract = `post_stock_movement -> stock_branches + inventory_log`.
 - `reserve_stock` / `release_stock_reservation` = Reservation-only.
 
-### Current Main9
+## CURRENT MAIN9 — DIRECT GIT VERIFICATION
 - File: `Current/PWA/main2/main9.md`
-- Current Git blob SHA observed: `a72b970709ce69192bd47824685e99962aaf9fd8`
-- The previous CURRENT_STATE checkpoint SHA was stale versus the live Git file; this drift was identified and explicitly documented.
-- M9-01 (`_companyId` + `_nextDate`) exists and must not be repeated.
-- The assistant did NOT edit Main9 source. Owner-source surgery remains required.
-- Main9 currently still contains an older `_loadDetailedReports` implementation plus incomplete/unsafe report branches in `RW_Reports_Comprehensive`.
+- Current Git blob SHA: `a72b970709ce69192bd47824685e99962aaf9fd8`
+- Latest direct Main9 commits inspected: `0748e00b...` then `ef201a62...` on 2026-09-09.
+- The current source still contains the older implementations for M9-02..M9-09. The previously documented replacements are not actually present in the current Main9 source.
+- M9-01 (`_companyId` + `_nextDate`) already exists and must not be repeated.
 
-### Main9 Surgery Units — FULL BATCH TO BE EXECUTED BY OWNER
-- M9-02 `_loadDashboardData(fromDate,toDate)` — approx. current line ~67 — OPEN.
-- M9-03 `_loadDropdowns(params)` — approx. current line ~589 — OPEN.
-- M9-04 `_showCustomerLedgerDetail(customerCode, customerName)` — approx. current line ~614 — OPEN.
-- M9-05 `_showItemMovementDetail(itemCode,itemName)` — approx. current line ~631 — OPEN.
-- M9-06 `_showRunsheetDetail(runsheetCode)` — approx. current line ~648 — OPEN.
-- M9-07 `_showSettlementDetail(settlementCode)` — approx. current line ~676 — OPEN.
-- M9-08 `_generateReport(sectionKey,reportId)` — approx. current line ~696 — OPEN; functional completeness scope.
-- M9-09 `_loadDetailedReports(fromDate,toDate,types)` — OPEN.
+## MAIN9 SURGERY STATUS
+- `M9-01 = SOURCE CLOSED / DO NOT REPEAT`
+- `M9-02` `_loadDashboardData(fromDate,toDate)` = OPEN / OWNER SOURCE SURGERY REQUIRED.
+- `M9-03` `_loadDropdowns(params)` = OPEN / OWNER SOURCE SURGERY REQUIRED.
+- `M9-04` `_showCustomerLedgerDetail(customerCode,customerName)` = OPEN / OWNER SOURCE SURGERY REQUIRED.
+- `M9-05` `_showItemMovementDetail(itemCode,itemName)` = OPEN / OWNER SOURCE SURGERY REQUIRED.
+- `M9-06` `_showRunsheetDetail(runsheetCode)` = OPEN / OWNER SOURCE SURGERY REQUIRED.
+- `M9-07` `_showSettlementDetail(settlementCode)` = OPEN / OWNER SOURCE SURGERY REQUIRED.
+- `M9-08` `_generateReport(sectionKey,reportId)` = OPEN / OWNER SOURCE SURGERY REQUIRED / FUNCTIONAL COMPLETENESS.
+- `M9-09` `_loadDetailedReports(fromDate,toDate,types)` = OPEN / OWNER SOURCE SURGERY REQUIRED.
 
-Exact surgery boundaries and replacement contracts are recorded in:
-`doc/Draft/Reprots/Report102_Main9_Forensic_Recheck_20260909.md`
+Exact surgical boundaries and replacement contracts are recorded in:
+- `doc/Draft/Reprots/Report101_main9`
+- `doc/Draft/Reprots/Report102_Main9_Forensic_Recheck_20260909.md`
+- `doc/Draft/Reprots/Report103_Main9_Forensic_Recheck_20260909.md`
 
-Do not use old line numbers without re-locating the exact start heading and closing marker in the current file.
+Owner-source protocol remains active: assistant does not edit `Current/PWA/main2/main9.md` directly.
 
-### Production Snapshot — DIRECTLY VERIFIED
-Observed during `2026-09-09 05:46–05:48 UTC`:
+## PRODUCTION SNAPSHOT — DIRECT VERIFICATION
+Observed at UTC `2026-09-09 07:19:19.093393`:
 - companies = 1
 - branches = 2
 - users = 24
@@ -64,106 +67,89 @@ Observed during `2026-09-09 05:46–05:48 UTC`:
 - receiving_details = 0
 - journal_entries = 2
 
-Stock integrity at checkpoint:
-- negative stock = 0
-- over allocated = 0
-- available_qty mismatch = 0
-- bad inventory-log source company = 0
-- bad inventory-log target company = 0
-- bad inventory-log item identity = 0
-- bad stock-voucher branch/company context = 0
-- failed core operations = 0
-- processing core operations = 0
+Current company verified directly: `00000000-0000-0000-0000-000000000001` / `الروائع`.
 
-### Production Writer Discovery
-Direct PostgreSQL inspection established:
-- `post_stock_movement` is the authoritative Physical Movement Writer.
-- `inventory_log` direct insertion is confined to `post_stock_movement`.
-- `reserve_stock` and `release_stock_reservation` only mutate reservation state.
-- `create_vehicle_atomic` / `setup_van_stock` only bootstrap stock rows with zero quantities; they are not movement engines.
-- No independent Physical Stock Movement Writer outside `post_stock_movement` was found in the current database definition scan.
+The earlier historical note claiming 3 companies is stale relative to this direct Production measurement. Current Production truth is 1 company.
 
-### Production RPC Integrity
-Verified in current Production:
-- `receive_purchase_atomic(p_company_id,p_po_code,p_user_email,p_items,p_operation_id uuid)` exists.
-- `complete_return_atomic(...)` exists and delegates good-return Physical Movement to `post_stock_movement`.
-- `complete_order_delivery_atomic(...)` updates fulfillment state only; Physical Stock was posted at Loading.
-- Manual Voucher wrappers delegate to the current canonical core implementations.
+## PRODUCTION DATABASE CONTRACTS — DIRECTLY VERIFIED
 - `items.item_code` is globally UNIQUE.
-- `stock_branches` has no `company_id`; Company identity is obtained through `branch_id -> branches.company_id`.
-- Audit trigger `trg_audit_stock_vouchers` calls `fn_audit_trigger()`.
+- `stock_branches` has no `company_id`; tenant scope is via `branch_id -> branches.company_id`.
+- `get_trial_balance(p_from_date,p_to_date)` exists.
+- `get_profit_loss(p_from_date,p_to_date)` exists.
+- `get_balance_sheet_data(p_as_of)` exists.
+- `get_cash_flow(p_from_date,p_to_date)` exists.
+- `receive_purchase_atomic(p_company_id,p_po_code,p_user_email,p_items,p_operation_id uuid)` exists.
+- `complete_return_atomic(...)` exists.
+- `complete_order_delivery_atomic(...)` exists.
+- Physical inventory movement remains owned by `post_stock_movement`.
 
-### Production DB Repair Applied This Cycle
-Migration applied:
-`inventory_core_zero_debt_governed_fixes_20260909`
+## INVENTORY CORE — DO NOT REPEAT CLOSED REPAIRS WITHOUT NEW EVIDENCE
+The Main9 recheck found no new Production evidence requiring another Inventory Core rewrite. Existing conclusions remain:
+- `post_stock_movement` is the authoritative Physical Movement Writer.
+- `reserve_stock` / `release_stock_reservation` are reservation writers only.
+- Bootstrap stock-row creation is not a Physical Movement engine.
+- No new duplicate Physical Stock engine is justified by the present Main9 evidence.
 
-This reasserted the governed Manual Voucher wrapper boundary without creating a second Physical Stock engine.
+## ASSEMBLY GOVERNANCE
+- Canonical editable source: `Current/PWA/main2/main1.md` through `main11.md`.
+- Historical source: `Original/PWA/main/*` only.
+- Generated target: `Current/PWA/New-main`.
+- `.github/workflows/forensic_main_assembly.yml` is already correctly configured around `Current/PWA/main2/**`.
+- Main2 assembly remains blocked until owner completes Main9 surgery and validation.
 
-### Production / Git Edge Drift
-Current Git contains newer Current Edge Function implementations for at least:
-- `receive-purchase`
-- `complete-return`
-- `complete-order-delivery`
-- `create-stock-voucher`
+## VALIDATION STATUS
+- Governance masters reopened.
+- Governing principle reopened.
+- Report101 reopened.
+- Report102 reopened.
+- Current State reconciled against Production.
+- Current Main9 reopened from Git.
+- Original Main9 opened for historical comparison only.
+- Latest Main9 commits inspected.
+- Production current snapshot directly verified.
+- Main9 source surgery = NOT YET EXECUTED by owner.
+- Main9 post-surgery syntax = NOT YET PROVEN.
+- Full Main2 assembly = NOT YET RUN.
+- Browser/PWA smoke after final assembly = NOT YET RUN.
+- Full report-by-report Production UI smoke = NOT YET RUN.
+- Gold/Diamond parent closure = NOT YET PROVEN.
 
-Production metadata had older deployed versions during this check. Therefore:
-`Git Current != Production Runtime PASS`
+## LATEST REPORT
+`doc/Draft/Reprots/Report103_Main9_Forensic_Recheck_20260909.md`
 
-This was recorded rather than falsely claiming deployment closure. A deployment result must be independently observed before marking those Edge runtimes synchronized.
+## LAST VERIFIED EVENT
+- EVENT: `M9-FORENSIC-RECHECK-20260909-0719Z`
+- UTC timestamp: `2026-09-09 07:19:19.093393`
+- Git Main9 SHA: `a72b970709ce69192bd47824685e99962aaf9fd8`
+- Result: current Main9 source still does not contain M9-02..M9-09 replacements; no Main2 assembly was run.
+- Next authorized action: owner executes exact Main9 source surgery from Report101/102/103; then reread Main9 EOF-to-EOF, validate syntax/integration, match Main2, and only then assemble.
 
-### Main9 Functional Gaps Still Open
-The forensic reread still proves functional work is required, not just tenancy filters:
-- Finance Balance Sheet must render authoritative RPC data, not a placeholder.
-- Finance Cash Flow must render authoritative RPC data, not a placeholder.
-- Tax report must be capability-gated unless an authoritative tax source is proven.
-- CRM Followups must query the real `customer_followups` source if capability is present.
-- HR Attendance / Salary must remain capability-gated until authoritative Production sources are proven.
-- Returns report must use authoritative `inventory_log` movements rather than inventing a Return Voucher source.
-- Multiple report paths still require Company-scoped operational reads and correct UUID relationship handling.
+## SELF-AUDIT
+### What I Proved
+- Current Production snapshot was directly measured and is 1 company.
+- Current Git Main9 SHA is `a72b970...`.
+- Current Main9 source still contains older report implementations.
+- Historical Original Main9 is not the current Source of Truth.
+- Assembly path is already correct.
+- Required Finance and operational RPC capabilities exist in Production.
+- No new Inventory Core repair is justified by current evidence.
 
-### Validation Status
-- Governance sources reopened.
-- Report101 read from start to EOF.
-- Current Main9 reopened from GitHub.
-- Production re-snapshotted directly before closure reporting.
-- DB writer discovery completed.
-- Current stock invariants pass.
-- Full Main9 syntax validation after Owner surgery is NOT yet proven.
-- Full Main2 assembly is NOT yet run.
-- Browser/PWA smoke is NOT yet run after final assembly.
-- Full report-by-report Production UI smoke is NOT yet run.
-
-### Latest Report
-`doc/Draft/Reprots/Report102_Main9_Forensic_Recheck_20260909.md`
-
-### Status
-`M9-01 = SOURCE CLOSED / DO NOT REPEAT`
-`M9-02 = OPEN / OWNER SURGERY REQUIRED`
-`M9-03 = OPEN / OWNER SURGERY REQUIRED`
-`M9-04 = OPEN / OWNER SURGERY REQUIRED`
-`M9-05 = OPEN / OWNER SURGERY REQUIRED`
-`M9-06 = OPEN / OWNER SURGERY REQUIRED`
-`M9-07 = OPEN / OWNER SURGERY REQUIRED`
-`M9-08 = OPEN / OWNER SURGERY REQUIRED — FUNCTIONAL SCOPE`
-`M9-09 = OPEN / OWNER SURGERY REQUIRED`
-`MAIN2 ASSEMBLY = BLOCKED`
-`PARENT GOLD/DIAMOND = NOT CLOSED`
-`GLOBAL INVENTORY CORE INTEGRITY = DB WRITER CONTRACT CLOSED / RUNTIME EDGE SYNC NOT CLOSED`
-
-### Self-Audit
-#### Proved
-- Current Production was directly inspected.
-- Main9 current Git source differs from older checkpoint and the drift was not ignored.
-- Physical stock movement has one authoritative DB writer.
-- Current stock and inventory-log invariants pass.
-- Current Production contains the expected Return/Delivery/Purchase RPCs.
-- Main2 remains the editable parent source.
-- Report102 was added without deleting prior reports.
-
-#### Not Yet Proved
+### What I Did Not Prove
 - Owner completion of M9-02..M9-09.
-- Parent Main2 assembly after Main9 surgery.
-- Parent syntax/runtime/browser smoke.
+- Post-surgery Main9 syntax validity.
+- Main2 assembly validity after surgery.
+- Browser/PWA runtime after assembly.
 - Full Production UI report smoke.
 - Gold/Diamond closure.
-- Production Edge deployment synchronization for the newer Current Git function versions.
+
+### What Was Corrected
+- Previous continuity optimism was rejected by direct Git inspection.
+- Historical company-count conflict was reconciled against current Production.
+- Main9 remains OPEN until the actual source file changes are visible in Git and pass validation.
+
+### FINAL CLOSURE
+`M9-01 = SOURCE CLOSED / DO NOT REPEAT`
+`M9-02..M9-09 = OPEN / OWNER SOURCE SURGERY REQUIRED`
+`MAIN2 ASSEMBLY = BLOCKED`
+`PARENT GOLD/DIAMOND = NOT CLOSED`
+`GLOBAL INVENTORY CORE = VERIFIED / NO NEW REPAIR JUSTIFIED`
