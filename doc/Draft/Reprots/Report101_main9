@@ -1,0 +1,4902 @@
+تأكيد المبدأ الحاكم مرة ثانية: هناك نقص شديد في كل التبويبات، وكثير منها هيكلي فقط. الهدف ليس إكمال الشاشات، بل استكمالها وظيفيًا لتصبح منافسًا حقيقيًا لـ Odoo وDynamics وSAP وDaftra وManager.io، ضمن هدف Gold/Diamond. لذلك لن أعتبر إصلاح company_id وحده كافيًا؛ سأغلق أيضًا الـplaceholders والقراءات الوهمية ومسارات البيانات غير الصحيحة، مع عدم اختلاق مصدر بيانات غير موجود. هذا متوافق مع الحوكمة التي تشترط فهم التاريخ والعقد الحالي قبل التغيير.
+
+نتيجة التحقيق قبل الجراحة
+
+آخر HEAD حاليًا هو:
+
+ef201a62dcf5056adc60e808fc75dbe50223c8f9
+
+وحدثت بعد Report100 عمليتان مباشرتان على Main9:
+
+0748e00... — إعادة هيكلة _loadDashboardData
+
+ثم:
+
+ef201a62... — إعادة بناء _loadDropdowns
+
+لذلك تعليمات Report100 القديمة لا تُنفذ حرفيًا؛ بل نستبدل على النسخة الحالية الفعلية.
+
+M9-01 موجود بالفعل ولا تلمسه:
+
+function _companyId()
+function _nextDate()
+
+كما أن forensic_main_assembly.yml صحيح بالفعل ويستخدم:
+
+Current/PWA/main2/**
+
+كمصدر تحرير، وCurrent/PWA/New-main كناتج Assembly. لا تغير المسار.
+
+M9-02 — _loadDashboardData
+
+الموضع الحالي: حول السطر 67
+
+ابحث حرفيًا عن:
+
+    async function _loadDashboardData(fromDate, toDate) {
+
+احذف الدالة كاملة حتى } التي تغلقها مباشرة قبل:
+
+    // ========== التقارير التفصيلية (Checkbox) ==========
+
+واستبدلها بالكامل بهذا:
+
+    async function _loadDashboardData(fromDate, toDate) {
+        var container = byId('dash-result-container');
+        if (!container) return;
+
+        safeHTML(
+            container,
+            '<div class="text-center py-10">' +
+            '<i class="fa-solid fa-spinner fa-spin text-2xl text-indigo-600"></i>' +
+            '<p class="mt-2 text-gray-500">جاري تحليل البيانات للفترة...</p>' +
+            '</div>'
+        );
+
+        try {
+            var companyId = _companyId();
+
+            var branchRes = await supabase
+                .from('branches')
+                .select('id')
+                .eq('company_id', companyId);
+
+            if (branchRes.error) throw branchRes.error;
+
+            var branchIds = (branchRes.data || [])
+                .map(function(b) { return b.id; })
+                .filter(Boolean);
+
+            var ordersRes = await supabase
+                .from('orders')
+                .select('total_amount, order_date, customer_id')
+                .eq('company_id', companyId)
+                .gte('order_date', fromDate)
+                .lt('order_date', _nextDate(toDate));
+
+            if (ordersRes.error) throw ordersRes.error;
+
+            var orders = ordersRes.data || [];
+
+            var totalSales = 0;
+
+            for (var i = 0; i < orders.length; i++) {
+                totalSales += Number(orders[i].total_amount) || 0;
+            }
+
+            var orderCount = orders.length;
+            var averageOrder = orderCount > 0
+                ? Math.round(totalSales / orderCount)
+                : 0;
+
+            var forecast = averageOrder * 30;
+            var confidence = orderCount > 50
+                ? 'عالية'
+                : (orderCount > 20 ? 'متوسطة' : 'منخفضة');
+
+            var items = (
+                RW_STATE &&
+                RW_STATE.data &&
+                Array.isArray(RW_STATE.data.items)
+            )
+                ? RW_STATE.data.items
+                : [];
+
+            if (!items.length) {
+                var itemsRes = await supabase
+                    .from('items')
+                    .select('id, item_code, name, reorder_point');
+
+                if (itemsRes.error) throw itemsRes.error;
+
+                items = itemsRes.data || [];
+            }
+
+            var stockData = [];
+
+            if (branchIds.length) {
+                var stockRes = await supabase
+                    .from('stock_branches')
+                    .select('item_id, qty, allocated_qty, available_qty')
+                    .in('branch_id', branchIds);
+
+                if (stockRes.error) throw stockRes.error;
+
+                stockData = stockRes.data || [];
+            }
+
+            var stockMap = {};
+
+            for (var s = 0; s < stockData.length; s++) {
+                var stockRow = stockData[s];
+
+                if (!stockRow || !stockRow.item_id) continue;
+
+                var available = stockRow.available_qty != null
+                    ? Number(stockRow.available_qty) || 0
+                    : Math.max(
+                        0,
+                        (Number(stockRow.qty) || 0) -
+                        (Number(stockRow.allocated_qty) || 0)
+                    );
+
+                stockMap[stockRow.item_id] =
+                    (stockMap[stockRow.item_id] || 0) + available;
+            }
+
+            var lowStockCount = 0;
+
+            for (var j = 0; j < items.length; j++) {
+                var itemId = items[j] && items[j].id;
+
+                if (!itemId) continue;
+
+                var reorderPoint = Number(items[j].reorder_point);
+
+                if (!Number.isFinite(reorderPoint) || reorderPoint < 0) {
+                    reorderPoint = 5;
+                }
+
+                if ((stockMap[itemId] || 0) <= reorderPoint) {
+                    lowStockCount++;
+                }
+            }
+
+            var sixtyDaysAgo = new Date();
+            sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+            var recentRes = await supabase
+                .from('orders')
+                .select('customer_id')
+                .eq('company_id', companyId)
+                .gte(
+                    'order_date',
+                    sixtyDaysAgo.toISOString().split('T')[0]
+                )
+                .lt(
+                    'order_date',
+                    _nextDate(new Date().toISOString().split('T')[0])
+                );
+
+            if (recentRes.error) throw recentRes.error;
+
+            var recentCustomers = {};
+
+            (recentRes.data || []).forEach(function(r) {
+                if (r && r.customer_id) {
+                    recentCustomers[r.customer_id] = true;
+                }
+            });
+
+            var customers = (
+                RW_STATE &&
+                RW_STATE.data &&
+                Array.isArray(RW_STATE.data.customers)
+            )
+                ? RW_STATE.data.customers
+                : [];
+
+            if (!customers.length) {
+                var custRes = await supabase
+                    .from('customers')
+                    .select('id, customer_code, name')
+                    .eq('company_id', companyId);
+
+                if (custRes.error) throw custRes.error;
+
+                customers = custRes.data || [];
+            }
+
+            var inactiveCount = 0;
+
+            for (var c = 0; c < customers.length; c++) {
+                var customerId = customers[c] && customers[c].id;
+
+                if (!customerId) continue;
+
+                if (!recentCustomers[customerId]) {
+                    inactiveCount++;
+                }
+            }
+
+            var html = '<div class="text-right space-y-6 p-4">';
+
+            html += '<div class="grid grid-cols-1 md:grid-cols-4 gap-4">';
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5 text-center">' +
+                '<p class="text-xs text-gray-400 font-bold mb-1">المبيعات المتوقعة (شهرياً)</p>' +
+                '<p class="text-3xl font-black text-indigo-600">' +
+                _fmtNum(forecast) +
+                ' EGP</p>' +
+                '<p class="text-xs text-gray-400 mt-1">مستوى الثقة: ' +
+                _esc(confidence) +
+                '</p>' +
+                '</div>';
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5 text-center">' +
+                '<p class="text-xs text-gray-400 font-bold mb-1">إجمالي المبيعات</p>' +
+                '<p class="text-3xl font-black text-emerald-600">' +
+                _fmtNum(totalSales) +
+                ' EGP</p>' +
+                '<p class="text-xs text-gray-400 mt-1">' +
+                orderCount +
+                ' أوردر</p>' +
+                '</div>';
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5 text-center">' +
+                '<p class="text-xs text-gray-400 font-bold mb-1">أصناف منخفضة</p>' +
+                '<p class="text-3xl font-black text-red-600">' +
+                lowStockCount +
+                '</p>' +
+                '</div>';
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5 text-center">' +
+                '<p class="text-xs text-gray-400 font-bold mb-1">عملاء غير نشطين</p>' +
+                '<p class="text-3xl font-black text-amber-600">' +
+                inactiveCount +
+                '</p>' +
+                '</div>';
+
+            html += '</div>';
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                '<p class="text-sm text-gray-500">' +
+                '<strong>الفترة:</strong> من ' +
+                _esc(fromDate) +
+                ' إلى ' +
+                _esc(toDate) +
+                '</p>' +
+                '</div>';
+
+            html += '</div>';
+
+            safeHTML(container, html);
+
+        } catch (e) {
+            console.error('RW_Reports._loadDashboardData', e);
+
+            safeHTML(
+                container,
+                '<div class="text-center py-10 text-red-500">' +
+                'فشل تحميل التحليلات' +
+                '</div>'
+            );
+        }
+    }
+M9-03 — _loadDropdowns
+
+الموضع الحالي: بعد توسعة M9-02، حول السطر 651.
+
+ابحث حرفيًا عن:
+
+    async function _loadDropdowns(params) {
+
+واحذف الدالة كاملة حتى } الخاصة بها، واستبدلها بالكامل:
+
+    async function _loadDropdowns(params) {
+        try {
+            var companyId = _companyId();
+
+            function _resetSelect(selectEl, firstOption) {
+                if (!selectEl) return;
+                selectEl.innerHTML = firstOption || '<option value="">اختيار</option>';
+            }
+
+            function _appendOptions(selectEl, rows, valueField, labelField) {
+                if (!selectEl) return;
+
+                for (var i = 0; i < rows.length; i++) {
+                    var row = rows[i] || {};
+                    var option = document.createElement('option');
+
+                    option.value =
+                        row[valueField] == null
+                            ? ''
+                            : String(row[valueField]);
+
+                    option.textContent =
+                        row[labelField] == null
+                            ? ''
+                            : String(row[labelField]);
+
+                    selectEl.appendChild(option);
+                }
+            }
+
+            if (params.indexOf('customer') !== -1) {
+                var customerSelect = byId('rp-customer');
+
+                _resetSelect(
+                    customerSelect,
+                    '<option value="">جميع العملاء</option>'
+                );
+
+                var customerRes = await supabase
+                    .from('customers')
+                    .select('id, customer_code, name')
+                    .eq('company_id', companyId)
+                    .order('name', { ascending: true });
+
+                if (customerRes.error) throw customerRes.error;
+
+                _appendOptions(
+                    customerSelect,
+                    customerRes.data || [],
+                    'id',
+                    'name'
+                );
+            }
+
+            if (params.indexOf('supplier') !== -1) {
+                var supplierSelect = byId('rp-supplier');
+
+                _resetSelect(
+                    supplierSelect,
+                    '<option value="">جميع الموردين</option>'
+                );
+
+                var supplierRes = await supabase
+                    .from('suppliers')
+                    .select('id, supplier_code, name')
+                    .eq('company_id', companyId)
+                    .order('name', { ascending: true });
+
+                if (supplierRes.error) throw supplierRes.error;
+
+                _appendOptions(
+                    supplierSelect,
+                    supplierRes.data || [],
+                    'id',
+                    'name'
+                );
+            }
+
+            if (params.indexOf('item') !== -1) {
+                var itemSelect = byId('rp-item');
+
+                _resetSelect(
+                    itemSelect,
+                    '<option value="">جميع الأصناف</option>'
+                );
+
+                var itemRes = await supabase
+                    .from('items')
+                    .select('id, item_code, name')
+                    .order('item_code', { ascending: true });
+
+                if (itemRes.error) throw itemRes.error;
+
+                _appendOptions(
+                    itemSelect,
+                    itemRes.data || [],
+                    'item_code',
+                    'name'
+                );
+            }
+
+            if (params.indexOf('treasury') !== -1) {
+                var treasurySelect = byId('rp-treasury');
+
+                _resetSelect(
+                    treasurySelect,
+                    '<option value="">جميع الخزائن</option>'
+                );
+
+                var treasuryRes = await supabase
+                    .from('treasury')
+                    .select('id, account_code, account_name')
+                    .eq('company_id', companyId)
+                    .order('account_name', { ascending: true });
+
+                if (treasuryRes.error) throw treasuryRes.error;
+
+                _appendOptions(
+                    treasurySelect,
+                    treasuryRes.data || [],
+                    'id',
+                    'account_name'
+                );
+            }
+
+            if (params.indexOf('account') !== -1) {
+                var accountSelect = byId('rp-account');
+
+                _resetSelect(
+                    accountSelect,
+                    '<option value="">اختر حساباً</option>'
+                );
+
+                var accountRes = await supabase
+                    .from('chart_of_accounts')
+                    .select('id, account_code, account_name')
+                    .eq('company_id', companyId)
+                    .eq('is_active', true)
+                    .order('account_code', { ascending: true });
+
+                if (accountRes.error) throw accountRes.error;
+
+                _appendOptions(
+                    accountSelect,
+                    accountRes.data || [],
+                    'id',
+                    'account_name'
+                );
+            }
+
+            if (params.indexOf('driver') !== -1) {
+                var driverSelect = byId('rp-driver');
+
+                _resetSelect(
+                    driverSelect,
+                    '<option value="">جميع السائقين</option>'
+                );
+
+                var driverRes = await supabase
+                    .from('users')
+                    .select('id, email, name')
+                    .eq('company_id', companyId)
+                    .in('role', ['driver', 'سائق', 'مندوب'])
+                    .eq('status', 'Active')
+                    .order('name', { ascending: true });
+
+                if (driverRes.error) throw driverRes.error;
+
+                _appendOptions(
+                    driverSelect,
+                    driverRes.data || [],
+                    'id',
+                    'name'
+                );
+            }
+
+            if (params.indexOf('area') !== -1) {
+                var areaSelect = byId('rp-area');
+
+                _resetSelect(
+                    areaSelect,
+                    '<option value="">جميع المناطق</option>'
+                );
+
+                var areaRes = await supabase
+                    .from('customers')
+                    .select('area')
+                    .eq('company_id', companyId)
+                    .not('area', 'is', null)
+                    .order('area', { ascending: true });
+
+                if (areaRes.error) throw areaRes.error;
+
+                var areaMap = {};
+                var areaRows = areaRes.data || [];
+
+                for (var a = 0; a < areaRows.length; a++) {
+                    var areaName = String(areaRows[a].area || '').trim();
+
+                    if (areaName) {
+                        areaMap[areaName] = true;
+                    }
+                }
+
+                var areaList = Object.keys(areaMap).sort(function(a, b) {
+                    return a.localeCompare(b, 'ar');
+                });
+
+                for (var ar = 0; ar < areaList.length; ar++) {
+                    var option = document.createElement('option');
+                    option.value = areaList[ar];
+                    option.textContent = areaList[ar];
+                    areaSelect.appendChild(option);
+                }
+            }
+
+        } catch (e) {
+            console.error(
+                'RW_Reports_Comprehensive._loadDropdowns',
+                e
+            );
+
+            _showToast(
+                'فشل تحميل معايير التقرير',
+                'error'
+            );
+        }
+    }
+
+المهم:
+Customer / Supplier / Treasury / Account / Driver أصبحت UUID identity، بينما Item بقي item_code لأن Production يثبت items.item_code UNIQUE عالميًا. وهذا يتفق مع عقد الهوية المثبت في الحوكمة.
+
+M9-04 — _showCustomerLedgerDetail
+
+الموضع الحالي: بعد M9-03 الجديد، حول السطر 809.
+
+ابحث:
+
+    async function _showCustomerLedgerDetail(customerCode, customerName) {
+
+واحذف الدالة كاملة واستبدلها:
+
+    async function _showCustomerLedgerDetail(customerId, customerName) {
+        _showLoader('جاري تحميل كشف حساب العميل...');
+
+        try {
+            var companyId = _companyId();
+
+            var customerRes = await supabase
+                .from('customers')
+                .select('id, customer_code, name')
+                .eq('company_id', companyId)
+                .eq('id', customerId)
+                .maybeSingle();
+
+            if (customerRes.error) {
+                throw customerRes.error;
+            }
+
+            if (!customerRes.data) {
+                _hideLoader();
+                _showToast('العميل غير موجود ضمن الشركة الحالية', 'error');
+                return;
+            }
+
+            var customer = customerRes.data;
+
+            var ledgerRes = await supabase
+                .from('customer_ledger')
+                .select('*')
+                .eq('customer_id', customer.id)
+                .order('entry_date', { ascending: false })
+                .order('created_at', { ascending: false });
+
+            if (ledgerRes.error) {
+                throw ledgerRes.error;
+            }
+
+            var data = ledgerRes.data || [];
+
+            _hideLoader();
+
+            var displayName =
+                customerName ||
+                customer.name ||
+                customer.customer_code ||
+                customer.id;
+
+            if (!data.length) {
+                _showToast(
+                    'لا توجد حركات مالية لهذا العميل',
+                    'info'
+                );
+                return;
+            }
+
+            var html =
+                '<div class="text-right">' +
+                '<h4 class="font-bold mb-3">' +
+                'كشف حساب: ' +
+                _esc(displayName) +
+                ' (' +
+                _esc(customer.customer_code) +
+                ')' +
+                '</h4>';
+
+            html +=
+                '<table class="w-full text-sm border">' +
+                '<thead>' +
+                '<tr class="bg-gray-100">' +
+                '<th class="p-2">التاريخ</th>' +
+                '<th class="p-2">البيان</th>' +
+                '<th class="p-2 text-center">مدين</th>' +
+                '<th class="p-2 text-center">دائن</th>' +
+                '<th class="p-2 text-center">الرصيد</th>' +
+                '</tr>' +
+                '</thead>' +
+                '<tbody>';
+
+            for (var i = 0; i < data.length; i++) {
+                html +=
+                    '<tr class="border-t">' +
+                    '<td class="p-2">' +
+                    _esc(data[i].entry_date) +
+                    '</td>' +
+                    '<td class="p-2">' +
+                    _esc(data[i].description || '') +
+                    '</td>' +
+                    '<td class="p-2 text-center">' +
+                    _fmtNum(data[i].debit) +
+                    '</td>' +
+                    '<td class="p-2 text-center">' +
+                    _fmtNum(data[i].credit) +
+                    '</td>' +
+                    '<td class="p-2 text-center font-bold">' +
+                    _fmtNum(data[i].balance) +
+                    '</td>' +
+                    '</tr>';
+            }
+
+            html += '</tbody></table></div>';
+
+            Swal.fire({
+                title: 'تفاصيل كشف الحساب',
+                html: html,
+                width: '900px',
+                showCloseButton: true,
+                showConfirmButton: false
+            });
+
+        } catch (e) {
+            _hideLoader();
+
+            console.error(
+                'RW_Reports_Comprehensive._showCustomerLedgerDetail',
+                e
+            );
+
+            _showToast(
+                'فشل تحميل كشف الحساب',
+                'error'
+            );
+        }
+    }
+
+ولأن _generateReport أصبح يمرر arr[i].id وهو أصلًا customer_id، لا تغير الـcaller إلى customer_code.
+
+M9-05 — _showItemMovementDetail
+
+الموضع الحالي: حول السطر 826.
+
+ابحث:
+
+    async function _showItemMovementDetail(itemCode, itemName) {
+
+واحذف الدالة كاملة واستبدلها:
+
+    async function _showItemMovementDetail(itemCode, itemName) {
+        _showLoader('جاري تحميل حركة الصنف...');
+
+        try {
+            var companyId = _companyId();
+
+            var itemRes = await supabase
+                .from('items')
+                .select('id, item_code, name')
+                .eq('item_code', itemCode)
+                .maybeSingle();
+
+            if (itemRes.error) {
+                throw itemRes.error;
+            }
+
+            if (!itemRes.data) {
+                _hideLoader();
+                _showToast('الصنف غير موجود', 'error');
+                return;
+            }
+
+            var item = itemRes.data;
+
+            var movementRes = await supabase
+                .from('inventory_log')
+                .select('*')
+                .eq('company_id', companyId)
+                .eq('item_id', item.id)
+                .eq('item_code', item.item_code)
+                .order('movement_date', { ascending: false })
+                .order('created_at', { ascending: false });
+
+            if (movementRes.error) {
+                throw movementRes.error;
+            }
+
+            var data = movementRes.data || [];
+
+            _hideLoader();
+
+            if (!data.length) {
+                _showToast(
+                    'لا توجد حركات لهذا الصنف',
+                    'info'
+                );
+                return;
+            }
+
+            var html =
+                '<div class="text-right">' +
+                '<h4 class="font-bold mb-3">' +
+                'حركة الصنف: ' +
+                _esc(itemName || item.name) +
+                ' (' +
+                _esc(item.item_code) +
+                ')' +
+                '</h4>';
+
+            html +=
+                '<table class="w-full text-sm border">' +
+                '<thead>' +
+                '<tr class="bg-gray-100">' +
+                '<th class="p-2">التاريخ</th>' +
+                '<th class="p-2">النوع</th>' +
+                '<th class="p-2 text-center">الكمية</th>' +
+                '<th class="p-2">المرجع</th>' +
+                '<th class="p-2">المستخدم</th>' +
+                '</tr>' +
+                '</thead>' +
+                '<tbody>';
+
+            for (var i = 0; i < data.length; i++) {
+                html +=
+                    '<tr class="border-t">' +
+                    '<td class="p-2">' +
+                    _esc(data[i].movement_date) +
+                    '</td>' +
+                    '<td class="p-2">' +
+                    _esc(data[i].movement_type || '') +
+                    '</td>' +
+                    '<td class="p-2 text-center font-bold">' +
+                    _fmtNum(data[i].qty) +
+                    '</td>' +
+                    '<td class="p-2">' +
+                    _esc(data[i].reference || '') +
+                    '</td>' +
+                    '<td class="p-2">' +
+                    _esc(data[i].user_email || '') +
+                    '</td>' +
+                    '</tr>';
+            }
+
+            html += '</tbody></table></div>';
+
+            Swal.fire({
+                title: 'تفاصيل حركة الصنف',
+                html: html,
+                width: '950px',
+                showCloseButton: true,
+                showConfirmButton: false
+            });
+
+        } catch (e) {
+            _hideLoader();
+
+            console.error(
+                'RW_Reports_Comprehensive._showItemMovementDetail',
+                e
+            );
+
+            _showToast(
+                'فشل تحميل حركة الصنف',
+                'error'
+            );
+        }
+    }
+M9-06 — _showRunsheetDetail
+
+الموضع الحالي: حول السطر 843.
+
+ابحث:
+
+    async function _showRunsheetDetail(runsheetCode) {
+
+واحذف الدالة كاملة واستبدلها:
+
+    async function _showRunsheetDetail(runsheetCode) {
+        _showLoader('جاري تحميل تفاصيل الرانشيت...');
+
+        try {
+            var companyId = _companyId();
+
+            var rsRes = await supabase
+                .from('runsheets')
+                .select('*')
+                .eq('company_id', companyId)
+                .eq('runsheet_code', runsheetCode)
+                .maybeSingle();
+
+            if (rsRes.error) {
+                throw rsRes.error;
+            }
+
+            var rs = rsRes.data;
+
+            if (!rs) {
+                _hideLoader();
+                _showToast('الرانشيت غير موجود ضمن الشركة الحالية', 'error');
+                return;
+            }
+
+            var itemsRes = await supabase
+                .from('run_sheet_details')
+                .select('*')
+                .eq('runsheet_id', rs.id)
+                .order('item_code', { ascending: true });
+
+            if (itemsRes.error) {
+                throw itemsRes.error;
+            }
+
+            var items = itemsRes.data || [];
+
+            var ordersRes = await supabase
+                .from('orders')
+                .select('id, order_code, customer_name, total_amount, order_status')
+                .eq('company_id', companyId)
+                .eq('runsheet_id', rs.id)
+                .order('order_code', { ascending: true });
+
+            if (ordersRes.error) {
+                throw ordersRes.error;
+            }
+
+            var orders = ordersRes.data || [];
+
+            var driverName = rs.driver_id || '';
+            var vehicleName = rs.vehicle_id || '';
+
+            if (rs.driver_id) {
+                var driverRes = await supabase
+                    .from('users')
+                    .select('id, name, email')
+                    .eq('company_id', companyId)
+                    .eq('id', rs.driver_id)
+                    .maybeSingle();
+
+                if (!driverRes.error && driverRes.data) {
+                    driverName =
+                        driverRes.data.name ||
+                        driverRes.data.email ||
+                        rs.driver_id;
+                }
+            }
+
+            _hideLoader();
+
+            var html =
+                '<div class="text-right">' +
+                '<h4 class="font-bold mb-3">' +
+                'تفاصيل الرانشيت: ' +
+                _esc(runsheetCode) +
+                '</h4>';
+
+            html +=
+                '<div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl mb-4">' +
+                '<div>' +
+                '<p><b>التاريخ:</b> ' +
+                _esc(rs.run_date) +
+                '</p>' +
+                '<p><b>السائق:</b> ' +
+                _esc(driverName) +
+                '</p>' +
+                '</div>' +
+                '<div>' +
+                '<p><b>السيارة:</b> ' +
+                _esc(vehicleName) +
+                '</p>' +
+                '<p><b>الحالة:</b> ' +
+                _esc(rs.status) +
+                '</p>' +
+                '</div>' +
+                '</div>';
+
+            if (orders.length) {
+                html +=
+                    '<h5 class="font-bold mb-2">الأوردرات المرتبطة:</h5>' +
+                    '<div class="flex flex-wrap gap-2 mb-4">';
+
+                for (var o = 0; o < orders.length; o++) {
+                    html +=
+                        '<span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">' +
+                        _esc(orders[o].order_code) +
+                        ' - ' +
+                        _esc(orders[o].customer_name || '') +
+                        ' (' +
+                        _fmtNum(orders[o].total_amount) +
+                        ')</span>';
+                }
+
+                html += '</div>';
+            }
+
+            if (items.length) {
+                html +=
+                    '<table class="w-full text-sm border">' +
+                    '<thead>' +
+                    '<tr class="bg-gray-100">' +
+                    '<th class="p-2">الصنف</th>' +
+                    '<th class="p-2 text-center">الطلب</th>' +
+                    '<th class="p-2 text-center">المختار</th>' +
+                    '<th class="p-2 text-center">المحمّل</th>' +
+                    '<th class="p-2 text-center">المسلّم</th>' +
+                    '<th class="p-2 text-center">المرتجع</th>' +
+                    '</tr>' +
+                    '</thead>' +
+                    '<tbody>';
+
+                for (var i = 0; i < items.length; i++) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(items[i].item_name || items[i].item_code) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        _fmtNum(items[i].qty_ordered) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        _fmtNum(items[i].qty_picked) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        _fmtNum(items[i].qty_loaded) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        _fmtNum(items[i].qty_delivered) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        _fmtNum(items[i].qty_returned) +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+            } else {
+                html +=
+                    '<div class="text-center py-6 text-gray-500">' +
+                    'لا توجد تفاصيل أصناف لهذا الرانشيت' +
+                    '</div>';
+            }
+
+            html += '</div>';
+
+            Swal.fire({
+                title: 'تفاصيل الرانشيت',
+                html: html,
+                width: '1050px',
+                showCloseButton: true,
+                showConfirmButton: false
+            });
+
+        } catch (e) {
+            _hideLoader();
+
+            console.error(
+                'RW_Reports_Comprehensive._showRunsheetDetail',
+                e
+            );
+
+            _showToast(
+                'فشل تحميل تفاصيل الرانشيت',
+                'error'
+            );
+        }
+    }
+
+التصحيح الحاسم هنا: لا يوجد:
+
+.eq('runsheet_id', runsheetCode)
+
+بل:
+
+.eq('runsheet_id', rs.id)
+
+لأن Production يثبت أن runsheet_id UUID.
+
+M9-07 — _showSettlementDetail
+
+الموضع الحالي: حول السطر 871.
+
+ابحث:
+
+    async function _showSettlementDetail(settlementCode) {
+
+واحذف الدالة كاملة واستبدلها:
+
+    async function _showSettlementDetail(settlementCode) {
+        _showLoader('جاري تحميل تفاصيل التسوية...');
+
+        try {
+            var companyId = _companyId();
+
+            var res = await supabase
+                .from('daily_settlements')
+                .select('*')
+                .eq('company_id', companyId)
+                .eq('settlement_code', settlementCode)
+                .maybeSingle();
+
+            if (res.error) {
+                throw res.error;
+            }
+
+            var data = res.data;
+
+            _hideLoader();
+
+            if (!data) {
+                _showToast(
+                    'التسوية غير موجودة ضمن الشركة الحالية',
+                    'error'
+                );
+                return;
+            }
+
+            var runsheetText = data.runsheet_id || '';
+
+            if (data.runsheet_id) {
+                var runsheetRes = await supabase
+                    .from('runsheets')
+                    .select('runsheet_code, driver_id, vehicle_id')
+                    .eq('company_id', companyId)
+                    .eq('id', data.runsheet_id)
+                    .maybeSingle();
+
+                if (!runsheetRes.error && runsheetRes.data) {
+                    runsheetText =
+                        runsheetRes.data.runsheet_code ||
+                        data.runsheet_id;
+                }
+            }
+
+            var html =
+                '<div class="text-right">' +
+                '<h4 class="font-bold mb-3">' +
+                'تفاصيل التسوية: ' +
+                _esc(settlementCode) +
+                '</h4>';
+
+            html +=
+                '<div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl mb-4">' +
+                '<div>' +
+                '<p><b>التاريخ:</b> ' +
+                _esc(data.settlement_date) +
+                '</p>' +
+                '<p><b>الرانشيت:</b> ' +
+                _esc(runsheetText) +
+                '</p>' +
+                '</div>' +
+                '<div>' +
+                '<p><b>العجز:</b> ' +
+                _fmtNum(data.total_shortage) +
+                ' قطعة</p>' +
+                '<p><b>قيمة العجز:</b> ' +
+                _fmtNum(data.total_shortage_value) +
+                ' EGP</p>' +
+                '</div>' +
+                '</div>';
+
+            html +=
+                '<div class="grid grid-cols-2 gap-4 mb-4">' +
+                '<div class="bg-white border rounded-xl p-4">' +
+                '<p class="text-xs text-gray-400">عدد الأصناف الإضافية</p>' +
+                '<p class="text-xl font-black">' +
+                _fmtNum(data.extra_items_count) +
+                '</p>' +
+                '</div>' +
+                '<div class="bg-white border rounded-xl p-4">' +
+                '<p class="text-xs text-gray-400">الحالة</p>' +
+                '<p class="text-xl font-black">' +
+                _esc(data.status || '') +
+                '</p>' +
+                '</div>' +
+                '</div>';
+
+            html +=
+                '<p><b>ملاحظات:</b> ' +
+                _esc(data.notes || 'لا يوجد') +
+                '</p>';
+
+            html += '</div>';
+
+            Swal.fire({
+                title: 'تفاصيل التسوية',
+                html: html,
+                width: '750px',
+                showCloseButton: true,
+                showConfirmButton: false
+            });
+
+        } catch (e) {
+            _hideLoader();
+
+            console.error(
+                'RW_Reports_Comprehensive._showSettlementDetail',
+                e
+            );
+
+            _showToast(
+                'فشل تحميل تفاصيل التسوية',
+                'error'
+            );
+        }
+    }
+M9-08 — _generateReport
+
+الموضع الحالي: بعد الجراحات السابقة، حول السطر 891.
+
+ابحث حرفيًا:
+
+    async function _generateReport(sectionKey, reportId) {
+
+احذف الدالة كاملة حتى } التي تغلقها مباشرة قبل:
+
+    function _printReport() {
+
+واستبدلها بالدالة الكاملة التالية:
+
+    async function _generateReport(sectionKey, reportId) {
+        var resultDiv = byId('report-result');
+        if (!resultDiv) return;
+
+        safeHTML(
+            resultDiv,
+            '<div class="text-center py-8">' +
+            '<i class="fa-solid fa-spinner fa-spin text-2xl"></i>' +
+            '<p class="mt-2 text-gray-500">جاري تحميل التقرير...</p>' +
+            '</div>'
+        );
+
+        var fromDate =
+            byId('rp-date-from')
+                ? byId('rp-date-from').value
+                : '';
+
+        var toDate =
+            byId('rp-date-to')
+                ? byId('rp-date-to').value
+                : '';
+
+        var customer =
+            byId('rp-customer')
+                ? byId('rp-customer').value
+                : '';
+
+        var supplier =
+            byId('rp-supplier')
+                ? byId('rp-supplier').value
+                : '';
+
+        var itemCode =
+            byId('rp-item')
+                ? byId('rp-item').value
+                : '';
+
+        var account =
+            byId('rp-account')
+                ? byId('rp-account').value
+                : '';
+
+        var treasury =
+            byId('rp-treasury')
+                ? byId('rp-treasury').value
+                : '';
+
+        var driver =
+            byId('rp-driver')
+                ? byId('rp-driver').value
+                : '';
+
+        var area =
+            byId('rp-area')
+                ? byId('rp-area').value
+                : '';
+
+        if (fromDate && toDate && fromDate > toDate) {
+            safeHTML(
+                resultDiv,
+                '<div class="text-center py-5 text-red-500">' +
+                'تاريخ البداية يجب ألا يكون بعد تاريخ النهاية' +
+                '</div>'
+            );
+            return;
+        }
+
+        try {
+            var companyId = _companyId();
+            var data = [];
+            var html = '';
+
+            function _tableHeader(columns) {
+                var out =
+                    '<table class="w-full text-sm border">' +
+                    '<thead><tr class="bg-gray-50">';
+
+                for (var h = 0; h < columns.length; h++) {
+                    out +=
+                        '<th class="p-2 ' +
+                        (columns[h].center ? 'text-center' : '') +
+                        '">' +
+                        _esc(columns[h].label) +
+                        '</th>';
+                }
+
+                return out + '</tr></thead><tbody>';
+            }
+
+            function _empty(message) {
+                return (
+                    '<div class="text-center py-6 text-gray-500">' +
+                    _esc(message || 'لا توجد بيانات') +
+                    '</div>'
+                );
+            }
+
+            function _dateFilter(query, field) {
+                if (fromDate) {
+                    query = query.gte(field, fromDate);
+                }
+
+                if (toDate) {
+                    query = query.lt(
+                        field,
+                        _nextDate(toDate)
+                    );
+                }
+
+                return query;
+            }
+
+            /* =========================================================
+               SALES
+               ========================================================= */
+
+            if (reportId === 'sales-summary') {
+                var salesQuery = supabase
+                    .from('orders')
+                    .select(
+                        'order_code, customer_id, customer_name, total_amount, order_date, order_status'
+                    )
+                    .eq('company_id', companyId);
+
+                salesQuery = _dateFilter(
+                    salesQuery,
+                    'order_date'
+                );
+
+                if (customer) {
+                    salesQuery = salesQuery.eq(
+                        'customer_id',
+                        customer
+                    );
+                }
+
+                var salesRes = await salesQuery;
+
+                if (salesRes.error) throw salesRes.error;
+
+                data = salesRes.data || [];
+
+                var salesTotal = 0;
+
+                for (var si = 0; si < data.length; si++) {
+                    salesTotal +=
+                        Number(data[si].total_amount) || 0;
+                }
+
+                var salesAvg =
+                    data.length > 0
+                        ? salesTotal / data.length
+                        : 0;
+
+                html =
+                    '<h4 class="font-bold mb-3">ملخص المبيعات</h4>' +
+                    '<div class="grid grid-cols-1 md:grid-cols-4 gap-4">' +
+
+                    '<div class="bg-blue-50 p-4 rounded-xl text-center">' +
+                    '<p class="text-xs">عدد الفواتير</p>' +
+                    '<p class="text-2xl font-black">' +
+                    data.length +
+                    '</p></div>' +
+
+                    '<div class="bg-green-50 p-4 rounded-xl text-center">' +
+                    '<p class="text-xs">إجمالي المبيعات</p>' +
+                    '<p class="text-2xl font-black">' +
+                    _fmtNum(salesTotal) +
+                    ' EGP</p></div>' +
+
+                    '<div class="bg-amber-50 p-4 rounded-xl text-center">' +
+                    '<p class="text-xs">متوسط الفاتورة</p>' +
+                    '<p class="text-2xl font-black">' +
+                    _fmtNum(salesAvg) +
+                    ' EGP</p></div>' +
+
+                    '<div class="bg-purple-50 p-4 rounded-xl text-center">' +
+                    '<p class="text-xs">النطاق الزمني</p>' +
+                    '<p class="text-sm font-black">' +
+                    _esc(fromDate || '') +
+                    ' → ' +
+                    _esc(toDate || '') +
+                    '</p></div>' +
+
+                    '</div>';
+            }
+
+            else if (reportId === 'sales-by-customer') {
+                var customerSalesQuery = supabase
+                    .from('orders')
+                    .select(
+                        'customer_id, customer_name, total_amount, order_date'
+                    )
+                    .eq('company_id', companyId);
+
+                customerSalesQuery = _dateFilter(
+                    customerSalesQuery,
+                    'order_date'
+                );
+
+                if (customer) {
+                    customerSalesQuery =
+                        customerSalesQuery.eq(
+                            'customer_id',
+                            customer
+                        );
+                }
+
+                var csr = await customerSalesQuery;
+
+                if (csr.error) throw csr.error;
+
+                data = csr.data || [];
+
+                var customerMap = {};
+
+                for (var ci = 0; ci < data.length; ci++) {
+                    var row = data[ci];
+                    var cid = row.customer_id || 'UNSPECIFIED';
+
+                    if (!customerMap[cid]) {
+                        customerMap[cid] = {
+                            id: cid,
+                            name:
+                                row.customer_name ||
+                                cid,
+                            total: 0,
+                            count: 0
+                        };
+                    }
+
+                    customerMap[cid].total +=
+                        Number(row.total_amount) || 0;
+
+                    customerMap[cid].count++;
+                }
+
+                var customerArr =
+                    Object.keys(customerMap)
+                        .map(function(key) {
+                            return customerMap[key];
+                        })
+                        .sort(function(a, b) {
+                            return b.total - a.total;
+                        });
+
+                var customerGrandTotal = 0;
+
+                customerArr.forEach(function(row) {
+                    customerGrandTotal += row.total;
+                });
+
+                html =
+                    '<h4 class="font-bold mb-3">المبيعات حسب العميل</h4>' +
+                    _tableHeader([
+                        { label: 'كود العميل' },
+                        { label: 'اسم العميل' },
+                        { label: 'الفواتير', center: true },
+                        { label: 'الإجمالي', center: true },
+                        { label: 'النسبة', center: true }
+                    ]);
+
+                for (var ca = 0; ca < customerArr.length; ca++) {
+                    var pct =
+                        customerGrandTotal > 0
+                            ? Math.round(
+                                customerArr[ca].total /
+                                customerGrandTotal *
+                                100
+                            )
+                            : 0;
+
+                    html +=
+                        '<tr class="border-t hover:bg-gray-50 cursor-pointer" ' +
+                        'onclick="RW_Reports_Comprehensive._showCustomerLedgerDetail(\'' +
+                        _esc(customerArr[ca].id) +
+                        '\', \'' +
+                        _esc(customerArr[ca].name)
+                            .replace(/'/g, "\\'") +
+                        '\')">' +
+
+                        '<td class="p-2">' +
+                        _esc(customerArr[ca].id) +
+                        '</td>' +
+
+                        '<td class="p-2 font-semibold">' +
+                        _esc(customerArr[ca].name) +
+                        '</td>' +
+
+                        '<td class="p-2 text-center">' +
+                        customerArr[ca].count +
+                        '</td>' +
+
+                        '<td class="p-2 text-center font-bold">' +
+                        _fmtNum(customerArr[ca].total) +
+                        ' EGP</td>' +
+
+                        '<td class="p-2 text-center">' +
+                        pct +
+                        '%</td>' +
+
+                        '</tr>';
+                }
+
+                html +=
+                    '</tbody></table>';
+
+                if (!customerArr.length) {
+                    html += _empty(
+                        'لا توجد مبيعات للعملاء خلال الفترة المحددة'
+                    );
+                }
+            }
+
+            else if (reportId === 'sales-by-item') {
+                var itemSalesQuery = supabase
+                    .from('order_details')
+                    .select(
+                        'item_code, item_name, qty, unit_price, order_id, orders!inner(company_id, order_date, order_status)'
+                    )
+                    .eq(
+                        'orders.company_id',
+                        companyId
+                    )
+                    .neq(
+                        'orders.order_status',
+                        'Cancelled'
+                    );
+
+                itemSalesQuery = _dateFilter(
+                    itemSalesQuery,
+                    'orders.order_date'
+                );
+
+                if (itemCode) {
+                    itemSalesQuery =
+                        itemSalesQuery.eq(
+                            'item_code',
+                            itemCode
+                        );
+                }
+
+                var isr = await itemSalesQuery;
+
+                if (isr.error) throw isr.error;
+
+                data = isr.data || [];
+
+                var itemSalesMap = {};
+
+                for (var im = 0; im < data.length; im++) {
+                    var idr = data[im];
+                    var ic =
+                        idr.item_code ||
+                        idr.item_name ||
+                        'UNSPECIFIED';
+
+                    if (!itemSalesMap[ic]) {
+                        itemSalesMap[ic] = {
+                            code: ic,
+                            name:
+                                idr.item_name ||
+                                ic,
+                            qty: 0,
+                            total: 0
+                        };
+                    }
+
+                    itemSalesMap[ic].qty +=
+                        Number(idr.qty) || 0;
+
+                    itemSalesMap[ic].total +=
+                        (Number(idr.qty) || 0) *
+                        (Number(idr.unit_price) || 0);
+                }
+
+                var itemSalesArr =
+                    Object.keys(itemSalesMap)
+                        .map(function(k) {
+                            return itemSalesMap[k];
+                        })
+                        .sort(function(a, b) {
+                            return b.total - a.total;
+                        });
+
+                html =
+                    '<h4 class="font-bold mb-3">المبيعات حسب الصنف</h4>' +
+                    _tableHeader([
+                        { label: 'الكود' },
+                        { label: 'الصنف' },
+                        { label: 'الكمية', center: true },
+                        { label: 'القيمة', center: true }
+                    ]);
+
+                for (var ia = 0; ia < itemSalesArr.length; ia++) {
+                    html +=
+                        '<tr class="border-t hover:bg-gray-50 cursor-pointer" ' +
+                        'onclick="RW_Reports_Comprehensive._showItemMovementDetail(\'' +
+                        _esc(itemSalesArr[ia].code) +
+                        '\', \'' +
+                        _esc(itemSalesArr[ia].name)
+                            .replace(/'/g, "\\'") +
+                        '\')">' +
+
+                        '<td class="p-2">' +
+                        _esc(itemSalesArr[ia].code) +
+                        '</td>' +
+
+                        '<td class="p-2 font-semibold">' +
+                        _esc(itemSalesArr[ia].name) +
+                        '</td>' +
+
+                        '<td class="p-2 text-center">' +
+                        _fmtNum(itemSalesArr[ia].qty) +
+                        '</td>' +
+
+                        '<td class="p-2 text-center font-bold">' +
+                        _fmtNum(itemSalesArr[ia].total) +
+                        ' EGP</td>' +
+
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+
+                if (!itemSalesArr.length) {
+                    html += _empty(
+                        'لا توجد مبيعات أصناف خلال الفترة المحددة'
+                    );
+                }
+            }
+
+            else if (reportId === 'sales-by-area') {
+                var areaSalesQuery = supabase
+                    .from('orders')
+                    .select('area, total_amount, order_date')
+                    .eq('company_id', companyId);
+
+                areaSalesQuery = _dateFilter(
+                    areaSalesQuery,
+                    'order_date'
+                );
+
+                var asr = await areaSalesQuery;
+
+                if (asr.error) throw asr.error;
+
+                data = asr.data || [];
+
+                var areaMap = {};
+
+                for (var ai = 0; ai < data.length; ai++) {
+                    var areaName =
+                        String(data[ai].area || 'غير محدد').trim();
+
+                    if (!areaMap[areaName]) {
+                        areaMap[areaName] = 0;
+                    }
+
+                    areaMap[areaName] +=
+                        Number(data[ai].total_amount) || 0;
+                }
+
+                var areaArr =
+                    Object.keys(areaMap)
+                        .map(function(a) {
+                            return {
+                                area: a,
+                                total: areaMap[a]
+                            };
+                        })
+                        .sort(function(a, b) {
+                            return b.total - a.total;
+                        });
+
+                html =
+                    '<h4 class="font-bold mb-3">المبيعات حسب المنطقة</h4>' +
+                    _tableHeader([
+                        { label: 'المنطقة' },
+                        { label: 'الإجمالي', center: true }
+                    ]);
+
+                for (var ax = 0; ax < areaArr.length; ax++) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(areaArr[ax].area) +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold">' +
+                        _fmtNum(areaArr[ax].total) +
+                        ' EGP</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+
+                if (!areaArr.length) {
+                    html += _empty('لا توجد بيانات مبيعات حسب المنطقة');
+                }
+            }
+
+            else if (reportId === 'sales-order-status') {
+                var orderStatusQuery = supabase
+                    .from('orders')
+                    .select('order_status, order_date')
+                    .eq('company_id', companyId);
+
+                orderStatusQuery = _dateFilter(
+                    orderStatusQuery,
+                    'order_date'
+                );
+
+                var osr = await orderStatusQuery;
+
+                if (osr.error) throw osr.error;
+
+                var statusMap = {};
+
+                (osr.data || []).forEach(function(row) {
+                    var status = row.order_status || 'غير محدد';
+
+                    statusMap[status] =
+                        (statusMap[status] || 0) + 1;
+                });
+
+                html =
+                    '<h4 class="font-bold mb-3">حالة الأوردرات</h4>' +
+                    _tableHeader([
+                        { label: 'الحالة' },
+                        { label: 'العدد', center: true }
+                    ]);
+
+                Object.keys(statusMap)
+                    .sort()
+                    .forEach(function(status) {
+                        html +=
+                            '<tr class="border-t">' +
+                            '<td class="p-2">' +
+                            _esc(status) +
+                            '</td>' +
+                            '<td class="p-2 text-center font-bold">' +
+                            statusMap[status] +
+                            '</td>' +
+                            '</tr>';
+                    });
+
+                html += '</tbody></table>';
+            }
+
+            else if (reportId === 'sales-customer-ledger') {
+                if (!customer) {
+                    safeHTML(
+                        resultDiv,
+                        _empty('يرجى اختيار عميل')
+                    );
+                    return;
+                }
+
+                var customerCheck = await supabase
+                    .from('customers')
+                    .select('id, customer_code, name')
+                    .eq('company_id', companyId)
+                    .eq('id', customer)
+                    .maybeSingle();
+
+                if (customerCheck.error) {
+                    throw customerCheck.error;
+                }
+
+                if (!customerCheck.data) {
+                    safeHTML(
+                        resultDiv,
+                        _empty(
+                            'العميل غير موجود ضمن الشركة الحالية'
+                        )
+                    );
+                    return;
+                }
+
+                var ledgerRes = await supabase
+                    .from('customer_ledger')
+                    .select('*')
+                    .eq('customer_id', customer)
+                    .order('entry_date', { ascending: false })
+                    .order('created_at', { ascending: false });
+
+                if (ledgerRes.error) throw ledgerRes.error;
+
+                data = ledgerRes.data || [];
+
+                html =
+                    '<h4 class="font-bold mb-3">كشف حساب العميل</h4>' +
+                    _tableHeader([
+                        { label: 'التاريخ' },
+                        { label: 'البيان' },
+                        { label: 'مدين', center: true },
+                        { label: 'دائن', center: true },
+                        { label: 'الرصيد', center: true }
+                    ]);
+
+                for (var li = 0; li < data.length; li++) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2">' +
+                        _esc(data[li].entry_date) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[li].description || '') +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        _fmtNum(data[li].debit) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        _fmtNum(data[li].credit) +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold">' +
+                        _fmtNum(data[li].balance) +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+
+                if (!data.length) {
+                    html += _empty(
+                        'لا توجد حركات مالية لهذا العميل'
+                    );
+                }
+            }
+
+            else if (reportId === 'sales-runsheet-performance') {
+                var rsPerfQuery = supabase
+                    .from('runsheets')
+                    .select(
+                        'id, runsheet_code, run_date, status, total_amount, driver_id'
+                    )
+                    .eq('company_id', companyId);
+
+                rsPerfQuery = _dateFilter(
+                    rsPerfQuery,
+                    'run_date'
+                );
+
+                var rpr = await rsPerfQuery;
+
+                if (rpr.error) throw rpr.error;
+
+                data = rpr.data || [];
+
+                if (!data.length) {
+                    html = _empty(
+                        'لا توجد رانشيتات خلال الفترة المحددة'
+                    );
+                } else {
+                    var rsTotal = 0;
+
+                    html =
+                        '<h4 class="font-bold mb-3">أداء الرانشيتات</h4>' +
+                        _tableHeader([
+                            { label: 'الرانشيت' },
+                            { label: 'التاريخ' },
+                            { label: 'الحالة' },
+                            { label: 'القيمة', center: true }
+                        ]);
+
+                    for (var rp = 0; rp < data.length; rp++) {
+                        rsTotal +=
+                            Number(data[rp].total_amount) || 0;
+
+                        html +=
+                            '<tr class="border-t hover:bg-gray-50 cursor-pointer" ' +
+                            'onclick="RW_Reports_Comprehensive._showRunsheetDetail(\'' +
+                            _esc(data[rp].runsheet_code) +
+                            '\')">' +
+
+                            '<td class="p-2 font-bold">' +
+                            _esc(data[rp].runsheet_code) +
+                            '</td>' +
+
+                            '<td class="p-2">' +
+                            _esc(data[rp].run_date) +
+                            '</td>' +
+
+                            '<td class="p-2">' +
+                            _esc(data[rp].status) +
+                            '</td>' +
+
+                            '<td class="p-2 text-center font-bold">' +
+                            _fmtNum(data[rp].total_amount) +
+                            ' EGP</td>' +
+
+                            '</tr>';
+                    }
+
+                    html +=
+                        '</tbody></table>' +
+                        '<div class="mt-4 font-bold">' +
+                        'إجمالي قيمة الرانشيتات: ' +
+                        _fmtNum(rsTotal) +
+                        ' EGP</div>';
+                }
+            }
+
+            /* =========================================================
+               INVENTORY
+               ========================================================= */
+
+            else if (
+                reportId === 'inventory-stock' ||
+                reportId === 'inventory-low-stock'
+            ) {
+                var branchesRes = await supabase
+                    .from('branches')
+                    .select('id, name, branch_code')
+                    .eq('company_id', companyId);
+
+                if (branchesRes.error) {
+                    throw branchesRes.error;
+                }
+
+                var reportBranchIds =
+                    (branchesRes.data || [])
+                        .map(function(b) {
+                            return b.id;
+                        })
+                        .filter(Boolean);
+
+                var stockRows = [];
+
+                if (reportBranchIds.length) {
+                    var stockQ = await supabase
+                        .from('stock_branches')
+                        .select(
+                            'branch_id, item_id, qty, allocated_qty, available_qty'
+                        )
+                        .in(
+                            'branch_id',
+                            reportBranchIds
+                        );
+
+                    if (stockQ.error) throw stockQ.error;
+
+                    stockRows = stockQ.data || [];
+                }
+
+                var masterItems =
+                    RW_STATE &&
+                    RW_STATE.data &&
+                    Array.isArray(RW_STATE.data.items)
+                        ? RW_STATE.data.items
+                        : [];
+
+                if (!masterItems.length) {
+                    var masterRes = await supabase
+                        .from('items')
+                        .select(
+                            'id, item_code, name, unit, cost_price, reorder_point, max_qty'
+                        );
+
+                    if (masterRes.error) {
+                        throw masterRes.error;
+                    }
+
+                    masterItems = masterRes.data || [];
+                }
+
+                var stockByItem = {};
+
+                for (var sb = 0; sb < stockRows.length; sb++) {
+                    var sr = stockRows[sb];
+
+                    if (!sr.item_id) continue;
+
+                    if (!stockByItem[sr.item_id]) {
+                        stockByItem[sr.item_id] = {
+                            physical: 0,
+                            allocated: 0,
+                            available: 0
+                        };
+                    }
+
+                    stockByItem[sr.item_id].physical +=
+                        Number(sr.qty) || 0;
+
+                    stockByItem[sr.item_id].allocated +=
+                        Number(sr.allocated_qty) || 0;
+
+                    stockByItem[sr.item_id].available +=
+                        sr.available_qty != null
+                            ? Number(sr.available_qty) || 0
+                            : Math.max(
+                                0,
+                                (Number(sr.qty) || 0) -
+                                (Number(sr.allocated_qty) || 0)
+                            );
+                }
+
+                var inventoryRows = [];
+
+                for (var mi = 0; mi < masterItems.length; mi++) {
+                    var mItem = masterItems[mi];
+
+                    if (!mItem || !mItem.id) continue;
+
+                    var stock = stockByItem[mItem.id] || {
+                        physical: 0,
+                        allocated: 0,
+                        available: 0
+                    };
+
+                    var reorder =
+                        Number(mItem.reorder_point);
+
+                    if (!Number.isFinite(reorder) || reorder < 0) {
+                        reorder = 5;
+                    }
+
+                    if (
+                        reportId === 'inventory-low-stock' &&
+                        stock.available > reorder
+                    ) {
+                        continue;
+                    }
+
+                    inventoryRows.push({
+                        item: mItem,
+                        stock: stock,
+                        reorder: reorder
+                    });
+                }
+
+                inventoryRows.sort(function(a, b) {
+                    return b.stock.available -
+                        a.stock.available;
+                });
+
+                if (
+                    reportId === 'inventory-low-stock' &&
+                    !inventoryRows.length
+                ) {
+                    html = _empty(
+                        'لا توجد أصناف أقل من حد الطلب'
+                    );
+                } else {
+                    html =
+                        '<h4 class="font-bold mb-3">' +
+                        (reportId === 'inventory-stock'
+                            ? 'جرد المخزون الحالي'
+                            : 'الأصناف الأقل من حد الطلب') +
+                        '</h4>' +
+
+                        _tableHeader([
+                            { label: 'الصنف' },
+                            { label: 'الكود' },
+                            { label: 'الرصيد الفعلي', center: true },
+                            { label: 'المحجوز', center: true },
+                            { label: 'المتاح', center: true },
+                            { label: 'حد الطلب', center: true }
+                        ]);
+
+                    for (
+                        var ir = 0;
+                        ir < inventoryRows.length;
+                        ir++
+                    ) {
+                        var inv = inventoryRows[ir];
+
+                        html +=
+                            '<tr class="border-t">' +
+                            '<td class="p-2 font-semibold">' +
+                            _esc(inv.item.name) +
+                            '</td>' +
+                            '<td class="p-2">' +
+                            _esc(inv.item.item_code) +
+                            '</td>' +
+                            '<td class="p-2 text-center">' +
+                            _fmtNum(inv.stock.physical) +
+                            '</td>' +
+                            '<td class="p-2 text-center">' +
+                            _fmtNum(inv.stock.allocated) +
+                            '</td>' +
+                            '<td class="p-2 text-center font-bold">' +
+                            _fmtNum(inv.stock.available) +
+                            '</td>' +
+                            '<td class="p-2 text-center">' +
+                            _fmtNum(inv.reorder) +
+                            '</td>' +
+                            '</tr>';
+                    }
+
+                    html += '</tbody></table>';
+                }
+            }
+
+            else if (reportId === 'inventory-movement') {
+                if (!itemCode) {
+                    safeHTML(
+                        resultDiv,
+                        _empty('يرجى اختيار الصنف')
+                    );
+                    return;
+                }
+
+                var itemMovementQuery = supabase
+                    .from('inventory_log')
+                    .select('*')
+                    .eq('company_id', companyId)
+                    .eq('item_code', itemCode);
+
+                itemMovementQuery = _dateFilter(
+                    itemMovementQuery,
+                    'movement_date'
+                );
+
+                var imr = await itemMovementQuery
+                    .order('movement_date', {
+                        ascending: false
+                    })
+                    .order('created_at', {
+                        ascending: false
+                    });
+
+                if (imr.error) throw imr.error;
+
+                data = imr.data || [];
+
+                html =
+                    '<h4 class="font-bold mb-3">حركة الصنف</h4>' +
+                    _tableHeader([
+                        { label: 'التاريخ' },
+                        { label: 'النوع' },
+                        { label: 'الكمية', center: true },
+                        { label: 'المرجع' },
+                        { label: 'المستخدم' }
+                    ]);
+
+                for (var mv = 0; mv < data.length; mv++) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2">' +
+                        _esc(data[mv].movement_date) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[mv].movement_type) +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold">' +
+                        _fmtNum(data[mv].qty) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[mv].reference || '') +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[mv].user_email || '') +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+
+                if (!data.length) {
+                    html += _empty(
+                        'لا توجد حركات لهذا الصنف خلال الفترة'
+                    );
+                }
+            }
+
+            else if (reportId === 'inventory-dormant') {
+                var dormantItemsRes = await supabase
+                    .from('items')
+                    .select(
+                        'id, item_code, name, unit, cost_price, sales_price'
+                    );
+
+                if (dormantItemsRes.error) {
+                    throw dormantItemsRes.error;
+                }
+
+                var dormantItems =
+                    dormantItemsRes.data || [];
+
+                var dormantOrdersQuery =
+                    supabase
+                        .from('order_details')
+                        .select(
+                            'item_code, orders!inner(company_id, order_date, order_status)'
+                        )
+                        .eq(
+                            'orders.company_id',
+                            companyId
+                        )
+                        .neq(
+                            'orders.order_status',
+                            'Cancelled'
+                        );
+
+                dormantOrdersQuery = _dateFilter(
+                    dormantOrdersQuery,
+                    'orders.order_date'
+                );
+
+                var dormantSoldRes =
+                    await dormantOrdersQuery;
+
+                if (dormantSoldRes.error) {
+                    throw dormantSoldRes.error;
+                }
+
+                var soldMap = {};
+
+                (dormantSoldRes.data || [])
+                    .forEach(function(r) {
+                        if (r && r.item_code) {
+                            soldMap[r.item_code] = true;
+                        }
+                    });
+
+                var dormantBranches = await supabase
+                    .from('branches')
+                    .select('id')
+                    .eq('company_id', companyId);
+
+                if (dormantBranches.error) {
+                    throw dormantBranches.error;
+                }
+
+                var dormantBranchIds =
+                    (dormantBranches.data || [])
+                        .map(function(b) {
+                            return b.id;
+                        })
+                        .filter(Boolean);
+
+                var dormantStockRes = dormantBranchIds.length
+                    ? await supabase
+                        .from('stock_branches')
+                        .select(
+                            'item_id, qty, allocated_qty, available_qty'
+                        )
+                        .in(
+                            'branch_id',
+                            dormantBranchIds
+                        )
+                    : { data: [], error: null };
+
+                if (dormantStockRes.error) {
+                    throw dormantStockRes.error;
+                }
+
+                var dormantStockMap = {};
+
+                (dormantStockRes.data || [])
+                    .forEach(function(r) {
+                        if (!r.item_id) return;
+
+                        dormantStockMap[r.item_id] =
+                            (dormantStockMap[r.item_id] || 0) +
+                            (
+                                r.available_qty != null
+                                    ? Number(r.available_qty) || 0
+                                    : Math.max(
+                                        0,
+                                        (Number(r.qty) || 0) -
+                                        (Number(r.allocated_qty) || 0)
+                                    )
+                            );
+                    });
+
+                var dormantRows =
+                    dormantItems.filter(function(it) {
+                        return (
+                            it &&
+                            it.id &&
+                            Number(
+                                dormantStockMap[it.id] || 0
+                            ) > 0 &&
+                            !soldMap[it.item_code]
+                        );
+                    });
+
+                html =
+                    '<h4 class="font-bold mb-3">تحليل دوران المخزون — الأصناف الراكدة</h4>' +
+                    _tableHeader([
+                        { label: 'الصنف' },
+                        { label: 'الكود' },
+                        { label: 'المتاح', center: true },
+                        { label: 'قيمة التكلفة التقديرية', center: true }
+                    ]);
+
+                for (var dmi = 0; dmi < dormantRows.length; dmi++) {
+                    var dm = dormantRows[dmi];
+                    var availableQty =
+                        Number(
+                            dormantStockMap[dm.id] || 0
+                        );
+
+                    var unitCost =
+                        Number(dm.cost_price) ||
+                        Number(dm.sales_price) ||
+                        0;
+
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(dm.name) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(dm.item_code) +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold">' +
+                        _fmtNum(availableQty) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        _fmtNum(
+                            availableQty * unitCost
+                        ) +
+                        ' EGP</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+
+                if (!dormantRows.length) {
+                    html += _empty(
+                        'لا توجد أصناف راكدة وفق بيانات الفترة والمخزون الحالية'
+                    );
+                }
+            }
+
+            /* =========================================================
+               PURCHASES / RECEIVING
+               ========================================================= */
+
+            else if (reportId === 'purchase-by-supplier') {
+                var poSupplierQuery = supabase
+                    .from('purchase_orders')
+                    .select(
+                        'supplier_id, supplier_name, total_amount, po_date, status'
+                    )
+                    .eq('company_id', companyId);
+
+                poSupplierQuery = _dateFilter(
+                    poSupplierQuery,
+                    'po_date'
+                );
+
+                if (supplier) {
+                    poSupplierQuery =
+                        poSupplierQuery.eq(
+                            'supplier_id',
+                            supplier
+                        );
+                }
+
+                var psr = await poSupplierQuery;
+
+                if (psr.error) throw psr.error;
+
+                var poMap = {};
+
+                (psr.data || []).forEach(function(row) {
+                    var sid =
+                        row.supplier_id ||
+                        'غير محدد';
+
+                    if (!poMap[sid]) {
+                        poMap[sid] = {
+                            id: sid,
+                            name:
+                                row.supplier_name ||
+                                sid,
+                            count: 0,
+                            total: 0
+                        };
+                    }
+
+                    poMap[sid].count++;
+                    poMap[sid].total +=
+                        Number(row.total_amount) || 0;
+                });
+
+                var poArr =
+                    Object.keys(poMap)
+                        .map(function(k) {
+                            return poMap[k];
+                        })
+                        .sort(function(a, b) {
+                            return b.total - a.total;
+                        });
+
+                html =
+                    '<h4 class="font-bold mb-3">المشتريات حسب المورد</h4>' +
+                    _tableHeader([
+                        { label: 'المورد' },
+                        { label: 'عدد الأوامر', center: true },
+                        { label: 'الإجمالي', center: true }
+                    ]);
+
+                for (var poi = 0; poi < poArr.length; poi++) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(poArr[poi].name) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        poArr[poi].count +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold">' +
+                        _fmtNum(poArr[poi].total) +
+                        ' EGP</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+            }
+
+            else if (reportId === 'purchase-order-status') {
+                var poStatusQuery = supabase
+                    .from('purchase_orders')
+                    .select('status, po_date')
+                    .eq('company_id', companyId);
+
+                poStatusQuery = _dateFilter(
+                    poStatusQuery,
+                    'po_date'
+                );
+
+                var por = await poStatusQuery;
+
+                if (por.error) throw por.error;
+
+                var poStatusMap = {};
+
+                (por.data || []).forEach(function(row) {
+                    var st =
+                        row.status ||
+                        'غير محدد';
+
+                    poStatusMap[st] =
+                        (poStatusMap[st] || 0) + 1;
+                });
+
+                html =
+                    '<h4 class="font-bold mb-3">حالة أوامر الشراء</h4>' +
+                    _tableHeader([
+                        { label: 'الحالة' },
+                        { label: 'العدد', center: true }
+                    ]);
+
+                Object.keys(poStatusMap)
+                    .sort()
+                    .forEach(function(st) {
+                        html +=
+                            '<tr class="border-t">' +
+                            '<td class="p-2">' +
+                            _esc(st) +
+                            '</td>' +
+                            '<td class="p-2 text-center font-bold">' +
+                            poStatusMap[st] +
+                            '</td>' +
+                            '</tr>';
+                    });
+
+                html += '</tbody></table>';
+            }
+
+            else if (reportId === 'purchase-receiving') {
+                var receivingRes = await supabase
+                    .from('receiving')
+                    .select('operation_id, po_number, date, company_id')
+                    .eq('company_id', companyId);
+
+                if (receivingRes.error) {
+                    throw receivingRes.error;
+                }
+
+                var receivingRows =
+                    receivingRes.data || [];
+
+                var operationIds =
+                    receivingRows
+                        .map(function(r) {
+                            return r.operation_id;
+                        })
+                        .filter(Boolean);
+
+                var receivingDetailRows = [];
+
+                if (operationIds.length) {
+                    var rdRes = await supabase
+                        .from('receiving_details')
+                        .select(
+                            'operation_id, item_code, item_name, qty_expected, qty_received, difference, reason, created_at'
+                        )
+                        .in(
+                            'operation_id',
+                            operationIds
+                        );
+
+                    if (rdRes.error) {
+                        throw rdRes.error;
+                    }
+
+                    receivingDetailRows =
+                        rdRes.data || [];
+                }
+
+                receivingDetailRows =
+                    receivingDetailRows.filter(function(r) {
+                        if (!fromDate && !toDate) return true;
+
+                        var rowDate =
+                            r.created_at
+                                ? String(r.created_at)
+                                    .slice(0, 10)
+                                : '';
+
+                        if (
+                            fromDate &&
+                            rowDate < fromDate
+                        ) return false;
+
+                        if (
+                            toDate &&
+                            rowDate > toDate
+                        ) return false;
+
+                        return true;
+                    });
+
+                html =
+                    '<h4 class="font-bold mb-3">تقرير استلام البضاعة</h4>' +
+                    _tableHeader([
+                        { label: 'الصنف' },
+                        { label: 'المطلوب', center: true },
+                        { label: 'المستلم', center: true },
+                        { label: 'الفرق', center: true },
+                        { label: 'السبب' }
+                    ]);
+
+                for (
+                    var rdi = 0;
+                    rdi < receivingDetailRows.length;
+                    rdi++
+                ) {
+                    var rr = receivingDetailRows[rdi];
+
+                    var receivingDiff =
+                        Number(
+                            rr.difference
+                        );
+
+                    if (!Number.isFinite(receivingDiff)) {
+                        receivingDiff =
+                            (Number(rr.qty_received) || 0) -
+                            (Number(rr.qty_expected) || 0);
+                    }
+
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2">' +
+                        _esc(
+                            rr.item_name ||
+                            rr.item_code ||
+                            ''
+                        ) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        _fmtNum(rr.qty_expected) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        _fmtNum(rr.qty_received) +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold ' +
+                        (receivingDiff < 0
+                            ? 'text-red-600'
+                            : 'text-green-600') +
+                        '">' +
+                        _fmtNum(receivingDiff) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(rr.reason || '') +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+
+                if (!receivingDetailRows.length) {
+                    html += _empty(
+                        'لا توجد عمليات استلام ضمن بيانات الشركة والفترة المحددة'
+                    );
+                }
+            }
+
+            /* =========================================================
+               FINANCE
+               ========================================================= */
+
+            else if (reportId === 'finance-trial-balance') {
+                if (!fromDate || !toDate) {
+                    safeHTML(
+                        resultDiv,
+                        _empty(
+                            'يجب تحديد الفترة الزمنية لميزان المراجعة'
+                        )
+                    );
+                    return;
+                }
+
+                var trialRes = await supabase.rpc(
+                    'get_trial_balance',
+                    {
+                        p_from_date: fromDate,
+                        p_to_date: toDate
+                    }
+                );
+
+                if (trialRes.error) {
+                    throw trialRes.error;
+                }
+
+                var trialRows =
+                    trialRes.data || [];
+
+                html =
+                    '<h4 class="font-bold mb-3">ميزان المراجعة</h4>' +
+                    _tableHeader([
+                        { label: 'الحساب' },
+                        { label: 'المدين', center: true },
+                        { label: 'الدائن', center: true },
+                        { label: 'الرصيد', center: true }
+                    ]);
+
+                for (var tb = 0; tb < trialRows.length; tb++) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(
+                            trialRows[tb].account_name ||
+                            trialRows[tb].account_id ||
+                            ''
+                        ) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        _fmtNum(
+                            trialRows[tb].total_debit
+                        ) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        _fmtNum(
+                            trialRows[tb].total_credit
+                        ) +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold">' +
+                        _fmtNum(
+                            trialRows[tb].net_balance
+                        ) +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+            }
+
+            else if (reportId === 'finance-profit-loss') {
+                if (!fromDate || !toDate) {
+                    safeHTML(
+                        resultDiv,
+                        _empty(
+                            'يجب تحديد الفترة الزمنية لقائمة الدخل'
+                        )
+                    );
+                    return;
+                }
+
+                var pnlRes = await supabase.rpc(
+                    'get_profit_loss',
+                    {
+                        p_from_date: fromDate,
+                        p_to_date: toDate
+                    }
+                );
+
+                if (pnlRes.error) {
+                    throw pnlRes.error;
+                }
+
+                var pnlRows = pnlRes.data || [];
+
+                var revenueTotal = 0;
+                var expenseTotal = 0;
+
+                pnlRows.forEach(function(row) {
+                    var amount =
+                        Number(row.total_amount) || 0;
+
+                    if (row.account_type === 'revenue') {
+                        revenueTotal += amount;
+                    }
+
+                    if (row.account_type === 'expense') {
+                        expenseTotal += amount;
+                    }
+                });
+
+                html =
+                    '<h4 class="font-bold mb-3">قائمة الدخل</h4>' +
+                    '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">' +
+
+                    '<div class="bg-green-50 rounded-xl p-4 text-center">' +
+                    '<p class="text-xs">الإيرادات</p>' +
+                    '<p class="text-2xl font-black text-green-700">' +
+                    _fmtNum(revenueTotal) +
+                    ' EGP</p></div>' +
+
+                    '<div class="bg-red-50 rounded-xl p-4 text-center">' +
+                    '<p class="text-xs">المصروفات</p>' +
+                    '<p class="text-2xl font-black text-red-700">' +
+                    _fmtNum(expenseTotal) +
+                    ' EGP</p></div>' +
+
+                    '<div class="bg-indigo-50 rounded-xl p-4 text-center">' +
+                    '<p class="text-xs">صافي الربح</p>' +
+                    '<p class="text-2xl font-black text-indigo-700">' +
+                    _fmtNum(revenueTotal - expenseTotal) +
+                    ' EGP</p></div>' +
+
+                    '</div>' +
+
+                    _tableHeader([
+                        { label: 'نوع الحساب' },
+                        { label: 'الحساب' },
+                        { label: 'القيمة', center: true }
+                    ]);
+
+                for (var pl = 0; pl < pnlRows.length; pl++) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2">' +
+                        _esc(pnlRows[pl].account_type || '') +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(pnlRows[pl].account_name || '') +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold">' +
+                        _fmtNum(
+                            pnlRows[pl].total_amount
+                        ) +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+            }
+
+            else if (reportId === 'finance-balance-sheet') {
+                if (!toDate) {
+                    safeHTML(
+                        resultDiv,
+                        _empty(
+                            'يجب تحديد تاريخ الميزانية'
+                        )
+                    );
+                    return;
+                }
+
+                var bsRes = await supabase.rpc(
+                    'get_balance_sheet_data',
+                    {
+                        p_as_of: toDate
+                    }
+                );
+
+                if (bsRes.error) {
+                    throw bsRes.error;
+                }
+
+                var bs = bsRes.data || {};
+
+                function _renderBsSection(
+                    title,
+                    rows
+                ) {
+                    var section =
+                        '<div class="mb-5">' +
+                        '<h5 class="font-bold mb-2">' +
+                        _esc(title) +
+                        '</h5>' +
+                        _tableHeader([
+                            { label: 'الحساب' },
+                            { label: 'الرصيد', center: true }
+                        ]);
+
+                    rows = Array.isArray(rows)
+                        ? rows
+                        : [];
+
+                    for (
+                        var bi = 0;
+                        bi < rows.length;
+                        bi++
+                    ) {
+                        section +=
+                            '<tr class="border-t">' +
+                            '<td class="p-2 font-semibold">' +
+                            _esc(
+                                rows[bi].account_name ||
+                                rows[bi].account_code ||
+                                ''
+                            ) +
+                            '</td>' +
+                            '<td class="p-2 text-center font-bold">' +
+                            _fmtNum(rows[bi].balance) +
+                            '</td>' +
+                            '</tr>';
+                    }
+
+                    section += '</tbody></table></div>';
+
+                    if (!rows.length) {
+                        section += _empty(
+                            'لا توجد حسابات ضمن هذا التصنيف'
+                        );
+                    }
+
+                    return section;
+                }
+
+                html =
+                    '<h4 class="font-bold mb-3">الميزانية العمومية حتى ' +
+                    _esc(toDate) +
+                    '</h4>' +
+
+                    _renderBsSection(
+                        'الأصول',
+                        bs.assets
+                    ) +
+
+                    _renderBsSection(
+                        'الخصوم',
+                        bs.liabilities
+                    ) +
+
+                    _renderBsSection(
+                        'حقوق الملكية',
+                        bs.equity
+                    );
+            }
+
+            else if (reportId === 'finance-cash-flow') {
+                if (!fromDate || !toDate) {
+                    safeHTML(
+                        resultDiv,
+                        _empty(
+                            'يجب تحديد الفترة لقائمة التدفقات النقدية'
+                        )
+                    );
+                    return;
+                }
+
+                var cfRes = await supabase.rpc(
+                    'get_cash_flow',
+                    {
+                        p_from_date: fromDate,
+                        p_to_date: toDate
+                    }
+                );
+
+                if (cfRes.error) {
+                    throw cfRes.error;
+                }
+
+                var cfRows = cfRes.data || [];
+
+                html =
+                    '<h4 class="font-bold mb-3">قائمة التدفقات النقدية</h4>' +
+                    _tableHeader([
+                        { label: 'التصنيف' },
+                        { label: 'الحساب' },
+                        { label: 'القيمة', center: true }
+                    ]);
+
+                var cashTotal = 0;
+
+                for (var cf = 0; cf < cfRows.length; cf++) {
+                    var cfAmount =
+                        Number(cfRows[cf].amount) || 0;
+
+                    cashTotal += cfAmount;
+
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2">' +
+                        _esc(cfRows[cf].category || '') +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(cfRows[cf].account_name || '') +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold">' +
+                        _fmtNum(cfAmount) +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                html +=
+                    '</tbody></table>' +
+                    '<div class="mt-4 font-black">' +
+                    'صافي التدفق: ' +
+                    _fmtNum(cashTotal) +
+                    ' EGP</div>';
+            }
+
+            else if (reportId === 'finance-general-ledger') {
+                if (!account) {
+                    safeHTML(
+                        resultDiv,
+                        _empty('يرجى اختيار الحساب')
+                    );
+                    return;
+                }
+
+                var accountLedgerQuery = supabase
+                    .from('journal_lines')
+                    .select(
+                        'account_id, account_name, debit, credit, created_at, journal_entries!inner(entry_date, reference, description, company_id, status)'
+                    )
+                    .eq('account_id', account)
+                    .eq(
+                        'journal_entries.company_id',
+                        companyId
+                    )
+                    .eq(
+                        'journal_entries.status',
+                        'Posted'
+                    );
+
+                if (fromDate) {
+                    accountLedgerQuery =
+                        accountLedgerQuery.gte(
+                            'journal_entries.entry_date',
+                            fromDate
+                        );
+                }
+
+                if (toDate) {
+                    accountLedgerQuery =
+                        accountLedgerQuery.lt(
+                            'journal_entries.entry_date',
+                            _nextDate(toDate)
+                        );
+                }
+
+                var glr = await accountLedgerQuery
+                    .order('created_at', {
+                        ascending: true
+                    });
+
+                if (glr.error) throw glr.error;
+
+                data = glr.data || [];
+
+                var runningBalance = 0;
+
+                html =
+                    '<h4 class="font-bold mb-3">دفتر الأستاذ العام</h4>' +
+                    _tableHeader([
+                        { label: 'التاريخ' },
+                        { label: 'المرجع' },
+                        { label: 'البيان' },
+                        { label: 'مدين', center: true },
+                        { label: 'دائن', center: true },
+                        { label: 'الرصيد', center: true }
+                    ]);
+
+                for (var gli = 0; gli < data.length; gli++) {
+                    runningBalance +=
+                        (Number(data[gli].debit) || 0) -
+                        (Number(data[gli].credit) || 0);
+
+                    var je =
+                        data[gli].journal_entries || {};
+
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2">' +
+                        _esc(je.entry_date || '') +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(je.reference || '') +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(je.description || '') +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        _fmtNum(data[gli].debit) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        _fmtNum(data[gli].credit) +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold">' +
+                        _fmtNum(runningBalance) +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+
+                if (!data.length) {
+                    html += _empty(
+                        'لا توجد حركات للحساب ضمن الفترة'
+                    );
+                }
+            }
+
+            else if (reportId === 'finance-treasury') {
+                if (!treasury) {
+                    safeHTML(
+                        resultDiv,
+                        _empty('يرجى اختيار الخزينة')
+                    );
+                    return;
+                }
+
+                var treasuryRes =
+                    await supabase
+                        .from('treasury')
+                        .select(
+                            'id, account_code, account_name'
+                        )
+                        .eq('company_id', companyId)
+                        .eq('id', treasury)
+                        .maybeSingle();
+
+                if (treasuryRes.error) {
+                    throw treasuryRes.error;
+                }
+
+                if (!treasuryRes.data) {
+                    safeHTML(
+                        resultDiv,
+                        _empty(
+                            'الخزينة غير موجودة ضمن الشركة الحالية'
+                        )
+                    );
+                    return;
+                }
+
+                var cashQuery =
+                    supabase
+                        .from('cash_box')
+                        .select('*')
+                        .eq('company_id', companyId)
+                        .eq('treasury_id', treasury);
+
+                cashQuery = _dateFilter(
+                    cashQuery,
+                    'voucher_date'
+                );
+
+                var cashRes =
+                    await cashQuery.order(
+                        'voucher_date',
+                        { ascending: false }
+                    );
+
+                if (cashRes.error) {
+                    throw cashRes.error;
+                }
+
+                data = cashRes.data || [];
+
+                html =
+                    '<h4 class="font-bold mb-3">كشف حساب الخزينة: ' +
+                    _esc(
+                        treasuryRes.data.account_name
+                    ) +
+                    '</h4>' +
+                    _tableHeader([
+                        { label: 'التاريخ' },
+                        { label: 'النوع' },
+                        { label: 'المرجع' },
+                        { label: 'المبلغ', center: true }
+                    ]);
+
+                for (var tx = 0; tx < data.length; tx++) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2">' +
+                        _esc(data[tx].voucher_date) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[tx].type || '') +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[tx].reference || '') +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold">' +
+                        _fmtNum(data[tx].amount) +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+
+                if (!data.length) {
+                    html += _empty(
+                        'لا توجد حركات على الخزينة خلال الفترة'
+                    );
+                }
+            }
+
+            else if (reportId === 'finance-tax') {
+                html =
+                    '<div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-right">' +
+                    '<h4 class="font-bold text-amber-800 mb-2">' +
+                    'التقرير الضريبي غير قابل للتوليد رسميًا من المصادر الحالية' +
+                    '</h4>' +
+                    '<p class="text-sm text-amber-700 leading-7">' +
+                    'لم يثبت في Production حاليًا مصدر معاملات ضريبية مفصّل يمكن الاعتماد عليه لإظهار VAT Report رسمي. لذلك لن يتم حساب أو اختلاق ضريبة من إجمالي المبيعات أو نسبة إعدادات عامة واعتبارها تقريرًا ضريبيًا رسميًا.' +
+                    '</p>' +
+                    '<p class="text-xs text-amber-600 mt-3">' +
+                    'الحالة: CAPABILITY GATED — لا توجد نتيجة وهمية.' +
+                    '</p>' +
+                    '</div>';
+            }
+
+            /* =========================================================
+               CRM
+               ========================================================= */
+
+            else if (reportId === 'crm-customer-list') {
+                var crmCustomersRes = await supabase
+                    .from('customers')
+                    .select(
+                        'id, customer_code, name, phone, area, customer_type, payment_type, debt, credit_limit, is_active'
+                    )
+                    .eq('company_id', companyId)
+                    .order('name', { ascending: true });
+
+                if (crmCustomersRes.error) {
+                    throw crmCustomersRes.error;
+                }
+
+                data =
+                    crmCustomersRes.data || [];
+
+                html =
+                    '<h4 class="font-bold mb-3">قائمة العملاء</h4>' +
+                    _tableHeader([
+                        { label: 'الكود' },
+                        { label: 'الاسم' },
+                        { label: 'الهاتف' },
+                        { label: 'المنطقة' },
+                        { label: 'الدين', center: true },
+                        { label: 'الحالة', center: true }
+                    ]);
+
+                for (var cli = 0; cli < data.length; cli++) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2">' +
+                        _esc(data[cli].customer_code) +
+                        '</td>' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(data[cli].name) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[cli].phone || '') +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[cli].area || '') +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold">' +
+                        _fmtNum(data[cli].debt) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        (
+                            data[cli].is_active === false
+                                ? 'غير نشط'
+                                : 'نشط'
+                        ) +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+            }
+
+            else if (reportId === 'crm-customer-analysis') {
+                var crmOrderQuery =
+                    supabase
+                        .from('orders')
+                        .select(
+                            'customer_id, customer_name, total_amount, order_date, order_status'
+                        )
+                        .eq('company_id', companyId)
+                        .neq(
+                            'order_status',
+                            'Cancelled'
+                        );
+
+                crmOrderQuery = _dateFilter(
+                    crmOrderQuery,
+                    'order_date'
+                );
+
+                var crmOrderRes =
+                    await crmOrderQuery;
+
+                if (crmOrderRes.error) {
+                    throw crmOrderRes.error;
+                }
+
+                var crmRows =
+                    crmOrderRes.data || [];
+
+                var crmMap = {};
+
+                crmRows.forEach(function(row) {
+                    var id =
+                        row.customer_id ||
+                        row.customer_name ||
+                        'غير محدد';
+
+                    if (!crmMap[id]) {
+                        crmMap[id] = {
+                            name:
+                                row.customer_name ||
+                                id,
+                            orders: 0,
+                            sales: 0
+                        };
+                    }
+
+                    crmMap[id].orders++;
+                    crmMap[id].sales +=
+                        Number(row.total_amount) || 0;
+                });
+
+                var crmArr =
+                    Object.keys(crmMap)
+                        .map(function(k) {
+                            return crmMap[k];
+                        })
+                        .sort(function(a, b) {
+                            return b.sales - a.sales;
+                        });
+
+                html =
+                    '<h4 class="font-bold mb-3">تحليل العملاء</h4>' +
+                    _tableHeader([
+                        { label: 'العميل' },
+                        { label: 'الأوردرات', center: true },
+                        { label: 'المبيعات', center: true }
+                    ]);
+
+                crmArr.slice(0, 50)
+                    .forEach(function(row) {
+                        html +=
+                            '<tr class="border-t">' +
+                            '<td class="p-2 font-semibold">' +
+                            _esc(row.name) +
+                            '</td>' +
+                            '<td class="p-2 text-center">' +
+                            row.orders +
+                            '</td>' +
+                            '<td class="p-2 text-center font-bold">' +
+                            _fmtNum(row.sales) +
+                            ' EGP</td>' +
+                            '</tr>';
+                    });
+
+                html += '</tbody></table>';
+
+                if (!crmArr.length) {
+                    html += _empty(
+                        'لا توجد حركة عملاء ضمن الفترة المحددة'
+                    );
+                }
+            }
+
+            else if (reportId === 'crm-customer-followups') {
+                var followupQuery =
+                    supabase
+                        .from('customer_followups')
+                        .select(
+                            'id, customer_id, followup_date, followup_type, subject, notes, assigned_to, status, created_by, completed_at'
+                        )
+                        .eq('company_id', companyId);
+
+                if (customer) {
+                    followupQuery =
+                        followupQuery.eq(
+                            'customer_id',
+                            String(customer)
+                        );
+                }
+
+                if (fromDate) {
+                    followupQuery =
+                        followupQuery.gte(
+                            'followup_date',
+                            fromDate
+                        );
+                }
+
+                if (toDate) {
+                    followupQuery =
+                        followupQuery.lte(
+                            'followup_date',
+                            toDate
+                        );
+                }
+
+                var fur =
+                    await followupQuery
+                        .order('followup_date', {
+                            ascending: false
+                        });
+
+                if (fur.error) {
+                    throw fur.error;
+                }
+
+                var followups =
+                    fur.data || [];
+
+                html =
+                    '<h4 class="font-bold mb-3">سجل المتابعات</h4>' +
+                    _tableHeader([
+                        { label: 'التاريخ' },
+                        { label: 'النوع' },
+                        { label: 'الموضوع' },
+                        { label: 'المسؤول' },
+                        { label: 'الحالة' }
+                    ]);
+
+                for (
+                    var fui = 0;
+                    fui < followups.length;
+                    fui++
+                ) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2">' +
+                        _esc(
+                            followups[fui].followup_date
+                        ) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(
+                            followups[fui].followup_type ||
+                            ''
+                        ) +
+                        '</td>' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(
+                            followups[fui].subject ||
+                            ''
+                        ) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(
+                            followups[fui].assigned_to ||
+                            ''
+                        ) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(
+                            followups[fui].status ||
+                            ''
+                        ) +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+
+                if (!followups.length) {
+                    html += _empty(
+                        'لا توجد متابعات مسجلة ضمن الشركة والفترة المحددة'
+                    );
+                }
+            }
+
+            else if (reportId === 'crm-customer-by-area') {
+                var crmAreaRes =
+                    await supabase
+                        .from('customers')
+                        .select(
+                            'area'
+                        )
+                        .eq('company_id', companyId);
+
+                if (crmAreaRes.error) {
+                    throw crmAreaRes.error;
+                }
+
+                var crmAreaMap = {};
+
+                (crmAreaRes.data || [])
+                    .forEach(function(row) {
+                        var name =
+                            String(
+                                row.area ||
+                                'غير محدد'
+                            ).trim();
+
+                        crmAreaMap[name] =
+                            (crmAreaMap[name] || 0) + 1;
+                    });
+
+                html =
+                    '<h4 class="font-bold mb-3">العملاء حسب المنطقة</h4>' +
+                    _tableHeader([
+                        { label: 'المنطقة' },
+                        { label: 'عدد العملاء', center: true }
+                    ]);
+
+                Object.keys(crmAreaMap)
+                    .sort(function(a, b) {
+                        return a.localeCompare(
+                            b,
+                            'ar'
+                        );
+                    })
+                    .forEach(function(name) {
+                        html +=
+                            '<tr class="border-t">' +
+                            '<td class="p-2">' +
+                            _esc(name) +
+                            '</td>' +
+                            '<td class="p-2 text-center font-bold">' +
+                            crmAreaMap[name] +
+                            '</td>' +
+                            '</tr>';
+                    });
+
+                html += '</tbody></table>';
+            }
+
+            /* =========================================================
+               LOGISTICS
+               ========================================================= */
+
+            else if (
+                reportId ===
+                'logistics-loading-unloading'
+            ) {
+                var loadQuery =
+                    supabase
+                        .from('stock_vouchers')
+                        .select(
+                            'voucher_code, voucher_date, type, status, from_type, from_id, to_type, to_id, reference'
+                        )
+                        .eq('company_id', companyId)
+                        .in(
+                            'type',
+                            ['Loading', 'Unloading']
+                        );
+
+                loadQuery = _dateFilter(
+                    loadQuery,
+                    'voucher_date'
+                );
+
+                var lur =
+                    await loadQuery
+                        .order('voucher_date', {
+                            ascending: false
+                        });
+
+                if (lur.error) {
+                    throw lur.error;
+                }
+
+                data = lur.data || [];
+
+                html =
+                    '<h4 class="font-bold mb-3">سجل التحميل والتفريغ</h4>' +
+                    _tableHeader([
+                        { label: 'رقم الإذن' },
+                        { label: 'النوع' },
+                        { label: 'التاريخ' },
+                        { label: 'الحالة' },
+                        { label: 'المرجع' }
+                    ]);
+
+                for (var lurx = 0; lurx < data.length; lurx++) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2 font-bold">' +
+                        _esc(data[lurx].voucher_code) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[lurx].type) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[lurx].voucher_date) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[lurx].status || '') +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[lurx].reference || '') +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+            }
+
+            else if (reportId === 'logistics-returns') {
+                var returnQuery =
+                    supabase
+                        .from('inventory_log')
+                        .select(
+                            'movement_date, movement_type, qty, item_code, item_name, reference, voucher_id, user_email'
+                        )
+                        .eq('company_id', companyId)
+                        .in(
+                            'movement_type',
+                            [
+                                'SalesReturn',
+                                'DirectReturn',
+                                'Return'
+                            ]
+                        );
+
+                returnQuery = _dateFilter(
+                    returnQuery,
+                    'movement_date'
+                );
+
+                var rr =
+                    await returnQuery
+                        .order('movement_date', {
+                            ascending: false
+                        })
+                        .order('created_at', {
+                            ascending: false
+                        });
+
+                if (rr.error) {
+                    throw rr.error;
+                }
+
+                data = rr.data || [];
+
+                html =
+                    '<h4 class="font-bold mb-3">تقرير المرتجعات</h4>' +
+                    _tableHeader([
+                        { label: 'التاريخ' },
+                        { label: 'الصنف' },
+                        { label: 'نوع الحركة' },
+                        { label: 'الكمية', center: true },
+                        { label: 'المرجع' }
+                    ]);
+
+                for (var rrx = 0; rrx < data.length; rrx++) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2">' +
+                        _esc(data[rrx].movement_date) +
+                        '</td>' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(
+                            data[rrx].item_name ||
+                            data[rrx].item_code ||
+                            ''
+                        ) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[rrx].movement_type) +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold">' +
+                        _fmtNum(data[rrx].qty) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(
+                            data[rrx].reference ||
+                            data[rrx].voucher_id ||
+                            ''
+                        ) +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+            }
+
+            else if (reportId === 'logistics-settlement') {
+                var settlementQuery =
+                    supabase
+                        .from('daily_settlements')
+                        .select(
+                            '*'
+                        )
+                        .eq('company_id', companyId);
+
+                settlementQuery = _dateFilter(
+                    settlementQuery,
+                    'settlement_date'
+                );
+
+                var dsr =
+                    await settlementQuery
+                        .order(
+                            'settlement_date',
+                            { ascending: false }
+                        );
+
+                if (dsr.error) {
+                    throw dsr.error;
+                }
+
+                data = dsr.data || [];
+
+                html =
+                    '<h4 class="font-bold mb-3">إغلاق اليومية</h4>' +
+                    _tableHeader([
+                        { label: 'كود التسوية' },
+                        { label: 'التاريخ' },
+                        { label: 'الرانشيت' },
+                        { label: 'العجز', center: true },
+                        { label: 'قيمة العجز', center: true }
+                    ]);
+
+                for (var dsi = 0; dsi < data.length; dsi++) {
+                    html +=
+                        '<tr class="border-t hover:bg-gray-50 cursor-pointer" ' +
+                        'onclick="RW_Reports_Comprehensive._showSettlementDetail(\'' +
+                        _esc(data[dsi].settlement_code) +
+                        '\')">' +
+                        '<td class="p-2 font-bold">' +
+                        _esc(data[dsi].settlement_code) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[dsi].settlement_date) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[dsi].runsheet_id || '') +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        _fmtNum(data[dsi].total_shortage) +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold text-red-600">' +
+                        _fmtNum(
+                            data[dsi].total_shortage_value
+                        ) +
+                        ' EGP</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+            }
+
+            else if (reportId === 'logistics-driver-performance') {
+                var driverQuery =
+                    supabase
+                        .from('runsheets')
+                        .select(
+                            'driver_id, runsheet_code, run_date, total_amount, status'
+                        )
+                        .eq('company_id', companyId);
+
+                driverQuery = _dateFilter(
+                    driverQuery,
+                    'run_date'
+                );
+
+                if (driver) {
+                    driverQuery =
+                        driverQuery.eq(
+                            'driver_id',
+                            driver
+                        );
+                }
+
+                var dpr =
+                    await driverQuery;
+
+                if (dpr.error) {
+                    throw dpr.error;
+                }
+
+                var driverRows =
+                    dpr.data || [];
+
+                var driverMap = {};
+
+                driverRows.forEach(function(row) {
+                    var id =
+                        row.driver_id ||
+                        'غير محدد';
+
+                    if (!driverMap[id]) {
+                        driverMap[id] = {
+                            driver: id,
+                            count: 0,
+                            total: 0
+                        };
+                    }
+
+                    driverMap[id].count++;
+                    driverMap[id].total +=
+                        Number(row.total_amount) || 0;
+                });
+
+                html =
+                    '<h4 class="font-bold mb-3">أداء السائقين</h4>' +
+                    _tableHeader([
+                        { label: 'السائق' },
+                        { label: 'عدد الرانشيتات', center: true },
+                        { label: 'إجمالي القيمة', center: true }
+                    ]);
+
+                Object.keys(driverMap)
+                    .map(function(k) {
+                        return driverMap[k];
+                    })
+                    .sort(function(a, b) {
+                        return b.total - a.total;
+                    })
+                    .forEach(function(row) {
+                        html +=
+                            '<tr class="border-t">' +
+                            '<td class="p-2">' +
+                            _esc(row.driver) +
+                            '</td>' +
+                            '<td class="p-2 text-center">' +
+                            row.count +
+                            '</td>' +
+                            '<td class="p-2 text-center font-bold">' +
+                            _fmtNum(row.total) +
+                            ' EGP</td>' +
+                            '</tr>';
+                    });
+
+                html += '</tbody></table>';
+            }
+
+            /* =========================================================
+               HR
+               ========================================================= */
+
+            else if (reportId === 'hr-employee-list') {
+                var employeeRes =
+                    await supabase
+                        .from('users')
+                        .select(
+                            'id, name, email, role, status, default_branch_id, employee_id'
+                        )
+                        .eq('company_id', companyId)
+                        .order('name', {
+                            ascending: true
+                        });
+
+                if (employeeRes.error) {
+                    throw employeeRes.error;
+                }
+
+                data =
+                    employeeRes.data || [];
+
+                html =
+                    '<h4 class="font-bold mb-3">قائمة الموظفين</h4>' +
+                    _tableHeader([
+                        { label: 'الاسم' },
+                        { label: 'البريد' },
+                        { label: 'الدور' },
+                        { label: 'الحالة' },
+                        { label: 'الرقم الوظيفي' }
+                    ]);
+
+                for (
+                    var hei = 0;
+                    hei < data.length;
+                    hei++
+                ) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(data[hei].name) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[hei].email) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[hei].role) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[hei].status || '') +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(data[hei].employee_id || '') +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table>';
+            }
+
+            else if (
+                reportId === 'hr-attendance' ||
+                reportId === 'hr-salary'
+            ) {
+                html =
+                    '<div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-right">' +
+                    '<h4 class="font-bold text-amber-800 mb-2">' +
+                    (
+                        reportId === 'hr-attendance'
+                            ? 'تقرير الحضور والانصراف'
+                            : 'تقرير الرواتب'
+                    ) +
+                    '</h4>' +
+                    '<p class="text-sm text-amber-700 leading-7">' +
+                    'لم يثبت في Production الحالية مصدر بيانات سلطوي للحضور/الانصراف أو مسيرات الرواتب يمكن الاعتماد عليه لإنتاج تقرير فعلي. لذلك لن يتم تصنيع بيانات بديلة أو عرض نتيجة نجاح وهمية.' +
+                    '</p>' +
+                    '<p class="text-xs text-amber-600 mt-3">' +
+                    'الحالة: CAPABILITY GATED' +
+                    '</p>' +
+                    '</div>';
+            }
+
+            else {
+                html = _empty(
+                    'هذا التقرير غير معروف في عقد التقارير الحالي'
+                );
+            }
+
+            safeHTML(
+                resultDiv,
+                html
+            );
+
+        } catch (e) {
+            console.error(
+                'RW_Reports_Comprehensive._generateReport',
+                {
+                    sectionKey: sectionKey,
+                    reportId: reportId,
+                    error: e
+                }
+            );
+
+            safeHTML(
+                resultDiv,
+                '<div class="text-center py-8 text-red-500">' +
+                'فشل تحميل التقرير: ' +
+                _esc(e && e.message
+                    ? e.message
+                    : 'خطأ غير معروف') +
+                '</div>'
+            );
+        }
+    }
+هذا الاستبدال يغلق الفجوات التالية دفعة واحدة
+لا يوجد LIMIT 1 في Report data.
+كل operational query داخل Company context.
+stock_branches مقيد بفروع الشركة.
+orders مقيدة بـcompany_id.
+order_details يتم الوصول إليها عبر orders!inner.
+journal_lines مرتبطة بـjournal_entries.company_id.
+cash_box مقيد بـcompany_id.
+customer_followups مقيدة بـcompany_id.
+daily_settlements مقيدة بـcompany_id.
+runsheets مقيدة بـcompany_id.
+users مقيدة بـcompany_id.
+Balance Sheet يستخدم RPC الحقيقي get_balance_sheet_data.
+Cash Flow يستخدم RPC الحقيقي get_cash_flow.
+Profit/Loss يستخدم get_profit_loss.
+Trial Balance يستخدم get_trial_balance.
+لا توجد رسالة مثل "تم التحميل — قيد التطوير" كتظاهر باكتمال.
+Tax capability-gated بدل اختلاق VAT.
+HR Attendance/Salary capability-gated بدل اختلاق بيانات.
+Returns أصبحت مبنية على inventory_log الحقيقي، وليس افتراض وجود Return Voucher.
+Receiving مربوط عبر receiving.company_id ثم receiving_details.operation_id.
+
+والـFinance RPCs الستة وcustomer_followups ومصادر Company الحالية مثبتة مباشرة في Production الآن.
+
+M9-09 — _loadDetailedReports
+
+هذه الدالة الأخرى الموجودة داخل RW_Reports في بداية Main9، وليست _generateReport.
+
+الموضع الحالي: تقريبًا حول السطر 257 بعد توسعة M9-02.
+
+ابحث حرفيًا:
+
+async function _loadDetailedReports(fromDate, toDate, types) {
+
+واحذف الدالة كاملة حتى القوس الذي يغلقها مباشرة قبل:
+
+    return {
+        renderDashboard: renderDashboard,
+        renderDetailedReports: renderDetailedReports
+    };
+
+واستبدلها بالكامل:
+
+async function _loadDetailedReports(fromDate, toDate, types) {
+    var container = byId('det-result-container');
+    if (!container) return;
+
+    safeHTML(
+        container,
+        '<div class="text-center py-10">' +
+        '<i class="fa-solid fa-spinner fa-spin text-2xl"></i>' +
+        '<p class="mt-2 text-gray-500">جاري تحميل التقارير المحددة...</p>' +
+        '</div>'
+    );
+
+    try {
+        var companyId = _companyId();
+        var selectedTypes =
+            Array.isArray(types) ? types : [];
+
+        var items =
+            RW_STATE &&
+            RW_STATE.data &&
+            Array.isArray(RW_STATE.data.items)
+                ? RW_STATE.data.items
+                : [];
+
+        if (!items.length) {
+            var itemRes = await supabase
+                .from('items')
+                .select(
+                    'id, item_code, name, unit, cost_price, sales_price, reorder_point'
+                );
+
+            if (itemRes.error) throw itemRes.error;
+
+            items = itemRes.data || [];
+        }
+
+        var customers =
+            RW_STATE &&
+            RW_STATE.data &&
+            Array.isArray(RW_STATE.data.customers)
+                ? RW_STATE.data.customers
+                : [];
+
+        if (!customers.length) {
+            var customerRes = await supabase
+                .from('customers')
+                .select(
+                    'id, customer_code, name, area, debt, is_active'
+                )
+                .eq('company_id', companyId);
+
+            if (customerRes.error) throw customerRes.error;
+
+            customers = customerRes.data || [];
+        } else {
+            customers = customers.filter(function(c) {
+                return c && c.id;
+            });
+        }
+
+        var branchRes = await supabase
+            .from('branches')
+            .select('id')
+            .eq('company_id', companyId);
+
+        if (branchRes.error) throw branchRes.error;
+
+        var branchIds =
+            (branchRes.data || [])
+                .map(function(b) {
+                    return b.id;
+                })
+                .filter(Boolean);
+
+        var stockData = [];
+
+        if (branchIds.length) {
+            var stockRes = await supabase
+                .from('stock_branches')
+                .select(
+                    'item_id, qty, allocated_qty, available_qty, branch_id'
+                )
+                .in('branch_id', branchIds);
+
+            if (stockRes.error) throw stockRes.error;
+
+            stockData = stockRes.data || [];
+        }
+
+        var stockMap = {};
+
+        for (var s = 0; s < stockData.length; s++) {
+            var stock = stockData[s];
+
+            if (!stock || !stock.item_id) continue;
+
+            if (!stockMap[stock.item_id]) {
+                stockMap[stock.item_id] = {
+                    physical: 0,
+                    allocated: 0,
+                    available: 0
+                };
+            }
+
+            stockMap[stock.item_id].physical +=
+                Number(stock.qty) || 0;
+
+            stockMap[stock.item_id].allocated +=
+                Number(stock.allocated_qty) || 0;
+
+            stockMap[stock.item_id].available +=
+                stock.available_qty != null
+                    ? Number(stock.available_qty) || 0
+                    : Math.max(
+                        0,
+                        (Number(stock.qty) || 0) -
+                        (Number(stock.allocated_qty) || 0)
+                    );
+        }
+
+        var orderQuery = supabase
+            .from('orders')
+            .select(
+                'id, order_code, customer_id, customer_name, total_amount, order_date, area, order_status, branch_id'
+            )
+            .eq('company_id', companyId);
+
+        if (fromDate) {
+            orderQuery =
+                orderQuery.gte(
+                    'order_date',
+                    fromDate
+                );
+        }
+
+        if (toDate) {
+            orderQuery =
+                orderQuery.lt(
+                    'order_date',
+                    _nextDate(toDate)
+                );
+        }
+
+        var ordersRes =
+            await orderQuery;
+
+        if (ordersRes.error) {
+            throw ordersRes.error;
+        }
+
+        var orders =
+            ordersRes.data || [];
+
+        var orderIds =
+            orders
+                .map(function(o) {
+                    return o.id;
+                })
+                .filter(Boolean);
+
+        var details = [];
+
+        if (orderIds.length) {
+            var detailsRes =
+                await supabase
+                    .from('order_details')
+                    .select(
+                        'item_code, item_name, qty, unit_price, order_id'
+                    )
+                    .in(
+                        'order_id',
+                        orderIds
+                    );
+
+            if (detailsRes.error) {
+                throw detailsRes.error;
+            }
+
+            details =
+                detailsRes.data || [];
+        }
+
+        var soldCodes = {};
+
+        for (var d = 0; d < details.length; d++) {
+            if (
+                details[d] &&
+                details[d].item_code
+            ) {
+                soldCodes[
+                    details[d].item_code
+                ] = true;
+            }
+        }
+
+        var html =
+            '<div class="text-right space-y-6">' +
+
+            '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+            '<p class="text-sm text-gray-500">' +
+            '<strong>الفترة:</strong> من ' +
+            _esc(fromDate || '') +
+            ' إلى ' +
+            _esc(toDate || '') +
+            '</p>' +
+            '</div>';
+
+        if (
+            selectedTypes.indexOf(
+                'sales-summary'
+            ) !== -1
+        ) {
+            var totalSales = 0;
+
+            for (var o = 0; o < orders.length; o++) {
+                totalSales +=
+                    Number(
+                        orders[o].total_amount
+                    ) || 0;
+            }
+
+            var average =
+                orders.length
+                    ? totalSales / orders.length
+                    : 0;
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                '<h3 class="font-black text-lg mb-3">' +
+                'ملخص المبيعات' +
+                '</h3>' +
+                '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">' +
+
+                '<div class="bg-indigo-50 rounded-xl p-4 text-center">' +
+                '<p class="text-xs">عدد الأوردرات</p>' +
+                '<p class="text-2xl font-black">' +
+                orders.length +
+                '</p></div>' +
+
+                '<div class="bg-emerald-50 rounded-xl p-4 text-center">' +
+                '<p class="text-xs">إجمالي المبيعات</p>' +
+                '<p class="text-2xl font-black">' +
+                _fmtNum(totalSales) +
+                ' EGP</p></div>' +
+
+                '<div class="bg-amber-50 rounded-xl p-4 text-center">' +
+                '<p class="text-xs">متوسط الأوردر</p>' +
+                '<p class="text-2xl font-black">' +
+                _fmtNum(average) +
+                ' EGP</p></div>' +
+
+                '</div></div>';
+        }
+
+        if (
+            selectedTypes.indexOf(
+                'sales-by-customer'
+            ) !== -1
+        ) {
+            var customerMap = {};
+
+            orders.forEach(function(order) {
+                var cid =
+                    order.customer_id ||
+                    order.customer_name ||
+                    'غير محدد';
+
+                if (!customerMap[cid]) {
+                    customerMap[cid] = {
+                        name:
+                            order.customer_name ||
+                            cid,
+                        count: 0,
+                        total: 0
+                    };
+                }
+
+                customerMap[cid].count++;
+                customerMap[cid].total +=
+                    Number(
+                        order.total_amount
+                    ) || 0;
+            });
+
+            var customerArr =
+                Object.keys(customerMap)
+                    .map(function(k) {
+                        return customerMap[k];
+                    })
+                    .sort(function(a, b) {
+                        return b.total - a.total;
+                    })
+                    .slice(0, 20);
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                '<h3 class="font-black text-lg mb-3">' +
+                'المبيعات حسب العميل' +
+                '</h3>' +
+                '<table class="w-full text-sm">' +
+                '<thead><tr class="bg-gray-50">' +
+                '<th class="p-2">العميل</th>' +
+                '<th class="p-2 text-center">الأوردرات</th>' +
+                '<th class="p-2 text-center">الإجمالي</th>' +
+                '</tr></thead><tbody>';
+
+            customerArr.forEach(function(row) {
+                html +=
+                    '<tr class="border-t">' +
+                    '<td class="p-2 font-semibold">' +
+                    _esc(row.name) +
+                    '</td>' +
+                    '<td class="p-2 text-center">' +
+                    row.count +
+                    '</td>' +
+                    '<td class="p-2 text-center font-bold">' +
+                    _fmtNum(row.total) +
+                    ' EGP</td>' +
+                    '</tr>';
+            });
+
+            html +=
+                '</tbody></table>' +
+                '</div>';
+
+            if (!customerArr.length) {
+                html +=
+                    '<div class="bg-white rounded-xl p-5 text-center text-gray-500">' +
+                    'لا توجد بيانات مبيعات للعملاء' +
+                    '</div>';
+            }
+        }
+
+        if (
+            selectedTypes.indexOf(
+                'sales-by-item'
+            ) !== -1
+        ) {
+            var itemSalesMap = {};
+
+            details.forEach(function(row) {
+                if (!row || !row.item_code) {
+                    return;
+                }
+
+                if (!itemSalesMap[row.item_code]) {
+                    itemSalesMap[row.item_code] = {
+                        name:
+                            row.item_name ||
+                            row.item_code,
+                        qty: 0,
+                        total: 0
+                    };
+                }
+
+                itemSalesMap[row.item_code].qty +=
+                    Number(row.qty) || 0;
+
+                itemSalesMap[row.item_code].total +=
+                    (Number(row.qty) || 0) *
+                    (Number(row.unit_price) || 0);
+            });
+
+            var itemSales =
+                Object.keys(itemSalesMap)
+                    .map(function(k) {
+                        return itemSalesMap[k];
+                    })
+                    .sort(function(a, b) {
+                        return b.total - a.total;
+                    })
+                    .slice(0, 30);
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                '<h3 class="font-black text-lg mb-3">' +
+                'المبيعات حسب الصنف' +
+                '</h3>' +
+                '<table class="w-full text-sm">' +
+                '<thead><tr class="bg-gray-50">' +
+                '<th class="p-2">الصنف</th>' +
+                '<th class="p-2 text-center">الكمية</th>' +
+                '<th class="p-2 text-center">القيمة</th>' +
+                '</tr></thead><tbody>';
+
+            itemSales.forEach(function(row) {
+                html +=
+                    '<tr class="border-t">' +
+                    '<td class="p-2 font-semibold">' +
+                    _esc(row.name) +
+                    '</td>' +
+                    '<td class="p-2 text-center">' +
+                    _fmtNum(row.qty) +
+                    '</td>' +
+                    '<td class="p-2 text-center font-bold">' +
+                    _fmtNum(row.total) +
+                    ' EGP</td>' +
+                    '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+        }
+
+        if (
+            selectedTypes.indexOf(
+                'customers-debt'
+            ) !== -1
+        ) {
+            var debtors =
+                customers
+                    .filter(function(c) {
+                        return (
+                            c &&
+                            Number(c.debt) > 0
+                        );
+                    })
+                    .sort(function(a, b) {
+                        return (
+                            Number(b.debt) -
+                            Number(a.debt)
+                        );
+                    })
+                    .slice(0, 30);
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                '<h3 class="font-black text-lg mb-3">' +
+                'العملاء والديون' +
+                '</h3>' +
+                '<table class="w-full text-sm">' +
+                '<thead><tr class="bg-gray-50">' +
+                '<th class="p-2">الكود</th>' +
+                '<th class="p-2">الاسم</th>' +
+                '<th class="p-2 text-center">الدين</th>' +
+                '</tr></thead><tbody>';
+
+            debtors.forEach(function(c) {
+                html +=
+                    '<tr class="border-t">' +
+                    '<td class="p-2">' +
+                    _esc(c.customer_code) +
+                    '</td>' +
+                    '<td class="p-2 font-semibold">' +
+                    _esc(c.name) +
+                    '</td>' +
+                    '<td class="p-2 text-center font-bold text-red-600">' +
+                    _fmtNum(c.debt) +
+                    ' EGP</td>' +
+                    '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+
+            if (!debtors.length) {
+                html +=
+                    '<div class="bg-white rounded-xl p-5 text-center text-green-600">' +
+                    'لا توجد ديون مسجلة' +
+                    '</div>';
+            }
+        }
+
+        if (
+            selectedTypes.indexOf(
+                'inventory-dormant'
+            ) !== -1
+        ) {
+            var dormantRows =
+                items.filter(function(item) {
+                    if (
+                        !item ||
+                        !item.id ||
+                        !item.item_code
+                    ) {
+                        return false;
+                    }
+
+                    return (
+                        (stockMap[item.id] &&
+                            stockMap[item.id].available >
+                            0) &&
+                        !soldCodes[item.item_code]
+                    );
+                });
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                '<h3 class="font-black text-lg mb-3">' +
+                'الأصناف الراكدة' +
+                '</h3>' +
+                '<table class="w-full text-sm">' +
+                '<thead><tr class="bg-gray-50">' +
+                '<th class="p-2">الصنف</th>' +
+                '<th class="p-2">الكود</th>' +
+                '<th class="p-2 text-center">المتاح</th>' +
+                '</tr></thead><tbody>';
+
+            dormantRows
+                .slice(0, 30)
+                .forEach(function(item) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(item.name) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(item.item_code) +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold text-red-600">' +
+                        _fmtNum(
+                            stockMap[item.id]
+                                .available
+                        ) +
+                        '</td>' +
+                        '</tr>';
+                });
+
+            html += '</tbody></table></div>';
+        }
+
+        if (
+            selectedTypes.indexOf(
+                'inventory-low'
+            ) !== -1
+        ) {
+            var lowRows =
+                items
+                    .filter(function(item) {
+                        if (!item || !item.id) {
+                            return false;
+                        }
+
+                        var stock =
+                            stockMap[item.id] || {
+                                available: 0
+                            };
+
+                        var reorder =
+                            Number(
+                                item.reorder_point
+                            );
+
+                        if (
+                            !Number.isFinite(reorder) ||
+                            reorder < 0
+                        ) {
+                            reorder = 5;
+                        }
+
+                        return (
+                            stock.available <=
+                            reorder
+                        );
+                    })
+                    .sort(function(a, b) {
+                        var sa =
+                            stockMap[a.id]
+                                ? stockMap[a.id]
+                                    .available
+                                : 0;
+
+                        var sb =
+                            stockMap[b.id]
+                                ? stockMap[b.id]
+                                    .available
+                                : 0;
+
+                        return sa - sb;
+                    });
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                '<h3 class="font-black text-lg mb-3">' +
+                'أصناف منخفضة المخزون' +
+                '</h3>' +
+                '<table class="w-full text-sm">' +
+                '<thead><tr class="bg-gray-50">' +
+                '<th class="p-2">الصنف</th>' +
+                '<th class="p-2 text-center">المتاح</th>' +
+                '<th class="p-2 text-center">حد الطلب</th>' +
+                '</tr></thead><tbody>';
+
+            lowRows
+                .slice(0, 30)
+                .forEach(function(item) {
+                    var reorder =
+                        Number(
+                            item.reorder_point
+                        );
+
+                    if (
+                        !Number.isFinite(reorder) ||
+                        reorder < 0
+                    ) {
+                        reorder = 5;
+                    }
+
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(item.name) +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold text-red-600">' +
+                        _fmtNum(
+                            stockMap[item.id]
+                                ? stockMap[item.id]
+                                    .available
+                                : 0
+                        ) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        _fmtNum(reorder) +
+                        '</td>' +
+                        '</tr>';
+                });
+
+            html += '</tbody></table></div>';
+        }
+
+        if (
+            selectedTypes.indexOf(
+                'inventory-top'
+            ) !== -1
+        ) {
+            var topMap = {};
+
+            details.forEach(function(row) {
+                if (!row || !row.item_code) {
+                    return;
+                }
+
+                if (!topMap[row.item_code]) {
+                    topMap[row.item_code] = {
+                        name:
+                            row.item_name ||
+                            row.item_code,
+                        qty: 0
+                    };
+                }
+
+                topMap[row.item_code].qty +=
+                    Number(row.qty) || 0;
+            });
+
+            var topItems =
+                Object.keys(topMap)
+                    .map(function(k) {
+                        return topMap[k];
+                    })
+                    .sort(function(a, b) {
+                        return b.qty - a.qty;
+                    })
+                    .slice(0, 30);
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                '<h3 class="font-black text-lg mb-3">' +
+                'الأصناف الأعلى مبيعاً' +
+                '</h3>' +
+                '<table class="w-full text-sm">' +
+                '<thead><tr class="bg-gray-50">' +
+                '<th class="p-2">الصنف</th>' +
+                '<th class="p-2 text-center">الكمية المباعة</th>' +
+                '</tr></thead><tbody>';
+
+            topItems.forEach(function(row) {
+                html +=
+                    '<tr class="border-t">' +
+                    '<td class="p-2 font-semibold">' +
+                    _esc(row.name) +
+                    '</td>' +
+                    '<td class="p-2 text-center font-bold">' +
+                    _fmtNum(row.qty) +
+                    '</td>' +
+                    '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+        }
+
+        if (
+            selectedTypes.indexOf(
+                'rec-purchase'
+            ) !== -1
+        ) {
+            var purchaseRecommendations =
+                items
+                    .filter(function(item) {
+                        if (!item || !item.id) {
+                            return false;
+                        }
+
+                        var stock =
+                            stockMap[item.id] || {
+                                available: 0
+                            };
+
+                        var reorder =
+                            Number(
+                                item.reorder_point
+                            );
+
+                        if (
+                            !Number.isFinite(reorder) ||
+                            reorder < 0
+                        ) {
+                            reorder = 5;
+                        }
+
+                        return (
+                            stock.available <=
+                            reorder
+                        );
+                    })
+                    .slice(0, 10);
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                '<h3 class="font-black text-lg mb-3">' +
+                'توصيات الشراء' +
+                '</h3>';
+
+            if (purchaseRecommendations.length) {
+                html +=
+                    '<div class="space-y-3">';
+
+                purchaseRecommendations
+                    .forEach(function(item) {
+                        var stock =
+                            stockMap[item.id]
+                                ? stockMap[item.id]
+                                    .available
+                                : 0;
+
+                        var reorder =
+                            Number(
+                                item.reorder_point
+                            );
+
+                        if (
+                            !Number.isFinite(reorder) ||
+                            reorder < 0
+                        ) {
+                            reorder = 5;
+                        }
+
+                        var suggestedQty =
+                            Math.max(
+                                0,
+                                (
+                                    Number(
+                                        item.max_qty
+                                    ) || reorder * 2
+                                ) -
+                                stock
+                            );
+
+                        html +=
+                            '<div class="border-r-4 border-indigo-500 bg-indigo-50 p-4 rounded-lg">' +
+                            '<div class="font-bold">' +
+                            _esc(item.name) +
+                            '</div>' +
+                            '<div class="text-sm text-gray-600 mt-1">' +
+                            'المتاح: ' +
+                            _fmtNum(stock) +
+                            ' — حد الطلب: ' +
+                            _fmtNum(reorder) +
+                            ' — كمية إعادة الطلب المقترحة: ' +
+                            _fmtNum(suggestedQty) +
+                            '</div>' +
+                            '</div>';
+                    });
+
+                html += '</div>';
+            } else {
+                html +=
+                    '<div class="text-center py-4 text-green-600">' +
+                    'لا توجد توصيات شراء حالياً' +
+                    '</div>';
+            }
+
+            html += '</div>';
+        }
+
+        if (
+            selectedTypes.indexOf(
+                'rec-offers'
+            ) !== -1
+        ) {
+            var offerCandidates =
+                items.filter(function(item) {
+                    if (!item || !item.id) {
+                        return false;
+                    }
+
+                    return (
+                        stockMap[item.id] &&
+                        stockMap[item.id].available >
+                        0 &&
+                        !soldCodes[item.item_code]
+                    );
+                }).slice(0, 10);
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                '<h3 class="font-black text-lg mb-3">' +
+                'مرشحون للعروض' +
+                '</h3>';
+
+            if (offerCandidates.length) {
+                html +=
+                    '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">';
+
+                offerCandidates
+                    .forEach(function(item) {
+                        html +=
+                            '<div class="border rounded-xl p-4 bg-amber-50">' +
+                            '<p class="font-bold">' +
+                            _esc(item.name) +
+                            '</p>' +
+                            '<p class="text-sm text-gray-600 mt-1">' +
+                            'الصنف لم يسجل مبيعات ضمن الفترة المحددة ولديه مخزون متاح.' +
+                            '</p>' +
+                            '</div>';
+                    });
+
+                html += '</div>';
+            } else {
+                html +=
+                    '<div class="text-center py-4 text-gray-500">' +
+                    'لا توجد مرشحات عروض من البيانات الحالية.' +
+                    '</div>';
+            }
+
+            html += '</div>';
+        }
+
+        if (
+            selectedTypes.indexOf(
+                'rec-customers'
+            ) !== -1
+        ) {
+            var activeCustomerIds = {};
+
+            orders.forEach(function(order) {
+                if (order.customer_id) {
+                    activeCustomerIds[
+                        order.customer_id
+                    ] = true;
+                }
+            });
+
+            var customerRecommendations =
+                customers
+                    .filter(function(c) {
+                        return (
+                            c &&
+                            c.id &&
+                            !activeCustomerIds[c.id]
+                        );
+                    })
+                    .slice(0, 20);
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                '<h3 class="font-black text-lg mb-3">' +
+                'توصيات العملاء' +
+                '</h3>' +
+                '<p class="text-sm text-gray-500 mb-3">' +
+                'عملاء موجودون في الشركة لكنهم لم يظهروا في حركة الطلبات ضمن الفترة المحددة.' +
+                '</p>' +
+                '<table class="w-full text-sm">' +
+                '<thead><tr class="bg-gray-50">' +
+                '<th class="p-2">الكود</th>' +
+                '<th class="p-2">الاسم</th>' +
+                '<th class="p-2">المنطقة</th>' +
+                '</tr></thead><tbody>';
+
+            customerRecommendations
+                .forEach(function(c) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2">' +
+                        _esc(c.customer_code) +
+                        '</td>' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(c.name) +
+                        '</td>' +
+                        '<td class="p-2">' +
+                        _esc(c.area || '') +
+                        '</td>' +
+                        '</tr>';
+                });
+
+            html += '</tbody></table></div>';
+        }
+
+        if (
+            selectedTypes.indexOf(
+                'rec-expansion'
+            ) !== -1
+        ) {
+            var areaExpansionMap = {};
+
+            customers.forEach(function(c) {
+                var area =
+                    String(
+                        c.area ||
+                        'غير محدد'
+                    ).trim();
+
+                areaExpansionMap[area] =
+                    (areaExpansionMap[area] || 0) + 1;
+            });
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                '<h3 class="font-black text-lg mb-3">' +
+                'مؤشرات التوسع' +
+                '</h3>' +
+                '<p class="text-sm text-gray-500 mb-3">' +
+                'توزيع قاعدة العملاء الحالية حسب المنطقة من بيانات Production.' +
+                '</p>' +
+                '<table class="w-full text-sm">' +
+                '<thead><tr class="bg-gray-50">' +
+                '<th class="p-2">المنطقة</th>' +
+                '<th class="p-2 text-center">العملاء</th>' +
+                '</tr></thead><tbody>';
+
+            Object.keys(areaExpansionMap)
+                .sort(function(a, b) {
+                    return areaExpansionMap[b] -
+                        areaExpansionMap[a];
+                })
+                .forEach(function(area) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2">' +
+                        _esc(area) +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold">' +
+                        areaExpansionMap[area] +
+                        '</td>' +
+                        '</tr>';
+                });
+
+            html += '</tbody></table></div>';
+        }
+
+        html += '</div>';
+
+        safeHTML(
+            container,
+            html
+        );
+
+    } catch (e) {
+        console.error(
+            'RW_Reports._loadDetailedReports',
+            e
+        );
+
+        safeHTML(
+            container,
+            '<div class="text-center py-10 text-red-500">' +
+            'فشل تحميل التقارير المحددة: ' +
+            _esc(
+                e && e.message
+                    ? e.message
+                    : 'خطأ غير معروف'
+            ) +
+            '</div>'
+        );
+    }
+}
+إصلاح مهم جدًا داخل M9-09
+
+بعد استبدال _loadDetailedReports لا تعدل هذا السطر:
+
+_loadDetailedReports(fromDef, toDef, ['sales-summary', 'customers-debt', 'rec-purchase']);
+
+هو صحيح.
+
+ما لا تلمسه
+
+لا تعدل:
+
+function _companyId()
+
+ولا:
+
+function _nextDate()
+
+ولا:
+
+return {
+    renderDashboard: renderDashboard,
+    renderDetailedReports: renderDetailedReports
+};
+
+ولا:
+
+window.RW_Reports = RW_Reports;
+
+ولا:
+
+window.RW_Reports_Comprehensive = RW_Reports_Comprehensive;
+
+ولا:
+
+function _printReport()
+
+ولا renderDashboard أو renderDetailedReports أو _reportsStructure.
+
+نقطة Production مهمة
+
+Production الحالية تثبت أن:
+
+items.item_code = UNIQUE globally
+stock_branches → branch_id → branches.company_id
+customer_followups.company_id موجود
+daily_settlements.company_id موجود
+journal_entries.company_id موجود
+cash_box.company_id موجود
+runsheets.company_id موجود
+users.company_id موجود
+
+وكذلك Finance RPCs الفعلية موجودة بأسمائها الحالية:
+
+get_trial_balance
+get_profit_loss
+get_balance_sheet_data
+get_cash_flow
+get_pnl_by_cost_center
+get_budget_vs_actual
+
+وcomplete_return_atomic وcomplete_order_delivery_atomic موجودان في Production بالفعل، لذلك لم أقم باختراع RPCs بديلة.
+
+كذلك لم أعتبر HR Attendance/Salary ناقصين كي أصنع جداول أو بيانات وهمية؛ Production لم يثبت مصدرًا سلطويًا لهما، ولذلك تم جعلهما CAPABILITY GATED داخل التقرير بدل fake completion. وهذا تطبيق مباشر لقاعدة UNKNOWN != BUG وUNKNOWN != REBUILD.
+
+حالة Main9 بعد هذه الجراحة
+M9-01  SOURCE CLOSED
+M9-02  OWNER SURGERY PROVIDED
+M9-03  OWNER SURGERY PROVIDED
+M9-04  OWNER SURGERY PROVIDED
+M9-05  OWNER SURGERY PROVIDED
+M9-06  OWNER SURGERY PROVIDED
+M9-07  OWNER SURGERY PROVIDED
+M9-08  OWNER SURGERY PROVIDED
+M9-09  OWNER SURGERY PROVIDED
+
+MAIN9 SOURCE = NOT YET CLOSED
+SYNTAX = NOT YET PROVEN
+MAIN2 ASSEMBLY = BLOCKED
+RUNTIME = NOT YET PROVEN
+GOLD/DIAMOND = NOT YET CLOSED
+
+والسبب الوحيد لعدم إعلان الإغلاق هو أن هذه التعديلات على Current/PWA/main2/main9.md هي Owner Source Operations حسب العقد الذي طلبته أنت؛ لا يصح أن أدّعي أنها مطبقة في Git بينما لم يُحفظ النص المعدل في المصدر بعد. Report100 نفسه كان يضع Current/PWA/main2 كمصدر التحرير، وNew-main كناتج Assembly فقط.
