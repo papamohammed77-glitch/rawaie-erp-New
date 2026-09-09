@@ -858,7 +858,13 @@ function _saveJournalEntry() {
     }
     function _newPayment() {
         var content = byId('finance-content'); if (!content) return;
-        var html = '<div class="bg-white rounded-2xl shadow-sm border p-4"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold"><i class="fa-solid fa-arrow-up ml-2 text-red-600"></i>سند صرف جديد</h2><button onclick="RW_Finance.renderSubTab(\'payments\')" class="text-gray-500 hover:text-gray-700"><i class="fa-solid fa-xmark text-xl"></i></button></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold">التاريخ</label><input type="date" id="pmt-date" class="border rounded-lg p-2 w-full" value="' + new Date().toISOString().slice(0,10) + '"></div><div><label class="block text-sm font-bold">الخزينة</label><select id="pmt-cashbox" class="border rounded-lg p-2 w-full">' + _cache.treasury.map(function(t) { return '<option value="' + _esc(t.account_code) + '">' + _esc(t.account_name) + '</option>'; }).join('') + '</select></div><div><label class="block text-sm font-bold">الحساب الرئيسي</label><input type="text" id="pmt-main-account" class="border rounded-lg p-2 w-full" placeholder="مصروفات"></div></div><div class="mb-4"><h4 class="font-bold mb-2">بنود السند</h4><div id="pmt-lines"></div><button onclick="RW_Finance._addPaymentLine()" class="mt-2 text-red-600 font-bold"><i class="fa-solid fa-plus-circle ml-1"></i> إضافة بند</button></div><div class="p-3 bg-gray-50 rounded-lg flex justify-between mb-4"><span>الإجمالي: <span id="pmt-total">0.00</span></span></div><div class="flex justify-end gap-3"><button onclick="RW_Finance.renderSubTab(\'payments\')" class="px-4 py-2 border rounded-lg">إلغاء</button><button onclick="RW_Finance._savePayment()" class="px-6 py-2 bg-red-600 text-white rounded-lg font-bold"><i class="fa-solid fa-check ml-1"></i> حفظ</button></div></div>';
+        var treasuryOptions = _cache.treasury.map(function(t) {
+            return '<option value="' + _esc(t.id) + '">' + _esc(t.account_name) + ' (' + _esc(t.account_code) + ')</option>';
+        }).join('');
+        var accountOptions = _cache.accountsFlat.map(function(a) {
+            return '<option value="' + _esc(a.id) + '">' + _esc(a.account_name) + ' (' + _esc(a.account_code) + ')</option>';
+        }).join('');
+        var html = '<div class="bg-white rounded-2xl shadow-sm border p-4"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold"><i class="fa-solid fa-arrow-up ml-2 text-red-600"></i>سند صرف جديد</h2><button onclick="RW_Finance.renderSubTab(\'payments\')" class="text-gray-500 hover:text-gray-700"><i class="fa-solid fa-xmark text-xl"></i></button></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold">التاريخ</label><input type="date" id="pmt-date" class="border rounded-lg p-2 w-full" value="' + new Date().toISOString().slice(0,10) + '"></div><div><label class="block text-sm font-bold">الخزينة</label><select id="pmt-cashbox" class="border rounded-lg p-2 w-full"><option value="">اختر الخزينة</option>' + treasuryOptions + '</select></div><div><label class="block text-sm font-bold">الحساب الرئيسي</label><select id="pmt-main-account" class="border rounded-lg p-2 w-full"><option value="">اختر الحساب</option>' + accountOptions + '</select></div></div><div class="mb-4"><h4 class="font-bold mb-2">بنود السند</h4><div id="pmt-lines"></div><button type="button" onclick="RW_Finance._addPaymentLine()" class="mt-2 text-red-600 font-bold"><i class="fa-solid fa-plus-circle ml-1"></i> إضافة بند</button></div><div class="p-3 bg-gray-50 rounded-lg flex justify-between mb-4"><span>الإجمالي: <span id="pmt-total">0.00</span></span></div><div class="flex justify-end gap-3"><button type="button" onclick="RW_Finance.renderSubTab(\'payments\')" class="px-4 py-2 border rounded-lg">إلغاء</button><button type="button" onclick="RW_Finance._savePayment()" class="px-6 py-2 bg-red-600 text-white rounded-lg font-bold"><i class="fa-solid fa-check ml-1"></i> حفظ</button></div></div>';
         safeHTML(content, html);
         _addPaymentLine();
     }
@@ -871,18 +877,70 @@ function _saveJournalEntry() {
     async function _savePayment() {
         var lines = [];
         document.querySelectorAll('.pmt-line').forEach(function(l) {
-            var account = l.querySelector('.pmt-line-account').value, amount = parseFloat(l.querySelector('.pmt-line-amount').value)||0;
-            if (account && amount > 0) lines.push({ accountName: account, description: l.querySelector('.pmt-line-desc').value, amount: amount });
+            var account = l.querySelector('.pmt-line-account').value.trim();
+            var description = l.querySelector('.pmt-line-desc').value.trim();
+            var amount = parseFloat(l.querySelector('.pmt-line-amount').value) || 0;
+            if (account && amount > 0) {
+                lines.push({ accountName: account, description: description, amount: amount });
+            }
         });
         if (!lines.length) { _showToast('أضف بنداً', 'warning'); return; }
-        var payload = { date: byId('pmt-date').value, cashBoxId: byId('pmt-cashbox').value, mainAccountName: byId('pmt-main-account').value, notes: '', lines: lines };
-        _showLoader();
+
+        var host = byId('finance-content');
+        var treasuryId = byId('pmt-cashbox').value;
+        var offsetAccountId = byId('pmt-main-account').value;
+        var cashAccount = null;
+        for (var i = 0; i < _cache.accountsFlat.length; i++) {
+            if (_cache.accountsFlat[i].account_code === '121') {
+                cashAccount = _cache.accountsFlat[i];
+                break;
+            }
+        }
+        if (!treasuryId || !offsetAccountId || !cashAccount) {
+            _showToast('بيانات الخزينة أو الحساب المقابل غير مكتملة', 'error');
+            return;
+        }
+
+        var op = host.dataset.paymentOperationId || (window.crypto && crypto.randomUUID ? crypto.randomUUID() : null);
+        if (!op) {
+            _showToast('تعذر إنشاء معرف العملية', 'error');
+            return;
+        }
+        host.dataset.paymentOperationId = op;
+        _showLoader('جاري حفظ سند الصرف...');
         try {
-            var ses = await supabase.auth.getSession(), t = ses.data.session.access_token;
-            var res = await fetch(RW_SUPABASE_URL + '/functions/v1/save-payment-voucher', { method:'POST', headers: {'Content-Type':'application/json', Authorization:'Bearer '+t}, body: JSON.stringify(payload) });
-            var json = await res.json(); _hideLoader();
-            if (json.success) { _showToast('تم الحفظ', 'success'); renderSubTab('payments'); } else _showToast(json.error||'فشل', 'error');
-        } catch(e) { _hideLoader(); _showToast('فشل الاتصال', 'error'); }
+            var ses = await supabase.auth.getSession();
+            var token = ses.data && ses.data.session ? ses.data.session.access_token : null;
+            if (!token) throw new Error('انتهت الجلسة');
+            var selected = byId('pmt-main-account').selectedOptions[0];
+            var payload = {
+                header: {
+                    operationId: op,
+                    treasuryId: treasuryId,
+                    cashAccountId: cashAccount.id,
+                    offsetAccountId: offsetAccountId,
+                    date: byId('pmt-date').value,
+                    reference: null,
+                    mainAccountName: selected ? selected.textContent : null,
+                    notes: ''
+                },
+                lines: lines
+            };
+            var res = await fetch(RW_SUPABASE_URL + '/functions/v1/save-payment-voucher', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify(payload)
+            });
+            var json = await res.json();
+            if (!res.ok || !json || json.success === false) throw new Error((json && (json.error || json.msg)) || 'فشل الحفظ');
+            delete host.dataset.paymentOperationId;
+            _showToast(json.duplicate ? 'السند موجود بالفعل ولم يُكرر.' : 'تم الحفظ', 'success');
+            renderSubTab('payments');
+        } catch (e) {
+            _showToast(e.message || 'فشل الحفظ', 'error');
+        } finally {
+            _hideLoader();
+        }
     }
 
     function _renderTransfers() {
@@ -905,8 +963,13 @@ function _saveJournalEntry() {
     }
     function _newTransfer() {
         var content = byId('finance-content'); if (!content) return;
-        var options = _cache.treasury.map(function(t) { return '<option value="' + _esc(t.account_code) + '">' + _esc(t.account_name) + '</option>'; }).join('');
-        var html = '<div class="bg-white rounded-2xl shadow-sm border p-4"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold"><i class="fa-solid fa-right-left ml-2 text-purple-600"></i>تحويل جديد</h2><button onclick="RW_Finance.renderSubTab(\'transfers\')" class="text-gray-500 hover:text-gray-700"><i class="fa-solid fa-xmark text-xl"></i></button></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold">من خزينة</label><select id="trf-from" class="border rounded-lg p-2 w-full">' + options + '</select></div><div><label class="block text-sm font-bold">إلى خزينة</label><select id="trf-to" class="border rounded-lg p-2 w-full">' + options + '</select></div></div><div class="mb-4"><label class="block text-sm font-bold">المبلغ</label><input type="number" id="trf-amount" class="border rounded-lg p-2 w-full"></div><div class="flex justify-end gap-3"><button onclick="RW_Finance.renderSubTab(\'transfers\')" class="px-4 py-2 border rounded-lg">إلغاء</button><button onclick="RW_Finance._saveTransfer()" class="px-6 py-2 bg-purple-600 text-white rounded-lg font-bold"><i class="fa-solid fa-check ml-1"></i> حفظ</button></div></div>';
+        var treasuryOptions = _cache.treasury.map(function(t) {
+            return '<option value="' + _esc(t.id) + '">' + _esc(t.account_name) + ' (' + _esc(t.account_code) + ')</option>';
+        }).join('');
+        var accountOptions = _cache.accountsFlat.map(function(a) {
+            return '<option value="' + _esc(a.id) + '">' + _esc(a.account_name) + ' (' + _esc(a.account_code) + ')</option>';
+        }).join('');
+        var html = '<div class="bg-white rounded-2xl shadow-sm border p-4"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold"><i class="fa-solid fa-right-left ml-2 text-purple-600"></i>تحويل جديد</h2><button type="button" onclick="RW_Finance.renderSubTab(\'transfers\')" class="text-gray-500 hover:text-gray-700"><i class="fa-solid fa-xmark text-xl"></i></button></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold">من خزينة</label><select id="trf-from" class="border rounded-lg p-2 w-full"><option value="">اختر الخزينة</option>' + treasuryOptions + '</select></div><div><label class="block text-sm font-bold">إلى خزينة</label><select id="trf-to" class="border rounded-lg p-2 w-full"><option value="">اختر الخزينة</option>' + treasuryOptions + '</select></div><div><label class="block text-sm font-bold">حساب المصدر</label><select id="trf-source-account" class="border rounded-lg p-2 w-full"><option value="">اختر الحساب</option>' + accountOptions + '</select></div><div><label class="block text-sm font-bold">حساب الوجهة</label><select id="trf-target-account" class="border rounded-lg p-2 w-full"><option value="">اختر الحساب</option>' + accountOptions + '</select></div></div><div class="mb-4"><label class="block text-sm font-bold">المبلغ</label><input type="number" min="0.01" step="0.01" id="trf-amount" class="border rounded-lg p-2 w-full"></div><div class="flex justify-end gap-3"><button type="button" onclick="RW_Finance.renderSubTab(\'transfers\')" class="px-4 py-2 border rounded-lg">إلغاء</button><button type="button" onclick="RW_Finance._saveTransfer()" class="px-6 py-2 bg-purple-600 text-white rounded-lg font-bold"><i class="fa-solid fa-check ml-1"></i> حفظ</button></div></div>';
         safeHTML(content, html);
     }
     async function _saveTransfer() {
