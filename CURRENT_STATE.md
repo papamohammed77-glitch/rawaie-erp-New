@@ -1,6 +1,6 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
-## CURRENT CHECKPOINT — 2026-09-09 — Report104 Main9 Forensic Recheck
+## CURRENT CHECKPOINT — 2026-09-09 — Report105 Main9 Forensic Recheck
 
 ### GOVERNING TARGET — NON-NEGOTIABLE
 **هناك نقص شديد في كل التبويبات، وكثير منها هيكلي فقط. الهدف ليس مجرد إكمال الشاشات، بل استكمالها وظيفيًا لتصبح منافسًا حقيقيًا لـ Odoo وDynamics وSAP وDaftra وManager.io وغيرها. هذا جزء من هدف Gold/Diamond للمشروع، ولا يجوز التعامل معه كإضافات شكلية.**
@@ -25,29 +25,31 @@ UNDERSTAND → RECONSTRUCT HISTORICAL CONTRACT → TRACE CURRENT BEHAVIOR → TR
 ## CURRENT MAIN9 — DIRECT GIT VERIFICATION
 - File: `Current/PWA/main2/main9.md`
 - Current Git blob SHA: `a72b970709ce69192bd47824685e99962aaf9fd8`
+- Current repository HEAD: `c994800ed90cc146207e45ab9ef16da3a5548b2f`
 - Main9 has not been edited by the assistant; Owner Source Surgery protocol remains active.
 - M9-01 (`_companyId` + `_nextDate`) is already closed and must not be repeated.
 - M9-02..M9-09 remain open until their replacements are physically present in the current Git source.
 
 ## MAIN9 SURGERY STATUS
 - `M9-01 = SOURCE CLOSED / DO NOT REPEAT`
-- `M9-02` `_loadDashboardData(fromDate,toDate)` = OPEN / corrected surgical package issued in Report104.
-- `M9-03` `_loadDropdowns(params)` = OPEN / surgical package from Report101 revalidated.
+- `M9-02` `_loadDashboardData(fromDate,toDate)` = OPEN / corrected surgical package issued and revalidated in Report105.
+- `M9-03` `_loadDropdowns(params)` = OPEN / surgical package revalidated.
 - `M9-04` `_showCustomerLedgerDetail(customerId,customerName)` = OPEN / surgical package revalidated.
 - `M9-05` `_showItemMovementDetail(itemCode,itemName)` = OPEN / surgical package revalidated.
 - `M9-06` `_showRunsheetDetail(runsheetCode)` = OPEN / surgical package revalidated.
 - `M9-07` `_showSettlementDetail(settlementCode)` = OPEN / surgical package revalidated.
-- `M9-08` `_generateReport(sectionKey,reportId)` = OPEN / corrected surgical package issued in Report104.
-- `M9-09` `_loadDetailedReports(fromDate,toDate,types)` = OPEN / corrected surgical package issued in Report104.
+- `M9-08` `_generateReport(sectionKey,reportId)` = OPEN / corrected functional package revalidated.
+- `M9-09` `_loadDetailedReports(fromDate,toDate,types)` = OPEN / corrected functional package revalidated.
 
 ## REPORT CHAIN
 - `doc/Draft/Reprots/Report101_main9` = original Main9 surgical package.
 - `doc/Draft/Reprots/Report102_Main9_Forensic_Recheck_20260909.md` = forensic recheck and Production reconciliation.
-- `doc/Draft/Reprots/Report103_Main9_Forensic_Recheck_20260909.md` = latest pre-recheck state proving the old Main9 source was still present.
-- `doc/Draft/Reprots/Report104_Main9_Forensic_Recheck_20260909.md` = current corrected Main9 surgical handoff; Report104 supersedes earlier surgery instructions where it explicitly adds corrections.
+- `doc/Draft/Reprots/Report103_Main9_Forensic_Recheck_20260909.md` = pre-recheck state proving old Main9 source was still present.
+- `doc/Draft/Reprots/Report104_Main9_Forensic_Recheck_20260909.md` = corrected surgical handoff.
+- `doc/Draft/Reprots/Report105_Main9_Forensic_Recheck_20260909.md` = latest direct recheck, Production reconciliation, and closure status.
 
 ## PRODUCTION SNAPSHOT — DIRECT VERIFICATION
-Observed at UTC `2026-09-09 07:19:19.093393`:
+Observed at UTC `2026-09-09 08:42:57.712837`:
 - companies = 1
 - branches = 2
 - users = 24
@@ -89,6 +91,12 @@ Current company verified directly: `00000000-0000-0000-0000-000000000001` / `ا�
 - Bootstrap stock-row creation is not a Physical Movement engine.
 - Main9 recheck produced no new evidence requiring an Inventory Core rewrite.
 
+## INVENTORY INVARIANTS — DIRECT VERIFICATION
+Checked at UTC `2026-09-09 08:44:38.440623`:
+- negative_stock = `0`
+- invalid_reservation = `0`
+- available_mismatch = `0`
+
 ## ASSEMBLY GOVERNANCE
 - Canonical editable source: `Current/PWA/main2/main1.md` through `main11.md`.
 - Historical source: `Original/PWA/main/*` only.
@@ -96,24 +104,24 @@ Current company verified directly: `00000000-0000-0000-0000-000000000001` / `ا�
 - `.github/workflows/forensic_main_assembly.yml` is already correctly configured around `Current/PWA/main2/**`.
 - Main2 assembly remains blocked until owner completes Main9 surgery and the post-surgery validation gate passes.
 
-## NEW FINDINGS FROM REPORT104
-1. Report101 replacement blocks must not be copied blindly where they use `RW_STATE` as report-result source.
-2. M9-02 must query current Production Item/Customer data rather than trusting cached `RW_STATE` data.
-3. M9-08 must query current Item Master directly and include `max_qty` when the recommendation logic uses it.
-4. M9-09 must query current Item/Customer data directly and include `max_qty`.
-5. `logistics-returns` must use only movement types proven by the deployed `post_stock_movement`: `SalesReturn` and `DirectReturn`.
-6. Threshold-based purchase recommendations are policy heuristics, not demand forecasts or AI conclusions; Production currently has zero orders, so no demand forecast may be invented.
-7. Finance report branches must continue using the authoritative Production RPCs rather than recreating accounting calculations in the UI.
+## CURRENT REPORTING GOVERNANCE
+- `RW_STATE` is not an authoritative reporting data source when direct Production queries are available.
+- Item Master reporting should use Production data directly; `max_qty` must be selected where recommendation logic uses it.
+- Returns reporting must use only Production-supported movement types (`SalesReturn`, `DirectReturn`) unless a new type is directly proven.
+- Threshold/reorder recommendations are `policy-based recommendation`, not AI demand forecasts without sufficient historical demand evidence.
+- Tax and HR Attendance/Salary remain capability-gated where no authoritative Production source is proven.
 
 ## VALIDATION STATUS
 - Governance masters reopened and reconciled.
 - Report101 reopened.
 - Report102 reopened.
 - Report103 reopened.
+- Report104 reopened.
+- Report105 created and committed.
 - Current Main9 reopened directly from Git.
-- Current Production snapshot re-established from Production evidence.
+- Current Production snapshot refreshed directly.
 - Current `post_stock_movement` contract re-checked directly.
-- Report104 created and committed with corrected surgical instructions.
+- Current inventory invariants refreshed directly.
 - Main9 owner source surgery = NOT YET EXECUTED.
 - Main9 post-surgery syntax = NOT YET PROVEN.
 - Full Main2 assembly = NOT YET RUN.
@@ -122,27 +130,27 @@ Current company verified directly: `00000000-0000-0000-0000-000000000001` / `ا�
 - Gold/Diamond parent closure = NOT YET PROVEN.
 
 ## LATEST REPORT
-`doc/Draft/Reprots/Report104_Main9_Forensic_Recheck_20260909.md`
+`doc/Draft/Reprots/Report105_Main9_Forensic_Recheck_20260909.md`
 
 ## LAST VERIFIED EVENT
-- EVENT: `M9-FORENSIC-RECHECK-20260909-REPORT104`
-- UTC date: `2026-09-09`
+- EVENT: `M9-FORENSIC-RECHECK-20260909-REPORT105`
+- UTC timestamp: `2026-09-09 08:44:38.440623`
 - Git Main9 SHA verified: `a72b970709ce69192bd47824685e99962aaf9fd8`
-- Result: Main9 source remains unchanged; the previous surgery package was revalidated and corrected where necessary before owner execution.
-- Next authorized action: owner executes the exact M9-02..M9-09 surgery in Report104 on `Current/PWA/main2/main9.md`; then re-read Main9 to EOF, prove syntax/integration, match Main2, and only then assemble.
+- Git repository HEAD verified before Report105 documentation commit: `c994800ed90cc146207e45ab9ef16da3a5548b2f`
+- Production snapshot verified at `2026-09-09 08:42:57.712837 UTC`.
+- Result: Main9 source remains unchanged; M9-02..M9-09 remain owner-source operations. Production Inventory Core is currently healthy and does not justify another rewrite.
+- Next authorized action: owner executes the complete M9-02..M9-09 surgical package on `Current/PWA/main2/main9.md`; then reread Main9 to EOF, validate syntax/integration, match Main2, assemble, run node/browser gates, and only then perform Production UI smoke.
 
 ## SELF-AUDIT
 ### What I Proved
-- Current Main9 source was re-opened directly from Git.
-- Current Main9 SHA remains `a72b970...`.
-- M9-01 is already closed.
-- The old M9-02..M9-09 implementations are still present in the current source.
-- Production currently has one company and the current snapshot is known.
-- Production Finance RPC signatures were directly checked.
-- `post_stock_movement` movement types were directly checked.
-- Assembly path is correct and should not be changed.
+- Current Git HEAD and current Main9 SHA were refreshed directly.
+- Current Main9 still contains the old implementations for M9-02..M9-09.
+- Production current counts were refreshed directly.
+- Production inventory invariants are clean.
+- PostgreSQL reporting/inventory contracts were revalidated.
+- Assembly path remains correct.
 - No new Inventory Core rewrite is justified.
-- Report104 captures the corrected Owner Source Surgery package.
+- Report105 was committed as the current forensic handoff.
 
 ### What I Did Not Prove
 - Owner completion of M9-02..M9-09.
@@ -154,16 +162,17 @@ Current company verified directly: `00000000-0000-0000-0000-000000000001` / `ا�
 - Gold/Diamond closure.
 
 ### What Was Corrected
-- Report101 was not treated as infallible.
-- `RW_STATE` was identified as an unsafe report-result source for Current Production reporting.
-- The unsupported plain `Return` movement type was removed from the target contract.
-- `max_qty` omission was identified in M9-09/M9-08 recommendation data.
-- Recommendation semantics were clarified so that threshold heuristics are not presented as AI forecasting.
+- Current Production time was updated from the stale Report104 checkpoint.
+- Current Git HEAD was updated.
+- Report104 was not treated as infallible.
+- No `Return` movement type was introduced.
+- No fake Forecast/AI semantics were introduced.
+- No unnecessary Inventory Core changes were introduced.
 
 ### FINAL CLOSURE
 `M9-01 = SOURCE CLOSED`
 `M9-02..M9-09 = OPEN / OWNER SOURCE SURGERY REQUIRED`
 `MAIN9 SOURCE = OPEN`
 `MAIN2 ASSEMBLY = BLOCKED`
+`PRODUCTION INVENTORY CORE = VERIFIED / NO NEW REPAIR JUSTIFIED`
 `PARENT GOLD/DIAMOND = NOT CLOSED`
-`GLOBAL INVENTORY CORE = VERIFIED / NO NEW REPAIR JUSTIFIED`
