@@ -652,26 +652,159 @@ var RW_Reports_Comprehensive = (function() {
     }
 
     async function _loadDropdowns(params) {
-        if (params.indexOf('customer') !== -1) {
-            var customers = RW_STATE.data.customers || [];
-            var sel = byId('rp-customer'); if (sel) { for (var i = 0; i < customers.length; i++) { sel.innerHTML += '<option value="' + (customers[i].customer_code || '') + '">' + (customers[i].name || '') + '</option>'; } }
-        }
-        if (params.indexOf('supplier') !== -1) {
-            var suppliers = RW_STATE.data.suppliers || [];
-            var sel = byId('rp-supplier'); if (sel) { for (var i = 0; i < suppliers.length; i++) { sel.innerHTML += '<option value="' + (suppliers[i].supplier_code || '') + '">' + (suppliers[i].name || '') + '</option>'; } }
-        }
-        if (params.indexOf('item') !== -1) {
-            var items = RW_STATE.data.items || [];
-            var sel = byId('rp-item'); if (sel) { for (var i = 0; i < items.length; i++) { sel.innerHTML += '<option value="' + (items[i].item_code || '') + '">' + (items[i].name || '') + '</option>'; } }
-        }
-        if (params.indexOf('treasury') !== -1) {
-            try { var tres = await supabase.from('treasury').select('account_code, account_name'); var tdata = tres.data || []; var sel = byId('rp-treasury'); if (sel) { for (var i = 0; i < tdata.length; i++) { sel.innerHTML += '<option value="' + (tdata[i].account_code || '') + '">' + (tdata[i].account_name || '') + '</option>'; } } } catch(e) {}
-        }
-        if (params.indexOf('account') !== -1) {
-            try { var ares = await supabase.from('chart_of_accounts').select('account_code, account_name'); var adata = ares.data || []; var sel = byId('rp-account'); if (sel) { for (var i = 0; i < adata.length; i++) { sel.innerHTML += '<option value="' + (adata[i].account_code || '') + '">' + (adata[i].account_name || '') + '</option>'; } } } catch(e) {}
-        }
-        if (params.indexOf('driver') !== -1) {
-            try { var dres = await supabase.from('users').select('email, name').in('role', ['driver','سائق','مندوب']); var ddata = dres.data || []; var sel = byId('rp-driver'); if (sel) { for (var i = 0; i < ddata.length; i++) { sel.innerHTML += '<option value="' + (ddata[i].email || '') + '">' + (ddata[i].name || '') + '</option>'; } } } catch(e) {}
+        try {
+            var companyId = _companyId();
+
+            function _appendOptions(selectEl, rows, valueField, labelField) {
+                if (!selectEl) return;
+                for (var i = 0; i < rows.length; i++) {
+                    var row = rows[i] || {};
+                    var option = document.createElement('option');
+                    option.value = row[valueField] == null ? '' : String(row[valueField]);
+                    option.textContent = row[labelField] == null ? '' : String(row[labelField]);
+                    selectEl.appendChild(option);
+                }
+            }
+
+            if (params.indexOf('customer') !== -1) {
+                var customerRes = await supabase
+                    .from('customers')
+                    .select('id, customer_code, name')
+                    .eq('company_id', companyId)
+                    .order('name', { ascending: true });
+
+                if (customerRes.error) throw customerRes.error;
+
+                _appendOptions(
+                    byId('rp-customer'),
+                    customerRes.data || [],
+                    'id',
+                    'name'
+                );
+            }
+
+            if (params.indexOf('supplier') !== -1) {
+                var supplierRes = await supabase
+                    .from('suppliers')
+                    .select('id, supplier_code, name')
+                    .eq('company_id', companyId)
+                    .order('name', { ascending: true });
+
+                if (supplierRes.error) throw supplierRes.error;
+
+                _appendOptions(
+                    byId('rp-supplier'),
+                    supplierRes.data || [],
+                    'id',
+                    'name'
+                );
+            }
+
+            if (params.indexOf('item') !== -1) {
+                var itemRes = await supabase
+                    .from('items')
+                    .select('id, item_code, name')
+                    .order('item_code', { ascending: true });
+
+                if (itemRes.error) throw itemRes.error;
+
+                _appendOptions(
+                    byId('rp-item'),
+                    itemRes.data || [],
+                    'item_code',
+                    'name'
+                );
+            }
+
+            if (params.indexOf('treasury') !== -1) {
+                var treasuryRes = await supabase
+                    .from('treasury')
+                    .select('id, account_code, account_name')
+                    .eq('company_id', companyId)
+                    .order('account_name', { ascending: true });
+
+                if (treasuryRes.error) throw treasuryRes.error;
+
+                _appendOptions(
+                    byId('rp-treasury'),
+                    treasuryRes.data || [],
+                    'id',
+                    'account_name'
+                );
+            }
+
+            if (params.indexOf('account') !== -1) {
+                var accountRes = await supabase
+                    .from('chart_of_accounts')
+                    .select('id, account_code, account_name')
+                    .eq('company_id', companyId)
+                    .eq('is_active', true)
+                    .order('account_code', { ascending: true });
+
+                if (accountRes.error) throw accountRes.error;
+
+                _appendOptions(
+                    byId('rp-account'),
+                    accountRes.data || [],
+                    'id',
+                    'account_name'
+                );
+            }
+
+            if (params.indexOf('driver') !== -1) {
+                var driverRes = await supabase
+                    .from('users')
+                    .select('id, email, name')
+                    .eq('company_id', companyId)
+                    .in('role', ['driver', 'سائق', 'مندوب'])
+                    .eq('status', 'Active')
+                    .order('name', { ascending: true });
+
+                if (driverRes.error) throw driverRes.error;
+
+                _appendOptions(
+                    byId('rp-driver'),
+                    driverRes.data || [],
+                    'id',
+                    'name'
+                );
+            }
+
+            if (params.indexOf('area') !== -1) {
+                var areaRes = await supabase
+                    .from('customers')
+                    .select('area')
+                    .eq('company_id', companyId)
+                    .not('area', 'is', null)
+                    .order('area', { ascending: true });
+
+                if (areaRes.error) throw areaRes.error;
+
+                var areaMap = {};
+                var areaRows = areaRes.data || [];
+
+                for (var a = 0; a < areaRows.length; a++) {
+                    var areaName = String(areaRows[a].area || '').trim();
+                    if (areaName) areaMap[areaName] = true;
+                }
+
+                var areaList = Object.keys(areaMap).sort(function(a, b) {
+                    return a.localeCompare(b, 'ar');
+                });
+
+                var areaSelect = byId('rp-area');
+                if (areaSelect) {
+                    for (var ar = 0; ar < areaList.length; ar++) {
+                        var areaOption = document.createElement('option');
+                        areaOption.value = areaList[ar];
+                        areaOption.textContent = areaList[ar];
+                        areaSelect.appendChild(areaOption);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('RW_Reports_Comprehensive._loadDropdowns', e);
+            _showToast('فشل تحميل معايير التقرير', 'error');
         }
     }
 
