@@ -1,6 +1,6 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
-## CURRENT CHECKPOINT — 2026-09-08 — Report95 Main8 Forensic Surgical Reconciliation
+## CURRENT CHECKPOINT — 2026-09-09 — Report96 Main8 Exact Surgical Re-check
 
 ### Source-of-Truth Governance
 - Production Supabase is the execution reference.
@@ -17,141 +17,138 @@
 - `Original/PWA/main/*` = historical reference only.
 - `Current/PWA/New-main` = generated target only; never Source of Truth.
 
+### Project Target
+There is still a significant functional gap in the upcoming Finance, HR, CRM and Reporting tabs; many are currently structural. The Gold/Diamond target is to complete them into a competitive ERP capability set comparable in breadth and operational quality to Odoo, Dynamics, SAP, Daftra and Manager.io. This remains a target requirement and must not be implemented through speculative changes that bypass the current historical/production contracts.
+
 ## Current Git
 - Repository: `papamohammed77-glitch/rawaie-erp-New`
 - Branch: `main`
-- Latest session HEAD before Report95/state writes: `e1b6168a091ebb5188828d479a5bab4254b9aae4`
+- Current HEAD observed before this state write: `694245eb8f2ee4f706dbecc6f33b333902e79f89`
 - Current Main8 source SHA:
-  `20f77481133d3e55ced949de16f88dadb0a69980`
-- Current Main7 source SHA confirmed by Report94:
+  `b3cdbbc79e04f5be9b2e92f9c4e98ce1e7cee64d`
+- Latest documentation commit created by this session:
+  `94f4128c8203fd1c0e424dca033077c022aa804e`
+- Current Main7 source was last confirmed by Report94 as:
   `d6ee5ed58faf82d23bd8d0ab73f70d5979d41f19`
-- Latest Main7 source commit referenced by Report94:
-  `bf9baf2571790e9000a7db99ca93bf250d07c9e6`
+  and must be re-read before treating that SHA as current after later commits.
 
 ## Latest Reports / State Record
-- `Report95_Main8_Forensic_Surgical_Reconciliation_20260908.md` = latest session report.
-- `Report94_Main7_Exact_Surgical_Reconciliation_20260908.md` = latest Main7 forensic reconciliation before Main8.
-- `CURRENT_STATE_Report94_Update.md` = owner-supplied state checkpoint incorporated into this file.
+- `Report96_Main8_Exact_Surgical_Recheck_20260909.md` = latest verified session report.
+- `Report95_Main8_Forensic_Surgical_Reconciliation_20260908.md` = preceding Main8 forensic report; its Main8 SHA is stale relative to current Git.
+- `Report94_Main7_Exact_Surgical_Reconciliation_20260908.md` = preceding Main7 forensic reconciliation.
+- `CURRENT_STATE_Report94_Update.md` = owner-supplied Main7 state checkpoint.
 
-## Production Snapshot — latest verified before this state write
-Checked directly at:
-`2026-09-08 13:48:15.956937+00 UTC`
-
+## Production Snapshot — latest direct verification before this state write
 - companies = 1
 - branches = 2
 - users = 24
 - items = 17
-- stock_branches = 20
+- treasury = 1
+- chart_of_accounts = 17
+- cash_box = 0
 - orders = 0
-- order_details = 0
 - runsheets = 0
-- run_sheet_details = 0
-- stock_vouchers = 0
+- stock_branches = 20
 - inventory_log = 3
-- inventory_counts = 0
-- inventory_count_details = 0
 
-## Production Change Executed in Report95
-### `get_balance_sheet_data(date)`
-- Previous defect: SECURITY DEFINER function read `chart_of_accounts` without current-company filtering.
-- Fixed in Production by deriving:
-  `v_company_id := app_private.current_user_company_id()`
-  and applying `ca.company_id = v_company_id` to assets/liabilities/equity queries.
-- EXECUTE surface was restricted to authenticated/service_role; anon/public execution was removed.
-- Production migration version:
-  `20260908134417`
-- Canonical Git migration:
-  `supabase/migrations/20260908134417_fix_balance_sheet_company_scope_20260908.sql`
-- Audit entry recorded in `audit_log` using the schema-approved `action='update'`.
+Current Treasury:
+- id = `0a9d9357-b5f3-4dfa-886f-7c73de4f274e`
+- company_id = `00000000-0000-0000-0000-000000000001`
+- account_code = `CASH-01`
+- account_name = `الخزينة الرئيسية`
+- type = `Cash`
+- current_balance = `10000.00`
 
-## Main7 — Current Status
-`Current/PWA/main2/main7.md` was NOT modified by the assistant.
+Main cash account:
+- account_code = `121`
+- account_name = `النقدية (الخزينة الرئيسية)`
+- id = `d724dae3-874d-4975-9f21-ec423a5a661a`
 
-The Report94 owner surgeries remain the only Main7 source actions blocking assembly:
-
-### M7-15A
-Replace the four configuration values using string sentinel `'null'` with real JavaScript `null` values at the exact four lines documented in Report94 (current lines 126–129 in that checkpoint).
-
-### M7-14
-Replace the complete `_showLoadingDetails(code)` function documented in Report94 (current lines 762–772 in that checkpoint) with its company-scoped version, ending immediately before:
-`// ==================== DELIVERY ====================`
-
-Protected Main7 contracts remain unchanged:
-- lifecycle: `Open / Confirmed -> Picking -> Picked -> Loading -> Loaded -> Delivering -> Delivered -> Returning -> Returned`
-- driver order-by-order delivery
-- `complete_order_delivery_atomic`
-- `complete_return_atomic`
-- `_openDeliveryModal(rsCode)`
-- `_showUnloadingDetails()`
-
-## Main8 — Current Status
-Target file:
-`Current/PWA/main2/main8.md`
-
-The file was read/reconciled against:
-- Governance masters
-- Report94
-- `Current/PWA/accountant.html`
-- Production schema, constraints, RLS and Edge contracts
-- historical finance reconstruction evidence
-
-### Confirmed Main8 gaps
-1. `_loadAllData()` performs treasury/account reads without explicit company scope and builds the account tree using account-code keys while `parent_account_id` is UUID.
-2. `_openAccountDialog()` sends account-code values into `parent_account_id`, which is a UUID foreign key; CRUD calls also omit explicit tenant filters.
-3. `_seedAccounts()` uses account codes as parent IDs and `onConflict: account_code` against a company-scoped unique contract.
-4. Treasury creation omits required `company_id`; treasury update/delete omit explicit company scope.
-5. Receipt/payment lists read `cash_box` without company scope.
-6. Receipt/payment UI currently sends `cashBoxId` as `account_code` and sends no `operationId`, while Production requires Treasury UUID + Account UUID + operation identity in `header`.
-7. Transfer UI currently sends `fromCashId/toCashId` only, while Production requires operation identity plus source/target Treasury UUIDs and source/target Account UUIDs.
-
-### Confirmed Main8 contracts that are already correct and should not be changed
-- Journal posting is delegated to `save-journal-entry` and already carries an operation identity.
-- Financial reporting RPCs are company-scoped in Production.
-- Budget RLS binds `budgets.account_id` to the current company's chart of accounts.
-- `cost_centers` is currently global in schema; no company column was invented.
-
-### Exact Main8 owner surgery list
-All are documented completely in Report95; the assistant MUST NOT edit `Current/PWA/main2/main8.md` directly.
-
-- M8-01 add `_companyId()` helper.
-- M8-02 replace `_loadAllData()`.
-- M8-03 replace `_buildAccountTree()`.
-- M8-04 replace `_openTreasuryDialog()`.
-- M8-05 replace `_editTreasury()`.
-- M8-06 replace `_openAccountDialog()`.
-- M8-07 replace `_seedAccounts()`.
-- M8-08 add company scoping to receipt/payment list reads.
-- M8-09 replace `_newReceipt()` to use Treasury UUID and Account UUID selections.
-- M8-10 replace `_saveReceipt()` to match the deployed receipt Edge contract and persist operation identity during retry.
-- M8-11 replace `_newPayment()` / `_savePayment()` with the same UUID + operation identity contract.
-- M8-12 add company scoping to `_renderTransfers()`.
-- M8-13 change `_newTransfer()` option values to Treasury UUID / Account UUID.
-- M8-14 replace `_saveTransfer()` with the deployed transfer contract.
-
-## Finance Production Contract Evidence
-Current Production Edge versions:
+## Production Financial Contract — verified
+Active Edge versions verified:
 - `save-journal-entry` v8
 - `save-receipt-voucher` v7
 - `save-payment-voucher` v5
 - `save-transfer-voucher` v4
-- `get-trial-balance` v1
-- `get-profit-loss` v1
-- `get-balance-sheet` v1
-- `get-pnl-by-cost-center` v1
 
-Current financial cores include:
+Current financial cores verified:
 - `post_journal_entry`
 - `post_cash_receipt_atomic`
 - `post_cash_payment_atomic`
 - `post_treasury_transfer_atomic`
 
-## Accountant App Reference
-`Current/PWA/accountant.html` is the modern financial workbench reference.
-It resolves authenticated `users.company_id`, loads Treasury and Chart of Accounts with company scope, and uses UUID-based financial identities plus operation IDs for transactional posting.
-This is a behavioral contract reference, not a reason to replace Main8 wholesale.
+Payment contract requires Treasury UUID + Cash Account UUID + Offset Account UUID + UUID operation identity inside `header`.
+Transfer contract requires source/target Treasury UUIDs + source/target Account UUIDs + UUID operation identity.
+
+## Main8 — Current Status
+Target file:
+`Current/PWA/main2/main8.md`
+
+### Direct re-check result
+The file was read from the current repository state and reconciled against:
+- Governance masters
+- Report94
+- Report95
+- CURRENT_STATE_Report94_Update.md
+- Current/PWA/accountant.html
+- Production schema / constraints
+- Current Production financial cores
+- Current active financial Edge contracts
+- Assembly workflow
+
+### Confirmed applied in current Main8
+The current file now contains the previously completed Main8 surgeries including:
+- M8-01 company context helper
+- M8-02 company-scoped finance loading
+- M8-03 UUID-aware account tree
+- M8-04/M8-05 treasury company scoping
+- M8-06/M8-07 account CRUD/seed UUID handling
+- M8-08 company-scoped cash_box reads
+- M8-09/M8-10 receipt UUID + operation identity pattern
+- M8-12 transfer list company scope
+- M8-14 deployed transfer save contract consumer
+
+### Remaining exact Main8 owner surgeries
+These are the only Main8 source edits identified by Report96 in the current Main8 state:
+
+1. **M8-11 `_newPayment()`** — current lines 859–864.
+   Replace the complete function with the Report96 version so `pmt-cashbox` stores `treasury.id` and `pmt-main-account` stores `chart_of_accounts.id`.
+
+2. **M8-11 `_savePayment()`** — starts at current line 871 and ends immediately before:
+   `    function _renderTransfers() {`
+   Replace the complete function with the Report96 version so the payload is `{header:{operationId,treasuryId,cashAccountId,offsetAccountId,date,reference,mainAccountName,notes},lines}` and the operation identity persists across retries.
+
+3. **M8-13 `_newTransfer()`** — current line 906 and ends immediately before:
+   `    async function _saveTransfer() {`
+   Replace the complete function with the Report96 version so Treasury options use Treasury UUIDs and the missing `trf-source-account` / `trf-target-account` controls use Chart of Accounts UUIDs.
+
+The assistant did **not** edit `Current/PWA/main2/main8.md` in this session.
+
+## Main8 — Protected
+Do not change in these surgeries:
+- `_addPaymentLine()`
+- `_saveTransfer()`
+- `_renderTransfers()`
+- Journal posting flow
+- Reporting consumers
+- Inventory/order/runsheet/delivery contracts
+- Parent shell / Main1..Main11 assembly logic
+
+## Production Impact of Report96
+- No durable Production financial transaction was created.
+- No Production financial schema/core change was required for M8-11/M8-13.
+- Current Production contract remains the target contract.
+- Production was directly queried for current counts and financial master data.
+
+## Main7 — Current Status
+Main7 remains open pending the exact owner surgeries from Report94:
+- M7-15A
+- M7-14
+
+Do not assume completion from historical reports; re-read current Main7 before assembly.
 
 ## Assembly
-`.github/workflows/forensic_main_assembly.yml` is verified correct:
+`.github/workflows/forensic_main_assembly.yml` remains correct:
 - canonical fragment source = `Current/PWA/main2/**`
 - generated target = `Current/PWA/New-main`
 - historical evidence = `Current/PWA/main/**` and `Original/PWA/main/**`
@@ -159,40 +156,42 @@ This is a behavioral contract reference, not a reason to replace Main8 wholesale
 ### Assembly status
 `FULL MAIN2 ASSEMBLY = BLOCKED`
 
-Blocking reasons:
-1. Main7 M7-15A not yet owner-applied.
-2. Main7 M7-14 not yet owner-applied.
-3. Main8 M8-01..M8-14 not yet owner-applied.
+Blocking reasons currently proven:
+1. Main7 requires owner verification/application of the two Report94 surgeries.
+2. Main8 requires owner application of M8-11 and M8-13.
+3. Full reconstruction and browser/E2E must run only after those source changes are present.
 
 ## Closure Matrix
 - `PRODUCTION INVENTORY WRITER CORE` = CLOSED / VERIFIED
 - `MAIN2 RECONSTRUCTION SOURCE PATH` = VERIFIED
 - `MAIN7 FORENSIC RECONCILIATION` = COMPLETE / SOURCE SURGERY OPEN
 - `MAIN7 DELIVERY CONTRACT` = PROVEN / PROTECTED
-- `MAIN8 FINANCE FORENSIC RECONCILIATION` = COMPLETE / SOURCE SURGERY OPEN
+- `MAIN8 FINANCE FORENSIC RECHECK` = COMPLETE / TWO SURGERY AREAS OPEN
 - `PRODUCTION BALANCE SHEET TENANT REPAIR` = CLOSED / DEPLOYED / MIGRATION RECORDED / AUDITED
-- `FULL MAIN2 ASSEMBLY` = NOT STARTED / BLOCKED
+- `FULL MAIN2 ASSEMBLY` = BLOCKED
 - `PARENT GOLD/DIAMOND` = NOT CLOSED
 
-## Self-Audit — Report95
+## Self-Audit — Report96
 ### What was proved
-- Report94 is newer than the stale Report93 checkpoint and its Main7 SHA is confirmed.
-- `CURRENT_STATE_Report94_Update.md` is the correct owner-supplied Main7 state checkpoint.
-- Current editable source remains `Current/PWA/main2`.
-- Assembly workflow path is already correct.
-- Main8 current source is identified and its finance behavior was compared with the modern accountant application and deployed Production contracts.
-- Production `get_balance_sheet_data` tenant leakage was real and was fixed in Production.
-- The Production repair is represented in canonical Git migration form and audited.
+- Current Git Main8 SHA is `b3cdbbc79e04f5be9b2e92f9c4e98ce1e7cee64d`.
+- Report95 Main8 SHA is stale and cannot be used as current truth.
+- M8-11 is still incomplete in the current Main8 source.
+- M8-13 is still incomplete in the current Main8 source.
+- M8-14 is already implemented as the Consumer and expects the account controls that M8-13 must create.
+- Production payment and transfer contracts require UUID identities and UUID operation IDs.
+- Current Production has one Treasury and zero `cash_box` rows, so a durable financial posting was not created only for test purposes.
+- Assembly workflow source path is correct.
+- Main8 itself was intentionally not modified by the assistant.
 
 ### What was not proved
-- Main7 owner surgeries have not been confirmed as applied after Report94.
-- Main8 owner surgeries have not been applied.
-- Full Main2 reconstruction has not been run after those source surgeries.
-- Browser/E2E of the resulting assembled Parent has not been run.
+- Owner has not yet applied M8-11/M8-13 after this report.
+- Full Main8 syntax cannot be certified until those exact source edits exist in Git.
+- Full Main2 reconstruction cannot be certified until Main7/Main8 owner surgeries are present.
+- Parent browser/E2E cannot be certified until assembly is unblocked.
 
-### Next execution gate
-After the owner applies the exact Main7 and Main8 source surgeries:
-`READ SOF -> EOF -> syntax check -> full Main2 reconstruction -> browser/integration checks -> Production reconciliation -> final closure report`
+### What could still be wrong
+After owner application, the required gate is:
+`SOURCE READ -> SYNTAX CHECK -> FULL MAIN2 RECONSTRUCTION -> BROWSER/INTEGRATION -> PRODUCTION RECONCILIATION`
 
 ## Last Verified Event
-`EVENT: MAIN8-FORENSIC-RECONCILIATION-20260908`
+`EVENT: MAIN8-EXACT-SURGICAL-RECHECK-20260909`
