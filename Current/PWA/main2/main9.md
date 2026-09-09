@@ -70,31 +70,93 @@ var RW_Reports = (function() {
         safeHTML(container, '<div class="text-center py-10"><i class="fa-solid fa-spinner fa-spin text-2xl text-indigo-600"></i><p class="mt-2 text-gray-500">جاري تحليل البيانات للفترة...</p></div>');
 
         try {
-            var ordersRes = await supabase.from('orders').select('total_amount, order_date').gte('order_date', fromDate).lte('order_date', toDate);
+            var companyId = _companyId();
+            var branchRes = await supabase.from('branches').select('id').eq('company_id', companyId);
+            if (branchRes.error) throw branchRes.error;
+            var branchIds = (branchRes.data || []).map(function(b) { return b.id; }).filter(Boolean);
+
+            var ordersRes = await supabase
+                .from('orders')
+                .select('total_amount, order_date, customer_id')
+                .eq('company_id', companyId)
+                .gte('order_date', fromDate)
+                .lt('order_date', _nextDate(toDate));
+            if (ordersRes.error) throw ordersRes.error;
             var orders = ordersRes.data || [];
-            var totalSales = 0, orderCount = orders.length;
-            for (var i = 0; i < orders.length; i++) { totalSales += Number(orders[i].total_amount) || 0; }
+
+            var totalSales = 0;
+            for (var i = 0; i < orders.length; i++) {
+                totalSales += Number(orders[i].total_amount) || 0;
+            }
+            var orderCount = orders.length;
             var averageOrder = orderCount > 0 ? Math.round(totalSales / orderCount) : 0;
             var forecast = averageOrder * 30;
             var confidence = orderCount > 50 ? 'عالية' : (orderCount > 20 ? 'متوسطة' : 'منخفضة');
 
-            var items = RW_STATE.data.items;
-            if (!items || !items.length) { var itemsRes = await supabase.from('items').select('*'); items = itemsRes.data || []; }
-            var stockRes = await supabase.from('stock_branches').select('item_id, qty');
-            var stockData = stockRes.data || [];
-            var stockMap = {};
-            for (var s = 0; s < stockData.length; s++) { stockMap[stockData[s].item_id] = (stockMap[stockData[s].item_id] || 0) + (Number(stockData[s].qty) || 0); }
-            var lowStockCount = 0;
-            for (var j = 0; j < items.length; j++) { if ((stockMap[items[j].id] || 0) <= (Number(items[j].reorder_point) || 5)) lowStockCount++; }
+            var items = (RW_STATE && RW_STATE.data && Array.isArray(RW_STATE.data.items)) ? RW_STATE.data.items : [];
+            if (!items.length) {
+                var itemsRes = await supabase.from('items').select('*');
+                if (itemsRes.error) throw itemsRes.error;
+                items = itemsRes.data || [];
+            }
 
-            var sixtyDaysAgo = new Date(); sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-            var recentRes = await supabase.from('orders').select('customer_id').gte('order_date', sixtyDaysAgo.toISOString().split('T')[0]);
+            var stockData = [];
+            if (branchIds.length) {
+                var stockRes = await supabase
+                    .from('stock_branches')
+                    .select('item_id, qty')
+                    .in('branch_id', branchIds);
+                if (stockRes.error) throw stockRes.error;
+                stockData = stockRes.data || [];
+            }
+
+            var stockMap = {};
+            for (var s = 0; s < stockData.length; s++) {
+                var stockItemId = stockData[s].item_id;
+                if (!stockItemId) continue;
+                stockMap[stockItemId] = (stockMap[stockItemId] || 0) + (Number(stockData[s].qty) || 0);
+            }
+
+            var lowStockCount = 0;
+            for (var j = 0; j < items.length; j++) {
+                var itemId = items[j] && items[j].id;
+                if (!itemId) continue;
+                if ((stockMap[itemId] || 0) <= (Number(items[j].reorder_point) || 5)) {
+                    lowStockCount++;
+                }
+            }
+
+            var sixtyDaysAgo = new Date();
+            sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+            var recentRes = await supabase
+                .from('orders')
+                .select('customer_id')
+                .eq('company_id', companyId)
+                .gte('order_date', sixtyDaysAgo.toISOString().split('T')[0])
+                .lt('order_date', _nextDate(new Date().toISOString().split('T')[0]));
+            if (recentRes.error) throw recentRes.error;
+
             var recentCustomers = {};
-            (recentRes.data || []).forEach(function(r) { if (r.customer_id) recentCustomers[r.customer_id] = true; });
-            var customers = RW_STATE.data.customers;
-            if (!customers || !customers.length) { var custRes = await supabase.from('customers').select('customer_code'); customers = custRes.data || []; }
+            (recentRes.data || []).forEach(function(r) {
+                if (r && r.customer_id) recentCustomers[r.customer_id] = true;
+            });
+
+            var customers = (RW_STATE && RW_STATE.data && Array.isArray(RW_STATE.data.customers)) ? RW_STATE.data.customers : [];
+            if (!customers.length) {
+                var custRes = await supabase
+                    .from('customers')
+                    .select('id, customer_code, name')
+                    .eq('company_id', companyId);
+                if (custRes.error) throw custRes.error;
+                customers = custRes.data || [];
+            }
+
             var inactiveCount = 0;
-            for (var c = 0; c < customers.length; c++) { if (!recentCustomers[customers[c].customer_code]) inactiveCount++; }
+            for (var c = 0; c < customers.length; c++) {
+                var customerId = customers[c] && customers[c].id;
+                if (!customerId) continue;
+                if (!recentCustomers[customerId]) inactiveCount++;
+            }
 
             var html = '<div class="text-right space-y-6 p-4">';
             html += '<div class="grid grid-cols-1 md:grid-cols-4 gap-4">';
@@ -103,10 +165,13 @@ var RW_Reports = (function() {
             html += '<div class="bg-white rounded-2xl shadow-sm border p-5 text-center"><p class="text-xs text-gray-400 font-bold mb-1">أصناف منخفضة</p><p class="text-3xl font-black text-red-600">' + lowStockCount + '</p></div>';
             html += '<div class="bg-white rounded-2xl shadow-sm border p-5 text-center"><p class="text-xs text-gray-400 font-bold mb-1">عملاء غير نشطين</p><p class="text-3xl font-black text-amber-600">' + inactiveCount + '</p></div>';
             html += '</div>';
-            html += '<div class="bg-white rounded-2xl shadow-sm border p-5"><p class="text-sm text-gray-500"><strong>الفترة:</strong> من ' + fromDate + ' إلى ' + toDate + '</p></div>';
+            html += '<div class="bg-white rounded-2xl shadow-sm border p-5"><p class="text-sm text-gray-500"><strong>الفترة:</strong> من ' + _esc(fromDate) + ' إلى ' + _esc(toDate) + '</p></div>';
             html += '</div>';
             safeHTML(container, html);
-        } catch(e) { console.error(e); safeHTML(container, '<div class="text-center py-10 text-red-500">فشل تحميل التحليلات</div>'); }
+        } catch (e) {
+            console.error(e);
+            safeHTML(container, '<div class="text-center py-10 text-red-500">فشل تحميل التحليلات</div>');
+        }
     }
 
     // ========== التقارير التفصيلية (Checkbox) ==========
