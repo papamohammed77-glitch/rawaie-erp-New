@@ -145,6 +145,7 @@ async function _loadDashboardData(fromDate, toDate) {
         var itemsRes = await supabase
             .from('items')
             .select('id, item_code, name, reorder_point, max_qty, cost_price, sales_price, is_active')
+            .eq('company_id', companyId)
             .order('item_code', { ascending: true });
 
         if (itemsRes.error) throw itemsRes.error;
@@ -420,10 +421,11 @@ async function _loadDetailedReports(fromDate, toDate, types) {
         }
 
         types = Array.isArray(types) ? types : [];
-
+        
         var itemsRes = await supabase
             .from('items')
             .select('id, item_code, name, reorder_point, max_qty, cost_price, sales_price, barcode, is_active')
+            .eq('company_id', companyId)
             .order('item_code', { ascending: true });
 
         if (itemsRes.error) throw itemsRes.error;
@@ -1360,6 +1362,7 @@ var RW_Reports_Comprehensive = (function() {
                 var itemRes = await supabase
                     .from('items')
                     .select('id, item_code, name')
+                    .eq('company_id', companyId)
                     .order('item_code', { ascending: true });
 
                 if (itemRes.error) throw itemRes.error;
@@ -1559,6 +1562,7 @@ async function _showItemMovementDetail(itemCode, itemName) {
             .from('items')
             .select('id, item_code, name')
             .eq('item_code', itemCode)
+            .eq('company_id', companyId)
             .maybeSingle();
 
         if (itemRes.error) throw itemRes.error;
