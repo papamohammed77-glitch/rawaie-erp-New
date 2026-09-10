@@ -297,6 +297,57 @@ Parent Application
 ├── Synchronization
 └── Decision / Intelligence Layer
 ```
+أثناء العمل لا تنظر إلى العنصر المستهدف كأنه جزيرة منفصلة.
+
+يجب أن تظل الرؤية الكاملة أمامك:
+
+RAWAEA ERP
+│
+├── Parent Application
+│
+├── Main1 → Main11
+│
+├── Shared Core
+│
+├── Authentication
+│
+├── Authorization
+│
+├── Company / Tenant Context
+│
+├── Sales
+│   ├── POS
+│   ├── Telesales
+│   ├── Order Taker
+│   └── Van Sales
+│
+├── Runsheet
+│
+├── Warehouse
+│   ├── Picking
+│   ├── Loading
+│   ├── Delivery
+│   ├── Returns
+│   ├── Receiving
+│   └── Inventory
+│
+├── Purchasing
+│
+├── Accounting / Finance
+│
+├── Treasury
+│
+├── CRM
+│
+├── HR
+│
+├── Reporting
+│
+├── Online Store
+│
+├── Synchronization
+│
+└── Decision / Intelligence Layer
 
 عند فحص أي Main يجب أن تظل العلاقات مع:
 
