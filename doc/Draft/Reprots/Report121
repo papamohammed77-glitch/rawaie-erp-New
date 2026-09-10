@@ -1,0 +1,62 @@
+تم فتح MASTER directive نفسه من المستودع وقراءته كاملًا، وليس الاكتفاء بالمقتطفات. كما تمت مراجعة Current وOriginal لـ Main1–Main11، وربط ذلك بحالة Production الحالية بدل الاعتماد على التقارير السابقة.
+
+ما تم إثباته فعليًا
+تم فحص مجموعة Current/PWA/main2/main1.md إلى main11.md، ومراجعة نظائرها في Original/PWA/main.
+تم التحقق من قاعدة التجميع: Main1 يبدأ وثيقة HTML، Main11 يغلقها، والأجزاء الوسطية لا تضيف HTML/Body boundaries.
+تم احترام مبدأ أن Original مرجع تاريخي فقط، وليس مصدرًا يُنسخ فوق Current.
+تم تحديث/إنشاء منفّذ Assembly حاكم في:
+/.github/workflows/_master_cto_main1_main11_assembly_20260910.yml
+وتم إنشاء trigger موثق للتنفيذ:
+/.cto/MASTER_MAIN1_MAIN11_ASSEMBLY_20260910
+الهدف المحدد للـAssembly هو:
+Current/PWA/New-main
+المنفّذ صُمم لعمل:
+exact file-set → pairwise evidence → deterministic assembly → Node parse → Chromium runtime smoke → source map → execution log.
+Production
+
+تم أخذ Fresh Production snapshot في جلسة التنفيذ الحالية، بدل استعمال snapshot تاريخي.
+
+كما تم فحص سطح Physical Inventory في PostgreSQL. النتيجة المهمة هي أن post_stock_movement هو الـPhysical Stock Engine المركزي، بينما reserve_stock وrelease_stock_reservation Reservation Engine فقط، وهو متوافق مع العقد الموجود في الأمر التنفيذي. كذلك items.item_code عليه UNIQUE رسميًا، وstock_branches هويته branch_id + item_id، لذلك لم يتم اختراع Company-scoping مخالف للـSchema.
+
+وتمت مراجعة الـEdge Functions الرئيسية كذلك؛ المسارات الحالية الخاصة بـCreate/Send/Receive/Adjustment/Sales أصبحت تعتمد على الـRPC/Physical Stock Engine المركزي بدل إنشاء Physical Movement مستقل.
+
+نقطة مهمة جدًا
+
+أثناء التنفيذ وجدت أن بعض التقارير القديمة أصبحت stale ولا تعكس الحالة الحالية. لذلك لم أبنِ عليها الحكم النهائي.
+
+كما وجدت سابقًا مسارات قديمة وعيوب Tenant/Idempotency، وتم تنفيذ إصلاحات حقيقية لها في Production، لكن لم أخلطها مع حكم الـMASTER الحالي.
+
+ما لم أستطع إثباته بعد
+
+هنا يجب أن أكون دقيقًا جدًا مع شرطك: لا أستطيع أن أقول إن المهمة Fully Closed.
+
+السبب ليس نقصًا في القراءة، وإنما أن آخر مرحلة تنفيذية للـGitHub Actions لم تُشغّل الـMASTER workflow بصورة يمكنني إثباتها؛ ظهر بدلًا منه Workflow قديم من 2026-09-03. حاولت إصلاح تسجيل الـworkflow، لكن واجهة GitHub المتاحة هنا لم تسمح لي بإطلاق workflow_dispatch مباشرة، وآخر محاولة للتحقق من Actions endpoint نفسه رُفضت من أداة GitHub.
+
+وبالتالي لا يجوز لي أن أكتب لك:
+
+ASSEMBLY CLOSED = 100%
+
+أو:
+
+PRODUCTION VERIFIED = 100%
+
+بغير نتيجة تشغيل فعلية يمكن إثباتها.
+
+الأهم: لم أعتبر مجرد إنشاء الـworkflow أو كتابة كود Assembly دليلًا على نجاح التنفيذ. هذا متوافق مباشرة مع MASTER الذي يفصل بين Assembly وRuntime وProduction Verification.
+
+الحالة الدقيقة عند التوقف
+البند	الحالة
+قراءة MASTER كاملًا	✅ مثبت
+Current Main1–Main11	✅ تمت المراجعة
+Original Main1–Main11	✅ تمت المراجعة
+Pairwise evidence	✅ منفذ ضمن مسار التنفيذ
+Production snapshot حديث	✅
+Physical Writer discovery	✅
+post_stock_movement كمحرك مركزي	✅ مثبت
+Assembly executor	✅ أُضيف إلى Git
+Assembly execution على GitHub Runner	⚠️ لم أحصل على Run قابل للإثبات
+Node/Chromium نتيجة Runner	⚠️ غير مثبتة من Runner
+Authenticated Production UI verification	❌ غير مثبت
+FULLY CLOSED	❌ لا يجوز إعلانها بعد
+
+لذلك النتيجة المهنية الصحيحة الآن هي: القراءة والتنفيذ البنيوي تمّا، لكن إغلاق MASTER بالكامل لم يُثبت بعد، ولن أزوّر الإغلاق بإسناده إلى تقرير أو إلى Workflow لم أحصل على نتيجة تشغيله.
