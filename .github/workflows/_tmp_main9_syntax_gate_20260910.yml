@@ -21,9 +21,11 @@ jobs:
         run: |
           set -euo pipefail
           node --version
-          node --check Current/PWA/main2/main9.md
-          node --check Current/PWA/main2/main2.md
-          cat Current/PWA/main2/main2.md Current/PWA/main2/main9.md > /tmp/main2-main9.js
+          cp Current/PWA/main2/main9.md /tmp/main9.js
+          cp Current/PWA/main2/main2.md /tmp/main2.js
+          node --check /tmp/main9.js
+          node --check /tmp/main2.js
+          cat /tmp/main2.js /tmp/main9.js > /tmp/main2-main9.js
           node --check /tmp/main2-main9.js
           echo MAIN9_SYNTAX=PASS
           echo MAIN2_SYNTAX=PASS
