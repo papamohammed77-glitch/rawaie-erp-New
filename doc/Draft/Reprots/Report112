@@ -1,0 +1,84 @@
+# تقرير 112 — مراجعة Master / Report111 / Main9 / Main10 / Main2
+
+التاريخ: 2026-09-10
+
+## 1. مصدر الحقيقة
+
+تمت إعادة فتح MASTER التنفيذي نفسه، واتباع ترتيب المراجعة المطلوب. الـMASTER يفرض أن تبدأ الدراسة بفهم السياق ثم تتبع السلوك الحالي وبياناته وصلاحياته قبل أي تعديل، وأن أي إصلاح يجب أن يُنفذ ثم يُتحقق منه مقابل العقد التاريخي والحالي والمستهدف. كما أن التعليمات التنفيذية تفرض عدم إعلان الإغلاق اعتمادًا على التقارير وحدها.
+
+## 2. Report111
+
+Report111 الذي يتضمن نقاط Main9 الأربع ونقطة Main10 الواحدة ما زال محفوظًا كما هو. وقد تمت مطابقة نقاطه مع المصدر الحالي، وليس اعتمادها لمجرد وجودها في التقرير.
+
+## 3. Main9 — النتيجة الحالية
+
+المصدر الحالي يحتوي فعليًا على الإصلاحات المطلوبة في Report111 في المواضع الجوهرية:
+
+1. `_loadDashboardData`: قراءة `items` أصبحت Company-scoped عبر `companyId`.
+2. `_loadDetailedReports`: قراءة `items` أصبحت Company-scoped عبر `companyId`.
+3. `_loadDropdowns`: قائمة الأصناف أصبحت Company-scoped عبر `companyId`.
+4. `_showItemMovementDetail`: هوية الصنف أصبحت مرتبطة بـ`item_code + company_id` داخل سياق التقرير، مع الحفاظ على حقيقة أن `item_code` نفسه Unique عالميًا في Production.
+
+كما أن بقية محرك التقارير الحالي يستخدم `_companyId()` ويقيّد القراءة التشغيلية بواسطة `company_id` في العملاء والفروع والأوامر وغيرها.
+
+## 4. Main10 — النتيجة الحالية
+
+الدالة `RW_OwnerLicense._loadLicenseData()` في المصدر الحالي تحتوي بالفعل على الاستبدال الكامل المطلوب:
+
+- استخراج `companyId` من `RW_STATE.app.company.id` ثم fallback إلى `RW_STATE.app.companyId` ثم `RW_STATE.user.companyId`.
+- رفض التنفيذ عند عدم وجود سياق الشركة.
+- قراءة `app_settings` بواسطة `.eq('company_id', companyId)`.
+- ترتيب deterministic بواسطة `created_at` و`.limit(1).maybeSingle()`.
+- الحفاظ على عقد `_buildFullForm` دون تغيير.
+
+بالتالي لم يكن من الصحيح إعادة تنفيذ نفس الـpatch مرة ثانية؛ ذلك كان سيصبح Duplicate Surgery وليس إصلاحًا جديدًا.
+
+## 5. Main2
+
+تم فتح Main2 الحالي للتحقق من سياق الـAssembly، ولم تُستخدم أي معلومة تاريخية كبديل عن المصدر الحالي. كما أن المصدر الحالي يثبت نمط Company-scoped في وحدات التقارير الأساسية، وهو متسق مع Main9 الحالي.
+
+## 6. Syntax Validation
+
+تم إنشاء تحقق آلي مؤقت عبر GitHub Actions، ثم اكتُشف من سجل التنفيذ أن استخدام:
+
+`node --check Current/PWA/main2/main9.md`
+
+لا يختبر JavaScript إطلاقًا؛ Node يرفض الامتداد `.md` قبل parsing ويعيد `ERR_UNKNOWN_FILE_EXTENSION`.
+
+لذلك لا يجوز تفسير فشل ذلك الـjob على أنه Syntax Error داخل Main9. تم إزالة الـworkflow المؤقت الخاطئ حتى لا يبقى دينًا هندسيًا أو بوابة تحقق مضللة.
+
+النتيجة: **Syntax of the embedded JS is NOT declared proven by that failed job**. الـjob يثبت خطأ في أداة التحقق نفسها، وليس خطأ Syntax في Main9.
+
+## 7. Report110
+
+المسار المطلوب:
+
+`doc/Draft/Reprots/Report110`
+
+غير قابل للاسترجاع حاليًا من GitHub بنفس الاسم والمسار، لذلك لم يتم اختلاق محتواه ولم يُستخدم كأساس لحكم. هذا يبقى Unknown مؤثرًا على إعادة بناء السجل التاريخي الكامل، لكنه لا يمنع إثبات الحالة الحالية لمواضع Main9/Main10 التي تم التحقق منها مباشرة من المصدر.
+
+## 8. التعديلات الجراحية
+
+لا يوجد patch جديد مطلوب في Main9 أو Main10 الآن، لأن الاستبدالات المطلوبة موجودة فعليًا في المصدر الحالي.
+
+أي تعديل إضافي على نفس المواضع الآن سيكون تعديلًا مكررًا بلا سبب مثبت.
+
+## 9. حالة الإغلاق
+
+Main9 Source State: CLOSED FOR THE REPORT111 SURGERY
+
+Main10 Source State: CLOSED FOR THE REPORT111 SURGERY
+
+Syntax Gate: NOT CLOSED — أداة التحقق السابقة كانت غير صحيحة في طريقة استدعاء Node.
+
+Historical Reconstruction: INCOMPLETE — Report110 غير متاح بالمسار المطلوب.
+
+Full Main2 Assembly Closure: NOT DECLARED — لم تُثبت بعد عملية Assembly/runtime كاملة لهذا السياق بمجرد قراءة الملفات.
+
+Global MASTER Closure: NOT DECLARED.
+
+## 10. سجل Owner / CTO
+
+تمت إضافة هذا التقرير كسجل استمرارية رسمي حتى لا يُعاد فتح نفس الإصلاحات أو يُفترض أن Report111 ما زال يمثل الحالة الحالية.
+
+المصدر الحالي هو المرجع الأول، والتقرير وصف للحالة وليس بديلًا عنها.
