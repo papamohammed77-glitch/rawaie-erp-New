@@ -1,0 +1,213 @@
+# تقرير التنفيذ والمطابقة — Report113
+## RAWAEA ERP — Master Recovery / Main9 / Main10 / Main2
+### التاريخ: 2026-09-10
+
+## 1. المرجعية التنفيذية
+تمت إعادة فتح وقراءة الأمر التنفيذي MASTER — RAWAEA ERP Successor CTO Memory Recovery & Gold-Diamond Execution Directive، ثم مراجعة Report112 وReport111 وCURRENT_STATE، ثم إعادة فتح Main9 وMain10 ومصادر Main2 الحالية، مع الرجوع المباشر إلى Production Supabase قبل اعتماد أي حكم.
+
+القاعدة الحاكمة المستخدمة:
+CURRENT VERIFIED PRODUCTION > CURRENT DATABASE CONTRACT > CURRENT DEPLOYMENT > CURRENT GIT SOURCE > HISTORICAL REPORTS.
+
+كما تم الالتزام بقاعدة Owner Source Surgery: ملفات Current/PWA/main2/main1.md ... main11.md هي مصادر مالك المشروع، ولا يتم تعديلها مباشرة من خلال هذه الدورة؛ المطلوب هو تحديد الاستبدال الجراحي الكامل ومكانه بدقة ثم انتظار تطبيقه في المصدر المالك قبل Assembly.
+
+## 2. Production snapshot — مطابق مباشرة
+آخر فحص مباشر تم في:
+2026-09-10 09:52:34 UTC
+
+الشركات: 1
+الفروع: 2
+المستخدمون: 24
+الأصناف: 17
+stock_branches: 20
+inventory_log: 3
+orders: 0
+runsheets: 0
+purchase_orders: 0
+stock_vouchers: 0
+receiving: 0
+journal_entries: 2
+audit_log: 1869
+
+هذا snapshot جديد، ولذلك تم رفض اعتماد أي أرقام من Report112 كواقع حالي مستقل.
+
+## 3. Inventory Core — إعادة فحص Production
+تم فحص الدوال التي تعدل Physical Stock أو تكتب inventory_log، وكذلك Triggers على stock_branches وinventory_log.
+
+النتيجة المثبتة:
+- post_stock_movement هو الـPhysical Stock writer المركزي.
+- post_manual_stock_voucher_atomic_core_20260828 يمر عبر post_stock_movement.
+- post_inventory_adjustment_atomic يمر عبر post_stock_movement.
+- send_stock_voucher_atomic_core_20260828 يمر عبر post_stock_movement.
+- receive_purchase_atomic يمر عبر post_stock_movement.
+- save_sales_invoice_atomic يمر عبر post_stock_movement.
+- complete_return_atomic يمر عبر post_stock_movement.
+- complete_runsheet_reopen_loading يمر عبر post_stock_movement.
+- complete_order_delivery_atomic لا يغير Physical Stock؛ يغير fulfillment quantities فقط.
+- reserve_stock وrelease_stock_reservation يغيران allocated_qty فقط، وبالتالي Reservation-only.
+- create_vehicle_atomic وsetup_van_stock يضيفان stock_branches بصفر للكميات عند تهيئة Mobile Branch، وليس Physical Movement.
+- لا توجد Triggers حالية على stock_branches أو inventory_log تنفذ حركة بديلة.
+
+الخلاصة:
+Physical Writers خارج post_stock_movement = 0
+
+ولا توجد أدلة Production حالية تبرر إعادة كتابة Inventory Core من الصفر.
+
+## 4. Production contracts الحديثة
+Production الحالية تحتوي على:
+- receive_purchase_atomic مع operation_id صريح وإدارة idempotency عبر receiving.operation_id، وهو UNIQUE رسميًا.
+- complete_order_delivery_atomic موجود حاليًا ومطبق، وبالتالي لا يجوز اعتماد ملاحظة قديمة تفيد أنه Missing.
+- complete_return_atomic موجود حاليًا ويستدعي post_stock_movement.
+- send_stock_voucher_atomic ونسخة core_20260828 موجودتان حاليًا.
+- post_manual_stock_voucher_atomic ونسخة core_20260828 موجودتان حاليًا.
+
+## 5. Main9 — إعادة الفحص الكامل
+Main9 الحالي هو:
+Current/PWA/main2/main9.md
+ويحتوي بالفعل على الإصلاحات التاريخية السابقة المتعلقة بـ:
+- _companyId
+- _loadDashboardData
+- _loadDetailedReports
+- _loadDropdowns
+- _showItemMovementDetail
+- identity/tenant boundaries المثبتة في الأجزاء المراجعة.
+
+تم رفض إعادة تطبيق الإصلاحات القديمة بشكل أعمى.
+
+### العيب الجراحي الحالي المثبت
+العنصر المعيب:
+استعلام تقرير حركات المرتجعات داخل Main9 والذي يستخدم:
+.in('movement_type', ['SalesReturn','DirectReturn','Return'])
+
+لماذا هو مرفوض:
+Production الحالية تثبت أن movement_type المدعوم للمرتجعات هو SalesReturn وDirectReturn. القيمة النصية Return ليست movement type مثبتة في العقد الحالي، كما أن CURRENT_STATE نفسه ينص على عدم اعتبار Return حركة مدعومة مثبتة.
+
+البديل الكامل الجاهز:
+استبدال كتلة الفلتر لتصبح:
+
+var r25 =
+    await supabase
+        .from('inventory_log')
+        .select(
+            'movement_date, movement_type, qty, item_code, item_name, reference, voucher_id'
+        )
+        .eq(
+            'company_id',
+            companyId
+        )
+        .in(
+            'movement_type',
+            [
+                'SalesReturn',
+                'DirectReturn'
+            ]
+        );
+
+موضع الاستبدال:
+داخل Main9 في مسار تقرير المرتجعات، مباشرة في الاستعلام الذي يبدأ بـ r25 ويقرأ من inventory_log.
+
+تحقق Syntax:
+لم يتم إعلان PASS حتى الآن. تم إنشاء GitHub syntax gate صحيح يختبر Main9 وMain10 فقط، لكن نتيجة تشغيل سابقة للـgate كانت فاشلة بسبب خطأ في الـgate نفسه لأنه حاول تفسير main1.html كـJavaScript. تم تصحيح الـgate، وما يزال PASS مستقل لـMain9/Main10 غير مثبت في Production/GitHub حتى لحظة هذا التقرير.
+
+## 6. Main10 — إعادة الفحص
+Main10 الحالي تم فحصه من البداية حتى النهاية.
+
+الإصلاح التاريخي الخاص بـ _loadLicenseData موجود فعليًا، ويبدأ من RW_STATE.app.company.id ثم fallback التوافقي، ثم app_settings مع eq('company_id', companyId).
+
+لم يتم العثور في Main10 الحالي على عيب جديد مثبت يستحق Surgical Replacement.
+
+الحالة:
+Main10 = CURRENT / NO NEW SURGERY
+
+## 7. Main2 — مراجعة التكامل
+تمت مراجعة مصادر Main2 الحالية والاعتماد على الـCompany context والعقود المثبتة في Production.
+
+نقطة مهمة مثبتة:
+- cost_centers لا يحتوي company_id في Production، ولذلك الاستعلام العام له لا يمكن وصفه بأنه tenant defect بناءً على الحالية.
+- users يحتوي company_id في Production.
+- Main11/RW_HR ما زال يستخدم:
+  supabase.from('users').select('*')
+  دون company scope.
+
+هذا عيب Tenant واضح من المصدر الحالي، لكنه خارج Main9/Main10 الحاليين، ولذلك لم يتم إدخال تغيير عليه داخل هذه الـClosure Unit.
+
+الاستبدال الجراحي المستقبلي الجاهز:
+var companyId = _rwCompanyId();
+if (!companyId) {
+    showToast('سياق الشركة غير محدد', 'error');
+    return;
+}
+var res = await supabase
+    .from('users')
+    .select('*')
+    .eq('company_id', companyId);
+
+موضعه:
+RW_HR.render() داخل Current/PWA/main2/main11.md.
+
+الحالة:
+OPEN — خارج Closure Unit الخاصة بـMain9.
+
+## 8. Syntax Gate
+تم إنشاء وتحديث:
+.github/workflows/validate-main2-fragments.yml
+
+وظيفته الحالية:
+- يفحص Main9 وحده كـJavaScript.
+- يفحص Main10 وحده كـJavaScript.
+- يفرض وجود company scope في Main9.
+- يفرض وجود SalesReturn وDirectReturn في مسار returns.
+
+تم توثيق أن التنفيذ الأول فشل لأن main1.md هو HTML وليس JavaScript. تم تصحيح الـWorkflow ليقتصر على Main9/Main10. لم يتم إعلان PASS قبل رؤية تشغيل ناجح فعليًا.
+
+## 9. Git changes المنفذة في هذه الدورة
+تم تحديث Workflow الحوكمي للـSyntax Gate.
+آخر commit مرتبط بهذا التحديث:
+ed3418b4538475b6c0ef2cc9840e9a55ea39b531
+
+لم يتم تعديل Main9 أو Main10 أو أي من main1..main11 مباشرة، التزامًا بقاعدة Owner Source Surgery في MASTER.
+
+## 10. Assembly
+MAIN2 Assembly = BLOCKED
+
+السبب ليس عطلًا نظريًا؛ السبب مثبت:
+- Main9 surgery لم تُطبَّق بعد في Owner Source.
+- Formal Syntax PASS لم يُثبت بعد.
+- لذلك لا يجوز تشغيل Assembly أو إعلان Gold/Diamond closure.
+
+## 11. SELF-AUDIT
+### What was proved
+- MASTER أعيد فتحه ومراجعته قبل التنفيذ.
+- Report112 أعيدت مطابقته بالـProduction الحالية.
+- Main9 أعيد فتحه من المصدر الحالي.
+- Main10 أعيد فتحه من المصدر الحالي.
+- Main2 current sources أعيدت مطابقتها مع Production contracts.
+- Production snapshot أُعيد قياسه مباشرة.
+- Inventory Writers تم اكتشافها من PostgreSQL الحالية.
+- Physical Writers خارج post_stock_movement = 0.
+- Main9 contains the historical company-scope repairs بالفعل.
+- Main10 contains the historical license-context repair بالفعل.
+- Main9 returns filter contains an unsupported 'Return' token.
+
+### What was not proved
+- Main9 parser PASS بعد آخر source state.
+- Main10 parser PASS بعد آخر source state.
+- Owner application of Main9 surgical replacement.
+- Main2 assembly after surgery.
+- Browser/PWA smoke.
+- Production UI report smoke.
+- Gold/Diamond final closure.
+
+### What was initially misleading
+- تقرير/Workflow syntax السابق أخطأ لأنه تعامل مع main1.md كـJavaScript؛ هذا خطأ في أداة القياس وليس دليلًا على فساد Main9.
+- بعض ملاحظات Missing RPC القديمة أصبحت غير صحيحة أمام Production الحالية، وتم رفضها بعد المطابقة المباشرة.
+
+## 12. FINAL CLOSURE STATUS
+GLOBAL INVENTORY CORE = VERIFIED / NO EXTERNAL PHYSICAL WRITER
+MAIN9 = SURGERY REQUIRED
+MAIN9 SYNTAX = NOT PROVEN
+MAIN10 = CURRENT / NO NEW SURGERY
+MAIN2 ASSEMBLY = BLOCKED
+GOLD/DIAMOND = NOT CLOSED
+
+## 13. NEXT GOVERNED STEP
+تطبيق الاستبدال الجراحي الوحيد المثبت في Main9، ثم إعادة قراءة Main9 حتى آخر حرف، ثم تشغيل Syntax Gate الصحيح، ثم مطابقة Main2 كاملًا قبل Assembly. لا يجوز تجاوز هذه السلسلة أو إعلان الإغلاق من التقرير وحده.
