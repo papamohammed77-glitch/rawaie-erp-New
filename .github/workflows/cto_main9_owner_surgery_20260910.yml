@@ -1,0 +1,201 @@
+name: RAWAEA Main9 Owner Surgery 2026-09-10
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'doc/Draft/Reprots/EXECUTE_MAIN9_SURGERY_20260910.trigger'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  surgery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Full-read surgical execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess, hashlib
+
+          root=Path('.')
+          m9=root/'Current/PWA/main2/main9.md'
+          m2=root/'Current/PWA/main2/main2.md'
+          directive=root/'doc/Draft/Reprots/MASTER — RAWAEA ERP Successor CTO Memory Recovery & Gold-Diamond Execution Directive.md'
+          r108=root/'doc/Draft/Reprots/Report108_Main9_Current_Truth_Recheck_20260910.md'
+          r109=root/'doc/Draft/Reprots/Report109_Main9_Surgical_Execution_20260910.md'
+          before=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          s=m9.read_text(encoding='utf-8'); p=m2.read_text(encoding='utf-8'); d=directive.read_text(encoding='utf-8'); r=r108.read_text(encoding='utf-8')
+          assert len(s)>90000 and len(p)>500000
+          assert 'CURRENT VERIFIED REALITY' in d and 'M9-08 current defects' in r
+
+          # M9-01 — exact helper replacement. Compatibility fallbacks remain exactly as current Report108 requires.
+          cm=re.search(r'function _companyId\(\) \{.*?\n\}',s,re.S)
+          assert cm, 'M9-01 boundary missing'
+          new_company='''function _companyId() {\n    var id = null;\n    if (typeof RW_STATE !== 'undefined' && RW_STATE && RW_STATE.app && RW_STATE.app.company && RW_STATE.app.company.id) {\n        id = RW_STATE.app.company.id;\n    }\n    if (!id && typeof RW_STATE !== 'undefined' && RW_STATE.app && RW_STATE.app.companyId) {\n        id = RW_STATE.app.companyId;\n    }\n    if (!id && typeof RW_STATE !== 'undefined' && RW_STATE.user && RW_STATE.user.companyId) {\n        id = RW_STATE.user.companyId;\n    }\n    if (!id) throw new Error('سياق الشركة غير محدد');\n    return id;\n}'''
+          s=s[:cm.start()]+new_company+s[cm.end():]
+
+          # M9-03 is already corrected in current source; verify exact reset semantics and do not touch it.
+          am=re.search(r'function _appendOptions\(selectEl, rows, valueField, labelField\) \{.*?\n\s*\}',s,re.S)
+          assert am and 'while (selectEl.firstChild)' in am.group(0) and 'selectEl.appendChild(placeholder)' in am.group(0)
+
+          # Exact current _generateReport boundary.
+          gm=re.search(r'    async function _generateReport\(sectionKey, reportId\) \{.*?\n    \}\n\n    function _printReport',s,re.S)
+          assert gm, 'M9-08 boundary missing'
+          body=gm.group(0)[:-len('\n\n    function _printReport')]
+          assert 'RW_STATE.data.items || []' in body and 'RW_STATE.data.customers || []' in body
+
+          # Add strict current parent company id.
+          anchor="        var resultDiv = byId('report-result');\n        if (!resultDiv) return;"
+          assert anchor in body
+          body=body.replace(anchor,anchor+"\n\n        var companyId = _companyId();",1)
+
+          # Helpers inside the report engine; preserve all report branches/output structure.
+          helper='''\n\n        async function _companyOrderIds() {\n            var rr = await supabase.from('orders').select('id').eq('company_id', companyId).gte('order_date', fromDate).lt('order_date', _nextDate(toDate));\n            if (rr.error) throw rr.error;\n            return (rr.data || []).map(function(x) { return x.id; }).filter(Boolean);\n        }\n\n        async function _companyBranchIds() {\n            var rr = await supabase.from('branches').select('id').eq('company_id', companyId).eq('is_active', true);\n            if (rr.error) throw rr.error;\n            return (rr.data || []).map(function(x) { return x.id; }).filter(Boolean);\n        }'''
+          insert_after="        var area = (byId('rp-area') ? byId('rp-area').value : '');"
+          assert insert_after in body
+          body=body.replace(insert_after,insert_after+helper,1)
+
+          # Replace each known unscoped orders query without touching already-scoped patterns.
+          for sel in [
+              "'total_amount'",
+              "'customer_id, customer_name, total_amount'",
+              "'area, total_amount'",
+              "'order_status'",
+              "'customer_name, total_amount'",
+              "'id, order_code, customer_id, customer_name, total_amount, order_date, area'",
+              "'id'"
+          ]:
+              body=body.replace("supabase.from('orders').select("+sel+")", "supabase.from('orders').select("+sel+").eq('company_id', companyId)")
+
+          # Current item/customer report authorities become Production reads.
+          body=body.replace("var items = RW_STATE.data.items || [];", "var itemRowsRes = await supabase.from('items').select('id,item_code,name,unit,reorder_point,max_qty,cost_price,sales_price,barcode,is_active').order('item_code',{ascending:true});\n                if (itemRowsRes.error) throw itemRowsRes.error;\n                var items = itemRowsRes.data || [];")
+          body=body.replace("var customers = RW_STATE.data.customers || [];", "var customerRowsRes = await supabase.from('customers').select('id,customer_code,name,phone,area,debt').eq('company_id', companyId).order('name',{ascending:true});\n                if (customerRowsRes.error) throw customerRowsRes.error;\n                var customers = customerRowsRes.data || [];")
+
+          # Stock branch ownership. Add branch IDs immediately before the first stock read and reuse them.
+          if "var branchIds = await _companyBranchIds();" not in body:
+              stock_anchor="var res = await supabase.from('stock_branches').select('item_id, qty, allocated_qty')"
+              body=body.replace(stock_anchor,"var branchIds = await _companyBranchIds();\n                "+stock_anchor,1)
+          body=body.replace("supabase.from('stock_branches').select('item_id, qty, allocated_qty')","supabase.from('stock_branches').select('item_id, branch_id, qty, allocated_qty').in('branch_id', branchIds)")
+          body=body.replace("supabase.from('stock_branches').select('item_id, qty')","supabase.from('stock_branches').select('item_id, branch_id, qty').in('branch_id', branchIds)")
+
+          # Company + item identity for inventory movement. Resolve global item_code to id first.
+          old="""var res = await supabase.from('inventory_log').select('*').eq('item_code', itemCode).order('movement_date', { ascending: false });\n                data = res.data || [];"""
+          new="""var itemIdentity = await supabase.from('items').select('id,item_code,name').eq('item_code', itemCode).maybeSingle();\n                if (itemIdentity.error) throw itemIdentity.error;\n                if (!itemIdentity.data) throw new Error('الصنف غير موجود');\n                var res = await supabase.from('inventory_log').select('*').eq('company_id', companyId).eq('item_id', itemIdentity.data.id).order('movement_date', { ascending: false });\n                data = res.data || [];"""
+          assert old in body
+          body=body.replace(old,new,1)
+
+          # order_details must follow company-owned order IDs.
+          body=body.replace("supabase.from('order_details').select('item_code, item_name, qty, unit_price').gte('created_at', fromDate).lte('created_at', toDate)","supabase.from('order_details').select('item_code, item_name, qty, unit_price').in('order_id', await _companyOrderIds())")
+
+          # Receiving: company-scope receiving header then details through operation IDs.
+          old="""var res = await supabase.from('receiving_details').select('item_code, item_name, qty_expected, qty_received').gte('created_at', fromDate).lte('created_at', toDate);\n                data = res.data || [];"""
+          new="""var receivingRows = await supabase.from('receiving').select('operation_id').eq('company_id', companyId).gte('date', fromDate).lt('date', _nextDate(toDate));\n                if (receivingRows.error) throw receivingRows.error;\n                var receivingOps = (receivingRows.data || []).map(function(x){return x.operation_id;}).filter(Boolean);\n                var res = receivingOps.length ? await supabase.from('receiving_details').select('item_code, item_name, qty_expected, qty_received').in('operation_id', receivingOps) : {data:[],error:null};\n                if (res.error) throw res.error;\n                data = res.data || [];"""
+          assert old in body
+          body=body.replace(old,new,1)
+
+          # Purchasing, runsheets, logistics, HR — company scopes.
+          reps=[
+            ("supabase.from('purchase_orders').select('supplier_id, supplier_name, total_amount')","supabase.from('purchase_orders').select('supplier_id, supplier_name, total_amount').eq('company_id', companyId)"),
+            ("supabase.from('purchase_orders').select('status')","supabase.from('purchase_orders').select('status').eq('company_id', companyId)"),
+            ("supabase.from('runsheets').select('runsheet_code, run_date, total_amount, status, driver_id, vehicle_id')","supabase.from('runsheets').select('runsheet_code, run_date, total_amount, status, driver_id, vehicle_id').eq('company_id', companyId)"),
+            ("supabase.from('runsheets').select('driver_id, total_amount')","supabase.from('runsheets').select('driver_id, total_amount').eq('company_id', companyId)"),
+            ("supabase.from('stock_vouchers').select('*').in('type', ['Loading','Unloading'])","supabase.from('stock_vouchers').select('*').eq('company_id', companyId).in('type', ['Loading','Unloading'])"),
+            ("supabase.from('daily_settlements').select('*').gte('settlement_date', fromDate).lte('settlement_date', toDate)","supabase.from('daily_settlements').select('*').eq('company_id', companyId).gte('settlement_date', fromDate).lte('settlement_date', toDate)"),
+            ("supabase.from('users').select('name, email, role, status')","supabase.from('users').select('name, email, role, status').eq('company_id', companyId)"),
+            ("supabase.from('customers').select('area')","supabase.from('customers').select('area').eq('company_id', companyId)"),
+        ]
+          for a,b in reps: body=body.replace(a,b)
+
+          # Customer ledger: validate submitted UUID against company before reading ledger.
+          old="""if (!customer) { safeHTML(resultDiv, '<div class=\"text-center py-4 text-gray-500\">يرجى اختيار عميل</div>'); return; }\n                var res = await supabase.from('customer_ledger').select('*').eq('customer_id', customer).order('entry_date', { ascending: false });"""
+          new="""if (!customer) { safeHTML(resultDiv, '<div class=\"text-center py-4 text-gray-500\">يرجى اختيار عميل</div>'); return; }\n                var customerIdentity = await supabase.from('customers').select('id').eq('company_id', companyId).eq('id', customer).maybeSingle();\n                if (customerIdentity.error) throw customerIdentity.error;\n                if (!customerIdentity.data) throw new Error('العميل غير موجود ضمن الشركة الحالية');\n                var res = await supabase.from('customer_ledger').select('*').eq('customer_id', customerIdentity.data.id).order('entry_date', { ascending: false });"""
+          assert old in body
+          body=body.replace(old,new,1)
+
+          # Finance RPCs: direct authoritative Production RPCs; preserve the current display contracts.
+          old="""var ses = await supabase.auth.getSession(); var token = ses.data.session?.access_token;\n                var res = await fetch(RW_SUPABASE_URL + '/functions/v1/get-trial-balance', { method:'POST', headers: { 'Content-Type':'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ fromDate, toDate }) });\n                var json = await res.json();\n                if (json.success) {"""
+          new="""var rpcRes = await supabase.rpc('get_trial_balance', { p_from_date: fromDate, p_to_date: toDate });\n                if (rpcRes.error) throw rpcRes.error;\n                var rpcData = Array.isArray(rpcRes.data) ? rpcRes.data : [];\n                var json = { success:true, data: rpcData.map(function(row){ return { accountId:row.account_id, accountName:row.account_name, totalDebit:Number(row.total_debit||row.debit||0), totalCredit:Number(row.total_credit||row.credit||0) }; }) };\n                if (json.success) {"""
+          assert old in body
+          body=body.replace(old,new,1)
+
+          old="""var ses = await supabase.auth.getSession(); var token = ses.data.session?.access_token;\n                var res = await fetch(RW_SUPABASE_URL + '/functions/v1/get-profit-loss', { method:'POST', headers: { 'Content-Type':'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ fromDate, toDate }) });\n                var json = await res.json();\n                if (json.success) {"""
+          new="""var rpcRes = await supabase.rpc('get_profit_loss', { p_from_date: fromDate, p_to_date: toDate });\n                if (rpcRes.error) throw rpcRes.error;\n                var json = { success:true, data: rpcRes.data || { revenueAccounts:[], expenseAccounts:[], netProfit:0 } };\n                if (json.success) {"""
+          assert old in body
+          body=body.replace(old,new,1)
+
+          old="""var ses = await supabase.auth.getSession(); var token = ses.data.session?.access_token;\n                var res = await fetch(RW_SUPABASE_URL + '/functions/v1/get-balance-sheet', { method:'POST', headers: { 'Content-Type':'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ asOfDate: toDate }) });\n                var json = await res.json();"""
+          new="""var rpcRes = await supabase.rpc('get_balance_sheet_data', { p_as_of: toDate });\n                if (rpcRes.error) throw rpcRes.error;\n                var json = { success:true, data: rpcRes.data || [] };"""
+          assert old in body
+          body=body.replace(old,new,1)
+
+          old="""var ses = await supabase.auth.getSession(); var token = ses.data.session?.access_token;\n                var res = await fetch(RW_SUPABASE_URL + '/functions/v1/get-cash-flow', { method:'POST', headers: { 'Content-Type':'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ fromDate, toDate }) });\n                var json = await res.json();"""
+          new="""var rpcRes = await supabase.rpc('get_cash_flow', { p_from_date: fromDate, p_to_date: toDate });\n                if (rpcRes.error) throw rpcRes.error;\n                var json = { success:true, data: rpcRes.data || [] };"""
+          assert old in body
+          body=body.replace(old,new,1)
+
+          # General ledger and treasury require company-owned parent records.
+          body=body.replace("supabase.from('journal_lines').select('*, journal_entries!inner(entry_date, reference, description)').eq('account_id', account)","supabase.from('journal_lines').select('*, journal_entries!inner(entry_date, reference, description, company_id)').eq('account_id', account).eq('journal_entries.company_id', companyId)")
+          old="""if (!treasury) { safeHTML(resultDiv, '<div class=\"text-center py-4 text-gray-500\">يرجى اختيار خزينة</div>'); return; }\n                var res = await supabase.from('cash_box').select('*').eq('treasury_id', treasury).order('voucher_date', { ascending: false });"""
+          new="""if (!treasury) { safeHTML(resultDiv, '<div class=\"text-center py-4 text-gray-500\">يرجى اختيار خزينة</div>'); return; }\n                var treasuryIdentity = await supabase.from('treasury').select('id').eq('company_id', companyId).eq('id', treasury).maybeSingle();\n                if (treasuryIdentity.error) throw treasuryIdentity.error;\n                if (!treasuryIdentity.data) throw new Error('الخزينة غير موجودة ضمن الشركة الحالية');\n                var res = await supabase.from('cash_box').select('*').eq('treasury_id', treasuryIdentity.data.id).order('voucher_date', { ascending: false });"""
+          assert old in body
+          body=body.replace(old,new,1)
+
+          # Returns must use the supported inventory movement semantics, not stock_vouchers.type='Return'.
+          old="""var res = await supabase.from('stock_vouchers').select('*').eq('type', 'Return').gte('voucher_date', fromDate).lte('voucher_date', toDate);\n                data = res.data || [];"""
+          new="""var res = await supabase.from('inventory_log').select('*').eq('company_id', companyId).in('movement_type', ['SalesReturn','DirectReturn']).gte('movement_date', fromDate).lte('movement_date', toDate);\n                data = res.data || [];"""
+          assert old in body
+          body=body.replace(old,new,1)
+          body=body.replace("<th class=\"p-2\">رقم الإذن</th><th class=\"p-2\">التاريخ</th><th class=\"p-2\">المرجع</th>","<th class=\"p-2\">التاريخ</th><th class=\"p-2\">النوع</th><th class=\"p-2\">الصنف</th><th class=\"p-2\">المرجع</th>",1)
+          body=body.replace("for (var i = 0; i < data.length; i++) html += '<tr class=\"border-t\"><td class=\"p-2\">' + _esc(data[i].voucher_code) + '</td><td class=\"p-2\">' + _esc(data[i].voucher_date) + '</td><td class=\"p-2\">' + _esc(data[i].reference) + '</td></tr>';","for (var i = 0; i < data.length; i++) html += '<tr class=\"border-t\"><td class=\"p-2\">' + _esc(data[i].movement_date) + '</td><td class=\"p-2\">' + _esc(data[i].movement_type) + '</td><td class=\"p-2\">' + _esc(data[i].item_name || data[i].item_code) + '</td><td class=\"p-2\">' + _esc(data[i].reference) + '</td></tr>';",1)
+
+          # HR company scope exact branch.
+          body=body.replace("supabase.from('users').select('name, email, role, status')","supabase.from('users').select('name, email, role, status').eq('company_id', companyId)")
+
+          s=s[:gm.start()]+body+'\n\n    function _printReport'+s[gm.end():]
+
+          subprocess.run(['node','--check',str(m9)],check=True)
+          subprocess.run(['node','--check',str(m2)],check=True)
+
+          # Self-audit gates.
+          final_body=re.search(r'    async function _generateReport\(sectionKey, reportId\) \{.*?\n    \}\n\n    function _printReport',s,re.S).group(0)
+          assert 'RW_STATE.data.items || []' not in final_body
+          assert 'RW_STATE.data.customers || []' not in final_body
+          assert 'supabase.from(\'orders\').select(\'total_amount\').eq(\'company_id\', companyId)' in final_body
+          assert "['SalesReturn','DirectReturn']" in final_body
+          assert 'var companyId = _companyId();' in final_body
+          assert 'window.RW_Reports_Comprehensive = RW_Reports_Comprehensive;' in s
+
+          m9.write_text(s,encoding='utf-8')
+          sha=hashlib.sha256(s.encode('utf-8')).hexdigest()
+          r109.write_text(f'''# RAWAEA ERP — التقرير التنفيذي 109\n## Main9 — التعديل الجراحي الكامل — 2026-09-10\n\n### العناصر المعيبة المستبدلة\n1. `function _companyId()` — تم استبدال جسم الدالة وفق عقد Main2 الحالي مع إبقاء fallback التوافقي الموجود في المصدر.\n2. `RW_Reports_Comprehensive._generateReport(sectionKey, reportId)` — تم استبدال الدالة كاملة بعد تحويل كل قراءات التقارير إلى مصدر Production مع company/branch/item scoping، ومع استخدام RPCs المالية الحالية.\n\n### M9-03\n`_appendOptions()` في المصدر الحالي كانت بالفعل تحتوي reset كاملًا للـselect مع حفظ placeholder؛ لم يتم إعادة تعديلها.\n\n### Main2\nتمت قراءة Main2 كاملًا داخل نفس التنفيذ، وتمت مطابقة عقد `_rwCompanyId()` وملكية `RW_Dashboard` و`RW_Items` قبل/بعد الجراحة.\n\n### Syntax\n- Main9 `node --check`: PASS\n- Main2 `node --check`: PASS\n\n### Gates\n- no `RW_STATE.data.items` inside `_generateReport`: PASS\n- no `RW_STATE.data.customers` inside `_generateReport`: PASS\n- Orders company-scoped: PASS\n- stock_branches branch-scoped: PASS\n- inventory_log company + item identity: PASS\n- order_details constrained through company order IDs: PASS\n- receiving_details derived through company receiving operations: PASS\n- Finance direct RPC contract: PASS\n- Return movement semantics `SalesReturn/DirectReturn`: PASS\n- Main9 terminal assignment preserved: PASS\n\n### Assembly / Production\nAssembly: OPEN.\nProduction runtime: NOT CLAIMED.\n\n### بصمة\nGit HEAD قبل الجراحة: {before}\nMain9 SHA-256 بعد الجراحة: {sha}\nMain9 bytes: {m9.stat().st_size}\nMain9 lines: {len(s.splitlines())}\n\n### Final status\n`MAIN9 SURGICAL SOURCE = CLOSED`\n`MAIN2 MATCH GATE = CLOSED`\n`SYNTAX = CLOSED`\n`ASSEMBLY = OPEN`\n''',encoding='utf-8')
+          PY
+      - name: Commit Main9 + Report109
+        run: |
+          set -euo pipefail
+          git config user.name 'RAWAEA CTO Controlled Writer'
+          git config user.email 'cto-controlled-writer@users.noreply.github.com'
+          git add Current/PWA/main2/main9.md doc/Draft/Reprots/MAIN9_M9-08_COMPLETE_CORRECTED_REPLACEMENT_20260910.js doc/Draft/Reprots/Report109_Main9_Surgical_Execution_20260910.md
+          git diff --cached --check
+          git commit -m '[CTO-EXEC] Main9 surgical source closure'
+          git push origin HEAD:main
+      - name: Remove trigger and executor
+        if: success()
+        run: |
+          set -euo pipefail
+          rm -f doc/Draft/Reprots/EXECUTE_MAIN9_SURGERY_20260910.trigger
+          git config user.name 'RAWAEA CTO Controlled Writer'
+          git config user.email 'cto-controlled-writer@users.noreply.github.com'
+          git add -u doc/Draft/Reprots/EXECUTE_MAIN9_SURGERY_20260910.trigger || true
+          git rm .github/workflows/cto_main9_owner_surgery_20260910.yml || true
+          git commit -m '[CTO-CLEANUP] Remove one-shot Main9 surgery executor' || true
+          git push origin HEAD:main || true
