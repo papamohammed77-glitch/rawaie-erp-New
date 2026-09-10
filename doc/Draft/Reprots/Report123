@@ -1,0 +1,92 @@
+نعم، نفذت جزءًا جوهريًا من الأمر التنفيذي فعليًا، لكن لا أستطيع أن أزعم أن المهمة أُغلقت 100%؛ لأن الـMASTER نفسه يمنع ذلك ما لم يثبت الـProduction authenticated E2E والـruntime النهائي لكل Main1–Main11.
+
+ما تم تنفيذه فعليًا
+
+قرأت الـMASTER والـDirective باعتبارهما أوامر تنفيذية لا تقارير مرجعية، والتزمت بقاعدة:
+
+Understand → Historical/Current reconstruction → Production verification → Surgical change → Verify
+
+وهي القاعدة الصريحة في التقرير.
+
+Production Database:
+
+أضفت وأثبتُّ receive_purchase_atomic بتوقيع Operation ID صريح، مع idempotency حقيقي يعتمد على receiving.operation_id الموجود أصلًا كـUNIQUE.
+أضفت post_financial_entry_atomic لقيد مالي متوازن مع validation وoperation registry.
+أضفت get_enterprise_decision_center ليكون Decision Layer مبنيًا على بيانات Production.
+أضفت بنية employee_documents مع RLS وStorage خاص بالمستندات.
+أعدت التحقق من وجود:
+complete_return_atomic
+complete_order_delivery_atomic
+post_inventory_adjustment_atomic
+post_stock_movement
+receive_purchase_atomic
+save_sales_invoice_atomic
+
+والـProduction snapshot الأخير الذي أخذته كان في 2026-09-10 21:12:02 UTC، ويظهر شركة واحدة، فرعين، 24 مستخدمًا، 17 صنفًا، 20 سجل مخزون، 3 سجلات inventory log، و2 journal entries.
+
+Inventory:
+
+أعدت فحص الـPhysical Writers في PostgreSQL.
+العقد المركزي ما زال:
+Physical Movement → post_stock_movement → stock_branches + inventory_log
+لم أجد Writer SQL مستقلًا مثبتًا يغيّر stock_branches خارج هذا المحرك.
+reserve_stock بقي Reservation Engine وليس Physical Movement Engine، وفق العقد الحاكم.
+
+Edge Functions:
+
+receive-purchase الموجود في Current يحمل Company عبر users.auth_id وليس app_settings LIMIT 1، ويقبل Operation ID ويرسله للـRPC.
+complete-return أصبح Consumer للـcomplete_return_atomic مع Company مرتبط بالمستخدم، بدل الكتابة المباشرة التي كانت موجودة في النسخة التاريخية.
+complete-order-delivery كذلك مرتبط بسياق Company للمستخدم ويستدعي الـRPC المركزي.
+
+Main1–Main11:
+
+تم التعامل مع Current/PWA/main2 باعتباره الـCurrent source.
+لم أستخدم New-main كمصدر حقيقة.
+أُزيلت عبارة (قيد التطوير) من الـCurrent source حسب فحص المستودع.
+أضفت مسار إدارة المتجر في Main6.
+أضفت مركز الرقابة المالية في Main8.
+أضفت Decision Center في Main9.
+أضفت بنية خدمة مستندات الموظفين في Main11.
+أضفت نقاط الوصول في Main1.
+نقطة مهمة جدًا
+
+وجدت أن هناك عددًا كبيرًا من الـGitHub Actions القديمة التي كانت مرتبطة بـNew-main، وهذا كان مخالفًا للخطة الحالية التي ذكرتها. لذلك عطّلت الـworkflow القديم cto_emergency_newmain_closer_20260903.yml حتى لا يستمر في العبث بالمسار المتوقف.
+
+كما أنني لم أقم بدمج main1..main11 في New-main لأن التعليمات الحالية تقول صراحة إن الـassembly يأتي بعد اكتمال الأجزاء، وليس قبل ذلك.
+
+ما لم أعتبره مغلقًا
+
+هناك أربع نقاط لا يجوز لي تزوير إغلاقها:
+
+البند	الحالة
+Production DB core changes	Implemented / verified structurally
+Inventory central writer	No independent DB writer found
+Current Main1–Main11 source surgery	Implemented partially and verified structurally
+Authenticated Production UI E2E	Not proven
+Full functional closure لجميع Main1–Main11	Not proven
+Final New-main assembly	Deferred correctly
+FULLY CLOSED	غير مسموح بإعلانه الآن
+
+والسبب ليس تقصيرًا نظريًا؛ الـMASTER نفسه ينص على أن Production Verified يتطلب evidence حقيقي، وأن FULLY CLOSED لا يُعلن مع وجود Unknown أو Unverified Claim مؤثر.
+
+والأهم: اكتشفت مشكلة لا يجوز دفنها
+
+أثناء التنفيذ ظهر أن receive_purchase_atomic في Production كان يحتاج Operation ID صريحًا حتى يكون الاستلام قابلًا لإعادة المحاولة بأمان. تم تصحيح ذلك إلى:
+
+PO + UUID operation_id → receiving.operation_id UNIQUE → duplicate detection
+
+بدل الاعتماد على Operation ID عشوائي جديد لكل محاولة.
+
+وهذا إصلاح معماري حقيقي، وليس patch على الواجهة.
+
+الخلاصة المهنية
+
+المشروع تقدم فعليًا، والـProduction تغير فعلًا، وليست مجرد توصيات أو تقرير.
+
+لكن طبقًا لنفس الحوكمة التي طلبتها مني، لن أكذب عليك وأقول إن Main1–Main11 أصبحت مكتملة 100%؛ لأن إثبات الوظائف من داخل Production بجلسة مستخدم مصادق عليها لم يكتمل بعد، وكذلك لا يجوز دمج New-main قبل إغلاق الأجزاء.
+
+كما أنني لاحظت أن هناك بعض الـautomations القديمة في المستودع ما زالت تحتاج تنظيفًا/تعطيلًا حتى تصبح البنية التنفيذية نفسها متسقة تمامًا مع قرار إيقاف New-main.
+
+الـMASTER نفسه يطلب أن يكون هذا النوع من العمل Closure Units كاملة واحدة تلو الأخرى، وألا تنتقل المشكلة إلى المرحلة التالية وهي نصف مغلقة.
+
+الحالة الحالية الدقيقة: IMPLEMENTED + PARTIALLY VERIFIED وليست FULLY CLOSED.
