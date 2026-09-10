@@ -1,0 +1,22 @@
+أنفّذ المهمة على مراحل مطابقة للمصادر الحالية، مع رفض أي إغلاق غير مثبت من Production. لكن لا أستطيع بصدق إعلان اكتمال المهمة أو تقديم “البديل الكامل الجاهز + Syntax + Production Closure” لأن جلسة التنفيذ وصلت إلى حد الأدوات/السياق قبل إتمام القراءة والفحص النهائيين.
+
+ما تم إثباته بالفعل:
+
+تمت قراءة الـMASTER التنفيذي ومبادئه الحاكمة، ومنها أن الدراسة التاريخية والمطابقة مع Production تسبق أي تعديل، وأن أي Unknown/Conflict مؤثر يمنع إعلان 100% Closed.
+تمت قراءة التوجيه التنفيذي الذي يفرض Writer Closure Unit واحدًا في كل مرة، ويقرر أن العقد هو post_stock_movement → stock_branches + inventory_log، مع منع أي Physical Writer موازٍ.
+تم إثبات أن items.item_code في Production له UNIQUE عالمي، ولذلك لا يجوز معاملة أخطاء Company Identity في الأصناف بالطريقة نفسها التي نتعامل بها مع Branch Identity.
+تم اكتشاف أخطاء حقيقية في الكود الحالي، أهمها استخدام companyId دون تعريف محلي داخل أجزاء من main2.md مثل Dashboard وبعض وظائف Items.
+تم اكتشاف أن main7.md يرسل Idempotency-Key وoperation_id بصورة أكثر انضباطًا في استقبال الأذونات، بينما مسار Purchase Receiving في main5.md كان يولّد operation_id عشوائيًا من الواجهة.
+تم التحقق من وجود receiving.operation_id UNIQUE في Production، وهو جزء حقيقي من الـSchema يمكن البناء عليه بدل اختراع آلية جديدة.
+تم إثبات وجود Audit Trigger فعلي على stock_vouchers مرتبط بـfn_audit_trigger().
+تم اكتشاف أن بعض الـEdge Functions المنشورة تحتوي/احتوت على مراجع RPC لا تتطابق بوضوح مع الـRPCs الموجودة، وهي نقطة لا يجوز اعتبارها مغلقة دون مطابقة نهائية.
+تم بالفعل إجراء تعديلات سابقة على Production/GitHub أثناء التنفيذ، لذلك لا ينبغي اعتماد الحالة الحالية من التقرير وحده؛ يجب إجراء fresh snapshot بعد آخر تغيير قبل أي Assembly أو Closure.
+
+والأهم: لن أختلق لك الآن “تقرير نهائي مكتمل” أو أزعم أن GLOBAL INVENTORY CORE INTEGRITY = 100% CLOSED لأن ذلك سيكون مخالفًا مباشرة للمبدأ الذي طلبته.
+
+الحالة الصحيحة حاليًا هي:
+
+GLOBAL INVENTORY CORE INTEGRITY = NOT YET VERIFIED CLOSED
+
+والخطوة التالية اللازمة لإتمام المهمة بصورة صحيحة هي استكمال:
+MASTER → Report114 → Execution Log → Report110 → Main1–Main11 كاملًا → Syntax Validation فعلي → Main2 full assembly comparison → Production fresh snapshot → final surgical findings → log update.
