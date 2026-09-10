@@ -1226,8 +1226,7 @@ Load order
 ```text
 main1 → main11
 ```
-
-قد تكون أجزاء من Script واحد.
+ستكون أجزاء من Script واحد.
 
 ---
 
