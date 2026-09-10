@@ -28,7 +28,7 @@ const crypto = require('crypto');
     (function walk(a){(a||[]).forEach(x=>{if(x.view)flat.push(x.view);if(x.submenu)walk(x.submenu)})})(N&&N.menuTree);
     const missing=req.filter(x=>!Object.prototype.hasOwnProperty.call((V&&V.permissionMap)||{},x));
     let ld=false,ad=false,lm='',am='';
-    if(S?.app&&N?.navigate){S.app.currentUser={isOwner:false};try{await N.navigate('license')}catch(e){lm=String(e.message||e);ld=lm==='OWNER_ONLY'}try{await N.navigate('audit')}catch(e){am=String(e.message||e);ad=am==='OWNER_ONLY'}}
+    if(S?.app&&N?.navigate){S.app.currentUser={isOwner:false,permissions:[]};try{const lr=await N.navigate('license');ld=lr===false||lm==='OWNER_ONLY';}catch(e){lm=String(e.message||e);ld=lm==='OWNER_ONLY'}try{const ar=await N.navigate('audit');ad=ar===false||am==='OWNER_ONLY';}catch(e){am=String(e.message||e);ad=am==='OWNER_ONLY'}}
     return {lang:document.documentElement.lang,body:!!document.body,state:!!S,auth:!!window.RW_Auth,nav:!!N,views:!!V,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerLicense,menuCount:flat.length,missing,licenseDenied:ld,licenseMsg:lm,auditDenied:ad,auditMsg:am,mods:['RW_Dashboard','RW_Items','RW_POS','RW_Orders','RW_Runsheets','RW_Purchases','RW_Warehouse','RW_Finance','RW_Reports','RW_OwnerLicense','RW_HR','RW_CRM','RW_Users','RW_Views'].every(x=>!!window[x]),diamond:document.documentElement.outerHTML.includes('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1'),version:window.RW_PWA_RECONSTRUCTION_VERSION||null};
   },required);
   console.log('FINAL_BROWSER_RESULT='+JSON.stringify({r,pe,ce}));
