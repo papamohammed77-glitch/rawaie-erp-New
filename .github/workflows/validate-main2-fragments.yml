@@ -1,0 +1,40 @@
+name: Validate Main2 JavaScript Fragments
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Current/PWA/main2/**'
+      - '.github/workflows/validate-main2-fragments.yml'
+  pull_request:
+    paths:
+      - 'Current/PWA/main2/**'
+      - '.github/workflows/validate-main2-fragments.yml'
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate embedded JavaScript fragments
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/main2-js
+          for n in {1..11}; do
+            src="Current/PWA/main2/main${n}.md"
+            dst="/tmp/main2-js/main${n}.js"
+            test -f "$src"
+            cp "$src" "$dst"
+            node --check "$dst"
+          done
+
+      - name: Validate Main9 required company scopes
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F ".from('items')" Current/PWA/main2/main9.md >/dev/null
+          grep -F ".eq('company_id', companyId)" Current/PWA/main2/main9.md >/dev/null
+          grep -F "inventory_log" Current/PWA/main2/main9.md >/dev/null
