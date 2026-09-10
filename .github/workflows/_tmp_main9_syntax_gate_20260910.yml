@@ -1,0 +1,30 @@
+name: TEMP Main9 Syntax Gate 2026-09-10
+on:
+  push:
+    paths:
+      - '.github/workflows/_tmp_main9_syntax_gate_20260910.yml'
+      - 'Current/PWA/main2/main9.md'
+      - 'Current/PWA/main2/main2.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 1
+      - name: Node syntax gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          node --check Current/PWA/main2/main9.md
+          node --check Current/PWA/main2/main2.md
+          cat Current/PWA/main2/main2.md Current/PWA/main2/main9.md > /tmp/main2-main9.js
+          node --check /tmp/main2-main9.js
+          echo MAIN9_SYNTAX=PASS
+          echo MAIN2_SYNTAX=PASS
+          echo MAIN2_PLUS_MAIN9_PARSE=PASS
