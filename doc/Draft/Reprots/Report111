@@ -1,0 +1,314 @@
+Main9 — التعديل الجراحي
+
+الحالة الحالية: OWNER ACTION REQUIRED — الملف نفسه لم أعدّله التزامًا بحدّ Owner Source Surgery Boundary في الـMASTER؛ لذلك لا أعتبر Main9 مغلقًا حتى يظهر الاستبدال فعليًا في Git. الـMASTER يفرض ذلك صراحةً، كما يفرض أن التاريخ والتقارير لا تثبت الحالة الحالية وحدها.
+
+1) _loadDashboardData — Item Master غير مقيّد بالشركة
+
+العنصر المعيب → الاستعلام الحالي:
+
+var itemsRes = await supabase
+    .from('items')
+    .select('id, item_code, name, reorder_point, max_qty, cost_price, sales_price, is_active')
+    .order('item_code', { ascending: true });
+
+لماذا هو المرفوض → التقرير Dashboard يُبنى بعد تحديد companyId، بينما هذا الاستعلام يعيد كل Item Master في Production. النتيجة أن حساب lowStockCount يمر على أصناف خارج الشركة ويعتبر عدم وجود مخزون لها 0، فتدخل أصناف شركات أخرى في مؤشرات الشركة الحالية. هذا يخالف اتساق Main9 مع Main2 ومع قاعدة Company-scoped operational reporting. الجزء الحالي ظاهر في مصدر Main9 نفسه.
+
+البديل الكامل الجاهز →
+
+var itemsRes = await supabase
+    .from('items')
+    .select('id, item_code, name, reorder_point, max_qty, cost_price, sales_price, is_active')
+    .eq('company_id', companyId)
+    .order('item_code', { ascending: true });
+
+موضع الاستبدال →
+
+FILE:
+Current/PWA/main2/main9.md
+
+FUNCTION:
+_loadDashboardData(fromDate, toDate)
+
+ACTION:
+SEARCH → REPLACE
+
+SEARCH EXACTLY:
+var itemsRes = await supabase
+    .from('items')
+    .select('id, item_code, name, reorder_point, max_qty, cost_price, sales_price, is_active')
+    .order('item_code', { ascending: true });
+
+REPLACE WITH:
+[البديل أعلاه]
+
+تحقق Syntax →
+
+JS syntax: structurally valid replacement
+Braces: balanced
+Promise chain: unchanged
+Query semantics: unchanged except company scope
+No new dependency
+2) _loadDetailedReports — Item Master غير مقيّد بالشركة
+
+العنصر المعيب →
+
+var itemsRes = await supabase
+    .from('items')
+    .select('id, item_code, name, reorder_point, max_qty, cost_price, sales_price, barcode, is_active')
+    .order('item_code', { ascending: true });
+
+لماذا هو المرفوض → الدالة نفسها تبدأ من companyId وتستخدمه في العملاء والفروع والأوامر، ثم تفصل Item Master عن هذا السياق. هذا يؤدي إلى إدخال أصناف خارج الـtenant في inventoryRows وفي تقارير المخزون والتوصيات. لا يوجد مبرر حالي يجعل تقرير شركة يعرض Master أصناف شركات أخرى.
+
+البديل الكامل الجاهز →
+
+var itemsRes = await supabase
+    .from('items')
+    .select('id, item_code, name, reorder_point, max_qty, cost_price, sales_price, barcode, is_active')
+    .eq('company_id', companyId)
+    .order('item_code', { ascending: true });
+
+موضع الاستبدال →
+
+FILE:
+Current/PWA/main2/main9.md
+
+FUNCTION:
+_loadDetailedReports(fromDate, toDate, types)
+
+ACTION:
+SEARCH → REPLACE
+
+SEARCH EXACTLY:
+var itemsRes = await supabase
+    .from('items')
+    .select('id, item_code, name, reorder_point, max_qty, cost_price, sales_price, barcode, is_active')
+    .order('item_code', { ascending: true });
+
+REPLACE WITH:
+[البديل أعلاه]
+
+تحقق Syntax →
+
+Syntax: valid
+Await expression: valid
+Query builder chain: valid
+No change to downstream variables
+3) _loadDropdowns — Item Dropdown يعرض أصناف خارج الشركة
+
+العنصر المعيب →
+
+var itemRes = await supabase
+    .from('items')
+    .select('id, item_code, name')
+    .order('item_code', { ascending: true });
+
+لماذا هو المرفوض → المستخدم داخل Report تابع لشركة محددة، بينما قائمة اختيار الصنف تُحمّل Global Item Master كله. هذا ليس مجرد اختلاف شكلي؛ إنه يكسر Tenant isolation على مستوى واجهة الاختيار، ويجعل المستخدم قادرًا على اختيار Item لا ينتمي إلى السياق التشغيلي للشركة.
+
+والأهم: هذا يتعارض مع وظيفة التحقق الموجودة لاحقًا، والتي تستخدم Company context. لذلك لدينا inconsistency داخل Main9 نفسها.
+
+البديل الكامل الجاهز →
+
+var itemRes = await supabase
+    .from('items')
+    .select('id, item_code, name')
+    .eq('company_id', companyId)
+    .order('item_code', { ascending: true });
+
+موضع الاستبدال →
+
+FILE:
+Current/PWA/main2/main9.md
+
+FUNCTION:
+_loadDropdowns(params)
+
+BLOCK:
+if (params.indexOf('item') !== -1)
+
+ACTION:
+SEARCH → REPLACE
+
+تحقق Syntax →
+
+Syntax: valid
+No DOM change
+No return-type change
+Only tenant filter added
+4) _showItemMovementDetail — هوية الصنف غير مربوطة بسياق التقرير
+
+العنصر المعيب →
+
+var itemRes = await supabase
+    .from('items')
+    .select('id, item_code, name')
+    .eq('item_code', itemCode)
+    .maybeSingle();
+
+لماذا هو المرفوض → item_code Global Unique في Production، لذلك استخدامه ليس خطأ هوية بحد ذاته. لكن هذه الدالة جزء من تقرير شركة، ثم تستخدم نتيجة Item خارج نطاق الشركة دون التحقق من أن الـItem نفسه هو Item المستخدم في السياق الحالي. هذا يفتح بابًا لعرض metadata لصنف أجنبي ثم إظهار أنه لا توجد له حركات في الشركة. قاعدة الـMASTER تمنعنا من خلط Global identity مع Company ownership.
+
+البديل الكامل الجاهز →
+
+var itemRes = await supabase
+    .from('items')
+    .select('id, item_code, name')
+    .eq('item_code', itemCode)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+موضع الاستبدال →
+
+FILE:
+Current/PWA/main2/main9.md
+
+FUNCTION:
+_showItemMovementDetail(itemCode, itemName)
+
+ACTION:
+SEARCH → REPLACE
+
+تحقق Syntax →
+
+Syntax: valid
+Global item_code identity preserved
+Company ownership now enforced
+No schema assumption introduced
+
+ملاحظة حاكمة: لا نغير item_code إلى (company_id,item_code) كمفتاح هوية؛ الـProduction Schema يثبت أن items.item_code عليه UNIQUE عالميًا. هذا هو بالضبط الاستثناء الذي يطلب الـMASTER عدم اختراعه.
+
+Main10 — التعديل الجراحي
+5) RW_OwnerLicense._loadLicenseData — app_settings LIMIT 1
+
+العنصر المعيب →
+
+function _loadLicenseData() {
+    supabase.from('app_settings').select('*').limit(1).single().then(function(res) {
+        var s = res.data || {};
+        _buildFullForm({ 
+            licenseStatus: s.status || 'trial', 
+            trialEndDate: s.trial_end_date || '', 
+            subscriptionEndDate: s.subscription_end_date || '',
+            ownerEmail: s.owner_email || ''
+        });
+    }).catch(function() {
+        _buildFullForm({ licenseStatus: 'trial', trialEndDate: '', subscriptionEndDate: '', ownerEmail: '' });
+    });
+}
+
+لماذا هو المرفوض → Production الحالية تحتوي أكثر من Company وأكثر من app_settings context. وLIMIT 1 هنا ليس اختيارًا لعنصر Global؛ بل اختيار عشوائي لأول إعدادات شركة، ثم عرض الترخيص الخاص بها داخل جلسة مستخدم قد تكون لشركة أخرى. الـMASTER يمنع صراحةً LIMIT 1 عندما تكون الهوية Company-bound.
+
+كما أن الـProduction save-settings الحالية تثبت الطريقة الصحيحة نفسها: تستخرج company_id من المستخدم المصادق عليه، ثم تقرأ app_settings بواسطة company_id. لذلك لا نحتاج اختراع contract جديد. هذا أيضًا متسق مع الكود المنشور حاليًا للـEdge save-settings.
+
+البديل الكامل الجاهز →
+
+function _loadLicenseData() {
+    var companyId = null;
+
+    if (
+        typeof RW_STATE !== 'undefined' &&
+        RW_STATE &&
+        RW_STATE.app &&
+        RW_STATE.app.company &&
+        RW_STATE.app.company.id
+    ) {
+        companyId = RW_STATE.app.company.id;
+    }
+
+    if (
+        !companyId &&
+        typeof RW_STATE !== 'undefined' &&
+        RW_STATE.app &&
+        RW_STATE.app.companyId
+    ) {
+        companyId = RW_STATE.app.companyId;
+    }
+
+    if (
+        !companyId &&
+        typeof RW_STATE !== 'undefined' &&
+        RW_STATE.user &&
+        RW_STATE.user.companyId
+    ) {
+        companyId = RW_STATE.user.companyId;
+    }
+
+    if (!companyId) {
+        _buildFullForm({
+            licenseStatus: 'trial',
+            trialEndDate: '',
+            subscriptionEndDate: '',
+            ownerEmail: ''
+        });
+        return;
+    }
+
+    supabase
+        .from('app_settings')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+        .then(function(res) {
+            if (res.error) throw res.error;
+
+            var s = res.data || {};
+
+            _buildFullForm({
+                licenseStatus: s.status || 'trial',
+                trialEndDate: s.trial_end_date || '',
+                subscriptionEndDate: s.subscription_end_date || '',
+                ownerEmail: s.owner_email || ''
+            });
+        })
+        .catch(function(error) {
+            console.error('RW_OwnerLicense._loadLicenseData', error);
+
+            _buildFullForm({
+                licenseStatus: 'trial',
+                trialEndDate: '',
+                subscriptionEndDate: '',
+                ownerEmail: ''
+            });
+        });
+}
+
+المصدر الحالي لـMain10 يحتوي LIMIT 1 مباشرة في الدالة المذكورة.
+
+موضع الاستبدال →
+
+FILE:
+Current/PWA/main2/main10.md
+
+FUNCTION:
+_loadLicenseData()
+
+ACTION:
+SEARCH → REPLACE
+
+SEARCH:
+من:
+function _loadLicenseData() {
+
+حتى:
+}
+
+استبدل الدالة كاملة بالبديل أعلاه.
+
+تحقق Syntax →
+
+Syntax: valid
+Function closure: balanced
+Promise chain: valid
+maybeSingle(): valid
+Tenant resolution: deterministic
+No change to _buildFullForm contract
+No new global variable
+نتيجة المراجعة الحالية
+
+Main9: OWNER ACTION REQUIRED — توجد 4 استبدالات جراحية مثبتة من المصدر الحالي، ولم أعلن الإغلاق لأن الـMASTER يمنعني من اعتبار تعليمات لم تُطبق على main9.md إصلاحًا مكتملًا.
+
+Main10: OWNER ACTION REQUIRED — يوجد استبدال جراحي واحد مؤكد لـ_loadLicenseData.
+
+لا أعتبر أيًا منهما SOURCE CLOSED أو FULLY CLOSED قبل أن يظهر الكود البديل فعليًا في Git ثم يُعاد فحص الملف كاملًا ويُجرى Syntax/assembly verification.
+
+والـReport110 نفسه يبقى مرجعًا تاريخيًا/تنفيذيًا وليس مصدر حقيقة؛ الـMASTER يفرض إعادة فتح المصدر الحالي عند وجود أي تعارض.
