@@ -4091,7 +4091,7 @@ async function _generateReport(sectionKey, reportId) {
                         'movement_type',
                         [
                             'SalesReturn',
-                            'Return'
+                            'DirectReturn'
                         ]
                     )
                     .gte(
