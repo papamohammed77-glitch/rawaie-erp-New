@@ -1,0 +1,164 @@
+name: Main9 Surgical Executor 20260910
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/main9_surgical_executor.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  execute:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Execute Main9 surgery
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess, hashlib, json
+
+          repo = Path('.')
+          main9 = repo / 'Current/PWA/main2/main9.md'
+          main2 = repo / 'Current/PWA/main2/main2.md'
+          directive = repo / 'doc/Draft/Reprots/MASTER — RAWAEA ERP Successor CTO Memory Recovery & Gold-Diamond Execution Directive.md'
+          report108 = repo / 'doc/Draft/Reprots/Report108_Main9_Current_Truth_Recheck_20260910.md'
+          report109 = repo / 'doc/Draft/Reprots/Report109_Main9_Surgical_Execution_20260910.md'
+
+          before_commit = subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip()
+          before_text = main9.read_text(encoding='utf-8')
+          main2_text = main2.read_text(encoding='utf-8')
+          directive_text = directive.read_text(encoding='utf-8')
+          report108_text = report108.read_text(encoding='utf-8')
+
+          assert len(before_text) > 50000, 'Main9 incomplete'
+          assert len(main2_text) > 500000, 'Main2 incomplete'
+          assert 'CURRENT VERIFIED REALITY' in directive_text
+          assert 'MAIN9 FORMAL SYNTAX' in report108_text
+
+          replacement = __REPLACEMENT__
+
+          pattern = re.compile(r"    async function _generateReport\(sectionKey, reportId\) \{.*?\n    \}\n\n    function _printReport", re.S)
+          m = pattern.search(before_text)
+          if not m:
+              raise SystemExit('Exact _generateReport boundary not found')
+
+          if 'MAIN9-M9-08-SURGICAL-20260910' in m.group(0):
+              after_text = before_text
+              changed = False
+          else:
+              after_text = before_text[:m.start()] + replacement + "\n    function _printReport" + before_text[m.end():]
+              main9.write_text(after_text, encoding='utf-8')
+              changed = True
+
+          subprocess.run(['node','--check',str(main9)], check=True)
+          subprocess.run(['node','--check',str(main2)], check=True)
+
+          def section(text):
+              start = text.find('async function _generateReport(sectionKey, reportId)')
+              end = text.find('\n    function _printReport', start)
+              return text[start:end] if start >= 0 and end >= 0 else ''
+
+          gen = section(after_text)
+          checks = {
+              'main2_company_contract': 'function _rwCompanyId()' in main2_text and 'RW_STATE.app.company.id' in main2_text,
+              'main2_dashboard_owner': 'window.RW_Dashboard' in main2_text,
+              'main2_items_owner': 'window.RW_Items' in main2_text,
+              'main9_no_script_tags': '<script' not in after_text.lower() and '</script>' not in after_text.lower(),
+              'main9_two_modules': 'var RW_Reports = ' in after_text and 'var RW_Reports_Comprehensive = ' in after_text,
+              'main9_terminal_assignment': 'window.RW_Reports_Comprehensive = RW_Reports_Comprehensive;' in after_text,
+              'generate_report_is_surgical': 'MAIN9-M9-08-SURGICAL-20260910' in gen,
+              'generate_report_no_rw_state_data': 'RW_STATE.data.items' not in gen and 'RW_STATE.data.customers' not in gen,
+              'generate_report_orders_scoped': ".eq('company_id', companyId)" in gen,
+              'generate_report_returns_supported': "['SalesReturn','DirectReturn']" in gen,
+          }
+          if not all(checks.values()):
+              raise SystemExit('Integration gate failed: ' + json.dumps(checks, ensure_ascii=False))
+
+          file_sha = hashlib.sha256(after_text.encode('utf-8')).hexdigest()
+          report = """# RAWAEA ERP — Report109
+          ## Main9 — التنفيذ الجراحي والتحقق — 2026-09-10
+
+          ## 1. العنصر المعيب
+          `RW_Reports_Comprehensive._generateReport(sectionKey, reportId)`
+
+          ## 2. ما تم تنفيذه
+          تم استبدال حدود `_generateReport()` كاملة بعد القراءة الكاملة لملفات البرومبت التنفيذي وReport108 وMain9 وMain2 داخل بيئة التنفيذ.
+          لم يتم تعديل Main2.
+          لم يتم تنفيذ Assembly.
+
+          ## 3. عناصر لم يعاد تعديلها
+          `_companyId()` و`_appendOptions()` وجدا بالفعل في الحالة المصححة الحالية؛ لم تتم إعادة كتابتهما.
+
+          ## 4. التحقق
+          - node --check Main9: PASS
+          - node --check Main2: PASS
+          - Main2 company contract: PASS
+          - Main2 RW_Dashboard ownership: PASS
+          - Main2 RW_Items ownership: PASS
+          - Main9 without script tags: PASS
+          - Main9 module/tail preservation: PASS
+          - `_generateReport` without RW_STATE report authority: PASS
+          - Company-scoped Orders: PASS
+          - Supported return semantics: PASS
+
+          ## 5. مصدر التنفيذ
+          Git HEAD قبل التعديل: __BEFORE__
+          Main9 SHA-256 بعد التعديل: __SHA__
+          Main9 bytes: __BYTES__
+          Main9 lines: __LINES__
+          Changed: __CHANGED__
+
+          ## 6. Assembly
+          NOT EXECUTED — بوابة Assembly لم تُفتح.
+
+          ## 7. Production
+          لا يوجد تعديل Database/Production في هذه المهمة؛ لا يُسجل Production PASS.
+
+          ## 8. SELF-AUDIT
+          ### What I Proved
+          القراءة الكاملة داخل executor، التعديل الجراحي المحدد، syntax validation، وMain2 integration gate.
+
+          ### What I Did Not Prove
+          Browser/PWA runtime verification داخل متصفح حقيقي.
+
+          ### What I Fixed
+          M9-08 `_generateReport()`.
+
+          ### Final Closure Status
+          `MAIN9 SOURCE SURGERY = CLOSED`
+          `SYNTAX = CLOSED`
+          `MAIN2 INTEGRATION GATE = CLOSED`
+          `ASSEMBLY = OPEN`
+          """.replace('__BEFORE__', before_commit).replace('__SHA__', file_sha).replace('__BYTES__', str(main9.stat().st_size)).replace('__LINES__', str(len(after_text.splitlines()))).replace('__CHANGED__', str(changed))
+
+          report109.write_text(report, encoding='utf-8')
+          PY
+
+      - name: Commit Main9 and Report109
+        run: |
+          set -euo pipefail
+          git config user.name "rawaea-cto-bot"
+          git config user.email "rawaea-cto-bot@users.noreply.github.com"
+          git add Current/PWA/main2/main9.md doc/Draft/Reprots/Report109_Main9_Surgical_Execution_20260910.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Surgical close Main9 M9-08 and publish Report109"
+          git push origin main
+
+      - name: Remove one-shot executor
+        if: success()
+        run: |
+          set -euo pipefail
+          git config user.name "rawaea-cto-bot"
+          git config user.email "rawaea-cto-bot@users.noreply.github.com"
+          git rm .github/workflows/main9_surgical_executor.yml
+          git commit -m "Remove one-shot Main9 surgical executor"
+          git push origin main
