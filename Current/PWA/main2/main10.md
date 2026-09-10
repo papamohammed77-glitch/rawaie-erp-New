@@ -10,19 +10,77 @@ var RW_OwnerLicense = (function() {
         _loadLicenseData();
     }
 
-    function _loadLicenseData() {
-        supabase.from('app_settings').select('*').limit(1).single().then(function(res) {
+function _loadLicenseData() {
+    var companyId = null;
+
+    if (
+        typeof RW_STATE !== 'undefined' &&
+        RW_STATE &&
+        RW_STATE.app &&
+        RW_STATE.app.company &&
+        RW_STATE.app.company.id
+    ) {
+        companyId = RW_STATE.app.company.id;
+    }
+
+    if (
+        !companyId &&
+        typeof RW_STATE !== 'undefined' &&
+        RW_STATE.app &&
+        RW_STATE.app.companyId
+    ) {
+        companyId = RW_STATE.app.companyId;
+    }
+
+    if (
+        !companyId &&
+        typeof RW_STATE !== 'undefined' &&
+        RW_STATE.user &&
+        RW_STATE.user.companyId
+    ) {
+        companyId = RW_STATE.user.companyId;
+    }
+
+    if (!companyId) {
+        _buildFullForm({
+            licenseStatus: 'trial',
+            trialEndDate: '',
+            subscriptionEndDate: '',
+            ownerEmail: ''
+        });
+        return;
+    }
+
+    supabase
+        .from('app_settings')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+        .then(function(res) {
+            if (res.error) throw res.error;
+
             var s = res.data || {};
-            _buildFullForm({ 
-                licenseStatus: s.status || 'trial', 
-                trialEndDate: s.trial_end_date || '', 
+
+            _buildFullForm({
+                licenseStatus: s.status || 'trial',
+                trialEndDate: s.trial_end_date || '',
                 subscriptionEndDate: s.subscription_end_date || '',
                 ownerEmail: s.owner_email || ''
             });
-        }).catch(function() {
-            _buildFullForm({ licenseStatus: 'trial', trialEndDate: '', subscriptionEndDate: '', ownerEmail: '' });
+        })
+        .catch(function(error) {
+            console.error('RW_OwnerLicense._loadLicenseData', error);
+
+            _buildFullForm({
+                licenseStatus: 'trial',
+                trialEndDate: '',
+                subscriptionEndDate: '',
+                ownerEmail: ''
+            });
         });
-    }
+}
 
     // ============================================================
 // دالة togglePasswordVisibility المساعدة (توضع خارج أي دالة داخل RW_OwnerLicense)
