@@ -1,10 +1,10 @@
 name: TEMP Main9 Syntax Gate 2026-09-10
 on:
-  push:
+  pull_request:
     paths:
-      - '.github/workflows/_tmp_main9_syntax_gate_20260910.yml'
       - 'Current/PWA/main2/main9.md'
       - 'Current/PWA/main2/main2.md'
+      - '.github/workflows/_tmp_main9_syntax_gate_20260910.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
           fetch-depth: 1
       - name: Node syntax gate
         shell: bash
