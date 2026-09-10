@@ -1,0 +1,11 @@
+name: CTO Syntax Gate 20260910
+on:
+  push:
+    branches: [main]
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node --check Current/PWA/main2/main9.md
+      - run: node --check Current/PWA/main2/main10.md
