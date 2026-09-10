@@ -64,115 +64,228 @@ var RW_Reports = (function() {
         _loadDashboardData(fromDef, toDef);
     }
 
-    async function _loadDashboardData(fromDate, toDate) {
-        var container = byId('dash-result-container');
-        if (!container) return;
-        safeHTML(container, '<div class="text-center py-10"><i class="fa-solid fa-spinner fa-spin text-2xl text-indigo-600"></i><p class="mt-2 text-gray-500">جاري تحليل البيانات للفترة...</p></div>');
+async function _loadDashboardData(fromDate, toDate) {
+    var container = byId('dash-result-container');
+    if (!container) return;
 
-        try {
-            var companyId = _companyId();
-            var branchRes = await supabase.from('branches').select('id').eq('company_id', companyId);
-            if (branchRes.error) throw branchRes.error;
-            var branchIds = (branchRes.data || []).map(function(b) { return b.id; }).filter(Boolean);
+    safeHTML(
+        container,
+        '<div class="text-center py-10">' +
+        '<i class="fa-solid fa-spinner fa-spin text-2xl text-indigo-600"></i>' +
+        '<p class="mt-2 text-gray-500">جاري تحليل البيانات للفترة...</p>' +
+        '</div>'
+    );
 
-            var ordersRes = await supabase
-                .from('orders')
-                .select('total_amount, order_date, customer_id')
-                .eq('company_id', companyId)
-                .gte('order_date', fromDate)
-                .lt('order_date', _nextDate(toDate));
-            if (ordersRes.error) throw ordersRes.error;
-            var orders = ordersRes.data || [];
+    try {
+        var companyId = _companyId();
 
-            var totalSales = 0;
-            for (var i = 0; i < orders.length; i++) {
-                totalSales += Number(orders[i].total_amount) || 0;
-            }
-            var orderCount = orders.length;
-            var averageOrder = orderCount > 0 ? Math.round(totalSales / orderCount) : 0;
-            var forecast = averageOrder * 30;
-            var confidence = orderCount > 50 ? 'عالية' : (orderCount > 20 ? 'متوسطة' : 'منخفضة');
-
-            var items = (RW_STATE && RW_STATE.data && Array.isArray(RW_STATE.data.items)) ? RW_STATE.data.items : [];
-            if (!items.length) {
-                var itemsRes = await supabase.from('items').select('*');
-                if (itemsRes.error) throw itemsRes.error;
-                items = itemsRes.data || [];
-            }
-
-            var stockData = [];
-            if (branchIds.length) {
-                var stockRes = await supabase
-                    .from('stock_branches')
-                    .select('item_id, qty')
-                    .in('branch_id', branchIds);
-                if (stockRes.error) throw stockRes.error;
-                stockData = stockRes.data || [];
-            }
-
-            var stockMap = {};
-            for (var s = 0; s < stockData.length; s++) {
-                var stockItemId = stockData[s].item_id;
-                if (!stockItemId) continue;
-                stockMap[stockItemId] = (stockMap[stockItemId] || 0) + (Number(stockData[s].qty) || 0);
-            }
-
-            var lowStockCount = 0;
-            for (var j = 0; j < items.length; j++) {
-                var itemId = items[j] && items[j].id;
-                if (!itemId) continue;
-                if ((stockMap[itemId] || 0) <= (Number(items[j].reorder_point) || 5)) {
-                    lowStockCount++;
-                }
-            }
-
-            var sixtyDaysAgo = new Date();
-            sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-            var recentRes = await supabase
-                .from('orders')
-                .select('customer_id')
-                .eq('company_id', companyId)
-                .gte('order_date', sixtyDaysAgo.toISOString().split('T')[0])
-                .lt('order_date', _nextDate(new Date().toISOString().split('T')[0]));
-            if (recentRes.error) throw recentRes.error;
-
-            var recentCustomers = {};
-            (recentRes.data || []).forEach(function(r) {
-                if (r && r.customer_id) recentCustomers[r.customer_id] = true;
-            });
-
-            var customers = (RW_STATE && RW_STATE.data && Array.isArray(RW_STATE.data.customers)) ? RW_STATE.data.customers : [];
-            if (!customers.length) {
-                var custRes = await supabase
-                    .from('customers')
-                    .select('id, customer_code, name')
-                    .eq('company_id', companyId);
-                if (custRes.error) throw custRes.error;
-                customers = custRes.data || [];
-            }
-
-            var inactiveCount = 0;
-            for (var c = 0; c < customers.length; c++) {
-                var customerId = customers[c] && customers[c].id;
-                if (!customerId) continue;
-                if (!recentCustomers[customerId]) inactiveCount++;
-            }
-
-            var html = '<div class="text-right space-y-6 p-4">';
-            html += '<div class="grid grid-cols-1 md:grid-cols-4 gap-4">';
-            html += '<div class="bg-white rounded-2xl shadow-sm border p-5 text-center"><p class="text-xs text-gray-400 font-bold mb-1">المبيعات المتوقعة (شهرياً)</p><p class="text-3xl font-black text-indigo-600">' + _fmtNum(forecast) + ' EGP</p><p class="text-xs text-gray-400 mt-1">مستوى الثقة: ' + confidence + '</p></div>';
-            html += '<div class="bg-white rounded-2xl shadow-sm border p-5 text-center"><p class="text-xs text-gray-400 font-bold mb-1">إجمالي المبيعات</p><p class="text-3xl font-black text-emerald-600">' + _fmtNum(totalSales) + ' EGP</p><p class="text-xs text-gray-400 mt-1">' + orderCount + ' أوردر</p></div>';
-            html += '<div class="bg-white rounded-2xl shadow-sm border p-5 text-center"><p class="text-xs text-gray-400 font-bold mb-1">أصناف منخفضة</p><p class="text-3xl font-black text-red-600">' + lowStockCount + '</p></div>';
-            html += '<div class="bg-white rounded-2xl shadow-sm border p-5 text-center"><p class="text-xs text-gray-400 font-bold mb-1">عملاء غير نشطين</p><p class="text-3xl font-black text-amber-600">' + inactiveCount + '</p></div>';
-            html += '</div>';
-            html += '<div class="bg-white rounded-2xl shadow-sm border p-5"><p class="text-sm text-gray-500"><strong>الفترة:</strong> من ' + _esc(fromDate) + ' إلى ' + _esc(toDate) + '</p></div>';
-            html += '</div>';
-            safeHTML(container, html);
-        } catch (e) {
-            console.error(e);
-            safeHTML(container, '<div class="text-center py-10 text-red-500">فشل تحميل التحليلات</div>');
+        if (!fromDate || !toDate || fromDate > toDate) {
+            throw new Error('نطاق التاريخ غير صالح');
         }
+
+        var branchRes = await supabase
+            .from('branches')
+            .select('id, branch_code, name')
+            .eq('company_id', companyId)
+            .eq('is_active', true)
+            .order('name', { ascending: true });
+
+        if (branchRes.error) throw branchRes.error;
+
+        var branchIds = (branchRes.data || [])
+            .map(function(b) { return b.id; })
+            .filter(Boolean);
+
+        var ordersRes = await supabase
+            .from('orders')
+            .select('id, total_amount, order_date, customer_id')
+            .eq('company_id', companyId)
+            .gte('order_date', fromDate)
+            .lt('order_date', _nextDate(toDate));
+
+        if (ordersRes.error) throw ordersRes.error;
+
+        var orders = ordersRes.data || [];
+        var totalSales = 0;
+
+        for (var i = 0; i < orders.length; i++) {
+            totalSales += Number(orders[i].total_amount) || 0;
+        }
+
+        var orderCount = orders.length;
+        var averageOrder = orderCount > 0
+            ? Math.round(totalSales / orderCount)
+            : 0;
+
+        var itemsRes = await supabase
+            .from('items')
+            .select('id, item_code, name, reorder_point, max_qty, cost_price, sales_price, is_active')
+            .order('item_code', { ascending: true });
+
+        if (itemsRes.error) throw itemsRes.error;
+
+        var items = itemsRes.data || [];
+
+        var stockData = [];
+
+        if (branchIds.length) {
+            var stockRes = await supabase
+                .from('stock_branches')
+                .select('item_id, branch_id, qty, allocated_qty')
+                .in('branch_id', branchIds);
+
+            if (stockRes.error) throw stockRes.error;
+
+            stockData = stockRes.data || [];
+        }
+
+        var stockMap = {};
+
+        for (var s = 0; s < stockData.length; s++) {
+            var stockRow = stockData[s];
+            if (!stockRow.item_id) continue;
+
+            if (!stockMap[stockRow.item_id]) {
+                stockMap[stockRow.item_id] = {
+                    qty: 0,
+                    allocated: 0
+                };
+            }
+
+            stockMap[stockRow.item_id].qty += Number(stockRow.qty) || 0;
+            stockMap[stockRow.item_id].allocated += Number(stockRow.allocated_qty) || 0;
+        }
+
+        var lowStockCount = 0;
+
+        for (var j = 0; j < items.length; j++) {
+            var currentItem = items[j];
+            if (!currentItem || !currentItem.id) continue;
+
+            var stock = stockMap[currentItem.id] || {
+                qty: 0,
+                allocated: 0
+            };
+
+            var availableQty = Math.max(
+                0,
+                Number(stock.qty || 0) - Number(stock.allocated || 0)
+            );
+
+            var reorderPoint = Number(currentItem.reorder_point) || 5;
+
+            if (availableQty <= reorderPoint) {
+                lowStockCount++;
+            }
+        }
+
+        var sixtyDaysAgo = new Date();
+        sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+        var recentRes = await supabase
+            .from('orders')
+            .select('customer_id')
+            .eq('company_id', companyId)
+            .gte('order_date', sixtyDaysAgo.toISOString().slice(0, 10))
+            .lt('order_date', _nextDate(new Date().toISOString().slice(0, 10)));
+
+        if (recentRes.error) throw recentRes.error;
+
+        var recentCustomers = {};
+
+        (recentRes.data || []).forEach(function(row) {
+            if (row && row.customer_id) {
+                recentCustomers[row.customer_id] = true;
+            }
+        });
+
+        var customersRes = await supabase
+            .from('customers')
+            .select('id, customer_code, name')
+            .eq('company_id', companyId)
+            .order('name', { ascending: true });
+
+        if (customersRes.error) throw customersRes.error;
+
+        var customers = customersRes.data || [];
+        var inactiveCount = 0;
+
+        for (var c = 0; c < customers.length; c++) {
+            var customer = customers[c];
+            if (!customer || !customer.id) continue;
+
+            if (!recentCustomers[customer.id]) {
+                inactiveCount++;
+            }
+        }
+
+        var html = '<div class="text-right space-y-6 p-4">';
+
+        html +=
+            '<div class="grid grid-cols-1 md:grid-cols-4 gap-4">' +
+
+            '<div class="bg-white rounded-2xl shadow-sm border p-5 text-center">' +
+            '<p class="text-xs text-gray-400 font-bold mb-1">إجمالي المبيعات</p>' +
+            '<p class="text-3xl font-black text-emerald-600">' +
+            _fmtNum(totalSales) +
+            ' EGP</p>' +
+            '<p class="text-xs text-gray-400 mt-1">' +
+            orderCount +
+            ' أوردر</p>' +
+            '</div>' +
+
+            '<div class="bg-white rounded-2xl shadow-sm border p-5 text-center">' +
+            '<p class="text-xs text-gray-400 font-bold mb-1">متوسط الأوردر</p>' +
+            '<p class="text-3xl font-black text-indigo-600">' +
+            _fmtNum(averageOrder) +
+            ' EGP</p>' +
+            '</div>' +
+
+            '<div class="bg-white rounded-2xl shadow-sm border p-5 text-center">' +
+            '<p class="text-xs text-gray-400 font-bold mb-1">أصناف منخفضة</p>' +
+            '<p class="text-3xl font-black text-red-600">' +
+            lowStockCount +
+            '</p>' +
+            '<p class="text-xs text-gray-400 mt-1">وفق Available Stock</p>' +
+            '</div>' +
+
+            '<div class="bg-white rounded-2xl shadow-sm border p-5 text-center">' +
+            '<p class="text-xs text-gray-400 font-bold mb-1">عملاء غير نشطين</p>' +
+            '<p class="text-3xl font-black text-amber-600">' +
+            inactiveCount +
+            '</p>' +
+            '<p class="text-xs text-gray-400 mt-1">آخر 60 يومًا</p>' +
+            '</div>' +
+
+            '</div>';
+
+        html +=
+            '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+            '<p class="text-sm text-gray-500">' +
+            '<strong>الفترة:</strong> من ' +
+            _esc(fromDate) +
+            ' إلى ' +
+            _esc(toDate) +
+            '</p>' +
+            '<p class="text-xs text-gray-400 mt-1">' +
+            'مصدر البيانات: Production مباشرة – بدون RW_STATE كمصدر تقرير' +
+            '</p>' +
+            '</div>';
+
+        html += '</div>';
+
+        safeHTML(container, html);
+
+    } catch (e) {
+        console.error('RW_Reports._loadDashboardData', e);
+        safeHTML(
+            container,
+            '<div class="text-center py-10 text-red-500">' +
+            _esc(e.message || 'فشل تحميل التحليلات') +
+            '</div>'
+        );
     }
+}
 
     // ========== التقارير التفصيلية (Checkbox) ==========
     function _buildCheckboxGroup(title, prefix, items) {
@@ -265,154 +378,643 @@ var RW_Reports = (function() {
 async function _loadDetailedReports(fromDate, toDate, types) {
     var container = byId('det-result-container');
     if (!container) return;
-    safeHTML(container, '<div class="text-center py-10"><i class="fa-solid fa-spinner fa-spin text-2xl"></i> جاري تحميل التقارير المحددة...</div>');
+
+    safeHTML(
+        container,
+        '<div class="text-center py-10">' +
+        '<i class="fa-solid fa-spinner fa-spin text-2xl"></i>' +
+        '<p class="mt-2 text-gray-500">جاري تحميل التقارير المحددة...</p>' +
+        '</div>'
+    );
 
     try {
-        var items = (Array.isArray(RW_STATE.data.items) ? RW_STATE.data.items : []);
-        // ✅ إزالة أي عناصر فارغة من المصفوفة
-        items = items.filter(function(itm) { return itm != null; });
-        var customers = RW_STATE.data.customers || [];
-        if (!items.length) { var iRes = await supabase.from('items').select('*'); items = iRes.data || []; }
-        if (!customers.length) { var cRes = await supabase.from('customers').select('*'); customers = cRes.data || []; }
-        var stockRes = await supabase.from('stock_branches').select('item_id, qty');
-        var stockData = stockRes.data || [];
-        var stockMap = {};
-        for (var s = 0; s < stockData.length; s++) {
-            if (stockData[s] && stockData[s].item_id) {
-                stockMap[stockData[s].item_id] = (stockMap[stockData[s].item_id] || 0) + (Number(stockData[s].qty) || 0);
-            }
+        var companyId = _companyId();
+
+        if (!fromDate || !toDate || fromDate > toDate) {
+            throw new Error('نطاق التاريخ غير صالح');
         }
 
-        var ordersRes = await supabase.from('orders').select('order_code, customer_id, customer_name, total_amount, order_date, area').gte('order_date', fromDate).lte('order_date', toDate);
+        types = Array.isArray(types) ? types : [];
+
+        var itemsRes = await supabase
+            .from('items')
+            .select('id, item_code, name, reorder_point, max_qty, cost_price, sales_price, barcode, is_active')
+            .order('item_code', { ascending: true });
+
+        if (itemsRes.error) throw itemsRes.error;
+
+        var items = itemsRes.data || [];
+
+        var customersRes = await supabase
+            .from('customers')
+            .select('id, customer_code, name, debt, area')
+            .eq('company_id', companyId)
+            .order('name', { ascending: true });
+
+        if (customersRes.error) throw customersRes.error;
+
+        var customers = customersRes.data || [];
+
+        var branchesRes = await supabase
+            .from('branches')
+            .select('id, branch_code, name')
+            .eq('company_id', companyId)
+            .eq('is_active', true)
+            .order('name', { ascending: true });
+
+        if (branchesRes.error) throw branchesRes.error;
+
+        var branches = branchesRes.data || [];
+        var branchIds = branches.map(function(b) { return b.id; }).filter(Boolean);
+
+        var stockRows = [];
+
+        if (branchIds.length) {
+            var stockRes = await supabase
+                .from('stock_branches')
+                .select('item_id, branch_id, qty, allocated_qty')
+                .in('branch_id', branchIds);
+
+            if (stockRes.error) throw stockRes.error;
+
+            stockRows = stockRes.data || [];
+        }
+
+        var stockMap = {};
+
+        for (var s = 0; s < stockRows.length; s++) {
+            var stockRow = stockRows[s];
+            if (!stockRow.item_id) continue;
+
+            if (!stockMap[stockRow.item_id]) {
+                stockMap[stockRow.item_id] = {
+                    qty: 0,
+                    allocated: 0
+                };
+            }
+
+            stockMap[stockRow.item_id].qty += Number(stockRow.qty) || 0;
+            stockMap[stockRow.item_id].allocated += Number(stockRow.allocated_qty) || 0;
+        }
+
+        var ordersRes = await supabase
+            .from('orders')
+            .select('id, order_code, customer_id, customer_name, total_amount, order_date, area')
+            .eq('company_id', companyId)
+            .gte('order_date', fromDate)
+            .lt('order_date', _nextDate(toDate));
+
+        if (ordersRes.error) throw ordersRes.error;
+
         var orders = ordersRes.data || [];
-        var detailsRes = await supabase.from('order_details').select('item_code, item_name, qty, unit_price, order_id');
-        var details = detailsRes.data || [];
-        var soldCodes = {}; // ← نُقل إلى هنا ليكون متاحاً لكل الأقسام
+
+        var orderIds = orders
+            .map(function(o) { return o.id; })
+            .filter(Boolean);
+
+        var details = [];
+
+        if (orderIds.length) {
+            var detailsRes = await supabase
+                .from('order_details')
+                .select('order_id, item_id, item_code, item_name, qty, unit_price')
+                .in('order_id', orderIds);
+
+            if (detailsRes.error) throw detailsRes.error;
+
+            details = detailsRes.data || [];
+        }
+
+        var soldCodes = {};
+
+        for (var d = 0; d < details.length; d++) {
+            if (details[d] && details[d].item_code) {
+                soldCodes[details[d].item_code] = true;
+            }
+        }
 
         var html = '<div class="text-right space-y-6">';
-        html += '<div class="bg-white rounded-2xl shadow-sm border p-5"><p class="text-sm text-gray-500"><strong>الفترة:</strong> من ' + fromDate + ' إلى ' + toDate + '</p></div>';
 
-        // ملخص المبيعات
+        html +=
+            '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+            '<p class="text-sm text-gray-500">' +
+            '<strong>الفترة:</strong> من ' +
+            _esc(fromDate) +
+            ' إلى ' +
+            _esc(toDate) +
+            '</p>' +
+            '</div>';
+
         if (types.indexOf('sales-summary') !== -1) {
             var totalSales = 0;
-            for (var o = 0; o < orders.length; o++) { totalSales += Number(orders[o].total_amount) || 0; }
-            var avgOrder = orders.length > 0 ? Math.round(totalSales / orders.length) : 0;
-            html += '<div class="bg-white rounded-2xl shadow-sm border p-5"><h3 class="font-black text-lg mb-3"><i class="fa-solid fa-chart-line ml-2 text-indigo-600"></i> ملخص المبيعات</h3>';
-            html += '<div class="grid grid-cols-3 gap-4"><div class="bg-indigo-50 rounded-xl p-4 text-center"><p class="text-xs text-indigo-400 font-bold">عدد الأوردرات</p><p class="text-2xl font-black text-indigo-700">' + orders.length + '</p></div>';
-            html += '<div class="bg-emerald-50 rounded-xl p-4 text-center"><p class="text-xs text-emerald-400 font-bold">إجمالي المبيعات</p><p class="text-2xl font-black text-emerald-700">' + _fmtNum(totalSales) + ' EGP</p></div>';
-            html += '<div class="bg-amber-50 rounded-xl p-4 text-center"><p class="text-xs text-amber-400 font-bold">متوسط الأوردر</p><p class="text-2xl font-black text-amber-700">' + _fmtNum(avgOrder) + ' EGP</p></div></div></div>';
+
+            for (var o = 0; o < orders.length; o++) {
+                totalSales += Number(orders[o].total_amount) || 0;
+            }
+
+            var avgOrder = orders.length
+                ? Math.round(totalSales / orders.length)
+                : 0;
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                '<h3 class="font-black text-lg mb-3">ملخص المبيعات</h3>' +
+                '<div class="grid grid-cols-3 gap-4">' +
+
+                '<div class="bg-indigo-50 rounded-xl p-4 text-center">' +
+                '<p class="text-xs font-bold text-indigo-400">عدد الأوردرات</p>' +
+                '<p class="text-2xl font-black text-indigo-700">' +
+                orders.length +
+                '</p>' +
+                '</div>' +
+
+                '<div class="bg-emerald-50 rounded-xl p-4 text-center">' +
+                '<p class="text-xs font-bold text-emerald-400">إجمالي المبيعات</p>' +
+                '<p class="text-2xl font-black text-emerald-700">' +
+                _fmtNum(totalSales) +
+                ' EGP</p>' +
+                '</div>' +
+
+                '<div class="bg-amber-50 rounded-xl p-4 text-center">' +
+                '<p class="text-xs font-bold text-amber-400">متوسط الأوردر</p>' +
+                '<p class="text-2xl font-black text-amber-700">' +
+                _fmtNum(avgOrder) +
+                ' EGP</p>' +
+                '</div>' +
+
+                '</div>' +
+                '</div>';
         }
 
-        // المبيعات حسب العميل
         if (types.indexOf('sales-by-customer') !== -1) {
-            var custSales = {};
-            for (var o2 = 0; o2 < orders.length; o2++) {
-                var cid = orders[o2].customer_id || orders[o2].customer_name;
-                if (!cid) continue;
-                custSales[cid] = { name: orders[o2].customer_name || cid, total: (custSales[cid] ? custSales[cid].total : 0) + Number(orders[o2].total_amount || 0), count: (custSales[cid] ? custSales[cid].count : 0) + 1 };
+            var customerSales = {};
+
+            for (var oc = 0; oc < orders.length; oc++) {
+                var order = orders[oc];
+                var customerId = order.customer_id || '__NO_CUSTOMER__';
+
+                if (!customerSales[customerId]) {
+                    customerSales[customerId] = {
+                        id: customerId,
+                        name: order.customer_name || 'غير محدد',
+                        total: 0,
+                        count: 0
+                    };
+                }
+
+                customerSales[customerId].total += Number(order.total_amount) || 0;
+                customerSales[customerId].count += 1;
             }
-            var custArr = Object.values(custSales).sort(function(a,b){ return b.total - a.total; }).slice(0, 10);
-            html += '<div class="bg-white rounded-2xl shadow-sm border p-5"><h3 class="font-black text-lg mb-3"><i class="fa-solid fa-user-group ml-2 text-blue-600"></i> أعلى العملاء مبيعاً</h3>';
-            if (custArr.length > 0) {
-                html += '<table class="w-full text-sm"><thead><tr><th class="p-2">العميل</th><th class="p-2 text-center">الأوردرات</th><th class="p-2 text-center">الإجمالي</th></tr></thead><tbody>';
-                for (var cu = 0; cu < custArr.length; cu++) { html += '<tr><td class="p-2 font-semibold">' + _esc(custArr[cu].name) + '</td><td class="p-2 text-center">' + custArr[cu].count + '</td><td class="p-2 text-center font-bold">' + _fmtNum(custArr[cu].total) + ' EGP</td></tr>'; }
+
+            var customerArr = Object.keys(customerSales)
+                .map(function(key) { return customerSales[key]; })
+                .sort(function(a, b) { return b.total - a.total; })
+                .slice(0, 10);
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                '<h3 class="font-black text-lg mb-3">أعلى العملاء مبيعاً</h3>';
+
+            if (customerArr.length) {
+                html +=
+                    '<table class="w-full text-sm">' +
+                    '<thead><tr>' +
+                    '<th class="p-2">العميل</th>' +
+                    '<th class="p-2 text-center">الأوردرات</th>' +
+                    '<th class="p-2 text-center">الإجمالي</th>' +
+                    '</tr></thead><tbody>';
+
+                for (var ca = 0; ca < customerArr.length; ca++) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(customerArr[ca].name) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        customerArr[ca].count +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold">' +
+                        _fmtNum(customerArr[ca].total) +
+                        ' EGP</td>' +
+                        '</tr>';
+                }
+
                 html += '</tbody></table>';
-            } else { html += '<div class="text-center py-4 text-gray-500">لا توجد بيانات</div>'; }
+            } else {
+                html +=
+                    '<div class="text-center py-4 text-gray-500">لا توجد بيانات</div>';
+            }
+
             html += '</div>';
         }
 
-        // المبيعات حسب الصنف
         if (types.indexOf('sales-by-item') !== -1) {
             var itemSales = {};
-            for (var d = 0; d < details.length; d++) {
-                var det = details[d];
+
+            for (var di = 0; di < details.length; di++) {
+                var det = details[di];
                 if (!det || !det.item_code) continue;
-                if (!itemSales[det.item_code]) itemSales[det.item_code] = { name: det.item_name || det.item_code, qty: 0, total: 0 };
+
+                if (!itemSales[det.item_code]) {
+                    itemSales[det.item_code] = {
+                        code: det.item_code,
+                        name: det.item_name || det.item_code,
+                        qty: 0,
+                        total: 0
+                    };
+                }
+
                 itemSales[det.item_code].qty += Number(det.qty) || 0;
-                itemSales[det.item_code].total += (Number(det.qty) || 0) * (Number(det.unit_price) || 0);
+
+                itemSales[det.item_code].total +=
+                    (Number(det.qty) || 0) *
+                    (Number(det.unit_price) || 0);
             }
-            var itemArr = Object.values(itemSales).sort(function(a,b){ return b.total - a.total; }).slice(0, 10);
-            html += '<div class="bg-white rounded-2xl shadow-sm border p-5"><h3 class="font-black text-lg mb-3"><i class="fa-solid fa-boxes-stacked ml-2 text-purple-600"></i> أعلى الأصناف مبيعاً</h3>';
-            if (itemArr.length > 0) {
-                html += '<table class="w-full text-sm"><thead><tr><th class="p-2">الصنف</th><th class="p-2 text-center">الكمية</th><th class="p-2 text-center">الإجمالي</th></tr></thead><tbody>';
-                for (var it = 0; it < itemArr.length; it++) { html += '<tr><td class="p-2 font-semibold">' + _esc(itemArr[it].name) + '</td><td class="p-2 text-center">' + itemArr[it].qty + '</td><td class="p-2 text-center font-bold">' + _fmtNum(itemArr[it].total) + ' EGP</td></tr>'; }
+
+            var itemArr = Object.keys(itemSales)
+                .map(function(key) { return itemSales[key]; })
+                .sort(function(a, b) { return b.total - a.total; })
+                .slice(0, 10);
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                '<h3 class="font-black text-lg mb-3">أعلى الأصناف مبيعاً</h3>';
+
+            if (itemArr.length) {
+                html +=
+                    '<table class="w-full text-sm">' +
+                    '<thead><tr>' +
+                    '<th class="p-2">الصنف</th>' +
+                    '<th class="p-2 text-center">الكمية</th>' +
+                    '<th class="p-2 text-center">الإجمالي</th>' +
+                    '</tr></thead><tbody>';
+
+                for (var ia = 0; ia < itemArr.length; ia++) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(itemArr[ia].name) +
+                        ' (' +
+                        _esc(itemArr[ia].code) +
+                        ')' +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        itemArr[ia].qty +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold">' +
+                        _fmtNum(itemArr[ia].total) +
+                        ' EGP</td>' +
+                        '</tr>';
+                }
+
                 html += '</tbody></table>';
-            } else { html += '<div class="text-center py-4 text-gray-500">لا توجد بيانات</div>'; }
+            } else {
+                html +=
+                    '<div class="text-center py-4 text-gray-500">لا توجد بيانات</div>';
+            }
+
             html += '</div>';
         }
 
-        // العملاء والديون
         if (types.indexOf('customers-debt') !== -1) {
-            var debtors = customers.filter(function(c){ return c && (Number(c.debt)||0) > 0; }).sort(function(a,b){ return Number(b.debt) - Number(a.debt); });
-            html += '<div class="bg-white rounded-2xl shadow-sm border p-5"><h3 class="font-black text-lg mb-3"><i class="fa-solid fa-file-invoice-dollar ml-2 text-red-600"></i> العملاء والديون</h3>';
-            if (debtors.length > 0) {
-                html += '<table class="w-full text-sm"><thead><tr><th class="p-2">العميل</th><th class="p-2 text-center">الدين</th></tr></thead><tbody>';
-                for (var db = 0; db < Math.min(debtors.length, 10); db++) { html += '<tr><td class="p-2 font-semibold">' + _esc(debtors[db].name) + '</td><td class="p-2 text-center font-bold text-red-600">' + _fmtNum(debtors[db].debt) + ' EGP</td></tr>'; }
+            var debtors = customers
+                .filter(function(c) {
+                    return c && Number(c.debt || 0) > 0;
+                })
+                .sort(function(a, b) {
+                    return Number(b.debt || 0) - Number(a.debt || 0);
+                })
+                .slice(0, 10);
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                '<h3 class="font-black text-lg mb-3">العملاء والديون</h3>';
+
+            if (debtors.length) {
+                html +=
+                    '<table class="w-full text-sm">' +
+                    '<thead><tr>' +
+                    '<th class="p-2">العميل</th>' +
+                    '<th class="p-2 text-center">الدين</th>' +
+                    '</tr></thead><tbody>';
+
+                for (var db = 0; db < debtors.length; db++) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(debtors[db].name) +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold text-red-600">' +
+                        _fmtNum(debtors[db].debt) +
+                        ' EGP</td>' +
+                        '</tr>';
+                }
+
                 html += '</tbody></table>';
-            } else { html += '<div class="text-center py-4 text-green-600">لا توجد ديون</div>'; }
+            } else {
+                html +=
+                    '<div class="text-center py-4 text-green-600">لا توجد ديون</div>';
+            }
+
             html += '</div>';
         }
 
-        // الأصناف الراكدة – مع فحص دفاعي
-        if (types.indexOf('inventory-dormant') !== -1) {
-                    for (var d2 = 0; d2 < details.length; d2++) { 
-                if (details[d2] && details[d2].item_code) soldCodes[details[d2].item_code] = true; 
+        if (
+            types.indexOf('customers-activity') !== -1 ||
+            types.indexOf('customers-stopped') !== -1
+        ) {
+            var recentCustomerIds = {};
+
+            for (var rc = 0; rc < orders.length; rc++) {
+                if (orders[rc].customer_id) {
+                    recentCustomerIds[orders[rc].customer_id] = true;
+                }
             }
-            var dormant = [];
-            if (items && Array.isArray(items)) {
-                dormant = items.filter(function(itm){ 
-                    if (!itm || !itm.id || !itm.item_code) return false;
-                    return (stockMap[itm.id]||0) > 0 && !soldCodes[itm.item_code]; 
+
+            if (types.indexOf('customers-activity') !== -1) {
+                html +=
+                    '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                    '<h3 class="font-black text-lg mb-3">نشاط العملاء</h3>' +
+                    '<p class="text-sm text-gray-600">' +
+                    'عدد العملاء الذين لديهم أوردرات خلال الفترة: ' +
+                    Object.keys(recentCustomerIds).length +
+                    '</p>' +
+                    '</div>';
+            }
+
+            if (types.indexOf('customers-stopped') !== -1) {
+                var stoppedCount = 0;
+
+                for (var cs = 0; cs < customers.length; cs++) {
+                    if (
+                        customers[cs] &&
+                        customers[cs].id &&
+                        !recentCustomerIds[customers[cs].id]
+                    ) {
+                        stoppedCount++;
+                    }
+                }
+
+                html +=
+                    '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                    '<h3 class="font-black text-lg mb-3">العملاء المتوقفون</h3>' +
+                    '<p class="text-2xl font-black text-red-600">' +
+                    stoppedCount +
+                    '</p>' +
+                    '</div>';
+            }
+        }
+
+        if (
+            types.indexOf('inventory-low') !== -1 ||
+            types.indexOf('inventory-top') !== -1 ||
+            types.indexOf('inventory-dormant') !== -1
+        ) {
+            var inventoryRows = [];
+
+            for (var ir = 0; ir < items.length; ir++) {
+                var itemRow = items[ir];
+                if (!itemRow || !itemRow.id) continue;
+
+                var stock = stockMap[itemRow.id] || {
+                    qty: 0,
+                    allocated: 0
+                };
+
+                var availableQty = Math.max(
+                    0,
+                    Number(stock.qty || 0) - Number(stock.allocated || 0)
+                );
+
+                inventoryRows.push({
+                    item: itemRow,
+                    qty: Number(stock.qty || 0),
+                    allocated: Number(stock.allocated || 0),
+                    available: availableQty
                 });
             }
-            html += '<div class="bg-white rounded-2xl shadow-sm border p-5"><h3 class="font-black text-lg mb-3"><i class="fa-solid fa-box-archive ml-2 text-red-600"></i> الأصناف الراكدة</h3>';
-            if (dormant.length > 0) {
-                html += '<table class="w-full text-sm"><thead><tr><th class="p-2">الصنف</th><th class="p-2 text-center">المخزون</th></tr></thead><tbody>';
-                for (var dr = 0; dr < Math.min(dormant.length, 15); dr++) { html += '<tr><td class="p-2 font-semibold">' + _esc(dormant[dr].name) + '</td><td class="p-2 text-center font-bold text-red-600">' + (stockMap[dormant[dr].id]||0) + '</td></tr>'; }
-                html += '</tbody></table>';
-            } else { html += '<div class="text-center py-4 text-green-600">لا توجد أصناف راكدة</div>'; }
-            html += '</div>';
+
+            if (types.indexOf('inventory-low') !== -1) {
+                var lowRows = inventoryRows.filter(function(row) {
+                    return row.available <=
+                        (Number(row.item.reorder_point) || 5);
+                }).sort(function(a, b) {
+                    return a.available - b.available;
+                }).slice(0, 15);
+
+                html +=
+                    '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                    '<h3 class="font-black text-lg mb-3">الأصناف منخفضة المخزون</h3>' +
+                    '<table class="w-full text-sm">' +
+                    '<thead><tr>' +
+                    '<th class="p-2">الصنف</th>' +
+                    '<th class="p-2 text-center">المتاح</th>' +
+                    '<th class="p-2 text-center">حد الطلب</th>' +
+                    '</tr></thead><tbody>';
+
+                for (var lr = 0; lr < lowRows.length; lr++) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(lowRows[lr].item.name) +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold text-red-600">' +
+                        lowRows[lr].available +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        (Number(lowRows[lr].item.reorder_point) || 5) +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table></div>';
+            }
+
+            if (types.indexOf('inventory-top') !== -1) {
+                var topRows = Object.keys(itemSales)
+                    .map(function(key) { return itemSales[key]; })
+                    .sort(function(a, b) { return b.total - a.total; })
+                    .slice(0, 15);
+
+                html +=
+                    '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                    '<h3 class="font-black text-lg mb-3">الأصناف الأعلى مبيعاً</h3>' +
+                    '<table class="w-full text-sm">' +
+                    '<thead><tr>' +
+                    '<th class="p-2">الصنف</th>' +
+                    '<th class="p-2 text-center">الكمية</th>' +
+                    '<th class="p-2 text-center">الإجمالي</th>' +
+                    '</tr></thead><tbody>';
+
+                for (var tr = 0; tr < topRows.length; tr++) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(topRows[tr].name) +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        topRows[tr].qty +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold">' +
+                        _fmtNum(topRows[tr].total) +
+                        ' EGP</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table></div>';
+            }
+
+            if (types.indexOf('inventory-dormant') !== -1) {
+                var dormantRows = inventoryRows
+                    .filter(function(row) {
+                        return row.available > 0 &&
+                            !soldCodes[row.item.item_code];
+                    })
+                    .sort(function(a, b) {
+                        return b.available - a.available;
+                    })
+                    .slice(0, 30);
+
+                html +=
+                    '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                    '<h3 class="font-black text-lg mb-3">الأصناف الراكدة</h3>' +
+                    '<table class="w-full text-sm">' +
+                    '<thead><tr>' +
+                    '<th class="p-2">الصنف</th>' +
+                    '<th class="p-2 text-center">المتاح</th>' +
+                    '<th class="p-2 text-center">الحد الأقصى</th>' +
+                    '</tr></thead><tbody>';
+
+                for (var dr = 0; dr < dormantRows.length; dr++) {
+                    html +=
+                        '<tr class="border-t">' +
+                        '<td class="p-2 font-semibold">' +
+                        _esc(dormantRows[dr].item.name) +
+                        '</td>' +
+                        '<td class="p-2 text-center font-bold text-red-600">' +
+                        dormantRows[dr].available +
+                        '</td>' +
+                        '<td class="p-2 text-center">' +
+                        (
+                            Number(dormantRows[dr].item.max_qty) > 0
+                                ? dormantRows[dr].item.max_qty
+                                : 'غير محدد'
+                        ) +
+                        '</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table></div>';
+            }
         }
 
-        // توصيات ذكية – مع فحص دفاعي
-        if (types.indexOf('rec-purchase') !== -1 || types.indexOf('rec-offers') !== -1) {
+        if (
+            types.indexOf('rec-purchase') !== -1 ||
+            types.indexOf('rec-offers') !== -1
+        ) {
             var recs = [];
-            // توصيات شراء
-            for (var j = 0; j < items.length; j++) {
-                if (!items[j] || !items[j].id) continue;
-                if ((stockMap[items[j].id]||0) <= (Number(items[j].reorder_point)||5)) {
-                    recs.push({ type: 'شراء', item: items[j].name, reason: 'المخزون منخفض (' + (stockMap[items[j].id]||0) + ')' });
-                    if (recs.length >= 3) break;
+
+            for (var rp = 0; rp < inventoryRows.length; rp++) {
+                var inv = inventoryRows[rp];
+                var reorder = Number(inv.item.reorder_point) || 5;
+                var maxQty = Number(inv.item.max_qty) || 0;
+
+                if (
+                    types.indexOf('rec-purchase') !== -1 &&
+                    inv.available <= reorder
+                ) {
+                    recs.push({
+                        type: 'شراء',
+                        item: inv.item.name,
+                        reason:
+                            'المتاح ' +
+                            inv.available +
+                            ' ≤ حد إعادة الطلب ' +
+                            reorder
+                    });
                 }
+
+                if (
+                    types.indexOf('rec-offers') !== -1 &&
+                    maxQty > 0 &&
+                    inv.available > maxQty &&
+                    !soldCodes[inv.item.item_code]
+                ) {
+                    recs.push({
+                        type: 'عرض ترويجي',
+                        item: inv.item.name,
+                        reason:
+                            'المتاح ' +
+                            inv.available +
+                            ' أعلى من الحد الأقصى ' +
+                            maxQty +
+                            ' مع عدم وجود مبيعات خلال الفترة'
+                    });
+                }
+
+                if (recs.length >= 10) break;
             }
-            // توصيات عروض
-            var dormant2 = [];
-            if (items && Array.isArray(items)) {
-                dormant2 = items.filter(function(itm){ 
-                    if (!itm || !itm.id || !itm.item_code) return false;
-                    return (stockMap[itm.id]||0) > 0 && !soldCodes[itm.item_code]; 
-                });
-            }
-            if (dormant2.length > 0) {
-                recs.push({ type: 'عرض ترويجي', item: dormant2[0].name, reason: 'راكد بقيمة ' + _fmtNum((stockMap[dormant2[0].id]||0) * (Number(dormant2[0].cost_price) || Number(dormant2[0].sales_price) || 0)) + ' EGP' });
-            }
-            html += '<div class="bg-white rounded-2xl shadow-sm border p-5"><h3 class="font-black text-lg mb-3"><i class="fa-solid fa-lightbulb ml-2 text-amber-500"></i> توصيات ذكية</h3>';
-            if (recs.length > 0) {
+
+            html +=
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                '<h3 class="font-black text-lg mb-3">توصيات تشغيلية</h3>';
+
+            if (recs.length) {
                 html += '<div class="space-y-3">';
-                for (var rc = 0; rc < recs.length; rc++) {
-                    var color = recs[rc].type === 'شراء' ? 'border-indigo-200 bg-indigo-50' : 'border-amber-200 bg-amber-50';
-                    var icon = recs[rc].type === 'شراء' ? 'fa-cart-shopping' : 'fa-tag';
-                    html += '<div class="border-r-4 ' + color + ' p-4 rounded-lg"><div class="flex items-center gap-2 mb-1"><i class="fa-solid ' + icon + '"></i><span class="font-bold">' + recs[rc].type + ': ' + _esc(recs[rc].item) + '</span></div><p class="text-sm text-gray-600">' + recs[rc].reason + '</p></div>';
+
+                for (var rr = 0; rr < recs.length; rr++) {
+                    html +=
+                        '<div class="border-r-4 ' +
+                        (recs[rr].type === 'شراء'
+                            ? 'border-indigo-500 bg-indigo-50'
+                            : 'border-amber-500 bg-amber-50') +
+                        ' p-4 rounded-lg">' +
+                        '<div class="font-bold">' +
+                        _esc(recs[rr].type) +
+                        ': ' +
+                        _esc(recs[rr].item) +
+                        '</div>' +
+                        '<p class="text-sm text-gray-600 mt-1">' +
+                        _esc(recs[rr].reason) +
+                        '</p>' +
+                        '</div>';
                 }
+
                 html += '</div>';
-            } else { html += '<div class="text-center py-4 text-gray-500">لا توجد توصيات حالياً</div>'; }
+            } else {
+                html +=
+                    '<div class="text-center py-4 text-gray-500">لا توجد توصيات وفق السياسات الحالية</div>';
+            }
+
             html += '</div>';
+        }
+
+        if (
+            types.indexOf('rec-customers') !== -1 ||
+            types.indexOf('rec-expansion') !== -1
+        ) {
+            html +=
+                '<div class="bg-amber-50 border border-amber-200 rounded-2xl p-5">' +
+                '<h3 class="font-black text-lg mb-2">Capability Gate</h3>' +
+                '<p class="text-sm text-amber-800">' +
+                'هذه التوصية غير مفعلة: لا يوجد في مجموعة الأدلة الحالية مصدر Production سلطوي يثبت سياسة آلية لها.' +
+                '</p>' +
+                '</div>';
         }
 
         html += '</div>';
+
         safeHTML(container, html);
 
-    } catch(e) { console.error(e); safeHTML(container, '<div class="text-center py-10 text-red-500">فشل تحميل التقارير</div>'); }
+    } catch (e) {
+        console.error('RW_Reports._loadDetailedReports', e);
+        safeHTML(
+            container,
+            '<div class="text-center py-8 text-red-500">' +
+            _esc(e.message || 'فشل تحميل التقارير') +
+            '</div>'
+        );
+    }
 }
     return {
         renderDashboard: renderDashboard,
@@ -809,86 +1411,375 @@ var RW_Reports_Comprehensive = (function() {
     }
 
     // ==================== دوال التفاصيل (Drill-Down) ====================
-    async function _showCustomerLedgerDetail(customerCode, customerName) {
-        _showLoader('جاري تحميل كشف حساب العميل...');
-        try {
-            var res = await supabase.from('customer_ledger').select('*').eq('customer_id', customerCode).order('entry_date', { ascending: false });
-            var data = res.data || [];
-            _hideLoader();
-            if (!data.length) { _showToast('لا توجد حركات لهذا العميل', 'info'); return; }
-            var html = '<div class="text-right"><h4 class="font-bold mb-3">كشف حساب: ' + _esc(customerName) + ' (' + _esc(customerCode) + ')</h4>';
-            html += '<table class="w-full text-sm border"><thead><tr class="bg-gray-100"><th class="p-2">التاريخ</th><th class="p-2">البيان</th><th class="p-2 text-center">مدين</th><th class="p-2 text-center">دائن</th><th class="p-2 text-center">الرصيد</th></tr></thead><tbody>';
-            for (var i = 0; i < data.length; i++) {
-                html += '<tr class="border-t"><td class="p-2">' + _esc(data[i].entry_date) + '</td><td class="p-2">' + _esc(data[i].description) + '</td><td class="p-2 text-center">' + _fmtNum(data[i].debit) + '</td><td class="p-2 text-center">' + _fmtNum(data[i].credit) + '</td><td class="p-2 text-center font-bold">' + _fmtNum(data[i].balance) + '</td></tr>';
-            }
-            html += '</tbody></table></div>';
-            Swal.fire({ title: 'تفاصيل كشف الحساب', html: html, width: '800px', showCloseButton: true, showConfirmButton: false });
-        } catch(e) { _hideLoader(); _showToast('فشل تحميل كشف الحساب', 'error'); }
+    async function _showCustomerLedgerDetail(customerId, customerName) {
+    _showLoader('جاري تحميل كشف حساب العميل...');
+
+    try {
+        var companyId = _companyId();
+
+        var customerRes = await supabase
+            .from('customers')
+            .select('id, customer_code, name')
+            .eq('id', customerId)
+            .eq('company_id', companyId)
+            .maybeSingle();
+
+        if (customerRes.error) throw customerRes.error;
+        if (!customerRes.data) {
+            throw new Error('العميل غير موجود ضمن الشركة الحالية');
+        }
+
+        var customer = customerRes.data;
+
+        var ledgerRes = await supabase
+            .from('customer_ledger')
+            .select('*')
+            .eq('customer_id', customer.id)
+            .order('entry_date', { ascending: false });
+
+        if (ledgerRes.error) throw ledgerRes.error;
+
+        var data = ledgerRes.data || [];
+
+        _hideLoader();
+
+        if (!data.length) {
+            _showToast('لا توجد حركات لهذا العميل', 'info');
+            return;
+        }
+
+        var html =
+            '<div class="text-right">' +
+            '<h4 class="font-bold mb-3">كشف حساب: ' +
+            _esc(customer.name || customerName || customer.customer_code) +
+            ' (' +
+            _esc(customer.customer_code) +
+            ')</h4>' +
+            '<table class="w-full text-sm border">' +
+            '<thead><tr class="bg-gray-100">' +
+            '<th class="p-2">التاريخ</th>' +
+            '<th class="p-2">البيان</th>' +
+            '<th class="p-2 text-center">مدين</th>' +
+            '<th class="p-2 text-center">دائن</th>' +
+            '<th class="p-2 text-center">الرصيد</th>' +
+            '</tr></thead><tbody>';
+
+        for (var i = 0; i < data.length; i++) {
+            html +=
+                '<tr class="border-t">' +
+                '<td class="p-2">' + _esc(data[i].entry_date) + '</td>' +
+                '<td class="p-2">' + _esc(data[i].description) + '</td>' +
+                '<td class="p-2 text-center">' + _fmtNum(data[i].debit) + '</td>' +
+                '<td class="p-2 text-center">' + _fmtNum(data[i].credit) + '</td>' +
+                '<td class="p-2 text-center font-bold">' + _fmtNum(data[i].balance) + '</td>' +
+                '</tr>';
+        }
+
+        html += '</tbody></table></div>';
+
+        Swal.fire({
+            title: 'تفاصيل كشف الحساب',
+            html: html,
+            width: '800px',
+            showCloseButton: true,
+            showConfirmButton: false
+        });
+
+    } catch (e) {
+        _hideLoader();
+        _showToast('فشل تحميل كشف الحساب: ' + (e.message || ''), 'error');
     }
+}
+async function _showItemMovementDetail(itemCode, itemName) {
+    _showLoader('جاري تحميل حركة الصنف...');
 
-    async function _showItemMovementDetail(itemCode, itemName) {
-        _showLoader('جاري تحميل حركة الصنف...');
-        try {
-            var res = await supabase.from('inventory_log').select('*').eq('item_code', itemCode).order('movement_date', { ascending: false });
-            var data = res.data || [];
-            _hideLoader();
-            if (!data.length) { _showToast('لا توجد حركات لهذا الصنف', 'info'); return; }
-            var html = '<div class="text-right"><h4 class="font-bold mb-3">حركة الصنف: ' + _esc(itemName) + ' (' + _esc(itemCode) + ')</h4>';
-            html += '<table class="w-full text-sm border"><thead><tr class="bg-gray-100"><th class="p-2">التاريخ</th><th class="p-2">النوع</th><th class="p-2 text-center">الكمية</th><th class="p-2">المرجع</th></tr></thead><tbody>';
-            for (var i = 0; i < data.length; i++) {
-                html += '<tr class="border-t"><td class="p-2">' + _esc(data[i].movement_date) + '</td><td class="p-2">' + _esc(data[i].movement_type) + '</td><td class="p-2 text-center font-bold">' + _fmtNum(data[i].qty) + '</td><td class="p-2">' + _esc(data[i].reference) + '</td></tr>';
-            }
-            html += '</tbody></table></div>';
-            Swal.fire({ title: 'تفاصيل حركة الصنف', html: html, width: '800px', showCloseButton: true, showConfirmButton: false });
-        } catch(e) { _hideLoader(); _showToast('فشل تحميل حركة الصنف', 'error'); }
+    try {
+        var companyId = _companyId();
+
+        var itemRes = await supabase
+            .from('items')
+            .select('id, item_code, name')
+            .eq('item_code', itemCode)
+            .maybeSingle();
+
+        if (itemRes.error) throw itemRes.error;
+        if (!itemRes.data) {
+            throw new Error('الصنف غير موجود');
+        }
+
+        var item = itemRes.data;
+
+        var logRes = await supabase
+            .from('inventory_log')
+            .select(
+                'id, log_code, movement_date, voucher_id, item_id, item_code, item_name, movement_type, qty, reference, user_email, created_at, source_branch_id, target_branch_id'
+            )
+            .eq('company_id', companyId)
+            .eq('item_id', item.id)
+            .order('movement_date', { ascending: false })
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: false });
+
+        if (logRes.error) throw logRes.error;
+
+        var data = logRes.data || [];
+
+        _hideLoader();
+
+        if (!data.length) {
+            _showToast('لا توجد حركات لهذا الصنف', 'info');
+            return;
+        }
+
+        var html =
+            '<div class="text-right">' +
+            '<h4 class="font-bold mb-3">حركة الصنف: ' +
+            _esc(item.name || itemName || item.item_code) +
+            ' (' +
+            _esc(item.item_code) +
+            ')</h4>' +
+            '<table class="w-full text-sm border">' +
+            '<thead><tr class="bg-gray-100">' +
+            '<th class="p-2">التاريخ</th>' +
+            '<th class="p-2">النوع</th>' +
+            '<th class="p-2 text-center">الكمية</th>' +
+            '<th class="p-2">المرجع</th>' +
+            '<th class="p-2">المستخدم</th>' +
+            '</tr></thead><tbody>';
+
+        for (var i = 0; i < data.length; i++) {
+            html +=
+                '<tr class="border-t">' +
+                '<td class="p-2">' + _esc(data[i].movement_date) + '</td>' +
+                '<td class="p-2">' + _esc(data[i].movement_type) + '</td>' +
+                '<td class="p-2 text-center font-bold">' + _fmtNum(data[i].qty) + '</td>' +
+                '<td class="p-2">' + _esc(data[i].reference || data[i].voucher_id || '') + '</td>' +
+                '<td class="p-2 text-xs">' + _esc(data[i].user_email || '') + '</td>' +
+                '</tr>';
+        }
+
+        html += '</tbody></table></div>';
+
+        Swal.fire({
+            title: 'تفاصيل حركة الصنف',
+            html: html,
+            width: '900px',
+            showCloseButton: true,
+            showConfirmButton: false
+        });
+
+    } catch (e) {
+        _hideLoader();
+        _showToast('فشل تحميل حركة الصنف: ' + (e.message || ''), 'error');
     }
+}
 
-    async function _showRunsheetDetail(runsheetCode) {
-        _showLoader('جاري تحميل تفاصيل الرانشيت...');
-        try {
-            var rsRes = await supabase.from('runsheets').select('*').eq('runsheet_code', runsheetCode).maybeSingle();
-            var rs = rsRes.data;
-            if (!rs) { _hideLoader(); _showToast('الرانشيت غير موجود', 'error'); return; }
-            var itemsRes = await supabase.from('run_sheet_details').select('*').eq('runsheet_id', rs.id);
-            var items = itemsRes.data || [];
-            var ordersRes = await supabase.from('orders').select('order_code, customer_name, total_amount').eq('runsheet_id', runsheetCode);
-            var orders = ordersRes.data || [];
-            _hideLoader();
+async function _showRunsheetDetail(runsheetCode) {
+    _showLoader('جاري تحميل تفاصيل الرانشيت...');
 
-            var html = '<div class="text-right"><h4 class="font-bold mb-3">تفاصيل الرانشيت: ' + _esc(runsheetCode) + '</h4>';
-            html += '<div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl mb-4"><div><p><b>التاريخ:</b> ' + _esc(rs.run_date) + '</p><p><b>السائق:</b> ' + _esc(rs.driver_id) + '</p></div><div><p><b>السيارة:</b> ' + _esc(rs.vehicle_id) + '</p><p><b>الحالة:</b> ' + _esc(rs.status) + '</p></div></div>';
-            if (orders.length) {
-                html += '<h5 class="font-bold mb-2">الأوردرات المرتبطة:</h5><div class="flex flex-wrap gap-2 mb-4">';
-                for (var o = 0; o < orders.length; o++) html += '<span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">' + _esc(orders[o].order_code) + ' - ' + _esc(orders[o].customer_name) + ' (' + _fmtNum(orders[o].total_amount) + ')</span>';
-                html += '</div>';
+    try {
+        var companyId = _companyId();
+
+        var rsRes = await supabase
+            .from('runsheets')
+            .select('id, runsheet_code, run_date, status, driver_id, vehicle_id, total_amount')
+            .eq('company_id', companyId)
+            .eq('runsheet_code', runsheetCode)
+            .maybeSingle();
+
+        if (rsRes.error) throw rsRes.error;
+        if (!rsRes.data) {
+            throw new Error('الرانشيت غير موجود ضمن الشركة الحالية');
+        }
+
+        var rs = rsRes.data;
+
+        var itemsRes = await supabase
+            .from('run_sheet_details')
+            .select('*')
+            .eq('runsheet_id', rs.id);
+
+        if (itemsRes.error) throw itemsRes.error;
+
+        var items = itemsRes.data || [];
+
+        var ordersRes = await supabase
+            .from('orders')
+            .select('order_code, customer_name, total_amount')
+            .eq('company_id', companyId)
+            .eq('runsheet_id', rs.id)
+            .order('order_code', { ascending: true });
+
+        if (ordersRes.error) throw ordersRes.error;
+
+        var orders = ordersRes.data || [];
+
+        _hideLoader();
+
+        var html =
+            '<div class="text-right">' +
+            '<h4 class="font-bold mb-3">تفاصيل الرانشيت: ' +
+            _esc(rs.runsheet_code) +
+            '</h4>' +
+
+            '<div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl mb-4">' +
+            '<div>' +
+            '<p><b>التاريخ:</b> ' + _esc(rs.run_date) + '</p>' +
+            '<p><b>السائق:</b> ' + _esc(rs.driver_id) + '</p>' +
+            '</div>' +
+            '<div>' +
+            '<p><b>السيارة:</b> ' + _esc(rs.vehicle_id) + '</p>' +
+            '<p><b>الحالة:</b> ' + _esc(rs.status) + '</p>' +
+            '</div>' +
+            '</div>';
+
+        if (orders.length) {
+            html +=
+                '<h5 class="font-bold mb-2">الأوردرات المرتبطة:</h5>' +
+                '<div class="flex flex-wrap gap-2 mb-4">';
+
+            for (var o = 0; o < orders.length; o++) {
+                html +=
+                    '<span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">' +
+                    _esc(orders[o].order_code) +
+                    ' - ' +
+                    _esc(orders[o].customer_name) +
+                    ' (' +
+                    _fmtNum(orders[o].total_amount) +
+                    ')' +
+                    '</span>';
             }
-            if (items.length) {
-                html += '<table class="w-full text-sm border"><thead><tr class="bg-gray-100"><th class="p-2">الصنف</th><th class="p-2 text-center">الكمية</th><th class="p-2 text-center">السعر</th><th class="p-2 text-center">الإجمالي</th></tr></thead><tbody>';
-                for (var i = 0; i < items.length; i++) { var lt = (Number(items[i].qty_ordered)||0) * (Number(items[i].unit_price)||0); html += '<tr class="border-t"><td class="p-2 font-semibold">' + _esc(items[i].item_name) + '</td><td class="p-2 text-center">' + (items[i].qty_ordered||0) + '</td><td class="p-2 text-center">' + _fmtNum(items[i].unit_price) + '</td><td class="p-2 text-center font-bold">' + _fmtNum(lt) + '</td></tr>'; }
-                html += '</tbody></table>';
-            }
+
             html += '</div>';
-            Swal.fire({ title: 'تفاصيل الرانشيت', html: html, width: '900px', showCloseButton: true, showConfirmButton: false });
-        } catch(e) { _hideLoader(); _showToast('فشل تحميل التفاصيل', 'error'); }
-    }
+        }
 
-    async function _showSettlementDetail(settlementCode) {
-        _showLoader('جاري تحميل تفاصيل التسوية...');
-        try {
-            var res = await supabase.from('daily_settlements').select('*').eq('settlement_code', settlementCode).maybeSingle();
-            var data = res.data;
-            _hideLoader();
-            if (!data) { _showToast('التسوية غير موجودة', 'error'); return; }
-            var html = '<div class="text-right"><h4 class="font-bold mb-3">تفاصيل التسوية: ' + _esc(settlementCode) + '</h4>';
-            html += '<div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl mb-4">';
-            html += '<div><p><b>التاريخ:</b> ' + _esc(data.settlement_date) + '</p><p><b>الرانشيت:</b> ' + _esc(data.runsheet_id) + '</p></div>';
-            html += '<div><p><b>العجز:</b> ' + data.total_shortage + ' قطعة</p><p><b>قيمة العجز:</b> ' + _fmtNum(data.total_shortage_value) + ' EGP</p></div>';
-            html += '</div>';
-            html += '<p><b>ملاحظات:</b> ' + _esc(data.notes || 'لا يوجد') + '</p>';
-            html += '</div>';
-            Swal.fire({ title: 'تفاصيل التسوية', html: html, width: '600px', showCloseButton: true, showConfirmButton: false });
-        } catch(e) { _hideLoader(); _showToast('فشل تحميل التفاصيل', 'error'); }
+        if (items.length) {
+            html +=
+                '<table class="w-full text-sm border">' +
+                '<thead><tr class="bg-gray-100">' +
+                '<th class="p-2">الصنف</th>' +
+                '<th class="p-2 text-center">الكمية</th>' +
+                '<th class="p-2 text-center">السعر</th>' +
+                '<th class="p-2 text-center">الإجمالي</th>' +
+                '</tr></thead><tbody>';
+
+            for (var i = 0; i < items.length; i++) {
+                var total =
+                    (Number(items[i].qty_ordered) || 0) *
+                    (Number(items[i].unit_price) || 0);
+
+                html +=
+                    '<tr class="border-t">' +
+                    '<td class="p-2 font-semibold">' + _esc(items[i].item_name) + '</td>' +
+                    '<td class="p-2 text-center">' + (items[i].qty_ordered || 0) + '</td>' +
+                    '<td class="p-2 text-center">' + _fmtNum(items[i].unit_price) + '</td>' +
+                    '<td class="p-2 text-center font-bold">' + _fmtNum(total) + '</td>' +
+                    '</tr>';
+            }
+
+            html += '</tbody></table>';
+        }
+
+        html += '</div>';
+
+        Swal.fire({
+            title: 'تفاصيل الرانشيت',
+            html: html,
+            width: '900px',
+            showCloseButton: true,
+            showConfirmButton: false
+        });
+
+    } catch (e) {
+        _hideLoader();
+        _showToast('فشل تحميل تفاصيل الرانشيت: ' + (e.message || ''), 'error');
     }
+}
+async function _showSettlementDetail(settlementCode) {
+    _showLoader('جاري تحميل تفاصيل التسوية...');
+
+    try {
+        var companyId = _companyId();
+
+        var settlementRes = await supabase
+            .from('daily_settlements')
+            .select('*')
+            .eq('company_id', companyId)
+            .eq('settlement_code', settlementCode)
+            .maybeSingle();
+
+        if (settlementRes.error) throw settlementRes.error;
+        if (!settlementRes.data) {
+            throw new Error('التسوية غير موجودة ضمن الشركة الحالية');
+        }
+
+        var data = settlementRes.data;
+        var runsheetCode = '';
+
+        if (data.runsheet_id) {
+            var rsRes = await supabase
+                .from('runsheets')
+                .select('id, runsheet_code')
+                .eq('company_id', companyId)
+                .eq('id', data.runsheet_id)
+                .maybeSingle();
+
+            if (rsRes.error) throw rsRes.error;
+
+            if (rsRes.data) {
+                runsheetCode = rsRes.data.runsheet_code || '';
+            }
+        }
+
+        _hideLoader();
+
+        var html =
+            '<div class="text-right">' +
+            '<h4 class="font-bold mb-3">تفاصيل التسوية: ' +
+            _esc(data.settlement_code) +
+            '</h4>' +
+
+            '<div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl mb-4">' +
+
+            '<div>' +
+            '<p><b>التاريخ:</b> ' +
+            _esc(data.settlement_date) +
+            '</p>' +
+            '<p><b>الرانشيت:</b> ' +
+            _esc(runsheetCode || data.runsheet_id || 'غير محدد') +
+            '</p>' +
+            '</div>' +
+
+            '<div>' +
+            '<p><b>العجز:</b> ' +
+            _fmtNum(data.total_shortage) +
+            ' قطعة</p>' +
+            '<p><b>قيمة العجز:</b> ' +
+            _fmtNum(data.total_shortage_value) +
+            ' EGP</p>' +
+            '</div>' +
+
+            '</div>' +
+
+            '<p><b>ملاحظات:</b> ' +
+            _esc(data.notes || 'لا يوجد') +
+            '</p>' +
+
+            '</div>';
+
+        Swal.fire({
+            title: 'تفاصيل التسوية',
+            html: html,
+            width: '650px',
+            showCloseButton: true,
+            showConfirmButton: false
+        });
+
+    } catch (e) {
+        _hideLoader();
+        _showToast('فشل تحميل تفاصيل التسوية: ' + (e.message || ''), 'error');
+    }
+}
 
     // ==================== توليد التقرير (مع Drill-Down) ====================
     async function _generateReport(sectionKey, reportId) {
