@@ -200,57 +200,58 @@ function loadAll(fromDate, toDate) {
             }
         })
         .catch(function() {});
+    // 2. صافي الربح — مصدر محاسبي Production
+    supabase.rpc('get_profit_loss', {
+        p_from_date: fromDate,
+        p_to_date: toDate
+    })
+        .then(function(pnlRes) {
+            if (pnlRes.error) throw pnlRes.error;
 
-    // 2. المشتريات لصافي الربح
-    supabase.from('purchase_orders')
-        .select('total_amount')
-        .eq('company_id', companyId)
-        .gte('po_date', fromDate)
-        .lte('po_date', toDate)
-        .then(function(poRes) {
-            var poData = poRes.data || [];
-            var totalPurchases = 0;
+            var rows = pnlRes.data || [];
+            var revenue = 0;
+            var expense = 0;
 
-            for (var i = 0; i < poData.length; i++) {
-                totalPurchases += Number(poData[i].total_amount) || 0;
+            for (var i = 0; i < rows.length; i++) {
+                var amount = Number(rows[i].total_amount) || 0;
+
+                if (rows[i].account_type === 'revenue') {
+                    revenue += amount;
+                } else if (rows[i].account_type === 'expense') {
+                    expense += amount;
+                }
             }
 
-            supabase.from('orders')
-                .select('total_amount')
-                .eq('company_id', companyId)
-                .gte('order_date', fromDate)
-                .lte('order_date', toDate)
-                .then(function(ordRes) {
-                    var ordData = ordRes.data || [];
-                    var totalSales = 0;
+            var net = revenue - expense;
 
-                    for (var j = 0; j < ordData.length; j++) {
-                        totalSales += Number(ordData[j].total_amount) || 0;
-                    }
+            safeText(
+                byId('dash-net-profit'),
+                _fmtNum(net) + ' EGP'
+            );
 
-                    var net = totalSales - totalPurchases;
+            var profitEl = byId('dash-net-profit');
 
-                    safeText(
-                        byId('dash-net-profit'),
-                        _fmtNum(net) + ' EGP'
-                    );
-
-                    var profitEl = byId('dash-net-profit');
-
-                    if (profitEl) {
-                        if (net >= 0) {
-                            profitEl.className =
-                                'text-2xl font-black text-teal-600';
-                        } else {
-                            profitEl.className =
-                                'text-2xl font-black text-red-600';
-                        }
-                    }
-                })
-                .catch(function() {});
+            if (profitEl) {
+                if (net >= 0) {
+                    profitEl.className =
+                        'text-2xl font-black text-teal-600';
+                } else {
+                    profitEl.className =
+                        'text-2xl font-black text-red-600';
+                }
+            }
         })
-        .catch(function() {});
+        .catch(function(e) {
+            console.error(
+                'فشل تحميل قائمة الأرباح والخسائر:',
+                e
+            );
 
+            safeText(
+                byId('dash-net-profit'),
+                '—'
+            );
+        });
     // 3. العملاء
     supabase.from('customers')
         .select('customer_code')
