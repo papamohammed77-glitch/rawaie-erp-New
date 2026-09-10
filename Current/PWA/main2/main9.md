@@ -4,18 +4,43 @@
 var RW_Reports = (function() {
     function _fmtNum(n) { return Number(n || 0).toLocaleString(); }
     function _esc(s) { return String(s||'').replace(/[&<>]/g, function(m) { return m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'; }); }
-    function _companyId() {
-        var id = null;
-        if (typeof RW_STATE !== 'undefined' && RW_STATE && RW_STATE.app) {
-            id = RW_STATE.app.companyId || null;
-        }
-        if (!id && typeof RW_STATE !== 'undefined' && RW_STATE && RW_STATE.user) {
-            id = RW_STATE.user.companyId || null;
-        }
-        if (!id) throw new Error('سياق الشركة غير محدد');
-        return id;
+function _companyId() {
+    var id = null;
+
+    if (
+        typeof RW_STATE !== 'undefined' &&
+        RW_STATE &&
+        RW_STATE.app &&
+        RW_STATE.app.company &&
+        RW_STATE.app.company.id
+    ) {
+        id = RW_STATE.app.company.id;
     }
 
+    if (
+        !id &&
+        typeof RW_STATE !== 'undefined' &&
+        RW_STATE.app &&
+        RW_STATE.app.companyId
+    ) {
+        id = RW_STATE.app.companyId;
+    }
+
+    if (
+        !id &&
+        typeof RW_STATE !== 'undefined' &&
+        RW_STATE.user &&
+        RW_STATE.user.companyId
+    ) {
+        id = RW_STATE.user.companyId;
+    }
+
+    if (!id) {
+        throw new Error('سياق الشركة غير محدد');
+    }
+
+    return id;
+}
     function _nextDate(dateText) {
         var d = new Date(dateText + 'T00:00:00');
         d.setDate(d.getDate() + 1);
@@ -1257,16 +1282,45 @@ var RW_Reports_Comprehensive = (function() {
         try {
             var companyId = _companyId();
 
-            function _appendOptions(selectEl, rows, valueField, labelField) {
-                if (!selectEl) return;
-                for (var i = 0; i < rows.length; i++) {
-                    var row = rows[i] || {};
-                    var option = document.createElement('option');
-                    option.value = row[valueField] == null ? '' : String(row[valueField]);
-                    option.textContent = row[labelField] == null ? '' : String(row[labelField]);
-                    selectEl.appendChild(option);
+                function _appendOptions(selectEl, rows, valueField, labelField) {
+                    if (!selectEl) return;
+                
+                    var placeholder = null;
+                
+                    for (var p = 0; p < selectEl.options.length; p++) {
+                        if (selectEl.options[p].value === '') {
+                            placeholder = selectEl.options[p].cloneNode(true);
+                            break;
+                        }
+                    }
+                
+                    while (selectEl.firstChild) {
+                        selectEl.removeChild(selectEl.firstChild);
+                    }
+                
+                    if (placeholder) {
+                        selectEl.appendChild(placeholder);
+                    }
+                
+                    rows = Array.isArray(rows) ? rows : [];
+                
+                    for (var i = 0; i < rows.length; i++) {
+                        var row = rows[i] || {};
+                        var option = document.createElement('option');
+                
+                        option.value =
+                            row[valueField] == null
+                                ? ''
+                                : String(row[valueField]);
+                
+                        option.textContent =
+                            row[labelField] == null
+                                ? ''
+                                : String(row[labelField]);
+                
+                        selectEl.appendChild(option);
+                    }
                 }
-            }
 
             if (params.indexOf('customer') !== -1) {
                 var customerRes = await supabase
@@ -1395,7 +1449,12 @@ var RW_Reports_Comprehensive = (function() {
                 });
 
                 var areaSelect = byId('rp-area');
+                
                 if (areaSelect) {
+                    while (areaSelect.options.length > 1) {
+                        areaSelect.remove(1);
+                    }
+                
                     for (var ar = 0; ar < areaList.length; ar++) {
                         var areaOption = document.createElement('option');
                         areaOption.value = areaList[ar];
