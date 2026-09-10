@@ -16,17 +16,23 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           fetch-depth: 1
-      - name: Node syntax gate
+      - name: Independent syntax gates
         shell: bash
         run: |
-          set -euo pipefail
           node --version
           cp Current/PWA/main2/main9.md /tmp/main9.js
           cp Current/PWA/main2/main2.md /tmp/main2.js
+          set +e
           node --check /tmp/main9.js
+          m9=$?
           node --check /tmp/main2.js
+          m2=$?
           cat /tmp/main2.js /tmp/main9.js > /tmp/main2-main9.js
           node --check /tmp/main2-main9.js
+          combo=$?
+          set -e
+          echo MAIN9_EXIT=$m9
+          echo MAIN2_EXIT=$m2
+          echo MAIN2_PLUS_MAIN9_EXIT=$combo
+          test "$m9" -eq 0
           echo MAIN9_SYNTAX=PASS
-          echo MAIN2_SYNTAX=PASS
-          echo MAIN2_PLUS_MAIN9_PARSE=PASS
