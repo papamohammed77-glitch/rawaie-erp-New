@@ -16,23 +16,46 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           fetch-depth: 1
-      - name: Independent syntax gates
+      - name: Independent syntax and integration gates
         shell: bash
         run: |
           node --version
           cp Current/PWA/main2/main9.md /tmp/main9.js
           cp Current/PWA/main2/main2.md /tmp/main2.js
           set +e
-          node --check /tmp/main9.js
+          node --check /tmp/main9.js > /tmp/m9.out 2>&1
           m9=$?
-          node --check /tmp/main2.js
+          node --check /tmp/main2.js > /tmp/m2.out 2>&1
           m2=$?
           cat /tmp/main2.js /tmp/main9.js > /tmp/main2-main9.js
-          node --check /tmp/main2-main9.js
+          node --check /tmp/main2-main9.js > /tmp/combo.out 2>&1
           combo=$?
           set -e
           echo MAIN9_EXIT=$m9
           echo MAIN2_EXIT=$m2
           echo MAIN2_PLUS_MAIN9_EXIT=$combo
+          echo '--- MAIN9 SYNTAX OUTPUT ---'; cat /tmp/m9.out
+          echo '--- MAIN2 SYNTAX OUTPUT ---'; cat /tmp/m2.out
+          echo '--- COMBINED SYNTAX OUTPUT ---'; cat /tmp/combo.out
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          m2=Path('/tmp/main2.js').read_text(encoding='utf-8')
+          m9=Path('/tmp/main9.js').read_text(encoding='utf-8')
+          def modules(s): return re.findall(r'\b(?:var|let|const)\s+(RW_[A-Za-z0-9_]+)\s*=\s*', s)
+          a=modules(m2); b=modules(m9)
+          overlap=sorted(set(a)&set(b))
+          print('MAIN2_MODULES=',a)
+          print('MAIN9_MODULES=',b)
+          print('MODULE_OVERLAP=',overlap)
+          assert 'RW_Reports' in b
+          assert 'RW_Reports_Comprehensive' in b
+          assert 'RW_Reports' not in a
+          assert 'RW_Reports_Comprehensive' not in a
+          for marker in ['window.RW_Reports = RW_Reports;','window.RW_Reports_Comprehensive = RW_Reports_Comprehensive;']:
+              assert marker in m9, marker
+          print('MAIN2_MAIN9_MODULE_BOUNDARY=PASS')
+          print('MAIN9_BYTES=',len(m9.encode()))
+          print('MAIN2_BYTES=',len(m2.encode()))
+          PY
           test "$m9" -eq 0
-          echo MAIN9_SYNTAX=PASS
