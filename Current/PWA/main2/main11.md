@@ -7,54 +7,133 @@ var RW_HR = (function() {
     function _esc(s) { return String(s||'').replace(/[&<>]/g, function(m) { return m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'; }); }
     function _fmtNum(n) { return Number(n || 0).toLocaleString(); }
 
-    async function render() {
-        var container = byId('rw-page-container');
-        if (!container) return;
-        safeText(byId('rw-header-title'), 'الموارد البشرية');
-        safeText(byId('rw-header-subtitle'), 'إدارة ملفات الموظفين والرواتب والمستندات');
+async function render() {
+    var container = byId('rw-page-container');
+    if (!container) return;
+    safeText(byId('rw-header-title'), 'الموارد البشرية');
+    safeText(byId('rw-header-subtitle'), 'إدارة ملفات الموظفين والرواتب والمستندات');
 
-        showLoader('جاري تحميل بيانات الموظفين...');
-        var res = await supabase.from('users').select('*');
-        hrData = res.data || [];
-        hideLoader();
+    var companyId = _rwCompanyId();
+    if (!companyId) {
+        showToast('سياق الشركة غير محدد', 'error');
+        return;
+    }
 
-        if (hrData.length === 0) {
-            safeHTML(container, '<div class="text-center py-10 text-gray-500">لا يوجد موظفون.</div>');
-            return;
+    showLoader('جاري تحميل بيانات الموظفين...');
+    var res = await supabase
+        .from('users')
+        .select('*')
+        .eq('company_id', companyId);
+
+    hrData = res.data || [];
+    hideLoader();
+
+    if (hrData.length === 0) {
+        safeHTML(
+            container,
+            '<div class="text-center py-10 text-gray-500">لا يوجد موظفون.</div>'
+        );
+        return;
+    }
+
+    var html =
+        '<div class="p-4"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="hr-cards-container">';
+
+    for (var i = 0; i < hrData.length; i++) {
+        var emp = hrData[i];
+
+        if (
+            emp.role === 'مالك' ||
+            emp.role === 'Owner' ||
+            emp.is_owner === true
+        ) {
+            continue;
         }
 
-        var html = '<div class="p-4"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="hr-cards-container">';
-        for (var i = 0; i < hrData.length; i++) {
-            var emp = hrData[i];
-            // إخفاء المالك من القائمة
-            if (emp.role === 'مالك' || emp.role === 'Owner' || emp.is_owner === true) continue;
-            
-            var statusClass = emp.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
-            var statusText = emp.status === 'Active' ? 'نشط' : 'غير نشط';
-            var initials = (emp.name || '؟').charAt(0);
-            var avatarColor = 'bg-blue-500';
-            if (emp.role === 'مدير') avatarColor = 'bg-indigo-500';
-            else if (emp.role === 'محاسب') avatarColor = 'bg-emerald-500';
-            else if (emp.role === 'مندوب' || emp.role === 'سائق') avatarColor = 'bg-amber-500';
-            else if (emp.role === 'مخزني') avatarColor = 'bg-purple-500';
+        var statusClass =
+            emp.status === 'Active'
+                ? 'bg-green-100 text-green-700'
+                : 'bg-red-100 text-red-700';
 
-            html += '<div class="bg-white rounded-2xl shadow-sm border p-6 hover:shadow-md transition cursor-pointer" onclick="RW_HR._openModal(\'' + _esc(emp.email) + '\')">';
-            html += '<div class="flex items-center gap-4 mb-4">';
-            html += '<div class="w-16 h-16 ' + avatarColor + ' rounded-2xl flex items-center justify-center text-white text-2xl font-black">' + _esc(initials) + '</div>';
-            html += '<div>';
-            html += '<h3 class="font-black text-lg text-gray-800">' + _esc(emp.name) + '</h3>';
-            html += '<p class="text-sm text-gray-500">' + _esc(emp.role) + '</p>';
-            html += '</div></div>';
-            html += '<div class="space-y-2 text-sm">';
-            html += '<div class="flex justify-between"><span class="text-gray-500">البريد:</span><span class="font-bold text-gray-700">' + _esc(emp.email) + '</span></div>';
-            html += '<div class="flex justify-between"><span class="text-gray-500">الهاتف:</span><span class="font-bold text-gray-700">' + _esc(emp.phone || '-') + '</span></div>';
-            html += '<div class="flex justify-between items-center"><span class="text-gray-500">الحالة:</span><span class="px-2 py-0.5 rounded-full text-xs font-bold ' + statusClass + '">' + statusText + '</span></div>';
-            html += '</div></div>';
+        var statusText =
+            emp.status === 'Active'
+                ? 'نشط'
+                : 'غير نشط';
+
+        var initials =
+            (emp.name || '؟').charAt(0);
+
+        var avatarColor = 'bg-blue-500';
+
+        if (emp.role === 'مدير') {
+            avatarColor = 'bg-indigo-500';
+        } else if (emp.role === 'محاسب') {
+            avatarColor = 'bg-emerald-500';
+        } else if (
+            emp.role === 'مندوب' ||
+            emp.role === 'سائق'
+        ) {
+            avatarColor = 'bg-amber-500';
+        } else if (emp.role === 'مخزني') {
+            avatarColor = 'bg-purple-500';
         }
+
+        html +=
+            '<div class="bg-white rounded-2xl shadow-sm border p-6 hover:shadow-md transition cursor-pointer" onclick="RW_HR._openModal(\'' +
+            _esc(emp.email) +
+            '\')">';
+
+        html +=
+            '<div class="flex items-center gap-4 mb-4">';
+
+        html +=
+            '<div class="w-16 h-16 ' +
+            avatarColor +
+            ' rounded-2xl flex items-center justify-center text-white text-2xl font-black">' +
+            _esc(initials) +
+            '</div>';
+
+        html += '<div>';
+
+        html +=
+            '<h3 class="font-black text-lg text-gray-800">' +
+            _esc(emp.name) +
+            '</h3>';
+
+        html +=
+            '<p class="text-sm text-gray-500">' +
+            _esc(emp.role) +
+            '</p>';
+
         html += '</div></div>';
 
-        safeHTML(container, html);
+        html +=
+            '<div class="space-y-2 text-sm">';
+
+        html +=
+            '<div class="flex justify-between"><span class="text-gray-500">البريد:</span><span class="font-bold text-gray-700">' +
+            _esc(emp.email) +
+            '</span></div>';
+
+        html +=
+            '<div class="flex justify-between"><span class="text-gray-500">الهاتف:</span><span class="font-bold text-gray-700">' +
+            _esc(emp.phone || '-') +
+            '</span></div>';
+
+        html +=
+            '<div class="flex justify-between items-center"><span class="text-gray-500">الحالة:</span><span class="px-2 py-0.5 rounded-full text-xs font-bold ' +
+            statusClass +
+            '">' +
+            statusText +
+            '</span></div>';
+
+        html += '</div></div>';
     }
+
+    html += '</div></div>';
+
+    safeHTML(container, html);
+}
 
     function _openModal(email) {
         var emp = null;
