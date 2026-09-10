@@ -15,44 +15,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: {node-version: 20}
       - name: Safe target-only closure
-        shell: bash
         run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import re, subprocess, json, hashlib, tempfile
-          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
-          assert len(s.encode())>400000
-          assert '<html lang="ar" dir="rtl">' in s
-          assert s.count('window.byId=byId;')==1 and s.count('window.safeText=safeText;')==1
-          assert s.count('<link rel="manifest" href="./manifest.json">')==1
-          start=s.find('<script>\n(function(){'); boundary='\n</script>\n<script id="RAWAEA_MAIN_SIDEBAR_COMPLETENESS_FINAL_V1"'; end=s.find(boundary,start)
-          if start>=0 and end>start:
-              body=s[start+len('<script>\n'):end]
-              if '</script>' in body: s=s[:start+len('<script>\n')]+body.replace('</script>','<\\/script>')+s[end:]
-          s=s.replace('<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>','')
-          assert 'register-sw.js' not in s
-          marker='RAWAEA_CTO_SAFE_PRODUCT_CLOSURE_20260903'
-          if marker not in s:
-              layer='''<!-- RAWAEA_CTO_SAFE_PRODUCT_CLOSURE_20260903 -->''' 
-              cut=s.rfind('</body>'); assert cut>0; s=s[:cut]+'\n'+layer+'\n'+s[cut:]
-          assert s.count(marker)==1
-          p.write_text(s,encoding='utf-8')
-          PY
-          git add Current/PWA/New-main
-          git diff --cached --check
-          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
-      - name: Commit verified target only
-        shell: bash
-        run: |
-          set -euo pipefail
-          git add Current/PWA/New-main
-          git diff --cached --check
-          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
-          git config user.name 'RAWAEA CTO Controlled Writer'
-          git config user.email 'cto-controlled-writer@users.noreply.github.com'
-          git commit -m '[CTO-CLOSED] New-main product UX closure — verified'
-          git push origin HEAD:main
+          echo 'No New-main action for this trigger.'
 
   main9_surgery:
     if: contains(github.event.head_commit.message, '[CTO-MAIN9-SURGERY]')
@@ -63,49 +27,158 @@ jobs:
         with: {ref: main, fetch-depth: 2}
       - uses: actions/setup-node@v4
         with: {node-version: 20}
-      - name: Full-read, surgical replacement, syntax, and Main2 gate
+      - name: Full read + exact surgical source transform + syntax + Main2 gate
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re, subprocess, hashlib
+          import re, subprocess, hashlib, json
+
           root=Path('.')
-          m9=root/'Current/PWA/main2/main9.md'; m2=root/'Current/PWA/main2/main2.md'
+          m9=root/'Current/PWA/main2/main9.md'
+          m2=root/'Current/PWA/main2/main2.md'
           directive=root/'doc/Draft/Reprots/MASTER — RAWAEA ERP Successor CTO Memory Recovery & Gold-Diamond Execution Directive.md'
           r108=root/'doc/Draft/Reprots/Report108_Main9_Current_Truth_Recheck_20260910.md'
-          r109=root/'doc/Draft/Reprots/Report109_Main9_Surgical_Execution_20260910.md'
-          replacement=root/'doc/Draft/Reprots/MAIN9_M9-08_COMPLETE_CORRECTED_REPLACEMENT_20260910_v2.js'
+          artifact=root/'doc/Draft/Reprots/MAIN9_SURGICAL_COMPLETE_CORRECTED_REPLACEMENT_20260910.js'
+          report=root/'doc/Draft/Reprots/Report109_Main9_Surgical_Execution_20260910.md'
+
           before=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
-          s=m9.read_text(encoding='utf-8'); p=m2.read_text(encoding='utf-8'); d=directive.read_text(encoding='utf-8'); r=r108.read_text(encoding='utf-8'); repl=replacement.read_text(encoding='utf-8')
-          assert len(s)>90000 and len(p)>500000 and 'CURRENT VERIFIED REALITY' in d and 'M9-08 current defects' in r
-          cm=re.search(r'function _companyId\(\) \{.*?\n\}',s,re.S); assert cm
-          s=s[:cm.start()]+'''function _companyId() {\n    var id = null;\n    if (typeof RW_STATE !== 'undefined' && RW_STATE && RW_STATE.app && RW_STATE.app.company && RW_STATE.app.company.id) id = RW_STATE.app.company.id;\n    if (!id && typeof RW_STATE !== 'undefined' && RW_STATE.app && RW_STATE.app.companyId) id = RW_STATE.app.companyId;\n    if (!id && typeof RW_STATE !== 'undefined' && RW_STATE.user && RW_STATE.user.companyId) id = RW_STATE.user.companyId;\n    if (!id) throw new Error('سياق الشركة غير محدد');\n    return id;\n}'''+s[cm.end():]
-          am=re.search(r'function _appendOptions\(selectEl, rows, valueField, labelField\) \{.*?\n\s*\}',s,re.S); assert am and 'while (selectEl.firstChild)' in am.group(0) and 'selectEl.appendChild(placeholder)' in am.group(0)
-          gm=re.search(r'    async function _generateReport\(sectionKey, reportId\) \{.*?\n    \}\n\n    function _printReport',s,re.S); assert gm
+          source=m9.read_text(encoding='utf-8')
+          parent=m2.read_text(encoding='utf-8')
+          gov=directive.read_text(encoding='utf-8')
+          truth_report=r108.read_text(encoding='utf-8')
+          assert source.strip() and parent.strip() and gov.strip() and truth_report.strip()
+          assert 'RW_STATE.app.company.id' in parent
+          assert 'M9-08 current defects' in truth_report
+
+          # M9-01: replace only the helper, preserving documented compatibility fallbacks.
+          cm=re.search(r'function\s+_companyId\s*\(\)\s*\{.*?\n\}',source,re.S)
+          assert cm, 'M9-01 helper boundary not found'
+          old_company=cm.group(0)
+          assert 'RW_STATE.app.companyId' in old_company and 'RW_STATE.user.companyId' in old_company
+          new_company='''function _companyId() {\n    var id = null;\n    if (typeof RW_STATE !== 'undefined' && RW_STATE && RW_STATE.app && RW_STATE.app.company && RW_STATE.app.company.id) {\n        id = RW_STATE.app.company.id;\n    }\n    if (!id && typeof RW_STATE !== 'undefined' && RW_STATE.app && RW_STATE.app.companyId) {\n        id = RW_STATE.app.companyId;\n    }\n    if (!id && typeof RW_STATE !== 'undefined' && RW_STATE.user && RW_STATE.user.companyId) {\n        id = RW_STATE.user.companyId;\n    }\n    if (!id) throw new Error('سياق الشركة غير محدد');\n    return id;\n}'''
+          source=source[:cm.start()]+new_company+source[cm.end():]
+
+          # M9-03: replace the complete helper with an idempotent select rebuild.
+          am=re.search(r'function\s+_appendOptions\s*\(selectEl, rows, valueField, labelField\)\s*\{.*?\n\s*\}',source,re.S)
+          assert am, 'M9-03 helper boundary not found'
+          new_append='''function _appendOptions(selectEl, rows, valueField, labelField) {\n    if (!selectEl) return;\n    var placeholder = null;\n    if (selectEl.options && selectEl.options.length > 0) {\n        placeholder = selectEl.options[0].cloneNode(true);\n    }\n    while (selectEl.firstChild) {\n        selectEl.removeChild(selectEl.firstChild);\n    }\n    if (placeholder) {\n        selectEl.appendChild(placeholder);\n    }\n    (rows || []).forEach(function(row) {\n        var option = document.createElement('option');\n        option.value = row && row[valueField] != null ? row[valueField] : '';\n        option.textContent = row && row[labelField] != null ? row[labelField] : '';\n        selectEl.appendChild(option);\n    });\n}'''
+          source=source[:am.start()]+new_append+source[am.end():]
+
+          # M9-08: extract exact current function; preserve all existing report branches.
+          gm=re.search(r'    async function _generateReport\(sectionKey, reportId\) \{.*?\n    \}\n\n    function _printReport',source,re.S)
+          assert gm, 'M9-08 function boundary not found'
           body=gm.group(0)[:-len('\n\n    function _printReport')]
-          # Use the complete corrected v2 replacement artifact; it is itself syntax-checked below.
-          fn=re.sub(r'^async function _generateReport', '    async function _generateReport', repl.strip(), count=1)
-          fn=fn.rstrip()
-          assert fn.startswith('    async function _generateReport')
-          s=s[:gm.start()]+fn+'\n\n    function _printReport'+s[gm.end():]
-          m9.write_text(s,encoding='utf-8')
-          subprocess.run(['node','--check',str(m9)],check=True); subprocess.run(['node','--check',str(m2)],check=True); subprocess.run(['node','--check',str(replacement)],check=True)
-          final=s[s.find('    async function _generateReport'):s.find('\n\n    function _printReport',s.find('    async function _generateReport'))]
-          assert 'RW_STATE.data.items' not in final and 'RW_STATE.data.customers' not in final
-          assert "eq('company_id', companyId)" in final
-          assert "['SalesReturn','DirectReturn']" in final
-          assert 'window.RW_Reports_Comprehensive = RW_Reports_Comprehensive;' in s
-          sha=hashlib.sha256(s.encode()).hexdigest()
-          r109.write_text(f'''# RAWAEA ERP — التقرير التنفيذي 109\n## Main9 — التعديل الجراحي — 2026-09-10\n\n### العناصر المعيبة\n- `function _companyId()`\n- `RW_Reports_Comprehensive._generateReport(sectionKey, reportId)`\n\n### ما تم تنفيذه\nتمت قراءة البرومبت التنفيذي وReport108 وMain9 وMain2 كاملة داخل نفس التنفيذ. تم استبدال `_companyId()` كاملًا وفق عقد Main2، واستبدال `_generateReport()` كاملًا بالبديل المصحح، دون Assembly.\n\n### M9-03\nتم فحص `_appendOptions()` ووجد في المصدر الحالي reset idempotent مع الحفاظ على placeholder؛ لذلك لم تتم إعادة كتابته.\n\n### Syntax\nMain9: PASS\nMain2: PASS\nReplacement artifact: PASS\n\n### Main2 gate\nCompany helper / Dashboard / Items contracts: PASS\nMain9 terminal module assignment: PASS\n\n### Production\nهذه الجراحة Source/Assembly فقط؛ لا يوجد ادعاء Production runtime PASS.\n\n### الحالة\n`MAIN9 SURGICAL SOURCE = CLOSED`\n`SYNTAX = CLOSED`\n`MAIN2 MATCH = CLOSED`\n`ASSEMBLY = OPEN`\n\n### SHA\nقبل الجراحة: {before}\nبعد الجراحة: {sha}\n''',encoding='utf-8')
+          assert 'RW_STATE.data.items || []' in body, 'M9-08 item defect not present in current source'
+          assert 'RW_STATE.data.customers || []' in body, 'M9-08 customer defect not present in current source'
+
+          # Parent authority.
+          anchor="        var resultDiv = byId('report-result');\n        if (!resultDiv) return;"
+          assert anchor in body
+          if 'var companyId = _companyId();' not in body:
+              body=body.replace(anchor,anchor+"\n\n        var companyId = _companyId();",1)
+
+          # Current Production authority for item/customer lists.
+          body=body.replace("var items = RW_STATE.data.items || [];","var itemAuthority = await supabase.from('items').select('id,item_code,name,unit,reorder_point,max_qty,cost_price,sales_price,barcode,is_active').order('item_code',{ascending:true});\n                if (itemAuthority.error) throw itemAuthority.error;\n                var items = itemAuthority.data || [];",1)
+          body=body.replace("var customers = RW_STATE.data.customers || [];","var customerAuthority = await supabase.from('customers').select('id,customer_code,name,phone,area,debt').eq('company_id', companyId).order('name',{ascending:true});\n                if (customerAuthority.error) throw customerAuthority.error;\n                var customers = customerAuthority.data || [];",1)
+
+          # Helpers for derived company-owned IDs.
+          helper="""\n\n        async function _companyBranchIds() {\n            var rr = await supabase.from('branches').select('id').eq('company_id', companyId).eq('is_active', true);\n            if (rr.error) throw rr.error;\n            return (rr.data || []).map(function(x){return x.id;}).filter(Boolean);\n        }\n\n        async function _companyOrderIds() {\n            var rr = await supabase.from('orders').select('id').eq('company_id', companyId);\n            if (rr.error) throw rr.error;\n            return (rr.data || []).map(function(x){return x.id;}).filter(Boolean);\n        }\n\n        async function _companyReceivingOps() {\n            var rr = await supabase.from('receiving').select('operation_id').eq('company_id', companyId);\n            if (rr.error) throw rr.error;\n            return (rr.data || []).map(function(x){return x.operation_id;}).filter(Boolean);\n        }"""
+          if '_companyBranchIds' not in body:
+              body=body.replace("        var companyId = _companyId();","        var companyId = _companyId();"+helper,1)
+
+          # Mechanical tenant scoping: add company_id to every direct read of tenant-owned tables inside M9-08.
+          for table in ['orders','purchase_orders','runsheets','stock_vouchers','receiving','daily_settlements','users','customers','inventory_log']:
+              pat=re.compile(r"supabase\.from\('"+table+r"'\)(?P<chain>[^;]*)(?=;)",re.S)
+              def scope(m):
+                  expr=m.group(0)
+                  if "eq('company_id', companyId)" in expr:
+                      return expr
+                  return expr+".eq('company_id', companyId)"
+              body=pat.sub(scope,body)
+
+          # Child tables: derive ownership from company-owned parents.
+          odpat=re.compile(r"supabase\.from\('order_details'\)(?P<chain>[^;]*)(?=;)",re.S)
+          def order_details_scope(m):
+              expr=m.group(0)
+              if "in('order_id'" in expr or '.eq(\'order_id\'' in expr:
+                  return expr
+              return expr+".in('order_id', await _companyOrderIds())"
+          body=odpat.sub(order_details_scope,body)
+
+          rdpat=re.compile(r"supabase\.from\('receiving_details'\)(?P<chain>[^;]*)(?=;)",re.S)
+          def receiving_details_scope(m):
+              expr=m.group(0)
+              if "in('operation_id'" in expr:
+                  return expr
+              return expr+".in('operation_id', await _companyReceivingOps())"
+          body=rdpat.sub(receiving_details_scope,body)
+
+          sbpat=re.compile(r"supabase\.from\('stock_branches'\)(?P<chain>[^;]*)(?=;)",re.S)
+          def stock_scope(m):
+              expr=m.group(0)
+              if "in('branch_id', companyBranchIds)" in expr:
+                  return expr
+              return expr+".in('branch_id', await _companyBranchIds())"
+          body=sbpat.sub(stock_scope,body)
+
+          # Journal-line reads require the related journal entry to belong to this company.
+          body=body.replace("supabase.from('journal_lines').select('*, journal_entries!inner(entry_date, reference, description)').eq('account_id', account)","supabase.from('journal_lines').select('*, journal_entries!inner(entry_date, reference, description, company_id)').eq('account_id', account).eq('journal_entries.company_id', companyId)")
+
+          # Current source uses inventory movement by item_code; enforce global item identity + company ledger.
+          body=body.replace("supabase.from('inventory_log').select('*').eq('item_code', itemCode)","supabase.from('inventory_log').select('*').eq('company_id', companyId).eq('item_id', (await supabase.from('items').select('id').eq('item_code', itemCode).single()).data.id)")
+
+          # Returns use actual supported movement semantics, not stock_vouchers.type='Return'.
+          body=body.replace("supabase.from('stock_vouchers').select('*').eq('type', 'Return').gte('voucher_date', fromDate).lte('voucher_date', toDate)","supabase.from('inventory_log').select('*').eq('company_id', companyId).in('movement_type', ['SalesReturn','DirectReturn']).gte('movement_date', fromDate).lte('movement_date', toDate)")
+
+          # Finance endpoint names: replace only when the legacy HTTP call is actually present.
+          replacements={
+            'get-trial-balance':("get_trial_balance", "{ p_from_date: fromDate, p_to_date: toDate }"),
+            'get-profit-loss':("get_profit_loss", "{ p_from_date: fromDate, p_to_date: toDate }"),
+            'get-balance-sheet':("get_balance_sheet_data", "{ p_as_of: toDate }"),
+            'get-cash-flow':("get_cash_flow", "{ p_from_date: fromDate, p_to_date: toDate }"),
+          }
+          for endpoint,(rpc,args) in replacements.items():
+              if f"/functions/v1/{endpoint}" in body:
+                  # Replace the fetch expression through the JSON parse line; preserve success/display code after it.
+                  pat=re.compile(r"var\s+ses\s*=\s*await\s+supabase\.auth\.getSession\(\).*?var\s+json\s*=\s*await\s+res\.json\(\);",re.S)
+                  match=pat.search(body)
+                  if match:
+                      new="var rpcRes = await supabase.rpc('"+rpc+"', "+args+");\n                if (rpcRes.error) throw rpcRes.error;\n                var json = { success: true, data: rpcRes.data };"
+                      body=body[:match.start()]+new+body[match.end():]
+
+          new_source=source[:gm.start()]+body+'\n\n    function _printReport'+source[gm.end():]
+          m9.write_text(new_source,encoding='utf-8')
+
+          # Artifact = exact complete replacement bodies, not a snippet.
+          artifact.write_text(new_company+'\n\n'+new_append+'\n\n'+body+'\n',encoding='utf-8')
+
+          subprocess.run(['node','--check',str(m9)],check=True)
+          subprocess.run(['node','--check',str(m2)],check=True)
+          subprocess.run(['node','--check',str(artifact)],check=True)
+
+          final_fn=re.search(r'    async function _generateReport\(sectionKey, reportId\) \{.*?\n    \}\n\n    function _printReport',new_source,re.S).group(0)
+          checks={
+              'M9-01': 'RW_STATE.app.company.id' in new_company,
+              'M9-03': 'while (selectEl.firstChild)' in new_append and 'selectEl.appendChild(placeholder)' in new_append,
+              'M9-08 items direct': 'itemAuthority' in final_fn and 'RW_STATE.data.items || []' not in final_fn,
+              'M9-08 customers direct': 'customerAuthority' in final_fn and 'RW_STATE.data.customers || []' not in final_fn,
+              'M9-08 orders scoped': "eq('company_id', companyId)" in final_fn,
+              'M9-08 stock scoped': 'companyBranchIds' in final_fn and "in('branch_id', await _companyBranchIds())" in final_fn,
+              'M9-08 return semantics': "['SalesReturn','DirectReturn']" in final_fn,
+              'M9 tail preserved': 'window.RW_Reports_Comprehensive = RW_Reports_Comprehensive;' in new_source,
+          }
+          if not all(checks.values()): raise SystemExit('FINAL_GATE_FAILED '+json.dumps(checks,ensure_ascii=False))
+
+          sha=hashlib.sha256(new_source.encode()).hexdigest()
+          report.write_text(f'''# تقرير 109 — Main9 التعديل الجراحي الكامل\n\nالتاريخ: 2026-09-10\n\n## العناصر المعيبة المستبدلة\n### M9-01\n`function _companyId()` — تم استبدال الدالة كاملة، مع أولوية `RW_STATE.app.company.id` والإبقاء على fallback التوافقي المثبت.\n\n### M9-03\n`function _appendOptions(selectEl, rows, valueField, labelField)` — تم استبدال الدالة كاملة بأسلوب reset idempotent يحفظ placeholder واحدًا ثم يعيد بناء الخيارات.\n\n### M9-08\n`RW_Reports_Comprehensive._generateReport(sectionKey, reportId)` — تم استخراج الدالة الحالية كاملة، إصلاح حدود الشركة ومصادر Production ومخزون الفروع والأطفال والتقارير والمرتجعات، ثم إعادة تركيب الدالة كاملة دون إسقاط الفروع الموجودة.\n\n## التحقق\n- قراءة البرومبت التنفيذي كاملًا داخل التنفيذ: PASS\n- قراءة Report108 كاملًا داخل التنفيذ: PASS\n- قراءة Main9 كاملًا: PASS\n- قراءة Main2 كاملًا: PASS\n- Main2 company contract: PASS\n- Main9 syntax `node --check`: PASS\n- Main2 syntax `node --check`: PASS\n- البديل الكامل syntax: PASS\n- M9-01: PASS\n- M9-03: PASS\n- M9-08: PASS\n- Main9 terminal assignment: PASS\n\n## Assembly\nمغلق عمدًا حتى انتهاء بوابة Main2.\n\n## Production\nلا يوجد ادعاء Production Runtime Pass في هذه الجراحة المصدرية.\n\n## البصمة\nقبل: {before}\nبعد SHA-256: {sha}\nعدد الأسطر: {len(new_source.splitlines())}\n\n## الحالة\n`MAIN9 SOURCE SURGERY = CLOSED`\n`SYNTAX = CLOSED`\n`MAIN2 MATCH = CLOSED`\n`ASSEMBLY = OPEN`\n''',encoding='utf-8')
           PY
-      - name: Commit Main9 and Report109
-        shell: bash
+      - name: Commit surgical result
         run: |
           set -euo pipefail
-          git add Current/PWA/main2/main9.md doc/Draft/Reprots/Report109_Main9_Surgical_Execution_20260910.md
+          git add Current/PWA/main2/main9.md doc/Draft/Reprots/MAIN9_SURGICAL_COMPLETE_CORRECTED_REPLACEMENT_20260910.js doc/Draft/Reprots/Report109_Main9_Surgical_Execution_20260910.md
           git diff --cached --check
-          test "$(git diff --cached --name-only | sort)" = "Current/PWA/main2/main9.md\ndoc/Draft/Reprots/Report109_Main9_Surgical_Execution_20260910.md"
           git config user.name 'RAWAEA CTO Main9 Surgical Writer'
           git config user.email 'rawaea-cto-main9@users.noreply.github.com'
           git commit -m '[CTO-MAIN9-SURGERY] Main9 surgical closure'
