@@ -74,92 +74,207 @@ var RW_Dashboard = (function() {
         }
     }
 
-    function loadAll(fromDate, toDate) {
-        _currentFrom = fromDate;
-        _currentTo = toDate;
-        safeText(byId('dash-total-sales'), '...');
-        safeText(byId('dash-order-count'), '...');
-        safeText(byId('dash-net-profit'), '...');
-        safeText(byId('dash-customer-count'), '...');
-        safeText(byId('dash-item-count'), '...');
-        destroyCharts();
+function loadAll(fromDate, toDate) {
+    var companyId = _rwCompanyId();
 
-        // 1. الأوردرات
-        supabase.from('orders').select('id, order_code, customer_id, customer_name, total_amount, order_date, area').eq('company_id', companyId).gte('order_date', fromDate).lte('order_date', toDate).then(function(res) {
+    if (!companyId) {
+        showToast('سياق الشركة غير محدد', 'error');
+        return;
+    }
+
+    _currentFrom = fromDate;
+    _currentTo = toDate;
+
+    safeText(byId('dash-total-sales'), '...');
+    safeText(byId('dash-order-count'), '...');
+    safeText(byId('dash-net-profit'), '...');
+    safeText(byId('dash-customer-count'), '...');
+    safeText(byId('dash-item-count'), '...');
+
+    destroyCharts();
+
+    // 1. الأوردرات
+    supabase.from('orders')
+        .select('id, order_code, customer_id, customer_name, total_amount, order_date, area')
+        .eq('company_id', companyId)
+        .gte('order_date', fromDate)
+        .lte('order_date', toDate)
+        .then(function(res) {
             var orders = res.data || [];
             var totalSales = 0;
-            for (var i = 0; i < orders.length; i++) { totalSales += Number(orders[i].total_amount) || 0; }
+
+            for (var i = 0; i < orders.length; i++) {
+                totalSales += Number(orders[i].total_amount) || 0;
+            }
+
             safeText(byId('dash-total-sales'), _fmtNum(totalSales) + ' EGP');
             safeText(byId('dash-order-count'), orders.length);
 
-            // مقارنة بالفترة السابقة
             var prevFrom = shiftDate(fromDate, -30);
             var prevTo = shiftDate(toDate, -30);
-            supabase.from('orders').select('total_amount').eq('company_id', companyId).gte('order_date', prevFrom).lte('order_date', prevTo).then(function(prevRes) {
-                var prevOrders = prevRes.data || [];
-                var prevTotal = 0;
-                for (var p = 0; p < prevOrders.length; p++) { prevTotal += Number(prevOrders[p].total_amount) || 0; }
-                var change = prevTotal > 0 ? Math.round((totalSales - prevTotal) / prevTotal * 100) : 0;
-                var changeEl = byId('dash-sales-change');
-                if (changeEl) {
-                    if (change > 0) { changeEl.innerHTML = '<span class="text-green-600 font-bold">▲ ' + change + '%</span>'; }
-                    else if (change < 0) { changeEl.innerHTML = '<span class="text-red-600 font-bold">▼ ' + Math.abs(change) + '%</span>'; }
-                    else { changeEl.innerHTML = '<span class="text-gray-400">0%</span>'; }
-                }
-                var orderChangeEl = byId('dash-order-change');
-                if (orderChangeEl) {
-                    var orderChange = prevOrders.length > 0 ? Math.round((orders.length - prevOrders.length) / prevOrders.length * 100) : 0;
-                    if (orderChange > 0) { orderChangeEl.innerHTML = '<span class="text-green-600 font-bold">▲ ' + orderChange + '%</span>'; }
-                    else if (orderChange < 0) { orderChangeEl.innerHTML = '<span class="text-red-600 font-bold">▼ ' + Math.abs(orderChange) + '%</span>'; }
-                    else { orderChangeEl.innerHTML = '<span class="text-gray-400">0%</span>'; }
-                }
-            }).catch(function() {});
+
+            supabase.from('orders')
+                .select('total_amount')
+                .eq('company_id', companyId)
+                .gte('order_date', prevFrom)
+                .lte('order_date', prevTo)
+                .then(function(prevRes) {
+                    var prevOrders = prevRes.data || [];
+                    var prevTotal = 0;
+
+                    for (var p = 0; p < prevOrders.length; p++) {
+                        prevTotal += Number(prevOrders[p].total_amount) || 0;
+                    }
+
+                    var change = prevTotal > 0
+                        ? Math.round((totalSales - prevTotal) / prevTotal * 100)
+                        : 0;
+
+                    var changeEl = byId('dash-sales-change');
+
+                    if (changeEl) {
+                        if (change > 0) {
+                            changeEl.innerHTML =
+                                '<span class="text-green-600 font-bold">▲ ' +
+                                change + '%</span>';
+                        } else if (change < 0) {
+                            changeEl.innerHTML =
+                                '<span class="text-red-600 font-bold">▼ ' +
+                                Math.abs(change) + '%</span>';
+                        } else {
+                            changeEl.innerHTML =
+                                '<span class="text-gray-400">0%</span>';
+                        }
+                    }
+
+                    var orderChangeEl = byId('dash-order-change');
+
+                    if (orderChangeEl) {
+                        var orderChange = prevOrders.length > 0
+                            ? Math.round(
+                                (orders.length - prevOrders.length) /
+                                prevOrders.length * 100
+                            )
+                            : 0;
+
+                        if (orderChange > 0) {
+                            orderChangeEl.innerHTML =
+                                '<span class="text-green-600 font-bold">▲ ' +
+                                orderChange + '%</span>';
+                        } else if (orderChange < 0) {
+                            orderChangeEl.innerHTML =
+                                '<span class="text-red-600 font-bold">▼ ' +
+                                Math.abs(orderChange) + '%</span>';
+                        } else {
+                            orderChangeEl.innerHTML =
+                                '<span class="text-gray-400">0%</span>';
+                        }
+                    }
+                })
+                .catch(function() {});
 
             renderSalesChart(orders, fromDate, toDate);
             renderRegionChart(orders);
             renderTopCustomersChart(orders);
 
             var topOrderIds = [];
-            for (var oi = 0; oi < orders.length; oi++) { if (orders[oi].id) topOrderIds.push(orders[oi].id); }
+
+            for (var oi = 0; oi < orders.length; oi++) {
+                if (orders[oi].id) {
+                    topOrderIds.push(orders[oi].id);
+                }
+            }
+
             if (topOrderIds.length) {
-                supabase.from('order_details').select('item_code, item_name, qty, unit_price').in('order_id', topOrderIds).then(function(res) {
-                    renderTopItemsChart(res.data || []);
-                }).catch(function() { renderTopItemsChart([]); });
+                supabase.from('order_details')
+                    .select('item_code, item_name, qty, unit_price')
+                    .in('order_id', topOrderIds)
+                    .then(function(res) {
+                        renderTopItemsChart(res.data || []);
+                    })
+                    .catch(function() {
+                        renderTopItemsChart([]);
+                    });
             } else {
                 renderTopItemsChart([]);
             }
-        }).catch(function() {});
+        })
+        .catch(function() {});
 
-        // 2. المشتريات لصافي الربح
-        supabase.from('purchase_orders').select('total_amount').eq('company_id', companyId).gte('po_date', fromDate).lte('po_date', toDate).then(function(poRes) {
+    // 2. المشتريات لصافي الربح
+    supabase.from('purchase_orders')
+        .select('total_amount')
+        .eq('company_id', companyId)
+        .gte('po_date', fromDate)
+        .lte('po_date', toDate)
+        .then(function(poRes) {
             var poData = poRes.data || [];
             var totalPurchases = 0;
-            for (var i = 0; i < poData.length; i++) { totalPurchases += Number(poData[i].total_amount) || 0; }
-            supabase.from('orders').select('total_amount').eq('company_id', companyId).gte('order_date', fromDate).lte('order_date', toDate).then(function(ordRes) {
-                var ordData = ordRes.data || [];
-                var totalSales = 0;
-                for (var j = 0; j < ordData.length; j++) { totalSales += Number(ordData[j].total_amount) || 0; }
-                var net = totalSales - totalPurchases;
-                safeText(byId('dash-net-profit'), _fmtNum(net) + ' EGP');
-                var profitEl = byId('dash-net-profit');
-                if (profitEl) {
-                    if (net >= 0) { profitEl.className = 'text-2xl font-black text-teal-600'; }
-                    else { profitEl.className = 'text-2xl font-black text-red-600'; }
-                }
-            }).catch(function() {});
-        }).catch(function() {});
 
-        // 3. العملاء
-        supabase.from('customers').select('customer_code').eq('company_id', companyId).then(function(res) {
-            safeText(byId('dash-customer-count'), (res.data || []).length);
-        }).catch(function() {});
+            for (var i = 0; i < poData.length; i++) {
+                totalPurchases += Number(poData[i].total_amount) || 0;
+            }
 
-        // 4. الأصناف
-        supabase.from('items').select('item_code').eq('company_id', companyId).then(function(res) {
-            safeText(byId('dash-item-count'), (res.data || []).length);
-        }).catch(function() {});
+            supabase.from('orders')
+                .select('total_amount')
+                .eq('company_id', companyId)
+                .gte('order_date', fromDate)
+                .lte('order_date', toDate)
+                .then(function(ordRes) {
+                    var ordData = ordRes.data || [];
+                    var totalSales = 0;
 
-    }
+                    for (var j = 0; j < ordData.length; j++) {
+                        totalSales += Number(ordData[j].total_amount) || 0;
+                    }
+
+                    var net = totalSales - totalPurchases;
+
+                    safeText(
+                        byId('dash-net-profit'),
+                        _fmtNum(net) + ' EGP'
+                    );
+
+                    var profitEl = byId('dash-net-profit');
+
+                    if (profitEl) {
+                        if (net >= 0) {
+                            profitEl.className =
+                                'text-2xl font-black text-teal-600';
+                        } else {
+                            profitEl.className =
+                                'text-2xl font-black text-red-600';
+                        }
+                    }
+                })
+                .catch(function() {});
+        })
+        .catch(function() {});
+
+    // 3. العملاء
+    supabase.from('customers')
+        .select('customer_code')
+        .eq('company_id', companyId)
+        .then(function(res) {
+            safeText(
+                byId('dash-customer-count'),
+                (res.data || []).length
+            );
+        })
+        .catch(function() {});
+
+    // 4. الأصناف
+    supabase.from('items')
+        .select('item_code')
+        .eq('company_id', companyId)
+        .then(function(res) {
+            safeText(
+                byId('dash-item-count'),
+                (res.data || []).length
+            );
+        })
+        .catch(function() {});
+}
 
     function shiftDate(dateStr, days) {
         var d = new Date(dateStr);
@@ -601,44 +716,98 @@ function _jsAttr(s) {
     }
 
 async function _loadMovementReport() {
-    var itemCode = byId('mov-item-select') ? byId('mov-item-select').value : '';
-    if (!itemCode) { showToast('يرجى اختيار صنف', 'warning'); return; }
+    var itemCode = byId('mov-item-select')
+        ? byId('mov-item-select').value
+        : '';
+
+    if (!itemCode) {
+        showToast('يرجى اختيار صنف', 'warning');
+        return;
+    }
+
+    var companyId = _rwCompanyId();
+
+    if (!companyId) {
+        showToast('سياق الشركة غير محدد', 'error');
+        return;
+    }
 
     var item = null;
-    for (var ii = 0; ii < itemsData.length; ii++) {
-        if (itemsData[ii].item_code === itemCode) { item = itemsData[ii]; break; }
-    }
-    if (!item || !item.id) { showToast('تعذر تحديد هوية الصنف', 'error'); return; }
 
-    var fromDate = byId('mov-date-from') ? byId('mov-date-from').value : '';
-    var toDate = byId('mov-date-to') ? byId('mov-date-to').value : '';
+    for (var ii = 0; ii < itemsData.length; ii++) {
+        if (itemsData[ii].item_code === itemCode) {
+            item = itemsData[ii];
+            break;
+        }
+    }
+
+    if (!item || !item.id) {
+        showToast('تعذر تحديد هوية الصنف', 'error');
+        return;
+    }
+
+    var fromDate = byId('mov-date-from')
+        ? byId('mov-date-from').value
+        : '';
+
+    var toDate = byId('mov-date-to')
+        ? byId('mov-date-to').value
+        : '';
+
     var branchId = window._movementBranchId || null;
-    var branches = window._itemsBranches || RW_STATE.data.branches || [];
+    var branches = window._itemsBranches ||
+        RW_STATE.data.branches ||
+        [];
+
     var branchMap = {};
 
     for (var bi = 0; bi < branches.length; bi++) {
-        var branchKey = branches[bi].id || branches[bi].branch_code;
-        branchMap[branchKey] = branches[bi].name || branches[bi].branch_code || branchKey;
+        var branchKey =
+            branches[bi].id ||
+            branches[bi].branch_code;
+
+        branchMap[branchKey] =
+            branches[bi].name ||
+            branches[bi].branch_code ||
+            branchKey;
     }
 
     var physicalTypes = [
-        'PurchaseIn','TransferOut','TransferIn','POSSale','VanSale','DirectSale',
-        'SalesReturn','DirectReturn','SupplierReturn','InventoryIncrease',
-        'InventoryDecrease','Loading','Unloading'
+        'PurchaseIn',
+        'TransferOut',
+        'TransferIn',
+        'POSSale',
+        'VanSale',
+        'DirectSale',
+        'SalesReturn',
+        'DirectReturn',
+        'SupplierReturn',
+        'InventoryIncrease',
+        'InventoryDecrease',
+        'Loading',
+        'Unloading'
     ];
 
     function buildQuery() {
-        var q = supabase.from('inventory_log').select(
-            'id, log_code, movement_date, voucher_id, item_id, item_code, item_name, movement_type, qty, reference, user_email, created_at, source_branch_id, target_branch_id'
-        ).eq('company_id', companyId).eq('item_id', item.id);
+        var q = supabase
+            .from('inventory_log')
+            .select(
+                'id, log_code, movement_date, voucher_id, item_id, item_code, item_name, movement_type, qty, reference, user_email, created_at, source_branch_id, target_branch_id'
+            )
+            .eq('company_id', companyId)
+            .eq('item_id', item.id);
 
         if (branchId) {
-            q = q.or('source_branch_id.eq.' + branchId + ',target_branch_id.eq.' + branchId);
+            q = q.or(
+                'source_branch_id.eq.' + branchId +
+                ',target_branch_id.eq.' + branchId
+            );
         }
+
         return q;
     }
 
-    function movementImpact(log) {
+	function movementImpact(log) {
         var qty = Number(log.qty) || 0;
         if (qty <= 0) return 0;
 
