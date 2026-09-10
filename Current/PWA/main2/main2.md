@@ -1260,64 +1260,138 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
         }, 0);
     }
     function _loadCategoriesIntoSelect() {
+      var companyId = _rwCompanyId();
       var select = byId('item-cat');
+
       if (!select) return;
-      
-      supabase.from('categories').select('id, category_name').eq('company_id', companyId).order('category_name').then(function(res) {
-        var categories = res.data || [];
-        var html = '<option value="">بدون تصنيف</option>';
-        var currentCategoryId = window._currentEditItem ? window._currentEditItem.category_id : null;
-        var currentCategoryText = window._currentEditItem ? window._currentEditItem.category : '';
-        
-        for (var i = 0; i < categories.length; i++) {
-          var selected = '';
-          if (currentCategoryId && categories[i].id === currentCategoryId) selected = ' selected';
-          if (!currentCategoryId && currentCategoryText && categories[i].category_name === currentCategoryText) selected = ' selected';
-          html += '<option value="' + _esc(categories[i].id) + '"' + selected + '>' + _esc(categories[i].category_name) + '</option>';
-        }
-        safeHTML(select, html);
-      });
+
+      if (!companyId) {
+        showToast('سياق الشركة غير محدد', 'error');
+        return;
+      }
+
+      supabase.from('categories')
+        .select('id, category_name')
+        .eq('company_id', companyId)
+        .order('category_name')
+        .then(function(res) {
+          var categories = res.data || [];
+          var html = '<option value="">بدون تصنيف</option>';
+          var currentCategoryId = window._currentEditItem
+            ? window._currentEditItem.category_id
+            : null;
+          var currentCategoryText = window._currentEditItem
+            ? window._currentEditItem.category
+            : '';
+
+          for (var i = 0; i < categories.length; i++) {
+            var selected = '';
+
+            if (currentCategoryId &&
+                categories[i].id === currentCategoryId) {
+              selected = ' selected';
+            }
+
+            if (!currentCategoryId &&
+                currentCategoryText &&
+                categories[i].category_name === currentCategoryText) {
+              selected = ' selected';
+            }
+
+            html += '<option value="' +
+              _esc(categories[i].id) +
+              '"' + selected + '>' +
+              _esc(categories[i].category_name) +
+              '</option>';
+          }
+
+          safeHTML(select, html);
+        });
     }
 
     function _openCategoryModal() {
-      supabase.from('categories').select('id, category_name').eq('company_id', companyId).order('category_name').then(function(res) {
-        var categories = res.data || [];
-        
-        var html = '<div class="text-right" dir="rtl">';
-        html += '<h3 class="font-bold text-lg mb-3">🗂️ إدارة التصنيفات</h3>';
-        
-        if (categories.length === 0) {
-          html += '<div class="text-center py-6 text-gray-400">لا توجد تصنيفات</div>';
-        } else {
-          html += '<div class="max-h-48 overflow-y-auto mb-4 space-y-1">';
-          for (var i = 0; i < categories.length; i++) {
-            var catId = categories[i].id;
-            var catName = categories[i].category_name || '';
-            html += '<div class="flex justify-between items-center p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-indigo-50" onclick="RW_Items._editCategory(' + _jsAttr(catId) + ', ' + _jsAttr(catName) + ')">';
-            html += '<span class="font-bold text-sm">' + _esc(catName) + '</span>';
+      var companyId = _rwCompanyId();
+
+      if (!companyId) {
+        showToast('سياق الشركة غير محدد', 'error');
+        return;
+      }
+
+      supabase.from('categories')
+        .select('id, category_name')
+        .eq('company_id', companyId)
+        .order('category_name')
+        .then(function(res) {
+          var categories = res.data || [];
+
+          var html =
+            '<div class="text-right" dir="rtl">';
+
+          html +=
+            '<h3 class="font-bold text-lg mb-3">🗂️ إدارة التصنيفات</h3>';
+
+          if (categories.length === 0) {
+            html +=
+              '<div class="text-center py-6 text-gray-400">' +
+              'لا توجد تصنيفات' +
+              '</div>';
+          } else {
+            html +=
+              '<div class="max-h-48 overflow-y-auto mb-4 space-y-1">';
+
+            for (var i = 0; i < categories.length; i++) {
+              var catId = categories[i].id;
+              var catName =
+                categories[i].category_name || '';
+
+              html +=
+                '<div class="flex justify-between items-center p-2 ' +
+                'bg-gray-50 rounded-lg cursor-pointer hover:bg-indigo-50" ' +
+                'onclick="RW_Items._editCategory(' +
+                _jsAttr(catId) + ', ' +
+                _jsAttr(catName) +
+                ')">';
+
+              html +=
+                '<span class="font-bold text-sm">' +
+                _esc(catName) +
+                '</span>';
+
+              html += '</div>';
+            }
+
             html += '</div>';
           }
+
+          html += '<div class="flex gap-2 mt-3">';
+
+          html +=
+            '<input type="text" id="new-category-name" ' +
+            'class="flex-1 p-2.5 border rounded-lg text-sm" ' +
+            'placeholder="اسم التصنيف الجديد">';
+
+          html +=
+            '<button onclick="RW_Items._addCategory()" ' +
+            'class="bg-indigo-600 text-white px-4 py-2 rounded-lg ' +
+            'font-bold text-sm whitespace-nowrap">إضافة</button>';
+
           html += '</div>';
-        }
-        
-        html += '<div class="flex gap-2 mt-3">';
-        html += '<input type="text" id="new-category-name" class="flex-1 p-2.5 border rounded-lg text-sm" placeholder="اسم التصنيف الجديد">';
-        html += '<button onclick="RW_Items._addCategory()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap">إضافة</button>';
-        html += '</div>';
-        html += '</div>';
-        
-        Swal.fire({
-          title: '',
-          html: html,
-          width: '500px',
-          showCloseButton: true,
-          showConfirmButton: false,
-          customClass: { popup: '!rounded-3xl' }
+          html += '</div>';
+
+          Swal.fire({
+            title: '',
+            html: html,
+            width: '500px',
+            showCloseButton: true,
+            showConfirmButton: false,
+            customClass: {
+              popup: '!rounded-3xl'
+            }
+          });
         });
-      });
     }
 
-    function _addCategory() {
+	function _addCategory() {
       var popup = Swal.getPopup();
       if (!popup) return;
       var nameInput = popup.querySelector('#new-category-name');
@@ -1432,50 +1506,98 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
     }
 
     function _deleteCategory(id, name) {
-      supabase.from('items').select('id').eq('company_id', companyId).eq('category_id', id).limit(1).then(function(checkRes) {
-        var hasItems = checkRes.data && checkRes.data.length > 0;
-        
-        if (hasItems) {
-          supabase.from('categories').select('id, category_name').eq('company_id', companyId).neq('id', id).order('category_name').then(function(catRes) {
-            var cats = catRes.data || [];
-            var options = '';
-            for (var i = 0; i < cats.length; i++) {
-              options += '<option value="' + _esc(cats[i].id) + '">' + _esc(cats[i].category_name) + '</option>';
-            }
-            
+      var companyId = _rwCompanyId();
+
+      if (!companyId) {
+        showToast('سياق الشركة غير محدد', 'error');
+        return;
+      }
+
+      supabase.from('items')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('category_id', id)
+        .limit(1)
+        .then(function(checkRes) {
+          var hasItems =
+            checkRes.data && checkRes.data.length > 0;
+
+          if (hasItems) {
+            supabase.from('categories')
+              .select('id, category_name')
+              .eq('company_id', companyId)
+              .neq('id', id)
+              .order('category_name')
+              .then(function(catRes) {
+                var cats = catRes.data || [];
+                var options = '';
+
+                for (var i = 0; i < cats.length; i++) {
+                  options +=
+                    '<option value="' +
+                    _esc(cats[i].id) +
+                    '">' +
+                    _esc(cats[i].category_name) +
+                    '</option>';
+                }
+
+                Swal.fire({
+                  title: 'لا يمكن حذف التصنيف',
+                  html:
+                    '<p class="text-sm">' +
+                    'يوجد أصناف تستخدم تصنيف "' +
+                    _esc(name) +
+                    '".</p>' +
+                    '<p class="text-sm mt-2">' +
+                    'اختر تصنيفًا بديلاً لنقلها إليه:</p>' +
+                    '<select id="replacement-cat" class="swal2-input">' +
+                    options +
+                    '</select>',
+                  showCancelButton: true,
+                  confirmButtonText: 'نقل وحذف',
+                  cancelButtonText: 'إلغاء',
+                  customClass: {
+                    popup: '!rounded-3xl'
+                  },
+                  preConfirm: function() {
+                    var sel =
+                      document.getElementById('replacement-cat');
+
+                    return sel ? sel.value : null;
+                  }
+                }).then(function(r) {
+                  if (!r.isConfirmed || !r.value) return;
+
+                  RW_Items._executeDeleteCategory(
+                    id,
+                    r.value
+                  );
+                });
+              });
+          } else {
             Swal.fire({
-              title: 'لا يمكن حذف التصنيف',
-              html: '<p class="text-sm">يوجد أصناف تستخدم تصنيف "' + _esc(name) + '".</p><p class="text-sm mt-2">اختر تصنيفًا بديلاً لنقلها إليه:</p><select id="replacement-cat" class="swal2-input">' + options + '</select>',
+              title: 'تأكيد الحذف',
+              text:
+                'حذف تصنيف "' + name + '"؟',
+              icon: 'warning',
               showCancelButton: true,
-              confirmButtonText: 'نقل وحذف',
+              confirmButtonText: 'حذف',
               cancelButtonText: 'إلغاء',
-              customClass: { popup: '!rounded-3xl' },
-              preConfirm: function() {
-                var sel = document.getElementById('replacement-cat');
-                return sel ? sel.value : null;
+              customClass: {
+                popup: '!rounded-3xl',
+                confirmButton: '!rounded-xl !bg-red-600'
               }
             }).then(function(r) {
-              if (!r.isConfirmed || !r.value) return;
-              RW_Items._executeDeleteCategory(id, r.value);
-            });
-          });
-        } else {
-          Swal.fire({
-            title: 'تأكيد الحذف',
-            text: 'حذف تصنيف "' + name + '"؟',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'حذف',
-            cancelButtonText: 'إلغاء',
-            customClass: { popup: '!rounded-3xl', confirmButton: '!rounded-xl !bg-red-600' }
-          }).then(function(r) {
-            if (!r.isConfirmed) return;
-            RW_Items._executeDeleteCategory(id, null);
-          });
-        }
-      });
-    }
+              if (!r.isConfirmed) return;
 
+              RW_Items._executeDeleteCategory(
+                id,
+                null
+              );
+            });
+          }
+        });
+    }
     function _executeDeleteCategory(id, replacementId) {
       showLoader('جاري الحذف...');
       var payload = { action: 'delete', category_id: id };
@@ -1523,16 +1645,36 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
     
         // دالة بناء قائمة التصنيفات من جدول categories مباشرة
     function _buildCategoryFilterFromDB() {
+        var companyId = _rwCompanyId();
         var sel = byId('items-cat-filter');
+
         if (!sel) return;
-        supabase.from('categories').select('id, category_name').eq('company_id', companyId).order('category_name').then(function(res) {
-            var categories = res.data || [];
-            var html = '<option value="">كل التصنيفات</option>';
-            for (var i = 0; i < categories.length; i++) {
-                html += '<option value="' + _esc(categories[i].category_name) + '">' + _esc(categories[i].category_name) + '</option>';
-            }
-            safeHTML(sel, html);
-        });
+
+        if (!companyId) {
+            showToast('سياق الشركة غير محدد', 'error');
+            return;
+        }
+
+        supabase.from('categories')
+            .select('id, category_name')
+            .eq('company_id', companyId)
+            .order('category_name')
+            .then(function(res) {
+                var categories = res.data || [];
+                var html =
+                    '<option value="">كل التصنيفات</option>';
+
+                for (var i = 0; i < categories.length; i++) {
+                    html +=
+                        '<option value="' +
+                        _esc(categories[i].category_name) +
+                        '">' +
+                        _esc(categories[i].category_name) +
+                        '</option>';
+                }
+
+                safeHTML(sel, html);
+            });
     }
     // ==================== تبويب تحديث الأرصدة ====================
     var _uploadFileData = []; // تخزين بيانات الملف بعد التحليل
@@ -1615,90 +1757,317 @@ function resolveImageUrlAndSave(item, fileInput, callback) {
         var previewTable = byId('upload-preview-table');
         var summary = byId('upload-summary');
         var executeBtn = byId('btn-execute-upload');
+        var companyId = _rwCompanyId();
+
         if (!previewArea || !previewTable) return;
 
-        previewArea.classList.remove('hidden');
-        if (_uploadFileData.length === 0) {
-            safeHTML(previewTable, '<div class="text-center py-8 text-gray-500">لا توجد بيانات صالحة في الملف</div>');
-            safeText(summary, '');
-            if (executeBtn) executeBtn.disabled = true;
+        if (!companyId) {
+            showToast('سياق الشركة غير محدد', 'error');
+
+            if (executeBtn) {
+                executeBtn.disabled = true;
+            }
+
             return;
         }
 
-        safeHTML(previewTable, '<div class="text-center py-8 text-gray-500"><i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق من الأصناف...</div>');
+        previewArea.classList.remove('hidden');
+
+        if (_uploadFileData.length === 0) {
+            safeHTML(
+                previewTable,
+                '<div class="text-center py-8 text-gray-500">' +
+                'لا توجد بيانات صالحة في الملف' +
+                '</div>'
+            );
+
+            safeText(summary, '');
+
+            if (executeBtn) {
+                executeBtn.disabled = true;
+            }
+
+            return;
+        }
+
+        safeHTML(
+            previewTable,
+            '<div class="text-center py-8 text-gray-500">' +
+            '<i class="fa-solid fa-spinner fa-spin"></i> ' +
+            'جاري التحقق من الأصناف...</div>'
+        );
 
         var barcodes = [];
-        for (var b = 0; b < _uploadFileData.length; b++) { barcodes.push(_uploadFileData[b].barcode); }
 
-        var branchId = byId('upload-branch') ? byId('upload-branch').value : '';
-        if (!branchId) { safeHTML(previewTable, '<div class="text-center py-8 text-red-500">يرجى اختيار الفرع أولاً</div>'); if (executeBtn) executeBtn.disabled = true; return; }
+        for (var b = 0; b < _uploadFileData.length; b++) {
+            barcodes.push(
+                _uploadFileData[b].barcode
+            );
+        }
 
-        // جلب الأصناف
-        supabase.from('items').select('id, item_code, barcode, name').eq('company_id', companyId).in('barcode', barcodes).then(function(itemsRes) {
-var itemMap = {};
-var duplicateBarcodeMap = {};
-for (var im = 0; im < (itemsRes.data || []).length; im++) {
-    var it = itemsRes.data[im];
-    if (!it.barcode) continue;
-    if (itemMap[it.barcode]) {
-        duplicateBarcodeMap[it.barcode] = true;
-    } else {
-        itemMap[it.barcode] = it;
-    }
-}
+        var branchId =
+            byId('upload-branch')
+                ? byId('upload-branch').value
+                : '';
 
-for (var f = 0; f < _uploadFileData.length; f++) {
-    var barcodeValue = _uploadFileData[f].barcode;
-    if (duplicateBarcodeMap[barcodeValue]) {
-        _uploadFileData[f]._invalidReason = 'باركود غير فريد';
-        delete _uploadFileData[f].item_code;
-    } else {
-        var mappedItem = itemMap[barcodeValue];
-        if (mappedItem) _uploadFileData[f].item_code = mappedItem.item_code;
-    }
-}
-            // جلب الأرصدة الحالية
-            supabase.from('stock_branches').select('item_id, qty').eq('branch_id', branchId).in('item_id', (itemsRes.data || []).map(function(x) { return x.id; })).then(function(stockRes) {
-                var stockMap = {};
-                for (var st = 0; st < (stockRes.data || []).length; st++) { stockMap[stockRes.data[st].item_id] = stockRes.data[st].qty; }
+        if (!branchId) {
+            safeHTML(
+                previewTable,
+                '<div class="text-center py-8 text-red-500">' +
+                'يرجى اختيار الفرع أولاً' +
+                '</div>'
+            );
 
-                var html = '<table class="w-full text-sm border"><thead class="bg-gray-100 sticky top-0"><tr><th class="p-2">الباركود</th><th class="p-2">الصنف</th><th class="p-2 text-center">الرصيد الحالي</th><th class="p-2 text-center">الكمية المدخلة</th><th class="p-2 text-center">الرصيد الجديد</th><th class="p-2 text-center">الحالة</th></tr></thead><tbody>';
-                var validCount = 0, invalidCount = 0;
-                var adjType = byId('upload-type') ? byId('upload-type').value : 'replace';
+            if (executeBtn) {
+                executeBtn.disabled = true;
+            }
 
-                for (var d = 0; d < _uploadFileData.length; d++) {
-                    var entry = _uploadFileData[d];
-                    var item = itemMap[entry.barcode];
-                    var currentQty = item ? (Number(stockMap[item.id]) || 0) : 0;
-                    var inputQty = Number(entry.qty) || 0;
-                    var newQty = currentQty;
-                    var status = '', statusClass = '';
+            return;
+        }
 
-                    if (duplicateBarcodeMap[entry.barcode]) {
-    status = '❌ الباركود غير فريد';
-    statusClass = 'bg-red-50';
-    invalidCount++;
-} else if (!item) {
-    status = '❌ باركود غير موجود';
-    statusClass = 'bg-red-50';
-    invalidCount++;
-} else {
-                        if (adjType === 'replace') newQty = inputQty;
-                        else if (adjType === 'add') newQty = currentQty + inputQty;
-                        else if (adjType === 'deduct') { newQty = currentQty - inputQty; if (newQty < 0) { status = '⚠️ سيصبح الرصيد سالباً'; statusClass = 'bg-yellow-50'; } }
-                        if (!status) { status = '✅ صالح'; statusClass = 'bg-green-50'; validCount++; }
+        supabase.from('items')
+            .select('id, item_code, barcode, name')
+            .eq('company_id', companyId)
+            .in('barcode', barcodes)
+            .then(function(itemsRes) {
+                var itemMap = {};
+                var duplicateBarcodeMap = {};
+
+                for (
+                    var im = 0;
+                    im < (itemsRes.data || []).length;
+                    im++
+                ) {
+                    var it = itemsRes.data[im];
+
+                    if (!it.barcode) continue;
+
+                    if (itemMap[it.barcode]) {
+                        duplicateBarcodeMap[it.barcode] = true;
+                    } else {
+                        itemMap[it.barcode] = it;
                     }
-                    entry._valid = !!item && !status;
-                    html += '<tr class="' + statusClass + '"><td class="p-2 font-mono">' + entry.barcode + '</td><td class="p-2">' + (item ? item.name : '---') + '</td><td class="p-2 text-center font-bold">' + currentQty + '</td><td class="p-2 text-center font-bold text-indigo-600">' + inputQty + '</td><td class="p-2 text-center font-bold">' + newQty + '</td><td class="p-2 text-center text-xs">' + status + '</td></tr>';
                 }
-                html += '</tbody></table>';
-                safeHTML(previewTable, html);
-                safeText(summary, 'صالح: ' + validCount + ' | أخطاء: ' + invalidCount + ' | إجمالي: ' + _uploadFileData.length);
-                if (executeBtn) executeBtn.disabled = (validCount === 0);
-            }).catch(function(err) { safeHTML(previewTable, '<div class="text-center py-8 text-red-500">فشل جلب الأرصدة: ' + err.message + '</div>'); });
-        }).catch(function(err) { safeHTML(previewTable, '<div class="text-center py-8 text-red-500">فشل جلب الأصناف: ' + err.message + '</div>'); });
-    }
 
+                for (
+                    var f = 0;
+                    f < _uploadFileData.length;
+                    f++
+                ) {
+                    var barcodeValue =
+                        _uploadFileData[f].barcode;
+
+                    if (duplicateBarcodeMap[barcodeValue]) {
+                        _uploadFileData[f]._invalidReason =
+                            'باركود غير فريد';
+
+                        delete _uploadFileData[f].item_code;
+                    } else {
+                        var mappedItem =
+                            itemMap[barcodeValue];
+
+                        if (mappedItem) {
+                            _uploadFileData[f].item_code =
+                                mappedItem.item_code;
+                        }
+                    }
+                }
+
+                supabase.from('stock_branches')
+                    .select('item_id, qty')
+                    .eq('branch_id', branchId)
+                    .in(
+                        'item_id',
+                        (itemsRes.data || []).map(function(x) {
+                            return x.id;
+                        })
+                    )
+                    .then(function(stockRes) {
+                        var stockMap = {};
+
+                        for (
+                            var st = 0;
+                            st < (stockRes.data || []).length;
+                            st++
+                        ) {
+                            stockMap[
+                                stockRes.data[st].item_id
+                            ] =
+                                stockRes.data[st].qty;
+                        }
+
+                        var html =
+                            '<table class="w-full text-sm border">' +
+                            '<thead class="bg-gray-100 sticky top-0">' +
+                            '<tr>' +
+                            '<th class="p-2">الباركود</th>' +
+                            '<th class="p-2">الصنف</th>' +
+                            '<th class="p-2 text-center">الرصيد الحالي</th>' +
+                            '<th class="p-2 text-center">الكمية المدخلة</th>' +
+                            '<th class="p-2 text-center">الرصيد الجديد</th>' +
+                            '<th class="p-2 text-center">الحالة</th>' +
+                            '</tr>' +
+                            '</thead><tbody>';
+
+                        var validCount = 0;
+                        var invalidCount = 0;
+
+                        var adjType =
+                            byId('upload-type')
+                                ? byId('upload-type').value
+                                : 'replace';
+
+                        for (
+                            var d = 0;
+                            d < _uploadFileData.length;
+                            d++
+                        ) {
+                            var entry =
+                                _uploadFileData[d];
+
+                            var item =
+                                itemMap[entry.barcode];
+
+                            var currentQty =
+                                item
+                                    ? (Number(stockMap[item.id]) || 0)
+                                    : 0;
+
+                            var inputQty =
+                                Number(entry.qty) || 0;
+
+                            var newQty = currentQty;
+
+                            var status = '';
+                            var statusClass = '';
+
+                            if (
+                                duplicateBarcodeMap[
+                                    entry.barcode
+                                ]
+                            ) {
+                                status =
+                                    '❌ الباركود غير فريد';
+
+                                statusClass =
+                                    'bg-red-50';
+
+                                invalidCount++;
+                            } else if (!item) {
+                                status =
+                                    '❌ باركود غير موجود';
+
+                                statusClass =
+                                    'bg-red-50';
+
+                                invalidCount++;
+                            } else {
+                                if (adjType === 'replace') {
+                                    newQty = inputQty;
+                                } else if (adjType === 'add') {
+                                    newQty =
+                                        currentQty +
+                                        inputQty;
+                                } else if (
+                                    adjType === 'deduct'
+                                ) {
+                                    newQty =
+                                        currentQty -
+                                        inputQty;
+
+                                    if (newQty < 0) {
+                                        status =
+                                            '⚠️ سيصبح الرصيد سالباً';
+
+                                        statusClass =
+                                            'bg-yellow-50';
+                                    }
+                                }
+
+                                if (!status) {
+                                    status =
+                                        '✅ صالح';
+
+                                    statusClass =
+                                        'bg-green-50';
+
+                                    validCount++;
+                                }
+                            }
+
+                            entry._valid =
+                                !!item && !status;
+
+                            html +=
+                                '<tr class="' +
+                                statusClass +
+                                '">' +
+                                '<td class="p-2 font-mono">' +
+                                entry.barcode +
+                                '</td>' +
+                                '<td class="p-2">' +
+                                (item
+                                    ? item.name
+                                    : '---') +
+                                '</td>' +
+                                '<td class="p-2 text-center font-bold">' +
+                                currentQty +
+                                '</td>' +
+                                '<td class="p-2 text-center font-bold text-indigo-600">' +
+                                inputQty +
+                                '</td>' +
+                                '<td class="p-2 text-center font-bold">' +
+                                newQty +
+                                '</td>' +
+                                '<td class="p-2 text-center text-xs">' +
+                                status +
+                                '</td>' +
+                                '</tr>';
+                        }
+
+                        html +=
+                            '</tbody></table>';
+
+                        safeHTML(
+                            previewTable,
+                            html
+                        );
+
+                        safeText(
+                            summary,
+                            'صالح: ' +
+                            validCount +
+                            ' | أخطاء: ' +
+                            invalidCount +
+                            ' | إجمالي: ' +
+                            _uploadFileData.length
+                        );
+
+                        if (executeBtn) {
+                            executeBtn.disabled =
+                                (validCount === 0);
+                        }
+                    })
+                    .catch(function(err) {
+                        safeHTML(
+                            previewTable,
+                            '<div class="text-center py-8 text-red-500">' +
+                            'فشل جلب الأرصدة: ' +
+                            err.message +
+                            '</div>'
+                        );
+                    });
+            })
+            .catch(function(err) {
+                safeHTML(
+                    previewTable,
+                    '<div class="text-center py-8 text-red-500">' +
+                    'فشل جلب الأصناف: ' +
+                    err.message +
+                    '</div>'
+                );
+            });
+    }
     function _executeUpload() {
         var branchId = byId('upload-branch') ? byId('upload-branch').value : '';
         var adjType = byId('upload-type') ? byId('upload-type').value : 'replace';
