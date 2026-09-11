@@ -1,0 +1,210 @@
+name: CTO Main1 Surgical Patch
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch-main1:
+    if: contains(github.event.head_commit.message, '[CTO-MAIN1-PATCH]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact pushed revision
+        uses: actions/checkout@v4
+
+      - name: Apply surgical Main1 closure
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path('Current/PWA/main2/main1.md')
+          text = path.read_text(encoding='utf-8')
+
+          old_bootstrap = r'''        // \u2705 Bootstrap: تحميل البيانات الأساسية مرة واحدة لجميع التبويبات
+          Promise.all([
+              RW_Data.loadItems(),
+              RW_Data.loadCustomers(),
+              RW_Data.loadBranches()
+          ]).then(function() {
+              console.log('\u2705 Bootstrap data loaded successfully.');
+              console.log('ITEMS COUNT', window.RW_STATE.data.items?.length);
+      console.log('CUSTOMERS COUNT', window.RW_STATE.data.customers?.length);
+      console.log('SUPPLIERS COUNT', window.RW_STATE.data.suppliers?.length);
+      console.log('BRANCHES COUNT', window.RW_STATE.data.branches?.length);
+              // تحميل الموردين (اختياري، لا يمنع الدخول)
+              supabase.from('suppliers').select('*').eq('company_id', RW_STATE.app.company.id).then(function(r) {
+                  RW_STATE.data.suppliers = r.data || [];
+                  console.log('\u2705 Suppliers loaded.');
+              });
+          }).catch(function(e) {
+              console.warn('\u26a0\ufe0f Bootstrap data failed:', e);
+          }).finally(function() {
+              // الانتقال للوحة التحكم في جميع الأحوال
+              RW_Navigation.navigate('dashboard');
+            setTimeout(function() { RW_Notification.renderBell(); }, 500);
+          });
+      } catch(e) {
+          console.error(e);
+          this.forceEnterFallback();
+      }
+  },
+          forceEnterFallback: function() {
+          hideLoader();
+          try {
+              byId('rw-login-page').style.display = 'none';
+              byId('rw-main-shell').style.display = 'flex';
+              RW_Navigation.buildSidebar();
+              RW_Navigation.navigate('dashboard');
+              showToast('تم تشغيل النظام في الوضع الآمن', 'warning');
+          } catch(e) {
+              document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:Cairo;"><h1>RAWAEA ERP</h1><p>حدث خطأ أثناء تشغيل النظام</p><button onclick="location.reload()">إعادة التحميل</button></div>';
+          }
+      },'''
+
+          new_bootstrap = r'''        // \u2705 Bootstrap: تحميل البيانات الأساسية مرة واحدة لجميع التبويبات
+          Promise.all([
+              RW_Data.loadItems(),
+              RW_Data.loadCustomers(),
+              RW_Data.loadBranches()
+          ]).then(function() {
+              console.log('\u2705 Bootstrap data loaded successfully.');
+              console.log('ITEMS COUNT', window.RW_STATE.data.items?.length);
+      console.log('CUSTOMERS COUNT', window.RW_STATE.data.customers?.length);
+      console.log('SUPPLIERS COUNT', window.RW_STATE.data.suppliers?.length);
+      console.log('BRANCHES COUNT', window.RW_STATE.data.branches?.length);
+              // تحميل الموردين (اختياري، لا يمنع الدخول)
+              supabase.from('suppliers').select('*').eq('company_id', RW_STATE.app.company.id).then(function(r) {
+                  RW_STATE.data.suppliers = r.data || [];
+                  console.log('\u2705 Suppliers loaded.');
+              }).catch(function(e) {
+                  console.warn('\u26a0\ufe0f Suppliers optional load failed:', e);
+              });
+
+              RW_STATE.app.initialized = true;
+              RW_Navigation.navigate('dashboard');
+              setTimeout(function() { RW_Notification.renderBell(); }, 500);
+          }).catch(function(e) {
+              console.error('\u274c Bootstrap failed; keeping authenticated UI closed:', e);
+              RW_STATE.app.initialized = false;
+              RW_STATE.app.authenticated = false;
+              hideLoader();
+              showToast('تعذر تجهيز بيانات النظام. لم يتم فتح النظام لتجنب حالة تشغيل ناقصة.', 'error');
+          });
+      } catch(e) {
+          console.error('\u274c System initialization failed:', e);
+          this.forceEnterFallback();
+      }
+  },
+          forceEnterFallback: function() {
+          hideLoader();
+          RW_STATE.app.initialized = false;
+          RW_STATE.app.authenticated = false;
+          try {
+              byId('rw-main-shell').style.display = 'none';
+              byId('rw-login-page').style.display = 'flex';
+              showToast('تعذر تهيئة النظام. تم منع الدخول حتى اكتمال التهيئة بأمان.', 'error');
+          } catch(e) {
+              document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:Cairo;"><h1>RAWAEA ERP</h1><p>تعذر تهيئة النظام بأمان</p><button onclick="location.reload()">إعادة التحميل</button></div>';
+          }
+      },'''
+
+          if text.count(old_bootstrap) != 1:
+              raise SystemExit(f'ASSERT FAILED: bootstrap/fallback block count={text.count(old_bootstrap)}')
+          text = text.replace(old_bootstrap, new_bootstrap, 1)
+
+          replacements = [
+              (
+                  """        }).catch(function(e) {\n            console.error('loadItems', e);\n            RW_STATE.data.items = [];\n            return [];\n        });\n    },""",
+                  """        }).catch(function(e) {\n            console.error('loadItems', e);\n            RW_STATE.data.items = [];\n            throw e;\n        });\n    },"""
+              ),
+              (
+                  """        }).catch(function(e) {\n            console.error('loadCustomers', e);\n            RW_STATE.data.customers = [];\n            return [];\n        });\n    },""",
+                  """        }).catch(function(e) {\n            console.error('loadCustomers', e);\n            RW_STATE.data.customers = [];\n            throw e;\n        });\n    },"""
+              ),
+              (
+                  """        }).catch(function(e) {\n            console.error('loadBranches', e);\n            RW_STATE.data.branches = [];\n            return [];\n        });\n    }\n};""",
+                  """        }).catch(function(e) {\n            console.error('loadBranches', e);\n            RW_STATE.data.branches = [];\n            throw e;\n        });\n    }\n};"""
+              ),
+              (
+                  """        RW_Audit_log('logout', 'auth', userEmail, null, null);\n\n        supabase.auth.signOut().then(function() {\n            RW_STATE.app.authenticated = false;""",
+                  """        RW_Audit_log('logout', 'auth', userEmail, null, null);\n\n        RW_STATE.app.initialized = false;\n        RW_STATE.app.authenticated = false;\n        RW_STATE.app.currentUser = null;\n        RW_STATE.permissions = [];\n        supabase.auth.signOut().then(function() {"""
+              )
+          ]
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'ASSERT FAILED: replacement count={count} for block starting {old[:80]!r}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+
+          if 'this.forceEnterFallback();' not in text:
+              raise SystemExit('ASSERT FAILED: compatibility fallback hook disappeared')
+          if 'تم تشغيل النظام في الوضع الآمن' in text:
+              raise SystemExit('ASSERT FAILED: insecure fallback message still present')
+          if '}).finally(function()' in text:
+              raise SystemExit('ASSERT FAILED: bootstrap finally navigation still present')
+
+      - name: Validate Main1 HTML/JS boundaries and syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path('Current/PWA/main2/main1.md')
+          s = p.read_text(encoding='utf-8')
+          assert s.count('<html') == 1
+          assert s.count('</html>') == 1
+          assert s.count('<body>') == 1
+          assert s.count('</body>') == 1
+          inline = re.findall(r'<script(?:\s[^>]*)?>([\s\S]*?)</script>', s, flags=re.I)
+          assert inline, 'No inline script block found'
+          Path('/tmp/main1-inline.js').write_text('\n\n'.join(inline), encoding='utf-8')
+          print('Main1 bytes:', p.stat().st_size)
+          print('Inline script blocks:', len(inline))
+          PY
+          node --check /tmp/main1-inline.js
+          git diff --check
+
+      - name: Record execution log and commit surgical closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          BEFORE_SHA="$(git rev-parse HEAD)"
+          FILE_SHA="$(git hash-object Current/PWA/main2/main1.md)"
+          cat > doc/Draft/Reprots/Execution_Log_Main1_Surgical_Closure_20260911.md <<EOF
+          # Main1 Surgical Closure Execution Log
+
+          - Date (UTC): $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          - Parent revision before patch: ${BEFORE_SHA}
+          - Patched Main1 content SHA: ${FILE_SHA}
+          - Target: Current/PWA/main2/main1.md
+          - Original/PWA/main/main1.md: untouched
+          - Patch mode: exact block replacement with count assertions
+          - Security closure: bootstrap failure no longer opens the authenticated shell
+          - Error propagation: core bootstrap loaders now rethrow Supabase failures
+          - Fallback behavior: fail-closed; login remains visible
+          - Logout state: initialized/authenticated/currentUser/permissions reset
+          - HTML boundary check: PASS
+          - Inline JavaScript syntax check: PASS
+          - git diff --check: PASS
+          - Production data mutation in this workflow: NONE
+
+          ## Closure result
+          MAIN1 FOUNDATION RUNTIME SAFETY = CLOSED AT SOURCE/CI LEVEL
+          PRODUCTION UI RUNTIME = REQUIRES CURRENT PRODUCTION RUNTIME VERIFICATION
+          EOF
+          git config user.name 'RAWAEA CTO Automation'
+          git config user.email 'cto-automation@users.noreply.github.com'
+          git add Current/PWA/main2/main1.md doc/Draft/Reprots/Execution_Log_Main1_Surgical_Closure_20260911.md .github/workflows/cto-main1-surgical-patch.yml
+          git commit -m '[CTO-MAIN1-PATCH] Close Main1 bootstrap fail-open path'
+          git rm .github/workflows/cto-main1-surgical-patch.yml
+          git commit -m '[CTO-MAIN1-PATCH] Remove one-time patch runner'
+          git push origin HEAD:main
