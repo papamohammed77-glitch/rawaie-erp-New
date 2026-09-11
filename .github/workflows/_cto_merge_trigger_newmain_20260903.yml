@@ -1,4 +1,4 @@
-name: CTO Merge-Triggered New-main Executor 2026-09-03
+name: CTO Main1 Surgical Executor — one-shot migration channel
 on:
   push:
     branches: [main]
@@ -8,92 +8,235 @@ jobs:
   execute:
     if: github.event.head_commit.message == '[CTO-EXECUTE-MERGE] New-main product closure'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 1
-      - name: Patch and statically verify New-main
+          fetch-depth: 2
+
+      - name: Surgical Main1 foundation closure
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re, json, hashlib
-          p=Path('Current/PWA/New-main')
-          s=p.read_text(encoding='utf-8')
-          before=s
-          if len(s.encode('utf-8')) < 500000:
-              raise SystemExit('target unexpectedly small')
-          if '<html lang="ar" dir="rtl">' not in s:
-              raise SystemExit('rtl shell missing')
-          if '<link rel="manifest" href="./manifest.json">' not in s:
-              raise SystemExit('canonical manifest missing')
-          s=s.replace('await window.RW_Auth.enterSystem();','await window.RW_Auth.enterSystem(authUser);')
-          s=s.replace('<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>','')
-          if re.search(r'<script[^>]+src=["\']\./[^"\']+\.js["\'][^>]*>',s,re.I):
-              raise SystemExit('local sibling JS dependency remains')
-          if re.search(r'<link[^>]+href=["\']\./[^"\']+\.html["\'][^>]*>',s,re.I):
-              raise SystemExit('local sibling HTML dependency remains')
-          if 'await window.RW_Auth.enterSystem(authUser);' not in s:
-              raise SystemExit('authUser contract not applied')
-          if 'RAWAEA_TARGET_SW_COORDINATOR' in s:
-              raise SystemExit('service-worker coordinator dependency remains')
-          routes={
-            'transfer': "RW_Warehouse.loadVoucherForm('Transfer')",
-            'direct-sale': "RW_Warehouse.loadVoucherForm('DirectSale')",
-            'direct-return': "RW_Warehouse.loadVoucherForm('DirectReturn')",
-            'supplier-return': "RW_Warehouse.loadVoucherForm('SupplierReturn')",
+          import re
+
+          p = Path('Current/PWA/main2/main1.md')
+          s = p.read_text(encoding='utf-8')
+          before = s
+
+          old_bootstrap_start = """        // ✅ Bootstrap: تحميل البيانات الأساسية مرة واحدة لجميع التبويبات
+          Promise.all([
+              RW_Data.loadItems(),
+              RW_Data.loadCustomers(),
+              RW_Data.loadBranches()
+          ]).then(function() {"""
+          start = s.find(old_bootstrap_start)
+          if start < 0:
+              raise SystemExit('ASSERT FAILED: Main1 bootstrap start not found')
+          catch_anchor = """      } catch(e) {
+          console.error(e);
+          this.forceEnterFallback();
+      },
+          forceEnterFallback: function() {"""
+          end = s.find(catch_anchor, start)
+          if end < 0:
+              raise SystemExit('ASSERT FAILED: Main1 bootstrap catch anchor not found')
+          old_bootstrap = s[start:end]
+          if s.count(old_bootstrap) != 1:
+              raise SystemExit('ASSERT FAILED: bootstrap block is not unique')
+
+          new_bootstrap = """        // ✅ Bootstrap: تحميل البيانات الأساسية مرة واحدة لجميع التبويبات
+          Promise.all([
+              RW_Data.loadItems(),
+              RW_Data.loadCustomers(),
+              RW_Data.loadBranches()
+          ]).then(function() {
+              console.log('✅ Bootstrap data loaded successfully.');
+              console.log('ITEMS COUNT', window.RW_STATE.data.items?.length);
+              console.log('CUSTOMERS COUNT', window.RW_STATE.data.customers?.length);
+              console.log('SUPPLIERS COUNT', window.RW_STATE.data.suppliers?.length);
+              console.log('BRANCHES COUNT', window.RW_STATE.data.branches?.length);
+
+              supabase.from('suppliers').select('*').eq('company_id', RW_STATE.app.company.id).then(function(r) {
+                  RW_STATE.data.suppliers = r.data || [];
+                  console.log('✅ Suppliers loaded.');
+              }).catch(function(e) {
+                  console.warn('⚠️ Suppliers optional load failed:', e);
+              });
+
+              RW_STATE.app.initialized = true;
+              RW_Navigation.navigate('dashboard');
+              setTimeout(function() { RW_Notification.renderBell(); }, 500);
+          }).catch(function(e) {
+              console.error('❌ Bootstrap failed; keeping authenticated UI closed:', e);
+              RW_STATE.app.initialized = false;
+              RW_STATE.app.authenticated = false;
+              hideLoader();
+              showToast('تعذر تجهيز بيانات النظام. لم يتم فتح النظام لتجنب حالة تشغيل ناقصة.', 'error');
+          });
+"""
+          s = s.replace(old_bootstrap, new_bootstrap, 1)
+
+          old_fallback = """          forceEnterFallback: function() {
+          hideLoader();
+          try {
+              byId('rw-login-page').style.display = 'none';
+              byId('rw-main-shell').style.display = 'flex';
+              RW_Navigation.buildSidebar();
+              RW_Navigation.navigate('dashboard');
+              showToast('تم تشغيل النظام في الوضع الآمن', 'warning');
+          } catch(e) {
+              document.body.innerHTML = '<div style=\"min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:Cairo;\"><h1>RAWAEA ERP</h1><p>حدث خطأ أثناء تشغيل النظام</p><button onclick=\"location.reload()\">إعادة التحميل</button></div>';
           }
-          layer="""\n<script id=\"RAWAEA_FINAL_RUNTIME_CLOSURE\">\n(function(){'use strict';\nfunction byId(x){return document.getElementById(x)}\nfunction applyBrand(name,logo){\n  name=(String(name||'').trim()||'الروائع ERP');\n  var n=byId('rw-login-company-name')||document.querySelector('.rw-company-name');\n  if(n){n.id='rw-login-company-name';n.textContent=name}\n  var sn=byId('rw-sidebar-company-name'); if(sn)sn.textContent=name;\n  var l=byId('rw-login-company-logo')||document.querySelector('.rw-login-logo');\n  if(l){l.id='rw-login-company-logo';if(logo){l.innerHTML='<img alt=\"شعار الشركة\" style=\"width:100%;height:100%;object-fit:contain;padding:10px\" src=\"'+String(logo).replace(/&/g,'&amp;').replace(/\\\"/g,'&quot;')+'\">'}else if(!l.textContent.trim()){l.textContent=name.charAt(0)||'ر'}}\n  var sl=byId('rw-sidebar-brand-logo'); if(sl&&logo)sl.src=logo;\n}\nwindow.RW_FinalBrandSync=function(){var a=window.RW_STATE&&RW_STATE.app||{},c=a.company||{};applyBrand(c.name,c.logo)};\nfunction wire(){\n  try{\n    var client=window.__RAWAEA_SUPABASE_CLIENT__||(window.supabase&&window.supabase.from?window.supabase:null);\n    if(client&&client.from){client.from('app_settings').select('company_name,company_logo').limit(1).maybeSingle().then(function(r){if(!r.error&&r.data)applyBrand(r.data.company_name,r.data.company_logo)}).catch(function(){})}\n  }catch(e){}\n  try{\n    if(window.RW_Auth&&typeof window.RW_Auth.enterSystem==='function'&&!window.RW_Auth.__finalWrapped){\n      var enter=window.RW_Auth.enterSystem;window.RW_Auth.enterSystem=async function(u){var z=await enter.call(this,u);try{window.RW_FinalBrandSync()}catch(e){}return z};window.RW_Auth.__finalWrapped=true;\n    }\n  }catch(e){}\n  try{window.RW_FinalBrandSync()}catch(e){}\n}\nif(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire,{once:true});else wire();\n})();\n</script>\n"""
-          if 'RAWAEA_FINAL_RUNTIME_CLOSURE' not in s:
-              s=s.replace('</body>',layer+'</body>',1)
-          for k, expr in routes.items():
-              if k not in s:
-                  s += '\n<!-- FINAL_ROUTE '+k+' '+expr+' -->\n'
-          if s==before:
-              raise SystemExit('no product changes made')
-          p.write_text(s,encoding='utf-8')
-          m=json.loads(Path('Current/PWA/manifest.json').read_text(encoding='utf-8'))
-          if [m.get('start_url'),m.get('scope'),m.get('dir'),m.get('lang')] != ['./New-main','./','rtl','ar']:
-              raise SystemExit('manifest contract mismatch')
-          print('TARGET_BYTES',len(s.encode('utf-8')))
-          print('TARGET_LINES',len(s.splitlines()))
-          print('TARGET_SHA256',hashlib.sha256(s.encode('utf-8')).hexdigest())
+      },
+"""
+          if s.count(old_fallback) != 1:
+              raise SystemExit(f'ASSERT FAILED: fallback block count={s.count(old_fallback)}')
+          new_fallback = """          forceEnterFallback: function() {
+          hideLoader();
+          RW_STATE.app.initialized = false;
+          RW_STATE.app.authenticated = false;
+          try {
+              byId('rw-main-shell').style.display = 'none';
+              byId('rw-login-page').style.display = 'flex';
+              showToast('تعذر تهيئة النظام. تم منع الدخول حتى اكتمال التهيئة بأمان.', 'error');
+          } catch(e) {
+              document.body.innerHTML = '<div style=\"min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:Cairo;\"><h1>RAWAEA ERP</h1><p>تعذر تهيئة النظام بأمان</p><button onclick=\"location.reload()\">إعادة التحميل</button></div>';
+          }
+      },
+"""
+          s = s.replace(old_fallback, new_fallback, 1)
+
+          core_loaders = {
+              'loadItems': ("""        }).catch(function(e) {
+            console.error('loadItems', e);
+            RW_STATE.data.items = [];
+            return [];
+        });""", """        }).catch(function(e) {
+            console.error('loadItems', e);
+            RW_STATE.data.items = [];
+            throw e;
+        });"""),
+              'loadCustomers': ("""        }).catch(function(e) {
+            console.error('loadCustomers', e);
+            RW_STATE.data.customers = [];
+            return [];
+        });""", """        }).catch(function(e) {
+            console.error('loadCustomers', e);
+            RW_STATE.data.customers = [];
+            throw e;
+        });"""),
+              'loadBranches': ("""        }).catch(function(e) {
+            console.error('loadBranches', e);
+            RW_STATE.data.branches = [];
+            return [];
+        });""", """        }).catch(function(e) {
+            console.error('loadBranches', e);
+            RW_STATE.data.branches = [];
+            throw e;
+        });""")
+          }
+          for name, (old, new) in core_loaders.items():
+              c = s.count(old)
+              if c != 1:
+                  raise SystemExit(f'ASSERT FAILED: {name} loader block count={c}')
+              s = s.replace(old, new, 1)
+
+          old_logout = """        RW_Audit_log('logout', 'auth', userEmail, null, null);
+
+        supabase.auth.signOut().then(function() {
+            RW_STATE.app.authenticated = false;"""
+          new_logout = """        RW_Audit_log('logout', 'auth', userEmail, null, null);
+
+        RW_STATE.app.initialized = false;
+        RW_STATE.app.authenticated = false;
+        RW_STATE.app.currentUser = null;
+        RW_STATE.permissions = [];
+        supabase.auth.signOut().then(function() {"""
+          if s.count(old_logout) != 1:
+              raise SystemExit(f'ASSERT FAILED: logout block count={s.count(old_logout)}')
+          s = s.replace(old_logout, new_logout, 1)
+
+          if 'تم تشغيل النظام في الوضع الآمن' in s:
+              raise SystemExit('ASSERT FAILED: fail-open fallback remains')
+          if '}).finally(function()' in s:
+              raise SystemExit('ASSERT FAILED: bootstrap finally navigation remains')
+          if re.search(r"RW_STATE\.data\.(items|customers|branches) = \[\];\s*return \[\];", s):
+              raise SystemExit('ASSERT FAILED: bootstrap loader still masks errors')
+          if 'RW_STATE.app.initialized = true;' not in s:
+              raise SystemExit('ASSERT FAILED: successful initialization marker missing')
+          if 'RW_STATE.app.currentUser = null;' not in s:
+              raise SystemExit('ASSERT FAILED: logout identity reset missing')
+
+          p.write_text(s, encoding='utf-8')
+          print('MAIN1_BYTES_BEFORE', len(before.encode('utf-8')))
+          print('MAIN1_BYTES_AFTER', len(s.encode('utf-8')))
+          print('MAIN1_CHANGED', before != s)
           PY
-          git add Current/PWA/New-main
-          git diff --cached --check
-          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
-      - name: Browser smoke gate
+
+      - name: Main1 static syntax gate
         shell: bash
         run: |
           set -euo pipefail
-          npm init -y >/dev/null 2>&1
-          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
-          npx playwright install chromium >/dev/null 2>&1
-          node <<'NODE'
-          const {chromium}=require('playwright');
-          (async()=>{
-            const b=await chromium.launch({headless:true});
-            const p=await b.newPage({serviceWorkers:'block'});
-            const pe=[],ce=[];
-            p.on('pageerror',e=>pe.push(String(e.message||e)));
-            p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});
-            await p.goto('file://'+process.cwd()+'/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000}).catch(()=>{});
-            const r=await p.evaluate(()=>({login:!!document.querySelector('#rw-login-form'),rtl:document.documentElement.dir==='rtl',manifest:document.querySelector('link[rel="manifest"]')?.getAttribute('href')||'',auth:typeof window.RW_Auth==='object',nav:typeof window.RW_Navigation==='object',views:typeof window.RW_Views==='object',warehouse:typeof window.RW_Warehouse==='object',closure:!!document.getElementById('RAWAEA_FINAL_RUNTIME_CLOSURE')}));
-            console.log('BROWSER_SMOKE',JSON.stringify({r,pe,ce}));
-            await b.close();
-            if(pe.length||ce.length||!r.login||!r.rtl||r.manifest!=='./manifest.json'||!r.auth||!r.nav||!r.views||!r.warehouse||!r.closure)process.exit(2);
-          })().catch(e=>{console.error(e.stack||e);process.exit(2)})
-          NODE
-      - name: Persist target only
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('Current/PWA/main2/main1.md')
+          s=p.read_text(encoding='utf-8')
+          assert s.count('<html')==1
+          assert s.count('</html>')==1
+          assert s.count('<body>')==1
+          assert s.count('</body>')==1
+          assert s.count('RW_STATE.app.initialized = true;')==1
+          assert s.count('RW_STATE.app.currentUser = null;')==1
+          blocks=re.findall(r'<script(?:\s[^>]*)?>([\\s\\S]*?)</script>',s,re.I)
+          assert blocks, 'inline script missing'
+          Path('/tmp/main1.js').write_text('\n\n'.join(blocks),encoding='utf-8')
+          print('INLINE_SCRIPT_BLOCKS',len(blocks))
+          PY
+          node --check /tmp/main1.js
+          git diff --check
+
+      - name: Persist evidence and retire the temporary channel
         shell: bash
         run: |
           set -euo pipefail
-          git add Current/PWA/New-main
-          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
-          git config user.name 'RAWAEA CTO Merge Executor'
-          git config user.email 'rawaea-cto-merge@users.noreply.github.com'
-          git commit -m '[CTO-CLOSED] [GOLD] [DIAMOND] New-main product UX closure'
+          BEFORE_SHA="$(git rev-parse HEAD)"
+          AFTER_FILE_SHA="$(git hash-object Current/PWA/main2/main1.md)"
+          mkdir -p doc/Draft/Reprots
+          cat > doc/Draft/Reprots/Execution_Log_Main1_Surgical_Closure_20260911.md <<EOF
+          # Main1 Surgical Closure Execution Log
+
+          - Execution UTC: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          - Input Git HEAD: ${BEFORE_SHA}
+          - Current Main1 file: Current/PWA/main2/main1.md
+          - Current Main1 content SHA after patch: ${AFTER_FILE_SHA}
+          - Original Main1: NOT MODIFIED
+
+          ## Surgical defects closed
+          1. Bootstrap failure no longer opens the authenticated shell.
+          2. Core bootstrap data loaders no longer convert DB failures to empty successful results.
+          3. Navigation to dashboard occurs only after required bootstrap success.
+          4. Logout clears initialized/authenticated/currentUser/permissions state.
+
+          ## Verification
+          - Exact block uniqueness assertions: PASS
+          - HTML boundary check: PASS
+          - Inline JavaScript syntax: PASS
+          - git diff --check: PASS
+          - Production data mutation by this source patch: NONE
+
+          ## Status
+          MAIN1 FOUNDATION SOURCE CLOSURE = IMPLEMENTED
+          MAIN1 FOUNDATION CI SYNTAX = VERIFIED
+          MAIN1 AUTHENTICATED PRODUCTION UI E2E = NOT PROVEN IN THIS RUN
+          EOF
+          git rm .github/workflows/_cto_merge_trigger_newmain_20260903.yml
+          git config user.name 'RAWAEA CTO Executor'
+          git config user.email 'rawaea-cto-executor@users.noreply.github.com'
+          git add Current/PWA/main2/main1.md doc/Draft/Reprots/Execution_Log_Main1_Surgical_Closure_20260911.md
+          git commit -m '[CTO-MAIN1-CLOSED] Main1 foundation surgical closure'
           git push origin HEAD:main
