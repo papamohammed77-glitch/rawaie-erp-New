@@ -1,53 +1,39 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
-## CURRENT CHECKPOINT — 2026-09-11 — MASTER CTO EXECUTION OS / Main1 Continuation
+## CURRENT CHECKPOINT — 2026-09-11 — MASTER CTO EXECUTION OS / MAIN1 R2
 
 ### GOVERNING TARGET — NON-NEGOTIABLE
-الهدف هو استكمال المشروع وظيفيًا وتشغيليًا وفق Gold/Diamond، وليس مجرد إكمال UI. الدراسة تسبق التعديل، وCurrent Verified Reality تتفوق على Production ثم Database Contracts ثم Deployments ثم Git/Source، بينما التقارير التاريخية أدلة لا تمثل الحقيقة الحالية وحدها.
+الهدف هو استكمال المشروع وظيفيًا وتشغيليًا وفق Gold/Diamond، وليس مجرد إكمال UI. الدراسة تسبق التعديل. لا يُعامل التقرير أو الذاكرة كمصدر للحالة الحالية. كل Closure Unit يجب أن تمر من الواقع الحالي إلى الإثبات ثم الإصلاح ثم الاختبار ثم Production Verification ثم التوثيق.
 
-الحوكمة التنفيذية:
+الحلقة الحاكمة:
 
-UNDERSTAND → RECONSTRUCT HISTORICAL CONTRACT → TRACE CURRENT BEHAVIOR → TRACE DATA/AUTH CONTROL FLOW → IDENTIFY ACTUAL GAP → SURGICAL FIX → TEST → PRODUCTION VERIFY → DOCUMENT → UPDATE STATE.
+RECOVER → REFRESH → RECONSTRUCT → VERIFY → INVESTIGATE → IDENTIFY → REPAIR → COMPLETE → INTEGRATE → TEST → DEPLOY → VERIFY PRODUCTION → REPAIR DATA → DOCUMENT → UPDATE CURRENT_STATE → UPDATE EXECUTION LOG → UPDATE CLOSURE MATRIX → DEFINE NEXT EXACT CHECKPOINT → CONTINUE.
 
 ### SOURCE-OF-TRUTH GOVERNANCE
-- Current verified reality outranks historical reports.
-- Production Database/Runtime is the execution reference.
-- Historical reports are evidence, not current truth.
-- `CURRENT_STATE.md` is a continuity checkpoint and must be reconciled against current Git/Production.
-- Unknown != bug; Unknown != remove.
+- Current verified Production/Runtime reality outranks historical reports.
+- Production Database is execution truth; Git is reproducible canonical source, not a substitute for Production.
+- Historical reports are forensic evidence only.
+- Unknown must create evidence work, not guessing.
 - One Closure Unit at a time.
-- Parent editable source = `Current/PWA/main2/main1.md ... main11.md`.
-- `Original/PWA/main/*` = historical reference only and must never be modified.
+- Parent editable source = `Current/PWA/main2/main1.md ... main11.md` and remains owner-merge domain.
+- `Original/PWA/main/*` = immutable historical reference.
 - `Current/PWA/New-main` = generated assembly target only.
+- Main1 owns the shell/control plane; view implementation remains cross-file in the other Main fragments.
 - Physical Stock contract = `post_stock_movement -> stock_branches + inventory_log`.
-- `reserve_stock` / `release_stock_reservation` = Reservation-only.
+- `reserve_stock` / `release_stock_reservation` = reservation engine only.
 - Current governing execution OS = `doc/Draft/Reprots/MASTER CTO GOVERNANCE & CONTINUOUS EXECUTION OS — RAWAEA ERP.md`.
 
-## CURRENT GIT TRUTH
-- Freshly verified repository HEAD for this continuation: `a582fff10e5c9e24e187c7f77d16db608269f1d8`.
-- Main1 current SHA: `4d1b42250cfe2b3a8ec7d02b7b482eca8e27bade`.
+## CURRENT GIT TRUTH — FRESH R2
+- Main1 current SHA: `eda2319c13084e351a21061b74cebc235478a6e5`.
 - Main1 original SHA: `14b12a471c20ad23a2c18f456dbc4d59783a0d1f`.
-- Main1 execution log updated in commit: `2a02ba68a87a179c245b5382f91a5b702a3fa447`.
-- Main1 Owner Change Set created in commit: `c98b31aad4275b1019fbbed1b5434d3fe634fa9f`.
+- Active Main1 owner changeset: `doc/Draft/Reprots/OWNER_CHANGESETS_20260911_MAIN1_R2.md`.
+- Active Main1 execution log: `doc/Draft/Reprots/CTO_EXECUTION_LOG_20260911_MAIN1_R2.md`.
+- R2 owner changeset creation commit: `47dfb50f996190afc562047221f5ef40c03edb78`.
+- R2 execution log creation commit: `e48e20721e9957f9a28b510babc467bc06720709`.
+- Earlier R1 Main1 documents remain historical/stale and must not be blindly reapplied.
 
-## CURRENT MAIN1–MAIN11 SOURCE INVENTORY
-Current editable files verified present in `Current/PWA/main2/`:
-- main1.md = `4d1b42250cfe2b3a8ec7d02b7b482eca8e27bade`
-- main2.md = `baee3cc02ae5701e6fbcbad12e57e2930afc4ae4`
-- main3.md = `479060e3d4bea5e2203c87f8221bdbc0e2f7d456`
-- main4.md = `e89d29e4164c68784c109292f27d4d77df240557`
-- main5.md = `c4518d05ada50830e819563a55169843679d3e94`
-- main6.md = `3b20758459c28ab0b6c055f9a0ad3992f1bd07e5`
-- main7.md = `a65969f6bdc919d4a8d62a6704a7c556b7d35e91`
-- main8.md = `2131fbf3096d926b2486acb2ab58a4266ddd1bbc`
-- main9.md = `b9f10ae4e727cb9495aaecbe2d752dabf13ec776`
-- main10.md = `169025a6836c7fdc7281ea86523b975a84d889f1`
-- main11.md = `2adfc787c3e5f0ca56abfcc85232e7a971773c3b`
-
-Historical reference files verified present in `Original/PWA/main/` and remain immutable.
-
-## FRESH PRODUCTION SNAPSHOT — 2026-09-11 CONTINUATION
-Verified directly at UTC `2026-09-11 06:06:46.569077+00`:
+## FRESH PRODUCTION SNAPSHOT — 2026-09-11 R2
+Verified directly at UTC `2026-09-11 06:36:41.858495`:
 - companies = 1
 - branches = 2
 - users = 24
@@ -59,87 +45,205 @@ Verified directly at UTC `2026-09-11 06:06:46.569077+00`:
 - inventory_log = 3
 - audit_log = 1869
 
-## MASTER CTO EXECUTION — MAIN1 CONTINUATION
-The current MASTER CTO Governance & Continuous Execution OS was read from start through its explicit END marker before Main1 continuation work.
+Additional verified Production facts:
+- `workflow_rules` contains 3 active rules.
+- `workflow_log` contains 0 rows.
+- `items.item_code` has a UNIQUE constraint in the current schema.
+- `users.auth_id` has a UNIQUE constraint.
+- `audit_log` currently has no company_id column.
 
-Main1 Current was read from line 1 through EOF (line 1100).
-Main1 Original was read through EOF.
+## MASTER READING GATE
+The complete MASTER CTO Governance document was read in consecutive chunks from start through its explicit END marker.
+MASTER SHA: `b03feec14a417ca9032d714774f2687b4542a373`.
 
-### Main1 forensic result
-Main1 is the Shell/Control Plane, not the View implementation layer. `RW_Views` is correctly owned by Main10 and is not duplicated into Main1.
+## MAIN1 READING GATE
+Current Main1 was read in chunked ranges through EOF, with reads beyond the terminal boundary returning empty content.
+Current Main1 SHA: `eda2319c13084e351a21061b74cebc235478a6e5`.
 
-### Proven MAIN1-A — Finance action authorization gap
-- Current Main1 Finance submenu is source line 895.
-- Seven `showFinanceTab` actions have neither `perm` nor `view`.
-- Current `isAllowed(item)` returns true for items with neither property.
-- Production permissions prove `finance` for Accountant, `finance_manager` for Finance Manager, and `*` plus `isOwner=true` for Owner.
-- Required surgical fix is stored in `doc/Draft/Reprots/OWNER_CHANGESETS_20260911_MAIN1.md`.
+Main1 role proven:
+- HTML shell / login / main shell.
+- Supabase client bootstrap.
+- `RW_STATE` canonical frontend state.
+- Generic table pagination.
+- Audit submission/UI.
+- Permission evaluation.
+- Workflow bootstrap.
+- Notification bootstrap/UI.
+- Authentication bootstrap.
+- Base data bootstrap.
+- Navigation tree and routing handoff.
 
-### Proven MAIN1-B — CRM authorization mismatch
-- Current Main1 CRM menu is source line 902.
-- Main1 currently checks `RW_Permissions_check('crm')` through its `view` fallback.
-- Production has 0 active users with `crm` and 7 with `customers`.
-- Main10 maps CRM to `customers`.
-- Required Main1 surgery is explicit `perm: 'customers'`.
+Main1 intentionally does not define `RW_Views`; this remains a cross-file responsibility and should not be duplicated into Main1.
 
-### Proven MAIN1-C — HR cross-file authorization mismatch
-- Current Main1 HR menu is source line 901.
-- Production has 1 active HR user carrying `hr`.
-- Main10 currently maps `hr` to `users`.
-- Required Main1 surgery is explicit `perm: 'hr'`.
-- Required Main10 paired surgery is `hr -> hr`; this remains open until Main10 closure to prevent a half-fixed state.
+## HISTORICAL RECORD RECONCILIATION
+The previous Main1 state package and R1 owner changeset were discovered to be stale because they referenced Main1 SHA `4d1b...`, old EOF information, and Finance/CRM/HR defects that are already corrected in the current Main1 source.
 
-### Verified safe / deliberately unchanged
-- `users.auth_id` has UNIQUE constraint, so Main1 `maybeSingle()` is structurally safe.
-- JWT role/permissions currently match `public.users.permissions` for all active users with Auth records.
-- `notifications` own-user RLS is present; no unproven retrofit made.
-- `audit_log` is Owner-protected by RLS; no speculative tenant column added.
-- `workflow_rules` is global in the current schema; no invented Company scope was added.
-- No duplicate router or second persistent company-state source was introduced.
+Therefore:
+- R1 is preserved as historical evidence.
+- R2 is the active source of owner surgery.
+- No R1 surgery should be re-applied to the current file.
 
-## OWNER SOURCE CHANGESET
-Canonical surgical instructions:
-`doc/Draft/Reprots/OWNER_CHANGESETS_20260911_MAIN1.md`
+## VERIFIED CURRENT — ALREADY CORRECT
+The following are present in the current Main1 and require no duplicate surgery:
 
-The owner source itself remains unchanged in Git because Main1–Main11 are owner-merge domain.
+### Finance authorization
+Seven Finance actions already contain:
+`perm: ['finance', 'finance_manager']`
+for treasury, accounts, journal, receipts, payments, transfers, reports.
+`settlement` remains separate and has no Finance permission.
 
-### Main1 closure status
-- MASTER read to EOF: CLOSED.
-- Main1 Current EOF read: CLOSED.
-- Main1 Original EOF read: CLOSED.
-- Fresh Production synchronization gate: CLOSED for this continuation.
-- Main1 forensic review: CLOSED.
-- Main1 source merge: OPEN — owner surgery pending.
-- Main1-A Finance: PROVEN / SURGERY READY.
-- Main1-B CRM: PROVEN / SURGERY READY.
-- Main1-C HR: PROVEN / SURGERY READY + Main10 dependency.
-- Assembly: NOT VERIFIED.
-- Browser/PWA runtime: NOT VERIFIED.
-- Global Gold/Diamond: OPEN.
+### HR capability
+Main1 already contains:
+`{ view: 'hr', icon: 'fa-id-card', label: 'الموارد البشرية', perm: 'hr' }`
 
-## EXECUTION EVIDENCE
-- Execution log: `doc/Draft/Reprots/CTO_EXECUTION_LOG_20260911_MAIN1.md`.
-- Owner Change Set: `doc/Draft/Reprots/OWNER_CHANGESETS_20260911_MAIN1.md`.
-- MASTER SHA: `b03feec14a417ca9032d714774f2687b4542a373`.
-- Fresh Production verification: `2026-09-11 06:06:46.569077+00 UTC`.
+### CRM capability
+Main1 already contains:
+`{ view: 'crm', icon: 'fa-handshake', label: 'إدارة علاقات العملاء (CRM)', perm: 'customers' }`
 
-## SELF-AUDIT
-### Confirmed Facts
-- Current Production counts were re-queried directly before Main1 judgment.
-- Current Main1 and Original Main1 were read to EOF.
-- Auth metadata and database permission records match for active Auth users.
-- Main1 Finance, CRM, and HR routing issues are evidenced from source + Production contracts.
-- Main10 currently owns `RW_Views`.
+### Array-aware permission evaluator
+`isAllowed(item)` already supports `perm` arrays with OR semantics, single string permission, and view fallback.
 
-### Unknowns / Unverified
-- Owner source surgery has not yet been merged.
-- Main10 HR dependency has not yet been closed.
-- Main2–Main11 full forensic closure is not yet complete.
-- Final New-main assembly is not verified.
-- Production UI smoke test is not verified.
+### Owner semantics
+`RW_Permissions_check` preserves the historical Owner + wildcard semantics and is not changed.
 
-### FINAL CLOSURE STATUS
-`MAIN1 FORENSIC REVIEW = COMPLETE`
-`MAIN1 OWNER SOURCE = OPEN — SURGERY PENDING`
-`MAIN1 FUNCTIONAL CLOSURE = OPEN — MERGE + CROSS-FILE VERIFICATION PENDING`
+## PROVEN MAIN1-E — AUDIT TABLE STORED-XSS
+Exact element:
+`function RW_Audit_renderTable(data) {`
+
+Defect:
+DB-controlled audit fields are concatenated into HTML and passed to `safeHTML()` / `innerHTML`.
+
+Required repair:
+DOM construction + `textContent` for all dynamic data.
+
+Full replacement is in:
+`doc/Draft/Reprots/OWNER_CHANGESETS_20260911_MAIN1_R2.md`
+
+Status:
+`ROOT CAUSE PROVEN / SURGERY READY / OWNER MERGE PENDING`
+
+## PROVEN MAIN1-F — AUDIT DETAILS STORED-XSS
+Exact element:
+`function RW_Audit_showDetails(logId) {`
+
+Defect:
+Audit metadata and JSON output are concatenated into HTML passed to SweetAlert.
+
+Required repair:
+DOM construction + `textContent`; old/new JSON rendered in `<pre>` as literal text.
+
+Status:
+`ROOT CAUSE PROVEN / SURGERY READY / OWNER MERGE PENDING`
+
+## PROVEN MAIN1-G — NOTIFICATION STORED-XSS
+Exact element:
+`function showPanel() {` inside `RW_Notification`.
+
+Defect:
+Database-controlled notification title/body are inserted directly into SweetAlert HTML.
+
+Required repair:
+DOM construction + `textContent`, preserving click and mark-read behavior.
+
+Status:
+`ROOT CAUSE PROVEN / SURGERY READY / OWNER MERGE PENDING`
+
+## PROVEN MAIN1-WF — WORKFLOW FALSE SUCCESS
+Exact element:
+`function evaluate(tableName, event, recordId, recordData) {`
+inside `RW_Workflow`.
+
+Defect proven:
+- Actions are represented with `pending` states.
+- No Action is executed.
+- Overall `workflow_log.status` is written as `success`.
+- Persistence errors are swallowed.
+
+Current Production workflow contract proven to exist:
+1. `UpdateStockAndJournalOnPOReceive` -> `update_inventory`, `create_journal_entry`.
+2. `CreateJournalOnOrderDeliver` -> `create_journal_entry`.
+3. `CreateStockVoucherOnOrderConfirm` -> `create_stock_voucher`.
+
+`workflow_log` is currently empty, so no historic false-success rows require data repair.
+
+### Required next evidence
+Before replacing `evaluate()` the actual Executor/Dispatcher contract must be proven from current Main2–Main11 + Production RPC/Edge:
+- executor location;
+- payload/parameter contract;
+- authorization/tenant rules;
+- transaction boundary;
+- retry/idempotency;
+- failure contract;
+- downstream responsibilities.
+
+No replacement was invented because doing so would violate the no-guessing rule.
+
+Status:
+`ROOT CAUSE PROVEN / EXECUTOR DISCOVERY OPEN / NOT A BLOCKER`
+
+## DATA REPAIR STATUS
+No Main1-related business data was mutated during R2 forensic review.
+
+Reason:
+No safe data correction was proven. Current workflow_log is empty; current Production base counts are stable; no destructive cleanup is justified from appearance alone.
+
+## OWNER CHANGESET
+Active file:
+`doc/Draft/Reprots/OWNER_CHANGESETS_20260911_MAIN1_R2.md`
+
+The owner source itself remains untouched.
+
+## CURRENT MAIN1 CLOSURE
+- Master governance reading: `CLOSED`
+- Current Main1 full reading: `CLOSED`
+- Fresh Production synchronization gate: `CLOSED FOR THIS CYCLE`
+- Historical reconciliation against stale R1: `CLOSED`
+- Finance/CRM/HR stale findings: `SUPERSEDED / ALREADY PRESENT IN CURRENT SOURCE`
+- Audit table: `OPEN — SURGERY READY`
+- Audit details: `OPEN — SURGERY READY`
+- Notifications: `OPEN — SURGERY READY`
+- Workflow: `OPEN — EXECUTOR CONTRACT DISCOVERY`
+- Main1 forensic review: `CLOSED AS FORENSIC REVIEW ONLY`
+- Main1 functional closure: `OPEN`
+- Global Gold/Diamond: `OPEN`
+
+## FINAL SELF-AUDIT
+### What was proven
+- Master was fully read to EOF.
+- Current Main1 was read to EOF.
+- Fresh Production was queried immediately before final judgment.
+- Previous state records were shown to be stale relative to current Main1 SHA and EOF boundary.
+- Finance/CRM/HR fixes already exist in the current Main1 source.
+- Audit table/details and Notification panel contain unsafe HTML sinks.
+- Workflow evaluator is a false-success stub.
+- No workflow history exists to repair.
+
+### What was not proven
+- Actual Workflow Executor/Dispatcher contract.
+- Main2–Main11 functional completeness.
+- Final New-main assembly.
+- Browser/PWA end-to-end runtime.
+- Main1 post-merge production smoke verification.
+
+### What was not changed
+- `Current/PWA/main2/main1.md` — owner merge domain.
+- `Original/PWA/main/main1.md` — immutable.
+- No Main1 Production business data was modified.
+
+## NEXT EXACT RESUMPTION POINT
+Closure Unit: `MAIN1-WF`
+
+Exact source function:
+`Current/PWA/main2/main1.md :: function evaluate(tableName, event, recordId, recordData) {`
+
+Exact evidence search terms:
+`update_inventory`
+`create_journal_entry`
+`create_stock_voucher`
+
+Then close owner surgical repairs E/F/G and perform full Main1 re-read + runtime verification before assigning `MAIN1 = FULLY CLOSED`.
+
+## STATUS
+`MAIN1 FORENSIC REVIEW = CLOSED`
+`MAIN1 FUNCTIONAL = OPEN`
 `GLOBAL GOLD/DIAMOND = OPEN`
