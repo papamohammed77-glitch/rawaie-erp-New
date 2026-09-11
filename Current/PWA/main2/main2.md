@@ -354,38 +354,79 @@ function loadAll(fromDate, toDate) {
         if (!canvas) return;
         var ctx = canvas.getContext('2d');
         if (!ctx) return;
+
         var map = {};
+
         for (var i = 0; i < details.length; i++) {
             var code = details[i].item_code || details[i].item_name;
             var name = details[i].item_name || code;
-            var total = (Number(details[i].qty) || 0) * (Number(details[i].unit_price) || 0);
-            if (!map[code]) map[code] = { name: name, total: 0, code: code };
+            var total =
+                (Number(details[i].qty) || 0) *
+                (Number(details[i].unit_price) || 0);
+
+            if (!map[code]) {
+                map[code] = {
+                    name: name,
+                    total: 0,
+                    code: code
+                };
+            }
+
             map[code].total += total;
         }
+
         var arr = [];
-        for (var k in map) arr.push(map[k]);
-        arr.sort(function(a,b){ return b.total - a.total; });
+
+        for (var k in map) {
+            arr.push(map[k]);
+        }
+
+        arr.sort(function(a, b) {
+            return b.total - a.total;
+        });
+
         arr = arr.slice(0, 10);
+
         if (typeof Chart === 'undefined') return;
+
         _charts['chart-items'] = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: arr.map(function(a){ return a.name; }),
-                datasets: [{ label: 'الإجمالي (EGP)', data: arr.map(function(a){ return a.total; }), backgroundColor: '#8b5cf6' }]
+                labels: arr.map(function(a) {
+                    return a.name;
+                }),
+                datasets: [{
+                    label: 'الإجمالي (EGP)',
+                    data: arr.map(function(a) {
+                        return a.total;
+                    }),
+                    backgroundColor: '#8b5cf6'
+                }]
             },
             options: {
-                indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
                 onClick: function(e, elements) {
                     if (elements.length > 0) {
                         var index = elements[0].index;
-                        var itemName = arr[index].name;
+                        var itemCode = arr[index].code;
+
+                        if (!itemCode) return;
+
                         RW_Navigation.navigate('items');
+
+                        setTimeout(function() {
+                            RW_Items.openItemPage(itemCode);
+                        }, 500);
                     }
                 }
             }
         });
     }
-
     function renderTopCustomersChart(orders) {
         var canvas = byId('chart-customers');
         if (!canvas) return;
