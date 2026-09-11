@@ -1,0 +1,20 @@
+version: 1
+project: rawaea-erp
+source_of_truth: Current/PWA/main2
+fragments:
+  - Current/PWA/main2/main1.md
+  - Current/PWA/main2/main2.md
+  - Current/PWA/main2/main3.md
+  - Current/PWA/main2/main4.md
+  - Current/PWA/main2/main5.md
+  - Current/PWA/main2/main6.md
+  - Current/PWA/main2/main7.md
+  - Current/PWA/main2/main8.md
+  - Current/PWA/main2/main9.md
+  - Current/PWA/main2/main10.md
+  - Current/PWA/main2/main11.md
+historical_reference: Original/PWA/main
+forbidden_sources:
+  - Current/PWA/main
+  - Current/PWA/New-main
+assembly_status: deferred_until_all_fragments_are_owner_verified
