@@ -1,6 +1,6 @@
 # RAWAEA ERP — CURRENT STATE PACK
 
-## CURRENT CHECKPOINT — 2026-09-10 — Main1–Main11 Verification Directive
+## CURRENT CHECKPOINT — 2026-09-11 — MASTER CTO EXECUTION OS / Main1 Start
 
 ### GOVERNING TARGET — NON-NEGOTIABLE
 الهدف هو استكمال المشروع وظيفيًا وتشغيليًا وفق Gold/Diamond، وليس مجرد إكمال UI. الدراسة تسبق التعديل، وCurrent Verified Reality تتفوق على Production ثم Database Contracts ثم Deployments ثم Git/Source، بينما التقارير التاريخية أدلة لا تمثل الحقيقة الحالية وحدها.
@@ -21,15 +21,14 @@ UNDERSTAND → RECONSTRUCT HISTORICAL CONTRACT → TRACE CURRENT BEHAVIOR → TR
 - `Current/PWA/New-main` = generated assembly target only.
 - Physical Stock contract = `post_stock_movement -> stock_branches + inventory_log`.
 - `reserve_stock` / `release_stock_reservation` = Reservation-only.
-- New governing readiness directive = `doc/Draft/Reprots/MASTER — RAWAEA ERP Successor CTO Memory Recovery & Gold-Diamond Main1-Main11 Verification & Assembly Readiness Directive.md`.
+- Current governing execution OS = `doc/Draft/Reprots/MASTER CTO EXECUTION OS — RAWAEA ERP — Forensic Recovery, Full Functional Completion & Gold-Diamond Closure.md`.
 
 ## CURRENT GIT TRUTH
-- Latest verified repository HEAD before current documentation cycle: `4fe8d857347dced2ee68332780d744ebfcf2e64e`.
-- New Master directive commit: `93ba8a5d8a2849f32d4e82070cab0b7ebf28c6b6`.
-- Report120 commit: `2ad48bfbaf3f7169b5c4597a65b99561eaaceb42`.
-- This CURRENT_STATE update is the current documentation commit after the above.
-- Report119 Main2 blob SHA: `baee3cc02ae5701e6fbcbad12e57e2930afc4ae4`.
-- Main2 remains Owner Source Surgery territory under the governing directive.
+- Freshly verified repository HEAD at execution start: `9772a0c9c882b0c3c25e2d81763ec8229740d5c4`.
+- Main1 current SHA: `4d1b42250cfe2b3a8ec7d02b7b482eca8e27bade`.
+- Main1 original SHA: `14b12a471c20ad23a2c18f456dbc4d59783a0d1f`.
+- Main1 execution log commit: `ec65145456579fe60b1315ac116d82fc7f3a37a1`.
+- CURRENT_STATE reconciliation commit: this commit.
 
 ## CURRENT MAIN1–MAIN11 SOURCE INVENTORY
 Current editable files verified present in `Current/PWA/main2/`:
@@ -58,10 +57,10 @@ Historical reference files verified present in `Original/PWA/main/`:
 - main10.md = `d57cef3bd7e42f7ba7ddc90bde81bdbabd5579a1`
 - main11.md = `cad8bafa94da839ffb3a61f1a4581f52b98289f4`
 
-`Original/PWA/main/*` is immutable historical reference for forensic comparison; no modification was made.
+`Original/PWA/main/*` remains immutable historical reference; no modification was made.
 
-## CURRENT PRODUCTION SNAPSHOT — FRESH DIRECT VERIFICATION
-Verified at UTC `2026-09-10 12:40:28.968427`:
+## FRESH PRODUCTION SNAPSHOT — 2026-09-11
+Verified directly at UTC `2026-09-11 04:27:11.929726+00`:
 - companies = 1
 - branches = 2
 - users = 24
@@ -73,101 +72,94 @@ Verified at UTC `2026-09-10 12:40:28.968427`:
 - inventory_log = 3
 - audit_log = 1869
 
-No Production business-data mutation was performed as part of creating the verification directive or Report120.
+## MASTER CTO EXECUTION — CURRENT MAIN1 CYCLE
+The linked MASTER CTO EXECUTION OS was read from start to EOF before execution of Main1.
 
-## REPORT119 RECONCILIATION
-`Report119_Main2_Reality_Reconciliation_20260910.md` was read completely and treated as historical evidence.
-It established at its own verification time that the Report118 six defects were no longer proven in current Main2, while full-file syntax, assembly, browser runtime, Production UI smoke, and parent Gold/Diamond remained unproven.
+Main1 current source was read from line 1 through EOF.
+Original Main1 was read through EOF from the immutable historical blob.
 
-A later direct Git check proved that the actual repository HEAD had moved to `4fe8…` through documentation reconciliation. Therefore any HEAD value inside an older report/checkpoint is historical unless refreshed.
+### Confirmed Main1 Current hardening versus Original
+- Authenticated user is resolved against `public.users` using `auth_id`.
+- Company context is loaded from the authenticated user's database record.
+- Inactive users are rejected.
+- `RW_STATE.app.company.id` is populated from the database company id.
+- App settings are company-scoped.
+- Items/customers/branches/suppliers are company-scoped.
+- JWT permission arrays were matched against `public.users.permissions` for the active users queried; no observed permission drift was found.
 
-## NEW EXECUTIVE DIRECTIVE
-Created:
-`doc/Draft/Reprots/MASTER — RAWAEA ERP Successor CTO Memory Recovery & Gold-Diamond Main1-Main11 Verification & Assembly Readiness Directive.md`
+### Proven Main1 defects
+#### MAIN1-A — Finance action authorization gap
+Finance navigation action objects for treasury/accounts/journal/receipts/payments/transfers/reports have neither `perm` nor `view`. `buildSidebar().isAllowed()` therefore returns true for them regardless of user capability.
+Production role contract proves:
+- `محاسب` uses `finance`.
+- `مدير مالي` uses `finance_manager`.
+- `مدير النظام` retains `*` and `isOwner=true`.
 
-Commit: `93ba8a5d8a2849f32d4e82070cab0b7ebf28c6b6`
+Required owner-source surgery is recorded in:
+`doc/Draft/Reprots/CTO_EXECUTION_LOG_20260911_MAIN1.md`.
 
-The new directive preserves the previous MASTER rules and adds mandatory gates for:
-- Full Current main1..main11 review to EOF.
-- Full Original main1..main11 historical-pair review.
-- Strict read-only treatment of Original.
-- Pairwise forensic comparison Current vs Original.
-- Functionality conservation and loss detection.
-- Single-parent assembly integrity.
-- Cross-file/global/DOM/load-order/async/API/database/auth consistency.
-- Assembly output traceability.
-- Full output parse.
-- Runtime verification.
-- Production verification.
-- Arabic-only report generation and mandatory execution logs.
+The required change is an alternative-permission array `['finance','finance_manager']` on those seven Finance action entries plus array support in `isAllowed(item)`.
+`settlement` remains controlled by its independent `settlement` view permission.
 
-## LATEST REPORT
-`doc/Draft/Reprots/Report120_Main1_Main11_Verification_Directive_20260910.md`
+#### MAIN1-B — Cross-file State contract mismatch
+Main1 establishes canonical state at `RW_STATE.app.company.id`.
+Current Main8 `_companyId()` expects `RW_STATE.app.companyId` or `RW_STATE.user.companyId`.
+This is a proven cross-file mismatch. Canonical state must remain `RW_STATE.app.company.id`; Main8 must be repaired to consume that contract rather than adding a second persistent source in Main1.
 
-Report120 commit: `2ad48bfbaf3f7169b5c4597a65b99561eaaceb42`
+### Main1 closure status
+- MASTER read: CLOSED.
+- Current Main1 EOF read: CLOSED.
+- Original Main1 EOF read: CLOSED.
+- Fresh Git/Production synchronization gate: CLOSED for this cycle.
+- Current-vs-Original Main1 pair analysis: CLOSED.
+- Production auth/permission source comparison: CLOSED.
+- MAIN1-A: PROVEN / owner-source surgery required.
+- MAIN1-B: PROVEN / Main8 surgery required.
+- Main1 functional closure: NOT CLOSED until owner-source surgery is applied and re-verified.
+
+## EXECUTION LOG
+Canonical execution evidence:
+`doc/Draft/Reprots/CTO_EXECUTION_LOG_20260911_MAIN1.md`
+
+Execution log commit: `ec65145456579fe60b1315ac116d82fc7f3a37a1`.
 
 ## VALIDATION STATUS
-- Original MASTER: read to `END OF MASTER DIRECTIVE`.
-- Report119: read completely.
-- CURRENT_STATE: read completely and reconciled as a checkpoint.
-- Fresh Production snapshot: verified at `2026-09-10 12:40:28.968427 UTC`.
-- Current Main1..Main11 file set: verified present.
-- Original Main1..Main11 file set: verified present.
+- Fresh Production snapshot: VERIFIED 2026-09-11 04:27:11.929726+00 UTC.
+- Main1 Current full read: VERIFIED to EOF.
+- Main1 Original full read: VERIFIED to EOF.
+- Main1 pair review: VERIFIED.
 - Original folder modification: none.
-- New verification directive: created in Git.
-- Arabic Report120: created in Git.
-- Full Current Main1..Main11 EOF forensic reading: REQUIRED NEXT GATE; not claimed closed in this documentation-only cycle.
-- Full Original Main1..Main11 EOF reading: REQUIRED NEXT GATE; not claimed closed in this documentation-only cycle.
-- Pairwise comparison: REQUIRED NEXT GATE.
-- Functionality inventory: REQUIRED NEXT GATE.
+- Production business-data mutation in this Main1 forensic cycle: none.
+- Main1 owner-source changes: not applied because governing OS requires surgical instructions rather than direct mutation of Main1–Main11 source.
+- Main8 source changes: not applied in Main1 closure.
 - Assembly: NOT VERIFIED.
-- Full output parse: NOT VERIFIED.
 - Browser/PWA runtime: NOT VERIFIED.
-- Production UI smoke: NOT VERIFIED.
 - Parent Gold/Diamond: NOT CLOSED.
 
 ## LAST VERIFIED EVENT
-- EVENT: `MAIN1-11-VERIFICATION-DIRECTIVE-20260910`
-- Production verification timestamp: `2026-09-10 12:40:28.968427 UTC`
-- Base Git HEAD before directive creation: `4fe8d857347dced2ee68332780d744ebfcf2e64e`
-- Directive commit: `93ba8a5d8a2849f32d4e82070cab0b7ebf28c6b6`
-- Report120 commit: `2ad48bfbaf3f7169b5c4597a65b99561eaaceb42`
-- Current_STATE update follows the above documentation commits.
-- Result: a new executable governance layer was created to prove, not assume, Main1–Main11 correctness and assembly readiness using Current as editable source and Original as read-only historical reference.
-- Next authorized action: execute the new directive literally, starting with fresh Git/Production reconciliation and then Main1–Main11 full Current/Original pair review.
+- EVENT: `MASTER-CTO-MAIN1-FORENSIC-20260911`
+- Fresh Production verification timestamp: `2026-09-11 04:27:11.929726+00 UTC`.
+- Fresh Git HEAD at start: `9772a0c9c882b0c3c25e2d81763ec8229740d5c4`.
+- Main1 current SHA: `4d1b42250cfe2b3a8ec7d02b7b482eca8e27bade`.
+- Main1 original SHA: `14b12a471c20ad23a2c18f456dbc4d59783a0d1f`.
+- Execution log commit: `ec65145456579fe60b1315ac116d82fc7f3a37a1`.
+- Result: Main1 forensic understanding and pair reconciliation completed; two defects were proven without assumptions; exact source surgery was documented; no Original modification and no unsafe Production data mutation occurred.
+- Next required closure action: apply MAIN1-A owner-source surgery, then repair the Main8 consumer mismatch, re-read/verify affected files and continue the MASTER OS closure sequence.
 
 ## SELF-AUDIT
-### What was proved
-- Governing MASTER was read through EOF.
-- Report119 was read completely.
-- CURRENT_STATE was read and its stale recorded HEAD was detected.
-- Git HEAD `4fe8…` was directly verified before the documentation cycle.
-- Fresh Production snapshot was directly measured.
-- Current main1..main11 and Original main1..main11 sets were directly verified present.
-- New executable directive was created.
-- Arabic Report120 was created.
-- Original remained untouched.
+### Confirmed Facts
+- Current Git and Production were freshly inspected before judgment.
+- Main1 Current and Original were read to EOF.
+- JWT permission data matches public user permission data for the active users checked.
+- Main8 currently references a non-canonical company state field.
 
-### What was not proved
-- Full EOF reading of all 22 Main source/reference files in this cycle.
-- Pairwise semantic/functionality comparison across all 11 pairs.
-- Full Parent assembly correctness.
-- Full parser success on the assembled Parent.
-- Browser/PWA runtime success.
-- Production UI smoke success.
-- Gold/Diamond closure.
+### Unknowns / Unverified
+- Owner-source surgery is not yet applied.
+- Production UI smoke for the current assembled parent is not yet verified.
+- Full Main2–Main11 forensic pair closure is not yet verified in this execution cycle.
+- Final assembly and runtime are not verified.
 
-### False-closure protection
-No claim of Fully Closed, Gold, Diamond, Assembly Ready, or Runtime Closed was made without the required evidence.
-
-## FINAL CLOSURE
-`GOVERNING MASTER EXTENSION = CREATED`
-`REPORT120 = CREATED`
-`PRODUCTION SNAPSHOT = VERIFIED`
-`CURRENT MAIN1..MAIN11 FILE SET = VERIFIED PRESENT`
-`ORIGINAL MAIN1..MAIN11 FILE SET = VERIFIED PRESENT`
-`ORIGINAL = READ-ONLY / UNMODIFIED`
-`PAIRWISE REVIEW = NOT CLOSED`
-`ASSEMBLY = NOT VERIFIED`
-`RUNTIME = NOT VERIFIED`
-`PARENT GOLD/DIAMOND = NOT CLOSED`
+### Final Closure Status
+`MAIN1 FORENSIC REVIEW = COMPLETE`
+`MAIN1 FUNCTIONAL CLOSURE = OPEN — SURGERY PENDING`
+`GLOBAL GOLD/DIAMOND = OPEN`
