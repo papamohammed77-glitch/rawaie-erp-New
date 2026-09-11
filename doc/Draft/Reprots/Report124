@@ -1,0 +1,464 @@
+نعم يا صديقي. راجعت الأمر التنفيذي الجديد نفسه، ولم أتعامل مع Report122/123 كحقيقة نهائية. والنتيجة الحالية ليست Full Closure، وهناك فرق واضح بين ما قيل في Report123 وبين ما يثبته المصدر الحالي.
+
+النتيجة الحقيقية حتى هذه اللحظة
+
+1. هل تم حل مشكلة استكمال Main1–Main11 وظيفيًا؟
+
+لا.
+
+المصدر الحالي يثبت أن النقص ما زال قائمًا، وأبرز مثال مباشر في main11.md: دالة _openModal() ما زالت تعرض:
+
+صورة الهوية — (قيد التطوير)
+عقد العمل — (قيد التطوير)
+
+وهذا يناقض ما ورد في Report123 من أن عبارة (قيد التطوير) أزيلت. المصدر الحالي هو الحكم، وليس التقرير التاريخي.
+
+وكذلك main6.md حاليًا هو أساسًا واجهة متجر/عرض منتجات + سلة + إرسال طلب + تتبع طلب، وليس لوحة إدارة متجر مكتملة لإدارة الكتالوج والعروض والطلبات كما طلبت.
+
+وبالتالي فإن صياغة Report123 التي تقول إن Main1–Main11 شهدت استكمالات كبيرة صحيحة جزئيًا، لكنها لا تثبت اكتمال الهدف الذي طلبته. Report123 نفسه ينتهي بحالة IMPLEMENTED + PARTIALLY VERIFIED، لا Fully Closed.
+
+2. هل الملفات جاهزة للدمج في ملف واحد؟
+
+لا، ليس كـProduction Parent معتمد.
+
+الـCURRENT_STATE.md نفسه كان قد سجل صراحة أن:
+
+Pairwise review غير مغلق.
+Assembly غير متحقق.
+Runtime غير متحقق.
+Production UI غير متحقق.
+Gold/Diamond غير مغلق.
+
+والـHEAD الفعلي الحالي الذي تحققنا منه أصبح:
+
+931035b274f6e26a7a15e93e23ab5b1e3fe167bf
+
+وليس الـHEAD القديم المسجل داخل الـCURRENT_STATE. لذلك الـCURRENT_STATE أصبح متأخرًا مرة أخرى ويحتاج reconciliation.
+
+3. ما الذي نُفذ فعليًا في Production؟
+
+هناك إصلاحات حقيقية نفذت، وليست كلامًا فقط.
+
+تم التحقق من Production بتاريخ:
+
+2026-09-10 21:33:32.464613 UTC
+
+والحالة:
+
+العنصر	Production
+companies	1
+branches	2
+users	24
+items	17
+customers	3
+orders	0
+purchase_orders	0
+stock_branches	20
+inventory_log	3
+audit_log	1869
+employee_documents	0
+
+وهذا snapshot جديد، وليس أرقام Report123 القديمة.
+
+كما تم تثبيت عقد المخزون الحالي:
+
+Physical Movement → post_stock_movement → stock_branches + inventory_log
+
+ولم يظهر Writer مستقل يكتب stock_branches وinventory_log كـPhysical Movement Engine موازٍ. reserve_stock وrelease_stock_reservation ما زالا Reservation Engine، وهو متوافق مع الـMASTER.
+
+لكن يوجد في Production عدد من الدوال القديمة/الـcore aliases يجب استكمال حسم علاقتها بالـruntime قبل إعلان Zero-Debt؛ مثل:
+
+post_manual_stock_voucher_atomic_core_20260828
+
+و
+
+send_stock_voucher_atomic_core_20260828
+
+إلى جانب الـcanonical wrappers.
+
+4. تم العثور على عيب حقيقي وتم إصلاحه في Production
+
+في طبقة مستندات الموظفين وجدت خللًا حقيقيًا في Company Isolation داخل Storage policy، وتم إصلاح الـpolicy لتستخرج company_id من المسار بدل ربطه بقيمة لا تمثل Tenant identity الصحيحة.
+
+كما ثبت أن جدول employee_documents نفسه موجود، مع RLS مرتبطة بـcompany_id، وBucket employee-documents موجود كـprivate bucket.
+
+لكن هذا لا يعني أن Main11 مكتمل؛ لأن الواجهة نفسها كانت ما زالت تعرض (قيد التطوير).
+
+5. الـMASTER الذي طلبت قراءته حاكم فوق التقارير
+
+الـMASTER الحالي ينص على أن:
+
+UNDERSTAND → HISTORICAL CONTRACT → CURRENT BEHAVIOR → DATA/AUTH FLOW → TARGET → SURGICAL FIX → TEST → PRODUCTION VERIFY
+
+كما يمنع إعلان Closure مع وجود Unknown أو Conflict أو Unverified claim مؤثر، ويجعل Current/Production أقوى من التقارير التاريخية. وهذا بالضبط ما ظهر لنا هنا: Report123 قال شيئًا، والمصدر الحالي أثبت أن جزءًا منه لم يتحقق.
+
+6. ما كان يجب أن أعتبره مغلقًا ولم أعتبره كذلك
+
+لا يوجد حتى الآن دليل مقبول على:
+
+Main1–Main11 Functional Completeness = 100%
+
+ولا:
+
+Final Assembly Ready = YES
+
+ولا:
+
+Gold/Diamond = CLOSED
+
+ولا:
+
+Authenticated Production E2E = PASS
+
+ولا:
+
+All historical functionality preserved = PROVEN
+
+وهذا ليس تحفظًا زائدًا؛ الـdirective نفسه يجعل هذه أدلة إلزامية.
+
+7. النقطة الأهم في طلبك: الإصلاح الجراحي
+
+أنت كنت واضحًا جدًا، وأنا أتفق معك:
+
+المطلوب ليس أن نقول: "هذه الوحدة ناقصة".
+
+المطلوب هو:
+
+الملف → العنصر المعيب بالاسم → سبب العيب → البديل الكامل → مكان استبداله → اختبار → Production verification
+
+وهذا هو الأسلوب الصحيح الذي يجب أن نستمر به.
+
+وبالنسبة إلى Main11، العنصر المعيب المحدد حاليًا هو:
+
+Current/PWA/main2/main11.md
+
+داخل:
+
+RW_HR → function _openModal(email)
+
+والجزء المعيب هو قسم المستندات الذي يحتوي (قيد التطوير).
+
+والحل الصحيح ليس إزالة العبارة فقط؛ بل استبدال الدالة بواجهة مستندات فعلية مرتبطة بـ:
+
+employee_documents
+
+employee-documents
+
+company_id
+
+employee_id
+
+storage_path
+
+expires_at
+
+status
+
+مع رفع وتنزيل وتعطيل المستند والتحقق من Tenant.
+
+8. وهناك مشكلة أخرى يجب ألا ندفنها
+
+CURRENT_STATE.md الذي راجعته ما زال يحمل Snapshot وGit checkpoint أقدم من الواقع الحالي. هذا بالضبط النوع الذي حذرت منه أنت، لأنه يجعل CTO التالي يبني قراره على واقع قديم.
+
+لذلك ليس صحيحًا أن أتركه كما هو وأقول إن السجلات محدثة.
+
+سجل الحالة التنفيذي الحالي
+تقرير تنفيذي — Main1–Main11
+RAWAEA ERP — Current Reality / Surgical Closure Status
+التاريخ: 2026-09-11
+1. المرجعية
+
+تمت إعادة فتح وقراءة:
+
+MASTER — RAWAEA ERP Successor CTO Memory Recovery & Gold-Diamond Main1-Main11 Verification & Assembly Readiness Directive
+تقرير المبادئ الحاكمة
+Report122
+Report123
+CURRENT_STATE.md
+Execution Log / Report116
+Current/PWA/main2/main1.md إلى main11.md
+Original/PWA/main/main1.md إلى main11.md بحسب الأدلة المتاحة
+Git history / latest commits
+Production Supabase
+
+القاعدة الحاكمة:
+
+CURRENT VERIFIED REALITY
+
+
+
+
+CURRENT PRODUCTION
+
+
+
+
+CURRENT DATABASE CONTRACT
+
+
+
+
+CURRENT DEPLOYMENT
+
+
+
+
+CURRENT GIT
+
+
+
+
+CURRENT SOURCE
+
+
+
+
+HISTORICAL REPORTS
+
+ولا يجوز إعلان FULLY CLOSED مع وجود Unknown أو Conflict أو Unverified Claim مؤثر.
+
+2. الحكم الحالي
+
+FUNCTIONAL COMPLETENESS MAIN1–MAIN11 = NOT CLOSED
+
+FINAL MERGE READINESS = NOT CLOSED
+
+GOLD/DIAMOND = NOT CLOSED
+
+PRODUCTION E2E = NOT PROVEN
+
+FULL FUNCTIONAL CONSERVATION = NOT PROVEN
+
+3. Main11 — Defect مثبت
+
+الملف:
+
+Current/PWA/main2/main11.md
+
+العنصر:
+
+RW_HR → _openModal(email)
+
+العيب:
+
+قسم المستندات يعرض:
+
+صورة الهوية — (قيد التطوير)
+
+عقد العمل — (قيد التطوير)
+
+الحكم:
+
+DEFECT CONFIRMED
+
+والسبب:
+
+الوحدة لا تقدم إدارة مستندات فعلية رغم وجود database infrastructure في Production.
+
+4. Main6 — Defect مثبت
+
+الملف:
+
+Current/PWA/main2/main6.md
+
+الوضع الحالي:
+
+عرض منتجات
+تصنيفات
+بحث
+سلة
+إرسال طلب
+تتبع طلب
+
+لكن لا يوجد إثبات كافٍ بأن الوحدة الحالية تقوم بدور:
+
+إدارة كتالوج المتجر
+إدارة المنتجات المعروضة
+إدارة العروض
+إدارة طلبات المتجر من منظور ERP
+التحكم التشغيلي الكامل بالمتجر
+
+الحكم:
+
+FUNCTIONALLY INCOMPLETE
+
+5. Main8
+
+Main8 يحتوي وحدة مالية حقيقية نسبيًا، لكن وجود:
+
+Treasury
+Accounts
+Journal
+Receipts
+Payments
+Transfers
+Reports
+Budgets
+
+لا يساوي إثبات دورة محاسبية end-to-end كاملة.
+
+الحكم:
+
+FUNCTIONAL CLOSURE NOT PROVEN
+
+6. Main9
+
+Main9 يحتوي Reporting/Dashboard logic فعليًا.
+
+لكن ذلك لا يكفي لإثبات Enterprise Decision / Reporting Layer بالمستوى المستهدف.
+
+الحكم:
+
+ENTERPRISE DECISION CLOSURE NOT PROVEN
+
+7. Production Inventory
+
+العقد المركزي الحالي:
+
+Physical Movement
+→
+post_stock_movement
+→
+stock_branches + inventory_log
+
+لم يثبت وجود Physical Movement Engine مستقل آخر.
+
+reserve_stock / release_stock_reservation:
+
+Reservation Engine فقط.
+
+الحكم:
+
+CENTRAL STOCK ENGINE = STRUCTURALLY CONFIRMED
+
+GLOBAL ZERO-DEBT = NOT YET CLOSED
+
+8. Production Snapshot
+
+UTC:
+
+2026-09-10 21:33:32.464613
+
+companies = 1
+branches = 2
+users = 24
+items = 17
+customers = 3
+orders = 0
+purchase_orders = 0
+stock_branches = 20
+inventory_log = 3
+audit_log = 1869
+employee_documents = 0
+
+9. Production repair executed
+
+تم تنفيذ إصلاح Company Isolation لطبقة Storage الخاصة بـemployee-documents.
+
+كما تم التحقق من:
+
+employee_documents RLS
+employee-documents private bucket
+audit trigger path
+
+10. False-closure correction
+
+Report123 ذكر إزالة "(قيد التطوير)" من Current Main1–Main11.
+
+التحقق المباشر من main11 الحالي أثبت أن العبارة ما زالت موجودة.
+
+لذلك:
+
+Report123 statement = contradicted by current source
+
+Current source = authoritative evidence
+
+11. Git Reality
+
+Current HEAD:
+
+931035b274f6e26a7a15e93e23ab5b1e3fe167bf
+
+CURRENT_STATE.md checkpoint السابق أصبح stale بالنسبة إلى هذا الـHEAD.
+
+12. Assembly
+
+Current/PWA/New-main لا يُعتبر Source of Truth.
+
+Current main1..main11 هي editable parent sources.
+
+Final assembly يجب أن يأتي بعد Functional Gap Closure.
+
+الحكم:
+
+ASSEMBLY NOT READY
+
+13. Surgical Closure Queue
+
+Closure Unit 1:
+Main11 — HR Documents
+STATUS: OPEN DEFECT IDENTIFIED
+
+Closure Unit 2:
+Main6 — Online Store Management
+STATUS: OPEN DEFECT IDENTIFIED
+
+Closure Unit 3:
+Main8 — Accounting End-to-End
+STATUS: OPEN / FUNCTIONAL PROOF REQUIRED
+
+Closure Unit 4:
+Main9 — Enterprise Decision/Reporting
+STATUS: OPEN / FUNCTIONAL PROOF REQUIRED
+
+ثم:
+
+Main1–Main11 Cross-file reconciliation
+→
+Pairwise Preservation
+→
+Assembly
+→
+Parser
+→
+Runtime
+→
+Production UI
+→
+Final Production verification
+→
+CURRENT_STATE final synchronization
+
+14. Final Self Audit
+
+What was proved:
+
+MASTER governing directive exists and was reviewed.
+Current Production snapshot refreshed.
+Current Git HEAD refreshed.
+Main11 placeholder defect directly confirmed.
+Main6 functional limitation directly confirmed.
+Inventory central movement architecture directly inspected.
+employee_documents infrastructure confirmed in Production.
+Storage Company Isolation repair executed.
+
+What was not proved:
+
+Main1–Main11 100% functional.
+Full historical functionality preservation.
+Final assembly.
+Parent runtime.
+Authenticated Production UI E2E.
+Gold/Diamond closure.
+
+Final status:
+
+IMPLEMENTED + VERIFIED IN PARTS
+
+NOT FULLY CLOSED
+
+No false closure is authorized.
+
+الخلاصة الصريحة: نعم، اعتراضك على Report123 في محله. المشكلة لم تُحل بالكامل، وReport123 بالغ في وصف ما أُنجز. كما أنني لا أعتبر CURRENT_STATE.md محدثًا حتى الآن؛ لأن الـcheckpoint الموجود فيه أقدم من الواقع الحالي.
+
+والأهم: لن أعتبر حذف عبارة (قيد التطوير) وحده إصلاحًا. المطلوب هو استبدال الوظيفة الناقصة بوظيفة حقيقية مرتبطة بالـProduction، ثم اختبارها، ثم إغلاق Main11 قبل الانتقال إلى Main6.
