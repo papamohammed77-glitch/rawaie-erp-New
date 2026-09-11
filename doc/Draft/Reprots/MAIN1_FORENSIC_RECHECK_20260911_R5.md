@@ -43,9 +43,9 @@ window.RW_Navigation = RW_Navigation;
 Commit الخاص بسجل R5:
 `32fa734a63e48ac6866fd5be6edcf8da10c238eb`
 
-## 4. Fresh Production Snapshot
-تمت مزامنة Production مباشرة في هذه الجلسة عند:
-`2026-09-11 09:39:47.550805 UTC`
+## 4. Fresh Production Snapshot — FINAL CHECK
+تمت مطابقة Production مباشرة قبل تثبيت الحالة النهائية عند:
+`2026-09-11 09:42:38.327299 UTC`
 
 النتيجة:
 - companies = 1
@@ -61,7 +61,9 @@ Commit الخاص بسجل R5:
 - active workflow_rules = 3
 - workflow_log = 0
 
-لم يتم إجراء mutation على بيانات Production الخاصة بالـbusiness flow في هذه الجلسة.
+الـsnapshot النهائي مطابق عمليًا للـsnapshot السابق في نفس جلسة R5، ولم تظهر mutation بينهما.
+
+لم يتم إجراء business-data mutation على Production الخاصة بهذه المهمة.
 
 ## 5. Main1 — ما ثبت أنه صحيح بالفعل
 الإصلاحات التالية موجودة بالفعل في Main1 الحالي، ولذلك تم منع إعادة تطبيقها:
@@ -163,9 +165,9 @@ Production الحالية تحتوي 3 rules فعالة:
 
 ## 8. Historical / Functional Completion Findings
 الهدف Gold/Diamond لا يتحقق بمجرد اكتمال Shell. الفحص الحالي يدعم وجود نقص وظيفي خارج Main1، ومنه:
-- Main7 يحتوي عمليات Receiving/Vouchers/Inventory Count/Settlement وتوجد ملاحظة State Contract بين `RW_STATE.app.companyId` و`RW_STATE.app.company.id` تحتاج إثباتًا موحدًا قبل الدمج.
+- Main7 يحتوي عمليات Receiving/Vouchers/Inventory Count/Settlement وتوجد ملاحظة State Contract بين `RW_STATE.app.companyId` و`RW_STATE.app.company.id` تحتاج إثباتًا موحدًا.
 - Main8 يعرض Finance tabs لكن وجود UI لا يثبت اكتمال capability المحاسبية end-to-end.
-- Main9 يحتوي reporting capabilities مع gates تمنع بعض الادعاءات غير المثبتة.
+- Main9 يحتوي reporting capabilities مع gates تمنع الادعاءات غير المثبتة.
 - Main11 يحتوي نقصًا صريحًا سابق الإثبات في HR documents `(قيد التطوير)`.
 
 هذه ليست موافقة على إغلاق أي من هذه الوحدات؛ بل إثبات أن Main1 ليس نقطة الاختناق الوحيدة.
@@ -173,20 +175,24 @@ Production الحالية تحتوي 3 rules فعالة:
 ## 9. Syntax / Structural Validation
 - إعادة القراءة والـEOF لـMain1: **PROVEN**.
 - سلامة حدود النص وعدم وجود محتوى بعد EOF: **PROVEN**.
-- Full browser/parser execution لـMain1 مستقلًا: **NOT PROVEN** في هذه الجلسة لأن محتوى HTML الكبير لم يُشغّل داخل Browser runtime فعلي.
-- لذلك لا يوجد ادعاء `Syntax 100% PASS`.
+- Full browser/parser execution لـMain1 مستقلًا: **NOT PROVEN** في هذه الجلسة.
+- Full parser/E2E لجميع Main2–Main11: **NOT PROVEN**.
+- لذلك لا يوجد ادعاء `Syntax 100% PASS` أو `Functional 100% PASS`.
 
 ## 10. نتائج التحقق من Supabase المتعلقة بالحالة
 تم التأكد من:
 - `workflow_rules` يحتوي تعريف القواعد الثلاث الحالية.
 - `workflow_log` لا يحتوي أي تنفيذ حالي (`0`).
-- `notifications` و`notification_templates` لا تحتويان `company_id` في الـschema الحالي، لذلك لا تم اختراع tenant column/contract جديد في Main1.
+- `notifications` و`notification_templates` لا تحتويان `company_id` في الـschema الحالي، لذلك لم يتم اختراع tenant contract في Main1.
 - `audit_log` يعتمد على trigger `trg_audit_stock_vouchers` في `stock_vouchers` لمسار audit المرتبط بالإذن.
 
 ## 11. تغييرات هذه الجلسة
 ### Source
 تم إنشاء:
 `doc/Draft/Reprots/OWNER_CHANGESETS_20260911_MAIN1_R5.md`
+
+وتم إنشاء هذا التقرير:
+`doc/Draft/Reprots/MAIN1_FORENSIC_RECHECK_20260911_R5.md`
 
 لم يتم تعديل:
 - `Current/PWA/main2/main1.md`
@@ -195,11 +201,7 @@ Production الحالية تحتوي 3 rules فعالة:
 
 ### Production
 لم يتم تنفيذ business-data mutation في هذه الجلسة.
-تم إجراء read-only verification وfresh snapshot فقط.
-
-### Documentation
-هذا التقرير هو:
-`doc/Draft/Reprots/MAIN1_FORENSIC_RECHECK_20260911_R5.md`
+تم إجراء read-only verification وfresh snapshots فقط.
 
 ## 12. ما تم وما لم يتم
 ### تم
@@ -207,10 +209,11 @@ Production الحالية تحتوي 3 rules فعالة:
 - R4 re-check.
 - CURRENT_STATE re-check.
 - Main1 source direct re-read + EOF verification.
-- Production snapshot جديد.
+- Production snapshot جديد ثم snapshot نهائي قبل تثبيت الحالة.
 - اكتشاف وإثبات N1/N2/N3.
 - إبقاء N4 وWF مفتوحين بلا تخمين.
 - إنشاء Owner Change Set R5 كامل ومحدد.
+- تحديث `CURRENT_STATE.md` إلى R5.
 
 ### لم يتم
 - تعديل Main1 بواسطة المساعد.
@@ -239,30 +242,33 @@ Production الحالية تحتوي 3 rules فعالة:
 - `isAllowed()`.
 - Workflow `evaluate()`.
 
-بعد تنفيذ R5 يجب إعادة القراءة من أول حرف إلى EOF ثم اختبار الوظائف المذكورة في R5. لا تعتبر Main1 functional closed قبل ذلك.
+بعد تنفيذ R5 يجب إعادة القراءة من البداية إلى EOF ثم اختبار الوظائف المذكورة في R5. لا تعتبر Main1 functional closed قبل ذلك.
 
 ## 14. Final Self-Audit
 ### What was proven
-- الهدف الحاكم Gold/Diamond تم تأكيده مرة أخرى ولم يتحول إلى UI-only target.
+- الهدف الحاكم Gold/Diamond تم تأكيده ولم يتحول إلى UI-only target.
 - Main1 current SHA = `8275750c05c353dec9ed825ca4aff7a4f6d05fab`.
-- Fresh Production snapshot = `2026-09-11 09:39:47.550805 UTC`.
+- Main1 EOF = `window.RW_Navigation = RW_Navigation;`.
+- Fresh Production final snapshot = `2026-09-11 09:42:38.327299 UTC`.
 - N1 missing password visibility function مثبت.
 - N2 notification listeners loss بسبب `outerHTML` مثبت.
 - N3 forgot-password control inert مثبت.
 - Workflow false-success مثبت.
 - Executor contract ما زال غير مثبت.
-- Owner R5 changeset مكتوب ومحدد.
+- Owner R5 changeset موجود ومحدد.
 
 ### What was not proven
-- Full parser/browser PASS.
-- Workflow executor contract.
-- اكتمال Main2–Main11 وظيفيًا بالكامل.
-- Assembly النهائي.
-- Browser/PWA E2E.
-- Global Gold/Diamond closure.
+- Main1 owner surgery has not yet been applied to the fragment.
+- Full browser/parser PASS.
+- Full Main2–Main11 functional completion.
+- Search contract.
+- Workflow executor/dispatcher contract.
+- Final assembly.
+- Production E2E across all capabilities.
+- Global Gold/Diamond.
 
 ## 15. FINAL STATUS
-`GOVERNANCE = CLOSED FOR THIS SESSION`
+`GOVERNANCE = CLOSED FOR THIS CHECKPOINT`
 `MAIN1 FORENSIC RE-CHECK R5 = CLOSED`
 `MAIN1 SOURCE SURGERY = OWNER ACTION REQUIRED`
 `MAIN1 FUNCTIONAL = OPEN`
@@ -272,17 +278,20 @@ Production الحالية تحتوي 3 rules فعالة:
 `ASSEMBLY = DEFERRED`
 
 ## 16. ANSWER TO THE REQUIRED FINAL QUESTIONS
-### هل تحقق الهدف الأصلي: استكمال ملفات النظام الأم وظيفيًا؟
-**لا، ليس بعد.** الأدلة الحالية لا تسمح بإعلان اكتمال النظام الأم وظيفيًا بالكامل.
+### هل تحقق الهدف الأصلي: استكمال ملفات النظام الأم وظيفيًا بالكامل؟
+**لا، ليس بعد.** لا توجد أدلة تسمح بإعلان اكتمال النظام الأم بالكامل في هذا checkpoint.
 
 ### هل مازالت هناك أي تبويب أو وظيفة ناقصة أو هيكلية فقط أو `(قيد التطوير)`؟
-**نعم.** Main1 لديه N1/N2/N3 التي تحتاج تنفيذ المالك، وWorkflow executor غير مغلق، وMain11 يحمل `(قيد التطوير)` مثبتًا في HR documents، كما أن اكتمال Main2–Main11 end-to-end لم يثبت بعد.
+**نعم.** Main1 لديه N1/N2/N3 قبل owner merge، Workflow executor مفتوح، Search contract مفتوح، وMain11 لديه `(قيد التطوير)` مثبت، كما أن functional completeness لـMain2–Main11 لم تثبت بالكامل.
 
 ### متى يكتمل؟
-لا يوجد تاريخ يمكن إثباته دون تخمين. معيار الإكمال واضح: إغلاق كل owner surgeries، إثبات وإغلاق Workflow executor، استكمال القدرات الوظيفية لكل Main2–Main11، parser/browser PASS، Assembly صحيح من `Current/PWA/main2`, ثم Production E2E verification. حتى ذلك الحين الحالة الصحيحة هي `OPEN` وليست `100% CLOSED`.
+لا يوجد تاريخ يمكن إثباته دون تخمين. معيار الإكمال هو إغلاق owner surgeries، إثبات وإغلاق Workflow executor، استكمال كل capabilities end-to-end في الأجزاء الـ11، parser/browser PASS، Assembly من `Current/PWA/main2`, ثم Production E2E verification.
 
 ## 17. NEXT EXACT RESUMPTION POINT
 `MAIN1 OWNER MERGE VERIFICATION` ثم:
 `MAIN1-WF — EXECUTOR CONTRACT DISCOVERY`
 
 ولا يوجد أي سبب للعودة إلى `Current/PWA/New-main` أو `Current/PWA/main/*` كمصادر تطويرية.
+
+## GOVERNANCE REMINDER
+الدراسة تسبق التعديل. لا قيمة لأي نسبة أو تقرير دون مطابقة Production الحالية في نفس لحظة التقرير. لا تعديل يبنى على الظن أو التخمين، ولا Commit أو Staging PASS أو وجود UI يُعامل كدليل Functional Production Closure.
