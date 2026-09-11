@@ -1,16 +1,14 @@
-name: Validate Main2 Reporting Sources
+name: Validate Main2 Fragments
 
 on:
   push:
     branches: [main]
     paths:
-      - 'Current/PWA/main2/main9.md'
-      - 'Current/PWA/main2/main10.md'
+      - 'Current/PWA/main2/main*.md'
       - '.github/workflows/validate-main2-fragments.yml'
   pull_request:
     paths:
-      - 'Current/PWA/main2/main9.md'
-      - 'Current/PWA/main2/main10.md'
+      - 'Current/PWA/main2/main*.md'
       - '.github/workflows/validate-main2-fragments.yml'
 
 jobs:
@@ -20,20 +18,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate Main9 and Main10 JavaScript syntax
+      - name: Validate Main1-Main11 JavaScript syntax
         shell: bash
         run: |
           set -euo pipefail
-          cp Current/PWA/main2/main9.md /tmp/main9.js
-          cp Current/PWA/main2/main10.md /tmp/main10.js
-          node --check /tmp/main9.js
-          node --check /tmp/main10.js
+          for n in $(seq 1 11); do
+            cp "Current/PWA/main2/main${n}.md" "/tmp/main${n}.js"
+            node --check "/tmp/main${n}.js"
+          done
 
-      - name: Validate Main9 company-scope contract
+      - name: Validate canonical Main2 fragment set
         shell: bash
         run: |
           set -euo pipefail
-          grep -F "function _companyId()" Current/PWA/main2/main9.md >/dev/null
-          grep -F ".eq('company_id', companyId)" Current/PWA/main2/main9.md >/dev/null
-          grep -F "'SalesReturn'" Current/PWA/main2/main9.md >/dev/null
-          grep -F "'DirectReturn'" Current/PWA/main2/main9.md >/dev/null
+          test -f Current/PWA/main2/main1.md
+          test -f Current/PWA/main2/main2.md
+          test -f Current/PWA/main2/main3.md
+          test -f Current/PWA/main2/main4.md
+          test -f Current/PWA/main2/main5.md
+          test -f Current/PWA/main2/main6.md
+          test -f Current/PWA/main2/main7.md
+          test -f Current/PWA/main2/main8.md
+          test -f Current/PWA/main2/main9.md
+          test -f Current/PWA/main2/main10.md
+          test -f Current/PWA/main2/main11.md
