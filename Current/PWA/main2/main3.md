@@ -61,7 +61,7 @@ var RW_Customers = (function() {
         <div class="flex flex-col"><label>العنوان التفصيلي</label><input id="cust-location" value="${c?.location||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
         <div class="flex flex-col"><label>نوع العميل</label><select id="cust-type" class="p-2.5 bg-gray-50 border rounded-lg"><option value="عادي" ${c?.customer_type==='عادي'?'selected':''}>عادي</option><option value="جملة" ${c?.customer_type==='جملة'?'selected':''}>جملة</option><option value="VIP" ${c?.customer_type==='VIP'?'selected':''}>VIP</option></select></div>
         <div class="flex flex-col"><label>طريقة الدفع</label><select id="cust-payment" class="p-2.5 bg-gray-50 border rounded-lg"><option value="نقدي" ${c?.payment_type==='نقدي'?'selected':''}>نقدي</option><option value="أجل" ${c?.payment_type==='أجل'?'selected':''}>أجل</option></select></div>
-        <div class="flex flex-col"><label>الرصيد الحالي (EGP)</label><input id="cust-debt" type="number" value="${c?.debt||0}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="flex flex-col"><label>الرصيد الحالي (EGP)</label><input id="cust-debt" type="number" value="${c?.debt||0}" readonly disabled class="p-2.5 bg-gray-100 border rounded-lg text-gray-600 cursor-not-allowed"><p class="text-xs text-gray-500 mt-1">الرصيد المالي يُعرض للقراءة فقط ولا يتم تعديله من بيانات العميل الأساسية.</p></div>
         <div class="flex flex-col"><label>يوم الزيارة</label><select id="cust-visit" class="p-2.5 bg-gray-50 border rounded-lg"><option value="">اختر</option>${['السبت','الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس'].map(d => `<option value="${d}" ${c?.visit_day===d?'selected':''}>${d}</option>`).join('')}</select></div>
         <div class="flex flex-col"><label>مسؤول التواصل</label><input id="cust-contact" value="${c?.contact_person||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
         <div class="md:col-span-2 flex flex-col"><label>ملاحظات</label><textarea id="cust-notes" rows="2" class="p-2.5 bg-gray-50 border rounded-lg">${c?.notes||''}</textarea></div>
@@ -206,7 +206,7 @@ var RW_Suppliers = (function() {
         <div class="flex flex-col"><label>العنوان التفصيلي</label><input id="supp-address" value="${s?.address||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
         <div class="flex flex-col"><label>نوع المورد</label><select id="supp-type" class="p-2.5 bg-gray-50 border rounded-lg"><option value="مورد عام" ${s?.supplier_type==='مورد عام'?'selected':''}>مورد عام</option><option value="مصنع" ${s?.supplier_type==='مصنع'?'selected':''}>مصنع</option><option value="مورد خارجي" ${s?.supplier_type==='مورد خارجي'?'selected':''}>مورد خارجي</option></select></div>
         <div class="flex flex-col"><label>طريقة الدفع</label><select id="supp-payment" class="p-2.5 bg-gray-50 border rounded-lg"><option value="نقدي" ${s?.payment_type==='نقدي'?'selected':''}>نقدي</option><option value="أجل" ${s?.payment_type==='أجل'?'selected':''}>أجل</option></select></div>
-        <div class="flex flex-col"><label>الرصيد الدائن (EGP)</label><input id="supp-balance" type="number" value="${s?.accounts_payable||0}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
+        <div class="flex flex-col"><label>الرصيد الدائن (EGP)</label><input id="supp-balance" type="number" value="${s?.accounts_payable||0}" readonly disabled class="p-2.5 bg-gray-100 border rounded-lg text-gray-600 cursor-not-allowed"><p class="text-xs text-gray-500 mt-1">الرصيد المالي يُعرض للقراءة فقط ولا يتم تعديله من بيانات المورد الأساسية.</p></div>
         <div class="flex flex-col"><label>جهة الاتصال</label><input id="supp-contact" value="${s?.contact_person||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
         <div class="flex flex-col"><label>مسؤول المشتريات</label><input id="supp-rep" value="${s?.purchase_rep||''}" class="p-2.5 bg-gray-50 border rounded-lg"></div>
         <div class="md:col-span-2 flex flex-col"><label>ملاحظات</label><textarea id="supp-notes" rows="2" class="p-2.5 bg-gray-50 border rounded-lg">${s?.notes||''}</textarea></div>
@@ -334,7 +334,7 @@ var RW_Branches = (function() {
         <div class="flex flex-col"><label>الحالة</label><select id="branch-status" class="p-2.5 bg-gray-50 border rounded-lg"><option value="active" ${b?.is_active?'selected':''}>نشط</option><option value="inactive" ${!b?.is_active && b?'selected':''}>غير نشط</option></select></div>
         </div>
         <div class="flex justify-end gap-3 pt-4 border-t">
-        ${isEdit ? '<button type="button" id="btn-delete-branch" class="px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold mr-auto"><i class="fas fa-trash-alt ml-1"></i> حذف</button>' : ''}
+        ${isEdit ? '<button type="button" id="btn-delete-branch" class="px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold mr-auto"><i class="fas fa-ban ml-1"></i> تعطيل الفرع</button>' : ''}
         <button type="button" class="px-5 py-2.5 border rounded-xl font-bold" onclick="Swal.close()">إلغاء</button>
         <button type="button" id="btn-save-branch" class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold">حفظ</button>
         </div></form></div></div>`;
@@ -867,7 +867,7 @@ function openModal(email) {
                         role: byId('emp-role') ? byId('emp-role').value : '',
                         status: byId('emp-status') ? byId('emp-status').value : 'Active',
                         expiry_date: byId('emp-expiry') ? byId('emp-expiry').value : '',
-                        allowed_branch_ids: selectedBranches.join(','),
+                        allowed_branch_ids: selectedBranches,
                         permissions: customPerms,
                         allow_all_customers: byId('emp-allow-all-customers') ? byId('emp-allow-all-customers').checked : false,
                         restrict_to_visit_day: byId('emp-restrict-visit-day') ? byId('emp-restrict-visit-day').checked : true,
