@@ -441,34 +441,94 @@ var RW_Notification = (function() {
         bellBtn.onclick = function(e) { e.stopPropagation(); showPanel(); };
         _updateBadge();
     }
-    function showPanel() {
-        var email = RW_STATE.app.currentUser ? RW_STATE.app.currentUser.email : null;
-        if (!email) return;
-        supabase.from('notifications').select('*').eq('user_email', email).order('created_at', { ascending: false }).limit(50).then(function(res) {
+function showPanel() {
+    var email = RW_STATE.app.currentUser ? RW_STATE.app.currentUser.email : null;
+    if (!email) return;
+
+    supabase.from('notifications')
+        .select('*')
+        .eq('user_email', email)
+        .order('created_at', { ascending: false })
+        .limit(50)
+        .then(function(res) {
             var notifs = res.data || [];
-            var html = '<div dir="rtl" style="width:420px;max-height:500px;overflow-y:auto;">';
-            html += '<div style="padding:16px 20px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;">';
-            html += '<h3 style="font-size:16px;font-weight:900;color:#111827;">الإشعارات</h3>';
-            if (notifs.length > 0) html += '<button onclick="RW_Notification.markAllRead()" style="font-size:12px;color:#2563eb;font-weight:700;background:none;border:none;cursor:pointer;">قراءة الكل</button>';
-            html += '</div>';
+
+            var root = document.createElement('div');
+            root.dir = 'rtl';
+            root.style.width = '420px';
+            root.style.maxHeight = '500px';
+            root.style.overflowY = 'auto';
+
+            var header = document.createElement('div');
+            header.style.cssText = 'padding:16px 20px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;';
+
+            var title = document.createElement('h3');
+            title.style.cssText = 'font-size:16px;font-weight:900;color:#111827;';
+            title.textContent = 'الإشعارات';
+            header.appendChild(title);
+
+            if (notifs.length > 0) {
+                var markAll = document.createElement('button');
+                markAll.type = 'button';
+                markAll.style.cssText = 'font-size:12px;color:#2563eb;font-weight:700;background:none;border:none;cursor:pointer;';
+                markAll.textContent = 'قراءة الكل';
+                markAll.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    RW_Notification.markAllRead();
+                });
+                header.appendChild(markAll);
+            }
+
+            root.appendChild(header);
+
             if (!notifs.length) {
-                html += '<div style="padding:40px 20px;text-align:center;color:#9ca3af;">لا توجد إشعارات</div>';
+                var empty = document.createElement('div');
+                empty.style.cssText = 'padding:40px 20px;text-align:center;color:#9ca3af;';
+                empty.textContent = 'لا توجد إشعارات';
+                root.appendChild(empty);
             } else {
                 for (var n = 0; n < notifs.length; n++) {
-                    var notif = notifs[n];
-                    var bg = notif.is_read ? 'background:white;' : 'background:#eff6ff;';
-                    var refTable = (notif.reference_table || '').replace(/'/g, "\\'");
-                    var refId = (notif.reference_id || '').replace(/'/g, "\\'");
-                    html += '<div onclick="RW_Notification._clickNotif(\'' + notif.id + '\',\'' + refTable + '\',\'' + refId + '\')" style="padding:12px 20px;border-bottom:1px solid #f1f5f9;cursor:pointer;' + bg + '">';
-                    html += '<div style="font-size:13px;font-weight:800;color:#111827;">' + (notif.title || '') + '</div>';
-                    if (notif.body) html += '<div style="font-size:12px;color:#6b7280;margin-top:4px;">' + notif.body + '</div>';
-                    html += '</div>';
+                    var notif = notifs[n] || {};
+                    var row = document.createElement('div');
+                    row.style.cssText = 'padding:12px 20px;border-bottom:1px solid #f1f5f9;cursor:pointer;' +
+                        (notif.is_read ? 'background:white;' : 'background:#eff6ff;');
+
+                    var notifTitle = document.createElement('div');
+                    notifTitle.style.cssText = 'font-size:13px;font-weight:800;color:#111827;';
+                    notifTitle.textContent = notif.title || '';
+                    row.appendChild(notifTitle);
+
+                    if (notif.body) {
+                        var notifBody = document.createElement('div');
+                        notifBody.style.cssText = 'font-size:12px;color:#6b7280;margin-top:4px;';
+                        notifBody.textContent = notif.body;
+                        row.appendChild(notifBody);
+                    }
+
+                    row.addEventListener('click', (function(id, refTable, refId) {
+                        return function(e) {
+                            e.stopPropagation();
+                            RW_Notification._clickNotif(id, refTable, refId);
+                        };
+                    })(notif.id, String(notif.reference_table || ''), String(notif.reference_id || '')));
+
+                    root.appendChild(row);
                 }
             }
-            html += '</div>';
-            Swal.fire({ html: html, showConfirmButton: false, showCloseButton: true, width: 600, padding: 0, customClass: { popup: 'rounded-2xl overflow-hidden' } });
-        }).catch(function() {});
-    }
+
+            Swal.fire({
+                html: root.outerHTML,
+                showConfirmButton: false,
+                showCloseButton: true,
+                width: 600,
+                padding: 0,
+                customClass: { popup: 'rounded-2xl overflow-hidden' }
+            });
+        })
+        .catch(function(e) {
+            console.warn('Notification panel load error:', e);
+        });
+}
     function markAllRead() {
         var email = RW_STATE.app.currentUser ? RW_STATE.app.currentUser.email : null;
         if (!email) return;
@@ -586,28 +646,91 @@ async function RW_Audit_loadData() {
 function RW_Audit_renderTable(data) {
     var container = byId('audit-table-container');
     if (!container) return;
+
     if (!data || data.length === 0) {
         safeHTML(container, '<div class="text-center py-10 text-gray-400">لا توجد سجلات</div>');
         return;
     }
-    var html = '<table class="w-full text-sm"><thead class="bg-gray-50 sticky top-0"><tr>';
-    html += '<th class="p-2">التاريخ</th><th class="p-2">المستخدم</th><th class="p-2">الإجراء</th><th class="p-2">الجدول</th><th class="p-2">رقم السجل</th><th class="p-2 text-center">تفاصيل</th>';
-    html += '</tr></thead><tbody>';
-    for (var i = 0; i < data.length; i++) {
-        var log = data[i];
-        var dateStr = log.created_at ? new Date(log.created_at).toLocaleString('ar-EG') : '';
-        var actionLabel = log.action === 'create' ? 'إنشاء' : log.action === 'update' ? 'تعديل' : log.action === 'delete' ? 'حذف' : log.action === 'login' ? 'دخول' : log.action === 'logout' ? 'خروج' : log.action;
-        html += '<tr class="border-t hover:bg-gray-50">';
-        html += '<td class="p-2 text-xs">' + dateStr + '</td>';
-        html += '<td class="p-2">' + (log.user_email || '') + '</td>';
-        html += '<td class="p-2">' + actionLabel + '</td>';
-        html += '<td class="p-2">' + (log.table_name || '-') + '</td>';
-        html += '<td class="p-2 text-xs">' + (log.record_id ? log.record_id.substring(0, 8) + '...' : '-') + '</td>';
-        html += '<td class="p-2 text-center"><button onclick="RW_Audit_showDetails(\'' + log.id + '\')" class="text-blue-600"><i class="fa-solid fa-eye"></i></button></td>';
-        html += '</tr>';
+
+    var table = document.createElement('table');
+    table.className = 'w-full text-sm';
+
+    var thead = document.createElement('thead');
+    thead.className = 'bg-gray-50 sticky top-0';
+    var headRow = document.createElement('tr');
+
+    var headers = ['التاريخ', 'المستخدم', 'الإجراء', 'الجدول', 'رقم السجل', 'تفاصيل'];
+    for (var h = 0; h < headers.length; h++) {
+        var th = document.createElement('th');
+        th.className = 'p-2' + (h === 5 ? ' text-center' : '');
+        th.textContent = headers[h];
+        headRow.appendChild(th);
     }
-    html += '</tbody></table>';
-    safeHTML(container, html);
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    var tbody = document.createElement('tbody');
+
+    for (var i = 0; i < data.length; i++) {
+        var log = data[i] || {};
+        var tr = document.createElement('tr');
+        tr.className = 'border-t hover:bg-gray-50';
+
+        var dateCell = document.createElement('td');
+        dateCell.className = 'p-2 text-xs';
+        dateCell.textContent = log.created_at ? new Date(log.created_at).toLocaleString('ar-EG') : '';
+
+        var userCell = document.createElement('td');
+        userCell.className = 'p-2';
+        userCell.textContent = log.user_email || '';
+
+        var actionCell = document.createElement('td');
+        actionCell.className = 'p-2';
+        var actionLabel = log.action === 'create' ? 'إنشاء' :
+            log.action === 'update' ? 'تعديل' :
+            log.action === 'delete' ? 'حذف' :
+            log.action === 'login' ? 'دخول' :
+            log.action === 'logout' ? 'خروج' :
+            String(log.action || '');
+        actionCell.textContent = actionLabel;
+
+        var tableCell = document.createElement('td');
+        tableCell.className = 'p-2';
+        tableCell.textContent = log.table_name || '-';
+
+        var recordCell = document.createElement('td');
+        recordCell.className = 'p-2 text-xs';
+        var recordId = String(log.record_id || '');
+        recordCell.textContent = recordId ? recordId.substring(0, 8) + '...' : '-';
+
+        var detailCell = document.createElement('td');
+        detailCell.className = 'p-2 text-center';
+        var detailButton = document.createElement('button');
+        detailButton.className = 'text-blue-600';
+        detailButton.type = 'button';
+        detailButton.title = 'عرض التفاصيل';
+        detailButton.innerHTML = '<i class="fa-solid fa-eye" aria-hidden="true"></i>';
+        detailButton.addEventListener('click', (function(id) {
+            return function(e) {
+                e.stopPropagation();
+                RW_Audit_showDetails(id);
+            };
+        })(log.id));
+        detailCell.appendChild(detailButton);
+
+        tr.appendChild(dateCell);
+        tr.appendChild(userCell);
+        tr.appendChild(actionCell);
+        tr.appendChild(tableCell);
+        tr.appendChild(recordCell);
+        tr.appendChild(detailCell);
+        tbody.appendChild(tr);
+    }
+
+    table.appendChild(tbody);
+
+    safeHTML(container, '');
+    container.appendChild(table);
     RW_Audit_renderPagination();
 }
 
@@ -647,21 +770,77 @@ function RW_Audit_showDetails(logId) {
             break;
         }
     }
+
     if (!log) return;
-    var oldDataText = log.old_data ? JSON.stringify(log.old_data, null, 2) : 'لا يوجد';
-    var newDataText = log.new_data ? JSON.stringify(log.new_data, null, 2) : 'لا يوجد';
-    var html = '<div class="text-right text-sm">' +
-        '<p><b>المستخدم:</b> ' + (log.user_email || '') + '</p>' +
-        '<p><b>الإجراء:</b> ' + log.action + '</p>' +
-        '<p><b>الجدول:</b> ' + (log.table_name || '-') + '</p>' +
-        '<p><b>رقم السجل:</b> ' + (log.record_id || '-') + '</p>' +
-        '<p><b>التاريخ:</b> ' + (log.created_at ? new Date(log.created_at).toLocaleString('ar-EG') : '') + '</p>' +
-        '<div class="mt-4"><b>البيانات القديمة:</b><pre class="bg-gray-100 p-2 rounded-lg mt-1 text-xs overflow-auto max-h-32">' + oldDataText + '</pre></div>' +
-        '<div class="mt-2"><b>البيانات الجديدة:</b><pre class="bg-gray-100 p-2 rounded-lg mt-1 text-xs overflow-auto max-h-32">' + newDataText + '</pre></div>' +
-        '</div>';
+
+    function text(value, fallback) {
+        return value === null || value === undefined || value === '' ? (fallback || '') : String(value);
+    }
+
+    var wrapper = document.createElement('div');
+    wrapper.className = 'text-right text-sm';
+
+    var pUser = document.createElement('p');
+    var bUser = document.createElement('b');
+    bUser.textContent = 'المستخدم: ';
+    pUser.appendChild(bUser);
+    pUser.appendChild(document.createTextNode(text(log.user_email)));
+
+    var pAction = document.createElement('p');
+    var bAction = document.createElement('b');
+    bAction.textContent = 'الإجراء: ';
+    pAction.appendChild(bAction);
+    pAction.appendChild(document.createTextNode(text(log.action)));
+
+    var pTable = document.createElement('p');
+    var bTable = document.createElement('b');
+    bTable.textContent = 'الجدول: ';
+    pTable.appendChild(bTable);
+    pTable.appendChild(document.createTextNode(text(log.table_name, '-')));
+
+    var pRecord = document.createElement('p');
+    var bRecord = document.createElement('b');
+    bRecord.textContent = 'رقم السجل: ';
+    pRecord.appendChild(bRecord);
+    pRecord.appendChild(document.createTextNode(text(log.record_id, '-')));
+
+    var pDate = document.createElement('p');
+    var bDate = document.createElement('b');
+    bDate.textContent = 'التاريخ: ';
+    pDate.appendChild(bDate);
+    pDate.appendChild(document.createTextNode(log.created_at ? new Date(log.created_at).toLocaleString('ar-EG') : ''));
+
+    var oldTitle = document.createElement('b');
+    oldTitle.textContent = 'البيانات القديمة:';
+    var oldPre = document.createElement('pre');
+    oldPre.className = 'bg-gray-100 p-2 rounded-lg mt-1 text-xs overflow-auto max-h-32';
+    oldPre.textContent = log.old_data ? JSON.stringify(log.old_data, null, 2) : 'لا يوجد';
+    var oldWrap = document.createElement('div');
+    oldWrap.className = 'mt-4';
+    oldWrap.appendChild(oldTitle);
+    oldWrap.appendChild(oldPre);
+
+    var newTitle = document.createElement('b');
+    newTitle.textContent = 'البيانات الجديدة:';
+    var newPre = document.createElement('pre');
+    newPre.className = 'bg-gray-100 p-2 rounded-lg mt-1 text-xs overflow-auto max-h-32';
+    newPre.textContent = log.new_data ? JSON.stringify(log.new_data, null, 2) : 'لا يوجد';
+    var newWrap = document.createElement('div');
+    newWrap.className = 'mt-2';
+    newWrap.appendChild(newTitle);
+    newWrap.appendChild(newPre);
+
+    wrapper.appendChild(pUser);
+    wrapper.appendChild(pAction);
+    wrapper.appendChild(pTable);
+    wrapper.appendChild(pRecord);
+    wrapper.appendChild(pDate);
+    wrapper.appendChild(oldWrap);
+    wrapper.appendChild(newWrap);
+
     Swal.fire({
         title: 'تفاصيل سجل التدقيق',
-        html: html,
+        html: wrapper.outerHTML,
         width: '800px',
         showCloseButton: true,
         showConfirmButton: false
