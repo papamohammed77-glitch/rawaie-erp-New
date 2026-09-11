@@ -183,7 +183,7 @@ window._rwOrdersRealtimeChannel = supabase
         if (cust) filtered = filtered.filter(function(o) { return (o.customer_name || '').toLowerCase().indexOf(cust) !== -1; });
         if (st) filtered = filtered.filter(function(o) { return o.order_status === st; });
         if (area) filtered = filtered.filter(function(o) { return (o.area || '').toLowerCase().indexOf(area) !== -1; });
-        if (rs) filtered = filtered.filter(function(o) { return (o.runsheet_id || '').toLowerCase().indexOf(rs) !== -1; });
+        if (rs) filtered = filtered.filter(function(o) { return String(o._runsheetCode || '').toLowerCase().indexOf(rs) !== -1; });
 
         var sorted = filtered.sort(function(a, b) {
             var va = a[sortField] || '', vb = b[sortField] || '';
@@ -280,7 +280,7 @@ if (canDelete) {
                 '<td class="p-3 text-center" onclick="event.stopPropagation()"><input type="checkbox" class="order-checkbox" data-id="' + o.order_code + '"></td>' +
                 '<td class="p-3 text-center font-bold text-blue-600">' + (o.order_code || '') + '</td>' +
                 '<td class="p-3 text-center">' + (o.order_date ? new Date(o.order_date).toLocaleDateString('ar-EG') : '') + '</td>' +
-                '<td class="p-3 text-center"><p class="font-semibold">' + (o.customer_name || '') + '</p><p class="text-xs text-gray-500">' + (o.area || '') + '</p></td>' +
+                '<td class="p-3 text-center"><p class="font-semibold">' + esc(o.customer_name || '') + '</p><p class="text-xs text-gray-500">' + esc(o.area || '') + '</p></td>' +
                 '<td class="p-3 text-center font-bold">' + (o.itemsCount || 0) + '</td>' +
                 '<td class="p-3 text-center font-bold">' + Number(o.total_amount || 0).toLocaleString() + ' ' + currency + '</td>' +
                 '<td class="p-3 text-center"><span class="px-2 py-1 rounded-full text-xs font-semibold ' + sc + '">' + (o.order_status || '') + '</span></td>' +
@@ -312,6 +312,11 @@ if (canDelete) {
             showLoader('جاري التأكيد...');
             supabase.auth.getSession().then(function(ses) {
                 var t = ses.data.session && ses.data.session.access_token;
+				                if (!t) {
+                    hideLoader();
+                    showToast('انتهت الجلسة. يرجى إعادة تسجيل الدخول.', 'error');
+                    return null;
+                }
                 return fetch(RW_SUPABASE_URL + '/functions/v1/confirm-order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t },
@@ -349,6 +354,11 @@ function _delete(code) {
         showLoader('جاري الحذف...');
         supabase.auth.getSession().then(function(ses) {
             var t = ses.data.session && ses.data.session.access_token;
+			            if (!t) {
+                hideLoader();
+                showToast('انتهت الجلسة. يرجى إعادة تسجيل الدخول.', 'error');
+                return null;
+            }
             return fetch(RW_SUPABASE_URL + '/functions/v1/delete-order', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t },
@@ -813,13 +823,33 @@ var RW_Runsheets = (function() {
 
     async function loadHelpers() {
         try {
-            var dRes = await supabase.from('users').select('email, name').eq('company_id', _rwCompanyId()).in('role', ['driver','سائق','مندوب']);
-            driversCache = dRes.data || [];
-            var vRes = await supabase.from('vehicles').select('id, license_plate, model').eq('company_id', _rwCompanyId());
+            var companyId = _rwCompanyId();
+            if (!companyId) {
+                driversCache = [];
+                vehiclesCache = [];
+                return;
+            }
+            var dRes = await supabase
+                .from('users')
+                .select('id, email, name, status')
+                .eq('company_id', companyId)
+                .in('role', ['driver', 'سائق', 'مندوب']);
+            driversCache = (dRes.data || []).filter(function(d) {
+                return !d.status || d.status === 'Active';
+            });
+            var vRes = await supabase
+                .from('vehicles')
+                .select('id, license_plate, model')
+                .eq('company_id', companyId);
             vehiclesCache = vRes.data || [];
-        } catch(e) { console.error(e); }
+            if (dRes.error) console.error('Drivers load failed:', dRes.error);
+            if (vRes.error) console.error('Vehicles load failed:', vRes.error);
+        } catch(e) {
+            driversCache = [];
+            vehiclesCache = [];
+            console.error('Runsheet helpers load failed:', e);
+        }
     }
-
     async function render() {
         var c = byId('rw-page-container');
         if (!c) return;
@@ -944,7 +974,19 @@ window._rwRunsheetsRealtimeChannel = supabase
 
         if (id) filtered = filtered.filter(function(r) { return (r.runsheet_code||'').toLowerCase().indexOf(id) !== -1; });
         if (st) filtered = filtered.filter(function(r) { return r.status === st; });
-        if (dr) filtered = filtered.filter(function(r) { return (r.driver_id||'').toLowerCase().indexOf(dr) !== -1; });
+        if (dr) filtered = filtered.filter(function(r) {
+            var driver = null;
+            for (var i = 0; i < driversCache.length; i++) {
+                if (driversCache[i].id === r.driver_id) {
+                    driver = driversCache[i];
+                    break;
+                }
+            }
+            var driverIdText = String(r.driver_id || '').toLowerCase();
+            var driverNameText = String(driver && driver.name || '').toLowerCase();
+            var driverEmailText = String(driver && driver.email || '').toLowerCase();
+            return driverIdText.indexOf(dr) !== -1 || driverNameText.indexOf(dr) !== -1 || driverEmailText.indexOf(dr) !== -1;
+        });
         if (fd) filtered = filtered.filter(function(r) { return r.run_date >= fd; });
         if (td) filtered = filtered.filter(function(r) { return r.run_date <= td; });
 
@@ -983,9 +1025,15 @@ window._rwRunsheetsRealtimeChannel = supabase
             return;
         }
         RW_Table.paginate('rs-table-body', d, 1, 50, function(r) {
-            var driverName = r.driver_id || '---';
+            var driverName = '---';
             for (var i = 0; i < driversCache.length; i++) {
-                if (driversCache[i].email === r.driver_id) { driverName = driversCache[i].name; break; }
+                if (driversCache[i].id === r.driver_id) {
+                    driverName = driversCache[i].name || driversCache[i].email || '---';
+                    break;
+                }
+            }
+            if (driverName === '---' && r.driver_id) {
+                driverName = String(r.driver_id);
             }
             var vehiclePlate = r.vehicle_id || '---';
             for (var j = 0; j < vehiclesCache.length; j++) {
@@ -1022,8 +1070,11 @@ async function _details(code) {
         var driverOptions = '<option value="">اختر السائق...</option>';
         for (var i = 0; i < driversCache.length; i++) {
             var d = driversCache[i];
-            var sel = (rs.driver_id === d.email) ? ' selected' : '';
-            driverOptions += '<option value="' + d.email + '"' + sel + '>' + d.name + ' (' + d.email + ')</option>';
+            var driverId = d.id || '';
+            var driverLabel = d.name || d.email || driverId;
+            if (d.email) driverLabel += ' (' + d.email + ')';
+            var sel = (rs.driver_id === driverId) ? ' selected' : '';
+            driverOptions += '<option value="' + _esc(driverId) + '"' + sel + '>' + _esc(driverLabel) + '</option>';
         }
         var vehicleOptions = '<option value="">اختر المركبة...</option>';
         for (var j = 0; j < vehiclesCache.length; j++) {
