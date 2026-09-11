@@ -362,6 +362,11 @@ mainBranchCode = mainBranchRes.data.branch_code;
         showLoader('جاري حفظ الفاتورة...');
         var sessionRes = await supabase.auth.getSession();
         var token = sessionRes.data.session && sessionRes.data.session.access_token;
+                if (!token) {
+            hideLoader();
+            showToast('انتهت الجلسة', 'error');
+            return;
+        }
         try {
             var res = await fetch(RW_SUPABASE_URL + '/functions/v1/save-sales-invoice', {
                 method: 'POST',
@@ -536,7 +541,7 @@ var RW_Roles = (function() {
         '<div id="role-panel-erp" class="hidden">' + erpHTML + '</div>' +
         '</div>' +
         '<div class="flex justify-end gap-3 pt-4 border-t">' +
-        (isEdit ? '<button type="button" id="btn-delete-role" class="px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold mr-auto"><i class="fas fa-trash-alt ml-1"></i> حذف</button>' : '') +
+        (isEdit && !role.is_system ? '<button type="button" id="btn-delete-role" class="px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold mr-auto"><i class="fas fa-trash-alt ml-1"></i> حذف الدور</button>' : (isEdit && role.is_system ? '<span class="px-4 py-2.5 bg-slate-100 text-slate-500 rounded-xl font-bold mr-auto"><i class="fas fa-lock ml-1"></i> دور نظامي</span>' : '')) +
         '<button type="button" class="px-5 py-2.5 border rounded-xl font-bold" onclick="Swal.close()">إلغاء</button>' +
         '<button type="button" id="btn-save-role" class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold">حفظ</button>' +
         '</div></form></div></div>';
@@ -926,7 +931,7 @@ try {
     '<div class="flex flex-col"><label>العنوان التفصيلي</label><input id="cust-location" class="p-2.5 bg-gray-50 border rounded-lg"></div>' +
     '<div class="flex flex-col"><label>نوع العميل</label><select id="cust-type" class="p-2.5 bg-gray-50 border rounded-lg"><option value="عادي">عادي</option><option value="جملة">جملة</option><option value="VIP">VIP</option></select></div>' +
     '<div class="flex flex-col"><label>طريقة الدفع</label><select id="cust-payment" class="p-2.5 bg-gray-50 border rounded-lg"><option value="نقدي">نقدي</option><option value="أجل">أجل</option></select></div>' +
-    '<div class="flex flex-col"><label>الرصيد الحالي (' + currency + ')</label><input id="cust-debt" type="number" value="0" class="p-2.5 bg-gray-50 border rounded-lg"></div>' +
+    '<div class="flex flex-col"><label>الرصيد الحالي (' + currency + ')</label><input id="cust-debt" type="number" value="0" readonly disabled class="p-2.5 bg-gray-100 border rounded-lg text-gray-600 cursor-not-allowed"><p class="text-xs text-gray-500 mt-1">الرصيد المالي يُعرض للقراءة فقط ويُدار من المسار المالي الرسمي.</p></div>' +
     '<div class="flex flex-col"><label>يوم الزيارة</label><select id="cust-visit" class="p-2.5 bg-gray-50 border rounded-lg"><option value="">اختر</option>' + ['السبت','الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس'].map(function(d){return '<option value="'+d+'">'+d+'</option>';}).join('') + '</select></div>' +
     '<div class="flex flex-col"><label>مسؤول التواصل</label><input id="cust-contact" class="p-2.5 bg-gray-50 border rounded-lg"></div>' +
     '<div class="md:col-span-2 flex flex-col"><label>ملاحظات</label><textarea id="cust-notes" rows="2" class="p-2.5 bg-gray-50 border rounded-lg"></textarea></div>' +
@@ -950,7 +955,7 @@ try {
               location: document.getElementById('cust-location').value.trim(),
               customer_type: document.getElementById('cust-type').value,
               payment_type: document.getElementById('cust-payment').value,
-              debt: parseFloat(document.getElementById('cust-debt').value)||0,
+              debt: 0,
               visit_day: document.getElementById('cust-visit').value,
               contact_person: document.getElementById('cust-contact').value.trim(),
               notes: document.getElementById('cust-notes').value.trim()
