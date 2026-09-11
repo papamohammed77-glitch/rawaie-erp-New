@@ -1,0 +1,134 @@
+تم تنفيذ التحقيق الجنائي الأولي على Main1 وفق الـMASTER، وليس اعتمادًا على التقارير السابقة.
+
+النتيجة الحالية المؤكدة
+
+Main1 لم يُغلق بعد، ولم يُصبح جاهزًا للدمج.
+النسخة الحالية في Git ما زالت:
+
+Current/PWA/main2/main1.md
+SHA: 4d1b42250cfe2b3a8ec7d02b7b482eca8e27bade
+
+والـHEAD الحالي هو:
+
+6a628cd263f28934cfa628c58283168d2131bd99
+
+أي أن محاولات الإصلاح السابقة التي ظهرت في الـcommits لم تغيّر مصدر Main1 الحالي؛ وهذا تم إثباته مباشرة.
+
+كما أن Production الحالية تم التحقق منها مباشرة، وليست من تقرير قديم:
+
+2026-09-11 03:37 UTC تقريبًا
+
+وبها حاليًا:
+companies=1, branches=2, users=24, items=17, customers=3, orders=0, purchase_orders=0, stock_branches=20, inventory_log=3, audit_log=1869, employee_documents=0.
+
+أهم ما ثبت داخل Main1
+
+1. RW_Workflow = عيب حقيقي وليس نقصًا شكليًا
+
+الدالة الحالية تبني actions_executed بحالة pending ثم تسجل:
+
+status: 'success'
+
+من دون تنفيذ الـactions فعليًا. وفي Production توجد 3 قواعد Workflow نشطة، لكن لا يوجد Executor موثوق يثبت تنفيذها. لذلك لن أعطي بديلًا تخمينيًا لهذا الجزء؛ لأنه قد يسبب double posting أو كسر تدفقات المخزون/الحسابات.
+
+الموضع: بداية RW_Workflow عند السطر 344.
+النص الحالي مثبت هنا:
+
+2. Bootstrap يعمل Fail-Open
+
+عند فشل تحميل البيانات، RW_Data يعيد []، ثم finally يفتح الـDashboard في جميع الأحوال، بل توجد forceEnterFallback() تفتح النظام أيضًا.
+
+هذا يعني أن المستخدم قد يدخل ERP في حالة بيانات ناقصة دون أن يعرف.
+
+العنصر يبدأ عند السطر 797.
+النص الكامل مثبت هنا:
+
+3. logout لا يمسح حالة الجلسة الداخلية بالكامل
+
+الدالة الحالية لا تصفر currentUser/company/permissions/data/currentView، ما يسمح ببقاء حالة session قديمة في الذاكرة.
+
+تبدأ عند السطر 837.
+النص الحالي:
+
+4. RW_Data يخفي فشل البيانات
+
+loadItems/loadCustomers/loadBranches تعيد [] بعد الخطأ بدل رفض الـbootstrap.
+
+العنصر يبدأ عند السطر 854.
+النص الحالي:
+
+5. Notifications تحتوي HTML Injection
+
+title وbody يدخلان مباشرة إلى innerHTML، كما أن بناء onclick يعتمد على نصوص معروضة.
+
+العنصر يبدأ عند السطر 444.
+النص الحالي:
+
+6. Audit Log يحتوي HTML Injection
+
+user_email, action, table_name, record_id, وخصوصًا old_data/new_data تدخل مباشرة إلى innerHTML.
+
+الدالة تبدأ عند السطر 642.
+النص الحالي:
+
+7. الصلاحيات في Navigation ليست Fail-Closed
+
+isAllowed() ينتهي بـreturn true للعناصر التي ليس لها perm/view، وFinance action لا يمر بحارس صلاحية مباشر.
+
+الدالة موجودة في منطقة buildSidebar حول السطر 960.
+النص الحالي:
+
+8. navigate() لا يفرض الصلاحية
+
+التنقل المباشر إلى View يستطيع استدعاء RW_Views.render(view) دون التحقق من صلاحية الوحدة.
+
+السطر 1012.
+النص الحالي:
+
+عقد مهم جدًا ثبت أيضًا
+
+Production users لا تحتوي أصلًا على عمود is_owner؛ لذلك لم أفرض semantics من الذاكرة على قاعدة البيانات الحالية. وهذا مهم جدًا مع قاعدة الـMASTER التي تمنع أي افتراض عند OWNER/Auth.
+
+كذلك ثبت من الـSchema أن:
+
+items.item_code = UNIQUE عالميًا.
+
+لذلك لا يجوز فرض company_id + item_code على كل العمليات كأنه المفتاح الرسمي الحالي بدون استثناء؛ هذا كان سيكسر العقد الفعلي.
+
+حالة هدفك الأكبر
+
+ما طلبته بخصوص:
+
+استكمال Main1–Main11 وظيفيًا وليس مجرد هياكل
+
+لم يتحقق بعد.
+
+وما طلبته بخصوص:
+
+جاهزية الدمج في ملف Parent واحد
+
+لم يتحقق بعد.
+
+وما طلبته بخصوص:
+
+Gold / Diamond
+
+لم يتحقق بعد.
+
+وهذا متسق مع الـMASTER وليس مجرد تحفظ شخصي. الـMASTER يلزم دراسة → تتبع → تحديد Gap → Surgical Fix → Test → Production Verify، ولا يسمح بإعلان Closure مع Unknown أو Conflict مؤثر.
+
+الأهم: ما الذي سأعطيك في Main1
+
+منهج التنفيذ الذي ثبت الآن هو بالضبط الذي طلبته:
+
+الملف → رقم السطر → النص الحرفي الكامل → الأمر: احذف/استبدل → البديل الكامل
+
+ولن أقوم بتعديل main1.md بنفسي، احترامًا لقاعدة الـOWNER SOURCE SURGERY الموجودة في الـMASTER.
+
+لكن هناك نقطة واحدة لا يجوز تجاوزها: RW_Workflow لا أريد أن أضع له بديلًا من عندي قبل أن نثبت عقد Executor من بقية Main2–Main11/Production، لأن اختراع Executor هنا قد يحول عيبًا وظيفيًا إلى فساد محاسبي أو مخزني.
+
+ولذلك Main1 الآن في الحالة: FORENSICALLY REVIEWED — SURGICAL CLOSURE REQUIRED — NOT CLOSED.
+
+المصدر الحالي نفسه:
+
+لن أعتبر Main1 مغلقًا حتى تُطبق الجراحات وتعود النسخة الجديدة، ثم نعمل syntax + cross-file + runtime وننتقل إلى Main2.
