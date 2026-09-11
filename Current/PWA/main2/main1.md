@@ -892,14 +892,14 @@ const RW_Navigation = {
     { icon: 'fa-chart-line', label: 'إدارة المبيعات', submenu: [{ view: 'telesales', label: 'التلي سيلز' }, { view: 'customers', label: 'العملاء' }, { view: 'online-store', label: 'المتجر الإلكتروني' }, { view: 'pos', label: 'نقطة البيع' }, { view: 'orders', label: 'أوردرات المبيعات' }, { view: 'runsheets', label: 'الرانشيتات' }] },
     { icon: 'fa-truck', label: 'إدارة المشتريات', submenu: [{ view: 'suppliers', label: 'الموردين' }, { view: 'purchase-pos', label: 'نقطة شراء' }, { view: 'purchases', label: 'أوردرات الشراء' }] },
     { icon: 'fa-warehouse', label: 'إدارة المخازن والمخزون', submenu: [{ view: 'items', label: 'الأصناف' }, { view: 'branches', label: 'المخازن والفروع' }, { label: 'العمليات المخزنية', icon: 'fa-timeline', submenu: [{ view: 'receiving', label: 'الاستلام' }, { view: 'picking', label: 'التحضير' }, { view: 'loading', label: 'التحميل' }, { view: 'delivery', label: 'التوصيل' }, { view: 'return', label: 'المرتجعات' }, { view: 'unloading', label: 'التفريغ' }] }, { label: 'الأذونات المخزنية', icon: 'fa-file-signature', submenu: [{ view: 'transfer', label: 'تحويل مخزني' }, { view: 'direct-sale', label: 'صرف سيارة بيع مباشر' }, { view: 'direct-return', label: 'استلام مرتجع سيارة' }, { view: 'supplier-return', label: 'مرتجع لمورد' }, { view: 'vouchers', label: 'عرض الأذونات' }] }, { label: 'الجرد', icon: 'fa-clipboard-check', submenu: [{ view: 'vehicle-count', label: 'جرد سيارة' }, { view: 'branch-count', label: 'جرد فرع' }, { view: 'general-count', label: 'جرد عام' }] }] },
-    { icon: 'fa-coins', label: 'إدارة الحسابات والمالية', submenu: [{ action: 'showFinanceTab', arg: 'treasury', label: 'الخزائن والبنوك' }, { action: 'showFinanceTab', arg: 'accounts', label: 'دليل الحسابات' }, { action: 'showFinanceTab', arg: 'journal', label: 'قيود يومية' }, { action: 'showFinanceTab', arg: 'receipts', label: 'سندات القبض' }, { action: 'showFinanceTab', arg: 'payments', label: 'سندات الصرف' }, { action: 'showFinanceTab', arg: 'transfers', label: 'التحويلات' }, { action: 'showFinanceTab', arg: 'reports', label: 'التقارير المالية' }, { view: 'settlement', label: 'إغلاق اليومية' }] },
+    { icon: 'fa-coins', label: 'إدارة الحسابات والمالية', submenu: [{ action: 'showFinanceTab', arg: 'treasury', label: 'الخزائن والبنوك', perm: ['finance', 'finance_manager'] }, { action: 'showFinanceTab', arg: 'accounts', label: 'دليل الحسابات', perm: ['finance', 'finance_manager'] }, { action: 'showFinanceTab', arg: 'journal', label: 'قيود يومية', perm: ['finance', 'finance_manager'] }, { action: 'showFinanceTab', arg: 'receipts', label: 'سندات القبض', perm: ['finance', 'finance_manager'] }, { action: 'showFinanceTab', arg: 'payments', label: 'سندات الصرف', perm: ['finance', 'finance_manager'] }, { action: 'showFinanceTab', arg: 'transfers', label: 'التحويلات', perm: ['finance', 'finance_manager'] }, { action: 'showFinanceTab', arg: 'reports', label: 'التقارير المالية', perm: ['finance', 'finance_manager'] }, { view: 'settlement', label: 'إغلاق اليومية' }] },
     { icon: 'fa-chart-simple', label: 'التقارير الذكية', submenu: [
     { view: 'reports-dashboard', label: 'لوحة القيادة' },
     { view: 'reports-detailed', label: 'التقارير التفصيلية' },
     { view: 'reports-comprehensive', label: 'التقارير الشاملة' }
 ] },
-    { view: 'hr', icon: 'fa-id-card', label: 'الموارد البشرية' },
-    { view: 'crm', icon: 'fa-handshake', label: 'إدارة علاقات العملاء (CRM)' },
+    { view: 'hr', icon: 'fa-id-card', label: 'الموارد البشرية', perm: 'hr' },
+    { view: 'crm', icon: 'fa-handshake', label: 'إدارة علاقات العملاء (CRM)', perm: 'customers' },
     { view: 'users', icon: 'fa-users-gear', label: 'المستخدمين والصلاحيات' },
     { view: 'roles', icon: 'fa-user-shield', label: 'إدارة أدوار المستخدمين' },
     { view: 'license', icon: 'fa-shield-haltered', label: 'إدارة الترخيص', perm: 'owner' },
@@ -957,19 +957,24 @@ _handleAction(action, arg) { if (action === 'showFinanceTab') {
                 this.menuTree.push({ view: 'audit-log', icon: 'fa-clock-rotate-left', label: 'سجل التدقيق', perm: 'owner' });
             }
 
-            function isAllowed(item) {
-                if (item.perm === 'owner') {
-                    return (RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner === true);
-                }
-                if (item.perm) {
-                    return RW_Permissions_check(item.perm);
-                }
-                if (item.view) {
-                    return RW_Permissions_check(item.view);
-                }
-                return true;
-            }
-
+function isAllowed(item) {
+    if (item.perm === 'owner') {
+        return (RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner === true);
+    }
+    if (Array.isArray(item.perm)) {
+        for (var p = 0; p < item.perm.length; p++) {
+            if (RW_Permissions_check(item.perm[p])) return true;
+        }
+        return false;
+    }
+    if (item.perm) {
+        return RW_Permissions_check(item.perm);
+    }
+    if (item.view) {
+        return RW_Permissions_check(item.view);
+    }
+    return true;
+}
             function filterMenu(items) {
                 var filtered = [];
                 for (var i = 0; i < items.length; i++) {
