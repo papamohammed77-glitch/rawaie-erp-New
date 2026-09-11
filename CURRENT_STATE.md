@@ -24,16 +24,16 @@
 - Owner surgical changeset R5: `doc/Draft/Reprots/OWNER_CHANGESETS_20260911_MAIN1_R5.md`.
 - Owner changeset SHA: `f8c33c3e39dd4464c4e39f1b4b02ca03699369b2`.
 - Final session report: `doc/Draft/Reprots/MAIN1_FORENSIC_RECHECK_20260911_R5.md`.
-- Final session report commit: `5de4c4d1a8852750c4fb968fc1b21b5654ef8152`.
-- Git HEAD after documentation commits: `5de4c4d1a8852750c4fb968fc1b21b5654ef8152`.
+- Final report content SHA: `c448f89dd01f42ceefb7f092ff41f43b18ea2643`.
+- Latest documentation commit/HEAD: `ca68ee2b67dabfe968586538a0cfb34d8efca958`.
 
 ## ASSEMBLY SOURCE GOVERNANCE
 - Assembly target remains `Current/PWA/main2/main1..main11.md`.
 - `forensic_main_assembly.yml` has not been proven to exist in the previously checked locations and has not been invented.
 - Assembly remains deferred until the 11 fragments are functionally complete and reviewed.
 
-## FRESH PRODUCTION SNAPSHOT — 2026-09-11 R5
-تم التحقق مباشرة من Production في UTC `2026-09-11 09:39:47.550805`.
+## FRESH PRODUCTION SNAPSHOT — FINAL R5
+تم التحقق مباشرة من Production في UTC `2026-09-11 09:42:38.327299`.
 - companies = 1
 - branches = 2
 - users = 24
@@ -47,7 +47,7 @@
 - active workflow_rules = 3
 - workflow_log = 0
 
-لم يتم تنفيذ business-data mutation في جلسة R5؛ التحقق الحالي كان read-only بالنسبة لـProduction.
+لم يتم تنفيذ business-data mutation في جلسة R5؛ التحقق النهائي كان read-only بالنسبة لـProduction.
 
 ## MAIN1 FORENSIC R5
 
@@ -144,7 +144,7 @@ Do not modify:
 - `Original/PWA/main/main1.md`.
 
 ## MAIN2–MAIN11 STATUS
-The canonical fragment set currently remains:
+The canonical fragment set remains:
 `Current/PWA/main2/main1.md ... main11.md`.
 Their Git objects are present. Full parser/E2E functional closure for all eleven has not yet been proven in this checkpoint.
 
@@ -158,7 +158,7 @@ Known cross-fragment findings remain:
 - No R5 mutation was made to Main1 business data in Production.
 - Production was refreshed before final judgment.
 - No claim of Production Functional Closure was made from Git alone.
-- `workflow_rules` and `workflow_log` are currently separate global tables without `company_id`; no tenant column was invented.
+- `workflow_rules` and `workflow_log` are currently global tables without `company_id`; no tenant column was invented.
 - `notifications` and `notification_templates` likewise have no `company_id` in the current schema; no schema mutation was introduced for Main1.
 
 ## SYNTAX / VERIFICATION
@@ -187,7 +187,7 @@ Known cross-fragment findings remain:
 - Governing Gold/Diamond target reconfirmed.
 - Main1 current path and SHA proven.
 - Main1 EOF proven.
-- Fresh Production snapshot proven at `2026-09-11 09:39:47.550805 UTC`.
+- Final Production snapshot proven at `2026-09-11 09:42:38.327299 UTC`.
 - E/F/G were already present and were not duplicated.
 - N1/N2/N3 defects are directly evidenced in current Main1.
 - R5 Owner Change Set is committed and contains complete replacements.
