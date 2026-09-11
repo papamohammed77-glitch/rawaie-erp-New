@@ -2,120 +2,124 @@
 ## MAIN1 FORENSIC RECOVERY — 2026-09-11
 
 ### Execution mode
-- Governing source: MASTER CTO EXECUTION OS — RAWAEA ERP — Forensic Recovery, Full Functional Completion & Gold-Diamond Closure.
+- Governing source: MASTER CTO GOVERNANCE & CONTINUOUS EXECUTION OS — RAWAEA ERP.
 - Historical reports are evidence only.
 - Fresh Git and Production reconciliation performed before judgment.
 - `Original/PWA/main/*` treated as immutable historical reference.
-- `Current/PWA/main2/main1.md` treated as owner source; no direct source edit is performed by this execution log.
+- `Current/PWA/main2/main1.md` treated as owner source; no direct source edit performed.
 
-### Fresh synchronization
-- Git `main` HEAD at execution start: `9772a0c9c882b0c3c25e2d81763ec8229740d5c4`.
+### Fresh synchronization — CONTINUATION
+- Fresh Git `main` HEAD now verified: `a582fff10e5c9e24e187c7f77d16db608269f1d8`.
 - Current Main1 SHA: `4d1b42250cfe2b3a8ec7d02b7b482eca8e27bade`.
 - Original Main1 SHA: `14b12a471c20ad23a2c18f456dbc4d59783a0d1f`.
-- Production timestamp: `2026-09-11 04:27:11.929726+00 UTC`.
+- Fresh Production timestamp: `2026-09-11 06:06:46.569077+00 UTC`.
 - Production snapshot: companies=1, branches=2, users=24, items=17, customers=3, orders=0, purchase_orders=0, stock_branches=20, inventory_log=3, audit_log=1869.
-- Fresh Production state was re-queried after the prior task was stopped; stale historical snapshots were not used as truth.
+- Fresh Production values supersede the earlier checkpoint timestamp; no business-data mutation was performed in this Main1 forensic review.
+
+### MASTER reading gate
+- MASTER CTO Governance & Continuous Execution OS SHA: `b03feec14a417ca9032d714774f2687b4542a373`.
+- MASTER was read in consecutive chunks through EOF.
+- EOF verified by the final marker `# END OF MASTER CTO GOVERNANCE & CONTINUOUS EXECUTION OS`.
 
 ### Main1 reading gate
 - Current Main1 read from line 1 through EOF.
-- Original Main1 read through EOF using the original blob.
+- Current Main1 EOF verified at line 1100.
+- Original Main1 read through EOF.
 - Original source was not modified.
 
-### Confirmed Current-vs-Original preservation
-The following Current changes are confirmed intentional hardening relative to Original:
-- authenticated user is resolved against `public.users` using `auth_id`;
-- company context is loaded from the authenticated user's database record;
-- inactive users are rejected;
-- `RW_STATE.app.company.id` is populated from the database company id;
-- app settings are company-scoped;
-- items/customers/branches/suppliers are company-scoped;
-- JWT permissions are populated from user metadata and were directly matched against `public.users.permissions` in Production for all active users checked.
+### Confirmed Main1 architecture
+- Main1 owns the shell/control-plane layer: DOM shell, Auth bootstrap, canonical `RW_STATE`, permissions helper, workflow bootstrap, notifications, audit UI, data bootstrap, navigation.
+- Main1 does not own `RW_Views`; the canonical view router is in `Current/PWA/main2/main10.md`.
+- Canonical company state is `RW_STATE.app.company.id`.
+- `users.auth_id` is protected by a UNIQUE constraint in Production.
+- Active-user JWT metadata permissions currently match `public.users.permissions` for all active users queried.
 
-### Production permission evidence
-- Accountant role uses `finance`.
-- Finance manager role uses `finance_manager`.
-- Owner retains wildcard `*` and `isOwner=true`.
-- JWT permission arrays and `public.users.permissions` were matched for the active users queried; no observed permission drift was found.
+### PROVEN MAIN1-A — Finance action authorization gap
+Current Finance action entries on source line 895 have no `perm` or `view`. Since `RW_Navigation.buildSidebar().isAllowed()` currently returns true when neither exists, those action entries are exposed without Finance capability checks.
 
-### Defect MAIN1-A — Finance action authorization gap
-Current Main1 `RW_Navigation.menuTree` contains Finance action entries:
-`showFinanceTab/treasury`, `accounts`, `journal`, `receipts`, `payments`, `transfers`, `reports`.
-These entries have no `perm` and no `view`. `buildSidebar().isAllowed()` returns `true` when neither is present. Therefore the Finance action buttons are exposed to users who do not carry Finance capability.
+Production proof:
+- Accountant: `finance`.
+- Finance manager: `finance_manager`.
+- Owner: `*` plus `isOwner=true`.
+- Cashier: `pos`.
+- Delivery users: `delivery`.
 
-This is proven from the Current source structure and the Production permission model; it is not inferred from role names alone.
+Owner surgery is stored in:
+`doc/Draft/Reprots/OWNER_CHANGESETS_20260911_MAIN1.md`.
 
-### Required owner-source surgery MAIN1-A
-FILE: `Current/PWA/main2/main1.md`
+Surgery:
+- Add `perm: ['finance','finance_manager']` to treasury, accounts, journal, receipts, payments, transfers, reports only.
+- Do not add Finance permission to settlement.
+- Replace the full `isAllowed(item)` function with the array-aware implementation in the Owner Change Set.
 
-Region: `RW_Navigation.menuTree`, around the Finance submenu in the Current file (the exact source line is the single Finance submenu entry beginning with `{ icon: 'fa-coins', label: 'إدارة الحسابات والمالية' ... }`).
+### PROVEN MAIN1-B — CRM capability mismatch
+Current Main1 source line 902 is a `view: 'crm'` item, so authorization falls back to `RW_Permissions_check('crm')`.
+Production proof: zero active users carry `crm`; seven active users carry `customers`.
+Main10 maps `crm` to `customers`.
 
-DIRECT CHANGE:
-Add `perm: ['finance','finance_manager']` to each of the seven `showFinanceTab` child objects only:
-- treasury
-- accounts
-- journal
-- receipts
-- payments
-- transfers
-- reports
-
-Do NOT add this permission to the `settlement` item because `settlement` is a distinct capability and is already represented by its own `view` key.
-
-Region: `RW_Navigation.buildSidebar().isAllowed()`.
-
-FULL REPLACEMENT REQUIRED:
-Replace only the `isAllowed(item)` function with an implementation that preserves current owner semantics, single-string permissions, view permissions, and additionally accepts an array of alternative permissions:
-
+Required Main1 surgery:
 ```javascript
-function isAllowed(item) {
-    if (item.perm === 'owner') {
-        return (RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner === true);
-    }
-    if (Array.isArray(item.perm)) {
-        for (var p = 0; p < item.perm.length; p++) {
-            if (RW_Permissions_check(item.perm[p])) return true;
-        }
-        return false;
-    }
-    if (item.perm) {
-        return RW_Permissions_check(item.perm);
-    }
-    if (item.view) {
-        return RW_Permissions_check(item.view);
-    }
-    return true;
-}
+{ view: 'crm', icon: 'fa-handshake', label: 'إدارة علاقات العملاء (CRM)', perm: 'customers' },
 ```
+No Main10 change is required for this CRM mapping once Main1 is merged.
 
-VERIFICATION after owner applies surgery:
-1. Accountant JWT (`finance`) sees all seven Finance action entries.
-2. Finance-manager JWT (`finance_manager`) sees all seven Finance action entries.
-3. Owner wildcard sees all seven.
-4. Cashier (`pos`) does not see Finance actions.
-5. Delivery user (`delivery`) does not see Finance actions.
-6. Settlement visibility remains governed by `settlement` and is not widened/narrowed by the Finance fix.
-7. Reopen the full Main1 file to EOF and verify SHA/text after the owner edit.
+### PROVEN MAIN1-C — HR cross-file capability conflict
+Current Main1 source line 901 is:
+```javascript
+{ view: 'hr', icon: 'fa-id-card', label: 'الموارد البشرية' },
+```
+Production proof: one active user carries `hr`.
+Main10 currently maps `hr` to `users`, so a legitimate HR user can be exposed by Main1 but rejected by the Main10 router.
 
-### Defect MAIN1-B — Cross-file State Contract mismatch
-Current Main1 defines the canonical state as `RW_STATE.app.company.id` and populates it from `public.users.company_id`.
-Current Main8 `RW_Finance._companyId()` searches for `RW_STATE.app.companyId` or `RW_STATE.user.companyId` and does not reference `RW_STATE.app.company.id`.
-This is a confirmed cross-file contract mismatch.
+Required Main1 surgery:
+```javascript
+{ view: 'hr', icon: 'fa-id-card', label: 'الموارد البشرية', perm: 'hr' },
+```
+Required paired Main10 dependency, to be handled during Main10 closure:
+```javascript
+'hr': 'hr',
+```
+replacing the current `hr -> users` mapping.
 
-Required architectural choice:
-- Keep `RW_STATE.app.company.id` as canonical because Main1 and its own data/bootstrap readers consistently use it.
-- Fix the Main8 `_companyId()` consumer to read `RW_STATE.app.company.id` first.
-- Do not add a second persistent company-id source in Main1 merely to mask the consumer defect.
+### Explicitly verified safe — no surgery
+- `RW_Auth.login` uses `users.auth_id` and Production has `UNIQUE(auth_id)`.
+- Company context is established from authenticated `public.users.company_id`.
+- `RW_Data.loadItems/loadCustomers/loadBranches` are company-scoped.
+- Main1 app settings lookup is company-scoped.
+- Notifications are protected by own-user RLS and no unproven schema change is required.
+- Audit log is protected by Owner RLS; no duplicate company column was invented in Main1.
+- Workflow rules are global by current schema and were not incorrectly forced into company scope.
+- No duplicate `RW_Views` was created.
 
-Main1 itself is therefore not to be modified for MAIN1-B.
+### Exact owner-source surgery reference
+Canonical Owner Change Set:
+`doc/Draft/Reprots/OWNER_CHANGESETS_20260911_MAIN1.md`
+Commit creating this artifact: `c98b31aad4275b1019fbbed1b5434d3fe634fa9f`.
 
-### Main1 closure status
-- Reading: CLOSED.
-- Historical pair reading: CLOSED.
-- Historical preservation: CLOSED / Original untouched.
-- Production synchronization gate: CLOSED for this execution cycle.
-- Authorization defect: PROVEN / SURGERY READY.
-- Cross-file Finance state defect: PROVEN / Main8 surgery required.
-- Main1 source closure: NOT YET CLOSED because required owner-source surgery has not yet been applied and SHA-verified.
+### Verification gate after owner merge
+1. Re-read Main1 to EOF.
+2. Verify new Main1 SHA.
+3. Accountant sees seven Finance actions.
+4. Finance manager sees seven Finance actions.
+5. Owner wildcard sees seven Finance actions.
+6. Cashier sees none.
+7. Delivery sees none.
+8. Settlement remains controlled by `settlement`.
+9. Customer-capable users see CRM.
+10. HR user sees HR after Main10 dependency is closed.
+11. No second company state or duplicate router is introduced.
+
+### Closure status
+- MASTER reading: CLOSED.
+- Main1 current EOF reading: CLOSED.
+- Main1 original EOF reading: CLOSED.
+- Production synchronization: CLOSED for this Main1 cycle.
+- Main1 forensic analysis: CLOSED.
+- Main1-A: PROVEN / OWNER SURGERY READY.
+- Main1-B CRM: PROVEN / OWNER SURGERY READY.
+- Main1-C HR: PROVEN / OWNER SURGERY READY + Main10 dependency.
+- Main1 source functional closure: OPEN until owner merges the prescribed surgical changes and affected routing is re-verified.
+- Global Gold/Diamond: OPEN.
 
 ### False-closure protection
-No Gold, Diamond, Assembly Ready, Runtime Closed, or Main1 Fully Closed claim is made from this log.
+No claim is made that Main1 is functionally closed before its owner-source merge and SHA/runtime verification.
