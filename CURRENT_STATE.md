@@ -25,15 +25,16 @@
 - Owner changeset SHA: `f8c33c3e39dd4464c4e39f1b4b02ca03699369b2`.
 - Final session report: `doc/Draft/Reprots/MAIN1_FORENSIC_RECHECK_20260911_R5.md`.
 - Final report content SHA: `c448f89dd01f42ceefb7f092ff41f43b18ea2643`.
-- Latest documentation commit/HEAD: `ca68ee2b67dabfe968586538a0cfb34d8efca958`.
+- Latest documentation commit/HEAD قبل تحديث هذه الحالة: `8f07ed9644efd94f60ea9d1d78ac198b71def3de`.
+- أحدث source commit لـMain1 قبل تحديث هذه الحالة: `ecc5a33c55520cb0d9233d7934ed0423fe3a9ef7`.
 
 ## ASSEMBLY SOURCE GOVERNANCE
 - Assembly target remains `Current/PWA/main2/main1..main11.md`.
-- `forensic_main_assembly.yml` has not been proven to exist in the previously checked locations and has not been invented.
+- `forensic_main_assembly.yml` لم يتم إثبات وجوده في المواقع التي تم فحصها ولم يتم اختراعه.
 - Assembly remains deferred until the 11 fragments are functionally complete and reviewed.
 
-## FRESH PRODUCTION SNAPSHOT — FINAL R5
-تم التحقق مباشرة من Production في UTC `2026-09-11 09:42:38.327299`.
+## FRESH PRODUCTION SNAPSHOT — MAIN2 RECHECK
+تم التحقق مباشرة من Production في UTC `2026-09-11 20:16:24.49657`.
 - companies = 1
 - branches = 2
 - users = 24
@@ -44,10 +45,6 @@
 - stock_branches = 20
 - inventory_log = 3
 - audit_log = 1869
-- active workflow_rules = 3
-- workflow_log = 0
-
-لم يتم تنفيذ business-data mutation في جلسة R5؛ التحقق النهائي كان read-only بالنسبة لـProduction.
 
 ## MAIN1 FORENSIC R5
 
@@ -115,7 +112,7 @@ Execute only these Main1 changes manually in `Current/PWA/main2/main1.md`:
 
 1. `MAIN1-N1`
 Find exactly:
-`const byId = id => document.getElementById(id);`
+`const byId = id => document.getElementById('id');`
 Insert the complete `window.togglePasswordVisibility` block immediately above it.
 
 2. `MAIN1-N2`
@@ -143,6 +140,65 @@ Do not modify:
 - `function evaluate(tableName, event, recordId, recordData) {}`.
 - `Original/PWA/main/main1.md`.
 
+## MAIN2 RECHECK — 2026-09-11
+### Current source
+- Source: `Current/PWA/main2/main2.md`.
+- Current blob SHA: `baee3cc02ae5701e6fbcbad12e57e2930afc4ae4`.
+- Last Main2 source commit remains `625e7a8df17042f8701dc288f98eae381bdc3e82`.
+- Current Git HEAD after Main1 updates and Main2 report: `8f07ed9644efd94f60ea9d1d78ac198b71def3de`.
+- `Original/PWA/main/main2.md` was reviewed as historical reference only.
+- Main2 was not modified by the assistant.
+
+### R118/R119 reconciliation
+The five historical Company Context defects and the Dashboard P&L defect recorded in Report118/R119 are already fixed in the current Main2 source and must not be reapplied.
+
+### Main2 proven contract facts
+- `RW_Dashboard.loadAll()` is company-scoped and uses Production `get_profit_loss` for P&L.
+- `_loadMovementReport()` uses the same physical movement type set currently accepted by Production `post_stock_movement`.
+- Main2 bulk adjustment already uses an operation ID/fingerprint and refreshes data after success.
+- Item opening balance is routed through `create_item_with_opening_stock`, which in Production posts `InventoryIncrease` through `post_stock_movement`.
+- No `(قيد التطوير)` string was found in the current Main2 source during the targeted review.
+- No safe evidence justified rewriting the Matrix branch-filter semantics, so it was intentionally not changed.
+
+### MAIN2-D1 — OPEN OWNER ACTION
+Current `renderTopItemsChart(details)` declares the UI text:
+`أفضل 10 أصناف (اضغط للتفاصيل)`
+
+but its click handler only runs:
+`RW_Navigation.navigate('items');`
+
+and does not open/filter the selected item. This is a proven UI/scope mismatch, not a guessed Business Rule.
+
+Exact owner action is documented in:
+`doc/Draft/Reprots/Report121_Main2_Forensic_Recheck_20260911.md`
+
+Exact current location:
+`Current/PWA/main2/main2.md` lines `352–387`.
+
+Owner must replace the complete `function renderTopItemsChart(details) { ... }` block only; do not modify the surrounding Dashboard functions.
+
+### Production fixes executed from Main2 dependency closure
+Production functions/endpoints updated directly:
+- `save-item` → version 13: company context and item-management permission enforcement; opening stock remains canonical.
+- `delete-item` → version 4: company-scoped deletion and item permission enforcement.
+- `save-category` → version 4: company-scoped create/update/delete/replacement and permission enforcement.
+
+`bulk-stock-adjustment` was already version 6 with user-derived company context; no duplicate repair was applied.
+
+### Syntax / Runtime status
+- GitHub workflow `.github/workflows/validate-main2-fragments.yml` exists and is configured to run `node --check` over Main1–Main11.
+- No workflow run associated with the current Main2 blob was available to prove a full-file parser PASS.
+- Main2 Full Syntax = `NOT PROVEN`.
+- Main2 Browser Runtime = `NOT PROVEN`.
+- Assembly = `DEFERRED`.
+
+### Main2 closure
+- Main2 source reconciliation: `CLOSED FOR THIS RECHECK`.
+- Historical stale fixes: `DO NOT REAPPLY`.
+- Main2-D1: `OPEN — OWNER ACTION`.
+- Main2 Production dependency repairs: `DEPLOYED`.
+- Main2 Gold/Diamond: `OPEN`.
+
 ## MAIN2–MAIN11 STATUS
 The canonical fragment set remains:
 `Current/PWA/main2/main1.md ... main11.md`.
@@ -155,29 +211,31 @@ Known cross-fragment findings remain:
 - Main11 has proven `(قيد التطوير)` content in HR documents.
 
 ## PRODUCTION / DATABASE GOVERNANCE
-- No R5 mutation was made to Main1 business data in Production.
-- Production was refreshed before final judgment.
-- No claim of Production Functional Closure was made from Git alone.
+- Production was refreshed before final Main2 judgment.
+- No R5 business-data mutation was made as part of Main1.
+- Main2 dependency repairs were limited to capability/security code and did not alter business data.
 - `workflow_rules` and `workflow_log` are currently global tables without `company_id`; no tenant column was invented.
 - `notifications` and `notification_templates` likewise have no `company_id` in the current schema; no schema mutation was introduced for Main1.
 
 ## SYNTAX / VERIFICATION
 - Main1 content and EOF boundary were directly verified against current Git.
-- Full browser/parser execution remains NOT PROVEN in this checkpoint.
+- Main2 full source content and EOF boundary were retrieved from the current Main2 blob.
 - Main2–Main11 parser/E2E remains NOT PROVEN.
 - Therefore `Syntax 100% PASS` and `Functional 100% PASS` are not claimed.
 
 ## CLOSURE STATUS
 - Governance reread: `CLOSED FOR R5`
 - Main1 forensic reread: `CLOSED FOR R5`
-- Fresh Production synchronization: `CLOSED FOR THIS CHECKPOINT`
+- Fresh Production synchronization: `CLOSED FOR MAIN2 RECHECK`
 - Main1 N1 password visibility: `OPEN — OWNER ACTION`
 - Main1 N2 notification interaction: `OPEN — OWNER ACTION`
 - Main1 N3 forgot password: `OPEN — OWNER ACTION`
 - Main1 N4 quick search: `OPEN — CONTRACT DISCOVERY`
 - Main1-WF: `OPEN — EXECUTOR CONTRACT DISCOVERY`
 - Main1 functional closure: `OPEN`
-- Main1 Gold/Diamond: `OPEN`
+- Main2-D1: `OPEN — OWNER ACTION`
+- Main2 full syntax/runtime: `OPEN — NOT PROVEN`
+- Main2 Gold/Diamond: `OPEN`
 - Global functional completion: `OPEN`
 - Global Gold/Diamond: `OPEN`
 - Assembly: `DEFERRED`
@@ -185,29 +243,32 @@ Known cross-fragment findings remain:
 ## FINAL SELF-AUDIT
 ### What was proven
 - Governing Gold/Diamond target reconfirmed.
-- Main1 current path and SHA proven.
-- Main1 EOF proven.
-- Final Production snapshot proven at `2026-09-11 09:42:38.327299 UTC`.
-- E/F/G were already present and were not duplicated.
-- N1/N2/N3 defects are directly evidenced in current Main1.
-- R5 Owner Change Set is committed and contains complete replacements.
-- Workflow false-success remains proven and intentionally unpatched pending executor contract evidence.
+- Main2 current source and SHA proven.
+- Main2 historical R118/R119 defects were reconciled against the current source and were not reapplied.
+- Fresh Production snapshot was measured at `2026-09-11 20:16:24.49657 UTC`.
+- Production dependency repairs were deployed for save-item, delete-item, and save-category.
+- `post_stock_movement` remains the Production Physical Stock engine.
+- Main2 contains one currently proven Owner source defect: Top Items detail navigation.
+- Report121 was committed to the canonical report sequence.
 
 ### What was not proven
-- Main1 owner surgery has not yet been applied to the fragment.
-- Full browser/parser PASS.
-- Full Main2–Main11 functional completion.
-- Search contract.
+- Main2 owner surgery has not yet been applied to the fragment.
+- Full Main2 parser PASS.
+- Browser/PWA runtime PASS.
+- Full Main2–Main11 functionality and assembly readiness.
 - Workflow executor/dispatcher contract.
+- Quick Search contract.
 - Final assembly.
 - Production E2E across all capabilities.
 - Global Gold/Diamond.
 
 ## NEXT EXACT RESUMPTION POINT
-`MAIN1 OWNER MERGE VERIFICATION`
+`MAIN2 OWNER SURGERY VERIFICATION — MAIN2-D1`
 
-Then:
-`MAIN1-WF — EXECUTOR CONTRACT DISCOVERY`
+After owner applies MAIN2-D1:
+`READ MAIN2 TO EOF → SYNTAX → RECHECK GIT → RECHECK PRODUCTION → CLOSE MAIN2`
+
+Then proceed to Main3.
 
 Do not return to:
 - `Current/PWA/New-main` as a development source.
@@ -218,10 +279,10 @@ Do not return to:
 لا. لا توجد أدلة تسمح بالإعلان عن اكتمال النظام الأم بالكامل في هذا checkpoint.
 
 ### هل مازالت هناك أي تبويب أو وظيفة ناقصة أو هيكلية فقط أو `(قيد التطوير)`؟
-نعم. Main1 لديه N1/N2/N3 قبل owner merge، Workflow executor مفتوح، Search contract مفتوح، وMain11 لديه `(قيد التطوير)` مثبت، كما أن functional completeness لـMain2–Main11 لم تثبت بالكامل.
+نعم. Main2 لديه MAIN2-D1 قبل Owner merge، كما أن parser/browser/assembly وfunctional closure للـ11 fragments لم تثبت بالكامل، وMain11 لديه `(قيد التطوير)` مثبت تاريخيًا في الوثيقة الحالية.
 
 ### متى يكتمل؟
-لا يوجد تاريخ يمكن إثباته دون تخمين. الإغلاق مشروط بإكمال owner surgeries، إغلاق Executor contract، إكمال كل capabilities end-to-end، parser/browser PASS، Assembly صحيح من `Current/PWA/main2`, ثم Production E2E verification.
+لا يوجد تاريخ يمكن إثباته دون تخمين. الإغلاق مشروط بإكمال owner surgeries، إغلاق Executor contract وSearch contract، إكمال كل capabilities end-to-end، parser/browser PASS، Assembly صحيح من `Current/PWA/main2`, ثم Production E2E verification.
 
 ## GOVERNANCE RULE
 لا قيمة لأي نسبة أو تقرير قبل مطابقة Production الحالية في نفس لحظة التقرير. لا تعديل يبنى على الظن أو التخمين. وجود واجهة أو Commit أو Staging PASS لا يساوي Functional Production Closure.
