@@ -135,7 +135,7 @@
 <!-- إصدار 2026-08-29 الساعة 11:30 مساءً -->
 <div id="rw-login-page" class="rw-login-page">
   <div class="rw-login-left"><div class="rw-brand-badge">RAWAEA ERP ENTERPRISE</div><h1 class="rw-login-title">منصة إدارة الأعمال الذكية والمتكاملة</h1><div class="rw-login-description">نظام ERP احترافي متكامل لإدارة المبيعات والمخزون والحسابات واللوجستيات والتوزيع.</div><div class="rw-login-features"><div class="rw-login-feature"><div class="rw-login-feature-icon">📦</div><div>إدارة المخزون والرانشيتات</div></div><div class="rw-login-feature"><div class="rw-login-feature-icon">🚚</div><div>إدارة التوزيع والتوصيل</div></div><div class="rw-login-feature"><div class="rw-login-feature-icon">💰</div><div>الحسابات والتسويات المالية</div></div><div class="rw-login-feature"><div class="rw-login-feature-icon">📊</div><div>تقارير وتحليلات لحظية</div></div></div></div>
-  <div class="rw-login-right"><div class="rw-login-card"><div class="rw-login-logo-area"><div class="rw-login-logo">ر</div><div class="rw-company-name">الروائع ERP</div><div class="rw-company-description">Enterprise Management System</div></div><form class="rw-login-form" id="rw-login-form"><div class="rw-form-group"><label class="rw-form-label">اسم المستخدم</label><div class="rw-input-wrapper"><div class="rw-input-icon">👤</div><input type="text" class="rw-input" id="rw-username" placeholder="أدخل اسم المستخدم" autocomplete="username"></div></div><div class="rw-form-group"><label class="rw-form-label">كلمة المرور</label><div class="rw-input-wrapper" style="position:relative;"><div class="rw-input-icon">🔒</div><input type="password" class="rw-input" id="rw-password" placeholder="أدخل كلمة المرور" autocomplete="current-password" style="padding-left:50px;"><button type="button" onclick="window.togglePasswordVisibility('rw-password', this)" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); background:transparent; border:none; cursor:pointer; color:#9ca3af; font-size:18px; z-index:5;"><i class="fa-solid fa-eye"></i></button></div></div><div class="rw-login-options"><label class="rw-remember"><input type="checkbox"> <span>تذكرني</span></label><a href="#" class="rw-forgot">نسيت كلمة المرور؟</a></div><button type="submit" class="rw-login-btn">تسجيل الدخول</button></form><div class="rw-login-footer">جميع الحقوق محفوظة © الروائع ERP 2026</div></div></div>
+  <div class="rw-login-right"><div class="rw-login-card"><div class="rw-login-logo-area"><div class="rw-login-logo">ر</div><div class="rw-company-name">الروائع ERP</div><div class="rw-company-description">Enterprise Management System</div></div><form class="rw-login-form" id="rw-login-form"><div class="rw-form-group"><label class="rw-form-label">اسم المستخدم</label><div class="rw-input-wrapper"><div class="rw-input-icon">👤</div><input type="text" class="rw-input" id="rw-username" placeholder="أدخل اسم المستخدم" autocomplete="username"></div></div><div class="rw-form-group"><label class="rw-form-label">كلمة المرور</label><div class="rw-input-wrapper" style="position:relative;"><div class="rw-input-icon">🔒</div><input type="password" class="rw-input" id="rw-password" placeholder="أدخل كلمة المرور" autocomplete="current-password" style="padding-left:50px;"><button type="button" onclick="window.togglePasswordVisibility('rw-password', this)" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); background:transparent; border:none; cursor:pointer; color:#9ca3af; font-size:18px; z-index:5;"><i class="fa-solid fa-eye"></i></button></div></div><div class="rw-login-options"><label class="rw-remember"><input type="checkbox"> <span>تذكرني</span></label><button type="button" id="rw-forgot-password" class="rw-forgot" style="background:none;border:none;padding:0;cursor:pointer;">نسيت كلمة المرور؟</button></div><button type="submit" class="rw-login-btn">تسجيل الدخول</button></form><div class="rw-login-footer">جميع الحقوق محفوظة © الروائع ERP 2026</div></div></div>
 </div>
 <div id="rw-main-shell" class="rw-main-shell" style="display: none;">
   <aside id="rw-sidebar" class="rw-sidebar"><button id="rw-collapse-btn" class="rw-collapse-btn" title="توسيع/طي القائمة">☰</button><div class="rw-sidebar-top"><div class="rw-sidebar-brand"><img id="rw-sidebar-brand-logo" src="" class="h-16 mx-auto mb-4 bg-slate-50 p-1 rounded-2xl border border-slate-100"><div><div class="rw-sidebar-company-name" id="rw-sidebar-company-name">الروائع ERP</div></div></div></div><div class="rw-sidebar-nav" id="rw-sidebar-nav"></div><div class="rw-sidebar-footer"><button id="rw-logout-btn" class="rw-logout-btn"><span>🚪</span><span>تسجيل الخروج</span></button></div></aside>
@@ -517,7 +517,7 @@ function showPanel() {
             }
 
             Swal.fire({
-                html: root.outerHTML,
+                html: root,
                 showConfirmButton: false,
                 showCloseButton: true,
                 width: 600,
@@ -846,6 +846,26 @@ function RW_Audit_showDetails(logId) {
         showConfirmButton: false
     });
 }
+window.togglePasswordVisibility = function(inputId, button) {
+    try {
+        var input = document.getElementById(inputId);
+        if (!input) return;
+
+        var shouldShow = input.type === 'password';
+        input.type = shouldShow ? 'text' : 'password';
+
+        if (button) {
+            var icon = button.querySelector('i');
+            if (icon) {
+                icon.className = shouldShow ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+            }
+            button.setAttribute('aria-label', shouldShow ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
+            button.setAttribute('title', shouldShow ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور');
+        }
+    } catch (e) {
+        console.error('togglePasswordVisibility error:', e);
+    }
+};
 const byId = id => document.getElementById(id);
 const safeHTML = (el, html) => { if (!el) return; try { el.innerHTML = html; } catch(e) { console.error(e); } };
 const safeText = (el, text) => { if (!el) return; try { el.innerText = text; } catch(e) { console.error(e); } };
@@ -1195,4 +1215,42 @@ function isAllowed(item) {
 toggleSidebar() { const sidebar = byId('rw-sidebar'), main = byId('rw-main-content'); if (!sidebar || !main) return; const collapsed = sidebar.classList.toggle('collapsed'); main.classList.toggle('expanded', collapsed); RW_STATE.ui.sidebarCollapsed = collapsed; try { localStorage.setItem('rw_sidebar_collapsed', collapsed ? '1' : '0'); } catch(e) {} },
     navigate(view) { try { RW_STATE.app.currentView = view; document.querySelectorAll('.rw-sidebar-link').forEach(el => el.classList.remove('active')); const active = document.querySelector(`.rw-sidebar-link[data-view="${view}"]`); if (active) active.classList.add('active'); window.RW_Views.render(view); } catch(e) { console.error(e); showToast('حدث خطأ', 'error'); } }
 };
+(function() {
+    var forgotButton = document.getElementById('rw-forgot-password');
+    if (!forgotButton) return;
+
+    forgotButton.addEventListener('click', function() {
+        try {
+            var emailInput = document.getElementById('rw-username');
+            var email = emailInput ? String(emailInput.value || '').trim() : '';
+
+            if (!email) {
+                showToast('أدخل البريد الإلكتروني أولًا', 'warning');
+                if (emailInput) emailInput.focus();
+                return;
+            }
+
+            showLoader('جاري إرسال رابط استعادة كلمة المرور...');
+
+            RW_SUPABASE_CLIENT.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + window.location.pathname
+            }).then(function(res) {
+                hideLoader();
+                if (res.error) {
+                    console.error('Password reset error:', res.error);
+                    showToast('تعذر إرسال رابط استعادة كلمة المرور', 'error');
+                    return;
+                }
+                showToast('تم إرسال رابط استعادة كلمة المرور إلى البريد الإلكتروني', 'success');
+            }).catch(function(e) {
+                hideLoader();
+                console.error('Password reset exception:', e);
+                showToast('حدث خطأ أثناء طلب استعادة كلمة المرور', 'error');
+            });
+        } catch (e) {
+            hideLoader();
+            console.error('Forgot password handler error:', e);
+        }
+    });
+})();
 window.RW_Navigation = RW_Navigation;
