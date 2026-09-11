@@ -20,18 +20,17 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
-          import re
 
           path = Path('Current/PWA/main2/main1.md')
           text = path.read_text(encoding='utf-8')
 
-          old_bootstrap = r'''        // \u2705 Bootstrap: تحميل البيانات الأساسية مرة واحدة لجميع التبويبات
+          old_bootstrap = '''        // ✅ Bootstrap: تحميل البيانات الأساسية مرة واحدة لجميع التبويبات
           Promise.all([
               RW_Data.loadItems(),
               RW_Data.loadCustomers(),
               RW_Data.loadBranches()
           ]).then(function() {
-              console.log('\u2705 Bootstrap data loaded successfully.');
+              console.log('✅ Bootstrap data loaded successfully.');
               console.log('ITEMS COUNT', window.RW_STATE.data.items?.length);
       console.log('CUSTOMERS COUNT', window.RW_STATE.data.customers?.length);
       console.log('SUPPLIERS COUNT', window.RW_STATE.data.suppliers?.length);
@@ -39,10 +38,10 @@ jobs:
               // تحميل الموردين (اختياري، لا يمنع الدخول)
               supabase.from('suppliers').select('*').eq('company_id', RW_STATE.app.company.id).then(function(r) {
                   RW_STATE.data.suppliers = r.data || [];
-                  console.log('\u2705 Suppliers loaded.');
+                  console.log('✅ Suppliers loaded.');
               });
           }).catch(function(e) {
-              console.warn('\u26a0\ufe0f Bootstrap data failed:', e);
+              console.warn('⚠️ Bootstrap data failed:', e);
           }).finally(function() {
               // الانتقال للوحة التحكم في جميع الأحوال
               RW_Navigation.navigate('dashboard');
@@ -66,13 +65,13 @@ jobs:
           }
       },'''
 
-          new_bootstrap = r'''        // \u2705 Bootstrap: تحميل البيانات الأساسية مرة واحدة لجميع التبويبات
+          new_bootstrap = '''        // ✅ Bootstrap: تحميل البيانات الأساسية مرة واحدة لجميع التبويبات
           Promise.all([
               RW_Data.loadItems(),
               RW_Data.loadCustomers(),
               RW_Data.loadBranches()
           ]).then(function() {
-              console.log('\u2705 Bootstrap data loaded successfully.');
+              console.log('✅ Bootstrap data loaded successfully.');
               console.log('ITEMS COUNT', window.RW_STATE.data.items?.length);
       console.log('CUSTOMERS COUNT', window.RW_STATE.data.customers?.length);
       console.log('SUPPLIERS COUNT', window.RW_STATE.data.suppliers?.length);
@@ -80,23 +79,23 @@ jobs:
               // تحميل الموردين (اختياري، لا يمنع الدخول)
               supabase.from('suppliers').select('*').eq('company_id', RW_STATE.app.company.id).then(function(r) {
                   RW_STATE.data.suppliers = r.data || [];
-                  console.log('\u2705 Suppliers loaded.');
+                  console.log('✅ Suppliers loaded.');
               }).catch(function(e) {
-                  console.warn('\u26a0\ufe0f Suppliers optional load failed:', e);
+                  console.warn('⚠️ Suppliers optional load failed:', e);
               });
 
               RW_STATE.app.initialized = true;
               RW_Navigation.navigate('dashboard');
               setTimeout(function() { RW_Notification.renderBell(); }, 500);
           }).catch(function(e) {
-              console.error('\u274c Bootstrap failed; keeping authenticated UI closed:', e);
+              console.error('❌ Bootstrap failed; keeping authenticated UI closed:', e);
               RW_STATE.app.initialized = false;
               RW_STATE.app.authenticated = false;
               hideLoader();
               showToast('تعذر تجهيز بيانات النظام. لم يتم فتح النظام لتجنب حالة تشغيل ناقصة.', 'error');
           });
       } catch(e) {
-          console.error('\u274c System initialization failed:', e);
+          console.error('❌ System initialization failed:', e);
           this.forceEnterFallback();
       }
   },
@@ -113,29 +112,58 @@ jobs:
           }
       },'''
 
-          if text.count(old_bootstrap) != 1:
-              raise SystemExit(f'ASSERT FAILED: bootstrap/fallback block count={text.count(old_bootstrap)}')
+          count = text.count(old_bootstrap)
+          if count != 1:
+              raise SystemExit(f'ASSERT FAILED: bootstrap/fallback block count={count}')
           text = text.replace(old_bootstrap, new_bootstrap, 1)
 
           replacements = [
-              (
-                  """        }).catch(function(e) {\n            console.error('loadItems', e);\n            RW_STATE.data.items = [];\n            return [];\n        });\n    },""",
-                  """        }).catch(function(e) {\n            console.error('loadItems', e);\n            RW_STATE.data.items = [];\n            throw e;\n        });\n    },"""
-              ),
-              (
-                  """        }).catch(function(e) {\n            console.error('loadCustomers', e);\n            RW_STATE.data.customers = [];\n            return [];\n        });\n    },""",
-                  """        }).catch(function(e) {\n            console.error('loadCustomers', e);\n            RW_STATE.data.customers = [];\n            throw e;\n        });\n    },"""
-              ),
-              (
-                  """        }).catch(function(e) {\n            console.error('loadBranches', e);\n            RW_STATE.data.branches = [];\n            return [];\n        });\n    }\n};""",
-                  """        }).catch(function(e) {\n            console.error('loadBranches', e);\n            RW_STATE.data.branches = [];\n            throw e;\n        });\n    }\n};"""
-              ),
-              (
-                  """        RW_Audit_log('logout', 'auth', userEmail, null, null);\n\n        supabase.auth.signOut().then(function() {\n            RW_STATE.app.authenticated = false;""",
-                  """        RW_Audit_log('logout', 'auth', userEmail, null, null);\n\n        RW_STATE.app.initialized = false;\n        RW_STATE.app.authenticated = false;\n        RW_STATE.app.currentUser = null;\n        RW_STATE.permissions = [];\n        supabase.auth.signOut().then(function() {"""
-              )
-          ]
+              ("""        }).catch(function(e) {
+            console.error('loadItems', e);
+            RW_STATE.data.items = [];
+            return [];
+        });
+    },""", """        }).catch(function(e) {
+            console.error('loadItems', e);
+            RW_STATE.data.items = [];
+            throw e;
+        });
+    },"""),
+              ("""        }).catch(function(e) {
+            console.error('loadCustomers', e);
+            RW_STATE.data.customers = [];
+            return [];
+        });
+    },""", """        }).catch(function(e) {
+            console.error('loadCustomers', e);
+            RW_STATE.data.customers = [];
+            throw e;
+        });
+    },"""),
+              ("""        }).catch(function(e) {
+            console.error('loadBranches', e);
+            RW_STATE.data.branches = [];
+            return [];
+        });
+    }
+};""", """        }).catch(function(e) {
+            console.error('loadBranches', e);
+            RW_STATE.data.branches = [];
+            throw e;
+        });
+    }
+};"""),
+              ("""        RW_Audit_log('logout', 'auth', userEmail, null, null);
 
+        supabase.auth.signOut().then(function() {
+            RW_STATE.app.authenticated = false;""", """        RW_Audit_log('logout', 'auth', userEmail, null, null);
+
+        RW_STATE.app.initialized = false;
+        RW_STATE.app.authenticated = false;
+        RW_STATE.app.currentUser = null;
+        RW_STATE.permissions = [];
+        supabase.auth.signOut().then(function() {""")
+          ]
           for old, new in replacements:
               count = text.count(old)
               if count != 1:
@@ -144,12 +172,10 @@ jobs:
 
           path.write_text(text, encoding='utf-8')
 
-          if 'this.forceEnterFallback();' not in text:
-              raise SystemExit('ASSERT FAILED: compatibility fallback hook disappeared')
-          if 'تم تشغيل النظام في الوضع الآمن' in text:
-              raise SystemExit('ASSERT FAILED: insecure fallback message still present')
-          if '}).finally(function()' in text:
-              raise SystemExit('ASSERT FAILED: bootstrap finally navigation still present')
+          assert 'تم تشغيل النظام في الوضع الآمن' not in text
+          assert '}).finally(function()' not in text
+          assert 'RW_STATE.app.initialized = true;' in text
+          assert 'RW_STATE.app.currentUser = null;' in text
 
       - name: Validate Main1 HTML/JS boundaries and syntax
         shell: bash
@@ -179,6 +205,7 @@ jobs:
           set -euo pipefail
           BEFORE_SHA="$(git rev-parse HEAD)"
           FILE_SHA="$(git hash-object Current/PWA/main2/main1.md)"
+          mkdir -p doc/Draft/Reprots
           cat > doc/Draft/Reprots/Execution_Log_Main1_Surgical_Closure_20260911.md <<EOF
           # Main1 Surgical Closure Execution Log
 
@@ -203,7 +230,7 @@ jobs:
           EOF
           git config user.name 'RAWAEA CTO Automation'
           git config user.email 'cto-automation@users.noreply.github.com'
-          git add Current/PWA/main2/main1.md doc/Draft/Reprots/Execution_Log_Main1_Surgical_Closure_20260911.md .github/workflows/cto-main1-surgical-patch.yml
+          git add Current/PWA/main2/main1.md doc/Draft/Reprots/Execution_Log_Main1_Surgical_Closure_20260911.md
           git commit -m '[CTO-MAIN1-PATCH] Close Main1 bootstrap fail-open path'
           git rm .github/workflows/cto-main1-surgical-patch.yml
           git commit -m '[CTO-MAIN1-PATCH] Remove one-time patch runner'
