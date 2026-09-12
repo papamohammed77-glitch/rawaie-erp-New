@@ -1,7 +1,7 @@
 # RAWAEA ERP — CURRENT STATE
 
 **Last verified:** 2026-09-12
-**Current checkpoint:** Report137 completed a fresh forensic recheck against the current published `erp-frontend/companies/company-1/main.html` after changes that occurred after Report136. The published main remains the authoritative Source of Truth. Structural gates pass; JavaScript syntax remains OPEN at the current live failure on line 2278. The owner must apply only the exact remaining surgical repairs documented in Report137 before the next syntax gate.
+**Current checkpoint:** Report138 completed the final exact Owner ChangeSet for the current published `erp-frontend/companies/company-1/main.html` syntax closure. The published main remains the authoritative Source of Truth. Structural gates pass; JavaScript syntax remains OPEN at the current live failure on line 2278. The owner must apply the 13 exact surgical repairs in Report138 before the next syntax gate.
 
 ## CRITICAL GOLD / DIAMOND MISSION
 
@@ -20,7 +20,7 @@ Git HEAD = cfd9801b13b5601fe5d13777a20bf4f2f9a0eff7
 SHA256   = 3d60ffd0b85537fcef6e2941081b6b01ea5568f2ae071cdc38c45dd7f02ab885
 Lines    = 17,415
 Bytes    = 933,483
-EOF      = </script> / </body> / </html>
+EOF      = </script> / </body> / html
 ```
 
 Historical/reference only:
@@ -45,22 +45,22 @@ They must not be used as reconstruction Source of Truth for the published main f
 - No closure claim without actual runtime/syntax verification.
 - Reports are evidence/search aids, not current truth.
 
-## Report136 vs Current Reality
+## Report136 / Report137 / Report138 Current Reality
 
-Report136 recorded a 15-item syntax repair set. A fresh check against the current source proved that two items are already correct:
+Report136 recorded the original 15-item syntax repair set.
+
+Fresh recheck against the current source proved these two are already correct and must not be touched:
 
 ```text
-1971 = correct in current source
-9010 = correct in current source
+1971 = correct
+9010 = correct
 ```
 
-They must not be changed again.
+Report138 is now the authoritative exact Owner ChangeSet for this checkpoint:
 
-The remaining owner repair set is documented in:
+`doc/Draft/Reprots/Report138_Published_Main_Owner_ChangeSet_Final_20260912.md`
 
-`doc/Draft/Reprots/Report137_Published_Main_Current_Forensic_Syntax_20260912.md`
-
-Remaining items:
+Remaining owner repair items:
 
 ```text
 2278
@@ -107,19 +107,13 @@ The exact current syntax failure is:
 SyntaxError: Invalid or unexpected token
 ```
 
-The failure source is the doubled escaping inside the generated `onclick` string at line 2278.
+The failure source is doubled escaping inside the generated `onclick` string.
 
-## Assembly governance
+## Assembly Governance
 
-`rawaie-erp-New/.github/workflows/forensic_main_assembly.yml` is currently aligned with the correct Source of Truth:
+`rawaie-erp-New/.github/workflows/forensic_main_assembly.yml` is aligned with the correct Source of Truth and verifies the published file directly. It does not reconstruct or overwrite `main.html` from historical fragments.
 
-```text
-https://raw.githubusercontent.com/papamohammed77-glitch/erp-frontend/main/companies/company-1/main.html
-```
-
-It is a verification gate only and does not reconstruct or overwrite the published main from historical fragments.
-
-`erp-frontend/.github/workflows/cto_main_html_forensic_20260912.yml` is the permanent gate that reads and validates the published file itself.
+`erp-frontend/.github/workflows/cto_main_html_forensic_20260912.yml` is the permanent gate that reads and validates the published source itself.
 
 No workflow path change is required at this checkpoint.
 
@@ -131,7 +125,7 @@ The assistant must not edit:
 erp-frontend/companies/company-1/main.html
 ```
 
-The owner applies the exact delete/replace instructions from Report137. Each requested replacement is a complete line/block with an identifiable line number and endpoint.
+The owner applies the exact delete/replace instructions in Report138. They are complete lines/blocks; no partial deletion is required.
 
 ## Helper Files
 
@@ -172,18 +166,14 @@ Real-time synchronization
 Cross-module consistency
 ```
 
-The requirement that these modules become functionally complete rather than merely structural remains the ultimate mission and is not satisfied by this syntax checkpoint.
-
 ## Production
 
-No Production DB/Edge modification is required for the current `main.html` syntax checkpoint.
-
-Any Production work must continue to use current Production evidence first and must be documented separately.
+No Production DB/Edge modification is required for this frontend syntax checkpoint.
 
 ## Next Exact Checkpoint
 
 ```text
-OWNER APPLIES Report137 REMAINING REPAIRS
+OWNER APPLIES Report138
 → RE-READ PUBLISHED main.html FROM FIRST BYTE TO EOF
 → RECOMPUTE SHA256 / BYTES / LINES
 → RUN cto_main_html_forensic_20260912.yml
