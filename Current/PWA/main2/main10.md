@@ -45,8 +45,6 @@ function _loadLicenseData() {
     safeHTML(byId('license-main-container'), '<div class="rw-card" style="text-align:center;padding:40px 20px"><div style="font-size:48px;margin-bottom:16px">⚠️</div><h3>تعذر تحديد سياق الشركة</h3><p style="color:#6b7280;margin-top:8px">لا يمكن تحميل بيانات الترخيص دون Company Context صالح.</p></div>');
     return;
 }
-    },
-    {
 
     supabase
         .from('app_settings')
@@ -159,9 +157,6 @@ function _buildFullForm(licenseInfo) {
 
     _bindSaveButtons();
 }
-    },
-    {
-
 function _bindSaveButtons() {
     // زر حفظ إعدادات الترخيص
     var btnLicense = byId('btn-save-license-only');
@@ -259,9 +254,6 @@ function _bindSaveButtons() {
         });
     }
 }
-    },
-    {
-
 function _saveSettings(payload, label) {
     showLoader('جاري حفظ ' + (label || 'الإعدادات') + '...');
     
@@ -450,6 +442,3 @@ var RW_Views = {
     }
 };
 window.RW_Views = RW_Views;
-    }
-  ]
-};
