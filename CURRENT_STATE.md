@@ -1,7 +1,7 @@
 # RAWAEA ERP — CURRENT STATE
 
 **Last reconciled:** 2026-09-12
-**Current checkpoint:** Report140 re-reconciled the currently published `erp-frontend/companies/company-1/main.html` against Git directly and proved that the prior Report139/CURRENT_STATE checkpoint was stale. The owner had already applied the exact Report139 syntax repair before this session. No new owner edit is currently required. A fresh Node syntax certification for the new commit is still OPEN because no new workflow result was available to certify it in this execution session.
+**Current checkpoint:** Report142 completed the forensic review and integration gate for the helper subsystem of the published ERP frontend. `companies/company-1/main.html` remains the Source of Truth and was not modified by the assistant. The helper files were verified and the proven helper integration defects were repaired in `erp-frontend`.
 
 ## CRITICAL GOLD / DIAMOND MISSION
 
@@ -11,26 +11,6 @@
 
 ```text
 erp-frontend/companies/company-1/main.html
-```
-
-### Current published identity
-
-```text
-Repository = papamohammed77-glitch/erp-frontend
-Branch     = main
-Latest Commit = 4ae32e44cad49108fa08fd56a745b639b0d660d0
-Message       = Update main.html
-Commit Date   = 2026-09-12T13:24:18Z
-Blob SHA      = 1d4987664f505ee7ab769681a3e16ecc83b7dd1d
-Header        = 2026-09-12 13:00 UTC
-```
-
-The latest commit is a single surgical correction to `RW_Roles`:
-
-```text
-5236 area:
--                }
-+               });
 ```
 
 Historical/reference only:
@@ -44,6 +24,17 @@ rawaie-erp-New/Current/PWA/New-main/*
 
 They are not reconstruction Source of Truth for the published main.
 
+## Current Published Main Identity
+
+```text
+Repository = papamohammed77-glitch/erp-frontend
+Branch = main
+Published main commit baseline = 4ae32e44cad49108fa08fd56a745b639b0d660d0
+Published main blob = 1d4987664f505ee7ab769681a3e16ecc83b7dd1d
+```
+
+The helper integration work did not modify `main.html`.
+
 ## Governance
 
 - Study before modification.
@@ -51,137 +42,187 @@ They are not reconstruction Source of Truth for the published main.
 - Current Production/source must be verified before claims.
 - No global replacement when surgical repair is possible.
 - Owner performs `erp-frontend/companies/company-1/main.html` edits.
-- Assistant performs proven Production DB/Edge changes.
-- No closure claim without actual syntax/runtime verification.
+- Assistant performs proven helper/Production changes within its assigned scope.
+- No closure claim without actual verification.
 - Reports are evidence/search aids, not current truth.
 - Unknowns and conflicts generate evidence work rather than assumptions.
 
-## Report140 Reconciliation
+## Report142 — Helper Integration Reconciliation
 
 ```text
-doc/Draft/Reprots/Report140_Published_Main_Forensic_Syntax_R3_20260912.md
+doc/Draft/Reprots/Report142_CTO_Helper_Files_Forensic_Integration_20260912.md
 ```
 
-Report140 proved that the previous checkpoint was stale relative to the current published repository state.
-
-### Previous checkpoint
+### Helper files reviewed
 
 ```text
-Report139 HEAD = 5556651108a96e222f750484ce6f1705ccc825b4
-Report139 Blob = af822b0d1f063fdca9ff0081bc085e7ab3d4d974
+companies/company-1/core.js
+companies/company-1/sw.js
+companies/company-1/register-sw.js
+companies/company-1/manifest.json
 ```
 
-### Current checkpoint
+### Current SHAs
 
 ```text
-HEAD = 4ae32e44cad49108fa08fd56a745b639b0d660d0
-Blob = 1d4987664f505ee7ab769681a3e16ecc83b7dd1d
+core.js       = b3da51ee5a577e1aef346beb0ed4a866df7d563c
+sw.js         = 3bb4ad4a241ea3c20a9b16500ad716aaf68843ed
+register-sw.js= 9a8f8b14be0cfb92e82077c36b36fab9b452c8ec
+manifest.json = ef9574e748c5143fbb59f2a34128be4036dcfc2d
 ```
 
-Therefore:
+## core.js
+
+Read completely to EOF.
+
+No source change was made because no complete Consumer-level evidence justified a shared-nucleus behavioral change in this cycle. Syntax was verified by the permanent helper CI gate.
+
+Potential tenant hardening inside shared cache/auth helpers remains a separate evidence-driven task and must not be changed globally without tracing all PWA consumers.
 
 ```text
-Report139 = historical checkpoint
-CURRENT_STATE before Report140 = stale
-Current Git = authoritative
+FULL READ = PASS
+SYNTAX = PASS
+SOURCE CHANGE = NONE
+CLOSURE = OPEN FOR FUTURE CONSUMER-BASED REVIEW
 ```
 
-## Exact Owner ChangeSet Status
+## manifest.json
 
-The Report139 defect was:
+Repaired proven drift:
 
 ```text
-RW_Roles
-saveBtn.addEventListener('click', async function() { ... })
+start_url  ./New-main    → ./main.html
+icon       ./New-main-icon.svg → ./icon.svg
+id         added as ./main.html
 ```
 
-The current published source now contains:
-
-```javascript
-} catch(e) {
-    hideLoader();
-    showToast('فشل الاتصال بـ Edge Function', 'error');
-}
-               });
-                if (isEdit) {
-```
-
-Therefore:
+`New-main-icon.svg` was not a current published file under `companies/company-1`, while `icon.svg` is present.
 
 ```text
-Report139 exact repair = ALREADY APPLIED
-New owner correction required = NO
+MANIFEST JSON = PASS
+PUBLISHED MAIN TARGET = PASS
+ICON PATH = PASS
 ```
 
-Do not repeat the same edit.
+## register-sw.js
 
-## Current Published Main Structural Status
+Repaired duplicate update authority.
 
-Direct source checks performed during Report140:
+Before:
 
 ```text
-Start of file = valid HTML document start
-EOF = </script> / </body> / </html>
-Incomplete marker search = PASS
-Direct stock_branches write probe = no direct update hit
-Direct inventory_log write probe = no write path found by source probe
+sw.js performs clients.claim() + client.navigate()
++
+register-sw.js controllerchange performs location.reload()
 ```
 
-The permanent forensic workflow remains:
+After:
 
 ```text
-.github/workflows/cto_main_html_forensic_20260912.yml
+sw.js = authoritative activation/navigation
+register-sw.js = registration/update polling/observation
 ```
-
-and performs:
 
 ```text
-Full-file structural audit
-Exact JavaScript syntax gate
-Incomplete marker gate
-Direct physical writer scan
-node --check
+SYNTAX = PASS
+DUPLICATE RELOAD PATH = CLOSED
 ```
 
-## Fresh Syntax Status
+## sw.js
 
-Important:
+Repaired stale PWA metadata/cache behavior.
+
+Changes:
 
 ```text
-Known Report139 Syntax Defect = FIXED IN CURRENT SOURCE
-Fresh NODE_CHECK_ORIGINAL = OPEN / NOT CERTIFIED IN THIS SESSION
+SW_BUILD rotated to RAWAEA_SW_P152_HELPER_ALIGNMENT_20260912
+manifest.json excluded from cache
+sw.js excluded from cache
+HTML/API/runtime remain network-backed
+static presentation assets remain versioned-cache backed
 ```
 
-The latest GitHub status result available through the connected API for commit `4ae32e44...` did not expose a new check result; therefore the state must not be promoted to `NODE_CHECK_ORIGINAL=PASS` without an actual fresh run result.
+```text
+SYNTAX = PASS
+CACHE ROTATION = PASS
+MANIFEST STALE CACHE PATH = CLOSED
+```
+
+## Permanent Helper Forensic Gate
+
+Added to `erp-frontend`:
+
+```text
+.github/workflows/cto_helper_files_forensic_20260912.yml
+```
+
+It performs:
+
+```text
+node --check core.js
+node --check sw.js
+node --check register-sw.js
+JSON.parse(manifest.json)
+published main structural checks
+```
+
+Fresh successful run:
+
+```text
+Run ID = 34698492041
+Head SHA = 36200f9fa68f69fe2ef01299e2e800cac8f78c9a
+Conclusion = success
+```
+
+All validation steps passed.
+
+## Production Snapshot
+
+Direct Production Supabase check during the session:
+
+```text
+Checked at = 2026-09-12 14:10:44.332409+00
+companies = 1
+branches = 2
+items = 17
+stock_branches = 20
+inventory_log = 3
+```
+
+No Production DB mutation was required for this helper integration cycle.
 
 ## Assembly Governance
 
-Verified current:
+Current verified workflow:
 
 ```text
 rawaie-erp-New/.github/workflows/forensic_main_assembly.yml
 ```
 
-It fetches the published Source of Truth directly:
+It reads the published `erp-frontend/companies/company-1/main.html` directly from the published raw URL and does not reconstruct it from historical fragments.
 
 ```text
-https://raw.githubusercontent.com/papamohammed77-glitch/erp-frontend/main/companies/company-1/main.html
+ASSEMBLY SOURCE OF TRUTH = CORRECT
+ASSEMBLY PATH = CORRECT
 ```
 
-It explicitly forbids reconstruction/overwrite of the published main from historical fragments.
+## Fresh Main Syntax Status
 
-Therefore:
+Still OPEN.
+
+The dedicated `cto_main_html_forensic_20260912.yml` fresh run for the current published main has not been re-established in this cycle. Therefore:
 
 ```text
-Assembly Source of Truth = CORRECT
-Path correction = NOT REQUIRED
+NODE_CHECK_ORIGINAL = NOT CERTIFIED
 ```
+
+Do not promote this to PASS based on the helper gate.
 
 ## Functional Completion Status
 
 Still OPEN.
 
-Gold/Diamond completion requires functional proof across:
+Gold/Diamond functional closure requires proof across:
 
 ```text
 Inventory
@@ -203,69 +244,56 @@ Real-time synchronization
 Cross-module consistency
 ```
 
-No absence of `TODO`/`قيد التطوير` text can be treated as proof of functional completeness.
+No absence of `TODO`/`قيد التطوير` is sufficient proof of functional completion.
 
-## Helper Integration Gate
-
-Do not advance to:
+## Latest Helper Commits
 
 ```text
-Current/PWA/core.js
-Current/PWA/sw.js
-Current/PWA/register-sw.js
-Current/PWA/manifest.json
+5e620253bf97c838a56f076bea713c5076f29841  helper forensic gate
+3f10ce8a9d43eaf155ac5af1e4ab4d3f3d9dac0f  manifest alignment
+ da636727b40561efb68148971308f6a9237f7bca register-sw duplicate reload fix
+36200f9fa68f69fe2ef01299e2e800cac8f78c9a  SW cache/update fix
 ```
 
-until:
+Latest published `erp-frontend` HEAD after these changes:
 
 ```text
-Fresh NODE_CHECK_ORIGINAL = PASS
+36200f9fa68f69fe2ef01299e2e800cac8f78c9a
 ```
 
-is verified against the current published commit.
+The current state report itself was updated afterward in this governance repository.
 
-## Production
-
-No Production DB/Edge mutation was required for the current frontend syntax checkpoint.
-
-The separate historical Inventory/Production investigation remains outside this checkpoint.
-
-## Latest Session Evidence
+## NEXT EXACT CHECKPOINT
 
 ```text
-Report140 commit = 590b15ac697b2ba991d05b1e4ce3f0bab8e12a8b
-Current published main commit = 4ae32e44cad49108fa08fd56a745b639b0d660d0
-Current published main blob     = 1d4987664f505ee7ab769681a3e16ecc83b7dd1d
+Re-establish fresh cto_main_html_forensic_20260912 run for current published main
+→ certify NODE_CHECK_ORIGINAL=PASS
+→ if new syntax error exists, issue exactly one precise Owner ChangeSet
+→ re-read current published main after owner change
+→ rerun gate
+→ continue functional integration of the remaining tabs/apps
 ```
 
-## Next Exact Checkpoint
-
-```text
-Freshly run cto_main_html_forensic_20260912.yml against current published main
-→ verify full structural audit
-→ verify NODE_CHECK_ORIGINAL=PASS
-→ if a new parser error appears, issue exactly one Owner ChangeSet for the first new error
-→ re-read current published source
-→ rerun the forensic gate
-→ only after PASS start helper-file integration
-```
-
-If the new syntax gate passes, then and only then proceed to helper-file integration and subsequent full functional integration.
+After the main forensic gate is certified, continue the broader functional-completion program. Do not return to historical fragments as reconstruction sources.
 
 ## Closure Status
 
 ```text
 CURRENT SOURCE RECONCILED           = PASS
-REPORT139 REPAIR VERIFIED IN SOURCE = PASS
-OWNER CHANGESET REQUIRED             = NO
-EOF / HTML BOUNDARY                  = PASS
-INCOMPLETE MARKERS                   = PASS
-DIRECT PHYSICAL WRITER PROBE         = PASS
-ASSEMBLY PATH                        = CORRECT
-FRESH JAVASCRIPT SYNTAX              = OPEN
-HELPER INTEGRATION                   = BLOCKED
-ASSEMBLY CLOSURE                     = NO
-GOLD/DIAMOND FUNCTIONAL CLOSURE      = NO
+HELPER FILES FULL READ              = PASS
+CORE.JS SYNTAX                      = PASS
+SW.JS SYNTAX                        = PASS
+REGISTER-SW.JS SYNTAX               = PASS
+MANIFEST JSON                       = PASS
+HELPER UPDATE CONTRACT              = PASS
+MANIFEST TARGET                     = PASS
+DUPLICATE RELOAD PATH               = CLOSED
+PERMANENT HELPER FORENSIC GATE      = ACTIVE
+PRODUCTION SNAPSHOT                 = VERIFIED
+MAIN HTML OWNER EDIT                = UNTOUCHED
+FRESH MAIN JAVASCRIPT SYNTAX        = OPEN
+GLOBAL FUNCTIONAL COMPLETION       = OPEN
+GOLD/DIAMOND                        = NOT CLOSED
 ```
 
 # END CURRENT STATE
