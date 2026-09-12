@@ -42,14 +42,11 @@ function _loadLicenseData() {
     }
 
     if (!companyId) {
-        _buildFullForm({
-            licenseStatus: 'trial',
-            trialEndDate: '',
-            subscriptionEndDate: '',
-            ownerEmail: ''
-        });
-        return;
-    }
+    safeHTML(byId('license-main-container'), '<div class="rw-card" style="text-align:center;padding:40px 20px"><div style="font-size:48px;margin-bottom:16px">⚠️</div><h3>تعذر تحديد سياق الشركة</h3><p style="color:#6b7280;margin-top:8px">لا يمكن تحميل بيانات الترخيص دون Company Context صالح.</p></div>');
+    return;
+}
+    },
+    {
 
     supabase
         .from('app_settings')
@@ -104,18 +101,10 @@ function _buildFullForm(licenseInfo) {
     var container = byId('license-main-container');
     if (!container) return;
 
-    // جلب البريد الإلكتروني الحالي
-    var currentEmail = '';
-    supabase.auth.getUser().then(function(userRes) {
-        if (userRes.data && userRes.data.user) {
-            currentEmail = userRes.data.user.email || '';
-            var emailField = byId('owner-new-email');
-            if (emailField) emailField.value = currentEmail;
-        }
-    });
+    var currentEmail = String((licenseInfo && licenseInfo.ownerEmail) || '').trim();
 
     var html = '';
-    // قسم الترخيص
+
     html += '<div class="bg-white rounded-2xl shadow-sm border p-6">';
     html += '<h3 class="text-lg font-black text-indigo-600 border-b pb-2 mb-4"><i class="fa-solid fa-shield-haltered ml-2"></i> إعدادات الترخيص</h3>';
     html += '<div class="space-y-4">';
@@ -132,7 +121,6 @@ function _buildFullForm(licenseInfo) {
     html += '<div class="flex justify-end pt-2"><button type="button" id="btn-save-license-only" class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold shadow-md">حفظ إعدادات الترخيص</button></div>';
     html += '</div></div>';
 
-    // قسم تغيير البريد الإلكتروني
     html += '<div class="bg-white rounded-2xl shadow-sm border p-6 mt-6">';
     html += '<h3 class="text-lg font-black text-blue-600 border-b pb-2 mb-4"><i class="fa-solid fa-envelope ml-2"></i> تغيير البريد الإلكتروني</h3>';
     html += '<div class="space-y-4">';
@@ -141,85 +129,138 @@ function _buildFullForm(licenseInfo) {
     html += '<div class="flex justify-end pt-2"><button type="button" id="btn-change-email" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold shadow-md">تغيير البريد الإلكتروني</button></div>';
     html += '</div></div>';
 
-    // قسم تغيير كلمة المرور
     html += '<div class="bg-white rounded-2xl shadow-sm border p-6 mt-6">';
     html += '<h3 class="text-lg font-black text-red-600 border-b pb-2 mb-4"><i class="fa-solid fa-key ml-2"></i> تغيير كلمة المرور</h3>';
     html += '<div class="space-y-4">';
     html += '<div><label class="text-sm font-bold">كلمة المرور الجديدة</label>';
     html += '<div class="relative">';
     html += '<input id="owner-new-password" type="password" class="p-2.5 bg-gray-50 border rounded-lg w-full pl-12" placeholder="أدخل كلمة المرور الجديدة">';
-    html += '<button type="button" onclick="window.togglePasswordVisibility(\'owner-new-password\', this)" class="absolute left-2 top-2.5 text-gray-500 hover:text-gray-700 p-1"><i class="fa-solid fa-eye"></i></button>';
+    html += '<button type="button" onclick="window.togglePasswordVisibility(\\'owner-new-password\\', this)" class="absolute left-2 top-2.5 text-gray-500 hover:text-gray-700 p-1"><i class="fa-solid fa-eye"></i></button>';
     html += '</div></div>';
     html += '<div><label class="text-sm font-bold">تأكيد كلمة المرور الجديدة</label>';
     html += '<div class="relative">';
     html += '<input id="owner-confirm-password" type="password" class="p-2.5 bg-gray-50 border rounded-lg w-full pl-12" placeholder="أعد إدخال كلمة المرور الجديدة">';
-    html += '<button type="button" onclick="window.togglePasswordVisibility(\'owner-confirm-password\', this)" class="absolute left-2 top-2.5 text-gray-500 hover:text-gray-700 p-1"><i class="fa-solid fa-eye"></i></button>';
+    html += '<button type="button" onclick="window.togglePasswordVisibility(\\'owner-confirm-password\\', this)" class="absolute left-2 top-2.5 text-gray-500 hover:text-gray-700 p-1"><i class="fa-solid fa-eye"></i></button>';
     html += '</div></div>';
     html += '<div class="flex justify-end pt-2"><button type="button" id="btn-change-password" class="px-6 py-2.5 bg-red-600 text-white rounded-xl font-bold shadow-md">تغيير كلمة المرور</button></div>';
     html += '</div></div>';
 
     safeHTML(container, html);
+
+    supabase.auth.getUser().then(function(userRes) {
+        if (userRes.data && userRes.data.user) {
+            var authenticatedEmail = userRes.data.user.email || currentEmail;
+            var currentEmailField = byId('owner-current-email');
+            if (currentEmailField) currentEmailField.value = authenticatedEmail;
+        }
+    }).catch(function(error) {
+        console.error('RW_OwnerLicense._buildFullForm.getUser', error);
+    });
+
     _bindSaveButtons();
 }
+    },
+    {
 
 function _bindSaveButtons() {
     // زر حفظ إعدادات الترخيص
     var btnLicense = byId('btn-save-license-only');
     if (btnLicense) {
         btnLicense.addEventListener('click', function() {
+            var statusField = byId('license-status');
+            var trialEndField = byId('license-trial-end');
+            var subEndField = byId('license-sub-end');
+            if (!statusField || !trialEndField || !subEndField) return;
+
             var payload = {
-                status: byId('license-status').value,
-                trial_end_date: byId('license-trial-end').value || null,
-                subscription_end_date: byId('license-sub-end').value || null
+                status: statusField.value,
+                trial_end_date: trialEndField.value || null,
+                subscription_end_date: subEndField.value || null
             };
             _saveSettings(payload, 'إعدادات الترخيص');
         });
     }
 
-    // زر تغيير البريد الإلكتروني
     var btnEmail = byId('btn-change-email');
     if (btnEmail) {
         btnEmail.addEventListener('click', function() {
-            var newEmail = byId('owner-new-email').value.trim();
-            if (!newEmail) { showToast('أدخل البريد الإلكتروني الجديد', 'error'); return; }
+            var emailField = byId('owner-new-email');
+            if (!emailField) return;
+
+            var newEmail = emailField.value.trim();
+            if (!newEmail) {
+                showToast('أدخل البريد الإلكتروني الجديد', 'error');
+                return;
+            }
+
+            var emailPattern = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+            if (!emailPattern.test(newEmail)) {
+                showToast('أدخل بريدًا إلكترونيًا صالحًا', 'error');
+                return;
+            }
+
             showLoader('جاري تغيير البريد الإلكتروني...');
             supabase.auth.updateUser({ email: newEmail }).then(function(res) {
                 hideLoader();
-                if (res.error) { showToast(res.error.message, 'error'); return; }
-                showToast('تم تغيير البريد الإلكتروني بنجاح. تم إرسال رابط تأكيد إلى بريدك الجديد.', 'success');
-                byId('owner-new-email').value = '';
-                // تحديث البريد الحالي المعروض
-                supabase.auth.getUser().then(function(userRes) {
-                    if (userRes.data && userRes.data.user) {
-                        byId('owner-current-email').value = userRes.data.user.email || '';
-                    }
-                });
+                if (res.error) {
+                    showToast(res.error.message, 'error');
+                    return;
+                }
+                showToast('تم إرسال رابط التأكيد إلى البريد الإلكتروني الجديد', 'success');
+                emailField.value = '';
             }).catch(function(e) {
                 hideLoader();
                 showToast('فشل الاتصال', 'error');
+                console.error('RW_OwnerLicense.changeEmail', e);
             });
         });
     }
 
-    // زر تغيير كلمة المرور
     var btnPassword = byId('btn-change-password');
     if (btnPassword) {
         btnPassword.addEventListener('click', function() {
-            var newPass = byId('owner-new-password').value;
-            if (!newPass) { showToast('أدخل كلمة المرور الجديدة', 'error'); return; }
+            var passwordField = byId('owner-new-password');
+            var confirmField = byId('owner-confirm-password');
+            if (!passwordField || !confirmField) return;
+
+            var newPass = passwordField.value;
+            var confirmPass = confirmField.value;
+
+            if (!newPass) {
+                showToast('أدخل كلمة المرور الجديدة', 'error');
+                return;
+            }
+
+            if (!confirmPass) {
+                showToast('أدخل تأكيد كلمة المرور الجديدة', 'error');
+                return;
+            }
+
+            if (newPass !== confirmPass) {
+                showToast('كلمة المرور وتأكيدها غير متطابقين', 'error');
+                return;
+            }
+
             showLoader('جاري تغيير كلمة المرور...');
             supabase.auth.updateUser({ password: newPass }).then(function(res) {
                 hideLoader();
-                if (res.error) { showToast(res.error.message, 'error'); return; }
+                if (res.error) {
+                    showToast(res.error.message, 'error');
+                    return;
+                }
                 showToast('تم تغيير كلمة المرور بنجاح', 'success');
-                byId('owner-new-password').value = '';
+                passwordField.value = '';
+                confirmField.value = '';
             }).catch(function(e) {
                 hideLoader();
                 showToast('فشل الاتصال', 'error');
+                console.error('RW_OwnerLicense.changePassword', e);
             });
         });
     }
 }
+    },
+    {
 
 function _saveSettings(payload, label) {
     showLoader('جاري حفظ ' + (label || 'الإعدادات') + '...');
@@ -265,7 +306,6 @@ var RW_Views = {
         var c = byId('rw-page-container');
         if (!c) return;
 
-        // التحقق من الصلاحية
         var permissionMap = {
             'dashboard': 'dash',
             'items': 'items',
@@ -298,17 +338,22 @@ var RW_Views = {
             'vehicle-count': 'vehicle-count',
             'branch-count': 'branch-count',
             'general-count': 'general-count',
+            'finance': 'finance',
             'reports-dashboard': 'reports',
             'reports-detailed': 'reports',
             'reports-comprehensive': 'reports',
             'audit-log': 'owner',
-            'hr': 'users',
+            'hr': 'hr',
             'crm': 'customers'
         };
 
         var permKey = permissionMap[view];
+
         if (permKey === 'owner') {
-            var isOwner = (RW_STATE.app.currentUser && RW_STATE.app.currentUser.isOwner === true);
+            var currentUser = (typeof RW_STATE !== 'undefined' && RW_STATE && RW_STATE.app && RW_STATE.app.currentUser)
+                ? RW_STATE.app.currentUser
+                : null;
+            var isOwner = currentUser && currentUser.isOwner === true;
             if (!isOwner) {
                 safeHTML(c, '<div class="rw-card" style="text-align:center;padding:60px 20px"><div style="font-size:64px;margin-bottom:20px">🔒</div><h2>غير مصرح</h2><p>هذا التبويب مخصص للمالك فقط</p></div>');
                 return;
@@ -321,22 +366,47 @@ var RW_Views = {
         }
 
         var titles = {
-            'dashboard':'لوحة التحكم','items':'الأصناف','customers':'العملاء','suppliers':'الموردين',
+            'dashboard':'لوحة التحكم',
+            'items':'الأصناف',
+            'customers':'العملاء',
+            'suppliers':'الموردين',
             'telesales':'التلي سيلز',
-            'branches':'المخازن والفروع','pos':'نقطة البيع','purchase-pos':'نقطة شراء','purchases':'أوردرات الشراء',
-            'orders':'أوردرات المبيعات','runsheets':'الرانشيتات','online-store':'المتجر الإلكتروني',
-            'users':'المستخدمين والصلاحيات','roles':'إدارة أدوار المستخدمين','license':'إدارة الترخيص',
-            'settings':'إعدادات النظام','settlement':'إغلاق اليومية','receiving':'الاستلام',
-            'picking':'التحضير','loading':'التحميل','delivery':'التوصيل','return':'المرتجعات',
-            'unloading':'التفريغ','vouchers':'الأذونات المخزنية','transfer':'تحويل مخزني',
-            'direct-sale':'صرف سيارة بيع مباشر','direct-return':'استلام مرتجع سيارة',
-            'supplier-return':'مرتجع لمورد','vehicle-count':'جرد سيارة','branch-count':'جرد فرع',
-            'general-count':'جرد عام','reports-dashboard':'لوحة القيادة','reports-detailed':'التقارير التفصيلية',
-            'audit-log':'سجل التدقيق'
+            'branches':'المخازن والفروع',
+            'pos':'نقطة البيع',
+            'purchase-pos':'نقطة شراء',
+            'purchases':'أوردرات الشراء',
+            'orders':'أوردرات المبيعات',
+            'runsheets':'الرانشيتات',
+            'online-store':'المتجر الإلكتروني',
+            'users':'المستخدمين والصلاحيات',
+            'roles':'إدارة أدوار المستخدمين',
+            'license':'إدارة الترخيص',
+            'settings':'إعدادات النظام',
+            'settlement':'إغلاق اليومية',
+            'receiving':'الاستلام',
+            'picking':'التحضير',
+            'loading':'التحميل',
+            'delivery':'التوصيل',
+            'return':'المرتجعات',
+            'unloading':'التفريغ',
+            'vouchers':'الأذونات المخزنية',
+            'transfer':'تحويل مخزني',
+            'direct-sale':'صرف سيارة بيع مباشر',
+            'direct-return':'استلام مرتجع سيارة',
+            'supplier-return':'مرتجع لمورد',
+            'vehicle-count':'جرد سيارة',
+            'branch-count':'جرد فرع',
+            'general-count':'جرد عام',
+            'finance':'الإدارة المالية',
+            'reports-dashboard':'لوحة القيادة',
+            'reports-detailed':'التقارير التفصيلية',
+            'reports-comprehensive':'التقارير الشاملة',
+            'audit-log':'سجل التدقيق',
+            'hr':'الموارد البشرية',
+            'crm':'إدارة علاقات العملاء'
         };
         safeText(byId('rw-header-title'), titles[view] || view);
 
-        // استدعاء التبويب المناسب
         if (view === 'dashboard') { RW_Dashboard.render(); return; }
         if (view === 'items') { RW_Items.render(); return; }
         if (view === 'customers') { RW_Customers.render(); return; }
@@ -376,7 +446,10 @@ var RW_Views = {
         if (view === 'reports-comprehensive') { RW_Reports_Comprehensive.render(); return; }
         if (view === 'audit-log') { RW_Audit_renderTab(); return; }
 
-        safeHTML(c, '<div class="rw-card" style="text-align:center;padding:60px 20px"><div style="font-size:64px;margin-bottom:20px">🚧</div><h2>' + (titles[view] || view) + '</h2><p style="color:#6b7280">قيد التطوير</p></div>');
+        safeHTML(c, '<div class="rw-card" style="text-align:center;padding:60px 20px"><div style="font-size:64px;margin-bottom:20px">⚠️</div><h2>' + (titles[view] || view) + '</h2><p style="color:#6b7280">التبويب غير معروف</p></div>');
     }
 };
 window.RW_Views = RW_Views;
+    }
+  ]
+};
