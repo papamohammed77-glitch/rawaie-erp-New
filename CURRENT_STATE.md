@@ -1,7 +1,7 @@
 # RAWAEA ERP — CURRENT STATE
 
 **Last verified:** 2026-09-12
-**Current checkpoint:** Main10 forensic recheck completed; Owner surgical package created; Main10 source fragment remains owner-edit only.
+**Current checkpoint:** Main10 forensic recheck R2 completed; live Main10 source is confirmed syntactically corrupted; corrected candidate validated; owner whole-unit replacement is pending.
 
 ## Governing Rules
 
@@ -48,7 +48,7 @@ Forbidden / retired:
 - main7: `5839252a9807ae1758939dad754a4f3a4505c76f`
 - main8: `f67c0217a804d2cb2388ce48fb7f95176c075fb3`
 - main9: `b68e5d8f0f52258080950add12fd7fcecbf8c0d7`
-- main10: `169025a6836c7fdc7281ea86523b975a84d889f1`
+- main10: `76aae070e7452f5b7b233b790c39d5c864aa19a0`
 - main11: `2adfc787c3e5f0ca56abfcc85232e7a971773c3b`
 
 **Important reconciliation:** the previous state file recorded Main9 as `b9f10ae4...`; direct Git inspection on 2026-09-12 shows the current Main9 SHA is `b68e5d8f...`. The old state value is stale and must not be used as current truth.
@@ -57,7 +57,10 @@ Forbidden / retired:
 
 - Report129: `doc/Draft/Reprots/Report129_Main9_Forensic_Recheck_20260912.md`
 - Report130: `doc/Draft/Reprots/Report130_Main9_Final_Production_Synchronization_20260912.md`
+- Report131: `doc/Draft/Reprots/Report131_Main10_Forensic_Recheck_20260912.md`
+- Report132: `doc/Draft/Reprots/Report132_Main10_Forensic_Recheck_R2_20260912.md`
 - Main9 owner package: `doc/Draft/Reprots/MAIN9_OWNER_SURGICAL_REPLACEMENTS_20260912.js`
+- Main10 previous owner package: `doc/Draft/Reprots/MAIN10_OWNER_SURGICAL_REPLACEMENTS_20260912.js`
 
 These remain historical execution evidence. Their claims were not accepted blindly.
 
@@ -65,92 +68,97 @@ These remain historical execution evidence. Their claims were not accepted blind
 
 Main9 remains owner-apply pending. The previous package addresses Finance exposure, CRM followups, Runsheet performance, Driver performance, and Returns compatibility. Main9 source was not modified by the assistant.
 
-## Main10 — 2026-09-12
+## Main10 — 2026-09-12 — R2 authoritative override
 
-### Verified source
+### Direct current-source reconciliation
 
 - Source of Truth: `Current/PWA/main2/main10.md`.
-- Current SHA: `169025a6836c7fdc7281ea86523b975a84d889f1`.
-- Direct Git metadata reports file size `20018` bytes.
-- Sequential source reads covered lines 1–400.
-- Direct read of lines 401–480 returned empty content; Main10 EOF is therefore verified at 400 lines.
-- Historical reference opened: `Original/PWA/main/main10.md`.
-- Historical Main10 contains the same basic Owner License and `RW_Views` architecture; the current file inherits several UX/router behaviors from that structure.
+- Current live SHA: `76aae070e7452f5b7b233b790c39d5c864aa19a0`.
+- The earlier Main10 SHA `169025a...` is stale.
+- Direct source inspection found literal package residue inside the executable fragment.
+- Confirmed malformed sequences occur after `_loadLicenseData()`, after `_buildFullForm()`, and after `_bindSaveButtons()`.
+- Confirmed file tail is polluted after `window.RW_Views = RW_Views;` by:
+  `}` + `]` + `};`
+- This means the current Main10 source is syntactically corrupted and must not enter Assembly.
 
-### Main10 confirmed functional gaps
+### Root cause established
 
-1. **False/default license state when Company Context is missing.** Current source falls back to `licenseStatus: 'trial'`; this invents state instead of reporting an unavailable context.
-2. **False email-field update.** `_buildFullForm()` asynchronously writes the authenticated email into `owner-new-email`, which pre-populates the NEW email field with the current email and can mislead the owner.
-3. **Password confirmation is not enforced.** The UI contains `owner-confirm-password`, but `_bindSaveButtons()` does not compare it with the new password before calling `auth.updateUser`.
-4. **Email validation is incomplete.** The button handler does not enforce a basic email syntax check before invoking `auth.updateUser`.
-5. **Router permission gap: `finance`.** Production users have a real `finance` permission, but the current `permissionMap` has no `finance` entry, so the finance route bypasses the common permission gate.
-6. **Router permission mismatch: `hr`.** Production contains a real `hr` permission, while Main10 maps `hr` to `users`; this is a contract mismatch that should use the explicit `hr` key.
-7. **Missing router titles.** `finance`, `hr`, `crm`, and `reports-comprehensive` have no dedicated titles in the current title map.
-8. **Misleading unknown-view fallback.** The final fallback says `قيد التطوير`; this is unsafe because an unknown route is not proof of an unfinished business capability.
+The prior surgical package structure was inserted into the Main10 source fragment itself. The remedy is not to delete individual `}, {` fragments. The safe repair is whole-unit replacement of:
 
-### Main10 evidence about Production dependency
+1. `RW_OwnerLicense`
+2. `RW_Views`
 
-The current Production `save-settings` Edge Function is JWT-protected, derives `company_id` from the authenticated `users` row, and checks license edits with Owner semantics requiring `isOwner=true` plus wildcard permissions in both auth metadata and DB permissions. Therefore no Production migration is required to repair the Main10 findings above.
+### Candidate validation
 
-### Owner Surgical Package
+A clean Main10 candidate was reconstructed and validated locally:
 
-Created:
-`doc/Draft/Reprots/MAIN10_OWNER_SURGICAL_REPLACEMENTS_20260912.js`
+- `249 lines`
+- `19458 bytes`
+- `node --check = PASS`
+- `RW_OwnerLicense` declaration count = 1
+- `window.RW_OwnerLicense` assignment count = 1
+- `RW_Views` declaration count = 1
+- `window.RW_Views` assignment count = 1
+- package tail marker = 0
 
-Commit:
-`6d289a85d6e3a8a2b71c41f242e425c808f86c0b`
+### Candidate functional corrections
 
-The package contains exact surgical instructions and complete replacement blocks for:
+- No invented `trial` state when Company Context or license data is unavailable.
+- Current authenticated email only populates `owner-current-email`.
+- `owner-new-email` remains blank for an intentional new address.
+- Password confirmation is enforced before `auth.updateUser`.
+- Basic email syntax is checked before `auth.updateUser`.
+- Missing authenticated session is rejected before `save-settings` call.
+- `finance -> finance` permission routing.
+- `hr -> hr` permission routing.
+- Explicit titles for finance / HR / CRM / comprehensive reports.
+- Unknown route uses `التبويب غير معروف`.
 
-- `M10-O1`: missing Company Context block inside `_loadLicenseData()`.
-- `M10-O2`: complete `_buildFullForm(licenseInfo)` replacement.
-- `M10-O3`: complete `_bindSaveButtons()` replacement.
-- `M10-O4`: complete `RW_Views` replacement.
+### Exact owner action
 
-Main10 Source Fragment itself was **not edited by the assistant**.
+Do **not** apply `MAIN10_OWNER_SURGICAL_REPLACEMENTS_20260912.js` blindly; it is historical and its recorded source SHA is stale relative to the live source.
 
-### Exact owner locations
+Use the following surgical boundaries on the CURRENT `Current/PWA/main2/main10.md`:
 
-- `M10-O1`: inside `_loadLicenseData()`, current `if (!companyId) { ... }` block.
-- `M10-O2`: `function _buildFullForm(licenseInfo)` — current lines 102–163.
-- `M10-O3`: `function _bindSaveButtons()` — current lines 165–221.
-- `M10-O4`: `var RW_Views = {` — current lines 262–400 through `window.RW_Views = RW_Views;`.
+- Find the exact first line `var RW_OwnerLicense = (function() {`.
+- Delete everything through the exact full line `window.RW_OwnerLicense = RW_OwnerLicense;`.
+- Replace that complete unit with the corrected `RW_OwnerLicense` unit recorded in Report132.
+- Find the exact first line `var RW_Views = {`.
+- Delete everything through the exact full line `window.RW_Views = RW_Views;`.
+- Replace that complete unit with the corrected `RW_Views` unit recorded in Report132.
+- Do not separately delete `}, {` markers.
+- After replacement, Main10 must end exactly at `window.RW_Views = RW_Views;`.
 
-### What was intentionally not changed
+### Production status
 
-- `_saveSettings(payload, label)` was reviewed and left unchanged.
-- No Production schema/data change was introduced for Main10.
-- No Inventory/Purchase/Return/Loading/Delivery Writer changes were continued after the Main10 task began.
-- No edit was made to `Current/PWA/main2/main1..main11.md` by the assistant.
-- `forensic_main_assembly.yml` required no change; it already points to `Current/PWA/main2`.
+No Production migration was proven necessary for Main10 R2, and no Production database/data change was made for this task.
 
-## Validation Status — Main10
+### Validation status
 
 ```text
 MAIN10 SOURCE PATH = VERIFIED
-MAIN10 SOURCE SHA = VERIFIED
-MAIN10 EOF = VERIFIED AT LINE 400
-MAIN10 HISTORICAL REFERENCE = OPENED
-PRODUCTION LICENSE BACKEND = VERIFIED
-MAIN10 GAP LIST = VERIFIED
-OWNER SURGICAL PACKAGE = CREATED
-MAIN10 SOURCE EDITED BY ASSISTANT = NO
+MAIN10 CURRENT SHA = VERIFIED
+MAIN10 LIVE SOURCE = SYNTAX CORRUPTED
+MAIN10 FORENSIC R2 = COMPLETE
+CORRECTED CANDIDATE = NODE CHECK PASS
+OWNER SOURCE EDIT = NOT PERFORMED BY ASSISTANT
 OWNER APPLY = PENDING
-POST-APPLY EXECUTABLE SYNTAX = PENDING OWNER APPLY
-POST-APPLY BROWSER/E2E = PENDING
+POST-APPLY FULL READ = PENDING
+POST-APPLY NODE CHECK = PENDING
+POST-APPLY STRUCTURAL AUDIT = PENDING
+BROWSER/E2E = PENDING
+PRODUCTION RUNTIME CLOSURE = PENDING
 ASSEMBLY = DEFERRED
 GLOBAL GOLD/DIAMOND = OPEN
+MAIN10 = NOT CLOSED
 ```
 
 ## Read/Validation Limitation
 
-The GitHub connector exposed Main10 in exact line ranges and allowed EOF verification, but it did not expose a locally mountable full-source artifact for direct `node --check` execution in this session. Accordingly, no claim of executable `node --check` PASS is recorded. The Owner package itself was structurally reviewed before being written.
+The current Main10 source was fully reconciled through the Git blob and exact line reads sufficient to establish its corruption and EOF. Executable `node --check` was run on the corrected candidate, not on the corrupted live source; no live-source PASS is claimed.
 
-## Next Exact Checkpoint
+This session also did not perform an independent full-content audit of every line in Main1–Main11 sufficient to declare all eleven fragments functionally complete. That remains a separate requirement before Assembly.
 
-1. Owner applies `M10-O1` → `M10-O4` exactly from `MAIN10_OWNER_SURGICAL_REPLACEMENTS_20260912.js`.
-2. Re-read Main10 from line 1 through the new EOF.
-3. Run executable syntax validation on the complete post-apply Main10 source.
-4. Verify duplicate declarations, braces, string escaping, DOM IDs, route coverage, and Console errors.
-5. Reconcile Main10 with main1..main11 and assembly only after owner verification of the fragment.
-6. Production sync is required immediately before any final Main10 closure report.
+## Current checkpoint for next session
+
+Owner applies the whole-unit Main10 replacement from Report132, then the next session must re-read Main10 from line 1 through EOF, execute syntax validation on the real post-apply source, run structural/duplicate/brace/string/router checks, then proceed to Browser/E2E and only then runtime/Assembly decisions.
