@@ -87,8 +87,29 @@ jobs:
           print('INLINE_JS_BLOCKS='+str(len(js)))
           if len(js)!=1: raise SystemExit('INLINE_JS_BLOCK_COUNT_INVALID')
           PY
-          node --check /tmp/published-main-positioned.js
-          echo NODE_CHECK=PASS
+          if node --check /tmp/published-main-positioned.js; then
+            echo NODE_CHECK=PASS
+          else
+            echo NODE_CHECK=FAIL
+            python3 - <<'PY'
+            from pathlib import Path
+            import subprocess
+            src=Path('/tmp/published-main-positioned.js').read_text(encoding='utf-8').splitlines(True)
+            candidates=[5236,5257,5258,5259,5260,5261,5262]
+            for n in candidates:
+              p=Path(f'/tmp/variant-{n}.js')
+              p.write_text(''.join(line for i,line in enumerate(src,1) if i!=n),encoding='utf-8')
+              r=subprocess.run(['node','--check',str(p)],text=True,capture_output=True)
+              print(f'VARIANT_REMOVE_LINE_{n}_EXIT={r.returncode}')
+              err=(r.stderr or r.stdout).strip().splitlines()
+              print('\n'.join(err[-4:]))
+            print('TARGET_WINDOW_START')
+            for i in range(5178,5271):
+              if i <= len(src): print(f'{i}: {src[i-1].rstrip()}')
+            print('TARGET_WINDOW_END')
+            PY
+            exit 1
+          fi
 
       - name: Governance assertions
         shell: bash
