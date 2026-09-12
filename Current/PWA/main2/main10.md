@@ -42,9 +42,9 @@ function _loadLicenseData() {
     }
 
     if (!companyId) {
-    safeHTML(byId('license-main-container'), '<div class="rw-card" style="text-align:center;padding:40px 20px"><div style="font-size:48px;margin-bottom:16px">⚠️</div><h3>تعذر تحديد سياق الشركة</h3><p style="color:#6b7280;margin-top:8px">لا يمكن تحميل بيانات الترخيص دون Company Context صالح.</p></div>');
-    return;
-}
+        safeHTML(byId('license-main-container'), '<div class="rw-card" style="text-align:center;padding:40px 20px"><div style="font-size:48px;margin-bottom:16px">⚠️</div><h3>تعذر تحديد سياق الشركة</h3><p style="color:#6b7280;margin-top:8px">لا يمكن تحميل بيانات الترخيص دون Company Context صالح.</p></div>');
+        return;
+    }
 
     supabase
         .from('app_settings')
@@ -56,7 +56,12 @@ function _loadLicenseData() {
         .then(function(res) {
             if (res.error) throw res.error;
 
-            var s = res.data || {};
+            if (!res.data) {
+                safeHTML(byId('license-main-container'), '<div class="rw-card" style="text-align:center;padding:40px 20px"><div style="font-size:48px;margin-bottom:16px">⚠️</div><h3>بيانات الترخيص غير متاحة</h3><p style="color:#6b7280;margin-top:8px">لم يتم العثور على إعدادات ترخيص مسجلة لهذه الشركة.</p></div>');
+                return;
+            }
+
+            var s = res.data;
 
             _buildFullForm({
                 licenseStatus: s.status || 'trial',
@@ -67,13 +72,7 @@ function _loadLicenseData() {
         })
         .catch(function(error) {
             console.error('RW_OwnerLicense._loadLicenseData', error);
-
-            _buildFullForm({
-                licenseStatus: 'trial',
-                trialEndDate: '',
-                subscriptionEndDate: '',
-                ownerEmail: ''
-            });
+            safeHTML(byId('license-main-container'), '<div class="rw-card" style="text-align:center;padding:40px 20px"><div style="font-size:48px;margin-bottom:16px">⚠️</div><h3>تعذر تحميل بيانات الترخيص</h3><p style="color:#6b7280;margin-top:8px">حدث خطأ أثناء قراءة إعدادات الترخيص.</p></div>');
         });
 }
 
@@ -256,13 +255,23 @@ function _bindSaveButtons() {
 }
 function _saveSettings(payload, label) {
     showLoader('جاري حفظ ' + (label || 'الإعدادات') + '...');
-    
+
     supabase.auth.getSession().then(function(sessionRes) {
-        var headers = { 'Content-Type': 'application/json' };
-        if (sessionRes && sessionRes.data && sessionRes.data.session) {
-            headers['Authorization'] = 'Bearer ' + sessionRes.data.session.access_token;
+        if (
+            !sessionRes ||
+            sessionRes.error ||
+            !sessionRes.data ||
+            !sessionRes.data.session ||
+            !sessionRes.data.session.access_token
+        ) {
+            throw new Error('جلسة المصادقة غير صالحة أو منتهية');
         }
-        
+
+        var headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + sessionRes.data.session.access_token
+        };
+
         return fetch(RW_SUPABASE_URL + '/functions/v1/save-settings', {
             method: 'POST',
             headers: headers,
@@ -270,7 +279,9 @@ function _saveSettings(payload, label) {
         });
     }).then(function(res) {
         if (!res.ok) {
-            return res.json().then(function(err) { throw new Error(err.error || 'خطأ في الخادم'); });
+            return res.json().then(function(err) {
+                throw new Error(err.error || 'خطأ في الخادم');
+            });
         }
         return res.json();
     }).then(function(json) {
@@ -283,10 +294,9 @@ function _saveSettings(payload, label) {
     }).catch(function(e) {
         hideLoader();
         showToast('فشل الاتصال: ' + (e.message || 'خطأ غير معروف'), 'error');
-        console.error(e);
+        console.error('RW_OwnerLicense._saveSettings', e);
     });
 }
-
     return { render: render };
 })();
 window.RW_OwnerLicense = RW_OwnerLicense;
