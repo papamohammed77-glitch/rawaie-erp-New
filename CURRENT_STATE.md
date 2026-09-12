@@ -1,7 +1,7 @@
 # RAWAEA ERP — CURRENT STATE
 
 **Last verified:** 2026-09-12
-**Current checkpoint:** Report136 completed the post-merge forensic review of the published system-parent file. The eleven fragments are no longer the Source of Truth. The published `erp-frontend/companies/company-1/main.html` is the authoritative current target. Structural validation passes, but JavaScript syntax is not yet closed. Owner correction is required before helper-file integration or Gold/Diamond closure.
+**Current checkpoint:** Report137 completed a fresh forensic recheck against the current published `erp-frontend/companies/company-1/main.html` after changes that occurred after Report136. The published main remains the authoritative Source of Truth. Structural gates pass; JavaScript syntax remains OPEN at the current live failure on line 2278. The owner must apply only the exact remaining surgical repairs documented in Report137 before the next syntax gate.
 
 ## CRITICAL GOLD / DIAMOND MISSION
 
@@ -13,13 +13,13 @@
 erp-frontend/companies/company-1/main.html
 ```
 
-Current verified identity:
+Current verified identity from the latest forensic Action run:
 
 ```text
-Blob SHA = 327e2d966d1520c1391a0b0dc72cc0352f944ca7
-SHA256   = 64211035d623a75e17d2452e2c2f5916230dd00b5e9d0e9439b9515188e98294
+Git HEAD = cfd9801b13b5601fe5d13777a20bf4f2f9a0eff7
+SHA256   = 3d60ffd0b85537fcef6e2941081b6b01ea5568f2ae071cdc38c45dd7f02ab885
 Lines    = 17,415
-Bytes    = 933,355
+Bytes    = 933,483
 EOF      = </script> / </body> / </html>
 ```
 
@@ -38,17 +38,57 @@ They must not be used as reconstruction Source of Truth for the published main f
 
 - Study before modification.
 - Historical contract before behavioral change.
-- Production claims must be checked against current Production.
+- Current Production/source must be verified before claims.
 - No global replacement when surgical repair is possible.
 - Owner performs `main.html` edits.
 - Assistant performs proven Production DB/Edge changes.
-- No closure claim without actual runtime verification.
+- No closure claim without actual runtime/syntax verification.
+- Reports are evidence/search aids, not current truth.
 
-## Report136 — Published Main Forensic Recheck
+## Report136 vs Current Reality
 
-`doc/Draft/Reprots/Report136_Published_Main_Forensic_Recheck_20260912.md`
+Report136 recorded a 15-item syntax repair set. A fresh check against the current source proved that two items are already correct:
 
-Confirmed full-file results:
+```text
+1971 = correct in current source
+9010 = correct in current source
+```
+
+They must not be changed again.
+
+The remaining owner repair set is documented in:
+
+`doc/Draft/Reprots/Report137_Published_Main_Current_Forensic_Syntax_20260912.md`
+
+Remaining items:
+
+```text
+2278
+2283
+2311
+2316
+4806
+4904
+4908
+11142
+14457
+14572–14574
+16221–16223
+16569
+16574
+```
+
+## Latest Live Forensic Result
+
+Latest known `erp-frontend` forensic workflow:
+
+```text
+Run        = 34689230824
+Commit     = cfd9801b13b5601fe5d13777a20bf4f2f9a0eff7
+Conclusion = failure
+```
+
+The structural gate passed:
 
 ```text
 HTML_OPEN/CLOSE   = 1/1
@@ -60,59 +100,40 @@ INCOMPLETE_MARKERS = []
 DIRECT_PHYSICAL_WRITERS = []
 ```
 
-JavaScript syntax is still OPEN. Confirmed source repairs:
+The exact current syntax failure is:
 
 ```text
-1971
-2278
-2283
-2311
-2316
-4806
-4904
-4908
-9010
-11142
-14457
-14572–14574
-16221–16223
-16569
-16574
+/tmp/main-positioned.js:2278
+SyntaxError: Invalid or unexpected token
 ```
 
-The full current replacement lines/blocks are documented in Report136.
-
-### Important non-global rule
-
-Do not replace all `\\'` or `\'` occurrences. Many are correct. At line 9010, the regex literal `.replace(/'/g, "\\'")` is valid and must remain unchanged; only the malformed generated `onclick` escaping is repaired.
-
-## Validation status
-
-```text
-PUBLISHED MAIN SOURCE VERIFIED = PASS
-FULL FILE SIZE/EOF VERIFIED = PASS
-HTML STRUCTURE = PASS
-INCOMPLETE MARKERS = PASS
-NODE CHECK ORIGINAL = FAIL
-OWNER MAIN.HTML REPAIR = PENDING
-MAIN HTML DEPLOYMENT BY ASSISTANT = NONE
-PRODUCTION DB/EDGE CHANGE FOR THIS FRONTEND CHECKPOINT = NONE
-HELPER FILE INTEGRATION = DEFERRED
-ASSEMBLY CLOSURE = NO
-GOLD/DIAMOND CLOSURE = NO
-```
+The failure source is the doubled escaping inside the generated `onclick` string at line 2278.
 
 ## Assembly governance
 
-`rawaie-erp-New/.github/workflows/forensic_main_assembly.yml` now performs published-file verification only. It no longer reconstructs the published file from the eleven fragments or `New-main`.
+`rawaie-erp-New/.github/workflows/forensic_main_assembly.yml` is currently aligned with the correct Source of Truth:
 
-Permanent published-file gate:
+```text
+https://raw.githubusercontent.com/papamohammed77-glitch/erp-frontend/main/companies/company-1/main.html
+```
 
-`erp-frontend/.github/workflows/cto_main_html_forensic_20260912.yml`
+It is a verification gate only and does not reconstruct or overwrite the published main from historical fragments.
 
-Its contract is to inspect the original published file itself and fail until actual syntax is valid.
+`erp-frontend/.github/workflows/cto_main_html_forensic_20260912.yml` is the permanent gate that reads and validates the published file itself.
 
-## Helper files
+No workflow path change is required at this checkpoint.
+
+## Owner/Main HTML Rule
+
+The assistant must not edit:
+
+```text
+erp-frontend/companies/company-1/main.html
+```
+
+The owner applies the exact delete/replace instructions from Report137. Each requested replacement is a complete line/block with an identifiable line number and endpoint.
+
+## Helper Files
 
 Do not advance to:
 
@@ -123,19 +144,66 @@ Current/PWA/register-sw.js
 Current/PWA/manifest.json
 ```
 
-until the owner repairs `main.html` and the fresh original-source syntax gate passes.
+until the published main passes the original-source syntax gate.
 
-## Functional closure
+## Functional Completion Status
 
-Not yet proven. Syntax success will only unlock the next stage. Gold/Diamond functional closure still requires integrated verification of inventory, order lifecycle, runsheet order-by-order fulfillment, loading, delivery, refusal/return, counting, field applications, finance, HR, CRM, reports, and real-time synchronization.
+Still OPEN.
 
-## Next exact checkpoint
+Syntax success is only a gate. Gold/Diamond functional completion still requires integrated validation of:
 
-1. Apply only the exact Report136 owner repairs to the published `erp-frontend/companies/company-1/main.html`.
-2. Re-read the published file from first byte to EOF.
-3. Recompute SHA/line count.
-4. Run the permanent published-main forensic gate on the original source.
-5. Stop again on any remaining syntax error.
-6. Only after syntax PASS begin helper-file integration and functional/E2E verification.
+```text
+Inventory
+Order lifecycle
+Runsheet order-by-order fulfillment
+Picking
+Loading
+Delivery
+Refusal / Return
+Unloading
+Counting / Inventory Count
+Field applications
+Purchasing
+Finance
+HR
+CRM
+Reports
+Real-time synchronization
+Cross-module consistency
+```
+
+The requirement that these modules become functionally complete rather than merely structural remains the ultimate mission and is not satisfied by this syntax checkpoint.
+
+## Production
+
+No Production DB/Edge modification is required for the current `main.html` syntax checkpoint.
+
+Any Production work must continue to use current Production evidence first and must be documented separately.
+
+## Next Exact Checkpoint
+
+```text
+OWNER APPLIES Report137 REMAINING REPAIRS
+→ RE-READ PUBLISHED main.html FROM FIRST BYTE TO EOF
+→ RECOMPUTE SHA256 / BYTES / LINES
+→ RUN cto_main_html_forensic_20260912.yml
+→ RUN ORIGINAL-SOURCE NODE CHECK
+→ IF FAIL: ISSUE NEXT EXACT OWNER CHANGESET
+→ IF PASS: START HELPER FILE INTEGRATION
+```
+
+## Closure Status
+
+```text
+PUBLISHED SOURCE VERIFIED       = PASS
+STRUCTURAL VALIDATION            = PASS
+INCOMPLETE MARKERS               = PASS
+DIRECT PHYSICAL WRITER SCAN      = PASS
+JAVASCRIPT SYNTAX                = OPEN
+OWNER CHANGESET                  = PENDING
+HELPER INTEGRATION               = BLOCKED BY SYNTAX
+ASSEMBLY CLOSURE                 = NO
+GOLD/DIAMOND FUNCTIONAL CLOSURE  = NO
+```
 
 # END CURRENT STATE
