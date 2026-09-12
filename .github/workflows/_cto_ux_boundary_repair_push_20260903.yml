@@ -1,0 +1,57 @@
+name: CTO UX Boundary Repair Push
+on:
+  push:
+    branches: [cto/ux-product-closure-run2-20260903]
+permissions:
+  contents: write
+jobs:
+  repair:
+    if: github.event.head_commit.message != '[CTO-UX] repair New-main product UX injection boundaries'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cto/ux-product-closure-run2-20260903
+          fetch-depth: 2
+      - name: Deterministic repair of product UX wrappers in New-main only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess, tempfile, hashlib
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          assert len(s.encode())>500000 and '<html lang="ar" dir="rtl">' in s
+          assert s.count('window.byId=byId;')==1 and s.count('window.safeText=safeText;')==1
+          # Strip all prior wrappers, including accidental copies embedded inside JS print templates.
+          s=re.sub(r'<style id="RAWAEA_PRODUCT_UX_STYLE">[\s\S]*?</style>','',s)
+          s=re.sub(r'<script id="RAWAEA_PRODUCT_UX_RUNTIME">[\s\S]*?</script>','',s)
+          old='<div class="rw-login-logo">ر</div><div class="rw-company-name">الروائع ERP</div>'
+          new='<div id="rw-login-company-logo" class="rw-login-logo" aria-label="شعار الشركة">ر</div><div id="rw-login-company-name" class="rw-company-name">الروائع ERP</div>'
+          if old in s:s=s.replace(old,new,1)
+          assert s.count('id="rw-login-company-logo"')==1 and s.count('id="rw-login-company-name"')==1
+          style='''<style id="RAWAEA_PRODUCT_UX_STYLE">/* RAWAEA_PRODUCT_UX_CLOSURE_20260903 */
+          .rw-login-page{position:relative;overflow:hidden}.rw-login-card{position:relative;overflow:hidden;padding:48px!important;border-radius:36px!important;box-shadow:0 30px 80px rgba(0,0,0,.18)!important}.rw-login-card:before{content:"";position:absolute;left:0;right:0;top:0;height:7px;background:linear-gradient(90deg,#2563eb,#06b6d4)}.rw-login-title{font-size:64px!important;line-height:1.15!important}.rw-login-logo{width:120px!important;height:120px!important;border-radius:30px!important;overflow:hidden;box-shadow:0 18px 38px rgba(37,99,235,.22)!important}.rw-login-brand-image{width:100%;height:100%;object-fit:contain;padding:10px}.rw-company-name{font-size:34px!important}.rw-login-form{gap:24px!important}.rw-input{height:56px!important}.rw-login-btn{height:64px!important}.rw-login-footer{margin-top:8px!important}.rw-sidebar-user{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border:1px solid #f1f5f9;border-radius:14px;background:#f8fafc}.rw-sidebar-user-avatar{width:38px;height:38px;min-width:38px;border-radius:12px;background:linear-gradient(135deg,#0ea5e9,#2563eb);color:#fff;display:grid;place-items:center;font-weight:900}.rw-sidebar-user-name{font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rw-sidebar-user-role{font-size:10px;color:var(--muted);margin-top:2px}.rw-sidebar-link.active{background:var(--pl)!important;color:var(--p)!important}@media(max-width:650px){.rw-login-title{font-size:34px!important}.rw-login-card{padding:28px 22px!important}.rw-login-logo{width:104px!important;height:104px!important}.rw-company-name{font-size:28px!important}}</style>'''
+          head=re.search(r'</head>\s*<body>',s,re.I); assert head
+          s=s[:head.start()]+style+s[head.start():]
+          runtime='''<script id="RAWAEA_PRODUCT_UX_RUNTIME">(function(){'use strict';function id(x){return document.getElementById(x)}function sync(){var a=window.RW_STATE&&RW_STATE.app||{},c=a.company||{},n=String(c.name||'الروائع ERP');var cn=id('rw-login-company-name')||document.querySelector('.rw-company-name');if(cn){cn.id='rw-login-company-name';cn.textContent=n}var lg=id('rw-login-company-logo')||document.querySelector('.rw-login-logo'),im=id('rw-login-brand-image');if(lg){lg.id='rw-login-company-logo';if(c.logo){if(!im){im=document.createElement('img');im.id='rw-login-brand-image';im.className='rw-login-brand-image';im.alt='شعار الشركة';lg.textContent='';lg.appendChild(im)}im.src=String(c.logo);im.style.display='block'}else if(im){im.style.display='none';im.removeAttribute('src')}}var sl=id('rw-sidebar-company-name');if(sl)sl.textContent=n;var sb=id('rw-sidebar-brand-logo');if(sb&&c.logo)sb.src=c.logo;var top=document.querySelector('.rw-sidebar-top');if(top&&a.currentUser){var b=id('rw-sidebar-user-card');if(!b){b=document.createElement('div');b.id='rw-sidebar-user-card';b.className='rw-sidebar-user';b.innerHTML='<div id="rw-sidebar-user-avatar" class="rw-sidebar-user-avatar">م</div><div><div id="rw-sidebar-user-name" class="rw-sidebar-user-name"></div><div id="rw-sidebar-user-role" class="rw-sidebar-user-role"></div></div>';top.appendChild(b)}var u=a.currentUser;id('rw-sidebar-user-name').textContent=String(u.name||u.email||'مستخدم');id('rw-sidebar-user-role').textContent=String(u.role||'—');id('rw-sidebar-user-avatar').textContent=String(u.name||'م').charAt(0)}}try{var rem=localStorage.getItem('rawaea_remember_email')||'';if(rem&&id('rw-username')){id('rw-username').value=rem;if(id('rw-remember'))id('rw-remember').checked=true}}catch(e){}var fg=id('rw-forgot');if(fg&&!fg.dataset.productUx){fg.dataset.productUx='1';fg.addEventListener('click',function(e){e.preventDefault();var em=((id('rw-username')||{}).value||'').trim();if(!em){if(typeof toast==='function')toast('أدخل البريد الإلكتروني أولاً','warning');return}supabase.auth.resetPasswordForEmail(em,{redirectTo:window.location.origin+window.location.pathname}).then(function(r){if(typeof toast==='function')toast(r.error?r.error.message:'تم إرسال رابط إعادة تعيين كلمة المرور',r.error?'error':'success')}).catch(function(r){if(typeof safeText==='function')safeText(id('rw-login-error'),r.message||String(r));if(id('rw-login-error'))id('rw-login-error').classList.remove('hidden')})})}sync();setTimeout(sync,1000);setTimeout(sync,2500);window.RW_ProductUX=window.RW_ProductUX||{sync:sync,version:'2026-09-03'};})();</script>'''
+          tail=re.search(r'</body>\s*</html>\s*$',s,re.I); assert tail
+          s=s[:tail.start()]+runtime+'\n'+s[tail.start():]
+          assert s.count('RAWAEA_PRODUCT_UX_STYLE')==1 and s.count('RAWAEA_PRODUCT_UX_RUNTIME')==1 and s.count('RAWAEA_PRODUCT_UX_CLOSURE_20260903')==1
+          scripts=re.findall(r'<script(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>',s,re.I)
+          f=Path(tempfile.mkstemp(suffix='.js')[1]); f.write_text('\n'.join(scripts),encoding='utf-8')
+          try: subprocess.run(['node','--check',str(f)],check=True,capture_output=True,text=True)
+          finally: f.unlink(missing_ok=True)
+          p.write_text(s,encoding='utf-8')
+          print('REPAIRED_TARGET_BYTES='+str(len(s.encode())))
+          print('REPAIRED_TARGET_SHA256='+hashlib.sha256(s.encode()).hexdigest())
+          PY
+          changed="$(git diff --name-only)"
+          test "$changed" = 'Current/PWA/New-main'
+          git add Current/PWA/New-main
+          git diff --cached --check
+          git config user.name 'RAWAEA CTO Controlled Writer'
+          git config user.email 'rawaea-cto@users.noreply.github.com'
+          git commit -m '[CTO-UX] repair New-main product UX injection boundaries'
+          git push origin HEAD:cto/ux-product-closure-run2-20260903
