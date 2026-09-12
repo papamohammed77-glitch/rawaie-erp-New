@@ -254,13 +254,15 @@ var RW_HR = (function() {
     }
 
     async function _setLeaveStatus(id,status,emp) {
-        var currentUser=(RW_STATE&&RW_STATE.app&&RW_STATE.app.currentUser)||{};
-        var res=await supabase.from('employee_leave_requests').update({status:status,approved_by:currentUser.email||'',approved_at:new Date().toISOString()}).eq('id',id).eq('company_id',_companyId());
+        var res=await supabase.rpc('hr_set_leave_status',{
+            p_leave_request_id:id,
+            p_status:status,
+            p_notes:null
+        });
         if(res.error){showToast('فشل تحديث الإجازة: '+res.error.message,'error');return;}
         showToast(status==='approved'?'تم اعتماد الإجازة':'تم رفض الإجازة','success');
         _openModal(emp.id);
     }
-
     async function _uploadDocument(emp) {
         var html='<div class="text-right space-y-3"><select id="hr-doc-type" class="w-full p-2 border rounded"><option value="identity">صورة الهوية</option><option value="contract">عقد العمل</option><option value="other">مستند آخر</option></select><input id="hr-doc-expiry" type="date" class="w-full p-2 border rounded"><input id="hr-doc-file" type="file" class="w-full p-2 border rounded"><textarea id="hr-doc-notes" class="w-full p-2 border rounded" placeholder="ملاحظات"></textarea></div>';
         Swal.fire({title:'رفع مستند الموظف',html:html,showCancelButton:true,confirmButtonText:'رفع',cancelButtonText:'إلغاء',preConfirm:async function(){var file=byId('hr-doc-file').files[0];if(!file)throw new Error('اختر ملفًا أولاً');var company=_companyId();var safeName=file.name.replace(/[^a-zA-Z0-9._-]+/g,'_');var path=company+'/'+emp.id+'/'+Date.now()+'_'+safeName;var up=await supabase.storage.from('employee-documents').upload(path,file,{upsert:false,contentType:file.type||'application/octet-stream'});if(up.error)throw up.error;var ins=await supabase.from('employee_documents').insert({company_id:company,employee_id:emp.id,document_type:byId('hr-doc-type').value,storage_path:path,document_name:file.name,mime_type:file.type||null,expires_at:byId('hr-doc-expiry').value||null,status:'active',notes:byId('hr-doc-notes').value.trim()||null,created_by:(RW_STATE&&RW_STATE.app&&RW_STATE.app.currentUser&&RW_STATE.app.currentUser.email)||''});if(ins.error){await supabase.storage.from('employee-documents').remove([path]);throw ins.error;}return true;}}).then(function(res){if(res.isConfirmed){showToast('تم رفع المستند','success');Swal.close();_openModal(emp.id);}}).catch(function(e){showToast('فشل رفع المستند: '+(e.message||'خطأ غير معروف'),'error');});
