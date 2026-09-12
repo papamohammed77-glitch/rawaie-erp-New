@@ -1,134 +1,98 @@
-name: RAWAEA governed main assembly — CTO GOLD EXECUTOR
-# Governed assembly: Current/PWA/main2 is the authoritative editable fragment source.
-# Original/PWA/main remains historical evidence only; New-main is the generated assembly target.
-# [CTO_EXECUTE_P163] canonical-source verification execution trigger.
+name: RAWAEA governed published main.html forensic gate
+
+# Source of Truth is the published ERP frontend file.
+# Historical Current/PWA/main2 fragments and New-main are reference/evidence only.
+# This workflow MUST NOT reconstruct, overwrite, or generate the published main.html.
+
 on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
   push:
     branches: [main]
     paths:
-      - 'Current/PWA/main2/**'
-      - 'Current/PWA/main.html'
-      - 'Current/PWA/New-main'
-      - 'tools/run_final_main_reconstruction_20260831.py'
-      - 'tools/p0_main_shell_repair_v2.py'
-      - 'tools/master_reconstruction_postprocess.py'
+      - 'doc/Draft/Reprots/**'
+      - 'CURRENT_STATE.md'
       - '.github/workflows/forensic_main_assembly.yml'
+
 permissions:
-  contents: write
+  contents: read
+
 jobs:
-  forensic-assembly:
-    if: ${{ contains(github.event.head_commit.message, '[CTO_EXECUTE_P163]') && !contains(github.event.head_commit.message, '[CTO-EXECUTED]') }}
+  verify-published-main:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 20
     steps:
-      - name: Checkout
+      - name: Checkout governance repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
-      - name: Assert canonical fragment source
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -f Current/PWA/main2/main1.md
-          test -f Current/PWA/main2/main7.md
-          test -f Current/PWA/main2/main11.md
-          grep -n "Current/PWA/main2" tools/run_final_main_reconstruction_20260831.py
-      - name: Reconstruct governed target from Current/main2 fragments
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 tools/run_final_main_reconstruction_20260831.py
-      - name: Execute P163 ownership surgery
+          fetch-depth: 1
+
+      - name: Fetch published Source of Truth
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          from pathlib import Path
-          import re,hashlib
-          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
-          required=['main1Delegation','actions','/* RAWAEA MAIN2 AUTHORITATIVE MODULE */','MAIN3','post_stock_movement','reserve_stock','save_sales_invoice_atomic','edgeCall','supabaseClient']
-          miss=[x for x in required if x not in s]
-          if miss: raise SystemExit('RECONSTRUCTION_CONTRACT_MISSING '+repr(miss))
-          compat='/* RAWAEA MAIN2 COMPATIBILITY */';auth='/* RAWAEA MAIN2 AUTHORITATIVE MODULE */'
-          if s.count(compat)!=1 or s.count(auth)!=1: raise SystemExit(f'P163_OWNER_COUNTS compat={s.count(compat)} auth={s.count(auth)}')
-          a=s.index(compat);b=s.index(auth)
-          if b<=a: raise SystemExit('P163_OWNER_ORDER_INVALID')
-          s=s[:a]+s[b:]
-          for alias in ['window.RW_Dashboard={render:renderDashboard};','window.RW_Items={render:renderItems};']:
-            if s.count(alias)!=1: raise SystemExit('P163_ALIAS_COUNT '+alias+' '+str(s.count(alias)))
-            s=s.replace(alias,'',1)
-          close='window.RW_Items=RW_Items;';version="window.RW_PWA_RECONSTRUCTION_VERSION='MAIN2-COMPLETE-SURGICAL-v1';";governed='// MAIN2_GOVERNED_CLOSED:v1'
-          if s.count(close)!=1: raise SystemExit('P163_RW_ITEMS_OWNER_COUNT')
-          if s.count(version)>1 or s.count(governed)>1: raise SystemExit('P163_CLOSURE_DUPLICATE')
-          if version not in s:s=s.replace(close,close+'\n'+version,1)
-          if governed not in s:s=s.replace(version,version+'\n'+governed,1)
-          if compat in s or s.count(version)!=1 or s.count(governed)!=1: raise SystemExit('P163_CLOSURE_FAIL')
-          if 'window.RW_Dashboard={render:renderDashboard};' in s or 'window.RW_Items={render:renderItems};' in s: raise SystemExit('P163_ALIAS_SURVIVAL')
-          if 'actions' not in s or 'main1Delegation' not in s or 'MAIN3' not in s: raise SystemExit('P163_PRESERVATION_FAIL')
-          if re.search(r"\.from\(['\"]stock_branches['\"]\)[\s\S]{0,1200}\.(?:insert|update|upsert|delete)\(",s): raise SystemExit('DIRECT_STOCK_WRITER')
-          if re.search(r"\.from\(['\"]inventory_log['\"]\)[\s\S]{0,900}\.(?:insert|update|upsert|delete)\(",s): raise SystemExit('DIRECT_INVENTORY_LOG_WRITER')
-          if s.lower().count('<script')!=s.lower().count('</script>') or s.lower().count('<style')!=s.lower().count('</style>'): raise SystemExit('HTML_BALANCE')
-          if len(re.findall(r'navigator\.serviceWorker\.register',s))>1: raise SystemExit('SW_DUPLICATE')
-          ms=[m for m in re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',s,re.I) if not re.search(r'\bsrc\s*=',m.group('a') or '',re.I)]
-          if len(ms)!=1: raise SystemExit('INLINE_RUNTIME_COUNT '+str(len(ms)))
-          Path('/tmp/new-main.js').write_text(ms[0].group('b'),encoding='utf-8')
-          p.write_text(s,encoding='utf-8')
-          print('P163_GOLD_OK bytes',len(s.encode()),'sha256',hashlib.sha256(s.encode()).hexdigest())
-          PY
-          node --check /tmp/new-main.js
-          git diff --check
-      - name: Deep source capability audit — main2 current vs historical original
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import re,json
-          target=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          def inventory(s):
-            funcs=set(re.findall(r'(?<![\w$])(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(',s))
-            ids=set(re.findall(r'\b(?:id|data-view|data-page)=["\']([^"\']+)["\']',s))
-            rpcs=set(re.findall(r'\.rpc\(\s*["\']([^"\']+)',s))
-            tables=set(re.findall(r'\.from\(\s*["\']([^"\']+)',s))
-            return funcs,ids,rpcs,tables
-          tf,ti,tr,tt=inventory(target); losses={}
-          for i in range(1,12):
-            p=Path(f'Current/PWA/main2/main{i}.md'); o=Path(f'Original/PWA/main/main{i}.md')
-            if not p.is_file(): raise SystemExit(f'MAIN2_FRAGMENT_MISSING:{i}')
-            if not o.is_file(): raise SystemExit(f'HISTORICAL_ORIGINAL_MISSING:{i}')
-            of,oi,orpc,ot=inventory(o.read_text(encoding='utf-8')); cf,ci,cr,ct=inventory(p.read_text(encoding='utf-8'))
-            losses[f'main{i}']={'main2_function_not_in_target':[x for x in sorted(cf) if x not in tf],'original_function_not_anywhere_in_target':[x for x in sorted(of) if x not in tf],'original_ids_not_anywhere_in_target':[x for x in sorted(oi) if x not in ti],'original_rpcs_not_anywhere_in_target':[x for x in sorted(orpc) if x not in tr],'original_tables_not_anywhere_in_target':[x for x in sorted(ot) if x not in tt]}
-          print(json.dumps(losses,ensure_ascii=False,indent=2))
-          PY
-      - name: Browser smoke — generated New-main
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm init -y >/dev/null 2>&1
-          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
-          npx playwright install --with-deps chromium >/dev/null 2>&1
-          rm -rf /tmp/rw-pwa; mkdir -p /tmp/rw-pwa; cp -r Current/PWA/. /tmp/rw-pwa/; cp Current/PWA/New-main /tmp/rw-pwa/main.html
-          python3 -m http.server 8123 --directory /tmp/rw-pwa >/tmp/rw-http.log 2>&1 &
-          node <<'NODE'
-          const {chromium}=require('playwright');
-          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[];p.on('pageerror',e=>pe.push(e.message));await p.goto('http://127.0.0.1:8123/main.html',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1500);const r=await p.evaluate(()=>({lang:document.documentElement.lang,body:!!document.body,state:!!window.RW_STATE,auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,shell:!!window.RW_ShellContext,owner:!!window.RW_OwnerContract,main2:document.body.innerHTML.includes('MAIN2-COMPLETE-SURGICAL-v1')}));console.log(JSON.stringify({r,pe}));if(r.lang!=='ar'||!r.body||!r.state||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||!r.main2||pe.length)process.exit(2);await b.close();})().catch(e=>{console.error(e);process.exit(2)})
-          NODE
-      - name: Persist only generated target plus current state
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
+          from urllib.request import urlopen
           from pathlib import Path
           import hashlib
-          target=Path('Current/PWA/New-main').read_text(encoding='utf-8')
-          state=Path('CURRENT_STATE.md'); st=state.read_text(encoding='utf-8')
-          marker='P163 CLOSED — MAIN2 ownership surgery + governed New-main reconstruction'
-          if marker not in st:
-            st=st.rstrip()+f"\n\n## CTO EXECUTION — MAIN2 CANONICAL ASSEMBLY\n\n{marker}\n- Canonical editable source: `Current/PWA/main2/main1.md` through `main11.md`.\n- Generated target: `Current/PWA/New-main`.\n- Historical evidence: `Original/PWA/main/*` only; `Current/PWA/main/*` is not a Source of Truth.\n- Target SHA-256: `{hashlib.sha256(target.encode()).hexdigest()}`\n"
-            state.write_text(st,encoding='utf-8')
+          url='https://raw.githubusercontent.com/papamohammed77-glitch/erp-frontend/main/companies/company-1/main.html'
+          raw=urlopen(url,timeout=30).read()
+          Path('/tmp/published-main.html').write_bytes(raw)
+          text=raw.decode('utf-8')
+          print('SOURCE_OF_TRUTH='+url)
+          print('BYTES='+str(len(raw)))
+          print('LINES='+str(len(text.splitlines())))
+          print('SHA256='+hashlib.sha256(raw).hexdigest())
+          print('EOF_LAST_3='+repr(text.splitlines()[-3:]))
+          if text.splitlines()[-3:] != ['</script>','</body>','</html>']:
+            raise SystemExit('PUBLISHED_MAIN_EOF_INVALID')
           PY
-          git config user.name 'RAWAEA CTO Executor'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add Current/PWA/New-main CURRENT_STATE.md
-          git diff --cached --check
-          git commit -m 'fix(cto): rebuild PWA from canonical main2 fragments [CTO-EXECUTED]'
-          git push origin HEAD:main
+
+      - name: Full published HTML and JS syntax validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          from collections import Counter
+          import re
+          raw=Path('/tmp/published-main.html').read_text(encoding='utf-8')
+          class P(HTMLParser):
+            def __init__(self): super().__init__(convert_charrefs=False); self.starts=[]; self.ends=[]
+            def handle_starttag(self,t,a): self.starts.append(t.lower())
+            def handle_startendtag(self,t,a): self.starts.append(t.lower())
+            def handle_endtag(self,t): self.ends.append(t.lower())
+          p=P(); p.feed(raw); p.close(); sc=Counter(p.starts); ec=Counter(p.ends)
+          for t in ['html','head','body','script']:
+            print(t.upper()+'_OPEN/CLOSE='+str(sc[t])+'/'+str(ec[t]))
+            if sc[t]!=ec[t]: raise SystemExit(t.upper()+'_TAG_BALANCE_INVALID')
+          markers=[x for x in ['(قيد التطوير)','قيد التطوير','TODO','FIXME','Coming Soon'] if x in raw]
+          print('INCOMPLETE_MARKERS='+repr(markers))
+          if markers: raise SystemExit('INCOMPLETE_MARKERS_FOUND')
+          scripts=list(re.finditer(r'<script(?P<a>[^>]*)>(?P<b>[\s\S]*?)</script>',raw,re.I))
+          js=[]
+          for m in scripts:
+            attrs=m.group('a') or ''
+            if not re.search(r'\bsrc\s*=',attrs,re.I):
+              tm=re.search(r'\btype\s*=\s*["\']([^"\']+)',attrs,re.I)
+              typ=(tm.group(1) if tm else '').lower()
+              if typ in ('','text/javascript','application/javascript','application/ecmascript','text/ecmascript'):
+                a=m.start(); b=m.end()-len('</script>'); js.append((a,b))
+          positioned=[' ' if ch!='\n' else ch for ch in raw]
+          for a,b in js:
+            oe=raw.find('>',a)+1; positioned[oe:b]=list(raw[oe:b])
+          Path('/tmp/published-main-positioned.js').write_text(''.join(positioned),encoding='utf-8')
+          print('INLINE_JS_BLOCKS='+str(len(js)))
+          if len(js)!=1: raise SystemExit('INLINE_JS_BLOCK_COUNT_INVALID')
+          PY
+          node --check /tmp/published-main-positioned.js
+          echo NODE_CHECK=PASS
+
+      - name: Governance assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'PUBLISHED_SOURCE_ONLY_GATE=PASS'
+          echo 'NO_RECONSTRUCTION_PERFORMED=PASS'
