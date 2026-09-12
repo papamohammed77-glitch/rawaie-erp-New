@@ -1,0 +1,77 @@
+name: CTO Forensic Main2 Syntax Gate
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Current/PWA/main2/main1.md'
+      - 'Current/PWA/main2/main2.md'
+      - 'Current/PWA/main2/main3.md'
+      - 'Current/PWA/main2/main4.md'
+      - 'Current/PWA/main2/main5.md'
+      - 'Current/PWA/main2/main6.md'
+      - 'Current/PWA/main2/main7.md'
+      - 'Current/PWA/main2/main8.md'
+      - 'Current/PWA/main2/main9.md'
+      - 'Current/PWA/main2/main10.md'
+      - 'Current/PWA/main2/main11.md'
+      - '.github/workflows/_cto_forensic_main2_syntax_20260912.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Assemble Current main2 and run Node syntax checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess, tempfile, hashlib
+          root=Path('Current/PWA/main2')
+          parts=[root/f'main{i}.md' for i in range(1,12)]
+          for p in parts:
+              assert p.exists(), f'MISSING {p}'
+          p1=parts[0].read_text(encoding='utf-8-sig')
+          scripts=list(re.finditer(r'<script(?![^>]*\\bsrc\\s*=)[^>]*>',p1,re.I))
+          assert scripts, 'NO_INLINE_SCRIPT_IN_MAIN1'
+          app=p1[scripts[-1].end():]
+          cut=app.rfind('</script>')
+          assert cut>=0, 'MAIN1_SCRIPT_EOF_MISSING'
+          app=app[:cut]
+          chunks=[app.rstrip()]
+          for p in parts[1:]:
+              s=p.read_text(encoding='utf-8-sig')
+              chunks.append(s.rstrip())
+          js='\\n\\n'.join(chunks)+'\\n'
+          out=Path('/tmp/raw-main2.js')
+          out.write_text(js,encoding='utf-8')
+          print('MAIN2_SHA256='+hashlib.sha256(js.encode()).hexdigest())
+          print('MAIN2_BYTES='+str(len(js.encode())))
+          print('MAIN2_LINES='+str(len(js.splitlines())))
+          subprocess.run(['node','--check',str(out)],check=True)
+          print('MAIN2_NODE_SYNTAX=PASS')
+          PY
+      - name: Main11 local structural gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('Current/PWA/main2/main11.md').read_text(encoding='utf-8-sig')
+          assert s.count('var RW_HR = (function() {')==1
+          assert s.count('window.RW_HR = RW_HR;')==1
+          assert s.count('var RW_CRM = (function() {')==1
+          assert s.count('window.RW_CRM = RW_CRM;')==1
+          assert 'async function _setLeaveStatus(id,status,emp)' in s
+          assert "var toISO=function(id){var v=byId(id).value;return v?new Date(v).toISOString():null;};" in s
+          assert '(قيد التطوير)' not in s
+          assert not s.rstrip().endswith('```')
+          print('MAIN11_STRUCTURAL_GATE=PASS')
+          PY
