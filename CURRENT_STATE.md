@@ -1,7 +1,7 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last verified:** 2026-09-12
-**Current checkpoint:** Report139 completed the forensic re-check of the current published `erp-frontend/companies/company-1/main.html`. The published main remains the only authoritative Source of Truth. Structural validation passes; JavaScript syntax is still OPEN at the current live failure on line 5236. The owner must apply the single exact surgical repair documented in Report139 before the next syntax gate.
+**Last reconciled:** 2026-09-12
+**Current checkpoint:** Report140 re-reconciled the currently published `erp-frontend/companies/company-1/main.html` against Git directly and proved that the prior Report139/CURRENT_STATE checkpoint was stale. The owner had already applied the exact Report139 syntax repair before this session. No new owner edit is currently required. A fresh Node syntax certification for the new commit is still OPEN because no new workflow result was available to certify it in this execution session.
 
 ## CRITICAL GOLD / DIAMOND MISSION
 
@@ -13,16 +13,24 @@
 erp-frontend/companies/company-1/main.html
 ```
 
-Current verified identity from the latest forensic source check:
+### Current published identity
 
 ```text
-Git HEAD = 5556651108a96e222f750484ce6f1705ccc825b4
-Blob SHA = af822b0d1f063fdca9ff0081bc085e7ab3d4d974
-SHA256   = 79071ec6cb2b5a58daec0cbfa02b77950ce9641585c3d47d4a94cd4601997d50
-Lines    = 17,415
-Bytes    = 933,387
-Header   = 2026-09-12 13:00 UTC
-EOF      = </script> / </body> / </html>
+Repository = papamohammed77-glitch/erp-frontend
+Branch     = main
+Latest Commit = 4ae32e44cad49108fa08fd56a745b639b0d660d0
+Message       = Update main.html
+Commit Date   = 2026-09-12T13:24:18Z
+Blob SHA      = 1d4987664f505ee7ab769681a3e16ecc83b7dd1d
+Header        = 2026-09-12 13:00 UTC
+```
+
+The latest commit is a single surgical correction to `RW_Roles`:
+
+```text
+5236 area:
+-                }
++               });
 ```
 
 Historical/reference only:
@@ -34,7 +42,7 @@ rawaie-erp-New/Current/PWA/main/*
 rawaie-erp-New/Current/PWA/New-main/*
 ```
 
-They must not be used as reconstruction Source of Truth for the published main file.
+They are not reconstruction Source of Truth for the published main.
 
 ## Governance
 
@@ -46,179 +54,134 @@ They must not be used as reconstruction Source of Truth for the published main f
 - Assistant performs proven Production DB/Edge changes.
 - No closure claim without actual syntax/runtime verification.
 - Reports are evidence/search aids, not current truth.
-- Unknowns and conflicts must generate evidence work rather than assumptions.
+- Unknowns and conflicts generate evidence work rather than assumptions.
 
-## Report138 vs Current Reality
-
-Report138 was valid for the prior published-main checkpoint where the syntax parser failed at line 2278. The current source has advanced beyond those historical errors.
-
-**Do not blindly reapply Report138.**
-
-The current source at HEAD `555665...` has already passed the structural audit and progressed further in JavaScript parsing. Its current syntax blocker is now in `RW_Roles` at line 5236.
-
-## Latest Live Forensic Result
-
-Latest verified `erp-frontend` forensic workflow:
+## Report140 Reconciliation
 
 ```text
-Run        = 34695651444
-Job        = 103558561309
-Commit     = 5556651108a96e222f750484ce6f1705ccc825b4
-Conclusion = failure
+doc/Draft/Reprots/Report140_Published_Main_Forensic_Syntax_R3_20260912.md
 ```
 
-Structural gate:
+Report140 proved that the previous checkpoint was stale relative to the current published repository state.
+
+### Previous checkpoint
 
 ```text
-HTML_OPEN/CLOSE   = 1/1
-HEAD_OPEN/CLOSE   = 1/1
-BODY_OPEN/CLOSE   = 1/1
-STYLE_OPEN/CLOSE  = 1/1
-SCRIPT_OPEN/CLOSE = 6/6
-INCOMPLETE_MARKERS = []
-DIRECT_PHYSICAL_WRITERS = []
+Report139 HEAD = 5556651108a96e222f750484ce6f1705ccc825b4
+Report139 Blob = af822b0d1f063fdca9ff0081bc085e7ab3d4d974
 ```
 
-Original-source JavaScript gate:
+### Current checkpoint
 
 ```text
-INLINE_JS_BLOCKS = 1
-NODE_CHECK = FAIL
+HEAD = 4ae32e44cad49108fa08fd56a745b639b0d660d0
+Blob = 1d4987664f505ee7ab769681a3e16ecc83b7dd1d
 ```
 
-Current exact syntax error:
+Therefore:
 
 ```text
-/tmp/main-positioned.js:5236
-SyntaxError: missing ) after argument list
+Report139 = historical checkpoint
+CURRENT_STATE before Report140 = stale
+Current Git = authoritative
 ```
 
-## Current Exact Owner ChangeSet
+## Exact Owner ChangeSet Status
 
-Active report:
-
-```text
-doc/Draft/Reprots/Report139_Published_Main_Forensic_Syntax_R2_20260912.md
-```
-
-Report commit:
-
-```text
-e2500dcd139ec5767478b487dfaefc12439f4359
-```
-
-Exact current source defect:
+The Report139 defect was:
 
 ```text
 RW_Roles
 saveBtn.addEventListener('click', async function() { ... })
 ```
 
-At current line `5236`, the closing line after the `catch` block is:
-
-```javascript
-                }
-```
-
-It must be:
-
-```javascript
-                });
-```
-
-The following line remains unchanged:
-
-```javascript
-                if (isEdit) {
-```
-
-Final required local form:
+The current published source now contains:
 
 ```javascript
 } catch(e) {
     hideLoader();
     showToast('فشل الاتصال بـ Edge Function', 'error');
 }
-                });
+               });
                 if (isEdit) {
 ```
 
-No function-wide replacement and no global escaping replacement is authorized.
-
-## Full-file structural status
-
-The current published file has been checked by the permanent forensic workflow as a whole. The following are PASS:
+Therefore:
 
 ```text
-Source of Truth identification       = PASS
-File size / line count capture        = PASS
-EOF integrity                         = PASS
-HTML structure                        = PASS
-Incomplete marker gate                = PASS
-Direct physical stock writer scan     = PASS
+Report139 exact repair = ALREADY APPLIED
+New owner correction required = NO
 ```
 
-JavaScript syntax remains:
+Do not repeat the same edit.
+
+## Current Published Main Structural Status
+
+Direct source checks performed during Report140:
 
 ```text
-OPEN
+Start of file = valid HTML document start
+EOF = </script> / </body> / </html>
+Incomplete marker search = PASS
+Direct stock_branches write probe = no direct update hit
+Direct inventory_log write probe = no write path found by source probe
 ```
+
+The permanent forensic workflow remains:
+
+```text
+.github/workflows/cto_main_html_forensic_20260912.yml
+```
+
+and performs:
+
+```text
+Full-file structural audit
+Exact JavaScript syntax gate
+Incomplete marker gate
+Direct physical writer scan
+node --check
+```
+
+## Fresh Syntax Status
+
+Important:
+
+```text
+Known Report139 Syntax Defect = FIXED IN CURRENT SOURCE
+Fresh NODE_CHECK_ORIGINAL = OPEN / NOT CERTIFIED IN THIS SESSION
+```
+
+The latest GitHub status result available through the connected API for commit `4ae32e44...` did not expose a new check result; therefore the state must not be promoted to `NODE_CHECK_ORIGINAL=PASS` without an actual fresh run result.
 
 ## Assembly Governance
 
-`rawaie-erp-New/.github/workflows/forensic_main_assembly.yml` was checked against the current architecture.
+Verified current:
 
-It correctly fetches the published file directly:
+```text
+rawaie-erp-New/.github/workflows/forensic_main_assembly.yml
+```
+
+It fetches the published Source of Truth directly:
 
 ```text
 https://raw.githubusercontent.com/papamohammed77-glitch/erp-frontend/main/companies/company-1/main.html
 ```
 
-It does not reconstruct or overwrite the published main from historical fragments.
+It explicitly forbids reconstruction/overwrite of the published main from historical fragments.
 
 Therefore:
 
 ```text
-forensic_main_assembly.yml Source of Truth = CORRECT
-Path correction required               = NO
+Assembly Source of Truth = CORRECT
+Path correction = NOT REQUIRED
 ```
-
-## Historical cross-check
-
-The current `RW_Roles` syntax defect is also present in the immediate historical parent commit `cfd9801b13b5601fe5d13777a20bf4f2f9a0eff7`.
-
-This means the defect was not created solely by the newest commit; it became the next visible parser failure after earlier syntax blockers were cleared.
-
-## Helper Files
-
-Do not advance to:
-
-```text
-Current/PWA/core.js
-Current/PWA/sw.js
-Current/PWA/register-sw.js
-Current/PWA/manifest.json
-```
-
-until:
-
-```text
-NODE_CHECK_ORIGINAL = PASS
-```
-
-is verified against the current published main.
-
-## Production
-
-No Production DB/Edge mutation is required for this frontend syntax checkpoint.
-
-The prior inventory/DB investigation remains a separate historical execution thread and is not the current blocker for this task.
 
 ## Functional Completion Status
 
 Still OPEN.
 
-Syntax success is only a gate. Gold/Diamond functional completion still requires integrated validation of:
+Gold/Diamond completion requires functional proof across:
 
 ```text
 Inventory
@@ -240,37 +203,69 @@ Real-time synchronization
 Cross-module consistency
 ```
 
-The user's stated mission remains functional completion of the mother system rather than merely adding structural screens.
+No absence of `TODO`/`قيد التطوير` text can be treated as proof of functional completeness.
+
+## Helper Integration Gate
+
+Do not advance to:
+
+```text
+Current/PWA/core.js
+Current/PWA/sw.js
+Current/PWA/register-sw.js
+Current/PWA/manifest.json
+```
+
+until:
+
+```text
+Fresh NODE_CHECK_ORIGINAL = PASS
+```
+
+is verified against the current published commit.
+
+## Production
+
+No Production DB/Edge mutation was required for the current frontend syntax checkpoint.
+
+The separate historical Inventory/Production investigation remains outside this checkpoint.
+
+## Latest Session Evidence
+
+```text
+Report140 commit = 590b15ac697b2ba991d05b1e4ce3f0bab8e12a8b
+Current published main commit = 4ae32e44cad49108fa08fd56a745b639b0d660d0
+Current published main blob     = 1d4987664f505ee7ab769681a3e16ecc83b7dd1d
+```
 
 ## Next Exact Checkpoint
 
 ```text
-OWNER APPLIES Report139
-→ main.html current line 5236
-→ replace exact `}` with exact `});`
-→ preserve next line `if (isEdit) {`
-→ commit
-→ re-read published main.html from first byte to EOF
-→ recompute SHA256 / bytes / lines
-→ run cto_main_html_forensic_20260912.yml
-→ verify NODE_CHECK_ORIGINAL = PASS
-→ only then start helper-file integration
+Freshly run cto_main_html_forensic_20260912.yml against current published main
+→ verify full structural audit
+→ verify NODE_CHECK_ORIGINAL=PASS
+→ if a new parser error appears, issue exactly one Owner ChangeSet for the first new error
+→ re-read current published source
+→ rerun the forensic gate
+→ only after PASS start helper-file integration
 ```
 
-If another syntax error appears after that, create a new exact owner changeset based only on the then-current published source. Do not resurrect stale changes from Report138 or older checkpoints without fresh evidence.
+If the new syntax gate passes, then and only then proceed to helper-file integration and subsequent full functional integration.
 
 ## Closure Status
 
 ```text
-PUBLISHED SOURCE VERIFIED          = PASS
-FULL FILE STRUCTURE                = PASS
-INCOMPLETE MARKERS                 = PASS
-DIRECT PHYSICAL WRITER SCAN        = PASS
-JAVASCRIPT SYNTAX                  = OPEN
-CURRENT OWNER CHANGESET            = 1 EXACT ITEM
-HELPER INTEGRATION                 = BLOCKED
-ASSEMBLY CLOSURE                   = NO
-GOLD/DIAMOND FUNCTIONAL CLOSURE    = NO
+CURRENT SOURCE RECONCILED           = PASS
+REPORT139 REPAIR VERIFIED IN SOURCE = PASS
+OWNER CHANGESET REQUIRED             = NO
+EOF / HTML BOUNDARY                  = PASS
+INCOMPLETE MARKERS                   = PASS
+DIRECT PHYSICAL WRITER PROBE         = PASS
+ASSEMBLY PATH                        = CORRECT
+FRESH JAVASCRIPT SYNTAX              = OPEN
+HELPER INTEGRATION                   = BLOCKED
+ASSEMBLY CLOSURE                     = NO
+GOLD/DIAMOND FUNCTIONAL CLOSURE      = NO
 ```
 
 # END CURRENT STATE
