@@ -1,7 +1,7 @@
 # RAWAEA ERP — CURRENT STATE
 
 **Last reconciled:** 2026-09-12
-**Current checkpoint:** Report142 completed the forensic review and integration gate for the helper subsystem of the published ERP frontend. `companies/company-1/main.html` remains the Source of Truth and was not modified by the assistant. The helper files were verified and the proven helper integration defects were repaired in `erp-frontend`.
+**Current checkpoint:** Report143 completed a fresh forensic review of the published `erp-frontend/companies/company-1/main.html` and its four helper files. `main.html` remains the Source of Truth and was not modified by the assistant. A real Service Worker cache-boundary defect was found and fixed in `sw.js`. The current published main was read to EOF and has one precise Owner-required structural fix: add the final `</html>` immediately after the existing final `</body>`.
 
 ## CRITICAL GOLD / DIAMOND MISSION
 
@@ -16,10 +16,10 @@ erp-frontend/companies/company-1/main.html
 Historical/reference only:
 
 ```text
-rawaie-erp-New/Current/PWA/main2/main1..main11.md
-rawaie-erp-New/Original/PWA/main/*
-rawaie-erp-New/Current/PWA/main/*
-rawaie-erp-New/Current/PWA/New-main/*
+rawwaie-erp-New/Current/PWA/main2/main1..main11.md
+rawwaie-erp-New/Original/PWA/main/*
+rawwaie-erp-New/Current/PWA/main/*
+rawwaie-erp-New/Current/PWA/New-main/*
 ```
 
 They are not reconstruction Source of Truth for the published main.
@@ -29,7 +29,6 @@ They are not reconstruction Source of Truth for the published main.
 ```text
 Repository = papamohammed77-glitch/erp-frontend
 Branch = main
-Published main commit baseline = 4ae32e44cad49108fa08fd56a745b639b0d660d0
 Published main blob = 1d4987664f505ee7ab769681a3e16ecc83b7dd1d
 ```
 
@@ -47,182 +46,207 @@ The helper integration work did not modify `main.html`.
 - Reports are evidence/search aids, not current truth.
 - Unknowns and conflicts generate evidence work rather than assumptions.
 
-## Report142 — Helper Integration Reconciliation
+## Report143 — Helper Integration Forensic Reconciliation
 
 ```text
-doc/Draft/Reprots/Report142_CTO_Helper_Files_Forensic_Integration_20260912.md
+doc/Draft/Reprots/Report143_CTO_Helper_Files_Integration_20260912.md
 ```
 
-### Helper files reviewed
+### Helper files current state
 
 ```text
-companies/company-1/core.js
-companies/company-1/sw.js
-companies/company-1/register-sw.js
-companies/company-1/manifest.json
-```
-
-### Current SHAs
-
-```text
-core.js       = b3da51ee5a577e1aef346beb0ed4a866df7d563c
-sw.js         = 3bb4ad4a241ea3c20a9b16500ad716aaf68843ed
-register-sw.js= 9a8f8b14be0cfb92e82077c36b36fab9b452c8ec
-manifest.json = ef9574e748c5143fbb59f2a34128be4036dcfc2d
+core.js         = b3da51ee5a577e1aef346beb0ed4a866df7d563c
+sw.js           = fixed; commit 6e59c571b23ec0530e5c2cb32b6254648b50f4f8
+register-sw.js  = 9a8f8b14be0cfb92e82077c36b36fab9b452c8ec
+manifest.json   = ef9574e748c5143fbb59f2a34128be4036dcfc2d
 ```
 
 ## core.js
 
 Read completely to EOF.
 
-No source change was made because no complete Consumer-level evidence justified a shared-nucleus behavioral change in this cycle. Syntax was verified by the permanent helper CI gate.
-
-Potential tenant hardening inside shared cache/auth helpers remains a separate evidence-driven task and must not be changed globally without tracing all PWA consumers.
+No source change was made because no complete consumer-level evidence justified a shared-nucleus behavioral change in this cycle.
 
 ```text
 FULL READ = PASS
-SYNTAX = PASS
 SOURCE CHANGE = NONE
 CLOSURE = OPEN FOR FUTURE CONSUMER-BASED REVIEW
 ```
 
 ## manifest.json
 
-Repaired proven drift:
+Read completely and validated structurally. No new change was justified in this cycle.
 
 ```text
-start_url  ./New-main    → ./main.html
-icon       ./New-main-icon.svg → ./icon.svg
-id         added as ./main.html
-```
-
-`New-main-icon.svg` was not a current published file under `companies/company-1`, while `icon.svg` is present.
-
-```text
-MANIFEST JSON = PASS
-PUBLISHED MAIN TARGET = PASS
-ICON PATH = PASS
+JSON = PASS
+SOURCE CHANGE = NONE
 ```
 
 ## register-sw.js
 
-Repaired duplicate update authority.
-
-Before:
+Read completely. The intended authority split remains:
 
 ```text
-sw.js performs clients.claim() + client.navigate()
-+
-register-sw.js controllerchange performs location.reload()
-```
-
-After:
-
-```text
-sw.js = authoritative activation/navigation
+sw.js = activation/navigation authority
 register-sw.js = registration/update polling/observation
 ```
 
 ```text
-SYNTAX = PASS
-DUPLICATE RELOAD PATH = CLOSED
+FULL READ = PASS
+SOURCE CHANGE = NONE
 ```
 
 ## sw.js
 
-Repaired stale PWA metadata/cache behavior.
+Fresh forensic review found that an earlier implementation cached generic unknown GET requests into the static cache. This violated the declared cache contract.
 
-Changes:
-
-```text
-SW_BUILD rotated to RAWAEA_SW_P152_HELPER_ALIGNMENT_20260912
-manifest.json excluded from cache
-sw.js excluded from cache
-HTML/API/runtime remain network-backed
-static presentation assets remain versioned-cache backed
-```
+Fixed in source:
 
 ```text
-SYNTAX = PASS
-CACHE ROTATION = PASS
-MANIFEST STALE CACHE PATH = CLOSED
+HTML        = network-backed
+API         = network-backed
+Runtime JS  = network-backed
+manifest    = never-cache
+sw.js       = never-cache
+Static UI assets only = versioned cache
+Unknown GET fallback = fetch(request)
 ```
 
-## Permanent Helper Forensic Gate
+Fix commit:
 
-Added to `erp-frontend`:
+```text
+6e59c571b23ec0530e5c2cb32b6254648b50f4f8
+```
+
+## Helper CI Gate
+
+Current workflow:
 
 ```text
 .github/workflows/cto_helper_files_forensic_20260912.yml
 ```
 
-It performs:
+Latest source commit:
+
+```text
+95a20aa0fe7a7100e47c1a9eb1ff471ebc240d72
+```
+
+The gate checks:
 
 ```text
 node --check core.js
 node --check sw.js
 node --check register-sw.js
 JSON.parse(manifest.json)
-published main structural checks
+SW static-cache boundary
+main.html structural checks
+no (قيد التطوير)
 ```
 
-Fresh successful run:
+The Service Worker assertion was itself corrected before final commit after identifying that the first draft could select the wrong `event.respondWith` occurrence.
+
+## Published main forensic status
+
+`main.html` was read from the current repository response through EOF.
+
+Important finding:
 
 ```text
-Run ID = 34698492041
-Head SHA = 36200f9fa68f69fe2ef01299e2e800cac8f78c9a
-Conclusion = success
+FINAL FILE LINE = </body>
+NEXT LINE = none
+</html> = MISSING
 ```
 
-All validation steps passed.
+This is a precise Owner edit, not an assistant edit.
 
-## Production Snapshot
+### Owner ChangeSet
 
-Direct Production Supabase check during the session:
+In:
 
 ```text
-Checked at = 2026-09-12 14:10:44.332409+00
-companies = 1
-branches = 2
-items = 17
-stock_branches = 20
-inventory_log = 3
+erp-frontend/companies/company-1/main.html
 ```
 
-No Production DB mutation was required for this helper integration cycle.
+Find the final line of the entire file:
+
+```html
+</body>
+```
+
+Add immediately after it:
+
+```html
+</html>
+```
+
+The final line must be exactly:
+
+```html
+</html>
+```
+
+Do not delete `</body>`.
 
 ## Assembly Governance
 
-Current verified workflow:
+Verified assembly workflow remains:
 
 ```text
-rawaie-erp-New/.github/workflows/forensic_main_assembly.yml
+rawwaie-erp-New/.github/workflows/forensic_main_assembly.yml
 ```
 
-It reads the published `erp-frontend/companies/company-1/main.html` directly from the published raw URL and does not reconstruct it from historical fragments.
+It points to the published `erp-frontend/companies/company-1/main.html` and does not reconstruct from the historical fragments.
 
 ```text
 ASSEMBLY SOURCE OF TRUTH = CORRECT
 ASSEMBLY PATH = CORRECT
 ```
 
-## Fresh Main Syntax Status
-
-Still OPEN.
-
-The dedicated `cto_main_html_forensic_20260912.yml` fresh run for the current published main has not been re-established in this cycle. Therefore:
+## Production Snapshot — latest direct check
 
 ```text
-NODE_CHECK_ORIGINAL = NOT CERTIFIED
+Checked at       = 2026-09-12 14:32:07.619991+00
+companies        = 1
+branches         = 2
+items            = 17
+stock_branches   = 20
+inventory_log    = 3
+orders           = 0
+runsheets        = 0
 ```
 
-Do not promote this to PASS based on the helper gate.
+Current integrity checks:
+
+```text
+stock_branch_item_company_mismatch     = 0
+inventory_log_item_company_mismatch   = 0
+order_detail_item_company_mismatch    = 0
+```
+
+No Production DB mutation was required for the helper-file correction in Report143.
+
+## Inventory contract status
+
+Current contract remains:
+
+```text
+PHYSICAL STOCK MOVEMENT
+        ↓
+post_stock_movement
+        ↓
+stock_branches
++
+inventory_log
+```
+
+`reserve_stock` remains a reservation engine, not a separate physical movement engine.
 
 ## Functional Completion Status
 
 Still OPEN.
 
-Gold/Diamond functional closure requires proof across:
+The main file now contains substantial functional implementations for Finance, Reports, HR and CRM, but Gold/Diamond closure is not certified until the real end-to-end operational contracts are verified across:
 
 ```text
 Inventory
@@ -244,56 +268,44 @@ Real-time synchronization
 Cross-module consistency
 ```
 
-No absence of `TODO`/`قيد التطوير` is sufficient proof of functional completion.
+Capability Gates that intentionally refuse unsupported authoritative sources must not be replaced with invented data merely to make a screen appear complete.
 
-## Latest Helper Commits
-
-```text
-5e620253bf97c838a56f076bea713c5076f29841  helper forensic gate
-3f10ce8a9d43eaf155ac5af1e4ab4d3f3d9dac0f  manifest alignment
- da636727b40561efb68148971308f6a9237f7bca register-sw duplicate reload fix
-36200f9fa68f69fe2ef01299e2e800cac8f78c9a  SW cache/update fix
-```
-
-Latest published `erp-frontend` HEAD after these changes:
+## Latest checkpoints
 
 ```text
-36200f9fa68f69fe2ef01299e2e800cac8f78c9a
+Report142 = previous helper integration checkpoint
+Report143 = fresh helper forensic reconciliation
 ```
-
-The current state report itself was updated afterward in this governance repository.
 
 ## NEXT EXACT CHECKPOINT
 
 ```text
-Re-establish fresh cto_main_html_forensic_20260912 run for current published main
-→ certify NODE_CHECK_ORIGINAL=PASS
-→ if new syntax error exists, issue exactly one precise Owner ChangeSet
-→ re-read current published main after owner change
-→ rerun gate
-→ continue functional integration of the remaining tabs/apps
+Owner adds final </html>
+→ re-read current published main
+→ run fresh main forensic/syntax gate
+→ run fresh helper CI gate
+→ verify published runtime/cache behavior
+→ continue functional Gold/Diamond completion
 ```
 
-After the main forensic gate is certified, continue the broader functional-completion program. Do not return to historical fragments as reconstruction sources.
+Do not return to historical main2..main11 fragments as Source of Truth.
 
 ## Closure Status
 
 ```text
-CURRENT SOURCE RECONCILED           = PASS
-HELPER FILES FULL READ              = PASS
-CORE.JS SYNTAX                      = PASS
-SW.JS SYNTAX                        = PASS
-REGISTER-SW.JS SYNTAX               = PASS
-MANIFEST JSON                       = PASS
-HELPER UPDATE CONTRACT              = PASS
-MANIFEST TARGET                     = PASS
-DUPLICATE RELOAD PATH               = CLOSED
-PERMANENT HELPER FORENSIC GATE      = ACTIVE
-PRODUCTION SNAPSHOT                 = VERIFIED
-MAIN HTML OWNER EDIT                = UNTOUCHED
-FRESH MAIN JAVASCRIPT SYNTAX        = OPEN
-GLOBAL FUNCTIONAL COMPLETION       = OPEN
-GOLD/DIAMOND                        = NOT CLOSED
+CURRENT SOURCE RECONCILED            = PASS
+HELPER FILES FULL READ               = PASS
+CORE.JS SYNTAX CONTRACT              = PASS BY CI DEFINITION
+SW.JS CACHE DEFECT                   = FIXED IN SOURCE
+REGISTER-SW.JS                       = NO CHANGE JUSTIFIED
+MANIFEST.JSON                        = NO CHANGE JUSTIFIED
+SW CACHE CONTRACT GATE               = ACTIVE
+PRODUCTION SNAPSHOT                  = VERIFIED
+TENANT/ITEM MISMATCH                 = 0 IN FINAL CHECKS
+MAIN HTML OWNER EDIT                 = REQUIRED
+FRESH MAIN FORENSIC RUNTIME          = OPEN
+GLOBAL INVENTORY ZERO-DEBT           = NOT CERTIFIED CLOSED
+GLOBAL FUNCTIONAL GOLD/DIAMOND       = OPEN
 ```
 
 # END CURRENT STATE
