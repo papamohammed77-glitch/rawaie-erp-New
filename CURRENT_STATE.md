@@ -1,7 +1,7 @@
 # RAWAEA ERP — CURRENT STATE
 
 **Last updated:** 2026-09-12
-**Current checkpoint:** Main8 forensic recheck completed; Production finance contracts reverified; Main8 owner surgical replacement package recreated; Main8 source fragment itself was not edited by the assistant.
+**Current checkpoint:** Main9 forensic recheck completed; Main9 owner surgical package created; Main9 source fragment was not edited by the assistant. Production contracts used by Main9 reports were reverified live.
 
 ## Governing Rules
 
@@ -42,151 +42,131 @@ Forbidden/retired sources:
 `Current/PWA/main/*`
 `Current/PWA/New-main/*`
 
-`forensic_main_assembly.yml` is correctly configured for `Current/PWA/main2`, with `Original/PWA/main` as historical reference and assembly deferred until all fragments are owner-verified. fileciteturn1308file0L1-L6
+`forensic_main_assembly.yml` is verified against `Current/PWA/main2`; assembly remains deferred. fileciteturn1321file0L2-L6
 
-## Fragment SHAs — latest directory evidence
+## Fragment SHAs — latest verified source snapshot
 
-- main1 `f68d47c7574c34f678cfba2aafa5ad294aadbfe5`
-- main2 `65815e23b03e29c125957e6fe283cc1e253a7f7d`
-- main3 `eeb56daf8cd01b31b8a7e5f5ada4f1a09df30bfe`
-- main4 `e9f967859aeda729cd0811739a280ceec5266d7c`
-- main5 `800ad51c88a2e80d060480990836a3c975c7435a`
-- main6 `1dc500849a600e6436c1d319bdc93f3d270f6af9`
-- main7 `5839252a9807ae1758939dad754a4f3a4505c76f`
-- main8 `2131fbf3096d926b2486acb2ab58a4266ddd1bbc`
-- main9 `b9f10ae4e727cb9495aaecbe2d752dabf13ec776`
-- main10 `169025a6836c7fdc7281ea86523b975a84d889f1`
-- main11 `2adfc787c3e5f0ca56abfcc85232e7a971773c3b`
+- main1 `f68d47c7574c34f678cfba2aafa5ad294aadbfe5` fileciteturn1341file0L2-L6
+- main2 `65815e23b03e29c125957e6fe283cc1e253a7f7d` fileciteturn1342file0L2-L6
+- main3 `eeb56daf8cd01b31b8a7e5f5ada4f1a09df30bfe` fileciteturn1343file0L2-L6
+- main4 `e9f967859aeda729cd0811739a280ceec5266d7c` fileciteturn1344file0L2-L6
+- main5 `800ad51c88a2e80d060480990836a3c975c7435a` fileciteturn1345file0L2-L6
+- main6 `1dc500849a600e6436c1d319bdc93f3d270f6af9` fileciteturn1346file0L2-L6
+- main7 `5839252a9807ae1758939dad754a4f3a4505c76f` fileciteturn1347file0L2-L6
+- main8 `f67c0217a804d2cb2388ce48fb7f95176c075fb3` fileciteturn1348file0L2-L6
+- main9 `b9f10ae4e727cb9495aaec2d752dabf13ec776` fileciteturn1317file0L2-L6
+- main10 `169025a6836c7fdc7281ea86523b975a84d889f1` fileciteturn1349file0L2-L6
+- main11 `2adfc787c3e5f0ca56abfcc85232e7a971773c3b` fileciteturn1337file0L2-L6
 
-Directory evidence confirms the eleven Source-of-Truth fragments exist under `Current/PWA/main2`. fileciteturn1312file0L1-L10
+## Main9 — 2026-09-12
 
-## Previous Checkpoints
+### Source and historical reconstruction
 
-Report125 established Main6 forensic recheck and owner replacement status.
-Report126/Report127 established Main7/Main8 forensic checkpoints and surgical-owner methodology.
+- Current Source of Truth: `Current/PWA/main2/main9.md`.
+- Current SHA: `b9f10ae4e727cb9495aaec2d752dabf13ec776`. fileciteturn1317file0L2-L6
+- Main9 was re-read from the beginning through EOF; a read beyond the end returned empty content, confirming the end of the file. fileciteturn1323file0L2-L6
+- Historical reference opened: `Original/PWA/main/main9.md`. The historical file contains a much smaller reporting module and does not provide the current comprehensive reporting contract. fileciteturn1288file0L2-L6
+- `CURRENT/PWA/main9.md` itself was not modified by the assistant.
 
-## Main8 — 2026-09-12
+### Main9 live Production contracts reverified
 
-Current source:
-`Current/PWA/main2/main8.md`
-Current SHA:
-`2131fbf3096d926b2486acb2ab58a4266ddd1bbc`
+Production contains authenticated, company-aware reporting RPCs already available to the application:
 
-Main8 was re-read from the beginning through EOF using the repository blob, then targeted ranges were re-opened around every known surgical anchor. The source SHA remained unchanged because the assistant did not edit the owner fragment. fileciteturn1296file0L2-L6
+- `get_trial_balance(p_from_date,p_to_date)`
+- `get_profit_loss(p_from_date,p_to_date)`
+- `get_balance_sheet_data(p_as_of)`
+- `get_cash_flow(p_from_date,p_to_date)`
+- `accountant_customer_aging(p_as_of_date)`
+- `accountant_supplier_aging(p_as_of_date)`
+- `accountant_gl_account_activity(p_account_id,p_from_date,p_to_date)`
+- `accountant_period_readiness(p_from_date,p_to_date)`
+- `accountant_reconciliation_summary(p_as_of_date)`
+- `accountant_exception_center(p_as_of_date)`
 
-Historical reference inspected:
-`Original/PWA/main/main8.md`
+The financial RPCs use the Production company context mechanism rather than a global `app_settings LIMIT 1` lookup.
 
-The prior replacement file was independently checked and was genuinely missing at the expected path. A replacement package was created at:
-`doc/Draft/Reprots/MAIN8_OWNER_SURGICAL_REPLACEMENTS_20260912.js`
-SHA:
-`ec92a73e81169f5aa653b14e3185b8b2934c419d` fileciteturn1341file0L2-L6
+Production also contains `customer_followups`; live count at `2026-09-12 06:45:28 UTC` was `0`, with `company_id` nullable count `0`.
 
-### Confirmed Main8 source gaps
+### Proven Main9 gaps
 
-1. `_editTreasury(code)` rewrote both opening/current balance during a name/type edit and allowed deletion without checking cash history.
-2. `_filterAccounts()` searched only root nodes and missed child matches.
-3. `_openAccountDialog(editId)` made new account code readonly and allowed account type changes during edit.
-4. `_profitLoss()` displayed revenue only although Production returns revenue, expenses and totals/net profit.
-5. `_balanceSheet()` displayed assets/liabilities but omitted equity.
-6. `_renderReports()` did not expose the Production `get_cash_flow` capability.
-7. `_editBudget()` always wrote `cost_center_id = null` and performed direct table upsert rather than the established atomic/idempotent RPC.
-8. Production exposes additional authenticated accounting-control RPCs that were not exposed in Main8: GL activity, period readiness, reconciliation summary, exception center, customer aging, supplier aging.
+1. **Finance report center underexposed Production capabilities.** Main9 exposed basic financial reports but did not expose the already-existing customer/supplier aging, GL account activity, period readiness, reconciliation, or exception-center contracts.
+2. **Customer follow-up report was a Capability Gate despite a real Production table existing.** It now has an owner-side report replacement prepared.
+3. **Runsheet performance was too shallow.** It showed runsheet value/status but did not derive delivery/refusal/return KPIs from authoritative `order_details`.
+4. **Driver performance was too shallow.** It showed only runsheet count/value rather than operational fulfillment KPIs.
+5. **Returns report omitted the historical `Return` movement_type.** Main9 currently filters only `SalesReturn` and `DirectReturn`; the Production stock engine supports the historical movement vocabulary and the replacement preserves compatibility.
+6. **Generic unknown-report fallback contains `هذا التقرير غير متوفر بعد`; this is not a missing business capability but remains a code-quality cleanup candidate in the owner source.** It is not the same as the explicit HR/Tax Capability Gates.
 
-### Main8 production contracts reverified
+### Important integrity decision
 
-- `get_profit_loss(p_from_date,p_to_date)` — Production callable and company-scoped.
-- `get_balance_sheet_data(p_as_of)` — Production returns assets, liabilities, equity.
-- `get_cash_flow(p_from_date,p_to_date)` — Production callable and company-scoped.
-- `get_budget_vs_actual(p_year,p_month,p_cost_center_id)` — Production callable.
-- `save_budget_atomic(...)` — Production callable, company/account/cost-center validated, operation registry supported.
-- `accountant_gl_account_activity(...)` — authenticated execute grant exists.
-- `accountant_period_readiness(...)` — authenticated execute grant exists.
-- `accountant_reconciliation_summary(...)` — authenticated execute grant exists.
-- `accountant_exception_center(...)` — authenticated execute grant exists.
-- `accountant_customer_aging(...)` — authenticated execute grant exists.
-- `accountant_supplier_aging(...)` — authenticated execute grant exists.
+The current Production `items.item_code` has a formal global UNIQUE constraint, while `items` also contains `company_id`. Production `post_stock_movement` resolves the item by `id` and validates source/target branches against the passed company. This makes item identity a schema-level/global identity question, not something to rewrite in Main9 by assumption.
 
-### Main8 Production changes performed in this session
+Accordingly, no additional Main9 item-company rewrite was introduced beyond the already-existing source behavior; the decision is intentionally deferred until the historical item-master contract is fully reconciled with the observed fixture/legacy stock rows.
 
-1. `main8_budget_report_aggregate_fix`
-   - Replaced the budget-vs-actual budget-side join with account-level aggregation to prevent future duplicate account rows when multiple cost centers exist.
+### Owner surgical package
 
-2. `main8_budget_actual_cost_center_alignment`
-   - Rewrote the Production `get_budget_vs_actual` contract so the actual amount is filtered by `journal_lines.cost_center_id` when a cost center is selected.
-   - When the filter is `NULL`, actuals aggregate across the account as the UI label `الكل` indicates.
+Created:
+`doc/Draft/Reprots/MAIN9_OWNER_SURGICAL_REPLACEMENTS_20260912.js`
 
-Both changes preserve the RPC signature and do not create a parallel reporting engine.
+Commit:
+`ccfed3c009f66ae44b42c0d5901f90effafaf4ed`
 
-### Production data/schema facts used for Main8
+Blob SHA:
+`d10803a93a9da0061bdf93481ed9cf73da4f004a` fileciteturn1352file0L2-L6
 
-- `journal_lines.cost_center_id` exists in Production.
-- `budgets` does not carry `company_id`; company isolation is through account/company context.
-- `cost_centers` is global in the current schema; no synthetic company column/filter was introduced.
-- `items.item_code` is globally unique, but this fact belongs to inventory identity and was not altered by Main8.
+The package contains complete replacement blocks and exact anchors. It does not modify the Source Fragment automatically.
 
-### Owner surgical application status
+### Main9 owner application map
 
-The assistant did not modify `Current/PWA/main2/main8.md`.
-The owner must apply only the exact sections in:
-`doc/Draft/Reprots/MAIN8_OWNER_SURGICAL_REPLACEMENTS_20260912.js`
+- **O1** Finance report structure: replace the current `finance` entry in `_reportsStructure` (current source around lines 1090–1110) from `'finance': {` through the closing `},` immediately before `'crm': {`.
+- **O2** Finance runtime: replace the current `else if (reportId === 'finance-tax') {` block through its closing `}` immediately before the CRM section comment. This adds Production-backed aging, GL activity, period readiness, reconciliation, and exception reports while preserving the Tax Capability Gate.
+- **O3** CRM followups: replace `else if (reportId === 'crm-customer-followups') {` and its full current Capability Gate block (around the current 3930 area) with the complete `customer_followups` report block.
+- **O4** Runsheet performance: replace `else if (reportId === 'sales-runsheet-performance') {` through the closing brace immediately before the Inventory section comment. The replacement aggregates operational KPIs from `runsheets → orders → order_details`.
+- **O5** Driver performance: replace `else if (reportId === 'logistics-driver-performance') {` through the closing brace immediately before the HR section. The replacement aggregates driver KPIs through authoritative `order_details`.
+- **O6** Returns compatibility: inside `logistics-returns`, replace the exact movement list `['SalesReturn','DirectReturn']` with `['Return','SalesReturn','DirectReturn']`; no other line in that block should change.
+- **O7** No unnecessary rewrite: do not rewrite `_companyId`, `_loadDropdowns`, or the existing drill-down functions without new evidence; their current versions are already company-scoped.
 
-Required order:
+### Production action status for Main9
 
-- O1 `_editTreasury(code)` — current line 181; delete through the final `}` immediately before `// ==================== دليل الحسابات ====================`.
-- O2 `_filterAccounts()` — current line about 258; delete through the final `}` immediately before `function _openAccountDialog(editId) {`.
-- O3 `_openAccountDialog(editId)` — current line about 272; delete through the final `}` immediately before `async function _seedAccounts() {`.
-- O4 `_renderReports()` — current line 1022; delete through the final `}` immediately before `function _trialBalance() {`.
-- O5 `_profitLoss()` — current line 1051; delete through the final `}` immediately before `function _renderBudgets() {`.
-- O8 `_loadBudgetsList()` — current line 1093; delete through the final `}` immediately before `function _editBudget(accountId, accountName, year, month) {`.
-- O9 `_editBudget(...)` — current line 1113; delete through the final `}` immediately before `function _balanceSheet() {`.
-- O7 add `_cashFlow()` immediately above `function _balanceSheet() {`.
-- O6 replace `_balanceSheet()` before `function _costCenterProfitLoss() {`.
-- O11–O16 add the advanced Production-backed report functions immediately before the final `return {`.
-- O10 update the final return object to export the newly added report functions.
+No Production DDL/data change was required for the Main9 reporting repairs because the authoritative backend capabilities already exist. Production was queried live to verify the contracts and data context.
 
-### Syntax/Runtime honesty
+## Main8 correction carried forward
 
-The exact owner replacement file was committed, but an independent executable `node --check` could not be run against the repository blob in this session because the connected GitHub source was not materializable into the local runtime. Therefore no false `SYNTAX_OK` claim is recorded for that artifact.
+The previous CURRENT_STATE record contained a stale Main8 source SHA. The latest direct Git evidence is:
+`f67c0217a804d2cb2388ce48fb7f95176c075fb3`. fileciteturn1348file0L2-L6
 
-The final syntax of `main8.md`, Browser E2E, and authenticated runtime behavior remain pending owner application. This is intentional: Main8 source SHA has not changed.
+Main8 remains owner-apply pending; the assistant did not modify its source fragment.
 
 ## Main7 Carryover
 
-Main7 owner source application and final runtime closure remain pending from the previous checkpoint. Current directory evidence now reports Main7 SHA `5839252a9807ae1758939dad754a4f3a4505c76f`; previous state SHA was stale. No claim is made here that the pending owner surgeries were applied.
+Main7 owner source application and final runtime closure remain pending. Current Source Fragment SHA is `5839252a9807ae1758939dad754a4f3a4505c76f`. fileciteturn1347file0L2-L6
 
-## Production / Source Alignment Rules
-
-- `forensic_main_assembly.yml` remains on `Current/PWA/main2`.
-- `Current/PWA/main` and `Current/PWA/New-main` remain retired/forbidden sources.
-- No assembly was performed.
-- No Main8 source fragment was directly modified by the assistant.
-
-## Closure Status
+## Closure Status — Main9
 
 ```text
-MAIN8 FULL SOURCE READ = PASS
-MAIN8 HISTORICAL REVIEW = PASS
-MAIN8 PRODUCTION FINANCIAL CONTRACT TRACE = PASS
-MAIN8 PRODUCTION BUDGET FIXES = DEPLOYED
-MAIN8 OWNER SURGICAL PACKAGE = RECREATED
-MAIN8 OWNER SOURCE APPLY = PENDING
-MAIN8 FINAL SOURCE SYNTAX = PENDING
-MAIN8 BROWSER E2E = PENDING
-MAIN8 AUTHENTICATED RUNTIME = PENDING
-MAIN8 MAIN1..MAIN11 FINAL INTEGRATION = PENDING
-MAIN8 GOLD/DIAMOND = NOT CLOSED
-ASSEMBLY = DEFERRED
+MASTER GOVERNANCE READ = PASS
+REPORT128 / PRIOR CHECKPOINT RECONCILED = PASS
+MAIN9 CURRENT SOURCE READ THROUGH EOF = PASS
+MAIN9 HISTORICAL REFERENCE OPENED = PASS
+MAIN1..MAIN11 SOURCE DIRECTORY RECONCILED = PASS
+forensic_main_assembly.yml = CORRECT / VERIFIED
+MAIN9 PRODUCTION REPORT RPC TRACE = PASS
+MAIN9 CRM FOLLOWUP TABLE TRACE = PASS
+MAIN9 OWNER SURGICAL PACKAGE = CREATED
+MAIN9 SOURCE FRAGMENT EDITED BY ASSISTANT = NO
+MAIN9 OWNER SOURCE APPLY = PENDING
+MAIN9 EXECUTABLE FULL-FILE SYNTAX VALIDATION AFTER OWNER APPLY = PENDING
+MAIN9 BROWSER/E2E = PENDING
+MAIN9 FINAL RUNTIME CLOSURE = PENDING
+GLOBAL ASSEMBLY = DEFERRED
+GLOBAL GOLD/DIAMOND = OPEN
 ```
 
 ## Next Gate
 
-1. Owner applies the exact Main8 surgical replacements.
-2. Re-read Main8 from first character through EOF.
-3. Run executable syntax validation on the complete Main8 source.
-4. Check duplicate declarations, braces, strings, template/HTML escaping, and Console errors.
-5. Compare Main8 interfaces against Main7 and Main9.
-6. Run authenticated Browser/E2E for treasury, COA, journal, receipts, payments, transfers, reports and budgets.
-7. Verify Production responses and retry/idempotency behavior where applicable.
-8. Re-sync Production immediately before the next report.
-9. Only after Main8 closes, continue to the next fragment; assembly remains forbidden until all fragments close.
+1. Owner applies O1–O6 exactly from `MAIN9_OWNER_SURGICAL_REPLACEMENTS_20260912.js`.
+2. Re-read Main9 from first character through EOF after the owner update.
+3. Run executable syntax validation against the complete Main9 source.
+4. Verify no duplicate declarations, broken string escaping, malformed HTML/JS boundaries, or Console errors.
+5. Execute authenticated Browser/E2E against the new Finance/CRM/Logistics reports.
+6. Re-sync Production immediately before the closure report.
+7. Only after Main9 closes may the project advance without assembling fragments early.
