@@ -1,7 +1,7 @@
 # RAWAEA ERP — CURRENT STATE
 
 **Last updated:** 2026-09-12
-**Current checkpoint:** Main7 forensic recheck completed; owner surgical replacements prepared; Main7 source itself not edited by the assistant.
+**Current checkpoint:** Main8 forensic recheck completed; Production finance contracts reverified; Main8 owner surgical replacement package recreated; Main8 source fragment itself was not edited by the assistant.
 
 ## Governing Rules
 
@@ -42,139 +42,151 @@ Forbidden/retired sources:
 `Current/PWA/main/*`
 `Current/PWA/New-main/*`
 
-`forensic_main_assembly.yml` remains correctly configured for `Current/PWA/main2` with `Original/PWA/main` as historical reference and assembly deferred until all fragments are owner-verified.
+`forensic_main_assembly.yml` is correctly configured for `Current/PWA/main2`, with `Original/PWA/main` as historical reference and assembly deferred until all fragments are owner-verified. fileciteturn1308file0L1-L6
 
-## Fragment SHAs
+## Fragment SHAs — latest directory evidence
 
-- main1 `f68d47d7574c34f678cfba2aafa5ad294aadbfe5`
+- main1 `f68d47c7574c34f678cfba2aafa5ad294aadbfe5`
 - main2 `65815e23b03e29c125957e6fe283cc1e253a7f7d`
 - main3 `eeb56daf8cd01b31b8a7e5f5ada4f1a09df30bfe`
 - main4 `e9f967859aeda729cd0811739a280ceec5266d7c`
 - main5 `800ad51c88a2e80d060480990836a3c975c7435a`
-- main6 `3b20758459c28ab0b6c055f9a0ad3992f1bd07e5`
-- main7 `a65969f6bdc919d4a8d62a6704a7c556b7d35e91` before owner changes
+- main6 `1dc500849a600e6436c1d319bdc93f3d270f6af9`
+- main7 `5839252a9807ae1758939dad754a4f3a4505c76f`
 - main8 `2131fbf3096d926b2486acb2ab58a4266ddd1bbc`
 - main9 `b9f10ae4e727cb9495aaecbe2d752dabf13ec776`
 - main10 `169025a6836c7fdc7281ea86523b975a84d889f1`
 - main11 `2adfc787c3e5f0ca56abfcc85232e7a971773c3b`
 
-## Previous Checkpoint
+Directory evidence confirms the eleven Source-of-Truth fragments exist under `Current/PWA/main2`. fileciteturn1312file0L1-L10
 
-Report125 established Main6 forensic recheck and owner replacement status. Main6 remains an owner-action checkpoint and was not superseded by any assembly.
+## Previous Checkpoints
 
-## Main7 — 2026-09-12
+Report125 established Main6 forensic recheck and owner replacement status.
+Report126/Report127 established Main7/Main8 forensic checkpoints and surgical-owner methodology.
+
+## Main8 — 2026-09-12
 
 Current source:
-`Current/PWA/main2/main7.md`
+`Current/PWA/main2/main8.md`
 Current SHA:
-`a65969f6bdc919d4a8d62a6704a7c556b7d35e91`
+`2131fbf3096d926b2486acb2ab58a4266ddd1bbc`
 
-Main7 was read sequentially through EOF and its historical counterpart `Original/PWA/main/main7.md` was also inspected.
+Main8 was re-read from the beginning through EOF using the repository blob, then targeted ranges were re-opened around every known surgical anchor. The source SHA remained unchanged because the assistant did not edit the owner fragment. fileciteturn1296file0L2-L6
 
-### Confirmed Main7 findings
+Historical reference inspected:
+`Original/PWA/main/main8.md`
 
-1. `loadReceiving()` displayed `itemsCount` although the authoritative count is in `receiving_details`.
-2. `_saveAndSendVoucher()` did not send `operation_id`, despite Production supporting idempotent voucher creation.
-3. `loadUnloading()` listed `Open/New`, while Production unloading requires `Loaded`.
-4. `_showUnloadingDetails()` was an explicit `قيد التطوير` skeleton.
-5. `_startBarcodeScanner()` was referenced by UI buttons but not defined/exported.
-6. `_saveInvCount()` expected `voucherId`; Production returns `count_id`, and the current code always refreshed the vehicle-count panel (`vc`) even for branch/general counts.
-7. `_onSettlementRsChange()` did not mirror the authoritative Production shortage formula.
-8. `_saveSettlement()` did not send the required `operation_id`.
-9. `_openPickingModal()` did not send the supported `operation_id` for `complete-picking` retries.
+The prior replacement file was independently checked and was genuinely missing at the expected path. A replacement package was created at:
+`doc/Draft/Reprots/MAIN8_OWNER_SURGICAL_REPLACEMENTS_20260912.js`
+SHA:
+`ec92a73e81169f5aa653b14e3185b8b2934c419d` fileciteturn1341file0L2-L6
 
-### Confirmed correct and intentionally preserved
+### Confirmed Main8 source gaps
 
-- Main7 has no direct `stock_branches` writer.
-- Main7 has no direct `inventory_log` writer.
-- Physical stock remains centralized through `post_stock_movement`.
-- `reserve_stock` remains a reservation engine, not a Physical Stock Movement engine.
-- `loadPicking()` uses `Open/Confirmed` and matches Production.
-- `loadLoading()` uses `Loaded` and matches Production.
-- `_receiveVoucher()` already sends an operation identity and idempotency key; no redundant rewrite.
-- Order-by-order delivery flow is preserved.
-- Inventory counts remain count/snapshot records; no conversion to a direct stock-adjustment writer.
+1. `_editTreasury(code)` rewrote both opening/current balance during a name/type edit and allowed deletion without checking cash history.
+2. `_filterAccounts()` searched only root nodes and missed child matches.
+3. `_openAccountDialog(editId)` made new account code readonly and allowed account type changes during edit.
+4. `_profitLoss()` displayed revenue only although Production returns revenue, expenses and totals/net profit.
+5. `_balanceSheet()` displayed assets/liabilities but omitted equity.
+6. `_renderReports()` did not expose the Production `get_cash_flow` capability.
+7. `_editBudget()` always wrote `cost_center_id = null` and performed direct table upsert rather than the established atomic/idempotent RPC.
+8. Production exposes additional authenticated accounting-control RPCs that were not exposed in Main8: GL activity, period readiness, reconciliation summary, exception center, customer aging, supplier aging.
 
-## Production Verification Snapshot
+### Main8 production contracts reverified
 
-Verified against Production during this checkpoint:
+- `get_profit_loss(p_from_date,p_to_date)` — Production callable and company-scoped.
+- `get_balance_sheet_data(p_as_of)` — Production returns assets, liabilities, equity.
+- `get_cash_flow(p_from_date,p_to_date)` — Production callable and company-scoped.
+- `get_budget_vs_actual(p_year,p_month,p_cost_center_id)` — Production callable.
+- `save_budget_atomic(...)` — Production callable, company/account/cost-center validated, operation registry supported.
+- `accountant_gl_account_activity(...)` — authenticated execute grant exists.
+- `accountant_period_readiness(...)` — authenticated execute grant exists.
+- `accountant_reconciliation_summary(...)` — authenticated execute grant exists.
+- `accountant_exception_center(...)` — authenticated execute grant exists.
+- `accountant_customer_aging(...)` — authenticated execute grant exists.
+- `accountant_supplier_aging(...)` — authenticated execute grant exists.
 
-- `start-picking` v34 ACTIVE, JWT required.
-- `complete-picking` v17 ACTIVE, JWT required, supports `operation_id` and `erp_operation_registry`.
-- `unload-runsheet` v6 ACTIVE, JWT required, calls `complete_runsheet_unloading`.
-- `save-inventory-count` v2 ACTIVE, JWT required, returns `count_id`.
-- `save-daily-settlement` v4 ACTIVE, JWT required, requires `operation_id`.
-- `create-stock-voucher` v10 ACTIVE, JWT required, supports `rep_id` and `operation_id`.
-- `post_daily_settlement_atomic` is the authoritative settlement calculation and uses `qty_loaded - qty_delivered - qty_returned`.
-- `complete_runsheet_unloading` requires `Loaded` and routes physical movement through `post_stock_movement`.
-- `complete_runsheet_picking` supports UUID `p_operation_id` and registry-based idempotency.
-- `items.item_code` is globally UNIQUE in the current schema.
+### Main8 Production changes performed in this session
 
-## Main7 Owner Change Set
+1. `main8_budget_report_aggregate_fix`
+   - Replaced the budget-vs-actual budget-side join with account-level aggregation to prevent future duplicate account rows when multiple cost centers exist.
 
-Full owner-ready replacements were committed to:
+2. `main8_budget_actual_cost_center_alignment`
+   - Rewrote the Production `get_budget_vs_actual` contract so the actual amount is filtered by `journal_lines.cost_center_id` when a cost center is selected.
+   - When the filter is `NULL`, actuals aggregate across the account as the UI label `الكل` indicates.
 
-- `doc/Draft/Reprots/MAIN7_OWNER_REPLACEMENT_Receiving_20260912.js`
-- `doc/Draft/Reprots/MAIN7_OWNER_REPLACEMENT_VoucherSave_20260912.js`
-- `doc/Draft/Reprots/MAIN7_OWNER_REPLACEMENT_Unloading_20260912.js`
-- `doc/Draft/Reprots/MAIN7_OWNER_REPLACEMENT_Inventory_20260912.js`
-- `doc/Draft/Reprots/MAIN7_OWNER_REPLACEMENT_Settlement_20260912.js`
-- `doc/Draft/Reprots/MAIN7_OWNER_REPLACEMENT_Picking_20260912.js`
+Both changes preserve the RPC signature and do not create a parallel reporting engine.
 
-Exact surgery is documented in:
-`doc/Draft/Reprots/Report126_Main7_Forensic_Recheck_20260912.md`
+### Production data/schema facts used for Main8
 
-### Required Owner Surgeries
+- `journal_lines.cost_center_id` exists in Production.
+- `budgets` does not carry `company_id`; company isolation is through account/company context.
+- `cost_centers` is global in the current schema; no synthetic company column/filter was introduced.
+- `items.item_code` is globally unique, but this fact belongs to inventory identity and was not altered by Main8.
 
-- Replace `loadReceiving()` before `function _applyReceiving()`.
-- Replace `_saveAndSendVoucher()` before the VOUCHERS LIST section.
-- Replace `loadUnloading() + _applyUnloading() + _showUnloadingDetails()` before the COUNT/SETTLEMENT section.
-- Add `_startBarcodeScanner(prefix)` immediately above `function _searchInvItem(prefix, query)`.
-- Replace `_saveInvCount()` immediately before `loadBranchCount()`.
-- Replace `_onSettlementRsChange()` immediately before `_saveSettlement()`.
-- Replace `_saveSettlement()` immediately before `_openPickingModal()`.
-- Replace `_openPickingModal()` immediately before `_openLoadingModal()`.
-- Add `_startBarcodeScanner: _startBarcodeScanner,` immediately above `_searchInvItem: _searchInvItem,` in the final return object.
+### Owner surgical application status
 
-## Syntax Status
+The assistant did not modify `Current/PWA/main2/main8.md`.
+The owner must apply only the exact sections in:
+`doc/Draft/Reprots/MAIN8_OWNER_SURGICAL_REPLACEMENTS_20260912.js`
 
-All six owner replacement artifacts passed `node --check` after correction of one generated HTML/onclick escaping error during preparation.
+Required order:
 
-The final assembled Main7 fragment has **not** received final syntax verification because the owner must apply the surgeries to the source fragment first.
+- O1 `_editTreasury(code)` — current line 181; delete through the final `}` immediately before `// ==================== دليل الحسابات ====================`.
+- O2 `_filterAccounts()` — current line about 258; delete through the final `}` immediately before `function _openAccountDialog(editId) {`.
+- O3 `_openAccountDialog(editId)` — current line about 272; delete through the final `}` immediately before `async function _seedAccounts() {`.
+- O4 `_renderReports()` — current line 1022; delete through the final `}` immediately before `function _trialBalance() {`.
+- O5 `_profitLoss()` — current line 1051; delete through the final `}` immediately before `function _renderBudgets() {`.
+- O8 `_loadBudgetsList()` — current line 1093; delete through the final `}` immediately before `function _editBudget(accountId, accountName, year, month) {`.
+- O9 `_editBudget(...)` — current line 1113; delete through the final `}` immediately before `function _balanceSheet() {`.
+- O7 add `_cashFlow()` immediately above `function _balanceSheet() {`.
+- O6 replace `_balanceSheet()` before `function _costCenterProfitLoss() {`.
+- O11–O16 add the advanced Production-backed report functions immediately before the final `return {`.
+- O10 update the final return object to export the newly added report functions.
 
-## Production Change Status
+### Syntax/Runtime honesty
 
-No new Production migration was required specifically by the Main7 forensic findings after current Production contracts were rechecked. Existing Production capabilities already support the needed operation identities and centralized movement contracts.
+The exact owner replacement file was committed, but an independent executable `node --check` could not be run against the repository blob in this session because the connected GitHub source was not materializable into the local runtime. Therefore no false `SYNTAX_OK` claim is recorded for that artifact.
+
+The final syntax of `main8.md`, Browser E2E, and authenticated runtime behavior remain pending owner application. This is intentional: Main8 source SHA has not changed.
+
+## Main7 Carryover
+
+Main7 owner source application and final runtime closure remain pending from the previous checkpoint. Current directory evidence now reports Main7 SHA `5839252a9807ae1758939dad754a4f3a4505c76f`; previous state SHA was stale. No claim is made here that the pending owner surgeries were applied.
+
+## Production / Source Alignment Rules
+
+- `forensic_main_assembly.yml` remains on `Current/PWA/main2`.
+- `Current/PWA/main` and `Current/PWA/New-main` remain retired/forbidden sources.
+- No assembly was performed.
+- No Main8 source fragment was directly modified by the assistant.
 
 ## Closure Status
 
 ```text
-MAIN7 FORENSIC READ = PASS
-MAIN7 HISTORICAL TRACE = PASS
-MAIN7 PRODUCTION CONTRACT TRACE = PASS
-MAIN7 RELATED APP TRACE = PASS
-MAIN7 DIRECT PHYSICAL WRITERS = 0
-MAIN7 SURGICAL REPLACEMENTS = PREPARED
-MAIN7 REPLACEMENT SYNTAX = PASS
-MAIN7 OWNER SOURCE APPLY = PENDING
-MAIN7 FINAL SOURCE SYNTAX = PENDING
-MAIN7 RUNTIME E2E = PENDING
-MAIN7 GOLD/DIAMOND = NOT CLOSED
+MAIN8 FULL SOURCE READ = PASS
+MAIN8 HISTORICAL REVIEW = PASS
+MAIN8 PRODUCTION FINANCIAL CONTRACT TRACE = PASS
+MAIN8 PRODUCTION BUDGET FIXES = DEPLOYED
+MAIN8 OWNER SURGICAL PACKAGE = RECREATED
+MAIN8 OWNER SOURCE APPLY = PENDING
+MAIN8 FINAL SOURCE SYNTAX = PENDING
+MAIN8 BROWSER E2E = PENDING
+MAIN8 AUTHENTICATED RUNTIME = PENDING
+MAIN8 MAIN1..MAIN11 FINAL INTEGRATION = PENDING
+MAIN8 GOLD/DIAMOND = NOT CLOSED
 ASSEMBLY = DEFERRED
 ```
 
-## Next Session Gate
+## Next Gate
 
-After owner applies the Main7 changes:
-
-1. Re-read Main7 from first character through EOF.
-2. Compute new SHA.
-3. Run syntax validation on the complete Main7.
-4. Check duplicate declarations and delimiter balance.
-5. Verify Main6/Main7/Main8 interfaces and shared contracts.
-6. Run authenticated E2E for Picking, Unloading, Inventory Count, Settlement, and Voucher Create/Send.
-7. Repeat retry/idempotency tests.
-8. Re-sync Production immediately before the final report.
-9. Only then declare Main7 closed and continue toward assembly.
-
-Historical detailed evidence remains in `Report125_Main6_Forensic_Recheck_20260912.md` and `Report126_Main7_Forensic_Recheck_20260912.md`.
+1. Owner applies the exact Main8 surgical replacements.
+2. Re-read Main8 from first character through EOF.
+3. Run executable syntax validation on the complete Main8 source.
+4. Check duplicate declarations, braces, strings, template/HTML escaping, and Console errors.
+5. Compare Main8 interfaces against Main7 and Main9.
+6. Run authenticated Browser/E2E for treasury, COA, journal, receipts, payments, transfers, reports and budgets.
+7. Verify Production responses and retry/idempotency behavior where applicable.
+8. Re-sync Production immediately before the next report.
+9. Only after Main8 closes, continue to the next fragment; assembly remains forbidden until all fragments close.
