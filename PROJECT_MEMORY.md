@@ -166,3 +166,75 @@ GOLD/DIAMOND/WHOLE-SYSTEM CLOSURE = NOT PROVEN
 8. Enable leaked-password protection.
 9. Prioritize the 61 FK-index findings, 36 RLS init-plan findings, 12 multiple-permissive-policy findings, and 29 unused-index findings.
 10. Preserve this file append-only and retain all earlier evidence classifications.
+
+## Verified continuity — 2026-09-12 automation refresh
+### GitHub
+- Repository identity is confirmed: `papamohammed77-glitch/rawaie-erp-New`, default branch `main`.
+- Latest observed repository commit is `f8a0bbbf4db891cd6e6b6bbdff8f39bb738ca946`, `Update main6.md`, created `2026-09-12T03:48:47Z`.
+- Immediately preceding commits include `e7b3463902f0df104cfd8e46195b80e1c45fa22d` (Main6 continuity checkpoint), `a60b60e2aca26b6177171d480a78a2bae43b2a4e` (Report125 Main6 forensic recheck), `7ce2e9e9b3dfb508fa5160bb9098ffb2fa924dd0` (Purchases owner replacement), `afab814cf8a4365c2ac5d673594b50b0ecff9ef3` (OnlineStore owner replacement), and `8ba5841e5511bace1934e07f1c906ccde3cbdb47` (orders filtering/rendering refactor).
+- Latest visible Actions run is `34671377992` (`CTO final New-main onefile gate`) on the latest commit; it completed with conclusion `failure` at `2026-09-12T03:49:25Z`. This is a direct CI failure and is not a deployment proof.
+- PR topology remains fragmented. Current open PRs include #127, #126, #125, #123, #119, #118, #117, #115, and #113. Closed-but-not-merged verification/closure PRs include #129, #128, and #124. Merged verifier triggers include #122, #121, #120, #112, and #111. No open/merged status is inferred beyond the returned PR metadata.
+- Open issues directly returned are #64, #36, #25, and #26. Their bodies indicate execution/forensic baseline work, but issue state metadata was incomplete in the connector response.
+
+### Supabase health, migrations, and Edge Functions
+- Project `SMART ERP` (`fiilmooggumokxanwiyx`) is `ACTIVE_HEALTHY`, region `eu-west-1`, PostgreSQL `17.6.1.121`, release channel `ga`.
+- New migrations since the prior snapshot are confirmed through `20260911221155` `online_order_idempotency_contract`. Recent migrations include enterprise completion/finance/decision guards, employee-document company/storage scope fixes, roles RLS tightening, runsheet atomic closure, online-order limits, and online-order idempotency.
+- Core business Edge Functions remain ACTIVE with `verify_jwt=true`, including order, runsheet, picking/loading/delivery/returns, stock vouchers, purchasing, accounting/reporting, and `manage-runsheet`.
+- Historical test/canary/fixture/gate/recovery functions remain ACTIVE with `verify_jwt=false`, including picking harness/E2E, owner recovery, auth verification, receive-purchase runtime E2E, and sales canary functions. This remains a confirmed lifecycle and attack-surface risk.
+
+### Fresh Supabase security advisories — observed 2026-09-12T03:55:10Z
+- One mutable search path warning remains for `public.employee_document_storage_company_id`.
+- Two public `SECURITY DEFINER` functions remain executable by `anon` and `authenticated`: `public.create_item_with_opening_stock(...)` and `public.sync_company_main_branch_projection()`.
+- Three additional authenticated `SECURITY DEFINER` execution findings remain for `public.get_balance_sheet_data(...)`, `public.get_enterprise_decision_center(...)`, and `public.post_financial_entry_atomic(...)`.
+- Supabase Auth leaked-password protection remains disabled.
+- No security remediation was applied in this refresh.
+
+### Fresh Supabase performance advisories — observed 2026-09-12T03:55:18Z
+- 62 unindexed foreign-key findings remain.
+- 37 RLS init-plan findings remain.
+- 32 unused-index findings remain.
+- 6 multiple-permissive-policy findings remain.
+- One duplicate-index finding is present on `public.orders` for `orders_company_operation_id_uidx` and `orders_company_operation_id_unique`.
+- No performance DDL changes were applied in this refresh.
+
+### Logs and deployment evidence
+- No direct Auth/API/Edge log query result was exposed by the available Supabase actions in this run; no new log-based incident conclusion is recorded.
+- Deployed revision, service-worker/cache identity, browser E2E, and runtime parity with current Git remain unverified.
+- Production business-data writes in this refresh: `0`.
+
+### Cross-system reconciliation — 2026-09-12
+- GitHub shows active Main6 forensic/source work plus a current failing New-main onefile gate; Supabase shows continued schema hardening and idempotency/tenant/security migrations.
+- The sources are directionally aligned around a centralized, tenant-aware core, but the failing CI run and absent deployment/runtime proof prevent a Gold/Diamond or whole-system closure claim.
+- The highest-priority evidence-backed risks are: current New-main gate failure, active `verify_jwt=false` historical functions, exposed `SECURITY DEFINER` EXECUTE grants, mutable function search path, disabled leaked-password protection, FK/RLS/policy/index debt, and duplicate orders indexes.
+- Secrets, passwords, keys, tokens, or credential material stored/disclosed: `0`.
+
+### 2026-09-12 confidence boundary
+```text
+REPOSITORY/PROJECT IDENTITY = CONFIRMED
+LATEST OBSERVED MAIN COMMIT = CONFIRMED (f8a0bbbf4db891cd6e6b6bbdff8f39bb738ca946)
+LATEST CI RESULT = CONFIRMED FAILURE (run 34671377992)
+OPEN PR TOPOLOGY = CONFIRMED FROM RETURNED METADATA
+OPEN ISSUES = CONFIRMED FROM RETURNED METADATA (state field incomplete)
+SUPABASE HEALTH = CONFIRMED
+LATEST MIGRATION = CONFIRMED (20260911221155)
+CORE EDGE FUNCTIONS = CONFIRMED ACTIVE / JWT-PROTECTED
+VERIFY_JWT_FALSE HISTORICAL SURFACE = CONFIRMED ACTIVE
+SECURITY ADVISORIES = CONFIRMED (fresh)
+PERFORMANCE ADVISORIES = CONFIRMED (fresh)
+SUPABASE LOG INCIDENT = NOT PROVEN
+DEPLOYED REVISION = UNKNOWN
+SERVICE WORKER/CACHE = UNKNOWN
+FRESH BROWSER E2E / RUNTIME PARITY = UNKNOWN
+GOLD/DIAMOND/WHOLE-SYSTEM CLOSURE = NOT PROVEN
+```
+
+### Open risks / next evidence — 2026-09-12
+1. Investigate and resolve the direct CI failure in run `34671377992` before treating New-main as verified.
+2. Fetch the failing job logs and identify whether the failure is syntax, browser, manifest, dependency, or workflow related.
+3. Reconcile the current Main6 source changes with the canonical Main2/New-main target and current Supabase contracts.
+4. Obtain fresh browser/runtime proof against the exact current Git HEAD and verify deployment/cache lineage.
+5. Retire or harden obsolete `verify_jwt=false` functions only after dependency proof.
+6. Revoke or narrow public EXECUTE on the exposed SECURITY DEFINER functions and set an explicit search_path for `employee_document_storage_company_id`.
+7. Enable leaked-password protection.
+8. Prioritize the 62 FK-index findings, 37 RLS init-plan findings, 6 multiple-permissive-policy findings, 32 unused-index findings, and the duplicate orders indexes.
+9. Preserve this file append-only and retain all earlier evidence classifications.
