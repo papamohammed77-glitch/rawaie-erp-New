@@ -1,232 +1,180 @@
-# RAWAEA ERP — CURRENT STATE PACK
+# RAWAEA ERP — CURRENT STATE
 
-## CURRENT CHECKPOINT — 2026-09-12 — MAIN6 FORENSIC RECHECK
+**Last updated:** 2026-09-12
+**Current checkpoint:** Main7 forensic recheck completed; owner surgical replacements prepared; Main7 source itself not edited by the assistant.
 
-### GOVERNING TARGET — NON-NEGOTIABLE
-هناك نقص شديد في كل التبويبات، وكثير منها هيكلي فقط. الهدف ليس مجرد إكمال الشاشات، بل استكمالها وظيفيًا لتصبح منافسًا حقيقيًا لـ Odoo وDynamics وSAP وDaftra وManager.io وغيرها. هذا جزء من هدف Gold/Diamond للمشروع ولا يُتعامل معه كإضافات شكلية.
+## Governing Rules
 
-**ويجب تكرار الهدف صراحة:** المطلوب استكمال التبويبات والوظائف **وظيفيًا** وليس شكليًا فقط، والوصول بها إلى مستوى منافس حقيقي للأنظمة العالمية، مع احترام دورة العمل التاريخية والعمليات الميدانية الخاصة بالروائع.
+- Production is a first-class source of truth and must be rechecked at the time of every report.
+- Reports are evidence, not truth.
+- `NO EVIDENCE = NO CLAIM`.
+- `NO FUNCTIONAL TEST = NO FUNCTIONAL VERIFICATION`.
+- `NO PRODUCTION CHECK = NO PRODUCTION VERIFICATION`.
+- `NO CROSS-MODULE TRACE = NO BUSINESS COMPLETION`.
+- `NO DATA CHECK = NO DATA CLOSURE`.
+- Study/history reconstruction precedes surgical change.
+- Owner edits the `Current/PWA/main2/main1..main11.md` source fragments; assistant performs Production DB/Edge/data verification and changes when a proven Production gap exists.
+- Assembly remains deferred until all eleven fragments are owner-verified.
 
-الحوكمة الحاكمة: الدراسة أولًا → إعادة بناء العقد التاريخي → تتبع السلوك الحالي → تتبع البيانات والصلاحيات والتدفق → تحديد الفجوة الفعلية → التعديل الجراحي → الاختبار → التحقق من Production → التوثيق.
+## Gold/Diamond Mission
 
-## SOURCE-OF-TRUTH GOVERNANCE
-- Production الحالية هي حقيقة التنفيذ.
-- Git هو المصدر القانوني القابل لإعادة الإنتاج، وليس بديلًا عن Production.
-- التقارير التاريخية أدلة جنائية وليست حقيقة حالية.
-- Source of Truth التحريري للملف الأم: `Current/PWA/main2/main1.md ... main11.md`.
-- `Original/PWA/main/*` مرجع تاريخي فقط.
-- `Current/PWA/New-main` مرحلة تاريخية موقوفة وليست مصدر مراجعة حالي.
-- `forensic_main_assembly.yml` يتبع `Current/PWA/main2` ولا يجب أن يعود إلى `Current/PWA/main`.
-- Final assembly remains deferred until all owner fragment work and final integrated validation are complete.
+هناك نقص شديد في كل التبويبات ، وكثير منها هيكلي فقط. الهدف ليس مجرد إكمال الشاشات، بل استكمالها وظيفيًا لتصبح منافسًا حقيقيًا لـ Odoo وDynamics وSAP وDaftra وManager.io وغيرها. هذا جزء من هدف Gold/Diamond للمشروع، ولا تتعامل معه كإضافات شكلية.
+وهذا متسق حرفيًا مع مبدأ الحوكمة: الدراسة أولًا، ثم إعادة بناء العقد التاريخي، ثم تتبع السلوك الحالي، ثم تحديد الفجوة، ثم التعديل الجراحي، ثم الاختبار والتحقق.
 
-## PREVIOUS CHECKPOINTS
-- Report121: `doc/Draft/Reprots/Report121_Main2_Forensic_Recheck_20260911.md`.
-- Report122: `doc/Draft/Reprots/Report122_Main3_Forensic_Recheck_20260911.md`.
-- Report123: `doc/Draft/Reprots/Report123_Main4_Forensic_Recheck_20260912.md`.
-- Report124: `doc/Draft/Reprots/Report124_Main5_Forensic_Recheck_20260912.md`.
-- Main3 owner surgeries remain open until applied and reverified.
-- Main4 owner surgeries remain open until applied and reverified.
+## Source of Truth
 
-## MAIN5 — FORENSIC RESULT
-Current source of truth: `Current/PWA/main2/main5.md`.
-**Current blob SHA verified from the canonical main2 directory:** `800ad51c88a2e80d060480990836a3c975c7435a`.
-EOF previously verified in Report124; Main5 remains owner-action pending.
+- `Current/PWA/main2/main1.md`
+- `Current/PWA/main2/main2.md`
+- `Current/PWA/main2/main3.md`
+- `Current/PWA/main2/main4.md`
+- `Current/PWA/main2/main5.md`
+- `Current/PWA/main2/main6.md`
+- `Current/PWA/main2/main7.md`
+- `Current/PWA/main2/main8.md`
+- `Current/PWA/main2/main9.md`
+- `Current/PWA/main2/main10.md`
+- `Current/PWA/main2/main11.md`
 
-### MAIN5 FUNCTIONAL AREAS
-- `RW_Orders` — sales order listing, filtering, confirmation, deletion, details, printing, runsheet creation/append, refresh and realtime.
-- `RW_Runsheets` — runsheet listing, filtering, driver/vehicle assignment, details, delete/cancel, status capability, printing and realtime.
+Historical reference only:
+`Original/PWA/main/*`
 
-### MAIN5 HISTORICAL CONTRACT
-`Original/PWA/main/main5.md` was opened as historical reference only. The core historical responsibility remains the Orders → Runsheets operational axis. Current source was not replaced merely because the historical file differs.
+Forbidden/retired sources:
+`Current/PWA/main/*`
+`Current/PWA/New-main/*`
 
-## MAIN5 PRODUCTION CLOSURE — APPEND RUNSHEET
-A real Production defect was proven in the previous `append-to-runsheet` implementation: it performed multiple independent writes to `run_sheet_details`, `orders`, and `runsheets.total_amount`, leaving a Partial-Success window.
+`forensic_main_assembly.yml` remains correctly configured for `Current/PWA/main2` with `Original/PWA/main` as historical reference and assembly deferred until all fragments are owner-verified.
 
-### Executed Production fix
-- New RPC: `public.append_orders_to_runsheet_atomic(uuid,text,text[],text)`.
-- Transactional locking and company-scoped validation are centralized in the RPC.
-- Item identity is checked against the current Global Item Master contract.
-- Orders, derived runsheet details and runsheet total are changed in one transaction.
-- Retry of the same already-linked append returns `duplicate=true` and does not add quantity or value again.
-- `append-to-runsheet` Edge Function is now a thin capability wrapper.
-- Production Edge version: `v8`, ACTIVE, JWT required.
-- Production deployment SHA: `1225b25e21f36c94aa60ce6afacb3933d62e8f3f12f853466ca1fe448c0aa23c`.
+## Fragment SHAs
 
-### Runtime verification
-Temporary test records were created inside one DB transaction and rolled back.
-Verified result:
-- `create_runsheet_atomic` PASS.
-- first append PASS.
-- quantity after first append = `3.0000`.
-- total after first append = `30.00`.
-- identical retry returned `success=true, duplicate=true`.
-- quantity after retry remained `3.0000`.
-- total after retry remained `30.00`.
-- no permanent test data retained.
-
-The first test attempt failed only because the test tried to write to generated column `order_details.line_amount`; the retry used the real schema correctly and passed.
-
-## MAIN5 PRODUCTION CONTRACTS VERIFIED
-- `runsheets.driver_id` is `uuid` and references `users.id`.
-- `runsheets.vehicle_id` references `vehicles.id`.
-- `orders.runsheet_id` references `runsheets.id`.
-- `create_runsheet_atomic` exists and remains the central Create Runsheet transaction.
-- `manage_runsheet_atomic` exists and requires `p_driver_id` to be a valid active `users.id` within the same company.
-- `create-runsheet` Edge v26 ACTIVE is a wrapper over `create_runsheet_atomic`.
-- `confirm-order` Edge v4 ACTIVE is company-scoped and JWT-protected.
-
-## MAIN5 PROVEN SOURCE DEFECTS — OWNER SURGERIES REQUIRED
-### MAIN5-N1 — `RW_Runsheets.loadHelpers()`
-Current block around lines `814–821` selects only `email,name` for drivers. It must select `id,email,name,status` so the UI can honor the Production FK contract.
-
-### MAIN5-N2 — `RW_Runsheets._renderTable()`
-Current comparison uses `driversCache[i].email === r.driver_id`. This is wrong because `r.driver_id` is `users.id` UUID.
-
-### MAIN5-N3 — `RW_Runsheets._details()`
-Current driver `<option value>` uses email. It must use `users.id` UUID and select against `rs.driver_id`.
-
-### MAIN5-N4 — `RW_Runsheets._apply()`
-Current driver filter searches raw UUID text only. It must search driver name/email/UUID using the corrected cache.
-
-### MAIN5-N5 — `RW_Orders._applyFilters()`
-Current runsheet filter searches `runsheet_id` UUID although the user enters the runsheet code. It must search `_runsheetCode`.
-
-### MAIN5-N6 — `RW_Orders._confirm()`
-Current code does not guard a missing access token before calling `confirm-order`.
-
-### MAIN5-N7 — `RW_Orders._delete()`
-Current code does not guard a missing access token before calling `delete-order`.
-
-### MAIN5-N8 — `RW_Orders._renderTable()`
-`customer_name` and `area` are emitted without the existing `esc()` helper, unlike the details path. They require output escaping.
-
-Full exact owner replacement blocks are recorded in `Report124`.
-
-## MAIN6 — FORENSIC RECHECK 2026-09-12
-Current source: `Current/PWA/main2/main6.md`.
-Current SHA: `3b20758459c28ab0b6c055f9a0ad3992f1bd07e5`.
-Current size: `29,172 bytes`.
-Current EOF verified after line `439`; final source line:
-`window.RW_Purchases = RW_Purchases;`
-
-Historical source reviewed: `Original/PWA/main/main6.md`.
-
-Main6 contains:
-- `RW_OnlineStore` — online catalog/cart/order submission/tracking.
-- `RW_Purchases` — purchase-order list/create and purchase receiving.
-
-### MAIN6 PRODUCTION CONTRACTS VERIFIED
-- `submit-online-order` v9 ACTIVE JWT required → `submit_online_order_atomic(..., p_operation_id uuid)`.
-- `submit_online_order_atomic` uses `company_id + operation_id` as idempotent order identity.
-- `save-purchase-order` v3 ACTIVE JWT required → `save_purchase_order_atomic`.
-- `save_purchase_order_atomic` requires `p_supplier_id uuid` and company-scopes the supplier.
-- `receive-purchase` v12 ACTIVE JWT required → `receive_purchase_atomic`.
-- `receive_purchase_atomic` requires `p_operation_id uuid` and uses `receiving.operation_id` as UNIQUE operation identity.
-- `items.item_code` has a global UNIQUE constraint in Production, so the current Global Item Master contract is real and not inferred.
-
-### MAIN6 PROVEN FUNCTIONAL GAPS
-1. Online order UI does not explicitly send `operation_id` / `Idempotency-Key`.
-2. Online Store ignores existing `discount_percent / discount_start / discount_end` for display.
-3. Online Store ignores existing `min_invoice_amount` in UI validation.
-4. Online Store does not enforce `max_qty_per_order` client-side.
-5. Online Store HTML output escaping is inconsistent.
-6. Purchase supplier `<option>` currently uses `supplier_code`, while Production save RPC requires supplier UUID.
-7. Purchase item cart currently uses `sales_price` as the initial purchase price instead of `cost_price`.
-8. Purchase item search is name-only; code/barcode are excluded.
-9. Purchase-order list is thin and lacks search/status filtering and detailed order view.
-10. Receive screen does not expose previous received / remaining quantities clearly enough and lacks per-line reason capture.
-11. Receive operation identity is generated per submit attempt instead of being an explicit stable execution identity held by the UI flow.
-
-### MAIN6 OWNER ARTIFACTS CREATED
-- `doc/Draft/Reprots/MAIN6_OWNER_REPLACEMENT_OnlineStore_20260912.js`
-- `doc/Draft/Reprots/MAIN6_OWNER_REPLACEMENT_Purchases_20260912.js`
-
-Both replacements were independently checked using `node --check` and returned `SYNTAX_OK`.
-
-### MAIN6 EXACT OWNER SURGERIES
-**MAIN6-O1**
-- File: `Current/PWA/main2/main6.md`
-- Delete **lines 1–269 inclusive**.
-- Start marker:
-`// ============================================================`
-- End marker:
-`window.RW_OnlineStore = RW_OnlineStore;`
-- Replace the entire deleted block with:
-`doc/Draft/Reprots/MAIN6_OWNER_REPLACEMENT_OnlineStore_20260912.js`
-
-**MAIN6-O2**
-- File: `Current/PWA/main2/main6.md`
-- Delete **lines 270–439 inclusive**.
-- Start marker:
-`// RW_Purchases – المشتريات (أمر شراء + استلام)`
-- End marker:
-`window.RW_Purchases = RW_Purchases;`
-- Replace the entire deleted block with:
-`doc/Draft/Reprots/MAIN6_OWNER_REPLACEMENT_Purchases_20260912.js`
-
-Do not modify any other line in `main6.md` during this surgery.
-
-### MAIN6 PRODUCTION DECISION
-No new Production mutation was made in this checkpoint.
-Reason: the required Backend contracts are already present and correctly centralized; the proven defects are in the owner source's use of those contracts. Changing Production without proof would violate the governance rule against speculative modification.
-
-## CANONICAL MAIN2 FRAGMENTS
-The canonical directory was checked directly and contains `main1.md` through `main11.md` under `Current/PWA/main2/`.
-
-Current known fragment SHAs:
-- main1 `f68d47c7574c34f678cfba2aafa5ad294aadbfe5`
+- main1 `f68d47d7574c34f678cfba2aafa5ad294aadbfe5`
 - main2 `65815e23b03e29c125957e6fe283cc1e253a7f7d`
 - main3 `eeb56daf8cd01b31b8a7e5f5ada4f1a09df30bfe`
 - main4 `e9f967859aeda729cd0811739a280ceec5266d7c`
 - main5 `800ad51c88a2e80d060480990836a3c975c7435a`
 - main6 `3b20758459c28ab0b6c055f9a0ad3992f1bd07e5`
-- main7 `a65969f6bdc919d4a8d62a6704a7c556b7d35e91`
+- main7 `a65969f6bdc919d4a8d62a6704a7c556b7d35e91` before owner changes
 - main8 `2131fbf3096d926b2486acb2ab58a4266ddd1bbc`
 - main9 `b9f10ae4e727cb9495aaecbe2d752dabf13ec776`
 - main10 `169025a6836c7fdc7281ea86523b975a84d889f1`
 - main11 `2adfc787c3e5f0ca56abfcc85232e7a971773c3b`
 
-## ASSEMBLY GOVERNANCE
-`forensic_main_assembly.yml` was directly verified and remains correct:
-- `source_of_truth: Current/PWA/main2`
-- `historical_reference: Original/PWA/main`
-- forbidden: `Current/PWA/main`, `Current/PWA/New-main`
-- assembly remains deferred.
+## Previous Checkpoint
 
-## VALIDATION / FALSE-CLOSURE STATUS
-- Governance/OS source reviewed: VERIFIED.
-- Report124 opened directly: VERIFIED.
-- CURRENT_STATE opened directly: VERIFIED.
-- `forensic_main_assembly.yml` opened directly: VERIFIED.
-- Main6 full sequential read to EOF: VERIFIED.
-- Original Main6 historical source reviewed: VERIFIED.
-- Main2 directory path/11-fragment presence checked: VERIFIED.
-- Main6 owner replacements `node --check`: VERIFIED.
-- Final Main6 source syntax after owner surgery: PENDING.
-- Browser E2E after owner surgery: PENDING.
-- Main6 Gold/Diamond completion: NOT CLOSED.
-- Gold/Diamond completion of all 11 fragments: NOT CLOSED.
-- Final assembly: DEFERRED.
+Report125 established Main6 forensic recheck and owner replacement status. Main6 remains an owner-action checkpoint and was not superseded by any assembly.
 
-## DATA / PRODUCTION SAFETY
-- No permanent business data was deleted or rewritten for Main6.
-- No Main6-specific cleanup of cross-company Inventory data was performed.
-- No speculative Production mutation was introduced.
+## Main7 — 2026-09-12
 
-## CURRENT MISSION
-Complete RAWAEA ERP functionally toward Gold/Diamond while preserving the proven historical operational core, especially field operations, Orders → Runsheets → Picking → Loading → Delivery → Return → Settlement and centralized inventory movement.
+Current source:
+`Current/PWA/main2/main7.md`
+Current SHA:
+`a65969f6bdc919d4a8d62a6704a7c556b7d35e91`
 
-## NEXT EXACT RESUMPTION POINT — MAIN6
-1. Owner applies `MAIN6-O1` exactly.
-2. Owner applies `MAIN6-O2` exactly.
-3. Re-read `Current/PWA/main2/main6.md` from first character to EOF.
-4. Recalculate SHA.
-5. Run final `node --check` on Main6.
-6. Check duplicate module declarations and delimiter balance.
-7. Run authenticated Online Order E2E with retry.
-8. Run authenticated Purchase Order create → Receive E2E and verify no duplicate receive.
-9. Close Main6 only if every gate passes.
-10. Open the next proven Functional Capability Gap.
+Main7 was read sequentially through EOF and its historical counterpart `Original/PWA/main/main7.md` was also inspected.
 
-## FINAL CLOSURE RULE
-No assembly, no Gold/Diamond claim, and no final project closure until the owner changes are applied and the integrated system passes the required source, syntax, Production, and runtime gates.
+### Confirmed Main7 findings
+
+1. `loadReceiving()` displayed `itemsCount` although the authoritative count is in `receiving_details`.
+2. `_saveAndSendVoucher()` did not send `operation_id`, despite Production supporting idempotent voucher creation.
+3. `loadUnloading()` listed `Open/New`, while Production unloading requires `Loaded`.
+4. `_showUnloadingDetails()` was an explicit `قيد التطوير` skeleton.
+5. `_startBarcodeScanner()` was referenced by UI buttons but not defined/exported.
+6. `_saveInvCount()` expected `voucherId`; Production returns `count_id`, and the current code always refreshed the vehicle-count panel (`vc`) even for branch/general counts.
+7. `_onSettlementRsChange()` did not mirror the authoritative Production shortage formula.
+8. `_saveSettlement()` did not send the required `operation_id`.
+9. `_openPickingModal()` did not send the supported `operation_id` for `complete-picking` retries.
+
+### Confirmed correct and intentionally preserved
+
+- Main7 has no direct `stock_branches` writer.
+- Main7 has no direct `inventory_log` writer.
+- Physical stock remains centralized through `post_stock_movement`.
+- `reserve_stock` remains a reservation engine, not a Physical Stock Movement engine.
+- `loadPicking()` uses `Open/Confirmed` and matches Production.
+- `loadLoading()` uses `Loaded` and matches Production.
+- `_receiveVoucher()` already sends an operation identity and idempotency key; no redundant rewrite.
+- Order-by-order delivery flow is preserved.
+- Inventory counts remain count/snapshot records; no conversion to a direct stock-adjustment writer.
+
+## Production Verification Snapshot
+
+Verified against Production during this checkpoint:
+
+- `start-picking` v34 ACTIVE, JWT required.
+- `complete-picking` v17 ACTIVE, JWT required, supports `operation_id` and `erp_operation_registry`.
+- `unload-runsheet` v6 ACTIVE, JWT required, calls `complete_runsheet_unloading`.
+- `save-inventory-count` v2 ACTIVE, JWT required, returns `count_id`.
+- `save-daily-settlement` v4 ACTIVE, JWT required, requires `operation_id`.
+- `create-stock-voucher` v10 ACTIVE, JWT required, supports `rep_id` and `operation_id`.
+- `post_daily_settlement_atomic` is the authoritative settlement calculation and uses `qty_loaded - qty_delivered - qty_returned`.
+- `complete_runsheet_unloading` requires `Loaded` and routes physical movement through `post_stock_movement`.
+- `complete_runsheet_picking` supports UUID `p_operation_id` and registry-based idempotency.
+- `items.item_code` is globally UNIQUE in the current schema.
+
+## Main7 Owner Change Set
+
+Full owner-ready replacements were committed to:
+
+- `doc/Draft/Reprots/MAIN7_OWNER_REPLACEMENT_Receiving_20260912.js`
+- `doc/Draft/Reprots/MAIN7_OWNER_REPLACEMENT_VoucherSave_20260912.js`
+- `doc/Draft/Reprots/MAIN7_OWNER_REPLACEMENT_Unloading_20260912.js`
+- `doc/Draft/Reprots/MAIN7_OWNER_REPLACEMENT_Inventory_20260912.js`
+- `doc/Draft/Reprots/MAIN7_OWNER_REPLACEMENT_Settlement_20260912.js`
+- `doc/Draft/Reprots/MAIN7_OWNER_REPLACEMENT_Picking_20260912.js`
+
+Exact surgery is documented in:
+`doc/Draft/Reprots/Report126_Main7_Forensic_Recheck_20260912.md`
+
+### Required Owner Surgeries
+
+- Replace `loadReceiving()` before `function _applyReceiving()`.
+- Replace `_saveAndSendVoucher()` before the VOUCHERS LIST section.
+- Replace `loadUnloading() + _applyUnloading() + _showUnloadingDetails()` before the COUNT/SETTLEMENT section.
+- Add `_startBarcodeScanner(prefix)` immediately above `function _searchInvItem(prefix, query)`.
+- Replace `_saveInvCount()` immediately before `loadBranchCount()`.
+- Replace `_onSettlementRsChange()` immediately before `_saveSettlement()`.
+- Replace `_saveSettlement()` immediately before `_openPickingModal()`.
+- Replace `_openPickingModal()` immediately before `_openLoadingModal()`.
+- Add `_startBarcodeScanner: _startBarcodeScanner,` immediately above `_searchInvItem: _searchInvItem,` in the final return object.
+
+## Syntax Status
+
+All six owner replacement artifacts passed `node --check` after correction of one generated HTML/onclick escaping error during preparation.
+
+The final assembled Main7 fragment has **not** received final syntax verification because the owner must apply the surgeries to the source fragment first.
+
+## Production Change Status
+
+No new Production migration was required specifically by the Main7 forensic findings after current Production contracts were rechecked. Existing Production capabilities already support the needed operation identities and centralized movement contracts.
+
+## Closure Status
+
+```text
+MAIN7 FORENSIC READ = PASS
+MAIN7 HISTORICAL TRACE = PASS
+MAIN7 PRODUCTION CONTRACT TRACE = PASS
+MAIN7 RELATED APP TRACE = PASS
+MAIN7 DIRECT PHYSICAL WRITERS = 0
+MAIN7 SURGICAL REPLACEMENTS = PREPARED
+MAIN7 REPLACEMENT SYNTAX = PASS
+MAIN7 OWNER SOURCE APPLY = PENDING
+MAIN7 FINAL SOURCE SYNTAX = PENDING
+MAIN7 RUNTIME E2E = PENDING
+MAIN7 GOLD/DIAMOND = NOT CLOSED
+ASSEMBLY = DEFERRED
+```
+
+## Next Session Gate
+
+After owner applies the Main7 changes:
+
+1. Re-read Main7 from first character through EOF.
+2. Compute new SHA.
+3. Run syntax validation on the complete Main7.
+4. Check duplicate declarations and delimiter balance.
+5. Verify Main6/Main7/Main8 interfaces and shared contracts.
+6. Run authenticated E2E for Picking, Unloading, Inventory Count, Settlement, and Voucher Create/Send.
+7. Repeat retry/idempotency tests.
+8. Re-sync Production immediately before the final report.
+9. Only then declare Main7 closed and continue toward assembly.
+
+Historical detailed evidence remains in `Report125_Main6_Forensic_Recheck_20260912.md` and `Report126_Main7_Forensic_Recheck_20260912.md`.
