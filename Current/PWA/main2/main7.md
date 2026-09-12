@@ -6,53 +6,89 @@ var RW_Warehouse = (function() {
 
     // ==================== RECEIVING (سجل الاستلام) ====================
     async function loadReceiving() {
-        var c = byId('rw-page-container'); if (!c) return;
+        var c = byId('rw-page-container');
+        if (!c) return;
+
         safeText(byId('rw-header-title'), 'الاستلام (Receiving)');
-        safeHTML(c, `<div class="p-4">
-            <div class="bg-white rounded-2xl shadow-sm border p-4 mb-4"><div class="grid grid-cols-2 md:grid-cols-6 gap-2">
-                <input type="text" id="rec-filter-id" placeholder="رقم العملية..." class="p-2 bg-slate-50 rounded text-sm" oninput="RW_Warehouse._applyReceiving()">
-                <input type="text" id="rec-filter-po" placeholder="رقم أمر الشراء..." class="p-2 bg-slate-50 rounded text-sm" oninput="RW_Warehouse._applyReceiving()">
-                <input type="text" id="rec-filter-resp" placeholder="المسؤول..." class="p-2 bg-slate-50 rounded text-sm" oninput="RW_Warehouse._applyReceiving()">
-                <input type="date" id="rec-filter-date-from" class="p-2 bg-slate-50 rounded text-sm" onchange="RW_Warehouse._applyReceiving()">
-                <input type="date" id="rec-filter-date-to" class="p-2 bg-slate-50 rounded text-sm" onchange="RW_Warehouse._applyReceiving()">
-                <button onclick="RW_Warehouse._applyReceiving()" class="bg-gray-600 text-white px-3 rounded text-sm">تطبيق</button>
-            </div></div>
-            <div class="bg-white rounded-2xl shadow-sm border overflow-auto" style="max-height:65vh"><table class="w-full"><thead class="bg-gray-50 sticky top-0"><tr><th class="p-3">رقم العملية</th><th class="p-3">التاريخ</th><th class="p-3">أمر الشراء</th><th class="p-3">المسؤول</th><th class="p-3">الأصناف</th><th class="p-3">الحالة</th><th class="p-3 text-center">عرض</th></tr></thead><tbody id="rec-table"><tr><td colspan="7" class="text-center py-8">جاري التحميل...</td></tr></tbody></table></div>
-        </div>`);
+        safeHTML(c, '<div class="p-4">' +
+            '<div class="bg-white rounded-2xl shadow-sm border p-4 mb-4"><div class="grid grid-cols-2 md:grid-cols-6 gap-2">' +
+                '<input type="text" id="rec-filter-id" placeholder="رقم العملية..." class="p-2 bg-slate-50 rounded text-sm" oninput="RW_Warehouse._applyReceiving()">' +
+                '<input type="text" id="rec-filter-po" placeholder="رقم أمر الشراء..." class="p-2 bg-slate-50 rounded text-sm" oninput="RW_Warehouse._applyReceiving()">' +
+                '<input type="text" id="rec-filter-resp" placeholder="المسؤول..." class="p-2 bg-slate-50 rounded text-sm" oninput="RW_Warehouse._applyReceiving()">' +
+                '<input type="date" id="rec-filter-date-from" class="p-2 bg-slate-50 rounded text-sm" onchange="RW_Warehouse._applyReceiving()">' +
+                '<input type="date" id="rec-filter-date-to" class="p-2 bg-slate-50 rounded text-sm" onchange="RW_Warehouse._applyReceiving()">' +
+                '<button onclick="RW_Warehouse._applyReceiving()" class="bg-gray-600 text-white px-3 rounded text-sm">تطبيق</button>' +
+            '</div></div>' +
+            '<div class="bg-white rounded-2xl shadow-sm border overflow-auto" style="max-height:65vh"><table class="w-full"><thead class="bg-gray-50 sticky top-0"><tr>' +
+                '<th class="p-3">رقم العملية</th><th class="p-3">التاريخ</th><th class="p-3">أمر الشراء</th><th class="p-3">المسؤول</th><th class="p-3">الأصناف</th><th class="p-3">الحالة</th><th class="p-3 text-center">عرض</th>' +
+            '</tr></thead><tbody id="rec-table"><tr><td colspan="7" class="text-center py-8">جاري التحميل...</td></tr></tbody></table></div>' +
+        '</div>');
+
         var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
-if (!companyId) { showToast('سياق الشركة غير محدد', 'error'); return; }
-var res = await supabase.from('receiving').select('*').eq('company_id', companyId).order('date', { ascending: false });
-        window._receivingData = res.data || [];
+        if (!companyId) { showToast('سياق الشركة غير محدد', 'error'); return; }
+
+        var res = await supabase.from('receiving')
+            .select('*')
+            .eq('company_id', companyId)
+            .order('date', { ascending: false });
+        if (res.error) { showToast(res.error.message, 'error'); return; }
+
+        var rows = res.data || [];
+        var opIds = rows.map(function(r) { return r.operation_id; }).filter(Boolean);
+        var counts = {};
+        if (opIds.length) {
+            var detailsRes = await supabase.from('receiving_details')
+                .select('operation_id')
+                .in('operation_id', opIds);
+            if (detailsRes.error) { showToast(detailsRes.error.message, 'error'); return; }
+            var details = detailsRes.data || [];
+            for (var i = 0; i < details.length; i++) {
+                counts[details[i].operation_id] = (counts[details[i].operation_id] || 0) + 1;
+            }
+        }
+
+        window._receivingData = rows.map(function(r) {
+            var x = Object.assign({}, r);
+            x.itemsCount = counts[r.operation_id] || 0;
+            return x;
+        });
         _applyReceiving();
     }
+
     function _applyReceiving() {
         var d = window._receivingData || [];
-        var id = (byId('rec-filter-id')?.value||'').toLowerCase();
-        var po = (byId('rec-filter-po')?.value||'').toLowerCase();
-        var resp = (byId('rec-filter-resp')?.value||'').toLowerCase();
+        var id = (byId('rec-filter-id')?.value || '').trim().toLowerCase();
+        var po = (byId('rec-filter-po')?.value || '').trim().toLowerCase();
+        var resp = (byId('rec-filter-resp')?.value || '').trim().toLowerCase();
         var fd = byId('rec-filter-date-from')?.value;
         var td = byId('rec-filter-date-to')?.value;
-        if (id) d = d.filter(r => (r.operation_id||'').toLowerCase().indexOf(id) !== -1);
-        if (po) d = d.filter(r => (r.po_number||'').toLowerCase().indexOf(po) !== -1);
-        if (resp) d = d.filter(r => (r.responsible||'').toLowerCase().indexOf(resp) !== -1);
-        if (fd) d = d.filter(r => r.date >= fd);
-        if (td) d = d.filter(r => r.date <= td);
-        var tb = byId('rec-table'); if (!tb) return;
+
+        if (id) d = d.filter(function(r) { return String(r.operation_id || '').toLowerCase().indexOf(id) !== -1; });
+        if (po) d = d.filter(function(r) { return String(r.po_number || '').toLowerCase().indexOf(po) !== -1; });
+        if (resp) d = d.filter(function(r) { return String(r.responsible || '').toLowerCase().indexOf(resp) !== -1; });
+        if (fd) d = d.filter(function(r) { return r.date >= fd; });
+        if (td) d = d.filter(function(r) { return r.date <= td; });
+
+        var tb = byId('rec-table');
+        if (!tb) return;
         if (!d.length) { safeHTML(tb, '<tr><td colspan="7" class="text-center py-8">لا توجد عمليات استلام</td></tr>'); return; }
+
         var h = '';
-        d.forEach(op => {
-            h += `<tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="RW_Warehouse._showReceivingDetails('${op.operation_id}')">
-                <td class="p-3 font-bold text-blue-600">${op.operation_id||''}</td>
-                <td class="p-3">${op.date||''}</td>
-                <td class="p-3">${op.po_number||'---'}</td>
-                <td class="p-3">${op.responsible||'---'}</td>
-                <td class="p-3 text-center">${op.itemsCount||0}</td>
-                <td class="p-3"><span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">${op.status||'مكتمل'}</span></td>
-                <td class="p-3 text-center"><button class="text-blue-600"><i class="fa-solid fa-eye"></i></button></td>
-            </tr>`;
+        d.forEach(function(op) {
+            var opId = String(op.operation_id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            h += "<tr class=\"border-b hover:bg-gray-50 cursor-pointer\" onclick=\"RW_Warehouse._showReceivingDetails('" + opId + "')\">" +
+                '<td class="p-3 font-bold text-blue-600">' + esc(op.operation_id || '') + '</td>' +
+                '<td class="p-3">' + esc(op.date || '') + '</td>' +
+                '<td class="p-3">' + esc(op.po_number || '---') + '</td>' +
+                '<td class="p-3">' + esc(op.responsible || '---') + '</td>' +
+                '<td class="p-3 text-center">' + Number(op.itemsCount || 0) + '</td>' +
+                '<td class="p-3"><span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">' + esc(op.status || 'مكتمل') + '</span></td>' +
+                "<td class=\"p-3 text-center\"><button class=\"text-blue-600\" onclick=\"event.stopPropagation(); RW_Warehouse._showReceivingDetails('" + opId + "')\"><i class=\"fa-solid fa-eye\"></i></button></td>" +
+            '</tr>';
         });
         safeHTML(tb, h);
     }
+
 async function _showReceivingDetails(opId) {
     var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
     if (!companyId) { showToast('سياق الشركة غير محدد', 'error'); return; }
@@ -384,6 +420,22 @@ async function _saveAndSendVoucher() {
         });
     }
 
+    window._warehouseVoucherOperations = window._warehouseVoucherOperations || {};
+    var fingerprint = [
+        companyId,
+        currentVoucherType,
+        entity,
+        reference,
+        notes,
+        repId || '',
+        JSON.stringify(items)
+    ].join('|');
+    var operationId = window._warehouseVoucherOperations[fingerprint];
+    if (!operationId) {
+        operationId = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : ('WHV-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+        window._warehouseVoucherOperations[fingerprint] = operationId;
+    }
+
     showLoader('جاري حفظ وإرسال الإذن...');
     var ses = await supabase.auth.getSession();
     var token = ses.data.session ? ses.data.session.access_token : null;
@@ -399,47 +451,52 @@ async function _saveAndSendVoucher() {
             toId: toId,
             items: items,
             notes: notes,
-            rep_id: repId
+            rep_id: repId,
+            operation_id: operationId
         };
 
         var createRes = await fetch(RW_SUPABASE_URL + '/functions/v1/create-stock-voucher', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
+                'Authorization': 'Bearer ' + token,
+                'Idempotency-Key': operationId
             },
             body: JSON.stringify(createBody)
         });
 
-        var createJson = await createRes.json();
-        if (!createJson.success) {
-            hideLoader();
-            showToast(createJson.msg || 'فشل الحفظ', 'error');
-            return;
+        var createJson = await createRes.json().catch(function() { return {}; });
+        if (!createRes.ok || !createJson.success) {
+            throw new Error(createJson.msg || createJson.error || 'فشل حفظ الإذن');
         }
+
+        var voucherCode = createJson.voucherId || createJson.voucher_code;
+        if (!voucherCode) throw new Error('لم يُرجع إنشاء الإذن رقمًا صالحًا');
 
         var sendRes = await fetch(RW_SUPABASE_URL + '/functions/v1/send-stock-voucher', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
+                'Authorization': 'Bearer ' + token,
+                'Idempotency-Key': operationId
             },
-            body: JSON.stringify({ voucher_code: createJson.voucherId })
+            body: JSON.stringify({ voucher_code: voucherCode })
         });
 
-        var sendJson = await sendRes.json();
-        hideLoader();
-
-        if (sendJson.success) {
-            showToast('تم إنشاء وإرسال الإذن ' + createJson.voucherId, 'success');
-            voucherCart = [];
-            _renderVoucherCart();
-        } else {
-            showToast(sendJson.msg || 'فشل الإرسال', 'error');
+        var sendJson = await sendRes.json().catch(function() { return {}; });
+        if (!sendRes.ok || !sendJson.success) {
+            throw new Error(sendJson.msg || sendJson.error || 'فشل الإرسال');
         }
+
+        hideLoader();
+        delete window._warehouseVoucherOperations[fingerprint];
+        showToast(sendJson.duplicate ? 'تم استرجاع نتيجة الإذن السابقة' : ('تم إنشاء وإرسال الإذن ' + voucherCode), 'success');
+        voucherCart = [];
+        _renderVoucherCart();
+        if (typeof loadVouchers === 'function') await loadVouchers();
     } catch (e) {
         hideLoader();
-        showToast(e.message || 'فشل الاتصال', 'error');
+        showToast(e.message || 'فشل الاتصال؛ يمكن إعادة المحاولة بنفس العملية', 'error');
     }
 }
 
@@ -915,36 +972,166 @@ var rsRes = await supabase.from('runsheets')
 
     // ==================== UNLOADING ====================
     async function loadUnloading() {
-        var c = byId('rw-page-container'); if (!c) return;
+        var c = byId('rw-page-container');
+        if (!c) return;
+
         safeText(byId('rw-header-title'), 'التفريغ (Unloading)');
-        safeHTML(c, `<div class="p-4">
-            <div class="bg-white rounded-2xl shadow-sm border p-4 mb-4"><div class="grid grid-cols-2 md:grid-cols-6 gap-2">
-                <input type="text" id="ul-f-id" placeholder="رقم الرانشيت..." class="p-2 bg-slate-50 rounded text-sm" oninput="RW_Warehouse._applyUnloading()">
-                <button onclick="RW_Warehouse._applyUnloading()" class="bg-gray-600 text-white px-3 rounded text-sm">تطبيق</button>
-            </div></div>
-            <div class="bg-white rounded-2xl shadow-sm border overflow-auto" style="max-height:65vh"><table class="w-full"><thead class="bg-gray-50 sticky top-0"><tr><th class="p-3">الرانشيت</th><th class="p-3">التاريخ</th><th class="p-3">السائق</th><th class="p-3">الحالة</th><th class="p-3 text-center">عرض</th></tr></thead><tbody id="ul-table"><tr><td colspan="5" class="text-center py-8">جاري التحميل...</td></tr></tbody></table></div>
-        </div>`);
+        safeHTML(c, '<div class="p-4">' +
+            '<div class="bg-white rounded-2xl shadow-sm border p-4 mb-4">' +
+                '<div class="grid grid-cols-2 md:grid-cols-6 gap-2">' +
+                    '<input type="text" id="ul-f-id" placeholder="رقم الرانشيت..." class="p-2 bg-slate-50 rounded text-sm" oninput="RW_Warehouse._applyUnloading()">' +
+                    '<button onclick="RW_Warehouse._applyUnloading()" class="bg-gray-600 text-white px-3 rounded text-sm">تطبيق</button>' +
+                '</div>' +
+            '</div>' +
+            '<div class="bg-white rounded-2xl shadow-sm border overflow-auto" style="max-height:65vh">' +
+                '<table class="w-full"><thead class="bg-gray-50 sticky top-0"><tr>' +
+                    '<th class="p-3">الرانشيت</th><th class="p-3">التاريخ</th><th class="p-3">السائق</th><th class="p-3">الحالة</th><th class="p-3 text-center">عرض</th>' +
+                '</tr></thead><tbody id="ul-table"><tr><td colspan="5" class="text-center py-8">جاري التحميل...</td></tr></tbody></table>' +
+            '</div>' +
+        '</div>');
+
         var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
-if (!companyId) { showToast('سياق الشركة غير محدد', 'error'); return; }
-var res = await supabase.from('runsheets')
-    .select('*')
-    .eq('company_id', companyId)
-    .in('status', ['Open','New']);
+        if (!companyId) {
+            showToast('سياق الشركة غير محدد', 'error');
+            return;
+        }
+
+        var res = await supabase.from('runsheets')
+            .select('id,runsheet_code,run_date,driver_id,vehicle_id,status')
+            .eq('company_id', companyId)
+            .eq('status', 'Loaded')
+            .order('run_date', { ascending: false });
+
+        if (res.error) {
+            showToast(res.error.message, 'error');
+            return;
+        }
+
         window._unloadingData = res.data || [];
         _applyUnloading();
     }
+
     function _applyUnloading() {
         var d = window._unloadingData || [];
-        var id = (byId('ul-f-id')?.value||'').toLowerCase();
-        if (id) d = d.filter(function(r) { return (r.runsheet_code||'').toLowerCase().indexOf(id) !== -1; });
-        var tb = byId('ul-table'); if (!tb) return;
-        if (!d.length) { safeHTML(tb, '<tr><td colspan="5" class="text-center py-8">لا توجد رانشيتات مفرّغة</td></tr>'); return; }
+        var id = (byId('ul-f-id')?.value || '').trim().toLowerCase();
+        if (id) {
+            d = d.filter(function(r) {
+                return String(r.runsheet_code || '').toLowerCase().indexOf(id) !== -1;
+            });
+        }
+
+        var tb = byId('ul-table');
+        if (!tb) return;
+
+        if (!d.length) {
+            safeHTML(tb, '<tr><td colspan="5" class="text-center py-8">لا توجد رانشيتات جاهزة للتفريغ</td></tr>');
+            return;
+        }
+
         RW_Table.paginate('ul-table', d, 1, 50, function(r) {
-            return '<tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="RW_Warehouse._showUnloadingDetails(\'' + r.runsheet_code + '\')"><td class="p-3 font-bold">' + (r.runsheet_code||'') + '</td><td class="p-3">' + (r.run_date||'') + '</td><td class="p-3">' + (r.driver_id||'---') + '</td><td class="p-3"><span class="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">' + (r.status||'') + '</span></td><td class="p-3 text-center"><button class="text-blue-600" onclick="RW_Warehouse._showUnloadingDetails(\'' + r.runsheet_code + '\')"><i class="fa-solid fa-eye"></i></button></td></tr>';
+            var code = String(r.runsheet_code || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            return "<tr class=\"border-b hover:bg-gray-50 cursor-pointer\" onclick=\"RW_Warehouse._showUnloadingDetails('" + code + "')\">" +
+                '<td class="p-3 font-bold">' + esc(r.runsheet_code || '') + '</td>' +
+                '<td class="p-3">' + esc(r.run_date || '') + '</td>' +
+                '<td class="p-3">' + esc(r.driver_id || '---') + '</td>' +
+                '<td class="p-3"><span class="px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-700">Loaded</span></td>' +
+                "<td class=\"p-3 text-center\"><button class=\"text-blue-600\" onclick=\"event.stopPropagation(); RW_Warehouse._showUnloadingDetails('" + code + "')\"><i class=\"fa-solid fa-eye\"></i></button></td>" +
+            '</tr>';
         });
     }
-    async function _showUnloadingDetails(code) { showToast('التفاصيل قيد التطوير', 'info'); }
 
+    async function _showUnloadingDetails(code) {
+        if (!code) {
+            showToast('رقم الرانشيت غير صالح', 'error');
+            return;
+        }
+
+        var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+        if (!companyId) {
+            showToast('سياق الشركة غير محدد', 'error');
+            return;
+        }
+
+        showLoader('جاري تحميل تفاصيل التفريغ...');
+        try {
+            var rsRes = await supabase.from('runsheets')
+                .select('id,runsheet_code,run_date,driver_id,vehicle_id,status')
+                .eq('company_id', companyId)
+                .eq('runsheet_code', code)
+                .maybeSingle();
+
+            if (rsRes.error) throw rsRes.error;
+            if (!rsRes.data) throw new Error('الرانشيت غير موجود في الشركة الحالية');
+            if (rsRes.data.status !== 'Loaded') throw new Error('الرانشيت ليس في حالة Loaded؛ لا يمكن اعتباره جاهزًا للتفريغ');
+
+            var detailsRes = await supabase.from('run_sheet_details')
+                .select('item_code,item_name,unit,qty_ordered,qty_picked,qty_loaded,qty_delivered,qty_refused,qty_returned')
+                .eq('runsheet_id', rsRes.data.id)
+                .order('item_code');
+
+            if (detailsRes.error) throw detailsRes.error;
+
+            var details = detailsRes.data || [];
+            if (!details.length) {
+                hideLoader();
+                showToast('لا توجد تفاصيل أصناف لهذا الرانشيت', 'info');
+                return;
+            }
+
+            var loadedTotal = 0;
+            var remainingTotal = 0;
+            var html = '<div class="text-right" dir="rtl">';
+            html += '<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">' +
+                '<div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">الرانشيت</div><div class="font-black">' + esc(rsRes.data.runsheet_code) + '</div></div>' +
+                '<div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">السائق</div><div class="font-bold">' + esc(rsRes.data.driver_id || '---') + '</div></div>' +
+                '<div class="bg-slate-50 rounded-xl p-3"><div class="text-xs text-slate-500">السيارة</div><div class="font-bold">' + esc(rsRes.data.vehicle_id || '---') + '</div></div>' +
+            '</div>';
+            html += '<div class="mb-3 p-3 bg-orange-50 border border-orange-100 rounded-xl text-sm font-bold text-orange-800">هذه الشاشة للعرض والتأكد من الحمولة قبل التفريغ. تنفيذ التفريغ نفسه يتم عبر <code>unload-runsheet</code> ولا يتم هنا إجراء أي تعديل مخزني.</div>';
+            html += '<div class="overflow-auto max-h-[55vh]"><table class="w-full border text-sm"><thead class="bg-gray-100 sticky top-0"><tr>' +
+                '<th class="p-2 border">الكود</th><th class="p-2 border">الصنف</th><th class="p-2 border text-center">الوحدة</th><th class="p-2 border text-center">محمّل</th><th class="p-2 border text-center">مسلّم</th><th class="p-2 border text-center">مرفوض</th><th class="p-2 border text-center">مرتجع</th><th class="p-2 border text-center">المتبقي</th>' +
+                '</tr></thead><tbody>';
+
+            for (var i = 0; i < details.length; i++) {
+                var d = details[i];
+                var loaded = Number(d.qty_loaded) || 0;
+                var delivered = Number(d.qty_delivered) || 0;
+                var refused = Number(d.qty_refused) || 0;
+                var returned = Number(d.qty_returned) || 0;
+                var remaining = Math.max(0, loaded - delivered - refused - returned);
+                loadedTotal += loaded;
+                remainingTotal += remaining;
+
+                html += '<tr class="border-b">' +
+                    '<td class="p-2 border">' + esc(d.item_code || '') + '</td>' +
+                    '<td class="p-2 border font-semibold">' + esc(d.item_name || '') + '</td>' +
+                    '<td class="p-2 border text-center">' + esc(d.unit || 'حبة') + '</td>' +
+                    '<td class="p-2 border text-center font-bold text-orange-700">' + loaded + '</td>' +
+                    '<td class="p-2 border text-center">' + delivered + '</td>' +
+                    '<td class="p-2 border text-center">' + refused + '</td>' +
+                    '<td class="p-2 border text-center">' + returned + '</td>' +
+                    '<td class="p-2 border text-center font-black ' + (remaining > 0 ? 'text-red-600' : 'text-emerald-600') + '">' + remaining + '</td>' +
+                '</tr>';
+            }
+
+            html += '</tbody></table></div>';
+            html += '<div class="mt-4 grid grid-cols-2 gap-3">' +
+                '<div class="bg-orange-50 rounded-xl p-3 text-center"><div class="text-xs text-slate-500">إجمالي المحمّل</div><div class="text-xl font-black text-orange-700">' + loadedTotal + '</div></div>' +
+                '<div class="bg-slate-50 rounded-xl p-3 text-center"><div class="text-xs text-slate-500">المتبقي قبل التفريغ</div><div class="text-xl font-black">' + remainingTotal + '</div></div>' +
+            '</div></div>';
+
+            hideLoader();
+            Swal.fire({
+                title: 'تفاصيل التفريغ: ' + esc(code),
+                html: html,
+                width: '1100px',
+                showCloseButton: true,
+                showConfirmButton: false
+            });
+        } catch (e) {
+            hideLoader();
+            showToast(e.message || 'فشل تحميل تفاصيل التفريغ', 'error');
+        }
+    }
     // ==================== COUNT (الجرد) & SETTLEMENT (إغلاق اليومية) ====================
     async function loadVehicleCount() {
         var c = byId('rw-page-container'); if (!c) return;
@@ -1029,6 +1216,141 @@ var res = await supabase.from('users')
         window._selectedDriver = email;
         byId('vc-driver-search').value = name + ' (' + email + ')';
         byId('vc-driver-results').classList.add('hidden');
+    }
+
+    async function _startBarcodeScanner(prefix) {
+        var input = byId(prefix + '-item-search');
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof window.BarcodeDetector === 'undefined') {
+            if (input) {
+                input.focus();
+                input.select();
+            }
+            showToast('مسح الباركود بالكاميرا غير مدعوم في هذا المتصفح. استخدم البحث أو قارئ الباركود المتصل.', 'warning');
+            return;
+        }
+
+        var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+        if (!companyId) {
+            showToast('سياق الشركة غير محدد', 'error');
+            return;
+        }
+
+        var stream = null;
+        var timer = null;
+        var stopped = false;
+        var videoId = 'rw-barcode-video-' + Date.now();
+
+        try {
+            var formats = ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'qr_code'];
+            try {
+                if (BarcodeDetector.getSupportedFormats) {
+                    var supported = await BarcodeDetector.getSupportedFormats();
+                    formats = formats.filter(function(f) { return supported.indexOf(f) !== -1; });
+                }
+            } catch (_) {}
+
+            var detector = formats.length ? new BarcodeDetector({ formats: formats }) : new BarcodeDetector();
+
+            var result = await Swal.fire({
+                title: 'مسح الباركود',
+                html: '<div class="text-center"><div class="mb-3 text-sm text-slate-500">وجّه الكاميرا إلى باركود الصنف</div><div class="relative overflow-hidden rounded-2xl bg-black"><video id="' + videoId + '" autoplay muted playsinline style="width:100%;max-height:420px;object-fit:cover"></video><div class="absolute inset-6 border-2 border-emerald-400 rounded-xl pointer-events-none"></div></div></div>',
+                width: '650px',
+                showCancelButton: true,
+                confirmButtonText: 'إغلاق',
+                cancelButtonText: 'إلغاء',
+                showConfirmButton: false,
+                allowOutsideClick: false,
+                didOpen: async function() {
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+                        var video = document.getElementById(videoId);
+                        if (!video) throw new Error('تعذر تشغيل كاميرا المسح');
+                        video.srcObject = stream;
+                        await video.play();
+
+                        var lastRaw = '';
+                        var lastToastAt = 0;
+                        var scan = async function() {
+                            if (stopped) return;
+                            try {
+                                if (video.readyState >= 2) {
+                                    var codes = await detector.detect(video);
+                                    if (codes && codes.length) {
+                                        var raw = String(codes[0].rawValue || '').trim();
+                                        if (raw && raw !== lastRaw) {
+                                            lastRaw = raw;
+                                            var items = (RW_STATE.data && RW_STATE.data.items) || [];
+                                            var matched = null;
+                                            for (var i = 0; i < items.length; i++) {
+                                                var item = items[i];
+                                                if (String(item.barcode || '').trim() === raw || String(item.item_code || '').trim() === raw) {
+                                                    matched = item;
+                                                    break;
+                                                }
+                                            }
+
+                                            if (!matched) {
+                                                var now = Date.now();
+                                                if (now - lastToastAt > 1500) {
+                                                    showToast('لم يتم العثور على صنف لهذا الباركود: ' + raw, 'warning');
+                                                    lastToastAt = now;
+                                                }
+                                            } else {
+                                                _addToInvCart(prefix, matched.item_code);
+                                                if (input) {
+                                                    input.value = '';
+                                                    input.focus();
+                                                }
+                                                Swal.close();
+                                                return;
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn('BarcodeDetector scan error', e);
+                            }
+                            timer = setTimeout(function() { lastRaw = ''; scan(); }, 350);
+                        };
+                        scan();
+                    } catch (e) {
+                        showToast('تعذر الوصول إلى الكاميرا: ' + (e.message || ''), 'error');
+                        if (input) {
+                            input.focus();
+                            input.select();
+                        }
+                        Swal.close();
+                    }
+                },
+                willClose: function() {
+                    stopped = true;
+                    if (timer) {
+                        clearTimeout(timer);
+                        timer = null;
+                    }
+                    if (stream) {
+                        var tracks = stream.getTracks ? stream.getTracks() : [];
+                        for (var i = 0; i < tracks.length; i++) tracks[i].stop();
+                        stream = null;
+                    }
+                }
+            });
+
+            return result;
+        } catch (e) {
+            stopped = true;
+            if (timer) clearTimeout(timer);
+            if (stream) {
+                var tracks = stream.getTracks ? stream.getTracks() : [];
+                for (var j = 0; j < tracks.length; j++) tracks[j].stop();
+            }
+            if (input) {
+                input.focus();
+                input.select();
+            }
+            showToast(e.message || 'فشل تشغيل قارئ الباركود', 'error');
+            return null;
+        }
     }
 
     function _searchInvItem(prefix, query) {
@@ -1127,19 +1449,72 @@ async function _saveVehicleCount() {
 }
 
     async function _saveInvCount(type, entityId, reference) {
-        if (!window._invCart || window._invCart.length === 0) { showToast('أضف أصنافاً', 'warning'); return; }
+        if (!window._invCart || window._invCart.length === 0) {
+            showToast('أضف أصنافاً', 'warning');
+            return;
+        }
+        if (!entityId) {
+            showToast('الكيان المستهدف للجرد غير محدد', 'warning');
+            return;
+        }
+
+        var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+        if (!companyId) {
+            showToast('سياق الشركة غير محدد', 'error');
+            return;
+        }
+
         var items = [];
         for (var i = 0; i < window._invCart.length; i++) {
-            items.push({ itemCode: window._invCart[i].code, itemName: window._invCart[i].name, unit: window._invCart[i].unit, qty: parseInt(window._invCart[i].qty) || 0, unitPrice: 0, notes: '' });
+            var q = parseInt(window._invCart[i].qty, 10) || 0;
+            if (q < 0) {
+                showToast('كمية الجرد لا يمكن أن تكون سالبة', 'warning');
+                return;
+            }
+            items.push({
+                itemCode: window._invCart[i].code,
+                itemName: window._invCart[i].name,
+                unit: window._invCart[i].unit,
+                qty: q,
+                unitPrice: 0,
+                notes: ''
+            });
         }
+
+        var prefix = type === 'vehicle' ? 'vc' : (type === 'branch' ? 'bc' : 'gc');
         showLoader('جاري حفظ الجرد...');
         try {
-            var ses = await supabase.auth.getSession(), token = ses.data.session ? ses.data.session.access_token : null;
-            var res = await fetch(RW_SUPABASE_URL + '/functions/v1/save-inventory-count', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ type: type, entityId: entityId, reference: reference, items: items }) });
-            var json = await res.json(); hideLoader();
-            if (json.success) { showToast(json.msg + ' (' + json.voucherId + ')', 'success'); window._invCart = []; _renderInvCart('vc'); }
-            else showToast(json.msg || 'فشل الحفظ', 'error');
-        } catch(e) { hideLoader(); showToast('فشل الاتصال', 'error'); }
+            var ses = await supabase.auth.getSession();
+            var token = ses.data.session ? ses.data.session.access_token : null;
+            if (!token) throw new Error('انتهت الجلسة. يرجى إعادة تسجيل الدخول.');
+
+            var res = await fetch(RW_SUPABASE_URL + '/functions/v1/save-inventory-count', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({
+                    type: type,
+                    entityId: entityId,
+                    reference: reference,
+                    items: items
+                })
+            });
+
+            var json = await res.json().catch(function() { return {}; });
+            if (!res.ok || !json || !json.success) {
+                throw new Error((json && (json.msg || json.error)) || 'فشل حفظ الجرد');
+            }
+
+            hideLoader();
+            window._invCart = [];
+            _renderInvCart(prefix);
+            showToast(json.msg || ('تم حفظ الجرد ' + (json.count_id || '')), 'success');
+        } catch (e) {
+            hideLoader();
+            showToast(e.message || 'فشل الاتصال', 'error');
+        }
     }
 
     async function loadBranchCount() {
@@ -1238,302 +1613,308 @@ var runsheetsRes = await supabase.from('runsheets')
         }
     }
 
-async function _onSettlementRsChange() {
-    var rsCode = byId('settlement-rs-select')?.value;
-    var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
-    if (!rsCode) {
-        byId('settlement-details-container').classList.add('hidden');
-        return;
-    }
-    if (!companyId) {
-        showToast('سياق الشركة غير محدد', 'error');
-        return;
-    }
+    async function _onSettlementRsChange() {
+        var rsCode = byId('settlement-rs-select')?.value || '';
+        var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
+        var detailsContainer = byId('settlement-details-container');
 
-    showLoader('جاري تحميل بيانات التسوية...');
-
-    try {
-        var rsRes = await supabase.from('runsheets')
-            .select('*')
-            .eq('company_id', companyId)
-            .eq('runsheet_code', rsCode)
-            .maybeSingle();
-        if (rsRes.error) throw rsRes.error;
-
-        var rs = rsRes.data;
-        if (!rs) {
-            hideLoader();
-            showToast('الرانشيت غير موجود', 'error');
+        if (!rsCode) {
+            if (detailsContainer) detailsContainer.classList.add('hidden');
+            window._settlementData = null;
+            return;
+        }
+        if (!companyId) {
+            showToast('سياق الشركة غير محدد', 'error');
             return;
         }
 
-        var loadedRes = await supabase.from('run_sheet_details')
-            .select('*')
-            .eq('runsheet_id', rs.id);
-        if (loadedRes.error) throw loadedRes.error;
-        var loadedItems = loadedRes.data || [];
-
-        var ordersForRsRes = await supabase.from('orders')
-            .select('id')
-            .eq('company_id', companyId)
-            .eq('runsheet_id', rs.id);
-        if (ordersForRsRes.error) throw ordersForRsRes.error;
-
-        var orderIdsForRs = (ordersForRsRes.data || []).map(function(o) { return o.id; });
-        var orderDetails = [];
-        if (orderIdsForRs.length > 0) {
-            var orderDetailsRes = await supabase.from('order_details')
-                .select('*')
-                .in('order_id', orderIdsForRs);
-            if (orderDetailsRes.error) throw orderDetailsRes.error;
-            orderDetails = orderDetailsRes.data || [];
-        }
-
-        var vouchersRes = await supabase.from('stock_vouchers')
-            .select('id, voucher_code')
-            .eq('company_id', companyId)
-            .eq('reference', rsCode)
-            .eq('type', 'Return');
-        if (vouchersRes.error) throw vouchersRes.error;
-
-        var voucherIds = (vouchersRes.data || []).map(function(v) { return v.id; });
-        var returnDetails = [];
-        if (voucherIds.length > 0) {
-            var retRes = await supabase.from('stock_voucher_details')
-                .select('*')
-                .in('voucher_id', voucherIds);
-            if (retRes.error) throw retRes.error;
-            returnDetails = retRes.data || [];
-        }
-
-        var vehicleRes = await supabase.from('vehicles')
-            .select('id, mobile_branch_id')
-            .eq('company_id', companyId)
-            .eq('id', rs.vehicle_id)
-            .maybeSingle();
-        if (vehicleRes.error) throw vehicleRes.error;
-
-        var vehicle = vehicleRes.data || null;
-        var inventoryEntityId = vehicle ? (vehicle.mobile_branch_id || vehicle.id) : null;
-        var countedByItem = {};
-
-        if (inventoryEntityId) {
-            var countRes = await supabase.from('inventory_counts')
-                .select('id')
+        showLoader('جاري تحميل بيانات التسوية...');
+        try {
+            var rsRes = await supabase.from('runsheets')
+                .select('id,runsheet_code,status,driver_id,vehicle_id,run_date')
                 .eq('company_id', companyId)
-                .eq('type', 'vehicle')
-                .eq('entity_id', inventoryEntityId)
-                .order('created_at', { ascending: false })
-                .limit(1)
+                .eq('runsheet_code', rsCode)
                 .maybeSingle();
-            if (countRes.error) throw countRes.error;
+            if (rsRes.error) throw rsRes.error;
+            if (!rsRes.data) throw new Error('الرانشيت غير موجود في الشركة الحالية');
+            if (['Delivered', 'Returned'].indexOf(rsRes.data.status) === -1) {
+                throw new Error('التسوية متاحة فقط للرانشيتات التي وصلت إلى Delivered أو Returned');
+            }
 
-            if (countRes.data) {
-                var countDetailsRes = await supabase.from('inventory_count_details')
-                    .select('item_code, counted_qty')
-                    .eq('count_id', countRes.data.id);
-                if (countDetailsRes.error) throw countDetailsRes.error;
+            var detailsRes = await supabase.from('run_sheet_details')
+                .select('item_code,item_name,unit,qty_loaded,qty_delivered,qty_returned,unit_price')
+                .eq('runsheet_id', rsRes.data.id)
+                .order('item_code');
+            if (detailsRes.error) throw detailsRes.error;
+            var details = detailsRes.data || [];
 
-                var countDetails = countDetailsRes.data || [];
-                for (var c = 0; c < countDetails.length; c++) {
-                    countedByItem[countDetails[c].item_code] = Number(countDetails[c].counted_qty) || 0;
+            var countedByItem = {};
+            if (rsRes.data.vehicle_id) {
+                var countRes = await supabase.from('inventory_counts')
+                    .select('id')
+                    .eq('company_id', companyId)
+                    .eq('type', 'vehicle')
+                    .eq('entity_id', rsRes.data.vehicle_id)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                if (countRes.error) throw countRes.error;
+                if (countRes.data) {
+                    var countDetailsRes = await supabase.from('inventory_count_details')
+                        .select('item_code,counted_qty')
+                        .eq('count_id', countRes.data.id);
+                    if (countDetailsRes.error) throw countDetailsRes.error;
+                    var countDetails = countDetailsRes.data || [];
+                    for (var ci = 0; ci < countDetails.length; ci++) {
+                        countedByItem[countDetails[ci].item_code] = Number(countDetails[ci].counted_qty) || 0;
+                    }
                 }
             }
-        }
 
-        var itemsMap = {};
-        for (var i = 0; i < loadedItems.length; i++) {
-            var it = loadedItems[i];
-            itemsMap[it.item_code] = {
-                itemCode: it.item_code,
-                itemName: it.item_name,
-                unit: it.unit,
-                loadedQty: Number(it.qty_loaded) || 0,
-                deliveredQty: 0,
-                returnedQty: 0,
-                countedQty: Number(countedByItem[it.item_code]) || 0,
-                unitPrice: Number(it.unit_price) || 0
-            };
-        }
+            var items = [];
+            var totalShortage = 0;
+            var totalShortageValue = 0;
+            var html = '';
 
-        for (var j = 0; j < orderDetails.length; j++) {
-            var od = orderDetails[j];
-            if (itemsMap[od.item_code]) {
-                itemsMap[od.item_code].deliveredQty += Number(od.qty_delivered) || 0;
-                itemsMap[od.item_code].returnedQty += Number(od.qty_refused) || 0;
-            }
-        }
+            for (var i = 0; i < details.length; i++) {
+                var d = details[i];
+                var loaded = Number(d.qty_loaded) || 0;
+                var delivered = Number(d.qty_delivered) || 0;
+                var returned = Number(d.qty_returned) || 0;
+                var counted = Object.prototype.hasOwnProperty.call(countedByItem, d.item_code) ? countedByItem[d.item_code] : null;
+                var shortage = Math.max(0, loaded - delivered - returned);
+                var shortageValue = shortage * (Number(d.unit_price) || 0);
 
-        for (var k = 0; k < returnDetails.length; k++) {
-            var rd = returnDetails[k];
-            if (itemsMap[rd.item_code]) {
-                itemsMap[rd.item_code].returnedQty += Number(rd.qty) || 0;
-            }
-        }
-
-        var html = '';
-        var totalShortage = 0;
-        var totalShortageValue = 0;
-
-        for (var code in itemsMap) {
-            var itm = itemsMap[code];
-            var shortage = itm.loadedQty - itm.deliveredQty - itm.returnedQty - itm.countedQty;
-            var shortageValue = shortage * itm.unitPrice;
-
-            if (shortage > 0) {
                 totalShortage += shortage;
                 totalShortageValue += shortageValue;
+                items.push({
+                    itemCode: d.item_code,
+                    itemName: d.item_name,
+                    unit: d.unit,
+                    loadedQty: loaded,
+                    deliveredQty: delivered,
+                    returnedQty: returned,
+                    countedQty: counted,
+                    shortage: shortage,
+                    unitPrice: Number(d.unit_price) || 0,
+                    shortageValue: shortageValue
+                });
+
+                html += '<tr class="border-b">' +
+                    '<td class="p-2">' + esc(d.item_name || '') + '<div class="text-xs text-gray-400">' + esc(d.item_code || '') + '</div></td>' +
+                    '<td class="p-2 text-center">' + loaded + '</td>' +
+                    '<td class="p-2 text-center">' + delivered + '</td>' +
+                    '<td class="p-2 text-center">' + returned + '</td>' +
+                    '<td class="p-2 text-center font-bold">' + (counted == null ? '—' : counted) + '</td>' +
+                    '<td class="p-2 text-center font-black ' + (shortage > 0 ? 'text-red-600' : 'text-emerald-600') + '">' + shortage + '</td>' +
+                    '<td class="p-2 text-center">' + Math.abs(shortageValue).toLocaleString() + ' EGP</td>' +
+                '</tr>';
             }
 
-            html += '<tr class="border-b"><td class="p-2"><div class="font-bold">' + itm.itemName + '</div><div class="text-xs text-gray-400">' + itm.itemCode + '</div></td><td class="p-2 text-center">' + itm.loadedQty + '</td><td class="p-2 text-center">' + itm.deliveredQty + '</td><td class="p-2 text-center">' + itm.returnedQty + '</td><td class="p-2 text-center font-bold">' + itm.countedQty + '</td><td class="p-2 text-center font-bold text-red-600">' + shortage + '</td><td class="p-2 text-center">' + Math.abs(shortageValue).toLocaleString() + ' EGP</td></tr>';
+            safeHTML(byId('settlement-items-body'), html || '<tr><td colspan="7" class="p-6 text-center">لا توجد بيانات</td></tr>');
+            safeHTML(byId('settlement-rs-info'),
+                '<strong>المندوب:</strong> ' + esc(rsRes.data.driver_id || '---') +
+                ' | <strong>السيارة:</strong> ' + esc(rsRes.data.vehicle_id || '---') +
+                ' | <strong>التاريخ:</strong> ' + esc(rsRes.data.run_date || '---') +
+                '<div class="mt-2 text-xs text-slate-500">ملاحظة: التسوية المحاسبية تعتمد على المحمّل − المسلّم − المرتجع كما يطبّقها محرك التسوية في Production. كمية الجرد المعروضة مرجعية للتحقق فقط ولا تُخصم من نتيجة العجز آليًا.</div>');
+
+            if (detailsContainer) detailsContainer.classList.remove('hidden');
+            window._settlementData = {
+                rs: rsRes.data,
+                items: items,
+                totalShortage: totalShortage,
+                totalShortageValue: totalShortageValue
+            };
+            hideLoader();
+        } catch (e) {
+            hideLoader();
+            window._settlementData = null;
+            if (detailsContainer) detailsContainer.classList.add('hidden');
+            showToast('فشل تحميل بيانات التسوية: ' + (e.message || ''), 'error');
         }
-
-        safeHTML(byId('settlement-items-body'), html || '<tr><td colspan="7" class="p-6 text-center">لا توجد بيانات</td></tr>');
-        safeHTML(byId('settlement-rs-info'), '<strong>المندوب:</strong> ' + (rs.driver_id || '---') + ' | <strong>السيارة:</strong> ' + (rs.vehicle_id || '---') + ' | <strong>التاريخ:</strong> ' + (rs.run_date || '---'));
-        byId('settlement-details-container').classList.remove('hidden');
-
-        window._settlementData = {
-            rs: rs,
-            items: itemsMap,
-            totalShortage: totalShortage,
-            totalShortageValue: totalShortageValue
-        };
-
-        hideLoader();
-    } catch (e) {
-        hideLoader();
-        showToast('فشل تحميل البيانات: ' + (e.message || ''), 'error');
     }
-}
 
     function _saveSettlement() {
         var data = window._settlementData;
-        if (!data) { showToast('اختر رانشيتاً أولاً', 'warning'); return; }
+        if (!data) {
+            showToast('اختر رانشيتاً أولاً', 'warning');
+            return;
+        }
         var rs = data.rs;
-        if (!rs || !rs.runsheet_code) { showToast('بيانات الرانشيت غير مكتملة', 'error'); return; }
-        
+        if (!rs || !rs.runsheet_code) {
+            showToast('بيانات الرانشيت غير مكتملة', 'error');
+            return;
+        }
+
+        window._settlementPendingOps = window._settlementPendingOps || {};
+        var operationId = window._settlementPendingOps[rs.runsheet_code];
+        if (!operationId) {
+            operationId = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : ('SETTLE-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+            window._settlementPendingOps[rs.runsheet_code] = operationId;
+        }
+
         showLoader('جاري حفظ التسوية...');
-        
         supabase.auth.getSession().then(function(ses) {
             var token = (ses && ses.data && ses.data.session) ? ses.data.session.access_token : null;
-            if (!token) { hideLoader(); showToast('انتهت الجلسة', 'error'); return; }
-            
+            if (!token) throw new Error('انتهت الجلسة');
+
             return fetch(RW_SUPABASE_URL + '/functions/v1/save-daily-settlement', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
+                    'Authorization': 'Bearer ' + token,
+                    'Idempotency-Key': operationId
                 },
                 body: JSON.stringify({
                     runsheet_code: rs.runsheet_code,
-                    notes: 'تسوية يومية للرانشيت ' + rs.runsheet_code
+                    notes: 'تسوية يومية للرانشيت ' + rs.runsheet_code,
+                    operation_id: operationId
                 })
             });
         }).then(function(res) {
-            if (!res) return;
-            return res.json();
+            return res.json().catch(function() { return {}; }).then(function(json) {
+                if (!res.ok || !json || !json.success) {
+                    throw new Error((json && (json.msg || json.error)) || 'فشل حفظ التسوية');
+                }
+                return json;
+            });
         }).then(function(json) {
             hideLoader();
-            if (json && json.success) {
-                showToast('تم حفظ التسوية: ' + json.settlement_code, 'success');
-                var container = byId('settlement-details-container');
-                if (container) container.classList.add('hidden');
-                var sel = byId('settlement-rs-select');
-                if (sel) sel.value = '';
-            } else {
-                showToast((json && json.msg) || 'فشل الحفظ', 'error');
-            }
+            delete window._settlementPendingOps[rs.runsheet_code];
+            showToast(json.duplicate ? 'تم استرجاع نتيجة التسوية السابقة' : ('تم حفظ التسوية: ' + (json.settlement_code || rs.runsheet_code)), 'success');
+            var container = byId('settlement-details-container');
+            if (container) container.classList.add('hidden');
+            var sel = byId('settlement-rs-select');
+            if (sel) sel.value = '';
+            window._settlementData = null;
         }).catch(function(e) {
             hideLoader();
-            showToast('فشل الاتصال', 'error');
-            console.error(e);
+            showToast(e.message || 'فشل الاتصال؛ يمكن إعادة المحاولة بنفس رقم العملية', 'error');
         });
     }
 function _openPickingModal(rsCode) {
     if (!rsCode) { showToast('رقم الرانشيت غير صالح', 'error'); return; }
     showLoader('جاري تحميل بيانات التحضير...');
-    
-    // ✅ الإصلاح: جلب الرانشيت أولاً للحصول على id الحقيقي (UUID)
+
     var companyId = (RW_STATE && RW_STATE.app && RW_STATE.app.companyId) || null;
-if (!companyId) { hideLoader(); showToast('سياق الشركة غير محدد', 'error'); return; }
+    if (!companyId) { hideLoader(); showToast('سياق الشركة غير محدد', 'error'); return; }
+
+    window._pickingPendingOps = window._pickingPendingOps || {};
+
     supabase.from('runsheets')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('runsheet_code', rsCode)
-    .maybeSingle()
-    .then(function(rsRes) {
-        if (!rsRes.data) { hideLoader(); showToast('الرانشيت غير موجود', 'error'); return; }
-        var runsheetUuid = rsRes.data.id;
-        
-        // ✅ استخدام runsheetUuid (UUID) للاستعلام عن التفاصيل
-        supabase.from('run_sheet_details').select('*').eq('runsheet_id', runsheetUuid).then(function(itemsRes) {
-            var items = itemsRes.data || [];
-            if (items.length === 0) { hideLoader(); showToast('لا توجد أصناف في هذا الرانشيت', 'info'); return; }
-            
-            showLoader('جاري بدء التحضير...');
-            supabase.auth.getSession().then(function(ses) {
-                var t = ses.data.session ? ses.data.session.access_token : null;
-                return fetch(RW_SUPABASE_URL + '/functions/v1/start-picking', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t },
-                    body: JSON.stringify({ runsheet_code: rsCode })
-                });
-            }).then(function(res) { return res.json(); }).then(function(startJson) {
-                hideLoader();
-                if (!startJson.success) { showToast(startJson.msg || 'فشل بدء التحضير', 'error'); return; }
-                
-                var html = '<div class="text-right" dir="rtl"><div class="max-h-[400px] overflow-y-auto"><table class="w-full border"><thead class="bg-slate-100"><tr>' +
-                    '<th class="p-2">الصنف</th><th class="p-2 text-center">الوحدة</th><th class="p-2 text-center">الكمية المطلوبة</th><th class="p-2 text-center">الكمية المحضرة</th></tr></thead><tbody>';
-                for (var i = 0; i < items.length; i++) {
-                    var it = items[i];
-                    html += '<tr><td class="p-2 border"><p class="font-bold">' + (it.item_name || '') + '</p><p class="text-xs">' + (it.item_code || '') + '</p></td>' +
-                        '<td class="p-2 border text-center">' + (it.unit || 'حبة') + '</td>' +
-                        '<td class="p-2 border text-center font-bold">' + (it.qty_ordered || 0) + '</td>' +
-                        '<td class="p-2 border text-center"><input type="number" id="picked_qty_' + i + '" class="w-24 p-2 border rounded text-center" step="1" min="0" value="' + (it.qty_ordered || 0) + '"></td></tr>';
-                }
-                html += '</tbody></table></div></div>';
-                
-                Swal.fire({
-                    title: 'تحضير الرانشيت: ' + rsCode,
-                    html: html,
-                    width: '800px',
-                    showCancelButton: true,
-                    confirmButtonText: 'إنهاء التحضير',
-                    cancelButtonText: 'إلغاء',
-                    preConfirm: function() {
-                        var itemsData = [];
-                        var allZero = true;
-                        for (var j = 0; j < items.length; j++) {
-                            var qty = parseFloat(document.getElementById('picked_qty_' + j).value) || 0;
-                            if (qty > 0) allZero = false;
-                            itemsData.push({ itemCode: items[j].item_code, pickedQty: qty, notes: '' });
-                        }
-                        if (allZero) { Swal.showValidationMessage('يجب تحضير كمية واحدة على الأقل'); return false; }
-                        return itemsData;
-                    }
-                }).then(function(result) {
-                    if (!result.isConfirmed) return;
-                    showLoader('جاري إنهاء التحضير...');
-                    supabase.auth.getSession().then(function(ses2) {
-                        var t2 = ses2.data.session ? ses2.data.session.access_token : null;
-                        return fetch(RW_SUPABASE_URL + '/functions/v1/complete-picking', {
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('runsheet_code', rsCode)
+        .maybeSingle()
+        .then(function(rsRes) {
+            if (rsRes.error) throw rsRes.error;
+            if (!rsRes.data) { hideLoader(); showToast('الرانشيت غير موجود', 'error'); return; }
+            var runsheetUuid = rsRes.data.id;
+
+            return supabase.from('run_sheet_details')
+                .select('*')
+                .eq('runsheet_id', runsheetUuid)
+                .order('item_code')
+                .then(function(itemsRes) {
+                    if (itemsRes.error) throw itemsRes.error;
+                    var items = itemsRes.data || [];
+                    if (items.length === 0) { hideLoader(); showToast('لا توجد أصناف في هذا الرانشيت', 'info'); return; }
+
+                    showLoader('جاري بدء التحضير...');
+                    return supabase.auth.getSession().then(function(ses) {
+                        var token = ses.data.session ? ses.data.session.access_token : null;
+                        if (!token) throw new Error('انتهت الجلسة');
+                        return fetch(RW_SUPABASE_URL + '/functions/v1/start-picking', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t2 },
-                            body: JSON.stringify({ runsheet_code: rsCode, items: result.value })
+                            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                            body: JSON.stringify({ runsheet_code: rsCode })
                         });
-                    }).then(function(res) { return res.json(); }).then(function(compJson) {
+                    }).then(function(res) { return res.json().then(function(json) { if (!res.ok || !json.success) throw new Error(json.msg || json.error || 'فشل بدء التحضير'); return json; }); }).then(function(startJson) {
                         hideLoader();
-                        if (compJson.success) {
-                            showToast('تم إنهاء التحضير بنجاح', 'success');
-                            if (typeof RW_Runsheets !== 'undefined' && RW_Runsheets._apply) RW_Runsheets._apply();
-                        } else {
-                            showToast(compJson.msg || 'فشل إنهاء التحضير', 'error');
+
+                        var operationId = window._pickingPendingOps[rsCode];
+                        if (!operationId) {
+                            operationId = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : ('PICK-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+                            window._pickingPendingOps[rsCode] = operationId;
                         }
-                    }).catch(function(e) { hideLoader(); showToast('فشل الاتصال', 'error'); });
+
+                        var html = '<div class="text-right" dir="rtl"><div class="max-h-[420px] overflow-y-auto"><table class="w-full border"><thead class="bg-slate-100"><tr>' +
+                            '<th class="p-2">الصنف</th><th class="p-2 text-center">الوحدة</th><th class="p-2 text-center">الكمية المطلوبة</th><th class="p-2 text-center">الكمية المحضرة</th></tr></thead><tbody>';
+                        for (var i = 0; i < items.length; i++) {
+                            var it = items[i];
+                            var ordered = Number(it.qty_ordered) || 0;
+                            var picked = Number(it.qty_picked) || 0;
+                            html += '<tr><td class="p-2 border"><p class="font-bold">' + esc(it.item_name || '') + '</p><p class="text-xs">' + esc(it.item_code || '') + '</p></td>' +
+                                '<td class="p-2 border text-center">' + esc(it.unit || 'حبة') + '</td>' +
+                                '<td class="p-2 border text-center font-bold">' + ordered + '</td>' +
+                                '<td class="p-2 border text-center"><input type="number" id="picked_qty_' + i + '" class="w-24 p-2 border rounded text-center" step="0.01" min="0" max="' + ordered + '" value="' + (picked || ordered) + '"></td></tr>';
+                        }
+                        html += '</tbody></table></div></div>';
+
+                        Swal.fire({
+                            title: 'تحضير الرانشيت: ' + esc(rsCode),
+                            html: html,
+                            width: '850px',
+                            showCancelButton: true,
+                            confirmButtonText: 'إنهاء التحضير',
+                            cancelButtonText: 'إلغاء',
+                            preConfirm: function() {
+                                var itemsData = [];
+                                var hasQty = false;
+                                for (var j = 0; j < items.length; j++) {
+                                    var orderedQty = Number(items[j].qty_ordered) || 0;
+                                    var qty = parseFloat((document.getElementById('picked_qty_' + j) || {}).value);
+                                    if (!Number.isFinite(qty)) qty = 0;
+                                    if (qty < 0 || qty > orderedQty) {
+                                        Swal.showValidationMessage('الكمية المحضرة يجب أن تكون بين 0 والكمية المطلوبة للصنف: ' + (items[j].item_code || ''));
+                                        return false;
+                                    }
+                                    if (qty > 0) hasQty = true;
+                                    itemsData.push({ itemCode: items[j].item_code, pickedQty: qty, notes: '' });
+                                }
+                                if (!hasQty) { Swal.showValidationMessage('يجب تحضير كمية واحدة على الأقل'); return false; }
+                                return itemsData;
+                            }
+                        }).then(function(result) {
+                            if (!result.isConfirmed) {
+                                delete window._pickingPendingOps[rsCode];
+                                return;
+                            }
+                            showLoader('جاري إنهاء التحضير...');
+                            return supabase.auth.getSession().then(function(ses2) {
+                                var token2 = ses2.data.session ? ses2.data.session.access_token : null;
+                                if (!token2) throw new Error('انتهت الجلسة');
+                                return fetch(RW_SUPABASE_URL + '/functions/v1/complete-picking', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        Authorization: 'Bearer ' + token2,
+                                        'Idempotency-Key': operationId
+                                    },
+                                    body: JSON.stringify({ runsheet_code: rsCode, items: result.value, operation_id: operationId })
+                                });
+                            }).then(function(res) {
+                                return res.json().catch(function() { return {}; }).then(function(compJson) {
+                                    if (!res.ok || !compJson.success) throw new Error(compJson.msg || compJson.error || 'فشل إنهاء التحضير');
+                                    return compJson;
+                                });
+                            }).then(function(compJson) {
+                                hideLoader();
+                                delete window._pickingPendingOps[rsCode];
+                                showToast(compJson.duplicate ? 'تم استرجاع نتيجة التحضير السابقة' : 'تم إنهاء التحضير بنجاح', 'success');
+                                if (typeof RW_Runsheets !== 'undefined' && RW_Runsheets._apply) RW_Runsheets._apply();
+                            }).catch(function(e) {
+                                hideLoader();
+                                showToast(e.message || 'فشل الاتصال؛ يمكن إعادة المحاولة بنفس العملية', 'error');
+                            });
+                        });
+                    });
                 });
-            }).catch(function(e) { hideLoader(); showToast('فشل الاتصال', 'error'); });
-        }).catch(function(e) { hideLoader(); showToast('فشل تحميل بيانات الرانشيت', 'error'); });
-    }).catch(function(e) { hideLoader(); showToast('فشل تحميل بيانات الرانشيت', 'error'); });
+        })
+        .catch(function(e) {
+            hideLoader();
+            showToast(e.message || 'فشل تحميل بيانات التحضير', 'error');
+        });
 }
 function _openLoadingModal(rsCode) {
     if (!rsCode) { showToast('رقم الرانشيت غير صالح', 'error'); return; }
@@ -1944,6 +2325,7 @@ function _changeStatus(code, funcName) {
     loadSettlement: loadSettlement,
     _searchDriver: _searchDriver,
     _selectDriver: _selectDriver,
+    _startBarcodeScanner: _startBarcodeScanner,
     _searchInvItem: _searchInvItem,
     _addToInvCart: _addToInvCart,
     _renderInvCart: _renderInvCart,
