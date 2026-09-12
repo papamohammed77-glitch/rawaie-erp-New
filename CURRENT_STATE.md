@@ -1,7 +1,7 @@
 # RAWAEA ERP — CURRENT STATE
 
 **Last reconciled:** 2026-09-12  
-**Current checkpoint:** Report145 completed a forensic runtime/source reconciliation for the first E2E of the published ERP system-mother. The published frontend Source of Truth remains `erp-frontend/companies/company-1/main.html`. The current Git source and governed GitHub Actions syntax gate pass; the owner-reported browser error at `main:5592` is not reproducible from the current Source of Truth, so the remaining blocker is Runtime / Deployment / Cache / local-copy divergence rather than a proven source defect.
+**Current checkpoint:** Report146 completed a forensic re-investigation of the first E2E for the published ERP system-mother. The published frontend Source of Truth remains `erp-frontend/companies/company-1/main.html`. The current Git source was re-opened directly, while the owner-reported browser SyntaxError at `main:5592` remains an observed runtime fact that is not reproducible from the opened source context. The prior Report145 statement that the observed helper forensic run proved `main.html` JavaScript syntax has been corrected: the actual Run ID `34710228654` checked `core.js`, `sw.js`, and `register-sw.js`, not `main.html`.
 
 ## CRITICAL GOLD / DIAMOND MISSION
 
@@ -59,7 +59,7 @@ Update timestamp in main.html
 doc/Draft/Reprots/Report143_CTO_Helper_Files_Integration_20260912.md
 ```
 
-Historical checkpoint only. Its previous `</html>` observation is superseded by direct current-source/CI verification.
+Historical checkpoint only. Its previous `</html>` observation is superseded by direct current-source verification.
 
 ## Report144 — First E2E System-Mother Syntax Forensic Closure
 
@@ -89,71 +89,86 @@ The current `_searchCustomers(query)` function was fetched directly from GitHub 
 h += '<div class="text-left text-xs text-gray-500">' + (c.area || '') + ' | ' + _fmtNum(c.debt) + ' ' + currency + '</div>';
 ```
 
-is syntactically valid.
+is syntactically ordinary source text.
 
-Independent `node --check` of that function = PASS.
+## Report146 — Runtime Reinvestigation
 
-### GitHub Actions verification
+```text
+doc/Draft/Reprots/Report146_CTO_E2E_Runtime_Reinvestigation_20260912.md
+```
 
-Latest observed `erp-frontend` forensic run:
+### Critical correction to Report145
+
+The actual observed helper forensic run:
 
 ```text
 Run ID = 34710228654
-Head SHA = eb3230bd8dabe29d91334b05c4c25e24505a5fc6
 Workflow = CTO Helper Files Forensic 20260912
 Conclusion = success
-Validate JavaScript syntax = success
-Validate manifest JSON = success
-Validate Service Worker cache contract = success
-Validate published main structure = success
 ```
 
-### Assembly Governance
-
-The governed workflow:
+did **not** perform JavaScript syntax validation on `main.html`. Its JavaScript syntax step checked:
 
 ```text
-rawwaie-erp-New/.github/workflows/forensic_main_assembly.yml
+core.js
+sw.js
+register-sw.js
 ```
 
-points directly to:
+Therefore:
 
 ```text
-https://raw.githubusercontent.com/papamohammed77-glitch/erp-frontend/main/companies/company-1/main.html
+MAIN.HTML SYNTAX FROM RUN 34710228654 = NOT PROVEN
 ```
 
-and does not reconstruct the file from historical fragments.
+### Current direct source observations
 
 ```text
-ASSEMBLY SOURCE OF TRUTH = CORRECT
-ASSEMBLY PATH = CORRECT
+main.html current HEAD = eb3230bd8dabe29d91334b05c4c25e24505a5fc6
+main.html observed blob = 2175cf19035190e6817c64d1941898107bf19609
+EOF = </script> + </body> + </html>
+marker = <!-- 2026-09-12 21:00 UTC -->
 ```
 
-### Current blocker
-
-The owner runtime reports:
+The owner-reported browser error remains:
 
 ```text
 main:5592 Uncaught SyntaxError: Invalid regular expression: missing /
 ```
 
-but the same reported source line and surrounding `_searchCustomers()` function are valid in the current Git Source of Truth and the governed syntax gate passes.
+but no source defect at `_searchCustomers()` line 5592 has been proven.
 
-Therefore:
-
-```text
-CURRENT SOURCE SYNTAX = PASS
-RUNTIME ERROR          = OBSERVED BY OWNER
-SOURCE/RUNTIME ALIGNMENT = UNPROVEN
-```
-
-The remaining problem is classified as:
+### Rejected approaches
 
 ```text
-RUNTIME / DEPLOYMENT / CACHE / LOCAL-COPY DIVERGENCE
+Do not patch line 5592 solely because Chrome reports it.
+Do not return to main2..main11 as reconstruction source.
+Do not classify the problem as browser cache only without served-artifact proof.
 ```
 
-until the served page is proven identical to the current Source of Truth.
+### Current evidence boundary
+
+```text
+GIT SOURCE = RECONCILED
+RUNTIME ERROR = OBSERVED
+SOURCE/RUNTIME BYTE IDENTITY = NOT PROVEN
+MAIN.HTML SYNTAX VIA PRIOR HELPER RUN = NOT PROVEN
+LOGIN E2E = OPEN
+POST-LOGIN BOOTSTRAP = OPEN
+```
+
+Report146 defines a deterministic same-origin runtime probe for the browser page itself. It reads the exact response from the page origin using `cache: 'no-store'` and reports:
+
+```text
+status
+final URL
+bytes
+first line
+exact line 5592
+EOF
+```
+
+The probe is diagnostic only and does not modify the system.
 
 ## Owner Frontend Change Status
 
@@ -214,12 +229,13 @@ The system-mother file must be tested as the assembled runtime, not as isolated 
 ## Next Exact Checkpoint
 
 ```text
-1. Compare the page actually served to the owner/browser with the current Git Source of Truth.
-2. Confirm the served source corresponds to HEAD eb3230bd8dabe29d91334b05c4c25e24505a5fc6 / main.html blob 2175cf19035190e6817c64d1941898107bf19609.
-3. If different, repair deployment/cache/local-copy divergence; do not patch _searchCustomers().
-4. Re-run the browser E2E login test.
-5. Verify post-login bootstrap.
-6. Only after Login passes, continue functional E2E tab/process validation.
+1. Run the same-origin runtime probe from the actual browser page that shows main:5592.
+2. Compare exact served line 5592 + first line + EOF against current Git Source of Truth.
+3. If the served artifact differs, repair deployment/served artifact and repeat E2E.
+4. If it matches, locate the lexical origin of the parser failure earlier in the single inline JS block and prepare one exact Owner ChangeSet.
+5. Re-run Login E2E.
+6. Verify post-login bootstrap.
+7. Only after Login passes, continue functional E2E tab/process validation.
 ```
 
 ## Closure Status
@@ -228,14 +244,15 @@ The system-mother file must be tested as the assembled runtime, not as isolated 
 GOVERNANCE READ                       = PASS
 REPORT143 CONTEXT REVIEW              = PASS
 REPORT144 CONTEXT REVIEW              = PASS
+REPORT145 RECONCILED                  = PASS / ONE CLAIM CORRECTED
+REPORT146 CREATED                    = PASS
 CURRENT SOURCE RECONCILED             = PASS
 CURRENT MAIN FUNCTION SOURCE REVIEW   = PASS
-_CURRENT _searchCustomers NODE CHECK  = PASS
-GITHUB ACTIONS JS SYNTAX               = PASS
+_MAIN.HTML SYNTAX VIA HELPER RUN      = NOT PROVEN
 ASSEMBLY SOURCE OF TRUTH               = CORRECT
 ASSEMBLY PATH                          = CORRECT
 OWNER REPORTED RUNTIME ERROR           = OBSERVED
-SOURCE/RUNTIME ALIGNMENT               = OPEN
+SOURCE/RUNTIME BYTE IDENTITY           = OPEN
 LOGIN E2E                              = OPEN
 OWNER FRONTEND CODE PATCH              = NOT JUSTIFIED
 SUPABASE PATCH FOR THIS BLOCKER        = NONE REQUIRED
