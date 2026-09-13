@@ -1,7 +1,7 @@
 # RAWAEA ERP — CURRENT STATE
 
 **Last reconciled:** 2026-09-13  
-**Current checkpoint:** Report149 — CTO E2E Login Complete Syntax Forensic.
+**Current checkpoint:** Report150 — CTO E2E Login Runtime `_cashFlow` forensic closure.
 
 ## CRITICAL GOVERNANCE PRINCIPLE
 
@@ -11,103 +11,150 @@
 https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/company-1/main.html
 ```
 
-لا يتم استخدام `Current/PWA/main2` أو أي ملف تاريخي كمصدر حقيقة. هذه الملفات مرجعية/تاريخية فقط.
+لا يتم استخدام `Current/PWA/main2` أو `Original/PWA/main` أو أي تقرير تاريخي كمصدر حقيقة للكود الحالي. هذه الملفات مرجعية/تاريخية فقط.
 
 ## Current Published Main Identity
 
 ```text
 Repository = papamohammed77-glitch/erp-frontend
 Branch = main
-Latest inspected commit = 1048877b6bec6152332d102e11782a036b61e09f
-Current main.html blob SHA = eb1123a431b9f173aa8095f22dee435d0bbe8920
+Latest inspected commit = a91bae00418b040a8687547cf2437036f8661b0d
+Current main.html blob SHA = 26a8148682685e20f54b2cac074d898ee4ba5264
+HTML source timestamp comment = 2026-09-13 07:00 UTC
 ```
 
-## Report149 — Complete E2E Login Syntax Forensic
+Commit `a91bae00418b040a8687547cf2437036f8661b0d` is the direct descendant of Report149's inspected commit and contains the seven syntax corrections from Report149.
+
+## Report149 Status Reconciled
+
+Report149 originally identified seven JavaScript Syntax roots. The current published source has advanced beyond that failure: the present Console reaches runtime initialization and no longer reports those seven syntax errors.
+
+Therefore:
 
 ```text
-doc/Draft/Reprots/Report149_CTO_E2E_Login_Complete_Syntax_Forensic_20260913.md
+REPORT149 SYNTAX ROOT = NO LONGER ACTIVE IN CURRENT SOURCE
 ```
 
-### Proven current defect
+The seven Report149 fixes must not be re-applied unless future evidence proves a regression.
 
-The current `main.html` fails JavaScript parsing at:
+## Report150 — Current Runtime Root
 
 ```text
-line 5592
-SyntaxError: Invalid regular expression: missing /
+doc/Draft/Reprots/Report150_CTO_E2E_Login_Runtime_CashFlow_20260913.md
 ```
 
-The actual cause is not a regex. The line contains an unclosed HTML string segment before `</div>`.
-
-### Complete known syntax repair set
-
-Seven current source locations were proven defective:
+The current browser Console reports:
 
 ```text
-5592  missing quote before </div>
-5614  missing quote before </strong>
-5731  missing quote before </div>
-5805  missing quote before </td>
-5807  missing quote before </td>
-7436  missing quote before </span>
-9391  extra ) inside .join(''))}
+main:174  ✅ Supabase Client initialized successfully
+main:11967  Uncaught ReferenceError: _cashFlow is not defined
+    at main:11967:12
+    at main:11976:3
+    at main:17476:3
 ```
 
-A diagnostic copy of the exact current file was repaired at these seven locations and passed:
+### Root cause proven directly
 
-```text
-node --check /tmp/main-repaired.js = PASS
-```
+Inside the current `RW_Finance` IIFE:
 
-The production/main file itself was not modified by the assistant.
+- `_renderReports()` contains a real `RW_Finance._cashFlow()` button.
+- The public return object contains:
+  ```javascript
+  _cashFlow: _cashFlow,
+  ```
+- No `function _cashFlow() { ... }` declaration exists in the current Finance module.
 
-## Login path verification
+This causes a top-level runtime `ReferenceError` while the Finance module is being evaluated, which can abort subsequent script initialization and therefore block Login from becoming operational.
 
-The current source was inspected directly after syntax investigation:
+### Exact current location
 
-```text
-bindEvents()
-→ #rw-login-form submit listener
-→ RW_Auth.login()
-→ signInWithPassword()
-→ users lookup by auth_id
-→ company_id validation
-→ RW_STATE.app.company.id
-→ enterSystem()
-```
-
-Therefore no independent evidence currently proves a fresh-login handler defect. The blocking failure is the JavaScript parse error that prevents the script from initializing.
-
-## Separate Session Restore defect
-
-`boot()` restores:
+The current return object around line **11967** contains:
 
 ```javascript
-RW_STATE.app.company = {
-    name: meta.companyName || 'الروائع ERP',
-    logo: meta.companyLogo || 'ر'
-};
+_balanceSheet: _balanceSheet,
+_cashFlow: _cashFlow,
+_accountActivity: _accountActivity,
 ```
 
-but does not restore:
+The missing function must be inserted before the current:
+
+```javascript
+    function _costCenterProfitLoss() {
+```
+
+which is currently around line **11756**.
+
+## Production Contract Verified
+
+Production Supabase currently contains:
 
 ```text
-RW_STATE.app.company.id
+public.get_cash_flow(p_from_date date, p_to_date date)
 ```
 
-while `enterSystem()` later consumes `RW_STATE.app.company.id`.
+Return contract:
 
-This is a real independent defect for restored sessions and is intentionally left as a separate Closure Unit until the current Syntax/Login blocker is closed.
+```text
+category
+account_id
+account_name
+amount
+```
 
-## Tailwind warning
+The function resolves tenant context through:
 
-The browser warning about `cdn.tailwindcss.com` is not the cause of the SyntaxError or the current login block.
+```text
+app_private.current_user_company_id()
+```
+
+and that helper resolves the company from `auth.uid()` against the `users` table.
+
+A transactional runtime test using a real active company user context completed without an RPC error. No persistent Production data was changed by this test.
+
+## Tailwind Warning
+
+```text
+cdn.tailwindcss.com should not be used in production
+```
+
+This remains a Warning and is not the current runtime root. It does not justify changing Login or the Finance bootstrap in this Closure Unit.
+
+## Owner Surgical Fix — FIX-150-01
+
+The assistant did **NOT** modify the Source-of-Truth `erp-frontend/companies/company-1/main.html`.
+
+Owner action:
+
+1. Open the current published `main.html`.
+2. Find the exact line:
+   ```javascript
+       function _costCenterProfitLoss() {
+   ```
+   Current location: approximately **line 11756**.
+3. Add the complete `_cashFlow()` function recorded verbatim in:
+   ```text
+   doc/Draft/Reprots/Report150_CTO_E2E_Login_Runtime_CashFlow_20260913.md
+   ```
+   directly above that line.
+4. Do **not** delete or modify `_costCenterProfitLoss()`.
+5. Do **not** delete `_cashFlow: _cashFlow,` from the return object at line **11967**.
+6. The last complete line of the inserted function must be exactly:
+   ```javascript
+       }
+   ```
+7. Redeploy the same `companies/company-1/main.html`.
+
+## Supabase / Production Changes in Report150
+
+```text
+SUPABASE CHANGE = NONE REQUIRED
+```
+
+The required cash-flow read contract already exists in Production. No new table, RPC, trigger, or column was invented for this frontend defect.
 
 ## Assembly Source-of-Truth
 
-`forensic_main_assembly.yml` had stale governance declaring `Current/PWA/main2` as source of truth. It was corrected directly in `rawwaie-erp-New`.
-
-Current value:
+`forensic_main_assembly.yml` remains correctly aligned to the published main:
 
 ```yaml
 source_of_truth:
@@ -116,81 +163,65 @@ source_of_truth:
   ref: main
 ```
 
-Commit:
+`Current/PWA/main2` remains reference/history only and is not a current reconstruction source.
+
+## Session Restore Defect
+
+A separate previously proven defect remains open:
 
 ```text
-8a7efadd89520ab09016180a433fb96a5d1d0788
+boot() restores RW_STATE.app.company name/logo but not RW_STATE.app.company.id
 ```
 
-## Production / Supabase
+This is a separate Closure Unit and must not be mixed into the current `_cashFlow` repair unless new E2E evidence requires it.
 
-No Supabase modification was justified for this frontend lexical blocker.
-
-```text
-SUPABASE CHANGE = NONE
-```
-
-## What was changed in this checkpoint
+## What Was Changed in This Checkpoint
 
 ```text
-rawwaie-erp-New/doc/Draft/Reprots/Report149_CTO_E2E_Login_Complete_Syntax_Forensic_20260913.md = CREATED
+rawwaie-erp-New/doc/Draft/Reprots/Report150_CTO_E2E_Login_Runtime_CashFlow_20260913.md = CREATED
 rawwaie-erp-New/CURRENT_STATE.md = UPDATED
-rawwaie-erp-New/forensic_main_assembly.yml = UPDATED
 
 erp-frontend/companies/company-1/main.html = NOT MODIFIED BY ASSISTANT
 Supabase Production = NOT MODIFIED
 ```
 
-## Owner Surgical Edit Set
-
-The owner must apply exactly these seven complete line replacements in the current `erp-frontend/companies/company-1/main.html`:
-
-```text
-5592 → add + '</div>' before the statement-ending semicolon.
-5614 → add + '</strong></div>' before the statement-ending semicolon.
-5731 → add + '</div>' before the statement-ending semicolon.
-5805 → add + '</td>' before the statement-ending semicolon.
-5807 → add + '</td>' before the statement-ending semicolon.
-7436 → move the final HTML close into the string: + ')</span>';
-9391 → change .join(''))} to .join('')}
-```
-
-The exact full replacement lines are recorded in Report149 and must be used verbatim.
-
 ## Closure Status
 
 ```text
-CURRENT MAIN SOURCE RECONCILED = PASS
-CURRENT SYNTAX ERROR = PROVEN
-COMPLETE KNOWN SYNTAX REPAIR SET = 7
-PATCHED COPY PARSE = PASS
-LOGIN STATIC PATH REVIEW = PASS
-SUPABASE CHANGE = NONE
-SOURCE-OF-TRUTH DRIFT = FIXED
-OWNER MAIN.HTML PATCH = PENDING
-POST-PATCH LIVE/GIT BYTE EQUALITY = PENDING
-POST-PATCH INLINE COMPILE = PENDING
-POST-PATCH LOGIN E2E = OPEN
+CURRENT MAIN SOURCE IDENTITY = VERIFIED
+CURRENT PUBLISHED SHA = 26a8148682685e20f54b2cac074d898ee4ba5264
+REPORT149 SYNTAX BLOCKER = SUPERSEDED / NO LONGER ACTIVE IN CURRENT SOURCE
+CURRENT RUNTIME BLOCKER = `_cashFlow` MISSING
+CURRENT ROOT CAUSE = PROVEN
+PRODUCTION `get_cash_flow` CONTRACT = PROVEN
+FIX-150-01 = READY / OWNER APPLICATION REQUIRED
+POST-FIX NODE PARSE = PENDING
+POST-FIX BROWSER RUNTIME = PENDING
+POST-FIX LOGIN E2E = OPEN
 SESSION RESTORE COMPANY-ID DEFECT = OPEN / SEPARATE
 GLOBAL FUNCTIONAL GOLD/DIAMOND = OPEN
 ```
 
-## Next Checkpoint
+## Exact Next Checkpoint
 
-After the owner applies the seven exact line replacements and redeploys the same file:
+After FIX-150-01 is applied and the file is redeployed:
 
 ```text
-1. Verify current Git SHA/blob.
-2. Extract inline JS preserving line numbers.
+1. Re-read current Git SHA/blob.
+2. Extract inline JavaScript preserving original line numbers.
 3. node --check = PASS.
-4. Confirm browser Console has no SyntaxError.
-5. Execute fresh-session Login E2E.
-6. If Login still fails, inspect the new runtime/auth error only; do not reopen or alter the seven closed syntax repairs unless new evidence proves a regression.
-7. Then handle Session Restore company.id as its own surgical Closure Unit.
+4. Open fresh incognito session.
+5. Confirm `_cashFlow is not defined` is gone.
+6. Confirm RW_Finance initializes.
+7. Confirm login form binding initializes.
+8. Submit valid Login.
+9. Confirm auth session.
+10. Confirm users/company context.
+11. Confirm enterSystem().
+12. Confirm dashboard appears.
+13. Record the next actual Console/runtime issue, if any.
 ```
 
-## Historical Integrity
-
-Previous reports remain unchanged. Report149 supersedes their root-cause interpretation only where direct current-Git parser evidence contradicted it.
+No new failure may be invented before this checkpoint.
 
 # END CURRENT STATE
