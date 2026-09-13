@@ -1,43 +1,40 @@
 # RAWAEA ERP — CURRENT STATE
 
 **Last reconciled:** 2026-09-13
-**Checkpoint:** Report157 — CTO E2E للنظام الأم — التحويلات المخزنية.
+**Checkpoint:** Report158 — CTO Forensic E2E للنظام الأم ومطابقة الحالة الحالية.
 
 ## GOVERNANCE
-
 التقارير السابقة Historical/Reference فقط وليست حالة حالية.
 الحالة المعتمدة هي فقط:
 `CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE`.
 
-**الهدف الحاكم — يُقرأ بعناية:** الهدف هو اختبار E2E لملف النظام الأم المنشور الحالي واستكماله وظيفيًا، وليس إعادة بناء الملفات التاريخية.
+**الهدف الحاكم — يُقرأ بعناية:** ملف النظام الأم الحالي المنشور هو Source of Truth، والمهمة هي التحقق الجنائي من حالته الحالية وإكماله وظيفيًا دون إعادة إصلاح ما ثبت إغلاقه.
 
-Source of Truth للواجهة:
-`https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/company-1/main.html`
+## SOURCE OF TRUTH
+Repository: `papamohammed77-glitch/erp-frontend`
+Path: `companies/company-1/main.html`
+Ref: `main`
 
-`Current/PWA/main2/*` و`Original/PWA/main/*` = historical/reference only.
+`Current/PWA/main2/*` و`Original/PWA/main/*` وNew-main = Historical/Reference فقط.
 
 ## CURRENT GIT
-
-Repository: `papamohammed77-glitch/erp-frontend`
-
 HEAD:
-`5bdb2863570085edd19265465937aea3c674b52c`
+`3573c92026557cb56a7782babe6f6cf690243072`
 
 Direct parent:
-`02166a9f8e94ac0b2cc15257eb0aec8e039848bd`
+`28f39b351bb44a4cd885ba784d505aadaeb13cf1`
 
-Parent of parent:
-`06264f8eefc5e0d5281538c80e9c7aaa454ecf9b`
+HEAD message: `Update main.html`
 
-Current `main.html` blob:
-`3c48e91d7d5359b3a1befe12ab56eb052c628b0e`
+HEAD current main.html contains the already-fixed Transfer query:
+`.select('id, branch_code, name')`
 
-HEAD/parent chronology concerns the already-closed `_renderTable()` syntax/escaping regression. Do not repeat that repair unless fresh current evidence reopens it.
+The previous `branch_name` Transfer defect is therefore **CLOSED in CURRENT GIT**. Do not re-patch it unless fresh served-browser evidence proves an older asset is being served.
+
+Current `main.html` was read through EOF; last line = `35521`.
 
 ## FORENSIC ASSEMBLY
-
-`rawaie-erp-New/forensic_main_assembly.yml` is currently correct:
-
+`rawaie-erp-New/forensic_main_assembly.yml` is correct and requires no change:
 ```yaml
 source_of_truth:
   repository: papamohammed77-glitch/erp-frontend
@@ -46,167 +43,130 @@ source_of_truth:
 assembly_status: reference_only; published_main_is_authoritative
 ```
 
-No change was required in this session.
-
 ## CURRENT PRODUCTION / DATABASE
-
 Project: `fiilmooggumokxanwiyx`
-Status: `ACTIVE_HEALTHY`
-Latest migration observed: `20260913082923`
-Company: `00000000-0000-0000-0000-000000000001` (`MAIN` / `الروائع`)
+Company: `00000000-0000-0000-0000-000000000001`
 
-Current facts relevant to Transfer E2E:
-- active branches = 2
-- active direct-sales reps = 1
-- active vehicles = 0
-- items = 17
-- stock_vouchers = 0
-- orders = 0
-- runsheets = 0
+Current relevant facts:
+- active branches: 2 (`BR-01`, `BR-2`)
+- active direct-sales reps: 1
+- active vehicles: 0
+- items: 17
+- stock vouchers: 0
+- orders: 0
+- runsheets: 0
 
-Current branches:
-- `BR-01` — `الفرع الرئيسي` — Active
-- `BR-2` — `فرع إسكندرية` — Active
+For item `1001` (`جو كيك 5ج`):
+- BR-01 qty = 2
+- BR-2 qty = 1
 
-`app_settings.main_branch_id` points to `BR-01`.
+`public.branches` has `name`, not `branch_name`.
 
-Current `branches` schema contains `name`, not `branch_name`.
-No `public` table currently exposes a `branch_name` column.
+## INVENTORY CORE
+Physical Stock contract:
+`Physical Movement → post_stock_movement → stock_branches + inventory_log`
 
-## WAREHOUSE TRANSFERS — CURRENT TRUTH
+Production discovery proves:
+`Physical Writers outside post_stock_movement = 0`
 
-Canonical contract:
-- `Transfer = Branch → Branch`
-- `DirectSale = Branch → Vehicle`
-- `DirectReturn = Vehicle → Branch`
-- `SupplierReturn = Branch → Supplier`
+`reserve_stock` and `release_stock_reservation` are reservation-only.
+`setup_van_stock` / `create_vehicle_atomic` initialize stock rows and are not movement writers.
 
-Relevant current Edge deployments:
-- `create-stock-voucher` v10 — ACTIVE — JWT enabled
-- `send-stock-voucher` v20 — ACTIVE — JWT enabled
+**Inventory Physical Writer Zero-Debt = CLOSED.**
 
-Production transactional verification:
+## TRANSFER E2E
+Production transactional test:
 `BR-01 → BR-2 → item 1001 → create_manual_stock_voucher_atomic → send_stock_voucher_atomic`
 
-Result: `create=success`, `send=success`, `status=Sent`, `movement_count=1`.
-Transaction was rolled back; no permanent test data remains.
+Result:
+`create=success`
+`send=success`
+`status=Sent`
+`movement_count=1`
 
-Therefore the current reported Transfer failure is frontend/schema-query related, not a proven Production Transfer Core failure.
+Second SEND returned `duplicate=true`.
+Test transaction was rolled back and post-test verification confirmed no permanent test voucher/log.
 
-## TRANSFER FRONTEND ROOT CAUSE
+**Transfer backend = CLOSED / PRODUCTION VERIFIED.**
 
-Current Source of Truth function:
-`async function _loadVoucherEntityOptions(type)`
+## FRONTEND TRANSFER STATUS
+Current Source of Truth has the historical `branch_name` defect removed.
+No assistant modification was made to `erp-frontend/companies/company-1/main.html` this session; frontend remains owner-managed.
 
-Current location: approximately lines **8157–8174**.
+Browser click-by-click E2E is **NOT VERIFIED** in this environment because no Browser Automation channel is available.
 
-Exact defective line:
-```javascript
-.select('id, branch_code, name, branch_name')
-```
+## PRODUCTION SECURITY CHANGE
+Applied migration this session:
+`20260913101126_main_cto_security_surface_hardening`
 
-Production has no `branch_name`. This directly explains:
-`Column branches.branch_name doesn’t exist`
+Actions:
+- revoked anonymous/authenticated EXECUTE on selected SECURITY DEFINER functions not required directly by browser clients;
+- set explicit Search Path for `employee_document_storage_company_id(text)`.
 
-The historical `Current/PWA/main2/main7.md` contains the same bad query; therefore this is historical carryover, not proven to have been introduced by final assembly.
+No permanent business-data changes were made.
 
-## OWNER PATCH — PENDING PUBLICATION
+Remaining security/performance items must be treated as independent Closure Units, not bulk-cleaned.
 
-The owner must patch the published `main.html`; this automation did not modify that file.
+## GOLD / DIAMOND FUNCTIONAL GAPS
+Current main contains functional operations, sales, inventory, core finance, reports, HR, and CRM capabilities.
 
-Target function:
-`async function _loadVoucherEntityOptions(type)`
+Current database also contains foundations for some advanced areas, but no proven complete transactional/UI contracts were established in this session for:
+- cheques;
+- installments;
+- loyalty points;
+- work orders/workflow;
+- fixed assets;
+- standalone expense management;
+- independent cost-center management UI.
 
-Delete the complete `Transfer` branch block, beginning:
-```javascript
-    if (type === 'Transfer') {
-```
-and ending with its closing `}` immediately before:
-```javascript
-    if (type === 'SupplierReturn') {
-```
+Do not invent backend contracts from table names alone.
+Do not call the system Gold/Diamond complete while these business capabilities remain unverified or incomplete.
 
-Replace with:
-```javascript
-    if (type === 'Transfer') {
-        var branchRes = await supabase.from('branches')
-            .select('id, branch_code, name')
-            .eq('company_id', companyId)
-            .eq('is_active', true)
-            .order('name');
-        if (branchRes.error) { showToast(branchRes.error.message, 'error'); return; }
+## DATA FORENSICS
+Earlier cross-company stock rows were observed in Production. No destructive cleanup was performed because current schema semantics make Item Master identity globally unique and there is not yet sufficient proof that the rows are disposable fixtures.
 
-        var branchHtml = '<option value="">-- اختر فرعاً --</option>';
-        var branches = branchRes.data || [];
-        for (var i = 0; i < branches.length; i++) {
-            branchHtml += '<option value="' + branches[i].id + '">' +
-                (branches[i].name || branches[i].branch_code || '') +
-                '</option>';
-        }
-        safeHTML(select, branchHtml);
-        return;
-    }
-```
+**Do not delete, rewrite, or reassign those rows without historical/source evidence.**
 
-Do not modify `SupplierReturn`, `DirectSale`, or `DirectReturn` in this surgery.
+## SESSION ARTIFACTS
+Primary report:
+`doc/Draft/Reprots/Report158_CTO_E2E_Main_Forensic_20260913.md`
 
-## VEHICLES / REPS
+Report commit:
+`ca941e3cbd9a51d1b499620b48b541e8a1a9779d`
 
-The transfer selector for vehicle-based documents is data-dependent.
-Production currently has zero active vehicles. This is not a proven query bug and must not be “fixed” by inserting fake Production vehicles.
+CURRENT_STATE update commit will be the commit containing this file update.
 
-## PRODUCTION CHANGE STATUS FOR THIS SESSION
+## FINAL NEXT-CTO START SEQUENCE
+ابدأ دائمًا من الواقع وليس من التقارير:
 
-Production schema changes: **0**
-Production permanent data changes: **0**
-Production Edge deployment changes for Transfer: **0**
-Transactional test data: **ROLLBACK**
+`CURRENT GIT HEAD`
+`→ DIRECT PARENT`
+`→ PARENT OF PARENT when material`
+`→ CURRENT SOURCE OF TRUTH`
+`→ CURRENT DB SCHEMA`
+`→ CURRENT DB DATA`
+`→ CURRENT EDGE DEPLOYMENTS / SOURCE / VERSION`
+`→ CURRENT RUNTIME / LOG EVIDENCE`
+`→ REPRODUCE EXACT SYMPTOM`
+`→ IDENTIFY EXACT FUNCTION / LINE / QUERY`
+`→ HISTORICAL RECONSTRUCTION TO EXPLAIN CONTRACT`
+`→ IDENTIFY ACTUAL GAP`
+`→ ONE SURGICAL CLOSURE UNIT`
+`→ REREAD CURRENT SOURCE`
+`→ PRODUCTION TRANSACTIONAL VERIFY`
+`→ RUNTIME VERIFY`
+`→ AUDIT / SECURITY VERIFY`
+`→ REPORT + CURRENT_STATE`
+`→ NEXT UNIT ONLY AFTER CLOSURE`
 
-No Production repair was justified for the reported Transfer error after direct core verification.
-
-## OTHER KNOWN OPEN FRONTEND PATCHES
-
-These remain from the previous E2E investigation and were not reworked here because they were already proven independently:
-
-1. `_renderUploadPreview()` around lines 3358–3359: `_valid` logic patch.
-2. `_loadDetailedReports()` around line 12860: `itemSales` scope patch.
-3. `_loadDetailedReports()` around line 13022: `inventoryRows` scope patch.
-
-Do not assume these are applied until the current Source of Truth is re-read after owner publication. Do not redo them merely because they appear in older reports.
-
-## E2E STATUS
-
-Current status:
-- Git/source/database/deployment evidence = VERIFIED
-- Transfer backend = PRODUCTION TRANSACTION VERIFIED
-- Transfer frontend root cause = PROVEN
-- Owner frontend patch = READY
-- Browser click-by-click E2E after patch = NOT YET PROVEN
-- Global Gold/Diamond completion = NOT CLOSED
-
-No Browser PASS is claimed because this environment has no Browser Automation channel.
-
-## SESSION ARTIFACT
-
-Report:
-`doc/Draft/Reprots/Report157_CTO_E2E_Main_Transfers_20260913.md`
-
-Commit:
-`050c7614ab01de5ed29dc94a58bbe96b63d00410`
-
-## NEXT SESSION START RULE
-
-Start from live evidence in this exact order:
-
-`CURRENT GIT HEAD → DIRECT PARENT → PARENT OF PARENT when material → CURRENT SOURCE OF TRUTH → CURRENT DB SCHEMA → CURRENT DB DATA → CURRENT EDGE DEPLOYMENTS/SOURCE → CURRENT RUNTIME/LOG EVIDENCE → reproduce exact symptom → exact line/function/query → historical reconstruction only to explain the contract → surgical fix → reread current source → Production transactional/runtime verification → report + CURRENT_STATE`
-
-Never:
-- treat an old report as current state;
-- use `main2` as Source of Truth;
-- redo a repair already proven closed;
-- invent Production data to make E2E green;
-- modify Production when the Production component is already verified;
-- claim Browser PASS without actual browser evidence;
-- batch unrelated Writer/Function closures.
+### لا تكسر هذه القواعد
+- لا تعتبر أي تقرير قديم حالة حالية.
+- لا تستخدم `main2` كمصدر حقيقة.
+- لا تعيد إصلاح شيء مثبت أنه مغلق.
+- لا تخترع Production data لإنجاح الاختبار.
+- لا تحول Backend PASS إلى Browser PASS.
+- لا تجمع عدة Writer/Function closures في دفعة واحدة.
+- لا تبني UI فوق جدول أو اسم function دون إثبات Consumer/transaction contract.
+- لا تستخدم نسبة اكتمال قبل مطابقة Production الحالية في نفس التحقيق.
 
 **الحقيقة الحالية أولًا، ثم العقد، ثم الفجوة المثبتة، ثم الإصلاح الجراحي، ثم التحقق، ثم الإغلاق.**
