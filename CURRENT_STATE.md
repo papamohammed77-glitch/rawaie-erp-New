@@ -2,10 +2,10 @@
 
 **Last reconciled:** 2026-09-14
 
-## GOVERNANCE
-التقارير السابقة Historical/Reference فقط وليست الحالة الحالية.
+## GOVERNANCE / SOURCE OF TRUTH
+الحالة الحالية لا تُستمد من التقارير السابقة؛ التقارير Historical/Reference فقط.
 
-الحالة المعتمدة:
+الحقيقة المعتمدة:
 `CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE`
 
 Source of Truth للنظام الأم:
@@ -22,242 +22,151 @@ Permanent rules:
 `REPORTS ARE CLUES — NEVER CURRENT STATE`
 `CLOSE -> VERIFY -> DOCUMENT -> NEXT`
 
-## CURRENT GIT — FRONTEND
+## CURRENT FRONTEND GIT
 Repository:
 `papamohammed77-glitch/erp-frontend`
-Branch: `main`
+Branch:
+`main`
 
 HEAD:
-`2ad8da6057cf9c7f1e0ddb8374a7b220d21ee28b`
+`c379674711d6e67d5c2c01305ae8449dd3c0947e`
+Message:
+`Add real-time customer payment updates functionality`
+
+Direct Parent:
+`4eb99edff261ae350d21c277d51adcaf75d02def`
 Message:
 `Update main.html`
 
-Direct Parent:
-`edf60227f88eaabec10cf1083d87bb2665990279`
-
-Parent of Parent:
-`aaebffbdd732b9861d96631f5d01c5a6697bd1e4`
-
 Current main.html blob:
-`0519117415390d6721c977fafab1a413d72bf52c`
+`a41903730c302ddef82b91edfec4a4a3a400d76c`
 
-Current main.html remains Owner Source of Truth. It was not modified directly by the assistant in this cycle.
+The current HEAD added the Customer Payment Realtime consumer. The forensic recheck found two current UI integration defects:
+1. `_customerPaymentRealtimeChannel` has no declaration in the current source.
+2. `_startCustomerPaymentRealtime()` is called inside `_loadDashboardData()` instead of `_renderReceipts()`.
 
-## CURRENT GIT — BACKEND / FORENSIC REPO
-Repository:
-`papamohammed77-glitch/rawaie-erp-New`
+The Multiple/Partial Customer Payment UI module and its public RW_Finance methods are already present. Do not re-add them.
 
-Latest continuity commits created this cycle include:
-- `9f88bcf3fd3581fecfb4de3dd545a4b32d64b366` — Promotion Engine core migration
-- `ba54a062167ac782373f5a502ec274aa30030677` — Promotion Edge canonical source
-- `d89dacd7b8548222d291952f2b254ba88beccd50` — Promotion Owner surgical patch
-- `389812aca135c8c32124a606bfe4d7ce4c9c5384` — Resolver hardening migration
-- `0359669c0135fdb9cb4394af643f1966e49df2fe` — Report168
-
-## FORENSIC ASSEMBLY
-`forensic_main_assembly.yml` remains correct and points to:
-`erp-frontend/companies/company-1/main.html`
-
-Mode:
-`published_main_is_authoritative`
-
-No historical fragment is Source of Truth.
-
-## CURRENT PRODUCTION DATABASE
-Supabase project:
-`fiilmooggumokxanwiyx`
-
-Current database clock evidence during this cycle returned `current_database=postgres` and `current_date=2026-09-13` from the production session.
-
-Current companies count verified:
-`1`
-
-No permanent Promotion test data remains:
-`promotions = 0`
-`promotion_rules = 0`
-
-## PROMOTION ENGINE — CURRENT CHECKPOINT
-
-### Production schema deployed
-- `promotions`
-- `promotion_rules`
-- `promotion_customers`
-- `promotion_branches`
-- `promotion_redemptions`
-
-Relations:
-- `promotions.company_id -> companies.id`
-- `promotion_rules.promotion_id -> promotions.id`
-- `promotion_rules.item_id -> items.id`
-- `promotion_rules.category_id -> categories.id`
-- `promotion_customers.company_id -> companies.id`
-- `promotion_customers.promotion_id -> promotions.id`
-- `promotion_customers.customer_id -> customers.id`
-- `promotion_branches.company_id -> companies.id`
-- `promotion_branches.promotion_id -> promotions.id`
-- `promotion_branches.branch_id -> branches.id`
-- `promotion_redemptions.company_id -> companies.id`
-- `promotion_redemptions.promotion_id -> promotions.id`
-- `promotion_redemptions.order_id -> orders.id`
-- `promotion_redemptions.customer_id -> customers.id`
-
-### Promotion capabilities
-- percentage discount
-- fixed discount
-- cheapest-item discount
-- Buy X Get Y / free-item reward
-- automatic trigger
-- coupon-code trigger
-- exclusive / stackable policy
-- channel scope
-- customer scope
-- branch scope
-- minimum subtotal
-- minimum quantity
-- priority
-- date validity
-- usage limits
-- redemption record
-- idempotent redemption
-- idempotent create via `promotions.operation_id`
-
-### Security
-RLS enabled + FORCE enabled on Promotion tables.
-`anon` and `authenticated` table access revoked.
-Backend capability uses authenticated JWT -> `public.users.auth_id` -> `company_id`.
-No tenant resolution from `app_settings LIMIT 1` exists in `promotion-engine`.
-
-### Production RPCs
-- `resolve_promotion_cart`
-- `record_promotion_redemption`
-- `set_promotion_active_atomic`
-
-### Production Edge
-`promotion-engine`
-Status: `ACTIVE`
-Version: `2`
-`verify_jwt=true`
-Deployment SHA:
-`a7d1614391c61080e81df71a36fce1272eff01580f7747f8a45a82b7755016ef`
-
-Capabilities:
-`catalog / list / detail / create / update / set_active / resolve / redeem`
-
-### Production tests
-Resolver transactional test:
-`PASS`
-
-Result:
-`subtotal=100`
-`discount=10`
-`final_subtotal=90`
-`candidate_count=1`
-
-Redemption retry test:
-`FIRST = duplicate:false`
-`RETRY = duplicate:true`
-`same redemption_id`
-
-All test transactions were rolled back.
-
-## PROMOTION OWNER PATCH
-Owner-side patch:
-`doc/Draft/Reprots/PROMOTION_OWNER_SURGICAL_PATCH_20260914.js`
-
+## OWNER SURGERY — OPEN
 Target only:
 `erp-frontend/companies/company-1/main.html`
 
-Exact changes prepared:
-- navigation after `price-lists`
-- permissionMap after `'price-lists': 'orders'`
-- titles after `'price-lists':'قوائم الأسعار'`
-- render route after `RW_PriceLists.render()`
-- complete `RW_Promotions` module after `window.RW_PriceLists = RW_PriceLists;` and before `EVENTS & BOOT`
+1. Immediately before the exact line `function _startCustomerPaymentRealtime() {` add:
+`var _customerPaymentRealtimeChannel = null;`
 
-The assistant must NOT modify the Owner master file directly.
+2. Inside `_renderReceipts()`, immediately after the exact line `var companyId = _companyId();` add:
+`_startCustomerPaymentRealtime();`
 
-## PROMOTION GIT BACKEND ARTIFACTS
-- `supabase/migrations/20260914_promotion_engine_core.sql`
-- `supabase/migrations/20260914_promotion_engine_hardening.sql`
-- `supabase/migrations/20260914_promotion_engine_resolver_hardening.sql`
-- `Current/Edge_Functions/promotion-engine/index.ts`
-- `doc/Draft/Reprots/PROMOTION_OWNER_SURGICAL_PATCH_20260914.js`
-- `doc/Draft/Reprots/Report168_PROMOTION_ENGINE_EXECUTION_20260914.md`
+3. Inside `_loadDashboardData(fromDate, toDate)`, remove the complete exact line:
+`_startCustomerPaymentRealtime()`
 
-## PRICE LIST STATUS
-Price List backend remains deployed.
-Price List Owner UI requires Owner merge.
-Price List browser E2E remains open.
-Price List -> consumer integration remains a separate closure.
-Do not reopen Price List backend without contradictory CURRENT evidence.
+No other payment allocation patch is required at this checkpoint.
 
-## INVENTORY STATUS
-Physical stock contract remains:
-`Physical Movement -> post_stock_movement -> stock_branches + inventory_log`
+## PRODUCTION — SALES PAYMENT ALLOCATION
+Supabase project:
+`fiilmooggumokxanwiyx`
 
-Promotion Engine does not write physical stock.
-Do not introduce a second physical stock engine.
+Tables verified:
+- `sales_payment_receipts`
+- `sales_payment_allocations`
+- `erp_operation_registry`
+
+Constraints/indexes verified:
+- `erp_operation_registry UNIQUE (company_id, operation_type, operation_key)`
+- `sales_payment_receipts UNIQUE (company_id, receipt_code)`
+- `sales_payment_receipts UNIQUE (company_id, operation_id)`
+- `sales_payment_allocations UNIQUE (receipt_id, order_id)`
+- indexes on allocation order/receipt
+
+Production RPCs verified:
+- `post_sales_payment_allocation_atomic`
+- `post_cash_receipt_atomic`
+
+Production Edge:
+`sales-payment-allocation`
+Status: `ACTIVE`
+Version: `1`
+`verify_jwt=true`
+Deployment SHA:
+`9df011f54b67afc9c3e1c73a9948fcb0c77673844a0441cfd54685704fdf2f85`
+
+Production Realtime verified:
+- `sales_payment_receipts` in `supabase_realtime`
+- `sales_payment_allocations` in `supabase_realtime`
+
+## PRODUCTION E2E CORE VERIFICATION
+A real Production transaction was executed with temporary E2E customer/orders.
+
+Scenario:
+Receipt `150`
+Allocation #1 `60`
+Allocation #2 `50`
+Unallocated `40`
+
+First execution:
+`success=true`
+`duplicate=false`
+`allocated_amount=110`
+`unallocated_amount=40`
+`allocation_count=2`
+
+Retry with the same Operation ID:
+`success=true`
+`duplicate=true`
+Same receipt returned; no duplicate financial operation.
+
+Cleanup verification:
+E2E customer rows `0`
+E2E order rows `0`
+E2E receipt rows `0`
+E2E cashbox rows `0`
+E2E operation registry rows `0`
+E2E customer ledger rows `0`
+
+No permanent E2E test data remains.
+
+## FORENSIC ASSEMBLY
+`rawaie-erp-New/forensic_main_assembly.yml` exists and is already correct:
+
+`repository: papamohammed77-glitch/erp-frontend`
+`path: companies/company-1/main.html`
+`ref: main`
+`mode: published_main_is_authoritative`
+
+No change required.
+
+## CURRENT REPORT
+`doc/Draft/Reprots/Report170_E2E_SALES_PAYMENT_ALLOCATION_FORENSIC_RECHECK_20260914.md`
 
 ## OPEN CONTRACTS
 ```text
-Price List backend foundation       = DEPLOYED
-Price List Edge API                = DEPLOYED
-Price List owner UI                = OWNER MERGE REQUIRED
-Price List browser E2E              = OPEN
-Price List consumer integration    = OPEN / NEXT CLOSURE
-Promotion backend                  = PRODUCTION DEPLOYED
-Promotion Edge                     = PRODUCTION DEPLOYED v2
-Promotion owner UI                 = OWNER MERGE REQUIRED
-Promotion browser E2E               = OPEN
-Promotion consumer integration     = OPEN / NEXT CLOSURE
-Multiple/Partial Payment           = OPEN
-Installment lifecycle              = OPEN
-Commission engine                  = OPEN
-Sales Targets engine               = OPEN
-Loyalty transaction engine         = OPEN
-Sales Decision Center              = OPEN
-Full browser E2E                   = OPEN
+Multiple/Partial Payment Backend             = PRODUCTION DEPLOYED
+Multiple/Partial Payment Core                = PRODUCTION RUNTIME VERIFIED
+Multiple/Partial Payment Realtime             = PRODUCTION VERIFIED
+Multiple/Partial Payment Master UI module     = PRESENT
+Multiple/Partial Payment UI Realtime wiring   = OWNER FIX REQUIRED
+Multiple/Partial Payment Browser E2E          = OPEN
+Price List                                    = OPEN / OWNER + E2E
+Promotion                                     = PRODUCTION DEPLOYED / OWNER + E2E
+Full browser E2E                              = OPEN
 ```
 
-## CURRENT CHECKPOINT
-```text
-CURRENT FRONTEND HEAD              = VERIFIED
-CURRENT DIRECT PARENT              = VERIFIED
-CURRENT main.html SOURCE            = VERIFIED
-FORENSIC ASSEMBLY AUTHORITY         = VERIFIED / CORRECT
-PROMOTION DB CORE                   = PRODUCTION DEPLOYED
-PROMOTION SECURITY                  = VERIFIED
-PROMOTION RESOLVER                  = PRODUCTION DEPLOYED / HARDENED
-PROMOTION REDEMPTION                = PRODUCTION DEPLOYED / RETRY VERIFIED
-PROMOTION EDGE                      = ACTIVE v2
-PROMOTION OWNER UI                  = OWNER MERGE REQUIRED
-PROMOTION BROWSER E2E               = OPEN
-PROMOTION CONSUMER WIRING           = OPEN
-PRICE LIST                          = DO NOT REOPEN WITHOUT CONTRADICTORY EVIDENCE
-INVENTORY                           = DO NOT REOPEN WITHOUT CONTRADICTORY EVIDENCE
-```
+## NEXT ASSISTANT RESUMPTION RULE
+لا تبدأ من Report170 أو Report169 كحالة حالية.
 
-## NEXT CTO / ASSISTANT RESUMPTION RULE
-
-لا تبدأ من Report168 أو أي تقرير آخر كحالة حالية.
-ابدأ دائمًا من:
-
+ابدأ دائمًا:
 `CURRENT GIT HEAD`
 `-> DIRECT PARENT`
-`-> CURRENT SOURCE SHA`
+`-> CURRENT SOURCE`
 `-> CURRENT DATABASE`
 `-> CURRENT RPC DEFINITIONS`
 `-> CURRENT EDGE DEPLOYMENT`
+`-> CURRENT REALTIME PUBLICATION`
 `-> CURRENT RUNTIME`
-`-> OWNER MERGE`
-`-> BROWSER E2E`
 
 ثم:
-
 `historical contract -> current behavior -> target contract -> actual gap -> surgical change -> test -> deploy -> Production verify -> runtime verify -> document -> close`
 
-No false closure:
-`COMMIT != DEPLOYMENT`
-`DEPLOYMENT != RUNTIME SUCCESS`
-`RUNTIME SUCCESS != PRODUCTION VERIFIED`
-`PRODUCTION VERIFIED != FULLY CLOSED`
+لا تعيد إصلاح ما ثبت أنه مغلق.
+لا تسجل Browser/E2E closure من دون تشغيل UI فعلي.
+لا تستخدم `Current/PWA/main2` أو `New-main` كـSource of Truth.
