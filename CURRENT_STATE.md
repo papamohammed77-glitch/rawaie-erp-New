@@ -1,41 +1,67 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-13  
-**Checkpoint:** Report161 — CTO E2E للنظام الأم ومراجعة Sales Gold/Diamond وإغلاق Backend المرتجع + Credit Note.
+**Last reconciled:** 2026-09-13
+**Current checkpoint:** Report162 — CTO Forensic Reconciliation للنظام الأم واختبار E2E/Source/Production.
 
-## GOVERNANCE
+## GOVERNANCE — اقرأ هذه القاعدة أولًا
+
 التقارير السابقة Historical/Reference فقط وليست حالة حالية.
-الحالة المعتمدة فقط:
-`CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE`.
 
-**المبدأ الحاكم — اقرأه بعناية:** ملف النظام الأم الحالي المنشور هو Source of Truth، وأي Closure يجب أن يبدأ من الواقع الحالي ولا يعيد إصلاح شيء ثبت إغلاقه.
+الحالة المعتمدة فقط:
+`CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE`
+
+**Source of Truth الحالي هو:**
+`papamohammed77-glitch/erp-frontend/companies/company-1/main.html`
+
+لا تعاد أي Closure أغلقت، إلا بدليل CURRENT متناقض.
+
+القاعدة الدائمة:
+`REPORT = POINTER`
+`PRIMARY SOURCE = AUTHORITY`
+`CURRENT PRODUCTION = TRUTH`
+`NO ASSUMPTION`
+`NO SPECULATIVE UI`
+`NO CLOSED-CLOSURE REOPEN`
+`ONE CLOSURE AT A TIME`
+`CLOSE → VERIFY → DOCUMENT → NEXT`
 
 ## SOURCE OF TRUTH
-Repository: `papamohammed77-glitch/erp-frontend`  
-Path: `companies/company-1/main.html`  
+
+Repository: `papamohammed77-glitch/erp-frontend`
+Path: `companies/company-1/main.html`
 Ref: `main`
+
+Current main.html blob SHA:
+`1cc6f17b8531a8353b28f89acdfde2e992774931`
 
 `Current/PWA/main2/*`, `Original/PWA/main/*`, `Current/PWA/New-main` = Historical/Reference فقط.
 
 ## CURRENT GIT
-HEAD:
+
+Current HEAD:
+`aaebffbdd732b9861d96631f5d01c5a6697bd1e4`
+
+HEAD message:
+`Refactor orderHeader creation with operation IDs`
+
+Direct Parent:
 `3573c92026557cb56a7782babe6f6cf690243072`
 
-Direct parent:
+Parent of Parent:
 `28f39b351bb44a4cd885ba784d505aadaeb13cf1`
 
-HEAD message: `Update main.html`
+آخر HEAD patch في `main.html` يحتوي إصلاح Operation Identity في:
+- `RW_POS.save()`
+- `RW_TeleSales._saveOrder()`
 
-HEAD patch يثبت أن آخر تغيير في Parent main كان إصلاح عرض فرع التحويل من `branch_name` إلى `name`/`branch_code`. هذا CLOSED ولا يعاد فتحه دون Browser/Runtime evidence جديد.
+وتصفير Operation ID يحدث فقط بعد نجاح العملية.
 
-Current main.html blob SHA:
-`43ab5c85ee63939404a0c426524f92e406441f07`
-
-Current main.html last known line:
-`35521`
+HEAD/Parent لا توجد لهما CI status checks منشورة؛ لا يسجل هذا كـCI PASS.
 
 ## FORENSIC ASSEMBLY
-`forensic_main_assembly.yml` صحيح:
+
+الملف المرجعي موجود في `rawaie-erp-New/forensic_main_assembly.yml`، ومحتواه الحالي يثبت:
+
 ```yaml
 source_of_truth:
   repository: papamohammed77-glitch/erp-frontend
@@ -44,12 +70,18 @@ source_of_truth:
 assembly_status: reference_only; published_main_is_authoritative
 ```
 
-لا تعديل مطلوب.
+assembly SHA:
+`7b3c6d64958cb729e86e26d6b743a7128ed05d9e`
+
+**القرار:** المسار صحيح، ولا تعديل مطلوب.
 
 ## CURRENT PRODUCTION / DATABASE
-Project: `fiilmooggumokxanwiyx`
 
-Fresh current counts:
+Supabase project:
+`fiilmooggumokxanwiyx`
+
+Fresh counts:
+
 - companies = 1
 - branches = 2
 - items = 17
@@ -66,271 +98,284 @@ Fresh current counts:
 
 Current schema facts:
 - `items.item_code` = UNIQUE globally.
-- `orders` has canonical unique `(company_id, operation_id)` index after removing a redundant duplicate index.
-- `credit_notes.operation_key` now exists and is unique per company when present.
+- `stock_branches(branch_id,item_id)` = UNIQUE.
+- `receiving.operation_id` = UNIQUE.
+- `orders(company_id,operation_id)` = canonical unique operation identity.
+- `credit_notes.operation_key` = unique per company when present.
 
-## INVENTORY CORE — DO NOT REOPEN
+## CURRENT DATA INTEGRITY
+
+Fresh direct checks:
+
+```text
+stock_cross_company            = 0
+inventory_log_cross_company    = 0
+order_detail_item_cross_company= 0
+duplicate_item_code_global     = 0
+```
+
+لا يوجد مبرر حالي لإعادة تنظيف هذه النقاط.
+
+## INVENTORY CORE — CLOSED
+
 Physical Stock contract:
+
 `Physical Movement → post_stock_movement → stock_branches + inventory_log`
 
-Previously closed:
+Fresh PostgreSQL writer discovery يثبت:
+
 `Physical Writers outside post_stock_movement = 0`
 
-Do not reopen Inventory Writer closure without fresh contradictory CURRENT evidence.
+`reserve_stock` و`release_stock_reservation` هما Reservation/Allocated Quantity فقط.
 
-## PARENT SYSTEM / APPS
-Parent main = Control / Oversight / Integration / Administration / Monitoring / Exceptions / Analytics.
+**لا تعاد Inventory Writer closure دون contradictory CURRENT evidence.**
 
-Separate apps = Operational Execution, including POS, Telesales, Order Taker, Van Sales, Picking, Loading, Delivery, Return, Unloading, Receiving, Inventory Count and related workflows.
+## CURRENT EDGE DEPLOYMENTS
 
-Do not move operational execution to main just to increase tab count.
+أهم النسخ الحالية:
 
-## CURRENT SALES NAVIGATION
-Current Sales navigation in parent main contains:
-- التلي سيلز
-- العملاء
-- المتجر الإلكتروني
-- نقطة البيع
-- أوردرات المبيعات
-- الرانشيتات
+```text
+save-sales-invoice      = v15
+complete-return         = v26
+complete-order-delivery = v14
+receive-purchase        = v12
+create-stock-voucher    = v10
+send-stock-voucher      = v20
+receive-stock-voucher   = v22
+bulk-stock-adjustment   = v6
+create-credit-note      = v3
+complete-picking        = v17
+complete-loading        = v11
+complete-delivery       = v4
+start-return            = v4
+unload-runsheet         = v6
+```
 
-There is no current independent parent UI proven for Quotes, Price Lists, Promotions, Sales Returns, Payments, Installments, Commissions, Targets or Loyalty.
+Current operational functions are JWT-protected where applicable; known historical harness/canary endpoints returning 410 are not treated as production business paths.
 
-## CURRENT SALES BACKEND
-Production functions currently relevant include:
-- `save_sales_invoice_atomic`
-- `complete_return_atomic`
-- `complete_order_delivery_atomic`
-- `post_cash_payment_atomic`
-- `delete_order_atomic`
-- `submit_online_order_atomic`
-- `append_orders_to_runsheet_atomic`
+## RECEIVE PURCHASE — CLOSED
 
-No independent current Production engine is proven for Quote / Price List / Promotion / Commission / Target / Loyalty.
+Current RPC:
+`receive_purchase_atomic(p_company_id uuid, p_po_code text, p_user_email text, p_items jsonb, p_operation_id uuid)`
 
-## SALES RETURN + CREDIT NOTE — NEW CURRENT CLOSURE
-Production closure implemented in this session:
+Current `receive-purchase` Edge = v12.
 
-`complete_sales_return_credit_note_atomic`
-
-Contract:
-`authenticated user → company context → idempotent operation key → complete_return_atomic → post_stock_movement → Credit Note → audit`
-
-Current Edge versions:
-- `create-credit-note` = v3
-- `complete-return` = v26
-
-Both now call the unified atomic transaction.
-
-Current Git canonical backend artifacts:
-- `supabase/migrations/20260913_unify_sales_return_credit_note_atomic.sql`
-- `Current/Edge_Functions/create-credit-note`
-- `Current/Edge_Functions/complete-return`
-
-Runtime test proved:
-- first return = success / duplicate false;
-- same exact retry = success / duplicate true;
-- same Credit Note returned;
-- test data completely cleaned.
+Fresh transactional test:
+- temporary PO/detail created inside transaction;
+- first receiving executed;
+- exact same `operation_id` retried;
+- retry returned `success=true`, `duplicate=true`, `status=Received`;
+- full transaction rolled back.
 
 Therefore:
-`Sales Return + Credit Note Backend Transaction = CLOSED`
+`Receive Purchase Idempotency = VERIFIED / CLOSED`
 
-But:
-`Parent Sales Returns UI = OPEN`
+Test setup initially failed بسبب محاولة إدخال قيمة إلى `purchase_order_details.line_amount` وهو Generated Column. هذا كان خطأ Fixture فقط وتم تصحيحه.
 
-## SALES GAP STATUS
+## SALES RETURN / CREDIT NOTE — CLOSED BACKEND
+
+Current backend contract:
+`authenticated user → company context → operation identity → complete_return_atomic → post_stock_movement → credit note → audit`
+
+Current Edge:
+- `complete-return = v26`
+- `create-credit-note = v3`
+
+Runtime return retry was previously verified and current Production state remains consistent with that closure.
+
+**Do not reopen `complete_return_atomic` without contradictory CURRENT runtime/DB evidence.**
+
+## PARENT SYSTEM / APPS
+
+Parent main role:
+`Control / Oversight / Integration / Administration / Monitoring / Exceptions / Analytics`
+
+Separate apps role:
+`Operational Execution`
+
+including POS, Telesales, Order Taker, Van Sales, Picking, Loading, Delivery, Return, Unloading, Receiving, Inventory Count and related workflows.
+
+لا تنقل التنفيذ التشغيلي إلى Parent لمجرد زيادة عدد التبويبات.
+
+## CURRENT MAIN FUNCTIONALITY
+
+Current `main.html` has actual render paths for:
+
+- Dashboard
+- Items
+- Customers
+- Suppliers
+- Branches
+- Settings
+- HR
+- CRM
+- Users / Roles / License
+- Telesales
+- POS
+- Orders
+- Runsheets
+- Online Store
+- Purchases / Purchase POS
+- Receiving / Picking / Loading / Delivery / Return / Unloading
+- Stock Vouchers / Transfer / Direct Sale / Direct Return / Supplier Return
+- Vehicle / Branch / General Counts
+- Settlement
+- Finance
+- Detailed / Comprehensive Reports
+- Audit Log
+
+Static source search found no literal `(قيد التطوير)` / `قيد التطوير` in the current published repository search result.
+
+Current reports include real Production calls for finance/CRM/inventory/sales analytics. Tax reporting intentionally uses a Capability Gate where no authoritative Production tax source is proven.
+
+## CURRENT SALES GAPS — OPEN
+
+The following are genuine Business Contract gaps, not merely missing buttons:
+
 ```text
-Quote lifecycle                        = OPEN
-Price List engine                      = OPEN
-Promotion engine                       = OPEN
-Unified Sales Return/Credit Note UI    = BACKEND CLOSED / UI OPEN
-Multiple/Partial Sales Payments        = OPEN
-Installment lifecycle                  = OPEN
-Commission engine                      = OPEN
-Targets engine                         = OPEN
-Loyalty engine                         = OPEN
-Full Sales Decision Center             = OPEN
-Browser Click-by-Click E2E             = OPEN
+Sales Returns Parent Management UI           = OPEN
+Quote lifecycle                               = OPEN
+Price List engine                             = OPEN
+Promotion engine                              = OPEN
+Multiple / Partial Payment allocation        = OPEN
+Installment lifecycle                         = OPEN
+Commission engine                             = OPEN
+Sales Targets engine                          = OPEN
+Loyalty transaction engine                    = OPEN
+Sales Decision Center                         = OPEN
+Browser click-by-click E2E                    = OPEN
 ```
 
-## ITEM OFFERS CONTRACT
-Current Item Modal contains item-level fields:
-`discount_percent`, `discount_start`, `discount_end`, `is_daily_deal`, `badge_text`.
+Item-level fields such as:
+`discount_percent`, `discount_start`, `discount_end`, `is_daily_deal`, `badge_text`
 
-These remain valid for item-level merchandising / quick offer behavior.
-
-They are NOT a full Promotion Engine.
-
-Future Promotion Engine must be separate and support scope/rules such as item/category/customer/branch, date/time, quantity, priority and stacking.
-
-## SALES RETURNS / PURCHASE RETURNS RULE
-`Sales Returns` should be a parent Sales management/monitoring view that shows returns executed by POS/field operational apps and links back to order/runsheet/credit note/accounting.
-
-`Purchase Returns` belongs under Purchases, not Sales, and should centrally display supplier return activity from operational applications.
-
-## OWNER FRONTEND WORK — NOT EXECUTED BY ASSISTANT
-### POS idempotency
-File:
-`erp-frontend/companies/company-1/main.html`
-
-Function:
-`RW_POS.save()`
-
-Current area:
-~line `22750`.
-
-Replace the current `var orderHeader = { ... };` block whose first property is `operation_id: crypto.randomUUID()` with:
-```javascript
-var operationId = window.__rwPosOperationId || null;
-if (!operationId) {
-    operationId = crypto.randomUUID();
-    window.__rwPosOperationId = operationId;
-}
-
-var orderHeader = {
-    operation_id: operationId,
-    custId: cust,
-    custName: customer ? customer.name : '',
-    area: customer ? customer.area : '',
-    total: total,
-    deliveryFees: del,
-    status: 'Invoiced',
-    paymentType: 'نقدي',
-    taxAmount: taxAmt,
-    taxRate: taxRate
-};
-```
-Last line to delete = `};` of this orderHeader block.
-
-After the existing successful `cart = [];` add:
-```javascript
-window.__rwPosOperationId = null;
-```
-Do not clear on error.
-
-### Telesales idempotency
-File:
-`erp-frontend/companies/company-1/main.html`
-
-Function:
-`RW_TeleSales._saveOrder()`
-
-Current area:
-~line `23740`.
-
-Replace the `var orderHeader = { ... };` block whose first property is `operation_id: crypto.randomUUID()` with:
-```javascript
-var operationId = window.__rwTeleSalesOperationId || null;
-if (!operationId) {
-    operationId = crypto.randomUUID();
-    window.__rwTeleSalesOperationId = operationId;
-}
-
-var orderHeader = {
-    operation_id: operationId,
-    customer_code: selectedCustomer.customer_code,
-    custName: selectedCustomer.name,
-    area: selectedCustomer.area || '',
-    total: total,
-    deliveryFees: deliveryFee,
-    status: 'Confirmed',
-    paymentType: selectedCustomer.payment_type || 'أجل',
-    taxAmount: taxAmt,
-    taxRate: taxRate
-};
-```
-After the existing successful cart/customer reset add:
-```javascript
-window.__rwTeleSalesOperationId = null;
-```
-Do not clear on error.
-
-## NO REOPEN
-Do not rework without fresh evidence:
-- Transfer branch_name fix.
-- Inventory Writer Zero-Debt closure.
-- `post_stock_movement` centralization.
-- Runsheet/Picking/Loading/Delivery backend closures already closed.
-- `save_sales_invoice_atomic` merely because frontend idempotency is open.
-- `complete_return_atomic` core merely because unified wrapper now exists.
+remain valid item merchandising capabilities, but do not constitute a full Promotion Engine.
 
 ## DAFTRA CURRENT REFERENCE
-Current official Daftra material confirms Sales capabilities including:
-- invoices and Quotes;
-- POS;
-- Offers;
-- Price Lists;
-- Installments;
-- Sales Targets and Commissions;
-- Loyalty;
-- flexible/partial/multiple payments and returns/credit-related flows.
 
-RAWAEA is differentiated by the operational field-sales / runsheet / picking / loading / delivery / return chain, but the institutional Sales management layer remains incomplete.
+Official Daftra material currently exposes Sales capabilities including Quotes, POS, Offers, Price Lists, Installments, Targets, Commissions, Loyalty and flexible/partial payment scenarios.
 
-## CURRENT E2E STATUS
-```text
-Current Git / Parent              = VERIFIED
-Current main.html                 = VERIFIED
-Current Production                = VERIFIED
-Current DB schema/data             = VERIFIED
-Current Edge deployments          = VERIFIED
-forensic_main_assembly.yml        = VERIFIED / NO CHANGE
-Sales Return backend transaction  = CLOSED
-Parent Sales Returns UI           = OPEN
-POS/Telesales idempotency         = OWNER ACTION OPEN
-Browser click-by-click E2E        = OPEN
-Sales Gold/Diamond                = OPEN
-```
+References:
+- https://www.daftra.com/
+- https://www.daftra.com/plans
+- https://www.daftra.com/برنامج-المبيعات-وإدارة-الفواتير/
+- https://docs.daftra.com/
 
-## LATEST RAWARE-ERP-NEW COMMITS
-Latest session commits added after Report160:
-- `4d26f2c3a7e9facd577aaabeab9a5ff112cf09d7` — unified return/credit note migration
-- `c510c0f87cade0934127f92b5a3f14c8296ca93d` — canonical create-credit-note
-- `049dd56d210389b5c873163ddfce32b60bb27693` — canonical complete-return
-- `16f15412218fbe2350abc8dfc7b407db2ab760e5` — Report161
+RAWAEA must preserve its differentiated operational field-sales chain:
+`Order → Runsheet → Picking → Loading → Delivery → Return → Unloading`
 
-These are backend/governance artifacts. They do not replace the parent Source of Truth.
+The current competitive gap is mainly institutional Sales Management contracts, not the operational app model.
 
-## HISTORICAL / REFERENCE REPORTS
-Report160 remains historical pointer only.
-Report161 is the latest session execution record.
-Do not treat either report as a substitute for a fresh Production reconciliation.
+## PARENT main.html OWNER STATUS
+
+The latest Git commit already contains the POS/Telesales Operation Identity changes documented previously.
+
+Current verified source areas:
+- `RW_POS.save()` around source lines ~5020–5105.
+- `RW_TeleSales._saveOrder()` around source lines ~6000–6085.
+
+The current source contains the corrected blocks.
+
+**No new surgical main.html patch was issued in Report162.**
+
+Reason:
+No contradictory current evidence justified another change.
+
+The next main.html action is Browser E2E verification, not speculative surgery.
+
+## BROWSER E2E STATUS
+
+Browser click-by-click E2E remains OPEN.
+
+This environment did not provide direct browser automation, so the following cannot honestly be marked PASS here:
+
+- real browser navigation;
+- clicking every tab;
+- direct browser console monitoring;
+- user-visible POS/Telesales retry from the browser.
+
+Production/runtime/database/source verification is not equivalent to browser PASS.
+
+## LATEST ACTIONS / REPORTS
+
+Latest report written:
+`doc/Draft/Reprots/Report162_CTO_E2E_Main_Forensic_Reconciliation_20260913.md`
+
+Report161 remains historical pointer only.
 
 ## NEXT EXACT SEQUENCE
+
 ```text
 CURRENT GIT HEAD
 → DIRECT PARENT
-→ NEW COMMITS
-→ CURRENT main.html SHA
-→ CURRENT assembly path
-→ CURRENT DB schema/data
-→ CURRENT Edge versions/source
-→ CURRENT PostgreSQL RPC definitions
-→ CURRENT runtime/log evidence
+→ PARENT OF PARENT when needed
+→ CURRENT main.html blob SHA
+→ CURRENT forensic_main_assembly.yml
+→ CURRENT Production schema
+→ CURRENT Production data
+→ Physical Writer Discovery
+→ Current PostgreSQL RPC definitions
+→ Current Edge source/version
+→ Current runtime/log evidence
 → classify VERIFIED / STALE / CONTRADICTED / UNKNOWN
-→ Owner applies POS idempotency
-→ Owner applies Telesales idempotency
-→ reread current main.html
-→ Browser retry E2E
+→ DO NOT reopen closed closures
+→ Browser click-by-click E2E on CURRENT published main.html
 → Production operation_id verification
-→ close idempotency
-→ Sales Document / Quote contract
-→ Pricing / Promotion
-→ Payments
-→ Installments
-→ Commissions / Targets
-→ Loyalty
+→ close Browser E2E gate
+→ Sales Returns Parent Management UI
+→ Quote contract
+→ Price List contract
+→ Promotion contract
+→ Partial/Multiple Payment contract
+→ Installment contract
+→ Commission/Targets contracts
+→ Loyalty contract
 → Sales Decision Center
 → final Browser E2E
 ```
 
-## PERMANENT RULE
-`REPORT = POINTER`
-`PRIMARY SOURCE = AUTHORITY`
-`CURRENT PRODUCTION = TRUTH`
-`NO ASSUMPTION`
-`NO SPECULATIVE UI`
-`NO DUPLICATE ENGINE`
-`ONE CLOSURE AT A TIME`
-`CLOSE → VERIFY → DOCUMENT → NEXT`
+## INSTRUCTIONS TO NEXT CTO / ASSISTANT
+
+ابدأ دائمًا من Production/Git الحالي لا من التقرير.
+
+لا تثق بأي نسبة أو حالة سابقة قبل إعادة المطابقة.
+
+قبل أي تعديل أجب صراحة:
+
+`ما العقد التاريخي؟`
+`ما السلوك الحالي المثبت؟`
+`ما الذي تغير؟`
+`ما المطلوب أن يحكمه مستقبلًا؟`
+`ما الدليل أن هذا Bug وليس Contract؟`
+
+ثم:
+
+`UNDERSTAND → TRACE → GAP → SURGICAL CHANGE → TEST → DEPLOY → PRODUCTION VERIFY → RUNTIME VERIFY → DOCUMENT → CLOSE`
+
+وحدة واحدة فقط في كل مرة.
+
+لا تنقل Operational execution إلى Parent.
+لا تبنِ UI فوق Business Contract غير مثبت.
+لا تعيد إصلاح شيء مغلق دون contradictory CURRENT evidence.
+
+## FINAL STATE
+
+```text
+Current Git                         = VERIFIED
+Current Parent / Parent chain      = VERIFIED
+Current main.html                  = VERIFIED SOURCE
+Current Database                   = VERIFIED
+Current Edge Deployments           = VERIFIED
+Inventory Physical Writer Core     = 100% CLOSED
+Inventory Tenant/Item Integrity    = CLOSED / 0 violations
+Receive Purchase Idempotency       = CLOSED / VERIFIED
+Sales Return + Credit Backend      = CLOSED / VERIFIED
+forensic_main_assembly.yml         = CORRECT / NO CHANGE
+POS/Telesales source repair        = PRESENT / VERIFIED
+Browser click-by-click E2E         = OPEN
+Parent Sales Returns UI            = OPEN
+Quote / Pricing / Promotions      = OPEN
+Payments / Installments            = OPEN
+Commissions / Targets              = OPEN
+Loyalty / Decision Center          = OPEN
+```
