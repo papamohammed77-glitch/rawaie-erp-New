@@ -8,7 +8,7 @@
 الحالة المعتمدة:
 `CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE`
 
-Source of Truth:
+Source of Truth للنظام الأم:
 `papamohammed77-glitch/erp-frontend/companies/company-1/main.html`
 
 Historical reference only:
@@ -21,182 +21,206 @@ Permanent rule:
 `ONE CLOSURE AT A TIME`
 `CLOSE -> VERIFY -> DOCUMENT -> NEXT`
 
-## CURRENT GIT — PARENT
-Frontend repository:
+## CURRENT GIT — FRONTEND
+Repository:
 `papamohammed77-glitch/erp-frontend`
 Branch: `main`
 
 HEAD:
-`d0cfb6fefd1af960de336935d8eec6d831c2d101`
-
-HEAD message:
-`Implement sales returns management feature`
+`edf60227f88eaabec10cf1083d87bb2665990279`
+Message:
+`Update print statement from 'Hello' to 'Goodbye'`
 
 Direct Parent:
-`aaebffbdd732b9861d96631f5d01c5a6697bd1e4`
+`d0cfb6fefd1af960de336935d8eec6d831c2d101`
 
 Parent of Parent:
-`3573c92026557cb56a7782babe6f6cf690243072`
+`aaebffbdd732b9861d96631f5d01c5a6697bd1e4`
 
 Current main.html blob:
-`4cc90ea87697b0e01a21900da289f3e86e1fefcb`
+`35ec01656f426d19c675b73ed5c53445f1f12ad1`
 
 ## FORENSIC ASSEMBLY
-`forensic_main_assembly.yml` remains pointed to:
+`forensic_main_assembly.yml` verified correct:
 `erp-frontend/companies/company-1/main.html`
+
+Mode:
+`published_main_is_authoritative`
 
 No historical fragment is Source of Truth.
 
-## PRODUCTION DATABASE
+## CURRENT PRODUCTION DATABASE
 Supabase project:
 `fiilmooggumokxanwiyx`
 
-Quote infrastructure currently present:
-- `sales_quotes`
-- `sales_quote_details`
-- `sales_quote_status_history`
+Current companies:
+`1`
 
-RLS = enabled and FORCE enabled on all three.
+Current core rows:
+- items: 17
+- customers: 3
+- branches: 2
+- orders: 0
+- purchase_orders: 0
+- runsheets: 0
+- inventory_log: 3
+- audit_log: 1906
 
-Production quote RPCs:
-- `rawaea_quote_actor_ok`
-- `create_sales_quote_atomic`
-- `update_sales_quote_atomic`
-- `change_sales_quote_status_atomic`
-- `expire_due_sales_quotes_atomic`
-- `convert_sales_quote_to_order_atomic`
-- `list_sales_quotes`
-- `get_sales_quote_detail`
-- `get_sales_quote_summary`
+## PRICE LIST ENGINE — CURRENT CHECKPOINT
 
-Quote RPC ACL:
-`PUBLIC/anon/authenticated = revoked`
-`service_role = execute`
+### Production schema deployed
+- `commercial_catalogs`
+- `commercial_catalog_rules`
+- `commercial_customer_links`
 
-## QUOTE LIFECYCLE
-```text
-Draft -> Sent -> Accepted -> Converted -> Confirmed Order
-             |       |
-             |       +-> Rejected
-             +-------> Expired / Cancelled
-Draft ----------------> Cancelled
-```
+Relations:
+`commercial_catalogs.company_id -> companies.id`
+`commercial_catalog_rules.catalog_id -> commercial_catalogs.id`
+`commercial_catalog_rules.item_id -> items.id`
+`commercial_catalog_rules.category_id -> categories.id`
+`commercial_customer_links.company_id -> companies.id`
+`commercial_customer_links.catalog_id -> commercial_catalogs.id`
+`commercial_customer_links.customer_id -> customers.id`
 
-Quote is commercial only.
-No stock reservation.
-No stock deduction.
-No direct inventory_log write.
+Pricing dimensions currently supported:
+- catalog
+- priority
+- default catalog
+- active state
+- validity dates
+- item rule
+- category rule
+- global rule
+- minimum quantity
+- fixed price
+- discount percentage
+- markup percentage
+- extra fee
+- customer primary assignment
+- fallback to `items.sales_price`
 
-Physical inventory contract remains:
-`Physical Movement -> post_stock_movement -> stock_branches + inventory_log`
+### Production security
+RLS enabled + FORCE enabled on all three Price List tables.
+`anon` and `authenticated` table privileges revoked.
+Browser access must use the Edge capability after JWT validation.
 
-## QUOTE EDGE
-`sales-quotes`
+### Production Edge
+`commercial-catalog`
 Status: `ACTIVE`
-Version: `2`
-`verify_jwt = true`
+Version: `1`
+`verify_jwt=true`
 
 Capabilities:
-`catalog / list / summary / detail / create / update / send / accept / reject / cancel / expire_due / convert`
+`list / catalog / detail / create / update / assign / resolve / delete`
 
-Canonical Git source:
-`Current/Edge_Functions/sales-quotes/index.ts`
+### Production test
+Transactional schema/rule creation test passed and was rolled back.
+No permanent test Price List data exists.
 
-Latest canonical Edge source commit:
-`3ef10f9752d806563732790ca2fb34d5800c5888`
+### Current Price List status
+`BACKEND FOUNDATION = DEPLOYED`
+`EDGE API = DEPLOYED`
+`SECURITY = VERIFIED`
+`OWNER UI = MERGE REQUIRED`
+`BROWSER E2E = OPEN`
+`QUOTE CONSUMER WIRING = NEXT SEPARATE CLOSURE`
 
-## QUOTE VERIFICATION
-Production transactional tests passed:
-- CREATE -> SEND -> ACCEPT -> CONVERT
-- duplicate conversion retry
-- create idempotency
-- unauthorized actor rejection
-- expiry
-- no physical stock movement on conversion
+Do not mark Price List FULL BUSINESS CAPABILITY as CLOSED until owner merge + browser E2E are proven.
 
-Observed successful conversion:
-`Quote total = 90`
-`Order status = Confirmed`
-`Order source = quote`
-`Inventory logs = 0`
+## OWNER PATCH
+Exact owner-side patch:
+`doc/Draft/Reprots/PRICE_LIST_OWNER_SURGICAL_PATCH_20260913.js`
 
-All test transactions were rolled back.
-Persistent Production Quote rows after tests:
-`sales_quotes = 0`
-`sales_quote_details = 0`
-`sales_quote_status_history = 0`
-
-## OWNER UI STATUS
-The canonical parent `main.html` currently contains Sales Returns Management, but no Quote route/module.
-
-Required owner-side integration is documented in:
-`doc/Draft/Reprots/Report166_CTO_QUOTE_LIFECYCLE_EXECUTION_20260913.md`
-
-Owner patch module:
-`Current/PWA/owner-patches/RW_SalesQuotes.js`
-
-Owner must modify only:
+Owner modifies only:
 `erp-frontend/companies/company-1/main.html`
 
-Do not modify historical `main2` fragments.
+Required insertion points:
+- navigation after `quotes`
+- permissionMap after `'quotes': 'orders'`
+- titles after `'quotes':'عروض الأسعار'`
+- render route after `RW_SalesQuotes.render()`
+- full `RW_PriceLists` module after `window.RW_SalesQuotes = RW_SalesQuotes;` and before `EVENTS & BOOT`
 
-## BROWSER E2E
-`OPEN / NOT VERIFIED`
+Do not modify historical fragments.
 
-Backend/DB/Edge verification must not be promoted to Browser E2E PASS.
-The browser chain remains:
-`Login -> Sales -> Quotes -> Create -> Save -> Send -> Accept -> Convert -> Orders`
-with Console/Network/DB verification required after owner merge.
+## GIT BACKEND ARTIFACTS ADDED
+- `supabase/migrations/20260913_commercial_catalog_engine.sql`
+- `Current/Edge_Functions/commercial-catalog/index.ts`
+- `doc/Draft/Reprots/PRICE_LIST_OWNER_SURGICAL_PATCH_20260913.js`
+- `doc/Draft/Reprots/Report167_PRICE_LIST_ENGINE_EXECUTION_20260913.md`
 
-## OTHER CLOSED AREAS
-- Inventory Core: CLOSED
-- POS/Telesales Operation Identity: VERIFIED / CLOSED
-- Sales Returns Parent Management backend: CLOSED
-- Sales Returns Parent Management UI: OWNER MERGE REQUIRED
+## QUOTE STATUS — DO NOT REOPEN WITHOUT CONTRADICTORY CURRENT EVIDENCE
+Current main.html already contains Quotes route/module.
+Previous Quote backend closure remains valid unless new CURRENT evidence contradicts it.
+
+Quote Edge:
+`sales-quotes v2 ACTIVE`
+`verify_jwt=true`
+
+## INVENTORY STATUS
+Physical stock contract remains:
+`Physical Movement -> post_stock_movement -> stock_branches + inventory_log`
+
+Do not introduce any second physical stock engine.
+Do not move pricing logic into Physical Stock.
 
 ## OPEN CONTRACTS
 ```text
-Quote lifecycle backend          = CLOSED
-Quote owner UI                   = OWNER MERGE REQUIRED
-Browser click-by-click E2E       = OPEN / NOT VERIFIED
-Price List engine                = OPEN
-Promotion engine                 = OPEN
-Multiple/Partial Payment         = OPEN
-Installment lifecycle            = OPEN
-Commission engine                = OPEN
-Sales Targets engine             = OPEN
-Loyalty transaction engine      = OPEN
-Sales Decision Center           = OPEN
+Price List backend foundation       = DEPLOYED
+Price List Edge API                = DEPLOYED
+Price List owner UI                = OWNER MERGE REQUIRED
+Price List browser E2E             = OPEN
+Price List consumer integration    = OPEN / NEXT CLOSURE
+Promotion engine                   = OPEN
+Multiple/Partial Payment           = OPEN
+Installment lifecycle              = OPEN
+Commission engine                  = OPEN
+Sales Targets engine               = OPEN
+Loyalty transaction engine         = OPEN
+Sales Decision Center              = OPEN
+Full browser E2E                   = OPEN
 ```
 
 ## NEXT CTO / ASSISTANT INSTRUCTIONS
-Do not start from a report as state.
+Do not start from reports as state.
 Start from:
 `CURRENT GIT HEAD`
 `-> DIRECT PARENT`
-`-> CURRENT SOURCE`
+`-> CURRENT SOURCE SHA`
 `-> CURRENT DATABASE`
 `-> CURRENT DEPLOYMENTS`
 `-> CURRENT RUNTIME`
-`-> Browser E2E`
+`-> BROWSER E2E`
+
+At every continuation:
+`REFRESH PRODUCTION`
+`REFRESH DATABASE`
+`REFRESH DEPLOYMENTS`
+`REFRESH EDGE VERSIONS`
+`REFRESH RPC DEFINITIONS`
+`REFRESH GIT`
 
 Then:
 `historical contract -> current behavior -> target contract -> actual gap -> surgical change -> test -> deploy -> Production verify -> runtime verify -> document -> close`
 
-Do not reopen Quote backend without contradictory CURRENT evidence.
-Do not introduce a second physical stock engine.
-Do not convert Migration PASS or RPC PASS into Browser PASS.
+No false closure:
+`COMMIT != DEPLOYMENT`
+`DEPLOYMENT != RUNTIME SUCCESS`
+`RUNTIME SUCCESS != PRODUCTION VERIFIED`
+`PRODUCTION VERIFIED != FULLY CLOSED`
 
 ## CURRENT CHECKPOINT
 ```text
 CURRENT GIT                         = VERIFIED
 CURRENT PARENT CHAIN               = VERIFIED
 CURRENT main.html SOURCE            = VERIFIED
-FORENSIC ASSEMBLY AUTHORITY         = CORRECT
-QUOTE BACKEND                       = DEPLOYED + VERIFIED
-QUOTE EDGE                          = DEPLOYED + VERIFIED
-QUOTE INVENTORY SAFETY              = VERIFIED
-QUOTE TRANSACTIONAL E2E             = VERIFIED
-QUOTE OWNER UI                      = MERGE REQUIRED
-BROWSER E2E                         = OPEN
+FORENSIC ASSEMBLY AUTHORITY         = VERIFIED / CORRECT
+PRICE LIST DB FOUNDATION            = DEPLOYED
+PRICE LIST DB SECURITY              = VERIFIED
+PRICE LIST EDGE                     = DEPLOYED v1
+PRICE LIST TRANSACTIONAL TEST       = PASS / ROLLBACK
+PRICE LIST OWNER UI                 = MERGE REQUIRED
+PRICE LIST BROWSER E2E              = OPEN
+QUOTE BACKEND                       = DO NOT REOPEN WITHOUT CONTRADICTORY EVIDENCE
+INVENTORY CORE                      = DO NOT REOPEN WITHOUT CONTRADICTORY EVIDENCE
 ```
