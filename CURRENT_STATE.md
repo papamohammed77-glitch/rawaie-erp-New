@@ -1,227 +1,355 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-13  
-**Current checkpoint:** Report150 — CTO E2E Login Runtime `_cashFlow` forensic closure.
+**Last reconciled:** 2026-09-13 08:39 UTC  
+**Current checkpoint:** Report152 — CTO E2E Mother System Sidebar + Company Context + Branding forensic closure.
 
 ## CRITICAL GOVERNANCE PRINCIPLE
 
-**الـSource of Truth الوحيد لاختبار النظام الأم هو الملف المنشور الحالي:**
+**لا أثق بالتقارير السابقة كحقيقة نهائية.**
+
+الـSource of Truth الوحيد لاختبار النظام الأم هو الملف المنشور الحالي:
 
 ```text
 https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/company-1/main.html
 ```
 
-لا يتم استخدام `Current/PWA/main2` أو `Original/PWA/main` أو أي تقرير تاريخي كمصدر حقيقة للكود الحالي. هذه الملفات مرجعية/تاريخية فقط.
+`Current/PWA/main2` و`Original/PWA/main` والتقارير السابقة تستخدم فقط كسياق تاريخي وforensic clues، وليست مصدرًا للكود الحالي.
 
 ## Current Published Main Identity
 
 ```text
 Repository = papamohammed77-glitch/erp-frontend
 Branch = main
-Latest inspected commit = a91bae00418b040a8687547cf2437036f8661b0d
-Current main.html blob SHA = 26a8148682685e20f54b2cac074d898ee4ba5264
-HTML source timestamp comment = 2026-09-13 07:00 UTC
+Latest branch commit = b29461b0bf5b3af6d387f39497e8e6cf95dfdbbd
+Current main.html blob SHA = 59826d7197c5866294decddfef8df3c86f209d14
+HTML source timestamp comment = 2026-09-13 08:30 UTC
+Functional parent commit inspected = 1c212f98e89de4de2384080fef9c75c7d93b0e7e
+Functional parent commit message = Refactor company identity loading from settings
 ```
 
-Commit `a91bae00418b040a8687547cf2437036f8661b0d` is the direct descendant of Report149's inspected commit and contains the seven syntax corrections from Report149.
+آخر commit `b29461b...` غيّر timestamp فقط. الـfunctional regression المهمة ظهرت في الـparent `1c212f...` أثناء إعادة هيكلة Branding.
 
-## Report149 Status Reconciled
+## Current State Reconciled Against Previous Reports
 
-Report149 originally identified seven JavaScript Syntax roots. The current published source has advanced beyond that failure: the present Console reaches runtime initialization and no longer reports those seven syntax errors.
+### Report150
 
-Therefore:
+Report150 كان يذكر أن `_cashFlow` مفقودة.
+
+هذا أصبح **STALE** في المصدر الحالي: `_cashFlow()` موجودة فعليًا في `RW_Finance` الحالية وتستدعي Production RPC `get_cash_flow`.
+
+لا يجوز إعادة تطبيق FIX-150.
+
+### Report151
+
+Report151 وثّق إصلاحات `_esc` وSession Restore وBranding، لكن المصدر الحالي تقدم بعدها.
+
+الحالة الحالية:
 
 ```text
-REPORT149 SYNTAX ROOT = NO LONGER ACTIVE IN CURRENT SOURCE
+RW_Items._esc = CURRENTLY FIXED
+boot() company.id = CURRENTLY PRESENT
+enterSystem() Production Settings loading = CURRENTLY PRESENT
 ```
 
-The seven Report149 fixes must not be re-applied unless future evidence proves a regression.
+لكن Report151 لم يلتقط Regression أحدث: `RW_Navigation.buildSidebar()` تم حذفه من `enterSystem()` في commit `1c212f...`.
 
-## Report150 — Current Runtime Root
+## PROVEN ROOT CAUSE — SIDEBAR
 
-```text
-doc/Draft/Reprots/Report150_CTO_E2E_Login_Runtime_CashFlow_20260913.md
-```
-
-The current browser Console reports:
-
-```text
-main:174  ✅ Supabase Client initialized successfully
-main:11967  Uncaught ReferenceError: _cashFlow is not defined
-    at main:11967:12
-    at main:11976:3
-    at main:17476:3
-```
-
-### Root cause proven directly
-
-Inside the current `RW_Finance` IIFE:
-
-- `_renderReports()` contains a real `RW_Finance._cashFlow()` button.
-- The public return object contains:
-  ```javascript
-  _cashFlow: _cashFlow,
-  ```
-- No `function _cashFlow() { ... }` declaration exists in the current Finance module.
-
-This causes a top-level runtime `ReferenceError` while the Finance module is being evaluated, which can abort subsequent script initialization and therefore block Login from becoming operational.
-
-### Exact current location
-
-The current return object around line **11967** contains:
+المسار الحالي داخل `enterSystem()` يحتوي:
 
 ```javascript
-_balanceSheet: _balanceSheet,
-_cashFlow: _cashFlow,
-_accountActivity: _accountActivity,
+byId('rw-main-shell').style.display = 'flex';
 ```
 
-The missing function must be inserted before the current:
+ثم يبدأ تحميل الهوية والـbootstrap، لكنه لا ينفذ:
 
 ```javascript
-    function _costCenterProfitLoss() {
+RW_Navigation.buildSidebar();
 ```
 
-which is currently around line **11756**.
+بينما `rw-sidebar-nav` يعتمد على هذا الاستدعاء لملء القائمة.
 
-## Production Contract Verified
+Git diff من commit `1c212f...` يثبت أن السطر التالي حُذف صراحة أثناء Branding refactor:
 
-Production Supabase currently contains:
+```diff
+-        RW_Navigation.buildSidebar();
+```
+
+والـhistorical `Current/PWA/main2/main1.md` يثبت أن `buildSidebar()` كان جزءًا من التسلسل الصحيح سابقًا.
+
+### FIX-152-01
+
+**Owner-only source change. Assistant did not modify main.html.**
+
+ابحث في `companies/company-1/main.html` عن السطر الكامل حول line 951:
+
+```javascript
+        byId('rw-main-shell').style.display = 'flex';
+```
+
+أضف تحته مباشرة:
+
+```javascript
+        RW_Navigation.buildSidebar();
+```
+
+المنطقة النهائية المطلوبة:
+
+```javascript
+        byId('rw-login-page').style.display = 'none';
+        byId('rw-main-shell').style.display = 'flex';
+        RW_Navigation.buildSidebar();
+        
+        var user = RW_STATE.app.currentUser;
+```
+
+## PROVEN ROOT CAUSE — COMPANY CONTEXT COMPATIBILITY
+
+الـcanonical state الحالي هو:
+
+```javascript
+RW_STATE.app.company.id
+```
+
+لكن وحدات مدمجة مثل Warehouse وFinance ما زالت تستخدم:
+
+```javascript
+RW_STATE.app.companyId
+```
+
+وهذا alias غير موجود في الـstate الحالي.
+
+تم إثبات ذلك مباشرة في `main7.md` و`main8.md` وفي المصدر المنشور الحالي.
+
+### FIX-152-02
+
+**Owner-only source change.**
+
+ابحث عن السطر الكامل:
+
+```javascript
+window.RW_STATE = RW_STATE;
+```
+
+أضف فوقه البلوك الكامل:
+
+```javascript
+Object.defineProperty(RW_STATE.app, 'companyId', {
+    configurable: true,
+    enumerable: true,
+    get: function() {
+        return this.company && this.company.id ? this.company.id : null;
+    },
+    set: function(value) {
+        if (!this.company) {
+            this.company = {
+                id: null,
+                name: 'الروائع ERP',
+                logo: 'ر'
+            };
+        }
+        this.company.id = value || null;
+    }
+});
+```
+
+ثم يبقى:
+
+```javascript
+window.RW_STATE = RW_STATE;
+```
+
+دون تعديل.
+
+هذا Compatibility Contract دائم يغلق التباين بين الوحدات المدمجة دون تكرار إصلاح عشرات الدوال، مع إبقاء `RW_STATE.app.company.id` هو canonical source.
+
+## BRANDING — CURRENT PRODUCTION FACTS
+
+Production `app_settings` للشركة الرئيسية حاليًا:
 
 ```text
-public.get_cash_flow(p_from_date date, p_to_date date)
+company_id = 00000000-0000-0000-0000-000000000001
+company_name = الروائع
+store_name = الروائع
+company_logo = NULL
+store_logo = NULL
+main_branch_id = a38332b6-6cea-480a-ada1-6eb6ab0590db
 ```
 
-Return contract:
+إذن:
 
 ```text
-category
-account_id
-account_name
-amount
+Company name data = PRESENT
+Company logo data = ABSENT / NULL
 ```
 
-The function resolves tenant context through:
+و`enterSystem()` الحالي يقرأ حقول Branding المطلوبة بشكل صحيح بعد تثبيت Company Context.
+
+لا يجوز وضع Logo ثابت داخل `main.html`.
+
+إذا بقي الشعار فارغًا بعد FIX-152-01/02، فإن Closure التالي هو اختبار/إصلاح حفظ `company_logo` في تبويب إعدادات النظام والعقد الخلفي؛ وليس تعديل HTML لزرع قيمة ثابتة.
+
+## FINANCE — CURRENT STATUS
+
+`RW_Finance` الحالية تحتوي `_cashFlow()` بالفعل.
+
+توجد قراءة مالية company-scoped عبر `_companyId()`، لكنها تعتمد على `RW_STATE.app.companyId`، وبالتالي كانت معرضة للفشل قبل FIX-152-02.
+
+لا يوجد سبب لإعادة إصلاح `_cashFlow`.
+
+## WAREHOUSE — CURRENT STATUS
+
+الوحدة الحالية تحتوي بالفعل على:
 
 ```text
-app_private.current_user_company_id()
+Receiving
+Picking
+Loading
+Delivery
+Return
+Unloading
+Manual Vouchers
+Inventory Counts
+Settlement
 ```
 
-and that helper resolves the company from `auth.uid()` against the `users` table.
+المشكلة المثبتة الحالية ليست غياب هذه الوظائف، وإنما Company Context alias mismatch داخل عدد من الوظائف.
 
-A transactional runtime test using a real active company user context completed without an RPC error. No persistent Production data was changed by this test.
+## SESSION RESTORE — CURRENT STATUS
 
-## Tailwind Warning
+`boot()` الحالي يقرأ `users.company_id` حسب `auth_id` ويضع:
+
+```javascript
+RW_STATE.app.company = {
+    id: profileRes.data.company_id,
+    name: meta.companyName || 'الروائع ERP',
+    logo: meta.companyLogo || 'ر'
+};
+```
+
+إذن Report151's `company.id` defect أصبح **CLOSED in current source**.
+
+الـCompatibility alias فقط هو المطلوب الآن حتى تستفيد منه الوحدات التي ما زالت تقرأ `companyId`.
+
+## PRODUCTION CHANGES IN REPORT152
 
 ```text
-cdn.tailwindcss.com should not be used in production
+SUPABASE MIGRATION = NONE
+SUPABASE DATA REPAIR = NONE
 ```
 
-This remains a Warning and is not the current runtime root. It does not justify changing Login or the Finance bootstrap in this Closure Unit.
+سبب عدم إجراء أي Production modification: schema والبيانات المطلوبة للمشكلة الحالية مثبتة وصحيحة، والمشكلة الحالية frontend orchestration/state compatibility.
 
-## Owner Surgical Fix — FIX-150-01
+## FORENSIC ASSEMBLY GOVERNANCE
 
-The assistant did **NOT** modify the Source-of-Truth `erp-frontend/companies/company-1/main.html`.
-
-Owner action:
-
-1. Open the current published `main.html`.
-2. Find the exact line:
-   ```javascript
-       function _costCenterProfitLoss() {
-   ```
-   Current location: approximately **line 11756**.
-3. Add the complete `_cashFlow()` function recorded verbatim in:
-   ```text
-   doc/Draft/Reprots/Report150_CTO_E2E_Login_Runtime_CashFlow_20260913.md
-   ```
-   directly above that line.
-4. Do **not** delete or modify `_costCenterProfitLoss()`.
-5. Do **not** delete `_cashFlow: _cashFlow,` from the return object at line **11967**.
-6. The last complete line of the inserted function must be exactly:
-   ```javascript
-       }
-   ```
-7. Redeploy the same `companies/company-1/main.html`.
-
-## Supabase / Production Changes in Report150
-
-```text
-SUPABASE CHANGE = NONE REQUIRED
-```
-
-The required cash-flow read contract already exists in Production. No new table, RPC, trigger, or column was invented for this frontend defect.
-
-## Assembly Source-of-Truth
-
-`forensic_main_assembly.yml` remains correctly aligned to the published main:
+`forensic_main_assembly.yml` verified directly and remains correct:
 
 ```yaml
 source_of_truth:
   repository: papamohammed77-glitch/erp-frontend
   path: companies/company-1/main.html
   ref: main
+assembly_status: reference_only; published_main_is_authoritative
 ```
 
-`Current/PWA/main2` remains reference/history only and is not a current reconstruction source.
+لا تعديل مطلوب لهذا الملف.
 
-## Session Restore Defect
-
-A separate previously proven defect remains open:
+## REPORTS CREATED / UPDATED
 
 ```text
-boot() restores RW_STATE.app.company name/logo but not RW_STATE.app.company.id
+doc/Draft/Reprots/Report152_CTO_E2E_Main_Sidebar_CompanyContext_20260913.md = CREATED
+CURRENT_STATE.md = UPDATED
 ```
 
-This is a separate Closure Unit and must not be mixed into the current `_cashFlow` repair unless new E2E evidence requires it.
-
-## What Was Changed in This Checkpoint
+## FILES MODIFIED BY ASSISTANT
 
 ```text
-rawwaie-erp-New/doc/Draft/Reprots/Report150_CTO_E2E_Login_Runtime_CashFlow_20260913.md = CREATED
-rawwaie-erp-New/CURRENT_STATE.md = UPDATED
+rawaie-erp-New/doc/Draft/Reprots/Report152_CTO_E2E_Main_Sidebar_CompanyContext_20260913.md
+rawaie-erp-New/CURRENT_STATE.md
+```
 
+```text
 erp-frontend/companies/company-1/main.html = NOT MODIFIED BY ASSISTANT
-Supabase Production = NOT MODIFIED
 ```
 
-## Closure Status
+## BROWSER E2E STATUS
+
+لا يجوز إعلان Browser E2E PASS من هذه البيئة.
+
+المثبت حاليًا:
 
 ```text
-CURRENT MAIN SOURCE IDENTITY = VERIFIED
-CURRENT PUBLISHED SHA = 26a8148682685e20f54b2cac074d898ee4ba5264
-REPORT149 SYNTAX BLOCKER = SUPERSEDED / NO LONGER ACTIVE IN CURRENT SOURCE
-CURRENT RUNTIME BLOCKER = `_cashFlow` MISSING
-CURRENT ROOT CAUSE = PROVEN
-PRODUCTION `get_cash_flow` CONTRACT = PROVEN
-FIX-150-01 = READY / OWNER APPLICATION REQUIRED
-POST-FIX NODE PARSE = PENDING
-POST-FIX BROWSER RUNTIME = PENDING
-POST-FIX LOGIN E2E = OPEN
-SESSION RESTORE COMPANY-ID DEFECT = OPEN / SEPARATE
-GLOBAL FUNCTIONAL GOLD/DIAMOND = OPEN
+CURRENT GIT = VERIFIED
+CURRENT SOURCE SHA = VERIFIED
+SIDEBAR REGRESSION ROOT = PROVEN
+COMPANY CONTEXT MISMATCH = PROVEN
+SESSION RESTORE company.id = PRESENT
+_CASHFLOW = PRESENT
+BRANDING READ PATH = PRESENT
+PRODUCTION branding row = VERIFIED
+PRODUCTION logo fields = NULL
+ASSEMBLY SOURCE = VERIFIED
 ```
 
-## Exact Next Checkpoint
-
-After FIX-150-01 is applied and the file is redeployed:
+المطلوب قبل الإغلاق النهائي:
 
 ```text
-1. Re-read current Git SHA/blob.
-2. Extract inline JavaScript preserving original line numbers.
-3. node --check = PASS.
-4. Open fresh incognito session.
-5. Confirm `_cashFlow is not defined` is gone.
-6. Confirm RW_Finance initializes.
-7. Confirm login form binding initializes.
-8. Submit valid Login.
-9. Confirm auth session.
-10. Confirm users/company context.
-11. Confirm enterSystem().
-12. Confirm dashboard appears.
-13. Record the next actual Console/runtime issue, if any.
+OWNER APPLY FIX-152-01
+OWNER APPLY FIX-152-02
+REDEPLOY SAME main.html
+FRESH INCOGNITO
+LOGIN / SESSION RESTORE
+SIDEBAR
+COMPANY IDENTITY
+DASHBOARD
+ITEMS
+WAREHOUSE OPERATIONS
+VOUCHERS
+COUNTS
+FINANCE
+REPORTS
+HR
+CRM
+CONSOLE
 ```
 
-No new failure may be invented before this checkpoint.
+ثم تؤخذ **أول مشكلة Console جديدة فعلية فقط** كوحدة إغلاق تالية.
 
-# END CURRENT STATE
+## GOLD / DIAMOND STATUS
+
+```text
+GLOBAL FUNCTIONAL COMPLETION = OPEN
+FULL CROSS-MODULE E2E = OPEN
+AUTH/SESSION = PARTIALLY VERIFIED
+SIDEBAR = ROOT PROVEN / OWNER FIX PENDING
+COMPANY CONTEXT = ROOT PROVEN / OWNER FIX PENDING
+BRANDING = READ PATH VERIFIED / LOGO DATA NULL
+FINANCE = CODE PRESENT / LIVE E2E PENDING
+WAREHOUSE = CODE PRESENT / LIVE E2E PENDING
+HR = CODE PRESENT / LIVE E2E PENDING
+CRM = CODE PRESENT / LIVE E2E PENDING
+PRODUCTION DATA REPAIR = NONE REQUIRED IN THIS CLOSURE
+GOLD/DIAMOND = OPEN
+```
+
+## CRITICAL REPEAT
+
+**لا أثق بالتقارير السابقة، ولا بالـCURRENT_STATE القديم، ولا بذاكرة المساعد.**
+
+الحالة الحالية المعتمدة في هذه اللحظة مبنية من:
+
+```text
+CURRENT GIT
++
+CURRENT SOURCE
++
+GIT HISTORY
++
+CURRENT PRODUCTION
++
+CURRENT DATABASE
++
+CURRENT DEPLOYMENT EVIDENCE
+```
+
+ولا تعتبر أي Closure مكتملة إلا بعد الـruntime/browser verification المقابل لها.
