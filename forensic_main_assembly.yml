@@ -1,6 +1,9 @@
-version: 1
+version: 2
 project: rawaea-erp
-source_of_truth: Current/PWA/main2
+source_of_truth:
+  repository: papamohammed77-glitch/erp-frontend
+  path: companies/company-1/main.html
+  ref: main
 fragments:
   - Current/PWA/main2/main1.md
   - Current/PWA/main2/main2.md
@@ -17,4 +20,5 @@ historical_reference: Original/PWA/main
 forbidden_sources:
   - Current/PWA/main
   - Current/PWA/New-main
-assembly_status: deferred_until_all_fragments_are_owner_verified
+  - Current/PWA/main2
+assembly_status: reference_only; published_main_is_authoritative
