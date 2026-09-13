@@ -1,7 +1,7 @@
 # RAWAEA ERP — CURRENT STATE
 
 **Last reconciled:** 2026-09-13
-**Current checkpoint:** Sales Returns Parent Management backend execution completed; Parent UI merge remains owner-side; browser click-by-click E2E remains unverified.
+**Current checkpoint:** Report165 — Sales Returns Parent Management Production/backend closure completed; Parent UI merge remains owner-side; browser click-by-click E2E remains unverified.
 
 ## GOVERNANCE — اقرأ هذه القاعدة أولًا
 
@@ -42,7 +42,7 @@ Direct Parent:
 Parent of Parent:
 `28f39b351bb44a4cd885ba784d505aadaeb13cf1`
 
-HEAD touches only `companies/company-1/main.html` and its operation identity changes in POS/Telesales were verified and were not reopened.
+HEAD touches only `companies/company-1/main.html` and its POS/Telesales operation-identity change remains verified and closed.
 
 ## CURRENT SOURCE OF TRUTH
 
@@ -55,90 +55,97 @@ Current blob SHA verified:
 Current source header:
 `<!-- 2026-09-13 13:00 UTC -->`
 
-No owner-side UI patch was applied by this session.
+No owner-side UI patch was applied in this closure.
 
 ## FORENSIC ASSEMBLY AUTHORITY
 
-`forensic_main_assembly.yml` has been updated to version 3.
+`forensic_main_assembly.yml` is now version 3.
 
-The published `erp-frontend/companies/company-1/main.html` is authoritative.
-`Current/PWA/main2/*` is explicitly historical reference only, not a source of truth.
+Published parent:
+`erp-frontend/companies/company-1/main.html`
+
+is authoritative.
+
+`Current/PWA/main2/*` is historical reference only.
 
 ## CURRENT PRODUCTION / DATABASE
 
 Supabase project:
 `fiilmooggumokxanwiyx`
 
-Direct current facts used in this closure:
-- `credit_notes` = 0 persistent rows after transactional tests.
-- `sales_return_reviews` = 0 persistent rows after transactional tests.
-- `sales_return_review_events` = 0 persistent rows after transactional tests.
+Direct facts checked for this closure:
+- `credit_notes` persistent rows = 0 after all transactional tests.
+- `sales_return_reviews` persistent rows = 0 after all transactional tests.
+- `sales_return_review_events` persistent rows = 0 after all transactional tests.
 - `items.item_code` is globally UNIQUE.
 - `stock_branches(branch_id,item_id)` is UNIQUE.
 - `credit_notes.operation_key` exists.
 - `audit_log` exists and `stock_vouchers` is audited by `trg_audit_stock_vouchers` → `fn_audit_trigger()`.
-- Current production contains multiple company contexts; all new Sales Return Management APIs derive company context from the authenticated user and require the requested actor to belong to that company.
+- New Parent Management APIs derive company context from authenticated `users.auth_id` and enforce company membership + permission `return` or `*`.
 
-## SALES RETURNS PARENT MANAGEMENT — CURRENT CLOSURE
+## SALES RETURNS PARENT MANAGEMENT — CLOSED BACKEND / OWNER UI MERGE
 
 ### Existing operational return screen
-The existing `RW_Warehouse.loadReturn()` remains the field/warehouse operational Returns screen. It was **not moved, replaced, or rewritten**.
+`RW_Warehouse.loadReturn()` remains the field/warehouse Return screen.
 
-Current source route remains:
+Current route remains:
 `if (view === 'return') { RW_Warehouse.loadReturn(); return; }`
 
-This is intentionally separate from Parent Management.
+It was not replaced or moved.
 
-### New Production infrastructure deployed
-Created in Production:
+### New Production infrastructure
+Tables:
 - `sales_return_reviews`
 - `sales_return_review_events`
 
-Created and deployed RPC capabilities:
+RPCs:
 - `get_sales_return_management_summary`
 - `list_sales_return_management`
 - `get_sales_return_management_detail`
 - `save_sales_return_review`
 
-All four are `SECURITY DEFINER`, `search_path=public`, denied to `PUBLIC/anon/authenticated`, and executable by `service_role` only.
+Security:
+- SECURITY DEFINER
+- search_path = public
+- execution revoked from PUBLIC/anon/authenticated
+- executable by service_role
+- actor/company/permission checks enforced inside RPCs
 
-Created and deployed Edge Function:
+Edge Function:
 `sales-return-management`
 
 Current deployed version:
-`v1`
+`v2`
 
 `verify_jwt = true`.
 
-The Edge Function exposes:
-- `list`
-- `summary`
-- `detail`
-- `review`
-
-It obtains `company_id` only from the authenticated `users.auth_id` record and does not accept a caller-supplied company context as authority.
+Capabilities:
+`list`, `summary`, `detail`, `review`, `assignees`.
 
 ### Verification
-Direct Production RPC tests passed:
-- owner summary/list with zero current credit notes.
-- transactional create → review → detail → list flow, followed by `ROLLBACK`; no persistent test rows remained.
-- unauthorized actor test failed as intended with `غير مصرح بإدارة المرتجعات`.
+PASS:
+- Production summary/list.
+- Transactional Credit Note → Review → Detail → List → Event flow with ROLLBACK.
+- Unauthorized actor rejection.
+- Production function existence/security posture.
+- Edge deployment.
 
-A first implementation attempt of the summary RPC failed because a PL/pgSQL record variable `r` conflicted with a table alias. The function was corrected and retested successfully.
+The only implementation failure was a PL/pgSQL alias/record-name collision in the first Summary version. It was corrected and retested successfully.
 
 ### Parent UI status
-`Sales Returns Parent Management UI = BACKEND READY / UI MERGE REQUIRED`
+`BACKEND CLOSED / OWNER UI MERGE REQUIRED`
 
-The published parent file is owner-controlled and was deliberately not modified by this session.
+Exact owner-side surgical instructions and the full `RW_SalesReturnsManagement` module are in:
+`doc/Draft/Reprots/Report165_CTO_SALES_RETURNS_PARENT_MANAGEMENT_EXECUTION_20260913.md`
 
-Required owner-side UI work is documented in Report165:
-1. Add `sales-returns` to the Sales Management navigation submenu.
-2. Add `sales-returns` to `RW_Views.permissionMap` with permission `return`.
-3. Add its title to `RW_Views` titles.
-4. Add the `sales-returns` route to `RW_Views.render()`.
-5. Insert the complete `RW_SalesReturnsManagement` module before the exact `// EVENTS & BOOT` marker.
+Required owner-side changes are limited to the authoritative `erp-frontend/companies/company-1/main.html`:
+- add `sales-returns` to Sales Management navigation;
+- map `sales-returns` to permission `return`;
+- add `sales-returns` title;
+- add the `sales-returns` route;
+- insert the complete `RW_SalesReturnsManagement` module immediately before the exact `// EVENTS & BOOT` marker.
 
-The module is designed as Parent Management only: KPIs, filters, list, detail, review assignment/status, review history, and refresh/live synchronization. It does not execute field returns or mutate `stock_branches` directly.
+No historical fragment should be edited.
 
 ## INVENTORY CORE
 
@@ -147,59 +154,87 @@ Still CLOSED.
 Physical movement contract remains:
 `Physical Movement → post_stock_movement → stock_branches + inventory_log`
 
-No current evidence in this closure reopened Inventory Core.
+No contradictory evidence from this closure reopened it.
 
 ## BROWSER E2E
 
 `OPEN / NOT VERIFIED`.
 
-Source, RPC, Production and Deployment verification must not be represented as click-by-click Browser E2E PASS.
+The environment did not provide reliable authenticated browser automation for the required real click-by-click login/interaction/network/console correlation.
 
-The current environment did not provide reliable authenticated browser automation for the required real login/click/Network/Console correlation.
+No Source/DB/Deployment pass has been promoted to Browser E2E pass.
 
-## CURRENT MAIN COMMIT CHAIN
+## CURRENT CURATED REPOSITORY CHANGES
 
-Latest verified chain before this closure:
-`28f39b... → 3573c9... → aaebff...`
+Added:
+`Current/Edge_Functions/sales-return-management/index.ts`
 
-No closed POS/Telesales operation-identity closure was reopened.
+Added:
+`supabase/migrations/20260913_sales_returns_parent_management.sql`
+
+Added:
+`supabase/migrations/20260913_sales_return_summary_alias_fix.sql`
+
+Updated:
+`forensic_main_assembly.yml`
+
+Added:
+`doc/Draft/Reprots/Report165_CTO_SALES_RETURNS_PARENT_MANAGEMENT_EXECUTION_20260913.md`
+
+These are canonical records of the backend closure and its implementation evidence.
 
 ## OPEN SALES CONTRACTS AFTER THIS CLOSURE
 
 ```text
-Sales Returns Parent Management UI     = BACKEND READY / UI MERGE REQUIRED
-Browser click-by-click E2E             = OPEN / NOT VERIFIED
-Quote lifecycle                         = OPEN
-Price List engine                       = OPEN
-Promotion engine                        = OPEN
-Multiple/Partial Payment allocation     = OPEN
-Installment lifecycle                   = OPEN
-Commission engine                       = OPEN
-Sales Targets engine                    = OPEN
-Loyalty transaction engine              = OPEN
-Sales Decision Center                   = OPEN
+Sales Returns Parent Management Backend     = CLOSED
+Sales Returns Parent Management UI          = OWNER MERGE REQUIRED
+Browser click-by-click E2E                   = OPEN / NOT VERIFIED
+Quote lifecycle                              = OPEN
+Price List engine                            = OPEN
+Promotion engine                             = OPEN
+Multiple/Partial Payment allocation          = OPEN
+Installment lifecycle                        = OPEN
+Commission engine                            = OPEN
+Sales Targets engine                         = OPEN
+Loyalty transaction engine                   = OPEN
+Sales Decision Center                       = OPEN
 ```
 
 ## NEXT CTO / ASSISTANT INSTRUCTIONS
 
-Start from direct current evidence, not report numbers:
+Do not start from reports.
+
+Start from direct evidence:
 
 `CURRENT GIT HEAD`
 `→ DIRECT PARENT`
 `→ CURRENT SOURCE OF TRUTH`
 `→ CURRENT PRODUCTION SCHEMA`
-`→ CURRENT EDGE DEPLOYMENTS`
+`→ CURRENT DEPLOYMENTS`
 `→ CURRENT RUNTIME`
 `→ BROWSER E2E`
 
-For any new closure:
-`historical contract → current behavior → target contract → actual gap → surgical design → implement → test → deploy → Production verify → runtime verify → document → close`
+Then for each closure:
 
-Do not reopen a closure that has no contradictory CURRENT evidence.
+`historical contract`
+`→ `current behavior`
+`→ `target contract`
+`→ `actual gap`
+`→ `surgical design`
+`→ `implement`
+`→ `test`
+`→ `deploy`
+`→ `Production verify`
+`→ `runtime verify`
+`→ `document`
+`→ `close`
 
-For Parent Management, do not transfer field execution from operational apps into the parent merely to make the parent screen look complete.
+Do not reopen a closed closure without contradictory CURRENT evidence.
 
-The next owner-side action is to merge the exact UI patch from Report165 into the authoritative `erp-frontend/companies/company-1/main.html`, then run real browser E2E and correlate the results with Production.
+For Sales Returns, preserve the separation:
+`Operational Return Execution ≠ Parent Management`.
+
+Before the next contract, re-read the actual published parent file and its latest commit chain rather than relying on historical fragments.
 
 ## FINAL STATE
 
@@ -208,7 +243,7 @@ CURRENT GIT                         = VERIFIED
 CURRENT PARENT / PARENT CHAIN      = VERIFIED
 CURRENT main.html SOURCE            = VERIFIED
 FORENSIC ASSEMBLY AUTHORITY         = CORRECTED
-SALES RETURN MANAGEMENT BACKEND    = DEPLOYED + RPC VERIFIED
+SALES RETURN MANAGEMENT BACKEND    = DEPLOYED + VERIFIED
 SALES RETURN MANAGEMENT DATA        = CLEAN AFTER ROLLBACK TESTS
 SALES RETURN MANAGEMENT UI          = OWNER MERGE REQUIRED
 INVENTORY CORE                      = CLOSED
