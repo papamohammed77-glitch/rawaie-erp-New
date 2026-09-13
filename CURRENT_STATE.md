@@ -1,248 +1,69 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-13 08:39 UTC  
-**Current checkpoint:** Report152 — CTO E2E Mother System Sidebar + Company Context + Branding forensic closure.
+**Last reconciled:** 2026-09-13 10:20 UTC  
+**Current checkpoint:** Report153 — CTO E2E Forensic Review of `RW_Items` / Items Tab.
 
-## CRITICAL GOVERNANCE PRINCIPLE
+## GOVERNANCE — CURRENT TRUTH ONLY
 
-**لا أثق بالتقارير السابقة كحقيقة نهائية.**
+لا تُعامل أي تقرير سابق أو حالة ذاكرة سابقة كحالة Production حالية.
 
-الـSource of Truth الوحيد لاختبار النظام الأم هو الملف المنشور الحالي:
+الحالة المعتمدة:
+
+```text
+CURRENT GIT
++
+CURRENT SOURCE
++
+CURRENT PRODUCTION
++
+CURRENT DATABASE
++
+CURRENT DEPLOYMENT EVIDENCE
+```
+
+الـSource of Truth للواجهة:
 
 ```text
 https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/company-1/main.html
 ```
 
-`Current/PWA/main2` و`Original/PWA/main` والتقارير السابقة تستخدم فقط كسياق تاريخي وforensic clues، وليست مصدرًا للكود الحالي.
+`Current/PWA/main2/*` و`Original/PWA/main/*` والتقارير السابقة = historical forensic reference only.
 
-## Current Published Main Identity
+## CURRENT GIT
 
-```text
-Repository = papamohammed77-glitch/erp-frontend
-Branch = main
-Latest branch commit = b29461b0bf5b3af6d387f39497e8e6cf95dfdbbd
-Current main.html blob SHA = 59826d7197c5866294decddfef8df3c86f209d14
-HTML source timestamp comment = 2026-09-13 08:30 UTC
-Functional parent commit inspected = 1c212f98e89de4de2384080fef9c75c7d93b0e7e
-Functional parent commit message = Refactor company identity loading from settings
-```
-
-آخر commit `b29461b...` غيّر timestamp فقط. الـfunctional regression المهمة ظهرت في الـparent `1c212f...` أثناء إعادة هيكلة Branding.
-
-## Current State Reconciled Against Previous Reports
-
-### Report150
-
-Report150 كان يذكر أن `_cashFlow` مفقودة.
-
-هذا أصبح **STALE** في المصدر الحالي: `_cashFlow()` موجودة فعليًا في `RW_Finance` الحالية وتستدعي Production RPC `get_cash_flow`.
-
-لا يجوز إعادة تطبيق FIX-150.
-
-### Report151
-
-Report151 وثّق إصلاحات `_esc` وSession Restore وBranding، لكن المصدر الحالي تقدم بعدها.
-
-الحالة الحالية:
+Repository:
 
 ```text
-RW_Items._esc = CURRENTLY FIXED
-boot() company.id = CURRENTLY PRESENT
-enterSystem() Production Settings loading = CURRENTLY PRESENT
+papamohammed77-glitch/erp-frontend
 ```
 
-لكن Report151 لم يلتقط Regression أحدث: `RW_Navigation.buildSidebar()` تم حذفه من `enterSystem()` في commit `1c212f...`.
-
-## PROVEN ROOT CAUSE — SIDEBAR
-
-المسار الحالي داخل `enterSystem()` يحتوي:
-
-```javascript
-byId('rw-main-shell').style.display = 'flex';
-```
-
-ثم يبدأ تحميل الهوية والـbootstrap، لكنه لا ينفذ:
-
-```javascript
-RW_Navigation.buildSidebar();
-```
-
-بينما `rw-sidebar-nav` يعتمد على هذا الاستدعاء لملء القائمة.
-
-Git diff من commit `1c212f...` يثبت أن السطر التالي حُذف صراحة أثناء Branding refactor:
-
-```diff
--        RW_Navigation.buildSidebar();
-```
-
-والـhistorical `Current/PWA/main2/main1.md` يثبت أن `buildSidebar()` كان جزءًا من التسلسل الصحيح سابقًا.
-
-### FIX-152-01
-
-**Owner-only source change. Assistant did not modify main.html.**
-
-ابحث في `companies/company-1/main.html` عن السطر الكامل حول line 951:
-
-```javascript
-        byId('rw-main-shell').style.display = 'flex';
-```
-
-أضف تحته مباشرة:
-
-```javascript
-        RW_Navigation.buildSidebar();
-```
-
-المنطقة النهائية المطلوبة:
-
-```javascript
-        byId('rw-login-page').style.display = 'none';
-        byId('rw-main-shell').style.display = 'flex';
-        RW_Navigation.buildSidebar();
-        
-        var user = RW_STATE.app.currentUser;
-```
-
-## PROVEN ROOT CAUSE — COMPANY CONTEXT COMPATIBILITY
-
-الـcanonical state الحالي هو:
-
-```javascript
-RW_STATE.app.company.id
-```
-
-لكن وحدات مدمجة مثل Warehouse وFinance ما زالت تستخدم:
-
-```javascript
-RW_STATE.app.companyId
-```
-
-وهذا alias غير موجود في الـstate الحالي.
-
-تم إثبات ذلك مباشرة في `main7.md` و`main8.md` وفي المصدر المنشور الحالي.
-
-### FIX-152-02
-
-**Owner-only source change.**
-
-ابحث عن السطر الكامل:
-
-```javascript
-window.RW_STATE = RW_STATE;
-```
-
-أضف فوقه البلوك الكامل:
-
-```javascript
-Object.defineProperty(RW_STATE.app, 'companyId', {
-    configurable: true,
-    enumerable: true,
-    get: function() {
-        return this.company && this.company.id ? this.company.id : null;
-    },
-    set: function(value) {
-        if (!this.company) {
-            this.company = {
-                id: null,
-                name: 'الروائع ERP',
-                logo: 'ر'
-            };
-        }
-        this.company.id = value || null;
-    }
-});
-```
-
-ثم يبقى:
-
-```javascript
-window.RW_STATE = RW_STATE;
-```
-
-دون تعديل.
-
-هذا Compatibility Contract دائم يغلق التباين بين الوحدات المدمجة دون تكرار إصلاح عشرات الدوال، مع إبقاء `RW_STATE.app.company.id` هو canonical source.
-
-## BRANDING — CURRENT PRODUCTION FACTS
-
-Production `app_settings` للشركة الرئيسية حاليًا:
+Current HEAD:
 
 ```text
-company_id = 00000000-0000-0000-0000-000000000001
-company_name = الروائع
-store_name = الروائع
-company_logo = NULL
-store_logo = NULL
-main_branch_id = a38332b6-6cea-480a-ada1-6eb6ab0590db
+ca91daa29802d161eeb7920bc36dfe4fa3ab2820
 ```
 
-إذن:
+Direct parent:
 
 ```text
-Company name data = PRESENT
-Company logo data = ABSENT / NULL
+b29461b0bf5b3af6d387f39497e8e6cf95dfdbbd
 ```
 
-و`enterSystem()` الحالي يقرأ حقول Branding المطلوبة بشكل صحيح بعد تثبيت Company Context.
-
-لا يجوز وضع Logo ثابت داخل `main.html`.
-
-إذا بقي الشعار فارغًا بعد FIX-152-01/02، فإن Closure التالي هو اختبار/إصلاح حفظ `company_logo` في تبويب إعدادات النظام والعقد الخلفي؛ وليس تعديل HTML لزرع قيمة ثابتة.
-
-## FINANCE — CURRENT STATUS
-
-`RW_Finance` الحالية تحتوي `_cashFlow()` بالفعل.
-
-توجد قراءة مالية company-scoped عبر `_companyId()`، لكنها تعتمد على `RW_STATE.app.companyId`، وبالتالي كانت معرضة للفشل قبل FIX-152-02.
-
-لا يوجد سبب لإعادة إصلاح `_cashFlow`.
-
-## WAREHOUSE — CURRENT STATUS
-
-الوحدة الحالية تحتوي بالفعل على:
+Previous functional parent inspected:
 
 ```text
-Receiving
-Picking
-Loading
-Delivery
-Return
-Unloading
-Manual Vouchers
-Inventory Counts
-Settlement
+1c212f98e89de4de2384080fef9c75c7d93b0e7e
 ```
 
-المشكلة المثبتة الحالية ليست غياب هذه الوظائف، وإنما Company Context alias mismatch داخل عدد من الوظائف.
-
-## SESSION RESTORE — CURRENT STATUS
-
-`boot()` الحالي يقرأ `users.company_id` حسب `auth_id` ويضع:
-
-```javascript
-RW_STATE.app.company = {
-    id: profileRes.data.company_id,
-    name: meta.companyName || 'الروائع ERP',
-    logo: meta.companyLogo || 'ر'
-};
-```
-
-إذن Report151's `company.id` defect أصبح **CLOSED in current source**.
-
-الـCompatibility alias فقط هو المطلوب الآن حتى تستفيد منه الوحدات التي ما زالت تقرأ `companyId`.
-
-## PRODUCTION CHANGES IN REPORT152
+Current `main.html` blob:
 
 ```text
-SUPABASE MIGRATION = NONE
-SUPABASE DATA REPAIR = NONE
+507a77e7290bbf7c24ce34ce9a121ee2e63e4c44
 ```
 
-سبب عدم إجراء أي Production modification: schema والبيانات المطلوبة للمشكلة الحالية مثبتة وصحيحة، والمشكلة الحالية frontend orchestration/state compatibility.
+## FORENSIC ASSEMBLY
 
-## FORENSIC ASSEMBLY GOVERNANCE
-
-`forensic_main_assembly.yml` verified directly and remains correct:
+`rawaie-erp-New/forensic_main_assembly.yml` was rechecked and is correct:
 
 ```yaml
 source_of_truth:
@@ -252,104 +73,300 @@ source_of_truth:
 assembly_status: reference_only; published_main_is_authoritative
 ```
 
-لا تعديل مطلوب لهذا الملف.
+No change required.
 
-## REPORTS CREATED / UPDATED
+## REPORT153 — ITEMS FORENSIC RESULT
 
-```text
-doc/Draft/Reprots/Report152_CTO_E2E_Main_Sidebar_CompanyContext_20260913.md = CREATED
-CURRENT_STATE.md = UPDATED
-```
-
-## FILES MODIFIED BY ASSISTANT
+Created:
 
 ```text
-rawaie-erp-New/doc/Draft/Reprots/Report152_CTO_E2E_Main_Sidebar_CompanyContext_20260913.md
-rawaie-erp-New/CURRENT_STATE.md
+doc/Draft/Reprots/Report153_CTO_E2E_Items_Forensic_20260913.md
 ```
 
-```text
-erp-frontend/companies/company-1/main.html = NOT MODIFIED BY ASSISTANT
+### Proven current finding
+
+The current `RW_Items._renderTable()` contains a merge regression.
+
+At approximately source line 2008 the pagination callback starts with:
+
+```javascript
+RW_Table.paginate('items-tbody', sorted, 1, 50, function(item, idx) {
 ```
+
+Inside the branch loop the current source redeclares `rowHtml` instead of appending branch cells:
+
+```javascript
+var rowHtml = '<tr class="border-t hover:bg-gray-50"> ...';
+```
+
+This overwrites the row being built and causes the list renderer to lose its previously assembled cells.
+
+### Proven second regression
+
+The historical branch drill-down passed:
+
+```text
+item_code, item_name, bid2, branchName2
+```
+
+The current broken list renderer passes:
+
+```text
+item_code, item_name, null
+```
+
+Therefore branch-specific movement drill-down is also lost from the list view.
+
+### Owner-only frontend action
+
+The assistant must NOT edit:
+
+```text
+erp-frontend/companies/company-1/main.html
+```
+
+The owner must replace the entire `RW_Table.paginate(...)` callback in `RW_Items._renderTable()` as specified in Report153.
+
+The exact replacement restores:
+
+```text
+rowHtml += branch-cell
+```
+
+and passes:
+
+```text
+bid2 + branchName2
+```
+
+into `_renderStockMovementReport()`.
+
+## ITEMS FEATURE INVENTORY
+
+Current source still contains:
+
+```text
+List
+Search by name/code/barcode
+Category filter
+Stock-status filter
+Reset
+Sorting
+Branch stock columns
+Movement report
+Branch stock matrix
+Branch filter
+Excel export
+Bulk stock update from CSV/XLS/XLSX
+Category CRUD
+Item create
+Item edit
+Item delete
+Three item-form tabs
+Opening stock
+Marketing fields
+Image upload
+```
+
+Comparison with `Original/PWA/main/main2.md` did NOT prove broad loss of the Items feature set.
+
+The confirmed loss is the list renderer regression above.
+
+## ITEMS MOVEMENT REPORT
+
+Current implementation is more centralized than the old one:
+
+```text
+inventory_log
++
+company_id
++
+item_id
++
+optional branch filter
++
+opening balance
++
+physical movement type filtering
++
+user/reference
+```
+
+Do NOT replace it with the older `stock_vouchers`-based implementation.
+
+No frontend change required here in Report153.
+
+## ITEMS MATRIX / UPLOAD / CATEGORIES
+
+Matrix:
+
+```text
+present
+search present
+branch filter present
+Excel export present
+branch movement drill-down present
+```
+
+Bulk stock upload:
+
+```text
+present
+CSV/XLS/XLSX
+preview
+replace/add/deduct
+operation identity
+refresh after success
+```
+
+Categories:
+
+```text
+present
+company-scoped
+Production save-category = active version 4
+```
+
+Delete item:
+
+```text
+Production delete-item = active version 4
+company-scoped
+permission checked
+```
+
+## COST PRICE — NOT A CURRENT REGRESSION
+
+Production `save-item` version 13 supports `cost_price`, but the current and historical Items form both omit a Cost Price field.
+
+Therefore:
+
+```text
+Cost Price UI restoration = NOT PROVEN
+Cost Price = historical/new-capability question
+```
+
+Do not add it to `main.html` as a “bug fix” until the historical contract and role/security intent are proven.
+
+## CURRENT PRODUCTION
+
+Supabase project:
+
+```text
+SMART ERP
+fiilmooggumokxanwiyx
+ACTIVE_HEALTHY
+Postgres 17.6.1.121
+```
+
+Current relevant Edge Functions verified:
+
+```text
+save-item     v13
+save-category v4
+delete-item   v4
+```
+
+All three resolve company context from the authenticated `users` record and enforce company/permission checks appropriate to their operation.
+
+No Production migration was required for the Items closure in Report153.
+
+## PRODUCTION / INVENTORY GOVERNANCE FROM PREVIOUS WORK
+
+Physical stock contract remains:
+
+```text
+PHYSICAL STOCK MOVEMENT
+        ↓
+post_stock_movement
+        ↓
+stock_branches + inventory_log
+```
+
+`reserve_stock` remains reservation-only.
+
+Do not reopen previously closed Inventory closures merely because this session is testing the Items UI.
 
 ## BROWSER E2E STATUS
 
-لا يجوز إعلان Browser E2E PASS من هذه البيئة.
+This environment does not provide a real browser automation tool, so Browser E2E cannot be honestly marked PASS here.
 
-المثبت حاليًا:
+Proven in this checkpoint:
 
 ```text
 CURRENT GIT = VERIFIED
-CURRENT SOURCE SHA = VERIFIED
-SIDEBAR REGRESSION ROOT = PROVEN
-COMPANY CONTEXT MISMATCH = PROVEN
-SESSION RESTORE company.id = PRESENT
-_CASHFLOW = PRESENT
-BRANDING READ PATH = PRESENT
-PRODUCTION branding row = VERIFIED
-PRODUCTION logo fields = NULL
-ASSEMBLY SOURCE = VERIFIED
+HEAD = VERIFIED
+PARENT = VERIFIED
+CURRENT MAIN SOURCE = VERIFIED
+ORIGINAL ITEMS SOURCE = VERIFIED
+ITEMS FEATURE INVENTORY = VERIFIED
+_LIST TABLE REGRESSION = PROVEN
+BRANCH DRILL-DOWN REGRESSION = PROVEN
+FORENSIC ASSEMBLY = VERIFIED
+PRODUCTION ITEM CRUD EDGE = VERIFIED
 ```
 
-المطلوب قبل الإغلاق النهائي:
+Pending after owner applies the surgical frontend replacement:
 
 ```text
-OWNER APPLY FIX-152-01
-OWNER APPLY FIX-152-02
-REDEPLOY SAME main.html
-FRESH INCOGNITO
-LOGIN / SESSION RESTORE
-SIDEBAR
-COMPANY IDENTITY
-DASHBOARD
-ITEMS
-WAREHOUSE OPERATIONS
-VOUCHERS
-COUNTS
-FINANCE
-REPORTS
-HR
-CRM
-CONSOLE
+fresh deployment
+fresh incognito
+login
+open Items
+list rendering
+sorting
+branch cells
+branch movement drill-down
+matrix
+upload
+item create/edit/delete
+console
 ```
 
-ثم تؤخذ **أول مشكلة Console جديدة فعلية فقط** كوحدة إغلاق تالية.
+## FILES MODIFIED BY ASSISTANT IN THIS CHECKPOINT
+
+```text
+rawaie-erp-New/doc/Draft/Reprots/Report153_CTO_E2E_Items_Forensic_20260913.md
+rawaie-erp-New/CURRENT_STATE.md
+```
+
+Not modified by assistant:
+
+```text
+erp-frontend/companies/company-1/main.html
+Current/PWA/main2/*
+Original/PWA/main/*
+```
+
+## NEXT SESSION START ORDER
+
+1. Re-read current HEAD and direct parent.
+2. Re-fetch current `companies/company-1/main.html`; do not trust old snippets.
+3. Verify whether owner applied the exact Report153 replacement; if not, do not invent another fix.
+4. Reconcile Production immediately before any new report.
+5. Run the real browser E2E on the fresh published version when browser tooling is available.
+6. Accept only the first currently reproducible defect as the next Closure Unit.
+7. Before changing any historical behavior, reconstruct the historical contract and trace current consumers/dependencies.
+8. Never repeat a fix already present in current HEAD/Production.
 
 ## GOLD / DIAMOND STATUS
 
 ```text
-GLOBAL FUNCTIONAL COMPLETION = OPEN
-FULL CROSS-MODULE E2E = OPEN
-AUTH/SESSION = PARTIALLY VERIFIED
-SIDEBAR = ROOT PROVEN / OWNER FIX PENDING
-COMPANY CONTEXT = ROOT PROVEN / OWNER FIX PENDING
-BRANDING = READ PATH VERIFIED / LOGO DATA NULL
-FINANCE = CODE PRESENT / LIVE E2E PENDING
-WAREHOUSE = CODE PRESENT / LIVE E2E PENDING
-HR = CODE PRESENT / LIVE E2E PENDING
-CRM = CODE PRESENT / LIVE E2E PENDING
-PRODUCTION DATA REPAIR = NONE REQUIRED IN THIS CLOSURE
-GOLD/DIAMOND = OPEN
+Items forensic analysis = COMPLETE
+Confirmed frontend regression identification = COMPLETE
+Owner surgical fix instruction = COMPLETE
+Production Items repair = NOT REQUIRED
+Browser E2E = PENDING real browser execution
+Global system functional completion = OPEN
+Gold/Diamond = OPEN
 ```
 
-## CRITICAL REPEAT
+## CRITICAL REMINDER
 
-**لا أثق بالتقارير السابقة، ولا بالـCURRENT_STATE القديم، ولا بذاكرة المساعد.**
-
-الحالة الحالية المعتمدة في هذه اللحظة مبنية من:
+لا توجد 100% Closure لمجرد أن الكود يبدو صحيحًا.
 
 ```text
-CURRENT GIT
-+
-CURRENT SOURCE
-+
-GIT HISTORY
-+
-CURRENT PRODUCTION
-+
-CURRENT DATABASE
-+
-CURRENT DEPLOYMENT EVIDENCE
+CODE != DEPLOYMENT != RUNTIME != BROWSER E2E != 100% CLOSED
 ```
 
-ولا تعتبر أي Closure مكتملة إلا بعد الـruntime/browser verification المقابل لها.
+كل إغلاق لاحق يجب أن يبدأ من Current Git + Current Source + Current Production + Current Database + Current Deployment Evidence، وأي تقرير تاريخي يُستخدم فقط لفهم لماذا وصل النظام إلى حالته الحالية.
