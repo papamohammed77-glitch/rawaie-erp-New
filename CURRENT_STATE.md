@@ -1,11 +1,15 @@
 # RAWAEA ERP — CURRENT STATE
 
 **Last reconciled:** 2026-09-13
-**Checkpoint:** Report156 — CTO E2E للنظام الأم — Current Gaps.
+**Checkpoint:** Report157 — CTO E2E للنظام الأم — التحويلات المخزنية.
 
 ## GOVERNANCE
-لا تعتمد الحالة الحالية على التقارير السابقة. المرجع الوحيد:
+
+التقارير السابقة Historical/Reference فقط وليست حالة حالية.
+الحالة المعتمدة هي فقط:
 `CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE`.
+
+**الهدف الحاكم — يُقرأ بعناية:** الهدف هو اختبار E2E لملف النظام الأم المنشور الحالي واستكماله وظيفيًا، وليس إعادة بناء الملفات التاريخية.
 
 Source of Truth للواجهة:
 `https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/company-1/main.html`
@@ -13,125 +17,196 @@ Source of Truth للواجهة:
 `Current/PWA/main2/*` و`Original/PWA/main/*` = historical/reference only.
 
 ## CURRENT GIT
+
 Repository: `papamohammed77-glitch/erp-frontend`
 
-HEAD: `5bdb2863570085edd19265465937aea3c674b52c`
-Direct parent: `02166a9f8e94ac0b2cc15257eb0aec8e039848bd`
-Parent of parent: `06264f8eefc5e0d5281538c80e9c7aaa454ecf9b`
-Current main.html blob: `2485901f759b88995ac80e1060883554b1177bbe`
+HEAD:
+`5bdb2863570085edd19265465937aea3c674b52c`
 
-الـparent كان يحتوي regression في قوس إغلاق `_renderTable`; HEAD الحالي أصلحه. لا تعاد إصلاحات Syntax القديمة.
+Direct parent:
+`02166a9f8e94ac0b2cc15257eb0aec8e039848bd`
+
+Parent of parent:
+`06264f8eefc5e0d5281538c80e9c7aaa454ecf9b`
+
+Current `main.html` blob:
+`3c48e91d7d5359b3a1befe12ab56eb052c628b0e`
+
+HEAD/parent chronology concerns the already-closed `_renderTable()` syntax/escaping regression. Do not repeat that repair unless fresh current evidence reopens it.
 
 ## FORENSIC ASSEMBLY
-`forensic_main_assembly.yml` صحيح:
-`source_of_truth.repository=papamohammed77-glitch/erp-frontend`
-`source_of_truth.path=companies/company-1/main.html`
-`source_of_truth.ref=main`
-`assembly_status=reference_only; published_main_is_authoritative`
 
-## PRODUCTION
+`rawaie-erp-New/forensic_main_assembly.yml` is currently correct:
+
+```yaml
+source_of_truth:
+  repository: papamohammed77-glitch/erp-frontend
+  path: companies/company-1/main.html
+  ref: main
+assembly_status: reference_only; published_main_is_authoritative
+```
+
+No change was required in this session.
+
+## CURRENT PRODUCTION / DATABASE
+
 Project: `fiilmooggumokxanwiyx`
+Status: `ACTIVE_HEALTHY`
 Latest migration observed: `20260913082923`
-Company 1: `00000000-0000-0000-0000-000000000001`
+Company: `00000000-0000-0000-0000-000000000001` (`MAIN` / `الروائع`)
 
-Current facts:
-`categories=5; items=17; unresolved category links=0; active branches=2; active direct-sales reps=1; active vehicles=0`.
+Current facts relevant to Transfer E2E:
+- active branches = 2
+- active direct-sales reps = 1
+- active vehicles = 0
+- items = 17
+- stock_vouchers = 0
+- orders = 0
+- runsheets = 0
 
-Relevant Edge deployments:
-`create-stock-voucher v10; send-stock-voucher v20; receive-stock-voucher v22; bulk-stock-adjustment v6; save-item v13; save-category v4; receive-purchase v12; complete-return v25; complete-order-delivery v14`.
+Current branches:
+- `BR-01` — `الفرع الرئيسي` — Active
+- `BR-2` — `فرع إسكندرية` — Active
 
-## ITEMS / CATEGORIES
-Category lookups in current main.html are company-scoped. Production category integrity is repaired. No category query patch is justified now.
+`app_settings.main_branch_id` points to `BR-01`.
 
-Current Items functions include list/search/filter/sort, branch matrix, movement, Excel export, CSV/XLS/XLSX upload, bulk adjustment, Category/Item CRUD, opening stock and item-form fields.
+Current `branches` schema contains `name`, not `branch_name`.
+No `public` table currently exposes a `branch_name` column.
 
-## OPEN OWNER PATCH 1 — UPDATE BALANCES
-File: `erp-frontend/companies/company-1/main.html`
-Function: `_renderUploadPreview()`
-Current lines 3358–3359:
+## WAREHOUSE TRANSFERS — CURRENT TRUTH
+
+Canonical contract:
+- `Transfer = Branch → Branch`
+- `DirectSale = Branch → Vehicle`
+- `DirectReturn = Vehicle → Branch`
+- `SupplierReturn = Branch → Supplier`
+
+Relevant current Edge deployments:
+- `create-stock-voucher` v10 — ACTIVE — JWT enabled
+- `send-stock-voucher` v20 — ACTIVE — JWT enabled
+
+Production transactional verification:
+`BR-01 → BR-2 → item 1001 → create_manual_stock_voucher_atomic → send_stock_voucher_atomic`
+
+Result: `create=success`, `send=success`, `status=Sent`, `movement_count=1`.
+Transaction was rolled back; no permanent test data remains.
+
+Therefore the current reported Transfer failure is frontend/schema-query related, not a proven Production Transfer Core failure.
+
+## TRANSFER FRONTEND ROOT CAUSE
+
+Current Source of Truth function:
+`async function _loadVoucherEntityOptions(type)`
+
+Current location: approximately lines **8157–8174**.
+
+Exact defective line:
 ```javascript
-                            entry._valid =
-                                !!item && !status;
-```
-Replace exactly with:
-```javascript
-                            entry._valid =
-                                !!item &&
-                                !duplicateBarcodeMap[entry.barcode] &&
-                                status === '✅ صالح';
-```
-
-## OPEN OWNER PATCH 2 — DETAILED REPORTS / itemSales
-Current area around line 12860:
-```javascript
-        if (types.indexOf('sales-by-item') !== -1) {
-            var itemSales = {};
-```
-Replace exactly with:
-```javascript
-        var itemSales = {};
-
-        if (types.indexOf('sales-by-item') !== -1) {
-```
-
-## OPEN OWNER PATCH 3 — DETAILED REPORTS / inventoryRows
-Current area around line 13022:
-```javascript
-        if (
-            types.indexOf('inventory-low') !== -1 ||
-            types.indexOf('inventory-top') !== -1 ||
-            types.indexOf('inventory-dormant') !== -1
-        ) {
-            var inventoryRows = [];
-```
-Replace exactly with:
-```javascript
-        var inventoryRows = [];
-
-        if (
-            types.indexOf('inventory-low') !== -1 ||
-            types.indexOf('inventory-top') !== -1 ||
-            types.indexOf('inventory-dormant') !== -1
-        ) {
+.select('id, branch_code, name, branch_name')
 ```
 
-These three are proven Source-of-Truth frontend defects. `main.html` was not modified because it is owner-managed.
+Production has no `branch_name`. This directly explains:
+`Column branches.branch_name doesn’t exist`
 
-## DETAILED REPORTS ROOT CAUSE
-`inventoryRows` was scoped only inside the inventory checkbox block, but `rec-purchase/rec-offers` later calls `inventoryRows.length`; default selection therefore produces `Cannot read properties of undefined (reading 'length')`.
+The historical `Current/PWA/main2/main7.md` contains the same bad query; therefore this is historical carryover, not proven to have been introduced by final assembly.
 
-`itemSales` had the same conditional declaration problem for `inventory-top`.
+## OWNER PATCH — PENDING PUBLICATION
 
-`rec-customers` and `rec-expansion` currently show a Capability Gate. Do not invent a recommendation policy without authoritative Production/business evidence.
+The owner must patch the published `main.html`; this automation did not modify that file.
 
-## WAREHOUSE TRANSFERS
-Current frontend queries branches/users/vehicles company-scoped. Production has zero active vehicles, so an empty vehicle list is currently explained by Production data.
+Target function:
+`async function _loadVoucherEntityOptions(type)`
 
-Canonical movement contracts in current Production:
-`Transfer=Branch→Branch`
-`DirectSale=Branch→Vehicle`
-`DirectReturn=Vehicle→Branch`
-`SupplierReturn=Branch→Supplier`
+Delete the complete `Transfer` branch block, beginning:
+```javascript
+    if (type === 'Transfer') {
+```
+and ending with its closing `}` immediately before:
+```javascript
+    if (type === 'SupplierReturn') {
+```
 
-No proven frontend patch is justified for these queries.
+Replace with:
+```javascript
+    if (type === 'Transfer') {
+        var branchRes = await supabase.from('branches')
+            .select('id, branch_code, name')
+            .eq('company_id', companyId)
+            .eq('is_active', true)
+            .order('name');
+        if (branchRes.error) { showToast(branchRes.error.message, 'error'); return; }
 
-## INVENTORY CONTRACT
-Current canonical Physical Stock path:
-`Physical Movement → post_stock_movement → stock_branches + inventory_log`.
+        var branchHtml = '<option value="">-- اختر فرعاً --</option>';
+        var branches = branchRes.data || [];
+        for (var i = 0; i < branches.length; i++) {
+            branchHtml += '<option value="' + branches[i].id + '">' +
+                (branches[i].name || branches[i].branch_code || '') +
+                '</option>';
+        }
+        safeHTML(select, branchHtml);
+        return;
+    }
+```
 
-A historical 9-arg `post_stock_movement` overload remains but is not executable by `service_role`; 10-arg is the active service surface.
+Do not modify `SupplierReturn`, `DirectSale`, or `DirectReturn` in this surgery.
+
+## VEHICLES / REPS
+
+The transfer selector for vehicle-based documents is data-dependent.
+Production currently has zero active vehicles. This is not a proven query bug and must not be “fixed” by inserting fake Production vehicles.
+
+## PRODUCTION CHANGE STATUS FOR THIS SESSION
+
+Production schema changes: **0**
+Production permanent data changes: **0**
+Production Edge deployment changes for Transfer: **0**
+Transactional test data: **ROLLBACK**
+
+No Production repair was justified for the reported Transfer error after direct core verification.
+
+## OTHER KNOWN OPEN FRONTEND PATCHES
+
+These remain from the previous E2E investigation and were not reworked here because they were already proven independently:
+
+1. `_renderUploadPreview()` around lines 3358–3359: `_valid` logic patch.
+2. `_loadDetailedReports()` around line 12860: `itemSales` scope patch.
+3. `_loadDetailedReports()` around line 13022: `inventoryRows` scope patch.
+
+Do not assume these are applied until the current Source of Truth is re-read after owner publication. Do not redo them merely because they appear in older reports.
 
 ## E2E STATUS
-Browser click-by-click E2E is not proven in this environment. No Browser PASS is claimed.
-Production changes required by the three current frontend defects: **0**.
+
+Current status:
+- Git/source/database/deployment evidence = VERIFIED
+- Transfer backend = PRODUCTION TRANSACTION VERIFIED
+- Transfer frontend root cause = PROVEN
+- Owner frontend patch = READY
+- Browser click-by-click E2E after patch = NOT YET PROVEN
+- Global Gold/Diamond completion = NOT CLOSED
+
+No Browser PASS is claimed because this environment has no Browser Automation channel.
 
 ## SESSION ARTIFACT
-`doc/Draft/Reprots/Report156_CTO_E2E_Main_Current_Gaps_20260913.md`
-Commit: `fb46ed43214f1bc225f78710fb14a7ba636925fb`
+
+Report:
+`doc/Draft/Reprots/Report157_CTO_E2E_Main_Transfers_20260913.md`
+
+Commit:
+`050c7614ab01de5ed29dc94a58bbe96b63d00410`
 
 ## NEXT SESSION START RULE
-`CURRENT GIT HEAD → DIRECT PARENT/COMMITS → CURRENT main.html → CURRENT Supabase/DB → CURRENT deployments/runtime → exact symptom → exact line/function → root cause → surgical owner/Production fix → reread → verify → report`.
 
-Never start from an old report status, never re-fix already proven work, never invent data or Business Rules, and never equate static/staging PASS with Production PASS.
+Start from live evidence in this exact order:
 
-**الحقيقة الحالية أولًا، ثم الإصلاح المثبت، ثم التحقق.**
+`CURRENT GIT HEAD → DIRECT PARENT → PARENT OF PARENT when material → CURRENT SOURCE OF TRUTH → CURRENT DB SCHEMA → CURRENT DB DATA → CURRENT EDGE DEPLOYMENTS/SOURCE → CURRENT RUNTIME/LOG EVIDENCE → reproduce exact symptom → exact line/function/query → historical reconstruction only to explain the contract → surgical fix → reread current source → Production transactional/runtime verification → report + CURRENT_STATE`
+
+Never:
+- treat an old report as current state;
+- use `main2` as Source of Truth;
+- redo a repair already proven closed;
+- invent Production data to make E2E green;
+- modify Production when the Production component is already verified;
+- claim Browser PASS without actual browser evidence;
+- batch unrelated Writer/Function closures.
+
+**الحقيقة الحالية أولًا، ثم العقد، ثم الفجوة المثبتة، ثم الإصلاح الجراحي، ثم التحقق، ثم الإغلاق.**
