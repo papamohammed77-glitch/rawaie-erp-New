@@ -1,10 +1,10 @@
-version: 2
+version: 3
 project: rawaea-erp
 source_of_truth:
   repository: papamohammed77-glitch/erp-frontend
   path: companies/company-1/main.html
   ref: main
-fragments:
+historical_fragments:
   - Current/PWA/main2/main1.md
   - Current/PWA/main2/main2.md
   - Current/PWA/main2/main3.md
@@ -16,9 +16,11 @@ fragments:
   - Current/PWA/main2/main9.md
   - Current/PWA/main2/main10.md
   - Current/PWA/main2/main11.md
-historical_reference: Original/PWA/main
+historical_reference:
+  - Original/PWA/main
 forbidden_sources:
   - Current/PWA/main
   - Current/PWA/New-main
-  - Current/PWA/main2
-assembly_status: reference_only; published_main_is_authoritative
+assembly_status:
+  mode: published_main_is_authoritative
+  fragment_mode: historical_reference_only
