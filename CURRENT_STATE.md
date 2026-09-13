@@ -1,7 +1,7 @@
 # RAWAEA ERP — CURRENT STATE
 
 **Last reconciled:** 2026-09-13
-**Checkpoint:** Report158 — CTO Forensic E2E للنظام الأم ومطابقة الحالة الحالية.
+**Checkpoint:** Report159 — CTO Forensic E2E للنظام الأم ومقارنة إدارة المبيعات مع دفترة.
 
 ## GOVERNANCE
 التقارير السابقة Historical/Reference فقط وليست حالة حالية.
@@ -45,22 +45,29 @@ assembly_status: reference_only; published_main_is_authoritative
 
 ## CURRENT PRODUCTION / DATABASE
 Project: `fiilmooggumokxanwiyx`
-Company: `00000000-0000-0000-0000-000000000001`
 
-Current relevant facts:
-- active branches: 2 (`BR-01`, `BR-2`)
-- active direct-sales reps: 1
-- active vehicles: 0
-- items: 17
-- stock vouchers: 0
-- orders: 0
-- runsheets: 0
+Latest direct Production schema enumeration in this checkpoint shows the current database is materially different from older reports; do not reuse historical row counts.
 
-For item `1001` (`جو كيك 5ج`):
-- BR-01 qty = 2
-- BR-2 qty = 1
+Current structural facts:
+- `companies`: 1
+- `branches`: 2
+- `items`: 17
+- `customers`: 3
+- `orders`: 0
+- `runsheets`: 0
+- `stock_vouchers`: 0
+- `inventory_log`: 3
+- `credit_notes`: table exists
+- `installments`: table exists
+- `installment_details`: table exists
+- `loyalty_points`: table exists
+- `coupons`: table exists
+- `fulfillment_backorders`: table exists
+- `orders.operation_id`: present for sales operation identity
 
-`public.branches` has `name`, not `branch_name`.
+`items.item_code` is globally UNIQUE in the current schema.
+
+Do not infer Company-scoped item-code identity against this current schema.
 
 ## INVENTORY CORE
 Physical Stock contract:
@@ -74,8 +81,10 @@ Production discovery proves:
 
 **Inventory Physical Writer Zero-Debt = CLOSED.**
 
+Do not reopen this closure without fresh CURRENT evidence.
+
 ## TRANSFER E2E
-Production transactional test:
+Production transactional test already closed the backend transfer path:
 `BR-01 → BR-2 → item 1001 → create_manual_stock_voucher_atomic → send_stock_voucher_atomic`
 
 Result:
@@ -85,56 +94,128 @@ Result:
 `movement_count=1`
 
 Second SEND returned `duplicate=true`.
-Test transaction was rolled back and post-test verification confirmed no permanent test voucher/log.
+Test transaction was rolled back.
 
 **Transfer backend = CLOSED / PRODUCTION VERIFIED.**
 
 ## FRONTEND TRANSFER STATUS
 Current Source of Truth has the historical `branch_name` defect removed.
-No assistant modification was made to `erp-frontend/companies/company-1/main.html` this session; frontend remains owner-managed.
+No assistant modification was made to `erp-frontend/companies/company-1/main.html`; frontend remains owner-managed.
 
 Browser click-by-click E2E is **NOT VERIFIED** in this environment because no Browser Automation channel is available.
 
-## PRODUCTION SECURITY CHANGE
-Applied migration this session:
-`20260913101126_main_cto_security_surface_hardening`
+## CURRENT SALES FORENSICS
+Current Sales Navigation contains exactly:
+- التلي سيلز
+- العملاء
+- المتجر الإلكتروني
+- نقطة البيع
+- أوردرات المبيعات
+- الرانشيتات
 
-Actions:
-- revoked anonymous/authenticated EXECUTE on selected SECURITY DEFINER functions not required directly by browser clients;
-- set explicit Search Path for `employee_document_storage_company_id(text)`.
+Current `RW_POS` exists and saves invoices through `save-sales-invoice`.
+The current source explicitly sets POS save header `status: 'Invoiced'` and `paymentType: 'نقدي'`.
 
-No permanent business-data changes were made.
+Current `RW_TeleSales` exists with customer/item search, cart, delivery fee, tax and save order.
 
-Remaining security/performance items must be treated as independent Closure Units, not bulk-cleaned.
+Current `RW_Orders` exists for sales order management and runsheet linkage.
 
-## GOLD / DIAMOND FUNCTIONAL GAPS
-Current main contains functional operations, sales, inventory, core finance, reports, HR, and CRM capabilities.
+Current Sales Navigation has no independently proven view for:
+- عروض الأسعار
+- قوائم الأسعار
+- العروض/التسعير المتقدم
+- عمولات المبيعات
+- أهداف المبيعات
+- أقساط المبيعات
+- واجهة ولاء
+- مرتجعات وإشعارات دائنة كمسار Sales مستقل
 
-Current database also contains foundations for some advanced areas, but no proven complete transactional/UI contracts were established in this session for:
-- cheques;
-- installments;
-- loyalty points;
-- work orders/workflow;
-- fixed assets;
-- standalone expense management;
-- independent cost-center management UI.
+The database contains foundations for several of these capabilities, but UI/transaction contracts are not automatically proven by table existence.
 
-Do not invent backend contracts from table names alone.
-Do not call the system Gold/Diamond complete while these business capabilities remain unverified or incomplete.
+## CURRENT SALES DEPLOYMENTS
+Current Production Edge deployments observed:
+- `save-sales-invoice` v15, JWT required
+- `confirm-order` v4, JWT required
+- `update-order` v3, JWT required — **updated in Report159**
+- `create-credit-note` v2, JWT required — **updated in Report159**
+- `complete-return` v25, JWT required
 
-## DATA FORENSICS
-Earlier cross-company stock rows were observed in Production. No destructive cleanup was performed because current schema semantics make Item Master identity globally unique and there is not yet sufficient proof that the rows are disposable fixtures.
+`save-sales-invoice` currently supports operation identity from request/header/body and forwards to `save_sales_invoice_atomic`.
 
-**Do not delete, rewrite, or reassign those rows without historical/source evidence.**
+`complete-return` currently obtains the authenticated user's company and forwards to `complete_return_atomic`.
 
-## SESSION ARTIFACTS
-Primary report:
-`doc/Draft/Reprots/Report158_CTO_E2E_Main_Forensic_20260913.md`
+## REPORT159 PRODUCTION CHANGES
+### `update-order`
+Production moved from v2 to v3.
 
-Report commit:
-`ca941e3cbd9a51d1b499620b48b541e8a1a9779d`
+The current function now enforces:
+- authenticated actor company context;
+- company-scoped order lookup;
+- company-scoped customer lookup;
+- company-scoped branch lookup;
+- global Item Master identity via `item_code` + returned item record;
+- duplicate item-code rejection inside one update request;
+- no update of orders already attached to a runsheet.
 
-CURRENT_STATE update commit will be the commit containing this file update.
+### `create-credit-note`
+Production moved from v1 to v2.
+
+The current function now enforces:
+- authenticated actor company context;
+- company-scoped order lookup;
+- company-scoped runsheet lookup;
+- order/runsheet consistency;
+- order-detail item membership and return-quantity ceiling;
+- explicit `credit_notes.company_id` write.
+
+These were Production changes only; no business data fixtures were created.
+
+## SALES COMPETITOR FORENSICS
+The current source/production comparison against Daftra showed that RAWAEA already has the operational foundation but is not yet a complete institutional sales suite.
+
+Daftra documents:
+`Quote → Sales Order → Invoice`
+with direct/optional starting points, plus price lists, offers, sales targets, commissions, loyalty, installments, multiple/partial payments, and full/partial refunds.
+
+RAWAEA current source does not prove all of those UI/business contracts yet.
+
+**Sales Gold/Diamond is therefore OPEN.**
+
+## FRONTEND SURGICAL RULE
+`erp-frontend/companies/company-1/main.html` must be edited only by the owner.
+
+No assistant change was committed to that file in Report159.
+
+The only currently safe owner-facing frontend change identified is to expose Sales Returns in the Sales navigation **only after** the exact return UI is wired to the already-deployed return transaction contract. Do not add a dead navigation item.
+
+No new Quotes/Price Lists/Commission/Installment/Loyalty UI should be invented from table names alone.
+
+## SALES CLOSURE ORDER
+Next closures should be executed one at a time:
+
+1. Sales Document Contract — prove whether `orders` is the authoritative Sales Order document and define Quote→Order→Invoice semantics against current Production.
+2. Sales Return/Credit Note — extract and verify `complete_return_atomic`, reconcile with `complete-return` and `create-credit-note`, then add a real Sales Return/Refund UI.
+3. Sales Pricing — establish Price List + Promotion contract before changing POS/Telesales pricing behavior.
+4. Payment — establish multiple/partial payment and accounting reconciliation contract before UI work.
+5. Installments — prove lifecycle and ledger/reconciliation before UI.
+6. Commissions/Targets — prove period/rep/rule/approval/payment lifecycle before UI.
+7. Loyalty — prove earn/redeem/expiry/reference lifecycle before UI.
+8. Sales Analytics — build sales-specific decision reports after the transaction contracts are closed.
+
+## DATA GOVERNANCE
+Never use stale report counts as current state.
+Never fabricate Production business data to make an E2E pass.
+Never remove historical or test data without current proof of fixture status.
+Never re-open Inventory Writer Zero-Debt or Transfer backend closures without new evidence.
+
+## CURRENT E2E STATUS
+`Static forensic source review = CLOSED`
+`Production deployment verification = CLOSED for changes listed above`
+`Browser click-by-click E2E = OPEN`
+`Sales functional Gold/Diamond = OPEN`
+`Sales Document Contract = OPEN`
+`Sales Pricing Contract = OPEN`
+`Sales Payment Contract = OPEN`
 
 ## FINAL NEXT-CTO START SEQUENCE
 ابدأ دائمًا من الواقع وليس من التقارير:
@@ -165,7 +246,7 @@ CURRENT_STATE update commit will be the commit containing this file update.
 - لا تعيد إصلاح شيء مثبت أنه مغلق.
 - لا تخترع Production data لإنجاح الاختبار.
 - لا تحول Backend PASS إلى Browser PASS.
-- لا تجمع عدة Writer/Function closures في دفعة واحدة.
+- لا تجمع عدة Function/Writer closures في دفعة واحدة.
 - لا تبني UI فوق جدول أو اسم function دون إثبات Consumer/transaction contract.
 - لا تستخدم نسبة اكتمال قبل مطابقة Production الحالية في نفس التحقيق.
 
