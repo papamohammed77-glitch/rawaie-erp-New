@@ -23,161 +23,173 @@ Permanent rules:
 `CLOSE -> VERIFY -> DOCUMENT -> NEXT`
 
 ## CURRENT FRONTEND GIT
-Repository:
-`papamohammed77-glitch/erp-frontend`
-Branch:
-`main`
+Repository: `papamohammed77-glitch/erp-frontend`
+Branch: `main`
+HEAD: `48714c33d5fc12646d0c2ea38033d902a52c4d1a`
+HEAD message: `Initialize customer payment real-time updates`
+Direct Parent: `c379674711d6e67d5c2c01305ae8449dd3c0947e`
+Parent message: `Add real-time customer payment updates functionality`
+Current main.html blob: `0bd8dd2fce45802f2383f6157e3e43aea51483f0`
 
-HEAD:
-`48714c33d5fc12646d0c2ea38033d902a52c4d1a`
-Message:
-`Initialize customer payment real-time updates`
+The current HEAD already contains the customer-payment realtime wiring fix. Do not re-add it.
 
-Direct Parent:
-`c379674711d6e67d5c2c01305ae8449dd3c0947e`
-Message:
-`Add real-time customer payment updates functionality`
+## CURRENT MASTER SOURCE FACTS
+The current `companies/company-1/main.html` was directly inspected.
 
-Current main.html blob verified:
-`0bd8dd2fce45802f2383f6157e3e43aea51483f0`
-
-The current HEAD already contains the former Report170 customer-payment realtime wiring fix. Do not re-add that repair.
-
-Current source facts verified:
-- `RW_Navigation.menuTree` exists and contains Finance navigation.
-- `RW_Finance.renderSubTab(subTab)` exists around source line 10400.
-- Finance already has treasury/accounts/journal/receipts/payments/transfers/reports/budgets.
-- No `installment` UI exists yet in the current master source.
-- `_renderBudgets()` exists around source line 11980+.
-- `RW_Finance` return/export object exists around source line 12520+.
+Confirmed:
+- `RW_Navigation.menuTree` exists.
+- Finance contains Treasury / Accounts / Journal / Receipts / Payments / Transfers / Reports / Installments / Budgets.
+- Installments UI is already present in Current Source; prior state notes claiming it was absent are stale.
+- Installment realtime wiring is present.
+- `Commission` / `commission` is absent from Current Source.
+- `RW_Finance.renderSubTab(subTab)` exists around source line ~10400.
+- `_renderBudgets()` follows the installment block.
+- `RW_Finance` export object exists near the end of the Finance module.
 
 ## FORENSIC ASSEMBLY
-`rawaie-erp-New/forensic_main_assembly.yml` was rechecked and is already correct:
+`forensic_main_assembly.yml` is already correct and requires no change:
+- repository: `papamohammed77-glitch/erp-frontend`
+- path: `companies/company-1/main.html`
+- ref: `main`
+- mode: `published_main_is_authoritative`
+- fragment_mode: `historical_reference_only`
 
-`repository: papamohammed77-glitch/erp-frontend`
-`path: companies/company-1/main.html`
-`ref: main`
-`mode: published_main_is_authoritative`
-`fragment_mode: historical_reference_only`
+## CURRENT PRODUCTION — COMMISSION ENGINE
+Supabase project: `fiilmooggumokxanwiyx`
 
-No change required.
+Before this closure, Commission-specific tables/functions were absent.
 
-## PRODUCTION — INSTALLMENT LIFECYCLE
-Supabase project:
-`fiilmooggumokxanwiyx`
+Now deployed in Production:
+- `commission_plans`
+- `commission_rules`
+- `commission_assignments`
+- `commission_runs`
+- `commission_run_lines`
+- `commission_engine_atomic`
+- `commission_assignment_guard`
+- `commission_rule_guard`
+- `commission_audit_trigger`
 
-Production counts after cleanup:
-`installments = 0`
-`installment_details = 0`
-`installment_payment_allocations = 0`
+All Commission tables have Company foreign keys, RLS, service-role write policy, audit triggers, indexes, and required uniqueness constraints.
 
-Backend now includes:
-- `installments.company_id/order_id/customer_uuid`
-- `installment_details.company_id/installment_uuid/installment_no/remaining_amount`
-- `installment_payment_allocations`
-- company/order/customer foreign keys
-- active-plan uniqueness
-- payment-allocation uniqueness
-- Company-scoped RLS
-- Audit triggers
-- Realtime publication entries
-- `installment_aging_v`
+Realtime publication includes:
+- `commission_plans`
+- `commission_assignments`
+- `commission_runs`
+- `commission_run_lines`
 
-Production RPCs:
-- `create_installment_plan_atomic`
-- `cancel_installment_plan_atomic`
-- `refresh_installment_plan_atomic`
-- `allocate_sales_payment_to_installment_atomic`
+`commission_engine_atomic` is `SECURITY DEFINER` and its EXECUTE grant is restricted to `service_role`.
 
-Payment integration:
-`sales_payment_allocations`
-→ `trg_sales_payment_allocation_installment`
-→ `allocate_sales_payment_to_installment_atomic`
-→ `installment_details`
-→ `installments`
+Supported operations:
+`PLAN_SAVE`
+`PLAN_APPROVE`
+`PLAN_ASSIGN`
+`PREVIEW`
+`POST`
+`APPROVE_RUN`
+`MARK_PAID`
+`REVERSE_RUN`
 
-No parallel receipt/ledger/payment engine was created.
+Business basis:
+- `invoiced_amount`
+- `gross_profit`
+- `invoiced_qty`
 
-Production Edge:
-`installments`
+Net quantity basis is `qty - qty_returned`.
+Only Company-scoped `Invoiced` orders in the selected period are eligible.
+
+POST idempotency is based on caller-supplied `operation_id` with unique `(company_id, operation_id)`.
+
+## CURRENT PRODUCTION — COMMISSION EDGE
+Edge Function:
+`commission-engine`
+
 Status: `ACTIVE`
 Version: `1`
-`verify_jwt=true`
-Deployment SHA:
-`770c6a830f9d95bb5efb4f563c1de37b6581bef1f47856468df7259e77598db7`
+`verify_jwt = true`
+Deployment id: `1c84ef81-16d8-4ae6-8ded-394e4db5588e`
+SHA: `9683d13b7c59ce41c78cdf18a6aad29e9a77ec10972a2fc3f2583d149eaf29fe`
 
-Canonical Git sources created:
-- `supabase/migrations/20260914000000_installment_lifecycle_gold_closure.sql`
-- `Current/Edge_Functions/installments/index.ts`
+The wrapper derives `company_id` from authenticated JWT -> `users.auth_id`, never from browser-supplied company context.
 
-## PRODUCTION E2E — INSTALLMENT
-Transactional Production test executed and rolled back.
+Canonical Git source:
+`Current/Edge_Functions/commission-engine/index.ts`
 
-Verified scenario:
-- Order outstanding = 1000
-- Schedule = 400 overdue + 600 future
-- Create plan
-- Reuse same Operation ID path exercised
-- Payment allocation = 400
-- First installment paid = 400
-- Plan status = `Partially Paid`
-- installment allocation rows = 1
-- refresh executed
-- no permanent E2E data remains
+Canonical migration:
+`supabase/migrations/20260914010000_commission_engine_gold_closure.sql`
 
-Cancel-before-payment test:
-- temporary plan created
-- cancel executed
-- `plan_status = Cancelled`
-- one detail line became `Cancelled`
-- transaction rolled back
+## COMMISSION PRODUCTION E2E
+Verified directly against Production RPC runtime:
 
-One independent Paid-Cancel SQL test initially failed because the test query used an ambiguous `paid_amount` column. This did not mutate Production. The RPC guard itself remains:
-`paid_amount > 0 -> INSTALLMENT_CANNOT_CANCEL_AFTER_PAYMENT`.
-Therefore Paid-Cancel is not recorded as an independently successful E2E scenario.
+- Plan saved and approved.
+- Tier rules applied.
+- Sales Rep assigned.
+- Test invoice base = 200.
+- Target = 100.
+- Achievement = 200%.
+- Selected rate = 4%.
+- Commission = 8.
+- POST = `Posted`.
+- Repeat same operation = `duplicate=true` and no second run.
+- APPROVE = `Approved`.
+- MARK_PAID = `Paid`.
+- REVERSE = independent reversal run created and original marked `Reversed`.
 
-## OPEN MASTER UI SURGERY
-The backend is ready, but the master frontend is owner-controlled and was intentionally not modified by the assistant.
+Test data was removed after verification.
+Final test-data state:
+`commission_plans = 0`
+`commission_rules = 0`
+`commission_assignments = 0`
+`commission_runs = 0`
+`commission_run_lines = 0`
+`E2E-COMM test orders = 0`
 
-Required surgical changes are documented completely in:
-`doc/Draft/Reprots/Report171_E2E_INSTALLMENT_LIFECYCLE_EXECUTION_20260914.md`
+Commission audit rows were intentionally retained.
 
-Target file only:
-`erp-frontend/companies/company-1/main.html`
+## COMMISSION FRONTEND STATUS
+The master frontend was intentionally NOT modified by the assistant because frontend Master UI changes are owner-controlled.
 
-Required changes:
-1. Add Finance navigation item `التقسيط والتحصيل الآجل`.
-2. Add `installments` to `RW_Finance.renderSubTab()` tabs.
-3. Add `else if (tab === 'installments') _renderInstallments();`.
-4. Add the full `_renderInstallments` + helper block immediately before `_renderBudgets()`.
-5. Export all installment UI functions in `RW_Finance` return object.
+Current master source has no Commission UI.
 
-No changes to historical fragments are required.
+Owner surgical work is documented completely in:
+`doc/Draft/Reprots/Report172_COMMISSION_ENGINE_GOLD_CLOSURE_20260914.md`
 
-## OPEN CONTRACTS
+Required master UI changes:
+1. Add Finance navigation item `العمولات`.
+2. Add `commission` Finance subtab.
+3. Add dispatch to `_renderCommission()`.
+4. Add the complete Commission UI/helper block immediately before `_renderBudgets()`.
+5. Export Commission UI helpers from `RW_Finance`.
+6. Run browser E2E on the published master.
+
+## OTHER CURRENT CLOSED AREAS
+Installment backend is Production-deployed and Current Source already contains its UI/realtime wiring.
+Customer-payment realtime wiring is already in current HEAD.
+Do not re-fix either unless current evidence proves a new regression.
+
+## CURRENT OPEN CONTRACTS
 ```text
-Installment Production Backend                 = CLOSED
-Installment Production E2E Transaction         = VERIFIED
-Installment Cancel Before Payment              = VERIFIED
-Installment Paid-Cancel standalone E2E         = NOT INDEPENDENTLY VERIFIED
-Installment Master UI                           = OWNER SURGERY REQUIRED
-Installment Browser E2E                         = OPEN
-Multiple/Partial Payment Backend               = PRODUCTION DEPLOYED
-Multiple/Partial Payment Core                  = PRODUCTION RUNTIME VERIFIED
-Multiple/Partial Payment Realtime              = PRODUCTION VERIFIED
-Multiple/Partial Payment Master UI Realtime    = PRESENT IN CURRENT HEAD
-Price List                                      = OPEN / OWNER + E2E
-Promotion                                       = PRODUCTION DEPLOYED / OWNER + E2E
-Full browser E2E                                = OPEN
+Commission Production Database        = CLOSED
+Commission Production RPC             = CLOSED
+Commission Company Isolation          = CLOSED
+Commission Tier Calculation            = VERIFIED
+Commission Idempotent POST             = VERIFIED
+Commission Approve/Paid/Reversal       = VERIFIED
+Commission Audit                        = DEPLOYED
+Commission Realtime                     = DEPLOYED
+Commission Edge Function                = DEPLOYED
+Commission Canonical Git                = ADDED
+Commission Master UI                    = OWNER SURGERY REQUIRED
+Commission Browser E2E                  = OPEN
+Price List                              = OPEN / OWNER + E2E
+Promotion                               = PRODUCTION DEPLOYED / OWNER + E2E
+Full browser E2E                        = OPEN
 ```
 
-## CURRENT REPORT
-`doc/Draft/Reprots/Report171_E2E_INSTALLMENT_LIFECYCLE_EXECUTION_20260914.md`
-
 ## NEXT ASSISTANT RESUMPTION RULE
-لا تبدأ من Report170 أو Report171 كحالة حالية.
+لا تبدأ من التقرير كحالة حالية.
 
-ابدأ دائمًا:
+ابدأ:
 `CURRENT GIT HEAD`
 `-> DIRECT PARENT`
 `-> CURRENT MASTER SOURCE`
@@ -186,12 +198,17 @@ Full browser E2E                                = OPEN
 `-> CURRENT EDGE DEPLOYMENT`
 `-> CURRENT REALTIME PUBLICATION`
 `-> CURRENT RLS / TRIGGERS / CONSTRAINTS`
-`-> CURRENT RUNTIME / BROWSER`
+`-> CURRENT PRODUCTION DATA COUNTS`
+`-> CURRENT BROWSER / CONSOLE`
 
 ثم:
 `historical contract -> current behavior -> target contract -> actual gap -> surgical change -> test -> deploy -> Production verify -> runtime verify -> document -> close`
 
-لا تعيد إصلاح ما ثبت أنه مغلق.
-لا تعتبر Backend closure = Browser E2E closure.
+لا تعيد إصلاح ما ثبت إغلاقه.
 لا تستخدم `Current/PWA/main2` أو `New-main` كـSource of Truth.
-لا تعتبر أي تقرير حالة حالية إلا بعد مطابقته بالمصادر الحالية.
+لا تعتبر Backend closure = Browser E2E closure.
+لا تعتبر وجود جدول/RPC مساويًا لاكتمال Business Lifecycle.
+أي نسبة أو تقرير يجب أن يكون مطابقًا لـProduction في نفس سياق القياس.
+
+## CURRENT REPORT
+`doc/Draft/Reprots/Report172_COMMISSION_ENGINE_GOLD_CLOSURE_20260914.md`
