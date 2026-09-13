@@ -1,7 +1,7 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-12  
-**Current checkpoint:** Report146 completed a forensic re-investigation of the first E2E for the published ERP system-mother. The published frontend Source of Truth remains `erp-frontend/companies/company-1/main.html`. The current Git source was re-opened directly, while the owner-reported browser SyntaxError at `main:5592` remains an observed runtime fact that is not reproducible from the opened source context. The prior Report145 statement that the observed helper forensic run proved `main.html` JavaScript syntax has been corrected: the actual Run ID `34710228654` checked `core.js`, `sw.js`, and `register-sw.js`, not `main.html`.
+**Last reconciled:** 2026-09-13  
+**Current checkpoint:** Report147 — CTO E2E Login Artifact Forensic. The published ERP system-mother remains the sole frontend Source of Truth: `erp-frontend/companies/company-1/main.html`. The runtime login failure `main:5592 Uncaught SyntaxError: Invalid regular expression: missing /` remains confirmed as an observed browser fact, but the current Git source at line 5592 is syntactically ordinary and the exact lexical root cause is not yet proven. The investigation therefore remains at the live-artifact identity boundary; no Owner patch was invented.
 
 ## CRITICAL GOLD / DIAMOND MISSION
 
@@ -29,17 +29,19 @@ They are not reconstruction Source of Truth for the published main.
 ```text
 Repository = papamohammed77-glitch/erp-frontend
 Branch = main
-Current observed main.html blob SHA = 2175cf19035190e6817c64d1941898107bf19609
-Current branch HEAD = eb3230bd8dabe29d91334b05c4c25e24505a5fc6
+Current observed main.html blob SHA = 68bf9f3cc4527e2d5329563470f6dcede75f3c33
+Latest frontend commit = 094197b8b57219630242aacfe9c564d7a4f6df58
 ```
 
-Latest observed frontend commit:
+Latest frontend commit:
 
 ```text
-eb3230bd8dabe29d91334b05c4c25e24505a5fc6
-Update timestamp in main.html
-2026-09-12T18:07:11Z
+094197b8b57219630242aacfe9c564d7a4f6df58
+Update HTML comment timestamp
+2026-09-12T18:38:50Z
 ```
+
+The latest commit changed only the top comment timestamp from `2026-09-12 21:00 UTC` to `2026-09-12 22:00 UTC`.
 
 ## Governance
 
@@ -79,17 +81,11 @@ doc/Draft/Reprots/Report145_CTO_E2E_Runtime_Source_Reconciliation_20260912.md
 
 ```text
 Published Source of Truth = erp-frontend/companies/company-1/main.html
-Current observed blob SHA = 2175cf19035190e6817c64d1941898107bf19609
-Current branch HEAD       = eb3230bd8dabe29d91334b05c4c25e24505a5fc6
+Historical observed blob SHA = 2175cf19035190e6817c64d1941898107bf19609
+Historical branch HEAD       = eb3230bd8dabe29d91334b05c4c25e24505a5fc6
 ```
 
-The current `_searchCustomers(query)` function was fetched directly from GitHub Source of Truth. The owner-reported line:
-
-```javascript
-h += '<div class="text-left text-xs text-gray-500">' + (c.area || '') + ' | ' + _fmtNum(c.debt) + ' ' + currency + '</div>';
-```
-
-is syntactically ordinary source text.
+The `_searchCustomers(query)` function was re-opened directly from the current published Source of Truth. The owner-reported line remains ordinary source text in the current Git file.
 
 ## Report146 — Runtime Reinvestigation
 
@@ -97,9 +93,9 @@ is syntactically ordinary source text.
 doc/Draft/Reprots/Report146_CTO_E2E_Runtime_Reinvestigation_20260912.md
 ```
 
-### Critical correction to Report145
+### Critical correction to earlier forensic claims
 
-The actual observed helper forensic run:
+The actual helper forensic run:
 
 ```text
 Run ID = 34710228654
@@ -107,77 +103,145 @@ Workflow = CTO Helper Files Forensic 20260912
 Conclusion = success
 ```
 
-did **not** perform JavaScript syntax validation on `main.html`. Its JavaScript syntax step checked:
+did **not** perform JavaScript syntax validation on `main.html`; it checked `core.js`, `sw.js`, and `register-sw.js`.
+
+Report146 correctly rejected patching line 5592 without proof and identified source/runtime artifact identity as the unresolved boundary.
+
+## Report147 — Login Artifact Forensic
 
 ```text
-core.js
-sw.js
-register-sw.js
+doc/Draft/Reprots/Report147_CTO_E2E_Login_Artifact_Forensic_20260913.md
 ```
 
-Therefore:
+### Current direct findings
+
+The current `main.html` contains a single inline JavaScript block and the current `_searchCustomers()` region around line 5592 is syntactically valid in the opened source context.
+
+The latest frontend commit after the earlier reports was only a timestamp change, not a modification to `_searchCustomers()`.
+
+The owner-provided live test confirms:
 
 ```text
-MAIN.HTML SYNTAX FROM RUN 34710228654 = NOT PROVEN
-```
-
-### Current direct source observations
-
-```text
-main.html current HEAD = eb3230bd8dabe29d91334b05c4c25e24505a5fc6
-main.html observed blob = 2175cf19035190e6817c64d1941898107bf19609
-EOF = </script> + </body> + </html>
-marker = <!-- 2026-09-12 21:00 UTC -->
-```
-
-The owner-reported browser error remains:
-
-```text
-main:5592 Uncaught SyntaxError: Invalid regular expression: missing /
-```
-
-but no source defect at `_searchCustomers()` line 5592 has been proven.
-
-### Rejected approaches
-
-```text
-Do not patch line 5592 solely because Chrome reports it.
-Do not return to main2..main11 as reconstruction source.
-Do not classify the problem as browser cache only without served-artifact proof.
+LIVE SERVER RESPONSE = 200
+LIVE BYTES = 896292
+SYNTAX FAILURE = INLINE_SCRIPT_5
+ERROR = SyntaxError: Invalid regular expression: missing /
+RUNTIME LOCATION = main:5592
+LOGIN = NOT PASSED
 ```
 
 ### Current evidence boundary
 
 ```text
 GIT SOURCE = RECONCILED
+LATEST GIT COMMIT = RECONCILED
 RUNTIME ERROR = OBSERVED
-SOURCE/RUNTIME BYTE IDENTITY = NOT PROVEN
-MAIN.HTML SYNTAX VIA PRIOR HELPER RUN = NOT PROVEN
-LOGIN E2E = OPEN
-POST-LOGIN BOOTSTRAP = OPEN
+_LINE 5592 SOURCE DEFECT = NOT PROVEN
+LIVE/GIT BYTE IDENTITY = NOT PROVEN
+LEXICAL ROOT CAUSE = NOT PROVEN
+LOGIN E2E = OPEN / FAIL
+OWNER FRONTEND PATCH = NOT JUSTIFIED
 ```
 
-Report146 defines a deterministic same-origin runtime probe for the browser page itself. It reads the exact response from the page origin using `cache: 'no-store'` and reports:
+### Exact current source line
 
-```text
-status
-final URL
-bytes
-first line
-exact line 5592
-EOF
+```javascript
+h += '<div class="text-left text-xs text-gray-500">' + (c.area || '') + ' | ' + _fmtNum(c.debt) + ' ' + currency + '</div>';
 ```
 
-The probe is diagnostic only and does not modify the system.
+The slash in `</div>` is character 122 of the current line. Its surrounding string literal is valid in the current Git artifact. Therefore Chrome's `missing /` message cannot by itself justify editing this line.
 
-## Owner Frontend Change Status
+## Assembly / Source-of-Truth Workflow
 
-No new surgical replacement was prepared for `_searchCustomers()` because no defect is proven in the current Source of Truth.
+The governance workflow was re-opened directly:
 
 ```text
-OWNER PATCH FOR _searchCustomers = NOT JUSTIFIED
-DO NOT PATCH LINE 5592
-DO NOT RETURN TO main2..main11 AS SOURCE
+rawwaie-erp-New/.github/workflows/forensic_main_assembly.yml
+```
+
+It references the correct canonical path:
+
+```text
+https://raw.githubusercontent.com/papamohammed77-glitch/erp-frontend/main/companies/company-1/main.html
+```
+
+It does not reconstruct the published main from historical fragments.
+
+`erp-frontend/.github/workflows/cto_main_html_forensic_20260912.yml` was also re-opened. It validates the checked-in main file, but that alone cannot prove the Cloudflare served artifact is byte-identical to Git.
+
+## What was deliberately NOT changed
+
+```text
+erp-frontend/companies/company-1/main.html = NOT MODIFIED
+Supabase Production for this frontend blocker = NOT MODIFIED
+Current/PWA/main2 fragments = NOT promoted to Source of Truth
+Line 5592 = NOT patched
+_searchCustomers() = NOT replaced
+```
+
+The non-change is deliberate because no source defect at that location has been proven.
+
+## Next Exact Checkpoint
+
+The only remaining diagnostic before Owner Surgery is the new deterministic browser probe stored in Report147:
+
+```text
+RAWAEA_E2E_ARTIFACT_FORENSIC
+```
+
+It compares the actual response from:
+
+```text
+https://rawaea-erp.pages.dev/companies/company-1/main
+```
+
+against:
+
+```text
+https://raw.githubusercontent.com/papamohammed77-glitch/erp-frontend/main/companies/company-1/main.html
+```
+
+and reports:
+
+```text
+LIVE SHA256
+GIT SHA256
+BYTE_EQUALITY
+LIVE_5590..LIVE_5594
+GIT_5590..GIT_5594
+LIVE_EOF
+GIT_EOF
+DOM_INLINE_COMPILE
+```
+
+### Decision gate
+
+```text
+BYTE_EQUALITY = false
+→ deployment / served-artifact divergence
+→ fix deployment artifact
+→ repeat Login E2E
+```
+
+or:
+
+```text
+BYTE_EQUALITY = true
++ DOM_INLINE_COMPILE = fail
+→ determine first lexical corruption token
+→ prepare one exact Owner ChangeSet
+→ owner replaces the exact element
+→ redeploy
+→ Login E2E
+```
+
+or:
+
+```text
+BYTE_EQUALITY = true
++ DOM_INLINE_COMPILE = pass
++ browser still reports parser failure
+→ inspect HTML parser/tokenization/script extraction before any code surgery
 ```
 
 ## Tailwind Production Warning
@@ -188,13 +252,7 @@ The published file still contains:
 <script src="https://cdn.tailwindcss.com"></script>
 ```
 
-This remains a non-blocking production-hygiene follow-up. It is not established as the cause of the login failure.
-
-## Production / Supabase
-
-No Supabase Production mutation was required for this frontend runtime/source blocker.
-
-The E2E syntax investigation does not establish an Authentication or Database defect.
+This is production hygiene debt and is not established as the login Root Cause.
 
 ## Functional Completion Status
 
@@ -224,41 +282,25 @@ Real-time synchronization
 Cross-module consistency
 ```
 
-The system-mother file must be tested as the assembled runtime, not as isolated historical fragments.
-
-## Next Exact Checkpoint
-
-```text
-1. Run the same-origin runtime probe from the actual browser page that shows main:5592.
-2. Compare exact served line 5592 + first line + EOF against current Git Source of Truth.
-3. If the served artifact differs, repair deployment/served artifact and repeat E2E.
-4. If it matches, locate the lexical origin of the parser failure earlier in the single inline JS block and prepare one exact Owner ChangeSet.
-5. Re-run Login E2E.
-6. Verify post-login bootstrap.
-7. Only after Login passes, continue functional E2E tab/process validation.
-```
-
 ## Closure Status
 
 ```text
 GOVERNANCE READ                       = PASS
-REPORT143 CONTEXT REVIEW              = PASS
-REPORT144 CONTEXT REVIEW              = PASS
-REPORT145 RECONCILED                  = PASS / ONE CLAIM CORRECTED
-REPORT146 CREATED                    = PASS
+REPORT146 CONTEXT RECONCILED          = PASS
+REPORT147 CREATED                     = PASS
 CURRENT SOURCE RECONCILED             = PASS
+LATEST FRONTEND COMMIT RECONCILED     = PASS
 CURRENT MAIN FUNCTION SOURCE REVIEW   = PASS
-_MAIN.HTML SYNTAX VIA HELPER RUN      = NOT PROVEN
-ASSEMBLY SOURCE OF TRUTH               = CORRECT
-ASSEMBLY PATH                          = CORRECT
-OWNER REPORTED RUNTIME ERROR           = OBSERVED
-SOURCE/RUNTIME BYTE IDENTITY           = OPEN
-LOGIN E2E                              = OPEN
-OWNER FRONTEND CODE PATCH              = NOT JUSTIFIED
-SUPABASE PATCH FOR THIS BLOCKER        = NONE REQUIRED
-GLOBAL INVENTORY ZERO-DEBT             = NOT CERTIFIED CLOSED
-GLOBAL FUNCTIONAL GOLD/DIAMOND         = OPEN
-FIRST E2E SYSTEM-MOTHER                = OPEN / RUNTIME RECONCILIATION
+MAIN.HTML SYNTAX VIA PRIOR HELPER RUN = NOT PROVEN
+ASSEMBLY SOURCE OF TRUTH              = CORRECT
+ASSEMBLY PATH                         = CORRECT
+OWNER REPORTED RUNTIME ERROR          = OBSERVED
+SOURCE/RUNTIME BYTE IDENTITY          = OPEN
+LEXICAL ROOT CAUSE                    = OPEN
+LOGIN E2E                             = OPEN / FAIL
+OWNER FRONTEND CODE PATCH             = NOT JUSTIFIED
+SUPABASE PATCH FOR THIS BLOCKER       = NONE REQUIRED
+GLOBAL FUNCTIONAL GOLD/DIAMOND        = OPEN
 ```
 
 # END CURRENT STATE
