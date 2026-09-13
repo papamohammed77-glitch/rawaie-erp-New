@@ -1,7 +1,7 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-13 10:20 UTC  
-**Current checkpoint:** Report153 — CTO E2E Forensic Review of `RW_Items` / Items Tab.
+**Last reconciled:** 2026-09-13 10:33 UTC  
+**Current checkpoint:** Report154 — CTO E2E للنظام الأم — Syntax/Login Gate.
 
 ## GOVERNANCE — CURRENT TRUTH ONLY
 
@@ -29,7 +29,7 @@ https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/compan
 
 `Current/PWA/main2/*` و`Original/PWA/main/*` والتقارير السابقة = historical forensic reference only.
 
-## CURRENT GIT
+## CURRENT GIT — LIVE RECONCILED
 
 Repository:
 
@@ -37,35 +37,51 @@ Repository:
 papamohammed77-glitch/erp-frontend
 ```
 
-Current HEAD:
+Current `main` branch HEAD:
 
 ```text
-ca91daa29802d161eeb7920bc36dfe4fa3ab2820
+02166a9f8e94ac0b2cc15257eb0aec8e039848bd
 ```
 
 Direct parent:
 
 ```text
-b29461b0bf5b3af6d387f39497e8e6cf95dfdbbd
+06264f8eefc5e0d5281538c80e9c7aaa454ecf9b
 ```
 
-Previous functional parent inspected:
+Previous state values `ca91daa...` / `b29461b...` are stale and must not be used as current HEAD/parent.
+
+HEAD message:
 
 ```text
-1c212f98e89de4de2384080fef9c75c7d93b0e7e
+Update comment timestamp in main.html
+2026-09-13 07:26:19Z
 ```
 
-Current `main.html` blob:
+HEAD diff relevant to current failure:
 
 ```text
-507a77e7290bbf7c24ce34ce9a121ee2e63e4c44
+The HEAD commit updates the timestamp and removes the `}` closing _renderTable()
+from immediately after the RW_Table.paginate callback.
 ```
+
+## CURRENT MAIN.HTML BLOB
+
+Current `main.html` ref=main blob:
+
+```text
+e86c602ec65ac655c077f3d9f24f050e058829f4
+```
+
+The older blob `507a77e...` belonged to an earlier commit and is not current.
 
 ## FORENSIC ASSEMBLY
 
-`rawaie-erp-New/forensic_main_assembly.yml` was rechecked and is correct:
+`rawaie-erp-New/forensic_main_assembly.yml` was checked directly and is correct:
 
 ```yaml
+version: 2
+project: rawaea-erp
 source_of_truth:
   repository: papamohammed77-glitch/erp-frontend
   path: companies/company-1/main.html
@@ -75,75 +91,120 @@ assembly_status: reference_only; published_main_is_authoritative
 
 No change required.
 
-## REPORT153 — ITEMS FORENSIC RESULT
+## REPORT153 — STATUS NOW SUPERSEDED
+
+`Report153_CTO_E2E_Items_Forensic_20260913.md` remains historical evidence.
+
+Its structural Items findings remain useful as historical context, but its exact owner replacement must NOT be copied literally because its replacement preserved malformed escaping (`\\'`) that is invalid inside the relevant JavaScript single-quoted literals in current source.
+
+Report153 also described an older HEAD state. Current live source must be used instead.
+
+## REPORT154 — CURRENT MAIN E2E SYNTAX GATE
 
 Created:
 
 ```text
-doc/Draft/Reprots/Report153_CTO_E2E_Items_Forensic_20260913.md
+doc/Draft/Reprots/Report154_CTO_E2E_Main_Syntax_20260913.md
 ```
 
-### Proven current finding
-
-The current `RW_Items._renderTable()` contains a merge regression.
-
-At approximately source line 2008 the pagination callback starts with:
-
-```javascript
-RW_Table.paginate('items-tbody', sorted, 1, 50, function(item, idx) {
-```
-
-Inside the branch loop the current source redeclares `rowHtml` instead of appending branch cells:
-
-```javascript
-var rowHtml = '<tr class="border-t hover:bg-gray-50"> ...';
-```
-
-This overwrites the row being built and causes the list renderer to lose its previously assembled cells.
-
-### Proven second regression
-
-The historical branch drill-down passed:
+Creation commit in `rawaie-erp-New`:
 
 ```text
-item_code, item_name, bid2, branchName2
+4d9aa4cbd9833fecb4f9ce3633619be2ecc44ada
 ```
 
-The current broken list renderer passes:
+### Proven defects in current `main.html`
+
+1. At line 2013 approximately, and also at approximately lines 2019 and 2035, the source contains a double-backslash followed by quote inside a single-quoted JavaScript literal:
 
 ```text
-item_code, item_name, null
+\\'
 ```
 
-Therefore branch-specific movement drill-down is also lost from the list view.
+The actual required source sequence is exactly:
 
-### Owner-only frontend action
+```text
+\'
+```
 
-The assistant must NOT edit:
+This directly causes:
+
+```text
+Uncaught SyntaxError: Unexpected identifier 'data'
+```
+
+2. After the `RW_Table.paginate(...)` callback the current HEAD has:
+
+```javascript
+        });
+
+
+    function _sort(field) {
+```
+
+The closing `}` for `_renderTable()` is missing.
+
+The HEAD commit `02166a9` explicitly removed this `}`.
+
+### Static verification
+
+A reproducer of the malformed string produced the same parser error under Node.js:
+
+```text
+SyntaxError: Unexpected identifier 'data'
+```
+
+A corrected version using one source-level backslash before the quote syntax-checked successfully:
+
+```text
+SYNTAX_PASS
+```
+
+## EXACT OWNER-ONLY FIX — CURRENT
+
+The assistant must NOT modify:
 
 ```text
 erp-frontend/companies/company-1/main.html
 ```
 
-The owner must replace the entire `RW_Table.paginate(...)` callback in `RW_Items._renderTable()` as specified in Report153.
+The owner must replace the complete callback inside:
 
-The exact replacement restores:
-
-```text
-rowHtml += branch-cell
+```javascript
+function _renderTable(data) {
 ```
 
-and passes:
+starting with the exact line:
 
-```text
-bid2 + branchName2
+```javascript
+        RW_Table.paginate('items-tbody', sorted, 1, 50, function(item, idx) {
 ```
 
-into `_renderStockMovementReport()`.
+and ending with the exact `});` immediately before:
 
-## ITEMS FEATURE INVENTORY
+```javascript
+    function _sort(field) {
+```
 
-Current source still contains:
+with the exact full corrected block in **Report154 section 6**.
+
+The corrected block must contain the actual source characters `\'`, not `\\'`, at the three affected locations.
+
+The replacement also restores:
+
+```javascript
+    }
+```
+
+before:
+
+```javascript
+    function _sort(field) {
+```
+
+## ITEMS FUNCTIONAL STATUS
+
+Current source still contains the Items feature set previously verified:
 
 ```text
 List
@@ -168,13 +229,23 @@ Marketing fields
 Image upload
 ```
 
-Comparison with `Original/PWA/main/main2.md` did NOT prove broad loss of the Items feature set.
+Current source already contains the corrected structural behavior for branch cells:
 
-The confirmed loss is the list renderer regression above.
+```javascript
+rowHtml += '<td ...>'
+```
+
+and branch drill-down arguments:
+
+```text
+item_code, item_name, bid2, branchName2
+```
+
+Do not reintroduce the older `var rowHtml` regression from a stale report.
 
 ## ITEMS MOVEMENT REPORT
 
-Current implementation is more centralized than the old one:
+Current implementation is more centralized than the historical implementation:
 
 ```text
 inventory_log
@@ -192,61 +263,19 @@ physical movement type filtering
 user/reference
 ```
 
-Do NOT replace it with the older `stock_vouchers`-based implementation.
+Do not replace it with the older `stock_vouchers`-based renderer.
 
-No frontend change required here in Report153.
+## COST PRICE
 
-## ITEMS MATRIX / UPLOAD / CATEGORIES
-
-Matrix:
-
-```text
-present
-search present
-branch filter present
-Excel export present
-branch movement drill-down present
-```
-
-Bulk stock upload:
-
-```text
-present
-CSV/XLS/XLSX
-preview
-replace/add/deduct
-operation identity
-refresh after success
-```
-
-Categories:
-
-```text
-present
-company-scoped
-Production save-category = active version 4
-```
-
-Delete item:
-
-```text
-Production delete-item = active version 4
-company-scoped
-permission checked
-```
-
-## COST PRICE — NOT A CURRENT REGRESSION
-
-Production `save-item` version 13 supports `cost_price`, but the current and historical Items form both omit a Cost Price field.
+Production `save-item` supports `cost_price`, but current and historical Items forms omit the field.
 
 Therefore:
 
 ```text
 Cost Price UI restoration = NOT PROVEN
-Cost Price = historical/new-capability question
 ```
 
-Do not add it to `main.html` as a “bug fix” until the historical contract and role/security intent are proven.
+Do not add it as part of this Syntax/Login closure.
 
 ## CURRENT PRODUCTION
 
@@ -255,11 +284,9 @@ Supabase project:
 ```text
 SMART ERP
 fiilmooggumokxanwiyx
-ACTIVE_HEALTHY
-Postgres 17.6.1.121
 ```
 
-Current relevant Edge Functions verified:
+Relevant Items Production functions previously verified:
 
 ```text
 save-item     v13
@@ -267,67 +294,49 @@ save-category v4
 delete-item   v4
 ```
 
-All three resolve company context from the authenticated `users` record and enforce company/permission checks appropriate to their operation.
+No Production mutation is currently proven necessary for the login/Syntax failure.
 
-No Production migration was required for the Items closure in Report153.
+## CURRENT DEPLOYMENT EVIDENCE
 
-## PRODUCTION / INVENTORY GOVERNANCE FROM PREVIOUS WORK
+Relevant deployment reality has not been treated as equivalent to browser PASS.
 
-Physical stock contract remains:
-
-```text
-PHYSICAL STOCK MOVEMENT
-        ↓
-post_stock_movement
-        ↓
-stock_branches + inventory_log
-```
-
-`reserve_stock` remains reservation-only.
-
-Do not reopen previously closed Inventory closures merely because this session is testing the Items UI.
+Current deployment evidence confirms active project functions, but this Syntax/Login gate is blocked before functional browser flow can be honestly marked complete.
 
 ## BROWSER E2E STATUS
 
-This environment does not provide a real browser automation tool, so Browser E2E cannot be honestly marked PASS here.
-
-Proven in this checkpoint:
+This environment does not provide a real browser automation tool. Therefore:
 
 ```text
-CURRENT GIT = VERIFIED
-HEAD = VERIFIED
-PARENT = VERIFIED
-CURRENT MAIN SOURCE = VERIFIED
-ORIGINAL ITEMS SOURCE = VERIFIED
-ITEMS FEATURE INVENTORY = VERIFIED
-_LIST TABLE REGRESSION = PROVEN
-BRANCH DRILL-DOWN REGRESSION = PROVEN
-FORENSIC ASSEMBLY = VERIFIED
-PRODUCTION ITEM CRUD EDGE = VERIFIED
+Browser E2E PASS = NOT CLAIMED
 ```
 
-Pending after owner applies the surgical frontend replacement:
+After owner applies the exact frontend replacement and deploys it, the fresh-browser sequence required is:
 
 ```text
 fresh deployment
-fresh incognito
-login
-open Items
-list rendering
-sorting
-branch cells
-branch movement drill-down
-matrix
-upload
-item create/edit/delete
-console
+→ fresh incognito
+→ load main.html
+→ no SyntaxError
+→ login
+→ dashboard
+→ sidebar
+→ Items
+→ list
+→ branch cells
+→ branch movement drill-down
+→ matrix
+→ upload
+→ item CRUD
+→ console recheck
 ```
 
 ## FILES MODIFIED BY ASSISTANT IN THIS CHECKPOINT
 
+In `rawaie-erp-New`:
+
 ```text
-rawaie-erp-New/doc/Draft/Reprots/Report153_CTO_E2E_Items_Forensic_20260913.md
-rawaie-erp-New/CURRENT_STATE.md
+doc/Draft/Reprots/Report154_CTO_E2E_Main_Syntax_20260913.md
+CURRENT_STATE.md
 ```
 
 Not modified by assistant:
@@ -336,27 +345,35 @@ Not modified by assistant:
 erp-frontend/companies/company-1/main.html
 Current/PWA/main2/*
 Original/PWA/main/*
+forensic_main_assembly.yml
 ```
 
-## NEXT SESSION START ORDER
+## NEXT SESSION START ORDER — UPDATED
 
-1. Re-read current HEAD and direct parent.
-2. Re-fetch current `companies/company-1/main.html`; do not trust old snippets.
-3. Verify whether owner applied the exact Report153 replacement; if not, do not invent another fix.
-4. Reconcile Production immediately before any new report.
-5. Run the real browser E2E on the fresh published version when browser tooling is available.
-6. Accept only the first currently reproducible defect as the next Closure Unit.
-7. Before changing any historical behavior, reconstruct the historical contract and trace current consumers/dependencies.
-8. Never repeat a fix already present in current HEAD/Production.
+1. Read the live `main` branch ref and obtain the actual HEAD.
+2. Open the direct parent of that HEAD.
+3. Compare the parent diff before trusting any old report statement.
+4. Re-fetch the live `companies/company-1/main.html` from `ref=main`.
+5. Reconcile the current Source of Truth against the live file, not the historical fragments.
+6. Reconcile Production immediately before a new report.
+7. For this closure, first verify whether the owner has applied the exact Report154 replacement.
+8. If applied, perform fresh source/static verification and then require real browser E2E before marking closure.
+9. Do not repeat Report153 structural work already present in current HEAD.
+10. Do not reuse stale `CURRENT_STATE` commit hashes.
+11. Any new defect becomes its own closure unit after current-state reconciliation.
+12. For every future modification: historical contract → current source → current production → root cause → surgical fix → static verification → deploy → runtime verification → browser E2E → closure.
 
 ## GOLD / DIAMOND STATUS
 
 ```text
+Current Git reconciliation = COMPLETE
+Current source reconciliation = COMPLETE
 Items forensic analysis = COMPLETE
-Confirmed frontend regression identification = COMPLETE
-Owner surgical fix instruction = COMPLETE
-Production Items repair = NOT REQUIRED
-Browser E2E = PENDING real browser execution
+Syntax/Login root cause = PROVEN
+Owner surgical replacement = COMPLETE AS INSTRUCTION
+Production repair = NOT REQUIRED FOR THIS CLOSURE
+Real Browser E2E = PENDING
+Items full E2E closure = OPEN
 Global system functional completion = OPEN
 Gold/Diamond = OPEN
 ```
@@ -369,4 +386,20 @@ Gold/Diamond = OPEN
 CODE != DEPLOYMENT != RUNTIME != BROWSER E2E != 100% CLOSED
 ```
 
-كل إغلاق لاحق يجب أن يبدأ من Current Git + Current Source + Current Production + Current Database + Current Deployment Evidence، وأي تقرير تاريخي يُستخدم فقط لفهم لماذا وصل النظام إلى حالته الحالية.
+والقاعدة الملزمة لجميع الجلسات التالية:
+
+```text
+CURRENT GIT
++
+CURRENT SOURCE
++
+CURRENT PRODUCTION
++
+CURRENT DATABASE
++
+CURRENT DEPLOYMENT EVIDENCE
+```
+
+هي فقط الحالة الحالية المعتمدة.
+
+التقارير السابقة، بما فيها Report153، تستخدم لفهم التاريخ والقرائن فقط، ولا يجوز استخدامها كبديل عن إعادة مطابقة الواقع الحالي.
