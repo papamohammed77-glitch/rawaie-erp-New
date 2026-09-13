@@ -1,8 +1,8 @@
-// complete-return – authoritative Production v24
-// Contract: authentication -> auth-linked company -> complete_return_atomic.
-// Physical stock mutation is delegated exclusively to post_stock_movement.
+// complete-return – authoritative Production v26
+// Contract: authentication -> auth-linked company -> complete_sales_return_credit_note_atomic.
+// Physical stock mutation remains delegated exclusively to post_stock_movement.
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const supabase = createClient(
@@ -16,7 +16,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS"
 }
 
-serve(async (req) => {
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
 
   try {
@@ -45,13 +45,14 @@ serve(async (req) => {
       throw new Error("سياق الشركة غير متاح للمستخدم المصادق عليه")
     }
 
-    const { data, error } = await supabase.rpc("complete_return_atomic", {
+    const { data, error } = await supabase.rpc("complete_sales_return_credit_note_atomic", {
       p_company_id: appUser.company_id,
       p_runsheet_code: runsheet_code,
       p_order_code: order_code,
       p_is_pos_return: is_pos_return,
       p_user_email: user.email,
-      p_items: items
+      p_items: items,
+      p_reason: String(body?.reason || "مرتجع بضاعة")
     })
 
     if (error) throw new Error(error.message)
