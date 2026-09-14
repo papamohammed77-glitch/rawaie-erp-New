@@ -1,6 +1,6 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-14 07:19+03:00
+**Last reconciled:** 2026-09-14 07:21+03:00
 
 ## SOURCE OF TRUTH
 
@@ -119,7 +119,10 @@ Measured:
 Current file:
 `erp-frontend/companies/company-1/sales/manager.html`
 
-Current defects proven against current Production RPC contract:
+Current blob:
+`a6021c5dede730b3b2fdb590f4bfafb4467eaf8a`
+
+Current defects proven:
 1. plan selection reload can reset to first plan.
 2. APPROVE_RUN / REVERSE_RUN send Plan ID instead of Run ID.
 3. POST generates a new operation_id on every click.
@@ -159,15 +162,19 @@ Do not convert backend PASS into browser/system PASS.
 
 ## LATEST RAWAIE-ERP-NEW GIT
 
-HEAD after final reconciliation records:
-`ebf88e2f77be9f2ff1d90a162bcee87e807a9350`
+HEAD after final session records:
+`8addc839e28c0677eb9b5449528923efb7fa52cd`
 
 Direct Parent:
-`c7cbdb66cddc8b8906017928c4115e184b1cf547`
+`ebf88e2f77be9f2ff1d90a162bcee87e807a9350`
 
-Latest execution records:
-- `Report176_SALES_TARGETS_E2E_SYSTEM_CONTROL_20260914.md`
-- `Report177_SALES_TARGETS_FINAL_PRODUCTION_RECONCILIATION_20260914.md`
+The latest HEAD contains the final CURRENT_STATE reconciliation. The preceding commit contains Report177.
+
+## LATEST EXECUTION REPORTS
+
+`doc/Draft/Reprots/Report176_SALES_TARGETS_E2E_SYSTEM_CONTROL_20260914.md`
+
+`doc/Draft/Reprots/Report177_SALES_TARGETS_FINAL_PRODUCTION_RECONCILIATION_20260914.md`
 
 ## NEXT SESSION — MANDATORY ORDER
 
