@@ -1,10 +1,10 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-14
+**Last reconciled:** 2026-09-14 19:xx Africa/Cairo
 
 ## SOURCE OF TRUTH
 
-التقارير Historical/Reference فقط.
+التقارير Historical/Reference فقط، ولا تُعامل كحالة حالية.
 
 الحقيقة المعتمدة:
 `CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE`
@@ -22,148 +22,248 @@ Historical fragments only:
 
 Repository: `papamohammed77-glitch/erp-frontend`
 Branch: `main`
-HEAD: `9e6645bf3c613f8995785d1fe70a88150ce87c16`
-Direct Parent: `91e50848a65cb0255e95c4e7d8f1a1523eb43e85`
-Parent of Parent: `3398d0952ea723d1de42b076ad93ae19c025bfa3`
+HEAD: `70cc69aece9568374a8e86175e6963cae6832c02`
+Message: `Update main.html`
+Direct Parent: `9e6645bf3c613f8995785d1fe70a88150ce87c16`
+Parent of Parent: `91e50848a65cb0255e95c4e7d8f1a1523eb43e85`
 
 Current mother `main.html` blob:
-`85a8a3593251a1f7c2ddbc8654cc192db8c4a0c2`
+`43a6061233ad9d7e84e946c9bac9e64297f643a6`
+
+Current source timestamp embedded in file:
+`2026-09-14 00:40 UTC`
+
+Current EOF:
+`39847 = </html>`
 
 ## FORENSIC PATH
 
-`forensic_main_assembly.yml` is already correctly aligned to `erp-frontend/companies/company-1/main.html` as the published main source of truth. Historical fragments are reference-only.
+`forensic_main_assembly.yml` is already correctly aligned to:
+
+```yaml
+source_of_truth:
+  repository: papamohammed77-glitch/erp-frontend
+  path: companies/company-1/main.html
+  ref: main
+assembly_status:
+  mode: published_main_is_authoritative
+  fragment_mode: historical_reference_only
+```
+
+No path change was required.
 
 ## MOTHER SOURCE — SALES TARGETS
 
-Verified from the current mother blob:
+Current verified anchors:
 
 - `sales-targets` exists in `RW_Navigation.menuTree`.
 - Dispatcher calls `RW_SalesTargetsMain.render()`.
-- `RW_SalesTargetsMain` exists.
-- `render()` uses `rw-page-container`.
-- The current HEAD already contains the previous `selectPlan()` fix.
-- `safeHTML` is already defined.
-- `RW_UI` is not defined while Sales Targets calls `RW_UI.safeHTML(...)`.
-- Current source ends with the expected `</script>`, `</body>`, `</html>` markers.
+- `RW_SalesTargetsMain` starts at approximately source line `1311`.
+- The current module ends at approximately source line `1481` with `})();` immediately before `_rwCompanyId()`.
+- Current helper includes `safeHTML`, `safeText`, and `RW_UI`.
+- The old `RW_UI is not defined` root cause is CLOSED in current HEAD.
+- `rw-page-container` fix is already present.
+- `selectPlan()` dispatcher fix is already present.
+- Current main file ends at line `39847` with `</html>`.
 
-### CURRENT OWNER SURGERY
+## CURRENT SALES TARGET FUNCTIONAL GAP
 
-Do not modify the Sales Targets dispatcher, `render()`, `renderDashboard()`, or `selectPlan()`.
+The current Mother UI exposes:
 
-In the current mother file find this exact line:
+- Plan creation.
+- Draft Plan editing.
+- Plan selection.
+- Preview.
+- Approve / Cancel / Close.
+- Post Run.
+- Approve Run / Reverse Run.
+- Dashboard KPIs.
+- Read-only assignment performance.
+- Ranking.
+- Realtime subscriptions.
 
+But the Mother UI still does NOT expose the backend Assignment lifecycle completely:
+
+- Add Assignment.
+- Edit Assignment.
+- Activate / Deactivate Assignment.
+- Clone finalized Plan / version management from the Mother UI.
+- Full target dimensions: amount / quantity / gross profit / weight.
+- User/representative and branch selection for assignments.
+
+This is the current functional gap.
+
+## CURRENT OWNER SURGERY
+
+Do NOT repeat the historical `RW_UI` fix.
+
+Do NOT modify the dispatcher, helper, navigation, or historical 11 fragments.
+
+The next Mother-file surgical operation is one exact replacement only:
+
+**Delete current `RW_SalesTargetsMain` block from line 1311 through line 1481 inclusive** and replace it with the complete block in:
+
+`doc/Draft/Reprots/Report183_SALES_TARGETS_FUNCTIONAL_DIAMOND_CLOSURE_20260914.md`
+
+Start anchor:
 ```js
-const safeText = (el, text) => { if (!el) return; try { el.innerText = text; } catch(e) { console.error(e); } };
+var RW_SalesTargetsMain = (function(){
 ```
 
-Add immediately after it:
-
+End anchor:
 ```js
-const RW_UI = { safeHTML: safeHTML };
+})();
 ```
 
-This is the currently proven root-cause fix for the reported `RW_UI is not defined` failure.
+Do NOT delete:
+```js
+function _rwCompanyId() {
+```
+
+The replacement adds the missing Mother-side consumer capability for:
+
+`SAVE_ASSIGNMENT`
+`SET_ASSIGNMENT_ACTIVE`
+`CLONE_PLAN`
+
+while preserving the existing plan lifecycle and dashboard contract.
 
 ## CURRENT PRODUCTION
 
 Supabase project:
 `fiilmooggumokxanwiyx`
 
-Current target counts:
-- `sales_target_plans = 0`
-- `sales_target_assignments = 0`
-- `sales_target_runs = 0`
-- `sales_target_run_lines = 0`
+Current verified Production Edge deployments:
 
-No synthetic target data remains.
+```text
+sales-target-engine     ACTIVE / version 2 / verify_jwt=true
+sales-target-dashboard  ACTIVE / version 1 / verify_jwt=true
+```
+
+No new Sales Targets Edge Function was deployed in this session because the existing Production backend already provides the required operations.
+
+Current directly verified Production counts include:
+
+- `sales_target_plans = 0`
+- `sales_target_runs = 0`
+
+No permanent synthetic Sales Target data was created in this session.
 
 ## SALES TARGET DATABASE CONTRACT
 
-Verified current Production routines:
+Verified current routines/contract:
 
-- `public.sales_target_engine_atomic(uuid,text,text,uuid,jsonb,text)` — SECURITY DEFINER
-- `public.sales_target_engine_gateway(uuid,text,text,uuid,jsonb,text)` — SECURITY DEFINER
-- `public.sales_target_dashboard_atomic(uuid,uuid,text)` — SECURITY DEFINER
-- `public.sales_target_integrity_guard()` — SECURITY DEFINER trigger function
+- `public.sales_target_engine_atomic(uuid,text,text,uuid,jsonb,text)` — SECURITY DEFINER.
+- `public.sales_target_engine_gateway(uuid,text,text,uuid,jsonb,text)` — SECURITY DEFINER.
+- `public.sales_target_dashboard_atomic(uuid,uuid,text)` — SECURITY DEFINER.
+- `public.sales_target_integrity_guard()` — SECURITY DEFINER trigger function.
 
 Verified engine operations:
 `LIST_PLANS`, `LIST_ASSIGNMENTS`, `LIST_RUNS`, `SAVE_PLAN`, `SAVE_ASSIGNMENT`, `CLONE_PLAN`, `SET_ASSIGNMENT_ACTIVE`, `APPROVE_PLAN`, `CLOSE_PLAN`, `CANCEL_PLAN`, `PREVIEW`, `POST`, `APPROVE_RUN`, `REVERSE_RUN`.
 
 ## PRODUCTION HARDENING COMPLETED
 
-`sales_target_integrity_guard()` had direct EXECUTE grants to `PUBLIC`, `anon`, and `authenticated`.
-
-It was corrected directly in Production:
-
-```sql
-REVOKE ALL ON FUNCTION public.sales_target_integrity_guard()
-  FROM PUBLIC, anon, authenticated;
-
-GRANT EXECUTE ON FUNCTION public.sales_target_integrity_guard()
-  TO postgres, service_role;
-```
-
-Fresh verification now shows only:
-- postgres = EXECUTE
-- service_role = EXECUTE
+`sales_target_integrity_guard()` ACL was hardened previously and remains closed according to current evidence.
 
 Canonical migration:
 `supabase/migrations/20260914_sales_target_integrity_guard_acl_hardening.sql`
 
-## CURRENT EDGE DEPLOYMENT
+## CURRENT EDGE IMPLEMENTATION
 
-`sales-target-engine` = ACTIVE, version 2, verify_jwt=true.
+`sales-target-engine` currently:
 
-`sales-target-dashboard` = ACTIVE, version 1, verify_jwt=true.
+- authenticates the Bearer token;
+- resolves `auth_id` to `users.company_id`;
+- calls `sales_target_engine_gateway`;
+- carries operation / plan / payload / operation_id.
 
-The current Edge engine wrapper resolves authenticated `auth_id` to `users.company_id` and calls the authorization gateway. No unnecessary new version was deployed.
+`sales-target-dashboard` currently:
 
-## DIRECT PRODUCTION TESTS
+- authenticates the Bearer token;
+- resolves `auth_id` to `users.company_id`;
+- calls `sales_target_dashboard_atomic` for the selected plan.
 
-- `LIST_PLANS` with `sales.manager@rawaea.com` → PASS; current result is `plans=[]`.
-- `SAVE_PLAN` with `accountant@rawaea.com` → correctly rejected with `Sales target management permission required`.
-- Final target row counts remain `0/0/0/0`.
+No new version was deployed because no proven backend defect required it.
 
-A complete successful business-cycle E2E was not fabricated because Production contains no target business records and synthetic create/delete tests would pollute audit history.
+## CURRENT COMPETITOR GAP OBSERVATION
 
-Therefore the sequence below is NOT currently claimed as live Production-pass:
-`SAVE → ASSIGN → APPROVE → PREVIEW → POST → APPROVE_RUN → REVERSE_RUN`.
+Official current competitor documentation confirms that mature target systems expose more than a KPI screen:
+
+- Odoo supports target-based plans, configurable target frequency, measurable achievements, salesperson assignment, approval flow, and progressive levels. citeturn572473search1
+- Dynamics 365 supports goal hierarchy, metrics, targets, time periods, rollups, and monitoring across individuals, teams, territories and parent goals. citeturn572473search0turn572473search3
+- Daftra exposes sales targets by amount/quantity and performance tracking, with target/commission management around employees and teams. citeturn572473search7turn572473search9turn572473search10
+
+RAWAEA should adopt the useful management principles without copying competitor architecture literally.
+
+## SESSION REPORT
+
+Current report:
+
+`doc/Draft/Reprots/Report183_SALES_TARGETS_FUNCTIONAL_DIAMOND_CLOSURE_20260914.md`
+
+It contains:
+
+- current forensic state;
+- latest Git and parent evidence;
+- current Mother anchors and EOF;
+- verified backend capability;
+- precise Owner Surgery;
+- the complete replacement block;
+- E2E test sequence;
+- PASS/FAIL matrix;
+- instructions for the next CTO/momentum session.
 
 ## CLOSED
 
+`FORENSIC SOURCE OF TRUTH = VERIFIED`
+`FORENSIC PATH = VERIFIED`
+`CURRENT MOTHER EOF = VERIFIED`
+`OLD RW_UI ROOT CAUSE = CLOSED`
+`MOTHER DISPATCHER = VERIFIED`
+`MOTHER CONTAINER FIX = PRESENT`
+`MOTHER selectPlan FIX = PRESENT`
 `SALES TARGET BACKEND CONTRACT = VERIFIED`
 `SALES TARGET TENANT/AUTHORIZATION = VERIFIED`
-`SALES TARGET INTEGRITY GUARD ACL = CLOSED`
-`SALES TARGET EDGE = VERIFIED`
-`SALES TARGET DB REALTIME CONFIG = VERIFIED`
-`MOTHER TARGET MENU = VERIFIED`
-`MOTHER TARGET DISPATCHER = VERIFIED`
-`MOTHER TARGET CONTAINER FIX = PRESENT`
-`MOTHER TARGET selectPlan FIX = PRESENT`
-`SALES TARGET ROOT CAUSE = PROVEN`
+`SALES TARGET VERSIONED MANAGEMENT = VERIFIED`
+`SALES TARGET EDGE DEPLOYMENT = VERIFIED`
+`SALES TARGET DASHBOARD CONTRACT = VERIFIED`
+`NO UNNECESSARY PRODUCTION INFRASTRUCTURE CHANGE = VERIFIED`
 
 ## OPEN
 
-`MOTHER TARGET OWNER SURGERY = PENDING`
+`MOTHER ASSIGNMENT MANAGEMENT UI = OWNER SURGERY PENDING`
+`MOTHER CLONE UI = OWNER SURGERY PENDING`
+`MOTHER FULL TARGET MANAGEMENT UX = OWNER SURGERY PENDING`
 `LIVE BROWSER E2E = OPEN`
-`CURRENT CONSOLE/NETWORK AFTER OWNER SURGERY = PENDING`
-`SALES TARGET REALTIME RUNTIME AFTER OWNER SURGERY = PENDING`
+`CURRENT CONSOLE AFTER OWNER SURGERY = OPEN`
+`CURRENT NETWORK AFTER OWNER SURGERY = OPEN`
+`REALTIME BROWSER RUNTIME AFTER OWNER SURGERY = OPEN`
 `SYSTEM-LEVEL SALES TARGETS = OPEN`
 
-## NEXT SESSION — MANDATORY ORDER
+## MANDATORY NEXT SESSION ORDER
 
-1. Fresh Production snapshot first.
-2. Re-check frontend HEAD + Direct Parent + Parent of Parent.
-3. Re-check current mother blob SHA and EOF.
-4. Do not rebuild from historical 11 fragments.
-5. Do not repeat the already-present `rw-page-container` or `selectPlan` fixes.
-6. Apply only the exact `RW_UI` owner surgery above if not already merged.
-7. Run authenticated browser E2E: login → إدارة المبيعات → أهداف المبيعات.
-8. Verify Console has no `RW_UI` ReferenceError.
-9. Verify Network reaches `sales-target-engine` and `sales-target-dashboard`.
-10. Verify Realtime refresh after a target-table change.
-11. Reconcile Production immediately before the final closure report.
-12. Close system-level task only after browser + console + network + runtime evidence are current.
+1. Fresh Production snapshot immediately before work.
+2. Re-check frontend HEAD, Direct Parent, Mother blob SHA, and EOF.
+3. Do not rebuild from the 11 historical fragments.
+4. Read current `RW_SalesTargetsMain` block in Mother again before surgery.
+5. Confirm whether Owner Surgery was actually applied.
+6. If not, apply the exact line 1311–1481 replacement from Report183.
+7. Publish the updated Mother.
+8. Run authenticated browser E2E:
+   `login → إدارة المبيعات → أهداف المبيعات`.
+9. Verify no Console ReferenceError.
+10. Verify Network calls to `sales-target-engine` and `sales-target-dashboard`.
+11. Test Plan create/edit.
+12. Test Assignment add/edit/disable/enable.
+13. Test Approve.
+14. Test Clone.
+15. Test Preview.
+16. Test Post and same-operation retry.
+17. Test Approve Run.
+18. Test Reverse Run and retry behavior.
+19. Verify Realtime refresh.
+20. Reconcile Production immediately before writing closure.
+21. Only then move `SYSTEM-LEVEL SALES TARGETS` to CLOSED.
 
 ## GOVERNANCE LOOP
 
