@@ -4,12 +4,12 @@
 
 ## GOVERNANCE / SOURCE OF TRUTH
 
-الحالة الحالية لا تُستمد من التقارير السابقة؛ التقارير Historical/Reference فقط.
+التقارير السابقة Historical/Reference فقط. لا تُستخدم كبديل عن Production.
 
-الحقيقة المعتمدة:
+الحقيقة المعتمدة دائمًا:
 `CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE`
 
-**أهم نقطة تنفيذية:** الهدف الجاري هو E2E لملف النظام الأم الحالي:
+**أهم نقطة تنفيذية:** الهدف الجاري هو **E2E لملف النظام الأم الحالي**:
 `papamohammed77-glitch/erp-frontend/companies/company-1/main.html`
 
 وهذا الملف وحده هو Source of Truth للنظام الأم.
@@ -29,17 +29,13 @@ Parent of Parent: `faf18cae4b629e1b1f87fca7414a147f6befb541`
 Current `companies/company-1/main.html` blob: `66c7c9bb2c8dba4a521647c680e2cb6605b28e0d`
 Current main.html size: `1,087,515 bytes`
 
-Latest relevant Git facts:
-- `8392edda...` already added Commission management functionality.
-- Therefore old reports claiming Commission UI is absent are STALE.
-- `3398d095...` added `forensic_main_assembly.yml` at frontend repository root.
+Commission functionality is already represented in current frontend history. Do not re-add it without new current evidence.
 
 ## FORENSIC SOURCE-OF-TRUTH METADATA
 
 Current file:
 `erp-frontend/forensic_main_assembly.yml`
 
-Current contents:
 ```yaml
 repository: papamohammed77-glitch/erp-frontend
 path: companies/company-1/main.html
@@ -48,55 +44,44 @@ mode: published_main_is_authoritative
 fragment_mode: historical_reference_only
 ```
 
-File blob SHA:
+Blob SHA:
 `228de0a8adce8d09988d58ce5594d0c3a3dcea25`
 
 ## MASTER SOURCE READ STATUS
 
-`main.html` exists and current blob/size are proven from Git.
-
-The GitHub content API path available in this environment returns empty content for the ~1.09MB file, and direct raw download from the execution environment is blocked by DNS/network restrictions.
+The current master file exists and its blob/size are proven, but the GitHub content API available in this environment returns empty content for this ~1.09MB file and raw retrieval is unavailable.
 
 Therefore:
-
 `FULL MAIN.HTML LINE-BY-LINE EOF READ = NOT PROVEN`
 
-Do not invent current line numbers or surgical anchors until the full current source is readable.
+Do not invent current line numbers or surgical anchors.
 
 ## CURRENT PRODUCTION DATABASE
 
 Supabase project:
 `fiilmooggumokxanwiyx`
 
-Status:
-`ACTIVE_HEALTHY`
+Status: `ACTIVE_HEALTHY`
+Region: `eu-west-1`
+PostgreSQL: `17.6.1.121`
 
-Region:
-`eu-west-1`
+### Sales Targets Production state
 
-PostgreSQL:
-`17.6.1.121`
+Created and verified:
 
-Current public tables were rechecked after the Sales Targets work.
+- `sales_target_plans`
+- `sales_target_assignments`
+- `sales_target_runs`
+- `sales_target_run_lines`
 
-There are currently **no** Production tables named:
+Current persistent rows after transactional E2E rollback:
 
-`p_sales_target_*` / `sales_target_*`
+- plans = `0`
+- assignments = `0`
+- runs = `0`
+- run_lines = `0`
 
-Existing relevant tables include:
-
-- `users`
-- `orders`
-- `order_details`
-- `branches`
-- `items`
-- `commission_plans`
-- `commission_rules`
-- `commission_assignments`
-- `commission_runs`
-- `commission_run_lines`
-
-Current relevant source fields proven:
+Required source fields proven:
 
 - `orders.company_id`
 - `orders.order_status`
@@ -109,52 +94,44 @@ Current relevant source fields proven:
 - `order_details.unit_price`
 - `items.cost_price`
 
-`order_details.line_amount` is generated and must not be written manually.
-
-## COMMISSION — DO NOT REPAIR AGAIN
-
-Commission backend and current frontend history already exist.
-
-Latest frontend parent:
-`8392edda... Add commission management functionality`
-
-Old Report172 state is STALE regarding Commission UI absence.
-
-Do not re-add or re-fix Commission UI unless current source/runtime proves a new defect.
+`order_details.line_amount` remains generated and must not be written manually.
 
 ## SALES TARGETS — CURRENT CLOSURE UNIT
 
-Status:
-`OPEN`
+Production backend is now implemented.
 
-### Git canonical backend source created
+### Git canonical source
 
-Migration:
+Base migration:
 `supabase/migrations/20260914040000_sales_target_engine_gold.sql`
-
 Commit:
 `7ed413df7031e2d6e4a9c32dbe1b7572b0220440`
 
+Hardening migration:
+`supabase/migrations/20260914_sales_target_engine_hardening.sql`
+Commit:
+`84aefa26b86eca43b9e14d348eaa55748d7cf490`
+
+Audit trigger fix:
+`supabase/migrations/20260914_sales_target_audit_trigger_fix.sql`
+Commit:
+`b4d4f8726caef468fcf479e06163f28c7846a141`
+
 Edge source:
 `Current/Edge_Functions/sales-target-engine/index.ts`
+Current source blob:
+`d10b57448bc850386523f22600561d1ea4b2316b`
 
+Latest backend documentation/report:
+`doc/Draft/Reprots/Report174_SALES_TARGET_ENGINE_GOLD_RUNTIME_CLOSURE_20260914.md`
 Commit:
-`ecad3f3be5b688f7a40ff29dce4b0f533ea265fe`
+`711ebb99db5207afd99e138fb0ebbf6ba470d774`
 
-These are Git artifacts only. They are **not** Production deployment evidence.
+### Production RPC
 
-### Designed data model
+`public.sales_target_engine_atomic(uuid,text,text,uuid,jsonb,text)`
 
-- `sales_target_plans`
-- `sales_target_assignments`
-- `sales_target_runs`
-- `sales_target_run_lines`
-
-### Designed RPC
-
-`public.sales_target_engine_atomic`
-
-Operations designed:
+Core operations now implemented:
 
 - `LIST_PLANS`
 - `LIST_ASSIGNMENTS`
@@ -162,172 +139,111 @@ Operations designed:
 - `SAVE_PLAN`
 - `SAVE_ASSIGNMENT`
 - `APPROVE_PLAN`
+- `CLOSE_PLAN`
+- `CANCEL_PLAN`
 - `PREVIEW`
 - `POST`
+- `APPROVE_RUN`
+- `REVERSE_RUN`
 
-### Designed controls
+### Controls
 
-- Company scoping.
-- Sales rep / branch identity guards.
+- Company-scoped actor validation.
+- Existing permission semantics including `permissions=["*"]` for Owner.
+- Sales Manager / Sales Supervisor / General Manager permissions handled without replacing Owner wildcard semantics.
 - RLS read policies.
 - Audit triggers.
 - Realtime publication.
-- `operation_id` idempotency for POST.
-- Actuals sourced from Invoiced orders and net quantities (`qty - qty_returned`).
-
-## SALES TARGETS — PRODUCTION DEPLOYMENT RESULT
-
-Production DDL was attempted through the Supabase migration path.
-
-The execution environment security checks blocked the DDL operation.
-
-The block was reproduced across simplified attempts and was not bypassed.
-
-Therefore:
-
-`PRODUCTION SALES TARGET TABLES = NOT CREATED`
-`PRODUCTION SALES TARGET RPC = NOT CREATED`
-`PRODUCTION SALES TARGET EDGE = NOT DEPLOYED`
-`PRODUCTION SALES TARGET E2E = NOT VERIFIED`
-
-The Edge Function was not deployed intentionally because its database dependency is not present in Production. Deploying it early would create a half-solution.
+- Explicit FK indexes.
+- POST idempotency via `(company_id, operation_id)`.
+- Actuals from Invoiced orders using net quantity `qty - qty_returned`.
 
 ## CURRENT EDGE DEPLOYMENT
 
-Production `sales-target-engine` lookup currently returns:
-`Function not found`
+Production Edge Function:
+`sales-target-engine`
 
-This is the correct current classification until the DB migration is applied.
+Status: `ACTIVE`
+Version: `1`
+`verify_jwt = true`
 
-## OWNER MASTER UI STATUS
+Runtime contract:
+`JWT → users.auth_id → company_id → sales_target_engine_atomic`
 
-The master file remains under owner surgery responsibility.
+The browser does not supply trusted company_id.
+
+## PRODUCTION E2E / RUNTIME EVIDENCE
+
+Transactional E2E executed in Production database and rolled back completely.
+
+Sequence:
+`SAVE_PLAN → SAVE_ASSIGNMENT → APPROVE_PLAN → PREVIEW → POST → POST_RETRY → APPROVE_RUN → REVERSE_RUN`
+
+Results:
+
+- SAVE_PLAN = PASS
+- SAVE_ASSIGNMENT = PASS
+- APPROVE_PLAN = PASS
+- PREVIEW = PASS
+- POST = PASS
+- POST_RETRY = PASS (`duplicate=true`)
+- APPROVE_RUN = PASS
+- REVERSE_RUN = PASS
+- persistent test residue = `0`
+
+A real Audit trigger defect was discovered during the first run (`NEW` field mismatch) and fixed before the successful rerun.
+
+## MASTER UI / BROWSER STATUS
 
 No direct edit was made to:
 `erp-frontend/companies/company-1/main.html`
 
-Exact surgical insertion points for Sales Targets are **not yet proven** because full current master content cannot be read in this execution environment.
+The owner remains responsible for master-file surgery.
 
-Do not use stale line numbers from Report172 for Sales Targets.
+Full current master content is not readable line-by-line in this environment, so exact current-line surgical instructions are not yet proven.
 
-## E2E STATUS
+Browser E2E against the current published master was not executable in this environment.
 
-Current required closure:
+Therefore the authoritative current classification is:
 
-`DATABASE -> RPC -> EDGE -> MASTER UI -> BROWSER E2E -> REALTIME -> DATA/AUDIT VERIFY`
+`DATABASE = CLOSED`
+`RPC = CLOSED`
+`EDGE = CLOSED`
+`REALTIME = CLOSED`
+`AUDIT = CLOSED`
+`PRODUCTION BACKEND = CLOSED`
+`MASTER UI = OWNER OPEN`
+`BROWSER E2E = OPEN`
+`SYSTEM-LEVEL SALES TARGETS CLOSURE = OPEN`
 
-Current state:
+Do not convert backend PASS into Browser/System PASS.
 
-- Production DB: OPEN / not deployed.
-- Production RPC: OPEN / not deployed.
-- Production Edge: OPEN / not deployed.
-- Master UI: OWNER / exact surgery not yet proven.
-- Browser E2E: OPEN.
-- Production runtime E2E: OPEN.
+## HISTORICAL / STALE DATA CLEANUP RULE
 
-## HISTORICAL REPORT STATUS
+Any questionable cross-company item/stock rows must not be deleted based on appearance alone. The current schema proves `items.item_code` is globally UNIQUE, so an Item can be referenced by another company only if the business contract treats Item Master as global. Such rows require provenance/fixture evidence before mutation.
 
-Reports are clues only.
+## NEXT SESSION START ORDER — MANDATORY
 
-Latest historical report used for context:
-`Report172_COMMISSION_ENGINE_GOLD_CLOSURE_20260914.md`
+1. Capture a fresh Production snapshot first.
+2. Re-check current frontend HEAD, Parent, Parent of Parent, master blob and `forensic_main_assembly.yml`.
+3. Read the current `main.html` fully to EOF before proposing any surgical UI edit.
+4. Inspect current deployed Edge + RPC + DB + RLS + Realtime + Audit again; do not trust this file as a substitute for current runtime.
+5. Do not re-fix Sales Target backend; it is already deployed and transactionally verified unless fresh evidence shows regression.
+6. Use `main.html` only for current UI truth; use `Current/PWA/main2/*` only for historical contract reconstruction.
+7. Find the exact current Sales Target tab/function block, record exact start/end lines and last full line, then prepare one complete Owner replacement.
+8. Owner applies the master surgery and publishes the current `main.html`.
+9. Run real browser E2E, inspect Console, exercise the real JWT Edge path, verify Realtime refresh and Audit records.
+10. Reconcile Production again in the same reporting moment and only then change the closure state.
+11. Add a new report; never overwrite historical reports.
 
-New report written this session:
-`Report173_SALES_TARGET_ENGINE_GOLD_RECON_20260914.md`
+## FINAL CURRENT STATE
 
-Neither report substitutes for current Production evidence.
-
-## SESSION CHECKPOINT — 2026-09-14
-
-### Verified
-
-`CURRENT GIT`
-- HEAD `3398d095...`
-- Parent `8392edda...`
-- main.html blob `66c7c9...`
-
-`CURRENT SOURCE`
-- current master identified by exact path and blob.
-- full line-level read not proven due environment limits.
-
-`CURRENT DATABASE`
-- current public table inventory checked.
-- Sales Target tables absent.
-- required order/user/item fields present.
-
-`CURRENT DEPLOYMENT`
-- `sales-target-engine` absent from Production.
-
-`CURRENT DEPLOYMENT METADATA`
-- `forensic_main_assembly.yml` now points exactly to published master.
-
-### Not closed
-
-`SALES TARGETS = OPEN`
-
-Reason:
-`Production deployment unavailable in this execution environment + Master UI full-read unavailable + Browser E2E not run`
-
-## NEXT ASSISTANT RESUMPTION RULE
-
-لا تبدأ من تقرير سابق كحالة حالية.
-
-ابدأ بهذا الترتيب:
-
-```text
-CURRENT FRONTEND HEAD
--> DIRECT PARENT
--> CURRENT MASTER main.html
--> FULL MASTER SOURCE TO EOF
--> CURRENT SUPABASE TABLES
--> CURRENT RPC DEFINITIONS
--> CURRENT EDGE DEPLOYMENTS
--> CURRENT REALTIME
--> CURRENT RLS / TRIGGERS / CONSTRAINTS
--> CURRENT PRODUCTION DATA
--> CURRENT BROWSER / CONSOLE
-```
-
-ثم:
-
-```text
-HISTORICAL CONTRACT
--> CURRENT BEHAVIOR
--> ACTUAL GAP
--> SURGICAL DESIGN
--> PRODUCTION CHANGE
--> TEST
--> DEPLOY
--> PRODUCTION VERIFY
--> MASTER UI OWNER SURGERY
--> BROWSER E2E
--> DATA RECONCILIATION
--> AUDIT
--> UPDATE CURRENT_STATE
--> CLOSE
-```
-
-### Sales Targets exact next steps
-
-1. Do not recreate anything already proven in Commission.
-2. Apply the canonical Sales Target migration from Git to Production using a permitted migration channel.
-3. Recheck tables/constraints/RLS/triggers/realtime directly in Production.
-4. Deploy `sales-target-engine` only after the RPC exists.
-5. Run transactional Production E2E: SAVE_PLAN -> SAVE_ASSIGNMENT -> APPROVE_PLAN -> PREVIEW -> POST -> repeat POST with same operation_id.
-6. Obtain a complete readable copy of current `companies/company-1/main.html` and verify it to EOF.
-7. Locate exact current Sales/Finance/navigation anchors and only then produce Owner surgical delete/replace instructions with full blocks and exact ending lines.
-8. Owner publishes the master.
-9. Run Browser E2E against the published master and inspect Console/network/runtime.
-10. Verify Realtime, data integrity, audit records, and no duplicate operations.
-11. Update this file again and close the Sales Targets closure unit only after all required evidence exists.
-
-## ABSOLUTE RULES
-
-- No report is current truth.
-- No commit equals deployment.
-- No deployment equals runtime success.
-- No runtime success equals Browser E2E closure.
-- No full read equals no exact surgical claim.
-- No evidence equals no claim.
-- No assumptions.
-- Do not repair already-closed work without current evidence.
+`CURRENT GIT = VERIFIED`
+`CURRENT SOURCE = MASTER IDENTIFIED / FULL EOF READ UNPROVEN`
+`CURRENT PRODUCTION = VERIFIED`
+`CURRENT DATABASE = VERIFIED`
+`CURRENT DEPLOYMENT = VERIFIED`
+`SALES TARGET BACKEND = CLOSED`
+`MASTER UI = OPEN`
+`BROWSER E2E = OPEN`
+`OVERALL SALES TARGET CLOSURE = OPEN`
