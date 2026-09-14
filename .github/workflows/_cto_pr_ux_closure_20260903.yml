@@ -1,0 +1,81 @@
+name: CTO PR-only New-main UX Closure 2026-09-03
+on:
+  pull_request:
+    types: [opened, synchronize]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  execute:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'cto/ux-product-closure-20260903'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cto/ux-product-closure-20260903
+          fetch-depth: 2
+      - name: Surgical UX product patch — target only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, json, subprocess, tempfile
+          p=Path('Current/PWA/New-main'); s=p.read_text(encoding='utf-8')
+          assert len(s.encode())>500000 and len(s.splitlines())>5000
+          assert '<html lang="ar" dir="rtl">' in s
+          assert s.count('<link rel="manifest" href="./manifest.json">')==1
+          assert s.count("window.byId=byId;")==1
+          assert s.count("window.safeText=safeText;")==1
+          assert s.count('rw-p163-closure')==1
+          assert s.count('RAWAEA 122 DIAMOND CONTRACT CLOSURE v1')==1
+          assert 'RAWAEA_UX_PRODUCT_LAYER_2026_09_03' not in s
+          marker='RAWAEA_UX_PRODUCT_LAYER_2026_09_03'
+          layer='''<!-- RAWAEA_UX_PRODUCT_LAYER_2026_09_03 -->
+          <style id="RAWAEA_UX_PRODUCT_STYLE">.rw-login-card{position:relative;overflow:hidden;padding:48px!important;border-radius:36px!important}.rw-login-card:before{content:"";position:absolute;left:0;right:0;top:0;height:7px;background:linear-gradient(90deg,#2563eb,#06b6d4)}.rw-login-title{font-size:64px!important;line-height:1.15!important}.rw-login-logo{width:120px!important;height:120px!important;border-radius:30px!important;overflow:hidden;box-shadow:0 18px 38px rgba(37,99,235,.22)}.rw-login-brand-image{width:100%;height:100%;object-fit:contain;padding:10px}.rw-company-name{font-size:34px!important}.rw-login-form{gap:24px!important}.rw-input{height:56px!important}.rw-login-btn{height:64px!important}.rw-login-footer{margin-top:8px!important}.rw-sidebar-user{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border:1px solid #f1f5f9;border-radius:14px;background:#f8fafc}.rw-sidebar-user-avatar{width:38px;height:38px;min-width:38px;border-radius:12px;background:linear-gradient(135deg,#0ea5e9,#2563eb);color:#fff;display:grid;place-items:center;font-weight:900}.rw-sidebar-user-name{font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rw-sidebar-user-role{font-size:10px;color:var(--muted);margin-top:2px}.rw-sidebar-link.active{background:var(--pl)!important;color:var(--p)!important}@media(max-width:650px){.rw-login-title{font-size:34px!important}.rw-login-card{padding:28px 22px!important}.rw-login-logo{width:104px!important;height:104px!important}.rw-company-name{font-size:28px!important}}</style>
+          <script id="RAWAEA_UX_PRODUCT_RUNTIME">(function(){'use strict';function id(x){return document.getElementById(x)}function brand(n,l){n=String(n||'الروائع ERP').trim()||'الروائع ERP';var b=document.querySelector('.rw-login-logo');if(b){var im=id('rw-login-brand-image');if(!im){im=document.createElement('img');im.id='rw-login-brand-image';im.className='rw-login-brand-image';im.alt='شعار الشركة';b.appendChild(im)}if(l){im.src=String(l);im.style.display='block';b.style.backgroundImage='none'}else{im.style.display='none';im.removeAttribute('src');b.style.backgroundImage=''}var cn=id('rw-login-company-name')||document.querySelector('.rw-company-name');if(cn){cn.id='rw-login-company-name';cn.textContent=n}}var sn=id('rw-sidebar-company-name');if(sn)sn.textContent=n}function side(u){var top=document.querySelector('.rw-sidebar-top');if(!top)return;var box=id('rw-sidebar-user-card');if(!box){box=document.createElement('div');box.id='rw-sidebar-user-card';box.className='rw-sidebar-user';box.innerHTML='<div id="rw-sidebar-user-avatar" class="rw-sidebar-user-avatar">م</div><div><div id="rw-sidebar-user-name" class="rw-sidebar-user-name">مستخدم</div><div id="rw-sidebar-user-role" class="rw-sidebar-user-role">—</div></div>';top.appendChild(box)}var n=String(u&&u.name||'مستخدم').trim()||'مستخدم';id('rw-sidebar-user-name').textContent=n;id('rw-sidebar-user-role').textContent=String(u&&u.role||'—');id('rw-sidebar-user-avatar').textContent=n.charAt(0)||'م'}function sync(){var a=window.RW_STATE&&RW_STATE.app||{},c=a.company||{};brand(c.name||'الروائع ERP',c.logo||'');if(a.currentUser)side(a.currentUser)}window.RW_UX=window.RW_UX||{};RW_UX.syncBrand=brand;RW_UX.sync=sync;try{var rem=localStorage.getItem('rawaea_remember_email')||'';if(rem&&id('rw-username')){id('rw-username').value=rem;if(id('rw-remember'))id('rw-remember').checked=true}}catch(e){}if(window.RW_Auth){var enter0=RW_Auth.enterSystem;RW_Auth.enterSystem=async function(u){var z=await enter0.call(this,u);sync();try{var c=RW_STATE.app.company||{};localStorage.setItem('rawaea_company_name',c.name||'الروائع ERP');if(c.logo)localStorage.setItem('rawaea_company_logo',c.logo)}catch(e){}return z};var login0=RW_Auth.login;RW_Auth.login=async function(u,p){var z=await login0.call(this,u,p);try{if(id('rw-remember')&&id('rw-remember').checked)localStorage.setItem('rawaea_remember_email',u);else localStorage.removeItem('rawaea_remember_email')}catch(e){}return z};if(typeof RW_Auth.forgotPassword!=='function')RW_Auth.forgotPassword=function(){return typeof window.resetPassword==='function'?window.resetPassword():Promise.reject(new Error('RESET_NOT_AVAILABLE'))}}try{sync()}catch(e){}})();</script>'''
+          s=s.replace('</body>',layer+'\n</body>',1)
+          p.write_text(s,encoding='utf-8')
+          # gate only the injected inline runtime, not every legacy inline script
+          m=re.search(r'<script id="RAWAEA_UX_PRODUCT_RUNTIME">([\\s\\S]*?)</script>',s); assert m
+          f=Path(tempfile.mkstemp(suffix='.js')[1]); f.write_text(m.group(1),encoding='utf-8')
+          try: subprocess.run(['node','--check',str(f)],check=True)
+          finally: f.unlink(missing_ok=True)
+          print('STATIC_UX_TARGET_ONLY_PASS')
+          PY
+          git add Current/PWA/New-main
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
+      - name: Browser UX and parent-shell gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install chromium >/dev/null 2>&1
+          rm -rf /tmp/rw && mkdir -p /tmp/rw/Current/PWA && cp Current/PWA/New-main /tmp/rw/Current/PWA/New-main && cp Current/PWA/manifest.json /tmp/rw/Current/PWA/manifest.json
+          cat >/tmp/http.py <<'PY'
+          from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
+          import os
+          class H(SimpleHTTPRequestHandler):
+              def guess_type(self,p): return 'text/html; charset=utf-8' if p.endswith('/New-main') else super().guess_type(p)
+              def log_message(self,*a): pass
+          os.chdir('/tmp/rw');ThreadingHTTPServer(('127.0.0.1',8123),H).serve_forever()
+          PY
+          python3 /tmp/http.py >/tmp/http.log 2>&1 & echo $! >/tmp/pid; trap 'kill $(cat /tmp/pid) 2>/dev/null || true' EXIT
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage({serviceWorkers:'block'});const pe=[],ce=[];p.on('pageerror',e=>pe.push(String(e.message||e)));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});await p.goto('http://127.0.0.1:8123/Current/PWA/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1200);const r=await p.evaluate(()=>{const l=document.querySelector('link[rel="manifest"]'),t=document.querySelector('.rw-login-title'),c=document.querySelector('.rw-login-card'),g=document.querySelector('.rw-login-logo'),brand=document.querySelector('.rw-company-name'),form=document.getElementById('rw-login-form');const menu=(window.RW_Navigation&&RW_Navigation.menuTree)||[];const views=[];(function w(a){(a||[]).forEach(x=>{if(x.view)views.push(x.view);if(x.submenu)w(x.submenu)})})(menu);return{login:!!form,sidebar:!!document.getElementById('rw-sidebar'),auth:typeof RW_Auth==='object',nav:typeof RW_Navigation==='object',views:typeof RW_Views==='object',shell:typeof RW_ShellContext==='object',owner:typeof RW_OwnerLicense==='object',safeText:typeof window.safeText==='function',ux:typeof RW_UX==='object',brandImg:!!document.getElementById('rw-login-brand-image'),titleSize:parseFloat(getComputedStyle(t).fontSize),pad:parseFloat(getComputedStyle(c).paddingTop),logo:g.getBoundingClientRect().width,brand:brand?.textContent,manifest:l?.getAttribute('href')||'',views}});console.log('CTO_PR_BROWSER='+JSON.stringify({r,pe,ce}));await b.close();const req=['dashboard','telesales','customers','pos','orders','runsheets','suppliers','purchases','receiving','items','inventory','vouchers','picking','loading','delivery','return','unloading','branches','transfer','direct-sale','direct-return','supplier-return','vehicle-count','branch-count','general-count','finance','settlement','reports-dashboard','reports-detailed','reports-comprehensive','reports','audit','hr','crm','users','roles','license','settings','notifications'];const miss=req.filter(x=>!r.views.includes(x));if(pe.length||ce.length||!r.login||!r.sidebar||!r.auth||!r.nav||!r.views||!r.shell||!r.owner||!r.safeText||!r.ux||!r.brandImg||r.titleSize<60||r.pad<40||r.logo<100||r.manifest!=='./manifest.json'||miss.length)process.exit(2)})().catch(e=>{console.error(e.stack||e);process.exit(2)})
+          NODE
+          echo PR_BROWSER_GOLD_PASS
+      - name: Commit only New-main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add Current/PWA/New-main
+          test "$(git diff --cached --name-only)" = "Current/PWA/New-main"
+          git config user.name 'RAWAEA CTO Controlled Writer'
+          git config user.email 'rawaea-cto@users.noreply.github.com'
+          git commit -m '[CTO-UX] New-main product UX closure only'
+          git push origin HEAD:cto/ux-product-closure-20260903
