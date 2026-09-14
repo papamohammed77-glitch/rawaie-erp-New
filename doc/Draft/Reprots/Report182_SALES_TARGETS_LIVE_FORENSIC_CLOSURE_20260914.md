@@ -1,6 +1,6 @@
 # Report182 — SALES TARGETS LIVE FORENSIC CLOSURE
 
-**التاريخ:** 2026-09-14 18:xx Africa/Cairo
+**التاريخ:** 2026-09-14
 **الحالة المرجعية:** CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE
 
 ## 1. تنبيه حاكم
@@ -17,9 +17,8 @@
 - Mother file: `companies/company-1/main.html`
 - Current blob: `85a8a3593251a1f7c2ddbc8654cc192db8c4a0c2`
 - Source timestamp inside file: `2026-09-14 00:40 UTC`
-- Current repository metadata previously reconciled file size: `1,087,515 bytes`
 
-تم فحص الـblob نفسه حتى وجود EOF الفعلي داخل المحتوى، والـend markers الحالية هي `</script>` ثم `</body>` ثم `</html>`.
+تمت قراءة محتوى الـblob الحالي حتى وجود EOF داخل نفس المصدر، مع وجود markers النهائية `</script>` ثم `</body>` ثم `</html>`.
 
 ## 3. Current Mother Source — Sales Targets
 
@@ -31,8 +30,8 @@
 4. `render()` يستخدم `var c=byId('rw-page-container');`.
 5. الاستدعاء التلقائي للخطة الأولى يستخدم `RW_SalesTargetsMain.selectPlan(plans[0].id)`.
 6. لا يوجد مسار `rw-page-content` داخل Sales Targets الحالي.
-7. `safeHTML` موجود كدالة عامة في المصدر.
-8. Sales Targets يستخدم الاسم `RW_UI.safeHTML` رغم عدم وجود تعريف `RW_UI` في المصدر الحالي.
+7. `safeHTML` موجود كدالة عامة.
+8. Sales Targets يستخدم `RW_UI.safeHTML` رغم عدم وجود تعريف `RW_UI`.
 
 ### Root Cause المثبت
 
@@ -42,15 +41,13 @@
 
 عند `main:1390` أثناء `RW_SalesTargetsMain.render()`.
 
-هذا يطابق المصدر الحالي مباشرة: أول عملية rendering هي:
+هذا يطابق المصدر الحالي؛ أول عملية rendering هي:
 
 ```js
 RW_UI.safeHTML(c,'<div class="rw-card"><div class="rw-loading">جاري تحميل محرك أهداف المبيعات...</div></div>');
 ```
 
-وهي تستدعي كائنًا غير معرف.
-
-المصدر الحالي يحتوي بالفعل على:
+بينما المصدر يعرّف بالفعل:
 
 ```js
 const safeHTML = (el, html) => { if (!el) return; try { el.innerHTML = html; } catch(e) { console.error(e); } };
@@ -60,29 +57,29 @@ const safeHTML = (el, html) => { if (!el) return; try { el.innerHTML = html; } c
 
 **لم يتم تعديل `erp-frontend/companies/company-1/main.html` بواسطة المساعد.**
 
-الإصلاح المطلوب جراحيًا هو تعريف `RW_UI` فوق استخدامه، اعتمادًا على `safeHTML` الموجود أصلًا.
+الإصلاح المطلوب جراحيًا:
 
 ### العنصر المحدد
 
-في `main.html` الحالي ابحث عن هذا السطر الكامل:
+ابحث في `main.html` الحالي عن هذا السطر الكامل:
 
 ```js
 const safeText = (el, text) => { if (!el) return; try { el.innerText = text; } catch(e) { console.error(e); } };
 ```
 
-هذا السطر موجود في منطقة helpers السابقة لـ`RW_STATE`، مباشرة بعد تعريف `safeHTML`.
+وهو بعد تعريف `safeHTML` مباشرة.
 
 ### الإضافة
 
-أضف **السطر التالي مباشرة بعده**:
+أضف السطر التالي مباشرة بعده:
 
 ```js
 const RW_UI = { safeHTML: safeHTML };
 ```
 
-### لا تحذف أي جزء من `RW_SalesTargetsMain`.
+هذا هو الإصلاح الوحيد المثبت حاليًا لخطأ `RW_UI is not defined`.
 
-لا تعدّل `render()` ولا `renderDashboard()` ولا `selectPlan()` في هذه المرحلة؛ الـRoot Cause المثبت هو missing symbol فقط، وأي تعديل إضافي في هذا الجزء سيكون غير مبرر حاليًا.
+لا تعدّل `render()` أو `renderDashboard()` أو `selectPlan()` أو dispatcher؛ لا يوجد دليل حالي يثبت ضرورة تعديلها.
 
 ## 5. Current Production — Database
 
@@ -90,14 +87,14 @@ Supabase Production project:
 
 `fiilmooggumokxanwiyx`
 
-الحالة الحالية المباشرة:
+الحالة المباشرة الحالية:
 
 - `sales_target_plans = 0`
 - `sales_target_assignments = 0`
 - `sales_target_runs = 0`
 - `sales_target_run_lines = 0`
 
-أي أنه لا توجد بيانات Targets تشغيلية فعلية في Production يمكن بناء E2E business cycle كامل عليها دون إنشاء بيانات اختبارية.
+ولا يوجد Test residue في هذه الجداول.
 
 ## 6. Current Production — Sales Target DB Contract
 
@@ -108,31 +105,27 @@ Supabase Production project:
 - `sales_target_dashboard_atomic(uuid,uuid,text)` موجود و`SECURITY DEFINER`.
 - `sales_target_integrity_guard()` موجود و`SECURITY DEFINER`.
 
-العمليات المثبتة في الـengine تشمل:
+الـengine يحتوي العمليات الحالية:
 
 `LIST_PLANS`, `LIST_ASSIGNMENTS`, `LIST_RUNS`, `SAVE_PLAN`, `SAVE_ASSIGNMENT`, `CLONE_PLAN`, `SET_ASSIGNMENT_ACTIVE`, `APPROVE_PLAN`, `CLOSE_PLAN`, `CANCEL_PLAN`, `PREVIEW`, `POST`, `APPROVE_RUN`, `REVERSE_RUN`.
 
-## 7. Current Production — Tenant / Authorization Evidence
+## 7. Current Production — Authorization
 
-المستخدم التشغيلي الموجود في Production:
+المستخدم الموجود في Production:
 
 `sales.manager@rawaea.com`
 
-ولديه permission:
-
-`sales_manager`
-
-والـGateway يرفض المستخدم الذي لا يملك صلاحية الإدارة.
+يمتلك permission `sales_manager`.
 
 اختبار مباشر:
 
-`sales.manager@rawaea.com` → `LIST_PLANS` = PASS، والنتيجة الحالية `plans=[]`.
+`sales.manager@rawaea.com` → `LIST_PLANS` = PASS والنتيجة `plans=[]`.
 
-`accountant@rawaea.com` → `SAVE_PLAN` = REJECTED بشكل صحيح برسالة `Sales target management permission required`.
+`accountant@rawaea.com` → `SAVE_PLAN` = REJECTED برسالة `Sales target management permission required`.
 
 ## 8. Production Hardening المنفذ
 
-تم اكتشاف أن `sales_target_integrity_guard()` كان يمنح `EXECUTE` إلى:
+كان `sales_target_integrity_guard()` يمنح `EXECUTE` لـ:
 
 - PUBLIC
 - anon
@@ -140,7 +133,7 @@ Supabase Production project:
 - postgres
 - service_role
 
-تم إصلاح ذلك مباشرة في Production عبر:
+تم إغلاق التعرض مباشرة في Production:
 
 ```sql
 REVOKE ALL ON FUNCTION public.sales_target_integrity_guard()
@@ -150,7 +143,7 @@ GRANT EXECUTE ON FUNCTION public.sales_target_integrity_guard()
   TO postgres, service_role;
 ```
 
-ثم تم التحقق مباشرة من Production، والنتيجة أصبحت:
+ثم تم التحقق من Production والنتيجة:
 
 - postgres = EXECUTE
 - service_role = EXECUTE
@@ -158,159 +151,130 @@ GRANT EXECUTE ON FUNCTION public.sales_target_integrity_guard()
 - لا يوجد EXECUTE لـanon
 - لا يوجد EXECUTE لـauthenticated
 
-والتغيير موثق في Git داخل:
+والتغيير موثق في:
 
 `supabase/migrations/20260914_sales_target_integrity_guard_acl_hardening.sql`
 
 ## 9. Index / Constraint Review
 
-تم فحص Indexes الحالية للـSales Targets.
+تم فحص Indexes الحالية ولم توجد فجوة تبرر إضافة Index جديد؛ الـProduction تحتوي بالفعل على indexes مناسبة لعلاقات Company/Plan/Run/Assignment/Representative/Branch.
 
-الـProduction تحتوي بالفعل على indexes مناسبة للـcompany/plan/run/assignment وعلاقات الـforeign keys، منها:
-
-- `sales_target_assignments_company_plan_idx`
-- `sales_target_assignments_plan_fk_idx`
-- `sales_target_assignments_rep_fk_idx`
-- `sales_target_assignments_branch_fk_idx`
-- `sales_target_plans_company_period_idx`
-- `sales_target_runs_company_plan_idx`
-- `sales_target_runs_plan_fk_idx`
-- `sales_target_runs_reversal_fk_idx`
-- `sales_target_run_lines_company_run_idx`
-- `sales_target_run_lines_assignment_fk_idx`
-- `sales_target_run_lines_rep_fk_idx`
-- `sales_target_run_lines_branch_fk_idx`
-
-لم يتم إنشاء Indexes مكررة.
+لم يتم إنشاء أي Index مكرر.
 
 ## 10. Current Edge Deployment
-
-تم التحقق من أن:
 
 `sales-target-engine` = ACTIVE, version 2, verify_jwt=true.
 
 `sales-target-dashboard` = ACTIVE, version 1, verify_jwt=true.
 
-مصدر Edge الحالي في Git يستخدم `auth_id -> users.company_id` ثم يستدعي `sales_target_engine_gateway`، وهو متسق مع authorization boundary الحالية. لذلك لم يتم إنشاء version جديدة بلا تغيير وظيفي حقيقي.
+مصدر Edge الحالي يستخدم `auth_id -> users.company_id` ثم الـgateway، لذلك لم يتم إنشاء version جديدة بلا تغيير وظيفي.
 
-## 11. Production Test Result
+## 11. الاختبارات
 
 ### نجح
 
 - Current schema inspection.
 - Current function inspection.
 - Current grants inspection.
-- `LIST_PLANS` عبر الـGateway بالمستخدم المصرح.
-- رفض `SAVE_PLAN` لمستخدم غير مصرح.
-- Security ACL hardening.
-- التأكد من عدم وجود Test residue في `sales_target_plans`.
+- `LIST_PLANS` للمستخدم المصرح.
+- رفض `SAVE_PLAN` للمستخدم غير المصرح.
+- ACL hardening.
+- التأكد من بقاء `sales_target_plans = 0` وعدم وجود test residue.
 
 ### لم يتم تنفيذه عمدًا
 
-لم يتم إنشاء Plan/Assignment/Run اختبارية دائمة في Production لإجبار نجاح E2E business cycle؛ لأن Production الحالية لا تحتوي على Targets حقيقية، وإنشاء بيانات وهمية ثم حذفها سيشوّه سجل التدقيق ويجعل تقرير الأداء أقل موثوقية.
+لم يتم إنشاء Plan/Assignment/Run اختبارية دائمة في Production لإجبار نجاح دورة الأعمال؛ لأن ذلك سيضيف بيانات وهمية وسجلات audit غير حقيقية.
 
-وبالتالي لم يتم الادعاء بأن:
+لذلك لا يتم الادعاء حاليًا بأن التسلسل:
 
-`SAVE → APPROVE → PREVIEW → POST → APPROVE_RUN → REVERSE_RUN`
+`SAVE → ASSIGN → APPROVE → PREVIEW → POST → APPROVE_RUN → REVERSE_RUN`
 
-تم اختباره حاليًا في Production.
+تم اختباره كدورة أعمال ناجحة في Production الحالية.
 
 هذا قيد بيانات حقيقي، وليس عذرًا تقنيًا.
 
 ## 12. Forensic Conclusion
 
-### Root Cause لعدم فتح التبويب
+### السبب الجذري لعدم فتح التبويب
 
 **Missing `RW_UI` symbol in current Mother Source.**
 
-المحرك نفسه موجود، والـdispatcher موجود، والـcontainer الصحيح موجود، والـbackend الحالي قائم.
+الـBackend قائم، والـdispatcher قائم، والـcontainer الصحيح قائم، والخطأ يقع قبل أول network operation للمحرك.
 
-### Backend status
+### Backend
 
 `SALES TARGET BACKEND = VERIFIED`
 
 `SALES TARGET TENANT AUTHORIZATION = VERIFIED`
 
-`SALES TARGET INTEGRITY GUARD ACL = HARDENED`
+`SALES TARGET INTEGRITY GUARD ACL = CLOSED`
 
-`SALES TARGET EDGE DEPLOYMENT = VERIFIED`
+`SALES TARGET EDGE = VERIFIED`
 
-### Mother UI status
+### Mother UI
 
-`SALES TARGET ROOT CAUSE = IDENTIFIED`
+`SALES TARGET ROOT CAUSE = PROVEN`
 
 `SALES TARGET OWNER SURGERY = READY`
 
-`LIVE BROWSER E2E = NOT CLOSED YET`
+`LIVE BROWSER E2E = OPEN`
 
-## 13. لماذا لم يتم تعديل أشياء أخرى
+## 13. ما لم يتم تغييره
 
 لم يتم:
 
-- تغيير `RW_SalesTargetsMain.render()`.
-- تغيير `selectPlan()`.
 - تغيير dispatcher.
+- تغيير `render()`.
+- تغيير `renderDashboard()`.
+- تغيير `selectPlan()`.
 - إنشاء Edge Function جديدة.
 - إنشاء جدول جديد.
-- تعديل Schema الأعمال الحالية.
+- تغيير Schema الأعمال.
 - تعديل `forensic_main_assembly.yml` لأنه صحيح بالفعل.
-- إعادة إصلاح الإصلاحات السابقة الموجودة في HEAD.
+- إعادة إصلاح إصلاحات موجودة في HEAD الحالي.
 
-السبب: لا يوجد دليل حالي يثبت أن هذه العناصر هي سبب فشل فتح التبويب.
+## 14. الأخطاء والدروس
 
-## 14. Errors / Lessons
+1. لا يجوز الاعتماد على تقرير سابق كدليل على الحالة الحالية.
+2. وجود `safeHTML` لا يعني وجود `RW_UI`؛ أسماء الـAPIs يجب أن تطابق تعريفاتها الفعلية.
+3. وجود Backend صحيح لا يمنع failure قبل أول network call في Mother UI.
+4. لا يجوز إنشاء بيانات اختبار دائمة في Production لإنتاج PASS شكلي.
 
-1. الاعتماد على تقرير سابق ادعى اكتمال E2E كان سيؤدي إلى قبول حالة غير مثبتة. تم تجاهل هذا الادعاء وإعادة التحقق من Production.
-2. وجود `safeHTML` لم يكن كافيًا؛ وحدة Sales Targets استخدمت API namespace مختلفًا (`RW_UI`).
-3. وجود Backend كامل لا يعني أن Mother UI يصل إليه؛ failure كان قبل أول network call داخل render.
-4. لا يجوز إنشاء test data دائمة في Production فقط لإظهار PASS شكلي في التقرير.
-
-## 15. Final Status
+## 15. الحالة النهائية
 
 ```text
 CURRENT GIT                         = VERIFIED
 CURRENT MOTHER SOURCE              = VERIFIED
-CURRENT PRODUCTION                  = VERIFIED
+CURRENT PRODUCTION                 = VERIFIED
 CURRENT DATABASE                   = VERIFIED
 CURRENT DEPLOYMENTS                = VERIFIED
 ROOT CAUSE                         = PROVEN
 PRODUCTION HARDENING               = DEPLOYED + VERIFIED
 MOTHER FILE SURGERY                = OWNER ACTION REQUIRED
 LIVE BROWSER E2E                   = OPEN
-SYSTEM-LEVEL SALES TARGETS         = OPEN PENDING OWNER SURGERY + LIVE E2E
+SYSTEM-LEVEL SALES TARGETS        = OPEN
 ```
 
-## 16. تعليمات للمساعد القادم — من أين يبدأ وكيف يصل إلى الحقيقة
+## 16. إرشادات المساعد القادم — من أين يبدأ وكيف يصل للحقيقة
 
-ابدأ دائمًا بهذا الترتيب ولا تعكسه:
-
-1. خذ `erp-frontend` HEAD الحالي وDirect Parent وParent of Parent.
-2. خذ blob الحالي لـ`companies/company-1/main.html` وسجّل SHA والحجم وtimestamp.
-3. ثبّت EOF من نفس blob، ولا تخترع line numbers. إذا لم يدعم transport line-addressing، استخدم anchor نصيًا واضحًا.
-4. افحص Console الحالي قبل لمس أي كود.
-5. حدّد أول exception في الـstack؛ لا تبدأ من آخر جزء من النظام.
-6. افتح dispatcher ثم module نفسه ثم helper dependencies.
-7. طابق كل helper مع تعريفه في نفس Source of Truth.
-8. بالتوازي افحص Production function definitions وEdge deployment الحالي وdatabase schema.
-9. افحص authorization وtenant scope قبل أي تعديل.
-10. لا تعتبر تقريرًا تاريخيًا دليلًا على الحالة الحالية.
-11. لا تعيد إصلاح ما ثبت أنه موجود في HEAD الحالي.
-12. Production changes تُنفذ مباشرة فقط عندما يكون defect مثبتًا.
-13. Mother file لا يُعدله المساعد؛ يقدم Owner surgery كاملًا ومحددًا بالـanchor.
-14. بعد Owner surgery، شغّل Browser E2E فعلية: login → sales → sales targets.
-15. راقب Console + Network، ثم اختبر Realtime refresh.
-16. في النهاية خذ Production snapshot جديدة في نفس لحظة التقرير.
-17. لا تجعل `PASS` في تقرير داخلي أو Staging مساويًا لـProduction PASS.
-18. لا تغلق المهمة system-level إلا بعد إثبات:
-   - التبويب يفتح.
-   - لا يوجد Console exception.
-   - Network يصل للـEdge الصحيحة.
-   - Backend returns valid result.
-   - Realtime يعمل.
-   - Production snapshot مطابقة للحالة المبلغ عنها.
+1. ابدأ بـHEAD الحالي للـ`erp-frontend` ثم Direct Parent ثم Parent of Parent.
+2. ثبّت blob الحالي للـmother file، ثم SHA والحجم وtimestamp إن أمكن.
+3. أثبت EOF من نفس المصدر، ولا تخترع أرقام أسطر.
+4. افحص Console الحالي أولًا وحدد أول exception حقيقي في الـstack.
+5. افتح dispatcher ثم module ثم كل helper يستدعيه module.
+6. طابق اسم كل helper مع تعريفه في نفس Source of Truth.
+7. افحص Production schema/functions/permissions/Edge قبل تعديل backend.
+8. لا تثق في Report178–181 كحالة حالية؛ استخدمها للسياق التاريخي فقط.
+9. لا تكرر `rw-page-container` أو `selectPlan` لأنهما موجودان بالفعل في HEAD الحالي.
+10. Mother file لا يُعدل بواسطة المساعد؛ قدم للمالك حذف/إضافة دقيقة مع anchor كامل.
+11. Production defects المثبتة فقط تُصلح مباشرة وتُوثق في migration canonical.
+12. بعد Owner surgery: login → إدارة المبيعات → أهداف المبيعات.
+13. راقب Console + Network، ثم اختبر Realtime.
+14. خذ Production snapshot جديدة في نفس لحظة تقرير الإغلاق.
+15. لا تغلق system-level قبل إثبات Browser + Console + Network + Runtime.
 
 ## 17. Source of Truth النهائي
 
 `papamohammed77-glitch/erp-frontend/companies/company-1/main.html`
 
-ولا يُسمح بإعادة بناء الحالة من `Current/PWA/main2/*` أو `Original/PWA/main/*` إلا للاستشارة التاريخية فقط.
+ولا يستخدم `Current/PWA/main2/*` أو `Original/PWA/main/*` أو `New-main` إلا كمرجع تاريخي.
