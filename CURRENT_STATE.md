@@ -1,6 +1,6 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-14 15:00:40.725342+00
+**Last reconciled:** 2026-09-14
 
 ## SOURCE OF TRUTH
 
@@ -23,178 +23,147 @@ Historical fragments only:
 Repository: `papamohammed77-glitch/erp-frontend`
 Branch: `main`
 HEAD: `9e6645bf3c613f8995785d1fe70a88150ce87c16`
-Message: `Update main.html`
 Direct Parent: `91e50848a65cb0255e95c4e7d8f1a1523eb43e85`
 Parent of Parent: `3398d0952ea723d1de42b076ad93ae19c025bfa3`
-Parent of Parent of Parent: `8392edda5c766fa69c5faea768ca35e35b498b94`
 
 Current mother `main.html` blob:
 `85a8a3593251a1f7c2ddbc8654cc192db8c4a0c2`
 
-Current mother size:
-`1,087,515 bytes`
-
 ## FORENSIC PATH
 
-`forensic_main_assembly.yml` remains correctly aligned to:
-
-```yaml
-repository: papamohammed77-glitch/erp-frontend
-path: companies/company-1/main.html
-ref: main
-mode: published_main_is_authoritative
-fragment_mode: historical_reference_only
-```
-
-No reconstruction path points to the historical 11 fragments.
+`forensic_main_assembly.yml` is already correctly aligned to `erp-frontend/companies/company-1/main.html` as the published main source of truth. Historical fragments are reference-only.
 
 ## MOTHER SOURCE — SALES TARGETS
 
-Current source proves:
+Verified from the current mother blob:
 
-- `sales-targets` is registered in `RW_Navigation.menuTree`.
-- `RW_SalesTargetsMain` exists in the current mother source.
-- Dispatcher calls `RW_SalesTargetsMain.render()` for `sales-targets`.
-- Sales Targets `render()` uses the real page container:
-  `var c=byId('rw-page-container');`
-- Initial plan selection uses:
-  `RW_SalesTargetsMain.selectPlan(plans[0].id)`.
-- Current source search finds no `rw-page-content` reference in the Sales Targets path.
-- EOF markers are present as `</script>`, `</body>`, `</html>`.
+- `sales-targets` exists in `RW_Navigation.menuTree`.
+- Dispatcher calls `RW_SalesTargetsMain.render()`.
+- `RW_SalesTargetsMain` exists.
+- `render()` uses `rw-page-container`.
+- The current HEAD already contains the previous `selectPlan()` fix.
+- `safeHTML` is already defined.
+- `RW_UI` is not defined while Sales Targets calls `RW_UI.safeHTML(...)`.
+- Current source ends with the expected `</script>`, `</body>`, `</html>` markers.
 
-The exact two fixes are already present in current HEAD `9e6645b…`; do not repeat them as a new owner surgery.
+### CURRENT OWNER SURGERY
 
-## CURRENT RAWAIE-ERP-NEW GIT
+Do not modify the Sales Targets dispatcher, `render()`, `renderDashboard()`, or `selectPlan()`.
 
-Latest relevant commits now include:
+In the current mother file find this exact line:
 
-- `3b2c5d113cd07269c843a79da8c5b008679efcc7` — Create Report180
-- `63c5a24c9d5ebf18f3d58f564a61ce0489682f3a` — Create Report181 / current Sales Targets closure record
-- this CURRENT_STATE reconciliation commit
+```js
+const safeText = (el, text) => { if (!el) return; try { el.innerText = text; } catch(e) { console.error(e); } };
+```
 
-Latest report:
-`doc/Draft/Reprots/Report181_SALES_TARGETS_CURRENT_CLOSURE_20260914.md`
+Add immediately after it:
 
-Historical reports:
-`Report178`, `Report179`, `Report180` remain reference-only.
+```js
+const RW_UI = { safeHTML: safeHTML };
+```
+
+This is the currently proven root-cause fix for the reported `RW_UI is not defined` failure.
 
 ## CURRENT PRODUCTION
 
 Supabase project:
 `fiilmooggumokxanwiyx`
 
-Fresh final direct snapshot:
-`2026-09-14 15:00:40.725342+00`
-
-Target counts:
+Current target counts:
 - `sales_target_plans = 0`
 - `sales_target_assignments = 0`
 - `sales_target_runs = 0`
 - `sales_target_run_lines = 0`
 
-`TARGET TEST RESIDUE = 0`
-`TARGET E2E AUDIT RESIDUE = 0`
+No synthetic target data remains.
 
 ## SALES TARGET DATABASE CONTRACT
 
-Tables:
-- `sales_target_plans`
-- `sales_target_assignments`
-- `sales_target_runs`
-- `sales_target_run_lines`
+Verified current Production routines:
 
-RLS is enabled on all four target tables.
+- `public.sales_target_engine_atomic(uuid,text,text,uuid,jsonb,text)` — SECURITY DEFINER
+- `public.sales_target_engine_gateway(uuid,text,text,uuid,jsonb,text)` — SECURITY DEFINER
+- `public.sales_target_dashboard_atomic(uuid,uuid,text)` — SECURITY DEFINER
+- `public.sales_target_integrity_guard()` — SECURITY DEFINER trigger function
 
-Realtime publication includes all four target tables.
-
-Plan versioning fields:
-- `version_no`
-- `supersedes_plan_id`
-
-Tenant-safe composite relationships are present across target parent/child relationships.
-
-## TARGET ENGINE
-
-`public.sales_target_engine_atomic(uuid,text,text,uuid,jsonb,text)`
-
-Verified operations:
+Verified engine operations:
 `LIST_PLANS`, `LIST_ASSIGNMENTS`, `LIST_RUNS`, `SAVE_PLAN`, `SAVE_ASSIGNMENT`, `CLONE_PLAN`, `SET_ASSIGNMENT_ACTIVE`, `APPROVE_PLAN`, `CLOSE_PLAN`, `CANCEL_PLAN`, `PREVIEW`, `POST`, `APPROVE_RUN`, `REVERSE_RUN`.
 
-`public.sales_target_engine_gateway(uuid,text,text,uuid,jsonb,text)` is the current authorization boundary.
+## PRODUCTION HARDENING COMPLETED
 
-Rules:
-- Approved/Closed plans are historical records.
-- Finalized-plan changes use `CLONE_PLAN` to a new Draft version.
-- Assignment activation changes are Draft-only.
-- Sales representative and branch ownership is Company-checked.
+`sales_target_integrity_guard()` had direct EXECUTE grants to `PUBLIC`, `anon`, and `authenticated`.
+
+It was corrected directly in Production:
+
+```sql
+REVOKE ALL ON FUNCTION public.sales_target_integrity_guard()
+  FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION public.sales_target_integrity_guard()
+  TO postgres, service_role;
+```
+
+Fresh verification now shows only:
+- postgres = EXECUTE
+- service_role = EXECUTE
+
+Canonical migration:
+`supabase/migrations/20260914_sales_target_integrity_guard_acl_hardening.sql`
 
 ## CURRENT EDGE DEPLOYMENT
 
-`sales-target-engine`:
-- ACTIVE
-- version 2
-- verify_jwt=true
-- SHA `8695d5b880798ab8eb0c805b33e08fa88b601e63485ac3580f223347775bd9aa`
+`sales-target-engine` = ACTIVE, version 2, verify_jwt=true.
 
-`sales-target-dashboard`:
-- ACTIVE
-- version 1
-- verify_jwt=true
-- SHA `c0cd73599388ba090116bc6cc4262e0e3c9ccd78a17979b2d239d124c345defe`
+`sales-target-dashboard` = ACTIVE, version 1, verify_jwt=true.
 
-## PRODUCTION BACKEND E2E
+The current Edge engine wrapper resolves authenticated `auth_id` to `users.company_id` and calls the authorization gateway. No unnecessary new version was deployed.
 
-Executed directly against Production with temporary E2E data, then cleaned:
+## DIRECT PRODUCTION TESTS
 
-- SAVE_PLAN = PASS
-- SAVE_ASSIGNMENT = PASS
-- APPROVE_PLAN = PASS
-- PREVIEW = PASS
-- POST = PASS
-- POST retry with same operation_id = duplicate=true / PASS
-- APPROVE_RUN = PASS
-- REVERSE_RUN = PASS
-- CLOSE_PLAN = PASS
-- CLONE_PLAN = PASS
-- cloned plan = Draft, version 2, supersedes source, assignment copied
-- cleanup = PASS
-- final row counts = 0/0/0/0
-- final E2E audit residue = 0
+- `LIST_PLANS` with `sales.manager@rawaea.com` → PASS; current result is `plans=[]`.
+- `SAVE_PLAN` with `accountant@rawaea.com` → correctly rejected with `Sales target management permission required`.
+- Final target row counts remain `0/0/0/0`.
 
-Conclusion:
-Production backend is not the proven cause of the Mother tab opening failure.
+A complete successful business-cycle E2E was not fabricated because Production contains no target business records and synthetic create/delete tests would pollute audit history.
 
-## SYSTEM STATUS
+Therefore the sequence below is NOT currently claimed as live Production-pass:
+`SAVE → ASSIGN → APPROVE → PREVIEW → POST → APPROVE_RUN → REVERSE_RUN`.
 
-`SALES TARGET BACKEND = CLOSED / VERIFIED`
-`SALES TARGET TENANT INTEGRITY = CLOSED / VERIFIED`
-`SALES TARGET VERSIONED MANAGEMENT = CLOSED / VERIFIED`
-`SALES TARGET EDGE = CLOSED / VERIFIED`
-`SALES TARGET DB REALTIME = VERIFIED`
-`SALES TARGET BACKEND E2E = PASS`
+## CLOSED
+
+`SALES TARGET BACKEND CONTRACT = VERIFIED`
+`SALES TARGET TENANT/AUTHORIZATION = VERIFIED`
+`SALES TARGET INTEGRITY GUARD ACL = CLOSED`
+`SALES TARGET EDGE = VERIFIED`
+`SALES TARGET DB REALTIME CONFIG = VERIFIED`
 `MOTHER TARGET MENU = VERIFIED`
 `MOTHER TARGET DISPATCHER = VERIFIED`
-`MOTHER TARGET RENDER FIX = PRESENT IN CURRENT HEAD`
-`SALES TARGET BROWSER E2E = OPEN`
-`CURRENT CONSOLE = NOT OBSERVED`
-`CURRENT NETWORK = NOT OBSERVED`
-`FRONTEND REALTIME RUNTIME = NOT OBSERVED`
-`SYSTEM-LEVEL SALES TARGETS = OPEN PENDING LIVE BROWSER E2E`
+`MOTHER TARGET CONTAINER FIX = PRESENT`
+`MOTHER TARGET selectPlan FIX = PRESENT`
+`SALES TARGET ROOT CAUSE = PROVEN`
+
+## OPEN
+
+`MOTHER TARGET OWNER SURGERY = PENDING`
+`LIVE BROWSER E2E = OPEN`
+`CURRENT CONSOLE/NETWORK AFTER OWNER SURGERY = PENDING`
+`SALES TARGET REALTIME RUNTIME AFTER OWNER SURGERY = PENDING`
+`SYSTEM-LEVEL SALES TARGETS = OPEN`
 
 ## NEXT SESSION — MANDATORY ORDER
 
 1. Fresh Production snapshot first.
 2. Re-check frontend HEAD + Direct Parent + Parent of Parent.
-3. Re-check current mother blob + size + `forensic_main_assembly.yml`.
-4. Obtain complete mother body to EOF with original line addressing when transport permits; never fabricate line numbers.
-5. Re-check Sales Targets schema/RLS/functions/Realtime/Edge versions.
-6. Do not repeat backend hardening without new regression evidence.
-7. Publish current `main` HEAD `9e6645b…` if not already published.
-8. Run authenticated browser E2E: login → إدارة المبيعات → أهداف المبيعات.
-9. Verify Console and Network.
-10. Verify Realtime runtime refresh.
-11. Reconcile Production again immediately before the final closure report.
-12. Only then change `SYSTEM-LEVEL SALES TARGETS` to CLOSED.
+3. Re-check current mother blob SHA and EOF.
+4. Do not rebuild from historical 11 fragments.
+5. Do not repeat the already-present `rw-page-container` or `selectPlan` fixes.
+6. Apply only the exact `RW_UI` owner surgery above if not already merged.
+7. Run authenticated browser E2E: login → إدارة المبيعات → أهداف المبيعات.
+8. Verify Console has no `RW_UI` ReferenceError.
+9. Verify Network reaches `sales-target-engine` and `sales-target-dashboard`.
+10. Verify Realtime refresh after a target-table change.
+11. Reconcile Production immediately before the final closure report.
+12. Close system-level task only after browser + console + network + runtime evidence are current.
 
 ## GOVERNANCE LOOP
 
@@ -205,7 +174,7 @@ CURRENT GIT
 → CURRENT DATABASE
 → CURRENT DEPLOYMENT
 → CURRENT BROWSER/CONSOLE/NETWORK
-→ HISTORICAL CONTRACT
+→ HISTORICAL CONTRACT (context only)
 → ACTUAL GAP
 → SURGICAL FIX
 → TEST
