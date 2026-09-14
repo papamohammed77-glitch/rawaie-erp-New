@@ -1,0 +1,32 @@
+name: CTO New-main Diagnostic v3
+on:
+  push:
+    branches: [cto-pr-newmain-closure-20260903]
+permissions:
+  contents: read
+jobs:
+  diag:
+    if: github.event.head_commit.message != '[CTO-CLOSED] New-main target-only UX runtime closure v2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: cto-pr-newmain-closure-20260903, fetch-depth: 1}
+      - name: Browser diagnostic
+        run: |
+          set -euo pipefail
+          cat >/tmp/s.py <<'PY'
+          from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
+          import os
+          class H(SimpleHTTPRequestHandler):
+              def guess_type(self,p): return 'text/html; charset=utf-8' if p.rstrip('/').endswith('/New-main') else super().guess_type(p)
+              def log_message(self,*a): pass
+          os.chdir('Current/PWA');ThreadingHTTPServer(('127.0.0.1',4173),H).serve_forever()
+          PY
+          python3 /tmp/s.py >/tmp/h.log 2>&1 & pid=$!; trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:4173/New-main >/dev/null && break; sleep 1; done
+          npm init -y >/dev/null 2>&1; npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1; npx playwright install chromium >/dev/null 2>&1
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true,args:['--no-sandbox']});const p=await b.newPage({serviceWorkers:'block'});const pe=[],ce=[],rf=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});p.on('requestfailed',r=>rf.push(r.url()+':'+(r.failure()?.errorText||'')));await p.route('**/*',async r=>{const u=r.request().url();if(u.includes('@supabase/supabase-js'))return r.fulfill({status:200,contentType:'application/javascript',body:'window.supabase={createClient:function(){const q=t=>{const o={};for(const k of ["select","eq","neq","in","or","order","limit","range","gte","lte","is","not","contains","filter","update","delete","upsert"])o[k]=function(){return o};o.maybeSingle=async()=>({data:t==="users"?{id:"u",name:"مالك النظام",email:"owner@alrawae.com",role:"Owner",company_id:"00000000-0000-0000-0000-000000000001",status:"Active",permissions:["*"]}:t==="companies"?{id:"00000000-0000-0000-0000-000000000001",name:"الروائع",logo_url:null}:t==="owner_profile"?{auth_user_id:"auth-owner",license_status:"Active"}:t==="app_settings"?{company_name:"الروائع",company_logo:null}:[],error:null});o.then=(f,j)=>Promise.resolve({data:[],error:null}).then(f,j);return o};return{from:q,auth:{getSession:async()=>({data:{session:null}}),getUser:async()=>({data:{user:{id:"auth-owner",email:"owner@alrawae.com",user_metadata:{isOwner:true}}},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})}}}};'});if(u.includes('chart.js'))return r.fulfill({status:200,contentType:'application/javascript',body:'window.Chart=function(){};'});if(u.includes('sweetalert2'))return r.fulfill({status:200,contentType:'application/javascript',body:'window.Swal={fire:async()=>({}),close(){},showLoading(){}};'});if(u.includes('xlsx'))return r.fulfill({status:200,contentType:'application/javascript',body:'window.XLSX={};'});return r.continue()});await p.goto('http://127.0.0.1:4173/New-main',{waitUntil:'domcontentloaded',timeout:60000});await p.waitForTimeout(5000);const x=await p.evaluate(()=>({ready:document.readyState,types:{RW_STATE:typeof window.RW_STATE,RW_Auth:typeof window.RW_Auth,RW_Navigation:typeof window.RW_Navigation,RW_Warehouse:typeof window.RW_Warehouse,RW_Settings:typeof window.RW_Settings,supabase:typeof window.supabase},scripts:[...document.scripts].map(s=>({src:s.src,id:s.id,type:s.type,defer:s.defer,async:s.async})),title:document.title,login:!!document.getElementById('rw-login-form'),main:!!document.getElementById('rw-main-shell')}));console.log('DIAG='+JSON.stringify({x,pe,ce,rf}));await b.close()})().catch(e=>{console.error(e.stack||e);process.exit(2)})
+          NODE
