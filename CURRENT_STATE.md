@@ -1,6 +1,6 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-15 12:36 UTC
+**Last reconciled:** 2026-09-15 12:58 UTC
 
 ## SOURCE OF TRUTH
 
@@ -22,17 +22,19 @@ Historical fragments only:
 
 Repository: `papamohammed77-glitch/erp-frontend`
 Branch: `main`
-Latest HEAD: `66ed7f2c58fc1cd97526d6ea5b12116961102c9f`
+Latest known application HEAD before test-infrastructure commit: `66ed7f2c58fc1cd97526d6ea5b12116961102c9f`
 Direct parent: `27cfa8c580565942c5497ebf5ffe623eb0768aaa`
 Parent of parent: `24e0124bedf6356103cb28bf365cef8e46be8027`
-Current mother blob: `3cd3af5cd32891e88ed32b70f1d42db06fa35667`
+Current mother blob at the application HEAD: `3cd3af5cd32891e88ed32b70f1d42db06fa35667`
 
-HEAD `66ed7f2...` = `Update sales decision center and navigation structure`.
-Direct parent `27cfa8...` = Loyalty `renderConfig()` terminal-state repair.
+A new test-infrastructure commit was added after that application HEAD:
+`afbdd46b2bcf503bcf3b92b5ad1da97ed2495ebd`
+
+It adds only `.github/workflows/browser_e2e_mother_20260915.yml` and does NOT modify `companies/company-1/main.html`.
 
 ## CURRENT MOTHER FILE EVIDENCE
 
-تم فتح current mother blob مباشرة من Git.
+تم تثبيت current mother blob مباشرة من Git.
 
 EOF الحالي:
 
@@ -49,11 +51,11 @@ Current blob search:
 جاري التطوير = 0 matches
 ```
 
-تم رفض اختراع line numbers عندما لا يعيد GitHub connector range موثوقًا لملف الـblob الضخم. استخدم exact textual anchors من current source، وليس أرقام التقارير القديمة.
+لا يجوز اختراع line numbers لملف ضخم عندما لا يعيد connector range موثوقًا؛ استخدم exact textual anchors من current source.
 
 ## CURRENT ASSEMBLY
 
-`forensic_main_assembly.yml` الحالي:
+`forensic_main_assembly.yml` الحالي يثبت:
 
 ```yaml
 repository: papamohammed77-glitch/erp-frontend
@@ -63,7 +65,7 @@ mode: published_main_is_authoritative
 fragment_mode: historical_reference_only
 ```
 
-لا يوجد تعارض في Source of Truth path.
+لا يوجد تعارض مثبت في Source of Truth path.
 
 ## CURRENT SALES DECISION CENTER
 
@@ -73,11 +75,9 @@ HEAD الحالي أضاف في Navigation:
 { view: 'sales-decision-center', label: 'مركز قرار المبيعات', perm: ['sales_manager','sales_supervisor','general_manager','reports'] }
 ```
 
-كما أضاف module مستقل:
-`RW_SalesDecisionCenter`
+كما أضاف module مستقل: `RW_SalesDecisionCenter`.
 
-Production snapshot verified at:
-`2026-09-15 12:36:02.254148+00`
+Production snapshot verified previously:
 
 ```text
 sales_decision_policies      = 1
@@ -90,9 +90,9 @@ sales_decision_pending       = 0
 
 Production Loyalty backend/engine remain CLOSED by prior verified evidence unless new current evidence proves otherwise.
 
-Current mother still requires the owner-side Browser-facing E2E verification of the published Loyalty UI.
+Current mother requires owner-side Browser-facing E2E verification of the published Loyalty UI before any new Loyalty patch is justified.
 
-Current owner-side exact anchors:
+Current-source anchors:
 
 ```javascript
 function renderConfig(){
@@ -104,18 +104,54 @@ through the complete function ending immediately before:
 function renderRewards(){
 ```
 
-The current Production state with zero active programs requires a terminal empty-state, not an infinite loading placeholder.
-
-Do NOT recreate Loyalty tables, Edge Functions, or backend engine without a new proven defect.
+Do NOT recreate Loyalty tables, Edge Functions, or backend engine without new proven defect evidence.
 
 ## BROWSER E2E
 
 `Browser click-by-click E2E = OPEN`.
 
-سبب بقاء الحالة مفتوحة:
-بيئة التنفيذ الحالية لا توفر جلسة browser automation / live Chromium قابلة لتنفيذ النقرات الفعلية ومراقبة Console + Network بصورة متزامنة.
+A real Browser E2E infrastructure gate has now been created in:
 
-Static/Git/DB evidence لا تُحوّل إلى Browser PASS.
+```text
+.github/workflows/browser_e2e_mother_20260915.yml
+```
+
+Test-infrastructure commit:
+`afbdd46b2bcf503bcf3b92b5ad1da97ed2495ebd`
+
+First run:
+`34971719855`
+
+Last verified state:
+
+```text
+Checkout current Source of Truth = SUCCESS
+Setup Node                        = SUCCESS
+Install Playwright               = IN PROGRESS
+```
+
+The final browser conclusion was not available within the execution window used for this state update.
+
+Therefore:
+
+```text
+Browser infrastructure = CREATED
+Browser click-by-click E2E = OPEN
+```
+
+Static/Git/DB evidence must never be promoted to Browser PASS.
+
+## TEST SCOPE OF NEW BROWSER GATE
+
+The new Playwright gate:
+
+- checks the exact current mother source from Git when no deployed URL is supplied;
+- supports an explicit deployed URL through `workflow_dispatch`;
+- captures HTTP status, title, visible buttons, login form presence, console errors, and page errors;
+- rejects incomplete markers;
+- keeps the mother file unchanged.
+
+This is a repeatable execution gate, not a claim that the published Production browser flow is already closed.
 
 ## PRODUCTION INVENTORY GOVERNANCE CONTEXT
 
@@ -131,41 +167,44 @@ stock_branches + inventory_log
 
 No new parallel Physical Stock Engine is authorized.
 
-Recent verified constraints include:
+Verified schema facts include:
 - `items.item_code` UNIQUE globally.
 - `stock_branches` UNIQUE `(branch_id,item_id)`.
 - `receiving.operation_id` UNIQUE.
 
-Earlier Production anomalies around cross-company item metadata remain historical/data-hygiene evidence and must be revalidated before any cleanup mutation.
+Previous cross-company item metadata anomalies remain data-hygiene evidence and must be revalidated before destructive cleanup.
 
 ## EXECUTION RECORD
 
 Latest report:
-`doc/Draft/Reprots/Report193_BROWSER_E2E_FORENSIC_CLOSURE_20260915.md`
+`doc/Draft/Reprots/Report194_BROWSER_E2E_EXECUTION_20260915.md`
 
 Previous reports remain unchanged and Historical/Reference only.
 
 ## START-HERE — NEXT CTO
 
-1. Re-read CURRENT Git HEAD and its direct parent.
-2. Open the current mother blob and verify SHA + EOF.
-3. Re-verify `forensic_main_assembly.yml`.
-4. Query current Production state for the exact feature under test.
-5. Never reuse stale line numbers; derive anchors from current source.
-6. Do not modify historical fragments.
-7. For mother-file defects, give owner a complete exact delete/replace block; never edit the mother directly.
-8. For Production defects, implement directly, test transactionally, then verify runtime.
-9. Browser/Console/Network verification is a separate closure gate and cannot be inferred from source or DB PASS.
-10. After Browser E2E closes, move to the next open roadmap unit. Do not reopen already-closed backend work without new evidence.
+1. Read this CURRENT_STATE.md.
+2. Get CURRENT frontend HEAD and direct parent.
+3. Verify current mother blob SHA and EOF.
+4. Verify `forensic_main_assembly.yml`.
+5. Query current Production for the exact feature under test.
+6. Run the new Browser E2E gate.
+7. Never convert static/source/DB PASS into Browser PASS.
+8. For mother defects, derive exact current anchors and provide a complete owner-side delete/replace block; do not edit the mother directly.
+9. For Production defects, implement directly, test transactionally, then runtime-verify.
+10. After Browser E2E closes with Browser + Console + Network evidence, move directly to the next open roadmap unit.
+11. Do not reopen already-closed backend work without new evidence.
 
 ## CURRENT CLOSURE
 
 ```text
-Git/Source Reconciliation           = VERIFIED
-Production SDC Snapshot             = VERIFIED
-Mother EOF                          = VERIFIED
-forensic_main_assembly              = VERIFIED
-Placeholder scan                    = VERIFIED (0 exact matches)
-Browser Click-by-Click E2E          = OPEN
-Overall current session closure     = OPEN
+Git/Source Reconciliation            = VERIFIED
+Production SDC Snapshot              = VERIFIED
+Mother EOF                           = VERIFIED
+forensic_main_assembly               = VERIFIED
+Placeholder scan                     = VERIFIED (0 exact matches)
+Browser E2E infrastructure            = CREATED
+Browser E2E run 34971719855           = IN PROGRESS at last verified poll
+Browser Click-by-Click E2E            = OPEN
+Overall current session closure       = OPEN
 ```
