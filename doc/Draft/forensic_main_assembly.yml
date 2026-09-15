@@ -13,23 +13,30 @@ historical_reference_only:
 rules:
   - reports_are_historical_clues_only
   - current_git_current_source_current_production_current_database_current_deployment_are_required
+  - browser_e2e_requires_current_browser_console_network
   - owner_applies_surgical_main_file_changes
   - production_changes_are_executed_and_verified_in_supabase
   - no_line_anchor_may_be_inherited_from_a_stale_report
+  - no_rework_of_already_closed_units_without_new_current_evidence
 current_verified_commit:
-  head: 716ebf86b3c989a461cbf86151b37fcd0849b0c3
-  parent: 13425725f48c7decba3403ee631d8e0f2d757b0f
-  blob: dd5516ea75d75e01a95d4782ec92603ecf427d2e
+  head: 24e0124bedf6356103cb28bf365cef8e46be8027
+  parent: 1f7928e0fa0320670df92c6e944afab0f28e2c0d
+  blob: 324b0deb53b6a58b379b08748d063d40a2aef92b
 current_git_metadata_note:
-  latest_head_metadata_commit: 11b99cab424496b9691e5ad92b36bd83ed7c2664
-  note: "Empty metadata-only commit; GitHub reported diff=null and files=null; mother source blob unchanged."
+  note: "HEAD 24e0124 is the latest verified published mother-source commit; its diff only relocates RW_SalesTargetsMain exposure around the Loyalty module."
+current_source_eof:
+  verified: true
+  ending: "</script>\n</body>\n</html>"
 current_loyalty_state:
   production_backend: closed
   production_rpc: loyalty_engine_atomic
   edge_function: loyalty-engine
-  edge_version: 1
-  mother_ui: open_one_owner_surgical_patch
+  production_db_e2e: pass
+  mother_ui: open_one_owner_surgical_replacement
   browser_e2e: open
+  current_ui_root_cause: no_active_program_path_leaves_loading_placeholder
+  previous_async_order_fix: already_present_do_not_repeat
 next_closure_unit:
   name: RETURN_TO_LOYALTY_REVERSAL_POLICY
+  gate: "Only after owner applies current renderConfig replacement and Browser/Console/Network E2E passes."
   rule: "Reconstruct historical return contract before any Production loyalty reversal change."
