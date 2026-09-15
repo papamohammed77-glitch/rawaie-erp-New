@@ -22,35 +22,25 @@ Historical fragments only:
 
 Repository: `papamohammed77-glitch/erp-frontend`
 Branch: `main`
-HEAD: `dddf1aaf5a6e2fe6be7b3d89451dede9c1387258`
-Direct parent: `f46dfc8183068d0dbf52c1b3b3c8cdbfc9f8f914`
-Parent of parent: `8b02f2158021b6ca4ce44ced756459b037fb1ebe`
-Current mother blob at HEAD commit: `8bf3ac606cdc2d51c2d705ff5f921e46dbbe6607`
+HEAD: `13425725f48c7decba3403ee631d8e0f2d757b0f`
+Direct parent: `05ebb2d67b29dfe26ad77b6f314942c502e0dd8f`
+Current mother blob: `5267f261f2febcbafeafdce0bb9da89a4a6bc894`
 
-Latest HEAD already contains the previously approved Sales Targets surgeries. They must not be repeated without new evidence.
+HEAD message: `Refactor KPI card layout and styles`.
 
-## CURRENT MOTHER / CURRENT SOURCE EVIDENCE
+The previous state file contained stale Git identifiers and is now reconciled.
 
-Current `main.html` contains:
+## CURRENT MOTHER FILE EVIDENCE
 
-- line 1309: `var RW_SalesTargetsMain = (function(){`
-- line 1423: `async function renderDashboard(planId){`
-- line 1524: current end of `renderDashboard` before `subscribeRealtime()`.
-- line 1900: `})();` closing `RW_SalesTargetsMain`.
+Current blob was fetched directly from Git.
 
-Current EOF is line **40687**, ending with:
+Important limitation: the available GitHub connector does not reliably expose the complete 40K+ line blob as line-addressable chunks, and the execution container had no external DNS path for raw GitHub. Therefore this session deliberately issued **no new surgical frontend patch using inherited line numbers**.
 
-```text
-</script>
-</body>
-</html>
-```
-
-A machine-readable GitHub blob was inspected directly. The connector cannot expose the entire 40K-line blob as one uninterrupted visual block, so no false claim of a single-shot manual line-by-line reading is made.
+No claim of fresh full manual line-by-line EOF reading is made until an exact current-file line-addressable artifact is available.
 
 ## FORENSIC ASSEMBLY
 
-`forensic_main_assembly.yml` is already correct:
+Logical Source of Truth remains:
 
 ```text
 repository: papamohammed77-glitch/erp-frontend
@@ -60,166 +50,153 @@ mode: published_main_is_authoritative
 fragment_mode: historical_reference_only
 ```
 
-No path correction is required.
+No safe path edit to a physically located `forensic_main_assembly.yml` was performed in this session because a current line-addressable file target was not established.
 
-## SALES TARGETS — CURRENT PRODUCTION
+## PRODUCTION — LOYALTY TRANSACTION ENGINE
 
 Supabase project:
 `fiilmooggumokxanwiyx`
 
-Production RPCs:
-- `sales_target_engine_gateway`
-- `sales_target_engine_atomic`
-- `sales_target_dashboard_atomic`
+New Production tables:
+- `loyalty_programs`
+- `loyalty_rewards`
+- `loyalty_accounts`
+- `loyalty_transactions`
 
-Production Sales Targets tables:
+New Production RPC:
+- `loyalty_engine_atomic(uuid,text,text,jsonb,text)`
+
+New Production Edge Function:
+- `loyalty-engine`
+- `verify_jwt = true`
+
+Security:
+- RLS enabled on all four Loyalty tables.
+- Direct anon/authenticated table access denied.
+- RPC exposed only to `service_role`.
+- Audit triggers connected to existing `fn_audit_trigger()`.
+
+Identity:
+- Loyalty source of truth = `loyalty_accounts + loyalty_transactions`.
+- `customers.loyalty_points` is compatibility cache only.
+
+Supported operations:
+- LIST_PROGRAMS
+- LIST_REWARDS
+- GET_ACCOUNT
+- LIST_TRANSACTIONS
+- SAVE_PROGRAM
+- SAVE_REWARD
+- REDEEM
+- EARN_ORDER
+- SYNC_ORDER
+- ADJUST
+- EXPIRE
+- REVERSE
+
+Integrity controls:
+- Company-scoped actor validation.
+- Customer tenant validation.
+- Order tenant validation.
+- One Active program per company.
+- Account/advisory locking.
+- Operation-level idempotency.
+- Double-reversal prevention.
+- Non-negative balance enforcement.
+
+## LOYALTY E2E STATUS
+
+Transactionally verified in Production without retaining test data:
+
+- Program creation: PASS.
+- Earn from Invoiced order: PASS.
+- Repeated Earn operation: duplicate protection PASS.
+- Redeem: PASS.
+- Repeated Redeem operation: duplicate protection PASS.
+- Reverse redemption: PASS.
+- Test data rolled back.
+
+## PRODUCTION — SALES TARGETS
+
+Existing tables:
 - `sales_target_plans`
 - `sales_target_assignments`
 - `sales_target_runs`
 - `sales_target_run_lines`
 
-Current business counts:
+Existing RPCs:
+- `sales_target_engine_gateway`
+- `sales_target_engine_atomic`
+- `sales_target_dashboard_atomic`
 
-```text
-plans       = 0
-assignments = 0
-runs        = 0
-run_lines   = 0
-```
+Current engine supports dynamic target control.
 
-Existing Sales Targets integrity/audit infrastructure is present and company-scoped.
+A real defect was found and repaired in `SAVE_ASSIGNMENT` update path: `branch_id` ambiguity between PL/pgSQL variable scope and table column scope.
 
-## SALES TARGETS — CURRENT SESSION ACTIONS
+Final Production function preserves full lifecycle including:
+- SAVE_PLAN
+- CLONE_PLAN
+- SAVE_ASSIGNMENT
+- SET_ASSIGNMENT_ACTIVE
+- APPROVE_PLAN
+- CLOSE_PLAN
+- CANCEL_PLAN
+- PREVIEW
+- POST
+- APPROVE_RUN
+- REVERSE_RUN
+- LIST operations
 
-### Production
+## SALES TARGET E2E STATUS
 
-Added performance indexes without changing Business Logic:
+Transactionally verified:
 
-```sql
-CREATE INDEX idx_orders_company_date_sales_targets
-  ON public.orders (company_id, order_date);
+- Create target = 10,000: PASS.
+- Change assignment target = 15,000: PASS.
+- Approve plan: PASS.
+- Preview: PASS.
+- POST: PASS.
+- Repeated POST with same operation_id: duplicate protection PASS.
+- Clone plan and assignments: PASS.
+- Test data rolled back.
 
-CREATE INDEX idx_order_details_order_item_sales_targets
-  ON public.order_details (order_id, item_id);
-```
+## INVENTORY / PHYSICAL STOCK
 
-Both indexes were verified in Production after deployment.
+Canonical Physical Stock engine remains:
 
-No Sales Targets business data was created or altered by this session.
+`post_stock_movement`
 
-### Frontend Source — Owner responsibility
+No change to that contract in this session.
 
-The current source proves that `RW_SalesTargetsMain` exists, but the source does not explicitly export it to `window` after the module closes.
+Previously established stock identity facts remain:
+- `items.item_code` is globally UNIQUE.
+- `stock_branches` is UNIQUE on `(branch_id,item_id)`.
 
-A fresh runtime error was supplied:
+No speculative mass cleanup of the previously observed cross-company fixture-like rows was executed.
 
-`Uncaught ReferenceError: RW_SalesTargetsMain is not defined`
+## IMPORTANT OPEN ITEMS
 
-The safest current surgery is therefore an explicit export at source line 1900 rather than rewriting the module or repeating previous logic changes.
+1. Mother System `main.html` still needs fresh, exact, current-file anchors before any surgical Loyalty/Sales Targets frontend patch.
+2. Fresh browser-incognito Console/Network evidence is still not available from this environment.
+3. Loyalty Edge/Production engine exists, but the Mother UI integration is not proven closed.
+4. Loyalty integration with the final invoice/return lifecycle is not yet proven as end-to-end in the live browser path.
+5. Canonical Git migration/source records for the new Loyalty Production objects still need explicit repository reconciliation before repository reproducibility can be called complete.
+6. `forensic_main_assembly.yml` logical contract is known, but physical current file target was not safely line-addressed in this session.
 
-Prepared Owner Surgery:
+## NEXT CLOSURE ORDER
 
-```javascript
-    };
-})();
-window.RW_SalesTargetsMain = RW_SalesTargetsMain;
-function _rwCompanyId() {
-```
+1. Re-acquire exact current `main.html` body through EOF with line-addressable evidence.
+2. Find current exact Loyalty/Sales Targets UI anchors in that version only.
+3. Produce owner-executed surgical frontend patch with exact start/end markers and current line numbers.
+4. Wire Mother UI to `loyalty-engine`.
+5. Verify invoice/return integration with Loyalty in Production.
+6. Browser E2E: Console + Network + DB outcome.
+7. Reconcile canonical Git migrations and Edge source.
+8. Only then update status to 100% Closed.
 
-The current `renderDashboard` at line 1423 is also prepared for a full UX upgrade that keeps the current RPC/state-machine contract unchanged.
+## REPORT
 
-## CONSOLE DIAGNOSTIC
+Current session report:
+`doc/Draft/Reprots/Report188_LOYALTY_TRANSACTION_ENGINE_AND_SALES_TARGETS_CLOSURE_20260915.md`
 
-### Root runtime error
-
-`RW_SalesTargetsMain is not defined`
-
-Current Git contains the module declaration. Therefore the error is not proven to be a missing Sales Targets engine in Current Source.
-
-Most likely remaining boundary:
-- served asset differs from Current HEAD, or
-- global exposure is not explicit in the actual execution scope.
-
-The proposed explicit `window.RW_SalesTargetsMain` export closes the second risk without changing business logic and also provides a clean verification point for the first.
-
-### Non-blocking warning
-
-`cdn.tailwindcss.com should not be used in production`
-
-This remains a warning. It is not the cause of the Sales Targets runtime error.
-Removing the CDN without generating equivalent compiled CSS was intentionally rejected because the mother file uses extensive Tailwind utility classes.
-
-### Favicon
-
-`/favicon.ico 404` is unrelated to Sales Targets.
-It remains separate from this surgery to avoid mixing unrelated UI changes.
-
-## SALES TARGETS — UX DIRECTION
-
-The existing source already supports:
-
-- Plans.
-- Plan approval/closure/cancellation.
-- Assignment management.
-- Active/inactive assignments.
-- Preview.
-- Posting.
-- Run approval.
-- Reversal with idempotency.
-- Dashboard totals/ranking/trend.
-- Realtime subscriptions.
-
-The prepared UX upgrade changes presentation only to add:
-
-- Executive KPI hierarchy.
-- Primary metric progress.
-- Remaining target.
-- Time-pace comparison.
-- Performance health indicator.
-- Progress bars for assignments and ranking.
-- Stronger empty states.
-- Better visual separation between planning, execution, and results.
-
-No state transition or permission contract is changed.
-
-## CURRENT E2E STATUS
-
-### Proven
-
-- Current HEAD/Parent/Parent-of-parent.
-- Current mother blob.
-- Current Sales Targets source anchors.
-- Current EOF line and closing sequence.
-- Current Production Sales Targets RPC inventory.
-- Current Production data counts.
-- Current Production index deployment.
-- Current forensic assembly path.
-
-### Not proven
-
-- Fresh browser-incognito run after current HEAD.
-- Served-source hash comparison against blob `8bf3...`.
-- Fresh Console/Network capture after the Owner surgery.
-
-This environment cannot independently create the requested incognito browser session with DevTools capture.
-
-## REPORTS
-
-Current report:
-`doc/Draft/Reprots/Report187_SALES_TARGETS_UX_CONSOLE_E2E_20260915.md`
-
-Previous reports remain untouched and historical.
-
-## NEXT EXACT CHECKPOINT
-
-1. Owner applies the explicit global export at source line 1900.
-2. Owner replaces the current `renderDashboard` function beginning at line 1423 with the prepared UX version from Report187.
-3. Deploy exactly `companies/company-1/main.html`.
-4. Verify served source is Current HEAD artifact or newer.
-5. Open Sales Targets.
-6. Press `تحديث`.
-7. Verify `RW_SalesTargetsMain is not defined` is gone.
-8. Capture Console + Network evidence.
-9. Only after that mark Mother Sales Targets Browser E2E closed.
-
-Do not reopen already-fixed Production or previous Sales Targets frontend surgeries without fresh evidence.
+Previous reports are historical and remain untouched.
