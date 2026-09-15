@@ -1,6 +1,6 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-15 19:56 UTC
+**Last reconciled:** 2026-09-15 20:30 UTC
 
 ## SOURCE OF TRUTH
 
@@ -37,13 +37,13 @@ Parent message:
 Current mother blob:
 `bc268b9bb350991df64221e7f99b958264fb8d5f`
 
-HEAD changes the first HTML timestamp only. The direct parent contains a previous Purchase button syntax repair near line 9577.
+HEAD changes the first HTML timestamp only. The direct parent contains the previous Purchase button syntax repair near line 9577.
 
 ## CURRENT MOTHER FILE / EOF
 
-Current Mother is the sole execution source. GitHub confirms the current blob identity above.
+Current Mother is the sole execution source.
 
-The connector does not currently provide a reliable complete line-map for this very large blob through range retrieval, therefore no new line number is invented.
+The current large blob was re-read through the GitHub resource and source-line ranges were used for the Purchase block. The connector does not reliably expose the entire huge file as a single line-mapped payload in every range call, but the current content itself was inspected and the Purchase anchors below were taken from that CURRENT source resource.
 
 Previously proven EOF remains:
 
@@ -53,39 +53,23 @@ Previously proven EOF remains:
 </html>
 ```
 
-## CURRENT FORENSIC PURCHASE BLOCKER
+## CURRENT FORENSIC PURCHASE SOURCE
 
-Known current Browser error:
+Current Purchase source sequence confirmed:
 
-```text
-main:9263 Uncaught SyntaxError: Unexpected string (at main:9263:65)
-```
+- `createRequest()` begins at source line **9278**.
+- Its malformed line separator is the two-line sequence at **9292–9293**.
+- The approval button is inside `requests(host)` immediately before the function at 9320+ and must keep the corrected `type="button"` form.
+- `createRFQ()` begins at source line **9373**.
+- `createQuotation()` begins at approximately **9465** in the same CURRENT source sequence.
+- Current purchase modal functions are later in the same `RW_PurchaseGold` block through `createInvoice`, `createReturn`, `createPayment`, `reports`, and `settings`.
 
-Current-source root cause previously re-proven:
-
-```javascript
-(x.status === 'PendingApproval' || x.status === 'Draft'
-  ? '<button onclick="RW_PurchaseGold.approveRequest(\\'' + esc(x.id) + '\\')" class="px-3 py-1 rounded-lg bg-blue-600 text-white">اعتماد</button>'
-  : '') +
-```
-
-Five additional malformed PurchaseGold action strings remain identified:
-
-`sendRFQ`
-`acceptQuotation`
-`convertQuotation`
-`postInvoice`
-`postReturn`
-
-`RW_PurchaseGold.createRequest()` also contains the malformed separator sequence previously identified at approximately `9285–9286`.
-
-The exact owner surgical replacements are preserved in:
-
-`doc/Draft/Reprots/Report199_MOTHER_E2E_PURCHASE_SYNTAX_FORENSIC_20260915.md`
+The exact owner patch is recorded in:
+`doc/Draft/Reprots/Report201_PURCHASE_MODAL_SURGICAL_CLOSURE_20260915.md`
 
 ## FORENSIC ASSEMBLY
 
-`forensic_main_assembly.yml` is already correct and remains:
+`forensic_main_assembly.yml` remains correct:
 
 ```yaml
 source_of_truth:
@@ -101,7 +85,7 @@ No path correction was necessary.
 
 ## CURRENT PRODUCTION PURCHASE INFRASTRUCTURE
 
-Production currently contains the complete purchase table family:
+Production contains the complete purchase table family:
 
 `purchase_requests`
 `purchase_request_details`
@@ -126,12 +110,16 @@ Production currently contains the complete purchase table family:
 `purchase_invoice_aging`
 `purchase_settings`
 
-At reconciliation time these tables were almost entirely empty in Production; no real purchase transaction dataset existed to count as E2E production data.
+Current Production row counts at reconciliation remain effectively empty for the transactional purchase family, so no fake E2E dataset has been treated as real purchase history.
 
-Verified purchase RPCs include:
+## VERIFIED PURCHASE RPC CONTRACT
+
+Current Production has these purchase RPCs:
 
 `purchase_create_request_atomic`
+`purchase_submit_request_atomic`
 `purchase_approve_request_atomic`
+`purchase_reject_request_atomic`
 `purchase_create_rfq_atomic`
 `purchase_send_rfq_atomic`
 `purchase_create_quotation_atomic`
@@ -142,113 +130,180 @@ Verified purchase RPCs include:
 `purchase_create_return_atomic`
 `purchase_post_return_atomic`
 `purchase_post_payment_atomic`
+`purchase_cancel_document_atomic`
+`purchase_get_dashboard`
+`purchase_get_reports`
+`purchase_set_settings_atomic`
+`purchase_next_code`
+`receive_purchase_atomic`
+`save_purchase_order_atomic`
 
-## SESSION 2026-09-15 — REPORT200
+The principal purchase write RPCs are executable by `service_role` and the Mother runtime reaches them through the authenticated `save-purchase-order` Edge function.
+
+## SESSION 2026-09-15 — REPORT201
 
 ### Production changes executed
 
-1. `purchase_submit_request_atomic` deployed.
-2. `purchase_reject_request_atomic` deployed.
-3. `purchase_cancel_document_atomic` deployed.
-4. `purchase_get_dashboard` deployed.
-5. `purchase_quotation_comparison` view was aligned to show supplier/quotation/item price ranking.
-6. `purchase_supplier_balance` view was aligned to combine supplier ledger and open purchase invoice balance.
+1. `purchase_set_settings_atomic(company_id, actor, settings)` was created and deployed.
+2. `purchase_get_reports(company_id, as_of_date)` was created and deployed.
+3. `save-purchase-order` Edge Function was redeployed as **version 6** with JWT required.
+4. Version 6 routes Settings and Reports to the new authoritative RPCs rather than direct table mutation/calculation.
+5. Version 6 preserves authenticated-user Company context and the existing purchase operations.
 
-These changes were made in Production because the underlying purchase infrastructure already existed and the missing controls were functional backend gaps, not a reason to create duplicate tables.
+### Functional design decision
 
-### What was deliberately not changed
+No duplicate purchase tables were created. The existing 22-table purchase model already covers the lifecycle.
 
-`erp-frontend/companies/company-1/main.html` was not modified by the assistant.
-
-No Inventory writer, Order/Runsheet lifecycle, Auth, or stock-voucher Supplier Return flow was changed as part of the Purchase Modal task.
-
-No duplicate purchase table family was created.
-
-## PURCHASE MODAL TARGET
-
-The functional target remains:
-
-```text
-Purchase Request
-→ Approval
-→ RFQ
-→ Multi-supplier replies
-→ Quotation comparison
-→ Accepted quotation
-→ Purchase Order
-→ Receipt
-→ Purchase Invoice
-→ Post / matching
-→ Supplier Payment / allocation
-→ Return / credit linkage
-→ Reports
-→ Settings
-```
-
-The current database already contains the necessary structural entities and policy controls for this lifecycle.
-
-## CURRENT OWNER ACTION — MOTHER FILE
-
-The owner must first close the parser blocker before functional modal E2E.
-
-Exact surgical action:
-
-1. In `requests(host)` at the confirmed Browser error `9263`, replace the malformed `approveRequest` three-line block using Report199 Section 6.
-2. In `RW_PurchaseGold.createRequest()`, replace the malformed `raw.split` two-line sequence using Report199 Section 7, or replace the whole function with the complete Section 9 version.
-3. In `sendRFQ`, `acceptQuotation`, `convertQuotation`, `postInvoice`, and `postReturn`, replace the malformed escape strings using Report199 Section 8.
-
-Do not use historical fragments as the editing source.
+No Inventory writer or Order/Runsheet engine was changed during this UI closure unit.
 
 ## CURRENT E2E STATUS
 
 ```text
 Current Git/Parent                 = VERIFIED
 Current Mother blob               = VERIFIED
+Current Mother source anchors     = VERIFIED
 Assembly Source of Truth          = VERIFIED
 Production purchase schema        = VERIFIED
 Purchase RPC foundation           = VERIFIED
-Purchase control extensions      = DEPLOYED
-Current parser blocker            = PROVEN
-Owner Mother edit                 = REQUIRED
+Purchase settings RPC             = DEPLOYED
+Purchase reports RPC              = DEPLOYED
+save-purchase-order Edge v6       = DEPLOYED
+Mother parser blocker             = OWNER PATCH REQUIRED
+Professional modal UI             = OWNER PATCH REQUIRED
 Fresh Browser Console             = NOT YET PROVEN CLEAN
+Fresh Browser Network             = NOT YET PROVEN
 Purchase functional E2E           = OPEN
-Gold/Diamond purchase modals      = OPEN
+Gold/Diamond Purchase closure     = OPEN until owner merge + fresh E2E
 Overall task                      = OPEN
 ```
 
-## IMPORTANT GOVERNANCE RULE
+## OWNER SURGICAL ACTION — MOTHER FILE
 
-وجود Backend foundation لا يساوي اكتمال الـModal.
-وجود Modal UI لا يساوي اكتمال Business Workflow.
-وجود static analysis لا يساوي Production PASS.
-وجود Browser result قديم لا يساوي Browser PASS حالي.
+The assistant must not modify Mother directly.
 
-كل closure يجب أن يمر:
+### 1. Parser blocker
+
+Current source line **9292–9293** inside `RW_PurchaseGold.createRequest()` is malformed:
+
+```javascript
+        raw.split('\
+').forEach(function (line) {
+```
+
+Delete these two complete physical lines and insert exactly:
+
+```javascript
+        raw.split('\n').forEach(function (line) {
+```
+
+### 2. Purchase approval action string
+
+Inside `requests(host)` keep this exact corrected button line:
+
+```javascript
+          ? '<button type="button" onclick="RW_PurchaseGold.approveRequest(\'' + esc(x.id) + '\')" class="px-3 py-1 rounded-lg bg-blue-600 text-white">اعتماد</button>'
+```
+
+### 3. Remaining action-string blockers
+
+Inside the CURRENT Mother source, correct the onclick escape in:
+
+`sendRFQ`
+`acceptQuotation`
+`convertQuotation`
+`postInvoice`
+`postReturn`
+
+The required final form is:
+
+```javascript
+onclick="RW_PurchaseGold.<FUNCTION>(\'' + esc(x.id) + '\')"
+```
+
+Do not change surrounding business logic.
+
+### 4. Modal UI upgrade
+
+After parser clean, replace the existing shallow modal bodies in:
+
+`createRequest`
+`createRFQ`
+`createQuotation`
+`createInvoice`
+`createReturn`
+`createPayment`
+
+and upgrade the `reports` / `settings` views using the exact current functions and anchors in Report201.
+
+The replacement target is:
+
+`structured ERP form → validated fields → meaningful line entry → totals/summary → authoritative API action → refresh`
+
+not a static textarea/CRUD dialog.
+
+## PRODUCTION / UI CONTRACT
+
+Request:
+`purchase_create_request_atomic`
+
+RFQ:
+`purchase_create_rfq_atomic`
+
+Quotation:
+`purchase_create_quotation_atomic`
+
+Invoice:
+`purchase_create_invoice_atomic`
+
+Return:
+`purchase_create_return_atomic`
+
+Payment:
+`purchase_post_payment_atomic`
+
+Settings:
+`purchase_set_settings_atomic`
+
+Reports:
+`purchase_get_reports`
+
+Physical stock remains outside the purchase UI and is controlled by the existing inventory architecture.
+
+## GOVERNANCE RULE — DO NOT REGRESS
 
 `CURRENT GIT → CURRENT SOURCE → CURRENT PRODUCTION → CURRENT DATABASE → CURRENT DEPLOYMENT → CURRENT BROWSER → CURRENT NETWORK → VERIFY → CLOSE`
+
+Backend foundation does not equal modal completion.
+Modal completion does not equal Browser E2E.
+Browser E2E does not equal Production closure without current network/database evidence.
 
 ## NEXT CTO / ASSISTANT START HERE
 
 ```text
-1. Re-read CURRENT_STATE.
-2. Verify current Git HEAD and direct parent.
-3. Verify current Mother blob.
-4. Verify current Production deployment.
+1. Re-read this CURRENT_STATE.
+2. Verify CURRENT Git HEAD + direct parent.
+3. Verify current Mother blob and current source anchors.
+4. Verify current Production RPC/Edge versions.
 5. Verify current Browser/Console/Network evidence.
-6. Close the proven parser blocker first.
-7. Run fresh PurchaseGold E2E.
-8. Open exactly one modal Closure at a time.
-9. For every modal: UI → validation → RPC/Edge → DB transition → history/audit → refresh → Network.
-10. Do not invent backend tables when current schema already provides the responsibility.
-11. Do not modify the Mother directly; provide exact owner surgical replacement.
-12. After each proven closure, re-read Current Source and Current Production.
-13. Move directly to the next genuinely open closure.
+6. Close the parser blocker first.
+7. Open one Purchase modal only.
+8. Test UI validation.
+9. Test Edge/RPC.
+10. Verify DB record + status history/audit + downstream relationship.
+11. Refresh Mother and confirm the result is visible.
+12. Verify network response and zero console errors.
+13. Close the modal closure 100%.
+14. Reconcile Git/Production again.
+15. Move to the next genuinely open closure.
 ```
 
 ## DOCUMENTATION
 
 Latest session report:
-`doc/Draft/Reprots/Report200_MOTHER_PURCHASE_MODALS_GOLD_DIAMOND_FORENSIC_20260915.md`
+`doc/Draft/Reprots/Report201_PURCHASE_MODAL_SURGICAL_CLOSURE_20260915.md`
 
 Previous forensic parser report:
 `doc/Draft/Reprots/Report199_MOTHER_E2E_PURCHASE_SYNTAX_FORENSIC_20260915.md`
+
+Previous Purchase forensic report:
+`doc/Draft/Reprots/Report200_MOTHER_PURCHASE_MODALS_GOLD_DIAMOND_FORENSIC_20260915.md`
