@@ -1,6 +1,6 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-15 12:58 UTC
+**Last reconciled:** 2026-09-15 17:10 UTC
 
 ## SOURCE OF TRUTH
 
@@ -22,19 +22,20 @@ Historical fragments only:
 
 Repository: `papamohammed77-glitch/erp-frontend`
 Branch: `main`
-Latest known application HEAD before test-infrastructure commit: `66ed7f2c58fc1cd97526d6ea5b12116961102c9f`
-Direct parent: `27cfa8c580565942c5497ebf5ffe623eb0768aaa`
-Parent of parent: `24e0124bedf6356103cb28bf365cef8e46be8027`
-Current mother blob at the application HEAD: `3cd3af5cd32891e88ed32b70f1d42db06fa35667`
+Current HEAD: `f858fb2f909a074dfe97b90134ef5e05b5592cd9`
+HEAD message: `Update comment timestamp in main.html`
+Direct parent: `5767266ffdc853846193494db6d49ece19c3ef7f`
+Parent message: `Refactor button generation loop in main.html`
+Parent of parent: `9b39626e8679e35b8215adf2ba4977b838e1f5d2`
 
-A new test-infrastructure commit was added after that application HEAD:
-`afbdd46b2bcf503bcf3b92b5ad1da97ed2495ebd`
+Current mother blob:
+`a530b7adb2d590e0f7f476ce8c81f33dcd186e92`
 
-It adds only `.github/workflows/browser_e2e_mother_20260915.yml` and does NOT modify `companies/company-1/main.html`.
+The direct parent closed the earlier button-generation escaping defect. Do not reopen or repeat that fix without new current evidence.
 
 ## CURRENT MOTHER FILE EVIDENCE
 
-تم تثبيت current mother blob مباشرة من Git.
+تمت إعادة مطابقة الملف الأم الحالي من Current Git، مع اعتبار هذا الملف وحده مصدر التنفيذ.
 
 EOF الحالي:
 
@@ -44,116 +45,63 @@ EOF الحالي:
 </html>
 ```
 
-Current blob search:
+لا يجوز استخدام أرقام أسطر من Report196 كمرجع حالي. أي surgical anchor يجب أن يُشتق من current mother source نفسه.
+
+## CURRENT FORENSIC BLOCKER
+
+Current Browser Console reports:
 
 ```text
-قيد التطوير  = 0 matches
-جاري التطوير = 0 matches
+main:9263 Uncaught SyntaxError: Unexpected string (at main:9263:65)
 ```
 
-لا يجوز اختراع line numbers لملف ضخم عندما لا يعيد connector range موثوقًا؛ استخدم exact textual anchors من current source.
+داخل `RW_PurchaseGold.createRequest()` يوجد anchor parser-level حول:
+
+```javascript
+raw.split('\
+').forEach(function (line) {
+```
+
+والتصحيح الجراحي المحدد هو:
+
+```javascript
+raw.split('\n').forEach(function (line) {
+```
+
+لا يوجد دليل حالي يبرر Backend/Database change لهذا blocker.
+
+Tailwind CDN warning is separate and non-blocking for this Closure.
 
 ## CURRENT ASSEMBLY
 
-`forensic_main_assembly.yml` الحالي يثبت:
+`forensic_main_assembly.yml` الحالي:
 
 ```yaml
-repository: papamohammed77-glitch/erp-frontend
-path: companies/company-1/main.html
-ref: main
-mode: published_main_is_authoritative
-fragment_mode: historical_reference_only
+version: 3
+project: rawaea-erp
+source_of_truth:
+  repository: papamohammed77-glitch/erp-frontend
+  path: companies/company-1/main.html
+  ref: main
+assembly_status:
+  mode: published_main_is_authoritative
+  fragment_mode: historical_reference_only
 ```
 
 لا يوجد تعارض مثبت في Source of Truth path.
 
-## CURRENT SALES DECISION CENTER
+## CURRENT BROWSER E2E
 
-HEAD الحالي أضاف في Navigation:
+Browser click-by-click E2E = OPEN.
 
-```javascript
-{ view: 'sales-decision-center', label: 'مركز قرار المبيعات', perm: ['sales_manager','sales_supervisor','general_manager','reports'] }
-```
+The existing Browser gate is:
+`.github/workflows/browser_e2e_mother_20260915.yml`
 
-كما أضاف module مستقل: `RW_SalesDecisionCenter`.
+The older successful/in-progress run must not be promoted to current PASS when it targets an older mother state.
 
-Production snapshot verified previously:
+Closure for the current syntax blocker requires a fresh browser run after the owner applies the exact surgical edit and publishes the current mother.
 
-```text
-sales_decision_policies      = 1
-sales_decision_evaluations   = 0
-sales_decision_approvals     = 0
-sales_decision_pending       = 0
-```
-
-## CURRENT LOYALTY STATUS
-
-Production Loyalty backend/engine remain CLOSED by prior verified evidence unless new current evidence proves otherwise.
-
-Current mother requires owner-side Browser-facing E2E verification of the published Loyalty UI before any new Loyalty patch is justified.
-
-Current-source anchors:
-
-```javascript
-function renderConfig(){
-```
-
-through the complete function ending immediately before:
-
-```javascript
-function renderRewards(){
-```
-
-Do NOT recreate Loyalty tables, Edge Functions, or backend engine without new proven defect evidence.
-
-## BROWSER E2E
-
-`Browser click-by-click E2E = OPEN`.
-
-A real Browser E2E infrastructure gate has now been created in:
-
-```text
-.github/workflows/browser_e2e_mother_20260915.yml
-```
-
-Test-infrastructure commit:
-`afbdd46b2bcf503bcf3b92b5ad1da97ed2495ebd`
-
-First run:
-`34971719855`
-
-Last verified state:
-
-```text
-Checkout current Source of Truth = SUCCESS
-Setup Node                        = SUCCESS
-Install Playwright               = IN PROGRESS
-```
-
-The final browser conclusion was not available within the execution window used for this state update.
-
-Therefore:
-
-```text
-Browser infrastructure = CREATED
-Browser click-by-click E2E = OPEN
-```
-
-Static/Git/DB evidence must never be promoted to Browser PASS.
-
-## TEST SCOPE OF NEW BROWSER GATE
-
-The new Playwright gate:
-
-- checks the exact current mother source from Git when no deployed URL is supplied;
-- supports an explicit deployed URL through `workflow_dispatch`;
-- captures HTTP status, title, visible buttons, login form presence, console errors, and page errors;
-- rejects incomplete markers;
-- keeps the mother file unchanged.
-
-This is a repeatable execution gate, not a claim that the published Production browser flow is already closed.
-
-## PRODUCTION INVENTORY GOVERNANCE CONTEXT
+## CURRENT PRODUCTION INVENTORY CONTEXT
 
 Physical stock contract remains:
 
@@ -165,46 +113,86 @@ post_stock_movement
 stock_branches + inventory_log
 ```
 
-No new parallel Physical Stock Engine is authorized.
+No Production change was justified or made for the current mother parser blocker.
 
-Verified schema facts include:
-- `items.item_code` UNIQUE globally.
-- `stock_branches` UNIQUE `(branch_id,item_id)`.
-- `receiving.operation_id` UNIQUE.
-
-Previous cross-company item metadata anomalies remain data-hygiene evidence and must be revalidated before destructive cleanup.
+Previous Production inventory governance work remains closed unless a new current defect is proven.
 
 ## EXECUTION RECORD
 
 Latest report:
-`doc/Draft/Reprots/Report194_BROWSER_E2E_EXECUTION_20260915.md`
+`doc/Draft/Reprots/Report197_MOTHER_E2E_SYNTAX_BLOCKER_20260915.md`
 
-Previous reports remain unchanged and Historical/Reference only.
+Report196 remains Historical/Reference and is not a current-state authority.
+
+## OWNER SURGICAL ACTION — CURRENT
+
+In:
+`companies/company-1/main.html`
+
+Within:
+`RW_PurchaseGold.createRequest()`
+
+At current Console location:
+`line 9263`
+
+Find the complete two-line malformed element:
+
+```javascript
+raw.split('\
+').forEach(function (line) {
+```
+
+Delete those two lines together and replace them with the complete two-line element:
+
+```javascript
+raw.split('\n').forEach(function (line) {
+```
+
+Do not alter the remainder of the function for this blocker.
+
+## NEXT REQUIRED VERIFICATION
+
+```text
+Owner applies exact replacement
+→ publish current main.html
+→ verify published URL is current mother
+→ run Browser E2E
+→ SyntaxError = 0
+→ Page Errors = 0
+→ Login visible
+→ Login succeeds
+→ authenticated shell visible
+→ first navigation succeeds
+→ Network checked
+→ current Git blob re-read
+→ EOF re-verified
+→ close blocker
+→ move to next open E2E unit
+```
 
 ## START-HERE — NEXT CTO
 
 1. Read this CURRENT_STATE.md.
-2. Get CURRENT frontend HEAD and direct parent.
-3. Verify current mother blob SHA and EOF.
+2. Reconcile CURRENT frontend HEAD and direct parent.
+3. Verify current mother blob and EOF.
 4. Verify `forensic_main_assembly.yml`.
-5. Query current Production for the exact feature under test.
-6. Run the new Browser E2E gate.
-7. Never convert static/source/DB PASS into Browser PASS.
-8. For mother defects, derive exact current anchors and provide a complete owner-side delete/replace block; do not edit the mother directly.
-9. For Production defects, implement directly, test transactionally, then runtime-verify.
-10. After Browser E2E closes with Browser + Console + Network evidence, move directly to the next open roadmap unit.
-11. Do not reopen already-closed backend work without new evidence.
+5. Read current Browser/Console/Network evidence.
+6. Locate the exact current source anchor; never reuse stale report line numbers.
+7. For mother defects, provide owner-side exact delete/replace instructions; do not edit the mother directly.
+8. For Production defects, implement directly only after current evidence proves the defect.
+9. Never reopen a closed Closure without new evidence.
+10. After current blocker closes, move directly to the next genuinely open E2E item.
 
 ## CURRENT CLOSURE
 
 ```text
-Git/Source Reconciliation            = VERIFIED
-Production SDC Snapshot              = VERIFIED
-Mother EOF                           = VERIFIED
-forensic_main_assembly               = VERIFIED
-Placeholder scan                     = VERIFIED (0 exact matches)
-Browser E2E infrastructure            = CREATED
-Browser E2E run 34971719855           = IN PROGRESS at last verified poll
-Browser Click-by-Click E2E            = OPEN
-Overall current session closure       = OPEN
+Current Git/Parent Reconciliation       = VERIFIED
+Current Mother Source / EOF             = VERIFIED
+forensic_main_assembly                  = VERIFIED
+Current SyntaxError                     = PROVEN
+Surgical Fix                            = READY
+Production Change for this blocker      = NOT REQUIRED
+Owner Application                       = REQUIRED
+Current Browser E2E                     = OPEN
+Overall current session closure         = OPEN
 ```
