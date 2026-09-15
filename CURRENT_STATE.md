@@ -1,27 +1,30 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-15 18:12 UTC Production snapshot; CURRENT Git/Parent/Mother reconciled in the same session.
+**Last reconciled:** 2026-09-15 — current Git / current Mother source / current Production / current Database / current Deployment evidence were rechecked in this session.
 
 ## SOURCE OF TRUTH
 
-التقارير Historical/Reference فقط، ولا تُعامل كحالة حالية.
+Historical reports are reference-only. They are not current state.
 
-الحقيقة المعتمدة:
+The governing truth is:
 `CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE`
 
-ولإغلاق Browser/System E2E يلزم أيضًا:
+Full Browser/System E2E additionally requires:
 `CURRENT BROWSER + CURRENT CONSOLE + CURRENT NETWORK`
 
-**Source of Truth للنظام الأم:**
+**Mother System Source of Truth:**
 `papamohammed77-glitch/erp-frontend/companies/company-1/main.html`
 
 Historical fragments only:
-`Current/PWA/main2/*`, `Original/PWA/main/*`, `New-main`.
+`Current/PWA/main2/*`
+`Original/PWA/main/*`
+`New-main`
 
 ## CURRENT FRONTEND GIT
 
 Repository: `papamohammed77-glitch/erp-frontend`
 Branch: `main`
+
 Current HEAD:
 `befa657277fc013c4fe4d3e326ed8fc5d1040b7b`
 
@@ -37,154 +40,75 @@ Parent message:
 Current Mother blob:
 `bc268b9bb350991df64221e7f99b958264fb8d5f`
 
-HEAD changes the first HTML timestamp only. The direct parent fixes `_openPO` button syntax near line 9577.
+HEAD diff is timestamp-only. Parent contains the previously required `_openPO` onclick syntax correction near source line 9577.
 
-## CURRENT MOTHER / ASSEMBLY
+## CURRENT MOTHER
 
-Current Mother is the sole execution source.
+The current Mother source was extracted directly from the current HEAD and the PurchaseGold block was read as the current source, not from historical fragments.
 
-Current file size from Git tree: 1,205,314 bytes.
+Current PurchaseGold functions:
 
-`forensic_main_assembly.yml` is already correct:
+`createRequest()` — lines 9271–9323
+`createRFQ()` — lines 9365–9414
+`createQuotation()` — lines 9461–9531
+`createInvoice()` — lines 9616–9686
+`createReturn()` — lines 9730–9787
+`createPayment()` — lines 9828–9906
+`reports()` — lines 9908–9949
+`settings()` — lines 9951–9977
+`saveSettings()` — lines 9979–10001
 
-```yaml
-repository: papamohammed77-glitch/erp-frontend
-path: companies/company-1/main.html
-ref: main
-mode: published_main_is_authoritative
-fragment_mode: historical_reference_only
-```
+Current parser/action-string defects described in older reports are not the current blocker; the current source contains the corrected purchase action strings.
 
-No path correction was required.
+Current blocker:
+**Purchase modals are functionally shallow and visually below the Gold/Diamond target.**
 
-Previously proven EOF:
+The current implementation uses basic `swal2-input`, `swal2-select`, and pipe-delimited textareas instead of structured document-entry forms.
 
-```html
-</script>
-</body>
-</html>
-```
+## CURRENT PURCHASE MODAL FINDINGS
 
-## CURRENT FORENSIC PURCHASE SOURCE
+`createRequest` currently collects title/date/items/notes through a textarea. It does not present a real line-item editor or item verification UX.
 
-Confirmed in CURRENT Mother:
+`createRFQ` currently selects request/suppliers/date but does not show inherited request lines or a professional bidders workflow.
 
-- `RW_PurchaseGold` block exists.
-- `requests(host)` contains the purchase request list and approval action.
-- `createRequest()` begins at source line **9278**.
-- `createRequest()` contains malformed `raw.split` at **9292–9293**.
-- `createRFQ()` begins at **9373**.
-- `createQuotation()` is approximately **9465**.
-- `createInvoice`, `createReturn`, `createPayment`, `reports`, `settings` continue in the same `RW_PurchaseGold` block.
+`createQuotation` currently collects lines through `item_code|qty|price|discount|tax` textarea and has no line grid or live totals.
 
-### Current parser blocker
+`createInvoice` currently asks for raw `purchase_order_id` text and uses a textarea instead of an actual PO selector and inherited PO lines.
 
-The current Mother still contains the malformed `approveRequest` escaping associated with the known browser parser failure:
+`createReturn` currently asks for `item_code|qty|reason` and does not display the invoice's received quantity as the return limit.
 
-`main:9263:65 — Uncaught SyntaxError: Unexpected string`
+`createPayment` currently supports only one invoice allocation, despite Production supporting multiple invoice allocations.
 
-Current malformed block:
+`reports` currently reads two views directly and exposes only two report sections, despite Production exposing `purchase_get_reports`.
 
-```javascript
-(x.status === 'PendingApproval' || x.status === 'Draft'
-  ? '<button onclick="RW_PurchaseGold.approveRequest(\\'' + esc(x.id) + '\\')" class="px-3 py-1 rounded-lg bg-blue-600 text-white">اعتماد</button>'
-  : '') +
-```
+`settings` currently exposes only part of `purchase_settings` and does not expose return/payment prefixes, inventory policies, or default branch.
 
-Correct owner replacement:
+## CURRENT PURCHASE PRODUCTION
 
-```javascript
-(x.status === 'PendingApproval' || x.status === 'Draft'
-  ? '<button type="button" onclick="RW_PurchaseGold.approveRequest(\'' + esc(x.id) + '\')" class="px-3 py-1 rounded-lg bg-blue-600 text-white">اعتماد</button>'
-  : '') +
-```
+Project: `fiilmooggumokxanwiyx`
 
-Do not delete:
+Current purchase capability layer:
+`save-purchase-order` — ACTIVE — version 6 — verify_jwt=true.
 
-```javascript
-'</td></tr>';
-```
+Current Purchase schema exists and already includes the required relational entities; no duplicate Purchase tables were justified in this closure.
 
-### `createRequest()` separator defect
-
-Current lines **9292–9293**:
-
-```javascript
-        raw.split('\
-').forEach(function (line) {
-```
-
-Correct line:
-
-```javascript
-        raw.split('\n').forEach(function (line) {
-```
-
-### Other current PurchaseGold action-string defects
-
-The same malformed escape pattern is present in:
-
-`sendRFQ`
-`acceptQuotation`
-`convertQuotation`
-`postInvoice`
-`postReturn`
-
-Correct final pattern:
-
-```javascript
-onclick="RW_PurchaseGold.<FUNCTION>(\'' + esc(x.id) + '\')"
-```
-
-Do not change surrounding business logic.
-
-## CURRENT PRODUCTION PURCHASE INFRASTRUCTURE
-
-Production already contains the purchase relational model; no duplicate purchase tables were justified.
-
-Tables currently present include:
-
-`purchase_requests`
-`purchase_request_details`
-`purchase_rfqs`
-`purchase_rfq_details`
-`purchase_rfq_suppliers`
-`purchase_quotations`
-`purchase_quotation_details`
-`purchase_quotation_comparison`
-`purchase_orders`
-`purchase_order_details`
-`purchase_invoices`
-`purchase_invoice_details`
-`purchase_returns`
-`purchase_return_details`
-`purchase_payments`
-`purchase_payment_allocations`
-`purchase_attachments`
-`purchase_document_links`
-`purchase_status_history`
-`purchase_supplier_balance`
-`purchase_invoice_aging`
-`purchase_settings`
-
-Current Production transactional counts at snapshot `2026-09-15 18:12:31.583834+00`:
+Current transactional counts for the live Company context checked in this session:
 
 ```text
-Company الروائع (00000000-0000-0000-0000-000000000001)
-requests    = 0
-rfqs        = 0
-quotations  = 0
-orders      = 0
-invoices    = 0
-payments    = 0
-returns     = 0
+purchase_requests    = 0
+purchase_rfqs        = 0
+purchase_quotations  = 0
+purchase_orders      = 0
+purchase_invoices    = 0
+purchase_returns     = 0
+purchase_payments    = 0
 ```
 
-No live Purchase dataset is being treated as an E2E fixture.
+No permanent test fixtures were inserted.
 
 ## CURRENT PURCHASE RPC CONTRACT
 
-Production currently exposes the purchase lifecycle through:
+Production currently exposes the required lifecycle through:
 
 `purchase_create_request_atomic`
 `purchase_submit_request_atomic`
@@ -204,15 +128,37 @@ Production currently exposes the purchase lifecycle through:
 `purchase_get_dashboard`
 `purchase_get_reports`
 `purchase_set_settings_atomic`
-`purchase_next_code`
 `receive_purchase_atomic`
-`save_purchase_order_atomic`
 
-Important operation identity contracts are already present in Request, Quotation, Invoice, Return and Payment records.
+Important idempotency contracts already exist in Request, Quotation, Invoice, Return and Payment records.
+
+`receive_purchase_atomic` currently accepts an explicit UUID operation identity and performs duplicate detection through the existing `receiving.operation_id` UNIQUE contract.
+
+## PRODUCTION CHANGE EXECUTED THIS SESSION
+
+Migration applied directly to Production:
+
+`purchase_reports_settings_tenant_hardening_20260915`
+
+Canonical Git migration added:
+
+`supabase/migrations/20260915_purchase_reports_settings_tenant_hardening.sql`
+
+Changes:
+
+1. `purchase_get_reports` now company-scopes `unbilled_receipts` through `purchase_orders`.
+2. `purchase_set_settings_atomic` now validates `default_branch_id` against an active branch belonging to the same company.
+3. Settings RPC now persists:
+   `return_prefix`
+   `payment_prefix`
+   `require_inventory_on_invoice`
+   `require_inventory_voucher_on_return`
+
+Post-migration function definitions were re-read from Production.
 
 ## CURRENT PURCHASE REALTIME
 
-`supabase_realtime` currently includes:
+The current `supabase_realtime` publication includes:
 
 `purchase_requests`
 `purchase_rfqs`
@@ -221,155 +167,96 @@ Important operation identity contracts are already present in Request, Quotation
 `purchase_payments`
 `purchase_returns`
 
-This proves database publication. Mother subscription/refresh behavior still requires browser evidence.
+This proves database publication only. Mother subscription/refresh still requires Browser evidence.
 
-## CURRENT PRODUCTION SECURITY HARDENING
+## CURRENT OWNER PATCH
 
-Migration applied:
+Mother HTML was intentionally NOT modified by the assistant.
 
-`purchase_harden_public_rpc_execution_20260915`
+Prepared complete surgical replacement package:
 
-Direct client execution was removed for these SECURITY DEFINER workflow-control functions:
+`RAWAEA_Purchase_Modal_Owner_Patch_20260915.md`
 
-`purchase_submit_request_atomic`
-`purchase_reject_request_atomic`
-`purchase_cancel_document_atomic`
-`purchase_company_status_history`
+It contains exact replacements for:
 
-Post-change privileges:
+- Purchase realtime subscription helper.
+- Request modal.
+- RFQ modal.
+- Supplier quotation modal.
+- Purchase invoice modal.
+- Purchase return modal.
+- Supplier payment multi-invoice allocation modal.
+- Reports screen through `GET_REPORTS`.
+- Complete Purchase Settings screen.
+- Complete `saveSettings` payload.
 
-```text
-anon          = absent
-authenticated = absent
-service_role  = present
-```
+The exact current line ranges and deletion anchors are documented inside the patch package.
 
-## CURRENT EDGE / CAPABILITY LAYER
+## CURRENT FORENSIC REPORT
 
-Current purchase capability layer:
+`doc/Draft/Reprots/Report203_CURRENT_MOTHER_PURCHASE_MODAL_FORENSIC_20260915.md`
 
-`save-purchase-order`
+Historical reports retained; none were deleted.
 
-Previously verified deployment state: version 6 with authenticated user Company context and purchase workflow routing. Any new version-specific claim must be freshly re-checked.
+## FORENSIC METHOD — REQUIRED FOR NEXT SESSION
 
-## CURRENT E2E GATE
+1. Treat reports as historical evidence, not current state.
+2. Re-read CURRENT_STATE.
+3. Re-read current Git HEAD and direct parent.
+4. Re-open the current Mother source around the exact problem.
+5. Re-open current Production RPCs, schema and Edge deployment.
+6. Identify one Closure Unit.
+7. Use historical code only to recover intent, never to replace current evidence.
+8. Separate owner-only Mother work from Production work.
+9. For Mother edits, provide exact full block with source start/end anchor and current line number.
+10. For Production fixes, use canonical migration then re-read the deployed definition.
+11. Do not create infrastructure that already exists.
+12. Do not repair previously closed defects unless fresh evidence reopens them.
+13. After the Owner merges Mother changes, re-read the current HEAD/blob again.
+14. Run a fresh browser session and capture Console + PageError + Network.
+15. Verify the RPC result, DB state, audit trail and realtime refresh for each critical operation.
+16. Take the Production snapshot at the same time as the final report.
+17. If a report conflicts with Production, Production wins.
+18. Do not declare Gold/Diamond closure before Browser + Network + DB evidence is complete.
 
-```text
-Current Git + Direct Parent      = VERIFIED
-Current Mother blob              = VERIFIED
-Assembly Source of Truth         = VERIFIED
-Production purchase schema       = VERIFIED
-Purchase RPC inventory           = VERIFIED
-Purchase Realtime publication    = VERIFIED
-Production RPC hardening         = CLOSED
-Mother parser                    = OPEN
-Professional modal UI            = OPEN
-Fresh Browser Console             = NOT PROVEN CLEAN
-Fresh Browser Network             = NOT PROVEN
-Purchase functional E2E           = OPEN
-Gold/Diamond Purchase closure     = OPEN
-```
-
-## EXECUTION DECISIONS
-
-No new Purchase tables were created because current Production already contains the required relational model.
-
-No new Purchase Edge Function was created because the current purchase capability layer exists.
-
-No Inventory, Order/Runsheet, Stock Voucher, Accounting or Auth engine was changed merely because the Purchase UI is shallow; no current evidence tied those protected engines to this UI defect.
-
-No fake live purchase history was inserted into Production.
-
-Mother was not modified by the assistant because owner-only frontend responsibility is explicit.
-
-## LATEST FORENSIC REPORT
-
-Created in this session:
-
-`doc/Draft/Reprots/Report202_CURRENT_MOTHER_PURCHASE_E2E_FORENSIC_20260915.md`
-
-Previous reports retained:
-
-`Report199_MOTHER_E2E_PURCHASE_SYNTAX_FORENSIC_20260915.md`
-`Report200_MOTHER_PURCHASE_MODALS_GOLD_DIAMOND_FORENSIC_20260915.md`
-`Report201_PURCHASE_MODAL_SURGICAL_CLOSURE_20260915.md`
-
-## NEXT CTO / ASSISTANT — READ BEFORE ANY ACTION
-
-ابدأ من **آخر حقيقة فقط**. لا تعتبر أي تقرير قديم Current State.
+## CURRENT CLOSURE STATUS
 
 ```text
-1. اقرأ CURRENT_STATE.
-2. ثبّت CURRENT Git HEAD.
-3. افتح DIRECT PARENT واقرأ الـdiff الفعلي.
-4. ثبّت CURRENT Mother blob SHA.
-5. افتح CURRENT Mother source حول المشكلة واقرأ الدالة الكاملة قبل التعديل.
-6. افتح CURRENT Production database مباشرة.
-7. افتح CURRENT Edge deployment مباشرة.
-8. ثبّت CURRENT Browser / Console / Network قبل إعلان E2E.
-9. حدد Closure واحدة فقط.
-10. استخدم Historical Contract لفهم intent فقط، لا لاستبدال Production evidence.
-11. افصل Mother owner work عن Production work.
-12. أصلح Production فقط عندما يثبت defect في Production.
-13. للـMother أعطِ owner exact search/delete/replace block مع start/end anchor ورقم السطر المثبت فقط.
-14. بعد owner merge أعد قراءة CURRENT Git HEAD/blob.
-15. شغّل Fresh Browser وليس tab أو cache قديمًا.
-16. اجمع Console + PageError + Network + HTTP result.
-17. اربط كل action بنتيجة RPC/DB/Status/Audit/Realtime.
-18. خذ Production snapshot في نفس لحظة التقرير.
-19. إذا اختلف التقرير مع Production فـProduction هي الحقيقة.
-20. لا تعيد إصلاح Closure ثبت إغلاقها؛ انتقل لأول Closure مفتوح حقيقي.
-```
-
-## NEXT EXECUTION ORDER
-
-```text
-PARSER CLEAN
-→ REQUEST MODAL
-→ REQUEST APPROVAL
-→ RFQ MODAL
-→ SUPPLIER SELECTION
-→ QUOTATION MODAL
-→ QUOTATION COMPARISON
-→ PO CONVERSION
-→ PURCHASE INVOICE
-→ POST / MATCHING
-→ SUPPLIER PAYMENT
-→ ALLOCATION
-→ RETURN LINKAGE
-→ REPORTS
-→ SETTINGS
-→ FINAL BROWSER E2E
+Current Git/Parent                         VERIFIED
+Current Mother source                      VERIFIED
+Current Production purchase schema         VERIFIED
+Current Production purchase RPC layer     VERIFIED
+Current save-purchase-order deployment    VERIFIED
+Current Purchase Realtime publication     VERIFIED
+Production report hardening               DEPLOYED + VERIFIED
+Production settings hardening             DEPLOYED + VERIFIED
+Current Purchase modal root cause         VERIFIED
+Owner surgical patch                       READY
+Fresh Browser Console                      NOT YET PROVEN
+Fresh Browser Network                      NOT YET PROVEN
+Full Purchase modal E2E                    OPEN
+Gold/Diamond Purchase closure              OPEN UNTIL OWNER MERGE + FRESH E2E
 ```
 
 ## FINAL SELF-AUDIT
 
-### What I proved
+### What is proven
 
-- Current Git HEAD and direct parent.
-- HEAD changed timestamp only.
-- Current Mother blob identity.
-- Current Source of Truth / assembly path.
-- Current Purchase tables and relational infrastructure.
-- Current Purchase RPC layer.
-- Current Realtime publication.
-- Production security hardening of key Purchase workflow-control functions.
-- Current Mother Purchase parser/action-string defects.
-- Current Production Purchase transactional tables are empty for the live Company snapshot used.
+- The current Mother is the actual published Source of Truth.
+- HEAD and direct parent were rechecked.
+- The earlier parser issue is not the current modal blocker.
+- Purchase backend infrastructure already exists.
+- Current Production report/settings defects were hardened.
+- Current Realtime publication exists.
+- The current Purchase UX gap is in the Mother modal implementations.
 
-### What I did not prove
+### What is not proven
 
-- Fresh authenticated browser login.
-- Current Mother parser-clean after owner patch.
-- Full Purchase modal opening/submission in browser.
-- Current browser network waterfall for each purchase modal.
-- Full Purchase lifecycle E2E against real Production records.
-- Final Gold/Diamond UI closure.
+- Owner has not yet merged the new Mother surgical replacements.
+- Fresh Browser execution has not yet been observed.
+- Fresh Console/PageError/Network evidence for the new modal forms does not yet exist.
+- Full live Purchase lifecycle has not yet been executed as a browser E2E.
 
-### Remaining open point
+### Next closure
 
-`Mother parser clean → Purchase modal E2E → Reports → Settings → final synchronization verification`.
-
-### Non-regression rule
-
-Do not change Inventory, Order/Runsheet, Stock Voucher or Accounting engines merely because a Purchase UI is shallow. Those engines remain protected contracts until current evidence proves otherwise.
+`Owner merge → Fresh Browser → Request modal → RFQ modal → Quotation modal → Invoice modal → Return modal → Payment modal → Reports → Settings → Console/Network/DB/Realtime final proof`
