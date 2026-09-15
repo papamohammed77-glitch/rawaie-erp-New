@@ -1,6 +1,6 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-15 06:16 UTC
+**Last reconciled:** 2026-09-15 07:xx UTC
 
 ## SOURCE OF TRUTH
 
@@ -22,188 +22,214 @@ Historical fragments only:
 
 Repository: `papamohammed77-glitch/erp-frontend`
 Branch: `main`
-HEAD: `13425725f48c7decba3403ee631d8e0f2d757b0f`
-Direct parent: `05ebb2d67b29dfe26ad77b6f314942c502e0dd8f`
-Current mother blob: `5267f261f2febcbafeafdce0bb9da89a4a6bc894`
+Latest HEAD after current-session metadata commit: `11b99cab424496b9691e5ad92b36bd83ed7c2664`
+Functional mother source remains unchanged at blob: `dd5516ea75d75e01a95d4782ec92603ecf427d2e`
+Functional Loyalty commit: `716ebf86b3c989a461cbf86151b37fcd0849b0c3`
+Its direct parent: `13425725f48c7decba3403ee631d8e0f2d757b0f`
 
-HEAD message: `Refactor KPI card layout and styles`.
+The `11b99cab...` commit is an accidental empty metadata-only commit; GitHub returned `diff=null` and `files=null`. It did not modify `main.html`.
 
 ## CURRENT MOTHER FILE EVIDENCE
 
-تم فتح الـblob الحالي مباشرة من Git وتمت قراءته chunk-by-chunk حتى EOF.
+تم فتح current mother file من Git blob مباشرة، وقراءة المحتوى إلى EOF. النهاية المثبتة:
 
-- Current line count: 40,857.
-- EOF verified at `</html>`.
-- آخر الجزء المقروء ينتهي فعليًا بـ `</script>`, `</body>`, `</html>`.
-- تم أخذ الـanchors الجراحية من نفس الـblob الحالي، وليس من تقرير قديم.
+```html
+</script>
+</body>
+</html>
+```
 
-Current exact anchors used this cycle:
-- navigation sales submenu: line 1144.
-- `window.RW_SalesTargetsMain = RW_SalesTargetsMain;`: line 1986.
-- `RW_Views.render` permission map starts line 38932 تقريبًا.
-- Sales Target dispatch: line 39071 تقريبًا.
+Current functional Loyalty UI is present in the mother file. Report189's statement that the mother file had no Loyalty UI is STALE and superseded by current Git.
+
+### Current Loyalty anchors
+
+- Sales navigation Loyalty entry: current source around line `1144`.
+- `RW_LoyaltyMain` module starts at the current Loyalty insertion area after the existing Sales Target module.
+- `RW_LoyaltyMain.render()` contains the faulty async ordering around current line `2064`.
+- `window.RW_SalesTargetsMain = RW_SalesTargetsMain;` is after the inserted Loyalty module.
+- Loyalty routing is present in `RW_Views.render`.
+- Permission map contains `'loyalty': 'customers'`.
 
 ## FORENSIC ASSEMBLY
 
-تم إنشاء:
-`doc/Draft/forensic_main_assembly.yml`
+`doc/Draft/forensic_main_assembly.yml` is the canonical reconstruction contract.
 
-ويحدد صراحة:
+It must continue to point to:
 - repository = `papamohammed77-glitch/erp-frontend`
 - path = `companies/company-1/main.html`
 - ref = `main`
 - mode = `published_main_is_authoritative`
 - fragment_mode = `historical_reference_only`
 
+Current verified functional source commit: `716ebf86b3c989a461cbf86151b37fcd0849b0c3`.
+Current direct parent: `13425725f48c7decba3403ee631d8e0f2d757b0f`.
+Current mother blob: `dd5516ea75d75e01a95d4782ec92603ecf427d2e`.
+
 ## PRODUCTION — LOYALTY
 
 Supabase project:
 `fiilmooggumokxanwiyx`
 
-Current tables:
+Name:
+`SMART ERP`
+
+Status:
+`ACTIVE_HEALTHY`
+
+Current core:
+`loyalty_engine_atomic(uuid,text,text,jsonb,text)`
+
+Current Edge capability:
+`loyalty-engine`, version `1`, `verify_jwt=true`.
+
+Current source of truth:
+`loyalty_accounts + loyalty_transactions`
+
+Compatibility cache:
+`customers.loyalty_points`
+
+Legacy compatibility table:
+`loyalty_points`
+
+### Production Loyalty schema verified
+
 - `loyalty_programs`
 - `loyalty_rewards`
 - `loyalty_accounts`
 - `loyalty_transactions`
-- `loyalty_points` (legacy compatibility cache)
+- `loyalty_points`
 
-Current RPC:
-- `loyalty_engine_atomic(uuid,text,text,jsonb,text)`
+### Production integrity changes completed
 
-Security:
-- `SECURITY DEFINER = true`.
-- EXECUTE = service_role only.
-- anon/authenticated direct table grants removed.
-- legacy `loyalty_points` permissive policy removed.
-- audit triggers remain attached to Loyalty tables.
+1. Direct user grants removed from Loyalty tables.
+2. Legacy permissive `loyalty_points` direct policy removed.
+3. `loyalty_transactions_company_operation_uidx` exists for non-null operation IDs.
+4. `trg_loyalty_on_invoiced_order()` exists as Security Definer trigger function.
+5. `trg_orders_loyalty_auto_earn` exists as `AFTER INSERT OR UPDATE OF order_status`, `DEFERRABLE INITIALLY DEFERRED`.
+6. Automatic earning operation identity is deterministic:
+   `AUTO:EARN_ORDER:<company_id>:<order_id>`.
+7. Audit triggers are active on the Loyalty tables.
+8. Canonical production migration source was added to `rawaie-erp-New/supabase/migrations/`.
 
-Current transaction permission model:
-- EARN_ORDER / SYNC_ORDER: Owner, sales supervisors/managers, general manager, POS, telesales, order-taker/orders, van-sales.
-- ADJUST / EXPIRE / REVERSE: Owner/general manager only.
+## LOYALTY FUNCTIONAL VERIFICATION
 
-Data identity:
-- Loyalty source of truth = `loyalty_accounts + loyalty_transactions`.
-- `customers.loyalty_points` = compatibility cache.
+### PASS — Automatic EARN
 
-Current Production data counts:
-`loyalty_programs=0`
-`loyalty_rewards=0`
-`loyalty_accounts=0`
-`loyalty_transactions=0`
+A temporary transactional test created an `Invoiced` order + detail and an Active loyalty program. The deferred order trigger fired after `SET CONSTRAINTS ALL IMMEDIATE` and produced:
 
-No retained E2E test records.
+`EARN`, `points_delta=15`, `balance 0→15`.
+
+The test was rolled back completely.
+
+### PASS — Transaction cycle
+
+Within a temporary transaction:
+
+`SAVE_PROGRAM → LIST_PROGRAMS → AUTO EARN → SAVE_REWARD → DUPLICATE EARN → REDEEM → REVERSE → GET_ACCOUNT`
+
+Result:
+`points_balance=15`, `lifetime_earned=15`, `lifetime_redeemed=10`.
+
+The transaction was rolled back.
+
+### PASS — Production persistence hygiene
+
+Final counts verified:
+
+```text
+loyalty_programs=0
+loyalty_rewards=0
+loyalty_accounts=0
+loyalty_transactions=0
+loyalty_points=0
+```
+
+No E2E data remains.
+
+## CURRENT MOTHER UI GAP
+
+Loyalty navigation, permission map, routing, module, backend capability, and transaction engine are present.
+
+The remaining current UI defect is precise:
+`renderConfig()` executes before `loadPrograms()` completes and is not re-executed after the program list arrives. This leaves the rewards configuration panel on `جاري التحميل...` when no Active program is present at first render.
+
+### OWNER-ONLY SURGICAL PATCH
+
+In `RW_LoyaltyMain.render()`, current area around line `2064`, replace this exact four-line block:
+
+```javascript
+loadPrograms().then(function(){ renderProgramSummary(); }).catch(function(e){ showToast(e.message,'error'); });
+loadCustomerOptions();
+renderConfig();
+subscribeRealtime();
+```
+
+with:
+
+```javascript
+loadPrograms().then(function(){
+    renderProgramSummary();
+    renderConfig();
+}).catch(function(e){ showToast(e.message,'error'); });
+loadCustomerOptions();
+subscribeRealtime();
+```
+
+The owner must apply this to the current published mother file and republish. No other Loyalty navigation/module duplication is authorized.
+
+## IMPORTANT — AUTOMATIC LOYALTY + ORDER LIFECYCLE
+
+Automatic `EARN_ORDER` is now implemented in Production as a deferred order trigger, so order details are available inside the same transaction.
+
+No manual `Earn` operation should be introduced in the Mother UI without a real `order_id`.
+
+Return → Loyalty reversal remains intentionally open until the historical return business contract is reconstructed and the exact reversal/sync rule is proven.
 
 ## SALES TARGETS
 
-Current Production tables:
-- `sales_target_plans`
-- `sales_target_assignments`
-- `sales_target_runs`
-- `sales_target_run_lines`
+No current Production defect was found requiring rework of Sales Targets.
 
-Current RPCs:
-- `sales_target_engine_gateway`
-- `sales_target_engine_atomic`
-- `sales_target_dashboard_atomic`
+Do not rewrite Sales Targets unless a new current defect is proved.
 
-Current model is dynamic; `sales_target_assignments` stores mutable target amount/quantity/gross-profit/weight/active values per plan.
+## CURRENT EXECUTION INCIDENTS
 
-Current Production data counts:
-`sales_target_plans=0`
-`sales_target_assignments=0`
-`sales_target_runs=0`
-
-No current defect was found requiring rework of the Sales Target engine or its Main UI.
-
-## CURRENT MAIN UI GAP
-
-Current `main.html` contains no Loyalty UI/string/functionality.
-
-The exact proven gap is therefore:
-`Mother UI Loyalty Integration = OPEN`
-
-Sales Targets UI already exists and routes through `RW_SalesTargetsMain`; no duplicate Sales Target rewrite is authorized unless a new Production defect is proven.
-
-## PRODUCTION CHANGES THIS CYCLE
-
-1. Removed direct authenticated/anonymous access to Loyalty tables.
-2. Removed the legacy `loyalty_points` permissive policy.
-3. Broadened operational Loyalty EARN/SYNC access to actual sales channels.
-4. Restored the complete `loyalty_engine_atomic` after detecting an accidental incomplete replacement during execution.
-5. Created then removed an unused `loyalty_dashboard_atomic` capability to avoid leaving an unused backend surface.
-6. Revalidated final Loyalty RPC shape and privileges.
-
-## EXECUTION INCIDENT
-
-A faulty attempt temporarily replaced `loyalty_engine_atomic` with an incomplete body. Production read-back detected the defect immediately. The complete engine was restored from the verified current definition, with all existing operations preserved and the intended channel permission change applied.
-
-The incident is retained in Report189 for continuity; it is not hidden.
-
-## OWNER SURGICAL CHANGESET — MAIN.HTML
-
-The owner must change only the current published `main.html`.
-
-### A. Navigation — current line 1144
-
-Insert the exact new Loyalty menu item after the existing `sales-targets` item in the same Sales submenu line.
-
-### B. Permission map — current `RW_Views.render` around 38932–38974
-
-Add:
-`'loyalty': 'customers',`
-
-### C. Routing — current line 39071 approximately
-
-Add immediately above the existing Sales Targets dispatch:
-`if (view === 'loyalty') { RW_LoyaltyMain.render(); return; }`
-
-### D. Module insertion — current line 1986
-
-Insert the full `RW_LoyaltyMain` module immediately above:
-`window.RW_SalesTargetsMain = RW_SalesTargetsMain;`
-
-The complete owner block is recorded in:
-`doc/Draft/Reprots/Report189_LOYALTY_TRANSACTION_ENGINE_AND_SALES_TARGETS_CURRENT_FORENSIC_CLOSURE_20260915.md`
-
-## VERIFICATION STATE
-
-PRODUCTION DATABASE:
-- Loyalty engine shape verified.
-- Loyalty privileges verified.
-- Legacy direct policy verified removed.
-- Current counts verified zero.
-- Sales Target tables/functions verified present and dynamic.
-
-SOURCE:
-- Current mother blob verified.
-- Full read to EOF verified.
-- Current HEAD and parent verified.
-
-BROWSER:
-- No direct user-browser Console/Network evidence available from this environment.
-
-Therefore:
-`Browser E2E = OPEN`
-
-and not PASS.
+1. A prior Loyalty engine incomplete replacement was detected and restored; documented historically in Report189.
+2. A current-session accidental empty commit `11b99cab...` was created in `erp-frontend`; GitHub proved no diff and no file changes. It must not be treated as a source modification.
 
 ## OPEN WORK
 
-1. Owner applies the four surgical Loyalty UI changes to current `main.html`.
-2. Re-publish `erp-frontend/companies/company-1/main.html`.
-3. Browser E2E on the published mother.
-4. Verify `loyalty-engine` network calls, Console, state refresh and DB results.
-5. Integrate automatic EARN_ORDER into the final invoice lifecycle using the order operation identity; do not create manual Earn without a real Order ID.
-6. Define and prove a formal return-point reversal policy before automatic Return -> Loyalty SYNC; do not invent debt behavior.
-7. Keep Sales Targets untouched unless a new current Production defect is proven.
+1. Owner applies the single four-line Loyalty render ordering patch in current `main.html`.
+2. Republish current mother file.
+3. Run Browser Console/Network E2E against published current mother.
+4. Verify Loyalty config panel leaves `جاري التحميل...`, LIST_PROGRAMS/LIST_REWARDS calls return, realtime refresh works, and no Console errors occur.
+5. After Browser E2E closes Mother UI, move to `RETURN → LOYALTY REVERSAL POLICY` and reconstruct the historical contract before touching Production behavior.
+
+## CLOSURE STATUS
+
+```text
+LOYALTY TRANSACTION ENGINE — PRODUCTION BACKEND = 100% CLOSED
+LOYALTY DATABASE INTEGRITY = CLOSED
+LOYALTY EDGE DEPLOYMENT = CLOSED
+LOYALTY TRANSACTION E2E (DB) = PASS
+LOYALTY MOTHER UI = OPEN / ONE SURGICAL PATCH
+BROWSER E2E = OPEN
+GLOBAL LOYALTY = NOT YET FULLY CLOSED
+```
 
 ## NEXT EXACT RESUMPTION POINT
 
-Open current `erp-frontend/companies/company-1/main.html` again and verify the same four anchors against the then-current blob SHA. Then apply only the owner changeset from Report189. After republish, perform Browser Console/Network E2E before declaring Loyalty UI closed.
+Do not start from zero.
 
-## REPORT
+Start by re-reading current `main.html` and verifying its then-current blob SHA. Confirm whether the four-line Loyalty render block still exists. If yes, the only Mother UI change is the four-line replacement above. After owner republish, perform Browser E2E.
 
-Current session report:
-`doc/Draft/Reprots/Report189_LOYALTY_TRANSACTION_ENGINE_AND_SALES_TARGETS_CURRENT_FORENSIC_CLOSURE_20260915.md`
+When UI is closed, next exact backend/business closure is:
+`RETURN → LOYALTY REVERSAL POLICY`.
 
-Previous reports remain untouched and are historical evidence only.
+The next CTO must not infer that Return should deduct loyalty points. First reconstruct historical Return behavior, order settlement, customer financial effect, and the intended loyalty contract.
+
+## REPORTS
+
+Current report:
+`doc/Draft/Reprots/Report190_LOYALTY_TRANSACTION_ENGINE_CURRENT_FORENSIC_CLOSURE_20260915.md`
+
+All previous reports remain historical/reference only.
