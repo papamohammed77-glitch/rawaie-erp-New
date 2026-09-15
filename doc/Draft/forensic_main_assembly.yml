@@ -1,0 +1,22 @@
+version: 1
+status: active
+purpose: canonical assembly/reconstruction contract for the RAWAEA mother system
+source_of_truth:
+  repository: papamohammed77-glitch/erp-frontend
+  path: companies/company-1/main.html
+  ref: main
+  mode: published_main_is_authoritative
+historical_reference_only:
+  - Current/PWA/main2/*
+  - Original/PWA/main/*
+  - New-main
+rules:
+  - reports_are_historical_clues_only
+  - current_git_current_source_current_production_current_database_current_deployment_are_required
+  - owner_applies_surgical_main_file_changes
+  - production_changes_are_executed_and_verified_in_supabase
+  - no_line_anchor_may_be_inherited_from_a_stale_report
+current_verified_commit:
+  head: 13425725f48c7decba3403ee631d8e0f2d757b0f
+  parent: 05ebb2d67b29dfe26ad77b6f314942c502e0dd8f
+  blob: 5267f261f2febcbafeafdce0bb9da89a4a6bc894
