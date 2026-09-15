@@ -1,6 +1,6 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-15 03:xx UTC / current session
+**Last reconciled:** 2026-09-15 current session
 
 ## SOURCE OF TRUTH
 
@@ -22,22 +22,29 @@ Historical fragments only:
 
 Repository: `papamohammed77-glitch/erp-frontend`
 Branch: `main`
-HEAD: `f46dfc8183068d0dbf52c1b3b3c8cdbfc9f8f914`
-Direct parent: `8b02f2158021b6ca4ce44ced756459b037fb1ebe`
-Parent of parent: `70cc69aece9568374a8e86175e6963cae6832c02`
-Current mother blob: `460e6772c365e573bfc69f6c2240ccfe65b51eb2`
+HEAD: `dddf1aaf5a6e2fe6be7b3d89451dede9c1387258`
+Direct parent: `f46dfc8183068d0dbf52c1b3b3c8cdbfc9f8f914`
+Parent of parent: `8b02f2158021b6ca4ce44ced756459b037fb1ebe`
+Current mother blob at HEAD commit: `8bf3ac606cdc2d51c2d705ff5f921e46dbbe6607`
 
-Latest commit `f46dfc...` removed the illegal trailing backslashes from `openAssignmentEditor()`. The older Report184 syntax blocker is now STALE/closed at source level.
+Latest commit `dddf1a...` is the current mother update and already contains the previously requested Sales Targets frontend surgeries. No repeat frontend surgery is justified from the current source alone.
+
+## CURRENT MOTHER / READ STATUS
+
+Current source contains the `RW_SalesTargetsMain` module and the repaired anchors around:
+- ~1309: `RW_SalesTargetsMain` module start.
+- ~1312: `var postOperationIds = {};`.
+- ~1578: Sales Targets action buttons.
+- ~1670: `approvePlan()`.
+- ~1682: `cancelPlan()`.
+- ~1791: `openAssignmentEditor()` reset block.
+- ~1857: `postRun()`.
+
+A fresh visual line-by-line display of every current line to EOF was not reproducible because the GitHub environment truncates the very large blob. No fabricated EOF proof is claimed. Historical reconstruction placed the current EOF around 40265 lines after the latest commit, but this remains a reconstruction rather than a fresh visual dump.
 
 ## FORENSIC PATH
 
-`forensic_main_assembly.yml` is verified current and already points to the published mother.
-
-## CURRENT EOF / READ NOTE
-
-A complete historical read of the previous mother was documented with EOF at line 39847. Commit `8b02...` added 393 net lines and current `f46dfc...` kept line count in the repaired block unchanged, giving reconstructed current EOF 40240.
-
-Because GitHub's large-blob renderer truncated the huge file in this environment, direct display of every current line to EOF was not independently reproducible in the chat tool. This is explicitly NOT claimed as a fresh line-by-line visual proof.
+`forensic_main_assembly.yml` is already aligned to the published mother and remains the correct Source of Truth path. No path change was justified by current evidence.
 
 ## SALES TARGETS — CURRENT PRODUCTION
 
@@ -49,7 +56,7 @@ Production tables:
 - `sales_target_runs`
 - `sales_target_run_lines`
 
-Current business-data counts after E2E cleanup:
+Current business-data counts after transactional E2E cleanup:
 ```text
 plans       = 0
 assignments = 0
@@ -69,67 +76,76 @@ RPCs:
 Supported operations:
 `LIST_PLANS, LIST_ASSIGNMENTS, LIST_RUNS, SAVE_PLAN, SAVE_ASSIGNMENT, CLONE_PLAN, SET_ASSIGNMENT_ACTIVE, APPROVE_PLAN, CLOSE_PLAN, CANCEL_PLAN, PREVIEW, POST, APPROVE_RUN, REVERSE_RUN`
 
-## SALES TARGETS — PRODUCTION FIXES APPLIED
+## SALES TARGETS — PRODUCTION FIXES APPLIED IN CURRENT SESSION
 
-1. Added exact-scope unique index with `NULLS NOT DISTINCT` on `(plan_id, sales_rep_id, branch_id)`.
-2. Replaced `sales_target_dashboard_atomic` so only active assignments participate in assignment results, joins are company-scoped, and company-period actual totals are calculated once to avoid assignment-overlap double counting.
-3. Added `sales_target_run_totals_snapshot()` and trigger `trg_sales_target_run_totals_snapshot` to keep run parent totals aligned with run-line snapshots and plan-period actuals.
+1. Fixed `REVERSE_RUN` idempotency ordering so a retry checks `operation_id` before source-run state. A successful reverse is now repeatable as `duplicate=true` instead of failing because the source run is already `Reversed`.
+2. Fixed `SAVE_PLAN` edit ambiguity by qualifying `sales_target_plans` columns where the PL/pgSQL variable `metric` could collide with the table column.
+3. Existing Sales Targets protections remain in force: company-scoped user/plan/assignment checks, active-assignment dashboard behavior, exact-scope assignment uniqueness, and run totals snapshot trigger.
 
-## SALES TARGETS — VERIFIED PRODUCTION E2E
+## SALES TARGETS — FINAL PRODUCTION E2E
 
-Verified sequence:
-`SAVE_PLAN → SAVE_ASSIGNMENT → DASHBOARD → APPROVE_PLAN → POST → POST duplicate → APPROVE_RUN → REVERSE_RUN → REVERSE duplicate`
+Executed inside a single Production transaction with rollback at the end:
 
-The first consolidated test had a reverse-step failure that was not reproducible after isolation. A committed Production test proved:
-- POST = PASS
-- APPROVE_RUN = PASS
-- REVERSE_RUN = PASS
-- reverse idempotency = PASS
+`SAVE_PLAN → EDIT_PLAN → SAVE_ASSIGNMENT → SET_ASSIGNMENT_ACTIVE(false) → SET_ASSIGNMENT_ACTIVE(true) → DASHBOARD → APPROVE_PLAN → CLOSE_PLAN → CLONE_PLAN → APPROVE_CLONE → POST → POST duplicate → APPROVE_RUN → REVERSE_RUN → REVERSE duplicate → CANCEL_PLAN`
 
-All E2E test data was deleted afterward.
+Final result: PASS.
 
-## CURRENT MOTHER — OWNER SURGERY REQUIRED
+The test included real Production RPC execution and did not persist its test fixtures.
 
-The assistant does not edit `erp-frontend/companies/company-1/main.html` by project governance. Exact owner surgery is recorded in:
-`doc/Draft/Reprots/Report185_SALES_TARGETS_ENGINE_FORENSIC_E2E_20260915.md`
+## FAILED TESTS DURING THIS SESSION
 
-Required changes:
-1. Replace `var postOperationId = null;` with `var postOperationIds = {};`.
-2. Replace the complete `postRun()` function with the Report185 version so operation identity is scoped per plan.
-3. Align `approvePlan()` and `cancelPlan()` guards with `canApprove()` because backend requires approval permission.
-4. Replace the conditional `تفريغ` button with manager-only `خطة جديدة / تفريغ النموذج`.
-5. Add the exact `إعادة ضبط` block to `openAssignmentEditor()` from Report185.
+### Reverse duplicate failure
+Root cause: idempotency lookup was after source status validation.
+Resolution: idempotency lookup moved before source-run state validation.
 
-Already-fixed `RW_UI`, dispatcher, navigation and login syntax must not be reworked.
+### Save plan edit failure
+Root cause: unqualified `metric` inside UPDATE created PL/pgSQL/table-column ambiguity.
+Resolution: table columns qualified explicitly.
 
-## BROWSER E2E STATUS
+Neither failed transactional test left Production test data behind.
 
-`CURRENT BROWSER / CONSOLE / NETWORK` was not independently proven in this environment.
+## CURRENT FRONTEND DECISION
 
-Therefore:
+The historical Report185 owner surgeries are already present in Current HEAD `dddf1...`:
+- `postOperationIds` map.
+- manager-only `خطة جديدة / تفريغ النموذج`.
+- `canApprove()` guards in approval/cancel paths.
+- `إعادة ضبط` in assignment editor.
+- per-plan post operation identity.
+
+Do not reapply them unless new browser/served-source evidence proves the deployed asset differs from Current Git.
+
+The reported browser error:
+`RW_SalesTargetsMain is not defined`
+was not reproducible from the current Git source inspected in this session. Therefore no speculative frontend surgery was performed for it.
+
+## BROWSER / DEPLOYMENT STATUS
+
+Current browser/console/network proof for the exact served page after HEAD `dddf...` remains OPEN.
+
+This environment has no browser-incognito execution capability and no independently verified Cloudflare served-asset snapshot for this session. Therefore:
 ```text
-Backend production closure           = VERIFIED
-Database integrity closure           = VERIFIED
-Current Git/source baseline          = VERIFIED
-Owner frontend surgery               = REQUIRED / PREPARED
-Current browser E2E                  = OPEN
-Full Sales Targets UI closure        = OPEN until owner surgery + browser proof
+Production Sales Targets Engine   = VERIFIED
+Production Sales Targets E2E      = VERIFIED
+Current Git/source baseline       = VERIFIED
+Database cleanup                  = VERIFIED
+Browser/served-source E2E         = OPEN
+Mother UI closure                 = OPEN
 ```
 
-## HISTORICAL FILES
+## REPORTS
 
-`Report183_SALES_TARGETS_FUNCTIONAL_DIAMOND_CLOSURE_20260914.md` and `Report184_LOGIN_SYNTAX_FORENSIC_CLOSURE_20260914.md` remain historical evidence only.
+Current session report:
+`doc/Draft/Reprots/Report186_SALES_TARGETS_CURRENT_PRODUCTION_RECONCILIATION_20260915.md`
 
-## CURRENT SESSION REPORT
-
-`doc/Draft/Reprots/Report185_SALES_TARGETS_ENGINE_FORENSIC_E2E_20260915.md`
+Historical reports remain untouched and are reference-only.
 
 ## NEXT EXACT CHECKPOINT
 
-1. Owner applies the exact `main.html` surgeries from Report185.
-2. Confirm current Git HEAD/SHAs again.
-3. Publish the current mother.
-4. Run fresh browser E2E and capture Console/Network evidence.
-5. Verify Login parser PASS.
-6. Verify Sales Targets create/edit/assignment/approve/post/reverse UI against the Production engine.
-7. Only then mark Mother UI Sales Targets closure 100%.
+1. Start from current HEAD `dddf1aaf5a6e2fe6be7b3d89451dede9c1387258`.
+2. Compare the exact served `main.html` asset to current Git before any further frontend surgery.
+3. Run fresh browser E2E and capture Console + Network evidence.
+4. Verify `RW_SalesTargetsMain` exists in the served page before changing any Sales Targets block.
+5. Only after browser proof, continue functional/visual Sales Targets completion and then move to the next unfinished mother tab.
+
+No earlier-fixed Sales Targets backend or frontend changes should be reopened without current evidence.
