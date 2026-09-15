@@ -27,36 +27,59 @@ Direct parent: `f46dfc8183068d0dbf52c1b3b3c8cdbfc9f8f914`
 Parent of parent: `8b02f2158021b6ca4ce44ced756459b037fb1ebe`
 Current mother blob at HEAD commit: `8bf3ac606cdc2d51c2d705ff5f921e46dbbe6607`
 
-Latest commit `dddf1a...` is the current mother update and already contains the previously requested Sales Targets frontend surgeries. No repeat frontend surgery is justified from the current source alone.
+Latest HEAD already contains the previously approved Sales Targets surgeries. They must not be repeated without new evidence.
 
-## CURRENT MOTHER / READ STATUS
+## CURRENT MOTHER / CURRENT SOURCE EVIDENCE
 
-Current source contains the `RW_SalesTargetsMain` module and the repaired anchors around:
-- ~1309: `RW_SalesTargetsMain` module start.
-- ~1312: `var postOperationIds = {};`.
-- ~1578: Sales Targets action buttons.
-- ~1670: `approvePlan()`.
-- ~1682: `cancelPlan()`.
-- ~1791: `openAssignmentEditor()` reset block.
-- ~1857: `postRun()`.
+Current `main.html` contains:
 
-A fresh visual line-by-line display of every current line to EOF was not reproducible because the GitHub environment truncates the very large blob. No fabricated EOF proof is claimed. Historical reconstruction placed the current EOF around 40265 lines after the latest commit, but this remains a reconstruction rather than a fresh visual dump.
+- line 1309: `var RW_SalesTargetsMain = (function(){`
+- line 1423: `async function renderDashboard(planId){`
+- line 1524: current end of `renderDashboard` before `subscribeRealtime()`.
+- line 1900: `})();` closing `RW_SalesTargetsMain`.
 
-## FORENSIC PATH
+Current EOF is line **40687**, ending with:
 
-`forensic_main_assembly.yml` is already aligned to the published mother and remains the correct Source of Truth path. No path change was justified by current evidence.
+```text
+</script>
+</body>
+</html>
+```
+
+A machine-readable GitHub blob was inspected directly. The connector cannot expose the entire 40K-line blob as one uninterrupted visual block, so no false claim of a single-shot manual line-by-line reading is made.
+
+## FORENSIC ASSEMBLY
+
+`forensic_main_assembly.yml` is already correct:
+
+```text
+repository: papamohammed77-glitch/erp-frontend
+path: companies/company-1/main.html
+ref: main
+mode: published_main_is_authoritative
+fragment_mode: historical_reference_only
+```
+
+No path correction is required.
 
 ## SALES TARGETS — CURRENT PRODUCTION
 
-Supabase project: `fiilmooggumokxanwiyx`
+Supabase project:
+`fiilmooggumokxanwiyx`
 
-Production tables:
+Production RPCs:
+- `sales_target_engine_gateway`
+- `sales_target_engine_atomic`
+- `sales_target_dashboard_atomic`
+
+Production Sales Targets tables:
 - `sales_target_plans`
 - `sales_target_assignments`
 - `sales_target_runs`
 - `sales_target_run_lines`
 
-Current business-data counts after transactional E2E cleanup:
+Current business counts:
+
 ```text
 plans       = 0
 assignments = 0
@@ -64,88 +87,139 @@ runs        = 0
 run_lines   = 0
 ```
 
-Production target engine:
-- `sales-target-engine` ACTIVE, verify_jwt=true
-- `sales-target-dashboard` ACTIVE, verify_jwt=true
+Existing Sales Targets integrity/audit infrastructure is present and company-scoped.
 
-RPCs:
-- `sales_target_engine_gateway`
-- `sales_target_engine_atomic`
-- `sales_target_dashboard_atomic`
+## SALES TARGETS — CURRENT SESSION ACTIONS
 
-Supported operations:
-`LIST_PLANS, LIST_ASSIGNMENTS, LIST_RUNS, SAVE_PLAN, SAVE_ASSIGNMENT, CLONE_PLAN, SET_ASSIGNMENT_ACTIVE, APPROVE_PLAN, CLOSE_PLAN, CANCEL_PLAN, PREVIEW, POST, APPROVE_RUN, REVERSE_RUN`
+### Production
 
-## SALES TARGETS — PRODUCTION FIXES APPLIED IN CURRENT SESSION
+Added performance indexes without changing Business Logic:
 
-1. Fixed `REVERSE_RUN` idempotency ordering so a retry checks `operation_id` before source-run state. A successful reverse is now repeatable as `duplicate=true` instead of failing because the source run is already `Reversed`.
-2. Fixed `SAVE_PLAN` edit ambiguity by qualifying `sales_target_plans` columns where the PL/pgSQL variable `metric` could collide with the table column.
-3. Existing Sales Targets protections remain in force: company-scoped user/plan/assignment checks, active-assignment dashboard behavior, exact-scope assignment uniqueness, and run totals snapshot trigger.
+```sql
+CREATE INDEX idx_orders_company_date_sales_targets
+  ON public.orders (company_id, order_date);
 
-## SALES TARGETS — FINAL PRODUCTION E2E
-
-Executed inside a single Production transaction with rollback at the end:
-
-`SAVE_PLAN → EDIT_PLAN → SAVE_ASSIGNMENT → SET_ASSIGNMENT_ACTIVE(false) → SET_ASSIGNMENT_ACTIVE(true) → DASHBOARD → APPROVE_PLAN → CLOSE_PLAN → CLONE_PLAN → APPROVE_CLONE → POST → POST duplicate → APPROVE_RUN → REVERSE_RUN → REVERSE duplicate → CANCEL_PLAN`
-
-Final result: PASS.
-
-The test included real Production RPC execution and did not persist its test fixtures.
-
-## FAILED TESTS DURING THIS SESSION
-
-### Reverse duplicate failure
-Root cause: idempotency lookup was after source status validation.
-Resolution: idempotency lookup moved before source-run state validation.
-
-### Save plan edit failure
-Root cause: unqualified `metric` inside UPDATE created PL/pgSQL/table-column ambiguity.
-Resolution: table columns qualified explicitly.
-
-Neither failed transactional test left Production test data behind.
-
-## CURRENT FRONTEND DECISION
-
-The historical Report185 owner surgeries are already present in Current HEAD `dddf1...`:
-- `postOperationIds` map.
-- manager-only `خطة جديدة / تفريغ النموذج`.
-- `canApprove()` guards in approval/cancel paths.
-- `إعادة ضبط` in assignment editor.
-- per-plan post operation identity.
-
-Do not reapply them unless new browser/served-source evidence proves the deployed asset differs from Current Git.
-
-The reported browser error:
-`RW_SalesTargetsMain is not defined`
-was not reproducible from the current Git source inspected in this session. Therefore no speculative frontend surgery was performed for it.
-
-## BROWSER / DEPLOYMENT STATUS
-
-Current browser/console/network proof for the exact served page after HEAD `dddf...` remains OPEN.
-
-This environment has no browser-incognito execution capability and no independently verified Cloudflare served-asset snapshot for this session. Therefore:
-```text
-Production Sales Targets Engine   = VERIFIED
-Production Sales Targets E2E      = VERIFIED
-Current Git/source baseline       = VERIFIED
-Database cleanup                  = VERIFIED
-Browser/served-source E2E         = OPEN
-Mother UI closure                 = OPEN
+CREATE INDEX idx_order_details_order_item_sales_targets
+  ON public.order_details (order_id, item_id);
 ```
+
+Both indexes were verified in Production after deployment.
+
+No Sales Targets business data was created or altered by this session.
+
+### Frontend Source — Owner responsibility
+
+The current source proves that `RW_SalesTargetsMain` exists, but the source does not explicitly export it to `window` after the module closes.
+
+A fresh runtime error was supplied:
+
+`Uncaught ReferenceError: RW_SalesTargetsMain is not defined`
+
+The safest current surgery is therefore an explicit export at source line 1900 rather than rewriting the module or repeating previous logic changes.
+
+Prepared Owner Surgery:
+
+```javascript
+    };
+})();
+window.RW_SalesTargetsMain = RW_SalesTargetsMain;
+function _rwCompanyId() {
+```
+
+The current `renderDashboard` at line 1423 is also prepared for a full UX upgrade that keeps the current RPC/state-machine contract unchanged.
+
+## CONSOLE DIAGNOSTIC
+
+### Root runtime error
+
+`RW_SalesTargetsMain is not defined`
+
+Current Git contains the module declaration. Therefore the error is not proven to be a missing Sales Targets engine in Current Source.
+
+Most likely remaining boundary:
+- served asset differs from Current HEAD, or
+- global exposure is not explicit in the actual execution scope.
+
+The proposed explicit `window.RW_SalesTargetsMain` export closes the second risk without changing business logic and also provides a clean verification point for the first.
+
+### Non-blocking warning
+
+`cdn.tailwindcss.com should not be used in production`
+
+This remains a warning. It is not the cause of the Sales Targets runtime error.
+Removing the CDN without generating equivalent compiled CSS was intentionally rejected because the mother file uses extensive Tailwind utility classes.
+
+### Favicon
+
+`/favicon.ico 404` is unrelated to Sales Targets.
+It remains separate from this surgery to avoid mixing unrelated UI changes.
+
+## SALES TARGETS — UX DIRECTION
+
+The existing source already supports:
+
+- Plans.
+- Plan approval/closure/cancellation.
+- Assignment management.
+- Active/inactive assignments.
+- Preview.
+- Posting.
+- Run approval.
+- Reversal with idempotency.
+- Dashboard totals/ranking/trend.
+- Realtime subscriptions.
+
+The prepared UX upgrade changes presentation only to add:
+
+- Executive KPI hierarchy.
+- Primary metric progress.
+- Remaining target.
+- Time-pace comparison.
+- Performance health indicator.
+- Progress bars for assignments and ranking.
+- Stronger empty states.
+- Better visual separation between planning, execution, and results.
+
+No state transition or permission contract is changed.
+
+## CURRENT E2E STATUS
+
+### Proven
+
+- Current HEAD/Parent/Parent-of-parent.
+- Current mother blob.
+- Current Sales Targets source anchors.
+- Current EOF line and closing sequence.
+- Current Production Sales Targets RPC inventory.
+- Current Production data counts.
+- Current Production index deployment.
+- Current forensic assembly path.
+
+### Not proven
+
+- Fresh browser-incognito run after current HEAD.
+- Served-source hash comparison against blob `8bf3...`.
+- Fresh Console/Network capture after the Owner surgery.
+
+This environment cannot independently create the requested incognito browser session with DevTools capture.
 
 ## REPORTS
 
-Current session report:
-`doc/Draft/Reprots/Report186_SALES_TARGETS_CURRENT_PRODUCTION_RECONCILIATION_20260915.md`
+Current report:
+`doc/Draft/Reprots/Report187_SALES_TARGETS_UX_CONSOLE_E2E_20260915.md`
 
-Historical reports remain untouched and are reference-only.
+Previous reports remain untouched and historical.
 
 ## NEXT EXACT CHECKPOINT
 
-1. Start from current HEAD `dddf1aaf5a6e2fe6be7b3d89451dede9c1387258`.
-2. Compare the exact served `main.html` asset to current Git before any further frontend surgery.
-3. Run fresh browser E2E and capture Console + Network evidence.
-4. Verify `RW_SalesTargetsMain` exists in the served page before changing any Sales Targets block.
-5. Only after browser proof, continue functional/visual Sales Targets completion and then move to the next unfinished mother tab.
+1. Owner applies the explicit global export at source line 1900.
+2. Owner replaces the current `renderDashboard` function beginning at line 1423 with the prepared UX version from Report187.
+3. Deploy exactly `companies/company-1/main.html`.
+4. Verify served source is Current HEAD artifact or newer.
+5. Open Sales Targets.
+6. Press `تحديث`.
+7. Verify `RW_SalesTargetsMain is not defined` is gone.
+8. Capture Console + Network evidence.
+9. Only after that mark Mother Sales Targets Browser E2E closed.
 
-No earlier-fixed Sales Targets backend or frontend changes should be reopened without current evidence.
+Do not reopen already-fixed Production or previous Sales Targets frontend surgeries without fresh evidence.
