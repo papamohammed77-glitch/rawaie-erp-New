@@ -1,6 +1,6 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-15 08:xx UTC
+**Last reconciled:** 2026-09-15 12:36 UTC
 
 ## SOURCE OF TRUTH
 
@@ -22,15 +22,19 @@ Historical fragments only:
 
 Repository: `papamohammed77-glitch/erp-frontend`
 Branch: `main`
-Latest HEAD: `24e0124bedf6356103cb28bf365cef8e46be8027`
-Direct parent: `1f7928e0fa0320670df92c6e944afab0f28e2c0d`
-Current mother blob: `324b0deb53b6a58b379b08748d063d40a2aef92b`
+Latest HEAD: `66ed7f2c58fc1cd97526d6ea5b12116961102c9f`
+Direct parent: `27cfa8c580565942c5497ebf5ffe623eb0768aaa`
+Parent of parent: `24e0124bedf6356103cb28bf365cef8e46be8027`
+Current mother blob: `3cd3af5cd32891e88ed32b70f1d42db06fa35667`
 
-HEAD `24e0124...` only moved `window.RW_SalesTargetsMain = RW_SalesTargetsMain;` before the Loyalty module. The functional parent `1f7928...` contains the async ordering repair that invokes `renderConfig()` after `loadPrograms()` resolves.
+HEAD `66ed7f2...` = `Update sales decision center and navigation structure`.
+Direct parent `27cfa8...` = Loyalty `renderConfig()` terminal-state repair.
 
 ## CURRENT MOTHER FILE EVIDENCE
 
-تم فتح الـmother source من Git blob الحالي مباشرة، وتم التحقق من نهايته:
+تم فتح current mother blob مباشرة من Git.
+
+EOF الحالي:
 
 ```html
 </script>
@@ -38,216 +42,130 @@ HEAD `24e0124...` only moved `window.RW_SalesTargetsMain = RW_SalesTargetsMain;`
 </html>
 ```
 
-Current Loyalty module is present in the published mother file.
+Current blob search:
 
-### Current Loyalty anchors
+```text
+قيد التطوير  = 0 matches
+جاري التطوير = 0 matches
+```
 
-- Loyalty navigation: around source line `1144`.
-- `RW_LoyaltyMain.render()` async area: around source line `2064`.
-- `renderConfig()` is inside `RW_LoyaltyMain` and currently leaves `جاري التحميل...` when no Active program exists.
-- The exact downstream anchor is:
+تم رفض اختراع line numbers عندما لا يعيد GitHub connector range موثوقًا لملف الـblob الضخم. استخدم exact textual anchors من current source، وليس أرقام التقارير القديمة.
+
+## CURRENT ASSEMBLY
+
+`forensic_main_assembly.yml` الحالي:
+
+```yaml
+repository: papamohammed77-glitch/erp-frontend
+path: companies/company-1/main.html
+ref: main
+mode: published_main_is_authoritative
+fragment_mode: historical_reference_only
+```
+
+لا يوجد تعارض في Source of Truth path.
+
+## CURRENT SALES DECISION CENTER
+
+HEAD الحالي أضاف في Navigation:
 
 ```javascript
-function renderRewards(){
+{ view: 'sales-decision-center', label: 'مركز قرار المبيعات', perm: ['sales_manager','sales_supervisor','general_manager','reports'] }
 ```
 
-The current published source must remain the only reconstruction/source-of-truth file.
+كما أضاف module مستقل:
+`RW_SalesDecisionCenter`
 
-## FORENSIC ASSEMBLY
-
-`doc/Draft/forensic_main_assembly.yml` is the canonical reconstruction contract.
-
-It must point to:
-- repository = `papamohammed77-glitch/erp-frontend`
-- path = `companies/company-1/main.html`
-- ref = `main`
-- mode = `published_main_is_authoritative`
-- fragment_mode = `historical_reference_only`
-
-Current verified HEAD:
-`24e0124bedf6356103cb28bf365cef8e46be8027`
-
-Current direct parent:
-`1f7928e0fa0320670df92c6e944afab0f28e2c0d`
-
-Current mother blob:
-`324b0deb53b6a58b379b08748d063d40a2aef92b`
-
-## PRODUCTION — LOYALTY
-
-Supabase project:
-`fiilmooggumokxanwiyx`
-
-Name:
-`SMART ERP`
-
-Current core:
-`loyalty_engine_atomic(uuid,text,text,jsonb,text)`
-
-Current Edge capability:
-`loyalty-engine`
-
-Current source of truth:
-`loyalty_accounts + loyalty_transactions`
-
-Compatibility cache:
-`customers.loyalty_points`
-
-Legacy compatibility table:
-`loyalty_points`
-
-### Production Loyalty schema verified
-
-- `loyalty_programs`
-- `loyalty_rewards`
-- `loyalty_accounts`
-- `loyalty_points`
-- `loyalty_transactions`
-
-### Production state verified in this session
+Production snapshot verified at:
+`2026-09-15 12:36:02.254148+00`
 
 ```text
-loyalty_programs     = 0
-loyalty_rewards      = 0
-loyalty_accounts     = 0
-loyalty_points       = 0
-loyalty_transactions = 0
+sales_decision_policies      = 1
+sales_decision_evaluations   = 0
+sales_decision_approvals     = 0
+sales_decision_pending       = 0
 ```
 
-`LIST_PROGRAMS` was executed directly through `loyalty_engine_atomic` and returned:
+## CURRENT LOYALTY STATUS
 
-```text
-success=true
-program_count=0
-```
+Production Loyalty backend/engine remain CLOSED by prior verified evidence unless new current evidence proves otherwise.
 
-Therefore empty program configuration is a valid Production state; it is not a loading/error condition.
+Current mother still requires the owner-side Browser-facing E2E verification of the published Loyalty UI.
 
-### Automatic order Loyalty trigger
-
-`trg_orders_loyalty_auto_earn` is verified in PostgreSQL as:
-
-```text
-tgdeferrable = true
-tginitdeferred = true
-```
-
-The trigger function uses deterministic identity:
-
-`AUTO:EARN_ORDER:<company_id>:<order_id>`
-
-## LOYALTY TRANSACTION VERIFICATION
-
-A temporary Production transaction was executed and fully rolled back.
-
-Verified sequence:
-
-```text
-SAVE_PROGRAM
-→ SAVE_REWARD
-→ create customer + Draft order + order detail
-→ set order Invoiced
-→ deferred auto-earn
-→ EARN_ORDER idempotency path
-→ REDEEM
-→ duplicate REDEEM with same operation_id
-→ REVERSE
-→ ROLLBACK
-```
-
-No E2E data remained after rollback.
-
-Final persistent counts remained:
-
-```text
-loyalty_programs     = 0
-loyalty_rewards      = 0
-loyalty_accounts     = 0
-loyalty_points       = 0
-loyalty_transactions = 0
-```
-
-## CURRENT MOTHER UI DEFECT
-
-The earlier four-line async repair is already present in the current parent/HEAD and must not be repeated.
-
-The remaining defect is the no-Active-program branch inside `renderConfig()`:
-
-```javascript
-safeHTML(out,'...<div id="rw-loyalty-rewards-grid" ...><div class="text-gray-400">جاري التحميل...</div></div>');
-var active=currentPrograms.find(function(x){return x.status==='Active';});
-if(active) loadRewards(active.id).then(renderRewards).catch(function(e){showToast(e.message,'error');});
-```
-
-With Production currently containing zero programs, `active` is null and the placeholder never transitions to a terminal state.
-
-### OWNER-ONLY SURGICAL PATCH — UPDATED
-
-In current `main.html`, delete the complete `renderConfig()` function from:
+Current owner-side exact anchors:
 
 ```javascript
 function renderConfig(){
 ```
 
-through the closing brace immediately before:
+through the complete function ending immediately before:
 
 ```javascript
 function renderRewards(){
 ```
 
-Replace it with the complete function recorded in `Report191_LOYALTY_MOTHER_UI_FORENSIC_CLOSURE_20260915.md`.
+The current Production state with zero active programs requires a terminal empty-state, not an infinite loading placeholder.
 
-The replacement must explicitly render:
+Do NOT recreate Loyalty tables, Edge Functions, or backend engine without a new proven defect.
+
+## BROWSER E2E
+
+`Browser click-by-click E2E = OPEN`.
+
+سبب بقاء الحالة مفتوحة:
+بيئة التنفيذ الحالية لا توفر جلسة browser automation / live Chromium قابلة لتنفيذ النقرات الفعلية ومراقبة Console + Network بصورة متزامنة.
+
+Static/Git/DB evidence لا تُحوّل إلى Browser PASS.
+
+## PRODUCTION INVENTORY GOVERNANCE CONTEXT
+
+Physical stock contract remains:
 
 ```text
-لا يوجد برنامج ولاء نشط حاليًا
+PHYSICAL STOCK MOVEMENT
+        ↓
+post_stock_movement
+        ↓
+stock_branches + inventory_log
 ```
 
-when no Active program exists, and must render an explicit error state on `LIST_REWARDS` failure instead of leaving an infinite loading message.
+No new parallel Physical Stock Engine is authorized.
 
-No duplicate Loyalty module, navigation, permission map, routing, or alternate engine is authorized.
+Recent verified constraints include:
+- `items.item_code` UNIQUE globally.
+- `stock_branches` UNIQUE `(branch_id,item_id)`.
+- `receiving.operation_id` UNIQUE.
 
-## CURRENT FORENSIC CONCLUSION
-
-```text
-LOYALTY DATABASE = CLOSED
-LOYALTY RPC ENGINE = CLOSED
-LOYALTY EDGE CAPABILITY = CLOSED
-LOYALTY TRANSACTION E2E (DB) = PASS
-LOYALTY PRODUCTION DATA HYGIENE = PASS
-LOYALTY MOTHER UI = ONE OWNER SURGICAL REPLACEMENT REQUIRED
-BROWSER E2E = OPEN
-GLOBAL LOYALTY = OPEN ONLY UNTIL OWNER PATCH + BROWSER E2E
-```
-
-This is not a backend infrastructure gap. Do not create new Loyalty tables or a second Edge Function unless a new current defect proves that the existing contract is insufficient.
-
-## NEXT WORK AFTER LOYALTY UI CLOSES
-
-After the owner applies the `renderConfig()` replacement, republishes the current mother file, and Browser/Console/Network E2E proves the UI path, move directly to:
-
-`RETURN → LOYALTY REVERSAL POLICY`
-
-Before any Production change there, reconstruct the historical Return contract, including order/runsheet settlement and customer financial effects. Do not infer that every return must reverse loyalty.
+Earlier Production anomalies around cross-company item metadata remain historical/data-hygiene evidence and must be revalidated before any cleanup mutation.
 
 ## EXECUTION RECORD
 
-Current detailed report:
-`doc/Draft/Reprots/Report191_LOYALTY_MOTHER_UI_FORENSIC_CLOSURE_20260915.md`
+Latest report:
+`doc/Draft/Reprots/Report193_BROWSER_E2E_FORENSIC_CLOSURE_20260915.md`
 
-Previous reports remain unchanged and historical/reference only.
+Previous reports remain unchanged and Historical/Reference only.
 
-## START-HERE INSTRUCTIONS FOR THE NEXT CTO/ASSISTANT
+## START-HERE — NEXT CTO
 
-1. Ignore prior numeric percentages and stale report claims until re-verified.
-2. Read current Git HEAD, direct parent, and current mother blob.
-3. Confirm `companies/company-1/main.html` is still the Source of Truth and reaches EOF.
-4. Search the current source itself for `renderConfig()`; never inherit line anchors from stale reports.
-5. Check current Production counts and call `loyalty_engine_atomic LIST_PROGRAMS` before changing anything.
-6. Confirm the deployed `loyalty-engine` and the deferred `trg_orders_loyalty_auto_earn` still exist.
-7. Apply no new backend structure if current Production already satisfies the contract.
-8. Close the single owner-side `renderConfig()` defect, then perform real Browser/Console/Network E2E against the newly published current file.
-9. Only after Browser E2E passes may Loyalty be marked fully closed.
-10. Then continue to `RETURN → LOYALTY REVERSAL POLICY` and reconstruct the historical business contract before changing Production behavior.
+1. Re-read CURRENT Git HEAD and its direct parent.
+2. Open the current mother blob and verify SHA + EOF.
+3. Re-verify `forensic_main_assembly.yml`.
+4. Query current Production state for the exact feature under test.
+5. Never reuse stale line numbers; derive anchors from current source.
+6. Do not modify historical fragments.
+7. For mother-file defects, give owner a complete exact delete/replace block; never edit the mother directly.
+8. For Production defects, implement directly, test transactionally, then verify runtime.
+9. Browser/Console/Network verification is a separate closure gate and cannot be inferred from source or DB PASS.
+10. After Browser E2E closes, move to the next open roadmap unit. Do not reopen already-closed backend work without new evidence.
 
-**Never start from a report. Start from current Git + current source + current Production + current database + current deployment evidence.**
+## CURRENT CLOSURE
+
+```text
+Git/Source Reconciliation           = VERIFIED
+Production SDC Snapshot             = VERIFIED
+Mother EOF                          = VERIFIED
+forensic_main_assembly              = VERIFIED
+Placeholder scan                    = VERIFIED (0 exact matches)
+Browser Click-by-Click E2E          = OPEN
+Overall current session closure     = OPEN
+```
