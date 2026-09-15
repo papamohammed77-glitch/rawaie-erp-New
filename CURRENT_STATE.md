@@ -134,27 +134,33 @@ Important idempotency contracts already exist in Request, Quotation, Invoice, Re
 
 `receive_purchase_atomic` currently accepts an explicit UUID operation identity and performs duplicate detection through the existing `receiving.operation_id` UNIQUE contract.
 
-## PRODUCTION CHANGE EXECUTED THIS SESSION
+## PRODUCTION CHANGES EXECUTED THIS SESSION
 
-Migration applied directly to Production:
-
+Migration 1 applied directly to Production:
 `purchase_reports_settings_tenant_hardening_20260915`
 
-Canonical Git migration added:
-
+Canonical Git:
 `supabase/migrations/20260915_purchase_reports_settings_tenant_hardening.sql`
 
 Changes:
+- company-scope correction for `purchase_get_reports.unbilled_receipts`.
+- `default_branch_id` validation in `purchase_set_settings_atomic`.
+- persistence of return/payment prefixes and inventory policy fields.
 
-1. `purchase_get_reports` now company-scopes `unbilled_receipts` through `purchase_orders`.
-2. `purchase_set_settings_atomic` now validates `default_branch_id` against an active branch belonging to the same company.
-3. Settings RPC now persists:
-   `return_prefix`
-   `payment_prefix`
-   `require_inventory_on_invoice`
-   `require_inventory_voucher_on_return`
+Migration 2 applied directly to Production:
+`purchase_modal_document_integrity_20260915`
 
-Post-migration function definitions were re-read from Production.
+Canonical Git:
+`supabase/migrations/20260915_purchase_modal_document_integrity.sql`
+
+Changes:
+- Quotation with an RFQ now verifies the RFQ belongs to the same company and the supplier is actually invited to that RFQ.
+- Invoice with a PO now verifies the PO belongs to the same company and its supplier matches the invoice supplier.
+- Invoice creation now honors `require_receiving_before_invoice` for PO-linked invoices.
+- Supplier payment now verifies the treasury belongs to the same company and honors `require_invoice_before_payment` when enabled.
+- Payment validation remains allocation-safe and idempotent.
+
+Post-migration RPC identities were re-read from Production.
 
 ## CURRENT PURCHASE REALTIME
 
@@ -230,6 +236,7 @@ Current save-purchase-order deployment    VERIFIED
 Current Purchase Realtime publication     VERIFIED
 Production report hardening               DEPLOYED + VERIFIED
 Production settings hardening             DEPLOYED + VERIFIED
+Production document-integrity hardening   DEPLOYED + VERIFIED
 Current Purchase modal root cause         VERIFIED
 Owner surgical patch                       READY
 Fresh Browser Console                      NOT YET PROVEN
@@ -246,7 +253,7 @@ Gold/Diamond Purchase closure              OPEN UNTIL OWNER MERGE + FRESH E2E
 - HEAD and direct parent were rechecked.
 - The earlier parser issue is not the current modal blocker.
 - Purchase backend infrastructure already exists.
-- Current Production report/settings defects were hardened.
+- Current Production report/settings/document-integrity defects were hardened.
 - Current Realtime publication exists.
 - The current Purchase UX gap is in the Mother modal implementations.
 
