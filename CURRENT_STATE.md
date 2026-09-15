@@ -1,6 +1,6 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-14 19:xx Africa/Cairo
+**Last reconciled:** 2026-09-15 03:xx UTC / current session
 
 ## SOURCE OF TRUTH
 
@@ -18,133 +18,118 @@
 Historical fragments only:
 `Current/PWA/main2/*`, `Original/PWA/main/*`, `New-main`.
 
-## CURRENT FRONTEND GIT — UPDATED 2026-09-14
+## CURRENT FRONTEND GIT
 
 Repository: `papamohammed77-glitch/erp-frontend`
 Branch: `main`
-HEAD: `8b02f2158021b6ca4ce44ced756459b037fb1ebe`
-Previous commit: `70cc69aece9568374a8e86175e6963cae6832c02`
-Previous-previous: `9e6645bf3c613f8995785d1fe70a88150ce87c16`
+HEAD: `f46dfc8183068d0dbf52c1b3b3c8cdbfc9f8f914`
+Direct parent: `8b02f2158021b6ca4ce44ced756459b037fb1ebe`
+Parent of parent: `70cc69aece9568374a8e86175e6963cae6832c02`
+Current mother blob: `460e6772c365e573bfc69f6c2240ccfe65b51eb2`
 
-Current mother `main.html` blob:
-`fc3ffbc43978d306daef58797f360e68f9aebe20`
-
-**Important:** The former values `70cc... / 43a606...` in the previous state record are now STALE and are superseded by the current Git evidence above.
+Latest commit `f46dfc...` removed the illegal trailing backslashes from `openAssignmentEditor()`. The older Report184 syntax blocker is now STALE/closed at source level.
 
 ## FORENSIC PATH
 
-`forensic_main_assembly.yml` is already correctly aligned to:
+`forensic_main_assembly.yml` is verified current and already points to the published mother.
 
-```yaml
-source_of_truth:
-  repository: papamohammed77-glitch/erp-frontend
-  path: companies/company-1/main.html
-  ref: main
-assembly_status:
-  mode: published_main_is_authoritative
-  fragment_mode: historical_reference_only
-```
+## CURRENT EOF / READ NOTE
 
-No path change was required in this session.
+A complete historical read of the previous mother was documented with EOF at line 39847. Commit `8b02...` added 393 net lines and current `f46dfc...` kept line count in the repaired block unchanged, giving reconstructed current EOF 40240.
 
-## CURRENT E2E BLOCKER — LOGIN
+Because GitHub's large-blob renderer truncated the huge file in this environment, direct display of every current line to EOF was not independently reproducible in the chat tool. This is explicitly NOT claimed as a fresh line-by-line visual proof.
 
-Current browser evidence:
+## SALES TARGETS — CURRENT PRODUCTION
 
+Supabase project: `fiilmooggumokxanwiyx`
+
+Production tables:
+- `sales_target_plans`
+- `sales_target_assignments`
+- `sales_target_runs`
+- `sales_target_run_lines`
+
+Current business-data counts after E2E cleanup:
 ```text
-main:1789 Uncaught SyntaxError: Invalid or unexpected token (at main:1789:34)
+plans       = 0
+assignments = 0
+runs        = 0
+run_lines   = 0
 ```
 
-The Tailwind CDN message at `(index):64` is a warning/production recommendation and is not the blocker preventing JavaScript parsing.
+Production target engine:
+- `sales-target-engine` ACTIVE, verify_jwt=true
+- `sales-target-dashboard` ACTIVE, verify_jwt=true
 
-### Proven root cause
+RPCs:
+- `sales_target_engine_gateway`
+- `sales_target_engine_atomic`
+- `sales_target_dashboard_atomic`
 
-The current HEAD `8b02...` introduced illegal trailing backslashes inside the HTML string assembled by:
+Supported operations:
+`LIST_PLANS, LIST_ASSIGNMENTS, LIST_RUNS, SAVE_PLAN, SAVE_ASSIGNMENT, CLONE_PLAN, SET_ASSIGNMENT_ACTIVE, APPROVE_PLAN, CLOSE_PLAN, CANCEL_PLAN, PREVIEW, POST, APPROVE_RUN, REVERSE_RUN`
 
-```js
-async openAssignmentEditor(assignmentId){
-```
+## SALES TARGETS — PRODUCTION FIXES APPLIED
 
-inside `RW_SalesTargetsMain`.
+1. Added exact-scope unique index with `NULLS NOT DISTINCT` on `(plan_id, sales_rep_id, branch_id)`.
+2. Replaced `sales_target_dashboard_atomic` so only active assignments participate in assignment results, joins are company-scoped, and company-period actual totals are calculated once to avoid assignment-overlap double counting.
+3. Added `sales_target_run_totals_snapshot()` and trigger `trg_sales_target_run_totals_snapshot` to keep run parent totals aligned with run-line snapshots and plan-period actuals.
 
-The malformed form is:
+## SALES TARGETS — VERIFIED PRODUCTION E2E
 
-```js
-'</div>'+\\
-'<label ...>'+\\
-'<label ...>'+\\
-'</div>',
-```
+Verified sequence:
+`SAVE_PLAN → SAVE_ASSIGNMENT → DASHBOARD → APPROVE_PLAN → POST → POST duplicate → APPROVE_RUN → REVERSE_RUN → REVERSE duplicate`
 
-The valid JavaScript form is ordinary string concatenation using `'+` only, without the trailing backslashes.
+The first consolidated test had a reverse-step failure that was not reproducible after isolation. A committed Production test proved:
+- POST = PASS
+- APPROVE_RUN = PASS
+- REVERSE_RUN = PASS
+- reverse idempotency = PASS
 
-### Owner surgery
+All E2E test data was deleted afterward.
 
-The assistant did **not** modify `erp-frontend/companies/company-1/main.html` because that file is owner-managed.
+## CURRENT MOTHER — OWNER SURGERY REQUIRED
 
-Exact complete replacement instructions were written to:
+The assistant does not edit `erp-frontend/companies/company-1/main.html` by project governance. Exact owner surgery is recorded in:
+`doc/Draft/Reprots/Report185_SALES_TARGETS_ENGINE_FORENSIC_E2E_20260915.md`
 
-`doc/Draft/Reprots/Report184_LOGIN_SYNTAX_FORENSIC_CLOSURE_20260914.md`
+Required changes:
+1. Replace `var postOperationId = null;` with `var postOperationIds = {};`.
+2. Replace the complete `postRun()` function with the Report185 version so operation identity is scoped per plan.
+3. Align `approvePlan()` and `cancelPlan()` guards with `canApprove()` because backend requires approval permission.
+4. Replace the conditional `تفريغ` button with manager-only `خطة جديدة / تفريغ النموذج`.
+5. Add the exact `إعادة ضبط` block to `openAssignmentEditor()` from Report185.
 
-The replacement targets only the `html:` element inside `openAssignmentEditor()` and removes the illegal `\\` continuation characters.
+Already-fixed `RW_UI`, dispatcher, navigation and login syntax must not be reworked.
 
-## CURRENT E2E STATUS
+## BROWSER E2E STATUS
 
+`CURRENT BROWSER / CONSOLE / NETWORK` was not independently proven in this environment.
+
+Therefore:
 ```text
-SyntaxError fixed in source definition:              IDENTIFIED
-Owner applied frontend surgery:                      NOT YET PROVEN
-Published browser parser PASS:                       NOT YET PROVEN
-Login reaches application:                           NOT YET PROVEN
-Sales Targets module runtime PASS:                   NOT YET PROVEN
+Backend production closure           = VERIFIED
+Database integrity closure           = VERIFIED
+Current Git/source baseline          = VERIFIED
+Owner frontend surgery               = REQUIRED / PREPARED
+Current browser E2E                  = OPEN
+Full Sales Targets UI closure        = OPEN until owner surgery + browser proof
 ```
 
-Therefore this closure is **not 100% closed** until the owner publishes the exact correction and the current browser E2E is rerun.
+## HISTORICAL FILES
 
-## PRODUCTION
+`Report183_SALES_TARGETS_FUNCTIONAL_DIAMOND_CLOSURE_20260914.md` and `Report184_LOGIN_SYNTAX_FORENSIC_CLOSURE_20260914.md` remain historical evidence only.
 
-No Production database or Edge Function change was justified for this login blocker.
+## CURRENT SESSION REPORT
 
-Reason: the failure is a frontend parser failure before application JavaScript executes. Changing Auth/DB/Edge without evidence would violate the governing principle of evidence before modification.
+`doc/Draft/Reprots/Report185_SALES_TARGETS_ENGINE_FORENSIC_E2E_20260915.md`
 
-## HISTORICAL / STALE MATERIAL
+## NEXT EXACT CHECKPOINT
 
-`Report183_SALES_TARGETS_FUNCTIONAL_DIAMOND_CLOSURE_20260914.md` remains historical/reference material.
-
-It must not be used as the current Git/Production state when it conflicts with the current HEAD.
-
-Likewise, `Current/PWA/main2/*` remains historical reference only.
-
-## SESSION REPORT
-
-Current report:
-
-`doc/Draft/Reprots/Report184_LOGIN_SYNTAX_FORENSIC_CLOSURE_20260914.md`
-
-It contains:
-
-- current Git forensic evidence;
-- current source root cause;
-- exact owner surgical replacement;
-- test and exclusion results;
-- self-audit;
-- instructions for the next CTO/momentum session.
-
-## NEXT SESSION — MANDATORY START SEQUENCE
-
-1. Read CURRENT Git HEAD first.
-2. Verify the current `main.html` blob SHA.
-3. Verify the owner actually applied the exact `openAssignmentEditor()` replacement.
-4. Publish/serve the current main file.
-5. Run current browser E2E from a fresh session.
-6. Verify no `SyntaxError` in Console before changing Auth/DB/Edge.
-7. Only after Login PASS, continue Sales Targets functional E2E.
-8. Do not repeat already-closed `RW_UI`, dispatcher, navigation, or historical fragment fixes.
-9. Treat reports as Historical Evidence and resolve conflicts using CURRENT GIT / SOURCE / PRODUCTION / DATABASE / DEPLOYMENT / BROWSER evidence.
-
-## CLOSED / VERIFIED
-
-`FORENSIC SOURCE OF TRUTH = VERIFIED`
-`FORENSIC PATH = VERIFIED`
-`CURRENT LOGIN ROOT CAUSE = VERIFIED`
-`FRONTEND OWNER SURGERY = PREPARED`
-`E2E LOGIN CLOSURE = PENDING CURRENT BROWSER PROOF`
+1. Owner applies the exact `main.html` surgeries from Report185.
+2. Confirm current Git HEAD/SHAs again.
+3. Publish the current mother.
+4. Run fresh browser E2E and capture Console/Network evidence.
+5. Verify Login parser PASS.
+6. Verify Sales Targets create/edit/assignment/approve/post/reverse UI against the Production engine.
+7. Only then mark Mother UI Sales Targets closure 100%.
