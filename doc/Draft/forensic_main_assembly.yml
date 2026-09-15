@@ -17,6 +17,19 @@ rules:
   - production_changes_are_executed_and_verified_in_supabase
   - no_line_anchor_may_be_inherited_from_a_stale_report
 current_verified_commit:
-  head: 13425725f48c7decba3403ee631d8e0f2d757b0f
-  parent: 05ebb2d67b29dfe26ad77b6f314942c502e0dd8f
-  blob: 5267f261f2febcbafeafdce0bb9da89a4a6bc894
+  head: 716ebf86b3c989a461cbf86151b37fcd0849b0c3
+  parent: 13425725f48c7decba3403ee631d8e0f2d757b0f
+  blob: dd5516ea75d75e01a95d4782ec92603ecf427d2e
+current_git_metadata_note:
+  latest_head_metadata_commit: 11b99cab424496b9691e5ad92b36bd83ed7c2664
+  note: "Empty metadata-only commit; GitHub reported diff=null and files=null; mother source blob unchanged."
+current_loyalty_state:
+  production_backend: closed
+  production_rpc: loyalty_engine_atomic
+  edge_function: loyalty-engine
+  edge_version: 1
+  mother_ui: open_one_owner_surgical_patch
+  browser_e2e: open
+next_closure_unit:
+  name: RETURN_TO_LOYALTY_REVERSAL_POLICY
+  rule: "Reconstruct historical return contract before any Production loyalty reversal change."
