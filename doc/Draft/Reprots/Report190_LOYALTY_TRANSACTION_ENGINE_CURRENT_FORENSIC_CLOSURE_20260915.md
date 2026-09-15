@@ -1,6 +1,6 @@
 # تقرير 190 — إغلاق Forensic لمحرك معاملات الولاء
 
-**التاريخ:** 2026-09-15 07:xx UTC  
+**التاريخ:** 2026-09-15 (UTC)  
 **المرحلة:** Loyalty Transaction Engine  
 **الغرض:** استكمال الإغلاق الوظيفي لمحرك Loyalty، ثم تثبيت نقطة الاستكمال التالية دون إعادة إصلاح ما ثبت إصلاحه.
 
@@ -47,24 +47,35 @@
 
 `papamohammed77-glitch/erp-frontend`
 
-### Current HEAD أثناء المراجعة
+### Functional Loyalty commit
 
 `716ebf86b3c989a461cbf86151b37fcd0849b0c3`
 
 Message:
 `Add loyalty management features to main.html`
 
-### Direct parent
-
+Direct parent:
 `13425725f48c7decba3403ee631d8e0f2d757b0f`
 
-### Mother file blob
-
+Mother file blob at that functional commit:
 `dd5516ea75d75e01a95d4782ec92603ecf427d2e`
+
+### Latest repository metadata commit observed
+
+`11b99cab424496b9691e5ad92b36bd83ed7c2664`
+
+This commit was created accidentally during execution and GitHub read-back proves:
+
+```text
+diff = null
+files = null
+```
+
+Therefore it did **not** alter `companies/company-1/main.html`.
 
 ### Current source verification
 
-تم فتح الـmother file من Git blob الحالي مباشرة، ومراجعة محتواه إلى نهاية الملف، وتم إثبات EOF بالترتيب النهائي:
+تم فتح الـmother file من Git blob المباشر ومراجعة المحتوى حتى EOF. النهاية المثبتة:
 
 ```html
 </script>
@@ -72,57 +83,45 @@ Message:
 </html>
 ```
 
-وبذلك لا يوجد اعتماد على نسخة `main2` لإعطاء anchors الحالية.
-
-### Git parent check
-
-الـHEAD الحالي هو Commit Loyalty، وParentه هو `13425725...`، والـCommit موقع/Verified من GitHub. الـCommit أضاف Loyalty navigation/module إلى `main.html`.
-
-### ملاحظة تنفيذية مهمة
-
-أُنشئ بالخطأ Commit فارغ `11b99cab424496b9691e5ad92b36bd83ed7c2664` على `erp-frontend` أثناء محاولة تسجيل التنفيذ. GitHub أثبت أن `diff=null` و`files=null`، أي أنه **لم يغير `main.html`**. يجب اعتباره Git metadata residue لا Source Change.
+وبذلك لا يوجد اعتماد على fragment تاريخي لاستخراج الـLoyalty code.
 
 ---
 
 ## 3. CURRENT MOTHER UI FORENSIC RESULT
 
-الـCommit الحالي أضاف:
+الـCommit `716ebf...` أضاف Loyalty بالفعل.
 
-### Navigation
+### Existing navigation
 
-السطر الحالي في المنطقة `1144` يحتوي بالفعل على:
+منطقة navigation الحالية حول السطر `1144` تحتوي Loyalty entry بالفعل.
 
-```javascript
-{ view: 'loyalty', label: 'الولاء والمكافآت', perm: ['sales_manager','sales_supervisor','general_manager','reports','customers','pos','telesales','orders','van-sales'] }
-```
+### Existing permission map
 
-### Permission map
-
-المسار الحالي يحتوي:
+يحتوي routing/permission map الحالي على:
 
 ```javascript
 'loyalty': 'customers',
 ```
 
-### View routing
+### Existing routing
 
-المسار الحالي يحتوي:
+يحتوي dispatcher الحالي على:
 
 ```javascript
 if (view === 'loyalty') { RW_LoyaltyMain.render(); return; }
 ```
 
-### Loyalty module
+### Existing Loyalty module
 
-`RW_LoyaltyMain` موجود حاليًا، ويستخدم:
+`RW_LoyaltyMain` موجود بالفعل ويستدعي:
 
 ```javascript
 RW_SUPABASE_URL + '/functions/v1/loyalty-engine'
 ```
 
-### سبب `جاري التحميل...`
+### Root cause of loading state
 
-داخل `render()` يوجد التسلسل الحالي:
+الترتيب الحالي داخل `RW_LoyaltyMain.render()`:
 
 ```javascript
 loadPrograms().then(function(){ renderProgramSummary(); }).catch(function(e){ showToast(e.message,'error'); });
@@ -131,26 +130,37 @@ renderConfig();
 subscribeRealtime();
 ```
 
-بينما `renderConfig()` يفعل:
+بينما `renderConfig()` يحتاج `currentPrograms` لتحديد البرنامج Active ثم تحميل المكافآت.
 
-```javascript
-var active=currentPrograms.find(function(x){return x.status==='Active';});
-if(active) loadRewards(active.id).then(renderRewards).catch(...);
+إذن المشكلة هي asynchronous ordering:
+
+```text
+renderConfig()
+      ↓
+currentPrograms = []
+      ↓
+UI = جاري التحميل...
+      ↓
+loadPrograms() completes
+      ↓
+currentPrograms populated
+      ↓
+renderProgramSummary() only
+      ↓
+renderConfig() never reruns
 ```
-
-إذن `renderConfig()` يعمل قبل وصول البرامج من `loadPrograms()`، فلا يرى `Active` program في الوقت المطلوب.
 
 ---
 
 ## 4. EXACT OWNER SURGICAL PATCH — MAIN.HTML
 
-**لا يتم تنفيذ هذا التعديل من داخل Supabase. هذا تعديل ملف المالك فقط.**
+**هذا هو التعديل الوحيد المطلوب من المالك حاليًا. لا يعدّل Supabase هذا الجزء.**
 
-### ابحث عن الكتلة التالية داخل `RW_LoyaltyMain.render()`.
+### Current anchor
 
-**Current anchor:** منطقة `loadPrograms` داخل Loyalty module، بعد `safeHTML(...)` مباشرة. في النسخة الحالية الناتجة من Commit `716ebf86...` يقع هذا السطر عند نحو **2064**.
+داخل `RW_LoyaltyMain.render()`، المنطقة الحالية حول **السطر 2064**.
 
-**ابحث بالنص الكامل التالي، واحذف الأسطر الأربعة كاملة كما هي، من أول `loadPrograms()` إلى آخر `subscribeRealtime();` :**
+### احذف هذا المقطع كاملًا
 
 ```javascript
 loadPrograms().then(function(){ renderProgramSummary(); }).catch(function(e){ showToast(e.message,'error'); });
@@ -159,7 +169,13 @@ renderConfig();
 subscribeRealtime();
 ```
 
-**واستبدل الأسطر الأربعة كاملة بالكتلة التالية:**
+آخر سطر في العنصر المطلوب للحذف هو بالضبط:
+
+```javascript
+subscribeRealtime();
+```
+
+### واستبدله بهذا المقطع كاملًا
 
 ```javascript
 loadPrograms().then(function(){
@@ -170,13 +186,15 @@ loadCustomerOptions();
 subscribeRealtime();
 ```
 
-### لا تعدّل في نفس العملية
+### لا تحذف أو تعدّل
 
-- Navigation Loyalty الموجود بالفعل.
-- `'loyalty': 'customers'` الموجود بالفعل.
-- Routing `if (view === 'loyalty') ...` الموجود بالفعل.
-- `RW_LoyaltyMain` بالكامل؛ لا يوجد داعٍ لاستبداله.
-- `earnSelected()`؛ فهو مقصود أن يرفض Earn يدويًا بدون Order ID.
+```javascript
+window.RW_SalesTargetsMain = RW_SalesTargetsMain;
+```
+
+ولا تعدّل Navigation أو permission map أو routing أو `RW_LoyaltyMain` كاملًا، لأنها موجودة بالفعل في Current Source.
+
+ولا تعدّل `earnSelected()`؛ فهو متعمد ألا ينشئ Earn يدويًا بدون Order ID.
 
 ---
 
@@ -207,15 +225,7 @@ Current deployed version:
 
 `verify_jwt=true`
 
-The function:
-
-1. validates JWT;
-2. resolves authenticated user;
-3. resolves `company_id` from `users.auth_id`;
-4. enforces active user;
-5. calls `loyalty_engine_atomic`.
-
-### Current RPC
+### Core RPC
 
 ```text
 loyalty_engine_atomic(uuid,text,text,jsonb,text)
@@ -223,93 +233,46 @@ loyalty_engine_atomic(uuid,text,text,jsonb,text)
 
 `SECURITY DEFINER=true`
 
-Direct execute privilege removed from `PUBLIC`, `anon`, `authenticated`; retained for trusted server path.
+Direct execute for `PUBLIC`, `anon`, `authenticated` is removed; trusted server path remains.
 
 ---
 
 ## 6. DATABASE MODEL VERIFIED
 
-### Loyalty Programs
-
-`loyalty_programs`
-
-- `company_id`
-- `program_code`
-- `status`
-- earn/redeem rules
-- expiry
-- approval metadata
+`loyalty_programs`:
+- company-scoped program master
 - unique `(company_id, program_code)`
+- Draft/Active/Inactive status
+- earn/redeem rules
 
-### Loyalty Rewards
-
-`loyalty_rewards`
-
-- `company_id`
-- `program_id`
-- `reward_code`
-- reward type
-- points cost
-- reward value
-- optional product
-- active flag
+`loyalty_rewards`:
+- company + program scoped
 - unique `(company_id, program_id, reward_code)`
+- discount/credit/free shipping/free product
+- point cost and reward value
 
-### Loyalty Accounts
-
-`loyalty_accounts`
-
-- `company_id`
-- `customer_id`
-- `points_balance`
-- `lifetime_earned`
-- `lifetime_redeemed`
-- status
+`loyalty_accounts`:
+- company + customer scoped
 - unique `(company_id, customer_id)`
+- points balance/lifetime totals/status
 
-### Loyalty Transactions
-
-`loyalty_transactions`
-
-- `company_id`
-- `account_id`
-- `customer_id`
-- `program_id`
-- `reward_id`
-- `order_id`
-- `transaction_type`
-- `points_delta`
-- `balance_before`
-- `balance_after`
-- `reference_type`
-- `reference_id`
+`loyalty_transactions`:
+- company/account/customer/order/program/reward linkage
+- EARN/SYNC/REDEEM/ADJUST/EXPIRE/REVERSE
+- before/after balance
 - `operation_id`
-- `reversal_of_transaction_id`
-- `actor_email`
-- `reason`
-- `metadata`
-
-### Compatibility cache
+- reversal relation
+- actor/reason/metadata
 
 `customers.loyalty_points` remains compatibility cache only.
 
-Loyalty source of truth:
-
-```text
-loyalty_accounts + loyalty_transactions
-```
-
-### Legacy table
-
-`loyalty_points` is retained for compatibility/history and no longer exposes a permissive direct-user path.
-
 ---
 
-## 7. PRODUCTION CHANGES EXECUTED THIS CYCLE
+## 7. PRODUCTION CHANGES EXECUTED
 
-### A — Transaction idempotency
+### A — Idempotency
 
-Created:
+Production now contains:
 
 ```sql
 CREATE UNIQUE INDEX loyalty_transactions_company_operation_uidx
@@ -317,40 +280,33 @@ ON public.loyalty_transactions(company_id, operation_id)
 WHERE operation_id IS NOT NULL;
 ```
 
-Production read-back confirmed the index exists exactly in this form.
+Read-back confirmed the index.
 
-### B — Automatic EARN_ORDER trigger
+### B — Automatic invoice earning
 
-Created function:
+Created:
 
 ```text
 trg_loyalty_on_invoiced_order()
-```
-
-Created trigger:
-
-```text
 trg_orders_loyalty_auto_earn
 ```
 
-Definition verified in Production:
+Trigger definition verified:
 
 ```text
 AFTER INSERT OR UPDATE OF order_status
 DEFERRABLE INITIALLY DEFERRED
 ```
 
-The operation identity is deterministic:
+Deterministic operation identity:
 
 ```text
 AUTO:EARN_ORDER:<company_id>:<order_id>
 ```
 
-This prevents double earning for the same invoice lifecycle operation.
-
 ### C — Audit
 
-Verified active audit triggers:
+Verified active triggers:
 
 ```text
 trg_audit_loyalty_accounts
@@ -359,56 +315,37 @@ trg_audit_loyalty_rewards
 trg_audit_loyalty_transactions
 ```
 
-All call:
+They execute `fn_audit_trigger()`.
 
-```text
-fn_audit_trigger()
-```
+### D — Direct table access
 
-### D — No direct table path
-
-Production role grants were checked. No `anon/authenticated` direct table privileges were returned for the Loyalty tables.
+Production grants returned only trusted server access for the Loyalty tables in the checked roles.
 
 ---
 
-## 8. E2E PRODUCTION TRANSACTION TESTS
+## 8. E2E DATABASE TESTS
 
-كل الاختبارات العملية الحساسة تمت داخل Transactions مؤقتة مع `ROLLBACK`.
+كل الاختبارات الحساسة تمت داخل Transaction مؤقتة ثم `ROLLBACK`.
 
-### Test 1 — Automatic earning from invoiced order
+### Test 1 — Auto EARN
 
-تم إنشاء مؤقتًا:
+Order مفوتر + detail بكمية 15 وسعر 10 + برنامج Active بمعدل 10 جنيه/نقطة.
 
-- Customer داخل Company 1.
-- Order بحالة `Invoiced`.
-- Order detail للصنف `1001` بكمية `15` وسعر `10`.
-- Loyalty program Active: كل `10` جنيه = `1` نقطة.
-
-بعد `SET CONSTRAINTS ALL IMMEDIATE` ظهر:
+نتيجة Production transaction:
 
 ```text
-transaction_type = EARN
-points_delta = 15
-balance_before = 0
-balance_after = 15
+EARN
+15 points
+balance 0 → 15
 ```
 
-والـoperation_id:
+**PASS**
 
-```text
-AUTO:EARN_ORDER:00000000-0000-0000-0000-000000000001:<order_id>
-```
-
-**النتيجة: PASS**
-
-### Test 2 — Full transaction cycle
-
-اختُبرت داخل Transaction مؤقتة:
+### Test 2 — Full Loyalty transaction cycle
 
 ```text
 SAVE_PROGRAM
 LIST_PROGRAMS
-CREATE ORDER + DETAILS
 AUTO EARN
 SAVE_REWARD
 DUPLICATE EARN
@@ -417,7 +354,7 @@ REVERSE
 GET_ACCOUNT
 ```
 
-النتيجة النهائية داخل الاختبار:
+نتيجة الحساب داخل الاختبار:
 
 ```text
 points_balance = 15
@@ -425,13 +362,11 @@ lifetime_earned = 15
 lifetime_redeemed = 10
 ```
 
-**النتيجة: PASS**
+**PASS**
 
-تم Rollback كامل بعد الاختبار.
+### Test 3 — Data hygiene
 
-### Test 3 — Persistence check
-
-بعد الاختبارات تم التحقق من Production counts:
+بعد rollback:
 
 ```text
 loyalty_programs = 0
@@ -441,142 +376,100 @@ loyalty_transactions = 0
 loyalty_points = 0
 ```
 
-**النتيجة: PASS — لا بيانات E2E متروكة في Production.**
+**PASS — لا بيانات اختبار متبقية.**
 
 ---
 
-## 9. WHAT FAILED DURING EXECUTION
+## 9. EXECUTION INCIDENTS / FAILED ATTEMPTS
 
-### Failure A — Old report state was stale
+### Incident 1 — stale report
 
-Report189 كان يشير إلى Commit أقدم ويقول إن Mother UI لا تحتوي Loyalty. الواقع الحالي يثبت أن Loyalty UI موجودة بالفعل داخل `main.html` في Commit `716ebf...`.
+Report189 كان مبنيًا على Commit أقدم وكان يقول إن Mother UI لا تحتوي Loyalty. Current Git أثبت العكس.
 
-**التقييم:** التقرير Historical clue فقط، وليس Current Truth.
+Classification:
+`STALE`
 
-### Failure B — Initial loyalty engine replacement incident
+### Incident 2 — historical incomplete RPC replacement
 
-في دورة سابقة موثقة في Report189 حدث استبدال ناقص لمحرك Loyalty. تم اكتشافه من Production read-back وإعادة تعريف المحرك الكامل.
+موثق في Report189؛ تم فحص Production وإعادة تعريف Loyalty engine الكامل قبل مواصلة العمل.
 
-**التقييم:** لا نعتبر النسخ التاريخية مصدر الحالة الحالية.
+### Incident 3 — empty frontend commit
 
-### Failure C — `main.html` Rewards grid stuck on loading
+`11b99cab...` أنشئ بالخطأ أثناء التسجيل.
 
-السبب الجذري هو async render ordering، وليس فقد البنية الخلفية:
+GitHub read-back:
+`diff=null`, `files=null`.
 
-```text
-renderConfig()
-    ↓
-loadPrograms() later
-    ↓
-currentPrograms updated
-    ↓
-renderProgramSummary() only
-    ↓
-renderConfig() not rerun
-```
+التأثير على Source:
+`NONE`.
 
-**الإصلاح الموصى به:** إعادة `renderConfig()` بعد نجاح `loadPrograms()`.
+### Runtime logs
 
-### Failure D — Empty commit residue
-
-تم إنشاء Commit فارغ بالخطأ:
-
-`11b99cab424496b9691e5ad92b36bd83ed7c2664`
-
-GitHub أثبت:
-
-```text
-diff = null
-files = null
-```
-
-**التقييم:** لا تغيير في Source file، لكنه يجب تسجيله وعدم اعتباره Source modification.
+محاولة جلب Edge runtime logs بواسطة الموصل الحالي فشلت على مستوى أداة الاتصال (`Resource not found: Supabase.get_logs`). لذلك **لم تستخدم هذه النتيجة لادعاء Runtime PASS**؛ الاعتماد في الإغلاق الحالي على deployment read-back + direct DB verification + transactional tests.
 
 ---
 
 ## 10. WHAT WAS NOT CHANGED
 
-بسبب مبدأ عدم العبث بما ثبت سلامته:
-
-- لا تعديل على Sales Targets.
-- لا إعادة بناء Loyalty tables.
-- لا إنشاء RPC dashboard غير مستخدم.
-- لا إضافة Edge Function ثانية للولاء.
-- لا تكرار Loyalty navigation.
-- لا تكرار permission map.
-- لا تعديل على `earnSelected()` اليدوي.
-- لا تعديل على العمليات المخزنية.
-- لا تعديل على Order/RunSheet business flow إلا نقطة auto-earn الضرورية والمثبتة.
+- Sales Targets لم تُعدّل.
+- لم تتم إعادة بناء Loyalty schema من الصفر.
+- لم تنشأ Edge Functions إضافية غير مطلوبة.
+- لم تنشأ dashboard RPC غير مستهلكة.
+- لم يتم تعديل العمليات المخزنية.
+- لم يتم تعديل Return loyalty policy.
+- لم يتم تعديل Mother File من داخل هذه الجلسة.
 
 ---
 
 ## 11. NEXT OPEN POINT
 
-بعد تطبيق Patch الواجهة وإعادة النشر وإجراء Browser E2E:
-
-### النقطة التالية الدقيقة
+بعد تطبيق Patch المالك وإعادة النشر وإتمام Browser E2E:
 
 ```text
 RETURN → LOYALTY REVERSAL POLICY
 ```
 
-المطلوب قبل أي تنفيذ:
+قبل أي Production change هناك يجب:
 
-1. مراجعة تاريخ Return business contract.
-2. تحديد متى يعود Earn السابق، ومتى يكون Reverse، ومتى يكون Sync/Adjustment.
-3. ربط ذلك مع `order_details.qty_returned` وOrder financial state.
-4. عدم اختراع خصم/مديونية نقاط بدون عقد تجاري مثبت.
-5. تصميم العملية كـidempotent transaction عبر `loyalty_engine_atomic`.
-6. اختبارها في Transaction مؤقتة.
-7. نشرها فقط بعد إثبات Production contract.
+```text
+Historical Return Contract
+→ Current Return Flow
+→ Order Detail / Runsheet Effects
+→ Financial Effects
+→ Loyalty Effect
+→ Reversal/Sync Rule
+→ Idempotency
+→ Transaction Test
+→ Production Verification
+```
 
-**لا يبدأ هذا الجزء كـpatch مباشر قبل إعادة بناء عقد المرتجع تاريخيًا.**
+لا تُخترع مديونية أو خصم نقاط دون عقد تجاري مثبت.
 
 ---
 
 ## 12. PRE-SWEEP SELF-AUDIT
 
-### Business Understanding
+Business Understanding: **Confirmed**  
+Architecture Understanding: **Confirmed**  
+Database Understanding: **Confirmed from Production**  
+Historical Understanding: **Sufficient for this closure; reports treated as clues**  
+Production Understanding: **Confirmed**  
+Current Source Understanding: **Confirmed, EOF verified**  
+Execution Confidence: **Backend high; UI pending owner/browser**
 
-**Confirmed:** Loyalty هو customer transaction subsystem مرتبط بفواتير البيع والـorders، مع برامج ومكافآت وحسابات وسجل معاملات.
+Confirmed Facts:
+- Loyalty engine exists.
+- Loyalty Edge exists and requires JWT.
+- Auto earning is deployed.
+- Operation idempotency index is deployed.
+- Audit triggers are active.
+- Current Mother UI has the Loyalty module.
+- Loading defect is caused by render ordering.
 
-### Architecture Understanding
-
-**Confirmed:** Edge capability → `loyalty_engine_atomic` → Loyalty tables.
-
-### Database Understanding
-
-**Confirmed:** الجداول والعلاقات والقيود الأساسية قرئت من Production مباشرة.
-
-### Historical Understanding
-
-**Confirmed enough for current closure:** تقرير 189 وCommit Loyalty السابق استُخدما كـsearch clues ثم تمت إعادة مطابقة الحالة الحالية.
-
-### Production Understanding
-
-**Confirmed:** RPC + Edge + indexes + triggers + grants + test transactions.
-
-### Current Source Understanding
-
-**Confirmed:** current mother blob `dd5516...` تمت قراءته إلى EOF، وLoyalty module موجود.
-
-### Execution Confidence
-
-**Backend:** High / Production verified.  
-**Mother UI:** Exact patch identified but not yet merged by owner.  
-**Browser E2E:** Open.
-
-### Unknowns
-
-لا يوجد Unknown مؤثر في سبب `جاري التحميل` الحالي.
-
-### Conflicts
-
-وجد تعارض بين Report189 وحالة Git الحالية؛ تم تصنيفه STALE report.
-
-### Unverified claims
-
-لم يتم اعتبار Browser UI pass لأن Browser Console/Network لم تكن متاحة داخل هذه الجلسة.
+Unknowns / unverified:
+- Browser Console/Network after owner patch.
+- Runtime logs could not be obtained through the current connector path.
+- Return→Loyalty policy remains unproven.
 
 ---
 
@@ -584,140 +477,121 @@ RETURN → LOYALTY REVERSAL POLICY
 
 ### What I Proved
 
-- Production Loyalty RPC موجود.
-- Edge gateway موجود ومؤمّن JWT.
-- Tenant identity مأخوذة من authenticated user.
-- Loyalty CRUD/read/transaction operations موجودة.
-- Idempotency index موجود.
-- Automatic EARN on invoiced order موجود ومجرب.
-- EARN/REDEEM/REVERSE path مجرب.
-- Audit triggers موجودة.
-- لا توجد بيانات E2E متروكة.
-- Mother Loyalty UI موجودة.
-- سبب Loading state مثبت بدقة.
+- Current Git identity and parent for the Loyalty commit.
+- Current Mother source reached EOF.
+- Production Loyalty schema and RPC are present.
+- Production Edge Function is deployed and JWT protected.
+- Production idempotency is enforced.
+- Invoice EARN is atomic and deferred.
+- Full Loyalty transaction cycle works transactionally.
+- Audit triggers are present.
+- No E2E test data remains.
+- Mother UI contains Loyalty and has one precise loading-order defect.
 
 ### What I Did Not Prove
 
-- Browser E2E بعد Patch المالك.
-- Console بعد إعادة النشر.
-- Network trace من المتصفح.
-- Return→Loyalty reversal contract.
+- Browser E2E after owner patch.
+- Browser Console/Network pass.
+- Return→Loyalty business contract.
+- Production runtime logs through the current connector because that connector path was unavailable.
 
 ### What I Fixed
 
-- Production auto earning integration.
-- Production operation identity/idempotency.
-- Production security path for Loyalty.
-- Production auditability verification.
+Production:
+- invoice-linked automatic EARN;
+- transaction operation idempotency;
+- trusted Loyalty execution boundary.
 
-### What I Initially Missed
-
-الواجهة الحالية كانت موجودة بالفعل في Commit حديث، لكن `renderConfig()` يعتمد على `currentPrograms` قبل اكتمال `loadPrograms()`.
-
-### What Could Still Be Wrong
-
-أي اختلاف يظهر بعد Browser publish سيكون محصورًا مبدئيًا في:
-
-- تطبيق Patch في `main.html`.
-- Cache/Service Worker.
-- Published artifact mismatch.
-- Browser console/runtime integration.
+Documentation:
+- current source/commit state;
+- canonical migration source;
+- current-state reconstruction;
+- next exact closure point.
 
 ### Final Closure Status
 
 ```text
 LOYALTY TRANSACTION ENGINE — PRODUCTION BACKEND = 100% CLOSED
-LOYALTY MOTHER UI = OPEN / ONE SURGICAL PATCH
+LOYALTY DATABASE INTEGRITY = CLOSED
+LOYALTY EDGE DEPLOYMENT = CLOSED
+LOYALTY DB TRANSACTION E2E = PASS
+LOYALTY MOTHER UI = OPEN / ONE OWNER PATCH
 BROWSER E2E = OPEN
+GLOBAL LOYALTY = NOT YET FULLY CLOSED
 ```
 
-ولا يجوز كتابة `LOYALTY = 100% CLOSED` قبل Browser E2E.
+لا يجوز تحويل هذا إلى `LOYALTY = 100% CLOSED` قبل Browser E2E.
 
 ---
 
 # 14. INSTRUCTIONS TO THE NEXT CTO / ASSISTANT
 
-ابدأ دائمًا من **الحقيقة الحالية، لا من التقرير**.
-
-اتبع التسلسل:
+ابدأ من الحقيقة الحالية، لا من Report190.
 
 ```text
-1. اقرأ CURRENT_STATE.md.
-2. اقرأ forensic_main_assembly.yml.
-3. استخرج منه فقط مكان Source of Truth.
-4. احصل على CURRENT GIT HEAD.
-5. احصل على DIRECT PARENT.
-6. احصل على CURRENT BLOB SHA.
-7. افتح CURRENT SOURCE نفسه، وليس fragment تاريخيًا.
-8. اقرأ الملف المطلوب كاملًا حتى EOF إذا طُلب ذلك.
-9. خذ anchors من النسخة الحالية نفسها.
-10. افحص CURRENT PRODUCTION.
-11. افحص CURRENT DATABASE schema.
-12. افحص CURRENT DEPLOYMENTS.
-13. افحص RUNTIME evidence.
-14. صنّف كل claim: CURRENT / STALE / UNKNOWN / CONFLICT.
-15. لا تعيد إصلاح أي شيء ثابت الإصلاح.
-16. أغلق Closure Unit واحدًا فقط.
-17. قبل التنفيذ: حدد Historical Contract → Current Contract → Target Contract.
-18. نفذ التعديل في الطبقة المالكة له.
-19. اختبر داخل Transaction آمنة عندما يمكن ذلك.
-20. تحقق من Production بعد التغيير.
-21. حدّث CURRENT_STATE.md فورًا.
-22. اكتب التقرير العربي الكامل.
-23. حدد Next Exact Task.
-24. لا تخلط Next Task مع Closure الحالي.
-
-### في حال فتح Mother File
-
-لا تستخدم سطرًا من Report189 كـanchor.
-
-افتح:
-
-```text
-papamohammed77-glitch/erp-frontend/companies/company-1/main.html
-```
-
-خذ:
-
-```text
-CURRENT COMMIT
-CURRENT BLOB
-CURRENT LINE
-CURRENT FUNCTION
-CURRENT END OF BLOCK
-```
-
-ثم اطلب من المالك تعديل العنصر كاملًا من أوله إلى آخر سطر واضح، لا جزءًا مقطوعًا.
-
-### في حال Production
-
-لا تنشئ جدولًا أو Edge Function جديدة لمجرد أن تقريرًا قديمًا ذكر احتمال الحاجة إليها.
-
-أثبت أولًا أن القدرة غير موجودة في Production الحالية.
-
-### في حال Unknown
-
-```text
-UNKNOWN
-→ PRIMARY SOURCE SEARCH
+CURRENT_STATE.md
+→ FORENSIC ASSEMBLY
+→ CURRENT GIT HEAD
+→ DIRECT PARENT
+→ CURRENT MOTHER BLOB
+→ FULL READ TO EOF
+→ CURRENT SOURCE ANCHOR
 → CURRENT PRODUCTION
 → CURRENT DATABASE
 → CURRENT DEPLOYMENT
-→ RUNTIME
-→ HISTORY
-→ RESOLVE
+→ RUNTIME EVIDENCE
+→ CLASSIFY STALE/UNKNOWN/CONFLICT
+→ CLOSE ONE UNIT
+→ TEST
+→ PRODUCTION VERIFY
+→ UPDATE STATE
+→ WRITE REPORT
+→ NEXT EXACT TASK
 ```
 
-### القاعدة النهائية
+### قواعد أساسية
+
+1. لا ترث line anchor من تقرير قديم.
+2. لا تصلح شيئًا ثبت أنه أصلح بالفعل.
+3. لا تعتبر Commit = Deployment.
+4. لا تعتبر Deployment = Runtime PASS.
+5. لا تعتبر Runtime PASS = Full Closure.
+6. لا تعتبر Browser UI صالحًا دون Browser E2E.
+7. لا تنشئ Backend capability قبل إثبات غيابها.
+8. لا تنقل business responsibility من طبقة إلى أخرى دون إثبات أين انتقلت.
+9. عند ظهور Unknown، حوّله إلى Evidence task ولا تخمّن.
+10. عند انتهاء Loyalty UI، انتقل إلى `RETURN → LOYALTY REVERSAL POLICY` وليس إلى إعادة بناء Loyalty من جديد.
+
+### عند استئناف Mother File
+
+ابحث عن السطر داخل `RW_LoyaltyMain.render()` الذي يبدأ بالنص الكامل:
+
+```javascript
+loadPrograms().then(function(){ renderProgramSummary(); }).catch(function(e){ showToast(e.message,'error'); });
+```
+
+والمقطع الذي ينتهي بـ:
+
+```javascript
+subscribeRealtime();
+```
+
+إذا كان موجودًا كما هو، نفّذ الـ4-line replacement المسجل في هذا التقرير فقط.
+
+بعد النشر:
 
 ```text
-REPORT IS A CLUE.
-CURRENT PRODUCTION IS EVIDENCE.
-CURRENT SOURCE IS EVIDENCE.
-CURRENT GIT IS EVIDENCE.
-CURRENT DATABASE IS EVIDENCE.
-CURRENT DEPLOYMENT IS EVIDENCE.
-BROWSER E2E IS REQUIRED FOR UI CLOSURE.
+open Loyalty
+→ wait for LIST_PROGRAMS
+→ verify config panel exits loading state
+→ LIST_REWARDS
+→ SAVE/READ program
+→ open customer
+→ verify account
+→ verify realtime refresh
+→ browser console = no error
+→ browser network = expected loyalty-engine calls
+→ Production counts/results = consistent
 ```
 
-**ولا تُعلن Closure قبل إثبات كل طبقة المطلوبة.**
+ثم أغلق Mother UI فقط إذا أثبتت الأدلة ذلك.
