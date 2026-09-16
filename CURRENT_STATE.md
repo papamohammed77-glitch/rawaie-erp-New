@@ -7,12 +7,11 @@
 - **Date:** 2026-09-16
 - **Current repository / Mother source:** `papamohammed77-glitch/erp-frontend`
 - **Source of Truth:** `companies/company-1/main.html`
-- **Current Mother HEAD:** `f1860e81f58def17090302a90b23289de37e93f1`
+- **Current Mother HEAD:** `3fe3c76674c7cbed8eb10201fee83ca6af2f1b07`
 - **HEAD message:** `forensic: persist current Mother inventory extract`
-- **HEAD parent:** `17f0b4d504d62e312f9ba59cee6aee2cf54eb71a`
-- **Parent message:** `Add new render functions to RW_Finance`
-- **Current Mother blob SHA:** `f45a5a943629ea2b5891a4ef0c99049c493ab474`
-- **Current forensic extract:** 24,150 lines; SHA256 `7b7d3968f7cdf7be69f5dd1c7d20ad61a698548b8aba341853a3f6593a491754`
+- **HEAD parent:** `3b5fdce634e44b3a2faa6bbf2dd40db5e88a676a`
+- **Current Mother blob SHA:** `744339a5cbe54a59e57bfc15bd3e3d4cce485d28`
+- **Current forensic extract:** 24,150 lines; SHA256 `7f5bc99954c62d3359180dedb577e52ff498c020eb29de04adc0cf4646a89c84`
 
 ## Source-of-Truth Rule
 
@@ -22,7 +21,7 @@
 
 `Current/PWA/main` and `Current/PWA/New-main` remain forbidden sources for reconstruction.
 
-The `forensic_main_assembly.yml` currently defines:
+`forensic_main_assembly.yml` was verified as:
 
 ```yaml
 source_of_truth:
@@ -34,24 +33,9 @@ assembly_status:
   fragment_mode: historical_reference_only
 ```
 
-## Current Mother Finance Finding
+## Previous Mother Finance Root Cause
 
-### Console errors investigated
-
-```text
-main:14542 Uncaught ReferenceError: _renderPeriods is not defined
-main:14541 Uncaught ReferenceError: _renderAssets is not defined
-main:14540 Uncaught ReferenceError: _renderTax is not defined
-main:14539 Uncaught ReferenceError: _renderBankReconcile is not defined
-main:14538 Uncaught ReferenceError: _renderCheques is not defined
-main:14537 Uncaught ReferenceError: _renderExpenses is not defined
-main:14536 Uncaught ReferenceError: _renderRecurringJournals is not defined
-main:14535 Uncaught ReferenceError: _renderJournalList is not defined
-```
-
-### Proven root cause
-
-The current `RW_Finance.renderSubTab` dispatcher still calls local names:
+The prior browser errors were caused by a dispatcher-to-namespace mismatch in `RW_Finance.renderSubTab`:
 
 ```text
 _renderJournalList()
@@ -64,7 +48,7 @@ _renderAssets()
 _renderPeriods()
 ```
 
-The current source also contains the corresponding public namespace bindings:
+The current source already contains the corresponding namespace bindings:
 
 ```text
 RW_Finance._renderJournalList
@@ -77,17 +61,7 @@ RW_Finance._renderAssets
 RW_Finance._renderPeriods
 ```
 
-The direct parent commit `17f0b4d...` added these bindings to `RW_Finance`.
-
-Therefore the current defect is a **dispatcher-to-namespace mismatch**, not a missing Finance renderer and not a missing Production RPC.
-
-## Required Mother Surgical Change — OWNER ONLY
-
-The assistant must NOT modify `erp-frontend/companies/company-1/main.html`.
-
-Owner must replace the exact current 8-line dispatcher element in `RW_Finance.renderSubTab`.
-
-### Delete exactly
+**OWNER surgical patch remains:**
 
 ```text
 else if (tab === 'journal-list') _renderJournalList();
@@ -100,13 +74,7 @@ else if (tab === 'assets') _renderAssets();
 else if (tab === 'periods') _renderPeriods();
 ```
 
-The element ends exactly at:
-
-```text
-else if (tab === 'periods') _renderPeriods();
-```
-
-### Replace with exactly
+Replace with:
 
 ```text
 else if (tab === 'journal-list') RW_Finance._renderJournalList();
@@ -119,197 +87,216 @@ else if (tab === 'assets') RW_Finance._renderAssets();
 else if (tab === 'periods') RW_Finance._renderPeriods();
 ```
 
-### Important
+## Current Production Finance State
 
-Do NOT re-add Gold action aliases. Current source already contains them, including:
+Supabase project: `fiilmooggumokxanwiyx`.
 
-```text
-RW_Finance._goldAddAsset
-RW_Finance._goldDepreciate
-RW_Finance._goldDispose
-RW_Finance._goldTaxCode
-RW_Finance._goldTaxSettle
-RW_Finance._goldOpenPeriod
-RW_Finance._goldChequeTransition
-```
+Finance foundation exists in Production; this was re-verified rather than assumed from reports.
 
-Do NOT modify `Current/PWA/main2` for this fix.
+Existing finance entities include:
 
-## Current Production Findings
+- `finance_expense_categories`
+- `finance_expenses`
+- `finance_expense_lines`
+- `finance_cheques`
+- `finance_cheque_events`
+- `finance_bank_statements`
+- `finance_bank_statement_lines`
+- `finance_tax_codes`
+- `finance_tax_transactions`
+- `finance_tax_settlements`
+- `fixed_assets`
+- `fixed_asset_events`
+- `finance_periods`
+- `recurring_journal_templates`
+- `recurring_journal_lines`
+- `finance_recurring_runs`
+- `journal_entries`
+- `journal_lines`
 
-Supabase Production project:
-
-`fiilmooggumokxanwiyx`
-
-### Finance RPC existence
-
-The Production database contains the Finance RPCs required by the current renderer, including:
-
-- `finance_journal_list`
-- `finance_list_recurring`
-- `finance_list_expenses`
-- `finance_list_cheques`
-- `finance_list_assets`
-- `finance_tax_report`
-- `finance_open_period`
-- `finance_close_period`
-- `finance_reopen_period`
-- `finance_open_bank_statement`
-- `finance_close_bank_statement`
-- `finance_save_expense`
-- `finance_save_cheque`
-- `finance_save_recurring`
-- `finance_save_tax_code`
-- `finance_tax_settle`
-- `finance_transition_cheque`
-- `save_fixed_asset`
-- `post_fixed_asset_depreciation`
-- `finance_dispose_asset`
-- `get_budget_vs_actual`
-
-These are `SECURITY DEFINER` functions.
-
-### Runtime database probes
-
-Direct PostgreSQL probes for the current renderer dependencies returned:
+Current counts re-verified:
 
 ```text
-finance_journal_list    -> 2 rows
-finance_list_recurring  -> 0 rows
-finance_list_expenses   -> 0 rows
-finance_list_cheques    -> 0 rows
-finance_list_assets     -> 1 row
-finance_tax_report      -> 0 rows
+finance_periods                = 1
+finance_expenses               = 0
+finance_cheques                = 0
+finance_bank_statements        = 0
+finance_tax_codes              = 0
+fixed_assets                    = 0
+recurring_journal_templates     = 0
 ```
 
-Therefore the current JavaScript `ReferenceError` is not caused by missing DB functions.
+The single current period is `FY2026`, `2026-01-01 → 2026-12-31`, `OPEN`.
 
-### Production security hardening performed in this session
+## Central Accounting Contract
 
-The Finance RPC anonymous execute surface was wider than necessary. `PUBLIC/anon` access was present on multiple `finance_*` functions.
+`post_journal_entry` is the current central accounting engine. It enforces company context, period guard, valid company-scoped accounts, balanced debits/credits, operation idempotency, journal entry/line creation, and audit logging.
 
-Production actions executed:
+`post_cash_payment_atomic` and `post_cash_receipt_atomic` are the current cash engines and create `cash_box` records while updating treasury and posting the central journal.
+
+No second Journal Engine was created.
+
+## Finance Production Changes Executed This Session
+
+### Accounting period contract
+
+Migration: `20260916162000_finance_contract_integrity_close`
+
+- Reject overlapping periods within the same company.
+- Reject editing a closed period through `finance_open_period`.
+- Require a real `OPEN` accounting period for every guarded posting date.
+- Reject posting when no matching period exists.
+- Audit period create/update operations.
+
+### Bank statement contract
+
+Within the same migration:
+
+- Reconciled statements cannot be edited through the save path.
+- Statement reference/date/balances are mandatory.
+- Bank statement lines are validated before insertion.
+- Company and Treasury scoping are enforced.
+
+### Cheque lifecycle contract
+
+Within the same migration:
+
+- cheque number/type/amount/date are validated.
+- due date cannot precede cheque date.
+- linked accounts/treasury must belong to the company.
+- only `ISSUED` cheques are editable.
+- editing an existing cheque no longer creates an additional fake `ISSUED` lifecycle event.
+- creation writes the initial `ISSUED` event exactly once.
+
+### Cash expense integration
+
+Migration: `20260916163500_finance_expense_cashflow_integrity`
+
+- Keeps `post_journal_entry` as the central accounting posting path.
+- Validates treasury sufficiency before posting.
+- Cash expenses now create a `cash_box` Payment record with `source_type='Expense'`.
+- Treasury balance is updated in the same transaction.
+- Existing `operation_id` remains the idempotency anchor.
+
+## Finance Security
+
+Existing Finance anonymous/public execute closures remain active and verified:
 
 ```text
-20260916115243 finance_close_public_read_rpc_surface
-20260916115339 finance_lock_anonymous_rpc_surface
-20260916115431 finance_security_surface_close
+20260916115243_finance_close_public_read_rpc_surface
+20260916115339_finance_lock_anonymous_rpc_surface
+20260916115431_finance_security_surface_close
 ```
 
-The second and third migrations are idempotent ACL closure passes; they do not alter Finance business logic.
-
-Final verification:
+Expected posture:
 
 ```text
-Finance EXECUTE for PUBLIC/anon = 0 rows
+Finance RPC EXECUTE for PUBLIC/anon = 0
+Authenticated/Service role execution = retained where required
 ```
 
-Direct privilege checks:
+## What Was Not Changed
+
+- `erp-frontend/companies/company-1/main.html` was not modified by the assistant.
+- `Current/PWA/main2` was not modified.
+- `Original/PWA/main` was not modified.
+- Inventory `post_stock_movement` contract was not altered.
+- Picker / Loading / Delivery / Return / Unloading operations were not altered.
+- No duplicate finance tables were created because the current schema already contains the required foundation.
+- No new Edge Function was created where a current secure RPC already provides the capability.
+
+## Mother UI Findings — Owner Action
+
+Current `RW_Finance_GoldExtension` has the required public actions, but several modal designs remain thin and UUID-driven.
+
+Current exact functions identified in the source:
 
 ```text
-anon_journal  = false
-anon_expenses = false
-anon_cheques  = false
-auth_journal  = true
-auth_budget   = true
+async function newRecurring(){ ... }
+async function newCheque(){ ... }
+async function newBank(){ ... }
+async function goldAddAsset(){ ... }
+async function goldTaxCode(){ ... }
+async function goldOpenPeriod(){ ... }
 ```
 
-The earlier `get_budget_vs_actual` authenticated execute closure remains verified.
+Current functional gaps are:
 
-## Git Reconciliation Performed
+- Recurring journal modal relies on raw JSON/UUID entry instead of account selection and an interactive line editor.
+- Cheque modal leaves account and treasury fields null instead of selecting valid company-scoped accounts/treasury.
+- Bank statement modal uses the first active treasury and has no line-entry editor.
+- Fixed asset modal requires manual account UUID entry.
+- Tax modal requires manual account UUID entry.
+- Period modal does not surface overlap validation before submission.
 
-The three Production security migrations were also recorded in the canonical `rawaie-erp-New/supabase/migrations` history so that the executed Production state is reproducible from Git:
+The backend has been strengthened so the Mother UI should consume these contracts correctly rather than bypass them.
 
-- `20260916115243_finance_close_public_read_rpc_surface.sql`
-- `20260916115339_finance_lock_anonymous_rpc_surface.sql`
-- `20260916115431_finance_security_surface_close.sql`
+`newExpense` already loads Company-scoped categories/accounts/cost centers/tax and calls `finance_save_expense`; it should not be replaced merely for visual reasons without evidence of regression.
 
-No Finance business tables were created because the current schema already contains the required capabilities.
+## Current Closure Status
 
-No Finance Edge Function was created because the current Mother renderer calls the existing PostgreSQL RPCs directly.
-
-## What Is Closed
-
-- Finance anonymous/public RPC execute surface: **CLOSED / PRODUCTION VERIFIED**.
-- `get_budget_vs_actual` execute privilege: **CLOSED / PRODUCTION VERIFIED**.
-- Root cause of the eight current ReferenceErrors: **PROVEN**.
-- Gold action alias existence: **PROVEN PRESENT IN CURRENT SOURCE**.
-- Finance renderer DB dependencies: **PROVEN PRESENT AND CALLABLE IN PRODUCTION**.
-- `forensic_main_assembly.yml` Source-of-Truth routing: **VERIFIED**.
-
-## What Is Not Yet Closed
-
-- Owner application of the 8-line dispatcher replacement.
-- Browser reload after owner change.
-- Actual click E2E of the eight affected Finance tabs.
-- First-new-console-error capture after that reload.
-- Final Finance modal UX/business completion audit.
-
-Do not re-fix the eight old errors unless a new regression proves they returned.
+```text
+Finance schema foundation                 = PROVEN PRESENT
+Central journal engine                    = PROVEN PRESENT
+Finance anonymous/public RPC surface     = CLOSED / VERIFIED
+Accounting period contract                = CLOSED / PRODUCTION
+Bank statement edit protection             = CLOSED / PRODUCTION
+Cheque lifecycle event duplication         = CLOSED / PRODUCTION
+Cash expense → cash_box integration         = CLOSED / PRODUCTION
+Mother dispatcher root cause               = PROVEN
+Mother dispatcher patch                    = READY / OWNER ACTION
+Browser Finance E2E                         = PENDING OWNER SOURCE CHANGE
+Full Finance E2E                             = NOT YET CLOSED
+```
 
 ## Current Session Report
 
+`doc/Draft/Reprots/Report219_MOTHER_FINANCE_FORENSIC_E2E_20260916.md`
+
+Previous finance forensic report:
+
 `doc/Draft/Reprots/Report218_MOTHER_FINANCE_FORENSIC_E2E_20260916.md`
 
-## Required Next Session Start
+Previous reports remain historical and must not override live evidence.
 
-1. Start from CURRENT GIT: obtain the real latest `erp-frontend` HEAD.
-2. Open its direct parent and inspect the diff affecting the area under test.
-3. Open current `companies/company-1/main.html`; it is the only current Mother Source of Truth.
-4. Do not treat Report218 or this file as current truth without re-verification.
-5. Trace any Console error in order:
+## Next Session Truth-Recovery Procedure
+
+Always start by obtaining CURRENT GIT first.
 
 ```text
-Browser consumer
-→ dispatcher / onclick
-→ local function or public namespace
-→ return object / export
-→ RPC
-→ Production function
-→ DB schema / privileges
+1. GET real current Mother HEAD.
+2. GET direct parent commit.
+3. Inspect parent/current diff for the exact target area.
+4. Open current Mother Source of Truth only:
+   erp-frontend/companies/company-1/main.html
+5. Match exact consumer → function → namespace → RPC → Production function → DB schema/constraints/privileges.
+6. Query CURRENT PRODUCTION immediately before any percentage, score, or closure claim.
+7. Treat reports only as historical evidence.
+8. Open Original/Current fragment files only to reconstruct intent, never as current deployment truth.
+9. Handle one Closure Unit at a time.
+10. Production changes must be executed as reproducible migrations.
+11. Mother changes must be returned to Owner as complete surgical delete/replace blocks.
+12. Never repeat a closed fix without evidence of regression.
+13. After every Owner source change, perform real browser reload + real click E2E.
 ```
-
-6. For `ReferenceError`, inspect declaration + scope + return object + namespace binding before inventing any function.
-7. For `is not a function`, inspect declaration + return object + public alias before any DB change.
-8. For `403`, inspect `routine_privileges` and `has_function_privilege` before business logic.
-9. Apply one surgical closure at a time.
-10. Production changes are executed directly after proof; Mother source changes are owner-applied.
-11. After owner applies a source fix, perform browser reload and real clicks before declaring E2E closed.
-12. Never recreate a capability that CURRENT SOURCE/PRODUCTION already proves exists.
-13. Never create a table or Edge Function unless current evidence proves the capability is absent.
-14. Never use a historical fragment as the deployment Source of Truth.
-15. Never repeat a closed fix without evidence of regression.
 
 ## Final Self-Audit
 
 ### Proven
 
-- Current HEAD = `f1860e81...`.
-- Current HEAD parent = `17f0b4d5...`.
-- Parent added Finance renderer namespace bindings.
-- Current dispatcher still used local renderer names and caused the ReferenceErrors.
-- Current source already contains Gold aliases.
-- Current Production Finance RPC dependencies exist and respond.
-- Production Finance anonymous execute surface is closed.
+- Current Mother HEAD is `3fe3c766...`.
+- Parent is `3b5fdce...`.
+- Current Mother `main.html` is the Source of Truth.
+- Finance database foundation exists.
+- Central accounting engine exists.
+- Period, bank statement, cheque, and expense cash-flow contracts were hardened in Production.
 
-### Not Proven
+### Not Proven Yet
 
-- Browser E2E after owner applies the dispatcher fix.
-- Final visual/interaction quality of all Finance modals.
+- Browser E2E after the Owner applies the dispatcher patch.
+- Final UX/interaction completion of every Finance modal.
+- Real authenticated browser validation for every Finance action.
 
-### Not Changed by Assistant
+### Governance rule
 
-- `erp-frontend/companies/company-1/main.html`.
-- Historical fragment files.
-- Finance business logic functions/tables.
-- Operational warehouse / fulfillment application flows.
-
-### Final Status
-
-```text
-CURRENT FINANCE ROOT CAUSE      = PROVEN
-PRODUCTION SECURITY             = CLOSED / VERIFIED
-MOTHER SURGICAL PATCH           = READY / OWNER ACTION
-BROWSER FINANCE E2E             = PENDING OWNER MERGE
-FULL FINANCE E2E                 = NOT YET CLOSED
-```
+No future assistant should declare Finance fully closed until CURRENT PRODUCTION + CURRENT SOURCE + browser E2E are aligned in the same execution window.
