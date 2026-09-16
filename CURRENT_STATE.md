@@ -1,21 +1,21 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-16 — current Git / current Mother source / current Production / current Database / current Deployment evidence were rechecked for the Inventory Forensic / Daftra Gap Closure. Historical reports remain reference-only.
+**Last reconciled:** 2026-09-16 — CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT evidence were rechecked for the Mother Inventory Consumer / Daftra gap closure. Historical reports remain reference-only.
 
 ## SOURCE OF TRUTH
 
-Historical reports are reference-only. They are not current state.
+Historical reports are clues only; they are not current state.
 
-The governing truth is:
+Current truth:
 `CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE`
 
-Full Browser/System E2E additionally requires:
+Full authenticated E2E additionally requires:
 `CURRENT BROWSER + CURRENT CONSOLE + CURRENT NETWORK`
 
-**Mother System Source of Truth:**
+**Mother Source of Truth:**
 `papamohammed77-glitch/erp-frontend/companies/company-1/main.html`
 
-Historical fragments only:
+Historical/reference only:
 `Current/PWA/main2/*`
 `Original/PWA/main/*`
 `New-main`
@@ -25,342 +25,251 @@ Historical fragments only:
 Repository: `papamohammed77-glitch/erp-frontend`
 Branch: `main`
 
-Current HEAD:
-`b673fa4c7b29d2ea6118aaf5c38a8bc2e1187af2`
+Current HEAD at final reconciliation:
+`d3b411cd0d7557ba0948ce9823fa2465e422ad80`
 
-HEAD message:
-`Expand mother inventory forensic source mapping`
+Its direct parent:
+`898a31dc65ea0e2d91b3c8ba292fc26c9b0c4d39`
 
-Direct parent:
-`9d8fa07215d5e84f5672abb8b36c218de87559eb`
+Parent of that forensic checkpoint:
+`5f88f5c3c81bc389e953a9b18e7231c8da6f43c1`
 
-The current HEAD modifies only the forensic E2E workflow; it does not modify the Mother HTML.
-
-Earlier Mother-related code commit verified during this closure:
-`cff8399547277eb1db83fbd0ce809837471f2b64`
-`Refactor purchase functions and realtime channel setup`
-
-Current Mother blob read from Git:
-`1e496d643d588bb2e92ea14cb8876cd9837b3e6b`
+Current frontend commits in this closure changed only forensic tooling/guards; Mother HTML was not modified by the assistant.
 
 ## CURRENT MOTHER
 
-Current Mother source:
-`papamohammed77-glitch/erp-frontend/companies/company-1/main.html`
+Current source:
+`companies/company-1/main.html`
 
-The assistant did **not** modify Mother HTML during this Inventory closure.
+Verified file size during Browser Forensic Run:
+`1,254,016 bytes`
 
-Current inventory menu anchor proven in the tested source:
+Inventory menu:
 `line 1145`
 
-Current inventory dispatcher anchors proven in the tested source:
+Current Inventory dispatcher:
+`20953` picking
+`20954` loading
+`20955` delivery
+`20956` return
+`20961` unloading
+`20962` receiving
+`20963` vouchers
+`20964` transfer
+`20965` direct-sale
+`20966` direct-return
+`20967` supplier-return
+`20968` vehicle-count
+`20969` branch-count
+`20970` general-count
+`20971` settlement
 
-`20953` → picking → `RW_Warehouse.loadPicking()`
-`20954` → loading → `RW_Warehouse.loadLoading()`
-`20955` → delivery → `RW_Warehouse.loadDelivery()`
-`20956` → return → `RW_Warehouse.loadReturn()`
-`20961` → unloading → `RW_Warehouse.loadUnloading()`
-`20962` → receiving → `RW_Warehouse.loadReceiving()`
-`20963` → vouchers → `RW_Warehouse.loadVouchers()`
-`20964` → transfer → `RW_Warehouse.loadVoucherForm('Transfer')`
-`20965` → direct-sale → `RW_Warehouse.loadVoucherForm('DirectSale')`
-`20966` → direct-return → `RW_Warehouse.loadVoucherForm('DirectReturn')`
-`20967` → supplier-return → `RW_Warehouse.loadVoucherForm('SupplierReturn')`
-`20968` → vehicle-count → `RW_Warehouse.loadVehicleCount()`
-`20969` → branch-count → `RW_Warehouse.loadBranchCount()`
-`20970` → general-count → `RW_Warehouse.loadGeneralCount()`
-`20971` → settlement → `RW_Warehouse.loadSettlement()`
-
-No placeholder marker was found by the current static E2E check for:
+Static inventory contract check on current Mother passed and found no placeholder markers:
 `قيد التطوير / جاري التطوير / TODO / FIXME`
 
-## CURRENT BROWSER E2E — MOTHER
+## CURRENT MOTHER BROWSER EVIDENCE
 
 Workflow:
 `.github/workflows/inventory_mother_forensic_e2e_20260916.yml`
 
-Run:
-`35058149973`
+The tested Browser Smoke result was PASS with:
+`Console errors = 0`
+`Page errors = 0`
 
-Job:
-`104672563318`
+This does not equal authenticated business E2E against Production.
 
-Result:
-`SUCCESS`
+## FORENSIC WORKFLOWS
 
-Proven:
-- inventory contract static audit = PASS
-- source map = PASS
-- browser load = PASS
-- Console errors = 0
-- Page errors = 0
-- Mother Browser Smoke = PASS
-
-This is still a Browser Smoke, not full authenticated business E2E against Production.
-
-## FORENSIC ASSEMBLY GUARD
-
-Created in `erp-frontend`:
 `.github/workflows/forensic_main_assembly.yml`
 
-Purpose:
-protect the canonical Mother Source of Truth path:
+Current guard explicitly requires:
 `companies/company-1/main.html`
 
-`Current/PWA/main2/*` remains historical/reference-only and is not treated as Source of Truth.
+and rejects Mother code containing:
+`Current/PWA/main2`
 
-## CURRENT PRODUCTION
+`.github/workflows/mother_inventory_source_extract_20260916.yml`
 
-Supabase project:
+This workflow extracts exact current Mother anchors and enclosing functions for surgical patching.
+
+## CURRENT PRODUCTION — SUPABASE
+
+Project:
 `fiilmooggumokxanwiyx`
 
-Current live Company evidence was rechecked directly. Historical reports that listed additional companies were not used as current state.
-
-## INVENTORY CONTROL PRODUCTION — 2026-09-16
-
-### Central Physical Stock Contract
+Central Physical Stock Contract:
 
 ```text
-PHYSICAL MOVEMENT
+Physical Movement
         ↓
 post_stock_movement
         ↓
 stock_branches + inventory_log
 ```
 
-`reserve_stock` and `release_stock_reservation` remain reservation-only engines.
+Reservation only:
+`reserve_stock`
+`release_stock_reservation`
 
-No independent Physical Stock Writer was found in the current Production function scan outside setup/bootstrap behavior.
+### Inventory capability engines present
 
-### Inventory Read/Intelligence
+`inventory_stock_snapshot`
+`inventory_replenishment_report`
+`inventory_movement_report`
+`inventory_count_engine`
+`inventory_stock_request_engine`
 
-Deployed and verified:
-
-`inventory_stock_snapshot(...)`
-`inventory_replenishment_report(...)`
-`inventory_movement_report(...)`
-
-These are Company/Actor scoped and use current stock/inventory_log data.
-
-Low-stock semantics require `reorder_point > 0`.
-
-Recommended replenishment uses `max_qty` when it is a meaningful target above reorder point; otherwise reorder point is used as the minimum safe replenishment target.
-
-### Inventory Count Engine
-
-Deployed and verified:
-
-`inventory_count_engine(...)`
-
-Operations:
-`CREATE`
-`GET`
-`POPULATE`
-`UPSERT_LINE`
-`REFRESH`
-`FINALIZE`
-`CANCEL`
-
-`counted_qty` has no default so an uncounted item cannot silently become zero.
-
-Identity:
-`count_id + branch_id + item_id`
-
-Physical variance adjustment always calls:
-`post_stock_movement`
-
-`stock_discrepancies` was intentionally not reused for general inventory count variances because its current contract belongs to runsheet discrepancy handling.
-
-### Stock Request Engine
-
-Created and verified:
+### Stock Request tables
 
 `inventory_stock_requests`
 `inventory_stock_request_details`
 
-Engine:
-`inventory_stock_request_engine(...)`
+Lifecycle:
+`CREATE → GET → APPROVE → REJECT → CONVERT → CANCEL`
 
-Operations:
-`CREATE`
-`GET`
-`APPROVE`
-`REJECT`
-`CONVERT`
-`CANCEL`
+CONVERT creates a stock voucher; it does not directly mutate physical stock.
 
-Conversion creates a stock voucher; it does not mutate physical stock by itself.
+### Realtime
 
-### Existing Edge Gateway
+Enabled for:
+`inventory_stock_requests`
+`inventory_stock_request_details`
 
-A new Edge Function was initially attempted but Production rejected the creation because the project reached its Edge Function capacity limit.
+### Edge Gateway
 
-The correct infrastructure decision was to reuse:
-`save-inventory-count`
+Existing gateway reused because the project has Edge capacity constraints:
+`save-inventory-count` — current version 4
 
-Current gateway deployment:
-`save-inventory-count` — active — verify_jwt=true
-
-It now exposes:
-
+It exposes:
 `COUNT_*`
 `REQUEST_*`
 `SNAPSHOT`
 `MOVEMENTS`
 `REPLENISHMENT`
 
-while preserving the previous count request compatibility path.
+### Receive Purchase
 
-### Realtime
+Current RPC:
+`receive_purchase_atomic(p_company_id, p_po_code, p_user_email, p_items, p_operation_id uuid)`
 
-Relevant inventory tables were added to the current realtime publication:
+Current Edge:
+`receive-purchase` — version 12 — `verify_jwt=true`
 
-`inventory_log`
-`inventory_counts`
-`inventory_count_details`
-`stock_discrepancies`
+The Edge accepts `operation_id` from the body or `Idempotency-Key` and has deterministic fallback when the client omits one.
 
-## INVENTORY PRODUCTION E2E RESULTS
+Production RPC now validates tenant/user context, stable operation identity, item identity, quantity limits, duplicate/conflict semantics, performs physical receive through `post_stock_movement`, updates PO detail/status, restores journal/supplier-ledger responsibilities, and writes audit evidence.
 
-### Snapshot
+### Manual Voucher CREATE
 
-PASS for current Company and active warehouse actor.
+`create_manual_stock_voucher_atomic` was hardened so tenant context is not derived from an unscoped `app_settings LIMIT 1` lookup.
 
-### Count
+## PRODUCTION DATA SAFETY
 
-Transactional E2E verified:
+Transactional E2E tests for Receive Purchase left no temporary PO/receiving/movement residue:
+`0 / 0 / 0`
 
-`CREATE`
-→ `UPSERT_LINE`
-→ `FINALIZE`
+Transactional Manual Voucher test also left no residue.
 
-The test checked stock delta and inventory log creation, then rolled back.
+Do not classify the previously observed cross-company stock/item associations as corruption automatically. `items.item_code` is globally UNIQUE in current schema; no deletion/reassignment is allowed without direct source evidence.
 
-### Stock Request
+## OPEN MOTHER CONSUMER GAP
 
-Transactional E2E verified:
+Production capabilities exist, but Mother consumer integration is not yet closed.
 
-`CREATE`
-→ `APPROVE`
-→ `CONVERT`
+The Mother must expose a control plane for:
+`SNAPSHOT`
+`MOVEMENTS`
+`REPLENISHMENT`
+`COUNT_*`
+`REQUEST_*`
 
-The test confirmed conversion itself did not create an inventory movement, then rolled back.
+while field applications remain responsible for operational execution.
 
-### Data pollution check
+## OWNER SURGICAL PATCHES
 
-After transactional tests:
+### PATCH-A — Inventory Menu
 
-`inventory_counts = 0`
-`inventory_count_details = 0`
-`inventory_stock_requests = 0`
-`inventory_stock_request_details = 0`
+Exact current anchor:
+`line 1145`
 
-No test fixture was intentionally left in Production.
+Add the new Mother control view:
+`inventory-control`
 
-Production snapshot used for final state:
-`2026-09-16 05:07:19.211078+00`
+See Report208 for the full replacement line.
 
-## CURRENT FORENSIC REPORTS
+### PATCH-B — Current Dispatcher
 
-Latest relevant reports now include:
+Exact current area:
+`20932+`
 
-`doc/Draft/Reprots/Report204_PURCHASE_MODAL_CURRENT_CLOSURE_20260915.md`
-`doc/Draft/Reprots/Report205`
-`doc/Draft/Reprots/Report206_SALES_DECISION_RLS_SECURITY_CLOSURE_20260916.md`
-`doc/Draft/Reprots/Report207_INVENTORY_FORENSIC_DAFTRA_GAP_CLOSURE_20260916.md`
+Required new route:
+`if (view === 'inventory-control') { RW_Warehouse.loadInventoryControl(); return; }`
 
-Reports remain historical evidence only.
+Place immediately before the current settings dispatcher.
 
-## REQUIRED METHOD FOR NEXT SESSION
+### RECEIVE PURCHASE — OWNER PATCH
 
-1. Re-read this file first.
-2. Re-open current Git HEAD and direct parent.
-3. Re-open current Mother source and read the exact target block.
-4. Re-read the current Mother blob SHA before any patch.
-5. Take a fresh Production snapshot at the same time as the work.
-6. Do not trust any older report as current state.
-7. Do not recreate already-verified Production inventory engines.
-8. Continue from the open checkpoint: Mother Consumer Integration of the new inventory capabilities.
-9. Keep all field-execution flows intact: picking, loading, delivery, return, unloading, runsheets and settlement.
-10. Any physical stock mutation must remain under `post_stock_movement`.
-11. Any Owner-only Mother change must be supplied as an exact full surgical block with start/end anchors and current line numbers.
-12. After Owner merge, re-read current Git/blob again before E2E.
-13. Capture Browser + Console + Network + DB + Realtime evidence.
-14. Do not declare Gold/Diamond before all critical evidence is current.
+Production supports stable `operation_id`, but the exact current enclosing Mother function was not safely extracted because the very large Mother Blob line-range fetch returned empty content on the exact target range.
+
+No guessed line number was recorded.
+
+The next session must extract the current enclosing receive-purchase function from the Mother source before issuing the final full replacement.
+
+## OPEN SEPARATE WRITER CLOSURES
+
+`complete-return`
+
+`complete-order-delivery`
+
+`picking`
+
+`loading`
+
+`unloading`
+
+Each must be handled as its own Closure Unit with:
+`Discover → Root Cause → Historical Review → Surgical Fix → Test → Deploy → Production Verify → Close`
 
 ## CURRENT CLOSURE STATUS
 
 ```text
-Current Git / Parent                         VERIFIED
-Current Mother source                        VERIFIED
-Current Mother blob                          VERIFIED
-Mother HTML modified by assistant            NO
-Mother Browser Smoke                         PASS
-Mother Console errors                        0 in smoke
-Mother PageErrors                            0 in smoke
-Inventory physical writer centralization     VERIFIED
-Inventory read/intelligence engine           DEPLOYED + VERIFIED
-Inventory count engine                       DEPLOYED + VERIFIED
-Inventory stock request engine               DEPLOYED + VERIFIED
-Inventory realtime publication               DEPLOYED
-Inventory Edge gateway                       DEPLOYED + VERIFIED
-Forensic Mother E2E workflow                 ACTIVE + PASS
-Forensic Mother assembly guard               CREATED
-Full authenticated inventory E2E             OPEN
-Mother → inventory capability integration    OPEN
-Daftra-level functional inventory completion OPEN
-Gold/Diamond Inventory UI                    OPEN
-Next Closure Unit                            MOTHER CONSUMER INTEGRATION
+Current Git / direct Parent                 VERIFIED
+Current Mother Source                      VERIFIED
+Mother HTML changed by assistant            NO
+Mother Browser Smoke                       PASS
+Console/Page Errors                         0 in smoke
+Production Inventory Engines               PRESENT + VERIFIED
+Stock Request Engine                        PRESENT + VERIFIED
+Inventory Count Engine                     PRESENT + VERIFIED
+Inventory Intelligence                     PRESENT + VERIFIED
+Inventory Realtime                          DEPLOYED
+Manual Voucher Production hardening        DEPLOYED + VERIFIED
+Receive Purchase identity                   DEPLOYED + VERIFIED transactionally
+Receive Purchase accounting                 DEPLOYED
+Mother Inventory Consumer                  OPEN
+Owner PATCH-A                               READY
+Owner PATCH-B                               READY
+Receive Purchase Mother identity patch     OPEN — exact enclosing block not safely extracted
+Complete Return Writer                     OPEN
+Complete Order Delivery Writer             OPEN
+Full Authenticated Mother E2E             OPEN
+Global Inventory Zero-Debt                 OPEN
+Gold/Diamond Inventory                     OPEN
 ```
 
-## SELF-AUDIT — 2026-09-16 INVENTORY FORENSIC CLOSURE
+## NEXT SESSION — EXACT START SEQUENCE
 
-### What I proved
+1. Read this state only to identify the checkpoint; do not accept any claim without re-verification.
+2. Open current frontend HEAD and its direct parent; inspect the diff.
+3. Open current Mother `companies/company-1/main.html` and extract the exact full `RW_Warehouse` object plus receive-purchase consumer and dispatcher.
+4. Take a fresh Production snapshot at the same moment.
+5. Re-check live Edge versions and live RPC definitions; never infer deployment from migrations alone.
+6. Trace one flow end-to-end:
+   `Mother → Edge → RPC → core engine → DB → audit → realtime`
+7. Close only one Writer Closure Unit at a time.
+8. For Mother edits, give the owner the exact line number, exact first line, exact final line, complete delete block, and complete replacement block.
+9. After Owner merge, re-read current Git/blob before Browser E2E.
+10. Capture Browser + Console + Network + Database + Realtime evidence.
+11. Update this file and add the next sequential report.
 
-- Current Git was rechecked, including the direct parent.
-- Current Mother source was directly inspected.
-- Mother was not modified by the assistant.
-- Current Mother inventory menu/dispatcher anchors were verified.
-- Current Mother Browser Smoke passed with zero Console/Page errors.
-- Current Production inventory schema and physical stock contract were inspected.
-- Physical stock has one central mutation engine: `post_stock_movement`.
-- Inventory snapshot/replenishment/movement capabilities exist in Production.
-- Inventory counting has a controlled lifecycle and physical adjustment through the central movement engine.
-- Stock request workflow has a controlled lifecycle separated from physical movement.
-- Realtime publication was extended for inventory control.
-- A new Edge Function was not created because capacity was exhausted; an existing gateway was reused instead.
-- Transactional tests left no test data behind.
-
-### What I did not prove
-
-- Full authenticated E2E of every warehouse subtab inside the Mother.
-- Production Network evidence for every Mother inventory action.
-- Mother UI integration with the newly deployed Inventory Intelligence / Count / Request engines.
-- Complete Daftra-equivalent inventory feature parity including every reporting/export/import surface.
-- Final Gold/Diamond closure of the Mother Inventory UI.
-
-### What was initially missed and corrected
-
-- Uncounted inventory lines could be interpreted as zero because of an unsuitable default.
-- A partial unique index was not compatible with the required UPSERT identity.
-- Historical fixture branch data was not valid current Production evidence.
-- Edge Function capacity prevented adding a new gateway, so an existing appropriate function was reused.
-
-### What could still be wrong
-
-- The Mother `RW_Warehouse` consumer paths may still use legacy read/write patterns until explicitly reconnected to the new capability layer.
-- `receive-purchase` still requires a stable client operation identity from the Mother for complete retry semantics.
-- Field-operation closures such as complete return and complete order delivery remain separate Writer Closure Units.
-
-## NEXT EXACT CHECKPOINT
-
-```text
-Fresh current Git/blob verification
-→ open full RW_Warehouse block
-→ map each inventory tab to current capability API
-→ prepare exact Owner-only surgical replacements
-→ Owner merge
-→ fresh browser/console/network
-→ Production DB + realtime verification
-→ close Mother Inventory capability integration
-```
+**Never declare `100% CLOSED` while any Unknown, Conflict, or Unverified Claim materially affects the closure.**
