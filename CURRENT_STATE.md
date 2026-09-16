@@ -25,23 +25,23 @@ Historical/reference only:
 Repository: `papamohammed77-glitch/erp-frontend`
 Branch: `main`
 
-Current HEAD at final reconciliation:
-`d3b411cd0d7557ba0948ce9823fa2465e422ad80`
+Current HEAD:
+`06468385d01bbddab4e078dc2fc24282cea43733`
 
-Its direct parent:
+Direct parent:
+`3ecdfdc9747fae7de8b7a99e02d65971071ae7e0`
+
+Earlier forensic parent:
 `898a31dc65ea0e2d91b3c8ba292fc26c9b0c4d39`
 
-Parent of that forensic checkpoint:
-`5f88f5c3c81bc389e953a9b18e7231c8da6f43c1`
-
-Current frontend commits in this closure changed only forensic tooling/guards; Mother HTML was not modified by the assistant.
+The current frontend commits created during this closure modify only forensic tooling/guards; Mother HTML was not modified by the assistant.
 
 ## CURRENT MOTHER
 
 Current source:
 `companies/company-1/main.html`
 
-Verified file size during Browser Forensic Run:
+Verified file size during the latest Browser Forensic Run:
 `1,254,016 bytes`
 
 Inventory menu:
@@ -64,33 +64,27 @@ Current Inventory dispatcher:
 `20970` general-count
 `20971` settlement
 
-Static inventory contract check on current Mother passed and found no placeholder markers:
+Current smoke audit passed with no placeholder markers:
 `قيد التطوير / جاري التطوير / TODO / FIXME`
 
 ## CURRENT MOTHER BROWSER EVIDENCE
 
-Workflow:
-`.github/workflows/inventory_mother_forensic_e2e_20260916.yml`
-
-The tested Browser Smoke result was PASS with:
+The latest proven Mother Browser Smoke:
+`MOTHER_BROWSER_SMOKE=PASS`
 `Console errors = 0`
 `Page errors = 0`
 
-This does not equal authenticated business E2E against Production.
+This remains Browser Smoke, not authenticated full business E2E.
 
 ## FORENSIC WORKFLOWS
 
 `.github/workflows/forensic_main_assembly.yml`
 
-Current guard explicitly requires:
-`companies/company-1/main.html`
-
-and rejects Mother code containing:
-`Current/PWA/main2`
+The guard requires `companies/company-1/main.html`, rejects `Current/PWA/main2` references inside Mother, and runs inline JavaScript syntax validation.
 
 `.github/workflows/mother_inventory_source_extract_20260916.yml`
 
-This workflow extracts exact current Mother anchors and enclosing functions for surgical patching.
+Manual-run forensic extractor for exact current Mother anchors/enclosing functions. It is intentionally not triggered on every push.
 
 ## CURRENT PRODUCTION — SUPABASE
 
@@ -111,7 +105,7 @@ Reservation only:
 `reserve_stock`
 `release_stock_reservation`
 
-### Inventory capability engines present
+### Inventory capabilities present
 
 `inventory_stock_snapshot`
 `inventory_replenishment_report`
@@ -127,95 +121,83 @@ Reservation only:
 Lifecycle:
 `CREATE → GET → APPROVE → REJECT → CONVERT → CANCEL`
 
-CONVERT creates a stock voucher; it does not directly mutate physical stock.
-
 ### Realtime
 
 Enabled for:
 `inventory_stock_requests`
 `inventory_stock_request_details`
 
-### Edge Gateway
+### Inventory Gateway
 
-Existing gateway reused because the project has Edge capacity constraints:
-`save-inventory-count` — current version 4
+`save-inventory-count` — version `4` — `verify_jwt=true`
 
-It exposes:
-`COUNT_*`
-`REQUEST_*`
-`SNAPSHOT`
-`MOVEMENTS`
-`REPLENISHMENT`
+Supports:
+`COUNT_* / REQUEST_* / SNAPSHOT / MOVEMENTS / REPLENISHMENT`
 
 ### Receive Purchase
 
-Current RPC:
+RPC:
 `receive_purchase_atomic(p_company_id, p_po_code, p_user_email, p_items, p_operation_id uuid)`
 
-Current Edge:
-`receive-purchase` — version 12 — `verify_jwt=true`
+Edge:
+`receive-purchase` — version `12` — `verify_jwt=true`
 
-The Edge accepts `operation_id` from the body or `Idempotency-Key` and has deterministic fallback when the client omits one.
-
-Production RPC now validates tenant/user context, stable operation identity, item identity, quantity limits, duplicate/conflict semantics, performs physical receive through `post_stock_movement`, updates PO detail/status, restores journal/supplier-ledger responsibilities, and writes audit evidence.
+Production now validates tenant/user context, stable operation identity, duplicate/conflict semantics, item identity, quantity limits, physical movement via `post_stock_movement`, PO status/detail, accounting, and audit.
 
 ### Manual Voucher CREATE
 
-`create_manual_stock_voucher_atomic` was hardened so tenant context is not derived from an unscoped `app_settings LIMIT 1` lookup.
+`create_manual_stock_voucher_atomic` no longer derives tenant context from an unscoped `app_settings LIMIT 1` lookup.
 
-## PRODUCTION DATA SAFETY
+## DATA SAFETY
 
-Transactional E2E tests for Receive Purchase left no temporary PO/receiving/movement residue:
-`0 / 0 / 0`
+Transactional testing left no temporary PO/receiving/movement residue.
 
-Transactional Manual Voucher test also left no residue.
-
-Do not classify the previously observed cross-company stock/item associations as corruption automatically. `items.item_code` is globally UNIQUE in current schema; no deletion/reassignment is allowed without direct source evidence.
+The previously observed cross-company stock/item associations were not deleted or reassigned because the current schema makes `items.item_code` globally UNIQUE and there is not enough direct source evidence to classify every mismatch as corruption.
 
 ## OPEN MOTHER CONSUMER GAP
 
-Production capabilities exist, but Mother consumer integration is not yet closed.
+Production capabilities exist, but Mother consumer integration remains open.
 
-The Mother must expose a control plane for:
+Required Mother control plane:
 `SNAPSHOT`
 `MOVEMENTS`
 `REPLENISHMENT`
 `COUNT_*`
 `REQUEST_*`
 
-while field applications remain responsible for operational execution.
+Field applications remain the operational execution layer.
 
-## OWNER SURGICAL PATCHES
+## OWNER PATCHES
 
-### PATCH-A — Inventory Menu
+### PATCH-A
 
-Exact current anchor:
+Current exact menu anchor:
 `line 1145`
 
-Add the new Mother control view:
+Add:
 `inventory-control`
 
-See Report208 for the full replacement line.
+Full replacement is recorded in `doc/Draft/Reprots/Report208_INVENTORY_MOTHER_CONSUMER_E2E_FORENSIC_20260916.md`.
 
-### PATCH-B — Current Dispatcher
+### PATCH-B
 
-Exact current area:
+Current dispatcher anchor area:
 `20932+`
 
-Required new route:
+Required route:
 `if (view === 'inventory-control') { RW_Warehouse.loadInventoryControl(); return; }`
 
-Place immediately before the current settings dispatcher.
+**Important:** `loadInventoryControl()` itself has not been proven to exist in the current Mother source. Therefore PATCH-B is a routing requirement only, not a claim of functional closure. The next extraction must prove the target implementation before the Owner pastes any new dispatcher route.
 
-### RECEIVE PURCHASE — OWNER PATCH
+### RECEIVE PURCHASE
 
-Production supports stable `operation_id`, but the exact current enclosing Mother function was not safely extracted because the very large Mother Blob line-range fetch returned empty content on the exact target range.
+Production is operation-id aware, but the exact current enclosing Mother consumer was not safely extracted from the huge Mother Blob in this session.
 
 No guessed line number was recorded.
 
-The next session must extract the current enclosing receive-purchase function from the Mother source before issuing the final full replacement.
+Do not patch the Mother receive consumer until the exact current enclosing function and operation state are extracted from the current source.
 
-## OPEN SEPARATE WRITER CLOSURES
+## OPEN WRITER CLOSURES
 
 `complete-return`
 
@@ -227,49 +209,45 @@ The next session must extract the current enclosing receive-purchase function fr
 
 `unloading`
 
-Each must be handled as its own Closure Unit with:
-`Discover → Root Cause → Historical Review → Surgical Fix → Test → Deploy → Production Verify → Close`
+Each is a separate Closure Unit:
+`Discover → Root Cause → Historical Context → Surgical Fix → Test → Deploy → Production Verify → Close`
 
 ## CURRENT CLOSURE STATUS
 
 ```text
-Current Git / direct Parent                 VERIFIED
-Current Mother Source                      VERIFIED
-Mother HTML changed by assistant            NO
-Mother Browser Smoke                       PASS
-Console/Page Errors                         0 in smoke
-Production Inventory Engines               PRESENT + VERIFIED
-Stock Request Engine                        PRESENT + VERIFIED
-Inventory Count Engine                     PRESENT + VERIFIED
-Inventory Intelligence                     PRESENT + VERIFIED
-Inventory Realtime                          DEPLOYED
-Manual Voucher Production hardening        DEPLOYED + VERIFIED
-Receive Purchase identity                   DEPLOYED + VERIFIED transactionally
-Receive Purchase accounting                 DEPLOYED
-Mother Inventory Consumer                  OPEN
-Owner PATCH-A                               READY
-Owner PATCH-B                               READY
-Receive Purchase Mother identity patch     OPEN — exact enclosing block not safely extracted
-Complete Return Writer                     OPEN
-Complete Order Delivery Writer             OPEN
-Full Authenticated Mother E2E             OPEN
-Global Inventory Zero-Debt                 OPEN
-Gold/Diamond Inventory                     OPEN
+Current Git / direct Parent              VERIFIED
+Current Mother Source                   VERIFIED
+Mother HTML modified by assistant       NO
+Mother Browser Smoke                    PASS
+Console/Page Errors                     0 in smoke
+Inventory Engines                       PRESENT + VERIFIED
+Stock Request Engine                    PRESENT + VERIFIED
+Inventory Count Engine                  PRESENT + VERIFIED
+Inventory Intelligence                  PRESENT + VERIFIED
+Inventory Realtime                      DEPLOYED
+Manual Voucher CREATE                   DEPLOYED + VERIFIED
+Receive Purchase Identity               DEPLOYED + VERIFIED TRANSACTIONALLY
+Receive Purchase Accounting             DEPLOYED
+Mother Inventory Consumer               OPEN
+Owner PATCH-A                           READY
+Owner PATCH-B                           ROUTE IDENTIFIED; IMPLEMENTATION UNPROVEN
+Receive Purchase Mother Identity        OPEN
+Complete Return Writer                 OPEN
+Complete Order Delivery Writer         OPEN
+Full Authenticated Mother E2E           OPEN
+Global Inventory Zero-Debt              OPEN
+Gold/Diamond Inventory                  OPEN
 ```
 
-## NEXT SESSION — EXACT START SEQUENCE
+## NEXT SESSION EXACT START
 
-1. Read this state only to identify the checkpoint; do not accept any claim without re-verification.
-2. Open current frontend HEAD and its direct parent; inspect the diff.
-3. Open current Mother `companies/company-1/main.html` and extract the exact full `RW_Warehouse` object plus receive-purchase consumer and dispatcher.
+1. Open current HEAD `06468385...` and direct parent `3ecdfdc9...`, inspect diff.
+2. Open current Mother `companies/company-1/main.html` as the only Source of Truth.
+3. Run the manual forensic extractor to obtain exact `RW_Warehouse`, `loadReceiving`, receive-purchase consumer, and dispatcher blocks.
 4. Take a fresh Production snapshot at the same moment.
-5. Re-check live Edge versions and live RPC definitions; never infer deployment from migrations alone.
-6. Trace one flow end-to-end:
-   `Mother → Edge → RPC → core engine → DB → audit → realtime`
-7. Close only one Writer Closure Unit at a time.
-8. For Mother edits, give the owner the exact line number, exact first line, exact final line, complete delete block, and complete replacement block.
-9. After Owner merge, re-read current Git/blob before Browser E2E.
-10. Capture Browser + Console + Network + Database + Realtime evidence.
-11. Update this file and add the next sequential report.
-
-**Never declare `100% CLOSED` while any Unknown, Conflict, or Unverified Claim materially affects the closure.**
+5. Match Mother → Edge → RPC → DB → audit → realtime for one capability at a time.
+6. Prove whether `loadInventoryControl()` already exists; do not route to a nonexistent method.
+7. Build the Owner replacement only after exact function boundaries are known.
+8. After Owner merge, re-read current Git/blob and run Browser + Console + Network + DB + Realtime evidence.
+9. Continue separate Writer Closures for returns/delivery/picking/loading/unloading.
+10. Never declare `100% CLOSED` while any material Unknown, Conflict, or Unverified Claim remains.
