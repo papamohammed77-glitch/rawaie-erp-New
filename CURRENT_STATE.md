@@ -4,7 +4,7 @@
 
 ## GOVERNING BASIS
 `CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE`
-Historical reports are reference-only.
+Historical reports are reference-only and must not override current evidence.
 
 ## SOURCE OF TRUTH
 Mother Finance/UI:
@@ -14,89 +14,68 @@ Historical/reference only:
 `rawaie-erp-New/Current/PWA/main2/*`
 `rawaie-erp-New/Original/PWA/main/*`
 
-`forensic_main_assembly.yml` was verified correct and already points to the published Mother file.
-
 ## CURRENT FRONTEND GIT
 Repository: `papamohammed77-glitch/erp-frontend`
 Branch: `main`
-Latest HEAD: `0849e7e04fe79e9391f7388624dd9aa42de33a0f`
-Direct parent: `2afa7465a18023f7bba5f60b8d0a08d69de3fd80`
-Parent message: `Update finance management sections in main.html`
-Current `main.html` blob observed: `9c49f77167107e0f56c3c0093bb9c70ccff2ac68`
+Latest HEAD verified: `2af93b03a0bc5c46e2126d329154c6d176f0d098`
+Latest HEAD message: `forensic: persist current Mother inventory extract`
+Relevant parent: `68bbd6e1ed8f17e05d1c11fc1ce33e147f46282d`
+Parent message: `Add functions for asset management and tax handling`
+Current main.html blob observed: `9008e6cafca23b52d4a7664ca820fe725039331c`
 
 ## MOTHER FINANCE FORENSIC
+Current source contains real Finance renderer implementations and RW_Finance property bindings. The Console error is caused by the dispatcher calling bare identifiers instead of `RW_Finance._render...` properties.
 
-Commit `2afa...` added Finance menu/tabs and dispatch, but its GoldExtension had missing runtime handlers. Proven missing names included:
-`_renderExpenses`, `_renderCheques`, `_goldAddAsset`, `_goldTaxCode`, `_goldOpenPeriod`, `_goldClosePeriod`, `_goldNewBankStatement`, `_goldNewRecurring`.
+Reported failing lines: `14535–14542`.
 
-The assistant did not modify `erp-frontend/main.html`.
+Required owner surgery is recorded in:
+`doc/Draft/Reprots/Report216_MOTHER_FINANCE_FORENSIC_EXECUTION_20260916.md`
 
-Surgical patches are recorded in:
-`doc/Draft/Reprots/Report214_MOTHER_FINANCE_EXECUTION_20260916.md`
-`doc/Draft/Reprots/Report215_MOTHER_FINANCE_UI_HANDLER_PATCH_20260916.md`
+A second real UI gap is `_goldNewExpense`: `renderExpenses()` calls it, but current source has no matching assignment/implementation. Report216 contains the complete surgical insertion.
 
-## PRODUCTION FINANCE — IMPLEMENTED
+**Mother main.html modified by assistant:** NO
 
+## PRODUCTION FINANCE
 Supabase Production: `fiilmooggumokxanwiyx`
 
-Implemented/expanded:
-- central `post_journal_entry` protections and period guard
-- journal detail/reverse/list contracts
-- recurring journal runtime + run history
-- expense categories, expense lines, expenses, payable/cash posting, tax linkage
-- tax transaction source references, tax code management, tax settlement/report
-- bank statements, bank lines, match/unmatch/exclude/include, reconciliation close
-- fixed asset acquisition/depreciation/disposal lifecycle
-- cheque register + lifecycle events + guarded transitions
-- financial period open/close/reopen
-- finance runtime health
-- RLS/realtime for new finance operational tables
-- legacy cheque direct writes disabled
-- legacy inventory voucher v2 direct execution disabled
+Verified existing operational finance tables:
+`finance_tax_codes`, `finance_tax_settlements`, `finance_tax_transactions`, `finance_bank_statements`, `finance_bank_statement_lines`, `finance_cheques`, `finance_cheque_events`, `finance_expenses`, `finance_expense_lines`, `finance_expense_categories`, `finance_periods`, `recurring_journal_templates`, `recurring_journal_lines`, `finance_recurring_runs`, `fixed_assets`, `fixed_asset_events`.
 
-## IMPORTANT CORRECTIONS
+Core RPC contracts for journals, recurring, expenses, cheques, bank reconciliation, taxes, assets, and periods are present.
 
-1. Expense without treasury now credits payable account 211 so the journal remains balanced.
-2. Period closure is enforced at the central journal writer, not only in UI.
-3. Bank close requires balance equality and zero unmatched non-excluded lines.
-4. Tax settlement links source transactions to settlement and period where applicable.
-5. Tax code management is now backed by `finance_save_tax_code`.
-6. Legacy cheque table is historical-only for authenticated/anon writes.
+## PRODUCTION SECURITY ACTION
+Migration applied directly:
+`finance_rpc_execute_acl_hardening`
+
+Targeted Finance mutation RPCs no longer grant EXECUTE to `PUBLIC/anon`; `authenticated` and `service_role` remain. Verification after migration confirmed the new ACL.
+
+All inspected Finance operational tables have RLS enabled.
 
 ## INVENTORY / FIELD OPS
-
-No field operational redesign was performed in this Finance session.
-The established physical stock contract remains:
+No field operational redesign in this session.
+Contract remains:
 `Physical Movement → post_stock_movement → stock_branches + inventory_log`
 
 ## OPEN VERIFICATION
-
 ```text
-Authenticated Mother Finance Browser E2E = OPEN
-Tax full lifecycle = BACKEND IMPLEMENTED / BROWSER OPEN
-Asset full lifecycle = BACKEND IMPLEMENTED / BROWSER OPEN
-Bank full reconciliation = BACKEND IMPLEMENTED / BROWSER OPEN
-Recurring journal runtime execution = BACKEND IMPLEMENTED / SCHEDULER + BROWSER OPEN
+Mother Finance Console root cause = IDENTIFIED
+Production Finance backend = VERIFIED PRESENT
+Production Finance mutation ACL hardening = CLOSED
+Mother Finance authenticated Browser E2E = OPEN
+Recurring automatic scheduler = OPEN
 ```
 
-Production currently has no `pg_cron`/`pg_net`; recurring automation scheduler remains a separate infrastructure closure.
+No authenticated browser execution was available in this session, so Browser E2E is not marked closed.
 
-## WHY NOT 100% CLOSED
-
-The Mother frontend remains owner-controlled and the exact surgical patches have not yet been merged into `erp-frontend/main.html`.
-Authenticated Browser/Console/Network E2E was not honestly available from this execution context and remains mandatory.
-
-## LATEST REPORTS
-
-`doc/Draft/Reprots/Report214_MOTHER_FINANCE_EXECUTION_20260916.md`
-`doc/Draft/Reprots/Report215_MOTHER_FINANCE_UI_HANDLER_PATCH_20260916.md`
+## LATEST REPORT
+`doc/Draft/Reprots/Report216_MOTHER_FINANCE_FORENSIC_EXECUTION_20260916.md`
 
 ## NEXT SESSION START ORDER
+1. Re-fetch current Mother `main.html` and current HEAD/parent.
+2. Check whether the owner already merged Report216 surgery; do not reapply completed work.
+3. Run authenticated Finance browser E2E with Console + Network.
+4. Open all Finance subtabs and test their real action paths.
+5. Compare every mutation with same-moment Production.
+6. Close Finance E2E before moving to another open management area.
 
-1. Start from current HEAD `0849...` and parent `2afa...`.
-2. Re-fetch current `main.html`; never trust a historical line number without recalculating it.
-3. Verify Production schema and deployed RPCs again.
-4. Check whether Report214/215 surgery has already been merged; do not reapply completed edits.
-5. Run authenticated Mother Finance Browser E2E with Console and Network inspection.
-6. Verify each Finance closure unit against same-moment Production.
-7. Close authenticated Finance E2E before moving to another management area.
+**Production modified by assistant:** YES — Finance RPC EXECUTE ACL hardening
