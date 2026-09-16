@@ -1,6 +1,6 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-16 — current Git / current Mother source / current Production / current Database / current Deployment evidence were rechecked for the Security Closure. The four-table Sales Decision RLS issue is now closed in Production.
+**Last reconciled:** 2026-09-16 — current Git / current Mother source / current Production / current Database / current Deployment evidence were rechecked for the Inventory Forensic / Daftra Gap Closure. Historical reports remain reference-only.
 
 ## SOURCE OF TRUTH
 
@@ -26,247 +26,341 @@ Repository: `papamohammed77-glitch/erp-frontend`
 Branch: `main`
 
 Current HEAD:
-`befa657277fc013c4fe4d3e326ed8fc5d1040b7b`
+`b673fa4c7b29d2ea6118aaf5c38a8bc2e1187af2`
 
 HEAD message:
-`Update HTML comment timestamp`
+`Expand mother inventory forensic source mapping`
 
 Direct parent:
-`b6d35c5a1a362f381c9868bbc578de988b219c50`
+`9d8fa07215d5e84f5672abb8b36c218de87559eb`
 
-Parent message:
-`Fix button onclick syntax in main.html`
+The current HEAD modifies only the forensic E2E workflow; it does not modify the Mother HTML.
 
-Current Mother blob:
-`bc268b9bb350991df64221e7f99b958264fb8d5f`
+Earlier Mother-related code commit verified during this closure:
+`cff8399547277eb1db83fbd0ce809837471f2b64`
+`Refactor purchase functions and realtime channel setup`
 
-HEAD diff is timestamp-only. Parent contains the previously required `_openPO` onclick syntax correction near source line 9577.
-
-**Correction:** A prior context referenced Mother blob `68145f77b3edc98ac37b9ec2335359d825a4be52`. Direct CURRENT GIT verification shows that the actual blob for the current HEAD is `bc268b9bb350991df64221e7f99b958264fb8d5f`; the Git value is authoritative.
+Current Mother blob read from Git:
+`1e496d643d588bb2e92ea14cb8876cd9837b3e6b`
 
 ## CURRENT MOTHER
 
-The current Mother source remains:
+Current Mother source:
 `papamohammed77-glitch/erp-frontend/companies/company-1/main.html`
 
-The assistant did not modify the Mother HTML during the 2026-09-16 Security Closure.
+The assistant did **not** modify Mother HTML during this Inventory closure.
 
-Current PurchaseGold functions previously established by direct source review:
+Current inventory menu anchor proven in the tested source:
+`line 1145`
 
-`createRequest()` — lines 9271–9323
-`createRFQ()` — lines 9365–9414
-`createQuotation()` — lines 9461–9531
-`createInvoice()` — lines 9616–9686
-`createReturn()` — lines 9730–9787
-`createPayment()` — lines 9828–9906
-`reports()` — lines 9908–9949
-`settings()` — lines 9951–9977
-`saveSettings()` — lines 9979–10001
+Current inventory dispatcher anchors proven in the tested source:
 
-Current Browser E2E of the updated Mother still requires Owner merge + fresh browser/console/network evidence. The 2026-09-16 Security Closure did not alter this status.
+`20953` → picking → `RW_Warehouse.loadPicking()`
+`20954` → loading → `RW_Warehouse.loadLoading()`
+`20955` → delivery → `RW_Warehouse.loadDelivery()`
+`20956` → return → `RW_Warehouse.loadReturn()`
+`20961` → unloading → `RW_Warehouse.loadUnloading()`
+`20962` → receiving → `RW_Warehouse.loadReceiving()`
+`20963` → vouchers → `RW_Warehouse.loadVouchers()`
+`20964` → transfer → `RW_Warehouse.loadVoucherForm('Transfer')`
+`20965` → direct-sale → `RW_Warehouse.loadVoucherForm('DirectSale')`
+`20966` → direct-return → `RW_Warehouse.loadVoucherForm('DirectReturn')`
+`20967` → supplier-return → `RW_Warehouse.loadVoucherForm('SupplierReturn')`
+`20968` → vehicle-count → `RW_Warehouse.loadVehicleCount()`
+`20969` → branch-count → `RW_Warehouse.loadBranchCount()`
+`20970` → general-count → `RW_Warehouse.loadGeneralCount()`
+`20971` → settlement → `RW_Warehouse.loadSettlement()`
 
-## CURRENT PURCHASE PRODUCTION
+No placeholder marker was found by the current static E2E check for:
+`قيد التطوير / جاري التطوير / TODO / FIXME`
 
-Project: `fiilmooggumokxanwiyx`
+## CURRENT BROWSER E2E — MOTHER
 
-Current purchase capability layer:
-`save-purchase-order` — ACTIVE — version 6 — verify_jwt=true.
+Workflow:
+`.github/workflows/inventory_mother_forensic_e2e_20260916.yml`
 
-Current Purchase schema and RPC infrastructure remain present.
+Run:
+`35058149973`
 
-## CURRENT SALES DECISION PRODUCTION
+Job:
+`104672563318`
 
-Security Closure unit:
-`Sales Decision four-table RLS security closure`
+Result:
+`SUCCESS`
 
-The four Production tables are:
+Proven:
+- inventory contract static audit = PASS
+- source map = PASS
+- browser load = PASS
+- Console errors = 0
+- Page errors = 0
+- Mother Browser Smoke = PASS
 
-```text
-public.sales_decision_approvals
-public.sales_decision_evaluations
-public.sales_decision_policies
-public.sales_decision_policy_history
-```
+This is still a Browser Smoke, not full authenticated business E2E against Production.
 
-Current row counts checked during this closure:
+## FORENSIC ASSEMBLY GUARD
 
-```text
-sales_decision_policies         = 1
-sales_decision_evaluations      = 0
-sales_decision_approvals        = 0
-sales_decision_policy_history   = 1
-```
+Created in `erp-frontend`:
+`.github/workflows/forensic_main_assembly.yml`
 
-Current Production security state:
+Purpose:
+protect the canonical Mother Source of Truth path:
+`companies/company-1/main.html`
 
-```text
-RLS enabled on all four tables       = TRUE
-Explicit deny policy on all four     = TRUE
-anon SELECT privilege                = FALSE
-enticated SELECT privilege           = FALSE
-```
+`Current/PWA/main2/*` remains historical/reference-only and is not treated as Source of Truth.
 
-Each table has exactly one explicit restrictive policy for `anon, authenticated` using:
+## CURRENT PRODUCTION
 
-```text
-USING (false)
-WITH CHECK (false)
-```
+Supabase project:
+`fiilmooggumokxanwiyx`
 
-The direct table API is intentionally closed. The controlled business path remains:
+Current live Company evidence was rechecked directly. Historical reports that listed additional companies were not used as current state.
 
-`sales_decision_engine_atomic(...)`
+## INVENTORY CONTROL PRODUCTION — 2026-09-16
 
-Current engine is `SECURITY DEFINER`, is Company/Actor scoped, and remained operational after RLS activation.
-
-Current Sales Decision relationships remain:
-
-```text
-sales_decision_approvals.company_id
-    → companies.id
-
-sales_decision_approvals.evaluation_id
-    → sales_decision_evaluations.id
-
-sales_decision_evaluations.company_id
-    → companies.id
-
-sales_decision_evaluations.policy_id
-    → sales_decision_policies.id
-
-sales_decision_policies.company_id
-    → companies.id
-
-sales_decision_policy_history.company_id
-    → companies.id
-
-sales_decision_policy_history.policy_id
-    → sales_decision_policies.id
-```
-
-Current Sales Decision triggers checked:
+### Central Physical Stock Contract
 
 ```text
-trg_sales_decision_approval_audit
-trg_sales_decision_policy_audit
-trg_sales_decision_policy_updated_at
+PHYSICAL MOVEMENT
+        ↓
+post_stock_movement
+        ↓
+stock_branches + inventory_log
 ```
 
-No trigger, audit function, business logic, Edge Function, or Mother HTML was changed by this Security Closure.
+`reserve_stock` and `release_stock_reservation` remain reservation-only engines.
 
-## SALES DECISION SECURITY CLOSURE — 2026-09-16
+No independent Physical Stock Writer was found in the current Production function scan outside setup/bootstrap behavior.
 
-Production migrations applied directly:
+### Inventory Read/Intelligence
 
-1. `20260916042958_sales_decision_rls_security_closure_20260916`
-2. `20260916043051_sales_decision_rls_explicit_deny_20260916`
+Deployed and verified:
 
-Canonical Git files:
+`inventory_stock_snapshot(...)`
+`inventory_replenishment_report(...)`
+`inventory_movement_report(...)`
 
-```text
-supabase/migrations/20260916042958_sales_decision_rls_security_closure_20260916.sql
-supabase/migrations/20260916043051_sales_decision_rls_explicit_deny_20260916.sql
-```
+These are Company/Actor scoped and use current stock/inventory_log data.
 
-Security verification:
+Low-stock semantics require `reorder_point > 0`.
 
-- PostgreSQL confirmed RLS enabled on all four tables.
-- PostgreSQL confirmed one restrictive deny policy per table.
-- Direct `anon/authenticated` SELECT remained absent.
-- Temporary `authenticated` SELECT grants were used inside a transaction only; all were rolled back.
-- RLS test returned zero visible rows for the authenticated role on all four tables.
-- `sales_decision_engine_atomic(..., 'GET_POLICY', ...)` returned `success=true` after the RLS change.
-- Security Advisor no longer reports the four Sales Decision tables under `RLS Enabled No Policy`.
-- Remaining Security Advisor findings belong to other unrelated units and remain open.
+Recommended replenishment uses `max_qty` when it is a meaningful target above reorder point; otherwise reorder point is used as the minimum safe replenishment target.
 
-Closure status:
+### Inventory Count Engine
 
-```text
-Sales Decision four-table RLS closure = FULLY CLOSED
-```
+Deployed and verified:
+
+`inventory_count_engine(...)`
+
+Operations:
+`CREATE`
+`GET`
+`POPULATE`
+`UPSERT_LINE`
+`REFRESH`
+`FINALIZE`
+`CANCEL`
+
+`counted_qty` has no default so an uncounted item cannot silently become zero.
+
+Identity:
+`count_id + branch_id + item_id`
+
+Physical variance adjustment always calls:
+`post_stock_movement`
+
+`stock_discrepancies` was intentionally not reused for general inventory count variances because its current contract belongs to runsheet discrepancy handling.
+
+### Stock Request Engine
+
+Created and verified:
+
+`inventory_stock_requests`
+`inventory_stock_request_details`
+
+Engine:
+`inventory_stock_request_engine(...)`
+
+Operations:
+`CREATE`
+`GET`
+`APPROVE`
+`REJECT`
+`CONVERT`
+`CANCEL`
+
+Conversion creates a stock voucher; it does not mutate physical stock by itself.
+
+### Existing Edge Gateway
+
+A new Edge Function was initially attempted but Production rejected the creation because the project reached its Edge Function capacity limit.
+
+The correct infrastructure decision was to reuse:
+`save-inventory-count`
+
+Current gateway deployment:
+`save-inventory-count` — active — verify_jwt=true
+
+It now exposes:
+
+`COUNT_*`
+`REQUEST_*`
+`SNAPSHOT`
+`MOVEMENTS`
+`REPLENISHMENT`
+
+while preserving the previous count request compatibility path.
+
+### Realtime
+
+Relevant inventory tables were added to the current realtime publication:
+
+`inventory_log`
+`inventory_counts`
+`inventory_count_details`
+`stock_discrepancies`
+
+## INVENTORY PRODUCTION E2E RESULTS
+
+### Snapshot
+
+PASS for current Company and active warehouse actor.
+
+### Count
+
+Transactional E2E verified:
+
+`CREATE`
+→ `UPSERT_LINE`
+→ `FINALIZE`
+
+The test checked stock delta and inventory log creation, then rolled back.
+
+### Stock Request
+
+Transactional E2E verified:
+
+`CREATE`
+→ `APPROVE`
+→ `CONVERT`
+
+The test confirmed conversion itself did not create an inventory movement, then rolled back.
+
+### Data pollution check
+
+After transactional tests:
+
+`inventory_counts = 0`
+`inventory_count_details = 0`
+`inventory_stock_requests = 0`
+`inventory_stock_request_details = 0`
+
+No test fixture was intentionally left in Production.
+
+Production snapshot used for final state:
+`2026-09-16 05:07:19.211078+00`
 
 ## CURRENT FORENSIC REPORTS
 
-Latest relevant reports:
+Latest relevant reports now include:
 
 `doc/Draft/Reprots/Report204_PURCHASE_MODAL_CURRENT_CLOSURE_20260915.md`
 `doc/Draft/Reprots/Report205`
 `doc/Draft/Reprots/Report206_SALES_DECISION_RLS_SECURITY_CLOSURE_20260916.md`
+`doc/Draft/Reprots/Report207_INVENTORY_FORENSIC_DAFTRA_GAP_CLOSURE_20260916.md`
 
-Historical reports remain retained and are not current-state authority.
+Reports remain historical evidence only.
 
-## FORENSIC METHOD — REQUIRED FOR NEXT SESSION
+## REQUIRED METHOD FOR NEXT SESSION
 
-1. Treat reports as historical evidence, not current state.
-2. Re-read CURRENT_STATE.
-3. Re-open current Git HEAD and direct parent.
-4. Re-open the current Mother source around the exact problem.
-5. Re-open current Production RPCs, schema, RLS, triggers and Edge deployment.
-6. Identify one Closure Unit.
-7. Use historical code only to recover intent, never to replace current evidence.
-8. Separate owner-only Mother work from Production work.
-9. For Mother edits, provide exact full block with source start/end anchor and current line number.
-10. For Production fixes, use canonical migration then re-read the deployed definition.
-11. Do not create infrastructure that already exists.
-12. Do not repair previously closed defects unless fresh evidence reopens them.
-13. After the Owner merges Mother changes, re-read the current HEAD/blob again.
-14. Run a fresh browser session and capture Console + PageError + Network.
-15. Verify the RPC result, DB state, audit trail and realtime refresh for each critical operation.
-16. Take the Production snapshot at the same time as the final report.
-17. If a report conflicts with Production, Production wins.
-18. Do not declare Gold/Diamond closure before Browser + Network + DB evidence is complete.
+1. Re-read this file first.
+2. Re-open current Git HEAD and direct parent.
+3. Re-open current Mother source and read the exact target block.
+4. Re-read the current Mother blob SHA before any patch.
+5. Take a fresh Production snapshot at the same time as the work.
+6. Do not trust any older report as current state.
+7. Do not recreate already-verified Production inventory engines.
+8. Continue from the open checkpoint: Mother Consumer Integration of the new inventory capabilities.
+9. Keep all field-execution flows intact: picking, loading, delivery, return, unloading, runsheets and settlement.
+10. Any physical stock mutation must remain under `post_stock_movement`.
+11. Any Owner-only Mother change must be supplied as an exact full surgical block with start/end anchors and current line numbers.
+12. After Owner merge, re-read current Git/blob again before E2E.
+13. Capture Browser + Console + Network + DB + Realtime evidence.
+14. Do not declare Gold/Diamond before all critical evidence is current.
 
 ## CURRENT CLOSURE STATUS
 
 ```text
-Current Git/Parent                         VERIFIED
-Current Mother source                      VERIFIED
-Current Mother blob                        VERIFIED = bc268b9bb350991df64221e7f99b958264fb8d5f
-Current Production purchase schema         VERIFIED
-Current Production purchase RPC layer     VERIFIED
-Current save-purchase-order deployment    VERIFIED
-Current Purchase Realtime publication     VERIFIED
-Production report hardening               DEPLOYED + VERIFIED
-Production settings hardening             DEPLOYED + VERIFIED
-Production document-integrity hardening   DEPLOYED + VERIFIED
-Current Purchase modal root cause         VERIFIED
-Owner surgical patch                       READY
-Fresh Browser Console                      NOT YET PROVEN
-Fresh Browser Network                      NOT YET PROVEN
-Full Purchase modal E2E                    OPEN
-Gold/Diamond Purchase closure              OPEN UNTIL OWNER MERGE + FRESH E2E
-
-Sales Decision RLS tables                 DEPLOYED + VERIFIED
-Sales Decision explicit deny policies     DEPLOYED + VERIFIED
-Sales Decision Engine after RLS           RUNTIME VERIFIED
-Sales Decision Security Advisor finding   CLOSED
-Sales Decision RLS closure                FULLY CLOSED
+Current Git / Parent                         VERIFIED
+Current Mother source                        VERIFIED
+Current Mother blob                          VERIFIED
+Mother HTML modified by assistant            NO
+Mother Browser Smoke                         PASS
+Mother Console errors                        0 in smoke
+Mother PageErrors                            0 in smoke
+Inventory physical writer centralization     VERIFIED
+Inventory read/intelligence engine           DEPLOYED + VERIFIED
+Inventory count engine                       DEPLOYED + VERIFIED
+Inventory stock request engine               DEPLOYED + VERIFIED
+Inventory realtime publication               DEPLOYED
+Inventory Edge gateway                       DEPLOYED + VERIFIED
+Forensic Mother E2E workflow                 ACTIVE + PASS
+Forensic Mother assembly guard               CREATED
+Full authenticated inventory E2E             OPEN
+Mother → inventory capability integration    OPEN
+Daftra-level functional inventory completion OPEN
+Gold/Diamond Inventory UI                    OPEN
+Next Closure Unit                            MOTHER CONSUMER INTEGRATION
 ```
 
-## FINAL SELF-AUDIT — 2026-09-16 SECURITY CLOSURE
+## SELF-AUDIT — 2026-09-16 INVENTORY FORENSIC CLOSURE
 
-### What is proven
+### What I proved
 
-- Current Git HEAD and direct parent were rechecked.
-- Current Mother blob was rechecked directly; `bc268b9bb350991df64221e7f99b958264fb8d5f` is authoritative for the current HEAD.
-- The four Sales Decision tables were verified directly in Production.
-- Their schemas and Company relationships were verified.
-- Their current consumers/callee engine was verified through `sales_decision_engine_atomic`.
-- RLS was enabled on all four tables.
-- Explicit restrictive deny policies were created and verified.
-- Direct table SELECT access for `anon/authenticated` is not granted.
-- RLS was runtime-tested through a temporary authenticated-role transaction.
-- The Sales Decision Engine remained operational after the security change.
-- Security Advisor no longer lists the four tables as `RLS Enabled No Policy`.
-- The actual Production migrations are now represented canonically in Git.
-- No Mother HTML change was made for this independent security issue.
+- Current Git was rechecked, including the direct parent.
+- Current Mother source was directly inspected.
+- Mother was not modified by the assistant.
+- Current Mother inventory menu/dispatcher anchors were verified.
+- Current Mother Browser Smoke passed with zero Console/Page errors.
+- Current Production inventory schema and physical stock contract were inspected.
+- Physical stock has one central mutation engine: `post_stock_movement`.
+- Inventory snapshot/replenishment/movement capabilities exist in Production.
+- Inventory counting has a controlled lifecycle and physical adjustment through the central movement engine.
+- Stock request workflow has a controlled lifecycle separated from physical movement.
+- Realtime publication was extended for inventory control.
+- A new Edge Function was not created because capacity was exhausted; an existing gateway was reused instead.
+- Transactional tests left no test data behind.
 
-### What is not proven
+### What I did not prove
 
-- Full Browser E2E of the PurchaseGold changes remains open until Owner merge and fresh Browser/Console/Network evidence.
-- Other Security Advisor findings are not closed by this unit.
-- The entire RAWAEA ERP mission is not closed; only this Sales Decision RLS Security Closure is closed.
+- Full authenticated E2E of every warehouse subtab inside the Mother.
+- Production Network evidence for every Mother inventory action.
+- Mother UI integration with the newly deployed Inventory Intelligence / Count / Request engines.
+- Complete Daftra-equivalent inventory feature parity including every reporting/export/import surface.
+- Final Gold/Diamond closure of the Mother Inventory UI.
 
-### Next exact checkpoint
+### What was initially missed and corrected
 
-`Owner merge → fresh Mother HEAD/blob verification → fresh Browser E2E → continue next open Closure Unit`
+- Uncounted inventory lines could be interpreted as zero because of an unsuitable default.
+- A partial unique index was not compatible with the required UPSERT identity.
+- Historical fixture branch data was not valid current Production evidence.
+- Edge Function capacity prevented adding a new gateway, so an existing appropriate function was reused.
+
+### What could still be wrong
+
+- The Mother `RW_Warehouse` consumer paths may still use legacy read/write patterns until explicitly reconnected to the new capability layer.
+- `receive-purchase` still requires a stable client operation identity from the Mother for complete retry semantics.
+- Field-operation closures such as complete return and complete order delivery remain separate Writer Closure Units.
+
+## NEXT EXACT CHECKPOINT
+
+```text
+Fresh current Git/blob verification
+→ open full RW_Warehouse block
+→ map each inventory tab to current capability API
+→ prepare exact Owner-only surgical replacements
+→ Owner merge
+→ fresh browser/console/network
+→ Production DB + realtime verification
+→ close Mother Inventory capability integration
+```
