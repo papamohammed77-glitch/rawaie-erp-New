@@ -1,0 +1,158 @@
+التعديل المطلوب في main.html
+
+تم إثبات سبب الخطأ من المصدر الحالي نفسه:
+ensurePurchaseRealtime() موجودة حاليًا داخل IIFE الخاصة بـRW_Items، بينما RW_PurchaseGold.render() تستدعيها خارج هذا الـscope؛ لذلك يظهر ReferenceError. والخلل نفسه سيظهر لاحقًا مع purchaseToday() وpurchaseItemLookup().
+
+1) احذف هذا المقطع بالكامل
+
+في الملف الحالي:
+
+erp-frontend/companies/company-1/main.html
+
+ابحث داخل:
+
+var RW_Items = (function() {
+
+وعند السطور الحالية 2960–3035 تقريبًا احذف من السطر الكامل:
+
+  var purchaseRealtimeChannel = null;
+
+حتى السطر الكامل:
+
+      .subscribe();
+  }
+
+أي احذف كتلة الـPurchase helpers الثلاثة كاملة، وليس ensurePurchaseRealtime() وحدها.
+
+2) أضف المقطع التالي داخل RW_PurchaseGold
+
+اذهب إلى RW_PurchaseGold، وابحث عن:
+
+  async function render() {
+    var host = byId('rw-page-container');
+
+وهذا هو موضع render() الذي ينفذ عند فتح تبويب المشتريات؛ وبعده مباشرة يوجد:
+
+    if (!host) return;
+    ensurePurchaseRealtime();
+
+وهو سبب الخطأ الحالي.
+
+أضف الكتلة التالية كاملة مباشرة فوق:
+
+  async function render() {
+  var purchaseRealtimeChannel = null;
+
+  function purchaseToday() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  async function purchaseItemLookup(code) {
+    code = String(code || '').trim();
+    if (!code) throw new Error('كود الصنف مطلوب');
+
+    var r = await supabase
+      .from('items')
+      .select('id,item_code,name,unit')
+      .eq('item_code', code)
+      .maybeSingle();
+
+    if (r.error) throw r.error;
+    if (!r.data) throw new Error('الصنف غير موجود: ' + code);
+
+    return r.data;
+  }
+
+  function ensurePurchaseRealtime() {
+    var c = companyId();
+
+    if (
+      !c ||
+      purchaseRealtimeChannel ||
+      !supabase ||
+      typeof supabase.channel !== 'function'
+    ) {
+      return;
+    }
+
+    purchaseRealtimeChannel = supabase
+      .channel('purchase-gold-live-' + c)
+
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'purchase_requests',
+        filter: 'company_id=eq.' + c
+      }, function () {
+        if (!Swal.isVisible()) refresh();
+      })
+
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'purchase_rfqs',
+        filter: 'company_id=eq.' + c
+      }, function () {
+        if (!Swal.isVisible()) refresh();
+      })
+
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'purchase_quotations',
+        filter: 'company_id=eq.' + c
+      }, function () {
+        if (!Swal.isVisible()) refresh();
+      })
+
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'purchase_invoices',
+        filter: 'company_id=eq.' + c
+      }, function () {
+        if (!Swal.isVisible()) refresh();
+      })
+
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'purchase_returns',
+        filter: 'company_id=eq.' + c
+      }, function () {
+        if (!Swal.isVisible()) refresh();
+      })
+
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'purchase_payments',
+        filter: 'company_id=eq.' + c
+      }, function () {
+        if (!Swal.isVisible()) refresh();
+      })
+
+      .subscribe();
+  }
+
+
+ثم يجب أن يصبح بداية render() هكذا:
+
+  async function render() {
+    var host = byId('rw-page-container');
+    if (!host) return;
+    ensurePurchaseRealtime();
+3) لا تعدل أي شيء في Production لهذا الخطأ
+
+الـProduction Purchase infrastructure موجودة بالفعل، وsave-purchase-order منشورة حاليًا ACTIVE version 6 مع JWT verification. لذلك لا توجد حاجة لإنشاء جدول أو Edge Function جديدة لهذا الـReferenceError.
+
+الحالة المثبتة
+Current HEAD: befa657277fc013c4fe4d3e326ed8fc5d1040b7b
+Direct parent: b6d35c5a1a362f381c9868bbc578de988b219c50
+Current Mother blob: 68145f77b3edc98ac37b9ec2335359d825a4be52
+forensic_main_assembly.yml صحيح بالفعل ويشير إلى erp-frontend/companies/company-1/main.html.
+لم أعدّل main.html لأن ملكية هذا الملف لك حسب آلية العمل المعتمدة.
+
+مهم: لا أستطيع إعلان الإغلاق E2E بعد؛ يجب بعد تطبيق هذا الاستبدال إعادة فتح المشتريات والتقاط Console جديد. وجود الكود المصحح وحده لا يساوي Browser PASS.
+
+كما ظهر أثناء فحص Production تنبيه أمني مستقل وحالي: أربع جداول sales_decision_* لا تستخدم RLS؛ لم أطبق إصلاحها تلقائيًا لأن تفعيل RLS دون سياسات قد يمنع الوصول، ويجب معالجتها كـSecurity Closure مستقل.
