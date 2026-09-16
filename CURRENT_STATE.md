@@ -1,81 +1,92 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-16
+> هذا الملف هو Living Execution State وليس مصدرًا أعمى للحالة الحالية. يجب دائمًا مطابقة محتواه مع CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
 
-## GOVERNING BASIS
-`CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE`
-Historical reports are reference-only and must not override current evidence.
+## Current Session
 
-## SOURCE OF TRUTH
-Mother Finance/UI:
-`papamohammed77-glitch/erp-frontend/companies/company-1/main.html`
+- **Date:** 2026-09-16
+- **Current repository:** `papamohammed77-glitch/erp-frontend`
+- **Source of Truth:** `companies/company-1/main.html`
+- **Main HEAD:** `6b3b500f2da361b1522f6e9f33d87f64cb0e8114`
+- **HEAD message:** `Refactor functions to use RW_Finance namespace`
+- **HEAD parent:** `2af93b03a0bc5c46e2126d329154c6d176f0d098`
+- **Current main extract:** 24,134 lines; SHA256 `06452de29b1a55c7e3a63a50c7267c70561d93cca4743c84c2387767b11da675`
 
-Historical/reference only:
-`rawaie-erp-New/Current/PWA/main2/*`
-`rawaie-erp-New/Original/PWA/main/*`
+## Current Verified Findings
 
-## CURRENT FRONTEND GIT
-Repository: `papamohammed77-glitch/erp-frontend`
-Branch: `main`
-Latest HEAD verified: `2af93b03a0bc5c46e2126d329154c6d176f0d098`
-Latest HEAD message: `forensic: persist current Mother inventory extract`
-Relevant parent: `68bbd6e1ed8f17e05d1c11fc1ce33e147f46282d`
-Parent message: `Add functions for asset management and tax handling`
-Current main.html blob observed: `9008e6cafca23b52d4a7664ca820fe725039331c`
+### Mother Finance Console defects
 
-## MOTHER FINANCE FORENSIC
-Current source contains real Finance renderer implementations and RW_Finance property bindings. The Console error is caused by the dispatcher calling bare identifiers instead of `RW_Finance._render...` properties.
+1. `main:14542 Uncaught ReferenceError: _renderPeriods is not defined`
+   - Root cause: commit `6b3...` changed eight internal renderer calls to `RW_Finance._render...`, but those renderer functions are not exposed under those names.
+   - Correct owner fix: restore the parent commit's internal calls in that exact eight-line dispatcher block.
 
-Reported failing lines: `14535–14542`.
+2. `RW_Finance._goldOpenPeriod is not a function`
+3. `RW_Finance._goldAddAsset is not a function`
+4. `RW_Finance._goldTaxCode is not a function`
+   - Root cause: Gold Extension exports `gold*` functions, while public `RW_Finance` only had `_goldJournalList` bound.
+   - Correct owner fix: add explicit `_gold*` aliases at the final namespace binding.
 
-Required owner surgery is recorded in:
-`doc/Draft/Reprots/Report216_MOTHER_FINANCE_FORENSIC_EXECUTION_20260916.md`
+5. `get_budget_vs_actual` returned HTTP 403 from the REST RPC path.
+   - Production function exists and is company-context aware.
+   - Root cause proven from `information_schema.routine_privileges`: `authenticated` lacked EXECUTE.
+   - Production fix applied: grant EXECUTE to `authenticated` and `service_role`; revoke PUBLIC/anon.
+   - Authenticated DB-context verification passed in transaction.
 
-A second real UI gap is `_goldNewExpense`: `renderExpenses()` calls it, but current source has no matching assignment/implementation. Report216 contains the complete surgical insertion.
+## Production Change Applied
 
-**Mother main.html modified by assistant:** NO
-
-## PRODUCTION FINANCE
-Supabase Production: `fiilmooggumokxanwiyx`
-
-Verified existing operational finance tables:
-`finance_tax_codes`, `finance_tax_settlements`, `finance_tax_transactions`, `finance_bank_statements`, `finance_bank_statement_lines`, `finance_cheques`, `finance_cheque_events`, `finance_expenses`, `finance_expense_lines`, `finance_expense_categories`, `finance_periods`, `recurring_journal_templates`, `recurring_journal_lines`, `finance_recurring_runs`, `fixed_assets`, `fixed_asset_events`.
-
-Core RPC contracts for journals, recurring, expenses, cheques, bank reconciliation, taxes, assets, and periods are present.
-
-## PRODUCTION SECURITY ACTION
-Migration applied directly:
-`finance_rpc_execute_acl_hardening`
-
-Targeted Finance mutation RPCs no longer grant EXECUTE to `PUBLIC/anon`; `authenticated` and `service_role` remain. Verification after migration confirmed the new ACL.
-
-All inspected Finance operational tables have RLS enabled.
-
-## INVENTORY / FIELD OPS
-No field operational redesign in this session.
-Contract remains:
-`Physical Movement → post_stock_movement → stock_branches + inventory_log`
-
-## OPEN VERIFICATION
-```text
-Mother Finance Console root cause = IDENTIFIED
-Production Finance backend = VERIFIED PRESENT
-Production Finance mutation ACL hardening = CLOSED
-Mother Finance authenticated Browser E2E = OPEN
-Recurring automatic scheduler = OPEN
+```sql
+BEGIN;
+REVOKE ALL ON FUNCTION public.get_budget_vs_actual(integer,integer,uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_budget_vs_actual(integer,integer,uuid) TO authenticated, service_role;
+COMMIT;
 ```
 
-No authenticated browser execution was available in this session, so Browser E2E is not marked closed.
+## Current Architecture Decision
 
-## LATEST REPORT
-`doc/Draft/Reprots/Report216_MOTHER_FINANCE_FORENSIC_EXECUTION_20260916.md`
+- `forensic_main_assembly.yml` is already correct and points to:
+  - repository: `papamohammed77-glitch/erp-frontend`
+  - path: `companies/company-1/main.html`
+  - ref: `main`
+  - `published_main_is_authoritative`
+  - `historical_reference_only` for fragments.
+- `Current/PWA/main2` remains historical/advisory only.
+- Mother `main.html` was **not edited by the assistant**; owner applies surgical source changes.
+- Production changes are performed directly by the assistant when proven necessary.
 
-## NEXT SESSION START ORDER
-1. Re-fetch current Mother `main.html` and current HEAD/parent.
-2. Check whether the owner already merged Report216 surgery; do not reapply completed work.
-3. Run authenticated Finance browser E2E with Console + Network.
-4. Open all Finance subtabs and test their real action paths.
-5. Compare every mutation with same-moment Production.
-6. Close Finance E2E before moving to another open management area.
+## Current Owner Action Required
 
-**Production modified by assistant:** YES — Finance RPC EXECUTE ACL hardening
+Apply the surgical changes documented in:
+
+`doc/Draft/Reprots/Report217_MOTHER_FINANCE_FORENSIC_E2E_20260916.md`
+
+Required source changes:
+
+- CHANGE A: restore the eight internal `RW_Finance` renderer calls at the dispatcher around line 14542.
+- CHANGE B: bind all required `_gold*` aliases to `RW_Finance_GoldExtension`.
+- Apply the modal UX replacements specified in the same report before declaring the source-side Finance E2E closure.
+
+## What Is Closed
+
+- Production permission root cause for `get_budget_vs_actual`: **CLOSED / PRODUCTION VERIFIED**.
+- `forensic_main_assembly.yml` source-of-truth path: **VERIFIED**.
+
+## What Is Not Yet Closed
+
+- Real browser E2E after owner applies CHANGE A/B.
+- Visual/interactive validation of the improved asset/tax/disposal/period modals.
+- Final Finance E2E zero-console-error pass.
+
+## Required Next Session Start
+
+1. Read this file, but verify all claims against current sources.
+2. Check the latest `erp-frontend` commit and its parent.
+3. Open current `companies/company-1/main.html`.
+4. Confirm CHANGE A and CHANGE B were actually applied; do not repair them again if already present.
+5. Open Finance and execute real clicks in the browser.
+6. Capture the exact first new Console error and trace it to source → public export → RPC → Production.
+7. Re-check Production function signatures and privileges before any backend edit.
+8. Only then proceed to the next open Finance closure unit.
+
+## Continuity Rule
+
+No previous report, assistant summary, or historical fragment overrides current Git/Source/Production/Database evidence.
