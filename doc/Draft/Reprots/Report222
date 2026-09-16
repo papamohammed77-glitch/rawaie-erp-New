@@ -1,0 +1,58 @@
+تم إيقاف المسار السابق والتركيز على إدارة الحسابات والمالية فقط.
+
+ثبت من التحقيق الحالي أن:
+
+آخر Mother HEAD هو 0677e474a345a7199838c1379c21787a8078f0eb ووالده 1b1db605b1e72534a8e5a61146e1fd0ee6832ecf، وليس الـHEAD القديم المذكور في التقارير السابقة.
+الـSource of Truth ما زال erp-frontend/companies/company-1/main.html، وforensic_main_assembly.yml صحيح بالفعل ويشير إليه ويجري فحص JavaScript له.
+تم فحص الـFinance schema الفعلي والـRPCs الحالية في Production.
+تم اكتشاف 12 دالة Finance قراءة/تحقق كانت تقبل p_company_id دون ربطه صراحة بسياق شركة المستخدم.
+تم إصلاحها فعليًا في Production بواسطة migration:
+20260916_finance_authenticated_tenant_guards
+تم إجراء تحقق بعد التنفيذ، وجميع الدوال الـ12 أصبحت GUARDED.
+لم يتم إنشاء جداول مكررة أو Edge Functions غير لازمة.
+لم يتم تعديل main.html كما طلبت؛ تعديلاته عليك أنت.
+الفجوات الحقيقية التي ثبتت في Mother
+
+renderBankReconcile عند منطقة المصدر 17283 تقريبًا ليست مكتملة وظيفيًا؛ هي مجرد قائمة كشوف + زر إغلاق، ولا توفر واجهة المطابقة البنكية الفعلية رغم أن Production يحتوي بالفعل على محركات:
+
+finance_bank_reconciliation_summary
+finance_bank_match_candidates
+finance_match_bank_line
+finance_bank_unmatch_line
+finance_include_bank_line
+finance_exclude_bank_line
+finance_close_bank_statement
+
+أي أن الـBusiness Contract موجود في Production، لكن Mother لا يستفيد منه كاملًا.
+
+كذلك ثبت أن:
+
+renderExpenses
+
+الموجود حاليًا يستعمل prompt() للتاريخ بدل واجهة ERP حقيقية؛ الوظيفة ليست فارغة، لذلك لا ينبغي إعادة بناء Backend لها، وإنما استبدال واجهة الاختيار نفسها.
+
+وكذلك ثبت أن goldDispose يطلب من المستخدم إدخال:
+
+UUID حساب المتحصلات
+
+يدويًا، رغم أن Production لديه الحسابات وعقد التصرف في الأصل. المطلوب تحويله إلى selector Company-scoped بدل إدخال UUID يدوي.
+
+أما newCheque وnewBank فقد ظهرت إصلاحاتهما بالفعل في أحدث Commit 0677e474…، خصوصًا تصحيح treasury.name إلى treasury.account_name، ولذلك لا أعيد إصلاحهما.
+
+الأهم
+
+لا أعتبر Finance 100% Gold/Diamond أو مغلقًا الآن؛ لأن الـMother لم يتم تعديلها بعد طبقًا لتوزيع المسؤوليات الذي حددته، ولا يوجد authenticated browser E2E بعد الدمج.
+
+والـProduction نفسها شهدت إصلاحًا حقيقيًا لهذه الجلسة: Tenant isolation في Finance read/validation surface أصبح مغلقًا ومتحققًا.
+
+المشكلة العملية المتبقية في Mother محددة إلى ثلاث جراحات رئيسية:
+
+renderBankReconcile → تحويلها إلى Workspace مطابقة بنكية كامل.
+
+renderExpenses → إزالة prompt() وتحويل البحث الزمني إلى واجهة داخلية كاملة.
+
+goldDispose → إزالة إدخال UUID اليدوي واستخدام حسابات الشركة كـselector مع التحقق من المتحصلات.
+
+لم أغير أيًا منها في المستودع الأم خلافًا لتعليماتك.
+
+كما أنني لم أستطع في هذه الجلسة تسجيل Report222 وتحديث CURRENT_STATE.md في GitHub قبل انتهاء زمن أدوات التنفيذ؛ لذلك هذان العنصران غير مكتملين، ولا أدعي أنهما نُفذا.
