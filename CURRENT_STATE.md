@@ -1,215 +1,134 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-16  
-**Basis:** CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE. Historical reports are reference-only.
+**Last reconciled:** 2026-09-16
+
+## GOVERNING BASIS
+
+Current truth is derived only from:
+`CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE`
+
+Historical reports are reference-only.
 
 ## SOURCE OF TRUTH
 
-Mother:
+Mother Finance/UI Source of Truth:
 `papamohammed77-glitch/erp-frontend/companies/company-1/main.html`
 
 Historical/reference only:
 `rawaie-erp-New/Current/PWA/main2/*`
 `rawaie-erp-New/Original/PWA/main/*`
-`rawaie-erp-New/Current/PWA/main`
-`rawaie-erp-New/Current/PWA/New-main`
 
-`forensic_main_assembly.yml` was verified and already points to the Mother Source of Truth; no correction was required.
+`forensic_main_assembly.yml` was rechecked and already points to the correct published Mother file. No change was required.
 
 ## CURRENT FRONTEND GIT
 
 Repository: `papamohammed77-glitch/erp-frontend`
 Branch: `main`
-Latest HEAD: `9f84e24f4dd93381aaaff12ceb04f84ddde95fb0`
-Latest message: `test: add inventory control modal E2E guard`
-Direct parent: `02abd146d7df7703f1c2a18896d8ee3d9e8b0217`
+Latest HEAD: `0849e7e04fe79e9391f7388624dd9aa42de33a0f`
+Latest message: `forensic: persist current Mother inventory extract`
+Direct parent: `2afa7465a18023f7bba5f60b8d0a08d69de3fd80`
+Parent message: `Update finance management sections in main.html`
 
-The latest HEAD adds only the E2E workflow and does not change `main.html`.
+HEAD `0849...` does not modify `main.html`; the latest Mother Finance source change remains parent `2afa...`.
 
-Previous forensic-only HEAD: `02abd146d7df7703f1c2a18896d8ee3d9e8b0217`
-Parent: `0a3d944ed4498620a9c1ade2a43c5208337749c1`
+Current `main.html` blob SHA observed: `9c49f77167107e0f56c3c0093bb9c70ccff2ac68`.
 
-## CURRENT MOTHER SOURCE
+## CURRENT MOTHER FINANCE FORENSIC FINDING
 
-Forensic fingerprint currently recorded:
+`2afa...` added the Finance navigation and dispatch for:
+- treasury
+- accounts
+- journal-list
+- journal
+- recurring-journals
+- receipts
+- payments
+- expenses
+- transfers
+- cheques
+- bank-reconcile
+- tax
+- assets
+- budgets
+- periods
+- reports
+- installments
+- commission
 
-```text
-23,315 lines
-1,288,078 bytes
-SHA256=8358f2f1f267f91b27b0745a6a2f4530366dab712272f74d6cad64e8df8d02a1
-```
+But the GoldExtension contained only:
+`journalList, renderAssets, renderTax, renderPeriods, renderBankReconcile, renderRecurring`
 
-`RW_Warehouse` starts at line `10950`.
-`loadInventoryControl()` starts at line `13235`.
-`RW_Warehouse` return object starts at line `13811`.
-`loadInventoryControl: loadInventoryControl,` is exported at line `13812`.
-Current route is at line `21513`:
+while dispatch/buttons referenced missing handlers including:
+`_renderExpenses`, `_renderCheques`, `_goldAddAsset`, `_goldTaxCode`, `_goldOpenPeriod`, `_goldClosePeriod`, `_goldNewBankStatement`, `_goldNewRecurring`.
 
-```js
-if (view === 'inventory-control') { RW_Warehouse.loadInventoryControl(); return; }
-```
+A complete surgical patch was prepared and recorded in:
+`doc/Draft/Reprots/Report214_MOTHER_FINANCE_EXECUTION_20260916.md`
 
-No current source hit for `قيد التطوير`, `جاري التطوير`, `TODO`, or `FIXME`.
+The assistant did not edit `erp-frontend/companies/company-1/main.html`; owner surgery remains required.
 
-## TARGET MODAL FORENSIC FINDINGS
+## PRODUCTION FINANCE IMPLEMENTATION — ACTUAL
 
-### جلسة جرد جديدة
+Supabase Production project:
+`fiilmooggumokxanwiyx`
 
-Function: `createCountSession()`
-Current lines: `13635–13671`
+Implemented/expanded Production contracts:
+- Journal detail / reverse / central posting protection.
+- Recurring journal templates + lines + runtime execution + run history.
+- Expense categories + expenses + expense lines + journal linkage.
+- Tax transaction source reference + tax settlement + settlement report.
+- Bank statement + statement lines + match/unmatch/exclude/include + close validation.
+- Fixed asset acquisition + depreciation existing contract + disposal lifecycle.
+- Cheque register + lifecycle events + state transitions.
+- Period open/close/reopen + period guard at central journal posting.
+- Finance runtime health snapshot.
+- Realtime publication and RLS for newly introduced finance operational tables.
+- Legacy cheque direct write permissions removed from authenticated/anon.
 
-Current defect: it creates a count session and moves to the counts tab, but the quick action does not create/populate/open a usable counting editor with system quantity, physical quantity, variance, refresh, save and finalize actions.
+The production financial mutation design intentionally does not create a second accounting engine:
+`Finance operation → post_journal_entry → journal_entries/journal_lines`
 
-### طلب نقل مخزني جديد
+## IMPORTANT PRODUCTION CORRECTIONS MADE DURING SESSION
 
-Function: `createStockRequest()`
-Current lines: `13711–13781`
+1. Expense posting was corrected so a non-treasury expense has a valid payable credit (account 211) instead of leaving an unbalanced journal.
+2. Period protection was moved to the central `post_journal_entry` engine, not left to UI behavior.
+3. Tax settlement links transactions to a settlement and, when available, the containing finance period.
+4. Bank statement closing now requires balance agreement and no unmatched non-excluded lines.
+5. Legacy cheque writes were disabled to prevent dual-write paths.
+6. Legacy inventory voucher v2 writes were revoked; field/stock operational chains were otherwise left intact.
 
-Current defect: it relies on raw `1001|5` textarea entry and does not provide item lookup/cart/live source availability/Available Before/Available After.
+## PRODUCTION DATA SAFETY
 
-## CURRENT PRODUCTION INVENTORY BACKEND
+No destructive cleanup of business inventory fixtures was performed in this Finance session. Existing fixture-like inventory records previously observed remain untouched because this session did not establish sufficient evidence to delete them safely.
 
-Project: `fiilmooggumokxanwiyx`
-
-Canonical gateway:
-`public.inventory_control(text,jsonb)`
-
-Tenant boundary:
-`auth.uid() → users.auth_id → users.company_id`
-
-Inventory Count Engine:
-`public.inventory_count_engine(...)`
-
-Supports:
-`CREATE`, `GET`, `POPULATE`, `UPSERT_LINE`, `REFRESH`, `FINALIZE`, `CANCEL`
-
-Inventory Stock Request Engine:
-`public.inventory_stock_request_engine(...)`
-
-Supports:
-`CREATE`, `GET`, `APPROVE`, `REJECT`, `CONVERT`, `CANCEL`
-
-## PRODUCTION VERIFICATION
-
-Count transactional proof:
-`CREATE → POPULATE → GET = PASS`
-
-Request transactional proof:
-`CREATE → GET → APPROVE → CONVERT = PASS`
-
-No persistent test data was intentionally left behind.
-
-## PHYSICAL STOCK CONTRACT
+## OPEN VERIFICATION
 
 ```text
-Physical Movement
-        ↓
-post_stock_movement
-        ↓
-stock_branches + inventory_log
+Authenticated Mother Finance Browser E2E = OPEN
+Tax full lifecycle = BACKEND IMPLEMENTED / BROWSER OPEN
+Asset full lifecycle = BACKEND IMPLEMENTED / BROWSER OPEN
+Bank full reconciliation = BACKEND IMPLEMENTED / BROWSER OPEN
+Recurring journal runtime execution = BACKEND IMPLEMENTED / SCHEDULER + BROWSER OPEN
 ```
 
-Reservation-only functions:
-`reserve_stock`
-`release_stock_reservation`
+The current Production environment has no `pg_cron` or `pg_net`, so recurring automation is not yet an automatic scheduler contract.
 
-Current forensic discovery remains:
-`Physical Writers outside post_stock_movement = 0 discovered`
+## WHY 100% FINANCE CLOSURE IS NOT CLAIMED
 
-## PRODUCTION INFRASTRUCTURE DECISION
+The current Mother source still contains UI/runtime holes found from the actual current Git diff. The surgical replacement is prepared but has not been merged into the owner-controlled Mother repository.
 
-For the two target modals:
-
-```text
-New table        = NOT REQUIRED
-New relation     = NOT REQUIRED
-New Edge Function= NOT REQUIRED
-New stock writer = NOT REQUIRED
-```
-
-Existing production engines are sufficient.
-
-## SECURITY / REALTIME
-
-RLS is enabled on:
-`inventory_stock_requests`
-`inventory_stock_request_details`
-
-Realtime currently includes the required inventory operational tables and `erp_operation_registry`.
-
-## E2E INFRASTRUCTURE ADDED
-
-New frontend workflow:
-
-`.github/workflows/inventory_control_modals_e2e_20260916.yml`
-
-It is `workflow_dispatch` only.
-
-It validates:
-
-```text
-Mother loads
-+
-loadInventoryControl exists
-+
-Count modal opens
-+
-COUNT CREATE
-+
-COUNT POPULATE
-+
-Request modal opens
-+
-REQUEST CREATE
-+
-Console Errors = 0
-+
-Page Errors = 0
-```
-
-It does not alter Production.
-
-## OWNER SURGICAL PATCH STATUS
-
-Assistant did not edit `main.html`.
-
-Full surgical replacements are recorded in:
-
-`doc/Draft/Reprots/Report211_MOTHER_INVENTORY_MODAL_FORENSIC_E2E_20260916.md`
-
-Target 1:
-`createCountSession()` lines `13635–13671`
-
-Target 2:
-`createStockRequest()` lines `13711–13781`
-
-## CURRENT CLOSURE
-
-```text
-Current Git / Parent                     VERIFIED
-Current Mother source                   VERIFIED
-Production Count Engine                 VERIFIED
-Production Request Engine               VERIFIED
-Physical Writer centralization          CLOSED
-Control Plane backend                   CLOSED
-Mother Control Plane shell              PRESENT
-Count modal                             OPEN — owner surgery
-Request modal                           OPEN — owner surgery
-Authenticated Browser/Console/Network  OPEN
-Global Inventory Zero-Debt              NOT YET 100% CLOSED
-```
-
-## NEXT SESSION START ORDER
-
-1. Read frontend HEAD `9f84e24f4dd93381aaaff12ceb04f84ddde95fb0` and parent `02abd146d7df7703f1c2a18896d8ee3d9e8b0217`.
-2. Recompute the current `main.html` fingerprint before trusting any prior line number.
-3. Take a fresh Production snapshot.
-4. Check whether the owner has merged the two surgical replacements; do not reapply any already-completed change.
-5. Run the Modal E2E Guard.
-6. Run authenticated live Browser + Console + Network E2E.
-7. Compare UI values with same-moment Production values.
-8. Only after this unit is proven closed, move to the next current defect.
+A true authenticated browser pass is therefore still required and must not be replaced by SQL-only tests.
 
 ## LATEST REPORT
 
-`doc/Draft/Reprots/Report211_MOTHER_INVENTORY_MODAL_FORENSIC_E2E_20260916.md`
+`doc/Draft/Reprots/Report214_MOTHER_FINANCE_EXECUTION_20260916.md`
+
+## NEXT SESSION START ORDER
+
+1. Start from current HEAD `0849...` and parent `2afa...`.
+2. Re-fetch current `main.html` and recalculate its fingerprint before using any line number.
+3. Verify Production schema and deployed function definitions again.
+4. Check whether the owner merged Report214 Mother surgery; do not reapply a completed change.
+5. Run authenticated Mother Finance browser E2E.
+6. Verify Console = 0 and inspect Network for every finance RPC.
+7. Execute one finance closure unit at a time and compare UI results with same-moment Production.
+8. Close authenticated Mother Finance E2E before moving to another department.
