@@ -1,87 +1,105 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-16 — current state rebuilt from CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT. Historical reports are reference-only.
+**Last reconciled:** 2026-09-16  
+**Basis:** CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE. Historical reports are reference-only.
 
 ## SOURCE OF TRUTH
 
-Current truth:
-`CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE`
-
-Full authenticated browser closure additionally requires:
-`CURRENT BROWSER + CURRENT CONSOLE + CURRENT NETWORK`
-
-Mother Source of Truth:
+Mother:
 `papamohammed77-glitch/erp-frontend/companies/company-1/main.html`
 
 Historical/reference only:
-`Current/PWA/main2/*`
-`Original/PWA/main/*`
-`New-main`
+`rawaie-erp-New/Current/PWA/main2/*`
+`rawaie-erp-New/Original/PWA/main/*`
+`rawaie-erp-New/Current/PWA/main`
+`rawaie-erp-New/Current/PWA/New-main`
+
+`forensic_main_assembly.yml` was verified and already points to the Mother Source of Truth; no correction was required.
 
 ## CURRENT FRONTEND GIT
 
 Repository: `papamohammed77-glitch/erp-frontend`
 Branch: `main`
+Latest HEAD: `9f84e24f4dd93381aaaff12ceb04f84ddde95fb0`
+Latest message: `test: add inventory control modal E2E guard`
+Direct parent: `02abd146d7df7703f1c2a18896d8ee3d9e8b0217`
 
-Current HEAD at end of this session:
-`6533ab8924c2a2fe76a78aabec413b4dae3019f0`
+The latest HEAD adds only the E2E workflow and does not change `main.html`.
 
-Direct parent:
-`2430b5b4922b53f218f7e4bd4c52a603e7ef8f0b`
+Previous forensic-only HEAD: `02abd146d7df7703f1c2a18896d8ee3d9e8b0217`
+Parent: `0a3d944ed4498620a9c1ade2a43c5208337749c1`
 
-Business commit immediately before forensic extraction:
-`e0c806e47a761561fc4177ffd2a4d9fc8d7d7dc9`
+## CURRENT MOTHER SOURCE
 
-Latest two commits created during forensic work only added the extraction workflow/output; they did not modify the Mother source blob.
+Forensic fingerprint currently recorded:
 
-Current Mother blob SHA remains:
-`33a7c2c9e7e35d546ea960f84f4feee16ec4d632`
+```text
+23,315 lines
+1,288,078 bytes
+SHA256=8358f2f1f267f91b27b0745a6a2f4530366dab712272f74d6cad64e8df8d02a1
+```
 
-## CURRENT MOTHER
+`RW_Warehouse` starts at line `10950`.
+`loadInventoryControl()` starts at line `13235`.
+`RW_Warehouse` return object starts at line `13811`.
+`loadInventoryControl: loadInventoryControl,` is exported at line `13812`.
+Current route is at line `21513`:
 
-Current source:
-`companies/company-1/main.html`
+```js
+if (view === 'inventory-control') { RW_Warehouse.loadInventoryControl(); return; }
+```
 
-Forensic extraction established:
-`22,739` lines and `1,254,184` bytes at extraction time.
+No current source hit for `قيد التطوير`, `جاري التطوير`, `TODO`, or `FIXME`.
 
-Current Inventory Control route:
-`if (view === 'inventory-control') { RW_Warehouse.loadInventoryControl(); return; }`
+## TARGET MODAL FORENSIC FINDINGS
 
-Exact current route line:
-`20937`
+### جلسة جرد جديدة
 
-Current `RW_Warehouse` starts at line:
-`10950`
+Function: `createCountSession()`
+Current lines: `13635–13671`
 
-Current `RW_Warehouse` return object begins at line:
-`13236`
+Current defect: it creates a count session and moves to the counts tab, but the quick action does not create/populate/open a usable counting editor with system quantity, physical quantity, variance, refresh, save and finalize actions.
 
-The forensic source contains the route call but no executable `loadInventoryControl()` implementation.
+### طلب نقل مخزني جديد
 
-No current source hit for:
-`قيد التطوير / جاري التطوير / TODO / FIXME`
+Function: `createStockRequest()`
+Current lines: `13711–13781`
 
-The owner must apply the Mother patch from Report210. Assistant did not edit `main.html`.
+Current defect: it relies on raw `1001|5` textarea entry and does not provide item lookup/cart/live source availability/Available Before/Available After.
 
-## FORENSIC EXTRACTION
+## CURRENT PRODUCTION INVENTORY BACKEND
 
-A forensic extractor was added only to obtain exact line mapping from the 1.25 MB Mother file:
+Project: `fiilmooggumokxanwiyx`
 
-`.github/workflows/_forensic_extract_current_main.yml`
+Canonical gateway:
+`public.inventory_control(text,jsonb)`
 
-and its generated output:
+Tenant boundary:
+`auth.uid() → users.auth_id → users.company_id`
 
-`_forensic_current_main_extract.md`
+Inventory Count Engine:
+`public.inventory_count_engine(...)`
 
-These are investigative artifacts, not Source of Truth.
+Supports:
+`CREATE`, `GET`, `POPULATE`, `UPSERT_LINE`, `REFRESH`, `FINALIZE`, `CANCEL`
 
-## CURRENT PRODUCTION — SUPABASE
+Inventory Stock Request Engine:
+`public.inventory_stock_request_engine(...)`
 
-Project:
-`fiilmooggumokxanwiyx`
+Supports:
+`CREATE`, `GET`, `APPROVE`, `REJECT`, `CONVERT`, `CANCEL`
 
-Physical Stock Contract:
+## PRODUCTION VERIFICATION
+
+Count transactional proof:
+`CREATE → POPULATE → GET = PASS`
+
+Request transactional proof:
+`CREATE → GET → APPROVE → CONVERT = PASS`
+
+No persistent test data was intentionally left behind.
+
+## PHYSICAL STOCK CONTRACT
 
 ```text
 Physical Movement
@@ -91,175 +109,107 @@ post_stock_movement
 stock_branches + inventory_log
 ```
 
-Reservation only:
+Reservation-only functions:
 `reserve_stock`
 `release_stock_reservation`
 
-Fresh PostgreSQL writer discovery at end of session found no independent Physical Movement Writer outside `post_stock_movement`.
+Current forensic discovery remains:
+`Physical Writers outside post_stock_movement = 0 discovered`
 
-## CLOSED INVENTORY CONTROL BACKEND
+## PRODUCTION INFRASTRUCTURE DECISION
 
-Canonical gateway now exists:
+For the two target modals:
 
-`public.inventory_control(text,jsonb)`
+```text
+New table        = NOT REQUIRED
+New relation     = NOT REQUIRED
+New Edge Function= NOT REQUIRED
+New stock writer = NOT REQUIRED
+```
 
-It derives the authenticated user from `auth.uid()` and derives company context from `users.auth_id` / `users.company_id`.
+Existing production engines are sufficient.
 
-Supported operations:
-`SNAPSHOT`
-`MOVEMENTS`
-`REPLENISHMENT`
-`COUNT`
-`REQUEST`
+## SECURITY / REALTIME
 
-The gateway delegates to the existing inventory engines rather than creating a second stock engine.
-
-Production test with real Owner auth identity returned Snapshot successfully.
-Production test with real Picker auth identity returned Snapshot successfully.
-
-## REQUEST SECURITY
-
-RLS is now enabled on:
+RLS is enabled on:
 `inventory_stock_requests`
 `inventory_stock_request_details`
 
-Policies are company-scoped through:
-`app_private.current_user_company_id()`
+Realtime currently includes the required inventory operational tables and `erp_operation_registry`.
 
-`anon` direct access was revoked.
+## E2E INFRASTRUCTURE ADDED
 
-## REALTIME
+New frontend workflow:
 
-Current publication includes:
-`stock_branches`
-`inventory_log`
-`orders`
-`order_details`
-`runsheets`
-`run_sheet_details`
-`stock_vouchers`
-`stock_voucher_details`
-`inventory_stock_requests`
-`inventory_stock_request_details`
-`inventory_counts`
-`inventory_count_details`
-`erp_operation_registry`
+`.github/workflows/inventory_control_modals_e2e_20260916.yml`
 
-`erp_operation_registry` was added during this session after direct verification that it was missing.
+It is `workflow_dispatch` only.
 
-## CLOSED / DEPLOYED FIELD OPERATIONS
+It validates:
 
-### complete-return
-Edge `complete-return` v26.
+```text
+Mother loads
++
+loadInventoryControl exists
++
+Count modal opens
++
+COUNT CREATE
++
+COUNT POPULATE
++
+Request modal opens
++
+REQUEST CREATE
++
+Console Errors = 0
++
+Page Errors = 0
+```
 
-Status:
-`CLOSED — DB/RPC transactional proof`
+It does not alter Production.
 
-### complete-order-delivery
-Edge `complete-order-delivery` v14.
+## OWNER SURGICAL PATCH STATUS
 
-Delivery remains fulfillment-only; no parallel Physical Stock writer.
+Assistant did not edit `main.html`.
 
-Status:
-`CLOSED — DB/RPC transactional proof`
+Full surgical replacements are recorded in:
 
-### picking
-Edge `complete-picking` v17.
+`doc/Draft/Reprots/Report211_MOTHER_INVENTORY_MODAL_FORENSIC_E2E_20260916.md`
 
-Reservation-only physical boundary through `reserve_stock`.
+Target 1:
+`createCountSession()` lines `13635–13671`
 
-Status:
-`CLOSED — DB/RPC transactional proof`
+Target 2:
+`createStockRequest()` lines `13711–13781`
 
-### loading / unloading
-Edges:
-`complete-loading` v11
-`unload-runsheet` v6
-
-Operation identity and duplicate protection are deployed and DB-verified.
-
-Status:
-`DEPLOYED + DB VERIFIED`
-
-Authenticated Browser/Network runtime verification after final deployment remains OPEN.
-
-## DATA INTEGRITY
-
-`items.item_code` is globally UNIQUE.
-`stock_branches` is unique on `(branch_id,item_id)`.
-`receiving.operation_id` is UNIQUE.
-`erp_operation_registry` is unique on `(company_id,operation_type,operation_key)`.
-
-No cross-company stock rows were deleted or reassigned from count-based assumptions.
-
-`order_details` remains authoritative fulfillment detail.
-`run_sheet_details` is derived by trigger.
-
-Do not introduce Dual Write.
-
-## INVENTORY MOTHER GAP
-
-The following backend capabilities are now available to the Mother through `inventory_control()`:
-
-- stock snapshot
-- movement report
-- replenishment report
-- inventory count engine
-- inventory stock request engine
-
-The only remaining Mother-side gap is implementation of:
-`RW_Warehouse.loadInventoryControl()`
-
-The exact insertion point and complete function are documented in:
-`doc/Draft/Reprots/Report210_GLOBAL_INVENTORY_CONTROL_FORENSIC_CLOSURE_20260916.md`
-
-## SECURITY OBSERVATIONS
-
-The remaining security advisor findings outside this closure must stay separate until consumer and authorization mapping is complete.
-
-Do not widen permissions on arbitrary functions just to make the Mother work.
-
-## CURRENT CLOSURE STATUS
+## CURRENT CLOSURE
 
 ```text
 Current Git / Parent                     VERIFIED
-Latest HEAD                              6533ab8924c2a2fe76a78aabec413b4dae3019f0
-Latest Parent                            2430b5b4922b53f218f7e4bd4c52a603e7ef8f0b
-Business Mother Commit                   e0c806e47a761561fc4177ffd2a4d9fc8d7d7dc9
-Mother Source Blob                       33a7c2c9e7e35d546ea960f84f4feee16ec4d632
-Mother HTML modified by assistant       NO
-Physical Writers outside core            0 discovered
-Inventory Control DB Gateway             CLOSED
-Inventory Request RLS                    CLOSED
-Inventory Realtime support               CLOSED
-Complete Return                          CLOSED — DB/RPC
-Complete Order Delivery                  CLOSED — DB/RPC
-Picking                                  CLOSED — DB/RPC
-Loading                                  DEPLOYED — browser runtime OPEN
-Unloading                                DEPLOYED — browser runtime OPEN
-Mother Inventory Control                OPEN — owner patch
-Authenticated Mother E2E                 OPEN
-Global Inventory Zero-Debt               NOT YET 100%
-Gold/Diamond Inventory                   OPEN
+Current Mother source                   VERIFIED
+Production Count Engine                 VERIFIED
+Production Request Engine               VERIFIED
+Physical Writer centralization          CLOSED
+Control Plane backend                   CLOSED
+Mother Control Plane shell              PRESENT
+Count modal                             OPEN — owner surgery
+Request modal                           OPEN — owner surgery
+Authenticated Browser/Console/Network  OPEN
+Global Inventory Zero-Debt              NOT YET 100% CLOSED
 ```
 
-## NEXT SESSION — EXACT START ORDER
+## NEXT SESSION START ORDER
 
-1. Read latest frontend HEAD `6533ab8924c2a2fe76a78aabec413b4dae3019f0` and direct parent `2430b5b4922b53f218f7e4bd4c52a603e7ef8f0b`.
-2. Open current `companies/company-1/main.html` and verify its blob is still `33a7c2c9e7e35d546ea960f84f4feee16ec4d632` or record the new current blob if the owner has merged changes.
-3. Take a fresh Production snapshot before every material conclusion.
-4. Apply only the exact `loadInventoryControl()` surgical patch from Report210; do not rebuild the Mother from historical fragments.
-5. Re-read the merged Mother source after the owner patch.
-6. Run authenticated Browser + Console + Network E2E on the Mother.
-7. Re-check Loading/Unloading browser runtime after the latest Production deployment.
-8. Compare browser-visible Control Plane values with same-moment Production values.
-9. Only then move to the next proven inventory capability gap or the Finance/HR/CRM/Reports gap.
-10. Never declare 100% while any material Unknown, Conflict, or Unverified Claim remains.
+1. Read frontend HEAD `9f84e24f4dd93381aaaff12ceb04f84ddde95fb0` and parent `02abd146d7df7703f1c2a18896d8ee3d9e8b0217`.
+2. Recompute the current `main.html` fingerprint before trusting any prior line number.
+3. Take a fresh Production snapshot.
+4. Check whether the owner has merged the two surgical replacements; do not reapply any already-completed change.
+5. Run the Modal E2E Guard.
+6. Run authenticated live Browser + Console + Network E2E.
+7. Compare UI values with same-moment Production values.
+8. Only after this unit is proven closed, move to the next current defect.
 
-## GOVERNANCE RULE
+## LATEST REPORT
 
-Never trust a previous report as a current snapshot. Reconstruct current truth from live Git/Source/Production/Database/Deployment before every Closure Unit.
-
-## LATEST EXECUTION REPORT
-
-`doc/Draft/Reprots/Report210_GLOBAL_INVENTORY_CONTROL_FORENSIC_CLOSURE_20260916.md`
+`doc/Draft/Reprots/Report211_MOTHER_INVENTORY_MODAL_FORENSIC_E2E_20260916.md`
