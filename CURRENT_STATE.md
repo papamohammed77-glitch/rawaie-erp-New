@@ -1,6 +1,6 @@
 # RAWAEA ERP — CURRENT STATE
 
-**Last reconciled:** 2026-09-15 — current Git / current Mother source / current Production / current Database / current Deployment evidence were rechecked in this session.
+**Last reconciled:** 2026-09-16 — current Git / current Mother source / current Production / current Database / current Deployment evidence were rechecked for the Security Closure. The four-table Sales Decision RLS issue is now closed in Production.
 
 ## SOURCE OF TRUTH
 
@@ -42,11 +42,16 @@ Current Mother blob:
 
 HEAD diff is timestamp-only. Parent contains the previously required `_openPO` onclick syntax correction near source line 9577.
 
+**Correction:** A prior context referenced Mother blob `68145f77b3edc98ac37b9ec2335359d825a4be52`. Direct CURRENT GIT verification shows that the actual blob for the current HEAD is `bc268b9bb350991df64221e7f99b958264fb8d5f`; the Git value is authoritative.
+
 ## CURRENT MOTHER
 
-The current Mother source was extracted directly from the current HEAD and the PurchaseGold block was read as the current source, not from historical fragments.
+The current Mother source remains:
+`papamohammed77-glitch/erp-frontend/companies/company-1/main.html`
 
-Current PurchaseGold functions:
+The assistant did not modify the Mother HTML during the 2026-09-16 Security Closure.
+
+Current PurchaseGold functions previously established by direct source review:
 
 `createRequest()` — lines 9271–9323
 `createRFQ()` — lines 9365–9414
@@ -58,30 +63,7 @@ Current PurchaseGold functions:
 `settings()` — lines 9951–9977
 `saveSettings()` — lines 9979–10001
 
-Current parser/action-string defects described in older reports are not the current blocker; the current source contains the corrected purchase action strings.
-
-Current blocker:
-**Purchase modals are functionally shallow and visually below the Gold/Diamond target.**
-
-The current implementation uses basic `swal2-input`, `swal2-select`, and pipe-delimited textareas instead of structured document-entry forms.
-
-## CURRENT PURCHASE MODAL FINDINGS
-
-`createRequest` currently collects title/date/items/notes through a textarea. It does not present a real line-item editor or item verification UX.
-
-`createRFQ` currently selects request/suppliers/date but does not show inherited request lines or a professional bidders workflow.
-
-`createQuotation` currently collects lines through `item_code|qty|price|discount|tax` textarea and has no line grid or live totals.
-
-`createInvoice` currently asks for raw `purchase_order_id` text and uses a textarea instead of an actual PO selector and inherited PO lines.
-
-`createReturn` currently asks for `item_code|qty|reason` and does not display the invoice's received quantity as the return limit.
-
-`createPayment` currently supports only one invoice allocation, despite Production supporting multiple invoice allocations.
-
-`reports` currently reads two views directly and exposes only two report sections, despite Production exposing `purchase_get_reports`.
-
-`settings` currently exposes only part of `purchase_settings` and does not expose return/payment prefixes, inventory policies, or default branch.
+Current Browser E2E of the updated Mother still requires Owner merge + fresh browser/console/network evidence. The 2026-09-16 Security Closure did not alter this status.
 
 ## CURRENT PURCHASE PRODUCTION
 
@@ -90,127 +72,136 @@ Project: `fiilmooggumokxanwiyx`
 Current purchase capability layer:
 `save-purchase-order` — ACTIVE — version 6 — verify_jwt=true.
 
-Current Purchase schema exists and already includes the required relational entities; no duplicate Purchase tables were justified in this closure.
+Current Purchase schema and RPC infrastructure remain present.
 
-Current transactional counts for the live Company context checked in this session:
+## CURRENT SALES DECISION PRODUCTION
+
+Security Closure unit:
+`Sales Decision four-table RLS security closure`
+
+The four Production tables are:
 
 ```text
-purchase_requests    = 0
-purchase_rfqs        = 0
-purchase_quotations  = 0
-purchase_orders      = 0
-purchase_invoices    = 0
-purchase_returns     = 0
-purchase_payments    = 0
+public.sales_decision_approvals
+public.sales_decision_evaluations
+public.sales_decision_policies
+public.sales_decision_policy_history
 ```
 
-No permanent test fixtures were inserted.
+Current row counts checked during this closure:
 
-## CURRENT PURCHASE RPC CONTRACT
+```text
+sales_decision_policies         = 1
+sales_decision_evaluations      = 0
+sales_decision_approvals        = 0
+sales_decision_policy_history   = 1
+```
 
-Production currently exposes the required lifecycle through:
+Current Production security state:
 
-`purchase_create_request_atomic`
-`purchase_submit_request_atomic`
-`purchase_approve_request_atomic`
-`purchase_reject_request_atomic`
-`purchase_create_rfq_atomic`
-`purchase_send_rfq_atomic`
-`purchase_create_quotation_atomic`
-`purchase_accept_quotation_atomic`
-`purchase_convert_quotation_to_po_atomic`
-`purchase_create_invoice_atomic`
-`purchase_post_invoice_atomic`
-`purchase_create_return_atomic`
-`purchase_post_return_atomic`
-`purchase_post_payment_atomic`
-`purchase_cancel_document_atomic`
-`purchase_get_dashboard`
-`purchase_get_reports`
-`purchase_set_settings_atomic`
-`receive_purchase_atomic`
+```text
+RLS enabled on all four tables       = TRUE
+Explicit deny policy on all four     = TRUE
+anon SELECT privilege                = FALSE
+enticated SELECT privilege           = FALSE
+```
 
-Important idempotency contracts already exist in Request, Quotation, Invoice, Return and Payment records.
+Each table has exactly one explicit restrictive policy for `anon, authenticated` using:
 
-`receive_purchase_atomic` currently accepts an explicit UUID operation identity and performs duplicate detection through the existing `receiving.operation_id` UNIQUE contract.
+```text
+USING (false)
+WITH CHECK (false)
+```
 
-## PRODUCTION CHANGES EXECUTED THIS SESSION
+The direct table API is intentionally closed. The controlled business path remains:
 
-Migration 1 applied directly to Production:
-`purchase_reports_settings_tenant_hardening_20260915`
+`sales_decision_engine_atomic(...)`
 
-Canonical Git:
-`supabase/migrations/20260915_purchase_reports_settings_tenant_hardening.sql`
+Current engine is `SECURITY DEFINER`, is Company/Actor scoped, and remained operational after RLS activation.
 
-Changes:
-- company-scope correction for `purchase_get_reports.unbilled_receipts`.
-- `default_branch_id` validation in `purchase_set_settings_atomic`.
-- persistence of return/payment prefixes and inventory policy fields.
+Current Sales Decision relationships remain:
 
-Migration 2 applied directly to Production:
-`purchase_modal_document_integrity_20260915`
+```text
+sales_decision_approvals.company_id
+    → companies.id
 
-Canonical Git:
-`supabase/migrations/20260915_purchase_modal_document_integrity.sql`
+sales_decision_approvals.evaluation_id
+    → sales_decision_evaluations.id
 
-Changes:
-- Quotation with an RFQ now verifies the RFQ belongs to the same company and the supplier is actually invited to that RFQ.
-- Invoice with a PO now verifies the PO belongs to the same company and its supplier matches the invoice supplier.
-- Invoice creation now honors `require_receiving_before_invoice` for PO-linked invoices.
-- Supplier payment now verifies the treasury belongs to the same company and honors `require_invoice_before_payment` when enabled.
-- Payment validation remains allocation-safe and idempotent.
+sales_decision_evaluations.company_id
+    → companies.id
 
-Post-migration RPC identities were re-read from Production.
+sales_decision_evaluations.policy_id
+    → sales_decision_policies.id
 
-## CURRENT PURCHASE REALTIME
+sales_decision_policies.company_id
+    → companies.id
 
-The current `supabase_realtime` publication includes:
+sales_decision_policy_history.company_id
+    → companies.id
 
-`purchase_requests`
-`purchase_rfqs`
-`purchase_quotations`
-`purchase_invoices`
-`purchase_payments`
-`purchase_returns`
+sales_decision_policy_history.policy_id
+    → sales_decision_policies.id
+```
 
-This proves database publication only. Mother subscription/refresh still requires Browser evidence.
+Current Sales Decision triggers checked:
 
-## CURRENT OWNER PATCH
+```text
+trg_sales_decision_approval_audit
+trg_sales_decision_policy_audit
+trg_sales_decision_policy_updated_at
+```
 
-Mother HTML was intentionally NOT modified by the assistant.
+No trigger, audit function, business logic, Edge Function, or Mother HTML was changed by this Security Closure.
 
-Prepared complete surgical replacement package:
+## SALES DECISION SECURITY CLOSURE — 2026-09-16
 
-`RAWAEA_Purchase_Modal_Owner_Patch_20260915.md`
+Production migrations applied directly:
 
-It contains exact replacements for:
+1. `20260916042958_sales_decision_rls_security_closure_20260916`
+2. `20260916043051_sales_decision_rls_explicit_deny_20260916`
 
-- Purchase realtime subscription helper.
-- Request modal.
-- RFQ modal.
-- Supplier quotation modal.
-- Purchase invoice modal.
-- Purchase return modal.
-- Supplier payment multi-invoice allocation modal.
-- Reports screen through `GET_REPORTS`.
-- Complete Purchase Settings screen.
-- Complete `saveSettings` payload.
+Canonical Git files:
 
-The exact current line ranges and deletion anchors are documented inside the patch package.
+```text
+supabase/migrations/20260916042958_sales_decision_rls_security_closure_20260916.sql
+supabase/migrations/20260916043051_sales_decision_rls_explicit_deny_20260916.sql
+```
 
-## CURRENT FORENSIC REPORT
+Security verification:
 
-`doc/Draft/Reprots/Report203_CURRENT_MOTHER_PURCHASE_MODAL_FORENSIC_20260915.md`
+- PostgreSQL confirmed RLS enabled on all four tables.
+- PostgreSQL confirmed one restrictive deny policy per table.
+- Direct `anon/authenticated` SELECT remained absent.
+- Temporary `authenticated` SELECT grants were used inside a transaction only; all were rolled back.
+- RLS test returned zero visible rows for the authenticated role on all four tables.
+- `sales_decision_engine_atomic(..., 'GET_POLICY', ...)` returned `success=true` after the RLS change.
+- Security Advisor no longer reports the four Sales Decision tables under `RLS Enabled No Policy`.
+- Remaining Security Advisor findings belong to other unrelated units and remain open.
 
-Historical reports retained; none were deleted.
+Closure status:
+
+```text
+Sales Decision four-table RLS closure = FULLY CLOSED
+```
+
+## CURRENT FORENSIC REPORTS
+
+Latest relevant reports:
+
+`doc/Draft/Reprots/Report204_PURCHASE_MODAL_CURRENT_CLOSURE_20260915.md`
+`doc/Draft/Reprots/Report205`
+`doc/Draft/Reprots/Report206_SALES_DECISION_RLS_SECURITY_CLOSURE_20260916.md`
+
+Historical reports remain retained and are not current-state authority.
 
 ## FORENSIC METHOD — REQUIRED FOR NEXT SESSION
 
 1. Treat reports as historical evidence, not current state.
 2. Re-read CURRENT_STATE.
-3. Re-read current Git HEAD and direct parent.
+3. Re-open current Git HEAD and direct parent.
 4. Re-open the current Mother source around the exact problem.
-5. Re-open current Production RPCs, schema and Edge deployment.
+5. Re-open current Production RPCs, schema, RLS, triggers and Edge deployment.
 6. Identify one Closure Unit.
 7. Use historical code only to recover intent, never to replace current evidence.
 8. Separate owner-only Mother work from Production work.
@@ -230,6 +221,7 @@ Historical reports retained; none were deleted.
 ```text
 Current Git/Parent                         VERIFIED
 Current Mother source                      VERIFIED
+Current Mother blob                        VERIFIED = bc268b9bb350991df64221e7f99b958264fb8d5f
 Current Production purchase schema         VERIFIED
 Current Production purchase RPC layer     VERIFIED
 Current save-purchase-order deployment    VERIFIED
@@ -243,27 +235,38 @@ Fresh Browser Console                      NOT YET PROVEN
 Fresh Browser Network                      NOT YET PROVEN
 Full Purchase modal E2E                    OPEN
 Gold/Diamond Purchase closure              OPEN UNTIL OWNER MERGE + FRESH E2E
+
+Sales Decision RLS tables                 DEPLOYED + VERIFIED
+Sales Decision explicit deny policies     DEPLOYED + VERIFIED
+Sales Decision Engine after RLS           RUNTIME VERIFIED
+Sales Decision Security Advisor finding   CLOSED
+Sales Decision RLS closure                FULLY CLOSED
 ```
 
-## FINAL SELF-AUDIT
+## FINAL SELF-AUDIT — 2026-09-16 SECURITY CLOSURE
 
 ### What is proven
 
-- The current Mother is the actual published Source of Truth.
-- HEAD and direct parent were rechecked.
-- The earlier parser issue is not the current modal blocker.
-- Purchase backend infrastructure already exists.
-- Current Production report/settings/document-integrity defects were hardened.
-- Current Realtime publication exists.
-- The current Purchase UX gap is in the Mother modal implementations.
+- Current Git HEAD and direct parent were rechecked.
+- Current Mother blob was rechecked directly; `bc268b9bb350991df64221e7f99b958264fb8d5f` is authoritative for the current HEAD.
+- The four Sales Decision tables were verified directly in Production.
+- Their schemas and Company relationships were verified.
+- Their current consumers/callee engine was verified through `sales_decision_engine_atomic`.
+- RLS was enabled on all four tables.
+- Explicit restrictive deny policies were created and verified.
+- Direct table SELECT access for `anon/authenticated` is not granted.
+- RLS was runtime-tested through a temporary authenticated-role transaction.
+- The Sales Decision Engine remained operational after the security change.
+- Security Advisor no longer lists the four tables as `RLS Enabled No Policy`.
+- The actual Production migrations are now represented canonically in Git.
+- No Mother HTML change was made for this independent security issue.
 
 ### What is not proven
 
-- Owner has not yet merged the new Mother surgical replacements.
-- Fresh Browser execution has not yet been observed.
-- Fresh Console/PageError/Network evidence for the new modal forms does not yet exist.
-- Full live Purchase lifecycle has not yet been executed as a browser E2E.
+- Full Browser E2E of the PurchaseGold changes remains open until Owner merge and fresh Browser/Console/Network evidence.
+- Other Security Advisor findings are not closed by this unit.
+- The entire RAWAEA ERP mission is not closed; only this Sales Decision RLS Security Closure is closed.
 
-### Next closure
+### Next exact checkpoint
 
-`Owner merge → Fresh Browser → Request modal → RFQ modal → Quotation modal → Invoice modal → Return modal → Payment modal → Reports → Settings → Console/Network/DB/Realtime final proof`
+`Owner merge → fresh Mother HEAD/blob verification → fresh Browser E2E → continue next open Closure Unit`
