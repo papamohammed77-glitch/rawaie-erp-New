@@ -59,6 +59,8 @@ Verified Production objects:
 - `finance_list_revenues_v2`
 - `finance_void_revenue`
 
+The three Revenue RPCs are executable by `authenticated`, `postgres`, and `service_role`.
+
 Verified behavior:
 
 - Company context enforced.
@@ -105,51 +107,73 @@ Original treasury balance remained unchanged.
 
 ## Mother Revenue status
 
-The Mother Revenue UI exists in the latest functional parent but has a confirmed JavaScript parsing defect in `_newReceipt()`:
+The current Mother Revenue UI has two confirmed frontend defects remaining in the owner-controlled source:
+
+### 1. SyntaxError in `_newReceipt()`
+
+Confirmed malformed line, occurring twice:
 
 ```js
 'onclick="RW_Finance.renderSubTab(\\'receipts\\')" ' +
 ```
 
-This occurs twice and must be replaced with:
+Replace both occurrences with:
 
 ```js
 'onclick="RW_Finance.renderSubTab(\'receipts\')" ' +
 ```
 
-The prior forensic finding also identified a scope defect where `branchesForRevenue` was local to `_newReceipt()` but referenced from `_renderRevenues()`.
+### 2. `_renderRevenues()` scope defect
 
-### Owner-side Mother surgery
+`branchesForRevenue` is local to `_newReceipt()` but referenced by `_renderRevenues()`.
 
-The assistant must not edit the Mother file directly. The owner must perform the exact surgical replacements documented in:
+Do not promote it to global scope.
 
-`doc/Draft/Reprots/Report228_MOTHER_REVENUE_E2E_CLOSURE_20260917.md`
+The complete replacement for `_renderRevenues()` is recorded in:
 
-and the full previous surgical replacement package remains in:
+`doc/Draft/Reprots/Report227_MOTHER_LOGIN_REVENUE_FORENSIC_20260917.md`
+
+The related `_newReceipt` / receipt block surgical package is recorded in:
 
 `doc/Draft/Reprots/Report226`
 
-The `_newReceipt`/related block replacement target is approximately lines `15443 → 15542` in the referenced Mother version, ending immediately before:
+The surgical handoff and current production proof are recorded in:
+
+`doc/Draft/Reprots/Report228_MOTHER_REVENUE_E2E_CLOSURE_20260917.md`
+
+Approximate target range for the receipt block in the referenced Mother version:
+
+`15443 → 15542`
+
+The delete boundary is the start of:
+
+```js
+async function _newReceipt() {
+```
+
+and the block ends immediately before:
 
 ```js
 var _customerPaymentRealtimeChannel = null;
 ```
 
-The owner must not partially delete a function. Delete the complete block and insert the complete replacement.
+No partial deletion is allowed.
 
-## Important separation of responsibility
+## Responsibility split
 
 ### Assistant
 
-Can modify Production directly when a current defect is proven.
+Production/database changes may be applied directly when a defect is proven.
 
 ### Owner
 
-Must perform Mother frontend edits in:
+Mother frontend changes in:
 
 `erp-frontend/companies/company-1/main.html`
 
-No frontend changes were made by the assistant in this session.
+must be applied by the owner.
+
+No frontend modification was made by the assistant in this session.
 
 ## Previous inventory/governance context
 
@@ -169,6 +193,10 @@ The existing field operations, Order/Runsheet/Picking/Loading/Delivery/Return fl
 
 `doc/Draft/Reprots/Report228_MOTHER_REVENUE_E2E_CLOSURE_20260917.md`
 
+Report update commit:
+
+`5d8e2e9fa3552d5c31d484d196ef05aec62a3203`
+
 ## Next session start protocol
 
 Do not trust this state file or earlier reports as current by themselves. Start by re-verifying:
@@ -185,27 +213,34 @@ CURRENT DATABASE
 CURRENT DEPLOYMENT EVIDENCE
 ```
 
-Then follow this sequence:
+Then:
 
-1. Resolve latest HEAD and functional parent.
-2. Open the current Mother source.
-3. Verify current Revenue functions/handlers, not historical copies.
-4. Run browser Console/Network E2E.
-5. If Revenue is already functioning, do not re-repair it.
-6. If a defect appears, identify the exact function and exact line from current source.
-7. Apply Production changes only when the defect is proven in Production.
-8. After every E2E, re-query Production before declaring any percentage or closure.
-9. Close Revenue only after owner merge + browser E2E + DB verification.
-10. Move to the next actually-open Business Contract only after Revenue closure.
+```text
+1. Resolve latest HEAD and direct parent.
+2. Open the current Mother source, not main2.
+3. Verify whether the owner already applied the Revenue surgical fixes.
+4. Run JavaScript syntax validation.
+5. Run authenticated browser E2E:
+   Login → Finance → Revenues → New Revenue.
+6. Test one Revenue line and multiple Revenue lines.
+7. Verify list visibility and reload persistence.
+8. Verify Journal + Cash Box + Treasury.
+9. Test retry with the same operation_id.
+10. Test Void/reversal.
+11. Re-query Production in the same closure cycle.
+12. Only then declare Revenue UI closed.
+13. Move to the next actually-open Business Contract.
+```
 
 ## Final current status
 
 ```text
 Production Revenue Core       = CLOSED / VERIFIED
+Revenue backend infrastructure= PRESENT / NO NEW BUILD REQUIRED
 Mother Revenue UI             = OPEN / OWNER SURGERY
 Mother browser E2E             = OPEN
 Assembly Source of Truth       = VERIFIED
 Historical fragments           = REFERENCE ONLY
 Production Revenue data        = CLEAN / NO TEST DATA
-Next action                    = Owner applies exact Mother surgery, then E2E
+Next action                    = Owner applies exact Mother surgery, then authenticated E2E
 ```
