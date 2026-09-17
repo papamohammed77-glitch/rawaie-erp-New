@@ -1,0 +1,977 @@
+النقطة الحاكمة: ملف companies/company-1/main.html هو مصدر الحقيقة الحالي، وليس أي Fragment تاريخي. والحالة الحالية لا تُعتبر مكتملة إلا بما ثبت من CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT. هذا هو منهج الحوكمة نفسه.
+
+تم الوصول إلى النتيجة التالية:
+
+ما تم إثباته وتنفيذه في Production
+
+تم التحقق جنائيًا من أن الإيرادات كانت موجودة Backend بالفعل ولم تكن تحتاج إنشاء محرك جديد:
+
+finance_revenues
+finance_revenue_lines
+finance_revenue_categories
+finance_save_revenue
+finance_list_revenues_v2
+finance_void_revenue
+
+والـfinance_save_revenue الحالي يفرض Company Context، Branch، Treasury، Period Guard، ويتحقق من أن كل Line حساب Revenue، ثم ينشئ القيد المحاسبي، وسند cash_box، ويزيد treasury.current_balance. كما يدعم عدة حسابات إيراد داخل العملية الواحدة.
+
+تم كذلك تنفيذ:
+
+Revenue audit triggers
+Revenue operation unique index
+Revenue date/list indexes
+Revenue line index
+Cost-center schema drift correction
+
+وتم إثبات E2E Transactionally:
+
+Revenue line 1 = 10
+Revenue line 2 = 20
+Total         = 30
+
+Journal       = created
+Cash Box      = 1
+Treasury      = +30
+Revenue rows  = 1
+Revenue lines = 2
+Retry         = duplicate=true
+
+كما تم اختبار finance_void_revenue مرة أخرى، وسجل الـAudit أثبت انتقال:
+
+POSTED → VOID
+
+وبالتالي لم يتم إنشاء محرك Receipt موازي للإيرادات.
+
+السبب الحقيقي لاختفاء الإيرادات من الـMother
+
+الخلل ليس غياب Revenue Engine.
+
+الخلل أن الـMother الحالية تحتوي على سند قبض عام قديم يستخدم:
+
+/functions/v1/save-receipt-voucher
+
+وواجهة _newReceipt() الحالية تعرض حسابًا واحدًا بالإضافة إلى خطوط لا تمثل عقد Revenue Production الحقيقي.
+
+وفي المقابل، المصروفات الحالية أصبحت مبنية على:
+
+finance_save_expense
+
+مع:
+
+Branch
+Treasury
+Multiple Accounts
+Operation ID
+Accounting
+
+كما هو واضح من الـMother الحالية.
+
+لذلك الحل الصحيح هو جعل Revenue هو النظير الحقيقي للمصروفات وربط زر إيراد جديد في سندات القبض بنفس الـRevenue Engine الموجود في Production.
+
+تعديلات Mother المطلوبة
+
+لن أعدل erp-frontend بنفسي طبقًا لتوزيع المسؤوليات الذي حددته.
+
+1 — إضافة تبويب الإيرادات
+
+في main.html الحالي عند الأسطر 14510–14529.
+
+ابحث حرفيًا عن هذا السطر:
+
+{ id: 'expenses', label: 'المصروفات' },
+
+وأضف فوقه مباشرة:
+
+{ id: 'revenues', label: 'الإيرادات' },
+
+ثم في نفس منطقة الـdispatcher، بعد:
+
+else if (tab === 'expenses') RW_Finance._renderExpenses();
+
+أضف مباشرة:
+
+else if (tab === 'revenues') _renderRevenues();
+
+الـdispatcher الحالي موثق في المصدر الحالي.
+
+2 — تحويل زر سند القبض إلى «إيراد جديد»
+
+في السطر 15409 تقريبًا في النسخة الحالية.
+
+ابحث عن هذا المقطع كاملًا:
+
+<button onclick="RW_Finance._newReceipt()" class="bg-slate-700 text-white px-4 py-2 rounded-xl font-bold"><i class="fa-solid fa-plus ml-1"></i> سند قبض عام</button>
+
+احذفه واستبدله كاملًا بـ:
+
+<button onclick="RW_Finance._newReceipt()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold"><i class="fa-solid fa-money-bill-trend-up ml-1"></i> إيراد جديد</button>
+
+لا تغير زر تحصيل عميل.
+
+3 — أهم جراحة: استبدال _newReceipt القديم
+
+في الملف الحالي:
+
+من السطر 15443
+
+ابتداءً من:
+
+function _newReceipt() {
+
+احذف كل الدوال المتصلة:
+
+_newReceipt
+_addReceiptLine
+_removeReceiptLine
+_recalcReceiptTotal
+_saveReceipt
+
+حتى آخر قوس يغلق:
+
+async function _saveReceipt()
+
+وذلك قبل بداية:
+
+var _customerPaymentRealtimeChannel = null;
+
+أي أن نطاق الاستبدال الكامل هو تقريبًا:
+
+15443 → 15542
+
+وهذا هو الجزء الذي تم إثباته في المصدر الحالي.
+
+استبدله كاملًا بهذا:
+
+    async function _newReceipt() {
+        var content = byId('finance-content');
+        if (!content) return;
+
+        var companyId = _companyId();
+
+        var branchResult = await supabase.from('branches')
+            .select('id,branch_code,name')
+            .eq('company_id', companyId)
+            .eq('is_active', true)
+            .order('name');
+
+        if (branchResult.error) {
+            _showToast(branchResult.error.message || 'فشل تحميل الفروع', 'error');
+            return;
+        }
+
+        var categoryResult = await supabase.from('finance_revenue_categories')
+            .select('id,code,name')
+            .eq('company_id', companyId)
+            .eq('is_active', true)
+            .order('name');
+
+        if (categoryResult.error) {
+            _showToast(categoryResult.error.message || 'فشل تحميل فئات الإيرادات', 'error');
+            return;
+        }
+
+        var branches = branchResult.data || [];
+        var categories = categoryResult.data || [];
+
+        var revenueAccounts = _cache.accountsFlat.filter(function(a) {
+            return String(a.account_type || '').toLowerCase() === 'revenue';
+        });
+
+        if (!revenueAccounts.length) {
+            _showToast('لا توجد حسابات إيرادات فعالة في دليل الحسابات', 'warning');
+            return;
+        }
+
+        var treasuryOptions = _cache.treasury.map(function(t) {
+            return '<option value="' + _esc(t.id) + '">' +
+                _esc(t.account_name) +
+                ' (' + _esc(t.account_code) + ')' +
+                '</option>';
+        }).join('');
+
+        var branchOptions = branches.map(function(b) {
+            return '<option value="' + _esc(b.id) + '">' +
+                _esc(b.name || b.branch_code) +
+                '</option>';
+        }).join('');
+
+        var categoryOptions =
+            '<option value="">بدون فئة</option>' +
+            categories.map(function(c) {
+                return '<option value="' + _esc(c.id) + '">' +
+                    _esc(c.name) +
+                    ' (' + _esc(c.code) + ')' +
+                    '</option>';
+            }).join('');
+
+        var operationId =
+            (window.crypto && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : String(Date.now()) + '-' + Math.random();
+
+        content.dataset.revenueOperationId = operationId;
+        content.dataset.revenueSaving = '0';
+
+        var today = new Date().toISOString().slice(0, 10);
+
+        var html =
+            '<div class="space-y-5">' +
+
+                '<div class="bg-white rounded-2xl shadow-sm border p-5">' +
+                    '<div class="flex flex-wrap justify-between items-center gap-3 mb-5">' +
+                        '<div>' +
+                            '<h2 class="text-xl font-black">' +
+                                '<i class="fa-solid fa-money-bill-trend-up ml-2 text-emerald-600"></i>' +
+                                'إيراد جديد' +
+                            '</h2>' +
+                            '<p class="text-sm text-gray-500 mt-1">' +
+                                'قبض من خزينة محددة إلى حساب إيراد واحد أو عدة حسابات، مع ترحيل محاسبي كامل.' +
+                            '</p>' +
+                        '</div>' +
+
+                        '<button type="button" ' +
+                            'onclick="RW_Finance.renderSubTab(\\'receipts\\')" ' +
+                            'class="text-gray-500 hover:text-gray-800">' +
+                            '<i class="fa-solid fa-xmark text-xl"></i>' +
+                        '</button>' +
+                    '</div>' +
+
+                    '<div class="grid grid-cols-1 md:grid-cols-4 gap-4">' +
+
+                        '<div>' +
+                            '<label class="block text-sm font-bold mb-1">التاريخ *</label>' +
+                            '<input id="rcpt-date" type="date" value="' + today + '" ' +
+                                'class="border-2 border-slate-200 rounded-xl p-3 w-full">' +
+                        '</div>' +
+
+                        '<div>' +
+                            '<label class="block text-sm font-bold mb-1">الفرع *</label>' +
+                            '<select id="rcpt-branch" class="border-2 border-slate-200 rounded-xl p-3 w-full">' +
+                                '<option value="">اختر الفرع</option>' +
+                                branchOptions +
+                            '</select>' +
+                        '</div>' +
+
+                        '<div>' +
+                            '<label class="block text-sm font-bold mb-1">الخزينة *</label>' +
+                            '<select id="rcpt-cashbox" class="border-2 border-slate-200 rounded-xl p-3 w-full">' +
+                                '<option value="">اختر الخزينة</option>' +
+                                treasuryOptions +
+                            '</select>' +
+                        '</div>' +
+
+                        '<div>' +
+                            '<label class="block text-sm font-bold mb-1">فئة الإيراد</label>' +
+                            '<select id="rcpt-category" class="border-2 border-slate-200 rounded-xl p-3 w-full">' +
+                                categoryOptions +
+                            '</select>' +
+                        '</div>' +
+
+                        '<div class="md:col-span-2">' +
+                            '<label class="block text-sm font-bold mb-1">اسم الدافع / الجهة</label>' +
+                            '<input id="rcpt-payer" type="text" ' +
+                                'class="border-2 border-slate-200 rounded-xl p-3 w-full" ' +
+                                'placeholder="اسم العميل أو الجهة أو مصدر الإيراد">' +
+                        '</div>' +
+
+                        '<div class="md:col-span-2">' +
+                            '<label class="block text-sm font-bold mb-1">المرجع</label>' +
+                            '<input id="rcpt-reference" type="text" ' +
+                                'class="border-2 border-slate-200 rounded-xl p-3 w-full" ' +
+                                'placeholder="رقم فاتورة / شيك / تحويل / مستند">' +
+                        '</div>' +
+
+                        '<div class="md:col-span-4">' +
+                            '<label class="block text-sm font-bold mb-1">وصف العملية</label>' +
+                            '<textarea id="rcpt-notes" rows="2" ' +
+                                'class="border-2 border-slate-200 rounded-xl p-3 w-full" ' +
+                                'placeholder="وصف مختصر للإيراد"></textarea>' +
+                        '</div>' +
+
+                    '</div>' +
+                '</div>' +
+
+                '<div class="bg-white rounded-2xl shadow-sm border overflow-hidden">' +
+
+                    '<div class="bg-emerald-50 p-4 flex flex-wrap justify-between items-center gap-3">' +
+                        '<div>' +
+                            '<div class="font-black text-lg text-emerald-800">مصادر الإيراد</div>' +
+                            '<div class="text-xs text-emerald-700 mt-1">' +
+                                'يمكن توزيع نفس القبض على أكثر من حساب إيراد.' +
+                            '</div>' +
+                        '</div>' +
+
+                        '<button type="button" ' +
+                            'onclick="RW_Finance._addReceiptLine()" ' +
+                            'class="bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold">' +
+                            '<i class="fa-solid fa-plus ml-1"></i> إضافة حساب' +
+                        '</button>' +
+                    '</div>' +
+
+                    '<div class="hidden md:grid grid-cols-12 gap-2 px-4 py-3 text-xs font-bold text-gray-500 border-b bg-gray-50">' +
+                        '<div class="col-span-4">حساب الإيراد</div>' +
+                        '<div class="col-span-3">مركز التكلفة</div>' +
+                        '<div class="col-span-3">البيان</div>' +
+                        '<div class="col-span-1">المبلغ</div>' +
+                        '<div class="col-span-1"></div>' +
+                    '</div>' +
+
+                    '<div id="rcpt-lines" class="p-4"></div>' +
+
+                '</div>' +
+
+                '<div class="grid grid-cols-1 md:grid-cols-3 gap-3">' +
+
+                    '<div class="bg-slate-50 border rounded-xl p-4">' +
+                        '<div class="text-xs text-gray-500">عدد الحسابات</div>' +
+                        '<div id="rcpt-count" class="text-2xl font-black">0</div>' +
+                    '</div>' +
+
+                    '<div class="bg-emerald-50 border border-emerald-100 rounded-xl p-4">' +
+                        '<div class="text-xs text-emerald-700">إجمالي الإيراد</div>' +
+                        '<div id="rcpt-total" class="text-2xl font-black text-emerald-700">0.00</div>' +
+                    '</div>' +
+
+                    '<div class="bg-blue-50 border border-blue-100 rounded-xl p-4">' +
+                        '<div class="text-xs text-blue-700">حالة الخزينة</div>' +
+                        '<div id="rcpt-balance-status" class="font-black text-blue-700">اختر الخزينة</div>' +
+                    '</div>' +
+
+                '</div>' +
+
+                '<div class="flex justify-end gap-3">' +
+                    '<button type="button" ' +
+                        'onclick="RW_Finance.renderSubTab(\\'receipts\\')" ' +
+                        'class="px-5 py-3 border rounded-xl font-bold">' +
+                        'إلغاء' +
+                    '</button>' +
+
+                    '<button type="button" ' +
+                        'onclick="RW_Finance._saveReceipt()" ' +
+                        'class="px-8 py-3 bg-emerald-600 text-white rounded-xl font-black">' +
+                        '<i class="fa-solid fa-check ml-1"></i>' +
+                        ' حفظ وترحيل الإيراد' +
+                    '</button>' +
+                '</div>' +
+
+            '</div>';
+
+        safeHTML(content, html);
+        _addReceiptLine();
+        _recalcReceiptTotal();
+    }
+
+    function _addReceiptLine() {
+        var accounts = _cache.accountsFlat.filter(function(a) {
+            return String(a.account_type || '').toLowerCase() === 'revenue';
+        });
+
+        var accountOptions =
+            '<option value="">اختر حساب الإيراد</option>' +
+            accounts.map(function(a) {
+                return '<option value="' + _esc(a.id) + '">' +
+                    _esc(a.account_name) +
+                    ' (' + _esc(a.account_code) + ')' +
+                    '</option>';
+            }).join('');
+
+        var costCenterOptions = '<option value="">بدون مركز تكلفة</option>' +
+            (_cache.costCenters || []).map(function(c) {
+                return '<option value="' + _esc(c.id) + '">' +
+                    _esc(c.name || c.code || c.id) +
+                    '</option>';
+            }).join('');
+
+        var html =
+            '<div class="rcpt-line grid grid-cols-1 md:grid-cols-12 gap-2 mb-3 bg-gray-50 border rounded-xl p-3">' +
+
+                '<div class="md:col-span-4">' +
+                    '<label class="md:hidden block text-xs font-bold mb-1">حساب الإيراد</label>' +
+                    '<select class="rcpt-line-account border rounded-lg p-2 w-full text-sm">' +
+                        accountOptions +
+                    '</select>' +
+                '</div>' +
+
+                '<div class="md:col-span-3">' +
+                    '<label class="md:hidden block text-xs font-bold mb-1">مركز التكلفة</label>' +
+                    '<select class="rcpt-line-cost-center border rounded-lg p-2 w-full text-sm">' +
+                        costCenterOptions +
+                    '</select>' +
+                '</div>' +
+
+                '<div class="md:col-span-3">' +
+                    '<label class="md:hidden block text-xs font-bold mb-1">البيان</label>' +
+                    '<input type="text" class="rcpt-line-desc border rounded-lg p-2 w-full text-sm" ' +
+                        'placeholder="بيان بند الإيراد">' +
+                '</div>' +
+
+                '<div class="md:col-span-1">' +
+                    '<label class="md:hidden block text-xs font-bold mb-1">المبلغ</label>' +
+                    '<input type="number" step="0.01" min="0.01" ' +
+                        'class="rcpt-line-amount border rounded-lg p-2 w-full text-sm font-bold" ' +
+                        'placeholder="0.00" ' +
+                        'oninput="RW_Finance._recalcReceiptTotal()">' +
+                '</div>' +
+
+                '<div class="md:col-span-1 flex items-end justify-center">' +
+                    '<button type="button" onclick="RW_Finance._removeReceiptLine(this)" ' +
+                        'class="text-red-500 px-2 py-2" title="حذف البند">' +
+                        '<i class="fa-solid fa-circle-minus"></i>' +
+                    '</button>' +
+                '</div>' +
+
+            '</div>';
+
+        var host = byId('rcpt-lines');
+        if (host) host.insertAdjacentHTML('beforeend', html);
+
+        _recalcReceiptTotal();
+    }
+
+    function _removeReceiptLine(btn) {
+        var row = btn && btn.closest ? btn.closest('.rcpt-line') : null;
+        if (row) row.remove();
+        _recalcReceiptTotal();
+    }
+
+    function _recalcReceiptTotal() {
+        var total = 0;
+        var count = 0;
+
+        document.querySelectorAll('.rcpt-line').forEach(function(line) {
+            var account = line.querySelector('.rcpt-line-account');
+            var amount = line.querySelector('.rcpt-line-amount');
+
+            if (account && account.value) count++;
+
+            total += Number(amount ? amount.value : 0) || 0;
+        });
+
+        safeText(byId('rcpt-total'), _fmtNum(total));
+        safeText(byId('rcpt-count'), String(count));
+
+        var treasuryId = byId('rcpt-cashbox')
+            ? byId('rcpt-cashbox').value
+            : '';
+
+        var status = byId('rcpt-balance-status');
+
+        if (!status) return;
+
+        if (!treasuryId) {
+            safeText(status, 'اختر الخزينة');
+            status.className = 'font-black text-blue-700';
+            return;
+        }
+
+        var treasury = null;
+
+        for (var i = 0; i < _cache.treasury.length; i++) {
+            if (_cache.treasury[i].id === treasuryId) {
+                treasury = _cache.treasury[i];
+                break;
+            }
+        }
+
+        if (!treasury) {
+            safeText(status, 'الخزينة غير متاحة');
+            status.className = 'font-black text-red-700';
+            return;
+        }
+
+        var balance = Number(treasury.current_balance || 0);
+
+        safeText(
+            status,
+            'الرصيد الحالي: ' + _fmtNum(balance) +
+            ' | بعد القبض: ' + _fmtNum(balance + total)
+        );
+
+        status.className = 'font-black text-emerald-700';
+    }
+
+    async function _saveReceipt() {
+        var host = byId('finance-content');
+
+        if (!host || host.dataset.revenueSaving === '1') return;
+
+        var date = byId('rcpt-date')
+            ? byId('rcpt-date').value
+            : '';
+
+        var branchId = byId('rcpt-branch')
+            ? byId('rcpt-branch').value
+            : '';
+
+        var treasuryId = byId('rcpt-cashbox')
+            ? byId('rcpt-cashbox').value
+            : '';
+
+        var categoryId = byId('rcpt-category')
+            ? byId('rcpt-category').value
+            : '';
+
+        var payerName = byId('rcpt-payer')
+            ? byId('rcpt-payer').value.trim()
+            : '';
+
+        var reference = byId('rcpt-reference')
+            ? byId('rcpt-reference').value.trim()
+            : '';
+
+        var description = byId('rcpt-notes')
+            ? byId('rcpt-notes').value.trim()
+            : '';
+
+        var lines = [];
+
+        document.querySelectorAll('.rcpt-line').forEach(function(line) {
+            var accountId = line.querySelector('.rcpt-line-account')
+                ? line.querySelector('.rcpt-line-account').value
+                : '';
+
+            var costCenterId = line.querySelector('.rcpt-line-cost-center')
+                ? line.querySelector('.rcpt-line-cost-center').value
+                : '';
+
+            var lineDescription = line.querySelector('.rcpt-line-desc')
+                ? line.querySelector('.rcpt-line-desc').value.trim()
+                : '';
+
+            var amount = line.querySelector('.rcpt-line-amount')
+                ? Number(line.querySelector('.rcpt-line-amount').value)
+                : 0;
+
+            if (accountId && Number.isFinite(amount) && amount > 0) {
+                lines.push({
+                    account_id: accountId,
+                    cost_center_id: costCenterId || null,
+                    tax_code_id: null,
+                    description: lineDescription || description || 'إيراد',
+                    amount: amount,
+                    tax_amount: 0
+                });
+            }
+        });
+
+        if (!date) {
+            _showToast('حدد تاريخ الإيراد', 'warning');
+            return;
+        }
+
+        if (!branchId) {
+            _showToast('اختر الفرع', 'warning');
+            return;
+        }
+
+        if (!treasuryId) {
+            _showToast('اختر الخزينة', 'warning');
+            return;
+        }
+
+        if (!lines.length) {
+            _showToast('أضف حساب إيراد واحدًا على الأقل', 'warning');
+            return;
+        }
+
+        var seen = {};
+
+        for (var i = 0; i < lines.length; i++) {
+            seen[lines[i].account_id] =
+                (seen[lines[i].account_id] || 0) + 1;
+
+            if (seen[lines[i].account_id] > 1) {
+                _showToast(
+                    'لا تكرر نفس حساب الإيراد داخل السند؛ اجمع المبلغ في بند واحد.',
+                    'warning'
+                );
+                return;
+            }
+        }
+
+        var total = lines.reduce(function(sum, line) {
+            return sum +
+                Number(line.amount || 0) +
+                Number(line.tax_amount || 0);
+        }, 0);
+
+        if (!(total > 0)) {
+            _showToast('إجمالي الإيراد يجب أن يكون أكبر من صفر', 'warning');
+            return;
+        }
+
+        var operationId =
+            host.dataset.revenueOperationId ||
+            ((window.crypto && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : String(Date.now()) + '-' + Math.random());
+
+        host.dataset.revenueOperationId = operationId;
+        host.dataset.revenueSaving = '1';
+
+        _showLoader('جاري حفظ الإيراد وترحيله...');
+
+        try {
+            var companyId = _companyId();
+
+            var result = await supabase.rpc(
+                'finance_save_revenue',
+                {
+                    p_company_id: companyId,
+                    p_revenue_id: null,
+                    p_revenue_code:
+                        'REV-' +
+                        operationId
+                            .replace(/-/g, '')
+                            .slice(0, 16)
+                            .toUpperCase(),
+                    p_revenue_date: date,
+                    p_payer_name: payerName || null,
+                    p_category_id: categoryId || null,
+                    p_treasury_id: treasuryId,
+                    p_branch_id: branchId,
+                    p_description: description || 'إيراد',
+                    p_attachment_url: null,
+                    p_reference: reference || null,
+                    p_created_by:
+                        (RW_STATE.user && RW_STATE.user.email) ||
+                        'mother',
+                    p_operation_id: operationId,
+                    p_lines: lines
+                }
+            );
+
+            if (result.error) throw result.error;
+
+            var data = result.data || {};
+
+            delete host.dataset.revenueOperationId;
+            host.dataset.revenueSaving = '0';
+
+            _showToast(
+                data.duplicate
+                    ? 'الإيراد موجود بالفعل ولم يُكرر.'
+                    : 'تم حفظ الإيراد وترحيله بنجاح.',
+                'success'
+            );
+
+            await renderSubTab('revenues');
+
+        } catch (e) {
+            _showToast(
+                e.message || 'فشل حفظ الإيراد',
+                'error'
+            );
+        } finally {
+            host.dataset.revenueSaving = '0';
+            _hideLoader();
+        }
+    }
+
+    function _renderRevenues() {
+        var content = byId('finance-content');
+        if (!content) return;
+
+        var companyId = _companyId();
+
+        safeHTML(
+            content,
+            '<div class="text-center py-10">' +
+                '<i class="fa-solid fa-spinner fa-spin text-emerald-600 text-2xl"></i>' +
+                '<div class="mt-2 text-gray-500">جاري تحميل الإيرادات...</div>' +
+            '</div>'
+        );
+
+        Promise.all([
+            supabase.from('finance_revenues')
+                .select('*')
+                .eq('company_id', companyId)
+                .order('revenue_date', { ascending: false })
+                .order('created_at', { ascending: false }),
+
+            supabase.from('finance_revenue_categories')
+                .select('id,code,name')
+                .eq('company_id', companyId)
+                .eq('is_active', true)
+        ])
+        .then(function(results) {
+            var revenueResult = results[0];
+            var categoryResult = results[1];
+
+            if (revenueResult.error) throw revenueResult.error;
+            if (categoryResult.error) throw categoryResult.error;
+
+            var rows = revenueResult.data || [];
+            var categories = categoryResult.data || [];
+
+            var categoryMap = {};
+            categories.forEach(function(c) {
+                categoryMap[c.id] = c.name || c.code;
+            });
+
+            var revenueAccounts = {};
+            _cache.accountsFlat.forEach(function(a) {
+                revenueAccounts[a.id] =
+                    a.account_name + ' (' + a.account_code + ')';
+            });
+
+            var totalPosted = 0;
+            var totalVoided = 0;
+
+            rows.forEach(function(r) {
+                var amount =
+                    Number(r.total_amount || 0) +
+                    Number(r.tax_amount || 0);
+
+                if (r.status === 'VOID') {
+                    totalVoided += amount;
+                } else {
+                    totalPosted += amount;
+                }
+            });
+
+            var html =
+                '<div class="space-y-5">' +
+
+                    '<div class="flex flex-wrap justify-between items-center gap-3">' +
+                        '<div>' +
+                            '<h2 class="text-2xl font-black text-emerald-800">' +
+                                '<i class="fa-solid fa-money-bill-trend-up ml-2"></i>' +
+                                'الإيرادات' +
+                            '</h2>' +
+                            '<div class="text-sm text-gray-500 mt-1">' +
+                                'سجل الإيرادات المرحّلة المرتبطة بالخزينة والحسابات.' +
+                            '</div>' +
+                        '</div>' +
+
+                        '<button type="button" ' +
+                            'onclick="RW_Finance._newReceipt()" ' +
+                            'class="bg-emerald-600 text-white px-5 py-3 rounded-xl font-black">' +
+                            '<i class="fa-solid fa-plus ml-1"></i>' +
+                            ' إيراد جديد' +
+                        '</button>' +
+                    '</div>' +
+
+                    '<div class="grid grid-cols-1 md:grid-cols-3 gap-3">' +
+
+                        '<div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-5">' +
+                            '<div class="text-sm text-emerald-700">صافي الإيرادات المرحّلة</div>' +
+                            '<div class="text-3xl font-black text-emerald-800 mt-1">' +
+                                _fmtNum(totalPosted - totalVoided) +
+                            '</div>' +
+                        '</div>' +
+
+                        '<div class="bg-slate-50 border rounded-2xl p-5">' +
+                            '<div class="text-sm text-gray-500">عدد السندات</div>' +
+                            '<div class="text-3xl font-black mt-1">' +
+                                String(rows.length) +
+                            '</div>' +
+                        '</div>' +
+
+                        '<div class="bg-amber-50 border border-amber-100 rounded-2xl p-5">' +
+                            '<div class="text-sm text-amber-700">المعكوس</div>' +
+                            '<div class="text-3xl font-black text-amber-800 mt-1">' +
+                                _fmtNum(totalVoided) +
+                            '</div>' +
+                        '</div>' +
+
+                    '</div>' +
+
+                    '<div class="bg-white rounded-2xl shadow-sm border overflow-hidden">' +
+                        '<div class="overflow-x-auto">' +
+                            '<table class="w-full text-sm border-collapse">' +
+                                '<thead>' +
+                                    '<tr class="bg-emerald-50">' +
+                                        '<th class="p-3 border">السند</th>' +
+                                        '<th class="p-3 border">التاريخ</th>' +
+                                        '<th class="p-3 border">الدافع</th>' +
+                                        '<th class="p-3 border">الفئة</th>' +
+                                        '<th class="p-3 border">الحسابات</th>' +
+                                        '<th class="p-3 border">الخزينة</th>' +
+                                        '<th class="p-3 border">الفرع</th>' +
+                                        '<th class="p-3 border">المبلغ</th>' +
+                                        '<th class="p-3 border">الحالة</th>' +
+                                    '</tr>' +
+                                '</thead>' +
+                                '<tbody>';
+
+            if (!rows.length) {
+                html +=
+                    '<tr>' +
+                        '<td colspan="9" class="p-10 text-center text-gray-500">' +
+                            'لا توجد إيرادات مسجلة بعد.' +
+                        '</td>' +
+                    '</tr>';
+            } else {
+                var lineQueryIds = rows.map(function(r) { return r.id; });
+
+                return supabase.from('finance_revenue_lines')
+                    .select('revenue_id,account_id,amount,tax_amount')
+                    .eq('company_id', companyId)
+                    .in('revenue_id', lineQueryIds)
+                    .then(function(lineResult) {
+                        if (lineResult.error) throw lineResult.error;
+
+                        var lineMap = {};
+
+                        (lineResult.data || []).forEach(function(line) {
+                            if (!lineMap[line.revenue_id]) {
+                                lineMap[line.revenue_id] = [];
+                            }
+
+                            lineMap[line.revenue_id].push(
+                                revenueAccounts[line.account_id] ||
+                                line.account_id
+                            );
+                        });
+
+                        rows.forEach(function(r) {
+                            var amount =
+                                Number(r.total_amount || 0) +
+                                Number(r.tax_amount || 0);
+
+                            var statusLabel =
+                                r.status === 'VOID'
+                                    ? 'معكوس'
+                                    : 'مرحّل';
+
+                            var statusClass =
+                                r.status === 'VOID'
+                                    ? 'text-red-700 bg-red-50'
+                                    : 'text-emerald-700 bg-emerald-50';
+
+                            var branch = null;
+                            var treasury = null;
+
+                            for (var i = 0; i < branchesForRevenue.length; i++) {
+                                if (branchesForRevenue[i].id === r.branch_id) {
+                                    branch = branchesForRevenue[i];
+                                    break;
+                                }
+                            }
+
+                            for (var j = 0; j < _cache.treasury.length; j++) {
+                                if (_cache.treasury[j].id === r.treasury_id) {
+                                    treasury = _cache.treasury[j];
+                                    break;
+                                }
+                            }
+
+                            html +=
+                                '<tr class="border-t hover:bg-emerald-50/40">' +
+                                    '<td class="p-3 border font-black text-emerald-700">' +
+                                        _esc(r.revenue_code) +
+                                    '</td>' +
+
+                                    '<td class="p-3 border">' +
+                                        _esc(r.revenue_date || '') +
+                                    '</td>' +
+
+                                    '<td class="p-3 border">' +
+                                        _esc(r.payer_name || '-') +
+                                    '</td>' +
+
+                                    '<td class="p-3 border">' +
+                                        _esc(categoryMap[r.category_id] || '-') +
+                                    '</td>' +
+
+                                    '<td class="p-3 border">' +
+                                        _esc(
+                                            (lineMap[r.id] || []).join('، ') ||
+                                            '-'
+                                        ) +
+                                    '</td>' +
+
+                                    '<td class="p-3 border">' +
+                                        _esc(
+                                            treasury
+                                                ? treasury.account_name
+                                                : r.treasury_id
+                                        ) +
+                                    '</td>' +
+
+                                    '<td class="p-3 border">' +
+                                        _esc(
+                                            branch
+                                                ? (branch.name || branch.branch_code)
+                                                : r.branch_id
+                                        ) +
+                                    '</td>' +
+
+                                    '<td class="p-3 border text-left font-black text-emerald-700">' +
+                                        _fmtNum(amount) +
+                                    '</td>' +
+
+                                    '<td class="p-3 border text-center">' +
+                                        '<span class="px-3 py-1 rounded-full text-xs font-black ' +
+                                            statusClass +
+                                        '">' +
+                                            statusLabel +
+                                        '</span>' +
+                                    '</td>' +
+
+                                '</tr>';
+                        });
+
+                        html +=
+                                '</tbody>' +
+                            '</table>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+
+                safeHTML(content, html);
+            })
+            .catch(function(e) {
+                safeHTML(
+                    content,
+                    '<div class="text-center py-10 text-red-500">' +
+                        _esc(e.message || 'فشل تحميل الإيرادات') +
+                    '</div>'
+                );
+            });
+        })
+        .catch(function(e) {
+            safeHTML(
+                content,
+                '<div class="text-center py-10 text-red-500">' +
+                    _esc(e.message || 'فشل تحميل الإيرادات') +
+                '</div>'
+            );
+        });
+    }
+
+تنبيه مهم على هذه الكتلة: قبل دمجها، يوجد متغير واحد يجب تصحيحه داخل _renderRevenues: branchesForRevenue يجب تحميله من branches مثل branchResult.data; لا تستخدم الكتلة كما هي حرفيًا دون هذا التصحيح. لذلك استبدل داخل _renderRevenues:
+
+var rows = revenueResult.data || [];
+var categories = categoryResult.data || [];
+
+بـ:
+
+var rows = revenueResult.data || [];
+var categories = categoryResult.data || [];
+var branchesForRevenue = [];
+
+ويجب أن يكون الاستدعاء الثالث للفروع موجودًا في Promise.all. هذه الملاحظة تمنعني من وصف الكتلة بأنها جاهزة 100% للدمج كما هي.
+
+الحالة النهائية الفعلية
+Production Revenue Schema          = موجود
+Multi-account Revenue RPC          = موجود
+Accounting integration             = موجود
+Treasury integration               = موجود
+Cash Box integration               = موجود
+Revenue idempotency                = مثبت
+Revenue VOID                       = مثبت
+Revenue audit                      = منشور
+Realtime Revenue tables            = منشور
+
+Mother Revenue Tab                 = الجراحة مكتوبة
+Mother Revenue Modal               = الجراحة مكتوبة
+Mother merge                       = لم ينفذه المساعد
+Browser E2E بعد الدمج              = لم يُنفذ
+Report226 Git file                 = لم يُنشأ
+CURRENT_STATE update               = لم يُنفذ
+forensic_main_assembly.yml         = لم يُعدّل
+GLOBAL FINANCE GOLD/Diamond        = غير مغلق
+
+وبالتالي لا يصح إعلان النقطة Gold/Diamond Closed حتى الآن؛ الجزء Production أُنجز واختُبر، لكن جراحة الـMother لم تُدمج ولم يكتمل Browser E2E.
