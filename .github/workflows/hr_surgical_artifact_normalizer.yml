@@ -1,0 +1,57 @@
+name: HR Surgical Artifact Normalizer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'doc/Draft/Reprots/HR_MOTHER_SURGICAL_REPLACEMENT_20260917_FINAL.js'
+      - '.github/workflows/hr_surgical_artifact_normalizer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  normalize-and-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Normalize exact legacy payroll syntax artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          file='doc/Draft/Reprots/HR_MOTHER_SURGICAL_REPLACEMENT_20260917_FINAL.js'
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('doc/Draft/Reprots/HR_MOTHER_SURGICAL_REPLACEMENT_20260917_FINAL.js')
+          s=p.read_text(encoding='utf-8')
+          bad="esc(x.status||'-')]))));"
+          good="esc(x.status||'-')])));"
+          n=s.count(bad)
+          if n:
+              if n != 1:
+                  raise SystemExit(f'Unexpected count for legacy payroll token: {n}')
+              p.write_text(s.replace(bad, good, 1), encoding='utf-8')
+          print(f'LEGACY_PAYROLL_TOKEN_REPLACED={n}')
+          PY
+
+      - name: Syntax check surgical artifact
+        run: node --check doc/Draft/Reprots/HR_MOTHER_SURGICAL_REPLACEMENT_20260917_FINAL.js
+
+      - name: Commit normalization when needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- doc/Draft/Reprots/HR_MOTHER_SURGICAL_REPLACEMENT_20260917_FINAL.js; then
+            echo 'ARTIFACT_ALREADY_CANONICAL=true'
+            exit 0
+          fi
+          git config user.name 'RAWAEA CI'
+          git config user.email 'actions@github.com'
+          git add doc/Draft/Reprots/HR_MOTHER_SURGICAL_REPLACEMENT_20260917_FINAL.js
+          git commit -m 'fix(hr): normalize Mother payroll surgical artifact syntax'
+          git push origin HEAD:main
