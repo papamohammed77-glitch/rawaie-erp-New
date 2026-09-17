@@ -1,0 +1,37 @@
+RAWAEA ERP — HR LOGIN RESPONSE-LAYER SURGICAL PATCH
+Date: 2026-09-17
+Constraint: DO NOT MODIFY companies/company-1/main.html
+
+TARGET 1: erp-frontend/functions/_middleware.js
+
+Existing repair retained:
+- esc(x.status||'-')]))));  ->  esc(x.status||'-')])));
+
+Add exact terminal repair in the HTML response transformation:
+
+BROKEN:
+window.RW_HR={render:render,reload:render,openEmployee360:open360};
+}());
+window.RW_HR = RW_HR;
+
+CANONICAL SERVED FORM:
+window.RW_HR={render:render,reload:render,openEmployee360:open360};
+window.RW_HR = RW_HR;
+
+Required matcher:
+/(\r?\n)\s*window\.RW_HR=\{render:render,reload:render,openEmployee360:open360\};\s*\r?\n\s*\}\(\)\);\s*\r?\n\s*window\.RW_HR = RW_HR;/g
+
+TARGET 2: erp-frontend/companies/company-1/sw.js
+
+Apply the same exact terminal repair before HTML parse and bump SW_BUILD so stale clients are forced through the new service worker.
+
+VALIDATION CONTRACT:
+- Count terminal defect occurrences.
+- Repair only when count === 1.
+- Refuse ambiguous (>1) matches.
+- Preserve no-store HTML response behavior.
+- Do not alter HR business data or authentication contracts.
+
+SELF-TEST:
+- Bad exact reproducer => node --check FAIL.
+- Same reproducer after matcher => node --check PASS.
