@@ -1,61 +1,106 @@
 # RAWAEA ERP — CURRENT STATE
 
-## 2026-09-17 — Mother HR Forensic / Production Core Closure
+# LATEST VERIFIED SNAPSHOT — 2026-09-17 — RW_HR FORENSIC RE-EXECUTION
 
-### Current Source of Truth
+> هذه الصفحة هي نقطة البدء للجلسة التالية. التقارير الأقدم مرجعية وليست مصدر الحقيقة الحالي. يجب إعادة التحقق من Git وMother وProduction وDatabase وDeployment عند بداية أي Closure جديد.
 
-The authoritative Mother file remains:
+## 1. Git
 
-`papamohammed77-glitch/erp-frontend/companies/company-1/main.html`
+### System repository
 
-Historical fragments under `Current/PWA/main2` are reference-only. `New-main` remains out of scope.
+`papamohammed77-glitch/rawaie-erp-New`
 
-### Current Git baseline verified
+آخر commits في تسلسل RW_HR:
 
-`erp-frontend` latest HEAD:
+```text
+11b74a8f4fa57006595bbb155f8db4d7a48d42d8
+ docs(hr): record canonical legacy adapter closure
 
-`269d3fb7776005ae6c2d9431cf784bde4b434e92`
+2b310539e7b5999d8475010a0452b262ef3e3ae0
+ chore(hr): canonicalize HR runtime hardening migration
 
-Direct parent:
+083e52b9866d92eb6cd57583f06b38958b8795c8
+ docs(hr): update current state after 2026-09-17 RW_HR closure
 
-`2b8ef7a26716470020bb786566210c0c41a434dd`
+489807f777c8578dfe5fca4294ece634e02b3f89
+ docs(hr): add full competitive HR closure and next-session evidence
 
-The two latest commits were forensic extraction commits; no functional Mother HR rewrite was inferred from them.
-
-### Assembly governance
-
-`forensic_main_assembly.yml` was verified and already points to:
-
-```yaml
-source_of_truth:
-  repository: papamohammed77-glitch/erp-frontend
-  path: companies/company-1/main.html
-  ref: main
-assembly_status:
-  mode: published_main_is_authoritative
-  fragment_mode: historical_reference_only
+e4a13bd7743b1d5820b85973d5c60e4b83dc1162
+ HR Mother surgical replacement FINAL — modal resilience and complete UX closure
 ```
 
-No change required.
+### Mother repository
 
-## Mother HR — current verified source
+`papamohammed77-glitch/erp-frontend`
 
-Current `RW_HR` block in Mother:
+HEAD:
+`269d3fb7776005ae6c2d9431cf784bde4b434e92`
 
-- start: `var RW_HR = (function() {` around line `23788`
-- end: `window.RW_HR = RW_HR;` around line `24064`
+Parent:
+`2b8ef7a26716470020bb786566210c0c41a434dd`
 
-Current block is a legacy/basic HR consumer using:
+`main.html` لم يتم تعديله في هذه السلسلة.
 
-`hr_list_employees`, `hr_upsert_employee_profile`, `hr_save_attendance`, `hr_create_leave_request`, `hr_set_leave_status`, plus direct legacy HR table reads/writes.
+## 2. Mother RW_HR source
 
-It does not consume the modern HR Core contract.
+Authoritative file:
 
-## Production HR — verified current infrastructure
+`companies/company-1/main.html`
 
-Production project: `fiilmooggumokxanwiyx`
+RW_HR boundary:
 
-Modern HR schema exists already:
+```text
+Start: var RW_HR = (function() {
+End:   window.RW_HR = RW_HR;
+Approx. lines: 23788 .. 24064
+```
+
+الحالة الحالية للـMother: **Legacy Consumer**.
+
+الوظائف التاريخية التي ما زال يستدعيها:
+
+```text
+hr_list_employees
+hr_upsert_employee_profile
+hr_save_attendance
+hr_create_leave_request
+hr_set_leave_status
+```
+
+ولديه أيضًا legacy direct-table behavior.
+
+## 3. Production HR Core
+
+Supabase project:
+
+`fiilmooggumokxanwiyx`
+
+Canonical read engine:
+
+`hr_query`
+
+Canonical write engine:
+
+`hr_command_atomic`
+
+Current command signature:
+
+```text
+hr_command_atomic(
+  p_command text,
+  p_payload jsonb,
+  p_operation_id text,
+  p_actor_user_id uuid,
+  p_actor_email text
+)
+```
+
+Overloads:
+`1`
+
+الـcommand engine يتحقق من actor/session/company ويستخدم `hr_command_log` للـoperation identity/idempotency.
+
+## 4. HR schema موجود فعليًا في Production
 
 ```text
 employee_profiles
@@ -85,196 +130,174 @@ hr_payroll_accounting_map
 hr_command_log
 ```
 
-Realtime publication already includes the HR tables. No duplicate HR table family was created.
+لا توجد عائلة HR ثانية أُنشئت أثناء هذه المهمة.
 
-Current company `00000000-0000-0000-0000-000000000001` has 24 users but no active HR profile/contract/attendance/leave/payroll/document records to seed safely without real business data.
+## 5. Current Production data
 
-## Production HR core verified
+جميع HR business tables حاليًا = `0` records.
 
-`hr_query` provides current dashboard and HR views.
+لا توجد بيانات موظفين أو عقود أو إجازات أو رواتب أو طلبات أو مستندات مصطنعة في Production.
 
-`hr_command_atomic` is the central authenticated write contract and now has execution granted to `authenticated` and `service_role`, with public/anon revoked.
+`dashboard.employees` قد يعكس `users` الحاليين، وهذا ليس بديلًا عن `employee_profiles`.
 
-The command contract derives company from the actor and checks authenticated actor identity. It also uses `hr_command_log` for operation identity/idempotency.
+## 6. Production changes actually applied
 
-## Production changes completed in earlier HR closure sequence
+### Migration 1
 
-### 1. Leave approval/cancel contract
+`20260917174950`
+`hr_core_request_leave_temporal_integrity_20260917_v3`
 
-Previously fixed in Production so:
+### Migration 2
 
-- `leave_type_id` is handled as UUID.
-- Paid leave approval consumes `hr_leave_balances.used`.
-- Cancellation of an approved paid leave reverses the used balance.
-- Insufficient balance is rejected.
+`20260917182812`
+`hr_runtime_hardening_r1`
 
-### 2. HR command authenticated boundary
-
-Applied:
-
-```sql
-REVOKE ALL ON FUNCTION public.hr_command_atomic(text,jsonb,text,uuid,text)
-FROM PUBLIC, anon;
-
-GRANT EXECUTE ON FUNCTION public.hr_command_atomic(text,jsonb,text,uuid,text)
-TO authenticated, service_role;
-```
-
-### 3. Employee document write scope
-
-INSERT/UPDATE policies on `employee_documents` were hardened so writing is allowed only to HR or to the employee themself, within company scope.
-
-### 4. No new HR Edge Function
-
-The selected HR architecture remains direct authenticated RPC consumption. No HR Edge Function was added.
-
-## 2026-09-17 — Current RW_HR closure update
-
-### Production migration applied
-
-Live migration registry contains:
+نتائجها:
 
 ```text
-20260917174950
-hr_core_request_leave_temporal_integrity_20260917_v3
+hr_command_atomic leave-state variable
+→ public.employee_leave_requests%ROWTYPE
+
+Direct INSERT/UPDATE/DELETE/TRUNCATE grants on HR Core
+→ 0 for anon/authenticated
+
+Direct DML grants on employee_profiles/employee_attendance/employee_leave_requests
+→ 0 for anon/authenticated
+
+Anon execution of legacy HR mutators
+→ revoked
 ```
 
-Canonical Git migration file:
+## 7. Legacy writer closure
 
-`supabase/migrations/20260917_hr_core_request_leave_temporal_integrity.sql`
+وظائف Mother القديمة لم تُحذف حتى لا ينكسر الـconsumer الحالي.
 
-Commit:
-
-`2aa3f2de01e8c1921b3368cf70c4f4cf5a9a4204`
-
-### New Production command capabilities closed
-
-`hr_command_atomic` now contains the following additional contract closures:
+لكنها الآن Compatibility Adapters فوق Core واحد:
 
 ```text
-request.create
-leave.request.approve
-leave.request.reject
-leave.request.cancel
+hr_upsert_employee_profile
+→ hr_command_atomic('employee.profile.upsert', ...)
+
+hr_save_attendance
+→ hr_command_atomic('attendance.day.upsert', ...)
+
+hr_create_leave_request
+→ hr_command_atomic('leave.request.create', ...)
+
+hr_set_leave_status
+→ hr_command_atomic('leave.request.approve' / 'leave.request.reject', ...)
 ```
 
-The same Production function also contains the strengthened request final-step semantics and effective-dated integrity guards.
+لم تعد هذه الوظائف تنفذ HR table mutation مستقلة.
 
-### Request creation contract
+Canonical adapter source:
 
-Validated centrally:
+`doc/Draft/Reprots/HR_LEGACY_ADAPTERS_20260917.sql`
 
-- employee belongs to actor company;
-- employee is active;
-- request type and subject are present;
-- at least one approval step exists;
-- steps are sequential;
-- each step has an explicit employee approver or role;
-- explicit approvers belong to the same company and are active;
-- parent request and approval-step records are created by the command engine;
-- operation identity is preserved through `hr_command_log`.
+## 8. Production verification
 
-### Leave lifecycle contract
+### Read surface
 
-Approved/rejected/cancelled states are now explicit central commands.
-
-Paid leave consumes and reverses `hr_leave_balances.used` by calendar year, with overlap and insufficient-balance guards.
-
-### Effective-dated integrity
-
-The central command now rejects:
-
-- overlapping primary employee assignments;
-- overlapping employee schedule assignments;
-- invalid contract date ranges;
-- negative contract salary/allowance/deduction values;
-- overlapping active contracts for the same employee with different contract numbers.
-
-### Post-deployment structural verification
-
-Current Production verification returned:
+`hr_query` views exercised under authenticated HR context:
 
 ```text
-hr_command_atomic overloads = 1
-request.create           = present
-leave lifecycle          = present
-final-step cap           = present
-authenticated EXECUTE    = true
-service_role EXECUTE     = true
-anon EXECUTE             = false
+24 / 24 PASS
 ```
 
-Current `hr_command_atomic` PostgreSQL definition length check:
+وشملت:
 
 ```text
-56106
+dashboard
+employees
+departments
+positions
+assignments
+schedules
+contracts
+contract_components
+attendance
+attendance_events
+leaves
+leave_balances
+leave_types
+requests
+request_approvals
+advances
+payroll_periods
+payroll_runs
+salary_components
+payroll_accounting_map
+payslips
+documents
+documents_expiring
+work_entries
 ```
 
-### Current HR data integrity snapshot
+### Central write runtime
 
-All HR business tables remain empty:
+`employee.profile.upsert`:
+`PASS` ثم rollback.
+
+`leave.request.approve` على request غير موجود:
 
 ```text
-employee_profiles                    = 0
-employee_attendance                  = 0
-employee_leave_requests             = 0
-employee_documents                  = 0
-hr_departments                       = 0
-hr_positions                        = 0
-hr_employee_assignments             = 0
-hr_employee_schedule_assignments    = 0
-hr_work_schedules                    = 0
-hr_attendance_events                = 0
-hr_work_entries                     = 0
-hr_leave_types                       = 0
-hr_leave_balances                   = 0
-hr_requests                         = 0
-hr_request_approvals                = 0
-hr_salary_advances                  = 0
-hr_salary_components                = 0
-hr_contracts                        = 0
-hr_contract_components              = 0
-hr_payroll_periods                  = 0
-hr_payroll_runs                     = 0
-hr_payslips                         = 0
-hr_payslip_lines                    = 0
-hr_payroll_accounting_map           = 0
-hr_command_log                      = 0
+HR_COMMAND_ERROR
+طلب الإجازة غير موجود ضمن الشركة الحالية
 ```
 
-No fabricated HR business data remains in Production.
+وهذا يثبت وصول branch إلى business validation بعد تصحيح record type.
 
-### Current Mother surgical package
+### Legacy adapter runtime
 
-Final replacement artifact:
+اختُبرت الوظائف الأربع تحت authenticated HR context:
+
+```text
+hr_upsert_employee_profile  PASS
+hr_save_attendance           PASS
+hr_create_leave_request      PASS
+hr_set_leave_status          PASS
+```
+
+ثم rollback.
+
+بعد rollback:
+
+```text
+employee_profiles       = 0
+employee_attendance     = 0
+employee_leave_requests = 0
+hr_command_log          = 0
+```
+
+## 9. Surgical Mother replacement
+
+الملف الكامل الجاهز:
 
 `doc/Draft/Reprots/HR_MOTHER_SURGICAL_REPLACEMENT_20260917_FINAL.js`
 
-Blob SHA:
-
+SHA:
 `d02050f9f8131156b5dc283d5229cb1ffff5e5fd`
 
-The replacement is intended to replace ONLY the current Mother `RW_HR` block.
+Size:
+`49,416 bytes`
 
-Exact current surgical boundary:
+هذه هي **Complete replacement** وليست دوال مختصرة.
 
-```text
-Start:
-var RW_HR = (function() {
-
-End:
-window.RW_HR = RW_HR;
-```
-
-Approximate source range:
+الاستخدام:
 
 ```text
-23788 .. 24064
+استبدال RW_HR فقط داخل main.html.
+عدم لمس أي جزء آخر من main.html.
 ```
 
-The assistant did not modify Mother `main.html`.
+الـreplacement يستعمل:
 
-### Current RW_HR capability surface in replacement
+```text
+Reads     → hr_query
+Mutations → hr_command_atomic
+```
+
+Capabilities:
 
 ```text
 dashboard
@@ -291,116 +314,184 @@ documents
 realtime
 ```
 
-Reads use `hr_query`.
+## 10. Competitive benchmark
 
-Mutations use `hr_command_atomic`.
-
-No second HR command engine is introduced.
-
-### Competitive benchmark incorporated
-
-The final HR report compares current RAWAEA capabilities with documented capabilities in:
+تمت مطابقة Core HR الحالي مع القدرات الموثقة الحالية في:
 
 ```text
 Odoo
 Microsoft Dynamics 365 Human Resources
-SAP SuccessFactors
+SAP SuccessFactors Employee Central
 Daftra
 Manager.io
 ```
 
-Current target is a competitive Core HR baseline, not an invented claim of complete HCM parity.
+المنافسة استُخدمت كـbenchmark وظيفي لا كترتيب.
 
-Explicit roadmap gaps remain for areas such as recruiting/onboarding, performance, training/certification, advanced benefits, advanced accrual/carryover, statutory/local payroll rules, advanced cross-midnight policy handling, commission-to-payroll linkage, and dedicated Employee/Manager ESS surfaces.
-
-These were not implemented without an explicit business/data contract.
-
-## Current Production runtime verification boundary
-
-### Proven in Production
-
-- current HR schema;
-- current `hr_command_atomic` signature and single-overload state;
-- new request and leave command branches present;
-- final-step state cap;
-- authenticated/service-role execution boundary;
-- anon denial;
-- HR data remains empty/no fabricated seeds;
-- document storage security policies remain tenant-aware;
-- migration registry contains the applied HR closure migration.
-
-### Not proven yet
-
-A real authenticated browser E2E for the newly changed branches has not been completed in this session.
-
-The Mother `main.html` remains intentionally untouched.
-
-Therefore:
+الفجوات الطبيعية المفتوحة للـroadmap:
 
 ```text
-Production structural verification = PASS
-Production authenticated runtime E2E = OPEN
-Mother browser E2E = OPEN
+Recruiting / ATS
+Onboarding / Offboarding full workflow
+Performance / Appraisal
+Learning / Training / Certifications
+Skills inventory
+Benefits eligibility / enrollment
+Advanced leave accrual / carryover / tiered plans
+Public holiday engine
+Egypt / Saudi statutory payroll localization
+Biometric / geofence integrations
+Dedicated Employee Self Service
+Dedicated Manager Self Service
+Advanced workforce analytics
+Advanced cross-midnight attendance rules
+Commission-to-payroll advanced integration
 ```
 
-These must not be collapsed into a false 100% runtime closure.
+لا تُنفذ هذه الفجوات بالتخمين دون domain/data contract.
 
-## Session report
-
-Final report:
-
-`doc/Draft/Reprots/Report233_HR_FULL_COMPETITIVE_CLOSURE_20260917.md`
-
-Commit:
-
-`489807f777c8578dfe5fca4294ece634e02b3f89`
-
-## Current status
+## 11. Current closure status
 
 ```text
-Historical reports              = reference only
-Current Git baseline            = verified
-Current Mother source           = verified
-Current Production HR Core      = structurally closed for this contract
-Current HR command contract     = single canonical engine
-Current HR data                 = clean / no fabricated records
-HR surgical replacement         = READY
-Mother main.html                = UNTOUCHED BY DESIGN
-Mother browser E2E              = OPEN
-Legacy HR RPC retirement        = OPEN UNTIL CUTOVER PROOF
-Overall RW_HR Mother            = NOT CLOSED YET
+Production HR schema                 = VERIFIED
+hr_query                             = VERIFIED
+hr_command_atomic                    = VERIFIED
+HR tenant/security core              = HARDENED
+HR direct client DML                 = 0 / CLOSED
+Legacy independent HR writers        = CLOSED
+Legacy RPC consumer adapters         = ACTIVE / CORE DELEGATES
+Mother RW_HR                         = LEGACY / NOT CUT OVER
+Full surgical replacement            = READY
+main.html                            = UNTOUCHED
+Authenticated DB QA                  = PASS for exercised boundaries
+Authenticated browser E2E             = OPEN
+Overall RW_HR                         = NOT CLOSED YET
 ```
 
-## Next session start protocol
+## 12. Final open gate
 
-Do not trust this file or Report233 as the current state by themselves.
+الشيء الوحيد الذي لا يجوز اعتباره مثبتًا بعد هو Browser E2E على Mother بعد تركيب replacement.
 
-Start again from live evidence in this order:
+يجب إثبات فعليًا داخل Browser:
 
 ```text
-1. Latest rawaie-erp-New HEAD and direct parent.
-2. Latest erp-frontend HEAD and direct parent.
-3. Current Mother main.html.
-4. Current RW_HR boundary and current assembled code.
-5. Confirm whether HR_MOTHER_SURGICAL_REPLACEMENT_20260917_FINAL.js was applied.
-6. Verify current Production hr_command_atomic and hr_query definitions again.
-7. Verify current HR schema, RLS, storage and realtime state.
-8. Run syntax validation on the assembled Mother source.
-9. Run browser E2E with a real authenticated HR session across every HR tab.
-10. Run Employee 360 and all write modals.
-11. Exercise request multi-step approval.
-12. Exercise leave approve/reject/cancel and balance reversal.
-13. Exercise assignment/schedule/contract temporal guards.
-14. Exercise attendance event/day and payroll lifecycle.
-15. Exercise document upload and signed-open flow.
-16. Re-read Production immediately after browser execution.
-17. Verify no duplicate records and no orphan storage files.
-18. Only after consumer proof, retire legacy HR RPC execution surfaces that are no longer needed.
-19. Re-run security advisors and record remaining HR findings.
-20. Update this file and add the next report.
-21. Mark RW_HR Mother CLOSED only after authenticated browser E2E passes.
+login
+all HR tabs
+Employee 360
+all modals
+employee profile write
+organization write
+contracts
+attendance day/events
+leave create/approve/reject/cancel
+multi-step requests
+advances
+payroll lifecycle where live accounting config permits
+documents upload/metadata/signed-open/recovery
+realtime UI refresh
 ```
 
-The next session must not restart HR design.
+لا يجوز تحويل DB-level PASS إلى Browser PASS.
 
-It must prove the existing surgical package against the live Mother and live Production contract, then close only the remaining verified gaps.
+## 13. Next-session execution protocol
+
+```text
+1. Verify latest system HEAD + direct parent.
+2. Verify latest Mother HEAD + direct parent.
+3. Open Mother main.html directly.
+4. Locate RW_HR boundary again.
+5. Verify whether the full surgical replacement is installed.
+6. If not installed, replace ONLY RW_HR with HR_MOTHER_SURGICAL_REPLACEMENT_20260917_FINAL.js.
+7. Run syntax validation on the assembled main.html.
+8. Open a real authenticated HR browser session.
+9. Run every HR tab.
+10. Run Employee 360.
+11. Run every write modal.
+12. Test request multi-step approval/rejection.
+13. Test leave create/approve/reject/cancel and balance reversal.
+14. Test assignment/schedule/contract temporal guards.
+15. Test attendance event/day and work-entry behavior.
+16. Test advances.
+17. Test payroll only against real configured accounting data.
+18. Test document upload + metadata + signed-open + failure cleanup.
+19. Test realtime browser refresh.
+20. Re-read Production immediately after browser execution.
+21. Check duplicates, orphan records, orphan storage.
+22. Confirm legacy adapters still delegate only to hr_command_atomic.
+23. Retire adapters only after Mother cutover and consumer proof.
+24. Re-run security checks.
+25. Add next HR report.
+26. Update CURRENT_STATE again.
+27. Mark RW_HR CLOSED only after all browser gates PASS.
+```
+
+## 14. Governance rules
+
+```text
+Reports are reference only.
+CURRENT_STATE is a starting snapshot, not a substitute for live verification.
+Do not infer current Production from old reports.
+Do not infer browser behavior from SQL tests.
+Do not repeat a historical repair without new live evidence.
+Do not touch main.html outside RW_HR.
+Do not create duplicate HR tables.
+Do not seed fabricated HR data.
+Do not create a second HR command engine.
+Do not declare 100% closure before authenticated browser E2E.
+```
+
+## 15. Canonical artifacts
+
+```text
+doc/Draft/Reprots/Report234_RW_HR_FORENSIC_REEXECUTION_FULL_20260917.md
+
+doc/Draft/Reprots/HR_MOTHER_SURGICAL_REPLACEMENT_20260917_FINAL.js
+
+doc/Draft/Reprots/HR_LEGACY_ADAPTERS_20260917.sql
+
+supabase/migrations/20260917_hr_runtime_hardening_r1.sql
+
+supabase/migrations/20260917_hr_core_request_leave_temporal_integrity.sql
+```
+
+## 16. Final self-audit
+
+### Proven
+
+```text
+Current system Git baseline
+Current Mother Git baseline
+Current Mother RW_HR boundary
+Current Production HR schema
+Current hr_query
+Current hr_command_atomic
+Current HR security boundary
+Current HR direct DML = 0
+Current legacy adapter routing
+Current 24/24 HR read surface
+Current DB-level mutation tests
+Current HR data cleanliness
+Current full surgical replacement
+Competitive benchmark baseline
+```
+
+### Not proven
+
+```text
+Real authenticated browser E2E after replacement
+Full DOM behavior after cutover
+Browser storage upload lifecycle
+Browser realtime lifecycle
+Full payroll E2E with live accounting data
+Final retirement of adapters after cutover
+```
+
+### Final decision
+
+```text
+GLOBAL HR CORE INTEGRITY = HARDENED / CLOSED AT CORE LEVEL
+RW_HR MOTHER = OPEN UNTIL AUTHENTICATED BROWSER CUTOVER
+OVERALL RW_HR = NOT CLOSED YET
+```
+
+This snapshot supersedes older HR state only where it records a newer verified fact. Historical records remain preserved for traceability.
