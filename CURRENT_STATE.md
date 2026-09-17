@@ -97,18 +97,16 @@ Current company `00000000-0000-0000-0000-000000000001` has 24 users but no activ
 
 The command contract derives company from the actor and checks authenticated actor identity. It also uses `hr_command_log` for operation identity/idempotency.
 
-## Production changes completed this session
+## Production changes completed in earlier HR closure sequence
 
 ### 1. Leave approval/cancel contract
 
-Fixed in Production so:
+Previously fixed in Production so:
 
 - `leave_type_id` is handled as UUID.
 - Paid leave approval consumes `hr_leave_balances.used`.
 - Cancellation of an approved paid leave reverses the used balance.
 - Insufficient balance is rejected.
-
-Transactional E2E was executed and rolled back.
 
 ### 2. HR command authenticated boundary
 
@@ -128,52 +126,155 @@ INSERT/UPDATE policies on `employee_documents` were hardened so writing is allow
 
 ### 4. No new HR Edge Function
 
-A direct attempt to deploy an HR Edge Function was rejected by the current Supabase function limit. Because `hr_command_atomic` already enforces actor/auth/company security, the chosen architecture is to use the authenticated RPC directly from Mother rather than add another endpoint or reuse unrelated canary/E2E functions.
+The selected HR architecture remains direct authenticated RPC consumption. No HR Edge Function was added.
 
-## Production tests completed
+## 2026-09-17 — Current RW_HR closure update
 
-- `hr_query` views were exercised transactionally from an HR session.
-- HR command operations were exercised transactionally.
-- Idempotency was exercised for the same operation identity.
-- Self-service attendance for a non-HR employee succeeded for the employee themself.
-- HR administrative profile mutation was protected from a non-HR actor.
-- Leave approve/cancel balance reversal was tested.
-- All temporary test records were rolled back.
+### Production migration applied
 
-## Mother HR surgical package
-
-Prepared complete replacement artifact:
-
-`HR_MOTHER_SURGICAL_REPLACEMENT_20260917.js`
-
-The owner must apply it to the current Mother only.
-
-Exact surgical boundary:
+Live migration registry contains:
 
 ```text
-Find:
+20260917174950
+hr_core_request_leave_temporal_integrity_20260917_v3
+```
+
+Canonical Git migration file:
+
+`supabase/migrations/20260917_hr_core_request_leave_temporal_integrity.sql`
+
+Commit:
+
+`2aa3f2de01e8c1921b3368cf70c4f4cf5a9a4204`
+
+### New Production command capabilities closed
+
+`hr_command_atomic` now contains the following additional contract closures:
+
+```text
+request.create
+leave.request.approve
+leave.request.reject
+leave.request.cancel
+```
+
+The same Production function also contains the strengthened request final-step semantics and effective-dated integrity guards.
+
+### Request creation contract
+
+Validated centrally:
+
+- employee belongs to actor company;
+- employee is active;
+- request type and subject are present;
+- at least one approval step exists;
+- steps are sequential;
+- each step has an explicit employee approver or role;
+- explicit approvers belong to the same company and are active;
+- parent request and approval-step records are created by the command engine;
+- operation identity is preserved through `hr_command_log`.
+
+### Leave lifecycle contract
+
+Approved/rejected/cancelled states are now explicit central commands.
+
+Paid leave consumes and reverses `hr_leave_balances.used` by calendar year, with overlap and insufficient-balance guards.
+
+### Effective-dated integrity
+
+The central command now rejects:
+
+- overlapping primary employee assignments;
+- overlapping employee schedule assignments;
+- invalid contract date ranges;
+- negative contract salary/allowance/deduction values;
+- overlapping active contracts for the same employee with different contract numbers.
+
+### Post-deployment structural verification
+
+Current Production verification returned:
+
+```text
+hr_command_atomic overloads = 1
+request.create           = present
+leave lifecycle          = present
+final-step cap           = present
+authenticated EXECUTE    = true
+service_role EXECUTE     = true
+anon EXECUTE             = false
+```
+
+Current `hr_command_atomic` PostgreSQL definition length check:
+
+```text
+56106
+```
+
+### Current HR data integrity snapshot
+
+All HR business tables remain empty:
+
+```text
+employee_profiles                    = 0
+employee_attendance                  = 0
+employee_leave_requests             = 0
+employee_documents                  = 0
+hr_departments                       = 0
+hr_positions                        = 0
+hr_employee_assignments             = 0
+hr_employee_schedule_assignments    = 0
+hr_work_schedules                    = 0
+hr_attendance_events                = 0
+hr_work_entries                     = 0
+hr_leave_types                       = 0
+hr_leave_balances                   = 0
+hr_requests                         = 0
+hr_request_approvals                = 0
+hr_salary_advances                  = 0
+hr_salary_components                = 0
+hr_contracts                        = 0
+hr_contract_components              = 0
+hr_payroll_periods                  = 0
+hr_payroll_runs                     = 0
+hr_payslips                         = 0
+hr_payslip_lines                    = 0
+hr_payroll_accounting_map           = 0
+hr_command_log                      = 0
+```
+
+No fabricated HR business data remains in Production.
+
+### Current Mother surgical package
+
+Final replacement artifact:
+
+`doc/Draft/Reprots/HR_MOTHER_SURGICAL_REPLACEMENT_20260917_FINAL.js`
+
+Blob SHA:
+
+`d02050f9f8131156b5dc283d5229cb1ffff5e5fd`
+
+The replacement is intended to replace ONLY the current Mother `RW_HR` block.
+
+Exact current surgical boundary:
+
+```text
+Start:
 var RW_HR = (function() {
 
-Start line:
-23788
-
-Delete through the complete line:
+End:
 window.RW_HR = RW_HR;
-
-End line:
-24064
 ```
 
-Then paste the replacement artifact exactly.
-
-The replacement consumes:
+Approximate source range:
 
 ```text
-hr_query
-hr_command_atomic
+23788 .. 24064
 ```
 
-and provides the unified Mother HR surface for:
+The assistant did not modify Mother `main.html`.
+
+### Current RW_HR capability surface in replacement
 
 ```text
 dashboard
@@ -190,53 +291,116 @@ documents
 realtime
 ```
 
-The assistant did not modify `erp-frontend/main.html`.
+Reads use `hr_query`.
+
+Mutations use `hr_command_atomic`.
+
+No second HR command engine is introduced.
+
+### Competitive benchmark incorporated
+
+The final HR report compares current RAWAEA capabilities with documented capabilities in:
+
+```text
+Odoo
+Microsoft Dynamics 365 Human Resources
+SAP SuccessFactors
+Daftra
+Manager.io
+```
+
+Current target is a competitive Core HR baseline, not an invented claim of complete HCM parity.
+
+Explicit roadmap gaps remain for areas such as recruiting/onboarding, performance, training/certification, advanced benefits, advanced accrual/carryover, statutory/local payroll rules, advanced cross-midnight policy handling, commission-to-payroll linkage, and dedicated Employee/Manager ESS surfaces.
+
+These were not implemented without an explicit business/data contract.
+
+## Current Production runtime verification boundary
+
+### Proven in Production
+
+- current HR schema;
+- current `hr_command_atomic` signature and single-overload state;
+- new request and leave command branches present;
+- final-step state cap;
+- authenticated/service-role execution boundary;
+- anon denial;
+- HR data remains empty/no fabricated seeds;
+- document storage security policies remain tenant-aware;
+- migration registry contains the applied HR closure migration.
+
+### Not proven yet
+
+A real authenticated browser E2E for the newly changed branches has not been completed in this session.
+
+The Mother `main.html` remains intentionally untouched.
+
+Therefore:
+
+```text
+Production structural verification = PASS
+Production authenticated runtime E2E = OPEN
+Mother browser E2E = OPEN
+```
+
+These must not be collapsed into a false 100% runtime closure.
 
 ## Session report
 
-`doc/Draft/Reprots/Report230_HR_MOTHER_FORENSIC_CLOSURE_20260917.md`
+Final report:
 
-Report commit:
+`doc/Draft/Reprots/Report233_HR_FULL_COMPETITIVE_CLOSURE_20260917.md`
 
-`345786cf47adaea6c4646ab129a8fd0a915eca2d`
+Commit:
+
+`489807f777c8578dfe5fca4294ece634e02b3f89`
 
 ## Current status
 
 ```text
-Historical reports        = reference only
-Current source            = verified
-Current Production HR     = verified
-HR leave contract         = fixed / verified
-HR command auth boundary  = hardened / verified
-HR document write scope   = hardened / verified
-HR tables                 = present / not to duplicate
-HR Edge capacity          = full
-Mother HR UI              = OPEN / owner surgery required
-Mother browser E2E        = OPEN
-Overall HR Mother         = NOT CLOSED YET
+Historical reports              = reference only
+Current Git baseline            = verified
+Current Mother source           = verified
+Current Production HR Core      = structurally closed for this contract
+Current HR command contract     = single canonical engine
+Current HR data                 = clean / no fabricated records
+HR surgical replacement         = READY
+Mother main.html                = UNTOUCHED BY DESIGN
+Mother browser E2E              = OPEN
+Legacy HR RPC retirement        = OPEN UNTIL CUTOVER PROOF
+Overall RW_HR Mother            = NOT CLOSED YET
 ```
 
 ## Next session start protocol
 
-Do not trust this file or Report230 as the current state by themselves.
+Do not trust this file or Report233 as the current state by themselves.
 
 Start again from live evidence in this order:
 
 ```text
-1. Latest erp-frontend HEAD + direct parent.
-2. Current Mother main.html.
-3. Current RW_HR boundaries and whether owner already applied the replacement.
-4. Current Production hr_command_atomic + hr_query definitions.
-5. Current HR table/policy/realtime state.
-6. Current Edge deployment evidence.
-7. Compare only the facts just verified.
-8. If replacement is not applied, use the exact 23788..24064 surgical boundary and the replacement artifact.
-9. Run syntax validation on the assembled main.html.
-10. Run browser E2E across every HR tab and Employee 360.
-11. Verify every mutation again against Production in the same closure cycle.
-12. Do not seed fabricated employee/contract/payroll data.
-13. Do not return to main2 as a code source; it remains historical reference only.
-14. Do not touch Warehouse/Order/Runsheet field operations while closing HR.
-15. Only after browser E2E passes may HR Mother be marked CLOSED.
-16. Then move to the next actually-open Business Contract.
+1. Latest rawaie-erp-New HEAD and direct parent.
+2. Latest erp-frontend HEAD and direct parent.
+3. Current Mother main.html.
+4. Current RW_HR boundary and current assembled code.
+5. Confirm whether HR_MOTHER_SURGICAL_REPLACEMENT_20260917_FINAL.js was applied.
+6. Verify current Production hr_command_atomic and hr_query definitions again.
+7. Verify current HR schema, RLS, storage and realtime state.
+8. Run syntax validation on the assembled Mother source.
+9. Run browser E2E with a real authenticated HR session across every HR tab.
+10. Run Employee 360 and all write modals.
+11. Exercise request multi-step approval.
+12. Exercise leave approve/reject/cancel and balance reversal.
+13. Exercise assignment/schedule/contract temporal guards.
+14. Exercise attendance event/day and payroll lifecycle.
+15. Exercise document upload and signed-open flow.
+16. Re-read Production immediately after browser execution.
+17. Verify no duplicate records and no orphan storage files.
+18. Only after consumer proof, retire legacy HR RPC execution surfaces that are no longer needed.
+19. Re-run security advisors and record remaining HR findings.
+20. Update this file and add the next report.
+21. Mark RW_HR Mother CLOSED only after authenticated browser E2E passes.
 ```
+
+The next session must not restart HR design.
+
+It must prove the existing surgical package against the live Mother and live Production contract, then close only the remaining verified gaps.
