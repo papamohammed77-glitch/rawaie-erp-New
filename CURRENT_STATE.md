@@ -1,28 +1,33 @@
 # RAWAEA ERP — CURRENT STATE
 
-# LATEST VERIFIED SNAPSHOT — 2026-09-17 — HR LOGIN RESPONSE-LAYER SURGICAL CLOSURE
+# LATEST VERIFIED SNAPSHOT — 2026-09-18 — HR FORENSIC / SURGICAL CLOSURE
 
-> جلسة HR فقط. `main.html` لم يُلمس. التقارير مرجعية، والواقع الحالي يُثبت من Git + Mother source + Production DB + deployment evidence.
+> نطاق الجلسة: HR فقط. `main.html` في Mother لم يُمس.
+> التقارير مرجعية تاريخية فقط؛ Source of Truth الحالي هو CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
 
 ## 1. Current Git
 
 ### System repository
 `papamohammed77-glitch/rawaie-erp-New`
 
-Current HEAD:
+HEAD before this state update:
 ```text
-2a10fd7c8ed6f756c61663ef0562c3887c40d76c
+96cbd83bf3e69600910ae655eb832a72e3d710c1
 ```
 
 Parent:
 ```text
-bd5ad953ff2969ec2c8b5c4bab8d16be33309e34
+2a10fd7c8ed6f756c61663ef0562c3887c40d76c
 ```
 
-Latest system artifacts from this closure:
+This session report commit:
 ```text
-doc/Draft/Reprots/HR_LOGIN_FORENSIC_SURGICAL_CLOSURE_20260917_FINAL.md
-doc/Draft/Reprots/HR_LOGIN_RESPONSE_LAYER_SURGICAL_PATCH_20260917.diff
+71c550da971864a494bf802699d992b9500100e8
+```
+
+Primary session report:
+```text
+doc/Draft/Reprots/HR_FORENSIC_SURGICAL_CLOSURE_20260918.md
 ```
 
 ### Mother repository
@@ -30,109 +35,118 @@ doc/Draft/Reprots/HR_LOGIN_RESPONSE_LAYER_SURGICAL_PATCH_20260917.diff
 
 Current HEAD:
 ```text
-eea3a62903d1533607f753d14c727145838c40e7
+9a0b72ef746f2f6f5c1b149edd2a490df39377c6
 ```
 
 Parent:
 ```text
-fdf54204246c51ec79e4321e8f5605896dc7ef00
+75af385fd4f402c107423a37d0d2b769de152105
 ```
 
-## 2. Main.html protection
-
-`companies/company-1/main.html` was NOT modified in this closure.
-
-Git comparison from the pre-closure Mother HEAD:
+Previous parent chain includes:
 ```text
-e1cc27b9a2f58967c6bde340ddb4fbb0d4a507a3
-        ↓
-eea3a62903d1533607f753d14c727145838c40e7
+400b16d8cfd6226b02955fe6a2fb76f386e56dde
 ```
 
-Changed files are only:
+## 2. main.html protection
+
+`companies/company-1/main.html` was NOT modified in this session.
+
+Current Mother main blob checked:
 ```text
-functions/_middleware.js
-companies/company-1/sw.js
+8ba8ef60c2875ea68ed85283ce772e023c0ef771
 ```
 
-## 3. Proven HR parser root cause
+No direct edit to main.html was performed.
 
-Current Mother forensic extract proves:
+## 3. Parser incident — current truth
 
+The historical incident was:
 ```text
-23893: }());
-23894: realtime();
-23895: window.RW_HR={render:render,reload:render,openEmployee360:open360};
-23896: }());
-23897: window.RW_HR = RW_HR;
+main:25370 Uncaught SyntaxError: Unexpected token ')'
 ```
 
-The RW_HR IIFE is already closed at `23893`.
+Current Mother source was re-inspected before changing it. The currently stored main artifact has the canonical RW_HR terminal and no newly proven parser defect.
 
-The second `}());` at `23896` is unmatched and causes the reported JavaScript parser failure.
+The old reports that described an unmatched second `}());` were not accepted as current truth without source verification.
 
-This is the current root cause. It is distinct from the older payroll array bracket defect that was already repaired historically.
+The Tailwind CDN message is a production warning, not the JavaScript parser cause.
 
-## 4. Surgical production-layer fix
+The remaining practical risk was a stale/deployed artifact or old runtime route rather than a justified new edit to `main.html`.
 
-### Mother `_middleware.js`
+## 4. HR runtime routing — CLOSED
 
-Exact HTML response route:
+Current `companies/company-1/app.html` previously sent:
 ```text
+permission=hr
+    ↓
+/companies/company-1/office/hr.html
+```
+
+That file is a Legacy HR application with its own direct user queries/cache and incomplete Attendance/Salary surfaces.
+
+It is no longer the runtime target.
+
+Current route:
+```text
+permission=hr
+    ↓
 /companies/company-1/main.html
+    ↓
+Mother HR / RW_HR
 ```
 
-The middleware now repairs exactly one occurrence of the known terminal sequence:
+Git commit:
 ```text
-window.RW_HR={render:render,reload:render,openEmployee360:open360};
-}());
-window.RW_HR = RW_HR;
+400b16d8cfd6226b02955fe6a2fb76f386e56dde
 ```
 
-to:
+## 5. Direct `/hr` route — CLOSED
+
+Current `_redirects` previously had:
 ```text
-window.RW_HR={render:render,reload:render,openEmployee360:open360};
-window.RW_HR = RW_HR;
+/hr /companies/company-1/office/hr.html 200
 ```
 
-Ambiguous multiple matches are refused.
-
-The earlier payroll-token repair is preserved.
-
-No-store response headers remain active.
-
-### Mother `companies/company-1/sw.js`
-
-The same exact repair is applied before HTML parse.
-
-SW build was bumped to:
+It now has:
 ```text
-RAWAEA_SW_P155_HR_TERMINAL_SYNTAX_HARDENING_20260917
+/hr /companies/company-1/main.html 200
 ```
 
-Old static cache keys are invalidated on activation, and controlled windows are reloaded.
-
-## 5. Self-test
-
-Exact bad IIFE reproducer:
+Git commit:
 ```text
-node --check => FAIL
-SyntaxError: Unexpected token '}'
+75af385fd4f402c107423a37d0d2b769de152105
 ```
 
-Exact same reproducer after the final matcher:
+This removes the legacy HR application from the normal runtime entry path without deleting historical code.
+
+## 6. Service Worker republish boundary — CLOSED
+
+Current SW build:
 ```text
-node --check => PASS
+RAWAEA_SW_P156_HR_REPUBLISH_20260918
 ```
 
-An implementation regex typo discovered during self-test was corrected before finalizing the closure. The final matcher explicitly matches `}());`.
+Git commit:
+```text
+9a0b72ef746f2f6f5c1b149edd2a490df39377c6
+```
 
-## 6. Production HR backend
+The existing SW contract remains:
+- HTML/navigation/API/runtime are network-backed.
+- Static assets use versioned cache.
+- Old static caches are removed on activation.
+- Controlled windows are navigated after activation.
+- Known RW_HR response repairs remain in place.
 
-Supabase:
-`fiilmooggumokxanwiyx`
+## 7. Production HR database
 
-Current HR engines verified:
+Supabase project:
+```text
+fiilmooggumokxanwiyx
+```
+
+Core HR engines verified:
 ```text
 hr_query
 hr_command_atomic
@@ -144,87 +158,148 @@ hr_upsert_employee_profile
 hr_user_has_permission
 ```
 
-Current HR domain tables verified:
+The core HR domain tables exist. No fabricated HR business data was added.
+
+## 8. Production security closure — actor identity
+
+Finding:
+`hr_command_atomic` allowed caller-supplied `p_actor_email` to differ from the actor user identity.
+
+Fix:
 ```text
-employee_profiles
-employee_attendance
-employee_leave_requests
-employee_documents
-hr_departments
-hr_positions
-hr_employee_assignments
-hr_employee_schedule_assignments
-hr_work_schedules
-hr_attendance_events
-hr_work_entries
-hr_leave_types
-hr_leave_balances
-hr_requests
-hr_request_approvals
-hr_salary_advances
-hr_salary_components
-hr_contracts
-hr_contract_components
-hr_payroll_periods
-hr_payroll_runs
-hr_payslips
-hr_payslip_lines
-hr_payroll_accounting_map
-hr_command_log
+hr_command_log_enforce_actor_identity()
 ```
 
-No fabricated HR business data was created.
-
-## 7. Benchmark alignment used in closure
-
-Documented patterns checked against official vendor material:
-
-- Odoo: Employees, Attendances, Time Off, Planning, Payroll and Work Entries.
-- Microsoft Dynamics 365 Human Resources: leave/absence plans, accruals, balances and carry-over rules.
-- SAP SuccessFactors: Employee Central, time management, time sheets, clock-in/out, approvals and payroll.
-- Daftra: employee records, organization, contracts, attendance, requests, salary components and payroll.
-- Manager.io: treated as a narrower accounting-oriented benchmark, not a full HCM reference.
-
-The HR backend already contains the corresponding broad domain primitives. Remaining proof is runtime/browser behavior, not another schema skeleton.
-
-## 8. Closure status
-
+Trigger:
 ```text
-HR syntax root cause                 = PROVEN
-Main.html modification               = 0
-Mother response-layer repair        = COMMITTED
-Mother service-worker repair         = COMMITTED
-Exact repair self-test               = PASS
-Production HR DB contract            = VERIFIED
-Current Mother Git alignment         = VERIFIED
-Current System Git alignment         = VERIFIED
-Live served artifact                 = NOT YET INDEPENDENTLY VERIFIED
-Authenticated browser E2E             = OPEN
-Full HR browser E2E                   = OPEN
+trg_hr_command_log_actor_identity
 ```
 
-Do not mark runtime 100% CLOSED until the live served artifact and authenticated browser path are verified.
+Behavior:
+- actor_user_id must exist in the same company.
+- actor_email is derived from `public.users`.
+- invalid actor/company context is rejected.
 
-## 9. Next-session execution protocol
+Migration:
+```text
+hr_command_log_actor_identity_guard_20260918
+```
 
-1. Start from System HEAD `2a10fd7c8ed6f756c61663ef0562c3887c40d76c` and Mother HEAD `eea3a62903d1533607f753d14c727145838c40e7`.
-2. Confirm the parent chain before making any new change.
-3. Verify `main.html` has not changed.
-4. Obtain the actual live production URL from the deployment environment.
-5. Fetch `/companies/company-1/main.html` as served.
-6. Confirm response header `X-RAWAEA-HR-SHELL` is `repaired-rw-hr-syntax` for stale source or `canonical` after source cutover.
-7. Confirm the exact extra `}());` no longer exists in the served artifact.
-8. Run authenticated Login → session → company context → application shell.
-9. Confirm the reported parser error is absent.
-10. Open HR and run the HR tab smoke/E2E matrix.
-11. Re-read Production and confirm no HR data was unexpectedly created and no tenant bleed occurred.
-12. Only then close the runtime gate.
+Production transactional test with spoofed email proved the stored actor became:
+```text
+actor_user_id = 67552c18-144e-453f-b0e8-5b7730b929d6
+actor_email   = hr@rawaea.com
+```
 
-## 10. Governance
+## 9. Production security closure — employee documents DML
 
-- Reports do not override current Git/Production evidence.
-- Do not repeat historical HR syntax repairs without new evidence.
-- Do not modify `main.html` for this incident.
-- Do not convert Git PASS or SQL PASS into browser Production PASS.
-- Do not invent HR data to make E2E tests appear successful.
-- Do not create a second HR command engine.
+Migration:
+```text
+hr_employee_documents_table_dml_boundary_20260918
+```
+
+Applied:
+```sql
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE
+ON TABLE public.employee_documents
+FROM anon, authenticated;
+```
+
+The current design continues to use the HR command capability for metadata, while direct public table mutation is removed.
+
+## 10. HR authorization context
+
+Real Production HR user verified:
+```text
+email      = hr@rawaea.com
+auth_id    = 99eea49f-c27d-43e1-85b9-c97d4d85c55b
+company_id = 00000000-0000-0000-0000-000000000001
+permission = hr
+```
+
+JWT-context test verified:
+```text
+auth.uid()
+auth.role()
+app_private.current_user_company_id()
+hr_user_has_permission(...,'hr')
+hr_query('self',...)
+hr_query('dashboard',...)
+hr_query('employees',...)
+```
+
+OWNER wildcard semantics were not changed.
+
+## 11. Current HR functional scope
+
+Mother HR source has the integrated HR tab family:
+```text
+dashboard
+employees
+organization
+contracts
+attendance
+leaves
+requests
+advances
+payroll
+documents
+```
+
+Current Production has no HR business fixtures, therefore full transactional E2E is not declared closed.
+
+## 12. Competitive benchmark snapshot
+
+Verified against current official documentation:
+
+- Odoo: employee master, contracts, attendance/time off, payroll and work entries.
+- Microsoft Dynamics 365 Human Resources: time & attendance, calculation/approval groups, absence setup and time updates.
+- SAP SuccessFactors: Time Management, time sheets, clock-in/out, approvals, alerts and payroll integration.
+- Daftra: employee records, organization, contracts, attendance, leave, requests/loans, dynamic salary components, payroll and ESS-oriented capabilities.
+- Manager.io: employee and payroll capabilities tied to accounting, used as a narrower benchmark.
+
+These benchmarks are used to identify future capabilities, not to justify copying external product behavior.
+
+## 13. Closure status
+
+```text
+HR source reconstruction                 = VERIFIED
+HR legacy runtime route                  = CLOSED
+Direct /hr legacy route                  = CLOSED
+Mother SW republish boundary             = CLOSED
+main.html modifications                  = 0
+Production actor identity                = CLOSED
+Production employee_documents DML        = CLOSED
+Production HR auth context               = VERIFIED
+Current Mother Git                      = VERIFIED
+Current System Git                      = VERIFIED
+Live deployed artifact                   = NOT INDEPENDENTLY VERIFIED
+Authenticated live browser E2E            = OPEN
+Full HR transactional E2E                = OPEN
+```
+
+Do not convert the first six states into `PRODUCTION BROWSER PASS` without live browser evidence.
+
+## 14. Next session protocol
+
+1. Start from this exact CURRENT_STATE and verify the System and Mother HEAD/parent chain.
+2. Verify `main.html` blob remains unchanged.
+3. Obtain/fetch the actual deployed Mother URL.
+4. Confirm the served `app.html`, `_redirects`, and `sw.js` correspond to the current Mother HEAD.
+5. Confirm the live `/hr` route no longer serves `office/hr.html`.
+6. Confirm the live browser reaches Mother login without `Unexpected token ')'`.
+7. Run authenticated HR login → session → company → Mother HR.
+8. Run one read-only smoke for each HR tab.
+9. Create test data only through an isolated test/transaction harness; never seed fake Production business data just to obtain PASS.
+10. Only after runtime evidence is green, open the next HR Closure Unit.
+
+## 15. Governance rules carried forward
+
+- Reports are historical evidence, not the current state.
+- Never repeat a closed fix without new evidence.
+- Never edit `main.html` for this incident unless fresh current-source evidence proves a defect there.
+- Never create a second HR runtime engine.
+- Never claim browser Production PASS from Git/SQL PASS.
+- Keep HR operations behind the Mother `hr_query` / `hr_command_atomic` contract.
+- Preserve OWNER `isOwner + permissions:["*"]` semantics.
+- Any new HR feature must be a closure unit: contract → source → DB → permissions → runtime → verification.
