@@ -1,0 +1,16 @@
+--- a/erp-frontend/companies/company-1/main.html
++++ b/erp-frontend/companies/company-1/main.html
+@@ RW_HR payrollTab payslip table @@
+-    esc(x.status||'-')]))));
++    esc(x.status||'-')])));
+
+SCOPE:
+- Replace ONLY the single defective token inside RW_HR/payrollTab.
+- Do NOT alter any code outside the RW_HR boundary.
+- Do NOT change Supabase schema/RLS/Edge Functions for this incident.
+
+CANONICAL COMPLETE REPLACEMENT:
+- doc/Draft/Reprots/HR_MOTHER_SURGICAL_REPLACEMENT_20260917_FINAL.js
+- SHA: d02050f9f8131156b5dc283d5229cb1ffff5e5fd
+
+This diff is a surgical reference artifact. It does NOT modify Mother main.html.
