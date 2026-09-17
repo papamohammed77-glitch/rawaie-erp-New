@@ -1,0 +1,75 @@
+ما تم إنجازه فعليًا
+تم تثبيت أن مرجع النظام الأم الحالي هو:
+erp-frontend/companies/company-1/main.html
+آخر HEAD مثبت:
+269d3fb7776005ae6c2d9431cf784bde4b434e92
+والـparent:
+2b8ef7a26716470020bb786566210c0c41a434dd.
+تم التحقق حيًا من Production HR Core، بما في ذلك hr_query وhr_command_atomic وحالة الجداول وRLS/Realtime.
+تم تنفيذ إصلاح Production حقيقي لدورة اعتماد الطلبات بحيث لا يستطيع المستخدم غير المعيّن اعتماد خطوة لا تخصه، مع إبقاء HR بصلاحيته الإدارية.
+تم اختبار ذلك بحالة اعتماد فعلية داخل Production، ونجح المعتمد الصحيح وفشل مستخدم غير المعيّن، ثم تمت إزالة بيانات الاختبار.
+Production HR ما زالت بلا بيانات أعمال فعلية: الموظفون/الحضور/الإجازات/المستندات/الطلبات/الرواتب التشغيلية = صفر، وبالتالي لم يتم اختراع أي بيانات تشغيلية.
+تم إنشاء migration canonical في Git:
+supabase/migrations/20260917_hr_request_approval_actor_scope.sql
+commit:
+dc7f61dd1c39a6f2c0c26614d838be304c94ca2b
+تم إنشاء حزمة الاستبدال الجراحي الكاملة في Git:
+doc/Draft/Reprots/HR_MOTHER_SURGICAL_REPLACEMENT_20260917.js
+commit:
+3eaa491af8b0f73c254bd3df9f37c497f3522fcc
+الحزمة تنقل Mother HR إلى:
+hr_query للقراءة
++
+hr_command_atomic لجميع أوامر التغيير
++
+Realtime الموجود،
+مع Employee 360، والهيكل، والعقود، والحضور، والإجازات، والطلبات، والسلف، والرواتب، والمستندات.
+تم التحقق محليًا من JavaScript بـnode --check، والحزمة المحلية حجمها 97,569 بايت وSHA256:
+f1eb04d409e1d731fa9c44484e364b0acea24c888ff32f130d05cec1bc6e1277.
+حدود التعديل الجراحي
+
+في النظام الأم الحالي:
+
+ابدأ عند:
+
+var RW_HR = (function() {
+
+حوالي السطر:
+23788
+
+واحذف حتى السطر الكامل الذي يحتوي:
+
+window.RW_HR = RW_HR;
+
+حوالي:
+24064
+
+ثم استبدل الكتلة كاملة بمحتوى:
+
+HR_MOTHER_SURGICAL_REPLACEMENT_20260917.js
+
+لم يتم تعديل main.html نفسه، تنفيذًا لتوجيهك الصريح.
+
+نقطة لم يتم تزوير إغلاقها
+
+Mother Browser E2E = OPEN
+
+لأن تطبيق الاستبدال داخل main.html نفسه لم ينفذ هنا بناءً على توجيهك السابق بعدم تعديل الملف الأم. لذلك لا يصح تسجيل HR Mother على أنه 100% CLOSED أو الادعاء أن Browser E2E مرّ.
+
+كذلك تعذر العثور عبر بحث GitHub الحالي على Report227/Report228/Report229 بالمعرّفات المذكورة، لذلك لم أبنِ أي نتيجة جديدة على محتوى غير متاح منها.
+
+الحالة الصحيحة الآن هي:
+
+Production HR Core              = موجود ومُتحقق
+HR command/query architecture   = موجود ومُتحقق
+Approval actor scope            = مُصلح ومُختبر Production
+HR surgical replacement         = منشور في Git
+Mother main.html                = لم يُمس
+Browser E2E                     = OPEN
+HR Mother                       = NOT CLOSED
+
+ملف الاستبدال جاهز للتحميل المباشر:
+
+تحميل HR_MOTHER_SURGICAL_REPLACEMENT_20260917.js
+
+السجل النهائي وCURRENT_STATE.md لم يُحدّثا في Git قبل انتهاء نافذة الأدوات، لذلك لا أعتبر الجلسة مغلقة إداريًا؛ كما أن إغلاق Browser E2E لم يحدث فعليًا.
