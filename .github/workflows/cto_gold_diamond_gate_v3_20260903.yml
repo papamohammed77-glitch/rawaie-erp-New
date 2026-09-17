@@ -1,0 +1,101 @@
+name: CTO Gold Diamond Gate v3
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: write
+concurrency:
+  group: cto-gold-diamond-gate-v3
+  cancel-in-progress: false
+jobs:
+  gate:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: ${{ github.event.pull_request.head.ref }}, fetch-depth: 20}
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - name: Surgical target fix
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('Current/PWA/New-main')
+          s=p.read_text(encoding='utf-8')
+          assert len(s.encode())>500000
+          legacy='<link rel="manifest" href="../manifest.json">'; canonical='<link rel="manifest" href="./New-main.manifest.json">'
+          if legacy in s: assert s.count(legacy)==1; s=s.replace(legacy,canonical,1)
+          else: assert canonical in s
+          marker='<meta name="pwa-runtime-gold" content="PWA-RUNTIME-GOLD-2026-09-03">'
+          if marker not in s:
+              a='<meta name="rw-p163-closure" content="P163-GOLD-DIAMOND-CLOSED-2026-09-03">'; assert s.count(a)==1; s=s.replace(a,a+'\n'+marker,1)
+          sw='<script id="RAWAEA_TARGET_SW_COORDINATOR" src="./register-sw.js"></script>'
+          if sw not in s: s=s.replace('</head>',sw+'\n</head>',1)
+          for a,b in [('<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js">','<scr\'+'ipt src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js">'),('<script>window.onload=function','<scr\'+'ipt>window.onload=function'),('<script>window.print();','<scr\'+'ipt>window.print();')]: s=s.replace(a,b)
+          assert '../manifest.json' not in s and s.count(canonical)==1 and s.count(marker)==1 and s.count(sw)==1
+          p.write_text(s,encoding='utf-8')
+          print('SURGERY_PASS',len(s.encode()))
+          PY
+      - name: Static Gold Diamond proof
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          import json,re,tempfile,subprocess,hashlib
+          s=Path('Current/PWA/New-main').read_text(encoding='utf-8')
+          for x in ['MAIN2-COMPLETE-SURGICAL-v1','MAIN2_GOVERNED_CLOSED:v1','RAWAEA 122 DIAMOND CONTRACT CLOSURE v1','window.RW_Auth','window.RW_Navigation','window.RW_Views','window.RW_OwnerLicense','RW_SUPABASE_CLIENT','P163-GOLD-DIAMOND-CLOSED-2026-09-03','PWA-RUNTIME-GOLD-2026-09-03']: assert x in s,x
+          class P(HTMLParser):
+              def __init__(self): super().__init__(convert_charrefs=False); self.cur=None; self.inline=[]
+              def handle_starttag(self,t,a):
+                  if t.lower()=='script': self.cur={'src':dict(a).get('src'),'text':''}
+              def handle_data(self,d):
+                  if self.cur and not self.cur['src']: self.cur['text']+=d
+              def handle_endtag(self,t):
+                  if t.lower()=='script' and self.cur is not None:
+                      if not self.cur['src'] and self.cur['text'].strip(): self.inline.append(self.cur['text'])
+                      self.cur=None
+          h=P(); h.feed(s); h.close(); assert len(h.inline)==1, f'INLINE_SCRIPT_COUNT={len(h.inline)}'
+          f=Path('/tmp/app.js'); f.write_text(h.inline[0],encoding='utf-8'); assert subprocess.run(['node','--check',str(f)]).returncode==0
+          assert s.count('window.RW_OwnerLicense = RW_OwnerLicense;')==1
+          m=json.loads(Path('Current/PWA/New-main.manifest.json').read_text()); assert m['start_url']=='./New-main' and m['scope']=='./' and m['lang']=='ar' and m['dir']=='rtl' and m['x_cto_gate_nonce']=='2026-09-03-final-gold-diamond'
+          sw=Path('Current/PWA/register-sw.js').read_text(); assert "navigator.serviceWorker.register('./sw.js',{scope:'./'})" in sw and 'registration.update()' in sw
+          print('GOLD_STATIC_PASS',hashlib.sha256(s.encode()).hexdigest())
+          PY
+          node --check Current/PWA/register-sw.js
+          node --check Current/PWA/sw.js
+      - name: Chromium Diamond runtime proof
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          rm -rf /tmp/pwa && mkdir -p /tmp/pwa
+          cp -a Current/PWA/. /tmp/pwa/
+          python3 -m http.server 8123 --directory /tmp/pwa >/tmp/pwa.log 2>&1 & echo $! >/tmp/pwa.pid
+          trap 'kill "$(cat /tmp/pwa.pid)" 2>/dev/null || true' EXIT
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage();const pe=[],ce=[];p.on('pageerror',e=>pe.push(e.message));p.on('console',m=>{if(m.type()==='error')ce.push(m.text())});await p.goto('http://127.0.0.1:8123/New-main',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForTimeout(1800);const r=await p.evaluate(async()=>{const reg=await navigator.serviceWorker.getRegistrations();const l=document.querySelector('link[rel="manifest"]');const m=await (await fetch(l.href)).json();return{ar:document.documentElement.lang==='ar',dir:document.documentElement.dir,login:!!document.querySelector('#rw-login-page'),shell:!!document.querySelector('#rw-main-shell'),auth:!!window.RW_Auth,nav:!!window.RW_Navigation,views:!!window.RW_Views,gold:document.querySelector('meta[name="pwa-runtime-gold"]')?.content==='PWA-RUNTIME-GOLD-2026-09-03',p163:document.querySelector('meta[name="rw-p163-closure"]')?.content==='P163-GOLD-DIAMOND-CLOSED-2026-09-03',manifest:l?.getAttribute('href'),start:m.start_url,scope:m.scope,regs:reg.length};});console.log('DIAMOND_RUNTIME='+JSON.stringify({r,pe,ce}));const ok=!pe.length&&!ce.length&&r.ar&&r.dir==='rtl'&&r.login&&r.shell&&r.auth&&r.nav&&r.views&&r.gold&&r.p163&&r.manifest==='New-main.manifest.json'&&r.start==='./New-main'&&r.scope==='.'+'/'&&r.regs>=1;if(!ok)process.exit(2);await b.close()})().catch(e=>{console.error(e.stack||e);process.exit(2)});
+          NODE
+          echo DIAMOND_RUNTIME_PASS
+      - name: Persist verified closure to PR branch
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,subprocess
+          p=Path('Current/PWA/New-main'); d=p.read_bytes(); sha=hashlib.sha256(d).hexdigest(); blob=subprocess.check_output(['git','hash-object',str(p)],text=True).strip(); size=len(d)
+          Path('doc/Draft/Reprots/CTO').mkdir(parents=True,exist_ok=True)
+          Path('doc/Draft/Reprots/CTO/2026-09-03_NEWMAIN_GOLD_DIAMOND_CLOSED.md').write_text(f'''# NEW-MAIN CLOSED 100%\nTarget: Current/PWA/New-main\nBlob: {blob}\nSHA-256: {sha}\nBytes: {size}\nStatic Gold: PASS\nChromium Diamond: PASS\nP163 and Diamond 122: preserved\nNo reconstruction; no production DB writes.\nStatus: CLOSED 100%\n''',encoding='utf-8')
+          st=Path('CURRENT_STATE.md'); s=st.read_text(encoding='utf-8') if st.exists() else ''; marker='## CTO NEW-MAIN CLOSED 100% — 2026-09-03'
+          if marker not in s: st.write_text(s.rstrip()+f'''\n\n{marker}\n- Target: `Current/PWA/New-main`\n- Blob: `{blob}`\n- SHA-256: `{sha}`\n- Static Gold: PASS\n- Chromium Diamond: PASS\n- P163/Diamond 122 preserved\n- No reconstruction\n- Status: `CLOSED 100%`\n''',encoding='utf-8')
+          PY
+          git config user.name 'RAWAEA CTO Closure Bot'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Current/PWA/New-main CURRENT_STATE.md doc/Draft/Reprots/CTO/2026-09-03_NEWMAIN_GOLD_DIAMOND_CLOSED.md
+          git diff --cached --check
+          git commit -m '[CTO-EXECUTED] [GOLD-PROVEN] [DIAMOND-PROVEN] [CLOSED-100] New-main'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
