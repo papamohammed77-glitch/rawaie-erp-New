@@ -183,7 +183,20 @@ It enforces company scope via `app_private.current_user_company_id()` and HR per
 ### Critical forensic correction
 The current live `hr_command_atomic` **already contains the previously reported attendance-event input validation and `operation_id` idempotency logic**. Therefore the historical note that this branch was necessarily still broken cannot be promoted to current truth without a fresh failing reproduction.
 
-## 7. Current Mother Source Evidence
+## 7. Live Production RLS Evidence
+RLS is enabled on all inspected real HR tables in Production. `relforcerowsecurity` is `false` on these tables.
+
+Key policy pattern:
+- Management reads are generally restricted to the current company plus `hr` permission.
+- Employee self-service reads are allowed on employee-scoped tables (`employee_profiles`, `employee_attendance`, `employee_leave_requests`, `employee_documents`, `hr_contracts`, `hr_employee_assignments`, `hr_employee_schedule_assignments`, `hr_leave_balances`, `hr_payslips`, `hr_requests`, `hr_salary_advances`, `hr_work_entries`, `hr_attendance_events`) when the employee identity matches the current authenticated user's mapped `public.users.id`.
+- Administrative INSERT/UPDATE/DELETE policies on the four legacy employee tables are present for `authenticated` and require company scope plus `hr` permission.
+- Several newer `hr_*` tables expose SELECT policies only; their mutation path is therefore intended to remain through `SECURITY DEFINER` command RPCs rather than direct browser writes.
+- `hr_command_log` is read-only to authenticated HR users by policy; command mutation is internal to the command RPC.
+- `hr_leave_types` has a company-scoped SELECT policy without a separate `hr` permission condition.
+
+No policy with `USING (true)` was found in the returned HR policy set. No RLS is being disabled or bypassed by this investigation.
+
+## 8. Current Mother Source Evidence
 Current `erp-frontend` forensic extract confirms:
 - current mother file logical size: **25,541 lines / 1,425,646 bytes**;
 - current mother SHA256 snapshot: `e945c6244fcb7f8d85e1325a6f3d9fdd6965efb6f13bf340a85580eeefdc42ac`;
@@ -195,15 +208,15 @@ The current UI currently loads employees through `hr_list_employees()` and direc
 
 The old split file `Current/PWA/main2/main11.md` contains the same basic HR module shape and is reference material, not current truth.
 
-## 8. Immediate CTO Implication
+## 9. Immediate CTO Implication
 The live HR database is not a four-table skeleton. It already contains a substantially expanded HR domain model and a unified command/query core. The immediate work is therefore closure and integration, not schema rebuild.
 
 The largest current source-level gap proven so far is that the mother HR UI remains thin compared with the live HR core: it uses the employee list plus direct browser queries for three subordinate data sets, while the live `hr_command_atomic`/`hr_query` already model a much broader HR capability surface.
 
 This creates a likely architecture-consistency target for the mother UI, but no patch is approved until exact source boundaries and live security/RLS behavior are fully closed.
 
-## 9. Evidence Still Required Before Patch
-1. Live RLS policies and grants for all 25 HR tables.
+## 10. Evidence Still Required Before Patch
+1. Live function privileges for HR functions and table grants.
 2. Live Realtime publication membership for HR tables.
 3. Exact live foreign keys, unique constraints and indexes for HR tables.
 4. HR-related Edge Function inventory and exact current sources.
@@ -213,7 +226,7 @@ This creates a likely architecture-consistency target for the mother UI, but no 
 8. Current Production E2E/behavior reproduction to identify the actual remaining failure, not a historical one.
 9. Current competitor feature evidence only after internal current-state closure.
 
-## 10. Execution Rule
+## 11. Execution Rule
 No HR business rule is promoted from historical reports to current truth unless confirmed by current Git/source/Production/database/deployment evidence.
 
 No production DDL/DML or UI patch is authorized by this report until the above evidence closure is complete.
