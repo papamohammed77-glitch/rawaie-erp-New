@@ -1,0 +1,72 @@
+# RAWAEA ERP — HR SURGICAL PATCH
+# Date: 2026-09-18
+# Scope: HR only. main.html untouched.
+
+--- a/erp-frontend/companies/company-1/app.html
++++ b/erp-frontend/companies/company-1/app.html
+@@
+-        if (perms.indexOf('hr') !== -1) { window.location.replace(base + '/office/hr.html'); return; }
++        // HR — النظام الأم فقط؛ لا يتم توجيه مستخدم HR إلى التطبيق القديم.
++        if (perms.indexOf('hr') !== -1) { window.location.replace(base + '/main.html'); return; }
+
+--- a/erp-frontend/_redirects
++++ b/erp-frontend/_redirects
+@@
+-/hr /companies/company-1/office/hr.html 200
++/hr /companies/company-1/main.html 200
+
+--- a/erp-frontend/companies/company-1/sw.js
++++ b/erp-frontend/companies/company-1/sw.js
+@@
+-// sw.js – إصدار 3.4 AUTO-UPDATE FINAL
++// sw.js – إصدار 3.5 HR republish boundary
+@@
+-var SW_BUILD = 'RAWAEA_SW_P155_HR_TERMINAL_SYNTAX_HARDENING_20260917';
++var SW_BUILD = 'RAWAEA_SW_P156_HR_REPUBLISH_20260918';
+
+--- a/supabase/production
++++ b/supabase/production
+@@
++CREATE OR REPLACE FUNCTION public.hr_command_log_enforce_actor_identity()
++RETURNS trigger
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path TO ''
++AS $function$
++DECLARE
++  v_user public.users%ROWTYPE;
++BEGIN
++  IF NEW.actor_user_id IS NULL THEN
++    NEW.actor_email := NULL;
++    RETURN NEW;
++  END IF;
++
++  SELECT u.* INTO v_user
++  FROM public.users u
++  WHERE u.id = NEW.actor_user_id
++    AND u.company_id = NEW.company_id
++    AND COALESCE(u.status,'Active') <> 'Inactive'
++  LIMIT 1;
++
++  IF NOT FOUND THEN
++    RAISE EXCEPTION 'HR audit actor identity is invalid for company';
++  END IF;
++
++  NEW.actor_email := v_user.email;
++  RETURN NEW;
++END;
++$function$;
++
++DROP TRIGGER IF EXISTS trg_hr_command_log_actor_identity ON public.hr_command_log;
++CREATE TRIGGER trg_hr_command_log_actor_identity
++BEFORE INSERT OR UPDATE OF actor_user_id, actor_email, company_id
++ON public.hr_command_log
++FOR EACH ROW
++EXECUTE FUNCTION public.hr_command_log_enforce_actor_identity();
++
++REVOKE ALL ON FUNCTION public.hr_command_log_enforce_actor_identity() FROM PUBLIC, anon, authenticated;
++GRANT EXECUTE ON FUNCTION public.hr_command_log_enforce_actor_identity() TO postgres, service_role;
++
++REVOKE INSERT, UPDATE, DELETE, TRUNCATE
++ON TABLE public.employee_documents
++FROM anon, authenticated;
