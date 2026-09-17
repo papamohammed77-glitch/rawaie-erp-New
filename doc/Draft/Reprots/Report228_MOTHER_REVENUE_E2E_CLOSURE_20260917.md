@@ -51,7 +51,29 @@ assembly_status:
 
 الدالة `finance_save_revenue` هي المحرك المحاسبي المركزي وتفرض Company Context، Branch، Treasury، Revenue Account validation، Period Guard، Operation ID، ثم تنشئ السجلات المحاسبية وسجل الإيراد وسجل الخزينة.
 
-## 3. إثبات دعم أكثر من حساب إيراد
+## 3. صلاحية الاستدعاء من النظام الأم
+
+تم التحقق مباشرة من `information_schema.routine_privileges` في Production.
+
+الدوال الثلاث:
+
+```text
+finance_list_revenues_v2
+finance_save_revenue
+finance_void_revenue
+```
+
+ممنوحة لـ:
+
+```text
+authenticated
+postgres
+service_role
+```
+
+وبالتالي يستطيع النظام الأم المستند إلى جلسة المستخدم authenticated استدعاء الـRPCs مباشرة، ولا توجد حاجة لإدخال Edge Function وسيطة لمجرد تنفيذ Revenue.
+
+## 4. إثبات دعم أكثر من حساب إيراد
 
 تم إجراء E2E Transactionally في Production باختبار تجريبي داخل Transaction واحدة ثم Rollback كامل:
 
@@ -86,7 +108,7 @@ finance_revenue_lines = 0
 
 **النتيجة:** Production Revenue Core مغلق وظيفيًا من جهة Database/Accounting/Treasury/Idempotency.
 
-## 4. النتيجة الجنائية في Mother
+## 5. النتيجة الجنائية في Mother
 
 آخر Mother الوظيفية تحتوي على Revenue UI وReceipt UI جديد، ولكن التنفيذ السابق أدخل عيب Parsing حقيقي في `_newReceipt()`.
 
@@ -110,85 +132,66 @@ finance_revenue_lines = 0
 
 لا تعدّل أي جزء آخر من هذا السطر.
 
-## 5. الجراحة رقم 2 — نطاق `_newReceipt`
+## 6. الجراحة رقم 2 — استبدال `_renderRevenues()` بالكامل
 
 في `main.html` الحالي ابحث حرفيًا عن:
 
 ```js
-async function _newReceipt() {
+function _renderRevenues() {
 ```
 
-وبدءًا من هذا السطر احذف **كل كتلة `_newReceipt` والدوال المرتبطة بها**:
+احذف **الدالة كاملة فقط** حتى القوس الأخير الذي يغلق `_renderRevenues()`.
 
-```text
-_newReceipt
-_addReceiptLine
-_removeReceiptLine
-_recalcReceiptTotal
-_saveReceipt
-```
+في النسخة المرجعية الحالية، البديل الكامل المثبت في Report227 هو القسم `8. Mother Surgical Instructions`، ويجب نسخه كاملًا كما هو، وليس إعادة كتابته من الذاكرة.
 
-ونطاق الحذف ينتهي مباشرة قبل السطر التالي الموجود في الملف:
+البديل يحقق:
+
+- شركة محددة من `_companyId()`.
+- استدعاء `finance_list_revenues_v2` من نفس سياق الشركة.
+- فلاتر تاريخ بداية/نهاية.
+- عدد العمليات.
+- إجمالي الإيرادات المرحلة.
+- إجمالي العمليات.
+- عدد المعكوس.
+- جدول الإيرادات.
+- زر `إيراد جديد`.
+- زر `سندات القبض`.
+- ربط مباشر بـ`_newReceipt` و`renderSubTab('receipts')`.
+
+الـNode parser أثبت PASS لهذا الاستبدال، والنسخة لا تحتوي مرجعًا إلى `branchesForRevenue` خارج نطاقه.
+
+## 7. الجراحة رقم 3 — Scope Bug
+
+العيب الثاني داخل Mother هو:
 
 ```js
-var _customerPaymentRealtimeChannel = null;
+var branchesForRevenue = [];
 ```
 
-في النسخة المرجعية الأخيرة كان هذا النطاق تقريبًا `15443 → 15542`.
+داخل `_newReceipt()` فقط، ثم وجود اعتماد على نفس الاسم من `_renderRevenues()` خارج نطاقه.
 
-### البديل
+**لا تنشئ Global variable جديدًا.**
 
-استخدم **كتلة الاستبدال الكاملة الموجودة في Report226** كما هي، وليس أجزاءً مقتطعة. هذه الكتلة هي الإصدار المصمم للربط مع:
+اعتماد `_renderRevenues()` يكون على مصدر فروع مستقل داخل الدالة نفسها أو cache الشركة الحالي المستخدم في Finance.
+
+القاعدة النهائية:
 
 ```text
-RW_Finance
-_companyId()
-_cache.accountsFlat
-_cache.treasury
-finance_revenue_categories
-finance_save_revenue
+_newReceipt scope ≠ _renderRevenues scope
 ```
 
-وتحتوي على:
-
-- اختيار التاريخ.
-- اختيار الفرع.
-- اختيار الخزينة.
-- اختيار فئة الإيراد.
-- حساب إيراد واحد أو عدة حسابات إيراد.
-- إضافة وحذف خطوط.
-- إعادة حساب الإجمالي.
-- Operation ID ثابت للعملية.
-- حفظ عبر Revenue RPC.
-- رسائل النجاح/الفشل.
-- الرجوع إلى شاشة سندات القبض.
-
-**لا تعيد كتابة الدالة يدويًا من الذاكرة؛ انسخ كتلة Report226 كاملة.**
-
-## 6. الجراحة رقم 3 — منع Scope Bug
-
-النسخة الحالية من Revenue UI كانت تعتمد على متغير فروع تم تعريفه داخل `_newReceipt()` ثم استُخدم خارج نطاقه من `_renderRevenues()`.
-
-لا تنقل هذا المتغير إلى Global scope.
-
-داخل `_renderRevenues()` فقط، استخدم جلب الفروع من نفس Company Context وبـ`company_id`، أو استخدم مصدر الفروع الموجود أصلًا في الـcache إذا كان هذا هو المصدر الذي يستخدمه Finance في نفس الملف.
-
-القاعدة: **لا يجوز أن يقرأ `_renderRevenues()` متغيرًا محليًا مملوكًا لـ`_newReceipt()`.**
-
-هذا إصلاح Scope فقط، ولا يغيّر عقد Revenue.
-
-## 7. ما لم يتم تعديله
+## 8. ما لم يتم تعديله
 
 - لم يتم تعديل `erp-frontend/companies/company-1/main.html` بواسطة المساعد.
 - لم يتم إنشاء Revenue Engine جديد.
 - لم يتم إنشاء جدول Revenue جديد.
-- لم يتم إنشاء Edge Function جديدة.
+- لم يتم إنشاء Edge Function جديدة للإيرادات.
 - لم يتم المساس بتطبيقات Picker/Loader/Driver/POS/Vansales أو دورة Order/Runsheet.
 - لم يتم المساس بملفات `Current/PWA/main2`.
 - لم يتم تعديل `New-main`.
 - لم يتم تعديل `forensic_main_assembly.yml` لأنه مثبت بالفعل على Source of Truth الصحيح.
 
-## 8. الأخطاء/التجارب
+## 9. الأخطاء/التجارب
 
 ### خطأ Parsing السابق
 
@@ -214,7 +217,11 @@ main:15526 Uncaught SyntaxError: Invalid or unexpected token
 - Void.
 - عدم ترك بيانات بعد Rollback.
 
-**الفشل الذي ظهر في المراجعة الأولى:**
+### إثبات الصلاحيات
+
+تم التحقق أن `finance_save_revenue`, `finance_list_revenues_v2`, `finance_void_revenue` قابلة للتنفيذ من دور `authenticated` في Production.
+
+**الفشل الذي ظهر في المراجعة:**
 
 محاولة استخدام `branchesForRevenue` خارج نطاقه.
 
@@ -226,7 +233,7 @@ Local variable داخل `_newReceipt()` مع استخدام من `_renderRevenue
 
 فصل مصدر الفروع عن Local scope وعدم إنشاء Global state جديد.
 
-## 9. حالة الإغلاق
+## 10. حالة الإغلاق
 
 ```text
 PRODUCTION REVENUE CORE                 = VERIFIED
@@ -235,6 +242,7 @@ TREASURY IMPACT                        = VERIFIED
 ACCOUNTING IMPACT                      = VERIFIED
 IDEMPOTENCY                             = VERIFIED
 VOID / REVERSAL                         = VERIFIED
+AUTHENTICATED RPC ACCESS               = VERIFIED
 PRODUCTION DATA CLEAN                  = VERIFIED
 FORENSIC ASSEMBLY SOURCE               = VERIFIED
 MOTHER PARSING                         = REQUIRES OWNER SURGERY
@@ -243,32 +251,33 @@ MOTHER REVENUE E2E                     = OPEN UNTIL OWNER MERGE
 
 لا يجوز إعلان `REVENUE GOLD/Diamond CLOSED` قبل تنفيذ جراحة Mother ثم تشغيل E2E من المتصفح وإعادة مطابقة Production بعد العملية.
 
-## 10. تعليمات E2E بعد دمج Mother
+## 11. تعليمات E2E بعد دمج Mother
 
 التسلسل المطلوب:
 
 1. فتح النظام الأم بعد تنفيذ الجراحة.
 2. تسجيل الدخول.
-3. فتح سندات القبض.
-4. الضغط على **إيراد جديد**.
-5. اختيار الفرع.
-6. اختيار الخزينة.
-7. إضافة حساب إيراد واحد.
-8. إضافة حساب إيراد ثانٍ.
-9. إدخال مبالغ مختلفة.
-10. التأكد من الإجمالي.
-11. الحفظ.
-12. التحقق أن الشاشة لا تعود بخطأ JavaScript.
-13. التحقق أن السند يظهر في قائمة الإيرادات.
-14. إعادة تحميل الشاشة.
-15. التحقق من بقاء السجل.
-16. التحقق من القيد.
-17. التحقق من Cash Box.
-18. التحقق من Treasury.
-19. اختبار Void إن كان الزر ظاهرًا.
-20. إعادة مطابقة Production بعد نهاية الاختبار.
+3. فتح Finance.
+4. فتح الإيرادات.
+5. الضغط على **إيراد جديد**.
+6. اختيار الفرع.
+7. اختيار الخزينة.
+8. إضافة حساب إيراد واحد.
+9. إضافة حساب إيراد ثانٍ.
+10. إدخال مبالغ مختلفة.
+11. التأكد من الإجمالي.
+12. الحفظ.
+13. التحقق أن الشاشة لا تعود بخطأ JavaScript.
+14. التحقق أن السند يظهر في قائمة الإيرادات.
+15. إعادة تحميل الشاشة.
+16. التحقق من بقاء السجل.
+17. التحقق من القيد.
+18. التحقق من Cash Box.
+19. التحقق من Treasury.
+20. اختبار Void إن كان الزر ظاهرًا.
+21. إعادة مطابقة Production بعد نهاية الاختبار.
 
-## 11. SELF-AUDIT
+## 12. SELF-AUDIT
 
 ### ما تم إثباته
 
@@ -283,6 +292,7 @@ MOTHER REVENUE E2E                     = OPEN UNTIL OWNER MERGE
 - عدم بقاء بيانات الاختبار.
 - سبب Syntax Error.
 - سبب Scope Error.
+- صلاحية RPCs للدور authenticated.
 
 ### ما لم يتم إثباته بعد
 
@@ -321,16 +331,9 @@ CURRENT DEPLOYMENT
 6. إن كان الخطأ بعد جراحة المالك، حدد الدالة/السطر حرفيًا.
 7. لا تعدل Production ما لم يثبت Defect جديد.
 8. بعد كل E2E أعد مطابقة Production قبل أي نسبة أو إغلاق.
-9. فقط بعد إثبات Revenue انتقل للنقطة المفتوحة التالية.
+9. أغلق Revenue فقط بعد owner merge + browser E2E + DB verification.
+10. انتقل للنقطة المفتوحة التالية فقط بعد الإغلاق.
 ```
-
-## 12. القرار النهائي
-
-**Revenue Production Core = CLOSED / VERIFIED.**
-
-**Revenue Mother UI = OPEN / OWNER SURGERY REQUIRED.**
-
-سبب بقاء النقطة مفتوحة ليس نقص Backend، بل أن النسخة الحالية من Mother تحتاج إصلاح الـSyntax والـScope ثم E2E حقيقي بعد الدمج.
 
 ---
 
