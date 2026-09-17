@@ -9,24 +9,25 @@
 ### System repository
 `papamohammed77-glitch/rawaie-erp-New`
 
-آخر commits ذات الصلة:
+Latest closure artifacts committed:
 ```text
-8c4b55a8cf3e13cfcafc44ddd86e0a0916222b17
- docs(hr): update current state after login blocker forensic closure
-3d368c830d3986e289d6c97b114967ea83cf6463
- docs(hr): record login blocker forensic non-causality
-265e0b36e6196e4dee812a52a39a720c34d7efa2
- Update print statement from 'Hello' to 'Goodbye'
-ec6ac7c5889d0e4ff4fef849ca1cfda0a85a61ab
- docs(hr): record production login syntax forensic closure
-9b97ef495986e1d92a0448985fbb376f1b936a6f
- ci(hr): enforce syntax-safe Mother HR surgical artifact
-```
+c0f8a65c1f49babb56ef0df56911faef169f401b
+ docs(hr): update current state after surgical login root-cause closure
 
-Latest closure report commit:
-```text
+aaf06a7988c7c7ecf58b79a93691ae18cd37bc67
+ docs(hr): add exact payroll syntax surgical patch
+
 7f97f28b1c6678e89e59081e66f2a8e08505c1e4
  docs(hr): record RW_HR login surgical closure
+```
+
+Relevant forensic commits:
+```text
+8c4b55a8cf3e13cfcafc44ddd86e0a0916222b17
+3d368c830d3986e289d6c97b114967ea83cf6463
+265e0b36e6196e4dee812a52a39a720c34d7efa2
+ec6ac7c5889d0e4ff4fef849ca1cfda0a85a61ab
+9b97ef495986e1d92a0448985fbb376f1b936a6f
 ```
 
 ### Mother repository
@@ -134,13 +135,16 @@ Post-rollback HR business tables → 0
 
 ## 7. Surgical Mother replacement
 
-Canonical artifact:
+Canonical complete replacement:
 `doc/Draft/Reprots/HR_MOTHER_SURGICAL_REPLACEMENT_20260917_FINAL.js`
 
 SHA:
 `d02050f9f8131156b5dc283d5229cb1ffff5e5fd`
 
-Complete RW_HR replacement aligned to:
+Exact one-line surgical patch reference:
+`doc/Draft/Reprots/HR_MOTHER_LOGIN_SYNTAX_SURGICAL_PATCH_20260917.diff`
+
+Complete replacement aligned to:
 ```text
 Reads → hr_query
 Writes → hr_command_atomic
