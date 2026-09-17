@@ -1,0 +1,111 @@
+الحالة المثبتة حتى نقطة التوقف
+
+قرأت Governance وReport227/228 وراجعت CURRENT_STATE وراجعت مسار Git الحالي للنظام الأم، مع مقارنة مصدر main.html والنواة الحالية في Production. الحوكمة تؤكد أن المرجع النهائي يجب أن يكون التحقيق من Git/Source/Production/Database/Deployment، لا إعادة تنفيذ ما ثبت سابقًا. كما أن الـDirective يفرض إغلاق كل Writer/Closure قبل الانتقال، مع الفصل بين التعديل في Production والتعديل اليدوي في النظام الأم.
+
+النظام الأم: آخر حالة Git التي تم فحصها كانت 489cd50accaf6b974cdd70c41f6aaa6cc1a10266 والـparent adde98bdcbdd4f8e8e2764b4baa3fe100c92d560.
+
+main.html لم يتم تعديله.
+
+forensic_main_assembly.yml لم أغيره.
+
+ما تم تنفيذه فعليًا في Production
+
+تم توسيع نواة HR الموجودة بدل هدمها، وأصبحت Production تحتوي على طبقات:
+
+الهيكل التنظيمي: Departments / Positions / Assignments.
+العقود.
+الورديات وقواعد الحضور.
+Attendance Events + Attendance Day.
+أنواع الإجازات والأرصدة.
+Employee Requests + Approval workflow.
+Salary Advances.
+Salary Components + Contract Components.
+Payroll Periods / Runs / Payslips / Payslip Lines.
+Payroll accounting mapping.
+HR command log.
+Unified hr_command_atomic.
+Unified hr_query.
+RLS على الجداول الجديدة.
+Realtime publication.
+تضييق صلاحيات hr_query.
+الحفاظ على الجداول الأصلية:
+employee_profiles, employee_attendance, employee_leave_requests, employee_documents.
+
+وقد تم التأكد من أن جداول HR الأصلية لا تحتوي بيانات تجريبية؛ وهي أساس نظيف لبناء النظام.
+
+كما تم إنشاء محرك الرواتب المساعد hr_payroll_calculate_impl ومحرك الترحيل hr_payroll_post_impl، مع إصلاح مشكلة تجميع الإجماليات وإضافة تحقق من اتزان:
+
+gross = net + deductions
+
+والـPayroll أصبح يقرأ مكونات hr_contract_components بدل تركها جداول شكلية.
+
+نقطة مهمة اكتُشفت أثناء التحقيق
+
+تم اكتشاف أن attendance.event.record كان في البداية يسجل الحدث فقط، ولا يحوله إلى يوم حضور تشغيلي كامل. تم البدء في إغلاق هذه الفجوة بحيث ينتج الحدث:
+
+check_in / check_out → worked_hours → late → early_leave → overtime → employee_attendance
+
+وكذلك تم إضافة تحقق رصيد الإجازة عند الاعتماد بدل اعتماد الإجازة دون أثر على الرصيد.
+
+لكن آخر Migration خاصة بهذا التوسيع فشلت قبل Commit بسبب متغير غير معلن (v_start). لذلك لم أعتبرها ناجحة ولم أدّعِ أن إصلاحها دخل Production.
+
+ما لم يكتمل
+
+هناك أربع نقاط لم يكن من الصحيح إعلانها مغلقة:
+
+Edge Function hr-command لم يثبت نشرها النهائي بعد.
+Edge Function رفع مستندات HR لم يثبت نشرها النهائي بعد.
+لم يتم إجراء E2E Production كامل من البداية إلى النهاية بعد آخر تغييرات HR، مع Transaction/Rollback وإثبات كل دورة.
+لم أتمكن من استخراج محتوى كتلة RW_HR الحالية من main.html بصورة موثوقة؛ GitHub يعيد محتوى الملف فارغًا عند القراءة الجزئية بسبب حجم الملف. لذلك لم أختلق أرقام أسطر أو أطلب منك حذف مقطع غير مثبت. وبالتالي لا أعتبر تعليمات الـdelete/replace للنظام الأم مكتملة بعد.
+
+وهذا يعني أن HR Production Core تقدم فعليًا، لكن Global HR Gold/Diamond Closure لم يُغلق بعد.
+
+والأهم: لم يتم لمس main.html خلافًا لتعليماتك.
+
+أهم نتيجة من المقارنة
+
+الفجوة ليست في شاشة الموظفين وحدها. النموذج الذي ينبغي أن تنعكس طبقاته في النظام الأم هو:
+
+Employee
+
+→ Organization
+
+→ Contract
+
+→ Schedule
+
+→ Attendance
+
+→ Leave / Requests / Approval
+
+→ Advances
+
+→ Payroll Components
+
+→ Payroll Run
+
+→ Payslip
+
+→ Accounting
+
+→ Employee Self Service
+
+مع جعل hr_command_atomic نقطة الأوامر المركزية وhr_query نقطة القراءة الموحدة، بدل مجموعة تبويبات لكل منها منطقها الخاص.
+
+كما أن المقارنة مع وظائف HR في دفترة أكدت أن الحضور والورديات والإجازات والسلف والطلبات والرواتب والخدمة الذاتية يجب أن تكون دورة مترابطة، لا مجرد شاشات مستقلة.
+
+توجيه نقطة الاستكمال
+
+النقطة الصحيحة التالية ليست إعادة بناء الجداول.
+
+ابدأ مباشرة من:
+
+CURRENT PRODUCTION HR Schema + CURRENT hr_command_atomic + CURRENT hr_query + CURRENT Git HEAD 489cd50...
+
+ثم:
+
+hr-command Edge → document-upload Edge → E2E transactional HR → استخراج RW_HR الحقيقي من main.html → إعداد surgical replacement → تقرير → CURRENT_STATE
+
+ولا تعِد إنشاء الجداول التي تم إنشاؤها بالفعل، ولا تعُد إلى main2 كمصدر Truth؛ يبقى companies/company-1/main.html هو النظام الأم المستهدف.
+
+لم أُنشئ Report229 ولم أحدّث CURRENT_STATE.md في هذه الجولة، لأن المهمة انقطعت قبل الوصول إلى مرحلة التقرير النهائي؛ لذلك لن أزعم أن السجلات أُغلقت.
