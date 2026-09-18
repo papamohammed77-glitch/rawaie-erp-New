@@ -82,20 +82,20 @@ Repository:
 papamohammed77-glitch/erp-frontend
 
 HEAD:
-f022457cefbd176c142996040dcbf6e982936623
+033a5386930cee0d306a3a398a402066e596dfe
 
 PARENT:
-71529a7780d614766730e86a43bc457caaab7c09
+aa6e8177ab32f45fed08a07113b83eb9c6aa7fd1
 
 Current main.html blob:
-3230a4cf205c9b1e1752e4eea733829c84660a15
+506bc3fc22036bb9ef2d23d93e753060ccced563
 
 الحجم:
-25,918 lines
-1,413,667 bytes
+26,221 lines
+1,425,430 bytes
 
 آخر commit غيّر main.html فعليًا:
-71529a7780d614766730e86a43bc457caaab7c09
+aa6e8177ab32f45fed08a07113b83eb9c6aa7fd1
 
 main.html CTO modification in this session:
 0
