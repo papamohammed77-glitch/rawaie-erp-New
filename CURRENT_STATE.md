@@ -13,12 +13,12 @@
 
 Latest system commit:
 ```
-79b16b22c5fe5b22fa0e9aa37d7026269394dbe0
+78da908d23be6ae64f544bf46abf9a5d0d6be3ea
 ```
 
 Parent:
 ```
-488c12496c4f9780b30b12573342c8d874001a10
+79b16b22c5fe5b22fa0e9aa37d7026269394dbe0
 ```
 
 Previous implementation/evidence commit:
@@ -106,7 +106,7 @@ FAIL — Unexpected token ')'
 
 After exactly these two source changes:
 1. replace `modal()` with the complete corrected function in the session report;
-2. insert `}();`/exact `}());` at the RW_HR boundary before `window.RW_HR = RW_HR;`;
+2. insert the exact `}());` at the RW_HR boundary before `window.RW_HR = RW_HR;`;
 
 the same current inline JavaScript was re-parsed with V8 `new Function()`:
 ```
