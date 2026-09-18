@@ -1,3 +1,127 @@
+# RAWAEA ERP — CURRENT STATE
+## LATEST VERIFIED SESSION — 2026-09-18 — COMPREHENSIVE REPORTS FORENSIC/SURGICAL CLOSURE
+
+> هذا القطاع هو أحدث حالة مثبتة ويعلو على أي snapshot أقدم أدناه.  
+> مصدر الحقيقة: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+
+### Current Git — System Repository
+- Repository: `papamohammed77-glitch/rawaie-erp-New`
+- Latest session commit: `c7b6f37a40d1ef66e68569806552b60ad5dd8653`
+- Parent: `c7b6f37a40d1ef66e68569806552b60ad5dd8653` was immediately preceded by `f8117693e8b7c6f1d6a4aaffbb0f17765f4aa064`.
+- Production migration commit for inventory turnover: `f8117693e8b7c6f1d6a4aaffbb0f17765f4aa064`.
+- Comprehensive reports forensic report:
+  `doc/Draft/Reprots/Report238_COMPREHENSIVE_REPORTS_FORENSIC_SURGICAL_CLOSURE_20260918.md`
+
+### Current Git — Mother Repository
+- Repository: `papamohammed77-glitch/erp-frontend`
+- Current HEAD verified: `fdfdb2bf03271e8eedad81ad8400c243b89c33a5`
+- Direct parent verified: `d265bb72a64f4bbabf9c125a1b5bba5d17ffd799`
+- Current Mother `main.html` blob: `468da111b9da992331dba9162c6c6e6509b76004`
+- Current Mother main.html: 25,837 lines / 1,413,915 characters.
+- main.html was NOT modified by this session.
+
+### Comprehensive Reports Module
+- Module: `RW_Reports_Comprehensive`
+- Source boundary: approximately lines 19,844–23,313 of current Mother main.html.
+- Verified report definitions: 38.
+- Sections: Sales, Inventory/Purchases, Finance, CRM, Logistics, HR.
+- No report outside this module was intentionally modified.
+
+### Production Database
+- Project: `fiilmooggumokxanwiyx`
+- Current company count: 1.
+- Current company: `00000000-0000-0000-0000-000000000001`.
+- Active branches: 2.
+- Active items: 16.
+- Orders: 0.
+- Purchase Orders: 0.
+- Receiving: 0.
+- Runsheets: 0.
+- Journal Entries: 2.
+- Daily Settlements: 0.
+- Stock rows: 20.
+- Cross-company stock item rows: 0.
+- Cross-company inventory_log item rows: 0.
+- Cross-company order_detail item rows: 0.
+
+### Production Reporting Contracts Verified
+- `inventory_movement_report`
+- `inventory_replenishment_report`
+- `finance_tax_report`
+- `finance_tax_settlements_report`
+- `accountant_gl_account_activity`
+- `accountant_period_readiness`
+- `accountant_reconciliation_summary`
+- `accountant_exception_center`
+- `get_trial_balance`
+- `get_profit_loss`
+- `get_balance_sheet_data`
+- `get_cash_flow`
+
+### Production Change Executed In This Session
+New reporting-only contract:
+`public.comprehensive_inventory_turnover_report(uuid,date,date,uuid)`
+
+Canonical migration:
+`supabase/migrations/20260918_comprehensive_inventory_turnover_report.sql`
+
+Status:
+- Production deployed.
+- Auth guard verified.
+- Unauthenticated/no-company-context execution rejected.
+- Authenticated context returned the correct current company.
+- No operational stock/order data was modified.
+
+### Source Surgical Work Prepared — Owner Managed
+Exact source replacements are documented in Report238 for:
+- report UX/open-report controls
+- CSV export
+- report freshness metadata
+- realized sales filtering
+- item-sales quantity handling
+- cost-based inventory valuation
+- inventory movement report wiring
+- low-stock report wiring
+- inventory turnover/dormant report wiring
+- Finance GL wiring
+- Treasury company scope
+- Finance Tax wiring
+
+Owner must apply these to the current Mother source. Do NOT replace the whole main.html.
+
+### Deliberately Untouched
+- Sales transaction engines.
+- Inventory physical stock writers.
+- Picking / Loading / Delivery / Return workflows.
+- Runsheet lifecycle.
+- CRM transaction engines.
+- HR transaction engines.
+- Existing reports without a proven contract gap.
+
+### Verification Status
+- Current Git: VERIFIED.
+- Current Mother Source: VERIFIED.
+- Current Production Database: VERIFIED.
+- Current Production reporting RPCs: VERIFIED.
+- New Inventory Turnover Production contract: DEPLOYED + AUTH VERIFIED.
+- Mother source cutover: PENDING OWNER.
+- Browser E2E after source cutover: OPEN / NOT VERIFIED.
+- Overall Comprehensive Reports closure: OPEN UNTIL OWNER CUTOVER + BROWSER E2E.
+
+### Next Session Start Point
+1. Re-read Report238 in full.
+2. Verify current System HEAD again.
+3. Verify current Mother HEAD and main.html blob again.
+4. Re-open only `RW_Reports_Comprehensive`.
+5. Confirm the owner-applied surgical replacements against the exact current blob.
+6. Run syntax verification.
+7. Run authenticated browser smoke tests for the 38 report IDs.
+8. Re-read Production after browser actions.
+9. Close only the remaining browser/runtime gate.
+10. Do not reopen any operational engine already closed.
+
+---
+
 # LATEST VERIFIED SNAPSHOT — 2026-09-18 — CRM FORENSIC / SURGICAL CLOSURE
 
 > نطاق هذه الجلسة: **CRM فقط**. لا إعادة فتح لأي مسار سابق، ولا تعديل لـ `main.html` بواسطة CTO.
