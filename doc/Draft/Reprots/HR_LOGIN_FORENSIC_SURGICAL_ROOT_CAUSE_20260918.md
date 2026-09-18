@@ -502,7 +502,7 @@ Authentication database modification = NO
 2. نفذ parser gate على الـinline JavaScript.
 3. النتيجة المطلوبة:
 ```
-NODE_CHECK = PASS
+V8_INLINE_JS_PARSE = PASS
 ```
 4. تحقق أن `RW_HR` له:
    - opening عند `var RW_HR = (function() {`
