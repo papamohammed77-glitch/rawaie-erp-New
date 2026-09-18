@@ -24,12 +24,15 @@
 - المصادر التاريخية المرتبطة بـRW_Users.
 - الوثائق الرسمية للمقارنة مع Odoo / Dynamics 365 / SAP Business One / Daftra / Manager.io.
 
-### System Git — قبل إصلاحات هذه الوحدة
+### System Git — الحالة النهائية لهذه الجلسة
 
 `papamohammed77-glitch/rawaie-erp-New`
 
+- Current HEAD النهائي: `4da3c30b44d65d6d216680483104d5e5309238bb`
+- parent: `b703493f423ff0f941c68cb3cdaefcdff96777d7`
+- آخر HEAD للتعديلات المصدرية قبل commits التوثيق: `08628e01d75fe50ddbde0617c669132322e1b290`
 - نقطة الحالة السابقة: `f3c15bac375dfca129e6814603867eed5b53117b`
-- parent: `4cabe17b46491c25c957a2662e65e9c05fe3248a`
+- parent السابق: `4cabe17b46491c25c957a2662e65e9c05fe3248a`
 
 ### Mother Git — آخر حقيقة قبل هذه الجلسة
 
