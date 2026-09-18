@@ -1,5 +1,139 @@
 # RAWAEA ERP — CURRENT STATE
 
+# LATEST VERIFIED SNAPSHOT — 2026-09-18 — HR TAB RUNTIME EXPORT ROOT CAUSE
+
+> نطاق هذه الحالة: HR tab runtime only. main.html لم يُعدل من هذه الجلسة.
+> التقرير التنفيذي: doc/Draft/Reprots/HR_TAB_RUNTIME_FORENSIC_CLOSURE_20260918.md
+
+## Current Truth
+
+### System repository
+HEAD:
+fee9cf2a1cfcd020d67093d4c0633edfa574ed70
+
+Parent:
+78da908d23be6ae64f544bf46abf9a5d0d6be3ea
+
+### Mother repository
+HEAD:
+b0d4475576f712057340821653d4a3a9d08e14e6
+
+Parent:
+29631c0e910b25b77fc5d4e2dda8efca8adfdb20
+
+Current main.html blob:
+6dbca77b5e0fe569f3435fd39f965002dc7c0d2b
+
+Current main.html forensic SHA256:
+b6f079ce423d1869c672ba265d2c473a5fc3853f8f2ea0cf1949e02c83e5d218
+
+## HR runtime root cause — PROVEN
+
+RW_HR opens at line 23788 as:
+var RW_HR = (function() {
+
+RW_Views.render calls at line 23741:
+if (view === 'hr') { RW_HR.render(); return; }
+
+RW_HR.render exists at line 23902.
+
+Current terminal:
+23932: realtime();
+23933: window.RW_HR={render:render,reload:render,openEmployee360:open360};
+23934: }());
+23935: window.RW_HR = RW_HR;
+
+There is no module-level return inside RW_HR IIFE.
+
+Therefore:
+RW_HR = undefined
+and then:
+window.RW_HR = undefined
+
+This exactly explains:
+Cannot read properties of undefined (reading 'render')
+
+The defect is Module Export Contract Failure, not a current Parser Failure.
+
+## Historical proof
+
+Commit 15325117153959536d8035b603ef9cfd64fc736d removed the RW_HR IIFE close while retaining:
+window.RW_HR = RW_HR;
+
+Commit 48139d0b711496712d3c43572eef0e0e4ee5934c restored only the outer script-final closure.
+
+Commit 1f3e89e8761e34e3982746ae93ab0260e4d4b1a4 restored RW_HR IIFE closure but still did not add the required return.
+
+Do not rewrite HR and do not patch RW_Views for this incident.
+
+## Owner Surgical Changeset — READY
+
+File:
+companies/company-1/main.html
+
+Exact current block at lines 23932–23935:
+
+  realtime();
+  window.RW_HR={render:render,reload:render,openEmployee360:open360};
+}());
+window.RW_HR = RW_HR;
+
+Delete that block and replace it with:
+
+  realtime();
+  return {
+    render: render,
+    reload: render,
+    openEmployee360: open360
+  };
+}());
+window.RW_HR = RW_HR;
+
+No other main.html element is authorized by this incident.
+
+## Production
+
+Supabase HR core verified:
+hr_query
+hr_command_atomic
+hr_user_has_permission
+hr_payroll_calculate_impl
+hr_payroll_post_impl
+hr_list_employees
+hr_save_attendance
+hr_set_leave_status
+hr_upsert_employee_profile
+
+Current Production HR operational domain tables are empty; no fabricated HR business data exists.
+
+No Production DB migration is required for this root cause.
+No Production data repair is required for this root cause.
+No new middleware/SW workaround is required.
+
+## Closure status
+
+CURRENT SOURCE ROOT CAUSE = PROVEN
+PRODUCTION HR CORE = VERIFIED
+OWNER SURGICAL PATCH = READY
+MAIN.HTML MODIFIED BY CTO = 0
+PRODUCTION DB CHANGE = 0
+LIVE BROWSER AFTER OWNER PATCH = OPEN
+FULL HR E2E = OPEN
+
+## Next exact session
+
+1. Verify Owner applied only the exact surgical block above.
+2. Verify the defective block occurs 0 times.
+3. Verify the replacement return block occurs 1 time.
+4. Run JS syntax validation.
+5. Verify typeof RW_HR === 'object'.
+6. Verify typeof RW_HR.render === 'function'.
+7. Open HR from Mother navigation.
+8. Smoke-test all ten HR tabs read-only.
+9. Only after live browser closure open the next HR Closure Unit.
+10. Do not reopen inventory/runsheet/delivery/picking/accounting without direct new evidence.
+
+
 # LATEST VERIFIED SNAPSHOT — 2026-09-18 — HR LOGIN PARSER ROOT-CAUSE / SURGICAL PATCH READY
 
 > نطاق الجلسة: HR / Mother login parser فقط. `companies/company-1/main.html` لم يُعدل في هذه الجلسة.
