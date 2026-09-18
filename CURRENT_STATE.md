@@ -1,4 +1,145 @@
 # RAWAEA ERP — CURRENT STATE
+
+## LATEST VERIFIED SESSION — 2026-09-18 — COMPREHENSIVE REPORTS CURRENT RUNTIME FORENSIC / SURGICAL CLOSURE
+
+> هذه هي أحدث حالة مثبتة لهذه الجلسة. المصدر الحاكم: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+> نطاق الجلسة: RW_Reports_Comprehensive فقط. main.html لم يُعدّل بواسطة CTO.
+
+### Current Git — System Repository
+- Repository: papamohammed77-glitch/rawaie-erp-New
+- Session report commit: d69201bbbf9492b2d073207fdc2d8762e71dd12d
+- Current HEAD after report commit: d69201bbbf9492b2d073207fdc2d8762e71dd12d
+- Direct parent: eaf272ac291681212e228463e5bfd8c0e107b123
+- Previous report-state commit: eaf272ac291681212e228463e5bfd8c0e107b123
+- Inventory turnover production migration: f8117693e8b7c6f1d6a4aaffbb0f17765f4aa064
+- Current report: doc/Draft/Reprots/Report239_COMPREHENSIVE_REPORTS_CURRENT_RUNTIME_FORENSIC_SURGICAL_CLOSURE_20260918.md
+
+### Current Git — Mother Repository
+- Repository: papamohammed77-glitch/erp-frontend
+- Current HEAD: 7a1edbc31861fb87720b0f0455bd1e3a15cb0b0b
+- Direct parent: d662cfb14c7c5b4889d0fdbc4d7c6898330d82e9
+- Current companies/company-1/main.html blob: 618a3dc0a74d20b0c533c9393a663a1849d0f926
+- Current main.html size: 25,905 lines
+- Mother HEAD commit did not modify main.html; it modified forensic extract only.
+- main.html CTO modifications in this session: 0.
+
+### Current Comprehensive Reports Source
+- Module: RW_Reports_Comprehensive
+- Current source boundary: approximately lines 19,844–23,381.
+- Report definitions: 38.
+- Sections: Sales, Inventory/Purchases, Finance, CRM, Logistics, HR.
+- Current source parser before surgical repair: FAIL — Invalid or unexpected token.
+- Confirmed defects:
+  1. malformed _generateReport() button-string construction around line 20,144;
+  2. malformed newline literals in _exportReportCsv();
+  3. literal </script> embedded in _printReport() around line 23,359;
+  4. stale finance-tax description contradicting currently available Production tax reporting contracts.
+- In-memory surgical reconstruction against the exact current blob:
+  - RW_Reports_Comprehensive parse = PASS.
+  - Full inline script V8 parse = PASS.
+  - malformed _generateReport('' occurrences = 0.
+  - literal </script> count = 6.
+- The embedded </script> is the causal explanation to test first for later console warnings in lines 23,496–25,702; do not create separate patches for those warnings before browser retest.
+
+### Current Production Database
+- Project: fiilmooggumokxanwiyx
+- Companies: 1
+- Company: 00000000-0000-0000-0000-000000000001 / الروائع
+- Active branches: 2
+- Active items: 16
+- Orders: 0
+- Purchase Orders: 0
+- Receiving: 0
+- Runsheets: 0
+- Journal Entries: 2
+- Daily Settlements: 0
+- Stock rows: 20
+- Inventory log rows: 3
+- Cross-company stock/item mismatch: 0
+- Cross-company inventory_log/item mismatch: 0
+
+### Current Production Reporting Contracts
+Verified directly under authenticated company context:
+- inventory_movement_report
+- inventory_replenishment_report
+- comprehensive_inventory_turnover_report
+- finance_tax_report
+- finance_tax_settlements_report
+- accountant_gl_account_activity
+- accountant_period_readiness
+- accountant_reconciliation_summary
+- accountant_exception_center
+- get_trial_balance
+- get_profit_loss
+- get_balance_sheet_data
+- get_cash_flow
+
+Read-only/transactional probes:
+- inventory_movement_report = success
+- inventory_replenishment_report = success
+- comprehensive_inventory_turnover_report = success
+- finance_tax_report = empty current result
+- finance_tax_settlements_report = empty current result
+- get_trial_balance = 17 rows
+- get_profit_loss = 0 rows
+- get_balance_sheet_data = valid JSON
+- get_cash_flow = 0 rows
+- accountant_period_readiness = 5 rows
+- accountant_reconciliation_summary = 4 rows
+- accountant_exception_center = 0 rows
+
+No synthetic business data was retained.
+
+### Production Change Required for This Closure
+- Reporting database migration required: NO.
+- Reporting schema change required: NO.
+- Reason: the current defect is Source JavaScript / HTML parsing integrity. The required Production reporting contracts already exist and were verified.
+
+### Owner Surgical Source Gate
+The exact four source-only changes are documented in:
+doc/Draft/Reprots/Report239_COMPREHENSIVE_REPORTS_CURRENT_RUNTIME_FORENSIC_SURGICAL_CLOSURE_20260918.md
+
+They target only RW_Reports_Comprehensive:
+1. Replace the malformed report-action button block.
+2. Replace function _exportReportCsv() completely.
+3. Escape the embedded script closing tag in _printReport() from </script> to <\/script> in the JavaScript source string.
+4. Update the stale finance-tax description only.
+
+Do NOT replace all main.html.
+Do NOT modify neighboring modules before browser retest.
+
+### Closure Status
+- Current Git = VERIFIED
+- Current Mother source = VERIFIED
+- Current Production reporting contracts = VERIFIED
+- Source root cause = PROVEN
+- Exact surgical patch = READY
+- In-memory repaired source parse = PASS
+- main.html CTO modification = 0
+- Production DB change for this closure = 0
+- Owner source cutover = PENDING
+- Browser E2E = OPEN
+- 38-report live smoke = OPEN
+- Comprehensive Reports full closure = OPEN until owner cutover + browser verification
+
+### Next Session Starting Point
+1. Re-read Report239.
+2. Verify System HEAD/parent again.
+3. Verify Mother HEAD/parent and main.html blob again.
+4. Confirm whether owner applied exactly the four surgical changes.
+5. Verify malformed _generateReport('' count = 0.
+6. Verify no literal </script> remains inside RW_Reports_Comprehensive.
+7. Run V8 parser on the full inline script.
+8. Open Comprehensive Reports.
+9. Smoke-test all 38 report IDs.
+10. Test عرض التقرير / تحديث / CSV / طباعة / رجوع.
+11. Re-check Console after parser and HTML termination are clean.
+12. Re-read Production counts after browser.
+13. Only then close Comprehensive Reports.
+14. Do not reopen inventory/picking/loading/delivery/CRM/HR/accounting engines without fresh evidence.
+
+---
+
 ## LATEST VERIFIED SESSION — 2026-09-18 — COMPREHENSIVE REPORTS FORENSIC/SURGICAL CLOSURE
 
 > هذا القطاع هو أحدث حالة مثبتة ويعلو على أي snapshot أقدم أدناه.  
