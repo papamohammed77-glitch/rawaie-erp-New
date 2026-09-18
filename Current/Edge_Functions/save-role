@@ -1,0 +1,82 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const db=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
+
+function asBool(v){return v===true||String(v??"").toLowerCase()==="true";}
+function hasPermission(perms,key){return Array.isArray(perms)&&(perms.includes("*")||perms.includes(key));}
+
+async function getActor(req){
+  const h=req.headers.get("Authorization"); if(!h) throw Error("غير مصرح");
+  const {data:{user},error:ae}=await db.auth.getUser(h.replace("Bearer ",""));
+  if(ae||!user?.id) throw Error("جلسة غير صالحة");
+  const {data:actor,error}=await db.from("users").select("id,company_id,status,permissions").eq("auth_id",user.id).maybeSingle();
+  if(error||!actor||actor.status==="Inactive"||!actor.company_id) throw Error("سياق المستخدم غير صالح");
+  const perms=Array.isArray(actor.permissions)?actor.permissions:[];
+  const {data:op,error:oe}=await db.from("owner_profile").select("auth_user_id").eq("auth_user_id",user.id).maybeSingle();
+  if(oe) throw oe;
+  const isOwner=asBool(user.user_metadata?.isOwner)&&perms.includes("*")&&!!op;
+  if(!isOwner&&!perms.includes("roles")) throw Error("لا تملك صلاحية إدارة الأدوار");
+  return {user,companyId:actor.company_id,isOwner};
+}
+
+async function audit(email,action,id,oldData,newData){
+  const {error}=await db.from("audit_log").insert({
+    user_email:email||"system",action,table_name:"roles",record_id:String(id),old_data:oldData??null,new_data:newData??null
+  });
+  if(error) console.error("ROLE_AUDIT_FAILED",error);
+}
+
+serve(async(req)=>{
+  if(req.method==="OPTIONS") return new Response("ok",{headers:cors});
+  try{
+    const body=await req.json().catch(()=>({}));
+    const roleName=String(body?.role_name??"").trim();
+    const description=body?.description==null?null:String(body.description).trim();
+    const permissions=Array.isArray(body?.permissions)?Array.from(new Set(body.permissions.map(String).map(x=>x.trim()).filter(Boolean))):[];
+    const requestedId=body?.id?String(body.id):null;
+    if(!roleName) throw Error("اسم الدور مطلوب");
+
+    const {user,companyId,isOwner}=await getActor(req);
+
+    if(permissions.includes("*")&&!isOwner) throw Error("صلاحية wildcard (*) محجوزة للمالك");
+
+    if(requestedId){
+      const {data:existing,error:re}=await db.from("roles").select("*").eq("id",requestedId).eq("company_id",companyId).maybeSingle();
+      if(re) throw re;
+      if(!existing) throw Error("الدور غير موجود ضمن الشركة الحالية");
+
+      if(existing.role_name!==roleName){
+        const {data:assigned,error:ue}=await db.from("users")
+          .select("id")
+          .eq("company_id",companyId)
+          .or("role_id.eq."+requestedId+",role.eq."+JSON.stringify(existing.role_name))
+          .limit(1);
+        if(ue) throw ue;
+        if((assigned||[]).length) throw Error("لا يمكن إعادة تسمية دور مرتبط بمستخدمين حاليين؛ أعد تعيينهم أولاً");
+      }
+
+      const payload={role_name:roleName,description,permissions,is_system:existing.is_system===true};
+      const {error}=await db.from("roles").update(payload).eq("id",existing.id).eq("company_id",companyId);
+      if(error) throw error;
+      await audit(user.email,"update",existing.id,existing,payload);
+      return new Response(JSON.stringify({success:true,action:"updated",id:existing.id}),{
+        headers:{...cors,"Content-Type":"application/json"}
+      });
+    }
+
+    const payload={role_name:roleName,description,is_system:false,permissions,company_id:companyId};
+    const {data:created,error}=await db.from("roles").insert(payload).select("id").single();
+    if(error) throw error;
+    await audit(user.email,"create",created.id,null,payload);
+    return new Response(JSON.stringify({success:true,action:"created",id:created.id}),{
+      headers:{...cors,"Content-Type":"application/json"}
+    });
+  }catch(e){
+    console.error("save-role",e);
+    return new Response(JSON.stringify({success:false,error:e?.message||"فشل الحفظ"}),{
+      status:400,headers:{...cors,"Content-Type":"application/json"}
+    });
+  }
+});
