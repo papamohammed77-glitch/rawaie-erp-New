@@ -1,0 +1,83 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS"
+};
+
+function asBool(v){ return v === true || String(v ?? "").toLowerCase() === "true"; }
+
+async function getActor(req){
+  const h=req.headers.get("Authorization"); if(!h) throw Error("غير مصرح");
+  const {data:{user},error:ae}=await db.auth.getUser(h.replace("Bearer ",""));
+  if(ae||!user?.id) throw Error("جلسة غير صالحة");
+  const {data:actor,error}=await db.from("users").select("id,company_id,status,permissions").eq("auth_id",user.id).maybeSingle();
+  if(error||!actor||actor.status==="Inactive"||!actor.company_id) throw Error("سياق المستخدم غير صالح");
+  const permissions=Array.isArray(actor.permissions)?actor.permissions:[];
+  const {data:op,error:oe}=await db.from("owner_profile").select("auth_user_id").eq("auth_user_id",user.id).maybeSingle();
+  if(oe) throw oe;
+  const isOwner=asBool(user.user_metadata?.isOwner)&&permissions.includes("*")&&!!op;
+  if(!isOwner&&!permissions.includes("users")) throw Error("لا تملك صلاحية إدارة المستخدمين");
+  return {user,actor,companyId:actor.company_id,isOwner};
+}
+
+async function isTargetOwner(authId){
+  if(!authId) return false;
+  const {data:au,error:ae}=await db.auth.admin.getUserById(authId); if(ae) throw ae;
+  const {data:op,error:oe}=await db.from("owner_profile").select("auth_user_id").eq("auth_user_id",authId).maybeSingle();
+  if(oe) throw oe;
+  return asBool(au?.user?.user_metadata?.isOwner)&&!!op;
+}
+
+async function audit(email,action,id,oldData,newData){
+  const {error}=await db.from("audit_log").insert({
+    user_email:email||"system", action, table_name:"users", record_id:String(id),
+    old_data:oldData??null, new_data:newData??null
+  });
+  if(error) console.error("USER_AUDIT_FAILED",error);
+}
+
+serve(async(req)=>{
+  if(req.method==="OPTIONS") return new Response("ok",{headers:cors});
+  try{
+    const {user,companyId}=await getActor(req);
+    const body=await req.json().catch(()=>({}));
+    const email=String(body?.email||"").trim();
+    if(!email) throw Error("بريد المستخدم مطلوب");
+
+    const {data:target,error:te}=await db.from("users").select("*").eq("company_id",companyId).eq("email",email).maybeSingle();
+    if(te) throw te;
+    if(!target) throw Error("المستخدم غير موجود");
+    if(target.id===undefined) throw Error("هوية المستخدم غير صالحة");
+    if(target.auth_id && await isTargetOwner(target.auth_id)) throw Error("لا يمكن حذف حساب المالك");
+    if(target.auth_id===user.id) throw Error("لا يمكن حذف الحساب المستخدم حاليًا");
+
+    const oldData={...target};
+    const {error:ue}=await db.from("users").update({status:"Inactive"}).eq("id",target.id).eq("company_id",companyId);
+    if(ue) throw ue;
+
+    try{
+      if(target.auth_id){
+        const {error:be}=await db.auth.admin.updateUserById(target.auth_id,{ban_duration:"876000h"});
+        if(be) throw be;
+      }
+    }catch(authError){
+      const {error:rollbackError}=await db.from("users").update({status:oldData.status}).eq("id",target.id).eq("company_id",companyId);
+      if(rollbackError) console.error("USER_DB_ROLLBACK_FAILED",rollbackError);
+      throw authError;
+    }
+
+    await audit(user.email,"update",target.id,oldData,{...target,status:"Inactive"});
+    return new Response(JSON.stringify({success:true,action:"deactivated",preserved_history:true,user_id:target.id}),{
+      headers:{...cors,"Content-Type":"application/json"}
+    });
+  }catch(e){
+    console.error("delete-employee",e);
+    return new Response(JSON.stringify({success:false,error:e?.message||"فشل تعطيل المستخدم"}),{
+      status:400,headers:{...cors,"Content-Type":"application/json"}
+    });
+  }
+});
