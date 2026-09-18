@@ -35,10 +35,25 @@ function normalizeBranches(value) {
   return out.length ? out : ["*"];
 }
 
+function normalizePermissions(value) {
+  if (Array.isArray(value)) {
+    return Array.from(new Set(value.map(x => String(x).trim()).filter(Boolean)));
+  }
+  if (typeof value === "string" && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return normalizePermissions(parsed);
+    } catch (_) {}
+    return Array.from(new Set(value.split(",").map(x => x.trim()).filter(Boolean)));
+  }
+  return [];
+}
+
 async function getActor(req) {
   const h = req.headers.get("Authorization");
   if (!h) throw new Error("غير مصرح");
-  const { data: { user }, error } = await db.auth.getUser(h.replace("Bearer ", ""));
+  const { data: { user }, error } =
+    await db.auth.getUser(h.replace("Bearer ", ""));
   if (error || !user?.id) throw new Error("جلسة غير صالحة");
 
   const { data: actor, error: ue } = await db
@@ -51,7 +66,8 @@ async function getActor(req) {
     throw new Error("سياق المستخدم غير صالح");
   }
 
-  const permissions = Array.isArray(actor.permissions) ? actor.permissions : [];
+  const permissions = normalizePermissions(actor.permissions);
+
   const { data: ownerProfile, error: oe } = await db
     .from("owner_profile")
     .select("auth_user_id")
@@ -62,10 +78,10 @@ async function getActor(req) {
 
   const isOwner =
     asBool(user.user_metadata?.isOwner) &&
-    permissions.indexOf("*") !== -1 &&
+    permissions.includes("*") &&
     !!ownerProfile;
 
-  if (!isOwner && permissions.indexOf("users") === -1) {
+  if (!isOwner && !permissions.includes("users")) {
     throw new Error("لا تملك صلاحية إدارة المستخدمين");
   }
 
@@ -74,16 +90,20 @@ async function getActor(req) {
 
 async function targetIsOwner(authId) {
   if (!authId) return false;
-  const { data: targetAuth, error: ae } = await db.auth.admin.getUserById(authId);
+
+  const { data: targetAuth, error: ae } =
+    await db.auth.admin.getUserById(authId);
   if (ae) throw ae;
-  const targetMeta = targetAuth?.user?.user_metadata || {};
+
   const { data: profile, error: pe } = await db
     .from("owner_profile")
     .select("auth_user_id")
     .eq("auth_user_id", authId)
     .maybeSingle();
+
   if (pe) throw pe;
-  return asBool(targetMeta.isOwner) && !!profile;
+
+  return asBool(targetAuth?.user?.user_metadata?.isOwner) && !!profile;
 }
 
 async function writeAudit(userEmail, action, recordId, oldData, newData) {
@@ -95,11 +115,58 @@ async function writeAudit(userEmail, action, recordId, oldData, newData) {
     old_data: oldData ?? null,
     new_data: newData ?? null
   });
-  if (error) console.error("USER_AUDIT_FAILED", error);
+  if (error) throw error;
+}
+
+async function getRole(companyId, roleName) {
+  const normalizedName = String(roleName || "").trim();
+  if (!normalizedName) throw new Error("الدور الوظيفي مطلوب");
+
+  const { data: role, error } = await db
+    .from("roles")
+    .select("id,role_name,permissions")
+    .eq("company_id", companyId)
+    .eq("role_name", normalizedName)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!role) throw new Error("الدور الوظيفي غير موجود ضمن الشركة الحالية");
+
+  return {
+    id: role.id,
+    roleName: role.role_name,
+    permissions: normalizePermissions(role.permissions)
+  };
+}
+
+async function getAuthSnapshot(authId) {
+  if (!authId) return null;
+  const { data, error } = await db.auth.admin.getUserById(authId);
+  if (error) throw error;
+  return {
+    id: data.user.id,
+    email: data.user.email || null,
+    user_metadata: { ...(data.user.user_metadata || {}) }
+  };
+}
+
+async function restoreAuthSnapshot(snapshot) {
+  if (!snapshot?.id) return;
+  const attrs = {
+    user_metadata: snapshot.user_metadata
+  };
+  if (snapshot.email) {
+    attrs.email = snapshot.email;
+    attrs.email_confirm = true;
+  }
+  const { error } = await db.auth.admin.updateUserById(snapshot.id, attrs);
+  if (error) console.error("USER_AUTH_ROLLBACK_FAILED", error);
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: cors });
+  }
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -107,44 +174,34 @@ serve(async (req) => {
     const isEdit = body?.isEdit === true;
     const originalEmail = String(body?.originalEmail || "").trim();
 
-    if (!String(employee.name || "").trim() || !String(employee.email || "").trim()) {
+    const employeeName = String(employee.name || "").trim();
+    const employeeEmail = String(employee.email || "").trim();
+    if (!employeeName || !employeeEmail) {
       throw new Error("الاسم والبريد مطلوبان");
     }
 
     const { user, companyId, isOwner } = await getActor(req);
 
-    const requestedPermissions = Array.isArray(employee.permissions)
-      ? Array.from(new Set(employee.permissions.map(x => String(x).trim()).filter(Boolean)))
-      : [];
+    if (!isEdit && !String(employee.password || "")) {
+      throw new Error("كلمة المرور مطلوبة عند إنشاء مستخدم جديد");
+    }
 
-    if (requestedPermissions.indexOf("*") !== -1 && !isOwner) {
+    const role = await getRole(companyId, employee.role);
+
+    const requestedPermissions = normalizePermissions(employee.permissions);
+
+    if (requestedPermissions.includes("*") && !isOwner) {
       throw new Error("صلاحية wildcard (*) محجوزة للمالك");
     }
 
-    let rolePermissions = [];
-    if (employee.role) {
-      const { data: role, error: re } = await db
-        .from("roles")
-        .select("id,permissions")
-        .eq("company_id", companyId)
-        .eq("role_name", String(employee.role).trim())
-        .maybeSingle();
-      if (re) throw re;
-      if (role?.permissions) {
-        rolePermissions = Array.isArray(role.permissions)
-          ? role.permissions.map(x => String(x))
-          : [];
-      }
-    }
-
-    if (rolePermissions.indexOf("*") !== -1 && !isOwner) {
+    if (role.permissions.includes("*") && !isOwner) {
       throw new Error("الدور المحدد يحتوي wildcard (*) ولا يمكن استخدامه من غير المالك");
     }
 
-    const merged = [...rolePermissions];
-    for (const p of requestedPermissions) {
-      if (!merged.includes(p)) merged.push(p);
-    }
+    const merged = Array.from(new Set([
+      ...role.permissions,
+      ...requestedPermissions
+    ]));
 
     const allowed = normalizeBranches(employee.allowed_branch_ids);
     const scoped = allowed.filter(x => x !== "*");
@@ -155,6 +212,7 @@ serve(async (req) => {
         .select("branch_code")
         .eq("company_id", companyId)
         .in("branch_code", scoped);
+
       if (be) throw be;
       if ((branches || []).length !== scoped.length) {
         throw new Error("يوجد فرع غير تابع للشركة الحالية");
@@ -162,10 +220,11 @@ serve(async (req) => {
     }
 
     const empData = {
-      name: String(employee.name).trim(),
-      email: String(employee.email).trim(),
+      name: employeeName,
+      email: employeeEmail,
       phone: employee.phone || null,
-      role: String(employee.role || "موظف").trim(),
+      role: role.roleName,
+      role_id: role.id,
       status: employee.status || "Active",
       expiry_date: employee.expiry_date || null,
       allowed_branch_ids: allowed,
@@ -193,6 +252,8 @@ serve(async (req) => {
       }
 
       const oldData = { ...existing };
+      const authSnapshot = await getAuthSnapshot(existing.auth_id);
+
       const { error: de } = await db
         .from("users")
         .update(empData)
@@ -203,13 +264,9 @@ serve(async (req) => {
 
       try {
         if (existing.auth_id) {
-          const { data: targetAuth, error: getAuthError } =
-            await db.auth.admin.getUserById(existing.auth_id);
-          if (getAuthError) throw getAuthError;
-
           const authAttrs = {
             user_metadata: {
-              ...(targetAuth?.user?.user_metadata || {}),
+              ...(authSnapshot?.user_metadata || {}),
               name: empData.name,
               role: empData.role,
               isOwner: false,
@@ -217,38 +274,43 @@ serve(async (req) => {
             }
           };
 
-          if (empData.email.toLowerCase() !== String(existing.email || "").toLowerCase()) {
+          if (
+            empData.email.toLowerCase() !==
+            String(existing.email || "").toLowerCase()
+          ) {
             authAttrs.email = empData.email;
             authAttrs.email_confirm = true;
           }
 
-          if (employee.password) authAttrs.password = String(employee.password);
-
-          if (empData.status === "Inactive") {
-            authAttrs.ban_duration = "876000h";
-          } else {
-            authAttrs.ban_duration = "none";
+          if (employee.password) {
+            authAttrs.password = String(employee.password);
           }
+
+          authAttrs.ban_duration =
+            empData.status === "Inactive" ? "876000h" : "none";
 
           const { error: authUpdateError } =
             await db.auth.admin.updateUserById(existing.auth_id, authAttrs);
 
           if (authUpdateError) throw authUpdateError;
         }
-      } catch (authError) {
-        const { error: rollbackError } = await db
-          .from("users")
+
+        await writeAudit(
+          user.email,
+          "update",
+          existing.id,
+          oldData,
+          { ...empData, auth_id: existing.auth_id || null }
+        );
+      } catch (operationError) {
+        await db.from("users")
           .update(oldData)
           .eq("id", existing.id)
           .eq("company_id", companyId);
-        if (rollbackError) console.error("USER_DB_ROLLBACK_FAILED", rollbackError);
-        throw authError;
-      }
 
-      await writeAudit(user.email, "update", existing.id, oldData, {
-        ...empData,
-        auth_id: existing.auth_id || null
-      });
+        await restoreAuthSnapshot(authSnapshot);
+        throw operationError;
+      }
 
       return new Response(JSON.stringify({
         success: true,
@@ -259,33 +321,57 @@ serve(async (req) => {
       });
     }
 
-    const { data: newAuth, error: ae } = await db.auth.admin.createUser({
-      email: empData.email,
-      password: employee.password || "123456",
-      email_confirm: true,
-      user_metadata: {
-        name: empData.name,
-        role: empData.role,
-        isOwner: false,
-        permissions: merged
-      }
-    });
+    const { data: newAuth, error: ae } =
+      await db.auth.admin.createUser({
+        email: empData.email,
+        password: String(employee.password),
+        email_confirm: true,
+        user_metadata: {
+          name: empData.name,
+          role: empData.role,
+          isOwner: false,
+          permissions: merged
+        }
+      });
 
-    if (ae || !newAuth?.user) throw ae || new Error("فشل إنشاء حساب المصادقة");
-
-    const insertPayload = { ...empData, auth_id: newAuth.user.id };
-    const { data: created, error: ie } = await db
-      .from("users")
-      .insert(insertPayload)
-      .select("id")
-      .single();
-
-    if (ie) {
-      await db.auth.admin.deleteUser(newAuth.user.id).catch(() => {});
-      throw ie;
+    if (ae || !newAuth?.user) {
+      throw ae || new Error("فشل إنشاء حساب المصادقة");
     }
 
-    await writeAudit(user.email, "create", created.id, null, insertPayload);
+    const insertPayload = {
+      ...empData,
+      auth_id: newAuth.user.id
+    };
+
+    let created = null;
+
+    try {
+      const { data: inserted, error: ie } = await db
+        .from("users")
+        .insert(insertPayload)
+        .select("id")
+        .single();
+
+      if (ie || !inserted) {
+        throw ie || new Error("فشل إنشاء سجل المستخدم");
+      }
+
+      created = inserted;
+
+      await writeAudit(
+        user.email,
+        "create",
+        created.id,
+        null,
+        insertPayload
+      );
+    } catch (operationError) {
+      if (created?.id) {
+        await db.from("users").delete().eq("id", created.id).eq("company_id", companyId);
+      }
+      await db.auth.admin.deleteUser(newAuth.user.id).catch(() => {});
+      throw operationError;
+    }
 
     return new Response(JSON.stringify({
       success: true,
