@@ -1,3 +1,150 @@
+# LATEST VERIFIED SESSION — 2026-09-18 — RW_Users FOLLOW-UP FORENSIC SURGICAL CLOSURE
+
+> نطاق هذه الحالة: **RW_Users / المستخدمون والصلاحيات فقط**.  
+> مصدر الحقيقة: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.  
+> `main.html` لم يُعدَّل بواسطة CTO.
+
+## Current Git — System
+
+- Repository: `papamohammed77-glitch/rawaie-erp-New`
+- Current HEAD after this closure: `08628e01d75fe50ddbde0617c669132322e1b290`
+- Parent: `f660a937d16be05e470ec2e94cb3dba8584ffc8e`
+- Previous parent chain:
+  - `f660a937d16be05e470ec2e94cb3dba8584ffc8e`
+  - parent `ecd9afcf462991cdfe107264df90bc51f96e096a`
+  - parent `f3c15bac375dfca129e6814603867eed5b53117b`
+
+## Current Git — Mother
+
+- Repository: `papamohammed77-glitch/erp-frontend`
+- Current HEAD: `6f37b88b19e11d2885cfd9b51cc3992d81b5ac47`
+- Parent: `55271f8b65c6121085d209b090d2d67117ef9c3e`
+- Last main.html-changing commit: `55271f8b65c6121085d209b090d2d67117ef9c3e`
+- Parent of main.html-changing commit: `033a5386930cee0d306a3a398a402066e596dfe`
+- Current `companies/company-1/main.html` blob: `68ee9c23c876209364f405eed3d23a0c33f9d0ce`
+- CTO direct main.html modifications: **0**
+
+## Production Snapshot — post deployment
+
+- companies = 1
+- active_branches = 2
+- users = 24
+- active_users = 24
+- roles = 20
+- stock_branches = 20
+- inventory_log = 3
+- audit_log = 1993
+- users_without_role_id = 23
+- unused_roles = 4
+
+## Production Edge Changes — this closure
+
+- `save-role` v9, `verify_jwt=true`
+  - SHA256: `cd4eb540120d165da4f32465ac9825152d7360a703f0e9d2e2cec497b6ee67be`
+  - source sync commit: `ecd9afcf462991cdfe107264df90bc51f96e096a`
+- `save-employee` v10, `verify_jwt=true`
+  - SHA256: `f1ff0999d1e5bef8423ebeaff580e35d16da505134a09087054725bb89480e75`
+  - source sync commit: `f660a937d16be05e470ec2e94cb3dba8584ffc8e`
+- `bulk-stock-adjustment` v7, `verify_jwt=true`
+  - SHA256: `18439000f1e138b56af0b33013729a9ccc469f9b4cf49e9c9bf1bb0c8d3e9a76`
+  - canonical source commit: `08628e01d75fe50ddbde0617c669132322e1b290`
+
+## What was closed in Production
+
+- Dynamic role propagation:
+  - updated role permissions propagate to active users.
+  - direct user permissions are preserved.
+  - users receive canonical `role_id`.
+  - Auth metadata permissions are synchronized.
+  - compensating rollback path exists.
+- User save:
+  - explicit password required on CREATE.
+  - no default `123456` fallback.
+  - role must exist within current company.
+  - `role_id` is stored canonically.
+  - audit failure rolls back DB/Auth.
+- Stock adjustment:
+  - backend requires `stock_adjustment` for non-owner.
+  - owner wildcard semantics preserved.
+  - branch and item context are company-scoped.
+
+## Current Mother source findings
+
+The current Mother `main.html` already contains the prior 8 RW_Users surgical changes from `55271f8...`.
+
+Two **new** source defects were proven in the current blob and were NOT fixed by CTO:
+
+1. `RW_Users.openModal` parser defect around global line ~5694:
+   missing `+` after the literal `'</div>'`.
+2. `RW_Users.openModal` permission-list regression around global line ~5530:
+   `items` permission was replaced by `stock_adjustment` instead of both being present.
+
+### Owner surgical patch gate
+
+Exact replacements are in:
+`doc/Draft/Reprots/Report243_USERS_PERMISSIONS_FOLLOWUP_FORENSIC_SURGICAL_CLOSURE_20260918.md`
+
+Required owner actions:
+- fix DEFECT-01 exact block;
+- restore `items` beside `stock_adjustment` in DEFECT-02.
+
+No wholesale main.html replacement.
+
+## User/Role data integrity exception intentionally left open
+
+`mostafa@rawaea.com`:
+- role = `موظف`
+- role_id = NULL
+- no matching role exists
+- permissions = []
+
+No speculative role assignment was executed.
+
+No bulk `role_id` backfill was executed.
+
+No unused role was deleted.
+
+## Competitive capability gaps left as future closure units
+
+Not production bugs; do not reopen without fresh evidence:
+
+- generic CRUD/action matrix;
+- generic record rules;
+- generic field-level permissions;
+- permission simulator / Login-as;
+- device/session management;
+- audit/history UI;
+- broader reusable policy inheritance.
+
+## Verification boundary
+
+**VERIFIED**
+- current System/Mother git refreshed.
+- current main.html blob inspected.
+- Production snapshot refreshed after deployment.
+- three required Edge deployments are active.
+- source/deployment parity for changed Edge functions recorded.
+- no Production business counts changed.
+
+**OPEN**
+- owner source cutover in main.html.
+- Browser E2E for RW_Users.
+- full live runtime closure of the tab.
+
+## Authoritative artifacts
+
+- Report: `doc/Draft/Reprots/Report243_USERS_PERMISSIONS_FOLLOWUP_FORENSIC_SURGICAL_CLOSURE_20260918.md`
+- Execution log: `doc/Draft/Reprots/EXECUTION_LOG_USERS_PERMISSIONS_FOLLOWUP_20260918.md`
+
+## Next-session entry
+
+Start from:
+CURRENT_STATE → System HEAD/parent → Mother HEAD/parent/blob → Production users/roles snapshot → deployed Edge metadata → owner surgical gate → browser E2E.
+
+Do not reopen any prior closed change without new Current Evidence.
+
+---
+
 # LATEST VERIFIED SESSION — 2026-09-18 — RW_Users USERS & PERMISSIONS FORENSIC SURGICAL CLOSURE
 
 > هذه هي أحدث حالة تنفيذية. Current Truth = CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
