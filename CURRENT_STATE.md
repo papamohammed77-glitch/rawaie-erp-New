@@ -1,130 +1,198 @@
-# LATEST VERIFIED SESSION — 2026-09-18 — COMPREHENSIVE REPORTS COMPANY CONTEXT FORENSIC / SURGICAL CLOSURE
+# LATEST VERIFIED SESSION — 2026-09-18 — COMPREHENSIVE REPORTS CURRENT SOURCE / PRODUCTION RECONCILIATION
 
-> هذا هو الـcheckpoint الحاكم الأحدث. تم بناء الحالة من CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE. التقارير الأقدم استرشادية وليست Current State.
-> نطاق الجلسة: RW_Reports_Comprehensive فقط. main.html لم يُعدّل بواسطة CTO.
+> هذا هو الـcheckpoint الحاكم الأحدث. التقارير السابقة استرشادية؛ الحالة الحالية مبنية على CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+> نطاق الجلسة: RW_Reports_Comprehensive فقط. main.html لم يُعدل بواسطة CTO.
 
 ## Current Git — System Repository
+
 - Repository: papamohammed77-glitch/rawaie-erp-New
-- System HEAD عند بداية التحقيق: 0f91627c13487232dc854fb87e5c08f95b42a6fb
-- Direct parent: 06ba639fdf3f8f4eaf0a5c12adaa160f08d97338
-- Session report created: doc/Draft/Reprots/Report240_COMPREHENSIVE_REPORTS_COMPANY_CONTEXT_SURGICAL_CLOSURE_20260918.md
-- Report creation commit: 664800e5b56d1722d2b00796f6e81bec92f3c1d1
+- Current HEAD after this session report: b38cdc07924d149d3ba7aa854fa9448dcb4ede03
+- Direct parent: ee2ea741302fd07348f2fc3eb39b65f9b5995488
+- Prior verified state checkpoint: ee2ea741302fd07348f2fc3eb39b65f9b5995488
+- New execution report:
+  doc/Draft/Reprots/Report241_COMPREHENSIVE_REPORTS_CURRENT_FORENSIC_SURGICAL_CLOSURE_20260918.md
 
 ## Current Git — Mother Repository
+
 - Repository: papamohammed77-glitch/erp-frontend
-- Current HEAD: 50ad72f343dec2aaa45499dd24b73d3b6c270140
-- Direct parent: 83722ec6d914c2a58672dfa7e87066fd0a1206bd
-- Current companies/company-1/main.html blob: 9c51deb8ec3bb0391e8781553e302af53707f776
-- Current main.html: approximately 25,904 lines / 1,413,332 characters
-- Commit 83722... contains the previous four comprehensive-reports source repairs; commit 50ad... is the latest forensic-extract persistence commit.
-- CTO main.html changes in this session: 0.
+- Current HEAD: f022457cefbd176c142996040dcbf6e982936623
+- Direct parent: 71529a7780d614766730e86a43bc457caaab7c09
+- Last main.html modification commit: 71529a7780d614766730e86a43bc457caaab7c09
+- Current main.html source artifact: 25,918 lines / 1,413,667 bytes
+- Current main.html blob identifier returned by source fetch: 3230a4cf205c9b1e1752e4eea733829c84660a15
+- Commit f022457... changed only _forensic_current_main_extract.md.
+- CTO modification to main.html in this session: 0.
 
 ## Current Comprehensive Reports Source
-- Module boundary: RW_Reports_Comprehensive, approximately main.html lines 19845–23380.
+
+- Module: RW_Reports_Comprehensive
+- Module start: line 19,844.
 - Report definitions: 38.
-- Sections: Sales, Inventory/Purchases, Finance, CRM, Logistics, HR.
-- Current module has six references to _companyId() at lines 20182, 20377, 20456, 20541, 20662, 20796.
-- No _companyId() definition exists inside RW_Reports_Comprehensive.
-- The current session boot stores company identity at RW_STATE.app.company.id.
-- Current source has no assignment establishing RW_STATE.app.companyId as an authoritative field.
+- Current implementation branches in Mother source: 36.
+- Current missing functional branches: 2.
+- Missing branches:
+  1. hr-attendance
+  2. hr-salary
+- Current source already contains the owner-applied module-local _companyId() helper.
+- Previous Report239/240 fixes were not reopened.
+- Current source parses successfully with V8.
+- In-memory surgical replacement for the two HR gates parses successfully.
+- In-memory result after the proposed replacement: 38 implementation branches, missing = 0.
+- The in-memory result was not written to Mother main.html.
 
-## Proven Runtime Root Cause
-- User console error: RW_Reports_Comprehensive._loadDropdowns ReferenceError: _companyId is not defined.
-- Exact failing call: main.html line 20183.
-- _openReport() calls _loadDropdowns(), and _loadDropdowns() calls the missing module-local _companyId().
-- A similarly named helper in another IIFE is not visible inside RW_Reports_Comprehensive and must not be reused as a global contract.
+## Current Production — Supabase
 
-## Surgical Source Fix — Owner Managed
-- Exact replacement is documented in Report240 Section 18.
-- Replace only the local two-line boundary immediately after _showToast() inside RW_Reports_Comprehensive.
-- Add the complete module-local _companyId() helper using RW_STATE.app.company.id.
-- Do not modify _loadDropdowns(), _generateReport(), boot, RW_STATE, or another module.
-- Do not create RW_STATE.app.companyId as a compatibility workaround.
-
-## Production Database — Current Snapshot
 - Project: fiilmooggumokxanwiyx
-- Snapshot time: 2026-09-18T07:48:24Z
-- Companies: 1
-- Active branches: 2
-- Active items: 16
-- Orders: 0
-- Purchase Orders: 0
-- Receiving: 0
-- Runsheets: 0
-- Journal Entries: 2
-- Daily Settlements: 0
-- Stock rows: 20
-- Inventory log rows: 3
-- Cross-company stock/item mismatch: 0
-- Cross-company inventory_log/item mismatch: 0
+- Snapshot: 2026-09-18 12:39:33.208536+00
+- companies: 1
+- active branches: 2
+- active items: 16
+- users: 24
+- orders: 0
+- purchase_orders: 0
+- receiving: 0
+- runsheets: 0
+- journal_entries: 2
+- daily_settlements: 0
+- stock_branches rows: 20
+- inventory_log rows: 3
+- audit_log rows: 1,993
 
-## Production Reporting Contracts — Revalidated
-- inventory_movement_report
-- inventory_replenishment_report
-- comprehensive_inventory_turnover_report
-- finance_tax_report
-- finance_tax_settlements_report
-- accountant_customer_aging
-- accountant_supplier_aging
-- accountant_gl_account_activity
-- accountant_period_readiness
-- accountant_reconciliation_summary
-- accountant_exception_center
-- get_trial_balance
-- get_profit_loss
-- get_balance_sheet_data
-- get_cash_flow
+## Production HR Reporting Contract — Verified
 
-## Production Change For This Closure
-- Reporting DB migration: NO.
+- public.hr_query exists and is the authoritative read contract for HR views used by this report module.
+- hr_query('attendance', payload):
+  - company/tenant context comes from authenticated auth.uid() -> public.users.
+  - HR scope is enforced.
+  - from/to date filtering exists.
+  - current Production rows = 0.
+- hr_query('payroll_runs', payload):
+  - HR permission is enforced.
+  - current Production rows = 0.
+- Relevant HR tables exist:
+  employee_attendance
+  hr_attendance_events
+  hr_payroll_periods
+  hr_payroll_runs
+  hr_payslips
+  hr_payslip_lines
+
+## Production Authenticated Runtime Evidence
+
+Temporary JWT context inside rollback-only SQL execution used the existing Production HR user:
+- hr@rawaea.com
+- auth_id = 99eea49f-c27d-43e1-85b9-c97d4d85c55b
+- permission = hr
+- company_id = 00000000-0000-0000-0000-000000000001
+
+Verified:
+- hr_query('attendance') = success / 0 rows.
+- hr_query('payroll_runs') = success / 0 rows.
+
+Security check:
+- accountant@rawaea.com + payroll_runs = HR_PERMISSION_REQUIRED.
+- accountant@rawaea.com + attendance = ATTENDANCE_SCOPE.
+
+No synthetic HR data was retained.
+
+## Current Root Cause
+
+The current Mother source still contains the stale gate at main.html lines 23228–23237:
+
+reportId === 'hr-attendance'
+reportId === 'hr-salary'
+
+The gate claims that no authoritative Production HR source exists.
+
+Current Production proves the opposite:
+the authoritative HR read contract exists and is secured.
+
+Therefore the remaining gap is Source integration only.
+
+## Surgical Source Change — OWNER ONLY
+
+The exact complete replacement is documented in:
+
+doc/Draft/Reprots/Report241_COMPREHENSIVE_REPORTS_CURRENT_FORENSIC_SURGICAL_CLOSURE_20260918.md
+
+Exact target:
+companies/company-1/main.html
+Module:
+RW_Reports_Comprehensive
+Current block:
+lines 23228–23237
+Action:
+Delete the old HR Capability Gate and replace it with the complete hr-attendance + hr-salary implementation documented in Report241.
+
+No other main.html block is authorized by this closure.
+
+## Production Change Required
+
+- DB migration: NO.
 - Schema change: NO.
 - RPC change: NO.
 - Data repair: NO.
-- Reason: the proven defect is entirely in the Mother source module context resolver; current Production reporting contracts already exist.
 
-## Verification
-- Current Mother source full inline script V8 parse: PASS.
-- Current RW_Reports_Comprehensive parse: PASS.
-- Surgical helper isolated test with valid RW_STATE.app.company.id: PASS.
-- Surgical helper isolated test with missing company context: correctly rejected.
-- Browser production E2E after owner cutover: PENDING.
-- 38-report live smoke: PENDING.
+Reason:
+the required Production contract already exists; the defect is the stale Source gate.
 
-## Benchmark Context Recorded In Report240
-- Odoo: stock/valuation reporting, warehouse/category filters, history/replenishment, financial drill-down/export/comparison patterns.
-- Microsoft Dynamics 365 Business Central: inventory transaction detail, availability, analysis mode, financial report definitions.
-- SAP Business One: inventory audit/status/valuation and General Ledger selection criteria.
-- Daftra: inventory turnover by product/warehouse/date/category/brand with turnover and days-to-sell metrics.
-- Manager.io: custom report filters/order/group/alias and report reuse.
-- These are benchmarking inputs only; no competitor pattern was copied into this surgical fix.
+## Comprehensive Reports Competitive Benchmark
 
-## Current Closure Status
-- Current Production: VERIFIED.
-- Current Mother Git: VERIFIED.
-- Current Mother Source: VERIFIED.
-- Runtime root cause: PROVEN.
-- Surgical patch: COMPLETE / OWNER READY.
-- Production change required: NONE.
-- Mother source cutover: PENDING OWNER.
-- Browser E2E: PENDING.
-- 38-report smoke: PENDING.
-- Full Comprehensive Reports closure: OPEN until owner cutover + browser verification + Production resnapshot.
+Official benchmark sources reviewed:
+- Odoo 19 reporting / inventory reporting.
+- Microsoft Dynamics 365 Business Central inventory transaction detail and availability.
+- SAP Business One General Ledger / inventory audit.
+- Daftra inventory detailed transactions / turnover / value.
+- Manager.io reports / custom reports.
+
+The benchmark identifies future enhancement areas such as:
+- period comparison;
+- saved report/search views;
+- broader warehouse/type filters;
+- Excel/PDF export framework;
+- richer pivot/dashboard analysis.
+
+These are not treated as current blocking defects because no current Business Contract proves they belong to this closure unit.
+
+## Closure Status
+
+PRODUCTION REPORT CONTRACTS = CLOSED
+CURRENT SOURCE ROOT CAUSE = PROVEN
+SURGICAL PATCH = COMPLETE / OWNER READY
+PRODUCTION CHANGE REQUIRED = NONE
+CURRENT MOTHER main.html modified by CTO = 0
+OWNER SOURCE CUTOVER = OPEN
+LIVE BROWSER E2E = OPEN
+38-REPORT CLICK-THROUGH SMOKE = OPEN
+PRODUCTION RESNAPSHOT AFTER OWNER CUTOVER = OPEN
 
 ## Exact Next Session Start
-1. Re-read Report240 in full.
-2. Verify System HEAD and parent again.
-3. Verify Mother HEAD, parent, and main.html blob again.
-4. Locate RW_Reports_Comprehensive in the current blob; do not assume old line numbers if the blob changed.
-5. Apply only Report240 Section 18 surgical replacement.
-6. Re-run full inline V8 parse.
-7. Confirm the six _companyId() call-sites now resolve to the module-local helper.
-8. Open Comprehensive Reports and click a report with date parameters.
-9. Confirm the _companyId ReferenceError and 'فشل تحميل معايير التقرير' message are gone.
-10. Test dropdown population and Generate.
-11. Smoke-test all 38 report IDs plus CSV, Print, Refresh, and Back.
-12. Re-read Production after the browser run.
-13. Only then decide whether any second defect is real and independent.
-14. Do not reopen Order/Runsheet/Picking/Loading/Delivery/Return/Inventory engines without fresh evidence.
+
+1. Verify System HEAD and parent.
+2. Verify Mother HEAD and parent.
+3. Verify current main.html blob and locate RW_Reports_Comprehensive; do not trust historical line numbers without checking the current blob.
+4. Search for the exact old HR Capability Gate.
+5. If it exists, apply only Report241 Section 8 replacement.
+6. Run V8 parsing on the full inline script.
+7. Confirm report definitions = 38 and implementation branches = 38.
+8. Open Comprehensive Reports in the browser.
+9. Test hr-attendance and hr-salary under hr@rawaea.com.
+10. Test denial for a non-HR user.
+11. Smoke-test a representative date-filtered report, a dropdown-filtered report, drill-down, CSV, Print, Refresh and Back.
+12. Re-read Production immediately after browser testing.
+13. Update CURRENT_STATE again with the resulting Mother commit and Production snapshot.
+14. Do not reopen closed operational engines without fresh current evidence.
+15. Do not modify main.html outside the exact surgical block.
+
+## Governance Reminder
+
+Reports are historical evidence, not current truth.
+No assumption may override Current Production.
+Do not reopen a closed fix without fresh evidence.
+Do not convert SQL PASS into Browser PASS.
+Do not create a second reporting engine.
+Do not create a parallel HR writer.
+Preserve the existing Mother + separate operational-app architecture.
 
 ---
 
