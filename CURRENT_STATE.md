@@ -1,3 +1,133 @@
+# LATEST VERIFIED SESSION — 2026-09-18 — COMPREHENSIVE REPORTS COMPANY CONTEXT FORENSIC / SURGICAL CLOSURE
+
+> هذا هو الـcheckpoint الحاكم الأحدث. تم بناء الحالة من CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE. التقارير الأقدم استرشادية وليست Current State.
+> نطاق الجلسة: RW_Reports_Comprehensive فقط. main.html لم يُعدّل بواسطة CTO.
+
+## Current Git — System Repository
+- Repository: papamohammed77-glitch/rawaie-erp-New
+- System HEAD عند بداية التحقيق: 0f91627c13487232dc854fb87e5c08f95b42a6fb
+- Direct parent: 06ba639fdf3f8f4eaf0a5c12adaa160f08d97338
+- Session report created: doc/Draft/Reprots/Report240_COMPREHENSIVE_REPORTS_COMPANY_CONTEXT_SURGICAL_CLOSURE_20260918.md
+- Report creation commit: 664800e5b56d1722d2b00796f6e81bec92f3c1d1
+
+## Current Git — Mother Repository
+- Repository: papamohammed77-glitch/erp-frontend
+- Current HEAD: 50ad72f343dec2aaa45499dd24b73d3b6c270140
+- Direct parent: 83722ec6d914c2a58672dfa7e87066fd0a1206bd
+- Current companies/company-1/main.html blob: 9c51deb8ec3bb0391e8781553e302af53707f776
+- Current main.html: approximately 25,904 lines / 1,413,332 characters
+- Commit 83722... contains the previous four comprehensive-reports source repairs; commit 50ad... is the latest forensic-extract persistence commit.
+- CTO main.html changes in this session: 0.
+
+## Current Comprehensive Reports Source
+- Module boundary: RW_Reports_Comprehensive, approximately main.html lines 19845–23380.
+- Report definitions: 38.
+- Sections: Sales, Inventory/Purchases, Finance, CRM, Logistics, HR.
+- Current module has six references to _companyId() at lines 20182, 20377, 20456, 20541, 20662, 20796.
+- No _companyId() definition exists inside RW_Reports_Comprehensive.
+- The current session boot stores company identity at RW_STATE.app.company.id.
+- Current source has no assignment establishing RW_STATE.app.companyId as an authoritative field.
+
+## Proven Runtime Root Cause
+- User console error: RW_Reports_Comprehensive._loadDropdowns ReferenceError: _companyId is not defined.
+- Exact failing call: main.html line 20183.
+- _openReport() calls _loadDropdowns(), and _loadDropdowns() calls the missing module-local _companyId().
+- A similarly named helper in another IIFE is not visible inside RW_Reports_Comprehensive and must not be reused as a global contract.
+
+## Surgical Source Fix — Owner Managed
+- Exact replacement is documented in Report240 Section 18.
+- Replace only the local two-line boundary immediately after _showToast() inside RW_Reports_Comprehensive.
+- Add the complete module-local _companyId() helper using RW_STATE.app.company.id.
+- Do not modify _loadDropdowns(), _generateReport(), boot, RW_STATE, or another module.
+- Do not create RW_STATE.app.companyId as a compatibility workaround.
+
+## Production Database — Current Snapshot
+- Project: fiilmooggumokxanwiyx
+- Snapshot time: 2026-09-18T07:48:24Z
+- Companies: 1
+- Active branches: 2
+- Active items: 16
+- Orders: 0
+- Purchase Orders: 0
+- Receiving: 0
+- Runsheets: 0
+- Journal Entries: 2
+- Daily Settlements: 0
+- Stock rows: 20
+- Inventory log rows: 3
+- Cross-company stock/item mismatch: 0
+- Cross-company inventory_log/item mismatch: 0
+
+## Production Reporting Contracts — Revalidated
+- inventory_movement_report
+- inventory_replenishment_report
+- comprehensive_inventory_turnover_report
+- finance_tax_report
+- finance_tax_settlements_report
+- accountant_customer_aging
+- accountant_supplier_aging
+- accountant_gl_account_activity
+- accountant_period_readiness
+- accountant_reconciliation_summary
+- accountant_exception_center
+- get_trial_balance
+- get_profit_loss
+- get_balance_sheet_data
+- get_cash_flow
+
+## Production Change For This Closure
+- Reporting DB migration: NO.
+- Schema change: NO.
+- RPC change: NO.
+- Data repair: NO.
+- Reason: the proven defect is entirely in the Mother source module context resolver; current Production reporting contracts already exist.
+
+## Verification
+- Current Mother source full inline script V8 parse: PASS.
+- Current RW_Reports_Comprehensive parse: PASS.
+- Surgical helper isolated test with valid RW_STATE.app.company.id: PASS.
+- Surgical helper isolated test with missing company context: correctly rejected.
+- Browser production E2E after owner cutover: PENDING.
+- 38-report live smoke: PENDING.
+
+## Benchmark Context Recorded In Report240
+- Odoo: stock/valuation reporting, warehouse/category filters, history/replenishment, financial drill-down/export/comparison patterns.
+- Microsoft Dynamics 365 Business Central: inventory transaction detail, availability, analysis mode, financial report definitions.
+- SAP Business One: inventory audit/status/valuation and General Ledger selection criteria.
+- Daftra: inventory turnover by product/warehouse/date/category/brand with turnover and days-to-sell metrics.
+- Manager.io: custom report filters/order/group/alias and report reuse.
+- These are benchmarking inputs only; no competitor pattern was copied into this surgical fix.
+
+## Current Closure Status
+- Current Production: VERIFIED.
+- Current Mother Git: VERIFIED.
+- Current Mother Source: VERIFIED.
+- Runtime root cause: PROVEN.
+- Surgical patch: COMPLETE / OWNER READY.
+- Production change required: NONE.
+- Mother source cutover: PENDING OWNER.
+- Browser E2E: PENDING.
+- 38-report smoke: PENDING.
+- Full Comprehensive Reports closure: OPEN until owner cutover + browser verification + Production resnapshot.
+
+## Exact Next Session Start
+1. Re-read Report240 in full.
+2. Verify System HEAD and parent again.
+3. Verify Mother HEAD, parent, and main.html blob again.
+4. Locate RW_Reports_Comprehensive in the current blob; do not assume old line numbers if the blob changed.
+5. Apply only Report240 Section 18 surgical replacement.
+6. Re-run full inline V8 parse.
+7. Confirm the six _companyId() call-sites now resolve to the module-local helper.
+8. Open Comprehensive Reports and click a report with date parameters.
+9. Confirm the _companyId ReferenceError and 'فشل تحميل معايير التقرير' message are gone.
+10. Test dropdown population and Generate.
+11. Smoke-test all 38 report IDs plus CSV, Print, Refresh, and Back.
+12. Re-read Production after the browser run.
+13. Only then decide whether any second defect is real and independent.
+14. Do not reopen Order/Runsheet/Picking/Loading/Delivery/Return/Inventory engines without fresh evidence.
+
+---
+
 # RAWAEA ERP — CURRENT STATE
 
 ## LATEST VERIFIED SESSION — 2026-09-18 — COMPREHENSIVE REPORTS CURRENT RUNTIME FORENSIC / SURGICAL CLOSURE
