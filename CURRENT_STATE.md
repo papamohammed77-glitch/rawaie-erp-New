@@ -1,198 +1,136 @@
-# LATEST VERIFIED SESSION — 2026-09-18 — COMPREHENSIVE REPORTS CURRENT SOURCE / PRODUCTION RECONCILIATION
+# LATEST VERIFIED SESSION — 2026-09-18 — RW_Users USERS & PERMISSIONS FORENSIC SURGICAL CLOSURE
 
-> هذا هو الـcheckpoint الحاكم الأحدث. التقارير السابقة استرشادية؛ الحالة الحالية مبنية على CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
-> نطاق الجلسة: RW_Reports_Comprehensive فقط. main.html لم يُعدل بواسطة CTO.
+> هذه هي أحدث حالة تنفيذية. Current Truth = CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+> نطاق هذه الوحدة: RW_Users / المستخدمين والصلاحيات فقط. main.html لم يُعدّل بواسطة CTO.
 
-## Current Git — System Repository
+## Current System Git
 
 - Repository: papamohammed77-glitch/rawaie-erp-New
-- Current HEAD after this session report: b38cdc07924d149d3ba7aa854fa9448dcb4ede03
-- Direct parent: ee2ea741302fd07348f2fc3eb39b65f9b5995488
-- Prior verified state checkpoint: ee2ea741302fd07348f2fc3eb39b65f9b5995488
-- New execution report:
-  doc/Draft/Reprots/Report241_COMPREHENSIVE_REPORTS_CURRENT_FORENSIC_SURGICAL_CLOSURE_20260918.md
+- Report commit: 3aa9822e9b974bcc883385e2be651bceac4c643b
+- Execution log commit: f6a1ffccb1e73488d00605e575bdb254e83a1669
+- Current HEAD immediately before this CURRENT_STATE update: f6a1ffccb1e73488d00605e575bdb254e83a1669
+- Direct parent: 3aa9822e9b974bcc883385e2be651bceac4c643b
+- User/Role source closure commits:
+  - 893a5df53a3d35f3bf74741e6f1811b7a1cee756
+  - 76e5f1c4e5738385e22c60ff072575e32a258893
+  - d02b384f10b46d8b3fa6f0d34a662fa1d4b790f5
+  - dfd7072fad75bc39a5415c1354009427bcfc013b
 
-## Current Git — Mother Repository
+## Mother Current Git
 
 - Repository: papamohammed77-glitch/erp-frontend
-- Current HEAD: f022457cefbd176c142996040dcbf6e982936623
+- HEAD: f022457cefbd176c142996040dcbf6e982936623
 - Direct parent: 71529a7780d614766730e86a43bc457caaab7c09
-- Last main.html modification commit: 71529a7780d614766730e86a43bc457caaab7c09
-- Current main.html source artifact: 25,918 lines / 1,413,667 bytes
-- Current main.html blob identifier returned by source fetch: 3230a4cf205c9b1e1752e4eea733829c84660a15
-- Commit f022457... changed only _forensic_current_main_extract.md.
-- CTO modification to main.html in this session: 0.
+- Current main.html blob: 3230a4cf205c9b1e1752e4eea733829c84660a15
+- main.html lines: 25,918
+- main.html size: 1,413,667 bytes
+- CTO main.html modifications in this closure: 0
 
-## Current Comprehensive Reports Source
+## Production Snapshot
 
-- Module: RW_Reports_Comprehensive
-- Module start: line 19,844.
-- Report definitions: 38.
-- Current implementation branches in Mother source: 36.
-- Current missing functional branches: 2.
-- Missing branches:
-  1. hr-attendance
-  2. hr-salary
-- Current source already contains the owner-applied module-local _companyId() helper.
-- Previous Report239/240 fixes were not reopened.
-- Current source parses successfully with V8.
-- In-memory surgical replacement for the two HR gates parses successfully.
-- In-memory result after the proposed replacement: 38 implementation branches, missing = 0.
-- The in-memory result was not written to Mother main.html.
+- companies=1
+- active_branches=2
+- active_items=16
+- users=24
+- active_users=24
+- roles=20
+- orders=0
+- purchase_orders=0
+- receiving=0
+- runsheets=0
+- stock_branches=20
+- inventory_log=3
+- audit_log=1993
 
-## Current Production — Supabase
+## Production User/Role Integrity
 
-- Project: fiilmooggumokxanwiyx
-- Snapshot: 2026-09-18 12:39:33.208536+00
-- companies: 1
-- active branches: 2
-- active items: 16
-- users: 24
-- orders: 0
-- purchase_orders: 0
-- receiving: 0
-- runsheets: 0
-- journal_entries: 2
-- daily_settlements: 0
-- stock_branches rows: 20
-- inventory_log rows: 3
-- audit_log rows: 1,993
+- users.is_owner: DOES NOT EXIST
+- Owner contract users: 1
+- users without role_id: 23
+- dangling role_id: 0
+- cross-company role_id: 0
+- text role / role_id mismatch: 0
+- active users with users permission but without roles permission: 0
+- active users with roles permission but without users permission: 0
 
-## Production HR Reporting Contract — Verified
+Unused Roles found but not deleted:
+- أمين مخزن (system)
+- امين مخزن (custom)
+- مسئول مشتريات
+- مشرف مشتريات
 
-- public.hr_query exists and is the authoritative read contract for HR views used by this report module.
-- hr_query('attendance', payload):
-  - company/tenant context comes from authenticated auth.uid() -> public.users.
-  - HR scope is enforced.
-  - from/to date filtering exists.
-  - current Production rows = 0.
-- hr_query('payroll_runs', payload):
-  - HR permission is enforced.
-  - current Production rows = 0.
-- Relevant HR tables exist:
-  employee_attendance
-  hr_attendance_events
-  hr_payroll_periods
-  hr_payroll_runs
-  hr_payslips
-  hr_payslip_lines
+No role_id bulk backfill was executed.
 
-## Production Authenticated Runtime Evidence
+## Production Edge Closure
 
-Temporary JWT context inside rollback-only SQL execution used the existing Production HR user:
-- hr@rawaea.com
-- auth_id = 99eea49f-c27d-43e1-85b9-c97d4d85c55b
-- permission = hr
-- company_id = 00000000-0000-0000-0000-000000000001
+- save-employee v9, verify_jwt=true
+- delete-employee v4, verify_jwt=true
+- save-role v8, verify_jwt=true
+- delete-role v4, verify_jwt=true
 
-Verified:
-- hr_query('attendance') = success / 0 rows.
-- hr_query('payroll_runs') = success / 0 rows.
+Deployment boundary:
+Deployment/source/database evidence verified.
+Live Browser E2E after Mother cutover remains open.
 
-Security check:
-- accountant@rawaea.com + payroll_runs = HR_PERMISSION_REQUIRED.
-- accountant@rawaea.com + attendance = ATTENDANCE_SCOPE.
+## Current Source Surgical Targets — Owner Only
 
-No synthetic HR data was retained.
+Apply only the exact blocks recorded in:
+doc/Draft/Reprots/Report242_USERS_PERMISSIONS_FORENSIC_SURGICAL_CLOSURE_20260918.md
 
-## Current Root Cause
+Targets:
+1. Owner filter in renderTable
+2. fail-closed users/roles loading in render
+3. remove fake role fallback
+4. phone/role filtering in filterTable
+5. add stock_adjustment to direct user permission list
+6. preserve existing custom permissions against role permissions
+7. preserve custom-permission toggle state
+8. change user action wording from Delete to Deactivate
 
-The current Mother source still contains the stale gate at main.html lines 23228–23237:
+Do not replace main.html wholesale.
 
-reportId === 'hr-attendance'
-reportId === 'hr-salary'
+## Closure Boundaries
 
-The gate claims that no authoritative Production HR source exists.
+Closed:
+- Production user-management actor authorization
+- Owner protection
+- Auth/user synchronization
+- wildcard protection
+- role deletion protection
+- role rename protection
+- explicit users/roles audit on managed mutations
+- System Source alignment with deployed User/Role Edge functions
 
-Current Production proves the opposite:
-the authoritative HR read contract exists and is secured.
+Open:
+- Owner application of main.html surgical patches
+- Browser E2E verification
+- Dynamic role propagation / role_id reconciliation
+- generic CRUD permission model
+- generic record rules / field-level permission model
+- user permission simulation UI
 
-Therefore the remaining gap is Source integration only.
+## Next Session Entry Rule
 
-## Surgical Source Change — OWNER ONLY
+Start from:
+CURRENT_STATE.md
++
+current System HEAD/parent
++
+current Mother HEAD/parent
++
+current main.html blob
++
+current Production
++
+current deployed Edge metadata
 
-The exact complete replacement is documented in:
+Do not reopen any closed User/Role Edge fix without new Current Evidence.
+Do not touch Inventory, Runsheet, Reports, HR, CRM, or separate operational apps unless a separate Current-Evidence closure is opened.
 
-doc/Draft/Reprots/Report241_COMPREHENSIVE_REPORTS_CURRENT_FORENSIC_SURGICAL_CLOSURE_20260918.md
+## Authoritative Session Artifacts
 
-Exact target:
-companies/company-1/main.html
-Module:
-RW_Reports_Comprehensive
-Current block:
-lines 23228–23237
-Action:
-Delete the old HR Capability Gate and replace it with the complete hr-attendance + hr-salary implementation documented in Report241.
-
-No other main.html block is authorized by this closure.
-
-## Production Change Required
-
-- DB migration: NO.
-- Schema change: NO.
-- RPC change: NO.
-- Data repair: NO.
-
-Reason:
-the required Production contract already exists; the defect is the stale Source gate.
-
-## Comprehensive Reports Competitive Benchmark
-
-Official benchmark sources reviewed:
-- Odoo 19 reporting / inventory reporting.
-- Microsoft Dynamics 365 Business Central inventory transaction detail and availability.
-- SAP Business One General Ledger / inventory audit.
-- Daftra inventory detailed transactions / turnover / value.
-- Manager.io reports / custom reports.
-
-The benchmark identifies future enhancement areas such as:
-- period comparison;
-- saved report/search views;
-- broader warehouse/type filters;
-- Excel/PDF export framework;
-- richer pivot/dashboard analysis.
-
-These are not treated as current blocking defects because no current Business Contract proves they belong to this closure unit.
-
-## Closure Status
-
-PRODUCTION REPORT CONTRACTS = CLOSED
-CURRENT SOURCE ROOT CAUSE = PROVEN
-SURGICAL PATCH = COMPLETE / OWNER READY
-PRODUCTION CHANGE REQUIRED = NONE
-CURRENT MOTHER main.html modified by CTO = 0
-OWNER SOURCE CUTOVER = OPEN
-LIVE BROWSER E2E = OPEN
-38-REPORT CLICK-THROUGH SMOKE = OPEN
-PRODUCTION RESNAPSHOT AFTER OWNER CUTOVER = OPEN
-
-## Exact Next Session Start
-
-1. Verify System HEAD and parent.
-2. Verify Mother HEAD and parent.
-3. Verify current main.html blob and locate RW_Reports_Comprehensive; do not trust historical line numbers without checking the current blob.
-4. Search for the exact old HR Capability Gate.
-5. If it exists, apply only Report241 Section 8 replacement.
-6. Run V8 parsing on the full inline script.
-7. Confirm report definitions = 38 and implementation branches = 38.
-8. Open Comprehensive Reports in the browser.
-9. Test hr-attendance and hr-salary under hr@rawaea.com.
-10. Test denial for a non-HR user.
-11. Smoke-test a representative date-filtered report, a dropdown-filtered report, drill-down, CSV, Print, Refresh and Back.
-12. Re-read Production immediately after browser testing.
-13. Update CURRENT_STATE again with the resulting Mother commit and Production snapshot.
-14. Do not reopen closed operational engines without fresh current evidence.
-15. Do not modify main.html outside the exact surgical block.
-
-## Governance Reminder
-
-Reports are historical evidence, not current truth.
-No assumption may override Current Production.
-Do not reopen a closed fix without fresh evidence.
-Do not convert SQL PASS into Browser PASS.
-Do not create a second reporting engine.
-Do not create a parallel HR writer.
-Preserve the existing Mother + separate operational-app architecture.
+- Report: doc/Draft/Reprots/Report242_USERS_PERMISSIONS_FORENSIC_SURGICAL_CLOSURE_20260918.md
+- Execution log: doc/Draft/Reprots/EXECUTION_LOG_USERS_PERMISSIONS_20260918.md
 
 ---
 
