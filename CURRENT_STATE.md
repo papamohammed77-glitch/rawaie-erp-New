@@ -1,3 +1,161 @@
+# LATEST VERIFIED SNAPSHOT — 2026-09-18 — CRM FORENSIC / SURGICAL CLOSURE
+
+> نطاق هذه الجلسة: **CRM فقط**. لا إعادة فتح لأي مسار سابق، ولا تعديل لـ `main.html` بواسطة CTO.
+> Source of Truth: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+> التقرير التنفيذي: `doc/Draft/Reprots/CRM_FORENSIC_SURGICAL_CLOSURE_20260918.md`
+
+## 1. Current Git at CRM checkpoint
+
+### System repository
+`papamohammed77-glitch/rawaie-erp-New`
+
+CRM session HEAD:
+`d224caf54aeab08abd75b4347848918a52e80da4`
+
+Previous parent:
+`33c7914ed8e54272e6b17294f9351d30f3989381`
+
+CRM report commit:
+`1597df279466b2b55e16fad7ead0aa1c2fe455eb`
+
+CRM migration finalization commit:
+`d224caf54aeab08abd75b4347848918a52e80da4`
+
+### Mother repository
+`papamohammed77-glitch/erp-frontend`
+
+Current Mother HEAD recorded in latest state:
+`9a0b72ef746f2f6f5c1b149edd2a490df39377c6`
+
+Current `companies/company-1/main.html` blob:
+`8ba8ef60c2875ea68ed85283ce772e023c0ef771`
+
+CRM source block:
+- line 23899 → 24017
+- exact marker: `// RW_CRM – إدارة علاقات العملاء (CRM)`
+- CTO source modification count in Mother: **0**
+
+## 2. CRM Production closure
+
+Applied Production migrations:
+`20260918053518 crm_customer_360_closure_20260918`
+`20260918053550 crm_customer_360_ordered_arrays_fix_20260918`
+
+Canonical CRM Production functions:
+`crm_customer_directory`
+`crm_customer_360`
+`crm_set_customer_assignment`
+`crm_set_customer_followup_status`
+`crm_save_customer_followup`
+
+Final Production definition fingerprints:
+- `crm_customer_360` = `6ca15b1a6d3a1001b77dba89b5cb3030`
+- `crm_customer_directory` = `75f297aaa97d315dbfed6bb461e17f6c`
+- `crm_save_customer_followup` = `b8bbd0d0ca83da7dea49aba460289c09`
+- `crm_set_customer_assignment` = `6672a76b20077ebc63b3a06a6d576651`
+- `crm_set_customer_followup_status` = `1a5dd26c1087c6e48841fc8df55d03e8`
+
+## 3. Production CRM data state
+
+Current Production:
+`customers = 3`
+`customer_followups = 0`
+`customer_assignments = 0`
+`customer_ledger = 0`
+`orders = 0`
+
+No synthetic CRM business data remains.
+
+## 4. What was proven
+
+- Current CRM was reconstructed from the actual Mother blob.
+- CRM was confirmed to be a lightweight follow-up list, not a Customer 360.
+- Existing `RW_Customers` remains the customer master CRUD surface.
+- No current CRM inventory/order/runsheet/finance writer exists.
+- Production RLS/company boundary was verified.
+- Customer 360 read contract passed under an authenticated CRM user context.
+- Follow-up create/status/assignment commands passed inside a rollback transaction.
+- Existing audit mechanism `fn_audit_trigger()` now covers `customer_followups` and `customer_assignments`.
+- Production returned to its original business-data counts after rollback.
+- Current Mother `main.html` was not modified.
+- Competitor benchmark was checked against official Odoo, Dynamics 365, SAP Sales Cloud, Daftra and Manager.io documentation.
+
+## 5. Target CRM behavior now defined
+
+`Customer Directory`
+→ `CRM KPI`
+→ `Customer 360`
+→ profile/contact
+→ assignments
+→ follow-up lifecycle
+→ sales/order history
+→ runsheet/delivery context
+→ customer ledger
+
+CRM remains a **read/control cockpit** and does not replace ERP engines.
+
+## 6. Owner surgical integration gate
+
+The exact source replacement is in:
+`doc/Draft/Reprots/CRM_FORENSIC_SURGICAL_CLOSURE_20260918.md`
+
+Target:
+`papamohammed77-glitch/erp-frontend/companies/company-1/main.html`
+
+Exact source block:
+line **23899–24017** in blob:
+`8ba8ef60c2875ea68ed85283ce772e023c0ef771`
+
+Do not edit any other main.html module.
+
+After owner integration:
+1. verify old CRM block occurs 0 times;
+2. verify replacement occurs 1 time;
+3. run JS syntax check;
+4. open CRM;
+5. open Customer 360;
+6. create one follow-up;
+7. complete/reopen/cancel it;
+8. assign a company user;
+9. verify customer/order/runsheet/ledger sections;
+10. verify no neighboring module regression;
+11. re-check Production counts and audit log.
+
+## 7. Explicit non-actions
+
+Do not:
+- modify `main.html` outside the exact CRM block;
+- alter `RW_Customers`;
+- alter order/runsheet/delivery/inventory writers;
+- replace `customer_followups.customer_id TEXT` without a new proven contract;
+- create a parallel CRM engine;
+- declare browser Production PASS from SQL PASS.
+
+## 8. Next-session starting sequence
+
+Start by refreshing:
+`CURRENT_STATE`
+→ System HEAD/parent
+→ Mother HEAD/parent
+→ current main.html blob
+→ Production CRM function definitions
+→ CRM counts
+
+Then verify the owner source integration gate above.
+
+Only after authenticated browser CRM is green should the next CRM Closure Unit open.
+
+## 9. CRM closure status
+
+`PRODUCTION CRM CORE = CLOSED`
+`PRODUCTION DATA INTEGRITY = CLOSED`
+`PRODUCTION AUDIT BOUNDARY = CLOSED`
+`SOURCE SURGICAL PATCH = READY`
+`MOTHER main.html CTO edits = 0`
+`LIVE BROWSER CRM = OPEN UNTIL OWNER PATCH + RUNTIME EVIDENCE`
+
+---
+
 # RAWAEA ERP — CURRENT STATE
 
 # LATEST VERIFIED SNAPSHOT — 2026-09-18 — HR TAB RUNTIME EXPORT ROOT CAUSE
