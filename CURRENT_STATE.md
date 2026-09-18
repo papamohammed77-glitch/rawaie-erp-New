@@ -1,52 +1,128 @@
 # RAWAEA ERP — CURRENT STATE
 
-# LATEST VERIFIED SNAPSHOT — 2026-09-18 — HR FORENSIC / SURGICAL CLOSURE
+# LATEST VERIFIED SNAPSHOT — 2026-09-18 — HR LOGIN PARSER ROOT-CAUSE / SURGICAL PATCH READY
 
-> نطاق الجلسة: HR فقط. `main.html` في Mother لم يُمس.
-> التقارير مرجعية تاريخية فقط؛ Source of Truth الحالي هو CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+> نطاق الجلسة: HR / Mother login parser فقط. `companies/company-1/main.html` لم يُعدل في هذه الجلسة.
+> مصدر الحقيقة: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+> التقرير التنفيذي: `doc/Draft/Reprots/HR_LOGIN_FORENSIC_SURGICAL_ROOT_CAUSE_20260918.md`
 
 ## 1. Current Git
 
 ### System repository
 `papamohammed77-glitch/rawaie-erp-New`
 
-HEAD before this state update:
-```text
-96cbd83bf3e69600910ae655eb832a72e3d710c1
+Latest system commit:
+```
+79b16b22c5fe5b22fa0e9aa37d7026269394dbe0
 ```
 
 Parent:
-```text
-2a10fd7c8ed6f756c61663ef0562c3887c40d76c
+```
+488c12496c4f9780b30b12573342c8d874001a10
 ```
 
-This session report commit:
-```text
-71c550da971864a494bf802699d992b9500100e8
+Previous implementation/evidence commit:
 ```
-
-Primary session report:
-```text
-doc/Draft/Reprots/HR_FORENSIC_SURGICAL_CLOSURE_20260918.md
+a58c53e4ef8e90b719ab6bc22679446455a9297a
 ```
 
 ### Mother repository
 `papamohammed77-glitch/erp-frontend`
 
 Current HEAD:
-```text
-9a0b72ef746f2f6f5c1b149edd2a490df39377c6
+```
+6a9cfb3b28b27023320f4a0cd8c049e76d0fc6db
 ```
 
 Parent:
-```text
-75af385fd4f402c107423a37d0d2b769de152105
+```
+1a8d0144446fe42b706eadd5683f6789dbbfac2f
 ```
 
-Previous parent chain includes:
-```text
-400b16d8cfd6226b02955fe6a2fb76f386e56dde
+Current `companies/company-1/main.html` blob:
 ```
+a2551e35b50c3fa8de03114ea54094e0eaca14dd
+```
+
+## 2. Forensic root cause
+
+Current source inspection proved two independent syntax defects inside `RW_HR`:
+
+### Defect A — modal()
+
+Location:
+```
+RW_HR / global line 23818
+function modal(title,body,onSubmit,key)
+```
+
+The function is missing one final `}`.
+
+Individual V8 parser result:
+```
+Unexpected token ')'
+```
+
+### Defect B — RW_HR IIFE closure
+
+RW_HR opens at global line 23788:
+```
+var RW_HR = (function() {
+```
+
+Current source has:
+```
+window.RW_HR={render:render,reload:render,openEmployee360:open360};
+window.RW_HR = RW_HR;
+```
+
+The required RW_HR closure is missing between those two lines:
+```
+}());
+```
+
+Historical Git proof:
+- commit `15325117153959536d8035b603ef9cfd64fc736d` removed that exact `}();` from the RW_HR boundary.
+- commit `48139d0b711496712d3c43572eef0e0e4ee5934c` restored only the file-final `})();`.
+- current final `})();` therefore closes the wrong remaining scope and is where the browser reports `Unexpected token ')'`.
+
+The inner:
+```
+(function installModalResilience(){ ... }());
+```
+at the end of RW_HR is not the RW_HR module closure.
+
+## 3. Parser proof
+
+Current full inline JavaScript:
+```
+FAIL — Unexpected token ')'
+```
+
+Current `modal()` alone:
+```
+FAIL — Unexpected token ')'
+```
+
+After exactly these two source changes:
+1. replace `modal()` with the complete corrected function in the session report;
+2. insert `}();`/exact `}());` at the RW_HR boundary before `window.RW_HR = RW_HR;`;
+
+the same current inline JavaScript was re-parsed with V8 `new Function()`:
+```
+PASS
+```
+
+No other HR source element was required for the parser closure.
+
+## 4. Tailwind warning
+
+`cdn.tailwindcss.com should not be used in production` is a production-use warning only.
+It is not the causal JavaScript parser error for this incident and was not modified.
+
+## 5. Mother protection
+
+``
 
 ## 2. main.html protection
 
