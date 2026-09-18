@@ -9,10 +9,13 @@
 
 ### System repository
 HEAD:
-fee9cf2a1cfcd020d67093d4c0633edfa574ed70
+cd8a2ef714be4ba069f1e1606359bb348dd560a0
 
 Parent:
-78da908d23be6ae64f544bf46abf9a5d0d6be3ea
+2a6965377e8872b642bc14e659e18507992965d7
+
+Baseline before this session's documentation commits:
+fee9cf2a1cfcd020d67093d4c0633edfa574ed70
 
 ### Mother repository
 HEAD:
