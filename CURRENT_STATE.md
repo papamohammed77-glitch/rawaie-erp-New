@@ -6,7 +6,7 @@
 
 ### Current Git — System Repository
 - Repository: `papamohammed77-glitch/rawaie-erp-New`
-- Latest session commit: `42f57c970bc1227b26a01f19589faa27fdc5c673`
+- Latest session commit: `46eecdbd61d188a664a5650852b6bb6c5904c9e0`
 - Direct parent: `c7b6f37a40d1ef66e68569806552b60ad5dd8653`. The production migration commit immediately before the report is `f8117693e8b7c6f1d6a4aaffbb0f17765f4aa064`.
 - Production migration commit for inventory turnover: `f8117693e8b7c6f1d6a4aaffbb0f17765f4aa064`.
 - Comprehensive reports forensic report:
