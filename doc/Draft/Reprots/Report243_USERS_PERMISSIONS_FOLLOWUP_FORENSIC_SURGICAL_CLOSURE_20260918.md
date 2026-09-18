@@ -103,7 +103,7 @@ global line ~5694 في الـblob الحالي:
     '<div class="mb-2 text-xs text-gray-500">' +
     'صلاحيات الدور تُطبق تلقائيًا. الاختيارات التالية هي الإضافات المباشرة لهذا المستخدم.' +
     '</div>' +
-    '<div class="space-y-4 p-4 bg-amber-50 rounded-xl border border-blue-200">' +
+    '<div class="space-y-4 p-4 bg-amber-50 rounded-xl border border-amber-200">' +
     '<h4 class="font-black text-amber-700"><i class="fa-solid fa-truck-fast ml-2"></i>إعدادات الصلاحيات الميدانية</h4>' +
     '<div class="grid grid-cols-1 gap-4">' +
 ```
