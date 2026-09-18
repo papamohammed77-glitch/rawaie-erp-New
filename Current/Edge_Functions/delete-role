@@ -1,0 +1,78 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS"
+};
+
+function hasPermission(perms,key){
+  return Array.isArray(perms) && (perms.includes("*") || perms.includes(key));
+}
+
+async function getActor(req){
+  const h=req.headers.get("Authorization"); if(!h) throw Error("غير مصرح");
+  const {data:{user},error:ae}=await db.auth.getUser(h.replace("Bearer ",""));
+  if(ae||!user?.id) throw Error("جلسة غير صالحة");
+  const {data:actor,error}=await db.from("users").select("id,company_id,status,permissions").eq("auth_id",user.id).maybeSingle();
+  if(error||!actor||actor.status==="Inactive"||!actor.company_id) throw Error("سياق المستخدم غير صالح");
+  if(!hasPermission(actor.permissions,"roles")) throw Error("لا تملك صلاحية إدارة الأدوار");
+  return {user,companyId:actor.company_id};
+}
+
+async function audit(email,id,oldData){
+  const {error}=await db.from("audit_log").insert({
+    user_email:email||"system",
+    action:"delete",
+    table_name:"roles",
+    record_id:String(id),
+    old_data:oldData,
+    new_data:null
+  });
+  if(error) console.error("ROLE_AUDIT_FAILED",error);
+}
+
+serve(async(req)=>{
+  if(req.method==="OPTIONS") return new Response("ok",{headers:cors});
+  try{
+    const {user,companyId}=await getActor(req);
+    const body=await req.json().catch(()=>({}));
+    const roleId=String(body?.roleId||"").trim();
+    if(!roleId) throw Error("معرف الدور مطلوب");
+
+    const {data:role,error:re}=await db.from("roles").select("*").eq("id",roleId).eq("company_id",companyId).maybeSingle();
+    if(re) throw re;
+    if(!role) throw Error("الدور غير موجود ضمن الشركة الحالية");
+    if(role.is_system===true) throw Error("لا يمكن حذف الدور النظامي");
+
+    const {data:assignedUsers,error:ue}=await db.from("users")
+      .select("id")
+      .eq("company_id",companyId)
+      .or("role_id.eq."+roleId+",role.eq."+JSON.stringify(role.role_name))
+      .limit(1);
+    if(ue) throw ue;
+
+    if((assignedUsers||[]).length){
+      throw Error("لا يمكن حذف الدور لأنه مرتبط بمستخدمين حاليين؛ أعد تعيينهم أولاً");
+    }
+
+    const {error:pe}=await db.from("role_permissions").delete().eq("role_id",roleId);
+    if(pe && pe.code!=="42P01") throw pe;
+
+    const {error:de}=await db.from("roles").delete()
+      .eq("id",roleId).eq("company_id",companyId).eq("is_system",false);
+    if(de) throw de;
+
+    await audit(user.email,roleId,role);
+    return new Response(JSON.stringify({success:true,role_id:roleId}),{
+      headers:{...cors,"Content-Type":"application/json"}
+    });
+  }catch(e){
+    console.error("delete-role",e);
+    return new Response(JSON.stringify({success:false,error:e?.message||"فشل الحذف"}),{
+      status:400,headers:{...cors,"Content-Type":"application/json"}
+    });
+  }
+});
