@@ -1,6 +1,307 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-const db=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
-async function actor(req){const h=req.headers.get("Authorization");if(!h)throw Error("غير مصرح");const {data:{user},error}=await db.auth.getUser(h.replace("Bearer ",""));if(error||!user)throw Error("جلسة غير صالحة");const {data:u,error:ue}=await db.from("users").select("id,company_id,status").eq("auth_id",user.id).maybeSingle();if(ue||!u||u.status==='Inactive')throw Error("سياق الشركة غير صالح");return {user,companyId:u.company_id};}
-serve(async req=>{if(req.method==='OPTIONS')return new Response('ok',{headers:cors});try{const {employee,isEdit,originalEmail}=await req.json();if(!employee?.name||!employee?.email)throw Error('الاسم والبريد مطلوبان');const {companyId}=await actor(req);let rolePermissions=[];if(employee.role){const {data:r,error}=await db.from('roles').select('permissions').eq('company_id',companyId).eq('role_name',employee.role).maybeSingle();if(error)throw error;if(r?.permissions)rolePermissions=r.permissions;}const merged=[...rolePermissions];for(const p of(employee.permissions||[]))if(!merged.includes(p))merged.push(p);const allowed=String(employee.allowed_branch_ids||'').split(',').map(x=>x.trim()).filter(Boolean);if(allowed.length){const {data:br,error}=await db.from('branches').select('branch_code').eq('company_id',companyId).in('branch_code',allowed);if(error)throw error;if((br||[]).length!==allowed.length)throw Error('يوجد فرع غير تابع للشركة الحالية');}const empData={name:employee.name,email:employee.email,phone:employee.phone||null,role:employee.role||'موظف',status:employee.status||'Active',expiry_date:employee.expiry_date||null,allowed_branch_ids:employee.allowed_branch_ids||'*',permissions:merged,allow_all_customers:!!employee.allow_all_customers,restrict_to_visit_day:employee.restrict_to_visit_day!==false,device_id:employee.device_id||null,company_id:companyId,password_hash:'managed_by_supabase_auth'};if(isEdit&&originalEmail){const {error}=await db.from('users').update(empData).eq('company_id',companyId).eq('email',originalEmail);if(error)throw error;if(employee.password){const {data:list}=await db.auth.admin.listUsers();const target=(list?.users||[]).find(x=>x.email?.toLowerCase()===String(originalEmail).toLowerCase());if(target){const {error:pe}=await db.auth.admin.updateUserById(target.id,{password:employee.password,user_metadata:{name:employee.name,role:employee.role||'موظف',isOwner:false,permissions:merged}});if(pe)throw pe;}}return new Response(JSON.stringify({success:true,action:'updated'}),{headers:{...cors,'Content-Type':'application/json'}});}const {data:newAuth,error:ae}=await db.auth.admin.createUser({email:employee.email,password:employee.password||'123456',email_confirm:true,user_metadata:{name:employee.name,role:employee.role||'موظف',isOwner:false,permissions:merged}});if(ae||!newAuth?.user)throw ae||Error('فشل إنشاء حساب المصادقة');const {error:ie}=await db.from('users').insert({...empData,auth_id:newAuth.user.id});if(ie){await db.auth.admin.deleteUser(newAuth.user.id).catch(()=>{});throw ie;}return new Response(JSON.stringify({success:true,action:'created'}),{headers:{...cors,'Content-Type':'application/json'}});}catch(e){return new Response(JSON.stringify({success:false,error:e?.message||'فشل الحفظ'}),{status:400,headers:{...cors,'Content-Type':'application/json'}})}});
+
+const db = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+);
+
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS"
+};
+
+function asBool(value) {
+  return value === true || String(value ?? "").toLowerCase() === "true";
+}
+
+function normalizeBranches(value) {
+  if (value === null || value === undefined || value === "") return ["*"];
+  if (Array.isArray(value)) {
+    const out = value.map(x => String(x).trim()).filter(Boolean);
+    return out.length ? out : ["*"];
+  }
+  const s = String(value).trim();
+  if (s === "*") return ["*"];
+  try {
+    const parsed = JSON.parse(s);
+    if (Array.isArray(parsed)) {
+      const out = parsed.map(x => String(x).trim()).filter(Boolean);
+      return out.length ? out : ["*"];
+    }
+  } catch (_) {}
+  const out = s.split(",").map(x => x.trim()).filter(Boolean);
+  return out.length ? out : ["*"];
+}
+
+async function getActor(req) {
+  const h = req.headers.get("Authorization");
+  if (!h) throw new Error("غير مصرح");
+  const { data: { user }, error } = await db.auth.getUser(h.replace("Bearer ", ""));
+  if (error || !user?.id) throw new Error("جلسة غير صالحة");
+
+  const { data: actor, error: ue } = await db
+    .from("users")
+    .select("id,company_id,status,permissions,auth_id")
+    .eq("auth_id", user.id)
+    .maybeSingle();
+
+  if (ue || !actor || actor.status === "Inactive" || !actor.company_id) {
+    throw new Error("سياق المستخدم غير صالح");
+  }
+
+  const permissions = Array.isArray(actor.permissions) ? actor.permissions : [];
+  const { data: ownerProfile, error: oe } = await db
+    .from("owner_profile")
+    .select("auth_user_id")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+
+  if (oe) throw oe;
+
+  const isOwner =
+    asBool(user.user_metadata?.isOwner) &&
+    permissions.indexOf("*") !== -1 &&
+    !!ownerProfile;
+
+  if (!isOwner && permissions.indexOf("users") === -1) {
+    throw new Error("لا تملك صلاحية إدارة المستخدمين");
+  }
+
+  return { user, actor, companyId: actor.company_id, isOwner };
+}
+
+async function targetIsOwner(authId) {
+  if (!authId) return false;
+  const { data: targetAuth, error: ae } = await db.auth.admin.getUserById(authId);
+  if (ae) throw ae;
+  const targetMeta = targetAuth?.user?.user_metadata || {};
+  const { data: profile, error: pe } = await db
+    .from("owner_profile")
+    .select("auth_user_id")
+    .eq("auth_user_id", authId)
+    .maybeSingle();
+  if (pe) throw pe;
+  return asBool(targetMeta.isOwner) && !!profile;
+}
+
+async function writeAudit(userEmail, action, recordId, oldData, newData) {
+  const { error } = await db.from("audit_log").insert({
+    user_email: userEmail || "system",
+    action,
+    table_name: "users",
+    record_id: String(recordId),
+    old_data: oldData ?? null,
+    new_data: newData ?? null
+  });
+  if (error) console.error("USER_AUDIT_FAILED", error);
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+
+  try {
+    const body = await req.json().catch(() => ({}));
+    const employee = body?.employee || {};
+    const isEdit = body?.isEdit === true;
+    const originalEmail = String(body?.originalEmail || "").trim();
+
+    if (!String(employee.name || "").trim() || !String(employee.email || "").trim()) {
+      throw new Error("الاسم والبريد مطلوبان");
+    }
+
+    const { user, companyId, isOwner } = await getActor(req);
+
+    const requestedPermissions = Array.isArray(employee.permissions)
+      ? Array.from(new Set(employee.permissions.map(x => String(x).trim()).filter(Boolean)))
+      : [];
+
+    if (requestedPermissions.indexOf("*") !== -1 && !isOwner) {
+      throw new Error("صلاحية wildcard (*) محجوزة للمالك");
+    }
+
+    let rolePermissions = [];
+    if (employee.role) {
+      const { data: role, error: re } = await db
+        .from("roles")
+        .select("id,permissions")
+        .eq("company_id", companyId)
+        .eq("role_name", String(employee.role).trim())
+        .maybeSingle();
+      if (re) throw re;
+      if (role?.permissions) {
+        rolePermissions = Array.isArray(role.permissions)
+          ? role.permissions.map(x => String(x))
+          : [];
+      }
+    }
+
+    if (rolePermissions.indexOf("*") !== -1 && !isOwner) {
+      throw new Error("الدور المحدد يحتوي wildcard (*) ولا يمكن استخدامه من غير المالك");
+    }
+
+    const merged = [...rolePermissions];
+    for (const p of requestedPermissions) {
+      if (!merged.includes(p)) merged.push(p);
+    }
+
+    const allowed = normalizeBranches(employee.allowed_branch_ids);
+    const scoped = allowed.filter(x => x !== "*");
+
+    if (scoped.length) {
+      const { data: branches, error: be } = await db
+        .from("branches")
+        .select("branch_code")
+        .eq("company_id", companyId)
+        .in("branch_code", scoped);
+      if (be) throw be;
+      if ((branches || []).length !== scoped.length) {
+        throw new Error("يوجد فرع غير تابع للشركة الحالية");
+      }
+    }
+
+    const empData = {
+      name: String(employee.name).trim(),
+      email: String(employee.email).trim(),
+      phone: employee.phone || null,
+      role: String(employee.role || "موظف").trim(),
+      status: employee.status || "Active",
+      expiry_date: employee.expiry_date || null,
+      allowed_branch_ids: allowed,
+      permissions: merged,
+      allow_all_customers: !!employee.allow_all_customers,
+      restrict_to_visit_day: employee.restrict_to_visit_day !== false,
+      device_id: employee.device_id || null,
+      company_id: companyId,
+      password_hash: "managed_by_supabase_auth"
+    };
+
+    if (isEdit && originalEmail) {
+      const { data: existing, error: ee } = await db
+        .from("users")
+        .select("*")
+        .eq("company_id", companyId)
+        .eq("email", originalEmail)
+        .maybeSingle();
+
+      if (ee) throw ee;
+      if (!existing) throw new Error("المستخدم غير موجود");
+
+      if (await targetIsOwner(existing.auth_id)) {
+        throw new Error("لا يمكن تعديل حساب المالك من هذه الشاشة");
+      }
+
+      const oldData = { ...existing };
+      const { error: de } = await db
+        .from("users")
+        .update(empData)
+        .eq("id", existing.id)
+        .eq("company_id", companyId);
+
+      if (de) throw de;
+
+      try {
+        if (existing.auth_id) {
+          const { data: targetAuth, error: getAuthError } =
+            await db.auth.admin.getUserById(existing.auth_id);
+          if (getAuthError) throw getAuthError;
+
+          const authAttrs = {
+            user_metadata: {
+              ...(targetAuth?.user?.user_metadata || {}),
+              name: empData.name,
+              role: empData.role,
+              isOwner: false,
+              permissions: merged
+            }
+          };
+
+          if (empData.email.toLowerCase() !== String(existing.email || "").toLowerCase()) {
+            authAttrs.email = empData.email;
+            authAttrs.email_confirm = true;
+          }
+
+          if (employee.password) authAttrs.password = String(employee.password);
+
+          if (empData.status === "Inactive") {
+            authAttrs.ban_duration = "876000h";
+          } else {
+            authAttrs.ban_duration = "none";
+          }
+
+          const { error: authUpdateError } =
+            await db.auth.admin.updateUserById(existing.auth_id, authAttrs);
+
+          if (authUpdateError) throw authUpdateError;
+        }
+      } catch (authError) {
+        const { error: rollbackError } = await db
+          .from("users")
+          .update(oldData)
+          .eq("id", existing.id)
+          .eq("company_id", companyId);
+        if (rollbackError) console.error("USER_DB_ROLLBACK_FAILED", rollbackError);
+        throw authError;
+      }
+
+      await writeAudit(user.email, "update", existing.id, oldData, {
+        ...empData,
+        auth_id: existing.auth_id || null
+      });
+
+      return new Response(JSON.stringify({
+        success: true,
+        action: "updated",
+        user_id: existing.id
+      }), {
+        headers: { ...cors, "Content-Type": "application/json" }
+      });
+    }
+
+    const { data: newAuth, error: ae } = await db.auth.admin.createUser({
+      email: empData.email,
+      password: employee.password || "123456",
+      email_confirm: true,
+      user_metadata: {
+        name: empData.name,
+        role: empData.role,
+        isOwner: false,
+        permissions: merged
+      }
+    });
+
+    if (ae || !newAuth?.user) throw ae || new Error("فشل إنشاء حساب المصادقة");
+
+    const insertPayload = { ...empData, auth_id: newAuth.user.id };
+    const { data: created, error: ie } = await db
+      .from("users")
+      .insert(insertPayload)
+      .select("id")
+      .single();
+
+    if (ie) {
+      await db.auth.admin.deleteUser(newAuth.user.id).catch(() => {});
+      throw ie;
+    }
+
+    await writeAudit(user.email, "create", created.id, null, insertPayload);
+
+    return new Response(JSON.stringify({
+      success: true,
+      action: "created",
+      user_id: created.id
+    }), {
+      headers: { ...cors, "Content-Type": "application/json" }
+    });
+  } catch (e) {
+    console.error("save-employee", e);
+    return new Response(JSON.stringify({
+      success: false,
+      error: e?.message || "فشل الحفظ"
+    }), {
+      status: 400,
+      headers: { ...cors, "Content-Type": "application/json" }
+    });
+  }
+});
