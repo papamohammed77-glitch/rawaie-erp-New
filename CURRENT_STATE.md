@@ -6,10 +6,10 @@
 ## Current System Git
 
 - Repository: papamohammed77-glitch/rawaie-erp-New
-- Report commit: 3aa9822e9b974bcc883385e2be651bceac4c643b
-- Execution log commit: f6a1ffccb1e73488d00605e575bdb254e83a1669
-- Current HEAD immediately before this CURRENT_STATE update: f6a1ffccb1e73488d00605e575bdb254e83a1669
-- Direct parent: 3aa9822e9b974bcc883385e2be651bceac4c643b
+- Report commit: d2617bbcb940df1dc01cdf74438c8bd59fc0929b
+- Execution log commit: 4cabe17b46491c25c957a2662e65e9c05fe3248a
+- Current HEAD immediately before this CURRENT_STATE update: 4cabe17b46491c25c957a2662e65e9c05fe3248a
+- Direct parent: d2617bbcb940df1dc01cdf74438c8bd59fc0929b
 - User/Role source closure commits:
   - 893a5df53a3d35f3bf74741e6f1811b7a1cee756
   - 76e5f1c4e5738385e22c60ff072575e32a258893
@@ -19,11 +19,11 @@
 ## Mother Current Git
 
 - Repository: papamohammed77-glitch/erp-frontend
-- HEAD: f022457cefbd176c142996040dcbf6e982936623
-- Direct parent: 71529a7780d614766730e86a43bc457caaab7c09
-- Current main.html blob: 3230a4cf205c9b1e1752e4eea733829c84660a15
-- main.html lines: 25,918
-- main.html size: 1,413,667 bytes
+- HEAD: 033a5386930cee0d306a3a398a402066e596dfe
+- Direct parent: aa6e8177ab32f45fed08a07113b83eb9c6aa7fd1
+- Current main.html blob: 506bc3fc22036bb9ef2d23d93e753060ccced563
+- main.html lines: 26,221
+- main.html size: 1,425,430 bytes
 - CTO main.html modifications in this closure: 0
 
 ## Production Snapshot
