@@ -1,82 +1,395 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const db=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
+const db = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+);
 
-function asBool(v){return v===true||String(v??"").toLowerCase()==="true";}
-function hasPermission(perms,key){return Array.isArray(perms)&&(perms.includes("*")||perms.includes(key));}
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS"
+};
 
-async function getActor(req){
-  const h=req.headers.get("Authorization"); if(!h) throw Error("غير مصرح");
-  const {data:{user},error:ae}=await db.auth.getUser(h.replace("Bearer ",""));
-  if(ae||!user?.id) throw Error("جلسة غير صالحة");
-  const {data:actor,error}=await db.from("users").select("id,company_id,status,permissions").eq("auth_id",user.id).maybeSingle();
-  if(error||!actor||actor.status==="Inactive"||!actor.company_id) throw Error("سياق المستخدم غير صالح");
-  const perms=Array.isArray(actor.permissions)?actor.permissions:[];
-  const {data:op,error:oe}=await db.from("owner_profile").select("auth_user_id").eq("auth_user_id",user.id).maybeSingle();
-  if(oe) throw oe;
-  const isOwner=asBool(user.user_metadata?.isOwner)&&perms.includes("*")&&!!op;
-  if(!isOwner&&!perms.includes("roles")) throw Error("لا تملك صلاحية إدارة الأدوار");
-  return {user,companyId:actor.company_id,isOwner};
+function asBool(v) {
+  return v === true || String(v ?? "").toLowerCase() === "true";
 }
 
-async function audit(email,action,id,oldData,newData){
-  const {error}=await db.from("audit_log").insert({
-    user_email:email||"system",action,table_name:"roles",record_id:String(id),old_data:oldData??null,new_data:newData??null
+function normalizePermissions(value) {
+  if (Array.isArray(value)) {
+    return Array.from(new Set(value.map(x => String(x).trim()).filter(Boolean)));
+  }
+  if (typeof value === "string" && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return normalizePermissions(parsed);
+    } catch (_) {}
+    return Array.from(new Set(value.split(",").map(x => x.trim()).filter(Boolean)));
+  }
+  return [];
+}
+
+function equalSets(a, b) {
+  const aa = normalizePermissions(a).sort();
+  const bb = normalizePermissions(b).sort();
+  return aa.length === bb.length && aa.every((x, i) => x === bb[i]);
+}
+
+function mergePermissions(rolePermissions, directPermissions) {
+  return Array.from(new Set([
+    ...normalizePermissions(rolePermissions),
+    ...normalizePermissions(directPermissions)
+  ]));
+}
+
+async function getActor(req) {
+  const h = req.headers.get("Authorization");
+  if (!h) throw Error("غير مصرح");
+  const { data: { user }, error: ae } =
+    await db.auth.getUser(h.replace("Bearer ", ""));
+  if (ae || !user?.id) throw Error("جلسة غير صالحة");
+
+  const { data: actor, error: ue } = await db
+    .from("users")
+    .select("id,company_id,status,permissions,auth_id")
+    .eq("auth_id", user.id)
+    .maybeSingle();
+
+  if (ue || !actor || actor.status === "Inactive" || !actor.company_id) {
+    throw Error("سياق المستخدم غير صالح");
+  }
+
+  const permissions = normalizePermissions(actor.permissions);
+
+  const { data: ownerProfile, error: oe } = await db
+    .from("owner_profile")
+    .select("auth_user_id")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+
+  if (oe) throw oe;
+
+  const isOwner =
+    asBool(user.user_metadata?.isOwner) &&
+    permissions.includes("*") &&
+    !!ownerProfile;
+
+  if (!isOwner && !permissions.includes("roles")) {
+    throw Error("لا تملك صلاحية إدارة الأدوار");
+  }
+
+  return { user, actor, companyId: actor.company_id, isOwner };
+}
+
+async function getRoleMembers(companyId, roleId, roleName) {
+  const [byId, byName] = await Promise.all([
+    db.from("users")
+      .select("id,email,auth_id,status,permissions,role,role_id,company_id")
+      .eq("company_id", companyId)
+      .eq("role_id", roleId),
+    db.from("users")
+      .select("id,email,auth_id,status,permissions,role,role_id,company_id")
+      .eq("company_id", companyId)
+      .eq("role", roleName)
+  ]);
+
+  if (byId.error) throw byId.error;
+  if (byName.error) throw byName.error;
+
+  const map = new Map();
+  for (const row of [...(byId.data || []), ...(byName.data || [])]) {
+    map.set(row.id, row);
+  }
+  return Array.from(map.values());
+}
+
+async function isProtectedOwner(member) {
+  if (!member?.auth_id || !normalizePermissions(member.permissions).includes("*")) {
+    return false;
+  }
+
+  const { data: profile, error: pe } = await db
+    .from("owner_profile")
+    .select("auth_user_id")
+    .eq("auth_user_id", member.auth_id)
+    .maybeSingle();
+
+  if (pe) throw pe;
+  if (!profile) return false;
+
+  const { data: authUser, error: ae } =
+    await db.auth.admin.getUserById(member.auth_id);
+
+  if (ae) throw ae;
+
+  return asBool(authUser?.user?.user_metadata?.isOwner);
+}
+
+async function getAuthSnapshot(authId) {
+  if (!authId) return null;
+  const { data, error } = await db.auth.admin.getUserById(authId);
+  if (error) throw error;
+  return {
+    id: data.user.id,
+    user_metadata: { ...(data.user.user_metadata || {}) },
+    email: data.user.email || null
+  };
+}
+
+async function restoreAuthSnapshot(snapshot) {
+  if (!snapshot?.id) return;
+  const { error } = await db.auth.admin.updateUserById(snapshot.id, {
+    email: snapshot.email || undefined,
+    user_metadata: snapshot.user_metadata,
+    ban_duration: "none"
   });
-  if(error) console.error("ROLE_AUDIT_FAILED",error);
+  if (error) console.error("ROLE_AUTH_ROLLBACK_FAILED", error);
 }
 
-serve(async(req)=>{
-  if(req.method==="OPTIONS") return new Response("ok",{headers:cors});
-  try{
-    const body=await req.json().catch(()=>({}));
-    const roleName=String(body?.role_name??"").trim();
-    const description=body?.description==null?null:String(body.description).trim();
-    const permissions=Array.isArray(body?.permissions)?Array.from(new Set(body.permissions.map(String).map(x=>x.trim()).filter(Boolean))):[];
-    const requestedId=body?.id?String(body.id):null;
-    if(!roleName) throw Error("اسم الدور مطلوب");
+async function auditRows(rows) {
+  if (!rows.length) return;
+  const { error } = await db.from("audit_log").insert(rows);
+  if (error) throw error;
+}
 
-    const {user,companyId,isOwner}=await getActor(req);
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: cors });
+  }
 
-    if(permissions.includes("*")&&!isOwner) throw Error("صلاحية wildcard (*) محجوزة للمالك");
+  try {
+    const body = await req.json().catch(() => ({}));
+    const roleName = String(body?.role_name ?? "").trim();
+    const description = body?.description == null
+      ? null
+      : String(body.description).trim();
+    const permissions = normalizePermissions(body?.permissions);
+    const requestedId = body?.id ? String(body.id).trim() : null;
 
-    if(requestedId){
-      const {data:existing,error:re}=await db.from("roles").select("*").eq("id",requestedId).eq("company_id",companyId).maybeSingle();
-      if(re) throw re;
-      if(!existing) throw Error("الدور غير موجود ضمن الشركة الحالية");
+    if (!roleName) throw Error("اسم الدور مطلوب");
 
-      if(existing.role_name!==roleName){
-        const {data:assigned,error:ue}=await db.from("users")
-          .select("id")
-          .eq("company_id",companyId)
-          .or("role_id.eq."+requestedId+",role.eq."+JSON.stringify(existing.role_name))
-          .limit(1);
-        if(ue) throw ue;
-        if((assigned||[]).length) throw Error("لا يمكن إعادة تسمية دور مرتبط بمستخدمين حاليين؛ أعد تعيينهم أولاً");
-      }
+    const { user, companyId, isOwner } = await getActor(req);
 
-      const payload={role_name:roleName,description,permissions,is_system:existing.is_system===true};
-      const {error}=await db.from("roles").update(payload).eq("id",existing.id).eq("company_id",companyId);
-      if(error) throw error;
-      await audit(user.email,"update",existing.id,existing,payload);
-      return new Response(JSON.stringify({success:true,action:"updated",id:existing.id}),{
-        headers:{...cors,"Content-Type":"application/json"}
+    if (permissions.includes("*") && !isOwner) {
+      throw Error("صلاحية wildcard (*) محجوزة للمالك");
+    }
+
+    if (!requestedId) {
+      const payload = {
+        role_name: roleName,
+        description,
+        is_system: false,
+        permissions,
+        company_id: companyId
+      };
+
+      const { data: created, error } = await db
+        .from("roles")
+        .insert(payload)
+        .select("id")
+        .single();
+
+      if (error) throw error;
+
+      await auditRows([{
+        user_email: user.email || "system",
+        action: "create",
+        table_name: "roles",
+        record_id: String(created.id),
+        old_data: null,
+        new_data: payload
+      }]);
+
+      return new Response(JSON.stringify({
+        success: true,
+        action: "created",
+        id: created.id
+      }), {
+        headers: { ...cors, "Content-Type": "application/json" }
       });
     }
 
-    const payload={role_name:roleName,description,is_system:false,permissions,company_id:companyId};
-    const {data:created,error}=await db.from("roles").insert(payload).select("id").single();
-    if(error) throw error;
-    await audit(user.email,"create",created.id,null,payload);
-    return new Response(JSON.stringify({success:true,action:"created",id:created.id}),{
-      headers:{...cors,"Content-Type":"application/json"}
+    const { data: existing, error: re } = await db
+      .from("roles")
+      .select("*")
+      .eq("id", requestedId)
+      .eq("company_id", companyId)
+      .maybeSingle();
+
+    if (re) throw re;
+    if (!existing) throw Error("الدور غير موجود ضمن الشركة الحالية");
+
+    const members = await getRoleMembers(
+      companyId,
+      existing.id,
+      String(existing.role_name || "")
+    );
+
+    if (
+      existing.role_name !== roleName &&
+      members.some(m => m.status !== "Inactive")
+    ) {
+      throw Error("لا يمكن إعادة تسمية دور مرتبط بمستخدمين حاليين؛ أعد تعيينهم أولاً");
+    }
+
+    const memberPlans = [];
+    const authSnapshots = [];
+
+    for (const member of members) {
+      if (member.status === "Inactive") continue;
+      if (await isProtectedOwner(member)) continue;
+
+      const currentEffective = normalizePermissions(member.permissions);
+      const oldRolePermissions = normalizePermissions(existing.permissions);
+
+      const directPermissions = currentEffective.filter(
+        p => p !== "*" && !oldRolePermissions.includes(p)
+      );
+
+      const nextEffective = mergePermissions(permissions, directPermissions);
+
+      const needsDbUpdate =
+        !equalSets(currentEffective, nextEffective) ||
+        member.role_id !== existing.id ||
+        member.role !== roleName;
+
+      if (!needsDbUpdate) continue;
+
+      let authSnapshot = null;
+      if (member.auth_id) {
+        authSnapshot = await getAuthSnapshot(member.auth_id);
+        authSnapshots.push(authSnapshot);
+      }
+
+      memberPlans.push({
+        member,
+        currentEffective,
+        directPermissions,
+        nextEffective,
+        authSnapshot
+      });
+    }
+
+    const payload = {
+      role_name: roleName,
+      description,
+      permissions,
+      is_system: existing.is_system === true
+    };
+
+    const { error: roleUpdateError } = await db
+      .from("roles")
+      .update(payload)
+      .eq("id", existing.id)
+      .eq("company_id", companyId);
+
+    if (roleUpdateError) throw roleUpdateError;
+
+    try {
+      for (const plan of memberPlans) {
+        const { error: userUpdateError } = await db
+          .from("users")
+          .update({
+            role_id: existing.id,
+            permissions: plan.nextEffective
+          })
+          .eq("id", plan.member.id)
+          .eq("company_id", companyId);
+
+        if (userUpdateError) throw userUpdateError;
+      }
+
+      for (const plan of memberPlans) {
+        if (!plan.member.auth_id) continue;
+
+        const existingMetadata =
+          plan.authSnapshot?.user_metadata || {};
+
+        const { error: authUpdateError } =
+          await db.auth.admin.updateUserById(plan.member.auth_id, {
+            user_metadata: {
+              ...existingMetadata,
+              role: roleName,
+              isOwner: false,
+              permissions: plan.nextEffective
+            }
+          });
+
+        if (authUpdateError) throw authUpdateError;
+      }
+
+      const auditRowsPayload = [{
+        user_email: user.email || "system",
+        action: "update",
+        table_name: "roles",
+        record_id: String(existing.id),
+        old_data: existing,
+        new_data: payload
+      }];
+
+      for (const plan of memberPlans) {
+        auditRowsPayload.push({
+          user_email: user.email || "system",
+          action: "role_permissions_sync",
+          table_name: "users",
+          record_id: String(plan.member.id),
+          old_data: {
+            role_id: plan.member.role_id || null,
+            role: plan.member.role || null,
+            permissions: plan.currentEffective
+          },
+          new_data: {
+            role_id: existing.id,
+            role: roleName,
+            permissions: plan.nextEffective
+          }
+        });
+      }
+
+      await auditRows(auditRowsPayload);
+    } catch (syncError) {
+      await db.from("roles").update({
+        role_name: existing.role_name,
+        description: existing.description,
+        permissions: existing.permissions,
+        is_system: existing.is_system
+      }).eq("id", existing.id).eq("company_id", companyId);
+
+      for (const plan of memberPlans) {
+        await db.from("users")
+          .update({
+            role_id: plan.member.role_id || null,
+            role: plan.member.role || null,
+            permissions: plan.currentEffective
+          })
+          .eq("id", plan.member.id)
+          .eq("company_id", companyId);
+      }
+
+      for (const snapshot of authSnapshots) {
+        await restoreAuthSnapshot(snapshot);
+      }
+
+      throw syncError;
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      action: "updated",
+      id: existing.id,
+      propagated_users: memberPlans.length
+    }), {
+      headers: { ...cors, "Content-Type": "application/json" }
     });
-  }catch(e){
-    console.error("save-role",e);
-    return new Response(JSON.stringify({success:false,error:e?.message||"فشل الحفظ"}),{
-      status:400,headers:{...cors,"Content-Type":"application/json"}
+  } catch (e) {
+    console.error("save-role", e);
+    return new Response(JSON.stringify({
+      success: false,
+      error: e?.message || "فشل الحفظ"
+    }), {
+      status: 400,
+      headers: { ...cors, "Content-Type": "application/json" }
     });
   }
 });
