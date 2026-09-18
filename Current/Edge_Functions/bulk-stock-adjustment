@@ -1,0 +1,177 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const db = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+);
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS"
+};
+
+function normalizePermissions(value) {
+  if (Array.isArray(value)) {
+    return Array.from(new Set(value.map(x => String(x).trim()).filter(Boolean)));
+  }
+  if (typeof value === "string" && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return normalizePermissions(parsed);
+    } catch (_) {}
+    return Array.from(new Set(value.split(",").map(x => x.trim()).filter(Boolean)));
+  }
+  return [];
+}
+
+function asBool(value) {
+  return value === true || String(value ?? "").toLowerCase() === "true";
+}
+
+async function getActor(req) {
+  const ah = req.headers.get("Authorization");
+  if (!ah) throw Error("مصادقة مطلوبة");
+
+  const { data: { user }, error: ae } =
+    await db.auth.getUser(ah.replace("Bearer ", ""));
+
+  if (ae || !user?.id) throw Error("جلسة غير صالحة");
+
+  const { data: actor, error: ue } = await db
+    .from("users")
+    .select("id,company_id,status,permissions,auth_id")
+    .eq("auth_id", user.id)
+    .maybeSingle();
+
+  if (ue || !actor || actor.status === "Inactive" || !actor.company_id) {
+    throw Error("سياق المستخدم غير صالح");
+  }
+
+  const permissions = normalizePermissions(actor.permissions);
+
+  const { data: ownerProfile, error: oe } = await db
+    .from("owner_profile")
+    .select("auth_user_id")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+
+  if (oe) throw oe;
+
+  const isOwner =
+    asBool(user.user_metadata?.isOwner) &&
+    permissions.includes("*") &&
+    !!ownerProfile;
+
+  if (!isOwner && !permissions.includes("stock_adjustment")) {
+    throw Error("لا تملك صلاحية تحديث أرصدة المخزون");
+  }
+
+  return {
+    user,
+    companyId: actor.company_id,
+    isOwner
+  };
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    const body = await req.json().catch(() => ({}));
+    const {
+      branch_id,
+      adjustment_type,
+      voucher_code,
+      reason,
+      items
+    } = body;
+
+    if (
+      !branch_id ||
+      !adjustment_type ||
+      !voucher_code ||
+      !reason ||
+      !Array.isArray(items) ||
+      !items.length
+    ) {
+      throw Error("البيانات غير مكتملة");
+    }
+
+    const { user, companyId } = await getActor(req);
+
+    const { data: branch, error: branchError } = await db
+      .from("branches")
+      .select("id")
+      .eq("id", branch_id)
+      .eq("company_id", companyId)
+      .maybeSingle();
+
+    if (branchError) throw branchError;
+    if (!branch) throw Error("الفرع غير تابع للشركة الحالية");
+
+    const effects = [];
+
+    for (const item of items) {
+      const qty = Number(item?.qty);
+      const itemCode = String(item?.item_code || "").trim();
+
+      if (!itemCode || !Number.isFinite(qty)) {
+        throw Error("بيانات الصنف غير صالحة");
+      }
+
+      const { data: itemRow, error: itemError } = await db
+        .from("items")
+        .select("id,item_code")
+        .eq("company_id", companyId)
+        .eq("item_code", itemCode)
+        .maybeSingle();
+
+      if (itemError) throw itemError;
+      if (!itemRow) throw Error("الصنف غير موجود: " + itemCode);
+
+      effects.push({
+        item_id: itemRow.id,
+        item_code: itemRow.item_code,
+        qty
+      });
+    }
+
+    const { data, error } = await db.rpc(
+      "post_inventory_adjustment_atomic",
+      {
+        p_company_id: companyId,
+        p_branch_id: branch_id,
+        p_adjustment_type: adjustment_type,
+        p_voucher_code: voucher_code,
+        p_reason: reason,
+        p_user_email: user.email,
+        p_items: effects
+      }
+    );
+
+    if (error) throw error;
+
+    return new Response(JSON.stringify(data), {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json"
+      }
+    });
+  } catch (e) {
+    console.error("bulk-stock-adjustment", e);
+    return new Response(JSON.stringify({
+      success: false,
+      msg: e?.message || "فشل تحديث الرصيد"
+    }), {
+      status: 400,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json"
+      }
+    });
+  }
+});
