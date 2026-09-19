@@ -1,3 +1,100 @@
+# FINAL CURRENT RECONCILIATION — 2026-09-19 — RW_Settings CURRENT RUNTIME REGRESSION CHECKPOINT
+
+> **هذا القسم هو أحدث Current Reality لحالة Settings.**  
+> لا تُعاد مراجعة Report250 أو إعادة بناء Production Settings من الصفر إلا إذا ظهر Regression جديد.
+
+## Current Git
+- System HEAD: \`e652d0af323fad0f3dea5b32115a6af6cd17e58b\`
+- Parent: \`36d9b482962be256a5456d0fd77c3ddb23f1c3b9\`
+- latest commit: \`docs: correct final settings checkpoint git head in CURRENT_STATE\`
+
+## Current Mother
+- HEAD: \`5c1e10d805a499594ec14d653f466cd05e7204dc\`
+- Parent: \`cfc63ad204f8af0faec3fbfafd75dfe0aee80d0b\`
+- Current main.html blob: \`6241363f7f54bcff0356cd39f9253d1930b5fd68\`
+- CI logical lines: 27031
+- Main source SHA256: \`8c6f63881a834c307c1d548b7b4e38d285bc89acbf9554917949caaf92fff11e\`
+
+## Settings current source reality
+\`RW_Settings\` is already a full Page under \`rw-page-container\`; Router line 24935 calls \`RW_Settings.render()\`.
+
+Current source contains exactly two malformed JavaScript quote constructions in \`RW_Settings.build()\`:
+- line 5362: \`settings-company-logo-preview\`
+- line 5374: \`settings-store-logo-preview\`
+
+Malformed pattern:
+\`onerror="this.src='' + imageFallback() + ''"\`
+
+The exact GitHub CI failure on current published source:
+- Run \`35436461898\`
+- Job \`105879844362\`
+- \`Exact JavaScript syntax gate — original published source\`
+- error: \`/tmp/main-positioned.js:5362 SyntaxError: Unexpected string\`
+
+This is the confirmed root cause of the reported login/Console failure.
+
+## Production current reality — captured 2026-09-19 10:24:48.269488+00 UTC
+- app_settings rows: 1
+- company_name: \`الشيخ للتجارة والتوزيع\`
+- company_logo: present in Storage
+- store_name: \`الروائع\`
+- store_logo: null
+- currency: \`SAR\`
+- payment_method: \`both\`
+- delivery_fee: 0
+- min_invoice_amount: 0
+- tax_rate: 0
+- free_shipping_threshold: 0
+- main_branch_id: \`a38332b6-6cea-480a-ada1-6eb6ab0590db\`
+- order_serial: 1
+- runsheet_serial: 1
+- status: \`trial\`
+- app_settings.updated_at: \`2026-09-13 06:10:00.144+00\`
+
+\`companies.main_branch_id\` matches \`app_settings.main_branch_id\`, and the existing \`trg_sync_company_main_branch_projection\` remains the authoritative projection mechanism.
+
+## Production Settings backend
+- \`save_system_settings_atomic(uuid,uuid,text,boolean,jsonb)\`
+- SECURITY DEFINER = true
+- current definition md5: \`324e96f901210c963ce6a39db02e5ee2\`
+- \`save-settings\` Edge version 14 ACTIVE, verify_jwt=true
+- deployment hash: \`68a3434f3ff13e44695518cb4297df66ff316664bbf3cb6dfc4e125618296a34\`
+- Git canonical \`Current/Edge_Functions/save-settings\` blob SHA: \`ca38d90be5d53ccbf8ba58869bbf784b109e0bd9\`
+
+No new Production DDL/Data change is required for this current source defect.
+
+## Verification
+Current settings no-op was re-tested inside a transaction using the **actual current company_logo** and all actual current settings:
+- success=true
+- changed=false
+- created=false
+- transaction rolled back
+Thus the earlier apparent no-op anomaly was a stale-snapshot mismatch, not a current Production writer defect.
+
+## Owner Source Change Set
+Do **not** replace \`RW_Settings\` wholesale.
+
+Owner must:
+1. In \`RW_Settings.build()\`, replace full line 5362 (\`settings-company-logo-preview\`) with the corrected line in Report251.
+2. Replace full line 5374 (\`settings-store-logo-preview\`) with the corrected line in Report251.
+3. Commit.
+4. Run the Mother forensic syntax gate.
+5. Run Mother Assembly Guard.
+6. Run Mother Browser E2E.
+7. Recheck Production and then mark this closure CLOSED only after browser/runtime verification.
+
+## Competitive Settings research
+Current official documentation was checked for Odoo, Microsoft Dynamics 365 Business Central, SAP S/4HANA, Daftra, and Manager.io. Report251 records the resulting comparison and the fields that were deliberately **not** invented because their RAWAEA Contract is not yet proven.
+
+## Continuation
+**LAST VERIFIED CHECKPOINT:** Settings Production backend is verified; current Mother source defect is proven and exact Owner patch is ready.
+
+**NEXT EXACT TASK:** Owner applies the 2-line source surgical patch → CI syntax PASS → Mother Browser E2E → Production recheck → update this section to CLOSED.
+
+**Do not reopen:** save-settings v14, save_system_settings_atomic, main-branch projection, or the existing Page migration unless new evidence shows Regression.
+
+---
+
 # FINAL CURRENT RECONCILIATION — 2026-09-19 — RW_Settings Forensic Surgical Checkpoint
 
 > هذا هو أحدث قسم حاكم. لا يُعاد فتح أي Closure سابق إلا بدليل Regression من Current Evidence.
