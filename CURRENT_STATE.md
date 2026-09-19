@@ -1,3 +1,434 @@
+# FINAL CURRENT RECONCILIATION — 2026-09-19 — RW_OwnerLicense FORENSIC SURGICAL PRODUCTION CHECKPOINT
+
+## 0. SESSION GOVERNANCE
+
+هذه هي أحدث نقطة تشغيلية مثبتة بعد تنفيذ Closure كامل لعقد **Owner License Management**.
+
+القاعدة:
+**CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT**
+
+التقارير السابقة استرشادية فقط.
+
+النطاق الذي تم حسمه هنا:
+**RW_OwnerLicense / إدارة التراخيص فقط**
+
+تم عدم لمس:
+- `main.html` في Mother بواسطة CTO.
+- Comprehensive Reports.
+- Inventory / Picker / Runsheet / Delivery / Purchase / Accounting / CRM / HR.
+
+---
+
+## 1. CURRENT GIT — SYSTEM
+
+Repository:
+`papamohammed77-glitch/rawaie-erp-New`
+
+System HEAD قبل تحديث CURRENT_STATE:
+`b4b0ebbc03d227772257b59d6fc036e772a0d803`
+
+Parent:
+`894e23762d756e675be881b5ed83e761542b8096`
+
+Report:
+`doc/Draft/Reprots/Report252_OWNER_LICENSE_FORENSIC_SURGICAL_CLOSURE_20260919.md`
+
+آخر Source alignment:
+`Current/Edge_Functions/save-settings`
+
+Current source blob:
+`4c9d06b6b983689028487be869fdeb40516571f8`
+
+---
+
+## 2. CURRENT MOTHER — NO CTO WRITE
+
+Repository:
+`papamohammed77-glitch/erp-frontend`
+
+Mother HEAD:
+`80ef33e620dc1797f463b836d15651bdf0041761`
+
+Mother parent:
+`ed7147bcf1e8aea00ee239a52f6bb09154453240`
+
+`companies/company-1/main.html`:
+- blob `951e1de989203449fd5ee52e736a70f5480249a1`
+- file SHA256 `7ac9907eb5536ff0ad9a7c60a3f7b79d0b6abd22369895b879cf7ff9966c5151`
+- 27,032 lines
+
+Current `RW_OwnerLicense` block:
+- start line 24509
+- end line 24809
+- start marker:
+  `var RW_OwnerLicense = (function() {`
+- end marker:
+  `window.RW_OwnerLicense = RW_OwnerLicense;`
+
+**No Mother main.html change has been committed by CTO.**
+
+---
+
+## 3. FORENSIC ROOT CAUSE — OWNER LICENSE
+
+Current Mother `RW_OwnerLicense` parses correctly; no syntax defect was found in the current block.
+
+The proven defects were contract defects:
+
+1. Current block attempted to read `owner_email` from `app_settings`, but Production `app_settings` has no such field.
+2. Owner identity is held in `owner_profile`.
+3. Production had no first-class Company License Registry.
+4. Current page was limited to the current company instead of platform-wide owner administration.
+5. Current save path exposed only the runtime license subset:
+   `status`, `trial_end_date`, `subscription_end_date`.
+6. No centralized list/detail/save capability existed for the Owner across companies.
+
+Historical sources show the route evolved from unsafe legacy global lookup to company-aware Owner-only semantics; the remaining gap was the missing **platform-level license administration contract**.
+
+---
+
+## 4. PRODUCTION — OWNER LICENSE BACKEND CLOSED
+
+Project:
+`fiilmooggumokxanwiyx`
+
+Created:
+`public.company_licenses`
+
+Current Production counts:
+- companies = 1
+- owner_profile = 1
+- users = 24
+- company_licenses = 1
+- duplicate app_settings company groups = 0
+
+Current production company:
+- code = MAIN
+- name = الروائع
+- active = true
+- runtime status = trial
+- company license status = trial
+- plan_code = null
+
+No test business data was left in Production.
+
+---
+
+## 5. PRODUCTION RPC
+
+Created:
+`public.owner_license_admin_atomic`
+
+Actions:
+- `list`
+- `detail`
+- `save`
+
+Security:
+- SECURITY DEFINER
+- service_role execute only
+- no PUBLIC execute
+- no anon execute
+- no authenticated execute
+
+Owner validation:
+- authenticated user identity
+- users row identity
+- active status
+- owner_profile identity
+- wildcard `permissions=["*"]`
+- historical OWNER semantics preserved
+
+---
+
+## 6. RUNTIME PROJECTION
+
+Company license is connected to existing runtime contract without rebuilding field applications.
+
+Save updates:
+- `company_licenses`
+- `app_settings.status`
+- `app_settings.trial_end_date`
+- `app_settings.subscription_end_date`
+
+Sync trigger:
+`trg_sync_company_license_from_app_settings`
+
+Guard trigger:
+`trg_guard_app_settings_license_fields`
+
+Trigger functions' public execution surface was explicitly revoked.
+
+---
+
+## 7. AUDIT CONTRACT
+
+Existing `audit_log.action` contract is preserved.
+
+Allowed actions remain:
+- create
+- update
+- delete
+- login
+- logout
+- failed_login
+
+License mutation uses:
+`update`
+
+No new audit action enum/string was introduced.
+
+No-op license save does not create audit noise.
+
+---
+
+## 8. EXISTING EDGE GATE — SAVE-SETTINGS
+
+Because Production had reached the Edge Function count limit, no duplicate License Edge Function was created.
+
+Existing:
+`save-settings`
+
+Production:
+- version = 15
+- ACTIVE
+- verify_jwt = true
+- SHA256 = `1446702775a35c1869dbe113e826c6c9f667b5296e559e670fb0ea8c82576173`
+
+Current System source was reconciled with the deployed source and now matches it exactly.
+
+License capability:
+`action = "license-admin"`
+
+with:
+`admin_action = list | detail | save`
+
+---
+
+## 9. PRODUCTION VERIFICATION
+
+Verified directly against Production:
+
+### Owner
+Owner save transaction:
+**PASS**
+
+Runtime projection:
+**PASS**
+
+Audit creation:
+**PASS**
+
+Rollback preservation:
+**PASS**
+
+### Non-owner
+Non-owner attempt:
+**REJECTED**
+
+Expected error:
+`OWNER_REQUIRED`
+
+### Read capabilities
+Owner list:
+**PASS**
+
+Owner detail:
+**PASS**
+
+### No-op
+No-op audit behavior:
+**PASS**
+
+### Production after tests
+- license status remains `trial`
+- plan remains null
+- no temporary E2E values remain
+
+---
+
+## 10. STATIC SURGERY VERIFICATION
+
+Replacement `RW_OwnerLicense` was independently parsed.
+
+Result:
+**PASS**
+
+The corrected replacement avoids the invalid quoted inline-handler construction and uses safe company-id interpolation.
+
+---
+
+## 11. OWNER SURGICAL SOURCE PATCH
+
+The Owner must edit only:
+
+`erp-frontend/companies/company-1/main.html`
+
+Delete exactly:
+- line 24509 through 24809
+- start marker `var RW_OwnerLicense = (function() {`
+- end marker `window.RW_OwnerLicense = RW_OwnerLicense;`
+
+Replace with the complete block in:
+
+`Report252_OWNER_LICENSE_FORENSIC_SURGICAL_CLOSURE_20260919.md`
+
+Do not edit:
+`// RW_Views`
+or any surrounding route.
+
+---
+
+## 12. NEW OWNER LICENSE PAGE CONTRACT
+
+The replacement page provides:
+
+- Owner-only gate
+- Owner profile summary
+- Current email
+- Change email
+- Change password
+- Company directory
+- KPI summary
+- Search
+- Status filter
+- Company selection
+- Company detail
+- Plan code
+- Billing cycle
+- Trial start/end
+- Subscription start/end
+- Grace end
+- Notes
+- Active user count
+- Active branch count
+- Runtime projection
+- Audit history
+- Save/reload
+- No Modal dependency
+
+Current Mother already had a Page structure; the surgical replacement upgrades it to the full platform Owner page rather than adding another modal.
+
+---
+
+## 13. COMPETITIVE CONTRACT BENCHMARK
+
+The design was compared against current official documentation for:
+- Odoo
+- Microsoft Dynamics 365 Business Central
+- SAP for Me
+- Daftra
+- Manager.io
+
+The implemented gap closure adopts the proven administrative patterns that fit RAWAEA:
+- centralized company/account directory
+- plan and subscription lifecycle metadata
+- owner/admin-only control
+- measurable account dimensions
+- runtime visibility
+- audit/history
+- detail page rather than fragmented modal workflow
+
+Not implemented because no RAWAEA business contract is currently proven:
+- entitlement limits
+- user/branch/device quotas
+- feature-by-plan enforcement
+- overage/overuse enforcement
+- recurring billing invoices
+- auto renewal
+- payment provider
+- environment provisioning
+
+These remain future Contract Closure Units.
+
+---
+
+## 14. FIELD APPLICATION PRESERVATION
+
+No changes were made to the operational application contracts.
+
+Preserved:
+- POS
+- Telesales
+- Order Taker
+- Van Sales
+- Warehouse
+- Picker
+- Loader
+- Delivery
+- Returns
+- Purchasing
+- Accounting
+
+The Owner License page controls platform-level license state while existing operational applications continue to consume the runtime license projection through their current contract.
+
+---
+
+## 15. SECURITY ADVISOR STATE
+
+After closing the License execution surface, the new License trigger functions no longer appear as public executable SECURITY DEFINER functions.
+
+Remaining Advisor findings belong to unrelated legacy/platform areas and are not part of this Owner License closure.
+
+No unrelated security surface was changed.
+
+---
+
+## 16. CLOSURE STATUS
+
+**OWNER LICENSE PRODUCTION BACKEND = CLOSED**
+
+**OWNER LICENSE SECURITY = CLOSED**
+
+**OWNER LICENSE CURRENT EDGE SOURCE ↔ PRODUCTION DEPLOYMENT = ALIGNED**
+
+**OWNER LICENSE SURGICAL MOTHER SOURCE = READY**
+
+**BROWSER PRODUCTION E2E = OPEN UNTIL OWNER CUTOVER**
+
+**FULL OWNER LICENSE 100% CLOSURE = OPEN ONLY FOR MOTHER CUTOVER + BROWSER E2E**
+
+---
+
+## 17. EXACT NEXT SESSION START
+
+The next CTO must:
+
+1. Verify current System HEAD and parent.
+2. Verify Mother HEAD and main.html blob.
+3. Verify Owner applied only the exact RW_OwnerLicense block.
+4. Run parser/assembly gate.
+5. Run browser E2E on Production as Owner.
+6. Test list/detail/save.
+7. Verify runtime projection.
+8. Verify audit.
+9. Re-read Production.
+10. Close Owner License at 100%.
+
+Do not:
+- recreate company_licenses
+- recreate owner_license_admin_atomic
+- create another Edge Function
+- reopen Settings backend
+- reopen Users/Roles
+- reopen Inventory
+- reopen Comprehensive Reports
+- add entitlement limits without a proven business contract
+- modify main.html outside the exact Owner License block
+
+---
+
+## 18. CONTINUITY RULE
+
+This state is current only until the next verified Git/Production change.
+
+Reports remain historical evidence.
+
+The only unresolved work from this closure is:
+**Owner Source Cutover → Browser E2E → Production reread → 100% Owner License Closure**
+
+---
+
 # FINAL CURRENT RECONCILIATION — 2026-09-19 — RW_Settings CURRENT RUNTIME REGRESSION CHECKPOINT
 
 > **هذا القسم هو أحدث Current Reality لحالة Settings.**  
