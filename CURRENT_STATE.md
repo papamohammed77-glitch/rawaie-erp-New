@@ -1,3 +1,145 @@
+# FINAL CURRENT RECONCILIATION — 2026-09-19 — RW_Roles Forensic Surgical Checkpoint
+
+> هذا هو أحدث قسم حاكم. لا يُعاد فتح أو إعادة تطبيق أي Closure سابق إلا بدليل Regression من Current Evidence.
+
+## Current Git
+
+System repository: papamohammed77-glitch/rawaie-erp-New
+
+- Report249 commit: 4650bc4d07fbeb49309aa80e916f789871cf3576
+- Report249 parent / previous HEAD: 10ec5e27e288161fb3c0be18aaf6b2249b32d213
+
+Mother repository: papamohammed77-glitch/erp-frontend
+
+- Current HEAD: e08652c3a6cb1d1768a04685cec437aa2d8b04c9
+- Parent: 3bc57c23fe334691514c633cad7d1599d776d54a
+- Last main.html-changing commit: 3bc57c23fe334691514c633cad7d1599d776d54a
+- Current main.html blob: ca40fd6c6f43797e096e338177280d22ac4fa436
+- CTO main.html changes in this session: 0
+
+## Current Production
+
+Supabase project: fiilmooggumokxanwiyx
+
+- roles = 20
+- system roles = 3
+- custom roles = 17
+- users = 24
+- active users without role_id = 1
+- broken role refs = 0
+- duplicate lower role names = 0
+- assigned role text mismatch = 0
+
+Unassigned case:
+mostafa@rawaea.com — role text 'موظف', role_id NULL.
+
+Data governance note:
+- System role 'أمين مخزن' has 0 permissions and 0 users.
+- Custom role 'امين مخزن' exists with 1 permission and 0 users.
+- No automatic merge/rename is authorized without exact historical/owner evidence.
+
+## RW_Roles Current Source
+
+Current RW_Roles is still the pre-page Modal implementation:
+- var rolesData = [];
+- function render()
+- function renderTable(data)
+- function openModal(roleId)
+- function _switchRoleTab(tabId)
+- _openModal: openModal
+- Swal.fire(...)
+
+Therefore Modal→Page has not been integrated into Mother.
+
+## Production Role Contract
+
+Verified active:
+- save-role v9
+- delete-role v4
+- seed-roles v4
+
+Verified behavior:
+- JWT authentication
+- company-scoped actor
+- roles permission guard
+- OWNER wildcard protection
+- role member propagation
+- role/user permission synchronization
+- audit logging
+- system-role deletion protection
+- active-member deletion protection
+
+Existing Production infrastructure is sufficient for RW_Roles Page migration. No additional Production role schema change was required in this session.
+
+## Permission Reconciliation
+
+Production role data contains 41 distinct permission keys.
+
+Current Mother consumers additionally reference:
+- online-store
+- stock_adjustment
+
+These remain in the surgical UI list because they are proven Current Source consumers. They are not removed merely because current roles do not currently contain them.
+
+## Surgical Patch
+
+Report:
+doc/Draft/Reprots/Report249_RW_ROLES_CURRENT_FORENSIC_RECONCILIATION_20260919.md
+
+Status:
+- Historical reconstruction = VERIFIED
+- Current Source forensic = VERIFIED
+- Production = VERIFIED
+- Competitor benchmark = VERIFIED
+- Surgical A-F definition = READY
+- Static parse of replacement blocks = PASS
+- Mother integration = OPEN
+- Browser Production E2E = OPEN
+- 100% closure = OPEN
+
+## Exact Next Action
+
+Owner must integrate only Report249 Surgery A-F into RW_Roles inside companies/company-1/main.html.
+
+Do not modify any other Mother module.
+
+After integration:
+1. Static syntax gate.
+2. Browser Production E2E.
+3. Role List.
+4. Search/filters.
+5. Add Role → Role Profile.
+6. Overview / Permissions / Members / Audit.
+7. Save / Reload.
+8. Clone.
+9. Delete custom unused role.
+10. Verify system role cannot be deleted.
+11. Re-read Production roles/users/audit.
+12. Close only after runtime proof.
+
+## Governance
+
+Current truth remains:
+
+CURRENT GIT
++
+CURRENT SOURCE
++
+CURRENT PRODUCTION
++
+CURRENT DATABASE
++
+CURRENT DEPLOYMENT
+
+Reports are historical evidence only.
+
+Do not auto-assign mostafa@rawaea.com.
+
+Do not merge 'أمين مخزن' and 'امين مخزن' without exact evidence.
+
+Do not reopen operational inventory/runsheet/delivery repairs without new regression evidence.
+
+END OF LATEST GOVERNING SECTION
 # FINAL SESSION RECONCILIATION — 2026-09-19 — RW_Roles Role Management Page Forensic Closure
 
 > هذا هو أحدث قسم حاكم. كل ما تحته تاريخ محفوظ. لا يُعاد تطبيق أي إصلاح قديم إلا إذا أثبته Current Evidence.
