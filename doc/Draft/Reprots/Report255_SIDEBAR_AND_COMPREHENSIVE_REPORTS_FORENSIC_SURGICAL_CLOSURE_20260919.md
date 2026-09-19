@@ -3,77 +3,62 @@
 
 ## 1. نطاق التنفيذ
 
-هذه الجلسة أغلقت التحقيق والتصميم الجراحي في نطاقين مترابطين فقط:
-
+هذه الجلسة مخصصة فقط لاستكمال نقطتين متصلتين:
 1. القائمة الجانبية والتوسيع/الطي ووظيفة التنقل الحديثة داخل Mother.
-2. تبويب RW_Reports_Comprehensive، مع إكمال فجوة Modal → Page وإصلاح defect الـhover المثبت.
+2. تبويب RW_Reports_Comprehensive، مع تحويل Drill-Down من Modal إلى Page وإصلاح defect الـhover المثبت.
 
 لم يتم تعديل Mother main.html في هذه الجلسة.
-لم يتم إنشاء تغيير Production جديد لأن التحقيق أثبت أن البنية الحالية للـReports Production قد أغلقت بالفعل ولا تحتاج Migration إضافية.
+ولم يتم تنفيذ Migration جديدة على Production، لأن Production reporting contracts المطلوبة لهذه النقطة سبق إغلاقها وثبت أنها ما زالت سليمة في snapshot الحالي.
 
-مبدأ الحوكمة المستخدم هو:
+تم الالتزام بمبدأ الحوكمة:
 UNDERSTAND → RECONSTRUCT HISTORICAL CONTRACT → TRACE CURRENT BEHAVIOR → TRACE DATA/AUTH → COMPARE TARGET → IDENTIFY GAP → MINIMAL SAFE CHANGE → IMPLEMENT → VERIFY.
 
-المصادر القديمة استُخدمت لإعادة بناء السبب والسياق، وليس باعتبارها Current Truth.
+التقارير السابقة مرجع تاريخي فقط؛ Current Truth هو المصدر الحي الذي تم التحقق منه في هذه الجلسة.
 
 ---
 
-## 2. Source of Truth المثبت
+## 2. Current Git / Parent
 
 ### System Repository
-
 Repository:
 papamohammed77-glitch/rawaie-erp-New
 
-Current HEAD:
-01bdade6a582ca79b8b732fc0c6fc81b9370ffe
+قبل إضافة هذا التقرير:
+HEAD = 01bdade6a582cae79b8b732fc0c6fc81b9370ffe
 
-هذا commit يسجل حالة Comprehensive Reports الحالية.
-
-Commit السابق الذي يحمل التنفيذ التشغيلي للتقارير:
+Parent of that state:
 55e7f32cdfa574cb33057e596e01ef743ca99ed5
 
+التقرير 255 نفسه أصبح commit جديدًا:
+ca29bb938db14afddb25111832c228ea52adf671
+
 Parent:
-c5dea0197fbc1a96500e436fee4d996f2fb624ad
+01bdade6a582cae79b8b732fc0c6fc81b9370ffe
 
 ### Mother Repository
-
 Repository:
 papamohammed77-glitch/erp-frontend
 
-Current HEAD:
+HEAD:
 f6d57ff5eb235af09405de7a8df81812d061edd3
 
 Parent:
 adeda04609723e221249e51621cc674b05dfc5ce
 
-Current verified main.html blob:
+Current main.html blob:
 94a30d3d7fda02967b6a1f3b112ea2ced6d77ac9
 
-آخر commit الحالي غيّر forensic extract فقط ولم يغيّر main.html.
-لذلك blob المذكور هو مصدر الكود الحالي الذي بُني عليه هذا التحقيق.
-
-### Current State
-
-CURRENT_STATE.md تم قراءته، وآخر قسم حكومي له يثبت أن Comprehensive Reports كان عند:
-- Current Git verified
-- Current Source verified
-- Production reporting security closed
-- Drilldown source patch = Owner Ready
-- Browser E2E = Open
-- 38-report live smoke = Open
-- Full Comprehensive Reports = Open until Owner cutover + browser evidence
-
-هذه الحالة ما زالت مطابقة للكود الحالي بعد التحقق الجنائي.
+الـMother HEAD الحالي غيّر forensic extract فقط، ولم يثبت تغييرًا جديدًا على main.html.
+لذلك blob المذكور هو baseline الحالي للكود.
 
 ---
 
-## 3. Current Production — إعادة المطابقة في نفس لحظة التقرير
+## 3. Current Production Snapshot
 
-Production:
+Project:
 fiilmooggumokxanwiyx
 
-الحالة الفعلية التي تم قراءتها مباشرة:
+تمت المطابقة المباشرة من Production أثناء هذه الجلسة:
 
 - companies = 1
 - active branches = 2
@@ -94,13 +79,17 @@ fiilmooggumokxanwiyx
 - journal_entries = 2
 - journal_lines = 0
 
-هذه البيانات تؤكد أن Production الحالية ما زالت Sparse Runtime وليست بيئة اختبار مكتملة.
-لذلك لم يتم اختراع Fixtures دائمة للحصول على Browser/Report PASS.
+هذه بيئة Production Sparse حقيقية.
+لم يتم إنشاء Fixtures دائمة للحصول على PASS.
 
-### Reporting RPC Production
+### Reporting RPC Security
 
-تم التحقق من صلاحيات RPC الحالية، ومن بينها:
+Production الحالية ما زالت تثبت:
+- anon EXECUTE = false
+- authenticated EXECUTE = true
+- service_role EXECUTE = true
 
+لـ:
 - inventory_movement_report
 - inventory_replenishment_report
 - comprehensive_inventory_turnover_report
@@ -112,1238 +101,271 @@ fiilmooggumokxanwiyx
 - get_balance_sheet_data
 - get_cash_flow
 
-النتيجة المثبتة:
-- anon EXECUTE = false
-- authenticated EXECUTE = true
-- service_role EXECUTE = true
+Production Reporting Security = CLOSED.
 
-وبالتالي Production security closure السابق للتقارير ما زال قائمًا ولا يحتاج إعادة فتح.
-
-لا يوجد Production schema gap مثبت يحتاج تنفيذًا جديدًا لهذه الجلسة.
+لا توجد بنية Production جديدة مطلوبة لهذه النقطة.
 
 ---
 
-# 4. التحقيق التاريخي والمعماري — القائمة الجانبية
+# 4. Historical + Architectural Reconstruction — Sidebar
 
-## 4.1 لماذا بُنيت القائمة الحالية بهذا الشكل؟
+القائمة الجانبية الحالية صُممت داخل Mother كـcentral navigation object:
+RW_Navigation.menuTree
 
-الكود الحالي يعرّف RW_Navigation داخل Mother ويحتوي على menuTree مركزي واحد يربط:
-
-Navigation
-↓
+ثم:
 Permission filtering
 ↓
-RW_Views
+navigation rendering
 ↓
-Module renderers
+RW_Views / Finance sub-tabs
+↓
+module renderers
 
-والقائمة لا تدير بيانات أعمال ولا تنفذ عمليات مخزنية.
-هي طبقة UX/orchestration للوصول إلى الوحدات.
+وهذا التصميم صحيح معماريًا؛ لأن القائمة ليست Business Engine ولا Physical Stock Writer.
 
-الـmenuTree الحالي يحافظ على البنية الوظيفية المعتمدة للنظام:
-- المبيعات
-- المشتريات
-- المخازن والمخزون
-- الحسابات والمالية
-- التقارير الذكية
-- HR
-- CRM
-- المستخدمون
-- الأدوار
-- الترخيص
-- الإعدادات
-
-كما أن العمليات الميدانية موجودة كوحدات مستقلة داخل المخازن:
+العمليات التشغيلية الميدانية بقيت خارج القائمة نفسها وتصل إلى تطبيقاتها:
 Receiving → Picking → Loading → Delivery → Return → Unloading
 
-لم يتم تغيير هذا البناء.
+لم يتم تعديل هذا العقد.
 
-## 4.2 ما الخطأ الحقيقي في التنفيذ الحالي؟
+### لماذا لا نعيد بناء menuTree؟
 
-الخلل ليس في Business Menu نفسه.
-الخلل في طبقة UX التي تعرضه.
+لأن التحقيق الحالي أثبت أن:
+- الـviews موجودة.
+- permission keys موجودة.
+- Finance actions موجودة.
+- operational views موجودة.
+- owner audit-log موجود كـspecial permission.
+- reports-comprehensive مربوط فعليًا بالrouter الحالي.
 
-### Defect A — Collapse State غير مكتمل
+الـgap الحقيقي هو Presentation + Navigation State + Collapse UX، وليس Business Menu topology.
+
+---
+
+# 5. Forensic Findings — Sidebar
+
+## Defect S-01 — Persistence ناقصة
 
 الكود الحالي يكتب:
 rw_sidebar_collapsed
 
-إلى localStorage.
+لكن لا يعيد بناء الـcollapsed state تلقائيًا من localStorage عند buildSidebar.
 
-لكن buildSidebar لا يعيد تطبيق الحالة المخزنة على:
-- sidebar
-- main
-- زر التوسيع
-
-أي أن persistence ناقصة.
-
-### Defect B — Collapse Mode يفقد وظيفة navigation
+## Defect S-02 — Collapsed Mode غير قابل للملاحة بشكل حديث
 
 عند collapse:
 - النصوص تختفي.
 - submenus تختفي.
-- العناصر leaf الحالية لا تعرض icons الخاصة بها.
-- العناصر group لا تفتح كـflyout.
-- الزر نفسه يبقى ☰ فقط دون state semantics.
+- leaf buttons الحالية لا تعرض icons الخاصة بها.
+- group لا تتحول إلى flyout/expand interaction.
+- زر collapse لا يعكس state باستخدام aria semantics.
+- لا توجد tooltip navigation كاملة.
 
-وبالتالي الـCollapsed Sidebar ليست Compact Navigation حقيقية.
+إذن الموجود حاليًا هو CSS collapse فقط، وليس Compact Navigation مكتملة.
 
-### Defect C — لا توجد Recent / Favorites
+## Defect S-03 — لا توجد Recent / Favorites / Search
 
-القائمة الحالية لا تقدم:
-- Favorites
-- Recent
-- Search داخل navigation
+وهي patterns موثقة في:
+- Dynamics 365 Finance & Operations
+- SAP Fiori
+- Manager.io
+- Odoo dashboards/navigation patterns
+- Business Central personalization
+- Daftra role-driven visibility
 
-وهذا يفوّت أنماطًا مثبتة في أنظمة حديثة.
+## Defect S-04 — Group state transient
 
-### Defect D — حالة مجموعات القائمة ليست persistent
-
-فتح/طي المجموعات الحالية يعتمد على:
+فتح المجموعة الحالية يعتمد على:
 nextElementSibling.style.display
 
-ولا يوجد state مستقل للمجموعات.
+بدون state مستقل محفوظ.
 
-### Defect E — inline onclick
+## Defect S-05 — inline click handlers
 
-القائمة الحالية تبني الأحداث داخل HTML strings:
-onclick="..."
+Navigation groups الحالية تستخدم inline onclick لتبديل العرض.
 
-وهذا يجعل navigation أقل وضوحًا وأصعب في الضبط المركزي.
-
-الإصلاح المقترح يستخدم event delegation مع keys واضحة دون تغيير الـviews أو الـpermissions.
+الإصلاح الجراحي يحول أحداث navigation إلى event delegation، مع الحفاظ على نفس IDs والـviews والـpermissions.
 
 ---
 
-# 5. المقارنة التنافسية
+# 6. Competitive UX Contract
 
-## Dynamics 365
+### Dynamics 365
+Navigation pane تجمع Favorites / Recent / Workspaces / Modules، ويمكنها العمل في collapsed/expanded mode.
 
-توثيق Microsoft يثبت أن Navigation Pane الحديثة تجمع:
-Favorites
-Recent
-Workspaces
-Modules
+### SAP Fiori
+Navigation تعتمد Spaces وPinned Spaces وAll Spaces، مع إمكانية إعادة ترتيب العرض للمستخدم.
 
-كما أن pane يمكن أن تكون expanded/collapsed، ويمكن توسيعها من الأيقونات في الوضع المطوي.
+### Business Central
+Navigation hierarchy + submenus + personalization + saved views + تنظيم عناصر navigation.
 
-المبدأ المنقول إلى RAWAEA:
-Compact icons + Favorites + Recent + Modules + expandable groups.
+### Manager.io
+Compact navigation تعرض icons فقط، مع إظهار الاسم عند hover.
 
-## SAP Fiori
+### Odoo
+الوصول إلى العناصر مرتبط بالتطبيقات والصلاحيات، مع personal dashboard organization.
 
-توثيق SAP الحالي يثبت مفهوم:
-Pinned Spaces
-All Spaces
-إعادة ترتيب العناصر
-إظهار ما يحتاجه المستخدم أولًا
+### Daftra
+ظهور بعض الأقسام والوظائف يتأثر بتفعيل التطبيق وصلاحيات الدور.
 
-المبدأ المنقول:
-ترتيب navigation شخصيًا دون تغيير صلاحيات النظام.
-
-## Business Central
-
-توثيق Microsoft يثبت:
-- root navigation items
-- submenus
-- personalization
-- حفظ views
-- إعادة ترتيب navigation/actions
-
-المبدأ المنقول:
-Hierarchy واضحة + حالة UI محفوظة + عدم خلط personalization مع authorization.
-
-## Manager.io
-
-التوثيق الرسمي يثبت compact navigation:
-- icons فقط في الوضع الضيق
-- hover يظهر اسم العنصر
-- الرجوع للوضع الكامل من control واضح
-
-المبدأ المنقول:
-Collapsed mode يجب أن يبقى usable، وليس مجرد شريط فارغ.
-
-## Odoo
-
-توثيق Odoo الحديث يثبت:
-- menu hierarchy
-- menu grouping
-- visibility by access rights
-- personal dashboard/navigation organization
-
-المبدأ المنقول:
-Visibility يجب أن تكون permission-driven، بينما ترتيب/عرض navigation يمكن أن يكون UX state.
-
-## Daftra
-
-التوثيق الحالي يثبت أن إظهار أقسام ووظائف النظام يتأثر بتفعيل التطبيقات والصلاحيات المرتبطة بالدور.
-
-المبدأ المنقول:
-القائمة لا تعطي صلاحية؛ بل تعكس صلاحية موجودة بالفعل.
+النتيجة المعمارية لـRAWAEA:
+Authorization يبقى server/permission driven.
+UX personalization يصبح client-side state.
+لا يتم تحويل personalization إلى Business permissions.
 
 ---
 
-# 6. القرار المعماري للقائمة
+# 7. Sidebar Target Architecture
 
-لم تتم إضافة:
-- DB navigation table
-- Server-side favorites
-- role menu mutation schema
-- cross-tenant navigation config
+الحالة المستهدفة:
 
-والسبب:
-هذه ليست فجوة Business Contract مثبتة.
-هي User UX state.
+Mother
+↓
+RW_Navigation.menuTree
+↓
+RW_Permissions_check / OWNER semantics
+↓
+Filtered Tree
+↓
+Search / Favorites / Recent / Modules
+↓
+Expanded or Compact Sidebar
+↓
+RW_Views / Finance sub-tabs
 
-الحل الصحيح الآن:
-localStorage لكل مستخدم/متصفح في:
-- collapsed state
-- expanded groups
-- favorites
-- recent
+### Persisted user UX
 
-أما Authorization فيظل:
-RW_Permissions_check
-+
-OWNER semantics
+localStorage:
+- rw_sidebar_collapsed
+- rw_nav_expanded_v2
+- rw_nav_favorites_v2
+- rw_nav_recent_v2
 
-وبذلك لا تختلط:
-User personalization
-مع
-Business authorization.
+### لا يتم إنشاء
 
-هذا يحافظ على النظام الأم كـcontrol center دون إدخال Production debt جديد.
+- navigation DB table
+- server-side favorites table
+- role-menu mutation schema
+- tenant navigation table
+
+لأنها ليست Contract gaps مثبتة.
 
 ---
 
-# 7. OWNER SURGICAL PATCH — RW_Navigation
-
-## البحث والحذف
+# 8. OWNER SURGICAL PATCH — Sidebar
 
 في:
 companies/company-1/main.html
 
-ابحث عن العنصر الكامل:
+ابحث حرفيًا عن:
 
 const RW_Navigation = {
 
-واحذف البلوك الكامل من هذا السطر حتى السطر:
+واحذف البلوك الكامل حتى:
 
 window.RW_Navigation = RW_Navigation;
 
-أي احذف RW_Navigation بالكامل فقط، ولا تحذف الـIIFE التالية الخاصة بنسيت كلمة المرور.
+ولا تحذف الـIIFE التالية الخاصة بنسيت كلمة المرور.
 
-## البديل الجاهز الكامل
-
-استبدل البلوك المحذوف بالنص التالي:
+استبدله بالبديل الكامل التالي:
 
 ~~~~javascript
 
-const RW_Navigation = {
-    menuTree: [
-        { view: 'dashboard', icon: 'fa-chart-pie', label: 'لوحة التحكم' },
-        { icon: 'fa-chart-line', label: 'إدارة المبيعات', submenu: [
-            { view: 'telesales', label: 'التلي سيلز' },
-            { view: 'customers', label: 'العملاء' },
-            { view: 'online-store', label: 'المتجر الإلكتروني' },
-            { view: 'pos', label: 'نقطة البيع' },
-            { view: 'orders', label: 'أوردرات المبيعات' },
-            { view: 'quotes', label: 'عروض الأسعار' },
-            { view: 'price-lists', label: 'قوائم الأسعار' },
-            { view: 'promotions', label: 'العروض والخصومات' },
-            { view: 'sales-decision-center', label: 'مركز قرار المبيعات', perm: ['sales_manager','sales_supervisor','general_manager','reports'] },
-            { view: 'sales-targets', label: 'أهداف المبيعات', perm: ['sales_manager','sales_supervisor','general_manager','reports'] },
-            { view: 'loyalty', label: 'الولاء والمكافآت', perm: ['sales_manager','sales_supervisor','general_manager','reports','customers','pos','telesales','orders','van-sales'] },
-            { view: 'runsheets', label: 'الرانشيتات' },
-            { view: 'sales-returns', label: 'إدارة مرتجعات المبيعات' }
-        ] },
-        { icon: 'fa-truck', label: 'إدارة المشتريات', submenu: [
-            { view: 'suppliers', label: 'الموردين' },
-            { view: 'purchase-pos', label: 'نقطة شراء' },
-            { view: 'purchases', label: 'دورة المشتريات' }
-        ] },
-        { icon: 'fa-warehouse', label: 'إدارة المخازن والمخزون', submenu: [
-            { view: 'items', label: 'الأصناف' },
-            { view: 'branches', label: 'المخازن والفروع' },
-            { view: 'inventory-control', label: 'مركز التحكم في المخزون' },
-            { label: 'العمليات المخزنية', icon: 'fa-timeline', submenu: [
-                { view: 'receiving', label: 'الاستلام' },
-                { view: 'picking', label: 'التحضير' },
-                { view: 'loading', label: 'التحميل' },
-                { view: 'delivery', label: 'التوصيل' },
-                { view: 'return', label: 'المرتجعات' },
-                { view: 'unloading', label: 'التفريغ' }
-            ] },
-            { label: 'الأذونات المخزنية', icon: 'fa-file-signature', submenu: [
-                { view: 'transfer', label: 'تحويل مخزني' },
-                { view: 'direct-sale', label: 'صرف سيارة بيع مباشر' },
-                { view: 'direct-return', label: 'استلام مرتجع سيارة' },
-                { view: 'supplier-return', label: 'مرتجع لمورد' },
-                { view: 'vouchers', label: 'عرض الأذونات' }
-            ] },
-            { label: 'الجرد', icon: 'fa-clipboard-check', submenu: [
-                { view: 'vehicle-count', label: 'جرد سيارة' },
-                { view: 'branch-count', label: 'جرد فرع' },
-                { view: 'general-count', label: 'جرد عام' }
-            ] }
-        ] },
-        { icon: 'fa-coins', label: 'إدارة الحسابات والمالية', submenu: [
-            { action: 'showFinanceTab', arg: 'treasury', label: 'الخزائن والبنوك', perm: ['finance', 'finance_manager'] },
-            { action: 'showFinanceTab', arg: 'accounts', label: 'دليل الحسابات', perm: ['finance', 'finance_manager'] },
-            { action: 'showFinanceTab', arg: 'journal-list', label: 'قائمة القيود اليومية', perm: ['finance', 'finance_manager'] },
-            { action: 'showFinanceTab', arg: 'journal', label: 'قيد يومي جديد', perm: ['finance', 'finance_manager'] },
-            { action: 'showFinanceTab', arg: 'recurring-journals', label: 'القيود المتكررة', perm: ['finance', 'finance_manager'] },
-            { action: 'showFinanceTab', arg: 'receipts', label: 'سندات القبض', perm: ['finance', 'finance_manager'] },
-            { action: 'showFinanceTab', arg: 'payments', label: 'سندات الصرف', perm: ['finance', 'finance_manager'] },
-            { action: 'showFinanceTab', arg: 'expenses', label: 'المصروفات', perm: ['finance', 'finance_manager'] },
-            { action: 'showFinanceTab', arg: 'transfers', label: 'التحويلات', perm: ['finance', 'finance_manager'] },
-            { action: 'showFinanceTab', arg: 'cheques', label: 'الشيكات', perm: ['finance', 'finance_manager'] },
-            { action: 'showFinanceTab', arg: 'bank-reconcile', label: 'مطابقة البنك', perm: ['finance', 'finance_manager'] },
-            { action: 'showFinanceTab', arg: 'tax', label: 'الضرائب', perm: ['finance', 'finance_manager'] },
-            { action: 'showFinanceTab', arg: 'assets', label: 'الأصول والإهلاك', perm: ['finance', 'finance_manager'] },
-            { action: 'showFinanceTab', arg: 'budgets', label: 'الموازنات', perm: ['finance', 'finance_manager'] },
-            { action: 'showFinanceTab', arg: 'periods', label: 'الفترات المحاسبية', perm: ['finance', 'finance_manager'] },
-            { action: 'showFinanceTab', arg: 'reports', label: 'التقارير المالية', perm: ['finance', 'finance_manager'] },
-            { action: 'showFinanceTab', arg: 'installments', label: 'التقسيط والتحصيل الآجل', perm: ['finance', 'finance_manager'] },
-            { action: 'showFinanceTab', arg: 'commission', label: 'العمولات', perm: ['finance', 'finance_manager'] },
-            { view: 'settlement', label: 'إغلاق اليومية' }
-        ] },
-        { icon: 'fa-chart-simple', label: 'التقارير الذكية', submenu: [
-            { view: 'reports-dashboard', label: 'لوحة القيادة' },
-            { view: 'reports-detailed', label: 'التقارير التفصيلية' },
-            { view: 'reports-comprehensive', label: 'التقارير الشاملة' }
-        ] },
-        { view: 'hr', icon: 'fa-id-card', label: 'الموارد البشرية', perm: 'hr' },
-        { view: 'crm', icon: 'fa-handshake', label: 'إدارة علاقات العملاء (CRM)', perm: 'customers' },
-        { view: 'users', icon: 'fa-users-gear', label: 'المستخدمين والصلاحيات' },
-        { view: 'roles', icon: 'fa-user-shield', label: 'إدارة أدوار المستخدمين' },
-        { view: 'license', icon: 'fa-shield-haltered', label: 'إدارة الترخيص', perm: 'owner' },
-        { view: 'settings', icon: 'fa-gear', label: 'إعدادات النظام' },
-        { action: 'logout', icon: 'fa-right-from-bracket', label: 'تسجيل الخروج' }
-    ],
 
-    _storage: {
-        collapsed: 'rw_sidebar_collapsed',
-        groups: 'rw_nav_expanded_v2',
-        favorites: 'rw_nav_favorites_v2',
-        recent: 'rw_nav_recent_v2'
-    },
-
-    _state: {
-        search: '',
-        tree: [],
-        leaves: [],
-        openGroups: [],
-        favorites: [],
-        recent: []
-    },
-
-    _escape(value) {
-        var s = value == null ? '' : String(value);
-        return s
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    },
-
-    _safeParse(value, fallback) {
-        try {
-            var parsed = JSON.parse(value);
-            return parsed == null ? fallback : parsed;
-        } catch (e) {
-            return fallback;
-        }
-    },
-
-    _loadState() {
-        try {
-            this._state.openGroups = this._safeParse(localStorage.getItem(this._storage.groups), []);
-            this._state.favorites = this._safeParse(localStorage.getItem(this._storage.favorites), []);
-            this._state.recent = this._safeParse(localStorage.getItem(this._storage.recent), []);
-        } catch (e) {
-            this._state.openGroups = [];
-            this._state.favorites = [];
-            this._state.recent = [];
-        }
-
-        if (!Array.isArray(this._state.openGroups)) this._state.openGroups = [];
-        if (!Array.isArray(this._state.favorites)) this._state.favorites = [];
-        if (!Array.isArray(this._state.recent)) this._state.recent = [];
-    },
-
-    _persist(key, value) {
-        try {
-            localStorage.setItem(key, JSON.stringify(value));
-        } catch (e) {}
-    },
-
-    _hasPermission(item) {
-        var user = RW_STATE && RW_STATE.app ? RW_STATE.app.currentUser : null;
-        if (item.perm === 'owner') {
-            return !!(user && user.isOwner === true);
-        }
-
-        if (Array.isArray(item.perm)) {
-            for (var i = 0; i < item.perm.length; i++) {
-                if (RW_Permissions_check(item.perm[i])) return true;
-            }
-            return false;
-        }
-
-        if (item.perm) {
-            return RW_Permissions_check(item.perm);
-        }
-
-        if (item.view) {
-            return RW_Permissions_check(item.view);
-        }
-
-        return true;
-    },
-
-    _key(item) {
-        if (item.action) return 'action:' + item.action + ':' + String(item.arg || '');
-        if (item.view) return 'view:' + String(item.view);
-        return 'group:' + String(item.label || '');
-    },
-
-    _iconFor(item) {
-        if (item.icon) return item.icon;
-
-        var viewIcons = {
-            dashboard: 'fa-chart-pie',
-            telesales: 'fa-headset',
-            customers: 'fa-users',
-            'online-store': 'fa-globe',
-            pos: 'fa-cash-register',
-            orders: 'fa-file-invoice',
-            quotes: 'fa-file-circle-question',
-            'price-lists': 'fa-tags',
-            promotions: 'fa-percent',
-            'sales-decision-center': 'fa-bullseye',
-            'sales-targets': 'fa-chart-line',
-            loyalty: 'fa-gift',
-            runsheets: 'fa-route',
-            'sales-returns': 'fa-rotate-left',
-            suppliers: 'fa-truck-field',
-            'purchase-pos': 'fa-cart-shopping',
-            purchases: 'fa-file-invoice-dollar',
-            items: 'fa-box-open',
-            branches: 'fa-warehouse',
-            'inventory-control': 'fa-boxes-stacked',
-            receiving: 'fa-inbox',
-            picking: 'fa-list-check',
-            loading: 'fa-truck-ramp-box',
-            delivery: 'fa-truck-fast',
-            return: 'fa-arrow-rotate-left',
-            unloading: 'fa-dolly',
-            transfer: 'fa-right-left',
-            'direct-sale': 'fa-arrow-right-from-bracket',
-            'direct-return': 'fa-arrow-right-to-bracket',
-            'supplier-return': 'fa-reply',
-            vouchers: 'fa-file-signature',
-            'vehicle-count': 'fa-truck-front',
-            'branch-count': 'fa-warehouse',
-            'general-count': 'fa-clipboard-check',
-            settlement: 'fa-cash-register',
-            hr: 'fa-id-card',
-            crm: 'fa-handshake',
-            users: 'fa-users-gear',
-            roles: 'fa-user-shield',
-            license: 'fa-shield-halved',
-            settings: 'fa-gear'
-        };
-
-        if (item.action === 'logout') return 'fa-right-from-bracket';
-        if (item.action === 'showFinanceTab') {
-            var financeIcons = {
-                treasury: 'fa-vault',
-                accounts: 'fa-book',
-                'journal-list': 'fa-list',
-                journal: 'fa-pen-to-square',
-                'recurring-journals': 'fa-arrows-rotate',
-                receipts: 'fa-circle-arrow-down',
-                payments: 'fa-circle-arrow-up',
-                expenses: 'fa-receipt',
-                transfers: 'fa-money-bill-transfer',
-                cheques: 'fa-money-check',
-                'bank-reconcile': 'fa-building-columns',
-                tax: 'fa-percent',
-                assets: 'fa-landmark',
-                budgets: 'fa-chart-column',
-                periods: 'fa-calendar-days',
-                reports: 'fa-chart-pie',
-                installments: 'fa-file-invoice',
-                commission: 'fa-coins'
-            };
-            return financeIcons[item.arg] || 'fa-coins';
-        }
-
-        return viewIcons[item.view] || 'fa-circle';
-    },
-
-    _filterTree(items) {
-        var result = [];
-
-        for (var i = 0; i < items.length; i++) {
-            var item = items[i];
-
-            if (item.submenu) {
-                var children = this._filterTree(item.submenu);
-                if (!children.length) continue;
-
-                var group = {
-                    label: item.label,
-                    icon: item.icon || 'fa-folder-tree',
-                    submenu: children,
-                    _key: this._key(item)
-                };
-
-                result.push(group);
-                continue;
-            }
-
-            if (this._hasPermission(item)) {
-                result.push(item);
-            }
-        }
-
-        return result;
-    },
-
-    _collectLeaves(items, out) {
-        out = out || [];
-
-        for (var i = 0; i < items.length; i++) {
-            var item = items[i];
-
-            if (item.submenu) {
-                this._collectLeaves(item.submenu, out);
-            } else {
-                out.push(item);
-            }
-        }
-
-        return out;
-    },
-
-    _resolveKey(key) {
-        for (var i = 0; i < this._state.leaves.length; i++) {
-            var item = this._state.leaves[i];
-            if (this._key(item) === key) return item;
-        }
-        return null;
-    },
-
-    _isOpen(key) {
-        return this._state.openGroups.indexOf(key) !== -1;
-    },
-
-    _toggleGroup(key) {
-        var index = this._state.openGroups.indexOf(key);
-
-        if (index === -1) {
-            this._state.openGroups.push(key);
-        } else {
-            this._state.openGroups.splice(index, 1);
-        }
-
-        this._persist(this._storage.groups, this._state.openGroups);
-        this._renderNav();
-    },
-
-    _ensureActiveParents(view) {
-        var path = [];
-
-        function walk(items, target, chain) {
-            for (var i = 0; i < items.length; i++) {
-                var item = items[i];
-
-                if (item.submenu) {
-                    var next = chain.concat([item._key || 'group:' + item.label]);
-
-                    if (walk(item.submenu, target, next)) {
-                        for (var j = 0; j < next.length; j++) {
-                            if (path.indexOf(next[j]) === -1) path.push(next[j]);
-                        }
-                        return true;
-                    }
-                } else if (item.view === target) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        if (walk(this._state.tree, view, [])) {
-            for (var i = 0; i < path.length; i++) {
-                if (this._state.openGroups.indexOf(path[i]) === -1) {
-                    this._state.openGroups.push(path[i]);
-                }
-            }
-            this._persist(this._storage.groups, this._state.openGroups);
-        }
-    },
-
-    _favorite(item) {
-        var key = this._key(item);
-        var index = this._state.favorites.indexOf(key);
-
-        if (index === -1) {
-            this._state.favorites.unshift(key);
-        } else {
-            this._state.favorites.splice(index, 1);
-        }
-
-        this._persist(this._storage.favorites, this._state.favorites);
-        this._renderNav();
-    },
-
-    _recent(item) {
-        var key = this._key(item);
-        this._state.recent = this._state.recent.filter(function(x) {
-            return x !== key;
-        });
-        this._state.recent.unshift(key);
-
-        if (this._state.recent.length > 6) {
-            this._state.recent.length = 6;
-        }
-
-        this._persist(this._storage.recent, this._state.recent);
-    },
-
-    _ensureStyles() {
-        if (document.getElementById('rw-navigation-modern-style')) return;
-
-        var style = document.createElement('style');
-        style.id = 'rw-navigation-modern-style';
-        style.textContent = [
-            '.rw-nav-search-wrap{display:flex;gap:8px;align-items:center;padding:10px 8px 12px}',
-            '.rw-nav-search{flex:1;position:relative}',
-            '.rw-nav-search-input{width:100%;height:46px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:14px;padding:0 42px 0 12px;font-size:13px;font-weight:700;outline:none;transition:.2s}',
-            '.rw-nav-search-input:focus{background:#fff;border-color:#93c5fd;box-shadow:0 0 0 4px rgba(37,99,235,.08)}',
-            '.rw-nav-search-icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:14px}',
-            '.rw-nav-search-trigger{display:none;width:46px;height:46px;border:1px solid #e2e8f0;border-radius:14px;background:#f8fafc;color:#64748b;align-items:center;justify-content:center;cursor:pointer}',
-            '.rw-nav-section{margin:2px 6px 12px}',
-            '.rw-nav-section-title{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;color:#94a3b8;font-size:10px;font-weight:900;letter-spacing:.04em}',
-            '.rw-nav-quick{display:flex;flex-direction:column;gap:3px}',
-            '.rw-nav-group{margin-bottom:4px}',
-            '.rw-nav-group-toggle{width:100%;border:0;background:transparent;display:flex;align-items:center;justify-content:space-between;gap:8px;height:52px;padding:0 12px;border-radius:16px;color:#475569;cursor:pointer;font-weight:800;transition:.2s}',
-            '.rw-nav-group-toggle:hover{background:#f8fafc;color:#0f172a}',
-            '.rw-nav-group-toggle[aria-expanded="true"]{background:#f8fbff;color:#1d4ed8}',
-            '.rw-nav-group-leading{display:flex;align-items:center;gap:12px;min-width:0}',
-            '.rw-nav-group-chevron{font-size:11px;color:#94a3b8;transition:transform .2s}',
-            '.rw-nav-group-toggle[aria-expanded="true"] .rw-nav-group-chevron{transform:rotate(180deg);color:#2563eb}',
-            '.rw-nav-group-children{padding:2px 0 4px 0}',
-            '.rw-nav-group-children.rw-nav-collapsed{display:none}',
-            '.rw-sidebar-link.rw-nav-leaf{position:relative;padding:0 12px 0 10px;height:48px;margin-bottom:3px;border:0}',
-            '.rw-sidebar-link.rw-nav-leaf .rw-sidebar-link-text{overflow:hidden;text-overflow:ellipsis}',
-            '.rw-nav-leaf-icon{width:34px;height:34px;min-width:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:#f1f5f9;color:#64748b;font-size:14px}',
-            '.rw-sidebar-link.active .rw-nav-leaf-icon{background:#2563eb;color:#fff}',
-            '.rw-nav-leaf-main{display:flex;align-items:center;gap:12px;min-width:0;flex:1}',
-            '.rw-nav-favorite-toggle{border:0;background:transparent;color:#cbd5e1;width:28px;height:28px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:0 0 auto}',
-            '.rw-nav-favorite-toggle:hover{background:#f1f5f9;color:#64748b}',
-            '.rw-nav-favorite-toggle.is-favorite{color:#f59e0b}',
-            '.rw-sidebar.collapsed .rw-nav-search-wrap{justify-content:center;padding:10px 6px}',
-            '.rw-sidebar.collapsed .rw-nav-search{display:none}',
-            '.rw-sidebar.collapsed .rw-nav-search-trigger{display:flex}',
-            '.rw-sidebar.collapsed .rw-nav-section-title{display:none}',
-            '.rw-sidebar.collapsed .rw-nav-leaf{justify-content:center;padding:0;gap:0}',
-            '.rw-sidebar.collapsed .rw-nav-leaf-main{justify-content:center;gap:0}',
-            '.rw-sidebar.collapsed .rw-nav-leaf .rw-nav-favorite-toggle{display:none}',
-            '.rw-sidebar.collapsed .rw-nav-text{display:none}',
-            '.rw-sidebar.collapsed .rw-nav-group-toggle{justify-content:center;padding:0;gap:0}',
-            '.rw-sidebar.collapsed .rw-nav-group-leading{justify-content:center;gap:0;width:100%}',
-            '.rw-sidebar.collapsed .rw-nav-group-chevron{display:none}',
-            '.rw-sidebar.collapsed .rw-nav-group-children{display:none}',
-            '.rw-nav-empty{padding:18px 10px;text-align:center;color:#94a3b8;font-size:12px;font-weight:800}',
-            '.rw-nav-tooltip{position:fixed;display:none;z-index:3000;padding:9px 12px;border-radius:10px;background:#0f172a;color:#fff;font-size:12px;font-weight:800;box-shadow:0 10px 30px rgba(15,23,42,.25);white-space:nowrap;pointer-events:none}',
-            '@media(max-width:992px){.rw-sidebar,.rw-sidebar.collapsed{width:280px!important;min-width:280px!important}.rw-sidebar.collapsed .rw-nav-search{display:block}.rw-sidebar.collapsed .rw-nav-search-trigger{display:none}.rw-sidebar.collapsed .rw-nav-section-title{display:flex}.rw-sidebar.collapsed .rw-nav-text{display:block}.rw-sidebar.collapsed .rw-nav-leaf{justify-content:flex-start;padding:0 12px 0 10px;gap:12px}.rw-sidebar.collapsed .rw-nav-leaf-main{justify-content:flex-start;gap:12px}.rw-sidebar.collapsed .rw-nav-favorite-toggle{display:flex}.rw-sidebar.collapsed .rw-nav-group-toggle{justify-content:space-between;padding:0 12px}.rw-sidebar.collapsed .rw-nav-group-leading{justify-content:flex-start;gap:12px}.rw-sidebar.collapsed .rw-nav-group-chevron{display:block}}'
-        ].join('');
-        document.head.appendChild(style);
-    },
-
-    _tooltip() {
-        var el = document.getElementById('rw-nav-tooltip');
-
-        if (!el) {
-            el = document.createElement('div');
-            el.id = 'rw-nav-tooltip';
-            el.className = 'rw-nav-tooltip';
-            document.body.appendChild(el);
-        }
-
-        return el;
-    },
-
-    _showTooltip(target, text) {
-        if (!byId('rw-sidebar') || !byId('rw-sidebar').classList.contains('collapsed')) return;
-
-        var tip = this._tooltip();
-        if (!tip) return;
-
-        tip.textContent = text || '';
-        tip.style.display = 'block';
-
-        var r = target.getBoundingClientRect();
-        var left = Math.max(8, r.left - tip.offsetWidth - 10);
-        var top = Math.max(8, r.top + (r.height - tip.offsetHeight) / 2);
-
-        tip.style.left = left + 'px';
-        tip.style.top = top + 'px';
-    },
-
-    _hideTooltip() {
-        var tip = document.getElementById('rw-nav-tooltip');
-        if (tip) tip.style.display = 'none';
-    },
-
-    _renderLeaf(item) {
-        var key = this._key(item);
-        var isFavorite = this._state.favorites.indexOf(key) !== -1;
-        var isActive = item.view && RW_STATE.app.currentView === item.view;
-        var icon = this._iconFor(item);
-        var attrs = [
-            'type="button"',
-            'class="rw-sidebar-link rw-nav-leaf' + (isActive ? ' active' : '') + '"',
-            'data-nav-key="' + this._escape(key) + '"',
-            'data-nav-label="' + this._escape(item.label || '') + '"',
-            'title="' + this._escape(item.label || '') + '"'
-        ];
-
-        if (item.view) attrs.push('data-view="' + this._escape(item.view) + '"');
-        if (item.action) attrs.push('data-action="' + this._escape(item.action) + '"');
-        if (item.arg) attrs.push('data-arg="' + this._escape(item.arg) + '"');
-
-        return '<button ' + attrs.join(' ') + '>' +
-            '<span class="rw-nav-leaf-main">' +
-                '<span class="rw-nav-leaf-icon"><i class="fa-solid ' + this._escape(icon) + '"></i></span>' +
-                '<span class="rw-sidebar-link-text rw-nav-text">' + this._escape(item.label || '') + '</span>' +
-            '</span>' +
-            '<span class="rw-nav-favorite-toggle' + (isFavorite ? ' is-favorite' : '') + '" ' +
-                'data-nav-favorite="' + this._escape(key) + '" ' +
-                'role="button" tabindex="0" aria-label="' + (isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة') + '">' +
-                '<i class="fa-' + (isFavorite ? 'solid' : 'regular') + ' fa-star"></i>' +
-            '</span>' +
-        '</button>';
-    },
-
-    _renderGroup(item) {
-        var key = item._key || this._key(item);
-        var open = this._isOpen(key);
-        var children = '';
-
-        for (var i = 0; i < item.submenu.length; i++) {
-            var child = item.submenu[i];
-            children += child.submenu ? this._renderGroup(child) : this._renderLeaf(child);
-        }
-
-        return '<div class="rw-nav-group" data-nav-group-wrap="' + this._escape(key) + '">' +
-            '<button type="button" class="rw-nav-group-toggle" data-nav-group="' + this._escape(key) + '" aria-expanded="' + (open ? 'true' : 'false') + '" title="' + this._escape(item.label || '') + '">' +
-                '<span class="rw-nav-group-leading">' +
-                    '<span class="rw-nav-leaf-icon"><i class="fa-solid ' + this._escape(item.icon || 'fa-folder-tree') + '"></i></span>' +
-                    '<span class="rw-sidebar-link-text rw-nav-text">' + this._escape(item.label || '') + '</span>' +
-                '</span>' +
-                '<i class="fa-solid fa-chevron-down rw-nav-group-chevron"></i>' +
-            '</button>' +
-            '<div class="rw-nav-group-children' + (open ? '' : ' rw-nav-collapsed') + '">' +
-                children +
-            '</div>' +
-        '</div>';
-    },
-
-    _renderQuickSection(title, keys) {
-        var html = '';
-        var count = 0;
-
-        for (var i = 0; i < keys.length; i++) {
-            var item = this._resolveKey(keys[i]);
-            if (!item) continue;
-
-            html += this._renderLeaf(item);
-            count++;
-        }
-
-        if (!count) return '';
-
-        return '<div class="rw-nav-section">' +
-            '<div class="rw-nav-section-title"><span>' + this._escape(title) + '</span></div>' +
-            '<div class="rw-nav-quick">' + html + '</div>' +
-        '</div>';
-    },
-
-    _renderSearchResults() {
-        var q = String(this._state.search || '').trim().toLowerCase();
-
-        if (!q) return '';
-
-        var rows = [];
-
-        for (var i = 0; i < this._state.leaves.length; i++) {
-            var item = this._state.leaves[i];
-            var hay = [item.label || '', item.view || '', item.arg || ''].join(' ').toLowerCase();
-
-            if (hay.indexOf(q) !== -1) rows.push(item);
-        }
-
-        var html = '<div class="rw-nav-section">' +
-            '<div class="rw-nav-section-title"><span>نتائج البحث</span><span>' + rows.length.toLocaleString('ar-EG') + '</span></div>';
-
-        if (!rows.length) {
-            html += '<div class="rw-nav-empty">لا توجد نتائج مطابقة</div></div>';
-            return html;
-        }
-
-        html += '<div class="rw-nav-quick">';
-        for (var j = 0; j < rows.length; j++) html += this._renderLeaf(rows[j]);
-        html += '</div></div>';
-
-        return html;
-    },
-
-    _renderNav() {
-        var nav = byId('rw-sidebar-nav');
-        if (!nav) return;
-
-        this._ensureStyles();
-
-        this._state.tree = this._filterTree(this.menuTree);
-        this._state.leaves = this._collectLeaves(this._state.tree, []);
-
-        var html =
-            '<div class="rw-nav-search-wrap">' +
-                '<div class="rw-nav-search">' +
-                    '<i class="fa-solid fa-magnifying-glass rw-nav-search-icon"></i>' +
-                    '<input id="rw-nav-search-input" class="rw-nav-search-input" type="search" autocomplete="off" value="' + this._escape(this._state.search) + '" placeholder="ابحث داخل القائمة..." aria-label="البحث في القائمة">' +
-                '</div>' +
-                '<button type="button" class="rw-nav-search-trigger" data-nav-search-trigger title="بحث">' +
-                    '<i class="fa-solid fa-magnifying-glass"></i>' +
-                '</button>' +
-            '</div>';
-
-        var searchHtml = this._renderSearchResults();
-
-        if (searchHtml) {
-            html += searchHtml;
-        } else {
-            html += this._renderQuickSection('المفضلة', this._state.favorites);
-            html += this._renderQuickSection('الأحدث', this._state.recent);
-            html += '<div class="rw-nav-section">' +
-                '<div class="rw-nav-section-title"><span>الوحدات</span><span>' + this._state.leaves.length.toLocaleString('ar-EG') + '</span></div>';
-
-            for (var i = 0; i < this._state.tree.length; i++) {
-                var item = this._state.tree[i];
-                html += item.submenu ? this._renderGroup(item) : this._renderLeaf(item);
-            }
-
-            html += '</div>';
-        }
-
-        safeHTML(nav, html);
-    },
-
-    _handleItem(item) {
-        if (!item) return;
-
-        this._recent(item);
-
-        if (item.action) {
-            this._handleAction(item.action, item.arg || '');
-            return;
-        }
-
-        if (item.view) this.navigate(item.view);
-    },
-
-    _handleAction(action, arg) {
-        if (action === 'showFinanceTab') {
-            RW_STATE.app.currentView = 'finance';
-
-            if (typeof RW_Finance !== 'undefined' && typeof RW_Finance.renderSubTab === 'function') {
-                RW_Finance.renderSubTab(arg || 'treasury');
-                safeText(byId('rw-header-title'), 'الحسابات والمالية');
-            } else {
-                RW_Views.render('finance');
-            }
-
-            this._hideTooltip();
-            this._renderNav();
-            return;
-        }
-
-        if (action === 'logout') {
-            this._hideTooltip();
-            RW_Auth.logout();
-            return;
-        }
-
-        if (typeof RW_Views !== 'undefined' && RW_Views.render) {
-            RW_Views.render(action);
-        }
-    },
-
-    _bindEvents() {
-        var nav = byId('rw-sidebar-nav');
-        if (!nav || nav.getAttribute('data-rw-nav-bound') === '1') return;
-
-        nav.setAttribute('data-rw-nav-bound', '1');
-
-        nav.addEventListener('click', function(e) {
-            var favorite = e.target.closest('[data-nav-favorite]');
-            if (favorite) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                var key = favorite.getAttribute('data-nav-favorite');
-                var item = RW_Navigation._resolveKey(key);
-                if (item) RW_Navigation._favorite(item);
-                return;
-            }
-
-            var searchTrigger = e.target.closest('[data-nav-search-trigger]');
-            if (searchTrigger) {
-                e.preventDefault();
-                RW_Navigation.toggleSidebar(false);
-                setTimeout(function() {
-                    var input = byId('rw-nav-search-input');
-                    if (input) input.focus();
-                }, 50);
-                return;
-            }
-
-            var group = e.target.closest('[data-nav-group]');
-            if (group) {
-                e.preventDefault();
-                var key = group.getAttribute('data-nav-group');
-
-                if (byId('rw-sidebar').classList.contains('collapsed')) {
-                    RW_Navigation.toggleSidebar(false);
-                    setTimeout(function() { RW_Navigation._toggleGroup(key); }, 20);
-                } else {
-                    RW_Navigation._toggleGroup(key);
-                }
-                return;
-            }
-
-            var leaf = e.target.closest('.rw-nav-leaf');
-            if (leaf) {
-                e.preventDefault();
-                var key = leaf.getAttribute('data-nav-key');
-                var item = RW_Navigation._resolveKey(key);
-                if (item) RW_Navigation._handleItem(item);
-            }
-        });
-
-        nav.addEventListener('mouseover', function(e) {
-            var leaf = e.target.closest('.rw-nav-leaf');
-            if (!leaf || !byId('rw-sidebar').classList.contains('collapsed')) return;
-            RW_Navigation._showTooltip(leaf, leaf.getAttribute('data-nav-label') || '');
-        });
-
-        nav.addEventListener('mouseout', function(e) {
-            var from = e.target.closest('.rw-nav-leaf');
-            var to = e.relatedTarget && e.relatedTarget.closest ? e.relatedTarget.closest('.rw-nav-leaf') : null;
-            if (from && from !== to) RW_Navigation._hideTooltip();
-        });
-
-        nav.addEventListener('focusin', function(e) {
-            var leaf = e.target.closest('.rw-nav-leaf');
-            if (leaf && byId('rw-sidebar').classList.contains('collapsed')) {
-                RW_Navigation._showTooltip(leaf, leaf.getAttribute('data-nav-label') || '');
-            }
-        });
-
-        nav.addEventListener('focusout', function(e) {
-            if (e.target.closest && e.target.closest('.rw-nav-leaf')) RW_Navigation._hideTooltip();
-        });
-
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('#rw-sidebar')) RW_Navigation._hideTooltip();
-        });
-    },
-
-    _applyCollapsedState(collapsed) {
-        var sidebar = byId('rw-sidebar');
-        var main = byId('rw-main-content');
-        var btn = byId('rw-collapse-btn');
-
-        if (!sidebar || !main) return;
-
-        var isCollapsed = !!collapsed;
-
-        sidebar.classList.toggle('collapsed', isCollapsed);
-        main.classList.toggle('expanded', isCollapsed);
-        RW_STATE.ui.sidebarCollapsed = isCollapsed;
-
-        if (btn) {
-            btn.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
-            btn.setAttribute('aria-label', isCollapsed ? 'توسيع القائمة الجانبية' : 'طي القائمة الجانبية');
-            btn.title = isCollapsed ? 'توسيع القائمة' : 'طي القائمة';
-            btn.innerHTML = '<i class="fa-solid ' + (isCollapsed ? 'fa-angles-left' : 'fa-angles-right') + '"></i>';
-        }
-
-        try {
-            localStorage.setItem(this._storage.collapsed, isCollapsed ? '1' : '0');
-        } catch (e) {}
-
-        this._hideTooltip();
-    },
-
-    toggleSidebar(forceCollapsed) {
-        var sidebar = byId('rw-sidebar');
-        if (!sidebar) return;
-
-        if (window.innerWidth <= 992) {
-            var mobileOpen = !sidebar.classList.contains('active');
-            sidebar.classList.toggle('active', mobileOpen);
-            RW_STATE.ui.sidebarOpen = mobileOpen;
-            return;
-        }
-
-        var current = sidebar.classList.contains('collapsed');
-        var next = typeof forceCollapsed === 'boolean' ? forceCollapsed : !current;
-
-        this._applyCollapsedState(next);
-        this._renderNav();
-    },
-
-    navigate(view) {
-        try {
-            RW_STATE.app.currentView = view;
-
-            this._ensureActiveParents(view);
-            this._hideTooltip();
-
-            var sidebar = byId('rw-sidebar');
-            if (sidebar && window.innerWidth <= 992) {
-                sidebar.classList.remove('active');
-                RW_STATE.ui.sidebarOpen = false;
-            }
-
-            var item = this._resolveKey('view:' + view);
-            if (item) this._recent(item);
-
-            var links = document.querySelectorAll('.rw-sidebar-link[data-view]');
-            for (var i = 0; i < links.length; i++) {
-                links[i].classList.toggle('active', links[i].getAttribute('data-view') === view);
-            }
-
-            window.RW_Views.render(view);
-            this._renderNav();
-        } catch (e) {
-            console.error('RW_Navigation.navigate', e);
-            showToast('حدث خطأ أثناء فتح التبويب', 'error');
-        }
-    },
-
-    buildSidebar() {
-        try {
-            this._ensureStyles();
-            this._loadState();
-
-            var nav = byId('rw-sidebar-nav');
-            if (!nav) return;
-
-            var existingAudit = false;
-            for (var i = 0; i < this.menuTree.length; i++) {
-                if (this.menuTree[i].view === 'audit-log') {
-                    existingAudit = true;
-                    break;
-                }
-            }
-
-            if (!existingAudit) {
-                this.menuTree.push({
-                    view: 'audit-log',
-                    icon: 'fa-clock-rotate-left',
-                    label: 'سجل التدقيق',
-                    perm: 'owner'
-                });
-            }
-
-            var collapsed = false;
-            try {
-                collapsed = localStorage.getItem(this._storage.collapsed) === '1';
-            } catch (e) {}
-
-            this._applyCollapsedState(collapsed);
-            this._state.search = '';
-            this._renderNav();
-            this._bindEvents();
-
-            var currentView = RW_STATE.app.currentView || 'dashboard';
-            this._ensureActiveParents(currentView);
-            this._renderNav();
-        } catch (e) {
-            console.error('RW_Navigation.buildSidebar', e);
-        }
-    }
-};
-
-window.RW_Navigation = RW_Navigation;
 
 ~~~~
 
-## وظيفة الإصلاح
+### ما يغلقه هذا الـPatch
 
-البديل يضيف دون تغيير Business Navigation الحالي:
-
-1. persistence حقيقية لـCollapse State.
-2. persisted expanded groups.
-3. Favorites.
-4. Recent.
-5. Search داخل navigation.
-6. icons حقيقية لكل leaf.
-7. collapsed mode usable.
-8. tooltips في collapsed mode.
-9. الضغط على group أثناء collapse يوسع القائمة ثم يفتح المجموعة.
-10. keyboard/focus semantics أساسية.
-11. aria-expanded للـgroups.
-12. mobile behavior منفصل عن desktop collapse.
-13. permission filtering محفوظ كما هو.
-14. OWNER audit-log semantics محفوظة.
-15. Finance actions الحالية محفوظة.
-16. logout الحالي محفوظ.
-17. جميع view IDs الحالية محفوظة.
-18. لا تغيير في operational apps.
-
-### لا تغير
-
-- menuTree business semantics.
-- permission keys.
-- OWNER wildcard contract.
-- RW_Views.
-- module renderers.
-- field operations.
-- inventory workflow.
+- restore للـcollapse state بعد refresh.
+- expanded groups persistence.
+- search.
+- favorites.
+- recent.
+- icons لجميع leaf items.
+- usable compact mode.
+- collapsed tooltips.
+- group expand بعد فتح compact mode.
+- active navigation state.
+- aria-expanded للـgroups.
+- desktop collapse.
+- mobile navigation دون فرض compact width.
+- event delegation بدل inline group toggles.
+- الحفاظ على permission filtering.
+- الحفاظ على OWNER audit-log.
+- الحفاظ على Finance sub-tabs.
+- الحفاظ على logout.
+- الحفاظ على كل view IDs الحالية.
 
 ---
 
-# 8. Static Validation للـSidebar Patch
+# 9. Static Validation — Sidebar
 
-تم اختبار replacement object في parser JavaScript مستقل.
+تم اختبار replacement object في JavaScript parser مستقل.
 
 النتيجة:
-
 SIDEBAR PATCH SYNTAX = PASS
 
-لم يتم تشغيله داخل Production Browser لأن main.html لم يغيره CTO في هذه الجلسة.
-
-Browser E2E للـsidebar يبقى Owner Cutover Gate.
+لم يتم دمجها في Mother لأن المستخدم طلب عدم تعديل main.html.
 
 ---
 
-# 9. التحقيق الجنائي — RW_Reports_Comprehensive
+# 10. Current RW_Reports_Comprehensive
 
-## الوضع الحالي المثبت
-
-RW_Reports_Comprehensive:
-- 38 report IDs
-- Current inline module موجود داخل main.html
-- V8 syntax parse = PASS
-- router الحالي:
+الـMother current source يثبت:
+- 38 report IDs.
+- Router:
   reports-comprehensive → RW_Reports_Comprehensive.render()
+- Current source parser = PASS.
+- Production reporting contracts/security = CLOSED.
 
-هذه الطبقة ليست مجرد شاشة؛ هي façade فوق Production reporting contracts.
-
-التدفق الصحيح:
-
-Mother Reports UI
-↓
-report definition
-↓
-criteria
-↓
-RPC / read contract
-↓
-Production
-↓
-result
-↓
-CSV / Print / Drill-Down
-
-ولا تعيد التقارير تنفيذ:
-Order
-Runsheet
-Picking
-Loading
-Delivery
-Return
-Settlement
+التقارير لا تعيد تنفيذ العمليات الميدانية.
+هي Read / Verify / Reveal layer.
 
 ---
 
-# 10. Production Contract — التقارير
+# 11. Forensic Findings — Comprehensive Reports
 
-الإصلاح الأمني السابق الذي تم في Production closed هذه الحدود:
-
-JWT
-↓
-authenticated actor
-↓
-company context
-↓
-reports permission
-↓
-validated user identity
-↓
-report RPC
-
-لذلك لم يتم اختراع schema جديدة لتبويب التقارير.
-
----
-
-# 11. الفجوات الفعلية في Source
-
-الفجوة الحالية المثبتة ليست في Production reporting engine.
-
-هي في Mother UI:
-
-### Gap 01 — Modal Drill-Down
+## Defect R-01 — Drill-Down Modal
 
 الوظائف الحالية:
+- _showCustomerLedgerDetail
+- _showItemMovementDetail
+- _showRunsheetDetail
+- _showSettlementDetail
 
-async function _showCustomerLedgerDetail(customerId, customerName)
+تستخدم Swal.fire.
 
-async function _showItemMovementDetail(itemCode, itemName)
+العقد المستهدف:
+Report workspace → Drill-Down page → Back → Report workspace
 
-async function _showRunsheetDetail(runsheetCode)
+دون فتح Modal.
 
-async function _showSettlementDetail(settlementCode)
+## Defect R-02 — Item Movement source
 
-كانت تعرض التفاصيل داخل Swal.fire.
+الـdrill-down الصحيح يعتمد على:
+inventory_movement_report
 
-### Gap 02 — Hover class defect
+وهو Production reporting contract الحالي.
+
+## Defect R-03 — Hover class
 
 داخل:
-
 function _openSection(sectionKey)
 
-الكود الحالي يبني:
-
+الكود الحالي:
 hover:bg- + section.bgColor
 
-بينما section.bgColor يحتوي أصلًا على bg-.
+لكن section.bgColor يحتوي bg- أصلًا.
 
 الناتج الحالي:
-
 hover:bg-bg-...
 
-وهذا defect شكلي مثبت من source الحالي.
+وهذا defect source مثبت.
 
 ---
 
 # 12. OWNER SURGICAL PATCH 01 — Modal → Page
-
-المرجع الحاكم الكامل لهذا البلوك هو:
-
-doc/Draft/Reprots/Report254_COMPREHENSIVE_REPORTS_CURRENT_FORENSIC_SURGICAL_EXECUTION_20260919.md
-
-والبلوك الكامل المعتمد أدناه هو نفس PATCH 01 كما هو، دون إعادة تصميم أو تغيير Business Contract:
 
 ## 12. OWNER SURGICAL PATCH 01 — Modal → Page
 
@@ -1989,8 +1011,13 @@ async function _showSettlementDetail(settlementCode) {
 
 ~~~~
 
-## 13. PATCH 01 Rules
-- لا تستخدم Swal.fire داخل وظائف التفاصيل.
+
+
+---
+
+# 13. PATCH 01 Rules
+
+- لا تستخدم Swal.fire داخل وظائف التفاصيل الأربع.
 - لا تغير أسماء الوظائف الأربع.
 - لا تغير _generateReport.
 - لا تغير report IDs.
@@ -1999,153 +1026,17 @@ async function _showSettlementDetail(settlementCode) {
 - لا تغير run_sheet_details.
 - Item movement detail يجب أن يقرأ Production inventory_movement_report.
 - Back يعيد التقرير الحالي.
-- التقرير والـdrilldown يبقيان في نفس workspace.
-- CSV/Print الحاليان سيعملان على الصفحة المعروضة لأن التفاصيل أصبحت داخل report-result.
-
-## 14. OWNER SURGICAL PATCH 02 — Hover
-ابحث في function _openSection عن هذا السطر الحالي:
-
-~~~~javascript
-html += '<div class="border rounded-xl p-4 hover:bg-' + section.bgColor + ' cursor-pointer transition" onclick="RW_Reports_Comprehensive._openReport(\'' + sectionKey + '\', \'' + rep.id + '\')">';
-~~~~
-
-احذفه واستبدله بـ:
-
-~~~~javascript
-html += '<div class="border rounded-xl p-4 hover:' + section.bgColor + ' cursor-pointer transition" onclick="RW_Reports_Comprehensive._openReport(\'' + sectionKey + '\', \'' + rep.id + '\')">';
-~~~~
-
-النتيجة تمنع تكوين:
-hover:bg-bg-...
-وتنتج class صحيحة:
-hover:bg-...
-
-## 15. ما لم يتغير
-لا إعادة فتح:
-- _companyId
-- _generateReport
-- _exportReportCsv
-- _printReport
-- HR blocks
-- Inventory Turnover
-- Finance reporting
-- operational field workflows
-
-## 16. حماية رحلة التشغيل
-التقارير لا تعيد تنفيذ:
-Order → order_details → Runsheet → run_sheet_details → Picking → Reservation → Loading → Delivery → Return → Settlement
-
-التقارير تقرأ وتحقق وتكشف.
-
-## 17. E2E State
-Verified:
-- Git HEAD/parent
-- Mother HEAD/parent/blob
-- current source
-- V8 parse
-- 38 reports
-- Production report contracts
-- Owner authenticated inventory report smoke
-- unauthorized rejection smoke
-- Production inventory report security repair
-
-Still OPEN:
-- Owner cutover
-- Browser Production E2E
-- 38-report click-through
-- drilldown/back browser test
-- CSV/Print browser test
-- post-cutover Production re-snapshot
-
-لا يجوز إعلان Browser PASS من SQL PASS.
-
-## 18. Current Production Data Reality
-Current Production:
-- one company
-- two branches
-- 17 items
-- 20 stock rows
-- 3 inventory logs
-- zero orders
-- zero runsheets
-- zero purchase orders
-- zero stock vouchers
-- zero customer ledger rows
-- zero supplier ledger rows
-- zero settlement rows
-- two journal entries
-- zero journal lines
-
-لا تُنشأ Fixtures دائمة فقط للحصول على Test PASS.
-
-## 19. FINAL SELF-AUDIT
-
-### What I Proved
-- Current Git and parent verified.
-- Mother Git and parent verified.
-- Current main.html verified.
-- Full inline parser PASS.
-- Current 38 report structure verified.
-- Production reporting contracts verified.
-- Inventory reporting auth gap proven.
-- Production security repair deployed.
-- Owner report smoke PASS.
-- Unauthorized report execution rejected.
-- Exact Modal → Page replacement parsed successfully in isolation.
-
-### What I Did Not Prove
-- Live browser after Owner cutover.
-- 38-report full click-through.
-- Live CSV/Print/Back browser path.
-- Served production artifact after final Mother commit.
-
-### What Could Still Be Wrong
-- Owner may paste a different block than the exact replacement.
-- Served artifact may lag Mother HEAD.
-- An unrelated browser-only defect may appear after cutover.
-
-## 20. Final Closure State
-
-~~~~text
-CURRENT GIT = VERIFIED
-CURRENT SOURCE = VERIFIED
-CURRENT PRODUCTION = VERIFIED
-CURRENT DATABASE = VERIFIED
-PRODUCTION INVENTORY REPORT SECURITY = CLOSED
-DRILLDOWN SOURCE PATCH = OWNER READY
-MAIN.HTML CTO EDIT = 0
-BROWSER PRODUCTION E2E = OPEN
-38 REPORT LIVE SMOKE = OPEN
-FULL COMPREHENSIVE TAB = OPEN UNTIL OWNER CUTOVER + BROWSER EVIDENCE
-~~~~
-
-## 21. Session Continuity
-المساعد التالي يبدأ من:
-1. CURRENT_STATE
-2. System HEAD + parent
-3. Mother HEAD + parent + main.html blob
-4. Current source recheck
-5. Production report contracts
-6. Exact owner patches in Report254
-7. V8 parser
-8. Browser E2E
-9. 38-report smoke
-10. Production resnapshot
-
-لا تبدأ من Report241 كأنه Current.
-لا تعيد إصلاح ما ثبت إغلاقه دون Current Evidence جديد.
-
-
+- الـdrill-down يبقى داخل نفس report workspace.
+- CSV/Print العامان لا يتأثران لأن drill-down أصبح داخل report-result.
 
 ---
 
-# 13. OWNER SURGICAL PATCH 02 — Hover
+# 14. OWNER SURGICAL PATCH 02 — Hover
 
 داخل:
-
 function _openSection(sectionKey)
 
-ابحث بالنص الحرفي عن:
+ابحث بالنص الحرفي:
 
 ~~~~javascript
 html += '<div class="border rounded-xl p-4 hover:bg-' + section.bgColor + ' cursor-pointer transition" onclick="RW_Reports_Comprehensive._openReport(\\'' + sectionKey + '\\', \\'' + rep.id + '\\')">';
@@ -2153,195 +1044,162 @@ html += '<div class="border rounded-xl p-4 hover:bg-' + section.bgColor + ' curs
 
 احذف هذا السطر فقط.
 
-واستبدله بالسطر التالي كاملًا:
+واستبدله بالسطر التالي:
 
 ~~~~javascript
 html += '<div class="border rounded-xl p-4 hover:' + section.bgColor + ' cursor-pointer transition" onclick="RW_Reports_Comprehensive._openReport(\\'' + sectionKey + '\\', \\'' + rep.id + '\\')">';
 ~~~~
 
-النتيجة:
-section.bgColor = bg-...
-↓
-hover: + bg-...
-↓
-hover:bg-...
+---
 
-ولا يتم توليد:
-hover:bg-bg-...
+# 15. ماذا لا نلمس؟
+
+لا إعادة فتح:
+- _companyId
+- _generateReport
+- _exportReportCsv
+- _printReport
+- Inventory Turnover
+- Inventory Movement Production contract
+- Low Stock Production contract
+- Finance reporting contracts
+- HR reporting contracts
+- field operational workflows
+- order_details authority
+- run_sheet_details derived relationship
+- inventory movement engine
 
 ---
 
-# 14. ماذا تم إثباته؟
+# 16. Production Decision
 
-## Proven
+لم يتم تعديل Supabase/Edge Functions لهذه النقطة.
 
-- System HEAD verified.
-- System parent verified.
-- Mother HEAD verified.
-- Mother parent verified.
-- Current main.html blob verified.
-- Current RW_Reports_Comprehensive verified.
-- 38 report IDs verified.
-- Current Production snapshot verified مباشرة.
-- Reporting RPC privileges verified.
-- Inventory reporting auth closure remains valid.
-- Current sidebar source structure verified.
-- Current collapse persistence gap proven.
-- Current collapsed navigation UX gap proven.
-- Current modal drill-down gap proven.
-- Current hover defect proven.
-- Sidebar replacement syntax PASS.
-- Existing Report254 Drill-Down patch remains the exact current surgical patch.
+السبب المثبت:
+Production reporting RPC security contracts الحالية سليمة.
+الـopen gaps الحالية source/browser وليست DB/Edge infrastructure.
 
-## Not Proven
+هذا يمنع خلق migration لمشكلة UI.
 
-- Owner integration of Sidebar patch.
-- Owner integration of Report254 Patch 01/02.
-- Served Mother artifact after cutover.
+---
+
+# 17. سبب الخطأ — حدود الإثبات
+
+لا يوجد في نهاية طلب المستخدم نص Error message أو stack trace محدد.
+
+لذلك لا يوجد Root Cause يمكن نسبه إلى Error غير موجود نصيًا.
+
+المشكلات التي تم إثباتها فقط من Current Source هي:
+1. Sidebar collapse persistence ناقصة.
+2. collapsed navigation غير usable مثل compact panes الحديثة.
+3. غياب Recent/Favorites/Search.
+4. group state transient + inline toggles.
+5. Drill-Down باستخدام Swal.fire.
+6. hover:bg-bg-... بسبب double prefix.
+
+أي خطأ runtime آخر لا يجوز نسبته إلى سبب قبل توفر:
+- نص الخطأ
+أو
+- stack trace
+أو
+- runtime evidence.
+
+---
+
+# 18. E2E — الحقيقة الحالية
+
+## Static/Production verified
+- Current Git.
+- Parent.
+- Current Mother Git.
+- Parent.
+- Current main.html blob.
+- Current 38 report structure.
+- V8/source parsing.
+- Production reporting RPC authorization.
+- Existing security closure.
+
+## Still Open
+- Owner cutover للـSidebar patch.
+- Owner cutover لReport254 Patch 01.
+- Owner cutover لPatch 02.
 - Browser E2E.
 - 38-report live click-through.
-- Drill-Down → Back browser path.
-- CSV browser path.
-- Print browser path.
-- Mobile navigation E2E بعد cutover.
-
----
-
-# 15. سبب الخطأ
-
-الرسالة الأصلية لا تحتوي نص Error message محددًا في آخرها يمكن إثبات سبب مستقل له.
-
-لذلك لم يتم اختراع Root Cause غير موجود.
-
-الأسباب المثبتة من المصدر الحالي فقط هي:
-
-1. Collapsed Sidebar persistence موجودة في write path ولا يوجد restore كامل عند build.
-2. Collapsed mode يخفي النصوص وsubmenus دون بديل navigation equivalent.
-3. leaf nodes في القائمة الحالية لا تحمل icon usable في collapsed mode.
-4. Group interaction تعتمد inline style toggling ولا تمتلك persistent navigation state.
-5. Drill-Down الحالي يعتمد Swal.fire بدل Page workspace.
-6. _openSection يولد hover:bg-bg-... بسبب double bg- prefix.
-
-أي Error آخر يحتاج نص الخطأ أو runtime trace مستقل قبل إصدار Root Cause.
-
----
-
-# 16. Production Action Taken In This Session
-
-لا توجد Migration جديدة.
-
-لا توجد Edge Function جديدة.
-
-لا يوجد Production DDL جديد.
-
-السبب:
-Production reporting contracts مثبتة وسليمة.
-المشكلة المفتوحة Source/UI + Owner cutover + Browser verification.
-
-إعادة كتابة Production بدون Contract gap مثبت كان ستخلق debt غير ضروري.
-
----
-
-# 17. عدم المساس بالعمليات الميدانية
-
-لم يتم تعديل:
-
-Order lifecycle
-Runsheet lifecycle
-Picking
-Reservation
-Loading
-Delivery
-Return
-Unloading
-Settlement
-Inventory movement
-
-التقارير تبقى Read/Verify/Reveal layer.
-
-والقائمة الجانبية تبقى Navigation/Orchestration layer.
-
-ولا توجد dual-write جديدة.
-
----
-
-# 18. E2E Gate المطلوب بعد Owner Cutover
-
-بعد أن يطبق Owner البلوكات الجراحية فقط:
-
-### Navigation
-
-- تسجيل الدخول.
-- فتح القائمة.
-- فتح/طي القائمة.
-- Refresh.
-- التأكد أن state محفوظ.
-- فتح Group.
-- Refresh.
-- التأكد أن state محفوظ.
-- تشغيل Search.
-- فتح نتيجة.
-- إضافة Favorite.
-- إزالة Favorite.
-- فتح Recent.
-- اختبار collapsed tooltip.
-- اختبار mobile menu.
-- اختبار permissions.
-- اختبار OWNER audit-log.
-- اختبار Finance action.
-- اختبار logout.
-
-### Comprehensive Reports
-
-- فتح التقارير الشاملة.
-- فتح كل section.
-- التأكد من عدم وجود hover:bg-bg.
-- فتح تقرير.
-- إدخال criteria.
-- تنفيذ التقرير.
-- فتح Customer Drill-Down.
-- Back.
-- فتح Item Movement Drill-Down.
-- Back.
-- فتح Runsheet Drill-Down.
-- Back.
-- فتح Settlement Drill-Down.
-- Back.
+- Drill-Down / Back.
 - CSV.
 - Print.
-- التحقق من بقاء كل شيء داخل نفس workspace.
-- Smoke لجميع 38 report IDs.
-- Production re-snapshot بعد cutover.
+- Mobile navigation.
+- Production re-snapshot after served Mother artifact.
 
-ولا يجوز تحويل Static PASS أو SQL PASS إلى Browser PASS.
-
----
-
-# 19. Session Continuity — للمساعد التالي
-
-ابدأ بالترتيب التالي:
-
-1. اقرأ هذا التقرير كاملًا.
-2. اقرأ CURRENT_STATE.md وآخر section حاكم.
-3. Verify System HEAD + parent.
-4. Verify Mother HEAD + parent + current main.html blob.
-5. Verify Owner patch integration فقط؛ لا تفترض أنه طُبق.
-6. Run V8/static parse على current Mother.
-7. تأكد أن RW_Navigation هو replacement المحدد هنا.
-8. تأكد من عدم رجوع Swal.fire إلى وظائف Drill-Down الأربع.
-9. تأكد من إصلاح hover line.
-10. Run authenticated Browser E2E.
-11. Run 38-report smoke.
-12. Run Drill-Down/Back/CSV/Print.
-13. Re-read Production.
-14. Update CURRENT_STATE.
-15. لا تعيد فتح Production reporting security إلا بدليل Regression جديد.
-16. لا تعيد إصلاح أي closure سابق أغلقته Current Evidence.
-17. لا تنتقل إلى نقطة أخرى قبل إغلاق هذه النقطة بدليل Production + Browser.
+ممنوع تحويل SQL PASS أو static PASS إلى Browser PASS.
 
 ---
 
-# 20. Final Closure State
+# 19. E2E Contract بعد Owner Cutover
+
+### Sidebar
+Login → Sidebar → Expand/Collapse → Refresh → state restored → Group open/close → Search → Favorite → Recent → Tooltip → Mobile → Permissions → OWNER audit-log → Finance action → Logout.
+
+### Comprehensive Reports
+Open Reports → Comprehensive → Section → Report → Criteria → Execute → Drill-Down → Back → CSV → Print.
+
+ثم:
+38-report smoke matrix
++
+Production re-snapshot.
+
+---
+
+# 20. Final Self-Audit
+
+### What I Proved
+- Current sources were reopened.
+- Current system HEAD/parent verified.
+- Current Mother HEAD/parent/blob verified.
+- Production was re-snapshotted live.
+- Reporting RPC security was rechecked.
+- Current sidebar defect was traced to actual source.
+- Current report drill-down defect was traced to actual source.
+- Current hover defect was traced to actual source.
+- Sidebar replacement passed independent JavaScript syntax validation.
+- Existing report security closure was not reopened unnecessarily.
+
+### What I Did Not Prove
+- Browser runtime after owner integration.
+- Served production Mother artifact after owner cutover.
+- Full 38-report click-through.
+- Live CSV/Print.
+- Mobile live navigation.
+
+### What Could Still Be Wrong
+- Owner may paste a non-exact block.
+- Served artifact may lag Mother HEAD.
+- Browser-only defect may appear after integration.
+- Any claimed error outside the six source defects above remains unverified until runtime evidence exists.
+
+---
+
+# 21. Session Continuity — Exact Start for Next CTO
+
+1. Read CURRENT_STATE.md latest section.
+2. Verify System HEAD + parent.
+3. Verify Mother HEAD + parent + current main.html blob.
+4. Confirm whether the owner changed main.html after this report.
+5. Run V8/static parse.
+6. Search RW_Navigation.
+7. Search the four Drill-Down functions for Swal.fire.
+8. Search _openSection for hover:bg-bg-.
+9. If patches are integrated, run Browser E2E.
+10. Run 38-report live smoke.
+11. Run Drill-Down/Back/CSV/Print.
+12. Re-snapshot Production.
+13. Update CURRENT_STATE.
+14. Close only evidence-backed gates.
+15. Do not reopen closed Production contracts without new regression evidence.
+
+---
+
+# 22. Closure State
 
 ~~~~text
 CURRENT SYSTEM GIT       = VERIFIED
@@ -2351,14 +1209,17 @@ CURRENT MOTHER PARENT    = VERIFIED
 CURRENT MAIN.HTML BLOB   = VERIFIED
 CURRENT PRODUCTION       = VERIFIED
 REPORTING RPC SECURITY   = CLOSED
-SIDEBAR SURGICAL PATCH   = OWNER READY
-REPORTS DRILLDOWN PATCH  = OWNER READY
-HOVER PATCH              = OWNER READY
-MAIN.HTML CTO EDIT       = 0
-PRODUCTION DB CHANGE     = 0
-BROWSER E2E              = OPEN
-38 REPORT LIVE SMOKE     = OPEN
-FULL CLOSURE             = OPEN UNTIL OWNER CUTOVER + BROWSER EVIDENCE
+
+SIDEBAR PATCH            = OWNER READY
+DRILLDOWN PATCH           = OWNER READY
+HOVER PATCH               = OWNER READY
+
+MAIN.HTML CTO CHANGE      = 0
+PRODUCTION DB CHANGE      = 0
+
+BROWSER E2E               = OPEN
+38 REPORT LIVE SMOKE      = OPEN
+FULL COMPREHENSIVE TAB    = OPEN UNTIL OWNER CUTOVER + BROWSER EVIDENCE
 ~~~~
 
 # END REPORT 255
