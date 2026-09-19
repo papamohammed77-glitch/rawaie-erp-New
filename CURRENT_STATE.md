@@ -1,3 +1,40 @@
+# FINAL SESSION RECONCILIATION — 2026-09-19 06:59:12+00
+
+> أحدث قسم حاكم فوق جميع الأقسام التاريخية أدناه.
+
+## Verified Current Git
+Mother HEAD: 845c9f1bb0e879252c4450fc173acac960f82c51
+Mother parent: 275e9693c69691bbf1d0e22a2d113f91b3d40dbd
+Last main.html changer: 275e9693c69691bbf1d0e22a2d113f91b3d40dbd
+Current main.html blob: 4ff5b3f9bb6736b1cbfd3cb3135b2f9acf1ed933
+
+## Verified Current Production
+users=24
+roles=20
+users_without_role_id=1
+audit_log=2015
+wildcard_users=1
+permission_underflow=0
+
+## Current Closure
+RW_Users root cause = PROVEN
+Production role_id repair = CLOSED
+Owner surgical patch = READY
+Fixed-source V8 = PASS in memory
+Browser Production runtime = OPEN
+RW_Users 100% runtime closure = OPEN pending Owner patch + Browser E2E
+
+## Authoritative Session Documents
+Report247 latest commit: 322cb273d87ba03d6bf3534e485291428a7de4a2
+Execution log latest commit: fab377e57d7db4a153ef111cb96a958bf2722ad0
+Current STATE update follows these documentation commits.
+
+## Exact Next Action
+Do not change any other Users/Permissions logic.
+Apply the exact Owner surgical patch from Report247.
+Then run source syntax gate → Browser E2E → Users/Permissions interaction → Production re-read.
+Do not reopen historical parser repairs unless current evidence shows regression.
+
 # CURRENT VERIFIED SESSION — 2026-09-19 — RW_Users Runtime Parser Forensic Closure / Production Role Identity Repair
 
 > هذا القسم هو أحدث حالة حاكمة. كل ما تحته تاريخ محفوظ ولا يُعاد تطبيقه إلا إذا أثبته Current Evidence.
