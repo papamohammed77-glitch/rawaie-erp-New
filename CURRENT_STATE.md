@@ -1,3 +1,266 @@
+# FINAL CURRENT RECONCILIATION — 2026-09-19 — RW_Settings Forensic Surgical Checkpoint
+
+> هذا هو أحدث قسم حاكم. لا يُعاد فتح أي Closure سابق إلا بدليل Regression من Current Evidence.
+
+## Scope
+
+هذه الجلسة محصورة في:
+
+- RW_Settings
+- app_settings
+- save-settings
+- Settings consumers المثبتة
+- Production Settings contract
+
+لا تغيير في:
+
+- Inventory
+- Picking / Loading / Delivery / Returns
+- Runsheets
+- Sales
+- Finance
+- HR
+- CRM
+- RW_Reports_Comprehensive
+
+## Current Git — System Repository
+
+Repository:
+papamohammed77-glitch/rawaie-erp-New
+
+- Current pre-state-update HEAD: ed82e7e986498b69fa5d979a8b534033b351e63a
+- Parent: 2747713501310cb23ce02877589d8bd5f99eeb55
+- Report 250 commit: 5679f2fe032c009f2a13402f35846ae509812688
+- Canonical Edge source commit: 2747713501310cb23ce02877589d8bd5f99eeb55
+- Canonical Production migration source commit: ed82e7e986498b69fa5d979a8b534033b351e63a
+
+## Current Git — Mother Repository
+
+Repository:
+papamohammed77-glitch/erp-frontend
+
+- Current HEAD: 4c16891f059bc46f994634f559a05e05f73b126a
+- Parent: 7a00dcfdda11ee8fb8fbe26a011be09db2e97c7f
+- Current main.html blob:
+  65484a74a3c3fd0b7f5b6ba5ed056c1409a1d029
+- CTO main.html changes in this session: 0
+
+The Settings route already exists as a Page. No Modal→Page conversion is required at the router layer.
+
+## Current Production
+
+Supabase project:
+fiilmooggumokxanwiyx
+
+### app_settings
+
+- rows = 1
+- company_id = 00000000-0000-0000-0000-000000000001
+- id = 74aeade7-57f2-48ae-9265-fa8fcd1a9d66
+- company_name = الشيخ للتجارة والتوزيع
+- company_phone = NULL
+- store_name = الروائع
+- store_logo = NULL
+- store_primary_color = #2563eb
+- store_secondary_color = #1e40af
+- payment_method = both
+- currency = SAR
+- delivery_fee = 0.00
+- min_invoice_amount = 0.00
+- tax_rate = 0.00
+- free_shipping_threshold = 0
+- main_branch_id = a38332b6-6cea-480a-ada1-6eb6ab0590db
+- status = trial
+- trial_end_date = NULL
+- subscription_end_date = NULL
+- runsheet_serial = 1
+- order_serial = 1
+- updated_at = 2026-09-13 06:10:00.144+00
+
+### app_settings privileges
+
+Client roles are now:
+
+- anon = SELECT
+- authenticated = SELECT
+- service_role = full write
+- postgres = internal
+
+Direct client INSERT / UPDATE / DELETE / TRUNCATE / TRIGGER / REFERENCES are closed.
+
+## Production Settings Writer
+
+Canonical DB function:
+
+save_system_settings_atomic(uuid,uuid,text,boolean,jsonb)
+
+Properties:
+
+- SECURITY DEFINER
+- service_role execute only
+- company-scoped actor
+- Active actor
+- auth_id required
+- settings permission required
+- OWNER wildcard semantics preserved
+- license changes OWNER-only
+- fail-closed field whitelist
+- currency validation
+- numeric validation
+- tax range validation
+- main branch company validation
+- semantic no-op does not touch updated_at
+- atomic app_settings + audit_log write
+
+## Production Edge
+
+Function:
+save-settings
+
+- version = 14
+- status = ACTIVE
+- verify_jwt = true
+- ezbr_sha256 = 68a3434f3ff13e44695518cb4297df66ff316664bbf3cb6dfc4e125618296a34
+
+Gateway flow:
+
+JWT
+↓
+users.auth_id
+↓
+company context
+↓
+Active actor
+↓
+OWNER verification for license
+↓
+save_system_settings_atomic
+↓
+app_settings + audit_log
+
+## Production migrations recorded
+
+- 20260919092114 — system_settings_atomic_contract_20260919
+- 20260919092205 — system_settings_atomic_contract_compile_fix_20260919
+- 20260919092823 — system_settings_writer_and_direct_dml_closure_20260919
+
+Canonical source for the final closure:
+supabase/migrations/20260919092823_system_settings_writer_and_direct_dml_closure_20260919.sql
+
+Canonical source for deployed Gateway:
+Current/Edge_Functions/save-settings
+
+## Current Source forensic truth
+
+Mother RW_Settings is currently at:
+
+companies/company-1/main.html
+blob 65484a74a3c3fd0b7f5b6ba5ed056c1409a1d029
+
+Current block:
+
+var RW_Settings = (function() {
+...
+})();
+window.RW_Settings = RW_Settings;
+
+Exact location:
+lines 5141–5264
+
+The current source contains stale fields:
+
+- vat_number
+- registered_name
+- business_address
+
+Those fields are not in current Production app_settings and are intentionally removed from the next surgical UI replacement.
+
+## Proven Current consumer
+
+Store PWA reads:
+
+app_settings.free_shipping_threshold
+
+Therefore free_shipping_threshold was restored in Production rather than invented as a UI-only field.
+
+## Production tests
+
+Verified:
+
+- authorized general settings path = PASS
+- unauthorized settings permission = SETTINGS_PERMISSION_REQUIRED
+- non-owner license change = OWNER_REQUIRED_FOR_LICENSE_SETTINGS
+- unsupported legacy settings key = UNSUPPORTED_SETTINGS_FIELDS:vat_number
+- cross-company main branch = MAIN_BRANCH_COMPANY_MISMATCH
+- no-op write does not change updated_at
+- direct DML grant closure = PASS
+
+Test artifacts were cleaned and app_settings restored to the verified pre-session data state.
+
+## Surgical Mother Patch
+
+Report:
+doc/Draft/Reprots/Report250_SYSTEM_SETTINGS_FORENSIC_SURGICAL_CLOSURE_20260919.md
+
+Owner must replace only:
+
+var RW_Settings = (function() {
+...
+window.RW_Settings = RW_Settings;
+
+inside:
+
+companies/company-1/main.html
+
+with the exact complete block stored in Report 250.
+
+No router change.
+No sidebar redesign.
+No operational module change.
+No production DB rework is required for the already closed backend contract.
+
+## Closure State
+
+- Historical reconstruction = VERIFIED
+- Current Mother Source = VERIFIED
+- Current Production = VERIFIED
+- Current DB schema = VERIFIED
+- Current Edge deployment = VERIFIED
+- Production Settings writer = CLOSED
+- Production direct DML surface = CLOSED
+- Stale ZATCA UI contract = IDENTIFIED / REMOVED FROM SURGICAL PATCH
+- free_shipping_threshold schema gap = CLOSED
+- Surgical Source Patch = READY
+- Static parse = PASS
+- Owner Mother Cutover = OPEN
+- Browser Production E2E = OPEN
+- Full Settings Closure = OPEN until Owner cutover + browser evidence
+
+## Exact Next Session Sequence
+
+1. Read this section and Report 250.
+2. Verify System HEAD and Parent.
+3. Verify Mother HEAD and main.html blob.
+4. Confirm Owner has applied the exact Report 250 RW_Settings block.
+5. Run static syntax check.
+6. Run live Browser E2E.
+7. Open Settings as settings-authorized user.
+8. Read all four sections.
+9. Modify one general setting.
+10. Save.
+11. Reload.
+12. Verify persisted value.
+13. Verify audit row.
+14. Verify main_branch projection.
+15. Verify Store consumer.
+16. Verify OWNER license guard.
+17. Re-read Production snapshot.
+18. Only then close Settings fully.
+
+Do not re-run already closed Production migrations unless Current Evidence shows regression.
+
+END OF LATEST GOVERNING SECTION
+
 # FINAL CURRENT RECONCILIATION — 2026-09-19 — RW_Roles Forensic Surgical Checkpoint
 
 > هذا هو أحدث قسم حاكم. لا يُعاد فتح أو إعادة تطبيق أي Closure سابق إلا بدليل Regression من Current Evidence.
