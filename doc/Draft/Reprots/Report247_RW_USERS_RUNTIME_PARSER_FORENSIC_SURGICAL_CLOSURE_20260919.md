@@ -559,3 +559,23 @@ Forensic root cause: HIGH / PROVEN
 Surgical patch: HIGH / V8 VERIFIED IN MEMORY
 Production data repair: CLOSED
 Runtime closure: OPEN pending Owner source cutover and Browser E2E
+
+
+---
+## 20. FINAL RECONCILIATION — 2026-09-19 06:59:12+00
+
+Current Mother Git remains:
+- HEAD 845c9f1bb0e879252c4450fc173acac960f82c51
+- main.html blob 4ff5b3f9bb6736b1cbfd3cb3135b2f9acf1ed933
+- no newer main.html-changing commit after 275e9693...
+
+Current Production re-read:
+- users = 24
+- users_without_role_id = 1
+- roles = 20
+- audit_log = 2015
+- wildcard_users = 1
+
+No regression was observed in the data repair between 06:57 and 06:59 UTC.
+
+System repository latest state commit after documentation reconciliation will be recorded in CURRENT_STATE.md.
