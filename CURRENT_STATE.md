@@ -28,11 +28,13 @@
 Repository:
 papamohammed77-glitch/rawaie-erp-New
 
-- Current pre-state-update HEAD: ed82e7e986498b69fa5d979a8b534033b351e63a
-- Parent: 2747713501310cb23ce02877589d8bd5f99eeb55
+- Current HEAD before this state correction: ed82e7e986498b69fa5d979a8b534033b351e63a
+- Parent of pre-state-update HEAD: 2747713501310cb23ce02877589d8bd5f99eeb55
 - Report 250 commit: 5679f2fe032c009f2a13402f35846ae509812688
 - Canonical Edge source commit: 2747713501310cb23ce02877589d8bd5f99eeb55
 - Canonical Production migration source commit: ed82e7e986498b69fa5d979a8b534033b351e63a
+
+- Final CURRENT_STATE commit: 36d9b482962be256a5456d0fd77c3ddb23f1c3b9
 
 ## Current Git — Mother Repository
 
