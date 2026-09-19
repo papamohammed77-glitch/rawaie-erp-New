@@ -817,3 +817,87 @@ BATCH/LOT/SERIAL CONTRACT = OPEN
 **لا تعدّل main.html خارج exact handler replacement.**
 
 # END REPORT262
+
+---
+
+# FINAL POST-COMMIT VERIFICATION — 2026-09-19
+
+## Current System HEAD
+بعد تسجيل هذا التقرير وتحديث الحالة أصبح HEAD الحالي:
+\`bb1502cd9a97e81497fc756cf470aba6daceec2b\`
+
+Parent:
+\`6498be449ae96b4cd54da0bee2638dbcbfee704b\`
+
+Report commit:
+\`6498be449ae96b4cd54da0bee2638dbcbfee704b\`
+
+## Final Production Snapshot
+تمت إعادة مطابقة Production بعد جميع عمليات Git والتوثيق.
+
+Snapshot UTC:
+\`2026-09-19 17:52:49.591902+00\`
+
+Current counts:
+- companies = 1
+- branches = 2
+- items = 17
+- stock_branches = 20
+- inventory_log = 3
+- orders = 0
+- runsheets = 0
+- purchase_orders = 0
+- receiving = 0
+- purchase_invoices = 0
+- journal_entries = 2
+- journal_lines = 0
+- cost_centers = 3
+- work_orders = 0
+- work_order_details = 0
+
+لا يوجد تغيير Production بين snapshot السابق وهذا الـfinal verification.
+
+## Final Production RPC State
+\`public.detailed_reports_read(...)\` ما زالت:
+- SECURITY DEFINER
+- PUBLIC/anon = no EXECUTE
+- authenticated/service_role = EXECUTE
+- tenant guards active
+- five report keys active
+- five performance indexes present
+
+## Final Source State
+Mother \`main.html\` ما زال بدون CTO modification.
+
+Current Mother HEAD:
+\`6d46ce940ad7dafd30d706fe07bae1a1eea6c0d8\`
+
+Current main.html blob:
+\`985361e9ba654408edf84098fd800e9acbf2ce46\`
+
+Exact defective handler remains at:
+**lines 22595–22607**
+
+This confirms the Owner surgical patch is still pending and has not been silently applied.
+
+## Final Integrity Decision
+
+The issue reported by the user is proven to be a Mother UI event-handler closure defect.
+
+It is **not** a Production report engine defect.
+
+Therefore:
+- Production repair required for this issue = 0
+- New Edge Function = 0
+- SQL rebuild = 0
+- Data repair = 0
+- Owner Mother surgical replacement = 1 exact handler
+
+## Closure Boundary
+Backend and report contract = CLOSED.
+
+UI browser closure = OPEN only because Owner must apply the exact replacement and then perform Browser Production E2E.
+
+This is an intentional governance boundary, not an unfinished Production patch.
+
+# END FINAL POST-COMMIT VERIFICATION
