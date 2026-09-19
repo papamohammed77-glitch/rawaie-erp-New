@@ -1,3 +1,222 @@
+# LATEST VERIFIED SESSION — 2026-09-19 — RW_Users ADD USER RUNTIME ROOT CAUSE / SURGICAL CLOSURE CHECKPOINT
+
+> نطاق هذه الحالة: **RW_Users / المستخدمون والصلاحيات فقط**.
+> مصدر الحقيقة: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+> تم استخدام التقارير السابقة كـHistorical Evidence فقط، ثم إعادة الإثبات من المصادر الحالية.
+> `main.html` لم يُعدّل بواسطة CTO في هذه الجلسة.
+
+## 1. Current Git — بعد توثيق هذه الجلسة
+
+### System repository
+`papamohammed77-glitch/rawaie-erp-New`
+
+- آخر commit توثيقي في هذه الجلسة: `1f8ed6228cedf5dedd368171686dc78dedbda22c`
+- parent: `3c7968df9722fe75147143bf245fea51fa48bdee`
+- Report246 commit: `3c7968df9722fe75147143bf245fea51fa48bdee`
+- Execution Log commit: `1f8ed6228cedf5dedd368171686dc78dedbda22c`
+- Production/source state الذي استند إليه التحقيق قبل هذه commits: `24e88b1909556c95c38cdfdd6d5aa1d94d033166`
+
+### Mother repository
+`papamohammed77-glitch/erp-frontend`
+
+- Current HEAD: `b719017154beec8609a9f84f428fc64037672bce`
+- Parent: `a24853414f3e2023a6e850c55ec652d660edcf9a`
+- آخر commit غيّر `companies/company-1/main.html` فعليًا: `a24853414f3e2023a6e850c55ec652d660edcf9a`
+- Parent لذلك التغيير: `5da2121beef82840880276d254d8665468420332`
+- Current `main.html` blob: `533d6afa77940228228e413a4df8dee2f0987592`
+- Current `main.html` line count: `26,620`
+- commit `b719017...` لا يغير `main.html`؛ هو forensic extract فقط.
+
+## 2. Root Cause — PROVEN
+
+داخل `RW_Users`:
+
+- `async function render()` binds زر `btn-add-emp`.
+- السطر الحالي 5333 يستدعي:
+```javascript
+openModal(null)
+```
+- لا يوجد أي تعريف لـ`openModal` داخل lexical scope لوحدة `RW_Users`.
+- توجد بدلاً منه دالة:
+```javascript
+function openUserPage(email)
+```
+- والـmodule يعيد:
+```javascript
+_openModal: openUserPage
+```
+- مسار Edit الحالي في document click handler يستخدم `RW_Users._openModal(email)` وهو صحيح.
+
+### السبب النهائي
+**Stale/legacy event binding**
+
+تمت إعادة تسمية/استبدال user editor إلى `openUserPage` بينما بقي زر إضافة المستخدم مربوطًا بالرمز القديم `openModal`.
+
+الخطأ إذن Runtime lexical-scope binding، وليس:
+- Supabase
+- RLS
+- Authentication
+- save-employee
+- save-role
+- parser
+- missing backend function.
+
+## 3. Exact Surgical Owner Change
+
+**File**
+`papamohammed77-glitch/erp-frontend/companies/company-1/main.html`
+
+**Function**
+`RW_Users.render()`
+
+**Lines**
+5331–5334
+
+### DELETE exactly
+
+```javascript
+var addBtn = byId('btn-add-emp');
+if (addBtn) {
+    addBtn.addEventListener('click', function() { openModal(null); });
+}
+```
+
+### REPLACE exactly with
+
+```javascript
+var addBtn = byId('btn-add-emp');
+if (addBtn) {
+    addBtn.addEventListener('click', function() {
+        openUserPage(null);
+    });
+}
+```
+
+### Do NOT modify
+- `openUserPage(email)`
+- `_openModal: openUserPage`
+- document click handler
+- `RW_Roles`
+- save-employee
+- save-role
+- Users/Roles RLS
+- database schema.
+
+## 4. Production Verification
+
+Current Production snapshot directly verified:
+
+- users = 24
+- active_users = 24
+- roles = 20
+- wildcard_users = 1
+- users_without_role_id = 23
+- dangling_role_id = 0
+- active_customer_assignments = 0
+
+Owner semantics remain:
+`isOwner + permissions:[\"*\"] + owner_profile`
+
+Current User/Role Edge deployments verified:
+- save-employee v10 ACTIVE
+- save-role v9 ACTIVE
+- delete-employee v4 ACTIVE
+- delete-role v4 ACTIVE
+
+No Production DB migration or Edge deployment is required for this specific defect.
+
+## 5. CI Evidence
+
+Mother browser E2E run:
+`35425989459`
+
+failed before Playwright at:
+`Assert canonical payroll syntax in Mother source`
+
+Therefore it is not valid Users runtime evidence.
+
+Mother forensic gate:
+`35425989464`
+
+passed on commit `a248534...`.
+
+## 6. Competitive Capability Boundary
+
+Current RW_Users already contains:
+- Users / Roles
+- company scope
+- Active/Inactive
+- expiry
+- branch restrictions
+- role + direct permissions
+- customer assignments
+- visit-day restriction
+- warehouse role
+- device_id
+- Owner wildcard semantics
+- audit-backed backend operations
+
+Separate future capability gaps — not part of this Bug:
+- generic CRUD/action matrix
+- generic record rules
+- field-level permission model
+- permission simulator / Login-as
+- device/session UI
+- in-profile audit viewer
+- broader policy inheritance/security groups abstraction
+
+These remain independent Closure Units and must not be mixed into U-01.
+
+## 7. Closure Status
+
+```
+RW_Users backend integrity        = VERIFIED
+RW_Users current source           = VERIFIED
+openModal root cause              = PROVEN
+Owner surgical patch              = READY
+Production backend change         = NOT REQUIRED
+Browser Production verification   = OPEN
+RW_Users final closure            = OPEN
+```
+
+100% closure requires Owner U-01 source cutover followed by fresh source syntax and live browser verification.
+
+## 8. Next Session Exact Start
+
+```
+CURRENT_STATE
+↓
+System HEAD + parent
+↓
+Mother HEAD + parent
+↓
+current main.html blob
+↓
+verify U-01 surgical patch
+↓
+source syntax gate
+↓
+Mother Browser E2E
+↓
+open Users & Permissions
+↓
+Add User
+↓
+Edit User
+↓
+save/disable verification
+↓
+Production users/roles/audit re-read
+```
+
+Do not repeat parser repairs or backend User/Role fixes unless Current Evidence proves regression.
+
+## 9. Authoritative Artifacts
+
+- `doc/Draft/Reprots/Report246_USERS_PERMISSIONS_ADD_USER_OPENMODAL_FORENSIC_SURGICAL_CLOSURE_20260919.md`
+- `doc/Draft/Reprots/EXECUTION_LOG_USERS_PERMISSIONS_ADD_USER_OPENMODAL_20260919.md`
+
+---
 # LATEST VERIFIED SESSION — 2026-09-19 — RW_Users LOGIN/PARSER FORENSIC FOLLOW-UP
 
 > This checkpoint supersedes older summaries only for the facts explicitly listed here. Historical material below remains preserved.
