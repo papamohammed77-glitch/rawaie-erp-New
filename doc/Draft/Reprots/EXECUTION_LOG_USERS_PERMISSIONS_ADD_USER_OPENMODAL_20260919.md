@@ -20,8 +20,10 @@ RW_Users — Users & Permissions only.
 - Official competitor documentation — checked for Odoo 19, Dynamics 365 Business Central, SAP S/4HANA Cloud, Daftra, Manager.io.
 
 ### Current Git
-System HEAD: 24e88b1909556c95c38cdfdd6d5aa1d94d033166
-System parent: 7cfc16aecd7ecdb6dde0774dd4ece7cf2cbbcea44
+System evidence baseline HEAD: 24e88b1909556c95c38cdfdd6d5aa1d94d033166
+System evidence baseline parent: 7cfc16aecd7ecdb6dde0774dd4ece7cf2cbbcea44
+Final System checkpoint HEAD: e7499fba1cfb119964abb00ef8939029a9909f0f
+Final System checkpoint parent: 1f8ed6228cedf5dedd368171686dc78dedbda22c
 Mother HEAD: b719017154beec8609a9f84f428fc64037672bce
 Mother parent: a24853414f3e2023a6e850c55ec652d660edcf9a
 Last main.html-changing commit: a24853414f3e2023a6e850c55ec652d660edcf9a
