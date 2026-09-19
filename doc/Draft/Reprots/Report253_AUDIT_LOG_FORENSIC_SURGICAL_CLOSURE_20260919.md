@@ -451,7 +451,7 @@ Change Documents تتضمن:
 
 المصادر الرسمية:
 https://help.sap.com/docs/successfactors-platform/implementing-and-managing-data-protection-and-privacy/interpreting-change-audit-report
-https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/bc6b3e.../5c75c9c74b614cf08dd533e4c2fd5448.html
+https://help.sap.com/docs/successfactors-platform/implementing-and-managing-data-protection-and-privacy/interpreting-change-audit-report
 
 ## Daftra
 
@@ -811,6 +811,24 @@ function RW_Audit_filterValue(id) {
     return el ? String(el.value || '').trim() : '';
 }
 
+async function RW_Audit_loadCompanies() {
+    if (!RW_Audit_isOwner()) return;
+    var select = byId('rw-audit-company');
+    if (!select) return;
+    try {
+        var res = await supabase.from('companies').select('id,name').order('name', { ascending: true });
+        if (res.error) throw res.error;
+        safeHTML(select,
+            '<option value="">كل الشركات</option>' +
+            (res.data || []).map(function (c) {
+                return '<option value="' + RW_Audit_escape(c.id) + '">' + RW_Audit_escape(c.name || c.id) + '</option>';
+            }).join('')
+        );
+    } catch (e) {
+        console.warn('RW_Audit_loadCompanies', e);
+    }
+}
+
 function RW_Audit_renderTab() {
     var container = byId('rw-page-container');
     if (!container) return;
@@ -861,7 +879,7 @@ function RW_Audit_renderTab() {
                     '</select>' +
                     '<input id="rw-audit-table" class="rw-input" style="height:48px;padding:0 14px;border-radius:14px" placeholder="اسم الجدول / الكيان">' +
                     '<input id="rw-audit-actor" class="rw-input" style="height:48px;padding:0 14px;border-radius:14px" placeholder="المنفذ / البريد">' +
-                    '<input id="rw-audit-record" class="rw-input" style="height:48px;padding:0 14px;border-radius:14px" placeholder="معرّف السجل">' +
+                    '<input id="rw-audit-record" class="rw-input" style="height:48px;padding:0 14px;border-radius:14px" placeholder="معرّف السجل"><select id="rw-audit-company" class="rw-input" style="height:48px;padding:0 14px;border-radius:14px"><option value="">كل الشركات</option></select>' +
                     '<input id="rw-audit-from" type="date" class="rw-input" style="height:48px;padding:0 14px;border-radius:14px">' +
                     '<input id="rw-audit-to" type="date" class="rw-input" style="height:48px;padding:0 14px;border-radius:14px">' +
                     '<select id="rw-audit-page-size" class="rw-input" style="height:48px;padding:0 14px;border-radius:14px">' +
@@ -915,7 +933,7 @@ function RW_Audit_renderTab() {
         RW_Audit_loadData();
     };
 
-    ['rw-audit-search', 'rw-audit-action', 'rw-audit-table', 'rw-audit-actor', 'rw-audit-record', 'rw-audit-from', 'rw-audit-to']
+    ['rw-audit-search', 'rw-audit-action', 'rw-audit-table', 'rw-audit-actor', 'rw-audit-record', 'rw-audit-company', 'rw-audit-from', 'rw-audit-to']
         .forEach(function (id) {
             var el = byId(id);
             if (!el) return;
@@ -933,7 +951,9 @@ function RW_Audit_renderTab() {
             }
         });
 
-    RW_Audit_loadData();
+    RW_Audit_loadCompanies().then(function () {
+        RW_Audit_loadData();
+    });
 }
 
 function RW_Audit_buildParams(page, pageSize) {
@@ -943,7 +963,7 @@ function RW_Audit_buildParams(page, pageSize) {
         p_table_name: RW_Audit_filterValue('rw-audit-table') || null,
         p_actor_email: RW_Audit_filterValue('rw-audit-actor') || null,
         p_record_id: RW_Audit_filterValue('rw-audit-record') || null,
-        p_company_id: null,
+        p_company_id: RW_Audit_filterValue('rw-audit-company') || null,
         p_from: RW_Audit_dateValue(RW_Audit_filterValue('rw-audit-from'), false),
         p_to: RW_Audit_dateValue(RW_Audit_filterValue('rw-audit-to'), true),
         p_page: page || RW_AUDIT_STATE.page,
@@ -1108,7 +1128,7 @@ function RW_Audit_goPage(page) {
 }
 
 function RW_Audit_clearFilters() {
-    ['rw-audit-search', 'rw-audit-action', 'rw-audit-table', 'rw-audit-actor', 'rw-audit-record', 'rw-audit-from', 'rw-audit-to'].forEach(function (id) {
+    ['rw-audit-search', 'rw-audit-action', 'rw-audit-table', 'rw-audit-actor', 'rw-audit-record', 'rw-audit-company', 'rw-audit-from', 'rw-audit-to'].forEach(function (id) {
         var el = byId(id);
         if (el) el.value = '';
     });
