@@ -1,21 +1,26 @@
 # FINAL CURRENT RECONCILIATION — 2026-09-19 — RW_Settings CURRENT RUNTIME REGRESSION CHECKPOINT
 
 > **هذا القسم هو أحدث Current Reality لحالة Settings.**  
-> لا تُعاد مراجعة Report250 أو إعادة بناء Production Settings من الصفر إلا إذا ظهر Regression جديد.
+> **Functional baseline** = `e652d0af323fad0f3dea5b32115a6af6cd17e58b`.  
+> بعده أضيفت commits توثيقية فقط: Report251 `64b1abc8da00a7a8110fabd80e2450486259b2f1` ثم CURRENT_STATE `5cd1a9198d6a5adf188037d97b196e04bedad93e`.  
+> لا يُعاد فتح Report250 أو Production Settings من الصفر إلا بدليل Regression جديد.
 
 ## Current Git
-- System HEAD: \`e652d0af323fad0f3dea5b32115a6af6cd17e58b\`
-- Parent: \`36d9b482962be256a5456d0fd77c3ddb23f1c3b9\`
-- latest commit: \`docs: correct final settings checkpoint git head in CURRENT_STATE\`
+- Functional baseline HEAD: `e652d0af323fad0f3dea5b32115a6af6cd17e58b`
+- Functional baseline parent: `36d9b482962be256a5456d0fd77c3ddb23f1c3b9`
+- Report251 documentation commit: `64b1abc8da00a7a8110fabd80e2450486259b2f1`
+- CURRENT_STATE documentation commit: `5cd1a9198d6a5adf188037d97b196e04bedad93e`
+- No application-source or Production behavior was changed by these documentation commits.
 
 ## Current Mother
-- HEAD: \`5c1e10d805a499594ec14d653f466cd05e7204dc\`
-- Parent: \`cfc63ad204f8af0faec3fbfafd75dfe0aee80d0b\`
-- Current main.html blob: \`6241363f7f54bcff0356cd39f9253d1930b5fd68\`
+- HEAD: `5c1e10d805a499594ec14d653f466cd05e7204dc`
+- Parent: `cfc63ad204f8af0faec3fbfafd75dfe0aee80d0b`
+- Current main.html blob: `6241363f7f54bcff0356cd39f9253d1930b5fd68`
 - CI logical lines: 27031
-- Main source SHA256: \`8c6f63881a834c307c1d548b7b4e38d285bc89acbf9554917949caaf92fff11e\`
+- Main source SHA256: `8c6f63881a834c307c1d548b7b4e38d285bc89acbf9554917949caaf92fff11e`
 
 ## Settings current source reality
+
 \`RW_Settings\` is already a full Page under \`rw-page-container\`; Router line 24935 calls \`RW_Settings.render()\`.
 
 Current source contains exactly two malformed JavaScript quote constructions in \`RW_Settings.build()\`:
