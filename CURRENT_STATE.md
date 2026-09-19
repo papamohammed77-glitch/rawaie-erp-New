@@ -3871,3 +3871,48 @@ PRODUCTION DB CHANGE THIS SESSION = 0
 MOTHER MAIN.HTML CTO CHANGE = 0
 BROWSER E2E = OPEN
 FULL COMPREHENSIVE CLOSURE = OPEN UNTIL OWNER CUTOVER + BROWSER EVIDENCE
+
+# SESSION 2026-09-19 — REPORT258 SALES MANAGEMENT FORENSIC SURGICAL COMPLETION
+
+## Current verified basis
+- System HEAD at session start: 25a0aaffb011edea6000ed7cc596b0c193000d51
+- Parent: a444293af0dc1b9fc550596cb95d3ae8300e9c77
+- Mother HEAD: b999145eaf6faef295f4ce7437db07d18da7e8dd
+- Mother main.html blob: 638aa5745aa8f11cb20bf74102a1fd701073a348
+- Production project: fiilmooggumokxanwiyx
+- Report: doc/Draft/Reprots/Report258_SALES_MANAGEMENT_FORENSIC_SURGICAL_COMPLETION_20260919.md
+
+## Production facts verified in this session
+- Current sales data: orders=0, order_details=0, quotes=0, commercial_catalogs=0, promotions=0, sales payments=0, return reviews=0, target plans=0, loyalty programs=0, loyalty transactions=0.
+- Sales Management Center RPC exists, is authenticated, and is available to authenticated users.
+- Production fixes applied to sales_management_center_read:
+  - decision_center.approved uses ALLOW, matching the real database constraint.
+  - top_reps LIMIT 10 is applied inside the grouped subquery.
+  - unified outputs include top_items, top_customers, branch_sales, payment_mix and recent_orders.
+- E2E database transaction proved the center can read a temporary Delivered order, item, customer, branch and ALLOW decision; transaction was fully rolled back and Production returned to zero.
+- No new Edge Function was created.
+
+## Mother/source boundary
+- Mother main.html was NOT modified.
+- Exact surgical UI patches are in Report258.
+- Heavy work modals targeted for conversion to pages:
+  RW_Orders._showDetails
+  RW_TeleSales._showNewCustomerForm
+  RW_TeleSales._saveNewCustomer
+  RW_SalesQuotes.openEditor
+  RW_SalesQuotes.detail
+  RW_PriceLists.openEditor
+  RW_PriceLists.assign
+  RW_PriceLists.detail
+  RW_Promotions.showDetail
+  RW_Promotions.openEditor
+  RW_SalesReturnsManagement._openDetail
+  RW_LoyaltyMain.newProgram
+  RW_LoyaltyMain.newReward
+- Confirmation modals were intentionally not converted.
+
+## Next session rule
+Do NOT redo sales_management_center_read or any closed Sales engine unless CURRENT PRODUCTION differs.
+After owner applies Report258 Mother patches, perform browser/runtime E2E and verify:
+Navigation → Sales Management Center → period filter → recent order drilldown → quotes pages → price-list pages → promotion pages → return-review page → loyalty pages → telesales customer page → return to source list.
+Browser E2E is the only remaining closure gate for this Sales Management surface.
