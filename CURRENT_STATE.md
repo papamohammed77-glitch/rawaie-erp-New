@@ -1,3 +1,106 @@
+# LATEST VERIFIED SESSION — 2026-09-19 — RW_Users PAGE SURGERY
+
+> Session continuation checkpoint. This header supersedes older summaries only for the facts explicitly listed here. Historical material below remains preserved.
+
+## Current Reality
+- Scope closed in this session: RW_Users / المستخدمون والصلاحيات فقط.
+- Current Mother HEAD: 189a2e082569144842bf793e9b3a439363078fdc
+- Mother parent: 991b0290ce88c271540cc822d9849128fb1e2dd9
+- Mother current main.html blob: 60d61ad247b4172b79ded234b806d6b77c153e1b
+- System HEAD after this session documentation: 18c59da8600612f6a53b2d8160fed37b611fc668
+- System parent at session start: bb0369f00e11f2b099762d9947e6b3e993fed095
+
+## Production Snapshot Verified
+- companies: 1
+- users: 24
+- active_users: 24
+- roles: 20
+- active_branches: 2
+- audit_log: 1993
+- users_without_role_id: 23
+- dangling_role_id: 0
+- cross_company_role_id: 0
+- role_text_mismatch: 0
+
+OWNER:
+- role = مدير النظام
+- role_id = valid
+- permissions = ["*"]
+- OWNER wildcard semantics remain unchanged.
+
+## Current Deployment Verified
+- save-employee v10 ACTIVE — f1ff0999d1e5bef8423ebeaff580e35d16da505134a09087054725bb89480e75
+- save-role v9 ACTIVE — cd4eb540120d165da4f32465ac9825152d7360a703f0e9d2e2cec497b6ee67be
+- delete-employee v4 ACTIVE — 7a2657afff27449026f8bef474e5c9c5f0f001345a1e205efda871f2db6206ae
+- delete-role v4 ACTIVE — e9a3837b1df7d93f4447a88bf4f14846f7e6fdf04714699b89fa21adc8d8bd3
+
+## RW_Users Current Source Finding
+Current main.html still contains:
+- renderTable(data) with a duplicated secondary search condition that must include role.
+- function openModal(email) as the current user editor.
+- _openModal: openModal in RW_Users return object.
+- Current field panel duplicate heading defect.
+- Permission list includes items and stock_adjustment and all current application/system permission keys.
+
+## Owner Surgical Change Set
+Report:
+doc/Draft/Reprots/Report244_USERS_PERMISSIONS_PAGE_FORENSIC_SURGICAL_CLOSURE_20260919.md
+
+Execution log:
+doc/Draft/Reprots/EXECUTION_LOG_USERS_PERMISSIONS_PAGE_20260919.md
+
+Owner must apply only:
+1. renderTable search-condition replacement.
+2. full replacement of function openModal(email) with function openUserPage(email), exactly as Report 244.
+3. replace _openModal: openModal with _openModal: openUserPage.
+
+No main.html changes were made by CTO in this session.
+
+## Production Change Status
+- No Production migration required.
+- No new Edge deployment required.
+- Existing backend contract verified sufficient for this UI surgery.
+- RLS verified on users / roles / customer_assignments.
+
+## Validation
+- Current Git source verified.
+- Current Production database verified.
+- Current RLS verified.
+- Current Edge deployments verified.
+- Replacement JavaScript syntax: PASS.
+- Browser E2E: NOT RUN.
+Therefore:
+OWNER SURGICAL CHANGE SET READY
+NOT 100% RUNTIME CLOSED.
+
+## Non-Regression Contract
+Do not modify:
+- post_stock_movement
+- reserve_stock
+- runsheet lifecycle
+- picking
+- loading
+- delivery
+- return
+- unloading
+- stock vouchers engine
+- accounting
+- settlement
+- OWNER isOwner + permissions:["*"] semantics
+
+## Next Session — Start Here
+1. Read this checkpoint.
+2. Verify current Mother HEAD and main.html blob again.
+3. Confirm Report 244 owner surgery has been applied.
+4. Verify renderTable role search.
+5. Verify _openModal -> openUserPage.
+6. Run Browser E2E on Production.
+7. Re-query users/roles/RLS.
+8. Close RW_Users only after runtime proof.
+9. Do not repeat already closed backend work.
+
+---
+
 # LATEST VERIFIED SESSION — 2026-09-18 — RW_Users FOLLOW-UP FORENSIC SURGICAL CLOSURE
 
 > نطاق هذه الحالة: **RW_Users / المستخدمون والصلاحيات فقط**.  
