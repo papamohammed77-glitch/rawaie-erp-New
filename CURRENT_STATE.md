@@ -3916,3 +3916,133 @@ Do NOT redo sales_management_center_read or any closed Sales engine unless CURRE
 After owner applies Report258 Mother patches, perform browser/runtime E2E and verify:
 Navigation → Sales Management Center → period filter → recent order drilldown → quotes pages → price-list pages → promotion pages → return-review page → loyalty pages → telesales customer page → return to source list.
 Browser E2E is the only remaining closure gate for this Sales Management surface.
+
+
+---
+
+# CURRENT SALES MANAGEMENT FORENSIC CHECKPOINT — 2026-09-19 — Report259
+
+> This section supersedes older Sales Management statements. Historical reports remain evidence only.
+
+## Scope
+Sales Management and its sales subtabs only.
+No Mother `main.html` was modified by CTO.
+
+## Current System Git
+- HEAD: `891f77fed9c57aa9af1b25d96fb67e37b211a166`
+- Parent: `759ea2661727748bf808bb6d250694001ca36c2e`
+- HEAD adds current Mother snapshot: `Current/main.md`
+- Snapshot blob: `638aa5745aa8f11cb20bf74102a1fd701073a348`
+
+## Current Mother
+- HEAD: `95c83863a4ccc2c3242250722101b0f3e2a75cb5`
+- Parent: `2ff692e09f0cd83ea39c7b24040c6c62435349f1`
+- `2ff692...` parent: `a96101d00c791fbeaae1708f0000893c46663ad5`
+- Current `companies/company-1/main.html` blob: `f7857bed20bf46f520b4c21abefa5012a2a7c06a`
+- Latest Mother commit changes the forensic extract only; current `main.html` remains the `2ff692...` source.
+
+## Proven Login Root Cause
+In `RW_Navigation.menuTree`, current source has:
+
+```
+        ] }
+        { icon: 'fa-truck', label: 'إدارة المشتريات', submenu: [
+```
+
+The comma between two array objects is missing.
+
+Commit `2ff692e...` introduced the exact regression while adding the Sales Management Center.
+
+Static parse:
+- current source: FAIL — `Unexpected token '{'`
+- one-comma in-memory correction: PASS
+
+Tailwind CDN warning is non-fatal and is not the login blocker.
+
+## Proven Secondary Source Defect
+`RW_Views.render()` checks `salesUser.permissions`, but the current bootstrap stores the permissions array in `RW_STATE.permissions`.
+
+Result: non-owner Sales Manager/Sales Supervisor/General Manager can be denied after syntax recovery.
+
+Owner patch:
+Use `RW_STATE.permissions` in the Sales Management permission block.
+Do not alter `RW_Permissions_check()`; it is already canonical.
+
+## Current Production
+Project: `fiilmooggumokxanwiyx`
+
+Current sales transaction counts:
+- orders: 0
+- order_details: 0
+- sales_quotes: 0
+- commercial_catalogs: 0
+- promotions: 0
+- sales_payment_receipts: 0
+- sales_payment_allocations: 0
+- sales_return_reviews: 0
+- sales_target_plans: 0
+- loyalty_programs: 0
+- loyalty_transactions: 0
+
+## Production Sales Management Read Contract
+`public.sales_management_center_read` is present and callable through the existing authenticated RPC contract.
+
+Verified actors:
+- sales manager context: PASS
+- general manager context: PASS
+
+Returned current zero-state data consistently.
+
+## Production E2E
+Temporary transaction:
+Delivered Order 120 → order_details qty 3 of item 1001 at 40 → `sales_management_center_read`
+
+Observed:
+- delivered = 1
+- sales value = 120
+- top item qty/value = 3 / 120
+- branch sales = 120
+- channel sales = 120
+- payment mix = 120
+- top rep = 120
+
+Transaction rolled back.
+
+Post-test:
+- e2e orders = 0
+- e2e order_details = 0
+
+## Production Infrastructure Decision
+No new Sales Management Edge Function was created.
+Existing sales Edge/RPC capabilities are reused.
+No new Sales Management Production DDL was required in this checkpoint because the backend read contract is already present and verified.
+
+## Remaining Mother Changes
+1. PATCH-259-01: add the single missing comma in `RW_Navigation.menuTree`.
+2. PATCH-259-02: make Sales Management permission check read `RW_STATE.permissions`.
+3. Existing Report258 modal→page changesets remain open only where current Mother source still contains the original modal functions. They must not be recreated unless current source changes.
+4. Browser Production E2E remains open because no browser execution facility was available in this session.
+
+## Authoritative Report
+`doc/Draft/Reprots/Report259_SALES_MANAGEMENT_LOGIN_SYNTAX_FORENSIC_SURGICAL_CLOSURE_20260919.md`
+
+## Exact Next Session Start
+1. Verify System HEAD/parent.
+2. Verify Mother HEAD/blob.
+3. Apply only PATCH-259-01 and PATCH-259-02.
+4. Run full parser and Mother Assembly Guard.
+5. Browser login.
+6. Verify Sales Manager / Supervisor / General Manager / Owner navigation.
+7. Open Sales Management Center and all sales subtabs.
+8. Verify date filters and cross-links.
+9. Run read-only Browser Production E2E.
+10. Re-read Production.
+11. Update this section and close the remaining Owner/browser gates.
+
+## Closure
+SALES MANAGEMENT PRODUCTION READ = CLOSED
+SALES MANAGEMENT DATABASE E2E = CLOSED
+LOGIN SYNTAX ROOT CAUSE = PROVEN
+OWNER SOURCE PATCH = OPEN
+BROWSER E2E = OPEN
+FULL SALES MANAGEMENT 100% = OPEN UNTIL OWNER SOURCE CUTOVER + BROWSER E2E
