@@ -4645,3 +4645,99 @@ No unproven contract was fabricated in this closure.
 10. Append only newly proven facts.
 
 # END CURRENT DETAILED REPORTS NAVIGATION FORENSIC CHECKPOINT — Report262
+
+# FINAL CURRENT STATE RECONCILIATION — Report262 — 2026-09-19
+
+## Current System Git
+- HEAD = \`0c26a5df952ec3017721f41f0d0809688d384cef\`
+- Parent = \`bb1502cd9a97e81497fc756cf470aba6daceec2b\`
+- Report262 final verification commit = \`0c26a5df952ec3017721f41f0d0809688d384cef\`
+- Previous state commit = \`bb1502cd9a97e81497fc756cf470aba6daceec2b\`
+
+## Current Mother Truth
+- Mother HEAD = \`6d46ce940ad7dafd30d706fe07bae1a1eea6c0d8\`
+- Mother parent = \`0b1ad7c4629a6b0e173846b556924d0cd292bcd5\`
+- main.html blob = \`985361e9ba654408edf84098fd800e9acbf2ce46\`
+- No CTO modification to main.html.
+- Exact old tab handler remains at lines 22595–22607.
+- Owner patch remains pending.
+
+## Final Production Snapshot
+- snapshot UTC = \`2026-09-19 17:52:49.591902+00\`
+- companies = 1
+- branches = 2
+- items = 17
+- stock_branches = 20
+- inventory_log = 3
+- orders = 0
+- runsheets = 0
+- purchase_orders = 0
+- receiving = 0
+- purchase_invoices = 0
+- journal_entries = 2
+- journal_lines = 0
+- cost_centers = 3
+- work_orders = 0
+- work_order_details = 0
+
+No Production mutations were made in this detailed-reports navigation closure.
+
+## Final Report Backend Verification
+\`public.detailed_reports_read(...)\`:
+- SECURITY DEFINER = true
+- PUBLIC/anon EXECUTE = false
+- authenticated/service_role EXECUTE = true
+- company/tenant guard = active
+- branch/item/account scope guards = active
+- cost-center scope guard = active
+- five report keys = callable
+
+## Final Root Cause
+The five tabs in the Mother are created correctly, and the report RPC is operational.
+
+The defective event handler only changes:
+- state.activeKey
+- tab CSS
+- result prompt
+
+It does not call:
+\`runSovereignReport()\`
+
+It also does not refresh the report title.
+
+Therefore the observed tab failure is a Mother UI event closure gap.
+
+## Final Surgical Change
+Owner must modify only:
+\`erp-frontend/companies/company-1/main.html\`
+
+Search:
+\`var tabs = document.querySelectorAll('.rw-sov-tab');\`
+
+Inside:
+\`async function renderDetailedReports()\`
+
+Delete exact old block at lines 22595–22607.
+
+Replace it with the complete handler in:
+\`doc/Draft/Reprots/Report262_DETAILED_REPORTS_TAB_FORENSIC_NAVIGATION_RUNTIME_CLOSURE_20260919.md\`
+
+No other Mother file/function should be changed for this defect.
+
+## Final Closure
+- Report backend = CLOSED
+- Production report RPC = VERIFIED
+- Security/tenant guards = VERIFIED
+- Five report contracts = VERIFIED
+- Root cause = PROVEN
+- Surgical patch = READY
+- Production SQL repair = NOT REQUIRED
+- New Edge Function = NOT REQUIRED
+- Browser Production E2E = OPEN UNTIL OWNER CUTOVER
+- Production Variance business contract = OPEN
+- Batch/Lot/Serial business contract = OPEN
+
+## Next Session Rule
+Start by verifying these current values, then perform only the exact Owner cutover and Browser Production E2E. Do not rebuild or repeat any already-closed Production report work.
+
+# END FINAL CURRENT STATE RECONCILIATION — Report262
