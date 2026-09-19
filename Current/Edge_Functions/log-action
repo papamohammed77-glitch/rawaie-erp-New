@@ -13,6 +13,7 @@ const corsHeaders = {
 };
 
 const AUTH_EVENTS = new Set(["login", "logout", "failed_login"]);
+const LEGACY_ROW_EVENTS = new Set(["create", "update", "delete"]);
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -23,13 +24,10 @@ serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action || "").trim();
 
-    if (!AUTH_EVENTS.has(action)) {
+    if (!AUTH_EVENTS.has(action) && !LEGACY_ROW_EVENTS.has(action)) {
       return new Response(
-        JSON.stringify({
-          success: false,
-          error: "This capability records authentication events only; record changes are captured by database audit triggers."
-        }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "Unsupported audit action" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -41,8 +39,6 @@ serve(async (req: Request) => {
       ? null
       : String(body.operation_id).trim().slice(0, 240) || null;
 
-    const eventData = body?.new_data ?? null;
-
     if (action === "failed_login") {
       const { error } = await admin.from("audit_log").insert({
         user_email: null,
@@ -52,7 +48,7 @@ serve(async (req: Request) => {
         table_name: "auth",
         record_id: suppliedRecordId,
         old_data: null,
-        new_data: eventData,
+        new_data: body?.new_data ?? null,
         ip_address: req.headers.get("x-forwarded-for"),
         user_agent: req.headers.get("user-agent"),
         source_type: "application_event",
@@ -112,6 +108,20 @@ serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ success: false, error: "Authenticated user is not mapped to an active ERP user" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (LEGACY_ROW_EVENTS.has(action)) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          action,
+          ignored: true,
+          reason: "Database audit trigger is authoritative for row changes.",
+          actor_user_id: actor.id,
+          company_id: actor.company_id
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
