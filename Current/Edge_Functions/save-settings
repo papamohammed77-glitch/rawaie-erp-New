@@ -17,9 +17,7 @@ function asPermissionArray(value: unknown): string[] {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders })
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
 
   if (req.method !== "POST") {
     return new Response(
@@ -30,9 +28,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => null)
-    if (!body || typeof body !== "object" || Array.isArray(body)) {
-      throw new Error("بيانات الإعدادات غير صالحة")
-    }
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("بيانات الطلب غير صالحة")
 
     const authHeader = req.headers.get("Authorization")
     if (!authHeader) throw new Error("غير مصرح")
@@ -41,9 +37,7 @@ serve(async (req) => {
     if (!token) throw new Error("جلسة المصادقة غير صالحة")
 
     const { data: authData, error: authError } = await supabase.auth.getUser(token)
-    if (authError || !authData?.user?.id || !authData.user.email) {
-      throw new Error("جلسة المصادقة غير صالحة")
-    }
+    if (authError || !authData?.user?.id || !authData.user.email) throw new Error("جلسة المصادقة غير صالحة")
 
     const authUser = authData.user
     const { data: userRow, error: userError } = await supabase
@@ -52,12 +46,54 @@ serve(async (req) => {
       .eq("auth_id", authUser.id)
       .maybeSingle()
 
-    if (userError || !userRow?.id || !userRow.company_id) {
-      throw new Error("سياق الشركة غير محدد للمستخدم")
-    }
+    if (userError || !userRow?.id || !userRow.company_id) throw new Error("سياق الشركة غير محدد للمستخدم")
+    if ((userRow.status || "Active") !== "Active") throw new Error("المستخدم غير نشط")
 
-    if ((userRow.status || "Active") !== "Active") {
-      throw new Error("المستخدم غير نشط")
+    const meta = authUser.user_metadata || {}
+    const metaPermissions = asPermissionArray(meta.permissions)
+    const dbPermissions = asPermissionArray(userRow.permissions)
+
+    const { data: ownerProfile, error: ownerError } = await supabase
+      .from("owner_profile")
+      .select("auth_user_id")
+      .eq("auth_user_id", authUser.id)
+      .maybeSingle()
+
+    if (ownerError) throw new Error("تعذر التحقق من ملف المالك")
+
+    const ownerVerified =
+      String(meta.isOwner).toLowerCase() === "true" &&
+      metaPermissions.includes("*") &&
+      dbPermissions.includes("*") &&
+      !!ownerProfile?.auth_user_id
+
+    const action = String(body?.action || "").trim().toLowerCase()
+
+    if (action === "license-admin") {
+      if (!ownerVerified) throw new Error("صلاحية المالك مطلوبة لإدارة التراخيص")
+
+      const targetCompanyId = String(body?.company_id || "").trim()
+      const adminAction = String(body?.admin_action || "list").trim().toLowerCase()
+      const payload = body?.payload && typeof body.payload === "object" ? body.payload : {}
+
+      if (!["list", "detail", "save"].includes(adminAction)) throw new Error("إجراء إدارة التراخيص غير مدعوم")
+      if ((adminAction === "detail" || adminAction === "save") && !targetCompanyId) throw new Error("الشركة المستهدفة مطلوبة")
+
+      const { data, error } = await supabase.rpc("owner_license_admin_atomic", {
+        p_action: adminAction,
+        p_company_id: targetCompanyId || null,
+        p_actor_user_id: userRow.id,
+        p_actor_auth_id: authUser.id,
+        p_actor_email: authUser.email,
+        p_payload: payload
+      })
+
+      if (error) throw new Error(error.message)
+
+      return new Response(
+        JSON.stringify(data),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      )
     }
 
     const patchKeys = Object.keys(body as Record<string, unknown>)
@@ -65,36 +101,22 @@ serve(async (req) => {
       ["status", "trial_end_date", "subscription_end_date"].includes(key)
     )
 
-    let ownerVerified = false
+    let ownerForSettings = false
     if (licenseRequested) {
-      const meta = authUser.user_metadata || {}
-      const metaPermissions = asPermissionArray(meta.permissions)
-      const dbPermissions = asPermissionArray(userRow.permissions)
-
-      const { data: ownerProfile, error: ownerError } = await supabase
-        .from("owner_profile")
-        .select("auth_user_id")
-        .eq("auth_user_id", authUser.id)
-        .maybeSingle()
-
-      if (ownerError) throw new Error("تعذر التحقق من ملف المالك")
-
-      ownerVerified =
+      ownerForSettings =
         String(meta.isOwner).toLowerCase() === "true" &&
         metaPermissions.includes("*") &&
         dbPermissions.includes("*") &&
         !!ownerProfile?.auth_user_id
 
-      if (!ownerVerified) {
-        throw new Error("صلاحية المالك مطلوبة لتعديل إعدادات الترخيص")
-      }
+      if (!ownerForSettings) throw new Error("صلاحية المالك مطلوبة لتعديل إعدادات الترخيص")
     }
 
     const { data, error } = await supabase.rpc("save_system_settings_atomic", {
       p_company_id: userRow.company_id,
       p_actor_user_id: userRow.id,
       p_actor_email: authUser.email,
-      p_owner_verified: ownerVerified,
+      p_owner_verified: ownerForSettings,
       p_settings: body
     })
 
@@ -106,7 +128,7 @@ serve(async (req) => {
     )
   } catch (error) {
     return new Response(
-      JSON.stringify({ success: false, error: error?.message || "فشل حفظ الإعدادات" }),
+      JSON.stringify({ success: false, error: error?.message || "فشل تنفيذ الطلب" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
   }
