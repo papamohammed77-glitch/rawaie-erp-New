@@ -3345,3 +3345,194 @@ Do not convert the first six states into `PRODUCTION BROWSER PASS` without live 
 - Keep HR operations behind the Mother `hr_query` / `hr_command_atomic` contract.
 - Preserve OWNER `isOwner + permissions:["*"]` semantics.
 - Any new HR feature must be a closure unit: contract → source → DB → permissions → runtime → verification.
+
+
+---
+
+# 2026-09-19 — COMPREHENSIVE REPORTS CURRENT FORENSIC / SURGICAL STATE
+
+## Scope
+This session is restricted to the Mother Comprehensive Reports tab. No Mother `main.html` change was made by CTO.
+
+## Current Git
+System repository:
+- HEAD: `55e7f32cdfa574cb33057e596e01ef743ca99ed5`
+- Parent: `c5dea0197fbc1a96500e436fee4d996f2fb624ad`
+- HEAD commit: `reports: add current forensic comprehensive reports execution record`
+- Previous parent commit contains the Production inventory-report security migration record.
+
+Mother repository:
+- HEAD: `f45b5511fe3965d012c9f94e09f0dd2102c55140`
+- Parent: `adeda04609723e221249e51621cc674b05dfc5ce`
+- Current `main.html` blob before owner cutover: `94a30d3d7fda02967b6a1f3b112ea2ced6d77ac9`
+- Mother file was not modified in this session.
+
+## Current Source
+`RW_Reports_Comprehensive` currently contains **38 report IDs**.
+- Full current inline script: approximately 1.48M characters
+- V8 syntax parse: PASS
+
+Historical closed repairs were not reopened:
+- module-local `_companyId()`
+- parser fixes
+- CSV/Print repair
+- script raw-text termination repair
+- Inventory Turnover Production contract
+- Inventory Movement Production contract
+- Low Stock Production contract
+- Finance reporting contracts
+- HR reporting contracts
+
+## Current Production
+Production project: `fiilmooggumokxanwiyx`
+
+Current Production:
+- 1 active company
+- 2 branches
+- 17 items
+- 20 stock rows
+- 3 inventory log rows
+- 0 orders
+- 0 order details
+- 0 runsheets
+- 0 run sheet details
+- 0 purchase orders
+- 0 purchase order details
+- 0 stock vouchers
+- 0 stock voucher details
+- 0 customer ledger rows
+- 0 supplier ledger rows
+- 0 settlements
+- 2 journal entries
+- 0 journal lines
+
+Sparse domain data is a current Production fact and must not be converted into artificial fixtures for PASS.
+
+## Production Repair Performed
+Migration applied directly to Production:
+`20260919_comprehensive_reports_inventory_rpc_security_close`
+
+The repair:
+- grants authenticated execution to inventory movement/replenishment reporting contracts
+- revokes anonymous/public execution
+- enforces authenticated company context
+- enforces `reports` permission
+- validates the supplied user email against the authenticated user identity
+
+Verification:
+- Owner authenticated report execution: PASS
+- Inventory movement report: PASS
+- Inventory replenishment report: PASS
+- Inventory turnover report: PASS
+- Financial report RPC smoke: PASS
+- HR report RPC smoke: PASS
+- Non-report user report execution: correctly rejected with `REPORTS_PERMISSION_REQUIRED`
+
+Production reporting security closure:
+**CLOSED**
+
+## Current UI Gap
+Current Mother source still has these modal drill-down functions:
+- `_showCustomerLedgerDetail`
+- `_showItemMovementDetail`
+- `_showRunsheetDetail`
+- `_showSettlementDetail`
+
+The current implementation uses `Swal.fire`.
+
+The surgical replacement is documented in:
+`doc/Draft/Reprots/Report254_COMPREHENSIVE_REPORTS_CURRENT_FORENSIC_SURGICAL_EXECUTION_20260919.md`
+
+Replacement target:
+**Modal → in-page report Drill-Down**
+
+No public function names or report IDs are changed.
+
+Inventory item drill-down also uses the authoritative Production:
+`inventory_movement_report`
+
+## Additional Source Defect
+Inside `_openSection`, the existing report card uses:
+`hover:bg- + section.bgColor`
+while `section.bgColor` already contains a `bg-` prefix.
+
+Surgical replacement:
+`hover: + section.bgColor`
+
+This prevents the invalid:
+`hover:bg-bg-...`
+
+## Competitive Benchmark Recorded
+Patterns verified from:
+- Odoo
+- Microsoft Dynamics 365 Business Central
+- SAP
+- Daftra
+- Manager.io
+
+Current gaps worth future roadmap tracking:
+- global filters
+- saved report views
+- period comparison
+- pivot/grouping
+- visual/table hybrid reporting
+- column personalization
+- cross-report filter transfer
+- report-level scheduling/notification
+
+These are not silently added to this closure because they require independent Business + Production contracts.
+
+## E2E Boundary
+Verified:
+- Current Git
+- Current Git parent
+- Mother Git
+- Mother parent
+- Current `main.html` blob
+- Current module structure
+- Full inline V8 syntax
+- Production report contracts
+- Production inventory report authorization repair
+- Owner authenticated report smoke
+- unauthorized report rejection
+
+Still OPEN:
+- owner source cutover
+- live browser E2E
+- 38-report click-through
+- Drill-Down → Back browser test
+- CSV/Print browser test
+- Production re-snapshot after Mother cutover
+
+Do not claim Browser Production PASS from SQL or static source PASS.
+
+## Canonical Session Report
+`doc/Draft/Reprots/Report254_COMPREHENSIVE_REPORTS_CURRENT_FORENSIC_SURGICAL_EXECUTION_20260919.md`
+
+## Next Session Exact Start
+1. Read this section first.
+2. Verify System HEAD/parent.
+3. Verify Mother HEAD/parent/blob.
+4. Confirm Mother `main.html` was changed only by the owner after the exact Report254 patch.
+5. Run V8 parse.
+6. Search the four drill-down functions for `Swal.fire`.
+7. Run authenticated browser E2E.
+8. Execute the 38-report smoke matrix.
+9. Test Drill-Down / Back / CSV / Print.
+10. Re-read Production and close only the evidence-backed open gate.
+
+**Do not reopen previously CLOSED report/Production contracts without new Current Evidence.**
+
+## Closure State
+```text
+CURRENT GIT                  = VERIFIED
+CURRENT SOURCE              = VERIFIED
+CURRENT PRODUCTION          = VERIFIED
+CURRENT DATABASE            = VERIFIED
+PRODUCTION INVENTORY REPORT = CLOSED
+DRILLDOWN MODAL→PAGE        = OWNER READY
+MAIN.HTML CTO CHANGE        = 0
+BROWSER E2E                 = OPEN
+38-REPORT LIVE SMOKE        = OPEN
+FULL COMPREHENSIVE REPORTS  = OPEN UNTIL OWNER CUTOVER + BROWSER EVIDENCE
+```
