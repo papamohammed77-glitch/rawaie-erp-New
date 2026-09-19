@@ -4232,3 +4232,264 @@ Do not modify Mother `main.html` from the CTO side.
 Do not create a new Edge Function for this navigation gap.
 
 # END CURRENT SALES MANAGEMENT PARENT CONTEXT CHECKPOINT
+
+
+# CURRENT DETAILED SOVEREIGN REPORTS FORENSIC CHECKPOINT — 2026-09-19 — Report261
+
+## Scope Lock
+هذه الجلسة حُصرت في **تبويب إدارة التقارير التفصيلية فقط**.
+- Mother `erp-frontend/companies/company-1/main.html` لم يُعدَّل بواسطة CTO.
+- لا Edge Function جديدة.
+- لا تغيير في POS/Telesales/Order-Taker/Van/Warehouse/Picker/Loader/Delivery/Returns/Purchase/Accounting field workflows.
+- التقارير السابقة بقيت Evidence فقط ولم تُعامل كـCurrent State.
+
+## Current Truth
+### System Git
+- HEAD بعد إغلاق Production read model والتوثيق: `27d613dd81062e95acd100a2d29b10ace755d3aa`
+- Parent: `55ffe3f1363df05aeaa4ae5bea4d534ee78b34f7`
+- Canonical migration commit: `55ffe3f1363df05aeaa4ae5bea4d534ee78b34f7`
+- Report commit: `27d613dd81062e95acd100a2d29b10ace755d3aa`
+- Report: `doc/Draft/Reprots/Report261_DETAILED_SOVEREIGN_REPORTS_FORENSIC_SURGICAL_CLOSURE_20260919.md`
+
+### Mother Source
+- Latest observed Mother HEAD: `dbae0891f14ecc881c050fc3b04a3cd3ec44e7e4`
+- Current `companies/company-1/main.html` blob: `867dea24f8a2de7155ea8ca1e6f69feaa131b20d`
+- No CTO Mother write.
+- Existing detailed reports function:
+  `async function renderDetailedReports()`
+  approximately lines 21890–21962.
+- Next function remains:
+  `async function _loadDetailedReports(fromDate, toDate, types)`
+  therefore the surgical replacement boundary is exact and stable.
+
+## Production Snapshot
+Latest verified Production project: `fiilmooggumokxanwiyx`.
+Current counts at the forensic snapshot:
+- companies = 1
+- branches = 2
+- items = 17
+- stock_branches = 20
+- inventory_log = 3
+- orders = 0
+- order_details = 0
+- runsheets = 0
+- run_sheet_details = 0
+- purchase_orders = 0
+- purchase_order_details = 0
+- receiving = 0
+- receiving_details = 0
+- purchase_invoices = 0
+- purchase_invoice_details = 0
+- journal_entries = 2
+- journal_lines = 0
+- cost_centers = 0
+
+Current inventory_log contains only VoidInvoice events with no source/target branch; they are not treated as physical branch stock movements.
+
+## Production Read Model
+Created and deployed:
+`public.detailed_reports_read(...)`
+
+Contract:
+- SECURITY DEFINER.
+- search_path = `public, pg_temp`.
+- authenticated + service_role execution.
+- PUBLIC/anon execution revoked.
+- company-context guard.
+- authenticated reports-permission guard.
+- branch/item/account scope validation.
+- unsafe non-empty cost-center filter is rejected as `REPORT_COST_CENTER_SCOPE_UNPROVEN`.
+- read-only; no stock/accounting mutations.
+- five report keys only.
+
+No new Edge Function was created because the project is at the gateway/function/spend constraint.
+
+## Production Performance
+Created:
+- `idx_inventory_log_company_date_item`
+- `idx_journal_entries_company_reference_status`
+- `idx_purchase_invoices_company_po_date`
+- `idx_purchase_order_details_po_item`
+- `idx_receiving_company_po_date`
+
+Canonical file:
+`supabase/migrations/20260919_detailed_sovereign_reports_read_model.sql`
+
+## Five Report Status
+
+### 1. Inventory to GL Reconciliation
+Sources:
+`stock_branches` + `items.cost_price` + `journal_entries/journal_lines/chart_of_accounts`.
+Inventory account proven: `124`.
+Formula:
+`Physical = SUM(qty × current cost)`
+`GL = SUM(debit) − SUM(credit)`
+`Difference = Physical − GL`
+Production result:
+- qty_on_hand = 32
+- uncosted_qty = 32
+- physical_value_current_cost = 0
+- GL balance = 0
+- difference = 0
+- status = `VALUATION_BASIS_MISSING`
+No false ALIGNED conclusion is emitted while stock has zero cost.
+Historical monetary valuation is not claimed because no historical cost-layer table is present.
+
+### 2. GRNI
+Sources:
+`purchase_orders`, `purchase_order_details`, `purchase_invoices`, `purchase_invoice_details`, `receiving`.
+Formula:
+- uninvoiced_qty = max(received_qty − invoiced_qty, 0)
+- received_value = received_qty × PO unit price
+- invoiced_value = invoice line_total
+- GRNI exposure = max(received_value − invoiced_value, 0)
+- days_outstanding = selected end date − last receiving date
+Production:
+- purchase and receiving/invoice rows = 0
+- explicit GRNI/WRX control account not proven.
+No synthetic control account was created.
+
+### 3. Material Ledger / Inventory Transactions
+Physical source:
+`inventory_log`
+Financial source:
+`journal_entries + journal_lines`
+Physical status:
+`RECORDED` only when a source/target branch effect exists.
+Financial status:
+`POSTED` only when a posted journal matches by proven reference; otherwise `UNLINKED`.
+Non-stock `VoidInvoice` events without branch effect are excluded from physical quantities but remain visible to event/trace reporting.
+Value basis is current `items.cost_price`, explicitly labeled.
+
+### 4. Forward / Backward Traceability
+Current supported contract:
+**ITEM/DOCUMENT TRACE**.
+- forward = target branch event
+- backward = source branch event
+- document chain = reference/voucher_id
+Confirmed existing Mother drilldowns:
+- `RW_Orders._showDetails(order_code)`
+- `RW_Finance._goldJournalDetail(entry_id)`
+- `RW_Warehouse._viewVoucherDetails(voucher_code)`
+No Batch/Lot/Serial source was found in current Production, so the report explicitly returns these capabilities as unavailable rather than fabricating genealogy.
+
+### 5. Production Variance
+Current Production contains legacy:
+`work_orders`, `work_order_details`.
+Forensics did not prove:
+- company_id/tenant FK
+- BOM
+- routing
+- material-consumption source
+- actual output source
+- production cost source
+- current authoritative writer/consumer
+Therefore:
+`CONTRACT_GAP / READINESS_ONLY`
+No planned/actual/cost variance is fabricated.
+
+## UI/UX Surgical Completion
+The Owner-ready replacement of `renderDetailedReports()` adds five independent report pages/tabs while preserving the existing operational detailed report block.
+
+New filters:
+- date range
+- multi-select branches/warehouses
+- multi-select items
+- multi-select GL accounts
+- movement types
+- trace direction
+- trace item
+- query/reference
+- Production Order diagnostic code
+- cost centers visibly present but disabled because Production contract is unsafe.
+
+New features:
+- KPI cards.
+- red/amber/green conditional states.
+- server-side report calculation.
+- Excel via existing SheetJS.
+- PDF via browser print, no new library.
+- drill-down using only already-proven functions.
+- safe reference copy when a specific opener is not proven.
+
+## Exact Owner Surgical Patch
+File:
+`erp-frontend/companies/company-1/main.html`
+
+Search exactly:
+`async function renderDetailedReports() {`
+
+Delete the complete function only, approximately:
+**21890–21962**
+
+Stop deletion immediately before:
+`async function _loadDetailedReports(fromDate, toDate, types) {`
+
+Replace with the complete block stored in Report261 under:
+**12. التعديل الجراحي للـMother**
+
+Do not touch:
+- `_buildCheckboxGroup`
+- `_loadDetailedReports`
+- `RW_Reports_Comprehensive`
+- Router
+- any field application
+- any function outside the exact renderDetailedReports block.
+
+## Test / Verification
+Production RPC verification:
+- inventory_gl_reconciliation = PASS
+- grni = PASS
+- material_ledger = PASS
+- traceability = PASS
+- production_variance = PASS as READINESS_ONLY / CONTRACT_GAP
+- invalid company/branch/item/account scope guards = verified
+- cost-center unsafe filter = explicitly rejected
+- no permanent business test records left.
+
+## Browser Gate
+OPEN.
+Browser E2E cannot be claimed until Owner applies the exact Mother patch and runs the browser/parser/assembly checks.
+
+## Anti-Reset
+Do not recreate:
+- detailed_reports_read
+- the five indexes
+- existing 38 comprehensive report routes
+- previous drill-down Page conversion
+- sidebar/search fixes
+- previous reporting security
+unless new Current Production evidence proves regression.
+
+## Exact Next Session Start
+1. Verify System HEAD and parent.
+2. Verify Mother HEAD and main.html blob.
+3. Verify `detailed_reports_read` against the canonical migration.
+4. Owner applies only the exact `renderDetailedReports()` replacement in Report261.
+5. Run full JavaScript parser and Mother Assembly Guard.
+6. Browser Production login.
+7. Open detailed reports.
+8. Execute all five reports independently.
+9. Verify every filter type.
+10. Verify red/amber/green states.
+11. Verify Excel and PDF.
+12. Verify Order/Journal/Voucher drilldowns.
+13. Verify legacy operational detailed reports still work.
+14. Re-snapshot Production.
+15. Update this state again with only newly proven facts.
+
+## Final Self-Audit
+**Proved:** current source boundary, Production schemas/data, centralized read contract, security, indexes, five report behavior, unsupported domain gates.
+
+**Not proved:** browser E2E after Owner cutover; true historical cost-layer valuation; true Batch/Lot/Serial genealogy; true Production Variance business contract.
+
+**Fixed:** missing sovereign-report read model; physical/financial separation; unsafe false-alignment; trace direction; GRNI exposure; production variance safety gate.
+
+**Final Status**
+DETAILED SOVEREIGN REPORTS = PRODUCTION BACKEND CLOSED
+MOTHER SURGICAL PATCH = OWNER READY
+BROWSER E2E = OPEN
+PRODUCTION VARIANCE BUSINESS CONTRACT = OPEN
+BATCH/LOT/SERIAL BUSINESS CONTRACT = OPEN
+
+# END REPORT261 CURRENT STATE
