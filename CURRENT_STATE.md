@@ -4046,3 +4046,189 @@ LOGIN SYNTAX ROOT CAUSE = PROVEN
 OWNER SOURCE PATCH = OPEN
 BROWSER E2E = OPEN
 FULL SALES MANAGEMENT 100% = OPEN UNTIL OWNER SOURCE CUTOVER + BROWSER E2E
+
+
+
+# CURRENT SALES MANAGEMENT PARENT CONTEXT CHECKPOINT — 2026-09-19 — Report260
+
+> هذا القسم هو أحدث حالة حاكمة لنطاق مركز إدارة المبيعات وتبويباته الفرعية في هذه الدورة. التقارير السابقة تاريخية/إرشادية فقط.
+
+## Current Reality
+
+### System Git
+- HEAD before this state update: `a4340a082f98e7765a9f71d638595d464a3ceee5`
+- Parent: `f2f811e4ac050a0d3c8f1ea3f3de7149cdae620d`
+- Report260 commit: `a4340a082f98e7765a9f71d638595d464a3ceee5`
+- Canonical Production migration:
+  `supabase/migrations/20260919_sales_management_center_recent_orders_period_integrity.sql`
+
+### Mother Git
+- HEAD: `17df154dab0a6d22c90a35c19702aba9e9f2fa23`
+- Parent: `b9bcab3a29e2833b9a649a1161e1f7572cdbb66d`
+- `b9bc...` parent: `95c83863a4ccc2c3242250722101b0f3e2a75cb5`
+- Current `companies/company-1/main.html` blob: `4c83534739364f50742a83ad36a17467064748bd`
+- `b9bc...` already closed the previous Sales syntax comma and permission-source defects.
+- No Mother `main.html` modification was performed by CTO in this cycle.
+
+## Production Snapshot
+UTC: `2026-09-19 16:22:54`
+
+- companies = 1
+- active_branches = 2
+- active_items = 16
+- orders = 0
+- order_details = 0
+- sales_quotes = 0
+- commercial_catalogs = 0
+- promotions = 0
+- sales_payment_receipts = 0
+- sales_payment_allocations = 0
+- sales_return_reviews = 0
+- sales_target_plans = 0
+- loyalty_programs = 0
+- loyalty_transactions = 0
+
+## Production Fix
+
+`public.sales_management_center_read` had a proven period-integrity defect:
+`recent_orders` was not restricted to `d_from → d_to`.
+
+It is now restricted by:
+```
+WHERE o.company_id=p_company_id
+  AND o.order_date BETWEEN d_from AND d_to
+```
+
+Migration applied directly in Production:
+`sales_management_center_recent_orders_period_integrity_20260919`
+
+Canonical Git commit:
+`f2f811e4ac050a0d3c8f1ea3f3de7149cdae620d`
+
+## Production Verification
+
+Authenticated Sales Management read:
+- sales.manager@rawaea.com = PASS
+- general.manager@rawaea.com = PASS
+
+Period E2E:
+- in-period temporary order appeared in `recent_orders`
+- out-of-period temporary order did not appear
+- temporary records were removed
+- residue_check = 0
+
+## Current Source Finding
+
+The Sales Management Center exists in current Mother and owns:
+- its route
+- its KPI/report surface
+- navigation into existing Sales subtabs
+
+Current Sales subtabs are routed independently:
+- telesales
+- customers
+- online-store
+- pos
+- orders
+- quotes
+- price-lists
+- promotions
+- sales-decision-center
+- sales-targets
+- loyalty
+- runsheets
+- sales-returns
+
+Forensic source inspection found no existing universal Parent Context / Return-to-Sales-Management layer.
+
+## Exact Current Root Cause
+
+The missing return button is not a missing route defect.
+
+It is a missing navigation-context layer between:
+`sales-management-center`
+and its child views.
+
+Adding the same button separately to every Sales page would create duplication and future drift.
+
+The approved surgical design is one Context Layer inside the existing `RW_SalesManagementCenter` module using one guarded `MutationObserver` on `#rw-page-container`.
+
+It does not create a new Edge Function, RPC, table, engine, or field-operation workflow.
+
+## Owner Surgical Changeset
+
+Report:
+`doc/Draft/Reprots/Report260_SALES_MANAGEMENT_PARENT_CONTEXT_AND_PERIOD_INTEGRITY_20260919.md`
+
+File:
+`erp-frontend/companies/company-1/main.html`
+
+Current SHA:
+`4c83534739364f50742a83ad36a17467064748bd`
+
+Apply only:
+1. PATCH-260-01 — extend `RW_SalesManagementCenter.state` with `contextObserver`.
+2. PATCH-260-02 — add `salesChildLabel`, `isSalesChildView`, `renderSalesContextBack`, `installSalesContextBack` immediately after `nav(view)`.
+3. PATCH-260-03 — invoke `installSalesContextBack()` from `RW_SalesManagementCenter.render()`.
+
+Do not reapply PATCH-259-01 or PATCH-259-02; those are already closed in Mother commit `b9bc...`.
+
+## Static Verification
+
+The complete PATCH-260 helper body passed JavaScript syntax check:
+`PATCH_SYNTAX_PASS`
+
+## Competitive Contract Finding
+
+Current official competitor documentation supports the same general principle of linked sales surfaces:
+- Odoo: quotation → sales order → delivery/invoice; pricelist-driven pricing.
+- Dynamics 365: quote → order → invoice plus price list and price-lock semantics.
+- SAP: pricing conditions for prices/discounts/surcharges/taxes with customer/material context.
+- Daftra: sales orders, POS, price lists, offers, targets/commissions, loyalty, installments.
+- Manager.io: separated sales quote/order/invoice surfaces and customer statements.
+
+RAWAEA should adapt these patterns without rebuilding existing engines or moving field execution into Mother.
+
+## Closure Status
+
+- Sales Management RPC = PRODUCTION VERIFIED
+- Sales Management period integrity = CLOSED
+- Period E2E = CLOSED
+- Production test cleanup = CLOSED
+- Previous login syntax defect = CLOSED
+- Previous Sales permission defect = CLOSED
+- Parent navigation context = FIX DESIGNED
+- Owner PATCH-260 = OPEN
+- Browser Production E2E = OPEN
+- Full Sales Management = OPEN until Owner Cutover + Browser E2E
+
+## Exact Next Resumption Point
+
+1. Re-read CURRENT_STATE.
+2. Verify current System HEAD and Mother HEAD/blob.
+3. Owner applies PATCH-260-01/02/03 exactly once.
+4. Run full JavaScript parser and Mother Assembly Guard.
+5. Real browser login.
+6. Open Sales Management Center.
+7. Open every listed Sales subtab.
+8. Verify Parent Context Bar and return to center.
+9. Verify direct Sidebar entry still works.
+10. Run Browser Production E2E.
+11. Re-read Production.
+12. Update Report260 and CURRENT_STATE.
+13. Do not recreate the Sales Center or any existing Sales Engine.
+
+## CTO Guidance
+
+Treat Reports as historical evidence.
+
+Current truth remains:
+`CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT`
+
+Do not reopen closed Sales Management backend contracts without new Production evidence.
+
+Do not modify Mother `main.html` from the CTO side.
+
+Do not create a new Edge Function for this navigation gap.
+
+# END CURRENT SALES MANAGEMENT PARENT CONTEXT CHECKPOINT
