@@ -44,13 +44,19 @@ Order / Runsheet / Picking / Loading / Delivery / Return / Inventory
 
 `papamohammed77-glitch/rawaie-erp-New`
 
-Current HEAD:
+Evidence baseline HEAD at investigation start:
 `24e88b1909556c95c38cdfdd6d5aa1d94d033166`
 
-Parent:
+Its parent:
 `7cfc16aecd7ecdb6dde0774dd4ece7cf2cbbcea44`
 
-هذا الـHEAD هو checkpoint توثيقي/حالة وليس تغييرًا لـMother `main.html`.
+Final System HEAD after this report, log and CURRENT_STATE commits:
+`e7499fba1cfb119964abb00ef8939029a9909f0f`
+
+Final System HEAD parent:
+`1f8ed6228cedf5dedd368171686dc78dedbda22c`
+
+The evidence baseline is the Production/source checkpoint used during the forensic investigation; subsequent System commits are documentation/state commits.
 
 ### Mother Repository
 
