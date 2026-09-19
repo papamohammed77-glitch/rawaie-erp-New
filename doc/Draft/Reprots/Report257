@@ -1,0 +1,26 @@
+تم تنفيذ الجزء الإنتاجي الجراحي حتى آخر نقطة مثبتة، دون لمس main.html.
+
+ما تم إصلاحه فعليًا في Production:
+
+إنشاء sales_management_center_read كمركز رقابي موحد للمبيعات.
+إنشاء resolve_sales_pricing_atomic وربطه بقوائم الأسعار والعروض.
+ربط save_sales_invoice_atomic بمحرك التسعير والعروض.
+ربط submit_online_order_atomic بالمحرك نفسه.
+إصلاح أخطاء تشغيلية حقيقية ظهرت أثناء E2E في:
+catalog_id، وoperation_id، وdiscount_amount، وAccounting Company Context، وFinance Period Context.
+التحقق أن جميع Physical Stock Writers في Production لا يتبقى منها إلا post_stock_movement.
+E2E فعلي داخل Production: السعر الأساسي 50 → قائمة سعر 40 → خصم 10% → إجمالي 36، مع تحقق الطلب والمخزون وinventory_log وPromotion Redemption وDecision وJournal، ثم Rollback كامل.
+بعد الاختبار: لا توجد Orders أو Promotions أو Catalogs أو Redemptions اختبارية متبقية.
+
+ما لم يُغلق بسبب انتهاء نافذة التنفيذ:
+
+لم أتمكن من كتابة التقرير النهائي وتحديث CURRENT_STATE.md.
+لم أتمكن من استخراج آخر مقاطع main.html الدقيقة التي تلزم لإعطائك Full Replace جاهز لتحويل كل Modals الإدارية إلى Pages؛ لذلك لن أختلقها أو أعطي أرقامًا تقريبية.
+نشر Edge Function جديد لمركز المبيعات رُفض من Supabase بسبب بلوغ حد عدد الـFunctions/Spend Cap؛ تم تجاوز الحاجة إليه بأمان عبر RPC مصادق عليه بدل تعطيل المهمة.
+
+نقطة Git المثبتة قبل التنفيذ:
+a444293 ← parent 2786cd9 ← 01bdade.
+
+سبب الخطأ الذي كُشف فعليًا أثناء الاختبارات: لم ترد في رسالتك رسالة خطأ حرفية محددة. الأخطاء القابلة لإعادة الإنتاج التي ظهرت أثناء التنفيذ كانت أخطاء Runtime/Contract فعلية وتم إصلاحها، وأبرزها سلسلة Accounting التي كانت تمنع مسار Invoiced من الوصول للنهاية.
+
+الحالة الحالية إذن: Sales Production Core Integration مغلق ومختبر، أما Mother UI surgical patch + التقرير وCURRENT_STATE فغير مكتملين بعد، ولذلك لا يصح إعلان Sales Management 100% Closed.
