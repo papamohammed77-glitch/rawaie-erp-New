@@ -3536,3 +3536,162 @@ BROWSER E2E                 = OPEN
 38-REPORT LIVE SMOKE        = OPEN
 FULL COMPREHENSIVE REPORTS  = OPEN UNTIL OWNER CUTOVER + BROWSER EVIDENCE
 ```
+
+
+---
+
+# 2026-09-19 — REPORT255 / SIDEBAR + COMPREHENSIVE REPORTS SURGICAL STATE
+
+## Scope
+This session stopped the prior inventory sweep and focused only on:
+1. Mother sidebar navigation / expand-collapse UX.
+2. Mother RW_Reports_Comprehensive.
+
+Mother main.html was not modified by CTO.
+
+## Current Truth Re-verified
+
+### System
+Current state before this state update:
+- HEAD: 01bdade6a582cae79b8b732fc0c6fc81b9370ffe
+- Parent: 55e7f32cdfa574cb33057e596e01ef743ca99ed5
+
+Report255 canonical report commit:
+- ad405e731c4106cf07a0f22e8b7f4ed5ba4fb613
+
+### Mother
+- HEAD: f6d57ff5eb235af09405de7a8df81812d061edd3
+- Parent: adeda04609723e221249e51621cc674b05dfc5ce
+- main.html blob: 94a30d3d7fda02967b6a1f3b112ea2ced6d77ac9
+
+Latest Mother HEAD only persisted forensic extract; no current main.html modification was established.
+
+## Production Snapshot — verified live
+Project: fiilmooggumokxanwiyx
+
+- companies = 1
+- active branches = 2
+- active items = 16
+- stock rows = 20
+- inventory_log = 3
+- orders = 0
+- order_details = 0
+- runsheets = 0
+- run_sheet_details = 0
+- purchase_orders = 0
+- purchase_order_details = 0
+- stock_vouchers = 0
+- stock_voucher_details = 0
+- customer_ledger = 0
+- supplier_ledger = 0
+- daily_settlements = 0
+- journal_entries = 2
+- journal_lines = 0
+
+No synthetic fixture data was added.
+
+## Production Reporting Security
+Verified:
+- anon EXECUTE = false
+- authenticated EXECUTE = true
+- service_role EXECUTE = true
+
+for:
+- inventory_movement_report
+- inventory_replenishment_report
+- comprehensive_inventory_turnover_report
+- finance_tax_report
+- finance_tax_settlements_report
+- accountant_gl_account_activity
+- get_trial_balance
+- get_profit_loss
+- get_balance_sheet_data
+- get_cash_flow
+
+Production Reporting Security remains CLOSED.
+
+## Comprehensive Reports
+Current Mother source:
+- RW_Reports_Comprehensive = 38 report IDs
+- current source blob verified
+- static/V8 parse already verified PASS
+- four current Drill-Down functions remain Modal-based until Owner cutover:
+  - _showCustomerLedgerDetail
+  - _showItemMovementDetail
+  - _showRunsheetDetail
+  - _showSettlementDetail
+- exact Modal → Page replacement remains in Report254 and is reproduced in Report255.
+- exact _openSection hover fix remains Owner Ready.
+
+## Sidebar
+Current source investigation proved:
+- collapse state is written but not fully restored on build
+- compact mode hides navigation information without equivalent icon/tooltip behavior
+- leaf items currently lack usable icons for compact mode
+- group state is transient inline style
+- no current Recent/Favorites/Search navigation layer
+- no persistent group state
+- current implementation uses inline onclick for group toggles
+
+Report255 contains the complete surgical replacement for RW_Navigation.
+
+## Surgical State
+- Sidebar replacement = OWNER READY
+- Reports Modal → Page replacement = OWNER READY
+- Reports _openSection hover fix = OWNER READY
+- No Production DB/Edge change required in this session.
+- No Mother main.html change by CTO.
+
+## Error Evidence
+No concrete Error message / stack trace was included in the latest user request.
+Do not invent a Root Cause for an unspecified runtime error.
+Only the source defects explicitly proved above are established.
+
+## Browser Gate
+OPEN:
+- Owner cutover
+- Browser E2E
+- 38-report live click-through
+- Drill-Down → Back
+- CSV
+- Print
+- mobile navigation
+- post-cutover Production re-snapshot
+
+Do not convert SQL/static PASS to Browser PASS.
+
+## Canonical Report
+doc/Draft/Reprots/Report255_SIDEBAR_AND_COMPREHENSIVE_REPORTS_FORENSIC_SURGICAL_CLOSURE_20260919.md
+
+## Exact Next Start
+1. Read this section.
+2. Verify current System HEAD/parent.
+3. Verify Mother HEAD/parent/blob.
+4. Check whether Owner modified main.html after Report255.
+5. Re-run V8/static parse.
+6. Confirm RW_Navigation replacement exactness.
+7. Confirm four Drill-Down functions no longer contain Swal.fire after cutover.
+8. Confirm _openSection hover fix.
+9. Browser E2E.
+10. 38-report live smoke.
+11. Drill-Down/Back/CSV/Print.
+12. Re-snapshot Production.
+13. Update CURRENT_STATE.
+14. Close only evidence-backed gates.
+
+Do not reopen closed Production reporting security without regression evidence.
+Do not reopen previous completed report repairs without Current Evidence.
+
+## Final State
+CURRENT GIT = VERIFIED BEFORE THIS STATE UPDATE
+CURRENT SOURCE = VERIFIED
+CURRENT PRODUCTION = VERIFIED
+CURRENT DATABASE = VERIFIED
+REPORTING SECURITY = CLOSED
+SIDEBAR PATCH = OWNER READY
+DRILLDOWN PATCH = OWNER READY
+HOVER PATCH = OWNER READY
+MAIN.HTML CTO EDIT = 0
+PRODUCTION DB CHANGE = 0
+BROWSER E2E = OPEN
+FULL COMPREHENSIVE REPORTS = OPEN UNTIL OWNER CUTOVER + BROWSER EVIDENCE
