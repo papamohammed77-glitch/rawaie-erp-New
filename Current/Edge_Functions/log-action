@@ -12,7 +12,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, x-client-info, apikey"
 };
 
-const AUTH_ACTIONS = new Set(["login", "logout", "failed_login", "create", "update", "delete"]);
+const AUTH_EVENTS = new Set(["login", "logout", "failed_login"]);
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -22,18 +22,26 @@ serve(async (req: Request) => {
   try {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action || "").trim();
-    const tableName = body?.table_name == null ? null : String(body.table_name).trim().slice(0, 160) || null;
-    const recordId = body?.record_id == null ? null : String(body.record_id).trim().slice(0, 240) || null;
-    const operationId = body?.operation_id == null ? null : String(body.operation_id).trim().slice(0, 240) || null;
-    const oldData = body?.old_data ?? null;
-    const newData = body?.new_data ?? null;
 
-    if (!AUTH_ACTIONS.has(action)) {
+    if (!AUTH_EVENTS.has(action)) {
       return new Response(
-        JSON.stringify({ success: false, error: "Unsupported audit action" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: false,
+          error: "This capability records authentication events only; record changes are captured by database audit triggers."
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const suppliedRecordId = body?.record_id == null
+      ? null
+      : String(body.record_id).trim().slice(0, 240) || null;
+
+    const operationId = body?.operation_id == null
+      ? null
+      : String(body.operation_id).trim().slice(0, 240) || null;
+
+    const eventData = body?.new_data ?? null;
 
     if (action === "failed_login") {
       const { error } = await admin.from("audit_log").insert({
@@ -41,10 +49,10 @@ serve(async (req: Request) => {
         actor_user_id: null,
         company_id: null,
         action: "failed_login",
-        table_name: tableName || "auth",
-        record_id: recordId,
+        table_name: "auth",
+        record_id: suppliedRecordId,
         old_data: null,
-        new_data: newData,
+        new_data: eventData,
         ip_address: req.headers.get("x-forwarded-for"),
         user_agent: req.headers.get("user-agent"),
         source_type: "application_event",
@@ -60,13 +68,19 @@ serve(async (req: Request) => {
       }
 
       return new Response(
-        JSON.stringify({ success: true, actor_user_id: null, company_id: null }),
+        JSON.stringify({
+          success: true,
+          action: "failed_login",
+          actor_user_id: null,
+          company_id: null
+        }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+
     if (!token) {
       return new Response(
         JSON.stringify({ success: false, error: "Authentication required" }),
@@ -75,6 +89,7 @@ serve(async (req: Request) => {
     }
 
     const { data: authData, error: authError } = await admin.auth.getUser(token);
+
     if (authError || !authData?.user?.id || !authData.user.email) {
       return new Response(
         JSON.stringify({ success: false, error: "Invalid session" }),
@@ -88,7 +103,12 @@ serve(async (req: Request) => {
       .eq("auth_id", authData.user.id)
       .maybeSingle();
 
-    if (actorError || !actor?.id || !actor.company_id || String(actor.status || "Active") === "Inactive") {
+    if (
+      actorError ||
+      !actor?.id ||
+      !actor.company_id ||
+      String(actor.status || "Active") === "Inactive"
+    ) {
       return new Response(
         JSON.stringify({ success: false, error: "Authenticated user is not mapped to an active ERP user" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -100,10 +120,10 @@ serve(async (req: Request) => {
       actor_user_id: actor.id,
       company_id: actor.company_id,
       action,
-      table_name: tableName,
-      record_id: recordId,
-      old_data: oldData,
-      new_data: newData,
+      table_name: "auth",
+      record_id: authData.user.id,
+      old_data: null,
+      new_data: null,
       ip_address: req.headers.get("x-forwarded-for"),
       user_agent: req.headers.get("user-agent"),
       source_type: "application_event",
@@ -111,7 +131,7 @@ serve(async (req: Request) => {
     });
 
     if (error) {
-      console.error("audit insert:", error);
+      console.error("audit auth event insert:", error);
       return new Response(
         JSON.stringify({ success: false, error: error.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -121,6 +141,7 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
+        action,
         actor_user_id: actor.id,
         company_id: actor.company_id
       }),
@@ -129,7 +150,10 @@ serve(async (req: Request) => {
   } catch (error) {
     console.error("Unexpected audit error:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error instanceof Error ? error.message : String(error) }),
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
