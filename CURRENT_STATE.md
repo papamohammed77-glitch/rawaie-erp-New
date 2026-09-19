@@ -4493,3 +4493,155 @@ PRODUCTION VARIANCE BUSINESS CONTRACT = OPEN
 BATCH/LOT/SERIAL BUSINESS CONTRACT = OPEN
 
 # END REPORT261 CURRENT STATE
+
+# CURRENT DETAILED REPORTS NAVIGATION FORENSIC CHECKPOINT — 2026-09-19 — Report262
+
+## Scope
+هذه الجلسة محصورة في تبويب إدارة التقارير التفصيلية فقط، والتبويبات:
+- المخزون ↔ GL
+- GRNI
+- Material Ledger
+- Traceability
+- Production Variance
+
+## Current Git Truth
+### System
+- HEAD before this checkpoint: 09055a3a0cf3a48f61422891d262166b0714247f
+- Parent: 27d613dd81062e95acd100a2d29b10ace755d3aa
+- Previous canonical read-model commit: 55ffe3f1363df05aeaa4ae5bea4d534ee78b34f7
+
+### Mother
+- Current HEAD: 6d46ce940ad7dafd30d706fe07bae1a1eea6c0d8
+- Parent: 0b1ad7c4629a6b0e173846b556924d0cd292bcd5
+- Current main.html blob: 985361e9ba654408edf84098fd800e9acbf2ce46
+- Mother main.html was not modified by CTO.
+- Commit 0b1ad7c contains the existing renderDetailedReports replacement.
+- Commit 6d46ce9 is forensic extract only.
+
+## Production Truth
+Snapshot time:
+2026-09-19 17:45:01.09457+00 UTC
+
+Counts:
+- companies 1
+- branches 2
+- items 17
+- stock_branches 20
+- inventory_log 3
+- orders 0
+- runsheets 0
+- purchase_orders 0
+- receiving 0
+- purchase_invoices 0
+- journal_entries 2
+- journal_lines 0
+- cost_centers 3
+- work_orders 0
+- work_order_details 0
+
+## Production Report Contract
+public.detailed_reports_read(...) remains deployed and valid:
+- SECURITY DEFINER
+- authenticated + service_role execution
+- PUBLIC/anon revoked
+- tenant/company guards
+- branch/item/account scope validation
+- unsafe cost-center filter explicitly rejected
+- five report keys
+
+Five report RPC keys tested successfully under an authenticated JWT-context simulation:
+- inventory_gl_reconciliation = PASS; status VALUATION_BASIS_MISSING
+- grni = PASS
+- material_ledger = PASS
+- traceability = PASS; item/document trace only
+- production_variance = PASS as READINESS_ONLY / CONTRACT_GAP
+
+Guard checks also verified:
+- invalid company
+- invalid branch
+- invalid item
+- invalid account
+- unsupported cost-center scope
+- authenticated user without reports permission
+
+## Root Cause Proven
+The current renderDetailedReports() tab handler at lines 22595–22607 only:
+- updates state.activeKey
+- updates button CSS
+- replaces the result with a “press execute” prompt
+
+It does not call runSovereignReport().
+
+It also does not refresh the report heading.
+
+Therefore the observed “tabs do not respond” defect is a UI event closure gap, not a Production RPC defect.
+
+## Exact Owner Patch
+File:
+erp-frontend/companies/company-1/main.html
+
+Search:
+var tabs = document.querySelectorAll('.rw-sov-tab');
+
+Inside:
+async function renderDetailedReports()
+
+Delete the complete block at approximately lines 22595–22607 and replace it exactly with the handler stored in:
+doc/Draft/Reprots/Report262_DETAILED_REPORTS_TAB_FORENSIC_NAVIGATION_RUNTIME_CLOSURE_20260919.md
+
+Do not modify:
+- renderDetailedReports() boundaries
+- reportTitle()
+- runSovereignReport()
+- loadCatalog()
+- _loadDetailedReports()
+- Router
+- legacy comprehensive reports
+- any operational PWA
+
+## Production Actions
+- Production SQL changes in this closure: 0
+- New Edge Functions: 0
+- Existing Production report infrastructure intentionally preserved.
+- No data repair performed because current report issue is not caused by bad Production data.
+
+## Competitive Contract Review
+Official current references reviewed:
+- Odoo inventory valuation / valuation layers / lot-serial traceability
+- Dynamics 365 Business Central inventory-G/L reconciliation, value entries, item tracking
+- SAP Material Ledger and production variance
+- Daftra inventory movement/stocktaking/serial-lot-expiry/purchase reporting
+- Manager goods receipts and inventory quantity reporting
+
+The resulting competitive gaps remain business-contract gaps, not UI patches:
+- historical cost layers
+- explicit GRNI/WRX control accounting
+- batch/lot/serial genealogy
+- production order/BOM/routing/consumption/output/actual-cost variance
+
+No unproven contract was fabricated in this closure.
+
+## Closure State
+- DETAILED REPORT BACKEND = CLOSED
+- FIVE REPORT RPC CONTRACTS = VERIFIED
+- TAB NAVIGATION ROOT CAUSE = PROVEN
+- MOTHER SURGICAL PATCH = OWNER READY
+- PRODUCTION SQL CHANGE = NOT REQUIRED
+- NEW EDGE FUNCTION = NOT REQUIRED
+- BROWSER PRODUCTION E2E = OPEN UNTIL OWNER CUTOVER
+- PRODUCTION VARIANCE CONTRACT = OPEN
+- BATCH/LOT/SERIAL CONTRACT = OPEN
+
+## Next Session Start
+1. Verify System HEAD.
+2. Verify Mother HEAD and main.html blob.
+3. Confirm old exact handler is gone.
+4. Run JS parser + Mother Assembly Guard.
+5. Browser Production login.
+6. Execute each of the five tabs.
+7. Verify filters, KPI states, Excel, PDF, and drilldowns.
+8. Re-test legacy detailed reports.
+9. Re-snapshot Production.
+10. Append only newly proven facts.
+
+# END CURRENT DETAILED REPORTS NAVIGATION FORENSIC CHECKPOINT — Report262
