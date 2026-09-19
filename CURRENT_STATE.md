@@ -1,3 +1,226 @@
+# FINAL SESSION RECONCILIATION — 2026-09-19 — RW_Roles Role Management Page Forensic Closure
+
+> هذا هو أحدث قسم حاكم. كل ما تحته تاريخ محفوظ. لا يُعاد تطبيق أي إصلاح قديم إلا إذا أثبته Current Evidence.
+
+## Verified Current Git
+
+### System repository
+`papamohammed77-glitch/rawaie-erp-New`
+
+- Current HEAD before this state update: `95b84695bc006819c5a4906269b00b6d0fb15757`
+- Parent: `fab377e57d7db4a153ef111cb96a958bf2722ad0`
+- Report248 commit: `7be7fd178328fc27a2463f88e4bdd826e120d9e0`
+
+### Mother repository
+`papamohammed77-glitch/erp-frontend`
+
+- Current HEAD: `e08652c3a6cb1d1768a04685cec437aa2d8b04c9`
+- Parent: `3bc57c23fe334691514c633cad7d1599d776d54a`
+- Last commit that changed `companies/company-1/main.html`: `3bc57c23fe334691514c633cad7d1599d776d54a`
+- Parent of that source change: `845c9f1bb0e879252c4450fc173acac960f82c51`
+- Current `main.html` blob: `ca40fd6c6f43797e096e338177280d22ac4fa436`
+- CTO modifications to `main.html` in this session: **0**
+
+## Verified Current Production
+
+Supabase project: `fiilmooggumokxanwiyx`
+
+- roles = 20
+- system roles = 3
+- custom roles = 17
+- users = 24
+- users without role_id = 1
+- broken role refs = 0
+- duplicate lower role names = 0
+
+Known unresolved data case:
+
+`mostafa@rawaea.com`  
+role = `موظف`  
+role_id = NULL
+
+No automatic assignment was made because no exact Production role match is proven.
+
+## RW_Roles Current Source — PROVEN
+
+Current Mother `RW_Roles` remains the legacy modal implementation:
+
+- `var RW_Roles = (function() {`
+- `var rolesData = [];`
+- `function render()`
+- `function renderTable(data)`
+- `function openModal(roleId)`
+- `function _switchRoleTab(tabId)`
+- `_openModal: openModal`
+
+Current role editor is still based on `Swal.fire`.
+
+The last role-specific Mother refactor is commit `e2ab4cf203d7790859081133016ca3bdc56e92e9`, which reorganized the modal but did not convert it to a page.
+
+## Production Role Backend — VERIFIED
+
+Active and authenticated:
+
+- save-role v9
+- delete-role v4
+- seed-roles v4
+
+Existing contracts preserved:
+
+- JWT authentication
+- company-scoped actor resolution
+- roles permission guard
+- OWNER wildcard protection
+- role member propagation
+- role/user permission synchronization
+- audit logging
+- system-role delete protection
+- active-member delete protection
+
+No new Role Engine was created.
+
+## Production Infrastructure Applied
+
+Migration:
+
+`role_management_audit_visibility_and_timestamp_20260919`
+
+Applied and verified:
+
+- `public.touch_roles_updated_at()`
+- `trg_roles_updated_at`
+- `audit_log_select_role_managers`
+- `idx_audit_log_roles_record_created`
+
+Production test verified that `updated_at` changes on role UPDATE, and the temporary test role was deleted.
+
+## RW_Roles Surgical Closure
+
+Report:
+
+`doc/Draft/Reprots/Report248_RW_ROLES_PAGE_FORENSIC_SURGICAL_CLOSURE_20260919.md`
+
+Report commit:
+
+`7be7fd178328fc27a2463f88e4bdd826e120d9e0`
+
+### Owner Source Patch — READY
+
+Six surgical changes are specified in Report248:
+
+A. Add `usersData` and `roleEsc`.  
+B. Replace `RW_Roles.render()`.  
+C. Replace `renderTable(data)`.  
+D. Replace `openModal(roleId)` with `openRolePage(roleId)`.  
+E. Replace `_switchRoleTab(tabId)`.  
+F. Preserve compatibility via:
+
+`_openRolePage: openRolePage`  
+`_openModal: openRolePage`
+
+### Target Capability
+
+After owner integration:
+
+- Role List Page
+- KPI
+- Search
+- System/Custom/Unused filters
+- Permission count
+- Active member count
+- Unassigned user warning
+- Responsive list/table
+- Role Profile Page
+- Overview
+- Permissions
+- Permission search
+- Bulk enable/disable
+- Members / Impact
+- Audit history
+- Clone
+- Save
+- Delete
+- Responsive UX
+
+### Explicitly not introduced
+
+- Action-level CRUD matrix
+- Record Rules
+- Field-level permission engine
+- Login-as / Permission Simulator
+- New Security Groups engine
+
+These remain separate future Business Contract Closure Units because current consumers are built around existing permission keys.
+
+## Data Governance
+
+The single active user without `role_id` remains unresolved intentionally.
+
+Do not:
+- create a new Role solely to clear the warning;
+- map the user to another role by similarity;
+- infer permissions from job title.
+
+Any future repair requires current evidence of the exact intended role.
+
+## Runtime Closure Status
+
+```
+RW_Roles forensic reconstruction       = CLOSED
+RW_Roles Production infrastructure    = CLOSED
+RW_Roles source surgical patch         = READY
+RW_Roles live Browser runtime         = OPEN
+RW_Roles 100% closure                 = OPEN UNTIL OWNER INTEGRATION + E2E
+```
+
+No Browser Production PASS is claimed.
+
+## Exact Next Session Start
+
+1. Verify System HEAD/parent.
+2. Verify Mother HEAD/parent.
+3. Verify current `main.html` blob remains `ca40fd6c6f43797e096e338177280d22ac4fa436`.
+4. Apply only Report248 surgeries A–F to `RW_Roles`.
+5. Do not modify any other `main.html` module.
+6. Run syntax gate.
+7. Run Browser Production E2E for RW_Roles.
+8. Verify Role List → Search → Filters.
+9. Verify Role Profile → Overview → Permissions → Members → Audit.
+10. Verify Clone → Save → Reload.
+11. Verify Delete custom unused role.
+12. Verify system role deletion is rejected.
+13. Re-read Production roles/users/audit.
+14. Close RW_Roles browser gate.
+15. Open next independent Permission/Business Contract Closure Unit.
+
+Do not reopen RW_Users or operational inventory/runsheet/delivery repairs without new regression evidence.
+
+## Session Guidance for Future CTO
+
+Start from Current State, not reports.
+
+Use:
+
+CURRENT GIT
++
+CURRENT SOURCE
++
+CURRENT PRODUCTION
++
+CURRENT DATABASE
++
+CURRENT DEPLOYMENT
+
+Then compare against historical reports only for context.
+
+Never assume a role is equivalent because names look similar.
+
+Never change permission semantics only to make UI appear complete.
+
+Never declare closure from source existence or deployment success alone.
+
+END OF NEW GOVERNING SECTION
+
 # FINAL SESSION RECONCILIATION — 2026-09-19 06:59:12+00
 
 > أحدث قسم حاكم فوق جميع الأقسام التاريخية أدناه.
