@@ -1,3 +1,160 @@
+# CURRENT VERIFIED SESSION — 2026-09-19 — RW_Users Runtime Parser Forensic Closure / Production Role Identity Repair
+
+> هذا القسم هو أحدث حالة حاكمة. كل ما تحته تاريخ محفوظ ولا يُعاد تطبيقه إلا إذا أثبته Current Evidence.
+> main.html لم يُعدّل بواسطة CTO. الجراحة الوحيدة في Mother ما زالت Owner Surgical Patch أدناه.
+
+## Current Reality — Mother
+- Current Mother HEAD: 845c9f1bb0e879252c4450fc173acac960f82c51
+- Parent: 275e9693c69691bbf1d0e22a2d113f91b3d40dbd
+- آخر commit غيّر main.html: 275e9693c69691bbf1d0e22a2d113f91b3d40dbd
+- Parent لذلك commit: b719017154beec8609a9f84f428fc64037672bce
+- Current main.html blob: 4ff5b3f9bb6736b1cbfd3cb3135b2f9acf1ed933
+- Previous parent blob: 533d6afa77940228228e413a4df8dee2f0987592
+
+## Root Cause — PROVEN
+الـcurrent blob يفشل V8 عند:
+    6227: })();
+
+المقارنة الحرفية مع parent أثبتت أن commit 275e غيّر Add User handler من openModal(null) إلى openUserPage(null)، لكنه حذف قوس إغلاق render().
+
+Current:
+    var addBtn = byId('btn-add-emp');
+if (addBtn) {
+    addBtn.addEventListener('click', function() {
+        openUserPage(null);
+    });
+}
+
+Required:
+    var addBtn = byId('btn-add-emp');
+    if (addBtn) {
+        addBtn.addEventListener('click', function() {
+            openUserPage(null);
+        });
+    }
+}
+
+V8 result:
+- current blob = FAIL
+- fixed in-memory variant = PASS
+- previous parent blob = PASS
+
+## OWNER SURGICAL PATCH — DO NOT RECREATE OTHER REPAIRS
+File:
+companies/company-1/main.html
+
+Module:
+RW_Users
+
+Function:
+render()
+
+ابحث حرفيًا عن:
+    var addBtn = byId('btn-add-emp');
+if (addBtn) {
+    addBtn.addEventListener('click', function() {
+        openUserPage(null);
+    });
+}
+
+احذفه كاملًا واستبدله بـ:
+    var addBtn = byId('btn-add-emp');
+    if (addBtn) {
+        addBtn.addEventListener('click', function() {
+            openUserPage(null);
+        });
+    }
+}
+
+لا تعدل openUserPage(email) أو _openModal أو renderTable أو RW_Roles أو Backend User/Role.
+
+## Production — CURRENT VERIFIED
+وقت القراءة:
+2026-09-19 06:57:26+00
+
+- users = 24
+- active_users = 24
+- roles = 20
+- active_users = 24
+- wildcard_users = 1
+- audit_log = 2015
+- users_without_role_id = 1
+- permission_underflow = 0
+
+## Production Data Repair — CLOSED
+قبل الإصلاح كان 23 مستخدمًا بلا role_id.
+ثبت أن 22 منهم لديهم role_name واحد فقط مطابق داخل نفس company_id.
+تم ربط الـ22 مستخدمًا بـrole_id.
+تم إنشاء 22 audit update records.
+المستخدم غير المطابق:
+mostafa@rawaea.com / role = موظف
+تم تركه دون اختراع Role.
+
+النتيجة:
+- role_id populated = 23
+- unresolved = 1
+- permission underflow = 0
+
+## Production User/Role Backend — VERIFIED
+- save-employee v10 ACTIVE
+- save-role v9 ACTIVE
+- delete-employee v4 ACTIVE
+- delete-role v4 ACTIVE
+- verify_jwt=true لهذه القدرات
+- company-scoped RLS على users / roles / customer_assignments
+- Owner wildcard semantics محفوظة
+
+## Current RW_Users Contract
+موجود:
+Users / Roles / Company scope / Status / Expiry / Role / Role ID / Direct permissions / Role preview / Effective permissions / Branch scope / Customer assignments / Visit-day / Device ID / Warehouse role / Owner protection / Add / Edit / Disable / Audit-backed backend.
+
+## Competitive Gaps — FUTURE CLOSURE UNITS ONLY
+- Action-level View/Create/Update/Delete/Approve/Execute/Export
+- Generic Record Rules
+- Field-level Read/Edit/Hide
+- Permission Simulator / Login-as
+- Device / Session Management
+- In-profile Audit Viewer
+- Policy inheritance abstraction
+
+هذه ليست سبب SyntaxError ولا تُخلط مع U-01.
+
+## Documentation
+- Report247: doc/Draft/Reprots/Report247_RW_USERS_RUNTIME_PARSER_FORENSIC_SURGICAL_CLOSURE_20260919.md
+- Execution log: doc/Draft/Reprots/EXECUTION_LOG_USERS_PERMISSIONS_RUNTIME_PARSER_20260919.md
+- Report247 commit: d84a416a67ba37ba0feb17c4075f481c57c36bb4
+- Execution log commit: 53c5dc54d553a7bed2022ffa7c8843c66fffa5a6
+
+## System repository state
+Latest system HEAD before CURRENT_STATE update:
+53c5dc54d553a7bed2022ffa7c8843c66fffa5a
+هذا HEAD يحتوي التقرير وسجل التنفيذ لهذه الجلسة.
+
+## Closure Status
+- Forensic diagnosis = CLOSED
+- Production role identity repair = CLOSED
+- Production permission underflow = CLOSED (0)
+- Owner main.html patch = READY
+- Fixed source syntax = V8 PASS in memory
+- Browser Production runtime = OPEN
+- RW_Users 100% closure = OPEN until Owner patch + Browser E2E
+
+## Next Exact Start
+CURRENT_STATE top section
+→ Mother HEAD + parent
+→ verify current main blob
+→ Owner patch only
+→ source syntax gate
+→ Browser E2E
+→ login
+→ Users & Permissions
+→ Add / Edit / Permissions / Field / Customers
+→ save / disable
+→ Production reread
+→ audit reread
+→ close U-01
+→ next independent Permission Contract Closure Unit
+
 # LATEST VERIFIED SESSION — 2026-09-19 — RW_Users ADD USER RUNTIME ROOT CAUSE / SURGICAL CLOSURE CHECKPOINT
 
 > نطاق هذه الحالة: **RW_Users / المستخدمون والصلاحيات فقط**.
