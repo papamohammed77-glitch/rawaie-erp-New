@@ -1,3 +1,313 @@
+# FINAL CURRENT RECONCILIATION — 2026-09-19 — RW_AUDIT FORENSIC SURGICAL CHECKPOINT
+
+> **هذا هو أحدث Current Reality الحاكم لنطاق سجل التدقيق فقط.**
+> لا تُعامل التقارير السابقة كحالة حالية؛ نقطة الحقيقة هي Git + Source + Production + Database + Deployment.
+
+## 0. Scope Lock
+
+هذه الجلسة حُصرت في:
+- `RW_Audit`
+- `audit_log`
+- `fn_audit_trigger`
+- `log-action`
+- Audit read/detail contract
+- Audit UI surgical patch
+
+**لم يتم تعديل Mother `main.html` بواسطة CTO.**
+
+## 1. Current System Git
+
+Repository:
+`papamohammed77-glitch/rawaie-erp-New`
+
+Current HEAD after this closure:
+`0b05af82690f74e0c2603415c2fee9139a0f8fb1`
+
+Immediate previous Audit commits:
+- `3df450e5f75445e6550390fe41e66d78d55f5b45`
+- `924c9f4e9c623708e7b039453bf934d4f5eb38fe`
+- `db8d4f437c7edc8ff71a498b7db210fec14b6df9`
+- `17b98c99b60d4b7e61dfc5243aa0a4ec075b5c63`
+
+Canonical final reconciliation:
+`supabase/migrations/20260919_audit_log_canonical_final_reconciliation.sql`
+
+Canonical Edge source:
+`Current/Edge_Functions/log-action`
+
+Audit report:
+`doc/Draft/Reprots/Report253_AUDIT_LOG_FORENSIC_SURGICAL_CLOSURE_20260919.md`
+
+## 2. Current Mother — Read Only
+
+Repository:
+`papamohammed77-glitch/erp-frontend`
+
+Current HEAD:
+`f45b5511fe3965d012c9f94e09f0dd2102c55140`
+
+Parent:
+`adeda04609723e221249e51621cc674b05dfc5ce`
+
+Current main.html blob:
+`94a30d3d7fda02967b6a1f3b112ea2ced6d77ac9`
+
+No CTO commit was made to Mother.
+
+## 3. Current Production Audit State
+
+Supabase project:
+`fiilmooggumokxanwiyx`
+
+audit_log rows:
+`2015`
+
+First:
+`2026-07-16 12:07:28.52253+00`
+
+Last observed before this closure:
+`2026-09-19 06:56:33.775868+00`
+
+Historical evidence quality after non-destructive enrichment:
+- actor_user_id resolved: `190`
+- company_id resolved: `1047`
+- operation_id resolved: `26`
+- anonymous legacy rows: `25`
+- system legacy rows: `1752`
+
+These historical unresolved identities were **not guessed**.
+
+## 4. Production Audit Contract — CLOSED
+
+Added:
+- `company_id uuid`
+- `actor_user_id uuid`
+- `source_type text`
+- `operation_id text`
+
+Added indexes:
+- `idx_audit_log_company_created`
+- `idx_audit_log_actor_created`
+- `idx_audit_log_table_record_created`
+- `idx_audit_log_operation_created`
+
+Created:
+- `audit_log_query(...)`
+- `audit_log_detail(uuid)`
+- `audit_log_redact_jsonb(jsonb)`
+
+The read APIs are OWNER-gated.
+
+## 5. Production Security
+
+audit_log:
+- anon SELECT = false
+- authenticated INSERT = false
+- service_role INSERT = true
+- service_role DELETE = false
+
+The existing authenticated SELECT surface was intentionally preserved because a current non-Audit consumer reads audit_log; removing it without Browser/consumer evidence would create avoidable Regression.
+
+## 6. Audit Event Authority
+
+### Row mutation audit
+
+`Database Trigger → audit_log`
+
+### Authentication audit
+
+`log-action → audit_log`
+
+### Client compatibility
+
+Legacy client `create/update/delete` calls to `log-action` now return:
+`ignored=true`
+
+They do **not** create duplicate audit rows.
+
+Production `log-action`:
+- version = 5
+- ACTIVE
+- verify_jwt = true
+- deployment hash = `97aaafce78881c30ad5d3ccff45a2c5b40b48dd88961c6674624e5e477895c07`
+
+## 7. Sensitive Data Control
+
+Production inspection found `246` historical audit records whose old/new JSON contained a token key/value.
+
+No historical row contained a password value.
+
+Read detail now applies:
+`audit_log_redact_jsonb`
+
+Sensitive key classes include token/password/secret/authorization/API keys/access keys/refresh tokens.
+
+A direct Production redaction test returned:
+- token → `[REDACTED]`
+- password → `[REDACTED]`
+- nested refresh_token → `[REDACTED]`
+- ordinary status remained visible.
+
+## 8. Production Read Contract Verification
+
+Owner-context test:
+- `audit_log_query`: PASS
+- all rows total: `2015`
+- company-filtered total for current MAIN company: `618`
+- page rows: PASS
+- `trust_summary`: PASS
+- changed field names: PASS
+- `audit_log_detail`: PASS
+- owner actor trust resolution: PASS
+- redacted detail object: PASS
+
+## 9. Current Mother Audit Reality
+
+Existing Audit page was already a Page.
+
+Router:
+`view === 'audit-log' → RW_Audit_renderTab()`
+
+Permission:
+`audit-log → owner`
+
+The actual unfinished part was the Detail surface:
+`RW_Audit_showDetails → Swal.fire(...)`
+
+The list also read raw `audit_log` directly and the client helper duplicated row-change logging.
+
+## 10. Surgical Mother Patch Status
+
+Prepared in Report253:
+
+### Patch A
+Replace exactly:
+`function RW_Audit_log(action, tableName, recordId, oldData, newData)`
+
+Result:
+- only login/logout/failed_login application events
+- no client row-change writer
+- backward-compatible with current Production `log-action v5`
+
+### Patch B
+Replace exactly the current Audit block:
+`function RW_Audit_renderTab()` through the end of `RW_Audit_showDetails`
+
+Result:
+- RPC-backed Audit Read Model
+- search
+- action filter
+- table filter
+- actor filter
+- record filter
+- company filter
+- date range
+- page size
+- pagination
+- KPIs
+- source/trust visibility
+- in-page Detail
+- changed fields
+- old/new values
+- IP/User-Agent
+- CSV export
+- no Swal detail modal
+
+No Router or operational application changes are included.
+
+## 11. Browser Gate
+
+Browser Production E2E is still:
+`OPEN`
+
+Reason:
+Mother `main.html` is Owner-managed and was deliberately not modified by CTO.
+
+Required final cutover:
+Patch A + Patch B → syntax gate → browser E2E → Production reread.
+
+## 12. Competitive Contract Basis
+
+Current official references were checked for:
+- Odoo Audit Trail
+- Microsoft Dynamics / Dataverse Audit History + Audit Summary
+- SAP Change Documents / audit reports
+- Daftra System Activity Log
+- Manager.io History
+
+Common relevant contract patterns:
+- Who
+- When
+- What
+- Old/New values
+- Field-level change visibility
+- Global audit summary
+- Record-level history
+- user/action/date filtering
+- source/context
+- correlation/operation identity
+
+RAWAEA now has the server-side contract for these patterns without importing unsupported business behavior.
+
+## 13. Do Not Reopen
+
+Do not reopen:
+- Inventory
+- Picker
+- Loading
+- Delivery
+- Returns
+- Purchase
+- Finance
+- CRM
+- HR
+- Comprehensive Reports
+- Owner License
+- System Settings
+
+Do not recreate:
+- audit_log_query
+- audit_log_detail
+- audit_log_redact_jsonb
+- log-action
+- Audit indexes
+
+unless new Production evidence shows Regression.
+
+## 14. Exact Next Session Start
+
+1. Re-read current System HEAD and parent.
+2. Re-read current Mother HEAD/blob.
+3. Verify Patch A/B exact application.
+4. Run Mother parser/syntax gate.
+5. Run Mother Assembly Guard.
+6. Run Browser Production E2E as Owner.
+7. Verify Audit page, filters, pagination, Detail Page and CSV.
+8. Verify sensitive token/password redaction.
+9. Verify one row mutation creates one authoritative DB audit event.
+10. Verify login/logout create application_event.
+11. Verify legacy client row-change calls are ignored.
+12. Reread Production audit_log.
+13. Update this section and close Audit at 100%.
+
+## 15. Closure
+
+**AUDIT PRODUCTION BACKEND = CLOSED**
+
+**AUDIT READ MODEL = CLOSED**
+
+**AUDIT SECURITY / REDACTION = CLOSED**
+
+**AUDIT DUPLICATE WRITER PATH = CLOSED**
+
+**AUDIT CURRENT SOURCE PATCH = READY**
+
+**AUDIT BROWSER E2E = OPEN ONLY FOR OWNER CUTOVER**
+
+**FULL AUDIT TAB 100% CLOSURE = PENDING MOTHER CUTOVER + BROWSER E2E**
+
+---
+
 # FINAL CURRENT RECONCILIATION — 2026-09-19 — RW_OwnerLicense FORENSIC SURGICAL PRODUCTION CHECKPOINT
 
 ## 0. SESSION GOVERNANCE
