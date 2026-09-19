@@ -3695,3 +3695,179 @@ MAIN.HTML CTO EDIT = 0
 PRODUCTION DB CHANGE = 0
 BROWSER E2E = OPEN
 FULL COMPREHENSIVE REPORTS = OPEN UNTIL OWNER CUTOVER + BROWSER EVIDENCE
+
+
+---
+
+# 2026-09-19 — REPORT256 / SIDEBAR SMART SEARCH + COMPREHENSIVE REPORTS CURRENT RECONCILIATION
+
+## Scope
+هذه الحالة تخص فقط:
+- Mother Sidebar Navigation.
+- Sidebar Smart Search.
+- Mother RW_Reports_Comprehensive.
+- Current Production evidence المرتبطة بهما.
+
+No Mother main.html write was performed by CTO.
+
+## Current System Git
+- HEAD: 2786cd9e568ef000be24b0067616f568ba54522a
+- Parent chain verified: 01bdade6a582cae79b8b732fc0c6fc81b9370ffe → 55e7f32cdfa574cb33057e596e01ef743ca99ed5
+
+Canonical session report:
+doc/Draft/Reprots/Report256_SIDEBAR_SMART_SEARCH_AND_COMPREHENSIVE_REPORTS_CURRENT_FORENSIC_SURGICAL_CLOSURE_20260919.md
+
+## Current Mother Git
+- HEAD: 25bf5635114f4f804684657d5b28e1852c730cef
+- Parent: 5d009ef32b874659866696c8173f959aee07070f
+- Current main.html blob: e5989329c9c160ec756886d77b17b769e6a04c61
+- main.html = 0 CTO edits in this closure
+
+## Current Production
+Supabase project:
+fiilmooggumokxanwiyx
+
+Current verified snapshot:
+- companies = 1
+- active branches = 2
+- active items = 16
+- stock rows = 20
+- inventory_log = 3
+- orders = 0
+- order_details = 0
+- runsheets = 0
+- run_sheet_details = 0
+- purchase_orders = 0
+- purchase_order_details = 0
+- stock_vouchers = 0
+- stock_voucher_details = 0
+- daily_settlements = 0
+- journal_entries = 2
+- journal_lines = 0
+
+No Production DB change was required for the Sidebar/Search closure.
+
+## Sidebar Current Truth
+Current RW_Navigation already contains:
+- module hierarchy
+- nested groups
+- permission filtering
+- OWNER semantics
+- persisted collapse
+- persisted group state
+- favorites
+- recent
+- compact tooltips
+- leaf icons
+- mobile handling
+
+Do not rebuild Sidebar.
+
+## Smart Search Root Cause
+Current input exists at approximately main.html line 2064:
+id="rw-nav-search-input"
+
+Current _renderSearchResults() reads _state.search.
+
+Forensic search of all _state.search references found:
+- _renderSearchResults() read
+- _renderNav() display binding
+- buildSidebar() reset
+
+No Current Source input listener updates _state.search.
+
+Therefore the proven defect is:
+DOM input value changes → no input listener → _state.search remains empty → _renderSearchResults() receives no query → search appears inert.
+
+## Surgical Owner Patch
+PATCH A:
+Replace only _renderSearchResults() at current source lines 2022–2048.
+
+PATCH B:
+Replace only _bindEvents() at current source lines 2132–2209.
+
+The complete replacements are stored in Report256.
+
+PATCH A + PATCH B standalone V8 syntax validation:
+PASS
+
+No other Sidebar function is to be reopened unless new evidence shows regression.
+
+## Comprehensive Reports Current Truth
+Current Mother source proves:
+- report structure IDs = 38
+- generator branches = 38
+- missing = 0
+- extra = 0
+
+Current drill-down state:
+- _showCustomerLedgerDetail = Page
+- _showItemMovementDetail = Page
+- _showRunsheetDetail = Page
+- _showSettlementDetail = Page
+- Swal.fire is absent from those four functions
+- _renderReportDrilldownPage is present
+
+Therefore:
+DRILLDOWN MODAL→PAGE = CLOSED IN CURRENT SOURCE
+
+Current _openSection hover is already:
+hover:' + section.bgColor
+
+Therefore:
+HOVER FIX = CLOSED IN CURRENT SOURCE
+
+Do not repeat either repair.
+
+## Reporting Production
+Current Production report RPC infrastructure was re-read and remains aligned with the previously closed reporting-security contract.
+
+No new table, RPC, or Edge Function is justified by the current Sidebar Search defect.
+
+## Browser Gate
+OPEN:
+- Owner source cutover for PATCH A/B
+- Browser E2E
+- 38-report live smoke
+- Drill-down / Back / CSV / Print browser checks
+- post-cutover Production re-snapshot
+
+Static/V8/SQL PASS must not be promoted to Browser Production PASS.
+
+## Exact Next Session Start
+1. Verify System HEAD/parent.
+2. Verify Mother HEAD/parent/blob.
+3. Check whether Owner applied PATCH A and PATCH B.
+4. Run V8 parse and Mother Assembly Guard.
+5. Browser-test Sidebar search:
+   Arabic, English, multi-word, technical ID, Ctrl/Cmd+K, Arrow Up/Down, Enter, Escape, permissions, compact, mobile.
+6. Browser-test Comprehensive Reports:
+   all 38 routes, execute, drill-down, Back, CSV, Print.
+7. Re-snapshot Production.
+8. Update this file.
+9. Close only evidence-backed gates.
+
+### Anti-reset
+Do not recreate or reapply:
+- Sidebar structural redesign
+- Favorites/Recent/collapse work
+- Report drill-down Page conversion
+- _openSection hover fix
+- Reporting Production security
+
+unless fresh Current Evidence proves Regression.
+
+## Closure
+CURRENT GIT = VERIFIED
+CURRENT MOTHER SOURCE = VERIFIED
+CURRENT PRODUCTION = VERIFIED
+SIDEBAR STRUCTURE = CLOSED
+SIDEBAR SMART SEARCH = OWNER READY
+COMPREHENSIVE REPORTS = 38→38 VERIFIED
+DRILLDOWN MODAL→PAGE = CLOSED IN CURRENT SOURCE
+HOVER FIX = CLOSED IN CURRENT SOURCE
+REPORTING BACKEND = CLOSED
+PRODUCTION DB CHANGE THIS SESSION = 0
+MOTHER MAIN.HTML CTO CHANGE = 0
+BROWSER E2E = OPEN
+FULL COMPREHENSIVE CLOSURE = OPEN UNTIL OWNER CUTOVER + BROWSER EVIDENCE
