@@ -67,3 +67,7 @@ Browser runtime verification = OPEN
 
 ### Next exact start
 Current Mother HEAD → current blob → owner patch → syntax gate → Browser E2E → Users/Permissions interaction → production reread → close U-01 → next independent permission contract unit.
+
+
+### Final reconciliation
+2026-09-19 06:59:12+00 Production re-read: users=24, roles=20, audit_log=2015, null role_id=1, wildcard users=1. Mother HEAD remains 845c9f1... and current main blob remains 4ff5b3f.... No CTO edit to main.html.
