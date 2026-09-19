@@ -1,3 +1,132 @@
+# LATEST VERIFIED SESSION — 2026-09-19 — RW_Users LOGIN/PARSER FORENSIC FOLLOW-UP
+
+> This checkpoint supersedes older summaries only for the facts explicitly listed here. Historical material below remains preserved.
+
+## Current Reality — Verified From Current Sources
+
+### Mother System
+- Current Mother HEAD at close: `5da2121beef82840880276d254d8665468420332`
+- Parent: `904705d9efcadd8e3443f167ce8fa38cb17b0525`
+- Last Mother main.html change: `58368091b6b75b861cf2d2aa994ab7c52d7eedaa`
+- Parent of that source change: `3bc6f6674398931f21fae26b32562587d17b7ebd`
+- Current main.html blob: `309bf5ea45a8f8a23b77ddf94c295c0c01dd8819`
+
+### Proven RW_Users Parser Defects
+1. **Root cause A — double escaping**
+   - `main.html` lines 5730–5733 currently contain `\\\\'`-level escaping in the generated JavaScript string.
+   - Commit `58368091b6b75b861cf2d2aa994ab7c52d7eedaa` introduced this exact four-line change.
+   - Current CI reproduces `SyntaxError: Invalid or unexpected token` at the basic-tab expression, positioned at source line 5730.
+
+2. **Root cause B — missing closing brace**
+   - In `function openUserPage(email)`, the `isEdit` block closes before `container.scrollTop = 0;`.
+   - A second `}` is required after `container.scrollTop = 0;` to close `openUserPage()` before the returned RW_Users API object.
+   - Earlier parser evidence reached the IIFE tail and failed with `SyntaxError: Unexpected token ')'`, proving this second defect independently.
+
+### Already Correct — Do Not Reapply
+- `renderTable` already searches by name/email/phone/**role**.
+- `function openUserPage(email)` already exists in current source.
+- RW_Users already maps:
+  `_openModal: openUserPage`.
+
+## Production Snapshot — Verified
+- users = 24
+- active_users = 24
+- wildcard_users = 1
+- roles = 20
+- system_roles = 3
+- audit_log = 1993
+- OWNER role = `مدير النظام`
+- OWNER `role_id` valid
+- OWNER permissions = [`*`]
+- RLS policies verified on users, roles, customer_assignments.
+- Current user/role Edge deployments verified:
+  - save-employee v10 ACTIVE
+  - save-role v9 ACTIVE
+  - delete-employee v4 ACTIVE
+  - delete-role v4 ACTIVE
+- Production DB/Edge changes required for this parser issue: **NONE**.
+
+## CI Runtime Evidence
+- Forensic Mother Assembly Guard run `35424752260`, job `105848653052`:
+  - failed inline JavaScript syntax validation at the escaped basic-tab string.
+- Published main.html forensic gate run `35424752242`, job `105848653059`:
+  - failed at `/tmp/main-positioned.js:5730` with `Invalid or unexpected token`.
+- Mother System Browser E2E run `35424752288`, job `105848653233`:
+  - blocked before Playwright by an earlier source gate; therefore browser E2E is **not yet PASS**.
+- Current CI does not establish Production browser runtime pass until the two owner surgeries are applied and rerun.
+
+## Owner Surgical Changes — Exact
+### SURGERY A
+File: `companies/company-1/main.html`
+Function: `function openUserPage(email)`
+Lines: `5730–5733`
+
+Replace the four current lines whose onclick expressions contain:
+- `_switchEmpTab(\\'basic\\')`
+- `_switchEmpTab(\\'perms\\')`
+- `_switchEmpTab(\\'field\\')`
+- `_switchEmpTab(\\'assignments\\')`
+
+with the exact same four lines using the single-backslash JavaScript escaping:
+- `_switchEmpTab(\'basic\')`
+- `_switchEmpTab(\'perms\')`
+- `_switchEmpTab(\'field\')`
+- `_switchEmpTab(\'assignments\')`
+
+Change escaping only. Do not alter IDs, labels, function names, or surrounding HTML.
+
+### SURGERY B
+File: `companies/company-1/main.html`
+Function: `function openUserPage(email)`
+
+Find exactly:
+```
+    });
+}
+
+container.scrollTop = 0;
+
+return {
+```
+
+Replace exactly with:
+```
+    });
+
+container.scrollTop = 0;
+}
+
+return {
+```
+
+The operative change is the added function-closing `}` after `container.scrollTop = 0;`.
+Do not modify `_openModal: openUserPage`.
+
+## Documentation
+- Corrective report: `doc/Draft/Reprots/Report245_USERS_PERMISSIONS_LOGIN_PARSER_FORENSIC_SURGICAL_CLOSURE_20260919.md`
+- Execution log: `doc/Draft/Reprots/EXECUTION_LOG_USERS_PERMISSIONS_LOGIN_PARSER_20260919.md`
+- Report 244 remains historical guidance; do not reapply it wholesale.
+
+## Closure Status
+- RW_Users LOGIN/PARSER CLOSURE = **NOT CLOSED**
+- Root cause = proven.
+- Exact owner surgery = prepared.
+- Production backend = verified, no change required.
+- main.html = intentionally not modified by CTO per owner instruction.
+- No 100% closure claim until fresh source syntax gate + browser E2E + functional Users/Permissions verification pass.
+
+## Next Exact Resumption Point
+1. Start from Mother HEAD `5da2121beef82840880276d254d8665468420332`.
+2. Verify current main.html blob remains `309bf5ea45a8f8a23b77ddf94c295c0c01dd8819`.
+3. Apply SURGERY A only.
+4. Apply SURGERY B only.
+5. Do not touch `renderTable`.
+6. Do not touch `_openModal: openUserPage`.
+7. Run the existing source syntax gates.
+8. Run Mother Browser E2E.
+9. Open Users & Permissions and verify the complete current User 360 surface.
+10. Only after closure is proven, continue to the next independent business-contract gap.
+
 # LATEST VERIFIED SESSION — 2026-09-19 — RW_Users PAGE SURGERY
 
 > Session continuation checkpoint. This header supersedes older summaries only for the facts explicitly listed here. Historical material below remains preserved.
