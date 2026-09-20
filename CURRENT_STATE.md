@@ -997,7 +997,6 @@ No-op audit behavior:
 ---
 
 ## 10. STATIC SURGERY VERIFICATION
-
 Replacement `RW_OwnerLicense` was independently parsed.
 
 Result:
@@ -1997,7 +1996,6 @@ RW_Users
 
 Function:
 render()
-
 ابحث حرفيًا عن:
     var addBtn = byId('btn-add-emp');
 if (addBtn) {
@@ -2997,7 +2995,6 @@ Do NOT modify neighboring modules before browser retest.
 - Production migration commit for inventory turnover: `f8117693e8b7c6f1d6a4aaffbb0f17765f4aa064`.
 - Comprehensive reports forensic report:
   `doc/Draft/Reprots/Report238_COMPREHENSIVE_REPORTS_FORENSIC_SURGICAL_CLOSURE_20260918.md`
-
 ### Current Git — Mother Repository
 - Repository: `papamohammed77-glitch/erp-frontend`
 - Current HEAD verified: `fdfdb2bf03271e8eedad81ad8400c243b89c33a5`
@@ -3997,7 +3994,6 @@ Current state before this state update:
 
 Report255 canonical report commit:
 - ad405e731c4106cf07a0f22e8b7f4ed5ba4fb613
-
 ### Mother
 - HEAD: f6d57ff5eb235af09405de7a8df81812d061edd3
 - Parent: adeda04609723e221249e51621cc674b05dfc5ce
@@ -6432,3 +6428,154 @@ CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT D
 No assumption may override those five sources.
 
 # END SESSION CHECKPOINT — WAREHOUSE VOUCHERS RUNTIME BOOT FORENSIC
+
+---
+
+# SESSION CHECKPOINT — WAREHOUSE VOUCHERS INTEGRATION FORENSIC — 2026-09-20
+
+## Scope Lock
+- Focused capability: standalone warehouse vouchers consumer.
+- Owner file: erp-frontend/companies/company-1/warehouse/vouchers.html
+- main.html: NOT MODIFIED.
+- vouchers.html: NOT MODIFIED by CTO in this session.
+- No new Edge Function created.
+
+## Current Truth
+- System HEAD: 4d40ee2a2ffffc2e3a2169e0d632b0b486042f37
+- System parent: da627d4947a309a792f98459ffc117ddad03b381
+- Current vouchers SHA: 550ef7284116828f540ce22b5938a056744c8404
+- Current vouchers: 741 lines / 69,303 bytes.
+- Latest relevant vouchers commit: bc747e2b7157c13bbb1d6dd6b33a9464778e9cd5
+- Mother main.html blob: 453565c39a50fdcf73eb03a97a1fc7d7ac10bb2f
+
+## Proven Source State
+Patch A is already applied:
+- ../core.js is correct.
+- var supabase=window.supabase is absent.
+
+Remaining owner changes:
+- line 739: RW_SW.register('sw.js') -> RW_SW.register('../sw.js')
+- line 740: delete <script src="register-sw.js"></script>
+- correct ending: </script></body></html>
+
+Static in-memory patched source:
+- inline parser PASS
+- core correct path = 1
+- wrong core path = 0
+- correct SW registration = 1
+- wrong SW registration = 0
+- register-sw tag = 0
+- filterList definition = 1
+- over-escaped JS = 0
+
+## Production
+Supabase project: fiilmooggumokxanwiyx
+Current counts:
+- companies = 1
+- branches = 2
+- items = 17
+- stock_vouchers = 0
+- stock_voucher_details = 0
+- stock_voucher_operations = 0
+- inventory_log = 3
+
+Voucher user:
+- vouchers@rawaea.com
+- role = مخزني
+- active_warehouse_role = أذونات
+- status = Active
+- permissions = ["warehouse"]
+- allowed_branch_ids = BR-01
+
+Existing voucher Production core:
+- create_manual_stock_voucher_atomic (10 and 12 args)
+- send_stock_voucher_atomic
+- post_manual_stock_voucher_atomic
+- complete_manual_stock_voucher_atomic
+- cancel_manual_stock_voucher_atomic
+- inventory_control(text,jsonb)
+- post_stock_movement (9/10 args)
+- reserve_stock
+
+Existing Edge versions:
+- create-stock-voucher v10
+- send-stock-voucher v20
+- receive-stock-voucher v22
+- complete-stock-voucher v4
+- cancel-stock-voucher v4
+- bulk-stock-adjustment v7
+
+No Production schema change was required for the current boot defect.
+
+## Production Runtime Proof
+Transactional E2E:
+Create Transfer -> Send -> Receive -> Retry Receive -> Complete
+
+Verified:
+- status = Completed
+- movements = 2
+- unique movement keys = 2
+- one TransferOut
+- one TransferIn
+- retry did not create a third physical movement
+- rollback cleanup returned stock_vouchers/details/operations/E2E logs to zero
+
+## Architectural Role
+Mother = control/navigation/permissions/unified visibility.
+Standalone vouchers = operational consumer for manual non-order/runsheet stock movements.
+Production Core = authoritative business rules.
+Physical movement = post_stock_movement -> stock_branches + inventory_log.
+
+Do not rebuild closed components.
+
+## Competitive Gap Status
+Observed in official competitor documentation:
+- Odoo: internal transfers, barcode, inventory adjustments, scrap.
+- Dynamics 365: movement, adjustment, transfer, counting, tag counting, transfer orders for in-transit cases.
+- SAP: goods issue, goods receipt, transfer posting/material documents.
+- Daftra: manual transfer, from/to, notes, quantity, available-before/after, bulk paste, permissions, inventory movement reporting.
+- Manager.io: inventory transfers, write-offs, locations, quantity/value reporting.
+
+Still open RAWAEA business contracts:
+- historical before/after stock snapshot
+- bulk paste/CSV
+- independent voucher approval workflow
+- attachments
+- lot/serial/expiry identity
+- independent in-transit stock model
+These must not be invented from competitor features alone.
+
+## Report
+Created:
+doc/Draft/Reprots/Report272_WAREHOUSE_VOUCHERS_CONSUMER_INTEGRATION_FORENSIC_CLOSURE_20260920.md
+Commit:
+dac7bb00ad80a8ba198e03704888e81fb1579257
+
+## Closure State
+- Historical reconstruction: PASS
+- Current Git: PASS
+- Current Source: PASS
+- Current Production: PASS
+- Root Cause: PROVEN
+- Patch A: ALREADY CLOSED
+- Patch B/C: OWNER READY
+- Production Voucher Core: CLOSED
+- Standalone Voucher Consumer: OPEN pending browser E2E after B/C
+- Mother: UNTOUCHED
+- New Edge Functions: 0
+
+## Next Session Start
+Start from:
+CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT
+
+Then:
+1. Verify current vouchers SHA.
+2. Verify Patch B/C literally.
+3. Verify deployed artifact and Network 200 for ../core.js and ../sw.js.
+4. Verify no warehouse/core.js, warehouse/sw.js, warehouse/register-sw.js.
+5. Login with existing vouchers role.
+6. Run full Browser E2E.
+7. Verify movement/idempotency/audit.
+8. Only then mark Standalone Voucher Consumer CLOSED.
+
+# END SESSION CHECKPOINT — WAREHOUSE VOUCHERS INTEGRATION FORENSIC — 2026-09-20
