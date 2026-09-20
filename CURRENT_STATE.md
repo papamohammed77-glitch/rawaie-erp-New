@@ -5565,3 +5565,79 @@ Exact module insertion remains owner-side:
 Never use Report266 or older reports as Current Truth. Re-establish Current Git + Current Source + Current Production + Current Database + Current Deployment before any further Fleet modification.
 
 # END CURRENT FLEET MANAGEMENT FORENSIC CONTRACT CHECKPOINT — Report266
+
+
+
+# FINAL SESSION CHECKPOINT — FLEET MANAGEMENT REPORT266 — 2026-09-20
+
+## Final Git
+- Final state commit parent: 0f311de839a076eda7ffb0f93f3f14933ecb071c
+- Current canonical Fleet module SHA: 209b0c601e77a0003a8446024c67f044cf6a3782
+- Final Fleet report: doc/Draft/Reprots/Report266_FLEET_MANAGEMENT_CAPACITY_DRIVER_CONTRACT_FORENSIC_SURGICAL_CLOSURE_20260920.md
+
+## Final Mother
+- HEAD: ddcd9995240605dd9bcf31ab1abb1a774b887f84
+- Parent: 1823f9ab0e6f88c0118585c0b4f50a0b9b36bc38
+- main.html blob: 6074a4fc5f915701b23af5d7b6fca8a083c0a9dd
+- Mother main.html was not modified in this session.
+
+## Final Production Snapshot
+- UTC: 2026-09-20 07:27:05.846222
+- companies=1
+- branches=2
+- items=17
+- vehicles=0
+- fleet_drivers=0
+- fleet_vehicle_assignments=0
+- runsheets=0
+- run_sheet_details=0
+- fleet_command_atomic RPC count=1
+- fleet_query RPC count=1
+
+## Final Production Contracts
+Vehicle:
+- cargo_length_m / cargo_width_m / cargo_height_m
+- operational_condition
+- route_capability
+- ownership: Owned / RentedPerTrip / RentedMonthly / Other
+- positive cargo dimension constraint
+
+Driver:
+- employment: Employee / Contractor / Outsourced / RentalDriver / PerTrip / Monthly / Other
+- DriverLicense document with license_class
+- license: Private / ProfessionalFirst / ProfessionalSecond / ProfessionalThird
+- expired DriverLicense is blocked by RUNSHEET_ASSIGN when a Fleet Driver is linked
+- incomplete DriverLicense expiry yields warning
+
+Planning:
+- fleet_query(vehicle_planning)
+- weight and volume utilization
+- READY / INCOMPLETE_DATA / BLOCKED
+- runsheet assignment gate through fleet_command_atomic(RUNSHEET_ASSIGN)
+- final write delegated to manage_runsheet_atomic
+
+## Final E2E Evidence
+- Over-capacity assignment was rejected and rolled back.
+- Valid 5-ton / 8m3 vehicle + PerTrip / ProfessionalFirst driver assignment succeeded and rolled back.
+- Operational driver linkage was verified using an existing driver user.
+- No permanent test data remains.
+
+## Final Migration Ledger
+- 20260920071603_fleet_capacity_route_driver_contract_closure_20260920_v2
+- 20260920071702_fleet_driver_employment_contract_options_20260920
+- 20260920072418_fleet_driver_license_assignment_guard_20260920
+
+## Final Browser Gate
+OPEN:
+- owner must insert the complete current Fleet module from Current/PWA/owner-patches/RW_FleetManagement.js into the Mother at the unique marker before // RW_Views – نظام التوجيه النهائي.
+- JS parse / Mother assembly guard
+- Fleet-only Browser Production E2E
+- final Production resnapshot after owner cutover
+
+## Final Continuity Rule
+The next Fleet session must not reopen Report265's IIFE defect or rebuild Fleet core.
+Start from:
+CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT
+then close the Browser gate, then inspect only the next proven Fleet Business Contract.
+
+# END FINAL SESSION CHECKPOINT — REPORT266
