@@ -181,3 +181,41 @@ Order → Runsheet → Fleet Capacity/Vehicle → Delivery Route → Delivery Ag
 8. تأكد أن المخزون لا يتغير من Delivery Center.
 
 لا تعتبر Browser Gate مغلقة قبل تسجيل النتيجة في \`CURRENT_STATE.md\`.
+
+## 10) CRITICAL RUNTIME CORRECTION — IIFE RETURN CONTRACT
+
+### Proven defect
+The current Mother source contains `var RW_DeliveryLogistics = (function() { ... })();` and assigns `api` to `window.RW_DeliveryLogistics`, but the IIFE did not return `api`.
+
+The router already calls:
+
+~~~js
+RW_DeliveryLogistics.render();
+~~~
+
+Because the IIFE returned `undefined`, the lexical `RW_DeliveryLogistics` variable was `undefined` even though the window property existed. This exactly explains the reported:
+`TypeError: Cannot read properties of undefined (reading 'render')`.
+
+### Exact surgical replacement in Mother
+Inside the `RW_DeliveryLogistics` IIFE, locate this exact final element:
+
+~~~js
+  // The field delivery apps remain authoritative for field execution; this module is supervisory/control-plane only.
+  window.RW_DeliveryLogistics=api;
+})();
+~~~
+
+Delete it completely and replace it with:
+
+~~~js
+  // The field delivery apps remain authoritative for field execution; this module is supervisory/control-plane only.
+  window.RW_DeliveryLogistics=api;
+  return api;
+})();
+~~~
+
+Do not change the existing `RW_Views` router call. Do not rebuild the module. Do not alter `driver.html`, `supervisor.html`, Fleet, Runsheets, or Inventory.
+
+### Canonical source
+The same one-line surgical correction is already present in `Current/PWA/owner-patches/RW_DeliveryLogistics.js`.
+Current canonical module SHA after correction: `cab4e9aae0cea0ead9d98210bbd15876df9e5a01`.
