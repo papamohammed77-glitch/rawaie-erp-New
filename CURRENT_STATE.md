@@ -5901,3 +5901,11 @@ These remain explicitly open and must not be claimed closed:
 - Overall advanced-TMS completeness: INCOMPLETE by explicit evidence-based open contracts
 
 # END SESSION CHECKPOINT — DELIVERY LOGISTICS RUNTIME IIFE CLOSURE
+
+## State Write Reconciliation — 2026-09-20
+- Last verified System Git HEAD immediately before this reconciliation write: d85e80ac1964500d25318efb29a1e2a6674f84f5
+- Parent verified at that point: 6df75263a37cc58fa760867316c0e5f9d9fa288f
+- This CURRENT_STATE reconciliation is itself a documentation commit; therefore the next session must re-read CURRENT_STATE and Git HEAD rather than relying on the historical SHA above.
+- Delivery canonical runtime fix remains cab4e9aae0cea0ead9d98210bbd15876df9e5a01.
+- Delivery Mother patch remains ba25f1ee84c7d1a4d49c5e9b12c9b5b175d354f2.
+- Mother main.html remains owner-controlled and unmodified by this executor.
