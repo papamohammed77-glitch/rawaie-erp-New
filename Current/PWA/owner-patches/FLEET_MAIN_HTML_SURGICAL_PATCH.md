@@ -1,11 +1,24 @@
 # RAWAEA ERP — Fleet Management / Surgical Mother Patch
-## Current Mother
-- Repository: papamohammed77-glitch/erp-frontend
-- Main blob: 5a628da5417a830bf22553fa99a858521cdf6673
-- File: companies/company-1/main.html
-- **Do not replace main.html. Do not edit unrelated code.**
+## Current Mother checkpoint — refreshed 2026-09-20
+- Repository: `papamohammed77-glitch/erp-frontend`
+- Current Mother HEAD: `1823f9ab0e6f88c0118585c0b4f50a0b9b36bc38`
+- Parent: `fb8799f854df8d7c50c2874c247a29026a80939b`
+- Current `companies/company-1/main.html` blob: `abb3829ec85724f0053ec0a7a9e035731e9df310`
+- **Do not replace `main.html`. Do not edit unrelated code.**
+- The Mother changed after the original Fleet checkpoint through report-title enhancement and forensic HR extract commits. The Fleet anchors below were re-verified against the current blob.
 - Insert the complete module from `Current/PWA/owner-patches/RW_FleetManagement.js` before the exact marker:
 `// RW_Views – نظام التوجيه النهائي`
+
+## Verified current anchors
+The current Mother blob contains:
+- `var permLabels = [`
+- `var viewIcons = {`
+- `var permissionMap = {`
+- `var titles = {`
+- `// RW_Views – نظام التوجيه النهائي`
+- `if (view === 'inventory-control')`
+- inventory navigation group `إدارة المخازن والمخزون`
+- accounting navigation group `إدارة الحسابات والمالية`
 
 ## Patch 1 — Navigation
 Find the exact existing submenu anchor:
@@ -29,7 +42,8 @@ Find the exact array:
 var permLabels = [
 ```
 Insert BEFORE:
-```{ key: 'hr', label: 'الموارد البشرية', group: 'apps' },
+```js
+{ key: 'hr', label: 'الموارد البشرية', group: 'apps' },
 ```
 the following two complete entries:
 ```js
@@ -43,7 +57,8 @@ Find the exact object:
 var viewIcons = {
 ```
 Insert immediately after:
-```'inventory-control': 'fa-boxes-stacked',
+```js
+'inventory-control': 'fa-boxes-stacked',
 ```
 this exact line:
 ```js
@@ -52,10 +67,12 @@ this exact line:
 
 ## Patch 4 — Router title + access + route
 Find:
-```var permissionMap = {
+```js
+var permissionMap = {
 ```
-Do NOT add a normal permissionMap dependency for Fleet. Immediately BEFORE:
-```var permKey = permissionMap[view];
+Do NOT add a normal `permissionMap` dependency for Fleet. Immediately BEFORE:
+```js
+var permKey = permissionMap[view];
 ```
 insert:
 ```js
@@ -88,11 +105,13 @@ Find the exact `var titles = {` object and insert:
             'fleet-management':'إدارة الأسطول والحركة',
 ```
 Immediately BEFORE:
-```'finance':'الإدارة المالية',
+```js
+'finance':'الإدارة المالية',
 ```
 
 Find the exact router branch:
-```if (view === 'inventory-control') { RW_Warehouse.loadInventoryControl(); return; }
+```js
+if (view === 'inventory-control') { RW_Warehouse.loadInventoryControl(); return; }
 ```
 Insert immediately AFTER it:
 ```js
@@ -101,7 +120,8 @@ Insert immediately AFTER it:
 
 ## Patch 5 — Module insertion
 Find the exact unique marker:
-```// RW_Views – نظام التوجيه النهائي
+```js
+// RW_Views – نظام التوجيه النهائي
 ```
 Insert the **complete content** of `RW_FleetManagement.js` immediately BEFORE that marker.
 
@@ -126,3 +146,14 @@ It reads:
 - existing driver liabilities/ledger
 
 Fleet is supervisory/control-plane functionality over the existing operational spine.
+
+## Owner verification gate
+After applying the five patches:
+1. Confirm the Fleet module occurs exactly once.
+2. Confirm `RW_FleetManagement.render` is reachable.
+3. Run full Mother JavaScript parse.
+4. Open Fleet from navigation.
+5. Verify dashboard → vehicles → vehicle detail → drivers → alerts → trips → costs → performance.
+6. Create a vehicle and driver in Production test tenant only if an approved non-production tenant exists; otherwise perform read-only smoke tests.
+7. Confirm no direct browser writes to Fleet tables.
+8. Re-read Production counts and audit rows after the browser test.
