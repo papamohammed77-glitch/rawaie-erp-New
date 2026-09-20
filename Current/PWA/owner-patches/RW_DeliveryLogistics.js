@@ -390,7 +390,7 @@
       if(k==='stop-pod'){return stopPod(id);}
       if(k==='collect'){return collect(id);}
       if(k==='collection-void'){await c('COLLECTION_VOID',{receipt_id:id},'collection-void:'+id);return refresh();}
-      if(k==='route-status'){return routeStatus(p.shift(),id);}
+      if(k==='route-status'){var rsParts=id.split(':');var rsId=rsParts.shift();var rsStatus=rsParts.join(':')||'Completed';return routeStatus(rsId,rsStatus);}
       if(k==='fleet-open'){if(window.RW_FleetManagement&&typeof RW_FleetManagement.openRunsheetAssignmentForm==='function')return RW_FleetManagement.openRunsheetAssignmentForm(id);return toast('وحدة Fleet غير متاحة','error');}
       if(k==='run-open'){
         var rs=dummyFind(S.cache.routes,id);if(rs)return openRoute(rs.id);
