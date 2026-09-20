@@ -1,3 +1,442 @@
+# CURRENT RECONCILIATION — 2026-09-20 — FLEET MANAGEMENT FORENSIC SURGICAL CHECKPOINT
+
+> **هذا هو أحدث Current Reality لنطاق Fleet Management.**
+> التقارير السابقة استرشادية؛ الحقيقة الحالية = CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+
+## 0. Scope Lock
+
+النطاق الذي تم إغلاقه في هذه الجولة:
+- Fleet Management / إدارة الأسطول والحركة
+- Vehicle Master extension
+- Drivers / Driver Documents / Assignments
+- Vehicle Contracts
+- Fuel / Odometer
+- Maintenance Plans / Maintenance
+- Incidents / Driver Performance
+- Fleet Expenses
+- Fleet Dashboard / Alerts / Trips / Costs
+- Tenant isolation / RLS / Audit
+- Unified RPC command/query gateway
+- Integration with existing Runsheet / VAN stock / operational spine
+
+**لم يتم تعديل Mother `main.html` بواسطة CTO.**
+
+---
+
+## 1. CURRENT GIT — SYSTEM
+
+Repository:
+`papamohammed77-glitch/rawaie-erp-New`
+
+Current HEAD:
+`59a2b740774366c90428aa03536b49a7b9b0bd96`
+
+Immediate parent:
+`4e557c10203d2b6c1b8d68c7ae4765667ba614c0`
+
+Fleet report:
+`doc/Draft/Reprots/Report264_FLEET_MANAGEMENT_FORENSIC_SURGICAL_CLOSURE_20260920.md`
+
+Fleet parent module:
+`Current/PWA/owner-patches/RW_FleetManagement.js`
+
+Fleet Mother surgical patch:
+`Current/PWA/owner-patches/FLEET_MAIN_HTML_SURGICAL_PATCH.md`
+
+Production function snapshots:
+`supabase/migrations/_production_snapshots/`
+
+---
+
+## 2. CURRENT MOTHER — READ ONLY
+
+Repository:
+`papamohammed77-glitch/erp-frontend`
+
+Current Mother HEAD:
+`1823f9ab0e6f88c0118585c0b4f50a0b9b36bc38`
+
+Parent:
+`fb8799f854df8d7c50c2874c247a29026a80939b`
+
+Current:
+`companies/company-1/main.html`
+
+Current blob:
+`abb3829ec85724f0053ec0a7a9e035731e9df310`
+
+Current verified Fleet anchors:
+- `var permLabels = [`
+- `var viewIcons = {`
+- `var permissionMap = {`
+- `var titles = {`
+- `// RW_Views – نظام التوجيه النهائي`
+- `if (view === 'inventory-control')`
+- `إدارة المخازن والمخزون`
+- `إدارة الحسابات والمالية`
+
+**لا تستخدم أي Mother blob أقدم من `abb3829...` عند تطبيق Fleet patch.**
+
+---
+
+## 3. FORENSIC HISTORICAL RESULT
+
+ثبت تاريخيًا:
+- Vehicle Master كان قد أُنشئ كجزء من المشروع.
+- صفحة مستقلة `Current/PWA/vehicles.html` أزيلت تاريخيًا بقرار Git لأنها لم تعد canonical.
+- Production بقي فيها Vehicle Master/database contract.
+- النقص الحقيقي كان Fleet control-plane الموحد وليس Vehicle Master جديدًا.
+
+**ممنوع إعادة إنشاء `vehicles.html`.**
+
+---
+
+## 4. CURRENT PRODUCTION — FLEET BASELINE
+
+Supabase:
+`fiilmooggumokxanwiyx`
+
+Baseline before this Fleet closure:
+- companies = 1
+- branches = 2
+- items = 17
+- vehicles = 0
+- vehicle_tracking = 0
+- vehicle_maintenance = 0
+- vehicle_documents = 0
+- vehicle_status_history = 0
+- runsheets = 0
+- daily_settlements = 0
+- driver_liabilities = 0
+- driver_ledger = 0
+
+The Fleet new domain had no production records that required migration/repair.
+
+---
+
+## 5. PRODUCTION IMPLEMENTATION — CLOSED
+
+Created:
+- `fleet_drivers`
+- `fleet_driver_documents`
+- `fleet_vehicle_assignments`
+- `fleet_vehicle_contracts`
+- `fleet_fuel_transactions`
+- `fleet_maintenance_plans`
+- `fleet_incidents`
+- `fleet_driver_performance_events`
+- `fleet_expenses`
+
+Extended existing:
+- `vehicles`
+- `vehicle_tracking`
+- `vehicle_maintenance`
+- `vehicle_documents`
+
+No replacement of the original Vehicle Master contract.
+
+---
+
+## 6. PRODUCTION SECURITY — CLOSED
+
+Created:
+`fn_fleet_relation_guard()`
+
+Guards:
+- vehicle/company
+- fleet driver/company
+- user/company
+- supplier/company
+- runsheet/company
+- incident/company
+- maintenance plan/company
+
+RLS is enabled on new Fleet tables.
+Authenticated clients do not receive direct Fleet DML.
+
+Audit trigger coverage was added to the Fleet domain.
+
+---
+
+## 7. UNIFIED RPC — CLOSED
+
+Command:
+`public.fleet_command_atomic`
+
+Query:
+`public.fleet_query`
+
+No Fleet Edge Function was created.
+
+The browser/module writes only through the RPC command gateway and reads only through the query gateway.
+
+---
+
+## 8. IDEMPOTENCY — CLOSED
+
+Registry:
+`erp_operation_registry`
+
+Fleet operation key:
+`FLEET:<operation_id>`
+
+A real bug was discovered:
+newly inserted `processing` rows were interpreted as pre-existing.
+
+Root cause:
+missing INSERT `ROW_COUNT` distinction.
+
+Fix:
+`GET DIAGNOSTICS v_rows = ROW_COUNT;`
+
+Verified:
+- first operation executes;
+- same operation_id retries as duplicate;
+- duplicate does not repeat physical/logical side effects.
+
+---
+
+## 9. COST QUERY — CLOSED
+
+A real alias-scope defect was discovered in Fleet Costs.
+
+Old:
+`x.total_cost`
+
+Corrected:
+`x.fuel_cost + x.maintenance_cost + x.other_cost + x.contract_cost`
+
+Costs query was re-tested successfully.
+
+---
+
+## 10. OPERATIONAL INTEGRATION — CLOSED
+
+Fleet is supervisory/control-plane only.
+
+Authoritative operational spine remains:
+- `runsheets.vehicle_id`
+- `runsheets.driver_id`
+- `runsheets.meter_start`
+- `runsheets.meter_end`
+- existing VAN branch/stock model
+- existing vehicle count
+- existing daily settlement
+- existing driver liabilities/ledger
+
+Fleet does not create:
+- another order engine
+- another runsheet engine
+- another inventory engine
+- another settlement engine
+- another driver liability engine
+
+Physical stock remains under the existing stock movement contract.
+
+---
+
+## 11. VAN STOCK INTEGRATION — VERIFIED
+
+E2E created a temporary vehicle with mobile stock enabled.
+
+Verified:
+- vehicle created;
+- VAN branch created;
+- VAN stock structure initialized through existing `setup_van_stock`;
+- no alternate stock engine was introduced.
+
+Transaction rolled back.
+
+---
+
+## 12. E2E — VERIFIED
+
+E2E covered:
+- DRIVER_CREATE
+- VEHICLE_CREATE
+- DRIVER_DOCUMENT_UPSERT
+- VEHICLE_DOCUMENT_UPSERT
+- DRIVER_ASSIGN
+- ODOMETER_RECORD
+- FUEL_RECORD
+- MAINTENANCE_PLAN_UPSERT
+- MAINTENANCE_RECORD
+- INCIDENT_CREATE
+- PERFORMANCE_EVENT_CREATE
+- EXPENSE_CREATE
+- Fleet Dashboard query
+- Vehicles query
+- Drivers query
+- Alerts query
+- Costs query
+- Performance query
+
+Additional idempotency E2E:
+- same operation_id repeated twice;
+- second request returned duplicate behavior;
+- no duplicated record.
+
+All test transactions were rolled back.
+
+Post-E2E Production verification:
+- Fleet test driver rows = 0
+- Fleet test vehicle rows = 0
+- Fleet test fuel rows = 0
+- Fleet test maintenance rows = 0
+- Fleet test incident rows = 0
+- Fleet test performance rows = 0
+- Fleet test expense rows = 0
+
+**No test pollution remains.**
+
+---
+
+## 13. COMPETITIVE GAP — CLOSED CORE / EXPLICIT EXTENSIONS
+
+Current benchmark verified against current official sources:
+- Odoo Fleet
+- Microsoft Dynamics 365 Asset Management
+- Daftra Car Rental
+- Manager fixed-asset pattern
+- SAP fleet/asset pattern from prior official-source review
+
+Core capabilities now covered:
+- vehicle record
+- vehicle status
+- driver record
+- driver documents
+- assignment history
+- contracts
+- odometer
+- fuel
+- preventive maintenance
+- service/repair
+- incidents
+- driver performance
+- expenses
+- alerts
+- cost analytics
+- operational trip analytics
+
+Not claimed as implemented because no RAWAEA contract was proven:
+- GPS/real-time telematics
+- scheduler-driven notifications
+- spare-parts physical issue workflow
+- Vehicle ↔ Fixed Asset lifecycle
+- full Work Order scheduling/lifecycle
+
+These are future Closure Units, not hidden debt inside the current Fleet core.
+
+---
+
+## 14. MOTHER SURGICAL PATCH — READY
+
+Exact patch file:
+`Current/PWA/owner-patches/FLEET_MAIN_HTML_SURGICAL_PATCH.md`
+
+Required Mother changes only:
+1. Fleet navigation group.
+2. `fleet.read`.
+3. `fleet.manage`.
+4. Fleet icon.
+5. Fleet route/access gate.
+6. Fleet title.
+7. Fleet router branch.
+8. Insert complete `RW_FleetManagement.js`.
+
+Do not:
+- replace `main.html`
+- recreate `vehicles.html`
+- add another Fleet Edge Function
+- add direct browser DML
+- modify unrelated modules
+
+---
+
+## 15. SOURCE VALIDATION
+
+`RW_FleetManagement.js`
+- syntax check: PASS
+
+Mother anchors were re-checked after Mother HEAD changed during the session.
+
+Production RPC definitions were captured directly from the live PostgreSQL functions into:
+`supabase/migrations/_production_snapshots/`
+
+Incomplete snapshot artifacts created during investigation were removed rather than retained as misleading canonical evidence.
+
+---
+
+## 16. BROWSER GATE
+
+Current status:
+**OPEN**
+
+Reason:
+Mother `main.html` is owner-managed and was intentionally not edited by CTO.
+
+Required cutover:
+- owner applies exact surgical patch;
+- Mother parser/syntax gate;
+- Mother assembly guard;
+- Fleet navigation smoke test;
+- Fleet page E2E;
+- Production reread.
+
+Until this is done:
+**Fleet Production Core = CLOSED**
+**Fleet Mother UI = READY / BROWSER GATE OPEN**
+
+---
+
+## 17. EXACT NEXT SESSION START
+
+1. Read this CURRENT_STATE section first.
+2. Verify System HEAD `59a2b740...`.
+3. Verify Mother HEAD `1823f9ab...` and main blob `abb3829...`.
+4. Read `Report264_FLEET_MANAGEMENT_FORENSIC_SURGICAL_CLOSURE_20260920.md`.
+5. Do not re-open Vehicle Master history unless a new Regression is proven.
+6. Do not recreate the Fleet database tables/RPCs.
+7. Apply only `FLEET_MAIN_HTML_SURGICAL_PATCH.md` to Mother.
+8. Run syntax + Assembly Guard.
+9. Run browser E2E.
+10. Re-read Production.
+11. Update this section with exact runtime evidence.
+12. Only then close Fleet Mother UI at 100%.
+
+---
+
+## 18. GOVERNANCE SELF-AUDIT
+
+### Confirmed
+- Production schema inspected.
+- Historical Vehicle Master path reconstructed.
+- Current Mother HEAD/blob verified.
+- Fleet Production core implemented.
+- Tenant guards implemented.
+- RLS implemented.
+- Audit coverage implemented.
+- RPC command/query implemented.
+- Idempotency bug found and fixed.
+- Costs query bug found and fixed.
+- E2E passed.
+- E2E rollback passed.
+- Mother untouched.
+
+### Not proven
+- Mother browser runtime after owner patch.
+- Real-time GPS provider.
+- Scheduler notification delivery.
+- Spare-part inventory issue.
+- Fixed asset lifecycle.
+- Work-order scheduling.
+
+### Final Closure
+`FLEET PRODUCTION CORE = CLOSED`
+`FLEET MOTHER UI = OPEN ONLY FOR OWNER CUTOVER + BROWSER E2E`
+
+---
+
 # FINAL CURRENT RECONCILIATION — 2026-09-19 — RW_AUDIT FORENSIC SURGICAL CHECKPOINT
 
 > **هذا هو أحدث Current Reality الحاكم لنطاق سجل التدقيق فقط.**
