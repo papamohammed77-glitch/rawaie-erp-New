@@ -312,7 +312,7 @@
         '<td class="p-3">'+esc(x.assigned_stops)+'</td><td class="p-3">'+esc(x.delivered_stops)+'</td><td class="p-3">'+esc(x.partial_stops)+'</td><td class="p-3">'+esc(x.refused_stops)+'</td><td class="p-3">'+esc(x.returned_stops)+'</td>'+
         '<td class="p-3">'+(x.on_time_pct==null?'—':badge(money(x.on_time_pct)+'% ',x.on_time_pct>=90?'ok':'warn'))+'</td><td class="p-3">'+(x.delivery_speed_kmh==null?'—':money(x.delivery_speed_kmh)+' كم/س')+'</td><td class="p-3">'+(x.avg_minutes_per_stop==null?'—':money(x.avg_minutes_per_stop)+' د')+'</td><td class="p-3">'+money(x.order_value||0)+' EGP</td><td class="p-3">'+money(x.collected_amount||0)+' EGP</td></tr>';
     }).join('');
-    set(shell(card('أداء مناديب التوصيل','90 يومًا — من نفس بيانات الأوردر والرحلة والتحصيل', '<div style="overflow:auto"><table class="w-full"><thead><tr>'+['المندوب','المحطات','تم التسليم','جزئي','مرفوض','مرتجع','في الموعد','قيمة الأوردرات','التحصيل'].map(function(h){return '<th class="p-3 text-right">'+h+'</th>';}).join('')+'</tr></thead><tbody>'+(
+    set(shell(card('أداء مناديب التوصيل','90 يومًا — من نفس بيانات الأوردر والرحلة والتحصيل', '<div style="overflow:auto"><table class="w-full"><thead><tr>'+['المندوب','المحطات','تم التسليم','جزئي','مرفوض','مرتجع','في الموعد','سرعة فعلية كم/س','دقائق/محطة','قيمة الأوردرات','التحصيل'].map(function(h){return '<th class="p-3 text-right">'+h+'</th>';}).join('')+'</tr></thead><tbody>'+(
       rows||'<tr><td colspan="11" class="text-center p-8 text-slate-400">لا توجد بيانات أداء</td></tr>')+'</tbody></table></div>')));
   }
 
