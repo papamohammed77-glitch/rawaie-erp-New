@@ -4746,8 +4746,8 @@ Start by verifying these current values, then perform only the exact Owner cutov
 ## 2026-09-20 — Report263 Detailed Reports Competitive Analytics
 
 ### Authoritative checkpoints
-- System HEAD after session: `a5ee88a8e89b6150d2a556ee6eff7c30296ad95f`
-- System HEAD parent before CURRENT_STATE update: `f82a4b8e2f2345f2d5db779e8fc593b091a5b67e`
+- System HEAD after session: `97545966f4844873c50ab73442f34793027466d2`
+- System HEAD parent: `a5ee88a8e89b6150d2a556ee6eff7c30296ad95f`
 - Mother HEAD: `ef11e87dc6177d0c39844a9878fff587254b3719`
 - Mother parent: `97f86427d3e50cadcc59880d9d961c8c8aaf6bab`
 - Current Mother `main.html` blob verified: `5a628da5417a830bf22553fa99a858521cdf6673`
