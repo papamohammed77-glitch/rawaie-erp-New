@@ -463,11 +463,25 @@
     try{showLoader('جاري تحميل إدارة الأسطول...');await loadDashboard();}catch(e){set(shell('إدارة الأسطول والحركة','<div class="rw-card" style="padding:30px;color:#b91c1c;font-weight:800">'+esc(e.message)+'</div>'));}finally{hideLoader();}
   }
 
-  window.RW_FleetManagement={
-    render:render,switchTab:switchTab,setSearch:setSearch,openVehicleDetail:openVehicleDetail,openDriverDetail:openDriverDetail,
-    openVehicleForm:openVehicleForm,openDriverForm:openDriverForm,openOdometerForm:openOdometerForm,openFuelForm:openFuelForm,
-    openMaintenanceForm:openMaintenanceForm,openContractForm:openContractForm,openVehicleDocumentForm:openVehicleDocumentForm,
-    openIncidentForm:openIncidentForm,openExpenseForm:openExpenseForm,openDriverDocumentForm:openDriverDocumentForm,
-    openPerformanceForm:openPerformanceForm,navigateExisting:navigateExisting
+  var api = {
+    render: render,
+    switchTab: switchTab,
+    setSearch: setSearch,
+    openVehicleDetail: openVehicleDetail,
+    openDriverDetail: openDriverDetail,
+    openVehicleForm: openVehicleForm,
+    openDriverForm: openDriverForm,
+    openOdometerForm: openOdometerForm,
+    openFuelForm: openFuelForm,
+    openMaintenanceForm: openMaintenanceForm,
+    openContractForm: openContractForm,
+    openVehicleDocumentForm: openVehicleDocumentForm,
+    openIncidentForm: openIncidentForm,
+    openExpenseForm: openExpenseForm,
+    openDriverDocumentForm: openDriverDocumentForm,
+    openPerformanceForm: openPerformanceForm,
+    navigateExisting: navigateExisting
   };
+  window.RW_FleetManagement = api;
+  return api;
 })();
