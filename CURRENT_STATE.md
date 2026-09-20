@@ -6663,3 +6663,183 @@ Do not build these from competitor behavior alone; require RAWAEA contract decis
 ### Governing rule
 Reports are historical evidence only. Before every new closure use:
 CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+
+---
+
+# SESSION CHECKPOINT — WAREHOUSE VOUCHERS CATEGORY RUNTIME FORENSIC — 2026-09-20
+
+## Authoritative current state
+
+### System Git
+- HEAD: `c62639f45fdd7bc74c8e90a02d9cde53affb8d1a`
+- Parent: `06b93f6b92f0041b09115f2bed8dc836e7b2a175`
+- latest session report: `Report274_WAREHOUSE_VOUCHERS_CATEGORY_RUNTIME_FORENSIC_SURGICAL_CLOSURE_20260920.md`
+
+### Frontend Git
+- HEAD: `8a1a75dd840b32cfc135178a9a9c466adefaf0ee`
+- Parent: `cb77af4d55a5ff7e71da6c73edda98667cdd03ae`
+- current `vouchers.html` SHA: `cc9ec52b7e275cc7bccf24f5858261a97733698e`
+
+## Scope lock
+- Mother `main.html`: NOT MODIFIED.
+- Standalone `vouchers.html`: NOT MODIFIED by this session.
+- `core.js`: NOT MODIFIED.
+- `sw.js`: NOT MODIFIED.
+- `register-sw.js`: NOT MODIFIED.
+- New Edge Functions: 0.
+- Production migration in this session for the current UI defect: 0.
+
+## Current Production baseline
+- companies = 1
+- branches = 2
+- items = 17
+- active vehicles = 0
+- stock_vouchers = 0
+- stock_voucher_details = 0
+- stock_voucher_operations = 0
+- inventory_log = 3
+- active voucher-role users = 1
+
+## Current verified voucher architecture
+- Standalone vouchers app = operational consumer for non-order/non-runsheet manual stock operations.
+- Mother = control plane + unified visibility/filtering.
+- Production Core = business-rule authority.
+- Physical movement contract remains:
+  `post_stock_movement -> stock_branches + inventory_log`
+- No standalone direct physical stock writer exists in the current voucher consumer.
+
+## Current source findings
+
+Already CLOSED and NOT TO BE REOPENED:
+- `../core.js` path.
+- `../sw.js` registration path.
+- removal of local `register-sw.js`.
+- `filterList`.
+- `App.init`.
+- `allowedBranch`.
+- `pickArr`.
+- voucher CREATE / SEND / RECEIVE / COMPLETE backend contract.
+- Production branch ACL.
+- direct core RPC bypass.
+- idempotent CREATE.
+- idempotent RECEIVE.
+- Mother voucher visibility contract.
+
+### One current source defect remains
+
+Function:
+`renderCats:function()`
+
+Area:
+around line 444 in current `vouchers.html`.
+
+Root cause:
+`renderCats` builds:
+`onclick="App.catSet('+JSON.stringify(c)+')"`
+
+For Arabic/category strings the resulting HTML can become:
+`onclick="App.catSet("حلويات")"`
+
+The HTML parser closes the onclick attribute early, so the browser evaluates an incomplete handler and emits:
+`Uncaught SyntaxError: Unexpected end of input`
+
+This is the proven cause of the reported category navigation failure.
+
+## Owner surgical patch
+
+File:
+`erp-frontend/companies/company-1/warehouse/vouchers.html`
+
+Delete only the current `renderCats:function()` function and replace it with the complete function recorded in Report274.
+
+The replacement:
+- removes inline category JavaScript;
+- uses `data-rw-cat`;
+- uses event delegation on `#wsCats`;
+- preserves the existing `catSet` contract and visual styling;
+- changes no API;
+- changes no Production data model.
+
+## Verification performed
+
+### Current-source forensic checks
+- current SHA confirmed.
+- correct core path = 1.
+- wrong core path = 0.
+- correct SW registration = 1.
+- wrong SW registration = 0.
+- register-sw loader = 0.
+- filterList definition = 1.
+- current App.init contains branch/permission fields = confirmed.
+- current allowedBranch is the post-fix version = confirmed.
+- current pickArr is the post-fix version = confirmed.
+- current renderCats still contains `JSON.stringify(c)` = confirmed.
+- in-memory replacement removes inline category handler = confirmed.
+
+### Production E2E
+Transactional:
+`CREATE -> CREATE RETRY -> SEND -> SEND RETRY -> RECEIVE -> RECEIVE RETRY -> COMPLETE`
+
+Results:
+- CREATE retry = duplicate.
+- SEND retry = duplicate.
+- RECEIVE retry = duplicate.
+- main branch delta = -1.
+- destination branch delta = +1.
+- physical movements = 2.
+- unique movement keys = 2.
+- transaction rolled back.
+- no persistent test residue.
+
+### Production ACL / Writer check
+- internal voucher core functions are not executable by PUBLIC, anon, authenticated, or service_role.
+- no parallel physical stock writer was found in the voucher contract.
+- DirectReturn Production contract was verified as:
+  SEND = vehicle-stock decrease;
+  RECEIVE = destination-branch increase;
+  COMPLETE = lifecycle closure.
+
+## Competitive evidence position
+
+Current RAWAEA contract already covers:
+- internal transfer;
+- direct van stock issue;
+- direct return;
+- supplier return;
+- barcode item lookup;
+- realtime refresh;
+- idempotent operations;
+- audit/movement readback.
+
+Open capabilities are still Business Contracts, not automatic implementation targets:
+- stock before/after historical snapshots;
+- attachments;
+- approval/rejection workflow;
+- stock request -> voucher;
+- lot/serial/expiry;
+- richer in-transit;
+- bulk CSV/paste;
+- formal print/export;
+- unified per-movement accounting policy.
+
+Competitor documentation was checked for Odoo, SAP, Manager.io, and Daftra. These features must not be copied into RAWAEA without an explicit RAWAEA contract.
+
+## Next exact resumption point
+
+1. Do not restart the investigation.
+2. Verify current `vouchers.html` SHA.
+3. Verify that only `renderCats` remains unfixed.
+4. Apply the Report274 Owner Patch to `renderCats`.
+5. Reparse inline JS.
+6. Run browser Category E2E.
+7. Verify that selecting several categories changes the catalog without console errors.
+8. Verify a manually created voucher appears in Mother list/filter.
+9. Verify Production deltas and audit/movement records.
+10. Only then close the Standalone Voucher Consumer.
+
+## Governing rule
+Before any later change:
+`CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE`
+
+No closed patch is to be repeated without a proven regression.
+
