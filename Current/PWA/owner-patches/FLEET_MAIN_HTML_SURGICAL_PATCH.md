@@ -176,3 +176,44 @@ Replace it with the corrected tail stored in Current/PWA/owner-patches/RW_FleetM
 
 DO NOT CHANGE
 Do not change the Fleet router branch, permissions, RPC names, database schema, or any unrelated main.html code.
+
+## Patch 7 — Fleet capacity / vehicle-planning / driver-contract closure — 2026-09-20
+
+### Production contract now implemented
+- vehicles.cargo_length_m
+- vehicles.cargo_width_m
+- vehicles.cargo_height_m
+- vehicles.operational_condition
+- vehicles.route_capability
+- ownership values: Owned, RentedPerTrip, RentedMonthly, Other
+- driver employment values: Employee, PerTrip, Monthly, Contractor, Outsourced, RentalDriver, Other
+- driver license values: Private, ProfessionalFirst, ProfessionalSecond, ProfessionalThird
+- Fleet RUNSHEET_ASSIGN validates company, vehicle availability, driver validity, weight capacity and volume capacity before delegating to manage_runsheet_atomic.
+- fleet_query vehicle_planning exposes load weight/volume, utilization, remaining capacity and planning status.
+- Existing items.weight_kg / items.volume_m3 are used as-is. Missing values are reported as INCOMPLETE_DATA; no values are invented.
+- Physical stock, picking, loading, delivery, returns and settlement engines were not rebuilt.
+
+### Exact owner surgery for Mother
+File: erp-frontend/companies/company-1/main.html
+
+Use the existing unique marker:
+`// RW_Views – نظام التوجيه النهائي`
+
+Delete the current complete Fleet IIFE/module block immediately before that marker.
+
+Insert the complete current file:
+`Current/PWA/owner-patches/RW_FleetManagement.js`
+
+Do not make any other main.html edits for this closure.
+
+### Do not modify
+- Fleet router
+- existing permissions catalog
+- operational PWAs
+- inventory movement engine
+- post_stock_movement
+- manage_runsheet_atomic call contract
+- unrelated Mother code
+
+### Browser gate
+The Git module and Production backend are updated, but browser Production E2E is NOT CLOSED until the owner applies this exact module insertion into the Mother and executes the Fleet-only browser gate.
