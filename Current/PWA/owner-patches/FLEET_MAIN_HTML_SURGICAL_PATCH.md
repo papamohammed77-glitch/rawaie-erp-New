@@ -157,3 +157,22 @@ After applying the five patches:
 6. Create a vehicle and driver in Production test tenant only if an approved non-production tenant exists; otherwise perform read-only smoke tests.
 7. Confirm no direct browser writes to Fleet tables.
 8. Re-read Production counts and audit rows after the browser test.
+
+
+## Patch 6 — CRITICAL runtime namespace closure — 2026-09-20
+
+Current Mother HEAD: ddcd9995240605dd9bcf31ab1abb1a774b887f84
+Current Mother parent: 1823f9ab0e6f88c0118585c0b4f50a0b9b36bc38
+Current main.html blob: 6074a4fc5f915701b23af5d7b6fca8a083c0a9dd
+
+PROVEN DEFECT
+The module is declared as var RW_FleetManagement = (function() { ... })(); but the IIFE previously assigned only window.RW_FleetManagement and returned nothing. Therefore the lexical variable RW_FleetManagement became undefined while window.RW_FleetManagement existed. The router calls RW_FleetManagement.render() directly, producing the reported TypeError.
+
+EXACT SURGICAL CHANGE
+File: erp-frontend/companies/company-1/main.html
+Find the exact Fleet IIFE tail immediately before the marker: // RW_Views – نظام التوجيه النهائي
+Delete only the old window.RW_FleetManagement={...}; })(); tail.
+Replace it with the corrected tail stored in Current/PWA/owner-patches/RW_FleetManagement.js, which creates var api, assigns window.RW_FleetManagement = api, and ends with return api; before the IIFE closes.
+
+DO NOT CHANGE
+Do not change the Fleet router branch, permissions, RPC names, database schema, or any unrelated main.html code.
