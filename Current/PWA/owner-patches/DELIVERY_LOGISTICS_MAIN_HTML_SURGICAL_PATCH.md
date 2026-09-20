@@ -1,203 +1,62 @@
 # RAWAEA ERP — Delivery & Logistics Management
-## Surgical Mother Main Patch — 2026-09-20
+## Surgical Mother Main Patch — Runtime Closure 2026-09-20
 
-> هذا الملف لا يعدّل \`companies/company-1/main.html\` بنفسه.
-> التنفيذ على ملف النظام الأم يتم يدويًا من المالك فقط.
-> لا يوجد عنصر Delivery & Logistics قديم يتم حذفه؛ التعديل ADD-ONLY فوق البنية الحالية.
+> هذا الملف هو تعليمات تعديل النظام الأم فقط.
+> لا يتم تعديل companies/company-1/main.html بواسطة هذا المسار.
+> Production Supabase تم التحقق منه، ولا توجد حاجة لتغيير قاعدة البيانات أو إنشاء Edge Function لهذه المشكلة.
 
-## 1) إدراج عنصر القائمة
+## 1) Current Mother forensic truth
 
-افتح أحدث \`companies/company-1/main.html\` من:
+Mother HEAD at re-check:
+56a39bd8324f1c9a8c94bd686544b50fb76dfa56
 
-- Mother HEAD: \`46549e9237f3b946d6bcc18cdab78b9ead57f0c5\`
-- main.html blob: \`e428fac9213de08a67a6e40e4c88a9d3c8920232\`
+Mother parent:
+87426c6cb6269681ba074c609f0b253721668ccb
 
-ابحث حرفيًا عن:
+Current Mother main.html blob:
+313f8dc17f9ece81d94cee19dd798bcc9915e1f4
 
-~~~js
-{ icon: 'fa-truck-moving', label: 'إدارة الأسطول والحركة', submenu: [
-    { view: 'fleet-management', label: 'لوحة إدارة الأسطول', perm: ['fleet.read','fleet.manage','general_manager','warehouse_manager','delivery_supervisor','finance_manager'] }
-] },
-~~~
+The Delivery tab integration is already present in the current Mother source. Do not repeat the historical ADD-ONLY sections from Report267.
 
-ولا تحذف هذا العنصر.
+Confirmed existing elements:
+- navigation entry: delivery-logistics-management
+- icon: fa-route
+- title: إدارة التوصيل والشحن
+- access guard inside RW_Views.render(view)
+- router hook inside RW_Views.render(view)
+- complete RW_DeliveryLogistics module before the RW_Views marker
 
-أضف السطر التالي داخل نفس \`submenu\` بعد عنصر \`fleet-management\` وقبل \`]\`:
+## 2) Exact defect
 
-~~~js
-{ view: 'delivery-logistics-management', label: 'مركز التوصيل واللوجستيات', perm: ['fleet.read','fleet.manage','general_manager','warehouse_manager','delivery_supervisor','finance_manager'] }
-~~~
-
-ليصبح الجزء:
-
-~~~js
-{ icon: 'fa-truck-moving', label: 'إدارة الأسطول والحركة', submenu: [
-    { view: 'fleet-management', label: 'لوحة إدارة الأسطول', perm: ['fleet.read','fleet.manage','general_manager','warehouse_manager','delivery_supervisor','finance_manager'] },
-    { view: 'delivery-logistics-management', label: 'مركز التوصيل واللوجستيات', perm: ['fleet.read','fleet.manage','general_manager','warehouse_manager','delivery_supervisor','finance_manager'] }
-] },
-~~~
-
-## 2) إضافة أيقونة التبويب
-
-ابحث حرفيًا عن:
+Inside the current Delivery module:
 
 ~~~js
-'fleet-management': 'fa-truck-moving',
+var RW_DeliveryLogistics = (function() {
 ~~~
 
-أضف بعده:
+the module creates:
 
 ~~~js
-'delivery-logistics-management': 'fa-route',
+var api={render:render,refresh:refresh,handle:handle,openRoute:openRoute};
+window.RW_DeliveryLogistics=api;
 ~~~
 
-## 3) إضافة عنوان التبويب
-
-ابحث حرفيًا عن:
+but its IIFE terminates without:
 
 ~~~js
-'fleet-management':'إدارة الأسطول والحركة',
+return api;
 ~~~
 
-أضف بعده:
+Therefore:
+- window.RW_DeliveryLogistics is an object.
+- lexical RW_DeliveryLogistics receives undefined.
+- the router calls RW_DeliveryLogistics.render().
+- browser raises TypeError: Cannot read properties of undefined (reading 'render').
+- the Navigation catch then shows: حدث خطأ أثناء فتح التبويب.
 
-~~~js
-'delivery-logistics-management':'إدارة التوصيل والشحن',
-~~~
+## 3) Exact surgical replacement
 
-## 4) إضافة حارس الوصول
-
-داخل \`RW_Views.render(view)\` ابحث عن بداية الحارس الموجود:
-
-~~~js
-if (view === 'fleet-management') {
-~~~
-
-وابحث عن نهايته مباشرة قبل:
-
-~~~js
-var permKey = permissionMap[view];
-~~~
-
-أضف قبل \`var permKey\` مباشرة:
-
-~~~js
-if (view === 'delivery-logistics-management') {
-    var deliveryUser = (typeof RW_STATE !== 'undefined' && RW_STATE && RW_STATE.app)
-        ? RW_STATE.app.currentUser
-        : null;
-    var deliveryPerms = (typeof RW_STATE !== 'undefined' && Array.isArray(RW_STATE.permissions))
-        ? RW_STATE.permissions
-        : [];
-    var deliveryAllowed = !!(deliveryUser && (
-        deliveryUser.isOwner === true ||
-        deliveryPerms.indexOf('*') !== -1 ||
-        deliveryPerms.indexOf('fleet.read') !== -1 ||
-        deliveryPerms.indexOf('fleet.manage') !== -1 ||
-        deliveryPerms.indexOf('general_manager') !== -1 ||
-        deliveryPerms.indexOf('warehouse_manager') !== -1 ||
-        deliveryPerms.indexOf('delivery_supervisor') !== -1 ||
-        deliveryPerms.indexOf('finance_manager') !== -1 ||
-        deliveryUser.role === 'مدير عام' ||
-        deliveryUser.role === 'مدير مخازن' ||
-        deliveryUser.role === 'مشرف توصيل' ||
-        deliveryUser.role === 'مدير مالي'
-    ));
-    if (!deliveryAllowed) {
-        safeHTML(c, '<div class="rw-card" style="text-align:center;padding:60px 20px"><div style="font-size:64px">🔒</div><h2>غير مصرح</h2><p>ليس لديك صلاحية الوصول إلى مركز التوصيل واللوجستيات</p></div>');
-        return;
-    }
-}
-~~~
-
-## 5) ربط الـRouter
-
-ابحث حرفيًا عن:
-
-~~~js
-if (view === 'fleet-management') { RW_FleetManagement.render(); return; }
-~~~
-
-أضف بعده مباشرة:
-
-~~~js
-if (view === 'delivery-logistics-management') { RW_DeliveryLogistics.render(); return; }
-~~~
-
-## 6) إدراج الوحدة المركزية
-
-افتح الملف:
-
-\`Current/PWA/owner-patches/RW_DeliveryLogistics.js\`
-
-SHA الحالي:
-
-\`aae4d353ff703904390064a8e93b7c9568e5b94e\`
-
-انسخ محتوى الملف كاملًا دون حذف أو دمج يدوي.
-
-ثم في أحدث \`main.html\` ابحث حرفيًا عن:
-
-~~~js
-// ============================================================
-// RW_Views – نظام التوجيه النهائي
-// ============================================================
-var RW_Views = {
-~~~
-
-أدخل محتوى \`RW_DeliveryLogistics.js\` كاملًا مباشرة قبل هذا الـmarker.
-
-لا تحذف \`RW_FleetManagement\`.
-لا تحذف \`RW_Views\`.
-لا تعدّل \`driver.html\`.
-لا تعدّل \`supervisor.html\`.
-
-## 7) ما لا يحتاج تعديلًا
-
-لا تضف Permission جديدة.
-لا تعدّل \`permLabels\`.
-لا تعدّل \`permissionMap\` إلا إذا كان الـMother الحالي قد أضاف قاعدة صريحة جديدة تجعل الـview غير معروف؛ الـview لديه Access Guard مستقل.
-لا تعدّل Fleet module الحالي.
-لا تعدّل route/stock/order engines الموجودة.
-
-## 8) سبب اختيار هذا الشكل
-
-هذه الجراحة تضيف Control Plane مركزيًا فوق:
-Order → Runsheet → Fleet Capacity/Vehicle → Delivery Route → Delivery Agent → Stop → POD → Collection → Performance
-
-ولا تنشئ دورة مستقلة بديلة، ولا تكتب Physical Stock، ولا تعيد بناء دورة الرانشيت.
-
-## 9) Gate بعد التطبيق
-
-بعد إدخال التعديل:
-
-1. افتح النظام الأم.
-2. ادخل بالحساب المخوّل.
-3. افتح «إدارة التوصيل والشحن».
-4. تحقق من ظهور التبويبات الستة.
-5. نفّذ Browser E2E على Runsheet حقيقية/اختبارية مع بيانات GPS.
-6. تأكد أن Fleet Assignment ما زال يعمل.
-7. تأكد أن تطبيق مندوب التوصيل ما زال يغلق الطلب عبر \`complete-order-delivery\`.
-8. تأكد أن المخزون لا يتغير من Delivery Center.
-
-لا تعتبر Browser Gate مغلقة قبل تسجيل النتيجة في \`CURRENT_STATE.md\`.
-
-## 10) CRITICAL RUNTIME CORRECTION — IIFE RETURN CONTRACT
-
-### Proven defect
-The current Mother source contains `var RW_DeliveryLogistics = (function() { ... })();` and assigns `api` to `window.RW_DeliveryLogistics`, but the IIFE did not return `api`.
-
-The router already calls:
-
-~~~js
-RW_DeliveryLogistics.render();
-~~~
-
-Because the IIFE returned `undefined`, the lexical `RW_DeliveryLogistics` variable was `undefined` even though the window property existed. This exactly explains the reported:
-`TypeError: Cannot read properties of undefined (reading 'render')`.
-
-### Exact surgical replacement in Mother
-Inside the `RW_DeliveryLogistics` IIFE, locate this exact final element:
+In the Delivery IIFE only, find this exact final element:
 
 ~~~js
   // The field delivery apps remain authoritative for field execution; this module is supervisory/control-plane only.
@@ -205,7 +64,9 @@ Inside the `RW_DeliveryLogistics` IIFE, locate this exact final element:
 })();
 ~~~
 
-Delete it completely and replace it with:
+Delete it completely.
+
+Replace it with this complete corrected element:
 
 ~~~js
   // The field delivery apps remain authoritative for field execution; this module is supervisory/control-plane only.
@@ -214,8 +75,49 @@ Delete it completely and replace it with:
 })();
 ~~~
 
-Do not change the existing `RW_Views` router call. Do not rebuild the module. Do not alter `driver.html`, `supervisor.html`, Fleet, Runsheets, or Inventory.
+Do not change:
+- RW_Views.render(view) router line
+- Fleet module
+- Runsheet engine
+- field Delivery applications
+- Inventory / Physical Stock engine
+- any Delivery SQL/RPC
+- any Edge Function
 
-### Canonical source
-The same one-line surgical correction is already present in `Current/PWA/owner-patches/RW_DeliveryLogistics.js`.
-Current canonical module SHA after correction: `cab4e9aae0cea0ead9d98210bbd15876df9e5a01`.
+No other Mother edit is required for this defect.
+
+## 4) Canonical source already corrected
+
+Canonical file:
+Current/PWA/owner-patches/RW_DeliveryLogistics.js
+
+Corrected blob SHA:
+cab4e9aae0cea0ead9d98210bbd15876df9e5a01
+
+The canonical file now contains the same return api correction.
+
+## 5) Production evidence
+
+Current Production:
+- company rows: 1
+- delivery_agents: 0
+- delivery_route_plans: 0
+- delivery_route_stops: 0
+- delivery_collection_receipts: 0
+- Delivery operation registry rows: 0
+- delivery_logistics_command_atomic: exactly 1 deployed signature
+- delivery_logistics_query: exactly 1 deployed signature
+
+Production Delivery core is therefore not the source of the reported browser exception.
+
+## 6) Required owner browser gate
+
+After applying only the exact replacement in section 3:
+1. Load the current deployed Mother.
+2. Hard reload the page.
+3. Open مركز التوصيل واللوجستيات.
+4. Verify that the JavaScript console no longer reports RW_Navigation.navigate ... undefined (reading 'render').
+5. Verify the dashboard loads and the six Delivery tabs appear.
+6. Record the deployed Mother HEAD/blob and browser result in the next forensic checkpoint.
+
+Do not claim Browser Gate = PASS until the deployed Mother runtime itself is tested.
