@@ -4741,3 +4741,96 @@ No other Mother file/function should be changed for this defect.
 Start by verifying these current values, then perform only the exact Owner cutover and Browser Production E2E. Do not rebuild or repeat any already-closed Production report work.
 
 # END FINAL CURRENT STATE RECONCILIATION — Report262
+
+
+## 2026-09-20 — Report263 Detailed Reports Competitive Analytics
+
+### Authoritative checkpoints
+- System HEAD after session: `a5ee88a8e89b6150d2a556ee6eff7c30296ad95f`
+- System HEAD parent before CURRENT_STATE update: `f82a4b8e2f2345f2d5db779e8fc593b091a5b67e`
+- Mother HEAD: `ef11e87dc6177d0c39844a9878fff587254b3719`
+- Mother parent: `97f86427d3e50cadcc59880d9d961c8c8aaf6bab`
+- Current Mother `main.html` blob verified: `5a628da5417a830bf22553fa99a858521cdf6673`
+
+### Session scope
+Only the Detailed Reports tab was advanced. No Mother `main.html` file was modified in this session.
+
+### Production changes actually deployed
+Existing authenticated RPC `public.detailed_reports_read` was extended in-place; no Edge Function was created.
+1. `inventory_abc` — analytical ABC view based on Invoiced/Delivered sales and net quantity.
+2. `logistics_performance` — runsheet/driver/vehicle/field-stage performance view.
+3. Single-item ABC E2E defect fixed: sole item now classifies A.
+4. Logistics output enriched with tenant-scoped driver and vehicle identity.
+
+### Production migrations
+- `20260920034711_detailed_reports_competitive_analytics_extension_20260920`
+- `20260920034844_detailed_reports_abc_single_item_classification_fix_20260920`
+- `20260920034931_detailed_reports_logistics_driver_vehicle_context_20260920`
+
+Canonical Git paths:
+- `supabase/migrations/20260920034711_detailed_reports_competitive_analytics_extension_20260920.sql`
+- `supabase/migrations/20260920034844_detailed_reports_abc_single_item_classification_fix_20260920.sql`
+- `supabase/migrations/20260920034931_detailed_reports_logistics_driver_vehicle_context_20260920.sql`
+- `doc/Draft/Reprots/Report263_DETAILED_REPORTS_COMPETITIVE_ANALYTICS_FORENSIC_SURGICAL_CLOSURE_20260920.md`
+
+### Forensic E2E
+Synthetic Runsheet + Order + Order Detail were created transactionally. Existing `trg_sync_run_sheet_details` generated the derived runsheet detail; no manual derived write was introduced.
+Verified:
+- `inventory_abc.success=true`, one row, class A, sales value 90.
+- `logistics_performance.success=true`, one row, fill 80.00%, full cycle 65.00 minutes.
+- Existing reports still callable: inventory_gl_reconciliation, grni, material_ledger, traceability (with real item), production_variance.
+- Entire synthetic transaction rolled back; no E2E records remain.
+
+### Current Production reconciliation
+- companies 1
+- branches 2
+- items 17
+- stock_branches 20
+- inventory_log 3
+- orders 0
+- order_details 0
+- runsheets 0
+- run_sheet_details 0
+- purchase_orders 0
+- receiving 0
+- journal_entries 2
+- journal_lines 0
+
+Current RPC signature:
+`detailed_reports_read(text,uuid,text,date,date,uuid[],uuid[],uuid[],uuid[],text[],uuid,text,text,text,integer,integer)`
+Security:
+- SECURITY DEFINER = true
+- EXECUTE: authenticated, service_role
+- no PUBLIC/anon EXECUTE
+
+Runtime current-day verification:
+- `inventory_abc`: success=true, rows=0, total_sales_value=0
+- `logistics_performance`: success=true, rows=0, runsheet_count=0
+
+### Mother source closure status
+Report262 navigation defect is already closed by Mother commit `97f86427...`; do not reopen.
+New report UI is prepared as a surgical replacement in Report263:
+- reportTitle()
+- sovereign report tabs array
+- buildShell title text
+- renderResult()
+- renderTable()
+No change is required in `runSovereignReport()`.
+
+### Competitive gaps still open by contract
+Not closed by fabrication:
+- period-over-period comparison
+- fully configurable pivot/matrix/custom report builder
+- saved report definitions/templates
+- true on-time delivery KPI (no scheduled delivery timestamp in Production)
+- AR/AP aging allocation model
+- batch/lot/expiry/serial identity
+- historical cost layers / actual costing
+- Production Order/BOM/actual consumption/output/cost and variance
+- explicit GRNI control account where not proven
+
+### Root cause / forensic conclusion
+The previous Detailed Reports navigation fault was not a current defect; it had already been fixed in Mother. The real current gap was that the sovereign reporting engine exposed only five report contracts while the existing RAWAEA field workflow contained richer operational data that competitors use for analytical management. The surgical completion therefore reused the existing central RPC and field-domain tables instead of creating another Edge layer or another parallel reporting engine.
+
+### Next-session instruction
+Start from this section plus Report263. Re-verify CURRENT GIT, CURRENT MOTHER SOURCE, CURRENT PRODUCTION, and CURRENT DEPLOYMENT before any new closure. Verify Owner application of the Report263 Mother patch; do not rebuild the RPC or reopen Report262. Then proceed only to the next proven Business Contract gap.
