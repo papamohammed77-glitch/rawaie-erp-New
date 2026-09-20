@@ -352,7 +352,8 @@ async function loadAlerts() {
     return '<div><label class="font-bold text-sm text-slate-700">'+label+'</label><input id="'+id+'" type="'+(type||'text')+'" value="'+esc(value||'')+'" class="rw-input" style="height:46px;padding-right:14px;margin-top:6px"></div>';
   }
 
-  function val(id){ var x=byId(id); return x ? String(x.value||'').trim() : ''; }\n  function selectInput(id,label,value,options){var h='<div><label class="font-bold text-sm text-slate-700">'+label+'</label><select id="'+id+'" class="rw-input" style="height:46px;padding-right:14px;margin-top:6px">';(options||[]).forEach(function(o){h+='<option value="'+esc(o[0])+'"'+(String(o[0])===String(value||'')?' selected':'')+'>'+esc(o[1])+'</option>';});return h+'</select></div>'; }\n
+  function val(id){ var x=byId(id); return x ? String(x.value||'').trim() : ''; }
+  function selectInput(id,label,value,options){var h='<div><label class="font-bold text-sm text-slate-700">'+label+'</label><select id="'+id+'" class="rw-input" style="height:46px;padding-right:14px;margin-top:6px">';(options||[]).forEach(function(o){h+='<option value="'+esc(o[0])+'"'+(String(o[0])===String(value||'')?' selected':'')+'>'+esc(o[1])+'</option>';});return h+'</select></div>'; }\n
 
   async function modal(title, html, onSave, saveText) {
     if (!window.Swal) return showToast('واجهة النوافذ المنبثقة غير متاحة','error');
