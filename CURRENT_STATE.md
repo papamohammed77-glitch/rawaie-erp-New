@@ -6843,3 +6843,193 @@ Before any later change:
 
 No closed patch is to be repeated without a proven regression.
 
+
+
+---
+
+# FINAL CURRENT RECONCILIATION — 2026-09-20 — WAREHOUSE VOUCHERS STANDALONE / MOTHER INTEGRATION
+
+> هذه هي آخر نقطة تشغيلية مثبتة لنطاق تطبيق الأذونات المخزنية. التقارير السابقة استرشادية فقط. نقطة الحقيقة: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+
+## 0. Scope Lock
+- النطاق: `erp-frontend/companies/company-1/warehouse/vouchers.html`
+- Mother `companies/company-1/main.html`: لم يُعدّل.
+- `vouchers.html`: لم يُعدّل من CTO؛ Owner Surgical Patch جاهز فقط.
+- لا Edge Function جديدة.
+- لا إعادة بناء Inventory Core.
+- لا إعادة فتح Category / App.init / allowedBranch / pickArr / boot fixes المغلقة.
+
+## 1. CURRENT GIT
+### System repository
+- Current HEAD after this checkpoint/report: `7e4e95625a0b6d7e157077e840679c4b3119092e`
+- Immediate parent: `d17db440071bd7af8e7d6627bcd77a2cb9b4df0f`
+- Report: `doc/Draft/Reprots/Report275_WAREHOUSE_VOUCHERS_STANDALONE_MOTHER_INTEGRATION_FORENSIC_CLOSURE_20260920.md`
+
+### Standalone frontend
+- HEAD: `f6d0558f1ae1525ccdb32bc6269ca87d9c378ae2`
+- Parent: `8a1a75dd840b32cfc135178a9a9c466adefaf0ee`
+- `companies/company-1/warehouse/vouchers.html` blob: `887e9cbe85774c3702219a9030c3a6ed7a759bc4`
+- Latest commit message: `Refactor voucher search and selection functionality`
+
+### Mother
+- Read-only current blob inspected: `e2b0dcb8317034363365fe728e8b4c33d1bf08da`
+- No CTO write.
+
+## 2. VERIFIED APPLICATION ROLE
+`vouchers.html` is the standalone operational consumer for manual stock operations outside the Order/Runsheet operational spine:
+- Transfer
+- DirectSale
+- DirectReturn
+- SupplierReturn
+
+Scrap/Adjustment remains on the separate adjustment engine and was not merged into the voucher physical lifecycle.
+
+## 3. VERIFIED MOTHER INTEGRATION
+Mother already reads the same Production `stock_vouchers` source and includes `source='Manual'` in the unified voucher list, with type/status/date filters.
+
+Mother router already contains:
+- `vouchers`
+- `transfer`
+- `direct-sale`
+- `direct-return`
+- `supplier-return`
+
+Important structural fact:
+the four type routes are creation Forms, not historical list views. Therefore historical records can be displayed from the unified voucher list/type filter without inventing a second data model. Turning those Forms themselves into historical list pages would require a separate Mother-owner patch and is outside this closure.
+
+## 4. CURRENT PRODUCTION
+- companies = 1
+- branches = 2
+- active vehicles = 0
+- active items = 16
+- stock_vouchers = 0
+- stock_voucher_operations = 0
+- active suppliers = 1
+- purchase_orders = 0
+
+Current Item 1001 stock baseline after rollback:
+- BR-01 = 2
+- BR-2 = 1
+
+No current Voucher data repair is required.
+
+## 5. PRODUCTION INTEGRITY
+Verified:
+- canonical voucher RPCs present;
+- authenticated voucher audit read path present;
+- Physical Stock remains centralized under `post_stock_movement`;
+- voucher execution writes physical movement through the centralized engine;
+- no new Edge Function required.
+
+Current transaction E2E:
+CREATE → SEND → RECEIVE → COMPLETE
+- status = Completed
+- source during test = 1
+- destination during test = 2
+- physical movements = 2
+- distinct movement idempotency keys = 2
+- voucher operation registry = 1
+- stock_vouchers audit events = 4
+- transaction rolled back successfully.
+
+Post-rollback baseline restored.
+
+## 6. FORENSIC RESULT — REMAINING CONSUMER DEFECT
+Current source is newer than historical reports and already contains the formerly-opened:
+- Category fix
+- filterList
+- App.init
+- allowedBranch
+- pickArr
+- boot path fixes
+
+Do not redo them.
+
+The new real Consumer reliability gap found by current-source inspection:
+CREATE operation identity is stored in `sessionStorage`.
+
+Because Production uses `stock_voucher_operations(company_id, operation_id)` as the durable idempotency registry, CREATE retry identity must survive page/session reconstruction.
+
+## 7. OWNER SURGICAL PATCH — READY
+File:
+`erp-frontend/companies/company-1/warehouse/vouchers.html`
+
+Exact changes in Report275:
+1. In `newWorkspace:function(){`, delete only:
+   `sessionStorage.removeItem('RW_VOUCHER_CREATE:'+s.company+':'+s.type);`
+2. In `submit:function(){`, replace the CREATE-idempotency `sessionStorage.getItem` / `setItem` / success `removeItem` calls with `localStorage`.
+3. Replace `filterList:function(){...}` with the Report275 smart-search version.
+4. Replace `renderCart:function(){...}` with the Report275 projected Available Before/After version.
+5. In `loadList:function(scope){`, replace exactly `.limit(150)` with `.limit(1000)`.
+
+No other current fix is to be reopened.
+
+## 8. COMPETITIVE GAP DECISION
+Safe, contract-preserving enhancements issued:
+- durable CREATE retry identity;
+- document search across reference/type/status/source/destination/creator/notes;
+- projected available before/after in the operational cart;
+- larger voucher list window.
+
+Not silently implemented because they require distinct Business Contracts:
+- approval layer;
+- attachments/documents;
+- lot/serial/expiry;
+- formal in-transit state;
+- CSV/bulk import;
+- full print/export contract;
+- persisted historical before/after snapshots.
+
+## 9. BROWSER GATE
+Standalone Voucher Consumer = OPEN.
+
+Required final proof after Owner applies Report275:
+- browser login;
+- CREATE Transfer;
+- retry after simulated response loss/refresh;
+- exactly one voucher;
+- SEND retry without duplicate movement;
+- partial RECEIVE retry without duplicate movement;
+- COMPLETE retry without duplicate state transition;
+- search by reference/location/status/type/creator;
+- before/after rendering;
+- Mother unified list visibility;
+- final Production reread.
+
+Do not mark 100% closed before browser E2E.
+
+## 10. NEXT SESSION START
+1. Read this section.
+2. Verify system HEAD/parent.
+3. Verify frontend HEAD/parent and current vouchers blob.
+4. Verify Report275 patch presence/absence.
+5. Do not redo closed boot/category/ACL/Production Core fixes.
+6. Apply only Report275 owner patch if still absent.
+7. Run browser E2E.
+8. Re-read Production movement/audit/operation counts.
+9. Close only after all layers agree.
+
+## 11. GOVERNANCE SELF-AUDIT
+Confirmed:
+- current Git and parent checked;
+- latest frontend commit checked;
+- current vouchers source inspected to EOF;
+- Mother inspected read-only;
+- current Production schema/RPC/audit path checked;
+- current data counts checked;
+- transactional Production E2E passed and rolled back;
+- no new Edge Function created;
+- no permanent test residue;
+- no Mother write.
+
+Not proven:
+- browser E2E after Owner source patch;
+- DirectSale positive E2E against current Production because active vehicles = 0;
+- SupplierReturn positive E2E against current Production because purchase_orders = 0.
+
+Final:
+- PRODUCTION VOUCHER CORE = VERIFIED
+- PHYSICAL STOCK CENTRALIZATION = VERIFIED
+- MOTHER DATA VISIBILITY = VERIFIED
+- STANDALONE CONSUMER = OPEN FOR OWNER PATCH + BROWSER E2E
+- PRODUCTION VOUCHER DATA REPAIR = NONE
