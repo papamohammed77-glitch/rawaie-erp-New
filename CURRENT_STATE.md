@@ -5443,3 +5443,125 @@ The Fleet browser runtime remains OPEN until the owner cutover is actually deplo
 
 ## Continuity
 Next session must first verify CURRENT GIT, CURRENT SOURCE, CURRENT PRODUCTION, and CURRENT DEPLOYMENT, then verify the Fleet IIFE return contract before doing any other Fleet work.
+
+
+# CURRENT FLEET MANAGEMENT FORENSIC CONTRACT CHECKPOINT — Report266 — 2026-09-20
+
+## Scope
+هذه الحالة تخص تبويب إدارة الأسطول والحركة فقط.
+لا تغيير على Mother main.html.
+لا Edge Function جديد.
+
+## Current Git Truth
+- Latest repository HEAD after Report266 documentation: 88340e6853826de9c216f1e4f8acf69b5d2c479c
+- Parent immediately before Report266: 0dbd47911b0ec75d788f1a355b45248cb9f23b77
+- Fleet source module: Current/PWA/owner-patches/RW_FleetManagement.js
+- Fleet module current content SHA: 209b0c601e77a0003a8446024c67f044cf6a3782
+- Surgical Mother patch: Current/PWA/owner-patches/FLEET_MAIN_HTML_SURGICAL_PATCH.md
+
+## Mother Truth
+- Mother HEAD: ddcd9995240605dd9bcf31ab1abb1a774b887f84
+- Mother parent: 1823f9ab0e6f88c0118585c0b4f50a0b9b36bc38
+- main.html blob: 6074a4fc5f915701b23af5d7b6fca8a083c0a9dd
+- main.html was not modified by CTO in this closure.
+
+## Production Truth
+Final Production snapshot: 2026-09-20 07:23:32+00 UTC
+- companies=1
+- branches=2
+- items=17
+- vehicles=0
+- fleet_drivers=0
+- fleet_vehicle_assignments=0
+- vehicle_tracking=0
+- fleet_fuel_transactions=0
+- vehicle_maintenance=0
+- fleet_maintenance_plans=0
+- fleet_incidents=0
+- fleet_driver_performance_events=0
+- fleet_expenses=0
+- runsheets=0
+- run_sheet_details=0
+
+Production Fleet schema now includes:
+- vehicles.cargo_length_m
+- vehicles.cargo_width_m
+- vehicles.cargo_height_m
+- vehicles.operational_condition
+- vehicles.route_capability
+
+Production constraints now enforce:
+- ownership: Owned / RentedPerTrip / RentedMonthly / Other
+- vehicle condition: Excellent / Good / Fair / Poor
+- route capability: LocalOnly / Regional / LongHaul / Any
+- positive cargo dimensions
+- driver employment: Employee / Contractor / Outsourced / RentalDriver / PerTrip / Monthly / Other
+
+## Fleet Planning Contract
+- fleet_command_atomic now supports RUNSHEET_ASSIGN.
+- Assignment validates tenant, run sheet, vehicle availability, driver validity, weight and volume capacity, and driver-license expiry when a Fleet Driver is linked.
+- Actual run sheet assignment remains delegated to manage_runsheet_atomic.
+- fleet_query now supports vehicle_planning.
+- Planner returns weight/volume utilization, remaining capacity, READY/INCOMPLETE_DATA/BLOCKED status, route capability and condition warnings.
+- Missing item weight/volume is never invented; it produces INCOMPLETE_DATA.
+
+## E2E
+### Negative
+1000 kg vehicle + 2000 kg run sheet load was rejected by RUNSHEET_ASSIGN.
+Transaction rolled back.
+
+### Positive
+5000 kg vehicle, 2x2x2m cargo box, RentedMonthly/Excellent/LongHaul + PerTrip driver + ProfessionalFirst license successfully created and assigned to an Open runsheet.
+Vehicle and operational driver IDs were written to runsheets.
+Transaction rolled back.
+
+## Production migrations
+- 20260920071603_fleet_capacity_route_driver_contract_closure_20260920_v2
+- 20260920071702_fleet_driver_employment_contract_options_20260920
+- fleet_driver_license_assignment_guard_20260920
+
+The first two migration files are now recorded canonically under supabase/migrations. The license guard is Production-deployed and recorded in Report266; the canonical migration file should be added before the next Fleet schema migration session if migration ledger parity is required.
+
+## Owner Surgery
+Exact module insertion remains owner-side:
+- File: erp-frontend/companies/company-1/main.html
+- Marker: // RW_Views – نظام التوجيه النهائي
+- Delete the complete current Fleet IIFE/module immediately before the marker.
+- Insert the complete current Current/PWA/owner-patches/RW_FleetManagement.js.
+- Do not modify unrelated Mother code.
+
+## Closure Status
+- Vehicle capacity/data contract = PRODUCTION CLOSED
+- Driver employment contract = PRODUCTION CLOSED
+- Driver license capture = PRODUCTION CLOSED
+- License expiry guard at RUNSHEET_ASSIGN = PRODUCTION CLOSED
+- Capacity-aware runsheet assignment = PRODUCTION CLOSED
+- Fleet source module = OWNER READY
+- Mother browser E2E = OPEN
+
+## Remaining Proven Fleet Gaps
+- Item master completeness for weight_kg / volume_m3
+- Browser production E2E after owner cutover
+- Vehicle fixed-asset lifecycle integration
+- Maintenance plan to work-order lifecycle
+- Work-order spare-part issue to stock movement
+- GPS/telematics
+- real route optimization / scheduled route identity
+- true on-time delivery timestamp contract
+
+## Next Session Start
+1. Verify current Git HEAD + parent.
+2. Verify Mother HEAD + parent + main.html blob.
+3. Verify Current Fleet module and surgical patch.
+4. Verify Production Fleet schema/RPCs and current counts.
+5. Confirm no duplicate Fleet module or new Edge Function.
+6. Apply only the owner Fleet module cutover.
+7. Run JS parse/assembly guard.
+8. Browser Production E2E for Fleet only.
+9. Re-snapshot Production.
+10. Open only the next proven Fleet Business Contract after Browser closure.
+
+## Continuity Rule
+Never use Report266 or older reports as Current Truth. Re-establish Current Git + Current Source + Current Production + Current Database + Current Deployment before any further Fleet modification.
+
+# END CURRENT FLEET MANAGEMENT FORENSIC CONTRACT CHECKPOINT — Report266
