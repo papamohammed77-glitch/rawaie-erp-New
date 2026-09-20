@@ -5909,3 +5909,189 @@ These remain explicitly open and must not be claimed closed:
 - Delivery canonical runtime fix remains cab4e9aae0cea0ead9d98210bbd15876df9e5a01.
 - Delivery Mother patch remains ba25f1ee84c7d1a4d49c5e9b12c9b5b175d354f2.
 - Mother main.html remains owner-controlled and unmodified by this executor.
+
+# SESSION CHECKPOINT — WAREHOUSE VOUCHERS FORENSIC SURGICAL CLOSURE — 2026-09-20
+
+## Scope
+- Focused file: `erp-frontend/companies/company-1/warehouse/vouchers.html`
+- Mother `erp-frontend/companies/company-1/main.html`: NOT MODIFIED.
+- Standalone vouchers file: NOT modified directly by this executor; exact owner surgical replacements are documented in Report269.
+- No new Edge Function created.
+
+## Current Git Truth
+### System
+- HEAD verified before this closure: `9fe3c816d962d456795ff3b971e5f22ea679ae9b`
+- Parent: `d85e80ac1964500d25318efb29a1e2a6674f84f5`
+- Voucher forensic report commit: `bc2fce96ef0b4a9d105cd300874cb7e08960aea5`
+- Canonical Production migration source added:
+  `supabase/migrations/20260920_inventory_control_voucher_audit_capability.sql`
+  commit: `d6d14f3deff6b8ea7cf03c650c6bb471eceed9b4`
+
+### Standalone Frontend
+- Repo: `papamohammed77-glitch/erp-frontend`
+- Voucher file SHA at investigation start:
+  `545c96bb8e869ab0c38fe736df01605260f3bbae`
+- Build marker:
+  `RAWAEA-VOUCHERS-CANONICAL-2026-08-28-R2`
+- Current Mother main.html blob verified separately and left untouched.
+
+## Production Truth
+Supabase project: `fiilmooggumokxanwiyx`
+
+Verified current structural state:
+- companies = 1
+- branches = 2
+- vehicles = 0
+- items = 17
+- stock_vouchers = 0
+- stock_voucher_details = 0
+- stock_voucher_operations = 0
+- persistent voucher test residue = 0
+- barcode duplicate groups = 0
+- `items.item_code` is globally UNIQUE.
+- `stock_vouchers(company_id,voucher_code)` is UNIQUE.
+- `stock_voucher_operations(company_id,operation_id)` is UNIQUE.
+
+## Production Voucher Contract
+- `create_manual_stock_voucher_atomic` exists in both legacy 10-arg and canonical 12-arg forms.
+- Canonical 12-arg contract includes `p_rep_id` and `p_operation_id`.
+- Current `create-stock-voucher` Edge already accepts `rep_id` and `operation_id` and selects the 12-arg RPC when supplied.
+- SEND/RECEIVE/COMPLETE/CANCEL capabilities exist in Production.
+- Physical Stock remains centralized through `post_stock_movement`.
+- `reserve_stock` remains a reservation engine only.
+- Current SEND core supports `DirectReturn` as well as Transfer/DirectSale/SupplierReturn.
+
+## Production Change Made
+Updated existing authenticated RPC:
+`public.inventory_control(text,jsonb)`
+
+Added:
+`VOUCHER_AUDIT`
+
+It returns Company-scoped:
+- voucher header
+- voucher details
+- audit history
+- physical inventory_log movements
+
+Authorization allows:
+- Owner/privileged
+- reporting
+- warehouse roles
+- active warehouse role `أذونات`
+
+No RLS opening on `audit_log`.
+No new Edge Function.
+
+## E2E Evidence
+Transactional Production backend lifecycle passed:
+`CREATE → SEND → RECEIVE → COMPLETE`
+
+Observed:
+- source qty: 2 → 1
+- target qty: 1 → 2
+- inventory_log rows: 2
+- stock_voucher_operations rows: 1
+- full transaction rolled back.
+
+After rollback:
+- stock_vouchers = 0
+- stock_voucher_operations = 0
+- source qty restored to 2
+- target test row absent
+- E2E inventory logs = 0
+
+The test harness had one initial mistake using reference as voucher code; it was corrected to use the RPC-returned `voucher_code`. Do not repeat that mistake.
+
+## Root Cause Identified
+Standalone `vouchers.html` had consumer drift:
+- CREATE request did not pass explicit `rep_id`.
+- CREATE request did not pass explicit `operation_id`.
+- Therefore it did not consume the full current 12-arg canonical Production contract.
+- Mother current flow already uses an operation identity pattern.
+
+Secondary functional gap:
+- voucher details read `audit_log` directly.
+- Production RLS exposes that table directly to Owner, not to the standalone warehouse `أذونات` consumer.
+- Therefore details could show an empty audit section despite a valid voucher.
+- Correct closure was an authenticated `inventory_control('VOUCHER_AUDIT')` capability; RLS was not relaxed.
+
+## Owner Surgical Patch Status
+Report:
+`doc/Draft/Reprots/Report269_WAREHOUSE_VOUCHERS_FORENSIC_SURGICAL_CLOSURE_20260920.md`
+
+Owner must modify ONLY:
+`erp-frontend/companies/company-1/warehouse/vouchers.html`
+
+Exact replacements documented for:
+1. `newWorkspace`
+2. `submit`
+3. `renderList`
+4. `filterList`
+5. `details`
+6. `callAction`
+
+Key effects:
+- stable CREATE `operation_id` kept in sessionStorage during retry
+- `rep_id` passed to canonical CREATE contract
+- no lost-operation duplicate creation after a response-loss scenario
+- list filters: type/date/text
+- details consume `inventory_control('VOUCHER_AUDIT')`
+- physical movement evidence is displayed from `inventory_log`
+- action completion returns to the current list scope rather than hardcoded `pending`
+
+## Do Not Touch
+- Mother `main.html`
+- existing receive idempotency logic
+- barcode logic
+- stock availability logic
+- DirectSale / DirectReturn / SupplierReturn validation logic
+- Scrap/Adjustment engine
+- Inventory Core / `post_stock_movement`
+- field fulfillment applications
+
+## Competitive Gap Status
+Evidence from current official documentation confirms:
+- Odoo: receipts, deliveries, customer returns, vendor returns, scrap, inventory adjustments, barcode-based inventory operations.
+- Dynamics 365: Movement, Inventory adjustment, Transfer, Item arrival, Counting, Tag counting.
+- SAP: goods receipt, goods issue, stock transfer, transfer posting, with idempotent goods movement services.
+- Daftra/دفترة: manual transfer requisitions, date/time, from/to, notes, quantity, unit price, before/after stock visibility, search and permissions.
+- Manager.io: delivery notes and inventory write-offs as distinct inventory/document workflows.
+
+Still OPEN Business Contracts:
+- historical before/after quantity inside voucher detail
+- bulk paste/import of item lines
+- optional approval workflow for manual vouchers
+- attachments/documents
+- lot/serial/expiry tracking
+- richer in-transit lifecycle
+- print/export document contract
+
+These were not invented into the current patch.
+
+## Browser Gate
+- Backend Production E2E: PASS
+- Browser E2E of owner-patched standalone file: OPEN
+- Do NOT claim 100% closure until the owner applies the six exact replacements and performs real browser E2E.
+
+## Next Session Exact Sequence
+1. Re-read this checkpoint and Report269.
+2. Verify System HEAD + parent again.
+3. Verify Mother HEAD + parent + main.html blob; do not modify Mother.
+4. Verify standalone `vouchers.html` SHA and confirm the six surgical replacements were applied.
+5. Run browser E2E:
+   Login → permissions app → CREATE Transfer → simulate response-loss retry → SEND → partial RECEIVE → same-operation retry → remainder RECEIVE → COMPLETE → details → movement evidence → audit → list filters → realtime refresh.
+6. If browser PASS, close Voucher Consumer Closure.
+7. Only then open the next explicit Business Contract.
+8. Never rebuild already-closed Inventory Core or receive idempotency.
+
+## Final Session Status
+- Voucher Production Core: VERIFIED
+- Voucher physical movement centralization: VERIFIED/PRESERVED
+- Production authenticated audit capability: DEPLOYED
+- Standalone voucher consumer surgery: READY
+- Mother: untouched
+- Browser E2E: OPEN
+- Global closure: NOT CLOSED until browser evidence exists
+
+# END SESSION CHECKPOINT — WAREHOUSE VOUCHERS FORENSIC SURGICAL CLOSURE
