@@ -5793,3 +5793,111 @@ These remain explicitly open and must not be claimed closed:
 - Delivery Logistics Control Plane: PRODUCTION CORE VERIFIED.
 - Mother browser integration: OPEN — owner-applied patch required.
 - Overall advanced-TMS target: INCOMPLETE by explicit open contracts above.
+
+
+# SESSION CHECKPOINT — DELIVERY LOGISTICS RUNTIME IIFE CLOSURE — 2026-09-20
+
+## Current Truth
+
+### System Git
+- Current HEAD after this closure sequence: 6df75263a37cc58fa760867316c0e5f9d9fa288f
+- Current parent: db3f7e7fdf66ddab2e7c2d8f1c5ea8d4e8776635
+- Immediate Delivery runtime-fix commit: e55796596caf3268537726434ba3c25144c39ff2
+- Delivery documentation/patch narrowing commit: db3f7e7fdf66ddab2e7c2d8f1c5ea8d4e8776635
+- Final forensic report commit: 6df75263a37cc58fa760867316c0e5f9d9fa288f
+
+### Mother Git
+- Current Mother HEAD verified: 56a39bd8324f1c9a8c94bd686544b50fb76dfa56
+- Current Mother parent: 87426c6cb6269681ba074c609f0b253721668ccb
+- Current Mother main.html blob: 313f8dc17f9ece81d94cee19dd798bcc9915e1f4
+- Current Mother main.html already contains Delivery navigation, icon, title, access guard, router branch, and full Delivery IIFE.
+- Mother main.html was not modified by this executor.
+
+## Proven Root Cause
+- The Mother router calls RW_DeliveryLogistics.render() using the lexical variable.
+- Delivery module was declared as var RW_DeliveryLogistics = (function(){ ... })();
+- The IIFE assigned api to window.RW_DeliveryLogistics but did not return api.
+- Therefore lexical RW_DeliveryLogistics was undefined while window.RW_DeliveryLogistics was valid.
+- This exactly explains TypeError: Cannot read properties of undefined (reading 'render') at the existing Delivery router line.
+
+## Surgical Fix
+- Canonical module: Current/PWA/owner-patches/RW_DeliveryLogistics.js
+- Corrected SHA: cab4e9aae0cea0ead9d98210bbd15876df9e5a01
+- Exact fix: add `return api;` immediately before the Delivery IIFE closing `})();`.
+- Existing router was intentionally not changed.
+- Existing Delivery module was not rebuilt.
+
+## Mother Surgical Patch
+- Current patch file: Current/PWA/owner-patches/DELIVERY_LOGISTICS_MAIN_HTML_SURGICAL_PATCH.md
+- Current SHA: ba25f1ee84c7d1a4d49c5e9b12c9b5b175d354f2
+- Patch is now tail-only because all historical Delivery integration points are already present in current Mother.
+- Owner action only: replace the exact defective final Delivery IIFE tail with the version containing `return api;`.
+
+## Production Current Snapshot
+- Supabase project: fiilmooggumokxanwiyx
+- Verified at: 2026-09-20 09:31:29.960469+00
+- companies = 1
+- delivery_agents = 0
+- delivery_route_plans = 0
+- delivery_route_stops = 0
+- delivery_collection_receipts = 0
+- DELIVERY erp_operation_registry rows = 0
+- delivery_logistics_command_atomic = 1 deployed signature
+- delivery_logistics_query = 1 deployed signature
+- Unauthorized query execution was rejected by the Delivery authorization guard.
+- Authorized OWNER query returned success with the current zero-data dashboard.
+- No permanent Delivery test data exists.
+
+## Production Change Decision
+- No Production schema change was required for this browser-only IIFE defect.
+- No new Edge Function was created.
+- Existing Delivery RPC architecture remains authoritative.
+- Delivery Control Plane remains supervisory/control-plane only and does not mutate Physical Stock directly.
+
+## Semantic Verification
+- Before fix harness: lexical module = undefined; window module = valid; same object = false.
+- After fix harness: lexical module = object with render; window module = valid; same object = true.
+- This is the direct runtime semantic proof of the reported failure and correction.
+
+## Delivery Competitive Gap Status
+- Existing core remains: route plans, route stops, delivery-agent management, optimization using geographic distance, arrival, POD metadata, collection, performance, vehicle/driver context, and Fleet/Runsheet integration.
+- Explicit remaining contracts are not to be reopened in this browser bug closure:
+  1. Road-network routing provider.
+  2. Live traffic.
+  3. Per-stop delivery time windows / SLA.
+  4. Global multi-vehicle optimization.
+  5. Continuous telematics/live GPS.
+  6. Binary/media-backed POD.
+  7. Formal Collection → Daily Settlement → Accounting reconciliation.
+  8. Carrier/rate/route-guide planning pattern seen in Dynamics.
+  9. Customer delivery notification automation comparable to Daftra.
+  10. Delivery Note/packing document as a derived view without creating a parallel execution cycle.
+- These remain evidence-based next contracts, not part of the IIFE defect.
+
+## Browser Gate
+- Status: OPEN.
+- Reason: current Mother source still contains the proven missing return until the owner applies the exact surgical replacement in the deployed Mother.
+- Do not claim Browser PASS from Git/SQL/harness alone.
+
+## Required Next Session Start
+1. Re-verify current System HEAD + parent.
+2. Re-verify current Mother HEAD + parent + main.html blob.
+3. Verify the exact Delivery IIFE tail now contains `return api;` in deployed Mother.
+4. Run Browser Production E2E for Delivery only.
+5. Record browser console result and deployed Mother blob.
+6. If PASS, close Browser Gate and only then inspect the next single Delivery open contract.
+7. Do not rebuild Delivery Control Plane, Fleet, Runsheets, Inventory, or field Delivery.
+
+## Continuity Warning
+- Report267 and earlier Delivery reports are historical evidence, not Current Truth.
+- Do not repeat the old ADD-ONLY Mother patch from Report267; current Mother already contains those elements.
+- Do not re-open the IIFE root cause after the exact return fix has been verified.
+
+## Final Session Status
+- Delivery Production Core: CLOSED/VERIFIED
+- Delivery source runtime binding defect: FIXED IN CANONICAL GIT
+- Delivery surgical Mother patch: READY
+- Mother Browser Runtime: OPEN until owner deployment and browser verification
+- Overall advanced-TMS completeness: INCOMPLETE by explicit evidence-based open contracts
+
+# END SESSION CHECKPOINT — DELIVERY LOGISTICS RUNTIME IIFE CLOSURE
