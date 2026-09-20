@@ -5273,3 +5273,118 @@ The previous Detailed Reports navigation fault was not a current defect; it had 
 
 ### Next-session instruction
 Start from this section plus Report263. Re-verify CURRENT GIT, CURRENT MOTHER SOURCE, CURRENT PRODUCTION, and CURRENT DEPLOYMENT before any new closure. Verify Owner application of the Report263 Mother patch; do not rebuild the RPC or reopen Report262. Then proceed only to the next proven Business Contract gap.
+
+# CURRENT FLEET MANAGEMENT RUNTIME FORENSIC CHECKPOINT — Report265 — 2026-09-20
+
+## Authoritative Current Evidence
+
+### System Git
+- Current checkpoint immediately before this state update: ab3c720266043f4df3129904b2e723c853bc8a85
+- Parent: 69c7259b7b5e5a7369a174e3aebbd776386e1d3b
+- Fleet canonical module patch updated in this session.
+- Fleet surgical Mother patch updated in this session.
+- Report265 recorded current runtime root cause.
+
+### Mother Git
+- Current HEAD: ddcd9995240605dd9bcf31ab1abb1a774b887f84
+- Parent: 1823f9ab0e6f88c0118585c0b4f50a0b9b36bc38
+- Current main.html blob: 6074a4fc5f915701b23af5d7b6fca8a083c0a9dd
+- Mother main.html was NOT edited by CTO.
+
+### Production
+- Snapshot UTC: 2026-09-20T06:03:43.513378+00
+- companies = 1
+- branches = 2
+- items = 17
+- vehicles = 0
+- fleet_drivers = 0
+- fleet_vehicle_assignments = 0
+- vehicle_tracking = 0
+- fleet_fuel_transactions = 0
+- vehicle_maintenance = 0
+- fleet_maintenance_plans = 0
+- fleet_incidents = 0
+- fleet_driver_performance_events = 0
+- fleet_expenses = 0
+- authenticated EXECUTE on fleet_command_atomic = verified
+- authenticated EXECUTE on fleet_query = verified
+
+## Current Fleet Runtime Truth
+
+The Fleet database/RPC layer is healthy. The current Mother already contains the Fleet module and route.
+
+The proven current defect is a JavaScript IIFE return-contract defect:
+
+- declaration: var RW_FleetManagement = (function() { ... })();
+- router: RW_FleetManagement.render()
+- old IIFE tail assigned window.RW_FleetManagement but returned nothing.
+
+Therefore the lexical RW_FleetManagement value was undefined even though window.RW_FleetManagement existed, producing:
+Cannot read properties of undefined (reading 'render').
+
+## Exact Closure
+
+Canonical owner module:
+Current/PWA/owner-patches/RW_FleetManagement.js
+
+Its IIFE now returns the exported API object.
+
+Owner Mother patch:
+Current/PWA/owner-patches/FLEET_MAIN_HTML_SURGICAL_PATCH.md
+
+Required Mother change:
+replace only the Fleet IIFE tail with the corrected api + window assignment + return api block recorded in Report265.
+
+## No Production Change Required
+
+For this runtime defect:
+- Production SQL = 0 changes
+- New Edge Functions = 0
+- New RPCs = 0
+- Fleet schema changes = 0
+
+The defect is in the Mother JavaScript module binding, not the Fleet Production backend.
+
+## Fleet Production Core
+
+Remains CLOSED from the previous Fleet closure and was re-verified in current Production.
+No Vehicle/Runsheet/Inventory/Daily Settlement engine was rebuilt.
+
+## Fleet Competitive Contract Status
+
+Current core includes:
+Vehicle, Driver, Documents, Assignments, Contracts, Odometer, Fuel, Preventive Maintenance, Maintenance Service, Incidents, Driver Performance Events, Expenses, Alerts, Costs, Unified Command/Query, Tenant Guards, Idempotency, Runsheet integration, VAN stock integration.
+
+Still unproven business contracts:
+- Vehicle ↔ Fixed Asset lifecycle
+- Maintenance Plan → scheduled Work Order lifecycle
+- Work Order → spare-part issue → post_stock_movement
+- Telematics/GPS ingestion
+- Scheduled notifications
+- True On-Time Delivery KPI based on a real scheduled-delivery timestamp
+
+Do not fabricate these contracts.
+
+## Browser Closure State
+
+Browser E2E after applying the owner patch is OPEN.
+Do not claim live UI PASS or zero-console-errors until the Mother cutover is actually tested.
+
+Tailwind CDN warning is unrelated to the Fleet root cause and remains outside the Fleet surgical scope.
+
+## Next Session Start
+
+1. Re-verify System HEAD and parent.
+2. Re-verify Mother HEAD, parent, and current main.html blob.
+3. Verify the exact Fleet IIFE tail contains return api.
+4. Verify the Fleet router branch is still unchanged.
+5. Apply only the exact Mother owner patch.
+6. Run JavaScript parse/assembly verification.
+7. Run Browser Production E2E for Fleet only.
+8. Re-snapshot Production.
+9. Close Browser E2E only after runtime evidence.
+10. Then open the next Fleet business contract from current Production evidence; do not rebuild already-closed Fleet core.
+
+## Final Session Instruction
+
+Never trust Report265 or any older report as Current Truth. Start from CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT evidence.
