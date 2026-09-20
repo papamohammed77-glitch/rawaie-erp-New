@@ -6218,3 +6218,217 @@ Mother main.html was NOT modified.
 - Report270: doc/Draft/Reprots/Report270_WAREHOUSE_VOUCHERS_FILTERLIST_AND_JS_INTEGRITY_20260920.md
 
 # END SESSION CHECKPOINT — WAREHOUSE VOUCHERS FILTERLIST + JS INTEGRITY
+
+
+---
+
+# SESSION CHECKPOINT — WAREHOUSE VOUCHERS RUNTIME BOOT FORENSIC — 2026-09-20
+
+## Scope Lock
+- Focused capability: standalone warehouse vouchers runtime boot/integration.
+- Owner file: `erp-frontend/companies/company-1/warehouse/vouchers.html`
+- Mother: `erp-frontend/companies/company-1/main.html` — NOT MODIFIED.
+- Standalone vouchers source — NOT MODIFIED by CTO.
+- No new Edge Function created.
+
+## Current Git Truth
+### System
+- HEAD immediately before this checkpoint write: `da627d4947a309a792f98459ffc117ddad03b381`
+- Parent: `b5fddb21c4e4ab879eedde7fd7f4dbe448677dc8`
+- Report271: `doc/Draft/Reprots/Report271_WAREHOUSE_VOUCHERS_RUNTIME_BOOT_FORENSIC_SURGICAL_CLOSURE_20260920.md`
+
+### Standalone frontend
+- Current vouchers SHA: `6a69faa4443e72b20ff6701b0d0dfe0bf77dc44e`
+- Current vouchers source length: 69,346 bytes
+- Current vouchers source lines: 741
+- Current source commit lineage verified through:
+  - `3516a2465c0a5a10563fda0f4726f1647c75c9b9`
+  - parent `d1aaac986f9f729ec47baf56a943dc90477950ef`
+- `filterList` exists once in Current Source; do not reopen Report270 surgery unless regression is proven.
+
+### Shared assets
+- `companies/company-1/core.js`
+  - SHA: `b3da51ee5a577e1aef346beb0ed4a866df7d563c`
+  - syntax: PASS
+- `companies/company-1/register-sw.js`
+  - SHA: `9a8f8b14be0cfb92e82077c36b36fab9b452c8ec`
+  - syntax: PASS
+  - explicitly skips vouchers.html registration
+- `companies/company-1/sw.js`
+  - SHA: `6123fce8b99391d70e6937bde5c4fcbd3f2d8f48`
+  - syntax: PASS
+
+### Mother
+- Latest commit verified: `3516a2465c0a5a10563fda0f4726f1647c75c9b9`
+- Parent: `d1aaac986f9f729ec47baf56a943dc90477950ef`
+- main.html blob: `453565c39a50fdcf73eb03a97a1fc7d7ac10bb2f`
+- Mother warehouse tree verified:
+  - إدارة المخازن والمخزون
+  - الأذونات المخزنية
+  - transfer
+  - direct-sale
+  - direct-return
+  - supplier-return
+  - vouchers
+- Mother router verified:
+  - `view === 'vouchers' -> RW_Warehouse.loadVouchers()`
+
+## Current Production Truth
+Supabase:
+`fiilmooggumokxanwiyx`
+
+- companies = 1
+- branches = 2
+- items = 17
+- stock_vouchers = 0
+- stock_voucher_details = 0
+- stock_voucher_operations = 0
+- inventory_log = 3
+- active users with `active_warehouse_role='أذونات'` = 1
+
+Verified voucher-role user:
+- `vouchers@rawaea.com`
+- role = `مخزني`
+- active_warehouse_role = `أذونات`
+- status = `Active`
+- allowed_branch_ids = `BR-01`
+
+## Production Contract
+Verified deployed PostgreSQL capabilities:
+- `create_manual_stock_voucher_atomic` canonical 12-argument overload exists.
+- `post_manual_stock_voucher_atomic` exists.
+- `send_stock_voucher_atomic` exists.
+- `complete_manual_stock_voucher_atomic` exists.
+- `cancel_manual_stock_voucher_atomic` exists.
+- `inventory_control(text,jsonb)` exists.
+- `post_stock_movement` exists in 9- and 10-argument forms.
+- `reserve_stock` remains reservation-only.
+
+Existing Edge Functions:
+- create-stock-voucher v10
+- send-stock-voucher v20
+- receive-stock-voucher v22
+- complete-stock-voucher v4
+- cancel-stock-voucher v4
+- bulk-stock-adjustment v7
+
+No new Edge Function created.
+
+## Root Cause — CLOSED AT SOURCE LEVEL
+The standalone page was failing before authentication because:
+
+1. line 9 requested `core.js` relative to `warehouse/`, producing a 404.
+2. line 9 then reassigned the configured global Supabase client with `var supabase=window.supabase`.
+3. line 739 requested `sw.js` relative to `warehouse/`, producing a 404.
+4. line 740 redundantly requested `register-sw.js` relative to `warehouse/`; that file is actually one directory above and intentionally skips vouchers.html anyway.
+
+This caused:
+- `RW_UI is not defined`
+- `RW_SW is not defined`
+- Service Worker registration 404
+- apparent login failure
+
+The Production account/role itself is present and active.
+
+## Owner Surgical Patch — READY
+File only:
+`erp-frontend/companies/company-1/warehouse/vouchers.html`
+
+Current SHA:
+`6a69faa4443e72b20ff6701b0d0dfe0bf77dc44e`
+
+Exact owner changes documented in Report271:
+
+### Patch A
+Line 9:
+replace
+`<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="core.js"></script><script>var supabase=window.supabase;</script>`
+with
+`<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="../core.js"></script>`
+
+### Patch B
+Line 739:
+replace
+`RW_SW.register('sw.js')`
+with
+`RW_SW.register('../sw.js')`
+
+### Patch C
+Line 740:
+replace
+`</script><script src="register-sw.js"></script></body></html>`
+with
+`</script></body></html>`
+
+Do not modify doLogin/init/filterList/details/receive/submit or Mother.
+
+## Static Validation
+Temporary in-memory patched source:
+- correct core path = 1
+- wrong core path = 0
+- correct SW registration = 1
+- wrong SW registration = 0
+- register-sw script tag = 0
+- Supabase overwrite = 0
+- inline JavaScript parser = PASS
+- current core.js syntax = PASS
+- current register-sw.js syntax = PASS
+- current sw.js syntax = PASS
+
+## Historical Reconciliation
+Historical vouchers source used:
+- `../core.js`
+- `../sw.js`
+- no `var supabase=window.supabase`
+
+Therefore the owner patch restores the established path contract; it is not a redesign.
+
+## Competitive Gap Status
+Still evidence-based open capabilities:
+- Before/After stock evidence inside voucher details.
+- Bulk import/paste.
+- Optional approval workflow.
+- Attachments/documents.
+- Lot/serial/expiry if adopted as RAWAEA contract.
+- Deeper in-transit lifecycle if adopted.
+- Formal print/export document contract.
+
+Do not implement any of these merely because competitors have them. They require an explicit RAWAEA contract first.
+
+## Closure State
+- Historical reconstruction = PASS
+- Current Git reconciliation = PASS
+- Current Source reconciliation = PASS
+- Current Production reconciliation = PASS
+- Root cause = PROVEN
+- Owner surgical patch = READY
+- Static patched-source validation = PASS
+- Mother = UNTOUCHED
+- Production change in this checkpoint = NONE REQUIRED
+- Browser E2E = OPEN
+- Standalone Voucher Consumer Closure = OPEN
+
+## Exact Next Resumption Point
+1. Verify current vouchers SHA again.
+2. Apply only Patch A/B/C from Report271.
+3. Deploy the standalone frontend through its existing deployment path.
+4. Verify browser network:
+   - `../core.js` -> 200
+   - `../sw.js` -> 200
+   - no `warehouse/core.js`
+   - no `warehouse/register-sw.js`
+   - no `warehouse/sw.js`
+5. Verify `RW_UI`, `RW_Auth`, `RW_API`, `RW_SW` exist before App.init.
+6. Login with the existing vouchers role.
+7. Run the voucher Browser E2E already defined by the previous closure.
+8. Re-read Production and prove no duplicate physical movement.
+9. Only after those gates pass, mark Standalone Voucher Consumer = CLOSED.
+10. Do not reopen closed Inventory Core/filterList/escaping/idempotency work without a new proven regression.
+
+## Governing Instruction For Next Assistant
+Treat Reports 269/270 as historical evidence only.
+The next current truth is:
+CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT.
+No assumption may override those five sources.
+
+# END SESSION CHECKPOINT — WAREHOUSE VOUCHERS RUNTIME BOOT FORENSIC
