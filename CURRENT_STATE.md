@@ -6579,3 +6579,87 @@ Then:
 8. Only then mark Standalone Voucher Consumer CLOSED.
 
 # END SESSION CHECKPOINT — WAREHOUSE VOUCHERS INTEGRATION FORENSIC — 2026-09-20
+
+---
+## SESSION CHECKPOINT — WAREHOUSE VOUCHERS FORENSIC SURGICAL CLOSURE — 2026-09-20
+
+### Current authoritative state
+- System repo HEAD: `06b93f6b92f0041b09115f2bed8dc836e7b2a175`
+- Frontend repo latest HEAD after E2E workflow infrastructure: `ec9f6bdaf8bb70a90561e7add1da9bb9a032d9bf`
+- Current standalone voucher file SHA remains: `881fc2a761ab89f912cf984c577fc129b7719342`
+- Latest relevant vouchers source change before this checkpoint: `bc747e2b7157c13bbb1d6dd6b33a9464778e9cd5` (parent `3516a2465c0a5a10563fda0f4726f1647c75c9b9`).
+- `main.html`, `core.js`, `sw.js`, `register-sw.js`, and `vouchers.html` were not modified by this session.
+
+### Production changes completed
+- Public voucher wrappers now enforce authenticated company actor + allowed branch scope.
+- Owner wildcard semantics remain `permissions=["*"]`.
+- Internal voucher core RPCs were closed to direct `service_role`/anonymous/authenticated execution; public wrapper remains the API contract.
+- No new Edge Function was created.
+- Physical stock remains centralized through `post_stock_movement`.
+
+### Production verification
+Transactional E2E passed:
+- voucher user denied CREATE from BR-02.
+- voucher user denied SEND from BR-02.
+- Owner CREATE/SEND passed.
+- voucher user denied RECEIVE into BR-02.
+- Entire test transaction rolled back.
+- Persistent ACL test residue = 0.
+
+### Consumer patch — NOT YET APPLIED
+Exact surgical replacements are documented in:
+`doc/Draft/Reprots/Report273_WAREHOUSE_VOUCHERS_FORENSIC_CURRENT_REALITY_AND_SURGICAL_CLOSURE_20260920.md`
+
+Required user-side file:
+`erp-frontend/companies/company-1/warehouse/vouchers.html`
+
+Only these three replacements are pending:
+1. `App.init`
+2. `allowedBranch`
+3. `pickArr`
+
+Static in-memory validation of the proposed replacement set = PASS.
+
+### Historical defects that are already CLOSED
+- wrong `core.js` relative path
+- wrong Service Worker path
+- duplicate `register-sw.js` loading
+- legacy direct stock writes in the current standalone consumer
+Do not repeat these repairs.
+
+### Browser E2E infrastructure
+Created:
+`erp-frontend/.github/workflows/warehouse_vouchers_browser_e2e_20260920.yml`
+
+Its purpose is to eliminate session-window dependency and provide repeatable browser boot evidence. It checks:
+- voucher page HTTP load;
+- `../core.js` HTTP 200;
+- `../sw.js` HTTP 200;
+- no request to `warehouse/sw.js`;
+- login controls exist;
+- no console/page errors;
+- inline JS syntax.
+
+Latest workflow run:
+- Run #3, head `ec9f6bdaf8bb70a90561e7add1da9bb9a032d9bf`
+- status at checkpoint: **in_progress**
+- Production credential-backed browser login is not claimed; no password was invented.
+
+### Competitive gap status
+Safe existing capabilities confirmed: internal transfer, direct van stock, direct return, supplier return, scanner, realtime refresh, idempotency, audit readback.
+Not implemented as approved RAWAEA business contracts: attachments, separate approval/rejection workflow, stock-request→voucher conversion, lot/serial/expiry, independent in-transit ledger, bulk CSV/Paste, full per-movement accounting offset policy.
+Do not build these from competitor behavior alone; require RAWAEA contract decision.
+
+### Next-session sequence
+1. Read this checkpoint and Report273.
+2. Verify frontend `vouchers.html` SHA and confirm the three pending replacements are still absent/present.
+3. If absent, apply exactly the three documented replacements in `vouchers.html`; do not modify `main.html`.
+4. Run static syntax.
+5. Review Browser E2E run result and rerun if needed.
+6. Perform credential-backed browser login only with authorized secrets.
+7. Re-check Production voucher wrapper/core ACL and Physical Writer centralization.
+8. Only after closure, move to the next explicitly approved voucher business-contract gap.
+
+### Governing rule
+Reports are historical evidence only. Before every new closure use:
+CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
