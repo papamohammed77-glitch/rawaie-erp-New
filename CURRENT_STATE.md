@@ -7033,3 +7033,128 @@ Final:
 - MOTHER DATA VISIBILITY = VERIFIED
 - STANDALONE CONSUMER = OPEN FOR OWNER PATCH + BROWSER E2E
 - PRODUCTION VOUCHER DATA REPAIR = NONE
+
+
+---
+
+# CURRENT SESSION UPDATE — 2026-09-20 — WAREHOUSE VOUCHERS / MOTHER INTEGRATION CONTINUATION
+
+## Scope
+- Standalone: `erp-frontend/companies/company-1/warehouse/vouchers.html`
+- Mother: `erp-frontend/companies/company-1/main.html` — READ ONLY
+- No root frontend files changed.
+- No new Edge Function created.
+
+## Current Git
+- System HEAD: `e969579ae524e17ef586b0c694970610a5282e97`
+- System parent: `d17db440071bd7af8e7d6627bcd77a2cb9b4df0f`
+- Frontend vouchers HEAD: `f6d0558f1ae1525ccdb32bc6269ca87d9c378ae2`
+- Frontend vouchers parent: `8a1a75dd840b32cfc135178a9a9c466adefaf0ee`
+- Current vouchers blob: `887e9cbe85774c3702219a9030c3a6ed7a759bc4`
+- Mother current forensic blob: `e2b0dcb8317034363365fe728e8b4c33d1bf08da`
+
+## Production truth
+Checked at `2026-09-20 18:37:51.586275+00`.
+
+- companies = 1
+- branches = 2
+- active_items = 16
+- active_vehicles = 0
+- active_suppliers = 1
+- stock_vouchers = 0
+- stock_voucher_details = 0
+- stock_voucher_operations = 0
+- inventory_log = 3
+- audit_log = 2022
+
+Current voucher Production capabilities verified:
+- `create_manual_stock_voucher_atomic`
+- `post_manual_stock_voucher_atomic`
+- `send_stock_voucher_atomic`
+- `complete_manual_stock_voucher_atomic`
+- `cancel_manual_stock_voucher_atomic`
+- `inventory_control`
+- `post_stock_movement`
+
+Current voucher Edge deployments:
+- create-stock-voucher v10
+- send-stock-voucher v20
+- receive-stock-voucher v22
+- complete-stock-voucher v4
+- cancel-stock-voucher v4
+
+No new Edge Function required.
+
+## Current architectural finding
+The four Mother routes:
+- vouchers
+- transfer
+- direct-sale
+- direct-return
+- supplier-return
+
+are currently split between one historical/unified Voucher surface and four creation-form routes. Historical manual Voucher visibility is already possible through the unified Mother Voucher history because it reads the same Production `stock_vouchers` data and filters by manual source/type/status/date.
+
+Do not create a second historical data model.
+
+## Current vouchers consumer state
+Already closed and must not be redone:
+- category/runtime fix
+- App.init
+- allowedBranch / branch authorization
+- pickArr / selection
+- boot/runtime fixes
+- receive operation identity
+- current Production voucher RPC contract
+
+## Remaining owner surgical patch
+File:
+`erp-frontend/companies/company-1/warehouse/vouchers.html`
+
+1. In `newWorkspace:function(){`, delete exactly:
+`sessionStorage.removeItem('RW_VOUCHER_CREATE:'+s.company+':'+s.type);`
+
+2. In `submit:function(){`, replace the CREATE idempotency storage calls:
+- `sessionStorage.getItem(storageKey)` → `localStorage.getItem(storageKey)`
+- `sessionStorage.setItem(` → `localStorage.setItem(`
+- CREATE success `sessionStorage.removeItem(storageKey)` → `localStorage.removeItem(storageKey)`
+
+3. Replace the complete `filterList:function(){...}` with the Report276 smart-search version.
+
+4. Replace the complete `renderCart:function(){...}` with the Report276 projected Available Before/After version.
+
+5. In `loadList:function(scope){`, replace exactly:
+`.limit(150);`
+with:
+`.limit(1000);`
+
+Full replacement blocks are stored in:
+`doc/Draft/Reprots/Report276_WAREHOUSE_VOUCHERS_MOTHER_INTEGRATION_SURGICAL_CONTINUATION_20260920.md`
+
+## Production changes in this session
+None required. Production already contains the necessary authenticated RPC/control-plane contract. Avoid redoing closed migrations or creating new Edge Functions.
+
+## E2E status
+Backend transactional E2E remains verified from the prior closure:
+CREATE → SEND → RECEIVE → COMPLETE → ROLLBACK
+with no permanent residue.
+
+Browser E2E remains OPEN until Owner applies the source patch.
+
+Current Production has no active vehicles and no Purchase Orders, so positive DirectSale/DirectReturn/SupplierReturn runtime E2E cannot be executed against real current data without creating test fixtures. Do not create permanent fixtures merely to produce a green result.
+
+## Error forensic result
+No literal runtime error was supplied in the user's message; do not invent one.
+The current confirmed source defect is CREATE operation identity persistence in `sessionStorage` rather than durable `localStorage`.
+
+## Final status
+- Production Voucher Core = VERIFIED
+- Physical Stock Centralization = VERIFIED
+- Mother data visibility = VERIFIED through unified manual Voucher history
+- Standalone Consumer = OPEN FOR OWNER PATCH + BROWSER E2E
+- Production Voucher data repair = NONE
+- New Edge Function = NO
+- Report276 = `b66a2d6d71d1149d2d80895c594ff76d5521dfbc`
+
+## Next session
+Start from this section. Re-fetch current HEAD/parent and the current vouchers blob before touching anything. Check whether the exact owner patch is already present. Do not repeat closed fixes. Run Browser E2E first after the owner patch, then reread Production and close only when Source + Production + Deployment + Browser evidence agree.
