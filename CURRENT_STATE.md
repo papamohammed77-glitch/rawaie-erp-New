@@ -5641,3 +5641,155 @@ CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT D
 then close the Browser gate, then inspect only the next proven Fleet Business Contract.
 
 # END FINAL SESSION CHECKPOINT — REPORT266
+
+# SESSION CHECKPOINT — DELIVERY & LOGISTICS CONTROL PLANE — 2026-09-20
+
+## Current Truth After Closure Work
+
+### System Git
+- Baseline verified before work: b0648354231147c065a97f48e7d85a3161e210f7
+- Baseline parent: 0f311de839a076eda7ffb0f93f3f14933ecb071c
+- Latest session commit before this state update: 7269506c5d82b08d7441c478df06f5ffbeec7175
+- Session commits include:
+  - 32f72bd5bc27258229208e6d7adac313c439d85a — RW_DeliveryLogistics created
+  - be8c212b215a4cb46816a65831206918889ddc37 — route-status action parsing fix
+  - 5cedd00768dcd3d4e3de29c28406f606e1a22bb3 — performance UI headers
+  - 7e5086f3f2d96975bb5a1747a505c35a052fb6c7 — canonical Production migration snapshot
+  - 0cdd8845e1693edf1d7474d3f558fa5fc54d2cae — Mother surgical patch
+  - 7269506c5d82b08d7441c478df06f5ffbeec7175 — Report267
+
+### Mother Git
+- Current verified HEAD: 46549e9237f3b946d6bcc18cdab78b9ead57f0c5
+- Current parent: 3e7673797848b011082765be13afa969496711ff
+- Current main.html blob: e428fac9213de08a67a6e40e4c88a9d3c8920232
+- main.html was NOT modified in this session.
+
+### Production
+Project: fiilmooggumokxanwiyx
+Final structural snapshot after verification: 2026-09-20 08:23:36 UTC
+- delivery_agents = 0
+- delivery_route_plans = 0
+- delivery_route_stops = 0
+- delivery_collection_receipts = 0
+- erp_operation_registry rows for Delivery = 0
+- This zero state is intentional; E2E records were transactional and rolled back.
+
+### Production Components Added
+- delivery_agents
+- delivery_route_plans
+- delivery_route_stops
+- delivery_collection_receipts
+- fn_delivery_relation_guard
+- delivery_logistics_command_atomic
+- delivery_logistics_query
+- RLS enabled; direct authenticated DML blocked.
+- Existing audit trigger path reused.
+- No Edge Function created.
+
+### Delivery Command Contract
+Supported commands:
+- AGENT_CREATE
+- AGENT_UPDATE
+- ROUTE_PLAN_CREATE
+- ROUTE_OPTIMIZE
+- ROUTE_AGENT_ASSIGN
+- STOP_ARRIVE
+- STOP_POD
+- ROUTE_STATUS
+- COLLECTION_RECORD
+- COLLECTION_VOID
+
+### Delivery Query Contract
+Supported views:
+- dashboard
+- routes
+- route_detail
+- planning
+- agents
+- collections
+- performance
+
+Performance now exposes:
+- assigned stops
+- delivered / partial / refused / returned
+- on-time %
+- actual delivery speed km/h where evidence exists
+- average minutes per stop
+- order value
+- collected amount
+
+### Canonical Mother Module
+File:
+Current/PWA/owner-patches/RW_DeliveryLogistics.js
+
+Current blob SHA:
+aae4d353ff703904390064a8e93b7c9568e5b94e
+
+Syntax:
+PASS — parsed with JS new Function() without execution.
+
+### Mother Surgical Patch
+File:
+Current/PWA/owner-patches/DELIVERY_LOGISTICS_MAIN_HTML_SURGICAL_PATCH.md
+
+File SHA:
+95a71026c823a5d6c6f35f759be8c70d0b227a3c
+
+Required owner action:
+- add navigation item beside existing Fleet item.
+- add icon/title.
+- add access guard.
+- add router hook.
+- insert full RW_DeliveryLogistics.js immediately before exact RW_Views marker.
+
+### Canonical Production Source
+File:
+supabase/migrations/20260920_delivery_logistics_control_plane_closure.sql
+
+This file is the consolidated canonical Production source snapshot for the Delivery Control Plane. It includes the final delivery_logistics_query definition with performance speed metrics.
+
+### Reports
+Primary final report:
+doc/Draft/Reprots/Report267_DELIVERY_LOGISTICS_MANAGEMENT_FORENSIC_SURGICAL_CLOSURE_20260920.md
+
+### Historical/Current Findings
+- Existing driver field app remains the field execution authority.
+- complete-order-delivery remains current order-completion capability.
+- Fleet capacity and runsheet assignment remain under existing Fleet/Runsheet engines.
+- Legacy save-delivery-item and start-order-delivery were identified as non-consumed legacy capabilities in the current field-app review; they were not modified in this session to avoid changing an unconsumed external path without a proven requirement.
+- The central Delivery Control Plane did not previously exist as a first-class contract; the capability was distributed across Orders, Runsheets, Field Delivery, Fleet, settlement and legacy edges.
+
+### Verification
+PASS:
+- Full Delivery E2E transaction: Order → Runsheet → Agent → Route Plan → Agent assignment → Route optimization → Arrival → POD → Collection → Route detail → Performance → Rollback.
+- Collection idempotency with same operation_id.
+- Unauthorized query blocked.
+- Direct authenticated DML blocked on new Control Plane tables.
+- Production rollback residue = 0.
+- Final RPC signatures verified.
+- Module syntax verified.
+
+### Open Contracts — Do Not Rebuild Existing Work
+These remain explicitly open and must not be claimed closed:
+1. Road-network driving route provider.
+2. Live traffic integration.
+3. Per-stop delivery time windows / SLA constraints.
+4. Global multi-vehicle optimization.
+5. Continuous telematics / live GPS fleet tracking.
+6. Binary/media-backed signature/photo POD.
+7. Formal Collection → Daily Settlement → Accounting reconciliation contract.
+
+### Next CTO / Assistant Sequence
+1. Verify System Git and Mother HEAD again before any Mother patch.
+2. Apply ONLY the surgical Mother patch.
+3. Browser-test the new tab with a real or controlled runsheet.
+4. Verify Fleet vehicle-capacity assignment is still authoritative.
+5. Verify field Delivery app still closes orders through complete-order-delivery.
+6. Verify Delivery Control Plane does not mutate physical stock.
+7. Record Browser E2E evidence in a new report/state update.
+8. Then work on the next OPEN CONTRACT only; do not rebuild Fleet, Runsheet, Inventory Core, or Field Delivery.
+
+## Final Session Status
+- Delivery Logistics Control Plane: PRODUCTION CORE VERIFIED.
+- Mother browser integration: OPEN — owner-applied patch required.
+- Overall advanced-TMS target: INCOMPLETE by explicit open contracts above.
