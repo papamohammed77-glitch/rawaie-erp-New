@@ -1,9 +1,9 @@
 # RAWAEA ERP — Fleet Management / Surgical Mother Patch
-## Current Mother checkpoint — refreshed 2026-09-20
+## Current Mother checkpoint — verified 2026-09-20
 - Repository: `papamohammed77-glitch/erp-frontend`
-- Current Mother HEAD: `1823f9ab0e6f88c0118585c0b4f50a0b9b36bc38`
-- Parent: `fb8799f854df8d7c50c2874c247a29026a80939b`
-- Current `companies/company-1/main.html` blob: `abb3829ec85724f0053ec0a7a9e035731e9df310`
+- Current Mother HEAD: `ddcd9995240605dd9bcf31ab1abb1a774b887f84`
+- Parent: `1823f9ab0e6f88c0118585c0b4f50a0b9b36bc38`
+- Current `companies/company-1/main.html` blob: `6074a4fc5f915701b23af5d7b6fca8a083c0a9dd`
 - **Do not replace `main.html`. Do not edit unrelated code.**
 - The Mother changed after the original Fleet checkpoint through report-title enhancement and forensic HR extract commits. The Fleet anchors below were re-verified against the current blob.
 - Insert the complete module from `Current/PWA/owner-patches/RW_FleetManagement.js` before the exact marker:
