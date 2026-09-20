@@ -421,4 +421,5 @@
 
   // The field delivery apps remain authoritative for field execution; this module is supervisory/control-plane only.
   window.RW_DeliveryLogistics=api;
+  return api;
 })();
