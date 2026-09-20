@@ -6095,3 +6095,126 @@ These were not invented into the current patch.
 - Global closure: NOT CLOSED until browser evidence exists
 
 # END SESSION CHECKPOINT — WAREHOUSE VOUCHERS FORENSIC SURGICAL CLOSURE
+
+
+---
+
+# SESSION CHECKPOINT — WAREHOUSE VOUCHERS FILTERLIST + JS INTEGRITY — 2026-09-20
+
+## Current Git Truth
+- System commit before this checkpoint/report: 488f9d70fcd447ded3c6bcbfad0e58b9e3c0c0a9
+- Parent: bc2fce96ef0b4a9d105cd300874cb7e08960aea5
+- Report270 commit: 84df2a14f2165acb940c7c9da8aa170c7d2ce122
+- Standalone vouchers current SHA: 74a1c28fa6c073abcc6d72e53b5841968b31b4d0
+- Standalone vouchers latest relevant source commit: d1aaac986f9f729ec47baf56a943dc90477950ef
+- d1 parent: ca15cdaf11fa3aeea0c6fc082df6a18ed0661ab7
+- Mother main.html blob verified: 453565c39a50fdcf73eb03a97a1fc7d7ac10bb2f
+- Mother latest commit touching main.html: 95242a78431d16db460868f83d4dd35a98a1d737
+- Mother parent: 56a39bd8324f1c9a8c94bd686544b50fb76dfa56
+
+## Current Production Truth
+Supabase project: fiilmooggumokx
+Checked at: 2026-09-20T14:55:33.633925+00:00
+
+- companies = 1
+- branches = 2
+- items = 17
+- stock_vouchers = 0
+- stock_voucher_details = 0
+- stock_voucher_operations = 0
+- inventory_log = 3
+- inventory_log current 3 rows are historical VoidInvoice records, not test residue
+- items.item_code is globally UNIQUE
+- stock_vouchers(company_id,voucher_code) is UNIQUE
+- stock_voucher_operations(company_id,operation_id) is UNIQUE
+
+Existing Production voucher capabilities remain deployed:
+- create-stock-voucher v10
+- send-stock-voucher v20
+- receive-stock-voucher v22
+- complete-stock-voucher v4
+- cancel-stock-voucher v4
+- inventory_control(text,jsonb) with VOUCHER_AUDIT
+
+No new Edge Function created.
+No additional Production change was required for the FilterList/JS source defect.
+
+## Current Source Forensic Result
+Current vouchers.html has:
+- four UI callers of App.filterList()
+- zero filterList definitions
+- renderList at line 35
+- cards at line 89
+- pickShow line 372
+- routeHtml line 374
+- renderProducts line 377
+- search line 380
+- itemDetails line 381
+
+Current root cause:
+- d1aa removed the prior filterList method while introducing the new listType/listFrom/listTo UI.
+- d1aa also introduced 26 over-escaped single-quote sequences inside six target functions, causing inline JavaScript parser failure.
+- The historical parent ca15 retained the previous filterList and the correct single-backslash quote escaping.
+
+## Surgical Owner Change
+Owner file only:
+erp-frontend/companies/company-1/warehouse/vouchers.html
+
+A. In these six functions only, replace 26 occurrences of:
+\\'
+with:
+\'
+- cards
+- pickShow
+- routeHtml
+- renderProducts
+- search
+- itemDetails
+
+B. Insert filterList immediately between:
+this.markSync();
+},
+and:
+cards:function(rows,scope){
+
+The full replacement method is documented in:
+doc/Draft/Reprots/Report270_WAREHOUSE_VOUCHERS_FILTERLIST_AND_JS_INTEGRITY_20260920.md
+
+## Validation
+Temporary in-memory patched source:
+- remaining over-escaped quote occurrences = 0
+- filterList definitions = 1
+- full inline JavaScript parser = PASS
+- text filtering = PASS
+- type filtering = PASS
+- date filtering = PASS
+- invalid date-range guard = PASS
+
+The real standalone file was NOT modified by this executor.
+Mother main.html was NOT modified.
+
+## Closure State
+- Current Reality Reconstructed = PASS
+- Root Cause Proven = PASS
+- Production Contract = VERIFIED
+- Production Physical Stock Centralization = PRESERVED
+- Surgical Owner Patch = READY
+- Static Patch Validation = PASS
+- Browser E2E = OPEN
+- Voucher Consumer Final Closure = OPEN
+
+## Exact Next Resumption Point
+1. Verify current standalone vouchers.html SHA again.
+2. Apply only the two surgical changes documented in Report270.
+3. Reparse the inline JS.
+4. Run real Browser E2E:
+   Login → permissions app → CREATE Transfer → response-loss retry → SEND → partial RECEIVE → same-operation retry → remainder RECEIVE → COMPLETE → details → movements → audit → list filters → realtime refresh.
+5. Verify Production deltas and no duplicate movement.
+6. Only then close Voucher Consumer Closure.
+7. Do not rebuild Inventory Core, post_stock_movement, receive idempotency, Mother navigation, barcode, field fulfillment, or Scrap/Adjustment engine.
+
+## Reports
+- Report269: doc/Draft/Reprots/Report269_WAREHOUSE_VOUCHERS_FORENSIC_SURGICAL_CLOSURE_20260920.md
+- Report270: doc/Draft/Reprots/Report270_WAREHOUSE_VOUCHERS_FILTERLIST_AND_JS_INTEGRITY_20260920.md
+
+# END SESSION CHECKPOINT — WAREHOUSE VOUCHERS FILTERLIST + JS INTEGRITY
