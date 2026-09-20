@@ -211,7 +211,7 @@ https://learn.microsoft.com/en-us/dynamics365/supply-chain/asset-management/work
 SAP S/4HANA Maintenance يدعم time-based وperformance-based maintenance plans، ويربطها بقراءات counters/measuring points وبـmaintenance orders أو call objects. المصادر الرسمية:
 https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/c9b5e9de6e674fb99fff88d72c352291/75d28f3290f146a6985d93d35964a1be.html
 https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/e72f747389b340229f7fa343975bfa57/906cb65334e6b54ce10000000a174cb4.html
-https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/f7d969cde600466b96094e772632c3f3/bfa7ce5314894208e100000000a174cb4.html
+https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/f7d969cde600466b96094e772632c3f3/bfa7ce5314894208e10000000a174cb4.html
 
 Daftra يربط سياراته بالعقود والتكاليف والسائقين والأصول والإهلاك والتقارير، ويعرض maintenance orders/work files في تشغيل الصيانة. المصادر الرسمية:
 https://www.daftra.com/en/car-rental/
