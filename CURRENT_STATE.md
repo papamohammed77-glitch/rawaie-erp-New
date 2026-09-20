@@ -7158,3 +7158,76 @@ The current confirmed source defect is CREATE operation identity persistence in 
 
 ## Next session
 Start from this section. Re-fetch current HEAD/parent and the current vouchers blob before touching anything. Check whether the exact owner patch is already present. Do not repeat closed fixes. Run Browser E2E first after the owner patch, then reread Production and close only when Source + Production + Deployment + Browser evidence agree.
+
+---
+
+# CURRENT SESSION UPDATE — 2026-09-20 — VOUCHER TYPE REPORTING / MOTHER READ MODEL
+
+## Scope
+- Focus: Mother warehouse Voucher routes + standalone Voucher integration.
+- Mother main.html: READ ONLY; no automatic source write.
+- Standalone vouchers.html: no source write in this closure.
+- No new Edge Function.
+
+## Current Git truth
+- System repository HEAD at session start: 965304ad01ec689bbc8eac45a0f54ed681a0b25a
+- System parent: b66a2d6d71d1149d2d80895c594ff76d5521dfbc
+- Mother HEAD: 4aebf36b6da684ecb1e09d8f83063e0231c70866
+- Mother parent: 71151fbc2caa17447ad4c1800b02ab30f950937a
+- Mother runtime blob: e2b0dcb8317034363365fe728e8b4c33d1bf08da
+- Standalone vouchers HEAD: f6d0558f1ae1525ccdb32bc6269ca87d9c378ae2
+- Standalone vouchers parent: 8a1a75dd840b32cfc135178a9a9c466adefaf0ee
+- Standalone vouchers blob: 887e9cbe85774c3702219a9030c3a6ed7a759bc4
+
+## Production action
+- Added authenticated read-only RPC: public.inventory_voucher_report(text,jsonb).
+- Permission gate uses authenticated users + company scope + voucher/report/warehouse permissions.
+- Supports LIST/SUMMARY, Manual source, type/status/date filters, smart search, pagination.
+- Drill-down remains on existing inventory_control(VOUCHER_AUDIT).
+- No Physical Stock mutation was added.
+
+## Production verification
+- Authorized warehouse supervisor LIST Transfer: success=true, total=0 on clean Production.
+- Authorized SUMMARY Manual: success=true, total=0 on clean Production.
+- Unauthorized vansales gate: verified denial.
+- Four temporary test documents (Transfer/DirectSale/DirectReturn/SupplierReturn) were visible through the new read contract in one transaction; SUMMARY returned one of each and four Completed; transaction was rolled back.
+- Final clean state: stock_vouchers=0; stock_voucher_details=0; stock_voucher_operations=0; inventory_log=3; audit_log=2022.
+
+## Forensic finding
+- Mother type routes are creation forms; historical Voucher visibility was concentrated in the unified vouchers route.
+- The missing capability was therefore a Consumer/View Contract, not a missing Production document model.
+- No origin_app field is present in the proven schema; none was invented.
+
+## Owner patch
+- Exact patch is stored in doc/Draft/Reprots/Report277_MOTHER_MAIN_SURGICAL_PATCH_20260920.md.
+- PATCH M1 replaces loadVoucherForm(type) at current lines 13900-13956.
+- PATCH M2 inserts _renderVoucherHistory(type) directly before _loadVoucherEntityOptions(type).
+- Patch adds type-scoped historical report, smart server-side search, status/date filtering, pagination, and read-only audit/movement drill-down.
+
+## New report assets
+- doc/Draft/Reprots/Report277_WAREHOUSE_VOUCHERS_MOTHER_TYPE_REPORTING_FORENSIC_CLOSURE_20260920.md
+- doc/Draft/Reprots/Report277_MOTHER_MAIN_SURGICAL_PATCH_20260920.md
+- supabase/migrations/20260920_inventory_voucher_report_read_contract.sql
+
+## Status
+- Production Voucher Core = VERIFIED
+- Voucher Report Read Contract = VERIFIED
+- Tenant Gate = VERIFIED
+- Mother Source = UNTOUCHED
+- Mother Surgical Patch = READY
+- Browser E2E = OPEN
+- Production Data Repair = NONE
+- New Edge Function = NO
+
+## Next session sequence
+1. Re-read this section plus Report277.
+2. Re-fetch current Mother HEAD/parent/blob.
+3. Check whether M1/M2 are already applied.
+4. Run Browser E2E on Transfer first.
+5. Then DirectSale and DirectReturn; SupplierReturn when real operating entities exist.
+6. Re-read Production after Browser verification.
+7. Do not reopen closed Inventory Writer / category / App.init / authorization / receive closures.
+8. Do not declare 100% until Source + Production + Deployment + Browser evidence agree.
+
+## Session reset marker
+Current checkpoint after this session is the Report277 closure package, with the Production reporting capability deployed but the Mother owner patch still pending.
