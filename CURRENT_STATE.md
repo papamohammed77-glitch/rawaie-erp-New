@@ -5388,3 +5388,58 @@ Tailwind CDN warning is unrelated to the Fleet root cause and remains outside th
 ## Final Session Instruction
 
 Never trust Report265 or any older report as Current Truth. Start from CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT evidence.
+
+# FINAL FLEET DOCUMENTATION RECONCILIATION — 2026-09-20
+
+## Last source-only commits in this closure
+- Fleet module canonical fix: e837a18e1eaae2ab6aad5d9cc59697a08eafdec8
+- Fleet surgical patch update: 1c8f97929cb82ca42165c728521ed7bde8c4f9c2
+- Fleet forensic report correction/record: ab3c720266043f4df3129904b2e723c853bc8a85
+- The last commit immediately before this CURRENT_STATE write is 1c8f97929cb82ca42165c728521ed7bde8c4f9c2.
+
+## Current Fleet finding
+The reported Fleet opening error is a Mother JavaScript namespace binding defect, not a Production database defect.
+
+Current Mother:
+- HEAD ddcd9995240605dd9bcf31ab1abb1a774b887f84
+- parent 1823f9ab0e6f88c0118585c0b4f50a0b9b36bc38
+- main.html blob 6074a4fc5f915701b23af5d7b6fca8a083c0a9dd
+
+Exact source defect:
+var RW_FleetManagement = (function() { ... })();
+with an IIFE tail that assigned window.RW_FleetManagement but did not return the API object.
+
+The router calls RW_FleetManagement.render() directly.
+
+Canonical owner module now returns api and assigns the same object to window.RW_FleetManagement.
+
+## Production final verification
+Snapshot:
+2026-09-20T06:03:43.513378+00 UTC
+
+Fleet counts:
+vehicles=0
+fleet_drivers=0
+fleet_vehicle_assignments=0
+vehicle_tracking=0
+fleet_fuel_transactions=0
+vehicle_maintenance=0
+fleet_maintenance_plans=0
+fleet_incidents=0
+fleet_driver_performance_events=0
+fleet_expenses=0
+
+fleet_command_atomic authenticated EXECUTE = verified.
+fleet_query authenticated EXECUTE = verified.
+
+## Ownership boundary
+- CTO did not modify Mother main.html.
+- Owner must apply only the exact Fleet IIFE tail replacement recorded in Report265 and the surgical patch file.
+- No Production SQL change is required for the root cause.
+- No new Edge Function is required.
+
+## Browser gate
+The Fleet browser runtime remains OPEN until the owner cutover is actually deployed and tested. No UI PASS is claimed from source or SQL evidence alone.
+
+## Continuity
+Next session must first verify CURRENT GIT, CURRENT SOURCE, CURRENT PRODUCTION, and CURRENT DEPLOYMENT, then verify the Fleet IIFE return contract before doing any other Fleet work.
