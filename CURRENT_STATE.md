@@ -5520,7 +5520,7 @@ Transaction rolled back.
 - 20260920071702_fleet_driver_employment_contract_options_20260920
 - fleet_driver_license_assignment_guard_20260920
 
-The first two migration files are now recorded canonically under supabase/migrations. The license guard is Production-deployed and recorded in Report266; the canonical migration file should be added before the next Fleet schema migration session if migration ledger parity is required.
+All three Production migration files are now recorded canonically under supabase/migrations, including 20260920072418_fleet_driver_license_assignment_guard_20260920.
 
 ## Owner Surgery
 Exact module insertion remains owner-side:
