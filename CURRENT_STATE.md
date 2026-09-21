@@ -8968,3 +8968,151 @@ The complete transactional E2E restored the stock baseline and was rolled back.
 
 Report:
 `doc/Draft/Reprots/Report288_WAREHOUSE_VOUCHERS_SMART_SEARCH_FORENSIC_SURGICAL_CLOSURE_20260921.md`
+
+---
+
+## SESSION 2026-09-21 — Report 289 — Current Reality / Production Integrity Closure
+
+### Authoritative baseline at session end
+
+System repository:
+- HEAD: `8117e919834ccd5fef0003f850508f286e41b3a7`
+- parent: `9ca6bf1bba8c807aeb5c16c612a1d1bed76d356d`
+
+Mother frontend:
+- HEAD: `f59bce9bac6b4d76fda2b16e6889f5d8b1e2466d`
+- parent: `bab20ca64b359045bbaae7a47b7eee6e4b538a1b`
+- functional V-03/V-04 commit already applied: `662e7bf89532ec8db8a65c965820eef2d02d8692`
+- functional commit parent: `7de2ef29cd701e20dbf227c9edadbd9cd9426bfa`
+- current Vouchers blob: `570a4a952b7645e5ef7674e80d5238b65f8cd9eb`
+
+### Current source
+
+Target:
+`companies/company-1/warehouse/vouchers.html`
+
+- 1647 lines.
+- 6 JavaScript blocks.
+- full script parse/compile PASS.
+- V-03 already present at `pickArr:function(key){` around line 854.
+- V-04 already present at `pickSelect:function(key,id){` around line 976.
+- No new frontend patch is required.
+- Do not reapply V-03/V-04.
+
+Van Sales:
+`companies/company-1/sales/van-sales.html`
+- blob: `8d61382a8e0025a0d079e71dd94f33d106d9088e`
+- prior forensic closures remain preserved.
+
+Mother:
+- `main.html` untouched.
+- Mother route sends active warehouse role `أذونات` to `warehouse/vouchers.html`.
+- Van Sales remains a separate execution application.
+
+### Current Production
+
+- companies = 1
+- branches = 3
+- stock_vouchers = 1
+- stock_voucher_details = 3
+- stock_voucher_operations = 1
+- inventory_log = 6
+- audit_log = 2034
+- orders = 0
+- runsheets = 0
+
+BR-2:
+- item 1001 = 0
+- item 1003 = 0
+- item 1005 = 0
+
+BR-01:
+- item 1001 = 2
+- item 1003 = 1
+- item 1005 = 1
+
+### Production forensic repair
+
+A deleted completed test Transfer had left orphan stock in BR-2.
+
+Proven document:
+- voucher id: `543f1fcd-85d6-4767-94a3-39b539588296`
+- type: Transfer
+- reference: `01`
+- notes: `تجربة`
+- lifecycle: Draft -> Sent -> Received -> Completed -> Deleted
+- orphan quantities: 1001=1, 1003=3, 1005=1
+
+The repair was executed only through:
+`post_stock_movement`
+
+Reference:
+`FORENSIC-REPAIR-543f1fcd-85d6-4767-94a3-39b539588296`
+
+Result:
+- BR-2 orphan quantities reduced to zero.
+- Main branch restored to the expected baseline.
+
+### Integrity guards deployed
+
+Migration:
+`stock_voucher_delete_integrity_guard_20260921`
+
+Deployed guards:
+- `trg_guard_stock_vouchers_delete_integrity`
+- `trg_guard_stock_voucher_details_delete_integrity`
+- `trg_guard_stock_voucher_operations_delete_integrity`
+
+Hard delete of a non-Draft voucher is now rejected.
+
+Voucher detail delete after Draft is rejected.
+
+Operation identity deletion is rejected.
+
+### Production E2E
+
+Transactional E2E passed:
+- DirectSale Branch -> Vehicle
+- duplicate CREATE returns `duplicate=true`
+- DirectSale SEND
+- DirectReturn Vehicle -> Branch
+- DirectReturn SEND
+- DirectReturn RECEIVE
+- stock restored
+- DELETE guard rejected destructive delete
+- transaction rolled back
+
+No IN-2/IN-3 test vouchers remain.
+
+### Closure status
+
+- Vouchers smart-search root cause: CLOSED.
+- V-03/V-04: ALREADY APPLIED IN CURRENT SOURCE.
+- DirectSale integration: CLOSED.
+- DirectReturn two-stage contract: CLOSED.
+- SupplierReturn fail-closed contract: CLOSED.
+- Orphan Production stock repair: CLOSED.
+- Voucher delete integrity: CLOSED.
+- Physical stock centralization: CLOSED.
+- New Edge Function: NOT CREATED.
+- main.html: UNTOUCHED.
+- Van Sales previous closures: PRESERVED.
+- Browser E2E: OPEN / not verified in a real browser session.
+
+### Critical next-session rule
+
+Do not restart Report287/288 work.
+
+Start from:
+- current System HEAD `8117e919...`
+- current Frontend HEAD `f59bce9...`
+- current Vouchers blob `570a4...`
+
+Then verify Production first.
+
+Do not reapply V-03/V-04.
+
+The only direct UI proof still not established is authenticated Browser E2E on the deployed frontend.
+
+Report:
+`doc/Draft/Reprots/Report289_WAREHOUSE_VOUCHERS_CURRENT_REALITY_FORENSIC_CLOSURE_20260921.md`
