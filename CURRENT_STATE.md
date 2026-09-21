@@ -7820,3 +7820,29 @@ Do not treat this state file as a substitute for fresh Production verification.
 Do not recreate closed work.
 Do not touch `main.html`.
 Do not modify `vouchers.html` until its current blob is re-fetched and the exact owner patch is verified.
+
+
+### Final E2E addendum — 2026-09-21
+Full temporary production-path test passed and was rolled back:
+- van-sales → save-sales-invoice → save_sales_invoice_atomic → post_stock_movement(VanSale)
+- temporary vehicle branch: VAN-E2E-SAV-23
+- vehicle: E2E-SAV-23
+- driver: vansales@rawaea.com
+- item: 1006
+- stock: 10 → 9
+- first call: success=true, duplicate=false, orderID=ORD-1001, movement_count=1, cash_posted=true
+- same operation_id retry: success=true, duplicate=true, same orderID, no second stock movement
+- final persistent Production counts remained orders=0 and inventory_log=3
+
+Latest Report:
+doc/Draft/Reprots/Report282_WAREHOUSE_VOUCHERS_VANSALES_INTEGRATION_FORENSIC_SURGICAL_CLOSURE_20260921.md
+
+Latest Report commit:
+82e357c6d880b97468ac34147dea22e8d6e6c415
+
+Current State commit:
+(to be read from current GIT after this update)
+
+Open target item remains:
+- owner patch for vouchers.html loadRefs + vehicleBranch
+- browser E2E with a real configured vehicle (currently vehicles=0)
