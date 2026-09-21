@@ -8600,3 +8600,124 @@ It was not changed because eliminating it safely requires a compiled CSS deliver
 10. Run Browser E2E after Owner cutover.
 11. Re-snapshot Production immediately before final closure reporting.
 12. Do not declare 100% closure until Source + Production + Deployment + Browser evidence agree.
+
+
+---
+
+## SESSION 2026-09-21 — Report286 — Stock Voucher Custodian Identity Production Closure
+
+### Authoritative Git
+System repository:
+`papamohammed77-glitch/rawaie-erp-New`
+
+Latest system commit after this session:
+`3b45d6230035a68442bb82314d81be87d66380cf`
+
+Previous system commit:
+`9f05547c4be737e910986e4befdabd8b514e343f`
+
+Mother frontend remains:
+`papamohammed77-glitch/erp-frontend`
+HEAD:
+`c30e3a6c1f1233ed14acb77081392efab53b36dd`
+
+Mother parent:
+`7efa2dfe17ddd10cc410d3887cc9876d630aa319`
+
+Current vouchers blob:
+`e0601ac380b499178b9e5759d0850d43a0d914c2`
+
+Current Van Sales blob:
+`a914c3e268c8801533051a3f0901c0db5919ee64`
+
+### Scope
+Only:
+- Stock Vouchers.
+- DirectSale / DirectReturn custody identity.
+- Vouchers ↔ Van Sales integration.
+- Owner surgical UI patch preparation.
+
+No:
+- main.html write.
+- vouchers.html write by CTO.
+- van-sales.html write.
+- new Edge Function.
+
+### Production closure
+Migration applied:
+`20260921_stock_voucher_custodian_identity_guard`
+
+Production now contains:
+- `stock_vouchers.custodian_user_id`
+- FK `stock_vouchers_custodian_user_fk`
+- index `idx_stock_vouchers_custodian_user_id`
+- trigger `trg_stock_vouchers_custodian`
+- constraint `stock_vouchers_mobile_custodian_required_ck`
+
+Existing DirectSale voucher `IN-1` is backfilled with the actual direct-sales representative as custodian.
+
+### Business Contract
+For DirectSale:
+- Branch = physical issuing stock location.
+- Representative = accountable custodian.
+- Vehicle = transport/mobile-stock container.
+- Custodian identity must be stored and immutable after execution.
+
+For DirectReturn:
+- Vehicle = physical return container/source.
+- Representative = accountable custodian.
+- Branch = physical receiving stock location.
+
+### Verification
+Transactional E2E passed:
+- CREATE with correct representative + vehicle.
+- CREATE retry = duplicate.
+- custodian persisted = pass.
+- vehicle.driver_id matches custodian = pass.
+- SEND through `post_stock_movement` = pass.
+- SEND retry = duplicate.
+- physical stock delta = pass.
+- inventory_log = one movement.
+- audit_log preserved custodian = pass.
+- invalid representative rejected = pass.
+- all E2E mutations rolled back.
+
+### Important non-regressions
+- Previous parser defect in vouchers.html is already fixed by Mother HEAD `c30e3a6...`.
+- Previous Service Worker defect is already fixed by Mother HEAD.
+- Van Sales current closure remains valid.
+- Physical stock centralization remains closed.
+- No closed Production migration was re-run.
+
+### Owner patch status
+Required file:
+`companies/company-1/warehouse/vouchers.html`
+
+Prepared exactly three surgical patches:
+1. `filterList:function(){` — include custodian name/email in search.
+2. `cards:function(rows,scope){` — display “المستلم والمسؤول عن العهدة” separately from vehicle.
+3. `details:function(code){` — display custodian and vehicle/container separately.
+
+Complete replacement functions are stored in:
+`doc/Draft/Reprots/Report286_WAREHOUSE_VOUCHERS_CUSTODIAN_FORENSIC_CLOSURE_20260921.md`
+
+CTO must not write the Mother frontend file under this closure.
+
+### Final gate
+Production custodian contract = CLOSED.
+Physical movement core = CLOSED.
+Van Sales backend integration = CLOSED.
+Vouchers UI custody display = READY FOR OWNER PATCH.
+Browser E2E = OPEN until Owner applies the three exact replacements and the deployed frontend is verified.
+
+### Next-session start sequence
+1. Verify System HEAD and parent.
+2. Verify Mother HEAD and current vouchers blob.
+3. Re-read Report286.
+4. Confirm the three patches are present exactly once.
+5. Do not touch main.html.
+6. Do not rerun custodian migration.
+7. Re-snapshot Production.
+8. Parse vouchers.html.
+9. Run Browser E2E.
+10. Only then evaluate full UI closure.
