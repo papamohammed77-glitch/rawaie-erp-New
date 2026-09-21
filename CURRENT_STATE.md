@@ -9344,3 +9344,155 @@ A source-level test proved an Escape event targeted at an INPUT invokes `back()`
 
 Report:
 `doc/Draft/Reprots/Report291_WAREHOUSE_VOUCHERS_DIRECTSALE_CURRENT_FORENSIC_CLOSURE_20260921.md`
+
+# SESSION 2026-09-21 — Report292 — WAREHOUSE VOUCHERS / DIRECTSALE SURGICAL CONTINUATION
+
+## Authoritative session baseline
+- System HEAD at task start: `0620265ce4e2e7cd3cfb4a8a6789a986b8e7408a`
+- System parent at task start: `9ec16aeaace0cfea046b5a2c01e41db064ec9a2b`
+- Report292 commit: `ffc60d34bb850476811eb9e788f60d0c400f7b17`
+- Production migration recorded in canonical Git:
+  `supabase/migrations/20260921200800_direct_sales_voucher_rep_permission_guard.sql`
+- Migration commit: `f9b2637697b03ded4b188c63803b86e05c6bb0a0`
+
+## Mother Frontend
+- Repository: `papamohammed77-glitch/erp-frontend`
+- HEAD: `f59bce9bac6b4d76fda2b16e6889f5d8b1e2466d`
+- parent: `bab20ca64b359045bbaae7a47b7eee6e4b538a1b`
+- vouchers blob: `570a4a952b7645e5ef7674e80d5238b65f8cd9eb`
+- van-sales blob: `8d61382a8e0025a0d079e71dd94f33d106d9088e`
+
+## Production current snapshot
+- companies = 1
+- branches = 3
+- vehicles = 1
+- stock_vouchers = 1
+- stock_voucher_operations = 1
+- inventory_log = 6
+- audit_log = 2034
+- orders = 0
+- runsheets = 0
+- direct sales reps = 1
+- active mobile-stock vehicles = 1
+- BR-01 item 1001 = 2
+
+## Current DirectSale identities
+- warehouse operator: `vouchers@rawaea.com`
+- warehouse permission: `warehouse`
+- direct-sales rep: `vansales@rawaea.com`
+- rep permission: `van-sales`
+- vehicle: `VEH-TEST-260921`
+- mobile branch: `VAN-VEH-TEST-260921`
+- vehicle driver = direct-sales rep
+
+## Production closure performed in this session
+Migration:
+`direct_sales_voucher_rep_permission_guard`
+
+Production now enforces:
+- warehouse users may see only Active same-company Direct Sales Reps who have `van-sales`;
+- DirectSale/DirectReturn voucher creation requires a valid same-company Active Direct Sales Rep with `van-sales`;
+- existing 12-argument `create_manual_stock_voucher_atomic` signature is preserved;
+- no new Edge Function;
+- no physical stock writer added.
+
+## Production verification
+Transactional Positive Test:
+- DirectSale Branch -> Vehicle
+- item 1001
+- success = true
+- duplicate retry with same operation_id = true
+- rollback complete
+
+Transactional Negative Test:
+- temporarily removed `van-sales` from the rep inside the transaction;
+- DirectSale creation rejected with the representative-permission guard;
+- rollback restored Production.
+
+## Current vouchers source findings
+Current source already contains the previously closed:
+- V-03 DirectSale vehicle candidate handling.
+- V-04 vehicle-first representative binding.
+- company-scoped references.
+- mobile_branch_id support.
+- operation_id create flow.
+
+Do not reapply V-03/V-04.
+
+### New source defects proven
+1. `handleKeys:function(e)` around line 1643:
+   - Escape from INPUT/textarea/select can call `this.back()`.
+   - This is the proven source-level cause of the reported automatic exit.
+
+2. `pickArr:function(key)` → exact `if(key==='wsRep')` block:
+   - current implementation requires source branch before rep candidates exist;
+   - Rep-first smart search therefore returns zero candidates.
+
+3. `pickSelect:function(key,id)` → exact DirectSale source-branch reset block:
+   - selecting the source branch clears an already valid representative;
+   - this breaks a Rep-first -> Branch workflow.
+   - vehicle must still be reset when branch context changes.
+
+4. Current file lacks `RW_SW.register('../sw.js')`.
+   - historical commit `8e30320dbec24a1ea962c9616cd1b07f6702d706` contained it;
+   - commit `76e5b12fb88f85f5df1ab4f758dbacb5f7af9ae1` removed it;
+   - current Browser E2E therefore fails at `CANONICAL_SW_PATH_MISSING` before the browser smoke stage.
+
+## Owner-only source patch
+Target:
+`companies/company-1/warehouse/vouchers.html`
+
+Prepared in Report292:
+- V-05 Rep-first candidate provider;
+- V-06 preserve valid Rep when selecting Branch, reset Vehicle;
+- V-07 safe Escape handling;
+- V-08 restore canonical `RW_SW.register('../sw.js')`.
+
+No direct commit was made to `vouchers.html`.
+
+## main.html / Van Sales
+- `main.html` untouched.
+- `van-sales.html` untouched.
+- Van Sales canonical vehicle/driver/mobile-branch contract preserved.
+- Save engine was not rewritten because Production E2E proves the existing DirectSale create path is functional.
+
+## Browser E2E
+Status:
+**OPEN**
+
+Current workflow run:
+`35622535768`
+
+Failure:
+`CANONICAL_SW_PATH_MISSING`
+
+Browser smoke was skipped by the source gate.
+Do not claim authenticated browser PASS until V-05/V-06/V-07/V-08 are applied and the browser path is actually executed.
+
+## Closure status
+- DirectSale Production permission contract = CLOSED
+- DirectSale backend create/idempotency = CLOSED
+- Physical stock centralization = CLOSED
+- Rep visibility RLS = CLOSED
+- V-03/V-04 = ALREADY CLOSED
+- Automatic Exit defect = OWNER PATCH READY
+- Rep-first search = OWNER PATCH READY
+- Branch/Rep context retention = OWNER PATCH READY
+- Service Worker regression = OWNER PATCH READY
+- Authenticated Browser E2E = OPEN
+- main.html = UNTOUCHED
+- van-sales.html = UNTOUCHED
+- New Edge Function = NOT CREATED
+
+## Next session exact start
+1. Snapshot Production first.
+2. Verify current Mother HEAD and vouchers blob.
+3. Check whether V-05/V-06/V-07/V-08 were applied.
+4. Parse the complete vouchers file.
+5. Run authenticated Browser E2E for DirectSale.
+6. Verify create + duplicate retry + resulting voucher state.
+7. Snapshot Production immediately after the test.
+8. Open a new Closure Unit only for newly evidenced defects.
+
+Report:
+`doc/Draft/Reprots/Report292_WAREHOUSE_VOUCHERS_DIRECTSALE_SURGICAL_CONTINUATION_20260921.md`
