@@ -264,7 +264,6 @@ loadVanBranch: function() {
                     id: json.branch_id,
                     branch_code: json.branch_code || '',
                     name: json.branch_name || ('سيارة ' + (json.vehicle_code || '')),
-                    company_id: self.company || null,
                     vehicle_id: json.vehicle_id || null,
                     vehicle_code: json.vehicle_code || '',
                     driver_id: json.driver_id || null
@@ -1685,7 +1684,7 @@ _afterVanBranchReady: function() {
             }
 
             var fingerprint = JSON.stringify({
-                company_id: self.company || '',
+                driver_email: email,
                 customer_code: custCode,
                 branch_code: self.vanBranch.branch_code,
                 items: items.map(function(x) {
@@ -1695,7 +1694,7 @@ _afterVanBranchReady: function() {
                 })
             });
 
-            var opStore = 'RW_VAN_SALE_OP:' + (self.company || '') + ':' + custCode;
+            var opStore = 'RW_VAN_SALE_OP:' + email + ':' + custCode;
             var operationId = null;
 
             try {
