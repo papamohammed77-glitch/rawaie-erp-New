@@ -1,107 +1,211 @@
-// setup-van-branch — vehicle-owned mobile stock container initializer
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
-const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" }
+const supabase=createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+)
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders })
-  try {
-    const body = await req.json().catch(() => ({}))
-    const vehicleId = String(body?.vehicle_id || "").trim()
-    const driverEmail = String(body?.driver_email || "").trim().toLowerCase()
-    if (!vehicleId && !driverEmail) throw new Error("vehicle_id أو driver_email مطلوب")
+const corsHeaders={
+  "Access-Control-Allow-Origin":"*",
+  "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods":"POST, OPTIONS"
+}
 
-    const authHeader = req.headers.get("Authorization")
-    if (!authHeader) throw new Error("غير مصرح")
-    const token = authHeader.replace(/^Bearer\s+/i, "").trim()
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    if (authError || !user?.id || !user?.email) throw new Error("جلسة غير صالحة")
+serve(async(req)=>{
+  if(req.method==='OPTIONS') return new Response('ok',{headers:corsHeaders})
 
-    const { data: publicUser, error: userError } = await supabase
-      .from("users").select("id, company_id, status, email, name").eq("auth_id", user.id).maybeSingle()
-    if (userError) throw new Error("فشل قراءة المستخدم: " + userError.message)
-    if (!publicUser?.id || !publicUser.company_id) throw new Error("المستخدم غير مسجل في النظام أو سياق الشركة غير محدد")
-    if (publicUser.status && publicUser.status !== "Active") throw new Error("المستخدم غير نشط")
+  try{
+    const body=await req.json().catch(()=>({}))
+    const vehicleId=String(body?.vehicle_id||'').trim()
+    const driverEmail=String(body?.driver_email||'').trim().toLowerCase()
 
-    const companyId = publicUser.company_id
-    let vehicleQuery = supabase
-      .from("vehicles")
-      .select("id, company_id, vehicle_code, license_plate, driver_id, status")
-      .eq("company_id", companyId)
+    if(!vehicleId&&!driverEmail) throw new Error('vehicle_id أو driver_email مطلوب')
 
-    if (vehicleId) {
-      vehicleQuery = vehicleQuery.eq("id", vehicleId)
-    } else {
-      const { data: driver, error: driverError } = await supabase
-        .from("users").select("id, company_id, email").eq("company_id", companyId).eq("email", driverEmail).maybeSingle()
-      if (driverError) throw new Error("فشل قراءة المندوب: " + driverError.message)
-      if (!driver) throw new Error("المندوب غير موجود ضمن الشركة الحالية")
-      vehicleQuery = vehicleQuery.eq("driver_id", driver.id)
+    const ah=req.headers.get('Authorization')
+    if(!ah) throw new Error('غير مصرح')
+    const token=ah.replace(/^Bearer\s+/i,'').trim()
+
+    const {data:{user},error:ae}=await supabase.auth.getUser(token)
+    if(ae||!user?.id||!user?.email) throw new Error('جلسة غير صالحة')
+
+    const {data:pu,error:ue}=await supabase
+      .from('users')
+      .select('id,company_id,status,email,name')
+      .eq('auth_id',user.id)
+      .maybeSingle()
+
+    if(ue) throw new Error('فشل قراءة المستخدم: '+ue.message)
+    if(!pu?.id||!pu.company_id) throw new Error('المستخدم غير مسجل في النظام أو سياق الشركة غير محدد')
+    if(pu.status&&pu.status!=='Active') throw new Error('المستخدم غير نشط')
+
+    const companyId=pu.company_id
+
+    let q=supabase
+      .from('vehicles')
+      .select('id,company_id,vehicle_code,license_plate,driver_id,status,mobile_branch_id,mobile_stock_enabled')
+      .eq('company_id',companyId)
+
+    if(vehicleId){
+      q=q.eq('id',vehicleId)
+    }else{
+      const {data:d,error:de}=await supabase
+        .from('users')
+        .select('id,company_id,email,status')
+        .eq('company_id',companyId)
+        .eq('email',driverEmail)
+        .maybeSingle()
+
+      if(de) throw new Error('فشل قراءة المندوب: '+de.message)
+      if(!d) throw new Error('المندوب غير موجود ضمن الشركة الحالية')
+      if(d.status&&d.status!=='Active') throw new Error('المندوب غير نشط')
+      q=q.eq('driver_id',d.id)
     }
 
-    const { data: vehicle, error: vehicleError } = await vehicleQuery.maybeSingle()
-    if (vehicleError) throw new Error("فشل قراءة السيارة: " + vehicleError.message)
-    if (!vehicle) throw new Error("السيارة غير موجودة أو لا تتبع الشركة الحالية")
-    if (vehicle.status && vehicle.status !== "Active") throw new Error("السيارة غير نشطة")
+    const {data:vehicle,error:ve}=await q.maybeSingle()
 
-    // Backward-compatible driver input is validation metadata only; vehicle remains the identity.
-    if (driverEmail && vehicle.driver_id) {
-      const { data: assignedDriver, error: assignedDriverError } = await supabase
-        .from("users").select("email").eq("id", vehicle.driver_id).eq("company_id", companyId).maybeSingle()
-      if (assignedDriverError) throw new Error("فشل التحقق من مندوب السيارة: " + assignedDriverError.message)
-      if (!assignedDriver || String(assignedDriver.email || "").trim().toLowerCase() !== driverEmail) throw new Error("المندوب لا يطابق المندوب المرتبط بالسيارة")
+    if(ve) throw new Error('فشل قراءة السيارة: '+ve.message)
+    if(!vehicle) throw new Error('السيارة غير موجودة أو لا تتبع الشركة الحالية')
+    if(vehicle.status&&vehicle.status!=='Active') throw new Error('السيارة غير نشطة')
+    if(vehicle.mobile_stock_enabled===false) throw new Error('مخزون السيارة المتنقل غير مفعل')
+
+    if(driverEmail&&vehicle.driver_id){
+      const {data:d,error:de}=await supabase
+        .from('users')
+        .select('email,status')
+        .eq('id',vehicle.driver_id)
+        .eq('company_id',companyId)
+        .maybeSingle()
+
+      if(de) throw new Error('فشل التحقق من مندوب السيارة: '+de.message)
+      if(!d||String(d.email||'').trim().toLowerCase()!==driverEmail) throw new Error('المندوب لا يطابق المندوب المرتبط بالسيارة')
+      if(d.status&&d.status!=='Active') throw new Error('مندوب السيارة غير نشط')
     }
 
-    const branchCode = `VAN-${vehicle.vehicle_code}`
-    const branchName = `سيارة ${vehicle.vehicle_code}${vehicle.license_plate ? ` - ${vehicle.license_plate}` : ""}`
-    const { data: existingBranch, error: branchLookupError } = await supabase
-      .from("branches").select("id, branch_code, name, company_id").eq("company_id", companyId).eq("branch_code", branchCode).maybeSingle()
-    if (branchLookupError) throw new Error("فشل قراءة فرع السيارة: " + branchLookupError.message)
+    const branchCode='VAN-'+String(vehicle.vehicle_code||'').trim()
+    if(branchCode==='VAN-') throw new Error('كود السيارة غير صالح لإنشاء مخزن متنقل')
 
-    let branchId = existingBranch?.id || null
-    let created = false
-    if (!branchId) {
-      const { data: createdBranch, error: createError } = await supabase
-        .from("branches")
-        .insert({ id: crypto.randomUUID(), branch_code: branchCode, name: branchName, is_active: true, company_id: companyId })
-        .select("id, branch_code, name").single()
-      if (createError || !createdBranch) {
-        if (createError?.code === "23505") {
-          const { data: retryBranch, error: retryError } = await supabase
-            .from("branches").select("id, branch_code, name").eq("company_id", companyId).eq("branch_code", branchCode).maybeSingle()
-          if (retryError || !retryBranch) throw new Error(retryError?.message || createError?.message || "فشل إنشاء فرع السيارة")
-          branchId = retryBranch.id
-        } else {
-          throw new Error("فشل إنشاء فرع السيارة: " + (createError?.message || "غير معروف"))
-        }
-      } else {
-        branchId = createdBranch.id
-        created = true
+    const branchName='سيارة '+String(vehicle.vehicle_code||'').trim()+(vehicle.license_plate?' - '+vehicle.license_plate:'')
+    let branchId=vehicle.mobile_branch_id||null
+    let branch=null
+    let created=false
+    let relinked=false
+
+    if(branchId){
+      const {data:b,error:be}=await supabase
+        .from('branches')
+        .select('id,branch_code,name,company_id,is_active')
+        .eq('id',branchId)
+        .eq('company_id',companyId)
+        .maybeSingle()
+
+      if(be) throw new Error('فشل قراءة المخزن المتنقل المرتبط: '+be.message)
+
+      if(b && String(b.branch_code||'').trim().toUpperCase()===branchCode.toUpperCase() && b.is_active!==false){
+        branch=b
+      }else{
+        branchId=null
       }
     }
 
-    const { data: stockInit, error: stockError } = await supabase.rpc("setup_van_stock", { p_van_branch_id: branchId })
-    if (stockError) throw new Error("فشل تهيئة مخزون السيارة: " + stockError.message)
-    if (typeof stockInit === "string" && !stockInit.startsWith("OK:")) throw new Error(stockInit)
-    const stockMatch = typeof stockInit === "string" ? stockInit.match(/^OK:\s*(\d+)\sitems\scopied$/) : null
+    if(!branchId){
+      const {data:byCode,error:be}=await supabase
+        .from('branches')
+        .select('id,branch_code,name,company_id,is_active')
+        .eq('company_id',companyId)
+        .eq('branch_code',branchCode)
+        .maybeSingle()
+
+      if(be) throw new Error('فشل البحث عن مخزن السيارة: '+be.message)
+
+      if(byCode){
+        if(byCode.is_active===false) throw new Error('مخزن السيارة موجود لكنه غير نشط')
+        branch=byCode
+        branchId=byCode.id
+      }else{
+        const {data:cb,error:ce}=await supabase
+          .from('branches')
+          .insert({
+            id:crypto.randomUUID(),
+            branch_code:branchCode,
+            name:branchName,
+            is_active:true,
+            company_id:companyId
+          })
+          .select('id,branch_code,name,company_id,is_active')
+          .single()
+
+        if(ce||!cb){
+          if(ce?.code==='23505'){
+            const {data:rb,error:re}=await supabase
+              .from('branches')
+              .select('id,branch_code,name,company_id,is_active')
+              .eq('company_id',companyId)
+              .eq('branch_code',branchCode)
+              .maybeSingle()
+
+            if(re||!rb) throw new Error(re?.message||ce?.message||'فشل إنشاء مخزن السيارة')
+            if(rb.is_active===false) throw new Error('مخزن السيارة موجود لكنه غير نشط')
+
+            branch=rb
+            branchId=rb.id
+          }else{
+            throw new Error('فشل إنشاء مخزن السيارة: '+(ce?.message||'غير معروف'))
+          }
+        }else{
+          branch=cb
+          branchId=cb.id
+          created=true
+        }
+      }
+    }
+
+    if(!branchId) throw new Error('تعذر تحديد المخزن المتنقل canonical')
+
+    if(String(vehicle.mobile_branch_id||'')!==String(branchId)){
+      const {error:ue2}=await supabase
+        .from('vehicles')
+        .update({
+          mobile_branch_id:branchId,
+          mobile_stock_enabled:true,
+          updated_at:new Date().toISOString()
+        })
+        .eq('id',vehicle.id)
+        .eq('company_id',companyId)
+
+      if(ue2) throw new Error('فشل ربط المخزن المتنقل بالمركبة: '+ue2.message)
+      relinked=true
+    }
+
+    const {data:init,error:ie}=await supabase.rpc(
+      'setup_van_stock',
+      {p_van_branch_id:branchId}
+    )
+
+    if(ie) throw new Error('فشل تهيئة مخزون السيارة: '+ie.message)
+    if(typeof init==='string'&&!init.startsWith('OK:')) throw new Error(init)
+
+    const m=typeof init==='string'?init.match(/^OK:\s*(\d+)\sitems\scopied$/):null
 
     return new Response(JSON.stringify({
-      success: true,
-      branch_id: branchId,
-      branch_code: branchCode,
-      branch_name: existingBranch?.name || branchName,
-      vehicle_id: vehicle.id,
-      vehicle_code: vehicle.vehicle_code,
-      driver_id: vehicle.driver_id || null,
+      success:true,
+      branch_id:branchId,
+      branch_code:branchCode,
+      branch_name:branch?.name||branchName,
+      vehicle_id:vehicle.id,
+      vehicle_code:vehicle.vehicle_code,
+      driver_id:vehicle.driver_id||null,
       created,
-      initialized_stock_rows: stockMatch ? Number(stockMatch[1]) : null,
-      stock_initialization: stockInit,
-    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
-  } catch (error: any) {
-    return new Response(JSON.stringify({ success: false, msg: error?.message || "فشل إعداد فرع السيارة" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      relinked,
+      initialized_stock_rows:m?Number(m[1]):null,
+      stock_initialization:init
+    }),{
+      headers:{...corsHeaders,'Content-Type':'application/json'}
     })
+  }catch(e){
+    return new Response(
+      JSON.stringify({success:false,msg:e?.message||'فشل إعداد فرع السيارة'}),
+      {status:400,headers:{...corsHeaders,'Content-Type':'application/json'}}
+    )
   }
 })
