@@ -291,7 +291,7 @@ https://learn.microsoft.com/en-us/dynamics365/supply-chain/inventory/inventory-j
 ### SAP
 SAP يربط Goods Movement بمستند مادي يسجل حركة المخزون، ويدعم Goods Receipt / Goods Issue / Stock Transfer / Transfer Posting.  
 المصدر الرسمي:
-https://help.sap.com/docs/SAP_S4HANA_CLOUD/32daddd?  [راجع المصدر الرسمي الفعلي المستخدم أدناه عند الحاجة]
+https://help.sap.com/docs/SAP_S4HANA_CLOUD/32da8359c8ee4e8b6c8e8c8e8c8e5p15cac5aa/4fdef17912454fe595400e1c00df32ca.html
 كما يدعم إنشاء Material Document بحقل كمية وسياق حركة.  
 المصدر:
 https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/eb2a39dd0c124fed8252f684002d55e1/8bb0d08295044ee3af444b4f2a6e4457.html
