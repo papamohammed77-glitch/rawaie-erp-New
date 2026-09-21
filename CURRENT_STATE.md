@@ -1,3 +1,453 @@
+
+# FINAL CURRENT RECONCILIATION — 2026-09-21 — WAREHOUSE VOUCHERS / VAN SALES INTEGRATION FORENSIC CHECKPOINT
+
+> هذا هو أحدث Current Reality الحاكم لنطاق الأذونات المخزنية وتكاملها مع مخزن سيارة البيع المباشر.
+> الحقيقة المعتمدة: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+> التقارير السابقة استرشادية ولا تحل محل التحقق الحالي.
+
+## 0. Scope Lock
+
+النطاق:
+- إدارة المخازن والمخزون → الأذونات المخزنية.
+- companies/company-1/warehouse/vouchers.html
+- تكامل DirectSale / DirectReturn مع Vehicle Mobile Stock.
+- علاقة الإذن بالمندوب والمركبة والفرع.
+- Physical Stock centralization.
+- Production E2E والـidempotency.
+- exact owner patches في vouchers.html.
+
+ممنوع في هذه الجولة:
+- تعديل main.html.
+- تعديل vouchers.html مباشرة.
+- تعديل van-sales.html مباشرة.
+- إنشاء Edge Function جديدة.
+
+## 1. CURRENT GIT — SYSTEM
+
+Repository:
+papamohammed77-glitch/rawaie-erp-New
+
+Latest System HEAD:
+141c526186d5a3031666ea2986c24da038b25120
+
+Immediate parent:
+fef27c2f4e50c9e1b5aae1c9ff153caf51ccbcf0
+
+Relevant parent before Report283:
+d1c9f8de55b33a02d1ea6734b19db9d1c9fa2031
+
+Latest production migration source:
+supabase/migrations/20260921100708_vouchers_mobile_branch_canonical_create_guard_20260921.sql
+
+Session report:
+doc/Draft/Reprots/Report284_WAREHOUSE_VOUCHERS_CANONICAL_INTEGRATION_FORENSIC_CLOSURE_20260921.md
+
+## 2. CURRENT MOTHER — READ ONLY
+
+Repository:
+papamohammed77-glitch/erp-frontend
+
+Latest commit:
+7375e75d562b4743f435fd26db60402a5a23e293
+
+Parent:
+e0769499509ab3cd919d62b46e93529e13c992b7
+
+Relevant current contracts:
+- Van Sales canonical mobile branch.
+- Van Sales operation identity based on verified driver context.
+- No Mother change was made by CTO in this session.
+
+## 3. CURRENT TARGET SOURCE
+
+File:
+companies/company-1/warehouse/vouchers.html
+
+Current blob before owner cutover:
+5eea64c53a344f588c8035dc278d559d2be1b242
+
+CTO source changes in this session:
+0
+
+Owner surgical patch required:
+- PATCH 1 loadRefs
+- PATCH 2 vehicleBranch
+- PATCH 3 pickArr
+- PATCH 4 cards
+
+Exact blocks are in Report284.
+
+## 4. CURRENT VAN SALES SOURCE
+
+File:
+companies/company-1/sales/van-sales.html
+
+Current blob verified:
+a914c3e268c8801533051a3f0901c0db5919ee64
+
+No change made in this closure.
+
+Do not reopen the latest Van Sales operation-identity/mobile-branch work unless current evidence proves a regression.
+
+## 5. PRODUCTION CURRENT REALITY
+
+Supabase project:
+fiilmooggumokxanwiyx
+
+Final snapshot after permanent test data and rollback verification:
+
+- companies = 1
+- branches = 3
+- vehicles = 1
+- stock_vouchers = 1
+- stock_voucher_details = 3
+- stock_voucher_operations = 1
+- inventory_log = 3
+- audit_log = 2027
+
+MAIN item 1001:
+2.0000
+
+Test vehicle item 1001:
+0.0000
+
+Persistent demo voucher:
+IN-1
+
+Status:
+Draft
+
+Physical inventory log rows for IN-1:
+0
+
+No transactional E2E residue remains.
+
+## 6. PERSISTENT TEST DATA
+
+Created permanently by owner request:
+
+Vehicle:
+VEH-TEST-260921
+
+Vehicle ID:
+5fe9d0b6-fc54-4cc6-9bff-ede0e8557dd8
+
+License:
+س ن ر 6021
+
+Model:
+Suzuki Carry 2024
+
+Driver:
+vansales@rawaea.com
+
+Mobile branch:
+5372503d-f638-4e7f-808d-bda585825b2f
+
+Mobile branch code:
+VAN-VEH-TEST-260921
+
+Mobile stock:
+true
+
+Initialized stock rows:
+17
+
+Persistent demo DirectSale voucher:
+IN-1
+
+Operation ID:
+DEMO-DS-260921-01
+
+Reference:
+DEMO-DIRECT-SALE-2026-09-21
+
+From:
+BR-01
+
+To:
+VEH-TEST-260921
+
+Rep:
+111b0730-a977-4d11-bcd0-2427b178a9e5
+
+Items:
+1001 × 1
+1003 × 1
+1004 × 1
+
+These records were intentionally NOT deleted.
+
+## 7. PRODUCTION BACKEND CHANGE
+
+Applied migration:
+20260921100708_vouchers_mobile_branch_canonical_create_guard_20260921
+
+Changed only:
+create_manual_stock_voucher_atomic_core_12_20260828
+
+Purpose:
+- canonical vehicles.mobile_branch_id accepted as valid mobile stock context.
+- vehicles.mobile_stock_enabled must be true for vehicle voucher contexts.
+- historical VAN-vehicle_code fallback preserved.
+- existing fn_vehicle_context_guard was not disabled.
+- no new Writer.
+- no new Edge Function.
+
+## 8. CENTRAL INVENTORY CONTRACT
+
+Current Production proves:
+
+PHYSICAL MOVEMENT
+→ post_stock_movement
+→ stock_branches
+→ inventory_log
+
+Manual voucher orchestration uses existing RPCs/cores.
+
+reserve_stock remains Reservation Engine only.
+
+No parallel Physical Stock Engine was created.
+
+## 9. FORENSIC ROOT CAUSE
+
+Three current-source layers were involved:
+
+1. vouchers.html loadRefs did not fetch mobile_branch_id/mobile_stock_enabled.
+2. vouchers.html vehicleBranch resolved vehicle stock through the legacy branch-code convention instead of canonical mobile_branch_id first.
+3. vouchers.html pickArr used the wrong operational side for some DirectSale/DirectReturn authorization decisions.
+
+Backend had an additional identity-hardening gap:
+create_manual_stock_voucher_atomic_core_12_20260828 validated vehicle stock context primarily through the historical branch-code representation.
+
+The deployed Production fix preserves the historical guard while recognizing the canonical field.
+
+## 10. DIRECTSALE / DIRECTRETURN CONTRACT
+
+DirectSale:
+Branch → Vehicle
+
+Meaning:
+تسليم عهدة مخزنية لسيارة البيع المباشر قبل البيع.
+
+The vehicle is an independent stock container.
+It is not an alias for the representative.
+
+DirectReturn:
+Vehicle → Branch
+
+Meaning:
+إعادة جزء أو كل عهدة السيارة إلى الفرع.
+
+Warehouse authorization:
+- DirectSale is authorized from the operational source branch.
+- DirectReturn is authorized against the receiving operational branch.
+- vehicle identity is validated by backend against the company and assigned representative/vehicle contract.
+
+## 11. PRODUCTION E2E
+
+Transactional E2E passed:
+
+DirectSale:
+- IN-1 Draft → Sent.
+- movement_count = 3.
+- main stock decreases inside transaction.
+- vehicle stock increases inside transaction.
+- all movement goes through post_stock_movement.
+
+DirectReturn:
+- temporary DirectReturn created.
+- SEND succeeded.
+- RECEIVE succeeded.
+- same RECEIVE operation_id retried.
+- retry returned duplicate = true.
+
+Final after rollback:
+- MAIN item 1001 = 2.0000
+- vehicle item 1001 = 0.0000
+
+Therefore:
+Physical Stock integrity = PASS
+DirectSale route = PASS
+DirectReturn route = PASS
+Receive idempotency = PASS
+Rollback/no-test-pollution = PASS
+
+## 12. HISTORICAL SOURCE RECONSTRUCTION
+
+The historical voucher application was substantially simpler:
+- pending/completed/account tabs.
+- basic voucher list.
+- basic create modal.
+- no canonical mobile branch support.
+- no current audit/movement detail surface.
+- no operation-registry-aware creation.
+
+Current vouchers.html has already superseded those deficits.
+This session did NOT rebuild the historical app.
+
+## 13. COMPETITIVE EVIDENCE
+
+Current official documentation reviewed:
+
+Odoo:
+- inventory adjustments and barcode counting.
+- operation types.
+- lot/serial traceability.
+
+Dynamics 365:
+- Movement.
+- Inventory adjustment.
+- Transfer.
+- Item arrival.
+- Counting.
+- Tag counting.
+- explicit from/to inventory dimensions.
+
+SAP:
+- goods movement.
+- goods receipt.
+- goods issue.
+- physical stock transfer.
+- transfer posting.
+
+Daftra:
+- detailed inventory transaction history.
+- warehouse and movement filters.
+- print/export.
+- stocktaking number/date/notes.
+- physical count.
+- serial/lot/expiry.
+
+URLs:
+https://www.odoo.com/documentation/19.0/applications/inventory_and_mrp/barcode/operations/adjustments.html
+https://www.odoo.com/documentation/19.0/applications/inventory_and_mrp/inventory/product_management/product_tracking/lots.html
+https://learn.microsoft.com/en-us/dynamics365/supply-chain/inventory/inventory-journals
+https://learn.microsoft.com/en-us/dynamics365/supply-chain/inventory/tasks/transfer-physical-inventory-within-warehouse
+https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE/91b21005dded4984bcccf4a69ae1300c/742e46e570984d9aa74e468838f6e1ff.html
+https://docs.daftra.com/en/tutorial/inventory-detailed-transactions-report/
+https://docs.daftra.com/en/tutorial/importing-a-stocktaking-sheet/
+https://docs.daftra.com/en/user_manual/how-to-perform-inventory-stocktaking-of-tracked-products/
+
+Competitive extensions observed but intentionally not invented here:
+- lot/serial/expiry contract.
+- richer barcode stocktaking.
+- print/export.
+- richer approval workflows.
+- in-transit stock.
+These require their own proven Business Contracts and Schema Contracts.
+
+## 14. OWNER SURGICAL PATCH STATUS
+
+The target file remains unchanged by CTO.
+
+The exact surgical changes are in Report284:
+
+PATCH 1:
+loadRefs
+line 27
+
+PATCH 2:
+vehicleBranch
+line 504
+
+PATCH 3:
+pickArr
+line 505
+
+PATCH 4:
+cards
+line 199
+
+All four replacements are complete blocks.
+
+Do not apply any other vouchers.html rewrite.
+
+## 15. DO NOT REOPEN
+
+Do not reopen:
+- post_stock_movement.
+- reserve_stock.
+- send_stock_voucher_atomic.
+- receive-stock-voucher.
+- complete-stock-voucher.
+- cancel-stock-voucher.
+- Van Sales operation identity.
+- main.html.
+- already closed inventory writers.
+
+Only reopen with a current regression.
+
+## 16. SELF-AUDIT
+
+Confirmed:
+- current System Git checked.
+- System parent checked.
+- Mother current commits checked.
+- current target source checked.
+- current Van Sales source checked.
+- historical voucher architecture checked.
+- Production schema checked.
+- Production migration list checked.
+- Vehicle master contract checked.
+- Physical movement writer checked.
+- audit path checked.
+- persistent test data created.
+- transactional E2E passed.
+- RECEIVE retry duplicate passed.
+- post-test Production snapshot passed.
+- no new Edge Function created.
+
+Not yet proved:
+- Browser E2E after owner applies PATCH 1–4.
+- visual acceptance of target standalone app.
+- Mother launch/synchronization smoke after owner cutover.
+
+No unsupported 100% browser closure claim is made.
+
+## 17. EXACT NEXT SESSION START
+
+1. Re-read this section first.
+2. Verify System HEAD and parent.
+3. Verify target vouchers blob.
+4. Check whether PATCH 1–4 are present.
+5. Do not repeat the Production migration.
+6. Do not modify main.html.
+7. Do not create another Edge Function.
+8. Run syntax/static gate on vouchers.
+9. Run browser E2E using the persistent vehicle VEH-TEST-260921.
+10. Test:
+   DirectSale → Send → vehicle stock.
+11. Test:
+   DirectReturn → Send → Receive.
+12. Retry Receive using the same operation_id.
+13. Verify audit and inventory movement detail.
+14. Verify final stock reconciliation.
+15. Re-snapshot Production at the same reporting moment.
+16. Only after all passes set Browser E2E = CLOSED.
+
+## 18. CURRENT CLOSURE
+
+PRODUCTION BACKEND = CLOSED
+
+PHYSICAL STOCK CENTRALIZATION = CLOSED
+
+DIRECTSALE BACKEND = CLOSED
+
+DIRECTRETURN BACKEND = CLOSED
+
+RECEIVE IDEMPOTENCY = CLOSED
+
+PERSISTENT TEST DATA = CREATED AND RETAINED
+
+OWNER VOUCHERS UI PATCH = READY
+
+BROWSER E2E = OPEN UNTIL OWNER PATCH
+
+FULL VOUCHERS TAB 100% CLOSURE = PENDING OWNER UI CUTOVER + BROWSER EVIDENCE
+
+---
+
 # CURRENT RECONCILIATION — 2026-09-20 — FLEET MANAGEMENT FORENSIC SURGICAL CHECKPOINT
 
 > **هذا هو أحدث Current Reality لنطاق Fleet Management.**
