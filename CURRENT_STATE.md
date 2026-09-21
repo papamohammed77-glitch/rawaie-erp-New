@@ -7846,3 +7846,116 @@ Current State commit:
 Open target item remains:
 - owner patch for vouchers.html loadRefs + vehicleBranch
 - browser E2E with a real configured vehicle (currently vehicles=0)
+
+
+---
+
+## SESSION 2026-09-21 — Report283 Vouchers ↔ Vehicle Mobile Branch / DirectReturn Forensic Closure
+
+### Authoritative Git at session end
+- System HEAD after this session's report commit: `d1c9f8de55b33a02d1ea6734b19db9d1c9fa2031`
+- Parent: `fcb23a5f711624315f5c4d91eb2e869225bf4ba4`
+- Production SQL closure commits:
+  - `1c320923158877463340662c06f651450b136e6d`
+  - `fcb23a5f711624315f5c4d91eb2e869225bf4ba4`
+- Final session report:
+  `doc/Draft/Reprots/Report283_WAREHOUSE_VOUCHERS_MOBILE_BRANCH_DIRECTRETURN_FORENSIC_CLOSURE_20260921.md`
+
+### Target source state
+- `erp-frontend/companies/company-1/warehouse/vouchers.html` was re-fetched from current source.
+- Current blob remains: `5eea64c53a344f588c8035dc278d559d2be1b242`
+- Owner patch was NOT applied by CTO.
+- `main.html` was NOT modified.
+- `van-sales.html` was NOT modified in this closure; previously closed Van Sales work was not reopened.
+
+### Production changes executed
+1. Existing `send_stock_voucher_atomic` wrapper was corrected so DirectReturn authorization is evaluated against the receiving operational branch, not the vehicle mobile branch.
+2. Existing `send_stock_voucher_atomic_core_20260828` was corrected for the proven alias defect:
+   `v.mobile_branch_id` → `v_vehicle.mobile_branch_id`.
+3. No new Edge Function was created.
+4. Physical movement contract remains:
+   `post_stock_movement → stock_branches + inventory_log`.
+
+### Forensic root causes proved
+- Frontend vehicle lookup still depended only on `VAN-vehicle_code` instead of preferring `vehicles.mobile_branch_id`.
+- DirectReturn frontend selection could require the user to be authorized on the mobile vehicle branch, which conflicts with the warehouse operator's operational authorization on the receiving branch.
+- Production `send_stock_voucher_atomic_core_20260828` contained a real SQL alias bug in Vehicle source resolution and produced the verified PostgreSQL error:
+  `missing FROM-clause entry for table "v"`.
+
+### Runtime proof
+A temporary Production-shaped transaction was executed and rolled back completely:
+- DirectSale: Branch → Vehicle mobile stock
+- DirectReturn: Vehicle mobile stock → Branch
+- RECEIVE retry using the same operation identity
+
+Verified:
+- DirectSale stock mutation passed.
+- DirectReturn stock mutation passed.
+- RECEIVE retry returned duplicate semantics.
+- Final temporary stock returned to the pre-test state.
+- No permanent voucher/detail/vehicle/order residue remained.
+
+### Production snapshot after the final test
+- companies = 1
+- branches = 2
+- vehicles = 0
+- stock_vouchers = 0
+- stock_voucher_details = 0
+- inventory_log = 3
+- orders = 0
+
+### Owner-only surgical patch state
+The target source still requires only the following four surgical UI replacements:
+1. `loadRefs:function()` at approximately line 27 — add canonical vehicle mobile-branch fields and preserve existing query semantics.
+2. `vehicleBranch:function(v)` at approximately line 504 — prefer `mobile_branch_id`, then compatibility fallback to `VAN-vehicle_code`.
+3. `pickArr:function(key)` at approximately line 505 — remove incorrect dependency on warehouse-user authorization over the vehicle's mobile branch while preserving company/active/driver/operational-branch guards.
+4. `cards:function(rows,scope)` at approximately line 199 — explicitly present `voucher_code` as "رقم الإذن" and `reference` as the separate manual reference.
+
+The complete replacement blocks are stored in:
+`Report283_WAREHOUSE_VOUCHERS_MOBILE_BRANCH_DIRECTRETURN_FORENSIC_CLOSURE_20260921.md`
+
+### Closed / not to reopen
+- Physical stock centralization
+- Voucher CREATE
+- Voucher SEND core centralization
+- Voucher RECEIVE
+- Voucher COMPLETE
+- Voucher CANCEL
+- DirectSale physical stock
+- VanSales physical stock
+- VanSales driver/mobile-branch guard
+- VanSales retry identity
+- existing voucher list/filter
+- existing voucher audit/details
+- existing before/after stock logic
+- existing summary
+
+### Remaining open gates
+- Owner applies the four exact replacements in the separate vouchers frontend.
+- Browser E2E against a persistent real vehicle remains unavailable while Production has `vehicles = 0`.
+- After owner source patch, run static/parser validation and browser E2E, then re-read Production immediately at report time.
+
+### Next-session exact start
+1. Start from CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+2. Re-fetch the vouchers blob and verify whether the four exact owner patches already exist.
+3. Do not repeat any closed voucher or VanSales closure without new regression evidence.
+4. Do not touch `main.html`.
+5. Do not create another Edge Function.
+6. After owner cutover, perform Browser E2E for DirectSale → Vehicle stock and Vehicle → DirectReturn → Receive, including retry/idempotency.
+7. Re-snapshot Production in the same reporting window before claiming final browser closure.
+8. Lot / Serial / Expiry remains a separate future Business Contract + Schema Contract, not an unproven bug.
+
+### Session governance result
+```
+CURRENT SOURCE          = VERIFIED
+CURRENT PRODUCTION      = VERIFIED
+CURRENT DATABASE        = VERIFIED
+PRODUCTION FIXES        = DEPLOYED
+PRODUCTION E2E RPC      = PASS
+PERMANENT TEST RESIDUE  = NONE
+MAIN.HTML CHANGE        = 0
+VOUCHERS SOURCE CHANGE  = 0 (OWNER PATCH READY)
+NEW EDGE FUNCTIONS      = 0
+BROWSER E2E             = OPEN (vehicles=0)
+FULL UI CLOSURE         = OPEN UNTIL OWNER PATCH + BROWSER EVIDENCE
+```
