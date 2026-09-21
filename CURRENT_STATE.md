@@ -8846,3 +8846,125 @@ Next-session rule:
 
 Report:
 `doc/Draft/Reprots/Report287_WAREHOUSE_VOUCHERS_VANSALES_FORENSIC_SURGICAL_CLOSURE_20260921.md`
+
+
+---
+
+## SESSION 2026-09-21 — Report288 — Vouchers Smart Search Forensic Surgical Closure
+
+### Authoritative baseline
+
+System repository:
+- HEAD: `21e10441c593ca430a597284d5eaaeb2c3d49eb9`
+- parent: `b12caa93c87ab87f4989c5f13ce31fe29fe613c0`
+
+Mother frontend repository:
+- latest HEAD observed: `7de2ef29cd701e20dbf227c9edadbd9cd9426bfa`
+- target-file commit: `76e5b12fb88f85f5df1ab4f758dbacb5f7af9ae1`
+- target-file parent: `36e521f78c8507e431bb9eb780269612c2d6cbf0`
+- target file blob: `99f93c5a20a8d83e986f4efc6b5ed5fd34e71aac`
+- target file: `companies/company-1/warehouse/vouchers.html`
+
+### Current Production snapshot at session end
+
+- companies = 1
+- branches = 3
+- active direct-sales reps = 1
+- active mobile-stock vehicles = 1
+- suppliers = 1
+- purchase_orders = 0
+- purchase_invoices = 0
+- purchase_returns = 0
+- stock_vouchers = 1
+- stock_voucher_details = 3
+- stock_voucher_operations = 1
+- inventory_log = 3
+- audit_log = 2031
+- orders = 0
+- runsheets = 0
+- test vouchers IN-2 / IN-3 = 0
+- item 1001 main qty = 2
+- item 1001 mobile qty = 0
+
+### Forensic result
+
+1. DirectSale vehicle smart-search defect:
+   `pickArr:function(key){` required a selected `wsRep` before exposing vehicles. The smart-search engine was present; its candidate source was incorrectly gated.
+2. DirectSale vehicle-first selection defect:
+   `pickSelect:function(key,id){` only wrote the generic selected id/label and did not bind `vehicle.driver_id` to `wsRep`.
+3. SupplierReturn false-availability defect:
+   an empty verified supplier/branch map fell back to all company suppliers, while the current Production creation core requires a real purchase-order relation.
+
+### Owner-only source changes prepared
+
+Target file:
+`companies/company-1/warehouse/vouchers.html`
+
+Apply only:
+- V-03: complete replacement of `pickArr:function(key){`
+- V-04: complete replacement of `pickSelect:function(key,id){`
+
+These exact replacements are in:
+`doc/Draft/Reprots/Report288_WAREHOUSE_VOUCHERS_SMART_SEARCH_FORENSIC_SURGICAL_CLOSURE_20260921.md`
+
+Do NOT touch:
+- `main.html`
+- `loadRefs:function(){`
+- `pickSearch:function`
+- `routeHtml:function`
+- `submit:function`
+- `prepare:function(){`
+- `handleScan:function(code){`
+
+The latter functions were verified as already aligned and were not reworked.
+
+### Production decision
+
+No Production migration or Edge Function update was required for this UI closure.
+
+No new Edge Function was created.
+
+DirectReturn backend was tested end-to-end and confirmed as the existing two-stage contract:
+`SEND -> mobile stock decrease`
+then
+`RECEIVE -> branch stock increase`
+
+The complete transactional E2E restored the stock baseline and was rolled back.
+
+### Validation
+
+- Patched Vouchers JavaScript parse/compile = PASS.
+- Current source DirectSale vehicle candidates with no selected rep = 0.
+- Patched source DirectSale vehicle candidates with no selected rep = 1.
+- SupplierReturn with no verified branch relation = 0 candidates after patch.
+- SupplierReturn with a verified branch relation = candidate is exposed.
+- DirectSale vehicle-first selection binds the representative from `vehicle.driver_id` in the patched function.
+- Production data remained at the captured baseline after rollback.
+
+### Closure status
+
+- VOUCHERS SMART SEARCH ROOT CAUSE = CLOSED
+- PRODUCTION CONTRACT = CLOSED
+- DIRECTRETURN TWO-STAGE CONTRACT = CLOSED
+- OWNER SOURCE PATCH = READY
+- MAIN.HTML = UNTOUCHED
+- NEW EDGE FUNCTION = NOT CREATED
+- BROWSER E2E = OPEN
+- FULL UI CLOSURE = PENDING OWNER APPLICATION + BROWSER PROOF
+
+### Next-session execution order
+
+1. Re-verify CURRENT GIT target blob.
+2. Re-verify Production snapshot.
+3. Apply V-03 and V-04 only.
+4. Reparse the full `vouchers.html`.
+5. Execute authenticated Browser E2E:
+   - DirectSale: source branch -> vehicle-first search -> automatic rep binding.
+   - DirectSale: rep-first search -> vehicle filtering.
+   - SupplierReturn: no relation -> no results.
+   - SupplierReturn: real PO-linked supplier/branch -> result.
+6. Re-snapshot Production.
+7. Only then update this status to Browser E2E closed.
+
+Report:
+`doc/Draft/Reprots/Report288_WAREHOUSE_VOUCHERS_SMART_SEARCH_FORENSIC_SURGICAL_CLOSURE_20260921.md`
