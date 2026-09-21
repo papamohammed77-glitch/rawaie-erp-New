@@ -8750,3 +8750,99 @@ Final snapshot:
 - IN-1 remains the intentional demo DirectSale and has verified custodian identity.
 
 This correction supersedes any earlier session note that implied the first E2E create had already left zero persistent rows without a subsequent cleanup verification.
+
+## SESSION 2026-09-21 — Report287 — Vouchers / Van Sales Forensic Surgical Closure
+
+Authoritative system HEAD at session start:
+`9827cc8bf06e68c76fb45268331c9c982acc6661`
+Parent:
+`ba4dfd78fd298367aeb98213b383d447dd241401`
+
+Mother frontend HEAD at session start:
+`ff13516e04050a74d87771f949bcb69f7e085f3d`
+Parent:
+`5801db5d15673c49e88ccfc69e84f0a53cd8866d`
+
+Production final snapshot:
+- companies = 1
+- branches = 3
+- vehicles = 1
+- stock_vouchers = 1
+- stock_voucher_details = 3
+- stock_voucher_operations = 1
+- inventory_log = 3
+- audit_log = 2030
+- orders = 0
+- mobile vouchers missing custodian = 0
+
+Current Production voucher:
+`IN-1` / DirectSale / Draft
+- source = الفرع الرئيسي
+- custodian = `vansales@rawaea.com`
+- vehicle = `VEH-TEST-260921`
+- vehicle.driver_id = custodian_user_id
+- mobile_branch_id = `5372503d-f638-4e7f-808d-bda585825b2f`
+
+Production changes in this session:
+- Applied migration `inventory_control_voucher_audit_operations_20260921`.
+- Existing `inventory_control(VOUCHER_AUDIT)` now exposes `stock_voucher_operations` records.
+- No new Edge Function created.
+- Existing Edge layer retained.
+
+Van Sales source closure:
+Repository:
+`papamohammed77-glitch/erp-frontend`
+New HEAD:
+`36e521f78c8507e431bb9eb780269612c2d6cbf0`
+Parent:
+`ff13516e04050a74d87771f949bcb69f7e085f3d`
+Blob:
+`8d61382a8e0025a0d079e71dd94f33d106d9088e`
+
+Concrete defects fixed:
+1. `submitQuickSale` operation fingerprint used an out-of-scope `email`.
+2. `syncDown` fetched tenant-sensitive data without company scoping.
+3. startup stopped before `loadVanBranch` when sync failed, breaking offline fallback.
+4. quick inventory updated Dexie by comparing `item_id` to `itemCode`.
+
+Vouchers source:
+`companies/company-1/warehouse/vouchers.html`
+Current blob:
+`97d3dc89eafa97dd11bcde997ab73f5db97b9008`
+
+Do NOT reapply Report286 custodian patches; they are already present.
+
+New owner-only surgical patches documented in:
+`doc/Draft/Reprots/Report287_WAREHOUSE_VOUCHERS_VANSALES_FORENSIC_SURGICAL_CLOSURE_20260921.md`
+
+Only V-01/V-02 remain for the Vouchers source:
+- `prepare:function(){` — company-scope item catalog lookup.
+- `handleScan:function(code){` — company-scope barcode/item fallback.
+
+Untouched by CTO:
+- `Current/PWA/main.html`
+- `companies/company-1/warehouse/vouchers.html`
+
+Transactional E2E:
+CREATE DirectSale -> custodian guard -> SEND -> mobile stock delta -> CREATE DirectReturn -> SEND -> RECEIVE -> stock baseline restored -> ROLLBACK.
+No exception occurred and Production counts returned to the pre-test snapshot.
+
+Closure:
+- VOUCHER CUSTODY PRODUCTION = CLOSED
+- VAN SALES SOURCE CLOSURE = CLOSED
+- PHYSICAL STOCK CENTRALIZATION FOR REVIEWED PATHS = CLOSED
+- VOUCHER UI COMPANY-SCOPE PATCH = OWNER ACTION REQUIRED
+- BROWSER E2E = OPEN
+
+Next-session rule:
+1. Verify this section against CURRENT GIT and CURRENT PRODUCTION.
+2. Verify Mother HEAD before touching any frontend.
+3. Do not modify `main.html`.
+4. Do not recreate closed custodian work.
+5. Do not create an Edge Function.
+6. Apply only V-01/V-02 to Vouchers after confirming exact current blob.
+7. Execute deployed Browser E2E.
+8. Snapshot Production immediately before the final closure report.
+
+Report:
+`doc/Draft/Reprots/Report287_WAREHOUSE_VOUCHERS_VANSALES_FORENSIC_SURGICAL_CLOSURE_20260921.md`
