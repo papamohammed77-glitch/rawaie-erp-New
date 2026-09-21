@@ -3828,6 +3828,11 @@ No Production DB migration is required for this root cause.
 No Production data repair is required for this root cause.
 No new middleware/SW workaround is required.
 
+## Canonical Git/Production alignment
+- Production migration version: `20260921171622`
+- Canonical Git migration path: `supabase/migrations/20260921171622_direct_sales_voucher_rep_permission_guard_20260921.sql`
+- The intermediate mismatched filename created during recording was removed; no duplicate migration file remains.
+
 ## Closure status
 
 CURRENT SOURCE ROOT CAUSE = PROVEN
@@ -9350,10 +9355,10 @@ Report:
 ## Authoritative session baseline
 - System HEAD at task start: `0620265ce4e2e7cd3cfb4a8a6789a986b8e7408a`
 - System parent at task start: `9ec16aeaace0cfea046b5a2c01e41db064ec9a2b`
-- Report292 commit: `ffc60d34bb850476811eb9e788f60d0c400f7b17`
+- Report292 final doc commit: `3d76ea53d30281329fb559d26fe83f5486212c21`
 - Production migration recorded in canonical Git:
-  `supabase/migrations/20260921200800_direct_sales_voucher_rep_permission_guard.sql`
-- Migration commit: `f9b2637697b03ded4b188c63803b86e05c6bb0a0`
+  `supabase/migrations/20260921171622_direct_sales_voucher_rep_permission_guard_20260921.sql`
+- Migration canonical file commit: `8a1d9a89e73f0912f499c144ea53b6499ccae3e6`
 
 ## Mother Frontend
 - Repository: `papamohammed77-glitch/erp-frontend`
