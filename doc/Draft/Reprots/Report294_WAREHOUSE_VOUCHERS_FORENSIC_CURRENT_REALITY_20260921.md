@@ -560,7 +560,7 @@ Current Production database confirms:
 
 عليه:
 
-`UNIQUE]
+`UNIQUE`
 
 على مستوى Item Master الحالي.
 
