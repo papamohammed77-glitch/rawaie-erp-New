@@ -9261,3 +9261,86 @@ Next session must:
 
 ### Report
 `doc/Draft/Reprots/Report290_WAREHOUSE_VOUCHERS_DIRECTSALE_RLS_FORENSIC_CLOSURE_20260921.md`
+
+
+---
+
+# SESSION 2026-09-21 — Report291 — WAREHOUSE VOUCHERS / DIRECTSALE CURRENT FORENSIC CLOSURE
+
+## Authoritative current source baseline
+- System report/state HEAD before this report: `0620265ce4e2e7cd3cfb4a8a6789a986b8e7408a`
+- parent/source baseline: `9ec16aeaace0cfea046b5a2c01e41db064ec9a2b`
+- Report291 commit: `f2c4729975be46ce59ef8a633d3a5be4fd9460b6`
+- Mother frontend HEAD: `f59bce9bac6b4d76fda2b16e6889f5d8b1e2466d`
+- Mother parent: `bab20ca64b359045bbaae7a47b7eee6e4b538a1b`
+- vouchers current blob: `570a4a952b7645e5ef7674e80d5238b65f8cd9eb`
+- van-sales current blob: `8d61382a8e0025a0d079e71dd94f33d106d9088e`
+
+## Production final snapshot at report moment
+- timestamp: `2026-09-21T17:13:40.511359+00:00`
+- companies = 1
+- branches = 3
+- vehicles = 1
+- stock_vouchers = 1
+- stock_voucher_operations = 1
+- inventory_log = 6
+- audit_log = 2034
+- direct_sales_reps = 1
+- active_mobile_vehicles = 1
+- MAIN item 1001 = 2
+
+## DirectSale current reality
+- Production RLS policy `users_select_direct_reps_warehouse` is active.
+- Authenticated warehouse-user verification returns the current direct-sales representative.
+- Current vouchers source already contains V-03/V-04:
+  - vehicle candidates are available without prior rep selection;
+  - vehicle-first selection resolves `vehicle.driver_id` into `wsRep`;
+  - canonical `mobile_branch_id` is supported.
+- Source static gate = PASS.
+- Source-level simulation with current Production identities = PASS.
+
+## New forensic defect discovered
+File: `companies/company-1/warehouse/vouchers.html`
+Function: `handleKeys:function(e)`
+Approximate line: 1643
+
+Current behavior:
+`Escape` falls through to `this.back()` whenever item result popup and mobile drawer are not open.
+A source-level test proved an Escape event targeted at an INPUT invokes `back()`.
+
+## Owner surgical patch status
+- Do NOT modify `main.html`.
+- Do NOT reapply V-03/V-04.
+- Do NOT modify `van-sales.html`.
+- Replace only the exact `handleKeys:function(e)` block using the complete replacement in Report291.
+- Patch prevents Escape inside form fields from leaving the Workspace and closes an open smart menu before allowing navigation back.
+
+## Production status
+- No new Production migration was required in Report291.
+- No new Edge Function was created.
+- Existing DirectSale/RLS/canonical stock contracts remain closed.
+- Global Inventory Core was not reopened.
+
+## Closure status
+- Production contract = CLOSED
+- Physical stock centralization = CLOSED
+- DirectSale backend = CLOSED
+- Direct rep RLS = CLOSED
+- Smart rep/vehicle lookup source = CLOSED
+- Vehicle-first binding = CLOSED
+- Current Escape auto-exit defect = OWNER PATCH READY
+- Browser E2E = OPEN; no browser-level PASS claimed without real browser execution
+
+## Next session exact start
+1. Verify current System HEAD and parent.
+2. Verify Mother HEAD and vouchers blob.
+3. Verify Production snapshot and RLS policy.
+4. Check whether the exact Report291 `handleKeys` patch has been applied in `vouchers.html`.
+5. Do not repeat V-03/V-04 or the DirectSale RLS migration.
+6. Run complete-file static parse.
+7. Execute authenticated browser E2E when browser execution is available.
+8. Re-snapshot Production at the exact end of the browser test.
+9. Open a new Closure Unit only for evidence-backed new defects.
+
+Report:
+`doc/Draft/Reprots/Report291_WAREHOUSE_VOUCHERS_DIRECTSALE_CURRENT_FORENSIC_CLOSURE_20260921.md`
