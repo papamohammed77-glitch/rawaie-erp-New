@@ -8409,3 +8409,194 @@ NEW EDGE FUNCTIONS      = 0
 BROWSER E2E             = OPEN (vehicles=0)
 FULL UI CLOSURE         = OPEN UNTIL OWNER PATCH + BROWSER EVIDENCE
 ```
+
+
+---
+
+## SESSION 2026-09-21 — Report285 — Vouchers Current Regression Forensic Surgical Checkpoint
+
+### Authoritative Current Reality
+
+System HEAD at investigation start:
+`90388a19464e0a8ac935b5189b670fc697289766`
+
+System parent:
+`141c526186d5a3031666ea2986c24da038b25120`
+
+Current Mother HEAD:
+`7efa2dfe17ddd10cc410d3887cc9876d630aa319`
+
+Current Mother parent:
+`7375e75d562b4743f435fd26db60402a5a23e293`
+
+Current target vouchers blob:
+`8d7fd4375376de11200836c2fe76f98d27ac7c53`
+
+Current Van Sales blob:
+`a914c3e268c8801533051a3f0901c0db5919ee64`
+
+Current Mother main blob:
+`f7bec336bcdebb00bdfb2ce95a07e55919c03dae`
+
+### Session Scope
+
+Only:
+- Warehouse Management → Stock Vouchers.
+- Vouchers standalone application.
+- Integration with Van Sales / Vehicle Mobile Stock.
+- Current frontend regression.
+- Owner-only frontend surgical patch.
+- Production verification.
+
+No:
+- main.html modification.
+- vouchers.html CTO write.
+- van-sales.html modification.
+- new Edge Function.
+- reopening closed Production inventory writers.
+
+### Current Production Snapshot
+
+- companies = 1
+- branches = 3
+- vehicles = 1
+- stock_vouchers = 1
+- stock_voucher_details = 3
+- stock_voucher_operations = 1
+- inventory_log = 3
+- audit_log = 2027
+
+Persistent demo voucher:
+`IN-1`, DirectSale, Draft.
+
+Persistent vehicle:
+`VEH-TEST-260921`, active, mobile_stock_enabled=true, mobile_branch_id set.
+
+### New Regression Proven
+
+Current `vouchers.html` contains an orphaned old `rows.map(...)` renderer immediately after the complete current `cards:function(rows,scope){...}` function.
+
+Exact location:
+line 416.
+
+Parser:
+- current source = FAIL, `SyntaxError: Unexpected token '.'`
+- in-memory deletion of line 416 only = PASS.
+
+This is the direct cause of:
+`App is not defined`
+
+No App rebuild is required.
+
+### Second Regression Proven
+
+Current vouchers source calls:
+
+`RW_SW.register('../sw.js');`
+
+The current standalone source does not provide a canonical voucher Service Worker at:
+`companies/company-1/warehouse/sw.js`
+
+The shared registration coordinator intentionally excludes vouchers.
+
+Owner patch:
+delete the exact `RW_SW.register('../sw.js');` call only.
+
+No new Service Worker should be introduced by this closure.
+
+### Authentication Finding
+
+The existing voucher login contract is already correct:
+- `RW_Auth.doLogin`
+- `RW_Auth.init`
+- `activeWarehouseRole='أذونات'`
+- Owner/wildcard semantics preserved.
+
+No authentication redesign is justified.
+
+### Production Finding
+
+Current Production voucher backend remains aligned:
+`create_manual_stock_voucher_atomic`
+→ `create_manual_stock_voucher_atomic_core_12_20260828`
+
+`send_stock_voucher_atomic`
+→ `send_stock_voucher_atomic_core_20260828`
+→ `post_stock_movement`
+
+`post_manual_stock_voucher_atomic`
+→ `post_manual_stock_voucher_atomic_core_20260828`
+→ `post_stock_movement`
+
+Physical movement remains centralized.
+
+No Production migration or Edge Function is required for this regression.
+
+### Van Sales Finding
+
+Current Van Sales backend/frontend closures remain valid:
+- authenticated driver context.
+- canonical mobile branch.
+- operation_id retry identity.
+- save-sales-invoice → save_sales_invoice_atomic → post_stock_movement(VanSale).
+
+No regression proven, therefore no re-fix.
+
+### Owner Patch Only
+
+File:
+`companies/company-1/warehouse/vouchers.html`
+
+PATCH 1:
+Delete exact orphaned `rows.map(function(v){...}).join('')},` at line 416.
+
+PATCH 2:
+Delete exact `RW_SW.register('../sw.js');` bootstrap call.
+
+Do not modify any other existing voucher function.
+
+### Tailwind
+
+`cdn.tailwindcss.com` warning is classified as non-blocking build/deployment technical debt.
+
+It was not changed because eliminating it safely requires a compiled CSS delivery contract, and this closure explicitly forbids an unrelated frontend rebuild.
+
+### Closure State
+
+- Governance = VERIFIED
+- Current source = VERIFIED
+- Current Production = VERIFIED
+- Physical stock core = CLOSED
+- Voucher backend = CLOSED
+- Van Sales integration = CLOSED
+- Parser root cause = PROVEN
+- App undefined root cause = PROVEN
+- SW defect = PROVEN
+- Owner surgical patch = READY
+- Production repair = NOT REQUIRED
+- New Edge Functions = 0
+- main.html changed = 0
+- vouchers.html changed by CTO = 0
+- van-sales.html changed = 0
+- Static parser after in-memory patch = PASS
+- Browser E2E = OPEN
+- Full UI closure = OWNER PATCH + Browser E2E
+
+### Report
+
+`doc/Draft/Reprots/Report285_WAREHOUSE_VOUCHERS_CURRENT_REGRESSION_FORENSIC_SURGICAL_CLOSURE_20260921.md`
+
+### Next Session
+
+1. Re-read this latest section first.
+2. Verify System HEAD and parent.
+3. Verify current Mother HEAD.
+4. Re-fetch current vouchers blob.
+5. Confirm whether PATCH 1 and PATCH 2 have already been applied.
+6. Do not repeat closed Production migrations.
+7. Do not touch main.html.
+8. Do not create another Edge Function.
+9. Parse the full voucher source.
+10. Run Browser E2E after Owner cutover.
+11. Re-snapshot Production immediately before final closure reporting.
+12. Do not declare 100% closure until Source + Production + Deployment + Browser evidence agree.
