@@ -451,3 +451,57 @@ CURRENT DEPLOYMENT EVIDENCE
 6. بعد owner patch نفذ Browser E2E مع Vehicle حقيقي.
 7. أعد مطابقة Production فورًا قبل أي نسبة أو تقرير جديد.
 8. Lot/Serial/Expiry لا يبدأ قبل Business Contract وSchema Contract مستقلين.
+
+
+## 21. Final full-path E2E — Production
+
+تم تنفيذ المسار الكامل داخل Transaction ثم ROLLBACK:
+
+van-sales
+→ save-sales-invoice
+→ save_sales_invoice_atomic
+→ post_stock_movement(VanSale)
+→ stock_branches
+→ inventory_log
+
+بيانات الاختبار:
+- temporary branch: VAN-E2E-SAV-23
+- temporary vehicle: E2E-SAV-23
+- driver: vansales@rawaea.com
+- item: 1006
+- stock before: 10
+- operation_id:
+  7a4edb68-f0d1-4a03-8a01-c8e7d37b0b1e
+
+العملية الأولى:
+- success = true
+- duplicate = false
+- orderID = ORD-1001
+- stock after = 9
+- movement_count = 1
+- cash_posted = true
+
+إعادة نفس العملية بنفس operation_id:
+- success = true
+- duplicate = true
+- نفس orderID
+- لم تُنشأ حركة مخزنية ثانية
+
+تم تنفيذ ROLLBACK بعد الاختبار.
+نتيجة Production بعد الاختبار بقيت:
+orders = 0
+inventory_log = 3
+
+وبذلك أصبح التكامل الخادم-الخادم مثبتًا، وليس مجرد static source review.
+
+## 22. النتيجة النهائية بعد E2E الكامل
+
+Van Sales physical stock integration = CLOSED
+
+Van Sales operation idempotency = CLOSED
+
+Van Sales mobile branch authorization = CLOSED
+
+Standalone Vouchers canonical mobile branch UI = OPEN — owner patch فقط
+
+Browser E2E الحقيقي على سيارة تشغيلية = OPEN بسبب أن Production الحالية تحتوي 0 vehicles.
