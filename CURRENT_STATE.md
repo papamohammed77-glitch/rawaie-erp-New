@@ -8975,9 +8975,10 @@ Report:
 
 ### Authoritative baseline at session end
 
-System repository:
+System repository source baseline:
 - HEAD: `8117e919834ccd5fef0003f850508f286e41b3a7`
 - parent: `9ca6bf1bba8c807aeb5c16c612a1d1bed76d356d`
+- subsequent documentation-only commits: Report 289 + CURRENT_STATE continuity
 
 Mother frontend:
 - HEAD: `f59bce9bac6b4d76fda2b16e6889f5d8b1e2466d`
