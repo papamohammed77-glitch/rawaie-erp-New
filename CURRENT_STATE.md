@@ -7571,3 +7571,125 @@ Physical-writer discovery:
 
 Report:
 `doc/Draft/Reprots/Report280_WAREHOUSE_VOUCHERS_STANDALONE_THIS_SUMMARY_FORENSIC_20260921.md`
+
+---
+
+## SESSION 2026-09-21 — Report281 Warehouse Vouchers Standalone
+
+### Authoritative GIT
+- System repo HEAD at session start: `31f22601f8db94864d46d17735338bbd92d09a77`
+- System parent: `4eaa290043bc527e6299fb7f1292806c3da09200`
+- Frontend current HEAD: `71436e0e60787ad66d643b923e9b6a3e017eb498`
+- Frontend parent: `a2de64c150c9e38f14af0c2ecafcbcd9861fa9cd`
+- Standalone vouchers current blob: `1d37820b58763a3a54a6123cfe378d9e69f0d22d`
+
+### Proven source defect
+Current `companies/company-1/warehouse/vouchers.html` contains call-sites for:
+- `App.send(voucher_code)`
+- `App.cancel(voucher_code)`
+- `App.complete(voucher_code)`
+
+but no corresponding object methods. `App.receive` is present. `summary` is already present and must not be re-added.
+
+The missing-method defect is therefore **UI action contract drift**, not a summary regression.
+
+### Owner source patch
+Do not modify `main.html`.
+
+Do not write `erp-frontend/companies/company-1/warehouse/vouchers.html` from the session.
+
+Owner must replace only the existing `callAction:function(name,code,successText){...}` property immediately before `receive:function(code){` with the complete block in:
+`doc/Draft/Reprots/Report281_WAREHOUSE_VOUCHERS_STANDALONE_FORENSIC_SURGICAL_CLOSURE_20260921.md`
+
+The exact patch adds:
+- `send:function(code)`
+- `cancel:function(code)`
+- `complete:function(code)`
+
+Static verification after in-memory patch:
+- undefined App calls: 0
+- JavaScript parse: PASS
+- receive implementation unchanged
+- summary implementation unchanged
+
+### Production closure executed
+Production project: `fiilmooggumokxanwiyx`
+
+Applied migrations:
+- `20260921083201_voucher_directsale_vehicle_stock_central_closure`
+- `20260921083432_restrict_post_stock_movement_execute_surface`
+
+Production changes:
+1. `DirectSale` now physically moves stock:
+   Branch source qty ↓
+   Vehicle mobile stock branch qty ↑
+2. Vehicle target resolution prefers `vehicles.mobile_branch_id`, with verified `VAN-<vehicle_code>` fallback.
+3. Target `stock_branches` row is auto-created by the central writer when absent.
+4. `inventory_log` remains the authoritative physical movement log.
+5. Physical writer execute surface remains behind `service_role`; no direct `authenticated` execution.
+6. No new Edge Function was created.
+
+### Production proof
+Transactional DirectSale test passed:
+- existing source item qty 2 -> 1
+- temporary vehicle stock branch qty 0 -> 1
+- one DirectSale inventory log
+- full transaction rollback
+- persistent stock_vouchers remained 0
+- persistent stock_voucher_details remained 0
+- persistent inventory_log remained 3
+- temporary vehicle residue 0
+
+Current Production snapshot:
+- active companies: 1
+- active branches: 2
+- active items: 16
+- vehicles: 0
+- stock_vouchers: 0
+- stock_voucher_details: 0
+- inventory_log: 3
+- audit_log: 2023
+- erp_operation_registry: 5
+- stock_voucher_operations: 0
+
+### DirectReturn
+Do not change current DirectReturn behavior.
+Current contract is two-stage:
+- SEND: `InventoryDecrease` from vehicle
+- RECEIVE: `DirectReturn` into branch
+- COMPLETE: after RECEIVE
+
+A transactional RPC-only test confirmed `post_stock_movement('DirectReturn')` is target/inbound semantics, so it was intentionally not rewritten.
+
+### Existing closures not to reopen
+- summary restoration
+- CREATE operation identity
+- RECEIVE operation identity
+- before/after stock display
+- search/filter/list window
+- unified voucher audit/details
+- central physical writer boundary
+
+### Remaining open closures
+- Owner application of vouchers.html surgical wrapper patch.
+- Browser E2E on a real vehicle entity is not yet possible because Production currently has 0 vehicles.
+- Cross-app Vehicle Mobile Branch Identity remains an OPEN separate contract between:
+  `vehicles.mobile_branch_id`
+  vouchers
+  van-sales
+- Serial/Lot/Expiry traceability remains a future Business Contract, not an unverified defect.
+
+### Canonical source-of-truth additions
+System repo now contains:
+- `supabase/migrations/20260921083201_voucher_directsale_vehicle_stock_central_closure.sql`
+- `supabase/migrations/20260921083432_restrict_post_stock_movement_execute_surface.sql`
+- `doc/Draft/Reprots/Report281_WAREHOUSE_VOUCHERS_STANDALONE_FORENSIC_SURGICAL_CLOSURE_20260921.md`
+
+### Next-session rule
+Start from current Source + Production, not old reports.
+Re-fetch the standalone blob SHA before any action.
+Verify the owner patch exists before changing anything else.
+Do not touch `main.html`.
+Do not recreate previously closed features.
+Do not claim full closure before Source + Production + Deployment + Browser evidence agree.
+
