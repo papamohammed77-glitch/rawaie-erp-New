@@ -273,10 +273,24 @@ DirectSale / DirectReturn لا يمكن أن تكون بدون custodian.
 
 = PASS.
 
-### Production pollution
-كل اختبارات الحركة تمت داخل Transaction وتم Rollback.
+### Production data hygiene correction
+خلال final snapshot ظهر سجل E2E تجريبي \\`IN-2\\` كان قد أُنشئ خارج Transaction في اختبار سابق.
+تم التحقق من هويته من خلال:
+- reference = \\`E2E-CUSTODIAN-0921\\`.
+- type = DirectSale.
+- status = Draft.
+- عدم وجود inventory movement مرتبطة به.
 
-لا توجد حركة اختبارية دائمة.
+تم حذف \\`IN-2\\` وoperation registry المرتبط به مباشرةً من Production.
+
+Final Production snapshot بعد التنظيف:
+- stock_vouchers = 1.
+- stock_voucher_details = 3.
+- stock_voucher_operations = 1.
+- inventory_log = 3.
+- DirectSale/DirectReturn missing custodian = 0.
+
+السجل المقصود كـdemo المستمر هو \\`IN-1\\` وليس \\`IN-2\\`.
 
 ---
 
@@ -1051,7 +1065,7 @@ callAction:function(name,code,successText){
 - SEND retry = PASS.
 - Audit preservation = PASS.
 - Invalid custodian rejection = PASS.
-- Persistent test pollution = 0.
+- Final persistent test pollution = 0 after explicit IN-2 cleanup.
 
 ### Source
 - Current vouchers source = VERIFIED.
@@ -1131,3 +1145,20 @@ Browser E2E = OPEN until owner applies patches and the deployed frontend actuall
 10. Re-snapshot Production immediately before final closure report.
 11. Only then decide whether the Vouchers closure is 100%.
 
+
+
+---
+
+## 16. Final Production Snapshot — correction-verified
+
+Verified after cleanup:
+`stock_vouchers=1`
+`stock_voucher_details=3`
+`stock_voucher_operations=1`
+`inventory_log=3`
+`missing_custodian=0`
+`IN-2=0`
+
+`IN-1` remains the single intentional demo DirectSale record and carries the verified custodian identity.
+
+The final state reported here supersedes any earlier count in this report that reflected the temporary `IN-2` test record.
