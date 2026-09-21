@@ -9117,3 +9117,144 @@ The only direct UI proof still not established is authenticated Browser E2E on t
 
 Report:
 `doc/Draft/Reprots/Report289_WAREHOUSE_VOUCHERS_CURRENT_REALITY_FORENSIC_CLOSURE_20260921.md`
+
+
+---
+
+## SESSION 2026-09-21 — Report290 — DIRECTSALE RLS FORENSIC CLOSURE
+
+### Authoritative current source baseline
+- System source baseline before this session's documentation/migration records:
+  - `8117e919834ccd5fef0003f850508f286e41b3a7`
+  - parent: `9ca6bf1bba8c807aeb5c16c612a1d1bed76d356d`
+- This session added:
+  - Production migration source:
+    `supabase/migrations/20260921165026_allow_warehouse_direct_rep_lookup_for_vouchers.sql`
+  - Report:
+    `doc/Draft/Reprots/Report290_WAREHOUSE_VOUCHERS_DIRECTSALE_RLS_FORENSIC_CLOSURE_20260921.md`
+
+### Current Mother Frontend
+- Repository: `papamohammed77-glitch/erp-frontend`
+- HEAD: `f59bce9bac6b4d76fda2b16e6889f5d8b1e2466d`
+- parent: `bab20ca64b359045bbaae7a47b7eee6e4b538a1b`
+- vouchers source blob:
+  `570a4a952b7645e5ef7674e80d5238b65f8cd9eb`
+- van-sales source blob:
+  `8d61382a8e0025a0d0797827f8dcb2d56f7c1aab`
+  (source was verified this session; no change made)
+
+### Current Production snapshot
+- companies = 1
+- branches = 3
+- vehicles = 1
+- stock_vouchers = 1
+- stock_voucher_details = 3
+- stock_voucher_operations = 1
+- inventory_log = 6
+- audit_log = 2034
+- orders = 0
+- runsheets = 0
+
+Current persistent voucher:
+- code: `IN-1`
+- type: `DirectSale`
+- status: `Cancelled`
+- reference: `DEMO-DIRECT-SALE-2026-09-21`
+
+### DirectSale Production identity
+- warehouse voucher operator:
+  `vouchers@rawaea.com`
+- active warehouse role:
+  `أذونات`
+- permission:
+  `warehouse`
+- direct sales rep:
+  `vansales@rawaea.com`
+- vehicle:
+  `VEH-TEST-260921`
+- mobile branch:
+  `VAN-VEH-TEST-260921`
+- mobile stock enabled:
+  true
+
+### Forensic root cause closed
+The DirectSale smart-search failure was caused by the Production RLS visibility contract on `public.users`.
+
+`vouchers.html` already queried Active Direct Sales Representatives correctly, but the existing `users_select_company` policy exposed company users only to users with permission `users`.
+
+The voucher operator only has `warehouse`, so the authenticated query returned:
+- direct sales reps before fix = 0
+- direct sales reps after fix = 1
+
+Because `pickArr('wsTo')` requires a valid linked rep, zero visible reps also produced zero vehicle candidates.
+
+### Production fix
+Applied and verified:
+`allow_warehouse_direct_rep_lookup_for_vouchers`
+
+Policy:
+- same company only
+- Active users only
+- role = `مندوب بيع مباشر`
+- caller must have `warehouse`
+
+No RLS broadening to general user management.
+No service-role exposure in browser.
+No new Edge Function.
+
+### Existing frontend status
+The current `vouchers.html` already contains:
+- V-03 corrected DirectSale candidate provider
+- V-04 vehicle-first representative binding
+- company-scoped refs
+- canonical `mobile_branch_id` support
+- Available Before / Available After display
+- operation identity on create
+
+Do NOT reapply V-03/V-04.
+Do NOT edit `main.html`.
+Do NOT edit `vouchers.html` for this root cause unless a new current-source defect is proven.
+
+### Production E2E proven
+Transactional Production test passed for:
+`DirectSale: Branch -> Vehicle`
+
+Within one transaction:
+- Main item 1001: `2 -> 1`
+- Vehicle mobile-stock item 1001: `0 -> 1`
+- movement passed through `post_stock_movement`
+
+Transaction was rolled back.
+No test residue remained.
+
+### Deployment/Edge status
+- `create-stock-voucher`: version 10, JWT verification enabled
+- `send-stock-voucher`: version 20, JWT verification enabled
+- no Edge Function created in this closure
+- existing RPC/core path remains authoritative
+
+### Browser status
+Authenticated browser E2E for DirectSale was NOT executed in this environment after the RLS fix.
+Do not mark Browser E2E as PASS until an actual browser execution proves:
+1. login;
+2. New Voucher;
+3. DirectSale;
+4. source-branch dropdown/search;
+5. direct-sales-rep dropdown/search;
+6. vehicle dropdown/search;
+7. vehicle-first rep binding;
+8. save;
+9. resulting voucher state.
+
+### Continuity rule
+Next session must:
+1. snapshot Production first;
+2. verify current system source baseline and frontend target blob;
+3. verify the RLS policy and direct-rep visibility under authenticated context;
+4. do not repeat V-03/V-04;
+5. do not touch `main.html`;
+6. run real authenticated Browser E2E before claiming full UI closure;
+7. open any new defect as a separate Closure Unit.
+
+### Report
+`doc/Draft/Reprots/Report290_WAREHOUSE_VOUCHERS_DIRECTSALE_RLS_FORENSIC_CLOSURE_20260921.md`
