@@ -241,7 +241,7 @@ loadRefs:function(){
     return Promise.all([
         supabase
             .from('branches')
-            .select('id,branch_code,name,is_active')
+            .select('id,branch_code,name,is_active,company_id')
             .eq('company_id',s.company),
 
         supabase
