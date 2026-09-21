@@ -8721,3 +8721,32 @@ Browser E2E = OPEN until Owner applies the three exact replacements and the depl
 8. Parse vouchers.html.
 9. Run Browser E2E.
 10. Only then evaluate full UI closure.
+
+
+---
+
+## CORRECTION — Report286 Final Production Data Hygiene — 2026-09-21
+
+A final snapshot identified one persisted E2E draft test voucher `IN-2` created during an earlier test outside the transactional harness.
+
+Verified identity:
+- reference = `E2E-CUSTODIAN-0921`
+- type = DirectSale
+- status = Draft
+- no inventory movement associated.
+
+Action:
+- deleted the linked `stock_voucher_operations` row;
+- deleted `stock_vouchers.IN-2`;
+- final Production verification completed.
+
+Final snapshot:
+- stock_vouchers = 1
+- stock_voucher_details = 3
+- stock_voucher_operations = 1
+- inventory_log = 3
+- mobile vouchers missing custodian = 0
+- IN-2 remaining = 0
+- IN-1 remains the intentional demo DirectSale and has verified custodian identity.
+
+This correction supersedes any earlier session note that implied the first E2E create had already left zero persistent rows without a subsequent cleanup verification.
