@@ -7442,3 +7442,132 @@ No other Mother function should be changed in this closure.
 
 Report:
 `doc/Draft/Reprots/Report279_WAREHOUSE_VOUCHERS_MOTHER_LIVE_FORENSIC_SURGICAL_CONTINUATION_20260921.md`
+
+
+---
+
+# CURRENT SESSION UPDATE — 2026-09-21 — STANDALONE WAREHOUSE VOUCHERS RUNTIME REGRESSION FORENSIC CLOSURE
+
+## Scope
+- Target: `erp-frontend/companies/company-1/warehouse/vouchers.html`
+- Mother `main.html`: READ ONLY / not modified.
+- Standalone `vouchers.html`: READ ONLY / no Git source write in this session.
+- Production changes: NONE required by the proven defect.
+- New Edge Function: NONE.
+
+## Current authoritative source
+- Current standalone blob: `3adf031cfb073c87db10c562c1b3e7d568bb61fd`
+- Current file length: 72,678 bytes.
+- Latest source-changing voucher commit: `a2de64c150c9e38f14af0c2ecafcbcd9861fa9cd`
+- Its parent: `f2229bec9106f1c4836769b1eccda3cc48d4a482`
+
+## Proven root cause
+CURRENT source contains three calls:
+- `s.summary()` in `pickSelect`
+- `this.summary()` at the end of `renderWorkspace`
+- `this.summary()` in `updateSource`
+
+CURRENT source contains zero `summary:function(...)` definitions.
+
+The immediate parent source contains the exact historical `summary:function(){...}` helper. Commit `a2de...` removed that helper while leaving all three callers.
+
+Controlled runtime smoke reproduced:
+`TypeError: App.summary is not a function`
+
+After restoring only the missing helper in memory:
+- `App.summary` = function
+- `App.updateSource` = function
+- `App.summary()` executes successfully
+- `routeSummary` renders without error
+- Embedded script parsing remains PASS.
+
+## Exact owner surgical patch
+File:
+`erp-frontend/companies/company-1/warehouse/vouchers.html`
+
+Find exactly:
+`updateSource:function(){this.summary();this.renderProducts()},`
+
+Current location:
+line ~622.
+
+Delete that exact property and replace it with:
+```js
+summary:function(){var t='',fr=RW_UI.byId('wsFrom'),re=RW_UI.byId('wsRep'),to=RW_UI.byId('wsTo');if(fr&&fr.value)t+=(this.type==='DirectReturn'?'المركبة: ':'المصدر: ')+this.loc(fr.value,this.type==='DirectReturn'?'Vehicle':'Branch');if(re&&re.value){var r=this.refs.reps.find(function(x){return x.id===re.value});if(r)t+=(t?' · ':'')+'المندوب: '+(r.name||r.email)}if(to&&to.value)t+=(t?' · ':'')+(this.type==='DirectSale'?'المركبة: ':this.type==='SupplierReturn'?'المورد: ':'الوجهة: ')+this.loc(to.value,this.type==='DirectSale'||this.type==='DirectReturn'?'Vehicle':this.type==='SupplierReturn'?'Supplier':'Branch');RW_UI.safeText(RW_UI.byId('routeSummary'),t||'حدد عناصر المسار');RW_UI.safeText(RW_UI.byId('stockHint'),this.sourceBranch()?'المتاح محسوب من المصدر المحدد':'اختر المصدر لمعرفة المتاح')},
+updateSource:function(){this.summary();this.renderProducts()},
+```
+
+Do not modify any other voucher function.
+
+## Service Worker finding
+Current standalone source calls:
+`RW_SW.register('../sw.js')`
+
+Current `core.js` passes the supplied relative path to `navigator.serviceWorker.register(path)`.
+
+Existing file:
+`companies/company-1/sw.js`
+
+No current file:
+`companies/company-1/warehouse/sw.js`
+
+Current `companies/company-1/register-sw.js` contains `navigator.serviceWorker.register('./sw.js',{scope:'./'})`.
+
+Therefore the reported request to:
+`/companies/company-1/warehouse/sw.js`
+is not emitted by the CURRENT standalone `vouchers.html` path itself. It requires a different/older loader or runtime/cached page path. Do not patch Service Worker paths without fresh runtime evidence identifying the caller.
+
+## Production current truth
+Checked this session:
+- companies = 1
+- active_branches = 2
+- active_items = 16
+- stock_vouchers = 0
+- stock_voucher_details = 0
+- inventory_log = 3
+- audit_log = 2023
+- stock_voucher_operations = 0
+
+Current Voucher Production chain remains:
+`create_manual_stock_voucher_atomic`
+→ `send_stock_voucher_atomic`
+→ `post_manual_stock_voucher_atomic`
+→ `complete_manual_stock_voucher_atomic`
+→ `cancel_manual_stock_voucher_atomic`
+with Physical Stock:
+`post_stock_movement → stock_branches + inventory_log`.
+
+Physical-writer discovery:
+- `post_stock_movement` is the direct physical mutation engine.
+- `reserve_stock` / `release_stock_reservation` are reservation-only.
+- no trigger on `stock_branches` or `inventory_log` was found creating a parallel movement engine.
+
+## Reports
+- `doc/Draft/Reprots/Report280_WAREHOUSE_VOUCHERS_STANDALONE_THIS_SUMMARY_FORENSIC_20260921.md`
+- Report commit: `4eaa290043bc527e6299fb7f1292806c3da09200`
+
+## Closure state
+- Root Cause = PROVEN
+- Surgical fix = READY
+- In-memory runtime verification = PASS
+- Production Voucher Core = VERIFIED
+- Production Data Repair = NONE
+- New Edge Function = NOT REQUIRED
+- Standalone source write = NOT EXECUTED BY THIS SESSION
+- Mother main.html write = NOT EXECUTED
+- Browser E2E = OPEN
+- Full standalone Voucher Closure = PENDING OWNER PATCH + BROWSER E2E
+
+## Next-session start
+1. Re-fetch current standalone blob SHA.
+2. Check whether the exact owner patch is already applied.
+3. Run full-file parse and browser E2E.
+4. Verify Transfer, DirectSale, DirectReturn, SupplierReturn where real operating entities exist.
+5. Verify unified Mother Voucher history.
+6. Re-read Production immediately after runtime testing.
+7. Do not reopen previously closed CREATE retry, filtering, Available Before/After, list-window or Production Core work unless a new regression is proven.
+8. Do not modify Service Worker files unless the actual runtime caller of `warehouse/sw.js` is proven.
+9. Do not declare 100% closed before Source + Production + Deployment + Browser evidence agree.
+
+Report:
+`doc/Draft/Reprots/Report280_WAREHOUSE_VOUCHERS_STANDALONE_THIS_SUMMARY_FORENSIC_20260921.md`
