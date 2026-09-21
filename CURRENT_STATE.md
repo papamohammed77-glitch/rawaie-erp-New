@@ -7231,3 +7231,96 @@ Start from this section. Re-fetch current HEAD/parent and the current vouchers b
 
 ## Session reset marker
 Current checkpoint after this session is the Report277 closure package, with the Production reporting capability deployed but the Mother owner patch still pending.
+---
+
+# CURRENT SESSION UPDATE — 2026-09-21 — VOUCHER MOTHER SYNTAX FORENSIC CLOSURE
+
+## Scope
+- Focus: Mother Warehouse Voucher routes + standalone vouchers integration.
+- Mother main.html remained READ ONLY for automated source writes; owner patch is supplied exactly in Report278.
+- Existing Production voucher core was verified transactionally.
+- No new Edge Function created.
+
+## Current Git truth — erp-frontend
+- Mother HEAD: f2229bec9106f1c4836769b1eccda3cc48d4a482
+- Mother parent: 10ef65f8e4fd38d7d767582d84bc54fdcf27f931
+- Parent of parent: 4aebf36b6da684ecb1e09d8f83063e0231c70866
+- Mother current blob: e33c3527033bf0fa2e5bc582cea3556fd4ef5ca3
+- Standalone voucher surgical commit: a2de64c150c9e38f14af0c2ecafcbcd9861fa9cd
+- Standalone voucher blob: 3adf031cfb073c87db10c562c1b3e7d568bb61fd
+
+## Root cause proven
+- Current Mother line 13915 contains an invalid escaped template literal token in loadVoucherForm(type).
+- The same malformed escaping appears in cfg.title and cfg.entityLabel interpolations.
+- Commit 10ef65f... introduced the malformed escaping; its parent contained valid template-literal syntax.
+- Before replacement: Mother embedded script 5 parser = FAIL, error = Invalid or unexpected token.
+- After replacing only loadVoucherForm(type) in memory: all Mother embedded scripts parser = PASS.
+
+## Mother integration conclusion
+- _renderVoucherHistory(type) already exists in the current Mother and becomes reachable after parser repair.
+- No Router, Permission Map, loadVouchers or Production document model change is required.
+- Mother remains the Control Plane; standalone vouchers remains the operational Consumer.
+
+## Standalone consumer changes executed
+- Removed destructive CREATE sessionStorage reset.
+- CREATE operation identity now uses localStorage for recoverable retries.
+- filterList searches code/reference/type/status/source/destination/creator/notes.
+- renderCart displays read-only Available Before and Expected After.
+- loadList history window increased from 150 to 1000.
+- Embedded JavaScript parser = PASS.
+
+## Production verification — 2026-09-21
+- companies=1
+- active_branches=2
+- active_items=16
+- active_vehicles=0
+- active_suppliers=1
+- stock_vouchers=0
+- stock_voucher_details=0
+- stock_voucher_operations=0
+- inventory_log=3
+- audit_log=2022
+
+Transactional E2E:
+CREATE → SEND → RECEIVE → RECEIVE retry → COMPLETE = PASS.
+- SEND movement_count=1
+- total physical movements=2
+- RECEIVE retry returned duplicate=true
+- COMPLETE status=Completed
+- transaction rolled back
+
+Post-test clean state:
+- stock_vouchers=0
+- stock_voucher_details=0
+- stock_voucher_operations=0
+- inventory_log=3
+- audit_log=2022
+
+## Browser status
+- Browser E2E of corrected Mother is OWNER PENDING because main.html was intentionally not auto-modified.
+- Source/parser uncertainty is closed; browser click-through remains the final runtime proof.
+
+## Required owner action
+Apply only Report278 M1 to:
+companies/company-1/main.html
+Search exactly:
+function loadVoucherForm(type) {
+Current line: 13900
+Delete the complete function only and replace it with the exact full function in Report278.
+Do not touch _renderVoucherHistory(type) or surrounding Mother functions.
+
+## Reports
+- doc/Draft/Reprots/Report278_WAREHOUSE_VOUCHERS_MOTHER_ERROR_FORENSIC_CLOSURE_20260921.md
+
+## Next session
+1. Re-fetch current Git HEAD/parent/blob before any action.
+2. Verify the owner-applied M1 by parser.
+3. Execute browser E2E on vouchers, transfer, direct-sale, direct-return and supplier-return.
+4. Verify history, audit drill-down, create/send/receive/complete/cancel.
+5. Re-read Production immediately before the closure report.
+6. Do not reopen already-closed standalone or Production inventory cores.
+7. No new Edge Function unless a proven capability cannot be delivered by an existing RPC or function.
+8. Do not report a percentage until CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DEPLOYMENT + RUNTIME evidence agree.
+
+## Session reset marker
+This checkpoint supersedes the previous 2026-09-20 voucher checkpoint for Mother runtime. The new root cause is the post-Report277 Mother refactor commit 10ef65f..., and the only remaining owner action is the exact M1 source replacement followed by browser E2E.
