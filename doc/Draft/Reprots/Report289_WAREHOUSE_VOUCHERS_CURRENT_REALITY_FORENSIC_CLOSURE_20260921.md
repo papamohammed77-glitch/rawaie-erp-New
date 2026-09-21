@@ -63,14 +63,14 @@ Repository:
 
 `papamohammed77-glitch/rawaie-erp-New`
 
-الحالة الحالية المعتمدة:
+Application/source baseline used for this forensic session:
 
-- HEAD:
+- baseline HEAD:
   `8117e919834ccd5fef0003f850508f286e41b3a7`
-- parent:
+- baseline parent:
   `9ca6bf1bba8c807aeb5c16c612a1d1bed76d356d`
 
-Commit 8117 هو Commit حالة/استمرارية، وليس إعادة بناء للـfrontend.
+`8117...` is the source/state baseline that existed before this session's documentation commits. The later commits in this session contain the new report and CURRENT_STATE continuity only; they do not alter the application source examined here.
 
 ## 3.2 Mother frontend repository
 
