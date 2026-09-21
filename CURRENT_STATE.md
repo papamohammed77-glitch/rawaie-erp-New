@@ -7693,3 +7693,130 @@ Do not touch `main.html`.
 Do not recreate previously closed features.
 Do not claim full closure before Source + Production + Deployment + Browser evidence agree.
 
+
+
+---
+
+## SESSION 2026-09-21 — Report282 Vouchers ↔ Van Sales Integration
+
+### Authoritative starting point
+- System HEAD at task start: `81ff22d93edf2f1d7f380b405263025786e3ac22`
+- System parent: `3b0b50901482ec6ae34de84280ba1e5069b3003e`
+- Vouchers current blob reviewed: `5eea64c53a344f588c8035dc278d559d2be1b242`
+- Van Sales frontend blob at task start: `445dff4217fbf4a82f333fa716bba5d74def7680`
+
+### Production snapshot after execution
+- companies: 1
+- branches: 2
+- vehicles: 0
+- stock_vouchers: 0
+- stock_voucher_details: 0
+- inventory_log: 3
+- audit_log: 2023
+- orders: 0
+
+### Production changes executed
+1. `setup-van-branch` deployed as version 4, verify_jwt=true.
+   Deployment sha256:
+   `4cd64c65643430eb7df439937878a31017ce145851211d4733ba7f730402211c`
+2. Existing central `post_stock_movement` updated with a VanSale source/driver guard.
+3. No new Edge Function created.
+4. Production migration history now includes:
+   - `20260921103000_vansales_mobile_branch_driver_guard`
+   - `20260921110000_vansales_mobile_branch_driver_guard_r2`
+5. R2 is the final VanSale guard contract:
+   active vehicle + mobile stock enabled + mobile_branch_id = source branch + authenticated user = vehicle.driver.
+
+### Runtime verification
+A temporary E2E transaction was created and fully rolled back.
+- temporary branch: `VAN-E2E-VEH-20260921`
+- temporary vehicle: `E2E-VEH-20260921`
+- driver: `vansales@rawaea.com`
+- item: `1006`
+- stock 10 → 9 after valid VanSale
+- wrong user rejected
+- wrong branch rejected
+- one temporary inventory_log created inside the transaction
+- no persistent test residue after rollback
+
+### Van Sales source closures
+Fixed in:
+`erp-frontend/companies/company-1/sales/van-sales.html`
+
+Current frontend commit:
+`a914c3e268c8801533051a3f0901c0db5919ee64`
+
+Fixed:
+- legacy email-derived vehicle branch identity
+- direct hardcoded branch creation
+- Quick Sale dependency on removed `quickCustSelect`
+- Vehicle Stock double deduction
+- retry operation identity persistence
+
+Canonical PWA source synchronized:
+`Current/PWA/van-sales.html`
+
+Current canonical PWA commit:
+`99ca1c65bd8798ca433c1ee53ee2cf9c5d296af9`
+
+### Vouchers state
+`erp-frontend/companies/company-1/warehouse/vouchers.html` was NOT modified by this session.
+
+Current blob reviewed:
+`5eea64c53a344f588c8035dc278d559d2be1b242`
+
+Previously closed functions were not reopened:
+- callAction
+- send
+- cancel
+- complete
+- receive
+- summary
+- CREATE operation identity
+- RECEIVE operation identity
+- before/after stock
+- filtering/list
+- audit/details
+- DirectSale centralization
+
+Owner-only remaining patch:
+- `loadRefs` must load `branches.company_id`, `branches.is_active`, `vehicles.mobile_branch_id`, `vehicles.mobile_stock_enabled`.
+- `vehicleBranch` must prefer `mobile_branch_id` and use `VAN-vehicle_code` only as compatibility fallback.
+
+The complete replacement blocks are stored in:
+`doc/Draft/Reprots/Report282_WAREHOUSE_VOUCHERS_VANSALES_INTEGRATION_FORENSIC_SURGICAL_CLOSURE_20260921.md`
+
+### Files updated in system repo
+- `Current/Edge_Functions/setup-van-branch` synchronized to Production v4.
+- `Current/PWA/van-sales.html` synchronized with the frontend closure.
+- `supabase/migrations/20260921103000_vansales_mobile_branch_driver_guard.sql`
+- `supabase/migrations/20260921110000_vansales_mobile_branch_driver_guard_r2.sql`
+- `doc/Draft/Reprots/Report282_WAREHOUSE_VOUCHERS_VANSALES_INTEGRATION_FORENSIC_SURGICAL_CLOSURE_20260921.md`
+
+### Explicit non-actions
+- `main.html`: NOT MODIFIED.
+- `vouchers.html`: NOT MODIFIED.
+- No new Edge Function.
+- No permanent test data inserted.
+- No reopening of previously closed voucher closures.
+
+### Open closure
+Only these remain in the target scope:
+1. Owner applies the two surgical `vouchers.html` replacements.
+2. Browser E2E using a real configured vehicle.
+3. Immediate Production re-read at report time after Browser E2E.
+
+Current Production has zero vehicles, therefore persistent real-vehicle Browser E2E remains unavailable until a real vehicle exists.
+
+### Future Business Contract
+Lot / Serial / Expiry traceability is NOT treated as a bug and was not invented in this session.
+It requires separate Business Contract + Schema Contract.
+
+### Next-session start
+Start from:
+CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE
+
+Do not treat this state file as a substitute for fresh Production verification.
+Do not recreate closed work.
+Do not touch `main.html`.
+Do not modify `vouchers.html` until its current blob is re-fetched and the exact owner patch is verified.
