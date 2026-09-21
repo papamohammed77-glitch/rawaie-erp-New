@@ -9554,3 +9554,110 @@ Real authenticated browser click-through was not executed in this environment; b
 5. Open a new Closure Unit only for newly proven defects.
 
 Report: `doc/Draft/Reprots/Report293_WAREHOUSE_VOUCHERS_UI_SURGICAL_CLOSURE_20260921.md`
+
+
+# SESSION 2026-09-21 — Report294 — WAREHOUSE VOUCHERS CURRENT REALITY / DEPLOYMENT FORENSIC CHECKPOINT
+
+## Authoritative current baseline
+- System HEAD before this documentation commit: `0abea914a4a385b888e2405dfa9eede5bd07a7f9`
+- System parent: `8f6da00213bcd7ea0b9e074b69fb41894f65dae6`
+- Report created: `doc/Draft/Reprots/Report294_WAREHOUSE_VOUCHERS_FORENSIC_CURRENT_REALITY_20260921.md`
+- Report commit: `fd5aab65c33888378309ee57a9d843ae21d691d4`
+
+## Mother / frontend current reality
+- Repository: `papamohammed77-glitch/erp-frontend`
+- Current vouchers commit: `0115399c79d5a9fc5ef9c92450cc42381d560f22`
+- Parent: `4f4afdc102fe6293d9755a134bc692d8f44bb43f`
+- Current vouchers blob: `1bf0382d45bcc06f524eefccc962abe6dcbbe4f3`
+- Current van-sales blob verified: `8d61382a8e0025a0d079e71dd94f33d106d9088e`
+- `main.html`: untouched.
+- `van-sales.html`: untouched.
+
+## Requested UI current status
+The requested New Voucher Workspace features are already present in the current source:
+- `toggleTopPanel:function()`
+- `wsTopPanel` / `wsTopToggle`
+- `add:function(code,requestedQty)`
+- `itemDetails:function(id)`
+- `setDetailDraftQty:function(value)`
+- `adjustDetailDraftQty:function(delta)`
+- `addFromDetail:function()`
+- `changeDetailCartQty:function(code,delta)`
+- available-before / expected-after cart display
+
+Therefore no new owner patch was produced in this session and no existing UI closure was reapplied.
+
+## Production snapshot
+Fresh snapshot used for this session:
+- snapshot: `2026-09-21 18:20:22.413986+00`
+- companies = 1
+- branches = 3
+- items = 17
+- manual stock vouchers = 1
+- stock_voucher_operations = 1
+- inventory_log = 6
+- audit_log = 2034
+- orders = 0
+- runsheets = 0
+- vehicles = 1
+
+Verified:
+- current company-scoped stock relation check = 0 bad rows.
+- item 1001 stock remains on expected branches.
+- current persistent manual voucher = `IN-1`, DirectSale, Cancelled.
+
+## Production capability path
+Existing Edge capabilities remain:
+- create-stock-voucher v10
+- send-stock-voucher v20
+- receive-stock-voucher v22
+- complete-stock-voucher v4
+- cancel-stock-voucher v4
+
+No new Edge Function created.
+No Physical Stock engine created.
+Physical movement remains:
+`post_stock_movement` → `stock_branches` + `inventory_log`.
+
+## Source verification
+- complete embedded JS syntax = PASS
+- current target blob = verified
+- requested collapse/quantity/canvas controls = present
+- SW registration = present
+- inventory control audit path = present
+
+## Deployment boundary
+The only directly verified Cloudflare deployment evidence available from GitHub is historical and tied to June 2026 commit `6afd68b...`.
+No current deployment identity was proven for frontend commit `0115399...`.
+Current Browser E2E was not executed against a live authenticated published build.
+
+Therefore:
+- CURRENT SOURCE = PASS
+- PRODUCTION BACKEND = PASS
+- DEPLOYMENT IDENTITY = OPEN
+- AUTHENTICATED BROWSER E2E = OPEN
+- FULL VOUCHERS UI CLOSURE = PENDING deployment identity + browser evidence
+
+## Important non-actions
+Do not:
+- modify `main.html`
+- modify `van-sales.html`
+- reapply V-03 through V-08
+- create another Edge Function
+- rebuild `vouchers.html` from scratch
+- reopen closed Physical Stock writers
+
+## Exact next-session start
+1. Snapshot Production.
+2. Verify system HEAD and parent.
+3. Verify frontend HEAD/parent and vouchers blob.
+4. Prove current published artifact identity.
+5. Run authenticated Browser E2E:
+   New Voucher → DirectSale → collapse/expand → item detail → quantity 5 → add → verify 5 → +/- → save Draft.
+6. Continue with SEND and resulting voucher state.
+7. Verify inventory movement/audit.
+8. Re-snapshot Production at the same end-of-test moment.
+9. Only then close Browser E2E.
+
+## Session closure
+Report294 is now the latest forensic checkpoint for the Warehouse Vouchers UI.
