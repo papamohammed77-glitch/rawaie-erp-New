@@ -9622,7 +9622,7 @@ Physical movement remains:
 ## Source verification
 - complete embedded JS syntax = PASS
 - current target blob = verified
-- requested collapse/quantity/canvas controls = present
+- requested collapse/quantity/cart controls = present
 - SW registration = present
 - inventory control audit path = present
 
