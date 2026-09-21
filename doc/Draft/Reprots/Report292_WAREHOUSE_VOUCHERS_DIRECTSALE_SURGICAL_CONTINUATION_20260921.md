@@ -67,13 +67,13 @@ Repository:
 - parent:
   `9ec16aeaace0cfea046b5a2c01e41db064ec9a2b`
 
-تم تسجيل Migration جديدة في Git لهذه الجولة:
+تم تسجيل Migration المطابقة فعليًا لإصدار Production في Git لهذه الجولة:
 
-`supabase/migrations/20260921200800_direct_sales_voucher_rep_permission_guard.sql`
+`supabase/migrations/20260921171622_direct_sales_voucher_rep_permission_guard_20260921.sql`
 
-Commit التسجيل:
+Commit تسجيل النسخة المصححة:
 
-`f9b2637697b03ded4b188c63803b86e05c6bb0a0`
+`7e677660c356ccf3d8603514e308443c3ab69892`
 
 هذه الـMigration لا تنشئ Writer مخزنيًا جديدًا ولا Edge Function جديدة.
 
@@ -318,7 +318,7 @@ Mobile Stock Branch
 
 Migration:
 
-`20260921200800_direct_sales_voucher_rep_permission_guard.sql`
+`20260921171622_direct_sales_voucher_rep_permission_guard_20260921.sql`
 
 ## 9.1 RLS
 
