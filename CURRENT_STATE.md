@@ -9501,3 +9501,56 @@ Do not claim authenticated browser PASS until V-05/V-06/V-07/V-08 are applied an
 
 Report:
 `doc/Draft/Reprots/Report292_WAREHOUSE_VOUCHERS_DIRECTSALE_SURGICAL_CONTINUATION_20260921.md`
+
+# SESSION 2026-09-21 — Report293 — WAREHOUSE VOUCHERS UI SURGICAL CLOSURE
+
+## Authoritative current baseline
+- Current system HEAD: `327deadd5d1824f6e0d564ffbe7ba622014ae215`
+- Current frontend target blob: `1bf0382d45bcc06f524eefccc962abe6dcbbe4f3`
+- Frontend closure commits: `4f4afdc102fe6293d9755a134bc692d8f44bb43f`, `0115399c79d5a9fc5ef9c92450cc42381d560f22`
+- File: `companies/company-1/warehouse/vouchers.html`
+- `main.html` not modified.
+- `van-sales.html` not modified.
+
+## Closure completed
+- Added upper Workspace panel collapse/expand control: `wsTopToggle`, `wsTopPanel`, `toggleTopPanel()`.
+- Added direct quantity selection in item detail modal.
+- Added quantity draft controls and cart quantity controls.
+- `add(code, requestedQty)` now supports batch quantity while preserving availability rules.
+- Existing V-03/V-04/V-05/V-06/V-07/V-08 closures were preserved and not re-applied.
+
+## Current source verification
+- Complete embedded JavaScript syntax gate: PASS.
+- Current target: 1826 lines, approximately 92.5K characters.
+- New function locations: `newWorkspace` ≈795; `toggleTopPanel` ≈100; `renderWorkspace` ≈1150; `add(code,requestedQty)` ≈1189; `itemDetails` ≈1333; `setDetailDraftQty` ≈1350; `adjustDetailDraftQty` ≈1357; `addFromDetail` ≈1358; `changeDetailCartQty` ≈1359.
+
+## Production current snapshot
+- companies=1; branches=3; vehicles=1; manual stock vouchers=1; stock_voucher_operations=1; inventory_log=6; audit_log=2034.
+- Active test vehicle: `VEH-TEST-260921`.
+- Mobile branch: `VAN-VEH-TEST-260921`.
+- Direct Sales Rep: `vansales@rawaea.com`.
+- Warehouse operator: `vouchers@rawaea.com`.
+- BR-01 item 1001 = 2; vehicle mobile branch item 1001 = 0.
+
+## Production E2E
+A transactional Production test used existing canonical RPCs: `create_manual_stock_voucher_atomic(12 args)` → `send_stock_voucher_atomic`, DirectSale BR-01 → test vehicle, item 1001 qty=1.
+Observed before rollback: CREATE success=true; status=Sent; movement_count=1; BR-01 item 1001 2→1; vehicle mobile branch item 1001 0→1; inventory_log=1; stock_voucher_operations=1.
+The transaction was rolled back completely; no test voucher or stock delta remained.
+
+## Root cause
+The requested issue was a Frontend Workspace UX gap: the upper route/reference/search area had no collapse state, item detail added a fixed quantity of 1, and there was no direct quantity input before adding to the voucher cart. No new Physical Stock engine or Edge Function was required.
+
+## Persistence / gateway constraint
+No new Edge Function was created. Existing create/send/receive capabilities remain the runtime path through authenticated RPCs. No Production business contract was changed for this UI closure.
+
+## Browser E2E status
+Real authenticated browser click-through was not executed in this environment; browser-level PASS is therefore not claimed. Source static gate and Production backend contract are verified.
+
+## Next-session exact start
+1. Re-read CURRENT_STATE and Report293, then verify CURRENT GIT and CURRENT Production snapshot.
+2. Do not reopen V-03 through V-08.
+3. Do not touch `main.html`.
+4. If browser automation is available, verify New Voucher → DirectSale → collapse/expand → item detail → quantity 5 → add to cart → verify quantity 5 → +/- → save Draft, then resnapshot Production.
+5. Open a new Closure Unit only for newly proven defects.
+
+Report: `doc/Draft/Reprots/Report293_WAREHOUSE_VOUCHERS_UI_SURGICAL_CLOSURE_20260921.md`
