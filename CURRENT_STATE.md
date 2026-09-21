@@ -7324,3 +7324,121 @@ Do not touch _renderVoucherHistory(type) or surrounding Mother functions.
 
 ## Session reset marker
 This checkpoint supersedes the previous 2026-09-20 voucher checkpoint for Mother runtime. The new root cause is the post-Report277 Mother refactor commit 10ef65f..., and the only remaining owner action is the exact M1 source replacement followed by browser E2E.
+
+
+---
+
+# FINAL CURRENT RECONCILIATION — 2026-09-21 — WAREHOUSE VOUCHERS MOTHER LIVE FORENSIC
+
+## Current Truth
+- Scope: Mother Warehouse Vouchers + standalone voucher integration.
+- Mother repository: `papamohammed77-glitch/erp-frontend`
+- Mother HEAD: `6fdf203cea72da68751bb8d73c28c8df0fd277f7`
+- Mother parent: `2e936dcfd8076cc197cb62229bffb600d68cc561`
+- Mother current blob: `1513c7d1413776d0be370084b2556c017c016b3d`
+- Backend checkpoint commit: `64e62366fc905cef3631bc5fee5b2fa006952b16`
+- Standalone vouchers current blob: `3adf031cfb073c87db10c562c1b3e7d568bb61fd`
+- Standalone surgical commit: `a2de64c150c9e38f14af0c2ecafcbcd9861fa9cd`
+
+## Mother Root Cause — Corrected Current Attribution
+- Current `loadVoucherForm(type)` is syntactically broken.
+- Exact failing token: `safeHTML(c, <div class="p-4">`
+- Current embedded JavaScript parser: script 5 FAIL, `Unexpected token '<'`.
+- Exact current causal refactor commit: `2e936dcfd8076cc197cb62229bffb600d68cc561`.
+- The previous Report278 attribution to `10ef65f...` is historical/stale relative to CURRENT GIT and is superseded by this checkpoint.
+- In-memory surgical replacement restores valid Template Literal syntax and all embedded Mother scripts then pass parser.
+
+## Mother Contract — Existing / Not Rebuilt
+- Router already maps `vouchers`, `transfer`, `direct-sale`, `direct-return`, `supplier-return`.
+- `_renderVoucherHistory(type)` already exists immediately after `loadVoucherForm()`.
+- `loadVouchers()` already reads the unified `stock_vouchers` source with Company scope.
+- `_saveAndSendVoucher()` already uses current `create-stock-voucher` and `send-stock-voucher` contracts.
+- No new Mother route, document model, stock writer, or Edge Function is required.
+
+## Standalone Voucher
+- Current parser = PASS.
+- Durable CREATE and RECEIVE retry identity already implemented.
+- Smart filtering, Available Before, Expected After, and expanded history already present.
+- Do not reopen this consumer without a newly proven regression.
+
+## Production Snapshot
+Observed UTC: `2026-09-21 05:12:00.160304`
+
+- companies = 1
+- active_branches = 2
+- active_items = 16
+- stock_vouchers = 0
+- stock_voucher_details = 0
+- inventory_log = 3
+- audit_log = 2023
+- stock_voucher_operations = 0
+- post_stock_movement overloads = 2
+
+Production Voucher Data Repair: NONE REQUIRED.
+Production DDL / Edge change in this Mother syntax closure: NONE.
+
+## Production Voucher Deployments
+- create-stock-voucher v10
+- send-stock-voucher v20
+- receive-stock-voucher v22
+- complete-stock-voucher v4
+- cancel-stock-voucher v4
+
+All verified with JWT enabled. Current physical stock contract remains:
+`post_stock_movement → stock_branches + inventory_log`.
+
+## E2E
+Previously proven transactionally:
+`CREATE → SEND → RECEIVE → RECEIVE retry → COMPLETE`
+- CREATE = PASS
+- SEND = PASS
+- RECEIVE = PASS
+- RECEIVE retry duplicate=true = PASS
+- COMPLETE = PASS
+- physical movements = 2
+- rollback clean
+
+Mother browser click-through after owner patch remains the only open runtime gate for this closure.
+
+## Owner Surgical Action
+File:
+`erp-frontend/companies/company-1/main.html`
+
+Search exactly:
+`function loadVoucherForm(type) {`
+
+Current location:
+line 13900.
+
+Delete only that full function until immediately before:
+`async function _renderVoucherHistory(type) {`
+
+Replace it with the exact complete function in:
+`doc/Draft/Reprots/Report279_WAREHOUSE_VOUCHERS_MOTHER_LIVE_FORENSIC_SURGICAL_CONTINUATION_20260921.md`
+
+No other Mother function should be changed in this closure.
+
+## Current Closure
+- Production Voucher Core = CLOSED
+- Standalone Voucher Consumer = CLOSED
+- Mother Router/History Contract = VERIFIED
+- Mother Root Cause = PROVEN
+- Mother Surgical Patch = READY
+- Production Data Repair = NONE
+- New Edge Function = NOT REQUIRED
+- Mother Browser E2E = OPEN / OWNER CUTOVER
+- Full Mother Voucher Closure = PENDING owner M1 + browser E2E
+
+## Next CTO Start Point
+1. Re-fetch current Mother HEAD/parent/blob.
+2. Verify owner M1 exactly.
+3. Run parser on the complete Mother.
+4. Run browser E2E for vouchers, transfer, direct-sale, direct-return, supplier-return.
+5. Verify history, audit drill-down, create/send/receive/complete/cancel.
+6. Read Production again immediately before any closure report.
+7. Do not reopen closed standalone/Production voucher fixes.
+8. Do not create another Edge Function for this capability.
+9. Treat CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT as the only state authority.
+
+Report:
+`doc/Draft/Reprots/Report279_WAREHOUSE_VOUCHERS_MOTHER_LIVE_FORENSIC_SURGICAL_CONTINUATION_20260921.md`
