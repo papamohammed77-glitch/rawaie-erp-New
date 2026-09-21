@@ -9124,6 +9124,9 @@ Report:
 ## SESSION 2026-09-21 — Report290 — DIRECTSALE RLS FORENSIC CLOSURE
 
 ### Authoritative current source baseline
+- Current system HEAD after this session:
+  - `f0b04188555621bee6ec8026b1ab468cd38f9c5f`
+  - parent: `236d552c7872bbc9eaf60d746c0dc3270bef6c4d`
 - System source baseline before this session's documentation/migration records:
   - `8117e919834ccd5fef0003f850508f286e41b3a7`
   - parent: `9ca6bf1bba8c807aeb5c16c612a1d1bed76d356d`
@@ -9140,7 +9143,7 @@ Report:
 - vouchers source blob:
   `570a4a952b7645e5ef7674e80d5238b65f8cd9eb`
 - van-sales source blob:
-  `8d61382a8e0025a0d0797827f8dcb2d56f7c1aab`
+  `8d61382a8e0025a0d07988d94f33d106d9088e`
   (source was verified this session; no change made)
 
 ### Current Production snapshot
