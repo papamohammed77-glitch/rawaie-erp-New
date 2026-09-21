@@ -229,266 +229,77 @@ else if (view === 'account') { if (fc) fc.classList.add('hidden'); this.renderAc
     // ==================== فرع المندوب – VAN-{email} ====================
 loadVanBranch: function() {
     var self = this;
-    var db = RW_DB.getDB('VanSales');
+    var email = self.currentUser ? String(self.currentUser.email || '').trim().toLowerCase() : '';
+    var cacheKey = 'RW_VAN_CANONICAL:' + email;
 
-    var driverEmail = this.currentUser
-        ? String(this.currentUser.email || '').trim().toLowerCase()
-        : '';
-
-    if (!driverEmail) {
-        RW_UI.hideLoader();
-        RW_UI.showError('تعذر تحديد بريد المندوب.');
+    if (!email) {
+        RW_UI.showError('هوية مندوب البيع غير محددة');
         return;
     }
-
-    /*
-     * لا نبني Branch Code من البريد الإلكتروني.
-     * الهوية الصحيحة للسيارة تأتي من vehicles.vehicle_code.
-     */
 
     if (!navigator.onLine) {
-        if (this.vanBranch && this.vanBranch.id) {
-            this.vanBranchId = this.vanBranch.id;
-            this._afterVanBranchReady();
-            return;
-        }
+        try {
+            var cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+            if (cached && cached.branch_id && cached.branch_code) {
+                self.vanBranch = cached;
+                self.vanBranchId = cached.branch_id;
+                self._afterVanBranchReady();
+                return;
+            }
+        } catch (e) {}
 
-        RW_UI.showError(
-            'لا يوجد اتصال ولا توجد بيانات فرع سيارة محفوظة لهذه الجلسة.'
-        );
+        RW_UI.showError('لا يوجد اتصال ولا توجد هوية مخزن السيارة محفوظة');
         return;
     }
 
-    RW_UI.showLoader('جاري تحديد سيارة المندوب...');
+    RW_UI.showLoader('جاري تحديد مخزن السيارة المعتمد...');
 
-    /*
-     * 1) تحديد Public User من جلسة Auth
-     * 2) تحديد السيارة المرتبطة به
-     * 3) بناء VAN-{vehicle_code}
-     * 4) البحث عن الفرع الصحيح
-     * 5) إن لم يوجد يتم تمرير المهمة إلى _createVanBranch()
-     */
+    RW_API.call(
+        'setup-van-branch',
+        { driver_email: email },
+        function (json) {
+            if (json && json.success && json.branch_id) {
+                self.vanBranchId = json.branch_id;
+                self.vanBranch = {
+                    id: json.branch_id,
+                    branch_code: json.branch_code || '',
+                    name: json.branch_name || ('سيارة ' + (json.vehicle_code || '')),
+                    company_id: self.company || null,
+                    vehicle_id: json.vehicle_id || null,
+                    vehicle_code: json.vehicle_code || '',
+                    driver_id: json.driver_id || null
+                };
 
-    supabase
-        .from('users')
-        .select('id, company_id, status, email')
-        .eq('auth_id', this.currentUser.id)
-        .maybeSingle()
-        .then(function(userRes) {
+                try {
+                    localStorage.setItem(cacheKey, JSON.stringify({
+                        branch_id: self.vanBranchId,
+                        branch_code: self.vanBranch.branch_code,
+                        name: self.vanBranch.name,
+                        vehicle_id: self.vanBranch.vehicle_id,
+                        vehicle_code: self.vanBranch.vehicle_code,
+                        driver_id: self.vanBranch.driver_id,
+                        updated_at: new Date().toISOString()
+                    }));
+                } catch (e) {}
 
-            if (userRes.error) {
-                throw userRes.error;
-            }
-
-            var publicUser = userRes.data;
-
-            if (!publicUser || !publicUser.id || !publicUser.company_id) {
-                throw new Error(
-                    'تعذر تحديد المستخدم أو سياق الشركة.'
-                );
-            }
-
-            if (
-                publicUser.status &&
-                publicUser.status !== 'Active'
-            ) {
-                throw new Error('المستخدم غير نشط.');
-            }
-
-            return supabase
-                .from('vehicles')
-                .select(
-                    'id, company_id, vehicle_code, license_plate, driver_id, status'
-                )
-                .eq('company_id', publicUser.company_id)
-                .eq('driver_id', publicUser.id)
-                .maybeSingle()
-                .then(function(vehicleRes) {
-
-                    if (vehicleRes.error) {
-                        throw vehicleRes.error;
-                    }
-
-                    var vehicle = vehicleRes.data;
-
-                    if (!vehicle) {
-                        throw new Error(
-                            'لا توجد سيارة مرتبطة بهذا المندوب.'
-                        );
-                    }
-
-                    if (
-                        vehicle.status &&
-                        vehicle.status !== 'Active'
-                    ) {
-                        throw new Error('السيارة غير نشطة.');
-                    }
-
-                    if (!vehicle.vehicle_code) {
-                        throw new Error(
-                            'السيارة لا تحتوي على vehicle_code صالح.'
-                        );
-                    }
-
-                    return {
-                        publicUser: publicUser,
-                        vehicle: vehicle,
-                        branchCode: 'VAN-' + vehicle.vehicle_code
-                    };
+                var db = RW_DB.getDB('VanSales');
+                db.branches.put(self.vanBranch).then(function () {
+                    RW_UI.hideLoader();
+                    self._afterVanBranchReady();
+                }).catch(function () {
+                    RW_UI.hideLoader();
+                    self._afterVanBranchReady();
                 });
-        })
-        .then(function(ctx) {
-
-            /*
-             * أولاً: Cache
-             */
-            return db.branches
-                .toArray()
-                .then(function(branches) {
-
-                    var found = null;
-
-                    for (var i = 0; i < branches.length; i++) {
-                        if (
-                            branches[i].branch_code === ctx.branchCode &&
-                            branches[i].company_id === ctx.publicUser.company_id
-                        ) {
-                            found = branches[i];
-                            break;
-                        }
-                    }
-
-                    if (found) {
-                        return found;
-                    }
-
-                    /*
-                     * ثانياً: Production
-                     */
-                    return supabase
-                        .from('branches')
-                        .select(
-                            'id, branch_code, name, company_id, is_active'
-                        )
-                        .eq('company_id', ctx.publicUser.company_id)
-                        .eq('branch_code', ctx.branchCode)
-                        .maybeSingle()
-                        .then(function(branchRes) {
-
-                            if (branchRes.error) {
-                                throw branchRes.error;
-                            }
-
-                            return branchRes.data || null;
-                        });
-                })
-                .then(function(found) {
-
-                    /*
-                     * الفرع موجود بالفعل
-                     */
-                    if (found) {
-                        self.vanBranch = found;
-                        self.vanBranchId = found.id;
-
-                        return db.branches
-                            .put(found)
-                            .then(function() {
-                                RW_UI.hideLoader();
-                                self._afterVanBranchReady();
-                            });
-                    }
-
-                    /*
-                     * الفرع غير موجود:
-                     * استخدام الـcanonical capability الموجودة بالفعل.
-                     */
-                    return self._createVanBranch();
-                });
-        })
-        .catch(function(err) {
+                return;
+            }
 
             RW_UI.hideLoader();
-
-            RW_UI.showError(
-                err && err.message
-                    ? err.message
-                    : 'تعذر تحديد فرع السيارة.'
-            );
-        });
+            RW_UI.showError((json && json.msg) || 'تعذر تحديد مخزن السيارة المعتمد');
+        }
+    );
 },
-_createVanBranch: function() {
-    var self = this;
 
-    var driverEmail = this.currentUser
-        ? String(this.currentUser.email || '').trim().toLowerCase()
-        : '';
-
-    if (!driverEmail) {
-        RW_UI.hideLoader();
-        RW_UI.showError('تعذر تحديد بريد مندوب السيارة.');
-        return;
-    }
-
-    RW_UI.showLoader('جاري تهيئة فرع السيارة...');
-
-    supabase.functions.invoke('setup-van-branch', {
-        body: {
-            driver_email: driverEmail
-        }
-    }).then(function(result) {
-
-        if (result.error) {
-            throw result.error;
-        }
-
-        var data = result.data;
-
-        if (!data || !data.success || !data.branch_id) {
-            throw new Error(
-                (data && data.msg) ||
-                'فشل إعداد فرع السيارة'
-            );
-        }
-
-        self.vanBranch = {
-            id: data.branch_id,
-            branch_code: data.branch_code,
-            name: data.branch_name,
-            company_id: self.currentUser.company_id,
-            is_active: true
-        };
-
-        self.vanBranchId = data.branch_id;
-
-        var db = RW_DB.getDB('VanSales');
-
-        return db.branches.put(self.vanBranch).then(function() {
-
-            RW_UI.hideLoader();
-
-            self._afterVanBranchReady();
-
-            RW_UI.toast(
-                '🚛 تم تهيئة ' + data.branch_code,
-                'success'
-            );
-
-        });
-
-    }).catch(function(err) {
-
-        RW_UI.hideLoader();
-
-        RW_UI.showError(
-            err?.message ||
-            'تعذر إنشاء أو تهيئة فرع السيارة.'
-        );
-
-    });
-},
-    
-    _afterVanBranchReady: function() {
+_afterVanBranchReady: function() {
         this.loadMyCustomers();
         this.loadCustomerPatterns();
         this.showView('home');
@@ -1250,7 +1061,7 @@ _createVanBranch: function() {
         });
     },
 
-    _renderVehicleStockHTML: function(container, myStock, items, soldMap) {
+        _renderVehicleStockHTML: function(container, myStock, items, soldMap) {
         var self = this;
         var totalValue = 0;
         var rows = '';
@@ -1260,12 +1071,19 @@ _createVanBranch: function() {
             var st = myStock[m];
             var nm = it ? it.name : (st.item_id || '---');
             var ic = it ? it.item_code : (st.item_id || '---');
-            var stockQty = Number(st.qty) || 0;
-            var soldQty = soldMap[ic] || 0;
-            var remaining = Math.max(0, stockQty - soldQty);
+
+            var currentQty = Math.max(0, Number(st.qty) || 0);
+            var soldQtyToday = soldMap[ic] || 0;
             var price = it ? (Number(it.sales_price) || 0) : 0;
-            totalValue += remaining * price;
-            var color = remaining > 10 ? 'text-green-600' : remaining > 0 ? 'text-amber-600' : 'text-red-600';
+
+            totalValue += currentQty * price;
+
+            var color = currentQty > 10
+                ? 'text-green-600'
+                : currentQty > 0
+                    ? 'text-amber-600'
+                    : 'text-red-600';
+
             var imgHtml = RW_ImageCache.getImageHTML(ic, 'w-12', 'h-12');
 
             rows += '<div class="card mb-2 slide-in">';
@@ -1273,14 +1091,18 @@ _createVanBranch: function() {
             rows += '<div class="flex-shrink-0">' + imgHtml + '</div>';
             rows += '<div class="flex-1">';
             rows += '<p class="font-bold text-sm">' + nm + '</p>';
-            rows += '<p class="text-xs text-gray-400">الرصيد: <strong>' + stockQty + '</strong> | المباع: <strong class="text-red-500">' + soldQty + '</strong> | المتبقي: <strong class="' + color + '">' + remaining + '</strong></p>';
+            rows += '<p class="text-xs text-gray-400">' +
+                'الرصيد الحالي: <strong class="' + color + '">' + currentQty + '</strong>' +
+                ' | المباع اليوم: <strong class="text-red-500">' + soldQtyToday + '</strong>' +
+                '</p>';
             rows += '</div>';
-            rows += '<div class="text-left"><span class="font-bold text-sm">' + RW_UI.formatNumber(remaining * price) + ' ج.م</span></div>';
+            rows += '<div class="text-left"><span class="font-bold text-sm">' +
+                RW_UI.formatNumber(currentQty * price) + ' ج.م</span></div>';
             rows += '</div></div>';
         }
 
         var html = '<div class="bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-2xl p-5 mb-4 text-center">';
-        html += '<p class="text-sm opacity-80">قيمة البضاعة المتبقية</p>';
+        html += '<p class="text-sm opacity-80">قيمة البضاعة الحالية</p>';
         html += '<p class="text-3xl font-black">' + RW_UI.formatNumber(totalValue) + ' ج.م</p>';
         html += '</div>';
         html += '<button onclick="App.openQuickInventory()" class="w-full bg-amber-600 text-white py-3 rounded-xl font-black text-sm mb-4 shadow-lg shadow-amber-200 active:scale-95 transition">🔍 جرد سريع للسيارة</button>';
@@ -1289,7 +1111,7 @@ _createVanBranch: function() {
         RW_UI.safeHTML(container, html);
     },
 
-    // ==================== تبويب "رصيدي" – المسؤولية المالية ====================
+// ==================== تبويب "رصيدي" – المسؤولية المالية ====================
     renderBalanceView: function() {
         var self = this;
         RW_UI.showSkeleton('mainContent', 3, 'card');
@@ -1814,112 +1636,157 @@ _createVanBranch: function() {
     submitOrder: function() { this.submitQuickSale(); },
 
     // ==================== حفظ الفاتورة ====================
-submitQuickSale: function() {
-    if (this.eodLocked) {
-        RW_UI.toast('تم إقفال الوردية. لا يمكن إنشاء فواتير جديدة.', 'warning');
-        return;
-    }
-
-    var custCode = RW_UI.byId('quickCustSelect')
-        ? RW_UI.byId('quickCustSelect').value
-        : '';
-
-    if (!custCode) {
-        RW_UI.toast('اختر عميلاً', 'warning');
-        return;
-    }
-
-    if (!this.cart.length) {
-        RW_UI.toast('السلة فارغة', 'warning');
-        return;
-    }
-
-    var self = this;
-    this.closeCartModal();
-
-    var db = RW_DB.getDB('VanSales');
-
-    db.customers.get(custCode).then(function(c) {
-        if (!c) {
-            RW_UI.toast('العميل غير موجود', 'error');
+    submitQuickSale: function() {
+        if (this.eodLocked) {
+            RW_UI.toast('تم إقفال الوردية. لا يمكن إنشاء فواتير جديدة.', 'warning');
             return;
         }
 
-        var items = [];
-        var sub = 0;
+        var custCode = this.selCust && this.selCust.customer_code
+            ? this.selCust.customer_code
+            : '';
 
-        for (var i = 0; i < self.cart.length; i++) {
-            items.push({
-                code: self.cart[i].code,
-                name: self.cart[i].name,
-                price: self.cart[i].price,
-                qty: self.cart[i].qty,
-                unit: self.cart[i].unit
-            });
-
-            sub += self.cart[i].price * self.cart[i].qty;
+        if (!custCode) {
+            RW_UI.toast('اختر عميلاً', 'warning');
+            return;
         }
 
-        var hdr = {
-            operation_id: crypto.randomUUID(),
-            customer_code: c.customer_code,
-            custName: c.name,
-            area: c.area || '',
-            total: sub,
-            deliveryFees: 0,
-            status: 'Invoiced',
-            paymentType: c.payment_type || 'نقدي',
-            taxAmount: 0,
-            taxRate: 0
-        };
+        if (!this.vanBranchId || !this.vanBranch || !this.vanBranch.branch_code) {
+            RW_UI.toast('مخزن السيارة غير مهيأ أو غير معتمد', 'error');
+            return;
+        }
 
-        RW_UI.showLoader('جاري حفظ الفاتورة...');
+        if (!this.cart.length) {
+            RW_UI.toast('السلة فارغة', 'warning');
+            return;
+        }
 
-        var branchCode = self.vanBranch
-            ? self.vanBranch.branch_code
-            : 'MAIN';
+        var self = this;
+        this.closeCartModal();
+        var db = RW_DB.getDB('VanSales');
 
-        RW_API.call('save-sales-invoice', {
-            orderHeader: hdr,
-            itemsList: items,
-            branchCode: branchCode
-        }, function(json) {
-
-            RW_UI.hideLoader();
-
-            if (json.success) {
-
-                Swal.fire({
-                    icon: 'success',
-                    title: '✅ تم الحفظ',
-                    html:
-                        '<div class="text-right">' +
-                        '<p>الفاتورة: <strong>' + json.orderID + '</strong></p>' +
-                        '<p>العميل: <strong>' + c.name + '</strong></p>' +
-                        '<p>المبلغ: <strong>' +
-                        RW_UI.formatNumber(sub) +
-                        ' ج.م</strong></p>' +
-                        '</div>',
-                    confirmButtonText: 'حسناً',
-                    customClass: {
-                        popup: '!rounded-3xl',
-                        confirmButton: '!rounded-xl !bg-orange-600'
-                    }
-                });
-
-                self.cart = [];
-                self.selCust = null;
-                self._updateFloatingCart();
-                self.loadMyCustomers();
-                self.showView('home');
-
-            } else {
-                RW_UI.showError(json.msg || 'فشل الحفظ');
+        db.customers.get(custCode).then(function(c) {
+            if (!c) {
+                RW_UI.toast('العميل غير موجود', 'error');
+                return;
             }
+
+            var items = [], sub = 0;
+            for (var i = 0; i < self.cart.length; i++) {
+                var line = self.cart[i];
+                items.push({
+                    code: line.code,
+                    name: line.name,
+                    price: line.price,
+                    qty: line.qty,
+                    unit: line.unit
+                });
+                sub += line.price * line.qty;
+            }
+
+            var fingerprint = JSON.stringify({
+                company_id: self.company || '',
+                customer_code: custCode,
+                branch_code: self.vanBranch.branch_code,
+                items: items.map(function(x) {
+                    return [x.code, Number(x.qty) || 0, Number(x.price) || 0];
+                }).sort(function(a,b) {
+                    return String(a[0]).localeCompare(String(b[0]));
+                })
+            });
+
+            var opStore = 'RW_VAN_SALE_OP:' + (self.company || '') + ':' + custCode;
+            var operationId = null;
+
+            try {
+                var saved = JSON.parse(localStorage.getItem(opStore) || 'null');
+                if (saved && saved.fingerprint === fingerprint && saved.operation_id) {
+                    operationId = saved.operation_id;
+                }
+            } catch (e) {}
+
+            if (!operationId) {
+                operationId = (window.crypto && crypto.randomUUID)
+                    ? crypto.randomUUID()
+                    : ('VAN-SALE-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+
+                try {
+                    localStorage.setItem(opStore, JSON.stringify({
+                        fingerprint: fingerprint,
+                        operation_id: operationId,
+                        created_at: new Date().toISOString()
+                    }));
+                } catch (e) {}
+            }
+
+            var hdr = {
+                operation_id: operationId,
+                customer_code: c.customer_code,
+                custName: c.name,
+                area: c.area || '',
+                total: sub,
+                deliveryFees: 0,
+                status: 'Invoiced',
+                paymentType: c.payment_type || 'نقدي',
+                taxAmount: 0,
+                taxRate: 0,
+                source: 'van-sales'
+            };
+
+            RW_UI.showLoader('جاري حفظ الفاتورة...');
+
+            RW_API.call('save-sales-invoice', {
+                orderHeader: hdr,
+                itemsList: items,
+                branchCode: self.vanBranch.branch_code
+            }, function(json) {
+                RW_UI.hideLoader();
+
+                if (json && json.success) {
+                    try {
+                        localStorage.removeItem(opStore);
+                    } catch (e) {}
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: '✅ تم الحفظ',
+                        html:
+                            '<div class="text-right">' +
+                            '<p>الفاتورة: <strong>' + (json.orderID || '') + '</strong></p>' +
+                            '<p>العميل: <strong>' + (c.name || '') + '</strong></p>' +
+                            '<p>المبلغ: <strong>' + RW_UI.formatNumber(sub) + ' ج.م</strong></p>' +
+                            '</div>',
+                        confirmButtonText: 'حسناً',
+                        customClass: {
+                            popup: '!rounded-3xl',
+                            confirmButton: '!rounded-xl !bg-orange-600'
+                        }
+                    });
+
+                    self.cart = [];
+                    self.selCust = null;
+                    self._updateFloatingCart();
+                    self.loadMyCustomers();
+
+                    self.syncDown().then(function() {
+                        self.showView('home');
+                    }).catch(function() {
+                        self.showView('home');
+                    });
+                } else {
+                    RW_UI.showError(
+                        (json && json.msg) ||
+                        'فشل الحفظ — تم الاحتفاظ بهوية العملية لإعادة المحاولة بأمان'
+                    );
+                }
+            });
+        }).catch(function(e) {
+            RW_UI.hideLoader();
+            RW_UI.showError(e.message || 'فشل تجهيز الفاتورة');
         });
-    });
-},
-        // ==================== السلة الشبحية – منتجات مقترحة من أنماط الشراء ====================
+    },
+
+// ==================== السلة الشبحية – منتجات مقترحة من أنماط الشراء ====================
     loadGhostCart: function(customerCode) {
         var self = this;
         var ghostDiv = RW_UI.byId('ghostCartContainer');
