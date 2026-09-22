@@ -1,3 +1,98 @@
+# CURRENT STATE — Latest Forensic Checkpoint 2026-09-22
+
+## Latest authoritative checkpoint
+
+### System repository
+HEAD after this session:
+2b0f27ae2f4fa616f18d57522931390e7a63f99e
+Parent:
+5c9bc25a53051b4e66c86fbbf989db4334ca82e9
+
+Previous system integration commits:
+- 720724e7dab55b208d177d476982b1123fe6bdc7 — voucher authorization/audit operation identity hardening
+- 5c9bc25a53051b4e66c86fbbf989db4334ca82e9 — DirectReturn mobile branch canonical convergence
+- 2b0f27ae2f4fa616f18d57522931390e7a63f99e — Report305 forensic closure
+
+### Frontend repository
+HEAD:
+1c386e5f5be1212e231672c1baaab676c54fe38c
+Parent:
+b6a9c47a67037d414c1f08b0866231ccf0218413
+Current vouchers.html blob:
+08054b20991e80a2527d4caf1463a4cda27a1641
+
+### Files intentionally untouched this session
+- erp-frontend/companies/company-1/warehouse/vouchers.html
+- erp-frontend/companies/company-1/sales/van-sales.html
+- erp-frontend/companies/company-1/main.html
+
+### Production voucher closure
+Applied in Supabase Production:
+1. voucher_audit_operation_identity_hardening_20260922_v2
+2. direct_return_mobile_branch_convergence_20260922
+
+No new Edge Function created.
+
+Current voucher Edge Functions verified:
+- create-stock-voucher v10
+- send-stock-voucher v20
+- receive-stock-voucher v22
+- complete-stock-voucher v4
+- cancel-stock-voucher v4
+
+### Persistent QA retained
+- IN-9 — DirectSale E2E
+- IN-10 — DirectReturn E2E
+- IN-12 — SupplierReturn financial E2E
+- IN-13 — audit/company-scope QA; cancelled and retained
+- IN-14 — audit/operation identity QA; cancelled and retained
+- IN-15 — canonical mobile_branch_id DirectReturn E2E; Completed and retained
+- QA Item ITM-1059 retained
+
+IN-15 final verified flow:
+create → SEND → RECEIVE → COMPLETE
+and duplicate RECEIVE returned duplicate=true.
+
+### Production guarantees now verified
+- Physical Writers outside post_stock_movement = 0 by direct SQL writer-pattern discovery.
+- reserve_stock/release_stock_reservation remain reservation-only.
+- setup_van_stock only initializes zero stock rows.
+- create_item_with_opening_stock routes opening stock through post_stock_movement.
+- Voucher actor Company Scope hardened.
+- Audit actor and operation identity hardened.
+- DirectReturn uses mobile_branch_id first with legacy VAN-code fallback.
+- SupplierReturn financial effect remains official workflow through supplier ledger + journal registry.
+- No new Edge Function.
+
+### Current frontend status
+vouchers.html current source already includes the historical V-304 parser fixes, top panel collapse, supplier fail-closed behavior, lifecycle KPI, operation identity and current DirectSale/DirectReturn/SupplierReturn logic.
+Static parse:
+6/6 scripts PASS.
+
+van-sales.html:
+8/8 scripts PASS; current source preserved.
+
+### Current known unverified boundary
+Authenticated browser E2E against the deployed Cloudflare artifact is not proven by the current toolset. Do not convert Production RPC/static PASS into Browser PASS.
+
+### Current next-session instruction
+Do not reopen closed V-304 fixes.
+Do not modify main.html or van-sales.html.
+Do not create a new Edge Function.
+Do not create a second Physical Stock Engine.
+For vouchers.html, next work starts at the remaining competitive UI feature gap only:
+- print/PDF
+- export
+- advanced filters
+- visible stock before/after
+- attachments only after a Business Contract is approved
+- lot/batch/expiry/serial only after a separate Business Contract.
+
+Latest detailed closure:
+doc/Draft/Reprots/Report305_WAREHOUSE_VOUCHERS_FORENSIC_INTEGRATION_CLOSURE_20260922.md
+
+---
+
 
 # FINAL CURRENT RECONCILIATION — 2026-09-21 — WAREHOUSE VOUCHERS / VAN SALES INTEGRATION FORENSIC CHECKPOINT
 
