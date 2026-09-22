@@ -9767,3 +9767,79 @@ Report295 contains the complete delete-and-replace block.
 
 ## Session closure
 Report295 is the current forensic checkpoint for the Warehouse Vouchers item-search placement and vehicle-integration request.
+
+---
+# SESSION 2026-09-22 — Report296 — WAREHOUSE VOUCHERS / VEHICLE PICKER CLIPPING FORENSIC CLOSURE
+
+## Authoritative current baseline
+- System HEAD: `1b91cbd7782e7e14d01733e6d0d626932e078ece`
+- System parent: `337b0ac827aa2c55784c09673fc7b776ccdf53d5`
+- Frontend HEAD: `29cd6e08056b50545db05a4bff220424127126c5`
+- Frontend parent: `0115399c79d5a9fc5ef9c92450cc42381d560f22`
+- Current vouchers blob: `a22b4014603f44c12820ec4a769e7e0138abd854`
+- Current van-sales blob: `8d61382a8e0025a0d079e71dd94f33d106d9088e`
+- main.html untouched.
+- van-sales.html untouched.
+- Report296: `doc/Draft/Reprots/Report296_WAREHOUSE_VOUCHERS_VEHICLE_PICKER_CLIPPING_FORENSIC_CLOSURE_20260922.md`
+
+## Current Production snapshot
+- companies=1
+- branches=3
+- items=17
+- vehicles=1
+- stock_vouchers=1
+- stock_voucher_operations=1
+- inventory_log=6
+- audit_log=2034
+- orders=0
+- runsheets=0
+
+## Current vehicle contract
+- vehicle=`VEH-TEST-260921`
+- driver=`vansales@rawaea.com`
+- mobile_branch=`VAN-VEH-TEST-260921`
+- mobile_stock_enabled=true
+- vehicle/rep/branch predicate for DirectSale matches exactly 1 current vehicle.
+
+## Report296 forensic finding
+Vehicle data and Production binding are valid. The current source-level defect is UI clipping:
+- `.ws-top-panel` uses `overflow:hidden`.
+- `renderWorkspace()` currently places `s.routeHtml()` inside `wsTopPanel`.
+- `routeHtml()` contains Branch/Rep/Vehicle smart-menu dropdowns.
+- `workspace-head` already uses `overflow:visible`.
+
+Therefore the surgical fix is to move `s.routeHtml()` outside `wsTopPanel` while keeping the same IDs, handlers, picker functions, and business contracts.
+
+## Closed/preserved
+- Report295 Product Search placement preserved.
+- Vehicle table binding preserved and verified.
+- Cancel button/capability preserved and verified.
+- DirectSale/DirectReturn Production contracts preserved.
+- Physical Stock centralization preserved.
+- No new Edge Function.
+- No Production schema change.
+- No Production data mutation.
+
+## Owner patch
+Target:
+`companies/company-1/warehouse/vouchers.html`
+Function:
+`renderWorkspace:function()`
+Apply Report296 exact delete/replace block.
+
+## Open boundary
+- Owner source application.
+- Published artifact identity.
+- Authenticated browser E2E.
+- End-of-test Production re-snapshot.
+
+## Next exact start
+1. Verify frontend HEAD/blob.
+2. Apply only Report296 surgical patch.
+3. Parse complete vouchers.html.
+4. Verify routeHtml is outside wsTopPanel and all IDs remain unique.
+5. Verify published artifact identity.
+6. Run authenticated E2E.
+7. Re-snapshot Production at exact test end.
+8. Open only newly evidenced defects.
+
