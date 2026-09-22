@@ -807,7 +807,7 @@ https://docs.daftra.com/en/tutorial/transferring-stock/
 
 https://docs.daftra.com/en/tutorial/inventory-detailed-transactions-report/
 
-https://docs.daftra.com/en/user_manual/importing_products_to_the_stocktaking_sheet/
+https://docs.daftra.com/en/tutorial/importing-stocktaking-sheet/
 
 ## Manager.io
 
