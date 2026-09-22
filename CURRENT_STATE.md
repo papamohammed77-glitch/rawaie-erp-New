@@ -11426,3 +11426,102 @@ Supplier return accounting: JE-SVR-IN-22 supplier debit 10 / inventory credit 10
 5. Execute authenticated browser E2E against the deployed standalone vouchers app.
 6. Re-snapshot Production at the same report moment.
 7. Reconcile any new drift before any additional code change.
+
+---
+
+## 2026-09-22 — Report308 / Warehouse Vouchers Branch Directory + Arabic Search Forensic Closure
+
+### Session Truth
+- System HEAD at session start: `6eef18229baf6983cca11f3a698ebf7fd74f80e3`; parent: `3c083b9ead654314edbc3f6323c39f6260ebf23e`.
+- Frontend HEAD at session start/end before owner patch: `d928651db9225eec3a5ab75e34a1f0e33b46020b`; parent: `d0796cd96c58e6f7b108d406b0e28f69fc4f06b2`.
+- Current `vouchers.html` blob: `7afa218e478109e90c945f0c608f072f20129eb6`.
+- Current `van-sales.html` blob: `8d61382a8e0025a0d079e71dd94f33d106d9088e`.
+- Current `main.html` blob remains: `8c3d6b05fd6a94a6b488f12b29da85ae888f70bc`; not modified.
+- Report created: `doc/Draft/Reprots/Report308_WAREHOUSE_VOUCHERS_BRANCH_DIRECTORY_SEARCH_FORENSIC_CLOSURE_20260922.md`.
+- Report commit: `4b6250cc2f7dc684247727c2313d6e17cc81abbc`.
+
+### Confirmed Root Causes
+1. Commit `fedd7138f7c8b266ae820f2c914f33298715d0e8` changed `pickArr()` from company branch directory visibility to `userBranches`, causing restricted warehouse users to see only their `allowed_branch_ids` in the UI.
+2. Current Production RLS permits company-scoped branch read for warehouse users, while voucher RPCs enforce branch execution scope server-side. The UI was therefore stricter than the read contract.
+3. Current `norm()` performs NFD but removes only Latin combining marks. `إسكندرية` normalizes to `إسكندريه` while `اسكندرية` normalizes to `اسكندريه`; partial match therefore fails.
+4. Current HEAD `d928651...` leaves one extra `</select>` after the `listStatus` options; the export button mapping is already corrected to `App.exportVoucherList()` and must not be re-fixed.
+
+### Surgical Owner Patch Ready
+File: `companies/company-1/warehouse/vouchers.html`
+
+Apply only the exact replacements stored in Report308:
+- PATCH-V308-01: `norm()` Arabic Unicode normalization.
+- PATCH-V308-02: `pickArr()` company branch directory visibility while preserving dependent DirectReturn scoping.
+- PATCH-V308-03: `pickSearch()` display of all visible company branches with `غير مصرح` disabled state for unauthorized branches.
+- PATCH-V308-04: `pickSelect()` explicit authorization gate before accepting branch selections.
+- PATCH-V308-05: remove the single redundant `</select>` after `listStatus`.
+
+### Production Actions
+- No new Edge Function created.
+- No new schema/table required.
+- No RLS change required.
+- No user branch permissions were widened.
+- Persistent QA voucher created and intentionally retained:
+  - `IN-23`
+  - Type: Transfer
+  - BR-01 → BR-2
+  - Status: Draft
+  - Reference: `QA-VOUCHERS-BRANCH-SEARCH-20260922`
+  - Details: 1
+  - Inventory movements: 0
+- Unauthorized create attempt using `vouchers@rawaea.com` for BR-2: REJECTED by current Production voucher authorization guard.
+- OWNER creation of `IN-23`: SUCCESS.
+
+### Production Snapshot
+- Snapshot UTC: `2026-09-22 17:24:57.934528+00`.
+- stock_vouchers = 23
+- stock_voucher_details = 25
+- stock_voucher_operations = 24
+- inventory_log = 26
+- audit_log = 2106
+- ITM-1060 stock remained:
+  - BR-01 = 16, allocated = 0
+  - VAN-VEH-TEST-260921 = 3, allocated = 0
+- IN-23 has 1 detail and 0 inventory movements.
+
+### Verification
+- Governance read to EOF: PASS.
+- CURRENT_STATE read to EOF before update: PASS.
+- Report306 read to EOF: PASS.
+- Report307 read to EOF: PASS.
+- Current Git and parent chain verified: PASS.
+- Current frontend source verified: PASS.
+- Van Sales current source contains no `stock_voucher` or `vouchers.html` dependency: PASS.
+- Current source has 6 inline scripts and all current inline scripts compile: PASS.
+- Exact four surgical replacement functions compile together: PASS.
+- Current Arabic normalization reproduces failure: PASS.
+- Fixed Arabic normalization reproduces successful partial search: PASS.
+- Proposed branch directory returns all 3 active company branches: PASS.
+- Restricted user BR-2 selection is blocked: PASS.
+- OWNER wildcard BR-2 selection is allowed: PASS.
+- Production unauthorized transfer attempt is rejected: PASS.
+- Persistent QA voucher has zero physical movements: PASS.
+- Real authenticated browser E2E: OPEN; not claimed because no authenticated browser runtime was available in this session.
+
+### Competitive Reference
+The branch directory/search and voucher workflow were compared with current official documentation for Odoo, Dynamics 365, SAP, Daftra, and Manager.io. Report308 contains the current official references and the capability-gap analysis. No competitor workflow was copied literally.
+
+### Next Session Exact Start
+1. Start from the final system HEAD created by this state update.
+2. Re-read Report308.
+3. Inspect the owner-applied `vouchers.html` blob; do not assume the patch was applied.
+4. Run static compile and DOM/HTML checks.
+5. Run authenticated browser E2E for Transfer, DirectSale, DirectReturn, SupplierReturn, Adjustment/Scrap branch selection and Arabic partial-name search.
+6. Verify unauthorized branch remains blocked at UI and server.
+7. Re-check the existing persistent QA `IN-23`; do not recreate if present.
+8. Take a fresh Production snapshot before issuing any KPI/percentage claim.
+9. Do not touch `main.html` or `van-sales.html` unless a new, separately proven defect is discovered.
+
+### Closure Status
+- Production branch authorization integrity: CLOSED.
+- Production voucher backend integrity: CLOSED.
+- Branch directory/search forensic root cause: PROVEN.
+- Surgical source patch: READY / OWNER-APPLIED REQUIRED.
+- Browser E2E: OPEN.
+- Global vouchers closure: NOT CLOSED until owner patch + authenticated browser E2E + same-moment Production verification.
+
