@@ -9661,3 +9661,109 @@ Do not:
 
 ## Session closure
 Report294 is now the latest forensic checkpoint for the Warehouse Vouchers UI.
+
+ 
+---
+# SESSION 2026-09-22 — Report295 — WAREHOUSE VOUCHERS / ITEM SEARCH + VEHICLE FORENSIC SURGICAL CLOSURE
+
+## Authoritative current baseline
+- System HEAD verified: `a4d263950ecff28f3e3735d4dee13e7676e2d9df`
+- System parent verified: `31e63e105d7d3c028e469285acc956f8f9f6c7ca`
+- Latest system commit is documentation-only: `state: correct Report294 checkpoint wording`
+- Frontend HEAD verified: `0115399c79d5a9fc5ef9c92450cc42381d560f22`
+- Frontend parent: `4f4afdc102fe6293d9755a134bc692d8f44bb43f`
+- Current vouchers blob: `1bf0382d45bcc06f524eefccc962abe6dcbbe4f3`
+- Current van-sales blob: `8d61382a8e0025a0d079e71dd94f33d106d9088e`
+- main.html: untouched.
+- van-sales.html: untouched.
+- Report295 canonical record: `doc/Draft/Reprots/Report295_WAREHOUSE_VOUCHERS_SEARCH_VEHICLE_FORENSIC_SURGICAL_CLOSURE_20260922.md`
+
+## Production snapshot verified
+- companies = 1
+- branches = 3
+- items = 17
+- vehicles = 1
+- stock_vouchers = 1
+- stock_voucher_operations = 1
+- inventory_log = 6
+- audit_log = 2034
+- orders = 0
+- runsheets = 0
+
+Current vehicle identity:
+- vehicle_code = `VEH-TEST-260921`
+- mobile_branch_id = `5372503d-f638-4e7f-808d-bda585825b2f`
+- driver = `vansales@rawaea.com`
+- mobile_stock_enabled = true
+
+## Forensic findings
+1. Vehicle field in vouchers.html is already backed by the Production `vehicles` table; it stores the vehicle UUID and uses `mobile_branch_id` as the canonical stock container.
+2. DirectSale already enforces Branch → Vehicle and validates vehicle.driver_id against the Direct Sales Rep.
+3. DirectReturn already enforces Vehicle → Branch and derives the rep from vehicle.driver_id.
+4. van-sales.html is the direct-customer-sale application; it sells from the vehicle mobile branch without a prerequisite order/runsheet.
+5. Physical stock remains centralized through `post_stock_movement`.
+6. No new Production business/schema change is required for either requested task.
+7. The actual current UI defect is in `renderWorkspace:function()`: `wsSearch`, `wsResults`, scanner control, and `wsCats` were placed inside collapsible `wsTopPanel`.
+8. This makes product search disappear when the route/reference panel is collapsed.
+9. The proven surgical correction is to move product search/scanner/category controls into the persistent Catalog header while preserving IDs and handlers.
+
+## Owner surgical change
+Target file:
+`papamohammed77-glitch/erp-frontend/companies/company-1/warehouse/vouchers.html`
+
+Exact target:
+`renderWorkspace:function()`, current block approximately lines 1168–1176.
+
+Report295 contains the complete delete-and-replace block.
+
+## Production action
+- No Production migration required in Report295.
+- No Edge Function created.
+- No existing Edge Function modified.
+- No stock data changed.
+- No voucher data changed.
+- No order/runsheet data changed.
+
+## Verification
+- Complete in-memory JavaScript parse after surgical transformation = PASS.
+- `wsSearch` count = 1.
+- `wsCats` count = 1.
+- `wsSearch` is outside `wsTopPanel` after the patch = PASS.
+- Exact target block replacement = PASS.
+- Canonical Production CREATE DirectSale transactional RPC with current Branch/Vehicle/Rep/Item = PASS; transaction rolled back.
+- Current vehicle/rep/mobile-branch relationship = PASS.
+- Browser authenticated E2E = OPEN.
+- Published frontend deployment identity = OPEN.
+
+## Closure status
+- Physical Stock centralization = CLOSED.
+- DirectSale Production contract = CLOSED.
+- DirectReturn Production contract = CLOSED.
+- Vehicle ↔ vehicles table binding = CLOSED.
+- V-03/V-04/V-05/V-06/V-07/V-08 = PRESERVED / CLOSED.
+- Quantity/Cart controls = PRESERVED / CLOSED.
+- Item Search placement = OWNER PATCH READY.
+- main.html = UNTOUCHED.
+- van-sales.html = UNTOUCHED.
+- New Edge Function = NOT CREATED.
+- Production schema change = NOT REQUIRED.
+- Authenticated Browser E2E = OPEN.
+
+## Competitive evidence used
+- Odoo 19 documents barcode inventory operations, manual product addition, quantity editing, and physical inventory validation.
+- Dynamics 365 documents inventory journals for movement/adjustment/transfer/counting and explicit From/To inventory dimensions.
+- SAP S/4HANA documents goods receipts, goods issues, physical stock transfers, transfer postings and movement documentation.
+- Daftra documents detailed stock transactions by product/warehouse/type plus stocktaking workflows and exports.
+- These sources support separating Product Search from collapsible route controls; they do not justify inventing new Business Contracts inside vouchers.html.
+
+## Exact next checkpoint
+1. Verify owner application of Report295 surgery.
+2. Parse the complete vouchers.html after merge.
+3. Verify published artifact identity against frontend HEAD.
+4. Run authenticated Browser E2E:
+   New Voucher → DirectSale → collapse route panel → product search remains visible → Branch → Rep → Vehicle → quantity → Save Draft → Send → verify Production.
+5. Re-snapshot Production at the exact end-of-test moment.
+6. Open only newly evidenced defects.
+
+## Session closure
+Report295 is the current forensic checkpoint for the Warehouse Vouchers item-search placement and vehicle-integration request.
