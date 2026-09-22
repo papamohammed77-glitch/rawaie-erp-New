@@ -11353,3 +11353,76 @@ Browser E2E = OPEN.
    audit + stock before/after + financial visibility.
 9. Take a new Production snapshot at the same reporting moment before issuing any KPI/percentage closure.
 10. Only then close Browser E2E.
+
+
+## 2026-09-22 — Warehouse Vouchers Current Regression Closure Checkpoint
+
+### Current Truth Snapshot
+- Snapshot UTC: 2026-09-22 16:54:15+00.
+- System repo HEAD before this checkpoint: 95370aefbb45e46cc66f4937caaf4f6862fe275e; parent: 516619eaeea6c08a92d9ee2ad8301d5d6bbbe99a.
+- Frontend vouchers.html blob: 1117c83808b5aee0ab26dc3c53adbb6eecd29538.
+- Frontend main.html blob: 8c3d6b05fd6a94a6b488f12b29da85ae888f70bc — untouched in this session.
+- Frontend van-sales.html blob: 445dff4217fbf4a82f333fa716bba5d74def7680 — untouched in this session.
+- Latest vouchers regression commit: d8d1bde852a6b2dd25a11b06d75baac3e1af0991; parent: 7589fcc2312b70b4dda6801d27053f81f3873684.
+
+### Forensic Root Causes
+1. renderList:function(scope) contains an unclosed listType <select> before listStatus, then an extra closing </select>. Browser parser auto-corrects the malformed nested select and emits the repeated console warnings.
+2. The same latest frontend change changed the list export button to App.List() while the actual existing method is exportVoucherList:function(){...}. There is no independent List method.
+3. Shared companies/company-1/register-sw.js used route-relative ./sw.js; on /companies/company-1/warehouse/vouchers this resolves to /companies/company-1/warehouse/sw.js, which does not exist.
+
+### Surgical Source Action — Owner Application Required
+File: companies/company-1/warehouse/vouchers.html
+Find renderList:function(scope){ and delete the complete function through the line immediately before filterList:function(){.
+Replace it with the complete function stored in doc/Draft/Reprots/Report307_WAREHOUSE_VOUCHERS_CURRENT_FORENSIC_PATCH_20260922.md
+The corrected function closes listType before opening listStatus and calls App.exportVoucherList() from the export button, while preserving current voucher filters, KPI calculations, rendering, and list behavior.
+
+No automatic change was made to vouchers.html in order to preserve source ownership.
+
+### Infrastructure Fix Executed
+File: companies/company-1/register-sw.js
+Commit: d0796cd96c58e6f7b108d406b0e28f69fc4f06b2
+Parent: d8d1bde852a6b2dd25a11b06d75baac3e1af0991
+The coordinator now resolves the canonical company-level Service Worker from the coordinator script URL and uses the company-level scope. No duplicate warehouse Service Worker was created.
+
+### Production Current State
+- stock_vouchers: 22
+- stock_voucher_details: 24
+- stock_voucher_operations: 23
+- inventory_log: 26
+- audit_log: 2105
+- Canonical Physical Stock engine remains post_stock_movement.
+- No new Edge Function created.
+- No Physical Stock engine reopened or duplicated.
+
+### Persistent QA Evidence Retained
+Item: ITM-1060 / QA Vouchers E2E Lifecycle 2026-09-22.
+Vouchers: IN-20 DirectSale Completed qty 5; IN-21 DirectReturn Completed qty 2; IN-22 SupplierReturn Completed qty 1.
+Current verified stock: BR-01 = 16; VAN-VEH-TEST-260921 = 3; allocated_qty = 0.
+Supplier return accounting: JE-SVR-IN-22 supplier debit 10 / inventory credit 10; Supplier ledger debit 10.
+
+### Integration Truth
+- Mother main.html contains the vouchers control view under إدارة المخازن والمخزون → الأذونات المخزنية → عرض الأذونات.
+- Standalone vouchers remains the operational surface for non-order/non-runsheet stock movements: Transfer, DirectSale custody, DirectReturn custody, SupplierReturn, and Adjustment/Scrap engine.
+- Van Sales remains the field execution surface: canonical vehicle branch setup, vehicle stock read from stock_branches, sales via save-sales-invoice, and quick vehicle inventory via save-inventory-count.
+- The order/runsheet fulfillment chain remains separate and intact.
+
+### Verification
+- Governance / Report306 / CURRENT_STATE read to EOF: PASS.
+- Current Git + parent chain: PASS.
+- Production snapshot: PASS.
+- Current source forensic root cause: PASS.
+- Patched renderList JavaScript parse: PASS.
+- Patched generated select structure: PASS.
+- Export target mapping: PASS.
+- Service Worker patch JavaScript parse: PASS.
+- Authenticated browser E2E: OPEN; not claimed because no authenticated browser runtime was available and the deployed Cloudflare URL was inaccessible to the available web fetcher.
+- Cloudflare runtime propagation of d0796cd...: OPEN.
+
+### Mandatory Next Session Order
+1. Start from current Git/source/Production evidence; do not repeat closed Production voucher work.
+2. Re-read Report307_WAREHOUSE_VOUCHERS_CURRENT_FORENSIC_PATCH_20260922.md.
+3. Apply the exact renderList replacement to vouchers.html; do not patch by guess.
+4. Run static JS/HTML validation.
+5. Execute authenticated browser E2E against the deployed standalone vouchers app.
+6. Re-snapshot Production at the same report moment.
+7. Reconcile any new drift before any additional code change.
