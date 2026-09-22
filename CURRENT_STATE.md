@@ -11172,3 +11172,184 @@ PHYSICAL STOCK CORE = NOT REOPENED
 PERSISTENT QA = RETAINED
 BROWSER E2E = OPEN
 SW DEPLOYMENT ARTIFACT = OPEN
+
+
+---
+
+# CURRENT STATE — 2026-09-22 16:17 UTC — WAREHOUSE VOUCHERS FORENSIC CLOSURE
+
+## Scope
+Warehouse → Inventory → Stock Vouchers standalone application only.
+Mother `main.html` was NOT modified.
+`erp-frontend/companies/company-1/warehouse/vouchers.html` was NOT modified by CTO.
+No new Edge Function was created.
+
+## Authoritative production snapshot
+Snapshot: `2026-09-22 16:17:02.40114+00`
+Production counts:
+- stock_vouchers = 22
+- stock_voucher_details = 24
+- stock_voucher_operations = 23
+- inventory_log = 26
+- audit_log = 2105
+
+## Current Git at session start
+System HEAD: `516619eaeea6c08a92d9ee2ad8301d5d6bbbe99a`
+System parent: `df78e46fe4a512c14008f5de1659b0fe465c463f`
+Frontend HEAD: `1c386e5f5be1212e231672c1baaab676c54fe38c`
+Frontend parent: `b6a9c47a67037d414c1f08b0866231ccf0218413`
+Current vouchers.html blob: `08054e20991e80a2527d4caf1463a4cda27a1641`
+Current picker.html blob: `c7ad267d852d415b680aed7716833eea9bcffdf6`
+
+## Production/Git drift discovered
+Production had four migrations newer than the previous checkpoint:
+- 20260922151113_voucher_custody_and_draft_edit_closure_20260922_v2
+- 20260922151325_fix_draft_edit_branch_scope_guard_20260922
+- 20260922152104_inventory_adjustment_scrap_accounting_closure_20260922
+- 20260922152303_voucher_audit_financial_visibility_20260922_v2
+
+This drift is now explicitly recorded. Do not treat these migrations as absent from Production.
+
+## Voucher architecture proven
+Voucher application is for stock operations not coupled to orders/runsheets:
+- Transfer
+- DirectSale custody to mobile vehicle stock
+- DirectReturn from mobile vehicle stock
+- SupplierReturn
+- Scrap / Adjustment in the wider inventory-control contract
+
+The field fulfillment chain remains separate:
+Order → Runsheet → Picking → Loading → Delivery → Return/Unload.
+
+This separation is intentional and must not be collapsed.
+
+## Picker comparison
+Picker uses a persistent field-session timer around `runsheets.picker_start` and active-session lifecycle.
+Vouchers uses persisted document timestamps:
+`created_at → sent_date → received_date → completed_at`.
+Copying the Picker live timer contract wholesale into vouchers would be architecturally incorrect.
+The real UI gap was visibility of backend KPI/financial/stock context.
+
+## Production financial proof
+### IN-20
+DirectSale, 5 units, BR-01 → VAN-VEH-TEST-260921.
+Custodian = direct-sales representative.
+Completed.
+No journal/supplier ledger was generated because the operation is custody stock transfer, not a sales invoice.
+
+### IN-21
+DirectReturn, 2 units, VAN → BR-01.
+Completed.
+Driver custody credit = 20.
+Driver ledger entry retained.
+Retry RECEIVE returned `duplicate=true`.
+
+### IN-22
+SupplierReturn, 1 unit, BR-01 → supplier.
+Completed.
+Journal `JE-SVR-IN-22` posted with Debit 10 / Credit 10.
+Supplier ledger debit = 10.
+Retry COMPLETE returned `duplicate=true` without a second financial posting.
+
+## Persistent QA — DO NOT DELETE
+Item:
+- `ITM-1060`
+- name: `QA Vouchers E2E Lifecycle 2026-09-22`
+- cost_price = 10
+- opening stock = 20 at BR-01
+
+QA vouchers retained:
+- IN-20 DirectSale
+- IN-21 DirectReturn
+- IN-22 SupplierReturn
+
+Final verified stock:
+- BR-01 = 16
+- VAN-VEH-TEST-260921 = 3
+- allocated_qty = 0
+
+Existing prior QA remains retained as well.
+
+## Idempotency proof
+- Create retry IN-20 = duplicate true
+- Send retry IN-20 = duplicate true
+- Receive retry IN-21 = duplicate true
+- Complete retry IN-22 = duplicate true
+
+## Audit proof
+New QA audit rows carry:
+- user_email
+- actor_user_id
+- company_id
+- operation_id
+- source_type = database_trigger
+
+Older pre-hardening QA records are historical and are not treated as current audit regressions.
+
+## Production addition
+Read-only authenticated RPC created and verified:
+`public.inventory_voucher_stock_context(text)`
+
+Returns:
+- source_stock_before
+- source_stock_after
+- target_stock_before
+- target_stock_after
+- reconstruction_complete
+
+It reconciles against all `inventory_log` events for the company/item/branch context.
+It does not mutate stock, vouchers, logs, or accounting.
+
+Git canonical migration created:
+`supabase/migrations/20260922161730_inventory_voucher_stock_context_20260922.sql`
+Commit:
+`ae79c17edcfa3e77ac69b6c593e3a53505dd7a84`
+
+Verified:
+- IN-20: BR-01 20→15; VAN 0→5
+- IN-21: VAN 5→3; BR-01 15→17
+- IN-22: BR-01 17→16
+
+## Owner UI patch status
+Exact surgical patch prepared in:
+`doc/Draft/Reprots/Report306_WAREHOUSE_VOUCHERS_FORENSIC_E2E_COMPETITIVE_CLOSURE_20260922.md`
+
+Patch scope:
+- details view consumes existing `inventory_control/VOUCHER_AUDIT`
+- calls `inventory_voucher_stock_context`
+- shows KPI stage durations
+- shows stock before/after
+- shows journal/driver/supplier financial visibility
+- adds print
+- adds CSV export
+- adds status filter
+- adds list export/print controls
+
+No vouchers.html source change was applied by CTO.
+
+## Browser E2E boundary
+Authenticated browser click-path against the deployed standalone PWA remains UNVERIFIED in this environment.
+Do not convert RPC/DB/static PASS into Browser PASS.
+
+## Closure
+Production voucher backend + financial/custody/idempotency + stock-context = CLOSED for this scope.
+Owner-side vouchers.html competitive patch = READY.
+Production/Git migration drift from prior checkpoints = REGISTERED, not silently ignored.
+Browser E2E = OPEN.
+
+## Next session instructions
+1. Read this checkpoint and Report306 first.
+2. Verify current System HEAD/parent and current frontend vouchers blob.
+3. Do not repeat the Production voucher fixes already closed.
+4. Do not touch main.html.
+5. Do not modify vouchers.html automatically; apply the exact Owner patch only after re-reading the current blob.
+6. Do not create a new Edge Function for Voucher.
+7. After patch application, run syntax/static validation.
+8. Then run authenticated browser E2E:
+   DirectSale → Send → vehicle stock,
+   DirectReturn → Send → Receive,
+   Receive retry with same operation_id,
+   SupplierReturn → Complete,
+   audit + stock before/after + financial visibility.
+9. Take a new Production snapshot at the same reporting moment before issuing any KPI/percentage closure.
+10. Only then close Browser E2E.
