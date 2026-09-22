@@ -10443,3 +10443,149 @@ OPEN:
 
 ## Final Report
 `doc/Draft/Reprots/Report299_WAREHOUSE_VOUCHERS_VEHICLE_FORENSIC_FINAL_20260922.md`
+
+---
+
+# CURRENT CHECKPOINT — 2026-09-22 — REPORT300 VEHICLE PICKER ROOT CAUSE
+
+## Current authoritative state after Report300
+
+System repository:
+- latest pre-checkpoint HEAD: `e882f7c1808d6d4b0c43f6b1c55608f977198670`
+- Report300 commit: `a16434e447f4b48e6bd7cdc0e34f3f496650db50`
+- this commit adds documentation only; no runtime source change in the system repository.
+
+Frontend repository:
+- HEAD: `745a615ccd0baff09ad2619b0316e46507a862e9`
+- parent: `29cd6e08056b50545db05a4bff220424127126c5`
+- vouchers blob: `d02d3696d9ca1af8014fbb61c680c04c09c39b7e`
+- main.html was not modified.
+- vouchers.html was not modified in the frontend repository during this closure.
+- van-sales.html was not modified.
+
+## Production evidence
+
+Fresh snapshot after persistent QA record:
+- companies = 1
+- branches = 3
+- items = 17
+- vehicles = 1
+- active_vehicles = 1
+- stock_vouchers = 2
+- stock_voucher_details = 4
+- stock_voucher_operations = 2
+- inventory_log = 6
+- audit_log = 2035
+
+Current vehicle:
+`VEH-TEST-260921`
+- vehicle_id `5fe9d0b6-fc54-4cc6-9bff-ede0e8557dd8`
+- driver_id `111b0730-a977-4d11-bcd0-2427b178a9e5`
+- mobile_branch_id `5372503d-f638-4e7f-808d-bda585825b2f`
+- active + mobile_stock_enabled
+
+Current direct-sales rep:
+`vansales@rawaea.com`
+- Active
+- role `مندوب بيع مباشر`
+- permissions [`van-sales`]
+- allowed branch `BR-01`
+
+Current voucher operator:
+`vouchers@rawaea.com`
+- Active
+- role `مخزني`
+- permissions [`warehouse`]
+- allowed branch `BR-01`
+- default_branch_id = NULL
+
+## New persistent QA record
+
+Created and intentionally retained:
+- voucher: `IN-2`
+- type: DirectSale
+- status: Draft
+- reference: `QA-VEHICLE-PICKER-20260922`
+- source: BR-01
+- destination: VEH-TEST-260921
+- rep: vansales@rawaea.com
+- item: 1001
+- qty: 1
+- operation_id: `QA-VOUCHER-VEHICLE-PICKER-20260922`
+
+QA record produced:
+- inventory_log for IN-2 = 0
+- operation registry row = 1
+- stock-voucher audit row = 1
+
+No Physical Stock movement was executed by this QA draft.
+
+## Vehicle Picker root cause
+
+Current source function:
+`newWorkspace:function()` at approximately line 795.
+
+The function renders DirectSale Workspace but does not initialize `wsFrom`.
+
+Current Production proves:
+- active vehicles = 1
+- valid DirectSale vehicle candidates with BR-01 = 1
+- picker candidates with empty `wsFrom` = 0
+
+Current `pickArr('wsTo')` explicitly requires a valid source branch (`!!b`) before returning DirectSale vehicles.
+
+Therefore the current defect is a Source Context Initialization defect, not a vehicle table/RLS/query defect.
+
+## Surgical owner patch
+
+Do NOT modify:
+- loadRefs
+- vehicleBranch
+- pickArr
+- pickSearch
+- pickSelect
+- routeHtml
+- submit
+- main.html
+- van-sales.html
+
+Replace only the complete `newWorkspace:function()` with the full replacement recorded in:
+`doc/Draft/Reprots/Report300_WAREHOUSE_VOUCHERS_VEHICLE_PICKER_SOURCE_ROOT_CAUSE_SURGICAL_CLOSURE_20260922.md`
+
+Patch behavior:
+- DirectSale uses the valid user default branch when available.
+- If no default exists and the user has exactly one authorized active branch, that branch becomes wsFrom automatically.
+- If multiple authorized branches exist and no valid default exists, no automatic selection is made.
+- After initialization, `updateSource()` recalculates vehicle/product context.
+
+## Verification status
+
+PASS:
+- current source reviewed
+- current main integration reviewed
+- current van-sales integration reviewed
+- current Production vehicle/branch/rep verified
+- current RLS verified
+- vehicle candidate predicate reproduced directly in Production
+- persistent QA DirectSale voucher created and verified
+- patch behavior tested in isolated JavaScript harness
+- no Physical Stock side effect from QA draft
+
+OPEN:
+- owner application of newWorkspace patch
+- deployment of patched frontend
+- authenticated browser E2E against deployed artifact
+- final runtime verification after deployment
+
+## Governance rule for next session
+
+Reports remain historical evidence. Begin from:
+CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+
+Do not reopen closed clipping/vehicle/RLS patches unless a new runtime defect is directly proven.
+
+Next action is the owner surgical replacement of `newWorkspace`, then deployment and authenticated Browser E2E.
+
+Final report:
+`doc/Draft/Reprots/Report300_WAREHOUSE_VOUCHERS_VEHICLE_PICKER_SOURCE_ROOT_CAUSE_SURGICAL_CLOSURE_20260922.md`
+
