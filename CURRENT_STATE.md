@@ -10882,3 +10882,55 @@ MAIN HTML = UNTOUCHED
 VAN SALES = PRESERVED / NO NEW DEFECT
 PHYSICAL STOCK CORE = NOT REOPENED
 BROWSER E2E = OPEN
+
+
+---
+
+# CURRENT CHECKPOINT — 2026-09-22 — REPORT303 FINAL VOUCHERS EXECUTION
+
+## Current authoritative Git
+System:
+- HEAD: `b5d1c7b02b7895b4c1d02de45a03611a73490e6b`
+- Parent: `1b07d2b99a56d68a1e0db016bb5fafe3543a3da3`
+- Final report: `doc/Draft/Reprots/Report303_WAREHOUSE_VOUCHERS_EXECUTION_FINAL_20260922.md`
+
+Frontend:
+- HEAD: `6715825ec05e62482a4e37335ab366f5512805cf`
+- Parent: `745a615ccd0baff09ad2619b0316e46507a862e9`
+- vouchers blob: `b23a7a8f605ff6151fd87b021de1e1d593672a57`
+- van-sales blob: `8d61382a8e0025a0d079e71dd94f33d106d9088e`
+- main blob: `8c3d6b05fd6a94a6b488f12b29da85ae888f70bc`
+
+## Production
+- KPI migration applied: version `20260922102930`, name `voucher_audit_kpi_contract_20260922`.
+- Canonical Git migration filename now matches: `supabase/migrations/20260922102930_voucher_audit_kpi_contract_20260922.sql`.
+- Existing Edge `create-stock-voucher` is Production version 10, verify_jwt=true, and consumes the canonical create RPC with operation_id.
+- Current vouchers source sends operation_id to create-stock-voucher.
+- No new Edge Function was created.
+
+## Persistent QA retained
+- PO: `QA-PO-SUPPLIER-LINK-20260922`
+- `IN-2`, `IN-3`, `IN-4`, `IN-5`, `IN-6`, `IN-7`
+- All remain Draft.
+- No QA voucher movement exists.
+- Supplier↔BR-01 proof exists via QA Purchase Order.
+
+## Current Production stock baseline
+- Item 1001 / BR-01 qty=2, allocated=0, available=2.
+- Item 1001 / BR-2 qty=0.
+- Item 1001 / vehicle mobile branch qty=0.
+
+## Owner source work still required
+The only source changes prepared by this closure are in Report302:
+- V-302-01 CSS route panel collapse.
+- V-302-02 toggleTopPanel.
+- V-302-03 renderWorkspace.
+- V-302-04 SupplierReturn pickSearch empty-state.
+- V-302-05 renderList KPI strip.
+- V-302-06 cards lifecycle KPI.
+
+Do not repeat closed Vehicle Picker, clipping, DirectSale, DirectReturn, or inventory_control JSON repairs.
+
+## Browser boundary
+- Authenticated business Browser E2E remains OPEN.
+- Do not claim browser closure until the patched frontend is deployed and runtime-tested.
