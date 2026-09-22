@@ -10674,3 +10674,211 @@ Do not re-fix:
 
 ## Remaining verification boundary
 Browser-authenticated E2E against the deployed Cloudflare artifact was not executable from the available session toolset, so browser/console closure must not be claimed as 100% solely from DB/RPC verification.
+
+
+---
+
+# CURRENT CHECKPOINT — 2026-09-22 — REPORT302 VOUCHERS FORENSIC KPI / SUPPLIER RELATION / UI COMPLETION
+
+## Authoritative Git state after this closure
+System repository:
+- current HEAD after Report302: `4609629a630679dd80858d66f67f45d9f0d7884b`
+- parent: `4ce637c28199bcffced14b1178a2f033921a7d7a`
+- canonical Production migration commit is the direct parent:
+  `4ce637c28199bcffced14b1178a2f033921a7d7a`
+- migration file:
+  `supabase/migrations/20260922104000_voucher_audit_kpi_contract_20260922.sql`
+- report:
+  `doc/Draft/Reprots/Report302_WAREHOUSE_VOUCHERS_FORENSIC_KPI_UI_SUPPLIER_RELATION_CLOSURE_20260922.md`
+
+Frontend repository:
+- current HEAD remains: `6715825ec05e62482a4e37335ab366f5512805cf`
+- parent: `745a615ccd0baff09ad2619b0316e46507a862e9`
+- current `vouchers.html` blob remains: `b23a7a8f605ff6151fd87b021de1e1d593672a57`
+- current `van-sales.html` remains: `8d61382a8e0025a0d079e71dd94f33d106d9088e`
+- current `main.html` remains: `8c3d6b05fd6a94a6b488f12b29da85ae888f70bc`
+
+## Files intentionally not modified
+- `companies/company-1/warehouse/vouchers.html`
+- `companies/company-1/sales/van-sales.html`
+- `main.html`
+
+The owner surgical patch for `vouchers.html` is recorded in Report302 and must be applied by the owner.
+
+## Production work completed
+### Additive KPI contract
+Updated existing:
+- `inventory_control(text,jsonb)`
+- operation: `VOUCHER_AUDIT`
+
+Added response key:
+- `kpi.start_at`
+- `kpi.sent_at`
+- `kpi.received_at`
+- `kpi.completed_at`
+- `kpi.end_at`
+- `kpi.created_to_sent_seconds`
+- `kpi.sent_to_received_seconds`
+- `kpi.received_to_completed_seconds`
+- `kpi.created_to_completed_seconds`
+- `kpi.current_age_seconds`
+
+Existing response keys were preserved.
+No new Edge Function.
+No new table.
+No new column.
+No physical stock writer.
+
+Production migration:
+`voucher_audit_kpi_contract_20260922` = APPLIED.
+
+## Persistent QA data intentionally retained
+Purchase order:
+- `QA-PO-SUPPLIER-LINK-20260922`
+- Draft
+- supplier `SUPP-1001`
+- branch `BR-01`
+- item `1001`
+- qty ordered 1
+
+Vouchers:
+- `IN-5` — DirectSale — Draft — `QA-VOUCHER-DS-KPI-20260922`
+- `IN-6` — DirectReturn — Draft — `QA-VOUCHER-DR-KPI-20260922`
+- `IN-7` — SupplierReturn — Draft — `QA-VOUCHER-SR-SUPPLIER-20260922`
+
+All QA data is intentionally retained.
+QA vouchers generated no inventory movement.
+
+## Production post-change evidence
+Current company-1 voucher count:
+- vouchers = 7
+- Draft = 6
+- Sent = 0
+- Received = 0
+- Completed = 0
+- DirectSale = 4
+- DirectReturn = 2
+- SupplierReturn = 1
+
+Current item 1001 stock:
+- BR-01 qty = 2
+- BR-01 allocated = 0
+- BR-01 available = 2
+- BR-2 qty = 0
+- VAN-VEH-TEST-260921 qty = 0
+
+Supplier/branch verified QA relation:
+- `SUPP-1001 ↔ BR-01` = 1 Purchase Order relation.
+
+## Production VOUCHER_AUDIT verification
+Authenticated-context simulation against `IN-7` returned:
+- success = true
+- details = present
+- operations = present
+- audit = present
+- movements = []
+- KPI object = present
+- Draft `current_age_seconds` calculated.
+- unavailable lifecycle timestamps remain null; no timestamp is invented.
+
+## Forensic root causes established
+### Top options collapse
+Historical clipping repair correctly moved `routeHtml()` outside `wsTopPanel`.
+Current `toggleTopPanel()` still toggled only `wsTopPanel`.
+Therefore route selectors remained visible after collapse.
+
+Correct solution:
+- preserve `overflow:visible` route container;
+- introduce `wsRoutePanel`;
+- toggle route + metadata together.
+
+### Supplier smart search
+The server contract intentionally fails closed.
+Before QA:
+- no supplier↔branch relationship was proven.
+- current `pickArr()` therefore returned no supplier.
+
+The user-facing problem was explainability, not authorization.
+Report302 owner patch makes the empty state explicit instead of exposing unverified suppliers.
+
+After persistent QA PO creation:
+- the real existing SupplierReturn relation becomes visible to the current lookup path.
+
+### KPI gap
+Lifecycle timestamps already existed in Production but were not turned into operational KPIs.
+Report302 added a canonical additive KPI response to `VOUCHER_AUDIT`.
+Owner patch adds card-level visibility.
+
+## Van Sales decision
+No new defect proven in:
+`companies/company-1/sales/van-sales.html`
+
+Preserved:
+- canonical mobile branch;
+- driver/vehicle identity;
+- operation identity;
+- save-sales-invoice path.
+
+Do not reopen Van Sales for this closure.
+
+## Competitive capability benchmark
+Current official references reviewed:
+- Odoo barcode inventory adjustments and cycle counting.
+- Microsoft Dynamics inventory journals/counting/reclassification.
+- SAP one-step/two-step stock transfer and stock-in-transfer.
+- Daftra stock transfer and detailed transaction reporting.
+- Manager.io transfer reference/date/item/from/to workflow.
+
+The Report302 benchmark is capability-level only.
+No competitor UI/business contract was copied into RAWAEA.
+
+## Owner patch status
+New owner changes for vouchers.html:
+1. V-302-01 — CSS route-panel collapse.
+2. V-302-02 — complete toggleTopPanel replacement.
+3. V-302-03 — complete renderWorkspace replacement.
+4. V-302-04 — complete SupplierReturn pickSearch replacement.
+5. V-302-05 — KPI summary in renderList.
+6. V-302-06 — lifecycle KPI in cards.
+
+No previously closed vehicle/clipping/search fixes are to be repeated.
+
+## Browser / deployment boundary
+Still OPEN:
+- owner application of V-302 patches.
+- frontend deployment.
+- authenticated browser E2E against the published artifact.
+- final Production snapshot at the exact end of Browser E2E.
+
+Do not convert DB/RPC PASS into Browser E2E PASS.
+
+## Next CTO exact entry point
+1. Read this checkpoint and Report302.
+2. Verify frontend HEAD/blob before editing.
+3. Apply only V-302-01 through V-302-06 to `vouchers.html`.
+4. Static parse.
+5. Deploy frontend.
+6. Browser E2E:
+   - login
+   - Warehouse / Stock Vouchers
+   - New DirectSale
+   - collapse/expand
+   - branch / rep / vehicle selection
+   - DirectReturn
+   - SupplierReturn supplier smart search
+   - save draft
+7. Verify Production for the resulting QA/real transaction.
+8. Re-snapshot Production at the exact report time.
+9. Do not reopen Report296/299/300 closures unless browser evidence proves a new defect.
+
+## Final closure state
+PRODUCTION KPI CONTRACT = CLOSED
+SUPPLIER RETURN SERVER CONTRACT = CLOSED
+SUPPLIER/BRANCH QA RELATION = PROVEN
+TOP PANEL ROOT CAUSE = PROVEN
+SUPPLIER EMPTY-STATE ROOT CAUSE = PROVEN
+OWNER VOUCHERS PATCH = READY
+MAIN HTML = UNTOUCHED
+VAN SALES = PRESERVED / NO NEW DEFECT
+PHYSICAL STOCK CORE = NOT REOPENED
+BROWSER E2E = OPEN
