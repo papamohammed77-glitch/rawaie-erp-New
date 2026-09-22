@@ -9985,3 +9985,10 @@ If user still sees the old vehicle clipping behavior, classify first as deployme
 - MAIN.HTML UNTOUCHED: VERIFIED
 - NO NEW EDGE FUNCTION: VERIFIED
 - PUBLISHED BROWSER RUNTIME: OPEN / NOT VERIFIED
+
+
+## Post-Session Documentation HEAD
+- Final system HEAD after this session's documentation commits: f9441f75a457c9dd6fb3050beef80dc19327bb32
+- Immediate parent: f8ed26c5215941cd614fbd66032845cda7362fd8
+- These final commits contain documentation/state updates only; runtime source and Production contracts described above are unchanged.
+- Final session report: doc/Draft/Reprots/Report297_WAREHOUSE_VOUCHERS_FORENSIC_CURRENT_PRODUCTION_SOURCE_RECONCILIATION_20260922.md
