@@ -10597,7 +10597,7 @@ Final report:
 
 ## Authoritative current source state
 System repository:
-- current HEAD after this closure: `1ca40f847d16617f1df94bdf01e1d643e3309645`
+- current HEAD after this closure: `8cc3b7538619bdf04585dfb60f44781234c3642e`
 - prior migration commit: `f8ff61d7506ff42038c6a8a0c6ecf61c2233f87d`
 - Report301 final commit: `1ca40f847d16617f1df94bdf01e1d643e3309645`
 
