@@ -775,3 +775,21 @@ Only owner source application + published artifact/runtime Browser E2E.
 **MAIN.HTML = UNTOUCHED**
 
 **VAN-SALES.HTML = UNTOUCHED**
+
+---
+
+## 21. Post-session documentation amendment
+
+بعد إنشاء هذا التقرير وتحديث `CURRENT_STATE.md` تم تسجيل commit توثيقي جديد في System repo:
+
+- Final documentation HEAD: `096350cdb40fac825ffd1fa100c7480fedcff782`
+- Parent: `bf81536877e4580beb46e25c258425c49902c169`
+- Message: `state: record Report296 vehicle picker clipping closure`
+
+هذا الـcommit يخص `CURRENT_STATE.md` فقط، ولا يغيّر كود تطبيق الأذونات أو Production.
+
+القاعدة عند استئناف العمل:
+**لا تعتمد على رقم HEAD الموجود في تقرير سابق؛ أعد قراءة Git HEAD/parent وCurrent Source وCurrent Production أولًا.**
+
+**Report296 remains the authoritative forensic record for the vehicle picker clipping defect; owner source application and authenticated Browser E2E remain the only open closure boundaries.**
+
