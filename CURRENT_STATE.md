@@ -10934,3 +10934,141 @@ Do not repeat closed Vehicle Picker, clipping, DirectSale, DirectReturn, or inve
 ## Browser boundary
 - Authenticated business Browser E2E remains OPEN.
 - Do not claim browser closure until the patched frontend is deployed and runtime-tested.
+
+
+---
+
+# CURRENT CHECKPOINT — 2026-09-22 — REPORT304 VOUCHERS CURRENT-HEAD FORENSIC SYNTAX CLOSURE
+
+## Authoritative Git state
+System repository:
+- HEAD: `28b4a9b8848d942cf3a455c87bd929280c0c2356`
+- parent: `b5d1c7b02b7895b4c1d02de45a03611a73490e6b`
+- final report: `doc/Draft/Reprots/Report304_WAREHOUSE_VOUCHERS_CURRENT_HEAD_FORENSIC_SYNTAX_CLOSURE_20260922.md`
+
+Frontend repository:
+- HEAD: `54227e9d6ecf56d1f54ba1329ce518805bcc93cb`
+- parent: `6715825ec05e62482a4e37335ab366f5512805cf`
+- current vouchers blob: `4170178303d97162bd668904b822725cd3be5d15`
+- main.html: untouched
+- vouchers.html: not modified in this closure
+- van-sales.html: not modified in this closure
+
+## Production snapshot at closure
+- companies=1
+- branches=3
+- vehicles=1
+- stock_vouchers=8
+- stock_voucher_details=10
+- stock_voucher_operations=8
+- inventory_log=6
+- audit_log=2041
+- Draft=7
+- Sent=0
+- Received=0
+- Completed=0
+- Cancelled=1
+
+## New persistent QA data — retained
+- voucher `IN-8`
+- type SupplierReturn
+- status Draft
+- reference `QA-VOUCHERS-SYNTAX-SUPPLIER-20260922`
+- source BR-01
+- supplier SUPP-1001
+- item 1001 qty 1
+- operation_id `QA-VOUCHERS-SYNTAX-SUPPLIER-20260922-01`
+- voucher_id `b8a075ed-e10a-4333-affa-e55325a6692b`
+- details=1
+- operations=1
+- physical movements=0
+- audit record present
+
+All QA vouchers IN-2..IN-8 were checked directly; movement rows for each are 0.
+
+## Forensic root cause
+Current `vouchers.html` contains six malformed inline HTML handler fragments in JavaScript strings:
+- line 560 App.send
+- line 565 App.cancel
+- line 574 App.receive
+- line 583 App.complete
+- line 668 App.details
+- line 1541 App.pickSelect
+
+The malformed single-quote escaping causes Script 5 to fail with `SyntaxError: Invalid or unexpected token`. Because the main App object never evaluates, inline handlers later report `App is not defined`. This also prevents the supplier smart dropdown from running.
+
+In-memory surgical correction of exactly these six fragments produced:
+- all 6 inline scripts = PARSE PASS
+
+## Do not reopen closed areas
+The current source already contains:
+- source branch initialization for DirectSale in newWorkspace
+- vehicle/mobile-branch checks
+- supplier fail-closed relation logic
+- lifecycle KPI display
+- top-panel toggle of both route and metadata panels
+- production VOUCHER_AUDIT KPI contract
+
+No re-fix is authorized for these areas.
+
+## Service Worker finding
+- `companies/company-1/sw.js` exists.
+- `companies/company-1/warehouse/sw.js` does not exist.
+- current `register-sw.js` explicitly skips `/vouchers.html`.
+- current `core.js` RW_SW.register uses supplied path.
+- current vouchers call is `RW_SW.register('../sw.js')`.
+
+Therefore a browser error targeting `/warehouse/sw.js` is not explained by the current register-sw source and remains a deployment/browser-staleness verification boundary. Do not create a second warehouse service worker.
+
+## Owner surgical patch
+File to edit by owner only:
+`companies/company-1/warehouse/vouchers.html`
+
+Apply only V-304-01..V-304-06 in Report304.
+No main.html change.
+No new Edge Function.
+No new DB table/column.
+
+## Verification boundary
+VERIFIED:
+- current Git + parent
+- current source
+- current Production snapshot
+- persistent QA IN-8
+- SupplierReturn production relation
+- parser failure reproduced
+- parser pass after exact six replacements
+- current top panel logic
+- current KPI logic
+- current SW source structure
+
+OPEN:
+- owner application of six vouchers.html fragments
+- frontend deployment
+- authenticated browser E2E against published artifact
+- final runtime snapshot after browser E2E
+
+## Next exact entry point
+1. Re-read Report304.
+2. Verify Frontend HEAD/blob again.
+3. Apply only V-304-01..V-304-06.
+4. Run static parser.
+5. Deploy frontend.
+6. Authenticated browser E2E.
+7. Verify login, voucher actions, SupplierReturn smart search, Details, KPI, collapse/expand.
+8. Investigate only a newly observed browser/deployment defect.
+9. Take Production snapshot at the exact end of runtime verification.
+
+## Final closure state
+VOUCHERS PARSER ROOT CAUSE = PROVEN
+SURGICAL PATCH = READY
+STATIC PARSE AFTER PATCH = PASS
+SUPPLIER CONTRACT = PROVEN
+KPI CONTRACT = CLOSED
+TOP PANEL = CLOSED IN CURRENT SOURCE
+MAIN HTML = UNTOUCHED
+VAN SALES = PRESERVED
+PHYSICAL STOCK CORE = NOT REOPENED
+PERSISTENT QA = RETAINED
+BROWSER E2E = OPEN
+SW DEPLOYMENT ARTIFACT = OPEN
