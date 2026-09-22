@@ -3,17 +3,18 @@
 ## Latest authoritative checkpoint
 
 ### System repository
-HEAD after this session:
-2b0f27ae2f4fa616f18d57522931390e7a63f99e
+HEAD before this CURRENT_STATE commit:
+df78e46fe4a512c14008f5de1659b0fe465c463f
 Parent:
-5c9bc25a53051b4e66c86fbbf989db4334ca82e9
+cf8f9a1806071a800133d3d70661bbdf066bdb2c
 
-Previous system integration commits:
-- 720724e7dab55b208d177d476982b1123fe6bdc7 — voucher authorization/audit operation identity hardening
-- 5c9bc25a53051b4e66c86fbbf989db4334ca82e9 — DirectReturn mobile branch canonical convergence
-- 2b0f27ae2f4fa616f18d57522931390e7a63f99e — Report305 forensic closure
+Final migration commits:
+- a2a8c61e451635715492f72e57135734caf903b9 — voucher audit/company scope hardening
+- cf8f9a1806071a800133d3d70661bbdf066bdb2c — DirectReturn mobile branch convergence
+- df78e46fe4a512c14008f5de1659b0fe465c463f — final Report305 correction and Production synchronization evidence
 
 ### Frontend repository
+
 HEAD:
 1c386e5f5be1212e231672c1baaab676c54fe38c
 Parent:
@@ -90,6 +91,10 @@ For vouchers.html, next work starts at the remaining competitive UI feature gap 
 
 Latest detailed closure:
 doc/Draft/Reprots/Report305_WAREHOUSE_VOUCHERS_FORENSIC_INTEGRATION_CLOSURE_20260922.md
+
+Final Production snapshot: 2026-09-22 14:08:14.237020+00
+Production counts: companies=1, branches=3, stock_vouchers=15, stock_voucher_details=17, stock_voucher_operations=15, inventory_log=14, audit_log=2066
+Persistent QA retained: IN-9, IN-10, IN-12, IN-13, IN-14, IN-15, ITM-1059
 
 ---
 
