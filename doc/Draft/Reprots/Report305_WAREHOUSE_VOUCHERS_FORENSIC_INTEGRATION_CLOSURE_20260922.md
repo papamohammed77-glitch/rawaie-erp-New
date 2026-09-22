@@ -469,34 +469,32 @@ erp-frontend/companies/company-1/warehouse/vouchers.html
 ## 21. Git canonicalization
 
 تمت إضافة migration 1:
-supabase/migrations/20260922154500_voucher_audit_operation_identity_hardening_20260922.sql
+supabase/migrations/20260922135532_voucher_audit_operation_identity_hardening_20260922_v2.sql
 
 Commit:
-720724e7dab55b208d177d476982b1123fe6bdc7
+a2a8c61e451635715492f72e57135734caf903b9
 
 تمت إضافة migration 2:
-supabase/migrations/20260922155000_direct_return_mobile_branch_convergence_20260922.sql
+supabase/migrations/20260922135736_direct_return_mobile_branch_convergence_20260922.sql
 
 Commit:
-5c9bc25a53051b4e66c86fbbf989db4334ca82e9
+cf8f9a1806071a800133d3d70661bbdf066bdb2c
 
 ---
 
 ## 22. Production Snapshot
 
-Snapshot:
-2026-09-22 14:00:16.993477+00
-
-آخر snapshot قبل إضافة IN-15:
+Snapshot النهائي بعد اختبارات IN-15:
+2026-09-22 14:08:14.237020+00
 companies = 1
 branches = 3
-stock_vouchers = 14
-stock_voucher_details = 16
-stock_voucher_operations = 14
-inventory_log = 11
-audit_log = 2061
+stock_vouchers = 15
+stock_voucher_details = 17
+stock_voucher_operations = 15
+inventory_log = 14
+audit_log = 2066
 
-ثم أضيف IN-15 كـpersistent QA، ولذلك الأعداد النهائية أصبحت أعلى.
+IN-15 هو QA دائم وتم الاحتفاظ به كما طلب المالك.
 
 ---
 
