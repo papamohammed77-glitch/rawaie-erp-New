@@ -9992,3 +9992,7 @@ If user still sees the old vehicle clipping behavior, classify first as deployme
 - Immediate parent: f8ed26c5215941cd614fbd66032845cda7362fd8
 - These final commits contain documentation/state updates only; runtime source and Production contracts described above are unchanged.
 - Final session report: doc/Draft/Reprots/Report297_WAREHOUSE_VOUCHERS_FORENSIC_CURRENT_PRODUCTION_SOURCE_RECONCILIATION_20260922.md
+
+- Final documentation reconciliation updated Report297 after the last state-head note.
+- Final System HEAD is now `cc226abb50732cef510a70f412f08f1981ae2d82`; parent `9357c4b81e8fdbdc8b078a6ebfc2b51fc98df152`.
+- This final commit is documentation-only; runtime/source/Production conclusions remain unchanged.
