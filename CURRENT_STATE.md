@@ -13,10 +13,10 @@ Reports are forensic clues only.
 ## 2. Current Git
 ### System repository
 Repository: papamohammed77-glitch/rawaie-erp-New
-HEAD observed before this checkpoint:
-219dfbcb939b04d4cb33397290ca12c3ea974dcd
+HEAD observed:
+fd3db8ded40dbb680f0dc0abe036ae3804d4c962
 Parent:
-4b6250cc2f7dc6842477c2313d6e17cc81abbc
+5e5edb9ff3ec8a4327a6627a055b86c3845f2067
 
 ### Frontend repository
 Repository: papamohammed77-glitch/erp-frontend
@@ -127,7 +127,7 @@ No Production backend change is required for this regression.
 File:
 erp-frontend/companies/company-1/warehouse/vouchers.html
 
-Only App.pickArr() vehicle candidate blocks are to change.
+Only the DirectReturn vehicle candidate block inside App.pickArr() is to change.
 
 ### DirectReturn
 Inside:
@@ -144,23 +144,6 @@ return v.status==='Active' &&
                       s.allowedBranch(rep,branch);
            })
        );
-
-### DirectSale
-Inside:
-if(key==='wsTo'&&s.type==='DirectSale'){
-
-Remove:
-s.allowedBranch(s.user,vb) &&
-
-Use:
-
-return v.status==='Active' &&
-       !!vb &&
-       !!b &&
-       rid &&
-       v.driver_id===rid &&
-       s.allowedBranch(s.user,b) &&
-       (!rep||s.allowedBranch(rep,b));
 
 Do not change vehicleBranch(), pickSearch(), pickSelect(), loadRefs(), submit(), main.html or van-sales.html.
 
@@ -242,7 +225,7 @@ AUTHENTICATED BROWSER E2E OPEN
 
 ## 13. Next session start
 1. Open CURRENT GIT.
-2. Open current vouchers.html after owner applies the two vehicle-only snippets.
+2. Open current vouchers.html after owner applies the one DirectReturn vehicle-only surgical element.
 3. Run authenticated browser E2E for DirectSale and DirectReturn.
 4. Search by vehicle code and Arabic plate.
 5. Verify vehicle selection, representative linkage, source/destination authorization.
