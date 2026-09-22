@@ -10589,3 +10589,88 @@ Next action is the owner surgical replacement of `newWorkspace`, then deployment
 Final report:
 `doc/Draft/Reprots/Report300_WAREHOUSE_VOUCHERS_VEHICLE_PICKER_SOURCE_ROOT_CAUSE_SURGICAL_CLOSURE_20260922.md`
 
+
+
+---
+
+# CURRENT CHECKPOINT — 2026-09-22 — REPORT301 INVENTORY_CONTROL INVALID JSON CLOSURE
+
+## Authoritative current source state
+System repository:
+- current HEAD after this closure: `1ca40f847d16617f1df94bdf01e1d643e3309645`
+- prior migration commit: `f8ff61d7506ff42038c6a8a0c6ecf61c2233f87d`
+- Report301 final commit: `1ca40f847d16617f1df94bdf01e1d643e3309645`
+
+Frontend repository:
+- current HEAD: `6715825ec05e62482a4e37335ab366f5512805cf`
+- parent: `745a615ccd0baff09ad2619b0316e46507a862e9`
+- vouchers current blob: `b23a7a8f605ff6151fd87b021de1e1d593672a57`
+- main.html current blob inspected: `8c3d6b05fd6a94a6b488f12b29da85ae888f70bc`
+- main.html unchanged
+- vouchers.html unchanged during Report301
+- van-sales.html unchanged during Report301
+
+## Incident 22P02
+Root cause proven directly in Production:
+- `inventory_control(text,jsonb)` contained malformed over-escaped JSON text literals in permission guards.
+- Failure occurred before VOUCHER_AUDIT payload processing.
+- The browser payload from vouchers.html was valid JSON.
+
+Production migration applied:
+- version: `20260922081156`
+- name: `fix_inventory_control_json_permission_literals_20260922`
+- canonical migration file:
+  `supabase/migrations/20260922081156_fix_inventory_control_json_permission_literals_20260922.sql`
+
+Repair:
+- replaced JSON text permission literals with `jsonb_build_array(...)`
+- preserved the existing inventory_control operation contract and grants
+- no new Edge Function created
+- no physical stock writer introduced
+
+## Persistent QA records — intentionally retained
+- `IN-2` — existing Report300 DirectSale QA draft
+- `IN-3` — DirectSale, reference `QA-INVALID-JSON-DETAILS-20260922`, operation `QA-OP-INVALID-JSON-DETAILS-20260922`
+- `IN-4` — DirectReturn, reference `QA-DIRECT-RETURN-DETAILS-20260922`, operation `QA-OP-DIRECT-RETURN-DETAILS-20260922`
+
+Current QA verification:
+- QA vouchers = 3
+- QA movements = 0
+- QA operation rows = 3
+- QA stock-voucher audit rows = 3
+- QA data was not deleted
+
+## Runtime verification
+PASS:
+- Production VOUCHER_AUDIT on IN-3 under vouchers user
+- Production VOUCHER_AUDIT on IN-4 under vouchers user
+- Production CREATE 12-argument manual voucher RPC
+- Production SEND stock voucher RPC in isolated transaction
+- Production SNAPSHOT under owner context
+- Production REPLENISHMENT under owner context
+- no JSON 22P02 after repair
+
+Known separate contract gap:
+- `inventory_control('MOVEMENTS')` gateway accepts warehouse context, while `inventory_movement_report` itself requires reports permission.
+- This was intentionally not changed during Incident 22P02 because widening permissions without a business contract is unsafe.
+
+## Current app interpretation
+The current `details:function(code)` in vouchers.html is a valid RPC consumer and was not modified.
+Do not reopen it unless a new browser/network failure proves a source-side defect.
+
+## Current governance
+Reports are historical evidence. Next session must start from:
+CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE + BROWSER EVIDENCE.
+
+Do not re-fix:
+- Vehicle Picker `newWorkspace()`
+- source branch initialization
+- voucher current routing
+- van-sales branch identity
+- inventory physical-stock centralization
+
+## Report
+`doc/Draft/Reprots/Report301_WAREHOUSE_VOUCHERS_INVALID_JSON_FORENSIC_CLOSURE_20260922.md`
+
+## Remaining verification boundary
+Browser-authenticated E2E against the deployed Cloudflare artifact was not executable from the available session toolset, so browser/console closure must not be claimed as 100% solely from DB/RPC verification.
