@@ -9996,3 +9996,214 @@ If user still sees the old vehicle clipping behavior, classify first as deployme
 - Final documentation reconciliation updated Report297 after the last state-head note.
 - Final System HEAD is now `cc226abb50732cef510a70f412f08f1981ae2d82`; parent `9357c4b81e8fdbdc8b078a6ebfc2b51fc98df152`.
 - This final commit is documentation-only; runtime/source/Production conclusions remain unchanged.
+
+
+# CURRENT VERIFIED CHECKPOINT — 2026-09-22 — REPORT 298
+> This checkpoint supersedes older narrative entries for the Voucher Vehicle Picker only. Historical reports remain evidence/clues, not current truth.
+
+## Current Git
+System:
+- HEAD at start of checkpoint: `81278862de493a597ac74e2c975ff74bdbeb298b`
+- Parent: `cc226abb50732cef510a70f412f08f1981ae2d82`
+- Report298 documentation commit: `3c78bed0e0d3bcd0d4610bea69bfb96e919f5421`
+
+Frontend:
+- HEAD: `745a615ccd0baff09ad2619b0316e46507a862e9`
+- Parent: `29cd6e08056b50545db05a4bff220424127126c5`
+- `companies/company-1/warehouse/vouchers.html` SHA: `d02d3696d9ca1af8014fbb61c680c04c09c39b7e`
+- `companies/company-1/sales/van-sales.html` SHA: `8d61382a8e0025a0d079e71dd94f33d106d9088e`
+- `Current/PWA/main.html` SHA: `27b777528665dcc985809648f006452c861ae36e`
+
+## Current Production Snapshot
+Project: `fiilmooggumokxanwiyx`
+Captured:
+`2026-09-22 06:17:20.921273+00`
+
+- companies = 1
+- branches = 3
+- items = 17
+- vehicles = 1
+- active vehicles = 1
+- stock_vouchers = 1
+- inventory_log = 6
+- audit_log = 2034
+
+Vehicle:
+- code = `VEH-TEST-260921`
+- status = Active
+- company_id = `00000000-0000-0000-0000-000000000001`
+- driver = `vansales@rawaea.com`
+- driver_id = `111b0730-a977-4d11-bcd0-2427b178a9e5`
+- mobile_stock_enabled = true
+- mobile_branch_id = `5372503d-f638-4e7f-808d-bda585825b2f`
+- mobile branch = `VAN-VEH-TEST-260921`
+- mobile branch active = true
+
+Voucher operator:
+- `vouchers@rawaea.com`
+- company = `00000000-0000-0000-0000-000000000001`
+- active
+- allowed branch = BR-01
+- active warehouse role = أذونات
+
+## RLS / Vehicle Visibility
+Current policy:
+`vehicles_select_company`
+
+Authenticated SELECT predicate:
+`company_id = app_private.current_user_company_id()`
+
+Simulated authenticated session:
+- email = `vouchers@rawaea.com`
+- auth_id = `2e5262ec-8f7b-4d7e-824b-7ec5dcad62da`
+
+Result:
+- visible active vehicles = 1
+
+Therefore Vehicle visibility under current RLS is VERIFIED.
+
+## Voucher Source Current Truth
+Current file:
+`companies/company-1/warehouse/vouchers.html`
+
+Verified:
+- loadRefs() line 28
+- vehicles query line 40
+- vehicleBranch() line 820
+- pickArr() line 864
+- pickSelect() line 992
+- routeHtml() line 1149
+- routeHtml() placement outside wsTopPanel line 1168
+- submit() line 1370
+- create-stock-voucher call line 1608
+
+Static result:
+- one direct vehicles query
+- company-scoped
+- active-only
+- current Vehicle picker predicate passes current Production vehicle
+- routeHtml is outside the clipping container
+
+## Root Cause
+The historical "vehicles do not appear" defect was UI clipping:
+- routeHtml() was inside wsTopPanel
+- wsTopPanel used overflow:hidden
+- smart vehicle menu was visually clipped
+
+The correction is already present in frontend HEAD `745a615...`.
+
+Do not reapply this source fix.
+
+## Current Closure Decision
+No new vouchers.html patch is authorized for the Vehicle Picker.
+No main.html modification.
+No van-sales.html modification.
+No new Edge Function.
+No new vehicle RPC.
+No new Production schema.
+
+Any persistent browser symptom must now be investigated at Published Runtime / Deployment Cutover before any source patch is considered.
+
+## Current Edge Versions
+- setup-van-branch: v4, verify_jwt=true
+- create-stock-voucher: v10, verify_jwt=true
+- send-stock-voucher: v20, verify_jwt=true
+- receive-stock-voucher: v22, verify_jwt=true
+
+No new Edge Function was created.
+
+## Current Persistent Voucher Data
+Persistent demo voucher:
+- code = IN-1
+- type = DirectSale
+- status = Cancelled
+- from = BR-01
+- to = VEH-TEST-260921
+- reference = DEMO-DIRECT-SALE-2026-09-21
+
+This corrects older CURRENT_STATE text that described the same record as Draft.
+No data repair was performed because no evidence justifies changing/removing this retained demo record.
+
+## Production / Transaction Safety
+A fresh transactional CREATE/SEND attempt was executed against Production and then fully rolled back.
+Post-rollback:
+- matching voucher rows = 0
+- matching inventory_log rows = 0
+
+Earlier DirectSale/DirectReturn E2E evidence remains the previously verified functional checkpoint; no regression is proven by the current snapshot.
+
+## Van Sales Integration
+Current source SHA:
+`8d61382a8e0025a0d079e71dd94f33d106d9088e`
+
+Verified:
+- loadVanBranch() resolves canonical mobile branch.
+- vehicle_id / driver_id / vehicle_code are propagated.
+- Van Sales uses save-sales-invoice.
+- source = 'van-sales'.
+- operation_id exists for sale retry protection.
+- Van Sales sells from vehicle mobile stock.
+- no new Van Sales defect is proven.
+
+## Competitive Reference
+Verified official/current documentation:
+- Odoo 19: inventory adjustment + barcode count workflows; manual product/quantity/location and assigned inventory counts.
+- Dynamics 365: Movement, Inventory Adjustment, Transfer, Counting and Tag Counting inventory journals.
+- SAP S/4HANA: goods receipt, goods issue, physical stock transfer and transfer posting with material-document history.
+- Daftra: stock transfer, before/after availability, notes, detailed transaction reports and stocktaking.
+- Manager.io: inventory transfers between locations with Date/Reference/Description/Item/Qty/From/To.
+
+Real future gaps remain separate Business Contracts:
+- editable document date
+- lot/serial/expiry
+- formal approval
+- evidence attachments
+- richer discrepancy taxonomy
+- richer movement reporting
+- in-transit stock
+- assigned inventory-count sessions
+
+These are NOT to be invented inside this closure without separate contract/schema work.
+
+## Published Runtime Gate
+Current Source = VERIFIED
+Current Production Backend = VERIFIED
+Vehicle RLS Visibility = VERIFIED
+Vehicle Picker Predicate = VERIFIED
+Historical Clipping Fix Present = VERIFIED
+
+Published Cloudflare artifact SHA = NOT VERIFIED
+Authenticated browser E2E against published artifact = OPEN
+
+Service Worker/current deployment sources indicate HTML/navigation are network-backed; no evidence currently justifies treating browser cache as the root cause.
+
+## Report
+Final report:
+`doc/Draft/Reprots/Report298_WAREHOUSE_VOUCHERS_VEHICLE_PICKER_FORENSIC_CURRENT_REALITY_20260922.md`
+
+## Next Exact Resumption Point
+1. Verify current system HEAD and parent.
+2. Verify frontend HEAD and vouchers SHA.
+3. Verify Production vehicle + RLS again.
+4. Open the actual published Cloudflare artifact.
+5. Compare published artifact to frontend HEAD `745a615...`.
+6. Run authenticated browser E2E:
+   DirectSale → select BR-01 → vehicle VEH-TEST-260921 → bind Rep → create → send.
+7. Run DirectReturn:
+   Vehicle → Branch → receive → retry same operation_id.
+8. Verify stock, inventory_log, audit_log.
+9. Re-snapshot Production at report time.
+10. Only then either close Browser Runtime or open a new exact deployment/source defect.
+
+## Closure Status
+- Vehicle data / table linkage: CLOSED
+- Vehicle RLS visibility: CLOSED
+- Vehicle ↔ Rep contract: CLOSED
+- Vehicle ↔ Mobile Branch contract: CLOSED
+- Current vouchers source vehicle picker: CLOSED
+- Historical clipping defect: CLOSED
+- Mother integration: CLOSED
+- Van Sales integration: CLOSED for current proven contract
+- Production schema patch for this defect: NOT REQUIRED
+- New Edge Function: NOT CREATED
+- Published Browser Runtime: OPEN
