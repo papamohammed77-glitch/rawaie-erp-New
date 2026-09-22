@@ -226,3 +226,140 @@ No main.html change.
 No van-sales.html change.
 No parallel Physical Stock Engine.
 No replay of previously closed fixes.
+
+
+---
+## 2026-09-22 — Report312 LATEST EXECUTION CHECKPOINT
+
+Latest report:
+doc/Draft/Reprots/Report312_WAREHOUSE_VOUCHERS_VEHICLE_PICKER_FORENSIC_EXECUTION_20260922.md
+
+### Current authoritative Git
+System HEAD:
+8ddd5efed1c56f4e6dea321cc3500ae81740cbaa
+Parent:
+064ec25a581f4add023bdb1e1ff3fbe65a94b319
+
+Frontend HEAD:
+7a11af9ecba59da29fd6d8aad17053678d75c2e6
+Parent:
+ec8f2fe8ac7e8c6ac203ef2fafec520b0f05f10e
+
+Current vouchers.html SHA:
+49a32ac408c629ac22024c8a93713ea758b73197
+
+Current van-sales.html SHA:
+8d61382a8e0025a0d079e71dd94f33d106d9088e
+
+### Root cause status
+
+PROVEN:
+App.pickArr(key) structural regression + missing comma before pickShow.
+
+The current source contains:
+return allBranches;
+}
+pickShow:function(key)...
+
+The required member boundary is:
+return allBranches;
+},
+pickShow:function(key)...
+
+The DirectReturn wsFrom element also requires the explicit closure shown in Report312.
+
+### Vehicle search status
+
+Vehicle search algorithm remains intact and verified:
+- vehicle_code
+- license_plate
+- model
+
+Do not reopen:
+- vehicleBranch()
+- norm()
+- pickSearch()
+- pickSelect()
+- DirectSale vehicle filter
+
+### Production QA retained
+
+Persistent QA already present:
+IN-24 DirectSale Draft
+IN-25 DirectReturn Draft
+
+New persistent QA created through the canonical RPC:
+IN-26 DirectSale Draft
+reference = QA-E2E-VEHICLE-SEARCH-DS-260922
+vehicle = VCH-QA-260922
+representative = vansales@rawaea.com
+
+IN-27 DirectReturn Draft
+reference = QA-E2E-VEHICLE-SEARCH-DR-260922
+vehicle = VCH-QA-260922
+representative = vansales@rawaea.com
+
+Do not delete IN-24 through IN-27.
+
+QA inventory movements = 0
+QA audit rows = 4
+
+### Fresh Production snapshot
+
+stock_vouchers = 27
+stock_voucher_details = 29
+inventory_log = 26
+audit_log = 2111
+
+### Runtime deployment evidence
+
+create-stock-voucher = v10, verify_jwt=true
+send-stock-voucher = v20, verify_jwt=true
+receive-stock-voucher = v22, verify_jwt=true
+setup-van-branch = v4, verify_jwt=true
+save-sales-invoice = v15, verify_jwt=true
+save-inventory-count = v4, verify_jwt=true
+
+No new Edge Function.
+No schema change.
+No RLS change.
+No Physical Stock Engine change.
+
+### Deterministic verification
+
+PASS:
+- DirectReturn candidate count = 2
+- VCH-QA-260922 search
+- Arabic plate س م ج 26922 search
+- VEH-TEST-260921 search
+- Arabic plate س ن ر 6021 search
+- corrected App object syntax
+
+OPEN:
+- authenticated browser E2E after owner source patch
+- fresh deployed SHA/cache verification
+
+### Scope lock
+
+main.html remains untouched.
+vouchers.html remains untouched by automation and is awaiting owner surgical patch.
+van-sales.html remains untouched.
+
+### Next session exact sequence
+
+1. Verify owner applied only the two Report312 surgical changes.
+2. Verify fresh vouchers SHA.
+3. Run syntax validation.
+4. Run authenticated browser E2E for DirectReturn and DirectSale.
+5. Search by vehicle_code and Arabic license plate.
+6. Verify vehicle selection and representative linkage.
+7. Verify branch authorization.
+8. Verify CREATE Draft produces no inventory movement.
+9. Take a fresh Production snapshot.
+10. Only then change closure to 100% CLOSED.
+
+Do not replay closed fixes.
+Do not create a new Edge Function.
+Do not touch main.html.
+Do not touch van-sales.html.
+Do not modify Production for this frontend parser regression unless fresh evidence proves a backend defect.
