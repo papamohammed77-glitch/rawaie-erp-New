@@ -9843,3 +9843,145 @@ Apply Report296 exact delete/replace block.
 7. Re-snapshot Production at exact test end.
 8. Open only newly evidenced defects.
 
+
+
+# CURRENT SESSION — 2026-09-22 — VOUCHERS / VEHICLE / VAN SALES FORENSIC RECONCILIATION
+
+## Authoritative Session Basis
+- System HEAD: b2f440f1e655108a10328cb6720ff494b77c43da
+- System parent: 096350cdb40fac825ffd1fa100c7480fedcff782
+- Frontend HEAD: 745a615ccd0baff09ad2619b0316e46507a862e9
+- Frontend parent: 29cd6e08056b50545db05a4bff220424127126c5
+- Target source: companies/company-1/warehouse/vouchers.html
+- Governing report: doc/Draft/Reprots/Report297_WAREHOUSE_VOUCHERS_FORENSIC_CURRENT_PRODUCTION_SOURCE_RECONCILIATION_20260922.md
+
+## Scope
+- Warehouse → Stock Vouchers.
+- Vehicle / DirectSale / DirectReturn integration.
+- Picker architecture review.
+- Van Sales integration review.
+- Production E2E and cancellation verification.
+- No main.html modification.
+- No vouchers.html source modification in this session.
+- No van-sales.html source modification.
+- No new Edge Function.
+
+## Current Production Snapshot
+Snapshot UTC after final verification:
+- companies = 1
+- branches = 3
+- items = 17
+- vehicles = 1
+- stock_vouchers = 1
+- stock_voucher_details = 3
+- stock_voucher_operations = 1
+- inventory_log = 6
+- audit_log = 2034
+- orders = 0
+- runsheets = 0
+
+## Vehicle / Rep Contract
+Current Production vehicle:
+- vehicle_code = VEH-TEST-260921
+- status = Active
+- driver_id = 111b0730-a977-4d11-bcd0-2427b178a9e5
+- mobile_stock_enabled = true
+- mobile_branch_id = 5372503d-f638-4e7f-808d-bda585825b2f
+- mobile branch code = VAN-VEH-TEST-260921
+- company_id = 00000000-0000-0000-0000-000000000001
+
+Direct Sales Rep:
+- email = vansales@rawaea.com
+- role = مندوب بيع مباشر
+- active
+- public user id = 111b0730-a977-4d11-bcd0-2427b178a9e5
+
+Voucher operator:
+- email = vouchers@rawaea.com
+- active_warehouse_role = أذونات
+- allowed branch = BR-01
+
+## Voucher Source State
+Current vouchers.html already contains:
+- loadRefs() company-scoped vehicle lookup.
+- pickArr() vehicle binding.
+- pickSearch() vehicle search.
+- pickSelect() Vehicle UUID selection and Rep binding.
+- renderWorkspace() with routeHtml() OUTSIDE wsTopPanel.
+- Draft cancellation via App.cancel().
+- cancel-stock-voucher integration.
+- company-scoped item/scan lookup.
+- DirectSale/DirectReturn validation.
+- operation_id propagation.
+
+Therefore no new vouchers.html patch is authorized for the closed vehicle/clipping issue.
+
+## Root Cause Closed
+The old vehicle dropdown defect was UI clipping:
+- routeHtml() was inside wsTopPanel.
+- wsTopPanel used overflow:hidden.
+- smart menus were clipped by the collapsing container.
+The surgical correction was already committed in frontend HEAD 745a615ccd0baff09ad2619b0316e46507a862e9.
+Do not reapply.
+
+## Production Verification
+- Canonical create_manual_stock_voucher_atomic 12-arg DirectSale CREATE passed transactionally.
+- DirectSale SEND passed transactionally.
+- Physical stock movement path was exercised through existing post_stock_movement chain.
+- Cancel RPC passed transactionally: Draft → Cancelled.
+- All test transactions were rolled back.
+- Final production counts returned to baseline.
+- No test residue.
+
+## Picker / Van Sales
+Picker current source proves:
+- live elapsed task timer,
+- start session,
+- complete,
+- cancel,
+- reopen.
+These are field-task semantics and should not be copied into voucher document UI as live timers.
+Future KPI direction: derive voucher cycle-time KPIs from existing created_at/sent_date/received_date/completed_at timestamps or adopt a generic task lifecycle contract only after separate approval.
+
+Current van-sales source:
+- integrated with mobile vehicle stock.
+- direct sales use save-sales-invoice.
+- no new defect proven in this session.
+- previously closed Van Sales source defects are not to be reopened.
+
+## Deployment Gate
+- Current Source: VERIFIED.
+- Current Production backend: VERIFIED.
+- Production transactional E2E: VERIFIED.
+- Published Cloudflare Pages artifact: NOT VERIFIED.
+- Browser E2E on published deployment: OPEN.
+Service Worker evidence shows HTML/navigation is network-backed and not HTML-cache controlled.
+If user still sees the old vehicle clipping behavior, classify first as deployment/cutover drift.
+
+## Owner Action
+- main.html: no action.
+- vouchers.html: no new source patch; current Git already contains the correction.
+- van-sales.html: no new patch.
+- If published frontend is stale, republish current frontend HEAD 745a615ccd0baff09ad2619b0316e46507a862e9.
+
+## Next Session Start
+1. Read this section.
+2. Verify system HEAD + parent.
+3. Verify frontend HEAD + parent.
+4. Re-fetch current vouchers.html.
+5. Verify routeHtml() remains outside wsTopPanel.
+6. Re-snapshot Production.
+7. Verify published browser runtime before reopening any source defect.
+8. Do not recreate the vehicle/clipping closure.
+9. Do not create an Edge Function.
+10. Proceed only to the next unclosed business contract.
+
+## Closure Status
+- VOUCHER VEHICLE DATA: CLOSED
+- VEHICLE ↔ REP CONTRACT: CLOSED
+- DIRECTSALE CREATE/SEND E2E: CLOSED
+- CANCEL VOUCHER E2E: CLOSED
+- VOUCHER SOURCE CLIPPING FIX: CLOSED
+- MAIN.HTML UNTOUCHED: VERIFIED
+- NO NEW EDGE FUNCTION: VERIFIED
+- PUBLISHED BROWSER RUNTIME: OPEN / NOT VERIFIED
