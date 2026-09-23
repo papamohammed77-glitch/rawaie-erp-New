@@ -217,3 +217,73 @@ Do not make any other main.html edits for this closure.
 
 ### Browser gate
 The Git module and Production backend are updated, but browser Production E2E is NOT CLOSED until the owner applies this exact module insertion into the Mother and executes the Fleet-only browser gate.
+
+
+## Patch 8 — Mother Branch + Fleet UI completion — 2026-09-23
+
+### Current Mother checkpoint
+- Mother HEAD: `6d505d30dcad981932b3f3562ea9bb37901fecb4`
+- Parent: `c2ac6d33cb5c20ba6539f61cabde1b33866ecb46`
+- main.html blob: `8c3d6b05fd6a94a6b488f12b29da85ae888f70bc`
+- Do not replace main.html.
+- Do not replace RW_FleetManagement.js.
+- Apply surgical patches only from Report320.
+
+### Branch UI
+`RW_Branches.openModal`, exact field line currently contains:
+`value="${b?.branch_code||'جديد'}"`
+
+PATCH-320-BR-01:
+Insert `nextBranchCodePreview()` immediately before `function openModal(code) {`.
+
+PATCH-320-BR-02:
+Replace:
+```js
+<div class="flex flex-col"><label>كود الفرع</label><input id="branch-code" value="${b?.branch_code||'جديد'}" readonly class="p-2.5 bg-gray-100 border rounded-lg"></div>
+```
+with:
+```js
+<div class="flex flex-col"><label>كود الفرع</label><input id="branch-code" value="${b?.branch_code||nextBranchCodePreview()}" readonly class="p-2.5 bg-gray-100 border rounded-lg"></div>
+```
+
+PATCH-320-BR-03:
+In current line 7037 replace only:
+```js
+<td class="p-3 font-semibold">${b.name||''}</td>
+```
+with the mobile-context badge form documented in Report320.
+
+### Fleet UI
+Current vehicle projection is already correct. Do not touch table cells for:
+- expected_km_per_liter
+- operational_condition
+- route_capability
+
+PATCH-320-FL-01:
+In current `loadVehicles` line 28492, add the exact Edit button onclick from Report320 inside the existing vehicle cell. Keep row onclick to detail.
+
+PATCH-320-FL-02:
+Insert the complete `openVehicleEdit(id)` from Report320 immediately before:
+```js
+async function openVehicleForm(){
+```
+
+PATCH-320-FL-03:
+Insert:
+```js
+openVehicleEdit: openVehicleEdit,
+```
+immediately after:
+```js
+openVehicleDetail: openVehicleDetail,
+```
+
+### Production closure
+- save-branch v5 deployed.
+- delete-branch v4 deployed.
+- No new Edge Function.
+- `VEHICLE_UPDATE` Production E2E passed in transaction and rolled back.
+- QA residue = 0.
+
+### Final browser gate
+Owner applies Report320 → parse → publish → served SHA → authenticated E2E → fresh Production snapshot.
