@@ -1,87 +1,140 @@
-# LATEST AUTHORITATIVE CHECKPOINT — 2026-09-23 18:05 UTC
+# LATEST AUTHORITATIVE CHECKPOINT — 2026-09-23 18:45 UTC
 
 ## Current Truth
-CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE only. Historical reports are contextual and must be re-verified.
+CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE only.
+Historical reports are contextual and must be re-verified.
 
 ## Current System Git
-- HEAD after Report321: `1e93304504056cb30809e165db78685b3c66e104`
-- Parent: `2659af01afcb4beae0414ce9741d49dd4ea853bd`
-- Latest report: `doc/Draft/Reprots/Report321_MOTHER_MAIN_LOGIN_SYNTAX_FORENSIC_CLOSURE_20260923.md`
+- Latest report commit before this CURRENT_STATE update: \`10b997bab19f943d0d75b01ce31eb5653a87318f\`
+- Parent: \`69e4b647b929efdd2834cf26273af01e7ee0fe45\`
+- New report: \`doc/Draft/Reprots/Report322_MOTHER_BRANCH_SAVE_SESSION_FORENSIC_SURGICAL_CLOSURE_20260923.md\`
 
 ## Current Mother Frontend Truth
-- Repository: `papamohammed77-glitch/erp-frontend`
-- HEAD: `3eedbc60a940f8d4fffadb9d152bd362c3f8be04`
-- Parent: `9429006baa94eb92ffd5f215e2b085288681b94f`
-- Current `companies/company-1/main.html` blob: `6ea44f1a26ce6069855842dc9010a21acc726ad9`
-- No assistant write to `main.html`.
+- Repository: \`papamohammed77-glitch/erp-frontend\`
+- HEAD: \`6fdcebc551d8eef9a9fd3a8fe8c200d0d4ce90c2\`
+- Parent: \`5c4fd658e6046d93ca80db18fb15f2521cc9e4b1\`
+- Current \`companies/company-1/main.html\` blob: \`7e9e49895bddd1369ac6ead8c00cfcbc172d3603\`
+- No assistant write to \`main.html\`.
 
-## Main Syntax Incident — ROOT CAUSE PROVEN
-Commit `9429006baa94eb92ffd5f215e2b085288681b94f` removed exactly two declarations from Mother main:
-- `function openModal(code) {` inside `RW_Customers`.
-- `function openModal(code) {` inside `RW_Suppliers`.
+## Branch Save — Current Forensic Status
+### Historical defect
+The observed 400s on 2026-09-23 13:09–13:24 UTC were all on \`save-branch\` Version 4.
+That version's auth/schema defect is closed.
 
-The following closing braces remained, so Node reports the downstream line:
-`6805: var _handleSave = function(c, isEdit) {`
-with:
-`SyntaxError: Unexpected token 'var'`.
+### Current Production
+\`save-branch\`:
+- Version 5
+- ACTIVE
+- verify_jwt=true
+- deployment id: \`b289cefd-6875-4c2b-8970-395f223a14cb\`
+- deployment evidence: 2026-09-23 14:23:35 UTC
 
-Current-source parse: FAIL before patch.
-In-memory two-line surgical patch: PASS.
+Current Production user evidence:
+- auth_id = \`0a6089e6-0c33-4cf9-9aa0-31fc42774b89\`
+- company_id = \`00000000-0000-0000-0000-000000000001\`
+- status = Active
+- permissions = [\`*\`]
 
-## Exact Owner Patch
-### RW_Customers
-Immediately before:
-`const c = code ? data.find(x => x.customer_code === code) : null;`
-restore:
-```javascript
-    function openModal(code) {
-        const c = code ? data.find(x => x.customer_code === code) : null;
-```
+Current \`public.users\` schema has no \`is_owner\`.
 
-### RW_Suppliers
-Immediately before:
-`const s = code ? data.find(x => x.supplier_code === code) : null;`
-restore:
-```javascript
-    function openModal(code) {
-        const s = code ? data.find(x => x.supplier_code === code) : null;
-```
+### Current source defect
+\`RW_Branches.openModal(code)\` save handler at lines 7083–7092 only calls:
+\`supabase.auth.getSession()\`
+and sends the cached token directly.
 
-Do not replace either full function. Do not modify `_handleSave`.
+The current source does not:
+- inspect token expiry;
+- refresh before save when expiry is near;
+- retry once after an auth rejection.
 
-## CI Evidence
-GitHub Actions syntax gate for commit `9429006...`:
-- Run: `35876538098`
-- Job: `107233790170`
-- Structural audit: PASS.
-- Exact JavaScript syntax gate: FAIL.
-- Node error: `main-positioned.js:6805` → `Unexpected token 'var'`.
+This is classified as:
+CURRENT SOURCE AUTH-FRESHNESS DEFECT.
 
-The CI failure independently reproduces the user-reported browser Console error.
+The exact latest user click cannot be independently proven as a Version 5 runtime failure because no matching Version 5 POST 400 is present in the available runtime snapshot.
 
-## Non-Causes Proven
-- Tailwind CDN warning is a non-blocking production-build warning in app.html; not the syntax root cause.
-- Current Service Worker does not cache HTML; it network-backs navigation.
-- No Production Supabase/RPC change is required for this frontend syntax closure; none was applied.
+## Owner Surgical Patch
+Target:
+\`papamohammed77-glitch/erp-frontend/companies/company-1/main.html\`
 
-## Existing Work Not To Repeat
-- Report320 Branch/Fleet surgical work is already present in current Mother main and must not be reapplied.
-- Inventory core and physical writer closures remain closed unless CURRENT evidence proves new drift.
+Current SHA:
+\`7e9e49895bddd1369ac6ead8c00cfcbc172d3603\`
 
-## E2E Status
-- Static parse after the in-memory surgical fix: PASS.
-- Published artifact verification: OPEN.
-- Authenticated browser login/E2E: OPEN because no authenticated browser session/tool was available in this session.
+Target:
+\`RW_Branches.openModal(code)\` → save handler lines 7083–7092.
 
-## Next Exact Resumption Point
-1. Verify Frontend HEAD `3eedbc...` and main blob `6ea44f...`.
-2. Search the exact Customer/Supplier anchor lines above.
-3. If both declarations are already present, do not modify them again.
-4. Run the existing `cto_main_html_forensic_20260912.yml` syntax gate.
-5. Publish.
-6. Verify served artifact identity against current Git.
-7. Run authenticated Mother login E2E and capture only the first new Console error.
-8. Update CURRENT_STATE again.
+Exact replacement is documented completely in:
+\`doc/Draft/Reprots/Report322_MOTHER_BRANCH_SAVE_SESSION_FORENSIC_SURGICAL_CLOSURE_20260923.md\`
+
+Do not modify the whole function.
+Do not reopen Report320/321 fixes.
+
+## Production / Database
+No Production change was required in this cycle.
+
+Transactional test:
+\`QA-BR-923\`
+CREATE → UPDATE → DELETE → ROLLBACK = PASS
+
+Post-test:
+- QA rows = 0
+- branches = 3
+
+Current snapshot:
+- companies = 1
+- branches = 3
+- active_branches = 3
+- vehicles = 2
+- auth-linked users = 25
+
+## Current main.html Syntax
+Full current inline script parse:
+PASS
+
+Current syntax closures already present:
+- Customer openModal line 6772
+- Supplier openModal line 6917
+- Branch openModal line 7055
+
+## Competitive Study
+No Branch schema expansion was implemented.
+Future Branch Master 2.0 candidates remain uncommitted:
+- branch type
+- region/GPS
+- operating hours/contact email
+- barcode
+- capacity
+- warehouse capability
+- replenishment policy
+- receiving/picking profile
+- financial dimension/cost center
+- transfer policy
+- operational calendar
+
+Official comparative sources are recorded in Report322.
+
+## Browser / Published Artifact
+OPEN:
+- owner-side main.html patch
+- frontend commit/publish
+- served artifact identity
+- authenticated Browser E2E
+
+Do not convert static parse or transactional DB tests into Browser E2E.
+
+## Exact Next Resumption Point
+1. Read Report322.
+2. Verify frontend HEAD and main.html SHA above.
+3. Apply only the exact Owner patch in Report322 Section 9.
+4. Parse full main.html.
+5. Commit/publish frontend.
+6. Verify served artifact identity.
+7. Login with a fresh session.
+8. Mother → المخازن والفروع → إضافة فرع → حفظ.
+9. Verify POST save-branch success and branch list refresh.
+10. Test Edit and Inactive status.
+11. Inspect fresh save-branch runtime logs.
+12. Update this file again from the new verified checkpoint.
+13. Do not re-run already closed historical fixes without new contradictory evidence.
 
 ---
 
