@@ -1,3 +1,111 @@
+# CURRENT STATE — UPDATED AFTER REPORT315
+## Session: 2026-09-23
+## Scope: Warehouse Vouchers → Transfer Scope / Smart Search
+## Canonical report: doc/Draft/Reprots/Report315_WAREHOUSE_VOUCHERS_TRANSFER_SCOPE_AUTHORIZATION_CLOSURE_20260923.md
+## Execution log: doc/Draft/Reprots/EXECUTION_LOG_20260923_VOUCHERS_TRANSFER_SCOPE.md
+
+### Authoritative current heads
+- System repo HEAD after session artifacts: 9248f09f8284ddde9161843ffcbf9b5f2fb8ef01
+- System repo parent at last artifact commit: 83c511699d8f383830f7c171182fa47fb9240883
+- Production migration artifact commit: 29e62d94fdb45de86bc61c4a2d5e7f5412e69deb
+- Frontend repo HEAD: 751f6175675ffe99023337e523501bd35e9553c6
+- Frontend parent: f42bc0ae0c2e88a6ebf66e54b6a9ff8e1057c5e3
+- vouchers.html current blob: 751e7b4fc814dd7011ee903e1703dc8df9896f0c
+- van-sales.html reference: 8d61382a8e0025a0d079e71dd94f33d106d9088e
+
+### Production transfer contract — CLOSED / VERIFIED
+For:
+role = مخزني
++
+active_warehouse_role = أذونات
++
+type = Transfer
+
+the system now permits transfer between active branches belonging to the same company.
+
+Updated Production RPCs:
+- create_manual_stock_voucher_atomic (10 args)
+- create_manual_stock_voucher_atomic (12 args)
+- send_stock_voucher_atomic
+- post_manual_stock_voucher_atomic
+
+No new Edge Function.
+No new table.
+No RLS change.
+No Physical Stock engine change.
+
+### Persistent QA — DO NOT DELETE
+- IN-28 Transfer Draft QA-SEARCH-BRANCH-20260923
+- IN-29 DirectSale Draft QA-SEARCH-VEHICLE-DS-20260923
+- IN-30 DirectReturn Draft QA-SEARCH-VEHICLE-DR-20260923
+- IN-31 SupplierReturn Draft QA-SEARCH-SUPPLIER-20260923
+- IN-32 Transfer Completed QA-TRANSFER-ALL-BRANCHES-20260923 BR-01 → BR-2
+- IN-33 Transfer Completed QA-TRANSFER-REVERSE-20260923 BR-2 → BR-01
+
+### Production E2E
+- IN-32 Create → Send → Receive → Complete = PASS
+- IN-33 Create → Send → Receive → Complete = PASS
+- Same operation_id replay for IN-32 did not create a second voucher = PASS
+- vansales@rawaea.com Transfer attempt BR-01 → BR-2 = REJECTED
+- Item 1001 company total remained 79 after forward + reverse transfer
+- IN-32 inventory_log rows = 2
+- IN-33 inventory_log rows = 2
+- IN-32 audit rows = 4
+- IN-33 audit rows = 4
+
+### Final Production snapshot
+- companies=1
+- branches=4
+- vehicles=2
+- suppliers=1
+- direct_reps=1
+- stock_vouchers=33
+- stock_voucher_details=35
+- inventory_log=30
+- audit_log=2123
+
+### Current vouchers.html finding
+The smart search and 500-row pagination are already present in Current Source.
+Transfer wsFrom/wsTo already use allBranches and MUST NOT be reverted to userBranches under the new contract.
+The remaining frontend action is only:
+App.allowedBranch
+
+Exact owner replacement is in Report315.
+
+Do not modify:
+- main.html
+- van-sales.html
+- loadRefs()
+- pickArr()
+- pickSearch()
+- pickSelect()
+- vehicleBranch()
+- norm()
+- routeHtml()
+- submit()
+- prepare()
+
+### Final closure state
+- Production Transfer Contract = CLOSED
+- Production Transfer E2E = VERIFIED
+- Backend authority = VERIFIED
+- Frontend source patch = OWNER ACTION REQUIRED
+- Published artifact = OPEN
+- Authenticated browser E2E = OPEN
+
+### Next session exact sequence
+1. Verify frontend HEAD and vouchers.html blob.
+2. Apply only App.allowedBranch replacement from Report315.
+3. Static parse.
+4. Publish.
+5. Verify served artifact identity.
+6. Run authenticated browser E2E for Transfer, DirectSale, DirectReturn, SupplierReturn.
+7. Verify Draft creation remains zero Physical Stock movements.
+8. Capture fresh Production snapshot in the same reporting window.
+9. Update closure status only after browser evidence.
+
+---
+
 # CURRENT STATE — AUTHORITATIVE FORENSIC CHECKPOINT — 2026-09-23
 ## Scope: Warehouse Vouchers → Smart Search → Branch Authorization Candidate Visibility
 ## Canonical report: doc/Draft/Reprots/Report314_WAREHOUSE_VOUCHERS_BRANCH_SMART_SEARCH_FORBIDDEN_SCOPE_FORENSIC_20260923.md
