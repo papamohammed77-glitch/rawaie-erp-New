@@ -1,3 +1,90 @@
+# LATEST AUTHORITATIVE CHECKPOINT — 2026-09-23 18:05 UTC
+
+## Current Truth
+CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE only. Historical reports are contextual and must be re-verified.
+
+## Current System Git
+- HEAD after Report321: `1e93304504056cb30809e165db78685b3c66e104`
+- Parent: `2659af01afcb4beae0414ce9741d49dd4ea853bd`
+- Latest report: `doc/Draft/Reprots/Report321_MOTHER_MAIN_LOGIN_SYNTAX_FORENSIC_CLOSURE_20260923.md`
+
+## Current Mother Frontend Truth
+- Repository: `papamohammed77-glitch/erp-frontend`
+- HEAD: `3eedbc60a940f8d4fffadb9d152bd362c3f8be04`
+- Parent: `9429006baa94eb92ffd5f215e2b085288681b94f`
+- Current `companies/company-1/main.html` blob: `6ea44f1a26ce6069855842dc9010a21acc726ad9`
+- No assistant write to `main.html`.
+
+## Main Syntax Incident — ROOT CAUSE PROVEN
+Commit `9429006baa94eb92ffd5f215e2b085288681b94f` removed exactly two declarations from Mother main:
+- `function openModal(code) {` inside `RW_Customers`.
+- `function openModal(code) {` inside `RW_Suppliers`.
+
+The following closing braces remained, so Node reports the downstream line:
+`6805: var _handleSave = function(c, isEdit) {`
+with:
+`SyntaxError: Unexpected token 'var'`.
+
+Current-source parse: FAIL before patch.
+In-memory two-line surgical patch: PASS.
+
+## Exact Owner Patch
+### RW_Customers
+Immediately before:
+`const c = code ? data.find(x => x.customer_code === code) : null;`
+restore:
+```javascript
+    function openModal(code) {
+        const c = code ? data.find(x => x.customer_code === code) : null;
+```
+
+### RW_Suppliers
+Immediately before:
+`const s = code ? data.find(x => x.supplier_code === code) : null;`
+restore:
+```javascript
+    function openModal(code) {
+        const s = code ? data.find(x => x.supplier_code === code) : null;
+```
+
+Do not replace either full function. Do not modify `_handleSave`.
+
+## CI Evidence
+GitHub Actions syntax gate for commit `9429006...`:
+- Run: `35876538098`
+- Job: `107233790170`
+- Structural audit: PASS.
+- Exact JavaScript syntax gate: FAIL.
+- Node error: `main-positioned.js:6805` → `Unexpected token 'var'`.
+
+The CI failure independently reproduces the user-reported browser Console error.
+
+## Non-Causes Proven
+- Tailwind CDN warning is a non-blocking production-build warning in app.html; not the syntax root cause.
+- Current Service Worker does not cache HTML; it network-backs navigation.
+- No Production Supabase/RPC change is required for this frontend syntax closure; none was applied.
+
+## Existing Work Not To Repeat
+- Report320 Branch/Fleet surgical work is already present in current Mother main and must not be reapplied.
+- Inventory core and physical writer closures remain closed unless CURRENT evidence proves new drift.
+
+## E2E Status
+- Static parse after the in-memory surgical fix: PASS.
+- Published artifact verification: OPEN.
+- Authenticated browser login/E2E: OPEN because no authenticated browser session/tool was available in this session.
+
+## Next Exact Resumption Point
+1. Verify Frontend HEAD `3eedbc...` and main blob `6ea44f...`.
+2. Search the exact Customer/Supplier anchor lines above.
+3. If both declarations are already present, do not modify them again.
+4. Run the existing `cto_main_html_forensic_20260912.yml` syntax gate.
+5. Publish.
+6. Verify served artifact identity against current Git.
+7. Run authenticated Mother login E2E and capture only the first new Console error.
+8. Update CURRENT_STATE again.
+
+---
+
 # LATEST AUTHORITATIVE CHECKPOINT — 2026-09-23 14:26 UTC
 
 ## Current Truth
