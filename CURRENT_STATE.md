@@ -307,3 +307,15 @@ CURRENT DATABASE
 CURRENT DEPLOYMENT EVIDENCE
 
 Reports are historical/contextual evidence only.
+
+
+## Final 2026-09-23 reconciliation after Report318
+- Latest system documentation HEAD: `cee3ed04c8520210c9c6a0e8b97e5fd8a67bbd2a`
+- Report318 final content commit: `cee3ed04c8520210c9c6a0e8b97e5fd8a67bbd2a`
+- Global Writer Discovery classified all current PostgreSQL/Edge candidates.
+- Physical Movement Writers outside `post_stock_movement`: **0**.
+- `reserve_stock` / `release_stock_reservation`: reservation-only, mutate `allocated_qty`, not physical movement.
+- `create_vehicle_atomic` / `setup_van_stock`: mobile-stock initialization only; create zero-quantity stock rows, no movement log.
+- Current Edge wrappers `complete-return`, `complete-order-delivery`, `receive-purchase`, `save-sales-invoice` are RPC wrappers; no direct stock table writes in Current Git.
+- Production currently has no QA business entities; technical operation tombstones remain by design.
+- Browser authenticated E2E remains OPEN until Owner applies Report318 to frontend, publishes, verifies served artifact, and runs login-based E2E.
