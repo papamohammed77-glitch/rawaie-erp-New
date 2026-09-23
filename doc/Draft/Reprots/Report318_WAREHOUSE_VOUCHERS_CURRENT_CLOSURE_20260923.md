@@ -2111,3 +2111,199 @@ Browser E2E: OPEN
 14. حدّث `CURRENT_STATE.md`.
 
 **لا تعلن 100% CLOSED قبل Browser E2E + Served Artifact verification.**
+
+
+---
+
+# 26) GLOBAL WRITER DISCOVERY — الحسم النهائي
+
+تم إجراء فحص PostgreSQL على جميع وظائف `public` التي تحتوي تعريفاتها على إشارات إلى:
+- `stock_branches`
+- `inventory_log`
+
+ثم تم تصنيف المرشحين من تعريف الدالة نفسها، وليس من اسمها.
+
+## Central Physical Movement Writers
+
+المثبتة كمسارات مركزية:
+- `post_stock_movement`
+- `post_manual_stock_voucher_atomic_core_20260828`
+- `send_stock_voucher_atomic_core_20260828`
+- `post_inventory_adjustment_atomic`
+- `inventory_count_engine`
+- `complete_runsheet_reopen_loading`
+
+جميعها تفوض الحركة الفيزيائية إلى:
+`post_stock_movement`
+
+## Reservation Engine — ليس Physical Movement
+
+### `reserve_stock`
+يعدل:
+`allocated_qty`
+فقط.
+
+لا يعدل:
+`qty`
+ولا يكتب `inventory_log`.
+
+### `release_stock_reservation`
+يعدل:
+`allocated_qty`
+فقط.
+
+إذن:
+Reservation ≠ Physical Stock Movement
+وهو متوافق مع العقد الحاكم.
+
+## Mobile Stock Initialization — ليس Movement
+
+### `create_vehicle_atomic`
+عند إنشاء سيارة مخزن متنقل:
+- ينشئ Vehicle.
+- ينشئ/يربط mobile branch.
+- ينشئ `stock_branches` rows بكمية صفر.
+- لا يسجل Movement.
+- لا يكتب `inventory_log`.
+
+إذن هو Master-data / initialization writer وليس Physical Movement Writer.
+
+### `setup_van_stock`
+ينشئ صفوف المخزون الأولية بكمية صفر فقط، ولا ينفذ حركة فعلية.
+
+## Edge Writer Discovery
+
+تم فحص Current Edge sources التالية:
+- `complete-return`
+- `complete-order-delivery`
+- `receive-purchase`
+- `save-sales-invoice`
+
+جميعها الآن thin capability wrappers وتستدعي RPCs.
+
+### complete-return
+يستدعي:
+`complete_sales_return_credit_note_atomic`
+
+### complete-order-delivery
+يستدعي:
+`complete_order_delivery_atomic`
+
+### receive-purchase
+يستدعي:
+`receive_purchase_atomic`
+
+### save-sales-invoice
+يستدعي:
+`save_sales_invoice_atomic`
+
+ولا تحتوي هذه الملفات في Current Git على:
+`.from('stock_branches')`
+أو
+`.from('inventory_log')`
+للكتابة المباشرة.
+
+كما أن RPCs:
+- `complete_sales_return_credit_note_atomic`
+- `complete_order_delivery_atomic`
+
+موجودة بالفعل في Production.
+
+### FINAL CLASSIFICATION
+
+Physical Movement Writers خارج `post_stock_movement`:
+`0`
+
+Reservation / initialization writers:
+موجودة ومقصودة ولا تمس Contract الحركة.
+
+هذا يحقق:
+`PHYSICAL STOCK MOVEMENT → post_stock_movement → stock_branches + inventory_log`
+
+دون دمج Reservation أو Master Data Initialization في Physical Movement Engine.
+
+---
+
+# 27) تصحيح معلومة مهمة من التقارير التاريخية
+
+Reports 314–317 كانت صحيحة بالنسبة إلى snapshots وقتها، لكنها لم تعد تمثل Production الحالية.
+
+الحالة الحالية بعد آخر تغييرات Production هي:
+- branches = 1
+- vehicles = 0
+- suppliers = 0
+- stock_vouchers = 0
+- inventory_log = 6
+- items = 16
+
+لذلك أي تقرير لاحق يجب ألا يعيد استخدام:
+- BR-2
+- QA Vehicles
+- QA Suppliers
+- QA Items
+- IN-28…IN-33
+
+كأنها بيانات تشغيلية حالية.
+
+---
+
+# 28) Current Production + Source + Deployment Alignment
+
+### Production
+- `create-stock-voucher` ACTIVE
+- existing UPDATE/DELETE capability موجودة.
+- لا Edge Function جديدة.
+
+### Git
+- System HEAD قبل تقرير 318: `ce6341d...`
+- تقرير 318: commit `db47da...`
+- CURRENT_STATE بعد التقرير: commit `4045ab...`
+
+### Frontend
+الملف الحالي ما زال:
+`vouchers.html` SHA `548f5b5d741aea4fce6035bd1b77168826c0ce7f`
+
+ولم يُكتب إليه.
+
+---
+
+# 29) Browser E2E — الحالة لا تزال OPEN
+
+لا يوجد Browser authenticated runtime تم من خلاله:
+- تسجيل الدخول الحقيقي.
+- فتح تطبيق الأذونات.
+- اختيار Transfer/DirectSale/DirectReturn.
+- تغيير branch/rep/vehicle.
+- تنفيذ Edit/Delete من الواجهة المنشورة.
+
+لذلك:
+Source-harness PASS ≠ Browser E2E PASS
+
+ولا يتم إعلان:
+GLOBAL INVENTORY CORE INTEGRITY = 100% CLOSED
+
+إلا بعد تطبيق Owner Patch + Publish + Browser E2E.
+
+---
+
+# 30) تعليمات الاستئناف — دقيقة
+
+لا تعيد:
+- loadRefs
+- allowedBranch
+- vehicleBranch
+- pickArr
+- prefetchStock
+- Mother main
+- Van Sales
+
+ابدأ فقط من:
+`PATCH 318-01` إلى `PATCH 318-08`
+
+ثم:
+Publish
+→ Served SHA verification
+→ Authenticated Browser E2E
+→ Production snapshot
+→ CURRENT_STATE update
+
