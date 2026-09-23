@@ -77,7 +77,8 @@ Production company المعتمد:
 | الفروع النشطة | 1,352 |
 | المركبات النشطة | 1,200 |
 | مندوبي البيع المباشر النشطين | 10,001 |
-| الموردين النشطين | 501 |
+| الموردون إجماليًا | 501 |
+| الموردون النشطون | 500 |
 
 هذه ليست أرقامًا افتراضية لاختبار scale؛ تم الاستعلام عنها من Production نفسها.
 
@@ -358,7 +359,7 @@ Production core الحالي يسمح لمسؤول الأذونات بإدارة
 - DirectSale vehicle search = PASS
 - DirectReturn vehicle search = PASS
 - Rep search على 10,001 سجل = PASS
-- Supplier search على 501 سجل = PASS
+- Supplier search على 500 Active سجل = PASS
 
 اختبار محلي deterministic harness:
 - Transfer Branch Search: PASS
@@ -376,7 +377,7 @@ Production core الحالي يسمح لمسؤول الأذونات بإدارة
 
 Production تثبت أن Branch `BR-01` لديه علاقة مع:
 
-501 Supplier
+501 Supplier (منها 500 نشط حاليًا؛ المورد `SUPP-1001` غير نشط منذ 2026-08-20)
 
 وهذا يعني أن `supplierBranchMap` الحالي ليس مجرد هيكل تجريبي.
 
