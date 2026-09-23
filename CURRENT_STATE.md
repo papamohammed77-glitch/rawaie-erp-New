@@ -1,3 +1,84 @@
+# LATEST AUTHORITATIVE CHECKPOINT — 2026-09-23 14:26 UTC
+
+## Current Truth
+CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE only.
+Historical reports remain contextual unless re-verified.
+
+## Latest System Git
+- HEAD: `eacedf557210a89b4d5a08d79d2e5c4ec76d7c93`
+- Parent: `51e67154d9f1fd65f6317ad22b9cdc47b2aff07e`
+- Report: `doc/Draft/Reprots/Report320_MOTHER_BRANCH_FLEET_SURGICAL_CLOSURE_20260923.md`
+- Canonical current Production source:
+  - `Current/Edge_Functions/save-branch`
+  - `Current/Edge_Functions/delete-branch`
+
+## Mother Frontend — Current Source
+- Repository: `papamohammed77-glitch/erp-frontend`
+- HEAD: `6d505d30dcad981932b3f3562ea9bb37901fecb4`
+- Parent: `c2ac6d33cb5c20ba6539f61cabde1b33866ecb46`
+- main.html SHA: `8c3d6b05fd6a94a6b488f12b29da85ae888f70bc`
+- No assistant write to `companies/company-1/main.html`.
+
+## Fresh Production Snapshot
+- active companies = 1
+- active branches = 3
+- active vehicles = 2
+- mobile-stock vehicles = 2
+- VAN-prefixed branches = 2
+- inventory_log = 6
+- audit_log = 2147
+- QA vehicles = 0
+- QA branches = 0
+- QA Fleet operations = 0
+
+## Branch Save Defect — CLOSED
+Proven root cause:
+- Production `save-branch` queried non-existent `public.users.is_owner`.
+- `public.users` has `auth_id`, `company_id`, `permissions`, `status`, etc., but no `is_owner`.
+- This caused the observed `سياق الشركة غير صالح` 400.
+
+Production:
+- `save-branch` v5 deployed.
+- `delete-branch` v4 deployed for the same invalid-column defect.
+- company/auth scoping preserved.
+- numeric BR code generation fixed to max actual numeric BR code; VAN codes excluded.
+- no new Edge Function created.
+
+## Branch Code
+Current business branch: `BR-01`.
+Current mobile contexts: 2 `VAN-` branches.
+Numeric generator test: BR-01 + BR-9 + BR-10 + VAN-* → `BR-11`.
+
+## Fleet
+- `fleet_command_atomic` contains `VEHICLE_UPDATE`.
+- Production transaction E2E passed for model, plate, weight, dimensions, volume recomputation, condition, route, efficiency, ownership; transaction rolled back.
+- Current Mother already renders `expected_km_per_liter`, `operational_condition`, `route_capability`; do not reopen these closed cells.
+- Current Mother missing only the edit consumer/onclick/export required by Report320.
+- Vehicle mobile branch remains a context/container, not a second Branch Master or inventory engine; custody remains with the operational representative/driver according to the existing DirectSale contract.
+
+## Owner Surgical Patch — Report320
+Target: `erp-frontend/companies/company-1/main.html`
+- PATCH-320-BR-01..03: numeric code preview + mobile vehicle semantic badge.
+- PATCH-320-FL-01..03: edit onclick + `openVehicleEdit(id)` + API export.
+- Do not replace main.html.
+- Do not replace the Fleet module.
+- Do not modify already-correct efficiency/condition/route table cells.
+
+## Browser E2E
+OPEN.
+Required final gate: owner patch → full Mother JS parse → publish → served artifact SHA verification → authenticated Branch/Fleet E2E → fresh Production snapshot.
+
+## Exact Next Resumption Point
+1. Read Report320.
+2. Verify Mother HEAD `6d505d30dcad981932b3f3562ea9bb37901fecb4` and main blob `8c3d6b05fd6a94a6b488f12b29da85ae888f70bc`.
+3. Apply only PATCH-320-BR-01..03 and PATCH-320-FL-01..03.
+4. Parse, publish, verify served artifact.
+5. Run authenticated E2E.
+6. Capture fresh Production snapshot.
+7. Update CURRENT_STATE.
+
+---
+
 # LATEST AUTHORITATIVE CHECKPOINT — 2026-09-23 13:50 UTC
 
 ## Current Truth
