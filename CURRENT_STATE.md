@@ -1,3 +1,148 @@
+# CURRENT EXECUTION CHECKPOINT — 2026-09-23
+
+## Source of Truth
+CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE only.
+Reports are historical guidance and must not be treated as current state without re-verification.
+
+## Latest Git
+System repo:
+- HEAD before this checkpoint: `ce6341dc31effb79bd8e065d2c91e3eec75363b9`
+- Parent: `6a0b744a6630d3358d9f23cf787f417258e6b2fd`
+- Latest documentation commit created in this session: `db47da584a16a76baa5b20c51216941da8acadfd`
+- Report: `doc/Draft/Reprots/Report318_WAREHOUSE_VOUCHERS_CURRENT_CLOSURE_20260923.md`
+
+Frontend repo:
+- HEAD: `c2ac6d33cb5c20ba6539f61cabde1b33866ecb46`
+- Parent: `5cf09bac46aa65fa1e94ba34dfbdc3760cd446e2`
+- Current vouchers.html SHA: `1bbca38299ff093798badaaafda6a2b986583527`
+- Mother main.html SHA: `8c3d6b05fd6a94a6b488f12b29da85ae888f70bc`
+- van-sales.html SHA: `8d61382a8e0025a0d079e71dd94f33d106d9088e`
+
+## Forbidden Source Changes
+No assistant write was made to:
+- `companies/company-1/main.html`
+- `companies/company-1/warehouse/vouchers.html`
+- `companies/company-1/sales/van-sales.html`
+
+The owner must manually apply Report318 surgical patches to vouchers.html only.
+
+## Current Production Snapshot
+Captured: 2026-09-23 12:08:24+00
+- companies = 1
+- branches = 1
+- vehicles = 0
+- suppliers = 0
+- direct reps = 1
+- warehouse users with active_warehouse_role=أذونات = 1
+- stock_vouchers = 0
+- stock_voucher_details = 0
+- items = 16
+- stock_branches = 16
+- inventory_log = 6
+- QA items = 0
+- QA branches = 0
+- QA vehicles = 0
+- QA suppliers = 0
+- stock_voucher_operations technical tombstones = 10
+
+Current business branch:
+- BR-01 only.
+Vehicles and suppliers are currently empty by design after QA cleanup; new real entities must originate from Mother ERP.
+
+## Data Cleanup Completed
+Deleted after proving no operational references:
+- BR-2 test branch
+- ITM-1057
+- ITM-1058
+- ITM-1059
+- ITM-1060
+- their QA stock rows
+- three QA opening-balance inventory_log records
+
+Historical operational inventory logs were preserved.
+
+Technical operation tombstones were preserved because the Production integrity trigger forbids deleting operation identities.
+
+## Backend Capability Verified in Production
+Existing endpoint only; no new Edge Function created.
+- create-stock-voucher
+- update_manual_stock_voucher_atomic
+- delete_manual_stock_voucher_atomic
+- send_stock_voucher_atomic
+- post_manual_stock_voucher_atomic
+- post_stock_movement
+
+Production RPC E2E verified:
+CREATE → UPDATE → REPLAY → CONFLICT rejection → DELETE
+
+## Current Verified Source Defects
+1. `App.pickSearch(key,q)` contains `z.split(/s+/)`; must be `z.split(/\s+/)`.
+2. `App.subscribeRealtime()` uses a large `branch_id=in(...)` stock_branches filter; should be source-branch scoped.
+3. Draft cards expose Cancel but not Edit/Delete.
+4. Edit mode requires explicit state reset in `choose` / `back`.
+5. Edit UI and submit path are absent even though backend UPDATE/DELETE capabilities already exist.
+
+## Already-Closed Source Areas
+Do NOT reopen without new evidence:
+- `App.loadRefs()` pagination/company scope
+- `App.allowedBranch()`
+- `App.vehicleBranch()`
+- `App.pickArr()`
+- `App.pickSelect()`
+- `App.prefetchStock()`
+- `App.routeHtml()`
+- `App.renderWorkspace()`
+- Mother ERP main.html
+- Van Sales integration
+
+Transfer contract:
+warehouse user + activeWarehouseRole=أذونات + same company → all active company branches.
+Backend remains final authorization guard.
+
+## Report318 Owner Patch Set
+Apply ONLY the eight surgical patch groups documented in Report318:
+- App.pickSearch
+- App.subscribeRealtime
+- App.updateSource
+- App.choose
+- Draft action block inside App.cards
+- App.editVoucher + App.deleteVoucher
+- App.submit
+- App.back
+
+Temporary in-memory composition of the current HTML with all Report318 patches compiled successfully.
+
+## Test Evidence
+Exact Current Source harness:
+- Before patch: multi-token vehicle query `QA VCH` failed.
+- Before patch: multi-token branch query `BR 01` failed.
+- After patch: both passed.
+- Arabic vehicle plate search passed before/after.
+- Representative search passed before/after.
+- Supplier search passed before/after.
+
+Temporary QA vehicle/supplier/branches were created for search testing and then deleted.
+No QA business entities remain.
+
+## Browser E2E Status
+OPEN.
+Reason: no authenticated browser session/tool was available to verify the served frontend interactively.
+Do not convert RPC/source-harness PASS into Browser E2E PASS.
+Do not claim 100% closure until:
+- owner patches are applied,
+- frontend is committed/published,
+- served artifact is verified against Git,
+- authenticated Browser E2E passes.
+
+## Next Exact Resumption Point
+Read Report318 first.
+Then read the current vouchers.html SHA above.
+Apply only Report318 surgical owner patches.
+Do not touch main.html or van-sales.html.
+Then perform static parse → publish → served artifact verification → authenticated E2E → fresh Production snapshot → update CURRENT_STATE again.
+
+---
+
 # RAWAEA ERP — CURRENT STATE
 ## Authoritative Forensic Checkpoint — 2026-09-23
 ## Current checkpoint: VCH-CURRENT-SOURCE-SCALE-20260923
