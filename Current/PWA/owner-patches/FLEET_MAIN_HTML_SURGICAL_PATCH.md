@@ -287,3 +287,45 @@ openVehicleDetail: openVehicleDetail,
 
 ### Final browser gate
 Owner applies Report320 → parse → publish → served SHA → authenticated E2E → fresh Production snapshot.
+
+
+## Patch 8 — Mother Branch + Fleet UI completion — 2026-09-23
+
+### Current Mother checkpoint
+- HEAD: `6d505d30dcad981932b3f3562ea9bb37901fecb4`
+- Parent: `c2ac6d33cb5c20ba6539f61cabde1b33866ecb46`
+- main.html blob: `8c3d6b05fd6a94a6b488f12b29da85ae888f70bc`
+- Do not replace `main.html`.
+- Do not replace the Fleet module.
+
+### Branch surgical patch
+Report320:
+- PATCH-320-BR-01: insert `nextBranchCodePreview()` immediately before `function openModal(code) {`.
+- PATCH-320-BR-02: replace the exact branch-code input using `'جديد'` with `nextBranchCodePreview()`.
+- PATCH-320-BR-03: replace only the exact branch name cell and add the mobile vehicle semantic badge for `VAN-` contexts.
+
+### Fleet surgical patch
+Report320:
+- PATCH-320-FL-01: add Edit onclick button to the existing vehicle cell in `loadVehicles`; keep the row onclick to details.
+- PATCH-320-FL-02: insert complete `openVehicleEdit(id)` immediately before `async function openVehicleForm(){`.
+- PATCH-320-FL-03: export `openVehicleEdit` immediately after `openVehicleDetail`.
+
+### Do not modify
+- `expected_km_per_liter` table cell
+- `operational_condition` table cell
+- `route_capability` table cell
+- `fleet_query`
+- `fleet_command_atomic`
+- inventory movement engine
+- mobile-stock engine
+- runsheet/picking/loading/delivery/returns/settlement
+
+### Production status
+- save-branch v5 ACTIVE
+- delete-branch v4 ACTIVE
+- VEHICLE_UPDATE Production transaction E2E PASS / rolled back
+- QA vehicles/branches/fleet operations = 0
+- No new Edge Function.
+
+### Browser gate
+Owner Patch → parse → publish → served SHA → authenticated Branch Add/Edit + Fleet Edit E2E → fresh Production snapshot.
