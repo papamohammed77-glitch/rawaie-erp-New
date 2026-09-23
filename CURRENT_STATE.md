@@ -9,8 +9,9 @@ Execution log:
 doc/Draft/Reprots/EXECUTION_LOG_20260923_VOUCHERS_CURRENT_SOURCE_SCALE.md
 
 ### System Git
-- Current checkpoint commit before this state update: 3266d529f9715a97d336b69868e210c2f003a9d6
-- Prior system HEAD: 820a4f314959a743d24ca9f497089b4b0a3058a7
+- Current state commit: 365e5919c6fac6fc4304c7640c4a66941f1b1293
+- Parent of current state commit: 3266d529f9715a97d336b69868e210c2f003a9d6
+- Prior system HEAD before Report317: 820a4f314959a743d24ca9f497089b4b0a3058a7
 - Prior parent: 2f676b5a7d4af08fbeb978b3d1b8a59ea8acd969
 - Report317 commit: 257ee8c3ec4dfada2102f62c90f5f8eb3f6da847
 - Execution log commit: 3266d529f9715a97d336b69868e210c2f003a9d6
@@ -30,7 +31,6 @@ doc/Draft/Reprots/EXECUTION_LOG_20260923_VOUCHERS_CURRENT_SOURCE_SCALE.md
 
 ### Production snapshot
 UTC: 2026-09-23 10:23:36.322334
-
 - companies=1
 - branches=1354
 - active_branches=1352
@@ -45,15 +45,14 @@ UTC: 2026-09-23 10:23:36.322334
 - active_drafts=0
 
 ### Current forensic findings
-1. vouchers.html App.prefetchStock is the real cause of the reported stock sync 400:
-   it sends all 1352 branch UUIDs in branch_id=in.(...), measured filter size 50038 chars.
-2. vouchers.html App.updateSource does not reload stock after Source Branch / Vehicle changes.
-3. vouchers.html App.subscribeRealtime builds the same all-branch giant filter for stock_branches.
-4. vouchers.html App.pickArr performs repeated vehicle->branch and vehicle->rep scans; current scale makes this unnecessarily expensive.
+1. App.prefetchStock sends all 1352 branch UUIDs in branch_id=in.(...), measured filter size 50038 chars; this is the proven cause of the reported stock sync 400.
+2. App.updateSource does not refresh stock after Source Branch / Vehicle changes.
+3. App.subscribeRealtime repeats the all-branch giant filter for stock_branches.
+4. App.pickArr performs repeated vehicle->branch and vehicle->rep scans at current scale.
 5. Transfer scope is already correct: warehouse vouchers role can search/select all active same-company branches.
-6. DirectReturn currently has 1200 valid mobile vehicle candidates for the warehouse vouchers operator.
-7. DirectSale BR-01 currently has 1 eligible candidate under the existing backend rep/source-branch contract; do not weaken that contract in the UI.
-8. Current smart search fields are present in Git; published behavior is not yet proven.
+6. DirectReturn has 1200 valid mobile vehicle candidates for the warehouse vouchers operator.
+7. DirectSale BR-01 has 1 eligible candidate under the existing backend rep/source-branch contract; do not weaken that contract in the UI.
+8. Smart-search fields are present in current Git; published behavior is not yet proven.
 
 ### Closed and must not be repeated
 - Physical stock central engine
@@ -112,15 +111,15 @@ Do not modify:
 - prepare()
 
 ### Deployment state
-- GitHub Actions: no workflow runs/status checks associated with frontend HEAD 5cf09bac46aa65fa1e94ba34dfbdc3760cd446e2.
+- GitHub Actions: no workflow runs/status checks associated with frontend HEAD.
 - Public Pages artifact could not be fetched from available network tools.
 - Published artifact identity: OPEN / UNVERIFIED.
 - Authenticated browser E2E: OPEN / UNVERIFIED.
 
 ### Console state
 - Stock sync 400: ROOT CAUSE PROVEN; owner patch ready.
-- SW auto-reload warning: infrastructure issue OPEN; not altered because published artifact cannot be verified and it is outside the protected voucher-only source patch.
-- Tailwind CDN warning: non-blocking infrastructure debt in app.html; not altered in this cycle.
+- SW auto-reload warning: infrastructure issue OPEN.
+- Tailwind CDN warning: non-blocking infrastructure debt in app.html.
 
 ### Closure status
 - Production backend voucher lifecycle: CLOSED / VERIFIED
@@ -138,7 +137,7 @@ Do not modify:
 2. Verify vouchers.html blob fe0cbf6a6bbacc7086ea4fd8e9e78339e94820a8.
 3. Apply PATCH-317-01 through PATCH-317-06 only.
 4. Parse vouchers.html.
-5. Confirm stock query is scoped to one source branch.
+5. Confirm stock query is source-branch scoped.
 6. Confirm no giant all-branch Realtime filter.
 7. Confirm vehicle search resolves branch and rep identity through cached indexes.
 8. Publish.
