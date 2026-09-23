@@ -1,3 +1,147 @@
+# LATEST AUTHORITATIVE CHECKPOINT — 2026-09-23 18:30 UTC
+
+## Current Truth
+CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE only.
+Historical reports are contextual evidence only.
+
+## Latest System Git
+- Report323 commit: `1b4744eb345c652dec9745b141e704be69c0d04e`
+- Purchase invoice canonical migration commit: `69934930fe1ecb5c3e9f0edf68db27d316aa78da`
+- Current source sync commit for `Current/Edge_Functions/save-purchase-order`: `6050c4fff806142f81504affbbf87207090ce281`
+
+## Current Mother Frontend
+- Repository: `papamohammed77-glitch/erp-frontend`
+- Current HEAD: `8a12be7d7faf3294131e7b51de810d6e040a8faf`
+- Direct parent: `2a8ce1d41e0af948bbec99ef947a3aaa492b13a5`
+- Current `companies/company-1/main.html` blob: `71aec095f7c20a92b8f19b4cbc3e7bc237941ef1`
+- No assistant write to `main.html`.
+
+### Mother Purchase Target
+Current `RW_PurchaseGold.createInvoice()`:
+- invoice modal at approximately lines 13032–13282
+- supplier field is a plain `select`
+- item code is exact text input + exact lookup
+- `supplier_invoice_no` is collected then deleted before API call
+
+### Owner Patch
+Canonical surgical owner patch is Report323:
+`doc/Draft/Reprots/Report323_MOTHER_PURCHASE_INVOICE_SMART_SEARCH_FORENSIC_SURGICAL_CLOSURE_20260923.md`
+
+Apply only:
+- PATCH-323-00
+- PATCH-323-01
+- PATCH-323-02
+- PATCH-323-03
+- PATCH-323-04
+- PATCH-323-05
+- PATCH-323-06
+- PATCH-323-07
+
+Do not replace the whole `main.html`.
+Do not modify already-closed purchase backend contracts.
+
+## Current Production Purchase
+- `save-purchase-order`: Version 7, ACTIVE, verify_jwt=true.
+- CREATE_INVOICE now calls `purchase_create_invoice_atomic_v2`.
+- `purchase_create_invoice_atomic_v2` persists `supplier_invoice_no` and `notes` by calling the existing `purchase_create_invoice_atomic` and updating the newly created Draft invoice atomically.
+- No new Edge Function was created.
+
+## Production Database Snapshot
+At current verification:
+- active suppliers = 0
+- active items = 16
+- active branches = 4
+- purchase_orders = 0
+- purchase_invoices = 0
+- purchase_invoice_details = 0
+- supplier_ledger rows = 0
+- Purchase journal entries = 0
+- inventory_log rows = 6
+- purchase_settings rows = 0
+
+No permanent QA purchase entities remain.
+
+## Production E2E — Purchase Invoice
+### Core
+CREATE → POST → Physical Stock → inventory_log → Supplier Ledger → Journal Entry → invoice detail received_qty → ROLLBACK = PASS
+
+### Idempotency
+CREATE same operation_id → duplicate=true = PASS
+POST same invoice twice → duplicate=true = PASS
+Physical movement count remained 1.
+Supplier ledger count remained 1.
+
+### v2 Reference Extension
+CREATE with supplier_invoice_no → persisted = PASS
+Replay same operation_id → duplicate=true = PASS
+POST → stock delta = PASS
+inventory_log = PASS
+supplier_ledger = PASS
+journal entry = PASS
+ROLLBACK = PASS
+
+## Smart Search Verification
+Transactional SQL predicates for:
+- supplier name/code/phone/search_label
+- item code/name/barcode/search_label
+
+= PASS
+
+No QA suppliers remained after ROLLBACK.
+
+## Production / Git Alignment
+- Production `save-purchase-order` Version 7 source was copied into canonical `rawaie-erp-New/Current/Edge_Functions/save-purchase-order`.
+- Canonical migration file:
+  `supabase/migrations/20260923_purchase_invoice_reference_extension.sql`
+
+## Browser State
+OPEN:
+- owner patch application
+- full main.html parse after patch
+- frontend commit/publish
+- served artifact identity
+- authenticated Browser E2E
+- fresh Network/Console evidence
+
+Do not convert DB/RPC E2E into Browser E2E.
+
+## Competitive Contract Findings
+Reference patterns verified from Odoo / Dynamics 365 / SAP:
+- supplier/vendor lookup
+- invoice reference from supplier
+- PO source relationship
+- item line lookup
+- quantities, prices, discounts/taxes
+- invoice verification/matching
+- posting creates financial effects
+- supplier payable/ledger impact
+- receipt/inventory relationship
+
+RAWAEA already contains the required backend relational model and posting engine. The remaining Mother gap is UX/search execution and fresh browser proof, not new purchase infrastructure.
+
+## Exact Next Resumption Point
+1. Re-read Report323.
+2. Verify Mother HEAD `8a12be7...` and main blob `71aec095...`.
+3. Apply only PATCH-323-00..07 to `companies/company-1/main.html`.
+4. Full script parse.
+5. Commit/publish.
+6. Verify served artifact identity.
+7. Fresh login.
+8. Purchase Cycle → Purchase Invoices.
+9. Supplier smart search.
+10. Item smart search.
+11. Create invoice.
+12. Check supplier invoice reference persistence.
+13. Post invoice.
+14. Verify Network + Console.
+15. Verify DB rows and stock/accounting effects.
+16. Verify Realtime refresh.
+17. Capture fresh Production snapshot.
+18. Update CURRENT_STATE again.
+19. Do not reopen closed purchase backend work without contradictory current evidence.
+
+---
+
 # LATEST AUTHORITATIVE CHECKPOINT — 2026-09-23 18:45 UTC
 
 ## Current Truth
