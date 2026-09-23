@@ -1,17 +1,36 @@
 # RAWAEA ERP — CURRENT STATE
 ## Authoritative Forensic Checkpoint — 2026-09-23
+## Current checkpoint: VCH-CURRENT-SOURCE-SCALE-20260923
 
-Canonical report: doc/Draft/Reprots/Report316_WAREHOUSE_VOUCHERS_FORENSIC_SURGICAL_CLOSURE_20260923.md
+Canonical report:
+doc/Draft/Reprots/Report317_WAREHOUSE_VOUCHERS_CURRENT_SOURCE_FORENSIC_SCALE_20260923.md
 
-### Git
-- System HEAD before this state update: 2f676b5a7d4af08fbeb978b3d1b8a59ea8acd969
-- Parent: 165adb8304a5d39d8747a347211ae0939b189af1
-- Frontend HEAD: 2da3d6d9ae6b3e84ea0920998ecdefa94ed4d8e3
-- Frontend parent: 751f6175675ffe99023337e523501bd35e9553c6
-- vouchers.html blob: 62cbca833be1a6b4885d6522ca15cdd8b7b2e04c
-- van-sales.html blob: 8d61382a8e0025a0d079e71dd94f33d106d9088e
+Execution log:
+doc/Draft/Reprots/EXECUTION_LOG_20260923_VOUCHERS_CURRENT_SOURCE_SCALE.md
 
-### Production final snapshot
+### System Git
+- Current checkpoint commit before this state update: 3266d529f9715a97d336b69868e210c2f003a9d6
+- Prior system HEAD: 820a4f314959a743d24ca9f497089b4b0a3058a7
+- Prior parent: 2f676b5a7d4af08fbeb978b3d1b8a59ea8acd969
+- Report317 commit: 257ee8c3ec4dfada2102f62c90f5f8eb3f6da847
+- Execution log commit: 3266d529f9715a97d336b69868e210c2f003a9d6
+
+### Frontend Git
+- Current HEAD: 5cf09bac46aa65fa1e94ba34dfbdc3760cd446e2
+- Parent: 2da3d6d9ae6b3e84ea0920998ecdefa94ed4d8e3
+- Parent of parent: 751f6175675ffe99023337e523501bd35e9553c6
+- Current vouchers.html blob: fe0cbf6a6bbacc7086ea4fd8e9e78339e94820a8
+- Current van-sales.html blob: 8d61382a8e0025a0d079e71dd94f33d106d9088e
+- Current main.html blob: 8c3d6b05fd6a94a6b488f12b29da85ae888f70bc
+
+### Files explicitly protected in this cycle
+- main.html — untouched
+- vouchers.html — untouched by assistant
+- van-sales.html — untouched
+
+### Production snapshot
+UTC: 2026-09-23 10:23:36.322334
+
 - companies=1
 - branches=1354
 - active_branches=1352
@@ -23,92 +42,124 @@ Canonical report: doc/Draft/Reprots/Report316_WAREHOUSE_VOUCHERS_FORENSIC_SURGIC
 - stock_vouchers=42
 - inventory_log=45
 - audit_log=3950
-- active_legacy_qa_drafts=0
+- active_drafts=0
 
-### Persistent QA
-IN-38 Transfer Completed
-IN-39 DirectSale Completed
-IN-40 DirectReturn Completed
-IN-41 SupplierReturn Completed
-IN-42 Transfer Reverse Completed
+### Current forensic findings
+1. vouchers.html App.prefetchStock is the real cause of the reported stock sync 400:
+   it sends all 1352 branch UUIDs in branch_id=in.(...), measured filter size 50038 chars.
+2. vouchers.html App.updateSource does not reload stock after Source Branch / Vehicle changes.
+3. vouchers.html App.subscribeRealtime builds the same all-branch giant filter for stock_branches.
+4. vouchers.html App.pickArr performs repeated vehicle->branch and vehicle->rep scans; current scale makes this unnecessarily expensive.
+5. Transfer scope is already correct: warehouse vouchers role can search/select all active same-company branches.
+6. DirectReturn currently has 1200 valid mobile vehicle candidates for the warehouse vouchers operator.
+7. DirectSale BR-01 currently has 1 eligible candidate under the existing backend rep/source-branch contract; do not weaken that contract in the UI.
+8. Current smart search fields are present in Git; published behavior is not yet proven.
 
-### Production E2E
-- Transfer Create -> Send -> Receive -> Complete PASS
-- Transfer reverse PASS
-- DirectSale Create -> Send -> Complete PASS
-- DirectReturn Create -> Send -> Receive -> Complete PASS
-- DirectReturn same operation_id replay returned duplicate=true with no second movement PASS
-- SupplierReturn Create -> Send -> Complete plus journal and supplier ledger PASS
+### Closed and must not be repeated
+- Physical stock central engine
+- post_stock_movement routing
+- reserve/release reservation contract
+- Transfer backend authorization
+- allowedBranch Transfer exception
+- pickSelect vehicle->rep binding
+- loadRefs pagination contract
+- van-sales central invoice integration
+- DirectReturn backend capability
+- old QA draft cleanup
+- prior Transfer E2E
+- prior backend DirectSale/DirectReturn/SupplierReturn E2E
 
-### Safe cleanup
-18 old pre-IN-32 QA/DEMO Draft records with zero inventory movement were moved to Cancelled.
-Physical DELETE was not bypassed because guard_stock_voucher_delete_integrity() forbids deletion of stock documents.
-Historical movement-bearing records remain.
+### Production E2E in this cycle
+Transient IN-43:
+- CREATE PASS
+- SEND PASS
+- RECEIVE PASS
+- RECEIVE replay with same operation_id: duplicate=true PASS
+- COMPLETE PASS
+- movement_logs=2
+- allocated_qty=0
+- ROLLBACK PASS
+No IN-43 residue remains.
 
-### Closed surfaces — do not repeat
-loadRefs pagination
-norm
-vehicleBranch
-allowedBranch Transfer authorization
-pickSelect vehicle -> rep auto-binding
-central Physical Stock routing
-DirectReturn SEND backend capability
-van-sales integration path
+### Data cleanup
+Active Draft Vouchers = 0.
+Movement-bearing historical QA records are preserved because the delete guard protects stock-document history; no Integrity Guard bypass was used.
 
-### Current source defects
-File: companies/company-1/warehouse/vouchers.html
-App.pickArr(key), around line 1811:
-- DirectSale vehicle picker requires Rep first.
-- DirectReturn warehouse vehicle candidates are over-filtered.
-- non-Transfer source branch candidates are too broad.
-- Transfer includes inactive branches.
+### Owner change package
+Target:
+companies/company-1/warehouse/vouchers.html
 
-App.pickSearch(key,q), around line 1905:
-- unauthorized branch rows can occupy the first 15 results before filtering.
+Current SHA:
+fe0cbf6a6bbacc7086ea4fd8e9e78339e94820a8
 
-### Owner patch
-Apply only PATCH-316-01 and PATCH-316-02 from Report316 to companies/company-1/warehouse/vouchers.html.
+Apply only the exact replacements in Report317:
+- PATCH-317-01 App.prefetchStock
+- PATCH-317-02 App.updateSource
+- PATCH-317-03 App.debouncedRefreshStock
+- PATCH-317-04 App.vehicleBranch
+- PATCH-317-05 App.pickArr
+- PATCH-317-06 App.pickSearch
 
 Do not modify:
-main.html
-van-sales.html
-loadRefs()
-norm()
-vehicleBranch()
-allowedBranch()
-pickSelect()
-routeHtml()
-submit()
-prepare()
+- main.html
+- van-sales.html
+- allowedBranch()
+- pickSelect()
+- loadRefs()
+- norm()
+- routeHtml()
+- submit()
+- prepare()
 
-### Backend
-No new Edge Function.
-No new RPC.
-No new table.
-No RLS change.
-No Physical Stock engine change.
-Only safe QA cleanup and E2E data execution occurred in this session.
+### Deployment state
+- GitHub Actions: no workflow runs/status checks associated with frontend HEAD 5cf09bac46aa65fa1e94ba34dfbdc3760cd446e2.
+- Public Pages artifact could not be fetched from available network tools.
+- Published artifact identity: OPEN / UNVERIFIED.
+- Authenticated browser E2E: OPEN / UNVERIFIED.
 
-### Closure
-Production backend voucher lifecycle = CLOSED / E2E VERIFIED
-Production QA cleanup = CLOSED
-Frontend forensic root cause = PROVEN
-Frontend surgical patch = READY FOR OWNER
-Published artifact identity = OPEN
-Authenticated browser E2E = OPEN
+### Console state
+- Stock sync 400: ROOT CAUSE PROVEN; owner patch ready.
+- SW auto-reload warning: infrastructure issue OPEN; not altered because published artifact cannot be verified and it is outside the protected voucher-only source patch.
+- Tailwind CDN warning: non-blocking infrastructure debt in app.html; not altered in this cycle.
 
-### Next session exact sequence
-1. Verify frontend HEAD and vouchers.html blob.
-2. Apply PATCH-316-01 and PATCH-316-02 only.
-3. Static parse.
-4. Verify candidate counts on current Production scale.
-5. Publish frontend.
-6. Verify served artifact identity.
-7. Run authenticated browser E2E for Transfer, DirectSale, DirectReturn, SupplierReturn.
-8. Verify Draft creation has zero Physical Stock movements.
-9. Capture fresh Production snapshot in the same reporting window.
-10. Close browser/published-artifact status only after those proofs.
+### Closure status
+- Production backend voucher lifecycle: CLOSED / VERIFIED
+- Physical Stock Core: CLOSED
+- Transfer authorization: CLOSED
+- QA cleanup: CLOSED
+- Current frontend root cause: PROVEN
+- Owner source patch: READY
+- Published artifact: OPEN
+- Browser E2E: OPEN
+- Overall Vouchers target: PARTIALLY CLOSED
 
-### Governance
-Reports are historical clues only.
-Current truth is CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+### Next exact resumption point
+1. Verify frontend HEAD 5cf09bac46aa65fa1e94ba34dfbdc3760cd446e2.
+2. Verify vouchers.html blob fe0cbf6a6bbacc7086ea4fd8e9e78339e94820a8.
+3. Apply PATCH-317-01 through PATCH-317-06 only.
+4. Parse vouchers.html.
+5. Confirm stock query is scoped to one source branch.
+6. Confirm no giant all-branch Realtime filter.
+7. Confirm vehicle search resolves branch and rep identity through cached indexes.
+8. Publish.
+9. Verify served artifact identity.
+10. Run authenticated E2E Transfer / DirectSale / DirectReturn / SupplierReturn.
+11. Verify Draft => zero Physical Stock movement.
+12. Verify receive replay => zero second movement.
+13. Capture fresh Production snapshot.
+14. Update CURRENT_STATE.
+15. Close only what is proven.
+
+### Continuity rule
+Current truth is:
+CURRENT GIT
++
+CURRENT SOURCE
++
+CURRENT PRODUCTION
++
+CURRENT DATABASE
++
+CURRENT DEPLOYMENT EVIDENCE
+
+Reports are historical/contextual evidence only.
