@@ -1,0 +1,59 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+
+const db=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+const corsHeaders={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"}
+
+async function actor(req:Request){
+  const h=req.headers.get("Authorization")
+  if(!h) throw Error("غير مصرح")
+  const {data:{user},error}=await db.auth.getUser(h.replace("Bearer ",""))
+  if(error||!user) throw Error("جلسة غير صالحة")
+  const {data:u,error:ue}=await db.from("users").select("id,company_id,status,permissions").eq("auth_id",user.id).maybeSingle()
+  if(ue||!u||u.status==="Inactive") throw Error("سياق الشركة غير صالح")
+  const p=Array.isArray(u.permissions)?u.permissions:[]
+  if(!p.includes("*")&&!p.includes("branches")) throw Error("لا تملك صلاحية تنفيذ هذه العملية")
+  return u.company_id
+}
+
+serve(async(req)=>{
+  if(req.method==="OPTIONS") return new Response("ok",{headers:corsHeaders})
+  try{
+    const body=await req.json().catch(()=>({}))
+    const {branch,isEdit,branch_code}=body
+    if(!branch?.name) throw Error("اسم الفرع مطلوب")
+    const companyId=await actor(req)
+    const data={
+      name:String(branch.name).trim(),
+      location:branch.location||null,
+      manager:branch.manager||null,
+      phone:branch.phone||null,
+      is_active:branch.is_active!==undefined?!!branch.is_active:true,
+      company_id:companyId
+    }
+    if(isEdit&&branch_code){
+      const {data:existing,error:ee}=await db.from("branches").select("id,is_active").eq("company_id",companyId).eq("branch_code",branch_code).maybeSingle()
+      if(ee) throw ee
+      if(!existing) throw Error("الفرع غير موجود")
+      const {error}=await db.from("branches").update(data).eq("id",existing.id).eq("company_id",companyId)
+      if(error) throw error
+      return new Response(JSON.stringify({success:true,action:"updated",branch_code}),{headers:{...corsHeaders,"Content-Type":"application/json"}})
+    }
+    const {data:branchRows,error:be}=await db.from("branches").select("branch_code").eq("company_id",companyId)
+    if(be) throw be
+    let maxNumber=0
+    for(const row of branchRows||[]){
+      const m=String(row?.branch_code||"").trim().match(/^BR-(\d+)$/i)
+      if(!m) continue
+      const n=parseInt(m[1],10)
+      if(Number.isFinite(n)) maxNumber=Math.max(maxNumber,n)
+    }
+    const code="BR-"+(maxNumber+1)
+    data.branch_code=code
+    const {error}=await db.from("branches").insert(data)
+    if(error) throw error
+    return new Response(JSON.stringify({success:true,branch_code:code,action:"created"}),{headers:{...corsHeaders,"Content-Type":"application/json"}})
+  }catch(e:any){
+    return new Response(JSON.stringify({success:false,error:e?.message||"فشل الحفظ"}),{status:400,headers:{...corsHeaders,"Content-Type":"application/json"}})
+  }
+})
