@@ -1,0 +1,38 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+
+const db=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
+const corsHeaders={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"}
+
+async function actor(req:Request){
+  const h=req.headers.get("Authorization")
+  if(!h) throw Error("غير مصرح")
+  const {data:{user},error}=await db.auth.getUser(h.replace("Bearer ",""))
+  if(error||!user) throw Error("جلسة غير صالحة")
+  const {data:u,error:ue}=await db.from("users").select("id,company_id,status,permissions").eq("auth_id",user.id).maybeSingle()
+  if(ue||!u||u.status==="Inactive") throw Error("سياق الشركة غير صالح")
+  const p=Array.isArray(u.permissions)?u.permissions:[]
+  if(!p.includes("*")&&!p.includes("branches")) throw Error("لا تملك صلاحية تنفيذ هذه العملية")
+  return u.company_id
+}
+
+serve(async(req)=>{
+  if(req.method==="OPTIONS") return new Response("ok",{headers:corsHeaders})
+  try{
+    const body=await req.json().catch(()=>({}))
+    const branchCode=String(body?.branch_code||"").trim()
+    if(!branchCode) throw Error("كود الفرع مطلوب")
+    const companyId=await actor(req)
+    const {data:b,error}=await db.from("branches").select("id,is_active").eq("company_id",companyId).eq("branch_code",branchCode).maybeSingle()
+    if(error) throw error
+    if(!b) throw Error("الفرع غير موجود")
+    const {data:s,error:se}=await db.from("app_settings").select("main_branch_id").eq("company_id",companyId).order("created_at",{ascending:true}).limit(1).maybeSingle()
+    if(se) throw se
+    if(s?.main_branch_id===b.id) throw Error("لا يمكن تعطيل الفرع الرئيسي للنظام؛ غيّر الفرع الرئيسي أولاً")
+    const {error:ue}=await db.from("branches").update({is_active:false}).eq("id",b.id).eq("company_id",companyId)
+    if(ue) throw ue
+    return new Response(JSON.stringify({success:true,action:"deactivated",preserved_history:true}),{headers:{...corsHeaders,"Content-Type":"application/json"}})
+  }catch(e:any){
+    return new Response(JSON.stringify({success:false,error:e?.message||"فشل تعطيل الفرع"}),{status:400,headers:{...corsHeaders,"Content-Type":"application/json"}})
+  }
+})
