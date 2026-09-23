@@ -350,7 +350,7 @@ Production core الحالي يسمح لمسؤول الأذونات بإدارة
 - 1,352 Active Branch
 - 1,200 Active Vehicle
 - 10,001 Active Direct Sales Rep
-- 501 Active Suppliers
+- 500 Active Suppliers (501 total)
 
 والنتائج كانت:
 
