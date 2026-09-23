@@ -30,9 +30,8 @@ serve(async(req)=>{
       throw new Error('غير مصرح')
     }
 
-    const {data:{user},error:ae}=await supabase.auth.getUser(
-      ah.replace(/^Bearer\s+/i,'')
-    )
+    const token=ah.replace(/^Bearer\s+/i,'')
+    const {data:{user},error:ae}=await supabase.auth.getUser(token)
 
     if(ae||!user?.id||!user?.email){
       throw new Error('جلسة غير صالحة')
@@ -112,23 +111,50 @@ serve(async(req)=>{
         body?.voucher_code||body?.voucherCode||''
       ).trim()
 
+      const operationId=String(
+        body?.operation_id||
+        body?.operationId||
+        req.headers.get('Idempotency-Key')||
+        ''
+      ).trim()
+
       if(!code){
         throw new Error('رقم الإذن مطلوب لتعديل المسودة')
       }
 
-      const {data,error}=await supabase.rpc(
+      if(!operationId){
+        throw new Error('operation_id مطلوب لتعديل المسودة بأمان')
+      }
+
+      /*
+       * The canonical UPDATE-DRAFT RPC intentionally resolves auth.uid().
+       * Keep the caller JWT on the RPC client instead of downgrading the
+       * database contract to an email-only service-role check.
+       */
+      const rpcClient=createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        {
+          global:{
+            headers:{
+              Authorization:ah
+            }
+          }
+        }
+      )
+
+      const {data,error}=await rpcClient.rpc(
         'update_manual_stock_voucher_atomic',
         {
           p_company_id:companyId,
           p_voucher_code:code,
-          p_type:type,
+          p_operation_id:operationId,
           p_reference:body?.reference||'',
           p_from_type:body?.fromType||'Branch',
           p_from_id:body?.fromId||null,
           p_to_type:body?.toType||'Branch',
           p_to_id:body?.toId||null,
           p_notes:body?.notes||'',
-          p_created_by:user.email,
           p_items:normalized,
           p_rep_id:repId
         }
