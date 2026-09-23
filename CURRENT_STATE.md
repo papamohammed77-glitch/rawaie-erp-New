@@ -1,3 +1,113 @@
+# LATEST AUTHORITATIVE CHECKPOINT — 2026-09-23 13:50 UTC
+
+## Current Truth
+CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+Historical reports remain contextual only.
+
+## Latest System Git
+- HEAD: 011ee6dbeeee1c55304d9eebafd2c819feaef1a8
+- Parent: fd64fd443acd238fdf80f395adb7c325e84a7d15
+- Final report: doc/Draft/Reprots/Report319_WAREHOUSE_VOUCHERS_CURRENT_PRODUCTION_EXECUTION_20260923.md
+- Production migration commit: fd64fd443acd238fdf80f395adb7c325e84a7d15
+
+## Frontend Current Source
+- HEAD: c2ac6d33cb5c20ba6539f61cabde1b33866ecb46
+- Parent: 5cf09bac46aa65fa1e94ba34dfbdc3760cd446e2
+- vouchers.html SHA: 1bbca38299ff093798badaaafda6a2b986583527
+- main.html SHA: 8c3d6b05fd6a94a6b488f12b29da85ae888f70bc
+- van-sales.html SHA: 8d61382a8e0025a0d079e71dd94f33d106d9088e
+
+## Protected Source Files
+No assistant write:
+- main.html
+- vouchers.html
+- van-sales.html
+
+## Production Snapshot — authoritative for this checkpoint
+Captured: 2026-09-23 13:50:39.591176+00
+- companies = 1
+- branches = 3
+- active_branches = 3
+- vehicles = 2
+- active_vehicles = 2
+- direct reps = 2
+- voucher users = 1
+- items = 16
+- stock_branches = 48
+- inventory_log = 6
+- audit_log = 2141
+- stock_vouchers = 0
+- drafts = 0
+- explicit TEST vehicles = 1
+
+## Production Changes Executed
+1. fleet_query vehicle projection fixed in Production to expose:
+   - expected_km_per_liter
+   - operational_condition
+   - route_capability
+2. Reproducible migration committed:
+   supabase/migrations/20260923_fleet_query_vehicle_operational_fields_projection_fix.sql
+3. Current Draft IN-1 was proven test data (N-Test-01), had zero Physical Movement, and was deleted through the existing Draft delete capability.
+4. No new Edge Function created.
+5. No frontend source file written.
+
+## Production E2E
+Transient DirectSale E2E in one transaction:
+- CREATE = PASS
+- SEND = PASS
+- COMPLETE = PASS
+- stock delta = PASS
+- custodian = direct-sales representative
+- movement logs = 1
+- rollback = PASS
+
+The vehicle->representative link was temporary inside the transaction only.
+
+## Current DirectSale Reality
+Current Production vehicles are active/mobile-stock-enabled but have driver_id = NULL.
+Therefore the existing DirectSale picker correctly has no eligible vehicle until a valid direct-sales representative is assigned to a vehicle.
+Do not weaken this contract.
+
+## Current Voucher Owner Patch Status
+Report318 PATCH-01 through PATCH-08 are still pending in owner-owned vouchers.html.
+New delta in Report319:
+- PATCH 319-01 App.printDraftVoucher
+- Draft action must add Print and retain Edit/Delete/Send after PATCH-05.
+
+Static syntax of PATCH 319-01 = PASS.
+
+## Current Mother ERP Gaps
+- New Branch UI still presents textual "جديد"; Production save-branch already generates next numeric BR-n.
+- Historical save-branch 400 root cause is NOT proven for a specific browser session; do not weaken auth_id/company validation.
+- Fleet backend has VEHICLE_UPDATE, but current main.html lacks the Edit/Onclick UI action.
+- Fleet operational fields now come from Production fleet_query.
+- Branch/Vehicle semantic model remains Vehicle = mobile context/container; representative is custody actor for DirectSale.
+
+## Browser / Served Artifact
+OPEN:
+- authenticated Browser E2E
+- served artifact identity after owner frontend publish
+
+Do not convert RPC or source-harness PASS into Browser E2E PASS.
+Do not claim GLOBAL INVENTORY CORE INTEGRITY = 100% CLOSED.
+
+## Next Exact Resumption Point
+1. Read Report319.
+2. Re-read CURRENT_STATE latest block and verify current Git/Frontend SHA.
+3. Do not reopen closed backend contracts.
+4. Owner applies Report318 PATCH-01..08 to vouchers.html.
+5. Owner applies Report319 PATCH-319-01 only for Draft Print.
+6. Static parse.
+7. Commit frontend.
+8. Publish.
+9. Verify served artifact SHA against Git.
+10. Authenticated E2E: Transfer, DirectSale, DirectReturn, SupplierReturn, Draft Print/Edit/Delete, Send, Receive, Complete.
+11. Capture a fresh Production snapshot.
+12. Update CURRENT_STATE.
+13. Only then evaluate full closure.
+
+---
+
 # CURRENT EXECUTION CHECKPOINT — 2026-09-23
 
 ## Source of Truth
