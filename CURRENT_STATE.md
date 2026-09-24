@@ -1,194 +1,85 @@
-# CURRENT AUTHORITATIVE CHECKPOINT — 2026-09-24 — Report334
+# CURRENT AUTHORITATIVE CHECKPOINT — 2026-09-24 — Report334 FINAL
 ## Mother Fleet Vehicle Operation Link — Branch + Document/Reference Context
 
-> This checkpoint supersedes all older CURRENT_STATE sections below. Older sections remain historical evidence and are not current truth.
+> This checkpoint supersedes all older CURRENT_STATE sections below. Older sections remain historical evidence.
 
-## Primary Source Verification
-### System Git
-- Repository: `papamohammed77-glitch/rawaie-erp-New`
-- Verified pre-state HEAD: `d6e497afbb394c4f24fc7648adb4fe2a3e610ee9`
-- Parent: `247feb5067c690e3ceca668c1b048ba56df3d856`
-- Report334 commit: `c86a9f7e5a5fb336d8735e35ad82d15a5a82ab22`
-- Production migration committed: `df3bc5a5e9ee8fd9a86acaf1d5e1c3fbff54e7f4`
+## Current Verified Git
+### System
+- HEAD: `3c2bf3f040c5861f24b0f299502f94515c06c52a`
+- Parent: `2b9cee366fb7e6574a853956a74d1e9a9d05321a`
+- Report334 final commit: `3c2bf3f040c5861f24b0f299502f94515c06c52a`
 
-### Mother Git
+### Mother
 - Repository: `papamohammed77-glitch/erp-frontend`
-- Current verified HEAD before owner edit: `b1820141d49dbe9b82e339cd7ccb05781f39d81a`
+- HEAD: `b1820141d49dbe9b82e339cd7ccb05781f39d81a`
 - Parent: `7915275b87c74f1b249a1da7b3732a16511aae38`
-- File: `companies/company-1/main.html`
-- Current blob verified: `c521d84fd96143b435e432e135e2d8a967acf60e`
-- Mother was not directly modified by this execution.
+- Current main.html blob: `c521d84fd96143b435e432e135e2d8a967acf60e`
+- Mother main.html was not modified by assistant.
 
-### Governance
-- `MASTER CTO GOVERNANCE & CONTINUOUS EXECUTION OS — RAWAEA ERP.md` read from Git before work.
-- Reports were treated as historical context only.
-- Current truth was reconstructed from Git + source + Production + database + deployment evidence.
+## Current Production
+- Migration: `20260924145700_extend_fleet_vehicle_operation_candidates_document_branch_context`
+- `fleet_query.vehicle_operation_candidates` now supports optional company-scoped active branch filtering and returns branch/document/reference context.
+- No new Edge Function was created.
+- Existing Fleet command/query control plane unchanged except read-model extension.
 
-## Scope Closed in This Session
-Closure unit:
-Mother `main.html` → `RW_FleetManagement` → Vehicle Details → `ربط المركبة بالعملية`.
+## Current UI Defect / Surgical Resolution
+The remaining Mother gap is exclusively Consumer UX:
+- Branch Transfer needs branch selector + document/reference presentation.
+- Direct Sale needs automatic document/reference presentation.
+- Linked operation cards need reference visible.
+- RUNSHEET remains unchanged.
+- Identity separation remains unchanged.
 
-## Production Changes
-Migration applied directly to Production:
-`20260924145700_extend_fleet_vehicle_operation_candidates_document_branch_context`
+Owner-only Mother patches:
+- PATCH-334-01: replace only `function operationBlock(title, rows, type)`.
+- PATCH-334-02: replace only `async function openVehicleOperationLinkForm()` up to `async function openVehicleEdit(id){`.
+Exact replacements are stored in:
+`doc/Draft/Reprots/Report334_MOTHER_FLEET_VEHICLE_OPERATION_LINK_BRANCH_DOCUMENT_FORENSIC_CLOSURE_20260924.md`
 
-Existing `fleet_query` was extended only:
-- optional `branch_id` filter for `vehicle_operation_candidates`
-- company + active-branch guard
-- active company branch list in candidate response
-- Transfer projection now returns `from_branch_id`, `to_branch_id`, `from_branch_name`, `to_branch_name`, `reference`
-- selected branch filters transfer documents by source or destination branch
+## E2E Verification
+Production binding test ran inside a single transaction and was rolled back:
+- candidate read model returned branch list, transfer documents and direct-sale document context.
+- selected branch filter returned only matching transfer source/destination rows.
+- invalid branch was rejected.
+- Branch Transfer bind PASS; replay duplicate=true.
+- Direct Sale bind PASS; replay duplicate=true.
+- binding caused no persistent stock, allocated stock, journal, journal-line, or driver-ledger mutation.
+- QA vouchers/registry/audit residue = 0 after rollback.
 
-No new Edge Function.
-No new Physical Stock engine.
-No `VEHICLE_OPERATION_BIND` contract change.
-No binding-side stock mutation.
-No binding-side accounting mutation.
+Production snapshot:
+- active companies 1
+- branches 4
+- vehicles 2
+- runsheets 0
+- stock vouchers 2
+- inventory log 25
+- journal entries 10
+- journal lines 16
+- driver ledger 4
+- QA fleet vouchers 0
+- QA fleet registry 0
 
-## Proven Functional Contract
-- RUNSHEET → `runsheets.vehicle_id + driver_id + deliverer_id`
-- BRANCH_TRANSFER → `stock_vouchers.vehicle_id + driver_id`
-- DIRECT_SALE → `stock_vouchers.to_type='Vehicle' + to_id + custodian_user_id`
-- Driver, delivery representative, and direct-sales representative remain distinct identities.
-- Direct Sale must not be given a duplicate `vehicle_id`.
+## Closure Status
+- Production Fleet operation binding control plane: CLOSED.
+- Branch/document candidate read model: CLOSED.
+- Physical stock centralization: CLOSED.
+- Mother surgical patches: READY FOR OWNER.
+- Mother source/served browser closure: OPEN until owner applies and publishes the two patches.
 
-## Proven Root Cause of Current UI Gap
-Production binding/control plane already existed and was operational.
-The actual gap was Consumer/Read Model context:
-- transfer candidates did not expose branch IDs/names to Mother
-- Mother displayed voucher code without a separate document/reference presentation
-- no branch selector existed in the vehicle-link modal
-- direct-sale and transfer option labels did not surface the reference
-- linked vehicle-detail operation cards did not display the reference
-
-## Exact Mother Surgical Patches — Owner Only
-### PATCH-334-01
-Replace only:
-`function operationBlock(title, rows, type)`
-around line 29099.
-
-Purpose:
-show `reference` in linked operation cards.
-
-### PATCH-334-02
-Replace only:
-`async function openVehicleOperationLinkForm()`
-around line 29180, ending immediately before:
-`async function openVehicleEdit(id){`
-
-Purpose:
-- Branch selector for Branch Transfer.
-- Branch-filtered candidate query.
-- Read-only document number and reference.
-- Automatic document/reference population for Transfer and Direct Sale.
-- Existing RUNSHEET flow unchanged.
-- Existing DirectSale contract unchanged.
-- Driver/delivery/direct-sales identities remain separate.
-
-The surgical replacements are contained in Report334 and must be applied by the owner to Mother `main.html`.
-Do not replace any larger enclosing function or file.
-
-## Production E2E Evidence
-All binding tests used a temporary Transaction and were rolled back.
-
-### Candidate Read Model
-- branches_count = 4
-- transfer_docs = 3
-- direct_sale_docs = 1 in temporary fixture
-- Transfer reference present
-- Transfer source/target branch names present
-- Direct Sale reference present
-
-### Branch Filter
-- selected BR-01 filter returned only rows matching source/destination branch
-- `all_transfer_docs_match_branch = true`
-- invalid branch was rejected with:
-  `فرع التصفية غير موجود أو غير نشط للشركة`
-
-### BRANCH_TRANSFER
-- bind = PASS
-- replay = `duplicate=true`
-- vehicle and driver persisted
-- binding produced no stock or GL mutation
-
-### DIRECT_SALE
-- bind = PASS
-- replay = `duplicate=true`
-- vehicle persisted through `to_id`
-- direct-sales representative persisted through `custodian_user_id`
-- binding produced no stock or accounting mutation
-
-### Cleanup
-After rollback:
-- QA fleet vouchers = 0
-- QA fleet registry rows = 0
-- QA audit residue = 0
-
-## Production Snapshot
-Verified at:
-`2026-09-24T14:08:08.188883+00:00`
-
-- active companies = 1
-- company branches = 4
-- vehicles = 2
-- runsheets = 0
-- stock_vouchers = 2
-- inventory_log = 25
-- journal_entries = 10
-- journal_lines = 16
-- driver_ledger = 4
-- QA fleet vouchers = 0
-- QA fleet registry = 0
-
-## Accounting / Stock Boundary
-Binding alone:
-- Physical stock delta = 0
-- allocated stock delta = 0
-- GL delta = 0
-- driver-ledger delta = 0
-
-Operational SEND/RECEIVE accounting and stock effects remain in their existing canonical business writers and were not duplicated inside the Fleet binding command.
-
-## Deployment Boundary
-- Edge Function count was not increased by this task.
-- Existing `fleet_query` RPC was used.
-- Production control plane remains centralized.
-- Mother browser deployment is still open until the owner applies PATCH-334-01 and PATCH-334-02 and the served artifact is verified.
-
-## Current Closure Status
-- Production vehicle-operation control plane: CLOSED
-- Candidate branch/document read context: CLOSED
-- Transfer bind contract: CLOSED
-- Direct Sale bind contract: CLOSED
-- Physical Stock centralization: CLOSED
-- Mother surgical patch design: READY FOR OWNER
-- Mother source edit by assistant: NOT PERFORMED
-- Served Mother artifact after owner edit: OPEN
-- Authenticated browser E2E after owner publish: OPEN
-
-## Competitor-Derived Future Backlog — Not Current Defects
-Keep separate from this closure:
-- operation odometer start/end
-- operation distance
-- fuel/maintenance/toll allocation
-- planned vs actual trip cost
-- vehicle capacity utilization
-- cost per km / order / runsheet / transfer / direct sale
-
-## Next Session Instructions
-1. Re-verify System HEAD and Mother HEAD.
-2. Read this checkpoint but verify it against primary sources.
-3. Do not reopen closed Fleet/Inventory/Voucher contracts unless contradictory primary evidence appears.
-4. Apply only PATCH-334-01 and PATCH-334-02 to Mother `main.html`.
-5. Parse the full file.
-6. Commit and publish Mother.
-7. Verify served artifact identity.
-8. Run authenticated Browser E2E for RUNSHEET, BRANCH_TRANSFER, DIRECT_SALE.
-9. Capture Console and Network evidence.
-10. Verify vehicle_detail, candidate read model, audit, stock, and accounting.
-11. Replay with the same Operation ID.
-12. Take Production snapshot at the same reporting moment.
-13. Update CURRENT_STATE again.
+## Mandatory Next Session
+1. Verify System HEAD and Mother HEAD.
+2. Do not reopen closed Production contracts unless contradictory primary evidence exists.
+3. Apply only PATCH-334-01 and PATCH-334-02 to Mother main.html.
+4. Parse the complete main.html.
+5. Commit and publish Mother.
+6. Verify served artifact identity.
+7. Run authenticated browser E2E for RUNSHEET, BRANCH_TRANSFER, DIRECT_SALE.
+8. Capture Console/Network.
+9. Verify vehicle_detail, candidate read model, audit, stock and accounting.
+10. Replay using the same Operation ID.
+11. Snapshot Production at the same reporting moment.
+12. Update CURRENT_STATE.
+13. Do not create a new Edge Function for this capability.
 
 ## Report
 `doc/Draft/Reprots/Report334_MOTHER_FLEET_VEHICLE_OPERATION_LINK_BRANCH_DOCUMENT_FORENSIC_CLOSURE_20260924.md`
@@ -197,7 +88,8 @@ Keep separate from this closure:
 Start from:
 CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
 
-Do not trust historical reports or older CURRENT_STATE claims over primary evidence.
+Never infer current state from older reports alone.
+Do not redo closed repairs.
 Do not create a second Physical Stock engine.
 Do not create a new Edge Function for this capability.
 
