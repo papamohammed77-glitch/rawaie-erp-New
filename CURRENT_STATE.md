@@ -1070,3 +1070,71 @@ Reports are historical/contextual evidence only.
 - Production currently has no QA business entities; technical operation tombstones remain by design.
 - Browser authenticated E2E remains OPEN until Owner applies Report318 to frontend, publishes, verifies served artifact, and runs login-based E2E.
 
+
+## Current 2026-09-24 — Supplier Purchase Representative Smart Search Closure
+
+### Source truth
+- Mother frontend repository: `papamohammed77-glitch/erp-frontend`.
+- Current frontend HEAD: `897d40c47b27544fb8a5515a7f7dcce528c4563e`.
+- Parent: `3520240a57f2124bbcf96c3007f67a9c36890fcb`.
+- Current `main.html` blob: `f4e707060a3f0ff68b993bf57616e4e861ac54e6`.
+- Current `main.html` lines: 32068.
+- Commit `3520240…` changed only supplier-code preview in `RW_Suppliers.openModal()`; commit `897d40…` changed only forensic extract documentation.
+- This session did NOT modify `main.html`.
+
+### Problem closure
+- Target: `RW_Suppliers.openModal(code)` → `#supp-rep` at current line 6934.
+- Root cause: plain text input with no smart lookup/search.
+- Direct browser lookup of `users` is not a valid solution because current RLS exposes company-wide users only to users with `users` permission.
+- Canonical Production lookup already exists: `public.get_supplier_purchase_reps(text)`.
+- The canonical lookup is authenticated, company-scoped, active-user scoped, and role-scoped to `مسئول مشتريات`; it searches name/email/phone/employee id.
+
+### Production execution
+- No new Edge Function created.
+- `save-supplier` remains ACTIVE version 5 with `verify_jwt=true`.
+- `save_supplier_atomic` remains the authoritative Supplier Master writer.
+- Temporary candidate RPC `supplier_purchase_rep_search(text)` was applied during forensic validation and then fully removed; final Production count = 0.
+- Canonical `get_supplier_purchase_reps(text)` remains = 1.
+- Migration history for the temporary candidate was recorded in Git so Production remains reconstructable.
+
+### Production verification
+- Authenticated lookup as `buyer1@rawaea.com`: PASS; result = `مندوب مشتريات 1` / `buyer1@rawaea.com` / `مسئول مشتريات`.
+- Unauthorized lookup as `vansales@rawaea.com`: PASS — rejected by permission guard.
+- Supplier create with `purchase_rep`: PASS.
+- Supplier update with blank `purchase_rep`: PASS; persisted as NULL.
+- Stock/log/ledger/journal counts unchanged during rollback E2E.
+- Final snapshot: active suppliers 2; QA supplier residue 0; inventory_log 6; stock_branches 48; supplier_ledger 0; journal_entries 8.
+
+### Surgical Main.html patch
+- Owner action only: replace the single existing `#supp-rep` div inside `RW_Suppliers.openModal()`.
+- Do not change `_handleSave()`, supplier save Edge/RPC, purchase workflow, inventory, accounting, or other fields.
+- The replacement uses the existing `get_supplier_purchase_reps` RPC, debounce 250ms, native datalist, and preserves optional/blank semantics.
+- Static validation against current blob: target occurrences 1; inline script parse PASS; onfocus handler parse PASS; oninput handler parse PASS.
+
+### Competitive contract review
+- Odoo 19: vendor pricelists connect supplier/product with price, minimum quantity and lead time.
+- Business Central: Vendor master includes Purchaser Code, Currency, Payment Terms, Posting Group, Shipping/Location and Blocking concepts.
+- SAP S/4HANA: supplier data is split across central, company-code and purchasing-organization layers, including purchasing group, order currency, payment terms, lead time and purchasing block.
+- Manager.io: supplier master includes credit limit, currency, address, email, division, control account and starting balance.
+- These are backlog candidates only; no new Supplier Master fields were added in this closure without a proven RAWAEA Business Contract.
+
+### Closure status
+- Supplier Purchase Rep backend/data contract: CLOSED / VERIFIED.
+- Main.html surgical patch: READY FOR OWNER APPLY.
+- Browser authenticated UI E2E after owner patch: OPEN / UNVERIFIED.
+- Served artifact identity after owner publish: OPEN / UNVERIFIED.
+
+### Next exact resumption point
+1. In current `erp-frontend/main.html` blob `f4e707060a3f0ff68b993bf57616e4e861ac54e6`, find the exact line/element for `#supp-rep` inside `RW_Suppliers.openModal()` (current line 6934).
+2. Replace only that element with the exact patch in Report326.
+3. Parse the complete `main.html`.
+4. Commit owner patch.
+5. Publish the current frontend artifact.
+6. Run authenticated Browser E2E for Add/Edit Supplier → Responsible Buyer search/select/blank.
+7. Verify served artifact identity.
+8. Capture a fresh Production snapshot.
+9. Close the UI contract only after those runtime checks pass.
+
+### Report
+- Report326: `doc/Draft/Reprots/Report326_MOTHER_SUPPLIER_PURCHASE_REP_FORENSIC_SURGICAL_CLOSURE_20260924.md`.
+- Report commit: `82c72e258aab52dd8ed84d9cd70d8962663381da`.
