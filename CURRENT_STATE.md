@@ -1,3 +1,42 @@
+# FINAL AUTHORITATIVE POINTER — 2026-09-24 — REPORT336 FINAL GIT POINTER
+## Last verified System repository state
+- Git HEAD immediately before this state update: a806fa54090336324018cf7cb691788cab81d01b
+- Parent: d71727f3a2edf03b586aae9fb6cd74ec94ccfea7
+- This pointer follows the production-backed migrations, Report336 finalization, and migration filename reconciliation.
+- Mother HEAD: 111a6876ddf38394989896f64767170b77c3231e
+- Mother parent: 26d4d4d347be477b69482e75627154aa6565d5ac
+- Mother main.html blob: 3d1ac970c0e81d0a581045ce79b140708ccfa3af
+- Mother main.html remains unmodified.
+
+## Production final truth
+- 20260924155735 decouple DirectSale operation rep from vehicle.driver_id.
+- 20260924155822 persist DirectSale/DirectReturn custodian_user_id on create.
+- 20260924160919 retire legacy manual voucher update overload.
+- DirectSale E2E CREATE -> BIND -> REPLAY -> SEND: PASS.
+- Stock: source -1 / vehicle mobile branch +1.
+- inventory_log +1 / driver_ledger +1 / G/L entries 0 / G/L lines 0.
+- QA residual counts: vouchers 0, operations 0, inventory 0, ledger 0, fleet registry 0.
+- Production stock writer remains centralized through post_stock_movement.
+- No direct inventory_log writer outside the central movement path was found.
+- reserve_stock and release_stock_reservation affect allocated_qty only.
+- create_vehicle_atomic and setup_van_stock only initialize stock rows with qty=0.
+- Legacy update overload has been removed.
+- The 10-argument create compatibility overload remains because inventory_stock_request_engine uses it for Transfer conversion.
+
+## Main.html decision
+- No new surgical patch.
+- Report334 Owner changes remain the current Mother implementation.
+- Do not reapply Report334.
+- Browser authenticated E2E remains OPEN / UNVERIFIED.
+
+## Primary continuity
+- Report336: doc/Draft/Reprots/Report336_MOTHER_FLEET_DIRECTSALE_OPERATION_REP_VEHICLE_FORENSIC_CLOSURE_20260924.md
+- Production migration files:
+  - supabase/migrations/20260924155735_decouple_directsale_operation_rep_from_vehicle_driver_20260924.sql
+  - supabase/migrations/20260924155822_persist_directsale_operation_custodian_on_create_20260924.sql
+  - supabase/migrations/20260924160919_retire_legacy_manual_voucher_update_overload_20260924.sql
+
+---
 # FINAL AUTHORITATIVE POINTER — 2026-09-24 — REPORT336 GLOBAL WRITER CLOSURE
 ## Additional closure after Global Writer Discovery
 - Production migration: retire_legacy_manual_voucher_update_overload_20260924
@@ -88,46 +127,3 @@ Do not create a new Edge Function for this capability.
 - Mother current HEAD: `111a6876ddf38394989896f64767170b77c3231e`
 - Mother main.html blob: `3d1ac970c0e81d0a581045ce79b140708ccfa3af`
 - Report334 Mother patches are already Owner-applied; do not reapply.
-- Production Fleet binding E2E is verified for RUNSHEET / BRANCH_TRANSFER / DIRECT_SALE with idempotent replay and rollback cleanup.
-- Public served artifact and authenticated Browser E2E remain OPEN/UNVERIFIED; do not convert DB/source evidence into Browser PASS.
-
-## Continuity
-Start from this pointer, then verify primary sources again before any new change.
-
----
-
-# CURRENT AUTHORITATIVE CHECKPOINT — 2026-09-24 — Report335 FINAL
-## Mother Fleet Vehicle Operation Link — Current Source + Production E2E Reconciliation
-
-> This checkpoint supersedes older Fleet/Mother checkpoints below. Older entries remain historical evidence.
-
-## Current System Truth
-- System repository: `papamohammed77-glitch/rawaie-erp-New`
-- System HEAD: `443627198998b2dbf15eb9e5e57cb113fd83cbf3`
-- System parent: `2b9cee366fb7e6574a853956a74d1e9a9d05321a`
-
-## Current Mother Truth
-- Mother repository: `papamohammed77-glitch/erp-frontend`
-- Mother HEAD: `111a6876ddf38394989896f64767170b77c3231e`
-- Mother parent: `26d4d4d347be477b69482e75627154aa6565d5ac`
-- Current `companies/company-1/main.html` blob: `3d1ac970c0e81d0a581045ce79b140708ccfa3af`
-- `26d4...` is the last commit that actually modified Mother `main.html`.
-- `111a...` is forensic-extract only.
-- Assistant direct write to Mother `main.html`: **NO**.
-
-## Report334 Reconciliation
-Report334 PATCH-334-01 and PATCH-334-02 are already applied in current Mother source by Owner commit `26d4...`.
-Do not reapply either patch.
-Do not reopen Report334 without contradictory primary evidence.
-
-## Production Truth
-- Supabase project: `fiilmooggumokxanwiyx`
-- Fleet command: `fleet_command_atomic`
-- Fleet query: `fleet_query`
-- Canonical command: `VEHICLE_OPERATION_BIND`
-- Candidate view: `vehicle_operation_candidates`
-- Latest relevant migration: `20260924145700_extend_fleet_vehicle_operation_candidates_document_branch_context`
-- No new Edge Function created.
-
-## Current Production E2E
-Inside isolated transaction then rollback:
