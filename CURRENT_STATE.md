@@ -1,3 +1,188 @@
+# CURRENT AUTHORITATIVE CHECKPOINT — 2026-09-24 — Report333
+## Mother Fleet Vehicle Operation Binding — Production Reconciliation + Owner UI Closure
+
+> This block supersedes the older "current" sections below. Older checkpoints are retained as historical evidence and must not be treated as current truth.
+
+## Current Truth
+
+### System Git
+- Verified System HEAD before this state write: d7bc0a18d67cf07305cff4b80dcfa04c4fd1eb3b
+- Parent: 247feb5067c690e3ceca668c1b048ba56df3d856
+- Previous migration commit: 247feb5067c690e3ceca668c1b048ba56df3d856
+- Report333 commit: d7bc0a18d67cf07305cff4b80dcfa04c4fd1eb3b
+
+### Mother Git
+- Repository: papamohammed77-glitch/erp-frontend
+- HEAD: 413b1eb8bfc633a0489b5e27b3c69874a2afa562
+- Parent: 4ef6973f2289f76d89aa9d9d52628171326793d8
+- File: companies/company-1/main.html
+- Blob: 274a884785ac1a38394a30735802dec5378fad0d
+- Size: 32,075 lines / 1,741,281 chars
+- Assistant direct write: NO
+- Current source contains zero vehicle-operation binding UI symbols.
+
+## Governance Read
+- MASTER CTO GOVERNANCE read to EOF: SHA b03feec14a417ca9032d714774f2687b4542a373.
+- CURRENT_STATE read to EOF before reconciliation: SHA 712edbe552a37269b1f00bdcd09a89ca8fae697c.
+- Report332 read to EOF: SHA 161e9fa2346a38df89e747ad8ae73230bd75b265.
+- Reports remain historical/contextual; current Production and current source override stale report claims.
+
+## Production Control Plane
+Existing control plane retained:
+- fleet_command_atomic
+- fleet_query
+- VEHICLE_OPERATION_BIND
+- vehicle_detail
+- vehicle_operation_candidates
+
+No new Edge Function was created.
+
+### Operation contracts
+- RUNSHEET → runsheets.vehicle_id + driver_id + deliverer_id.
+- BRANCH_TRANSFER → stock_vouchers.vehicle_id + driver_id.
+- DIRECT_SALE → stock_vouchers.to_type='Vehicle' + to_id + custodian_user_id.
+
+### Physical Stock
+Canonical contract unchanged:
+post_stock_movement → stock_branches + inventory_log.
+
+Binding never directly mutates physical stock.
+
+## Proven Root Cause
+Legacy enforce_stock_voucher_custodian() incorrectly treated vehicles.driver_id as the Direct Sales Representative.
+
+This contradicted the operation-level DirectSale contract based on stock_vouchers.custodian_user_id.
+
+Final separation:
+- Vehicle driver = operational driver.
+- DirectSale custodian = operation-level Direct Sales Representative.
+
+## Production Repairs Applied
+1. 20260924125815_fix_directsale_custodian_operation_identity_20260924
+   - custodian_user_id required for DirectSale/DirectReturn.
+   - same-company active direct-sales rep.
+   - role = مندوب بيع مباشر.
+   - permission = van-sales.
+   - executed mobile voucher identity immutable.
+   - no Physical Stock contract change.
+
+2. 20260924130417_align_fleet_direct_sales_rep_permission_20260924_v3
+   - fleet_query candidates and fleet_command bind guard now use the same direct-sales rep contract.
+   - same-company + active + role + van-sales permission.
+
+## Current Production Data Checks
+- mobile_missing_custodian = 0.
+- mobile_invalid_custodian = 0.
+- transfer_missing_driver = 0.
+- transfer_missing_vehicle = 0.
+- transfer_invalid_vehicle = 0.
+- transfer_invalid_driver = 0.
+- active same-company direct-sales reps with van-sales = 2.
+- E2E residual vouchers/runsheets/logs = 0.
+
+## E2E Verification
+### RUNSHEET
+PASS:
+bind persisted; replay duplicate=true; stock delta 0; GL delta 0; vehicle_detail read model correct.
+
+### BRANCH_TRANSFER
+PASS:
+bind persisted; bind replay duplicate=true; send PASS; receive PASS; receive replay duplicate=true; complete PASS; source stock -1; target stock +1; journal delta 0; vehicle_detail transfer projection correct.
+
+### DIRECT_SALE
+PASS:
+operation-level direct-sales rep persisted; bind replay duplicate=true; send PASS; source stock -1; mobile stock +1; driver custody ledger +10 for one test unit; Journal/Customer Ledger/Supplier Ledger/Treasury/Cash Box deltas 0; vehicle_detail direct-sales projection correct.
+
+### DirectSale immutable identity
+PASS:
+executed DirectSale could not be rebound to a different vehicle/direct-sales representative.
+
+### Authenticated query path
+PASS:
+JWT/auth.uid simulation resolved fleet_query when p_actor_user_id was NULL and returned direct_sales_reps.
+
+## Accounting / Stock Integrity
+Binding alone:
+- stock mutation = 0.
+- GL mutation = 0.
+
+DirectSale SEND test:
+- source branch stock = -1.
+- mobile branch stock = +1.
+- direct-sales custody = +10.
+- no extra journal posting.
+- no customer/supplier/treasury/cash mutation.
+
+## Owner main.html Closure
+Mother main.html was intentionally not written.
+
+Exact owner patch set is Report333 PATCH-333-01 through PATCH-333-06.
+
+Static validation of an in-memory patched copy:
+- command(operationId) anchor = 1.
+- operationId forwarding = 1.
+- operationBlock = 1.
+- openVehicleOperationLinkForm = 1.
+- API exposure = 1.
+- six inline scripts parsed successfully.
+
+### Important non-defect
+Do not patch fleet_query p_actor_user_id in main.html.
+Production fleet_query intentionally uses auth.uid() when the browser sends a valid JWT and p_actor_user_id is NULL.
+
+## Closure Status
+- Production Fleet Operation Binding Control Plane: FULLY CLOSED.
+- Runsheet binding: FULLY CLOSED.
+- Branch Transfer binding: FULLY CLOSED.
+- Direct Sale binding: FULLY CLOSED.
+- Direct Sales Rep identity guard: FULLY CLOSED.
+- Physical Stock centralization: VERIFIED CLOSED.
+- Data integrity: VERIFIED.
+- Accounting side-effect integrity: VERIFIED.
+- Mother main.html consumer: OWNER PATCH READY.
+- Served artifact after Owner patch: OPEN.
+- Authenticated Browser E2E after Owner publish: OPEN.
+
+## Competitor-derived future backlog
+Do not mix these into the current closure:
+- operation odometer start/end.
+- distance per operation.
+- fuel/maintenance/toll allocation.
+- planned vs actual trip cost.
+- vehicle capacity utilization.
+- cost per kilometer / delivered order / runsheet / transfer / direct sale.
+These are future capability candidates, not current defects.
+
+## Exact Next Session
+1. Re-verify current System HEAD.
+2. Re-verify Mother HEAD + main.html blob.
+3. Apply only Report333 PATCH-333-01..06.
+4. Parse full main.html.
+5. Commit and publish Mother.
+6. Verify served artifact identity.
+7. Run authenticated browser E2E on Runsheet / Branch Transfer / Direct Sale.
+8. Capture Console + Network.
+9. Verify DB, stock, accounting, audit, and vehicle_detail.
+10. Replay using same Operation ID.
+11. Take Production snapshot at the same reporting moment.
+12. Update this file again.
+13. Do not reopen closed Fleet/Inventory/Voucher contracts without contradictory primary evidence.
+
+## Report
+`doc/Draft/Reprots/Report333_MOTHER_FLEET_VEHICLE_OPERATION_BINDING_COMPLETION_20260924.md`
+
+## Continuity Directive
+Start future work from:
+CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+
+Do not trust this file blindly; re-verify it against current primary sources.
+Do not redo closed repairs.
+Do not create a new Edge Function for this capability.
+Do not create a second Physical Stock engine.
+Do not use vehicle.driver_id as DirectSale custodian identity.
+
+---
+
 # CURRENT CHECKPOINT — 2026-09-24 — Mother Fleet Vehicle Operation Binding
 
 ## Scope
