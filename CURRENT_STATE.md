@@ -1,8 +1,8 @@
 # FINAL AUTHORITATIVE POINTER — 2026-09-24 — VOUCHERS PICKSELECT + DIRECTRETURN FORENSIC CLOSURE
 
 ## Current continuation baseline
-- System repository baseline before this state update: `0d5a57d7b263cbb10e5235db56175fc4b7825ed3`
-- Parent of that baseline: `1e9fdfeda9a8d143acb58d0df76d632c2362cef9`
+- Current System Git HEAD: `6ebea2c7aacad14a1702fe86032870fb14d87db1`
+- Parent: `0d5a57d7b263cbb10e5235db56175fc4b7825ed3`
 - Latest execution report:
   `doc/Draft/Reprots/EXECUTION_LOG_20260924_VOUCHERS_PICKSELECT_AND_DIRECTRETURN_FORENSIC_CLOSURE.md`
 - Durable Production migration source recorded in Git:
