@@ -1,3 +1,216 @@
+# CURRENT CHECKPOINT — 2026-09-24 — Mother Fleet Vehicle Operation Binding
+
+## Scope
+Closure unit: Mother `main.html` → `RW_FleetManagement` → Vehicle Details → Vehicle Operation Binding.
+
+## Primary Truth
+- System repository: `papamohammed77-glitch/rawaie-erp-New`
+- System documentation/migration HEAD immediately before this state update: `c4062382237438f82f443140a91e772598b0a080`
+- Mother repository: `papamohammed77-glitch/erp-frontend`
+- Mother HEAD: `53b254de274af504022d0acf13becc40378bd4aa`
+- Mother parent: `80e42653a4a83874ab739b8a87e7ddc4f407e6e4`
+- Mother `companies/company-1/main.html` blob: `274a884785ac1a38394a30735802dec5378fad0d`
+- Mother `main.html` lines: 32,075
+- Assistant direct write to Mother `main.html`: NO
+
+## Historical reconciliation
+- Fleet Vehicle Master/Edit was already closed in earlier checkpoints and was not reopened.
+- Runsheet vehicle/driver/delivery-rep identity already existed.
+- Direct Sale vehicle identity already existed as `stock_vouchers.to_type='Vehicle'` + `to_id`; Direct Sale was NOT given a duplicate `vehicle_id`.
+- Branch Transfer lacked persistent vehicle/driver identity and was the actual schema gap.
+
+## Production implementation
+No new Edge Function was created.
+
+Existing `fleet_command_atomic` was extended with:
+`VEHICLE_OPERATION_BIND`
+
+Operations:
+- RUNSHEET → `runsheets.vehicle_id`, `runsheets.driver_id`, `runsheets.deliverer_id`
+- BRANCH_TRANSFER → `stock_vouchers.vehicle_id`, `stock_vouchers.driver_id`
+- DIRECT_SALE → existing `stock_vouchers.to_type/to_id/custodian_user_id`
+
+Existing `fleet_query` was extended with:
+- vehicle_detail.runsheets enrichment
+- vehicle_detail.transfer_operations
+- vehicle_detail.direct_sales
+- `vehicle_operation_candidates`
+
+Production migrations:
+- `20260924121815_add_vehicle_operation_binding_control_plane`
+- `20260924123114_harden_vehicle_operation_driver_identity_20260924`
+- `20260924123200_harden_vehicle_operation_driver_identity_20260924_v2`
+
+Additional guards:
+- Transfer vehicle/driver must be same-company.
+- Transfer vehicle/driver must be supplied together.
+- Executed Transfer vehicle/driver identity is immutable.
+- Runsheet/Transfer driver must be an active driver/delivery identity.
+- Non-Transfer vouchers cannot carry the new Transfer-specific vehicle/driver fields.
+
+## Inventory / Accounting Contract
+Physical Stock remains:
+`post_stock_movement` → `stock_branches` + `inventory_log`
+
+Binding itself does not move stock.
+
+E2E Transfer:
+- Bind: stock delta 0
+- Send: source -1
+- Receive: target +1
+- GL journal delta 0
+- replay with same operation_id: duplicate=true
+- rollback clean
+
+E2E Direct Sale:
+- Bind: PASS
+- replay: duplicate=true
+- Send: source -1, vehicle mobile branch +1
+- existing direct-sales custody ledger: +10 test value
+- GL delta from binding/send test: 0
+- vehicle_detail.direct_sales: 1
+- rollback clean
+
+E2E Runsheet:
+- Bind: PASS
+- vehicle/driver/delivery-rep persisted
+- replay: duplicate=true
+- vehicle_detail.runsheets: 1
+- rollback clean
+
+Negative E2E:
+- invalid direct-sales user as Runsheet driver: rejected
+- executed Transfer rebind to another vehicle: rejected
+
+## Production cleanup
+Fresh QA residue:
+- QA vehicles = 0
+- QA vouchers = 0
+- QA runsheets = 0
+- QA inventory logs = 0
+- QA operation registry = 0
+- QA binding audit residue = 0
+
+Current Production snapshot:
+- companies = 1
+- branches = 4
+- items = 16
+- stock_rows = 53
+- stock_vouchers = 2
+- inventory_log_rows = 25
+- journal_entries = 10
+- journal_lines = 16
+- driver_ledger_rows = 4
+
+## Mother main.html surgical patch — OWNER ACTION
+Do NOT replace the whole file or whole function.
+
+### PATCH-332-01
+In `RW_FleetManagement.command`:
+Find exactly:
+```js
+async function command(commandName, payload) {
+```
+Replace only with:
+```js
+async function command(commandName, payload, operationId) {
+```
+
+Find exactly:
+```js
+      p_operation_id: op(commandName),
+```
+Replace only with:
+```js
+      p_operation_id: operationId || op(commandName),
+```
+
+### PATCH-332-02
+In `RW_FleetManagement.openVehicleDetail(id)`, append this button to the existing management button chain:
+```html
+<button onclick="RW_FleetManagement.openVehicleOperationLinkForm()" class="px-3 py-2 rounded-xl bg-indigo-600 text-white font-bold">ربط المركبة بالعملية</button>
+```
+
+### PATCH-332-03
+Find exactly:
+```js
+       listBlock('الرحلات',d.runsheets,'runsheet_code','run_date')+
+```
+Replace only with:
+```js
+       operationBlock('الرحلات',d.runsheets,'RUNSHEET')+operationBlock('تحويلات الفروع',d.transfer_operations,'BRANCH_TRANSFER')+operationBlock('البيع المباشر',d.direct_sales,'DIRECT_SALE')+
+```
+
+### PATCH-332-04
+Immediately before:
+```js
+function listBlock(title, rows, key, subkey) {
+```
+insert the complete `operationBlock` function from Report332.
+
+### PATCH-332-05
+Immediately before:
+```js
+async function openVehicleEdit(id){
+```
+insert the complete `toggleVehicleOperationLinkPanels` and `openVehicleOperationLinkForm` functions from Report332.
+
+The modal uses existing `fleet_query('vehicle_operation_candidates')` and existing authenticated `fleet_command_atomic`.
+
+### PATCH-332-06
+In the `RW_FleetManagement` API object immediately after:
+```js
+openVehicleEdit: openVehicleEdit,
+```
+insert:
+```js
+    openVehicleOperationLinkForm: openVehicleOperationLinkForm,
+    toggleVehicleOperationLinkPanels: toggleVehicleOperationLinkPanels,
+```
+
+## Static verification
+- Current target anchors are unique:
+  - command function = 1
+  - openVehicleDetail = 1
+  - openVehicleEdit = 1
+  - API openVehicleEdit = 1
+- Current UI binding strings = 0 before owner patch.
+- Full surgical JavaScript patch parse = PASS.
+- Mother source unchanged by assistant.
+
+## Closure Status
+- Production binding control plane: CLOSED / VERIFIED
+- Runsheet binding: CLOSED / VERIFIED
+- Transfer binding: CLOSED / VERIFIED
+- Direct Sale binding: CLOSED / VERIFIED
+- Driver identity guard: CLOSED / VERIFIED
+- Transfer immutability: CLOSED / VERIFIED
+- Read model: CLOSED / VERIFIED
+- Inventory integrity: CLOSED / VERIFIED
+- Accounting side-effect integrity: CLOSED / VERIFIED
+- Mother source patch: READY / OWNER ACTION
+- Served Mother artifact: OPEN / UNVERIFIED
+- Authenticated Browser E2E after owner patch: OPEN / UNVERIFIED
+
+## Required next session sequence
+1. Re-verify current Mother HEAD/blob; reports are historical, not current truth.
+2. Apply only PATCH-332-01 through PATCH-332-06.
+3. Parse the complete `main.html`.
+4. Commit and publish Mother.
+5. Verify served artifact identity.
+6. Run authenticated Browser E2E:
+   - Vehicle Details → Runsheet bind
+   - Vehicle Details → Branch Transfer bind
+   - Vehicle Details → Direct Sale bind
+7. Verify Network / Console / DB.
+8. Replay each operation with the same operation_id.
+9. Snapshot Production at the same moment as the final report.
+10. Update this state again.
+11. Do not reopen any closed component without contradictory primary evidence.
+
+## Reference report
+`doc/Draft/Reprots/Report332_MOTHER_FLEET_VEHICLE_OPERATION_BINDING_FORENSIC_SURGICAL_CLOSURE_20260924.md`
+
 # CURRENT AUTHORITATIVE CHECKPOINT — 2026-09-24 — Report331 Voucher Draft Update Closure
 
 ## CURRENT TRUTH
