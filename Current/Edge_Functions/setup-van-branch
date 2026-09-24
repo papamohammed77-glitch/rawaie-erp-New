@@ -31,7 +31,7 @@ serve(async(req)=>{
 
     const {data:pu,error:ue}=await supabase
       .from('users')
-      .select('id,company_id,status,email,name')
+      .select('id,company_id,status,email,name,role')
       .eq('auth_id',user.id)
       .maybeSingle()
 
@@ -41,17 +41,63 @@ serve(async(req)=>{
 
     const companyId=pu.company_id
 
-    let q=supabase
-      .from('vehicles')
-      .select('id,company_id,vehicle_code,license_plate,driver_id,status,mobile_branch_id,mobile_stock_enabled')
-      .eq('company_id',companyId)
+    let vehicle=null
+    let resolutionMode=''
 
     if(vehicleId){
-      q=q.eq('id',vehicleId)
+      const {data:v,error:ve}=await supabase
+        .from('vehicles')
+        .select('id,company_id,vehicle_code,license_plate,driver_id,status,mobile_branch_id,mobile_stock_enabled')
+        .eq('company_id',companyId)
+        .eq('id',vehicleId)
+        .maybeSingle()
+
+      if(ve) throw new Error('فشل قراءة السيارة: '+ve.message)
+      vehicle=v||null
+
+      if(!vehicle) throw new Error('السيارة غير موجودة أو لا تتبع الشركة الحالية')
+      if(vehicle.status&&vehicle.status!=='Active') throw new Error('السيارة غير نشطة')
+      if(vehicle.mobile_stock_enabled===false) throw new Error('مخزون السيارة المتنقل غير مفعل')
+
+      if(driverEmail){
+        const {data:target,error:te}=await supabase
+          .from('users')
+          .select('id,company_id,email,status,role')
+          .eq('company_id',companyId)
+          .eq('email',driverEmail)
+          .maybeSingle()
+
+        if(te) throw new Error('فشل قراءة هوية المندوب: '+te.message)
+        if(!target) throw new Error('المندوب غير موجود ضمن الشركة الحالية')
+        if(target.status&&target.status!=='Active') throw new Error('المندوب غير نشط')
+
+        if(target.role==='مندوب بيع مباشر'){
+          const {data:assignment,error:ae2}=await supabase
+            .from('fleet_vehicle_sales_rep_assignments')
+            .select('id,vehicle_id,sales_rep_user_id,start_at')
+            .eq('company_id',companyId)
+            .eq('vehicle_id',vehicle.id)
+            .eq('sales_rep_user_id',target.id)
+            .eq('is_primary',true)
+            .is('end_at',null)
+            .maybeSingle()
+
+          if(ae2) throw new Error('فشل قراءة ربط مندوب البيع المباشر بالمركبة: '+ae2.message)
+          if(!assignment) throw new Error('المركبة غير مربوطة حاليًا بمندوب البيع المباشر')
+          resolutionMode='direct_sales_rep_assignment'
+        }else{
+          if(vehicle.driver_id!==target.id){
+            throw new Error('المندوب لا يطابق المندوب المرتبط بالسيارة')
+          }
+          resolutionMode='vehicle_driver'
+        }
+      }else{
+        resolutionMode='vehicle_id'
+      }
     }else{
       const {data:d,error:de}=await supabase
         .from('users')
-        .select('id,company_id,email,status')
+        .select('id,company_id,email,status,role')
         .eq('company_id',companyId)
         .eq('email',driverEmail)
         .maybeSingle()
@@ -59,28 +105,47 @@ serve(async(req)=>{
       if(de) throw new Error('فشل قراءة المندوب: '+de.message)
       if(!d) throw new Error('المندوب غير موجود ضمن الشركة الحالية')
       if(d.status&&d.status!=='Active') throw new Error('المندوب غير نشط')
-      q=q.eq('driver_id',d.id)
+
+      if(d.role==='مندوب بيع مباشر'){
+        const {data:assignment,error:ae2}=await supabase
+          .from('fleet_vehicle_sales_rep_assignments')
+          .select('id,vehicle_id,sales_rep_user_id,start_at')
+          .eq('company_id',companyId)
+          .eq('sales_rep_user_id',d.id)
+          .eq('is_primary',true)
+          .is('end_at',null)
+          .maybeSingle()
+
+        if(ae2) throw new Error('فشل قراءة ربط مندوب البيع المباشر بالمركبة: '+ae2.message)
+        if(!assignment) throw new Error('لم يتم تعيين مركبة نشطة لمندوب البيع المباشر')
+
+        const {data:v,error:ve}=await supabase
+          .from('vehicles')
+          .select('id,company_id,vehicle_code,license_plate,driver_id,status,mobile_branch_id,mobile_stock_enabled')
+          .eq('company_id',companyId)
+          .eq('id',assignment.vehicle_id)
+          .maybeSingle()
+
+        if(ve) throw new Error('فشل قراءة سيارة مندوب البيع المباشر: '+ve.message)
+        vehicle=v||null
+        resolutionMode='direct_sales_rep_assignment'
+      }else{
+        const {data:v,error:ve}=await supabase
+          .from('vehicles')
+          .select('id,company_id,vehicle_code,license_plate,driver_id,status,mobile_branch_id,mobile_stock_enabled')
+          .eq('company_id',companyId)
+          .eq('driver_id',d.id)
+          .maybeSingle()
+
+        if(ve) throw new Error('فشل قراءة السيارة: '+ve.message)
+        vehicle=v||null
+        resolutionMode='vehicle_driver'
+      }
     }
 
-    const {data:vehicle,error:ve}=await q.maybeSingle()
-
-    if(ve) throw new Error('فشل قراءة السيارة: '+ve.message)
     if(!vehicle) throw new Error('السيارة غير موجودة أو لا تتبع الشركة الحالية')
     if(vehicle.status&&vehicle.status!=='Active') throw new Error('السيارة غير نشطة')
     if(vehicle.mobile_stock_enabled===false) throw new Error('مخزون السيارة المتنقل غير مفعل')
-
-    if(driverEmail&&vehicle.driver_id){
-      const {data:d,error:de}=await supabase
-        .from('users')
-        .select('email,status')
-        .eq('id',vehicle.driver_id)
-        .eq('company_id',companyId)
-        .maybeSingle()
-
-      if(de) throw new Error('فشل التحقق من مندوب السيارة: '+de.message)
-      if(!d||String(d.email||'').trim().toLowerCase()!==driverEmail) throw new Error('المندوب لا يطابق المندوب المرتبط بالسيارة')
-      if(d.status&&d.status!=='Active') throw new Error('مندوب السيارة غير نشط')
-    }
 
     const branchCode='VAN-'+String(vehicle.vehicle_code||'').trim()
     if(branchCode==='VAN-') throw new Error('كود السيارة غير صالح لإنشاء مخزن متنقل')
@@ -195,6 +260,7 @@ serve(async(req)=>{
       vehicle_id:vehicle.id,
       vehicle_code:vehicle.vehicle_code,
       driver_id:vehicle.driver_id||null,
+      resolution_mode:resolutionMode,
       created,
       relinked,
       initialized_stock_rows:m?Number(m[1]):null,
