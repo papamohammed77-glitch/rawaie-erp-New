@@ -1,185 +1,205 @@
-# CURRENT AUTHORITATIVE CHECKPOINT — 2026-09-24 — Report333
-## Mother Fleet Vehicle Operation Binding — Production Reconciliation + Owner UI Closure
+# CURRENT AUTHORITATIVE CHECKPOINT — 2026-09-24 — Report334
+## Mother Fleet Vehicle Operation Link — Branch + Document/Reference Context
 
-> This block supersedes the older "current" sections below. Older checkpoints are retained as historical evidence and must not be treated as current truth.
+> This checkpoint supersedes all older CURRENT_STATE sections below. Older sections remain historical evidence and are not current truth.
 
-## Current Truth
-
+## Primary Source Verification
 ### System Git
-- Verified System HEAD before this state write: d7bc0a18d67cf07305cff4b80dcfa04c4fd1eb3b
-- Parent: 247feb5067c690e3ceca668c1b048ba56df3d856
-- Previous migration commit: 247feb5067c690e3ceca668c1b048ba56df3d856
-- Report333 commit: d7bc0a18d67cf07305cff4b80dcfa04c4fd1eb3b
+- Repository: `papamohammed77-glitch/rawaie-erp-New`
+- Verified pre-state HEAD: `d6e497afbb394c4f24fc7648adb4fe2a3e610ee9`
+- Parent: `247feb5067c690e3ceca668c1b048ba56df3d856`
+- Report334 commit: `c86a9f7e5a5fb336d8735e35ad82d15a5a82ab22`
+- Production migration committed: `df3bc5a5e9ee8fd9a86acaf1d5e1c3fbff54e7f4`
 
 ### Mother Git
-- Repository: papamohammed77-glitch/erp-frontend
-- HEAD: 413b1eb8bfc633a0489b5e27b3c69874a2afa562
-- Parent: 4ef6973f2289f76d89aa9d9d52628171326793d8
-- File: companies/company-1/main.html
-- Blob: 274a884785ac1a38394a30735802dec5378fad0d
-- Size: 32,075 lines / 1,741,281 chars
-- Assistant direct write: NO
-- Current source contains zero vehicle-operation binding UI symbols.
+- Repository: `papamohammed77-glitch/erp-frontend`
+- Current verified HEAD before owner edit: `b1820141d49dbe9b82e339cd7ccb05781f39d81a`
+- Parent: `7915275b87c74f1b249a1da7b3732a16511aae38`
+- File: `companies/company-1/main.html`
+- Current blob verified: `c521d84fd96143b435e432e135e2d8a967acf60e`
+- Mother was not directly modified by this execution.
 
-## Governance Read
-- MASTER CTO GOVERNANCE read to EOF: SHA b03feec14a417ca9032d714774f2687b4542a373.
-- CURRENT_STATE read to EOF before reconciliation: SHA 712edbe552a37269b1f00bdcd09a89ca8fae697c.
-- Report332 read to EOF: SHA 161e9fa2346a38df89e747ad8ae73230bd75b265.
-- Reports remain historical/contextual; current Production and current source override stale report claims.
+### Governance
+- `MASTER CTO GOVERNANCE & CONTINUOUS EXECUTION OS — RAWAEA ERP.md` read from Git before work.
+- Reports were treated as historical context only.
+- Current truth was reconstructed from Git + source + Production + database + deployment evidence.
 
-## Production Control Plane
-Existing control plane retained:
-- fleet_command_atomic
-- fleet_query
-- VEHICLE_OPERATION_BIND
-- vehicle_detail
-- vehicle_operation_candidates
+## Scope Closed in This Session
+Closure unit:
+Mother `main.html` → `RW_FleetManagement` → Vehicle Details → `ربط المركبة بالعملية`.
 
-No new Edge Function was created.
+## Production Changes
+Migration applied directly to Production:
+`20260924145700_extend_fleet_vehicle_operation_candidates_document_branch_context`
 
-### Operation contracts
-- RUNSHEET → runsheets.vehicle_id + driver_id + deliverer_id.
-- BRANCH_TRANSFER → stock_vouchers.vehicle_id + driver_id.
-- DIRECT_SALE → stock_vouchers.to_type='Vehicle' + to_id + custodian_user_id.
+Existing `fleet_query` was extended only:
+- optional `branch_id` filter for `vehicle_operation_candidates`
+- company + active-branch guard
+- active company branch list in candidate response
+- Transfer projection now returns `from_branch_id`, `to_branch_id`, `from_branch_name`, `to_branch_name`, `reference`
+- selected branch filters transfer documents by source or destination branch
 
-### Physical Stock
-Canonical contract unchanged:
-post_stock_movement → stock_branches + inventory_log.
+No new Edge Function.
+No new Physical Stock engine.
+No `VEHICLE_OPERATION_BIND` contract change.
+No binding-side stock mutation.
+No binding-side accounting mutation.
 
-Binding never directly mutates physical stock.
+## Proven Functional Contract
+- RUNSHEET → `runsheets.vehicle_id + driver_id + deliverer_id`
+- BRANCH_TRANSFER → `stock_vouchers.vehicle_id + driver_id`
+- DIRECT_SALE → `stock_vouchers.to_type='Vehicle' + to_id + custodian_user_id`
+- Driver, delivery representative, and direct-sales representative remain distinct identities.
+- Direct Sale must not be given a duplicate `vehicle_id`.
 
-## Proven Root Cause
-Legacy enforce_stock_voucher_custodian() incorrectly treated vehicles.driver_id as the Direct Sales Representative.
+## Proven Root Cause of Current UI Gap
+Production binding/control plane already existed and was operational.
+The actual gap was Consumer/Read Model context:
+- transfer candidates did not expose branch IDs/names to Mother
+- Mother displayed voucher code without a separate document/reference presentation
+- no branch selector existed in the vehicle-link modal
+- direct-sale and transfer option labels did not surface the reference
+- linked vehicle-detail operation cards did not display the reference
 
-This contradicted the operation-level DirectSale contract based on stock_vouchers.custodian_user_id.
+## Exact Mother Surgical Patches — Owner Only
+### PATCH-334-01
+Replace only:
+`function operationBlock(title, rows, type)`
+around line 29099.
 
-Final separation:
-- Vehicle driver = operational driver.
-- DirectSale custodian = operation-level Direct Sales Representative.
+Purpose:
+show `reference` in linked operation cards.
 
-## Production Repairs Applied
-1. 20260924125815_fix_directsale_custodian_operation_identity_20260924
-   - custodian_user_id required for DirectSale/DirectReturn.
-   - same-company active direct-sales rep.
-   - role = مندوب بيع مباشر.
-   - permission = van-sales.
-   - executed mobile voucher identity immutable.
-   - no Physical Stock contract change.
+### PATCH-334-02
+Replace only:
+`async function openVehicleOperationLinkForm()`
+around line 29180, ending immediately before:
+`async function openVehicleEdit(id){`
 
-2. 20260924130417_align_fleet_direct_sales_rep_permission_20260924_v3
-   - fleet_query candidates and fleet_command bind guard now use the same direct-sales rep contract.
-   - same-company + active + role + van-sales permission.
+Purpose:
+- Branch selector for Branch Transfer.
+- Branch-filtered candidate query.
+- Read-only document number and reference.
+- Automatic document/reference population for Transfer and Direct Sale.
+- Existing RUNSHEET flow unchanged.
+- Existing DirectSale contract unchanged.
+- Driver/delivery/direct-sales identities remain separate.
 
-## Current Production Data Checks
-- mobile_missing_custodian = 0.
-- mobile_invalid_custodian = 0.
-- transfer_missing_driver = 0.
-- transfer_missing_vehicle = 0.
-- transfer_invalid_vehicle = 0.
-- transfer_invalid_driver = 0.
-- active same-company direct-sales reps with van-sales = 2.
-- E2E residual vouchers/runsheets/logs = 0.
+The surgical replacements are contained in Report334 and must be applied by the owner to Mother `main.html`.
+Do not replace any larger enclosing function or file.
 
-## E2E Verification
-### RUNSHEET
-PASS:
-bind persisted; replay duplicate=true; stock delta 0; GL delta 0; vehicle_detail read model correct.
+## Production E2E Evidence
+All binding tests used a temporary Transaction and were rolled back.
+
+### Candidate Read Model
+- branches_count = 4
+- transfer_docs = 3
+- direct_sale_docs = 1 in temporary fixture
+- Transfer reference present
+- Transfer source/target branch names present
+- Direct Sale reference present
+
+### Branch Filter
+- selected BR-01 filter returned only rows matching source/destination branch
+- `all_transfer_docs_match_branch = true`
+- invalid branch was rejected with:
+  `فرع التصفية غير موجود أو غير نشط للشركة`
 
 ### BRANCH_TRANSFER
-PASS:
-bind persisted; bind replay duplicate=true; send PASS; receive PASS; receive replay duplicate=true; complete PASS; source stock -1; target stock +1; journal delta 0; vehicle_detail transfer projection correct.
+- bind = PASS
+- replay = `duplicate=true`
+- vehicle and driver persisted
+- binding produced no stock or GL mutation
 
 ### DIRECT_SALE
-PASS:
-operation-level direct-sales rep persisted; bind replay duplicate=true; send PASS; source stock -1; mobile stock +1; driver custody ledger +10 for one test unit; Journal/Customer Ledger/Supplier Ledger/Treasury/Cash Box deltas 0; vehicle_detail direct-sales projection correct.
+- bind = PASS
+- replay = `duplicate=true`
+- vehicle persisted through `to_id`
+- direct-sales representative persisted through `custodian_user_id`
+- binding produced no stock or accounting mutation
 
-### DirectSale immutable identity
-PASS:
-executed DirectSale could not be rebound to a different vehicle/direct-sales representative.
+### Cleanup
+After rollback:
+- QA fleet vouchers = 0
+- QA fleet registry rows = 0
+- QA audit residue = 0
 
-### Authenticated query path
-PASS:
-JWT/auth.uid simulation resolved fleet_query when p_actor_user_id was NULL and returned direct_sales_reps.
+## Production Snapshot
+Verified at:
+`2026-09-24T14:08:08.188883+00:00`
 
-## Accounting / Stock Integrity
+- active companies = 1
+- company branches = 4
+- vehicles = 2
+- runsheets = 0
+- stock_vouchers = 2
+- inventory_log = 25
+- journal_entries = 10
+- journal_lines = 16
+- driver_ledger = 4
+- QA fleet vouchers = 0
+- QA fleet registry = 0
+
+## Accounting / Stock Boundary
 Binding alone:
-- stock mutation = 0.
-- GL mutation = 0.
+- Physical stock delta = 0
+- allocated stock delta = 0
+- GL delta = 0
+- driver-ledger delta = 0
 
-DirectSale SEND test:
-- source branch stock = -1.
-- mobile branch stock = +1.
-- direct-sales custody = +10.
-- no extra journal posting.
-- no customer/supplier/treasury/cash mutation.
+Operational SEND/RECEIVE accounting and stock effects remain in their existing canonical business writers and were not duplicated inside the Fleet binding command.
 
-## Owner main.html Closure
-Mother main.html was intentionally not written.
+## Deployment Boundary
+- Edge Function count was not increased by this task.
+- Existing `fleet_query` RPC was used.
+- Production control plane remains centralized.
+- Mother browser deployment is still open until the owner applies PATCH-334-01 and PATCH-334-02 and the served artifact is verified.
 
-Exact owner patch set is Report333 PATCH-333-01 through PATCH-333-06.
+## Current Closure Status
+- Production vehicle-operation control plane: CLOSED
+- Candidate branch/document read context: CLOSED
+- Transfer bind contract: CLOSED
+- Direct Sale bind contract: CLOSED
+- Physical Stock centralization: CLOSED
+- Mother surgical patch design: READY FOR OWNER
+- Mother source edit by assistant: NOT PERFORMED
+- Served Mother artifact after owner edit: OPEN
+- Authenticated browser E2E after owner publish: OPEN
 
-Static validation of an in-memory patched copy:
-- command(operationId) anchor = 1.
-- operationId forwarding = 1.
-- operationBlock = 1.
-- openVehicleOperationLinkForm = 1.
-- API exposure = 1.
-- six inline scripts parsed successfully.
+## Competitor-Derived Future Backlog — Not Current Defects
+Keep separate from this closure:
+- operation odometer start/end
+- operation distance
+- fuel/maintenance/toll allocation
+- planned vs actual trip cost
+- vehicle capacity utilization
+- cost per km / order / runsheet / transfer / direct sale
 
-### Important non-defect
-Do not patch fleet_query p_actor_user_id in main.html.
-Production fleet_query intentionally uses auth.uid() when the browser sends a valid JWT and p_actor_user_id is NULL.
-
-## Closure Status
-- Production Fleet Operation Binding Control Plane: FULLY CLOSED.
-- Runsheet binding: FULLY CLOSED.
-- Branch Transfer binding: FULLY CLOSED.
-- Direct Sale binding: FULLY CLOSED.
-- Direct Sales Rep identity guard: FULLY CLOSED.
-- Physical Stock centralization: VERIFIED CLOSED.
-- Data integrity: VERIFIED.
-- Accounting side-effect integrity: VERIFIED.
-- Mother main.html consumer: OWNER PATCH READY.
-- Served artifact after Owner patch: OPEN.
-- Authenticated Browser E2E after Owner publish: OPEN.
-
-## Competitor-derived future backlog
-Do not mix these into the current closure:
-- operation odometer start/end.
-- distance per operation.
-- fuel/maintenance/toll allocation.
-- planned vs actual trip cost.
-- vehicle capacity utilization.
-- cost per kilometer / delivered order / runsheet / transfer / direct sale.
-These are future capability candidates, not current defects.
-
-## Exact Next Session
-1. Re-verify current System HEAD.
-2. Re-verify Mother HEAD + main.html blob.
-3. Apply only Report333 PATCH-333-01..06.
-4. Parse full main.html.
-5. Commit and publish Mother.
-6. Verify served artifact identity.
-7. Run authenticated browser E2E on Runsheet / Branch Transfer / Direct Sale.
-8. Capture Console + Network.
-9. Verify DB, stock, accounting, audit, and vehicle_detail.
-10. Replay using same Operation ID.
-11. Take Production snapshot at the same reporting moment.
-12. Update this file again.
-13. Do not reopen closed Fleet/Inventory/Voucher contracts without contradictory primary evidence.
+## Next Session Instructions
+1. Re-verify System HEAD and Mother HEAD.
+2. Read this checkpoint but verify it against primary sources.
+3. Do not reopen closed Fleet/Inventory/Voucher contracts unless contradictory primary evidence appears.
+4. Apply only PATCH-334-01 and PATCH-334-02 to Mother `main.html`.
+5. Parse the full file.
+6. Commit and publish Mother.
+7. Verify served artifact identity.
+8. Run authenticated Browser E2E for RUNSHEET, BRANCH_TRANSFER, DIRECT_SALE.
+9. Capture Console and Network evidence.
+10. Verify vehicle_detail, candidate read model, audit, stock, and accounting.
+11. Replay with the same Operation ID.
+12. Take Production snapshot at the same reporting moment.
+13. Update CURRENT_STATE again.
 
 ## Report
-`doc/Draft/Reprots/Report333_MOTHER_FLEET_VEHICLE_OPERATION_BINDING_COMPLETION_20260924.md`
+`doc/Draft/Reprots/Report334_MOTHER_FLEET_VEHICLE_OPERATION_LINK_BRANCH_DOCUMENT_FORENSIC_CLOSURE_20260924.md`
 
-## Continuity Directive
-Start future work from:
+## Continuity Rule
+Start from:
 CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
 
-Do not trust this file blindly; re-verify it against current primary sources.
-Do not redo closed repairs.
-Do not create a new Edge Function for this capability.
+Do not trust historical reports or older CURRENT_STATE claims over primary evidence.
 Do not create a second Physical Stock engine.
-Do not use vehicle.driver_id as DirectSale custodian identity.
+Do not create a new Edge Function for this capability.
 
 ---
 
