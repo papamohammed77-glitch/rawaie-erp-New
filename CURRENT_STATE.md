@@ -1285,3 +1285,104 @@ Against current blob:
 6. Verify Console and Network.
 7. Capture fresh Production snapshot.
 8. Update this state again.
+
+
+---
+
+# CURRENT CHECKPOINT — 2026-09-24 — Report328 Purchase Invoice URL Forensic Closure
+
+## Current Mother Truth
+- Frontend repository: `papamohammed77-glitch/erp-frontend`
+- Current HEAD: `0010f719a33bfcda3f2922eca66c6be55d5582a9`
+- Parent: `b5043e626bf9eddea87644c36d024291cccff55f`
+- Current Mother blob: `4eb18a27285550e81a6b1564fdb9df4708363cfa`
+- File: `companies/company-1/main.html`
+- Current file size: 1,741,278 bytes / 32,075 lines
+
+## Purchase Invoice Incident
+Root cause is PROVEN in current source:
+`RW_PurchaseGold.api(operation, payload, operationId)` line 12040 references undefined `SUPABASE_URL` instead of existing `RW_SUPABASE_URL`.
+The failure is thrown before HTTP dispatch; current `createInvoice()` catch displays the error and closes the loader. No Console error is expected from the current code because the exception is caught without console logging.
+
+## Production Truth
+- Supabase project: `fiilmooggumokxanwiyx`
+- Existing Edge Function: `save-purchase-order` Version 7, `verify_jwt=true`
+- CREATE_INVOICE → `purchase_create_invoice_atomic_v2`
+- POST_INVOICE → `purchase_post_invoice_atomic`
+- No new Edge Function created.
+- No additional Production migration required for this specific incident.
+
+## Production Snapshot at Closure Investigation
+- companies = 1
+- suppliers = 2
+- purchase_orders = 0
+- purchase_invoices = 0
+- purchase_returns = 0
+- purchase_payments = 0
+- inventory_log = 6
+- stock_branches = 48
+- supplier_ledger = 0
+- journal_entries = 8
+- journal_lines = 12
+
+## E2E Transactional Proof
+Completed isolated Production transaction using real supplier/branch/item identities and rolled back at the end.
+- CREATE invoice: PASS
+- CREATE replay same operation_id: duplicate=true PASS
+- POST invoice: PASS
+- Stock delta: +1 PASS
+- Inventory log delta: +1 PASS
+- Journal entry delta: +1 PASS
+- Journal lines delta: +2 PASS
+- Journal debit/credit: 10.00 / 10.00 PASS
+- Supplier ledger delta: +1 PASS
+- Supplier credit: 10.00 PASS
+- POST replay: duplicate=true PASS
+- QA residue after rollback: 0
+
+## Owner Surgical Patch — NO DIRECT MAIN.HTML WRITE
+File:`companies/company-1/main.html`
+Function:`RW_PurchaseGold.api(operation, payload, operationId)`
+Line:12040
+Find exactly:
+```js
+      SUPABASE_URL + '/functions/v1/save-purchase-order',
+```
+Replace only with:
+```js
+      RW_SUPABASE_URL + '/functions/v1/save-purchase-order',
+```
+Do not replace the whole function and do not modify closed Purchase logic.
+
+## Static Verification
+- Current full inline script compilation: PASS
+- In-memory one-line correction compilation: PASS
+- Current full source is not modified by the assistant.
+
+## Closure Status
+- Root cause: PROVEN
+- Production backend: VERIFIED
+- Production data: CLEAN
+- Purchase accounting E2E: PASS
+- Stock E2E: PASS
+- Idempotency: PASS
+- Mother surgical patch: READY / OWNER ACTION
+- Served artifact: OPEN until Owner publish
+- Authenticated Browser E2E: OPEN until Owner publish
+- Purchase Invoice Closure: PENDING ONE-LINE OWNER PATCH
+
+## Non-Reopened Historical Work
+Report323/Report324 work already present in Current Source was not repeated.
+
+## Next Resumption
+1. Verify Owner applied Report328 one-line patch only.
+2. Fetch new current Mother blob.
+3. Parse full main.html.
+4. Verify `RW_PurchaseGold.api()` URL expression.
+5. Verify served artifact identity.
+6. Run authenticated Browser E2E Purchase Invoice.
+7. Capture Console + Network + HTTP.
+8. Immediately snapshot Production after Browser E2E.
+9. Close this Closure Unit only after those current proofs.
+
+Reference report: `doc/Draft/Reprots/Report328_MOTHER_PURCHASE_INVOICE_SUPABASE_URL_FORENSIC_CLOSURE_20260924.md`
