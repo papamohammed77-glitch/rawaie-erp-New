@@ -1,3 +1,30 @@
+# FINAL AUTHORITATIVE POINTER — 2026-09-24 — POST-REPORT337 FINAL STATE
+
+## Final System Git
+- HEAD: `44c377a89eb0e66e6007debfba61cfd098618a1c`
+- Parent: `016e62148fa82c6edb1d0ebd82efa170dc9924d4`
+- This state file is the latest authoritative continuation pointer after Report337.
+
+## Final Mother Git
+- HEAD: `7ca0aa1324fe1d925a752f559e990e92e29a384b`
+- Parent: `854bc0d05389131782529e1b68801e4d651286c8`
+- `companies/company-1/main.html` blob: `95cf0d8dfcb87f78962ae89038f141bcdb2c29a6`
+- `main.html` remains untouched by the assistant.
+- Owner-only PATCH-337 is documented in Report337.
+
+## Final Production
+- `VEHICLE_OPERATION_BIND` operational authorization = deployed.
+- Warehouse Supervisor E2E = PASS.
+- Vouchers operator E2E = PASS.
+- DirectSale CREATE → BIND → REPLAY → SEND = PASS.
+- QA residue = 0.
+- Browser authenticated E2E = OPEN / UNVERIFIED.
+
+## Immediate next action
+Owner applies PATCH-337 to Mother `main.html`, then the next session verifies the new Mother HEAD/source/published artifact before any further change.
+
+---
+
 # FINAL AUTHORITATIVE POINTER — 2026-09-24 — REPORT337 FLEET OPERATION BINDING AUTHORIZATION CLOSURE
 
 ## Current primary-source identities
