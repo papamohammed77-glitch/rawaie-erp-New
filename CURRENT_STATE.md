@@ -1179,3 +1179,109 @@ Reports are historical/contextual evidence only.
 ### Report
 - Report326: `doc/Draft/Reprots/Report326_MOTHER_SUPPLIER_PURCHASE_REP_FORENSIC_SURGICAL_CLOSURE_20260924.md`.
 - Report commit: `82c72e258aab52dd8ed84d9cd70d8962663381da`.
+
+
+---
+
+# LATEST AUTHORITATIVE CHECKPOINT — 2026-09-24 — Supplier Purchase Representative Inline Scope Fix
+
+## Current truth verified from primary sources
+- Frontend repository: `papamohammed77-glitch/erp-frontend`
+- Current Frontend HEAD: `47ff966a23e89b19666485ac239455ec9a06a79d`
+- Parent: `3bd5ab664608e7a7632ce978d7b50c3181508516`
+- Current `companies/company-1/main.html` blob: `2b14edfaaa2dc1c64af386a187b795aca9e239a9`
+- Current source line count: 32,075
+- Assistant direct write to `main.html`: NO
+
+## Historical change reconciled
+Commit `3bd5ab...` introduced the Responsible Buyer smart-search UI.
+The later `47ff966...` commit changed only the forensic extract.
+Therefore Report326's older main.html blob is stale and must not be used as current source.
+
+## Defect
+Target:
+`RW_Suppliers.openModal(code)` → `#supp-rep`
+
+Current target line: **6938**
+
+The target occurs exactly once.
+
+## Root cause
+The page defines:
+`var supabase = RW_SUPABASE_CLIENT`
+inside the page's private IIFE, while explicitly exposing:
+`window.RW_SUPABASE_CLIENT = client`.
+
+The Responsible Buyer search is embedded in an inline HTML event handler. That handler cannot close over the IIFE-local `supabase` variable, so `supabase` resolves to the global Supabase SDK namespace.
+
+That global namespace does not expose the client instance `rpc()` method.
+
+Observed Console error:
+`Uncaught TypeError: supabase.rpc is not a function`
+
+## Correct surgical fix
+Replace only the existing `#supp-rep` element inside `RW_Suppliers.openModal(code)`.
+
+The only behavioral correction is:
+`supabase.rpc('get_supplier_purchase_reps', ...)`
+→
+`window.RW_SUPABASE_CLIENT.rpc('get_supplier_purchase_reps', ...)`
+
+Full replacement is documented in:
+`doc/Draft/Reprots/Report327_MOTHER_SUPPLIER_PURCHASE_REP_INLINE_SCOPE_FORENSIC_CLOSURE_20260924.md`
+
+## Production verification
+Canonical Production lookup remains:
+`public.get_supplier_purchase_reps(text)`
+
+Verified properties:
+- SECURITY DEFINER
+- authenticated EXECUTE = true
+- anon EXECUTE = false
+- auth.uid required
+- company derived from authenticated user
+- suppliers permission required
+- active users
+- role `مسئول مشتريات`
+- search name/email/phone/employee_id
+- max 25
+
+`save-supplier` remains Version 5 ACTIVE with verify_jwt=true.
+`save_supplier_atomic` remains the Supplier Master writer.
+No Production schema, table, Edge Function, inventory or accounting change was required for this UI defect.
+
+## Current Production baseline
+- suppliers = 2
+- inventory_log = 6
+- stock_branches = 48
+- supplier_ledger = 0
+- journal_entries = 8
+
+No QA residue.
+
+## Static verification
+Against current blob:
+- `id="supp-rep"` occurrences = 1
+- old local RPC reference in target block = 1
+- corrected global client RPC reference in in-memory patch = 1
+- corrected onfocus handler parse = PASS
+- no change to `_handleSave()`
+- no change to purchase/inventory/accounting workflow
+
+## Closure status
+- Root cause = PROVEN
+- Production backend/data contract = CLOSED / VERIFIED
+- Main source surgical patch = READY / OWNER ACTION
+- Served artifact identity = OPEN
+- Authenticated Browser E2E after Owner publish = OPEN
+- Overall Supplier Purchase Representative UI = PARTIALLY CLOSED
+
+## Exact next resumption
+1. Apply only Report327's `#supp-rep` replacement.
+2. Full `main.html` parse.
+3. Owner commit/publish.
+4. Verify served artifact identity.
+5. Run authenticated Browser E2E Add/Edit Supplier → Responsible Buyer search/select/blank.
+6. Verify Console and Network.
+7. Capture fresh Production snapshot.
+8. Update this state again.
