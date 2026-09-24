@@ -1,3 +1,112 @@
+# LATEST AUTHORITATIVE CHECKPOINT — 2026-09-24 07:05 UTC
+
+## Current Truth
+CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE only.
+
+### Latest System Git
+- Current checkpoint before this update: `89058fcdb80e311694607a8a24e653b2fc5570ca`
+- Parent: `1b4744eb345c652dec9745b141e704be69c0d04e`
+- New forensic report: `doc/Draft/Reprots/Report324_MOTHER_PURCHASE_INVOICE_OWNER_PATCH_FORENSIC_CLOSURE_20260924.md`
+- Report commit: `b0b2503a3f714d6c42c492b0a1ec4761fa8658be`
+
+### Current Mother Frontend
+- Repository: `papamohammed77-glitch/erp-frontend`
+- HEAD: `ae6049f9672031da7113b2b1296e7f3fee14eeee`
+- Parent: `1799a7107460410840efbd76a1145e624f0b2a34`
+- `companies/company-1/main.html` blob: `e1766d81a59a5e18d654f0366846701c36922edf`
+- Owner applied Report323 to Mother source.
+- No assistant write to `main.html`.
+
+### Mother Purchase Current Source Forensics
+`RW_PurchaseGold.createInvoice()` now contains:
+- supplier smart search
+- item smart search
+- PO→supplier synchronization
+- supplier invoice number field
+- invoice notes field
+- selected-item logic
+
+Current source defect proven:
+- obsolete legacy handler tail remains at lines 13543–13550.
+- full inline script compilation fails with `SyntaxError: Unexpected token 'catch'`.
+
+Missing source payload proven:
+- `preConfirm` contains `supplier_invoice_no`
+- `notes: byId('pg-i-notes').value.trim(),` is missing.
+
+After exact owner surgical corrections:
+- PATCH-324-01 removes only the obsolete tail.
+- PATCH-324-02 adds only the missing notes line.
+- in-memory full inline-script compilation = PASS.
+
+### Current Production Purchase
+- `save-purchase-order`: Version 7, ACTIVE, verify_jwt=true.
+- Production source matches canonical Current source.
+- CREATE_INVOICE → `purchase_create_invoice_atomic_v2`.
+- No new Edge Function required.
+- `purchase_create_invoice_atomic_v2` persists `supplier_invoice_no` and `notes`.
+- `purchase_post_invoice_atomic` posts inventory through `post_stock_movement`, then Journal + Supplier Ledger.
+
+### Fresh Production E2E (transactional / rollback)
+- CREATE = PASS.
+- CREATE same `operation_id` = `duplicate=true`, same invoice = PASS.
+- POST = PASS.
+- POST replay = `duplicate=true` = PASS.
+- Stock delta = +2.
+- Inventory movements for invoice = 1.
+- Supplier Ledger rows = 1, credit = 110.
+- Journal entries = 1, lines = 2, debit = 110, credit = 110.
+- Invoice detail `received_qty=2`.
+- Invoice persisted fields in transaction: supplier invoice reference + notes = PASS.
+- Transaction rolled back; no permanent QA purchase data remains.
+
+### Current Production Database Snapshot
+- companies = 1
+- active_branches = 4
+- active_suppliers = 0
+- active_items = 16
+- purchase_orders = 0
+- purchase_invoices = 0
+- purchase_invoice_details = 0
+- supplier_ledger rows = 0
+- purchase journal rows = 0
+- inventory_log rows = 6
+
+### Competitive Contract Check
+Current official references confirm mature purchase invoice workflows include Supplier, Reference, Due Date/Payment Terms, PO relation, item/qty/price/tax/discount, posting, AP impact, inventory/accounting integration and invoice verification/matching. Current RAWAEA backend already contains the required relational and posting foundation for the present closure; advanced 3-way matching/tolerance/workflow remain separate Business Contract closures.
+
+### Closure Status
+- Production Purchase Core = CLOSED / VERIFIED
+- Supplier Smart Search Backend = CLOSED / VERIFIED
+- Item Smart Search Backend = CLOSED / VERIFIED
+- Supplier Invoice Reference Backend = CLOSED / VERIFIED
+- Notes Backend = CLOSED / VERIFIED
+- Mother main.html = FOUND DEFECT / OWNER PATCH READY
+- Full Mother syntax = OPEN until owner applies PATCH-324-01
+- Notes payload = OPEN until owner applies PATCH-324-02
+- Authenticated Browser E2E = OPEN
+
+### Exact Next Resumption Point
+1. Read Report324.
+2. Verify Mother HEAD `ae6049f...` and blob `e1766d...`.
+3. Search `RW_PurchaseGold.createInvoice()`.
+4. Delete exact lines 13543–13550 from PATCH-324-01 only.
+5. Add the exact `notes` line from PATCH-324-02.
+6. Parse full `main.html`.
+7. Commit/publish frontend.
+8. Verify served artifact identity.
+9. Fresh authenticated browser E2E.
+10. Verify Purchase CREATE → POST → stock → inventory_log → supplier_ledger → journal → realtime.
+11. Replay CREATE and POST.
+12. Capture fresh Production snapshot.
+13. Update CURRENT_STATE.
+14. Do not reopen closed Purchase backend contracts unless contradictory current evidence appears.
+
+### Anti-Regression
+Do not reapply Report323. Do not replace `createInvoice()` wholesale. Do not create a new Edge Function for this closure.
+
+---
+
 # LATEST AUTHORITATIVE CHECKPOINT — 2026-09-23 18:30 UTC
 
 ## Current Truth
