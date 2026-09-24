@@ -1,3 +1,104 @@
+# FINAL AUTHORITATIVE POINTER — 2026-09-24 — VOUCHERS PICKSELECT + DIRECTRETURN FORENSIC CLOSURE
+
+## Current continuation baseline
+- System repository baseline before this state update: `0d5a57d7b263cbb10e5235db56175fc4b7825ed3`
+- Parent of that baseline: `1e9fdfeda9a8d143acb58d0df76d632c2362cef9`
+- Latest execution report:
+  `doc/Draft/Reprots/EXECUTION_LOG_20260924_VOUCHERS_PICKSELECT_AND_DIRECTRETURN_FORENSIC_CLOSURE.md`
+- Durable Production migration source recorded in Git:
+  `supabase/migrations/20260924205655_fix_duplicate_directreturn_branch_in_voucher_create_core.sql`
+
+## Mother current source
+- Repository: `papamohammed77-glitch/erp-frontend`
+- HEAD: `666f15bc84348b6fb44a5c565dcf2fb4fe1d0c98`
+- Parent: `1c7f2596e7543a1ea4684d84171804b3e4d5a4d8`
+- `companies/company-1/warehouse/vouchers.html` blob:
+  `ab5d8ddc1934e3d48e4e0c60e18a4624dd1799d2`
+- `companies/company-1/main.html` blob:
+  `810e4f5440f5975f55099a124deb42b086a49183`
+- Assistant changed `main.html`: NO.
+- Assistant changed `vouchers.html`: NO; owner-controlled surgical patch remains pending.
+
+## Direct runtime defect
+- Console error:
+  `Uncaught ReferenceError: vehicleRep is not defined`
+- Function: `pickSelect(key,x)`
+- Faulty stale block is the `vehicleRep.id / vehicleRep.name / vehicleRep.email` block around lines 3430–3446.
+- Exact surgical repair is V-07 in the latest execution report.
+- After in-memory application, complete embedded JavaScript parsing: PASS.
+- `vehicleRep` no longer appears in `pickSelect` after V-07; other occurrences remain only in their original valid local scopes.
+
+## Production closures executed
+- Verified QA vouchers `IN-1` and `IN-2` were test artifacts.
+- Reversed their combined net physical effect exclusively through `post_stock_movement`.
+- Removed voucher headers/details and original/reversal inventory-log rows.
+- Retained 3 immutable operation-identity tombstones with `voucher_id IS NULL`.
+- Removed temporary forensic cleanup function.
+- Restored the production delete/detail guards to their normal behavior.
+- Final residue:
+  - QA vouchers = 0
+  - QA details = 0
+  - QA inventory-log rows = 0
+  - forensic cleanup function = 0
+  - immutable QA operation tombstones = 3
+
+## Production DirectReturn correction
+- Proved the old CREATE defect transactionally before patch.
+- Patched only the existing `create_manual_stock_voucher_atomic_core_12_20260828`.
+- Removed the unreachable duplicate DirectReturn branch.
+- Preserved contract: Vehicle -> Branch.
+- Preserved existing DirectReturn driver semantics.
+- No new Edge Function.
+- `post_stock_movement` unchanged.
+- Full temporary E2E after the fix:
+  CREATE -> SEND -> RECEIVE -> COMPLETE -> assertions -> ROLLBACK = PASS.
+- No persistent QA rows after rollback.
+
+## Production DirectSale verification
+- Current active Master Assignment:
+  - rep: `vansales@rawaea.com`
+  - rep_id: `111b0730-a977-4d11-bcd0-2427b178a9e5`
+  - vehicle: `CHV-2025-01`
+  - vehicle_id: `69b08188-60ee-43af-9644-e1626a85bfa0`
+  - mobile branch: `VAN-CHV-2025-01`
+  - mobile_branch_id: `2fffcf58-be04-4599-a289-8791362398ff`
+  - vehicle.driver_id = NULL
+  - assignment is Active / Primary / end_at NULL
+- DirectSale CREATE -> SEND -> Replay -> COMPLETE transaction test = PASS.
+- Source stock delta = -1.
+- Vehicle mobile branch stock delta = +1.
+- Duplicate replay protection = PASS.
+- Transaction rolled back completely.
+
+## Current architecture rules
+- Physical stock movement remains:
+  `post_stock_movement -> stock_branches + inventory_log`
+- `reserve_stock` remains reservation-only.
+- Do not reintroduce DirectSale dependency on `vehicles.driver_id`.
+- Do not create another Edge Function for vouchers.
+- Do not modify `post_stock_movement`.
+- Do not reapply already-closed Report334/336/340 changes.
+- Do not modify Mother `main.html` in this closure.
+- Do not modify `vouchers.html` automatically; owner must apply V-07.
+- Do not convert DB/RPC E2E to Browser E2E.
+
+## Browser status
+- Authenticated Browser E2E after V-07: OPEN / UNVERIFIED.
+- Published artifact verification for the corrected Vouchers source: OPEN / UNVERIFIED.
+
+## Next session
+1. Fetch this CURRENT_STATE first.
+2. Fetch current System HEAD and parent.
+3. Fetch Mother HEAD, parent, vouchers blob, and main blob.
+4. Check whether owner applied V-07 exactly before proposing it again.
+5. Parse complete vouchers.html.
+6. Run authenticated browser E2E against the published artifact.
+7. Verify Rep -> Vehicle Master mapping in the browser network flow.
+8. Verify DirectSale and DirectReturn UI end-to-end.
+9. Only after browser closure open the next real closure unit.
+
+---
+
 # FINAL AUTHORITATIVE POINTER — 2026-09-24 — REPORT340
 
 ## CURRENT SESSION TRUTH — START HERE
