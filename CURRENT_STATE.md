@@ -1,3 +1,87 @@
+# FINAL AUTHORITATIVE POINTER — 2026-09-24 — POST-REPORT338
+
+## Session authoritative truth
+### System Git
+- Repository: `papamohammed77-glitch/rawaie-erp-New`
+- Current HEAD: `1ca51a461608f25a730a237f28e891a784d6ca84`
+- Parent: `b5772877db399028be13be1750178847cb18605e`
+- Report: `doc/Draft/Reprots/Report338_MOTHER_FLEET_PERMISSION_BOUNDARY_AND_VOUCHERS_DIRECTSALE_FORENSIC_CLOSURE_20260924.md`
+
+### Mother Git
+- Repository: `papamohammed77-glitch/erp-frontend`
+- Current HEAD: `9257912dddb3b432a7d6979f41c68e25570ce3f5`
+- Parent: `f32f970ad395ad163f770d3cdf56f9015198e3a6`
+- Current `companies/company-1/main.html` blob: `617e6d9ac123e1112dc37bea0097b59b0d0509cb`
+- `main.html` was NOT modified by assistant.
+- PATCH-337 was already applied in Mother commit `f32f970ad395ad163f770d3cdf56f9015198e3a6`.
+
+### Current separate-app source
+- `Current/PWA/vouchers.html`
+- Current blob: `3e93448feac5c74f4f09bca605bb722db755ada0`
+- Source fix commit: `cb6f0b500ea4dbae43e87214ac59da2c278b0597`
+- DirectSale no longer enforces `vehicle.driver_id = sales_rep`.
+- DirectSale now sends `rep_id`.
+- Create retry now carries `operation_id`.
+
+### Current Production
+- Supabase project: `fiilmooggumokxanwiyx`
+- Fleet control plane: `fleet_query` + `fleet_command_atomic`
+- Binding command: `VEHICLE_OPERATION_BIND`
+- No new Edge Function created.
+- Current deployed `create-stock-voucher` version: 12.
+
+### Production E2E verified in this session
+- Mother Fleet BIND by `finance-manager@rawaea.com`: PASS.
+- Replay: `duplicate=true`.
+- BIND stock delta: 0.
+- BIND journal entries/lines delta: 0.
+- Vouchers DirectSale CREATE → SEND → REPLAY: PASS.
+- CREATE persisted `rep_id` as custodian identity.
+- SEND source branch item 1001: -1.
+- SEND vehicle mobile branch item 1001: +1.
+- inventory_log: +1.
+- journal_entries: 0.
+- journal_lines: 0.
+- Replay: `duplicate=true`.
+- All QA transactional test data rolled back.
+- Current QA voucher / operation / inventory residues from this session: 0.
+
+### Mother access contract — current session
+- Operational employees execute through separate apps.
+- Operational employees must not use Mother `main.html` for field execution.
+- Production capability `VEHICLE_OPERATION_BIND` remains available to the operational consumer layer where required.
+- Mother Fleet navigation/read must remain limited to its historical management audience.
+
+### Owner-only Mother patch remaining
+PATCH-338:
+1. Restore the historical Fleet navigation permission line.
+2. Replace `canBindVehicleOperation()` with the management-only capability gate.
+3. Remove operational permissions from the `canRead()` return block.
+
+Do NOT change:
+- `command()`
+- `VEHICLE_OPERATION_BIND` special case
+- Vehicle Detail master-data separation
+- `openVehicleOperationLinkForm()`
+- Fleet query/reporting contracts
+- DirectReturn driver semantics
+- `post_stock_movement`
+- create/send/receive inventory writers
+
+### Browser state
+- Authenticated Browser E2E for the published Mother artifact: OPEN / UNVERIFIED.
+- Do not convert source/DB/RPC PASS into Browser PASS.
+
+### Immediate next session
+1. Fetch this CURRENT_STATE first.
+2. Fetch Mother HEAD + parent + main blob.
+3. Verify whether PATCH-338 was applied before issuing it again.
+4. Verify published artifact.
+5. Run authenticated Browser E2E.
+6. Only after that, open the next closure unit.
+
+---
+
 # FINAL AUTHORITATIVE POINTER — 2026-09-24 — POST-REPORT337 FINAL STATE
 
 ## Final System Git
