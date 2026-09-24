@@ -1,3 +1,108 @@
+# FINAL AUTHORITATIVE POINTER — 2026-09-24 — REPORT340
+
+## CURRENT SESSION TRUTH — START HERE
+
+### System Git
+- Repository: `papamohammed77-glitch/rawaie-erp-New`
+- Current HEAD before this state update: `9542abdfc5cbd521e7bdd94bb1f5d4dc63ce4c16`
+- Parent: `9ce3652fb144c75b98cb77d784d1a1d276d4464c`
+- Report340: `doc/Draft/Reprots/Report340_VOUCHERS_MASTER_ASSIGNMENT_AND_VAN_SALES_FORENSIC_CLOSURE_20260924.md`
+- Setup Van Branch source commit: `223c53e35384efaba223999d2608d7c3f83b2eec`
+- QA cleanup source commit: `9ce3652fb144c75b98cb77d784d1a1d276d4464c`
+
+### Mother Git
+- Repository: `papamohammed77-glitch/erp-frontend`
+- Latest HEAD verified: `1c7f2596e7543a1ea4684d84171804b3e4d5a4d8`
+- Parent: `cd67be47d1a36e42b3c5b8738d8ba1475f95ef86`
+- Current `main.html` blob: `810e4f5440f5975f55099a124deb42b086a49183`
+- Current standalone `companies/company-1/warehouse/vouchers.html` blob: `287f9900efdf1ee595f6537e9d230ef06e347c06`
+- Current standalone `companies/company-1/sales/van-sales.html` blob: `8d61382a8e0025a0d079e71dd94f33d106d9088e`
+- Neither `main.html` nor `warehouse/vouchers.html` was modified by the assistant.
+
+### Production
+- Supabase project: `fiilmooggumokxanwiyx`
+- Existing `create-stock-voucher`: version 12, unchanged.
+- Existing `fleet_query`: active control-plane read API.
+- Existing `fleet_command_atomic`: active control-plane write API.
+- Existing `setup-van-branch`: upgraded to version 5; no new Edge Function created.
+- `setup-van-branch` deployed SHA256: `71986370ae16e744332bc93f2b533dddf89433ef2cf1d34445da9c474e2c3f25`
+- Active Master assignment:
+  - vehicle `CHV-2025-01`
+  - vehicle_id `69b08188-60ee-43af-9644-e1626a85bfa0`
+  - Direct Sales Rep `vansales@rawaea.com`
+  - rep_id `111b0730-a977-4d11-bcd0-2427b178a9e5`
+  - assignment_id `861ecd15-5ab6-4e53-8995-5d2d97570c3e`
+  - start_at `2026-09-24 18:57:12.987021+00`
+  - is_primary = true
+  - end_at = null.
+- The real vehicle `CHV-2025-01` has `driver_id = NULL`; therefore Direct Sales Rep must not be resolved through `vehicles.driver_id`.
+
+### Production changes executed in this session
+1. Updated existing `setup-van-branch` to resolve Direct Sales Rep → Vehicle through `fleet_vehicle_sales_rep_assignments`, while preserving driver-based fallback for non-Direct-Sales users.
+2. Cleaned the proven QA fixture `FRD-2025-02 TEST` and its mobile branch, stock fixture rows, vehicle status history and QA audit rows.
+3. No change to `fleet_query`, `fleet_command_atomic`, `post_stock_movement`, `create-stock-voucher`, DirectReturn semantics, or the Mother.
+4. Created Report340.
+
+### Production verification
+- `fleet_query('direct_sales_rep_assignments')` with the Vouchers user actor returned the active Rep→Vehicle assignment.
+- The same Fleet query with the Van Sales user actor returned the same active assignment.
+- Production transactional E2E:
+  - DirectSale CREATE with `to_id = NULL` + `rep_id = vansales` = success.
+  - Server resolved `to_id` to `CHV-2025-01`.
+  - Draft status persisted.
+  - SEND = movement_count 1.
+  - Source stock delta = -1.
+  - REPLAY = `duplicate=true`.
+  - Entire test ROLLBACK = no residue.
+- Before/after test stock snapshot: 11 → 10 during SEND and then rolled back.
+- Current QA fixture after cleanup:
+  - test vehicle = 0
+  - test mobile branch = 0
+  - test stock rows = 0
+  - matching QA audit rows = 0.
+- Current Production vehicles = 1.
+- Current Production branches = 3.
+- No current DirectSale drafts exist.
+
+### Current defect and owner-only source patch
+The standalone Vouchers source still contains the old DirectSale assumption:
+`vehicle.driver_id === selectedRep.id`
+
+The necessary owner-applied surgical repair is documented in Report340 as PATCH V-01 through V-09:
+- add Master assignment maps;
+- read `fleet_query('direct_sales_rep_assignments')`;
+- filter DirectSale reps to those with active Master vehicle;
+- resolve Rep→Vehicle from Master assignment, never from `driver_id`;
+- auto-fill and lock the vehicle after Rep selection;
+- reconcile stale vehicle values to the authoritative assignment;
+- allow DirectSale submit to rely on Master resolution;
+- keep DirectReturn driver semantics unchanged.
+
+### Browser state
+- Authenticated Browser E2E against the published Vouchers/Mother artifact: OPEN / UNVERIFIED.
+- DB/RPC/Deployment evidence must not be converted to Browser PASS.
+
+### Next session
+1. Fetch CURRENT_STATE.
+2. Fetch System HEAD + parent + Report340.
+3. Fetch Mother HEAD + parent + current blobs.
+4. Read `companies/company-1/warehouse/vouchers.html` completely.
+5. Apply only PATCH V-01..V-09 to that owner-controlled file.
+6. Re-read the whole file and verify no DirectSale branch still resolves vehicle through `driver_id`.
+7. Run authenticated Browser E2E.
+8. Verify:
+   - Fleet query call;
+   - Rep→Vehicle autofill;
+   - DirectSale CREATE;
+   - Draft no stock mutation;
+   - SEND one physical movement;
+   - REPLAY duplicate;
+   - Van Sales startup resolves the same vehicle through `setup-van-branch`.
+9. Do not touch Mother `main.html` unless new current-source evidence contradicts the current verified state.
+10. Do not create another Edge Function.
+
+---
+
 # FINAL AUTHORITATIVE POINTER — 2026-09-24 — REPORT339
 
 ## Current truth after Report339
