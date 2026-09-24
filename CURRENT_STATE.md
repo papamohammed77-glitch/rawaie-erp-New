@@ -1,3 +1,71 @@
+# FINAL AUTHORITATIVE POINTER — 2026-09-24 — REPORT339
+
+## Current truth after Report339
+### System Git
+- HEAD after report creation: `62422bfbbcd4c8a7d31cca2cde9fc4fcf2fba7df`
+- Parent: `dfeb5ad0fe17202df38f3cb3ac3e82a655afed67`
+- Previous source commit containing the vouchers change: `eb22f825a145c88b27a3dd791ad189d767b2c8ff`
+- `Current/PWA/vouchers.html` blob: `d32d57eada0d3fdac4ce45dc469c6eeab19828a3`
+- Report: `doc/Draft/Reprots/Report339_MOTHER_FLEET_DIRECTSALE_OPTIONAL_DOCUMENT_VOUCHERS_AUTOBIND_FORENSIC_CLOSURE_20260924.md`
+
+### Mother Git
+- Current HEAD verified: `f26e7e995706ea45ad586a31238178d9c7891e71`
+- Parent: `d13537d0f4d8d7f0e2c0ac6d25d779bc4062760e`
+- Current `companies/company-1/main.html` blob: `6885ccdbb44344ae6aa839fbc7a4ccb93494bb24`
+- Mother `main.html` was NOT modified by assistant.
+
+### Production
+- Supabase project: `fiilmooggumokxanwiyx`
+- No new Edge Function.
+- `create-stock-voucher` deployed version: 12.
+- Fleet control plane: `fleet_query` + `fleet_command_atomic`.
+- Physical stock authority: `post_stock_movement`.
+
+## Production changes completed in Report339
+1. Created `public.fleet_vehicle_sales_rep_assignments`.
+2. Extended existing `VEHICLE_OPERATION_BIND` with `DIRECT_SALE_MASTER`.
+3. Extended `fleet_query` with direct-sales-rep assignment read model and vehicle/detail projections.
+4. Extended `create_manual_stock_voucher_atomic_core_12_20260828` so DirectSale can omit `to_id` and resolve the active mobile vehicle from the Master assignment.
+5. Reordered DirectSale actor/rep validation in the create core.
+6. Existing `create-stock-voucher` version 12 was verified as already passing `rep_id` and `operation_id`; no Edge Function creation was needed.
+7. `Current/PWA/vouchers.html` was updated to auto-map Rep -> Vehicle and stop requiring a vehicle for DirectSale at UI submit.
+
+## Verified
+- Master binding: PASS.
+- Master binding replay with same operation_id/payload: `duplicate=true`.
+- Fleet assignment query: PASS.
+- Vehicle detail projection: PASS.
+- DirectSale CREATE with omitted vehicle: PASS; server resolved vehicle from Rep->Vehicle mapping.
+- Draft CREATE produced no inventory movement and no journal entry.
+- QA data from this session cleaned: vouchers 0, QA operation identities 0, QA fleet registry 0, QA inventory_log 0, QA audit rows 0, QA assignment rows 0.
+- Protected delete trigger re-enabled.
+
+## Still OPEN
+- Owner-only Mother `main.html` PATCHes in Report339:
+  PATCH 1 around line 29233: make DirectSale document option optional.
+  PATCH 2 around line 29290: make DirectSale reference editable/optional.
+  PATCH 3 around line 29313 inside `openVehicleOperationLinkForm()`: choose `DIRECT_SALE_MASTER` when no voucher is selected and pass optional reference.
+- Published Mother artifact verification.
+- Authenticated Browser E2E.
+
+## Do not redo
+- DirectSale driver decoupling.
+- DirectSale custodian identity persistence.
+- Physical stock centralization.
+- Legacy manual-voucher update retirement.
+- DirectReturn driver semantics.
+- Do not create another Edge Function for this capability.
+- Do not modify `post_stock_movement`.
+
+## Next session execution
+1. Fetch this file first.
+2. Fetch current System HEAD/parent and Mother HEAD/parent/blob.
+3. Verify Report339 PATCH 1/2/3 status in Mother before issuing them again.
+4. Verify the published Mother artifact.
+5. Apply/verify the exact owner-only main.html surgical replacements.
+6. Run authenticated Browser E2E.
+7. Only after Browser verification, open the next closure unit.
+
 # FINAL AUTHORITATIVE POINTER — 2026-09-24 — POST-REPORT338
 
 ## Session authoritative truth
