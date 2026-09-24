@@ -1,3 +1,104 @@
+# CURRENT AUTHORITATIVE CHECKPOINT — 2026-09-24 — Report335 FINAL
+## Mother Fleet Vehicle Operation Link — Current Source + Production E2E Reconciliation
+
+> This checkpoint supersedes older Fleet/Mother checkpoints below. Older entries remain historical evidence.
+
+## Current System Truth
+- System repository: `papamohammed77-glitch/rawaie-erp-New`
+- System HEAD: `443627198998b2dbf15eb9e5e57cb113fd83cbf3`
+- System parent: `2b9cee366fb7e6574a853956a74d1e9a9d05321a`
+
+## Current Mother Truth
+- Mother repository: `papamohammed77-glitch/erp-frontend`
+- Mother HEAD: `111a6876ddf38394989896f64767170b77c3231e`
+- Mother parent: `26d4d4d347be477b69482e75627154aa6565d5ac`
+- Current `companies/company-1/main.html` blob: `3d1ac970c0e81d0a581045ce79b140708ccfa3af`
+- `26d4...` is the last commit that actually modified Mother `main.html`.
+- `111a...` is forensic-extract only.
+- Assistant direct write to Mother `main.html`: **NO**.
+
+## Report334 Reconciliation
+Report334 PATCH-334-01 and PATCH-334-02 are already applied in current Mother source by Owner commit `26d4...`.
+Do not reapply either patch.
+Do not reopen Report334 without contradictory primary evidence.
+
+## Production Truth
+- Supabase project: `fiilmooggumokxanwiyx`
+- Fleet command: `fleet_command_atomic`
+- Fleet query: `fleet_query`
+- Canonical command: `VEHICLE_OPERATION_BIND`
+- Candidate view: `vehicle_operation_candidates`
+- Latest relevant migration: `20260924145700_extend_fleet_vehicle_operation_candidates_document_branch_context`
+- No new Edge Function created.
+
+## Current Production E2E
+Inside isolated transaction then rollback:
+- RUNSHEET bind: PASS.
+- RUNSHEET replay with same operation_id: duplicate=true PASS.
+- BRANCH_TRANSFER bind: PASS.
+- BRANCH_TRANSFER replay: duplicate=true PASS.
+- DIRECT_SALE bind: PASS.
+- DIRECT_SALE replay: duplicate=true PASS.
+- vehicle_detail saw all three linked operation types: PASS.
+- branch/document/reference candidate context: PASS.
+- binding stock delta: 0.
+- allocated_qty delta: 0.
+- inventory_log delta: 0.
+- journal entry delta: 0.
+- journal line delta: 0.
+- QA business residue after rollback: 0.
+- QA fleet registry after rollback: 0.
+
+## Current Production Snapshot
+- companies: 1
+- branches: 4
+- vehicles: 2
+- fleet_drivers: 0
+- runsheets: 0
+- stock_vouchers: 2
+- inventory_log: 25
+- journal_entries: 10
+- journal_lines: 16
+- audit_log: 2180
+- QA fleet registry: 0
+- QA vouchers: 0
+- QA runsheets: 0
+
+## Closure
+- Production Fleet control plane: CLOSED / VERIFIED.
+- Candidate read model: CLOSED / VERIFIED.
+- Branch filtering: CLOSED / VERIFIED.
+- Document/reference context: CLOSED / VERIFIED.
+- RUNSHEET binding: CLOSED / E2E.
+- BRANCH_TRANSFER binding: CLOSED / E2E.
+- DIRECT_SALE binding: CLOSED / E2E.
+- Idempotency/replay: CLOSED / E2E.
+- Vehicle detail reporting: CLOSED / E2E.
+- Physical Stock isolation: CLOSED.
+- Accounting isolation: CLOSED.
+- QA cleanup: CLOSED.
+- Mother Report334 source implementation: CLOSED / OWNER-APPLIED.
+- Public served artifact identity: OPEN / UNVERIFIED.
+- Authenticated Browser Console/Network E2E: OPEN / UNVERIFIED.
+
+## Hard Rule
+Do not call Source PASS or DB PASS a Browser PASS.
+The next CTO must start from CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+
+## Exact Next Resumption
+1. Verify System HEAD and Mother HEAD again.
+2. Do not reapply Report334 patches.
+3. Do not create a new Edge Function for this capability.
+4. If Browser access becomes available, verify the served Mother artifact and authenticated Browser E2E for RUNSHEET / BRANCH_TRANSFER / DIRECT_SALE.
+5. Capture Console + Network.
+6. Re-snapshot Production at the same reporting moment.
+7. Only reopen a closed Fleet boundary when contradictory primary evidence exists.
+
+## Report335
+`doc/Draft/Reprots/Report335_MOTHER_FLEET_VEHICLE_OPERATION_LINK_CURRENT_RECONCILIATION_E2E_20260924.md`
+
+---
+
 # CURRENT AUTHORITATIVE CHECKPOINT — 2026-09-24 — Report334 FINAL
 ## Mother Fleet Vehicle Operation Link — Branch + Document/Reference Context
 
