@@ -1386,3 +1386,117 @@ Report323/Report324 work already present in Current Source was not repeated.
 9. Close this Closure Unit only after those current proofs.
 
 Reference report: `doc/Draft/Reprots/Report328_MOTHER_PURCHASE_INVOICE_SUPABASE_URL_FORENSIC_CLOSURE_20260924.md`
+
+
+---
+
+# CURRENT CHECKPOINT — 2026-09-24 — Report329 Warehouse Vouchers Receive/Print Forensic Closure
+
+## Current Truth
+- System repository: `papamohammed77-glitch/rawaie-erp-New`
+- Current system HEAD: `32269bde2966201f98834899199592caf0877dd6`
+- System HEAD parent: `61636eebe86173a0a9ed1858a34fef263cc6d89d`
+- Latest system commit created this closure report only.
+- Mother frontend repository: `papamohammed77-glitch/erp-frontend`
+- Current Mother HEAD: `73e02aaf3a75fd06571475cbf2df26074e91f50d`
+- Mother HEAD parent: `غير مسترد`
+- Mother latest commit is forensic-extract only; it did not modify vouchers.html.
+- Current vouchers file SHA: `a0ab1bc7746be6f0f4342d87fdcc2657e87b8334`
+- Current vouchers lines: 3905
+
+## Current Production
+- Supabase project: `fiilmooggumokxanwiyx`
+- Active voucher user: `vouchers@rawaea.com`
+- role = مخزني
+- active_warehouse_role = أذونات
+- status = Active
+- Current branches: BR-01, VAN-CHV-2025-01, VAN-FRD-2025-02 TEST, BR-2
+- Current permanent stock vouchers after QA rollback:
+  - `IN-2` = Draft
+  - one existing Sent voucher remains
+- `inventory_log` for IN-2 = 0
+- BR-2 target rows created by QA = 0
+
+## Production Transfer E2E — VERIFIED
+Using real Production identities inside an isolated rollback:
+- Draft → Sent → Received → Completed = PASS
+- Send reduced source by 1 for each of 5 tested items.
+- Receive increased target by 1 for each of the same 5 items.
+- Receive replay with same operation_id returned duplicate=true.
+- Physical movement rows = 10 (5 OUT + 5 IN).
+- Stock total before = 54.
+- Stock total after = 54.
+- Conservation = PASS.
+- QA rollback = PASS.
+- No QA residue remained.
+
+## Proven Current-Source Defects
+1. Draft print engine exists as `printDraftVoucher(code)`; the actual defect is missing Draft-action binding.
+2. `receive(code)` references `v.id` from a different Promise callback scope.
+3. `pickSearch(key,q)` contains `z.split(/s+/)`.
+4. `subscribeRealtime()` contains an all-branch `branch_id=in.(...)` filter.
+5. `updateSource()` does not rebuild realtime when source changes.
+6. Draft card actions do not expose Edit/Delete/Print.
+
+## Owner Surgical Patch Status
+No assistant write was made to:
+- `companies/company-1/warehouse/vouchers.html`
+- `companies/company-1/main.html`
+
+Owner patch is documented in:
+`doc/Draft/Reprots/Report329_WAREHOUSE_VOUCHERS_RECEIVE_PRINT_FORENSIC_CLOSURE_20260924.md`
+
+Static in-memory validation of the complete Owner changeset:
+- Parse = PASS
+- bad `z.split(/s+/)` = 0
+- giant realtime branch filter = 0
+- Draft Print binding = present
+- Edit/Delete consumers = present
+- submit edit path = present
+- receive scope fix = present
+- choose/back operation reset = present
+
+## Production Backend
+No new Edge Function was created.
+No new persistent test schema was left behind.
+Existing capabilities remain the execution path:
+- `send_stock_voucher_atomic`
+- `post_manual_stock_voucher_atomic`
+- `complete_manual_stock_voucher_atomic`
+- `post_stock_movement`
+- existing `receive-stock-voucher` Edge Function
+
+## Closure Classification
+- Transfer Production Core: CLOSED / VERIFIED
+- Physical Stock Centralization: CLOSED / VERIFIED
+- Draft Print root cause: PROVEN / OWNER PATCH READY
+- Receive `v is not defined`: PROVEN / OWNER PATCH READY
+- Voucher scale/source defects: PROVEN / OWNER PATCH READY
+- Browser authenticated E2E: OPEN
+- Served artifact verification after Owner patch: OPEN
+- Overall Voucher Frontend Closure: PENDING OWNER PATCH + PUBLISH + BROWSER E2E
+
+## Next Session — Start Here
+1. Read this checkpoint and Report329.
+2. Verify current frontend HEAD and voucher SHA again; do not trust the stored hashes blindly.
+3. Do not reopen closed `loadRefs`, `allowedBranch`, `vehicleBranch`, `pickArr`, `pickSelect`, `prefetchStock`, Mother main, Van Sales, or Physical Stock centralization.
+4. Apply only the documented surgical Owner patches to `vouchers.html`.
+5. Parse the full file.
+6. Publish and verify the served artifact identity.
+7. Run authenticated Browser E2E for Draft Print and the complete Transfer lifecycle.
+8. Capture a fresh Production snapshot immediately after Browser E2E.
+9. Update this file again.
+10. Never convert Source/Production RPC PASS into Browser PASS without browser evidence.
+
+## Non-Negotiable Governance
+Future reports are context only. Re-prove:
+CURRENT GIT
++
+CURRENT SOURCE
++
+CURRENT PRODUCTION
++
+CURRENT DATABASE
++
+CURRENT DEPLOYMENT EVIDENCE
+before any new closure.
