@@ -480,3 +480,53 @@ MOTHER main.html
 
 BROWSER PUBLISHED RUNTIME
 = OPEN / UNVERIFIED
+
+## 22. Global Writer Sweep — Final Closure Addendum
+
+بعد اكتمال E2E تم تنفيذ Global Writer Discovery إضافي على Production.
+
+### Legacy overload اكتُشف وأُغلق
+كان يوجد overload قديم:
+update_manual_stock_voucher_atomic(
+  uuid,text,text,text,text,uuid,text,uuid,text,text,jsonb,uuid
+)
+
+التحقق أثبت:
+- لا Execute لـ anon.
+- لا Execute لـ authenticated.
+- لا Execute لـ service_role.
+- لا يوجد Consumer داخلي في public routines.
+- يحتوي على شرط DirectSale القديم المرتبط بـ vehicle.driver_id.
+
+تم حذفه من Production بواسطة:
+retire_legacy_manual_voucher_update_overload_20260924
+
+وبذلك لم يعد هناك duplicate legacy update surface داخل PostgreSQL.
+
+### Global Physical Writer Scan
+نتيجة الفحص:
+- لا يوجد trigger على stock_branches أو inventory_log يضيف مسار حركة بديل.
+- لا يوجد Writer آخر يكتب inventory_log مباشرة.
+- Physical stock movement يبقى في post_stock_movement.
+- reserve_stock يغير allocated_qty فقط.
+- release_stock_reservation يغير allocated_qty فقط.
+- create_vehicle_atomic وsetup_van_stock يهيئان صفوف stock_branches بكمية صفر فقط، ولا ينفذان حركة مخزون.
+- لا يوجد Parallel Physical Stock Engine جديد.
+
+### Compatibility wrapper
+يوجد create_manual_stock_voucher_atomic بالـ10 arguments ويملك service_role Execute، لكنه مستخدم فعليًا من inventory_stock_request_engine لتحويل طلبات النقل إلى Transfer.
+لذلك لم يُحذف، لأنه Compatibility Path مثبت وليس Writerًا موازيًا لحركة المخزون.
+
+## 23. Final Zero-Debt Status
+
+بعد الإغلاق الإضافي:
+- DirectSale vehicle-driver coupling = CLOSED.
+- DirectSale custodian persistence = CLOSED.
+- Legacy update overload = RETIRED.
+- Physical writer discovery = CLOSED.
+- Parallel inventory_log writer = NONE FOUND.
+- Reservation engine separated from physical movement = VERIFIED.
+- Initialization-only stock writers = VERIFIED.
+- main.html = NO NEW PATCH REQUIRED.
+- New Edge Function = NONE.
+- Browser E2E = OPEN / UNVERIFIED.
