@@ -1,3 +1,128 @@
+# RAWAEA ERP — CURRENT AUTHORITATIVE CHECKPOINT
+## 2026-09-24 — Report330 Warehouse Vouchers JavaScript Syntax Forensic Closure
+
+> Truth hierarchy remains:
+> CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+> Historical reports are contextual only and must be re-verified.
+
+### System Git at checkpoint creation
+- Previous verified HEAD: `197d2ab643caf358f2c0f67ee1386ba3bbc803a0`
+- Previous parent: `32269bde2966201f98834899199592caf0877dd6`
+- Report330 commit: `626528c73591be8cd4e34a73b3c15fb68b32b255`
+
+### Mother Frontend Current Truth
+- Repository: `papamohammed77-glitch/erp-frontend`
+- Current HEAD: `80e42653a4a83874ab739b8a87e7ddc4f407e6e4`
+- Parent: `3978a108de384ee6f11efff952aea791b59bf09d`
+- `companies/company-1/warehouse/vouchers.html` SHA: `95b342be269dbc9c6e49fb46230431838a352f86`
+- Latest frontend commit changed only the HTML comment timestamp.
+- No assistant write was made to `vouchers.html`.
+- No assistant write was made to `main.html`.
+
+### Current Voucher Source Defect
+The Current voucher source contains four missing commas in the `App` object literal introduced by frontend commit `4ef6973f2289f76d89aa9d9d52628171326793d8`.
+
+Exact defects:
+1. `choose:function(t)` before `actionFor:function(v)` — approximately line 307.
+2. `deleteVoucher:function(code)` before `prepare:function()` — approximately line 2265.
+3. Main submit method before `openDrawer:function()` — approximately line 4201.
+4. `back:function()` before `account:function()` — approximately line 4216.
+
+Before correction:
+- Full inline JavaScript parse = FAIL
+- `SyntaxError: Unexpected identifier 'actionFor'`
+
+In-memory correction of only these four delimiters:
+- Full inline JavaScript parse = PASS
+- inline scripts parsed = 1
+- bad `split(/s+/)` = 0
+- giant realtime branch filter = 0
+
+### Exact Owner Patch
+File:
+`companies/company-1/warehouse/vouchers.html`
+
+Apply ONLY the four delimiter edits documented completely in:
+`doc/Draft/Reprots/Report330_WAREHOUSE_VOUCHERS_SYNTAX_FORENSIC_SURGICAL_CLOSURE_20260924.md`
+
+Do not replace any complete function.
+Do not reapply Report329.
+
+### Production Status
+No Production change was required for this incident.
+
+Current Production voucher capabilities verified:
+- `create_manual_stock_voucher_atomic`
+- `update_manual_stock_voucher_atomic`
+- `delete_manual_stock_voucher_atomic`
+- `send_stock_voucher_atomic`
+- `post_manual_stock_voucher_atomic`
+- `complete_manual_stock_voucher_atomic`
+- `post_stock_movement`
+
+No new Edge Function was created.
+
+Current `receive-stock-voucher`:
+- Version 22
+- ACTIVE
+- verify_jwt = true
+
+Current `create-stock-voucher`:
+- Version 12
+- ACTIVE
+- verify_jwt = false because the function implements custom authentication with `supabase.auth.getUser`.
+
+### Production E2E
+Fresh transactional test against real `IN-2`:
+- Draft → Send → Receive all five lines → Receive replay → Complete
+- Complete guard correctly rejected an intentionally incomplete partial receive test.
+- Full transfer flow executed successfully.
+- Replay with same operation_id did not create duplicate physical movement.
+- Full transaction rolled back.
+
+After rollback:
+- `IN-2` status = Draft
+- `received_qty` = 0
+- `inventory_log` rows for `IN-2` = 0
+- source stock total = 54
+- target stock total = 0
+- no QA residue
+
+### Integration
+`main.html` was not modified and does not require modification for this defect.
+
+The login-screen symptom was caused by the voucher script failing to parse before `App.init()` could execute.
+
+The Tailwind CDN warning is non-blocking and was not the root cause.
+
+### Closure Status
+- Production Voucher Core = CLOSED / VERIFIED
+- Physical Stock Centralization = CLOSED / VERIFIED
+- Transfer E2E = PASS
+- Receive Idempotency = PASS
+- Current Source Root Cause = PROVEN
+- Static Syntax Repair = PROVEN IN-MEMORY
+- Owner Patch = READY
+- main.html = UNTOUCHED
+- Production Change = NOT REQUIRED
+- Authenticated Browser E2E = OPEN
+- Served Artifact Verification = OPEN
+- Overall Voucher Frontend Closure = PENDING OWNER PATCH + PUBLISH + BROWSER E2E
+
+### Exact Next Resumption Point
+1. Re-verify System HEAD and Mother HEAD.
+2. Re-read Report330 only for this closure.
+3. Apply only VCH-SYNTAX-01 through VCH-SYNTAX-04.
+4. Parse the complete `vouchers.html`.
+5. Publish owner frontend.
+6. Verify the served artifact identity.
+7. Run authenticated browser E2E.
+8. Capture Console + Network evidence.
+9. Run a fresh Production snapshot immediately after browser E2E.
+10. Do not reopen Report329 closed items or Production voucher core unless new contradictory current evidence appears.
+
+---
+
 # RAWAEA ERP — CURRENT STATE
 ## Latest Authoritative Forensic Checkpoint — 2026-09-24
 ## Active Closure Unit: Mother ERP → Suppliers → مسؤول المشتريات → Smart Search
