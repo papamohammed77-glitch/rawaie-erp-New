@@ -1,0 +1,117 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const db = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+);
+
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS"
+};
+
+async function getActor(req: Request) {
+  const h = req.headers.get("Authorization");
+  if (!h) throw new Error("غير مصرح");
+
+  const {
+    data: { user },
+    error: authError
+  } = await db.auth.getUser(h.replace("Bearer ", ""));
+
+  if (authError || !user?.id || !user.email) {
+    throw new Error("جلسة غير صالحة");
+  }
+
+  const { data: actor, error: userError } = await db
+    .from("users")
+    .select("id,company_id,status,permissions,auth_id")
+    .eq("auth_id", user.id)
+    .maybeSingle();
+
+  if (
+    userError ||
+    !actor ||
+    actor.status === "Inactive" ||
+    !actor.company_id ||
+    actor.auth_id !== user.id
+  ) {
+    throw new Error("سياق المستخدم غير صالح");
+  }
+
+  const permissions = Array.isArray(actor.permissions)
+    ? actor.permissions.map(x => String(x).trim()).filter(Boolean)
+    : [];
+
+  const isOwner =
+    user.user_metadata?.isOwner === true ||
+    String(user.user_metadata?.isOwner || "").toLowerCase() === "true";
+
+  if (
+    !isOwner &&
+    !permissions.includes("*") &&
+    !permissions.includes("suppliers")
+  ) {
+    throw new Error("لا تملك صلاحية تنفيذ هذه العملية");
+  }
+
+  return {
+    authUserId: user.id,
+    userEmail: user.email,
+    companyId: actor.company_id
+  };
+}
+
+serve(async req => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: cors });
+  }
+
+  try {
+    const body = await req.json().catch(() => ({}));
+    const supplier = body?.supplier || {};
+    const isEdit = body?.isEdit === true;
+    const supplierCode =
+      body?.supplier_code == null
+        ? null
+        : String(body.supplier_code).trim() || null;
+
+    const actor = await getActor(req);
+
+    const { data, error } = await db.rpc("save_supplier_atomic", {
+      p_auth_user_id: actor.authUserId,
+      p_company_id: actor.companyId,
+      p_user_email: actor.userEmail,
+      p_supplier: supplier,
+      p_is_edit: isEdit,
+      p_supplier_code: supplierCode
+    });
+
+    if (error) throw error;
+
+    return new Response(JSON.stringify(data), {
+      headers: {
+        ...cors,
+        "Content-Type": "application/json"
+      }
+    });
+  } catch (e) {
+    console.error("save-supplier", e);
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: e?.message || "فشل الحفظ"
+      }),
+      {
+        status: 400,
+        headers: {
+          ...cors,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+  }
+});
