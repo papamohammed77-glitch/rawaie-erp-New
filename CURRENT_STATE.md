@@ -1,3 +1,22 @@
+# FINAL AUTHORITATIVE POINTER — 2026-09-24 — POST-REPORT335
+## Current System HEAD
+- HEAD: `e6e96b34289dcb14186453ddd6ee323164b2fdc2`
+- Parent: `71c698206026a38b29ffd215b6babaee7d77cbe9`
+- Latest commit: `state: finalize Report335 current Mother fleet E2E checkpoint`
+
+## Current Closure Pointer
+- Report335: `doc/Draft/Reprots/Report335_MOTHER_FLEET_VEHICLE_OPERATION_LINK_CURRENT_RECONCILIATION_E2E_20260924.md`
+- Mother current HEAD: `111a6876ddf38394989896f64767170b77c3231e`
+- Mother main.html blob: `3d1ac970c0e81d0a581045ce79b140708ccfa3af`
+- Report334 Mother patches are already Owner-applied; do not reapply.
+- Production Fleet binding E2E is verified for RUNSHEET / BRANCH_TRANSFER / DIRECT_SALE with idempotent replay and rollback cleanup.
+- Public served artifact and authenticated Browser E2E remain OPEN/UNVERIFIED; do not convert DB/source evidence into Browser PASS.
+
+## Continuity
+Start from this pointer, then verify primary sources again before any new change.
+
+---
+
 # CURRENT AUTHORITATIVE CHECKPOINT — 2026-09-24 — Report335 FINAL
 ## Mother Fleet Vehicle Operation Link — Current Source + Production E2E Reconciliation
 
