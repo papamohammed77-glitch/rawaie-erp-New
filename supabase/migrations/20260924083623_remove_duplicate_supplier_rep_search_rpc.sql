@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.supplier_purchase_rep_search(text);
