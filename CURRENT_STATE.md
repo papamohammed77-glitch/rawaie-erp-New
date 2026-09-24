@@ -1,3 +1,155 @@
+# CURRENT AUTHORITATIVE CHECKPOINT — 2026-09-24 — Report331 Voucher Draft Update Closure
+
+## CURRENT TRUTH
+This checkpoint is based on direct verification of CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE. Historical reports are context only.
+
+### System repository
+- Current verified write sequence before this state update:
+  - 1674614e50e4790ffb6d06bed4e2b09394a1d972 — fix canonical UPDATE duplicate guard.
+  - 86e87aeb8cc4d5fcab3b3b19b238c47f441fbbe1 — add DB uniqueness invariant.
+  - bf43432089ba2b512c237e22550a6fa31b3fd5a6 — Report331.
+  - f03da20bf133f51872517f6d8416f689633bf9b6 — execution log.
+- Verify CURRENT HEAD again in the next session; do not rely on these hashes alone.
+
+### Mother frontend
+- Current HEAD verified: 53b254de274af504022d0acf13becc40378bd4aa
+- Parent: 80e42653a4a83874ab739b8a87e7ddc4f407e6e4
+- vouchers.html current SHA: 287f9900efdf1ee595f6537e9d230ef06e347c06
+- vouchers.html = 4395 lines
+- full inline JavaScript parse = PASS
+- vouchers.html was NOT modified in Report331.
+- main.html was NOT modified.
+
+### Incident closed
+The reported 400 error during Draft Transfer Edit:
+POST /functions/v1/create-stock-voucher
+→ action=update
+→ update_manual_stock_voucher_atomic
+→ "لا يجوز تكرار الصنف داخل نفس الإذن"
+
+Root cause was proven in the Production RPC:
+jsonb_to_recordset(p_items) AS x(itemCode text)
+PostgreSQL normalizes the unquoted identifier to itemcode while the payload uses camelCase itemCode, causing the duplicate guard to group multiple rows as NULL and reject valid multi-item edits.
+
+### Production fix
+Migration 20260924113537:
+fix_manual_voucher_update_itemcode_duplicate_guard
+
+The duplicate guard now reads:
+jsonb_array_elements(p_items) AS z(value)
+GROUP BY btrim(z.value->>'itemCode')
+
+### Database invariant
+Migration 20260924113616:
+add_stock_voucher_detail_unique_item_guard
+
+Constraint:
+stock_voucher_details_voucher_item_key
+UNIQUE (voucher_id,item_id)
+
+Duplicate detail keys verified after change = 0.
+
+### Positive / negative verification
+Positive UPDATE:
+- real Production user vouchers@rawaea.com
+- items 1001,1003,1004,1005,1006
+- result = success
+- detail rows = 5
+- distinct items = 5
+- transaction rolled back.
+
+Negative UPDATE:
+- temporary voucher inside transaction
+- duplicate item 1001 + 1001
+- result = rejected with "لا يجوز تكرار الصنف داخل نفس الإذن"
+- transaction rolled back.
+
+### Production QA cleanup
+QA vouchers IN-1 and IN-2 were proven to be recent test vouchers with no Order/Runsheet references.
+IN-1 had five TransferOut movements.
+Those movements were reversed through post_stock_movement / InventoryIncrease.
+The test vouchers and related logs were removed using the official voucher lifecycle/delete path.
+A permitted audit_log delete record documents the repair.
+
+Final cleanup:
+- voucher residue for IN-1/IN-2 = 0
+- QA inventory_log residue = 0
+- linked operation residue = 0
+
+### Final Production snapshot
+- companies = 1
+- branches = 4
+- items = 16
+- stock_vouchers = 0
+- stock_voucher_details = 0
+- stock_voucher_operations = 13
+- inventory_log = 11
+- stock_branches = 48
+- audit_log = 2171
+- duplicate voucher/item keys = 0
+
+BR-01 repaired stock:
+- 1001 = 12
+- 1003 = 11
+- 1004 = 12
+- 1005 = 11
+- 1006 = 13
+
+### Edge / architecture
+- create-stock-voucher Version 12 ACTIVE.
+- No new Edge Function created.
+- UPDATE continues through the existing capability wrapper and canonical UPDATE RPC.
+- Physical Stock remains centralized through post_stock_movement.
+- No change to orders, runsheets, picking, loading, unloading, delivery, returns, purchase, or reservation engines.
+
+### Frontend surgical decision
+For this incident:
+NO CHANGE is required in:
+companies/company-1/warehouse/vouchers.html
+
+Do not delete, replace, or add a frontend block for the duplicate error.
+Do not modify main.html.
+
+The existing frontend payload already sends itemCode correctly. The defect was server-side.
+
+### Documentation
+- Report331:
+  doc/Draft/Reprots/Report331_WAREHOUSE_VOUCHERS_DRAFT_UPDATE_DUPLICATE_GUARD_FORENSIC_CLOSURE_20260924.md
+  commit: bf43432089ba2b512c237e22550a6fa31b3fd5a6
+- Execution log:
+  doc/Draft/Reprots/EXECUTION_LOG_20260924_VOUCHERS_DRAFT_UPDATE_DUPLICATE_GUARD.md
+  commit: f03da20bf133f51872517f6d8416f689633bf9b6
+
+### Closure status
+- Production duplicate guard = CLOSED / VERIFIED
+- DB uniqueness invariant = CLOSED / VERIFIED
+- QA data repair = CLOSED / VERIFIED
+- Physical Stock centralization = CLOSED / VERIFIED
+- Current voucher source syntax = CLOSED / VERIFIED
+- Current Edge integration = CLOSED / VERIFIED
+- Frontend surgical patch for this incident = NONE REQUIRED
+- main.html = UNTOUCHED
+- Authenticated Browser E2E = OPEN / UNVERIFIED
+- Served artifact identity = OPEN / UNVERIFIED
+
+### Exact next resumption
+1. Verify CURRENT System HEAD and parent.
+2. Verify CURRENT Mother HEAD and vouchers.html SHA.
+3. Verify live create-stock-voucher Version 12 and UPDATE RPC.
+4. Verify the fixed duplicate guard text in Production.
+5. Verify stock_voucher_details_voucher_item_key.
+6. Do not reopen Report331 fix without contradictory current evidence.
+7. Do not modify vouchers.html or main.html for this incident.
+8. When authenticated browser execution is available, run:
+   login → Warehouse → Vouchers → Draft Transfer → Edit → Save unique 5 items → Console/Network → DB verification → same operation retry.
+9. Capture fresh Production snapshot at the same reporting moment.
+10. Only then close Browser/served-artifact surfaces.
+
+### Governing rule
+Never convert historical report statements, source static PASS, or RPC E2E PASS into Browser PASS. Re-prove CURRENT truth before every new closure.
+
+---
+
 # RAWAEA ERP — CURRENT AUTHORITATIVE CHECKPOINT
 ## 2026-09-24 — Report330 Warehouse Vouchers JavaScript Syntax Forensic Closure
 
