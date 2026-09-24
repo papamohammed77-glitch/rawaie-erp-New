@@ -1,3 +1,144 @@
+# FINAL AUTHORITATIVE POINTER — 2026-09-24 — REPORT337 FLEET OPERATION BINDING AUTHORIZATION CLOSURE
+
+## Current primary-source identities
+### System Git
+- Repository: `papamohammed77-glitch/rawaie-erp-New`
+- Current HEAD: `016e62148fa82c6edb1d0ebd82efa170dc9924d4`
+- Parent: `7030f026feeb5b89e097be28ef43f917e5f36eae`
+- Report337 added: `doc/Draft/Reprots/Report337_MOTHER_FLEET_OPERATION_BINDING_AUTHZ_FORENSIC_CLOSURE_20260924.md`
+- Production authorization source migration:
+  `supabase/migrations/20260924164239_open_vehicle_operation_bind_for_operational_roles_20260924.sql`
+- Production-applied cleanup source reconciled:
+  `supabase/migrations/20260924164848_cleanup_qa_orphan_operation_identities_and_audit_20260924.sql`
+- An unapplied temporary cleanup filename was removed from Git to prevent source/Production drift.
+
+### Mother Git
+- Repository: `papamohammed77-glitch/erp-frontend`
+- Current HEAD: `7ca0aa1324fe1d925a752f559e990e92e29a384b`
+- Parent: `854bc0d05389131782529e1b68801e4d651286c8`
+- Current `companies/company-1/main.html` blob:
+  `95cf0d8dfcb87f78962ae89038f141bcdb2c29a6`
+- Mother `main.html`: NOT modified by assistant.
+
+## Production truth
+- Supabase project: `fiilmooggumokxanwiyx`
+- Fleet Control Plane: `fleet_query` + `fleet_command_atomic`
+- Binding command: `VEHICLE_OPERATION_BIND`
+- No new Edge Function created.
+
+### Production changes completed
+1. `20260924164239_open_vehicle_operation_bind_for_operational_roles_20260924`
+   - Fleet read access extended to operational warehouse/voucher/transfer/direct-sale/van-sales/delivery/vehicle-count contexts.
+   - Only `VEHICLE_OPERATION_BIND` receives the expanded command authorization.
+   - Existing Fleet master-data command authorization remains unchanged.
+2. `20260924164831_cleanup_orphaned_qa_stock_voucher_operation_artifacts_20260924`
+   - Exists in Production migration history.
+   - Exact source content was not recoverable from current Git; it was not reconstructed by assumption.
+3. `20260924164848_cleanup_qa_orphan_operation_identities_and_audit_20260924`
+   - Applied to remove only orphaned QA operation identities and QA stock-voucher audit records.
+   - Current QA residue verified at zero.
+
+## Production verification
+### Warehouse Supervisor
+- `warehouse.supervisor@rawaea.com`
+- `fleet_query(vehicle_operation_candidates)` = PASS
+- `VEHICLE_OPERATION_BIND` = PASS
+- replay = `duplicate=true`
+- vehicle detail projection = PASS
+- bind caused no stock movement and no GL movement.
+
+### Vouchers operator
+- `vouchers@rawaea.com`
+- Fleet candidate query = PASS
+- `VEHICLE_OPERATION_BIND` = PASS
+- persistence = PASS
+- rollback = PASS.
+
+### DirectSale full E2E
+`CREATE → BIND → REPLAY → SEND` = PASS
+- source branch stock delta = -1
+- vehicle mobile branch stock delta = +1
+- inventory_log delta = +1
+- custody/driver ledger delta = +1
+- journal_entries delta = 0
+- journal_lines delta = 0
+- rollback = PASS.
+
+## Data hygiene
+- QA vouchers = 0
+- QA stock_voucher_operations = 0
+- QA inventory_log = 0
+- QA fleet registry = 0
+- QA stock-voucher audit residue = 0.
+
+## Main.html current defect and owner-only surgical repair
+The current Mother source still contains a permission-model mismatch:
+- Fleet navigation excludes operational permissions.
+- `canRead()` excludes operational permissions.
+- Vehicle Detail link button is gated by `canManage()`.
+- `openVehicleOperationLinkForm()` uses `canManage()`.
+- `command()` uses `canManage()` for every Fleet command.
+
+This causes an operational warehouse/voucher user to lose the Vehicle Operation Binding capability even though Production Control Plane can now authorize the specific binding command.
+
+### PATCH-337 required in Mother
+Owner must make exactly these six surgical changes documented in Report337:
+1. Fleet navigation permission line.
+2. Add `canBindVehicleOperation()` helper before `canRead()`.
+3. Expand only the return block inside `canRead()`.
+4. Special-case only `VEHICLE_OPERATION_BIND` in `command()`.
+5. Move only the Vehicle Operation Binding button out of the `canManage()` bundle while keeping Fleet master-data buttons unchanged.
+6. Change only the guard line inside `openVehicleOperationLinkForm()` to `canBindVehicleOperation()`.
+
+No other Mother business logic is approved for modification in this closure.
+
+## Browser status
+- Authenticated Browser E2E against the published Mother artifact remains OPEN / UNVERIFIED.
+- DB/RPC E2E must not be converted to Browser PASS.
+
+## Competitive context
+The current architecture remains consistent with documented patterns in:
+- Odoo Fleet/Services/Odometer
+- Dynamics Transportation Management
+- SAP Transportation Management Resources
+- Daftra Transportation
+- Manager.io References / Inventory Locations / Custom Fields.
+
+Future competitive backlog, separate from this closure:
+- trip cost
+- cost/km
+- fuel economics
+- maintenance allocation
+- capacity utilization
+- route plan vs actual
+- vehicle availability
+- asset lifecycle/depreciation
+- route profitability
+- vehicle/operation/document 360 reporting.
+
+## Continuity rules
+Start every next session from:
+CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+
+Do not:
+- reapply Report334.
+- reapply Report336 DirectSale driver/custodian fixes.
+- create another Edge Function for this capability.
+- modify `post_stock_movement`.
+- change DirectReturn driver semantics.
+- treat Browser as verified before authenticated browser evidence exists.
+
+After Owner applies PATCH-337:
+- fetch the new Mother HEAD/blob;
+- parse the complete `main.html`;
+- verify the exact six substitutions;
+- verify the published artifact;
+- run authenticated Browser E2E;
+- verify Fleet query and command network calls;
+- verify BIND has no stock/GL side effects;
+- then execute the next open closure only.
+
+---
 # FINAL AUTHORITATIVE POINTER — 2026-09-24 — REPORT336 FINAL GIT POINTER
 ## Last verified System repository state
 - Git HEAD immediately before this state update: a806fa54090336324018cf7cb691788cab81d01b
