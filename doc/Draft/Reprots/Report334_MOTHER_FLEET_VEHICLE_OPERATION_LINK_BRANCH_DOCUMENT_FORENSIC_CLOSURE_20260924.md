@@ -211,6 +211,258 @@ Commit:
 
 ---
 
+## 6A. النص الجراحي الحرفي — PATCH-334-01
+
+**ابحث عن العنصر التالي حرفيًا داخل Mother `companies/company-1/main.html`:**
+
+```text
+function operationBlock(title, rows, type)
+```
+
+**احذف الدالة كاملة فقط، من هذا العنصر حتى القوس `}` الخاص بالدالة مباشرة قبل `function listBlock(`. ثم استبدلها بالنص التالي:**
+
+```javascript
+  function operationBlock(title, rows, type) {
+    var list = Array.isArray(rows) ? rows : [];
+    var h = '<div class="rw-card" style="padding:16px"><div style="font-weight:900;color:#0f172a;margin-bottom:12px">' + esc(title) + '</div>';
+    if (!list.length) {
+      return h + '<div style="font-size:12px;color:#94a3b8;font-weight:700">لا توجد عمليات مرتبطة</div></div>';
+    }
+    for (var i=0;i<Math.min(list.length,8);i++) {
+      var x=list[i]||{};
+      var label = type==='RUNSHEET' ? (x.runsheet_code||'—') : (x.voucher_code||'—');
+      var reference = String(x.reference||'').trim();
+      var meta = '';
+      if(type==='RUNSHEET') {
+        meta = 'السائق: ' + (x.driver_name||'—') + ' · مندوب التوصيل: ' + (x.delivery_rep_name||'—') + ' · ' + (x.status||'—');
+      } else if(type==='BRANCH_TRANSFER') {
+        meta = 'السائق: ' + (x.driver_name||'—') + ' · ' + (x.from_branch_name||'—') + ' ← ' + (x.to_branch_name||'—') + ' · ' + (x.status||'—');
+      } else {
+        meta = 'مندوب البيع المباشر: ' + (x.direct_sales_rep_name||'—') + ' · ' + (x.status||'—');
+      }
+      h += '<div style="border:1px solid #e5e7eb;border-radius:16px;padding:11px 12px;margin-top:8px;background:#f8fafc">' +
+           '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">' +
+             '<div style="font-weight:900;color:#111827">' + esc(label) + '</div>' +
+             '<div style="font-size:11px;color:#64748b;font-weight:800">' + esc(date(x.operation_date||x.run_date)) + '</div>' +
+           '</div>' +
+           (reference ? '<div style="font-size:11px;color:#475569;font-weight:800;margin-top:5px">المرجع: ' + esc(reference) + '</div>' : '') +
+           '<div style="font-size:11px;color:#64748b;font-weight:700;margin-top:6px;line-height:1.8">' + esc(meta) + '</div>' +
+         '</div>';
+    }
+    return h + '</div>';
+  }
+```
+
+---
+
+## 6B. النص الجراحي الحرفي — PATCH-334-02
+
+**ابحث عن العنصر التالي حرفيًا داخل Mother `companies/company-1/main.html`:**
+
+```text
+async function openVehicleOperationLinkForm()
+```
+
+**احذف الدالة كاملة فقط حتى بداية العنصر التالي حرفيًا:**
+
+```text
+async function openVehicleEdit(id)
+```
+
+**ثم استبدلها بالنص التالي:**
+
+```javascript
+  async function openVehicleOperationLinkForm() {
+    var id = state.selectedVehicleId;
+    if (!id) throw new Error('المركبة غير محددة');
+    if (!canManage()) throw new Error('ليس لديك صلاحية ربط العمليات بالمركبات');
+
+    var d = await query('vehicle_operation_candidates',{vehicle_id:id});
+    var rs = Array.isArray(d.runsheets) ? d.runsheets : [];
+    var tr = Array.isArray(d.transfers) ? d.transfers : [];
+    var ds = Array.isArray(d.direct_sales) ? d.direct_sales : [];
+    var branches = (Array.isArray(d.branches) ? d.branches : []).filter(function(x){
+      return String(x && x.branch_code || '').toUpperCase().indexOf('VAN-') !== 0;
+    });
+    var drivers = Array.isArray(d.drivers) ? d.drivers : [];
+    var deliveryReps = Array.isArray(d.delivery_reps) ? d.delivery_reps : [];
+    var directReps = Array.isArray(d.direct_sales_reps) ? d.direct_sales_reps : [];
+    var vehicle = d.vehicle || {};
+    var bindOperationId = op('VEHICLE_OPERATION_BIND');
+
+    var rsOptions = rs.map(function(x){
+      return [x.id, (x.runsheet_code||'—') + ' · ' + (x.status||'—') + ' · سائق: ' + (x.driver_name||'—') + ' · توصيل: ' + (x.delivery_rep_name||'—')];
+    });
+
+    function transferOptions(rows){
+      return (rows||[]).map(function(x){
+        var ref = String(x.reference||'').trim();
+        var route = (x.from_branch_name||'—') + ' ← ' + (x.to_branch_name||'—');
+        var current = x.current_vehicle_code ? ' · مركبة حالية: '+x.current_vehicle_code : ' · غير مربوطة';
+        return [x.id, (x.voucher_code||'—') + (ref ? ' · مرجع: '+ref : '') + ' · ' + route + current];
+      });
+    }
+
+    var trOptions = transferOptions(tr);
+
+    var dsOptions = ds.map(function(x){
+      var ref = String(x.reference||'').trim();
+      return [x.id, (x.voucher_code||'—') + (ref ? ' · مرجع: '+ref : '') + ' · مندوب: ' + (x.direct_sales_rep_name||'—') + (x.current_vehicle_code ? ' · مركبة: '+x.current_vehicle_code : '')];
+    });
+
+    var branchOptions = [[ '', 'كل الفروع' ]].concat(branches.map(function(x){
+      return [x.id,(x.name||x.branch_code||'—') + (x.branch_code ? ' · '+x.branch_code : '')];
+    }));
+
+    var driverOptions = drivers.map(function(x){ return [x.id,(x.name||x.email||'—')+' · '+(x.role||'')]; });
+    var deliveryOptions = deliveryReps.map(function(x){ return [x.id,(x.name||x.email||'—')+' · '+(x.role||'')]; });
+    var directOptions = directReps.map(function(x){ return [x.id,(x.name||x.email||'—')+' · '+(x.role||'')]; });
+
+    function syncVoucherFields(selectId, docId, refId, rows){
+      var select = byId(selectId);
+      var doc = byId(docId);
+      var ref = byId(refId);
+      if (!doc || !ref) return;
+      var value = select ? String(select.value||'') : '';
+      var row = (rows||[]).find(function(x){ return String(x.id||'')===value; });
+      doc.value = row ? (row.voucher_code||'') : '';
+      ref.value = row ? (row.reference||'') : '';
+    }
+
+    function replaceTransferOptions(rows, selectedId){
+      var select = byId('fvo-tr');
+      if (!select) return;
+      select.innerHTML = '<option value="">اختر مستند التحويل</option>' +
+        transferOptions(rows).map(function(o){
+          return '<option value="'+esc(o[0])+'">'+esc(o[1])+'</option>';
+        }).join('');
+      if (selectedId) select.value = String(selectedId);
+      syncVoucherFields('fvo-tr','fvo-tr-doc','fvo-tr-ref',rows);
+    }
+
+    var html =
+      '<div style="text-align:right">' +
+        '<div style="padding:12px 14px;border-radius:16px;background:#eff6ff;color:#1e3a8a;font-size:12px;font-weight:800;margin-bottom:12px">المركبة: ' + esc(vehicle.vehicle_code||vehicle.license_plate||id) + ' — الربط يحدّث مصدر العملية نفسه ولا ينشئ سجلًا موازيًا.</div>' +
+        '<div><label class="font-bold text-sm text-slate-700">نوع العملية</label><select id="fvo-type" class="rw-input" style="height:46px;padding-right:14px;margin-top:6px" onchange="RW_FleetManagement.toggleVehicleOperationLinkPanels()"><option value="RUNSHEET">رانشيت</option><option value="BRANCH_TRANSFER">تحويل فرع</option><option value="DIRECT_SALE">بيع مباشر</option></select></div>' +
+        '<div id="fvo-rs-panel" style="display:block;margin-top:12px">' +
+          selectInput('fvo-rs','الرانشيت','',rsOptions) +
+          selectInput('fvo-rs-driver','السائق','',driverOptions) +
+          selectInput('fvo-rs-delivery','مندوب التوصيل','',deliveryOptions) +
+        '</div>' +
+        '<div id="fvo-tr-panel" style="display:none;margin-top:12px">' +
+          selectInput('fvo-tr-branch','فرع التحويل','',branchOptions) +
+          selectInput('fvo-tr','رقم مستند التحويل','',trOptions) +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">' +
+            '<div><label class="font-bold text-sm text-slate-700">رقم المستند</label><input id="fvo-tr-doc" class="rw-input" readonly style="height:46px;padding-right:14px;margin-top:6px;background:#f8fafc" value=""></div>' +
+            '<div><label class="font-bold text-sm text-slate-700">المرجع</label><input id="fvo-tr-ref" class="rw-input" readonly style="height:46px;padding-right:14px;margin-top:6px;background:#f8fafc" value=""></div>' +
+          '</div>' +
+          selectInput('fvo-tr-driver','السائق','',driverOptions) +
+        '</div>' +
+        '<div id="fvo-ds-panel" style="display:none;margin-top:12px">' +
+          selectInput('fvo-ds','رقم مستند البيع المباشر','',dsOptions) +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">' +
+            '<div><label class="font-bold text-sm text-slate-700">رقم المستند</label><input id="fvo-ds-doc" class="rw-input" readonly style="height:46px;padding-right:14px;margin-top:6px;background:#f8fafc" value=""></div>' +
+            '<div><label class="font-bold text-sm text-slate-700">المرجع</label><input id="fvo-ds-ref" class="rw-input" readonly style="height:46px;padding-right:14px;margin-top:6px;background:#f8fafc" value=""></div>' +
+          '</div>' +
+          selectInput('fvo-ds-rep','مندوب البيع المباشر','',directOptions) +
+        '</div>' +
+        '<div style="margin-top:12px;font-size:11px;color:#64748b;font-weight:700;line-height:1.9">الرانشيت يظل على مساره الحالي. تحويل الفرع يعرض الفروع ثم المستند والمرجع قبل الربط. البيع المباشر يعرض رقم المستند والمرجع تلقائيًا من الإذن المخزني. هوية السائق ومندوب التوصيل ومندوب البيع تبقى مستقلة.</div>' +
+      '</div>';
+
+    var modalPromise = modal('ربط المركبة بالعملية', html, async function() {
+      var type = val('fvo-type');
+      var payload = { operation_type:type, vehicle_id:id };
+
+      if (type==='RUNSHEET') {
+        payload.runsheet_id = val('fvo-rs');
+        payload.driver_user_id = val('fvo-rs-driver');
+        payload.delivery_rep_user_id = val('fvo-rs-delivery');
+        if (!payload.runsheet_id) throw new Error('اختر الرانشيت');
+        if (!payload.driver_user_id) throw new Error('اختر السائق');
+        if (!payload.delivery_rep_user_id) throw new Error('اختر مندوب التوصيل');
+      } else if (type==='BRANCH_TRANSFER') {
+        payload.voucher_id = val('fvo-tr');
+        payload.driver_user_id = val('fvo-tr-driver');
+        if (!payload.voucher_id) throw new Error('اختر مستند التحويل');
+        if (!payload.driver_user_id) throw new Error('اختر السائق');
+      } else if (type==='DIRECT_SALE') {
+        payload.voucher_id = val('fvo-ds');
+        payload.direct_sales_rep_id = val('fvo-ds-rep');
+        if (!payload.voucher_id) throw new Error('اختر مستند البيع المباشر');
+        if (!payload.direct_sales_rep_id) throw new Error('اختر مندوب البيع المباشر');
+      } else {
+        throw new Error('نوع العملية غير مدعوم');
+      }
+
+      return await command('VEHICLE_OPERATION_BIND',payload,bindOperationId);
+    },'ربط المركبة');
+
+    setTimeout(function(){
+      var typeEl = byId('fvo-type');
+      var branchEl = byId('fvo-tr-branch');
+      var transferEl = byId('fvo-tr');
+      var directEl = byId('fvo-ds');
+
+      if (transferEl) {
+        transferEl.addEventListener('change',function(){
+          syncVoucherFields('fvo-tr','fvo-tr-doc','fvo-tr-ref',tr);
+        });
+      }
+
+      if (directEl) {
+        directEl.addEventListener('change',function(){
+          syncVoucherFields('fvo-ds','fvo-ds-doc','fvo-ds-ref',ds);
+        });
+      }
+
+      if (branchEl) {
+        branchEl.addEventListener('change',async function(){
+          try {
+            branchEl.disabled = true;
+            var selectedBranch = String(branchEl.value||'').trim();
+            var filtered = await query('vehicle_operation_candidates',{
+              vehicle_id:id,
+              branch_id:selectedBranch||null
+            });
+            tr = Array.isArray(filtered.transfers) ? filtered.transfers : [];
+            replaceTransferOptions(tr, '');
+          } catch(e) {
+            showToast(e.message||'تعذر تحميل مستندات الفرع','error');
+            replaceTransferOptions([], '');
+          } finally {
+            branchEl.disabled = false;
+          }
+        });
+      }
+
+      if (typeEl) {
+        toggleVehicleOperationLinkPanels();
+      }
+
+      syncVoucherFields('fvo-tr','fvo-tr-doc','fvo-tr-ref',tr);
+      syncVoucherFields('fvo-ds','fvo-ds-doc','fvo-ds-ref',ds);
+    },0);
+
+    await modalPromise;
+    await openVehicleDetail(id);
+    showToast('تم ربط المركبة بالعملية بنجاح','success');
+  }
+```
+
+### Static proof after both replacements
+
+تم تطبيق الاستبدالين على نسخة كاملة في الذاكرة فقط، ثم فحص جميع `script` blocks في Mother:
+
+- Original main.html lines: 32,198
+- Patched in-memory lines: 32,295
+- script blocks parsed: 6
+- parse errors: 0
+- `operationBlock` occurrences: 1
+- `openVehicleOperationLinkForm` occurrences: 1
+- RUNSHEET delivery rep payload occurrences: 2
+- branch filter call occurrences: 1
+- no assistant write to Mother performed.
+
 ## 7. Production E2E — Binding Layer
 
 تم تنفيذ اختبار E2E معزول داخل Transaction ثم `ROLLBACK`، لضمان عدم تلويث Production.
