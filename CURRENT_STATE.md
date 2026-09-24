@@ -1,3 +1,156 @@
+# RAWAEA ERP — CURRENT STATE
+## Latest Authoritative Forensic Checkpoint — 2026-09-24 ~08:01 UTC
+
+> Current truth for this checkpoint:
+> CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+> Historical reports are contextual only and must be re-verified before reuse.
+
+## Active Closure Unit
+**Mother ERP → Suppliers → New Supplier Save / Supplier Code Generation**
+
+### System Git
+- Current HEAD: `07d3bfe263ec75f630e53ac5f891a6c3c0e7f7f5`
+- Parent: `04811da634b708be498a764c45621ddd87a81263`
+- Production source sync commit: `2398a518c19f41422f1b80d5352ec243adc034d1`
+- Production RPC migration commit: `2bfdf840a4fb5b0644c22e788bd889323b294066`
+- Final forensic report: `doc/Draft/Reprots/Report325_MOTHER_SUPPLIER_SAVE_FORENSIC_SURGICAL_CLOSURE_20260924.md`
+- Execution log: `doc/Draft/Reprots/EXECUTION_LOG_20260924_SUPPLIER_SAVE_FORENSIC_CLOSURE.md`
+
+### Mother Frontend Current Truth
+- Repository: `papamohammed77-glitch/erp-frontend`
+- HEAD: `5206405a07ba6a4317ceb2ef2b93072b24bf3dce`
+- Parent: `45e40a1d703f802fe4198a790408ef44012d5cc0`
+- Current `companies/company-1/main.html` blob: `d76e6849b8d1c5a341b325eb9736bc76ffd7b18f`
+- No assistant write was made to `main.html`.
+- Exact current supplier defect remains at `RW_Suppliers.openModal(code)` line 6926: new supplier code displays `جديد`.
+
+### Production Root Cause — CLOSED
+Production `save-supplier` Version 4 selected:
+`users.is_owner`
+but `public.users` has no `is_owner` column.
+
+This caused the observed supplier-save HTTP 400 before supplier INSERT.
+
+### Production Repair — VERIFIED
+- Existing Edge Function `save-supplier` updated from v4 to **v5**.
+- verify_jwt = true.
+- New canonical RPC: `public.save_supplier_atomic(uuid,uuid,text,jsonb,boolean,text)`.
+- No new Edge Function.
+- No new table.
+- No new column.
+- Supplier code generation is DB-authoritative: numeric `SUPP-*` MAX + 1 under company-scoped advisory transaction lock.
+- Existing unique constraint `(company_id,supplier_code)` remains final guard.
+- CREATE starts at `SUPP-1001` when no prior supplier exists.
+- UPDATE preserves existing `accounts_payable`; supplier master cannot rewrite financial balance.
+
+### Authorization
+- Owner semantics verified from current Production:
+  - auth metadata `isOwner=true`
+  - user permissions contains `*`
+  - matching `owner_profile` exists.
+- Unauthorized direct-sales user `vansales@rawaea.com` is rejected by `save_supplier_atomic` with:
+  `لا تملك صلاحية تنفيذ هذه العملية`.
+
+### Production E2E
+Transient transaction executed:
+1. supplier CREATE
+2. second supplier CREATE
+3. supplier UPDATE
+4. attempted financial-balance override through master data
+5. purchase invoice CREATE using the temporary supplier
+6. purchase invoice POST
+7. second POST replay
+8. stock/inventory-log verification
+9. supplier-ledger verification
+10. journal verification
+11. full ROLLBACK
+
+Observed final measurable result:
+- movement_count = 1
+- no Production residue after rollback.
+
+Current post-test snapshot:
+- suppliers = 0
+- purchase_invoices = 0
+- purchase_orders = 0
+- inventory_log = 6
+- stock_branches = 48
+- supplier_ledger = 0
+- journal_entries = 8
+- max supplier_code = NULL
+
+### Audit
+- `trg_audit_suppliers` remains active for INSERT/UPDATE/DELETE.
+- It calls `fn_audit_trigger()`.
+- Audit architecture was not changed.
+
+### Owner Surgical Patch — READY
+File:
+`papamohammed77-glitch/erp-frontend/companies/company-1/main.html`
+
+Current SHA:
+`d76e6849b8d1c5a341b325eb9736bc76ffd7b18f`
+
+Function:
+`RW_Suppliers.openModal(code)`
+
+Exact element:
+**line 6926**
+
+Replace only:
+`<div class="flex flex-col"><label>كود المورد</label><input id="supp-code" value="${s?.supplier_code||'جديد'}" readonly class="p-2.5 bg-gray-100 border rounded-lg"></div>`
+
+With the complete replacement documented in Report325:
+`SUPP-${last numeric supplier code + 1}` preview, while preserving existing supplier code in edit mode.
+
+Do not modify `_handleSave`.
+Do not rewrite `RW_Suppliers`.
+Do not modify purchase backend, inventory engine, or accounting engine for this closure.
+
+### Competitive Supplier-Master Gap — BACKLOG ONLY
+Official current references reviewed:
+- Odoo: vendor pricelist links supplier and product.
+- Dynamics 365 Business Central: vendor posting group, currency, payment terms, telephone and related vendor master data.
+- SAP: supplier/business partner master includes address, bank, tax, payment terms, purchasing organization and related procurement data.
+- Daftra: supplier auto-numbering, CR/VAT, currency, opening balance, email, contacts and custom fields.
+- Manager.io: code, credit limit, currency, address, email, division, control account, starting balance and custom fields.
+
+Potential future contract study:
+email, tax/CR identifiers, currency, credit limit, payment terms/due rule, bank accounts, supplier classification, purchasing group, control account, multiple contacts, supplier-item pricing, attachments, purchasing block/status, purchasing scope, performance KPIs.
+
+No competitive backlog field is being added in this emergency closure without an explicit Business Contract and schema ownership decision.
+
+### Browser E2E
+**OPEN / UNVERIFIED**
+No authenticated browser runtime is available in this execution to prove the published artifact interactively.
+
+Therefore:
+- DB/RPC E2E = VERIFIED
+- Production deployment = VERIFIED
+- Current Source surgical target = VERIFIED
+- Authenticated Browser E2E = NOT PROVEN
+
+### Exact Next Resumption Point
+1. Verify System HEAD `07d3bfe263ec75f630e53ac5f891a6c3c0e7f7f5`.
+2. Verify Production `save-supplier` v5.
+3. Verify `save_supplier_atomic`.
+4. Verify Mother HEAD `5206405a07ba6a4317ceb2ef2b93072b24bf3dce`.
+5. Verify main.html blob `d76e6849b8d1c5a341b325eb9736bc76ffd7b18f`.
+6. Apply only the line-6926 owner patch from Report325.
+7. Full main.html parse.
+8. Commit/publish frontend.
+9. Verify served artifact identity.
+10. Fresh login.
+11. Mother → الموردين → إضافة مورد جديد.
+12. Verify displayed code = `SUPP-1001`.
+13. Save and verify network success + row refresh + audit.
+14. Edit supplier and verify financial balance remains controlled by financial transactions.
+15. Run authenticated Browser E2E.
+16. Capture fresh Production snapshot at the same reporting moment.
+17. Update CURRENT_STATE again.
+18. Do not reopen this Production repair without contradictory evidence.
+
+## Historical State Follows
 # LATEST AUTHORITATIVE CHECKPOINT — 2026-09-24 07:05 UTC
 
 ## Current Truth
@@ -903,3 +1056,4 @@ Reports are historical/contextual evidence only.
 - Current Edge wrappers `complete-return`, `complete-order-delivery`, `receive-purchase`, `save-sales-invoice` are RPC wrappers; no direct stock table writes in Current Git.
 - Production currently has no QA business entities; technical operation tombstones remain by design.
 - Browser authenticated E2E remains OPEN until Owner applies Report318 to frontend, publishes, verifies served artifact, and runs login-based E2E.
+
