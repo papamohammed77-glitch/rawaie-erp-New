@@ -810,3 +810,178 @@ Verify in current vouchers.html:
 Then:
 Full parse → Published artifact check → Authenticated Browser E2E → Production post-patch verification.
 
+---
+
+# 2026-09-27 — Report342 SupplierReturn Business Contract Closure
+
+## Current authoritative checkpoint
+
+### System Git
+- Current System HEAD: \`fcae1c79016aae1fc0c8e3f977c7cdbc88be7238\`
+- Production migration commit: \`d5a124803a9cc17560b4022844cb04eb3e3d1312\`
+- Report: \`doc/Draft/Reprots/Report342_SUPPLIER_RETURN_BUSINESS_CONTRACT_UI_PRODUCTION_CLOSURE_20260927.md\`
+
+### Mother Git
+- HEAD: \`4a322fa793027f8584d9f0d55638ef5a14aebc03\`
+- Parent: \`fce3dfaa0503957791113a5ebf57d402a4a82764\`
+- vouchers.html SHA: \`6aca57d8baa8c78b616a281411f15438f34676bf\`
+- main.html SHA: \`810e4f5440f5975f55099a124deb42b086a49183\`
+- van-sales.html SHA: \`8d61382a8e0025a0d079e71dd94f33d106d9088e\`
+
+## Source conclusion
+- Commit 4a322... already contains SR-01/SR-02/SR-03.
+- Do not reapply those fixes.
+- pickSearch is not the root cause.
+- SupplierReturn remains Branch → Supplier and independent of PO/Order/Runsheet.
+
+## Production closure executed
+Migration:
+\`close_supplier_return_contract_accounting_20260927\`
+
+Durable migration:
+\`supabase/migrations/20260927152000_close_supplier_return_contract_accounting.sql\`
+
+Closed:
+- Return Reason
+- Supplier Credit Note reference
+- Supplier RMA reference
+- Optional PO reference
+- Optional Purchase Invoice reference
+- Return-to Address
+- Inspection status
+- Disposition
+- line unit price
+- line discount
+- line tax
+- explicit return totals
+- typed purchase document links
+- Supplier Ledger posting
+- GL posting
+- tax transaction
+- supplier accounts_payable synchronization
+- authenticated RPC path
+- negative guard before stock movement
+- Contract Save idempotency
+
+No new Edge Function was created.
+
+## Production RPCs
+- save_supplier_return_contract
+- get_supplier_return_contract
+- assert_supplier_return_contract
+
+Existing core updated:
+- complete_manual_stock_voucher_atomic_core_20260828
+- send_stock_voucher_atomic
+
+## Persistent QA
+
+### Supplier
+- QA-SR-CLOSURE-20260927
+- id: \`8a4ec462-d9ef-43e3-943d-9c1369b2561e\`
+
+### Item
+- QA-SR-ITEM-20260927
+- cost: 75
+
+### PO
+- QA-SR-PO-20260927
+- id: \`967e9cfa-01c7-42ac-90c7-dad16b3b4de3\`
+
+### Purchase Invoice
+- QA-SR-INV-20260927
+- id: \`2f6208c9-32e9-41a2-9014-56826f8b5e84\`
+
+### IN-4
+- id: \`9a849d3a-399c-447a-8696-597438050d70\`
+- qty: 2
+- gross: 150
+- discount: 15
+- taxable: 135
+- VAT: 20.25
+- total: 155.25
+- status: Completed
+- optional PO + Invoice references present
+- Credit Note / RMA references present
+- journal balanced
+- stock reduced from 8 to 6
+- inventory_log verified
+- supplier ledger verified
+- suppliers.accounts_payable synchronized
+- tax transaction verified
+- purchase_document_links verified
+
+### IN-5
+- id: \`6a1c9195-48b4-4700-8e62-da304bd0205e\`
+- direct-purchase path
+- PO = NULL
+- Purchase Invoice = NULL
+- total = 75
+- status: Completed
+- supplier ledger and journal verified
+
+### IN-6
+- negative guard fixture
+- status remains Draft
+- missing Return Reason rejected before Send
+- no stock movement created
+
+## Accounting master reconciliation
+- payable_balance_mismatches = 0
+- suppliers_checked = 4
+
+## Owner surgical patch
+File:
+\`companies/company-1/warehouse/vouchers.html\`
+
+Owner-only additions are documented in Report342:
+- SR-04 refs for returnReasons/taxCodes
+- SR-05 loadRefs master data
+- SR-06 SupplierReturn Contract UI entry
+- SR-07 authenticated Contract modal + line valuation + optional PO/Invoice
+- SR-08 submit preflight
+- SR-09 create callback Contract save
+- SR-10 edit callback Contract save
+
+The assistant did not modify vouchers.html.
+
+## Protected files
+- main.html: untouched
+- vouchers.html: untouched by assistant
+- van-sales.html: untouched
+
+## Browser / Deployment status
+OPEN:
+- authenticated browser E2E after Owner Patch
+- published artifact verification after Owner Patch
+
+Do not convert DB/RPC evidence into Browser PASS.
+
+## Exact next resumption
+1. Verify Owner SR-04 through SR-10 in current vouchers.html.
+2. Parse embedded JavaScript fully.
+3. Publish/deploy the owner-controlled source.
+4. Run authenticated browser E2E.
+5. Re-read IN-4, IN-5, IN-6 from Production.
+6. Verify stock, inventory_log, supplier ledger, payable master, journal, tax transaction, document links.
+7. Close SupplierReturn UI only after browser proof.
+
+Do not reopen:
+- SR-01/SR-02/SR-03
+- DirectSale fixes
+- DirectReturn fixes
+- Fleet fixes
+
+Do not touch main.html unless new contradictory evidence appears.
+Do not create a new Edge Function.
+
+## Final root cause
+SupplierReturn had previously been incorrectly coupled to supplierBranchMap generated from PO history.
+
+That source coupling was already removed by Mother commit 4a322....
+
+The remaining gap was the absence of the full SupplierReturn Business Contract in the Production data/accounting layer.
+
+That Production contract is now closed.
+
+## END OF CURRENT STATE ADDENDUM
