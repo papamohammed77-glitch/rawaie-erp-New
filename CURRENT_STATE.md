@@ -653,3 +653,160 @@ Do not create a new Edge Function for this capability.
 - Mother current HEAD: `111a6876ddf38394989896f64767170b77c3231e`
 - Mother main.html blob: `3d1ac970c0e81d0a581045ce79b140708ccfa3af`
 - Report334 Mother patches are already Owner-applied; do not reapply.
+
+---
+
+# 2026-09-27 — SupplierReturn Forensic Closure Addendum
+
+## Verified Current Reality
+
+### System Git
+- HEAD: 27dd52a82bccfc65726ed3e46776ede28ac1281b
+- Parent: 6ebea2c7aacad14a1702fe86032870fb14d87db1
+- Parent of parent: 0d5a57d7b263cbb10e5235db56175fc4b7825ed3
+
+### Mother Git
+- HEAD: fce3dfaa0503957791113a5ebf57d402a4a82764
+- Parent: 666f15bc84348b6fb44a5c565dcf2fb4fe1d0c98
+- main.html SHA: 810e4f5440f5975f55099a124deb42b086a49183
+- vouchers.html SHA: 6c3822060c0e261c73879b94a5147d807a0bc6c2
+- van-sales.html SHA: 8d61382a8e0025a0d079e71dd94f33d106d9088e
+
+## Closure Unit
+
+SUPPLIER RETURN (SupplierReturn) in standalone warehouse vouchers.
+
+## Root Cause — PROVED
+
+The standalone vouchers source incorrectly restricts SupplierReturn suppliers through supplierBranchMap derived from purchase_orders.
+
+Current Production and Mother contracts prove:
+- SupplierReturn is a standalone Branch → Supplier warehouse operation.
+- Active Supplier master is the authoritative destination.
+- PO/Purchase Invoice linkage is optional business context, not a creation gate.
+
+Exact defective source blocks:
+1. pickArr(key), approximately lines 2937–2964.
+2. submit(), approximately lines 4085–4106.
+
+The first makes the supplier candidate array empty when the branch has no PO history.
+The second rejects the same valid transaction again.
+
+pickSearch() is not the root cause and is not to be rewritten in this closure.
+
+## Production Proof
+
+Persistent QA data retained:
+- Supplier: QA-SR-20260927 / QA مرتجع مورد — لا يوجد PO
+- Item: QA-SR-ITEM-20260927 / QA صنف مرتجع مورد — اختبار دائم
+- Voucher: IN-3 / SupplierReturn / Completed
+- Reference: QA-SR-RETURN-20260927-01
+- Qty: 2
+- Unit value: 75
+- Total: 150
+
+Verified:
+- Stock branch qty reduced by 2.
+- SupplierReturn inventory_log movement exists.
+- Supplier ledger debit = 150.
+- Journal debit supplier payable = 150.
+- Journal credit inventory = 150.
+- Journal balanced.
+- Complete RPC replay returned duplicate=true without creating duplicate financial posting.
+
+## Production Changes
+
+None required for the current defect.
+
+Existing production architecture remains authoritative:
+- create-stock-voucher v12
+- send-stock-voucher v20
+- receive-stock-voucher v22
+- complete-stock-voucher v4
+- centralized post_stock_movement
+- centralized supplier ledger posting
+- centralized journal posting
+
+No new Edge Function created.
+No post_stock_movement change.
+No schema change.
+No main.html change.
+No vouchers.html change by assistant.
+No van-sales change.
+
+## Owner Surgical Changeset
+
+File:
+companies/company-1/warehouse/vouchers.html
+
+Required owner changes are recorded in:
+doc/Draft/Reprots/Report341_WAREHOUSE_VOUCHERS_SUPPLIER_RETURN_FORENSIC_CLOSURE_20260927.md
+
+Changes:
+- SR-01: Replace SupplierReturn candidate block in pickArr().
+- SR-02: Replace SupplierReturn PO-map validation block in submit().
+- SR-03: Rename route label only from «المورد المرتبط بالفرع» to «المورد».
+
+No other function should be rewritten for this closure.
+
+## Accounting Finding — OPEN SEPARATE CLOSURE
+
+Production shows:
+- suppliers.accounts_payable may differ from latest supplier_ledger.balance.
+- QA supplier accounts_payable = 0 while ledger_balance = -150.
+- SUPP-1001 accounts_payable = 0 while ledger_balance = 3970.
+
+Do not patch this from SupplierReturn.
+Treat as a separate authoritative-balance contract investigation.
+
+## Competitive Gap Backlog — NOT PART OF THIS SURGICAL CLOSURE
+
+Potential future fields/processes:
+- Return Reason
+- Supplier Credit Note / RMA
+- Optional Purchase Invoice reference
+- Optional PO reference
+- Return-to Address
+- Inspection / Disposition
+- Tax / Discount / explicit return valuation
+
+These require an independent business/data/accounting contract before implementation.
+
+## Closure Status
+
+CLOSED:
+- Production SupplierReturn core
+- Stock effect
+- Inventory log
+- Supplier ledger posting
+- Journal posting
+- Idempotent complete replay
+- No-PO backend capability
+- Persistent QA proof
+- Edge-count constraint compliance
+
+PATCH READY — OWNER APPLY:
+- Vouchers SR-01
+- Vouchers SR-02
+- Vouchers SR-03
+
+OPEN:
+- Authenticated browser E2E after owner patch
+- Published artifact verification after owner patch
+
+## LAST VERIFIED CHECKPOINT
+
+Production Core + DB + Accounting + Idempotency + source root cause.
+
+## NEXT EXACT RESUMPTION POINT
+
+Do not reopen Production SupplierReturn design.
+
+Verify in current vouchers.html:
+- SR-01 applied
+- SR-02 applied
+- SR-03 applied
+
+Then:
+Full parse → Published artifact check → Authenticated Browser E2E → Production post-patch verification.
+
