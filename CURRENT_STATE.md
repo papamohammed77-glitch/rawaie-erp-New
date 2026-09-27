@@ -992,8 +992,8 @@ That Production contract is now closed.
 ## Authoritative Git after this session
 
 ### System
-- Current HEAD: `010fdcbc61bf5bbabd2a27a79636927d14f7db3b`
-- Parent: `8be3bfbb59f6090a8560fd4255d16cd4714f706f`
+- Current HEAD: `db654788af5f4e7639d816ebda97182356b47a72`
+- Parent: `010fdcbc61bf5bbabd2a27a79636927d14f7db3b`
 - Previous parent chain includes Production hardening migration commit:
   `fc93c4c3f1b057734d89f289fd9743c394797a7a`
 
@@ -1159,5 +1159,11 @@ The report contains the complete surgical replacement elements and competitor tr
 - Supplier search engine without new evidence
 - new Edge Function creation
 
+
+## Final checkpoint correction — Report343 latest commit
+- Report343 latest commit: `db654788af5f4e7639d816ebda97182356b47a72`
+- Report343 duplicate documentation block removed; surgical patch unchanged.
+- Production migration commit: `fc93c4c3f1b057734d89f289fd9743c394797a7a`
+- Latest System HEAD therefore points to the corrected Report343 documentation.
 
 ## END OF CURRENT STATE — 2026-09-27
