@@ -1261,6 +1261,677 @@ openSupplierReturnContract:function(done){
 
 ---
 
+## SR-07C — Contract Modal — الاستبدال الكامل
+
+أضف الدالة التالية كاملة بعد `supplierReturnFingerprint` و`saveSupplierReturnContract` وقبل `renderWorkspace`:
+
+~~~javascript
+openSupplierReturnContract:function(done){
+
+    var s=this;
+
+    if(s.type!=='SupplierReturn'){
+        if(done)done();
+        return;
+    }
+
+    var supplierId=
+        (RW_UI.byId('wsTo')||{})
+            .value||'';
+
+    var supplier=
+        (s.refs.suppliers||[])
+        .find(function(x){
+            return String(x.id)===
+                String(supplierId);
+        });
+
+    if(!supplier){
+        RW_UI.toast(
+            'اختر المورد أولًا.',
+            'warning'
+        );
+        return;
+    }
+
+    RW_UI.showLoader(
+        'جاري تحميل مرجعيات المرتجع...'
+    );
+
+    var existingPromise=
+        (
+            s.mode==='edit' &&
+            s.editVoucherCode
+        )
+        ?supabase
+            .rpc(
+                'get_supplier_return_contract',
+                {
+                    p_company_id:s.company,
+                    p_voucher_code:
+                        s.editVoucherCode
+                }
+            )
+            .then(function(r){
+
+                if(
+                    r.error ||
+                    !r.data ||
+                    !r.data.success
+                ){
+                    return null;
+                }
+
+                var h=
+                    r.data.voucher||{};
+
+                return{
+                    supplier_id:supplierId,
+                    return_reason_id:
+                        h.return_reason_id||'',
+                    supplier_credit_note_ref:
+                        h.supplier_credit_note_ref||'',
+                    supplier_rma_ref:
+                        h.supplier_rma_ref||'',
+                    purchase_invoice_id:
+                        h.purchase_invoice_id||'',
+                    purchase_order_id:
+                        h.purchase_order_id||'',
+                    return_to_address:
+                        h.return_to_address||
+                        supplier.address||
+                        '',
+                    inspection_status:
+                        h.inspection_status||
+                        'not_required',
+                    disposition:
+                        h.disposition||
+                        'return_to_supplier',
+                    currency:
+                        h.return_currency||
+                        'SAR',
+                    items_fingerprint:
+                        s.supplierReturnFingerprint(),
+                    lines:
+                        r.data.lines||[]
+                };
+
+            })
+            .catch(function(){
+                return null;
+            })
+        :Promise.resolve(null);
+
+    Promise.all([
+        existingPromise,
+
+        supabase
+            .from('purchase_orders')
+            .select(
+                'id,po_code,po_date,total_amount,status'
+            )
+            .eq('company_id',s.company)
+            .eq('supplier_id',supplierId)
+            .neq('status','Cancelled')
+            .order(
+                'created_at',
+                {ascending:false}
+            )
+            .limit(100),
+
+        supabase
+            .from('purchase_invoices')
+            .select(
+                'id,invoice_code,invoice_date,total_amount,status,purchase_order_id'
+            )
+            .eq('company_id',s.company)
+            .eq('supplier_id',supplierId)
+            .neq('status','Cancelled')
+            .order(
+                'created_at',
+                {ascending:false}
+            )
+            .limit(100)
+    ])
+    .then(function(parts){
+
+        var existing=parts[0]||null;
+
+        var pos=
+            (
+                parts[1] &&
+                parts[1].data
+            )||
+            [];
+
+        var invoices=
+            (
+                parts[2] &&
+                parts[2].data
+            )||
+            [];
+
+        var sessionDraft=
+            s.supplierReturnDraft &&
+            String(
+                s.supplierReturnDraft.supplier_id||''
+            )===String(supplierId) &&
+            String(
+                s.supplierReturnDraft.items_fingerprint||''
+            )===String(
+                s.supplierReturnFingerprint()
+            )
+                ?s.supplierReturnDraft
+                :null;
+
+        var draft=
+            existing||
+            sessionDraft||
+            {
+                supplier_id:supplierId,
+                return_reason_id:'',
+                supplier_credit_note_ref:'',
+                supplier_rma_ref:'',
+                purchase_invoice_id:'',
+                purchase_order_id:'',
+                return_to_address:
+                    supplier.address||
+                    '',
+                inspection_status:
+                    'not_required',
+                disposition:
+                    'return_to_supplier',
+                currency:'SAR',
+                items_fingerprint:
+                    s.supplierReturnFingerprint(),
+                lines:[]
+            };
+
+        var html=
+            '<div class="text-right space-y-4">'+
+
+            '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">'+
+
+                '<div>'+
+                    '<label class="text-[10px] text-slate-400 block mb-1">سبب المرتجع *</label>'+
+                    '<select id="srReason" class="smart-input w-full">'+
+                        '<option value="">اختر السبب</option>'+
+                        (s.refs.returnReasons||[])
+                        .map(function(x){
+                            return(
+                                '<option value="'+
+                                s.esc(x.id)+
+                                '" '+
+                                (
+                                    String(x.id)===
+                                    String(
+                                        draft.return_reason_id||
+                                        ''
+                                    )
+                                    ?'selected'
+                                    :''
+                                )+
+                                '>'+
+                                s.esc(
+                                    x.reason_code+
+                                    ' — '+
+                                    x.reason_name
+                                )+
+                                '</option>'
+                            );
+                        })
+                        .join('')+
+                    '</select>'+
+                '</div>'+
+
+                '<div>'+
+                    '<label class="text-[10px] text-slate-400 block mb-1">عنوان إرجاع المورد *</label>'+
+                    '<input id="srReturnAddress" class="smart-input w-full" value="'+
+                        s.esc(
+                            draft.return_to_address||
+                            supplier.address||
+                            ''
+                        )+
+                    '" placeholder="عنوان استلام المرتجع لدى المورد">'+
+                '</div>'+
+
+                '<div>'+
+                    '<label class="text-[10px] text-slate-400 block mb-1">Credit Note / Supplier Credit Note</label>'+
+                    '<input id="srCreditNote" class="smart-input w-full" value="'+
+                        s.esc(
+                            draft.supplier_credit_note_ref||
+                            ''
+                        )+
+                    '" placeholder="رقم إشعار المورد إن وجد">'+
+                '</div>'+
+
+                '<div>'+
+                    '<label class="text-[10px] text-slate-400 block mb-1">RMA</label>'+
+                    '<input id="srRma" class="smart-input w-full" value="'+
+                        s.esc(
+                            draft.supplier_rma_ref||
+                            ''
+                        )+
+                    '" placeholder="رقم RMA إن وجد">'+
+                '</div>'+
+
+                '<div>'+
+                    '<label class="text-[10px] text-slate-400 block mb-1">Purchase Order — اختياري</label>'+
+                    '<select id="srPO" class="smart-input w-full">'+
+                        '<option value="">بدون مرجع PO</option>'+
+                        pos.map(function(x){
+                            return(
+                                '<option value="'+
+                                s.esc(x.id)+
+                                '" '+
+                                (
+                                    String(x.id)===
+                                    String(
+                                        draft.purchase_order_id||
+                                        ''
+                                    )
+                                    ?'selected'
+                                    :''
+                                )+
+                                '>'+
+                                s.esc(
+                                    x.po_code+
+                                    ' · '+
+                                    x.po_date
+                                )+
+                                '</option>'
+                            );
+                        }).join('')+
+                    '</select>'+
+                '</div>'+
+
+                '<div>'+
+                    '<label class="text-[10px] text-slate-400 block mb-1">Purchase Invoice — اختياري</label>'+
+                    '<select id="srInvoice" class="smart-input w-full">'+
+                        '<option value="">بدون مرجع فاتورة</option>'+
+                        invoices.map(function(x){
+                            return(
+                                '<option value="'+
+                                s.esc(x.id)+
+                                '" '+
+                                (
+                                    String(x.id)===
+                                    String(
+                                        draft.purchase_invoice_id||
+                                        ''
+                                    )
+                                    ?'selected'
+                                    :''
+                                )+
+                                '>'+
+                                s.esc(
+                                    x.invoice_code+
+                                    ' · '+
+                                    x.invoice_date
+                                )+
+                                '</option>'
+                            );
+                        }).join('')+
+                    '</select>'+
+                '</div>'+
+
+                '<div>'+
+                    '<label class="text-[10px] text-slate-400 block mb-1">الفحص</label>'+
+                    '<select id="srInspection" class="smart-input w-full">'+
+                        '<option value="not_required">لا يتطلب فحص</option>'+
+                        '<option value="pending">قيد الفحص</option>'+
+                        '<option value="passed">اجتاز الفحص</option>'+
+                        '<option value="failed">فشل الفحص</option>'+
+                    '</select>'+
+                '</div>'+
+
+                '<div>'+
+                    '<label class="text-[10px] text-slate-400 block mb-1">Disposition</label>'+
+                    '<select id="srDisposition" class="smart-input w-full">'+
+                        '<option value="return_to_supplier">إعادة للمورد</option>'+
+                        '<option value="replacement_requested">استبدال مطلوب</option>'+
+                        '<option value="credit_requested">ائتمان/خصم مستحق</option>'+
+                        '<option value="rejected">مرفوض</option>'+
+                    '</select>'+
+                '</div>'+
+
+            '</div>'+
+
+            '<div class="border border-slate-800 rounded-2xl overflow-hidden">'+
+                '<div class="px-3 py-2 bg-slate-900 text-[10px] font-black text-slate-300">'+
+                    'تقييم بنود المرتجع — السعر والخصم والضريبة لكل صنف'+
+                '</div>'+
+
+                (s.cart||[]).map(function(x,i){
+
+                    var old=
+                        (draft.lines||[])
+                        .find(function(z){
+                            return String(z.item_code)===
+                                String(x.code);
+                        })||
+                        {};
+
+                    var price=
+                        Number(
+                            old.unit_price||
+                            x.unitPrice||
+                            0
+                        )||
+                        Number(
+                            (
+                                s.items.find(function(it){
+                                    return String(it.item_code)===
+                                        String(x.code);
+                                })||
+                                {}
+                            ).cost_price||
+                            0
+                        )||
+                        0;
+
+                    return(
+                        '<div class="p-3 border-b border-slate-800">'+
+                        '<b class="text-xs text-white truncate block">'+
+                            s.esc(x.name||x.code)+
+                        '</b>'+
+                        '<span class="text-[10px] text-slate-500">'+
+                            s.esc(x.code)+
+                            ' · Qty '+
+                            f(x.qty)+
+                        '</span>'+
+                        '<div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">'+
+
+                            '<div>'+
+                                '<label class="text-[9px] text-slate-500 block mb-1">سعر الوحدة</label>'+
+                                '<input id="srPrice'+i+'" type="number" min="0" step="0.01" class="smart-input w-full" value="'+
+                                    s.esc(price)+
+                                '">'+
+                            '</div>'+
+
+                            '<div>'+
+                                '<label class="text-[9px] text-slate-500 block mb-1">خصم %</label>'+
+                                '<input id="srDisc'+i+'" type="number" min="0" max="100" step="0.01" class="smart-input w-full" value="'+
+                                    s.esc(
+                                        Number(
+                                            old.discount_percent||0
+                                        )
+                                    )+
+                                '">'+
+                            '</div>'+
+
+                            '<div>'+
+                                '<label class="text-[9px] text-slate-500 block mb-1">Tax</label>'+
+                                '<select id="srTax'+i+'" class="smart-input w-full">'+
+                                    '<option value="">بدون ضريبة</option>'+
+                                    (s.refs.taxCodes||[])
+                                    .map(function(tc){
+                                        return(
+                                            '<option value="'+
+                                            s.esc(tc.id)+
+                                            '" '+
+                                            (
+                                                String(tc.id)===
+                                                String(
+                                                    old.tax_code_id||
+                                                    ''
+                                                )
+                                                ?'selected'
+                                                :''
+                                            )+
+                                            '>'+
+                                            s.esc(
+                                                tc.code+
+                                                ' · '+
+                                                tc.rate+
+                                                '%'
+                                            )+
+                                            '</option>'
+                                        );
+                                    })
+                                    .join('')+
+                                '</select>'+
+                            '</div>'+
+
+                        '</div>'+
+                        '</div>'
+                    );
+                }).join('')+
+
+            '</div>'+
+            '</div>';
+
+        RW_UI.hideLoader();
+
+        Swal.fire({
+            title:'عقد مرتجع المورد',
+            html:html,
+            width:900,
+            showCancelButton:true,
+            confirmButtonText:'حفظ العقد',
+            cancelButtonText:'إلغاء',
+            reverseButtons:true,
+            focusConfirm:false,
+
+            didOpen:function(){
+
+                var inspection=
+                    RW_UI.byId('srInspection');
+
+                var disposition=
+                    RW_UI.byId('srDisposition');
+
+                if(inspection)
+                    inspection.value=
+                        draft.inspection_status||
+                        'not_required';
+
+                if(disposition)
+                    disposition.value=
+                        draft.disposition||
+                        'return_to_supplier';
+
+            },
+
+            preConfirm:function(){
+
+                var reason=
+                    (
+                        RW_UI.byId(
+                            'srReason'
+                        )||
+                        {}
+                    ).value||
+                    '';
+
+                var address=
+                    (
+                        RW_UI.byId(
+                            'srReturnAddress'
+                        )||
+                        {}
+                    ).value.trim();
+
+                if(!reason){
+                    Swal.showValidationMessage(
+                        'اختر سبب المرتجع.'
+                    );
+                    return false;
+                }
+
+                if(!address){
+                    Swal.showValidationMessage(
+                        'عنوان إرجاع المورد مطلوب.'
+                    );
+                    return false;
+                }
+
+                var lines=
+                    (s.cart||[])
+                    .map(function(x,i){
+
+                        var price=
+                            Number(
+                                (
+                                    RW_UI.byId(
+                                        'srPrice'+i
+                                    )||
+                                    {}
+                                ).value
+                            )||0;
+
+                        var disc=
+                            Number(
+                                (
+                                    RW_UI.byId(
+                                        'srDisc'+i
+                                    )||
+                                    {}
+                                ).value
+                            )||0;
+
+                        var tax=
+                            (
+                                RW_UI.byId(
+                                    'srTax'+i
+                                )||
+                                {}
+                            ).value||
+                            '';
+
+                        if(price<=0){
+                            Swal.showValidationMessage(
+                                'سعر الصنف '+
+                                x.code+
+                                ' يجب أن يكون أكبر من صفر.'
+                            );
+                            throw new Error(
+                                'invalid price'
+                            );
+                        }
+
+                        if(disc<0 || disc>100){
+                            Swal.showValidationMessage(
+                                'خصم الصنف '+
+                                x.code+
+                                ' غير صالح.'
+                            );
+                            throw new Error(
+                                'invalid discount'
+                            );
+                        }
+
+                        return{
+                            item_code:x.code,
+                            unit_price:price,
+                            discount_percent:disc,
+                            tax_code_id:tax
+                        };
+
+                    });
+
+                return{
+                    supplier_id:supplierId,
+                    return_reason_id:reason,
+                    supplier_credit_note_ref:
+                        (
+                            RW_UI.byId(
+                                'srCreditNote'
+                            )||
+                            {}
+                        ).value.trim(),
+                    supplier_rma_ref:
+                        (
+                            RW_UI.byId(
+                                'srRma'
+                            )||
+                            {}
+                        ).value.trim(),
+                    purchase_invoice_id:
+                        (
+                            RW_UI.byId(
+                                'srInvoice'
+                            )||
+                            {}
+                        ).value||
+                        null,
+                    purchase_order_id:
+                        (
+                            RW_UI.byId(
+                                'srPO'
+                            )||
+                            {}
+                        ).value||
+                        null,
+                    return_to_address:address,
+                    inspection_status:
+                        (
+                            RW_UI.byId(
+                                'srInspection'
+                            )||
+                            {}
+                        ).value||
+                        'not_required',
+                    disposition:
+                        (
+                            RW_UI.byId(
+                                'srDisposition'
+                            )||
+                            {}
+                        ).value||
+                        'return_to_supplier',
+                    currency:'SAR',
+                    items_fingerprint:
+                        s.supplierReturnFingerprint(),
+                    lines:lines
+                };
+            }
+        })
+        .then(function(a){
+
+            if(
+                !a ||
+                !a.isConfirmed
+            ){
+                return;
+            }
+
+            s.supplierReturnDraft=
+                a.value;
+
+            if(
+                RW_UI.byId(
+                    'srContractState'
+                )
+            ){
+                RW_UI.safeText(
+                    RW_UI.byId(
+                        'srContractState'
+                    ),
+                    'تم حفظ بيانات عقد المرتجع في الجلسة.'
+                );
+            }
+
+            if(done){
+                done();
+            }
+
+        });
+
+    })
+    .catch(function(e){
+
+        RW_UI.hideLoader();
+
+        RW_UI.showError(
+            e.message||
+            'تعذر تحميل مرجعيات المرتجع'
+        );
+
+    });
+},
+~~~
+
 # 10. العيب الخامس — SR-08 submit preflight غير موجود
 
 ## العنصر المعيب
