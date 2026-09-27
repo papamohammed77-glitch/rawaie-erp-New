@@ -1167,3 +1167,54 @@ The report contains the complete surgical replacement elements and competitor tr
 - Latest System HEAD therefore points to the corrected Report343 documentation.
 
 ## END OF CURRENT STATE — 2026-09-27
+
+
+---
+
+# CURRENT STATE — 2026-09-27 — Report 344 Closure Checkpoint
+
+## Authoritative checkpoint
+
+- System documentation HEAD before this state update: `23c3bef8cd181f113312d81ffa545bfbf3fab7bb` (Report 344).
+- Parent: `d89cbfaa475adaf9a05c3f3c9a5bec7e4f163d16`.
+- Mother frontend HEAD: `2203768d8fd3f58a2fa0b378c45494b0741be9cd`.
+- Mother parent: `4a322fa793027f8584d9f0d55638ef5a14aebc03`.
+- Current vouchers.html blob: `306cb0ddf6e922951a8a164d9a7818728c6cb0da`.
+- Current van-sales.html blob: `8d61382a8e0025a0d079e71dd94f33d106d9088e`.
+- Current main.html blob: `810e4f5440f5975f55099a124deb42b086a49183`.
+- Current app.html blob: `ec75f89c11620f6e8b8ef5996cf1a3289dcf20b4`.
+
+## Report 344 result
+
+- Root cause of `vouchers:2986 Uncaught SyntaxError: Function statements require a function name` is confirmed: the `pickArr:function(key)` closing segment `return []; },` was deleted before `pickShow:function(key)` in commit `4a322fa793027f8584d9f0d55638ef5a14aebc03`.
+- Surgical Patch 1 is READY; no source file was modified by the assistant.
+- Surgical Patch 2 (SR-08 SupplierReturn submit preflight) is READY; no source file was modified by the assistant.
+- In-memory parse after both patches: embedded scripts 1/6 through 6/6 PASS.
+- Production SupplierReturn Contract/DB/RLS/ACL remains CLOSED; no new table and no new Edge Function were created.
+- Existing permanent completed QA `QA-SR-UI-CONTRACT-20260927-01` remains retained.
+- New permanent browser fixture created and retained: reference `QA-SR-BROWSER-E2E-20260927-01`, voucher id `e029730a-2925-4c42-8472-57c6b0264c27`, voucher code `IN-7`, status Draft, type SupplierReturn, contract total 77.63, PO + Purchase Invoice references populated.
+- The new Draft fixture has no inventory movement, supplier-ledger entry, journal entry, or tax transaction yet; it is reserved for Browser E2E after Owner source patch.
+- Transactional RPC E2E PASS for PO + Invoice and for Invoice-only (direct purchase path); temporary test vouchers were rolled back, permanent QA data was not deleted.
+- Authenticated Contract RPC grants verified: save/get executable by authenticated, not anon; internal assert capability restricted.
+
+## Exact Owner Source Action
+
+File: `companies/company-1/warehouse/vouchers.html`
+
+1. Inside `pickArr:function(key)`, replace the exact defective SupplierReturn-to-`pickShow` segment with the Section 5 replacement in Report 344.
+2. Inside `submit()`, insert SR-08 immediately before the existing `if(this.mode==='edit'){` after SupplierReturn validation, exactly as Section 7 in Report 344.
+
+Do not rewrite the file. Do not touch main.html or van-sales.html. Do not create Edge Functions.
+
+## Closure status
+
+- Production / DB / RPC / RLS / Contract / QA: CLOSED.
+- Source UI: OWNER PATCH REQUIRED.
+- Browser E2E: OPEN.
+- Published artifact verification: OPEN.
+
+Report:
+`doc/Draft/Reprots/Report344_WAREHOUSE_VOUCHERS_SYNTAX_SR_PREFLIGHT_FORENSIC_CLOSURE_20260927.md`
+
+Next session must begin from CURRENT GIT → CURRENT SOURCE → CURRENT PRODUCTION → CURRENT DATABASE → CURRENT DEPLOYMENT and must not re-open already closed Production Contract work.
+
