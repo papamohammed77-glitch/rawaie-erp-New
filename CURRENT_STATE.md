@@ -984,4 +984,180 @@ The remaining gap was the absence of the full SupplierReturn Business Contract i
 
 That Production contract is now closed.
 
-## END OF CURRENT STATE ADDENDUM
+
+---
+
+# CURRENT SESSION CHECKPOINT — 2026-09-27 — Report343 SupplierReturn UI / RLS Forensic Closure
+
+## Authoritative Git after this session
+
+### System
+- Current HEAD: `010fdcbc61bf5bbabd2a27a79636927d14f7db3b`
+- Parent: `8be3bfbb59f6090a8560fd4255d16cd4714f706f`
+- Previous parent chain includes Production hardening migration commit:
+  `fc93c4c3f1b057734d89f289fd9743c394797a7a`
+
+### Mother
+- Repository: `papamohammed77-glitch/erp-frontend`
+- HEAD: `4a322fa793027f8584d9f0d55638ef5a14aebc03`
+- Parent: `fce3dfaa0503957791113a5ebf57d402a4a82764`
+- `companies/company-1/main.html`: `810e4f5440f5975f55099a124deb42b086a49183`
+- `companies/company-1/warehouse/vouchers.html`: `6aca57d8baa8c78b616a281411f15438f34676bf`
+- `companies/company-1/sales/van-sales.html`: `8d61382a8e0025a0d079e71dd94f33d106d9088e`
+
+## Production actions executed
+
+### Migration
+`supabase/migrations/20260927165000_harden_supplier_return_voucher_directory_and_rpc_acl_20260927.sql`
+
+Applied successfully.
+
+Changes:
+- Supplier SELECT now supports active warehouse role `أذونات` inside current company without granting `suppliers` management permission.
+- Return Reasons SELECT is company-scoped (or global NULL company).
+- `assert_supplier_return_contract(uuid,uuid)`: PUBLIC/anon/authenticated EXECUTE revoked.
+- `save_supplier_return_contract(uuid,text,jsonb,text)`: authenticated-only EXECUTE.
+- `get_supplier_return_contract(uuid,text)`: authenticated-only EXECUTE.
+
+No Edge Function created.
+
+## Forensic root causes closed
+
+1. SupplierReturn Contract UI remained absent from current `vouchers.html` while Production Contract was already closed.
+2. Supplier Smart Search itself was not defective. Supplier rows were hidden by `suppliers_select_company` because `vouchers@rawaea.com` has `permissions=["warehouse"]` and role `مخزني / أذونات`.
+3. The prior Report342 SR-10 snippet had an ordering bug: it could clear `editVoucherCode` before testing/saving it.
+4. `supplierReturnDraft` was not reset when entering a new workspace/edit/back flow, creating stale-contract risk.
+
+## Proven Production Search result
+
+Authenticated simulation for `vouchers@rawaea.com` after RLS fix:
+- current company = company-1
+- supplier permission = false
+- visible supplier rows = 4
+
+This proves the Supplier dropdown data layer is now available without broadening Supplier management permission.
+
+## Permanent QA — DO NOT DELETE
+
+Voucher:
+`QA-SR-UI-CONTRACT-20260927-01`
+
+ID:
+`6c2cea2c-548b-48b3-aeb9-def4a80776e1`
+
+Status:
+`Completed`
+
+Supplier:
+`QA-SR-CLOSURE-20260927`
+
+Item:
+`QA-SR-ITEM-20260927`
+
+QA contract:
+- Return Reason = SR001
+- Credit Note = QA-UI-CN-20260927-01
+- RMA = QA-UI-RMA-20260927-01
+- PO = NULL
+- Purchase Invoice = NULL
+- Inspection = passed
+- Disposition = credit_requested
+- Unit Price = 75
+- Discount = 10%
+- Tax = VAT15-PURCHASE
+- Total = 77.63
+
+E2E DB/RPC:
+Draft → Contract Save → Send → Complete = PASS
+
+Effects:
+- stock BR-01 QA item: 5 → 4
+- inventory_log: SupplierReturn qty 1
+- supplier ledger debit: 77.63
+- supplier accounts_payable: -307.88
+- tax transaction taxable: 67.50; tax: 10.13
+- journal: Posted and balanced at 77.63
+- operation registry key: `QA-SR-UI-CONTRACT-OP-20260927-01`, completed
+
+QA remains permanently retained.
+
+## Owner Surgical Patch — current vouchers.html only
+
+Owner must apply Report343 SR-04 → SR-10.
+
+Exact current source locations:
+- App.refs: ~line 27
+- App state: ~line 34
+- loadRefs purchase_orders block: ~line 132
+- newWorkspace: line 2384
+- editVoucher state: ~line 2075
+- SupplierReturn routeHtml: line 3492
+- SupplierReturn submit validation: line 4070
+- edit success callback: line 4232
+- create success callback: line 4365
+- back: line 4396
+
+Do not repeat SR-01/SR-02/SR-03.
+
+Do not touch:
+- main.html
+- van-sales.html
+- existing stock core
+- existing Edge Functions
+
+## Owner patch includes
+
+- returnReasons/taxCodes refs
+- loadRefs for Return Reasons / Tax Codes
+- SupplierReturn Contract entry button
+- full Contract modal
+- line price / discount / tax fields
+- optional PO / Invoice
+- Credit Note / RMA
+- Return-to Address
+- Inspection / Disposition
+- contract fingerprint
+- authenticated Contract RPC call
+- submit preflight
+- create callback save
+- edit callback save with corrected ordering
+- stale draft reset
+
+## Browser / deployment
+
+Still OPEN:
+- authenticated browser E2E
+- published artifact verification
+
+DB/RPC evidence must not be relabeled Browser PASS.
+
+## Report
+
+Current closure report:
+`doc/Draft/Reprots/Report343_WAREHOUSE_VOUCHERS_SUPPLIER_RETURN_UI_RLS_FORENSIC_CLOSURE_20260927.md`
+
+The report contains the complete surgical replacement elements and competitor traceability.
+
+## Next exact continuation
+
+1. Re-fetch current Mother vouchers.html.
+2. Verify SR-04..SR-10 are applied exactly.
+3. Full JavaScript parse.
+4. Commit/publish owner-controlled artifact.
+5. Verify served artifact identity.
+6. Authenticated browser E2E.
+7. Re-read permanent QA voucher and all downstream evidence.
+8. Close Browser/Deployment boundary only after proof.
+
+## Do not reopen
+
+- SupplierReturn Production schema
+- SR-01/SR-02/SR-03
+- DirectSale closure
+- DirectReturn closure
+- Fleet closure
+- Supplier search engine without new evidence
+- new Edge Function creation
+
+
+## END OF CURRENT STATE — 2026-09-27
