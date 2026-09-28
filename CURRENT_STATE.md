@@ -1,3 +1,110 @@
+# FINAL AUTHORITATIVE POINTER — 2026-09-28 — REPORT347 TRANSFER CURRENT FORENSIC CLOSURE
+
+## CURRENT REALITY — START HERE
+
+### Latest System Git after this session
+HEAD:
+f55b15ee2dffabc5d98bcde02c6245fbbb59481e
+
+Parent:
+eba0d43b88e258f31fc99627f62ff93fdf0196dd
+
+Latest commit:
+report: close current branch transfer forensic gap and document surgical owner patches
+
+### Current Frontend Git
+HEAD:
+f07bdcc4abbbe899af569f8bfaccde04df279416
+
+Parent:
+cc35f3a9da6ababf4c8cd87b05ab93539cdae087
+
+Current vouchers.html SHA:
+9e3a9cbd0124639934cdf98abc9ec579f4b19f61
+
+Current main.html blob:
+810e4f5440f5975f55099a124deb42b086a49183
+
+Current picker.html SHA:
+c7ad267d852d415b680aed7716833eea9bcffdf6
+
+Current van-sales.html SHA:
+8d61382a8e0025a0d079e71dd94f33d106d9088e
+
+### Production Transfer Security
+Receiver binding and sender/receiver separation are PRODUCTION VERIFIED.
+
+Applied production hardening:
+- 20260928095000_harden_transfer_responsibility_trigger_execute_surface
+- 20260928095500_close_transfer_responsibility_trigger_acl
+
+Final ACL for public.enforce_transfer_responsibility_contract():
+- anon EXECUTE = false
+- authenticated EXECUTE = false
+- PUBLIC EXECUTE = false
+- service_role EXECUTE = true
+
+### Production E2E
+Transactional Transfer:
+BR-01 → BR-2
+item 1001
+qty 2
+
+Verified:
+- Create = PASS
+- Send = PASS
+- source 8 → 6
+- receiver snapshot = vouchers3 / BR-2
+- receiver immutable = PASS
+- sender Receive rejected = PASS
+- partial Receive 1 = PASS
+- destination 3 → 4
+- full remaining Receive 1 = PASS
+- destination 4 → 5
+- final state Received = PASS
+- complete path previously verified = PASS
+
+All QA data rolled back:
+- QA transfer vouchers = 0
+- QA operations = 0
+- QA inventory-log QA rows = 0
+- source stock restored = 8
+- destination stock restored = 3
+
+### Current UI Closure
+Owner-only surgical patches in Report347:
+- T-06: Draft card Print button.
+- T-07: receiver modal label «خروج بدون حفظ».
+- T-08: detailed receipt confirm label «حفظ الكميات المستلمة».
+
+IMPORTANT:
+- Do not modify vouchers.html from assistant side.
+- Do not modify main.html.
+- Do not create Edge Functions.
+- Do not repeat T-01..T-05.
+- Do not redo Transfer backend migrations unless new Production evidence contradicts this state.
+- Historical all-company Transfer scope remains unchanged.
+
+### Browser Closure
+Authenticated live Browser E2E remains OPEN because no authenticated browser session is available in the current toolset.
+
+### Exact next action
+Owner applies T-06/T-07/T-08 to:
+companies/company-1/warehouse/vouchers.html
+
+Then:
+1. Re-read the entire file.
+2. Verify syntax.
+3. Verify no duplicate action blocks.
+4. Execute authenticated E2E with Sender BR-01 and Receiver BR-2.
+5. Close Browser E2E only after live UI evidence.
+6. Continue to the next real Business Contract gap.
+
+### Current report
+doc/Draft/Reprots/Report347_WAREHOUSE_VOUCHERS_TRANSFER_FINAL_FORENSIC_CLOSURE_20260928.md
+
+---
+
 # FINAL AUTHORITATIVE POINTER — 2026-09-24 — VOUCHERS PICKSELECT + DIRECTRETURN FORENSIC CLOSURE
 
 ## Current continuation baseline
