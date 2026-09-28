@@ -1,3 +1,94 @@
+
+
+---
+
+# SESSION UPDATE — 2026-09-28 — Report349 / Warehouse Vouchers
+
+**Authoritative checkpoint after this session:**
+
+- Latest system commit before this session: `99537edbd67adaf6381af781c68590436ff4c548`
+- Latest frontend commit inspected: `f07bdcc4abbbe899af569f8bfaccde04df279416`
+- Current frontend `vouchers.html` blob inspected: `9e3a9cbd0124639934cdf98abc9ec579f4b19f61`
+- `main.html` was not modified.
+- `vouchers.html` was not modified directly by the assistant; owner surgical source changes remain pending.
+- Final report: `doc/Draft/Reprots/Report349_WAREHOUSE_VOUCHERS_PENDING_COMPLETED_TABLE_RESPONSIBILITY_SECURITY_CLOSURE_20260928.md`
+- Report commit: `101fa746a42337930f36b7cbb41eb2da21bbc64e`
+
+## Production change executed
+
+Existing RPC only; no new Edge Function:
+
+`public.post_manual_stock_voucher_atomic(uuid,text,text,text,jsonb,text)`
+
+Migration:
+`20260928120431_harden_transfer_partial_receive_actor_20260928`
+
+New invariant:
+For `Transfer` + `RECEIVE`, every partial/full receive must be executed by the exact `receiver_user_id` bound when the transfer is sent.
+
+Failure message:
+`لا يملك هذا المستخدم مسؤولية استلام تحويل الفرع`
+
+## E2E result
+
+Transactional DB E2E = PASS.
+
+Verified sequence:
+CREATE → SEND → unauthorized RECEIVE blocked → authorized partial RECEIVE → same-operation replay returns duplicate → remainder RECEIVE → RECEIVED → sender COMPLETE → COMPLETED.
+
+Verified:
+- unauthorized receiver blocked
+- partial receive leaves status `Sent`
+- idempotent replay does not duplicate movement
+- final received quantity equals ordered quantity
+- source stock delta = -1
+- destination stock delta = +1
+- inventory movement count = 3
+
+Fixture was rolled back completely.
+
+## Production QA cleanup
+
+Removed only stale Draft QA vouchers with no stock/accounting effect:
+- `IN-6`
+- `IN-7`
+
+Current Manual voucher status:
+- Completed = 5
+- Draft = 0
+
+Completed legacy QA vouchers with historical stock/financial effects were not deleted without a controlled reversal contract.
+
+## Source defects still pending owner application
+
+`vouchers.html` current source still contains:
+
+- T-09 — `allowedBranch:function(u,b)` retains the Transfer all-company bypass.
+- T-10 — `pickArr:function(key)` still returns `allBranches` for Transfer `wsFrom`.
+- T-11 — `pickSelect:function(key,id)` still applies source-scope validation to Transfer destination.
+- T-12 — `actionFor:function(v)` is too broad for non-Transfer operations.
+- T-13 — `cards:function(rows,scope)` still renders card-level action buttons outside the modal.
+- T-14 — `details:function(code)` does not yet expose all responsibility actions inside the voucher modal.
+- T-15 — receive modal needs explicit in-modal Print + Exit without save while preserving current partial/full receive engine.
+
+Exact surgical replacements are recorded in Report349.
+
+## Browser E2E
+
+Still OPEN because the previously documented browser harness failure is:
+`INLINE_SCRIPT_NOT_FOUND`
+
+Do not reopen or redesign the business workflow because of this harness failure.
+
+## Next mandatory closure sequence
+
+1. Owner applies T-09 → T-15 to `companies/company-1/warehouse/vouchers.html`.
+2. Keep `main.html` untouched.
+3. Verify syntax and rendered table/modal behavior.
+4. Run browser E2E on the deployed source.
+5. Re-run Transfer responsibility + partial receive assertions.
+6. Only after those pass, close the current UI contract and move to the next real Business Contract Gap.
+
 # FINAL AUTHORITATIVE POINTER — 2026-09-28 — REPORT348 FINAL PRODUCTION SOURCE RESPONSIBILITY CLOSURE
 
 ## Current System Git
