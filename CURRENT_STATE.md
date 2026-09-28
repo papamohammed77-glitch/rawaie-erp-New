@@ -1,3 +1,164 @@
+# CURRENT STATE — 2026-09-28 — Report357 DIRECTSALE DRAFT MODAL ACTIONS ROOT-CAUSE CHECKPOINT
+
+## AUTHORITATIVE CURRENT REALITY
+
+This section supersedes earlier CURRENT_STATE sections for this specific Warehouse Vouchers closure unit. Older sections remain historical records only.
+
+### Current System Git
+- Report357 commit: 5a854bc731dd28e8272b5e93a757116e8a17424b
+- Parent: b99dc6f57ea43a3d19a23188da5377cb296745a6
+- Report357: doc/Draft/Reprots/Report357_WAREHOUSE_VOUCHERS_DIRECTSALE_DRAFT_MODAL_ACTIONS_FORENSIC_CLOSURE_20260928.md
+- The report records the proven root cause and the owner-only surgical source patch.
+
+### Current Frontend Git
+- HEAD: 8b6b32145aafdb49ae10af8f36aa888e4d25d412
+- Parent: cd125b126cd40527a81f20508139506b8e48031f
+- companies/company-1/warehouse/vouchers.html blob: bb0dd32e790fc55161a409e746f2ea778e44ae3b
+- vouchers.html: 6327 lines / 208151 chars
+- main.html blob: 810e4f5440f5975f55099a124deb42b086a49183 — protected / untouched
+- van-sales.html blob: 8d61382a8e0025a0d079e71dd94f33d106d9088e — protected / untouched
+
+### What changed in current HEAD and what did not
+- Commit 8b6 already contains Report356's loadList → inventory_voucher_report migration.
+- Existing codeJs quoting correction is already present; do not repeat.
+- Existing modal topActions already contains Draft Edit/Delete/Send/Print handlers.
+- Existing printDraftVoucher() is valid; do not modify.
+- The current defect is not in main.html, van-sales.html, details(), cards(), loadList(), or print functions.
+
+### ROOT CAUSE — PROVEN
+File: companies/company-1/warehouse/vouchers.html
+Function: actionFor:function(v)
+Target element: the second generic if(v.status==='Draft') block around line 608.
+
+Current defect:
+- Production inventory_voucher_report securely returns an authorized user's Draft in Pending.
+- For non-privileged users it deliberately redacts created_by.
+- Current pending row therefore has status=Draft and created_by=null.
+- actionFor() relied on creator = currentUser.email == voucher.created_by.
+- creator becomes false, privileged is false, actionFor returns ''.
+- details() therefore does not enter act='draft' and the in-modal Draft toolbar is not rendered.
+
+### Production proof
+- Controlled DirectSale Draft fixture was created through the existing create_manual_stock_voucher_atomic path.
+- Pending list returned the Draft.
+- VOUCHER_AUDIT returned Header + Item detail under the existing employee redaction contract.
+- Unrelated employee detail access was blocked centrally with: غير مصرح بالوصول إلى هذا الإذن.
+- Therefore the backend authorization contract is working and the UI authorization-decision layer is the defect.
+
+### OWNER SURGICAL SOURCE CHANGE — ONLY OPEN SOURCE ACTION
+File:
+companies/company-1/warehouse/vouchers.html
+
+Function:
+actionFor:function(v)
+
+Around line:
+608
+
+Delete exactly this second generic Draft element:
+    if(v.status==='Draft'){
+        return(
+            creator||
+            privileged
+        )?'draft':'';
+    }
+
+    if(v.status==='Sent'){
+
+Replace it completely with:
+    if(v.status==='Draft'){
+        var draftListedForCurrentUser=
+            s.tabName==='pending'&&
+            Array.isArray(s.vouchers)&&
+            s.vouchers.some(function(row){
+                return(
+                    row&&
+                    row.status==='Draft'&&
+                    String(row.voucher_code||'')===
+                    String(v.voucher_code||'')
+                );
+            });
+
+        return(
+            creator||
+            privileged||
+            draftListedForCurrentUser
+        )?'draft':'';
+    }
+
+    if(v.status==='Sent'){
+
+No Frontend write was made by the assistant.
+
+### Verification
+- Current source inline JavaScript parse: PASS.
+- In-memory patched source parse: PASS.
+- Current source contains the defective target exactly once.
+- Patched action simulation returns draft for the authorized Draft present in Pending.
+- Unlisted Draft returns no draft action in the same simulation.
+- Expected in-modal actions: Edit / Delete / Send / Print.
+- codeJs repair remains present and was not repeated.
+
+### Production / Database
+No new Production schema change, RPC, Edge Function, or migration is required for this root cause.
+Existing inventory_voucher_report and inventory_control contracts remain authoritative.
+No new Edge Function was created.
+
+### QA cleanup
+Final Manual voucher counts after cleanup:
+- Draft = 0
+- Sent = 0
+- Received = 1
+- Completed = 5
+- IN-8 detail residue = 0
+- IN-8 inventory movement residue = 0
+The QA operation identity tombstone remains protected by the existing integrity guard.
+
+### E2E / Deployment
+- RPC/database reproduction: PASS.
+- Authorization denial test: PASS.
+- In-memory UI fix simulation: PASS.
+- Authenticated Browser E2E: OPEN / UNVERIFIED.
+- Served/published artifact identity: OPEN / UNVERIFIED.
+Do not call these Browser/served checks complete until the owner source is merged, published, and tested.
+
+### Separate OPEN hardening
+editVoucher() and printDraftVoucher() use direct company-scoped table SELECTs. This is not the root cause of the current missing buttons and is not changed in this session. A separate consumer/RLS audit is required before hardening this path.
+
+### Protected / DO NOT REOPEN
+- main.html
+- van-sales.html
+- closed transfer source/destination contract
+- receiver binding
+- partial/full receive backend
+- DirectReturn contract
+- SupplierReturn contract
+- existing Edge/RPC path
+- prior Report349–356 repairs
+
+### NEXT EXACT RESUMPTION POINT
+1. Verify Frontend HEAD and vouchers blob above.
+2. Apply only the one owner replacement in actionFor() around line 608.
+3. Read vouchers.html completely after merge.
+4. Parse complete inline JavaScript.
+5. Verify draftListedForCurrentUser appears once.
+6. Verify Draft modal renders Edit/Delete/Send/Print.
+7. Publish/deploy.
+8. Verify served artifact identity.
+9. Run authenticated Browser E2E.
+10. Re-run Production scope/redaction assertions.
+11. Close this unit only after runtime evidence; then move to the next real open Business Contract.
+
+### STATUS
+ROOT CAUSE: PROVEN
+PRODUCTION CONTRACT: VERIFIED
+PRODUCTION CHANGE: NOT REQUIRED
+OWNER SOURCE PATCH: OPEN
+BROWSER E2E: OPEN
+DEPLOYMENT EVIDENCE: OPEN
+
+---
+
 # CURRENT STATE — 2026-09-28 — Report356 VOUCHERS SCOPE/MODAL PRODUCTION CLOSURE CHECKPOINT
 
 ## AUTHORITATIVE CURRENT CHECKPOINT
