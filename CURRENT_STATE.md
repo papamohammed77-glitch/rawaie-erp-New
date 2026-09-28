@@ -1,3 +1,124 @@
+# CURRENT STATE — 2026-09-28 — Report355 FINAL MODAL DETAILS ACTIONS CHECKPOINT
+
+## AUTHORITATIVE STARTING POINT
+
+This section supersedes earlier CURRENT_STATE sections for this Warehouse Vouchers modal closure unit. Historical sections remain records only.
+
+### Current Git
+- System repository latest verified before this state-file write: 4b62e4b5f730186263daa63a0c7fa3dcbf60f77a
+- This commit adds Report355_WAREHOUSE_VOUCHERS_MODAL_DETAILS_ACTIONS_FORENSIC_CLOSURE_20260928.md.
+- Previous System HEAD / parent: 48dc3b35aae8df77bf4b8aaa05ec4cdf98f8bd99
+- Previous System parent: 2f2cd1453c2aa8a6ec8f087186b45e22cb7da2bb
+
+### Current Frontend
+- Frontend HEAD: 85e825de61333f3b7da014580dd7275146818b2a
+- Frontend parent: 880abe25c42d7c82c79cf133b9880d09ebfc416f
+- vouchers.html blob: befc3f428e29ea5cb896ac93d2aa05db57293c43
+- vouchers.html: 6,328 lines / 209,992 chars
+- main.html blob: 810e4f5440f5975f55099a124deb42b086a49183
+- van-sales.html blob: 8d61382a8e0025a0d079e71dd94f33d106d9088e
+
+### Current Source Truth
+- cards:function(rows,scope) around line 1176 already contains the corrected single-quoted codeJs literal.
+- DO NOT repeat the cards patch.
+- details:function(code) around line 1785 contains a second stale codeJs block around line 2047.
+- Exact stale element:
+~~~
+var codeJs=
+    JSON.stringify(
+        String(v.voucher_code||'')
+    );
+~~~
+- This stale element is the proven cause of modal Edit/Delete/Send/Print/Receive/Complete handlers becoming malformed inline JavaScript attributes.
+- Full current inline-script parse: PASS.
+- Current handler reproduction: malformed quoted handler fails; corrected single-quoted handler parses.
+
+### ONLY OPEN OWNER SOURCE ACTION
+File: companies/company-1/warehouse/vouchers.html
+Function: details:function(code)
+Find exactly the stale codeJs element above, delete it completely, and replace exactly with:
+~~~
+var codeJs=
+    "'" +
+    JSON.stringify(
+        String(v.voucher_code||'')
+    )
+        .slice(1,-1)
+        .replace(/'/g,"\'") +
+    "'";
+~~~
+Do not replace details(), cards(), esc(), renderList(), receive(), actionFor(), or unrelated blocks.
+Do not touch main.html.
+Do not touch van-sales.html.
+
+### Current Production / Database
+- Supabase project: fiilmooggumokxanwiyx — ACTIVE_HEALTHY.
+- Relevant existing Edge Functions remain:
+  create-stock-voucher v12
+  send-stock-voucher v20
+  receive-stock-voucher v22
+  complete-stock-voucher v4
+  cancel-stock-voucher v4
+- No new Edge Function, RPC, schema, or migration is required for this UI defect.
+- Transfer source/destination, receiver binding, partial/full receive, DirectReturn, and voucher transactional backend contracts remain CLOSED.
+- inventory_control and inventory_voucher_stock_context remain the existing read path.
+
+### Production Test / Cleanup
+- Previous Draft IN-6 was deleted via the existing delete RPC.
+- Temporary fixture QA-MODAL-ACTIONS-20260928-01 was created via the existing create RPC:
+  Transfer, BR-01 -> BR-2, item 1001, qty 1, creator vouchers@rawaea.com.
+- Create PASS.
+- Delete PASS.
+- Final Manual stock_vouchers: Completed=5, Draft=0, Sent=0, Received=0.
+- Final IN-6 voucher residue=0.
+- Final fixture detail residue=0.
+- Final fixture inventory_log residue=0.
+- Operation identity row was retained because guard_stock_voucher_operation_delete_integrity() intentionally blocks deletion; the guard was not bypassed.
+
+### Architecture
+- main.html is the parent/control plane.
+- vouchers.html is the manual warehouse-movement execution surface for non-order/non-runsheet warehouse documents.
+- van-sales.html owns sales invoice/mobile stock execution.
+- DirectSale/DirectReturn in vouchers remain integrated with, not duplicates of, van-sales.
+- Table is navigation; modal is contextual execution/control.
+
+### Deployment / E2E
+- Current source parse: PASS.
+- Corrected handler simulation: PASS.
+- Authenticated Browser E2E: OPEN.
+- Workflow runs associated with frontend commit 85e: none returned.
+- Earlier Run 57 was blocked before browser smoke by a source gate requiring literal <body>; this is harness evidence, not business-flow evidence.
+- Do not claim Browser E2E PASS or served-artifact PASS until owner patch is applied, deployed, and tested.
+
+### Closed — DO NOT REOPEN
+- Cards codeJs
+- T13/T14/T15/T16
+- Transfer destination selection
+- Transfer source responsibility
+- Receiver binding
+- Partial/full receive backend
+- DirectReturn backend guard
+- Existing RPC/Edge infrastructure
+- main.html integration
+- van-sales separation
+- QA business voucher cleanup
+
+### Open
+1. Owner applies only the details() codeJs replacement above.
+2. Re-parse vouchers.html.
+3. Deploy/publish.
+4. Verify served artifact identity.
+5. Authenticated Browser E2E: Pending → row click → modal → Edit/Delete/Send/Print/Receive/Complete/Exit.
+6. Re-verify Production counts and residue.
+
+### Continuity Rule
+The next session starts from Current Git + Current Source + Current Production + Current Database + Current Deployment Evidence. Reports are historical guidance only.
+
+Latest report:
+doc/Draft/Reprots/Report355_WAREHOUSE_VOUCHERS_MODAL_DETAILS_ACTIONS_FORENSIC_CLOSURE_20260928.md
+
+---
+
 # CURRENT STATE — 2026-09-28 — Report354 FINAL VOUCHERS MODAL RUNTIME CHECKPOINT
 
 ## AUTHORITATIVE STARTING POINT
