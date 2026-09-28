@@ -1,3 +1,80 @@
+---
+# SESSION UPDATE — 2026-09-28 — Report350 FINAL FORENSIC CHECKPOINT
+
+**Authoritative state after this session**
+
+## Current Git
+
+- System HEAD: `c95560c52e599421e5165baff01a578118b291ea`
+- System parent: `150f65d697cccc18c1e4690be1d4bde4e403b22c`
+- Report: `doc/Draft/Reprots/Report350_WAREHOUSE_VOUCHERS_FORENSIC_CLOSURE_20260928.md`
+- Source reconciliation migration added:
+  `supabase/migrations/20260928120431_harden_transfer_partial_receive_actor_20260928.sql`
+- New production contract migration source added:
+  `supabase/migrations/20260928161500_harden_direct_return_receive_actor_20260928.sql`
+
+## Current Frontend
+
+- Frontend HEAD: `f07bdcc4abbbe899af569f8bfaccde04df279416`
+- Frontend parent: `cc35f3a9da6ababf4c8cd87b05ab93539cdae087`
+- Current `vouchers.html` blob: `9e3a9cbd0124639934cdf98abc9ec579f4b19f61`
+- Current `main.html` blob: `810e4f5440f5975f55099a124deb42b086a49183`
+- `main.html`: **UNTOUCHED**
+- `vouchers.html`: **UNTOUCHED BY REVIEWER; T-09 → T-15 remain owner-applied source patches**
+
+## Current Production / Database
+
+- Existing Edge Functions retained; no new Edge Function created.
+- `post_manual_stock_voucher_atomic(...)`: SECURITY DEFINER, `search_path=public`.
+- EXECUTE: anon=false, authenticated=false, service_role=true.
+- RLS active on `stock_vouchers` and `stock_voucher_details`.
+- Transfer partial-receive receiver binding: **CLOSED**.
+- DirectReturn RECEIVE actor/branch contract: **CLOSED in Production**.
+- DirectReturn regression test: unauthorized `vouchers2@rawaea.com` BLOCKED; authorized `vouchers@rawaea.com` PASS.
+- Test fixture was transactional and fully rolled back.
+- Current Manual data: Draft=0, Sent=0, Received=0, Completed=5; no QA residue.
+
+## Critical Source Correction
+
+Report349's proposed T-12 was **not applied** because forensic comparison showed it would expose Transfer RECEIVE to privileged users who are not the bound `receiver_user_id`.
+
+The corrected T-12 in Report350 requires:
+- Transfer/Sent RECEIVE → exact `receiver_user_id` only.
+- Transfer/Received COMPLETE → existing completion contract.
+- DirectReturn RECEIVE → warehouse-role/branch contract in UI, backed by Production guard.
+
+## Browser Deployment Evidence
+
+Latest GitHub Actions warehouse-vouchers Browser E2E:
+- Run 53
+- HEAD `f07bdcc4abbbe899af569f8bfaccde04df279416`
+- Result: failure
+- Failure: `INLINE_SCRIPT_NOT_FOUND`
+
+Do not redesign business workflow around that harness failure. Browser E2E remains OPEN until owner applies T-09 → T-15 and the deployed source is tested.
+
+## Mandatory next sequence
+
+1. Owner applies Report350 T-09 → T-15 to `companies/company-1/warehouse/vouchers.html`.
+2. Do not modify `main.html`.
+3. Verify table ordering, click-to-modal, in-modal action controls, Transfer sender/receiver responsibility, partial/full receive, Print, and Exit without Save.
+4. Run browser E2E on deployed source.
+5. Only then close this UI contract.
+
+## New governing principles
+
+- UI visibility never substitutes for central execution authorization.
+- Transfer RECEIVE is bound to exact `receiver_user_id`, including partial receive.
+- DirectReturn RECEIVE is a warehouse-custody operation and must be centrally role/branch guarded.
+- Source branch scope and destination branch choice are different authorization concepts.
+- Lists navigate; Modals execute.
+- No new Edge Function when the existing RPC capability is sufficient.
+- Historical stock/financial records are not deleted as QA without a controlled reversal.
+- Every destructive E2E fixture must be zero-residue via rollback.
+- Never declare closure from reports alone; verify Production + DB + Git + deployment evidence.
+
+---
+
 
 
 ---
