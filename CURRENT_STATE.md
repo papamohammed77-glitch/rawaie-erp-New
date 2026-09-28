@@ -6,7 +6,8 @@
 This checkpoint supersedes older checkpoints for the current warehouse-voucher closure unit. Older sections remain historical records.
 
 ### Current Git
-- System HEAD after Report351: 71befda98e7425877280ba40bb5eef411ee3aad2
+- System HEAD after Report351 state update: 6e73a63254f44b1fe796ba5fdcc2ceb8582cbc1e
+- Immediate parent: 71befda98e7425877280ba40bb5eef411ee3aad2
 - Report351: doc/Draft/Reprots/Report351_WAREHOUSE_VOUCHERS_FORENSIC_SOURCE_CONTRACT_AND_CURRENT_UI_CLOSURE_20260928.md
 - Migration source record commit: 8eb14b3fdb046f978ca5fa6a1717c3b19a175fd8
 - Production migration version: 20260928132432
