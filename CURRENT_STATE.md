@@ -1,4 +1,145 @@
 ---
+# CURRENT STATE — 2026-09-28 — Report351 FINAL FORENSIC SOURCE-CONTRACT CHECKPOINT
+
+## Authoritative current reality
+
+This checkpoint supersedes older checkpoints for the current warehouse-voucher closure unit. Older sections remain historical records.
+
+### Current Git
+- System HEAD after Report351: 71befda98e7425877280ba40bb5eef411ee3aad2
+- Report351: doc/Draft/Reprots/Report351_WAREHOUSE_VOUCHERS_FORENSIC_SOURCE_CONTRACT_AND_CURRENT_UI_CLOSURE_20260928.md
+- Migration source record commit: 8eb14b3fdb046f978ca5fa6a1717c3b19a175fd8
+- Production migration version: 20260928132432
+- Production migration name: 20260928170000_bind_transfer_source_to_keeper_home_branch_20260928
+
+### Current Frontend
+- Frontend HEAD: f07bdcc4abbbe899af569f8bfaccde04df279416
+- Frontend parent: cc35f3a9da6ababf4c8cd87b05ab93539cdae087
+- vouchers.html blob: 9e3a9cbd0124639934cdf98abc9ec579f4b19f61
+- vouchers.html: 6074 lines; NOT MODIFIED by reviewer
+- main.html blob: 810e4f5440f5975f55099a124deb42b086a49183; NOT MODIFIED
+- picker.html blob: c7ad267d852d415b680aed7716833eea9bcffdf6; NOT MODIFIED
+- van-sales.html blob: 8d61382a8e0025a0d079e71dd94f33d106d9088e; NOT MODIFIED
+
+## Production / Database
+
+### Closed
+- Transfer exact receiver binding via receiver_user_id.
+- Partial RECEIVE authorization against exact receiver.
+- DirectReturn RECEIVE role/branch contract.
+- NEW: Transfer source binding for non-admin مخزني + active warehouse role أذونات = default_branch_id.
+- Transfer destination remains any active branch in the same company.
+- No new Edge Function created.
+- Existing voucher Edge Functions remain the execution layer.
+- Current Manual vouchers: Completed=5; Draft=0; Sent=0; Received=0.
+- QA-SOURCE-BIND residue=0.
+
+### Production source-binding test
+- Wrong source: vouchers@rawaea.com / BR-01 actor attempted source BR-2 → BLOCK PASS.
+- Valid source: BR-01 → BR-2 → CREATE PASS.
+- Controlled Draft cleanup through existing delete RPC → PASS.
+- No resulting stock movement from the valid Draft test.
+
+### Data integrity
+- Historical completed SupplierReturn QA with a real inventory event is preserved.
+- No posted historical record was deleted as casual QA cleanup.
+
+## Current Source defects / Owner Change Set
+
+File: companies/company-1/warehouse/vouchers.html
+
+Open surgical replacements:
+- T-09 allowedBranch:function(u,b)
+- T-10 pickArr:function(key)
+- T-11 pickSelect:function(key,id)
+- T-12 actionFor:function(v)
+- T-13 cards:function(rows,scope)
+- T-14 details topActions block
+- T-15 receive:function(code,full) modal blocks
+
+### T-10 refinement
+For Transfer source selection:
+- non-privileged مخزني + أذونات → only default_branch_id.
+- privileged/wildcard → preserve higher administrative scope.
+- Transfer destination → all active company branches.
+
+### Responsibilities
+Sender:
+- owns Draft.
+- Edit/Delete/Send/Print inside Modal.
+- source is bound to home/default branch.
+- cannot Receive own sent transfer.
+
+Receiver:
+- exact receiver_user_id.
+- Partial Receive or Receive All.
+- Print.
+- Exit without Save.
+- cannot be reassigned after Send.
+
+### Lists
+Pending/Completed must be tables.
+Order:
+1. Transfer Send
+2. Transfer Receive
+3. DirectSale
+4. DirectReturn
+5. SupplierReturn
+
+Row click opens the voucher Modal.
+No execution controls outside the Modal.
+
+## Browser / Deployment
+
+Latest known Browser E2E remains Run 53 on frontend f07bdcc4abbbe899af569f8bfaccde04df279416.
+Failure: INLINE_SCRIPT_NOT_FOUND.
+This is a source-gate/harness failure and is not treated as a business-workflow failure.
+
+UI closure status:
+- Source T-09→T-15: OPEN — owner application.
+- Browser E2E: OPEN — requires deployed owner-applied source.
+- Served artifact verification: OPEN.
+
+## Governing principles added/confirmed
+
+- UI visibility is not authorization.
+- Transfer RECEIVE is exact receiver-bound.
+- Transfer source for warehouse keeper أذونات is default_branch_id.
+- Source scope is distinct from destination scope.
+- Lists navigate; Modals execute.
+- Existing RPC/Edge capability is preferred; do not create a new Edge merely to bypass a function/spend cap.
+- Posted stock/financial history is not deleted without valid reversal.
+- Destructive E2E must be zero-residue.
+- Closure requires current Git + current Source + current Production + current Database + current Deployment evidence.
+- Do not reopen a closed contract without contradictory current evidence.
+- OWNER wildcard semantics remain permissions=["*"] and, for the owner identity path, isOwner=true; do not replace wildcard with an arbitrary explicit list.
+
+## Mandatory next session
+
+1. Read this checkpoint.
+2. Verify current System HEAD and parent.
+3. Verify Frontend HEAD and vouchers blob.
+4. Verify T-09→T-15 against current vouchers.html.
+5. If not applied, use Report351 surgical replacements only.
+6. Full source parse.
+7. Deploy.
+8. Authenticated Browser E2E with Sender BR-01 / Receiver BR-2.
+9. Verify served artifact identity.
+10. Verify stock, inventory, audit, and operation identity.
+11. Close the UI contract only after runtime evidence.
+12. Move to the next genuinely open Business Contract; do not redo closed backend work.
+
+## End-of-session status
+Production source binding: CLOSED
+Transfer responsibility/security: CLOSED
+Partial receive backend: CLOSED
+DirectReturn receive backend: CLOSED
+Owner Source T-09→T-15: OPEN
+Browser E2E: OPEN
+main.html: UNTOUCHED
+vouchers.html: UNTOUCHED BY REVIEWER
+---
+
 # SESSION UPDATE — 2026-09-28 — Report350 FINAL FORENSIC CHECKPOINT
 
 **Authoritative state after this session**
