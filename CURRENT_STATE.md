@@ -1,3 +1,109 @@
+# CURRENT SESSION — 2026-09-28 — Report359 Forensic Continuation
+
+> **Authoritative checkpoint:** CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+> Reports remain historical guidance only.
+
+## Current Git
+- System repo HEAD before this state write: `e5d0a760bc60345458ad6a261a9094072d48133d`
+- System repo parent: `57ba850b16826fca0361757d781f3b796d8eb0cf`
+- Frontend repo HEAD: `56fee06ac0145faffbc4f71d3d6031fcd3b46f87`
+- Frontend parent: `31a255c6bac2e23f8ceb74734e66010039e9938c`
+- Current `vouchers.html` blob: `e24eddf27d657a9baa6713b2c26b571c768cb28e`
+- Current `main.html` blob: `27b777528665dcc985809648f006452c861ae36e`
+
+## Latest report
+`doc/Draft/Reprots/Report359_WAREHOUSE_VOUCHERS_DIRECTRETURN_MASTER_ASSIGNMENT_FORENSIC_CLOSURE_20260928.md`
+- Report create commit: `5805225e71305830632aec8bcd117ece04e85874`
+
+## Current forensic finding
+The remaining source defect is **not** a Production DB/RPC defect.
+
+Production's authoritative Sales Rep ⇄ Vehicle relationship is:
+`fleet_vehicle_sales_rep_assignments`
+
+Production currently proves:
+- CHV-2025-01 → `vansales@rawaea.com`; `driver_id = NULL`
+- VHL-0422 → `vansales2@rawaea.com`; `driver_id = NULL`
+
+Current `vouchers.html` still contains legacy-first `vehicles.driver_id` usage in four UI locations:
+1. `pickArr:function(key)` — DirectReturn vehicle list for direct-sales rep.
+2. `pickSelect:function(key,id)` — DirectReturn rep selection fallback path.
+3. `pickSearch:function(key,q)` — vehicle/rep resolution in result mapping, two occurrences.
+4. `editVoucher:function(code)` — reopening Draft DirectReturn rep from `driver_id`.
+
+## Owner surgical patch set
+The owner must apply only the exact replacements in Report359:
+- DR-UI-01
+- DR-UI-02
+- DR-UI-03A
+- DR-UI-03B
+- DR-UI-04
+
+Do **not** rewrite whole functions.
+Do **not** modify `main.html`.
+Do **not** modify existing Production RPC/Edge contracts unless new evidence proves a backend defect.
+
+## Closed and must not be reopened
+- Main authorization / Owner wildcard semantics
+- Main delegation to `vouchers.html`
+- Transfer backend
+- DirectSale backend
+- SupplierReturn backend/contract
+- DirectReturn backend
+- Report357/Report358 closed items
+- Existing assignment-first submit/route logic in `vouchers.html`
+
+## Production verification completed
+- DirectReturn Create → Send → Receive: PASS in transaction, rolled back.
+- DirectReturn invalid vehicle/rep pairing: correctly rejected by Production RPC.
+- Transfer Create → Send: PASS in transaction, rolled back.
+- DirectSale Create → Send: PASS in transaction, rolled back; movement=1; custody ledger=true.
+- Existing posted QA history was **not deleted** because it already has stock/audit/financial effects.
+- No new persistent QA records were left by these tests.
+
+## Deployment evidence
+Workflow:
+`.github/workflows/warehouse_vouchers_browser_e2e_20260920.yml`
+
+Latest workflow source commit:
+`56fee06ac0145faffbc4f71d3d6031fcd3b46f87`
+
+The validator bug was in the test harness, not the app. Its embedded Node validator now parses successfully.
+
+Latest observed workflow run:
+- Run ID: `36483037124`
+- Head SHA: `56fee06ac0145faffbc4f71d3d6031fcd3b46f87`
+- Last observed status during this session: `in_progress`
+
+Do not mark Browser E2E as PASS until completed/success evidence exists.
+
+## Infrastructure decision
+No new Edge Function was created.
+No new RPC/table was required.
+Existing atomic RPC/stock-voucher contract is sufficient for the current defect.
+No Production infrastructure change was executed.
+
+## Next-session exact sequence
+1. Start from current Git, not from an old report.
+2. Check Run `36483037124` or the newest Warehouse Vouchers Browser E2E run.
+3. Open current `vouchers.html`.
+4. Apply only DR-UI-01 → DR-UI-04 from Report359.
+5. Syntax/source validation.
+6. Browser E2E.
+7. Test `vansales2@rawaea.com` and verify VHL-0422 appears as DirectReturn source vehicle.
+8. Reopen a Draft DirectReturn and verify `custodian_user_id` is preserved.
+9. Verify Smart Search resolves the rep from Master Assignment.
+10. Run DirectReturn Create → Send → Receive.
+11. Run negative pairing test.
+12. Only after all evidence passes, mark DirectReturn UI contract CLOSED and update this file again.
+13. Then move to the next genuinely open Business Contract gap.
+
+## Self-audit rule
+Never re-fix what is already proven closed.
+If historical reports conflict with current Git/source/Production/database/deployment evidence, the current evidence wins.
+
+---
+
 # CURRENT STATE — 2026-09-28 — Report358 DirectReturn Rep Smart Search / Master Assignment Checkpoint
 
 ## AUTHORITATIVE CURRENT REALITY
