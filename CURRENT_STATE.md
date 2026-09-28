@@ -1,3 +1,89 @@
+# FINAL AUTHORITATIVE POINTER — 2026-09-28 — REPORT348 FINAL PRODUCTION SOURCE RESPONSIBILITY CLOSURE
+
+## Current System Git
+HEAD after canonical migration recording:
+ce55aa2716299037554fb891d354e2a90402451a
+
+Parent:
+d813d1fd9bd8d2e478f3de6330f2abf63d9cd098
+
+Report:
+doc/Draft/Reprots/Report348_WAREHOUSE_VOUCHERS_TRANSFER_SOURCE_RESPONSIBILITY_FORENSIC_CLOSURE_20260928.md
+
+Canonical migration record:
+supabase/migrations/20260928121000_harden_transfer_sender_source_responsibility.sql
+
+## Current Frontend Git
+HEAD:
+f07bdcc4abbbe899af569f8bfaccde04df279416
+
+Parent:
+cc35f3a9da6ababf4c8cd87b05ab93539cdae087
+
+vouchers.html:
+9e3a9cbd0124639934cdf98abc9ec579f4b19f61
+
+main.html:
+810e4f5440f5975f55099a124deb42b086a49183
+
+picker.html:
+c7ad267d852d415b680aed7716833eea9bcffdf6
+
+van-sales.html:
+8d61382a8e0025a0d079e71dd94f33d106d9088e
+
+## Production Contract
+Transfer source responsibility is now enforced at the existing DB trigger.
+
+Rule:
+Non-admin sender must be authorized for from_id before Draft → Sent.
+
+Destination remains open to active company branches for sender selection.
+Receiver is assigned and snapshotted by Production from the destination branch responsibility contract.
+
+Receiver-only Receive and self-receive prevention remain active.
+
+No new Edge Function.
+No new RPC.
+No new stock core.
+
+## E2E Evidence
+Negative unauthorized-source attempt = PASS BLOCK.
+Valid BR-01 → BR-2 transfer = PASS.
+Partial receive = PASS.
+Idempotent replay = PASS.
+Remainder receive = PASS.
+Complete = PASS.
+Stock delta assertions = PASS.
+Rollback = PASS.
+Transfer QA residue after rollback = 0.
+
+## Owner Source Patches
+Owner-controlled vouchers.html only:
+T-06/T-07/T-08 remain from Report347.
+T-09/T-10/T-11 are the new source-responsibility corrections from Report348.
+
+T-09: allowedBranch must not return true solely because type=Transfer and user role=مخزني/أذونات.
+T-10: wsFrom + Transfer returns userBranches.
+T-11: wsTo + Transfer is not validated against sender allowedBranch.
+
+Do not touch main.html.
+Do not touch picker.html.
+Do not touch van-sales.html.
+Do not create Edge Functions.
+
+## Browser / Deployment
+GitHub Warehouse Vouchers Browser E2E latest run 36407039250 is FAILED.
+Failure is the test harness source gate, not a Transfer business assertion.
+Authenticated browser and published artifact remain OPEN/UNVERIFIED.
+
+## Next session
+Read this state, then verify current Git/source/Production/database/deployment.
+Do not repeat Transfer backend work.
+Check T-06..T-11 against current vouchers.html before issuing any owner patch.
+After owner source patch: full parse → authenticated Browser E2E → served artifact verification → final Transfer closure.
+
+---
 # FINAL AUTHORITATIVE POINTER — 2026-09-28 — REPORT348 SOURCE RESPONSIBILITY GAP CLOSED
 
 ## CURRENT REALITY — START HERE
