@@ -593,19 +593,19 @@ actionFor:function(v){
 ```javascript
 if(act==='draft'){
     a+=
-        '<button onclick="event.stopPropagation();App.editVoucher(\\''+
+        '<button onclick="event.stopPropagation();App.editVoucher(\''+
         s.esc(v.voucher_code)+
-        '\\')" class="bg-amber-500 text-white px-3 py-2 rounded-xl text-xs font-black">تعديل</button>';
+        '\')" class="bg-amber-500 text-white px-3 py-2 rounded-xl text-xs font-black">تعديل</button>';
 
     a+=
-        '<button onclick="event.stopPropagation();App.deleteVoucher(\\''+
+        '<button onclick="event.stopPropagation();App.deleteVoucher(\''+
         s.esc(v.voucher_code)+
-        '\\')" class="bg-rose-600 text-white px-3 py-2 rounded-xl text-xs font-black">حذف</button>';
+        '\')" class="bg-rose-600 text-white px-3 py-2 rounded-xl text-xs font-black">حذف</button>';
 
     a+=
-        '<button onclick="event.stopPropagation();App.send(\\''+
+        '<button onclick="event.stopPropagation();App.send(\''+
         s.esc(v.voucher_code)+
-        '\\')" class="bg-indigo-600 text-white px-3 py-2 rounded-xl text-xs font-black">إرسال</button>';
+        '\')" class="bg-indigo-600 text-white px-3 py-2 rounded-xl text-xs font-black">إرسال</button>';
 }
 ```
 
@@ -616,9 +616,9 @@ if(act==='draft'){
 ```javascript
 if(act==='receive'){
     a+=
-        '<button onclick="event.stopPropagation();App.receive(\\''+
+        '<button onclick="event.stopPropagation();App.receive(\''+
         s.esc(v.voucher_code)+
-        '\\')" class="bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-black">استلام</button>';
+        '\')" class="bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-black">استلام</button>';
 }
 ```
 
@@ -628,14 +628,14 @@ if(act==='receive'){
 if(act==='receive'){
     if(v.type==='Transfer'){
         a+=
-            '<button onclick="event.stopPropagation();App.details(\\''+
+            '<button onclick="event.stopPropagation();App.details(\''+
             s.esc(v.voucher_code)+
-            '\\')" class="bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-black">فتح واستلام</button>';
+            '\')" class="bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-black">فتح واستلام</button>';
     }else{
         a+=
-            '<button onclick="event.stopPropagation();App.receive(\\''+
+            '<button onclick="event.stopPropagation();App.receive(\''+
             s.esc(v.voucher_code)+
-            '\\')" class="bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-black">استلام</button>';
+            '\')" class="bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-black">استلام</button>';
     }
 }
 ```
@@ -698,6 +698,443 @@ exitVoucherDetails:function(){
 
 ---
 
+## Patch T-04
+
+### الملف
+`companies/company-1/warehouse/vouchers.html`
+
+### الدالة
+`receive:function(code)`
+
+### الموضع
+السطر الحالي التقريبي: **2071**، وهي الدالة ذات السطر الواحد الحالية.
+
+### ابحث عن الدالة كاملة التي تبدأ بـ:
+
+```javascript
+receive:function(code){
+```
+
+وتنتهي قبل:
+
+```javascript
+editVoucher:function(code){
+```
+
+### احذف الدالة كاملة واستبدلها بالبديل التالي:
+
+```javascript
+receive:function(code,full){
+    var s=this,
+        voucherId=null;
+
+    if(this.busy['receive:'+code]){
+        return;
+    }
+
+    RW_UI.showLoader();
+
+    supabase
+        .from('stock_vouchers')
+        .select('*,stock_voucher_details(*)')
+        .eq('company_id',s.company)
+        .eq('voucher_code',code)
+        .maybeSingle()
+        .then(function(r){
+
+            RW_UI.hideLoader();
+
+            if(r.error||!r.data){
+                throw new Error(
+                    'الإذن غير موجود'
+                );
+            }
+
+            var v=r.data;
+
+            voucherId=v.id;
+
+            if(
+                v.type!=='Transfer'&&
+                v.type!=='DirectReturn'
+            ){
+                throw new Error(
+                    'هذا النوع ينتقل إلى الإكمال مباشرة بعد الإرسال'
+                );
+            }
+
+            var d=v.stock_voucher_details||[];
+
+            var remaining=
+                d
+                    .map(function(x){
+                        return{
+                            item:x,
+                            qty:Math.max(
+                                0,
+                                Number(x.qty||0)-
+                                Number(x.received_qty||0)
+                            )
+                        };
+                    })
+                    .filter(function(x){
+                        return x.qty>0;
+                    });
+
+            if(full===true){
+
+                if(!remaining.length){
+                    throw new Error(
+                        'لا توجد كميات متبقية للاستلام'
+                    );
+                }
+
+                var fh=
+                    '<div class="text-right space-y-2">'+
+                    '<div class="p-3 rounded-2xl bg-emerald-50 border border-emerald-100 font-black">'+
+                    'سيتم استلام جميع الكميات المتبقية لهذا الإذن.'+
+                    '</div>';
+
+                remaining.forEach(function(rm){
+
+                    fh+=
+                        '<div class="flex justify-between gap-3 p-3 border rounded-2xl bg-slate-50">'+
+                        '<span class="font-bold">'+
+                        s.esc(
+                            rm.item.item_name||
+                            rm.item.item_code
+                        )+
+                        '</span>'+
+                        '<b>'+
+                        f(rm.qty)+
+                        '</b>'+
+                        '</div>';
+
+                });
+
+                fh+='</div>';
+
+                return Swal.fire({
+                    title:'استلام كلي',
+                    html:fh,
+                    showCancelButton:true,
+                    confirmButtonText:
+                        'تأكيد الاستلام الكلي',
+                    cancelButtonText:'تراجع',
+                    preConfirm:function(){
+                        return [];
+                    }
+                });
+            }
+
+            var h=
+                '<div class="text-right space-y-2">';
+
+            d.forEach(function(x,i){
+
+                var rem=
+                    Math.max(
+                        0,
+                        Number(x.qty||0)-
+                        Number(x.received_qty||0)
+                    );
+
+                if(rem>0){
+
+                    h+=
+                        '<div class="p-3 border rounded-2xl bg-slate-50 flex gap-3 items-center">'+
+                        '<div class="flex-1">'+
+                        '<b>'+
+                        s.esc(
+                            x.item_name||
+                            x.item_code
+                        )+
+                        '</b>'+
+                        '<div class="text-xs text-slate-400">'+
+                        'المتبقي: '+
+                        f(rem)+
+                        '</div>'+
+                        '</div>'+
+                        '<input id="rq'+i+
+                        '" data-item-id="'+
+                        x.item_id+
+                        '" data-item-code="'+
+                        s.esc(x.item_code)+
+                        '" max="'+
+                        rem+
+                        '" min="0" value="'+
+                        rem+
+                        '" type="number" step="any" '+
+                        'class="w-24 p-2 border rounded-xl text-center">'+
+                        '</div>';
+
+                }
+
+            });
+
+            h+='</div>';
+
+            return Swal.fire({
+                title:'استلام '+s.esc(v.type),
+                html:h,
+                showCancelButton:true,
+                confirmButtonText:'تنفيذ الاستلام',
+                cancelButtonText:'إلغاء',
+                preConfirm:function(){
+
+                    var out=[];
+
+                    d.forEach(function(x,i){
+
+                        var el=
+                            RW_UI.byId(
+                                'rq'+i
+                            );
+
+                        if(!el){
+                            return;
+                        }
+
+                        var q=
+                            Number(el.value||0);
+
+                        var m=
+                            Number(el.max||0);
+
+                        if(q<0||q>m){
+                            throw new Error(
+                                'كمية غير صالحة'
+                            );
+                        }
+
+                        if(q){
+                            out.push({
+                                itemId:x.item_id,
+                                itemCode:x.item_code,
+                                receivedQty:q
+                            });
+                        }
+
+                    });
+
+                    if(!out.length){
+
+                        Swal.showValidationMessage(
+                            'أدخل كمية استلام'
+                        );
+
+                        return false;
+                    }
+
+                    return out;
+                }
+            });
+
+        })
+        .then(function(a){
+
+            if(!a||!a.isConfirmed){
+                return;
+            }
+
+            var isFull=
+                full===true;
+
+            var receivedItems=
+                isFull
+                    ?[]
+                    :(a.value||[]);
+
+            var vfp=
+                isFull
+                    ?'FULL_REMAINDER'
+                    :
+                    JSON.stringify(
+                        receivedItems
+                            .map(function(x){
+                                return[
+                                    x.itemId,
+                                    Number(
+                                        x.receivedQty
+                                    )
+                                ];
+                            })
+                            .sort(function(x,y){
+                                return String(x[0])
+                                    .localeCompare(
+                                        String(y[0])
+                                    );
+                            })
+                    );
+
+            var store=
+                'RW_VOUCHER_RECEIVE:'+
+                s.company+
+                ':'+
+                voucherId;
+
+            var op=null;
+
+            if(isFull){
+
+                op=
+                    'UI-RECEIVE-REMAINDER:'+
+                    s.company+
+                    ':'+
+                    voucherId;
+
+            }else{
+
+                try{
+
+                    var old=
+                        localStorage.getItem(
+                            store
+                        );
+
+                    if(old){
+
+                        var rec=
+                            JSON.parse(old);
+
+                        if(
+                            rec&&
+                            rec.fingerprint===vfp&&
+                            rec.operation_id
+                        ){
+                            op=rec.operation_id;
+                        }
+
+                    }
+
+                }catch(e){}
+
+                if(!op){
+
+                    op=
+                        (
+                            window.crypto&&
+                            crypto.randomUUID
+                        )
+                            ?crypto.randomUUID()
+                            :
+                            'UI-RECEIVE:'+
+                            s.company+
+                            ':'+
+                            voucherId+
+                            ':'+
+                            Date.now()+
+                            ':'+
+                            Math.random()
+                                .toString(36)
+                                .slice(2);
+
+                }
+
+                try{
+
+                    localStorage.setItem(
+                        store,
+                        JSON.stringify({
+                            operation_id:op,
+                            fingerprint:vfp,
+                            created_at:
+                                new Date()
+                                    .toISOString()
+                        })
+                    );
+
+                }catch(e){}
+
+            }
+
+            s.busy['receive:'+code]=true;
+
+            RW_UI.showLoader(
+                'جاري تسجيل الاستلام...'
+            );
+
+            RW_API.call(
+                'receive-stock-voucher',
+                {
+                    voucher_code:code,
+                    receivedItems:
+                        receivedItems,
+                    operation_id:op
+                },
+                function(j){
+
+                    RW_UI.hideLoader();
+
+                    delete s.busy[
+                        'receive:'+code
+                    ];
+
+                    if(j&&j.success){
+
+                        if(!isFull){
+                            try{
+                                localStorage.removeItem(
+                                    store
+                                );
+                            }catch(e){}
+                        }
+
+                        RW_UI.toast(
+                            j.duplicate
+                                ?'تم التعرف على العملية المكررة'
+                                :'تم الاستلام بنجاح',
+                            'success'
+                        );
+
+                        s.loadList(
+                            'pending'
+                        );
+
+                        s.prefetchStock(
+                            true
+                        );
+
+                    }else{
+
+                        RW_UI.showError(
+                            (j&&j.msg)||
+                            'فشل الاستلام — تم الاحتفاظ بهوية العملية لإعادة المحاولة بأمان'
+                        );
+
+                    }
+
+                }
+            );
+
+        })
+        .catch(function(e){
+
+            RW_UI.hideLoader();
+
+            delete s.busy[
+                'receive:'+code
+            ];
+
+            RW_UI.showError(
+                e.message||
+                'فشل فتح الاستلام'
+            );
+
+        });
+},
+```
+
+
+### عقد التنفيذ
+- `full=true` يستخدم نفس Edge الحالية ويُرسل `receivedItems:[]`؛ الـEdge يفسرها على أنها **كل الكميات المتبقية**.
+- `full=false` يستخدم الاستلام التفصيلي الحالي line-by-line.
+- لا يتم إنشاء Edge جديدة.
+- لا يتم تغيير `post_manual_stock_voucher_atomic`.
+- لا يتم تغيير idempotency الحالية.
+
+---
+
 ## Patch T-05
 
 ### الملف
@@ -726,12 +1163,12 @@ var topActions=
     transferReceiver
         ?
         '<div class="flex flex-wrap justify-end gap-2 mb-3 no-print">'+
-        '<button type="button" onclick="App.receive(\\''+
+        '<button type="button" onclick="App.receive(\''+
         s.esc(v.voucher_code)+
-        '\\',true)" class="px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black">استلام كلي</button>'+
-        '<button type="button" onclick="App.receive(\\''+
+        '\',true)" class="px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black">استلام كلي</button>'+
+        '<button type="button" onclick="App.receive(\''+
         s.esc(v.voucher_code)+
-        '\\',false)" class="px-3 py-2 rounded-xl bg-teal-600 text-white text-xs font-black">استلام تفصيلي</button>'+
+        '\',false)" class="px-3 py-2 rounded-xl bg-teal-600 text-white text-xs font-black">استلام تفصيلي</button>'+
         '<button type="button" onclick="App.printVoucher()" class="px-3 py-2 rounded-xl bg-slate-800 text-white text-xs font-black">🖨 طباعة</button>'+
         '<button type="button" onclick="App.exitVoucherDetails()" class="px-3 py-2 rounded-xl bg-slate-500 text-white text-xs font-black">خروج</button>'+
         '</div>'
