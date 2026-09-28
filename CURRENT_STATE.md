@@ -4,8 +4,9 @@
 This section supersedes earlier CURRENT_STATE sections for the DirectReturn representative-search closure unit. Earlier sections remain historical records only.
 
 ### CURRENT GIT — SYSTEM
-- Current System HEAD after this execution: a5012fca02fb988fa0194f064cf20d9d20492a3f
-- Parent: 04cb7741e84cedf7719515cab33ab967d214808c
+- System HEAD immediately before this final CURRENT_STATE write: a5012fca02fb988fa0194f064cf20d9d20492a3f
+- Parent of that execution commit: 04cb7741e84cedf7719515cab33ab967d214808c
+- This CURRENT_STATE write is the continuity checkpoint; next session MUST re-read current Git to obtain the new state commit SHA before proceeding.
 - Prior state commit: c5d20c5c9cd82afaa587a155b2ebe031d03f43fc
 - Report: doc/Draft/Reprots/Report358_WAREHOUSE_VOUCHERS_DIRECTRETURN_REP_SMARTSEARCH_FORENSIC_CLOSURE_20260928.md
 - Production migration source recorded at:
