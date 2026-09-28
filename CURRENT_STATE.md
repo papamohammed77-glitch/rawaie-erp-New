@@ -1,3 +1,144 @@
+# CURRENT SESSION — 2026-09-29 — Report360 Forensic Final
+
+> **Authoritative checkpoint:** CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+> Historical reports are guidance only and do not override current evidence.
+
+## Current Git
+
+- System repo HEAD before this state write: `af7bd6c2f22b308f732ec3503a8ad21163d37d02`
+- System repo parent: `817aa8851e9fdd837ad11e994d2ce09c87acef1c`
+- Latest report: `doc/Draft/Reprots/Report360_WAREHOUSE_VOUCHERS_DIRECTRETURN_FORENSIC_FINAL_20260929.md`
+- Latest report commit: `af7bd6c2f22b308f732ec3503a8ad21163d37d02`
+
+### Frontend current evidence
+
+- Frontend repo HEAD: `386b003ccd1650444062844394a7ec6ac2f7032f`
+- Frontend parent: `56fee06ac0145faffbc4f71d3d6031fcd3b46f87`
+- `companies/company-1/warehouse/vouchers.html` blob: `9b538a49b9ee520aaa17a097fe881167a9230abf`
+- Current vouchers source lines: 6599
+- `Current/PWA/main.html` blob: `27b777528665dcc985809648f006452c861ae36e`
+- `companies/company-1/sales/van-sales.html` blob: `8d61382a8e0025a0d079e71dd94f33d106d9088e`
+
+## Current forensic conclusion
+
+The latest frontend commit `386b...` partially applied Report359 but left the DirectReturn UI contract incomplete and introduced a new syntax/runtime defect.
+
+### Proven current source defects
+
+1. `pickArr:function(key)` — current DR-UI-01 patch references `v.id` before `v` exists inside the filter callback.
+2. `pickSelect:function(key,id)` — current fallback is malformed and causes `SyntaxError: Invalid left-hand side in assignment`.
+3. `pickSearch:function(key,q)` — second vehicle display mapping still resolves from `x.driver_id` only (DR-UI-03B missing).
+4. `editVoucher:function(code)` — Draft DirectReturn reopening still resolves rep from `vv.driver_id` only (DR-UI-04 missing).
+
+### Proven already correct and MUST NOT be redone
+
+- DR-UI-03A first vehicle search mapping.
+- `routeHtml:function()` DirectReturn field is not readonly.
+- Current DirectReturn `submit()` assignment-first validation.
+- Main authorization / Owner wildcard semantics.
+- Main delegation to `vouchers.html`.
+- DirectReturn Production backend.
+- DirectSale backend.
+- Transfer backend.
+- SupplierReturn backend/contract.
+
+## Surgical source action
+
+The owner must modify only `companies/company-1/warehouse/vouchers.html` using the exact four replacements in Report360:
+
+- DR-UI-01
+- DR-UI-02
+- DR-UI-03B
+- DR-UI-04
+
+Do not rewrite whole functions.
+Do not modify `main.html`.
+Do not modify `van-sales.html`.
+Do not create new Edge Functions/RPC/tables for this defect.
+
+The four replacements were applied In-Memory to the current source and the resulting inline JavaScript passed a full Syntax Gate.
+
+## Production evidence
+
+Current active Master Assignment proves:
+
+- CHV-2025-01 → `vansales@rawaea.com`; `driver_id=NULL`
+- VHL-0422 → `vansales2@rawaea.com`; `driver_id=NULL`
+
+VHL-0422 currently has mobile stock enabled and an available quantity of item `1003`.
+
+Current Production atomic Create/Send test for DirectReturn:
+
+- vehicle: VHL-0422
+- rep: `vansales2@rawaea.com`
+- destination: BR-01
+- item: 1003
+- result before rollback: `Sent`, `custodian_user_id = rep2`, movement count = 1
+- transaction was rolled back
+- no `IN-10` residue remains
+
+A current negative pairing attempt against the wrong rep is still protected by the Production assignment contract; the backend contract itself was already closed in Report359.
+
+## Production infrastructure decision
+
+No Production infrastructure change is required for this source-only defect.
+
+Existing:
+- `create_manual_stock_voucher_atomic`
+- `create_manual_stock_voucher_atomic_core_12_20260828`
+- `update_manual_stock_voucher_atomic`
+- `send_stock_voucher_atomic`
+- `receive-stock-voucher` Edge Function v22
+- `complete_manual_stock_voucher_atomic`
+- `cancel_manual_stock_voucher_atomic`
+
+remain the active contract.
+
+## QA history
+
+No historical QA records with stock/audit/financial effects were deleted.
+
+The ephemeral test created in this session was fully rolled back.
+
+Current DirectReturn status counts:
+- Draft = 0
+- Sent = 0
+- Received = 1
+- Completed = 0
+- IN-10 residue = 0
+
+The existing Received record is historical and is not treated as test residue.
+
+## Deployment
+
+The current frontend HEAD `386b...` has no workflow run evidence returned by the available commit-run lookup endpoint.
+
+The prior Browser E2E run `36483037124` was based on `56fee...`, not the current source.
+
+Therefore Browser E2E remains **OPEN** until a run built from the fixed frontend HEAD completes successfully.
+
+## Next session exact sequence
+
+1. Start from current Git/Source, not Report360.
+2. Verify the owner applied DR-UI-01, DR-UI-02, DR-UI-03B, DR-UI-04.
+3. Run syntax gate.
+4. Run Browser E2E from the new frontend HEAD.
+5. Test `vansales2@rawaea.com` → `VHL-0422`.
+6. Reopen Draft DirectReturn and verify `custodian_user_id` / Master Assignment.
+7. Run Smart Search verification.
+8. Run Create → Send → Receive.
+9. Run wrong rep/vehicle negative test.
+10. Verify stock, audit, custody, and no inappropriate financial/treasury side effect.
+11. Only then mark DirectReturn UI CLOSED.
+12. Move to the next genuinely open Business Contract.
+
+## Continuity rule
+
+Never re-fix what is proven closed.
+If a historical report conflicts with current Git/source/Production/database/deployment evidence, current evidence wins.
+
+---
+
 # CURRENT SESSION — 2026-09-28 — Report359 Forensic Continuation
 
 > **Authoritative checkpoint:** CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
