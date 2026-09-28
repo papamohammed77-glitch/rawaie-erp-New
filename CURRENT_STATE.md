@@ -5,8 +5,8 @@
 This checkpoint supersedes older CURRENT_STATE sections for the warehouse-voucher closure unit. Historical sections remain records only.
 
 ### Current Git
-- System HEAD: 44d38f6f95856f83ba6185c41b8de8c7d90e5366
-- Immediate parent: 950a7e992c4f0e203ed544f4c4e50c944e9b1be0
+- System HEAD: 26b0770779c3aacdbd1c3011f516a28df573ea8b
+- Immediate parent: 44d38f6f95856f83ba6185c41b8de8c7d90e5366
 - Latest report: doc/Draft/Reprots/Report354_WAREHOUSE_VOUCHERS_MODAL_RUNTIME_FORENSIC_CLOSURE_20260928.md
 
 ### Current Frontend
