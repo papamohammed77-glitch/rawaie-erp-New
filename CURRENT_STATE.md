@@ -1366,3 +1366,10 @@ If Owner has NOT merged them:
 
 `doc/Draft/Reprots/Report345_WAREHOUSE_VOUCHERS_TRANSFER_RESPONSIBILITY_FORENSIC_CLOSURE_20260928.md`
 
+
+
+## Report345 Amendment — 2026-09-28
+- Report345 was amended after self-audit to include the **complete T-04 `receive:function(code,full)` surgical replacement**, not a cross-reference only.
+- T-02/T-05 JavaScript quote escaping was normalized in the report so the code blocks are directly copyable from Markdown.
+- Latest Report345 commit: `f5e47a191603403363bfe0b0dbdf490da0eff955`.
+- This amendment does not change Production state; it only completes the Owner Change Set documentation.
