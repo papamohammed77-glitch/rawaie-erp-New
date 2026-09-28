@@ -1,3 +1,143 @@
+# CURRENT STATE — 2026-09-28 — Report358 DirectReturn Rep Smart Search / Master Assignment Checkpoint
+
+## AUTHORITATIVE CURRENT REALITY
+This section supersedes earlier CURRENT_STATE sections for the DirectReturn representative-search closure unit. Earlier sections remain historical records only.
+
+### CURRENT GIT — SYSTEM
+- Current System HEAD after this execution: 04cb7741e84cedf7719515cab33ab967d214808c
+- Parent: a2ad0c159008d7d54760acadf54ca22e66d213d0
+- Prior state commit: c5d20c5c9cd82afaa587a155b2ebe031d03f43fc
+- Report: doc/Draft/Reprots/Report358_WAREHOUSE_VOUCHERS_DIRECTRETURN_REP_SMARTSEARCH_FORENSIC_CLOSURE_20260928.md
+- Production migration source recorded at:
+  supabase/migrations/20260928221500_vouchers_directreturn_rep_assignment_contract_fix_20260928.sql
+
+### CURRENT GIT — FRONTEND
+- Current Frontend HEAD: f28cbe21abe2dfc8d03d02fb0491cc984a273c13
+- Parent verified by compare: 8b6b32145aafdb49ae10af8f36aa888e4d25d412
+- Latest HEAD commit: Add draft voucher check for current user
+- companies/company-1/warehouse/vouchers.html current blob: 60f4b85ecf3dc32e45cc944bbbbd512ac37ea2a2
+- vouchers.html current size: 6,340 lines / 208,577 chars
+- main.html remains protected and untouched
+- van-sales.html remains protected and untouched
+
+### CURRENT SOURCE — PROVEN ROOT CAUSE
+Target:
+companies/company-1/warehouse/vouchers.html
+
+The DirectReturn representative picker had three coupled Consumer-Layer defects:
+
+1. routeHtml() around line 4268 called:
+   p('wsRep','مندوب البيع المباشر',true)
+   so the search input was readonly.
+
+2. pickArr() around line 3601 derived branch context from wsFrom. In DirectReturn wsFrom is a Vehicle ID, not a Branch ID. Therefore the generic wsRep path could resolve no branch and return an empty representative list.
+
+3. pickSelect() around line 4116 resolved DirectReturn representative only through vehicle.driver_id and then made wsRepSearch readonly. Current Production vehicles use fleet_vehicle_sales_rep_assignments as the active primary relationship while driver_id is NULL.
+
+A fourth coupled source defect existed in submit():
+the DirectReturn validation derived rr from vv.driver_id rather than treating the selected/master-assigned representative as the current contract.
+
+### CURRENT PRODUCTION — PROVEN RELATIONSHIP
+Production authoritative relationship:
+public.fleet_vehicle_sales_rep_assignments
+
+Current active Primary assignments observed:
+- CHV-2025-01 -> vansales@rawaea.com
+- VHL-0422 -> vansales2@rawaea.com
+
+For these vehicles Production shows driver_id = NULL.
+
+Existing public.fleet_query('direct_sales_rep_assignments') returns the active Master Assignment rows correctly under an authenticated actor.
+
+### PRODUCTION FIX EXECUTED
+No new Edge Function.
+No new table.
+No new RPC.
+
+Existing functions updated in-place:
+- public.create_manual_stock_voucher_atomic_core_12_20260828
+- public.update_manual_stock_voucher_atomic
+
+DirectReturn representative validation now uses:
+1. active primary fleet_vehicle_sales_rep_assignments
+2. legacy vehicles.driver_id fallback
+
+This preserves historical compatibility while aligning the current operation with the Mother system's authoritative Master Assignment.
+
+### PRODUCTION QA — THIS SESSION
+Pre-fix forensic fixture:
+- An invalid DirectReturn pairing (CHV-2025-01 + vansales2) was accepted by the pre-fix Create contract as IN-9.
+
+Post-fix:
+- The same invalid pairing was rejected with:
+  المركبة المصدر لا تتبع مندوب البيع المباشر المحدد
+- A valid pairing (CHV-2025-01 + vansales@rawaea.com) created IN-10 successfully.
+- Authenticated update of the valid Draft was executed inside a transaction and returned success; transaction was rolled back.
+- IN-9 and IN-10 were deleted with the existing Draft deletion guard.
+- Current transient Draft count after cleanup: 0
+- Current DirectReturn voucher count after cleanup: 0
+
+### OWNER FRONTEND PATCH — OPEN / NOT APPLIED BY ASSISTANT
+The owner must patch only vouchers.html.
+
+Required surgical elements are stored in Report358:
+1. routeHtml() DirectReturn line: remove the literal readonly argument from the wsRep picker.
+2. pickArr() wsRep block: add a DirectReturn branch that derives candidate representatives from active vehicle Master Assignment / legacy driver and uses wsTo as the receiving-branch authorization context.
+3. pickSelect() DirectReturn wsFrom block: resolve the representative from vehicleRepMap first, driver_id second; keep wsRepSearch editable.
+4. pickSelect() wsRep block: for DirectReturn, resolve the representative's current primary vehicle and synchronize wsFrom to it, with receiving-branch authorization.
+5. submit() DirectReturn rr element: prefer the selected wsRep / current Master Assignment and reject selected-rep vs vehicle mismatches.
+
+Do not replace whole functions. Use the exact element replacements in Report358.
+
+### PROTECTED / DO NOT REOPEN
+- main.html
+- van-sales.html
+- DirectSale Draft Report357 repair
+- Transfer destination/receiver contract
+- Transfer source binding
+- DirectReturn SEND authorization branch correction
+- DirectReturn mobile-branch correction
+- SupplierReturn contract
+- existing stock writer / idempotency path
+- prior Report349–357 closures
+
+### DEPLOYMENT / E2E
+- Production database contract: VERIFIED
+- Production invalid/valid Create tests: VERIFIED
+- Authenticated Update transaction test: VERIFIED
+- Frontend source patch: READY only
+- Frontend source write by assistant: NOT DONE
+- Browser E2E: OPEN
+- Served/published artifact identity: OPEN
+
+Browser/served closure MUST NOT be claimed before owner merge + publish + actual interactive DirectReturn test.
+
+### NEXT EXACT RESUMPTION
+1. Re-fetch current Frontend HEAD and vouchers blob.
+2. Apply only the five surgical elements from Report358.
+3. Read vouchers.html completely after merge.
+4. Parse all inline JS using a script detector that accepts script-tag attributes.
+5. Test DirectReturn picker:
+   - focus wsRep
+   - type Arabic/name/email fragment
+   - receive filtered rows
+   - select rep
+   - verify mapped vehicle
+   - select destination branch
+   - verify branch authorization
+6. Create Draft and reopen it.
+7. Submit through current create-stock-voucher path.
+8. Re-check Production Master Assignment and stock-voucher custodian_user_id.
+9. Publish and verify served artifact identity.
+10. Run authenticated Browser E2E.
+11. Only then close this closure unit and move to the next genuinely open Business Contract.
+
+### CLOSURE RULE
+Do not re-fix a closed historical unit.
+Do not treat a report as current truth.
+Use:
+CURRENT GIT → CURRENT SOURCE → CURRENT PRODUCTION → CURRENT DATABASE → CURRENT DEPLOYMENT EVIDENCE.
+
 # CURRENT STATE — 2026-09-28 — Report357 DIRECTSALE DRAFT MODAL ACTIONS ROOT-CAUSE CHECKPOINT
 
 ## AUTHORITATIVE CURRENT REALITY
