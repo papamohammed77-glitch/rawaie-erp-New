@@ -1218,3 +1218,151 @@ Report:
 
 Next session must begin from CURRENT GIT → CURRENT SOURCE → CURRENT PRODUCTION → CURRENT DATABASE → CURRENT DEPLOYMENT and must not re-open already closed Production Contract work.
 
+
+
+---
+
+# CURRENT STATE — 2026-09-28 — Report 345 Transfer Responsibility Closure
+
+## Authoritative current reality
+
+- System HEAD at session start: `2870ca03ee884c0eac4e19184b105d6c5927479c`
+- System parent: `23c3bef8cd181f113312d81ffa545bfbf3fab7bb`
+- Frontend current HEAD at session start: `4e67a7dde2b01d6810a247f62f193c8d2dc4202a`
+- Frontend parent: `2203768d8fd3f58a2fa0b378c45494b0741be9cd`
+- Current vouchers.html SHA at session start: `8910c9d6f032a8ddde907e5a4c7ae824a5a4267d`
+- Current vouchers.html lines: 5599
+- main.html unchanged in this session.
+- van-sales.html unchanged in this session.
+
+## Production changes executed
+
+### 1. Transfer receiver binding
+Production migration:
+`20260928_transfer_responsibility_and_receiver_binding`
+Version:
+`20260928090051`
+
+Added:
+- `stock_vouchers.receiver_user_id`
+- `stock_vouchers.receiver_assigned_at`
+- FK to `public.users(id)`
+- transfer receiver index
+- transfer responsibility trigger
+
+### 2. Production bug fix
+Production migration:
+`20260928_fix_transfer_receiver_uuid_selection`
+Version:
+`20260928090424`
+
+Corrected UUID selection after the initial test exposed unsupported `max(uuid)`.
+
+## Current business contract
+
+### Transfer Draft
+Only creator may edit / delete / send.
+
+### Transfer Sent
+Server has one immutable receiver snapshot.
+
+Only `receiver_user_id` may perform Receive / Receive state transitions.
+
+Sender cannot receive.
+
+### Transfer Received
+Creator or warehouse management may complete according to the centralized contract.
+
+## Test users
+
+Sender:
+- `vouchers@rawaea.com`
+- active_warehouse_role = `أذونات`
+- default branch = BR-01
+- allowed branch = BR-01
+
+Receiver:
+- `vouchers3@rawaea.com`
+- active_warehouse_role = `أذونات`
+- default branch = BR-2
+- allowed branch = BR-2
+
+## E2E result
+
+Fixture IN-8:
+- Create = PASS
+- Send = PASS
+- Receiver binding = PASS
+- Sender Receive rejection = PASS
+- Partial Receive = PASS
+- Replay duplicate protection = PASS
+- Full remaining Receive = PASS
+- Complete = PASS
+- QA cleanup = PASS
+
+Fixture IN-9:
+- Non-creator draft update rejection = PASS
+- Non-creator deletion blocked = PASS
+- QA cleanup = PASS
+
+All Transfer QA fixtures from this session removed.
+
+## Historical contradiction resolved
+
+IN-2 was reported previously as rolled back, but CURRENT PRODUCTION showed it Completed with 10 movement rows.
+
+IN-2 was reversed and purged after direct current-production verification.
+
+Verification:
+- no IN-2 Transfer voucher remains
+- no IN-2 inventory_log remains
+- stock balances restored for the tested item rows
+
+## Source UI state
+
+Current source has NOT been modified by this session.
+
+Owner Change Set prepared:
+- T-01 actionFor responsibility filtering
+- T-02 cards sender/receiver actions
+- T-03 exit confirmation
+- T-04 receive full/detailed UX
+- T-05 Transfer receiver detail toolbar
+
+## Closure
+
+- Transfer Production Security Contract: PRODUCTION VERIFIED
+- Receiver Binding: PRODUCTION VERIFIED
+- Partial / Full Receive backend: PRODUCTION VERIFIED
+- Source UI responsibility: OWNER PATCH REQUIRED
+- Browser E2E: OPEN
+- Published artifact verification: OPEN
+
+## Do not reopen
+
+- SupplierReturn Production Contract
+- SupplierReturn schema / RLS / RPC
+- DirectSale closure
+- DirectReturn closure
+- Fleet closure
+- Physical Stock Core
+- new Edge Function creation
+
+## Exact next session
+
+If Owner has merged T-01..T-05:
+→ verify current frontend SHA
+→ parse all embedded scripts
+→ authenticated Browser E2E with sender + receiver
+→ verify UI visibility and click paths
+→ verify served artifact
+→ close Browser/Deployment boundary.
+
+If Owner has NOT merged them:
+→ do not re-run Production Security work
+→ only verify source patch status.
+
+## Report
+
+`doc/Draft/Reprots/Report345_WAREHOUSE_VOUCHERS_TRANSFER_RESPONSIBILITY_FORENSIC_CLOSURE_20260928.md`
+
