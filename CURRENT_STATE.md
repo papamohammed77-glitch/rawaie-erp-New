@@ -1373,3 +1373,97 @@ If Owner has NOT merged them:
 - T-02/T-05 JavaScript quote escaping was normalized in the report so the code blocks are directly copyable from Markdown.
 - Latest Report345 commit: `f5e47a191603403363bfe0b0dbdf490da0eff955`.
 - This amendment does not change Production state; it only completes the Owner Change Set documentation.
+
+
+---
+
+# CURRENT STATE — 2026-09-28 — Report346 Transfer Receiver UI Final Checkpoint
+
+## Authoritative current reality
+
+### GIT
+- System HEAD: `66151de0f0a594c5842afa1f9fef6fb521cfd316`; parent: `f5e47a191603403363bfe0b0dbdf490da0eff955`.
+- Frontend HEAD: `cc35f3a9da6ababf4c8cd87b05ab93539cdae087`; parent: `4e67a7dde2b01d6810a247f62f193c8d2dc4202a`.
+- Latest frontend commit changes only `companies/company-1/warehouse/vouchers.html`.
+- Current vouchers blob: `b9b34b91a3c33f0689a20a493432e69c8e1c5f0c`.
+- main.html unchanged: `810e4f5440f5975f55099a124deb42b086a49183`.
+- van-sales.html unchanged: `8d61382a8e0025a0d079e71dd94f33d106d9088e`.
+- picker.html unchanged: `c7ad267d852d415b680aed7716833eea9bcffdf6`.
+
+### PRODUCTION / DATABASE
+- Transfer responsibility migrations remain active:
+  - `20260928090051_transfer_responsibility_and_receiver_binding`.
+  - `20260928090424_fix_transfer_receiver_uuid_selection`.
+- `stock_vouchers.receiver_user_id` and `receiver_assigned_at` are present.
+- `trg_transfer_responsibility_contract` is active.
+- DB trigger enforces a single receiver snapshot, excludes sender from receiver selection, prevents receiver reassignment after Send, and blocks unauthorized Receive/Complete transitions.
+- `stock_vouchers` authenticated policy is SELECT-only; operational writes are via existing server-side RPC path.
+- Existing `receive-stock-voucher` Edge Function remains version 22; no new Edge Function was created.
+- No Production schema/function change was needed in Report346.
+
+### TEST EVIDENCE
+Transactional QA fixtures were created and rolled back. No Transfer QA fixtures remain.
+
+Verified in Production transaction:
+- sender receive attempt rejected by responsibility contract.
+- assigned receiver partial receive PASS.
+- same-operation replay returns duplicate PASS.
+- receiver remaining quantity receive PASS.
+- creator completion PASS.
+- receiver identity is immutable after Send by trigger contract.
+
+The only failed assertion in the first harness was a test-order error: receiver_user_id was read before Send. It did not represent a product failure and must not be repeated.
+
+### SOURCE UI STATE
+Current `vouchers.html` already contains and must retain:
+- T-01 actor-aware `actionFor(v)`.
+- T-02 responsibility-aware pending buttons.
+- T-03 `exitVoucherDetails()`.
+- T-04 `receive(code, full)` with full/partial receiving and idempotency.
+
+Current source defect:
+- `var topActions=` exists inside `details:function(code)` and correctly builds receiver actions.
+- It is currently unused: `topActions+` occurrences = 0.
+- The old print/export toolbar remains directly after `var h=` around line 1935.
+
+### OWNER SURGICAL PATCH — T-05
+File: `companies/company-1/warehouse/vouchers.html`
+Function: `details:function(code)`
+
+Find the exact toolbar directly after `var h=`:
+
+```javascript
+'<div class="flex flex-wrap justify-end gap-2 mb-3 no-print">'+
+'<button type="button" onclick="App.printVoucher()" class="px-3 py-2 rounded-xl bg-slate-800 text-white text-xs font-black">🖨 طباعة</button>'+
+'<button type="button" onclick="App.exportVoucher()" class="px-3 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black">⇩ تصدير CSV</button>'+
+'</div>'+
+```
+
+Delete that complete element and replace it with exactly:
+
+```javascript
+topActions+
+```
+
+Do not modify any other function or block in vouchers.html.
+
+### CLOSURE STATUS
+- Production transfer responsibility: CLOSED.
+- DB authorization and rollback behavior: CLOSED.
+- T-01/T-02/T-03/T-04: PRESENT and must not be reimplemented.
+- T-05 receiver modal toolbar wiring: OPEN — one surgical source replacement only.
+- main.html: DO NOT TOUCH.
+- van-sales.html: NO CHANGE REQUIRED.
+- picker.html: NO CHANGE REQUIRED.
+- No new Edge Function.
+- No new migration unless new Production evidence proves this contract broken.
+
+### NEXT SESSION ENTRY SEQUENCE
+1. Verify current GIT HEADs and vouchers blob SHA.
+2. Verify T-01..T-04 remain unchanged.
+3. Apply T-05 exact toolbar replacement only.
+4. Verify `topActions+` occurs once and the obsolete toolbar is gone.
+5. Run authenticated browser E2E for sender/receiver/partial/full/complete.
+6. Do not repeat Production repair or recreate old QA fixtures.
+
+Report: `doc/Draft/Reprots/Report346_WAREHOUSE_VOUCHERS_TRANSFER_RESPONSIBILITY_FORENSIC_CURRENT_CLOSURE_20260928.md`
