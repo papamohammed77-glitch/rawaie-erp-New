@@ -2097,3 +2097,38 @@ Do not modify any other function or block in vouchers.html.
 6. Do not repeat Production repair or recreate old QA fixtures.
 
 Report: `doc/Draft/Reprots/Report346_WAREHOUSE_VOUCHERS_TRANSFER_RESPONSIBILITY_FORENSIC_CURRENT_CLOSURE_20260928.md`
+
+---
+
+# SESSION 2026-09-28 — Report352 / Current HEAD Runtime Regression Closure
+
+**Report:** `doc/Draft/Reprots/Report352_WAREHOUSE_VOUCHERS_FORENSIC_CURRENT_HEAD_RUNTIME_CLOSURE_20260928.md`
+
+## Current truth
+- System HEAD: `6e73a63254f44b1fe796ba5fdcc2ceb8582cbc1e`
+- System parent: `71befda98e7425877280ba40bb5eef411ee3aad2`
+- Frontend HEAD: `f5c9b877d973d42c2c3f4f2671a94924cf37f0d1`
+- Frontend parent: `f07bdcc4abbbe899af569f8bfaccde04df279416`
+- Target blob: `90426dea29a20fbd292f3de9731b521bdae9c5e2`
+
+## Current HEAD regressions
+- T13: orphan `durationText()` + duplicate cards implementation; current error `Unexpected identifier 'durationText'`.
+- T14: missing `var h=topActions+` in `details()`.
+- T15: missing closing brace for `if(full===true)` in `receive()`.
+- T16: `vehicleBranch()` deleted while 9 call sites remain; parent implementation is authoritative restore.
+
+## Already verified — do not rework
+T-09/T-10/T-11, Owner wildcard, transfer receiver/source responsibility, supplier-return contract, existing RPC/Edge path, mother-app role, and van-sales separation.
+
+## Production evidence
+Transient create/delete draft smoke passed for Transfer, DirectSale, DirectReturn, SupplierReturn. Cleanup left 0 transient voucher rows and 0 inventory_log residue. Current Manual vouchers remain 5 Completed, 0 Draft, 0 Sent, 0 Received. No new Edge Function or Production schema change required.
+
+## Patch status
+The four surgical replacements are fully prepared in Report352. The target source itself was not modified in this session by instruction.
+
+## Validation
+In-memory rehearsal: 6/6 embedded scripts parse and 10/10 source-level smoke checks pass. Browser E2E and deployment evidence remain pending.
+
+## Next sequence
+`T13 → T14 → T15 → T16 → browser parse → browser E2E → Production evidence → closure update`.
+
