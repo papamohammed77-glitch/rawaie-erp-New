@@ -2132,3 +2132,107 @@ In-memory rehearsal: 6/6 embedded scripts parse and 10/10 source-level smoke che
 ## Next sequence
 `T13 → T14 → T15 → T16 → browser parse → browser E2E → Production evidence → closure update`.
 
+-------------------------------------------------------------------------------
+SESSION UPDATE — 2026-09-28 — REPORT 353
+RAWAEA ERP — WAREHOUSE VOUCHERS / TRANSFER DESTINATION FORENSIC CHECKPOINT
+-------------------------------------------------------------------------------
+
+Authoritative CURRENT GIT
+- System HEAD: 15c23f5f751ad1193cfd51c232516f89d521c926
+- System parent: db6b6acd900c2b29a8f914a748b6db550446633f
+- Frontend HEAD: 1d2103a8903296a33110e83803a355f224c489c5
+- Frontend parent: dd9e53f573ba8e10dd8692cb712cac22e3b001e8
+
+Authoritative CURRENT SOURCE
+- Target: companies/company-1/warehouse/vouchers.html
+- Current blob: 00aa998bc2b5223bc147951427f523842c52963e
+- 6,321 lines / 209,976 chars.
+- main.html was NOT modified.
+- Current/PWA/main.html blob verified: 27b777528665dcc985809648f006452c861ae36e.
+- van-sales.html was reviewed and not modified.
+
+Latest source truth supersedes the target blob referenced by Report352. T13/T14/T15/T16 are already repaired in current HEAD and MUST NOT be reapplied.
+
+CURRENT OPEN DEFECT — ONE SURGICAL UI FILTER
+Inside pickSearch:function(key,q), current element around line 3909 is:
+
+var allowed=
+    type!=='branch' ||
+    s.allowedBranch(
+        s.user,
+        x
+    );
+
+This is the only currently identified defect for the requested requirement:
+Transfer destination must expose all active same-company branches.
+
+The upstream source already has:
+pickArr('wsTo') -> allBranches
+and pickSelect() does not reapply branch scope for Transfer destination.
+
+Required owner patch only:
+var allowed=
+    type!=='branch' ||
+    (
+        key==='wsTo' &&
+        s.type==='Transfer'
+    ) ||
+    s.allowedBranch(
+        s.user,
+        x
+    );
+
+Do NOT modify main.html, pickArr, pickSelect, actionFor, details, receive, or vehicleBranch.
+
+CURRENT PRODUCTION / DATABASE
+- Production create_manual_stock_voucher_atomic and enforce_transfer_responsibility_contract were re-verified.
+- Warehouse keeper contract: source remains bound to default/home branch; destination is intentionally not restricted to sender branch scope and must be an active same-company branch.
+- Current actor: vouchers@rawaea.com / role مخزني / active_warehouse_role أذونات / default branch BR-01 / allowed_branch_ids BR-01.
+- Current active company branches observed: BR-01, BR-2, VAN-CHV-2025-01.
+- Current stock_vouchers counts: Completed=5; Draft=0; Sent=0; Received=0.
+- QA/non-completed residue detected: 0.
+- No migration or Edge Function change was needed or made for this UI-only defect.
+- Latest relevant production migration remains 20260928132432 / 20260928005000 bind transfer source to keeper home branch.
+
+SOURCE-LEVEL EVIDENCE
+For the real Production actor, the current allowedBranch() logic returns only BR-01 when applied as a generic branch filter. The proposed Transfer-destination exception returns all active company branches. Source simulation therefore produced:
+before: BR-01
+after: BR-01, BR-2, VAN-CHV-2025-01
+
+DEPLOYMENT / E2E EVIDENCE
+Latest current-HEAD Browser E2E run:
+- RAWAEA — Warehouse Vouchers Browser E2E
+- Run: 36438835759
+- HEAD: 1d2103a8903296a33110e83803a355f224c489c5
+- Failed before Browser Smoke because the harness requires the literal <script> pattern and stopped at INLINE_SCRIPT_NOT_FOUND.
+- Execute browser smoke step was skipped.
+This is a test-harness defect/evidence gap, not evidence that the requested Transfer destination contract is broken.
+
+Latest frontend commits:
+- 1d2103... only fixes },, -> },.
+- dd9e53... restored the current cards/details/receive/vehicleBranch structures.
+Do not revert or repeat those repairs.
+
+REPORT
+- Report353 created:
+  doc/Draft/Reprots/Report353_WAREHOUSE_VOUCHERS_TRANSFER_DESTINATION_ALL_BRANCHES_FORENSIC_CLOSURE_20260928.md
+- Report353 commit: 67b902942a797e0efee67bece5869e2c40680ec9
+
+NEXT SESSION ENTRY POINT
+1. Verify Owner applied ONLY the pickSearch surgical replacement above.
+2. Verify old element occurs 0 times and new element occurs exactly 1 time.
+3. Perform source parse with a script-block detector that accepts <script> tags with attributes.
+4. Run/repair the Browser E2E harness only if needed; do not alter voucher business logic for the harness failure.
+5. Browser-test Transfer: source BR-01 -> destination BR-2, and verify all active same-company branches remain selectable.
+6. Re-verify Send/receiver binding without changing the already-closed Production contract.
+7. Do not create a new Edge Function.
+8. Do not touch main.html or reapply T13-T16.
+
+CURRENT STATUS:
+- Production destination contract: CLOSED
+- Existing warehouse/source/receiver contracts: CLOSED
+- Current source regression T13-T16: CLOSED
+- Transfer destination UI filter: OPEN — owner source patch pending
+- Browser E2E: OPEN — harness currently blocks before browser smoke
+- No backend/migration work pending for this exact defect
+-------------------------------------------------------------------------------
