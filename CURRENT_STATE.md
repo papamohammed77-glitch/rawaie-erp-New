@@ -1,3 +1,130 @@
+# FINAL AUTHORITATIVE POINTER — 2026-09-28 — REPORT348 SOURCE RESPONSIBILITY GAP CLOSED
+
+## CURRENT REALITY — START HERE
+
+### System Git
+Current HEAD after Report348:
+d813d1fd9bd8d2e478f3de6330f2abf63d9cd098
+
+Parent:
+515c508d6b6d4a15bc627d0720b92079b1153dbc
+
+Latest change:
+Report348 forensic closure + source surgical patches.
+
+### Frontend Git
+HEAD:
+f07bdcc4abbbe899af569f8bfaccde04df279416
+
+Parent:
+cc35f3a9da6ababf4c8cd87b05ab93539cdae087
+
+vouchers.html:
+9e3a9cbd0124639934cdf98abc9ec579f4b19f61
+
+main.html:
+810e4f5440f5975f55099a124deb42b086a49183
+
+picker.html:
+c7ad267d852d415b680aed7716833eea9bcffdf6
+
+van-sales.html:
+8d61382a8e0025a0d079e71dd94f33d106d9088e
+
+### Production correction
+A real source-responsibility security gap was found after Report347:
+
+- vouchers.html allowed warehouse-voucher users with activeWarehouseRole=أذونات to treat every company branch as an allowed transfer source.
+- pickArr() returned allBranches for wsFrom + Transfer.
+- pickSelect() incorrectly applied sender branch scope to Transfer destination.
+- Production trigger did not verify sender authorization on from_id during Draft → Sent.
+
+Production fix applied directly to the existing function:
+public.enforce_transfer_responsibility_contract()
+
+New guard:
+non-admin sender must be authorized for the source branch before Draft → Sent.
+
+No new Edge Function.
+No new stock core.
+No new RPC.
+
+### Production result
+Negative:
+BR-2 warehouse user attempting BR-01 → BR-2 send = PASS BLOCK.
+Message: مرسل التحويل غير مخول للعمل على فرع المصدر
+
+Positive:
+BR-01 → BR-2 = PASS.
+
+Verified:
+- Create PASS
+- Send PASS
+- receiver binding PASS
+- sender Receive rejected PASS
+- partial Receive PASS
+- idempotent replay PASS
+- remainder Receive PASS
+- Complete PASS
+- final Completed PASS
+- stock delta 1001: 8→7 / 3→4
+- stock delta 1003: 8→7 / 2→3
+- transaction rolled back
+- current Transfer QA residue = 0
+
+### Existing Production ACL
+public.enforce_transfer_responsibility_contract():
+- postgres EXECUTE = true
+- service_role EXECUTE = true
+- authenticated EXECUTE = false
+- anon EXECUTE = false
+- PUBLIC EXECUTE = false
+
+### Source owner patches
+Do not modify from assistant side.
+
+New owner patches:
+- T-09 allowedBranch: remove Transfer all-company bypass.
+- T-10 pickArr: wsFrom + Transfer must return userBranches.
+- T-11 pickSelect: wsTo + Transfer must not be rejected by sender allowedBranch.
+
+Previous Report347 patches T-06/T-07/T-08 remain owner-only and must not be repeated blindly.
+
+### Protected files
+- main.html: DO NOT TOUCH.
+- vouchers.html: owner applies only documented surgical replacements.
+- picker.html: no change.
+- van-sales.html: no change.
+- no new Edge Function.
+
+### Browser / Deployment
+- GitHub Warehouse Vouchers Browser E2E run 36407039250 is FAILED.
+- Failure is in the workflow source gate (INLINE_SCRIPT_NOT_FOUND), not a Transfer business assertion.
+- Current source blob contains the inline script.
+- Authenticated live browser remains UNVERIFIED.
+- Published artifact verification remains OPEN.
+
+### QA cleanup
+Temporary Transfer QA transactions from this session were rolled back.
+No current IN-8/IN-9 Transfer vouchers remain.
+
+Legacy SupplierReturn QA fixtures remain outside this scope because deleting completed test postings without an independent accounting/inventory reversal would be unsafe.
+
+### Current report
+doc/Draft/Reprots/Report348_WAREHOUSE_VOUCHERS_TRANSFER_SOURCE_RESPONSIBILITY_FORENSIC_CLOSURE_20260928.md
+
+### Next exact continuation
+1. Read this CURRENT_STATE first.
+2. Verify current Frontend HEAD/parent and vouchers blob.
+3. Check T-06..T-11 against current source before issuing any patch.
+4. Apply only owner-controlled source patches in vouchers.html.
+5. Parse complete vouchers.html.
+6. Run authenticated browser E2E.
+7. Verify served artifact.
+8. Close Transfer Browser boundary only after live UI proof.
+9. Then open the next real Business Contract gap.
+
+---
 # FINAL AUTHORITATIVE POINTER — 2026-09-28 — REPORT347 TRANSFER CURRENT FORENSIC CLOSURE
 
 ## CURRENT REALITY — START HERE
