@@ -1,3 +1,138 @@
+# CURRENT STATE — 2026-09-28 — Report356 VOUCHERS SCOPE/MODAL PRODUCTION CLOSURE CHECKPOINT
+
+## AUTHORITATIVE CURRENT CHECKPOINT
+This section supersedes earlier CURRENT_STATE sections for the Warehouse Vouchers closure unit. Historical sections below remain records only.
+
+### Current Git — System
+- Pre-state HEAD verified: `21d4171b8f3efbbd5340198eb6a640ac9bbe55c8`
+- Pre-state parent verified: `4b62e4b5f730186263daa63a0c7fa3dcbf60f77a`
+- Report356 commit: `10ff4e0bc930a409a860b3722849621dcdf1ff72`
+- CURRENT_STATE is being updated immediately after Report356.
+
+### Current Git — Frontend
+- Frontend HEAD: `cd125b126cd40527a81f20508139506b8e48031f`
+- Frontend parent: `85e825de61333f3b7da014580dd7275146818b2a`
+- `companies/company-1/warehouse/vouchers.html` blob: `4b99d7f12ab0fb255b523ae29465b7d3a9f56047`
+- `vouchers.html`: 6,332 lines / 210,062 chars
+- `main.html` blob: `810e4f5440f5975f55099a124deb42b086a49183`
+- `van-sales.html` blob: `8d61382a8e0025a0d079e71dd94f33d106d9088e`
+
+### Source Truth — What is CLOSED
+- Current `cd125...` already contains the corrected single-quoted `codeJs` construction in `cards()` and `details()`.
+- Do NOT repeat the `codeJs` repair.
+- Do NOT touch `printVoucher()`; its current print-window implementation is valid and uses `.no-print`.
+- Do NOT touch `main.html`.
+- Do NOT touch `van-sales.html`.
+
+### Source Truth — ONLY OWNER FRONTEND ACTION
+File: `companies/company-1/warehouse/vouchers.html`
+
+1. `loadList:function(scope)` around line 648:
+   replace the current direct `supabase.from('stock_vouchers')...` function with the exact Report356 PATCH 1 using existing RPC `inventory_voucher_report` and payload `workflow_scope=pending|completed`.
+
+2. Inside `details:function(code)`:
+   replace only the second `supabase.rpc('inventory_voucher_stock_context',...)` call with the exact Report356 PATCH 2 `Promise.resolve({data:{movements:[]}})`.
+
+3. Inside `details:function(code)`:
+   replace only the contiguous `var h=...` assignment immediately before `Swal.fire({` with the exact Report356 PATCH 3. The new modal contract is Header + Item Table only.
+
+The complete replacements are stored in Report356. No Frontend write was performed by this session.
+
+### Production / Supabase — CURRENT
+Project: `fiilmooggumokxanwiyx`
+
+No new Edge Function was created.
+No new RPC was created.
+
+Existing functions updated in-place:
+- `inventory_voucher_report`
+- `inventory_control`
+- `inventory_voucher_stock_context`
+
+Applied Production migrations:
+- `20260928_vouchers_branch_scope_and_employee_modal_redaction`
+- `20260928_fix_voucher_workflow_scope_admin_status_filter`
+- `20260928_fix_voucher_scope_privilege_boundary`
+- `20260928_sanitize_voucher_list_personnel_fields`
+- `20260928_fix_voucher_list_personnel_redaction_exact`
+
+One attempted migration named `20260928_scope_reports_and_close_employee_stock_context` failed compilation and was NOT applied.
+
+### Production Contract
+- Pending is responsibility-aware.
+- Completed is workflow-status-aware and branch-aware for non-privileged employees.
+- `reports` alone no longer expands a non-privileged employee to company-wide scope.
+- Privileged owner/warehouse management retains all-company administrative scope.
+- Employee VOUCHER_AUDIT returns header + item detail only.
+- Employee audit/movement/operations/financial/KPI payloads are empty.
+- Employee `inventory_voucher_stock_context` is denied.
+- Owner retains full administrative payload.
+
+### Verified Production Tests
+Using the correct BR-2 user `auth_id=5e662a3d-994c-4264-91a5-36058f727e72`:
+
+- BR-2 Pending: PASS — total 1, code `IN-7`.
+- BR-2 Completed: PASS — total 0.
+- BR-2 `IN-7` modal contract: PASS — header-only voucher keys + item-only detail keys; audit/movements/financial/KPI empty.
+- BR-2 `IN-1` cross-branch access: PASS — denied.
+- BR-2 direct stock context: PASS — denied.
+- BR-2 LIST personnel redaction: PASS — `created_by=null`, `completed_by=null`.
+
+Owner:
+- Completed: PASS — 5 records; `IN-7` correctly excluded because it is Received.
+- Full `IN-1` administrative detail: PASS — audit 3, movements 5, financial ledgers present, `created_by` present, detail includes `unit_price`.
+
+### Test Data / Cleanup
+Current Manual voucher state verified during this closure:
+- Completed = 5
+- Received = 1
+- No Draft/Sent fixture created by this closure.
+
+`IN-7` has create/send/receive audit events and inventory activity. It was therefore NOT force-deleted merely as test residue; existing integrity guards were respected. Do not bypass those guards.
+
+### Frontend Preflight
+Report356 applied the three proposed source edits in memory only and parsed the resulting inline JavaScript:
+- syntax = PASS
+- central `inventory_voucher_report` loadList = PASS
+- details no longer calls stock context = PASS
+- modal has no movement/financial/audit/KPI/personnel sections = PASS
+
+### Deployment / Browser E2E
+- Authenticated Production contract tests = PASS.
+- Frontend static patch preflight = PASS.
+- Browser E2E = OPEN.
+- Published/served artifact identity = OPEN.
+- Existing workflow source gate is incompatible with current `<body class="...">` markup and can fail before Browser Smoke.
+- No workflow-dispatch tool is available in the current environment.
+- Never claim Browser E2E or served-artifact PASS until the owner patches, publishes, and the actual served artifact is tested.
+
+### Architecture / Continuity
+- `main.html` remains parent/control plane.
+- `vouchers.html` remains the operational manual warehouse movement surface, separate from Order/Runsheet execution.
+- `van-sales.html` remains the direct-sales/mobile-stock execution surface.
+- Existing create/send/receive/complete/cancel Edge Functions remain the transactional write path; no new function was added.
+- Existing transfer source/destination, receiver binding, partial/full receive, DirectReturn, and other historical backend closures remain CLOSED. Do not reopen them.
+
+### Next Session — Exact Sequence
+Current state starts from:
+CURRENT GIT → CURRENT SOURCE → CURRENT PRODUCTION → CURRENT DATABASE → CURRENT DEPLOYMENT EVIDENCE.
+
+Then:
+1. Confirm Frontend HEAD `cd125...` and `vouchers.html` blob `4b99...`.
+2. Apply only Report356 PATCH 1–3 to `vouchers.html`.
+3. Run source parse/source gate.
+4. Publish/deploy.
+5. Verify served artifact SHA/content identity.
+6. Browser E2E with BR-2: login → Pending → open IN-7 → print → employee-visible header/items only → Completed branch scope.
+7. Browser E2E with Owner: verify full administrative data remains available through the parent/admin surfaces.
+8. Re-run Production scope and redaction tests.
+9. Only then record final closure.
+
+### Latest Report
+`doc/Draft/Reprots/Report356_WAREHOUSE_VOUCHERS_SCOPE_MODAL_FORENSIC_CLOSURE_20260928.md`
+
+---
+
 # CURRENT STATE — 2026-09-28 — Report355 FINAL MODAL DETAILS ACTIONS CHECKPOINT
 
 ## AUTHORITATIVE STARTING POINT
