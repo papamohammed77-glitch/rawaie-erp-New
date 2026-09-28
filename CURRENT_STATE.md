@@ -1,3 +1,110 @@
+# CURRENT SESSION — 2026-09-29 — Report361 Voucher Modal Print Forensic Closure
+
+> **Authoritative checkpoint:** CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+> Historical reports are guidance only and do not override current evidence.
+
+## Current Git
+- System repo HEAD after this report/state cycle: `bd955967fcb1590f65b43bb085eaa132e0d918d7`
+- Parent: `1c862e242a1b3fe23e11f586ecf0703bec35920a`
+- Report: `doc/Draft/Reprots/Report361_WAREHOUSE_VOUCHER_MODAL_PRINT_FORENSIC_CLOSURE_20260929.md`
+- Report commit: `bd955967fcb1590f65b43bb085eaa132e0d918d7`
+
+## Current Source
+- Frontend HEAD: `1214f6bca0d5f851bec2be8bd3d466b4af758efd`
+- Frontend parent: `386b003ccd1650444062844394a7ec6ac2f7032f`
+- `companies/company-1/warehouse/vouchers.html` blob: `d231a6b1762fdd66a0c57e33a8c43a7200391a13`
+- `vouchers.html`: 6625 lines / 215151 chars.
+- `Current/PWA/main.html` blob: `27b777528665dcc985809648f006452c861ae36e`
+- `companies/company-1/sales/van-sales.html` blob: `8d61382a8e0025a0d079e71dd94f33d106d9088e`
+- main.html and vouchers.html were NOT modified by this session.
+
+## Closed / Do Not Rework
+- Owner wildcard / owner identity
+- Main authorization and delegation
+- DirectReturn DR-UI-01, DR-UI-02, DR-UI-03A/03B, DR-UI-04
+- Transfer source/destination responsibility contract
+- SupplierReturn backend
+- Existing voucher lifecycle/stock/accounting contracts
+- Existing edge/RPC infrastructure
+
+## Current Defect Identified
+File: `companies/company-1/warehouse/vouchers.html`
+Object: `App`
+Function: `printVoucher:function()`
+Approximate current source location: line 1664.
+
+Defective element:
+`window.open('','_blank','noopener,noreferrer,width=1200,height=900')`
+
+The next guard immediately returns on falsy `w`.
+
+Root cause: the implementation requests `noopener,noreferrer` from `window.open()` while requiring a usable returned window reference. The current Web API behavior permits/defines a `null` return with `noopener`, matching the observed no-response printing failure.
+
+## Required Owner Surgical Patch
+The owner must replace ONLY the complete `printVoucher:function(){...},` element immediately before `exportVoucher:function()` with the full replacement in Report361.
+
+No whole-function rewrites beyond this one element.
+Do not modify `details()`, `actionFor()`, `renderList()`, `printDraftVoucher()`, `main.html`, or `van-sales.html`.
+
+Required replacement characteristics:
+- use `Swal.getHtmlContainer()` when available;
+- do not pass `noopener,noreferrer` to `window.open()`;
+- use named print context `rawaea-voucher-print`;
+- guard duplicate print calls;
+- keep existing modal HTML/CSS print output;
+- do not invoke any DB mutation.
+
+## Production / Database
+Supabase project: `SMART ERP` / `fiilmooggumokxanwiyx` / ACTIVE_HEALTHY / PostgreSQL 17.6.1.121.
+
+Current manual production data remains:
+- Completed DirectSale = 1
+- Completed SupplierReturn = 4
+- Received DirectReturn = 1
+- Received Transfer = 1
+- Sent DirectSale = 1
+
+Verified integrity:
+- IN-1: 5 details / 5 inventory_log / 3 audit / 1 driver ledger.
+- IN-9: 1 detail / 2 inventory_log / 4 audit / 1 driver ledger.
+- QA-SR-UI-CONTRACT-20260927-01 has stock/audit/journal/supplier-ledger effects and was NOT deleted.
+
+No new Edge Function.
+No new RPC.
+No migration.
+No table/RLS change.
+No stock/accounting/treasury mutation was required.
+
+## Testing
+- Forensic unit simulation: `PRINT_FORENSIC_UNIT=PASS current=blocked patched=printable`.
+- Cause is independently supported by current Web API documentation for `window.open()` and the SweetAlert2 `getHtmlContainer()` API.
+- Current frontend HEAD `1214f6...` has no workflow run evidence from the available commit-run lookup endpoint.
+- Existing GitHub browser workflow remains available, but current-HEAD authenticated/browser E2E has not been executed through the available connector and therefore remains OPEN.
+- Do not mark Browser E2E PASS until an actual browser run built from the patched frontend HEAD succeeds.
+
+## Test Fixtures / Cleanup
+Do not delete the existing QA history because it has real stock/audit/financial effects.
+No new persistent test fixture was required for this client-only printing defect.
+
+## Next Session Entry Sequence
+1. Re-read current Git/source; do not start from Report360.
+2. Verify frontend HEAD and vouchers blob.
+3. Verify old print element count = 0 and new print element count = 1.
+4. Run source syntax gate.
+5. Apply/verify the owner surgical patch only.
+6. Run browser E2E on Pending: IN-8 and IN-9.
+7. Run browser E2E on Completed: IN-1 and QA-SR-UI-CONTRACT-20260927-01.
+8. Confirm print window opens and voucher code/content exists.
+9. Confirm no DB mutation after print.
+10. Mark the browser-print defect CLOSED only on actual browser evidence.
+11. Do not reopen any previously closed business contract.
+12. Move to the next genuinely OPEN item.
+
+## Continuity Rule
+Current Git/source/Production/database/deployment evidence wins over historical reports.
+
+---
+
 # CURRENT SESSION — 2026-09-29 — Report360 Forensic Final
 
 > **Authoritative checkpoint:** CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
