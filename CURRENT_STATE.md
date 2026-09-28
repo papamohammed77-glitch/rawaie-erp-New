@@ -1,3 +1,100 @@
+# CURRENT STATE — 2026-09-28 — Report354 FINAL VOUCHERS MODAL RUNTIME CHECKPOINT
+
+## AUTHORITATIVE STARTING POINT
+
+This checkpoint supersedes older CURRENT_STATE sections for the warehouse-voucher closure unit. Historical sections remain records only.
+
+### Current Git
+- System HEAD: 44d38f6f95856f83ba6185c41b8de8c7d90e5366
+- Immediate parent: 950a7e992c4f0e203ed544f4c4e50c944e9b1be0
+- Latest report: doc/Draft/Reprots/Report354_WAREHOUSE_VOUCHERS_MODAL_RUNTIME_FORENSIC_CLOSURE_20260928.md
+
+### Current Frontend
+- Frontend HEAD: 880abe25c42d7c82c79cf133b9880d09ebfc416f
+- Frontend parent: 1d2103a8903296a33110e83803a355f224c489c5
+- Current vouchers.html blob: cd51d299bc50739c4bc374f9335eaf38f0b29534
+- vouchers.html: 6,325 lines / 209,971 chars
+- main.html blob: 27b777528665dcc985809648f006452c861ae36e
+- van-sales.html blob: 8d61382a8e0025a0d079e71dd94f33d106d9088e
+
+### Current Source Finding
+- Complete inline JavaScript parse: PASS.
+- cards:function(rows,scope): line ~968.
+- Defective codeJs block: line ~1176; exact current block occurs 1 time.
+- Current defective pattern generates JSON double-quoted JS code inside a double-quoted HTML onclick attribute.
+- Current browser-like parsing of IN-6 reduces handler to App.details( and throws Unexpected end of input.
+- Surgical owner patch recorded in Report354: replace only the codeJs variable block inside cards() with the single-quoted JavaScript literal version.
+- Do not modify RW_UI.esc(), renderList(), details(), or any unrelated handlers.
+- Existing Report353 Transfer destination correction is already present in current source and must not be repeated.
+
+### Current Production / Database
+- Supabase project: fiilmooggumokxanwiyx.
+- Existing stock voucher RPC/Edge execution path remains authoritative.
+- Relevant active Edge Functions: create-stock-voucher v12; send-stock-voucher v20; receive-stock-voucher v22; complete-stock-voucher v4; cancel-stock-voucher v4.
+- No new Edge Function, RPC, schema, or migration was needed for this UI encoding defect.
+- Current Manual stock_vouchers: Completed=5; Draft=0; Sent=0; Received=0.
+- Old Draft IN-6 was removed through the existing delete RPC.
+- Temporary QA-UI-MODAL-20260928-01 was created through the existing create RPC and deleted through the existing delete RPC.
+- Final voucher residue for IN-6=0; details residue=0; inventory_log residue=0.
+- Historical audit mentions remain preserved; they are audit history, not business residue.
+- Current Production transfer source/destination, receiver binding, partial/full receive, and DirectReturn contracts remain CLOSED.
+
+### Main / Standalone Architecture
+- main.html remains untouched.
+- Parent main registry contains vouchers → ./vouchers.html.
+- van-sales.html remains unchanged and owns Sales Invoice / Van Stock execution.
+- vouchers remains the manual stock movement execution surface.
+- No architectural merge between van-sales and vouchers is required for the current defect.
+
+### Deployment / Browser
+- Latest Warehouse Vouchers Browser E2E Run 57 on 880abe25c42d7c82c79cf133b9880d09ebfc416f failed before browser smoke.
+- Failure is workflow source-gate INLINE_SCRIPT_NOT_FOUND because the gate searches literal <body> rather than the actual attributed body opening tag.
+- Browser install and browser smoke were skipped.
+- Therefore Browser E2E is still OPEN and must not be called PASS.
+- Source parse is PASS; runtime defect reproduction is PASS as a defect reproduction; corrected handler parse is PASS.
+
+### Closure Status
+CLOSED:
+- Transfer production contracts
+- Transfer receiver/source responsibility
+- Destination selection
+- Partial/full receive backend
+- DirectReturn receive production guard
+- Current RPC/Edge execution path
+- Current main/van architectural separation
+- QA residue cleanup
+- vouchers inline JavaScript syntax
+
+OPEN:
+- Owner surgical codeJs replacement in vouchers.html.
+- Published served artifact identity.
+- Authenticated Browser E2E after owner source application.
+
+### Exact Next Action
+File: companies/company-1/warehouse/vouchers.html
+Function: cards:function(rows,scope)
+Search exact:
+var codeJs=
+    JSON.stringify(
+        String(v.voucher_code||'')
+    );
+Delete that block only.
+Replace with:
+var codeJs=
+    "'" +
+    JSON.stringify(
+        String(v.voucher_code||'')
+    )
+        .slice(1,-1)
+        .replace(/'/g,"\\'") +
+    "'";
+
+Then parse, deploy, Browser E2E, served-artifact verification.
+
+Never touch main.html. Never reapply closed backend repairs. Never create a new Edge Function for this issue.
+
+---
+
 ---
 # CURRENT STATE — 2026-09-28 — Report351 FINAL FORENSIC SOURCE-CONTRACT CHECKPOINT
 
