@@ -4,8 +4,9 @@
 > Historical reports are guidance only and do not override current evidence.
 
 ## Current Git
-- System repo HEAD after this report/state cycle: `bd955967fcb1590f65b43bb085eaa132e0d918d7`
-- Parent: `1c862e242a1b3fe23e11f586ecf0703bec35920a`
+- System repo evidence checkpoint (report commit): `bd955967fcb1590f65b43bb085eaa132e0d918d7`
+- Parent at evidence checkpoint: `1c862e242a1b3fe23e11f586ecf0703bec35920a`
+- `CURRENT_STATE.md` is then updated in a subsequent state commit whose parent is the report commit above.
 - Report: `doc/Draft/Reprots/Report361_WAREHOUSE_VOUCHER_MODAL_PRINT_FORENSIC_CLOSURE_20260929.md`
 - Report commit: `bd955967fcb1590f65b43bb085eaa132e0d918d7`
 
