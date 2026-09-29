@@ -1,3 +1,41 @@
+# CURRENT SESSION — 2026-09-29 — Report365 Van Sales Core Authorization Closure
+
+> Authoritative evidence: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+
+## Latest checkpoint
+- Report: `doc/Draft/Reprots/Report365_VAN_SALES_CORE_AUTHORIZATION_CLOSURE_20260929.md`
+- Report commit: `d15e10e17166b7416da06a349173b7551009a354`
+- Canonical Van Sales source: `companies/company-1/sales/van-sales.html`
+- Van Sales blob: `8d61382a8e0025a0d079e71dd94f33d106d9088e`
+- Frontend HEAD verified: `3c03e72f79bc337f89a1b27100795a522d249301`
+- Frontend parent: `609ab127410004ba9ee3161c8f0deaf630fbfd03`
+
+## Production change executed
+- Updated existing `public.post_stock_movement(uuid,text,uuid,uuid,uuid,numeric,text,text,text,text)`.
+- VanSale authorization now supports active primary `fleet_vehicle_sales_rep_assignments` for Direct Sales Representatives while preserving `vehicles.driver_id` for delivery-driver fallback.
+- Item resolution is now company-scoped.
+- Migration source recorded at:
+  `supabase/migrations/20260929150000_van_sales_post_stock_movement_assignment_auth.sql`
+- Migration Git commit:
+  `9e70657af60814c71efb8b93e046e2001b733d0e`
+- Production positive test with `vansales2@rawaea.com` + `VHL-0422` succeeded inside rollback transaction.
+- Negative mismatched-representative test was rejected.
+- QA inventory log residue after rollback: 0.
+
+## Van Sales OPEN items
+- `App.showRecentCustomers()`: exact owner surgical patch required; source still uses unwritten Dexie `db.orders`.
+- `collectPayment()`: payload incompatible with Production `save-receipt-voucher v7`; separate closure.
+- Explicit `source='van-sales'` filters missing in sales/invoice/vehicle-stock queries; separate closure.
+- `loadCustomerPatterns()`: broader-than-needed `order_details` query; separate closure.
+- `initiateEndOfDay()`: client-only settlement flow; separate closure.
+- Production `driver_ledger.balance` snapshot inconsistency for `vansales@rawaea.com`: sum debit-credit = 383 while latest stored balance = 443; requires controlled financial closure.
+- Browser E2E against currently deployed frontend artifact remains open.
+
+## Protected files not modified
+- `erp-frontend/companies/company-1/sales/van-sales.html`
+- `erp-frontend/companies/company-1/warehouse/vouchers.html`
+- Mother `main.html`
+
 # CURRENT SESSION — 2026-09-29 — Report361 Voucher Modal Print Forensic Closure
 
 > **Authoritative checkpoint:** CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
