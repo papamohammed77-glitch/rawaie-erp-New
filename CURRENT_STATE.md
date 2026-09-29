@@ -3461,3 +3461,12 @@ No Production DDL was applied in Report364. Attempted direct Core replacement wa
 4. Execute the next closure: VanSale authorization alignment in `post_stock_movement`.
 5. Then close collection, customer assignment, channel scoping, custody valuation, EOD settlement, one unit at a time.
 6. Never reopen already closed voucher/main contracts without new direct evidence.
+# CURRENT SESSION ADDENDUM — 2026-09-29 — Report367 Van Sales Recent Customers Surgical Closure
+
+- Forensic verification confirmed current `van-sales.html` SHA remains `8d61382a8e0025a0d079e71dd94f33d106d9088e` under frontend HEAD `3c03e72f79bc337f89a1b27100795a522d249301`, parent `609ab127410004ba9ee3161c8f0deaf630fbfd03`.
+- `App.showRecentCustomers()` is a real source defect: it reads `db.orders`, while current Van Sales source has no writer/population path for that local store.
+- Production Van Sales backend prerequisites are already deployed: `setup-van-branch v5`, `save-sales-invoice v15`, `save-inventory-count v5`, `save-receipt-voucher v8`; no new Edge Function or Production DDL is required for VAN-01.
+- Protected files were not modified: `van-sales.html`, `vouchers.html`, `main.html`.
+- Report367 provides the single exact Owner Surgical Patch for `App.showRecentCustomers()` (around line 1435). No other Van Sales function is to be changed in this closure.
+- Next closure after VAN-01 browser verification: `collectPayment()`, then explicit company/source scoping, then customer-pattern query hardening, then EOD settlement contract.
+- No already-closed voucher/main contracts should be reopened without new direct evidence.
