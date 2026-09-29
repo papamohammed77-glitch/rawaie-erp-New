@@ -1,3 +1,52 @@
+# CURRENT SESSION — 2026-09-29 — REPORT366 VAN SALES FORENSIC INTEGRATION
+
+> Authoritative evidence: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+
+## Latest checkpoint
+- Report: \`doc/Draft/Reprots/Report366_VAN_SALES_FORENSIC_INTEGRATION_SURGICAL_COMPLETION_20260929.md\`
+- Report commit: \`6e8f9938909c244435c5bd845bc472280f95d508\`
+- Protected frontend: \`companies/company-1/sales/van-sales.html\` (NOT MODIFIED)
+- Protected frontend: \`companies/company-1/warehouse/vouchers.html\` (NOT MODIFIED)
+- Mother \`main.html\` (NOT MODIFIED)
+
+## Production changes executed
+- \`post_driver_ledger_entry\` hardened to recompute running balance from SUM(debit-credit) with row locking.
+- \`post_customer_ledger_entry\` hardened to recompute running balance from SUM(debit-credit) with row locking.
+- \`save_sales_invoice_atomic\` item lookups confirmed company-scoped.
+- New RPC \`post_van_sales_collection_atomic\` created for atomic Van Sales customer collection.
+- Existing \`save-receipt-voucher\` deployed as v8 with Van Sales collection routing to the new RPC.
+- First collection test exposed unsupported \`min(uuid)\`; corrected in migration \`20260929191000_fix_van_sales_collection_treasury_uuid_selection\`.
+- Collection rollback test subsequently succeeded with no residue.
+
+## Confirmed Production data
+- \`vansales@rawaea.com\` and \`vansales2@rawaea.com\` are Active direct-sales representatives.
+- Primary vehicle assignments exist for CHV-2025-01 and VHL-0422.
+- Both vehicle.driver_id values are NULL; Master Assignment is the canonical direct-sales identity.
+- Exactly one active treasury exists for RAWAEA; standard COA 121 cash and 123 AR exist.
+- Customer ledger currently has zero snapshot mismatches.
+- \`vansales@rawaea.com\` historical driver ledger has net=383 while latest stored snapshot=443; future postings now recompute from mathematical ledger history. Historical rows were preserved.
+
+## Van Sales frontend open units
+- \`App.showRecentCustomers()\` at ~1435: dead Dexie \`db.orders\` source; owner surgical patch required.
+- \`App.collectPayment()\` at ~951: legacy receipt payload; owner surgical patch required to use customerId + operationId with save-receipt-voucher v8.
+- \`loadKPIs()\` ~595: add company/source scoping.
+- \`loadHomeSalesSummary()\` ~679: add company/source scoping.
+- \`loadCustomerPatterns()\` ~420: add company/source scoping and order-id-bounded details query.
+- \`loadMyInvoices()\` ~1026: add company/source scoping.
+- \`_loadVehicleStock()\` ~1081: add company/source scoping to sold-today query.
+- \`initiateEndOfDay()\` ~1278: client-only lock; requires separate Van Sales settlement contract and must not be incorrectly tied to runsheet until contract is established.
+- Browser-rendered E2E after owner-applied protected-file patches remains open.
+
+## Inventory contract
+- Physical stock movement remains centralized through \`post_stock_movement\`.
+- Van Sale path: save-sales-invoice -> save_sales_invoice_atomic -> post_stock_movement -> mobile branch.
+- \`reserve_stock\` remains Reservation-only.
+- \`setup_van_stock\` remains Initialization-only.
+
+## Session rule
+The next unit starts from the open Van Sales frontend surgical patches above; do not modify protected files automatically.
+
+
 # CURRENT SESSION — 2026-09-29 — Report365 Van Sales Core Authorization Closure
 
 > Authoritative evidence: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
