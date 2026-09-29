@@ -3636,3 +3636,34 @@ No Production DDL was applied in Report364. Attempted direct Core replacement wa
 - Report367 provides the single exact Owner Surgical Patch for `App.showRecentCustomers()` (around line 1435). No other Van Sales function is to be changed in this closure.
 - Next closure after VAN-01 browser verification: `collectPayment()`, then explicit company/source scoping, then customer-pattern query hardening, then EOD settlement contract.
 - No already-closed voucher/main contracts should be reopened without new direct evidence.
+
+
+# CURRENT SESSION — 2026-09-29 — REPORT371 VAN SALES COLLECT PAYMENT BACKEND CLOSURE CHECKPOINT
+
+Authoritative evidence: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+
+## Verified
+- Protected frontend: `erp-frontend/companies/company-1/sales/van-sales.html`
+- Current van-sales source remains unmodified in this session.
+- Production: `save-receipt-voucher v8` ACTIVE.
+- Production: `post_van_sales_collection_atomic` exists and is atomic/idempotent through `erp_operation_registry`.
+
+## Real defect found
+- `App.collectPayment()` generates a new `operationId` on every confirmation attempt.
+- This can defeat idempotency when a committed collection loses its response and the user retries.
+
+## Production correction executed
+- `post_van_sales_collection_atomic` was corrected to validate the active Direct Sales Representative and post a matching driver-ledger CREDIT in the same atomic operation.
+- Production migration: `20260929193000_van_sales_collection_driver_ledger_credit`
+- Canonical Git migration source recorded at:
+  `supabase/migrations/20260929193000_van_sales_collection_driver_ledger_credit.sql`
+
+## Owner frontend patch
+- Exact surgical patch is recorded in `doc/Draft/Reprots/Report371_VAN_SALES_COLLECT_PAYMENT_FORENSIC_COMPLETION_20260929.md`.
+- Protected frontend must not be changed outside `App.collectPayment()`.
+- Pending operation identity must persist until confirmed success, then be removed.
+
+## Closure state
+- `collectPayment`: INCOMPLETE — owner patch + browser E2E + same-operation retry + financial verification required.
+- Next closure only after 100%: `loadMyCustomers()`.
+- Historical driver-ledger QA/reversal reconciliation remains a separate financial closure; history was not deleted blindly.
