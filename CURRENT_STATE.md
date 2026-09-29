@@ -1,3 +1,49 @@
+# CURRENT SESSION — 2026-09-29 — REPORT368 VAN SALES CUSTODY RECONCILIATION
+
+> Authoritative evidence: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE. Historical reports are guidance only.
+
+## Verified checkpoint
+- Frontend repo: papamohammed77-glitch/erp-frontend
+- Current frontend main HEAD: 751c10723bfa5ed2ce6c3ae12561a179c5ecb56e
+- Target: companies/company-1/sales/van-sales.html
+- Current van-sales source has the prior showRecentCustomers syntax fix from commit 751c107...; the older CURRENT_STATE reference to 22e2 is stale.
+- Protected frontend files remain untouched: main.html, vouchers.html, van-sales.html.
+
+## Production facts verified
+- CHV-2025-01 is canonically assigned to vansales@rawaea.com through fleet_vehicle_sales_rep_assignments; VHL-0422 to vansales2@rawaea.com.
+- setup-van-branch is currently Production v5 and resolves direct-sales vehicle assignment through fleet_vehicle_sales_rep_assignments.
+- save-sales-invoice is currently Production v15 and posts VanSale through the central post_stock_movement path.
+- save-receipt-voucher is currently Production v8 and supports post_van_sales_collection_atomic.
+- Van stock rows exist canonically in stock_branches. Production currently has 17 rows for each inspected VAN branch, including explicit zero-quantity rows.
+- inventory_stock_snapshot confirms stock_value_at_cost is the central inventory valuation field; the current Van Sales UI uses sales_price for commercial display.
+
+## Proven root causes for the custody/value discrepancy
+1. loadHomeStockSummary reads local Dexie stock and calculates total value using only the first 5 stock rows.
+2. _loadVehicleStock reads local Dexie stock and calculates total value across all rows.
+3. Therefore «عهدتي الآن» and «سيارتي» can display different values for the same vehicle stock.
+4. enterApp swallows syncDown failures and continues into loadVanBranch, allowing stale/empty cache to be presented as current custody data.
+5. _renderVehicleStockHTML renders zero-quantity stock rows, making valid zero rows appear as active custody items.
+6. «رصيدي» is a driver_ledger financial liability and is not the same measure as physical stock custody value; it must not be forced to equal stock value.
+
+## Current surgical owner patch
+Report: doc/Draft/Reprots/Report368_VAN_SALES_CUSTODY_RECONCILIATION_FORENSIC_20260929.md
+- Patch 1: replace enterApp syncDown continuation to stop on sync failure instead of silently continuing.
+- Patch 2: replace loadHomeStockSummary to read live stock_branches + company-scoped items and calculate value across all positive stock rows.
+- Patch 3: replace _loadVehicleStock to use the same live source and same value basis, while scoping today's sales by company + source='van-sales' and hiding zero-quantity rows from the current-custody display.
+- No Production DB/Edge change was required for this specific defect.
+
+## Remaining open Van Sales units
+- collectPayment: legacy frontend payload despite Production save-receipt-voucher v8 contract.
+- loadMyCustomers / loadCustomerPatterns / loadKPIs / loadHomeSalesSummary / loadMyInvoices: company/source scoping gaps.
+- showCustomerDetail / repeatOrder: consumer authorization/scope audit required.
+- initiateEndOfDay: client-only lock; settlement contract remains open.
+- Browser E2E after owner-applied van-sales source patch: open.
+
+## Session rule
+Apply only the exact owner patches in Report368 to van-sales.html. Do not modify main.html or vouchers.html for this closure. Re-run syntax, then Browser E2E, then Production read verification. Do not delete zero stock rows from Production merely because the UI hides them.
+
+---
+
 # CURRENT SESSION — 2026-09-29 — REPORT367 VAN SALES SYNTAX FORENSIC
 
 > Authoritative evidence: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
