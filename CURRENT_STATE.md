@@ -1,3 +1,32 @@
+# CURRENT SESSION — 2026-09-29 — REPORT369 VAN SALES COLLECT PAYMENT CLOSURE
+
+> Authoritative evidence: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE. Historical reports are guidance only.
+
+## Verified checkpoint
+- Frontend repo latest verified main commit: 016a219419fbfcf6227135d99eea4813ea94e224
+- Target: companies/company-1/sales/van-sales.html
+- Reports368 custody patches are already present in the current source and must not be repeated.
+- Protected: main.html, warehouse/vouchers.html.
+
+## Current verified production
+- setup-van-branch v5
+- save-sales-invoice v15
+- save-receipt-voucher v8
+- post_van_sales_collection_atomic exists and executed successfully inside ROLLBACK.
+
+## Current open closure
+- App.collectPayment() still sends legacy receipt payload without header.customerId/header.operationId.
+- Production save-receipt-voucher v8 requires operationId and routes customer collections to post_van_sales_collection_atomic when customerId is provided.
+- Exact surgical replacement is recorded in Report369.
+
+## Required next action
+- Owner applies ONLY Report369 replacement to App.collectPayment in van-sales.html.
+- Do not modify main.html or vouchers.html.
+- Then syntax gate → browser E2E → Production verification.
+- Do not open the next Van Sales unit until collectPayment reaches 100% closed.
+
+---
+
 # CURRENT SESSION — 2026-09-29 — REPORT368 VAN SALES CUSTODY RECONCILIATION
 
 > Authoritative evidence: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE. Historical reports are guidance only.
