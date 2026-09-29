@@ -165,12 +165,18 @@ companies/company-1/sales/van-sales.html
 العنصر:
 App.showRecentCustomers: function() { ... },
 
+الموقع:
+~1435
+
 احذف العنصر كاملًا واستبدله بهذا العنصر:
 
     showRecentCustomers: function() {
         var self = this;
         var row = RW_UI.byId('recentCustomersRow');
-        if (!row || !this.currentUser || !this.currentUser.id) return;
+
+        if (!row || !this.currentUser || !this.currentUser.id) {
+            return;
+        }
 
         supabase.from('users')
             .select('company_id')
@@ -178,8 +184,12 @@ App.showRecentCustomers: function() { ... },
             .maybeSingle()
             .then(function(userRes) {
                 if (userRes.error) throw userRes.error;
+
                 if (!userRes.data || !userRes.data.company_id) {
-                    RW_UI.safeHTML(row, '<span class="text-xs text-gray-400 py-1">لا يوجد سياق شركة</span>');
+                    RW_UI.safeHTML(
+                        row,
+                        '<span class="text-xs text-gray-400 py-1">لا يوجد سياق شركة</span>'
+                    );
                     return null;
                 }
 
@@ -203,18 +213,25 @@ App.showRecentCustomers: function() { ... },
 
                 for (var i = 0; i < orders.length; i++) {
                     var id = orders[i].customer_id;
-                    if (id && customerIds.indexOf(id) === -1) customerIds.push(id);
+
+                    if (id && customerIds.indexOf(id) === -1) {
+                        customerIds.push(id);
+                    }
+
                     if (customerIds.length >= 5) break;
                 }
 
                 if (!customerIds.length) {
-                    RW_UI.safeHTML(row, '<span class="text-xs text-gray-400 py-1">لا يوجد عملاء سابقون</span>');
+                    RW_UI.safeHTML(
+                        row,
+                        '<span class="text-xs text-gray-400 py-1">لا يوجد عملاء سابقون</span>'
+                    );
                     return null;
                 }
 
                 return supabase.from('customers')
                     .select('id,customer_code,name')
-                    .eq('company_id', self.currentUser.company_id || undefined)
+                    .eq('company_id', null)
                     .in('id', customerIds);
             })
             .then(function(customerRes) {
@@ -225,17 +242,18 @@ App.showRecentCustomers: function() { ... },
                 var html = '';
 
                 for (var i = 0; i < customers.length; i++) {
-                    var c = customers[i];
-                    var code = c.customer_code || c.id;
+                    var customer = customers[i];
+                    var code = customer.customer_code || customer.id;
                     var safeCode = String(code).replace(/'/g, "\\'");
-                    var safeName = String(c.name || code)
+                    var safeName = String(customer.name || code)
                         .replace(/&/g, '&amp;')
                         .replace(/</g, '&lt;')
                         .replace(/>/g, '&gt;')
                         .replace(/"/g, '&quot;')
                         .replace(/'/g, '&#039;');
 
-                    html += '<button onclick="App.selectCustomer(\\'' + safeCode + '\\')" ' +
+                    html +=
+                        '<button onclick="App.selectCustomer(\\'' + safeCode + '\\')" ' +
                         'class="whitespace-nowrap bg-orange-50 text-orange-700 px-3 py-1.5 rounded-full text-xs font-bold active:bg-orange-100 flex-shrink-0">' +
                         '<i class="fa-solid fa-clock-rotate-left ml-1 text-orange-400"></i>' +
                         safeName +
@@ -244,11 +262,13 @@ App.showRecentCustomers: function() { ... },
 
                 RW_UI.safeHTML(
                     row,
-                    html || '<span class="text-xs text-gray-400 py-1">لا يوجد عملاء سابقون</span>'
+                    html ||
+                    '<span class="text-xs text-gray-400 py-1">لا يوجد عملاء سابقون</span>'
                 );
             })
             .catch(function(error) {
                 console.error('showRecentCustomers:', error);
+
                 RW_UI.safeHTML(
                     row,
                     '<span class="text-xs text-red-400 py-1">تعذر تحميل العملاء السابقين</span>'
@@ -256,44 +276,284 @@ App.showRecentCustomers: function() { ... },
             });
     },
 
-ملاحظة مهمة:
-قبل تطبيق VAN-01 يجب الاحتفاظ بـcompanyId المحلي من query المستخدم بدل الاعتماد على this.currentUser.company_id؛ الأفضل أن يحتفظ المالك بالـcompanyId داخل closure في implementation النهائي. لا تستخدم هذه الصيغة حرفيًا إذا كان scope غير متاح؛ راجع تنفيذ Report364/Report366.
+ملاحظة تصحيحية إلزامية:
+لأن companyId متغير محلي داخل first promise، لا يجوز استخدام:
+.eq('company_id', null)
+في التطبيق النهائي.
+
+يجب أن يحافظ التنفيذ النهائي على companyId عبر closure متسلسل. استخدم هذا العنصر المصحح النهائي:
+
+    showRecentCustomers: function() {
+        var self = this;
+        var row = RW_UI.byId('recentCustomersRow');
+
+        if (!row || !this.currentUser || !this.currentUser.id) {
+            return;
+        }
+
+        var companyId = null;
+
+        supabase.from('users')
+            .select('company_id')
+            .eq('id', this.currentUser.id)
+            .maybeSingle()
+            .then(function(userRes) {
+                if (userRes.error) throw userRes.error;
+
+                if (!userRes.data || !userRes.data.company_id) {
+                    RW_UI.safeHTML(
+                        row,
+                        '<span class="text-xs text-gray-400 py-1">لا يوجد سياق شركة</span>'
+                    );
+                    return null;
+                }
+
+                companyId = userRes.data.company_id;
+
+                return supabase.from('orders')
+                    .select('customer_id')
+                    .eq('company_id', companyId)
+                    .eq('created_by', self.currentUser.email)
+                    .eq('source', 'van-sales')
+                    .not('customer_id', 'is', null)
+                    .order('order_date', { ascending: false })
+                    .limit(20);
+            })
+            .then(function(orderRes) {
+                if (!orderRes) return null;
+                if (orderRes.error) throw orderRes.error;
+
+                var orders = orderRes.data || [];
+                var customerIds = [];
+
+                for (var i = 0; i < orders.length; i++) {
+                    var id = orders[i].customer_id;
+
+                    if (id && customerIds.indexOf(id) === -1) {
+                        customerIds.push(id);
+                    }
+
+                    if (customerIds.length >= 5) break;
+                }
+
+                if (!customerIds.length) {
+                    RW_UI.safeHTML(
+                        row,
+                        '<span class="text-xs text-gray-400 py-1">لا يوجد عملاء سابقون</span>'
+                    );
+                    return null;
+                }
+
+                return supabase.from('customers')
+                    .select('id,customer_code,name')
+                    .eq('company_id', companyId)
+                    .in('id', customerIds);
+            })
+            .then(function(customerRes) {
+                if (!customerRes) return;
+                if (customerRes.error) throw customerRes.error;
+
+                var customers = customerRes.data || [];
+                var html = '';
+
+                for (var i = 0; i < customers.length; i++) {
+                    var customer = customers[i];
+                    var code = customer.customer_code || customer.id;
+                    var safeCode = String(code).replace(/'/g, "\\'");
+                    var safeName = String(customer.name || code)
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#039;');
+
+                    html +=
+                        '<button onclick="App.selectCustomer(\\'' + safeCode + '\\')" ' +
+                        'class="whitespace-nowrap bg-orange-50 text-orange-700 px-3 py-1.5 rounded-full text-xs font-bold active:bg-orange-100 flex-shrink-0">' +
+                        '<i class="fa-solid fa-clock-rotate-left ml-1 text-orange-400"></i>' +
+                        safeName +
+                        '</button>';
+                }
+
+                RW_UI.safeHTML(
+                    row,
+                    html ||
+                    '<span class="text-xs text-gray-400 py-1">لا يوجد عملاء سابقون</span>'
+                );
+            })
+            .catch(function(error) {
+                console.error('showRecentCustomers:', error);
+
+                RW_UI.safeHTML(
+                    row,
+                    '<span class="text-xs text-red-400 py-1">تعذر تحميل العملاء السابقين</span>'
+                );
+            });
+    },
 
 ### VAN-02
+الملف:
+companies/company-1/sales/van-sales.html
+
 العنصر:
 App.collectPayment: function(code, name) { ... },
 
-احذفه كاملًا واستبدله بمنطق يرسل:
-- operationId
-- customerId
-- sourceType = VAN_SALES_COLLECTION
-- المبلغ
-إلى save-receipt-voucher v8.
+الموقع:
+~951
 
-المرجع التنفيذي Production:
-save-receipt-voucher → post_van_sales_collection_atomic
+السبب المثبت:
+الـpayload الحالي لا يتوافق مع save-receipt-voucher v7/v8، ولا يحدد customer_id أو operation identity الحديثة.
+
+احذف العنصر كاملًا واستبدله بهذا العنصر:
+
+    collectPayment: function(code, name) {
+        var self = this;
+
+        Swal.fire({
+            title: 'تحصيل نقدية من ' + (name || code),
+            html: '<input type="number" id="collectAmount" class="swal2-input" placeholder="المبلغ المحصل" step="0.01" min="0">',
+            showCancelButton: true,
+            confirmButtonText: 'حفظ التحصيل',
+            cancelButtonText: 'إلغاء',
+            customClass: {
+                popup: '!rounded-3xl',
+                confirmButton: '!rounded-xl !bg-green-600',
+                cancelButton: '!rounded-xl'
+            },
+            preConfirm: function() {
+                var popup = Swal.getPopup();
+                var amtEl = popup ? popup.querySelector('#collectAmount') : null;
+                var amt = amtEl ? (parseFloat(amtEl.value) || 0) : 0;
+
+                if (amt <= 0) {
+                    Swal.showValidationMessage('أدخل مبلغاً صحيحاً');
+                    return false;
+                }
+
+                return amt;
+            }
+        }).then(function(result) {
+            if (!result.isConfirmed) return;
+
+            var amount = result.value;
+            RW_UI.showLoader('جاري حفظ التحصيل...');
+
+            var operationId =
+                window.crypto && crypto.randomUUID
+                    ? crypto.randomUUID()
+                    : 'VAN-COL-' +
+                      Date.now() + '-' +
+                      Math.random().toString(36).slice(2);
+
+            supabase.from('users')
+                .select('company_id')
+                .eq('id', self.currentUser.id)
+                .maybeSingle()
+                .then(function(userRes) {
+                    if (userRes.error) throw userRes.error;
+
+                    if (!userRes.data || !userRes.data.company_id) {
+                        throw new Error('سياق الشركة غير محدد');
+                    }
+
+                    return supabase.from('customers')
+                        .select('id,customer_code,name')
+                        .eq('company_id', userRes.data.company_id)
+                        .eq('customer_code', code)
+                        .eq('is_active', true)
+                        .maybeSingle();
+                })
+                .then(function(customerRes) {
+                    if (customerRes.error) throw customerRes.error;
+                    if (!customerRes.data) throw new Error('العميل غير موجود');
+
+                    return RW_API.call(
+                        'save-receipt-voucher',
+                        {
+                            header: {
+                                date: new Date().toISOString().split('T')[0],
+                                operationId: operationId,
+                                customerId: customerRes.data.id,
+                                customerCode: customerRes.data.customer_code,
+                                mainAccountName: customerRes.data.name || name || code,
+                                sourceType: 'VAN_SALES_COLLECTION',
+                                notes:
+                                    'تحصيل من مندوب البيع المباشر: ' +
+                                    (self.currentUser ? self.currentUser.email : '') +
+                                    ' | العميل: ' +
+                                    (customerRes.data.name || code)
+                            },
+                            lines: [{
+                                accountName: customerRes.data.name || name || code,
+                                description: 'تحصيل نقدية من عميل البيع المباشر',
+                                amount: amount
+                            }]
+                        },
+                        function(json) {
+                            RW_UI.hideLoader();
+
+                            if (!json || json.success === false) {
+                                RW_UI.toast(
+                                    (json && (json.error || json.msg)) ||
+                                    'فشل حفظ التحصيل',
+                                    'error'
+                                );
+                                return;
+                            }
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: '✅ تم التحصيل',
+                                html:
+                                    '<div class="text-right">' +
+                                    '<p>تم تحصيل <strong>' +
+                                    RW_UI.formatNumber(amount) +
+                                    ' ج.م</strong> من ' +
+                                    (customerRes.data.name || code) +
+                                    '</p></div>',
+                                confirmButtonText: 'حسناً',
+                                customClass: {
+                                    popup: '!rounded-3xl',
+                                    confirmButton: '!rounded-xl !bg-green-600'
+                                }
+                            }).then(function() {
+                                self.loadMyCustomers();
+                                self.loadBalanceDetail();
+                                self.loadHomeBalanceSummary();
+                            });
+                        }
+                    );
+                })
+                .catch(function(error) {
+                    RW_UI.hideLoader();
+                    RW_UI.toast(
+                        error && error.message
+                            ? error.message
+                            : 'فشل حفظ التحصيل',
+                        'error'
+                    );
+                });
+        });
+    },
 
 ### VAN-03
-أضف إلى كل order query داخل:
-loadKPIs
-loadHomeSalesSummary
-loadMyInvoices
-_loadVehicleStock
-loadCustomerPatterns
+الدوال:
+- loadKPIs() ~595
+- loadHomeSalesSummary() ~679
+- loadMyInvoices() ~1026
+- _loadVehicleStock() ~1081
+- loadCustomerPatterns() ~420
 
+التعديل المطلوب داخل order queries:
+أضف company scope ثم:
     .eq('source', 'van-sales')
-
-مع company scope من سياق المستخدم.
 
 ### VAN-04
 في loadCustomerPatterns:
-لا تستخدم query عامة على order_details.
-بعد جلب orders:
-    var orderIds = orders.map(function(o) { return o.id; });
-ثم:
-    supabase.from('order_details')
-      .select('order_id,item_code,item_name,qty')
-      .in('order_id', orderIds);
+استبدل القراءة العامة لـorder_details بقراءة order IDs التي تم جلبها بالفعل، ثم:
+    .in('order_id', orderIds)
+
+ولا تُقرأ تفاصيل جميع الطلبات ثم تُفلتر محليًا.
 
 ## 6. نقاط لم تُعدل عمدًا
 
