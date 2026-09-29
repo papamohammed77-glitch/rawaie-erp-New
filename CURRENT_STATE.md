@@ -3295,3 +3295,38 @@ STATUS
 - van-sales.html: UNCHANGED
 - Browser UI E2E remains a separate validation layer, not a prerequisite for proving the SQL defect was fixed.
 -------------------------------------------------------------------------------
+
+
+# CURRENT SESSION ADDENDUM — 2026-09-29 — Report363 Van Sales Integration Forensic Closure
+
+> This addendum records only facts verified from Current Source + Production Supabase + Production DB + deployment evidence.
+
+## VERIFIED PRODUCTION REPAIR
+- Standalone Van Sales direct-sales users were blocked by RLS on customers/items/branches/stock_branches/orders/order_details despite having the intended `van-sales` permission.
+- Authenticated-context simulation reproduced zero-row visibility for the relevant reads.
+- Production migrations applied:
+  - `van_sales_read_scope_integration_v1`
+  - `van_sales_mobile_branch_rls_helper_v2`
+- Canonical mobile branch resolution is now derived from the active primary `fleet_vehicle_sales_rep_assignments` relationship.
+- Direct-sales users can now see company-scoped customers/items and their assigned mobile branch stock without granting unrelated warehouse permissions.
+- Orders/order_details are restricted to the authenticated user's own sales history.
+- No new Edge Function was created.
+- No physical stock movement was introduced.
+
+## VERIFIED EDGE DEPENDENCIES
+- `setup-van-branch` Production v5 is active and master-assignment aware.
+- `save-sales-invoice` Production v15 is active.
+- `save-inventory-count` Production v5 is active.
+- `save-receipt-voucher` Production v7 is active.
+- Core write privileges for the relevant engines remain service-role only.
+
+## OPEN FRONTEND FINDING
+- `companies/company-1/sales/van-sales.html` currently reads `db.orders` in `showRecentCustomers()`, but this file contains no `db.orders.put/bulkPut/add/update` writer.
+- Therefore the local "recent customers" cache path is incomplete and requires a separate surgical frontend closure.
+- Protected files remain untouched in this session.
+
+## CURRENT STATUS
+- Van Sales Production read/integration foundation: PROVEN / CLOSED
+- Standalone Van Sales complete closure: OPEN
+- Next closure unit: surgical repair of `showRecentCustomers()`, then browser E2E/regression.
+- Do not reopen closed voucher/main patches without a new proven defect.
