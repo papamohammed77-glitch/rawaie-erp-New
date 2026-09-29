@@ -1,3 +1,65 @@
+# CURRENT SESSION — 2026-09-29 — REPORT370 VAN SALES COLLECT PAYMENT FORENSIC CHECKPOINT
+
+> Authoritative evidence for this checkpoint: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE. Historical reports are guidance only.
+
+## Current frontend truth
+- Frontend repository: papamohammed77-glitch/erp-frontend
+- Target: companies/company-1/sales/van-sales.html
+- Latest frontend HEAD: cf90684a3b1afd017a97e7b7802e9308d6ae158c
+- Parent: 016a219419fbfcf6227135d99eea4813ea94e224
+- Current van-sales.html blob: 0e6926a15d3d6ea59ed8e01fa7b1ce5adc140235
+- Current source size: 2667 lines / 133773 chars
+- Protected: van-sales.html, main.html, warehouse/vouchers.html — not automatically modified.
+
+## Current production truth
+- setup-van-branch v5, ACTIVE
+- save-sales-invoice v15, ACTIVE
+- save-receipt-voucher v8, ACTIVE
+- post_van_sales_collection_atomic exists and is atomic/idempotent through erp_operation_registry.
+
+## Current collectPayment finding
+- The latest frontend refactor already supplies customerId + operationId to save-receipt-voucher v8.
+- The remaining defect is that operationId is generated anew on every confirmation attempt.
+- Therefore a committed collection followed by a lost response can be retried as a new operation and bypass the server idempotency registry.
+- Exact surgical owner patch is recorded in:
+  doc/Draft/Reprots/Report370_VAN_SALES_COLLECT_PAYMENT_FORENSIC_CLOSURE_20260929.md
+- Required patch: persist pending operation identity until confirmed success; remove it only after confirmed success.
+
+## Backend conclusion
+- No Production DB/Edge change was required for this specific frontend defect.
+- post_van_sales_collection_atomic already uses erp_operation_registry keyed by company_id + operation_type + operation_key and posts treasury + customer ledger atomically.
+- post_cash_receipt_atomic and post_customer_ledger_entry were verified as atomic financial primitives.
+
+## Existing applied work — do not repeat
+- Report368 custody-source corrections are already present in current frontend HEAD.
+- showRecentCustomers() live company/source-scoped path is present.
+- _loadVehicleStock() live stock/source-scoped path is present.
+- enterApp() stops on syncDown failure.
+- setup-van-branch v5 uses authenticated user company and primary direct-sales assignment.
+- save-sales-invoice v15 uses VanSale through post_stock_movement.
+
+## Open Van Sales closure order
+1. collectPayment() — APPLY Report370 exact surgical patch, then syntax + browser E2E + Production retry/ledger verification.
+2. loadMyCustomers() — company/source + authoritative customer assignment review.
+3. loadCustomerPatterns() — company/source + order_id-bounded details.
+4. loadKPIs() — company/source + target-source verification.
+5. loadHomeSalesSummary() — company/source.
+6. loadMyInvoices() — company/source.
+7. showCustomerDetail() — authorization + scope.
+8. repeatOrder() — authorization + scope.
+9. initiateEndOfDay() — bind to existing settlement contract; not a client-only lock.
+
+## Financial-history caution
+- Production driver_ledger contains identifiable QA cleanup/reversal entries and is financial/audit history.
+- Do not delete ledger history blindly; handle in a separate forensic reconciliation closure.
+
+## Governance
+- No new Edge Function and no new RPC for collectPayment.
+- Do not modify main.html or warehouse/vouchers.html.
+- Do not declare collectPayment 100% until the exact owner patch is applied and the full verification chain succeeds.
+
+---
+
 # CURRENT SESSION — 2026-09-29 — REPORT369 VAN SALES COLLECT PAYMENT CLOSURE
 
 > Authoritative evidence: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE. Historical reports are guidance only.
