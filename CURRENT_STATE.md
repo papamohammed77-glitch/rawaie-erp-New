@@ -3330,3 +3330,47 @@ STATUS
 - Standalone Van Sales complete closure: OPEN
 - Next closure unit: surgical repair of `showRecentCustomers()`, then browser E2E/regression.
 - Do not reopen closed voucher/main patches without a new proven defect.
+
+
+# CURRENT SESSION ADDENDUM — 2026-09-29 — Report364 Van Sales Forensic Entry
+
+## AUTHORITATIVE CURRENT REALITY
+- Frontend repo HEAD: `3c03e72f79bc337f89a1b27100795a522d249301`
+- Frontend parent: `609ab127410004ba9ee3161c8f0deaf630fbfd03`
+- `companies/company-1/sales/van-sales.html` SHA: `8d61382a8e0025a0d079e71dd94f33d106d9088e`
+- van-sales.html: 2297 lines / 125395 chars / 63 App methods.
+- Protected: `main.html`, `vouchers.html`, `van-sales.html` were not modified.
+
+## CLOSED ENTRY POINT
+The prior CURRENT_STATE identified `showRecentCustomers()` as the next open Van Sales frontend closure. Current source confirms it reads `db.orders`, while van-sales.html contains no writer for that local table. This is a real source defect, not an inference.
+
+## SURGICAL FIX PREPARED
+Report: `doc/Draft/Reprots/Report364_VAN_SALES_RECENT_CUSTOMERS_FORENSIC_CLOSURE_20260929.md`
+Report commit: `87a3daac27f3d2b1882f0c4883cab04ac4cc7fc0`
+Owner must replace only `App.showRecentCustomers` with the exact block in Report364. No other Van Sales code is to be rewritten.
+
+## PRODUCTION CORE FORENSIC FINDING — NEXT CLOSURE
+Production `post_stock_movement` currently validates `VanSale` source custody using `vehicles.driver_id`.
+Current Production master assignment proves:
+- CHV-2025-01: `driver_id = NULL`, primary fleet assignment → `vansales@rawaea.com`.
+- VHL-0422: `driver_id = NULL`, primary fleet assignment → `vansales2@rawaea.com`.
+Therefore the Production core contract must be aligned to the authoritative `fleet_vehicle_sales_rep_assignments` relationship, with legacy `vehicles.driver_id` fallback. Do NOT populate `driver_id` merely to bypass this mismatch; Vehicle ≠ Representative remains the contract.
+
+## OTHER VERIFIED VAN SALES GAPS — OPEN SEPARATE UNITS
+- `collectPayment()` sends a legacy payload incompatible with Production `save-receipt-voucher v7` and lacks a durable operation identity.
+- `loadMyCustomers()` derives customer list from prior orders instead of the authoritative assignment relationship.
+- `loadHomeSalesSummary()` / `loadMyInvoices()` do not constrain `source='van-sales'`.
+- `_loadVehicleStock()` sold-today calculation is not channel-scoped.
+- Custody value uses `sales_price`; valuation basis requires explicit contract before changing.
+- `initiateEndOfDay()` is client-only and does not persist through `save-daily-settlement`.
+
+## PRODUCTION INFRASTRUCTURE
+No Production DDL was applied in Report364. Attempted direct Core replacement was blocked by the execution security layer. The complete proposed Core correction and exact required method are retained in the forensic report; this is an execution limitation, not a reason to alter the business contract or create another Edge Function.
+
+## CONTINUATION RULE
+1. Owner applies Report364 surgical `showRecentCustomers()` replacement.
+2. Verify source and browser behavior.
+3. Close that frontend unit.
+4. Execute the next closure: VanSale authorization alignment in `post_stock_movement`.
+5. Then close collection, customer assignment, channel scoping, custody valuation, EOD settlement, one unit at a time.
+6. Never reopen already closed voucher/main contracts without new direct evidence.
