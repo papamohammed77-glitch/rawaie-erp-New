@@ -1,3 +1,32 @@
+# CURRENT SESSION — 2026-09-29 — REPORT367 VAN SALES SYNTAX FORENSIC
+
+> Authoritative evidence: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+
+## Latest verified checkpoint
+- Frontend repo: papamohammed77-glitch/erp-frontend
+- Current frontend main HEAD: 22e2b851fde0aa136eaf6f55c617d06a4b43ed50
+- Parent: 3c03e72f79bc337f89a1b27100795a522d249301
+- Target: companies/company-1/sales/van-sales.html
+- Root cause: latest commit 22e2 introduced a JavaScript parse failure in App.showRecentCustomers at line 1522 (Unexpected string).
+- Parent 3c03 source parses successfully; current HEAD fails full-script V8 parse.
+- In-memory replacement of ONLY showRecentCustomers parses successfully.
+- Protected frontend files were not modified.
+- Exact surgical replacement is recorded in doc/Draft/Reprots/Report367_VAN_SALES_SYNTAX_FAILURE_FORENSIC_20260929.md
+
+## Required owner action
+- Replace only showRecentCustomers:function(){...}, in van-sales.html with the exact block in Report367.
+- Do not modify main.html or warehouse/vouchers.html.
+- After owner patch: syntax gate -> browser E2E -> close VAN-01.
+
+## Current Van Sales open units
+- VAN-01 showRecentCustomers: syntax defect introduced by latest refactor; surgical patch ready.
+- VAN-02 collectPayment: open surgical patch.
+- VAN-03 company/source scoping in sales queries: open surgical patch.
+- VAN-04 loadCustomerPatterns order-id-bounded query: open surgical patch.
+- EOD settlement/custody reconciliation: open business contract.
+
+---
+
 # CURRENT SESSION — 2026-09-29 — REPORT366 VAN SALES FORENSIC INTEGRATION
 
 > Authoritative evidence: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
