@@ -3246,3 +3246,52 @@ CURRENT STATUS:
 - Browser E2E: OPEN — harness currently blocks before browser smoke
 - No backend/migration work pending for this exact defect
 -------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+SESSION 2026-09-29 — Report 362
+WAREHOUSE VOUCHER REPORT SQL FORENSIC CLOSURE
+-------------------------------------------------------------------------------
+
+TARGET
+- Production RPC: public.inventory_voucher_report(text,jsonb)
+- Frontend main.html: NOT MODIFIED
+- Frontend vouchers.html: NOT MODIFIED
+- Frontend van-sales.html: NOT MODIFIED
+
+CURRENT PRODUCTION DEFECT
+- Console showed repeated POST 400 on /rest/v1/rpc/inventory_voucher_report.
+- PostgreSQL error: Column "v.type" must appear in the GROUP BY clause or be used in an aggregate function.
+- Direct Production inspection confirmed the SUMMARY type aggregation selected v.type with count(*) without GROUP BY v.type.
+- The SUMMARY status aggregation selected v.status with count(*) without GROUP BY v.status.
+
+SURGICAL PRODUCTION FIX
+- Applied directly to Production using a DDL migration.
+- Added GROUP BY v.type to the type summary subquery.
+- Added GROUP BY v.status to the status summary subquery.
+- No other function logic, table structure, stock engine, accounting logic, RLS, or Edge Function was changed.
+
+POST-FIX DATABASE VERIFICATION
+- Corrected function definition contains GROUP BY v.type.
+- Corrected function definition contains GROUP BY v.status.
+- Authenticated tenant context: vouchers@rawaea.com / company 00000000-0000-0000-0000-000000000001.
+- SUMMARY / Manual: PASS.
+- SUMMARY / Transfer: PASS.
+- LIST / Transfer: PASS.
+- LIST / DirectSale: PASS.
+- LIST / DirectReturn: PASS.
+- LIST / SupplierReturn: PASS.
+- Verification tests were transactional and rolled back; no test mutation was retained.
+
+SOURCE CONTROL
+- Canonical migration recorded:
+  supabase/migrations/20260929120000_fix_inventory_voucher_report_summary_grouping.sql
+- Forensic report:
+  doc/Draft/Reprots/Report362_WAREHOUSE_VOUCHER_REPORT_RPC_GROUPBY_FORENSIC_CLOSURE_20260929.md
+
+STATUS
+- inventory_voucher_report SQL defect: CLOSED / PRODUCTION VERIFIED
+- vouchers.html: NO SOURCE CHANGE REQUIRED FOR THIS DEFECT
+- main.html: UNCHANGED
+- van-sales.html: UNCHANGED
+- Browser UI E2E remains a separate validation layer, not a prerequisite for proving the SQL defect was fixed.
+-------------------------------------------------------------------------------
