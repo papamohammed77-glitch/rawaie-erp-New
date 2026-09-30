@@ -1,3 +1,63 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-09-30 — REPORT378 VAN SALES PARSE FAILURE
+
+Authoritative basis: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+Historical reports are guidance only.
+
+## Latest verified frontend reality
+- Frontend repository: papamohammed77-glitch/erp-frontend
+- Target: companies/company-1/sales/van-sales.html
+- Latest HEAD: c67de5a0b601e2cc0690bf40c32d46632140f95e
+- Parent: e5f3e8ed0e2a491a243bce0029aeb2e73cc824dc
+- Current blob: 012fba212bc2ecf0d21a8990fca76190c27701f8
+- 3295 lines / 151087 chars
+- JavaScript full-script parse: FAIL — Unexpected token ')'
+- Parent 74b122f9c2721178f27dd8f495cfd61134bb5399 parses successfully.
+- e5f3e8e... introduced the malformed loadCustomerPatterns tail; c67 did not repair it.
+
+## Exact root cause
+- Function: App.loadCustomerPatterns()
+- Approximate defect line: 583
+- Defective sequence:
+  `    });`
+  `        }).catch(function() {});`
+- Surgical replacement:
+  `    })`
+  `        .catch(function() {});`
+- Independent V8 parse of the corrected source: PASS.
+- App is not defined is a consequence of the parse failure; picker.html is unrelated to this Van Sales syntax root cause.
+
+## Latest Van Sales state
+- Current source contains 65 App methods + global resolveCustomer.
+- Historical baseline contains 65 App methods + _createVanBranch; _createVanBranch responsibility moved to setup-van-branch.
+- repeatOrder and initiateEndOfDay changes are present in c67 and are not the parse root cause.
+- Protected frontend files: van-sales.html, main.html, warehouse/vouchers.html. No automatic frontend edit performed.
+
+## Production backend verified
+- setup-van-branch v5 ACTIVE
+- save-sales-invoice v15 ACTIVE
+- save-receipt-voucher v8 ACTIVE
+- save-inventory-count v5 ACTIVE
+- save-daily-settlement v4 ACTIVE
+- post_van_sales_collection_atomic exists
+- post_daily_settlement_atomic exists
+- get_van_sales_customer_accounts and get_van_sales_customer_account exist
+- runsheets schema includes company_id, driver_id, vehicle_id, workflow timestamps, loading_cycle_id.
+
+## Open Van Sales closure order
+1. Owner applies Report378 syntax replacement and deployed frontend rebuild/cache refresh.
+2. Browser E2E of van-sales.
+3. Close remaining open units in existing order:
+   repeatOrder
+   initiateEndOfDay
+   then any remaining direct-scope/consumer units proven open by fresh evidence.
+4. Do not reopen closed units without new direct evidence.
+
+## Report
+- Report378: doc/Draft/Reprots/Report378_VAN_SALES_FORENSIC_CURRENT_REALITY_20260930.md
+- Report commit: 6246f36793126ed7eee2a8a827a248ae6b744a98
+
+---
+
 # CURRENT SESSION — 2026-09-29 — REPORT370 VAN SALES COLLECT PAYMENT FORENSIC CHECKPOINT
 
 > Authoritative evidence for this checkpoint: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE. Historical reports are guidance only.
