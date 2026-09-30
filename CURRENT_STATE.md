@@ -3828,3 +3828,71 @@ Do not reopen already-closed custody/voucher/main contracts without new direct e
 ## Report
 - Report375: doc/Draft/Reprots/Report375_VAN_SALES_COLLECT_PAYMENT_FORENSIC_CLOSURE_20260930.md
 - Report commit: 130bbcf3247000b099ac31c7fae21dd114058909
+
+
+================================================================
+CURRENT FORENSIC CHECKPOINT — 2026-09-30 — REPORT376
+================================================================
+
+Authoritative basis: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+Historical reports are guidance only.
+
+## VAN SALES — CURRENT REALITY
+- Frontend: papamohammed77-glitch/erp-frontend/companies/company-1/sales/van-sales.html
+- Current frontend SHA: b5d7b2efe653b328bd2b020ac5b10d347bc8ad76
+- Latest relevant commit: 74b122f9c2721178f27dd8f495cfd61134bb5399
+- Parent: df0137d062a990cfccf7acbdfd53bc2af34ba610
+- Current size: 3055 lines / 143123 characters
+- Protected files remain unmodified: van-sales.html, main.html, warehouse/vouchers.html
+
+## COLLECT PAYMENT
+- Current Git already contains the pending-operation cleanup patch from commit 74b122.
+- Production save-receipt-voucher v8 and post_van_sales_collection_atomic are live and atomic/idempotent.
+- Reversible Production DB test proved first collection success, duplicate protection, and independent second operation success, with ROLLBACK leaving no test residue.
+- collectPayment browser E2E after the latest frontend commit remains pending because the protected frontend is owner-managed.
+
+## VERIFIED VAN SALES BACKEND
+- setup-van-branch v5 ACTIVE; authenticated public.users -> company_id -> fleet_vehicle_sales_rep_assignments -> vehicle -> mobile_branch_id.
+- save-sales-invoice v15 ACTIVE.
+- save-receipt-voucher v8 ACTIVE.
+- save-inventory-count v5 ACTIVE.
+- save-daily-settlement v4 ACTIVE; post_daily_settlement_atomic exists and is persistent/atomic for Delivered/Returned runsheets.
+- get_van_sales_customer_accounts and get_van_sales_customer_account are live and company/user/assignment scoped.
+
+## CURRENT FRONTEND OPEN DEFECTS
+- loadCustomerPatterns() — line 499: orders/details queries not fully company/channel scoped; order_details global; customer UUID used as customer_code.
+- loadKPIs() — line 674: orders query lacks company_id + source='van-sales'.
+- loadHomeSalesSummary() — line 846: same scope defect.
+- loadMyInvoices() — line 1620: same scope defect.
+- repeatOrder() — line 1324: customer UUID is incorrectly looked up against myCustomers.customer_code.
+- initiateEndOfDay() — line 1948: currently client-only eodLocked; persistent Van Sales EOD contract not yet closed.
+
+## NO CHANGE REQUIRED NOW
+- loadMyCustomers(): already uses get_van_sales_customer_accounts.
+- showRecentCustomers(): already company/source scoped.
+- _loadVehicleStock(): live canonical VAN stock source; sold-today query is company/source scoped.
+- submitQuickInventory(): compatible with save-inventory-count v5.
+- submitQuickSale(): uses save-sales-invoice v15 and Van Sales source/branch contract.
+- main.html and warehouse/vouchers.html: protected; read-only verification only.
+
+## PRODUCTION EVIDENCE
+- Current Production logs show real Van Sales browser traffic against orders, items, stock_branches, driver_ledger, and get_van_sales_customer_accounts.
+- No current test orders/customers/runsheets matching known canary patterns were found in the production snapshot.
+- 2 active primary direct-sales vehicle assignments exist.
+- 34 zero-quantity VAN stock master rows are legitimate master rows; do not delete automatically.
+
+## NEXT EXACT RESUMPTION POINT
+1. Owner applies the exact surgical patches recorded in Report376 to the protected van-sales.html.
+2. Browser E2E verification of the patched file.
+3. Close loadCustomerPatterns() first, then loadKPIs(), loadHomeSalesSummary(), loadMyInvoices(), repeatOrder().
+4. Treat driver_ledger scoping as a contract issue because Production schema has no company_id column there; do not invent a filter.
+5. Close initiateEndOfDay() against the existing daily settlement contract after its Van Sales business closure is explicitly proven.
+
+## GOVERNANCE
+- Never reopen a closed unit without new direct evidence.
+- Never use stale Report375 as current state; Git commit 74b already contains its collectPayment cleanup.
+- Never claim 100% until code + backend + consumers + runtime + production evidence are all actually verified.
+- Do not stop at a block; repair the cause and continue all work that can be completed.
+
+Report: doc/Draft/Reprots/Report376_VAN_SALES_CURRENT_REALITY_FORENSIC_20260930.md
+Report commit: bd137b3c1127a0e0791cc58bec36abbc66bad8eb
