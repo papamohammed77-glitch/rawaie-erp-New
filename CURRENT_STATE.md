@@ -897,7 +897,6 @@ editVoucher() and printDraftVoucher() use direct company-scoped table SELECTs. T
 9. Run authenticated Browser E2E.
 10. Re-run Production scope/redaction assertions.
 11. Close this unit only after runtime evidence; then move to the next real open Business Contract.
-
 ### STATUS
 ROOT CAUSE: PROVEN
 PRODUCTION CONTRACT: VERIFIED
@@ -1797,7 +1796,6 @@ eba0d43b88e258f31fc99627f62ff93fdf0196dd
 
 Latest commit:
 report: close current branch transfer forensic gap and document surgical owner patches
-
 ### Current Frontend Git
 HEAD:
 f07bdcc4abbbe899af569f8bfaccde04df279416
@@ -2697,8 +2695,7 @@ Do not reopen Production SupplierReturn design.
 
 Verify in current vouchers.html:
 - SR-01 applied
-- SR-02 applied
-- SR-03 applied
+- SR-02 applied- SR-03 applied
 
 Then:
 Full parse → Published artifact check → Authenticated Browser E2E → Production post-patch verification.
@@ -3497,8 +3494,7 @@ CURRENT STATUS:
 - Current source regression T13-T16: CLOSED
 - Transfer destination UI filter: OPEN — owner source patch pending
 - Browser E2E: OPEN — harness currently blocks before browser smoke
-- No backend/migration work pending for this exact defect
--------------------------------------------------------------------------------
+- No backend/migration work pending for this exact defect-------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
 SESSION 2026-09-29 — Report 362
@@ -3667,3 +3663,42 @@ Authoritative evidence: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURR
 - `collectPayment`: INCOMPLETE — owner patch + browser E2E + same-operation retry + financial verification required.
 - Next closure only after 100%: `loadMyCustomers()`.
 - Historical driver-ledger QA/reversal reconciliation remains a separate financial closure; history was not deleted blindly.
+
+# CURRENT SESSION — 2026-09-30 — REPORT372 VAN SALES CUSTOMER / CUSTODY INTEGRATION
+
+> Authoritative evidence: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+
+## Verified Production Cleanup
+- Historical experimental vouchers IN-8 / IN-9 were identified as test data.
+- The financial effect on `vansales2@rawaea.com` was removed from `driver_ledger` for the two explicitly identified QA rows.
+- The remaining proven physical test effect (item 1003, qty 1 in `VAN-VHL-0422`) was reversed via the central `post_stock_movement` engine.
+- Verification: `VAN-VHL-0422` item 1003 qty returned to 0; the two identified driver-ledger QA rows no longer contribute to the live balance.
+- `stock_vouchers` / operation-identity records were not blindly deleted because Production integrity triggers protect operation history; audit evidence was retained.
+
+## Van Sales Customer Account Backend
+- Production `customer_assignments` is the authoritative customer-to-representative relation and currently contains 0 active assignments.
+- Production currently has 0 debtor customers for company 1.
+- New Production RPC: `public.get_van_sales_customer_account(uuid,text)`.
+- It derives tenant context from authenticated `public.users.auth_id = auth.uid()`, requires `van-sales` permission, enforces `customer_assignments` unless `allow_all_customers=true`, and returns debtor-only assigned customers or a full customer account.
+- Account payload includes customer summary, invoices, customer ledger, payments, and installment aging.
+- RPC privileges: authenticated EXECUTE only; anon/public revoked.
+- Migration applied: `van_sales_customer_account_read_model_v2`.
+- No new Edge Function was created.
+
+## Protected Frontend State
+- `erp-frontend/companies/company-1/sales/van-sales.html` remains unmodified by automation.
+- `main.html` and `warehouse/vouchers.html` remain protected and unmodified.
+- Exact surgical owner patches are recorded in Report372.
+
+## Current Open Van Sales Units
+1. `renderCustomersView / renderMyCustomersList / filterMyCustomers`: replace historical Dexie-only customer list with authoritative assigned-debtor RPC.
+2. `showCustomerDetail`: replace invoice-only view with full account payload from the new RPC.
+3. `collectPayment`: verify pending operation identity is removed only after confirmed success and run repeated same-day collection test.
+4. Company/source scoping for remaining sales/invoice/pattern queries.
+5. `initiateEndOfDay`: separate settlement-contract closure.
+6. Browser E2E after Owner applies protected-file patches.
+
+## Rule
+Do not delete zero-quantity `stock_branches` master rows merely because they are hidden from the UI. Do not reopen already-closed contracts without new direct evidence.
+
+
