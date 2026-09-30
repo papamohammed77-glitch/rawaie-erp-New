@@ -1055,3 +1055,19 @@ File: `companies/company-1/warehouse/vouchers.html`
 - System repo latest commit after this report is 58c64ad0ff2d33e80903000bda07bc4a02f07a65.
 - Report: doc/Draft/Reprots/Report380_EXPERIMENTAL_DATA_CLEANUP_20260930.md
 - Frontend deployment/browser E2E remains Owner-side verification and was not altered in this cleanup session.
+
+---
+# CURRENT STATE APPEND — 2026-09-30 — REPORT 381 / SUPPLIERRETURN CLEANUP + VAN SALES FORENSIC
+- Executed Production cleanup of the two remaining experimental Completed SupplierReturn vouchers: IN-5 and QA-SR-UI-CONTRACT-20260927-01.
+- Verified afterward: SupplierReturn records 0; targeted voucher records 0; targeted details 0; related inventory_log 0; related journal_entries 0; related finance_tax_transactions 0; related ERP operation registry matches 0.
+- Verified 14 audit_log rows remain for the deleted test voucher identities.
+- Temporary corrective deletion helper was retired and normal voucher/detail deletion guards were restored. No trigger disabling or replication-role bypass was used.
+- Canonical post-cleanup migration record added: supabase/migrations/20260930_supplier_return_cleanup_final_baseline.sql
+- Final report added: doc/Draft/Reprots/Report381_SUPPLIER_RETURN_CLEANUP_AND_VAN_SALES_EXECUTION_20260930.md
+- Current Van Sales source verified at blob b754208f38a52b67794e9d02003ed8751f3a7c68, 3294 lines.
+- Latest frontend commit: 503fb79da0878f97af46c8adad5bdedb0b3c283f; parent 1b89202949575eaebed4c5bf5512322129a114fb.
+- Current Van Sales source contains the auth_id correction in showRecentCustomers and company-scoped syncDown. No new frontend defect was proven in this session; no frontend source was changed.
+- Production setup-van-branch v5 resolves the authenticated user through public.users.auth_id and company_id, then resolves the vehicle/VAN branch inside that company.
+- Production current relevant Edge versions observed in this session include save-sales-invoice v15, save-receipt-voucher v8, save-inventory-count v5, save-daily-settlement v4, start-picking v34, complete-picking v17, start-loading v5, complete-loading v11, reopen-loading v2, unload-runsheet v6, complete-return v26, complete-order-delivery v14, bulk-stock-adjustment v8, send-stock-voucher v7, receive-stock-voucher v5, receive-purchase v9.
+- Physical stock UPDATE scan currently identifies post_stock_movement as the physical stock writer; reserve_stock/release_stock_reservation remain reservation writers.
+- Van Sales browser-rendered E2E remains Owner-side open.
