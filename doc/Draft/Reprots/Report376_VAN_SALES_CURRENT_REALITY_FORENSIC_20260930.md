@@ -203,3 +203,166 @@ Owner action required before browser closure = Apply surgical patch to protected
 بعد نجاحها أغلق الوحدة وانتقل مباشرة إلى loadKPIs().
 أي نقص يُكتشف: عالجه في نفس الوحدة، لا تحمله إلى الأمام.
 END.
+---
+## 14. OWNER SURGICAL PATCHES — EXACT ELEMENTS
+
+### Patch 1 — loadCustomerPatterns() — line 499
+احذف الكتلة الحالية ابتداءً من:
+
+```javascript
+supabase.from('orders')
+    .select('id, customer_id, customer_name, order_date')
+    .eq('created_by', this.currentUser.email)
+    .order('order_date', { ascending: false })
+```
+
+وحتى نهاية الـthen المتداخل الذي يجلب order_details ويبني detailMap.
+
+استبدلها بالكتلة:
+
+```javascript
+supabase.from('orders')
+    .select('id, customer_id, customer_name, order_date')
+    .eq('company_id', self.companyId)
+    .eq('created_by', self.currentUser.email)
+    .eq('source', 'van-sales')
+    .not('customer_id', 'is', null)
+    .order('order_date', { ascending: false })
+    .then(function(oRes) {
+        if (oRes.error) throw oRes.error;
+        var orders = oRes.data || [];
+        if (!orders.length) return [];
+
+        var orderIds = orders.map(function(o) { return o.id; });
+        var customerIds = [];
+        for (var i = 0; i < orders.length; i++) {
+            if (orders[i].customer_id && customerIds.indexOf(orders[i].customer_id) === -1) {
+                customerIds.push(orders[i].customer_id);
+            }
+        }
+
+        return Promise.all([
+            supabase.from('customers')
+                .select('id,customer_code')
+                .eq('company_id', self.companyId)
+                .in('id', customerIds),
+            supabase.from('order_details')
+                .select('order_id,item_code,item_name,qty')
+                .in('order_id', orderIds)
+        ]).then(function(parts) {
+            if (parts[0].error) throw parts[0].error;
+            if (parts[1].error) throw parts[1].error;
+
+            var customerMap = {};
+            (parts[0].data || []).forEach(function(c) {
+                customerMap[String(c.id)] = c.customer_code || String(c.id);
+            });
+
+            var orderMap = {};
+            orders.forEach(function(o) { orderMap[String(o.id)] = o; });
+
+            var detailMap = {};
+            (parts[1].data || []).forEach(function(d) {
+                var ord = orderMap[String(d.order_id)];
+                if (!ord || !ord.customer_id) return;
+                var customerCode = customerMap[String(ord.customer_id)];
+                if (!customerCode) return;
+                if (!detailMap[customerCode]) detailMap[customerCode] = {};
+                if (!detailMap[customerCode][d.item_code]) {
+                    detailMap[customerCode][d.item_code] = { count: 0, totalQty: 0, name: d.item_name };
+                }
+                detailMap[customerCode][d.item_code].count++;
+                detailMap[customerCode][d.item_code].totalQty += Number(d.qty) || 0;
+            });
+
+            var patterns = [];
+            for (var customerCode in detailMap) {
+                if (!detailMap.hasOwnProperty(customerCode)) continue;
+                for (var itemCode in detailMap[customerCode]) {
+                    if (!detailMap[customerCode].hasOwnProperty(itemCode)) continue;
+                    var x = detailMap[customerCode][itemCode];
+                    patterns.push({
+                        customer_code: customerCode,
+                        item_code: itemCode,
+                        frequency: x.count,
+                        avgQty: x.count ? Math.ceil(x.totalQty / x.count) : 0,
+                        item_name: x.name || itemCode
+                    });
+                }
+            }
+            return patterns;
+        });
+    })
+    .then(function(patterns) {
+        if (db && db.customerPatterns) {
+            return db.customerPatterns.clear().then(function() {
+                return db.customerPatterns.bulkPut(patterns);
+            });
+        }
+    });
+```
+
+### Patch 2 — loadKPIs() — line 674
+احذف:
+
+```javascript
+.eq('created_by', this.currentUser.email)
+.eq('order_date', today)
+```
+
+واستبدلها بـ:
+
+```javascript
+.eq('company_id', this.companyId)
+.eq('created_by', this.currentUser.email)
+.eq('source', 'van-sales')
+.eq('order_date', today)
+```
+
+### Patch 3 — loadHomeSalesSummary() — line 846
+نفس الاستبدال السابق حرفيًا.
+
+### Patch 4 — loadMyInvoices() — line 1620
+استبدل:
+
+```javascript
+.eq('created_by', this.currentUser.email)
+.eq('order_date', dateFilter)
+```
+
+بـ:
+
+```javascript
+.eq('company_id', this.companyId)
+.eq('created_by', this.currentUser.email)
+.eq('source', 'van-sales')
+.eq('order_date', dateFilter)
+```
+
+### Patch 5 — repeatOrder() — line 1324
+احذف فقط lookup Dexie التالي:
+
+```javascript
+db.myCustomers.where('customer_code').equals(order.customer_id).first()
+```
+
+واستبدله بـ lookup Supabase:
+
+```javascript
+supabase.from('customers')
+    .select('id,customer_code,name,area,payment_type')
+    .eq('company_id', self.companyId)
+    .eq('id', order.customer_id)
+    .maybeSingle()
+```
+
+ثم اجعل فتح السلة يستخدم `customer_code` الناتج، وليس UUID.
+
+### Patch 6 — driver_ledger
+لا تضف `company_id` إلى `driver_ledger`؛ العمود غير موجود في Production schema الذي تم التحقق منه.
+أي إصلاح يجب أن يعتمد على العقد الصحيح في Core، وليس Filter مخترعًا.
+
+### Patch 7 — initiateEndOfDay() — line 1948
+لا يُنفذ patch شكلي في هذه الدورة. هذه Closure Unit مستقلة لأنها تحتاج Contract دائمًا يحدد أي Runsheet يُسوّى وما هو تعريف نهاية يوم Van Sales. Production لديه `save-daily-settlement v4` و`post_daily_settlement_atomic` كقاعدة موجودة بالفعل.
+
+END PATCH SECTION
