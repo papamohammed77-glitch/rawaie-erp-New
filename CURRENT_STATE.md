@@ -1041,3 +1041,17 @@ File: `companies/company-1/warehouse/vouchers.html`
 
 1. `loadList:function(scope)` around line 648:
    replace the current direct `supabase.from('stock_vouchers')...` function with the exact Report356 PATCH 1 using existing RPC `inventory_voucher_report` and payload `workflow_scope=pending|completed`.
+
+---
+
+# CURRENT STATE APPEND — 2026-09-30 — EXPERIMENTAL STOCK DATA CLEANUP (REPORT 380)
+
+- This session executed the requested cleanup of experimental stock-voucher records.
+- Deleted successfully: IN-1 DirectSale; IN-7 Transfer; IN-8 DirectSale; IN-9 DirectReturn; IN-3 SupplierReturn; IN-4 SupplierReturn.
+- Remaining target records: IN-5 SupplierReturn (Completed) and QA-SR-UI-CONTRACT-20260927-01 (Completed).
+- The remaining two records are protected from hard deletion by the current Production integrity path for executed/manual vouchers. No triggers were disabled and no replication-role bypass was used.
+- Production branch stock totals observed after cleanup: BR-01 71/0; BR-2 10/0; VAN-CHV-2025-01 0/0; VAN-VHL-0422 0/0.
+- Latest frontend repository remains papamohammed77-glitch/erp-frontend. Latest known commit is 503fb79da0878f97af46c8adad5bdedb0b3c283f with parent 1b89202949575eaebed4c5bf5512322129a114fb. The latest Van Sales source already contains the showRecentCustomers auth_id fix; no duplicate patch was applied.
+- System repo latest commit after this report is 58c64ad0ff2d33e80903000bda07bc4a02f07a65.
+- Report: doc/Draft/Reprots/Report380_EXPERIMENTAL_DATA_CLEANUP_20260930.md
+- Frontend deployment/browser E2E remains Owner-side verification and was not altered in this cleanup session.
