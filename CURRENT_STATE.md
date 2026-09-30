@@ -3773,3 +3773,58 @@ No Production backend change is required for this defect.
 ## Report
 Canonical forensic report: doc/Draft/Reprots/Report374_VAN_SALES_FORENSIC_INTEGRATION_20260930.md
 Report commit: d080f9169a35eff8da594e8b6c8730c145dccfbb
+
+
+# CURRENT SESSION — 2026-09-30 — REPORT375 VAN SALES COLLECT PAYMENT FORENSIC CLOSURE
+
+> Authoritative checkpoint: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE. Historical reports are guidance only.
+
+## Verified current reality
+- Frontend target: papamohammed77-glitch/erp-frontend/companies/company-1/sales/van-sales.html
+- Current SHA: e696a82faaacc956301a36a48c15723685d9ce70
+- Latest frontend commit: df0137d062a990cfccf7acbdfd53bc2af34ba610
+- Parent: 8a972680d3a34ae61cb2d12811d14283c6d99361
+- Current file: 3048 lines / 143255 characters
+- Protected: van-sales.html, main.html, warehouse/vouchers.html
+
+## Production backend verified
+- setup-van-branch v5 ACTIVE; uses authenticated user company and primary fleet_vehicle_sales_rep_assignments for direct-sales vehicle identity.
+- save-sales-invoice v15 ACTIVE.
+- save-receipt-voucher v8 ACTIVE.
+- post_van_sales_collection_atomic exists as SECURITY DEFINER and is atomic/idempotent through erp_operation_registry.
+- get_van_sales_customer_accounts and get_van_sales_customer_account derive company context from authenticated public.users and enforce customer assignments unless allow_all_customers=true.
+
+## Current closure unit
+- App.collectPayment() is the active Van Sales Closure Unit.
+- Pending operation identity is persisted in localStorage.
+- Real defect: successful collection does not remove the pending operation key, which can incorrectly reuse the old operation identity for a legitimate later collection with the same customer/amount/date.
+- Backend contract is already correct; no Production DDL or new Edge Function is required for this defect.
+
+## Owner surgical patch
+- Apply only the exact success-continuation replacement recorded in Report375:
+  doc/Draft/Reprots/Report375_VAN_SALES_COLLECT_PAYMENT_FORENSIC_CLOSURE_20260930.md
+- Do not modify main.html, warehouse/vouchers.html, or other Van Sales functions in this closure.
+
+## Verification required after owner patch
+- success removes pending operation key
+- failed attempt retains the pending key
+- same-operation retry produces no duplicate financial effect
+- legitimate second same-day collection creates a new operation identity and succeeds
+- customer ledger + driver ledger + treasury receipt reconcile
+
+## Open next units
+1. loadMyCustomers()
+2. loadCustomerPatterns()
+3. loadKPIs()
+4. loadHomeSalesSummary()
+5. loadMyInvoices()
+6. loadHomeBalanceSummary()/loadBalanceDetail()
+7. showCustomerDetail()/repeatOrder()
+8. initiateEndOfDay()
+
+## Rule
+Do not reopen already-closed custody/voucher/main contracts without new direct evidence. Do not declare collectPayment 100% until the owner patch and required E2E/financial verification are actually completed.
+
+## Report
+- Report375: doc/Draft/Reprots/Report375_VAN_SALES_COLLECT_PAYMENT_FORENSIC_CLOSURE_20260930.md
+- Report commit: 130bbcf3247000b099ac31c7fae21dd114058909
