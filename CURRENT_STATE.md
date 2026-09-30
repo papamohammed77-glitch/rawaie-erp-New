@@ -3896,3 +3896,77 @@ Historical reports are guidance only.
 
 Report: doc/Draft/Reprots/Report376_VAN_SALES_CURRENT_REALITY_FORENSIC_20260930.md
 Report commit: bd137b3c1127a0e0791cc58bec36abbc66bad8eb
+
+---
+## VAN SALES — FORENSIC SURGICAL UPDATE — REPORT 377 — 2026-09-30
+
+Current frontend source of truth:
+Repository: papamohammed77-glitch/erp-frontend
+File: companies/company-1/sales/van-sales.html
+HEAD: 77fec23ef5fb91367284f17f0ce2391ff73ee922
+HEAD commit: e5f3e8ed0e2a491a243bce0029aeb2e73cc824dc
+Parent: 74b122f9c2721178f27dd8f495cfd61134ba610
+Size: 3103 lines / 144367 chars.
+
+Historical baseline:
+rawaie-erp-review/PWA/sales/van-sales.html
+SHA 445dff4217fbf4a82f333fa716bba5d74def7680
+2124 lines / 120218 chars / 66 functions.
+Current has 65 functions; only _createVanBranch is absent because its responsibility moved to setup-van-branch.
+
+Verified closed/current-aligned areas:
+- syncDown company context via users.auth_id.
+- setup-van-branch canonical vehicle/mobile branch integration.
+- get_van_sales_customer_accounts customer-account integration.
+- loadCustomerPatterns company/source/order-id scoping (in latest Git).
+- loadKPIs company/source scoping.
+- loadHomeSalesSummary company/source scoping.
+- loadMyInvoices company/source scoping.
+- collectPayment operation cleanup.
+- vehicle stock reads canonical VAN stock.
+- submitQuickSale uses save-sales-invoice v15.
+- submitQuickInventory uses save-inventory-count v5.
+
+OPEN DEFECTS IN CURRENT:
+1. App.repeatOrder() around line 1364:
+   - order lookup lacks company_id/source scoping.
+   - Supabase maybeSingle response object is treated as customer row; must use cRes.data.
+2. App.initiateEndOfDay() around line 1996:
+   - current UI performs only client-side balance check and flips eodLocked.
+   - it does not call Production save-daily-settlement / post_daily_settlement_atomic.
+   - permanent Production settlement engine already exists and must be reused, not replaced.
+
+Owner-only frontend rule:
+No protected frontend file was modified by the assistant.
+Exact surgical replacement blocks are in:
+doc/Draft/Reprots/Report377_VAN_SALES_FORENSIC_SURGICAL_EXECUTION_20260930.md
+
+Production backend verified for this task:
+save-sales-invoice v15 ACTIVE
+save-receipt-voucher v8 ACTIVE
+setup-van-branch v5 ACTIVE
+save-inventory-count v5 ACTIVE
+save-daily-settlement v4 ACTIVE
+delete-order v9 ACTIVE
+confirm-order v4 ACTIVE
+
+Production Core verified:
+post_van_sales_collection_atomic
+post_daily_settlement_atomic
+get_van_sales_customer_accounts
+
+Production runsheets schema includes:
+company_id, runsheet_code, run_date, driver_id, vehicle_id, status,
+picking/loading/delivery/return timestamps, loading_cycle_id,
+picking_reservation_released.
+
+Production snapshot at this audit had no active runsheets or Van Sales orders; no permanent fake business fixture was left behind.
+
+Forensic conclusion:
+VAN SALES is INCOMPLETE.
+Current Git already contains several Report 376 repairs; do not repeat them.
+The next required owner actions are:
+A. Apply surgical repeatOrder replacement from Report 377.
+B. Apply surgical initiateEndOfDay replacement from Report 377.
+C. Browser/E2E verification of both.
+D. Close each unit 100% before moving to the next.
