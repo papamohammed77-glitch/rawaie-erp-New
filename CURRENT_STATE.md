@@ -3702,3 +3702,20 @@ Authoritative evidence: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURR
 Do not delete zero-quantity `stock_branches` master rows merely because they are hidden from the UI. Do not reopen already-closed contracts without new direct evidence.
 
 
+
+
+# CURRENT SESSION — 2026-09-30 — REPORT373 VAN SALES CUSTOMER ACCOUNTS FORENSIC
+
+- Production RPCs for Van Sales customer accounts were re-verified: `get_van_sales_customer_accounts(text,uuid,text)`, `get_van_sales_customer_account(uuid,text)`, and `post_van_sales_collection_atomic(...)` are present.
+- Production permissions verified: account-read RPCs executable by authenticated only; collection RPC executable by service_role only.
+- Production `customer_assignments` currently contains 0 rows; Production company 1 currently has 0 debtor customers and 0 orders. This explains why the live "عملائي" list is currently empty; it is not a frontend rendering failure by itself.
+- Forensic source review found `van-sales.html` currently builds "عملائي" from `orders.created_by` and gross credit-invoice totals in `loadMyCustomers()` (line 389), not from authoritative `customer_assignments` + `customer_ledger`.
+- `showCustomerDetail()` (line 932) currently compares `orders.customer_id` against the supplied customer code and calculates debt from credit invoices; this is inconsistent with the UUID customer identity and authoritative customer ledger.
+- Production read RPC test used temporary synthetic customer/order/debit/payment/installment data, authenticated-context GUC, and a full transaction rollback. Payload proved list/detail, same-day payment, and installment visibility. No test data remained.
+- Protected frontend files were not modified: `companies/company-1/sales/van-sales.html`, `companies/company-1/main.html`, and `companies/company-1/warehouse/vouchers.html`.
+- Report373 contains exact owner surgical replacements for `renderCustomersView()`, `loadMyCustomers()`, `renderMyCustomersList()`, `filterMyCustomers()`, and `showCustomerDetail()`.
+- Competitor benchmark supports the target capability: customer debtor follow-up/account statements/payments in Odoo, customer invoices and incoming payments in Dynamics 365, van-sales outstanding collection and route accounting in SAP DSD, and partial/multi-invoice receipt allocation in Manager.
+- No new Edge Function or Production DDL is required for this frontend capability at the current Production state.
+
+## NEXT EXACT RESUMPTION POINT
+Owner applies Report373 replacements to the protected `erp-frontend/companies/company-1/sales/van-sales.html`, then Browser E2E: login as direct sales rep -> My Customers -> assigned debtor list -> total debt -> smart search -> customer account -> invoices/payments/installments -> collection -> refresh/verify balance. 
