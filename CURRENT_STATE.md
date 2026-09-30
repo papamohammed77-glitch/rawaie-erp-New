@@ -3719,3 +3719,57 @@ Do not delete zero-quantity `stock_branches` master rows merely because they are
 
 ## NEXT EXACT RESUMPTION POINT
 Owner applies Report373 replacements to the protected `erp-frontend/companies/company-1/sales/van-sales.html`, then Browser E2E: login as direct sales rep -> My Customers -> assigned debtor list -> total debt -> smart search -> customer account -> invoices/payments/installments -> collection -> refresh/verify balance. 
+
+
+# CURRENT SESSION — 2026-09-30 — REPORT374 VAN SALES FORENSIC INTEGRATION
+
+> Authoritative checkpoint: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT. Historical reports are guidance only.
+
+## Verified current source
+- Frontend repo: papamohammed77-glitch/erp-frontend
+- Target: companies/company-1/sales/van-sales.html
+- Current SHA: e696a82faaacc956301a36a48c15723685d9ce70
+- Latest commit: df0137d062a990cfccf7acbdfd53bc2af34ba610
+- Parent: 8a972680d3a34ae61cb2d12811d14283c6d99361
+- 3048 lines / 143255 chars
+- Protected: van-sales.html, main.html, warehouse/vouchers.html
+
+## Verified Production
+- setup-van-branch v5 ACTIVE
+- save-sales-invoice v13 ACTIVE
+- save-receipt-voucher v8 ACTIVE
+- post_van_sales_collection_atomic exists and is atomic/idempotent
+- vansales2@rawaea.com -> VHL-0422 -> VAN-VHL-0422
+- vansales@rawaea.com -> CHV-2025-01 -> VAN-CHV-2025-01
+- customer_assignments = 0 currently
+- Van Sales orders = 0 currently
+- driver_ledger rows for vansales2 = 0 currently
+- VAN-VHL-0422 has 17 stock master rows with total qty=0 and allocated_qty=0
+
+## Verified vouchers integration
+Both warehouse vouchers and Van Sales resolve Direct Sales Rep -> Vehicle through fleet_vehicle_sales_rep_assignments and canonical mobile branch identity. No modification to vouchers.html or main.html was made.
+
+## Verified custody integration
+The prior custody fixes are already present in current van-sales source. Home custody and vehicle detail both read live stock_branches for the canonical VAN branch and calculate commercial stock value consistently across positive quantities.
+
+## Open closure unit
+collectPayment() remains OPEN.
+Current method lines 1365-1589.
+The persisted operation identity block is present, but successful completion does not remove the localStorage pending-operation key.
+Required owner surgical addition: before RW_UI.hideLoader() in the success continuation, add localStorage.removeItem(operationStorageKey) inside try/catch.
+No Production backend change is required for this defect.
+
+## Next units
+1. collectPayment
+2. loadMyCustomers
+3. loadCustomerPatterns
+4. loadKPIs
+5. loadHomeSalesSummary
+6. loadMyInvoices
+7. loadHomeBalanceSummary/loadBalanceDetail
+8. showCustomerDetail/repeatOrder
+9. initiateEndOfDay
+
+## Report
+Canonical forensic report: doc/Draft/Reprots/Report374_VAN_SALES_FORENSIC_INTEGRATION_20260930.md
+Report commit: d080f9169a35eff8da594e8b6c8730c145dccfbb
