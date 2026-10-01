@@ -1071,3 +1071,95 @@ File: `companies/company-1/warehouse/vouchers.html`
 - Production current relevant Edge versions observed in this session include save-sales-invoice v15, save-receipt-voucher v8, save-inventory-count v5, save-daily-settlement v4, start-picking v34, complete-picking v17, start-loading v5, complete-loading v11, reopen-loading v2, unload-runsheet v6, complete-return v26, complete-order-delivery v14, bulk-stock-adjustment v8, send-stock-voucher v7, receive-stock-voucher v5, receive-purchase v9.
 - Physical stock UPDATE scan currently identifies post_stock_movement as the physical stock writer; reserve_stock/release_stock_reservation remain reservation writers.
 - Van Sales browser-rendered E2E remains Owner-side open.
+
+---
+# CURRENT STATE APPEND — 2026-10-01 — REPORT 382 / DIRECTRETURN + REPRESENTATIVE COLUMN FORENSIC CLOSURE
+
+## Current Git baseline used in this session
+- System repository: papamohammed77-glitch/rawaie-erp-New
+- main HEAD at session start: 8a175b78f09e382e7630efd09c6d97a7385e1876
+- Parent: b0cab4f2f63b957c449c537a445e755593712bdb
+- Current mother source: Current/PWA/main.html
+- Current mother source SHA: 27b777528665dcc985809648f006452c861ae36e
+- Mother source was NOT modified by this session; owner-side surgical patch is recorded in Report382.
+- Frontend repository: papamohammed77-glitch/erp-frontend
+- Current frontend HEAD: 503fb79da0878f97af46c8adad5bdedb0b3c283f
+- Frontend parent: 1b89202949575eaebed4c5bf5512322129a114fb
+- Current vouchers.html blob: 85e709d0f41c189c6624a6160965d3b1a41960ba
+
+## Report 382 — DirectSale / DirectReturn Representative Projection
+- Production/current-source forensic review proved that the authoritative representative identity for DirectSale and DirectReturn is stock_vouchers.custodian_user_id -> public.users.id.
+- The embedded voucher table in Current/PWA/main.html currently lacks the representative column and does not resolve custodian_user_id to a representative name.
+- The normal parent navigation delegates vouchers to ./vouchers.html; the standalone current vouchers.html already has representative lookup/custody context. The requested main.html change is therefore a compatibility/read-model patch, not a new operational workflow.
+- Owner-side main.html patch is exactly four surgical substitutions. No function is to be replaced wholesale. See Report382 for exact search strings and replacements.
+
+## Production defect discovered and fixed during current-state verification
+- Current Production exposed a real DirectReturn RECEIVE defect that was not safe to consider closed from historical reports.
+- post_manual_stock_voucher_atomic_core_20260828 previously mapped DirectReturn RECEIVE to movement_type='DirectReturn' while setting src=NULL.
+- The central post_stock_movement contract requires a real source for movement_type='DirectReturn', and DirectReturn SEND had already removed the quantity from the vehicle mobile stock. A second decrement was therefore both impossible and semantically incorrect.
+- Production canonical fix: DirectReturn RECEIVE now maps to movement_type='InventoryIncrease'. This adds the returned quantity to the destination branch without attempting a second vehicle deduction.
+- No new Edge Function was created. Existing authenticated Edge/RPC path remains unchanged.
+- Canonical migration added:
+  supabase/migrations/20261001090000_fix_directreturn_receive_stock_direction_contract.sql
+- Migration commit: 6ae450aa42bc2d6cf4bcc30879e96365dbdde4c7
+
+## Production E2E evidence
+A transactional rollback test used existing Production master data:
+- Company: 00000000-0000-0000-0000-000000000001
+- Branch BR-01: a38332b6-6cea-480a-ada1-6eb6ab0590db
+- Vehicle CHV-2025-01: 69b08188-60ee-43af-9644-e1626a85bfa0
+- Vehicle mobile branch: 2fffcf58-be04-4599-a289-8791362398ff
+- Direct-sale representative: 111b0730-a977-4d11-bcd0-2427b178a9e5 / vansales@rawaea.com
+- Item 1001: 7cf845d8-34b9-47d1-9b7f-d9f1f597dbf8
+- Initial BR-01 stock: 8, allocated 0.
+
+Observed:
+- DirectSale CREATE -> Draft with custodian_user_id = representative.
+- DirectSale SEND -> Sent; BR-01 8->7; mobile stock 0->1; custody debit 50.
+- DirectReturn CREATE -> Draft with same custodian_user_id.
+- DirectReturn SEND -> Sent; mobile stock 1->0; branch remains 7.
+- DirectReturn RECEIVE -> Received; branch 7->8; mobile remains 0; custody credit 50.
+- Repeated RECEIVE with same operation_id returned duplicate=true with no additional movement.
+- Inventory log contained the expected three movement records for the two-stage cycle.
+- driver_ledger rows 0->2 and balance returned 0 after debit 50 + credit 50.
+- General journal remained unchanged: 10 entries and 16 lines before and after the test.
+- The test deliberately raised an exception after collecting results so all QA data rolled back. Post-test Production checks showed zero QA voucher rows and BR-01 item 1001 back at qty 8 / allocated 0.
+
+## Browser evidence boundary
+- The existing erp-frontend warehouse-vouchers Playwright workflow remains the correct rendered browser gate.
+- No workflow dispatch capability was available in this session; therefore browser-rendered E2E is NOT marked as PASS.
+- Source-level syntax and representative mapping checks passed for the surgical patch.
+- After the owner applies the main.html patch and deploys, rendered browser verification is the remaining owner-side gate.
+
+## Files/areas intentionally not modified
+- Current/PWA/main.html
+- companies/company-1/warehouse/vouchers.html
+- inventory_voucher_report()
+- post_stock_movement()
+- create-stock-voucher
+- send-stock-voucher
+- receive-stock-voucher
+- navigation/permission contracts
+- stock_vouchers schema
+- vehicle/representative assignment schema
+
+## Canonical continuity rule
+Historical reports are advisory only. The current baseline is:
+CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
+Do not re-apply a historical repair merely because a report describes it. Re-verify the current contract first.
+
+## Current source of truth for next session
+1. Read this append and Report382.
+2. Re-verify post_manual_stock_voucher_atomic_core_20260828 contains DirectReturn -> InventoryIncrease for RECEIVE.
+3. Do not touch that RPC again unless current Production contradicts this state.
+4. Apply only the four main.html surgical substitutions recorded in Report382.
+5. Validate main.html source syntax and representative mapping.
+6. Deploy the changed main.html.
+7. Run the existing warehouse-vouchers browser E2E workflow.
+8. Verify DirectSale and DirectReturn rows display the representative name.
+9. Verify non-rep voucher types remain '-'.
+10. Verify refresh/reload and empty-state behavior.
+11. Do not alter the operational stock workflow in response to a display-only change.
+
+## Report
+- doc/Draft/Reprots/Report382_WAREHOUSE_VOUCHERS_DIRECTRETURN_REP_COLUMN_FORENSIC_CLOSURE_20261001.md
