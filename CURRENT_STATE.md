@@ -1735,3 +1735,83 @@ Do not claim browser/runtime PASS until deployment evidence exists.
 - OWNER SURGERY ON CURRENT HEAD: NONE REQUIRED
 - BROWSER E2E: OPEN
 - SERVED ARTIFACT: OPEN
+
+---
+
+## Report388 — DirectSale / DirectReturn Representative Column Forensic Closure — 2026-10-01
+
+### Current Truth
+- CURRENT Git of Mother: `papamohammed77-glitch/erp-frontend`
+- HEAD: `bc4d7a02919dcaf82d11bb599e879281cd550737`
+- Parent: `80b5dc00da7aae08d442acef4beb6857681de481`
+- Current main.html blob: `6cb0ac47e8b3c8459ac5672d6fc3b0ec4bf9eaa3`
+- Historical line-5 corruption remains CLOSED and was not re-applied.
+
+### Root Cause Closed
+The separate DirectSale / DirectReturn history table is rendered by `async function _renderVoucherHistory(type)` around line 14432. Its 10-column table omitted the representative, and the previous Production `inventory_voucher_report(LIST)` projection omitted `custodian_user_id` and `custodian_name`. The global `loadVouchers()` table already had the representative column and was not changed.
+
+### Production Change
+Existing RPC only:
+`direct_voucher_report_representative_projection_20261001`
+- Added `custodian_user_id` to LIST projection.
+- Added company-scoped `custodian_name` projection for DirectSale / DirectReturn.
+- No new Edge Function.
+- No schema change.
+- No RLS change.
+- No workflow or accounting writer change.
+
+### Source Surgery Pending User Application
+Three exact replacements are required in `_renderVoucherHistory(type)`:
+1. Add `<td class="p-3">'+esc(r.custodian_name||'—')+'</td>` between `to_label` and `created_by`.
+2. Change the empty-state `colspan` from 10 to 11.
+3. Add `<th>المندوب</th>` between `إلى` and `المنشئ`.
+Complete exact replacements are documented in Report388.
+
+### Production E2E
+Transactional E2E passed using the authorized warehouse voucher actor, BR-01, vehicle CHV-2025-01, item 1001, representative vansales@rawaea.com:
+- DirectSale CREATE/SEND PASS; branch stock 8→7, vehicle stock 0→1, custody debit 50.
+- DirectReturn CREATE/SEND/RECEIVE PASS; vehicle stock 1→0, branch stock 7→8, custody credit 50.
+- Report RPC returned representative identity/name for both voucher types.
+- Driver ledger full-cycle net = 0.
+- journal_entries stayed at 10.
+- Movement/audit evidence present during transaction.
+- All test work rolled back.
+
+### Cleanup Verification
+After rollback:
+- QA vouchers = 0
+- QA details = 0
+- QA operation rows = 0
+- QA inventory logs = 0
+- QA audit rows = 0
+- BR-01 item 1001 qty = 8
+- Vehicle item 1001 qty = 0
+- QA driver-ledger net = 0
+- No test residue remains.
+
+### Runtime Boundary
+- Production backend contract: CLOSED.
+- Source patch: READY / user-side application pending.
+- Browser-rendered E2E: OPEN.
+- Served artifact identity: OPEN.
+Do not claim UI runtime PASS until the 3 source replacements are applied, deployed, and verified in browser.
+
+### Protected Contracts
+Do not reopen:
+- DirectReturn RECEIVE → InventoryIncrease
+- `custodian_user_id` identity contract
+- vehicle/representative assignment contract
+- existing voucher stock lifecycle
+- existing custody/accounting workflow
+- owner wildcard `permissions=["*"]`
+- existing Global Voucher Table representative projection
+- historical line-5 repair.
+
+### Next Exact Resumption Point
+1. Verify the 3 Report388 source replacements in Current Git.
+2. Run inline-script syntax validation.
+3. Deploy.
+4. Authenticated browser test DirectSale and DirectReturn.
+5. Verify representative column/value, empty state colspan=11, refresh, and filtering.
+6. Verify Transfer/SupplierReturn do not invent a representative.
+7. Compare served artifact with Current Git.
