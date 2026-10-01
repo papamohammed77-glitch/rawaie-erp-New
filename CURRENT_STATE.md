@@ -1247,3 +1247,92 @@ Do not replace either function wholesale.
 - PRODUCTION MUTATION E2E THIS CYCLE: NOT EXECUTED (safety gate)
 - BROWSER E2E: OPEN
 - DEPLOYMENT EVIDENCE: OPEN
+
+
+---
+# CURRENT STATE APPEND — 2026-10-01 — REPORT 384 / CORRECT FRONTEND TARGET + REPRESENTATIVE COLUMN
+
+## Authoritative target correction
+- The previously recorded surgical package targeted `rawaie-erp-New/Current/PWA/main.html`.
+- The actual owner-requested mother source is `papamohammed77-glitch/erp-frontend/companies/company-1/main.html`.
+- Current frontend source blob: `810e4f5440f5975f55099a124deb42b086a49183`.
+- Current source size: 1,754,145 chars / 32,316 lines.
+- The previous Report382/383 anchors do NOT exist in this actual target because their formatting/path belonged to a different source artifact.
+
+## Proven current defect
+- `async function loadVouchers()` begins around line 14858.
+- The current voucher list reads `stock_vouchers` but never projects `custodian_user_id`.
+- `function _applyVouchers()` begins around line 14884.
+- Current table has 8 columns; no representative column.
+- Current row projection ends with `to_id` followed directly by actions.
+- Current source contains zero occurrences of `custodian_user_id` and zero occurrences of `_vouchersRepMap`.
+
+## Exact owner surgical patch
+Report384 defines four exact substitutions against the CURRENT frontend source only:
+1. `loadVouchers()` around line 14879 — replace the 3-line `stock_vouchers` load tail with company-scoped voucher loading, distinct `custodian_user_id` extraction, company-scoped `users` lookup, and `_custodian_name` projection.
+2. `loadVouchers()` around line 14874 — add `المندوب` header and change loading colspan 8→9.
+3. `_applyVouchers()` around line 14902 — change empty-state colspan 8→9.
+4. `_applyVouchers()` around line 14910 — add escaped `_custodian_name` before actions.
+
+Do not replace either function wholesale.
+
+## Production evidence
+- Supabase project `SMART ERP` / `fiilmooggumokxanwiyx` = ACTIVE_HEALTHY.
+- `stock_vouchers.custodian_user_id` is UUID and FK `stock_vouchers_custodian_user_fk` → `public.users.id`.
+- Current company has three Active Direct Sales Representatives, each with `permissions=[\"van-sales\"]`.
+- RLS includes company-scoped `stock_vouchers` SELECT and direct-rep warehouse read policy.
+- Current Production has zero DirectSale/DirectReturn voucher rows after prior QA cleanup. No production fixture was created in this display-only cycle.
+- Current DirectReturn RECEIVE core remains `WHEN 'DirectReturn' THEN 'InventoryIncrease'`; no backend change required.
+
+## Historical integration evidence
+- `companies/company-1/warehouse/vouchers.html` already had custodian projection in commit `5801db5d15673c49e88ccfc69e84f0a53cd8866d`.
+- Therefore the mother correction is a read-model parity fix, not a new workflow or ownership model.
+
+## Validation
+- All four current anchors matched exactly once.
+- Patched in-memory source: one inline JS script; complete parse PASS.
+- Semantic fixture:
+  - DirectSale → representative name PASS.
+  - DirectReturn → representative name PASS.
+  - Transfer → `-` PASS.
+  - SupplierReturn → `-` PASS.
+- Current source file was not modified by the assistant.
+- Production schema/RPC/Edge Functions were not changed.
+
+## E2E / deployment boundary
+- Existing Production transactional E2E from Report382 remains the latest verified proof of DirectSale → DirectReturn → Receive stock/custody/accounting invariants.
+- Fresh browser-rendered E2E for this corrected target is still OPEN until the owner applies the four patches and publishes the frontend artifact.
+- Served artifact identity is OPEN.
+- No claim of rendered production PASS has been made.
+
+## Protected / DO NOT REOPEN
+- DirectReturn RECEIVE direction fix.
+- Owner wildcard / owner identity.
+- Main delegation to `vouchers.html`.
+- Existing stock/accounting workflow.
+- `vouchers.html` historical custodian implementation.
+
+## Next exact resumption point
+1. Open `erp-frontend/companies/company-1/main.html`.
+2. Apply Report384 PATCH 1→4 only.
+3. Run complete inline-JS Syntax Gate.
+4. Publish frontend.
+5. Verify served blob/artifact identity.
+6. Run authenticated Browser E2E.
+7. Verify DirectSale and DirectReturn representative names.
+8. Verify Transfer/SupplierReturn remain `-`.
+9. Verify refresh and empty state.
+10. Close only after runtime/deployment evidence.
+
+## Status
+- ROOT CAUSE: PROVEN
+- CORRECT TARGET SOURCE: PROVEN
+- OWNER SURGICAL PATCH: READY
+- STATIC SYNTAX: PASS
+- SEMANTIC MAPPING: PASS
+- PRODUCTION CHANGE: NOT REQUIRED
+- BROWSER E2E: OPEN
+- DEPLOYMENT EVIDENCE: OPEN
+
+## Report
+- `doc/Draft/Reprots/Report384_WAREHOUSE_VOUCHERS_REPRESENTATIVE_COLUMN_CORRECT_TARGET_SURGICAL_FIX_20261001.md`
