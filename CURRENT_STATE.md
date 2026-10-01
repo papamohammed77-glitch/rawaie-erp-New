@@ -1568,3 +1568,170 @@ The sole current owner change is the line-5 header repair documented in:
 ## Report
 - Report386: doc/Draft/Reprots/Report386_MOTHER_MAIN_VOUCHER_COLUMN_CORRUPTION_FORENSIC_SURGICAL_FIX_20261001.md
 - Report commit: 06aa932f80594b1a5ae27caa3ff0fae7b04022ae
+
+
+---
+# CURRENT STATE APPEND — 2026-10-01 — REPORT 387 / MOTHER MAIN DIRECTSALE DIRECTRETURN REPRESENTATIVE CURRENT HEAD CLOSURE
+
+## Authoritative checkpoint
+
+هذه الإضافة تتجاوز أي حالة أقدم تتعارض مع Current Git أو Current Source.
+
+### Current Git — Frontend
+
+- Repository: `papamohammed77-glitch/erp-frontend`
+- Branch: `main`
+- Current HEAD: `bc4d7a02919dcaf82d11bb599e879281cd550737`
+- HEAD parent: `80b5dc00da7aae08d442acef4beb6857681de481`
+- Previous corrupted state commit: `e373c7ad2d66d72b2919a8f153693da36ab9b7bb`
+- Current `companies/company-1/main.html` blob: `6cb0ac47e8b3c8459ac5672d6fc3b0ec4bf9eaa3`
+- Current `main.html`: 32,348 lines / 1,755,711 chars
+
+## Current Source truth
+
+The requested business capability is already present in Current Source:
+
+- `loadVouchers()` occurs once around line 14859.
+- Table header contains `المندوب`.
+- Loading/empty states use colspan 9.
+- DirectSale and DirectReturn collect `custodian_user_id`.
+- Company-scoped `users` lookup resolves representative name.
+- `v._custodian_name` is projected only for DirectSale/DirectReturn.
+- Row renderer escapes and displays the representative before actions.
+- `_applyVouchers()` occurs once around line 14916.
+
+### Static source gate
+
+- Inline scripts: 1
+- V8 compilation of the inline script: PASS
+- Corrupted meta/row-renderer pattern in head: NOT PRESENT
+- `loadVouchers()`: 1
+- `_applyVouchers()`: 1
+
+## Git forensic chain
+
+Commit `e373c7ad...` introduced the historical line-5 corruption by attaching the voucher row renderer to the charset meta element.
+
+Commit `80b5dc00...` fixed that corruption exactly, changing the malformed line back to:
+`    <meta charset="UTF-8">`
+
+Compare `e2e9d5c... → 80b5dc0...` shows exactly one commit and a one-line main.html repair.
+
+Commit `bc4d7a...` is documentation-only for `_forensic_current_main_extract.md`; it does not alter `main.html`.
+
+Therefore **no owner-side main.html surgery is required on Current HEAD**.
+
+## Historical owner fallback
+
+Only if a local/served copy is proven to contain the old corrupted line, delete that exact corrupted line and replace it with:
+```html
+  <meta charset="UTF-8">
+```
+
+Do not reapply Report384/385 four-patch representative changes or Report386 line-5 repair to Current HEAD.
+
+## Current Production
+
+Supabase project: `SMART ERP / fiilmooggumokxanwiyx`
+
+Verified:
+- total `stock_vouchers` = 0
+- DirectSale = 0
+- DirectReturn = 0
+- Active Direct Sales Representatives = 3
+- `stock_vouchers.custodian_user_id` is UUID and FK to `public.users.id`
+- DirectSale/DirectReturn custodian trigger contract is active.
+
+## Fresh Production transactional E2E
+
+Executed inside `BEGIN ... ROLLBACK` using the real company, BR-01, CHV-2025-01, item 1001, representative `vansales@rawaea.com`, and warehouse actor `vouchers@rawaea.com`.
+
+Results:
+- DirectSale CREATE: PASS; custodian and representative projection correct.
+- DirectReturn CREATE: PASS; custodian and representative projection correct.
+- DirectSale SEND: PASS; branch 8→7, vehicle 0→1, custody debit 50.
+- DirectReturn SEND: PASS; vehicle 1→0.
+- DirectReturn RECEIVE: PASS; branch 7→8, custody credit 50.
+- Duplicate RECEIVE with same operation_id: PASS; duplicate=true and no second movement.
+- During transaction: driver_ledger debit 50, credit 50, net 0.
+- journal_entries remained 10 and journal_lines remained 16.
+
+After rollback:
+- stock_vouchers = 0
+- DirectSale = 0
+- DirectReturn = 0
+- QA operation rows = 0
+- QA test inventory residual = 0
+- branch item 1001 qty = 8
+- vehicle item 1001 qty = 0
+- QA driver-ledger net = 0
+
+No test residue remains.
+
+## Test issue resolved
+
+The first E2E attempt used `owner@alrawae.com` as the DirectSale creation actor and was rejected by the existing operational actor contract. This was a test-actor mismatch, not a source defect. The test was rerun with the authorized warehouse voucher actor and passed completely.
+
+## Production changes
+
+For Report387:
+- Edge Function: NONE
+- New RPC: NONE
+- Existing RPC modification: NONE
+- Schema change: NONE
+- RLS change: NONE
+- Data repair: NONE
+- Accounting repair: NONE
+
+Existing DirectReturn RECEIVE contract remains protected:
+`DirectReturn RECEIVE → InventoryIncrease`.
+
+## Deployment / Browser boundary
+
+The current source is verified, but this session has not established a fresh served-artifact hash or rendered browser E2E against the deployed current `main.html`.
+
+Therefore:
+- Browser-rendered E2E = OPEN
+- Served artifact identity = OPEN
+
+Do not claim browser/runtime PASS until deployment evidence exists.
+
+## Protected closed contracts — DO NOT REOPEN
+
+- DirectReturn RECEIVE direction
+- custodian_user_id operational contract
+- Master Assignment / representative identity
+- existing voucher stock workflow
+- existing custody/accounting workflow
+- owner wildcard `permissions=["*"]`
+- existing operational `warehouse/vouchers.html`
+- current representative implementation in Mother `main.html`
+
+## Next exact resumption point
+
+1. Verify the served/deployed artifact corresponds to Current Git HEAD content/blob.
+2. Run authenticated browser-rendered E2E for the voucher table.
+3. Filter DirectSale and verify representative display.
+4. Filter DirectReturn and verify representative display.
+5. Verify Transfer and SupplierReturn display `-`.
+6. Verify refresh, empty state, and no lookup loss.
+7. Close Browser/Deployment evidence only after runtime proof.
+8. Do not modify `main.html` unless Current Source or served artifact proves a real mismatch.
+
+## Report
+
+- Report387: `doc/Draft/Reprots/Report387_MOTHER_MAIN_DIRECTSALE_DIRECTRETURN_REPRESENTATIVE_CURRENT_HEAD_FORENSIC_CLOSURE_20261001.md`
+- Report commit: `cf1ec5e4b0ee0f3dd83dc0c19e8a9c91c982eddd`
+
+## Status
+
+- ROOT CAUSE OF HISTORICAL HEADER CORRUPTION: CLOSED
+- REQUESTED REPRESENTATIVE COLUMN IN CURRENT SOURCE: CLOSED
+- STATIC SYNTAX: PASS
+- PRODUCTION CONTRACT: PASS
+- PRODUCTION TRANSACTIONAL E2E: PASS
+- DATA CLEANUP: PASS
+- ACCOUNTING INVARIANCE: PASS
+- OWNER SURGERY ON CURRENT HEAD: NONE REQUIRED
+- BROWSER E2E: OPEN
+- SERVED ARTIFACT: OPEN
