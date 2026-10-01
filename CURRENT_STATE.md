@@ -1,3 +1,104 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-02 — REPORT390 ITEMS / OWNER WILDCARD / IMAGE / COST PRICE
+
+> هذا checkpoint هو آخر حقيقة مُثبتة، ويُقدَّم على أي blocks تاريخية أدناه. لا تُعاد إصلاحات موجودة في Current HEAD.
+
+## Current Git / Mother Source
+- Frontend repo: `papamohammed77-glitch/erp-frontend`
+- Branch: `main`
+- HEAD: `768ee12721a85511e38618666c29568f0658615c`
+- Parent: `bc4d7a02919dcaf82d11bb599e879281cd550737`
+- Mother source: `companies/company-1/main.html`
+- Current blob: `2b5b763ada7428f96a05c1144c75f13eec5b1492`
+- Current source: 32,349 lines / 1,755,533 chars.
+
+## Production
+- Supabase project: `SMART ERP` / `fiilmooggumokxanwiyx`
+- Edge Functions count: exactly 100.
+- No new function created.
+- `save-item`: v14, ACTIVE, verify_jwt=true; DB users permissions authority.
+- `save-category`: v5, ACTIVE, verify_jwt=true; metadata-based owner bypass removed; authorization now DB `users.permissions`.
+- `delete-item`: v5, ACTIVE, verify_jwt=true; metadata-based owner bypass removed; authorization now DB `users.permissions`.
+- Owner DB contract verified: `public.users.permissions=["*"]`, Active, owner_profile license_status=active, auth linkage valid.
+- Product-images authenticated INSERT policy is DB-permission scoped; public SELECT remains intentional.
+
+## Open Owner Frontend Surgery
+### A — RW_Auth.login()
+Current defect: authorization identity is hydrated from `user.user_metadata`.
+Exact complete replacement is in Report390 section 3.
+Target: block beginning with:
+`return RW_SUPABASE_CLIENT.from('users').select('company_id, status')`
+inside `RW_Auth.login()`.
+After replacement, owner derives from DB wildcard `permissions=["*"]` and `RW_STATE.permissions` comes from DB.
+
+### B — RW_Items.resolveImageUrlAndSave()
+Current defect: new-image upload failure falls through to save using the old URL; upload uses `upsert:true`.
+Exact complete replacement is in Report390 section 5.
+Target helper around lines 5578–5617.
+After replacement: upload failure aborts save continuation; `upsert:false`.
+
+### C — RW_Items.openItemPage()
+Proven UI capability gap: `cost_price` exists in DB/RPC/Edge and is used elsewhere, but the item form does not expose it.
+Exact surgical replacement in Report390 section 6:
+- Replace current single sales-price HTML line around line 5519 with the two-line cost + sales price block.
+
+### D — executeSave()
+Exact surgical replacement in Report390 section 6:
+- Replace current `sales_price:` payload line around line 5631 with `cost_price:` followed by `sales_price:`.
+Do not replace the whole function.
+
+## Items Current Truth
+- Item CRUD, categories, pricing/inventory controls, opening stock, image preview/viewer, store visibility, marketing, movement, matrix and stock upload all exist.
+- Historical `_renderTable()` rowHtml/branch drill-down regression is already fixed in Current HEAD. Do NOT reapply Report153.
+- DirectSale/DirectReturn representative column is already in Current HEAD (commit 768ee): `المندوب`, `custodian_name`, `colspan="11"`. Do NOT reapply Report384/388.
+- Current navigation/router maps `items -> items`; current permission vocabulary has `items` and `*`, not granular `items.create/update/delete`. Do not invent granular permissions in this closure.
+
+## QA Evidence
+- Real Production transaction test was created then rolled back completely.
+- Test item code: `ITM-20260928`.
+- Create/opening path posted opening stock = 3 to BR-01; allocated = 0; one inventory_log row.
+- Same transaction edited name, sales price 25→27, cost price 10→11, show_in_store false→true, category cleared to NULL, image_url changed.
+- Journal entries total remained 10 during the item edit.
+- After rollback:
+  - items=17
+  - categories=5
+  - inventory_log=12
+  - journal_entries=10
+  - QA item/category/inventory-log residue=0.
+- Static Node syntax check of owner and image surgical blocks: PASS.
+- Browser-rendered E2E and served-artifact identity remain OPEN because no browser/deployment artifact inspection tool is available here.
+
+## Security / Advisory Boundary
+Current Supabase advisors still report broader existing findings outside this Items closure (RLS-enabled tables without policies, SECURITY DEFINER views/functions, mutable search_path). They were not silently changed because they are separate contracts requiring individual blast-radius analysis.
+
+## Protected / Closed Contracts
+- owner wildcard `permissions=["*"]`
+- DirectReturn RECEIVE -> InventoryIncrease
+- stock movement core / post_stock_movement
+- runsheet/picking/loading/delivery/return/unloading workflow
+- DirectSale/DirectReturn representative projection already present in Current HEAD
+- existing save-item v14 and storage public-read behavior
+
+## Report
+- Report390: `doc/Draft/Reprots/Report390_MOTHER_ITEMS_OWNER_WILDCARD_IMAGE_COST_FORENSIC_CLOSURE_20261002.md`
+- Report commit: `3410879d59de5c435ba1d3b33042ce09de413cfb`
+
+## Next Exact Resumption Point
+1. Verify whether the owner has applied the exact 4 frontend surgical substitutions in Current Mother source.
+2. Syntax gate.
+3. Publish the updated Mother.
+4. Fresh login.
+5. Browser E2E:
+   - إدارة التراخيص
+   - item create/edit
+   - cost price round-trip
+   - image success and image-upload failure abort
+   - store visibility
+   - categories CRUD
+   - representative column.
+6. Compare served artifact with Current Git.
+7. Only then move to the next unresolved contract.
+
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-01 — Report389
 
 > This block supersedes stale header values below. Reports remain historical evidence; current truth is rebuilt from Current Git + Current Source + Current Production + Current Database + Current Deployment Evidence.
