@@ -1815,3 +1815,9 @@ Do not reopen:
 5. Verify representative column/value, empty state colspan=11, refresh, and filtering.
 6. Verify Transfer/SupplierReturn do not invent a representative.
 7. Compare served artifact with Current Git.
+
+### Report388 documentation correction — 2026-10-01
+- تم تدقيق نص Report388 مرة إضافية مقابل Current Mother `main.html` blob `6cb0ac47e8b3c8459ac5672d6fc3b0ec4bf9eaa3`.
+- تم تصحيح الـsource anchors في التقرير لتطابق النص الحالي حرفيًا، بما في ذلك `colspan="10"` → `colspan="11"` والنص الفعلي لحالة الفراغ، ورأس الجدول الكامل بخصائص CSS الحالية.
+- آخر Commit لتقرير Report388: `934ea0ea8e6b39900ab698e5d1290dd2be49e5b4`.
+- لا يوجد أي تغيير إضافي على `main.html` من جانب المساعد.
