@@ -147,6 +147,7 @@ RPC أعاد القيمة نفسها لهوية العهدة واسم المند
 
 ```html
 '<td class="p-3 max-w-[220px]">'+esc(r.to_label||'—')+'</td>' +
+'<td class="p-3">'+esc(r.custodian_name||'—')+'</td>' +
 '<td class="p-3">'+esc(r.created_by||'—')+'</td>' +
 ```
 
@@ -167,7 +168,7 @@ RPC أعاد القيمة نفسها لهوية العهدة واسم المند
 **ابحث حرفيًا عن:**
 
 ```html
-rowsHtml = '<tr><td colspan="10" class="p-8 text-center text-gray-500">لا توجد عمليات مطابقة للمرشحات.</td></tr>';
+rowsHtml = '<tr><td colspan="11" class="p-8 text-center text-slate-400">لا توجد عمليات مطابقة للفلاتر الحالية</td></tr>';
 ```
 
 **احذفه بالكامل واستبدله بهذا العنصر بالكامل:**
@@ -185,7 +186,7 @@ rowsHtml = '<tr><td colspan="11" class="p-8 text-center text-gray-500">لا تو
 **ابحث حرفيًا عن جزء رأس الجدول هذا:**
 
 ```html
-'<tr><th>رقم الإذن</th><th>التاريخ</th><th>الحالة</th><th>المرجع</th><th>من</th><th>إلى</th><th>المنشئ</th><th>بنود</th><th>كميات</th><th>رقابة</th></tr>'
+'<tr><th class="p-3 text-right">رقم الإذن</th><th class="p-3 text-right">التاريخ</th><th class="p-3 text-right">الحالة</th><th class="p-3 text-right">المرجع</th><th class="p-3 text-right">من</th><th class="p-3 text-right">إلى</th><th class="p-3 text-right">المندوب</th><th class="p-3 text-right">المنشئ</th><th class="p-3 text-center">بنود</th><th class="p-3 text-center">كميات</th><th class="p-3 text-center">رقابة</th></tr>'
 ```
 
 **احذفه بالكامل واستبدله بهذا العنصر بالكامل:**
