@@ -1461,3 +1461,110 @@ Do not reopen:
 - DATABASE FIXTURE: PASS / NO RESIDUE
 - BROWSER E2E: OPEN
 - SERVED ARTIFACT: OPEN
+
+
+---
+# CURRENT STATE APPEND — 2026-10-01 — REPORT386 / MOTHER MAIN VOUCHER HEADER CORRUPTION
+
+## Authoritative current baseline
+- Frontend repository: papamohammed77-glitch/erp-frontend
+- Branch: main
+- Current frontend HEAD: e2e9d5cdb559bd014dcc85b12fc9b89610b466d7
+- HEAD parent: e373c7ad2d66d72b2919a8f153693da36ab9b7bb
+- Current target: companies/company-1/main.html
+- Current target blob: 2a4b0bec5a402b1e7490a8e53b3452cc8a7d9209
+- Current source size: 1,756,290 chars / 32,348 lines
+
+## Fresh forensic finding
+The representative-column implementation from commit 5edf6d448203b8b431086ae762df1b35699366bf is still present in Current Source and must not be reimplemented.
+
+A later commit introduced a new defect:
+- Commit: e373c7ad2d66d72b2919a8f153693da36ab9b7bb
+- Parent: d5b8319b81c2236da66c25dcfc32a8f18182f249
+- File changed: companies/company-1/main.html only
+- Defect: line 5 was changed from the valid charset element into a charset element immediately followed by the entire voucher row renderer:
+  `<meta charset="UTF-8">return '<tr ... _custodian_name ... </tr>';`
+- e2e9d5cdb559bd014dcc85b12fc9b89610b466d7 changed only `_forensic_current_main_extract.md`, so the malformed main.html remains current.
+
+## Exact owner surgery
+File: companies/company-1/main.html
+Element: line 5
+Action: delete the entire corrupted line and replace it with exactly:
+```html
+  <meta charset="UTF-8">
+```
+
+Do NOT reapply Reports 384/385 four-patch representative package when the current file is this HEAD, because the representative header, company-scoped lookup, `custodian_user_id` projection, and escaped row rendering are already present in the current source.
+
+## Source contract verified
+- `loadVouchers()` occurs once.
+- `_applyVouchers()` occurs once.
+- `<th class="p-3">المندوب</th>` is present.
+- `custodian_user_id` is present in the voucher projection path.
+- `v._custodian_name` is present in the correct row renderer.
+- Current source contains two occurrences of the row-renderer prefix only because one is misplaced on line 5 and one is correctly inside `_applyVouchers()`.
+- After the owner patch, the misplaced occurrence must be zero while the correct occurrence remains one.
+
+## Production current verification
+Supabase project: fiilmooggumokxanwiyx
+- total stock_vouchers = 0
+- DirectSale vouchers = 0
+- DirectReturn vouchers = 0
+- active direct-sales representatives = 3
+- representative identity contract: stock_vouchers.custodian_user_id -> public.users.id
+- read-only fixture projection:
+  - DirectSale -> representative name: PASS
+  - DirectReturn -> representative name: PASS
+  - Transfer -> -: PASS
+  - SupplierReturn -> -: PASS
+- No persistent QA data created.
+- No cleanup mutation required.
+
+## Production changes
+None required for Report386.
+- No Edge Function
+- No RPC
+- No table/schema change
+- No RLS change
+- No stock change
+- No custody change
+- No accounting change
+
+The existing DirectReturn RECEIVE production contract remains protected and must not be reopened:
+`DirectReturn RECEIVE -> InventoryIncrease`.
+
+## Browser / deployment boundary
+- Browser-rendered E2E after the owner-side main.html correction is OPEN.
+- Served artifact identity is OPEN.
+- No Browser PASS may be claimed before publish + served-artifact verification + rendered test.
+- Workflow-dispatch capability was not available in this session.
+
+## Owner change package
+The sole current owner change is the line-5 header repair documented in:
+`doc/Draft/Reprots/Report386_MOTHER_MAIN_VOUCHER_COLUMN_CORRUPTION_FORENSIC_SURGICAL_FIX_20261001.md`
+
+## Protected contracts — do not reopen
+- DirectReturn receive direction
+- Master Assignment / representative identity
+- custodian_user_id operational contract
+- voucher stock mutation workflow
+- owner wildcard `permissions=["*"]`
+- existing operational `warehouse/vouchers.html`
+- existing representative-column implementation in `main.html` below the header
+
+## Next exact resumption point
+1. Open `companies/company-1/main.html`.
+2. Verify Current blob against `2a4b0bec5a402b1e7490a8e53b3452cc8a7d9209`.
+3. Find line 5 containing `<meta charset="UTF-8">return '<tr ...`.
+4. Delete that corrupted line completely.
+5. Replace with `<meta charset="UTF-8">` only.
+6. Run full source/inline-JS validation.
+7. Verify the representative row renderer remains only inside `_applyVouchers()`.
+8. Publish.
+9. Verify served artifact.
+10. Run rendered Browser E2E for DirectSale / DirectReturn representative display.
+11. Close UI unit only after runtime proof.
+
+## Report
+- Report386: doc/Draft/Reprots/Report386_MOTHER_MAIN_VOUCHER_COLUMN_CORRUPTION_FORENSIC_SURGICAL_FIX_20261001.md
+- Report commit: 06aa932f80594b1a5ae27caa3ff0fae7b04022ae
