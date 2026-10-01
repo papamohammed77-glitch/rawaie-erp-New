@@ -1336,3 +1336,128 @@ Do not replace either function wholesale.
 
 ## Report
 - `doc/Draft/Reprots/Report384_WAREHOUSE_VOUCHERS_REPRESENTATIVE_COLUMN_CORRECT_TARGET_SURGICAL_FIX_20261001.md`
+
+
+---
+
+# CURRENT STATE APPEND — 2026-10-01 — REPORT 385 / CURRENT HEAD REPRESENTATIVE COLUMN RECONCILIATION
+
+## Authoritative checkpoint
+
+هذه الإضافة تتجاوز أي assertions أقدم تخص مصدر عمود المندوب في Mother UI عندما تتعارض مع Current Git.
+
+### Current Git — Frontend
+
+- Repository: `papamohammed77-glitch/erp-frontend`
+- Branch: `main`
+- Current HEAD: `d5b8319b81c2236da66c25dcfc32a8f18182f249`
+- HEAD parent: `5edf6d448203b8b431086ae762df1b35699366bf`
+- Parent of the voucher-column change: `503fb79da0878f97af46c8adad5bdedb0b3c283f`
+- Current `companies/company-1/main.html` blob: `4fc2adb99861031cc69decb215daac6f74d58c66`
+- Current source: 32,347 lines / 1,755,708 chars
+
+## Current Source truth
+
+The requested representative column is already present in Current Source:
+
+- `loadVouchers()` ≈ line 14858
+- table header contains `المندوب`
+- loading/empty states use colspan 9
+- `custodian_user_id` is collected for DirectSale/DirectReturn
+- company-scoped `users` lookup resolves representative names
+- `_custodian_name` is projected
+- row renders escaped representative name
+
+The four surgical substitutions documented in Report384 are therefore already present in Current Git and must NOT be repeated against the current blob.
+
+## Historical root cause
+
+The original defect existed in the pre-change parent and was removed by commit `5edf6d448203b8b431086ae762df1b35699366bf` with message:
+
+`Update voucher table to include custodian column`
+
+That commit modified only the required voucher-list projection/header/empty-state/row output in `main.html`.
+
+## Current syntax
+
+Full inline JavaScript compilation of Current `main.html` = PASS.
+
+## Current Production
+
+Supabase project `fiilmooggumokxanwiyx`:
+
+- DirectSale vouchers = 0
+- DirectReturn vouchers = 0
+- Total `stock_vouchers` = 0
+- Current active Direct Sales Representatives were verified in `public.users`
+- Owner wildcard remains `permissions=["*"]`
+
+## Production infrastructure
+
+No schema, RLS, RPC, Edge Function, stock, custody, or accounting change was required for this read-only defect.
+
+## Database fixture
+
+A read-only SQL fixture was executed against real Production representative records:
+
+- DirectSale → representative name resolved
+- DirectReturn → representative name resolved
+- Transfer → `-`
+- SupplierReturn → `-`
+
+No permanent Production rows were inserted.
+
+## Browser / deployment evidence
+
+GitHub Actions run `36907835220` was triggered by commit `5edf6d...`.
+
+It failed before Playwright because the workflow's unrelated RW_HR payroll assertion failed:
+
+`AssertionError: Canonical RW_HR payroll syntax not present`
+
+Therefore:
+
+- Browser E2E for this voucher UI unit = OPEN
+- Served Production artifact identity = OPEN
+
+Do not repair the unrelated HR assertion as part of this voucher unit.
+
+## Protected closed contracts
+
+Do not reopen:
+
+- DirectReturn Receive direction
+- Master Assignment
+- `custodian_user_id` operational contract
+- voucher stock mutation workflow
+- accounting/custody workflow
+- owner wildcard
+
+## Exact next resumption point
+
+1. Verify served artifact contains blob `4fc2adb99861031cc69decb215daac6f74d58c66`.
+2. If local source differs, compare it to Current HEAD before editing.
+3. If it is older than Current HEAD, apply only Report385 PATCH 1→4.
+4. Run source syntax gate.
+5. Publish/deploy.
+6. Verify served artifact.
+7. Run rendered Browser E2E.
+8. Verify DirectSale and DirectReturn representative names.
+9. Verify Transfer and SupplierReturn remain `-`.
+10. Close this UI unit only after runtime evidence.
+
+## Report
+
+- `doc/Draft/Reprots/Report385_WAREHOUSE_VOUCHERS_REPRESENTATIVE_CURRENT_HEAD_FORENSIC_CLOSURE_20261001.md`
+- Report commit: `a61a5259dddbd44f2fd51cba88fecdbb44836ab4`
+
+## Status
+
+- ROOT CAUSE: CLOSED
+- CURRENT SOURCE PATCH: PRESENT
+- STATIC SYNTAX: PASS
+- SEMANTIC MAPPING: PASS
+- PRODUCTION CHANGE: NONE REQUIRED
+- DATABASE FIXTURE: PASS / NO RESIDUE
+- BROWSER E2E: OPEN
+- SERVED ARTIFACT: OPEN
