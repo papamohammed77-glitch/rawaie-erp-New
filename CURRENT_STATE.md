@@ -1163,3 +1163,87 @@ Do not re-apply a historical repair merely because a report describes it. Re-ver
 
 ## Report
 - doc/Draft/Reprots/Report382_WAREHOUSE_VOUCHERS_DIRECTRETURN_REP_COLUMN_FORENSIC_CLOSURE_20261001.md
+
+
+---
+# CURRENT STATE APPEND — 2026-10-01 — REPORT 383 / MOTHER VOUCHERS REPRESENTATIVE COLUMN
+
+## Current authoritative baseline
+- System HEAD before this report: `59fd766167bbdb3b9bd9af3d305da7b0eb52da64`
+- Parent: `0be2f6f54e4748e231cc62a6a1943e93257f6a14`
+- Mother source: `Current/PWA/main.html`
+- Mother source blob: `27b777528665dcc985809648f006452c861ae36e`
+- Mother source was NOT modified by the assistant.
+- Latest report created: `doc/Draft/Reprots/Report383_WAREHOUSE_VOUCHERS_REPRESENTATIVE_COLUMN_FORENSIC_SURGICAL_PACKAGE_20261001.md`
+- Report commit: `aabbb396dacefffc537711c5978594214668e663`
+
+## Proven defect
+The embedded Warehouse Vouchers read-model in main.html loaded only `stock_vouchers` and rendered columns through `from` / `to` / `actions`.
+It did not project `stock_vouchers.custodian_user_id` to a representative name.
+The operational application remains delegated to `./vouchers.html`; this is a mother read-model projection gap, not a new workflow.
+
+## Exact owner surgical patch
+Four replacements are required and documented in Report383:
+1. `loadVouchers()` around line 2925 — load company-scoped active Direct Sales Representatives and build `window._vouchersRepMap`; project `custodian_user_id` to `_custodian_name`.
+2. `loadVouchers()` around line 2924 — add the `المندوب` table header and change loading colspan 8→9.
+3. `_applyVouchers()` around line 2930 — change empty-state colspan 8→9.
+4. `_applyVouchers()` row projection — insert `_custodian_name` before the actions cell.
+
+Do not replace either function wholesale.
+
+## Source validation
+- All four current anchors were found exactly once.
+- Patched in-memory source parsed successfully.
+- One inline script detected; parse errors = 0.
+- Semantic projection test:
+  - DirectSale → current Production rep name = PASS.
+  - DirectReturn → current Production rep name = PASS.
+  - Transfer → `-` = PASS.
+  - SupplierReturn → `-` = PASS.
+- The real current source blob remains unchanged because main.html is owner-editable only.
+
+## Production verification
+- Supabase project `SMART ERP` / `fiilmooggumokxanwiyx` = ACTIVE_HEALTHY.
+- `stock_vouchers.custodian_user_id` has FK `stock_vouchers_custodian_user_fk` → `users.id`.
+- Current active Direct Sales Representatives were verified in Production.
+- Current Master Assignment examples remain:
+  - CHV-2025-01 → vansales@rawaea.com
+  - VHL-0422 → vansales2@rawaea.com
+- `vehicles.driver_id` remains NULL for these current assignments and is not used by the mother projection.
+- Current DirectReturn core still contains `WHEN 'DirectReturn' THEN 'InventoryIncrease'`.
+- No Production change was required for this display-only capability.
+
+## E2E / deployment boundary
+- Existing transactional Production E2E from Report382 remains the latest live proof of DirectSale → DirectReturn → Receive stock/custody/accounting invariants.
+- Current Production core was re-read and matches that tested contract.
+- A fresh compound production mutation E2E was attempted but execution safety rejected the mutation request before execution; no test data or partial residue was created.
+- Browser-rendered E2E for main.html remains OPEN because the owner has not yet applied/published the four source substitutions.
+
+## Do not reopen
+- DirectReturn Receive direction fix.
+- Master Assignment backend contract.
+- Owner wildcard / owner identity.
+- Main delegation to `vouchers.html`.
+- Existing stock/accounting core.
+
+## Next exact resumption point
+1. Owner applies only Report383 PATCH 1→4 to `Current/PWA/main.html`.
+2. Run complete inline-JS Syntax Gate.
+3. Publish the new mother artifact.
+4. Verify served artifact identity.
+5. Run rendered Browser E2E.
+6. Verify DirectSale and DirectReturn show the representative name from `custodian_user_id`.
+7. Verify Transfer and SupplierReturn remain `-`.
+8. Verify refresh and empty-state rendering.
+9. Do not modify operational voucher workflow in response to this display-only closure.
+10. Close the UI projection contract only after rendered production evidence.
+
+## Status
+- ROOT CAUSE: PROVEN
+- PRODUCTION CONTRACT: VERIFIED
+- SOURCE PATCH: READY FOR OWNER
+- STATIC SYNTAX: PASS
+- SEMANTIC MAPPING: PASS
+- PRODUCTION MUTATION E2E THIS CYCLE: NOT EXECUTED (safety gate)
+- BROWSER E2E: OPEN
+- DEPLOYMENT EVIDENCE: OPEN
