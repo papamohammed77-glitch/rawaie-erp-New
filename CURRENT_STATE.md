@@ -1,3 +1,132 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-01 — Report389
+
+> This block supersedes stale header values below. Reports remain historical evidence; current truth is rebuilt from Current Git + Current Source + Current Production + Current Database + Current Deployment Evidence.
+
+## Current Git / Source of Truth
+
+- Frontend repo: `papamohammed77-glitch/erp-frontend`
+- branch: `main`
+- HEAD: `768ee12721a85511e38618666c29568f0658615c`
+- parent: `bc4d7a02919dcaf82d11bb599e879281cd550737`
+- `companies/company-1/main.html` blob: `2b5b763ada7428f96a05c1144c75f13eec5b1492`
+- Current inline JS parse gate: PASS.
+
+## Important Reconciliation
+
+The older CURRENT_STATE/Reports 384–388 described a pre-768 state. Commit 768 already contains the DirectSale/DirectReturn `المندوب` column and `colspan=11` changes in `_renderVoucherHistory()`. Do NOT reapply Report388 surgery unless served artifact/runtime proves it is older than Current Git.
+
+## Owner / License Tab
+
+Production owner record is currently proven as:
+- `public.users.permissions=["*"]`
+- status Active
+- auth_id linked correctly to owner_profile
+- owner_profile license_status = active
+- Auth metadata currently also contains isOwner=true, but metadata is NOT the authority.
+
+Current main defect:
+`RW_Auth.login()` hydrates `currentUser.isOwner` and `RW_STATE.permissions` from `user.user_metadata` instead of DB `users.permissions`.
+
+Owner surgical replacement is documented in Report389 section 6:
+`return RW_SUPABASE_CLIENT.from('users').select('company_id, status')...`
+→ select DB permissions/name, derive `isOwner` from `permissions[*]`, and populate `currentUser.permissions`.
+
+## Items
+
+Current Items module is present and integrated:
+- CRUD
+- category
+- pricing
+- inventory controls
+- opening stock
+- image URL
+- show_in_store
+- discounts/marketing
+- online-store visibility
+- movement and branch matrix
+
+Proven current defect:
+`RW_Items._handleSaveFromPage() → resolveImageUrlAndSave()`
+continues into `executeSave()` after image upload failure by falling back to old image URL.
+
+Owner surgical replacement is documented in Report389 section 9. It aborts on upload failure and changes `upsert:true` to `upsert:false`.
+
+Current Items table renderer is already corrected; do NOT repeat the historical `rowHtml` branch-loop fix from Report153.
+
+## Production Changes Executed
+
+Supabase project: `fiilmooggumokxanwiyx`
+
+### save-item
+Existing Edge Function only; NO new function.
+- version 13 → version 14
+- verify_jwt = true
+- authorization now uses DB `users.permissions` only (`items` or `*`)
+- category clear now explicitly writes `category_id=null` and `category=null`
+- existing company scoping / opening-stock RPC / item code generation preserved.
+
+### product-images Storage
+- removed public INSERT policy
+- removed duplicate generic authenticated INSERT policies
+- created `product_images_authenticated_insert_items`
+- upload allowed only for active authenticated users whose DB user or role has `items` or `*`
+- public SELECT remains because online-store assets are intentionally public
+- no UPDATE policy added; frontend upload now uses `upsert:false`
+
+## QA / E2E Evidence
+
+Transactional QA was run with real Production structures and rolled back.
+
+Create + opening stock:
+- create success=true
+- opening balance posted=true
+- branch qty delta +2
+- allocated=0
+- inventory_log rows=1
+- journal_entries unchanged at 10
+- then ROLLBACK
+
+Edit + store visibility:
+- opening_balance_posted=false
+- inventory_log before/after edit = 0/0
+- journal_entries before/after = 10/10
+- show_in_store=true became store-eligible
+- category_id cleared to null
+- image_url persisted
+- then ROLLBACK
+
+Cleanup after tests:
+- QA items = 0
+- QA inventory logs = 0
+- QA voucher residue = 0
+
+## Current Production Item Counts
+
+- items = 17
+- active + store-visible items = 17
+- items with image_url = 16
+
+## Browser / Deployment Boundary
+
+Browser-rendered E2E is still OPEN because this environment has no browser interaction tool for the deployed runtime. Served-artifact identity is also OPEN.
+
+## Next exact checkpoint
+
+1. Apply only Report389 Owner surgical block to current main.html.
+2. Apply only Report389 image helper surgical block to current main.html.
+3. Syntax check.
+4. Publish.
+5. Fresh login/session.
+6. Verify إدارة التراخيص.
+7. Verify item create/edit/image failure/success/store visibility.
+8. Verify DirectSale/DirectReturn representative column.
+9. Verify served artifact matches Current Git.
+10. Do not redo Reports 384–388 unless runtime proves an older artifact.
+
+Full details: `doc/Draft/Reprots/Report389_MOTHER_OWNER_WILDCARD_ITEMS_IMAGE_FORENSIC_SURGICAL_20261001.md`
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-09-30 — REPORT379 VAN SALES EXECUTION
 
 Authoritative basis: CURRENT GIT + CURRENT SOURCE + CURRENT PRODUCTION + CURRENT DATABASE + CURRENT DEPLOYMENT EVIDENCE.
