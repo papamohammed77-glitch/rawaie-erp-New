@@ -515,3 +515,67 @@ Start from:
 7. Then run real authenticated E2E with a real Telesales account.
 8. After Telesales closes, continue the next business capability without reopening protected inventory core.
 
+
+
+# ADDENDUM — 2026-10-08 — EXISTING ORDER UPDATE CONTRACT CLOSED
+
+The previously open existing-order edit contract has now been implemented in the existing central `public.save_sales_invoice_atomic` function; no new RPC/function was created.
+
+## Contract
+When `p_order_header.existing_order_code` is supplied:
+- the target order is locked with `FOR UPDATE`;
+- the order must belong to the current company;
+- the order must not be linked to a Runsheet;
+- the previous status must be `Draft` or `Confirmed`;
+- ordinary users may modify only their own order;
+- owner/general manager/sales manager/sales supervisor may modify another user's eligible order;
+- the new state remains non-invoiced (`Draft` or `Confirmed`);
+- order header is updated;
+- order details are replaced atomically inside the same database function;
+- no `post_stock_movement` is called for this update path;
+- no accounting writer is called for this update path;
+- the original order code and identity remain intact;
+- the new operation_id identifies the edit request.
+
+This preserves the central transaction boundary instead of returning to direct browser UPDATE/DELETE/INSERT operations.
+
+## Production verification
+
+A real Production-shaped transaction was executed using:
+- real company context;
+- real Telesales user email;
+- real existing customer;
+- real active item;
+- real BR-01 branch;
+- temporary QA order and details;
+- `existing_order_code` update path.
+
+Observed inside the transaction:
+- target order updated;
+- quantity changed from 1 to 2;
+- unit price persisted;
+- source remained `telesales`;
+- status remained `Confirmed`;
+- update contract returned successfully.
+
+The complete QA transaction was rolled back.
+
+Post-rollback:
+- QA order residue = 0.
+- QA detail residue = 0.
+- No production stock movement was left by the test.
+- No accounting residue was left by the test.
+
+The current function definition was re-read after deployment and confirms `v_existing_order_code` is installed.
+
+## Closure correction
+
+The previous section saying that the existing-order edit contract was OPEN is superseded by this addendum.
+
+New status:
+`EXISTING ORDER UPDATE CONTRACT = VERIFIED`
+
+The frontend Patch C in this report is now safe to apply, with one required change:
+- the Edge request must send `existing_order_code` and a fresh `operation_id`;
+- the Production function now recognizes both.
+
