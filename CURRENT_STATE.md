@@ -2117,3 +2117,26 @@ The same read-surface verification passed for Order-Taker.
 4. Run authenticated Telesales E2E.
 5. Verify the served artifact and service-worker version.
 6. Close the full Telesales business capability only after Runsheet handoff and downstream visibility are verified.
+
+# CURRENT STATE CORRECTION — 2026-10-08 — EXISTING ORDER UPDATE
+
+The existing-order edit contract previously listed as OPEN in the Report391 checkpoint is now VERIFIED.
+
+## Production
+- Existing central `public.save_sales_invoice_atomic` was surgically extended; no new RPC/function created.
+- It accepts `existing_order_code` in the existing `p_order_header` JSON contract.
+- It locks the target order, requires Draft/Confirmed and no Runsheet, enforces ownership/manager privilege, updates header and replaces details atomically.
+- It does not invoke stock movement or accounting for the Confirmed/Draft edit path.
+
+## Verification
+- Real Production-shaped QA transaction executed with the real Telesales identity, real customer, real item and BR-01.
+- Existing QA order changed quantity 1 → 2 and returned successful update state.
+- Entire transaction rolled back.
+- QA order residue=0; QA detail residue=0.
+- Function re-read after modification and confirmed the update contract is installed.
+
+## Updated closure
+- Production integration foundation = VERIFIED.
+- Existing-order update contract = VERIFIED.
+- Remaining full closure requirements are frontend application of the exact surgical patches and authenticated browser E2E through Runsheet/downstream workflow.
+- Report391 addendum commit: `d4718232c463f88e8e88f174c01d7674b370539c`.
