@@ -2051,3 +2051,69 @@ Do not reopen:
 - تم تصحيح الـsource anchors في التقرير لتطابق النص الحالي حرفيًا، بما في ذلك `colspan="10"` → `colspan="11"` والنص الفعلي لحالة الفراغ، ورأس الجدول الكامل بخصائص CSS الحالية.
 - آخر Commit لتقرير Report388: `934ea0ea8e6b39900ab698e5d1290dd2be49e5b4`.
 - لا يوجد أي تغيير إضافي على `main.html` من جانب المساعد.
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-08 — REPORT391 TELESALES / MOTHER INTEGRATION
+
+> This checkpoint supersedes older statements about the Telesales production read surface. It does NOT close the full Telesales workflow; it closes and verifies the Production integration foundation.
+
+## Production
+- Supabase project: SMART ERP / `fiilmooggumokxanwiyx`.
+- Edge Function count remains 100; no new function created.
+- `save-sales-invoice`: v16 ACTIVE, verify_jwt=true, deployment SHA `fef1f4111c6ad06c0a38eed6621b3d5d5e066352c46e0f2209099ebd811eaba2`.
+- `delete-order`: v10 ACTIVE, verify_jwt=true, deployment SHA `e219c09f35c96e33800c36866ed48e7b65234164117fd58985db151c96728eb6`.
+- Telesales DB user: `telesales@rawaea.com`, permissions=["telesales"], allowed branch BR-01.
+- Order-Taker DB user: `order-taker@rawaea.com`, permissions=["orders"], allowed branch BR-01.
+
+## Production RLS repaired
+Created SELECT policies for the sales-entry capability:
+- `branches_select_sales_entry`
+- `customers_select_sales_entry`
+- `items_select_sales_entry`
+- `stock_branches_select_sales_entry`
+- `orders_select_sales_entry_own`
+- `order_details_select_sales_entry_own`
+
+Authenticated-role verification using the real Telesales auth identity proved:
+- branches=1 (BR-01)
+- customers=3
+- items=17
+- stock_branches=17
+- own orders=0
+- own order details=0
+
+The same read-surface verification passed for Order-Taker.
+
+## Production authorization repair
+- save-sales-invoice now requires DB sales permission and enforces source/status rules.
+- Telesales canonical source = `telesales`.
+- Order-Taker canonical source = `order-taker`.
+- Telesales/Order-Taker cannot directly create Invoiced stock-moving sales through this Edge Function.
+- Branch assignment is checked against DB `allowed_branch_ids` / `default_branch_id`.
+- delete-order now prevents ordinary Telesales/Order-Taker users from deleting another user's order and blocks their direct deletion of executed Invoiced orders.
+
+## Protected
+- main.html not modified.
+- telesales.html not modified.
+- core.js not modified.
+- save_sales_invoice_atomic not redesigned.
+- post_stock_movement and Inventory workflow not modified.
+
+## Open
+- Telesales frontend still needs the exact DB-permission hydration patch.
+- Telesales syncDown still needs explicit Supabase error handling before clearing Dexie.
+- Explicit source='telesales' should be added to frontend payload for semantic clarity.
+- Existing-order edit lacks a canonical backend update contract and must NOT be emulated by direct client UPDATE/DELETE/INSERT writes.
+- Browser-rendered E2E and served-artifact identity remain open.
+- Owner/license-tab Mother surgery from Report390 remains separate and unverified.
+
+## Report
+- `doc/Draft/Reprots/Report391_TELESALES_MOTHER_INTEGRATION_FORENSIC_20261008.md`
+- Report commit: `79eb147c0734943b531ea4544e60ecd1fc58b68e`
+
+## Next exact resumption point
+1. Apply Patch A and the safe syncDown patch in current Telesales source.
+2. Add explicit source=telesales.
+3. Do not touch existing-order edit until a canonical update contract is implemented and tested.
+4. Run authenticated Telesales E2E.
+5. Verify the served artifact and service-worker version.
+6. Close the full Telesales business capability only after Runsheet handoff and downstream visibility are verified.
