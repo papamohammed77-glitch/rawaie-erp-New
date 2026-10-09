@@ -1,3 +1,28 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report397 ORDER TAKER CUSTOMER ID / CODE MISMATCH
+
+> هذا أحدث checkpoint لهذه المشكلة ويقدّم على توصية الواجهة في Report396 فيما يخص الحالة الفعلية الحالية. أُعيدت قراءة Production وGit في هذه الدورة؛ لا تعتمد على هذا النص بدل إعادة القراءة عند بدء الجلسة التالية.
+
+## Production / source resync
+- Supabase project: `fiilmooggumokxanwiyx`.
+- `update-order`: v6 ACTIVE، `verify_jwt=true`، Production package SHA-256 `a1b06430b9d90777f7d9549286d9c64e7df009c5d15a19917ce6be096a00c8f3`.
+- Production RPC `public.update_order_atomic(uuid,text,text,jsonb,jsonb,text,uuid)` يبحث عن العميل باستخدام `customers.customer_code` مع `company_id`، ويحدّث order.customer_id بعد حلّ العميل.
+- Live DB integrity check at this inspection: orders=1, customers=3, orphan/cross-company customer links=0. `ORD-1001` currently links to a customer in the same company with canonical customer_code `CUST-158938`; DO NOT delete it without fresh proof it is a safe fixture.
+- Unified Logs query returned a backend error; no claim is made about the exact failing request log.
+- Current frontend `erp-frontend/companies/company-1/sales/order-taker.html` blob SHA: `e1ab0f35218672cc7134cf18a7a35daaa807a757`.
+- Current frontend includes the source attribution fix `hdr.source='order-taker'`, the transactional/error-aware `syncDown`, and the `enterApp` catch. This supersedes Report396's stale statement that these patches remain pending.
+- Root cause confirmed in `self._editOrderFromDetail`: it assigns `order.customer_id` UUID to `selCust.customer_code` and queries Dexie by `customer_code = order.customer_id`. `submitOrder` then sends the UUID in `orderHeader.customer_code`, which Production RPC correctly rejects.
+- Same UUID/code confusion appears in `self.repeatOrder` lookup. No Edge/RPC/schema change is indicated; repair the consumer contract.
+
+## Current work / exact next action
+- Report: [Report397_ORDER_TAKER_EDIT_CUSTOMER_ID_CODE_MISMATCH_20261010.md](doc/Draft/Reprots/Report397_ORDER_TAKER_EDIT_CUSTOMER_ID_CODE_MISMATCH_20261010.md).
+- Report commit SHA: 7c05ad967d4473f49cd9ced6f86c6ae9b0fddcd2.
+- Owner must apply Report397 Patch D in `erp-frontend/companies/company-1/sales/order-taker.html`, function `self._editOrderFromDetail`, and Patch E in `self.repeatOrder`. Per owner instruction, assistant did not edit the operational frontend file.
+- Do not touch `main.html`, `core.js`, or Production RPC for this issue.
+- After patch/publish: test edit preserving customer, correct payload customer_code, company isolation, cache miss/failure safe abort, repeat order, no inventory/runsheet side effects; then verify served artifact and restore test baseline.
+- Closure: `ROOT CAUSE VERIFIED / SURGICAL PATCHES DOCUMENTED / FRONTEND RUNTIME E2E PENDING / NOT CLOSED`.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report396 ORDER TAKER SOURCE ATTRIBUTION / PRODUCTION RESYNC
 
 > هذا أحدث checkpoint لهذه الوحدة. Production أعيدت قراءته قبل وبعد النشر. لا تعتبر التقرير وحده حالة حية؛ أعد فحص Production وGit قبل أي تعديل جديد.
