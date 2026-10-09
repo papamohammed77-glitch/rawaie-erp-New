@@ -22,9 +22,9 @@
   - `20261009164325_telesales_update_order_status_and_duplicate_guard_20261009.sql` — commit `6de7c8ffcec48e57e191f21ebaa45abf59bcad2e`.
   - `20261009164549_fix_telesales_update_order_duplicate_guard_alias_20261009.sql` — commit `e74020920dbd56b3822bb0b89d0bf86c1b38b8f2`.
   - `20261009164638_fix_telesales_update_order_audit_action_constraint_20261009.sql` — commit `4e762f36d4c16941e17fa1b1414a5fdcb83efab5`.
-- Updated full execution report: `doc/Draft/Reprots/Report391_TELESALES_CENTRAL_INTEGRATION_20261009.md`; latest report commit `1d710e99645b45dc2e093585b395f7e690665c8d`.
+- Updated full execution report: `doc/Draft/Reprots/Report391_TELESALES_CENTRAL_INTEGRATION_20261009.md`; latest report commit `e9e762f05d39953beeafe806f0e9de07f314886b`.
 - Deployed existing Edge Function `update-order` v5 with DB permission validation (`*`, `orders`, or `telesales`) and company/branch-scope validation before calling `update_order_atomic`.
-- Transactional QA exercised update-to-Confirmed, detail persistence, duplicate-item rejection, and no `stock_branches` / `inventory_log` changes, then rolled back. The first QA runs exposed and led to repairs of the SQL alias and audit CHECK mismatch. A post-rollback production count check confirmed `orders=0`, `runsheets=0`, QA order residue `0`, QA audit residue `0`, and QA operation-registry residue `0`. This proves cleanup for this transactional QA only; it is not browser/HTTP E2E evidence.
+- Transactional QA exercised update-to-Confirmed, detail persistence, duplicate-item rejection, and no `stock_branches` / `inventory_log` changes, then rolled back. The first QA runs exposed and led to repairs of the SQL alias and audit CHECK mismatch. A post-rollback production count check confirmed `orders=0`, `runsheets=0`, QA order residue `0`, QA audit residue `0`, and QA operation-registry residue `0`. This proves cleanup for this transactional QA only; it is not browser/HTTP E2E evidence. A direct HTTP attempt from this runtime could not resolve the Supabase hostname (DNS/network unavailable), so HTTP behavior remains unverified rather than reported as passed.
 
 ## Proven frontend integration defect
 
