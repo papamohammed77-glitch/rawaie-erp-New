@@ -1,0 +1,132 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+);
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin":"*",
+  "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type, idempotency-key",
+  "Access-Control-Allow-Methods":"POST, OPTIONS"
+};
+
+async function deterministicUuid(seed:string){
+  const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(seed));
+  const hex=Array.from(new Uint8Array(buf)).map(x=>x.toString(16).padStart(2,"0")).join("");
+  return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20,32)}`;
+}
+
+function branchAllowed(allowedBranchIds:unknown, defaultBranchId:string|null, branchId:string, branchCode:string):boolean {
+  if (Array.isArray(allowedBranchIds)) {
+    const ids=allowedBranchIds.map(x=>String(x).trim()).filter(Boolean);
+    if (ids.length) return ids.includes(branchId) || ids.includes(branchCode);
+  } else if (typeof allowedBranchIds==="string" && allowedBranchIds.trim()) {
+    const raw=allowedBranchIds.trim();
+    return raw===branchId || raw===branchCode;
+  }
+  return !defaultBranchId || defaultBranchId===branchId;
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok",{headers:corsHeaders});
+  try {
+    const body = await req.json().catch(()=>({}));
+    const orderCode = String(body?.order_code || "").trim();
+    const header = body?.orderHeader || null;
+    const items = Array.isArray(body?.itemsList) ? body.itemsList : [];
+    const branchCode = String(body?.branchCode || "").trim();
+    if (!orderCode || !header || !items.length) throw new Error("البيانات غير مكتملة");
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("غير مصرح");
+    const token = authHeader.replace(/^Bearer\s+/i,"");
+    const {data:{user},error:authError} = await supabase.auth.getUser(token);
+    if (authError || !user?.id || !user.email) throw new Error("جلسة غير صالحة");
+
+    const {data:actor,error:actorError} = await supabase
+      .from("users")
+      .select("company_id,status,permissions,role_id,default_branch_id,allowed_branch_ids")
+      .eq("auth_id",user.id)
+      .maybeSingle();
+    if (actorError || !actor?.company_id) throw new Error("سياق الشركة غير محدد للمستخدم");
+    if (actor.status && actor.status !== "Active") throw new Error("المستخدم غير نشط");
+
+    const effectivePermissions = new Set<string>(
+      Array.isArray(actor.permissions)
+        ? actor.permissions.map((x:unknown)=>String(x).trim()).filter(Boolean)
+        : []
+    );
+
+    if (actor.role_id) {
+      const {data:role,error:roleError} = await supabase
+        .from("roles")
+        .select("permissions")
+        .eq("id",actor.role_id)
+        .eq("company_id",actor.company_id)
+        .maybeSingle();
+      if (roleError) throw new Error("تعذر التحقق من صلاحيات الدور: " + roleError.message);
+
+      if (Array.isArray(role?.permissions)) {
+        for (const permission of role.permissions) {
+          const key = String(permission).trim();
+          if (key) effectivePermissions.add(key);
+        }
+      }
+
+      const {data:roleRows,error:rolePermissionsError} = await supabase
+        .from("role_permissions")
+        .select("permission_key")
+        .eq("role_id",actor.role_id);
+      if (rolePermissionsError) throw new Error("تعذر تحميل صلاحيات الدور: " + rolePermissionsError.message);
+
+      for (const row of roleRows || []) {
+        const key = String(row.permission_key || "").trim();
+        if (key) effectivePermissions.add(key);
+      }
+    }
+
+    const permissions = Array.from(effectivePermissions);
+    const isOwner = effectivePermissions.has("*");
+    if (!isOwner && !effectivePermissions.has("orders") && !effectivePermissions.has("telesales")) {
+      throw new Error("لا تملك صلاحية تعديل الأوردرات");
+    }
+
+
+    const {data:branch,error:branchError} = await supabase
+      .from("branches")
+      .select("id,branch_code")
+      .eq("company_id",actor.company_id)
+      .eq("branch_code",branchCode || "MAIN")
+      .maybeSingle();
+    if (branchError) throw new Error(branchError.message);
+    if (!branch?.id) throw new Error("الفرع غير موجود ضمن الشركة");
+    if (!isOwner && !branchAllowed(actor.allowed_branch_ids, actor.default_branch_id, branch.id, branch.branch_code)) {
+      throw new Error("لا تملك صلاحية العمل على هذا الفرع");
+    }
+
+    let operationId = String(body?.operation_id || req.headers.get("Idempotency-Key") || "").trim();
+    if (!operationId) operationId = await deterministicUuid(user.id+"|update-order|"+orderCode+"|"+JSON.stringify({header,items,branchCode}));
+
+    const {data,error}=await supabase.rpc("update_order_atomic",{
+      p_company_id:actor.company_id,
+      p_order_code:orderCode,
+      p_user_email:user.email,
+      p_order_header:header,
+      p_items:items,
+      p_branch_code:branchCode || "MAIN",
+      p_operation_id:operationId
+    });
+    if(error) throw new Error(error.message);
+
+    return new Response(JSON.stringify({...data,operation_id:operationId}),{
+      headers:{...corsHeaders,"Content-Type":"application/json"}
+    });
+  } catch(error) {
+    return new Response(JSON.stringify({success:false,msg:error?.message || "فشل تحديث الأوردر"}),{
+      status:400,
+      headers:{...corsHeaders,"Content-Type":"application/json"}
+    });
+  }
+});
