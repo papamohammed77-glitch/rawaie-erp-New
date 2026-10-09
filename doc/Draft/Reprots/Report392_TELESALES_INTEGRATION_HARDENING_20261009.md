@@ -44,7 +44,7 @@
 - Production v6: `ACTIVE`, `verify_jwt=true`, package SHA-256 `a1b06430b9d90777f7d9549286d9c64e7df009c5d15a19917ce6be096a00c8f3`.
 
 تم حفظ المصدر الحالي المسترجع من Production في:
-`Current/Edge_Functions/update-order` — commit `c03a39d69ba8fc1cc9da8b7bd53368163d856e24`.
+`Current/Edge_Functions/update-order` — blob SHA `a729c50a1f45fa78c4f5c86504f5c7fdb9ca18b3`، commit `c03a39d69ba8fc1cc9da8b7bd53368163d856e24`. الـblob SHA هو Git identity للملف، وليس مساويًا تلقائيًا لـProduction package SHA-256.
 
 ### B. PostgreSQL idempotency repair
 أثبت فحص تعريف `update_order_atomic` وجود فحص idempotency قبل قفل الأوردر فقط. عند طلبين متزامنين بنفس `operation_id`، قد يجتاز الطلب الثاني الفحص الأول قبل اكتمال الأول ثم ينتظر قفل الأوردر، وبعده يعيد التنفيذ لأن الفحص لم يتكرر.
