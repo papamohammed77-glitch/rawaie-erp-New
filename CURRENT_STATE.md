@@ -18,6 +18,11 @@
 - Applied migration `telesales_update_order_status_and_duplicate_guard_20261009`: update-order RPC now confirms an edited eligible order and checks duplicate JSON item `code` correctly.
 - Applied migration `fix_telesales_update_order_duplicate_guard_alias_20261009`: corrected the SQL alias after the first transactional QA exposed the mismatch.
 - Applied migration `fix_telesales_update_order_audit_action_constraint_20261009`: audit uses allowed `action='update'` while preserving `table_name='orders'`, `source_type='telesales'`, and operation identity.
+- Canonical source files for all three migrations were added under `supabase/migrations/`:
+  - `20261009164325_telesales_update_order_status_and_duplicate_guard_20261009.sql` — commit `6de7c8ffcec48e57e191f21ebaa45abf59bcad2e`.
+  - `20261009164549_fix_telesales_update_order_duplicate_guard_alias_20261009.sql` — commit `e74020920dbd56b3822bb0b89d0bf86c1b38b8f2`.
+  - `20261009164638_fix_telesales_update_order_audit_action_constraint_20261009.sql` — commit `4e762f36d4c16941e17fa1b1414a5fdcb83efab5`.
+- Updated full execution report: `doc/Draft/Reprots/Report391_TELESALES_CENTRAL_INTEGRATION_20261009.md`; latest report commit `1d710e99645b45dc2e093585b395f7e690665c8d`.
 - Deployed existing Edge Function `update-order` v5 with DB permission validation (`*`, `orders`, or `telesales`) and company/branch-scope validation before calling `update_order_atomic`.
 - Transactional QA exercised update-to-Confirmed, detail persistence, duplicate-item rejection, and no `stock_branches` / `inventory_log` changes, then rolled back. The first QA runs exposed and led to repairs of the SQL alias and audit CHECK mismatch. A post-rollback production count check confirmed `orders=0`, `runsheets=0`, QA order residue `0`, QA audit residue `0`, and QA operation-registry residue `0`. This proves cleanup for this transactional QA only; it is not browser/HTTP E2E evidence.
 
