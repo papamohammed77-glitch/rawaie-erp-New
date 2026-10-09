@@ -52,7 +52,7 @@
 تمت إضافة إعادة فحص لسجل العمليات بعد `SELECT ... FOR UPDATE` وقبل تعديل الحالة أو التفاصيل. إذا اكتمل الطلب الأول، يرجع الثاني نفس النتيجة مع `duplicate=true` بدل إعادة كتابة التفاصيل.
 
 - Migration: `20261009210000_fix_update_order_idempotency_after_order_lock.sql`.
-- Commit: `3e1dfe2ad789741e8cb5a53459db3aa2ee700f5f`.
+- Commit: `54f5bfa7794878aa2771ca083eff8170c1e3851b`.
 - تم تطبيق migration في Production.
 - بعد التطبيق، أكد تعريف Production وجود الفحص الثاني، مع بقاء ACL محصورًا في `postgres/service_role`.
 
