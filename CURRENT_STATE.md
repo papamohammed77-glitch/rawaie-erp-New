@@ -17,7 +17,7 @@
 - Mother source `erp-frontend/companies/company-1/main.html`: blob SHA `4f94f9c6ebdde1b59632384628c72767d3bb950d`. GitHub connector returned empty content even for line-range fetches. File was not changed; do not infer its internal behavior from this checkpoint.
 - Telesales PWA `erp-frontend/companies/company-1/sales/telesales.html`: blob SHA `d839ff043631d365be8eb2832ee98aa4fabcb43c`; unchanged by assistant.
 - Shared core `erp-frontend/companies/company-1/core.js`: blob SHA `e853c49375ccc8b94757b594057dcd853b4a2fdb`; unchanged by assistant.
-- Canonical current Edge source added at `Current/Edge_Functions/update-order`, commit `c03a39d69ba8fc1cc9da8b7bd53368163d856e24`.
+- Canonical current Edge source added at `Current/Edge_Functions/update-order`, blob SHA `a729c50a1f45fa78c4f5c86504f5c7fdb9ca18b3`, commit `c03a39d69ba8fc1cc9da8b7bd53368163d856e24`; this Git blob SHA is distinct from the Production package SHA-256.
 - Canonical SQL migration added at `supabase/migrations/20261009210000_fix_update_order_idempotency_after_order_lock_20261009.sql`, commit `3e1dfe2ad789741e8cb5a53459db3aa2ee700f5f`.
 - Full execution report: [Report392_TELESALES_INTEGRATION_HARDENING_20261009.md](doc/Draft/Reprots/Report392_TELESALES_INTEGRATION_HARDENING_20261009.md), commit `658d6d0daa6ce98ba0a698a3a8dcf3ad465920fc`.
 
