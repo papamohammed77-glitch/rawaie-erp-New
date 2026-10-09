@@ -74,8 +74,9 @@ BEGIN
   FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'الأوردر غير موجود'; END IF;
 
-  -- Recheck after locking the order: a concurrent retry may have passed the
-  -- first registry check before the original transaction committed.
+  -- Recheck the idempotency registry after acquiring the order row lock.
+  -- A concurrent retry may have passed the initial check while the first
+  -- transaction was still running; the order lock serializes same-order edits.
   SELECT response_payload INTO v_result
   FROM public.erp_operation_registry
   WHERE company_id=p_company_id
