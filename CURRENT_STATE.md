@@ -1,3 +1,33 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report394 TELESALES PRODUCTION RESYNC
+
+> أحدث فحص في هذه الجلسة: Production أُعيدت قراءته مباشرة؛ لا تُعامل تقارير Report392/393 كحالة حية. لم يتم تعديل `main.html` أو `telesales.html` أو `core.js`. لا تزال جراحة الواجهة والنشر واختبارات HTTP/Browser مطلوبة قبل إغلاق التكامل.
+
+## Production re-read — 2026-10-10
+
+- Supabase project: `fiilmooggumokxanwiyx`.
+- `save-sales-invoice`: v17 ACTIVE, `verify_jwt=true`, package SHA-256 `fee635a235a3f8e42db8f72e792bbf2a828fb6a444f082c59bc8e95c4fa9ddb1`.
+- `update-order`: v6 ACTIVE, `verify_jwt=true`, package SHA-256 `a1b06430b9d90777f7d9549286d9c64e7df009c5d15a19917ce6be096a00c8f3`.
+- `public.get_my_effective_profile()`: موجودة؛ `SECURITY DEFINER`, `search_path=''`, `anon EXECUTE=false`, `authenticated EXECUTE=true`. تعتمد `auth.uid()` وتدمج الصلاحيات المباشرة وصلاحيات الدور.
+- Baseline الحالي عند الاستعلام: `orders=0`, `order_details=0`, `runsheets=0`, `run_sheet_details=0`.
+- لم يحدث تعديل جديد في Production في هذه المراجعة.
+
+## Current frontend artifact identity
+
+- `erp-frontend/companies/company-1/main.html`: blob `4f94f9c6ebdde1b59632384628c72767d3bb950d`; أداة GitHub أعادت محتوى فارغًا، ولم يُعدّل.
+- `erp-frontend/companies/company-1/sales/telesales.html`: blob `d839ff043631d365be8eb2832ee98aa4fabcb43c`; لم يُعدّل.
+- `erp-frontend/companies/company-1/core.js`: blob `e853c49375ccc8b94757b594057dcd853b4a2fdb`; لم يُعدّل.
+
+## Latest report and next actions
+
+- Report394: [Report394_TELESALES_PRODUCTION_RESYNC_AND_SURGICAL_PATCH_20261010.md](doc/Draft/Reprots/Report394_TELESALES_PRODUCTION_RESYNC_AND_SURGICAL_PATCH_20261010.md), commit `3c4a94cf08c7c15ec4cf903445704bce3875eaab`.
+- Replace only the complete `RW_Auth` IIFE in `core.js` using Report393 section 3.
+- Replace only `self.submitOrder = function() { ... };` in `telesales.html` using Report392 section 3.
+- Do not touch `main.html`; owner applies frontend edits.
+- After publish: regression-test every PWA consumer of `RW_Auth`, then authenticated HTTP/Browser E2E for direct and role-derived permissions, create/edit, idempotent retry, no stock movement, runsheet linkage, company/branch isolation, and baseline restoration.
+- Closure: `BACKEND VERIFIED / FRONTEND SURGERY PENDING / NOT CLOSED`.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report393 TELESALES ROLE-PERMISSION PARITY
 
 > هذا أحدث checkpoint ويقدّم على Report392. لا يُغلق تكامل الواجهة؛ لا يزال المالك مسؤولًا عن تطبيق الجراحة في `erp-frontend/companies/company-1/core.js` و`sales/telesales.html` ثم النشر وHTTP/Browser E2E. لم يتم تعديل `main.html` أو `telesales.html` أو `core.js`.
