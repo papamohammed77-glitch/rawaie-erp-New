@@ -1,3 +1,38 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-09 — Report392 TELESALES INTEGRATION HARDENING
+
+> هذا أحدث checkpoint. يُقدّم على التقارير الأقدم، لكن لا يُغلق تكامل الواجهة؛ تعديلات الواجهة ما زالت تنتظر تطبيق المالك ونشرها واختبارها.
+
+## Production snapshot re-read in this session
+
+- Supabase Production project: `SMART ERP` / `fiilmooggumokxanwiyx`, status `ACTIVE_HEALTHY`.
+- Existing Edge Function `update-order`: **v6 ACTIVE**, `verify_jwt=true`, package SHA-256 `a1b06430b9d90777f7d9549286d9c64e7df009c5d15a19917ce6be096a00c8f3`.
+- `update-order` now combines direct `public.users.permissions` with same-company `roles.permissions` and `role_permissions.permission_key` before checking `*`, `orders`, or `telesales`.
+- Existing PostgreSQL RPC `public.update_order_atomic(uuid,text,text,jsonb,jsonb,text,uuid)` remains `SECURITY DEFINER`; ACL verified as `postgres/service_role` only.
+- Applied Production migration `fix_update_order_idempotency_after_order_lock_20261009`; the RPC rechecks the completed operation registry after locking the order row.
+- Production row counts at post-QA verification: `orders=0`, `runsheets=0`, `order_details=0`, `run_sheet_details=0`; QA registry and audit residue were both zero.
+- SQL transaction QA called the RPC twice with the same `operation_id`, verified second response `duplicate=true` and one detail row, then rolled back. This is not concurrent multi-session testing or HTTP/browser E2E.
+
+## Git/source provenance
+
+- Mother source `erp-frontend/companies/company-1/main.html`: blob SHA `4f94f9c6ebdde1b59632384628c72767d3bb950d`. GitHub connector returned empty content even for line-range fetches. File was not changed; do not infer its internal behavior from this checkpoint.
+- Telesales PWA `erp-frontend/companies/company-1/sales/telesales.html`: blob SHA `d839ff043631d365be8eb2832ee98aa4fabcb43c`; unchanged by assistant.
+- Shared core `erp-frontend/companies/company-1/core.js`: blob SHA `e853c49375ccc8b94757b594057dcd853b4a2fdb`; unchanged by assistant.
+- Canonical current Edge source added at `Current/Edge_Functions/update-order`, commit `c03a39d69ba8fc1cc9da8b7bd53368163d856e24`.
+- Canonical SQL migration added at `supabase/migrations/20261009210000_fix_update_order_idempotency_after_order_lock_20261009.sql`, commit `3e1dfe2ad789741e8cb5a53459db3aa2ee700f5f`.
+- Full execution report: [Report392_TELESALES_INTEGRATION_HARDENING_20261009.md](doc/Draft/Reprots/Report392_TELESALES_INTEGRATION_HARDENING_20261009.md), commit `658d6d0daa6ce98ba0a698a3a8dcf3ad465920fc`.
+
+## Exact remaining owner-side frontend surgery
+
+1. In `companies/company-1/sales/telesales.html`, replace the full `self.submitOrder = function() { ... };` block with the corrected replacement in Report392. It routes edits through `update-order`, retains creation through `save-sales-invoice`, and resolves the existing edit flow's customer UUID to canonical `customer_code`.
+2. In `companies/company-1/core.js`, replace the complete `RW_Auth` IIFE with Report392's DB-backed replacement only after reviewing/regression-testing all shared-core consumers.
+3. Do not modify `main.html` or claim the integration is closed until the owner publishes the frontend and a real authenticated browser/HTTP test proves create/edit/authorization/runsheet linkage and no inventory side effects.
+
+## Current closure status
+
+`BACKEND HARDENED / OWNER FRONTEND SURGERY PENDING / FULL TELESALES INTEGRATION NOT CLOSED`.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-09 — Report391 TELESALES CENTRAL ORDER INTEGRATION
 
 > This block is the latest execution checkpoint. It records verified backend work and explicitly separates owner-side frontend work that remains pending.
