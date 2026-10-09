@@ -1,3 +1,42 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report396 ORDER TAKER SOURCE ATTRIBUTION / PRODUCTION RESYNC
+
+> هذا أحدث checkpoint لهذه الوحدة. Production أعيدت قراءته قبل وبعد النشر. لا تعتبر التقرير وحده حالة حية؛ أعد فحص Production وGit قبل أي تعديل جديد.
+
+## Production Edge — current verified state
+- Project: `fiilmooggumokxanwiyx`.
+- `save-sales-invoice`: v18 ACTIVE, `verify_jwt=true`, package `ezbr_sha256=43d20f1465725c4e273f717ac927c070d4b28be48241bd2c9c46a6d43bb40308`.
+- إصلاح تصنيف المصدر نُشر على Edge Function الموجودة؛ لم تُنشأ Function جديدة.
+- Production source `index.ts` = Current Git source نصيًا (6,885 chars).
+- Current Git blob: `1864c012f323068ceba5e1f2a0791a2c8bd10dbd`; commit: `b13814da8c0342aeadc16baf6ff45bb12c40decb`.
+- `update-order`: v6 ACTIVE, `verify_jwt=true`; لم يتغير.
+- RPC ACL: `save_sales_invoice_atomic` و`update_order_atomic` لا تسمحان بـEXECUTE لـanon/authenticated، وتسمحان لـservice_role فقط.
+
+## Production cleanup — re-read, not historical assumption
+- أُعيد اكتشاف fixture أعيد إنشاؤها بعد Report395: ORD-1001/ORD-1002/ORD-1003 وRS-1.
+- كل الأوردرات Pending ومن `telesales@rawaea.com`، والكميات الميدانية صفر، ولا توجد حركات مخزون أو قيود محاسبية أو اعتماديات تشغيلية مرتبطة حسب الفحوصات المسجلة في Report396.
+- حُذف RS-1 ثم الأوردرات الثلاثة مع تفاصيلها؛ audit_log محفوظ.
+- Post-cleanup verified: `orders=0`, `order_details=0`, `runsheets=0`, `run_sheet_details=0`; fixture movement/journal counts = 0.
+
+## Current frontend status — owner-side patches only
+- Target `erp-frontend/companies/company-1/sales/order-taker.html` blob `6fa258e51284bfc8c35fd66fb709d904024f989f`; **لم يُعدّل**.
+- Shared `companies/company-1/core.js` blob `c2e0a7f4ba11f44c11dfc4728ef4a1af1b256b81`; **لم يُعدّل**.
+- `main.html` لم يُعدّل.
+- Patches documented in Report396:
+  1. Set `hdr.source='order-taker'` only in create branch before `save-sales-invoice`.
+  2. Replace `self.syncDown` to check all Supabase errors before clearing Dexie and update local stores transactionally.
+  3. Catch `self.enterApp` sync failure, load local branches and show warning.
+- Do not alter update flow; edits remain on existing `update-order` → `update_order_atomic` path.
+- No new Edge Function, no new schema, no main.html/core.js edits.
+
+## Report / closure
+- Report: `doc/Draft/Reprots/Report396_ORDER_TAKER_INTEGRATION_PRODUCTION_SOURCE_ATTRIBUTION_20261010.md`.
+- Report commit: `d57efae35b0a526c8e448d5d38f3705eaac94c00`.
+- Current closure: `PRODUCTION SOURCE-ATTRIBUTION FIX DEPLOYED / TEST FIXTURES CLEANED / OWNER FRONTEND PATCHES A-B-C PENDING / NOT CLOSED`.
+- Not proven: authenticated browser E2E after v18; Cloudflare Pages/Service Worker artifact parity; runtime of owner-side patches before apply/publish.
+- Next: owner applies A/B/C in order-taker.html, publishes, then test roles orders-only, orders+telesales, owner wildcard; verify source attribution, no stock movement for Confirmed, edit preserves original source, runsheet linkage, syncDown failure safety, and baseline cleanup.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report395 TELESALES CURRENT GIT / PRODUCTION RECONCILIATION
 
 > هذا checkpoint أحدث من Report394. أُعيد فحص Production وGit والسجلات في الجلسة نفسها. لا تُعد تطبيق جراحة RW_Auth أو submitOrder؛ المصدر الحالي يحتويهما بالفعل. لا تدّعِ أن Cloudflare artifact الحالي مطابق قبل إثباته.
