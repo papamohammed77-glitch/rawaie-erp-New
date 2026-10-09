@@ -202,3 +202,16 @@ Final Closure Status: BACKEND VERIFIED / CURRENT GIT SURGERY PARTIALLY PRESENT /
 4. افحص artifact المنشور وService Worker بعد النشر.
 5. نفّذ E2E مباشرًا وموروث الصلاحية عبر HTTP/Browser، ثم افحص الجداول والـinventory log والرانشيت من Production.
 6. لا تحذف سجلات audit_log ولا بيانات أعمال أخرى دون أدلة صريحة؛ حافظ على baseline صفر بعد fixtures المعزولة فقط.
+
+
+## POST-WRITE VERIFICATION ADDENDUM — same session
+
+After the report draft and cleanup, Production was re-read again and the deployed Edge source was compared character-for-character with the Current Git source:
+
+- save-sales-invoice: Production v17 ACTIVE; Git Current blob 9ee86c7ee8ed92c79fe37c209ac3392db63f3f87; 6,494 characters in both; source match=true.
+- update-order: Production v6 ACTIVE; Git Current blob a729c50a1f45fa78c4f5c86504f5c7fdb9ca18b3; 5,528 characters in both; source match=true.
+- These values establish source equality for the two retrieved Edge entrypoint files; ezbr_sha256 remains a package hash and is not treated as a Git SHA.
+- Audit log confirms cleanup at 2026-10-09 23:09:27.633225Z: three orders deleted, runsheet deleted, and associated order updates/deletes recorded by database_trigger. The audit history was preserved.
+- Final live baseline remains orders=0, order_details=0, runsheets=0, run_sheet_details=0, and the exact test update_order registry row=0.
+
+This addendum strengthens Edge source provenance and cleanup verification. It does not close the remaining syncDown patch, served-frontend artifact parity, or current browser E2E.
