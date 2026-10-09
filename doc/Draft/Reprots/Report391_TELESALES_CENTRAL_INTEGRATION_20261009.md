@@ -437,3 +437,14 @@ var RW_Auth = (function() {
 ## إلى CTO القادم
 
 ابدأ من هذا التقرير ثم تحقق من Current Git وProduction مجددًا. لا تعد إنشاء `update-order`؛ الإصدار v5 موجود. لا تعد تطبيق تغييرات SQL المذكورة دون مقارنة التعريف الحالي. الخطوة الدقيقة التالية هي أن يدمج المالك استبدال `RW_Auth` في `core.js` واستبدال `self.submitOrder` في `telesales.html`، ثم نشرهما وتنفيذ اختبارات E2E المذكورة. بعد إغلاق التلي سيلز فقط انتقل إلى التطبيق التالي.
+
+
+## 10. Production migration source synchronization
+
+The exact SQL definitions submitted for the three Production migrations in this execution are now recorded in the repository under the official migration directory:
+
+- `supabase/migrations/20261009164325_telesales_update_order_status_and_duplicate_guard_20261009.sql` — Git commit `6de7c8ffcec48e57e191f21ebaa45abf59bcad2e`.
+- `supabase/migrations/20261009164549_fix_telesales_update_order_duplicate_guard_alias_20261009.sql` — Git commit `e74020920dbd56b3822bb0b89d0bf86c1b38b8f2`.
+- `supabase/migrations/20261009164638_fix_telesales_update_order_audit_action_constraint_20261009.sql` — Git commit `4e762f36d4c16941e17fa1b1414a5fdcb83efab5`.
+
+These files preserve the actual sequence, including the intermediate defects that were detected by runtime QA and corrected in the following migrations. They are not falsely represented as one pristine migration.
