@@ -19,7 +19,7 @@
 - Applied migration `fix_telesales_update_order_duplicate_guard_alias_20261009`: corrected the SQL alias after the first transactional QA exposed the mismatch.
 - Applied migration `fix_telesales_update_order_audit_action_constraint_20261009`: audit uses allowed `action='update'` while preserving `table_name='orders'`, `source_type='telesales'`, and operation identity.
 - Deployed existing Edge Function `update-order` v5 with DB permission validation (`*`, `orders`, or `telesales`) and company/branch-scope validation before calling `update_order_atomic`.
-- Transactional QA exercised update-to-Confirmed, detail persistence, duplicate-item rejection, and no `stock_branches` / `inventory_log` changes, then rolled back. The first QA runs exposed and led to repairs of the SQL alias and audit CHECK mismatch. Verify residue counts again before any future closure claim.
+- Transactional QA exercised update-to-Confirmed, detail persistence, duplicate-item rejection, and no `stock_branches` / `inventory_log` changes, then rolled back. The first QA runs exposed and led to repairs of the SQL alias and audit CHECK mismatch. A post-rollback production count check confirmed `orders=0`, `runsheets=0`, QA order residue `0`, QA audit residue `0`, and QA operation-registry residue `0`. This proves cleanup for this transactional QA only; it is not browser/HTTP E2E evidence.
 
 ## Proven frontend integration defect
 
