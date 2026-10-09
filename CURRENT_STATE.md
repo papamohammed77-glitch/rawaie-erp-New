@@ -1,3 +1,37 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report395 TELESALES CURRENT GIT / PRODUCTION RECONCILIATION
+
+> هذا checkpoint أحدث من Report394. أُعيد فحص Production وGit والسجلات في الجلسة نفسها. لا تُعد تطبيق جراحة RW_Auth أو submitOrder؛ المصدر الحالي يحتويهما بالفعل. لا تدّعِ أن Cloudflare artifact الحالي مطابق قبل إثباته.
+
+## Production re-read — 2026-10-10
+- Project: fiilmooggumokxanwiyx.
+- save-sales-invoice: v17 ACTIVE, verify_jwt=true, ezbr_sha256=fee635a235a3f8e42db8f72e792bbf2a828fb6a444f082c59bc8e95c4fa9ddb1.
+- update-order: v6 ACTIVE, verify_jwt=true, ezbr_sha256=a1b06430b9d90777f7d9549286d9c64e7df009c5d15a19917ce6be096a00c8f3.
+- get_my_effective_profile(): SECURITY DEFINER, search_path empty, anon EXECUTE=false, authenticated EXECUTE=true; uses auth.uid() and merges direct/role permissions.
+- Production HTTP logs: save-sales-invoice POST 200 at 2026-10-09T22:59:29.693Z and 2026-10-09T23:00:24.844Z. erp_operation_registry recorded successful update_order for ORD-1001. These are historical successful requests, not proof of the currently served artifact.
+
+## Current frontend Git — actual latest source
+- Latest relevant commits in erp-frontend: a626a3e96945915a51822897c6316c0aa32502e2 (core.js auth/profile) and a914f11f089c8c0154d41acc312d7d02b5327cf7 (telesales submitOrder).
+- core.js current blob: c2e0a7f4ba11f44c11dfc4728ef4a1af1b256b81.
+- sales/telesales.html current blob: b6fbd7e94ee957745adcd97e3e61015052645e8c.
+- main.html blob: 4f94f9c6ebdde1b59632384628c72767d3bb950d; connector returned empty content; untouched.
+- Current telesales submitOrder already routes create to save-sales-invoice, edit to update-order, and resolves customer UUID to canonical customer_code. Current RW_Auth already calls get_my_effective_profile(). Do not replace these again.
+- Remaining proven UI defect: syncDown does not check Supabase result.error before clearing Dexie, risking local-cache loss on failed fetch. Report395 supplies exact replacements for syncDown and the enterApp rejection handler.
+
+## Production test-data cleanup — completed and verified
+- Removed fixture ORD-1001/ORD-1002/ORD-1003 and RS-1, including their order_details/run_sheet_details and the matching update_order operation-registry row.
+- Pre-cleanup evidence: all orders Pending, runsheet Open, picked/loaded/delivered/refused/returned quantities zero, no inventory_log movements, no accounting entries, no payment/delivery/commission/backorder dependencies.
+- Post-cleanup verified counts: orders=0, order_details=0, runsheets=0, run_sheet_details=0, matching operation registry row=0.
+- audit_log was retained.
+
+## Report and exact next action
+- Report: doc/Draft/Reprots/Report395_TELESALES_CURRENT_GIT_PRODUCTION_RECONCILIATION_20261010.md
+- Report commit: 8132efa7081abfb7b8d9e3c7d354b3b1ca4dfc74
+- No frontend files, Edge Functions, schema, or production RPCs were changed in this cycle; only the explicitly identified test fixture was cleaned.
+- Next: owner applies Report395's two surgical replacements in telesales.html (syncDown and the self.enterApp syncDown handler), without touching main.html; then verify Cloudflare-served artifact/service worker and run authenticated browser E2E for direct/role permissions, create/edit/idempotency, runsheet linkage, company/branch isolation, no stock movement, and baseline restoration.
+- Closure: BACKEND VERIFIED / CURRENT GIT SURGERY PARTIALLY PRESENT / SYNCDOWN SURGERY PENDING / NOT CLOSED.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report394 TELESALES PRODUCTION RESYNC
 
 > أحدث فحص في هذه الجلسة: Production أُعيدت قراءته مباشرة؛ لا تُعامل تقارير Report392/393 كحالة حية. لم يتم تعديل `main.html` أو `telesales.html` أو `core.js`. لا تزال جراحة الواجهة والنشر واختبارات HTTP/Browser مطلوبة قبل إغلاق التكامل.
