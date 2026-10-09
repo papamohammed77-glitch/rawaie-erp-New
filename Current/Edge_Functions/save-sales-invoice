@@ -83,13 +83,23 @@ serve(async(req)=>{
     }
 
     const suppliedSource=String(body?.orderHeader?.source||'').trim().toLowerCase()
+    const validSources=['telesales','order-taker','van-sales','pos']
+    if(suppliedSource && !validSources.includes(suppliedSource)){
+      throw new Error('مصدر العملية غير صالح')
+    }
+
+    const permittedSources = new Set<string>()
+    if(isTelesales) permittedSources.add('telesales')
+    if(isOrderTaker) permittedSources.add('order-taker')
+    if(isVanSales) permittedSources.add('van-sales')
+    if(isPos) permittedSources.add('pos')
+
     let canonicalSource=suppliedSource
     if(!isOwner){
-      const expectedSource=isTelesales?'telesales':isOrderTaker?'order-taker':isVanSales?'van-sales':isPos?'pos':''
-      if(expectedSource && suppliedSource && suppliedSource!==expectedSource){
+      if(suppliedSource && !permittedSources.has(suppliedSource)){
         throw new Error('مصدر العملية لا يتوافق مع صلاحية المستخدم')
       }
-      canonicalSource=expectedSource || suppliedSource
+      canonicalSource=suppliedSource || (isTelesales?'telesales':isOrderTaker?'order-taker':isVanSales?'van-sales':isPos?'pos':'')
     }
     if(!canonicalSource) canonicalSource=(body.branchCode||'MAIN').toUpperCase().startsWith('VAN-')?'van-sales':'pos'
 
