@@ -10,26 +10,129 @@ async function deterministicUuid(seed:string){
   return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20,32)}`
 }
 
+function asPermissionList(value:unknown):string[]{
+  return Array.isArray(value)
+    ? value.map(x=>String(x).trim()).filter(Boolean)
+    : []
+}
+
+function branchAllowed(allowedBranchIds:unknown, defaultBranchId:string|null, branchId:string, branchCode:string):boolean{
+  if(Array.isArray(allowedBranchIds)){
+    const ids=allowedBranchIds.map(x=>String(x).trim()).filter(Boolean)
+    if(ids.length) return ids.includes(branchId) || ids.includes(branchCode)
+  }else if(typeof allowedBranchIds==="string" && allowedBranchIds.trim()){
+    const raw=allowedBranchIds.trim()
+    return raw===branchId || raw===branchCode
+  }
+  return !defaultBranchId || defaultBranchId===branchId
+}
+
 serve(async(req)=>{
   if(req.method==='OPTIONS') return new Response('ok',{headers:corsHeaders})
   try{
     const body=await req.json().catch(()=>({}))
     if(!body?.orderHeader||!Array.isArray(body?.itemsList)||!body.itemsList.length) throw new Error('بيانات الفاتورة غير مكتملة')
+
     const ah=req.headers.get('Authorization')
     if(!ah) throw new Error('غير مصرح')
     const {data:{user},error:ae}=await supabase.auth.getUser(ah.replace('Bearer ',''))
     if(ae||!user?.id||!user?.email) throw new Error('جلسة غير صالحة')
-    const supplied=String(body?.operation_id||body?.orderHeader?.operation_id||req.headers.get('Idempotency-Key')||'').trim()
-    const operation_id=supplied||await deterministicUuid(user.id+'|'+JSON.stringify({orderHeader:body.orderHeader,items:body.itemsList,branchCode:body.branchCode||'MAIN'}))
-    const orderHeader={...body.orderHeader,operation_id}
+
+    const {data:profile,error:pe}=await supabase
+      .from('users')
+      .select('id,company_id,status,permissions,role_id,default_branch_id,allowed_branch_ids')
+      .eq('auth_id',user.id)
+      .maybeSingle()
+    if(pe) throw new Error(pe.message)
+    if(!profile?.company_id) throw new Error('سياق الشركة غير محدد للمستخدم')
+    if(profile.status&&profile.status!=='Active') throw new Error('المستخدم غير نشط')
+
+    const effectivePermissions = new Set<string>(asPermissionList(profile.permissions))
+    if (profile.role_id) {
+      const {data:role,error:roleError} = await supabase
+        .from('roles')
+        .select('permissions')
+        .eq('id',profile.role_id)
+        .eq('company_id',profile.company_id)
+        .maybeSingle()
+      if (roleError) throw new Error('تعذر التحقق من صلاحيات الدور: ' + roleError.message)
+
+      for (const permission of asPermissionList(role?.permissions)) effectivePermissions.add(permission)
+
+      const {data:roleRows,error:rolePermissionsError} = await supabase
+        .from('role_permissions')
+        .select('permission_key')
+        .eq('role_id',profile.role_id)
+      if (rolePermissionsError) throw new Error('تعذر تحميل صلاحيات الدور: ' + rolePermissionsError.message)
+
+      for (const row of roleRows || []) {
+        const key = String(row.permission_key || '').trim()
+        if (key) effectivePermissions.add(key)
+      }
+    }
+
+    const permissions=Array.from(effectivePermissions)
+    const isOwner=permissions.includes('*')
+    const isTelesales=permissions.includes('telesales')
+    const isOrderTaker=permissions.includes('orders')
+    const isVanSales=permissions.includes('van-sales')
+    const isPos=permissions.includes('pos')
+
+    if(!isOwner && !isTelesales && !isOrderTaker && !isVanSales && !isPos){
+      throw new Error('لا تملك صلاحية إنشاء عمليات مبيعات')
+    }
+
+    const suppliedSource=String(body?.orderHeader?.source||'').trim().toLowerCase()
+    let canonicalSource=suppliedSource
+    if(!isOwner){
+      const expectedSource=isTelesales?'telesales':isOrderTaker?'order-taker':isVanSales?'van-sales':isPos?'pos':''
+      if(expectedSource && suppliedSource && suppliedSource!==expectedSource){
+        throw new Error('مصدر العملية لا يتوافق مع صلاحية المستخدم')
+      }
+      canonicalSource=expectedSource || suppliedSource
+    }
+    if(!canonicalSource) canonicalSource=(body.branchCode||'MAIN').toUpperCase().startsWith('VAN-')?'van-sales':'pos'
+
+    const header={...body.orderHeader,source:canonicalSource}
+
+    const status=String(header.status||'Confirmed')
+    if(!isOwner){
+      if((isTelesales||isOrderTaker) && status!=='Draft' && status!=='Confirmed'){
+        throw new Error('تلي سيلز/أوردر تيكر لا يمكنهما تنفيذ فاتورة مخزنية مباشرة')
+      }
+      if(isVanSales && status!=='Invoiced' && status!=='Confirmed' && status!=='Draft'){
+        throw new Error('حالة عملية البيع المباشر غير صالحة')
+      }
+      if(isPos && status!=='Invoiced' && status!=='Confirmed' && status!=='Draft'){
+        throw new Error('حالة عملية POS غير صالحة')
+      }
+    }
+
+    const branchCode=String(body.branchCode||'MAIN').trim()
+    const {data:branch,error:be}=await supabase
+      .from('branches')
+      .select('id,branch_code')
+      .eq('company_id',profile.company_id)
+      .eq('branch_code',branchCode)
+      .maybeSingle()
+    if(be) throw new Error(be.message)
+    if(!branch?.id) throw new Error('الفرع غير موجود للشركة')
+    if(!isOwner && (isTelesales||isOrderTaker||isVanSales) &&
+       !branchAllowed(profile.allowed_branch_ids,profile.default_branch_id,branch.id,branch.branch_code)){
+      throw new Error('لا تملك صلاحية العمل على هذا الفرع')
+    }
+
+    const supplied=String(body?.operation_id||header?.operation_id||req.headers.get('Idempotency-Key')||'').trim()
+    const operation_id=supplied||await deterministicUuid(user.id+'|'+JSON.stringify({orderHeader:header,items:body.itemsList,branchCode}))
+
     const {data,error}=await supabase.rpc('save_sales_invoice_atomic',{
-      p_order_header:orderHeader,
+      p_order_header:{...header,operation_id},
       p_items:body.itemsList,
-      p_branch_code:body.branchCode||'MAIN',
+      p_branch_code:branchCode,
       p_user_email:user.email
     })
     if(error) throw new Error(error.message)
-    return new Response(JSON.stringify({...data,operation_id}),{headers:{...corsHeaders,'Content-Type':'application/json'}})
+    return new Response(JSON.stringify({...data,operation_id,source:canonicalSource}),{headers:{...corsHeaders,'Content-Type':'application/json'}})
   }catch(e){
     return new Response(JSON.stringify({success:false,msg:e?.message||'فشل حفظ الفاتورة'}),{status:400,headers:{...corsHeaders,'Content-Type':'application/json'}})
   }
