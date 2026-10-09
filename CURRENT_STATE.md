@@ -15,7 +15,7 @@
 
 ## Current work / exact next action
 - Report: [Report397_ORDER_TAKER_EDIT_CUSTOMER_ID_CODE_MISMATCH_20261010.md](doc/Draft/Reprots/Report397_ORDER_TAKER_EDIT_CUSTOMER_ID_CODE_MISMATCH_20261010.md).
-- Report commit SHA: 7c05ad967d4473f49cd9ced6f86c6ae9b0fddcd2.
+- Report commit SHA: f9ec1c773864395a12299efbc2a8fd7dcdeffc8c.
 - Owner must apply Report397 Patch D in `erp-frontend/companies/company-1/sales/order-taker.html`, function `self._editOrderFromDetail`, and Patch E in `self.repeatOrder`. Per owner instruction, assistant did not edit the operational frontend file.
 - Do not touch `main.html`, `core.js`, or Production RPC for this issue.
 - After patch/publish: test edit preserving customer, correct payload customer_code, company isolation, cache miss/failure safe abort, repeat order, no inventory/runsheet side effects; then verify served artifact and restore test baseline.
