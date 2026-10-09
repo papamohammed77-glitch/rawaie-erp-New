@@ -1,3 +1,39 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report393 TELESALES ROLE-PERMISSION PARITY
+
+> هذا أحدث checkpoint ويقدّم على Report392. لا يُغلق تكامل الواجهة؛ لا يزال المالك مسؤولًا عن تطبيق الجراحة في `erp-frontend/companies/company-1/core.js` و`sales/telesales.html` ثم النشر وHTTP/Browser E2E. لم يتم تعديل `main.html` أو `telesales.html` أو `core.js`.
+
+## Live Production re-read — same session
+
+- Supabase project: `fiilmooggumokxanwiyx`.
+- `save-sales-invoice`: v17 ACTIVE, `verify_jwt=true`, package SHA-256 `fee635a235a3f8e42db8f72e792bbf2a828fb6a444f082c59bc8e95c4fa9ddb1`.
+- Git Current source `Current/Edge_Functions/save-sales-invoice`: blob SHA `9ee86c7ee8ed92c79fe37c209ac3392db63f3f87`; byte-for-byte equal to deployed v17 source (6,494 bytes). Commit `aabaed938038d3dee934a01b5ee7a943594724a2`.
+- The prior Current file was stale (2,228 bytes) compared with Production v16 (5,512 bytes). Recovered v16 from live Production, added role-aware permission merge, then deployed v17.
+- `update-order` remains v6 ACTIVE, `verify_jwt=true`, package SHA-256 `a1b06430b9d90777f7d9549286d9c64e7df009c5d15a19917ce6be096a00c8f3`.
+- Added authenticated `public.get_my_effective_profile()` via Production migration `20261009220629_telesales_effective_profile_rpc_20261010`; `SECURITY DEFINER`, `search_path=''`, `anon EXECUTE=false`, `authenticated EXECUTE=true`. It returns only the caller profile and merges direct plus role permissions.
+- RPC QA using a role-only sales user: profile found, company context present, inherited `orders` permission found, 30 effective permissions; transaction rolled back.
+- Post-deploy baseline: `orders=0`, `order_details=0`, `runsheets=0`, `run_sheet_details=0`, sales/runsheet operation registry rows=0.
+- Thirteen older QA/Test marker matches remain only in historical `audit_log` records. Do not delete audit history casually; no live sales/runsheet business rows remain.
+
+## Git artifacts and provenance
+
+- Migration source: `supabase/migrations/20261009220629_telesales_effective_profile_rpc_20261010.sql`, commit `694f6a736d7215dd3d3f4c7a5af598c7b05fbc2c`.
+- Execution report: `doc/Draft/Reprots/Report393_TELESALES_ROLE_PERMISSION_PARITY_20261010.md`, commit `bbdfb7c909b21114083091058c2f78f1405f87fc`.
+- `erp-frontend/companies/company-1/main.html`: blob SHA `4f94f9c6ebdde1b59632384628c72767d3bb950d`; connector returned empty content, so no claim is made about internals and it remains untouched.
+- `erp-frontend/companies/company-1/sales/telesales.html`: blob SHA `d839ff043631d365be8eb2832ee98aa4fabcb43c`, unchanged.
+- `erp-frontend/companies/company-1/core.js`: blob SHA `e853c49375ccc8b94757b594057dcd853b4a2fdb`, unchanged.
+
+## Exact next action — owner-side surgical change
+
+1. In `companies/company-1/core.js`, replace only the complete `RW_Auth` IIFE before `// الوحدة ٢: RW_DB` with the RPC-backed complete replacement in Report393, section 3. This supersedes the earlier `RW_Auth` replacement in Report392.
+2. In `companies/company-1/sales/telesales.html`, replace only `self.submitOrder = function() { ... };` with the complete replacement in Report392, section 3. It routes edits to `update-order`, preserves create via `save-sales-invoice`, and resolves customer UUID to canonical `customer_code`.
+3. Do not edit `main.html`. After owner publishes the frontend, run authenticated HTTP/browser E2E: direct-permission and role-derived-permission login, create/edit, duplicate retry, no inventory movement, runsheet linkage, company isolation, and baseline restoration.
+
+## Closure status
+
+`BACKEND PRODUCTION FIX VERIFIED / FRONTEND SURGERY PENDING / HTTP-BROWSER E2E NOT YET PROVEN`.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-09 — Report392 TELESALES INTEGRATION HARDENING
 
 > هذا أحدث checkpoint. يُقدّم على التقارير الأقدم، لكن لا يُغلق تكامل الواجهة؛ تعديلات الواجهة ما زالت تنتظر تطبيق المالك ونشرها واختبارها.
