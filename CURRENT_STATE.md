@@ -7,7 +7,7 @@
 - save-sales-invoice: v17 ACTIVE, verify_jwt=true, ezbr_sha256=fee635a235a3f8e42db8f72e792bbf2a828fb6a444f082c59bc8e95c4fa9ddb1.
 - update-order: v6 ACTIVE, verify_jwt=true, ezbr_sha256=a1b06430b9d90777f7d9549286d9c64e7df009c5d15a19917ce6be096a00c8f3.
 - get_my_effective_profile(): SECURITY DEFINER, search_path empty, anon EXECUTE=false, authenticated EXECUTE=true; uses auth.uid() and merges direct/role permissions.
-- Production HTTP logs: save-sales-invoice POST 200 at 2026-10-09T22:59:29.693Z and 2026-10-09T23:00:24.844Z. erp_operation_registry recorded successful update_order for ORD-1001. These are historical successful requests, not proof of the currently served artifact.
+- Production HTTP logs: save-sales-invoice POST 200 at 2026-10-09T22:59:29.693Z and 2026-10-09T23:00:24.844Z. erp_operation_registry recorded successful update_order for ORD-1001. Re-read confirmed Production source equals Current Git source: save-sales-invoice 6,494/6,494 chars (Git blob 9ee86c7ee8ed92c79fe37c209ac3392db63f3f87); update-order 5,528/5,528 chars (Git blob a729c50a1f45fa78c4f5c86504f5c7fdb9ca18b3). These are not proof of the currently served frontend artifact.
 
 ## Current frontend Git — actual latest source
 - Latest relevant commits in erp-frontend: a626a3e96945915a51822897c6316c0aa32502e2 (core.js auth/profile) and a914f11f089c8c0154d41acc312d7d02b5327cf7 (telesales submitOrder).
@@ -25,7 +25,7 @@
 
 ## Report and exact next action
 - Report: doc/Draft/Reprots/Report395_TELESALES_CURRENT_GIT_PRODUCTION_RECONCILIATION_20261010.md
-- Report commit: 8132efa7081abfb7b8d9e3c7d354b3b1ca4dfc74
+- Report commit: b55a3a41f873eae2c0b2934b0d33570e3e05121a
 - No frontend files, Edge Functions, schema, or production RPCs were changed in this cycle; only the explicitly identified test fixture was cleaned.
 - Next: owner applies Report395's two surgical replacements in telesales.html (syncDown and the self.enterApp syncDown handler), without touching main.html; then verify Cloudflare-served artifact/service worker and run authenticated browser E2E for direct/role permissions, create/edit/idempotency, runsheet linkage, company/branch isolation, no stock movement, and baseline restoration.
 - Closure: BACKEND VERIFIED / CURRENT GIT SURGERY PARTIALLY PRESENT / SYNCDOWN SURGERY PENDING / NOT CLOSED.
