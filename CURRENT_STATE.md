@@ -1,3 +1,46 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-09 — Report391 TELESALES CENTRAL ORDER INTEGRATION
+
+> This block is the latest execution checkpoint. It records verified backend work and explicitly separates owner-side frontend work that remains pending.
+
+## Production snapshot — Supabase SMART ERP / fiilmooggumokxanwiyx
+
+- Project ref: `fiilmooggumokxanwiyx`; status was ACTIVE_HEALTHY at inspection.
+- Current frontend sources inspected:
+  - `erp-frontend/companies/company-1/sales/telesales.html`, blob SHA `d839ff043631d365be8eb2832ee98aa4fabcb43c`.
+  - `erp-frontend/companies/company-1/core.js`, blob SHA `e853c49375ccc8b94757b594057dcd853b4a2fdb`.
+- Production Edge `update-order`: v5 ACTIVE, `verify_jwt=true`, package SHA-256 `d70b7ff7596ee71ad3a706388466abec03921cb7d09010fa4ea18371376de283`.
+- Existing Edge `save-sales-invoice` remains v16; no new Edge Function was created.
+- Production currently has 0 rows in `orders` and 0 in `runsheets` at inspection time; do not claim a real business-order E2E.
+- RLS is enabled on `orders`, `order_details`, `runsheets`, and `run_sheet_details`.
+
+## Production changes executed
+
+- Applied migration `telesales_update_order_status_and_duplicate_guard_20261009`: update-order RPC now confirms an edited eligible order and checks duplicate JSON item `code` correctly.
+- Applied migration `fix_telesales_update_order_duplicate_guard_alias_20261009`: corrected the SQL alias after the first transactional QA exposed the mismatch.
+- Applied migration `fix_telesales_update_order_audit_action_constraint_20261009`: audit uses allowed `action='update'` while preserving `table_name='orders'`, `source_type='telesales'`, and operation identity.
+- Deployed existing Edge Function `update-order` v5 with DB permission validation (`*`, `orders`, or `telesales`) and company/branch-scope validation before calling `update_order_atomic`.
+- Transactional QA exercised update-to-Confirmed, detail persistence, duplicate-item rejection, and no `stock_branches` / `inventory_log` changes, then rolled back. The first QA runs exposed and led to repairs of the SQL alias and audit CHECK mismatch. Verify residue counts again before any future closure claim.
+
+## Proven frontend integration defect
+
+- Current `telesales.html` edit flow directly updates `orders`, deletes `order_details`, then reinserts them through separate requests. This bypasses the existing atomic `update-order` Edge / `update_order_atomic` RPC and risks partial persistence.
+- Complete surgical replacements are documented in:
+  [Report391_TELESALES_CENTRAL_INTEGRATION_20261009.md](doc/Draft/Reprots/Report391_TELESALES_CENTRAL_INTEGRATION_20261009.md)
+- Owner must replace the complete `self.submitOrder` block in `telesales.html` to route edits to `update-order`.
+- Owner must replace the `RW_Auth` block in shared `core.js` to hydrate permissions from `public.users` by `auth_id`, not Auth `user_metadata`. This shared-core change requires regression testing across dependent PWAs.
+- Do not claim full telesales closure until the owner-side files are published and browser/HTTP E2E verifies create/edit/authorization/runsheet linkage.
+
+## Next exact checkpoint
+
+1. Re-read current production function version and SQL definition before any additional backend edits.
+2. Apply Report391's full `RW_Auth` replacement and `self.submitOrder` replacement to the owner-managed frontend sources.
+3. Run syntax checks, publish the frontend/PWA assets, and verify served artifact identity against Git.
+4. Test as a real authenticated telesales account: create, edit, duplicate item rejection, unauthorized user, disallowed branch, retry, and no stock side effect.
+5. Link a confirmed order into a runsheet and verify `orders.runsheet_id` and `run_sheet_details`; do not fabricate a production E2E while current production has no orders/runsheets.
+6. Only after frontend runtime evidence, close this integration unit.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-02 — REPORT390 ITEMS / OWNER WILDCARD / IMAGE / COST PRICE
 
 > هذا checkpoint هو آخر حقيقة مُثبتة، ويُقدَّم على أي blocks تاريخية أدناه. لا تُعاد إصلاحات موجودة في Current HEAD.
