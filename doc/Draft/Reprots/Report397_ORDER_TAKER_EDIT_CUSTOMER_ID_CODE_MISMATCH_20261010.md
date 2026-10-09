@@ -181,7 +181,7 @@ if (order.customer_id) {
         }
 
         if (customer && customer.customer_code) {
-            self.selectCustomer(customer.customer_code);
+            self._selectCustomerCore(customer);
             return;
         }
 
@@ -195,7 +195,7 @@ if (order.customer_id) {
                 if (!result.data || !result.data.customer_code) {
                     throw new Error('تعذر التحقق من العميل داخل الشركة');
                 }
-                self.selectCustomer(result.data.customer_code);
+                self._selectCustomerCore(result.data);
             });
     }).catch(function(error) {
         console.error('تعذر حل عميل إعادة الطلب:', error);
