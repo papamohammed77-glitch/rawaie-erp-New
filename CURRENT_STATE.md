@@ -2672,3 +2672,39 @@ The existing-order edit contract previously listed as OPEN in the Report391 chec
 4. Search exact `ORD-1004` and `ORD-1005`; verify line counts and totals. If the user's original invoice code still fails, record the exact code and check source/company/branch against Production without broadening access.
 5. Verify company/branch denial, cancelled invoice rejection, partial-return quantity limits, and no stock/financial mutation on lookup-only tests.
 6. Keep the cash refund contract open until a real cashier drawer/shift and balanced disbursement contract is proven.
+
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report405 POS Return Current Production Reconciliation
+
+> Added after a fresh live Production/Core review. Do not treat Report403 as current state without these observations.
+
+## Latest verified source
+- Frontend repository: `papamohammed77-glitch/erp-frontend`.
+- Latest observed commit remains `950abb6b78680d37c8d29f1beba78c8c1d6a51a4` — `Refactor switchView to use allowedViews array`.
+- Current `companies/company-1/sales/pos.html` blob: `967d486147cf3ca9911c4dbd3ba89042c373577e`, 1,522 lines / 88,823 characters.
+- Current source contains `renderReturnsView`, `_getPosInvoiceData`, `_searchReturnInvoice`, and `switchView` with allowed views including `returns`. No frontend file was changed in this cycle.
+
+## Fresh live Production facts
+- Supabase project: `fiilmooggumokxanwiyx`.
+- Edge `complete-return`: v26, `verify_jwt=true`; authenticates user, resolves `public.users.auth_id`, calls `complete_sales_return_credit_note_atomic`.
+- Live `complete_return_atomic` still raises `RETURN_CUSTOMER_REQUIRED_FOR_FINANCIAL_POSTING` for positive-value order returns with `customer_id IS NULL`.
+- `complete_sales_return_credit_note_atomic` calls `complete_return_atomic`, then creates a `credit_notes` row; neither function issues a cash refund/card refund.
+- `ORD-1004` (275.00) and `ORD-1005` (185.00) are POS/Invoiced cash sales with `customer_id=NULL`; each has a matching `cash_box` Receipt associated with the same main treasury and cashier email. Do not delete or mutate these records as test data.
+- `get_pos_invoice_data(text,text)` is SECURITY DEFINER with empty `search_path`; anon EXECUTE=false, authenticated=true, service_role=true. Previous DB claim simulation retrieved the sample invoices; this is not HTTP/browser E2E.
+- The inspected schema does not prove a per-cashier shift/drawer entity or card processor refund path.
+
+## Closure decision
+- The current Git source already includes the latest return navigation and invoice lookup changes. Do not reapply old frontend patches.
+- Live UI/Service Worker parity and authenticated browser HTTP behavior remain unverified.
+- A confirmed Core defect remains: cash POS returns can fail on missing `customer_id`, and skipping that check alone would not refund cash or create correct balanced refund accounting.
+- No Production SQL or business rows were changed in this cycle because the actual authorized refund source and accounting contract are not established by the verified schema. Do not label this closed.
+
+Detailed report: [Report405 — POS Return Current Production Reconciliation](doc/Draft/Reprots/Report405_POS_RETURN_CURRENT_PRODUCTION_RECONCILIATION_20261010.md)
+
+## Next exact steps
+1. Publish frontend commit `950abb6b78680d37c8d29f1beba78c8c1d6a51a4` using the approved hosting pipeline; invalidate the service-worker cache.
+2. Capture authenticated browser Network request/response for `rpc/get_pos_invoice_data` with `p_action=return_lookup`; compare served artifact to the current blob.
+3. Implement one atomic financial return contract covering stock movement, credit note idempotency, payment-origin/cashier authorization, cash refund or card refund record, balanced journal entries, audit, and company isolation. Do not merely bypass `customer_id`.
+4. Test only with an isolated fixture; do not mutate ORD-1004/ORD-1005.
