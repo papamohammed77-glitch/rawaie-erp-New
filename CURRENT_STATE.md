@@ -1,3 +1,34 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report402 POS Source/Production Reconciliation
+
+> هذا checkpoint أحدث من Report401. لم يتم تعديل main.html أو pos.html في هذه الدورة. تم اكتشاف أن الجراحة الأمامية التي كانت موصوفة بأنها بانتظار المالك موجودة بالفعل في commit أحدث؛ لا تكرر Patch A–E.
+
+## Verified current frontend
+- Repository: `papamohammed77-glitch/erp-frontend`
+- Latest commit observed: `3b27e45adbdfcea4a08f414b2dc5a9082f1be422` — `Refactor return invoice search and data retrieval` — 2026-10-10T16:59:32Z.
+- Current POS blob: `21c6a0b318b9eb629f8f1917f9b3a4bbf21decfa`, 87,793 characters.
+- Confirmed current functions: `_getPosInvoiceData` line 8331; `_escapePosText` line 8481; `_searchReturnInvoice` line 8571; `renderInvoicesView` line 11111; `_viewActiveInvoice` line 12081; `_viewCancelledInvoice` line 12901.
+- `main.html` and `pos.html` were not modified in this cycle.
+
+## Live Production reconciliation
+- Supabase project: `fiilmooggumokxanwiyx`.
+- `public.get_pos_invoice_data(text,text)` exists; SECURITY DEFINER=true; search_path empty.
+- ACL: anon EXECUTE=false; authenticated EXECUTE=true; service_role EXECUTE=true.
+- POS cashier `cashier@rawaea.com` has app role `كاشير`, permission `pos`, company `00000000-0000-0000-0000-000000000001`.
+- Existing invoice `ORD-1004`: 2026-10-10, Invoiced, total 275, 3 detail rows.
+- No matching PostgREST log for `get_pos_invoice_data` appeared in the inspected window 2026-10-10 16:00–17:05 UTC. This is NOT proof of a successful or failed browser request.
+- Authenticated DB claim-simulation was not completed in this cycle; do not represent it as rerun.
+
+## Corrected checkpoint status
+- Previous Report401 status `OWNER FRONTEND SURGERY PENDING` is stale because the newer commit already includes the UI changes.
+- Current status: `SOURCE PATCH PRESENT / PRODUCTION RPC ACL VERIFIED / BROWSER-HTTP E2E UNVERIFIED / POS NOT CLOSED`.
+- Cash/card refund from an individual cashier drawer remains an unproven business/ledger contract. Recording a return or credit note is not proof of actual cash refund.
+- Detailed report: `doc/Draft/Reprots/Report402_POS_CURRENT_SOURCE_PRODUCTION_RECONCILIATION_20261010.md`.
+
+## Next exact task
+Run real authenticated browser/HTTP E2E with the POS cashier, confirm today's invoice list, invoice details, return lookup and branch/company isolation; inspect logs after the request and verify the actually served frontend artifact against current Git/Service Worker. Do not edit main.html or pos.html unless a new, specifically evidenced defect is found.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report401 POS Invoice/Return Read RPC
 
 > هذا checkpoint أحدث من Report400. Production وCurrent Git أُعيد فحصهما في هذه الدورة. لا تعتبر الوحدة مغلقة قبل تطبيق الجراحة الأمامية ونشرها واختبار المتصفح/HTTP.
