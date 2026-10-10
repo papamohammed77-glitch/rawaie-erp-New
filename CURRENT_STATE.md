@@ -1,3 +1,45 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report400 POS AUTHENTICATED BOOTSTRAP / ITEM SEARCH
+
+> هذا أحدث checkpoint لهذه الوحدة. تمت إعادة قراءة Production وCurrent Git في هذه الدورة. لا تُعد تطبيق إصلاح branch selector الذي دخل بالفعل إلى POS source في commit 83cf87b8a856b151aff6d37dfc4e4a2cddcdf7aa. لا تعتبر هذه الوحدة مغلقة قبل دمج جراحة الواجهة ونشرها وإجراء browser/HTTP E2E.
+
+## Production facts verified in this cycle
+
+- Supabase project: `fiilmooggumokxanwiyx`.
+- Current POS frontend: `papamohammed77-glitch/erp-frontend/companies/company-1/sales/pos.html`, blob SHA `7ddd87f06b1ee9244b449b4d5a39630d359b87d1`, current inspected commit `83cf87b8a856b151aff6d37dfc4e4a2cddcdf7aa`.
+- Current POS source already calls `get_pos_branches()` from `self.syncDown`; that change is confirmed by commit diff and must not be repeated.
+- Live RLS: `items_select_company` does not grant `pos`; `customers_select_company` does not grant `pos`; `stock_branches_select_company` grants warehouse/runsheets/reports, while its sales policies are telesales/orders/van-sales. Therefore the direct `select('*')` requests for customers/items/stock are not a valid POS-only access contract.
+- Live items at check: 17 total, all 17 active and shown in store.
+- Existing central sale RPC `save_sales_invoice_atomic(jsonb,jsonb,text,text)` remains in place; no evidence in this task justified changing it.
+- The search implementation currently reads Dexie only, omits `search_label`, does not apply active category, and can compute aggregate availability if a branch has not been selected. It also lacks a stale-query guard/catch.
+- The current `loadFastSelling` directly queries `order_details`, whose SELECT policy does not grant POS-only access; errors are treated as an empty result.
+
+## Production repair deployed
+
+- Added `public.get_pos_bootstrap_data()` by Supabase migration `20261010_pos_authenticated_bootstrap_rpc`.
+- Function is `SECURITY DEFINER`, `search_path='' `, checks `auth.uid()`, `app_private.current_user_has_permission('pos')`, and active company context.
+- Returns company-scoped customers and active items, stock rows only for branches returned by `get_pos_branches()`, authorized branches, a company-scoped fast-selling payload, and company currency.
+- ACL verified: `anon EXECUTE=false`, `authenticated EXECUTE=true`, `service_role EXECUTE=true`.
+- DB identity simulation using cashier auth subject `8dbcede3-3a94-40c6-a6c9-7d500f127f4a` returned branch `BR-01 / الفرع الرئيسي` only, 17 items, 3 customers, 17 stock rows, 11 fast-selling records, currency `SAR`. This is a DB-level JWT-claim simulation, not browser/HTTP E2E.
+- Migration source: `supabase/migrations/20261010_pos_authenticated_bootstrap_rpc.sql`, commit `1e5b12a40f7ca805159400ca6e6643aed052c28c`.
+- Report: `doc/Draft/Reprots/Report400_POS_AUTHENTICATED_CATALOG_BOOTSTRAP_AND_SEARCH_FIX_20261010.md`, commit `70bc6824e35b15a69e87b0490c42ad33d2dfdba7`.
+
+## Required owner-side surgical changes
+
+Do not edit `main.html`, `core.js`, or `pos.html` through the assistant. Apply from Report400:
+
+1. Replace the complete `self.syncDown = function() {` with the `get_pos_bootstrap_data` RPC replacement; validate all arrays before updating Dexie in one transaction.
+2. Replace `var productsCache = [], customersCache = []; ` with `var productsCache = [], customersCache = [], fastSellingCache = []; `.
+3. Replace the full `self.loadFastSelling = function() {` to use `fastSellingCache` from the bootstrap payload rather than direct `order_details` access.
+4. Replace the full `self._searchProducts = function(q) {` to include `search_label`, honor category, require a selected branch, calculate availability only for that branch, guard stale asynchronous results, and surface local DB failures.
+
+## Closure status
+
+`PRODUCTION RPC DEPLOYED / DATABASE IDENTITY SIMULATION VERIFIED / OWNER FRONTEND SURGERY PENDING / FRONTEND DEPLOYMENT AND HTTP-BROWSER E2E PENDING / NOT CLOSED`.
+
+Next session must re-read live Production and current Git first, verify this RPC and ACL again, then inspect the exact current POS blob before applying any owner-side surgery. After the owner merges/publishes, test POS-only login, allowed branch isolation, search by name/code/barcode/search_label, category filter, stock availability by selected branch, cache preservation on RPC failure, fast-selling widget, add/remove cart, cash checkout idempotency, and post-test baseline restoration. Do not claim Production UI closure from SQL simulation alone.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report399 POS BRANCH SELECTOR RLS REPAIR
 
 > هذا أحدث checkpoint خاص بمشكلة قائمة الفروع في POS، ويُضاف فوق التقارير السابقة دون حذفها. أُعيد فحص Production وCurrent Git في هذه الدورة. لا يُعدّ إغلاقًا لتكامل POS كاملًا.
