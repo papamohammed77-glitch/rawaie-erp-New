@@ -1,3 +1,44 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report401 POS Invoice/Return Read RPC
+
+> هذا checkpoint أحدث من Report400. Production وCurrent Git أُعيد فحصهما في هذه الدورة. لا تعتبر الوحدة مغلقة قبل تطبيق الجراحة الأمامية ونشرها واختبار المتصفح/HTTP.
+
+## Current POS Git
+- Repository: `papamohammed77-glitch/erp-frontend`
+- Latest commit: `559a2fe399ec218cb1ab7b1b32ec13bc56b661aa` (2026-10-10T16:23:10Z).
+- Current POS file: `companies/company-1/sales/pos.html`, blob SHA `49eae1c7898aca76d0deecfa74a55fc31808d149`, 88,092 characters / 1,363 lines.
+- `main.html`, `core.js`, and `pos.html` were not edited by the assistant. Do not repeat the existing branch selector, bootstrap, fast-selling cache, or search repairs.
+
+## Production evidence
+- Project: `fiilmooggumokxanwiyx`.
+- Live RLS policies `orders_select_current_tenant` and `order_details_select_current_tenant` do not grant direct SELECT to a POS-only profile.
+- Production log at `2026-10-10T01:07:32.735Z`: direct `GET /rest/v1/orders?...created_by=cashier@rawaea.com&order_date=2026-10-10` returned HTTP 200 with 2-byte empty body. This is RLS-filtered empty data, not proof that no invoice exists.
+- Existing POS invoice `ORD-1004` for `cashier@rawaea.com`: date 2026-10-10, status Invoiced, total 275, three detail rows.
+- Cash return contract remains incomplete: current POS return path records return/credit note, not an actual cash/card refund. Current treasury schema does not prove a separate cashier shift/drawer contract. Do not claim refund completion.
+
+## Production repair applied
+- New authenticated RPC: `public.get_pos_invoice_data(p_action text, p_order_code text DEFAULT NULL)`.
+- Migration: `supabase/migrations/20261010_pos_authenticated_invoice_read_rpc.sql`.
+- Production migration record: `20261010164215 / pos_authenticated_invoice_read_rpc_20261010`.
+- Git commit storing migration: `29382a0fa060013285f6acba90869218417899f1`.
+- RPC is SECURITY DEFINER with empty search_path; validates authenticated user, POS permission, company context, and branch scope through `get_pos_branches()`.
+- `today` returns only the authenticated cashier's own POS invoices for the Africa/Cairo business date. `detail` and `return_lookup` return POS invoices/details only within company and authorized branches.
+- ACL verified: anon EXECUTE=false, authenticated=true, service_role=true.
+- DB/JWT-claims simulation: `today` returned `ORD-1004`; `detail` returned its three lines and total 275. Test transaction rolled back; no business rows were created, updated, or deleted.
+- No new Edge Function, no RLS widening, no changes to orders/stock/accounting rows.
+
+## Owner-side surgical frontend changes
+- Report: `doc/Draft/Reprots/Report401_POS_INVOICE_TABS_AUTHENTICATED_RPC_REPAIR_20261010.md`.
+- Report commit: `b91a53da41320ef42adbd3393c33d3ccf78e77c4`.
+- Apply Report401 Patch A-E to `erp-frontend/companies/company-1/sales/pos.html`: helper insertion, replace `self.renderInvoicesView`, replace `self._searchReturnInvoice`, replace `self._viewActiveInvoice`, and replace `self._viewCancelledInvoice`.
+- No source-file patch was committed by the assistant because owner-side edits to the operational POS file are expressly reserved to the owner.
+
+## Closure
+`PRODUCTION READ RPC DEPLOYED / OWNER FRONTEND SURGERY PENDING / HTTP-BROWSER E2E PENDING / POS NOT CLOSED`.
+
+Next: owner applies Report401 Patch A-E, publishes frontend, then verify POS-only login, today's invoice list, active/cancelled invoice details, return invoice lookup, branch/company isolation, RPC failure messaging, idempotent cash checkout, served artifact parity, and baseline restoration. Do not claim cash refund/individual drawer closure until its financial contract is implemented and verified.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report400 POS AUTHENTICATED BOOTSTRAP / ITEM SEARCH
 
 > هذا أحدث checkpoint لهذه الوحدة. تمت إعادة قراءة Production وCurrent Git في هذه الدورة. لا تُعد تطبيق إصلاح branch selector الذي دخل بالفعل إلى POS source في commit 83cf87b8a856b151aff6d37dfc4e4a2cddcdf7aa. لا تعتبر هذه الوحدة مغلقة قبل دمج جراحة الواجهة ونشرها وإجراء browser/HTTP E2E.
