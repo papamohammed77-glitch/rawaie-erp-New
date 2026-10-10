@@ -22,7 +22,7 @@
 - DB identity simulation using cashier auth subject `8dbcede3-3a94-40c6-a6c9-7d500f127f4a` returned branch `BR-01 / الفرع الرئيسي` only, 17 items, 3 customers, 17 stock rows, 11 fast-selling records, currency `SAR`. Final response was checked to exclude `cost_price` and `credit_limit`. This is a DB-level JWT-claim simulation, not browser/HTTP E2E.
 - Initial migration source: `supabase/migrations/20261010_pos_authenticated_bootstrap_rpc.sql`, commit `1e5b12a40f7ca805159400ca6e6643aed052c28c`.
 - Least-privilege refinement: `supabase/migrations/20261010_pos_bootstrap_least_privilege.sql`, commit `6dac13a94377c0915677170c33a919d7034afc58`. Final RPC returns only POS-needed fields; verified that `cost_price` and `credit_limit` are not exposed.
-- Report: `doc/Draft/Reprots/Report400_POS_AUTHENTICATED_CATALOG_BOOTSTRAP_AND_SEARCH_FIX_20261010.md`, commit `70bc6824e35b15a69e87b0490c42ad33d2dfdba7`.
+- Report: `doc/Draft/Reprots/Report400_POS_AUTHENTICATED_CATALOG_BOOTSTRAP_AND_SEARCH_FIX_20261010.md`, latest update commit `cdb2ac6551e29911f2ac6a01ed228f68e0a65803` (initial creation commit `70bc6824e35b15a69e87b0490c42ad33d2dfdba7`).
 
 ## Required owner-side surgical changes
 
