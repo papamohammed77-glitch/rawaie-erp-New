@@ -1,3 +1,35 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report399 POS BRANCH SELECTOR RLS REPAIR
+
+> هذا أحدث checkpoint خاص بمشكلة قائمة الفروع في POS، ويُضاف فوق التقارير السابقة دون حذفها. أُعيد فحص Production وCurrent Git في هذه الدورة. لا يُعدّ إغلاقًا لتكامل POS كاملًا.
+
+## Production / root cause confirmed
+- Supabase project: `fiilmooggumokxanwiyx`.
+- Current operational frontend: `papamohammed77-glitch/erp-frontend/companies/company-1/sales/pos.html`, blob SHA `b93548ae660f063567736fef294683eb2046bb0e`, 85,917 characters returned.
+- `self.syncDown` reads branches directly using `supabase.from('branches').select('*')`.
+- Live `branches_select_company` RLS permits SELECT only with `branches` or `warehouse` permission. The active cashier profile `cashier@rawaea.com` has only `permissions=["pos"]`, `allowed_branch_ids="BR-01"`, and no default branch. Thus the POS role cannot satisfy the direct-table SELECT policy; the active branch exists, so this is an authorization-contract mismatch rather than missing branch data.
+- Existing active branch `BR-01` (“الفرع الرئيسي”) belongs to the cashier's company.
+- No branch, stock, order, journal, or other business rows were changed.
+
+## Deployed database repair
+- Added and deployed `public.get_pos_branches()` through migration `supabase/migrations/20261010_pos_authorized_branch_selector_rpc.sql`.
+- Function uses `SECURITY DEFINER`, empty `search_path`, schema-qualified references, authenticated identity, active company, POS permission, and per-user default/allowed branch scope. Owner wildcard is honored only when the existing owner identity predicate passes.
+- ACL verified after deployment: `anon EXECUTE=false`, `authenticated EXECUTE=true`, `service_role EXECUTE=true`.
+- Authenticated database-context simulation for the cashier returned only `BR-01`; transaction rolled back. This is not a browser/HTTP E2E test.
+- Migration commit: `7664699f927f42d12d48e1a43bec3c3a076039cc`.
+- Report: `doc/Draft/Reprots/Report399_POS_BRANCH_SELECTOR_RLS_RPC_REPAIR_20261010.md`, commit `b4c72cac9bea8fbe7e3a9025c71491b070ed3d26`.
+
+## Exact next action
+1. Owner applies the complete `self.syncDown` replacement in Report399 to `erp-frontend/companies/company-1/sales/pos.html`. The assistant did not modify `pos.html`, `main.html`, or `core.js`.
+2. Publish frontend and hard-refresh/clear the relevant service-worker cache.
+3. Verify POS-only cashier sees “الفرع الرئيسي”; verify no cross-company branches; test empty allowed-branch scope and RPC failure without clearing Dexie.
+4. Verify the served artifact's identity, then run authenticated POS checkout E2E and the remaining Report398 regression matrix.
+5. Do not claim the POS integration is closed until the frontend patch, published artifact, and runtime tests are proven.
+
+## Closure
+`DATABASE RPC DEPLOYED / FRONTEND SURGERY PENDING / POS HTTP-BROWSER E2E PENDING / NOT CLOSED`.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report398 POS INTEGRATION CONTRACT AUDIT
 
 > هذا checkpoint أحدث من سجلات Order Taker السابقة لكنه لا يغيّر أو يغلق Closure Unit الخاصة بها. تم فحص Production وGit مباشرة في هذه الدورة. لم يتم تعديل ملفات الواجهة أو قاعدة البيانات.
