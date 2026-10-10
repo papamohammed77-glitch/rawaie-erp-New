@@ -1,7 +1,7 @@
 # Report400 — إصلاح تكامل بيانات POS والبحث عن الأصناف
 **التاريخ:** 2026-10-10  
 **النطاق:** `erp-frontend/companies/company-1/sales/pos.html` + Supabase Production `fiilmooggumokxanwiyx`  
-**حدود التعديل:** لم أعدّل `main.html` أو `core.js` أو `pos.html`. نُشرت RPC في Production ووُثقت هجرتها؛ تغييرات الواجهة أدناه جراحية ليطبقها المالك على ملف الواجهة التشغيلي.
+**حدود التعديل:** لم أعدّل `main.html` أو `core.js` أو `pos.html`. نُشرت RPC في Production ووُثقت هجرتها؛ تغييرات الواجهة أدناه جراحية ليطبقها المالك على ملف الواجهة التشغيلي. بعد نشر النسخة الأولى، أضفت migration ثانية لتقليل البيانات المعادة إلى أقل الحقول التي تحتاجها شاشة POS.
 
 ## PRE-CHANGE SELF-AUDIT
 
@@ -29,8 +29,10 @@
 
 - **RPC:** `public.get_pos_bootstrap_data()`
 - **Migration:** `supabase/migrations/20261010_pos_authenticated_bootstrap_rpc.sql`
-- **السلوك:** تتحقق من هوية `auth.uid()` وصلاحية `pos` وسياق الشركة، ثم تعيد customers/items للشركة نفسها، ومخزون الفروع المسموح بها فقط عبر `get_pos_branches()`, وقائمة الفروع المصرح بها، وملخص الأكثر مبيعًا، وعملة الشركة.
-- **الأمان:** `SECURITY DEFINER`, و`search_path='' `, مراجع مؤهلة بالمخطط، `PUBLIC/anon EXECUTE=false`, `authenticated EXECUTE=true`, `service_role EXECUTE=true`.
+- **السلوك النهائي بعد hardening:** تتحقق من هوية `auth.uid()` وصلاحية `pos` وسياق الشركة، ثم تعيد حقول POS المطلوبة فقط من customers/items/stock/branches، ومخزون الفروع المسموح بها فقط عبر `get_pos_branches()`, وملخص الأكثر مبيعًا، وعملة الشركة. لا تعيد `cost_price` أو `credit_limit`.
+- **الأمان:** `SECURITY DEFINER`, و`search_path=''`, مراجع مؤهلة بالمخطط، `PUBLIC/anon EXECUTE=false`, `authenticated EXECUTE=true`, `service_role EXECUTE=true`. أُعيد التحقق من عدم إرجاع `cost_price` و`credit_limit` بعد migration تقليل الحقول.
+- **Migration الأصلية:** `supabase/migrations/20261010_pos_authenticated_bootstrap_rpc.sql`, commit `1e5b12a40f7ca805159400ca6e6643aed052c28c`.
+- **Migration النهائية لتقليل الحقول:** `supabase/migrations/20261010_pos_bootstrap_least_privilege.sql`, commit `6dac13a94377c0915677170c33a919d7034afc58`.
 - **اختبار Production بــ JWT subject للكاشير** `8dbcede3-3a94-40c6-a6c9-7d500f127f4a`: أعادت RPC فرع `BR-01 / الفرع الرئيسي` فقط، و17 صنفًا، و3 عملاء، و17 صف مخزون، و11 سجلًا لملخص الأكثر مبيعًا، والعملة `SAR`.
 - هذا اختبار دالة في سياق هوية مصطنع داخل قاعدة البيانات، **وليس** اختبار HTTP أو متصفح.
 - لم تتغير صفوف الفروع أو الأصناف أو المخزون أو الأوردرات أو القيود المحاسبية أثناء هذا الاختبار.
@@ -244,6 +246,7 @@ self._searchProducts = function(q) {
 | محاكاة JWT subject للكاشير داخل DB | **VERIFIED:** branch_count=1، BR-01 فقط، 17 صنفًا، 3 عملاء، 17 stock rows |
 | currency من بيانات الشركة | **VERIFIED:** SAR |
 | fast-selling payload | **VERIFIED:** 11 سجلًا في لقطة الاختبار |
+| Least-privilege payload | **VERIFIED:** `cost_price` و`credit_limit` غير موجودين في العناصر المعادة |
 | دمج جراحة الواجهة | **PENDING — owner-side merge** |
 | نشر الواجهة والتحقق من Cloudflare/service-worker artifact | **PENDING** |
 | اختبار متصفح مصادق عليه للبحث/الإضافة للسلة/البيع | **PENDING** |
@@ -254,7 +257,7 @@ self._searchProducts = function(q) {
 
 - **What I Proved:** سياسات RLS تمنع مسار التحميل المباشر لمستخدم POS-only؛ RPC الجديدة تعمل في سياق هوية الكاشير وتعيد البيانات ضمن نطاق الشركة والفروع المسموح بها.
 - **What I Did Not Prove:** اختبار HTTP حقيقي، تشغيل واجهة المتصفح بعد دمج النصوص، تكافؤ artifact المنشور مع Git، أو نجاح فاتورة POS كاملة.
-- **What I Fixed:** نشرت `get_pos_bootstrap_data()` بصلاحيات تنفيذ مقيدة، ووثقت migration، وجهزت أربعة تعديلات جراحية دقيقة للواجهة.
+- **What I Fixed:** نشرت `get_pos_bootstrap_data()` بصلاحيات تنفيذ مقيدة، ثم ضيّقت حقول الاستجابة في migration مستقلة، ووثقت الهجرتين، وجهزت أربعة تعديلات جراحية دقيقة للواجهة.
 - **What I Initially Missed:** إصلاح قائمة الفروع وحده لا يكفي؛ قراءات items/customers/stock وملخص الأكثر مبيعًا لها سياسات RLS مستقلة لا تمنح POS-only حق القراءة.
 - **What Could Still Be Wrong:** قد تكشف اختبارات المتصفح اختلافًا في سلوك Dexie أو cache/service worker أو في عقد الاستجابة بين Git والنسخة المنشورة.
 - **Final Confidence:** مرتفع في السبب وRPC/ACL/DB simulation؛ متوسط في جراحة الواجهة إلى أن تُدمج وتُختبر فعليًا.
