@@ -1,3 +1,35 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report403 POS Return Runtime/Financial Contract
+
+> أحدث من Report402. لم يتم تعديل `main.html` أو `erp-frontend/companies/company-1/sales/pos.html`، ولم يتم تغيير بيانات Production. لا تكرر إصلاحات الواجهة الموجودة في المصدر الحالي.
+
+## Verified current source
+- Frontend repo: `papamohammed77-glitch/erp-frontend`.
+- Latest observed commit: `950abb6b78680d37c8d29f1beba78c8c1d6a51a4` — `Refactor switchView to use allowedViews array` (2026-10-10T17:33:22Z).
+- Current `pos.html` blob: `967d486147cf3ca9911c4dbd3ba89042c373577e`, 88,823 characters.
+- Current source already contains `_getPosInvoiceData`, `_searchReturnInvoice`, `renderReturnsView`; latest commit updates `switchView` and the return navigation/action visibility. No new frontend patch was applied.
+
+## Fresh Production evidence
+- Project: `fiilmooggumokxanwiyx`.
+- `get_pos_invoice_data(text,text)`: SECURITY DEFINER, empty search_path; anon EXECUTE=false, authenticated=true, service_role=true.
+- `get_pos_branches()` uses authenticated identity/company/allowed-branch scope.
+- JWT-claims DB simulation for `cashier@rawaea.com` returned `ORD-1004` and `ORD-1005` from `today`; `return_lookup(ORD-1004)` returned the order and three detail rows. This is DB simulation, not HTTP/browser E2E.
+- `ORD-1004`: POS, Invoiced, 275.00, branch BR-01, cash, `customer_id=NULL`; corresponding cash_box Receipt is tied to the main treasury.
+- Production Edge `complete-return` v26 calls `complete_sales_return_credit_note_atomic`, which calls `complete_return_atomic`. The live core requires a customer_id for positive order-return financial posting and raises `RETURN_CUSTOMER_REQUIRED_FOR_FINANCIAL_POSTING`; this conflicts with cash POS invoices where customer_id is NULL.
+- Verified schema contains `treasury` and `cash_box`, but no verified cashier shift/drawer entity. UI currently says it records a credit note and does not execute cash/card refund.
+
+## Closure state
+`SOURCE READ PATH PRESENT / RPC+ACL VERIFIED / DB CLAIM SIMULATION VERIFIED / HTTP-BROWSER E2E UNVERIFIED / SERVED ARTIFACT PARITY UNVERIFIED / CASH POS RETURN CORE DEFECT CONFIRMED / POS NOT CLOSED`.
+
+Detailed report: `doc/Draft/Reprots/Report403_POS_RETURN_FORENSIC_RUNTIME_AND_FINANCIAL_CONTRACT_20261010.md`.
+
+## Next exact steps
+1. Publish current frontend commit `950abb6b78680d37c8d29f1beba78c8c1d6a51a4` through the approved hosting pipeline, clear Service Worker cache, and run authenticated browser/HTTP tests for invoice list, invoice detail, and return lookup.
+2. Repair the cash POS return contract end-to-end, not by merely skipping the customer-ledger error: define cashier/drawer or authorized treasury mapping, idempotent cash/card refund, balanced journal posting, and stock return through `post_stock_movement`. Do not claim that a credit note is a cash refund.
+3. Use isolated fixtures for return E2E; do not delete ORD-1004/ORD-1005, which have linked cash_box and journal entries. Verify baseline after the tests.
+4. Re-read live Production and current Git before any next edit. Do not reapply Report401/Report402 patches blindly.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report402 POS Source/Production Reconciliation
 
 > هذا checkpoint أحدث من Report401. لم يتم تعديل main.html أو pos.html في هذه الدورة. تم اكتشاف أن الجراحة الأمامية التي كانت موصوفة بأنها بانتظار المالك موجودة بالفعل في commit أحدث؛ لا تكرر Patch A–E.
