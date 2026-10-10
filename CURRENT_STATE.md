@@ -2571,3 +2571,36 @@ The existing-order edit contract previously listed as OPEN in the Report391 chec
 - Existing-order update contract = VERIFIED.
 - Remaining full closure requirements are frontend application of the exact surgical patches and authenticated browser E2E through Runsheet/downstream workflow.
 - Report391 addendum commit: `d4718232c463f88e8e88f174c01d7674b370539c`.
+
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report403 POS Live RPC and Return Contract Audit
+
+> أحدث من Report402. بدأ الفحص بقراءة Production الحالي، ثم Current Git والسجل التنفيذي. لم يتم تعديل `main.html` أو `companies/company-1/sales/pos.html`، ولم تُنشأ بيانات أعمال تجريبية.
+
+## Production evidence verified in this cycle
+- Supabase project: `fiilmooggumokxanwiyx`.
+- Current POS source blob: `21c6a0b318b9eb629f8f1917f9b3a4bbf21decfa`; commit `3b27e45adbdfcea4a08f414b2dc5a9082f1be422` already contains the RPC-based invoice/return frontend changes. Do not reapply Patch A–E.
+- `public.get_pos_invoice_data(text,text)`: SECURITY DEFINER, empty search_path; `anon EXECUTE=false`, `authenticated EXECUTE=true`, `service_role EXECUTE=true`.
+- Production logs show authenticated cashier `8dbcede3-3a94-40c6-a6c9-7d500f127f4a` calling `/rest/v1/rpc/get_pos_invoice_data` from `https://rawaea-erp.pages.dev/` with HTTP 200 at 2026-10-10T17:01:22Z, 17:01:36Z, 17:01:52Z, 17:13:21Z, and 17:13:30Z.
+- Read-only DB/JWT-claim simulation with final ROLLBACK returned today's `ORD-1004` and `ORD-1005`, `ORD-1004` detail (3 lines, total 275), and return_lookup for both invoices. No business rows were written.
+- Current `complete-return` Production version 26 calls `complete_sales_return_credit_note_atomic`; the core creates a credit note and calls `complete_return_atomic`. The current POS screen explicitly does not execute a cash/card refund.
+- Treasury schema inspection found one active general cash treasury `CASH-01 / الخزينة الرئيسية`, but no clear cashier shift/drawer table in the inspected public table names. Do not post cash refund to this general treasury by assumption.
+
+## Status correction
+- Invoice/return read RPC: VERIFIED by live authenticated HTTP 200 logs and DB claim simulation.
+- Current frontend patch: PRESENT; no need to rewrite the target file.
+- Actual visible browser interaction and served artifact/Service Worker parity: UNVERIFIED.
+- Cash refund from a specific cashier drawer and associated accounting entry: OPEN; requires a proven cashier drawer/shift contract, not a UI-only change.
+- POS unit is NOT CLOSED; do not report 100% while visual E2E, served artifact parity, cross-company isolation runtime, and cash-refund contract remain open.
+
+## Detailed report
+- `doc/Draft/Reprots/Report403_POS_LIVE_RPC_AND_RETURN_CONTRACT_AUDIT_20261010.md`
+- Report commit: `f2cbbde22a06197b4be6327ff6447efd9a752678`.
+
+## Next exact sequence
+1. In the real POS browser session, exercise «فواتير اليوم», open `ORD-1004`, and lookup `ORD-1004` in «مرتجع»; capture UI result and matching RPC request/response.
+2. Verify deployed asset/Service Worker against POS blob `21c6a0b318b9eb629f8f1917f9b3a4bbf21decfa`.
+3. Prove cross-company and branch denial using two authenticated test identities; no broadening of RLS.
+4. Before implementing cash refund, define/locate the actual per-cashier drawer or shift entity and its account mapping, then connect the return/credit note to an idempotent cash disbursement and balanced journal entry. Do not use `CASH-01` as an inferred substitute.
+
+---
