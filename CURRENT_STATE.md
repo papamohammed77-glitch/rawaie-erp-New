@@ -2604,3 +2604,39 @@ The existing-order edit contract previously listed as OPEN in the Report391 chec
 4. Before implementing cash refund, define/locate the actual per-cashier drawer or shift entity and its account mapping, then connect the return/credit note to an idempotent cash disbursement and balanced journal entry. Do not use `CASH-01` as an inferred substitute.
 
 ---
+
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report404 POS Return Tab UI State
+
+> هذا التحديث أحدث من Report403 فيما يخص مزامنة أزرار تبويبات POS. لا يعتبر إغلاقًا كاملًا للتطبيق.
+
+## Production resync performed in this cycle
+- Project: `fiilmooggumokxanwiyx`.
+- Current POS Git blob: `21c6a0b318b9eb629f8f1917f9b3a4bbf21decfa`; inspected commit: `3b27e45adbdfcea4a08f414b2dc5a9082f1be422`.
+- Live `public.get_pos_invoice_data(text,text)`: SECURITY DEFINER, empty search_path; ACL verified: anon=false, authenticated=true, service_role=true.
+- Authenticated claims simulation for cashier `cashier@rawaea.com` returns allowed branch `BR-01 / الفرع الرئيسي` only.
+- `today` returned `ORD-1004` and `ORD-1005`; `return_lookup(ORD-1004)` returned 3 detail rows and total 275; `return_lookup(ORD-1005)` returned 2 detail rows and total 185.
+- Live PostgREST logs contain authenticated HTTP 200 calls to the RPC through `https://rawaea-erp.pages.dev/`, latest observed at `2026-10-10T17:25:41Z`. Logs omit request body, so the exact invoice code in the reported failed attempt is unverified.
+- No business data, stock, or schema was changed in this cycle.
+
+## Current frontend finding
+- In `companies/company-1/sales/pos.html`, `self.switchView` only toggles `cartActionsNormal`, `btnPayNormal`, `cartActionsReturn`, and `btnPayReturn` inside the `view === 'pos'` branch. The controls therefore do not consistently follow the active view.
+- Exact complete replacement for `self.switchView` is documented in `doc/Draft/Reprots/Report404_POS_RETURN_TAB_ACTION_VISIBILITY_AND_LOOKUP_FORENSIC_20261010.md`.
+- Per owner instructions, assistant did NOT modify `main.html` or `pos.html`; owner must apply the documented surgical replacement and publish.
+- Do not widen RLS or weaken company/branch constraints: known Production POS invoices `ORD-1004` and `ORD-1005` are retrievable in the authorized branch. The code typed in the failed UI attempt is not captured in available logs.
+
+## Status
+- Production read RPC/ACL/known invoice lookup: VERIFIED.
+- Return-tab action visibility source defect: FOUND; replacement supplied.
+- Owner source application / Cloudflare Pages deployment / served-artifact parity: OPEN.
+- Browser-rendered E2E: OPEN.
+- Per-cashier cash/card refund contract: OPEN; current UI/backend explicitly perform credit-note/return workflow, not proven cash disbursement.
+- POS overall: NOT CLOSED.
+
+## Next exact sequence
+1. Owner replaces the complete `self.switchView` function using Report404; do not repeat the RPC or invoice-read changes.
+2. Publish `pos.html`, invalidate/recheck Service Worker cache, and confirm served artifact identity.
+3. Browser E2E: switch sale/suspended/invoices/returns and verify only relevant side actions are visible.
+4. Search exact `ORD-1004` and `ORD-1005`; verify line counts and totals. If the user's original invoice code still fails, record the exact code and check source/company/branch against Production without broadening access.
+5. Verify company/branch denial, cancelled invoice rejection, partial-return quantity limits, and no stock/financial mutation on lookup-only tests.
+6. Keep the cash refund contract open until a real cashier drawer/shift and balanced disbursement contract is proven.
