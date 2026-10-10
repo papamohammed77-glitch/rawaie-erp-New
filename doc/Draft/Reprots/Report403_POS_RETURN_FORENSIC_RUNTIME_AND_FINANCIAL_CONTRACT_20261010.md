@@ -123,3 +123,13 @@ Production Edge `complete-return` v26 يستدعي `complete_sales_return_credit
 - **What Could Still Be Wrong:** قد تكون الاستضافة تقدم نسخة أقدم؛ وقد توجد تفاصيل نشر/كاش لم يمكن إثباتها؛ كما أن contract رد النقد يحتاج تصميمًا وتطبيقًا واختبارًا متكاملًا.
 - **Final Confidence:** عالٍ في الأدلة المصدرية وقاعدة البيانات؛ غير كافٍ للإغلاق التشغيلي.
 - **Final Closure Status:** `NOT CLOSED — SOURCE/DB READ PATH VERIFIED, LIVE UI AND CASH REFUND CONTRACT OPEN`.
+
+
+## Historical POS return payment contract — additional verified evidence
+
+تمت قراءة `rawaie-erp-review/PWA/sales/pos.html`، historical blob `6ad4da791b72260b922847246ebce93b552d2bad`:
+
+- الدالة التاريخية كانت `self._finalizeReturn(method)` وتستخدم `method` لعرض «نقداً/بطاقة» في رسالة النجاح فقط.
+- طلب `complete-return` لم يرسل `method` أو `refund_amount` أو `treasury_id` أو هوية درج كاشير؛ أرسل فقط `runsheet_code`, `order_code`, `items`, `is_pos_return`.
+- لذلك لم يكن السلوك التاريخي ردًا ماليًا فعليًا؛ كان عرض طريقة الدفع غير مدعوم بعقد خادمي. التغيير الحالي الذي يوضح أن العملية إشعار دائن يصحح ادعاءً غير مسنود، لكنه لا يحقق متطلب رد النقد.
+- لا تعِد الواجهة التاريخية كما هي، ولا تتجاوز شرط `customer_id` فقط. يلزم عقد متكامل يربط الفاتورة ووسيلة الدفع والخزينة/الدرج المصرح به، ويرحل قيدًا متوازنًا ويمنع التكرار.
