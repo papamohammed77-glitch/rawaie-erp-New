@@ -1,3 +1,40 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report398 POS INTEGRATION CONTRACT AUDIT
+
+> هذا checkpoint أحدث من سجلات Order Taker السابقة لكنه لا يغيّر أو يغلق Closure Unit الخاصة بها. تم فحص Production وGit مباشرة في هذه الدورة. لم يتم تعديل ملفات الواجهة أو قاعدة البيانات.
+
+## Current POS source
+- Target: `papamohammed77-glitch/erp-frontend/companies/company-1/sales/pos.html`.
+- Current Git blob SHA: `6ad4da791b72260b922847246ebce93b552d2bad`, 80,447 chars / 1,115 lines.
+- Historical review copy `rawaie-erp-review/PWA/sales/pos.html` and the retrieved historical POS file had the same blob SHA.
+- Shared `companies/company-1/core.js` blob: `c2e0a7f4ba11f44c11dfc4728ef4a1af1b256b81`.
+- `main.html`, `pos.html`, and `core.js` were not modified per owner merge rules.
+
+## Fresh Production snapshot — 2026-10-10
+- Supabase project: `fiilmooggumokxanwiyx`.
+- `save-sales-invoice`: v18 ACTIVE, `verify_jwt=true`, package SHA-256 `43d20f1465725c4e273f717ac927c070d4b28be48241bd2c9c46a6d43bb40308`.
+- `complete-return`: v26 ACTIVE, `verify_jwt=true`, package SHA-256 `801e390b195522caedfcf68bae8262bb91da06e909c1d43e9344490e3a81f34d`.
+- `public.save_sales_invoice_atomic(jsonb,jsonb,text,text)`: `SECURITY DEFINER`, ACL `postgres/service_role` only.
+- The RPC performs invoiced POS/van stock movement through `post_stock_movement`; no new Edge Function or schema was added.
+- Live row counts at this inspection: orders=3, order_details=11, runsheets=1, run_sheet_details=5, inventory_log=12, journal_entries=10. No data was deleted; do not delete ORD-1001/1002/1003 without re-proving dependency safety in a new inspection.
+- Production logs include successful `save-sales-invoice` v18 HTTP requests on 2026-10-09, but these logs do not establish POS-specific browser E2E.
+
+## Confirmed POS defects
+1. `self.syncDown` clears each Dexie table before checking the Supabase response's `error`; a failed/partial fetch can erase good local cache.
+2. `self.enterApp` has no catch for initial sync failure.
+3. POS does not pass a per-sale `operation_id`. Production Edge's fallback deterministic UUID is derived from user + identical payload + branch, so separate identical sales can collide at the idempotency layer.
+4. UI offers cash/card/split, but the current Production RPC determines cash by `paymentType === 'نقدي'` and routes that path through `post_cash_receipt_atomic`. The current contract does not prove correct settlement for card/wallet/split. The documented safe patch fails closed for unsupported methods.
+5. POS return UI displays a cash/card return method, but Production `complete-return` v26 does not accept or forward a refund method; it calls `complete_sales_return_credit_note_atomic`. The current UI message must not claim that cash/card was refunded.
+
+## Report / owner merge
+- Report: [Report398_POS_INTEGRATION_FORENSIC_REVIEW_20261010.md](doc/Draft/Reprots/Report398_POS_INTEGRATION_FORENSIC_REVIEW_20261010.md)
+- Report commit: `98ed12c037fcdeaf3412111369f5e0180e74a434`.
+- The report contains complete replacement bodies for `self.syncDown`, `self.enterApp`, and `self.finalizeCheckout`, plus the precise return-method contract mismatch and post-merge test plan.
+- No Production mutation was necessary or made in this cycle; current Edge/Core stock contract is centralized. No POS-specific HTTP/browser test was run because the protected frontend patch has not yet been applied and published.
+- Closure: `ROOT CAUSE VERIFIED / OWNER PATCH PACKAGE COMMITTED / POS RUNTIME E2E PENDING / NOT CLOSED`.
+- Next exact action: owner merges Report398 patches in `companies/company-1/sales/pos.html`, publishes, then runs the authenticated POS test matrix in Report398 section 6. Re-read Production, Git, and served artifact before closing.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report397 ORDER TAKER CUSTOMER ID / CODE MISMATCH
 
 > هذا أحدث checkpoint لهذه المشكلة ويقدّم على توصية الواجهة في Report396 فيما يخص الحالة الفعلية الحالية. أُعيدت قراءة Production وGit في هذه الدورة؛ لا تعتمد على هذا النص بدل إعادة القراءة عند بدء الجلسة التالية.
