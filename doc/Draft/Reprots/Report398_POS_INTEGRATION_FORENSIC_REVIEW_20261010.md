@@ -299,6 +299,113 @@ self.finalizeCheckout = function() {
 
 **التصحيح الآمن الآن:** لا تعرض «طريقة الإعادة: نقداً/بطاقة» على أنها تمت. غيّر نص النجاح داخل `self._finalizeReturn` ليقول: «تم تسجيل المرتجع وفق عقد الإشعار الدائن؛ لم يُثبت تنفيذ رد نقدي/بطاقة من هذه الشاشة». لا تنفّذ أو تسجّل ردًا نقديًا يدويًا من الواجهة. الربط الكامل لردّ الأموال يحتاج عقدًا محاسبيًا منفصلًا ومثبت الحسابات؛ لا يجوز اختراعه داخل POS وحده.
 
+### Patch D — استبدال كامل لدالة `self._finalizeReturn`
+
+**محدد البحث:** `self._finalizeReturn = function(method) {`  
+احذف جسم الدالة كاملًا حتى `};` واستبدله بالآتي. لا يعلن هذا البديل أن ردًا نقديًا/بطاقة قد تم، ويحافظ على السلة إذا فشل الخادم:
+
+```javascript
+self._finalizeReturn = function() {
+    var orderCode = returnOriginalInvoice ? returnOriginalInvoice.order_code : null;
+    var items = [];
+
+    if (!orderCode) {
+        RW_UI.showError('لم يتم تحديد الفاتورة الأصلية؛ لم يُرسل المرتجع');
+        return;
+    }
+
+    for (var i = 0; i < returnCart.length; i++) {
+        var it = returnCart[i];
+        if (Number(it.returnQty) > 0) {
+            items.push({
+                item_code: it.code,
+                item_name: it.name,
+                unit_price: Number(it.price) || 0,
+                returnedQty: Number(it.returnQty),
+                return_condition: 'good',
+                reason: 'مرتجع نقطة بيع - إشعار دائن'
+            });
+        }
+    }
+
+    if (!items.length) {
+        RW_UI.toast('لا توجد أصناف في سلة المرتجع', 'warning');
+        return;
+    }
+
+    RW_UI.showLoader('جاري تسجيل المرتجع...');
+    RW_API.call('complete-return', {
+        runsheet_code: null,
+        order_code: orderCode,
+        items: items,
+        is_pos_return: true,
+        reason: 'مرتجع نقطة بيع - إشعار دائن'
+    }, function(json, err) {
+        RW_UI.hideLoader();
+
+        if (!err && json && json.success) {
+            var newStatus = json.new_order_status || 'Returned';
+            var isPartial = newStatus === 'Partially Returned';
+
+            returnCart = [];
+            returnOriginalInvoice = null;
+            _returnTotal = 0;
+
+            Swal.fire({
+                icon: isPartial ? 'warning' : 'success',
+                title: isPartial ? 'تم تسجيل المرتجع جزئيًا' : 'تم تسجيل المرتجع',
+                html: '<div class="text-right text-white text-sm">' +
+                    '<p>عدد الأصناف المرتجعة: <strong>' + items.length + '</strong></p>' +
+                    '<p>القيمة المرجعية: <strong>' + fmtNum(items.reduce(function(sum, item) { return sum + item.unit_price * item.returnedQty; }, 0)) + ' ' + currency + '</strong></p>' +
+                    '<p>حالة الفاتورة: <strong>' + newStatus + '</strong></p>' +
+                    '<p class="text-amber-300 mt-3">تم تسجيل المرتجع وفق عقد الإشعار الدائن. لم يتم تنفيذ رد نقدي أو رد للبطاقة من هذه الشاشة.</p>' +
+                    '</div>',
+                confirmButtonText: 'حسنًا',
+                customClass: {
+                    popup: '!bg-slate-900 !rounded-3xl !border !border-slate-700',
+                    confirmButton: isPartial ? '!bg-amber-600 !rounded-xl' : '!bg-emerald-600 !rounded-xl'
+                }
+            });
+
+            self.switchView('invoices');
+            return;
+        }
+
+        RW_UI.byId('returnPaymentModal').classList.remove('hidden');
+        RW_UI.showError((json && (json.msg || json.error)) ||
+            (err && String(err)) || 'فشل تسجيل المرتجع؛ لم يتم تفريغ السلة');
+    });
+};
+```
+
+**تعديل واجهة نافذة المرتجع المرتبط بالدالة:**
+
+ابحث عن هذا العنصر حرفيًا:
+```html
+<div class="grid grid-cols-2 gap-2">
+                <button onclick="POS._finalizeReturn('cash')" class="py-3 rounded-xl border-2 border-red-500 bg-red-950/40 text-red-300 font-bold text-sm">💵 دفع نقدي للعميل</button>
+                <button onclick="POS._finalizeReturn('card')" class="py-3 rounded-xl border border-slate-600 bg-slate-800 text-slate-400 font-bold text-sm">💳 إعادة للبطاقة</button>
+            </div>
+```
+واستبدله كاملًا بـ:
+```html
+<div class="bg-amber-950/30 border border-amber-700/50 p-3 rounded-xl text-center">
+    <p class="text-sm font-bold text-amber-300">هذه الشاشة تسجل المرتجع والإشعار الدائن فقط.</p>
+    <p class="text-xs text-slate-300 mt-1">لا يتم رد نقدي أو رد للبطاقة حتى ربط عملية التسوية المحاسبية واعتمادها في النظام.</p>
+</div>
+```
+
+ثم ابحث عن زر التأكيد حرفيًا:
+```html
+<button onclick="POS._finalizeReturn('cash')" class="w-2/3 bg-red-600 hover:bg-red-500 text-white py-3 rounded-xl font-black text-base shadow-lg">تأكيد المرتجع ✅</button>
+```
+واستبدله بـ:
+```html
+<button onclick="POS._finalizeReturn()" class="w-2/3 bg-red-600 hover:bg-red-500 text-white py-3 rounded-xl font-black text-base shadow-lg">تسجيل المرتجع وإنشاء الإشعار الدائن</button>
+```
+
+هذا إصلاح لصدق واجهة المستخدم وتوافقها مع العقد الحالي؛ لا يدّعي أنه أضاف رد أموال. إضافة رد نقدي/بطاقة فعلية تتطلب عقدًا محاسبيًا جديدًا مثبت الحسابات والخزائن ومفتاح idempotency، واختبارات ذرية مستقلة.
+
 ## 4. ما لم أعدّله ولماذا
 
 - لم أعدل `main.html` أو `pos.html` أو `core.js`؛ هذه ملفات دمج المالك، كما نصّت التعليمات.
