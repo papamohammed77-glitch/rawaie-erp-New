@@ -27,8 +27,8 @@
 
 ## Report / owner merge
 - Report: [Report398_POS_INTEGRATION_FORENSIC_REVIEW_20261010.md](doc/Draft/Reprots/Report398_POS_INTEGRATION_FORENSIC_REVIEW_20261010.md)
-- Report commit: `98ed12c037fcdeaf3412111369f5e0180e74a434`.
-- The report contains complete replacement bodies for `self.syncDown`, `self.enterApp`, and `self.finalizeCheckout`, plus the precise return-method contract mismatch and post-merge test plan.
+- Report commit: `fa4d9238f4e0ba1259abe7f12020c83455a01479` (updated to include the full return-flow replacement and exact modal HTML surgery).
+- The report contains complete replacement bodies for `self.syncDown`, `self.enterApp`, `self.finalizeCheckout`, and `self._finalizeReturn`, plus exact return-modal HTML replacements and the post-merge test plan.
 - No Production mutation was necessary or made in this cycle; current Edge/Core stock contract is centralized. No POS-specific HTTP/browser test was run because the protected frontend patch has not yet been applied and published.
 - Closure: `ROOT CAUSE VERIFIED / OWNER PATCH PACKAGE COMMITTED / POS RUNTIME E2E PENDING / NOT CLOSED`.
 - Next exact action: owner merges Report398 patches in `companies/company-1/sales/pos.html`, publishes, then runs the authenticated POS test matrix in Report398 section 6. Re-read Production, Git, and served artifact before closing.
