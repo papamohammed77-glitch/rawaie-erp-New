@@ -2765,3 +2765,28 @@ Detailed report: [Report405 — POS Return Current Production Reconciliation](do
 4. Run authenticated browser HTTP E2E with an isolated QA invoice: cash partial return, remaining/full return, duplicate retry, insufficient balance, and noncash fail-closed.
 5. Verify cash_box Payment, balanced journal, credit note, stock movement, order status, and exact treasury baseline; clean all fixture rows.
 6. Do not claim POS closure until drawer/shift semantics and card/split tender refund policy are explicitly implemented or formally excluded.
+
+# CURRENT STATE ADDENDUM — 2026-10-11 — Report406 POS RETURN ACCOUNTING HARDENING
+
+After the initial Report406 checkpoint, two additional Production SQL migrations were applied and verified:
+- supabase/migrations/20261011_pos_return_remaining_total_discount.sql — keeps the remaining POS order total net of the original order-level discount after a partial return.
+- supabase/migrations/20261011_pos_return_cost_accounting.sql — for good-condition POS returns, values inventory/COGS reversal using items.cost_price rather than the selling price; item lookup is company-scoped. The existing non-POS runsheet return journal behavior was deliberately preserved.
+
+Current live function proof:
+- tender guard present = true
+- refund response fields present = true
+- zero-value guard present = true
+- cost-basis branch present = true
+- anon EXECUTE=false; authenticated EXECUTE=false; service_role EXECUTE=true
+
+Important master-data caveat:
+- Current company item sample has 17 active items, only 1 with positive cost_price and 16 with cost_price=0. POS return COGS reversal therefore remains zero for those zero-cost items, matching the current sales-core behavior; correct the item cost master data before expecting meaningful COGS accounting for them.
+
+The four canonical SQL files for this closure are:
+- supabase/migrations/20261011_pos_cash_return_refund_atomic.sql
+- supabase/migrations/20261011_pos_return_zero_value_guard.sql
+- supabase/migrations/20261011_pos_return_remaining_total_discount.sql
+- supabase/migrations/20261011_pos_return_cost_accounting.sql
+
+Report406 updated commit: ae2c7e44292206ecdc64338a2548db7dab548ca4.
+The overall POS closure remains OPEN: no authenticated browser/HTTP refund E2E, served asset parity, cashier-specific drawer/shift entity, or card/split refund contract has been verified.
