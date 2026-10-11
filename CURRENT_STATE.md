@@ -2708,3 +2708,15 @@ Detailed report: [Report405 — POS Return Current Production Reconciliation](do
 2. Capture authenticated browser Network request/response for `rpc/get_pos_invoice_data` with `p_action=return_lookup`; compare served artifact to the current blob.
 3. Implement one atomic financial return contract covering stock movement, credit note idempotency, payment-origin/cashier authorization, cash refund or card refund record, balanced journal entries, audit, and company isolation. Do not merely bypass `customer_id`.
 4. Test only with an isolated fixture; do not mutate ORD-1004/ORD-1005.
+
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report404 POS Return Contract
+
+- New report: `doc/Draft/Reprots/Report404_POS_RETURN_SURGICAL_DECISION_20261011.md`.
+- Frontend current blob verified: `companies/company-1/sales/pos.html` SHA `967d486147cf3ca9911c4dbd3ba89042c373577e`; no frontend file or `main.html` was changed.
+- Production `complete-return` is active v26 with JWT verification enabled. Its Core chain reaches `complete_return_atomic(uuid,text,text,boolean,text,jsonb)` through `complete_sales_return_credit_note_atomic(...,text)`.
+- Live Core rejects positive-value returns for orders with `customer_id IS NULL` using `RETURN_CUSTOMER_REQUIRED_FOR_FINANCIAL_POSTING`. Real invoice `ORD-1004` has `customer_id=NULL`, payment `نقدي`, and a 275.00 receipt linked to the main treasury.
+- No verified cashier shift/drawer entity or cashier-to-till mapping was found in the inspected Production schema. Removing the customer check alone would not execute an actual refund and could permit inconsistent financial posting; no Production business data or Core function was modified.
+- Current lookup RPC and UI navigation changes already exist in Git. The original invoice-not-found toast is only shown when RPC returns `order=null`; real HTTP/browser trace and served asset parity remain unverified.
+- Exact surgical scope and test matrix are in Report404. Do not repeat older patches to `_searchReturnInvoice` or `switchView`; do not touch `main.html` or `pos.html` without new runtime evidence.
+- Status: `CORE DEFECT CONFIRMED / CASH REFUND CONTRACT OPEN / HTTP-BROWSER E2E UNVERIFIED / NOT CLOSED`.
