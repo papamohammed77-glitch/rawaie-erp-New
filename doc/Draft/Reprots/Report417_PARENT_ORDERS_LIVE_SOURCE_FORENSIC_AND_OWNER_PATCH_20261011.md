@@ -325,6 +325,8 @@ function _showDetails(code) {
                     var deliveryFee = Number(order.delivery_fee) || 0;
                     var finalTotal = Number(order.total_amount);
                     if (!Number.isFinite(finalTotal)) finalTotal = remainingItemsTotal + deliveryFee;
+                    var originalTotal = Number(order.original_total_amount);
+                    if (!Number.isFinite(originalTotal)) originalTotal = originalItemsTotal + deliveryFee;
 
                     var warningHtml = order.runsheet_id
                         ? '<div class="bg-amber-50 border-r-4 border-amber-500 p-3 mb-4 rounded"><p class="text-amber-700 text-sm"><i class="fa-solid fa-link ml-2"></i> مرتبط بالرانشيت: <strong>' + esc(order.runsheet_id) + '</strong></p></div>'
@@ -355,6 +357,7 @@ function _showDetails(code) {
                         '<div class="bg-gray-50 p-4 rounded-2xl mt-4">' +
                         '<div class="flex justify-between mb-2"><span>قيمة الأصناف الأصلية المسجلة/المحسوبة:</span><span>' + originalItemsTotal.toLocaleString('ar-EG') + ' ' + esc(currency) + '</span></div>' +
                         '<div class="flex justify-between mb-2"><span>قيمة المتبقي بسعر الوحدة قبل الخصومات:</span><span>' + remainingItemsTotal.toLocaleString('ar-EG') + ' ' + esc(currency) + '</span></div>' +
+                        '<div class="flex justify-between mb-2"><span>الإجمالي الأصلي المسجل:</span><span>' + originalTotal.toLocaleString('ar-EG') + ' ' + esc(currency) + '</span></div>' +
                         '<div class="flex justify-between mb-2"><span>رسوم التوصيل المسجلة:</span><span>' + deliveryFee.toLocaleString('ar-EG') + ' ' + esc(currency) + '</span></div>' +
                         '<div class="flex justify-between pt-2 border-t"><span class="font-bold">الإجمالي النهائي المسجل بالنظام:</span><span class="font-bold text-emerald-600 text-lg">' + finalTotal.toLocaleString('ar-EG') + ' ' + esc(currency) + '</span></div>' +
                         '<p class="text-xs text-gray-500 mt-2">الإجمالي النهائي مأخوذ من orders.total_amount؛ قيمة المتبقي المعروضة تقريبية قبل تسوية الخصومات والرسوم.</p></div>' +
@@ -433,6 +436,8 @@ function _buildPrintWindow(order, items, settings) {
     var deliveryFee = Number(order.delivery_fee) || 0;
     var finalTotal = Number(order.total_amount);
     if (!Number.isFinite(finalTotal)) finalTotal = deliveryFee;
+    var originalTotal = Number(order.original_total_amount);
+    if (!Number.isFinite(originalTotal)) originalTotal = finalTotal;
     var taxAmount = Math.round((finalTotal * taxRate / 100) * 100) / 100;
     var invoiceDate = order.order_date ? new Date(order.order_date).toISOString() : new Date().toISOString();
     var qrBase64 = generateQRInvoiceBase64(registeredName, vatNumber, invoiceDate, String(finalTotal), String(taxAmount));
@@ -446,7 +451,8 @@ function _buildPrintWindow(order, items, settings) {
         '<p><strong>الحالة:</strong> ' + esc(order.order_status || '') + '</p>' +
         '<table><thead><tr><th>الصنف</th><th>الوحدة</th><th>الأصلي</th><th>المرتجع</th><th>المتبقي</th><th>السعر</th><th>قيمة المتبقي التقريبية</th><th>سبب/ملاحظة</th></tr></thead><tbody>' + itemsHtml + '</tbody></table>' +
         '<p class="muted">الكميات الأصلية محفوظة للتدقيق؛ قيمة المتبقي تقريبية قبل تسوية الخصومات.</p>' +
-        '<div style="margin-top:20px"><p>رسوم التوصيل المسجلة: ' + deliveryFee.toLocaleString('ar-EG') + ' ' + esc(currency) + '</p>' +
+        '<div style="margin-top:20px"><p>الإجمالي الأصلي المسجل: ' + originalTotal.toLocaleString('ar-EG') + ' ' + esc(currency) + '</p>' +
+        '<p>رسوم التوصيل المسجلة: ' + deliveryFee.toLocaleString('ar-EG') + ' ' + esc(currency) + '</p>' +
         '<p style="font-weight:bold;font-size:18px">الإجمالي النهائي المسجل: ' + finalTotal.toLocaleString('ar-EG') + ' ' + esc(currency) + '</p>' +
         '<p>ضريبة القيمة المضافة المحسوبة على الإجمالي النهائي وفق الإعداد: ' + taxAmount.toLocaleString('ar-EG') + '</p></div>' +
         '<div style="text-align:center;margin-top:20px;padding-top:15px;border-top:1px dashed #ccc"><p style="font-weight:bold">رمز الفاتورة الإلكترونية</p><div id="print-qrcode-container" style="display:inline-block"></div></div>' +
