@@ -67,17 +67,17 @@ document.querySelectorAll('.order-checkbox:not(:disabled)')
 
 في السطر 10257 استبدل رأس التاريخ الحالي:
 \`\`\`javascript
-'<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\\'order_date\\')">التاريخ <i class="fa-solid fa-sort"></i></th>' +
+'<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\'order_date\')">التاريخ <i class="fa-solid fa-sort"></i></th>' +
 \`\`\`
 بـ:
 \`\`\`javascript
-'<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\\'created_at\\')">تاريخ ووقت الإنشاء <i class="fa-solid fa-sort"></i></th>' +
+'<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\'created_at\')">تاريخ ووقت الإنشاء <i class="fa-solid fa-sort"></i></th>' +
 \`\`\`
 
 بعد سطر عمود «العميل والمنطقة» الحالي (10258)، أضف:
 \`\`\`javascript
-'<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\\'source\\')">المصدر <i class="fa-solid fa-sort"></i></th>' +
-'<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\\'created_by\\')">المنشئ <i class="fa-solid fa-sort"></i></th>' +
+'<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\'source\')">المصدر <i class="fa-solid fa-sort"></i></th>' +
+'<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\'created_by\')">المنشئ <i class="fa-solid fa-sort"></i></th>' +
 \`\`\`
 ثم اجعل \`colspan="9"\` في سطر التحميل 10267 = \`colspan="11"\`. أضف خيارًا واحدًا داخل قائمة الحالة بعد \`<option>Returned</option>\` في السطر 10237:
 \`\`\`html
@@ -148,7 +148,7 @@ function _renderTable(data) {
 
         var actions = '';
         if (o.order_status === 'Draft') {
-            actions += '<button onclick="event.stopPropagation();RW_Orders._confirm(\\'' + esc(o.order_code) + '\\')" class="text-green-600 mx-1" title="تأكيد"><i class="fa-solid fa-check-circle"></i></button>';
+            actions += '<button onclick="event.stopPropagation();RW_Orders._confirm(\'' + esc(o.order_code) + '\')" class="text-green-600 mx-1" title="تأكيد"><i class="fa-solid fa-check-circle"></i></button>';
         }
 
         var currentUser = (typeof RW_STATE !== 'undefined' && RW_STATE.app) ? RW_STATE.app.currentUser : null;
@@ -156,7 +156,7 @@ function _renderTable(data) {
         var canDeleteInvoiced = !!(currentUser && (currentUser.isOwner === true || permissions.indexOf('*') !== -1 || permissions.indexOf('general_manager') !== -1 || permissions.indexOf('sales_manager') !== -1 || permissions.indexOf('sales_supervisor') !== -1));
         var canDelete = (o.order_status === 'Draft' || o.order_status === 'Confirmed' || o.order_status === 'Pending' || (o.order_status === 'Invoiced' && canDeleteInvoiced)) && !o.runsheet_id;
         if (canDelete) {
-            actions += '<button onclick="event.stopPropagation();RW_Orders._delete(\\'' + esc(o.order_code) + '\\')" class="text-red-500 mx-1" title="حذف"><i class="fa-solid fa-trash-can"></i></button>';
+            actions += '<button onclick="event.stopPropagation();RW_Orders._delete(\'' + esc(o.order_code) + '\')" class="text-red-500 mx-1" title="حذف"><i class="fa-solid fa-trash-can"></i></button>';
         }
 
         var source = String(o.source || '').trim().toLowerCase().replace(/[ _]+/g, '-');
@@ -180,7 +180,7 @@ function _renderTable(data) {
         }[source] || (String(o.source || '').trim() || 'غير معروف');
 
         var createdAt = o.created_at ? new Date(o.created_at).toLocaleString('ar-EG') : '—';
-        return '<tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="RW_Orders._showDetails(\\'' + esc(o.order_code) + '\\')">' +
+        return '<tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="RW_Orders._showDetails(\'' + esc(o.order_code) + '\')">' +
             '<td class="p-3 text-center" onclick="event.stopPropagation()">' + checkbox + '</td>' +
             '<td class="p-3 text-center font-bold text-blue-600">' + esc(o.order_code || '') + '</td>' +
             '<td class="p-3 text-center">' + createdAt + '</td>' +
