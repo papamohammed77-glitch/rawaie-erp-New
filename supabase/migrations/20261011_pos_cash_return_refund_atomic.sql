@@ -142,7 +142,7 @@ BEGIN
   v_def := replace(v_def,v_old_block,v_new_block);
   v_def := replace(v_def,v_old_result,v_new_result);
 
-  IF position('POS_RETURN_REFUND_NOT_CONFIGURED' in v_def)=0
+  IF position('POS_RETURN_TENDER_REFUND_NOT_CONFIGURED' in v_def)=0
      OR position('refund_cash_box_id' in v_def)=0 THEN
     RAISE EXCEPTION 'POS_RETURN_PATCH_ABORTED: post-replacement validation failed';
   END IF;
