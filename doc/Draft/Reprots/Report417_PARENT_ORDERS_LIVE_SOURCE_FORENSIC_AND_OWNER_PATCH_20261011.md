@@ -438,7 +438,7 @@ function _buildPrintWindow(order, items, settings) {
     var qrBase64 = generateQRInvoiceBase64(registeredName, vatNumber, invoiceDate, String(finalTotal), String(taxAmount));
 
     var html = '<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>فاتورة ' + esc(order.order_code) + '</title>' +
-        '<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\\/script>' +
+        '<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>' +
         '<style>body{font-family:"Cairo",sans-serif;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:right}th{background:#f2f2f2}.muted{color:#666;font-size:11px}</style></head>' +
         '<body><div style="text-align:center;border-bottom:2px solid #000;padding-bottom:10px"><h1>فاتورة بيع</h1><p>رقم: ' + esc(order.order_code) + '</p><p>التاريخ: ' + (order.order_date ? new Date(order.order_date).toLocaleDateString('ar-EG') : '') + '</p></div>' +
         '<p><strong>البائع:</strong> ' + esc(registeredName) + ' | <strong>رقم ضريبي:</strong> ' + esc(vatNumber) + '</p>' +
@@ -450,7 +450,7 @@ function _buildPrintWindow(order, items, settings) {
         '<p style="font-weight:bold;font-size:18px">الإجمالي النهائي المسجل: ' + finalTotal.toLocaleString('ar-EG') + ' ' + esc(currency) + '</p>' +
         '<p>ضريبة القيمة المضافة المحسوبة على الإجمالي النهائي وفق الإعداد: ' + taxAmount.toLocaleString('ar-EG') + '</p></div>' +
         '<div style="text-align:center;margin-top:20px;padding-top:15px;border-top:1px dashed #ccc"><p style="font-weight:bold">رمز الفاتورة الإلكترونية</p><div id="print-qrcode-container" style="display:inline-block"></div></div>' +
-        '<script>window.onload=function(){try{var c=document.getElementById("print-qrcode-container");if(c&&typeof QRCode!=="undefined"){c.innerHTML="";new QRCode(c,{text:"' + qrBase64 + '",width:150,height:150,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});}}catch(e){}window.print();};<\\/script></body></html>';
+        '<script>window.onload=function(){try{var c=document.getElementById("print-qrcode-container");if(c&&typeof QRCode!=="undefined"){c.innerHTML="";new QRCode(c,{text:"' + qrBase64 + '",width:150,height:150,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});}}catch(e){}window.print();};<\/script></body></html>';
     printWindow.document.write(html);
     printWindow.document.close();
 }
