@@ -1,3 +1,18 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report409 POS Return State / Main Orders Reconciliation
+
+- Report: [Report409_POS_RETURN_STATE_PRODUCTION_RECONCILIATION_20261011.md](doc/Draft/Reprots/Report409_POS_RETURN_STATE_PRODUCTION_RECONCILIATION_20261011.md).
+- Report commit: `22ebb494811d5aa2862fb90b1f444e16d98ee601`.
+- Live Production was re-read in this cycle (Supabase project `fiilmooggumokxanwiyx`).
+- `ORD-1006` is `Partially Returned`: current total 135.00, original total 185.00; original detail qty remains 2, returned qty 1, remaining qty 1. One line has `qty=1, qty_returned=1, line_amount=50.00, reason_return='مرتجع نقطة بيع'`; the remaining line has `qty=1, qty_returned=0, line_amount=135.00`.
+- Production `get_pos_invoice_data(text,text)` is SECURITY DEFINER with empty search_path; ACL: anon=false, authenticated=true, service_role=true. Production migrations confirm `20261011_pos_invoice_lookup_numeric_suffix.sql` is applied as `20261011085921 / pos_invoice_lookup_numeric_suffix_20261011`.
+- Production Edge versions inspected: `complete-return v26`, `save-sales-invoice v18`. No backend/schema/data mutation was justified: the proven mismatch is display logic; preserving original order detail quantities is required for audit.
+- POS source change is committed in `erp-frontend`: commit `12e68f21eca5be19beb7e9b678a1917dc1d40d71`, blob `0160f7cf9c4f194d954d2c7498d91fc639a5f419`. It shows original/returned/remaining quantities and partial/full return note. Deployment and browser E2E remain unverified.
+- Main live source blob `4f94f9c6ebdde1b59632384628c72767d3bb950d` could not be read through the GitHub connector (empty result even with ranges/base64); do not claim that the historical snapshot `Current/PWA/main.html` is byte-equivalent. Owner-side changes for `RW_Orders.loadData()` and `RW_Orders._showDetails(code)` are documented in Report408; compare against live source before applying.
+- Status: `DATABASE CONTRACT VERIFIED / POS FIX COMMITTED BUT DEPLOYMENT UNVERIFIED / MAIN OWNER PATCH PENDING / NOT CLOSED`.
+- Do not edit `main.html` or `pos.html` through the assistant. Do not reapply existing POS changes or modify production data without new evidence.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report408 POS Return State/Details
 
 - Live POS source: `erp-frontend/companies/company-1/sales/pos.html`.
