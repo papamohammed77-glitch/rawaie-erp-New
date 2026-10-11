@@ -1,3 +1,19 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report408 POS Return State/Details
+
+- Live POS source: `erp-frontend/companies/company-1/sales/pos.html`.
+- Previous POS blob: `fc52e51c185d945bff1ebc1c55b76601410db824`.
+- New POS commit: `12e68f21eca5be19beb7e9b678a1917dc1d40d71`.
+- New POS blob: `0160f7cf9c4f194d954d2c7498d91fc639a5f419`.
+- `self._viewActiveInvoice` now displays original qty, returned qty, remaining qty, remaining line value, and a partial/full return note. It reads `qty_returned` already returned by Production RPC `get_pos_invoice_data`.
+- Production read-only evidence: `ORD-1006` is `Partially Returned`; current total 135, original total 185; detail line `1001` qty 1 / returned 1, detail line `1003` qty 1 / returned 0.
+- No database schema/function/data was changed in this cycle.
+- Main app snapshot `rawaie-erp-New/Current/PWA/main.html` blob `27b777528665dcc985809648f006452c861ae36e` shows `RW_Orders.loadData` counts every detail line regardless of `qty_returned`, and `RW_Orders._showDetails` displays original qty/line_amount and derives a new total. Proposed owner changeset is in `doc/Draft/Reprots/Report408_POS_RETURN_STATE_DETAILS_AND_OWNER_CHANGESET_20261011.md`.
+- Live main source `erp-frontend/companies/company-1/main.html` blob `4f94f9c6ebdde1b59632384628c72767d3bb950d` returned empty content from GitHub file tool even for line-range requests. Do not claim live main file was fully inspected or overwrite it from the snapshot.
+- Deployment/browser E2E of the POS patch is not yet verified. Do not call this production UI closed.
+- Exact next steps: deploy/test POS commit in a real browser; compare live main functions against the report owner changeset and merge only after that comparison; test table, detail modal, and print consistency.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report407 POS Return Lookup Recheck
 
 > أُعيد فحص Production وملف واجهة الإنتاج قبل اتخاذ قرار بالتعديل. لا تكرر إصلاحات قديمة ولا توسّع صلاحيات الفروع دون دليل.
