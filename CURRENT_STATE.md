@@ -1,3 +1,19 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report414 Parent Orders Live Resync / Creator RLS Audit
+
+- Report: [Report414_PARENT_ORDERS_LIVE_RESYNC_AND_RLS_AUDIT_20261011.md](doc/Draft/Reprots/Report414_PARENT_ORDERS_LIVE_RESYNC_AND_RLS_AUDIT_20261011.md).
+- Report commit: `565ee4cd305ee8f3414e7b97bc697f1b96ecec64`.
+- Scope remains only the parent sales-orders table in `erp-frontend/companies/company-1/main.html`; the owner must merge the frontend changes. No `main.html` or POS file was edited.
+- Fresh Production read at `2026-10-11 16:06:34.975141+00`: `ORD-1006` remains `Partially Returned`; `source=pos`; `created_by=cashier@rawaea.com`; creator display name from service-side query is `كاشير`; created_at `2026-10-11 07:31:00.768458+00`; current/original totals `135.00/185.00`; 2 detail rows; original/returned/remaining qty `2/1/1`; `runsheet_id=NULL`. No business row changed.
+- Production source guard reverified: `create_runsheet_atomic` and `append_orders_to_runsheet_atomic` reject POS and blank/unknown sources, accept only the normalized allowed family; migration recorded as version `20261011152539`, name `20261011153000_enforce_runsheet_source_eligibility`. Existing RPC ACL remains anon=false, authenticated=false, service_role=true. Edge `create-runsheet v26` and `append-to-runsheet v8` are ACTIVE with `verify_jwt=true`; no Edge was added.
+- New security detail: `users` has RLS. Policy `users_select_company` allows reading all company users only when caller has `users` permission; otherwise a user with only `orders` may not resolve another creator's display name. Patch must always fall back to `created_by`; do not promise the Arabic display name to every role and do not broaden RLS casually.
+- Snapshot `rawaie-erp-New/Current/PWA/main.html` blob `27b777528665dcc985809648f006452c861ae36e` still shows the known defects in `RW_Orders`: return quantity omitted from item count, Realtime only updates the cached header, source/creator/time columns absent, selection not source-restricted, detail totals rebuilt from original lines, and print consistency open.
+- Live parent source `erp-frontend/companies/company-1/main.html` returns SHA `4f94f9c6ebdde1b59632384628c72767d3bb950d` but empty content through the GitHub connector, including ranged reads. Do not claim parity or apply blind replacements.
+- No Production data/SQL/Edge mutation or test fixture was created. No browser/HTTP E2E or frontend deployment is claimed.
+- Closure status: `PRODUCTION CORE SOURCE GUARD VERIFIED / OWNER UI PATCH SPECIFIED IN REPORT413 + REPORT408 / CREATOR-RLS LIMIT DOCUMENTED IN REPORT414 / LIVE MAIN SOURCE PARITY UNVERIFIED / DEPLOYMENT + BROWSER E2E + PRINT OPEN / NOT CLOSED`.
+- Next exact step: owner opens the live `main.html`, compares actual `RW_Orders` signatures with Report413 A–G and Report408 details, merges only matching elements, aligns `_printOrder/_buildPrintWindow`, publishes through the approved frontend path, and records served SHA + authenticated browser evidence.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report413 Parent Orders / Return State / Runsheet Source Guard
 
 - Report: [Report413_PARENT_ORDERS_RETURN_RUNSHEET_SOURCE_INTEGRATION_20261011.md](doc/Draft/Reprots/Report413_PARENT_ORDERS_RETURN_RUNSHEET_SOURCE_INTEGRATION_20261011.md).
