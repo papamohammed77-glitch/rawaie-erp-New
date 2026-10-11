@@ -1,3 +1,18 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report412 POS Parent Orders Production Resync
+
+- Report: [Report412_POS_PARENT_ORDERS_PRODUCTION_RESYNC_20261011.md](doc/Draft/Reprots/Report412_POS_PARENT_ORDERS_PRODUCTION_RESYNC_20261011.md).
+- Report commit: `f05ac1efed49898657cefef45dab339ce3c35c3f`.
+- Fresh Production query at `2026-10-11 14:53:52.674996+00`: `ORD-1006` is `Partially Returned`; `total_amount=135.00`, `original_total_amount=185.00`; source=`pos`, created_by=`cashier@rawaea.com`; 2 detail rows; original qty 2, returned qty 1, remaining qty 1.
+- Current snapshot `Current/PWA/main.html` blob `27b777528665dcc985809648f006452c861ae36e` still demonstrates the known read/display defects in `RW_Orders.loadData()`, Realtime refresh, `_renderTable(rows)`, and `_showDetails(code)`.
+- Live `erp-frontend/companies/company-1/main.html` SHA returned as `4f94f9c6ebdde1b59632384628c72767d3bb950d`, but GitHub connector returned empty source content even for ranged fetch. No claim of parity; do not overwrite live functions from the snapshot without owner-side comparison.
+- POS source blob `0160f7cf9c4f194d954d2c7498d91fc639a5f419` already contains the earlier return-detail display repair, commit `12e68f21eca5be19beb7e9b678a1917dc1d40d71`; hosting deployment/browser E2E remain unverified.
+- No Production SQL/Edge/ACL/data mutation, no test fixture, and no edit to `main.html` or `pos.html` was performed. Production read contract remains correct for the examined invoice; defect evidenced in available main snapshot is frontend display/derived-state behavior.
+- Owner surgical changeset remains in Report411, with full `_showDetails(code)` replacement in Report408. Required work: compare live main source, merge loadData/Realtime/table/source+creator/details changes, align print, deploy, then browser/HTTP E2E and baseline check.
+- Closure status: `PRODUCTION READ VERIFIED / OWNER PATCH SPECIFIED / LIVE MAIN PARITY UNVERIFIED / DEPLOYMENT + BROWSER E2E + PRINT OPEN / NOT CLOSED`.
+- Next exact step: owner opens the live main source, verifies its current SHA and function bodies, merges only the matching Report411/Report408 blocks, publishes through the approved frontend pipeline, then runs read-only `ORD-1006` checks and isolated-fixture Realtime/print tests.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report411 POS Return / Parent Orders Surgical Changeset
 
 - Report: [Report411_POS_RETURN_PARENT_ORDERS_INTEGRATION_20261011.md](doc/Draft/Reprots/Report411_POS_RETURN_PARENT_ORDERS_INTEGRATION_20261011.md).
