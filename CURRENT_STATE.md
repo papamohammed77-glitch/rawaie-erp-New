@@ -1,3 +1,25 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report407 POS Return Lookup Recheck
+
+> أُعيد فحص Production وملف واجهة الإنتاج قبل اتخاذ قرار بالتعديل. لا تكرر إصلاحات قديمة ولا توسّع صلاحيات الفروع دون دليل.
+
+## Verified this cycle
+- Live POS file: `erp-frontend/companies/company-1/sales/pos.html`, blob SHA `fc52e51c185d945bff1ebc1c55b76601410db824`.
+- Reference file: `rawaie-erp-New/Current/PWA/pos.html`, blob SHA `b1f008f92f85ca16005a097eff43af92e99b6929`; this historical/current snapshot is not automatically the live deployed frontend.
+- Live source uses `get_pos_invoice_data('return_lookup', code)`; `_searchReturnInvoice` shows the disputed toast only if the RPC response has `order=null`.
+- Live Production `public.get_pos_invoice_data(text,text)` was read directly. It validates auth, POS permission, company, authorized branch, and `source='pos'`. ACL verified: anon=false, authenticated=true, service_role=true.
+- DB claim simulation for the current POS cashier returned live Production invoice `ORD-1006` with two detail rows; trailing-space input also returned it. This is database simulation, not browser/HTTP E2E.
+- No frontend file, `main.html`, schema, RPC, or business data was changed. No fixtures were created.
+- Root cause for the user's actual failing lookup remains unproven because the exact entered invoice code and corresponding browser Network request/response were not available. A PostgREST log query returned a backend error and is not evidence of request outcome.
+
+## Decision
+- Do not reapply old patches to `_getPosInvoiceData` or `_searchReturnInvoice`; current live source already calls the secured RPC.
+- Do not broaden branch/company access or change RPC matching without evidence of the exact failing code.
+- Next required evidence: capture the exact `p_order_code`, authenticated session identity/company context, HTTP status, and JSON response for the failing lookup. If `order=null`, compare the exact code and branch/company/source fields; if the RPC returns the order, investigate served artifact/Service Worker and client-side runtime instead.
+- Detailed report: `doc/Draft/Reprots/Report407_POS_RETURN_LOOKUP_FORENSIC_RECHECK_20261011.md`.
+- Report commit: `03d8f48b6b833b0efe7689fe4fd434c3bf63a8df`.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-10 — Report403 POS Return Runtime/Financial Contract
 
 > أحدث من Report402. لم يتم تعديل `main.html` أو `erp-frontend/companies/company-1/sales/pos.html`، ولم يتم تغيير بيانات Production. لا تكرر إصلاحات الواجهة الموجودة في المصدر الحالي.
