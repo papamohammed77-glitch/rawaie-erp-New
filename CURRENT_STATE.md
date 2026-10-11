@@ -1,3 +1,18 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report415 Fresh Production Parent Orders Resync
+
+- Report: [Report415_PARENT_ORDERS_FRESH_PRODUCTION_AND_SURGICAL_PATCH_20261011.md](doc/Draft/Reprots/Report415_PARENT_ORDERS_FRESH_PRODUCTION_AND_SURGICAL_PATCH_20261011.md).
+- Report commit: `9f2a0c13df6e8bda425618a299ac0bcc71b80dc2`.
+- Scope remains only `erp-frontend/companies/company-1/main.html` / `RW_Orders`; no parent source or POS file was edited.
+- Fresh Production at `2026-10-11 16:15:23.260096+00`: `ORD-1006`, source=`pos`, created_by=`cashier@rawaea.com`, created_at=`2026-10-11 07:31:00.768458+00`, status=`Partially Returned`, total/original=`135.00/185.00`, runsheet_id=NULL. Details at `16:15:41.66604+00`: item 1001 qty 1 returned 1 (reason `مرتجع نقطة بيع`); item 1003 qty 1 returned 0. Therefore remaining quantity=1 and remaining line count=1. No business rows changed.
+- Production RPC definitions re-read: `create_runsheet_atomic` and `append_orders_to_runsheet_atomic` enforce normalized allowed sources `telesales/tele-sales/order-taker/online-store`; `pos` and empty/unknown sources rejected. ACL: anon=false, authenticated=false, service_role=true. No additional Production SQL/Edge mutation was justified.
+- `users` RLS limits cross-user names to callers with `users` permission; frontend must always fall back to `created_by` and must not broaden RLS for display.
+- Live parent file fetch still returns SHA `4f94f9c6ebdde1b59632384628c72767d3bb950d` but empty content, including ranged reads. Do not invent live line numbers or blindly replace functions from `Current/PWA/main.html` snapshot (blob `27b777528665dcc985809648f006452c861ae36e`).
+- Report415 records the owner-only surgical changes for `RW_Orders`, required tests, and explicit unverified items. No frontend deployment/browser E2E/print verification is claimed. Supabase unified-log query returned backend error and was not treated as proof of absent events.
+- Closure status: `PRODUCTION CORE SOURCE GUARD VERIFIED / OWNER UI PATCH SPECIFIED / LIVE MAIN SOURCE UNREADABLE THROUGH CONNECTOR / DEPLOYMENT + BROWSER E2E + PRINT OPEN / NOT CLOSED`.
+- Next exact step: owner opens the live parent file, matches actual `RW_Orders` function signatures with Report413/Report415, merges only matching blocks, publishes, then verifies served SHA, authenticated browser behavior, print, and fixture cleanup.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report414 Parent Orders Live Resync / Creator RLS Audit
 
 - Report: [Report414_PARENT_ORDERS_LIVE_RESYNC_AND_RLS_AUDIT_20261011.md](doc/Draft/Reprots/Report414_PARENT_ORDERS_LIVE_RESYNC_AND_RLS_AUDIT_20261011.md).
