@@ -2720,3 +2720,48 @@ Detailed report: [Report405 — POS Return Current Production Reconciliation](do
 - Current lookup RPC and UI navigation changes already exist in Git. The original invoice-not-found toast is only shown when RPC returns `order=null`; real HTTP/browser trace and served asset parity remain unverified.
 - Exact surgical scope and test matrix are in Report404. Do not repeat older patches to `_searchReturnInvoice` or `switchView`; do not touch `main.html` or `pos.html` without new runtime evidence.
 - Status: `CORE DEFECT CONFIRMED / CASH REFUND CONTRACT OPEN / HTTP-BROWSER E2E UNVERIFIED / NOT CLOSED`.
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report406 POS CASH RETURN CORE REPAIR
+
+> This checkpoint supersedes prior statements about the cash POS return Core. It does not close the full POS UI workflow.
+
+## Live Production / Core
+- Project: fiilmooggumokxanwiyx.
+- Existing Edge complete-return remains v26, verify_jwt=true; no new Edge Function was created.
+- public.complete_return_atomic(uuid,text,text,boolean,text,jsonb) was surgically extended through recorded migrations:
+  - supabase/migrations/20261011_pos_cash_return_refund_atomic.sql
+  - supabase/migrations/20261011_pos_return_zero_value_guard.sql
+- ACL reverified after deployment: SECURITY DEFINER; anon EXECUTE=false, authenticated EXECUTE=false, service_role EXECUTE=true.
+- POS cash returns now require one matching original POS Receipt (cash_box.source_type='POS', source_id=orders.id, matching invoice reference) and use its recorded treasury.
+- Cash refund posts through existing post_cash_payment_atomic, with a deterministic operation UUID and a cumulative-refund ceiling against the original receipt. Order-level discount is prorated over merchandise value; delivery fee is not refunded by this contract.
+- Zero-value POS return requests are rejected. Noncash/card/mixed POS refunds fail closed with POS_RETURN_TENDER_REFUND_NOT_CONFIGURED; there is no verified card-refund processor contract.
+- No business invoice, cash-box row, stock row, or treasury balance was intentionally changed during investigation.
+
+## Current POS Source
+- Frontend repo: papamohammed77-glitch/erp-frontend.
+- companies/company-1/sales/pos.html remains blob 967d486147cf3ca9911c4dbd3ba89042c373577e, commit 950abb6b78680d37c8d29f1beba78c8c1d6a51a4.
+- main.html and pos.html were not modified by the assistant.
+- _getPosInvoiceData / _searchReturnInvoice already use get_pos_invoice_data('return_lookup', code). The exact invoice code from the original browser failure is not captured.
+- Authenticated-claims DB simulation for cashier@rawaea.com returned branch BR-01; ORD-1004 returned 3 details and ORD-1005 returned 2. This is not HTTP/browser E2E.
+- Exact owner-side full replacement for self._finalizeReturn is documented in doc/Draft/Reprots/Report406_POS_CASH_RETURN_CORE_REPAIR_20261011.md.
+
+## Verification / Open Items
+- Production function definition and ACL: verified.
+- Known-invoice lookup simulation: verified.
+- QA residue query: 0 QA orders and 0 QA POS refunds; main treasury read remained 10645.00.
+- A transactional QA fixture was not executed: the tool safety layer rejected the DML test before it ran. Do not describe refund E2E as passed.
+- Browser/HTTP E2E and Cloudflare served-artifact parity remain OPEN.
+- Current production sales core uses a shared active treasury; no verified cashier shift/drawer entity exists. The current repair returns cash to the treasury attached to the original receipt, not a cashier-specific drawer.
+- Card/split tender refund contract remains OPEN. POS is not 100% closed.
+
+## Report
+- doc/Draft/Reprots/Report406_POS_CASH_RETURN_CORE_REPAIR_20261011.md
+- Report commit: c598382f421b7e835964b37372fa23f49c407cc5.
+
+## Next exact resumption sequence
+1. Re-read live Production Core and ACL before further changes.
+2. Owner applies the exact complete self._finalizeReturn replacement from Report406, without changing main.html or reapplying obsolete lookup/navigation patches.
+3. Publish current POS source and verify served asset / Service Worker parity.
+4. Run authenticated browser HTTP E2E with an isolated QA invoice: cash partial return, remaining/full return, duplicate retry, insufficient balance, and noncash fail-closed.
+5. Verify cash_box Payment, balanced journal, credit note, stock movement, order status, and exact treasury baseline; clean all fixture rows.
+6. Do not claim POS closure until drawer/shift semantics and card/split tender refund policy are explicitly implemented or formally excluded.
