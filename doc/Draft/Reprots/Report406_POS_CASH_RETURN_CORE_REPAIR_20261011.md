@@ -67,6 +67,8 @@ RETURN_CUSTOMER_REQUIRED_FOR_FINANCIAL_POSTING
 روابط:
 - [POS cash return core migration](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/supabase/migrations/20261011_pos_cash_return_refund_atomic.sql)
 - [POS zero-value return guard](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/supabase/migrations/20261011_pos_return_zero_value_guard.sql)
+- [POS remaining total discount repair](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/supabase/migrations/20261011_pos_return_remaining_total_discount.sql)
+- [POS return cost-accounting repair](https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/supabase/migrations/20261011_pos_return_cost_accounting.sql)
 
 لم يتم نشر نسخة Edge جديدة؛ \`complete-return\` الحالية v26 تستدعي Wrapper الحالي، وهو يستدعي Core المعدل.
 
@@ -201,7 +203,7 @@ self._finalizeReturn = function() {
 - **What I Did Not Prove:** تنفيذ HTTP/browser لمرتجع حقيقي، تطابق ملف Cloudflare المنشور مع Git، أو وجود درج مستقل لكل كاشير.
 - **What I Fixed:** عقد Production النقدي أصبح يستخرج إيصال البيع الأصلي، ويمنع التكرار/تجاوز مبلغ التحصيل، ويستخدم \`post_cash_payment_atomic\` للصرف الفعلي، ويرجع تفاصيل الصرف؛ أضيف منع نجاح المرتجع الصفري.
 - **What I Initially Missed:** رسالة «الفاتورة غير موجودة» ليست دليلًا كافيًا على عطل RPC؛ كما أن إشعارًا دائنًا وحده ليس ردًا نقديًا.
-- **What Could Still Be Wrong:** سلوك الواجهة المنشورة قد يختلف عن Git؛ ويظل نموذج درج الكاشير ورد البطاقة خارج العقد الحالي.
+- **What Could Still Be Wrong:** سلوك الواجهة المنشورة قد يختلف عن Git؛ ويظل نموذج درج الكاشير ورد البطاقة خارج العقد الحالي. كما أن بيانات التكلفة في Production ضعيفة: 16 من 17 صنفًا نشطًا مقروءًا تكلفةُه صفر؛ لذلك لا يمكن إنشاء قيد COGS ذي قيمة موجبة لهذه الأصناف حتى تُصحح بيانات التكلفة.
 - **Final Confidence:** عالٍ في مزامنة Core/ACL وقراءة الفاتورتين؛ متوسط في تنفيذ المرتجع الكامل لغياب E2E.
 - **Final Closure Status:** \`CORE CASH REFUND REPAIR DEPLOYED / POS SOURCE PATCH PENDING OWNER / HTTP-BROWSER E2E OPEN / CASHIER-SHIFT AND CARD REFUND CONTRACT OPEN / POS NOT 100% CLOSED\`.
 
