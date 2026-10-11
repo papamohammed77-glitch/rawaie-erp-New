@@ -6,7 +6,7 @@ Only the parent system's sales-orders table: `papamohammed77-glitch/erp-frontend
 ## Latest execution record
 - Latest report: [Report417_PARENT_ORDERS_LIVE_SOURCE_FORENSIC_AND_OWNER_PATCH_20261011.md](doc/Draft/Reprots/Report417_PARENT_ORDERS_LIVE_SOURCE_FORENSIC_AND_OWNER_PATCH_20261011.md).
 - Prior checkpoint: [Report416_PARENT_ORDERS_CURRENT_SOURCE_AND_PRODUCTION_RECHECK_20261011.md](doc/Draft/Reprots/Report416_PARENT_ORDERS_CURRENT_SOURCE_AND_PRODUCTION_RECHECK_20261011.md).
-- Report commit: `726ffd2c3bc2ae01e70e20badb0b44f0a664a8dc` (file blob SHA; use report link for content).
+- Report commit: `395962b0b04587069b1b1339d643b9f01713a692` (Report417 blob SHA); report commit: `5ce1e03da7c44e888e4533f07005d20cdcce01d0`.
 - Previous evidence: [Report415](doc/Draft/Reprots/Report415_PARENT_ORDERS_FRESH_PRODUCTION_AND_SURGICAL_PATCH_20261011.md), [Report414](doc/Draft/Reprots/Report414_PARENT_ORDERS_LIVE_RESYNC_AND_RLS_AUDIT_20261011.md), [Report413](doc/Draft/Reprots/Report413_PARENT_ORDERS_RETURN_RUNSHEET_SOURCE_INTEGRATION_20261011.md), [Report408](doc/Draft/Reprots/Report408_POS_RETURN_STATE_DETAILS_AND_OWNER_CHANGESET_20261011.md).
 - Master governance: [MASTER CTO GOVERNANCE & CONTINUOUS EXECUTION OS](doc/Draft/Reprots/MASTER%20CTO%20GOVERNANCE%20%26%20CONTINUOUS%20EXECUTION%20OS%20%E2%80%94%20RAWAEA%20ERP.md).
 
