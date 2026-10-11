@@ -3,8 +3,8 @@
 DO $patch$
 DECLARE
   v_def text;
-  v_old_decl text := 'v_item_expected_total numeric:=0; v_item_returned_total numeric:=0;';
-  v_new_decl text := 'v_item_expected_total numeric:=0; v_item_returned_total numeric:=0; v_item_cost numeric:=0; v_total_cost numeric:=0; v_inventory_return_value numeric:=0;';
+  v_old_decl text := 'v_item_returned_total numeric:=0;';
+  v_new_decl text := 'v_item_returned_total numeric:=0; v_item_cost numeric:=0; v_total_cost numeric:=0; v_inventory_return_value numeric:=0;';
   v_old_lookup text := 'select i.id,i.name into v_item_id,v_item_name from public.items i where i.item_code=v_item_code;';
   v_new_lookup text := 'select i.id,i.name,coalesce(i.cost_price,0) into v_item_id,v_item_name,v_item_cost from public.items i where i.company_id=p_company_id and i.item_code=v_item_code and coalesce(i.is_active,true)=true limit 1;';
   v_old_journal text := $old$
