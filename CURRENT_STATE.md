@@ -1,3 +1,18 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report413 Parent Orders / Return State / Runsheet Source Guard
+
+- Report: [Report413_PARENT_ORDERS_RETURN_RUNSHEET_SOURCE_INTEGRATION_20261011.md](doc/Draft/Reprots/Report413_PARENT_ORDERS_RETURN_RUNSHEET_SOURCE_INTEGRATION_20261011.md).
+- Report commit: `52b502fca7737da04c6091d3cd59dc3bf1c8d83f`.
+- Production migration file: `supabase/migrations/20261011153000_enforce_runsheet_source_eligibility.sql`; file commit `c955ad6c5f60f3c9ba2f14f0fb74e07d691d3574`; applied successfully, recorded migration version `20261011152539`, name `20261011153000_enforce_runsheet_source_eligibility`.
+- Live Production re-read at `2026-10-11 15:29:14.826316+00`: `ORD-1006` is still `Partially Returned`, `source=pos`, `created_by=cashier@rawaea.com`, creator display name `كاشير`, `created_at=2026-10-11 07:31:00.768458+00`, current total `135.00`, original total `185.00`, 2 detail rows, original qty 2, returned qty 1, remaining qty 1, and `runsheet_id=NULL`. No business row was changed.
+- Production Core: `create_runsheet_atomic` and `append_orders_to_runsheet_atomic` now both enforce the allowed source family (normalized `telesales`, `tele-sales`, `order-taker`, `online-store`). `pos` and blank/unknown sources are rejected. Existing ACL preserved: `anon=false`, `authenticated=false`, `service_role=true`; no Edge Function was added.
+- Current snapshot `rawaie-erp-New/Current/PWA/main.html` blob `27b777528665dcc985809648f006452c861ae36e` still shows the parent UI defects: source/creator/time columns absent, item count ignores `qty_returned`, Realtime updates header without reloading derived detail counts, all row checkboxes are enabled, and details/print display original line quantities. Proposed owner-only patch is in Report413 (parts A–G); full return detail modal replacement remains referenced in Report408.
+- Live frontend source `erp-frontend/companies/company-1/main.html` returned blob SHA `4f94f9c6ebdde1b59632384628c72767d3bb950d` but empty content through the GitHub connector even for ranged reads. Do not claim parity with the snapshot or apply blind replacements. The owner must compare the live file text and merge the exact matching elements.
+- No `main.html` or operational application file was edited. No Production fixture or test transaction was created. The tool security layer refused the guarded SQL runtime negative-test attempt; no HTTP/browser E2E or frontend deployment is claimed.
+- Closure status: `PRODUCTION RUNSHEET SOURCE GUARD DEPLOYED / PARENT UI PATCH SPECIFIED / LIVE MAIN SOURCE PARITY UNVERIFIED / FRONTEND DEPLOYMENT + BROWSER E2E + PRINT OPEN / NOT CLOSED`.
+- Next exact step: owner verifies current live `main.html` SHA and merges Report413 A–G only where signatures match; then run authenticated browser tests for source/creator/time, returned quantities, realtime refresh, and run-sheet checkbox eligibility. Inspect print separately and record served artifact SHA before closing.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report412 POS Parent Orders Production Resync
 
 - Report: [Report412_POS_PARENT_ORDERS_PRODUCTION_RESYNC_20261011.md](doc/Draft/Reprots/Report412_POS_PARENT_ORDERS_PRODUCTION_RESYNC_20261011.md).
