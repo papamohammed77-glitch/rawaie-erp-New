@@ -1,3 +1,19 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report410 POS Return Realtime Integration
+
+- Report: [Report410_POS_RETURN_REALTIME_INTEGRATION_REPAIR_20261011.md](doc/Draft/Reprots/Report410_POS_RETURN_REALTIME_INTEGRATION_REPAIR_20261011.md).
+- Report commit: `d658f577cbbe0e5ac7099fbcd1b0fa86404c7f21`.
+- Fresh Production read: Supabase project `fiilmooggumokxanwiyx`; `ORD-1006` remains `Partially Returned`, current total 135.00, original total 185.00, original qty sum 2, returned qty sum 1, remaining qty sum 1.
+- Production `get_pos_invoice_data(text,text)` returns `qty_returned` and final `orders.total_amount`; ACL is restricted from anon and permits authenticated/service_role. Edge versions observed: `complete-return v26`, `save-sales-invoice v18`, both ACTIVE and `verify_jwt=true`.
+- Supabase logs show repeated HTTP 200 requests selecting `order_id,item_code` from `order_details`; this confirms active direct detail reads, not the returned payload content.
+- Snapshot `Current/PWA/main.html` blob `27b777528665dcc985809648f006452c861ae36e` shows count calculation ignoring `qty_returned`, details rendering original qty/line amounts, and Realtime updating only the in-memory `orders` row without recalculating derived `itemsCount`.
+- Live `erp-frontend/companies/company-1/main.html` blob `4f94f9c6ebdde1b59632384628c72767d3bb950d` still returns empty content through GitHub connector. Do not claim exact live-source parity or apply whole-function replacements until owner compares the live text.
+- No Production SQL, Edge, business data, `main.html`, or POS file was changed. No test fixture was created; `ORD-1006` was read-only.
+- POS UI fix remains in Git commit `12e68f21eca5be19beb7e9b678a1917dc1d40d71`, blob `0160f7cf9c4f194d954d2c7498d91fc639a5f419`; hosting deployment and browser E2E remain unverified.
+- Current status: `PRODUCTION DATA VERIFIED / BACKEND CHANGE NOT WARRANTED / OWNER UI PATCH SPECIFIED / LIVE MAIN COMPARISON + DEPLOYMENT + BROWSER E2E OPEN / NOT CLOSED`.
+- Next exact step: compare live `RW_Orders.loadData()`, `refreshRealtimeChannel()`, and `_showDetails(code)`; merge the Report408 replacements plus Report410 Realtime refresh, publish via the approved frontend path, then test the table, details modal, and print output.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report409 POS Return State / Main Orders Reconciliation
 
 - Report: [Report409_POS_RETURN_STATE_PRODUCTION_RECONCILIATION_20261011.md](doc/Draft/Reprots/Report409_POS_RETURN_STATE_PRODUCTION_RECONCILIATION_20261011.md).
