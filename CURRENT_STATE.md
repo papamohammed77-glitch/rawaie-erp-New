@@ -2812,3 +2812,36 @@ The four canonical SQL files for this closure are:
 
 Report406 updated commit: ae2c7e44292206ecdc64338a2548db7dab548ca4.
 The overall POS closure remains OPEN: no authenticated browser/HTTP refund E2E, served asset parity, cashier-specific drawer/shift entity, or card/split refund contract has been verified.
+
+
+# CURRENT STATE ADDENDUM — 2026-10-11 — Report407 POS Invoice Lookup Numeric Suffix
+
+This addendum records a new live defect and repair discovered after Report406. It supersedes the prior note that the exact failing invoice code was not captured: the browser trace supplied in the next execution cycle captured input `1006`.
+
+## Live Production finding
+- Project: `fiilmooggumokxanwiyx`.
+- POS frontend repo: `papamohammed77-glitch/erp-frontend`; fetched `companies/company-1/sales/pos.html` blob SHA: `fc52e51c185d945bff1ebc1c55b76601410db824`.
+- Browser RPC evidence: `get_pos_invoice_data('return_lookup','1006')` returned HTTP 200 and `order:null`.
+- Live invoice row is `ORD-1006`, company `00000000-0000-0000-0000-000000000001`, branch BR-01 (`a38332b6-6cea-480a-ada1-6eb6ab0590db`), source `pos`, status `Invoiced`, created by `cashier@rawaea.com`; it has two order-detail rows.
+- Active cashier profile has `pos` permission and `allowed_branch_ids='BR-01'`; live `get_pos_branches()` supports branch-code strings. Root cause was exact `order_code` equality, not authorization.
+
+## Production repair
+- Applied Supabase migration `pos_invoice_lookup_numeric_suffix_20261011`, version `20261011085921`.
+- Canonical SQL: `supabase/migrations/20261011_pos_invoice_lookup_numeric_suffix.sql`.
+- Canonical migration commit: `0296c0d2d331c1a09e9e60694d6933a1b225c923`.
+- Report: `doc/Draft/Reprots/Report407_POS_INVOICE_LOOKUP_FIX_20261011.md`.
+- Report commit: `135d2083a9f7170eb32ca566e4f7ab39a2de86a8`.
+- New lookup preserves exact full-code matching first, then allows a numeric suffix only when exactly one POS invoice matches within the authenticated company and authorized branches. Ambiguous suffixes fail explicitly. Authentication, POS permission, company/branch scope, response shape, and the `today` path are preserved.
+- Production function definition, ACL, migration registry, and scoped suffix match were rechecked after deployment. ACL lists `authenticated` and `service_role`; no EXECUTE grant is present for `anon` or `PUBLIC`.
+- No invoice, order detail, stock, cash, refund, or accounting rows were modified by this lookup repair.
+
+## Remaining verification
+- Authenticated browser/HTTP E2E after deployment is **PENDING**. Owner should refresh POS, open **مرتجع**, enter `1006`, and verify that `ORD-1006` with its two details loads. This is a lookup-only test; do not finalize a return during it.
+- If the old error persists, inspect the post-deploy RPC response and served PWA asset/cache. Do not widen permissions or mutate invoice data.
+- This closes the proven lookup mismatch only. It does not close the full POS returns workflow or the previously recorded cash/card refund and hosted-asset verification items.
+
+## Exact resumption point
+1. Re-read current Production `get_pos_invoice_data(text,text)` and ACL if any further change is proposed.
+2. Perform the authenticated UI check above and record its real result.
+3. If it passes, mark only the numeric-suffix lookup defect verified; preserve other POS closure gates from Report406.
+4. Do not reapply older `_searchReturnInvoice` or `switchView` patches unless new runtime evidence proves a frontend defect.
