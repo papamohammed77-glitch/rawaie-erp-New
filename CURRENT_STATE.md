@@ -1,3 +1,17 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report411 POS Return / Parent Orders Surgical Changeset
+
+- Report: [Report411_POS_RETURN_PARENT_ORDERS_INTEGRATION_20261011.md](doc/Draft/Reprots/Report411_POS_RETURN_PARENT_ORDERS_INTEGRATION_20261011.md).
+- Report commit: `dbc20dae4663eb558447861ed3e089ad839ff763`.
+- Fresh Production read in this cycle: project `fiilmooggumokxanwiyx`; `ORD-1006` remains `Partially Returned`, `total_amount=135.00`, `original_total_amount=185.00`, 2 detail rows, original quantity sum 2, returned quantity sum 1, remaining quantity sum 1. `source=pos`, `created_by=cashier@rawaea.com`.
+- Production RPC `get_pos_invoice_data(text,text)`: SECURITY DEFINER=true, empty search_path, anon EXECUTE=false, authenticated=true, service_role=true. No Production SQL/Edge/data mutation was justified or applied.
+- Snapshot `Current/PWA/main.html` blob `27b777528665dcc985809648f006452c861ae36e` shows `RW_Orders.loadData()` counts all detail rows without `qty_returned`; Realtime mutates the cached order header instead of reloading derived details; `_showDetails(code)` renders original quantities/line amounts and re-derives the total; orders table does not display `source` or `created_by`.
+- Live parent `erp-frontend/companies/company-1/main.html` blob SHA returned as `4f94f9c6ebdde1b59632384628c72767d3bb950d`, but GitHub connector returned empty content for full/ranged fetch. Do not claim source parity or replace live functions blindly.
+- No source file `main.html` or `pos.html` was changed; no Production schema/function/ACL or business data changed; no fixtures were created. Owner-only surgical changeset is documented in Report411, with full `_showDetails(code)` replacement referenced in Report408.
+- Closure status: `PRODUCTION READ CONTRACT VERIFIED / OWNER PATCH DOCUMENTED / LIVE MAIN SOURCE PARITY UNVERIFIED / DEPLOYMENT + BROWSER E2E + PRINT CONSISTENCY OPEN / NOT CLOSED`.
+- Next exact step: owner compares live `RW_Orders` functions with the Report411 changeset, merges only the matching blocks, validates source/creator mapping and print behavior, publishes through the approved frontend pipeline, then verifies `ORD-1006` read-only and runs mutations only against isolated fixtures. Update this checkpoint with deployed artifact SHA and browser/HTTP evidence after verification.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report410 POS Return Realtime Integration
 
 - Report: [Report410_POS_RETURN_REALTIME_INTEGRATION_REPAIR_20261011.md](doc/Draft/Reprots/Report410_POS_RETURN_REALTIME_INTEGRATION_REPAIR_20261011.md).
