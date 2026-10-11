@@ -1,92 +1,92 @@
 # Report417 — التحقيق الحي لجدول أوردرات المبيعات والتعديل الجراحي الدقيق
 **التاريخ:** 2026-10-11  
 **وقت إعادة فحص Production:** 16:34:18 UTC  
-**النطاق الوحيد:** \`RW_Orders\` في الملف الأم \`erp-frontend/companies/company-1/main.html\`.  
-**سياسة التنفيذ:** لم ألمس \`main.html\` أو أي تطبيق تشغيلي. لا يوجد تغيير SQL/Edge مبرر حاليًا؛ الإصلاح المطلوب في هذا النطاق هو تعديل واجهة يطبقه المالك.
+**النطاق الوحيد:** `RW_Orders` في الملف الأم `erp-frontend/companies/company-1/main.html`.  
+**سياسة التنفيذ:** لم ألمس `main.html` أو أي تطبيق تشغيلي. لا يوجد تغيير SQL/Edge مبرر حاليًا؛ الإصلاح المطلوب في هذا النطاق هو تعديل واجهة يطبقه المالك.
 
 ## 1. PRE-CHANGE SELF-AUDIT
 
 - **Business:** يجب أن يعكس الجدول الكمية المتبقية بعد المرتجع، ويحافظ على الكمية الأصلية للتدقيق، ويعرض المصدر/المنشئ/وقت الإنشاء، ويمنع اختيار POS أو مصدر غير مؤهل للرانشيت.
 - **Architecture:** الـUI في مسؤولية المالك. الحماية النهائية لمصادر الرانشيت موجودة في RPCs المركزية، ولا يجوز إضعافها أو استبدالها بحماية checkbox.
-- **Database:** جرى الاستعلام المباشر عن \`orders\` و\`order_details\`، وتعريفات RPCs وACL وسياسات RLS.
+- **Database:** جرى الاستعلام المباشر عن `orders` و`order_details`، وتعريفات RPCs وACL وسياسات RLS.
 - **Historical:** تمت مراجعة CURRENT_STATE وتقارير 413/415/416 و408 باعتبارها أدلة تاريخية، ثم مطابقة العناصر مع المصدر الحي الفعلي.
-- **Production:** المشروع \`SMART ERP / fiilmooggumokxanwiyx\` حالته \`ACTIVE_HEALTHY\`.
-- **Current source:** الملف الحالي \`erp-frontend/companies/company-1/main.html\`، blob SHA \`4f94f9c6ebdde1b59632384628c72767d3bb950d\`; عدد الأسطر 32,363. تم جلب الـblob مباشرة وقراءة مقاطع RW_Orders الحية؛ لذلك أرقام الأسطر بهذا التقرير هي أرقام المصدر الفعلي الحالي، وليست أرقام snapshot.
+- **Production:** المشروع `SMART ERP / fiilmooggumokxanwiyx` حالته `ACTIVE_HEALTHY`.
+- **Current source:** الملف الحالي `erp-frontend/companies/company-1/main.html`، blob SHA `4f94f9c6ebdde1b59632384628c72767d3bb950d`; عدد الأسطر 32,363. تم جلب الـblob مباشرة وقراءة مقاطع RW_Orders الحية؛ لذلك أرقام الأسطر بهذا التقرير هي أرقام المصدر الفعلي الحالي، وليست أرقام snapshot.
 - **Execution confidence:** مرتفع في تشخيص كود المصدر الحي وProduction Core/DB؛ غير مثبت في نشر واجهة جديدة أو Browser E2E بعد الدمج، لأن الدمج لم يتم احترامًا لملكية المالك.
 
 ## 2. ما أثبته Production الآن
 
-وقت القراءة: \`2026-10-11 16:34:18.647178+00\`.
+وقت القراءة: `2026-10-11 16:34:18.647178+00`.
 
-\`ORD-1006\`:
-- المصدر \`pos\`، المنشئ \`cashier@rawaea.com\`.
-- الحالة \`Partially Returned\`.
-- \`total_amount=135.00\`، و\`original_total_amount=185.00\`.
-- \`runsheet_id=NULL\`.
+`ORD-1006`:
+- المصدر `pos`، المنشئ `cashier@rawaea.com`.
+- الحالة `Partially Returned`.
+- `total_amount=135.00`، و`original_total_amount=185.00`.
+- `runsheet_id=NULL`.
 - صفا تفاصيل، والكمية المتبقية الإجمالية 1، وعدد سطور التفاصيل ذات كمية متبقية 1.
 - لم تُعدّل بيانات أعمال أو مخزون أو حسابات.
 
-تعريفات Production الحية لـ\`create_runsheet_atomic(uuid,text[],text)\` و\`append_orders_to_runsheet_atomic(uuid,text,text[],text)\` تتضمن رفض أي مصدر خارج \`telesales / tele-sales / order-taker / online-store\`. صلاحيات التنفيذ: \`anon=false\`, \`authenticated=false\`, \`service_role=true\`. لم يتغير تعريفهما منذ آخر Migration ذات صلة، ولا يوجد Defect في هذا الحارس يبرر تعديل Production الآن.
+تعريفات Production الحية لـ`create_runsheet_atomic(uuid,text[],text)` و`append_orders_to_runsheet_atomic(uuid,text,text[],text)` تتضمن رفض أي مصدر خارج `telesales / tele-sales / order-taker / online-store`. صلاحيات التنفيذ: `anon=false`, `authenticated=false`, `service_role=true`. لم يتغير تعريفهما منذ آخر Migration ذات صلة، ولا يوجد Defect في هذا الحارس يبرر تعديل Production الآن.
 
-سجلات Supabase أظهرت طلبات مصادق عليها إلى \`GET /rest/v1/orders?select=*,runsheets(runsheet_code)&company_id=...\` بحالة HTTP 200 عند 16:32 و16:33 UTC. هذا يثبت نجاح قراءة الجدول من Runtime، ولا يثبت أن تعديلات الواجهة المطلوبة نُشرت.
+سجلات Supabase أظهرت طلبات مصادق عليها إلى `GET /rest/v1/orders?select=*,runsheets(runsheet_code)&company_id=...` بحالة HTTP 200 عند 16:32 و16:33 UTC. هذا يثبت نجاح قراءة الجدول من Runtime، ولا يثبت أن تعديلات الواجهة المطلوبة نُشرت.
 
 ## 3. المصدر الحي — مواضع العيوب الدقيقة
 
-**المستودع:** \`papamohammed77-glitch/erp-frontend\`  
-**الملف:** \`companies/company-1/main.html\`  
-**Blob:** \`4f94f9c6ebdde1b59632384628c72767d3bb950d\`  
+**المستودع:** `papamohammed77-glitch/erp-frontend`  
+**الملف:** `companies/company-1/main.html`  
+**Blob:** `4f94f9c6ebdde1b59632384628c72767d3bb950d`  
 **رابط الملف:** https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/company-1/main.html
 
 | السطور الحالية | العنصر | العيب المثبت |
 |---|---|---|
-| 10255 | معالج \`id="check-all"\` | يحدد كل \`.order-checkbox\` بلا استثناء المعطل. |
-| 10257–10264 | رؤوس الجدول | يعرض \`order_date\` ولا يعرض \`source\` أو \`created_by\`. |
-| 10267 | صف التحميل | \`colspan=9\`؛ يجب أن يطابق عدد الأعمدة بعد إضافة عمودين. |
-| 10290–10305 | تحميل الأوردرات داخل \`render()\` | يجلب \`item_code\` فقط ويعد كل سطر؛ لا يستبعد \`qty_returned\` من الكمية الأصلية. |
-| 10388–10398 | الفرز داخل \`_applyFilters()\` | يتعرف على \`order_date\` فقط كحقل تاريخ. |
-| 10444–10491 | \`_renderTable(data)\` | كل مصدر قابل للتحديد؛ لا يعرض المصدر/المنشئ؛ تاريخ الجدول هو \`order_date\`; \`colspan=9\`. |
+| 10255 | معالج `id="check-all"` | يحدد كل `.order-checkbox` بلا استثناء المعطل. |
+| 10257–10264 | رؤوس الجدول | يعرض `order_date` ولا يعرض `source` أو `created_by`. |
+| 10267 | صف التحميل | `colspan=9`؛ يجب أن يطابق عدد الأعمدة بعد إضافة عمودين. |
+| 10290–10305 | تحميل الأوردرات داخل `render()` | يجلب `item_code` فقط ويعد كل سطر؛ لا يستبعد `qty_returned` من الكمية الأصلية. |
+| 10388–10398 | الفرز داخل `_applyFilters()` | يتعرف على `order_date` فقط كحقل تاريخ. |
+| 10444–10491 | `_renderTable(data)` | كل مصدر قابل للتحديد؛ لا يعرض المصدر/المنشئ؛ تاريخ الجدول هو `order_date`; `colspan=9`. |
 | 10631–10636 | تحديث العدد بعد التأكيد | يعيد عدّ جميع تفاصيل الأوردر دون استبعاد المرتجع. |
-| 10661–10767 | \`_showDetails(code)\` | يعرض الكمية الأصلية فقط ويجمع \`line_amount\` الأصلي ليحسب إجماليًا قد يخالف \`orders.total_amount\`. |
-| 10800–10844 | \`_buildPrintWindow(order,items,settings)\` | الطباعة تعرض الكميات الأصلية دون المرتجع/المتبقي، وتبني ضريبة/إجماليًا فرعيًا من السطور الأصلية. |
-| 10969–10994 | \`_refreshData()\` | إعادة التحديث اللحظي تعيد عدّ كل تفاصيل الأوردر؛ فيعود العيب بعد أي Realtime refresh. |
-| 10236–10238 | خيارات فلتر الحالة | لا تحتوي \`Partially Returned\`. |
+| 10661–10767 | `_showDetails(code)` | يعرض الكمية الأصلية فقط ويجمع `line_amount` الأصلي ليحسب إجماليًا قد يخالف `orders.total_amount`. |
+| 10800–10844 | `_buildPrintWindow(order,items,settings)` | الطباعة تعرض الكميات الأصلية دون المرتجع/المتبقي، وتبني ضريبة/إجماليًا فرعيًا من السطور الأصلية. |
+| 10969–10994 | `_refreshData()` | إعادة التحديث اللحظي تعيد عدّ كل تفاصيل الأوردر؛ فيعود العيب بعد أي Realtime refresh. |
+| 10236–10238 | خيارات فلتر الحالة | لا تحتوي `Partially Returned`. |
 
-لا يوجد تعريف منفصل باسم \`loadData()\` أو \`refreshRealtimeChannel()\` داخل وحدة \`RW_Orders\` الحالية؛ التحميل الأول داخل \`render()\` والتحديث في \`_refreshData()\`. لا تستخدم تواقيع snapshot القديمة في هذه النسخة.
+لا يوجد تعريف منفصل باسم `loadData()` أو `refreshRealtimeChannel()` داخل وحدة `RW_Orders` الحالية؛ التحميل الأول داخل `render()` والتحديث في `_refreshData()`. لا تستخدم تواقيع snapshot القديمة في هذه النسخة.
 
 ## 4. التعديل الجراحي — يطبقه المالك في الملف الأم
 
 ### A. رؤوس الجدول وتحديد الكل
 في السطر 10255، استبدل قيمة المحدد فقط:
-\`\`\`javascript
+```javascript
 document.querySelectorAll('.order-checkbox')
-\`\`\`
+```
 بـ:
-\`\`\`javascript
+```javascript
 document.querySelectorAll('.order-checkbox:not(:disabled)')
-\`\`\`
+```
 
 في السطر 10257 استبدل رأس التاريخ الحالي:
-\`\`\`javascript
+```javascript
 '<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\'order_date\')">التاريخ <i class="fa-solid fa-sort"></i></th>' +
-\`\`\`
+```
 بـ:
-\`\`\`javascript
+```javascript
 '<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\'created_at\')">تاريخ ووقت الإنشاء <i class="fa-solid fa-sort"></i></th>' +
-\`\`\`
+```
 
 بعد سطر عمود «العميل والمنطقة» الحالي (10258)، أضف:
-\`\`\`javascript
+```javascript
 '<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\'source\')">المصدر <i class="fa-solid fa-sort"></i></th>' +
 '<th class="p-3 text-center cursor-pointer text-xs font-bold uppercase" onclick="RW_Orders._sort(\'created_by\')">المنشئ <i class="fa-solid fa-sort"></i></th>' +
-\`\`\`
-ثم اجعل \`colspan="9"\` في سطر التحميل 10267 = \`colspan="11"\`. أضف خيارًا واحدًا داخل قائمة الحالة بعد \`<option>Returned</option>\` في السطر 10237:
-\`\`\`html
+```
+ثم اجعل `colspan="9"` في سطر التحميل 10267 = `colspan="11"`. أضف خيارًا واحدًا داخل قائمة الحالة بعد `<option>Returned</option>` في السطر 10237:
+```html
 <option>Partially Returned</option>
-\`\`\`
+```
 
 ### B. استبدال كتلة عدّ الأصناف في التحميل الأول
-داخل \`render()\`، احذف من السطر 10293 حتى 10305 شاملًا، واستبدل الكتلة كاملة:
-\`\`\`javascript
+داخل `render()`، احذف من السطر 10293 حتى 10305 شاملًا، واستبدل الكتلة كاملة:
+```javascript
 var detRes = orderIds.length
     ? await supabase.from('order_details')
         .select('order_id, item_code, qty, qty_returned')
@@ -108,20 +108,20 @@ for (var i = 0; i < details.length; i++) {
 for (var j = 0; j < ordersData.length; j++) {
     ordersData[j].itemsCount = itemsCountMap[ordersData[j].id] || 0;
 }
-\`\`\`
-وأضف فحص الخطأ مباشرة بعد استعلام \`ordRes\` في السطر 10290:
-\`\`\`javascript
+```
+وأضف فحص الخطأ مباشرة بعد استعلام `ordRes` في السطر 10290:
+```javascript
 if (ordRes.error) throw ordRes.error;
-\`\`\`
+```
 هذا لا يحذف سطرًا أصليًا من قاعدة البيانات؛ يعد فقط أسطر الكمية المتبقية.
 
-### C. استبدال \`_renderTable(data)\` كاملة
+### C. استبدال `_renderTable(data)` كاملة
 ابحث عن التوقيع الدقيق عند السطر 10444:
-\`\`\`javascript
+```javascript
 function _renderTable(data) {
-\`\`\`
+```
 واحذف الدالة كاملة حتى القوس الذي يغلقها عند السطر 10491، واستبدلها بالنص الكامل:
-\`\`\`javascript
+```javascript
 function _renderTable(data) {
     var tbody = byId('orders-table-body');
     if (!tbody) return;
@@ -195,22 +195,22 @@ function _renderTable(data) {
         '</tr>';
     });
 }
-\`\`\`
+```
 
 ### D. تعديل فرز التاريخ
-داخل \`_applyFilters()\`، استبدل الشرط عند السطر 10392:
-\`\`\`javascript
+داخل `_applyFilters()`، استبدل الشرط عند السطر 10392:
+```javascript
 } else if (sortField === 'order_date') {
-\`\`\`
+```
 بـ:
-\`\`\`javascript
+```javascript
 } else if (sortField === 'order_date' || sortField === 'created_at') {
-\`\`\`
-اترك فلاتر التاريخ \`f-date-from/f-date-to\` على \`order_date\`؛ فهي فلاتر تاريخ الطلب التجاري، بينما العمود الجديد يعرض وقت الإنشاء.
+```
+اترك فلاتر التاريخ `f-date-from/f-date-to` على `order_date`؛ فهي فلاتر تاريخ الطلب التجاري، بينما العمود الجديد يعرض وقت الإنشاء.
 
-### E. استبدال عدّ الأصناف في \`_refreshData()\` كاملة
+### E. استبدال عدّ الأصناف في `_refreshData()` كاملة
 احذف الدالة من السطر 10969 إلى 10994 شاملًا، واستبدلها:
-\`\`\`javascript
+```javascript
 async function _refreshData() {
     var ordRes = await supabase.from('orders')
         .select('*, runsheets(runsheet_code)')
@@ -247,29 +247,29 @@ async function _refreshData() {
     }
     _applyFilters();
 }
-\`\`\`
+```
 
 ### F. إصلاح إعادة العد بعد تأكيد الأوردر
-داخل \`_confirmOrderFromDetails(code)\`، احذف أسطر إعادة العد الحالية 10631–10636:
-\`\`\`javascript
+داخل `_confirmOrderFromDetails(code)`، احذف أسطر إعادة العد الحالية 10631–10636:
+```javascript
 // ✅ إعادة حساب itemsCount لهذا الأوردر
 supabase.from('order_details').select('id', { count: 'exact', head: true }).eq('order_id', found.id).then(function(countRes) {
     if (countRes && countRes.count !== undefined) {
         found.itemsCount = countRes.count;
     }
 });
-\`\`\`
+```
 واستبدلها:
-\`\`\`javascript
+```javascript
 _refreshData().catch(function(refreshError) {
     console.error('Orders refresh after confirmation failed:', refreshError);
 });
-\`\`\`
+```
 هذا يمنع عودة عدّ السطور المرتجعة بالكامل بعد التأكيد.
 
-### G. استبدال \`_showDetails(code)\` كاملة
+### G. استبدال `_showDetails(code)` كاملة
 احذف الدالة الحالية من السطر 10661 حتى 10767 شاملًا، واستبدلها:
-\`\`\`javascript
+```javascript
 function _showDetails(code) {
     showLoader('جاري تحميل التفاصيل...');
     supabase.from('orders').select('*')
@@ -388,11 +388,11 @@ function _showDetails(code) {
         })
         .finally(function() { hideLoader(); });
 }
-\`\`\`
+```
 
-### H. استبدال \`_buildPrintWindow(order, items, settings)\` كاملة
+### H. استبدال `_buildPrintWindow(order, items, settings)` كاملة
 احذف الدالة الحالية من السطر 10800 إلى 10844 شاملًا، واستبدلها:
-\`\`\`javascript
+```javascript
 function _buildPrintWindow(order, items, settings) {
     hideLoader();
     settings = settings || {};
@@ -460,23 +460,23 @@ function _buildPrintWindow(order, items, settings) {
     printWindow.document.write(html);
     printWindow.document.close();
 }
-\`\`\`
+```
 
-**تنبيه محاسبي:** قيمة المتبقي المعروضة بجمع \`qty المتبقية × unit_price\` قيمة توضيحية قبل الخصومات العامة؛ لا تستخدمها بدل \`orders.total_amount\` أو بدل أي Ledger. الإجمالي النهائي في التفاصيل والطباعة يؤخذ من رأس الأوردر المركزي. إذا كان نظام الخصومات/الضريبة يملك عقدًا آخر في المصدر، يجب الحفاظ عليه عند الدمج وعدم استنتاج تسوية مالية من عدد الوحدات وحده.
+**تنبيه محاسبي:** قيمة المتبقي المعروضة بجمع `qty المتبقية × unit_price` قيمة توضيحية قبل الخصومات العامة؛ لا تستخدمها بدل `orders.total_amount` أو بدل أي Ledger. الإجمالي النهائي في التفاصيل والطباعة يؤخذ من رأس الأوردر المركزي. إذا كان نظام الخصومات/الضريبة يملك عقدًا آخر في المصدر، يجب الحفاظ عليه عند الدمج وعدم استنتاج تسوية مالية من عدد الوحدات وحده.
 
 ## 5. ما لا يتغير في Production
 - لا تعديل RPC أو ACL؛ الحارس المركزي في Production يمنع مصادر POS/المجهولة من ضم الرانشيت.
-- لا توسيع RLS لجدول \`users\` من أجل اسم المنشئ؛ الجدول يعرض \`created_by\` نفسه كمعرف موثوق.
+- لا توسيع RLS لجدول `users` من أجل اسم المنشئ؛ الجدول يعرض `created_by` نفسه كمعرف موثوق.
 - لا إنشاء Edge Function جديدة.
-- لا تغيير في \`ORD-1006\` ولا إنشاء Fixture في Production.
-- لا تعديل \`main.html\` من المساعد؛ المالك يطبق الـOwner Patch أعلاه.
+- لا تغيير في `ORD-1006` ولا إنشاء Fixture في Production.
+- لا تعديل `main.html` من المساعد؛ المالك يطبق الـOwner Patch أعلاه.
 
 ## 6. اختبار المالك بعد الدمج والنشر
-1. \`ORD-1006\`: يجب أن يظهر المصدر POS، المنشئ \`cashier@rawaea.com\`، الحالة \`Partially Returned\`، الإجمالي النهائي 135.00، والأصلي 185.00 في التفاصيل إن أُضيف عرض الإجمالي الأصلي.
+1. `ORD-1006`: يجب أن يظهر المصدر POS، المنشئ `cashier@rawaea.com`، الحالة `Partially Returned`، الإجمالي النهائي 135.00، والأصلي 185.00 في التفاصيل إن أُضيف عرض الإجمالي الأصلي.
 2. عدّ الأصناف يجب أن يساوي 1، لا 2، لأن سطر item 1001 مرتجع بالكامل وسطر item 1003 ما زال متبقيًا.
-3. checkbox الخاص بـPOS معطل؛ تحديد الكل لا يحدده. مصدر \`order-taker\` المؤهل والحالة \`Confirmed/Pending\` وغير المرتبط برانشيت يظل قابلًا للاختيار.
-4. Realtime بعد تغير \`qty_returned\` يحدّث عدّ الأصناف ولا يعيده إلى العدد الأصلي.
-5. التفاصيل والطباعة تعرض الأصلي/المرتجع/المتبقي والملاحظة؛ الإجمالي النهائي يطابق \`orders.total_amount\`.
+3. checkbox الخاص بـPOS معطل؛ تحديد الكل لا يحدده. مصدر `order-taker` المؤهل والحالة `Confirmed/Pending` وغير المرتبط برانشيت يظل قابلًا للاختيار.
+4. Realtime بعد تغير `qty_returned` يحدّث عدّ الأصناف ولا يعيده إلى العدد الأصلي.
+5. التفاصيل والطباعة تعرض الأصلي/المرتجع/المتبقي والملاحظة؛ الإجمالي النهائي يطابق `orders.total_amount`.
 6. اختبر الفلاتر والفرز، تأكيد/حذف، إنشاء رانشيت/ضم، وعزل الشركة.
 7. بعد النشر، سجّل SHA للملف المخدوم واختبر المتصفح والـConsole/Network. طلبات القراءة الحالية HTTP 200 لا تكفي لإثبات نشر الـpatch.
 
@@ -485,8 +485,8 @@ function _buildPrintWindow(order, items, settings) {
 - **What I Proved:** النص الحي الحالي، SHA، أرقام الأسطر، عيوب عدّ التفاصيل/الجدول/التفاصيل/الطباعة، حالة Production لـORD-1006، تعريفات RPC وACL، وسياسات RLS.
 - **What I Did Not Prove:** نشر واجهة بعد التعديل أو Browser E2E؛ لم يجر المالك الدمج بعد.
 - **What I Fixed:** لا تغيير مباشر في ملفات الواجهة أو Production؛ جهزت Owner Patch دقيقًا من المصدر الحي، ولم أعدّل Core الصحيح.
-- **What I Initially Missed:** النسخة الحية لا تستخدم \`loadData()\` أو \`refreshRealtimeChannel()\` منفصلتين؛ التحميل داخل \`render()\`، لذا كانت تواقيع snapshot القديمة غير مطابقة.
+- **What I Initially Missed:** النسخة الحية لا تستخدم `loadData()` أو `refreshRealtimeChannel()` منفصلتين؛ التحميل داخل `render()`، لذا كانت تواقيع snapshot القديمة غير مطابقة.
 - **What Could Still Be Wrong:** عقد الخصومات/الضريبة في الطباعة يجب أن يطابق إعدادات المحاسبة قبل اعتبار الإخراج الضريبي مغلقًا؛ الواجهة لم تُنشر ولم تُختبر بعد الدمج.
 - **Final Confidence:** 0.94 في تشخيص المصدر الحي وProduction Core؛ 0.00 في إثبات نشر patch غير مطبق.
-- **Final Closure Status:** \`OWNER SURGICAL PATCH PREPARED / PRODUCTION CORE VERIFIED / OWNER MERGE + SERVED ARTIFACT + BROWSER E2E OPEN\`.
-- **NEXT EXACT TASK:** طبّق عناصر A–H في الملف الحالي بعد مطابقة SHA \`4f94f9c6ebdde1b59632384628c72767d3bb950d\`; ثم انشر واختبر وفق القسم 6. لا تغيّر Production Core ما لم يظهر Defect جديد مثبت.
+- **Final Closure Status:** `OWNER SURGICAL PATCH PREPARED / PRODUCTION CORE VERIFIED / OWNER MERGE + SERVED ARTIFACT + BROWSER E2E OPEN`.
+- **NEXT EXACT TASK:** طبّق عناصر A–H في الملف الحالي بعد مطابقة SHA `4f94f9c6ebdde1b59632384628c72767d3bb950d`; ثم انشر واختبر وفق القسم 6. لا تغيّر Production Core ما لم يظهر Defect جديد مثبت.
