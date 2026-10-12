@@ -1,0 +1,338 @@
+بسم الله. سأقوم أولاً بمراجعة دقيقة لما تم إنجازه، ثم أصيغ لك البرومبت التفصيلي الذي يوجّه المساعد لإكمال البقية وفق معايير الهايبر ماركت، مع احترام قيد "عدم إضافة Edge Functions جديدة".
+
+---
+
+# 📋 أولاً: مراجعة ما تم إنجازه في `pos.html`
+
+## ✅ ما هو مكتمل (جاهز للإنتاج)
+
+| # | الميزة | الحالة |
+|:---:|:---|:---:|
+| 1 | شاشة الدخول + استعادة الجلسة + "تذكرني" | ✅ |
+| 2 | الواجهة الداكنة (Dark Mode) الراقية | ✅ |
+| 3 | البحث الذكي عن الأصناف (اسم/كود/باركود) | ✅ |
+| 4 | كاش الصور + المخزون المتاح | ✅ |
+| 5 | اختيار الفرع + العميل | ✅ |
+| 6 | سلة التسوق + تعديل الكميات + رقم التحقق | ✅ |
+| 7 | الدفع النقدي + حساب الباقي | ✅ |
+| 8 | تعليق/استئناف الفواتير | ✅ |
+| 9 | مسح الباركود عبر `BarcodeDetector` | ✅ |
+| 10 | الطباعة الحرارية للإيصال | ✅ |
+| 11 | المرتجعات (اختيار من فاتورة أصلية) | ✅ |
+| 12 | شاشة فواتير اليوم | ✅ |
+| 13 | Offline-First (Dexie + pending_updates) | ✅ |
+| 14 | Idempotency Guard (operation_id) | ✅ (متقدم) |
+| 15 | Hotkeys (F2, F3, F4, F9, Space, ESC) | ✅ |
+
+## 🟡 ما هو جزئي (يحتاج إكمالاً)
+
+| # | الميزة | النقص |
+|:---:|:---|:---|
+| 1 | **الدفع بالبطاقة** | مرفوض حالياً بـ "غير مربوط بعقد التسوية" – يحتاج تفعيل |
+| 2 | **الدفع المختلط (Split)** | الواجهة موجودة لكن التنفيذ مرفوض |
+| 3 | **المرتجع** | يعتمد على `complete-return` مع `runsheet_code: null` – قد لا يعمل في الإنتاج |
+
+## 🔴 ما هو مفقود تماماً (فجوة كبيرة مقابل الهايبر ماركت)
+
+| # | الفجوة | الأثر |
+|:---:|:---|:---|
+| 1 | **لا توجد إدارة ورديات (Shift Management)** | لا `shift_id`, لا `opening_float`, لا `X/Z Report` |
+| 2 | **لا يوجد تسجيل دخول وردية من الخزينة** | الكاشير يبيع بلا عهدة معتمدة |
+| 3 | **لا يوجد عدّ النقود بفئات (Denominations)** | لا مطابقة نقدية في نهاية اليوم |
+| 4 | **لا يوجد Paid In / Paid Out** | لا يمكن صرف/إيداع نقدي أثناء الوردية |
+| 5 | **لا يوجد إغلاق وردية ولا محضر تسليم** | لا `handover`, لا `Z-Report` |
+| 6 | **لا يوجد X-Report لحظي** | المشرف لا يستطيع مراقبة الوردية الآن |
+| 7 | **لا يوجد Supervisor PIN** لإلغاء/مرتجع/Paid Out | لا رقابة على العمليات الحساسة |
+| 8 | **لا يوجد Void (إلغاء فاتورة)** | لا يمكن تصحيح خطأ في الفاتورة |
+| 9 | **لا يوجد Terminal Assignment** | كل كاشير يمكنه البيع من أي جهاز بلا ربط |
+| 10 | **لا يوجد تكامل مع الخزينة العامة** | لا إيداع تلقائي للمتحصلات |
+| 11 | **Smart Suggestions فارغة** | المنطقة موجودة في UI لكن لا تُملأ |
+| 12 | **لا يوجد تنبيه تجاوز حد النقد في الدرج** | عامل خطر أمني |
+| 13 | **لا يوجد سجل تدقيق (Audit Log)** لفتح الدرج | مخالف للدستور |
+| 14 | **لا يوجد مؤشر حالة الوردية في الهيدر** | المستخدم لا يعرف هل هو في وردية أم لا |
+
+---
+
+# 🎯 ثانيًا: البرومبت التفصيلي لإكمال الكاشير
+
+هذا هو البرومبت الذي يجب أن ترسله للمساعد. لقد صغته بدقة تراعي القيود وتلتزم بمعايير الهايبر ماركت:
+
+---
+
+## 🎯 برومبت إكمال تطبيق الكاشير – `pos.html`
+
+### 🧠 السياق
+
+أنت تعمل على تطبيق نقطة البيع (`pos.html`) في نظام "الروائع ERP". الملف الحالي موجود أمامك، وهو يحتوي على **البنية الأساسية للبيع** (البحث، السلة، الدفع، المرتجعات، فواتير اليوم). لكنه **يفتقد طبقة إدارة الورديات والخزينة** التي تجعله يضاهي أنظمة كبرى الهايبر ماركت مثل **Carrefour، Panda، Lulu، Spinneys**.
+
+### ⚠️ القيود غير القابلة للتفاوض
+
+1. **لا تُضِف Edge Functions جديدة.** الـ Edge Functions المتاحة في Supabase Production انتهت طاقتها. يمكنك فقط:
+   - استخدام Edge Functions الموجودة (`save-sales-invoice`, `complete-return`, `save-receipt-voucher`, `save-payment-voucher`, `save-transfer-voucher`, `save-journal-entry`, `save-daily-settlement`).
+   - إضافة **RPCs (PostgreSQL Functions)** جديدة إذا لزم الأمر (RPCs مختلفة عن Edge Functions، وهي مسموحة).
+   - إضافة **Database Triggers** إذا لزم الأمر.
+   - تنفيذ المنطق في **Frontend** إذا كان ممكناً.
+
+2. **التزام صارم بالدستور:**
+   - `var` و `function` فقط. لا `const`, `let`, `=>`, `Array.find`.
+   - `fetch` اليدوي عبر `RW_API.call` (لا `supabase.functions.invoke`).
+   - لا افتراض أعمدة أو جداول. إذا احتجت جدولاً جديداً، اطلب إنشاؤه أولاً.
+   - الاستبدال الجراحي الكامل: أرسل الدالة كاملة عند التعديل.
+
+3. **التماثل مع الهايبر ماركت:** كل ميزة تقترحها يجب أن تكون مطابقة لما تفعله Carrefour/Panda فعلياً، وليس مجرد نظريات.
+
+4. **الملف الحالي يعمل.** لا تكسر شيئاً موجوداً. التعديل جراحي.
+
+---
+
+### 📋 المهام المطلوبة (بترتيب الأولوية)
+
+#### 🔴 P0 – إدارة الورديات والخزينة (الأساس)
+
+**يجب إضافة هذه الميزات إلزامياً:**
+
+##### 1. جدول `shifts` (يُطلب من المسؤول إنشاؤه أولاً)
+اقترح هيكل الجدول التالي في Supabase:
+
+```sql
+CREATE TABLE shifts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    shift_code VARCHAR(20) UNIQUE NOT NULL,          -- SHIFT-0001
+    company_id UUID NOT NULL,
+    branch_id UUID NOT NULL,
+    cashier_id UUID NOT NULL,
+    terminal_id UUID NOT NULL,
+    treasury_id UUID,                                -- الخزينة الفرعية (اختياري في البداية)
+    opening_float NUMERIC(15,2) NOT NULL DEFAULT 0,
+    expected_cash NUMERIC(15,2) DEFAULT 0,
+    actual_cash NUMERIC(15,2) DEFAULT 0,
+    difference NUMERIC(15,2) DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'open',               -- open, closed, frozen
+    start_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    end_time TIMESTAMPTZ,
+    closed_by UUID,
+    closed_at TIMESTAMPTZ,
+    notes TEXT,
+    company_id UUID REFERENCES companies(id),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+##### 2. جدول `cash_movements` (حركات النقد)
+
+```sql
+CREATE TABLE cash_movements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    shift_id UUID NOT NULL REFERENCES shifts(id),
+    type VARCHAR(20) NOT NULL,                       -- sale, refund, paid_in, paid_out, void
+    amount NUMERIC(15,2) NOT NULL,
+    payment_method VARCHAR(20) DEFAULT 'cash',       -- cash, card, wallet
+    reference VARCHAR(100),
+    order_id UUID,
+    reason VARCHAR(200),
+    notes TEXT,
+    created_by UUID NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+##### 3. جدول `cash_count_details` (تفاصيل عدّ النقود)
+
+```sql
+CREATE TABLE cash_count_details (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    shift_id UUID NOT NULL REFERENCES shifts(id),
+    denomination NUMERIC(10,2) NOT NULL,
+    count INTEGER NOT NULL,
+    total NUMERIC(15,2) GENERATED ALWAYS AS (denomination * count) STORED,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+##### 4. واجهة بدء الوردية (Opening Shift)
+
+عند دخول الكاشير إلى `pos.html`، **لا يُسمح له بالبيع مباشرة**. يجب أن يمرّ بـ:
+
+- **شاشة بدء الوردية** تتضمن:
+  - اختيار الفرع
+  - اختيار الجهاز (Terminal ID)
+  - إدخال المبلغ الافتتاحي (Opening Float) — أو استلامه من الخزينة
+  - **عدّ النقود بفئات** (500, 200, 100, 50, 20, 10, 5, 1)
+  - توقيع إلكتروني (PIN أو Canvas Signature)
+  - زر "بدء الوردية" ينشئ سجلاً في `shifts` بـ `status='open'`
+
+##### 5. مؤشر حالة الوردية في الهيدر
+
+أضف في الـ header:
+- `shift_code` (مثل: `SHIFT-0042`)
+- المدة المنقضية (Live Timer)
+- زر "X-Report" (لحظي)
+- زر "إغلاق الوردية" (Z-Report)
+
+##### 6. X-Report (تقرير لحظي)
+
+عند الضغط على زر X-Report:
+- اعرض جدولاً يحتوي على:
+  - إجمالي المبيعات النقدية
+  - إجمالي المبيعات بالبطاقة
+  - عدد الفواتير
+  - إجمالي المرتجعات
+  - إجمالي Paid In / Paid Out
+  - الرصيد المتوقع في الدرج حالياً
+- **X-Report لا يُغلق الوردية**. يمكن إصداره عدة مرات.
+
+##### 7. إغلاق الوردية (Z-Report)
+
+عند الضغط على "إغلاق الوردية":
+- **شاشة عدّ النقود** بفئات (إدخال عدد كل فئة)
+- حساب تلقائي لـ:
+  - `expected_cash` = `opening_float` + المبيعات النقدية - المرتجعات النقدية + Paid In - Paid Out
+  - `actual_cash` = مجموع العدّ الفعلي
+  - `difference` = `actual_cash` - `expected_cash`
+- إذا `difference ≠ 0`:
+  - اطلب **سبب الفرق** من قائمة منسدلة (`discrepancy_reasons`)
+  - اطلب شرحاً إضافياً (اختياري)
+- **Z-Report النهائي** يحتوي على:
+  - كل تفاصيل X-Report
+  - `opening_float`, `expected_cash`, `actual_cash`, `difference`
+  - تفاصيل الفئات المعدودة
+  - توقيع الكاشير + أمين الخزينة
+- بعد الإصدار:
+  - `shifts.status = 'closed'`
+  - `shifts.end_time = NOW()`
+  - **يُمنع أي تعديل على الوردية** (frozen).
+
+##### 8. Paid In / Paid Out
+
+أضف تبويباً جديداً أو زرّين في الواجهة:
+- **Paid Out (صرف نقدي)**: لشراء مستلزمات طارئة. يتطلب:
+  - المبلغ (حد أقصى 100 بدون موافقة)
+  - السبب (قائمة منسدلة)
+  - رقم المستند/الفاتورة
+  - PIN مشرف إذا تجاوز الحد
+- **Paid In (إيداع نقدي)**: لتعزيز الدرج. يتطلب:
+  - المبلغ
+  - المرجع
+  - من أمين الخزينة
+
+كل حركة تُسجّل في `cash_movements`.
+
+##### 9. Void (إلغاء فاتورة)
+
+أضف زر "إلغاء الفاتورة" لشاشة فواتير اليوم:
+- يتطلب **PIN مشرف** دائماً
+- يتطلب **سبب الإلغاء** من قائمة
+- يُسجّل في `cash_movements` بنوع `void`
+- يُحدّث `orders.order_status = 'Cancelled'`
+- **القيد العكسي** يتم عبر `save-journal-entry` مع `entry_type='Void'`
+
+---
+
+#### 🟡 P1 – التكامل مع الخزينة العامة
+
+##### 10. إيداع في الخزينة عند إغلاق الوردية
+
+عند `Z-Report`:
+- اقترح تلقائياً إيداع `actual_cash` في الخزينة العامة للفرع
+- استخدم **`save-receipt-voucher`** الموجود مع:
+  - `cashBoxId` = الخزينة العامة
+  - `amount` = `actual_cash`
+  - `reference` = `shift_code`
+- أو استخدم `save-transfer-voucher` (تحويل من خزينة فرعية إلى خزينة رئيسية)
+
+##### 11. استلام العهدة الافتتاحية من الخزينة
+
+عند `بدء الوردية`:
+- اعرض رصيد الخزينة العامة
+- اطلب تأكيد استلام `opening_float` من الخزينة
+- استخدم `save-payment-voucher` مع:
+  - `cashBoxId` = الخزينة العامة
+  - `amount` = `opening_float`
+  - `reference` = `shift_code`
+
+---
+
+#### 🟢 P2 – تحسينات أمان ومراقبة
+
+##### 12. سجل تدقيق (Audit Log)
+
+كل عملية حساسة تُسجّل في `audit_log` الموجود:
+- فتح الدرج (بدون بيع)
+- Void
+- Refund
+- Paid Out
+- فتح/إغلاق الوردية
+
+##### 13. Supervisor PIN
+
+أضف نظام PIN بسيط للمشرف:
+- جدول `users` يحوي `supervisor_pin` (يُطلب من المسؤول)
+- كل عملية حساسة تطلب PIN
+- يتم التحقق مقابل قاعدة البيانات
+
+##### 14. Terminal Assignment
+
+- جدول `pos_terminals` يحوي `id, terminal_code, branch_id`
+- عند بدء الوردية، الكاشير يختار terminal
+- `shifts.terminal_id` يربط الوردية بالجهاز
+
+##### 15. Smart Suggestions
+
+- استخدم RPC موجود أو أضف RPC جديد `get_frequently_bought_together(p_item_code)`:
+  - يجلب الأصناف التي تُشترى مع صنف معين
+- املأ منطقة Smart Suggestions في الواجهة
+
+---
+
+### 🎯 المخرجات المطلوبة
+
+1. **وثيقة ADR** لكل ميزة جديدة:
+   - المشكلة
+   - الحل المعماري
+   - الجداول المتأثرة
+   - مقاربة Carrefour/Panda
+   - المخاطر
+
+2. **الكود الكامل** لكل ميزة، جاهز للنسخ (استبدال جراحي كامل).
+
+3. **RPCs جديدة** إذا لزم الأمر:
+   - `open_shift`
+   - `close_shift`
+   - `get_shift_summary`
+   - `get_pos_terminals`
+   - `get_frequently_bought_together`
+
+4. **سياسات RLS** لكل جدول جديد.
+
+5. **خطة اختبار** لكل سيناريو:
+   - فتح وردية → بيع → مرتجع → Paid Out → إغلاق وردية
+   - انقطاع إنترنت → استمرار البيع → مزامنة
+   - Void مع PIN مشرف
+   - تجاوز حد النقد في الدرج
+
+---
+
+### 🚫 ما لا تلمسه (المقدسات)
+
+- لا تعدّل `save-sales-invoice` إلا إذا كان هناك مبرر قوي.
+- لا تعدّل شاشة البيع الحالية إلا لإضافة `shift_id` للطلبات.
+- لا تكسر Offline-First.
+- لا تحذف أي ميزة موجودة.
+- لا تغيّر ألوان الواجهة أو تصميمها العام.
+
+---
+
+### 🎯 الهدف النهائي
+
+أن يخرج `pos.html` بمستوى **Carrefour/Panda** من ناحية:
+- إدارة الورديات
+- الرقابة على النقدية
+- التدقيق الكامل
+- التسليم والاستلام
+- التكامل مع الخزينة
+
+---
+
+**ابدأ بـ P0 فقط. أرسل `ADR` أولاً قبل الكود. ثم الكود الكامل. ثم انتقل إلى P1. 🫡**
+
+---
