@@ -496,7 +496,22 @@ self.onBranchChange = function() {
 ### تعليمات الاستئناف للجلسة التالية
 
 1. أعد فحص Production وmigration history وEdge versions قبل أي تغيير.
-2. لا تعد إنشاء الجداول أو تكرار المigrations؛ الثلاثة موجودة في Production.
+2. لا تعد إنشاء الجداول أو تكرار المigrations؛ الأربع migrations موجودة في Production.
 3. اطلب من المالك تطبيق Patch 1–7 على POS الحالي فقط، ثم تحقق من SHA الجديد.
 4. اختبر في بيئة معزولة البيع والمرتجع والوردية والإغلاق، وبعدها نفّذ cutover يمنع POS sales بلا shift.
 5. لا تبدأ Paid In/Out أو Void قبل مراجعة التعريفات الحية لعقود القسائم والخزينة والمحاسبة؛ لا تنشئ Edge Function جديدة.
+
+
+## Final live Production resynchronization — 2026-10-13
+
+At `2026-10-12 23:34:07.605759+00 UTC`, after the fourth migration and transactional tests, Production was queried again:
+
+- Shift tables: 4 present.
+- `orders.shift_id`: present.
+- `cash_box.shift_id`: present.
+- Shift linkage triggers: 2 present.
+- RPC ACL: `pos_open_shift`, `pos_get_shift_summary`, `pos_close_shift` each `anon=false / authenticated=true / service_role=false`; internal helper `pos_shift_expected_cash` is not executable by application roles.
+- Migration history confirms all four migrations, including `20261012233250 / 20261012235500_pos_shift_z_report_snapshot`.
+- Test residue: terminal = 0, shift = 0, event = 0.
+- Production Edge re-fetch: `save-sales-invoice v18`, `verify_jwt=true`, SHA `43d20f1465725c4e273f717ac927c070d4b28be48241bd2c9c46a6d43bb40308`; `complete-return v26`, `verify_jwt=true`, SHA `801e390b195522caedfcf68bae8262bb91da06e909c1d43e9344490e3a81f34d`. No Edge deployment was made by this task.
+- Current POS Git SHA remains `54dce2c9ad1e08e154965beb92d9d494607e42c9`; owner UI patch and served browser E2E remain open.
