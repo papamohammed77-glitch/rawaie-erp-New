@@ -44,11 +44,14 @@
    Commit: `9491c9cff615d00f8553348749a78e8942081109`.
 3. `supabase/migrations/20261012235000_pos_shift_linkage_hardening.sql`  
    Commit: `8129e3e72f7f22328fe07d68f7dfbff74b317fd7`.
+4. `supabase/migrations/20261012235500_pos_shift_z_report_snapshot.sql`  
+   Commit: `63f1e1849fc3b6a370d3cc9fe66ea38563b724a0`.
 
-Migration history في Production يثبت تسجيل الثلاثة:
+Migration history في Production يثبت تسجيل الأربع migrations:
 - `20261012232615 / 20261012233000_pos_shift_management_core`
 - `20261012232738 / 20261012234000_pos_shift_authenticated_acl`
 - `20261012232948 / 20261012235000_pos_shift_linkage_hardening`
+- `202610122331xx / 20261012235500_pos_shift_z_report_snapshot` (migration is present; the exact version is to be taken from the next live history query, not inferred from the filename)
 
 ### 2. Objects and contracts added
 
@@ -95,8 +98,9 @@ Migration history في Production يثبت تسجيل الثلاثة:
 2. إعادة نفس open operation؛ المتوقع `duplicate=true`.
 3. قراءة الملخص؛ المتوقع النقد = 100.00.
 4. إغلاق الوردية بعد عدّ فئة 100 × 1؛ الفرق = 0.
-5. إعادة نفس close operation؛ المتوقع `duplicate=true`.
-6. اختبار فرع غير مسموح للكاشير؛ رفضه برمز `42501`.
+5. تحقق أن Z-report المحفوظ يتضمن `cash_sales` و`cash_refunds` و`sale_count` و`closed_by_user_id`.
+6. إعادة نفس close operation؛ المتوقع `duplicate=true`.
+7. اختبار فرع غير مسموح للكاشير؛ رفضه برمز `42501`.
 
 المعاملة أُلغيت بـ`ROLLBACK`. فحص ما بعد الاختبار أثبت:
 - `test_terminal_residue = 0`
@@ -241,6 +245,9 @@ self.loadShiftState = function(callback) {
     supabase.rpc('pos_get_shift_summary', { p_shift_id: null }).then(function(res) {
         if (res.error || !res.data || res.data.success !== true) {
             self._shiftLoaded = false;
+            self._activeShiftId = null;
+            self._shiftSummary = null;
+            self._renderShiftState();
             console.error('POS shift summary failed:', res.error || res.data);
             if (typeof callback === 'function') callback(false);
             return;
@@ -252,6 +259,9 @@ self.loadShiftState = function(callback) {
         if (typeof callback === 'function') callback(true);
     }).catch(function(err) {
         self._shiftLoaded = false;
+        self._activeShiftId = null;
+        self._shiftSummary = null;
+        self._renderShiftState();
         console.error('POS shift summary exception:', err);
         if (typeof callback === 'function') callback(false);
     });
