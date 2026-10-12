@@ -21,7 +21,7 @@
 - Current state read: `rawaie-erp-New/CURRENT_STATE.md`, blob SHA before this report `51bb0eb158c7d023d49046ef6c99629357190f45`.
 - Prior forensic report read in full: `doc/Draft/Reprots/Report422_POS_SURGICAL_REVIEW_AND_PRODUCTION_RECONCILIATION_20261013.md`, blob SHA `65f01eafafa9f915fd11c8c53fbf5e6ca0d303ca`.
 - The master governance file was fetched from the supplied repository path and its rules were applied: current Production/source evidence supersedes reports; reports are clues; preserve previous reports; do not edit `main.html` or the operational app.
-- Requested proposal path `doc/Draft/Reprots/اقتراح تطبيق الكاشير-من مساعددد` returned 404 through GitHub Contents API. Searches in both New and review repositories returned no result, and the supplied raw URL could not be fetched. The proposal text is therefore **UNVERIFIED / NOT REVIEWED**; no recommendation is attributed to it. This does not prove that no differently named file exists on another commit/branch.
+- The exact supplied filename with the extra final `د` returns 404. Git commit search found the actual file at `doc/Draft/Reprots/اقتراح تطبيق الكاشير-من مساعدد`, commit `a456097f3326af2b18941992b903c3365c89aa10`; the full 10,965-character file was opened and reviewed. Its assessment is recorded below; it is no longer treated as unreviewed.
 
 ## 2. CURRENT PRODUCTION — FRESH FINDINGS
 
@@ -144,13 +144,45 @@ Do not enable card, wallet, or split tender until a complete atomic settlement c
 <i class="fa-solid fa-undo ml-2"></i> تسجيل المرتجع ورد النقد (للفواتير النقدية)
 ```
 
-## 4. OFFLINE SALES — DO NOT CLAIM COMPLETION
+## 4. REVIEW OF THE CASHIER PROPOSAL — ACCEPT THE BUSINESS GOALS, REJECT THE UNSAFE DRAFT SCHEMA
+
+The recovered proposal is `doc/Draft/Reprots/اقتراح تطبيق الكاشير-من مساعدد` at commit `a456097f3326af2b18941992b903c3365c89aa10` (blob SHA `d8badc619764e41b77b12a98e80a2b68c99b99cc`). It asks for P0 shift/cash control, X/Z reports, cash denomination counts, Paid In/Out, supervisor approval, terminal assignment, audit trail, treasury integration, and smart suggestions, with no new Edge Functions and an ADR-first sequence.
+
+### Proposal items accepted in principle
+- Shift opening/closing with immutable close state, expected-versus-counted cash, X-report and Z-report.
+- Denomination-based cash counting, paid-in/paid-out control, sensitive-action approval, terminal assignment and auditable operations.
+- Reuse existing Edge Functions and PostgreSQL RPCs where the verified contracts support it; do not add Edge Functions by default.
+- Start with P0 and document the architecture before implementation.
+
+### Defects in the proposed implementation that must not be copied
+1. The proposed `shifts` DDL declares `company_id` twice, so the SQL is invalid as written.
+2. `shift_code UNIQUE` is global rather than company-scoped. Multi-company uniqueness should be based on the actual company contract.
+3. `terminal_id` is mandatory but no `pos_terminals` table/FK is defined in that DDL; the `cashier_id`, `branch_id`, `closed_by`, and `treasury_id` references are not constrained to the correct company context.
+4. Proposed `cash_movements` lacks `company_id`, a durable `operation_id`/idempotency constraint, proper company-scoped foreign keys, and a complete reversal/status model. It could become a second ungoverned financial ledger.
+5. Proposed `cash_count_details` lacks constraints preventing negative counts/non-positive denominations and lacks a unique key per shift/denomination.
+6. No RLS policies, grants, authorization rules, concurrency locks, duplicate-open-shift constraint, or atomic close/restore contract is supplied.
+7. Storing a supervisor PIN directly in `users` is unsafe; use a verifiable credential/approval contract, never a plain PIN comparison or client-trusted flag.
+8. Automatically posting `actual_cash` through a generic receipt/payment voucher can double-count cash or confuse a drawer-to-treasury transfer with new business income. It must use the existing treasury/cash ledger semantics and a unique operation reference.
+9. Marking an order `Cancelled` and posting a journal entry alone is not a valid POS void contract: stock reversal, cash/refund reversal, original-operation linkage, authorization, idempotency and audit must be atomic and reconciled through the central movement/financial contracts.
+10. The proposal calls Offline-First/pending updates complete, but the current POS file only reads/retries queued rows; a full offline checkout writer and reconciliation contract are not proven.
+11. The suggested `get_frequently_bought_together` is an optional later enhancement, not a prerequisite for cash-drawer integrity.
+
+### Fresh Production reality checked against the proposal
+- Present: `public.cash_box`, `public.treasury`, `public.sales_payment_receipts`, `public.audit_log`, and `public.orders`.
+- Not present in `public` at the time checked: `shifts`, `cash_movements`, `cash_count_details`, `pos_terminals`; no `open_shift`, `close_shift`, `get_shift_summary`, `get_pos_terminals`, or `get_frequently_bought_together` RPCs were found.
+- `orders` has `company_id`, `branch_id`, `source`, `payment_type`, `operation_id`, and `order_status`; it has no `shift_id` column.
+- Therefore the shift-management feature gap is real, but creating the proposal's tables verbatim would be an invalid, disconnected, and unsafe partial implementation.
+
+### Execution decision
+The four low-risk UI patches and the Production ACL fix are actionable now. Shift Management P0 requires a corrected ADR and a coordinated deployment sequence spanning schema/RLS, atomic open/close/report RPCs, the existing `save-sales-invoice` Edge contract, and the owner-applied POS UI. I did not create orphan tables or make checkout require a shift before the UI/Edge can pass and enforce a valid `shift_id`; doing so would break live POS sales. This is a sequencing/safety decision grounded in the current contract, not a claim that Shift Management is complete.
+
+## 5. OFFLINE SALES — DO NOT CLAIM COMPLETION
 
 The POS source reads and syncs rows from `db.pending_updates`, but a complete durable offline-sale path was not proven in the file. Reading/retrying queued operations is not proof that the checkout creates a safe pending sale with a stable `operation_id`, durable payload, conflict policy, and user-visible pending state. Do not mark Offline Sales complete based on the presence of `syncPendingOrders()` alone.
 
 No new Edge Function was created. If the gateway/function cap remains active, any future offline work must reuse the existing sale endpoint and a properly designed idempotent contract, not add another Edge function by default.
 
-## 5. TESTS AND VERIFICATION
+## 6. TESTS AND VERIFICATION
 
 ### Executed and verified
 1. Re-read current POS source and the historical POS baseline.
@@ -166,7 +198,7 @@ No new Edge Function was created. If the gateway/function cap remains active, an
 - No production sale or return fixture was created, to avoid contaminating financial/inventory records.
 - No deployed static-host artifact parity with the current Git blob was established.
 - The four POS UI patches remain owner-applied changes; therefore their browser behavior is not yet verified.
-- The requested proposal text could not be retrieved and remains unreviewed.
+- The cashier proposal was recovered at the corrected filename and reviewed; the proposed business goals are useful, but its draft DDL/security/accounting details are not safe to implement verbatim.
 - A Supabase logs query for the return function failed with a backend error; no conclusion is drawn from that failed query.
 
 ### Required post-patch tests
@@ -179,7 +211,7 @@ No new Edge Function was created. If the gateway/function cap remains active, an
 7. Re-check production ACL after deploy and capture served-browser evidence.
 8. Confirm no test residue remains.
 
-## 6. FINAL CLOSURE REPORT
+## 7. FINAL CLOSURE REPORT
 
 ### A. What changed
 - Production security ACL repaired for `complete_sales_return_credit_note_atomic`.
@@ -205,15 +237,15 @@ No new Edge Function was created. If the gateway/function cap remains active, an
 1. Owner applies the four exact patches above to the current POS source SHA.
 2. Publish the POS file and verify the served browser.
 3. Run isolated authenticated E2E for cash sale and cash return, including retry/idempotency.
-4. Recover the proposal from a valid path/commit if its recommendations are still required.
-5. Continue the offline-sale and non-cash settlement capability work only after designing their full business contracts.
+4. Use the recovered proposal's business goals, but create a corrected ADR before implementing Shift Management P0.
+5. Continue offline-sale and non-cash settlement work only after designing their full business contracts.
 
-## 7. SELF-AUDIT FINAL
+## 8. SELF-AUDIT FINAL
 
 - **What I Proved:** current source/historical source; live Edge versions; live return Core definition; ACL vulnerability existed before repair; the ACL repair is effective in Production; service_role retains execution.
-- **What I Did Not Prove:** proposal contents; browser E2E; served artifact parity; completion of offline sales; support for non-cash settlement; final closure of the POS UI.
+- **What I Did Not Prove:** browser E2E; served artifact parity; completion of offline sales; support for non-cash settlement; implementation of Shift Management; final closure of the POS UI.
 - **What I Fixed:** revoked `PUBLIC/anon/authenticated` execution on `complete_sales_return_credit_note_atomic(uuid,text,text,boolean,text,jsonb,text)`, retained service_role, verified privileges, committed the migration record.
 - **What I Initially Missed:** Report422’s claim that the return wrapper was service_role-only was stale/wrong against live Production. The fresh ACL query exposed the discrepancy, and it was corrected before this report.
-- **What Could Still Be Wrong:** a different branch/commit or served static artifact may differ; the owner patches and browser tests are pending; the proposal may exist under another path.
+- **What Could Still Be Wrong:** a different branch/commit or served static artifact may differ; the owner patches and browser tests are pending; Shift Management still needs a corrected ADR and coordinated implementation.
 - **Final Confidence:** high for the live ACL repair and source-level findings; medium for overall POS integration.
-- **Final Closure Status:** `PRODUCTION RETURN-CORE ACL FIXED + VERIFIED / UI SURGICAL PATCHES READY FOR OWNER / PROPOSAL UNVERIFIED / BROWSER E2E OPEN / POS NOT 100% CLOSED`.
+- **Final Closure Status:** `PRODUCTION RETURN-CORE ACL FIXED + VERIFIED / UI SURGICAL PATCHES READY FOR OWNER / PROPOSAL REVIEWED WITH UNSAFE DDL REJECTED / SHIFT MANAGEMENT OPEN / BROWSER E2E OPEN / POS NOT 100% CLOSED`.
