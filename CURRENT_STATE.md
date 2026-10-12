@@ -116,3 +116,29 @@ Owner: apply only the complete `sourceLabel` object replacement in Report418 aga
 - After the report was committed, Production was re-queried at `2026-10-12 23:14:19.134919+00`. The current idempotent `post_stock_movement` and the sale/return core functions remain service_role-only; the legacy movement overload remains non-executable by anon/authenticated/service_role.
 - Edge Functions re-fetched after publication: `save-sales-invoice v18`, `complete-return v26`; both still `verify_jwt=true` and hashes match Report424.
 - Report424's final post-publication resynchronization is recorded in section 9. Latest report commit: `1a117f9ea3829971e24775c6c0760e7ee075a6e1`.
+
+
+## Current checkpoint — 2026-10-13 — Report425 POS Shift Management Production Core
+
+- **Scope:** POS shift open/X-report/close/Z-report and shift linkage to existing cash records. No edits to `erp-frontend/companies/company-1/sales/pos.html` or `companies/company-1/main.html`; no new Edge Function; no synthetic sale/return rows were committed.
+- **Production resync:** Supabase project `fiilmooggumokxanwiyx`. Last verified database timestamp recorded in the execution session: `2026-10-12 23:31:07.630072+00 UTC`; a final post-migration resync is required before the next change/report.
+- **Current POS source:** `erp-frontend/companies/company-1/sales/pos.html`, blob SHA `54dce2c9ad1e08e154965beb92d9d494607e42c9`, 92,037 characters / 1,575 lines. Historical baseline `rawaie-erp-review/PWA/sales/pos.html`, SHA `6ad4da791b72260b922847246ebce93b552d2bad`. Operational file remains unchanged.
+- **Historical docs:** proposal `doc/Draft/Reprots/اقتراح تطبيق الكاشير-من مساعدد`, blob `d8badc619764e41b77b12a98e80a2b68c99b99cc`; ADR `doc/Draft/Reprots/ADR_POS_SHIFT_MANAGEMENT_P0_20261013.md`, blob `3158bd3e3e69be32265641d6fbabc15490f98158`.
+- **Production pre-change fact:** no shift/terminal/cash-count/event tables, no `orders.shift_id`, no `cash_box.shift_id`. Existing company has one active treasury `CASH-01`; current `save_sales_invoice_atomic` requires exactly one active treasury. `treasury` has no `branch_id`; do not claim separate branch treasuries or create more active treasuries without a coordinated core refactor.
+- **Production migrations applied and present in schema_migrations:**
+  - `20261012232615 / 20261012233000_pos_shift_management_core`
+  - `20261012232738 / 20261012234000_pos_shift_authenticated_acl`
+  - `20261012232948 / 20261012235000_pos_shift_linkage_hardening`
+  - `20261012233250 / 20261012235500_pos_shift_z_report_snapshot`
+- **Migration sources in GitHub:**
+  - `supabase/migrations/20261012233000_pos_shift_management_core.sql`, final blob SHA `ae63a38f66e82df8b355d382920885b057be4e55`, final file-update commit `bf4ea7f5f249994c69d43d8c4b63d5b6452522cb`.
+  - `supabase/migrations/20261012234000_pos_shift_authenticated_acl.sql`, commit `9491c9cff615d00f8553348749a78e8942081109`.
+  - `supabase/migrations/20261012235000_pos_shift_linkage_hardening.sql`, commit `8129e3e72f7f22328fe07d68f7dfbff74b317fd7`.
+  - `supabase/migrations/20261012235500_pos_shift_z_report_snapshot.sql`, commit `63f1e1849fc3b6a370d3cc9fe66ea38563b724a0`.
+- **Production DB additions:** `pos_terminals`, `pos_shifts`, `pos_shift_cash_counts`, `pos_shift_events`; nullable `orders.shift_id` and `cash_box.shift_id`; triggers bind POS order/cash-box events to a matching open shift when present. Legacy POS writes remain compatible temporarily: a POS order without an open shift is not yet rejected at the DB layer because the owner has not deployed the UI gate.
+- **RPCs:** `pos_open_shift`, `pos_get_shift_summary`, `pos_close_shift`; internal `pos_shift_expected_cash`. Verified ACL: anon=false, authenticated=true, service_role=false for the three user-facing RPCs; helper EXECUTE false for all app roles. Tables have RLS and no direct grants to anon/authenticated/service_role.
+- **Tests:** transactional DB smoke with cashier JWT claims verified opening, duplicate open retry, expected cash 100.00, denomination sum, close difference 0, Z-report fields (`cash_sales`, `cash_refunds`, `sale_count`, `closed_by_user_id`), duplicate close retry, and rejection of cashier access to unauthorized branch. Transaction rolled back; final test residue counts were zero for test terminal/shift/events.
+- **Edge:** Production `save-sales-invoice v18` (`verify_jwt=true`, hash `43d20f1465725c4e273f717ac927c070d4b28be48241bd2c9c46a6d43bb40308`) and `complete-return v26` (`verify_jwt=true`, hash `801e390b195522caedfcf68bae8262bb91da06e909c1d43e9344490e3a81f34d`) were re-fetched during this cycle; no Edge version was deployed by this task.
+- **Report:** `doc/Draft/Reprots/Report425_POS_SHIFT_MANAGEMENT_PRODUCTION_CORE_20261013.md`, latest commit `9bfc393772c3fa79c9551cbe28126d6011763b1f`.
+- **Closure:** `PRODUCTION DB CORE DEPLOYED / TRANSACTION TESTS PASS / OWNER POS SURGICAL PATCH REQUIRED / HTTP E2E OPEN / NOT 100% CLOSED`.
+- **Next exact step:** first re-read current Production schema, migration history, RPC ACL and Edge versions. Then owner applies Report425 Patch 1–7 against POS SHA `54dce2c9ad1e08e154965beb92d9d494607e42c9`, deploys, and runs isolated authenticated browser E2E. Only after UI + existing sale Edge are coordinated may the database cutover reject shiftless POS sales. Paid In/Out, Void, supervisor approval, offline checkout, and branch-specific treasury remain open; do not create a duplicate cash ledger or enable multiple treasuries while the current sale core requires exactly one.
