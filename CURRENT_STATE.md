@@ -19,3 +19,13 @@ Only the parent system's sales-orders table: `papamohammed77-glitch/erp-frontend
 
 ## Next exact resumption point
 Owner: apply only the complete `sourceLabel` object replacement in Report418 against current SHA `92bec4b0b006c7a280ba48e0ab4279e44282687a`, then deploy and test source labels and eligibility in the served browser. Do not change `main.html` through the assistant, do not change Production RPC/ACL for this label-only defect, and do not create synthetic production orders.
+
+## Current checkpoint — 2026-10-13 — Report419 Parent Orders Source Label
+- Scope remains only `erp-frontend/companies/company-1/main.html`, module `RW_Orders`; owner applies parent UI changes. Assistant must not edit `main.html` or operational apps.
+- Fresh Production SQL at `2026-10-12 21:27:14.559315+00 UTC`: `orders` has `pos=3`, `order-taker=3`; no other source values in the current sample.
+- Production RPC ACL rechecked: `create_runsheet_atomic` and `append_orders_to_runsheet_atomic` are not executable by `anon/authenticated` and are executable by `service_role`. Their current definitions allow only normalized `telesales/tele-sales/order-taker/online-store`; direct-sale sources remain rejected.
+- Current parent source SHA reported by GitHub: `92bec4b0b006c7a280ba48e0ab4279e44282687a`. The large-file fetch returned metadata/SHA but not the file body in this cycle; do not claim a fresh full-body read. Report418's exact `sourceLabel` patch targets this same SHA and must be matched against the opened source before owner application.
+- Exact remaining owner patch: in `RW_Orders._renderTable(data)`, add `'van-sales': 'بيع مباشر'` to the `sourceLabel` object. Full replacement and validation steps are in [Report419](doc/Draft/Reprots/Report419_PARENT_ORDERS_VAN_SALES_SOURCE_LABEL_SURGICAL_CHANGE_20261013.md).
+- No Production schema, RPC, ACL, Edge Function, or business data changes were required or performed. No Production test orders were created.
+- Status: `PRODUCTION CONTRACT VERIFIED / OWNER SURGICAL PATCH READY / SOURCE BODY RECHECK + DEPLOYMENT + BROWSER E2E OPEN`.
+- Next exact step: owner applies only the `sourceLabel` replacement against SHA `92bec4b0b006c7a280ba48e0ab4279e44282687a`, deploys the parent UI, and verifies source labels and checkbox eligibility in browser. Do not reapply broader Report417 fixes.
