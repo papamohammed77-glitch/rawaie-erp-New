@@ -11,7 +11,7 @@
 - **Architecture Understanding:** الفلترة محلية على `ordersData` التي يجلبها `RW_Orders` من جدول `orders` للشركة الحالية. هذا تعديل واجهة فقط؛ لا يحتاج Edge Function أو RPC جديدًا.
 - **Database Understanding:** الأعمدة الحية موجودة في `public.orders`: `source` و`created_by`.
 - **Historical Understanding:** `CURRENT_STATE.md` وتقارير Report418/419 كانت تشير إلى نقص تسمية `van-sales`، لكن فحص المصدر الفعلي الحالي يثبت أن التسمية موجودة بالفعل. لا تعِد تطبيق هذا الإصلاح.
-- **Production Understanding:** فحص SQL للقراءة فقط في `2026-10-12 21:53:53.461163+00 UTC` أعاد 9 أوردرات، 3 قيم مصدر متميزة و3 قيم منشئ متميزة، دون أي قيمة مصدر أو منشئ فارغة. توزيع المصدر: `order-taker=4`، `pos=3`، `telesales=2`. لم تتغير البيانات.
+- **Production Understanding:** فحص SQL للقراءة فقط في `2026-10-12 21:55:19.579432+00 UTC` أعاد 9 أوردرات، 3 قيم مصدر متميزة و3 قيم منشئ متميزة، دون أي قيمة مصدر أو منشئ فارغة. توزيع المصدر: `order-taker=4`، `pos=3`، `telesales=2`. لم تتغير البيانات.
 - **Current Understanding:** جرى جلب محتوى الملف الحالي من GitHub عبر blob SHA `a192704e07d984fdbecd00ce40a73e95fa806a7e`؛ 1,762,271 حرفًا و32,437 سطرًا عند التقسيم البرمجي. آخر commit تعديل مباشر ظاهر للملف هو `27e6687b2101a9efb91c6fb65a1ae218096679e7` بتاريخ `2026-10-12 21:39:56 UTC`، وتغييره تنسيق كائن `sourceLabel` فقط.
 - **Execution Confidence:** مرتفع في مصدر Git الحالي ومخطط/عينة Production. لم يُنفّذ Browser E2E لأن دور المالك هو تطبيق ملف الواجهة ونشره.
 
