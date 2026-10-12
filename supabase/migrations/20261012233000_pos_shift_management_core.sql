@@ -257,6 +257,7 @@ DECLARE
   v_user_id uuid;
   v_email text;
   v_treasury_id uuid;
+  v_treasury_count integer;
   v_terminal public.pos_terminals%ROWTYPE;
   v_shift public.pos_shifts%ROWTYPE;
   v_fingerprint text;
@@ -288,10 +289,10 @@ BEGIN
   END IF;
 
   IF p_treasury_id IS NULL THEN
-    SELECT min(t.id), count(*) INTO v_treasury_id, v_fingerprint
+    SELECT min(t.id), count(*)::integer INTO v_treasury_id, v_treasury_count
     FROM public.treasury t
     WHERE t.company_id = v_company_id AND t.is_active IS TRUE;
-    IF v_fingerprint::integer <> 1 THEN RAISE EXCEPTION 'SHIFT_TREASURY_SELECTION_REQUIRED'; END IF;
+    IF v_treasury_count <> 1 THEN RAISE EXCEPTION 'SHIFT_TREASURY_SELECTION_REQUIRED'; END IF;
   ELSE
     v_treasury_id := p_treasury_id;
   END IF;
