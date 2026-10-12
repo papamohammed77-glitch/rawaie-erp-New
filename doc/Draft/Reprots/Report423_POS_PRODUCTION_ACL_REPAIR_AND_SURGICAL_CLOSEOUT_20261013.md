@@ -174,7 +174,7 @@ The recovered proposal is `doc/Draft/Reprots/اقتراح تطبيق الكاش�
 - Therefore the shift-management feature gap is real, but creating the proposal's tables verbatim would be an invalid, disconnected, and unsafe partial implementation.
 
 ### Execution decision
-The four low-risk UI patches and the Production ACL fix are actionable now. Shift Management P0 requires a corrected ADR and a coordinated deployment sequence spanning schema/RLS, atomic open/close/report RPCs, the existing `save-sales-invoice` Edge contract, and the owner-applied POS UI. I did not create orphan tables or make checkout require a shift before the UI/Edge can pass and enforce a valid `shift_id`; doing so would break live POS sales. This is a sequencing/safety decision grounded in the current contract, not a claim that Shift Management is complete.
+The four low-risk UI patches and the Production ACL fix are actionable now. A corrected P0 architecture decision has been written in [ADR_POS_SHIFT_MANAGEMENT_P0_20261013.md](ADR_POS_SHIFT_MANAGEMENT_P0_20261013.md), commit `3d361239ed49e6426e41a5f0a268ffb0a48757af`. It defines the target model, authorization, cash accounting, concurrency, and coordinated deployment sequence. I did not create orphan tables or make checkout require a shift before the UI/Edge can pass and enforce a valid `shift_id`; doing so would break live POS sales. This is a sequencing/safety decision grounded in the current contract, not a claim that Shift Management is complete.
 
 ## 5. OFFLINE SALES — DO NOT CLAIM COMPLETION
 
