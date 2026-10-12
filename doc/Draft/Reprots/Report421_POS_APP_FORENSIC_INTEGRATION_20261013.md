@@ -56,16 +56,27 @@
 **العنصر:** `self._setupUser = function(user)`  
 **SHA المرجعي:** `0160f7cf9c4f194d954d2c7498d91fc639a5f419`
 
-ابحث داخل `self._setupUser` عن السطر التالي واحذفه:
+ابحث عن الدالة `self._setupUser = function(user)` واستبدل **الدالة كاملة** بهذا النص:
 
 ```javascript
-supabase.from('app_settings').select('*').limit(1).single().then(function(sRes) { if (sRes.data) { currency = sRes.data.currency || 'EGP'; } });
-```
+self._setupUser = function(user) {
+    var isOwner = user.isOwner;
+    var perms = user.permissions || [];
 
-استبدل السطر بالتعليق التالي، ولا تغيّر بقية الدالة:
+    if (!isOwner && perms.indexOf('pos') === -1) {
+        RW_UI.showError('غير مصرح');
+        RW_Auth.doLogout();
+        return;
+    }
 
-```javascript
-// Currency is loaded from company-scoped get_pos_bootstrap_data() inside syncDown().
+    currentUser = user;
+    pubUserId = user.id;
+
+    // Currency is loaded from company-scoped get_pos_bootstrap_data() inside syncDown().
+    RW_ImageCache.loadAll(function() {
+        self.enterApp();
+    });
+};
 ```
 
 السبب: `get_pos_bootstrap_data()` يعيد `currency` للشركة الحالية ويُعيّنها `syncDown()`. القراءة المباشرة غير المفلترة زائدة ويمكن أن تختار إعدادًا لا يخص الشركة الحالية إذا سمحت سياسات القراءة بذلك.
