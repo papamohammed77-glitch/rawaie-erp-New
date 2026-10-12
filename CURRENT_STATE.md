@@ -1,42 +1,21 @@
-# CURRENT FORENSIC CHECKPOINT — 2026-10-11 — Report417 Live Parent Orders Forensic Patch
+# CURRENT FORENSIC CHECKPOINT — 2026-10-13 — Report418 Parent Orders Fresh Resync
 
 ## Current scope
 Only the parent system's sales-orders table: `papamohammed77-glitch/erp-frontend/companies/company-1/main.html`, module `RW_Orders`. Owner applies parent UI changes. Assistant must not edit `main.html` or the operational app. Production/Supabase changes are assistant-owned only when fresh evidence proves a defect.
 
-## Latest execution record
-- Latest report: [Report417_PARENT_ORDERS_LIVE_SOURCE_FORENSIC_AND_OWNER_PATCH_20261011.md](doc/Draft/Reprots/Report417_PARENT_ORDERS_LIVE_SOURCE_FORENSIC_AND_OWNER_PATCH_20261011.md).
-- Prior checkpoint: [Report416_PARENT_ORDERS_CURRENT_SOURCE_AND_PRODUCTION_RECHECK_20261011.md](doc/Draft/Reprots/Report416_PARENT_ORDERS_CURRENT_SOURCE_AND_PRODUCTION_RECHECK_20261011.md).
-- Report commit: `395962b0b04587069b1b1339d643b9f01713a692` (Report417 blob SHA); report commit: `5ce1e03da7c44e888e4533f07005d20cdcce01d0`.
-- Previous evidence: [Report415](doc/Draft/Reprots/Report415_PARENT_ORDERS_FRESH_PRODUCTION_AND_SURGICAL_PATCH_20261011.md), [Report414](doc/Draft/Reprots/Report414_PARENT_ORDERS_LIVE_RESYNC_AND_RLS_AUDIT_20261011.md), [Report413](doc/Draft/Reprots/Report413_PARENT_ORDERS_RETURN_RUNSHEET_SOURCE_INTEGRATION_20261011.md), [Report408](doc/Draft/Reprots/Report408_POS_RETURN_STATE_DETAILS_AND_OWNER_CHANGESET_20261011.md).
-- Master governance: [MASTER CTO GOVERNANCE & CONTINUOUS EXECUTION OS](doc/Draft/Reprots/MASTER%20CTO%20GOVERNANCE%20%26%20CONTINUOUS%20EXECUTION%20OS%20%E2%80%94%20RAWAEA%20ERP.md).
-
-## Fresh Production facts — 2026-10-11 16:34 UTC
-- `ORD-1006`: source=`pos`, created_by=`cashier@rawaea.com`, created_at=`2026-10-11 07:31:00.768458+00`, status=`Partially Returned`, current/original totals=`135.00/185.00`, `runsheet_id=NULL`.
-- Two detail rows: item `1001` qty 1 / returned 1 / reason `مرتجع نقطة بيع`; item `1003` qty 1 / returned 0. Remaining quantity=1 and remaining detail-line count=1. No business rows changed.
-- Production RPCs `create_runsheet_atomic` and `append_orders_to_runsheet_atomic` reject sources outside normalized `telesales/tele-sales/order-taker/online-store`; `pos` and blank/unknown sources are rejected. ACL: anon=false, authenticated=false, service_role=true. No new Production SQL/Edge change justified.
-- RLS `users_select_company` permits cross-user lookup only to users with `users` permission (plus self row). UI must fall back to `created_by`; do not broaden RLS to display names.
-- Supabase has no development branches. No Production fixture created and no production data mutated.
-
-## Current source/provenance constraint
-- `fetch_file` يعيد محتوى فارغًا للملف الأم، لكن `fetch_blob` للـSHA نفسه أعاد المصدر الكامل: 1,756,169 حرفًا / 32,363 سطرًا. تمت قراءة مقاطع `RW_Orders` الحية وتثبيت أرقام الأسطر في Report417.
-- مصدر الملف الحي الحالي: `erp-frontend/companies/company-1/main.html`, blob `4f94f9c6ebdde1b59632384628c72767d3bb950d`.
-- Snapshot `rawaie-erp-New/Current/PWA/main.html` (blob `27b777528665dcc985809648f006452c861ae36e`) تاريخي فقط. لا تستخدم أرقام snapshot القديمة بدل أرقام المصدر الحي المثبتة في Report417.
-
-## Owner surgical patch
-اتبع Report417، لأنه يستند إلى blob الحي الحالي ويعطي مواضع الأسطر الدقيقة:
-1. 10255: استثناء checkboxes المعطلة من `check-all`.
-2. 10257–10264: عرض وقت الإنشاء والمصدر والمنشئ؛ العدد يصبح 11 عمودًا.
-3. 10290–10305: عدّ التفاصيل التي لها كمية متبقية فقط.
-4. 10444–10491: استبدال `_renderTable(data)` كاملة؛ تعطيل POS/المصدر غير المؤهل للرانشيت.
-5. 10631–10636: استبدال إعادة العد بعد التأكيد بإعادة تحميل مشتقات الأوردر.
-6. 10661–10767: استبدال `_showDetails(code)` كاملة لعرض الأصلي/المرتجع/المتبقي والأصل/النهائي.
-7. 10800–10844: استبدال `_buildPrintWindow(order,items,settings)` كاملة مع الحفاظ على الإجمالي النهائي من `orders.total_amount`.
-8. 10969–10994: استبدال `_refreshData()` كاملة كي لا يعود عدّ السطور المرتجعة بعد Realtime.
-- لا يوجد `loadData()` أو `refreshRealtimeChannel()` منفصل داخل `RW_Orders` الحية؛ لا تطبق تواقيع snapshot القديمة.
-- الحارس المركزي Production صحيح بالفعل؛ لا تعدّل RPC/ACL أو تنشئ Edge جديدة دون Defect جديد مثبت.
+## Fresh current-source evidence — 2026-10-13
+- Current parent source: `erp-frontend/companies/company-1/main.html`, blob SHA `92bec4b0b006c7a280ba48e0ab4279e44282687a`, 1,762,278 characters / 32,436 lines. This supersedes Report417's prior blob SHA `4f94f9c6ebdde1b59632384628c72767d3bb950d`; never reuse old line numbers.
+- Report418: [Report418_PARENT_ORDERS_FRESH_RESYNC_AND_DIRECT_SALES_LABEL_20261013.md](doc/Draft/Reprots/Report418_PARENT_ORDERS_FRESH_RESYNC_AND_DIRECT_SALES_LABEL_20261013.md), commit `5a849f0f7edc0025f4583cf3aa89b2b8ad491556`.
+- Report417 is historical evidence only. Its main A–H fixes are already present in the current parent source: 11-column table; source/creator/created-at columns; disabled checkboxes for ineligible sources; return-aware item counts; return-aware details/print; refresh of derived counts on confirmation and Realtime.
+- Remaining exact owner patch only: in `RW_Orders._renderTable(data)`, current lines 10503–10509, add `'van-sales': 'بيع مباشر'` to the `sourceLabel` object. Full replacement is in Report418. Do not reapply the broader Report417 changes.
+- Current source normalizes underscores to hyphens, so `online_store` maps to `online-store` and `van_sales` maps to `van-sales`.
+- Fresh Production SQL at `2026-10-12 21:05:52.666893+00 UTC`: 6 orders total, 3 `pos`, 3 `order-taker`, and currently 0 `online-store`, 0 `telesales`, 0 `van-sales`. No Production test orders were created and no business data was changed.
+- Production Edge: `create-runsheet` v26 (`verify_jwt=true)); `append-to-runsheet` v8 (`verify_jwt=true)). Production RPCs `create_runsheet_atomic(uuid,text[],text)` and `append_orders_to_runsheet_atomic(uuid,text,text[],text)` allow normalized `telesales/tele-sales/order-taker/online-store` only; `anon/authenticated EXECUTE=false`, `service_role EXECUTE=true`. Do not broaden this contract for display-label changes.
+- Historical store source at commit `b2cd78da3af2ed7ff5f61b5fdea5c3d8a523f907` invokes `submit-online-order`; Production `submit_online_order_atomic` writes source `online_store`, which the current normalization already accepts.
+- Recent repository commit checked: `fd94f0357f9525b1f85f36fa981a78afa99a00fe` only adds `_forensic_current_main_extract.md`; it is not the parent source patch. No claim is made that the current source blob is deployed.
 
 ## Closure status
-`PRODUCTION CORE VERIFIED / LIVE SOURCE AND LINE MAP VERIFIED / OWNER PATCH PREPARED / OWNER MERGE + FRONTEND DEPLOYMENT + AUTHENTICATED BROWSER E2E + PRINT OPEN / NOT CLOSED`.
+`CURRENT GIT SOURCE VERIFIED / PRODUCTION CORE VERIFIED / ONE OWNER SOURCE-LABEL PATCH REQUIRED / SERVED ARTIFACT + BROWSER E2E NOT PROVEN`.
 
 ## Next exact resumption point
-المالك يطبق عناصر A–H من Report417 على `erp-frontend/companies/company-1/main.html` الحالي بعد مطابقة SHA `4f94f9c6ebdde1b59632384628c72767d3bb950d`، ثم ينشر ويثبت SHA الملف المخدوم، ويختبر الجدول/التفاصيل/الطباعة/Realtime واختيار المصادر المؤهلة وغير المؤهلة. لا تغيير Production مطلوب حاليًا؛ لا تنشئ fixture في Production. أبقِ التقارير السابقة في التاريخ ولا تعد تنفيذ ما تم إصلاحه.
+Owner: apply only the complete `sourceLabel` object replacement in Report418 against current SHA `92bec4b0b006c7a280ba48e0ab4279e44282687a`, then deploy and test source labels and eligibility in the served browser. Do not change `main.html` through the assistant, do not change Production RPC/ACL for this label-only defect, and do not create synthetic production orders.
