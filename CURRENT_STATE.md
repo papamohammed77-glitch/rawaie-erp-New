@@ -72,3 +72,19 @@ Owner: apply only the complete `sourceLabel` object replacement in Report418 aga
 - Open: owner applies patches to the operational POS file and deploys; authenticated browser E2E still unproven; offline-sales queue writer and non-cash settlement remain real capabilities not implemented; proposal content not assessed.
 - Closure: `SOURCE + PRODUCTION CONTRACTS RECONCILED / OWNER PATCHES READY / PROPOSAL UNVERIFIED / PRODUCTION BROWSER E2E OPEN / NOT 100% CLOSED`.
 - Next exact step: recover a valid URL/commit for the proposal, read it fully, then owner applies only Report422's four patches against the current source SHA, deploys, and performs the documented authenticated E2E without synthetic Production transactions.
+
+
+## Current checkpoint — 2026-10-13 — Report423 POS Production ACL Repair
+
+- Scope: POS only; operational `erp-frontend/companies/company-1/sales/pos.html` and related Production sale/return contracts. Assistant did not edit `main.html` or the operational POS file.
+- Fresh current POS source SHA remains `0160f7cf9c4f194d954d2c7498d91fc639a5f419` (91,752 chars / 1,564 lines). Historical POS baseline SHA `6ad4da791b72260b922847246ebce93b552d2bad`.
+- Live Supabase Edge: `save-sales-invoice v18`, `verify_jwt=true`, hash `43d20f1465725c4e273f717ac927c070d4b28be48241bd2c9c46a6d43bb40308`; `complete-return v26`, `verify_jwt=true`, hash `801e390b195522caedfcf68bae8262bb91da06e909c1d43e9344490e3a81f34d`.
+- Important correction to Report422: a fresh Production SQL query found `authenticated_execute=true` on `public.complete_sales_return_credit_note_atomic(uuid,text,text,boolean,text,jsonb,text)`, contrary to Report422's old assertion. The SECURITY DEFINER wrapper accepts caller-supplied company/user arguments and must remain behind the authenticated Edge/service_role boundary.
+- Production ACL was repaired directly: `REVOKE ALL ... FROM PUBLIC, anon, authenticated; GRANT EXECUTE ... TO service_role`. Post-change live verification at `2026-10-12 22:46:18.477992+00 UTC`: anon=false, authenticated=false, service_role=true; inner `complete_return_atomic` service_role=true.
+- Canonical migration record committed: `supabase/migrations/20261013014600_revoke_authenticated_pos_return_core.sql`, commit `d62b773a548f849c78ef22d9e866364c4de4afa0`.
+- Report423: [Report423_POS_PRODUCTION_ACL_REPAIR_AND_SURGICAL_CLOSEOUT_20261013.md](doc/Draft/Reprots/Report423_POS_PRODUCTION_ACL_REPAIR_AND_SURGICAL_CLOSEOUT_20261013.md), commit `b17106d05f2908900f29d016ab3569cbb2a44ee1`.
+- Four owner-only POS patches remain unapplied: remove unscoped `app_settings` read from `_setupUser`; correct misleading cash-return warning; disable card/split payment controls until settlement contract exists; relabel return action as cash-only. Exact full replacements are in Report423.
+- Proposal path `doc/Draft/Reprots/اقتراح تطبيق الكاشير-من مساعددد` still returns 404 via GitHub Contents API; searches in New/review repositories and raw URL retrieval did not expose the document. Proposal content is UNVERIFIED and was not reviewed; do not claim otherwise.
+- No Production sale/return fixtures were created. Browser E2E, served artifact parity, and clean fixture restoration are unproven. Supabase log query failed with backend error; no conclusion was drawn from it.
+- Current closure: `PRODUCTION RETURN-CORE ACL FIXED + VERIFIED / OWNER UI PATCHES READY / PROPOSAL UNVERIFIED / BROWSER E2E OPEN / POS NOT 100% CLOSED`.
+- Next exact step: owner applies Report423's four surgical POS changes to the current source SHA, deploys the operational POS app, then runs isolated authenticated cash sale/return E2E and direct-RPC-denial verification. Do not change `main.html`; do not enable non-cash settlement or claim offline sales complete without their full contracts.
