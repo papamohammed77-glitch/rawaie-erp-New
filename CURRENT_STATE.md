@@ -74,6 +74,8 @@ Owner: apply only the complete `sourceLabel` object replacement in Report418 aga
 - Next exact step: recover a valid URL/commit for the proposal, read it fully, then owner applies only Report422's four patches against the current source SHA, deploys, and performs the documented authenticated E2E without synthetic Production transactions.
 
 
+**Checkpoint precedence:** Report421 and Report422 entries above are historical snapshots; their proposal-unavailable and return-core ACL claims are superseded by the live findings and repairs recorded in Report423 below.
+
 ## Current checkpoint — 2026-10-13 — Report423 POS Production ACL Repair
 
 - Scope: POS only; operational `erp-frontend/companies/company-1/sales/pos.html` and related Production sale/return contracts. Assistant did not edit `main.html` or the operational POS file.
