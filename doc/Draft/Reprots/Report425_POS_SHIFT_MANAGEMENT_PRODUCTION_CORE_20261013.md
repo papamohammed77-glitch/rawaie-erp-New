@@ -39,7 +39,7 @@
 ### 1. Migrations committed and applied
 
 1. `supabase/migrations/20261012233000_pos_shift_management_core.sql`  
-   Commit أولي: `07d062a034109fe0a10c5388b0fdeb22e6f26450`; النسخة النهائية للملف: blob SHA `ae63a38f66e82df8b355d382920885b057be4e55`.
+   Commit أولي: `07d062a034109fe0a10c5388b0fdeb22e6f26450`; commit تحديث النسخة النهائية: `bf4ea7f5f249994c69d43d8c4b63d5b6452522cb`; blob SHA النهائي: `ae63a38f66e82df8b355d382920885b057be4e55`.
 2. `supabase/migrations/20261012234000_pos_shift_authenticated_acl.sql`  
    Commit: `9491c9cff615d00f8553348749a78e8942081109`.
 3. `supabase/migrations/20261012235000_pos_shift_linkage_hardening.sql`  
