@@ -133,3 +133,16 @@
 - **What Could Still Be Wrong:** قد تختلف النسخة المقدمة للمستخدم عن مصدر Git؛ لم يُجر اختبار متصفح حي. وقد تكون هناك آليات Offline خارج الملف لم تثبتها المصادر المفتوحة هنا.
 - **Final Confidence:** عالٍ في نتائج المصدر/SQL المذكورة، متوسط في اكتمال تتبع كل المستهلكين، وغير مثبت في runtime/browser.
 - **Final Closure Status:** `CURRENT SOURCE + PRODUCTION ACL VERIFIED / FOUR UI FIXES PRESENT IN GIT / SHIFT MANAGEMENT OPEN / OFFLINE CHECKOUT OPEN / SERVED ARTIFACT + BROWSER E2E UNVERIFIED / NOT 100% CLOSED`.
+
+
+## 9. Post-publication Production resynchronization
+
+بعد حفظ التقرير والحالة، أُعيد الاستعلام عن Production حتى لا يبقى التقرير معتمدًا على snapshot أقدم:
+
+- SQL observation: `2026-10-12 23:14:19.134919+00`.
+- `save_sales_invoice_atomic(jsonb,jsonb,text,text)`: anon=false, authenticated=false, service_role=true.
+- `complete_sales_return_credit_note_atomic(uuid,text,text,boolean,text,jsonb,text)`: anon=false, authenticated=false, service_role=true.
+- `post_stock_movement` الحالي ذو `p_idempotency_key`: anon=false, authenticated=false, service_role=true.
+- `post_stock_movement` legacy بدون idempotency key: anon=false, authenticated=false, service_role=false.
+- أعيد جلب Edge Functions مباشرة: `save-sales-invoice v18 / verify_jwt=true / hash 43d20f1465725c4e273f717ac927c070d4b28be48241bd2c9c46a6d43bb40308`; `complete-return v26 / verify_jwt=true / hash 801e390b195522caedfcf68bae8262bb91da06e909c1d43e9344490e3a81f34d`.
+- لم يظهر اختلاف جديد في ACL أو إصدار Edge يستدعي تغييرًا جديدًا في Production. لا تغيير بيانات أو DDL في هذه الدورة.
