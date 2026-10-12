@@ -289,7 +289,7 @@ BEGIN
   END IF;
 
   IF p_treasury_id IS NULL THEN
-    SELECT min(t.id), count(*)::integer INTO v_treasury_id, v_treasury_count
+    SELECT (array_agg(t.id ORDER BY t.id))[1], count(*)::integer INTO v_treasury_id, v_treasury_count
     FROM public.treasury t
     WHERE t.company_id = v_company_id AND t.is_active IS TRUE;
     IF v_treasury_count <> 1 THEN RAISE EXCEPTION 'SHIFT_TREASURY_SELECTION_REQUIRED'; END IF;
