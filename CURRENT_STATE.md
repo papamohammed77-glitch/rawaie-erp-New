@@ -109,3 +109,10 @@ Owner: apply only the complete `sourceLabel` object replacement in Report418 aga
 - Report424: [Report424_POS_CURRENT_SOURCE_PRODUCTION_RECONCILIATION_20261013.md](doc/Draft/Reprots/Report424_POS_CURRENT_SOURCE_PRODUCTION_RECONCILIATION_20261013.md), commit `8af724ee4eabc72f790d159275bdb84a7a855471`.
 - Closure: `CURRENT SOURCE + PRODUCTION ACL VERIFIED / FOUR UI FIXES PRESENT IN GIT / SHIFT MANAGEMENT OPEN / OFFLINE CHECKOUT OPEN / SERVED ARTIFACT + BROWSER E2E UNVERIFIED / NOT 100% CLOSED`.
 - Next: do not reapply the four UI fixes. Implement Shift Management from ADR `ADR_POS_SHIFT_MANAGEMENT_P0_20261013.md` with company-scoped schema/RLS/ACL and authenticated idempotent RPCs, then coordinate owner-applied POS and existing sale Edge changes without creating a new Edge Function or breaking current sales. Separately implement durable offline queue semantics and test retry/concurrency. Before closure, prove served artifact identity and authenticated browser E2E.
+
+
+### Report424 final live recheck — 2026-10-13
+
+- After the report was committed, Production was re-queried at `2026-10-12 23:14:19.134919+00`. The current idempotent `post_stock_movement` and the sale/return core functions remain service_role-only; the legacy movement overload remains non-executable by anon/authenticated/service_role.
+- Edge Functions re-fetched after publication: `save-sales-invoice v18`, `complete-return v26`; both still `verify_jwt=true` and hashes match Report424.
+- Report424's final post-publication resynchronization is recorded in section 9. Latest report commit: `1a117f9ea3829971e24775c6c0760e7ee075a6e1`.
