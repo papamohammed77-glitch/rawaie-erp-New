@@ -185,3 +185,17 @@ Owner: apply only the complete `sourceLabel` object replacement in Report418 aga
 - Report427: [Report427_PARENT_ORDERS_CLICK_DETAIL_FORENSIC_20261016.md](doc/Draft/Reprots/Report427_PARENT_ORDERS_CLICK_DETAIL_FORENSIC_20261016.md), commit `c6ac3e679106cdee4706607e3e8682394e01c9bc`.
 - Closure: `CURRENT SOURCE EVENT WIRING VERIFIED / PRODUCTION READS HEALTHY IN OBSERVED LOGS / EXACT BROWSER CLICK FAILURE UNREPRODUCED / NO UNSUPPORTED PRODUCTION OR SOURCE PATCH / OPEN`.
 - Next exact step: owner reproduces one click with DevTools Network Preserve log and records the two requests: company-scoped `orders` lookup by `order_code`, then `order_details` lookup by `order_id`. If no request occurs, compare served Cloudflare Pages artifact with current Git SHA and patch only the event/served-artifact defect. If a request fails, repair the layer proven by its HTTP status/body. If both return 200 but modal does not appear, inspect SweetAlert/loader DOM on the served artifact. Do not change Production ACL/schema or create synthetic business orders without evidence.
+
+
+## Current checkpoint — 2026-10-16 — Report425 Parent Orders Click Failure
+
+- Scope: `erp-frontend/companies/company-1/main.html`, module `RW_Orders`; owner applies parent UI changes. Assistant did not modify `main.html`, any operational app, or Production schema/data.
+- Current parent file blob SHA observed from GitHub: `a192704e07d984fdbecd00ce40a73e95fa806a7e`. The connector returned empty content for the large file even when line ranges were requested, so exact current source lines/body for the click handler and timer are not yet verified.
+- Owner-provided Console stack shows the orders module's `render` path is invoked from `setInterval` at `main:10323`, with another `render` frame at `main:30347`. This is evidence of timed rendering, not proof by itself that the table DOM is replaced on each tick.
+- Fresh Production read-only SQL at `2026-10-16 18:47:17 UTC`: `public.orders` exists and has 10 rows for company `00000000-0000-0000-0000-000000000001`.
+- Fresh Supabase logs over the observed window show 3–7 GET requests per minute for `/rest/v1/orders`, all sampled responses HTTP 200; sampled average origin times were about 150–763 ms. The user's earlier `ERR_CONNECTION_CLOSED` is not reproduced by these later requests and does not establish a persistent DB/ACL defect.
+- Tailwind CDN warning and favicon 404 are unrelated to the click failure based on current evidence.
+- Report425: [Report425_PARENT_ORDERS_CLICK_FAILURE_FORENSIC_20261016.md](doc/Draft/Reprots/Report425_PARENT_ORDERS_CLICK_FAILURE_FORENSIC_20261016.md). Contains a non-mutating Console monitor and the proposed surgical direction.
+- No Production SQL/RPC/ACL change is justified. Current likely cause is timer-triggered full render/DOM churn, but the precise root cause remains UNVERIFIED until current source body and browser mutation evidence are obtained.
+- Next exact step: owner pastes the Report425 monitor in the served browser, clicks one order, and records whether the clicked row becomes detached and whether the details handler fires. Then retrieve the current `RW_Orders.render`/timer and details-click source block; only then issue a complete exact surgical replacement. Do not patch line numbers from stale reports.
+- Closure: `PRODUCTION ORDERS READ VERIFIED / UI TIMER PATH OBSERVED IN OWNER CONSOLE / EXACT SOURCE BLOCK + BROWSER E2E OPEN / NOT CLOSED`.
