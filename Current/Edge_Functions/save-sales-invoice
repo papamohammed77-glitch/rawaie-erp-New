@@ -105,6 +105,18 @@ serve(async(req)=>{
 
     const header={...body.orderHeader,source:canonicalSource}
 
+    // POS is cash-only and uses the generic walk-in customer; never trust client-supplied customer/payment fields.
+    if (canonicalSource === 'pos') {
+      header.customer_code = ''
+      header.custName = 'عميل نقدي'
+      header.area = ''
+      header.paymentType = 'نقدي'
+      header.deliveryFees = 0
+      delete header.customer_email
+      delete header.customer_phone
+      delete header.shipping_address
+    }
+
     const status=String(header.status||'Confirmed')
     if(!isOwner){
       if((isTelesales||isOrderTaker) && status!=='Draft' && status!=='Confirmed'){
@@ -121,12 +133,29 @@ serve(async(req)=>{
     const branchCode=String(body.branchCode||'MAIN').trim()
     const {data:branch,error:be}=await supabase
       .from('branches')
-      .select('id,branch_code')
+      .select('id,branch_code,is_active')
       .eq('company_id',profile.company_id)
       .eq('branch_code',branchCode)
       .maybeSingle()
     if(be) throw new Error(be.message)
-    if(!branch?.id) throw new Error('الفرع غير موجود للشركة')
+    if(!branch?.id || branch.is_active !== true) throw new Error('الفرع غير موجود أو غير نشط للشركة')
+    if (!isOwner && canonicalSource === 'pos') {
+      const defaultBranchId = profile.default_branch_id ? String(profile.default_branch_id) : ''
+      const rawAllowed = profile.allowed_branch_ids
+      const assignedBranches = Array.isArray(rawAllowed)
+        ? rawAllowed.map(x => String(x).trim()).filter(Boolean)
+        : (typeof rawAllowed === 'string' && rawAllowed.trim() ? [rawAllowed.trim()] : [])
+
+      if (defaultBranchId) {
+        if (branch.id !== defaultBranchId) {
+          throw new Error('فرع نقطة البيع لا يطابق الفرع الافتراضي للكاشير')
+        }
+      } else if (assignedBranches.length !== 1 ||
+                 (assignedBranches[0] !== branch.id && assignedBranches[0] !== branch.branch_code)) {
+        throw new Error('يجب ربط الكاشير بفرع افتراضي واحد في النظام الأم قبل البيع')
+      }
+    }
+
     if(!isOwner && (isTelesales||isOrderTaker||isVanSales) &&
        !branchAllowed(profile.allowed_branch_ids,profile.default_branch_id,branch.id,branch.branch_code)){
       throw new Error('لا تملك صلاحية العمل على هذا الفرع')
