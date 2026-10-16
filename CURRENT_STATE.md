@@ -275,3 +275,34 @@ Owner: apply only the complete `sourceLabel` object replacement in Report418 aga
 
 ## Next exact resumption point
 Owner verifies blob SHA `55d23d13e6d421d23e3a7ce57b758b5a03c4ace0`, replaces only the two functions in Report431, deploys the parent UI, verifies create/edit/reload persistence with a zero-balance temporary treasury assigned to the main branch, then deletes that test treasury and proves no residue. Do not change the existing production treasury or create a test POS shift.
+
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-16 — Report432 Treasury QR Owner Change Set
+
+## Scope and source synchronization
+- Scope: Mother system `RW_Finance → الخزائن والبنوك`; owner applies changes to `papamohammed77-glitch/erp-frontend/companies/company-1/main.html`. Assistant did not edit `main.html` or the operational POS app.
+- Fresh parent repository commit list checked at 2026-10-16: latest commit `4bd8958bd4d087346c56c871b29b749b9b1c1384` (forensic HR extract); preceding treasury UI commit `cba8e7fc7762c08735e678d09eb0080eb9538129`.
+- Current `main.html` blob SHA at commit `cba8e7fc7762c08735e678d09eb0080eb9538129`: `9d02dcc1129e00c033082384562177ce1aa5b80a`, 32,569 lines. The branch-aware create/edit patch from Report431 is present in this source. Do not replace it with the older direct-table-write implementation.
+- QRCode.js is already loaded dynamically in another Mother-system workflow from `qrcodejs@1.0.0`; no new dependency or Edge Function is needed for QR display.
+
+## Fresh Production synchronization
+- Supabase project `fiilmooggumokxanwiyx`; live database read timestamp `2026-10-16 20:32:39.750235+00 UTC`.
+- Production table counts at observation: `treasury=1`, `pos_terminals=1`, `pos_shifts=1`, `cash_box=6`.
+- Live treasury RPC ACL rechecked: `finance_list_treasury_branches(uuid)`, `finance_save_treasury(uuid,uuid,text,text,numeric,uuid)`, `finance_delete_treasury(uuid,uuid)` are executable by `authenticated` and `service_role`, not by `anon`.
+- Direct `authenticated` table grants on `public.treasury` remain SELECT-only; no direct write grant was added.
+- No Production schema, ACL, or business-data changes were made for QR. Existing `treasury.id` UUID and `company_id` are sufficient for a stable versioned QR payload; creating a QR does not require a new DB column.
+- No fixture/test data was created in Production.
+
+## Report432 result
+- Report: [Report432_TREASURY_QR_CODE_SURGICAL_CHANGE_20261016.md](doc/Draft/Reprots/Report432_TREASURY_QR_CODE_SURGICAL_CHANGE_20261016.md), commit `8717d317b8dab39681b1775510a5a6ffefe6eb17`.
+- Owner changes A–E: replace `_buildTreasuryTable(data)` to add per-row QR action; insert `_showTreasuryQR(code, fallbackItem)`; after successful RPC creation display QR automatically; widen create modal from 720 to 820; export the QR method on `RW_Finance`.
+- QR payload is versioned JSON containing `type=rawaea_treasury`, `version=1`, `company_id`, and `treasury_id`. It is an identifier, not an access credential. Future POS binding must validate the signed-in user's company and permissions on the server; it must not trust company_id supplied in QR.
+- No claim is made that scanning currently auto-binds a POS terminal. That consumer/runtime contract remains separate and must be verified before claiming end-to-end binding.
+
+## Closure status
+`PRODUCTION CONTRACTS RESYNCED / QR OWNER CHANGESET COMMITTED / PRODUCTION UNCHANGED / OWNER APPLY + DEPLOY + BROWSER E2E OPEN`.
+
+## Next exact resumption point
+Owner verifies `main.html` blob SHA `9d02dcc1129e00c033082384562177ce1aa5b80a`, applies only Report432 Changes A–E, deploys the parent system, tests create → QR display → reload → QR consistency → edit without balance mutation → clean deletion of the isolated zero-balance fixture, and proves no residue. Then separately trace the current POS consumer and implement authenticated treasury binding before claiming QR scanning auto-links a cashier.
