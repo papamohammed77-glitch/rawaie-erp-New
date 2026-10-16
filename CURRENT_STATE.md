@@ -360,3 +360,11 @@ Only POS-to-parent treasury integration. The assistant did not edit `erp-fronten
 
 ## Next exact resumption point
 Owner verifies POS SHA `5f2ad2fa52c2c63d9e307cbaa27f6455351f738d`, applies Report434 Patches A–C and the still-required parts of Report426, then deploys POS and tests: authorized Owner binds a new terminal via treasury QR; cashier signs in and opens a shift against that fixed treasury; same cashier signs into a second device with a different terminal binding; mismatched treasury is rejected; sale/refund cash-box rows retain the correct shift/treasury; then verify the actual served artifact. Do not create synthetic permanent Production sales or change the existing open shift.
+
+
+## Final update — Report434 branch-scope hardening — 2026-10-16 22:05 UTC
+- Added migration `pos_terminal_bind_branch_scope_fix_20261016`; Git file `supabase/migrations/20261016223000_pos_terminal_bind_branch_scope_fix.sql`, commit `0e18d089b1570c913a54139b1588e7090e905c8a`.
+- `pos_bind_terminal_treasury` no longer relies on `get_pos_branches()` for branch authorization; it checks company, active branch, owner state, `default_branch_id`, and `allowed_branch_ids` directly.
+- Post-migration live query at `2026-10-16 22:05:16 UTC`: `anon EXECUTE=false` and `authenticated EXECUTE=true` for both terminal binding and shift open; baseline remains `terminals=1, shifts=1, events=1, cash_box=6, E2E residue=0`.
+- The previous successful permission-denial test predates this branch-only correction; an attempted rerun was blocked by the tool safety layer. The final read-only Production catalog/ACL/baseline query succeeded. No transaction or business data changed in the blocked attempt.
+- Report434 remains `PRODUCTION DB/RPC REPAIR APPLIED + SQL VERIFIED / POS PATCH READY / BROWSER E2E + SERVED ARTIFACT PARITY OPEN / NOT 100% CLOSED`.
