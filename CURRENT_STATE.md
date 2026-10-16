@@ -320,3 +320,43 @@ Owner verifies `main.html` blob SHA `9d02dcc1129e00c033082384562177ce1aa5b80a`, 
 - Not proven: Cloudflare served artifact parity, browser E2E, or QR scan-to-POS terminal binding. QR payload is an identifier, not authorization.
 - Closure: CURRENT GIT QR FEATURE VERIFIED / PRODUCTION CONTRACT VERIFIED / OWNER PATCH + DEPLOYMENT + BROWSER E2E OPEN.
 - Next exact step: owner confirms current SHA, applies only Report433 Changes A–C, deploys parent UI, verifies create, QR/retry, reload stability, responsive layout, and no financial/test residue. Trace and test authenticated POS binding separately before claiming scan-to-bind works.
+
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-17 — Report434 POS Fixed Terminal / Treasury Binding
+
+## Scope
+Only POS-to-parent treasury integration. The assistant did not edit `erp-frontend/companies/company-1/main.html` or `erp-frontend/companies/company-1/sales/pos.html`. Owner applies the PWA patch.
+
+## Fresh Git/source facts
+- Current POS file: `papamohammed77-glitch/erp-frontend/companies/company-1/sales/pos.html`, SHA `5f2ad2fa52c2c63d9e307cbaa27f6455351f738d`, 111,290 characters / 1,904 lines.
+- Current POS source still calls `pos_open_shift` with `p_treasury_id: null`, and its `_getShiftTerminalCode()` uses localStorage to identify a browser/device.
+- Current parent `main.html` source contains `RW_Finance._showTreasuryQR`, whose QR payload is `type=rawaea_treasury, version=1, company_id, treasury_id`. POS has no current QR consumer. No parent source was changed.
+- Report434: [Report434_POS_FIXED_TERMINAL_TREASURY_INTEGRATION_20261017.md](doc/Draft/Reprots/Report434_POS_FIXED_TERMINAL_TREASURY_INTEGRATION_20261017.md), commit `ddb05415953d26db80275b68b6743993b53e6faf`.
+
+## Fresh Production facts — 2026-10-16 22:02 UTC
+- Project: `fiilmooggumokxanwiyx`.
+- Three active treasuries were found; the old implicit treasury choice is not sufficient for a newly initialized terminal.
+- `pos_terminals` now has nullable `treasury_id` with FK to `treasury(id)`. Existing terminal's binding is backfilled from its consistent shift history to `الخزينة الرئيسية`; the existing open shift was not changed.
+- Current Production baseline after rollback tests: `pos_terminals=1`, `pos_shifts=1`, `pos_shift_events=1`, `cash_box=6`, test terminal residue (0).
+- `pos_bind_terminal_treasury(uuid,text,uuid,text)` is active, `anon EXECUTE=false`, `authenticated EXECUTE=true`; it requires Owner / general manager / cash manager and validates company, allowed branch and active treasury. The function refuses to rebind a terminal with shift history to a different treasury.
+- `pos_open_shift(uuid,text,numeric,uuid,uuid,text)` remains `anon EXECUTE=false`, `authenticated EXECUTE=true`; it uses the terminal's fixed treasury and rejects mismatches.
+- Production migrations applied:
+  - `pos_terminal_treasury_binding_20261016` — Git migration `supabase/migrations/20261016220000_pos_terminal_treasury_binding.sql`, commit `a7906e063da2db614eddd876668258454a0976d6`.
+  - `pos_terminal_manager_binding_guard_20261016` — Git migration `supabase/migrations/20261016221000_pos_terminal_manager_binding_guard.sql`, commit `0bdb2bfa9573d3532cec63d5bd9b1d4fb696efff`.
+  - `pos_terminal_bind_idempotency_fix_20261016` — Git migration `supabase/migrations/20261016222000_pos_terminal_bind_idempotency_fix.sql`, commit `81e0826260c99a0f6ba9971907767d25a682c28c`.
+- SQL verification passed: idempotent retry of the current open shift returned the same `shift_id`; a different treasury for the bound terminal was rejected with `SHIFT_TERMINAL_TREASURY_MISMATCH`; a normal POS cashier was denied terminal binding with `POS_TERMINAL_CONFIGURATION_PERMISSION_REQUIRED`. Test transaction rolled back; no test data remains.
+- No Edge Function was added. No sales, refund, cash-box or accounting transaction was created or modified.
+
+## Owner-only surgical patch
+- Report434 contains the complete exact POS patches: add the QR binding button to `#posShiftOpenPanel`; insert `POS.bindTerminalTreasuryQR` after `_getShiftTerminalCode`; replace `self.startShift` error handling.
+- Do not change `main.html` for the POS binding consumer. The existing parent QR generator is the producer; POS is the missing consumer.
+- Report426's earlier owner-only patches A–F for fixed cash customer and branch assignment are still not present in the current POS source at the observed SHA; compare and apply only what remains necessary. Do not reapply blindly if the SHA changes.
+- Report433's parent QR retry/success-feedback patch remains an owner-side UI item; no claim that the parent QR flow is served/deployed was made.
+
+## Closure status
+`PRODUCTION DB/RPC REPAIR APPLIED + SQL VERIFIED / POS PATCH READY / BROWSER E2E + SERVED ARTIFACT PARITY OPEN / NOT 100% CLOSED`.
+
+## Next exact resumption point
+Owner verifies POS SHA `5f2ad2fa52c2c63d9e307cbaa27f6455351f738d`, applies Report434 Patches A–C and the still-required parts of Report426, then deploys POS and tests: authorized Owner binds a new terminal via treasury QR; cashier signs in and opens a shift against that fixed treasury; same cashier signs into a second device with a different terminal binding; mismatched treasury is rejected; sale/refund cash-box rows retain the correct shift/treasury; then verify the actual served artifact. Do not create synthetic permanent Production sales or change the existing open shift.
