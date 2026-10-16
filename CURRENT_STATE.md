@@ -306,3 +306,17 @@ Owner verifies blob SHA `55d23d13e6d421d23e3a7ce57b758b5a03c4ace0`, replaces onl
 
 ## Next exact resumption point
 Owner verifies `main.html` blob SHA `9d02dcc1129e00c033082384562177ce1aa5b80a`, applies only Report432 Changes A–E, deploys the parent system, tests create → QR display → reload → QR consistency → edit without balance mutation → clean deletion of the isolated zero-balance fixture, and proves no residue. Then separately trace the current POS consumer and implement authenticated treasury binding before claiming QR scanning auto-links a cashier.
+
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-17 — Report433 Treasury Modal / QR
+
+- Scope: owner-maintained papamohammed77-glitch/erp-frontend/companies/company-1/main.html, RW_Finance / الخزائن والبنوك. Assistant did not edit/deploy main.html or POS files.
+- Current main.html blob SHA returned by GitHub: 10ea1297782b58f8d56b5a9409f41b01b3dac03f. Git confirms QR feature commit da0f3fcddf264a77573a34a565feb8bcb653f449 and modal width 920 commit 282d0d21d23b1b76dff9a4bcf60f350f1d58de8a; latest source-extract metadata commit 80914df7ca75c754815ba22871e3aeae66d5cfe4.
+- Fresh Production SQL at 2026-10-16 21:09:58.733033+00 UTC: treasury=1, pos_terminals=1, pos_shifts=1, cash_box=6. Production RPC definitions and ACL rechecked for finance_list_treasury_branches, finance_save_treasury, finance_delete_treasury: authenticated/service_role EXECUTE, anon denied, company context checked. No Production change or test fixture made.
+- Proven UI defect from committed diff: _showTreasuryQR catches its own errors and returns no status, while _openTreasuryDialog always emits a QR-success toast. A failed QR may therefore produce false success. A failed script element may also poison retries.
+- Report433: [Report433_TREASURY_MODAL_QR_RETRY_HARDENING_20261017.md](doc/Draft/Reprots/Report433_TREASURY_MODAL_QR_RETRY_HARDENING_20261017.md), commit 33fa3dddca45de5f33a40f8ed80e679cc40df160. It provides owner-only changes: responsive modal width capped at 1120px, correct save-vs-QR feedback, and a complete retry-safe _showTreasuryQR replacement. Do not duplicate the QR feature already in Git.
+- Not proven: Cloudflare served artifact parity, browser E2E, or QR scan-to-POS terminal binding. QR payload is an identifier, not authorization.
+- Closure: CURRENT GIT QR FEATURE VERIFIED / PRODUCTION CONTRACT VERIFIED / OWNER PATCH + DEPLOYMENT + BROWSER E2E OPEN.
+- Next exact step: owner confirms current SHA, applies only Report433 Changes A–C, deploys parent UI, verifies create, QR/retry, reload stability, responsive layout, and no financial/test residue. Trace and test authenticated POS binding separately before claiming scan-to-bind works.
