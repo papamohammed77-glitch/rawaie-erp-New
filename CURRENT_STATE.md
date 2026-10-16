@@ -237,3 +237,41 @@ Owner: apply only the complete `sourceLabel` object replacement in Report418 aga
 - No Production RPC/Edge/schema/ACL change is justified. No test data was created. Current parent source SHA remains `a192704e07d984fdbecd00ce40a73e95fa806a7e`; deployed Pages artifact parity remains unverified.
 - Closure: `ROOT CAUSE PROVEN IN CURRENT SOURCE / OWNER SURGICAL PATCH READY / PRODUCTION ORDER+DETAILS VERIFIED / DEPLOYMENT + BROWSER E2E OPEN`.
 - Next exact step: owner verifies the SHA, applies only the `return Swal.fire(...)` replacement from Report430, deploys the parent system, and verifies `ORD-1002` modal remains visible with three details and closes normally. Do not alter Production DB or recreate business records for this UI defect.
+
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-16 — Report431 Treasury/Bank Branch Linkage
+
+## Scope and ownership
+- Scope: Mother system `RW_Finance` → `الخزائن والبنوك` only.
+- Owner edits/deploys `papamohammed77-glitch/erp-frontend/companies/company-1/main.html`; assistant did not modify `main.html` or operational apps.
+- Current parent commit checked: `3f226d5047b998ae14a9684222354924e1a43d31`; parent `6f30e2d78aa824ed92a5b3a0607edc8cb68ea9dc`; current `main.html` blob SHA `55d23d13e6d421d23e3a7ce57b758b5a03c4ace0`. Re-verify SHA before applying line-based instructions.
+
+## Fresh Production facts — 2026-10-16 19:38–19:42 UTC
+- Supabase project: `fiilmooggumokxanwiyx`.
+- `public.treasury` originally had no `branch_id`; current production schema now has nullable `branch_id`.
+- Production logs showed authenticated `POST /rest/v1/treasury` → HTTP 403 at 19:33:23 UTC; Postgres logged `permission denied for table treasury`. Authenticated role had SELECT only and no INSERT/UPDATE/DELETE table grants.
+- No broad table-level write grants were added. Authenticated direct INSERT/UPDATE/DELETE remain false.
+- Production had four active company branches, one treasury, and one POS shift linked to the existing treasury and main branch. The existing treasury balance and shift were not modified by the test.
+- Production migrations applied:
+  - `20261016194118_treasury_branch_linkage_and_metadata_rpc_20261016`
+  - `20261016194152_treasury_delete_company_scoped_rpc_20261016`
+- New functions: `finance_list_treasury_branches(uuid)`, `finance_save_treasury(uuid,uuid,text,text,numeric,uuid)`, `finance_delete_treasury(uuid,uuid)`. EXECUTE is granted to authenticated/service_role and revoked from PUBLIC/anon.
+- A simulated authenticated company user successfully exercised branch-list, create, update, and delete RPCs. Final verification: `branch_id_column_exists=true`, save/delete authenticated EXECUTE true, `fixture_residue=0`, existing treasury count remains `1`.
+- Git migration provenance:
+  - `supabase/migrations/20261016194118_treasury_branch_linkage_and_metadata_rpc_20261016.sql`, commit `729767eb043b7313593102576340dc8ecf4cb5b1`.
+  - `supabase/migrations/20261016194152_treasury_delete_company_scoped_rpc_20261016.sql`, commit `fc2e223b4733f0e7f0856929738dc110fce56f85`.
+- Report: [Report431_TREASURY_BRANCH_LINKAGE_AND_PRODUCTION_SAVE_REPAIR_20261016.md](doc/Draft/Reprots/Report431_TREASURY_BRANCH_LINKAGE_AND_PRODUCTION_SAVE_REPAIR_20261016.md), commit `ef1497f9517a6d3fa024318f188d4c8ce00b0474`.
+
+## Required owner patch
+- Replace only `_openTreasuryDialog()` (around line 18081) and `_editTreasury(code)` (around line 18114) using the complete replacements in Report431.
+- New modal branch selection uses `finance_list_treasury_branches`; create/edit uses `finance_save_treasury`; deletion uses `finance_delete_treasury`. This avoids direct table writes and keeps table-level write privileges closed.
+- Do not change balance posting logic, other Finance modules, POS apps, or `main.html` through the assistant.
+- Branch selection is optional for company-wide treasury/bank accounts. Existing balance values remain protected on edit. Server rejects a branch assignment that conflicts with existing POS-shift branch history.
+
+## Closure status
+`PRODUCTION SCHEMA/RPCS VERIFIED / AUTHENTICATED RPC SMOKE TEST PASSED / TEST RESIDUE ZERO / GIT MIGRATIONS RECORDED / OWNER UI PATCH + DEPLOYMENT + BROWSER E2E OPEN`.
+
+## Next exact resumption point
+Owner verifies blob SHA `55d23d13e6d421d23e3a7ce57b758b5a03c4ace0`, replaces only the two functions in Report431, deploys the parent UI, verifies create/edit/reload persistence with a zero-balance temporary treasury assigned to the main branch, then deletes that test treasury and proves no residue. Do not change the existing production treasury or create a test POS shift.
