@@ -199,3 +199,15 @@ Owner: apply only the complete `sourceLabel` object replacement in Report418 aga
 - No Production SQL/RPC/ACL change is justified. Current likely cause is timer-triggered full render/DOM churn, but the precise root cause remains UNVERIFIED until current source body and browser mutation evidence are obtained.
 - Next exact step: owner pastes the Report425 monitor in the served browser, clicks one order, and records whether the clicked row becomes detached and whether the details handler fires. Then retrieve the current `RW_Orders.render`/timer and details-click source block; only then issue a complete exact surgical replacement. Do not patch line numbers from stale reports.
 - Closure: `PRODUCTION ORDERS READ VERIFIED / UI TIMER PATH OBSERVED IN OWNER CONSOLE / EXACT SOURCE BLOCK + BROWSER E2E OPEN / NOT CLOSED`.
+
+
+## Current checkpoint — 2026-10-16 — Report428 Parent Orders Click Monitor Findings
+
+- Scope: parent system `erp-frontend/companies/company-1/main.html`, module `RW_Orders`. No edits to `main.html`, operational apps, Production schema/ACL/RPC, or business data.
+- Current parent source blob SHA: `a192704e07d984fdbecd00ce40a73e95fa806a7e`.
+- New owner-provided browser trace: click target was a TD within an order row; row remained connected and identical at microtask and 500ms checks. A request matching `/rest/v1/orders` for `ORD-1002` returned HTTP 200. Subsequent visible list requests also returned HTTP 200. MutationObserver recorded later DOM mutations near some refreshes.
+- The monitor only wrapped `/rest/v1/orders`; it did not track `/rest/v1/order_details` or modal visibility. Therefore it does not prove the details request occurred or that the modal rendered. The initial `ERR_CONNECTION_CLOSED` was not reproduced by the later visible requests.
+- Current finding: no persistent `orders` API/DB failure proven; polling/DOM refresh correlation exists, but polling is not yet proven to cause the click failure. No speculative patch or Production change is justified.
+- Report428: [Report428_PARENT_ORDERS_CLICK_MONITOR_FINDINGS_20261016.md](doc/Draft/Reprots/Report428_PARENT_ORDERS_CLICK_MONITOR_FINDINGS_20261016.md), report commit `152fd22d1acca014ab860a1440e30b870b47b144`.
+- Closure: `ORDERS REQUESTS OBSERVED HTTP 200 / ROW NOT DETACHED IN FIRST 500MS / ORDER_DETAILS + MODAL RESULT UNVERIFIED / NO UNSUPPORTED PATCH / OPEN`.
+- Next exact step: reproduce one click with Network Preserve log; record the `orders?order_code=eq.ORD-1002` and `order_details?order_id=eq.<id>` requests, status/body, Console errors, and modal visibility. Then patch only the proven failing source element. Do not alter Production ACL/schema or polling interval without direct evidence.
