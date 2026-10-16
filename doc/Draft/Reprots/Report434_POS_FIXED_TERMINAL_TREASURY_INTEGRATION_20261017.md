@@ -448,3 +448,16 @@ self.startShift = function() {
 **Final Closure Status:** `PRODUCTION DB/RPC REPAIR APPLIED + SQL VERIFIED / POS OWNER PATCH READY / BROWSER E2E OPEN / NOT 100% CLOSED`.
 
 **Next exact step:** المالك يطبق Patches A–C على `pos.html` فقط بعد مطابقة SHA، ويراجع الأجزاء غير المطبقة من Report426، ثم يختبر: Owner binds new terminal via treasury QR → cashier logs in on same device → shift opens on the bound treasury → same cashier logs in on another device with a different terminal binding → treasury mismatch is rejected → sale/refund/cash-box shift linkage verified → served artifact parity verified.
+
+
+## Addendum — Final branch-scope hardening (2026-10-16 22:05 UTC)
+
+During final self-audit I found that the first deployed binding RPC called `get_pos_branches()`, which itself requires the `pos` permission. That would unnecessarily couple a manager's terminal-configuration authority to the POS read RPC. I corrected this before finalizing the checkpoint.
+
+- Migration: `pos_terminal_bind_branch_scope_fix_20261016`
+- Git file: `supabase/migrations/20261016223000_pos_terminal_bind_branch_scope_fix.sql`
+- Git commit: `0e18d089b1570c913a54139b1588e7090e905c8a`
+- The binding RPC now validates the branch directly against `public.branches`, company scope, active state, `default_branch_id`, `allowed_branch_ids`, and the explicit owner authorization; it no longer depends on the POS branch-list RPC for authorization.
+- Fresh post-migration Production verification at `2026-10-16 22:05:16 UTC`: binding column exists; `pos_bind_terminal_treasury` and `pos_open_shift` are authenticated-executable and anon-denied; counts remain `pos_terminals=1`, `pos_shifts=1`, `pos_shift_events=1`, `cash_box=6`, `E2E residue=0`.
+- The permission-denial test passed before this branch-scope-only correction. The follow-up attempt to rerun the identity-simulated permission test was blocked by the tool safety layer; no data mutation occurred. The final catalog/ACL/baseline query succeeded.
+- This correction does not change the remaining owner UI patch or the honest closure status: Browser/HTTP E2E and served-artifact parity remain open.
