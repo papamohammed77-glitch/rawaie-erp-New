@@ -11,19 +11,24 @@ declare
   v_pos integer;
 begin
   v_def := pg_get_functiondef('public.submit_online_order_atomic(uuid,text,text,text,text,text,jsonb,uuid)'::regprocedure);
-  v_pos := strpos(v_def, v_old);
-  if v_pos = 0 then
-    raise exception 'Expected pre-pricing cart validation loop not found; refusing to mutate drifted function';
-  end if;
-  v_def := overlay(v_def placing v_new from v_pos for length(v_old));
 
-  v_pos := strpos(v_def, v_old_lookup);
-  if v_pos = 0 then
-    raise exception 'Expected item lookup not found; refusing to mutate drifted function';
-  end if;
-  v_def := overlay(v_def placing v_new_lookup from v_pos for length(v_old_lookup));
+  -- Re-running the migration after a direct Production repair is safe.
+  if strpos(v_def, v_new) > 0 and strpos(v_def, v_new_lookup) > 0 then
+    null;
+  else
+    v_pos := strpos(v_def, v_old);
+    if v_pos = 0 then
+      raise exception 'Expected pre-pricing cart validation loop not found; refusing to mutate drifted function';
+    end if;
+    v_def := overlay(v_def placing v_new from v_pos for length(v_old));
 
-  execute v_def;
+    v_pos := strpos(v_def, v_old_lookup);
+    if v_pos = 0 then
+      raise exception 'Expected item lookup not found; refusing to mutate drifted function';
+    end if;
+    v_def := overlay(v_def placing v_new_lookup from v_pos for length(v_old_lookup));
+    execute v_def;
+  end if;
 end;
 $migration$;
 commit;
