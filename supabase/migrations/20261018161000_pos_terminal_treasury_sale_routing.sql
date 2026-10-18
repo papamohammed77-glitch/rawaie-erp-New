@@ -248,7 +248,7 @@ BEGIN
  UPDATE public.app_settings SET order_serial=next_serial WHERE id=v_settings_id AND company_id=v_company_id;
  RETURN jsonb_build_object('success',true,'duplicate',false,'orderID',v_order_code,'order_id',v_order_id,'total_cogs',v_total_cogs,'company_id',v_company_id,'operation_id',v_operation_id,'sales_decision',v_decision,'cash_posted',coalesce(v_is_cash,false),'cash_result',v_cash_result,'sales_journal',v_sales_journal,'cogs_journal',v_cogs_journal,'customer_ledger',v_customer_ledger);
 END; $function$
-
+;
 
 CREATE OR REPLACE FUNCTION public.pos_assign_order_shift()
  RETURNS trigger
