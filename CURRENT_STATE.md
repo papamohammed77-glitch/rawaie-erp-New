@@ -448,3 +448,43 @@ POS device-to-treasury binding and local sign-out scope only. No edits were made
 
 ## Closure
 PRODUCTION SALE ROUTING MIGRATION VERIFIED / SHIFT OPEN FAILURE DIAGNOSED TO TERMINAL RESOLUTION FALLBACK / CURRENT POS PATCHES A–E ALREADY PRESENT / CORE.JS LOCAL SIGN-OUT PATCH READY / BROWSER E2E OPEN / NOT 100% CLOSED.
+
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-18 — Report437 POS Auto Device Treasury / No QR
+
+## Scope
+POS shift-opening treasury setup only. Production RPC repaired directly; no changes were made to `main.html`, POS HTML, or `core.js`. The owner-only surgical UI patches are in `doc/Draft/Reprots/Report437_POS_AUTO_DEVICE_TREASURY_NO_QR_20261018.md`.
+
+## Fresh Production state after repair
+- Supabase project: `fiilmooggumokxanwiyx`.
+- Migration `pos_terminal_auto_treasury_on_shift_open_20261018` recorded as version `20261018182808`.
+- Git migration artifact: `supabase/migrations/20261018182808_pos_terminal_auto_treasury_on_shift_open.sql`, commit `92e648365d8b65463ceba2909860d706718a0bf8`.
+- Production function: `public.pos_open_shift(uuid,text,numeric,uuid,uuid,text)`; source contains the deterministic device-treasury provisioning path.
+- ACL verified: `anon EXECUTE=false`, `authenticated EXECUTE=true`, `service_role EXECUTE=true`.
+- Baseline after transaction-isolated test: `pos_terminals=1`, `pos_shifts=1`, `pos_shift_events=2`, `pos_shift_cash_counts=8`, `cash_box=6`, `treasury=3`, `POS orders=4`.
+- E2E fixture residue: `0` test terminals, `0` test treasuries; the SQL test transaction was rolled back.
+
+## Verified behavior
+- An authenticated POS user may open a shift without scanning a treasury QR.
+- For an unregistered terminal code, the RPC creates a company/branch-scoped `Cash` treasury and terminal binding atomically; deterministic code plus an advisory transaction lock prevents duplicate treasury creation for the same device.
+- Existing terminal treasury bindings are preserved. The historical terminal and its prior shift/cash records were not reassigned.
+- Repeating the same `operation_id` returns the same shift/terminal/treasury as a duplicate.
+- An unauthorized branch is rejected before device/treasury provisioning.
+- The existing `pos_assign_order_shift` and `save_sales_invoice_atomic` contracts remain the downstream guard/routing path; no Edge Function was added.
+
+## Owner-only remaining change
+Current POS HTML blob SHA remains `962dc6474a9c2692c1072631bd9d09d359d7d982`. Apply Report437 Patch A to replace the mandatory treasury-QR UI block with the automatic device-treasury explanation, and Patch B to remove the obsolete QR-required error text. Do not modify `main.html` or replace the POS file.
+
+## Open verification
+- Browser/HTTP E2E against the actual Cloudflare-served POS artifact: OPEN / UNVERIFIED.
+- Served-artifact parity against Git: OPEN / UNVERIFIED.
+- The owner-side POS patch has not been applied by this session.
+- Do not claim 100% closure until the owner patch is deployed and the real cashier browser flow is verified.
+
+## Exact next steps
+1. Owner applies Report437 Patches A and B to the exact POS source SHA; preserve all other functionality.
+2. Deploy the POS app through the existing frontend deployment route.
+3. Test on a browser with a fresh terminal code: cashier login → choose authorized branch → start shift without QR → confirm a device-specific treasury is created once → repeat/retry without duplicates.
+4. Complete a real cash sale and verify `orders.shift_id/device_id` and `cash_box.treasury_id/shift_id` match the active shift and terminal.
+5. Verify logout on device A does not revoke device B; the separate `core.js` local-sign-out patch from Report436 remains owner-side and is not marked applied here.
+6. Confirm baseline/test residue and inspect the served artifact before closure.
