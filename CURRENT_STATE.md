@@ -531,3 +531,22 @@ Only the POS no-QR shift-open handoff. Do not edit `main.html`, `pos.html`, or `
 - Current source SHAs inspected: POS `b09320129dd04a833d1304a76fee0768ab7c52a3`; shared `core.js` `c2e0a7f4ba11f44c11dfc4728ef4a1af1b256b81`. Neither file was changed.
 - Status: `PRODUCTION ACL VERIFIED / LIVE ERROR CONFIRMED / JWT ROLE ROOT CAUSE UNVERIFIED / OWNER SOURCE PATCH AND AUTHENTICATED HTTP E2E OPEN`.
 - Next exact step: owner applies a surgical session-presence guard in `POS.loadShiftState` so no RPC is sent without a valid Supabase session, preserving all existing response/error handling; then test with a real authenticated POS session and verify logs. Do not grant EXECUTE to `anon` and do not create a new Edge Function.
+
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-18 — Report439 POS Session Guard / Production Reconciliation
+
+- Scope: POS only — `erp-frontend/companies/company-1/sales/pos.html`, its directly related shared auth behavior in `companies/company-1/core.js`, and Supabase Production project `fiilmooggumokxanwiyx`. No edits to `main.html`, `pos.html`, or `core.js` were made by the assistant.
+- Fresh current source identities:
+  - POS `b09320129dd04a833d1304a76fee0768ab7c52a3`, 2,292 lines.
+  - shared `core.js` `c2e0a7f4ba11f44c11dfc4728ef4a1af1b256b81`, 773 lines.
+- Production ACL rechecked: `pos_get_shift_summary(uuid)` = authenticated EXECUTE true / anon false; `pos_open_shift(uuid,text,numeric,uuid,uuid,text)` = authenticated true / anon false; `save_sales_invoice_atomic(jsonb,jsonb,text,text)` = authenticated false / anon false (service-role path only). No ACL change is warranted.
+- Production logs in the examined window show repeated `POST 401 /rest/v1/rpc/pos_get_shift_summary` and `permission denied for function pos_get_shift_summary` through 2026-10-18 19:46:45 UTC. The actual JWT role is not exposed by these records. A transaction-isolated SQL call with role `authenticated` and claims for the existing POS user returned `success=true, active_shift=false`; transaction rolled back. This is not HTTP/browser E2E.
+- Fresh read-only baseline at 2026-10-18 19:48:07 UTC: terminals=2, shifts=2 (both closed), shift_events=4, shift_cash_counts=16, cash_box=8, treasuries=4, POS orders=5, open_shifts=0. One auto-created POS treasury is linked to a terminal, closed shift, POS order, and cash_box rows; preserve it. Preserve historical shift/order/cash records, including the historical -135.00 close difference. Older POS orders with null shift/device fields were not rewritten.
+- The live `pos_open_shift` auto-treasury migration and `save_sales_invoice_atomic` terminal/shift treasury routing migration are present in Git and Production. Current POS source already includes no-QR messaging, persists returned terminal/treasury IDs before reloading shift state, requires an open verified shift, sends `shift_id/device_id`, restricts branch, uses generic cash customer, and blocks unsupported non-cash settlement. Do not reapply historical patches blindly.
+- Defect confirmed in current source: `loadShiftState` calls `pos_get_shift_summary` without checking `supabase.auth.getSession()` and matching the live session user against `currentUser.auth_id`. Report439 provides the exact one-line replacement wrapping the existing RPC with a session guard. It also documents the still-open shared `core.js` `signOut({scope:'local'})` surgical replacements.
+- Report: [Report439_POS_PRODUCTION_SESSION_GUARD_AND_CLOSEOUT_20261018.md](doc/Draft/Reprots/Report439_POS_PRODUCTION_SESSION_GUARD_AND_CLOSEOUT_20261018.md), commit `ed1ec394c04db679875830a1135a4e1b50fa65b2`.
+- No Production schema/ACL/business-data changes were applied. No permanent test sale was created. The current automatic treasury was not misclassified or deleted as test residue.
+- Closure: `PRODUCTION CORE/ACL VERIFIED / SQL AUTHENTICATED-SIMULATION PASS / OWNER POS + CORE PATCHES READY / HTTP E2E + SERVED ARTIFACT PARITY OPEN / NOT 100% CLOSED`.
+- Exact next step: owner applies the Report439 surgical changes to the current POS/core files after confirming their SHAs, deploys through the existing frontend route, then tests a valid cashier session, missing/expired session, wrong-user session, local logout on two devices, open shift, cash sale, cash return, and matching `orders.shift_id/device_id` ↔ `pos_shifts.terminal_id/treasury_id` ↔ `cash_box.shift_id/treasury_id`. Recheck Production logs and served Cloudflare artifact before closure.
