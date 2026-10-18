@@ -488,3 +488,35 @@ Current POS HTML blob SHA remains `962dc6474a9c2692c1072631bd9d09d359d7d982`. Ap
 4. Complete a real cash sale and verify `orders.shift_id/device_id` and `cash_box.treasury_id/shift_id` match the active shift and terminal.
 5. Verify logout on device A does not revoke device B; the separate `core.js` local-sign-out patch from Report436 remains owner-side and is not marked applied here.
 6. Confirm baseline/test residue and inspect the served artifact before closure.
+
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-18 — Report438 POS No-QR Shift UI Binding
+
+## Scope
+Only the POS no-QR shift-open handoff. Do not edit `main.html`, `pos.html`, or `core.js` directly. The owner applies the surgical source changes.
+
+## Fresh source and Production reconciliation
+- Current POS: `papamohammed77-glitch/erp-frontend/companies/company-1/sales/pos.html`, blob SHA `962dc6474a9c2692c1072631bd9d09d359d7d982`, 2,278 lines.
+- Latest relevant source commit: `e4876b012f9a00ce785b2d8c899e740102c842e7`.
+- Report437 already repaired Production `public.pos_open_shift` and recorded migration `20261018182808`; this cycle did not repeat or mutate that repair.
+- Fresh live Production check confirms `pos_open_shift(uuid,text,numeric,uuid,uuid,text)` contains deterministic automatic device-treasury provisioning, does not contain the old `SHIFT_TREASURY_SELECTION_REQUIRED` error path, and grants execute to authenticated but not anon.
+- The RPC returns `terminal_id` and `treasury_id`; current POS `self.startShift` does not persist those IDs before calling `loadShiftState`. The latter intentionally rejects an open shift when local terminal/treasury IDs are missing or mismatch. This is a newly identified client handoff defect after the Report437 backend change.
+- Production has one closed shift with one linked order, two linked cash_box rows, two events, and eight denomination-count rows; close difference is `-135.00`. Preserve these records because they have linked business/financial evidence; do not delete them as presumed test data.
+- No Production schema/data/ACL change was needed or performed in this cycle.
+
+## Report438
+- `doc/Draft/Reprots/Report438_POS_NO_QR_SHIFT_OPEN_LOCAL_BINDING_FIX_20261018.md`
+- Commit: `151db5cfab78f771ea22464d11029d6739b84f40`
+- Patch C is the only new source patch in Report438: after successful `pos_open_shift`, persist returned `terminal_id` and `treasury_id` in localStorage before `loadShiftState`.
+- Report437 Patches A/B remain required: replace QR-required UI instructions and obsolete QR-required error wording. Do not repeat the Production migration or replace the POS file.
+
+## Closure
+`PRODUCTION NO-QR RPC VERIFIED / OWNER PATCHES A–C PENDING / BROWSER E2E OPEN / NOT 100% CLOSED`.
+
+## Next exact steps
+1. Owner applies Report437 Patch A and Patch B plus Report438 Patch C against POS SHA `962dc6474a9c2692c1072631bd9d09d359d7d982`.
+2. Deploy through the existing frontend route.
+3. Browser test: cashier login → authorized branch → open shift without QR → verify no “other terminal” false-positive and confirm the active shift is visible.
+4. Retry the same flow after reload; confirm the terminal/treasury IDs remain aligned and the existing terminal/treasury binding is not changed.
+5. Run one isolated cash sale only in a designated test company/environment; verify order.shift_id/device_id and cash_box.shift_id/treasury_id against the active shift. Do not create a permanent test sale in the live customer dataset.
+6. Verify served-artifact parity and baseline/test residue before claiming closure.
