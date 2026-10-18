@@ -602,3 +602,9 @@ Owner applies Report440 Patches A–D to store/index.html only, deploys the exis
 
 ## Closure
 PRODUCTION BACKEND FOUNDATION REPAIRED / OWNER SOURCE PATCH PENDING / HTTP E2E OPEN / COUPON + PRICE QUOTE OPEN / NOT CLOSED.
+
+## Report440 addendum — final catalog tenant-scope hardening
+- Added and applied canonical migration supabase/migrations/20261018204024_public_store_catalog_branch_company_scope.sql; Production migration version 20261018204024, name public_store_catalog_branch_company_scope.
+- The public catalog stock join now joins public.branches and requires b.company_id=v_settings.company_id before reading stock_branches, preventing a corrupted cross-company main_branch_id from exposing another company's stock quantities.
+- Fresh Production verification: branch_company_scope=true; get_public_store_catalog('company-1') still returns 16 products. No business rows were created.
+- Report440 updated with this final verification; latest report commit 82bd47ca1e4799f4074df88c252fdd292135ea38.
