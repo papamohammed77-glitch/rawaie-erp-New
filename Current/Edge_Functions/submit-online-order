@@ -27,6 +27,10 @@ serve(async (req: Request) => {
     const customer = body?.user;
     const rawItems = Array.isArray(body?.cartItems) ? body.cartItems : [];
     const storefrontKey = String(body?.storefront_key || req.headers.get("x-storefront-key") || "").trim();
+    const authorization = req.headers.get("Authorization") || "";
+    const bearer = authorization.replace(/^Bearer\s+/i, "").trim();
+    const apiKey = String(req.headers.get("apikey") || "").trim();
+
     const customerName = String(customer?.name || "").trim();
     const customerPhone = String(customer?.phone || "").trim();
     const customerArea = String(customer?.area || "").trim();
@@ -36,14 +40,57 @@ serve(async (req: Request) => {
     if (!rawItems.length) throw new Error("السلة فارغة");
     if (rawItems.length > 100) throw new Error("عدد أصناف الطلب يتجاوز الحد المسموح");
 
-    let storeQuery = supabase.from("app_settings").select("company_id,storefront_key,storefront_enabled").eq("storefront_enabled", true);
-    if (storefrontKey) storeQuery = storeQuery.eq("storefront_key", storefrontKey);
-    const { data: stores, error: storeError } = await storeQuery.limit(2);
-    if (storeError) throw new Error("تعذر التحقق من المتجر المنشور");
-    if (!stores || stores.length === 0) throw new Error("المتجر غير منشور أو مفتاح المتجر غير صالح");
-    if (stores.length !== 1) throw new Error("storefront_key مطلوب عند وجود أكثر من متجر منشور");
+    let companyId: string | null = null;
+    let actorEmail = "online-store";
+    let authenticatedCompanyId: string | null = null;
 
-    const companyId = stores[0].company_id;
+    // Preserve the parent-system consumer: a real user JWT remains company-scoped.
+    // The standalone public store sends the public API key as both apikey and Bearer.
+    if (bearer && !(apiKey && bearer === apiKey)) {
+      const { data: authData, error: authError } = await supabase.auth.getUser(bearer);
+      if (authData?.user?.id && authData.user.email && !authError) {
+        const { data: profile, error: profileError } = await supabase
+          .from("users")
+          .select("company_id,status,email")
+          .eq("auth_id", authData.user.id)
+          .maybeSingle();
+        if (profileError || !profile?.company_id || (profile.status && profile.status !== "Active")) {
+          throw new Error("سياق الشركة غير متاح للمستخدم المصادق عليه");
+        }
+        authenticatedCompanyId = profile.company_id;
+        companyId = profile.company_id;
+        actorEmail = authData.user.email;
+
+        if (storefrontKey) {
+          const { data: mappedStore, error: mapError } = await supabase
+            .from("app_settings")
+            .select("company_id")
+            .eq("storefront_key", storefrontKey)
+            .eq("storefront_enabled", true)
+            .maybeSingle();
+          if (mapError || !mappedStore || mappedStore.company_id !== authenticatedCompanyId) {
+            throw new Error("مفتاح المتجر لا يتبع شركة المستخدم المصادق عليه");
+          }
+        }
+      } else if (!storefrontKey) {
+        throw new Error("جلسة غير صالحة؛ أعد تسجيل الدخول أو استخدم متجرًا منشورًا");
+      }
+    }
+
+    // Public guest checkout is restricted to an explicitly published storefront.
+    if (!companyId) {
+      let storeQuery = supabase
+        .from("app_settings")
+        .select("company_id,storefront_key,storefront_enabled")
+        .eq("storefront_enabled", true);
+      if (storefrontKey) storeQuery = storeQuery.eq("storefront_key", storefrontKey);
+      const { data: stores, error: storeError } = await storeQuery.limit(2);
+      if (storeError) throw new Error("تعذر التحقق من المتجر المنشور");
+      if (!stores || stores.length === 0) throw new Error("المتجر غير منشور أو مفتاح المتجر غير صالح");
+      if (stores.length !== 1) throw new Error("storefront_key مطلوب عند وجود أكثر من متجر منشور");
+      companyId = stores[0].company_id;
+    }
+
     const operationId = String(body?.operation_id || req.headers.get("idempotency-key") || "").trim() || crypto.randomUUID();
     const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidPattern.test(operationId)) throw new Error("operation_id يجب أن يكون UUID صالحًا");
@@ -65,7 +112,7 @@ serve(async (req: Request) => {
       p_customer_phone: customerPhone,
       p_customer_area: customerArea,
       p_notes: notes,
-      p_user_email: "online-store",
+      p_user_email: actorEmail,
       p_cart_items: cart,
       p_operation_id: operationId
     });
