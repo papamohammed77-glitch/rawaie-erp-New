@@ -520,3 +520,14 @@ Only the POS no-QR shift-open handoff. Do not edit `main.html`, `pos.html`, or `
 4. Retry the same flow after reload; confirm the terminal/treasury IDs remain aligned and the existing terminal/treasury binding is not changed.
 5. Run one isolated cash sale only in a designated test company/environment; verify order.shift_id/device_id and cash_box.shift_id/treasury_id against the active shift. Do not create a permanent test sale in the live customer dataset.
 6. Verify served-artifact parity and baseline/test residue before claiming closure.
+
+
+## Report421 — POS shift summary permission investigation (2026-10-18)
+- Report: `doc/Draft/Reprots/Report421_POS_SHIFT_SUMMARY_PERMISSION_FORENSIC_20261018.md`
+- Commit: `92e0f52943c9c9c382e8e09ef502519b76afabe3`
+- Fresh Production ACL: `public.pos_get_shift_summary(uuid)` exists; `authenticated EXECUTE=true`, `anon EXECUTE=false`. The function is SECURITY DEFINER and checks `auth.uid()`, company scope, active user profile, and POS permission.
+- Fresh Production logs at 2026-10-18 19:33:40–19:33:55 UTC still show PostgREST `permission denied for function pos_get_shift_summary`.
+- No Production ACL/schema/data change made: authenticated already has EXECUTE, and granting anon would weaken financial-data access. The actual JWT role for failed requests is not yet proven.
+- Current source SHAs inspected: POS `b09320129dd04a833d1304a76fee0768ab7c52a3`; shared `core.js` `c2e0a7f4ba11f44c11dfc4728ef4a1af1b256b81`. Neither file was changed.
+- Status: `PRODUCTION ACL VERIFIED / LIVE ERROR CONFIRMED / JWT ROLE ROOT CAUSE UNVERIFIED / OWNER SOURCE PATCH AND AUTHENTICATED HTTP E2E OPEN`.
+- Next exact step: owner applies a surgical session-presence guard in `POS.loadShiftState` so no RPC is sent without a valid Supabase session, preserving all existing response/error handling; then test with a real authenticated POS session and verify logs. Do not grant EXECUTE to `anon` and do not create a new Edge Function.
