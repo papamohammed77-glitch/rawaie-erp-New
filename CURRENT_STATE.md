@@ -368,3 +368,51 @@ Owner verifies POS SHA `5f2ad2fa52c2c63d9e307cbaa27f6455351f738d`, applies Repor
 - Post-migration live query at `2026-10-16 22:05:16 UTC`: `anon EXECUTE=false` and `authenticated EXECUTE=true` for both terminal binding and shift open; baseline remains `terminals=1, shifts=1, events=1, cash_box=6, E2E residue=0`.
 - The previous successful permission-denial test predates this branch-only correction; an attempted rerun was blocked by the tool safety layer. The final read-only Production catalog/ACL/baseline query succeeded. No transaction or business data changed in the blocked attempt.
 - Report434 remains `PRODUCTION DB/RPC REPAIR APPLIED + SQL VERIFIED / POS PATCH READY / BROWSER E2E + SERVED ARTIFACT PARITY OPEN / NOT 100% CLOSED`.
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-18 — Report435 POS Terminal/Treasury Sale Routing
+
+## Scope
+Only POS cashier/device/treasury session contract. No changes to main.html or operational POS HTML. Production SQL/Core was repaired directly; the owner must apply the source-only changes documented in Report435.
+
+## Current source evidence
+- POS: papamohammed77-glitch/erp-frontend/companies/company-1/sales/pos.html
+- Current blob SHA: f6bc60f7067922d2603c4f849d2fb477407a7e83
+- Size: 119,763 characters / 2,103 lines.
+- Current source includes QR-to-terminal treasury binding added in commit e8f6e4000f2edb49944b25365f575dc62a580d30. Do not re-add that feature.
+- Current shared core.js SHA: c2e0a7f4ba11f44c11dfc4728ef4a1af1b256b81.
+- POS still needs owner changes: shift/terminal match in loadShiftState; include shift_id + device_id in invoice header; branch allow-list UI enforcement; disable misleading customer selector; local-only signout and short auto-logout.
+
+## Fresh Production facts — 2026-10-18 16:02–16:12 UTC
+- Active treasuries: 3; pos_terminals=1; pos_shifts=1; pos_shift_events=2; cash_box=6; POS orders=4.
+- Existing terminal remains bound to BR-01 and treasury “الخزينة الرئيسية”. Existing shift is closed. Historical cash difference -135.00 was preserved.
+- Root cause: save_sales_invoice_atomic still required exactly one active treasury for a cash POS sale; with 3 active treasuries it contradicted the terminal-fixed treasury contract.
+- Production migration applied: pos_terminal_treasury_sale_routing_20261018, version 20261018160955.
+- Canonical Git migration: supabase/migrations/20261018161000_pos_terminal_treasury_sale_routing.sql; blob SHA bb2a923cd07483d8fa114c43e9e5f859e56268e6; commit c1402a7671a69886ce909aabb3db64bfb599ab97.
+- Core now routes POS cash receipts through the open shift’s treasury, validates terminal/treasury/company/branch consistency, and persists optional shift_id/device_id on orders. The non-POS single-active-treasury rule remains unchanged.
+- ACL after migration: save_sales_invoice_atomic is not executable by anon/authenticated and is executable by service_role; trigger function has no direct app-role execute grant.
+- Existing Edge save-sales-invoice remains v19 ACTIVE, verify_jwt=true; no Edge Function was added.
+
+## SQL E2E and baseline
+- A transaction-isolated POS sale with a temporary shift succeeded and its cash_box receipt used the shift’s bound treasury. The transaction was rolled back.
+- A transaction-isolated request using an unbound terminal code was rejected with POS_TERMINAL_NOT_BOUND_TO_BRANCH_TREASURY; the subtransaction rolled back.
+- Post-test baseline: pos_terminals=1, pos_shifts=1, pos_shift_events=2, cash_box=6, active_treasuries=3, test_orders=0. No test residue remains.
+- No Browser/HTTP E2E or Cloudflare served-artifact parity is claimed.
+
+## Report
+- Report435: doc/Draft/Reprots/Report435_POS_TERMINAL_SESSION_AND_TREASURY_CLOSURE_20261018.md
+- Commit: d863dd1600661ceaf9f90e1055bdb4b91b3158d2
+- Report includes exact owner-only surgical changes to POS and core.js. Do not edit main.html and do not replace either file wholesale.
+
+## Closure
+PRODUCTION CORE REPAIRED / TRANSACTIONAL SQL E2E PASS / BASELINE RESTORED / OWNER SOURCE PATCHES OPEN / BROWSER E2E OPEN / NOT 100% CLOSED.
+
+## Next exact resumption point
+Owner applies Report435 Patches A–F against the exact current POS/core SHA, deploys the POS PWA, and verifies:
+1. An open shift is usable only on the terminal whose terminal_code, terminal_id, and treasury_id match.
+2. POS sends shift_id and device_id; Production writes the cash receipt to that terminal’s treasury.
+3. Only the cashier’s permitted branch is available.
+4. POS checkout/receipt consistently uses the generic cash customer.
+5. Logging out or automatic lock affects the current device session only, not other devices.
+6. Browser/HTTP E2E, served-artifact parity, and zero test residue are proven before claiming full closure.
