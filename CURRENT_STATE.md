@@ -608,3 +608,16 @@ PRODUCTION BACKEND FOUNDATION REPAIRED / OWNER SOURCE PATCH PENDING / HTTP E2E O
 - The public catalog stock join now joins public.branches and requires b.company_id=v_settings.company_id before reading stock_branches, preventing a corrupted cross-company main_branch_id from exposing another company's stock quantities.
 - Fresh Production verification: branch_company_scope=true; get_public_store_catalog('company-1') still returns 16 products. No business rows were created.
 - Report440 updated with this final verification; latest report commit 82bd47ca1e4799f4074df88c252fdd292135ea38.
+
+
+## Current checkpoint — 2026-10-19 — Report441 Storage RLS HR helper ACL repair
+
+- Scope: Production error `permission denied for function hr_user_has_permission` during the system-settings/logo-upload workflow. No changes to `erp-frontend/companies/company-1/main.html` or `erp-frontend/companies/company-1/store/index.html`; no new Edge Function; no business data changed.
+- Fresh Production facts: `public.hr_user_has_permission(uuid,text)` was executable only by `postgres/service_role`; four Storage policies for employee documents directly invoked it. `app_private.current_user_has_permission(text)` is executable by authenticated and evaluates the current user via `auth.uid()`.
+- Production repair applied as migration version `20261018212304`, name `fix_storage_employee_policy_hr_acl_leakage`: updated only `employee_docs_storage_select/insert/update/delete` to use `app_private.current_user_has_permission('hr')`, preserving active-user, company, and employee ownership predicates. The public HR function remains non-executable by `anon/authenticated`.
+- Post-change DB verification: zero Storage policies directly reference `public.hr_user_has_permission`; authenticated can execute the private current-user helper; anon cannot; public HR helper remains unavailable to authenticated/anon. Existing `app_settings` policies and triggers were inspected and left unchanged.
+- Source migration: `supabase/migrations/20261018212304_fix_storage_employee_policy_hr_acl_leakage.sql`, commit `3016d4db7d1ee2fad7f33061163d5e8f0775fe22`.
+- Report: `doc/Draft/Reprots/Report441_STORAGE_RLS_HR_PERMISSION_ACL_FIX_20261019.md`, commit `c0a927dbaeaf0b00b25a407bdcddd5a85265df0c`.
+- Important limitation: Supabase Logs query failed at the backend, and no real browser/HTTP logo upload was executed. Do not mark the user-visible workflow fully closed until owner tests upload + save + reload in browser and confirms 2xx. If 400 persists after the HR permission error disappears, inspect the full Storage response body before changing permissions further.
+- Next exact step: owner performs the six-step HTTP/browser verification in Report441. Do not edit `main.html` or `store/index.html`; do not grant EXECUTE on `public.hr_user_has_permission` to authenticated/anon.
+- Closure: `PRODUCTION POLICY ACL REPAIR APPLIED / DATABASE VERIFIED / HTTP E2E OPEN`.
