@@ -550,3 +550,55 @@ Only the POS no-QR shift-open handoff. Do not edit `main.html`, `pos.html`, or `
 - No Production schema/ACL/business-data changes were applied. No permanent test sale was created. The current automatic treasury was not misclassified or deleted as test residue.
 - Closure: `PRODUCTION CORE/ACL VERIFIED / SQL AUTHENTICATED-SIMULATION PASS / OWNER POS + CORE PATCHES READY / HTTP E2E + SERVED ARTIFACT PARITY OPEN / NOT 100% CLOSED`.
 - Exact next step: owner applies the Report439 surgical changes to the current POS/core files after confirming their SHAs, deploys through the existing frontend route, then tests a valid cashier session, missing/expired session, wrong-user session, local logout on two devices, open shift, cash sale, cash return, and matching `orders.shift_id/device_id` ↔ `pos_shifts.terminal_id/treasury_id` ↔ `cash_box.shift_id/treasury_id`. Recheck Production logs and served Cloudflare artifact before closure.
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-18 — Report440 Online Store Public Catalog / Order Submission
+
+## Scope
+Standalone public store only: papamohammed77-glitch/erp-frontend/companies/company-1/store/index.html. Do not edit that operational HTML or main.html through the assistant; owner applies the surgical changes in Report440. Supabase Production changes were executed directly.
+
+## Fresh current-source and historical evidence
+- Current store HTML SHA: 2d227aa2bbd44df38071313fc0fb848127678f72, 503 lines. Historical rawaie-erp-review/PWA/store/index.html SHA matches; last 10 store-file commits were on 2026-07-21.
+- Current Edge source: Current/Edge_Functions/submit-online-order, Git blob SHA 02dcec1fb0826482a946c597cbb972f11480b4f2; commit 63185a9d3950a4c420181d5143d315fbd377824f.
+- Production submit-online-order v11 ACTIVE, verify_jwt=false, ezbr_sha256 172eff4fccc8bf43f920e9ab8c83dd39aa988a68c9e5b3170ce320138ff31315. v11 preserves valid authenticated parent-system user context and supports guest checkout only through a published storefront.
+- Report440: doc/Draft/Reprots/Report440_ONLINE_STORE_FORENSIC_REPAIR_20261018.md, commit b1b3b48595d48c1bef069749f5f0270d43c42bf8.
+
+## Proven defects and repairs
+- Current store directly queried app_settings/items from an anon browser; RLS policies do not permit anon row reads. Public table grants do not bypass RLS.
+- items has no qty column, while store UI read item.qty. New public RPC returns qty from main-branch stock_branches.available_qty (fallback qty-allocated_qty).
+- Added app_settings.storefront_key/storefront_enabled; current store key is company-1 and is enabled for company 00000000-0000-0000-0000-000000000001.
+- Added public.get_public_store_catalog(text), restricted SECURITY DEFINER, safe public fields only; anon/authenticated EXECUTE is granted on this read-only catalog RPC. Direct table reads remain RLS-governed.
+- Repaired public.submit_online_order_atomic validation loop to read p_cart_items before pricing and scope item lookup by p_company_id.
+- Hidden QA-SR-ITEM-20260927 from public storefront by setting show_in_store=false; the inventory/test record was preserved, not deleted.
+- Canonical migration files and Production migration history align:
+  - supabase/migrations/20261018203420_public_storefront_catalog_and_public_order_contract.sql (version 20261018203420)
+  - supabase/migrations/20261018203424_online_order_core_validation_scope_fix.sql (version 20261018203424)
+
+## Verification
+- get_public_store_catalog under SQL role anon returned store settings + 16 public products and no cost_price.
+- QA-SR-ITEM-20260927 no longer appears in catalog.
+- Transaction-isolated submit_online_order_atomic test: first create succeeded, same operation_id retry returned duplicate=true; outer transaction rolled back.
+- Transaction-isolated duplicate-item test rejected repeated item_code; outer transaction rolled back.
+- No persistent test order was created; baseline orders count before test was 11.
+- Actual HTTP POST/browser E2E could not be run from this environment: outbound DNS/network failed. Do not claim HTTP E2E or served-artifact parity.
+
+## Required owner changes
+Apply only Report440 Patches A–D to the store HTML at the exact SHA above:
+1. Replace Store.init with error-visible initialization.
+2. Replace Store.loadSettings to call get_public_store_catalog('company-1') and populate settings/products.
+3. Replace Store.syncProducts to use the RPC payload and update Dexie cache, not query items directly.
+4. Replace Store.submitOrder to send storefront_key + persisted operation_id and retain the same idempotency key across retry of identical payload.
+Do not replace the whole file and do not edit main.html.
+
+## Open work — do not mark store closed
+- Owner patches A–D are not yet applied to the operational store file.
+- HTTP/browser E2E and Cloudflare served-artifact parity are OPEN.
+- Coupon functionality remains unimplemented end-to-end: coupons table currently has zero rows, lacks company_id, and the order core currently does not apply coupon_code. Do not represent coupon discounts as server-authoritative.
+- Displayed discount/price can differ from resolve_sales_pricing_atomic final pricing; a scoped public quote RPC and confirm-before-create flow remain OPEN.
+- Stock availability is displayed from main branch but the current cart does not enforce available_qty; do not change the established no-reservation-before-runsheet business contract without an explicit cross-module design.
+- Regression test the authenticated RW_OnlineStore consumer in main.html against Edge v11. main.html was not modified.
+
+## Exact next step
+Owner applies Report440 Patches A–D to store/index.html only, deploys the existing frontend artifact, then verifies: public catalog loads, no QA fixture appears, guest checkout creates one Pending online_store order, retry returns the same order for the same operation_id, invalid/duplicate item payload is rejected, and the authenticated parent RW_OnlineStore path still resolves company from the real user JWT. Recheck Production logs, baseline data, and Cloudflare served artifact before closure.
+
+## Closure
+PRODUCTION BACKEND FOUNDATION REPAIRED / OWNER SOURCE PATCH PENDING / HTTP E2E OPEN / COUPON + PRICE QUOTE OPEN / NOT CLOSED.
