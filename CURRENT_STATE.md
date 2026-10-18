@@ -453,7 +453,7 @@ PRODUCTION SALE ROUTING MIGRATION VERIFIED / SHIFT OPEN FAILURE DIAGNOSED TO TER
 # CURRENT FORENSIC CHECKPOINT — 2026-10-18 — Report437 POS Auto Device Treasury / No QR
 
 ## Scope
-POS shift-opening treasury setup only. Production RPC repaired directly; no changes were made to `main.html`, POS HTML, or `core.js`. The owner-only surgical UI patches are in `doc/Draft/Reprots/Report437_POS_AUTO_DEVICE_TREASURY_NO_QR_20261018.md`.
+POS shift-opening treasury setup only. Production RPC repaired directly; no changes were made to `main.html`, POS HTML, or `core.js`. The owner-only surgical UI patches and official Square/Shopify benchmark are in `doc/Draft/Reprots/Report437_POS_AUTO_DEVICE_TREASURY_NO_QR_20261018.md` (latest report commit `0ad51b91f63d59a1c15bfbca5e86ec883b9cd60f`).
 
 ## Fresh Production state after repair
 - Supabase project: `fiilmooggumokxanwiyx`.
