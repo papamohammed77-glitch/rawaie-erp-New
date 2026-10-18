@@ -416,3 +416,35 @@ Owner applies Report435 Patches A–F against the exact current POS/core SHA, de
 4. POS checkout/receipt consistently uses the generic cash customer.
 5. Logging out or automatic lock affects the current device session only, not other devices.
 6. Browser/HTTP E2E, served-artifact parity, and zero test residue are proven before claiming full closure.
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-18 — Report436 POS Device Binding / Local Session Scope
+
+## Scope
+POS device-to-treasury binding and local sign-out scope only. No edits were made to operational pos.html, shared core.js, or main.html. No Production schema/data change was made in this cycle because live evidence shows the shift RPC correctly rejects a device code that does not resolve to the bound terminal.
+
+## Fresh Git evidence
+- Current POS source: papamohammed77-glitch/erp-frontend/companies/company-1/sales/pos.html, blob SHA 962dc6474a9c2692c1072631bd9d09d359d7d982, 2,278 lines.
+- Latest relevant POS source commit: e4876b012f9a00ce785b2d8c899e740102c842e7 (2026-10-18 16:36:40 UTC). It contains the device-shift mismatch guard, allowed-branch filter, and disabled generic-customer selector.
+- Current shared core.js SHA: c2e0a7f4ba11f44c11dfc4728ef4a1af1b256b81. Both signOut calls still omit scope and need the owner-only surgical patch described in Report436.
+- Report435’s POS patches A–E are already present in the current POS source: terminal/shift matching, shift-other-terminal guards, shift_id/device_id on invoice payload, branch allow-list, and generic cash customer. Do not reapply them.
+- Report436: doc/Draft/Reprots/Report436_POS_DEVICE_BINDING_AND_LOCAL_SESSION_SURGICAL_CLOSEOUT_20261018.md, commit cb4fddc691debe206e64f8eb9510e1a7d45af2db.
+
+## Fresh Production evidence — 2026-10-18
+- pos_terminals=1, pos_shifts=1, pos_shift_events=2, pos_shift_cash_counts=8, cash_box=6, treasury=3, orders=10.
+- Existing terminal: ID 6c7e8574-4146-4f45-8633-dd3335d95796, code POS-f79a1587-378c-422d-9bd3-e7231e8864f4, branch BR-01, treasury ID 0a9d9357-b5f3-4dfa-886f-7c73de4f274e (CASH-01 / الخزينة الرئيسية), active.
+- Authenticated user on the failing request is cashier@rawaea.com, active, company 00000000-0000-0000-0000-000000000001, permission pos, allowed branch BR-01.
+- Production log at 2026-10-18T16:39:09.353Z shows pos_open_shift raised SHIFT_TREASURY_SELECTION_REQUIRED. The live function only raises this when it cannot resolve a terminal with a fixed treasury and the fallback sees multiple active treasuries. The request payload does not expose p_terminal_code, so inspect Local Storage on the failing browser and compare rawaea_pos_terminal_code to pos_terminals.terminal_code; do not infer the exact local value.
+- No pos_bind_terminal_treasury call appeared in the selected 16:38–16:41 UTC log window. The same-device QR binding workflow exists in current POS source. The proper action is to bind/verify that device using an authorized parent-system QR workflow, not to weaken the RPC or pick a treasury arbitrarily.
+- Migration pos_terminal_treasury_sale_routing_20261018 version 20261018160955 is present. save_sales_invoice_atomic remains service_role-only; no Edge Function was added. No Production change was made in this cycle.
+- Latest counts differ from older Report435 snapshot; treat the fresh counts above as current. No synthetic production sale or new test data was created by this cycle.
+
+## Exact next actions
+1. Owner: in companies/company-1/core.js at SHA c2e0a7f4ba11f44c11dfc4728ef4a1af1b256b81, replace the signOut() line inside doLogin’s hydrateProfile error branch and the signOut() line inside doLogout with signOut({ scope: 'local' }); complete replacements and exact search anchors are in Report436.
+2. On the device that failed to open a shift, use an authorized parent account to display the target treasury QR, then scan it from that same POS device. If it still fails, read its Local Storage value rawaea_pos_terminal_code and compare it with the live pos_terminals.terminal_code before any further change.
+3. Verify on Production: the current terminal code resolves to the intended active terminal and fixed treasury; pos_open_shift opens the shift; POS sends matching shift_id/device_id on checkout; sale receipt lands in that terminal treasury. Do not create permanent test sales in the live customer dataset.
+4. After owner source change and same-device verification, update this checkpoint with the new source SHA and runtime evidence. No 100% closure claim until browser/HTTP E2E and served-artifact parity are proven.
+
+## Closure
+PRODUCTION SALE ROUTING MIGRATION VERIFIED / SHIFT OPEN FAILURE DIAGNOSED TO TERMINAL RESOLUTION FALLBACK / CURRENT POS PATCHES A–E ALREADY PRESENT / CORE.JS LOCAL SIGN-OUT PATCH READY / BROWSER E2E OPEN / NOT 100% CLOSED.
