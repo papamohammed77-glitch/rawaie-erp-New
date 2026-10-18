@@ -1,22 +1,79 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-const supabase=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
-serve(async(req)=>{
-  const origin=req.headers.get('Origin')||'*'
-  const headers={'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type','Access-Control-Allow-Methods':'POST, OPTIONS','Content-Type':'application/json'}
-  if(req.method==='OPTIONS')return new Response('ok',{headers})
-  try{
-    const body=await req.json().catch(()=>({})),u=body?.user,items=Array.isArray(body?.cartItems)?body.cartItems:[]
-    if(!u?.name||!u?.phone||!u?.area)throw new Error('بيانات العميل غير مكتملة')
-    if(!items.length)throw new Error('السلة فارغة')
-    const ah=req.headers.get('Authorization');if(!ah)throw new Error('غير مصرح')
-    const {data:{user},error:ae}=await supabase.auth.getUser(ah.replace('Bearer ',''))
-    if(ae||!user?.id||!user?.email)throw new Error('جلسة غير صالحة')
-    const {data:row,error:ue}=await supabase.from('users').select('company_id').eq('auth_id',user.id).maybeSingle()
-    if(ue||!row?.company_id)throw new Error('سياق الشركة غير محدد للمستخدم')
-    const cart=items.map((x:any)=>({code:String(x?.code??'').trim(),name:x?.name||'',qty:Number(x?.qty),price:Number(x?.price||0),unit:x?.unit||'حبة'}))
-    const {data,error}=await supabase.rpc('submit_online_order_atomic',{p_company_id:row.company_id,p_customer_name:String(u.name).trim(),p_customer_phone:String(u.phone).trim(),p_customer_area:String(u.area).trim(),p_notes:u.notes||'',p_user_email:user.email,p_cart_items:cart})
-    if(error)throw new Error(error.message)
-    return new Response(JSON.stringify(data),{status:200,headers})
-  }catch(e:any){return new Response(JSON.stringify({success:false,msg:e?.message||e?.error||'فشل إرسال الطلب'}),{status:400,headers})}
-})
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+);
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, idempotency-key, x-storefront-key",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Content-Type": "application/json",
+  "Vary": "Origin"
+};
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: corsHeaders });
+}
+
+serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json({ success: false, msg: "طريقة الطلب غير مدعومة" }, 405);
+
+  try {
+    const body = await req.json().catch(() => ({} as Record<string, unknown>)) as Record<string, any>;
+    const customer = body?.user;
+    const rawItems = Array.isArray(body?.cartItems) ? body.cartItems : [];
+    const storefrontKey = String(body?.storefront_key || req.headers.get("x-storefront-key") || "").trim();
+    const customerName = String(customer?.name || "").trim();
+    const customerPhone = String(customer?.phone || "").trim();
+    const customerArea = String(customer?.area || "").trim();
+    const notes = String(customer?.notes || "").trim();
+
+    if (!customerName || !customerPhone || !customerArea) throw new Error("بيانات العميل غير مكتملة");
+    if (!rawItems.length) throw new Error("السلة فارغة");
+    if (rawItems.length > 100) throw new Error("عدد أصناف الطلب يتجاوز الحد المسموح");
+
+    let storeQuery = supabase.from("app_settings").select("company_id,storefront_key,storefront_enabled").eq("storefront_enabled", true);
+    if (storefrontKey) storeQuery = storeQuery.eq("storefront_key", storefrontKey);
+    const { data: stores, error: storeError } = await storeQuery.limit(2);
+    if (storeError) throw new Error("تعذر التحقق من المتجر المنشور");
+    if (!stores || stores.length === 0) throw new Error("المتجر غير منشور أو مفتاح المتجر غير صالح");
+    if (stores.length !== 1) throw new Error("storefront_key مطلوب عند وجود أكثر من متجر منشور");
+
+    const companyId = stores[0].company_id;
+    const operationId = String(body?.operation_id || req.headers.get("idempotency-key") || "").trim() || crypto.randomUUID();
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidPattern.test(operationId)) throw new Error("operation_id يجب أن يكون UUID صالحًا");
+
+    const cart = rawItems.map((item: any) => ({
+      code: String(item?.code ?? "").trim(),
+      name: String(item?.name ?? "").trim(),
+      qty: Number(item?.qty),
+      price: Number(item?.price ?? 0),
+      unit: String(item?.unit || "حبة").trim()
+    }));
+    if (cart.some((item: any) => !item.code || !Number.isFinite(item.qty) || item.qty <= 0)) {
+      throw new Error("توجد كمية أو بيانات صنف غير صالحة");
+    }
+
+    const { data, error } = await supabase.rpc("submit_online_order_atomic", {
+      p_company_id: companyId,
+      p_customer_name: customerName,
+      p_customer_phone: customerPhone,
+      p_customer_area: customerArea,
+      p_notes: notes,
+      p_user_email: "online-store",
+      p_cart_items: cart,
+      p_operation_id: operationId
+    });
+    if (error) throw new Error(error.message);
+    if (!data || data.success !== true) throw new Error(data?.msg || "تعذر إنشاء الطلب");
+    return json(data, 200);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "فشل إرسال الطلب";
+    return json({ success: false, msg: message }, 400);
+  }
+});
