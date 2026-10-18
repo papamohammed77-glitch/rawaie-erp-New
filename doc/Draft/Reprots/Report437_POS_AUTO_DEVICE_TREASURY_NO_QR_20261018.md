@@ -114,8 +114,7 @@ Migration Production:
             if (message.indexOf('SHIFT_TREASURY_SELECTION_REQUIRED') !== -1 ||
                 message.indexOf('SHIFT_TERMINAL_CONFIGURATION_REQUIRED') !== -1) {
                 message = 'تعذر تهيئة خزينة هذا الجهاز تلقائيًا. لم تُفتح الوردية. أعد المحاولة، وإذا استمر الخطأ فراجع مدير النظام.';
-            } else if (message.indexOf('SHIFT_AUTO_TREASURY_IDENTITY_CONFLICT') !== -1 ||
-                       message.indexOf('POS_AUTO_TREASURY_IDENTITY_CONFLICT') !== -1) {
+            } else if (message.indexOf('POS_AUTO_TREASURY_IDENTITY_CONFLICT') !== -1) {
                 message = 'تعذر التحقق من هوية خزينة الجهاز. لم تُفتح الوردية ولم تُسجل حركة مالية.';
             } else if (message.indexOf('SHIFT_TERMINAL_TREASURY_MISMATCH') !== -1) {
                 message = 'هوية الجهاز مرتبطة بخزينة مختلفة. لم تُفتح الوردية ولم يُغيّر النظام أي ربط مالي.';
