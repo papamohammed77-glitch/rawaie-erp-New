@@ -61,7 +61,7 @@ Unknowns / Unverified:
 - أضيف إلى app_settings: storefront_key وstorefront_enabled.
 - تم نشر المتجر الحالي بمفتاح company-1 للشركة الحالية فقط.
 - أُنشئ RPC: public.get_public_store_catalog(text)، SECURITY DEFINER مع search_path ثابت، ويعيد فقط إعدادات العرض والحقول العامة للمنتجات.
-- الكتالوج يشتق qty من stock_branches للفرع الرئيسي: available_qty أو qty - allocated_qty؛ ولا يكشف cost_price أو company_id أو حقول ERP الحساسة.
+- الكتالوج يشتق qty من stock_branches للفرع الرئيسي: available_qty أو qty - allocated_qty؛ ويثبت الربط بجدول branches أن الفرع يتبع company_id نفسها قبل قراءة الكمية. لا يكشف cost_price أو company_id أو حقول ERP الحساسة.
 - صلاحية EXECUTE ممنوحة لـanon وauthenticated على RPC القراءة العامة المحدود فقط. لم تُفتح قراءة الجداول الأصلية للزوار.
 
 ### 5.2 Order submission
@@ -88,10 +88,12 @@ Unknowns / Unverified:
 الملفات القانونية في Git:
 - supabase/migrations/20261018203420_public_storefront_catalog_and_public_order_contract.sql
 - supabase/migrations/20261018203424_online_order_core_validation_scope_fix.sql
+- supabase/migrations/20261018204024_public_store_catalog_branch_company_scope.sql
 
 Production migration history يثبت:
 - 20261018203420 — public_storefront_catalog_and_public_order_contract
 - 20261018203424 — online_order_core_validation_scope_fix
+- 20261018204024 — public_store_catalog_branch_company_scope
 
 تمت إزالة أسماء الملفات المؤقتة السابقة حتى تتطابق أسماء Git مع migration versions المسجلة.
 
@@ -103,7 +105,8 @@ PASS:
 - الصنف QA-SR-ITEM-20260927 لم يعد ظاهرًا في الكتالوج.
 - اختبار SQL داخل transaction مع ROLLBACK: إنشاء طلب عبر submit_online_order_atomic ثم إعادة نفس operation_id أعاد duplicate=true؛ لم تُترك بيانات دائمة.
 - اختبار SQL داخل transaction مع ROLLBACK: تكرار item_code في السلة رُفض برسالة «لا يجوز تكرار الصنف داخل السلة».
-- تم التحقق من وجود الإصلاحين في تعريف Production الحالي.
+- تم التحقق من وجود إصلاح التحقق وcompany scope في تعريف Production الحالي.
+- تحقق فرع الكتالوج النهائي: branch_company_scope=true، وعدد المنتجات العامة=16.
 - submit_online_order_atomic ما زال EXECUTE لـservice_role فقط؛ لم نفتح RPC الحساس لـanon/authenticated.
 - عدد طلبات Production قبل اختبار rollback كان 11، ولم يُنشأ طلب اختبار دائم.
 - الكتالوج الحالي يعرض 16 منتجًا بعد إخفاء Fixture.
