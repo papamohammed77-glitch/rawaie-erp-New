@@ -727,3 +727,37 @@ Current parent system `erp-frontend/companies/company-1/main.html`, `RW_Orders` 
 - Logs query returned a backend error; no operational conclusion was drawn from logs.
 - Status: `PRODUCTION RPC DEPLOYED + SQL VERIFIED / OWNER UI PATCH REQUIRED / BROWSER E2E OPEN / NO TEST RESIDUE`.
 - Next step: owner applies Report447 patches A–F only to `track.html` against SHA `bca9cddc3977bd4beb164acb811a0c82138a2d70`, deploys the operational app, then performs all tests in section 5 of Report447. Verify served artifact parity and browser Network/Console before claiming end-to-end closure. Do not add a new Edge Function and do not create synthetic Production orders.
+
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-19 — Report448 Store Tracking Single-Identifier Lookup
+
+## Scope
+Only public online-store order tracking. No edits to main.html, store/index.html, or operational track.html were made by the assistant. Production RPC was updated because live evidence confirmed the existing contract required both fields.
+
+## Fresh source and history
+- Current operational page: erp-frontend/companies/company-1/store/track.html, blob SHA b798587e8deccfdd875d70d1eecc0416731f91ad, 245 lines.
+- Latest page commit: 92d7a307f502f9601889acb9d5fccb3c94d4b38c (2026-10-19 19:59 +03).
+- Historical baseline: rawaie-erp-review/PWA/store/track.html, blob SHA bca9cddc3977bd4beb164acb811a0c82138a2d70.
+- Report447 is historical and superseded for the new single-identifier requirement by Report448 below. Its RPC/UI design required both order code and phone, which did not satisfy the owner's latest requirement.
+- The current UI already uses get_public_store_order_tracking and escapes HTML, but Tracker.lookup still rejects a request unless both orderCode and customerPhone are present. The UI remains owner-managed; do not edit it directly.
+
+## Live Production change
+- Supabase project: fiilmooggumokxanwiyx.
+- Migration version: 20261019170525; name store_order_tracking_single_identifier_lookup_20261019.
+- Canonical source: supabase/migrations/20261019170525_store_order_tracking_single_identifier_lookup_20261019.sql, commit bdcf317c24b29ceacc28f6aa5ec35660dfc6ccee.
+- Updated existing RPC only: public.get_public_store_order_tracking(text,text,text). No new Edge Function was created.
+- Contract: order-code-only returns order code/date/status only; phone-only returns up to 10 recent order code/date/status summaries; both matching values return the previous full permitted projection and items. Single-input responses do not return customer name, area, amount, or items.
+- Company resolution still requires exactly one enabled storefront mapping; all reads are scoped to that company and source='online_store'. Phone input must normalize to at least 7 digits.
+- Live SQL E2E using an existing Production online-store order passed for code-only, phone-only, and matching code+phone. Invalid code, no inputs, and invalid storefront were rejected. Checks confirmed no customer name, amount, or items are returned for either single-input mode.
+- Live ACL after change: anon EXECUTE=true, authenticated EXECUTE=true, service_role EXECUTE=false. Function remains SECURITY DEFINER with a narrow projection and company/source constraints.
+- No business data was inserted, updated, or deleted. No test residue was created.
+
+## Owner-only surgical patch and closure
+- Report: doc/Draft/Reprots/Report448_STORE_TRACKING_SINGLE_IDENTIFIER_LOOKUP_20261019.md, commit 654c67b11e42ae4bdfb275b972c5d1a7776669c7.
+- Report448 contains exact changes for current track.html SHA b798587e8deccfdd875d70d1eecc0416731f91ad: update helper text; replace Tracker.lookup; add Tracker.showOrderList; add lookupMode to showStatus and conditionally hide customer/area/amount for single-input lookup.
+- The owner must apply only those surgical changes to track.html, deploy the operational app, and verify the served Cloudflare artifact.
+- Browser E2E, served artifact parity, and actual customer-device behavior remain UNVERIFIED until the owner patch is deployed and tested. Do not claim end-to-end closure based only on SQL.
+- Next exact step: owner applies Report448 patches A-D against the exact SHA above, then tests order-code-only, phone-only, matching code+phone, invalid phone/code, empty inputs, Enter-key handling, HTML escaping, Network calls, and Console. Verify only one RPC is called and no direct orders/order_details reads occur.
+
+## Closure
+PRODUCTION RPC DEPLOYED + LIVE SQL VERIFIED / OWNER UI PATCH READY / BROWSER E2E OPEN / NO TEST RESIDUE.
