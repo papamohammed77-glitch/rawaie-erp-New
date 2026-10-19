@@ -761,3 +761,18 @@ Only public online-store order tracking. No edits to main.html, store/index.html
 
 ## Closure
 PRODUCTION RPC DEPLOYED + LIVE SQL VERIFIED / OWNER UI PATCH READY / BROWSER E2E OPEN / NO TEST RESIDUE.
+
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-19 — Report449 Picker Integration
+
+- Scope: `erp-frontend/companies/company-1/warehouse/picker.html` integration audit only. Assistant did not modify `main.html`, the operational picker file, Production SQL, ACL, Edge Functions, or business data.
+- Current picker source read in full: 925 lines, blob SHA `c7ad267d852d415b680aed7716833eea9bcffdf6`. Historical baseline read: `rawaie-erp-review/PWA/warehouse/picker.html`, SHA `7626ba320021a607854bf219f4bacd81fc3d1d92`. Latest matching picker commit found: `703342f4fadb046388bcdeb826b4911167c96b67` (2026-08-17), which introduced company scoping and `users.auth_id` lookup; preserve this hardening.
+- Fresh Production Edge: `start-picking v34` (`verify_jwt=true`, hash `706840bfe745f2e12b4584ff99dc9d7d6c08a5ef5f35f5afb0a57a684aaa1adf`); `complete-picking v17` (`verify_jwt=true`, hash `eb631b8f3ed33b51847bad5cdf7868eaeada70221cf001ea2bd4c53bc768f1df`); `cancel-picking v4` (`verify_jwt=true`, hash `e8013e0e06dd38503e3bc9c44a62c8b689212b145a9bbb44f45f48d99cdc5c66`); `reopen-picking v8` (`verify_jwt=true`, hash `b095383e169f2c2736a7c71d7505fc10fc9893d428a948199d7ffc420ecfa9e9`).
+- Confirmed defect: current `App.editPickedItem(index)`, line 643, attempts a direct `UPDATE run_sheet_details.qty_picked` and silently ignores the result. Production RLS grants authenticated users SELECT only on `run_sheet_details`, and the table grants contain no authenticated UPDATE. The table is a derived projection maintained by `trg_sync_run_sheet_details` / `sync_run_sheet_details()` from `order_details`. Remove only that direct update line; do not grant UPDATE or replace it with direct `order_details` writes.
+- Two additional source-confirmed read-error gaps: `renderPendingTab()` ignores resolved PostgREST errors in both Promise results, and `openRunsheet()` ignores errors from the runsheet and details reads. Exact guards are in Report449.
+- Core contract verified live: `complete_runsheet_picking(..., p_operation_id uuid DEFAULT NULL)` validates the runsheet/company, calls `reserve_stock`, updates `order_details.qty_picked`, and sets status `Picked`; the trigger refreshes the derived `run_sheet_details` projection. No physical stock movement is expected during picking.
+- Production logs showed a successful authenticated GET of `run_sheet_details` from `https://rawaea-erp.pages.dev/` at `2026-10-19T17:14:26Z`; this does not prove served HTML byte parity or a successful/failing PATCH. Production snapshot contained 2 `Open` runsheets; none were mutated and no test data was created/deleted.
+- No Production change was warranted. No HTTP E2E was run because the only observed open runsheets may be live work and no isolated fixture was proven. Staging/served artifact parity remains open.
+- Report: [Report449_PICKER_FORENSIC_INTEGRATION_AND_SURGICAL_FIX_20261019.md](doc/Draft/Reprots/Report449_PICKER_FORENSIC_INTEGRATION_AND_SURGICAL_FIX_20261019.md), commit `f8056c80acd2231015c926a69565e1205fd3a29d`.
+- Owner next step: apply only Report449 patches A–C to current picker SHA `c7ad267d852d415b680aed7716833eea9bcffdf6`, then run syntax validation and isolated E2E. Do not modify `main.html`; do not grant direct UPDATE on `run_sheet_details`; verify Cloudflare served artifact before closure.
+- Status: `ROOT CAUSE VERIFIED / OWNER SURGICAL PATCHES READY / PRODUCTION UNCHANGED / HTTP E2E + SERVED PARITY OPEN / NOT CLOSED`.
