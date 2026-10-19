@@ -832,3 +832,34 @@ The four `rawaie-erp-New/Current/Edge_Functions/` files now match the deployed P
 3. Run syntax validation, served-artifact parity checks, and isolated authenticated E2E with authorized and denied accounts.
 4. Verify complete picking updates `order_details`, the derived trigger updates `run_sheet_details`, reservation is correct, no physical movement is logged by picking, and cancel/reopen lifecycle remains valid.
 5. Verify no fixture/test residue remains before claiming closure.
+
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-19 — Report451 Picker Production Resync + Idempotent Completion
+
+## Fresh same-session verification
+- Scope: `erp-frontend/companies/company-1/warehouse/picker.html`; no edits to `main.html` or the operational HTML by the assistant.
+- Current picker source re-fetched in full: SHA `c7ad267d852d415b680aed7716833eea9bcffdf6`, 925 lines. No newer picker-specific commit found; latest matching commit remains `703342f4fadb046388bcdeb826b4911167c96b67`.
+- Original baseline: `rawaie-erp-New/Original/PWA/warehouse/picker.html`, SHA `7626ba320021a607854bf219f4bacd81fc3d1d92`, 623 lines.
+- Production SQL was checked at `2026-10-19 18:16:17.823361+00 UTC`.
+- Production Edge objects re-fetched: `start-picking v35`, `complete-picking v18`, `cancel-picking v5`, `reopen-picking v9`; all `verify_jwt=true`. Their `index.ts` content matches the corresponding `rawaie-erp-New/Current/Edge_Functions/` files exactly. Git blob SHAs and Production `ezbr_sha256` values remain distinct identifiers.
+- Production confirms `run_sheet_details` has no authenticated UPDATE grant/policy and is a projection rebuilt by `sync_run_sheet_details()` from `order_details`. Do not grant UI UPDATE and do not write to `order_details` from the PWA.
+- The live Core `complete_runsheet_picking(..., p_operation_id uuid)` supports idempotent replay when the caller sends an operation ID. Current Picker still sends only `runsheet_code` and `items`; this consumer omission is newly recorded in Report451.
+- Production log query returned a backend error; Cloudflare page retrieval was inaccessible through the available web fetch. Do not infer runtime success or served parity.
+- No Production business data, schema, ACL, triggers, Edge functions, or current operational HTML were changed.
+
+## Report451
+- Report: `doc/Draft/Reprots/Report451_PICKER_PRODUCTION_RESYNC_IDEMPOTENT_COMPLETION_20261019.md`
+- Commit: `9d43d981cce914235c078126c558e15a8a961dfc`
+- Report451 freshly reconciles Report449/450 against current Production and confirms the earlier patches remain pending owner application.
+- New Patch E: send and persist a stable UUID `operation_id` / `Idempotency-Key` for `complete-picking`, restore it with the same local draft session, and reset it only when the picked payload changes. This is a consumer-only surgical patch; no new Edge Function or Production schema/ACL change is needed.
+- Legacy 4-argument `complete_runsheet_picking` overload exists but is not executable by `anon/authenticated/service_role`; the current Edge calls the 5-argument overload. No direct SQL caller to the old overload was found in the routine-source scan. Do not drop it as part of this Picker change without a separate full dependency/lineage proof.
+
+## Exact resumption point
+1. Owner applies Report449 patches A–C and Report450 patches A–C against picker SHA `c7ad267d852d415b680aed7716833eea9bcffdf6`, without editing `main.html`.
+2. Apply Report451 Patch E1–E4 to complete the existing idempotency contract. Preserve the Dexie draft save/restore from Report450.
+3. Re-fetch the file after edits; calculate the new SHA and line numbers. Run full JavaScript syntax validation.
+4. Verify Cloudflare served HTML parity, then run authenticated isolated E2E for allowed/denied users, draft recovery, normal completion, same-operation retry, payload-changed new operation, cancel, reopen, reservation, and no physical movement.
+5. Verify Production baseline/test residue before closure. Do not use an Open business runsheet as a fixture.
+
+## Closure
+`PRODUCTION EDGE/CURRENT CONTENT PARITY VERIFIED / OWNER PICKER PATCHES PENDING / IDEMPOTENT CONSUMER PATCH DOCUMENTED / SERVED PARITY + AUTHENTICATED HTTP E2E UNVERIFIED / NOT CLOSED`.
