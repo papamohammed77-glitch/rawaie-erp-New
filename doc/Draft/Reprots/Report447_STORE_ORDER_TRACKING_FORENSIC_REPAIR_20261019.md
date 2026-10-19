@@ -174,7 +174,7 @@ function escapeHtml(value) {
             'Cancelled': 'ملغي',
             'Canceled': 'ملغي'
         };
-        var statusLabel = statusLabels[order.order_status] || escapeHtml(order.order_status || 'غير محدد');
+        var statusLabel = statusLabels[order.order_status] || (order.order_status || 'غير محدد');
 
         var steps = [
             { key: 'Pending', label: 'قيد الانتظار', icon: 'fa-clock' },
@@ -221,6 +221,20 @@ function escapeHtml(value) {
     }
     if (input) input.addEventListener('keydown', submitOnEnter);
     if (phoneInput) phoneInput.addEventListener('keydown', submitOnEnter);
+```
+
+### Patch G — عدم تنفيذ بحث تلقائي قبل إدخال الهاتف
+
+**الموضع:** نهاية `DOMContentLoaded` الحالي، كتلة `var params = new URLSearchParams(window.location.search);` إلى نهاية `if (orderFromUrl)`.  
+بعد إضافة التحقق بالهاتف، لا تستدعِ `Tracker.lookup()` تلقائيًا لأن رقم الهاتف غير موجود في الرابط. استبدل الكتلة بهذا:
+
+```javascript
+    var params = new URLSearchParams(window.location.search);
+    var orderFromUrl = params.get('order');
+    if (orderFromUrl && input) {
+        input.value = orderFromUrl;
+        if (phoneInput) phoneInput.focus();
+    }
 ```
 
 ## 5. الاختبارات المطلوبة بعد تطبيق المالك للتعديل
