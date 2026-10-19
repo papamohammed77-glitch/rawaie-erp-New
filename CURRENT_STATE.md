@@ -655,3 +655,35 @@ PRODUCTION BACKEND FOUNDATION REPAIRED / OWNER SOURCE PATCH PENDING / HTTP E2E O
 - No Production database/schema/RPC/ACL/Edge changes were performed; no test orders were created.
 - Status: `CURRENT SOURCE + PRODUCTION CONTRACT VERIFIED / OWNER PATCHES READY / DEPLOYMENT + BROWSER E2E OPEN`.
 - Exact next step: owner applies Report443 PATCH 0 first (single-line cleanup), then PATCH 1–8 against the exact current main.html SHA, deploys the parent UI, and runs the report's tests for source filtering, operations eligibility, reset, Realtime, sorting, details, and runsheet creation/append. Do not edit the operational store file or change the Production eligibility contract for this UI task.
+
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-19 — Report444 Main Syntax + Store Production Resync
+
+## Scope
+Current parent system `erp-frontend/companies/company-1/main.html`, `RW_Orders` syntax failure, with read-only Production reconciliation for the standalone online store. The assistant did not edit `main.html` or `store/index.html`, and did not modify Production.
+
+## Fresh Git evidence
+- Current `main.html` blob SHA: `ad5360b7eeb8dcbeaefdd54760dccd4111b0fdd6`.
+- Latest commit: `159b3113a14a1f8a23be759b7085fe7ae148ce21`; parent: `ae287de38618d3de46ccbb93470a84b53434b535`.
+- Root cause: commit `159b3113...` inserted `_toggleOperationsOnly: _toggleOperationsOnly,` inside `RW_Orders._refreshData()` rather than inside its returned API object. This causes the current `Unexpected token '}'` parsing error near line 11141.
+- Required owner patch is documented completely in [Report444](doc/Draft/Reprots/Report444_MAIN_RW_ORDERS_TOGGLE_SYNTAX_AND_STORE_PRODUCTION_RESYNC_20261019.md): remove the misplaced line and add the property immediately after `_showWithoutRS: _showWithoutRS,` inside `return { ... }`. Do not rewrite the function or change the approved checkbox source contract.
+- Current store source SHA: `4af4e2f2f7727f84bdad5afb91932d5f7efe2a3e`. The current file contains the Report442 display-quota card/cart logic and refreshes the catalog after checkout.
+- Open store integration gap: current `bodyPayload` does not send a stable `operation_id` or explicit `storefront_key`; Production Edge creates a fresh UUID if no idempotency value is supplied. Retry idempotency across separate client attempts is therefore unproven. Do not silently mark store integration fully closed.
+
+## Fresh Production evidence — project `fiilmooggumokxanwiyx`
+- Checked at `2026-10-19 15:50 UTC`.
+- `submit-online-order`: v11 ACTIVE, `verify_jwt=false`, `ezbr_sha256=172eff4fccc8bf43f920e9ab8c83dd39aa988a68c9e5b3170ce320138ff31315`.
+- `get_public_store_catalog(text)` is a limited public catalog RPC; anon/authenticated can execute this read-only RPC.
+- `submit_online_order_atomic(..., p_operation_id uuid)` remains service_role-only; anon/authenticated execution is false.
+- Current item snapshot: 17 items, 1 item with display quota, 16 active store items.
+- No Production DDL/ACL/Edge changes, no persistent fixtures, and no business rows were created or deleted. SQL logs query failed at backend; do not infer absence of runtime errors from that failure.
+
+## Exact resumption point
+1. Owner applies Report444's two-line relocation to current `main.html`; do not touch the rest of the module.
+2. Run syntax validation, load the parent system, and verify the operations-only button and existing checkbox eligibility.
+3. Reconcile the served Cloudflare artifact and perform browser E2E before closing the UI issue.
+4. Address store retry idempotency in a separate surgical patch to `store/index.html`; persist/reuse one operation UUID for the identical checkout payload and pass the published storefront key, then test retry and duplicate prevention without leaving test orders.
+5. Do not claim Production/browser closure until the relevant runtime evidence exists.
+
+## Closure
+`ROOT CAUSE VERIFIED / OWNER PATCH REQUIRED / PRODUCTION CONTRACT VERIFIED READ-ONLY / STORE RETRY IDEMPOTENCY OPEN / BROWSER E2E OPEN / NOT CLOSED`.
