@@ -903,3 +903,35 @@ PRODUCTION CORE/EDGE VERIFIED / OWNER PATCH SET CONSOLIDATED / OPERATIONAL HTML 
 4. Deploy through the existing deployment path, then prove Cloudflare served artifact parity.
 5. Run authenticated, isolated E2E for draft recovery, normal completion, same-operation retry, changed-payload new operation, cancel/reopen, company/role isolation, projection synchronization, and no physical stock movement during picking.
 6. Restore and verify the test baseline before declaring closure.
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-19 — Report453 Picker Live Resync
+
+## Scope
+Only `erp-frontend/companies/company-1/warehouse/picker.html` integration with the picking lifecycle. `main.html` and the operational Picker file remain owner-controlled and were not edited by the assistant. No Production schema, ACL, Edge Function, or business data was changed in this cycle.
+
+## Fresh current-source evidence
+- Picker current blob SHA: `3f3fab73c30dd2861e43747e6cc774d86739244b`; 51,413 characters / 966 lines.
+- Latest matching commit inspected: `b903c403c8bebf7f98307d22f9c7ca286c72382e` — “Improve error handling and session management in picker”.
+- The latest commit has already applied the earlier Report449 changes: no direct `run_sheet_details` UPDATE remains; `renderPendingTab()` checks both resolved query errors; `openRunsheet()` checks runsheet and detail-read errors.
+- The current source partially implements Report450 draft persistence: it restores a saved Dexie session when `runsheet_id` and server `picker_start` match, and writes the session when opening the active runsheet. It still does **not** persist every quantity/notes edit.
+- The current Picker does **not** mention `operation_id` or `Idempotency-Key`; the completion consumer still sends only `runsheet_code` and `items`.
+- Static current-source scan: direct projection updates=0; pending/runsheet/details read guards=present; `db.session.get`=1; `db.session.put`=1; idempotency mentions=0.
+
+## Fresh Production resync
+- Checked at `2026-10-19 19:59:21.177102+00 UTC`: 2 runsheets, 12 run-sheet detail rows, 57 stock-branch rows. Current runsheets `RS-1` and `RS-2` are both Open with no picker assigned and zero picked quantities; treated as real business data, not test fixtures.
+- Production Edge and `rawaie-erp-New/Current/Edge_Functions` content were compared directly. Exact content parity: `start-picking v35`, `complete-picking v18`, `cancel-picking v5`, `reopen-picking v9`; all `verify_jwt=true`. Production deployment hashes are recorded separately from Git blob SHAs in Report453.
+- Live SQL reconfirmed that the five-argument `complete_runsheet_picking(..., p_operation_id uuid)` is the current service_role-only completion contract; `run_sheet_details` is a derived projection with authenticated SELECT but no UPDATE; `trg_sync_run_sheet_details` rebuilds it from `order_details`.
+- No new Production change is warranted. No production fixture was created or business data modified. Served Cloudflare HTML parity and authenticated HTTP/browser E2E remain unverified.
+
+## Exact remaining owner patches
+Report453: [Report453_PICKER_LIVE_RESYNC_AND_REMAINING_SURGICAL_PATCH_20261019.md](doc/Draft/Reprots/Report453_PICKER_LIVE_RESYNC_AND_REMAINING_SURGICAL_PATCH_20261019.md), commit `0ef311dd9586a23fa450c36ee2597ef167ddc419`.
+
+1. Apply **PATCH 453-A** only: in `App.editPickedItem(index)`, save each edited local session to Dexie and reset the existing `operation_id` only when quantity/notes payload changes.
+2. Apply **PATCH 453-B** only: in `App.completePicking()`, generate/persist a stable UUID before HTTP, and send it as both `operation_id` and `Idempotency-Key`.
+3. Do not reapply Report449 read guards or projection-write removal; they are already present in current source.
+4. Do not edit `main.html`, grant UPDATE on `run_sheet_details`, or write directly to `order_details` from the PWA.
+5. After owner application, refetch current HTML and inspect its new SHA/diff; run JS syntax validation; verify local draft recovery, normal completion, same-operation retry, changed-payload new operation, cancel/reopen, company/role isolation, trigger projection sync, reservation correctness, no physical stock movement during picking, served-artifact parity, and zero test residue. Use an isolated fixture only; do not mutate `RS-1`/`RS-2`.
+
+## Closure
+`CURRENT SOURCE RESYNCED / PRODUCTION EDGE-CORE VERIFIED / TWO OWNER PATCHES REQUIRED / SERVED PARITY + AUTHENTICATED HTTP E2E OPEN / NOT CLOSED`.
+
