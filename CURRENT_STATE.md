@@ -935,3 +935,27 @@ Report453: [Report453_PICKER_LIVE_RESYNC_AND_REMAINING_SURGICAL_PATCH_20261019.m
 ## Closure
 `CURRENT SOURCE RESYNCED / PRODUCTION EDGE-CORE VERIFIED / TWO OWNER PATCHES REQUIRED / SERVED PARITY + AUTHENTICATED HTTP E2E OPEN / NOT CLOSED`.
 
+
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-19 — Report454 Picker Syntax Error
+
+## Scope
+Only the syntax blocker in `erp-frontend/companies/company-1/warehouse/picker.html`. The assistant did not edit `main.html` or the operational Picker HTML; owner applies the surgical source patch.
+
+## Fresh evidence
+- Current Picker blob SHA: `f87c539e32074ae0e586e3ccd7ff2add68cffe1f`.
+- Latest Picker commit: `0c1ea67bc81ee5e001af69d0366de90ede8795f7`; parent: `b903c403c8bebf7f98307d22f9c7ca286c72382e`.
+- The parent commit introduced a multiline string inside single quotes in `App.renderPendingTab()`, in the newly added resolved-query-error branch. That is the direct cause of the parser failure; `App is not defined` is downstream because the inline script never parses.
+- The earlier parent baseline `09f62423b7ad7f455a97467d1f9885dce000afa8` had no such branch.
+- Live Supabase Edge checked: `start-picking v35`, `complete-picking v18`, `start-loading v5`, `complete-loading v11`; all observed with `verify_jwt=true`. Relevant completion/reservation core functions remain service-role-only as observed. No database or Edge change is needed for this JavaScript syntax defect.
+- No source HTML, Production data, SQL, ACL, or Edge deployment was changed. No test fixtures were created.
+
+## Exact resumption point
+1. Open [Report454](doc/Draft/Reprots/Report454_PICKER_SYNTAX_ERROR_ROOT_CAUSE_AND_SURGICAL_PATCH_20261019.md).
+2. In `App.renderPendingTab()`, replace only the malformed error branch with the valid `safeHTML(..., '<div ...>...</div>')` replacement in Report454.
+3. Run a syntax check on the inline JavaScript, deploy via the existing owner-controlled path, and reload with cache disabled.
+4. Verify that `Uncaught SyntaxError` and downstream `App is not defined` disappear; verify login button handlers and both normal/error runsheet-load paths.
+5. Re-fetch the deployed source and record the new blob SHA and browser evidence. Do not change `main.html` or Production schema/RPC/ACL for this UI parse error.
+
+## Closure status
+`ROOT CAUSE PROVEN / SURGICAL PATCH DOCUMENTED / OWNER APPLICATION + SERVED RUNTIME VERIFICATION OPEN / NOT CLOSED`.
