@@ -621,3 +621,23 @@ PRODUCTION BACKEND FOUNDATION REPAIRED / OWNER SOURCE PATCH PENDING / HTTP E2E O
 - Important limitation: Supabase Logs query failed at the backend, and no real browser/HTTP logo upload was executed. Do not mark the user-visible workflow fully closed until owner tests upload + save + reload in browser and confirms 2xx. If 400 persists after the HR permission error disappears, inspect the full Storage response body before changing permissions further.
 - Next exact step: owner performs the six-step HTTP/browser verification in Report441. Do not edit `main.html` or `store/index.html`; do not grant EXECUTE on `public.hr_user_has_permission` to authenticated/anon.
 - Closure: `PRODUCTION POLICY ACL REPAIR APPLIED / DATABASE VERIFIED / HTTP E2E OPEN`.
+
+
+## Current checkpoint — 2026-10-19 — Report442 Online Store Display Quantity
+
+- Scope: owner-applied surgical UI changes only in `erp-frontend/companies/company-1/main.html` and `erp-frontend/companies/company-1/store/index.html`. The assistant did not edit either operational UI file.
+- Fresh source identities:
+  - Parent `main.html`: blob SHA `3f9c6727154b72a742b881ecb3050fc2c9d76305`, 32,747 lines. The item marketing modal has no `store_display_qty` input and the save payload omits it.
+  - Standalone `store/index.html`: blob SHA `d8b3f963e81f64b20e6b70494995fc0ddd2ae3f2`, 523 lines. Its product badge incorrectly uses physical `item.qty` to show “تبقت ... فقط”; cart controls do not cap additions by display quota.
+- Fresh Production evidence:
+  - `items.store_display_qty numeric` exists.
+  - `save-item v15` accepts the field, maps blank to NULL, validates non-negative numeric values, and writes it.
+  - `create_item_with_opening_stock(uuid,jsonb,uuid,numeric,text)` persists the field on creation.
+  - `get_public_store_catalog(text)` returns `store_display_qty`, `store_sold_qty`, and `store_remaining_qty`; remaining is capped at zero and NULL when no display limit is set.
+  - `submit_online_order_atomic(..., uuid)` enforces the quota transactionally and locks requested item rows; direct EXECUTE is denied to anon/authenticated and granted to service_role.
+  - Current company baseline: 17 items, 0 with a display limit, 16 active items shown in store. No data was modified and no persistent fixtures were created.
+- No Production schema/ACL/Edge change is required for this UI task. Do not create a new Edge Function.
+- Exact owner changes, current line numbers, replacements, and post-deploy test plan are in `doc/Draft/Reprots/Report442_ONLINE_STORE_DISPLAY_QUANTITY_SURGICAL_PATCH_20261019.md`, report commit `ab7d551da6a8703e0d97a66f6456d245cac2b7ec`.
+- Required patches: (A) add optional display-quantity input in the item marketing modal; (B) pass blank as NULL and numeric values in the save payload; (C) base the storefront badge only on `store_remaining_qty` when `store_display_qty` is set; (D) enforce the display limit in cart controls; (E) refresh the public catalog after successful checkout.
+- Status: `PRODUCTION BACKEND CONTRACT VERIFIED / OWNER SOURCE PATCHES READY / DEPLOYMENT + HTTP/BROWSER E2E OPEN / NOT CLOSED`.
+- Next exact step: owner applies Report442 patches only after confirming both current SHAs, deploys existing frontend files, then tests blank/unlimited, quota=5, partial orders, exhaustion, cancellation restoration, item create/edit persistence, and the authenticated parent `RW_OnlineStore` consumer. Recheck live Production logs, served-artifact parity, and test-residue cleanup before closure.
