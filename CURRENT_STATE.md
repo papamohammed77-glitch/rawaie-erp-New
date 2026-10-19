@@ -641,3 +641,17 @@ PRODUCTION BACKEND FOUNDATION REPAIRED / OWNER SOURCE PATCH PENDING / HTTP E2E O
 - Required patches: (A) add optional display-quantity input in the item marketing modal; (B) pass blank as NULL and numeric values in the save payload; (C) base the storefront badge only on `store_remaining_qty` when `store_display_qty` is set; (D) enforce the display limit in cart controls; (E) refresh the public catalog after successful checkout.
 - Status: `PRODUCTION BACKEND CONTRACT VERIFIED / OWNER SOURCE PATCHES READY / DEPLOYMENT + HTTP/BROWSER E2E OPEN / NOT CLOSED`.
 - Next exact step: owner applies Report442 patches only after confirming both current SHAs, deploys existing frontend files, then tests blank/unlimited, quota=5, partial orders, exhaustion, cancellation restoration, item create/edit persistence, and the authenticated parent `RW_OnlineStore` consumer. Recheck live Production logs, served-artifact parity, and test-residue cleanup before closure.
+
+
+## Current checkpoint — 2026-10-19 — Report443 Parent Orders Source + Operations Filters
+
+- Scope: owner-applied surgical changes only in `erp-frontend/companies/company-1/main.html`, module `RW_Orders`. The assistant did not edit `main.html`, `store/index.html`, or Production.
+- Current main source: blob SHA `e8c163e1856bc9cd0ca88eff6c2a2fed1b091b36`, 32,749 lines. Current frontend HEAD `16511abe1af392c0e9cb55bc9bd204d23f46e0e3`; parent `3109c5d38fd151c8f3e349add15875cf21713bf9`.
+- Forensic finding: commit `16511abe1af392c0e9cb55bc9bd204d23f46e0e3` changed `main.html` as well as the store. Line 5543 has a duplicated fragment after the badge-text string statement. Remove only that trailing fragment using Report443 PATCH 0 before the other edits.
+- Current RW_Orders filters at lines 10232–10243 include date range, customer, status, area and runsheet; source filter and operations-only toggle are absent. Current eligibility contract is: normalized source in `telesales/tele-sales/order-taker/online-store`, status `Confirmed/Pending`, and no `runsheet_id`.
+- Fresh Production snapshot at `2026-10-19 14:26:33+00`: 12 orders, source counts `online_store=1`, `order-taker=4`, `pos=5`, `telesales=2`. `create-runsheet` v26 and `append-to-runsheet` v8 have `verify_jwt=true`; their atomic RPC contracts enforce the same source/status/branch-link eligibility. Both core RPCs deny EXECUTE to anon/authenticated and allow service_role.
+- Store source: `companies/company-1/store/index.html`, blob SHA `4af4e2f2f7727f84bdad5afb91932d5f7efe2a3e`, 576 lines. It posts to Production `submit-online-order` v11, which writes source `online_store`. No backend or store change is needed for the parent filters.
+- Report443 contains the full owner-applied surgical patches: [Report443_PARENT_ORDERS_SOURCE_AND_OPERATIONS_FILTERS_20261019.md](doc/Draft/Reprots/Report443_PARENT_ORDERS_SOURCE_AND_OPERATIONS_FILTERS_20261019.md), commit `08e224ecc9e1349e50064b6e3cec6e420c24b852`.
+- No Production database/schema/RPC/ACL/Edge changes were performed; no test orders were created.
+- Status: `CURRENT SOURCE + PRODUCTION CONTRACT VERIFIED / OWNER PATCHES READY / DEPLOYMENT + BROWSER E2E OPEN`.
+- Exact next step: owner applies Report443 PATCH 0 first (single-line cleanup), then PATCH 1–8 against the exact current main.html SHA, deploys the parent UI, and runs the report's tests for source filtering, operations eligibility, reset, Realtime, sorting, details, and runsheet creation/append. Do not edit the operational store file or change the Production eligibility contract for this UI task.
