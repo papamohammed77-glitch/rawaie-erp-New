@@ -776,3 +776,59 @@ PRODUCTION RPC DEPLOYED + LIVE SQL VERIFIED / OWNER UI PATCH READY / BROWSER E2E
 - Report: [Report449_PICKER_FORENSIC_INTEGRATION_AND_SURGICAL_FIX_20261019.md](doc/Draft/Reprots/Report449_PICKER_FORENSIC_INTEGRATION_AND_SURGICAL_FIX_20261019.md), commit `f8056c80acd2231015c926a69565e1205fd3a29d`.
 - Owner next step: apply only Report449 patches A–C to current picker SHA `c7ad267d852d415b680aed7716833eea9bcffdf6`, then run syntax validation and isolated E2E. Do not modify `main.html`; do not grant direct UPDATE on `run_sheet_details`; verify Cloudflare served artifact before closure.
 - Status: `ROOT CAUSE VERIFIED / OWNER SURGICAL PATCHES READY / PRODUCTION UNCHANGED / HTTP E2E + SERVED PARITY OPEN / NOT CLOSED`.
+
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-19 — Report450 Picker Server Authorization + Draft Persistence
+
+## Scope
+Only picker integration and its direct server-side security contract. The operational file `erp-frontend/companies/company-1/warehouse/picker.html` and `main.html` were not edited by the assistant. No new Edge Function was created. No Production business rows were changed.
+
+## Fresh source and history
+- Operational picker re-read in full: 925 lines, blob SHA `c7ad267d852d415b680aed7716833eea9bcffdf6`.
+- Historical picker baseline in both review PWA and New/Original: blob SHA `7626ba320021a607854bf219f4bacd81fc3d1d92`.
+- Latest picker-specific commit located: `703342f4fadb046388bcdeb826b4911167c96b67` (2026-08-17). More recent repo commits checked were unrelated to picker.
+- The previous Report449 owner patches remain applicable: exact PostgREST error guards in `renderPendingTab()` and `openRunsheet()`, and removal of the direct `run_sheet_details.qty_picked` update. Do not repeat or broaden those changes.
+
+## Production authorization fix — executed and re-read
+The four existing Production Edge Functions now enforce the database permission model server-side in addition to JWT authentication:
+- direct `public.users.permissions` must contain `warehouse`, or
+- the assigned `public.roles.permissions` must contain `warehouse`, or
+- verified owner exception requires auth metadata `isOwner=true`, direct user permission `*`, and a matching `owner_profile` row.
+- Non-owner users must have `active_warehouse_role='تحضير'`.
+- User/company/status and role/owner lookup errors fail closed.
+- Core RPC grants remain restricted from `anon/authenticated`; Edge → service_role → core boundary is preserved.
+
+| Function | Production version | verify_jwt | Production ezbr_sha256 |
+|---|---:|---|---|
+| `start-picking` | 35 | true | `fca0377fce2d02d52a17bdbbdd98cfe9cc449d052533df0a3b021be11c79914a` |
+| `complete-picking` | 18 | true | `14b4d650253e73abc7c7a1b1f25a8674849c11e32d21ae9928701f19705b0537` |
+| `cancel-picking` | 5 | true | `218052d71120eeab9f83aff045a14e24173dd15f3dafdb4e91978e7dd7bbda01` |
+| `reopen-picking` | 9 | true | `ca69477e935cb78b7f9cebe13940e589c58adcf891ee16e26cc15354c735b3ae` |
+
+The deployed objects were fetched again after deployment and contain the authorization check. Supabase unified-log query failed with a backend error; do not claim log-based runtime E2E.
+
+## Current source provenance synchronized
+The four `rawaie-erp-New/Current/Edge_Functions/` files now match the deployed Production function source:
+- `start-picking`: blob `14188f5d60d70cc4ec214cd27145398979e06403`, commit `0fd979e756b0994e333fb57405da6a1cee938673`.
+- `complete-picking`: blob `be06ac006adc146df46adc893e18105d95c0e9a3`, commit `8f7ca687750e88c265da0b06c625552ee04abef5`.
+- `cancel-picking`: blob `69005b8c8b73baad5d54a9af9e155d45b621014f`, commit `80ff793ccdc120cdaa90a622ed29789167520fa9`.
+- `reopen-picking`: blob `fe7d6f77f1f34ba141f47d6af6e33ac5e8443ac2`, commit `5a8aea2f545e33adbc541fa0f414cef68c01c340`.
+- Historical/Original files remain untouched.
+
+## New source-proven picker findings
+- Line 643 attempts a direct UPDATE to `run_sheet_details.qty_picked` and ignores the response. Production has authenticated SELECT but no authenticated UPDATE on this table.
+- `sync_run_sheet_details()` is triggered by writes to `order_details` and rebuilds `run_sheet_details` as a derived projection. The PWA must not be granted direct UPDATE and must not write directly to `order_details`.
+- Dexie declares a `session` store keyed by `runsheet_code`, but the current PWA never writes a session to it; it only clears the store on cancel/complete. Draft quantities held in memory can therefore be lost on refresh before completion.
+- Report450 contains exact surgical owner patches: remove the ignored write; persist/restore a device-local draft using the existing Dexie store with runsheet id + picker_start session identity; and preserve the Report449 read-error guards.
+
+## Report and closure
+- Report450: `doc/Draft/Reprots/Report450_PICKER_SERVER_AUTHORIZATION_AND_DRAFT_PERSISTENCE_20261019.md`, commit `3a1a46f0a6abf941fee0f9809d141e2dc3bed3fa`.
+- No authenticated HTTP E2E was run; no existing Open runsheet was used as a test fixture. Served Cloudflare HTML parity remains unverified.
+- Status: `PRODUCTION AUTHORIZATION HARDENED / CURRENT EDGE SOURCE SYNCED / OWNER PICKER PATCHES PENDING / HTTP E2E + SERVED PARITY OPEN / NOT CLOSED`.
+
+## Exact resumption point
+1. Owner applies Report449's existing read-error patches plus Report450 patches A–C to picker blob `c7ad267d852d415b680aed7716833eea9bcffdf6`; do not edit `main.html`.
+2. Re-fetch the picker source after changes and recalculate line numbers before any further edit.
+3. Run syntax validation, served-artifact parity checks, and isolated authenticated E2E with authorized and denied accounts.
+4. Verify complete picking updates `order_details`, the derived trigger updates `run_sheet_details`, reservation is correct, no physical movement is logged by picking, and cancel/reopen lifecycle remains valid.
+5. Verify no fixture/test residue remains before claiming closure.
