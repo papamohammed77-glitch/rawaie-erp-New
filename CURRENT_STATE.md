@@ -863,3 +863,43 @@ The four `rawaie-erp-New/Current/Edge_Functions/` files now match the deployed P
 
 ## Closure
 `PRODUCTION EDGE/CURRENT CONTENT PARITY VERIFIED / OWNER PICKER PATCHES PENDING / IDEMPOTENT CONSUMER PATCH DOCUMENTED / SERVED PARITY + AUTHENTICATED HTTP E2E UNVERIFIED / NOT CLOSED`.
+
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-19 — Report452 Picker Consolidated Owner Patch Set
+
+## Scope
+Only erp-frontend/companies/company-1/warehouse/picker.html integration with the runsheet picking lifecycle. The assistant did not edit the operational Picker HTML or main.html. No Production schema, ACL, Edge Function, or business data was changed in this cycle.
+
+## Fresh current evidence — 2026-10-19
+- Current Picker source SHA: c7ad267d852d415b680aed7716833eea9bcffdf6, 925 lines. It still contains the direct run_sheet_details.qty_picked UPDATE and does not yet use db.session.put/get or send operation_id.
+- Historical Original Picker SHA: 7626ba320021a607854bf219f4bacd81fc3d1d92, 623 lines. Preserve current company scoping and public.users.auth_id identity mapping introduced by the relevant historical commit.
+- Production Edge re-read: start-picking v35, complete-picking v18, cancel-picking v5, reopen-picking v9; all verify_jwt=true.
+- Production Edge source matches the corresponding rawaie-erp-New/Current/Edge_Functions/ source exactly. Git blob SHA and ezbr_sha256 are separate identifiers.
+- SQL checked at 2026-10-19 19:21 UTC: five-argument complete_runsheet_picking(..., p_operation_id uuid) is executable by service_role only; four-argument overload is not executable by anon/authenticated/service_role. reserve_stock is protected from anon/authenticated.
+- run_sheet_details and order_details have RLS enabled; authenticated SELECT=true and UPDATE=false. trg_sync_run_sheet_details runs on order_details INSERT/UPDATE/DELETE and maintains the derived projection.
+- Supabase logs show OPTIONS 200 and GET 200 for run_sheet_details from https://rawaea-erp.pages.dev/ at 2026-10-19T17:14:26Z. This is read evidence only, not a completion E2E or proof of Cloudflare served-byte parity.
+- No Production business data or fixture was created, deleted, or changed. Existing open runsheets were not used as test data.
+
+## Consolidated owner changes
+Report452 consolidates Report449 patches A-C, Report450 local Dexie draft persistence, and Report451 operation-idempotency E1-E4 into a single ordered surgical set:
+1. Remove the direct update to run_sheet_details.
+2. Add resolved-error guards in renderPendingTab() and openRunsheet().
+3. Save/restore the local draft only when runsheet_id and server picker_start identity match.
+4. Clear operation_id when quantity/notes payload changes and persist the changed draft.
+5. Generate a UUID once per completion payload, persist it before HTTP, send it in body and Idempotency-Key, and restore it with the same draft session.
+
+## Report
+- doc/Draft/Reprots/Report452_PICKER_449_451_CONSOLIDATED_SURGICAL_INTEGRATION_20261019.md
+- Report452 commit: bb688eb34316c9a9189c694e58e8c28228fc90eb
+- No Production deployment or data change was required by the verified evidence.
+
+## Closure status
+PRODUCTION CORE/EDGE VERIFIED / OWNER PATCH SET CONSOLIDATED / OPERATIONAL HTML UNCHANGED / SERVED PARITY + HTTP E2E OPEN / NOT CLOSED.
+
+## Exact resumption point
+1. Re-fetch erp-frontend/companies/company-1/warehouse/picker.html and confirm its SHA before applying Report452.
+2. Owner applies the six consolidated patches only; do not edit main.html and do not grant authenticated UPDATE on run_sheet_details.
+3. Re-fetch the file, inspect the resulting diff, run full JavaScript syntax validation, and verify no direct projection UPDATE remains.
+4. Deploy through the existing deployment path, then prove Cloudflare served artifact parity.
+5. Run authenticated, isolated E2E for draft recovery, normal completion, same-operation retry, changed-payload new operation, cancel/reopen, company/role isolation, projection synchronization, and no physical stock movement during picking.
+6. Restore and verify the test baseline before declaring closure.
