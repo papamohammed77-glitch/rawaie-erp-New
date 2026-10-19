@@ -687,3 +687,15 @@ Current parent system `erp-frontend/companies/company-1/main.html`, `RW_Orders` 
 
 ## Closure
 `ROOT CAUSE VERIFIED / OWNER PATCH REQUIRED / PRODUCTION CONTRACT VERIFIED READ-ONLY / STORE RETRY IDEMPOTENCY OPEN / BROWSER E2E OPEN / NOT CLOSED`.
+
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-19 — Report445 Store Idempotency + Parent Orders Resync
+
+- Scope: current online store consumer and parent RW_Orders source/filter behavior. No operational HTML files were modified; no Production schema, ACL, Edge, RPC, or business data was changed.
+- Current parent `main.html` blob SHA: `1b38c60ff38d439d429474b17ff54b5b169c07b4`. Commit `1a60b404e1d3c9e2769036618bebf3c66947d1f1` corrected the misplaced `_toggleOperationsOnly` export by moving it from `_refreshData()` into the RW_Orders return object. The source filter and operations-only logic added by `159b3113a14a1f8a23be759b7085fe7ae148ce21` are present in the commit diff. Browser/runtime and served-artifact parity remain unverified.
+- One unrelated malformed duplicate fragment remains in the marketing badge-text line introduced by commit `16511abe1af392c0e9cb55bc9bd204d23f46e0e3`; Report445 supplies the one-line owner replacement. Do not rewrite the marketing modal.
+- Current store `companies/company-1/store/index.html` SHA: `4af4e2f2f7727f84bdad5afb91932d5f7efe2a3e`, 576 lines. `loadSettings` still calls `get_public_store_catalog` with `p_storefront_key: null`; `submitOrder` sends neither `storefront_key` nor a stable `operation_id`.
+- Fresh Production read at `2026-10-19 16:13 UTC`: storefront key `company-1` is enabled for company `00000000-0000-0000-0000-000000000001`; `submit-online-order` v11 ACTIVE, `verify_jwt=false`, hash `172eff4fccc8bf43f920e9ab8c83dd39aa988a68c9e5b3170ce320138ff31315`. Edge generates a fresh UUID when no operation ID is provided. Core `submit_online_order_atomic(..., p_operation_id uuid)` is service_role-only; anon/authenticated direct execute is denied. No backend change is needed for this client defect.
+- Production order snapshot: 12 total; `pos=5`, `telesales=2`, `order-taker=4`, `online_store=1`. No test orders were created/deleted. No records were deleted as “test” without provenance.
+- Report445: `doc/Draft/Reprots/Report445_STORE_IDEMPOTENCY_AND_PARENT_ORDERS_FORENSIC_RESYNC_20261019.md`. It includes exact surgical changes: (A) remove the duplicated badge-text fragment from main.html; (B) use explicit `company-1` key for catalog lookup; (C) persist/reuse a SHA-256 fingerprint-bound operation UUID, pass storefront key/idempotency header to the existing Edge, and clear the pending key only when the current success flow clears the cart.
+- Exact next step: owner applies only Report445 changes after confirming current SHAs; then run syntax validation, parent filter browser tests, isolated retry/duplicate E2E, and served-artifact parity checks. Do not create Production fixtures. Closure remains `OWNER PATCHES READY / PRODUCTION CONTRACT VERIFIED READ-ONLY / BROWSER + HTTP E2E OPEN / NOT CLOSED`.
