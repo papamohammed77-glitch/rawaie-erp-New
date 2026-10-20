@@ -998,3 +998,19 @@ Only the syntax blocker in `erp-frontend/companies/company-1/warehouse/picker.ht
 - **No test data:** no fixtures or business rows were created/deleted; this front-end validation defect does not require production data changes.
 - **Closure status:** `ROOT CAUSE PROVEN / PRODUCTION RPC GUARD VERIFIED / OWNER PATCH READY / OWNER APPLICATION + SERVED ARTIFACT + BROWSER E2E OPEN`. Do not claim full closure until owner applies the patch and browser tests pass.
 - **Next exact step:** owner replaces only the `preConfirm` block specified in Report456 against current source SHA `13f0b5337749e5796774028989f92ffe95e5667b`; then refetch source, validate syntax, deploy through the existing owner-controlled path, and test exact/under/over/negative/fractional values in the served browser. Confirm correct completion through the existing Edge/RPC contract without creating synthetic Production orders.
+
+
+---
+
+## Current checkpoint — 2026-10-20 — Report423 Picker Over-Quantity Validation
+
+- **Scope:** only `papamohammed77-glitch/erp-frontend/companies/company-1/warehouse/picker.html`. The owner remains responsible for applying any operational-app edits. No change was made to `picker.html` or `main.html` by the assistant.
+- **Fresh Current Git:** `picker.html` blob SHA `55d84b1a95a425597520b007af999315be7bcae6`.
+- **Latest relevant commit:** `67748842e6030c81ab8a2046b197f256d53a9c75`, “Improve quantity input validation in picker.html”, 2026-10-20. Its diff removes the silent clamp `Math.max(0, Math.min(parseInt(...), it.qty_ordered))` and validates the numeric input in `App.editPickedItem(index).preConfirm`; invalid/over-order quantities show `Swal.showValidationMessage` and return `false`.
+- **Finding:** the core defect (silently accepting an over-quantity by clamping it to the ordered quantity) is fixed in Current Git. Do not reapply or replace the function.
+- **UX distinction:** over-quantity is rejected before save inside the quantity modal; shortage is a valid lower quantity and prompts for a reason after save. Forcing the same post-save flow on over-quantity would be incorrect. Exact visual equivalence has not been implemented or browser-tested; if the owner still requires literal visual matching, treat it as a separate presentation-only change while retaining the pre-save rejection.
+- **Production:** Supabase was inspected read-only; no schema, RPC, ACL, Edge Function, or business data was changed. The live `complete-picking` Edge Function was observed at v18 with `verify_jwt=true`; that does not prove which HTML artifact is served.
+- **Test status:** static source logic inspected; hosted HTML deployment and browser E2E remain UNVERIFIED. Required owner test: requested qty 5 / enter 6 → rejection, modal stays open, no local qty mutation; enter 5 → save; enter 3 → existing shortage prompt; empty/decimal/negative → reject; verify no test residue.
+- **Report:** [Report423_PICKER_OVERQUANTITY_VALIDATION_FORENSIC_REVIEW_20261020.md](doc/Draft/Reprots/Report423_PICKER_OVERQUANTITY_VALIDATION_FORENSIC_REVIEW_20261020.md), commit `2547d2aab3b0ff739da89291d5dbad1067c9897c`.
+- **Closure status:** `CURRENT SOURCE FIX VERIFIED / NO ADDITIONAL SOURCE CHANGE / PRODUCTION HTML + BROWSER E2E UNVERIFIED`.
+- **Next exact step:** owner confirms that commit `67748842e6030c81ab8a2046b197f256d53a9c75` is deployed to the hosted picker, performs the listed browser tests, and records runtime evidence. Do not touch `main.html` or create a backend change for this UI-only issue.
