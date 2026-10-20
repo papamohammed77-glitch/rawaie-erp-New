@@ -970,3 +970,16 @@ Only the syntax blocker in `erp-frontend/companies/company-1/warehouse/picker.ht
 - **Production/Supabase:** no DB, RPC, Edge Function, ACL, or data change was indicated or performed; this is a presentation-only defect. No fixture or synthetic business data was created.
 - **Verification status:** source diagnosis and exact replacement text documented. Owner must apply the two image-line replacements and modal width adjustments, then test square/portrait/landscape images, missing/broken image fallback, save/reopen quantity and notes, and 360px mobile layout. No browser E2E or deployed Production parity is claimed.
 - **Closure:** `SURGICAL PATCH READY / OWNER APPLY + BROWSER VERIFICATION OPEN`.
+
+
+## Current checkpoint — 2026-10-20 — Report455 Picker editPickedItem Syntax Error
+
+- Scope: only `erp-frontend/companies/company-1/warehouse/picker.html`. The owner applies the source edit; do not edit `main.html` or the operational HTML through the assistant.
+- Fresh current source blob: `12e74e484702598b28a2234734fa7dc92db4101e`, 1,004 lines / 52,798 characters.
+- Latest commit: `f99c9bca6a0caeeb933880c1de80185db27d1a0d` (2026-10-20 14:07 UTC), parent `15da299daa62262a7a365f58ca5ed118f905c2a7`. Parent blob `b85e81ef1303e6abbb086fa35acdf84bf9638075` had a valid `title` property.
+- Root cause: current `App.editPickedItem(index)`, lines 682–683, leaves `title:` without a value and places `width:` where the title value should be. This causes a parser error; `App is not defined` is downstream.
+- Exact owner patch and tests: [Report455_PICKER_EDIT_ITEM_SYNTAX_FIX_20261020.md](doc/Draft/Reprots/Report455_PICKER_EDIT_ITEM_SYNTAX_FIX_20261020.md), report commit `5e3e570e17c09dad16b73ad885e1a48bcc62b2d6`.
+- Production was inspected: `start-picking v35`, `verify_jwt=true`, hash `fca0377fce2d02d52a17bdbbdd98cfe9cc449d052533df0a3b021be11c79914a`. Its identity lookup uses `users.auth_id = auth.users.id`; no Supabase/DB/ACL/Edge change is indicated for this frontend syntax defect.
+- No operational HTML, `main.html`, database, or Production data was modified; no fixtures were created.
+- Closure: `ROOT CAUSE PROVEN / OWNER PATCH DOCUMENTED / OWNER APPLICATION + SYNTAX CHECK + SERVED HTML + BROWSER E2E OPEN / NOT CLOSED`.
+- Next exact step: owner replaces only the malformed two-line `title/width` fragment in `App.editPickedItem(index)` with the Report455 replacement. Then refetch the source, run syntax validation, deploy through the existing owner-controlled path, and verify the served artifact/browser. Do not reapply Report454's older unrelated syntax fix.
