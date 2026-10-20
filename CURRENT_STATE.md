@@ -959,3 +959,14 @@ Only the syntax blocker in `erp-frontend/companies/company-1/warehouse/picker.ht
 
 ## Closure status
 `ROOT CAUSE PROVEN / SURGICAL PATCH DOCUMENTED / OWNER APPLICATION + SERVED RUNTIME VERIFICATION OPEN / NOT CLOSED`.
+
+## Current checkpoint — 2026-10-20 — Report422 Picker Product Image Preview
+
+- **Scope:** only `erp-frontend/companies/company-1/warehouse/picker.html`; owner applies the UI edits. No edit was made to `picker.html` or `main.html` by the assistant.
+- **Current source:** GitHub blob SHA `b85e81ef1303e6abbb086fa35acdf84bf9638075`, 1,003 lines. Last matching recent commit found: `15da299daa62262a7a365f58ca5ed118f905c2a7` (2026-10-19, “Refactor error handling in picker.html”). The source was read around `App.showItemDetail()` and `App.editPickedItem()`.
+- **Root cause:** preview image uses `h-48 object-cover` in `showItemDetail` and a small `w-20 h-20 object-cover` image in `editPickedItem`; modal width is 380px in the first path. The list thumbnail `App._img()` is intentionally small and must not be changed.
+- **Owner surgical change report:** [Report422_PICKER_PRODUCT_IMAGE_PREVIEW_SURGICAL_CHANGE_20261020.md](doc/Draft/Reprots/Report422_PICKER_PRODUCT_IMAGE_PREVIEW_SURGICAL_CHANGE_20261020.md), commit `d7a4dc36acce0e1afec4822472a1d06ccc517357`.
+- **Proposed patch:** enlarge the preview to 320px high and the picking-entry image to 288px high, use `object-contain` to avoid cropping packaging, and make both modal widths responsive up to 560px. Keep all picking quantity, notes, session persistence, and operation-id behavior unchanged.
+- **Production/Supabase:** no DB, RPC, Edge Function, ACL, or data change was indicated or performed; this is a presentation-only defect. No fixture or synthetic business data was created.
+- **Verification status:** source diagnosis and exact replacement text documented. Owner must apply the two image-line replacements and modal width adjustments, then test square/portrait/landscape images, missing/broken image fallback, save/reopen quantity and notes, and 360px mobile layout. No browser E2E or deployed Production parity is claimed.
+- **Closure:** `SURGICAL PATCH READY / OWNER APPLY + BROWSER VERIFICATION OPEN`.
