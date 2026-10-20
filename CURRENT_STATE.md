@@ -1014,3 +1014,18 @@ Only the syntax blocker in `erp-frontend/companies/company-1/warehouse/picker.ht
 - **Report:** [Report423_PICKER_OVERQUANTITY_VALIDATION_FORENSIC_REVIEW_20261020.md](doc/Draft/Reprots/Report423_PICKER_OVERQUANTITY_VALIDATION_FORENSIC_REVIEW_20261020.md), commit `2547d2aab3b0ff739da89291d5dbad1067c9897c`.
 - **Closure status:** `CURRENT SOURCE FIX VERIFIED / NO ADDITIONAL SOURCE CHANGE / PRODUCTION HTML + BROWSER E2E UNVERIFIED`.
 - **Next exact step:** owner confirms that commit `67748842e6030c81ab8a2046b197f256d53a9c75` is deployed to the hosted picker, performs the listed browser tests, and records runtime evidence. Do not touch `main.html` or create a backend change for this UI-only issue.
+
+
+---
+
+## Current checkpoint — 2026-10-20 — Report457 Picker Over-Quantity Alert Parity
+
+- **Scope:** only owner-applied UI changes in `erp-frontend/companies/company-1/warehouse/picker.html`, function `App.editPickedItem(index)`. Assistant did not edit/deploy `picker.html` or `main.html`.
+- **Fresh current source:** blob SHA `55d84b1a95a425597520b007af999315be7bcae6`, 1,030 lines. Latest relevant frontend commit `67748842e6030c81ab8a2046b197f256d53a9c75` removed silent clamping and added explicit numeric validation. Preserve that correction.
+- **Fresh Production:** `complete-picking` is ACTIVE v18, `verify_jwt=true`, `ezbr_sha256=14b4d650253e73abc7c7a1b1f25a8674849c11e32d21ae9928701f19705b0537`. It calls `complete_runsheet_picking(..., p_operation_id)`. Live `public.complete_runsheet_picking(uuid,text,text,jsonb,uuid)` rejects `picked_qty > total_qty` before reservation and order-detail updates; ACL remains anon=false, authenticated=false, service_role=true.
+- **Root cause:** current UI rejects over-quantity inside `preConfirm` with an inline validation message, while shortage opens a separate SweetAlert2 question modal after saving. The current request is to make the excess warning visually/interaction-wise similar to the shortage warning without permitting the invalid quantity to persist.
+- **Report457:** [Report457_PICKER_OVERQUANTITY_ALERT_PARITY_20261020.md](doc/Draft/Reprots/Report457_PICKER_OVERQUANTITY_ALERT_PARITY_20261020.md), commit `a900d64f3ab6c2ab7d880a5387665123ed857d23`. It specifies two surgical owner changes: preserve integer/non-negative validation but remove the inline max rejection from `preConfirm`; insert a pre-persistence overage guard in the confirmed branch that shows a standalone question modal and returns before mutating session state, resetting `operation_id`, or writing IndexedDB. “Correct” reopens the editor; “Cancel” preserves the prior value.
+- **Production changes:** none required or applied. Do not relax the RPC guard or alter stock/business data for this presentation issue.
+- **Verification:** source and Production contract reviewed. The proposed patch is not applied/deployed; browser E2E, Cloudflare-served artifact parity, and post-deploy draft/idempotency checks remain UNVERIFIED. No test data was created.
+- **Closure:** `ROOT CAUSE VERIFIED / OWNER SURGICAL PATCH READY / PRODUCTION UNCHANGED / BROWSER E2E + SERVED ARTIFACT PARITY OPEN`.
+- **Next exact step:** owner verifies picker SHA `55d84b1a95a425597520b007af999315be7bcae6`, applies only Report457 patches A and B, deploys through the existing frontend route, tests over/exact/under/empty/fractional/negative quantities, confirms over-quantity never changes local session or `operation_id`, then records the served artifact identity and browser results. Do not edit `main.html`, add an Edge Function, or change the Production quantity contract.
