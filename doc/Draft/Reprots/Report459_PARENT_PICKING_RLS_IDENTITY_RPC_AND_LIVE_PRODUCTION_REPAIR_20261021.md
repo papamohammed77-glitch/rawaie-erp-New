@@ -61,8 +61,8 @@ supabase.from('users')
 - لا تنشئ Edge Function جديدة، ولا تغير جداول المخزون أو كميات التحضير أو RPCs التجارية.
 
 **Canonical migration:**  
-`supabase/migrations/20261021143000_picking_display_users_read_rpc.sql`  
-**Git commit:** `42cb8bd275b92521928c892a793d1c5072824b14`  
+`supabase/migrations/20261021143458_picking_display_users_read_rpc.sql`  
+**Migration-file commit:** `a8b316efdae5d81adef7ed0607645c31c4af92ec` (canonical filename aligned to the applied Production version `20261021143458`; the superseded filename was removed in commit `d9802c14ed1c0777ea47056207fedcf73ca42c7d`).  
 **Production migration:** تطبيق ناجح عبر Supabase Migration API.
 
 ### اختبارات Production المنفذة
