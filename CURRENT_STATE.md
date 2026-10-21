@@ -1139,3 +1139,18 @@ Only the syntax blocker in `erp-frontend/companies/company-1/warehouse/picker.ht
 - **Report464:** `doc/Draft/Reprots/Report464_PARENT_PICKING_FRESH_PRODUCTION_RESYNC_20261021.md`, commit `1bacf5ae76467348e323f6fcf8b7f2ee6c6c2597`.
 - **No code patch justified now:** if RS-1 still shows zero in browser, capture the exact authenticated Network response for `run_sheet_details` plus the served HTML identity before editing. Do not reapply Report458/459/461 patches. For RS-2, record actual shortage (picked=0 + note) or receive genuine physical stock through the canonical stock-movement flow, then retry.
 - **Closure:** `CURRENT PRODUCTION DATA + STOCK REJECTION ROOT CAUSE VERIFIED / NO NEW CODE CHANGE JUSTIFIED / SERVED HTML PARITY + BROWSER E2E UNVERIFIED`.
+
+
+---
+
+## Current checkpoint — 2026-10-21 — Report465 Picker Reservation Shortage
+
+- Scope: `erp-frontend/companies/company-1/warehouse/picker.html` / `complete-picking` HTTP 400. The operational app and `main.html` were not edited by the assistant.
+- Fresh Production Edge: `complete-picking` ACTIVE v18, `verify_jwt=true`, deployment hash `14b4d650253e73abc7c7a1b1f25a8674849c11e32d21ae9928701f19705b0537`.
+- Current picker source blob SHA: `ffe18d4483ee074230e32b1c96f60507e5876a4b`.
+- Root cause verified from live Production: `RS-1` is `Picked` and holds the one available unit of item `1008` (مصاصة 2ج); `RS-2` is still `Picking` and requests another unit. Main branch stock is `qty=1, allocated_qty=1, available_qty=0`. The rejection is correct; do not bypass `reserve_stock`, alter allocations manually, or fake stock.
+- Production migration `picking_reservation_diagnostic_contract_20261021` applied. `reserve_stock` now reports item code, requested quantity, and available quantity when rejecting an insufficient reservation. This changes diagnostics only, not stock behavior.
+- Isolated SQL negative test passed: request for item 1008 quantity 1 at available 0 returned the expected detailed diagnostic. Post-test stock remained `qty=1, allocated_qty=1, available_qty=0`; no business data changed.
+- Artifacts: migration `supabase/migrations/20261021_picking_reservation_diagnostic_contract.sql`; report `doc/Draft/Reprots/Report465_PICKER_RESERVATION_SHORTAGE_FORENSIC_20261021.md`.
+- Owner-only surgical UI change is specified in Report465: replace only the final catch handler inside `App.completePicking` so a reservation shortage opens a persistent, actionable dialog rather than a short toast. Do not edit `main.html` or the operational app through the assistant.
+- Closure: `ROOT CAUSE + PRODUCTION DIAGNOSTIC VERIFIED / STOCK INTEGRITY PRESERVED / OWNER UI PATCH + BROWSER E2E OPEN`. Do not claim 100% closure. Resolve RS-2 according to physical reality: record actual shortage (picked quantity 0 plus reason) or receive real stock through the canonical stock-movement flow.
