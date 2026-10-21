@@ -1060,3 +1060,17 @@ Only the syntax blocker in `erp-frontend/companies/company-1/warehouse/picker.ht
 - **Open verification:** owner applies the surgical HTML change and deploys; then validate source syntax, served HTML identity, picker name/timestamps/reason aggregation, RS-1 details quantities, RS-2 zero-before-picking, and company isolation in browser. If RS-1 still displays zero, capture the actual Network response and served asset before any Core change. Browser E2E and served-artifact parity are not yet proven.
 - **Closure:** `PRODUCTION IDENTITY RPC VERIFIED / OWNER HTML PATCH REQUIRED / SERVED HTML + BROWSER E2E OPEN / NOT CLOSED`.
 - **Next exact task:** apply only Report459's replacement block against the current `main.html` source after re-fetching its current SHA, deploy through the owner-controlled path, and record actual browser/Network evidence.
+
+
+## Current checkpoint — 2026-10-21 — Report460 Parent Picking Current-Source Resync
+
+- Scope: parent Picking integration only in `papamohammed77-glitch/erp-frontend/companies/company-1/main.html`. Assistant did not edit `main.html`, `warehouse/picker.html`, Production SQL, ACL, Edge Functions, or business data.
+- Fresh GitHub fetch reports current `main.html` blob SHA `60c83c51be5aa24993a01fe5e148c4bd247ccca6`, but the connector returned an empty body, including for line-range requests. Do not claim a full-body read or reuse prior line numbers.
+- Live Supabase Edge inventory confirms `start-picking v35` and `complete-picking v18` are ACTIVE with `verify_jwt=true`. This does not establish current SQL function/ACL state.
+- A fresh read-only SQL check was attempted but rejected by the tool safety layer. Current SQL RPC/ACL/data verification is therefore UNVERIFIED in this session. Report459's successful RPC tests and migration application remain historical evidence only until live SQL can be queried again.
+- Canonical migration is present in Git: `supabase/migrations/20261021143458_picking_display_users_read_rpc.sql`. No new migration or Production mutation was performed.
+- Report460: `doc/Draft/Reprots/Report460_PARENT_PICKING_CURRENT_SOURCE_RESYNC_20261021.md`, commit `c36574120c9faa29293b4d8ececfc2b5fa7dfc95`. It documents the exact owner-only replacement from direct `public.users` lookup to `supabase.rpc('get_picking_display_users', {p_picker_ids: pickerIds})`, plus a checklist to verify Report458's columns, notes, status rendering and details behavior without reapplying already-present patches.
+- Do not reapply Report458/459 patches blindly. Owner must re-fetch current source, match the exact block, apply only if still present, deploy, then verify served HTML and browser behavior.
+- No production test data was created or deleted. Rows cannot be deleted as fixtures without current evidence of their ownership and disposable status.
+- Closure: `CURRENT SOURCE SHA OBSERVED / SOURCE BODY UNAVAILABLE / EDGE INVENTORY OBSERVED / LIVE SQL + SERVED HTML + BROWSER E2E UNVERIFIED / NOT CLOSED`.
+- Next step: regain read-only SQL access; verify `get_picking_display_users(uuid[])` definition and ACL plus current runsheet/quantity/note data. In parallel, owner checks current `main.html` SHA and applies only the matching surgical replacement if absent, deploys, and captures served artifact + Network evidence. Do not change stock/picking core based only on a UI symptom.
