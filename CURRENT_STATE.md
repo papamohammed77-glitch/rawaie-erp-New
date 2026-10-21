@@ -1124,3 +1124,18 @@ Only the syntax blocker in `erp-frontend/companies/company-1/warehouse/picker.ht
 - Report463: `doc/Draft/Reprots/Report463_PARENT_PICKING_LIVE_RESYNC_AND_QUANTITY_DIAGNOSIS_20261021.md`.
 - Closure: `CURRENT GIT + LIVE PRODUCTION QUANTITIES + STOCK-REJECTION ROOT CAUSE VERIFIED / NO NEW SURGICAL CHANGE JUSTIFIED / SERVED HTML + BROWSER E2E OPEN`.
 - Next step: do not reapply Report458/459/461 changes. Resolve RS-2 only according to actual physical stock/shortage; if RS-1 UI still misreports quantities, capture Network response and served HTML identity.
+
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-21 — Report464 Picking Production Recheck
+
+- **Scope:** parent Picking display/quantity concern and current `complete-picking` HTTP 400. Owner-controlled `erp-frontend/companies/company-1/main.html` and `warehouse/picker.html` were not modified. No Production schema/RPC/Edge/business-data writes were performed.
+- **Fresh Production read:** at `2026-10-21 15:52:37.687084+00 UTC`, RS-1 = `Picked`, 11 detail lines, ordered 14, picked 13, loaded 0; RS-2 = `Picking`, 9 detail lines, ordered 9, picked 0, loaded 0. The zero is currently RS-2, which has not completed; this does not reproduce a zero for RS-1.
+- **Stock root cause remains current:** item `1008` in main branch `BR-01` has qty=1, allocated=1, available=0. RS-1 already holds the available unit. Production logs show `insufficient available stock for reservation` inside `reserve_stock` called by `complete_runsheet_picking`; the HTTP 400 is a correct business guard, not a reason to bypass reservation.
+- **Current Production Edge:** `complete-picking` v18 ACTIVE, `verify_jwt=true`, deployment SHA `14b4d650253e73abc7c7a1b1f25a8674849c11e32d21ae9928701f19705b0537`.
+- **Core sync:** `trg_sync_run_sheet_details` fires after INSERT/UPDATE/DELETE on `order_details`; `sync_run_sheet_details()` aggregates `sum(qty_picked)` into `run_sheet_details`. No mismatch in current evidence justifies a trigger or RPC repair.
+- **Source:** current `main.html` blob SHA `bb10422217fc57a9a42c2bf65a55e9470a19537c`. Existing forensic checkpoints report that picker identity, start/end times, aggregated notes, and details query are already implemented. The large-file connector returned metadata/SHA but not full body in this execution, so no claim of fresh full-file reread or served parity is made.
+- **Report464:** `doc/Draft/Reprots/Report464_PARENT_PICKING_FRESH_PRODUCTION_RESYNC_20261021.md`, commit `1bacf5ae76467348e323f6fcf8b7f2ee6c6c2597`.
+- **No code patch justified now:** if RS-1 still shows zero in browser, capture the exact authenticated Network response for `run_sheet_details` plus the served HTML identity before editing. Do not reapply Report458/459/461 patches. For RS-2, record actual shortage (picked=0 + note) or receive genuine physical stock through the canonical stock-movement flow, then retry.
+- **Closure:** `CURRENT PRODUCTION DATA + STOCK REJECTION ROOT CAUSE VERIFIED / NO NEW CODE CHANGE JUSTIFIED / SERVED HTML PARITY + BROWSER E2E UNVERIFIED`.
