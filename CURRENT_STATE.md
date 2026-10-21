@@ -1109,3 +1109,18 @@ Only the syntax blocker in `erp-frontend/companies/company-1/warehouse/picker.ht
 - **Unverified:** Cloudflare-served HTML parity and browser E2E. No fixtures were created or deleted.
 - **Closure:** `CURRENT GIT + PRODUCTION DATA/CORE VERIFIED / NO CODE CHANGE JUSTIFIED / SERVED HTML + BROWSER E2E OPEN`.
 - **Next exact step:** resolve RS-2 item 1008 by recording actual shortage (picked=0 + note) or by posting legitimate stock receipt if physical stock exists; retry completion. If RS-1 details still show zero in the browser, capture Network response + served artifact SHA and continue from that evidence. Do not reapply existing parent patches.
+
+
+---
+
+## Current checkpoint — 2026-10-21 — Report463 Parent Picking Live Resync
+
+- Scope: parent Picking table/details in `papamohammed77-glitch/erp-frontend/companies/company-1/main.html`; assistant did not edit `main.html` or operational `warehouse/picker.html`, and did not mutate Production business data/schema/RPC/Edge in this cycle.
+- Current source blob SHA: `bb10422217fc57a9a42c2bf65a55e9470a19537c`, 1,782,052 characters / 33,000 lines; current Picking block reviewed at lines 15282–15512. Latest file commit observed: `aafc769abd2a4d5539e6183990eaf6b9b989566b` (2026-10-21 15:12:22 UTC), comment-only change.
+- The requested picker identity, start/end timestamps and aggregated picking-note columns already exist in current Git. `loadPicking()` calls `get_picking_display_users(uuid[])` and aggregates `order_details.reason_picking`. `_showPickingDetails(code)` already handles errors/missing runsheet and reads `run_sheet_details.qty_picked`; do not reapply Report458/459/461 broadly.
+- Live SQL at 2026-10-21 15:38:41 UTC: RS-1 is Picked; `order_details` and `run_sheet_details` both total qty_picked=13. RS-2 is still Picking and both sources total 0. The projection trigger `trg_sync_run_sheet_details` sums `order_details.qty_picked` into `run_sheet_details.qty_picked`.
+- PostgreSQL logs show `insufficient available stock for reservation` in `complete_runsheet_picking(uuid,text,text,jsonb,uuid)` at 15:21 and 15:33 UTC. Item 1008 (`مصاصه 2ج`) has main-branch qty=1, allocated=1, available=0; RS-1 holds the one reserved unit while RS-2 asks for another. This rejection is correct. Do not bypass `reserve_stock` or adjust allocations manually; record the real shortage or post genuine receipt through the canonical stock-movement flow.
+- No new UI/Production defect is proven by current evidence. If RS-1 still shows zero in the browser, capture the exact `run_sheet_details` Network response and served HTML identity before further changes. Served-artifact parity and browser E2E remain UNVERIFIED.
+- Report463: `doc/Draft/Reprots/Report463_PARENT_PICKING_LIVE_RESYNC_AND_QUANTITY_DIAGNOSIS_20261021.md`.
+- Closure: `CURRENT GIT + LIVE PRODUCTION QUANTITIES + STOCK-REJECTION ROOT CAUSE VERIFIED / NO NEW SURGICAL CHANGE JUSTIFIED / SERVED HTML + BROWSER E2E OPEN`.
+- Next step: do not reapply Report458/459/461 changes. Resolve RS-2 only according to actual physical stock/shortage; if RS-1 UI still misreports quantities, capture Network response and served HTML identity.
