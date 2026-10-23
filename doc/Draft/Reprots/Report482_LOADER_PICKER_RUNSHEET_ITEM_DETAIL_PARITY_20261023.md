@@ -324,11 +324,11 @@ _showItemDetail: function(item) {
     if (imageUrl) {
         imageHtml += '<img id="loaderItemDetailImage" src="' + esc(imageUrl) +
             '" alt="' + esc(name) +
-            '" class="w-full max-w-xs h-80 rounded-2xl object-contain bg-white mx-auto shadow-sm mb-3">';
+            '" class="w-full h-80 rounded-2xl object-contain bg-white mx-auto shadow-sm mb-3">';
     }
     imageHtml += '<div id="loaderItemDetailImageFallback" class="' +
         (imageUrl ? 'hidden ' : '') +
-        'w-full max-w-xs h-80 rounded-2xl bg-white mx-auto flex items-center justify-center text-slate-400 mb-3">' +
+        'w-full h-80 rounded-2xl bg-white mx-auto flex items-center justify-center text-slate-400 mb-3">' +
         '<i class="fa-solid fa-box text-4xl"></i></div>';
 
     var descriptionHtml = description
