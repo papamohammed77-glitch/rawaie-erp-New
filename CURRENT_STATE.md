@@ -1426,3 +1426,35 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - **UNKNOWN/UNVERIFIED:** Cloudflare-served HTML parity, owner patch application, Staging tests, authenticated browser E2E.
 - **Closure:** `SOURCE + PRODUCTION CONTRACT REVALIDATED / OWNER PATCH REQUIRED / NOT CLOSED`.
 - **Next exact action:** owner re-fetches Picker and checks SHA. If unchanged, apply Report475 patches A→A2→B→C→D→E only; validate full script syntax; test preview state gates, description relation, escaping, images, Dexie active session, company isolation, and zero stock/reservation/log delta in Staging; deploy through the existing frontend path; verify Cloudflare served artifact and authenticated Browser E2E. Do not edit Loader, main.html, core.js, or Production for this presentation-only defect.
+
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-23 — Report477 CTO Re-execution / Consolidated Owner Changeset
+
+## Authority and current reality
+- Re-executed against primary sources; older reports were treated only as historical clues. The single operative owner report is `doc/Draft/Reprots/Report477_PICKER_PREVIEW_PARITY_MASTER_CTO_REEXECUTION_20261023.md`, commit `069f8f4ac53747675af8ae66eb8425007e0c5442`, report blob SHA `1707a3dbbcac68728817aa2b67609f982159ece3`.
+- Governance source fully reviewed: `MASTER CTO GOVERNANCE & CONTINUOUS EXECUTION OS — RAWAEA ERP.md`, SHA `b03feec14a417ca9032d714774f2687b4542a373`, 2,606 lines. Current state and memory were re-read; source and Production were refreshed independently.
+- Application repo `erp-frontend` HEAD is `152e5b1d22aab94d2cf01070778b357df4701aff`. Current Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084`, 1,058 lines; current Loader SHA `97b83d68a683df77c1e0557838c24a1b4fb65169`, 332 lines; shared core SHA `ff2f581d9900543c16f7cb026e13446520c0329d`, 773 lines. No operational file was changed.
+- Historical baseline was freshly retrieved: Picker `7626ba320021a607854bf219f4bacd81fc3d1d92` (623 lines), Loader `7e61b04d0d9a480d43763e8b7b21f9cbed78409a` (266 lines). Relevant Picker history was independently checked: error/session handling, Dexie persistence and operation_id/Idempotency-Key, quantity validation, and insufficient-stock feedback remain contracts to preserve.
+- Architecture: Loader uses shared `core.js` modules; Picker currently uses its own Supabase client and Dexie `RW_Picker`. This task must not refactor auth/core or rewrite the active Picking lifecycle.
+
+## Fresh Production evidence
+- Read-only SQL snapshot at `2026-10-23T14:26:56.133432Z`, PostgreSQL 17.6: items=18, run_sheet_details=12, runsheets=2; current runsheet status count is Picked=2 only.
+- `items.description` and `items.image_url` exist; `run_sheet_details.description` does not. FK `run_sheet_details_item_id_fkey` links `item_id → items.id`; FK `run_sheet_details_runsheet_id_fkey` links `runsheet_id → runsheets.id`. Tenant/permission read policies were inspected.
+- Current relevant Edge versions rechecked: start-picking v35, complete-picking v18, cancel-picking v5, reopen-picking v9, start-loading v5, complete-loading v11; all ACTIVE with `verify_jwt=true`. No Edge/RPC/schema change is needed for a display/query-shape defect.
+- No Production DDL/RLS/ACL/RPC/Edge or business-data writes were made. No test records were created or deleted.
+
+## Exact defects and single consolidated patch
+- Picker detail query still uses `.select('*')`, omitting joined item description.
+- Active-session mapping reads `items[i].description`, a column absent from run_sheet_details.
+- Preview is abbreviated compared with the current Loader summary/cards, has no visible item description or aggregate requested quantity/value, and interpolates database values into inline `onclick`.
+- `App._img` injects unvalidated image URLs and inline `onerror`; `App.showItemDetail` inserts item fields and URL without escaping/validation.
+- Report477 is the single complete owner changeset: patches A/A2/B/C/D/E. Patch B now shows escaped description directly on each preview card, requested-quantity/value totals, accurate status labels, and event-bound card/back/start handlers. Patches C/D validate URLs and escape content; E preserves image-error handling in the active session.
+- Static JavaScript parsing was run against the complete replacement blocks B/C/D/E in Report477 and passed. This is not a browser E2E result.
+
+## Deployment and closure
+- README identifies Cloudflare Pages and `_redirects` maps `/picker` to the current Picker path, but the served HTML/artifact SHA was not established. Cloudflare served artifact remains UNKNOWN; authenticated browser E2E has NOT RUN.
+- Owner patch remains unapplied in current source; no source/Production changes were made. Do not claim closure.
+- Status: `ROOT CAUSE VERIFIED / CONSOLIDATED OWNER PATCH READY / NOT APPLIED / DEPLOYMENT UNKNOWN / BROWSER E2E NOT RUN / NOT CLOSED`.
+- Next exact step: re-fetch Picker and confirm SHA `d483bd15b36585b975b63c2ef641481a01d5d084`; if unchanged, apply only Report477 patches A→A2→B→C→D→E. Validate full script syntax and Staging scenarios; verify authorization/company isolation, preview states, description and image safety, Dexie session recovery, and zero stock/allocated_qty/inventory_log delta. Then verify the Cloudflare-served artifact and authenticated Browser E2E before closure. Do not edit Loader, main.html, core.js, or Production for this presentation-only task.
