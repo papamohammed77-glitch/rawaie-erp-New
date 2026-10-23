@@ -267,3 +267,11 @@ Never repeat:
 - New self-contained current owner changeset: `doc/Draft/Reprots/Report475_PICKER_PREVIEW_PARITY_CONSOLIDATED_CTO_EXECUTION_20261023.md`, report commit `53ec7826a121ef5c8767c3fb7f1b4ce7059d0ff2`, report blob `496e18243085101728fba7f15870d72b33927943`. Includes patches A/A2/B/C/D, complete replacements, bounded scope, tests and rollback. Its JS blocks B/C/D were syntax-parsed successfully. Report474 Patch D had ambiguous/broken escaping around inline onerror; do not carry that historic block forward.
 - Production and deployment state: source patch not applied; Cloudflare served HTML and browser E2E unverified; current production runsheets do not offer Open/Confirmed test cases. No operational source was edited. Status: ROOT CAUSE VERIFIED / OWNER PATCH READY / NOT DEPLOYED / NOT CLOSED.
 - Next exact step: owner re-fetches Picker and checks SHA. If unchanged, apply patches A→A2→B→C→D from Report475 only; test in Staging, validate syntax/UX/auth/company boundaries and unchanged stock/reservations, then compare served Cloudflare HTML and run authenticated browser E2E. Do not edit Loader, main.html, or core.js for this display issue. Do not change Production for this task.
+
+
+## 26. LAST VERIFIED MEMORY EVENT — LVE-2026-10-23-476
+- Report475 was amended with Patch E to preserve image-error fallback in the active Picker session after replacing `_img`.
+- Final report blob SHA: `130cca676845487a4106c3252ce531e88e430eff`. It contains patches A, A2, B, C, D and E.
+- JavaScript parse checks passed for replacement blocks B/C/D/E. No inline `onerror` remains in the new image/detail replacement blocks.
+- Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084` and Loader SHA `97b83d68a683df77c1e0557838c24a1b4fb65169` remain unchanged. No operational source or Production data was modified.
+- Owner patch is not applied or deployed. Cloudflare served HTML and authenticated Browser E2E remain unverified. Continue with Staging verification before closure.
