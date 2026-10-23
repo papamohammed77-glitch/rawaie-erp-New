@@ -1,3 +1,18 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-23 — Report480 Picker/Loader Preview Parity Audit
+
+- **LAST VERIFIED EVENT:** `LVE-2026-10-23-480` — independent re-fetch of current operational source and read-only Production schema/data checks. Audit report: `doc/Draft/Reprots/Report480_PICKER_LOADER_PREVIEW_PARITY_FORENSIC_AUDIT_20261023.md`, commit `fcffef70cd0995332634d4d48afc5ba44a406f0c`.
+- **Operational app repo:** `papamohammed77-glitch/erp-frontend`, branch `main`; HEAD `152e5b1d22aab94d2cf01070778b357df4701aff`; parent `e69c9af4b56d99ba29a4fa74282f78438b9f7010`.
+- **Current Loader:** `companies/company-1/warehouse/loader.html`, SHA `97b83d68a683df77c1e0557838c24a1b4fb65169`, 332 lines.
+- **Current Picker:** `companies/company-1/warehouse/picker.html`, SHA `d483bd15b36585b975b63c2ef641481a01d5d084`, 1,058 lines; current file history still shows last Picker-specific commit `fbcd4c7e1845236455f026eb3f7ae0ccfa8ba407`. No proposed parity patch is present in the current Picker blob.
+- **Production Supabase (read-only):** project `fiilmooggumokxanwiyx`, PostgreSQL 17.6.1; `items=18`, `run_sheet_details=12`, `runsheets=2`; returned status aggregate `Picked=2` only. `items.description` and `items.image_url` exist; `run_sheet_details.description` does not. FK `run_sheet_details_item_id_fkey` confirms `run_sheet_details.item_id → items.id`; FK `run_sheet_details_runsheet_id_fkey` confirms `runsheet_id → runsheets.id`.
+- **Confirmed current Picker defects:** details query still uses `.select('*')`; active-session mapping reads `items[i].description` from the wrong row shape; preview lacks Loader-equivalent informational depth; inline click handlers and image/detail interpolation are not sufficiently escaped/validated.
+- **Authoritative owner changeset:** Report477 blob SHA `1707a3dbbcac68728817aa2b67609f982159ece3`, patches A/A2/B/C/D/E. Owner must re-fetch Picker and confirm the base SHA before applying only missing hunks. Do not edit `loader.html`, `main.html`, or `core.js`.
+- **Production changes:** none; no DDL/RLS/RPC/Edge/business-data writes and no fixtures created/deleted. No Production change is justified for this UI/query-shape defect.
+- **Not verified / open:** owner patch application; full modified-script parsing; Staging tests; zero stock/reservation/log delta; Cloudflare-served artifact parity; authenticated browser E2E and deployment. Do not claim closure based on source or reports alone.
+- **Next exact step:** owner applies Report477 A→A2→B→C→D→E only if SHA remains unchanged; then run the tests listed in Report480, deploy through the existing frontend pipeline, verify the served artifact and authenticated browser E2E, and append fresh evidence. No production fixture may be invented when no Open/Confirmed runsheet is available.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-13 — Report418 Parent Orders Fresh Resync
 
 ## Current scope
