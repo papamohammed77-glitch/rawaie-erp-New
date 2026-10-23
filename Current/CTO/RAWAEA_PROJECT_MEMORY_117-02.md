@@ -21,12 +21,11 @@ Historical sources explain intent and prior behavior. They do not prove current 
 
 ## 2. CURRENT PROJECT IDENTITY
 - Project: RAWAEA ERP
-- Current repository: `papamohammed77-glitch/rawaie-erp-New`
-- Historical repository: `papamohammed77-glitch/rawaie-erp-review`
-- Current Git branch: `main`
-- Latest verified HEAD at the latest reconciliation event: `e8da572a5b42a407c4d5f8d7493b9e4fe134f663`
-- Production: Supabase `SMART ERP`, ref `fiilmooggumokxanwiyx`
-- Staging: Supabase `rawaea-staging`, ref `hfzznsiprnwkpayskzhu`
+- Operational application-source repository: `papamohammed77-glitch/erp-frontend`, branch `main`; current verified HEAD at LVE-2026-10-23-484: `152e5b1d22aab94d2cf01070778b357df4701aff`.
+- Governance, continuity, and report repository: `papamohammed77-glitch/rawaie-erp-New`, branch `main`; latest verified docs HEAD after LVE-2026-10-23-484: `7e401c7cb539acdcdf27a9e65d32cced8b78b3aa`.
+- Historical repository: `papamohammed77-glitch/rawaie-erp-review`.
+- Production: Supabase `SMART ERP`, ref `fiilmooggumokxanwiyx`, status `ACTIVE_HEALTHY`.
+- Staging: Supabase `rawaea-staging`, ref `hfzznsiprnwkpayskzhu`; live project metadata reports `INACTIVE` as of 2026-10-23.
 
 ## 3. MASTER COMMAND ADOPTION
 The full `doc/Draft/medhat/MASTER - RAWAEA ERP.md` command was read end-to-end through section 60.
@@ -34,7 +33,7 @@ Its operating loop is mandatory:
 `CURRENT_STATE -> LAST VERIFIED EVENT -> current reality -> reconcile -> identify target -> resolve critical unknowns -> trace owner/dependencies -> surgical change -> verify -> deploy/runtime verify -> CURRENT_STATE update -> reassess`.
 It explicitly rejects historical-stage control, percentage-based control, artificial workflows/executors, duplicate architecture, report-only closure, and invented completion claims.
 
-## 4. CURRENT BOOT / RECONCILIATION MEMORY
+## 4. HISTORICAL MAIN1 / NEW-MAIN RECONCILIATION NOTES — 2026-08-31
 - Previous `CURRENT_STATE.md` states were repeatedly reconciled when Git advanced beyond the recorded checkpoint.
 - The last confirmed commit that actually modified `Current/PWA/New-main` is `a4551e0fcfc55fd609f48109407c025b44e20641`.
 - Comparing `a4551e0...` to current `e8da572...` shows no later New-main target modification; later commits primarily changed workflows, builders/parsers, prompt/reporting and verification infrastructure.
@@ -334,3 +333,20 @@ Never repeat:
 - No operational source, main.html, core.js, Picker, Supabase schema/RLS/RPC/Edge, or Production business data was changed; no Production test fixtures were created. Cloudflare served artifact, owner application, browser E2E, and zero-stock-delta test remain unverified.
 - Next: owner confirms current Loader SHA and applies only Report482 A–F in the stated locations; parse the entire resulting script; test preview detail modal, image fallback, role/company isolation, active Loading editor, back/start flows in staging; verify unchanged stock_branches.qty, allocated_qty, inventory_log; then independently verify the Cloudflare-served file. Do not redirect task to Picker or modify main.html/core.js.
 - Status: DIAGNOSIS CORRECTED / OWNER PATCH DOCUMENTED / NOT APPLIED / NOT CLOSED.
+
+
+## LAST VERIFIED MEMORY EVENT — LVE-2026-10-23-484
+
+- Scope: Loader-vs-Picker item-detail parity plus direct verification of loading completion dependencies. This event supersedes the older Loader/Picker checkpoint entries for operational recency; prior history is preserved.
+- Read CURRENT_STATE.md first and read MASTER CTO governance SHA `b03feec14a417ca9032d714774f2687b4542a373` (2,606 lines). CURRENT_STATE now has an authoritative top pointer at LVE-484; the stale LVE-481 and LVE-483 headings were relabeled historical without deleting their content.
+- Operational app source: `papamohammed77-glitch/erp-frontend`, main HEAD `152e5b1d22aab94d2cf01070778b357df4701aff`. Loader SHA `97b83d68a683df77c1e0557838c24a1b4fb65169`; Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084`; Core SHA `ff2f581d9900543c16f7cb026e13446520c0329d`. Report482 A–F remains unapplied.
+- Report483: `doc/Draft/Reprots/Report483_LOADER_DAILY_REVALIDATION_LOADING_CONTRACT_CONFLICTS_20261023.md`, blob `c2cdb93dee417701f218bec760afd0a31a4739c3`, commit `4da0a37e02e09004b83ef08a9d73683fdf11e8ec`. It documents the daily evidence and adds safe Loader-local thumbnail Patch G; the helper snippet passed V8 syntax parsing only, not full-page or browser testing.
+- Read-only Production at 2026-10-23T18:44:22Z: PostgreSQL 17.6; items=18, run_sheet_details=12, runsheets=2, stock_branches=57, inventory_log=28; runsheet status Picked=2 only. items.description/image_url and the item FK exist; run_sheet_details has no description/image_url/notes; order_details.notes exists. Authenticated UPDATE on run_sheet_details is false and no UPDATE policy exists.
+- Confirmed loading contract conflict: Loader sends every item, including qty_loaded=0, and includes notes; Production complete-loading v11 rejects any loaded_qty<=0 and drops notes; complete_runsheet_loading also rejects req<=0 and does not persist notes. Actual user occurrence is unverified because no complete-loading invocation appeared in the targeted 24-hour log query and no Loading fixture exists.
+- Production complete-loading v11 source differs slightly from Git snapshot `Current/Edge_Functions/complete-loading`; current repo tree has no matching `Current/Edge_Functions/start-loading` file although Production start-loading v5 is active.
+- Supabase runtime logs show the published app made unscoped runsheets GETs and a select=* details GET at 2026-10-23 09:14–09:16 UTC, all HTTP 200. This matches current source query shapes but does not establish the served artifact SHA or E2E behavior.
+- Deployment artifact/headers/cache and authenticated browser E2E remain UNKNOWN/UNVERIFIED. Direct Cloudflare fetch failed in this environment; no Cloudflare MCP/browser tool was available. Existing staging project `hfzznsiprnwkpayskzhu` is INACTIVE and was not restored.
+- No operational app, Production schema/RLS/grants/RPC/Edge, or business data changed; no test fixture was created.
+- Status: SOURCE REVALIDATED / REPORT482 NEEDS PATCH G / ZERO-QUANTITY + NOTES CONTRACT CONFLICT CONFIRMED / DEPLOYMENT UNKNOWN / E2E UNVERIFIED / NOT CLOSED.
+- Next: do not apply Report482 A–F unchanged; incorporate Patch G and validate the full Loader in active isolated staging. Keep zero-quantity/notes behavior open and do not modify Production Core/Edge until the contract has a safe, tested plan.
+
