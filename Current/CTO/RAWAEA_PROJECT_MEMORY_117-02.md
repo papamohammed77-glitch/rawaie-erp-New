@@ -275,3 +275,16 @@ Never repeat:
 - JavaScript parse checks passed for replacement blocks B/C/D/E. No inline `onerror` remains in the new image/detail replacement blocks.
 - Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084` and Loader SHA `97b83d68a683df77c1e0557838c24a1b4fb65169` remain unchanged. No operational source or Production data was modified.
 - Owner patch is not applied or deployed. Cloudflare served HTML and authenticated Browser E2E remain unverified. Continue with Staging verification before closure.
+
+
+## 27. LAST VERIFIED MEMORY EVENT — LVE-2026-10-23-477
+- User required a complete CTO re-execution, full context recovery, and one consolidated owner report rather than references spread across old reports.
+- Read current governance (2,606 lines), CURRENT_STATE, and memory; independently refreshed current app source, historical Picker baseline and relevant commits, and Production schema/RLS/Edge inventory.
+- Single operative report: `doc/Draft/Reprots/Report477_PICKER_PREVIEW_PARITY_MASTER_CTO_REEXECUTION_20261023.md`, report commit `069f8f4ac53747675af8ae66eb8425007e0c5442`, blob SHA `1707a3dbbcac68728817aa2b67609f982159ece3`. It contains exact defective source elements plus complete patches A/A2/B/C/D/E; Patch B explicitly displays escaped item descriptions and summary totals.
+- Current app HEAD `152e5b1d22aab94d2cf01070778b357df4701aff`; Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084`; Loader SHA `97b83d68a683df77c1e0557838c24a1b4fb65169`; core.js SHA `ff2f581d9900543c16f7cb026e13446520c0329d`. No operational app file was edited.
+- Fresh Production read-only snapshot at `2026-10-23T14:26:56.133432Z`: PostgreSQL 17.6; items=18, run_sheet_details=12, runsheets=2; status Picked=2 only; items.description/image_url exist; run_sheet_details.description does not; item and runsheet FKs and company/permission RLS policies verified.
+- Current related Edge versions: start-picking v35, complete-picking v18, cancel-picking v5, reopen-picking v9, start-loading v5, complete-loading v11; all ACTIVE, JWT verification enabled. No Production mutation was needed or performed.
+- Replacement blocks B/C/D/E in Report477 were syntax-parsed successfully. This does not establish browser/runtime correctness.
+- Deployment lineage remains UNKNOWN: Cloudflare Pages is documented and /picker redirects to the current path, but served HTML SHA and authenticated Browser E2E are not established. Owner source changes remain unapplied; task is NOT CLOSED.
+- CURRENT_STATE was appended with the Report477 checkpoint in commit `0e06c9ccde376d842c062b5042cc7b11291bd5df`, content SHA `382e6ace2086739719e7dca13f89f8a0fba74736`.
+- Next exact action: owner re-fetches Picker and checks SHA; if unchanged, applies only Report477 A→A2→B→C→D→E, runs Staging tests and confirms no stock/reservation/log delta, deploys through the approved frontend path, verifies Cloudflare-served HTML and authenticated Browser E2E, then updates state. Do not touch Loader, main.html, core.js, or Production for this display-only defect.
