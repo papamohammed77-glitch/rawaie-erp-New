@@ -1,4 +1,19 @@
-# CURRENT FORENSIC CHECKPOINT — 2026-10-23 — LVE-2026-10-23-481 Fresh Continuity + Runtime Revalidation
+# CURRENT FORENSIC CHECKPOINT — 2026-10-23 — LVE-2026-10-23-484: Loader Daily Revalidation and Loading Contract Conflict
+
+- **Authoritative LAST VERIFIED EVENT:** LVE-2026-10-23-484. Full evidence: doc/Draft/Reprots/Report483_LOADER_DAILY_REVALIDATION_LOADING_CONTRACT_CONFLICTS_20261023.md (blob c2cdb93dee417701f218bec760afd0a31a4739c3; report commit 4da0a37e02e09004b83ef08a9d73683fdf11e8ec).
+- **Current operational app:** papamohammed77-glitch/erp-frontend, branch main, HEAD 152e5b1d22aab94d2cf01070778b357df4701aff; Loader SHA 97b83d68a683df77c1e0557838c24a1b4fb65169; Picker SHA d483bd15b36585b975b63c2ef641481a01d5d084; Core SHA ff2f581d9900543c16f7cb026e13446520c0329d. No owner patch is applied.
+- **Current target:** Loader-vs-Picker item-detail parity, with Report482 A–F as the base owner patch only. Report483 proves Report482 must be amended with Patch G because preview/session thumbnails still use the unsafe shared image helper.
+- **Production confirmed:** SMART ERP project fiilmooggumokxanwiyx, PostgreSQL 17.6. items.description/image_url and item FK exist; run_sheet_details has no description/image_url/notes. Authenticated UPDATE on run_sheet_details is not granted and no UPDATE policy exists.
+- **Critical contract conflict:** Loader submits every item including loadedQty=0 and notes; active Production complete-loading v11 rejects any loaded_qty<=0 and drops notes; complete_runsheet_loading also rejects req<=0 and does not persist notes. This is a separate business-workflow blocker and is not fixed by Report482.
+- **Runtime evidence:** Supabase logs show the published app making unscoped runsheets GETs and a select=* details GET at 2026-10-23 09:14–09:16 UTC, all HTTP 200; these match current source query shapes but do not prove exact deployed HTML SHA or UI E2E.
+- **Unknown / unverified:** current Cloudflare artifact/build lineage, headers/cache, browser E2E, owner patch application, full post-patch parse, and stock-delta test. The existing rawaea-staging project is INACTIVE.
+- **Safety:** no operational app file, Production schema/RLS/grants/RPC/Edge, or Production business data changed. No Production fixture was created.
+- **Next priority:** do not apply Report482 A–F unchanged; add Patch G and validate in an active isolated staging environment. Keep the zero-quantity/notes contract OPEN; do not alter Production until tested end-to-end.
+- The previous LVE-481 and LVE-483 checkpoint bodies are retained below as history; their headings are now explicitly historical to prevent stale-pointer confusion.
+
+---
+
+# HISTORICAL CHECKPOINT — 2026-10-23 — LVE-2026-10-23-481 Fresh Continuity + Runtime Revalidation
 
 - **Purpose:** continue from the authoritative CURRENT_STATE checkpoint (LVE-480), independently refresh current Git and SMART ERP Production evidence, and reconcile the persistent memory ledger. This is a read-only forensic verification; no operational app code was changed.
 - **Current operational source:** `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `152e5b1d22aab94d2cf01070778b357df4701aff`, parent `e69c9af4b56d99ba29a4fa74282f78438b9f7010`. Picker remains SHA `d483bd15b36585b975b63c2ef641481a01d5d084` (1,058 lines); Loader remains SHA `97b83d68a683df77c1e0557838c24a1b4fb65169` (332 lines). Picker re-fetch still contains `.select('*')`, inline `onerror`, and the unpatched current preview; the Report477 owner patch is not present.
@@ -1540,7 +1555,7 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 
 ---
 
-# CURRENT FORENSIC CHECKPOINT — 2026-10-23 — LVE-2026-10-23-483: Full Loader/Picker Runsheet and Item-Detail Parity
+# HISTORICAL CHECKPOINT — 2026-10-23 — LVE-2026-10-23-483: Full Loader/Picker Runsheet and Item-Detail Parity
 
 - **LAST VERIFIED EVENT:** LVE-2026-10-23-483 — corrected the task interpretation after full source-to-source comparison of Loader and Picker; queried Production schema read-only; prepared a consolidated owner-applied surgical patch.
 - **Authoritative report:** doc/Draft/Reprots/Report482_LOADER_PICKER_RUNSHEET_ITEM_DETAIL_PARITY_20261023.md in rawaie-erp-New. Report file blob SHA 0a7518f5b90a4a077b2f19da39573640f202cbe3; latest report update commit 0845cb1590774796000196cb15e06cd27d885f15.
@@ -1554,3 +1569,21 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - **Unknown / unverified:** owner application of Report482; complete Loader script parse after edits; Cloudflare-served HTML identity; staging; authenticated browser E2E; stock/reservation/log delta.
 - **Next exact step:** owner applies only Report482 patches A–F to the specified locations in current Loader after confirming the SHA. Then check full-page JavaScript syntax, execute staging/browser cases for Picked and own/other-loader Loading, verify description/image and back/start actions, and confirm opening a preview produces zero stock_branches.qty, stock_branches.allocated_qty, and inventory_log delta. Do not edit main.html, core.js, or picker.html; do not change Production for this UI/query-shape task.
 - **Status:** DIAGNOSIS CORRECTED / FULL OWNER PATCH DOCUMENTED / NOT APPLIED / DEPLOYMENT UNKNOWN / BROWSER E2E NOT RUN / NOT CLOSED.
+
+## LAST VERIFIED EVENT — LVE-2026-10-23-484
+
+- Scope: daily CTO revalidation of the Loader-vs-Picker item-detail parity task and direct verification of its loading workflow dependencies.
+- Re-read CURRENT_STATE.md first, then the full 2,606-line MASTER CTO governance document (SHA b03feec14a417ca9032d714774f2687b4542a373). Found a stale pointer conflict: the file began with LVE-481 while the latest appended event was LVE-483. Added this current pointer and relabeled the two older headings as historical without removing their bodies.
+- Operational app HEAD remains 152e5b1d22aab94d2cf01070778b357df4701aff; Loader 97b83d68a683df77c1e0557838c24a1b4fb65169; Picker d483bd15b36585b975b63c2ef641481a01d5d084; Core ff2f581d9900543c16f7cb026e13446520c0329d. Report482 remains unapplied.
+- Read-only Production SQL at 2026-10-23T18:44:22Z confirmed items.description/image_url and the item FK; no description/image_url/notes on run_sheet_details; order_details.notes exists; run_sheet_details authenticated UPDATE=false and no UPDATE policy; order_details updates trigger sync_run_sheet_details.
+- Production complete-loading v11 and complete_runsheet_loading were read directly. The Loader's request includes all items and notes; Edge rejects any loaded_qty<=0 and drops notes; core also rejects req<=0 and does not persist notes. This is a confirmed source/Production contract conflict, while actual user occurrence remains unverified.
+- Production migration inventory contains the 2026-08-28 stock-movement guard series and 2026-09-16 close_loading_unloading_idempotency; no later loading-contract repair was found. Production has 2 runsheets, status Picked=2 only; no active Loading fixture was used.
+- Runtime logs (24-hour query ending 18:44Z) show requests from rawaea-erp.pages.dev at 09:14–09:16Z, HTTP 200, with unscoped runsheets query and select=* detail query. No matching complete-loading invocation or qty_loaded PATCH appeared in the targeted query; this absence is not proof of non-use.
+- Production complete-loading v11 source differs slightly from the Git snapshot Current/Edge_Functions/complete-loading. Production start-loading v5 is ACTIVE, but Current/Edge_Functions has no matching start-loading source file.
+- Report483 (blob c2cdb93dee417701f218bec760afd0a31a4739c3, commit 4da0a37e02e09004b83ef08a9d73683fdf11e8ec) records evidence and adds Patch G for safe Loader-local thumbnails. Patch G's helper block passed JavaScript syntax parsing; this is not a full-page parse or runtime test.
+- Direct Cloudflare fetch could not be completed from this environment; web open was unavailable and curl failed DNS resolution. No Cloudflare MCP/browser tool was available. Current deployed artifact identity remains UNKNOWN; authenticated browser E2E and stock-delta tests remain UNVERIFIED.
+- Staging project rawaea-staging (hfzznsiprnwkpayskzhu) is INACTIVE. It was not restored; no isolated fixture was created.
+- No operational source, Production schema/RLS/grant/RPC/Edge, or business data was changed. No Production stock movement or test record was initiated.
+- Status: SOURCE REVALIDATED / REPORT482 NEEDS PATCH G / ZERO-QUANTITY + NOTES CONTRACT CONFLICT CONFIRMED / DEPLOYMENT UNKNOWN / E2E UNVERIFIED / NOT CLOSED.
+- Next exact action: keep Report482 A–F unapplied until Patch G is incorporated; then validate the complete Loader in active isolated staging. Separately design and test the zero-quantity/notes loading contract before any Production Core/Edge change.
+
