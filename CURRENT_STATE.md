@@ -1458,3 +1458,18 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - Owner patch remains unapplied in current source; no source/Production changes were made. Do not claim closure.
 - Status: `ROOT CAUSE VERIFIED / CONSOLIDATED OWNER PATCH READY / NOT APPLIED / DEPLOYMENT UNKNOWN / BROWSER E2E NOT RUN / NOT CLOSED`.
 - Next exact step: re-fetch Picker and confirm SHA `d483bd15b36585b975b63c2ef641481a01d5d084`; if unchanged, apply only Report477 patches A→A2→B→C→D→E. Validate full script syntax and Staging scenarios; verify authorization/company isolation, preview states, description and image safety, Dexie session recovery, and zero stock/allocated_qty/inventory_log delta. Then verify the Cloudflare-served artifact and authenticated Browser E2E before closure. Do not edit Loader, main.html, core.js, or Production for this presentation-only task.
+
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-23 — Report478 Current-State Recheck
+
+- **LAST VERIFIED EVENT:** `LVE-2026-10-23-478` — fresh source/Production revalidation; no operational source or Production mutation.
+- **Application HEAD:** `152e5b1d22aab94d2cf01070778b357df4701aff`, parent `e69c9af4b56d99ba29a4fa74282f78438b9f7010`.
+- **Current Picker:** `d483bd15b36585b975b63c2ef641481a01d5d084` (1,058 lines). **Current Loader:** `97b83d68a683df77c1e0557838c24a1b4fb65169` (332 lines). Picker remains unpatched relative to Report477.
+- **Fresh SQL at 2026-10-23T14:58:58.392162Z:** PostgreSQL 17.6; items=18, run_sheet_details=12, runsheets=2; status aggregate Picked=2 only; items.description and items.image_url exist; run_sheet_details.description absent; both item/runsheet FKs exist.
+- **Root cause remains confirmed:** Picker query omits nested item description; active-session mapping reads nonexistent detail description; preview is abbreviated and uses inline handlers; image/detail output lacks adequate escaping and URL validation.
+- **Single authoritative owner changeset:** Report477 patches A/A2/B/C/D/E. New revalidation report: `doc/Draft/Reprots/Report478_PICKER_PREVIEW_PARITY_CURRENT_STATE_RECHECK_20261023.md` (commit `7051d21747913372a125ca5e660eb5d2b1db2c17`).
+- **Production:** no schema/RLS/grants/RPC/Edge or business data writes. No test records created/deleted. No Production changes justified.
+- **UNKNOWN:** Cloudflare served artifact parity. **UNVERIFIED:** owner patch, Staging, authenticated Browser E2E and deployment. **NOT CLOSED.**
+- **Next exact action:** owner re-fetches Picker and confirms SHA; if unchanged, applies only Report477 A→A2→B→C→D→E; runs Staging tests and confirms zero stock/reservation/log delta; then verifies Cloudflare-served HTML and authenticated Browser E2E. Do not touch Loader, main.html, core.js, or Production for this presentation-only defect.
