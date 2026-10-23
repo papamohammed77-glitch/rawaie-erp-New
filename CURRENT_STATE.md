@@ -1409,3 +1409,20 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - Production remains read-only. No schema, RLS/RPC/Edge or business-data writes; no fixtures created/deleted.
 - NOT CLOSED: owner patch not applied; Cloudflare served HTML and authenticated Browser E2E unverified.
 - Next: re-fetch Picker SHA, apply A→A2→B→C→D→E only if unchanged; test Staging including active session/image fallback, preview states, authorization/company isolation, unchanged stock/reservations; then verify Cloudflare HTML and authenticated Browser E2E.
+
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-23 — Report476 Fresh Production Revalidation
+
+- **Scope:** Picker runsheet preview parity with current Loader. Operational app edits remain owner-only.
+- **Fresh source re-fetch:** Loader `companies/company-1/warehouse/loader.html` SHA `97b83d68a683df77c1e0557838c24a1b4fb65169` (332 lines); Picker `companies/company-1/warehouse/picker.html` SHA `d483bd15b36585b975b63c2ef641481a01d5d084` (1058 lines). Current files were not modified.
+- **Historical baseline:** review PWA and New/Original Picker both SHA `7626ba320021a607854bf219f4bacd81fc3d1d92`. Loader preview refactor commit `152e5b1d22aab94d2cf01070778b357df4701aff`, parent `e69c9af4b56d99ba29a4fa74282f78438b9f7010`.
+- **Fresh Production SQL:** checked 2026-10-23 14:17:01–14:18:09 UTC; PostgreSQL 17.6; items=18; run_sheet_details=12; status aggregate `Picked: 2` only. `items.description` and `items.image_url` exist; `run_sheet_details.description` does not. FK `run_sheet_details_item_id_fkey` and same-company read policies were verified. No `Open/Confirmed` fixture was present in the returned status aggregate.
+- **Confirmed defects:** Picker preview is abbreviated; details query omits the joined item description; active-session mapping reads a nonexistent detail column; DB values are interpolated into inline handlers; image/detail HTML lacks complete escaping/URL validation.
+- **Authoritative surgical set:** Report475, blob SHA `130cca676845487a4106c3252ce531e88e430eff`, patches A/A2/B/C/D/E. Do not use superseded Report471/472/474 Patch B or the older inline-`onerror` Patch D.
+- **New fresh verification report:** [Report476_PICKER_PREVIEW_PARITY_FRESH_PRODUCTION_REVALIDATION_20261023.md](doc/Draft/Reprots/Report476_PICKER_PREVIEW_PARITY_FRESH_PRODUCTION_REVALIDATION_20261023.md), commit `fd8fc30e0d9c24dae9c8d7a159afb68ebf9965cf`.
+- **Production:** read-only only. No schema/RLS/grants/RPC/Edge/business data changes; none are justified for this display/query-shape defect. No test fixtures created or deleted.
+- **UNKNOWN/UNVERIFIED:** Cloudflare-served HTML parity, owner patch application, Staging tests, authenticated browser E2E.
+- **Closure:** `SOURCE + PRODUCTION CONTRACT REVALIDATED / OWNER PATCH REQUIRED / NOT CLOSED`.
+- **Next exact action:** owner re-fetches Picker and checks SHA. If unchanged, apply Report475 patches A→A2→B→C→D→E only; validate full script syntax; test preview state gates, description relation, escaping, images, Dexie active session, company isolation, and zero stock/reservation/log delta in Staging; deploy through the existing frontend path; verify Cloudflare served artifact and authenticated Browser E2E. Do not edit Loader, main.html, core.js, or Production for this presentation-only defect.
