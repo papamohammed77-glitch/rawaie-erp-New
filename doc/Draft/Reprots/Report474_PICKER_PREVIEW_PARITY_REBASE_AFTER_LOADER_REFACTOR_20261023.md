@@ -82,6 +82,11 @@
                 var totalPrepared = 0;
                 var totalValue = 0;
 
+                function formatPreviewNumber(value) {
+                    var number = Number(value);
+                    return isFinite(number) ? number.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0';
+                }
+
                 function escHtml(value) {
                     return String(value == null ? '' : value)
                         .replace(/&/g, '&amp;')
@@ -141,8 +146,8 @@
                         html += '<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 text-sm">';
                         html += '<div class="bg-slate-50 rounded-xl p-2"><p class="text-[11px] text-slate-400">مطلوب</p><p class="font-bold">' + escHtml(requestedQty) + '</p></div>';
                         html += '<div class="bg-indigo-50 rounded-xl p-2"><p class="text-[11px] text-slate-400">محضّر</p><p class="font-black text-indigo-700">' + escHtml(preparedQty) + '</p></div>';
-                        html += '<div class="bg-slate-50 rounded-xl p-2"><p class="text-[11px] text-slate-400">سعر الوحدة</p><p class="font-bold">' + escHtml(RW_UI.formatNumber(unitPrice)) + '</p></div>';
-                        html += '<div class="bg-indigo-50 rounded-xl p-2"><p class="text-[11px] text-slate-400">القيمة المطلوبة</p><p class="font-black text-indigo-700">' + escHtml(RW_UI.formatNumber(lineValue)) + '</p></div>';
+                        html += '<div class="bg-slate-50 rounded-xl p-2"><p class="text-[11px] text-slate-400">سعر الوحدة</p><p class="font-bold">' + escHtml(formatPreviewNumber(unitPrice)) + '</p></div>';
+                        html += '<div class="bg-indigo-50 rounded-xl p-2"><p class="text-[11px] text-slate-400">القيمة المطلوبة</p><p class="font-black text-indigo-700">' + escHtml(formatPreviewNumber(lineValue)) + '</p></div>';
                         html += '</div></div></div></button>';
                     }
                 }
@@ -159,10 +164,10 @@
                 safeHTML(byId('mainContent'), html);
 
                 var totalQtyEl = byId('pickerPreviewTotalQty');
-                if (totalQtyEl) totalQtyEl.textContent = RW_UI.formatNumber(totalRequested);
+                if (totalQtyEl) totalQtyEl.textContent = formatPreviewNumber(totalRequested);
 
                 var totalValueEl = byId('pickerPreviewTotalValue');
-                if (totalValueEl) totalValueEl.textContent = RW_UI.formatNumber(totalValue);
+                if (totalValueEl) totalValueEl.textContent = formatPreviewNumber(totalValue);
 
                 var backButton = byId('pickerPreviewBack');
                 if (backButton) backButton.addEventListener('click', function() {
@@ -277,7 +282,7 @@ The following complete block replaces `App.showItemDetail(code, name, unit, qty,
         }
 
         var rawImg = String(ITEMS_IMAGE_CACHE[code] || '').trim();
-        var safeImg = /^(https?:\\/\\/|\\/(?!\\/))/i.test(rawImg) ? escHtml(rawImg) : '';
+        var safeImg = /^(https?:\/\/|\/(?!\/))/i.test(rawImg) ? escHtml(rawImg) : '';
         var imgHtml = safeImg
             ? '<img src="' + safeImg + '" alt="" class="w-full h-80 object-contain bg-white rounded-2xl mb-4 shadow-sm" onerror="this.style.display=\\'none\\'">'
             : '<div class="w-full h-80 bg-white rounded-2xl flex items-center justify-center text-slate-400 mb-4"><i class="fa-solid fa-box text-4xl"></i></div>';
