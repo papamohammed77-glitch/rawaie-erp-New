@@ -1395,3 +1395,17 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - **Unknown/unverified:** Cloudflare served HTML parity, owner patch, deployment, authenticated browser E2E. Source patch not applied; task remains NOT CLOSED.
 - **Next exact action:** owner re-fetches Picker, verifies the base SHA, applies Report475 patches A→A2→B→C→D only if unchanged, tests syntax and scenarios in Staging, confirms no stock/reservation changes, then checks Cloudflare-served HTML and authenticated browser E2E. Do not modify Loader, main.html, core.js, or Production for this display issue.
 
+
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-23 — Report475 Image-Fallback Recheck (LVE-476)
+
+- Report475 was amended after review found that `App._img(code)` is also used in `App.renderActiveSession()`. Removing inline `onerror` without wiring active-session image-error handling would regress the old thumbnail fallback.
+- Patch E added to Report475: bind image error handling in `renderActiveSession()` and handle already-failed loads. Patch B now also handles images whose error completed before its listener was attached.
+- Final Report475 blob SHA: `130cca676845487a4106c3252ce531e88e430eff`; patches A/A2/B/C/D/E are included.
+- JavaScript parse checks passed for replacement blocks B/C/D/E. The new C/D replacements contain no inline `onerror` handler.
+- Current operational SHAs remain unchanged: Loader `97b83d68a683df77c1e0557838c24a1b4fb65169`; Picker `d483bd15b36585b975b63c2ef641481a01d5d084`. Operational source was not edited.
+- Production remains read-only. No schema, RLS/RPC/Edge or business-data writes; no fixtures created/deleted.
+- NOT CLOSED: owner patch not applied; Cloudflare served HTML and authenticated Browser E2E unverified.
+- Next: re-fetch Picker SHA, apply A→A2→B→C→D→E only if unchanged; test Staging including active session/image fallback, preview states, authorization/company isolation, unchanged stock/reservations; then verify Cloudflare HTML and authenticated Browser E2E.
