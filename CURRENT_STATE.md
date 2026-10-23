@@ -1282,3 +1282,18 @@ Owner applies the Report470 patch to the matching current Picker SHA, deploys th
 - **Verification:** current source and Production schema/RLS/Edge identities are verified. Patch is **not present** in current Picker SHA. Cloudflare served-HTML parity and browser E2E after owner merge remain **UNVERIFIED**.
 - **Closure:** `OWNER SURGICAL PATCH READY / SERVED HTML PARITY + BROWSER E2E OPEN / NOT CLOSED`.
 - **Next exact step:** owner re-fetches Picker and checks SHA; if unchanged, applies only Patches A–D from Report470/468 with Report469 corrections; deploys the frontend; then verifies served HTML, Open/Confirmed/Picked previews, escaping, empty state, back/start actions, active-session restore, company isolation, mobile layout, and unchanged stock/reservations. Do not alter Loader or main.html for this gap.
+
+
+---
+
+## CURRENT FORENSIC CHECKPOINT — 2026-10-23 — Report472 Fresh Loader/Picker + Production Recheck
+
+- **Scope:** Loader-versus-Picker runsheet preview parity only. Owner applies changes to operational HTML; assistant must not edit main.html, loader.html, or picker.html.
+- **Fresh Git source:** Loader SHA `97b83d68a683df77c1e0557838c24a1b4fb65169` (332 lines); Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084` (1058 lines). Both match the blobs recorded in Report471.
+- **Fresh Production SQL:** `2026-10-23 12:02:10.368502+00 UTC`. `items.description` and `items.image_url` exist; `run_sheet_details.description` does not. FK `run_sheet_details_item_id_fkey` links `run_sheet_details.item_id → items.id`; `run_sheet_details_runsheet_id_fkey` links details to `runsheets.id`.
+- **Fresh Production Edge inventory:** `start-picking` ACTIVE v35/JWT true/hash `fca0377fce2d02d52a17bdbbdd98cfe9cc449d052533df0a3b021be11c79914a`; `complete-picking` ACTIVE v18/JWT true/hash `14b4d650253e73abc7c7a1b1f25a8674849c11e32d21ae9928701f19705b0537`; `start-loading` ACTIVE v5/JWT true/hash `afcfe32707382c57a15ebb744dec61e95a4079abb9ee8d32f479f322091230c7`; `complete-loading` ACTIVE v11/JWT true/hash `c0ca692a29d14d64ec3729ae4bd12b9b84268e826ffc1c6993a48617b552b286`.
+- **Confirmed current defect:** Picker still uses `.select('*')` for `run_sheet_details`, has no `pickerPreviewTotalQty`, and retains abbreviated preview/unsafe HTML interpolation. Loader preview is richer and contains a read-only total/value summary.
+- **Owner surgical patch:** Report472 at `doc/Draft/Reprots/Report472_PICKER_LOADER_PARITY_FRESH_PRODUCTION_RECHECK_20261023.md`, commit `f652e8b5fe58e16642a7c8660ca49e3b09031183`. Apply Patch A (FK relationship select), Patch B (full preview block from Report470 with Report469 state-label correction), Patch C (`App._img`), and Patch D (`App.showItemDetail`) only if current SHA is unchanged and each patch is not already present.
+- **Production mutation:** none. No schema/RLS/RPC/Edge/data changes; none are justified for this presentation-only gap. No synthetic Production fixture was created.
+- **Verification status:** Git source + DB schema/FK + live Edge inventory verified. Owner application, Cloudflare served-artifact parity, and Browser E2E remain UNVERIFIED. Do not call this CLOSED.
+- **Next exact step:** Owner re-fetches Picker and checks SHA; if unchanged, applies Patches A–D from Reports470/468 with Report469 correction, deploys through the approved frontend path, then verifies served HTML and Browser E2E including Open/Confirmed/Picked states, description, XSS/URL handling, company isolation, active Dexie session, back/start actions, mobile layout, and unchanged stock/reservations.
