@@ -174,7 +174,7 @@
 ```js
     _img: function(code){
         var url = ITEMS_IMAGE_CACHE[code] || '';
-        var safeUrl = /^(https?:\\/\\/|\\/)/i.test(url) ? String(url)
+        var safeUrl = /^(https?:\/\/|\/)/i.test(url) ? String(url)
             .replace(/&/g, '&amp;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;')
@@ -182,7 +182,7 @@
             .replace(/>/g, '&gt;') : '';
 
         return safeUrl
-            ? '<img src="' + safeUrl + '" alt="" class="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-sm" onerror="this.style.display=\\'none\\'">'
+            ? '<img src="' + safeUrl + '" alt="" class="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-sm" onerror="this.style.display=\'none\'">'
             : '<div class="w-14 h-14 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center text-slate-400"><i class="fa-solid fa-box"></i></div>';
     },
 ```
@@ -206,9 +206,9 @@
         }
 
         var img = ITEMS_IMAGE_CACHE[code] || '';
-        var safeImg = /^(https?:\\/\\/|\\/)/i.test(img) ? escHtml(img) : '';
+        var safeImg = /^(https?:\/\/|\/)/i.test(img) ? escHtml(img) : '';
         var imgHtml = safeImg
-            ? '<img src="' + safeImg + '" alt="" class="w-full h-80 object-contain bg-white rounded-2xl mb-4 shadow-sm" onerror="this.style.display=\\'none\\'">'
+            ? '<img src="' + safeImg + '" alt="" class="w-full h-80 object-contain bg-white rounded-2xl mb-4 shadow-sm" onerror="this.style.display=\'none\'">'
             : '<div class="w-full h-80 bg-white rounded-2xl flex items-center justify-center text-slate-400 mb-4"><i class="fa-solid fa-box text-4xl"></i></div>';
 
         var safeQty = Number(qty);
