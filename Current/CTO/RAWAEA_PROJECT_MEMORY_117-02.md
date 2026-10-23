@@ -310,3 +310,14 @@ Never repeat:
 - Cloudflare Pages is documented and `/picker` maps to the Picker file, but served artifact SHA/deployment lineage remains UNKNOWN; Staging and authenticated Browser E2E remain UNVERIFIED.
 - Status: ROOT CAUSE RECONFIRMED / OWNER PATCH NOT APPLIED / DEPLOYMENT UNKNOWN / BROWSER E2E UNVERIFIED / NOT CLOSED. No production fixtures were created/deleted.
 - Next: re-fetch Picker and verify SHA; apply only missing Report477 patches if unchanged, validate in Staging with zero stock/allocated_qty/inventory_log delta, then verify Cloudflare-served HTML and authenticated Browser E2E. Do not edit Loader, main.html, core.js or Production for this presentation/query-shape defect.
+
+## LAST VERIFIED MEMORY EVENT — LVE-2026-10-23-482
+
+- Report481 audits the 50 report files in the Report432–Report480 window (including both Report458 files) and deeply reconciles Reports466–480.
+- The current request's target is `erp-frontend/companies/company-1/warehouse/loader.html`, not Picker. Report466 originally targeted Loader; Reports467–480 drifted into a Picker preview-parity patch chain. Report477 is authoritative only for that Picker-specific task and must not be applied to Loader.
+- Fresh source identities: operational repo HEAD `152e5b1d22aab94d2cf01070778b357df4701aff`; Loader SHA `97b83d68a683df77c1e0557838c24a1b4fb65169` (332 lines); Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084` (1,058 lines); Core SHA `ff2f581d9900543c16f7cb026e13446520c0329d`.
+- Current Loader source already has card/search click handlers invoking `App.openRunsheet(code)`; the method loads runsheet details and renders the Picked preview inside `mainContent`, uses the active session for current user's Loading runsheet, and uses read-only rendering for other states. Therefore no code patch is justified from static source alone; served browser failure must first be reproduced.
+- Reporting defects: Report473 incorrectly says Loader and Picker each have 1 line; Reports478–480 repeat unchanged source/state and continue prohibiting Loader edits for a task whose current target is Loader. Picker schema findings can be valid for Picker but are not the current Loader change request.
+- No operational HTML/Core or Production change was made. Cloudflare served artifact identity and authenticated browser click behavior remain unverified.
+- Exact next step: test the served Loader card and search-result click with an authorized runsheet; capture browser/Console/Network evidence; if failure is reproduced, apply the smallest evidence-backed fix to Loader only, then verify Staging/browser and zero `stock_branches.qty`/`allocated_qty`/`inventory_log` delta from opening details.
+- Consolidated report: `doc/Draft/Reprots/Report481_LOADER_RUNSHEET_CLICK_DETAILS_SCOPE_CORRECTION_20261023.md`, commit `73c3f82c5a270bd97c8598eef5e6ac2778cb2e47`. CURRENT_STATE update commit: `0c421866da8d0a161cc9a53e87920a038ac5af91`.
