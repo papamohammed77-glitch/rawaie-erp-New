@@ -259,3 +259,45 @@
 3. إذا بقي Picker على SHA `d483bd15b36585b975b63c2ef641481a01d5d084`، طبّق A/A2/B/C/D فقط. إذا تغير، أعد بناء المحددات من المصدر الجديد.
 4. بعد دمج المالك، تحقق من HTML المنشور في Cloudflare ثم Browser E2E قبل الإغلاق.
 5. لا تغيّر Production ولا تلمس Loader أو main.html لهذه الفجوة ما لم يظهر دليل جديد يثبت ضرورة مستقلة.
+
+
+## Addendum — Patch D complete replacement (authoritative)
+
+The following complete block replaces `App.showItemDetail(code, name, unit, qty, desc)` only. It supersedes the short pointer in section 3 above.
+
+~~~js
+    showItemDetail: function(code, name, unit, qty, desc){
+        function escHtml(value) {
+            return String(value == null ? '' : value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        var rawImg = String(ITEMS_IMAGE_CACHE[code] || '').trim();
+        var safeImg = /^(https?:\\/\\/|\\/(?!\\/))/i.test(rawImg) ? escHtml(rawImg) : '';
+        var imgHtml = safeImg
+            ? '<img src="' + safeImg + '" alt="" class="w-full h-80 object-contain bg-white rounded-2xl mb-4 shadow-sm" onerror="this.style.display=\\'none\\'">'
+            : '<div class="w-full h-80 bg-white rounded-2xl flex items-center justify-center text-slate-400 mb-4"><i class="fa-solid fa-box text-4xl"></i></div>';
+
+        var safeQty = Number(qty);
+        if (!isFinite(safeQty)) safeQty = 0;
+
+        Swal.fire({
+            html: '<div class="text-right">' + imgHtml +
+                '<h3 class="font-black text-xl text-slate-800 mb-2">' + escHtml(name) + '</h3>' +
+                '<div class="space-y-2 text-sm">' +
+                '<div class="flex justify-between"><span class="text-slate-400">الكود</span><span class="font-bold text-slate-600">' + escHtml(code) + '</span></div>' +
+                '<div class="flex justify-between"><span class="text-slate-400">الوحدة</span><span class="font-bold text-slate-600">' + escHtml(unit || 'حبة') + '</span></div>' +
+                '<div class="flex justify-between"><span class="text-slate-400">الكمية المطلوبة</span><span class="font-bold text-indigo-600 text-lg">' + safeQty + '</span></div>' +
+                '</div>' + (desc ? '<p class="text-sm text-slate-500 mt-3 pt-3 border-t border-slate-100">' + escHtml(desc) + '</p>' : '') +
+                '</div>',
+            width: 'min(92vw, 560px)',
+            showCloseButton: true,
+            showConfirmButton: false,
+            customClass: { popup: '!rounded-3xl !p-5', closeButton: '!text-slate-300 !text-lg' }
+        });
+    },
+~~~
