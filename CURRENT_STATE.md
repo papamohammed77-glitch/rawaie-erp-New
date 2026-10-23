@@ -1358,3 +1358,5 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - **UNVERIFIED:** owner patch, deployment, Browser E2E, and Open/Confirmed browser states.
 - **LAST VERIFIED EVENT:** `LVE-2026-10-23-473`, SQL/source revalidation and continuity update; report commit `f39bca5e66fa82f3cc1caec81e3a099cad25c421`.
 - **Next exact action:** owner re-fetches Picker and checks SHA; if unchanged, applies only Report471 Patches A/A2/B/C/D, deploys through the existing frontend path, then verifies served HTML and browser E2E. Do not edit Loader, main.html, or core.js. Do not change Production for this presentation-only gap.
+
+- **Documentation recovery note:** a continuity-ledger write briefly produced an empty file; the prior committed ledger was restored, the new event appended, and the restored content verified. Final memory blob SHA `36306ca568ef4cfdbf0e30ae3361c8ee3a2b71f7`. No operational/Production data changed.
