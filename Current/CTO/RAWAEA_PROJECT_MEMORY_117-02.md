@@ -288,3 +288,14 @@ Never repeat:
 - Deployment lineage remains UNKNOWN: Cloudflare Pages is documented and /picker redirects to the current path, but served HTML SHA and authenticated Browser E2E are not established. Owner source changes remain unapplied; task is NOT CLOSED.
 - CURRENT_STATE was appended with the Report477 checkpoint in commit `0e06c9ccde376d842c062b5042cc7b11291bd5df`, content SHA `382e6ace2086739719e7dca13f89f8a0fba74736`.
 - Next exact action: owner re-fetches Picker and checks SHA; if unchanged, applies only Report477 A→A2→B→C→D→E, runs Staging tests and confirms no stock/reservation/log delta, deploys through the approved frontend path, verifies Cloudflare-served HTML and authenticated Browser E2E, then updates state. Do not touch Loader, main.html, core.js, or Production for this display-only defect.
+
+
+## LAST VERIFIED MEMORY EVENT — LVE-2026-10-23-478
+- Re-read MASTER CTO governance and refreshed CURRENT_STATE and memory before examining operational source. No owner changes are reflected in the current Picker blob.
+- App HEAD `152e5b1d22aab94d2cf01070778b357df4701aff`, parent `e69c9af4b56d99ba29a4fa74282f78438b9f7010`; Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084`; Loader SHA `97b83d68a683df77c1e0557838c24a1b4fb65169`.
+- Fresh SQL at `2026-10-23T14:58:58.392162Z`: PostgreSQL 17.6; items=18, run_sheet_details=12, runsheets=2; status Picked=2 only; items.description/image_url exist; run_sheet_details.description absent; both expected FKs exist.
+- Defects remain A/A2/B/C/D/E as documented in Report477. Report477 is still the authoritative full owner patch; Report478 records this session's fresh evidence.
+- No operational source, Production schema, Edge/RPC, or business data changed. No synthetic Production data created/deleted.
+- Cloudflare served artifact UNKNOWN; owner patch/Staging/Browser E2E UNVERIFIED; task NOT CLOSED.
+- Report: `doc/Draft/Reprots/Report478_PICKER_PREVIEW_PARITY_CURRENT_STATE_RECHECK_20261023.md`; report commit `7051d21747913372a125ca5e660eb5d2b1db2c17`.
+- Next exact action: owner verifies current Picker SHA, applies only missing Report477 patches A→A2→B→C→D→E, validates in Staging with zero inventory/reservation/log delta, then verifies served Cloudflare artifact and authenticated Browser E2E.
