@@ -184,3 +184,8 @@
 6. اترك تعارض zero-quantity/notes مسجلًا كمسألة منفصلة، ولا تُدخل إصلاحًا غير مختبر في Production.
 
 **نهاية Report486.**
+
+
+## Addendum — Production clock and synchronization boundary
+
+A separate direct `select now()` read returned `2026-10-23 23:38:02.5146+00` (PostgreSQL 17.6). The schema/constraints query recorded above returned `2026-10-23 23:36:07.478078+00`. The current-session time context corresponds to approximately `23:34 UTC`, so the database clock is a few minutes ahead of the session clock. This is recorded as a clock-offset caveat; no claim is made that the two clocks were synchronized to the second. The schema result remains a direct Production read, and no write was executed.
