@@ -1185,3 +1185,16 @@ Only the syntax blocker in `erp-frontend/companies/company-1/warehouse/picker.ht
 - **No Production change required:** display-only work does not justify an Edge Function, RPC, schema, RLS, grant, or stock mutation. The existing `start-picking` and central reservation lifecycle remain untouched.
 - **Closure:** `SOURCE + PRODUCTION READ CONTRACTS RECONCILED / OWNER SURGICAL PATCH READY / DEPLOYMENT + SERVED HTML PARITY + BROWSER E2E OPEN`.
 - **Next step:** owner applies Report467's two surgical replacements, deploys Picker, then verifies Open/Confirmed preview, total requested quantity, descriptions, detail modal escaping, Back, Start Picking, company isolation, mobile layout, and unchanged inventory baseline. Do not claim UI closure before browser evidence.
+
+
+---
+
+## CURRENT FORENSIC RECHECK — 2026-10-23 — Picker Preview Patch Revalidated
+
+- Scope remains owner-applied UI-only change in `papamohammed77-glitch/erp-frontend/companies/company-1/warehouse/picker.html`. Do not edit `main.html` or the operational HTML through the assistant.
+- Re-fetched current source: Loader `companies/company-1/warehouse/loader.html` SHA `97b83d68a683df77c1e0557838c24a1b4fb65169` (332 lines); Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084` (1058 lines). Picker still contains the short preview block at lines 570–581 and the unescaped `App.showItemDetail` at lines 590–594; Report467's locators still match these exact source contents.
+- Fresh Production check at `2026-10-23 11:21:23.239957+00 UTC`: `start-loading` ACTIVE v5, `verify_jwt=true`, `ezbr_sha256=afcfe32707382c57a15ebb744dec61e95a4079abb9ee8d32f479f322091230c7`; `complete-loading` ACTIVE v11, `verify_jwt=true`, `ezbr_sha256=c0ca692a29d14d64ec3729ae4bd12b9b84268e826ffc1c6993a48617b552b286`. Both authenticate the JWT, resolve `public.users` through `auth_id = auth.users.id`, then call the existing service-role core RPC.
+- Production RLS rechecked: `runsheets` SELECT is company-scoped and permission-gated; `run_sheet_details` SELECT requires a parent runsheet in the current company and a runsheets/warehouse/reports permission. No schema, ACL, Edge, stock, or business-data changes were required or made.
+- Revalidated finding: Picker preview lacks a total requested-quantity summary and always-visible item description; preview and detail modal interpolate database text without escaping. Report467 already contains the two complete owner-only replacements; no duplicate report or code patch is needed.
+- Exact owner instructions remain in [Report467_PICKER_RUNSHEET_PREVIEW_PARITY_SURGICAL_CHANGE_20261023.md](doc/Draft/Reprots/Report467_PICKER_RUNSHEET_PREVIEW_PARITY_SURGICAL_CHANGE_20261023.md). Apply only its two replacements after re-fetching the file and confirming the SHA; do not replace the entire `openRunsheet` function.
+- No browser/Cloudflare served-artifact parity or post-patch E2E was run. Closure remains OPEN until the owner applies, deploys, and verifies the patch. Do not call the task closed based on source inspection alone.
