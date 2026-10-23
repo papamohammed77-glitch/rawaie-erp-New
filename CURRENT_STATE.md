@@ -1520,3 +1520,19 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - **Production changes:** NONE. No DDL/RLS/ACL/RPC/Edge or business-data writes; no fixtures created or deleted.
 - **Closure:** `ROOT CAUSE RECONFIRMED / OWNER PATCH READY / NOT APPLIED / DEPLOYMENT UNKNOWN / NOT CLOSED`.
 - **Next exact step:** owner re-fetches Picker and checks SHA; if unchanged, applies only Report477 A→A2→B→C→D→E. Then static parse, Staging E2E, zero stock/reservation/log delta, Cloudflare served-artifact verification and authenticated browser E2E. Do not edit Loader, main.html, core.js or Production for this UI-only defect.
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-23 — LVE-2026-10-23-482 Report481 Scope Correction: Loader Click-to-Details
+
+- **LAST VERIFIED EVENT:** `LVE-2026-10-23-482` — audited the 50 report files in the Report432–Report480 window (including two distinct Report458 files), reviewed the full Report466–Report480 chain, and re-fetched current operational Loader/Picker/Core.
+- **Consolidated audit report:** `doc/Draft/Reprots/Report481_LOADER_RUNSHEET_CLICK_DETAILS_SCOPE_CORRECTION_20261023.md`, created in documentation repository commit `73c3f82c5a270bd97c8598eef5e6ac2778cb2e47`.
+- **Scope correction:** current user request targets only `papamohammed77-glitch/erp-frontend/companies/company-1/warehouse/loader.html`. Report466 originally targeted Loader; Report467–480 drifted to a Picker preview-parity change and repeatedly instructed not to edit Loader. Do not apply Report477's Picker patch to this task.
+- **Current source identity:** operational repo `erp-frontend`, branch `main`, HEAD `152e5b1d22aab94d2cf01070778b357df4701aff`; Loader SHA `97b83d68a683df77c1e0557838c24a1b4fb65169` (332 lines), Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084` (1,058 lines), Core SHA `ff2f581d9900543c16f7cb026e13446520c0329d`.
+- **Confirmed in current Loader Git:** `_card` click handler calls `App.openRunsheet(code)`; search dropdown results call the same method. `openRunsheet` loads `runsheets` and `run_sheet_details`; active Loading assigned to current loader enters session, Picked opens the current inline details preview inside `mainContent`, and other states use read-only rendering. Current `_showPreviewModal` name is legacy; the function currently renders inline and does not call `Swal.fire`.
+- **Critical distinction:** the current source already contains the requested click-to-open path. No source-only evidence establishes that the current Git behavior is broken. A new code patch is not justified until the user-visible failure is reproduced against the Cloudflare-served artifact and the exact difference is captured.
+- **Reporting errors found:** Report473 says Loader and Picker each have 1 line despite current source sizes of 332 and 1,058 lines; Reports478–480 repeat unchanged source identities/status and retain the wrong target scope. Some Picker-specific schema findings may remain valid for Picker but do not define this Loader task.
+- **No operational change:** no HTML, Core, Supabase schema/RLS/RPC/Edge, or Production business data changed. No production fixtures were created.
+- **Unknown / unverified:** actual Cloudflare-served artifact identity, click behavior in authenticated browser, Console/Network outcome, and deployment parity.
+- **Next exact step:** reproduce the click behavior in the served Loader for a permitted runsheet and search result; record served artifact and browser evidence. If failure is reproduced, re-fetch Loader and apply the smallest proven fix in Loader only; then test Staging/browser and confirm opening details leaves `stock_branches.qty`, `allocated_qty`, and `inventory_log` unchanged.
+- **Status:** `REPORT CHAIN AUDITED / LOADER TARGET RESTORED / SOURCE CLICK PATH PRESENT / RUNTIME FAILURE NOT REPRODUCED / NO OPERATIONAL PATCH / NOT CLOSED`.
