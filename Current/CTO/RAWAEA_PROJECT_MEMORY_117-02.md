@@ -242,3 +242,13 @@ Never repeat:
 - Status: OWNER PATCH READY / DEPLOYMENT + BROWSER E2E UNVERIFIED / NOT CLOSED.
 - Next exact action: re-fetch Picker and verify SHA, apply only missing Report471 patches, deploy using the existing frontend path, verify served HTML and Browser E2E, and confirm inventory/reservations remain unchanged.
 - Report: `doc/Draft/Reprots/Report473_PICKER_PREVIEW_PARITY_SESSION_REVALIDATION_20261023.md`.
+
+
+## 24. LAST VERIFIED MEMORY EVENT — LVE-2026-10-23-474
+- Target: Loader/Picker runsheet preview parity. Fresh source SHA Loader `97b83d68a683df77c1e0557838c24a1b4fb65169`; Picker `d483bd15b36585b975b63c2ef641481a01d5d084`.
+- Loader current refactor commit: `152e5b1d22aab94d2cf01070778b357df4701aff`, parent `e69c9af4b56d99ba29a4fa74282f78438b9f7010`. It changes the preview to responsive inline summary/cards and event-bound buttons; therefore Report471 Patch B is visually stale and Report474 Patch B supersedes it.
+- Fresh direct Production SQL: items.description/image_url exist; run_sheet_details.description absent; expected item and runsheet FKs exist; current runsheet count status Picked=2 only.
+- Confirmed Picker defects: abbreviated preview; no joined description; active session reads nonexistent detail.description; inline onclick interpolates DB values; unsafe image/detail HTML interpolation.
+- Owner surgical patches are A/A2/B/C/D in `doc/Draft/Reprots/Report474_PICKER_PREVIEW_PARITY_REBASE_AFTER_LOADER_REFACTOR_20261023.md`. No operational source or Production schema/data changes were made. No test rows were created/deleted.
+- Status: OWNER PATCH READY / SOURCE + DB CONTRACT VERIFIED / DEPLOYMENT + BROWSER E2E UNVERIFIED / NOT CLOSED.
+- Next: re-fetch Picker, verify SHA, apply only missing patches from Report474, test syntax and Staging E2E; confirm no stock/reservation changes; verify Cloudflare served HTML before closure.
