@@ -22,7 +22,7 @@ Historical sources explain intent and prior behavior. They do not prove current 
 ## 2. CURRENT PROJECT IDENTITY
 - Project: RAWAEA ERP
 - Operational application-source repository: `papamohammed77-glitch/erp-frontend`, branch `main`; current verified HEAD at LVE-2026-10-23-484: `152e5b1d22aab94d2cf01070778b357df4701aff`.
-- Governance, continuity, and report repository: `papamohammed77-glitch/rawaie-erp-New`, branch `main`; latest verified docs HEAD after LVE-2026-10-23-484: `7e401c7cb539acdcdf27a9e65d32cced8b78b3aa`.
+- Governance, continuity, and report repository: `papamohammed77-glitch/rawaie-erp-New`, branch `main`. Its HEAD advances when reports, CURRENT_STATE, or this ledger are committed; re-fetch live HEAD every run rather than storing a self-referential SHA here.
 - Historical repository: `papamohammed77-glitch/rawaie-erp-review`.
 - Production: Supabase `SMART ERP`, ref `fiilmooggumokxanwiyx`, status `ACTIVE_HEALTHY`.
 - Staging: Supabase `rawaea-staging`, ref `hfzznsiprnwkpayskzhu`; live project metadata reports `INACTIVE` as of 2026-10-23.
