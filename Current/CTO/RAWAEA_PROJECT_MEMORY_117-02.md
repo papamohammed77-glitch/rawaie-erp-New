@@ -254,3 +254,16 @@ Never repeat:
 - Next: re-fetch Picker, verify SHA, apply only missing patches from Report474, test syntax and Staging E2E; confirm no stock/reservation changes; verify Cloudflare served HTML before closure.
 
 - Report474 self-audit: Picker has no `RW_UI` namespace, so the patch now uses a local `formatPreviewNumber()`; image URL regex literals were corrected and re-fetched. Latest Report474 commit `68d6e9555219d0c41a32145f1fbc74131a410ae7`, blob `c9025663f8ee0bb79bc2e88ae6242be38d00f25c`.
+
+
+
+## 25. LAST VERIFIED MEMORY EVENT — LVE-2026-10-23-475
+- Scope: consolidated CTO re-investigation of Loader/Picker runsheet preview parity; owner-only operational source changes.
+- Source repos separated: actual app source is `papamohammed77-glitch/erp-frontend` on `main`; this repository is continuity/governance/reporting. Historical reports are references, not current truth.
+- Fresh app source: Loader `companies/company-1/warehouse/loader.html` SHA `97b83d68a683df77c1e0557838c24a1b4fb65169` (332 lines); Picker `companies/company-1/warehouse/picker.html` SHA `d483bd15b36585b975b63c2ef641481a01d5d084` (1058 lines). Neither operational file changed.
+- Current Loader preview refactor: commit `152e5b1d22aab94d2cf01070778b357df4701aff`, parent `e69c9af4b56d99ba29a4fa74282f78438b9f7010`. Picker history reviewed for session recovery, Idempotency-Key/operation id, quantity validation, and insufficient-stock handling; preserve these contracts.
+- Production SQL read-only snapshot at 2026-10-23 12:24:37 UTC: PostgreSQL 17.6; items=18, run_sheet_details=12; items.description/image_url exist; run_sheet_details.description absent; item_id FK and runsheet_id FK present; status count Picked=2 only, no Open/Confirmed rows in the queried counts. No DDL, RLS/RPC/Edge, or business-data writes; no test rows created/deleted.
+- Confirmed root causes in Picker: abbreviated preview; detail query omits joined item description; active session reads absent detail.description; inline onclick interpolates DB values; unvalidated image src and unescaped item detail HTML.
+- New self-contained current owner changeset: `doc/Draft/Reprots/Report475_PICKER_PREVIEW_PARITY_CONSOLIDATED_CTO_EXECUTION_20261023.md`, report commit `53ec7826a121ef5c8767c3fb7f1b4ce7059d0ff2`, report blob `496e18243085101728fba7f15870d72b33927943`. Includes patches A/A2/B/C/D, complete replacements, bounded scope, tests and rollback. Its JS blocks B/C/D were syntax-parsed successfully. Report474 Patch D had ambiguous/broken escaping around inline onerror; do not carry that historic block forward.
+- Production and deployment state: source patch not applied; Cloudflare served HTML and browser E2E unverified; current production runsheets do not offer Open/Confirmed test cases. No operational source was edited. Status: ROOT CAUSE VERIFIED / OWNER PATCH READY / NOT DEPLOYED / NOT CLOSED.
+- Next exact step: owner re-fetches Picker and checks SHA. If unchanged, apply patches A→A2→B→C→D from Report475 only; test in Staging, validate syntax/UX/auth/company boundaries and unchanged stock/reservations, then compare served Cloudflare HTML and run authenticated browser E2E. Do not edit Loader, main.html, or core.js for this display issue. Do not change Production for this task.
