@@ -1360,3 +1360,19 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - **Next exact action:** owner re-fetches Picker and checks SHA; if unchanged, applies only Report471 Patches A/A2/B/C/D, deploys through the existing frontend path, then verifies served HTML and browser E2E. Do not edit Loader, main.html, or core.js. Do not change Production for this presentation-only gap.
 
 - **Documentation recovery note:** a continuity-ledger write briefly produced an empty file; the prior committed ledger was restored, the new event appended, and the restored content verified. Final memory blob SHA `36306ca568ef4cfdbf0e30ae3361c8ee3a2b71f7`. No operational/Production data changed.
+
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-23 — Report474 Loader Refactor Rebase
+
+- **Target:** picker.html runsheet preview parity with loader.html; owner-only operational source patch.
+- **Fresh source:** Loader SHA `97b83d68a683df77c1e0557838c24a1b4fb65169` (332 lines); Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084` (1058 lines).
+- **New historical fact:** Loader commit `152e5b1d22aab94d2cf01070778b357df4701aff` (“Refactor preview modal HTML generation”), parent `e69c9af4b56d99ba29a4fa74282f78438b9f7010`, replaced the old modal with the current inline responsive summary/cards/event-wired preview. Report471's Patch B is now stale visually and is superseded by Report474 Patch B.
+- **Production SQL read-only:** items.description and items.image_url exist; run_sheet_details.description does not; both item and runsheet foreign keys exist; current status count `Picked: 2` only.
+- **Defects confirmed in Picker:** abbreviated preview; details query omits joined item description; active session reads missing detail.description; inline click-handler string construction; unsafe image/detail HTML interpolation.
+- **Owner patch:** Report474 A/A2/B/C/D. Patch B reuses Loader's responsive summary/cards and preview metrics but keeps Picker semantics and start action gated to Open/Confirmed; it does not mutate stock/reservations. Patch B supersedes Report471 B only; A/A2/C/D remain applicable after SHA recheck.
+- **No Production schema, RLS, RPC, Edge, or business-data changes.** No test records created or deleted. Do not touch Loader, main.html, or core.js.
+- **UNKNOWN:** Cloudflare served artifact parity. **UNVERIFIED:** owner merge, deploy, browser E2E, Open/Confirmed behavior.
+- **LAST VERIFIED EVENT:** `LVE-2026-10-23-474`; Report474 creation commit `9a657c589224ead26326667cafefe514e8073ef8` (later report addendum commit recorded in GitHub response).
+- **Next exact action:** owner re-fetches Picker, checks SHA; if unchanged applies A/A2/B/C/D from Report474, then validates syntax, preview states, image/text safety, and no inventory/allocation mutation in Staging; deploy and verify served HTML + Browser E2E before closure.
