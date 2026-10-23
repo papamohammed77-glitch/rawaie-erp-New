@@ -1297,3 +1297,48 @@ Owner applies the Report470 patch to the matching current Picker SHA, deploys th
 - **Production mutation:** none. No schema/RLS/RPC/Edge/data changes; none are justified for this presentation-only gap. No synthetic Production fixture was created.
 - **Verification status:** Git source + DB schema/FK + live Edge inventory verified. Owner application, Cloudflare served-artifact parity, and Browser E2E remain UNVERIFIED. Do not call this CLOSED.
 - **Next exact step:** Owner re-fetches Picker and checks SHA; if unchanged, applies Patches A–D from Reports470/468 with Report469 correction, deploys through the approved frontend path, then verifies served HTML and Browser E2E including Open/Confirmed/Picked states, description, XSS/URL handling, company isolation, active Dexie session, back/start actions, mobile layout, and unchanged stock/reservations.
+
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-23 — Report471 Self-Contained Owner Changeset Correction
+
+## Scope and ownership
+- Scope remains the Loader/Picker runsheet preview parity change only.
+- The assistant did not edit the operational files picker.html, loader.html, main.html, or core.js.
+- Report471 was corrected to include every complete replacement block directly, instead of requiring the owner to assemble code from earlier reports.
+- Corrected Report471 commit: 39dad87375731ca634f9b0e6a1953f0c761b2e26; blob SHA cc0f4ae8d989d029e0a0286e2a3930441028d8c5.
+
+## Current source snapshot
+- Loader: erp-frontend/companies/company-1/warehouse/loader.html, SHA 97b83d68a683df77c1e0557838c24a1b4fb65169, 332 lines.
+- Picker: erp-frontend/companies/company-1/warehouse/picker.html, SHA d483bd15b36585b975b63c2ef641481a01d5d084, 1058 lines.
+- Shared core: erp-frontend/companies/company-1/core.js, SHA ff2f581d9900543c16f7cb026e13446520c0329d.
+- Loader refactor: commit 152e5b1d22aab94d2cf01070778b357df4701aff, parent e69c9af4b56d99ba29a4fa74282f78438b9f7010.
+- Picker latest file commit checked: eee31fe44d8fc1cee384ad66a8d7a36be2e3c1b7, parent fbcd4c7e1845236455f026eb3f7ae0ccfa8ba407.
+- Fresh source still does not contain the owner preview patch.
+
+## Fresh Production verification
+- Read-only SQL verification at 2026-10-23 11:56:09.253978 UTC: items.description and items.image_url exist; run_sheet_details.description does not.
+- FK run_sheet_details_item_id_fkey: run_sheet_details.item_id → items.id.
+- FK run_sheet_details_runsheet_id_fkey: run_sheet_details.runsheet_id → runsheets.id.
+- Current read policies scope runsheets/items to company and permissions; run_sheet_details requires a matching parent runsheet in the current company and one of the established runsheets/warehouse/reports permissions.
+- Current status count: two Picked runsheets for the observed company, zero Open or Confirmed runsheets in this count. No test/business rows were inserted, updated, or deleted.
+- Edge Functions rechecked: start-picking v35 SHA fca0377fce2d02d52a17bdbbdd98cfe9cc449d052533df0a3b021be11c79914a; complete-picking v18 SHA 14b4d650253e73abc7c7a1b1f25a8674849c11e32d21ae9928701f19705b0537; start-loading v5 SHA afcfe32707382c57a15ebb744dec61e95a4079abb9ee8d32f479f322091230c7; complete-loading v11 SHA c0ca692a29d14d64ec3729ae4bd12b9b84268e826ffc1c6993a48617b552b286. All ACTIVE and verify_jwt=true.
+
+## Exact owner patch package
+Report471 now includes the complete independent owner patch:
+1. Patch A: query items!run_sheet_details_item_id_fkey(description).
+2. Patch A2: use the nested item description in the existing active-Picking session mapping; this removes the old reference to the nonexistent detail-table column.
+3. Patch B: replace only the abbreviated non-active preview rendering block, preserve active-session recovery and the surrounding Promise closure, show total requested quantity and description, and map statuses accurately.
+4. Patch C: replace App._img(code) only; permit HTTP(S) and single-root-relative paths but reject //host and unsupported protocols.
+5. Patch D: replace App.showItemDetail(...) only; escape all text and validate the image URL.
+
+Authoritative report:
+doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261023.md.
+
+## Verification and closure
+- Verified: source SHAs, relevant Git parents, schema/foreign keys, RLS read policies, current Edge versions, and current runsheet status counts.
+- Not verified: owner patch applied, served HTML parity, or browser E2E after patch.
+- Production changes: none justified; no schema/RLS/RPC/Edge/business-data changes made.
+- Closure: SELF-CONTAINED OWNER PATCH READY / SOURCE + DB CONTRACT VERIFIED / SERVED HTML PARITY + BROWSER E2E OPEN / NOT CLOSED.
+- Next exact step: owner re-fetches Picker and checks SHA. If unchanged, apply only Report471 Patches A, A2, B, C, D; publish using the existing frontend path; verify Open/Confirmed in an approved test environment and Picked read-only behavior; prove images/text are safe and stock/allocations remain unchanged. Do not edit Loader or main.html for this finding.
