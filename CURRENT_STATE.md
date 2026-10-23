@@ -1,3 +1,18 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-24 — LVE-2026-10-24-488: Loader/Picker Parity Re-execution
+
+- **Authoritative LAST VERIFIED EVENT:** LVE-2026-10-24-488. Report: `doc/Draft/Reprots/Report487_LOADER_PICKER_PARITY_REEXECUTION_20261024.md`; report blob SHA `39a3b0166f299a3ab7cb370b373407922cdac0d5`; report commit `f0a8c917245e47bcd8439bc0be6bf2a2ae0fff1f`.
+- **Scope:** owner’s latest explicit instruction controls: `companies/company-1/warehouse/loader.html` is the target; `companies/company-1/warehouse/picker.html` is the comparison reference. Do not apply Picker-target patches from the older reversed instruction.
+- **Operational source repository:** `papamohammed77-glitch/erp-frontend` / `main`; HEAD `152e5b1d22aab94d2cf01070778b357df4701aff`, parent `e69c9af4b56d99ba29a4fa74282f78438b9f7010`.
+- **Current source fingerprints re-fetched:** Loader SHA `97b83d68a683df77c1e0557838c24a1b4fb65169` (332 lines); Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084` (1,058 lines); Core SHA `ff2f581d9900543c16f7cb026e13446520c0329d` (773 lines). Historical Loader SHA `7e61b04d0d9a480d43763e8b7b21f9cbed78409a`; Historical Picker SHA `7626ba320021a607854bf219f4bacd81fc3d1d92`.
+- **Fresh Production SQL:** project `fiilmooggumokxanwiyx`, PostgreSQL 17.6; direct `now() = 2026-10-23 23:45:21.172585+00`. Current counts: items=18, run_sheet_details=12, runsheets=2; current statuses Picked=2. FK `run_sheet_details.item_id → items.id` exists; `items.description/image_url` exist, `run_sheet_details.description/image_url/notes` do not. Current join: 12/12 detail rows link to items, 2/12 have non-empty description, 12/12 have image. `run_sheet_details_select_current_tenant` is the SELECT RLS policy; authenticated lacks UPDATE grant.
+- **Production Edge Registry:** `complete-loading` v11, ACTIVE, `verify_jwt=true`, `ezbr_sha256=c0ca692a29d14d64ec3729ae4bd12b9b84268e826ffc1c6993a48617b552b286`. This is registry metadata; it is not asserted to equal a Git SHA.
+- **Owner patch:** Report487 contains the consolidated full patch sequence G → A1/A2 → B → C → D → E → F, including full replacement code. No operational HTML/Core/Main file was changed by the assistant. No Production SQL/Edge/RPC/RLS/grant/data write occurred.
+- **Open contract debt:** current Loading path still has a separate zero-quantity/notes contract mismatch and a direct `qty_loaded` update path that ignores errors while authenticated has no UPDATE grant. The UI parity patch does not close this.
+- **Closure:** ROOT CAUSE + SOURCE/SCHEMA CONTRACT CONFIRMED / OWNER PATCH READY IN SINGLE REPORT / SOURCE NOT APPLIED / CLOUDFLARE ARTIFACT UNKNOWN / STAGING E2E NOT RUN / BROWSER E2E NOT RUN / NOT CLOSED.
+- **Next exact action:** re-fetch Loader immediately before owner application; require SHA match; apply only the complete patch in Report487; parse full HTML JS; test company isolation, ownership, item details, image fallback, active Loading lifecycle and zero stock delta; then verify Cloudflare-served artifact and authenticated browser E2E.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-24 — LVE-2026-10-24-487: Loader Target Scope Correction and Patch Consolidation
 
 - **Authoritative LAST VERIFIED EVENT:** LVE-2026-10-24-487. Report: `doc/Draft/Reprots/Report486_LOADER_TARGET_SCOPE_CORRECTION_AND_PATCH_CONSOLIDATION_20261024.md`; report blob SHA `7b5cf5e0da830cdd7b14223fd486baa305ae95c1`; report commit `6065f3106cf1691a9c70488974f74870539af5d4`.
