@@ -1342,3 +1342,19 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - Production changes: none justified; no schema/RLS/RPC/Edge/business-data changes made.
 - Closure: SELF-CONTAINED OWNER PATCH READY / SOURCE + DB CONTRACT VERIFIED / SERVED HTML PARITY + BROWSER E2E OPEN / NOT CLOSED.
 - Next exact step: owner re-fetches Picker and checks SHA. If unchanged, apply only Report471 Patches A, A2, B, C, D; publish using the existing frontend path; verify Open/Confirmed in an approved test environment and Picked read-only behavior; prove images/text are safe and stock/allocations remain unchanged. Do not edit Loader or main.html for this finding.
+
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-23 — Report473 Picker Preview Parity Revalidation
+
+- **Closure unit:** Picker runsheet preview parity with Loader; owner-only source changes.
+- **Current source re-fetch:** Loader SHA `97b83d68a683df77c1e0557838c24a1b4fb65169` (1 lines); Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084` (1 lines). Neither operational file was modified by the assistant.
+- **Fresh Production SQL:** project `fiilmooggumokxanwiyx`; `items.description` and `items.image_url` exist; `run_sheet_details.description` does not; both expected foreign keys exist; current runsheet status count is `Picked: 2` and no other statuses are present in this count.
+- **Confirmed defect:** Picker preview still uses `.select('*')` and its abbreviated preview; description must be read via `items!run_sheet_details_item_id_fkey(description)`. The active-session mapping also needs the single-line nested-description correction.
+- **Authoritative complete owner patch:** Report471, Patches A/A2/B/C/D. Report472 is a historical pointer and should not override the complete corrected blocks in Report471.
+- **Production:** no DDL, RLS, RPC, Edge, or data changes; none justified. No synthetic data created and no records deleted.
+- **UNKNOWN:** Cloudflare served HTML parity with Git.
+- **UNVERIFIED:** owner patch, deployment, Browser E2E, and Open/Confirmed browser states.
+- **LAST VERIFIED EVENT:** `LVE-2026-10-23-473`, SQL/source revalidation and continuity update; report commit `f39bca5e66fa82f3cc1caec81e3a099cad25c421`.
+- **Next exact action:** owner re-fetches Picker and checks SHA; if unchanged, applies only Report471 Patches A/A2/B/C/D, deploys through the existing frontend path, then verifies served HTML and browser E2E. Do not edit Loader, main.html, or core.js. Do not change Production for this presentation-only gap.
