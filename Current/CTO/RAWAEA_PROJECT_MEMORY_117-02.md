@@ -252,3 +252,5 @@ Never repeat:
 - Owner surgical patches are A/A2/B/C/D in `doc/Draft/Reprots/Report474_PICKER_PREVIEW_PARITY_REBASE_AFTER_LOADER_REFACTOR_20261023.md`. No operational source or Production schema/data changes were made. No test rows were created/deleted.
 - Status: OWNER PATCH READY / SOURCE + DB CONTRACT VERIFIED / DEPLOYMENT + BROWSER E2E UNVERIFIED / NOT CLOSED.
 - Next: re-fetch Picker, verify SHA, apply only missing patches from Report474, test syntax and Staging E2E; confirm no stock/reservation changes; verify Cloudflare served HTML before closure.
+
+- Report474 self-audit: Picker has no `RW_UI` namespace, so the patch now uses a local `formatPreviewNumber()`; image URL regex literals were corrected and re-fetched. Latest Report474 commit `68d6e9555219d0c41a32145f1fbc74131a410ae7`, blob `c9025663f8ee0bb79bc2e88ae6242be38d00f25c`.
