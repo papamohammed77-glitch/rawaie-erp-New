@@ -1473,3 +1473,20 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - **Production:** no schema/RLS/grants/RPC/Edge or business data writes. No test records created/deleted. No Production changes justified.
 - **UNKNOWN:** Cloudflare served artifact parity. **UNVERIFIED:** owner patch, Staging, authenticated Browser E2E and deployment. **NOT CLOSED.**
 - **Next exact action:** owner re-fetches Picker and confirms SHA; if unchanged, applies only Report477 A→A2→B→C→D→E; runs Staging tests and confirms zero stock/reservation/log delta; then verifies Cloudflare-served HTML and authenticated Browser E2E. Do not touch Loader, main.html, core.js, or Production for this presentation-only defect.
+
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-23 — Report479 Fresh Picker/Loader Revalidation
+
+- **LAST VERIFIED EVENT:** `LVE-2026-10-23-479` — fresh current source fetch and read-only Production SQL; report commit `f0e0b8a28d36bb3fbedc1b6b94f1b4ffd747cf8f`.
+- **Application HEAD / parent:** `152e5b1d22aab94d2cf01070778b357df4701aff` / `e69c9af4b56d99ba29a4fa74282f78438b9f7010`.
+- **Current Loader:** `companies/company-1/warehouse/loader.html`, SHA `97b83d68a683df77c1e0557838c24a1b4fb65169`, 332 lines.
+- **Current Picker:** `companies/company-1/warehouse/picker.html`, SHA `d483bd15b36585b975b63c2ef641481a01d5d084`, 1,058 lines. The Picker still matches the unpatched SHA.
+- **Fresh Production SQL:** `2026-10-23 15:01:23.895825+00`, PostgreSQL 17.6; items=18, run_sheet_details=12, runsheets=2; status aggregate Picked=2 only. `items.description` and `items.image_url` exist; `run_sheet_details.description` does not. FKs `run_sheet_details_item_id_fkey` and `run_sheet_details_runsheet_id_fkey` verified.
+- **Diagnosis:** Picker preview remains abbreviated and reads description from the wrong record shape; the joined description must come from `items!run_sheet_details_item_id_fkey(description)`. Inline event handlers and unsafe HTML/image URL interpolation remain in the preview/detail helpers.
+- **Authoritative owner changeset:** `doc/Draft/Reprots/Report477_PICKER_PREVIEW_PARITY_MASTER_CTO_REEXECUTION_20261023.md`, SHA `1707a3dbbcac68728817aa2b67609f982159ece3`, contains full patches A/A2/B/C/D/E. Do not use older variants.
+- **New revalidation report:** `doc/Draft/Reprots/Report479_PICKER_PREVIEW_PARITY_FRESH_REVALIDATION_20261023.md`, commit `f0e0b8a28d36bb3fbedc1b6b94f1b4ffd747cf8f`.
+- **Production changes:** NONE. No DDL/RLS/ACL/RPC/Edge or business-data writes; no fixtures created or deleted.
+- **Closure:** `ROOT CAUSE RECONFIRMED / OWNER PATCH READY / NOT APPLIED / DEPLOYMENT UNKNOWN / NOT CLOSED`.
+- **Next exact step:** owner re-fetches Picker and checks SHA; if unchanged, applies only Report477 A→A2→B→C→D→E. Then static parse, Staging E2E, zero stock/reservation/log delta, Cloudflare served-artifact verification and authenticated browser E2E. Do not edit Loader, main.html, core.js or Production for this UI-only defect.
