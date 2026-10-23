@@ -1228,3 +1228,40 @@ Only the syntax blocker in `erp-frontend/companies/company-1/warehouse/picker.ht
 - **Report469:** `doc/Draft/Reprots/Report469_PICKER_PREVIEW_PARITY_FINAL_REVALIDATION_20261023.md`, commit `5928939ee43895e6160058c2106e058bb8b95253`.
 - **Status:** `SOURCE + LIVE DB RELATIONSHIP + RLS + EDGE VERSIONS VERIFIED / OWNER PATCH READY / OPERATIONAL HTML UNCHANGED / SERVED HTML PARITY + BROWSER E2E OPEN`.
 - **Exact next step:** owner applies the four changes from Report468, with Report469's status-label/subtitle correction included, to the current Picker SHA after re-fetching it. Deploy through the existing path; test Open, Confirmed, and same-user Picked views, description relation, escaped content, images, Back/Start actions, company isolation, mobile layout, and unchanged stock/reservations. Do not modify `main.html` or `loader.html`; do not claim closure before served-artifact parity and browser E2E evidence.
+
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-23 — Report470 Picker Preview Parity
+
+## Scope
+Only the owner-applied surgical parity patch for `erp-frontend/companies/company-1/warehouse/picker.html`. Do not edit `main.html`, `loader.html`, or the operational Picker file through the assistant. No Production schema/RPC/Edge/data change is required for this UI-only scope.
+
+## Fresh source and Git
+- Current Loader: `companies/company-1/warehouse/loader.html`, blob SHA `97b83d68a683df77c1e0557838c24a1b4fb65169`.
+- Current Picker: `companies/company-1/warehouse/picker.html`, blob SHA `d483bd15b36585b975b63c2ef641481a01d5d084`.
+- Loader preview inline refactor: commit `152e5b1d22aab94d2cf01070778b357df4701aff`, parent `e69c9af4b56d99ba29a4fa74282f78438b9f7010`.
+- Picker source still contains the short inline preview branch; Report468’s proposed patch is not present in the current Picker blob.
+- Final revalidation report: `doc/Draft/Reprots/Report470_PICKER_PREVIEW_PARITY_FRESH_REVALIDATION_20261023.md`, commit `5a644a4c497bdd2b24ebfd33cfb4c01133fa14a9`. It consolidates Report468’s full replacement set with Report469’s two status-label corrections.
+
+## Fresh Production evidence — 2026-10-23
+- Supabase project `fiilmooggumokxanwiyx`.
+- Edge Functions: `start-picking v35`, `start-loading v5`, `complete-loading v11`; all ACTIVE and `verify_jwt=true`.
+- Schema: `run_sheet_details.item_id` references `items.id` through `run_sheet_details_item_id_fkey`; `items.description` and `items.image_url` exist; `run_sheet_details.description` does not exist.
+- RLS policies on `runsheets`, `run_sheet_details`, and `items` enforce company/permission context.
+- Read-only status count at inspection: 2 runsheets in status `Picked`. No rows were inserted/updated/deleted, and no inventory/reservation was changed.
+
+## Exact owner patch
+1. In `App.openRunsheet(code)`, change the details select to `select('*, items!run_sheet_details_item_id_fkey(description)')`.
+2. Replace only the non-active preview block in `App.openRunsheet(code)` using the complete replacement block in Report468.
+3. Before applying that block, use Report469/Report470’s corrected label: `Picked → مكتمل التحضير`; do not label every non-Confirmed state as `مفتوح`. Change the subtitle to distinguish `canStart` from read-only details.
+4. Replace `App._img(code)` and `App.showItemDetail(...)` only if their current bodies still match the unescaped versions targeted in Report468.
+5. Owner deploys and verifies. Do not touch `main.html`, `loader.html`, `core.js`, Production schema, RPC, or Edge for this presentation-only change.
+
+## Verification status
+- Source/schema diagnosis: VERIFIED.
+- Patch applied by owner: UNVERIFIED.
+- Cloudflare served HTML parity: UNVERIFIED.
+- Browser E2E: UNVERIFIED.
+- Closure: `OWNER PATCH READY / PRODUCTION UI E2E OPEN / NOT CLOSED`.
+
+## Next exact step
+Owner applies the Report470 patch to the matching current Picker SHA, deploys the existing frontend artifact, and tests Open/Confirmed/Picked read-only preview, item description/image escaping, back navigation, allowed start action, and unchanged stock/reservations. Re-fetch source SHA and served HTML after deployment before claiming closure.
