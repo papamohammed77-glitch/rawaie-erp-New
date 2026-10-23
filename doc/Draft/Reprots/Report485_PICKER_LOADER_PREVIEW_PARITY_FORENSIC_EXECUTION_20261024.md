@@ -332,3 +332,14 @@ Patch E مطلوب لأن _img مستخدمة في renderActiveSession أيضً�
 المالك يعيد جلب Picker. إذا بقي SHA هو d483bd15b36585b975b63c2ef641481a01d5d084، يطبق A ثم A2 ثم B ثم C ثم D ثم E على نفس الملف، ويجري اختبارات القسم 9. لا يُعدل loader.html أو core.js أو main.html في هذه الوحدة. بعد التطبيق فقط يبدأ تحقق النشر والمتصفح؛ إلى ذلك الحين تبقى الحالة NOT CLOSED.
 
 **نهاية Report485.**
+
+
+## 12. Addendum — live verification of the separate Loading contract
+
+After drafting the main findings, the Production Edge source and PostgreSQL function body were fetched directly again to avoid relying on Report483/484 for this separate issue.
+
+- Live Edge registry/source: complete-loading v11, ACTIVE, verify_jwt=true, ezbr_sha256 c0ca692a29d14d64ec3729ae4bd12b9b84268e826ffc1c6993a48617b552b286.
+- The deployed source maps request items to only item_code and loaded_qty, then rejects any item where loaded_qty <= 0. It does not map the per-item notes field into the RPC payload.
+- Live PostgreSQL definition: public.complete_runsheet_loading(uuid,uuid,jsonb,text). The function rejects each grouped request where req <= 0; the RPC payload consumed by the core is item_code/loaded_qty only. The current run_sheet_details schema also has no notes column.
+- This confirms the zero-quantity/notes mismatch from live Production, not merely from an earlier report. It remains a separate business-contract issue and was not modified because this task is the Picker preview parity unit and no safe isolated E2E fixture was available.
+- No Production writes or business-data mutations were performed during this additional verification.
