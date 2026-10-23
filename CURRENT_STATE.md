@@ -1376,3 +1376,5 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - **UNKNOWN:** Cloudflare served artifact parity. **UNVERIFIED:** owner merge, deploy, browser E2E, Open/Confirmed behavior.
 - **LAST VERIFIED EVENT:** `LVE-2026-10-23-474`; Report474 creation commit `9a657c589224ead26326667cafefe514e8073ef8` (later report addendum commit recorded in GitHub response).
 - **Next exact action:** owner re-fetches Picker, checks SHA; if unchanged applies A/A2/B/C/D from Report474, then validates syntax, preview states, image/text safety, and no inventory/allocation mutation in Staging; deploy and verify served HTML + Browser E2E before closure.
+
+- **Report474 correction verified:** Patch B uses local `formatPreviewNumber()` (Picker has no `RW_UI` namespace); image URL regex literals in Patch D were normalized and re-read after update. Latest Report474 update commit `68d6e9555219d0c41a32145f1fbc74131a410ae7`, blob `c9025663f8ee0bb79bc2e88ae6242be38d00f25c`.
