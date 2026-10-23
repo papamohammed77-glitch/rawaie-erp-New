@@ -192,3 +192,88 @@ This is a fallback wiring change only. It does not change the active Picking ses
 - **What Could Still Be Wrong:** قد يتغير مصدر Git قبل التطبيق، أو يختلف HTML المنشور عن المصدر، أو يفشل اختبار المتصفح/الشركة/الصور؛ لذلك يجب إعادة فحص SHA ثم إثبات runtime.
 - **Final Confidence:** مرتفعة في التشخيص والرقع المصدرية؛ غير كافية للإغلاق التشغيلي.
 - **Final Closure Status:** `OWNER PATCH READY / NOT APPLIED / NOT DEPLOYED / NOT CLOSED`.
+
+## 7. Patch G المنفصل المطلوب وفق آخر مراجعة — أمان صور Loader
+
+هذه رقعة منفصلة عن رقع Picker A–F. الغرض سد فجوة صور Loader التي أكدها Report483. تُطبّق من المالك فقط إذا ظل SHA الأساسي للـLoader مطابقًا؛ لا تعدّل core.js.
+
+~~~js
+_loaderImageHTML: function(item, widthClass, heightClass) {
+    function esc(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    var product = item && item.items ? item.items : {};
+    var code = typeof item === 'string' ? item : ((item && item.item_code) || '');
+    var name = typeof item === 'string' ? '' : ((item && item.item_name) || product.name || '');
+    var rawUrl = String(
+        (product && product.image_url) ||
+        (item && item.image_url) ||
+        RW_ImageCache.getImageUrl(code) ||
+        ''
+    );
+
+    var imageUrl = '';
+    if (/^https?:\/\/[^\s"'<>]+$/i.test(rawUrl) ||
+        /^\/(?!\/)[^\s"'<>]*$/.test(rawUrl)) {
+        imageUrl = rawUrl;
+    }
+
+    var w = widthClass || 'w-14';
+    var h = heightClass || 'h-14';
+    var imageHtml = imageUrl
+        ? '<img data-loader-image="true" src="' + esc(imageUrl) +
+            '" alt="' + esc(name) +
+            '" class="' + esc(w) + ' ' + esc(h) +
+            ' rounded-2xl object-cover border-2 border-white shadow-sm">'
+        : '';
+
+    var fallbackClass = (imageUrl ? 'hidden ' : '') +
+        esc(w) + ' ' + esc(h) +
+        ' bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl ' +
+        'flex items-center justify-center text-slate-400';
+
+    return '<span class="inline-flex relative shrink-0">' +
+        imageHtml +
+        '<span data-loader-image-fallback="true" class="' + fallbackClass + '">' +
+        '<i class="fa-solid fa-box"></i></span></span>';
+},
+
+_bindLoaderImageFallbacks: function(root) {
+    if (!root) return;
+
+    var images = root.querySelectorAll('img[data-loader-image="true"]');
+    for (var i = 0; i < images.length; i++) {
+        (function(image) {
+            var wrap = image.parentNode;
+            var fallback = wrap
+                ? wrap.querySelector('[data-loader-image-fallback="true"]')
+                : null;
+
+            function showFallback() {
+                image.classList.add('hidden');
+                if (fallback) fallback.classList.remove('hidden');
+            }
+
+            image.addEventListener('error', showFallback);
+            if (image.complete && image.naturalWidth === 0) showFallback();
+        })(images[i]);
+    }
+},
+~~~
+
+طبّق الاستبدالات التالية بعد التحقق أن SHA الحالي للـLoader ما زال `97b83d68a683df77c1e0557838c24a1b4fb65169`:
+
+1. In _showPreviewModal, replace the expression RW_ImageCache.getImageHTML(it.item_code) with self._loaderImageHTML(it, 'w-14', 'h-14').
+2. In _renderReadonly, replace the expression RW_ImageCache.getImageHTML(it.item_code) with this._loaderImageHTML(it, 'w-14', 'h-14').
+3. In renderActiveSession, replace the expression RW_ImageCache.getImageHTML(it.item_code) with s._loaderImageHTML(it, 'w-14', 'h-14').
+4. After safeHTML in each of those three functions, call _bindLoaderImageFallbacks on mainContent using the same owner variable (self, this, or s). In renderActiveSession, call it before startTimer().
+5. In both modal didOpen handlers from Report482 E/F, after registering the image error listener, also check image.complete && image.naturalWidth === 0 and show the fallback immediately if the image has already failed.
+
+The new helper prefers the joined items.image_url or the session image_url before the asynchronous cache, validates the URL, escapes attributes, and uses event listeners rather than inline onerror. This corrects the specific unsafe thumbnail paths in Report482. It does not claim a full security audit of every pre-existing Loader HTML interpolation.
+
