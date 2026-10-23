@@ -79,7 +79,7 @@ var back=byId('pickerPreviewBack');if(back)back.addEventListener('click',functio
 var start=byId('pickerPreviewStart');if(start)start.addEventListener('click',function(){self.startPicking(code);});
 function openCard(ev){if(ev.type==='keydown'){if(ev.key!=='Enter'&&ev.key!==' ')return;ev.preventDefault();}var index=Number(this.getAttribute('data-picker-item-index')),it=items[index];if(!it)return;self.showItemDetail(it.item_code||'',it.item_name||'',it.unit||'حبة',Number(it.qty_ordered)||0,(it.items&&it.items.description)||'');}
 var cards=byId('mainContent').querySelectorAll('[data-picker-item-index]');for(var ci=0;ci<cards.length;ci++){cards[ci].addEventListener('click',openCard);cards[ci].addEventListener('keydown',openCard);}
-var imgs=byId('mainContent').querySelectorAll('img[data-picker-safe-image]');for(var ii=0;ii<imgs.length;ii++){imgs[ii].addEventListener('error',function(){this.style.display='none';},{once:true});}
+var imgs=byId('mainContent').querySelectorAll('img[data-picker-safe-image]');for(var ii=0;ii<imgs.length;ii++){imgs[ii].addEventListener('error',function(){this.style.display='none';},{once:true});if(imgs[ii].complete&&imgs[ii].naturalWidth===0)imgs[ii].style.display='none';}
 ```
 
 ## Owner patch C — استبدال `App._img(code)` كاملة
@@ -154,6 +154,35 @@ var imgs=byId('mainContent').querySelectorAll('img[data-picker-safe-image]');for
 
 هذه النسخة لا تحتوي `onerror` داخل سلسلة HTML، وتهرب جميع الحقول النصية وتتحقق من URL. لا تغيّر وظيفة النافذة أو عقد الكميات.
 
+
+## Owner patch E — preserve broken-image fallback in active Picking session
+
+**Why this patch is required:** `App._img(code)` is also called by `App.renderActiveSession()`, not only by the preview. Patch C deliberately removes inline `onerror`; without this matching event binding, a broken image in the active session would lose the old fallback behavior. This patch preserves the existing active-session UI and timer.
+
+**File/function:** `companies/company-1/warehouse/picker.html`, `App.renderActiveSession()`, around current line 660. Replace the current single line:
+
+```js
+        safeHTML(byId('mainContent'), html); this.startTimer();
+```
+
+**With this complete replacement:**
+
+```js
+        safeHTML(byId('mainContent'), html);
+        var activeImages = byId('mainContent').querySelectorAll('img[data-picker-safe-image]');
+        for (var imageIndex = 0; imageIndex < activeImages.length; imageIndex++) {
+            activeImages[imageIndex].addEventListener('error', function() {
+                this.style.display = 'none';
+            }, { once: true });
+            if (activeImages[imageIndex].complete && activeImages[imageIndex].naturalWidth === 0) {
+                activeImages[imageIndex].style.display = 'none';
+            }
+        }
+        this.startTimer();
+```
+
+This is a fallback wiring change only. It does not change the active Picking session data, quantities, notes, or timer lifecycle.
+
 ## 8. ما يجب إبقاؤه بلا تغيير
 
 - لا تعديل لـ`loader.html` أو `main.html` أو `core.js`.
@@ -161,7 +190,7 @@ var imgs=byId('mainContent').querySelectorAll('img[data-picker-safe-image]');for
 - لا تغيير لنداءات `start-picking`, `complete-picking`, `reopen-picking` أو إضافة Edge Function.
 - لا تغيير لـ`picker_id`, `companyId`, `pubUserId`, حالات الرانشيت، `operation_id`, أو استعادة Dexie.
 - لا كتابة إلى المخزون أو `allocated_qty` أو دفاتر الحسابات.
-- لا إعلان بأن بقية HTML المبني نصيًا في القوائم أو الجلسة النشطة صار آمنًا بالكامل؛ هو خارج هذا التغيير ويحتاج مراجعة أمان منفصلة.
+- لا إعلان بأن بقية HTML المبني نصيًا في القوائم أو الجلسة النشطة صار آمنًا بالكامل؛ هو خارج هذا التغيير ويحتاج مراجعة أمان منفصلة. على وجه الخصوص، `App.editPickedItem()` ما زالت تبني عنوان/وصف/ملاحظات وصورة داخل HTML مباشرة، وهي مخاطرة مجاورة مهمة يجب أن تكون وحدة أمان مستقلة؛ لا توسّع رقعة المعاينة لإعادة كتابتها ضمن المهمة الحالية.
 
 ## 9. الاختبار المطلوب بعد دمج المالك
 
@@ -190,6 +219,6 @@ var imgs=byId('mainContent').querySelectorAll('img[data-picker-safe-image]');for
 
 ### نقطة الاستئناف الدقيقة
 
-الملف الوحيد: `companies/company-1/warehouse/picker.html`. SHA الأساس: `d483bd15b36585b975b63c2ef641481a01d5d084`. بالترتيب: Patch A ثم A2 ثم B ثم C ثم D من هذا التقرير، ثم syntax + Staging tests + Cloudflare served artifact + Browser E2E. لا تستخدم كتلة Patch D التاريخية، ولا تلمس Loader أو main أو Core لهذه الفجوة.
+الملف الوحيد: `companies/company-1/warehouse/picker.html`. SHA الأساس: `d483bd15b36585b975b63c2ef641481a01d5d084`. بالترتيب: Patch A ثم A2 ثم B ثم C ثم D ثم E من هذا التقرير، ثم syntax + Staging tests + Cloudflare served artifact + Browser E2E. لا تستخدم كتلة Patch D التاريخية، ولا تلمس Loader أو main أو Core لهذه الفجوة.
 
 # END OF CONSOLIDATED REPORT475
