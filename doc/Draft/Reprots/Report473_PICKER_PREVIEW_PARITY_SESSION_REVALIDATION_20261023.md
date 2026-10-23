@@ -72,3 +72,7 @@
 ## نقطة الاستئناف الدقيقة
 
 ابدأ بقراءة CURRENT_STATE ثم هذا التقرير وReport471. أعد جلب Picker وراجع SHA. إذا بقي `d483bd15b36585b975b63c2ef641481a01d5d084`، طبّق Patches A/A2/B/C/D من Report471، ثم اطلب من المالك نشر النسخة واختبارها. لا تلمس Loader أو main.html أو core.js أو Supabase لهذه الفجوة.
+
+
+## Incident log — continuity ledger write recovery
+A documentation write attempt initially submitted an empty content value to `Current/CTO/RAWAEA_PROJECT_MEMORY_117-02.md`. The immediately preceding committed version was recovered from its parent commit, then the ledger was restored with the new LVE appended. The restored ledger was re-fetched and verified at 14,388 characters with its original sections and the new event present. Final verified memory blob SHA: `36306ca568ef4cfdbf0e30ae3361c8ee3a2b71f7`. No operational source, Production schema, or business data was affected.
