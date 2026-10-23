@@ -1378,3 +1378,20 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - **Next exact action:** owner re-fetches Picker, checks SHA; if unchanged applies A/A2/B/C/D from Report474, then validates syntax, preview states, image/text safety, and no inventory/allocation mutation in Staging; deploy and verify served HTML + Browser E2E before closure.
 
 - **Report474 correction verified:** Patch B uses local `formatPreviewNumber()` (Picker has no `RW_UI` namespace); image URL regex literals in Patch D were normalized and re-read after update. Latest Report474 update commit `68d6e9555219d0c41a32145f1fbc74131a410ae7`, blob `c9025663f8ee0bb79bc2e88ae6242be38d00f25c`.
+
+
+
+---
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-23 — Report475 Consolidated Picker Preview CTO Re-investigation
+
+- **Closure unit:** Picker runsheet preview parity with Loader; operational source changes remain owner-only.
+- **Source authority:** actual app source is `papamohammed77-glitch/erp-frontend` main; this repository stores reports/state. Historical reports are not executable truth.
+- **Fresh current source:** Loader SHA `97b83d68a683df77c1e0557838c24a1b4fb65169` (332 lines); Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084` (1058 lines). Neither app file was edited. Latest Loader preview refactor is commit `152e5b1d22aab94d2cf01070778b357df4701aff`, parent `e69c9af4b56d99ba29a4fa74282f78438b9f7010`.
+- **Production SQL read-only snapshot:** 2026-10-23 12:24:37 UTC; PostgreSQL 17.6; items=18; run_sheet_details=12; items.description and items.image_url exist; run_sheet_details.description is absent; item_id and runsheet_id FKs exist; current runsheet status aggregate is Picked=2 only, no Open/Confirmed in result.
+- **Defects confirmed:** abbreviated Picker preview; details query omits joined description; active session reads nonexistent detail.description; inline onclick interpolates DB values; unsafe image/detail HTML interpolation.
+- **Consolidated current owner changeset:** `doc/Draft/Reprots/Report475_PICKER_PREVIEW_PARITY_CONSOLIDATED_CTO_EXECUTION_20261023.md`, commit `53ec7826a121ef5c8767c3fb7f1b4ce7059d0ff2`, blob `496e18243085101728fba7f15870d72b33927943`. Self-contained patches A/A2/B/C/D, current selectors, complete replacements, architectural boundaries, validation plan and rollback. Patch B/C/D syntax parsing passed. Report474's previous Patch D inline-onerror escaping must not be reused.
+- **No Production or operational changes:** no source edits, Schema/RLS/RPC/Edge changes, business-data writes, or test rows created/deleted.
+- **Unknown/unverified:** Cloudflare served HTML parity, owner patch, deployment, authenticated browser E2E. Source patch not applied; task remains NOT CLOSED.
+- **Next exact action:** owner re-fetches Picker, verifies the base SHA, applies Report475 patches A→A2→B→C→D only if unchanged, tests syntax and scenarios in Staging, confirms no stock/reservation changes, then checks Cloudflare-served HTML and authenticated browser E2E. Do not modify Loader, main.html, core.js, or Production for this display issue.
+
