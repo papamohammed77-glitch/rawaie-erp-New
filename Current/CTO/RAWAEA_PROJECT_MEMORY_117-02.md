@@ -299,3 +299,14 @@ Never repeat:
 - Cloudflare served artifact UNKNOWN; owner patch/Staging/Browser E2E UNVERIFIED; task NOT CLOSED.
 - Report: `doc/Draft/Reprots/Report478_PICKER_PREVIEW_PARITY_CURRENT_STATE_RECHECK_20261023.md`; report commit `7051d21747913372a125ca5e660eb5d2b1db2c17`.
 - Next exact action: owner verifies current Picker SHA, applies only missing Report477 patches A→A2→B→C→D→E, validates in Staging with zero inventory/reservation/log delta, then verifies served Cloudflare artifact and authenticated Browser E2E.
+
+ 
+## LAST VERIFIED MEMORY EVENT — LVE-2026-10-23-481
+- Resumed from CURRENT_STATE LVE-480 and independently re-fetched the current operational source and SMART ERP Production; this was read-only verification, not an application change.
+- Current app HEAD remains `152e5b1d22aab94d2cf01070778b357df4701aff`; Picker SHA remains `d483bd15b36585b975b63c2ef641481a01d5d084`; Loader SHA remains `97b83d68a683df77c1e0557838c24a1b4fb65169`. Picker still has `.select('*')`, inline `onerror`, and does not contain the Report477 patch. No operational file was edited.
+- Fresh read-only SQL at `2026-10-23T15:09:17.918546+00:00`, PostgreSQL 17.6: items=18, run_sheet_details=12, runsheets=2, status Picked=2 only. items.description/image_url exist; run_sheet_details.description does not; expected item/runsheet keys and relevant quantity/status columns exist.
+- Current related Edge versions: start-picking v35, complete-picking v18, cancel-picking v5, reopen-picking v9, start-loading v5, complete-loading v11; all ACTIVE with JWT verification enabled. No Production schema/RLS/grant/RPC/Edge/business-data writes were performed or indicated.
+- Report480 independently confirms the same Picker defect and identifies Report477 patches A/A2/B/C/D/E as the single operative owner changeset. Required FK relation for description is `items!run_sheet_details_item_id_fkey(description)`; no schema change is needed.
+- Cloudflare Pages is documented and `/picker` maps to the Picker file, but served artifact SHA/deployment lineage remains UNKNOWN; Staging and authenticated Browser E2E remain UNVERIFIED.
+- Status: ROOT CAUSE RECONFIRMED / OWNER PATCH NOT APPLIED / DEPLOYMENT UNKNOWN / BROWSER E2E UNVERIFIED / NOT CLOSED. No production fixtures were created/deleted.
+- Next: re-fetch Picker and verify SHA; apply only missing Report477 patches if unchanged, validate in Staging with zero stock/allocated_qty/inventory_log delta, then verify Cloudflare-served HTML and authenticated Browser E2E. Do not edit Loader, main.html, core.js or Production for this presentation/query-shape defect.
