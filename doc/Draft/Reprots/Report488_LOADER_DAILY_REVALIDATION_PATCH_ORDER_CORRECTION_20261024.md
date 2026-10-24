@@ -65,15 +65,15 @@
 1. استبدال `renderPendingTab` (A1) كاملًا.
 2. استبدال `onSearchInput` (A2) كاملًا.
 3. استبدال `openRunsheet` (B) كاملًا — النسخة هنا تعيد Promise الداخلي وتحافظ على read-only للرانشيت المسند لمحمّل آخر.
-4. استبدال `_startSession` باستخدام النص الكامل في Report487، قسم C.
+4. استبدال `_startSession` باستخدام النص الكامل في الملحق الذاتي (C) أسفل هذا التقرير.
 5. استبدال `_showPreviewModal` كاملًا بالنص أدناه (D؛ يتضمن click/keyboard وربط الصورة الآمن).
-6. إضافة `_showItemDetail` باستخدام النص الكامل في Report487، قسم E.
+6. إضافة `_showItemDetail` باستخدام النص الكامل في الملحق الذاتي (E) أسفل هذا التقرير.
 7. استبدال `_renderReadonly` و`renderActiveSession` بالنصين أدناه.
-8. استبدال `editLoadedItem` باستخدام النص الكامل في Report487، قسم F.
-9. بعد E وF، أضف helper methods `_loaderImageHTML` و`_bindLoaderImageFallbacks` باستخدام النص الكامل في Report487، قسم G. احتفظ بمالك الدالة الصحيح: في `renderActiveSession` المتغير `s=this` يشير إلى App، لذا `s._loaderImageHTML` و`s._bindLoaderImageFallbacks` صحيحان.
+8. استبدال `editLoadedItem` باستخدام النص الكامل في الملحق الذاتي (F) أسفل هذا التقرير.
+9. بعد E وF، أضف helper methods `_loaderImageHTML` و`_bindLoaderImageFallbacks` باستخدام النص الكامل في الملحق الذاتي (G) أسفل هذا التقرير. احتفظ بمالك الدالة الصحيح: في `renderActiveSession` المتغير `s=this` يشير إلى App، لذا `s._loaderImageHTML` و`s._bindLoaderImageFallbacks` صحيحان.
 10. طبّق فحص `image.complete && image.naturalWidth === 0` في `didOpen` لمودالي E وF كما هو موضح في قسم G. لا تكرر إدراج helper ولا تكرر استبدال معاينة D بعد استخدام النص الكامل هنا.
 
-النصوص التالية **بدائل كاملة للدوال**، وليست snippets. تستخدم بقية دوال C/E/F/G المذكورة أعلاه من هذا التقرير نفسه. لا تطبق رقع A1/A2/B/D القديمة مرة ثانية.
+النصوص التالية **بدائل كاملة للدوال**، وليست snippets. تستخدم دوال C/E/F/G الكاملة المرفقة في الملحق الذاتي أدناه؛ لا يلزم الرجوع إلى Report487 لتجميع حزمة التطبيق. لا تطبق رقع A1/A2/B/D القديمة مرة ثانية.
 
 ### A1 — replacement كامل لـrenderPendingTab
 
@@ -375,3 +375,354 @@
 على المالك إعادة جلب Loader والتأكد أن SHA ما زال `97b83d68a683df77c1e0557838c24a1b4fb65169`، ثم تطبيق حزمة Report488 بالترتيب أعلاه على ملف Loader فقط. بعد ذلك يجب إجراء full-file syntax check على الملف المحفوظ، ثم تفعيل بيئة Staging معزولة وفق تفويض واضح واختبار المعاينة والصور والملكية والرجوع/بدء التحميل مع delta صفر على `stock_branches.qty`, `allocated_qty`, و`inventory_log`.
 
 **يبقى تعارض الصفر/الملاحظات وحفظ `qty_loaded` blocker مستقلًا**؛ لا يُعلن إصلاح التحميل أو الجاهزية الإنتاجية حتى يُصمم ويُختبر عقد مركزي آمن لهذا المسار. لا تُجرِ أي تعديل Production أو تمنح UPDATE للواجهة في هذه المرحلة.
+
+
+## 10. الملحق الذاتي — بقية بدائل الدوال اللازمة لحزمة Report488
+
+هذه الكتل جزء من حزمة Report488 نفسها، وتكمل بدائل A1/A2/B/D/G أعلاه. تطبق وفق الترتيب في القسم 6. جميعها مهيأة للإدراج داخل كائن App الحالي، مع الحفاظ على الفاصلة الختامية لكل خاصية.
+
+### C — replacement كامل لـ_startSession
+
+~~~js
+_startSession: function(code, rs, items) {
+    this.session = { runsheet_code:code, runsheet_id:rs.id, start_time:rs.loader_start||new Date().toISOString(), items:[] };
+    for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        var product = it.items || {};
+        this.session.items.push({
+            item_code: it.item_code,
+            item_name: it.item_name || product.name || '',
+            unit: it.unit || product.unit || 'حبة',
+            description: product.description || '',
+            image_url: product.image_url || RW_ImageCache.getImageUrl(it.item_code) || '',
+            unit_price: Number(it.unit_price) || 0,
+            qty_ordered: Number(it.qty_ordered) || 0,
+            qty_picked: Number(it.qty_picked) || 0,
+            qty_loaded: Number(it.qty_loaded) || 0,
+            notes: it.notes || ''
+        });
+    }
+    this.renderActiveSession();
+},
+~~~
+
+### E — إضافة _showItemDetail بعد _showPreviewModal
+
+~~~js
+_showItemDetail: function(item) {
+    if (!item) return;
+
+    function esc(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    var product = item.items || {};
+    var name = item.item_name || product.name || '';
+    var code = item.item_code || product.item_code || '';
+    var unit = item.unit || product.unit || 'حبة';
+    var description = product.description || item.description || '';
+    var rawImageUrl = String(
+        product.image_url || item.image_url ||
+        RW_ImageCache.getImageUrl(code) || ''
+    );
+
+    var imageUrl = '';
+    if (/^https?:\/\/[^\s"'<>]+$/i.test(rawImageUrl) ||
+        /^\/(?!\/)[^\s"'<>]*$/.test(rawImageUrl)) {
+        imageUrl = rawImageUrl;
+    }
+
+    var requestedQty = Number(item.qty_ordered) || 0;
+    var pickedQty = Number(item.qty_picked) || 0;
+    var unitPrice = Number(item.unit_price) || 0;
+    var lineValue = pickedQty * unitPrice;
+
+    var imageHtml = '';
+    if (imageUrl) {
+        imageHtml += '<img id="loaderItemDetailImage" src="' + esc(imageUrl) +
+            '" alt="' + esc(name) +
+            '" class="w-full h-80 rounded-2xl object-contain bg-white mx-auto shadow-sm mb-3">';
+    }
+    imageHtml += '<div id="loaderItemDetailImageFallback" class="' +
+        (imageUrl ? 'hidden ' : '') +
+        'w-full h-80 rounded-2xl bg-white mx-auto flex items-center justify-center text-slate-400 mb-3">' +
+        '<i class="fa-solid fa-box text-4xl"></i></div>';
+
+    var descriptionHtml = description
+        ? '<p class="text-sm text-slate-500 mt-3 pt-3 border-t border-slate-100 text-right">' +
+            esc(description) + '</p>'
+        : '';
+
+    var html = '<div class="text-center mb-4">' + imageHtml + '</div>';
+    html += '<div class="text-right">';
+    html += '<h3 class="font-black text-xl text-slate-800 mb-3">' + esc(name) + '</h3>';
+    html += '<div class="text-sm space-y-2">';
+    html += '<div class="flex justify-between gap-3"><span class="text-slate-400">الكود</span><strong class="text-slate-700">' + esc(code) + '</strong></div>';
+    html += '<div class="flex justify-between gap-3"><span class="text-slate-400">الوحدة</span><strong class="text-slate-700">' + esc(unit) + '</strong></div>';
+    html += '<div class="flex justify-between gap-3"><span class="text-slate-400">الكمية المطلوبة</span><strong class="text-slate-700">' + esc(RW_UI.formatNumber(requestedQty)) + '</strong></div>';
+    html += '<div class="flex justify-between gap-3"><span class="text-slate-400">الكمية المحضّرة</span><strong class="text-blue-700">' + esc(RW_UI.formatNumber(pickedQty)) + '</strong></div>';
+    html += '<div class="flex justify-between gap-3"><span class="text-slate-400">سعر الوحدة</span><strong class="text-slate-700">' + esc(RW_UI.formatNumber(unitPrice)) + '</strong></div>';
+    html += '<div class="flex justify-between gap-3"><span class="text-slate-400">القيمة التقديرية للمحضّر</span><strong class="text-orange-700">' + esc(RW_UI.formatNumber(lineValue)) + ' جنيه</strong></div>';
+    html += '</div>' + descriptionHtml + '</div>';
+
+    Swal.fire({
+        title: '<span class="text-slate-800">' + esc(name) + '</span>',
+        html: html,
+        width: 'min(92vw, 560px)',
+        showCloseButton: true,
+        showConfirmButton: false,
+        customClass: {
+            popup: '!rounded-3xl !p-5',
+            closeButton: '!text-slate-300 !text-lg'
+        },
+        didOpen: function() {
+            var popup = Swal.getPopup();
+            var image = popup ? popup.querySelector('#loaderItemDetailImage') : null;
+            var fallback = popup ? popup.querySelector('#loaderItemDetailImageFallback') : null;
+            if (image) {
+                image.addEventListener('error', function() {
+                    image.classList.add('hidden');
+                    if (fallback) fallback.classList.remove('hidden');
+                });
+                if (image.complete && image.naturalWidth === 0) {
+                    image.classList.add('hidden');
+                    if (fallback) fallback.classList.remove('hidden');
+                }
+            }
+        }
+    });
+},
+~~~
+
+### F — replacement كامل لـeditLoadedItem
+
+~~~js
+editLoadedItem: function(idx, pre) {
+    var s = this;
+    var it = s.session && s.session.items ? s.session.items[idx] : null;
+    if (!it) return;
+
+    var cur = (typeof pre !== 'undefined') ? pre : it.qty_loaded;
+
+    function esc(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    var rawImageUrl = String(it.image_url || RW_ImageCache.getImageUrl(it.item_code) || '');
+    var imageUrl = '';
+    if (/^https?:\/\/[^\s"'<>]+$/i.test(rawImageUrl) ||
+        /^\/(?!\/)[^\s"'<>]*$/.test(rawImageUrl)) {
+        imageUrl = rawImageUrl;
+    }
+
+    var imageHtml = '';
+    if (imageUrl) {
+        imageHtml += '<img id="loaderLoadedItemImage" src="' + esc(imageUrl) +
+            '" alt="' + esc(it.item_name || '') +
+            '" class="w-full max-w-xs h-72 rounded-2xl object-contain bg-white mx-auto shadow-sm mb-3">';
+    }
+    imageHtml += '<div id="loaderLoadedItemImageFallback" class="' +
+        (imageUrl ? 'hidden ' : '') +
+        'w-full max-w-xs h-72 rounded-2xl bg-white mx-auto flex items-center justify-center text-slate-400 mb-3">' +
+        '<i class="fa-solid fa-box text-4xl"></i></div>';
+
+    var detailsHtml = '<div class="text-right text-sm space-y-2">';
+    detailsHtml += '<div class="flex justify-between gap-3"><span class="text-slate-400">الكود</span><strong>' + esc(it.item_code || '') + '</strong></div>';
+    detailsHtml += '<div class="flex justify-between gap-3"><span class="text-slate-400">محضّر</span><strong>' + esc(RW_UI.formatNumber(it.qty_picked)) + '</strong></div>';
+    detailsHtml += '<div class="flex justify-between gap-3"><span class="text-slate-400">مطلوب</span><strong>' + esc(RW_UI.formatNumber(it.qty_ordered)) + '</strong></div>';
+    if (it.unit) {
+        detailsHtml += '<div class="flex justify-between gap-3"><span class="text-slate-400">الوحدة</span><strong>' + esc(it.unit) + '</strong></div>';
+    }
+    if (Number(it.unit_price) > 0) {
+        detailsHtml += '<div class="flex justify-between gap-3"><span class="text-slate-400">سعر الوحدة</span><strong>' + esc(RW_UI.formatNumber(it.unit_price)) + '</strong></div>';
+    }
+    detailsHtml += '</div>';
+
+    var descriptionHtml = it.description
+        ? '<p class="text-sm text-slate-500 mt-3 pt-3 border-t border-slate-100 text-right">' + esc(it.description) + '</p>'
+        : '';
+
+    Swal.fire({
+        title: '<span class="text-slate-800">' + esc(it.item_name || '') + '</span>',
+        width: 'min(92vw, 560px)',
+        html: '<div class="text-center mb-3">' + imageHtml + '</div>' +
+            detailsHtml + descriptionHtml +
+            '<div class="mt-4 text-right">' +
+            '<label class="block text-xs font-bold text-slate-500 mb-2">الكمية المحمّلة</label>' +
+            '<input id="swal-qty" type="number" class="swal2-input !rounded-xl !text-center !font-bold !text-lg" value="' + esc(cur) + '" min="0" max="' + esc(it.qty_ordered) + '">' +
+            '<label class="block text-xs font-bold text-slate-500 mb-2 mt-4">ملاحظات</label>' +
+            '<input id="swal-notes" class="swal2-input !rounded-xl" value="' + esc(it.notes || '') + '" placeholder="سبب النقص أو الزيادة...">' +
+            '</div>',
+        showCancelButton: true,
+        confirmButtonText: 'حفظ',
+        cancelButtonText: 'إلغاء',
+        customClass: {
+            popup: '!rounded-3xl',
+            confirmButton: '!rounded-xl !bg-orange-600 !px-8',
+            cancelButton: '!rounded-xl'
+        },
+        didOpen: function() {
+            var popup = Swal.getPopup();
+            var image = popup ? popup.querySelector('#loaderLoadedItemImage') : null;
+            var fallback = popup ? popup.querySelector('#loaderLoadedItemImageFallback') : null;
+            if (image) {
+                image.addEventListener('error', function() {
+                    image.classList.add('hidden');
+                    if (fallback) fallback.classList.remove('hidden');
+                });
+                if (image.complete && image.naturalWidth === 0) {
+                    image.classList.add('hidden');
+                    if (fallback) fallback.classList.remove('hidden');
+                }
+            }
+        },
+        preConfirm: function() {
+            var p = Swal.getPopup();
+            var qe = p ? p.querySelector('#swal-qty') : null;
+            var ne = p ? p.querySelector('#swal-notes') : null;
+            return {
+                qty: qe ? Math.max(0, Math.min(parseInt(qe.value, 10) || 0, Number(it.qty_ordered) || 0)) : 0,
+                notes: ne ? ne.value.trim() : ''
+            };
+        }
+    }).then(function(r) {
+        if (!r.isConfirmed) return;
+
+        var nq = r.value.qty;
+        var nt = r.value.notes;
+
+        if (nq > it.qty_picked && !nt) {
+            Swal.fire({
+                title: 'تنبيه',
+                text: 'الكمية المحمّلة أكبر من المحضّرة. يجب ذكر السبب.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'إضافة سبب',
+                cancelButtonText: 'تخطي',
+                customClass: {
+                    popup: '!rounded-3xl',
+                    confirmButton: '!rounded-xl !bg-amber-500 !px-6',
+                    cancelButton: '!rounded-xl'
+                }
+            }).then(function(r2) {
+                if (r2.isConfirmed) s.editLoadedItem(idx, nq);
+            });
+            return;
+        }
+
+        if (nq > it.qty_picked) nt = (nt ? nt + ' | ' : '') + 'عدّلها المحمّل';
+
+        s.session.items[idx].qty_loaded = nq;
+        s.session.items[idx].notes = nt;
+
+        supabase.from('run_sheet_details')
+            .update({ qty_loaded: nq })
+            .eq('runsheet_id', s.session.runsheet_id)
+            .eq('item_code', it.item_code)
+            .then(function() {});
+
+        s.renderActiveSession();
+
+        if (nq < it.qty_picked && !nt) {
+            Swal.fire({
+                title: 'تنبيه',
+                text: 'الكمية المحمّلة أقل من المحضّرة. هل تريد إضافة سبب؟',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'إضافة سبب',
+                cancelButtonText: 'تخطي',
+                customClass: {
+                    popup: '!rounded-3xl',
+                    confirmButton: '!rounded-xl !bg-amber-500 !px-6',
+                    cancelButton: '!rounded-xl'
+                }
+            }).then(function(r2) {
+                if (r2.isConfirmed) s.editLoadedItem(idx, nq);
+            });
+        }
+    });
+},
+~~~
+
+### G — إضافة helper methods بعد _showItemDetail وقبل _startLoadingFromPreview
+
+~~~js
+_loaderImageHTML: function(item, widthClass, heightClass) {
+    function esc(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    var product = item && item.items ? item.items : {};
+    var code = typeof item === 'string' ? item : ((item && item.item_code) || '');
+    var name = typeof item === 'string' ? '' : ((item && item.item_name) || product.name || '');
+    var rawUrl = String(
+        (product && product.image_url) ||
+        (item && item.image_url) ||
+        RW_ImageCache.getImageUrl(code) ||
+        ''
+    );
+
+    var imageUrl = '';
+    if (/^https?:\/\/[^\s"'<>]+$/i.test(rawUrl) ||
+        /^\/(?!\/)[^\s"'<>]*$/.test(rawUrl)) {
+        imageUrl = rawUrl;
+    }
+
+    var w = widthClass || 'w-14';
+    var h = heightClass || 'h-14';
+    var imageHtml = imageUrl
+        ? '<img data-loader-image="true" src="' + esc(imageUrl) +
+            '" alt="' + esc(name) +
+            '" class="' + esc(w) + ' ' + esc(h) +
+            ' rounded-2xl object-cover border-2 border-white shadow-sm">'
+        : '';
+
+    var fallbackClass = (imageUrl ? 'hidden ' : '') +
+        esc(w) + ' ' + esc(h) +
+        ' bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl ' +
+        'flex items-center justify-center text-slate-400';
+
+    return '<span class="inline-flex relative shrink-0">' +
+        imageHtml +
+        '<span data-loader-image-fallback="true" class="' + fallbackClass + '">' +
+        '<i class="fa-solid fa-box"></i></span></span>';
+},
+
+_bindLoaderImageFallbacks: function(root) {
+    if (!root) return;
+
+    var images = root.querySelectorAll('img[data-loader-image="true"]');
+    for (var i = 0; i < images.length; i++) {
+        (function(image) {
+            var wrap = image.parentNode;
+            var fallback = wrap
+                ? wrap.querySelector('[data-loader-image-fallback="true"]')
+                : null;
+
+            function showFallback() {
+                image.classList.add('hidden');
+                if (fallback) fallback.classList.remove('hidden');
+            }
+
+            image.addEventListener('error', showFallback);
+            if (image.complete && image.naturalWidth === 0) showFallback();
+        })(images[i]);
+    }
+},
+~~~
+
