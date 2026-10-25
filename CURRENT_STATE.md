@@ -2,7 +2,7 @@
 
 - **LAST VERIFIED EVENT:** `LVE-2026-10-25-497`.
 - **Authoritative new report:** `doc/Draft/Reprots/Report497_LOADER_PICKER_FULL_CORRECTED_OWNER_PATCH_20261025.md`.
-- **Report commit:** `def2ede8fd50a26a700b9a2233e16c9438ef0178`.
+- **Report initial commit:** `def2ede8fd50a26a700b9a2233e16c9438ef0178`; **latest corrective update commit:** `4678831e524d429a39d5bbe5436edf81fa8acc56`.
 - **Operational source freshly re-fetched:** `papamohammed77-glitch/erp-frontend`, branch `main`; Loader `companies/company-1/warehouse/loader.html` SHA `f478a78b9e5999cf44f7f65e06341b3036bfdcc9` (811 lines); Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084`; Core SHA `ff2f581d9900543c16f7cb026e13446520c0329d`.
 - **Confirmed UI already present in current Loader:** company-scoped `openRunsheet`; item relation query `items!run_sheet_details_item_id_fkey(description,image_url,name,unit)`; inline runsheet preview; clickable/keyboard-accessible item cards; `_showItemDetail` with large image and description; active loading edit modal with large image. Do not recreate these or copy Picker wholesale.
 - **Fresh Production PostgreSQL observation:** `2026-10-25 18:02:29.975715+00`, PostgreSQL 17.6.
