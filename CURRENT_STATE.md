@@ -1,3 +1,19 @@
+# LAST VERIFIED EVENT — LVE-2026-10-25-501 — Loader Reopen Reservation Restoration
+
+- **Observed / executed:** 2026-10-25; Production Supabase checked directly in this session.
+- **Authoritative report:** `doc/Draft/Reprots/Report501_LOADER_REOPEN_RESERVATION_REPAIR_20261025.md`; report blob SHA `c1bfd3bd7ac8cd7d665fe07bcad07e4b92307ec9`; report commit `81f243c7cff34b3f39ae29ce93e087f0510df762`.
+- **Canonical migration:** `supabase/migrations/20261025195614_reopen_loading_restore_reservation_20261025.sql`; blob SHA `e4a0f38e01f083b394050372b0f9e7c519a051e8`. Production migration registry confirms `20261025195614 / reopen_loading_restore_reservation_20261025`. Migration source commit `4820dbf43c92fd85a48487a74a11d4f4229813b7`; a mis-timestamped duplicate path was removed in commit `07e5cd3c95c146f1aeaaa7c37a550ce342d6e5c3`.
+- **Production Edge snapshot:** `complete-loading` remains ACTIVE v11, `verify_jwt=true`, `ezbr_sha256=c0ca692a29d14d64ec3729ae4bd12b9b84268e826ffc1c6993a48617b552b286`. Edge was not changed.
+- **Root cause confirmed:** live `complete_runsheet_reopen_loading` reversed physical stock via `post_stock_movement('Unloading', ...)` but did not restore the consumed reservation. The next `complete_runsheet_loading` then correctly rejected loading because `allocated_qty` was below the requested quantity.
+- **Repair applied:** Core reopen now calls `reserve_stock(company, main_branch, item_id, qty_loaded)` after each reverse physical movement, within the same transaction. Production function definition and ACL were re-read after migration; anon/authenticated EXECUTE=false, service_role EXECUTE=true.
+- **Current reopened cycle repair:** RS-1 (company `00000000-0000-0000-0000-000000000001`, cycle `2c4d113a-dd02-430d-ad3b-b9b4e05bc737`) had five verified Unloading logs totaling 13 units and no Loading logs in the current cycle. A guarded one-off correction restored reservations for item codes 1001/1003/1004/1005/1008 by 4/3/4/1/1 units respectively. Physical `qty` was not changed; no new `inventory_log` rows were created.
+- **Core runtime test:** invoked `complete_runsheet_loading` in a subtransaction, forced rollback after success, then confirmed zero persistent Loading logs/registry rows for the cycle, unchanged `qty`, unchanged reservation baseline after repair, and runsheet still `Loading`. This is a rollback-only Core runtime test, **not** HTTP E2E.
+- **Not changed:** operational `loader.html` and `picker.html`, `complete-loading` Edge, `post_stock_movement`, and physical stock quantity. No Production loading movement was committed by this test.
+- **Open:** UI/HTTP E2E after repair; Cloudflare-served HTML parity; separate historical authorization concern for Edge `reopen-loading`. Do not declare 100% CLOSED before the owner runs one actual load from Loader and its HTTP/DB result is verified.
+- **Next action:** reload Loader, confirm RS-1 quantities, finish loading once, then inspect response, runsheet status, inventory_log, and MAIN/VAN balances. Do not repeat completion after a successful response.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-500 — Evidence-Based Application Mind Map + Latest Loader Commit Reconciliation
 
 - **LAST VERIFIED EVENT:** `LVE-2026-10-25-500`.
