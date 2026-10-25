@@ -1,3 +1,19 @@
+# LAST VERIFIED EVENT — LVE-2026-10-25-502 — Parent Loading Table / Picker Metadata Parity
+
+- **Observed / executed:** 2026-10-25. Production PostgreSQL read-only inspection at `2026-10-25 20:31:02.060171+00`.
+- **Authoritative report:** `doc/Draft/Reprots/Report502_PARENT_LOADING_TAB_PICKER_PARITY_20261025.md`; documentation commit `d993f8d5966123e7732f73de5f3f46828247a488`.
+- **Operational repository:** `papamohammed77-glitch/erp-frontend`, branch `main`.
+- **Parent file patch applied:** `companies/company-1/main.html`; previous blob `bb10422217fc57a9a42c2bf65a55e9470a19537c`; final blob `11f29e07c10ae1767db334fe101c382eca23bd00`; commit `78787abbede692c1d34176c25035b0128ee06c02`.
+- **Patch scope:** only the parent `RW_Warehouse.loadLoading()` and `_applyLoading()` block was replaced. Loading table now has runsheet/date/driver/status/loader name/loader start/loader end/notes/view columns; loads loader display names by joining `runsheets.loader_id` to `public.users.id` scoped by the same company; uses `loader_start`, `loader_end`, and `runsheets.notes`; checks query errors and preserves the existing detail-modal route.
+- **Static validation:** the modified block parses; the complete inline script in the final `main.html` parses. The initial patch's quote escaping was caught by the parse check and corrected before the final commit. The pre-patch source also parsed successfully.
+- **Production schema/data confirmed:** `public.runsheets` has `loader_id`, `loader_start`, `loader_end`, and generic `notes`; no dedicated `loading_notes` column exists. At the live query time, RS-2 was Loaded with loader `loader@rawaea.com`, and RS-1 was Loaded with loader `owner@alrawae.com`; both had valid start/end timestamps and `runsheets.notes = NULL`.
+- **Critical remaining data-contract gap:** current `loader.html` labels per-item notes as local-only and the `complete-loading` payload does not send them; Production `complete_runsheet_loading` does not persist them. Therefore the new parent column can display only the existing `runsheets.notes` field and cannot show local per-item loading notes. Do not claim this note flow is fixed; it needs a separately scoped, safe data-contract change.
+- **Not verified:** Cloudflare served-HTML parity, authenticated Browser/HTTP E2E, RLS behavior for the loader-name lookup in an actual session. No business rows, stock balances, reservations, inventory logs, Edge functions, or DB schema were changed.
+- **Status:** `APPLIED / STATIC PASS / PRODUCTION SCHEMA AND SAMPLE DATA CONFIRMED / RUNTIME NOT VERIFIED / NOTES CONTRACT GAP OPEN / PARTIAL`.
+- **Next action:** test the updated parent tab in the actual authenticated Production browser and confirm loader-name lookup. Separately design and implement a dedicated persisted loading-notes contract only after agreeing on its storage semantics; do not overwrite generic `runsheets.notes` blindly.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-25-501 — Loader Reopen Reservation Restoration
 
 - **Observed / executed:** 2026-10-25; Production Supabase checked directly in this session.
