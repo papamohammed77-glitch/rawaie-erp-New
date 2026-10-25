@@ -1702,3 +1702,18 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - Status: SOURCE REVALIDATED / REPORT482 NEEDS PATCH G / ZERO-QUANTITY + NOTES CONTRACT CONFLICT CONFIRMED / DEPLOYMENT UNKNOWN / E2E UNVERIFIED / NOT CLOSED.
 - Next exact action: keep Report482 A–F unapplied until Patch G is incorporated; then validate the complete Loader in active isolated staging. Separately design and test the zero-quantity/notes loading contract before any Production Core/Edge change.
 
+
+
+---
+
+## LAST VERIFIED EVENT — LVE-2026-10-25-485 — Loader/Picker parity revalidation
+
+- **Scope:** revalidated current Loader/Picker/Core source and Production schema for the Loader item-detail parity task.
+- **Live Production observation:** 2026-10-25 13:18:30.156271+00; PostgreSQL 17.6. `items` includes `company_id`, `name`, `unit`, `description`, `image_url`; `run_sheet_details` does not contain `description` or `image_url`; FK `run_sheet_details_item_id_fkey` links `item_id` to `items.id`; FK `run_sheet_details_runsheet_id_fkey` links `runsheet_id` to `runsheets.id`. RLS is enabled on `items`, `run_sheet_details`, and `runsheets`.
+- **Current source hashes:** Loader `97b83d68a683df77c1e0557838c24a1b4fb65169` (332 lines); Picker `d483bd15b36585b975b63c2ef641481a01d5d084` (1,058 lines); Core `ff2f581d9900543c16f7cb026e13446520c0329d`. No operational source change was made in this event.
+- **Confirmed defects:** Loader list/search/open queries lack explicit company scoping; details query omits the item relation; preview cards do not open a detail modal; active edit modal uses a small image; Loader image calls use `RW_ImageCache`, whose `loadAll()` query is not company-scoped. This last point means Report482 A–F needs the additional tenant-safe image helper and replacements documented in Report484.
+- **Report:** `doc/Draft/Reprots/Report484_LOADER_PICKER_PARITY_CORRECTED_SURGICAL_PATCH_20261025.md`, commit `3701feefa66d4c2c6427e61f74d272df10e5da9d`.
+- **Mutation boundary:** no changes to `erp-frontend` operational files, no Production DDL/RPC/Edge changes, and no Production business-data writes. This task's governance says the owner applies source patches.
+- **Unverified:** owner patch application, complete-file static parse after application, active Staging tests, Cloudflare served-artifact parity, authenticated Browser E2E, and before/after stock invariance.
+- **Status:** `ROOT CAUSE CONFIRMED / CORRECTED PATCH DOCUMENTED / NOT APPLIED / NOT DEPLOYED / NOT CLOSED`.
+- **Next exact action:** confirm the Loader SHA has not changed; apply Report482 A–F with Report484 corrections; parse the complete script; run isolated company-A/company-B image test plus Picked/Loading lifecycle tests; confirm zero `qty`/`allocated_qty`/`inventory_log` delta; deploy and verify the served Cloudflare artifact and authenticated Browser E2E.
