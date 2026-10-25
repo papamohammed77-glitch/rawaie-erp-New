@@ -719,6 +719,9 @@ https://github.com/papamohammed77-glitch/rawaie-erp-New/tree/main/doc/Draft/Repr
 
 # القسم التاسع: قواعد Supabase وProduction وEdge Functions
 
+SMART ERP 
+https://fiilmooggumokxanwiyx.supabase.co
+
 ## 30. الفحص قبل التغيير
 
 قبل تنفيذ أي تغيير في Supabase أو Production:
