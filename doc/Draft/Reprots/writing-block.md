@@ -1252,19 +1252,19 @@ https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/CURRENT_STATE.
 
 ### الملف المرجعي للمقارنة
 
-`companies/company-1/warehouse/loader.html`
-
-الرابط:
-
-https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/company-1/warehouse/loader.html
-
-### الملف المستهدف بفحص الفجوة وتحديد الإصلاح
-
 `companies/company-1/warehouse/picker.html`
 
 الرابط:
 
 https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/company-1/warehouse/picker.html
+
+### الملف المستهدف بفحص الفجوة وتحديد الإصلاح
+
+`companies/company-1/warehouse/loader.html`
+
+الرابط:
+
+https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/company-1/warehouse/loader.html
 
 ### الملفات ذات الصلة
 
@@ -1275,8 +1275,8 @@ https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/compan
 ### الملفات المحظور تعديلها في هذه المهمة
 
 - `main.html`.
-- `loader.html` بوصفه ملفًا مرجعيًا للمقارنة.
-- `picker.html` مباشرةً؛ فالمالك هو المسؤول عن تطبيق التعديل المصدري المقترح.
+- `picker.html` بوصفه ملفًا مرجعيًا للمقارنة.
+- `loader.html` مباشرةً؛ فالمالك هو المسؤول عن تطبيق التعديل المصدري المقترح.
 
 يجوز قراءة هذه الملفات وتحليلها ومقارنتها وتحديد عناصرها المعيبة. ولا يجوز تغييرها مباشرةً ضمن هذه المهمة.
 
@@ -1284,7 +1284,7 @@ https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/compan
 
 ## ج. الهدف التنفيذي
 
-تحقيق مقارنة احترافية دقيقة بين `loader.html` و`picker.html` لاكتشاف أوجه النقص الحقيقية في استعراض الرانشيت وأصنافه والمعلومات المرتبطة به، ثم تحديد الإصلاح الأدنى اللازم في تطبيق التحضير لتحقيق المطابقة المطلوبة في النقطة الوظيفية المقصودة.
+تحقيق مقارنة احترافية دقيقة بين `loader.html` و`picker.html` لاكتشاف أوجه النقص الحقيقية في استعراض الرانشيت وأصنافه والمعلومات المرتبطة به، ثم تحديد الإصلاح الأدنى اللازم في تطبيق التحميل لتحقيق المطابقة المطلوبة في النقطة الوظيفية المقصودة.
 
 لا تفترض أن كل اختلاف بين التطبيقين خطأ؛ افحص الغرض التشغيلي لكل تطبيق.
 
@@ -1292,7 +1292,7 @@ https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/compan
 
 لا تعِد تصميم الملف المستهدف من الصفر.
 
-لا تضف وظائف أو حقولًا لمجرد أنها موجودة في التطبيق المرجعي دون التحقق من ملاءمتها للدور التشغيلي لتطبيق التحضير.
+لا تضف وظائف أو حقولًا لمجرد أنها موجودة في التطبيق المرجعي دون التحقق من ملاءمتها للدور التشغيلي لتطبيق التحميل.
 
 ## د. محاور المقارنة المطلوبة
 
@@ -1334,11 +1334,11 @@ https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/compan
 
 بعد التحقق، قدّم للمالك التعديل المصدرّي الجاهز للتطبيق وفق القالب التالي:
 
-**الملف:** `picker.html`
+**الملف:** `loader.html`
 
 **الدالة أو الكائن:** الاسم الدقيق.
 
-**العنصر المعيب:** النص الأصلي الفعلي.
+**العنصر المعيب:** النص الأصلي الفعلي (السطر/ المقطع المعيب فقط ، وليس الدالة كلها).
 
 **محدد البحث:** عبارة فريدة دقيقة.
 
