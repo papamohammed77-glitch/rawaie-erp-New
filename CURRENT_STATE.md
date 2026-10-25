@@ -1,3 +1,21 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-498 — CTO Prompt Reconstruction + Fresh Loader/Picker/Production Reconciliation
+
+- **LAST VERIFIED EVENT:** `LVE-2026-10-25-498`.
+- **New execution prompt:** `doc/Draft/Reprots/MASTER_CTO_EXECUTION_PROMPT_LOADER_PICKER_INTEGRATION_20261025.md`; creation commit `0981be687548251b3c839d17bc6e27328666626b`.
+- **New evidence report:** `doc/Draft/Reprots/Report498_CTO_PROMPT_RECONSTRUCTION_AND_LIVE_RECONCILIATION_20261025.md`; creation commit `a407c27d30f65fdd46996a0b7be049571bd74aff`.
+- **Operational source freshly re-fetched:** `papamohammed77-glitch/erp-frontend`, branch `main`; Loader SHA `f478a78b9e5999cf44f7f65e06341b3036bfdcc9` (811 lines); Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084` (1,058 lines); Core SHA `ff2f581d9900543c16f7cb026e13446520c0329d` (773 lines).
+- **Fresh Production observation:** PostgreSQL time `2026-10-25 19:05:49.977892+00`, PostgreSQL 17.6. Live Edge source/registry re-read: `start-loading v6 ACTIVE verify_jwt=true digest b0e1736ac7606c1c0b81dfdccd75cc90dbad955651961a24019b6e3c4a1988e1`; `complete-loading v11 ACTIVE verify_jwt=true digest c0ca692a29d14d64ec3729ae4bd12b9b84268e826ffc1c6993a48617b552b286`; `cancel-loading v5 ACTIVE verify_jwt=true digest 65fdfe2066dac1779c1e82b27a958a13d71604808af8a33ca12779ac5b7c0c89`; `reopen-loading v2 ACTIVE verify_jwt=true digest 89cac4219673154832b294d74b810c98154b7a46464a893eb8f119439e358350`. Digests are deployed package hashes, not Git SHAs.
+- **Fresh DB evidence:** `complete_runsheet_loading`, `complete_runsheet_reopen_loading`, and `cancel_runsheet_loading` are SECURITY DEFINER and the returned ACL lists postgres/service_role only. `trg_sync_run_sheet_details` remains attached to INSERT/UPDATE/DELETE on `order_details`. The 9-argument `post_stock_movement` overload ACL lists postgres only; the 10-argument overload with idempotency key lists postgres/service_role. Verify the exact overload called before making further claims.
+- **Confirmed source fact:** Loader already contains company-scoped `openRunsheet`, item relation join, runsheet preview, item detail/image UI, and vehicle selection. Current Loader lacks Dexie-based loading draft persistence, `operation_id` in reopen call, and `pauseLoading`; Report497's owner patch is still not applied in the fetched source.
+- **Confirmed Production defect still OPEN:** `cancel-loading v5` and `reopen-loading v2` derive company from `app_settings.limit(1)`, not the authenticated user's application record. `complete-loading v11` rejects `loaded_qty <= 0`. Retry-after-commit behavior for Core has not been E2E-tested in this event.
+- **Methodology correction:** the embedded operational task centers on Picker/Loader presentation/data integration; Report497 also documents wider loading-lifecycle debt. The new prompt separates these tracks, requires evidence of direct dependency before combining them, preserves the owner-only HTML mutation boundary, and prevents treating a proposed patch as applied/deployed/verified.
+- **Mutation ledger:** only documentation was added/updated in `rawaie-erp-New`. No operational HTML/Core/Main changes, no SQL DDL/DML/ACL changes, no Edge deployment, no business-row/stock/inventory_log mutations, and no fixture/harness activity.
+- **Runtime status:** Cloudflare served-HTML identity is UNVERIFIED; authenticated Browser/HTTP E2E and retry/concurrency tests were NOT RUN; baseline runtime restoration is NOT APPLICABLE because no operational test mutation occurred. Do not claim 100% closure.
+- **Next exact action:** reread this checkpoint and Report498; before any owner patch, re-fetch Loader and verify its SHA. Keep the existing preview/detail/image/vehicle functionality. Separate the owner-only Loader patch from the independent Production tenant-context and idempotency repairs; verify each via authenticated E2E before closure.
+- **Status:** `PROMPT CREATED / SOURCE AND PRODUCTION RECONCILED FOR THIS REVIEW / OPERATIONAL PATCHES NOT APPLIED / BACKEND DEFECTS OPEN / NOT CLOSED`.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-497 — Loader/Pickers Full Corrected Patch + Live Production Reconciliation
 
 - **LAST VERIFIED EVENT:** `LVE-2026-10-25-497`.
