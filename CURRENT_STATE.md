@@ -1,3 +1,17 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-494: Loader Vehicle Selection
+
+- **Authoritative latest event:** LVE-2026-10-25-494. Report: `doc/Draft/Reprots/Report494_LOADER_VEHICLE_SELECTION_FIX_20261025.md`; report blob SHA `fe5cb9653037fffe1624a62f8e7d79acab941df6`; report commit `5de6ed9990025a6295c5b23a1507db5dec807e18`.
+- **Live Production after change:** `start-loading v6 ACTIVE`, `verify_jwt=true`, `ezbr_sha256=b0e1736ac7606c1c0b81dfdccd75cc90dbad955651961a24019b6e3c4a1988e1`.
+- **Database change:** `public.start_runsheet_loading_with_vehicle(uuid,text,text,uuid)` deployed; Production migration registry `20261025160441 / start_runsheet_loading_vehicle_selection`. It locks and validates a same-company active mobile-stock vehicle, updates the runsheet only while `Picked`, then calls canonical `start_runsheet_loading` in the same transaction. ACL verified: `anon=false, authenticated=false, service_role=true`.
+- **Current Edge artifact:** `Current/Edge_Functions/start-loading`; Git blob SHA `5fc6b01826ad098d6621d7f80ea8efb4eba8d5a0`; commit `d7296c615dc0b58d35e99fceee35690cad8a1c66`.
+- **Root cause:** operational `erp-frontend/companies/company-1/warehouse/loader.html` (blob `6bc6ad2ee93396faca20576241ad3318679171ef`) has no vehicle selector and sends only `runsheet_code`; Production SQL correctly rejects an unassigned runsheet.
+- **HTML status:** no direct edit to operational `loader.html` was retained, because `doc/Draft/Reprots/writing-block.md` explicitly prohibits the assistant from modifying it and assigns source application to the owner. Ready-to-apply surgical patch is in Report494. Cloudflare HTML deployment and authenticated HTTP E2E remain OPEN.
+- **Governance event:** an attempted edit to the historical mirror `rawaie-erp-review/PWA/warehouse/loader.html` was immediately reverted; restoration commit `b5a4a0f77c3f4835cdbd3804f36923f34379127b`; final content matches baseline SHA `7e61b04d0d9a480d43763e8b7b21f9cbed78409a`.
+- **No stock movement or operational runsheet was changed for testing.** Tailwind CDN warning remains a separate build warning and was not “fixed” by deleting the dependency.
+- **Status:** `BACKEND DEPLOYED + VERIFIED / OWNER HTML PATCH REQUIRED / PRODUCTION HTTP E2E OPEN`. Do not claim 100% closure.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-493: Loading Context / Vehicle Assignment Guard
 
 - **Authoritative latest event:** LVE-2026-10-25-493. Report: `doc/Draft/Reprots/Report493_LOADING_CONTEXT_VEHICLE_ASSIGNMENT_FORENSIC_20261025.md`; report blob SHA `408fa11ef1ab6487bf26057e7864b2ac0cd60b54`; report commit `881df41e6ba0cf55ea00cb826e4db7245508f68b`.
