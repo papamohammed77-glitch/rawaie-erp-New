@@ -1763,3 +1763,22 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - **Unverified:** owner patch application, complete-file static parse after application, active Staging tests, Cloudflare served-artifact parity, authenticated Browser E2E, and before/after stock invariance.
 - **Status:** `ROOT CAUSE CONFIRMED / CORRECTED PATCH DOCUMENTED / NOT APPLIED / NOT DEPLOYED / NOT CLOSED`.
 - **Next exact action:** confirm the Loader SHA has not changed; apply Report482 A–F with Report484 corrections; parse the complete script; run isolated company-A/company-B image test plus Picked/Loading lifecycle tests; confirm zero `qty`/`allocated_qty`/`inventory_log` delta; deploy and verify the served Cloudflare artifact and authenticated Browser E2E.
+
+
+---
+
+## LAST VERIFIED EVENT — LVE-2026-10-25-494-R1 — Loader vehicle selection UX correction
+
+- **Observed at:** 2026-10-25T16:26:11.888902Z for the direct Production SQL snapshot; Edge was read directly in the same work session.
+- **Authoritative report updated:** `doc/Draft/Reprots/Report494_LOADER_VEHICLE_SELECTION_FIX_20261025.md`, commit `7db87fd5e538815cd7e9cddeaedbc578bf9c5abe`, content/blob SHA `58b48e3aa29b3e6fbd2a63058c4acb6cf0a3931a`.
+- **Corrected UX contract:** the vehicle selector must NOT be shown in the runsheet preview before the user clicks “بدء التحميل”. On that click, the page inserts a company-scoped vehicle-selection panel at the top of `mainContent`, while preserving the runsheet preview below. Only “تأكيد المركبة وبدء التحميل” sends `{runsheet_code, vehicle_id}` to the existing Edge Function.
+- **Live Production Edge:** `start-loading v6 ACTIVE / verify_jwt=true / ezbr_sha256=b0e1736ac7606c1c0b81dfdccd75cc90dbad955651961a24019b6e3c4a1988e1`.
+- **Current Edge artifact:** `Current/Edge_Functions/start-loading`, blob SHA `5fc6b01826ad098d6621d7f80ea8efb4eba8d5a0`. Direct source comparison with the deployed Production `index.ts` returned `exact_source_match=true` (2,587 characters).
+- **Production migration state:** verified `20261025154530 / start_loading_vehicle_context_guard_20261025` and `20261025160441 / start_runsheet_loading_vehicle_selection` in the live migration registry.
+- **Core/security:** `start_runsheet_loading_with_vehicle(uuid,text,text,uuid)` is present; Production grants shown for `service_role` and `postgres`, with no `anon/authenticated` execution grant. The `vehicles_select_company` policy scopes reads to `app_private.current_user_company_id()`.
+- **Root cause:** current published Loader calls `start-loading` with `runsheet_code` only. Production correctly rejects a Picked runsheet without a valid vehicle. The server-side guard must remain.
+- **Mutation boundary:** `writing-block.md` explicitly prohibits direct edits to `erp-frontend/companies/company-1/warehouse/loader.html` in this task. Therefore the revised owner patch is documented but not applied to the operational HTML. No Production business-data or stock mutation was made in this event.
+- **Tailwind warning:** classified as an independent production-build warning; deleting the CDN script without a built CSS replacement risks breaking utility styling. The report records it as known/not fixed in this UI patch. Favicon 404 is unrelated to the start-loading HTTP 400.
+- **Unknown / unverified:** owner patch application; complete-file JavaScript validation after application; Cloudflare-served HTML identity; authenticated UI HTTP E2E; baseline/stock-delta test after deployment; Tailwind build pipeline availability.
+- **Status:** `BACKEND VERIFIED / OWNER PATCH READY / UI NOT APPLIED / E2E OPEN / NOT CLOSED`.
+- **Next exact action:** re-fetch Loader and confirm SHA `6bc6ad2ee93396faca20576241ad3318679171ef`; owner applies Report494 patches A–C; validate full JavaScript and user flow; deploy and verify Cloudflare-served HTML; run isolated authenticated E2E and prove baseline restoration. Do not weaken the Production vehicle guard or claim UI closure before evidence.
