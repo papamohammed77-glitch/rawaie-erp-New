@@ -229,6 +229,10 @@ Core / PostgreSQL / Inventory + Ledger
 ## المصدر التشغيلي
 المستودع: `papamohammed77-glitch/erp-frontend`، الفرع `main`.
 
+كل مهمة لها ملفات مرجعية وملفات مستهدفة راجع الأمر التشغيلي في المحادثة
+
+علي سبيل المثال للمهمة والأمر التشغيلي "البرومبت التوضيحي"
+
 ## الملف المرجعي
 `companies/company-1/warehouse/picker.html`
 
