@@ -1,3 +1,19 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-500 — Evidence-Based Application Mind Map + Latest Loader Commit Reconciliation
+
+- **LAST VERIFIED EVENT:** `LVE-2026-10-25-500`.
+- **New report:** `doc/Draft/Reprots/Report500_RAWAEA_ERP_MIND_MAP_20261025.md`; latest report commit `dfbf66318f651d7157aa8a9d815905e09bfc7ae4`; report content blob `1949266c2a4daf3a1af9daa0df5dd9ad8446b318`.
+- **Operational repository checked:** `papamohammed77-glitch/erp-frontend`, branch `main`. Latest commit observed in Git history: `f0284c91fdf63d9fd226941e5c2327946655b3b6` (`Update loader.html`).
+- **Current source blobs fetched directly:** `companies/company-1/warehouse/loader.html` = `370d666e2ba2a75806d416aeccba85d215f00329`; `warehouse/picker.html` = `d483bd15b36585b975b63c2ef641481a01d5d084`; `core.js` = `ff2f581d9900543c16f7cb026e13446520c0329d`; `app.html` = `ec75f89c11620f6e8b8ef5996cf1a3289dcf20b4`; `index.html` = `ed2bbdf2859e0947453e18e3fd2785977e8e0130`.
+- **Newly reconciled drift:** Report499 had recorded Loader blob `f478a78b9e5999cf44f7f65e06341b3036bfdcc9`; the current default-branch fetch returns `370d666e2ba2a75806d416aeccba85d215f00329`, and the intervening/latest commit `f0284c9` modifies Loader. The current Git source is now recorded as the latter blob; do not infer that it is deployed in Production.
+- **Latest Loader commit changes observed from diff:** Dexie local draft/session storage and restoration, pause/resume draft behavior, loaded quantity constrained to `qty_picked`, only positive-quantity items sent to `complete-loading`, and `operation_id` passed for reopen. These are source-level findings only; no browser/runtime or Production verification was performed for this event.
+- **Application mind map:** report maps verified app files and functional responsibilities, including the parent entry screen, employee app entry, shared Core, Sales, Warehouse, Delivery, Purchasing, and Store. README counts and direct partial inventory conflict (README says Warehouse 8; nine named warehouse files were directly fetched). Missing Sales/Delivery/Purchasing/Office files remain UNKNOWN until a complete repository tree is available.
+- **Production status:** No live Supabase query, Edge deployment, Production HTTP request, business-data mutation, or runtime E2E was performed in LVE-500. Production deployment identity for Loader commit `f0284c9` remains UNVERIFIED. The prior Report499 reopen-loading authorization finding remains OPEN unless independently rechecked and closed.
+- **Mutation ledger:** Created and amended Report500 in the documentation repository and updated this continuity checkpoint. No operational repository source file was modified. No Supabase schema/data/ACL/function changed.
+- **Status:** DOCUMENTATION UPDATED / CURRENT GIT LOADER ADVANCED AFTER REPORT499 / FULL COMPANY TREE INCOMPLETE / PRODUCTION PARITY UNVERIFIED / NOT A PRODUCTION-CLOSURE CLAIM.
+- **Next action:** Obtain a complete tree listing for `companies/company-1`; inventory every app file and its endpoint/RPC/DB consumers. Separately re-read live Production Edge identity and authorization before making any deployment claim. Do not treat UI prechecks in Loader as a substitute for server-side authorization.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-499 — Live Loading Runtime + Reopen Authorization Revalidation
 
 - LAST VERIFIED EVENT: LVE-2026-10-25-499.
