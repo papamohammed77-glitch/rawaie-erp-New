@@ -274,3 +274,514 @@ No operational code was modified because the task explicitly assigns the source 
 
 **Final confidence:** High for static/API contract findings; medium for full lifecycle interpretation; low for runtime closure because browser/staging E2E was not run.  
 **Final closure status:** `OPEN — OWNER HTML PATCH + REOPEN EDGE TENANT REPAIR + ISOLATED E2E + SERVED-ARTIFACT VERIFICATION REQUIRED`. No `100% CLOSED` claim.
+
+
+---
+
+## 10. READY-TO-PASTE OWNER PATCHES — COMPLETE REPLACEMENT TEXT
+
+**This appendix makes the patch operationally precise.** Re-fetch the target before applying and stop if its blob SHA is not `f478a78b9e5999cf44f7f65e06341b3036bfdcc9`. The owner-only restriction remains in force: these blocks are instructions for the owner to apply, not changes made by this assistant.
+
+### A. Add the local draft store
+
+Insert immediately before `var App = {` inside Loader's inline script:
+
+```javascript
+var RW_LoaderDB = null;
+try {
+    if (typeof Dexie !== 'undefined') {
+        RW_LoaderDB = new Dexie('RW_Loader');
+        RW_LoaderDB.version(1).stores({
+            sessions: 'runsheet_code, company_id, loader_id, runsheet_id, loading_cycle_id'
+        });
+    }
+} catch (loaderDbInitError) {
+    console.error('Loader local draft database initialization failed:', loaderDbInitError);
+}
+```
+
+### B. Replace `_startSession` in full
+
+Replace the exact method beginning `_startSession: function(code, rs, items) {` and ending at its matching method-closing `},`:
+
+```javascript
+_startSession: function(code, rs, items) {
+    var self = this;
+    var session = {
+        runsheet_code: code,
+        company_id: rs.company_id,
+        loader_id: rs.loader_id,
+        runsheet_id: rs.id,
+        vehicle_id: rs.vehicle_id || null,
+        loading_cycle_id: rs.loading_cycle_id || null,
+        loader_start: rs.loader_start || null,
+        start_time: rs.loader_start || new Date().toISOString(),
+        items: []
+    };
+
+    for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        var product = it.items || {};
+        if (Array.isArray(product)) product = product[0] || {};
+
+        session.items.push({
+            item_code: it.item_code,
+            item_name: it.item_name || product.name || '',
+            unit: it.unit || product.unit || 'حبة',
+            description: product.description || '',
+            image_url: product.image_url || '',
+            unit_price: Number(it.unit_price) || 0,
+            qty_ordered: Number(it.qty_ordered) || 0,
+            qty_picked: Number(it.qty_picked) || 0,
+            qty_loaded: Number(it.qty_loaded) || 0,
+            notes: it.notes || ''
+        });
+    }
+
+    function sameIdentity(saved) {
+        return !!saved &&
+            saved.runsheet_code === session.runsheet_code &&
+            saved.company_id === session.company_id &&
+            saved.loader_id === session.loader_id &&
+            saved.runsheet_id === session.runsheet_id &&
+            String(saved.vehicle_id || '') === String(session.vehicle_id || '') &&
+            String(saved.loading_cycle_id || '') === String(session.loading_cycle_id || '') &&
+            String(saved.loader_start || '') === String(session.loader_start || '');
+    }
+
+    if (!RW_LoaderDB) {
+        self.session = session;
+        RW_UI.toast('الحفظ المؤقت غير متاح على هذا الجهاز؛ ستظل التعديلات في الذاكرة الحالية فقط', 'warning');
+        self.renderActiveSession();
+        return;
+    }
+
+    RW_LoaderDB.sessions.get(code).then(function(saved) {
+        if (sameIdentity(saved)) {
+            var byCode = {};
+            for (var i = 0; i < saved.items.length; i++) {
+                byCode[String(saved.items[i].item_code)] = saved.items[i];
+            }
+            for (var j = 0; j < session.items.length; j++) {
+                var current = session.items[j];
+                var previous = byCode[String(current.item_code)];
+                if (previous) {
+                    current.qty_loaded = Number(previous.qty_loaded) || 0;
+                    current.notes = previous.notes || '';
+                }
+            }
+        } else if (saved) {
+            return RW_LoaderDB.sessions.delete(code).then(function() {
+                return null;
+            });
+        }
+        return null;
+    }).then(function() {
+        self.session = session;
+        return RW_LoaderDB.sessions.put(session);
+    }).then(function() {
+        self.renderActiveSession();
+    }).catch(function(err) {
+        console.error('Loader draft restore/save failed:', err);
+        self.session = session;
+        RW_UI.toast('تعذر استعادة الحفظ المؤقت. تم عرض بيانات الخادم دون ادعاء حفظ التعديلات المحلية.', 'error');
+        self.renderActiveSession();
+    });
+},
+```
+
+### C. Replace `editLoadedItem` in full
+
+This replacement enforces the Production/Core picked-quantity ceiling and waits for local persistence before reporting a successful save. Notes are local-only until a supported backend field is implemented.
+
+```javascript
+editLoadedItem: function(idx, pre) {
+    var s = this;
+    if (!s.session || !s.session.items[idx]) return;
+    var it = s.session.items[idx];
+    var cur = (typeof pre !== 'undefined') ? pre : it.qty_loaded;
+
+    Swal.fire({
+        title: '<span class="text-slate-800">' + it.item_name + '</span>',
+        html: '<div class="text-center mb-3">' +
+            s._loaderImageHTML(it, 'w-full max-w-xs', 'h-72', 'object-contain') +
+            '</div><div class="text-right text-sm space-y-2">' +
+            '<div class="flex justify-between"><span class="text-slate-400">محضّر</span><strong>' + it.qty_picked + '</strong></div>' +
+            '<div class="flex justify-between"><span class="text-slate-400">مطلوب</span><strong>' + it.qty_ordered + '</strong></div>' +
+            (it.unit ? '<div class="flex justify-between"><span class="text-slate-400">الوحدة</span><strong>' + it.unit + '</strong></div>' : '') +
+            '</div><div class="mt-4 text-right">' +
+            '<label class="block text-xs font-bold text-slate-500 mb-2">الكمية المحمّلة</label>' +
+            '<input id="swal-qty" type="number" class="swal2-input !rounded-xl !text-center !font-bold !text-lg" value="' + cur + '" min="0" max="' + it.qty_picked + '">' +
+            '<label class="block text-xs font-bold text-slate-500 mb-2 mt-4">ملاحظات محلية</label>' +
+            '<input id="swal-notes" class="swal2-input !rounded-xl" value="' + (it.notes || '') + '" placeholder="سبب النقص (يحفظ محليًا فقط)"> </div>',
+        showCancelButton: true,
+        confirmButtonText: 'حفظ',
+        cancelButtonText: 'إلغاء',
+        customClass: {
+            popup: '!rounded-3xl',
+            confirmButton: '!rounded-xl !bg-orange-600 !px-8',
+            cancelButton: '!rounded-xl'
+        },
+        didOpen: function() {
+            s._bindLoaderImageFallbacks(Swal.getPopup());
+        },
+        preConfirm: function() {
+            var p = Swal.getPopup();
+            var qe = p ? p.querySelector('#swal-qty') : null;
+            var ne = p ? p.querySelector('#swal-notes') : null;
+            var value = qe ? Number(qe.value) : NaN;
+            if (!Number.isFinite(value) || value < 0 || value > Number(it.qty_picked)) {
+                Swal.showValidationMessage('الكمية يجب أن تكون بين صفر والكمية المحضّرة.');
+                return false;
+            }
+            return { qty: Math.floor(value), notes: ne ? ne.value.trim() : '' };
+        }
+    }).then(function(r) {
+        if (!r.isConfirmed) return;
+        var oldQty = it.qty_loaded;
+        var oldNotes = it.notes;
+        s.session.items[idx].qty_loaded = r.value.qty;
+        s.session.items[idx].notes = r.value.notes;
+
+        if (!RW_LoaderDB) {
+            s.renderActiveSession();
+            RW_UI.toast('تم التعديل في الجلسة الحالية فقط؛ الحفظ الدائم المحلي غير متاح', 'warning');
+            return;
+        }
+
+        RW_LoaderDB.sessions.put(s.session).then(function() {
+            s.renderActiveSession();
+            if (r.value.qty < it.qty_picked && !r.value.notes) {
+                Swal.fire({
+                    title: 'تنبيه',
+                    text: 'الكمية المحمّلة أقل من المحضّرة. هل تريد إضافة سبب؟',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'إضافة سبب',
+                    cancelButtonText: 'تخطي',
+                    customClass: {
+                        popup: '!rounded-3xl',
+                        confirmButton: '!rounded-xl !bg-amber-500 !px-6',
+                        cancelButton: '!rounded-xl'
+                    }
+                }).then(function(r2) {
+                    if (r2.isConfirmed) s.editLoadedItem(idx, r.value.qty);
+                });
+            }
+        }).catch(function(err) {
+            s.session.items[idx].qty_loaded = oldQty;
+            s.session.items[idx].notes = oldNotes;
+            console.error('Loader draft write failed:', err);
+            s.renderActiveSession();
+            RW_UI.showError('تعذر حفظ التعديل محليًا؛ أُعيدت القيمة السابقة.');
+        });
+    });
+},
+```
+
+### D. Add local-only `pauseLoading`
+
+Insert as a new App method adjacent to `cancelLoading`:
+
+```javascript
+pauseLoading: function() {
+    var s = this;
+    if (!s.session) return;
+    if (!RW_LoaderDB) {
+        RW_UI.showError('الحفظ المؤقت غير متاح؛ لن يتم إنهاء الجلسة أو مسح بياناتها.');
+        return;
+    }
+    RW_LoaderDB.sessions.put(s.session).then(function() {
+        if (s.timerInterval) clearInterval(s.timerInterval);
+        s.timerInterval = null;
+        s.session = null;
+        RW_UI.toast('تم حفظ التحميل مؤقتًا على هذا الجهاز', 'success');
+        s.renderPendingTab();
+    }).catch(function(err) {
+        console.error('Loader pause draft write failed:', err);
+        RW_UI.showError('تعذر حفظ الجلسة؛ بقيت الجلسة مفتوحة ولم يتم تغيير حالة الرانشيت.');
+    });
+},
+```
+
+In `renderActiveSession`, insert this button immediately before the existing cancel button:
+
+```javascript
+h += '<button onclick="App.pauseLoading()" class="w-full mt-3 bg-amber-50 border border-amber-200 text-amber-700 py-3 rounded-2xl font-bold"><i class="fa-solid fa-pause ml-2"></i> حفظ مؤقت والعودة للقائمة</button>';
+```
+
+### E. Replace `completeLoading` in full
+
+The summary still counts all rows; only positive quantities are sent to the deployed Edge contract. The notes field is not represented as persisted.
+
+```javascript
+completeLoading: function() {
+    var s = this;
+    if (!s.session) return;
+    if (!navigator.onLine) {
+        RW_UI.toast('غير متصل', 'warning');
+        return;
+    }
+
+    var requestItems = [];
+    var fullCount = 0, partialCount = 0, zeroCount = 0;
+    var allItems = s.session.items;
+
+    for (var i = 0; i < allItems.length; i++) {
+        var it = allItems[i];
+        if (it.qty_loaded < 0 || it.qty_loaded > it.qty_picked) {
+            RW_UI.showError('الكمية المحمّلة يجب ألا تتجاوز الكمية المحضّرة.');
+            return;
+        }
+        if (it.qty_loaded > 0) {
+            requestItems.push({ itemCode: it.item_code, loadedQty: it.qty_loaded });
+        }
+        if (it.qty_loaded >= it.qty_ordered) fullCount++;
+        else if (it.qty_loaded > 0) partialCount++;
+        else zeroCount++;
+    }
+
+    if (!requestItems.length) {
+        RW_UI.showError('لا يمكن إنهاء التحميل دون كمية موجبة واحدة على الأقل. لم يتم إرسال أي طلب.');
+        return;
+    }
+
+    var summary = '<div class="text-right text-sm"><p>أنت على وشك إنهاء تحميل الرانشيت <strong>' +
+        s.session.runsheet_code + '</strong>.</p><div class="mt-3 space-y-1">' +
+        '<div>✅ <strong>' + fullCount + '</strong> أصناف مكتملة</div>' +
+        '<div>⚠️ <strong>' + partialCount + '</strong> أصناف محمّلة جزئيًا</div>' +
+        '<div>❌ <strong>' + zeroCount + '</strong> أصناف لم تُحمّل</div></div>' +
+        '<p class="text-xs text-amber-700 mt-3">ملاحظات النقص محلية ولا تُرسل إلى عقد التحميل الحالي.</p></div>';
+
+    Swal.fire({
+        title: 'تأكيد إنهاء التحميل',
+        html: summary,
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: 'تأكيد',
+        cancelButtonText: 'إلغاء',
+        customClass: {
+            popup: '!rounded-3xl',
+            confirmButton: '!rounded-xl !bg-orange-600 !px-8',
+            cancelButton: '!rounded-xl'
+        }
+    }).then(function(r) {
+        if (!r.isConfirmed) return;
+        var cb = document.querySelector('.swal2-confirm');
+        if (cb) {
+            cb.disabled = true;
+            cb.innerText = 'جارٍ...';
+        }
+        RW_UI.showLoader();
+        RW_API.call('complete-loading', {
+            runsheet_code: s.session.runsheet_code,
+            items: requestItems
+        }, function(json) {
+            RW_UI.hideLoader();
+            if (json && json.success) {
+                var tq = 0, tv = 0;
+                for (var j = 0; j < requestItems.length; j++) {
+                    tq += requestItems[j].loadedQty;
+                    for (var k = 0; k < allItems.length; k++) {
+                        if (allItems[k].item_code === requestItems[j].itemCode) {
+                            tv += requestItems[j].loadedQty * (Number(allItems[k].unit_price) || 0);
+                            break;
+                        }
+                    }
+                }
+                var code = s.session.runsheet_code;
+                function finishUi() {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'تم إنهاء التحميل',
+                        html: '<div class="text-right"><p>تم تحميل <strong>' + requestItems.length +
+                            ' صنف</strong></p><p>إجمالي الكمية: <strong>' + tq +
+                            '</strong></p><p>القيمة التقديرية: <strong>' +
+                            RW_UI.formatNumber(tv) + ' EGP</strong></p></div>',
+                        confirmButtonText: 'حسنًا',
+                        customClass: { popup: '!rounded-3xl', confirmButton: '!rounded-xl !bg-orange-600' }
+                    });
+                    s.session = null;
+                    if (s.timerInterval) clearInterval(s.timerInterval);
+                    s.timerInterval = null;
+                    s.renderPendingTab();
+                }
+                if (RW_LoaderDB) {
+                    RW_LoaderDB.sessions.delete(code).then(finishUi).catch(function(err) {
+                        console.error('Loader completed draft cleanup failed:', err);
+                        finishUi();
+                        RW_UI.toast('اكتمل التحميل، لكن تعذر حذف المسودة المحلية القديمة', 'warning');
+                    });
+                } else {
+                    finishUi();
+                }
+            } else {
+                RW_UI.showError((json && json.msg) || 'فشل إنهاء التحميل. احتُفظ بالمسودة المحلية.');
+            }
+        });
+    });
+},
+```
+
+### F. Replace `cancelLoading` in full
+
+```javascript
+cancelLoading: function(code) {
+    var s = this;
+    RW_UI.showConfirm('إلغاء تحميل ' + code + '؟ ستعود حالة الرانشيت إلى جاهز للتحضير.', function() {
+        RW_UI.showLoader();
+        RW_API.call('cancel-loading', { runsheet_code: code }, function(json) {
+            RW_UI.hideLoader();
+            if (json && json.success) {
+                function resetUi() {
+                    RW_UI.toast('تم الإلغاء', 'success');
+                    s.session = null;
+                    if (s.timerInterval) clearInterval(s.timerInterval);
+                    s.timerInterval = null;
+                    s.renderPendingTab();
+                }
+                if (RW_LoaderDB) {
+                    RW_LoaderDB.sessions.delete(code).then(resetUi).catch(function(err) {
+                        console.error('Loader cancelled draft cleanup failed:', err);
+                        resetUi();
+                        RW_UI.toast('أُلغيت العملية، لكن تعذر حذف المسودة المحلية القديمة', 'warning');
+                    });
+                } else {
+                    resetUi();
+                }
+            } else {
+                RW_UI.showError((json && json.msg) || 'تعذر تأكيد الإلغاء؛ احتُفظ بالمسودة المحلية.');
+            }
+        });
+    });
+},
+```
+
+### G. Replace `renderCompletedTab` in full
+
+```javascript
+renderCompletedTab: function() {
+    var s = this;
+    var u = s.currentUser;
+    if (!u || !u.company_id || !u.id) {
+        RW_UI.showError('تعذر تحديد الشركة أو المستخدم الحالي.');
+        return;
+    }
+    RW_UI.showSkeleton('mainContent', 1, 'card');
+    supabase.from('runsheets')
+        .select('runsheet_code,run_date,status')
+        .eq('company_id', u.company_id)
+        .eq('status', 'Loaded')
+        .eq('loader_id', u.id)
+        .order('run_date', { ascending: false })
+        .limit(50)
+        .then(function(r) {
+            if (r.error) {
+                console.error('Loader completed runsheets query failed:', r.error);
+                RW_UI.showError('تعذر تحميل الرانشيتات المكتملة.');
+                return;
+            }
+            s.completedRunsheets = r.data || [];
+            s.renderCompletedList(s.completedRunsheets);
+        }).catch(function(err) {
+            console.error('Loader completed runsheets request failed:', err);
+            RW_UI.showError('تعذر تحميل الرانشيتات المكتملة.');
+        });
+},
+```
+
+### H. Replace `reopenLoading` in full — UI payload correction only
+
+This corrects the required payload and company-scopes the read. It does **not** solve the backend tenant-identity defect by itself.
+
+```javascript
+reopenLoading: function(code) {
+    var s = this;
+    var u = s.currentUser;
+    if (!u || !u.company_id || !u.id || !code) {
+        RW_UI.showError('تعذر تحديد الشركة أو المستخدم أو الرانشيت.');
+        return;
+    }
+
+    supabase.from('runsheets')
+        .select('status,runsheet_code,company_id,loader_id')
+        .eq('company_id', u.company_id)
+        .eq('runsheet_code', code)
+        .eq('loader_id', u.id)
+        .maybeSingle()
+        .then(function(r) {
+            if (r.error || !r.data || r.data.status !== 'Loaded') {
+                if (r.error) console.error('Loader reopen precheck failed:', r.error);
+                Swal.fire({
+                    title: 'لا يمكن إعادة الفتح',
+                    text: 'تعذر التحقق من أن الرانشيت مكتمل ويتبع حسابك الحالي.',
+                    icon: 'warning',
+                    customClass: { popup: '!rounded-3xl' }
+                });
+                s.renderCompletedTab();
+                return;
+            }
+
+            RW_UI.showConfirm('إعادة فتح ' + code + '؟ سيتم عكس حركة التحميل وفق Core.', function() {
+                var storageKey = 'rw-loader-reopen:' + u.company_id + ':' + code;
+                var operationId = '';
+                try {
+                    operationId = localStorage.getItem(storageKey) || '';
+                    if (!operationId) {
+                        operationId = crypto.randomUUID();
+                        localStorage.setItem(storageKey, operationId);
+                    }
+                } catch (storageError) {
+                    RW_UI.showError('تعذر حفظ معرف العملية لإعادة المحاولة بأمان؛ لم يتم إرسال الطلب.');
+                    return;
+                }
+
+                RW_UI.showLoader();
+                RW_API.call('reopen-loading', {
+                    runsheet_code: code,
+                    operation_id: operationId
+                }, function(j) {
+                    RW_UI.hideLoader();
+                    if (j && j.success) {
+                        try { localStorage.removeItem(storageKey); } catch (_) {}
+                        if (RW_LoaderDB) {
+                            RW_LoaderDB.sessions.delete(code).catch(function(err) {
+                                console.error('Old Loader cycle draft cleanup failed:', err);
+                            });
+                        }
+                        RW_UI.toast('تمت إعادة فتح التحميل', 'success');
+                        s.renderPendingTab();
+                    } else {
+                        RW_UI.showError((j && j.msg) || 'فشلت إعادة الفتح؛ أُبقي معرف العملية لاستخدامه في إعادة المحاولة.');
+                    }
+                });
+            });
+        }).catch(function(err) {
+            console.error('Loader reopen precheck request failed:', err);
+            RW_UI.showError('تعذر التحقق من حالة الرانشيت.');
+        });
+},
+```
+
+### I. Exact existing payload issue
+
+The current completion loop is the line starting:
+
+`for(var i=0;i<s.session.items.length;i++) { var it=s.session.items[i]; its.push({itemCode:it.item_code,loadedQty:it.qty_loaded,notes:it.notes}); ... }`
+
+Do not make a partial edit that leaves the request array coupled to the summary. Replace the whole `completeLoading` method with Patch E above.
+
+### J. Backend reopen-loading tenant-context repair
+
+Production source proves the live defect; however, the canonical Current artifact for `reopen-loading` was not found in the queried Current paths. Do not deploy an ad hoc production-only edit. First recover the exact deployed source into the official Current location, preserving its present RPC/payload contract; then replace the `app_settings.limit(1)` identity derivation with the same authenticated-user mapping pattern used by live `start-loading v6` and `complete-loading v11`:
+
+- validate the Bearer token with `supabase.auth.getUser(token)`;
+- fetch `public.users` using `.eq('auth_id', user.id).maybeSingle()`;
+- require the row's `id`, `company_id`, and active status;
+- derive `p_company_id` and `p_user_email` from that row, never from the browser;
+- preserve the required `runsheet_code + operation_id` contract;
+- verify the current function's authorization/ownership semantics against Core before deployment.
+
+The live `cancel-loading v5` has the same `app_settings.limit(1)` tenant-context pattern. It is a sibling defect, but do not silently expand the current Loader patch to rewrite it without the same source recovery and test discipline. Track it as an immediate related security follow-up in the current-state record.
+
+**Do not claim 100% closure until the owner has applied these HTML changes, the reopen Edge source has been recovered and repaired, and isolated authenticated E2E plus served-artifact verification pass.**
