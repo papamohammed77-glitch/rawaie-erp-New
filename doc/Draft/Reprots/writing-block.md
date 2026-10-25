@@ -16,7 +16,11 @@
 ملف النظام الأم 
 
 https://github.com/papamohammed77-glitch/erp-frontend/blob/main/companies/company-1/main.html
-ملفات التطبيقات المنشورة في المجلد التالي 
+
+ملفات التطبيقات المنشورة في المجلد التالي
+
+
+
 https://github.com/papamohammed77-glitch/erp-frontend/tree/main/companies/company-1
 
 ---
