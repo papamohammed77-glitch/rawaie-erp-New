@@ -1,4 +1,18 @@
-# CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-495: Loader/Picker Lifecycle Reconciliation
+# CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-496: Loader/Picker Lifecycle Patch Reconciliation
+
+- **Authoritative latest event:** LVE-2026-10-25-496. Report: `doc/Draft/Reprots/Report496_LOADER_PICKER_LIFECYCLE_PATCH_RECONCILIATION_20261025.md`; report blob SHA `2cc91775cafd3b77b8d4da0797a71047dd855b77`; report commit `fa27886852d291f8c8958b9a8851f042941d28c2`.
+- **Canonical operational source re-fetched:** `papamohammed77-glitch/erp-frontend/main/companies/company-1/warehouse/loader.html`, blob SHA `f478a78b9e5999cf44f7f65e06341b3036bfdcc9` (811 lines); Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084`; Core SHA `ff2f581d9900543c16f7cb026e13446520c0329d`.
+- **Live Production read at 2026-10-25 17:16:35 UTC:** start-loading v6 ACTIVE verify_jwt=true; complete-loading v11 ACTIVE verify_jwt=true; cancel-loading v5 ACTIVE verify_jwt=true; reopen-loading v2 ACTIVE verify_jwt=true. Digests and inspected source are in Report496; digests are not Git SHAs.
+- **Confirmed Loader defects:** no persistent local loading draft despite Dexie being loaded; complete-loading request includes zero rows that Production Edge rejects; UI permits loaded quantity above qty_picked though Core rejects it; reopen-loading call omits required operation_id; completed list lacks explicit company scope and falls back to email.
+- **Confirmed backend tenant-context defect:** Production reopen-loading v2 and cancel-loading v5 choose company via app_settings.limit(1), not authenticated public.users.auth_id. No client-supplied company_id is a valid fix. A coordinated Edge source repair and isolated validation are required before claiming multi-tenant safety.
+- **Core evidence:** complete_runsheet_reopen_loading is SECURITY DEFINER; inspected ACL denies EXECUTE to anon/authenticated and grants service_role. trg_sync_run_sheet_details remains active. No direct browser write to run_sheet_details is warranted.
+- **Mutation ledger:** no operational HTML, Edge deployment, database DDL/DML, runsheet, stock, inventory_log, fixture, or harness was changed. Loader/Picker/Main remain owner-only under writing-block.md. Report496 contains the source-grounded patch targets, safety boundaries, and test matrix.
+- **Runtime/deployment status:** Cloudflare-served HTML identity, authenticated browser/HTTP E2E, isolated Staging E2E, and baseline restoration are UNVERIFIED. No closure claim is made.
+- **Next exact action:** owner applies the narrowly scoped Loader patches only after confirming the operational SHA; separately recover the canonical reopen-loading source, derive tenant from authenticated public.users, validate in isolated staging, then deploy and re-read Production. Run the full Report496 test matrix and update this state only with observed evidence.
+
+---
+
+# HISTORICAL CHECKPOINT — 2026-10-25 — LVE-2026-10-25-495: Loader/Picker Lifecycle Reconciliation
 
 - **Authoritative latest event:** LVE-2026-10-25-495. Report: `doc/Draft/Reprots/Report495_LOADER_PICKER_LIFECYCLE_FORENSIC_20261025.md`; report blob SHA `dc84ee456a9e088b6be8cc4a1792eebdb7ce71c3`; report commit `32fcec8a0717fdd6e90b83c35498f7ee99a33afb`.
 - **Fresh operational Loader source:** `papamohammed77-glitch/erp-frontend/companies/company-1/warehouse/loader.html`, blob SHA `f478a78b9e5999cf44f7f65e06341b3036bfdcc9`. Latest relevant commit `684a9fa4b157d542c4ac957cfd96edba6fbeec04` (2026-10-25 16:35:14Z), message `Add vehicle loading functionality in loader.html`. The operational source now contains the vehicle selector; the older Report494 claim that this selector is absent is stale.
