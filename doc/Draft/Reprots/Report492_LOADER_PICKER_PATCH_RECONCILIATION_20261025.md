@@ -376,8 +376,6 @@ h += '<p class="text-sm text-slate-400 mb-3">اضغط على الصنف لعرض
 
 بعد `RW_UI.safeHTML(RW_UI.byId('mainContent'), h);` داخل `_showPreviewModal` أضف ربط الصور وربط البطاقات. استخدم مرجع `self` الموجود في بداية الدالة:
 ```js
-self._bindLoaderImageFallbacks(RW_UI.byId('mainContent'));
-
 var previewRoot = RW_UI.byId('mainContent');
 if (previewRoot) {
     var itemCards = previewRoot.querySelectorAll('.loader-preview-item');
