@@ -1,3 +1,22 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-497 — Loader/Pickers Full Corrected Patch + Live Production Reconciliation
+
+- **LAST VERIFIED EVENT:** `LVE-2026-10-25-497`.
+- **Authoritative new report:** `doc/Draft/Reprots/Report497_LOADER_PICKER_FULL_CORRECTED_OWNER_PATCH_20261025.md`.
+- **Report commit:** `def2ede8fd50a26a700b9a2233e16c9438ef0178`.
+- **Operational source freshly re-fetched:** `papamohammed77-glitch/erp-frontend`, branch `main`; Loader `companies/company-1/warehouse/loader.html` SHA `f478a78b9e5999cf44f7f65e06341b3036bfdcc9` (811 lines); Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084`; Core SHA `ff2f581d9900543c16f7cb026e13446520c0329d`.
+- **Confirmed UI already present in current Loader:** company-scoped `openRunsheet`; item relation query `items!run_sheet_details_item_id_fkey(description,image_url,name,unit)`; inline runsheet preview; clickable/keyboard-accessible item cards; `_showItemDetail` with large image and description; active loading edit modal with large image. Do not recreate these or copy Picker wholesale.
+- **Fresh Production PostgreSQL observation:** `2026-10-25 18:02:29.975715+00`, PostgreSQL 17.6.
+- **Fresh Production Edge registry/source:** `start-loading v6 ACTIVE verify_jwt=true ezbr_sha256=b0e1736ac7606c1c0b81dfdccd75cc90dbad955651961a24019b6e3c4a1988e1`; `complete-loading v11 ACTIVE verify_jwt=true ezbr_sha256=c0ca692a29d14d64ec3729ae4bd12b9b84268e826ffc1c6993a48617b552b286`; `cancel-loading v5 ACTIVE verify_jwt=true ezbr_sha256=65fdfe2066dac1779c1e82b27a958a13d71604808af8a33ca12779ac5b7c0c89`; `reopen-loading v2 ACTIVE verify_jwt=true ezbr_sha256=89cac4219673154832b294d74b810c98154b7a46464a893eb8f119439e358350`.
+- **Core/trigger facts read from Production:** `complete_runsheet_loading(uuid,uuid,jsonb,text)` is SECURITY DEFINER with EXECUTE shown only to postgres/service_role; it requires runsheet status Loading plus vehicle, loader_start, loading_cycle_id; it validates loaded quantity against picked capacity and delegates physical movement to `post_stock_movement`. Trigger `trg_sync_run_sheet_details` remains attached to INSERT/UPDATE/DELETE on `order_details` and calls `sync_run_sheet_details()`.
+- **Newly reconfirmed open Production defects:** `cancel-loading v5` and `reopen-loading v2` derive company from `app_settings.limit(1)` instead of the authenticated user's `public.users.auth_id`; the current `complete_runsheet_loading` status guard is evaluated before idempotency replay detection, so retry after committed success and lost response can fail instead of returning the stored result. These were not changed or deployed in this UI-only owner-patch cycle; they are explicitly OPEN, not silently treated as fixed.
+- **Report496 corrections made in Report497:** re-open operation storage key includes company + user + runsheet; cancellation message correctly names resulting `Picked` status; local-only loading notes are not represented as server-persisted; exact insertion point for the pause/save-draft button is documented; existing item-detail UI is preserved.
+- **Mutation boundary:** no operational HTML/Core/Picker/Main source change; no Edge deployment; no SQL DDL/DML; no business-row mutation; no fixture or harness created. This is intentional per `doc/Draft/Reprots/writing-block.md`, which assigns source HTML changes to the owner.
+- **Runtime status:** owner patch not applied in Git; Cloudflare served-HTML identity not checked; authenticated browser/HTTP E2E not run; no stock-baseline comparison after patch. Do not claim 100% closure.
+- **Next exact action:** owner applies Report497's full patch sequence to Loader only after confirming its SHA is still `f478a78b9e5999cf44f7f65e06341b3036bfdcc9`; validate complete-file JavaScript and lifecycle tests. In parallel, open a separate narrowly scoped backend repair for the confirmed `cancel-loading/reopen-loading` tenant-context defect and the `complete_runsheet_loading` retry-order defect, with source recovery, caller sweep, staging/authenticated E2E, deployment, and live verification before closure.
+- **Status:** `LIVE SOURCE/PRODUCTION RECONCILED / FULL OWNER PATCH DOCUMENTED / HTML NOT APPLIED / PRODUCTION SECURITY+RETRY DEFECTS OPEN / NOT CLOSED`.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-496-AR-EXEC: Consolidated Arabic Report and Fresh Production Reconciliation
 
 - **Canonical consolidated Arabic report:** `doc/Draft/Reprots/Report496_ARABIC_EXECUTIVE_RECONCILIATION_20261025.md`.
