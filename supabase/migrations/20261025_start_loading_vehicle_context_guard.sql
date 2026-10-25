@@ -17,6 +17,7 @@ DECLARE
   u public.users%ROWTYPE;
   v public.vehicles%ROWTYPE;
   new_cycle uuid;
+  existing_runsheet_code text;
 BEGIN
   IF p_company_id IS NULL OR NULLIF(btrim(p_runsheet_code), '') IS NULL
      OR NULLIF(btrim(p_user_email), '') IS NULL THEN
@@ -34,15 +35,15 @@ BEGIN
     RAISE EXCEPTION 'user is not registered in company';
   END IF;
 
-  SELECT runsheet_code INTO r.runsheet_code
+  SELECT runsheet_code INTO existing_runsheet_code
   FROM public.runsheets
   WHERE company_id = p_company_id
     AND status = 'Loading'
     AND loader_id = u.id
   LIMIT 1;
 
-  IF r.runsheet_code IS NOT NULL THEN
-    RAISE EXCEPTION 'user already has Loading runsheet: %', r.runsheet_code;
+  IF existing_runsheet_code IS NOT NULL THEN
+    RAISE EXCEPTION 'user already has Loading runsheet: %', existing_runsheet_code;
   END IF;
 
   SELECT * INTO r
