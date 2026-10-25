@@ -1,3 +1,18 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-496-AR: Arabic Report and Patch-Spec Correction
+
+- **Arabic report added:** `doc/Draft/Reprots/Report496_ARABIC_FORENSIC_RECONCILIATION_20261025.md`
+- **Report blob SHA:** `88c270c16bd782ceec8933d978aae6a6a4e2209f`
+- **Report creation commit:** `0e7a067979e937fa566d2a1ff1f26fc738705d1e`
+- **Source basis:** re-fetched operational Loader `erp-frontend/main/companies/company-1/warehouse/loader.html` SHA `f478a78b9e5999cf44f7f65e06341b3036bfdcc9`; Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084`; Core SHA `ff2f581d9900543c16f7cb026e13446520c0329d`.
+- **Fresh Production read:** Edge registry and source were re-read in this session. `start-loading v6`, `complete-loading v11`, `cancel-loading v5`, `reopen-loading v2`; all ACTIVE, `verify_jwt=true`. Direct read-only SQL snapshot at `2026-10-25T17:35:36.756362Z`, PostgreSQL 17.6.
+- **Confirmed defects retained as OPEN:** Loader draft is not durably saved; completion UI submits zero rows rejected by Edge; UI permits loaded quantity above picked capacity; reopen request omits `operation_id`; reopen/cancel Edge derive company via `app_settings.limit(1)`; completed list lacks explicit company scope; Cloudflare served HTML identity and authenticated E2E remain unverified.
+- **New patch-spec defect found and corrected in Arabic report:** the English Report496 proposed Dexie primary key `runsheet_code` alone. This can collide across companies/users and may delete/overwrite another identity's local draft. The Arabic report uses the compound key `[company_id+loader_id+runsheet_code]` and applies it consistently to get/delete operations.
+- **Governance:** no operational Loader/Picker/Main edits; no Edge deployment; no SQL DDL/DML or ACL change; no runsheet/stock/inventory_log mutation; no fixture/harness created. This remains an evidence and owner-patch package, not a runtime closure.
+- **Next action:** owner must re-fetch Loader and verify its SHA before applying the surgical patches. Separately recover the canonical `reopen-loading` source into the official Current location, repair tenant identity resolution, test in an isolated environment, deploy only after tests, then re-read Production and verify authenticated HTTP/browser behavior and served HTML.
+- **Closure status:** `NOT CLOSED — OWNER HTML PATCH + REOPEN EDGE TENANT REPAIR + ISOLATED E2E + SERVED-ARTIFACT VERIFICATION REQUIRED`.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-496: Loader/Picker Lifecycle Patch Reconciliation
 
 - **Authoritative latest event:** LVE-2026-10-25-496. Report: `doc/Draft/Reprots/Report496_LOADER_PICKER_LIFECYCLE_PATCH_RECONCILIATION_20261025.md`; report blob SHA `2d86037e7f778d17eb27880e6e72412e72d09198`; latest report update commit `b7d1bb897af7a4eb47868bb203d22ea273f7c21d`.
