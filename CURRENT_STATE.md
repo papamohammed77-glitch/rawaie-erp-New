@@ -1,3 +1,19 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-495: Loader/Picker Lifecycle Reconciliation
+
+- **Authoritative latest event:** LVE-2026-10-25-495. Report: `doc/Draft/Reprots/Report495_LOADER_PICKER_LIFECYCLE_FORENSIC_20261025.md`; report blob SHA `dc84ee456a9e088b6be8cc4a1792eebdb7ce71c3`; report commit `32fcec8a0717fdd6e90b83c35498f7ee99a33afb`.
+- **Fresh operational Loader source:** `papamohammed77-glitch/erp-frontend/companies/company-1/warehouse/loader.html`, blob SHA `f478a78b9e5999cf44f7f65e06341b3036bfdcc9`. Latest relevant commit `684a9fa4b157d542c4ac957cfd96edba6fbeec04` (2026-10-25 16:35:14Z), message `Add vehicle loading functionality in loader.html`. The operational source now contains the vehicle selector; the older Report494 claim that this selector is absent is stale.
+- **Operational Picker source:** `erp-frontend/companies/company-1/warehouse/picker.html`, blob SHA `d483bd15b36585b975b63c2ef641481a01d5d084`.
+- **Live Production Edge snapshot read in this cycle:** `start-loading v6 ACTIVE verify_jwt=true digest b0e1736ac7606c1c0b81dfdccd75cc90dbad955651961a24019b6e3c4a1988e1`; `complete-loading v11 ACTIVE verify_jwt=true digest c0ca692a29d14d64ec3729ae4bd12b9b84268e826ffc1c6993a48617b552b286`; `cancel-loading v5 ACTIVE verify_jwt=true digest 65fdfe2066dac1779c1e82b27a958a13d71604808af8a33ca12779ac5b7c0c89`; `reopen-loading v2 ACTIVE verify_jwt=true digest 89cac4219673154832b294d74b810c98154b7a46464a893eb8f119439e358350`.
+- **Confirmed open Loader defects:** no IndexedDB draft persistence/resume; completion sends zero-loaded items even though Edge rejects any submitted item with loaded_qty <= 0; UI permits loaded quantity above picked capacity while Core rejects it; reopen-loading call omits required operation_id; completed-list query lacks explicit company_id and allows email fallback instead of canonical users.id.
+- **Dependency risk:** Production reopen-loading Edge derives company context from app_settings.limit(1), not the authenticated user's public.users row. Do not claim multi-company-safe reopen until this is reconciled and tested.
+- **Core/trigger evidence:** complete_runsheet_loading uses central post_stock_movement and a loading_cycle_id-based operation registry; trg_sync_run_sheet_details propagates authoritative order_details quantities to run_sheet_details. Retry-after-commit behavior remains unverified and may fail because the Core checks Loading status before consulting the operation registry.
+- **Governance:** operational Loader was not edited because writing-block.md explicitly reserves that source mutation to the owner. No Edge deployment, database mutation, stock movement, fixture, or production test mutation occurred. Report495 contains the exact ordered patch plan and E2E matrix.
+- **Current mirror drift:** `rawaie-erp-New/Current/PWA/loader.html` blob `7b02f39643bcd45650595c8f5d72787eddcc5703` is a 30,897-byte, 266-line stale mirror and is not equivalent to the operational Loader.
+- **Runtime status:** Cloudflare-served HTML identity and authenticated HTTP E2E remain OPEN. Do not claim closure.
+- **Next exact action:** owner applies the Report495 surgical Loader patch to the current operational SHA, then reconcile reopen-loading tenant identity, deploy the app, and execute isolated authenticated E2E including pause/resume, partial load, all-zero rejection, over-picked rejection, cancel, reopen, company isolation, retry semantics, and baseline restoration.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-494: Loader Vehicle Selection
 
 - **Authoritative latest event:** LVE-2026-10-25-494. Report: `doc/Draft/Reprots/Report494_LOADER_VEHICLE_SELECTION_FIX_20261025.md`; report blob SHA `fe5cb9653037fffe1624a62f8e7d79acab941df6`; report commit `5de6ed9990025a6295c5b23a1507db5dec807e18`.
