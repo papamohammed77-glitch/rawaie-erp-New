@@ -1,3 +1,19 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-496-AR-EXEC: Consolidated Arabic Report and Fresh Production Reconciliation
+
+- **Canonical consolidated Arabic report:** `doc/Draft/Reprots/Report496_ARABIC_EXECUTIVE_RECONCILIATION_20261025.md`.
+- **Report creation commit:** `57d98cba7432e16c405b316300e736529ad9d5b0`.
+- **Live source identities re-fetched:** operational Loader `erp-frontend/main/companies/company-1/warehouse/loader.html` SHA `f478a78b9e5999cf44f7f65e06341b3036bfdcc9`; Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084`; Core SHA `ff2f581d9900543c16f7cb026e13446520c0329d`.
+- **Fresh Production Edge registry/source:** `start-loading v6 ACTIVE verify_jwt=true`, digest `b0e1736ac7606c1c0b81dfdccd75cc90dbad955651961a24019b6e3c4a1988e1`; `complete-loading v11 ACTIVE verify_jwt=true`, digest `c0ca692a29d14d64ec3729ae4bd12b9b84268e826ffc1c6993a48617b552b286`; `cancel-loading v5 ACTIVE verify_jwt=true`, digest `65fdfe2066dac1779c1e82b27a958a13d71604808af8a33ca12779ac5b7c0c89`; `reopen-loading v2 ACTIVE verify_jwt=true`, digest `89cac4219673154832b294d74b810c98154b7a46464a893eb8f119439e358350`.
+- **Fresh SQL timestamp:** `2026-10-25 17:52:58.699474+00`, PostgreSQL `17.6`.
+- **Confirmed issues remain open:** Loader draft persistence; zero-loaded rows sent to complete-loading; UI permits loaded quantity above qty_picked; reopen request omits operation_id; completed list lacks explicit company scope; reopen/cancel Edge derive tenant context from `app_settings.limit(1)`.
+- **Governance:** `writing-block.md` forbids direct assistant mutation of operational Loader/Picker/Main for this task. No HTML edit, Edge deploy, SQL DDL/DML, business-row mutation, fixture/harness, or stock movement was performed in this cycle.
+- **Runtime status:** authenticated E2E, Cloudflare served-HTML identity, post-patch validation, retry/concurrency, and baseline restoration remain unverified. Do not claim closure.
+- **Historical scope honesty:** reviewed CURRENT_STATE's report/event ledger and task-relevant Reports 492–496 plus governing instructions; did not claim that all 50 underlying reports were each opened in full.
+- **Next action:** re-fetch Loader and confirm SHA before owner applies surgical patches; recover canonical `reopen-loading` source into official Current, repair authenticated tenant derivation, test in isolation, deploy only after tests, then re-read Production and verify HTTP/browser behavior.
+- **Closure:** `OPEN — NOT 100% CLOSED`.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-496-AR: Arabic Report and Patch-Spec Correction
 
 - **Arabic report added:** `doc/Draft/Reprots/Report496_ARABIC_FORENSIC_RECONCILIATION_20261025.md`
