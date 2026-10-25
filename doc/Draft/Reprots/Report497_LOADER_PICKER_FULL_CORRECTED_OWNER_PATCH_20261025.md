@@ -1274,7 +1274,7 @@ cancelLoading: function(code) {
     var s = this;
     var u = s.currentUser;
     var draftKey = (u && u.company_id && u.id) ? [u.company_id, u.id, code] : null;
-    RW_UI.showConfirm('إلغاء تحميل ' + code + '؟ ستعود حالة الرانشيت إلى جاهز للتحضير.', function() {
+    RW_UI.showConfirm('إلغاء تحميل ' + code + '؟ ستعود حالة الرانشيت إلى حالة Picked لتصبح جاهزة لبدء التحميل مجددًا.', function() {
         RW_UI.showLoader();
         RW_API.call('cancel-loading', { runsheet_code: code }, function(json) {
             RW_UI.hideLoader();
@@ -1365,7 +1365,7 @@ reopenLoading: function(code) {
             }
 
             RW_UI.showConfirm('إعادة فتح ' + code + '؟ سيتم عكس حركة التحميل وفق Core.', function() {
-                var storageKey = 'rw-loader-reopen:' + u.company_id + ':' + code;
+                var storageKey = 'rw-loader-reopen:' + u.company_id + ':' + u.id + ':' + code;
                 var operationId = '';
                 try {
                     operationId = localStorage.getItem(storageKey) || '';
