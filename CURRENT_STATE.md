@@ -1,3 +1,16 @@
+# CURRENT FORENSIC CHECKPOINT — 2026-10-25 — LVE-2026-10-25-490: Loader Contract + Parent Entry Defects
+
+- **Authoritative latest event:** LVE-2026-10-25-490. Report: `doc/Draft/Reprots/Report489_LOADING_CENTRAL_CONTRACT_AND_PARENT_LINK_FORENSIC_20261025.md`; report commit `b02fb6d581c02e7f844c69c9d3ddce9edb802c08`.
+- **Fresh Production snapshot:** SMART ERP project `fiilmooggumokxanwiyx`; direct read-only schema/function capture at `2026-10-25 12:59:11.58881+00`. Production Edge `complete-loading` v11, ACTIVE, `verify_jwt=true`, registry digest `c0ca692a29d14d64ec3729ae4bd12b9b84268e826ffc1c6993a48617b552b286`. RPC `public.complete_runsheet_loading(uuid,uuid,jsonb,text)` is SECURITY DEFINER; inspected ACL grants EXECUTE to postgres/service_role, not anon/authenticated.
+- **Operational source re-fetched:** `papamohammed77-glitch/erp-frontend`, branch `main`. Loader SHA `97b83d68a683df77c1e0557838c24a1b4fb65169`; Picker SHA `d483bd15b36585b975b63c2ef641481a01d5d084`; app.html SHA `ec75f89c11620f6e8b8ef5996cf1a3289dcf20b4`; core.js SHA `ff2f581d9900543c16f7cb026e13446520c0329d`.
+- **Confirmed defect A:** Loader line 289 performs direct UPDATE on `run_sheet_details` and suppresses errors. Production authenticated role has SELECT but no UPDATE on that table. The line is not a valid persistence path; remove it only after owner applies the documented surgical change.
+- **Confirmed defect B:** Loader sends zero-loaded items and notes; Production Edge v11 rejects `loaded_qty <= 0` and drops notes; Production RPC rejects `req <= 0` and does not persist reason. The canonical fix must update Edge + RPC/migration together, permit zero as a fulfillment state without invoking physical stock movement for zero, persist loading reason to the correct order detail field, and preserve cycle idempotency/backorder behavior.
+- **Confirmed source wiring defect C:** `app.html` line 64 links to relative `main.html`, but `companies/company-1/main.html` in operational repository is zero bytes (blob `bb10422217fc57a9a42c2bf65a55e9470a19537c`). Correct deployed parent route remains UNKNOWN; do not invent a URL.
+- **Mutation ledger:** report created in rawaie-erp-New. No operational source changes, Edge deployments, SQL DDL/DML, or test fixture changes. No authenticated HTTP/browser E2E ran. Staging/deployed Cloudflare artifact identity remain UNVERIFIED.
+- **Status:** PARTIAL / NOT CLOSED. Next: establish the canonical deployed parent-system route; owner applies the one-line Loader deletion; then implement and test the atomic zero-quantity + reason-loading contract in isolated staging before Production deployment. Reconcile source and deployed artifacts afterward.
+
+---
+
 # CURRENT FORENSIC CHECKPOINT — 2026-10-24 — LVE-2026-10-24-489: Fresh Loader Revalidation + Owner Patch Order Correction
 
 - **Authoritative LAST VERIFIED EVENT:** LVE-2026-10-24-489. Report: `doc/Draft/Reprots/Report488_LOADER_DAILY_REVALIDATION_PATCH_ORDER_CORRECTION_20261024.md`; current report blob SHA `14f63e0526121e0e5597e12e6186101884d3fe0c`; original creation commit `e706b7545e1048bc863d800aa75ba7d7f5c72b3d`; self-contained patch addendum commit `6f2f5c4eaf1411fb347ea03cfde4cf9777eddbac`.
