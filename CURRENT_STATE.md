@@ -1,3 +1,20 @@
+# LAST VERIFIED EVENT — LVE-2026-10-26-507 — Delivery Supervisor + Driver Integration Review
+
+- **Observed:** 2026-10-26; live PostgreSQL snapshot at `2026-10-26 14:26:02.565921+00`; live Edge Registry/source and Supabase logs were inspected in this session.
+- **Authoritative report:** `doc/Draft/Reprots/Report507_DELIVERY_SUPERVISOR_DRIVER_INTEGRATION_EXECUTION_20261026.md`; report commit `e7ac06deb67723e9e7d04da2f01cbe72790fac19`; report blob SHA `84fbb3cf08babd9dd0b80905d8de46074f94e57c`.
+- **Operational source:** `papamohammed77-glitch/erp-frontend`, branch `main`.
+- **Current source blobs:** `delivery/supervisor.html` = `4108d2330e567c432f08197013b9c3cf6221a5c7`; `delivery/driver.html` = `2df69860184f5a7c1b211ba059e1d6f57826c96b`; `core.js` = `ff2f581d9900543c16f7cb026e13446520c0329d`.
+- **Live Production baseline:** RS-1 and RS-2 are Loaded and unassigned; no business data was changed and neither runsheet was used as a test fixture.
+- **Live Edge versions:** start-delivery v7, complete-delivery v4, cancel-delivery v5, complete-order-delivery v14, get-driver-dashboard v1, force-unassign-runsheet v1, start-order-delivery v1, save-delivery-item v4, manage-runsheet v1; all ACTIVE with `verify_jwt=true`. Digests are recorded in Report507.
+- **Confirmed gaps:** supervisor direct table writes conflict with RLS and lack a safe Loaded-assignment contract; force-unassign lacks adequate company/permission checks; complete-delivery lacks assigned-driver verification; complete-order-delivery/Core do not enforce assignment/Delivering state; get-driver-dashboard is defective; driver UI has direct reads, a fixed-company user-insert fallback, reason_delivery/notes mismatch, and unproven amount_paid collection.
+- **Runtime evidence:** Supabase logs show a real GET from `rawaea-erp.pages.dev` to `runsheets` filtered by driver and Loaded status, HTTP 200 with a 2-byte empty response at `2026-10-26T14:24:53.719Z`. This proves direct table querying by a deployed client, not that every user account fails.
+- **Tests:** direct Git/Production inspection completed for the listed scope. Authenticated browser/HTTP E2E NOT RUN; no assigned driver runsheet or isolated staging fixture was available. Cloudflare-served HTML parity and full Git→Production provenance remain UNVERIFIED.
+- **Mutation ledger:** Report507 and this continuity checkpoint only. No operational HTML/Core, Edge deployment, RPC/DDL/RLS, business data, inventory, or financial records changed.
+- **Status:** `PARTIAL / SECURITY & ASSIGNMENT CONTRACT OPEN / AUTHENTICATED E2E NOT RUN / NOT CLOSED`.
+- **Next action:** repair backend authorization contracts and add safe atomic Loaded-runsheet assignment; then repair get-driver-dashboard, apply owner-managed UI patches, and run isolated authenticated E2E with baseline restoration. Do not use RS-1/RS-2 as fixtures and do not widen RLS indiscriminately.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-26-506 — Delivery Supervisor + Driver Integration Forensic Review
 
 - **Observed:** 2026-10-26; live PostgreSQL snapshot at `2026-10-26T14:02:03.503615+00:00`.
