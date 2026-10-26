@@ -1963,3 +1963,17 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - **Unknown / unverified:** owner patch application; complete-file JavaScript validation after application; Cloudflare-served HTML identity; authenticated UI HTTP E2E; baseline/stock-delta test after deployment; Tailwind build pipeline availability.
 - **Status:** `BACKEND VERIFIED / OWNER PATCH READY / UI NOT APPLIED / E2E OPEN / NOT CLOSED`.
 - **Next exact action:** re-fetch Loader and confirm SHA `6bc6ad2ee93396faca20576241ad3318679171ef`; owner applies Report494 patches A–C; validate full JavaScript and user flow; deploy and verify Cloudflare-served HTML; run isolated authenticated E2E and prove baseline restoration. Do not weaken the Production vehicle guard or claim UI closure before evidence.
+
+
+# LAST VERIFIED EVENT — LVE-2026-10-26-504 — Parent Runsheet History Retention Forensic Review
+
+- **Observed:** 2026-10-26.
+- **Authoritative report:** `doc/Draft/Reprots/Report504_PARENT_RUNSHEET_HISTORY_RETENTION_20261026.md`; documentation commit `b392f0e09d2a7a0c32059dab75fdd9c3ea9e6543`.
+- **Operational source:** `papamohammed77-glitch/erp-frontend`, branch `main`, `companies/company-1/main.html`; full Git blob retrieved and inspected, SHA `11f29e07c10ae1767db334fe101c382eca23bd00`, 1,785,871 characters.
+- **Confirmed source gaps:** Picking query includes only `Open/Confirmed/Picking/Picked`; Loading query includes only `Loaded`; Delivery query includes only `Delivered`. These stage-specific filters hide prior-stage runsheets after transitions.
+- **Loading notes:** current parent source reads `runsheets.notes`; the write path was not verified in this event.
+- **Receiving:** separate `receiving` entity/table, not assumed to be a runsheet lifecycle stage.
+- **Returns:** no function literally named `loadReturns` or `_applyReturns` was found; the actual tab handler still requires tracing by tab router/callers.
+- **Mutation ledger:** created Report504 only. No operational source, Production database, Edge Function, stock row, reservation, or inventory log was changed. No E2E or live served-HTML verification was run.
+- **Status:** `PARTIAL / SOURCE GAPS CONFIRMED / MAIN.HTML PATCH NOT APPLIED / RUNTIME NOT VERIFIED`. Do not call this task closed.
+- **Next action:** trace the actual Returns tab handler and allowed state transitions; implement a distinct historical view without re-enabling invalid actions; verify loading-notes write path; then run static validation, served HTML identity check, authenticated E2E, and confirm no stock/reservation/inventory-log delta from display-only actions.
