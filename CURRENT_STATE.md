@@ -1,3 +1,21 @@
+# LAST VERIFIED EVENT — LVE-2026-10-26-509 — Delivery Supervisor / Driver / Deliverer Contract Forensics
+
+- **Observed:** 2026-10-26; PostgreSQL live snapshots at `2026-10-26 16:27:24.355042+00` and `16:31:11.405051+00`; current Production schema, RLS, RPC definitions/ACL, triggers, runsheet rows, user permissions, Edge registry and deployed source inspected.
+- **Authoritative report:** [Report509_DELIVERY_SUPERVISOR_DRIVER_INTEGRATION_FORENSIC_20261026.md](doc/Draft/Reprots/Report509_DELIVERY_SUPERVISOR_DRIVER_INTEGRATION_FORENSIC_20261026.md); report commit `f6422281327bbfc5646dc544697a98f5370be091`.
+- **Operational repository:** `papamohammed77-glitch/erp-frontend`, branch `main`.
+- **Current source blobs re-fetched:** `companies/company-1/delivery/supervisor.html` = `4108d2330e567c432f08197013b9c3cf6221a5c7`; `companies/company-1/delivery/driver.html` = `2df69860184f5a7c1b211ba059e1d6f57826c96b`; `companies/company-1/core.js` = `ff2f581d9900543c16f7cb026e13446520c0329d`; parent `main.html` read via Git blob `11f29e07c10ae1767db334fe101c382eca23bd00`.
+- **Confirmed architecture:** Parent `RUNSHEET_ASSIGN → fleet_command_atomic → manage_runsheet_atomic` assigns vehicle and driver for `Open/Confirmed` runsheets. The delivery supervisor app currently writes `runsheets.driver_id` directly for delivery reps, conflicting with owner’s Driver-vs-Deliverer separation and live RLS. `runsheets.deliverer_id` exists; supervisor assignment must use it through an atomic company-scoped backend contract.
+- **Live Production rows:** RS-1 and RS-2 remain `Loaded`, have `vehicle_id` set, and `driver_id/deliverer_id=NULL`; neither was changed or used as a test fixture.
+- **Live Edge snapshot:** `start-delivery` v7, `complete-delivery` v4, `complete-order-delivery` v14, `get-driver-dashboard` v1, `force-unassign-runsheet` v1, `manage-runsheet` v1; ACTIVE, `verify_jwt=true`. Digests and source defects are in Report509.
+- **Confirmed defects:** supervisor direct reads/writes conflict with RLS; no current safe atomic `Loaded`-runsheet delivery-representative assignment command; driver UI/Edge still consume `driver_id`; `get-driver-dashboard` selects no `id` then uses `activeRS.id`; `complete-delivery` does not enforce assigned deliverer; `force-unassign-runsheet` has insufficient company/permission checks and clears the wrong identity field.
+- **Staging:** `rawaea-staging` project `hfzznsiprnwkpayskzhu` was inactive. Restore request returned success, but subsequent database calls returned `Database is possibly not accessible at the moment`; staging connectivity is not yet verified.
+- **Mutation ledger:** Report509 and this state entry only. No Production DDL/DML/business data or Edge deployment changed. No operational HTML/Core files changed.
+- **Tests:** schema/RLS/RPC/ACL/trigger/source inspection PASS; authenticated supervisor/driver HTTP E2E NOT RUN; concurrency/wrong-company/wrong-deliverer NOT RUN; Cloudflare served-HTML parity UNVERIFIED.
+- **Status:** `PARTIAL / DRIVER-DELIVERER CONTRACT OPEN / STAGING UNAVAILABLE / E2E NOT RUN / NOT CLOSED`.
+- **Next action:** restore Staging connectivity; implement and test an atomic `RUNSHEET_ASSIGN_DELIVERER` command using an existing RPC (no new Edge Function), then reconcile `get-driver-dashboard/start-delivery/complete-delivery/complete-order-delivery/force-unassign-runsheet` with `deliverer_id`; deliver exact owner-applied HTML patches and run isolated E2E. Preserve RS-1/RS-2 and do not widen RLS indiscriminately.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-26-508 — Delivery Supervisor/Driver Integration Reconciliation
 
 - **Observed:** 2026-10-26; direct PostgreSQL clock `2026-10-26 16:17:00.391819+00`; live schema, RLS policies, `manage_runsheet_atomic` definition, current runsheet rows, relevant user rows, Edge registry, and deployed Edge source inspected in this session.
