@@ -1,3 +1,20 @@
+# LAST VERIFIED EVENT — LVE-2026-10-26-511 — Delivery Supervisor RPC Deployed; UI/Edge Lifecycle Still Open
+
+- **Observed:** 2026-10-26; Production SQL snapshots at 2026-10-26 17:00:59.784089+00 and 17:01:21.539426+00.
+- **Authoritative report:** [Report511_DELIVERY_SUPERVISOR_INTEGRATION_EXECUTION_20261026.md](doc/Draft/Reprots/Report511_DELIVERY_SUPERVISOR_INTEGRATION_EXECUTION_20261026.md); report commit `3bd77f37b1b959cf6ed45f0729157832800ee302`.
+- **Canonical migration:** `supabase/migrations/20261026170000_delivery_supervisor_deliverer_assignment_contract.sql`; blob SHA `dff7aada5534c16fdc6394085fc28c67dd4365cd`; original migration commit `40fae5af069094210dce6e0f08a83d5fd442754c`.
+- **Production migration record:** version `20261026170039`, name `delivery_supervisor_deliverer_assignment_contract`; apply_migration returned `success=true`.
+- **Live RPC/ACL:** `delivery_supervisor_assignment_query(uuid,text)` and `delivery_supervisor_assign_deliverer_atomic(uuid,text,uuid,text)` are present; SECURITY DEFINER=true; anon EXECUTE=false; authenticated/service_role EXECUTE=true.
+- **Production SQL read test:** under simulated Auth claim for active `delivery_supervisor`, dashboard/team/runsheets returned success; team contained 4 active delivery users and runsheets returned RS-1/RS-2 as Loaded with deliverer_id NULL. A wrong-company query was rejected. These are SQL-level checks, not HTTP/JWT E2E.
+- **Baseline:** RS-1 and RS-2 were not mutated or used as fixtures. No operational runsheet, order, inventory, accounting, or user data changed.
+- **Operational source SHAs:** supervisor.html `4108d2330e567c432f08197013b9c3cf6221a5c7`; driver.html `2df69860184f5a7c1b211ba059e1d6f57826c96b`; core.js `ff2f581d9900543c16f7cb026e13446520c0329d`.
+- **Confirmed open defects:** supervisor.html still directly reads/writes runsheets/users and uses driver_id for representative assignment; driver.html and active delivery Edge functions still consume driver_id; get-driver-dashboard references nonexistent users.vehicle_id and uses activeRS.id without selecting it; complete-delivery lacks assigned-deliverer enforcement; force-unassign-runsheet lacks company/permission scope and clears driver_id; Core complete_order_delivery_atomic does not enforce deliverer assignment and Delivering state.
+- **Mutation ledger:** Production migration applied; no Edge deployment; no operational HTML/Core changed; no new tables created.
+- **Status:** `PARTIAL / PRODUCTION RPC + SQL READ CHECKS PASS / UI+EDGE PARITY OPEN / AUTHENTICATED HTTP E2E NOT RUN / NOT CLOSED`.
+- **Next action:** owner applies the exact surgical patches in Report511 after rechecking source SHA. Then reconcile existing delivery Edge/Core lifecycle and driver.html together, including force-unassign, order delivery, collections/liabilities, company isolation, retry/concurrency, and authenticated HTTP E2E. Do not use RS-1/RS-2 as fixtures; do not deploy a partial Edge contract that makes current consumers inconsistent.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-26-510 — Delivery Supervisor RPC Contract + Staging Test
 
 - **Observed:** 2026-10-26; Production SQL clock read at `2026-10-26 16:48:34.583217+00`; Staging SQL test executed and fixtures verified absent after rollback.
