@@ -1,7 +1,7 @@
 # LAST VERIFIED EVENT — LVE-2026-10-26-511 — Delivery Supervisor RPC Deployed; UI/Edge Lifecycle Still Open
 
 - **Observed:** 2026-10-26; Production SQL snapshots at 2026-10-26 17:00:59.784089+00 and 17:01:21.539426+00.
-- **Authoritative report:** [Report511_DELIVERY_SUPERVISOR_INTEGRATION_EXECUTION_20261026.md](doc/Draft/Reprots/Report511_DELIVERY_SUPERVISOR_INTEGRATION_EXECUTION_20261026.md); report commit `3bd77f37b1b959cf6ed45f0729157832800ee302`.
+- **Authoritative report:** [Report511_DELIVERY_SUPERVISOR_INTEGRATION_EXECUTION_20261026.md](doc/Draft/Reprots/Report511_DELIVERY_SUPERVISOR_INTEGRATION_EXECUTION_20261026.md); report commit `abdbbeb3a5325d8740abb8863691d05cfd57f84c` (latest report update commit).
 - **Canonical migration:** `supabase/migrations/20261026170000_delivery_supervisor_deliverer_assignment_contract.sql`; blob SHA `dff7aada5534c16fdc6394085fc28c67dd4365cd`; original migration commit `40fae5af069094210dce6e0f08a83d5fd442754c`.
 - **Production migration record:** version `20261026170039`, name `delivery_supervisor_deliverer_assignment_contract`; apply_migration returned `success=true`.
 - **Live RPC/ACL:** `delivery_supervisor_assignment_query(uuid,text)` and `delivery_supervisor_assign_deliverer_atomic(uuid,text,uuid,text)` are present; SECURITY DEFINER=true; anon EXECUTE=false; authenticated/service_role EXECUTE=true.
