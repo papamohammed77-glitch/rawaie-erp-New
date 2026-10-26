@@ -436,3 +436,24 @@ renderRunsheets: function(){
 **Final Confidence:** 94% لعقد RPC وقراءة Production على مستوى SQL؛ أقل من ذلك لتكامل النظام كاملًا.  
 **Final Closure Status:** PARTIAL — NOT CLOSED.  
 **الخطوة التالية المحددة:** تطبيق الرقع A–D بعد إعادة فحص SHA، ثم تنفيذ Core/Edge repair لدورة Delivering وdriver.html بصورة متزامنة، وبعدها HTTP E2E مصادق عليه مع retry/concurrency/wrong-company وباسلاين نظيف. لا تعاد دراسة الفصل بين driver وdeliverer من الصفر ما لم يظهر دليل جديد.
+
+
+### Patch D2 — supervisor.html / renderRunsheetList: إظهار مندوب التوصيل دون الخلط مع السائق
+
+**محدد البحث الفريد:** السطر الذي يبدأ بـ  
+`html+='<p class="text-xs text-slate-400">'` داخل حلقة `renderRunsheetList` ويعرض `rs.run_date` و`rs.total_amount`.
+
+**استبدل هذا السطر وحده**:
+
+~~~javascript
+html+='<p class="text-xs text-slate-400">'+rs.run_date+' | '+fmtNum(rs.total_amount)+' ج.م</p>';
+~~~
+
+**بالنص التالي**:
+
+~~~javascript
+html+='<p class="text-xs text-slate-400">'+rs.run_date+' | '+fmtNum(rs.total_amount)+' ج.م</p>';
+html+='<p class="text-xs '+(rs.deliverer_id?'text-teal-700':'text-amber-600')+' mt-1">مندوب التوصيل: '+(rs.deliverer_name||'غير مسند')+'</p>';
+~~~
+
+هذا التعديل يعرض اسم مندوب التوصيل الذي أُثرِي به كل سجل في Patch D. لا يعرض driver_id على أنه مندوب، ولا يغيّر الحالة أو أي بيانات تشغيلية.
