@@ -1,3 +1,20 @@
+# LAST VERIFIED EVENT — LVE-2026-10-26-512 — Delivery Supervisor RPC Transaction Test + Fleet Driver Identity Gap
+
+- **Observed:** 2026-10-26 17:40:45.680660+00; Production PostgreSQL 17.6.
+- **Report:** [Report512_DELIVERY_SUPERVISOR_FLEET_DRIVER_IDENTITY_E2E_20261026.md](doc/Draft/Reprots/Report512_DELIVERY_SUPERVISOR_FLEET_DRIVER_IDENTITY_E2E_20261026.md); report commit `fdae4afcc5cb6239f74aa8d06c35732472b837e6`.
+- **Live Production:** `delivery_supervisor_assignment_query(uuid,text)` and `delivery_supervisor_assign_deliverer_atomic(uuid,text,uuid,text)` remain present; SECURITY DEFINER=true; anon EXECUTE=false; authenticated/service_role EXECUTE=true.
+- **Fresh transactional E2E:** SQL transaction under simulated authenticated supervisor claim passed assign, duplicate retry (`duplicate=true`), unassign, and preservation of `driver_id`, `vehicle_id`, and `Loaded` status. Explicit rollback completed; subsequent query returned `residual_fixture_rows=0`. This is SQL transaction evidence, not real JWT/HTTP or browser E2E.
+- **Critical new live data fact:** `fleet_drivers` has record `D-01` / `سائق مركبة تجربة 1` / `driverer@rawaea.com`; `fleet_drivers.user_id=NULL`. No matching `public.users` or `auth.users` row exists. Inspected current vehicles have `fleet_driver_id=NULL`. This Fleet employee therefore is not a login account and is not assigned to an inspected vehicle.
+- **Role/router contract:** Production role `سائق مركبة` has empty permissions; `مندوب توصيل` has `["delivery"]`; `app.html` routes to `delivery/driver.html` only for `delivery` and has no verified separate `vehicle_driver` route. Do not grant delivery permission to a vehicle-only driver as a workaround.
+- **Schema decision:** no new tables are needed. Existing `fleet_drivers.user_id → public.users.id`, `vehicles.fleet_driver_id → fleet_drivers.id`, `vehicles.driver_id → public.users.id`, `runsheets.driver_id`, `runsheets.deliverer_id`, and `erp_operation_registry` cover the modeled relationships.
+- **Current operational source SHAs unchanged:** supervisor.html `4108d2330e567c432f08197013b9c3cf6221a5c7`; driver.html `2df69860184f5a7c1b211ba059e1d6f57826c96b`; core.js `ff2f581d9900543c16f7cb026e13446520c0329d`; app.html `ec75f89c11620f6e8b8ef5996cf1a3289dcf20b4`. Latest observed operational repo commit `40161bb3bef28cf6d8d2d6ba7938ee8807a63c23`.
+- **Edge registry rechecked:** get-driver-dashboard v1, start-delivery v7, complete-delivery v4, complete-order-delivery v14, force-unassign-runsheet v1; all ACTIVE and `verify_jwt=true`. Source-contract gaps remain as described in Report512. No Edge deploy occurred.
+- **Mutation ledger:** no persistent DB/business-data change; no Edge deploy; no operational HTML/Core change; no Auth user created; no table created. The RPC test fixture and operation-registry writes were rolled back; residual fixture count=0.
+- **Status:** `PARTIAL / RPC SQL TRANSACTION TEST PASS / FLEET DRIVER IDENTITY NOT PROVISIONED / UI+EDGE+CORE DELIVERY LIFECYCLE OPEN / HTTP E2E NOT RUN / NOT CLOSED`.
+- **Next exact action:** owner rechecks SHAs and applies Report511’s supervisor UI patches; design a distinct `vehicle_driver` permission/app route and a secure account provisioning/link flow that connects the Fleet record to Auth + `public.users` without a ghost user; then reconcile driver PWA, delivery Edge/Core, force-unassign, collections/liabilities and returns. Run real authenticated HTTP/browser E2E before closure. Do not create duplicate tables or deploy a partial Edge contract that strands the current PWA.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-26-511 — Delivery Supervisor RPC Deployed; UI/Edge Lifecycle Still Open
 
 - **Observed:** 2026-10-26; Production SQL snapshots at 2026-10-26 17:00:59.784089+00 and 17:01:21.539426+00.
