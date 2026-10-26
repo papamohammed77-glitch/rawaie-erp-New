@@ -171,3 +171,18 @@ Current blob SHA: `4108d2330e567c432f08197013b9c3cf6221a5c7`
 **Final Closure Status:** `PARTIAL — NOT CLOSED`.
 
 **قاعدة للمساعد التالي:** لا تعِد فتح تشخيص الفصل بين driver/deliverer ما لم يظهر دليل جديد. ابدأ من Migration `20261026170000_delivery_supervisor_deliverer_assignment_contract.sql` والـcommit `40fae5af069094210dce6e0f08a83d5fd442754c`. الخطوة الأولى هي نشرها عبر المسار المعتمد ثم تحديث/اختبار كل consumers في Closure Unit واحدة؛ لا تدّعِ Production closure قبل HTTP E2E حقيقي.
+
+
+## 10. Post-write ACL verification addendum
+
+At `2026-10-26` after the Staging test, the live Staging catalog query returned both signatures:
+- `delivery_supervisor_assign_deliverer_atomic(uuid,text,uuid,text)`
+- `delivery_supervisor_assignment_query(uuid,text)`
+
+For both functions, catalog evidence showed:
+- `SECURITY DEFINER = true`
+- `anon EXECUTE = false`
+- `authenticated EXECUTE = true`
+- `service_role EXECUTE = true`
+
+This verifies the intended function execution boundary on Staging only. It does not establish Production ACL parity because the functions are absent from Production.
