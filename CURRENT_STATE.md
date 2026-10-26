@@ -1,3 +1,19 @@
+# LAST VERIFIED EVENT — LVE-2026-10-26-510 — Delivery Supervisor RPC Contract + Staging Test
+
+- **Observed:** 2026-10-26; Production SQL clock read at `2026-10-26 16:48:34.583217+00`; Staging SQL test executed and fixtures verified absent after rollback.
+- **Authoritative report:** [Report510_DELIVERY_SUPERVISOR_EXECUTION_20261026.md](doc/Draft/Reprots/Report510_DELIVERY_SUPERVISOR_EXECUTION_20261026.md); report commit `5362c524bb082799b54faec45591a6c03d45f5d9`.
+- **Canonical migration artifact:** `supabase/migrations/20261026170000_delivery_supervisor_deliverer_assignment_contract.sql`; commit `40fae5af069094210dce6e0f08a83d5fd442754c`.
+- **Confirmed contract:** Parent retains `runsheets.vehicle_id + driver_id`; Delivery Supervisor assigns only `runsheets.deliverer_id`. Existing schema already has `deliverer_id` and `erp_operation_registry`; no duplicate business table was justified.
+- **Staging:** `rawaea-staging` ref `hfzznsiprnwkpayskzhu` is reachable and `ACTIVE_HEALTHY`. The new RPC migration applied successfully to Staging. SQL tests PASS for team query, company-scoped runsheet query, Loaded assignment, duplicate retry, wrong-company rejection, unassignment, and preserving `driver_id/vehicle_id/status`. Fixtures were rolled back; a subsequent query returned 0 fixture companies/users/runsheets/operation registry rows.
+- **Critical Staging caveat:** `list_tables` reports 65 tables with RLS disabled. Do not treat Staging as Production-equivalent for RLS verification; do not enable RLS globally without per-table policies.
+- **Production:** a fresh query showed the two new RPCs are absent; a Production `apply_migration` attempt was rejected by the Supabase tool safety gate. No Production DDL/DML, Edge deploy, business data, inventory, accounting, or operational HTML changed.
+- **Operational source SHA:** `supervisor.html` `4108d2330e567c432f08197013b9c3cf6221a5c7`; `driver.html` `2df69860184f5a7c1b211ba059e1d6f57826c96b`; `core.js` `ff2f581d9900543c16f7cb026e13446520c0329d`.
+- **Open defects:** current supervisor UI directly reads/writes runsheets/users and writes `driver_id`; current `get-driver-dashboard v1` queries nonexistent `users.vehicle_id` and uses `activeRS.id` without selecting id; delivery Edge/Core lifecycle still consumes `driver_id`; no authenticated Browser/HTTP E2E or Cloudflare served-HTML parity.
+- **Status:** `PARTIAL / STAGING CONTRACT TEST PASS / PRODUCTION NOT DEPLOYED / UI+EDGE CONSUMER PARITY OPEN / NOT CLOSED`.
+- **Next action:** deploy the migration through the approved Production deployment path, verify live RPC/ACL, then coordinate owner-applied `supervisor.html` patches with existing driver Edge/Core consumers; run authenticated HTTP E2E including retry, wrong-company, wrong-deliverer, concurrency and baseline restoration. Do not use RS-1/RS-2 as fixtures and do not create duplicate delivery tables.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-26-509 — Delivery Supervisor / Driver / Deliverer Contract Forensics
 
 - **Observed:** 2026-10-26; PostgreSQL live snapshots at `2026-10-26 16:27:24.355042+00` and `16:31:11.405051+00`; current Production schema, RLS, RPC definitions/ACL, triggers, runsheet rows, user permissions, Edge registry and deployed source inspected.
