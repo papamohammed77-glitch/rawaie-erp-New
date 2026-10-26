@@ -1,3 +1,20 @@
+# LAST VERIFIED EVENT — LVE-2026-10-26-506 — Delivery Supervisor + Driver Integration Forensic Review
+
+- **Observed:** 2026-10-26; live PostgreSQL snapshot at `2026-10-26T14:02:03.503615+00:00`.
+- **Authoritative report:** `doc/Draft/Reprots/Report506_DELIVERY_SUPERVISOR_DRIVER_INTEGRATION_FORENSIC_20261026.md`; report commit `fca26fc498fc5514a71c95df1e91d95c815320db`.
+- **Scope:** operational repository `papamohammed77-glitch/erp-frontend`, branch `main`; delivery supervisor and driver integration with Core, Edge, PostgreSQL, RLS, and parent-system contracts.
+- **Current source blobs:** `delivery/supervisor.html` = `4108d2330e567c432f08197013b9c3cf6221a5c7` (229 lines); `delivery/driver.html` = `2df69860184f5a7c1b211ba059e1d6f57826c96b` (1,755 lines); `core.js` = `ff2f581d9900543c16f7cb026e13446520c0329d`.
+- **Static validation:** both complete inline JavaScript payloads parsed successfully.
+- **Production snapshot:** RS-1 and RS-2 are Loaded, with driver_id/deliverer_id/delivery_start/delivery_end NULL; four active users matched the delivery permission query. No business data was changed.
+- **Confirmed defects:** supervisor direct table reads/writes conflict with current RLS for delivery_supervisor-only users; no proven safe assignment API for Loaded runsheets; force-unassign-runsheet lacks sufficient permission/company checks; complete-delivery does not enforce assigned-driver identity; complete-order-delivery/Core do not enforce assignment and Delivering state; get-driver-dashboard is defective; delivery reason and collection UI contracts diverge.
+- **Production Edge snapshot:** start-delivery ACTIVE v7 JWT ON; complete-delivery ACTIVE v4 JWT ON; cancel-delivery ACTIVE v5 JWT ON; complete-order-delivery ACTIVE v14 JWT ON; get-driver-dashboard ACTIVE v1 JWT ON; force-unassign-runsheet ACTIVE v1 JWT ON; start-order-delivery ACTIVE v1 JWT ON; save-delivery-item ACTIVE v4 JWT ON; manage-runsheet ACTIVE v1 JWT ON. Full digests and evidence are in Report506.
+- **Tests:** static parse PASS; direct Production schema/RLS/RPC/Edge inspection PASS for inspected scope; authenticated Browser/HTTP E2E NOT RUN because no driver-assigned Production runsheet exists and no isolated active staging fixture was available. Cloudflare-served HTML parity remains UNVERIFIED.
+- **Mutation ledger:** report and this continuity checkpoint only. No operational HTML/Core, Edge deployment, RPC/DDL/RLS, business rows, inventory, or financial records changed.
+- **Status:** `PARTIAL / SECURITY AND ASSIGNMENT CONTRACT OPEN / NO OPERATIONAL MUTATION / AUTHENTICATED E2E NOT RUN / NOT CLOSED`.
+- **Next action:** close the backend authorization contract first—force-unassign-runsheet, complete-delivery, complete-order-delivery/Core, and the existing get-driver-dashboard—then add a safe Loaded-runsheet assignment contract for delivery supervisor; only then apply owner-managed UI patches and run isolated authenticated E2E with baseline restoration. Do not use RS-1 or RS-2 as test fixtures and do not expand RLS broadly to hide the contract defect.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-26-505 — Delivery Driver / Parent Integration Forensic Review
 
 - **Observed:** 2026-10-26; PostgreSQL snapshot at `2026-10-26 13:42:38.74846+00`.
