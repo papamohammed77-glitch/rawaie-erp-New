@@ -1,3 +1,21 @@
+# LAST VERIFIED EVENT — LVE-2026-10-26-505 — Delivery Driver / Parent Integration Forensic Review
+
+- **Observed:** 2026-10-26; PostgreSQL snapshot at `2026-10-26 13:42:38.74846+00`.
+- **Authoritative report:** `doc/Draft/Reprots/Report505_DELIVERY_DRIVER_PARENT_INTEGRATION_FORENSIC_20261026.md`; report commit `edaf274d7b1fd441a6c3eac51d5ac6e4f3e4a607`.
+- **Operational repository:** `papamohammed77-glitch/erp-frontend`, branch `main`.
+- **Current source blobs:** `companies/company-1/delivery/driver.html` = `2df69860184f5a7c1b211ba059e1d6f57826c96b` (1,755 lines); `companies/company-1/core.js` = `ff2f581d9900543c16f7cb026e13446520c0329d`; `companies/company-1/main.html` = `11f29e07c10ae1767db334fe101c382eca23bd00` (33,101 lines, retrieved through Git blob).
+- **Live Production Edge snapshot:** `start-delivery` ACTIVE v7 / JWT ON / digest `7e87dd0a29d57d3d286c19e05aed70c8b40c7e74645fc73f593e6eee2610399e`; `complete-delivery` ACTIVE v4 / JWT ON / digest `9510e7ef441d3b1256f860c775094c43f5102381488580d99601b26c1b482753`; `cancel-delivery` ACTIVE v5 / JWT ON / digest `e684aed9d0e3a49548dac7a90f2e0d135b82329d2bf6b4bc4d7503dfd4ed115a`; `complete-order-delivery` ACTIVE v14 / JWT ON / digest `15c67bde52401897fc0ccc4156670fd5cdc026152617401aabca232c1b046fb2`; `get-driver-dashboard` ACTIVE v1 / JWT ON / digest `59f6bbd39fb8331109966c312fda3327077f17cceda8d9b4b1c9a1c6f652f58e`.
+- **Production database facts:** two current runsheets, both `Loaded`, with `driver_id`, `deliverer_id`, `delivery_start`, and `delivery_end` all NULL in the observed rows. One app_settings row exists for company `00000000-0000-0000-0000-000000000001`.
+- **Confirmed defects:** driver login reads Auth user_metadata and may insert a public.users row with a hardcoded company; direct reads of runsheets/orders/order_details/run_sheet_details are not allowed by current RLS for a user with only `delivery`; current Edge identity lookup differs between `complete-order-delivery` (auth_id) and start/complete/cancel delivery (email); current delivery RPC writes `reason_delivery` while the UI reads `notes`; delivery UI sends `summary/amount_paid` but the current Edge/RPC contract does not persist those fields; parent Delivery table filters only `Delivered`, displays raw driver_id, and hardcodes the status text.
+- **Existing endpoint discovered:** `get-driver-dashboard v1` exists but is not safe to consume without repair: user lookup by email, missing runsheet id in select before later use, insufficient company/permission checks, and incomplete error handling. Repair this existing endpoint rather than creating a duplicate.
+- **Proposed owner patches:** Report505 contains surgical patches for shared Core authentication, company-scoped settings/items, displaying `reason_delivery`, loaded-quantity refusal semantics, and avoiding false claims of collection. Parent Delivery history/detail display needs its own patch; Report504’s status-history proposal remains not applied in the current parent source.
+- **E2E and deployment:** no authenticated Browser/HTTP E2E performed. No suitable assigned driver runsheet exists in the current Production sample; no test rows were created and no business data was changed. Served HTML identity remains UNVERIFIED.
+- **Mutation ledger:** report file and CURRENT_STATE only. No operational source, Edge deployment, schema, RLS, RPC, inventory, order, runsheet, or accounting data changed.
+- **Status:** `PARTIAL / PATCHES PREPARED / BACKEND READ+IDENTITY CONTRACT OPEN / RUNTIME NOT VERIFIED`.
+- **Next action:** owner applies the approved driver.html surgical patches after re-fetching its SHA; separately repair existing `get-driver-dashboard` and align delivery Edge identity/tenant/assignment checks in an isolated test path, then verify parent history and per-order reason_delivery display and run authenticated E2E without altering baseline business data.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-26-504 — Parent Runsheet History Retention Surgical Patch Plan
 
 - **Observed:** 2026-10-26.
