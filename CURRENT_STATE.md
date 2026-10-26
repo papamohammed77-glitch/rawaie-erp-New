@@ -1,3 +1,20 @@
+# LAST VERIFIED EVENT — LVE-2026-10-26-513 — Fresh Production Reconciliation: Delivery Supervisor / Fleet Driver Identity
+
+- **Observed:** 2026-10-26 17:52:55.553654+00; Production PostgreSQL 17.6.
+- **Report:** [Report513_DELIVERY_SUPERVISOR_FLEET_DRIVER_INTEGRATION_RECONCILIATION_20261026.md](doc/Draft/Reprots/Report513_DELIVERY_SUPERVISOR_FLEET_DRIVER_INTEGRATION_RECONCILIATION_20261026.md); report commit `1a8da004722e845463fcb5079441e6c3e59de39c`.
+- **Live Production confirmed:** delivery_supervisor_assignment_query(uuid,text) and delivery_supervisor_assign_deliverer_atomic(uuid,text,uuid,text) exist; SECURITY DEFINER=true; authenticated/service_role EXECUTE; anon not granted.
+- **Fleet identity:** Fleet row D-01 / سائق مركبة تجربة 1 / driverer@rawaea.com exists, but fleet_drivers.user_id=NULL; matching public.users rows=0 and auth.users rows=0. Inspected vehicles CHV-2025-01 and VHL-0422 have fleet_driver_id=NULL and driver_id=NULL.
+- **Schema:** existing FKs already model fleet_drivers.user_id → users.id, vehicles.fleet_driver_id → fleet_drivers.id, runsheets.driver_id and runsheets.deliverer_id → users.id. No new table justified.
+- **Current operational source SHAs:** supervisor.html 4108d2330e567c432f08197013b9c3cf6221a5c7; driver.html 2df69860184f5a7c1b211ba059e1d6f57826c96b; app.html ec75f89c11620f6e8b8ef5996cf1a3289dcf20b4; core.js ff2f581d9900543c16f7cb026e13446520c0329d.
+- **Live Edge snapshot:** get-driver-dashboard v1, start-delivery v7, complete-delivery v4, complete-order-delivery v14, force-unassign-runsheet v1, save-employee v10; all ACTIVE and verify_jwt=true. Their ezbr_sha256 values and defects are recorded in Report513; do not equate ezbr_sha256 to Git SHA.
+- **Confirmed mismatch:** supervisor.html still reads/writes runsheets.driver_id directly for delivery representative assignment; driver.html and related Edge contracts still consume driver_id; app.html has no proven vehicle_driver route. Fleet creation has not provisioned an Auth/public.users identity for D-01.
+- **Mutation ledger:** report created and this state entry only. No Production DDL/DML, Edge deployment, Auth account, business/inventory/financial change, or operational HTML/Core change. No new table created because current schema suffices.
+- **Test boundaries:** schema/FK/RPC/ACL and Fleet identity were freshly re-read. Report512’s transaction rollback/idempotency test remains prior-session SQL evidence, not fresh HTTP/JWT/browser E2E. Served Cloudflare HTML parity and Git-to-deployed-Edge byte provenance remain unverified.
+- **Status:** PARTIAL / IDENTITY PROVISIONING OPEN / UI-EDGE-CORE CONSUMER PARITY OPEN / HTTP E2E NOT RUN / NOT CLOSED.
+- **Next exact action:** establish the approved account-provisioning + fleet_drivers.user_id linking contract and distinct vehicle_driver permission/route; then coordinate owner-applied supervisor/driver/app.html patches against the listed SHAs; reconcile get-driver-dashboard, start-delivery, complete-delivery, complete-order-delivery, force-unassign-runsheet and Core guards; test company/role isolation, retry/concurrency, collections/returns/ledger, real authenticated HTTP and browser-served HTML before closure. Do not create duplicate tables, do not give vehicle-only drivers the delivery permission as a shortcut, and do not deploy a partial Edge contract that strands current PWA consumers.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-26-512 — Delivery Supervisor RPC Transaction Test + Fleet Driver Identity Gap
 
 - **Observed:** 2026-10-26 17:40:45.680660+00; Production PostgreSQL 17.6.
