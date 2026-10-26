@@ -1,3 +1,16 @@
+# LAST VERIFIED EVENT — LVE-2026-10-26-503 — Parent Runsheet History Retention Review
+
+- **Observed:** 2026-10-26.
+- **Authoritative report:** `doc/Draft/Reprots/Report503_PARENT_RUNSHEET_HISTORY_RETENTION_20261026.md`; report commit `8547b0d428ec16f43fd0a9aabe9f5c2f99d1bf48`.
+- **Scope requested:** parent `companies/company-1/main.html` tabs: Picking, Loading, Receiving, Delivery, Returns; preserve runsheets as historical records after stage transitions, while keeping action queues state-safe.
+- **Starting baseline:** prior event `LVE-2026-10-25-502` records the parent Loading table patch (commit `78787abbede692c1d34176c25035b0128ee06c02`, final blob `11f29e07c10ae1767db334fe101c382eca23bd00`) and an unresolved persisted loading-notes contract gap.
+- **Current-source retrieval limitation:** GitHub `fetch_file` returned the current `main.html` blob SHA but no source text, including when requesting a line range. Therefore the five tab implementations and their current filters could not be safely reconciled in this session.
+- **Mutation ledger:** added Report503 only. No operational source, Production database, Edge Function, stock row, reservation, or inventory log was changed. `CURRENT_STATE.md` was updated to record this verified checkpoint.
+- **Status:** `PARTIAL / NO MAIN.HTML PATCH APPLIED / NO PRODUCTION E2E`. Do not interpret this checkpoint as fixing history retention across all five tabs.
+- **Next action:** retrieve current `main.html` source via an alternate Git blob/raw path that returns full text; verify SHA, inspect all five tab functions and relevant Git diffs; apply surgical changes only after proving each current filter/removal behavior; run static parse and authenticated browser checks. Keep action queues state-filtered and add/repair historical visibility separately; do not change inventory state or business records for display-only work.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-25-502 — Parent Loading Table / Picker Metadata Parity
 
 - **Observed / executed:** 2026-10-25. Production PostgreSQL read-only inspection at `2026-10-25 20:31:02.060171+00`.
