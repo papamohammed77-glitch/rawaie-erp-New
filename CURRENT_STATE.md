@@ -1,3 +1,18 @@
+# LAST VERIFIED EVENT — LVE-2026-10-26-504 — Parent Runsheet History Retention Surgical Patch Plan
+
+- **Observed:** 2026-10-26.
+- **Authoritative report:** `doc/Draft/Reprots/Report504_PARENT_RUNSHEET_HISTORY_RETENTION_PATCHES_20261026.md`; documentation commit `24bdf1cc5d06c1e8f1b2ad031da5dd42de4382b7`.
+- **Operational source inspected:** `papamohammed77-glitch/erp-frontend`, branch `main`; `companies/company-1/main.html`, blob SHA `11f29e07c10ae1767db334fe101c382eca23bd00`; retrieved directly by Git blob, 1,785,871 characters / 33,101 lines.
+- **Fresh Production schema inspection:** `2026-10-26 12:56:00.165899+00` confirmed persisted stage marker columns on `public.runsheets` for picking, loading, delivery, and returns. Fresh status aggregate at `2026-10-26 12:56:14.704254+00` returned two runsheets currently `Loaded`.
+- **Source defects confirmed:** parent Picking filters statuses to Open/Confirmed/Picking/Picked; Loading filters to Loaded; Delivery filters to Delivered; Returns filters to Returned. These predicates can hide prior-stage records after current status changes. Receiving reads company-scoped `receiving` records without a status filter, so no analogous state-filter defect was proven there.
+- **Proposed only:** Report504 supplies exact surgical replacements using stage markers, status display corrections, and error handling for Delivery/Returns. No operational source change was made, and no Production business data/schema/Edge change was made.
+- **Related open gap:** Loader's per-item local loading notes are not proven persisted; see Report502. Do not treat `runsheets.notes` as equivalent without a defined contract.
+- **Tests:** live schema/status inspection PASS; patch syntax and browser/HTTP E2E NOT RUN because owner patches have not been applied.
+- **Status:** `PROPOSED / PARTIAL / NOT CLOSED`.
+- **Next action:** owner applies Report504 patches to the exact current blob; re-fetch and parse the complete inline JavaScript; run authenticated E2E across stage transitions; verify company isolation and unchanged stock/reservation/inventory_log baselines; verify served HTML before any closure claim.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-26-503 — Parent Runsheet History Retention Review
 
 - **Observed:** 2026-10-26.
