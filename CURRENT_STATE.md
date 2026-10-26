@@ -1,3 +1,18 @@
+# LAST VERIFIED EVENT — LVE-2026-10-26-508 — Delivery Supervisor/Driver Integration Reconciliation
+
+- **Observed:** 2026-10-26; direct PostgreSQL clock `2026-10-26 16:17:00.391819+00`; live schema, RLS policies, `manage_runsheet_atomic` definition, current runsheet rows, relevant user rows, Edge registry, and deployed Edge source inspected in this session.
+- **Authoritative report:** [Report508_DELIVERY_SUPERVISOR_DRIVER_INTEGRATION_FORENSIC_20261026.md](doc/Draft/Reprots/Report508_DELIVERY_SUPERVISOR_DRIVER_INTEGRATION_FORENSIC_20261026.md); report commit `30c0175b54d42e661aca66931db2bdd5c40e05a5`.
+- **Operational source:** `papamohammed77-glitch/erp-frontend`, branch `main`.
+- **Current source blobs:** `companies/company-1/delivery/supervisor.html` = `4108d2330e567c432f08197013b9c3cf6221a5c7`; `companies/company-1/delivery/driver.html` = `2df69860184f5a7c1b211ba059e1d6f57826c96b`; `companies/company-1/core.js` = `ff2f581d9900543c16f7cb026e13446520c0329d`.
+- **Production baseline rechecked:** `RS-1` and `RS-2` remain `Loaded`, with `driver_id`, `deliverer_id`, `delivery_start`, and `delivery_end` NULL, company `00000000-0000-0000-0000-000000000001`. Neither was modified or used as a test fixture.
+- **Live Edge snapshot:** `start-delivery` v7, `complete-delivery` v4, `cancel-delivery` v5, `complete-order-delivery` v14, `get-driver-dashboard` v1, `force-unassign-runsheet` v1, `start-order-delivery` v1, `save-delivery-item` v4, and `manage-runsheet` v1; all ACTIVE and `verify_jwt=true`. Digests are recorded in Report508.
+- **Confirmed current defects:** direct supervisor reads/writes conflict with RLS for `delivery_supervisor`-only access; `manage_runsheet_atomic` refuses `Loaded` assignment; `force-unassign-runsheet` lacks adequate actor permission/company scope; `complete-delivery` lacks assigned-driver enforcement; `complete-order-delivery`/Core need transaction-level assignment/status guards; `get-driver-dashboard` omits `id` from active-runsheet select then uses `activeRS.id`; driver UI has a fixed-company public.users insertion fallback; collection persistence and Cloudflare served-HTML parity remain unverified.
+- **Mutation ledger:** documentation only: Report508 and this state entry. No operational HTML/Core, Edge deployment, SQL/RLS/trigger, or business/inventory/financial data changed.
+- **Tests:** direct source/schema/RLS/RPC/Edge investigation PASS; authenticated supervisor/driver HTTP/Browser E2E NOT RUN; concurrency/wrong-company/wrong-driver NOT RUN; Cloudflare served HTML parity UNVERIFIED.
+- **Status:** `PARTIAL / AUTHORIZATION & LOADED-ASSIGNMENT CONTRACT OPEN / E2E NOT RUN / NOT CLOSED`.
+- **Next action:** Closure Unit A: inspect `delivery_logistics_command_atomic` full definition, ACL and triggers; implement/test an atomic, idempotent Loaded-runsheet assignment contract in an isolated test environment before deployment. Then harden driver endpoints and apply UI patches. Do not use RS-1/RS-2 as fixtures, do not widen RLS indiscriminately, and do not claim 100% closure.
+
+---
 # LAST VERIFIED EVENT — LVE-2026-10-26-507 — Delivery Supervisor + Driver Integration Review
 
 - **Observed:** 2026-10-26; live PostgreSQL snapshot at `2026-10-26 14:26:02.565921+00`; live Edge Registry/source and Supabase logs were inspected in this session.
