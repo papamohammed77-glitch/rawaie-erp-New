@@ -1,3 +1,20 @@
+# LAST VERIFIED EVENT — LVE-2026-10-27-520 — Historical ERP Vision & Governance Protocol Reconstruction
+
+- **Observed:** 2026-10-27; revised the permanent governance reference after inspecting historical product, architecture, competitive and execution documents in `papamohammed77-glitch/rawaie-erp-review`.
+- **Canonical reference:** [MASTER_CTO_GOVERNANCE_CONTINUITY_PROTOCOL.md](doc/Draft/Reprots/MASTER_CTO_GOVERNANCE_CONTINUITY_PROTOCOL.md); latest update commit `7036613c0db92d730bf1b52b7c0d9881fe4d36ef`; verified blob SHA `635766c6fb20e337eb26c9572de39cc933fd42a5`; 60,617 characters / 1,361 lines.
+- **Detailed report:** [Report520_MASTER_CTO_GOVERNANCE_RECONSTRUCTION_20261027.md](doc/Draft/Reprots/Report520_MASTER_CTO_GOVERNANCE_RECONSTRUCTION_20261027.md); commit `e673b148d81f415bbdc9399331d6e11a2a2109d1`.
+- **Historical vision recovered:** RAWAEA aims to be a full ERP / Business Operating System with one logical business core and authoritative truth per domain, rooted in Arabic FMCG and field-distribution workflows; runsheet and six-quantity accountability are a historic differentiator inside a broader target spanning sales, procurement, inventory, delivery, settlement, finance, reporting, integrations, and decision intelligence.
+- **Important qualification:** the historical review repository includes documents dated 2026-07 and architectural targets. They establish past intent and design history, not current Production readiness or proof that each target is implemented.
+- **Memory/retrieval:** the revised reference now directs future assistants through CURRENT_STATE → latest relevant report(s) → relevant history from `rawaie-erp-review` → current operational source/Production/runtime as applicable. It explicitly prohibits re-running an old embedded task without a fresh owner instruction.
+- **Completed Picker/Loader task:** owner confirmed the Picker/Loader editing task is complete; its old task prompt remains historical and is not an active instruction.
+- **Original files preserved:** `writing-block.md` and `MASTER_CTO_EXECUTION_PROMPT_LOADER_PICKER_INTEGRATION_20261025.md` were not deleted or modified during this reconstruction.
+- **Mutation boundary:** documentation only. No operational HTML, Supabase schema/data/RPC/Edge/RLS/ACL, Cloudflare deployment, inventory, or accounting data was changed.
+- **Verification:** governance file re-fetched from GitHub; the old fixed task tail is absent; the historical vision index and Smart Decision Center section are present. Runtime tests were not applicable.
+- **Status:** `GOVERNANCE REFERENCE UPGRADED / RUNTIME UNCHANGED / OWNER REVIEW PENDING`.
+- **Next step:** owner reviews the revised permanent reference. Every later task must be specified independently by the owner; at its end, create a fresh execution report and update this state file with verified evidence and a precise next handoff.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-27-519 — Unified CTO Governance & Continuity Protocol
 
 - **Observed:** 2026-10-27; created and re-fetched the new task-agnostic governance reference in the governance repository.
