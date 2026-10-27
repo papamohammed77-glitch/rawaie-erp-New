@@ -1,3 +1,20 @@
+# LAST VERIFIED EVENT — LVE-2026-10-27-514 — Parent Delivery Representatives Assignment Visibility
+
+- **Observed:** 2026-10-27; read-only Production contract probe and current Git source review. The report was finalized in the report repository after the earlier Report507/508 findings were revalidated.
+- **Authoritative report:** [Report514_DELIVERY_SUPERVISOR_PARENT_ASSIGNMENT_VISIBILITY_20261027.md](doc/Draft/Reprots/Report514_DELIVERY_SUPERVISOR_PARENT_ASSIGNMENT_VISIBILITY_20261027.md); latest report commit `0f33f20e6dce046731441579e9f2ac1827426ce4`; report blob SHA `28f81f58d6821c79fe835053c5702ad27abb3d8a`.
+- **Starting point:** Report507 and Report508 had already confirmed the contract mismatch and that no functional repair had been applied. This event did not repeat the existing supervisor/RPC fixes.
+- **Current source verified:** operational repo `papamohammed77-glitch/erp-frontend`, branch `main`; `companies/company-1/delivery/supervisor.html` SHA `3e6db903cd7da411f9ed40a449f9ee5bece5f387`; `companies/company-1/main.html` SHA `b9bd5698c98c4b3d7e2bc388bacfbf4f43f2a919`; current source HEAD `fb0499a03a357b9fc5f7a605302ffd845f8a5052`.
+- **Production confirmed:** the current supervisor app calls `delivery_supervisor_assign_deliverer_atomic`, which persists `runsheets.deliverer_id`; Parent's `delivery_logistics_query('agents')` reads `public.delivery_agents`, and `routes` reads `public.delivery_route_plans`. Live read-only results: RS-1 and RS-2 are Loaded with `deliverer_id`; `delivery_agents`, `delivery_route_plans`, and `delivery_route_stops` have zero rows for the company.
+- **Read-model probe:** Parent `agents` and `routes` calls returned `success=true, rows=[]`. A separate read-only SQL transaction with simulated Auth claims called `delivery_supervisor_assignment_query('team')` and `('runsheets')`; team returned four active delivery users and runsheets returned RS-1/RS-2 with their `deliverer_id`. The transaction ended with ROLLBACK. This is SQL-contract evidence only, not real HTTP/JWT or Browser E2E.
+- **Decision:** propose an owner-applied, read-only display section inside the existing Parent `agents()` view using the existing `delivery_supervisor_assignment_query` RPC. Preserve the `delivery_agents` master list and `delivery_route_plans.delivery_agent_id` workflow; do not create master agents or route plans automatically. No new table, RPC, Edge Function, DDL, DML, RLS/ACL change, or operational HTML edit was made in this event.
+- **Deployment/runtime:** Parent HTML patch remains PROPOSED, not APPLIED or DEPLOYED. Cloudflare served-HTML parity and authenticated HTTP/Browser E2E remain UNVERIFIED/NOT RUN.
+- **Mutation ledger:** documentation only (Report514 and this checkpoint). No Production business data, operational source, database object, Staging schema, inventory, or accounting record was changed in this event.
+- **Status:** `PARTIAL / ROOT CAUSE CONFIRMED / PARENT READ-MODEL PATCH PROPOSED / NO PRODUCTION MUTATION / PARENT E2E OPEN / NOT CLOSED`.
+- **Next exact step:** owner re-fetches current `main.html` and verifies its SHA; applies only Report514's exact helper + card-composition patch; runs full-page JavaScript syntax validation; then tests an authenticated Parent session with delivery_supervisor and fleet-read/manage access, checks that RS-1/RS-2 and their correct representatives appear, verifies route-agent assignment behavior is unchanged, and verifies Cloudflare-served HTML parity. Do not edit `supervisor.html`, repeat the RPC migration, create Delivery Agent/Route Plan test records, or claim closure before runtime evidence.
+- **Historical preservation:** the previous LVE-508 and all older events below remain unchanged; this new event is prepended as the newest checkpoint.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-27-508 — Delivery Supervisor / Parent Integration Staging Drift
 
 - **Observed:** 2026-10-27 13:31 UTC onward; live Production SQL, current Git source, Staging schema and migration replay attempts.
