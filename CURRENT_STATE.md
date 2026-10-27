@@ -1,17 +1,18 @@
 # LAST VERIFIED EVENT — LVE-2026-10-27-520 — Historical ERP Vision & Governance Protocol Reconstruction
 
-- **Observed:** 2026-10-27; revised and revalidated the permanent governance reference after inspecting product, architecture, competitive and execution documents in `papamohammed77-glitch/rawaie-erp-review`.
-- **Canonical reference:** [MASTER_CTO_GOVERNANCE_CONTINUITY_PROTOCOL.md](doc/Draft/Reprots/MASTER_CTO_GOVERNANCE_CONTINUITY_PROTOCOL.md); final update commit `97549d6cf1f1d7d9fb1a969fb3f885a26bbbaad5`; verified blob SHA `028b2e2ffde29156ef67ca1262afc8331fea4c64`; 60,957 characters / 1,365 lines.
-- **Detailed report:** [Report520_MASTER_CTO_GOVERNANCE_RECONSTRUCTION_20261027.md](doc/Draft/Reprots/Report520_MASTER_CTO_GOVERNANCE_RECONSTRUCTION_20261027.md); latest report update commit `714eb50458eaf414330240b6597d8e5e12e525f2`.
-- **Historical vision recovered:** RAWAEA aims to be a full ERP / Business Operating System with one logical business core and authoritative truth per domain, rooted in Arabic FMCG and field-distribution workflows. Runsheet and six-quantity accountability are a historical differentiator inside a broader target spanning sales, procurement, inventory, delivery, settlement, finance, reporting, integrations and decision intelligence.
+- **Observed:** 2026-10-27; revised and revalidated the permanent governance reference after inspecting product, architecture, competitive, application-topology and execution documents in `papamohammed77-glitch/rawaie-erp-review`.
+- **Canonical reference:** [MASTER_CTO_GOVERNANCE_CONTINUITY_PROTOCOL.md](doc/Draft/Reprots/MASTER_CTO_GOVERNANCE_CONTINUITY_PROTOCOL.md); final update commit `5e89f2dbb11dd01ae6c2dd7eb5b97d772677b1e5`; verified blob SHA `6a995076967811b38e59638605224ed8c782a533`; 62,526 characters / 1,381 lines.
+- **Detailed report:** [Report520_MASTER_CTO_GOVERNANCE_RECONSTRUCTION_20261027.md](doc/Draft/Reprots/Report520_MASTER_CTO_GOVERNANCE_RECONSTRUCTION_20261027.md); latest report update commit `2832cfb44fc4512f8d4ffa94b53ec7924941488d`.
+- **Historical vision recovered:** RAWAEA aims to be a full ERP / Business Operating System with one logical business core and authoritative truth per domain, rooted in Arabic FMCG and field-distribution workflows. Runsheet and six-quantity accountability are a historical differentiator within a broader target spanning sales, procurement, inventory, delivery, settlement, finance, reporting, integrations and decision intelligence.
+- **Application topology:** the reference now preserves the historically documented Sales, Warehouse, Delivery, Purchasing, Office and Store roles, plus main.html/app.html/index.html/core.js, while explicitly requiring current-tree verification and acknowledging that module maturity is uneven.
 - **Important qualification:** historical review documents include material dated 2026-07 and target architecture; they establish intent and design history, not current Production readiness or proof that each target is implemented.
 - **Memory/retrieval:** the revised reference directs assistants through CURRENT_STATE → latest relevant report(s) → relevant history from `rawaie-erp-review` → current operational source/Production/runtime as applicable. It explicitly forbids rerunning an old embedded task without a fresh owner instruction.
 - **Completed Picker/Loader task:** owner confirmed that this editing task is complete; its old prompt remains historical and is not an active instruction.
 - **Original files preserved:** `writing-block.md` and `MASTER_CTO_EXECUTION_PROMPT_LOADER_PICKER_INTEGRATION_20261025.md` were not deleted or modified.
 - **Mutation boundary:** documentation only. No operational HTML, Supabase schema/data/RPC/Edge/RLS/ACL, Cloudflare deployment, inventory or accounting data was changed.
-- **Verification:** canonical reference re-fetched from GitHub; fixed Loader/Picker task tail is absent; historical source index, Smart Decision Center section, and self-restoration protocol are present. Runtime tests were not applicable.
+- **Verification:** canonical reference re-fetched from GitHub; the fixed task tail is absent; historical source index, application topology, Smart Decision Center section and memory-recovery protocol are present. Runtime tests were not applicable.
 - **Status:** `GOVERNANCE REFERENCE UPGRADED / RUNTIME UNCHANGED / OWNER REVIEW PENDING`.
-- **Next step:** owner reviews the revised reference. Each future task must be specified independently; at its end, create a new execution report and update CURRENT_STATE.md with verified evidence and a precise next handoff.
+- **Next step:** owner reviews the revised reference. Each future task must be specified independently; at its end, create a fresh execution report and update CURRENT_STATE.md with verified evidence and a precise handoff.
 ---
 
 # LAST VERIFIED EVENT — LVE-2026-10-27-519 — Unified CTO Governance & Continuity Protocol
