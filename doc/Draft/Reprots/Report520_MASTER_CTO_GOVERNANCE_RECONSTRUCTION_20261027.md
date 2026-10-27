@@ -14,8 +14,8 @@
 
 **الملف:** [MASTER_CTO_GOVERNANCE_CONTINUITY_PROTOCOL.md](MASTER_CTO_GOVERNANCE_CONTINUITY_PROTOCOL.md)  
 **الرابط:** https://github.com/papamohammed77-glitch/rawaie-erp-New/blob/main/doc/Draft/Reprots/MASTER_CTO_GOVERNANCE_CONTINUITY_PROTOCOL.md  
-**آخر Commit للتحديث:** `7036613c0db92d730bf1b52b7c0d9881fe4d36ef`  
-**Blob SHA بعد إعادة القراءة:** `635766c6fb20e337eb26c9572de39cc933fd42a5`  
+**آخر Commit للتحديث:** `97549d6cf1f1d7d9fb1a969fb3f885a26bbbaad5`  
+**Blob SHA بعد إعادة القراءة:** `028b2e2ffde29156ef67ca1262afc8331fea4c64`  
 **الحجم بعد التحديث:** 60,617 حرفًا، 1,361 سطرًا.
 
 ## 3. ما تغير في الدستور
@@ -51,7 +51,7 @@
 - `docs/Draft/رسالة هامة.md`
 
 روابط مراجعية أساسية:
-- [Architecture Constitution](https://github.com/papamohammed77-glitch/rawaie-erp-review/blob/main/Architecture/RAWAEA_ARCHITECTURE_CONSTITUTION.md)
+- [Architecture Constitution](https://github.com/papamohammed77-glitch/rawaie-erp-review/blob/main/Architecture/%D8%B3%D8%AC%D9%84%20%D8%A7%D9%84%D8%AA%D8%AD%D8%B0%D9%8A%D8%B1%D8%A7%D8%AA%20%D8%A7%D9%84%D8%B1%D8%A6%D9%8A%D8%B3%D9%8A%20%E2%80%93%20%D9%86%D8%B8%D8%A7%D9%85%20%D8%A7%D9%84%D8%A5%D9%86%D8%B0%D8%A7%D8%B1%20%D8%A7%D9%84%D9%85%D8%A8%D9%83%D8%B1%20%D9%84%D9%84%D9%85%D8%B3%D8%A7%D8%B9%D8%AF%D9%8A%D9%86%20%D8%A7%D9%84%D9%85%D8%B3%D8%AA%D9%82%D8%A8%D9%84%D9%8A%D9%86.mdRAWAEA_ARCHITECTURE_CONSTITUTION.md)
 - [Execution Protocol](https://github.com/papamohammed77-glitch/rawaie-erp-review/blob/main/Architecture/EXECUTION%20PROTOCOL.md)
 - [Master Caution Register](https://github.com/papamohammed77-glitch/rawaie-erp-review/blob/main/Architecture/)
 - [Project Overview](https://github.com/papamohammed77-glitch/rawaie-erp-review/blob/main/docs/01_PROJECT_OVERVIEW.md)
