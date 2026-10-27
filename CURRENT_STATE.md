@@ -1,3 +1,18 @@
+# LAST VERIFIED EVENT — LVE-2026-10-27-508 — Delivery Supervisor / Parent Integration Staging Drift
+
+- **Observed:** 2026-10-27 13:31 UTC onward; live Production SQL, current Git source, Staging schema and migration replay attempts.
+- **Report:** `doc/Draft/Reprots/Report508_DELIVERY_SUPERVISOR_PARENT_INTEGRATION_STAGING_DRIFT_20261027.md`; report commit `32f47662cf58377099c681e8544fe50d67a99b12`.
+- **Current operational source:** `papamohammed77-glitch/erp-frontend`, branch `main`; `companies/company-1/delivery/supervisor.html` blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`; parent `main.html` blob `b9bd5698c98c4b3d7e2bc388bacfbf4f43f2a919`.
+- **Fresh Production confirmed:** 2 assigned Loaded runsheets (`RS-1`, `RS-2`) have `deliverer_id`; `delivery_agents`=0, `delivery_route_plans`=0, `delivery_route_stops`=0; 6 orders are linked to runsheets. The supervisor RPC only updates `runsheets.deliverer_id`; Parent Logistics agents view reads `delivery_agents` and derives route counts from `delivery_route_plans`.
+- **Root cause reconfirmed:** split integration contract between direct runsheet assignment and Parent Delivery Logistics read model. No Production business data or function was changed in this cycle.
+- **Staging drift confirmed:** Staging was missing the delivery logistics tables, primary keys on `companies`, `runsheets`, and `orders`, `fn_audit_trigger()`, and audit_log columns expected by Production trigger code. Verified unique/non-null IDs before adding staging-only PK constraints `companies_pkey`, `runsheets_pkey`, and `orders_pkey`.
+- **Migration replay:** canonical `supabase/migrations/20260920_delivery_logistics_control_plane_closure.sql` blob `e80ba658b31f7a16d45f729cb1fa1ac4b4886d2f` contains two missing semicolons after PL/pgSQL function bodies. A replay payload with those terminators repaired failed later on Staging's missing `fn_audit_trigger()`; failed replay rolled back and did not create logistics tables or a migration record. The historical migration file was not modified.
+- **Runtime status:** HTTP/browser E2E not run; Cloudflare served artifact parity unverified; no production repair deployed.
+- **Status:** `PARTIAL / ROOT CAUSE CONFIRMED / STAGING REPAIR REQUIRED / PRODUCTION FIX NOT APPLIED / E2E OPEN`.
+- **Next exact action:** restore a production-equivalent Staging schema and audit trigger lineage; then implement the minimal atomic link between the existing supervisor assignment and the existing Delivery Logistics model, verify retry/unassign/company isolation and Parent view, then deploy and prove real authenticated HTTP/browser behavior. Do not claim closure or create production route plans until the tested contract establishes their intended lifecycle.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-27-507 — Delivery Supervisor → Parent Integration
 
 - **Observed:** 2026-10-27 12:57–13:00 UTC (live Production SQL) and current Git source retrieval.
