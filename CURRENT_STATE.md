@@ -1,18 +1,18 @@
-# LAST VERIFIED EVENT — LVE-2026-10-27-520 — Historical ERP Vision & Governance Protocol Reconstruction
+# LAST VERIFIED EVENT — LVE-2026-10-27-522 — Memory Recovery Protocol Refined Before Execution
 
-- **Observed:** 2026-10-27; revised and revalidated the permanent governance reference after inspecting product, architecture, competitive, application-topology and execution documents in `papamohammed77-glitch/rawaie-erp-review`.
-- **Canonical reference:** [MASTER_CTO_GOVERNANCE_CONTINUITY_PROTOCOL.md](doc/Draft/Reprots/MASTER_CTO_GOVERNANCE_CONTINUITY_PROTOCOL.md); final update commit `5e89f2dbb11dd01ae6c2dd7eb5b97d772677b1e5`; verified blob SHA `6a995076967811b38e59638605224ed8c782a533`; 62,526 characters / 1,381 lines.
-- **Detailed report:** [Report520_MASTER_CTO_GOVERNANCE_RECONSTRUCTION_20261027.md](doc/Draft/Reprots/Report520_MASTER_CTO_GOVERNANCE_RECONSTRUCTION_20261027.md); latest report update commit `2832cfb44fc4512f8d4ffa94b53ec7924941488d`.
-- **Historical vision recovered:** RAWAEA aims to be a full ERP / Business Operating System with one logical business core and authoritative truth per domain, rooted in Arabic FMCG and field-distribution workflows. Runsheet and six-quantity accountability are a historical differentiator within a broader target spanning sales, procurement, inventory, delivery, settlement, finance, reporting, integrations and decision intelligence.
-- **Application topology:** the reference now preserves the historically documented Sales, Warehouse, Delivery, Purchasing, Office and Store roles, plus main.html/app.html/index.html/core.js, while explicitly requiring current-tree verification and acknowledging that module maturity is uneven.
-- **Important qualification:** historical review documents include material dated 2026-07 and target architecture; they establish intent and design history, not current Production readiness or proof that each target is implemented.
-- **Memory/retrieval:** the revised reference directs assistants through CURRENT_STATE → latest relevant report(s) → relevant history from `rawaie-erp-review` → current operational source/Production/runtime as applicable. It explicitly forbids rerunning an old embedded task without a fresh owner instruction.
-- **Completed Picker/Loader task:** owner confirmed that this editing task is complete; its old prompt remains historical and is not an active instruction.
-- **Original files preserved:** `writing-block.md` and `MASTER_CTO_EXECUTION_PROMPT_LOADER_PICKER_INTEGRATION_20261025.md` were not deleted or modified.
-- **Mutation boundary:** documentation only. No operational HTML, Supabase schema/data/RPC/Edge/RLS/ACL, Cloudflare deployment, inventory or accounting data was changed.
-- **Verification:** canonical reference re-fetched from GitHub; the fixed task tail is absent; historical source index, application topology, Smart Decision Center section and memory-recovery protocol are present. Runtime tests were not applicable.
-- **Status:** `GOVERNANCE REFERENCE UPGRADED / RUNTIME UNCHANGED / OWNER REVIEW PENDING`.
-- **Next step:** owner reviews the revised reference. Each future task must be specified independently; at its end, create a fresh execution report and update CURRENT_STATE.md with verified evidence and a precise handoff.
+- **Observed:** 2026-10-27; refined the permanent governance protocol so the assistant restores recent working memory before executing the owner's current task.
+- **Canonical governance:** [MASTER_CTO_GOVERNANCE_CONTINUITY_PROTOCOL.md](doc/Draft/Reprots/MASTER_CTO_GOVERNANCE_CONTINUITY_PROTOCOL.md); commit `dc2ea97076e6a2b23cc7656db495c65596694893`; verified blob SHA `54f61542694f3d98925b43752a98b7f59a56c31f`; 66,798 characters / 1,412 lines.
+- **Report:** [Report522_MEMORY_RECOVERY_PROTOCOL_REFINED_20261027.md](doc/Draft/Reprots/Report522_MEMORY_RECOVERY_PROTOCOL_REFINED_20261027.md); commit `d4cfee6fd679e15c4b87737e51da47cd159568cc`.
+- **Reason for correction:** Report521 had corrected the operational-source hierarchy, but CURRENT_STATE still began with LVE520 and did not reflect the later memory-recovery correction. This checkpoint now records the newer documentation event; always re-check report directory contents and commit evidence rather than assuming this state file cannot lag.
+- **Current source hierarchy:** (1) operational source in `papamohammed77-glitch/erp-frontend/companies/company-1/`, (2) continuity reports in `rawaie-erp-New/doc/Draft/Reprots/` plus CURRENT_STATE, (3) current Supabase project SMART ERP, (4) `rawaie-erp-review` only for historical product vision and prior governance attempts.
+- **Memory recovery sequence:** read the governance protocol → read CURRENT_STATE and the latest three reports (expand only as relevant) → trace the report chain as needed → inspect current operational source and Supabase as required → verify deployment/runtime if the task depends on it → execute only the current explicit owner task.
+- **Original files:** `writing-block.md` and `MASTER_CTO_EXECUTION_PROMPT_LOADER_PICKER_INTEGRATION_20261025.md` remain preserved. They are fallback sources for missing governance details, not active task instructions.
+- **Picker/Loader:** owner confirmed that the editing task is complete. Do not restart it based on the historical prompt.
+- **Mutation boundary:** documentation only. No operational HTML, Supabase schema/data/RPC/Edge/RLS/ACL, Cloudflare deployment, inventory or accounting data changed.
+- **Execution status:** `MEMORY RECOVERY PATH CLARIFIED / GOVERNANCE UPDATED / OPERATIONAL EXECUTION NOT STARTED`. This checkpoint does not independently select or execute a historical task; the current task must be grounded in the owner's latest explicit instruction.
+- **Next step:** for the next execution, follow the ordered memory recovery protocol and identify the current task before acting. After that execution, create a new report and update CURRENT_STATE with verified evidence.
+
+
 ---
 
 # LAST VERIFIED EVENT — LVE-2026-10-27-519 — Unified CTO Governance & Continuity Protocol
