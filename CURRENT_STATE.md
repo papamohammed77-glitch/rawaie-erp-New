@@ -1,3 +1,19 @@
+# LAST VERIFIED EVENT — LVE-2026-10-27-516 — Fresh Production Revalidation: Delivery Supervisor → Parent
+- **Observed:** 2026-10-27 16:03:36.781544+00 (Production SQL), with current GitHub fetches during this execution.
+- **Report:** [Report516_DELIVERY_SUPERVISOR_PARENT_INTEGRATION_EXECUTION_20261027.md](doc/Draft/Reprots/Report516_DELIVERY_SUPERVISOR_PARENT_INTEGRATION_EXECUTION_20261027.md); report commit `deb0510315a10015f9a334643efcd808beab6870`.
+- **Operational repository:** `papamohammed77-glitch/erp-frontend`, branch `main`.
+- **Current supervisor source:** `companies/company-1/delivery/supervisor.html`, blob SHA `3e6db903cd7da411f9ed40a449f9ee5bece5f387`; current source still calls `delivery_supervisor_assignment_query` and `delivery_supervisor_assign_deliverer_atomic`.
+- **Fresh Production SQL:** RS-1 and RS-2 remain Loaded with valid `deliverer_id` users (driver@rawaea.com and driver3@rawaea.com); `driver_id` is NULL and `vehicle_id` remains populated. `delivery_agents`, `delivery_route_plans`, and `delivery_route_stops` counts are each 0 for the company.
+- **RPC contract:** `delivery_supervisor_assignment_query(uuid,text)` and `delivery_supervisor_assign_deliverer_atomic(uuid,text,uuid,text)` are present as SECURITY DEFINER; ACL grants authenticated/service_role, not anon.
+- **Root cause:** parent read-model/display gap remains confirmed: supervisor assignment is stored in `runsheets.deliverer_id`, while Parent Delivery Logistics agents/routes read `delivery_agents` and `delivery_route_plans`.
+- **Parent source limitation:** `companies/company-1/main.html` currently resolves to blob SHA `b9bd5698c98c4b3d7e2bc388bacfbf4f43f2a919`, but the GitHub Contents API returned an empty body even when requesting base64. Do not invent current lines or apply a patch without reacquiring and matching the current source text.
+- **Mutation ledger:** report + this state entry only. No operational HTML, database, RPC, Edge Function, ACL/RLS, or business data changed; RS-1/RS-2 were not used as fixtures.
+- **Runtime:** Parent patch remains PROPOSED, not APPLIED/DEPLOYED; authenticated Parent browser/HTTP E2E and Cloudflare-served artifact parity remain NOT RUN/UNVERIFIED.
+- **Status:** `PARTIAL / ROOT CAUSE RECONFIRMED / PRODUCTION REVALIDATED / PARENT PATCH NOT APPLIED / E2E OPEN / NOT CLOSED`.
+- **Next exact action:** retrieve the current main.html blob by a reliable raw/blob route and match the `agents()` section; apply only Report514's read-only assigned-runsheets card patch under the established owner source-edit governance; run full-page static parse, authenticated Parent browser E2E, permission/route-plan regression checks, and Cloudflare served-HTML parity. Do not modify supervisor.html or create agents/plans/RPCs absent a newly proven defect.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-27-515 — Fresh Production Revalidation: Delivery Supervisor → Parent Read Model
 
 - **Observed:** 2026-10-27 15:58:54.703680+00 (Production SQL) and current Git fetch during this execution.
