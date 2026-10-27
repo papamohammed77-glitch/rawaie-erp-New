@@ -21,7 +21,7 @@
 - موضع `async function agents()`: السطر 30,668 في هذا الـblob.
 - Supervisor: `companies/company-1/delivery/supervisor.html`, blob SHA `3e6db903cd7da411f9ed40a449f9ee5bece5f387`.
 - Parent blob أُعيد جلبه مباشرة عبر Git blob، وليس الاعتماد على Contents API الذي أعاد محتوى فارغًا.
-- وجود الدوال المساعدة `user()`, `perms()`, `companyId()`, `date()`, `badge()` وواجهة RPC `q()` مؤكد في مصدر Parent الحالي.
+- وجود الدوال المساعدة `user()`, `perms()`, `companyId()`, `date()`, `badge()` وواجهة RPC `q()` مؤكد في مصدر Parent الحالي. تمت مطابقة شرط صلاحية البطاقة المقترحة مع شرط RPC الفعلي؛ لا يُستخدم اسم الدور وحده لتجاوز قائمة الصلاحيات التي يفرضها الخادم.
 
 ## 2. Production evidence — Fresh
 
@@ -58,12 +58,11 @@
 
 ```javascript
   async function assignedRunsheetsCard(){
-    var actor=user()||{},p=perms();
+    var p=perms();
     var allowed=p.indexOf('*')!==-1 ||
       p.indexOf('delivery_supervisor')!==-1 ||
       p.indexOf('fleet.read')!==-1 ||
-      p.indexOf('fleet.manage')!==-1 ||
-      ['مدير عام','مدير مخازن','مدير مالي'].indexOf(actor.role)!==-1;
+      p.indexOf('fleet.manage')!==-1;
     if(!allowed){
       return card('تكليفات الرانشيت الحالية','عرض مستقل عن سجل Delivery Agent وخطة Route Plan',
         '<div style="padding:14px;border-radius:12px;background:#fffbeb;color:#92400e;font-weight:800">لا تتوفر صلاحية قراءة تكليفات الرانشيت في هذا السياق.</div>');
@@ -170,7 +169,7 @@
 - **What I Proved:** التكليف محفوظ في Production في `runsheets.deliverer_id`; RS-1 وRS-2 مرتبطان بمندوبيهما؛ RPC القراءة المركزية موجودة ومقيدة بالشركة والمستخدم؛ Parent agents view الحالي يقرأ `delivery_agents` لا تكليفات `runsheets`.
 - **What I Did Not Prove:** ظهور البطاقة بعد الدمج، اختبار متصفح/HTTP مصادق، نشر Cloudflare، أو نجاح E2E.
 - **What I Fixed:** لم أغير الكود التشغيلي أو بيانات الأعمال؛ أعددت تغييرًا جراحيًا كاملًا مطابقًا للمصدر الحالي، وحددت ما يجب أن يدمجه المالك.
-- **What I Initially Missed:** المشكلة في اختلاف read model وليست فشل حفظ الإسناد.
+- **What I Initially Missed:** المشكلة في اختلاف read model وليست فشل حفظ الإسناد. كذلك يجب أن يطابق فحص الواجهة شرط ACL/RPC حرفيًا؛ تم تصحيح الرقعة قبل اعتمادها كي لا تعتبر أسماء الأدوار وحدها تصريحًا غير موجود في عقد RPC.
 - **What Could Still Be Wrong:** قد تظهر فجوة صلاحيات/تهيئة في بيئة Parent فعلية؛ يجب اختبارها بعد الدمج. لا يُعد فحص SQL وحده اختبار HTTP/JWT.
 - **Final Confidence:** HIGH لتشخيص السبب؛ MEDIUM لسلامة تصميم الرقعة؛ NOT VERIFIED runtime.
 - **Final Closure Status:** `PARTIAL — ROOT CAUSE CONFIRMED / OWNER PATCH PREPARED / NOT APPLIED / NOT DEPLOYED / E2E OPEN`.
