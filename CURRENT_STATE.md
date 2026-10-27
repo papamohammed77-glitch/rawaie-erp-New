@@ -1,3 +1,17 @@
+# LAST VERIFIED EVENT — LVE-2026-10-27-519 — Unified CTO Governance & Continuity Protocol
+
+- **Observed:** 2026-10-27; created and re-fetched the new task-agnostic governance reference in the governance repository.
+- **Report:** [Report519_MASTER_CTO_GOVERNANCE_CONTINUITY_PROTOCOL_20261027.md](doc/Draft/Reprots/Report519_MASTER_CTO_GOVERNANCE_CONTINUITY_PROTOCOL_20261027.md); report commit `acdfff1defa533738965bcab2c7a7c7c8b296300`.
+- **Canonical governance candidate:** [MASTER_CTO_GOVERNANCE_CONTINUITY_PROTOCOL.md](doc/Draft/Reprots/MASTER_CTO_GOVERNANCE_CONTINUITY_PROTOCOL.md); file commit `756d251e97e9c7749389dd07c4d5c3e6fc6512ee`; verified blob SHA `60358debcc3bd4ebd0589aa6f8a0b037924d1795`; 456 lines.
+- **Purpose:** unify permanent governance, memory reconstruction, evidence hierarchy, surgical-change controls, test/closure standards, reporting, and handoff instructions without embedding a fixed execution task.
+- **Original files preserved:** `doc/Draft/Reprots/writing-block.md` and `doc/Draft/Reprots/MASTER_CTO_EXECUTION_PROMPT_LOADER_PICKER_INTEGRATION_20261025.md` were not modified or deleted.
+- **Operational changes:** none. No operational HTML, Supabase schema/data/RPC/Edge Function, Cloudflare deployment, inventory, or accounting records were changed.
+- **Verification:** governance file was re-fetched after creation; it explicitly states that it does not contain a fixed execution task. This is a documentation-only change; runtime tests were not applicable.
+- **Status:** `GOVERNANCE REFERENCE CREATED / OWNER REVIEW PENDING`.
+- **Next step:** owner reviews and adopts the new reference. For each future task, read this protocol, then this state file and the latest relevant report(s), verify current source as required, and follow only the owner's separate current execution task. Do not resume the completed Picker/Loader task merely because it remains in historical files.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-27-518 — Delivery Supervisor Parent Assignment Visibility Revalidation
 
 - **Observed:** 2026-10-27 16:54:45.121165+00 (fresh Production SQL), plus current Git blob fetch and read-model comparison in a read-only transaction ending in ROLLBACK.
