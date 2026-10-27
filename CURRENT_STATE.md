@@ -1,3 +1,22 @@
+# LAST VERIFIED EVENT — LVE-2026-10-27-518 — Delivery Supervisor Parent Assignment Visibility Revalidation
+
+- **Observed:** 2026-10-27 16:54:45.121165+00 (fresh Production SQL), plus current Git blob fetch and read-model comparison in a read-only transaction ending in ROLLBACK.
+- **Report:** [Report518_DELIVERY_SUPERVISOR_PARENT_ASSIGNMENT_VISIBILITY_REVALIDATION_20261027.md](doc/Draft/Reprots/Report518_DELIVERY_SUPERVISOR_PARENT_ASSIGNMENT_VISIBILITY_REVALIDATION_20261027.md); report commit `2c35a0d9166ee161454572565f1377ba5295c98b`.
+- **Operational repository:** `papamohammed77-glitch/erp-frontend`, branch `main`.
+- **Current Parent source:** `companies/company-1/main.html`, blob `b9bd5698c98c4b3d7e2bc388bacfbf4f43f2a919`; direct Git blob fetch yielded 1,787,034 characters / 33,136 lines; `async function agents()` starts at line 30,668. Current source still renders the `delivery_agents` model and does not render `runsheets.deliverer_id` assignments.
+- **Current supervisor source:** `companies/company-1/delivery/supervisor.html`, blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`; continues to use `delivery_supervisor_assignment_query` and `delivery_supervisor_assign_deliverer_atomic`.
+- **Fresh Production snapshot:** total runsheets=2; assigned runsheets=2; `delivery_agents`=0; `delivery_route_plans`=0; `delivery_route_stops`=0. RS-1 and RS-2 remain Loaded and linked through `runsheets.deliverer_id`; neither was modified or used as a fixture.
+- **Read-model comparison:** under a read-only simulated-auth SQL transaction, supervisor team returned 4 active delivery users and supervisor runsheets returned RS-1/RS-2 with deliverer IDs; Parent `delivery_logistics_query('agents')` and `('routes')` returned empty rows. Transaction ended with ROLLBACK; this is SQL-contract evidence, not HTTP/browser E2E.
+- **Root cause:** confirmed read-model mismatch. Supervisor assignment persists on `runsheets.deliverer_id`; Parent agents card reads `delivery_agents` and derives route metrics from `delivery_route_plans`. Do not create Agent/Route Plan rows automatically to mimic the supervisor assignment.
+- **RPC/security:** both supervisor RPCs are present as SECURITY DEFINER, with EXECUTE for authenticated/service_role and not anon/PUBLIC; server-side identity/company/permission checks remain in place. Logs show prior HTTP 200 calls to the supervisor RPC, but this does not prove Parent visual rendering.
+- **Mutation ledger:** Report518 and this CURRENT_STATE entry only. No operational HTML, Production DDL/DML, RPC, Edge, ACL/RLS, business data, or fixtures changed.
+- **Governance:** MASTER CTO prompt blob `abfa9d376c455ad7466b9404eed6f0a2c2166ede` (371 lines) prohibits direct edits to `main.html` and operational app HTML; the owner must apply the exact helper + card-composition patch in Report517 after confirming the SHA is unchanged. Report517 remains the patch source of truth.
+- **Deployment/runtime:** parent patch NOT APPLIED/NOT DEPLOYED; full-page parse after patch, authenticated Parent E2E, permission regression, and Cloudflare served-HTML parity remain NOT RUN/UNVERIFIED.
+- **Status:** `PARTIAL / ROOT CAUSE CONFIRMED / OWNER PATCH REQUIRED / NOT APPLIED / NOT DEPLOYED / E2E OPEN`.
+- **Next exact action:** owner applies Report517's surgical `assignedRunsheetsCard()` + `agents()` card-composition patch only after rechecking current blob SHA; then full-page parse, authorized/unauthorized Parent tests, RS-1/RS-2 visibility check, route-agent/search/collections/performance regression, deploy, and verify Cloudflare-served artifact. Do not edit `supervisor.html` or Production RPCs without a newly proven defect.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-27-517 — Delivery Supervisor Assignment Visibility: Forensic Recheck + Owner Patch Package
 - **Observed:** 2026-10-27 16:39:15.184259+00 (fresh Production SQL); current Git blob retrieval during this execution.
 - **Report:** [Report517_DELIVERY_SUPERVISOR_PARENT_ASSIGNMENT_VISIBILITY_EXECUTION_20261027.md](doc/Draft/Reprots/Report517_DELIVERY_SUPERVISOR_PARENT_ASSIGNMENT_VISIBILITY_EXECUTION_20261027.md); latest report commit `b16d07f684d9d0064b455de7fbf732c29b66a2ce` (report initially created in `6e5e5ffa9ac31f1dd0776f4c6fed87990ae45237`; permission gate then aligned with the live RPC contract).
