@@ -1,3 +1,22 @@
+# LAST VERIFIED EVENT — LVE-2026-10-27-523 — Daily Operational Revalidation: Delivery Supervisor → Parent Contract Current; Runtime Still Unverified
+
+- **Observed:** 2026-10-27 18:49:28 UTC (direct Production SQL), with current GitHub blob/commit retrieval and inline-script static parse during this review.
+- **Report:** [Report523_DAILY_OPERATIONAL_REVALIDATION_20261027.md](doc/Draft/Reprots/Report523_DAILY_OPERATIONAL_REVALIDATION_20261027.md); report commit `4f94e26f0d0ce610d45b538b4798cdeabcb581a5`; verified report blob SHA `7114dd3ca1dcd026f31457174d8429a89129f60e`; 9,434 characters / 105 lines.
+- **Starting point:** prior current-state blob `29e991a986f1e945f95c722a88c729df877241ac`, 2,293 lines; LVE-522 described a documentation-only memory-recovery checkpoint and did not establish the then-current operational runtime.
+- **Current operational repository:** `papamohammed77-glitch/erp-frontend`, branch `main`. Latest commit observed: `229dffddb7983df014369d6dc94157d102c2749e` (closeout report only). Relevant UI commit: `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc`; Migration-source commit: `41475240d2685cb7a7919e372e1e9ba10539f3e6`.
+- **Current source:** `companies/company-1/main.html` blob `0c1745081e8d17480433ed527d77cac9f5292021` (1,788,467 characters / 33,154 lines); `delivery/supervisor.html` remains `3e6db903cd7da411f9ed40a449f9ee5bece5f387`; `core.js` remains `ff2f581d9900543c16f7cb026e13446520c0329d`.
+- **Source contract:** current `q(view,payload)` at line 30,513 returns the complete RPC `r.data`; current `agents()` at line 30,668 consumes `d.runsheet_assignments` separately from `d.rows`. Inline JavaScript static parse passed with zero syntax errors; external scripts and browser behavior were not covered.
+- **Production migration:** live registry contains `20261027170454 / delivery_supervisor_parent_runsheet_assignments`. Git migration `supabase/migrations/20261027_delivery_supervisor_parent_runsheet_assignments.sql` blob `d3eed778670833ed84d68f765e336fbb7c3db3e9`.
+- **Production contract/security:** `delivery_logistics_query(uuid,text,jsonb,uuid,text)` returns `runsheet_assignments`, company-scopes the runsheet/user join, and filters to `Loaded/Delivering/Delivered/Returning`. Live attributes: SECURITY DEFINER, `search_path=public`; EXECUTE is present for `authenticated` and `service_role`, absent for `anon` and PUBLIC in the observed ACL.
+- **Fresh data/test:** company snapshot: runsheets=2, assigned=2, delivery_agents=0, route_plans=0, route_stops=0. Read-only SQL call returned `success=true`, `rows=[]`, and two `runsheet_assignments` (RS-2 and RS-1, both Loaded). Invalid company UUID was rejected with `هوية المستخدم أو سياق الشركة غير صالح`. These are direct SQL contract tests, not authenticated HTTP/JWT E2E.
+- **Root cause/status:** the old read-model gap is corrected in current Git source and Production function contract; the Parent UI preserves the separate logistics-agent list and does not create duplicate agent/route-plan records. Prior Report517/518 `NOT APPLIED` state is historical and superseded by later commits/Migration evidence.
+- **Deployment/runtime:** Cloudflare served-HTML parity and authenticated Parent browser E2E remain UNVERIFIED. The public URL could not be opened with available web access; Browser access requires an originating connected browser context; no Cloudflare-specific tool was available. GitHub commit statuses/workflow runs returned no entries. Do not claim deployed or production-ready.
+- **Mutation ledger:** this review used GitHub reads and Production SELECT/RPC reads only. No operational HTML, Production schema/data, RPC/Edge/RLS/ACL, inventory, accounting, or business rows were changed by this review. Only the continuity report and CURRENT_STATE checkpoint were updated.
+- **Status:** `SOURCE + PRODUCTION CONTRACT CORRECTED / INLINE JS STATIC PARSE PASS / DEPLOYMENT AND RUNTIME UNVERIFIED / NOT CLOSED`.
+- **Next exact action:** obtain a directly accessible Cloudflare Deployment/served-HTML artifact, compare it with blob `0c1745081e8d17480433ed527d77cac9f5292021`, then run authenticated Parent E2E and an unauthorized-session regression. Do not use RS-1/RS-2 as fixtures or modify their data.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-27-522 — Memory Recovery Protocol Refined Before Execution
 
 - **Observed:** 2026-10-27; refined the permanent governance protocol so the assistant restores recent working memory before executing the owner's current task.
