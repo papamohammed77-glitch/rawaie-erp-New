@@ -338,3 +338,41 @@ Supervisor → delivery_supervisor_assign_deliverer_atomic → runsheets.deliver
 **النتيجة الإجمالية:** PARTIALLY COMPLETED — ROOT CAUSE CONFIRMED / READ-MODEL PATCH PROPOSED / NO PRODUCTION MUTATION / PARENT E2E OPEN / NOT CLOSED.
 
 **لا تعِد إصلاح supervisor.html أو RPC الإسناد.** الخطوة التالية هي تطبيق الرقعة الجراحية في Parent ثم اختبارها في الجلسة المصادق عليها، والتحقق من HTML المنشور.
+
+---
+
+## ملحق تنفيذي — Patch 2 بصيغة استبدال حرفي محدود
+
+هذا الملحق يضبط موضع تعديل agents() بدقة حتى لا يضطر المالك لاستنتاج الأقواس أو إعادة كتابة الدالة. يجب أولًا التأكد من أن Blob SHA لا يزال b9bd5698c98c4b3d7e2bc388bacfbf4f43f2a919.
+
+**محدد البحث:** العبارة الحالية داخل agents():
+
+~~~javascript
+    set(shell(card('مناديب التوصيل','هوية مستقلة عن سائق المركبة',input('dl-agent-search','بحث','','text','style="max-width:340px;margin-bottom:12px"')+
+      '<div style="overflow:auto"><table class="w-full"><thead><tr>'+['الكود','الاسم','الهاتف','نوع التعاقد','ربط التطبيق','الرحلات النشطة','التوصيلات','التحصيل'].map(function(h){return '<th class="p-3 text-right">'+h+'</th>';}).join('')+'</tr></thead><tbody>'+
+        rows||'<tr><td colspan="8" class="text-center p-8 text-slate-400">لا يوجد مناديب مسجلون</td></tr>')+'</tbody></table></div>')));
+~~~
+
+**الاستبدال المحدود المقترح لهذا المقطع فقط:**
+
+~~~javascript
+    var agentsCard=card('مناديب التوصيل','هوية مستقلة عن سائق المركبة',input('dl-agent-search','بحث','','text','style="max-width:340px;margin-bottom:12px"')+
+      '<div style="overflow:auto"><table class="w-full"><thead><tr>'+['الكود','الاسم','الهاتف','نوع التعاقد','ربط التطبيق','الرحلات النشطة','التوصيلات','التحصيل'].map(function(h){return '<th class="p-3 text-right">'+h+'</th>';}).join('')+'</tr></thead><tbody>'+
+        rows||'<tr><td colspan="8" class="text-center p-8 text-slate-400">لا يوجد مناديب مسجلون</td></tr>')+'</tbody></table></div>');
+    var assignmentCard='';
+    try{
+      assignmentCard=await assignedRunsheetsCard();
+    }catch(e){
+      assignmentCard=card('تكليفات الرانشيت الحالية','تعذر تحميل بيانات الإسناد من المصدر المركزي',
+        '<div style="padding:14px;border-radius:12px;background:#fef2f2;color:#991b1b;font-weight:800">'+esc(e.message||'تعذر تحميل تكليفات الرانشيت')+'</div>');
+    }
+    set(shell(agentsCard+assignmentCard));
+~~~
+
+لا تستبدل سطر البحث الذي يلي المقطع؛ يجب أن يبقى:
+
+~~~javascript
+    var s=E('dl-agent-search'); if(s)s.oninput=function(){S.search=this.value;setTimeout(function(){agents().catch(function(e){toast(e.message,'error');})},180)};
+~~~
+
+هذه الرقعة مكوّنة من helper جديد + تغيير اسم ناتج البطاقة الحالية + إضافة البطاقة الثانية. لا تستبدل agents() كاملة، ولا تغيّر أي دالة أخرى. حالة هذه الرقعة ما زالت PROPOSED.
