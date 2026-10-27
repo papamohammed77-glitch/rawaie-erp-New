@@ -1,3 +1,17 @@
+# LAST VERIFIED EVENT — LVE-2026-10-27-507 — Delivery Supervisor → Parent Integration
+
+- **Observed:** 2026-10-27 12:57–13:00 UTC (live Production SQL) and current Git source retrieval.
+- **Authoritative report:** `doc/Draft/Reprots/Report507_DELIVERY_SUPERVISOR_PARENT_INTEGRATION_ROOT_CAUSE_20261027.md`; documentation commit `c08268004b533f6ce36016519c1893f464e2a947`.
+- **Current operational source:** `papamohammed77-glitch/erp-frontend`, branch `main`; `companies/company-1/delivery/supervisor.html` blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`; `companies/company-1/main.html` blob `b9bd5698c98c4b3d7e2bc388bacfbf4f43f2a919` (full Git blob read; the contents API returned empty for this oversized file).
+- **Live Production confirmed:** `delivery_supervisor_assign_deliverer_atomic` updates `runsheets.deliverer_id` (application `users.id`) but does not create/update `delivery_agents` or `delivery_route_plans`. Parent Delivery Logistics `agents` view reads `delivery_agents`; `routes` view reads `delivery_route_plans` and resolves `delivery_agent_id`. Current snapshot shows assigned Loaded runsheets RS-1/RS-2 but no rows returned for `delivery_agents` and `delivery_route_plans`.
+- **Root cause:** confirmed split contract / missing synchronization between direct runsheet assignment and parent Delivery Logistics model; not a proven failure to persist `runsheets.deliverer_id`.
+- **Schema:** required tables and foreign keys already exist; no new table created. No operational HTML, RPC, DDL/DML, RLS, business data, inventory, or financial records were changed.
+- **Verification:** source and live SQL contract inspected; HTTP/E2E NOT RUN; Cloudflare served-artifact parity UNVERIFIED.
+- **Status:** `PARTIAL / ROOT CAUSE CONFIRMED / REPAIR NOT APPLIED / E2E OPEN`.
+- **Next action:** audit migration lineage and current ACL/trigger dependencies, then implement one atomic integration contract (or a parent read-model correction) in a tested staging environment. Preserve separation of `driver_id`, `deliverer_id`, and `delivery_agents.id`; do not create duplicate tables or use RS-1/RS-2 as test fixtures.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-26-513 — Fresh Production Reconciliation: Delivery Supervisor / Fleet Driver Identity
 
 - **Observed:** 2026-10-26 17:52:55.553654+00; Production PostgreSQL 17.6.
