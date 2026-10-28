@@ -1,3 +1,19 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-524 — Delivery Supervisor Assignment Parent Sync Revalidated; Runtime Deployment Still Unverified
+
+- **Observed:** 2026-10-28, direct Git blob and Supabase Production SQL recheck.
+- **Report:** [Report524_DELIVERY_SUPERVISOR_ASSIGNMENT_PARENT_SYNC_20261028.md](doc/Draft/Reprots/Report524_DELIVERY_SUPERVISOR_ASSIGNMENT_PARENT_SYNC_20261028.md); commit `60b7f6b5e95752481d72cfeceb09b6d1f0f159da`.
+- **Scope:** Delivery Supervisor assignment → Parent ERP delivery logistics tab only.
+- **Current source:** `papamohammed77-glitch/erp-frontend/companies/company-1/main.html`, blob `0c1745081e8d17480433ed527d77cac9f5292021` (1,788,467 characters / 33,154 lines); `companies/company-1/delivery/supervisor.html`, blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`.
+- **Confirmed Parent contract:** `q()` at lines 30513–30521 returns the complete `delivery_logistics_query` result; `agents()` at lines 30668 onward separately renders `d.rows` from `delivery_agents` and `d.runsheet_assignments` from `runsheets.deliverer_id`.
+- **Fresh Production evidence:** direct read-only RPC call returned `success=true`, `rows=[]`, and two `runsheet_assignments`: RS-2 / «مندوب توصيل 3» / Loaded and RS-1 / «مندوب توصيل» / Loaded. Both have `deliverer_user_id`; `delivery_agent_code` is null. Active `delivery_agents` count is 0.
+- **Root cause distinction:** an assignment to `runsheets.deliverer_id` does not create a master logistics/contract record in `delivery_agents`. The Parent source correctly separates the master registry table from the actual runsheet assignment table. Do not merge these entities or auto-create agent records without an explicit business contract.
+- **Change decision:** no code or Production mutation was justified because the source and live SQL contract already expose the assignments. No test data was created; RS-1 and RS-2 were read-only evidence and must not be modified as fixtures.
+- **UNVERIFIED:** served Cloudflare HTML parity and authenticated Parent browser E2E. If the assignment table is empty in the deployed UI, first compare the served artifact with the current blob and inspect authenticated browser RPC/network results; do not repeat the already-present source fix blindly.
+- **Status:** `SOURCE + PRODUCTION RPC/DATA CONTRACT VERIFIED / PARENT RUNTIME DEPLOYMENT UNVERIFIED / NO NEW CODE PATCH JUSTIFIED`.
+- **Next exact step:** verify the published Parent page specifically at «إدارة التوصيل والشحن → مناديب التوصيل → تعيينات الرانشيت من مشرف التوصيل». Expected rows: RS-1 and RS-2. If absent, collect served HTML and authenticated RPC result, then fix only the proven deployment/runtime defect.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-27-523 — Daily Operational Revalidation: Delivery Supervisor → Parent Contract Current; Runtime Still Unverified
 
 - **Observed:** 2026-10-27 18:49:28 UTC (direct Production SQL), with current GitHub blob/commit retrieval and inline-script static parse during this review.
