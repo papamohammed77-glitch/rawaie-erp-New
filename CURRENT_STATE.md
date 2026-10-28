@@ -1,3 +1,18 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-536 — Fresh Production RPC + Parent Consumer Reconciliation
+
+- **Observed:** 2026-10-28T20:28:28.592024Z (direct Production SQL/RPC), with current Git consumer and published-tab snapshot rechecked.
+- **Report:** [Report536_DELIVERY_ASSIGNMENTS_RPC_CONSUMER_RECONCILIATION_20261028.md](doc/Draft/Reprots/Report536_DELIVERY_ASSIGNMENTS_RPC_CONSUMER_RECONCILIATION_20261028.md); report commit `673982395254529a18ecf0110b873469874c33a6`.
+- **Current operational source:** `papamohammed77-glitch/erp-frontend/companies/company-1/main.html`, blob `0c1745081e8d17480433ed527d77cac9f5292021`; existing consumer repair commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc` remains present.
+- **Fresh Production:** Live call to `public.delivery_logistics_query(company_id,'agents',payload,owner_user_id,owner_email)` returned `success=true`, `rows=[]`, and `runsheet_assignments=[RS-2, RS-1]`; both are `Loaded` and have assigned users. The company's `delivery_agents` master registry remains at 0 rows. No data changed.
+- **Consumer trace:** Current Parent source reads `d.runsheet_assignments`, constructs `assignmentRows` and `assignmentTable`, and renders a separate card titled «تعيينات الرانشيت من مشرف التوصيل». The empty master registry does not suppress this separate card.
+- **Security:** Live RPC remains `SECURITY DEFINER`, `search_path=public`; ACL observed for postgres/authenticated/service_role, with no anon grant shown. Actor/company/email/permission validation is present.
+- **Published runtime:** The connected published-tab snapshot does not establish a fresh authenticated visit to the target Delivery Representatives view. No fresh authenticated Network body, target-view DOM, Console error, or served Cloudflare artifact identity was available. Runtime root cause remains UNVERIFIED.
+- **Mutation ledger:** Documentation only. No Parent/operational HTML, Production schema/data/RPC/ACL/RLS, Edge Function, Service Worker, deployment, runsheet, inventory, or accounting mutation.
+- **Status:** `PRODUCTION DATA/RPC + CURRENT SOURCE CONSUMER VERIFIED / PUBLISHED AUTHENTICATED UI E2E UNVERIFIED / NOT CLOSED`.
+- **Exact next action:** In a normally authenticated published Parent session, open Delivery & Logistics → Delivery Representatives; capture the redacted `delivery_logistics_query` response for view `agents`, verify RS-1/RS-2 in `runsheet_assignments`, inspect the assignment-table DOM, and capture the first relevant Console error if the payload is correct but the table is absent. Compare served artifact identity against the current Parent blob before any new patch. Do not share credentials, cookies, JWTs, or Authorization headers.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-535 — Fresh Production Recheck of Delivery Assignment Visibility
 
 - **Observed:** 2026-10-28T20:02:02.802010Z, direct read-only Production SQL/RPC plus current Git source and ancestry.
