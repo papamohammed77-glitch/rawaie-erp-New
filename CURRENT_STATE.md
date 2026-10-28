@@ -1,3 +1,19 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-525 — Delivery Supervisor Parent Visibility Rechecked Against Live Production
+
+- **Observed:** 2026-10-28; fresh Git blob retrieval and direct read-only Supabase Production SQL.
+- **Report:** [Report525_DELIVERY_SUPERVISOR_PARENT_VISIBILITY_FORENSIC_RECHECK_20261028.md](doc/Draft/Reprots/Report525_DELIVERY_SUPERVISOR_PARENT_VISIBILITY_FORENSIC_RECHECK_20261028.md); report commit `d6fac2bc62d1377a2bcfa3421b2a3777889db193`.
+- **Scope:** Parent ERP → Delivery & Shipping → Delivery Representatives; no adjacent task was opened.
+- **Operational source:** `papamohammed77-glitch/erp-frontend`, branch `main`. Current Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`; current supervisor app blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`. Latest commit observed before this checkpoint: `8843150bdde99d36d477d6bb344a24df61dd2942` (“Clarify code checkpoint versus documentation commits”, 2026-10-27 18:56:06 UTC); it is not evidence of runtime deployment.
+- **Fresh Production SQL:** `delivery_logistics_query(uuid,text,jsonb,uuid,text)` is SECURITY DEFINER with `search_path=public`; EXECUTE is allowed to authenticated/service_role and denied to anon. A read-only call to view `agents` returned `success=true`, `rows=[]`, and `runsheet_assignments` containing RS-1 and RS-2. Company counts: runsheets=2, assigned=2, active `delivery_agents`=0.
+- **Source trace:** Parent `q(view,payload)` returns full RPC data; `agents()` independently renders `d.runsheet_assignments` and the `delivery_agents` registry. The required assignment table is already present in current source; the existing operational patch must not be blindly repeated.
+- **Decision:** No operational code patch and no Production mutation were justified by current evidence. Do not create Agent/Route Plan rows to mirror a user assignment. Do not touch `main.html` or `supervisor.html` in this assistant session.
+- **UNVERIFIED:** Cloudflare served artifact parity and authenticated Parent Browser/HTTP E2E remain open. SQL evidence does not prove visible runtime rendering.
+- **Mutation ledger:** Documentation only: Report525 and this CURRENT_STATE entry. No business rows, inventory, accounting, RPC, Edge, ACL/RLS, or operational HTML were changed.
+- **Status:** `CURRENT SOURCE + LIVE PRODUCTION RPC/DATA VERIFIED / DEPLOYED UI E2E UNVERIFIED / NO NEW SURGICAL CODE CHANGE JUSTIFIED`.
+- **Next exact action:** On the published Parent page, inspect the `delivery_logistics_query` network response and confirm `runsheet_assignments` contains RS-1/RS-2; compare served HTML/JS with Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`. Only if a concrete served-runtime defect is captured should a new surgical patch be prepared. Do not alter RS-1/RS-2 or add test rows.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-524 — Delivery Supervisor Assignment Parent Sync Revalidated; Runtime Deployment Still Unverified
 
 - **Observed:** 2026-10-28, direct Git blob and Supabase Production SQL recheck.
