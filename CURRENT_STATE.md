@@ -1,3 +1,17 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-533 — Delivery Supervisor Fresh SQL/Source/Log Reconciliation; Published UI Closure Still Open
+
+- **Observed:** 2026-10-28 16:57:17 UTC (fresh Production SQL), plus current source and Supabase logs.
+- **Report:** [Report533_DELIVERY_SUPERVISOR_RUNTIME_RECONCILIATION_20261028.md](doc/Draft/Reprots/Report533_DELIVERY_SUPERVISOR_RUNTIME_RECONCILIATION_20261028.md); report commit `051e43aaf643f28cd8ed251a73087a21054b9124`.
+- **Fresh Production data:** RS-2 (2026-10-12) and RS-1 (2026-10-10) remain `Loaded`, assigned respectively to `driver3@rawaea.com` and `driver@rawaea.com`; `delivery_agents` master rows for the company remain 0. No business data was changed.
+- **Production RPC:** Live definition of `delivery_logistics_query(uuid,text,jsonb,uuid,text)` returns a separate `runsheet_assignments` projection from `runsheets.deliverer_id` joined to `users.id`; it remains distinct from master-agent `rows`.
+- **Source:** Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`; Supervisor blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`; source repair commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc` already adds the separate assignment table.
+- **Runtime evidence:** Supabase logs show authenticated RPC calls returning HTTP 200 around 16:24–16:25 UTC, but do not include response bodies. The connected Parent tab snapshot is stale (last opened 16:28:45 UTC), shows a login overlay and the old master table, and cannot establish current authenticated E2E. GitHub's displayed check failure does not by itself prove Cloudflare deployment status.
+- **Decision:** No speculative SQL/ACL/source/SW patch. No code or production data changed. Root cause remains unproven between stale session/DOM, served-artifact drift, and client-side render failure.
+- **Status:** `PRODUCTION DATA/RPC VERIFIED / SOURCE PATCH PRESENT / FRESH AUTHENTICATED UI E2E OPEN / NOT CLOSED`.
+- **Exact next step:** In the already-open published Parent tab, sign in normally, navigate to Delivery & Logistics → Delivery Representatives, refresh the view, and capture the redacted `delivery_logistics_query(p_view='agents')` response, assignment-table DOM state, and first relevant Console error. Then repair the proved client/deployment mismatch and rerun E2E. Do not share credentials, cookies, or tokens.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-532 — Delivery Supervisor Fresh Production Reconciliation; Authenticated UI Gate Still Open
 
 - **Observed:** 2026-10-28 16:47:33 UTC (fresh read-only Production SQL/RPC), plus current Git ancestry and connected-tab context.
