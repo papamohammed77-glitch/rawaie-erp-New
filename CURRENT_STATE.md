@@ -1,3 +1,18 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-541 — Delivery Assignments Routes Consumer Gap Confirmed
+
+- **Observed:** 2026-10-28T21:23:00Z (UTC), direct read-only Production SQL/RPC, current Parent source extracted from the connected GitHub page, and current published-tab context.
+- **Report:** [Report541_DELIVERY_ASSIGNMENTS_ROUTES_CONSUMER_GAP_20261028.md](doc/Draft/Reprots/Report541_DELIVERY_ASSIGNMENTS_ROUTES_CONSUMER_GAP_20261028.md); report commit `c84a01fc28105c10e16870a65decba22ee7627a1`.
+- **Fresh Production data:** RS-1 and RS-2 remain `Loaded` and have valid `runsheets.deliverer_id` references to active users in company `00000000-0000-0000-0000-000000000001`. Production `delivery_route_plans` count for this company is 0.
+- **Fresh Production RPC:** Calling `delivery_logistics_query` with the valid active owner application actor returned `routes={success:true, rows:[]}`; `agents={success:true, rows:[], runsheet_assignments:[RS-2,RS-1]}`. The empty `rows` registry does not mean real assignments are missing.
+- **Current Parent source:** `erp-frontend/main`, branch `main`; `companies/company-1/main.html` blob remains `0c1745081e8d17480433ed527d77cac9f5292021`. Existing `agents()` consumer already renders `runsheet_assignments) in a separate assignment card. Current `routes()` consumes only `q('routes',...)` and displays the route-plan table; it does not render runsheet assignments.
+- **Published-tab snapshot:** current page context showed the `الرحلات والمسارات` view and its empty route-plan state. The snapshot also contains login-form elements; do not treat this as clean authenticated E2E evidence.
+- **Root cause:** confirmed Parent UI consumer gap for the routes view. The existing agents-view repair does not cover the separate routes-view consumer. No evidence supports creating synthetic route plans or `delivery_agents` rows, or changing RPC security/data.
+- **Mutation ledger:** Production was read-only; no operational source, schema, RPC, ACL/RLS, runsheet, inventory/accounting, or Cloudflare deployment changed. Documentation only.
+- **Status:** `ROOT CAUSE CONFIRMED — OWNER FILE CHANGE REQUIRED`.
+- **Next exact action:** apply the focused `routes()` UI patch in Report541 to add a separate runsheet-assignment card while preserving the route-plan table; deploy through the normal Parent workflow; then verify both views with fresh authenticated Network/DOM/Console evidence and served-artifact provenance.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-540 — Fresh Delivery Assignment RPC/Source Reconciliation; Authenticated UI Gate Open
 
 - **Observed:** 2026-10-28T21:00Z (UTC): direct read-only Production SQL, live RPC invocation, Supabase PostgreSQL logs, full GitHub file-content review through the connected GitHub page, and published-tab context read.
