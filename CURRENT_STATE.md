@@ -1,3 +1,20 @@
+# LAST VERIFIED EVENT — LVE-2026-10-29-541 — Delivery Assignment Route-View Gap Reconciled; Owner Patch Prepared
+
+- **Observed:** 2026-10-28T21:19:36Z–21:22:57Z (UTC), direct read-only Production SQL/RPC, current Parent Git source/blob, authenticated Supabase request logs, and connected published-tab context.
+- **Report:** [Report541_DELIVERY_ASSIGNMENTS_ROUTE_VIEW_GAP_20261029.md](doc/Draft/Reprots/Report541_DELIVERY_ASSIGNMENTS_ROUTE_VIEW_GAP_20261029.md); report commit `9995c36478aa636c0ecee7b8d7c73d0346cfff0b`.
+- **Fresh Production data:** RS-1 and RS-2 remain `Loaded`, assigned to active users in company `00000000-0000-0000-0000-000000000001`. Owner `owner@alrawae.com` remains Active with `permissions=["*"]`; the live auth subject observed in logs matches the owner's `public.users.auth_id`.
+- **Fresh direct RPC:** `delivery_logistics_query(...,'agents',...)` returns `success=true`, `runsheet_assignments=[RS-2, RS-1]`, and `rows=[]`. The latter is expected because the company's `delivery_agents` master registry is empty.
+- **Current Parent source:** `erp-frontend/main`, `companies/company-1/main.html`, blob `0c1745081e8d17480433ed527d77cac9f5292021`. Existing `agents()` consumer repair `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc` remains present and was not duplicated.
+- **Confirmed route-view root cause:** `routes()` queries only `delivery_route_plans`; Production currently has 0 route plans and 0 route stops. It therefore renders “لا توجد خطط توصيل” and does not read `runsheet_assignments`. A runsheet assignment is not itself a route plan; no synthetic plans/stops were created.
+- **Planning date scope:** `planning()` defaults to today through seven days ahead; RS-1/RS-2 run dates (2026-10-10 and 2026-10-12) are outside that default window.
+- **Owner action prepared:** Report541 contains a one-line surgical replacement inside `routes()` to render a separate actual-assignment card using the existing `agents` RPC while preserving the route-plan table. Per project change-control, the parent `main.html` was not modified by the assistant.
+- **Unverified:** Fresh authenticated DOM/Console/Network response for the published “مناديب التوصيل” tab and exact Cloudflare-served artifact identity. No Parent deployment or Production schema/data/RPC/ACL/RLS change occurred.
+- **Mutation ledger:** Documentation only; Report541 and this checkpoint. Runsheets, assignments, route plans, route stops, inventory, accounting, and security configuration unchanged.
+- **Status:** `ROOT CAUSE CONFIRMED — OWNER FILE CHANGE REQUIRED / PUBLISHED AGENTS-TAB E2E AND ARTIFACT PROVENANCE UNVERIFIED / NOT CLOSED`.
+- **Next exact action:** Apply the documented single-line parent-source replacement, publish the owner-approved source, then verify both “الرحلات والمسارات” and “مناديب التوصيل” in a fresh authenticated session. Confirm RS-1/RS-2 in the assignment card and preserve zero route-plan/route-stop rows unless a legitimate route-planning operation is performed.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-541 — Delivery Assignments Routes Consumer Gap Confirmed
 
 - **Observed:** 2026-10-28T21:23:00Z (UTC), direct read-only Production SQL/RPC, current Parent source extracted from the connected GitHub page, and current published-tab context.
