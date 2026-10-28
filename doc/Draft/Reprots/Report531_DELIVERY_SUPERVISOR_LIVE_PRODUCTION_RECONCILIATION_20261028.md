@@ -95,3 +95,14 @@ Do not send credentials, JWTs, cookies, or session tokens.
 - **What Could Still Be Wrong:** Stale served artifact/tab or a client-side rendering/runtime issue after authentication.
 - **Final confidence:** High for Production data/RPC contract; insufficient for live UI closure.
 - **Final closure status:** `PRODUCTION DATA/RPC VERIFIED / SOURCE PATCH PRESENT / AUTHENTICATED PUBLISHED UI E2E OPEN / NOT CLOSED`.
+
+
+## تقييم البرومبت واقتراح ضبطه
+
+**التعارض الذي ينبغي حسمه:** عبارة «لا تتوقف حتى تنتهي» قد تدفع المساعد إلى اختراع إصلاح أو ادعاء نجاح عندما تكون أداة المتصفح المتاحة للقراءة فقط، بينما قواعد التحقيق تمنع التخمين والتعديل غير المثبت. كذلك يجب التمييز بين «لا تتوقف عن العمل الممكن» و«يجوز إعلان الإغلاق». الأولى تعني الاستمرار في التحقيق والتوثيق؛ والثانية لا تصح إلا بدليل runtime.
+
+**الصياغة المقترحة لاستبدال قاعدة التوقف:**
+
+> لا تتوقف عند اكتشاف نقص أو عند فشل أداة واحدة. استنفد وسائل التحقق المتاحة، وأكمل كل الأعمال المستقلة عن العائق، ووثّق الأدلة والنتائج. لا تنفّذ تعديلًا تخمينيًا ولا تعلن الإغلاق بلا اختبار. إذا كانت الخطوة الوحيدة المتبقية تتطلب تفاعلًا بشريًا أو صلاحية غير متاحة فعليًا، فحدّد الإجراء الواحد المطلوب بدقة، وسبب تعذّر تنفيذه من الأدوات الحالية، ثم أكمل التوثيق وتحديث الحالة. استخدم الحالة OPEN/UNVERIFIED بدل BLOCKED كذريعة للتوقف، لكن لا تسمِّ المهمة CLOSED قبل إثبات Runtime النهائي.
+
+ويُستحسن أن يفرض البرومبت مصفوفة إغلاق صريحة: **Source → Production RPC/Data → Published Artifact → Authenticated Browser E2E → Console/Network → Baseline**، وأن يطلب حفظ الأدلة الزمنية والـSHA لكل طبقة. لا ينبغي أن يفرض تعديل Service Worker أو إعادة كتابة الواجهة مسبقًا؛ بل يفرض اختيار الإصلاح فقط بعد تحديد الطبقة التي تختلف فعليًا.
