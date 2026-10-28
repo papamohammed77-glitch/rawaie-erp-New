@@ -2432,3 +2432,19 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - **Mutation ledger:** created Report504 only. No operational source, Production database, Edge Function, stock row, reservation, or inventory log was changed. No E2E or live served-HTML verification was run.
 - **Status:** `PARTIAL / SOURCE GAPS CONFIRMED / MAIN.HTML PATCH NOT APPLIED / RUNTIME NOT VERIFIED`. Do not call this task closed.
 - **Next action:** trace the actual Returns tab handler and allowed state transitions; implement a distinct historical view without re-enabling invalid actions; verify loading-notes write path; then run static validation, served HTML identity check, authenticated E2E, and confirm no stock/reservation/inventory-log delta from display-only actions.
+
+
+---
+
+# LAST VERIFIED EVENT — LVE-2026-10-28-530 — Delivery Supervisor → Parent Assignment Display Reconciliation
+
+- **Observed:** 2026-10-28 16:42–16:43 UTC; live Production SQL/RPC definitions, recent Supabase HTTP logs, Git source, Cloudflare deployment listing, and connected browser DOM context checked.
+- **Authoritative report:** [Report530_DELIVERY_SUPERVISOR_PARENT_UI_PRODUCTION_RECONCILIATION_20261028.md](doc/Draft/Reprots/Report530_DELIVERY_SUPERVISOR_PARENT_UI_PRODUCTION_RECONCILIATION_20261028.md); documentation commit `086b8976c9f381706e827e19c9d82c1da55f1bb8`.
+- **Current operational source:** `papamohammed77-glitch/erp-frontend`, branch `main`; parent `main.html` blob `0c1745081e8d17480433ed527d77cac9f5292021`; supervisor `supervisor.html` blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`.
+- **Existing source repair:** commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc` already adds the separate parent table for `runsheet_assignments`. The Cloudflare deployment card shows commit `8843150bdde99d36d477d6bb344a24df61dd2942`; Git comparison proves it is five commits ahead of cb62612 and includes that repair in its ancestry.
+- **Live Production data:** RS-1 and RS-2 remain `Loaded`, both have `deliverer_id`, and both join to active company users. Current live query returned them without changing business data.
+- **RPC/log evidence:** Production `delivery_logistics_query` returns `runsheet_assignments`; recent requests to it and `delivery_supervisor_assignment_query` returned HTTP 200. The active `delivery_agents` registry has zero rows and its user links are NULL; this is a separate administrative entity and does not invalidate the actual `runsheets.deliverer_id` assignments.
+- **Important uncertainty:** the connected parent tab DOM still shows an older rendered agents-only section behind a visible login overlay. The browser tools available here are read-only, so the tab was not force-refreshed and no authenticated UI E2E was run. Do not claim a confirmed Cloudflare artifact mismatch; the production deployment ancestry includes the source fix, while current served HTML identity remains unverified.
+- **Mutation ledger:** Report530 and this state append only. No operational HTML/Core, Production RPC/DDL/ACL/RLS, Edge Functions, runsheets, inventory, or accounting data changed.
+- **Status:** `PRODUCTION ASSIGNMENTS CONFIRMED / RPC HTTP 200 / GIT FIX PRESENT / DEPLOYMENT ANCESTRY INCLUDES FIX / AUTHENTICATED UI AFTER REFRESH UNVERIFIED / NOT CLOSED`.
+- **Next exact action:** force-refresh the already-open production tab, sign in normally, and open `مركز التوصيل واللوجستيات → مناديب التوصيل`. Expect the `تعيينات الرانشيت من مشرف التوصيل` table with RS-1 and RS-2. If absent, capture the `delivery_logistics_query` `agents` response and first Console error without exposing cookies, Authorization headers, or secrets. Do not edit SQL or repeat the source patch until that evidence distinguishes stale tab from a runtime rendering defect.
