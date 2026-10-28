@@ -1,3 +1,17 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-526 — Parent Delivery Assignment Runtime Discrepancy Rechecked
+
+- **Observed:** 2026-10-28; fresh read-only Production SQL plus current browser snapshot inspection.
+- **Report:** [Report526_DELIVERY_SUPERVISOR_PARENT_VISIBILITY_DEPLOYED_RUNTIME_GAP_20261028.md](doc/Draft/Reprots/Report526_DELIVERY_SUPERVISOR_PARENT_VISIBILITY_DEPLOYED_RUNTIME_GAP_20261028.md); report commit `a87b134b3965d0d8e7c7931aa6b9649c562a1650`.
+- **Scope:** Parent ERP → Delivery & Shipping → Delivery Representatives; no adjacent task opened.
+- **Current operational source:** `papamohammed77-glitch/erp-frontend`, branch `main`. Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`; supervisor app blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`. Existing source patch is recorded in commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc`; do not repeat it blindly.
+- **Fresh Production SQL:** checked at database-returned timestamp `2026-10-28 13:03:03+00`. Owner actor is active with `permissions=["*"]` in company `00000000-0000-0000-0000-000000000001`. Company has 2 runsheets, both assigned. `delivery_logistics_query(uuid,text,jsonb,uuid,text)` returned `success=true`, `rows=[]`, and `runsheet_assignments` containing RS-1 / «مندوب توصيل» and RS-2 / «مندوب توصيل 3», both Loaded. Function is SECURITY DEFINER with `search_path=public`; EXECUTE is allowed to authenticated and denied to anon.
+- **Runtime observation:** connected browser snapshot for `https://rawaea-erp.pages.dev/companies/company-1/main` showed the empty `delivery_agents` master table and did not show the separate supervisor-assignment table. But the same snapshot displayed the login form with the owner email and blank password; it is not authenticated E2E evidence. Tab metadata was last opened at `2026-10-28T12:29:34Z`, before the fresh SQL query.
+- **Decision:** Current source and Production RPC/data contract are consistent; the assignment table patch is already present in source. Runtime/source discrepancy is now observed, but root cause is **UNVERIFIED**: stale served artifact vs logged-out/stale DOM vs client-side runtime/rendering error have not been distinguished. No operational HTML, Production schema/data/RPC/ACL/RLS, business records, test fixtures, inventory, or accounting were changed.
+- **Exact next action:** after normal owner sign-in on the published Parent page, inspect the `delivery_logistics_query` request for view `agents`. If the response includes RS-1/RS-2 but the table is absent, capture the console error and compare served artifact with Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`. If the response lacks assignments, capture the request/response and reconcile the actual called RPC. Do not create or mutate RS-1/RS-2, and do not repeat the already-present source patch.
+- **Status:** `PRODUCTION RPC/DATA VERIFIED / SOURCE PATCH PRESENT / RUNTIME DISCREPANCY OBSERVED / AUTHENTICATED E2E AND ROOT CAUSE OPEN`.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-525 — Delivery Supervisor Parent Visibility Rechecked Against Live Production
 
 - **Observed:** 2026-10-28; fresh Git blob retrieval and direct read-only Supabase Production SQL.
