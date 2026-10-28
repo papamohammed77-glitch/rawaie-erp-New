@@ -2506,3 +2506,18 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - **Mutation ledger:** Report530 and this state append only. No operational HTML/Core, Production RPC/DDL/ACL/RLS, Edge Functions, runsheets, inventory, or accounting data changed.
 - **Status:** `PRODUCTION ASSIGNMENTS CONFIRMED / RPC HTTP 200 / GIT FIX PRESENT / DEPLOYMENT ANCESTRY INCLUDES FIX / AUTHENTICATED UI AFTER REFRESH UNVERIFIED / NOT CLOSED`.
 - **Next exact action:** force-refresh the already-open production tab, sign in normally, and open `مركز التوصيل واللوجستيات → مناديب التوصيل`. Expect the `تعيينات الرانشيت من مشرف التوصيل` table with RS-1 and RS-2. If absent, capture the `delivery_logistics_query` `agents` response and first Console error without exposing cookies, Authorization headers, or secrets. Do not edit SQL or repeat the source patch until that evidence distinguishes stale tab from a runtime rendering defect.
+
+
+---
+
+# LAST VERIFIED EVENT — LVE-2026-10-28-531 — Delivery Assignment Live Revalidation
+
+- **Observed:** 2026-10-28 20:10:51 UTC (Production SQL); browser tab inspected read-only during the same session.
+- **Authoritative report:** `doc/Draft/Reprots/Report531_DELIVERY_SUPERVISOR_ASSIGNMENT_LIVE_REVALIDATION_20261028.md`; documentation commit `88032416cd7313a5501b0c637851053dac0fbae1`.
+- **Fresh Production result:** `public.delivery_logistics_query(company_id,'agents',payload,owner_user_id,'owner@alrawae.com')` returned `success=true`, `rows=[]`, and `runsheet_assignments` with RS-2 / `Loaded` / `driver3@rawaea.com` and RS-1 / `Loaded` / `driver@rawaea.com`. Both joins are company-scoped. Their `delivery_agent_code` is null because neither assignment is linked to a row in `delivery_agents`; this does not invalidate `runsheets.deliverer_id`.
+- **Current parent source:** `papamohammed77-glitch/erp-frontend`, `main`, `companies/company-1/main.html`, blob SHA `0c1745081e8d17480433ed527d77cac9f5292021`. Existing `async function agents()` reads `d.runsheet_assignments`, constructs `assignmentRows` and `assignmentTable`, and renders the card titled `تعيينات الرانشيت من مشرف التوصيل`. Do not repeat the existing source patch without new runtime evidence.
+- **Production RPC:** direct live definition of `delivery_logistics_query(uuid,text,jsonb,uuid,text)` includes `runsheet_assignments` under the `agents` view. No DB/RPC/ACL/RLS/Edge changes were made.
+- **Browser state:** connected production parent tab currently presents the login overlay; the browser connector is read-only and no login, hard refresh, or tab navigation was executed. Authenticated UI render and served-HTML byte identity remain UNVERIFIED.
+- **Mutation ledger:** only Report531 and this state record were written. No `main.html`, supervisor PWA, Production business data, stock, reservations, or accounting records were changed. No test fixtures were created because existing Production assignments are adequate for the read-contract check.
+- **Status:** `LIVE DB + RPC + GIT RENDER PATH CONFIRMED / AUTHENTICATED UI E2E OPEN / NO NEW PATCH JUSTIFIED / NOT CLOSED`.
+- **Next exact action:** owner hard-refreshes `https://rawaea-erp.pages.dev/companies/company-1/main`, signs in normally, opens `مركز التوصيل واللوجستيات → مناديب التوصيل`, and confirms RS-1/RS-2 in the separate assignment table. If the RPC payload contains both but the table is absent, collect sanitized Network response and Console error; only then prepare a new exact surgical source patch. Never change the valid assignments or create dummy records to mask a rendering issue.
