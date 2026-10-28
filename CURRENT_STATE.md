@@ -1,3 +1,17 @@
+# LAST VERIFIED EVENT — LVE-2026-10-29-543 — Prompt Execution Audit and Fresh Delivery Assignment Recheck
+
+- **Observed:** 2026-10-28 22:02 UTC / 2026-10-29 01:02 Egypt time; direct read-only Production SQL/RPC, current Git source and prompt files, and connected published-tab context.
+- **Report:** [Report543_DELIVERY_ASSIGNMENTS_PROMPT_EXECUTION_AUDIT_20261029.md](doc/Draft/Reprots/Report543_DELIVERY_ASSIGNMENTS_PROMPT_EXECUTION_AUDIT_20261029.md).
+- **Fresh Production:** RS-1 and RS-2 remain `Loaded` with valid `deliverer_id`; `agents` returns both through `runsheet_assignments`; `routes` returns `rows=[]`; counts remain `delivery_agents=0`, `delivery_route_plans=0`, `delivery_route_stops=0`.
+- **Current source:** Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`, operational HEAD `8843150bdde99d36d477d6bb344a24df61dd2942`; `routes()` still renders only route plans. Existing `agents()` card remains in commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc`.
+- **Prompt audit:** The permanent constitution explicitly prohibits the assistant from editing `main.html`; the task prompt explicitly assigns the edit to the owner and defers E2E until after that edit. It also points to Report541 although Report542 is the latest verified owner-patch report. The observed stop is therefore a predictable handoff state under the written constraints, not proof of data loss.
+- **Runtime boundary:** available Cloudflare tab shows the route-plan empty state but is not a fresh authenticated E2E; served-artifact identity, authenticated Network/DOM/Console, and post-patch behavior remain `UNVERIFIED`.
+- **Mutation ledger:** documentation only. No Parent source, Cloudflare deployment, DB/schema/RPC/ACL/RLS, runsheet assignments, inventory, accounting, or test data changed.
+- **Status:** `ROOT CAUSE CONFIRMED — OWNER FILE CHANGE REQUIRED — E2E OPEN — NOT CLOSED`.
+- **Next exact action:** Under the current rule, the owner must apply the single surgical replacement documented in Report542 and publish it; then verify both “الرحلات والمسارات” and “مناديب التوصيل” in a fresh authenticated session. To let the assistant create code changes before returning, the owner must explicitly authorize a reviewed branch/PR workflow instead of the current owner-only file-edit rule.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-29-542 — Live Delivery Assignment Route-View Reconciliation; Owner Patch Prepared
 
 - **Observed:** 2026-10-28 21:49–21:53 UTC (Egypt local date 2026-10-29), direct read-only Supabase Production SQL/RPC, current Parent Git source/blob, Git commit history, and connected published-tab context.
