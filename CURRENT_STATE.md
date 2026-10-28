@@ -1,3 +1,19 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-527 — Published Parent Runtime Rechecked; Assignment Table Still Absent from Browser Snapshot
+
+- **Observed:** 2026-10-28; fresh read-only Production SQL, current Git artifacts, browser tab snapshot, and Supabase request logs.
+- **Report:** [Report527_DELIVERY_SUPERVISOR_PARENT_RUNTIME_RECHECK_20261028.md](doc/Draft/Reprots/Report527_DELIVERY_SUPERVISOR_PARENT_RUNTIME_RECHECK_20261028.md); report commit `fc826d8c3b50022525e601708fe1367039f5d0c6`.
+- **Scope:** Delivery Supervisor → Parent ERP → Delivery & Shipping → Delivery Representatives only.
+- **Current operational source:** `papamohammed77-glitch/erp-frontend`, branch `main`. Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`; Supervisor blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`. The assignment-table source patch remains present in commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc`.
+- **Fresh Production SQL:** verified at database timestamp `2026-10-28 13:21:07.478162+00`. Company has 2 runsheets, 2 assigned runsheets, 0 active `delivery_agents`; RS-1 and RS-2 remain `Loaded` and assigned to their expected delivery users. `delivery_logistics_query` EXECUTE: authenticated=true, anon=false. No business data or schema was changed.
+- **Runtime observation:** connected browser snapshot for `https://rawaea-erp.pages.dev/companies/company-1/main` shows the old master-agent table and empty state, but not the separate `runsheet_assignments` table present in current Git. The same snapshot includes the login form and blank password, so it is not proof of an authenticated E2E.
+- **Logs:** Supabase logs show authenticated POST requests to `delivery_logistics_query` returning HTTP 200 at `2026-10-28T12:29:51.804Z` and `2026-10-28T12:29:57.914Z`; logs do not expose the response body or prove UI rendering.
+- **Decision:** The prior source and Production RPC repair is already present; do not repeat the same patch or create agent records. Exact runtime cause remains UNVERIFIED: served artifact drift vs stale/logged-out DOM vs client rendering/runtime issue. No Cloudflare deployment action was available in the connected tool set, so no deployment is claimed.
+- **Mutation ledger:** documentation only. No operational HTML, Supabase schema/data/RPC/ACL/RLS, inventory, accounting, or test fixtures were changed.
+- **Status:** `SOURCE + PRODUCTION DATA/RPC VERIFIED / LIVE PAGE SNAPSHOT DISCREPANCY OBSERVED / AUTHENTICATED PUBLISHED UI E2E AND ROOT CAUSE OPEN`.
+- **Next exact action:** in a normally authenticated published Parent session, inspect the `delivery_logistics_query` response for view `agents`. If it contains RS-1/RS-2 but the table is absent, capture the Console error and compare the served artifact to Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`; if the response lacks the rows, reconcile the invoked RPC. If served code is older, redeploy the intended `main` artifact and re-run authenticated E2E. Do not modify RS-1/RS-2 or repeat the existing source patch.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-526 — Parent Delivery Assignment Runtime Discrepancy Rechecked
 
 - **Observed:** 2026-10-28; fresh read-only Production SQL plus current browser snapshot inspection.
