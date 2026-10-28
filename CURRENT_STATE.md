@@ -1,7 +1,7 @@
 # LAST VERIFIED EVENT — LVE-2026-10-29-541 — Delivery Assignment Route-View Gap Reconciled; Owner Patch Prepared
 
 - **Observed:** 2026-10-28T21:19:36Z–21:22:57Z (UTC), direct read-only Production SQL/RPC, current Parent Git source/blob, authenticated Supabase request logs, and connected published-tab context.
-- **Report:** [Report541_DELIVERY_ASSIGNMENTS_ROUTE_VIEW_GAP_20261029.md](doc/Draft/Reprots/Report541_DELIVERY_ASSIGNMENTS_ROUTE_VIEW_GAP_20261029.md); report commit `9995c36478aa636c0ecee7b8d7c73d0346cfff0b`.
+- **Report:** [Report541_DELIVERY_ASSIGNMENTS_ROUTE_VIEW_GAP_20261029.md](doc/Draft/Reprots/Report541_DELIVERY_ASSIGNMENTS_ROUTE_VIEW_GAP_20261029.md); report latest update commit `7a97059353b671702caa9b5f120c7221d73b8806`.
 - **Fresh Production data:** RS-1 and RS-2 remain `Loaded`, assigned to active users in company `00000000-0000-0000-0000-000000000001`. Owner `owner@alrawae.com` remains Active with `permissions=["*"]`; the live auth subject observed in logs matches the owner's `public.users.auth_id`.
 - **Fresh direct RPC:** `delivery_logistics_query(...,'agents',...)` returns `success=true`, `runsheet_assignments=[RS-2, RS-1]`, and `rows=[]`. The latter is expected because the company's `delivery_agents` master registry is empty.
 - **Current Parent source:** `erp-frontend/main`, `companies/company-1/main.html`, blob `0c1745081e8d17480433ed527d77cac9f5292021`. Existing `agents()` consumer repair `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc` remains present and was not duplicated.
