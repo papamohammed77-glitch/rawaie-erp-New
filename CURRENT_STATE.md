@@ -1,7 +1,7 @@
 # LAST VERIFIED EVENT — LVE-2026-10-28-531 — Fresh Delivery Supervisor Production Reconciliation; UI Closure Still Open
 
 - **Observed:** 2026-10-28 16:32:37 UTC (fresh read-only Production SQL/RPC, current source checkpoint, existing repair commit, connected published DOM snapshot).
-- **Report:** [Report531_DELIVERY_SUPERVISOR_LIVE_PRODUCTION_RECONCILIATION_20261028.md](doc/Draft/Reprots/Report531_DELIVERY_SUPERVISOR_LIVE_PRODUCTION_RECONCILIATION_20261028.md); report commit `698b64cb97e2cfab5377f8787f5d38e03e07ebcc`.
+- **Report:** [Report531_DELIVERY_SUPERVISOR_LIVE_PRODUCTION_RECONCILIATION_20261028.md](doc/Draft/Reprots/Report531_DELIVERY_SUPERVISOR_LIVE_PRODUCTION_RECONCILIATION_20261028.md); report latest update commit `a691e4587329a5b89e7577b04f0340d48c4cf2a8`.
 - **Scope:** Supervisor assignment → `runsheets.deliverer_id` → Parent `delivery_logistics_query(view='agents')` → Delivery & Shipping UI.
 - **Fresh Production:** owner row active, `permissions=["*"]`, company `00000000-0000-0000-0000-000000000001`. RS-1 and RS-2 are `Loaded` and assigned. `delivery_logistics_query(uuid,text,jsonb,uuid,text)` returned `success=true`, `rows=[]` for the master `delivery_agents` registry, and both rows in `runsheet_assignments`. The function is SECURITY DEFINER with `search_path=public`; EXECUTE is granted to authenticated/service_role, not anon.
 - **Source checkpoint:** Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`; Supervisor blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`. Existing Parent table repair commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc` already renders `d.runsheet_assignments` separately from `d.rows`; do not repeat the patch.
