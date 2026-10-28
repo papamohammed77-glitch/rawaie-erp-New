@@ -1,3 +1,20 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-530 — Delivery Supervisor / Service Worker / Browser E2E Recheck
+
+- **Observed:** 2026-10-28 16:24:19 UTC (fresh read-only Production SQL/RPC), plus current Git source retrieval and connected-browser snapshot inspection.
+- **Report:** [Report530_DELIVERY_SUPERVISOR_INTEGRATION_SW_CI_FORENSIC_20261028.md](doc/Draft/Reprots/Report530_DELIVERY_SUPERVISOR_INTEGRATION_SW_CI_FORENSIC_20261028.md).
+- **Scope:** Delivery Supervisor assignment → `runsheets.deliverer_id` → Parent `delivery_logistics_query(view='agents')`; evaluate SW refresh proposal and browser workflow only.
+- **Fresh Production:** `delivery_logistics_query(uuid,text,jsonb,uuid,text)` returned `success=true`, `rows=0` for the administrative `delivery_agents` registry, and 2 `runsheet_assignments`: RS-1 and RS-2, both `Loaded`. Current ACL: authenticated EXECUTE=true, anon EXECUTE=false; SECURITY DEFINER, `search_path=public`.
+- **Current source IDs:** Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`; Supervisor blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`; `sw.js` blob `6123fce8b99391d70e6937bde5c4fcbd3f2d8f48`; `register-sw.js` blob `319697023f64265dd93691b078c070284733e1f0`; browser workflow blob `7f821b2afdcb8d15f205782218b427d06da03a6e`.
+- **Existing source repair:** commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc` already adds a distinct Parent table for `runsheet_assignments`; do not repeat it blindly.
+- **SW decision:** Current Git SW sends HTML/navigation and JS/runtime to the network; activation of a changed SW deletes old caches and reloads in-scope clients. A `SW_BUILD` bump is not proven as root-cause repair and was not applied. Live served SW parity remains UNVERIFIED.
+- **Workflow decision:** current `browser_e2e_mother_20260915.yml` is an anonymous smoke test, not authenticated assignment E2E. The alleged failure-causing step is not proven because an exact failing run log was not obtained. A more explicit event guard is documented as a conditional candidate in Report530, not applied.
+- **Runtime limitation:** connected production tab snapshot shows the login form and old administrative table but was last opened at `2026-10-28T15:28:04.980Z`; it is not a fresh authenticated E2E and cannot establish the current served artifact or root cause.
+- **Mutation ledger:** Report530 + this continuity entry only. No `main.html`, `supervisor.html`, SW, workflow, Production schema/data/RPC/ACL/RLS, runsheet, inventory, or accounting mutation.
+- **Status:** `PRODUCTION DATA/RPC VERIFIED / SOURCE PATCH PRESENT / AUTHENTICATED PUBLISHED UI E2E + SERVED ARTIFACT PARITY OPEN`.
+- **Next exact action:** use a normally authenticated session on the published Parent page. Capture the live `delivery_logistics_query` request/response for view `agents`, then verify whether RS-1/RS-2 are in `runsheet_assignments`. If present but not rendered, capture the first Console error and compare the served Parent/SW artifacts to the recorded Git blobs. Only then choose a surgical code or deployment fix. Do not send credentials/session tokens or create duplicate business data.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-529 — Fresh Production Recheck of Delivery Assignment Visibility
 
 - **Observed:** 2026-10-28 13:37:59 UTC (fresh Production SQL/RPC), plus current connected browser DOM snapshot.
