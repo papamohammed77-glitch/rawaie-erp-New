@@ -1,3 +1,18 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-538 — Fresh Production Recheck; Published UI Gate Still Open
+
+- **Observed:** 2026-10-28T20:40Z تقريبًا (UTC), direct read-only Supabase Production SQL/RPC, GitHub HEAD/blob check, and connected published-tab context read.
+- **Report:** [Report538_DELIVERY_ASSIGNMENTS_LIVE_RECHECK_20261028.md](doc/Draft/Reprots/Report538_DELIVERY_ASSIGNMENTS_LIVE_RECHECK_20261028.md); report commit `151545874c17df8da2e073077802ad1b09034884`.
+- **Fresh Production data:** RS-1 and RS-2 remain `Loaded`, with valid `deliverer_id` references to `driver@rawaea.com` and `driver3@rawaea.com` in company `00000000-0000-0000-0000-000000000001`.
+- **Fresh RPC:** `delivery_logistics_query(uuid,text,jsonb,uuid,text)` returned `success=true` and both runsheets in `runsheet_assignments`. `delivery_agents` master count remains 0; no synthetic rows created.
+- **Owner/security:** `owner@alrawae.com` remains Active with `permissions=["*"]`. RPC is `SECURITY DEFINER`, `search_path=public`, EXECUTE for authenticated, no anon EXECUTE.
+- **Current operational Git:** `erp-frontend/main` HEAD remains `8843150bdde99d36d477d6bb344a24df61dd2942`; Parent `companies/company-1/main.html` blob remains `0c1745081e8d17480433ed527d77cac9f5292021`. Existing consumer repair commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc` remains the documented repair; no duplicate patch was made.
+- **Published runtime:** connected tab content still includes a login form over the app shell and its last-opened timestamp is stale; this is not a fresh authenticated visit to the target view. Network body, target DOM, Console, and served Cloudflare artifact identity remain `UNVERIFIED`.
+- **Mutation ledger:** read-only Production investigation plus documentation only. No application code, RPC/ACL/RLS, business data, runsheet, inventory/accounting, Service Worker, or Cloudflare deployment changed. One read-only exploratory query initially used nonexistent `runsheet_number`; corrected to `runsheet_code` without data impact.
+- **Status:** `PRODUCTION DATA/RPC VERIFIED / SOURCE CONSUMER PRESENT / PUBLISHED AUTHENTICATED UI E2E UNVERIFIED / NOT CLOSED`.
+- **Next exact action:** in a normally authenticated published Parent session, open Delivery & Logistics → Delivery Representatives and capture the redacted `delivery_logistics_query` response for `agents`, verify RS-1/RS-2 in `runsheet_assignments`, inspect the assignment card/rows in DOM, and capture the first relevant Console error if the response contains assignments but the card is absent. Do not share credentials, cookies, JWTs, or Authorization headers.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-537 — Fresh Production RPC/Source Recheck; Published UI Gate Still Open
 
 - **Observed:** 2026-10-28T20:32:58.176304Z (direct read-only Production SQL/RPC), with current Git repair commit and published-tab snapshot rechecked.
