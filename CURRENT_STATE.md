@@ -1,3 +1,18 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-540 — Fresh Delivery Assignment RPC/Source Reconciliation; Authenticated UI Gate Open
+
+- **Observed:** 2026-10-28T21:00Z (UTC): direct read-only Production SQL, live RPC invocation, Supabase PostgreSQL logs, full GitHub file-content review through the connected GitHub page, and published-tab context read.
+- **Report:** [Report540_DELIVERY_ASSIGNMENTS_AUTHENTICATED_UI_GATE_20261028.md](doc/Draft/Reprots/Report540_DELIVERY_ASSIGNMENTS_AUTHENTICATED_UI_GATE_20261028.md); report commit `7dee91c3002d3e60288cbf36899dd52e0a4803d2`.
+- **Production data:** RS-1 and RS-2 remain `Loaded`, assigned to active users in company `00000000-0000-0000-0000-000000000001`; `delivery_agents` master count remains 0. No business data changed.
+- **Fresh RPC:** direct Production call with the valid owner application-user ID returned `success=true` and `runsheet_assignments=[RS-2, RS-1]`. `rows=[]` is expected from the empty master-agent registry and does not mean runsheet assignments are absent.
+- **Current Parent source:** `erp-frontend/main`, HEAD observed in prior live checkpoint `8843150bdde99d36d477d6bb344a24df61dd2942`; blob `companies/company-1/main.html` = `0c1745081e8d17480433ed527d77cac9f5292021`. Full content was reviewed: 33,153 lines / 1,788,154 characters. Existing consumer repair commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc` remains present; `agents()` reads `d.runsheet_assignments` and renders the separate assignment card.
+- **Identity contract:** Production `delivery_logistics_query(uuid,text,jsonb,uuid,text)` is SECURITY DEFINER with `search_path=public`; with a valid JWT it resolves `public.users.auth_id=auth.uid()`, company-scoped and Active. A diagnostic SQL call with no auth context and NULL `p_actor_user_id` raised the expected identity error; this is not an authenticated HTTP E2E and is not evidence of failure in a valid user session.
+- **Published UI:** the connected production tab currently displays the login form; no fresh authenticated visit to the target view. Network response, assignment-card DOM, Console, and Cloudflare-served artifact identity remain UNVERIFIED.
+- **Mutation ledger:** Production/source/operational data unchanged; documentation only. No RPC/ACL/RLS, runsheet, inventory/accounting, Service Worker, Cloudflare deployment, or test data changed.
+- **Status:** `PRODUCTION DATA/RPC + CURRENT SOURCE CONSUMER VERIFIED / AUTHENTICATED PUBLISHED UI E2E UNVERIFIED / NOT CLOSED`.
+- **Next exact action:** sign in normally in the published Parent tab and open Delivery & Logistics → Delivery Representatives; verify RS-1/RS-2 in the assignment card. If absent, capture the redacted `delivery_logistics_query` response and first relevant Console error. Do not share credentials, cookies, JWTs, or Authorization headers.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-539 — Fresh Production RPC Recheck; Published UI Gate Still Open
 
 - **Observed:** 2026-10-28T20:45:21Z (UTC), direct read-only Supabase Production SQL/RPC; GitHub repair-commit diff and current Parent blob checked; connected published-tab context read.
