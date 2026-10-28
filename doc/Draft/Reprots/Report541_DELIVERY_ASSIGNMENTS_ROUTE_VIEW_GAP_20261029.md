@@ -101,9 +101,16 @@ Commit الإصلاح السابق: **cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc**
 استبدل هذا السطر وحده بالمقطع التالي:
 
 ~~~javascript
-    var assignmentData = await q('agents',{search:'',status:'Active',limit:200,offset:0});
-    var assignments = Array.isArray(assignmentData.runsheet_assignments)
-      ? assignmentData.runsheet_assignments : [];
+    var assignmentData = null;
+    var assignments = [];
+    var assignmentLoadError = '';
+    try {
+      assignmentData = await q('agents',{search:'',status:'Active',limit:200,offset:0});
+      assignments = Array.isArray(assignmentData.runsheet_assignments)
+        ? assignmentData.runsheet_assignments : [];
+    } catch (e) {
+      assignmentLoadError = e && e.message ? e.message : 'تعذر تحميل التكليفات الفعلية';
+    }
     var assignmentRows = assignments.map(function(a){
       var labels = {
         Loaded:'محملة',
@@ -121,6 +128,9 @@ Commit الإصلاح السابق: **cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc**
         '<td class="p-3">'+badge(labels[a.status] || a.status,'info')+'</td>' +
         '<td class="p-3">'+agentLink+'</td></tr>';
     }).join('');
+    var assignmentEmptyMessage = assignmentLoadError
+      ? 'تعذر تحميل التكليفات: '+esc(assignmentLoadError)
+      : 'لا توجد رانشيتات مسندة إلى مندوبي التوصيل في الحالات المعروضة.';
     var assignmentTable =
       '<div style="overflow:auto"><table class="w-full"><thead><tr>' +
       ['الرانشيت','التاريخ','مندوب التوصيل المسند فعليًا','الحالة','ربط سجل اللوجستيات']
@@ -128,7 +138,7 @@ Commit الإصلاح السابق: **cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc**
       '</tr></thead><tbody>' +
       (assignmentRows ||
         '<tr><td colspan="5" class="text-center p-8 text-slate-400">' +
-        'لا توجد رانشيتات مسندة إلى مندوبي التوصيل في الحالات المعروضة.</td></tr>') +
+        assignmentEmptyMessage + '</td></tr>') +
       '</tbody></table></div>';
     set(shell(
       card(
@@ -138,7 +148,6 @@ Commit الإصلاح السابق: **cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc**
       ) +
       card('الرحلات والمسارات','خطة مقابل تنفيذ ومحصلة مالية',table)
     ));
-~~~
 
 ### لماذا هذا الإصلاح هو الأنسب؟
 
