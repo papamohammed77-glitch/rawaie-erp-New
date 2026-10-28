@@ -1,3 +1,16 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-532 — Delivery Supervisor Fresh Production Reconciliation; Authenticated UI Gate Still Open
+
+- **Observed:** 2026-10-28 16:47:33 UTC (fresh read-only Production SQL/RPC), plus current Git ancestry and connected-tab context.
+- **Report:** [Report532_DELIVERY_SUPERVISOR_FRESH_RECONCILIATION_20261028.md](doc/Draft/Reprots/Report532_DELIVERY_SUPERVISOR_FRESH_RECONCILIATION_20261028.md); report commit `afd716d248219e42f78933ba26674156ac53dea9`.
+- **Live Production:** `delivery_logistics_query(uuid,text,jsonb,uuid,text)` returned `success=true`, master `rows=[]`, and `runsheet_assignments=[RS-2, RS-1]`; both assigned runsheets are `Loaded`. `delivery_agents` has zero rows for the company. The function is `SECURITY DEFINER`, `search_path=public`, EXECUTE granted to authenticated/service_role and denied to anon.
+- **Source/history:** Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`; Supervisor blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`; repair commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc`; recorded main checkpoint `8843150bdde99d36d477d6bb344a24df61dd2942` is five commits ahead of the repair and does not roll it back.
+- **Runtime observation:** The available connected Parent snapshot shows the master-agent empty state and a visible login overlay; its last-opened time is `2026-10-28T16:28:45Z`, so it is not fresh authenticated E2E and cannot prove current production regression.
+- **Decision:** Do not repeat the existing Parent patch, create fake `delivery_agents` records, modify SQL/ACL, or bump Service Worker without new evidence. No operational mutation was justified.
+- **Status:** `PRODUCTION DATA/RPC VERIFIED / SOURCE PATCH PRESENT / FRESH AUTHENTICATED UI E2E OPEN / NOT CLOSED`.
+- **Exact next step:** Freshly authenticate in the published Parent UI, open Delivery & Shipping → Delivery Representatives, and capture the redacted Network response for `delivery_logistics_query(p_view='agents')`, whether `RS-1/RS-2` are returned, whether the separate assignment table renders, and the first relevant Console error. The available Chat-mode browser connector is read-only and cannot perform login/refresh or inspect Network/Console. Do not share credentials or tokens.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-531 — Fresh Delivery Supervisor Production Reconciliation; UI Closure Still Open
 
 - **Observed:** 2026-10-28 16:32:37 UTC (fresh read-only Production SQL/RPC, current source checkpoint, existing repair commit, connected published DOM snapshot).
