@@ -1,3 +1,19 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-534 — Daily Source/Production Parity Revalidation; Published Parent Runtime Still Open
+
+- **Observed:** 2026-10-28T18:57:09.323176Z (fresh read-only Production SQL), with current operational source, Git ancestry, migration registry, function ACL/RLS metadata, and Supabase logs rechecked.
+- **Report:** [Report534_DELIVERY_SUPERVISOR_DAILY_PRODUCTION_SOURCE_PARITY_RECHECK_20261028.md](doc/Draft/Reprots/Report534_DELIVERY_SUPERVISOR_DAILY_PRODUCTION_SOURCE_PARITY_RECHECK_20261028.md); report commit `ffdc2b0a03ef587519afed4bcccb422991c132e4`; report blob `452994f20a8d0aae4b0fd17b7deed41678c70029`.
+- **Starting checkpoint:** LVE-2026-10-28-533; canonical governance blob `54f61542694f3d98925b43752a98b7f59a56c31f` (1,412 lines). Report533/532/531 were re-read before fresh verification.
+- **Operational Git:** `papamohammed77-glitch/erp-frontend`, branch `main`; latest observed commit `8843150bdde99d36d477d6bb344a24df61dd2942`. Current Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`; Supervisor blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`. Comparing the Parent repair `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc` to the latest observed commit shows five commits ahead; the changed files are documentation/extract artifacts, not `main.html` or `supervisor.html`.
+- **New direct parity proof:** Production migration registry contains `20261027170454 / delivery_supervisor_parent_runsheet_assignments`. The normalized body of live `public.delivery_logistics_query(uuid,text,jsonb,uuid,text)` exactly matches the current Git migration `supabase/migrations/20261027_delivery_supervisor_parent_runsheet_assignments.sql` (blob `d3eed778670833ed84d68f765e336fbb7c3db3e9`; normalized bodies both 14,232 characters).
+- **Fresh Production data:** RS-1 and RS-2 remain `Loaded` with non-null `deliverer_id`; company `delivery_agents` count remains 0. No business data changed.
+- **Security contract:** `delivery_logistics_query` remains SECURITY DEFINER with `search_path=public`, EXECUTE for authenticated/service_role (plus owner), not anon/PUBLIC. The supervisor query and atomic assignment RPCs remain SECURITY DEFINER with company/auth/permission checks; the assignment writer targets `runsheets.deliverer_id`. RLS is enabled on `runsheets`, `users`, and `delivery_agents`.
+- **Runtime/deployment:** Supabase logs show authenticated HTTP 200 calls to the Parent RPC, but not response bodies. Direct published-page access failed in this run; Browser connector requires an originating browser context, and no Cloudflare control tool was available. Served artifact identity, headers/cache, fresh authenticated DOM, Network body, and Console remain UNVERIFIED.
+- **Mutation ledger:** documentation only. No operational HTML, Supabase schema/data/RPC/ACL/RLS, Edge Function, Service Worker, deployment, runsheet, inventory, or accounting mutation.
+- **Status:** `SOURCE + PRODUCTION RPC/MIGRATION BODY PARITY CONFIRMED / LIVE ASSIGNMENTS CONFIRMED / PUBLISHED AUTHENTICATED UI E2E UNVERIFIED / NOT CLOSED`.
+- **Exact next step:** in a fresh normally authenticated published Parent session, open Delivery & Logistics → Delivery Representatives and capture the redacted `delivery_logistics_query(p_view='agents')` response, presence of RS-1/RS-2 in `runsheet_assignments`, the assignment-table DOM, and the first Console error if rows are returned but not rendered. Do not repeat the source patch or alter SQL/ACL/SW before this evidence.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-533 — Delivery Supervisor Fresh SQL/Source/Log Reconciliation; Published UI Closure Still Open
 
 - **Observed:** 2026-10-28 16:57:17 UTC (fresh Production SQL), plus current source and Supabase logs.
