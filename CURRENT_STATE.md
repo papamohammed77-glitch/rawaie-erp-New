@@ -1,3 +1,18 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-535 — Fresh Production Recheck of Delivery Assignment Visibility
+
+- **Observed:** 2026-10-28T20:02:02.802010Z, direct read-only Production SQL/RPC plus current Git source and ancestry.
+- **Report:** [Report535_DELIVERY_ASSIGNMENTS_FRESH_PRODUCTION_RECHECK_20261028.md](doc/Draft/Reprots/Report535_DELIVERY_ASSIGNMENTS_FRESH_PRODUCTION_RECHECK_20261028.md); report commit `0451141817630fab170fe163c63148146c4c387a`.
+- **Current operational Git:** `papamohammed77-glitch/erp-frontend`; Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`; Supervisor blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`.
+- **Fresh Production result:** authenticated-context call to `delivery_logistics_query(...,'agents',...)` returned `success=true`, `runsheet_assignments=[RS-2, RS-1]`, both `Loaded` with assigned users; master `delivery_agents` rows=0. The distinction is intentional; do not create synthetic master-agent rows.
+- **RPC/migration:** live `delivery_logistics_query(uuid,text,jsonb,uuid,text)` remains SECURITY DEFINER with `search_path=public`, EXECUTE for authenticated/service_role and no anon/PUBLIC grant shown; live migration registry includes `20261027170454 / delivery_supervisor_parent_runsheet_assignments`. The previous fresh parity check proved normalized body equality between live function and current migration.
+- **Consumer repair:** commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc` already adds a separate `runsheet_assignments` table in `RW_DeliveryLogistics.agents()`. Five later commits to HEAD `8843150bdde99d36d477d6bb344a24df61dd2942` changed only documentation/extract artifacts, not `main.html` or `supervisor.html`.
+- **No operational mutation:** no source file, Production schema/data/RPC/ACL/RLS, runsheet, inventory, accounting, or deployment changed.
+- **Runtime gate remains open:** the connected published Parent tab shows the login form. No fresh authenticated Network response, DOM, Console, or served-artifact identity was available. Do not repeat the source patch or alter SQL/ACL/SW before capturing those artifacts.
+- **Status:** `SOURCE + PRODUCTION RPC VERIFIED / PUBLISHED AUTHENTICATED UI E2E UNVERIFIED / NOT CLOSED`.
+- **Next action:** in a normally authenticated published Parent session, open Delivery & Logistics → Delivery Representatives and capture the redacted `delivery_logistics_query` response for `agents`, presence of RS-1/RS-2 in `runsheet_assignments`, the assignment-table DOM, and the first Console error if rows arrive but are not rendered. Never share credentials, cookies, JWTs, or Authorization headers.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-534 — Daily Source/Production Parity Revalidation; Published Parent Runtime Still Open
 
 - **Observed:** 2026-10-28T18:57:09.323176Z (fresh read-only Production SQL), with current operational source, Git ancestry, migration registry, function ACL/RLS metadata, and Supabase logs rechecked.
