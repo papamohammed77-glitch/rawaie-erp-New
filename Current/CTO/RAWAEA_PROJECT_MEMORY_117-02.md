@@ -229,6 +229,7 @@ Never repeat:
 - Deployment lineage: PARTIAL / OPEN
 - New-main: candidate only
 - Main replacement: unauthorized
+- Latest active integration checkpoint from CURRENT_STATE LVE-2026-10-28-534: Delivery Supervisor → Parent assignment visibility remains OPEN. Current Parent source and live Production RPC/migration body are aligned; RS-1/RS-2 remain assigned and Loaded. Published artifact identity and fresh authenticated UI E2E are UNVERIFIED. This does not close the older MAIN1/security backlog above.
 
 
 ## 23. LAST VERIFIED MEMORY EVENT — LVE-2026-10-23-473
@@ -366,3 +367,14 @@ Never repeat:
 - Status: SOURCE + PRODUCTION REVALIDATED / OWNER PATCH CORRECTED AND STATIC-PARSED IN MEMORY / LOADING CONTRACT CONFLICT OPEN / DEPLOYMENT UNKNOWN / STAGING + BROWSER E2E UNVERIFIED / NOT CLOSED.
 - Next: owner re-fetches Loader and verifies SHA, applies Report488 to Loader only, checks full-file syntax on the saved artifact, then validates item detail/image fallback and zero stock/allocated_qty/inventory_log delta in an authorized active isolated Staging. The zero-quantity/notes/direct-save contract remains a separate blocker; do not claim production-ready loading until resolved.
 
+
+
+## LAST VERIFIED MEMORY EVENT — LVE-2026-10-28-534 — Delivery Supervisor → Parent Assignment Display
+
+- **Authority:** `CURRENT_STATE.md` LVE-2026-10-28-534 and Report534 are the current execution record; this ledger remains secondary continuity memory.
+- **Operational source:** `papamohammed77-glitch/erp-frontend`, branch `main`; latest observed commit `8843150bdde99d36d477d6bb344a24df61dd2942`; Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`; Supervisor blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`.
+- **Production:** at `2026-10-28T18:57:09.323176Z`, RS-1 and RS-2 remained `Loaded` with `deliverer_id`; `delivery_agents` count remained 0. The live `delivery_logistics_query` body matched the current Git migration body exactly after whitespace normalization; migration version `20261027170454` is present.
+- **Security:** relevant RPCs remain SECURITY DEFINER with authenticated/service_role EXECUTE and no anon grant; company/auth/permission checks are present in the inspected definitions. No schema, ACL/RLS, operational source, deployment, or business data was changed in this revalidation.
+- **Current diagnosis:** the source renders `d.runsheet_assignments` separately and the live RPC returns that projection; source/Production contract drift is not the current proven defect. Do not repeat the Parent patch, create `delivery_agents` records to mirror assignments, change SQL/ACL, or bump Service Worker without new evidence.
+- **Open gate:** exact Cloudflare-served artifact and fresh authenticated Parent DOM/Network/Console evidence remain UNVERIFIED because the available browser connector has no originating browser context and direct page fetch was unavailable.
+- **Next:** a normally authenticated published Parent session must capture the `delivery_logistics_query(p_view='agents')` response, confirm RS-1/RS-2 in `runsheet_assignments`, inspect the assignment-table DOM, and capture the first Console error if the payload has rows but the table is absent. Preserve the historical MAIN1/security backlog; this event does not close it.
