@@ -1,3 +1,18 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-539 — Fresh Production RPC Recheck; Published UI Gate Still Open
+
+- **Observed:** 2026-10-28T20:45:21Z (UTC), direct read-only Supabase Production SQL/RPC; GitHub repair-commit diff and current Parent blob checked; connected published-tab context read.
+- **Report:** [Report539_DELIVERY_ASSIGNMENTS_FRESH_RUNTIME_GATE_20261028.md](doc/Draft/Reprots/Report539_DELIVERY_ASSIGNMENTS_FRESH_RUNTIME_GATE_20261028.md); report commit `1d51d8ce42f3511a779046698f7a7f71406bbde0`.
+- **Fresh Production data:** RS-1 and RS-2 remain `Loaded`, each with a valid `deliverer_id` linked to an active user in company `00000000-0000-0000-0000-000000000001`. `delivery_agents` master count remains 0.
+- **Fresh RPC:** direct call to `delivery_logistics_query(uuid,text,jsonb,uuid,text)` returned `success=true`, `rows=[]`, and `runsheet_assignments=[RS-2, RS-1]`. Empty master-agent rows do not mean assignments are absent.
+- **Owner/security:** `owner@alrawae.com` remains Active with `permissions=["*"]`. Function metadata confirms `SECURITY DEFINER` and `search_path=public`; no RPC/security changes were made.
+- **Current operational Git:** `erp-frontend/main` HEAD `8843150bdde99d36d477d6bb344a24df61dd2942`; Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`. Commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc` directly proves the consumer reads `d.runsheet_assignments` and renders a separate assignment card.
+- **Published runtime:** connected published tab still exposes the login form over the app shell; this is not a fresh authenticated visit to the target view. Network body, target DOM, Console, and Cloudflare-served artifact identity remain `UNVERIFIED`.
+- **Mutation ledger:** read-only Production data/RPC checks and documentation only. No operational source, database data/schema, RPC/ACL/RLS, runsheet assignment, inventory/accounting, Service Worker, or Cloudflare deployment changed.
+- **Status:** `PRODUCTION DATA/RPC VERIFIED / SOURCE CONSUMER PRESENT / PUBLISHED AUTHENTICATED UI E2E UNVERIFIED / NOT CLOSED`.
+- **Next exact action:** in a normally authenticated published Parent session, open Delivery & Logistics → Delivery Representatives and capture the redacted `delivery_logistics_query` response for `agents`, verify RS-1/RS-2 in `runsheet_assignments`, inspect the assignment-card DOM, and capture the first related Console error if rows are returned but not rendered. Do not share credentials, cookies, JWTs, or Authorization headers.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-538 — Fresh Production Recheck; Published UI Gate Still Open
 
 - **Observed:** 2026-10-28T20:40Z تقريبًا (UTC), direct read-only Supabase Production SQL/RPC, GitHub HEAD/blob check, and connected published-tab context read.
