@@ -1,3 +1,19 @@
+# LAST VERIFIED EVENT — LVE-2026-10-29-542 — Live Delivery Assignment Route-View Reconciliation; Owner Patch Prepared
+
+- **Observed:** 2026-10-28 21:49–21:53 UTC (Egypt local date 2026-10-29), direct read-only Supabase Production SQL/RPC, current Parent Git source/blob, Git commit history, and connected published-tab context.
+- **Report:** [Report542_DELIVERY_ASSIGNMENTS_ROUTE_PATCH_RECONCILIATION_20261029.md](doc/Draft/Reprots/Report542_DELIVERY_ASSIGNMENTS_ROUTE_PATCH_RECONCILIATION_20261029.md); report created in this checkpoint.
+- **Fresh Production:** RS-1 and RS-2 remain `Loaded`, assigned to active users in company `00000000-0000-0000-0000-000000000001`. Counts remain `delivery_agents=0`, `delivery_route_plans=0`, `delivery_route_stops=0`.
+- **Fresh direct RPC:** `delivery_logistics_query(...,'agents',...)` returned `success=true`, `rows=[]`, `runsheet_assignments=[RS-2, RS-1]`; `routes` returned `rows=[]`; `planning` over October returned both runsheets with `has_route_plan=false`.
+- **Current Parent source:** `papamohammed77-glitch/erp-frontend/main`, `companies/company-1/main.html`, blob `0c1745081e8d17480433ed527d77cac9f5292021`; repository HEAD `8843150bdde99d36d477d6bb344a24df61dd2942`; last file-change commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc`.
+- **Confirmed root cause:** current `routes()` consumes only route-plan rows and never renders `runsheet_assignments`; existing `agents()` repair already renders those assignments. The route-plan table is correctly empty because Production has no route plans.
+- **Owner patch:** Report542 contains one surgical replacement at the final render line inside `routes()`, around source line 30633. It adds a separate assignment card, catches assignment-query failures, and preserves the route-plan table. Parent source was not changed by the assistant, per the permanent operating constitution.
+- **Runtime boundary:** connected published tab shows login-form elements and the route-plan empty state; it is not a fresh authenticated E2E. Served-artifact identity, authenticated Network/DOM/Console, and post-patch production behavior remain UNVERIFIED.
+- **Mutation ledger:** documentation only. No Parent source, Cloudflare deployment, DB/schema/RPC/ACL/RLS, delivery data, inventory, or accounting changed.
+- **Status:** `ROOT CAUSE CONFIRMED — OWNER PATCH PREPARED — PRODUCTION UI E2E OPEN — NOT CLOSED`.
+- **Next exact action:** owner applies the documented single-line replacement and publishes through the normal workflow; then verify both “الرحلات والمسارات” and “مناديب التوصيل” in a fresh authenticated session and reconcile the served artifact.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-29-541 — Delivery Assignment Route-View Gap Reconciled; Owner Patch Prepared
 
 - **Observed:** 2026-10-28T21:19:36Z–21:22:57Z (UTC), direct read-only Production SQL/RPC, current Parent Git source/blob, authenticated Supabase request logs, and connected published-tab context.
