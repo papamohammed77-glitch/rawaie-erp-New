@@ -1,7 +1,7 @@
 # LAST VERIFIED EVENT — LVE-2026-10-28-533 — Delivery Supervisor Fresh SQL/Source/Log Reconciliation; Published UI Closure Still Open
 
 - **Observed:** 2026-10-28 16:57:17 UTC (fresh Production SQL), plus current source and Supabase logs.
-- **Report:** [Report533_DELIVERY_SUPERVISOR_RUNTIME_RECONCILIATION_20261028.md](doc/Draft/Reprots/Report533_DELIVERY_SUPERVISOR_RUNTIME_RECONCILIATION_20261028.md); report commit `051e43aaf643f28cd8ed251a73087a21054b9124`.
+- **Report:** [Report533_DELIVERY_SUPERVISOR_RUNTIME_RECONCILIATION_20261028.md](doc/Draft/Reprots/Report533_DELIVERY_SUPERVISOR_RUNTIME_RECONCILIATION_20261028.md); report latest update commit `cb5a6b659fd6a81be454fd6cf20e8f1d94915d6d`.
 - **Fresh Production data:** RS-2 (2026-10-12) and RS-1 (2026-10-10) remain `Loaded`, assigned respectively to `driver3@rawaea.com` and `driver@rawaea.com`; `delivery_agents` master rows for the company remain 0. No business data was changed.
 - **Production RPC:** Live definition of `delivery_logistics_query(uuid,text,jsonb,uuid,text)` returns a separate `runsheet_assignments` projection from `runsheets.deliverer_id` joined to `users.id`; it remains distinct from master-agent `rows`.
 - **Source:** Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`; Supervisor blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`; source repair commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc` already adds the separate assignment table.
