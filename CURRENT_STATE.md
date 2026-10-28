@@ -1,3 +1,17 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-531 — Fresh Delivery Supervisor Production Reconciliation; UI Closure Still Open
+
+- **Observed:** 2026-10-28 16:32:37 UTC (fresh read-only Production SQL/RPC, current source checkpoint, existing repair commit, connected published DOM snapshot).
+- **Report:** [Report531_DELIVERY_SUPERVISOR_LIVE_PRODUCTION_RECONCILIATION_20261028.md](doc/Draft/Reprots/Report531_DELIVERY_SUPERVISOR_LIVE_PRODUCTION_RECONCILIATION_20261028.md); report commit `698b64cb97e2cfab5377f8787f5d38e03e07ebcc`.
+- **Scope:** Supervisor assignment → `runsheets.deliverer_id` → Parent `delivery_logistics_query(view='agents')` → Delivery & Shipping UI.
+- **Fresh Production:** owner row active, `permissions=["*"]`, company `00000000-0000-0000-0000-000000000001`. RS-1 and RS-2 are `Loaded` and assigned. `delivery_logistics_query(uuid,text,jsonb,uuid,text)` returned `success=true`, `rows=[]` for the master `delivery_agents` registry, and both rows in `runsheet_assignments`. The function is SECURITY DEFINER with `search_path=public`; EXECUTE is granted to authenticated/service_role, not anon.
+- **Source checkpoint:** Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`; Supervisor blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`. Existing Parent table repair commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc` already renders `d.runsheet_assignments` separately from `d.rows`; do not repeat the patch.
+- **Observed discrepancy:** available published DOM snapshot does not show the separate assignment table. It is not a fresh authenticated E2E; exact served artifact identity and browser Console/Network evidence were not obtainable through the read-only tab interface in this run.
+- **Decision:** no operational HTML, SQL, ACL/RLS, Service Worker, workflow, runsheet, agent, inventory, or accounting mutation was justified. Do not create master `delivery_agents` rows to mirror runsheet assignments. Do not bump Service Worker version without evidence of stale served worker.
+- **Status:** `PRODUCTION DATA/RPC VERIFIED / SOURCE PATCH PRESENT / AUTHENTICATED PUBLISHED UI E2E OPEN / NOT CLOSED`.
+- **Next exact action:** in a fresh normally authenticated published Parent session, inspect the `delivery_logistics_query` Network response for view `agents`. If RS-1/RS-2 are returned but the table is absent, capture the first Console error and served Parent artifact identity; if the response lacks assignments, capture the actual RPC call/response. Compare served HTML/JS against the current Git blob before any new surgical change. Do not send credentials, cookies, or session tokens.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-530 — Delivery Supervisor / Service Worker / Browser E2E Recheck
 
 - **Observed:** 2026-10-28 16:24:19 UTC (fresh read-only Production SQL/RPC), plus current Git source retrieval and connected-browser snapshot inspection.
