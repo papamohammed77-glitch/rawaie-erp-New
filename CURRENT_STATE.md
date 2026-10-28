@@ -1,3 +1,18 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-528 — Delivery Supervisor Assignment Visibility Rechecked Against Live Production
+
+- **Observed:** 2026-10-28 13:28:02 UTC; direct read-only Production SQL, current Git source, Git ancestry comparison, Cloudflare Pages dashboard snapshot, and connected published-page snapshot.
+- **Report:** [Report528_DELIVERY_SUPERVISOR_ASSIGNMENT_VISIBILITY_FORENSIC_20261028.md](doc/Draft/Reprots/Report528_DELIVERY_SUPERVISOR_ASSIGNMENT_VISIBILITY_FORENSIC_20261028.md); report commit `c32dd26f8f905035988e505e295b8d4fdc2a6c27`.
+- **Scope:** `delivery/supervisor.html` → `runsheets.deliverer_id` → Parent `delivery_logistics_query(view='agents')` → Delivery & Shipping.
+- **Current operational source:** `papamohammed77-glitch/erp-frontend`, branch `main`. Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`; Supervisor blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`. Existing source patch: `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc`.
+- **Git/Pages checkpoint:** Cloudflare dashboard snapshot shows Production on commit `8843150bdde99d36d477d6bb344a24df61dd2942`; Git compare confirms this commit is 5 commits after and includes the source-repair commit in its ancestry. This does not prove byte-for-byte artifact parity.
+- **Fresh Production SQL:** at `2026-10-28T13:28:02.621062+00:00`, `delivery_logistics_query` returned `master_agent_rows=[]` and `runsheet_assignments` containing RS-1 / «مندوب توصيل» and RS-2 / «مندوب توصيل 3», both Loaded. Active `delivery_agents` rows=0. EXECUTE ACL allows `authenticated` and `service_role`; `anon` is not granted.
+- **Interpretation:** assignment and master-agent registry are distinct. The supervisor RPC persists `runsheets.deliverer_id`; the parent RPC returns those assignments separately under `runsheet_assignments`. Do not create `delivery_agents` records just to mirror runsheet assignments.
+- **Runtime:** current connected production browser snapshot shows login form with blank password and does not expose the assignment table. It is not authenticated E2E evidence; exact post-login UI behavior remains UNVERIFIED. No source or Production mutation was performed; documentation only.
+- **Status:** `PRODUCTION ASSIGNMENTS + RPC VERIFIED / SOURCE PATCH PRESENT / AUTHENTICATED PUBLISHED UI E2E OPEN`.
+- **Next exact action:** after normal sign-in on the published Parent page, inspect the `delivery_logistics_query` response for view `agents`. If it contains RS-1/RS-2 but the table is absent, capture Console error and isolate `RW_DeliveryLogistics.agents()` rendering. If response omits assignments, capture the request/response and reconcile the invoked RPC. Do not modify existing assignments or create duplicate agent records.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-527 — Published Parent Runtime Rechecked; Assignment Table Still Absent from Browser Snapshot
 
 - **Observed:** 2026-10-28; fresh read-only Production SQL, current Git artifacts, browser tab snapshot, and Supabase request logs.
