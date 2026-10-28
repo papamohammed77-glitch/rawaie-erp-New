@@ -1,3 +1,18 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-529 — Fresh Production Recheck of Delivery Assignment Visibility
+
+- **Observed:** 2026-10-28 13:37:59 UTC (fresh Production SQL/RPC), plus current connected browser DOM snapshot.
+- **Report:** [Report529_DELIVERY_SUPERVISOR_ASSIGNMENT_RUNTIME_RECHECK_20261028.md](doc/Draft/Reprots/Report529_DELIVERY_SUPERVISOR_ASSIGNMENT_RUNTIME_RECHECK_20261028.md); report commit `074f0a55042737ea1de28731bdbb62c6c473cff2`.
+- **Scope:** Delivery Supervisor → `runsheets.deliverer_id` → `delivery_logistics_query(view='agents')` → Parent delivery logistics UI.
+- **Fresh Production result:** the authenticated-context SQL contract call returned `success=true`, `rows=[]`, and `runsheet_assignments` containing RS-1 and RS-2, both `Loaded`; eligible assigned runsheets=2; active `delivery_agents`=0. The result confirms that assignment rows and the master agent registry are distinct.
+- **Function checks:** current `delivery_logistics_query(uuid,text,jsonb,uuid,text)` is `SECURITY DEFINER`, `search_path=public`, EXECUTE granted to `authenticated`, denied to `anon`; its current definition returns `runsheet_assignments`. Current `delivery_supervisor_assign_deliverer_atomic` verifies authenticated actor/company/permissions/target eligibility and updates `deliverer_id` without modifying `driver_id` or `vehicle_id`.
+- **Current source checkpoint:** Parent blob `0c1745081e8d17480433ed527d77cac9f5292021`; Supervisor blob `3e6db903cd7da411f9ed40a449f9ee5bece5f387`; prior UI source repair commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc`.
+- **Runtime:** connected Production tab DOM still shows the login form with blank password and the empty administrative `delivery_agents` table; the separate runsheet-assignment section is absent from this snapshot. Since the session is not authenticated, this is not authenticated E2E and does not isolate the root cause. Served artifact parity is also unverified.
+- **Changes:** documentation only. No operational HTML, Production schema/data/RPC/ACL/RLS, Edge Function, runsheet, or delivery-agent row was changed. No deployment was performed.
+- **Status:** `PRODUCTION RPC/DATA CONTRACT VERIFIED / PUBLISHED DOM DISCREPANCY OBSERVED / AUTHENTICATED UI E2E OPEN`.
+- **Next exact action:** owner signs in normally on the published Parent page, opens Delivery & Shipping → Delivery Representatives, and confirms whether the separate runsheet assignment section appears. If absent, capture the `delivery_logistics_query` `agents` Network response and first Console error. Do not send credentials or session tokens. Then resolve the exact runtime/deployment cause without repeating the existing source patch.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-528 — Delivery Supervisor Assignment Visibility Rechecked Against Live Production
 
 - **Observed:** 2026-10-28 13:28:02 UTC; direct read-only Production SQL, current Git source, Git ancestry comparison, Cloudflare Pages dashboard snapshot, and connected published-page snapshot.
