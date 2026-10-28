@@ -1,3 +1,18 @@
+# LAST VERIFIED EVENT — LVE-2026-10-28-537 — Fresh Production RPC/Source Recheck; Published UI Gate Still Open
+
+- **Observed:** 2026-10-28T20:32:58.176304Z (direct read-only Production SQL/RPC), with current Git repair commit and published-tab snapshot rechecked.
+- **Report:** [Report537_DELIVERY_ASSIGNMENTS_RUNTIME_SYNC_RECHECK_20261028.md](doc/Draft/Reprots/Report537_DELIVERY_ASSIGNMENTS_RUNTIME_SYNC_RECHECK_20261028.md); report commit `c9c2053c4da50121b6a088fa592ae2f614d1f8ad`.
+- **Production actor:** `owner@alrawae.com` is Active in company `00000000-0000-0000-0000-000000000001), with `permissions=["*"]`; read-only call only.
+- **Fresh Production:** RS-1 and RS-2 remain `Loaded`, assigned to `driver@rawaea.com` and `driver3@rawaea.com`; `delivery_agents` master count remains 0. Direct call to `delivery_logistics_query(company_id,'agents','{}',owner.id,owner.email)` returned `success=true` and both rows in `runsheet_assignments`.
+- **Current Parent source:** `companies/company-1/main.html`, blob `0c1745081e8d17480433ed527d77cac9f5292021`; existing consumer repair commit `cb62612a174f5b1a8d5aa5a41a4c3e5747bb73fc` builds a separate assignment card from `d.runsheet_assignments`.
+- **Security:** RPC is `SECURITY DEFINER`, `search_path=public`; EXECUTE observed for authenticated/service_role/postgres, no anon grant shown.
+- **Published runtime:** Connected published tab still shows login form, not a fresh authenticated visit to the target view. No authenticated Network response body, target-view DOM, Console error, or served artifact identity available. Root cause for current published UI remains **UNVERIFIED**.
+- **Mutation ledger:** Read-only Production investigation; no application source, business data, RPC/ACL/RLS, Edge Function, Service Worker, Cloudflare deployment, inventory, or accounting mutation. Two exploratory SQL queries failed on nonexistent column names and were corrected; no data mutation.
+- **Status:** `PRODUCTION DATA/RPC + CURRENT SOURCE CONSUMER VERIFIED / PUBLISHED AUTHENTICATED UI E2E UNVERIFIED / NOT CLOSED`.
+- **Next exact action:** In a normally authenticated published Parent session, open Delivery & Logistics → Delivery Representatives; capture the redacted `delivery_logistics_query` response for `agents`, verify RS-1/RS-2 in `runsheet_assignments`, inspect the assignment-table DOM, and capture the first relevant Console error if the payload is correct but the table is absent. Compare served artifact identity against the current Parent blob before any new patch. Never share credentials, cookies, JWTs, or Authorization headers.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-28-536 — Fresh Production RPC + Parent Consumer Reconciliation
 
 - **Observed:** 2026-10-28T20:28:28.592024Z (direct Production SQL/RPC), with current Git consumer and published-tab snapshot rechecked.
