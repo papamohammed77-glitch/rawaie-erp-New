@@ -389,3 +389,15 @@ Never repeat:
 - **Mutation ledger:** no operational source, Production schema/RLS/grants/RPC/Edge functions, business data, stock/accounting, or Cloudflare configuration changed. No test data created.
 - **Next:** owner applies R8-S1-A/B to the PR #8 branch after rechecking SHA/boundaries, reruns full inline-script parsing and eligibility checks, and does not merge/close until the CI gate is current, Cloudflare failure logs are understood, the served artifact is identified, and authenticated E2E passes.
 - **Status:** ROOT CAUSE CONFIRMED / OWNER PATCH READY / MAIN CI GATE STALE / ARTIFACT + AUTHENTICATED E2E UNVERIFIED / NOT CLOSED.
+
+
+## LAST VERIFIED MEMORY EVENT — LVE-2026-10-29-559
+
+- **Authority:** `CURRENT_STATE.md` LVE-559 and Report559 govern the current Returns revalidation; ledger remains secondary.
+- **Governance restored:** Read permanent operational constitution, Report545, LVE-558/Report558 and Report557 before investigating. Owner-only operational HTML boundary preserved.
+- **Source:** `erp-frontend/main`, HEAD `416de1c1d829c48b7c82442242a2a039e3d7e48c`; Returns main Blob `36c20e03c94dc734e015610dec1e8208697df32a`. PR #8 remains open/draft/unmerged at `3ad370c83f8f3c7880d7ace9ac24eabb5833f9cf`, Blob `9cc013a419f6dac2c656471b72f0e629a622a5b6`.
+- **Root cause:** main list and search do not filter Delivered runsheets by `qty_loaded - qty_delivered - qty_returned > 0`; the candidate PR fixes the core list/search quantity condition but requires R8-S1-A/B to scope Returning search results to the assigned handler and propagate nested Promise failures.
+- **Production:** read-only values RS-1 pending=0, RS-2 pending=5; no current Returning rows in inspected sample. No writes or test data.
+- **Deployment:** cloudflare bot recorded successful `rawaea-erp` Preview for commit `3ad370c`; three other project builds reported failure without examined logs. Exact Production artifact and authenticated E2E remain UNVERIFIED.
+- **Mutation ledger:** only Report559, CURRENT_STATE, and this ledger updated in governance repository; operational repo, Production, and Cloudflare config untouched.
+- **Next:** owner patch R8-S1-A/B on PR branch only, rerun syntax/isolated eligibility tests, inspect relevant build logs, verify exact served artifact and authenticated E2E; do not merge/close early.
