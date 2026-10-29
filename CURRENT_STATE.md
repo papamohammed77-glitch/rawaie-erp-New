@@ -1,3 +1,17 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-10-29-556 — Standalone Returns eligibility filter
+
+- **Observed:** 2026-10-29; read-only Supabase Production SQL, direct GitHub source inspection, surgical patch on an isolated branch, and inline JavaScript syntax validation.
+- **Operational source of truth:** `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `416de1c1d829c48b7c82442242a2a039e3d7e48c`. Standalone Returns file on main remains `companies/company-1/warehouse/returns.html`, blob `36c20e03c94dc734e015610dec1e8208697df32a`.
+- **Confirmed defect:** `App.loadRunsheets()` queried all `Delivered` runsheets for the pending Returns tab and did not filter by outstanding return quantity. The search dropdown likewise included all Delivered runsheets. The current code counted lines where `qty_loaded > qty_delivered`, but did not subtract `qty_returned`.
+- **Production evidence (read-only):** `RS-1` (2026-10-10) has loaded=13, delivered=13, returned=0; outstanding return quantity is 0 and it must not appear in the pending list. `RS-2` (2026-10-12) has loaded=6, delivered=1, returned=0; outstanding return quantity is 5 and it must appear. No production rows were changed.
+- **Implemented in isolated branch:** `fix/returns-only-pending-runsheets-20261029`, commit `4d781f2393b0a298c609f9aad75c93dd43adbd04`. Surgical change only to `companies/company-1/warehouse/returns.html`: filter Delivered runsheets in the pending grid and search dropdown using `qty_loaded - qty_delivered - qty_returned > 0`; preserve active Returning runsheets assigned to the current handler; correct preview remaining calculation; add explicit query-error handling. Inline JavaScript syntax check passed and the filter logic was checked against RS-1/RS-2 values.
+- **Review PR:** [PR #8 — Draft: show only runsheets with outstanding returns](https://github.com/papamohammed77-glitch/erp-frontend/pull/8), open/draft/unmerged. PR #6 remains a separate earlier draft and does not contain this eligibility filter. Do not claim Production deployment from a branch commit or preview.
+- **Not yet verified:** authenticated browser E2E against the Cloudflare-served artifact, successful deployed build for the actual standalone Returns application, and production behavior after deployment. Do not merge/close this task until those are verified.
+- **Parent ERP remains separate:** `companies/company-1/main.html` still has the confirmed inline JavaScript syntax error at line 15839 documented in Report554/555. This Returns-only PR does not edit it. Owner-only Parent patches C/D remain required before Parent authenticated E2E can pass.
+- **Governance:** Report545 remains binding: source/current, applied/deployed, and E2E-verified are distinct states. No Parent `main.html`, shared `core.js`, database schema/RLS, Edge Function, stock, accounting, or business-data changes were made in this checkpoint.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-10-29-555 — Draft CI Gate Runtime Validation
 
 - **Observed:** 2026-10-29; direct GitHub Actions run and job-log inspection after the workflow-only Draft PR #7 was created.
