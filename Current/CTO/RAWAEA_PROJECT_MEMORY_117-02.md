@@ -21,8 +21,8 @@ Historical sources explain intent and prior behavior. They do not prove current 
 
 ## 2. CURRENT PROJECT IDENTITY
 - Project: RAWAEA ERP
-- Operational application-source repository: `papamohammed77-glitch/erp-frontend`, branch `main`; current verified HEAD at LVE-2026-10-29-558: `416de1c1d829c48b7c82442242a2a039e3d7e48c`. Parent `companies/company-1/main.html` current Blob: `3a5d2e565a04262081d024f6e514e1372d372e84`; standalone Returns `main` Blob: `36c20e03c94dc734e015610dec1e8208697df32a`; current Driver Blob: `d7ace0b9be52c936aee1d5f5e1250b6d2e9a48f0`.
-- Governance, continuity, and report repository: `papamohammed77-glitch/rawaie-erp-New`, branch `main`. `CURRENT_STATE.md` is the operational checkpoint; its latest event is `LVE-2026-10-29-558`. HEAD advances when reports/state/memory are committed; re-fetch live HEAD each run rather than storing a self-referential SHA here.
+- Operational application-source repository: `papamohammed77-glitch/erp-frontend`, branch `main`; current verified HEAD at LVE-2026-10-29-560: `416de1c1d829c48b7c82442242a2a039e3d7e48c`. Parent `companies/company-1/main.html` current Blob: `3a5d2e565a04262081d024f6e514e1372d372e84`; standalone Returns `main` Blob: `36c20e03c94dc734e015610dec1e8208697df32a`; current Driver Blob: `d7ace0b9be52c936aee1d5f5e1250b6d2e9a48f0`.
+- Governance, continuity, and report repository: `papamohammed77-glitch/rawaie-erp-New`, branch `main`. `CURRENT_STATE.md` is the operational checkpoint; its latest event is `LVE-2026-10-29-560` as revalidated in this turn. HEAD advances when reports/state/memory are committed; re-fetch live HEAD each run rather than storing a self-referential SHA here.
 - Historical repository: `papamohammed77-glitch/rawaie-erp-review`.
 - Production: Supabase `SMART ERP`, ref `fiilmooggumokxanwiyx`, status `ACTIVE_HEALTHY`; live metadata reports PostgreSQL `17.6.1.121` as of LVE-558.
 - Staging: Supabase `rawaea-staging`, ref `hfzznsiprnwkpayskzhu`; current live project listing reports `ACTIVE_HEALTHY` as of LVE-558. No staging tests were run in this event.
@@ -219,15 +219,15 @@ Never repeat:
 ## 22. CURRENT EXECUTION POSITION
 - Master continuity command: ACTIVE
 - 117-02 memory governance: ACTIVE
-- Current State: LVE-2026-10-29-558; source truth is revalidated from live GitHub/Supabase, not from this ledger.
+- Current State: LVE-2026-10-29-560; source truth is revalidated from live GitHub/Supabase/Cloudflare snapshot, not from this ledger.
 - Operational app repo: `erp-frontend/main`, HEAD `416de1c1d829c48b7c82442242a2a039e3d7e48c`.
-- Current target: standalone Returns eligibility and Parent/Returns CI/deployment verification. PR #8 is open/draft/unmerged; its primary pending-return filter exists only on the branch. Search micro-patches R8-S1-A/B passed in-memory full inline-script parsing and isolated logic checks but were not written to source.
-- Production: `RS-1` pending return quantity 0; `RS-2` pending return quantity 5; no current `Returning` rows in the inspected dataset. RLS remains enabled; no Production mutation occurred.
-- Parent: commit `0351897` is in current Main history, but the Main browser-E2E workflow still fails the stale Payroll assertion before JavaScript parsing. PR #7 has a corrected syntax gate but remains draft and is based on older HEAD. Parent full-file syntax and browser E2E remain UNVERIFIED.
-- Deployment: Cloudflare check-run status for `rawaea-erp` is success on Main `416de1c` and PR #8 Preview `3ad370c`; three other project checks fail. Failure causes and byte-identical served artifact remain UNKNOWN/UNVERIFIED.
-- Browser: the connected Browser tool required an originating browser context in LVE-558; no current dashboard/artifact read or authenticated E2E was possible.
+- Current target: standalone Returns eligibility. Main `returns.html` still contains the root cause; PR #8 is open/draft/unmerged with the main list eligibility fix. Search patches R8-S1-A/B remain owner-only and un-applied.
+- Production: checked at `2026-10-29 19:03:17.860357+00`; `RS-1` Delivered, 5 detail rows, outstanding return quantity 0; `RS-2` Delivered, 7 detail rows, outstanding quantity 5. No current Returning/Returned rows in the inspected sample. No Production mutation occurred.
+- Parent: commit `0351897` is in current Main history and corrected the Parent returns-table JS/HTML. Parent SHA is `3a5d2e565a04262081d024f6e514e1372d372e84`; don't repeat historical Parent patches without new evidence.
+- Driver: current SHA `d7ace0b9be52c936aee1d5f5e1250b6d2e9a48f0`; no causal Driver defect was found for standalone Returns eligibility. No change required.
+- Deployment: Cloudflare snapshot shows Production Main `416de1c` at `b469734c.rawaea-erp.pages.dev` and PR #8 Preview `3ad370c` at `da5fcdde.rawaea-erp.pages.dev`. Byte-identical served artifact and authenticated E2E remain UNKNOWN/UNVERIFIED; referenced failed build logs remain to be read before attributing causes.
 - Security / older MAIN1 backlog: OPEN; this event does not close or authorize unrelated historical work.
-- Status: RETURNS ROOT CAUSE CONFIRMED / OWNER PATCH READY / MAIN CI GATE STALE / DEPLOYED ARTIFACT + AUTHENTICATED E2E UNVERIFIED / NOT CLOSED.
+- Status: RETURNS ROOT CAUSE CONFIRMED / CORE FIX ONLY IN DRAFT PR #8 / OWNER SEARCH PATCH REQUIRED / PRODUCTION READ-ONLY / SERVED ARTIFACT + AUTHENTICATED E2E UNVERIFIED / NOT CLOSED.
 
 ## 23. LAST VERIFIED MEMORY EVENT — LVE-2026-10-23-473
 - Scope: Loader/Picker runsheet preview parity; owner-only patch to Picker.
@@ -401,3 +401,18 @@ Never repeat:
 - **Deployment:** cloudflare bot recorded successful `rawaea-erp` Preview for commit `3ad370c`; three other project builds reported failure without examined logs. Exact Production artifact and authenticated E2E remain UNVERIFIED.
 - **Mutation ledger:** only Report559, CURRENT_STATE, and this ledger updated in governance repository; operational repo, Production, and Cloudflare config untouched.
 - **Next:** owner patch R8-S1-A/B on PR branch only, rerun syntax/isolated eligibility tests, inspect relevant build logs, verify exact served artifact and authenticated E2E; do not merge/close early.
+
+
+## LAST VERIFIED MEMORY EVENT — LVE-2026-10-29-560
+
+- **Authority:** `CURRENT_STATE.md` LVE-560 and [Report560_RETURNS_ELIGIBILITY_OWNER_PATCH_DEPLOYMENT_RECHECK_20261029.md](doc/Draft/Reprots/Report560_RETURNS_ELIGIBILITY_OWNER_PATCH_DEPLOYMENT_RECHECK_20261029.md), report commit `8e60085e6e6e184b0b0ff4b5f35864a7301d2fe6`.
+- **Governance:** read permanent operational constitution SHA `365a5178810d8da37f55dba64bf422f328a966bd` and Report545 SHA `e153396709ecfcc0552347db84e37c98ad8bcdd6`. Operational HTML ownership rule remains active.
+- **Source:** `erp-frontend/main` HEAD `416de1c1d829c48b7c82442242a2a039e3d7e48c`; Returns main Blob `36c20e03c94dc734e015610dec1e8208697df32a`; Parent Blob `3a5d2e565a04262081d024f6e514e1372d372e84`; Driver Blob `d7ace0b9be52c936aee1d5f5e1250b6d2e9a48f0`.
+- **Root cause:** current Returns main list loads every `Delivered` runsheet, omits `qty_returned` from detail projection, counts rows by `qty_loaded > qty_delivered`, and never filters `available` by outstanding return quantity. Search lacks both remaining-quantity filter and Returning assignment scope.
+- **Candidate:** PR #8 is open/draft/unmerged at commit `3ad370c83f8f3c7880d7ace9ac24eabb5833f9cf`, Returns Blob `9cc013a419f6dac2c656471b72f0e629a622a5b6`. Core list patch exists on this branch only. Report560 reproduces owner-only R8-S1-A/B: add `return_handler_id` to search select; return nested details Promise and filter Delivered by positive remaining and Returning by current handler.
+- **Production read-only:** `2026-10-29 19:03:17.860357+00`, PostgreSQL 17.6; `RS-1` Delivered, 5 detail rows, pending return 0; `RS-2` Delivered, 7 detail rows, pending return 5; no Returning/Returned sample rows. No business data, schema, RLS/ACL, functions, stock, or accounts were changed.
+- **Cloudflare:** dashboard shows Production Main `416de1c` at `https://b469734c.rawaea-erp.pages.dev/` and PR #8 Preview `3ad370c` at `https://da5fcdde.rawaea-erp.pages.dev/`. Exact artifact bytes and authenticated Parent → Driver → Returns E2E remain UNVERIFIED.
+- **Isolated test:** synthetic in-memory predicate check passed (exclude Delivered pending=0; include pending>0; Returning only when assigned to current user; reject other state/handler). This did not alter source or DB and is not full-file syntax or E2E verification.
+- **Mutation ledger:** only Report560, CURRENT_STATE and this ledger changed. No operational HTML, PR branch, Production, or Cloudflare settings changed.
+- **Next:** owner re-fetches PR #8 and verifies current Blob SHA/unique anchors before applying R8-S1-A/B on that branch only; run full inline-JavaScript syntax and eligibility tests, investigate actual failed build logs, prove served artifact identity and authenticated E2E before merge/closure.
+- **Status:** ROOT CAUSE CONFIRMED / OWNER SEARCH PATCH REQUIRED / PRODUCTION READ-ONLY / ARTIFACT + AUTHENTICATED E2E UNVERIFIED / NOT CLOSED.
