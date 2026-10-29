@@ -1,7 +1,7 @@
 # LATEST VERIFIED CHECKPOINT — LVE-2026-10-29-552 — Partial Delivery → Warehouse Returns Visibility
 
 - **Observed:** 2026-10-29; read-only Supabase Production queries, isolated authenticated-role RLS simulation with ROLLBACK, current operational source inspection, and static JavaScript parsing of the review patch.
-- **Authoritative report:** [Report552_RETURNS_PARTIAL_DELIVERY_RUNSHEET_VISIBILITY_20261029.md](doc/Draft/Reprots/Report552_RETURNS_PARTIAL_DELIVERY_RUNSHEET_VISIBILITY_20261029.md), report commit `001acb6b84b94bc115e033119d08703c73a7be41`.
+- **Authoritative report:** [Report552_RETURNS_PARTIAL_DELIVERY_RUNSHEET_VISIBILITY_20261029.md](doc/Draft/Reprots/Report552_RETURNS_PARTIAL_DELIVERY_RUNSHEET_VISIBILITY_20261029.md), latest report update commit `07f697d8f28abadc7405d41000df8733601bab90`.
 - **Governance context:** Read Report545 first, then Reports546–551 and this file. Report545 is the rulebook for ownership, evidence, and surgical changes. Do not infer current truth from the older checkpoints without rechecking source and Production.
 - **Operational repo:** `papamohammed77-glitch/erp-frontend`, main baseline `585f629d86f6b84038d5b96d0e8851a6ca6579c6`.
 - **Returns source before patch:** `companies/company-1/warehouse/returns.html`, blob `36c20e03c94dc734e015610dec1e8208697df32a`.
