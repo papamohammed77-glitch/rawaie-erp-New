@@ -1,3 +1,19 @@
+# LAST VERIFIED EVENT — LVE-2026-10-29-544 — Unified Delivery Assignments Review PR Prepared
+
+- **Observed:** 2026-10-29; live read-only Supabase SQL/function inspection, latest operational Git source, source-fragment and full delivery-module JavaScript syntax checks, and a read-only SQL union test.
+- **Report:** [Report544_DELIVERY_ASSIGNMENT_UNIFIED_VIEW_IMPLEMENTATION_20261029.md](doc/Draft/Reprots/Report544_DELIVERY_ASSIGNMENT_UNIFIED_VIEW_IMPLEMENTATION_20261029.md).
+- **Operational source:** `papamohammed77-glitch/erp-frontend` latest main at the implementation base `2b164e39eddc495f8dfabb1703160e96c3d21815`; Parent file blob `1f60ecc6eefba3a669a5aa01512da269453c9ed5`. Commit `550cf719f32484358a789294a2fb12f129c36133` had already added a separate assignment card to `routes()`; the new patch does not duplicate that design and instead merges plans/assignments into one table.
+- **Live Production, read only:** the SQL predicate that backs the proposed route union returned RS-1 and RS-2 as `Loaded` assignments with no route plan. A broader user query found four active `users.role='مندوب توصيل'` accounts lacking a `delivery_agents` row (driver, driver2, driver3, driver4). No agent code or business record was fabricated.
+- **Implementation:** Draft PR [#5 — Unify delivery assignments with route plans and link delivery users](https://github.com/papamohammed77-glitch/erp-frontend/pull/5), branch `fix/unified-delivery-assignments-20261029`, commit `1446c0c3548f773b04ba6956b85bb9b67030a15b`. Adds unified routes UI with direct-assignment rows, plan-vs-runsheet assignee conflict flags, and a controlled user-to-logistics registration path that requires an approved agent code; adds migration `supabase/migrations/20261029_delivery_logistics_unified_assignments_and_user_linking.sql` to the branch only.
+- **Validation:** full `RW_DeliveryLogistics` module syntax `PASS`; target function fragments `PASS`; static invariants `PASS`; read-only SQL union returned RS-1/RS-2 `PASS`; unlinked-user query returned four users `PASS`.
+- **Mutation ledger:** operational `main` unchanged; PR is open and Draft; Production DB/RPC/schema/ACL/RLS/data untouched; no Cloudflare publish; no route plans, agent records, inventory/accounting records, or test data created.
+- **Unverified:** migration compile/apply in a controlled deployment; served-artifact identity; authenticated published DOM/Network/Console; end-to-end behavior after release.
+- **Required rollout order:** do not apply the new RPC response contract while an older Parent UI may consume assignment IDs as plan IDs. Coordinate the matching Parent deployment first or make the cutover atomic; then apply the migration through the approved deployment path and run authenticated E2E.
+- **Status:** `PATCH PREPARED IN DRAFT PR — PRODUCTION MIGRATION NOT APPLIED — AUTHENTICATED E2E OPEN — NOT CLOSED`.
+- **Next checkpoint:** review PR #5 and CI/diff; after approval, coordinate matched frontend/RPC deployment; verify RS-1/RS-2 in the unified route table and the four unlinked user accounts; then update this status only from observed results.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-29-543 — Prompt Execution Audit and Fresh Delivery Assignment Recheck
 
 - **Observed:** 2026-10-28 22:02 UTC / 2026-10-29 01:02 Egypt time; direct read-only Production SQL/RPC, current Git source and prompt files, and connected published-tab context.
