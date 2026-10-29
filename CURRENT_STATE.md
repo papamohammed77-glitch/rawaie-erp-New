@@ -1,3 +1,22 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-10-29-552 — Partial Delivery → Warehouse Returns Visibility
+
+- **Observed:** 2026-10-29; read-only Supabase Production queries, isolated authenticated-role RLS simulation with ROLLBACK, current operational source inspection, and static JavaScript parsing of the review patch.
+- **Authoritative report:** [Report552_RETURNS_PARTIAL_DELIVERY_RUNSHEET_VISIBILITY_20261029.md](doc/Draft/Reprots/Report552_RETURNS_PARTIAL_DELIVERY_RUNSHEET_VISIBILITY_20261029.md), report commit `001acb6b84b94bc115e033119d08703c73a7be41`.
+- **Governance context:** Read Report545 first, then Reports546–551 and this file. Report545 is the rulebook for ownership, evidence, and surgical changes. Do not infer current truth from the older checkpoints without rechecking source and Production.
+- **Operational repo:** `papamohammed77-glitch/erp-frontend`, main baseline `585f629d86f6b84038d5b96d0e8851a6ca6579c6`.
+- **Returns source before patch:** `companies/company-1/warehouse/returns.html`, blob `36c20e03c94dc734e015610dec1e8208697df32a`.
+- **Production facts now observed:** `RS-2.status=Delivered`; `ORD-1007.order_status=Partially Delivered`; `ORD-1007` loaded=3, delivered=1, remaining=2; total remaining loaded quantity across `RS-2`=5.
+- **RLS proof:** In an isolated transaction under role `authenticated` with the active Returns user identity (`returns@rawaea.com`), read-only queries returned `delivered_runsheets_visible=2`, `rs2_visible=1`, `rs2_details_visible=7`, `partial_orders_visible=1`; transaction ended with `ROLLBACK`. No business rows were changed.
+- **Confirmed UI defect:** `App.loadRunsheets()` used an unnecessary nested `run_sheet_details(count)` relation in the two primary list queries and ignored Supabase `error` objects. This can silently render a failed query as an empty list. The exact runtime cause of the reported incident remains **UNKNOWN/UNVERIFIED** until Network output and the served Cloudflare artifact are inspected.
+- **Review patch:** branch `fix/returns-partial-delivery-visibility-20261029`; commit `8a4589dc99a4fda418dd61d9508743d4097941d5`; [Draft PR #6](https://github.com/papamohammed77-glitch/erp-frontend/pull/6). Only `companies/company-1/warehouse/returns.html` changed: the unused nested relation was removed from the two primary list queries; primary query errors and remaining-quantity query errors now surface rather than becoming empty/zero data. JavaScript parse and static invariants PASS.
+- **Business contract preserved:** Returns listing remains `Delivered` plus `Returning` assigned to the current handler. `start-return` still requires `Delivered`; no premature warehouse return processing while a trip remains `Delivering`. Item remaining-quantity calculation and the existing `complete-return` path are unchanged.
+- **No Production mutation:** no schema/RPC/ACL/RLS changes, no Edge Function changes, no test return, no stock/accounting/audit mutation, no edit to parent `main.html` or shared `core.js`. PR is not merged; Cloudflare deployment and authenticated browser E2E are still **OPEN**.
+- **Important state reconciliation:** Older LVE-551 text described `RS-2` as `Loaded`; the later direct Production read in LVE-552 observed `RS-2=Delivered`. Treat this as a later state transition, not as evidence that either historical report should be overwritten.
+- **Next exact action:** Review/merge PR #6 and deploy through the approved workflow, then test with an authenticated Returns account. Confirm `RS-2` appears and `ORD-1007` shows 2 units remaining (5 units across RS-2). If still missing, capture the redacted Network status/error for `runsheets` and `run_sheet_details`, then verify the served artifact SHA before any further patch.
+- **Status:** `LIVE DATA + RETURNS-RLS READ VERIFIED / SURGICAL PATCH IN DRAFT PR / SERVED ARTIFACT + AUTHENTICATED E2E UNVERIFIED / NOT CLOSED`.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-29-551 — Delivery Driver GPS Capture + Balance Fee Consistency
 
 - **Observed:** 2026-10-29; live Production RPC/ACL verification, authenticated-role SQL integration tests inside transactions rolled back, current operational source fetched and JavaScript-parsed.
