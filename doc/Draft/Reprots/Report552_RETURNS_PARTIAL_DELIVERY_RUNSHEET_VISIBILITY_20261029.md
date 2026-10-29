@@ -3,7 +3,7 @@
 **Last Verified Event:** `LVE-2026-10-29-552`  
 **التاريخ:** 2026-10-29  
 **النطاق:** تكامل تطبيق مندوب التوصيل مع تطبيق المرتجعات بالمخزن؛ ظهور الرانشيت الذي يحتوي أوردرًا بحالة `Partially Delivered` والكميات المتبقية.  
-**الحالة النهائية:** `PRODUCTION DATA + RETURNS-RLS READ VERIFIED / RETURNS UI HARDENING PATCH COMMITTED TO DRAFT PR / ROOT CAUSE OF LIVE UI SYMPTOM NOT YET FULLY PROVEN / CLOUDFLARE E2E OPEN / NOT CLOSED`
+**الحالة النهائية:** `PARENT RETURN-TAB FILTER ROOT CAUSE CONFIRMED / OWNER-ONLY MAIN.HTML MICRO-PATCH PREPARED AND STATIC-PARSED / STANDALONE RETURNS HARDENING IN DRAFT PR / NOT DEPLOYED / E2E OPEN`
 
 ## 1. القرار التنفيذي
 
@@ -61,6 +61,120 @@
 
 هذا خلل مثبت في معالجة الأخطاء واعتماد غير ضروري في عقد الاستعلام. لكنه **لا يثبت وحده** أن هذا هو سبب الواقعة في المتصفح؛ إثبات ذلك يتطلب Network/Runtime من النسخة المنشورة.
 
+## 3.3 السبب الجذري المؤكد — تبويب المرتجعات في النظام الأم
+
+المصدر الحالي لـ`companies/company-1/main.html`، Blob SHA `2951813e53ef7e24d79917bc272f13c95e111cb0`، يحتوي في `loadReturn()` على الفلتر:
+
+```javascript
+.or('status.eq.Returned,return_handler_id.not.is.null,return_start.not.is.null,return_end.not.is.null')
+```
+
+هذا الشرط لا يتضمن `status.eq.Delivered`. لذلك فإن الرانشيت المسلّم الذي يحتوي كمية غير مسلّمة، لكنه لم يبدأ بعد في دورة المرتجعات (`return_handler_id`, `return_start`, `return_end` ما زالت NULL)، يُستبعد قبل وصوله إلى `_applyReturn()`. وهذا يطابق حالة `RS-2` الحية.
+
+**دليل Network المباشر:** سجل `edge_logs` في `2026-10-29T16:09:14.435Z` يحتوي طلب GET ناجحًا إلى `runsheets` مع `or=(status.eq.Returned,return_handler_id.not.is.null,return_start.not.is.null,return_end.not.is.null)`. الاستجابة HTTP كانت 200، لكن شرط الطلب نفسه يستبعد `RS-2` لأنه `Delivered` وحقول بدء المرتجع فارغة. لم يكن ذلك فشل RLS أو غياب بيانات.
+
+### Owner Surgical Change Set — لا تُكتب التغييرات في main.html من جانب المساعد
+
+**شرط التطبيق:** أعد جلب الملف قبل التطبيق. الرقعة التالية تخص فقط Blob SHA `2951813e53ef7e24d79917bc272f13c95e111cb0`. إذا اختلف SHA أو لم يظهر نص البحث حرفيًا مرة واحدة، توقف وأعد بناء الرقعة على المصدر الحالي. لا تستبدل الدالة `loadReturn()` أو `_applyReturn()` أو `_showReturnDetails()` كاملة.
+
+**Patch A — توسيع قائمة الترشيح دون تغيير الحالات التاريخية**
+
+ابحث عن هذا السطر الوحيد داخل `loadReturn()`:
+
+```javascript
+        .or('status.eq.Returned,return_handler_id.not.is.null,return_start.not.is.null,return_end.not.is.null')
+```
+
+واستبدله بهذا السطر فقط:
+
+```javascript
+        .or('status.eq.Delivered,status.eq.Returned,return_handler_id.not.is.null,return_start.not.is.null,return_end.not.is.null')
+```
+
+**Patch B — إدراج حساب المتبقي وتصفية Delivered المكتمل فقط**
+
+ابحث عن هذا المقطع الفريد داخل `loadReturn()`:
+
+```javascript
+    window._returnData = res.data || [];
+    _applyReturn();
+```
+
+واستبدله بهذا المقطع:
+
+```javascript
+    window._returnData = res.data || [];
+    var deliveredRows = window._returnData.filter(function(r) { return r.status === 'Delivered'; });
+    var deliveredIds = deliveredRows.map(function(r) { return r.id; }).filter(Boolean);
+    var pendingReturnByRunsheet = {};
+    if (deliveredIds.length) {
+        var remainingRes = await supabase.from('run_sheet_details')
+            .select('runsheet_id, qty_loaded, qty_delivered, qty_returned')
+            .in('runsheet_id', deliveredIds);
+        if (remainingRes.error) throw remainingRes.error;
+        (remainingRes.data || []).forEach(function(d) {
+            var remaining = Math.max(0, (Number(d.qty_loaded) || 0) - (Number(d.qty_delivered) || 0) - (Number(d.qty_returned) || 0));
+            if (remaining > 0) {
+                pendingReturnByRunsheet[d.runsheet_id] = (pendingReturnByRunsheet[d.runsheet_id] || 0) + remaining;
+            }
+        });
+        window._returnData = window._returnData.filter(function(r) {
+            return r.status !== 'Delivered' || (pendingReturnByRunsheet[r.id] || 0) > 0;
+        });
+    }
+    window._returnData.forEach(function(r) {
+        r.pending_return_qty = pendingReturnByRunsheet[r.id] || 0;
+    });
+    _applyReturn();
+```
+
+هذا يبقي سجلات `Returned` والرانشيتات التي لها بيانات دورة مرتجعات، ويضيف فقط `Delivered` التي لديها كمية متبقية موجبة. يستخدم نفس معادلة عقد `complete_return_atomic`: `loaded - delivered - returned`. إذا فشل استعلام الكميات، يُرفع الخطأ إلى `catch` الموجود ولا تُعرض الكمية على أنها صفر.
+
+**Patch C — إظهار إجمالي المتبقي في صف الرانشيت**
+
+داخل `_applyReturn()` ابحث عن سطر `return` الذي يبدأ بـ:
+
+```javascript
+            return '<tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="RW_Warehouse._showReturnDetails(\\'' + r.runsheet_code + '\\')">
+```
+
+لا تستبدل `_applyReturn()` كاملة. استبدل سطر `return` الواحد بهذا المقطع داخل callback نفسه:
+
+```javascript
+            var statusLabel = r.status === 'Delivered' && Number(r.pending_return_qty) > 0
+                ? 'بانتظار المرتجع: ' + Number(r.pending_return_qty).toLocaleString('ar-EG') + ' وحدة'
+                : esc(r.status || '—');
+            return '<tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="RW_Warehouse._showReturnDetails(\\'' + r.runsheet_code + '\\')"><td class="p-3 font-bold">' + (r.runsheet_code||'') + '</td><td class="p-3">' + (r.run_date||'') + '</td><td class="p-3">' + (r.driver_id||'---') + '</td><td class="p-3"><span class="px-2 py-1 rounded-full text-xs bg-rose-100 text-rose-700">' + statusLabel + '</span></td><td class="p-3 text-center"><button class="text-blue-600"><i class="fa-solid fa-eye"></i></button></td></tr>';
+```
+
+**Patch D — عرض الكمية المحمّلة والمسلمة والمتبقية والمرتجعة في التفاصيل**
+
+داخل `_showReturnDetails()` استبدل سطر عنوان الجدول فقط:
+
+```javascript
+        var h = '<div class="text-right"><table class="w-full border"><thead class="bg-slate-100"><tr><th class="p-2">الصنف</th><th class="p-2 text-center">الكمية المسلّمة</th><th class="p-2 text-center">الكمية المرتجعة</th></tr></thead><tbody>';
+```
+
+بهذا السطر:
+
+```javascript
+        var h = '<div class="text-right"><table class="w-full border"><thead class="bg-slate-100"><tr><th class="p-2">الصنف</th><th class="p-2 text-center">الكمية المحمّلة</th><th class="p-2 text-center">الكمية المسلّمة</th><th class="p-2 text-center">المتبقي للمرتجع</th><th class="p-2 text-center">الكمية المرتجعة</th></tr></thead><tbody>';
+```
+
+ثم استبدل سطر الحلقة الوحيد الذي يبدأ بـ`items.forEach(it => { h += '<tr>` بهذا المقطع:
+
+```javascript
+        items.forEach(it => {
+            var loaded = Number(it.qty_loaded) || 0;
+            var delivered = Number(it.qty_delivered) || 0;
+            var returned = Number(it.qty_returned) || 0;
+            var remaining = Math.max(0, loaded - delivered - returned);
+            h += '<tr><td class="p-2 font-bold">' + (it.item_name||'') + '</td><td class="p-2 text-center">' + loaded + '</td><td class="p-2 text-center">' + delivered + '</td><td class="p-2 text-center font-black text-amber-700">' + remaining + '</td><td class="p-2 text-center font-bold text-rose-600">' + returned + '</td></tr>';
+        });
+```
+
+تم تطبيق هذه الرقع الخمس افتراضيًا على نسخة في الذاكرة فقط للتحقق من أن كل محدد فريد، وأن التغيير لا يكتب إلى Git أو Production. فحص JavaScript للكتلة المضمنة كاملة أعاد `PASS`. **لم يُعدّل ملف `main.html` في المستودع**؛ هذه Owner Patch وفق Report545.
+
 ## 4. التعديل الجراحي المُعدّ
 
 ### Owner/Review Change Set
@@ -115,6 +229,6 @@
 - لم أصف السبب النهائي للواقعة بأنه محسوم؛ الدليل الحالي يثبت خلل معالجة أخطاء الواجهة ويستبعد غياب البيانات وRLS للحالة المختبرة، لكنه لا يحسم ما حدث في الـBrowser Runtime.
 - لم أعتبر Static PASS أو SQL PASS مساويًا لاختبار Production UI.
 
-**Final Closure Status:** `LIVE DATA + RETURNS-RLS VERIFIED / SURGICAL UI PATCH IN DRAFT PR / SERVED ARTIFACT + AUTHENTICATED E2E OPEN / NOT CLOSED`.
+**Final Closure Status:** `PARENT FILTER ROOT CAUSE CONFIRMED / OWNER MAIN.HTML PATCH PREPARED AND STATIC-PARSED / STANDALONE RETURNS HARDENING IN DRAFT PR / NO DEPLOYMENT OR AUTHENTICATED E2E / NOT CLOSED`.
 
-**Next exact action:** بعد مراجعة ودمج PR #6 ونشره وفق سير العمل المعتمد، افتح تطبيق المرتجعات بحساب `returns@rawaea.com`، وحدّث الصفحة تحديثًا قويًا، وتحقق من ظهور `RS-2` و`ORD-1007` مع المتبقي 2، وإجمالي المتبقي 5 في الرانشيت. إذا لم يظهر، التقط استعلام `runsheets` و`run_sheet_details` من Network (HTTP status وPostgREST error فقط، دون Authorization/cookies)، ثم طابق الـArtifact المخدوم مع SHA قبل أي تعديل جديد.
+**Next exact action:** يطبق المالك Patches A–D على `main.html` بعد تأكيد SHA، ثم ينشر وفق سير العمل المعتمد. بعدها اختبر تبويب المرتجعات في النظام الأم وتأكد من ظهور `RS-2` بإجمالي متبقٍ 5، وظهور `ORD-1007` بمتبقٍ 2 ضمن تفاصيل الأصناف. ثم راجع PR #6 كتحسين مستقل لمعالجة أخطاء استعلام تطبيق المرتجعات المستقل، وادمجه/انشره وفق سير العمل المعتمد. إذا لم يظهر الرانشيت بعد النشر، التقط Network من التطبيقين وطابق الـArtifact المخدوم مع SHA قبل أي تعديل جديد.
