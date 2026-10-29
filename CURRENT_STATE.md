@@ -2965,7 +2965,7 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 # CURRENT FORENSIC CHECKPOINT — 2026-10-29 — LVE-2026-10-29-561 — Returns Eligibility + Production Contract Guards
 
 ## Governance and current source truth
-- Governing report: \`doc/Draft/Reprots/Report561_RETURNS_ELIGIBILITY_AND_PRODUCTION_CONTRACT_REPAIR_20261029.md\` (blob SHA \`9847e2612ff0d17ceabe05d9f95698c1e48c2a3a\`).
+- Governing report: \`doc/Draft/Reprots/Report561_RETURNS_ELIGIBILITY_AND_PRODUCTION_CONTRACT_REPAIR_20261029.md\` (blob SHA \`3713256b594796c07aeead69f4fb644495de58a5\`).
 - Operational repo remains \`papamohammed77-glitch/erp-frontend\`; current \`main\` source of \`companies/company-1/warehouse/returns.html\` is blob SHA \`c284f88ba0c7d4c0373b66f826f8a3c8c11599b7\`; latest source commit \`2e9777a23f44e1b009810c0936513a76e64cc741\` already added \`return_handler_id\` to the search projection. Do not re-propose that one-field change.
 - PR #8 is still Draft/Open/Unmerged; head \`3ad370c83f8f3c7880d7ace9ac24eabb5833f9cf\`; comparison with current \`main\` is diverged (ahead 2 / behind 1). Refresh/synchronize its branch before merge or patch application.
 - Production rows, source, and deployed artifacts are separate states. No claim of UI deployment or browser E2E is made here.
@@ -2984,6 +2984,7 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - Current Production eligible-run-sheet facts: RS-1 = Delivered, 5 item groups, pending units 0; RS-2 = Delivered, 7 item groups, pending units 5 and 5 eligible item groups. No \`Returning\`/\`Returned\` row was present in the checked status set.
 - \`run_sheet_details\` vs authoritative \`order_details\` rollup matched for 12/12 runsheet-item groups.
 - Isolated SQL quantity formula cases: 6/6 pass. Isolated SQL policy predicate cases: 7/7 pass. These are pure SELECT CTE tests, not authenticated HTTP or browser E2E.
+- Isolated SQL cancellation policy decision matrix: 8/8 PASS; the cases are a read-only policy simulation, not an authenticated HTTP/Browser test.
 - \`authenticated\` has SELECT but not UPDATE on \`run_sheet_details\`, and no write RLS policy was found.
 
 ## Owner-only HTML work still required
