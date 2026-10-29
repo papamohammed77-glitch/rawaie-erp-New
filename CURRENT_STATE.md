@@ -2960,3 +2960,45 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - **Mutation ledger:** only Report531 and this state record were written. No `main.html`, supervisor PWA, Production business data, stock, reservations, or accounting records were changed. No test fixtures were created because existing Production assignments are adequate for the read-contract check.
 - **Status:** `LIVE DB + RPC + GIT RENDER PATH CONFIRMED / AUTHENTICATED UI E2E OPEN / NO NEW PATCH JUSTIFIED / NOT CLOSED`.
 - **Next exact action:** owner hard-refreshes `https://rawaea-erp.pages.dev/companies/company-1/main`, signs in normally, opens `مركز التوصيل واللوجستيات → مناديب التوصيل`, and confirms RS-1/RS-2 in the separate assignment table. If the RPC payload contains both but the table is absent, collect sanitized Network response and Console error; only then prepare a new exact surgical source patch. Never change the valid assignments or create dummy records to mask a rendering issue.
+
+
+# CURRENT FORENSIC CHECKPOINT — 2026-10-29 — LVE-2026-10-29-561 — Returns Eligibility + Production Contract Guards
+
+## Governance and current source truth
+- Governing report: \`doc/Draft/Reprots/Report561_RETURNS_ELIGIBILITY_AND_PRODUCTION_CONTRACT_REPAIR_20261029.md\` (blob SHA \`b43e5e9367d4032fdb9a8a56674fdaa10bbec4b0\`).
+- Operational repo remains \`papamohammed77-glitch/erp-frontend\`; current \`main\` source of \`companies/company-1/warehouse/returns.html\` is blob SHA \`c284f88ba0c7d4c0373b66f826f8a3c8c11599b7\`; latest source commit \`2e9777a23f44e1b009810c0936513a76e64cc741\` already added \`return_handler_id\` to the search projection. Do not re-propose that one-field change.
+- PR #8 is still Draft/Open/Unmerged; head \`3ad370c83f8f3c7880d7ace9ac24eabb5833f9cf\`; comparison with current \`main\` is diverged (ahead 2 / behind 1). Refresh/synchronize its branch before merge or patch application.
+- Production rows, source, and deployed artifacts are separate states. No claim of UI deployment or browser E2E is made here.
+
+## Production changes applied, then re-read
+- Existing Edge \`start-return\`: v5, ACTIVE, \`verify_jwt=true\`, \`ezbr_sha256=47e92999e1585956bf9f25fcf6ec80921ceef71316a59a7b5a1c2b1d6290d493\`. Server now resolves the public user through \`auth_id\`, checks direct/role warehouse permission and the Returns active role (database-backed owner exception retained), scopes runsheet to company, rejects non-positive pending return, and verifies the conditional status update affected one row.
+- Existing Edge \`complete-return\`: v27, ACTIVE, \`verify_jwt=true\`, \`ezbr_sha256=3b4d7ff8053ca35813ad24639093549e7aec622d784a3d18bbfa9ef3d54f9da1\`. Runsheet branch now checks warehouse/Returns role, company-scoped runsheet, \`Returning\` state, and \`return_handler_id = users.id\`. The order/POS-only path is kept outside the runsheet-assignment guard. Deployment removed only a type-only JSR import after its package-manifest request timed out; deploy then succeeded and the active source was re-read.
+- Current snapshots exactly matching live Production source:
+  - \`Current/Edge_Functions/start-return\`: blob \`34c05bef9dc8aaf38f0b61813f1674b3a738bafb\`.
+  - \`Current/Edge_Functions/complete-return\`: blob \`ecd2681a84fdeaee6bcb31a63abd31e0fef0858d\`.
+  - \`Current/Edge_Functions/cancel-return\`: blob \`d9b7ade05f0b2f727be801f6d867d595f7773715\` (snapshot of current v2).
+  - \`Current/Edge_Functions/reopen-return\`: blob \`fb9a0f2e4dbbfec9c8ef24e847d27b800280030a\` (snapshot of current v1).
+- SQL ACL recheck: \`authenticated\` cannot execute \`complete_return_atomic\` or \`complete_sales_return_credit_note_atomic\`; \`service_role\` can. No new Edge Function, database function, table, schema change, ACL change, or RLS change was made. No Production business row was mutated.
+
+## Read-only tests and facts
+- Current Production eligible-run-sheet facts: RS-1 = Delivered, 5 item groups, pending units 0; RS-2 = Delivered, 7 item groups, pending units 5 and 5 eligible item groups. No \`Returning\`/\`Returned\` row was present in the checked status set.
+- \`run_sheet_details\` vs authoritative \`order_details\` rollup matched for 12/12 runsheet-item groups.
+- Isolated SQL quantity formula cases: 6/6 pass. Isolated SQL policy predicate cases: 7/7 pass. These are pure SELECT CTE tests, not authenticated HTTP or browser E2E.
+- \`authenticated\` has SELECT but not UPDATE on \`run_sheet_details\`, and no write RLS policy was found.
+
+## Owner-only HTML work still required
+- Main grid must use \`qty_returned\` when computing remaining quantities and exclude Delivered runsheets without positive outstanding return quantity.
+- Search on current \`main\` now has \`return_handler_id\` in the select but still lacks \`id\`, details eligibility filtering, correct Returning assignment scoping, and error handling; exact current replacement is recorded in Report561.
+- Preview formula must subtract \`qty_returned\`; the active-user check should match UUID \`currentUser.id\` only. The existing PR #8 has the list/preview eligibility work but its branch is behind the latest main commit.
+- In \`saveReturnItem()\`, remove the ignored direct update to the projection; persist the draft through the existing local Dexie path until the authoritative completion operation commits.
+- On successful cancel, delete local Dexie changes for that runsheet so \`_loadLocalChanges()\` cannot resurrect a cancelled draft.
+- No operational HTML was modified by the assistant under the Owner-only rule.
+
+## Confirmed open lifecycle contract risks — do not conceal or patch casually
+- Existing \`cancel-return\` v2 resolves the app user by email, queries the runsheet by code without company scoping, resets the derived \`run_sheet_details.qty_returned\`, and does not check the runsheet update error. This requires a company-scoped and authoritative/atomic cancellation contract.
+- Existing \`reopen-return\` v1 reads \`app_settings.limit(1)\` without company scope and updates \`stock_branches.qty\` directly using \`Math.max(0, qty - returned)\`; it bypasses \`post_stock_movement\` and \`inventory_log\`, ignores update failures, and does not reverse the authoritative \`order_details.qty_returned\`. A safe fix requires a defined atomic stock-reversal contract, not a one-line substitution.
+- \`public.complete_return_atomic\` skips a line early when returned quantity is zero before processing item/shortage liability. The UI permits zero returned quantity with notes. The exact meaning of returned vs damaged vs missing quantities must be settled and tested in isolated transaction tests before altering the accounting/driver-liability function.
+- Competitive reference baseline (official): Microsoft Dynamics 365 differentiates physical returns and credit-only dispositions, with receipt/inspection/disposition and related financial/logistics effects; SAP Customer Returns Processing links return order, returns delivery/goods receipt, quality inspection, logistical follow-up, and credit memo/replacement. See Report561 for URLs and relevance.
+
+## Closure
+\`PRODUCTION EDGE GUARDS DEPLOYED + CURRENT EDGE SNAPSHOTS SYNCED / OWNER HTML PATCH PENDING / CANCEL-REOPEN + ZERO-QTY CORE CONTRACT OPEN / SERVED CLOUDFLARE PARITY + AUTHENTICATED BROWSER E2E UNVERIFIED / NOT CLOSED\`.
