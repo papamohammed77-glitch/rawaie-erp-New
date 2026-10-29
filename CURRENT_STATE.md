@@ -14,7 +14,7 @@
 
 ---
 
-# LATEST VERIFIED CHECKPOINT — LVE-2026-10-29-556 — Standalone Returns eligibility filter
+# HISTORICAL CHECKPOINT — LVE-2026-10-29-556 — Standalone Returns eligibility filter (superseded by LVE-557)
 
 - **Observed:** 2026-10-29; read-only Supabase Production SQL, direct GitHub source inspection, surgical patch on an isolated branch, and inline JavaScript syntax validation.
 - **Operational source of truth:** `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `416de1c1d829c48b7c82442242a2a039e3d7e48c`. Standalone Returns file on main remains `companies/company-1/warehouse/returns.html`, blob `36c20e03c94dc734e015610dec1e8208697df32a`.
