@@ -38,9 +38,9 @@
 7. مسار بدء المرتجعات الحالي يقبل الرانشيت بحالة `Delivered` فقط، ودالة `complete_return_atomic` تشترط أن يكون الرانشيت `Returning`. لم أغيّر عقد الحالات هذا.
 
 ### UNKNOWN / UNVERIFIED
-1. السبب الدقيق الذي جعل المتصفح المنشور لا يعرض الرانشيت في جلسة المستخدم المبلّغ عنها: لم تتوفر استجابة Network أو Console من جلسة تطبيق المرتجعات نفسها.
-2. هل Cloudflare كان يخدم Blob الحالي `36c20e03...` عند وقوع المشكلة.
-3. هل كان استعلام الواجهة يفشل بسبب علاقة PostgREST المتداخلة، أم أن نسخة الواجهة المنشورة مختلفة، أم يوجد سبب Runtime آخر.
+1. **تبويب المرتجعات في النظام الأم:** السبب الجذري المؤكد هو فلتر `loadReturn()` الذي يستبعد `Delivered` بلا بيانات بدء مرتجع؛ لكن تطبيق Owner Patch ونشره لم يحدثا بعد.
+2. **تطبيق المرتجعات المستقل:** السبب الدقيق للواقعة في المتصفح لم يُثبت من Network/Runtime. عيب تجاهل أخطاء الاستعلام مؤكد، والتعديل المساعد ما زال في Draft PR.
+3. هوية Artifact الذي كان Cloudflare يخدمه وقت الواقعة وبعد التعديلات غير مثبتة.
 4. لم يُجرَ Browser E2E مصادق عليه بعد التعديل؛ لا يُدّعى إغلاق المشكلة في Production.
 
 ## 3. تحليل السبب الجذري
@@ -59,7 +59,7 @@
 - لا تفحص خطأ استعلام `run_sheet_details` المستخدم لحساب الأصناف المتبقية.
 - تحول `data=null` إلى مصفوفة فارغة، وهو ما يخفي فشل القراءة ويشبه «لا توجد رانشيتات».
 
-هذا خلل مثبت في معالجة الأخطاء واعتماد غير ضروري في عقد الاستعلام. لكنه **لا يثبت وحده** أن هذا هو سبب الواقعة في المتصفح؛ إثبات ذلك يتطلب Network/Runtime من النسخة المنشورة.
+هذا خلل مثبت في معالجة الأخطاء واعتماد غير ضروري في عقد الاستعلام داخل تطبيق المرتجعات المستقل. وهو تحسين وقائي مستقل عن السبب الجذري المؤكد في تبويب المرتجعات بالنظام الأم.
 
 ## 3.3 السبب الجذري المؤكد — تبويب المرتجعات في النظام الأم
 
@@ -135,7 +135,7 @@
 داخل `_applyReturn()` ابحث عن سطر `return` الذي يبدأ بـ:
 
 ```javascript
-            return '<tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="RW_Warehouse._showReturnDetails(\\'' + r.runsheet_code + '\\')">
+            return '<tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="RW_Warehouse._showReturnDetails(\'' + r.runsheet_code + '\')">
 ```
 
 لا تستبدل `_applyReturn()` كاملة. استبدل سطر `return` الواحد بهذا المقطع داخل callback نفسه:
@@ -144,7 +144,7 @@
             var statusLabel = r.status === 'Delivered' && Number(r.pending_return_qty) > 0
                 ? 'بانتظار المرتجع: ' + Number(r.pending_return_qty).toLocaleString('ar-EG') + ' وحدة'
                 : esc(r.status || '—');
-            return '<tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="RW_Warehouse._showReturnDetails(\\'' + r.runsheet_code + '\\')"><td class="p-3 font-bold">' + (r.runsheet_code||'') + '</td><td class="p-3">' + (r.run_date||'') + '</td><td class="p-3">' + (r.driver_id||'---') + '</td><td class="p-3"><span class="px-2 py-1 rounded-full text-xs bg-rose-100 text-rose-700">' + statusLabel + '</span></td><td class="p-3 text-center"><button class="text-blue-600"><i class="fa-solid fa-eye"></i></button></td></tr>';
+            return '<tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="RW_Warehouse._showReturnDetails(\'' + r.runsheet_code + '\')"><td class="p-3 font-bold">' + (r.runsheet_code||'') + '</td><td class="p-3">' + (r.run_date||'') + '</td><td class="p-3">' + (r.driver_id||'---') + '</td><td class="p-3"><span class="px-2 py-1 rounded-full text-xs bg-rose-100 text-rose-700">' + statusLabel + '</span></td><td class="p-3 text-center"><button class="text-blue-600"><i class="fa-solid fa-eye"></i></button></td></tr>';
 ```
 
 **Patch D — عرض الكمية المحمّلة والمسلمة والمتبقية والمرتجعة في التفاصيل**
@@ -226,7 +226,7 @@
 - لم أكرر إصلاحات بدء رحلة المندوب أو RLS الخاصة بالأوردرات والأصناف من Reports547–549.
 - لم أعدّل `main.html` أو `core.js`.
 - لم أغير شرط `Delivered → Returning` أو طريقة الترحيل المخزني.
-- لم أصف السبب النهائي للواقعة بأنه محسوم؛ الدليل الحالي يثبت خلل معالجة أخطاء الواجهة ويستبعد غياب البيانات وRLS للحالة المختبرة، لكنه لا يحسم ما حدث في الـBrowser Runtime.
+- تم إثبات السبب الجذري لاختفاء الرانشيت من تبويب المرتجعات في النظام الأم من فلتر المصدر وطلب Network المطابق. يظل سبب واجهة المرتجعات المستقلة غير محسوم على مستوى الـRuntime حتى فحصها بعد النشر.
 - لم أعتبر Static PASS أو SQL PASS مساويًا لاختبار Production UI.
 
 **Final Closure Status:** `PARENT FILTER ROOT CAUSE CONFIRMED / OWNER MAIN.HTML PATCH PREPARED AND STATIC-PARSED / STANDALONE RETURNS HARDENING IN DRAFT PR / NO DEPLOYMENT OR AUTHENTICATED E2E / NOT CLOSED`.
