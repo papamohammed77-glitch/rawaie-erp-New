@@ -2,7 +2,7 @@
 
 **Last Verified Event:** `LVE-2026-10-29-557`  
 **تاريخ التحقق:** 2026-10-29  
-**النطاق:** النظام الأم `companies/company-1/main.html`، تطبيق مندوب التوصيل `companies/company-1/delivery/driver.html`، تطبيق المرتجعات `companies/company-1/warehouse/returns.html)، وبيانات Supabase Production.  
+**النطاق:** النظام الأم `companies/company-1/main.html`، تطبيق مندوب التوصيل `companies/company-1/delivery/driver.html`، تطبيق المرتجعات `companies/company-1/warehouse/returns.html`، وبيانات Supabase Production.  
 **الحالة:** `RETURNS ROOT CAUSE CONFIRMED / FIX EXISTS IN DRAFT PR #8 ONLY / SEARCH HANDLER-SCOPE GAP IDENTIFIED / PARENT SOURCE PATCH COMMITTED / CLOUDFLARE PRODUCTION COMMIT OBSERVED / AUTHENTICATED E2E + BYTE-IDENTICAL ARTIFACT NOT VERIFIED / NOT CLOSED`
 
 ## 0. القرار التنفيذي
