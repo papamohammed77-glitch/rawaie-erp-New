@@ -100,3 +100,18 @@ https://github.com/papamohammed77-glitch/erp-frontend/pull/5
 بعد مراجعة PR واعتماده ثم إتاحة الواجهة المطابقة، تُطبّق migration عبر مسار النشر المعتمد، وتُختبر شاشة «الرحلات والمسارات» و«مناديب التوصيل» في جلسة مصادق عليها مع Network/DOM/Console. تحقق خصوصًا من RS-1 وRS-2، والحسابات الأربعة التي تحتاج تسجيلًا تشغيليًا، ومن عدم تكرار الرانشيت أو إنشاء سجلات تلقائية.
 
 **لا تُغلق المرحلة قبل ظهور النتيجة في النسخة المنشورة واختبار المسار التشغيلي من قاعدة البيانات إلى الواجهة.**
+
+
+## 8. Final code review follow-up
+
+After creating the initial Draft PR, a direct comparison with the prior `agents()` implementation found that its search input and `oninput` refresh handler must remain. These were restored in a follow-up commit on the same review branch:
+
+- **Follow-up commit:** `5a1df11a6700caa273404519d435d9c516ffbc5f`.
+- **Full `RW_DeliveryLogistics` module JavaScript parse:** `PASS` after the follow-up.
+- **Registered-agent search input:** preserved.
+- **Search refresh handler:** preserved.
+- **Draft PR head verified:** `5a1df11a6700caa273404519d435d9c516ffbc5f`.
+- **Operational main verified unchanged:** `2b164e39eddc495f8dfabb1703160e96c3d21815`.
+- **PR files verified:** only `companies/company-1/main.html` and `supabase/migrations/20261029_delivery_logistics_unified_assignments_and_user_linking.sql`.
+
+This was corrected before declaring the PR ready for review; it was not deployed or merged.
