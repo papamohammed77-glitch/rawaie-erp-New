@@ -1,3 +1,19 @@
+# LAST VERIFIED EVENT — LVE-2026-10-29-546 — Delivery Driver Runsheet Assignment Fix
+
+- **Observed:** 2026-10-29; live Supabase Production SQL/RLS inspection, current and historical driver PWA comparison, and Git source verification.
+- **Authoritative report:** [Report546_DELIVERY_DRIVER_RUNSHEET_ASSIGNMENT_FIX_20261029.md](doc/Draft/Reprots/Report546_DELIVERY_DRIVER_RUNSHEET_ASSIGNMENT_FIX_20261029.md), documentation commit `0746908b0b4c770e22c9bdbb8dfde5681b22caa7`.
+- **Operational app source:** `papamohammed77-glitch/erp-frontend`, `companies/company-1/delivery/driver.html`. Previous blob `2df69860184f5a7c1b211ba059e1d6f57826c96b); repaired blob `dd201d23712619272e6ece120405c9a476a52aaf`; commit `c9eb4ad875d9bc5f1aa48f972d003c036f9b2df8`.
+- **Root cause confirmed:** three runsheet queries in the driver app filtered `runsheets.driver_id`, while Production assignment uses `runsheets.deliverer_id`. Historical `rawaie-erp-review/PWA/delivery/driver.html` had the same pre-fix blob as Current operational source.
+- **Independent RLS cause confirmed:** Production `runsheets_select_company` only allowed `runsheets` or `warehouse` permission; delivery accounts have `permissions=["delivery"]`, so RLS hid assigned runsheets from direct PostgREST reads.
+- **Production repair:** canonical source migration `supabase/migrations/20261029_runsheets_select_assigned_delivery_policy.sql` committed in `erp-frontend` at `bc2a864e56deb1dcca13a1bc4e1ae767818f8197`; applied to Production successfully. Live `pg_policies` read confirmed `runsheets_select_assigned_delivery`, SELECT-only for authenticated, same-company, active `مندوب توصيل` identity, and `deliverer_id` equals that user's `public.users.id`.
+- **Live data:** `RS-1` is `Loaded`, assigned through `deliverer_id` to active `driver@rawaea.com`; `RS-2` is `Loaded` but `deliverer_id IS NULL` and must not be shown as assigned to that driver. A read-only join returned exactly one active assigned runsheet for driver@rawaea.com.
+- **Scope guard:** changed only the three runsheet filters; kept `driver_liabilities.driver_id` queries unchanged. No runsheet/assignment, route plan, inventory, accounting, or driver registry data was created or modified. Parent `main.html` was not touched.
+- **Unverified:** authenticated browser/HTTP E2E after login, Cloudflare served-artifact identity, and cross-company negative test using a real authenticated session.
+- **Status:** `SOURCE FIX COMMITTED + PRODUCTION RLS POLICY APPLIED/VERIFIED / AUTHENTICATED UI E2E OPEN / NOT 100% CLOSED`.
+- **Next exact action:** perform a fresh authenticated session on the published driver PWA and verify RS-1 appears. If not, capture sanitized Network status/error and verify the served HTML artifact against the Git blob before another source change.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-29-545 — Report Governance Review and Delivery Production Contract Repair
 
 - **Observed:** 2026-10-29; current Git source/tree comparison, 114 report-file inventory for Report400–Report500, review of the permanent operating constitution/writing-block/active delivery brief and key historical correction reports, plus live read-only Production RPC/data/ACL validation.
