@@ -2965,7 +2965,7 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 # CURRENT FORENSIC CHECKPOINT — 2026-10-29 — LVE-2026-10-29-561 — Returns Eligibility + Production Contract Guards
 
 ## Governance and current source truth
-- Governing report: \`doc/Draft/Reprots/Report561_RETURNS_ELIGIBILITY_AND_PRODUCTION_CONTRACT_REPAIR_20261029.md\` (blob SHA \`b43e5e9367d4032fdb9a8a56674fdaa10bbec4b0\`).
+- Governing report: \`doc/Draft/Reprots/Report561_RETURNS_ELIGIBILITY_AND_PRODUCTION_CONTRACT_REPAIR_20261029.md\` (blob SHA \`9847e2612ff0d17ceabe05d9f95698c1e48c2a3a\`).
 - Operational repo remains \`papamohammed77-glitch/erp-frontend\`; current \`main\` source of \`companies/company-1/warehouse/returns.html\` is blob SHA \`c284f88ba0c7d4c0373b66f826f8a3c8c11599b7\`; latest source commit \`2e9777a23f44e1b009810c0936513a76e64cc741\` already added \`return_handler_id\` to the search projection. Do not re-propose that one-field change.
 - PR #8 is still Draft/Open/Unmerged; head \`3ad370c83f8f3c7880d7ace9ac24eabb5833f9cf\`; comparison with current \`main\` is diverged (ahead 2 / behind 1). Refresh/synchronize its branch before merge or patch application.
 - Production rows, source, and deployed artifacts are separate states. No claim of UI deployment or browser E2E is made here.
@@ -2976,7 +2976,7 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - Current snapshots exactly matching live Production source:
   - \`Current/Edge_Functions/start-return\`: blob \`34c05bef9dc8aaf38f0b61813f1674b3a738bafb\`.
   - \`Current/Edge_Functions/complete-return\`: blob \`ecd2681a84fdeaee6bcb31a63abd31e0fef0858d\`.
-  - \`Current/Edge_Functions/cancel-return\`: blob \`d9b7ade05f0b2f727be801f6d867d595f7773715\` (snapshot of current v2).
+  - \`Current/Edge_Functions/cancel-return\`: blob \`6434e7506ec32c59c4863ae5a79dd753e841a1fd\`, byte-identical to live Production v4 (\`verify_jwt=true\`, hash \`1679b951f5ce51ed5683fc801c39b76abf40478d44504e52006dbd2b111e1dcc\`). v4 resolves user through \`auth_id\`, checks company/Returns role/assignment, conditionally cancels exactly one fresh \`Returning\` row, never resets the derived projection, and refuses cancelling a previously completed-and-reopened return until an atomic reversal contract exists.
   - \`Current/Edge_Functions/reopen-return\`: blob \`fb9a0f2e4dbbfec9c8ef24e847d27b800280030a\` (snapshot of current v1).
 - SQL ACL recheck: \`authenticated\` cannot execute \`complete_return_atomic\` or \`complete_sales_return_credit_note_atomic\`; \`service_role\` can. No new Edge Function, database function, table, schema change, ACL change, or RLS change was made. No Production business row was mutated.
 
@@ -2992,13 +2992,14 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - Preview formula must subtract \`qty_returned\`; the active-user check should match UUID \`currentUser.id\` only. The existing PR #8 has the list/preview eligibility work but its branch is behind the latest main commit.
 - In \`saveReturnItem()\`, remove the ignored direct update to the projection; persist the draft through the existing local Dexie path until the authoritative completion operation commits.
 - On successful cancel, delete local Dexie changes for that runsheet so \`_loadLocalChanges()\` cannot resurrect a cancelled draft.
-- No operational HTML was modified by the assistant under the Owner-only rule.
+- Scale/correctness caveat: the Owner Patch search and the existing load query filter eligible returns after limiting the candidate rows (50). With a growing runsheet history, 50 ineligible recent rows can hide an older eligible runsheet. Current Production has only RS-1 and RS-2, so this is not observed in today’s counts; design pagination/stable ordering or reuse a proven central read contract before claiming unbounded completeness.
+- No operational HTML was modified by the assistant under the Owner-only rule. The Cloudflare dashboard still showed the Production deployment for commit \`2e9777a23f44e1b009810c0936513a76e64cc741\` as \`Queued\`, while current Production pointed to \`416de1c1d829c48b7c82442242a2a039e3d7e48c\`; recheck deployment state before claiming served artifact parity.
 
 ## Confirmed open lifecycle contract risks — do not conceal or patch casually
-- Existing \`cancel-return\` v2 resolves the app user by email, queries the runsheet by code without company scoping, resets the derived \`run_sheet_details.qty_returned\`, and does not check the runsheet update error. This requires a company-scoped and authoritative/atomic cancellation contract.
+- Historical \`cancel-return\` v2 had the unsafe behavior of resolving the user by email, reading runsheets without company scope, resetting the derived projection, and ignoring the status update result. It was replaced by Production v4 as recorded above; UI cleanup of local Dexie draft on cancel remains part of the Owner Patch.
 - Existing \`reopen-return\` v1 reads \`app_settings.limit(1)\` without company scope and updates \`stock_branches.qty\` directly using \`Math.max(0, qty - returned)\`; it bypasses \`post_stock_movement\` and \`inventory_log\`, ignores update failures, and does not reverse the authoritative \`order_details.qty_returned\`. A safe fix requires a defined atomic stock-reversal contract, not a one-line substitution.
 - \`public.complete_return_atomic\` skips a line early when returned quantity is zero before processing item/shortage liability. The UI permits zero returned quantity with notes. The exact meaning of returned vs damaged vs missing quantities must be settled and tested in isolated transaction tests before altering the accounting/driver-liability function.
 - Competitive reference baseline (official): Microsoft Dynamics 365 differentiates physical returns and credit-only dispositions, with receipt/inspection/disposition and related financial/logistics effects; SAP Customer Returns Processing links return order, returns delivery/goods receipt, quality inspection, logistical follow-up, and credit memo/replacement. See Report561 for URLs and relevance.
 
 ## Closure
-\`PRODUCTION EDGE GUARDS DEPLOYED + CURRENT EDGE SNAPSHOTS SYNCED / OWNER HTML PATCH PENDING / CANCEL-REOPEN + ZERO-QTY CORE CONTRACT OPEN / SERVED CLOUDFLARE PARITY + AUTHENTICATED BROWSER E2E UNVERIFIED / NOT CLOSED\`.
+\`START/COMPLETE/CANCEL EDGE GUARDS DEPLOYED + CURRENT EDGE SNAPSHOTS SYNCED / OWNER HTML PATCH PENDING / REOPEN + ZERO-QTY CORE CONTRACT OPEN / CLOUDFLARE MAIN DEPLOYMENT QUEUED / AUTHENTICATED BROWSER E2E UNVERIFIED / NOT CLOSED\`.
