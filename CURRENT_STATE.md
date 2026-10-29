@@ -1,4 +1,22 @@
-# LATEST VERIFIED CHECKPOINT — LVE-2026-10-29-559 — Returns eligibility forensic revalidation
+# LATEST VERIFIED CHECKPOINT — LVE-2026-10-29-560 — Returns eligibility source/Production recheck
+
+- **LAST VERIFIED EVENT:** `LVE-2026-10-29-560`; observed 2026-10-29.
+- **Authoritative report:** [Report560_RETURNS_ELIGIBILITY_OWNER_PATCH_DEPLOYMENT_RECHECK_20261029.md](doc/Draft/Reprots/Report560_RETURNS_ELIGIBILITY_OWNER_PATCH_DEPLOYMENT_RECHECK_20261029.md), report commit `8e60085e6e6e184b0b0ff4b5f35864a7301d2fe6`.
+- **Governance/start point:** Read the permanent operational constitution (Blob `365a5178810d8da37f55dba64bf422f328a966bd`), Report545 (Blob `e153396709ecfcc0552347db84e37c98ad8bcdd6`), and current LVE-559 / Reports552–559. Old reports were used as history, not live truth.
+- **Current source:** `papamohammed77-glitch/erp-frontend`, `main`, HEAD `416de1c1d829c48b7c82442242a2a039e3d7e48c`. Returns `companies/company-1/warehouse/returns.html` Blob `36c20e03c94dc734e015610dec1e8208697df32a`; Parent `companies/company-1/main.html` Blob `3a5d2e565a04262081d024f6e514e1372d372e84`; Driver `companies/company-1/delivery/driver.html` Blob `d7ace0b9be52c936aee1d5f5e1250b6d2e9a48f0`.
+- **CONFIRMED root cause:** Returns main `App.loadRunsheets()` brings every `Delivered` runsheet into `available`, obtains only `qty_loaded, qty_delivered`, counts `loaded > delivered`, ignores `qty_returned`, and does not filter available runsheets by positive outstanding-return quantity. Main search similarly returns any `Delivered` / `Returning` match without eligibility calculation.
+- **Existing candidate:** PR #8 [show only runsheets with outstanding returns](https://github.com/papamohammed77-glitch/erp-frontend/pull/8) remains open/draft/unmerged. Branch `fix/returns-only-pending-runsheets-20261029`, head `3ad370c83f8f3c7880d7ace9ac24eabb5833f9cf`, Returns Blob `9cc013a419f6dac2c656471b72f0e629a622a5b6`. It contains the core list/outstanding-quantity filter but search still omits `return_handler_id`, admits every Returning row and fails to return its nested details Promise. Owner patches R8-S1-A/B are reproduced exactly in Report560.
+- **Production read-only SQL:** at `2026-10-29 19:03:17.860357+00` (UTC), PostgreSQL 17.6. `RS-1` = Delivered, 5 detail rows, outstanding return units 0. `RS-2` = Delivered, 7 detail rows, outstanding return units 5. No `Returning` or `Returned` rows in the inspected sample. No DDL/DML, RPC write, schema/RLS/ACL/Edge change, test data or business-data mutation occurred.
+- **Cloudflare snapshot:** Production `rawaea-erp` shows main commit `416de1c` at `https://b469734c.rawaea-erp.pages.dev/`; PR #8 Preview shows commit `3ad370c` at `https://da5fcdde.rawaea-erp.pages.dev/`. This does not prove byte-for-byte served artifact identity. Authenticated E2E remains UNVERIFIED.
+- **Parent / Driver boundaries:** Parent fix for return-table syntax/detail rendering is already present in current source history via commit `0351897cf8758bc903ce4d0a52666db538c7b828`; Driver SHA is current and no causal defect was found there. Neither file should be altered for the standalone Returns eligibility bug absent new evidence.
+- **Static isolated logic check:** candidate filter passes an in-memory synthetic test: RS-1 excluded, RS-2 included, same-handler Returning included, other-handler Returning and unsupported state excluded. This is not a full-file syntax pass, deployed test or browser E2E.
+- **Mutation ledger:** only Report560, CURRENT_STATE and memory ledger are updated for continuity. No operational HTML, PR branch, Supabase Production or Cloudflare settings were modified.
+- **Status:** `ROOT CAUSE CONFIRMED / CORE FIX IN DRAFT PR #8 / OWNER SEARCH PATCH REQUIRED / PRODUCTION READ-ONLY / SERVED ARTIFACT + AUTHENTICATED E2E UNVERIFIED / NOT CLOSED`.
+- **Next exact action:** owner re-fetches PR #8 and applies R8-S1-A/B to that branch only after SHA and unique-anchor checks; then runs full inline-JavaScript syntax validation and isolated eligibility tests. Inspect deployment failure logs, prove served artifact identity and authenticated Parent → Driver → Returns list/search/detail E2E before merge or closure.
+
+---
+
+# HISTORICAL CHECKPOINT — LVE-2026-10-29-559 — Returns eligibility forensic revalidation
 
 - **LAST VERIFIED EVENT:** `LVE-2026-10-29-559`; observed 2026-10-29.
 - **Authoritative report:** [Report559_RETURNS_OPERATIONAL_REVALIDATION_AND_SURGICAL_BOUNDARIES_20261029.md](doc/Draft/Reprots/Report559_RETURNS_OPERATIONAL_REVALIDATION_AND_SURGICAL_BOUNDARIES_20261029.md), commit `a79801270b68ae82f2cbed8dbeec50a680313e31`.
