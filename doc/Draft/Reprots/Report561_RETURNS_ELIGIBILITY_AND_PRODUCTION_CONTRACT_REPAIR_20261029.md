@@ -1,13 +1,13 @@
 # Report561 — تدقيق أهلية المرتجعات وإغلاق عقد الخادم
 التاريخ: 2026-10-29  
-الحالة: **PRODUCTION EDGE GUARDS DEPLOYED + SOURCE SNAPSHOTS SYNCED / UI OWNER PATCH REQUIRED / LIFECYCLE CORE AUDIT OPEN / NOT CLOSED**
+الحالة: **PRODUCTION START/COMPLETE/CANCEL GUARDS DEPLOYED + SOURCE SNAPSHOTS SYNCED / UI OWNER PATCH REQUIRED / REOPEN + ZERO-QTY CORE AUDIT OPEN / NOT CLOSED**
 
 ## 1. الخلاصة التنفيذية
 
 - **CONFIRMED:** المالك سبق أن عدّل استعلام البحث في التزام GitHub رقم \`2e9777a23f44e1b009810c0936513a76e64cc741\` ليضيف \`return_handler_id\` إلى \`select\`. لذلك لا يجوز إعادة اقتراح هذا التغيير وكأنه جديد. قصور المراجعة السابق نتج عن الاعتماد على بصمة قديمة للملف.
 - **CONFIRMED:** ذلك التغيير وحده لا يصلح الأهلية؛ استعلام البحث الحالي لا يجلب \`id\`، ولا يقيّد نتائج \`Returning\` بالمستخدم المسند إليه، ولا يفحص رصيد المرتجع المتبقي، ولا يعالج خطأ الاستعلام.
 - **CONFIRMED:** القائمة الرئيسية والمعاينة في \`main\` لا تزالان تسمحان بظهور رانشيتات \`Delivered\` بلا كمية مرتجعة متبقية، لأنهما لا يخصمان \`qty_returned\` في كل مسار.
-- **PRODUCTION CHANGE APPLIED:** جرى تحصين الدالتين الموجودتين \`start-return\` و\`complete-return\`؛ لم تُنشأ Edge Function جديدة. تم التحقق من النسختين المنشورتين بعد النشر.
+- **PRODUCTION CHANGE APPLIED:** جرى تحصين الدوال الموجودة \`start-return\` و\`complete-return\` و\`cancel-return\`؛ لم تُنشأ Edge Function جديدة. أعيدت قراءة النسخ المنشورة بعد النشر.
 - **NOT CLOSED:** ملف HTML التشغيلي لا يزال يحتاج Owner Patch؛ لم يتم تغييره مباشرة. كما أن أزرار الإلغاء وإعادة الفتح ومنطق العجز بصفر كمية كشفوا عقودًا إضافية تتطلب إصلاحًا ذريًا خاصًا بها قبل اعتبار دورة المرتجعات مغلقة.
 
 ## 2. التاريخ والمصادر التي تمت مراجعتها
@@ -59,7 +59,7 @@ pending_qty = max(qty_loaded - qty_delivered - qty_returned, 0)
 تمت مزامنة ملفات المصدر في \`rawaie-erp-New/Current/Edge_Functions/\` بعد إعادة قراءة Production:
 - \`start-return\`: blob \`34c05bef9dc8aaf38f0b61813f1674b3a738bafb\`، مطابق بايتًا لنسخة Production 5.
 - \`complete-return\`: blob \`ecd2681a84fdeaee6bcb31a63abd31e0fef0858d\`، مطابق بايتًا لنسخة Production 27.
-- \`cancel-return\`: أُضيف snapshot مطابق للنسخة الحالية 2، blob \`d9b7ade05f0b2f727be801f6d867d595f7773715\`.
+- \`cancel-return\`: snapshot الإصدار 4، blob \`6434e7506ec32c59c4863ae5a79dd753e841a1fd\`، مطابق بايتًا لنسخة Production الحالية.
 - \`reopen-return\`: أُضيف snapshot مطابق للنسخة الحالية 1، blob \`fb9a0f2e4dbbfec9c8ef24e847d27b800280030a\`.
 تلك الملفات سجلات مصدر حالي وليست Edge Functions جديدة.
 
@@ -73,6 +73,7 @@ pending_qty = max(qty_loaded - qty_delivered - qty_returned, 0)
 
 ### حدود التحقق
 - لا توجد فروع Supabase staging متاحة في المشروع.
+- قرأت لوحة Cloudflare الحالية: نشر Production لالتزام \`2e9777a23f44e1b009810c0936513a76e64cc741\` ما زال \`Queued\` في آخر مشاهدة؛ صف Production ما زال يشير إلى \`416de1c1d829c48b7c82442242a2a039e3d7e48c\`. لذلك لم يثبت بعد أن آخر مصدر HTML وصل إلى ملف Pages المنشور.
 - لا توجد حاليًا رانشيتات \`Returning\` أو \`Returned\` في Production؛ الموجودان اللذان تم فحصهما كلاهما \`Delivered\`. لم أستخدم سجلًا تشغيليًا حيًا لتجربة بدء/إكمال/إلغاء.
 - لم يُثبت تطابق ملف HTML المنشور على Cloudflare مع blob الحالي، ولم يُنفّذ اختبار متصفح مصادق عليه End-to-End. لذلك لا يُعلن إغلاق المهمة بالكامل.
 
@@ -179,6 +180,9 @@ pending_qty = max(qty_loaded - qty_delivered - qty_returned, 0)
 
 هذه الرقعة تحفظ عدد الأصناف من العلاقة المتداخلة، وتضيف المفتاح الذي تحتاجه تفاصيل الكميات، وتوحد أهلية البحث مع العقد المعتمد، وتُعيد وعد استعلام التفاصيل حتى يصل خطأ الرفض إلى المعالجة الخارجية. لا تُكرر إضافة \`return_handler_id\` وحدها؛ فهي موجودة بالفعل في المصدر الحالي.
 
+### حدود pagination في Owner Patch
+استعلام البحث يفلتر أهلية الكميات بعد جلب دفعة مرشحين؛ لذلك فإن أي \`limit(50)\` قبل التصفية قد يخفي نتيجة مؤهلة إذا احتوت الدفعة على 50 نتيجة غير مؤهلة. وكذلك قائمة \`loadRunsheets()\` الحالية تقطع \`Delivered\` عند 50 قبل حساب الأهلية. في البيانات الحالية يوجد رانشيتان فقط، لذا لم يظهر أثر هذا الحد في العدّ الحالي؛ لكنه قيد توسع مؤكد من ترتيب العمليات. قبل اعتماد استخدام واسع، يجب أن تكون القراءة paginated بترتيب ثابت وتستمر حتى استنفاد الصفحات أو جلب العدد المطلوب من النتائج المؤهلة، أو يُعاد استخدام عقد قراءة مركزي موجود بعد التحقق من صلاحياته؛ لا تُضف RPC/Edge جديدًا لمجرد تجميل الفلترة.
+
 ## 7. تصحيحات واجهة مترابطة مطلوبة قبل الإغلاق
 
 1. في \`loadRunsheets()\`: استخدام \`qty_returned\` في استعلام التفاصيل، وعدم عرض \`Delivered\` إلا إذا كان مجموع/أي صنف يملك كمية متبقية موجبة؛ مع إبقاء معالجة أخطاء الاستعلامين. منطق ذلك موجود في PR #8 لكنه لم يُدمج، وفرع PR يحتاج أولًا إلى مزامنة التزام \`2e9777a\`.
@@ -192,7 +196,7 @@ pending_qty = max(qty_loaded - qty_delivered - qty_returned, 0)
 
 لا أعدّ هذه النقاط مغلقة بمجرد تحصين start/complete:
 
-- **\`cancel-return\` v2:** يبحث عن المستخدم بالبريد بدل \`auth_id\`، ويقرأ الرانشيت برقم الكود دون تقييد الشركة، ويصفر \`qty_returned\` في \`run_sheet_details\`، وهو إسقاط مشتق من \`order_details\`. كما لا يفحص خطأ تحديث حالة الرانشيت. يلزم توحيد عقد الشركة والمصدر المرجعي والعملية الذرية قبل إعادة الاستخدام.
+- **\`cancel-return\` v4 — تصحيح آمن جزئيًا:** أصبح يربط المستخدم عبر \`auth_id\`، ويتحقق من صلاحية المخازن والدور، ويقيّد الرانشيت بالشركة والمسند إليه، ويشترط تحديثًا مشروطًا أصاب صفًا واحدًا. أزيل تصفير \`run_sheet_details\` لأنه إسقاط مشتق؛ إلغاء الجلسة الجديدة لا يعدّل كميات المصدر أو المخزون. ولأن \`reopen-return\` الحالي يخصم مخزونًا دون عكس موثق، تمنع الدالة إلغاء جلسة إعادة فتح تحمل \`return_end\` سابقًا بدل تحويلها خطأً إلى \`Delivered\`. هذا يحمي المسار الجديد، لكنه لا يصلح بعد عقد إعادة الفتح ذاته.
 - **\`reopen-return\` v1:** يختار \`app_settings\` باستخدام \`limit(1)\` بلا \`company_id\`، ويعدّل \`stock_branches.qty\` مباشرة باستخدام \`Math.max(0, ...)\`، دون المرور عبر \`post_stock_movement\` ودون سجل حركة مخزون موحد أو فحص أخطاء التحديث؛ وهذا قد يخفي عجزًا أو يخلّف أثرًا مخزنيًا غير قابل للتتبع. كما أنه لا يصفّر الكمية المرتجعة في المصدر \`order_details\` قبل إعادة فتح الرانشيت.
 - **\`complete_return_atomic\`، SQL المركزي:** يمر على \`if v_returned <= 0 then ... continue\` قبل معالجة باقي سياق الصنف. واجهة الإكمال تسمح بكمية عائدة صفر مع ملاحظات لنقص/عجز، لكن هذا المسار المركزي قد يتجاوز تسجيل العجز/المسؤولية للخط الذي قيمته صفر. لا أعدل هذه الدالة المحاسبية في رقعة واجهة؛ يلزم تحديد دلالة كميات السليم/التالف/المفقود ثم اختبار معاملات معزولة تشمل المخزون، مسؤولية السائق، الإشعار الدائن وسجل العملية، قبل النشر.
   
@@ -208,8 +212,8 @@ pending_qty = max(qty_loaded - qty_delivered - qty_returned, 0)
 
 ## 10. حكم الإغلاق
 
-**CONFIRMED:** تم تحصين \`start-return\` و\`complete-return\` على Production وإعادة قراءة النسختين؛ مزامنة snapshots تمت؛ اختبار SQL المعزول للكمية 6/6، والتفويض 7/7، ومقارنة projection/source 12/12. لم تتغير بيانات أعمال ولم تُعدّل جداول/RLS/ACL أو RPC مركزي.
+**CONFIRMED:** تم تحصين \`start-return\` v5 و\`complete-return\` v27 و\`cancel-return\` v4 على Production وإعادة قراءة مصادرها المنشورة. اختبارات SQL المعزولة: الكمية 6/6، وسياسة التفويض 7/7، ومقارنة projection/source 12/12. فُحصت حراس cancel-return بعد النشر (auth_id، صلاحية/دور المرتجعات، الشركة، المسند إليه، منع الإلغاء بعد إعادة فتح مرتجع مكتمل، وعدم تصفير الإسقاط)، لكن هذا فحص مصدر وليس HTTP E2E. لم تتغير بيانات أعمال ولم تُعدّل جداول/RLS/ACL أو RPC مركزي.
 
-**UNVERIFIED / OPEN:** Owner Patch للـ HTML لم يطبق؛ تطابق Cloudflare artifact مع المصدر لم يثبت؛ لم ينفذ HTTP/browser E2E مصادق عليه لعدم وجود staging أو رانشيت \`Returning\` مناسب للاختبار؛ وإصلاحات \`cancel-return\` و\`reopen-return\` والعجز بصفر كمية لا تزال تحتاج عقدًا ذريًا مستقلًا.
+**UNVERIFIED / OPEN:** Owner Patch للـ HTML لم يطبق؛ Cloudflare لا يزال يعرض نشر commit \`2e9777a\` على \`Queued\` والمصدر المباشر المنشور لم يُثبت بعد؛ لم ينفذ HTTP/browser E2E مصادق عليه لعدم وجود staging أو رانشيت \`Returning\` مناسب للاختبار. \`reopen-return\` v1 ما زال غير ذري ويعدّل المخزون خارج \`post_stock_movement\`؛ كما أن العجز عند كمية مرتجعة صفر ما زال يحتاج عقدًا ذريًا واختبارات محاسبية/مخزنية.
 
-**STATUS: PRODUCTION EDGE GUARDS DEPLOYED / LIVE SOURCE MIRRORED / OWNER UI PATCH REQUIRED / RETURN LIFECYCLE AUDIT OPEN / NOT CLOSED.**
+**STATUS: START/COMPLETE/CANCEL EDGE GUARDS DEPLOYED / LIVE SOURCE MIRRORED / CLOUDFLARE HTML DEPLOYMENT QUEUED / OWNER UI PATCH REQUIRED / REOPEN + ZERO-QTY CORE CONTRACT OPEN / NOT CLOSED.**
