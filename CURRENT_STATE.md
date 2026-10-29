@@ -1,3 +1,19 @@
+# LAST VERIFIED EVENT — LVE-2026-10-29-547 — Delivery Driver Start-Trip Assignment Contract Fix
+
+- **Observed:** 2026-10-29; live Production SQL row verification, deployed Edge Function source inspection before/after, and GitHub source/report verification.
+- **Authoritative report:** [Report547_DELIVERY_DRIVER_START_TRIP_ASSIGNMENT_CONTRACT_FIX_20261029.md](doc/Draft/Reprots/Report547_DELIVERY_DRIVER_START_TRIP_ASSIGNMENT_CONTRACT_FIX_20261029.md); report commit `60b528d5b159d5c4000245e2bde2f9052952be42`.
+- **Confirmed live cause:** `RS-1` is `Loaded`; `runsheets.driver_id IS NULL`; `runsheets.deliverer_id` matches the active user's `public.users.id`. Production `start-delivery` Version 7 compared `rs.driver_id` to the user ID, causing the false “assigned to another driver” error.
+- **Production fix:** existing `start-delivery` Edge Function updated to Version 8; now reads/checks `deliverer_id`, guards the UPDATE with company + `deliverer_id` + `Loaded`, and verifies that a row actually changed. `verify_jwt=true` preserved. Post-deploy SHA: `78fb8b6f4d70e55b1290b06f73e5581e2be7b7d34f6270c16384afe6c94966fa`.
+- **Canonical source:** `papamohammed77-glitch/erp-frontend/supabase/functions/start-delivery/index.ts`, commit `aa41a85ccfaab80be8035551ba6212bbeae39729`. No new Edge Function created.
+- **Mutation ledger:** only the existing Edge Function was updated and its canonical source added to GitHub. No runsheet state/assignment, vehicle-tracking row, user, inventory, accounting, RLS, or permissions were modified for testing. `main.html` and `delivery/driver.html` were not modified.
+- **Separate confirmed gap:** `driver.html` displays a meter-photo input but currently sends only the meter number; `vehicle_tracking.meter_photo_url` exists. No approved private vehicle-evidence storage contract was found. This remains open; do not use public `product-images` or HR-scoped `employee-documents` as a shortcut.
+- **Independent UNKNOWN:** the observed `auth/v1/token 400` lacks its response body and is not proven to share the `start-delivery` root cause.
+- **Unverified:** authenticated browser/business E2E after deployment; no real `start-delivery` call was made because it would mutate `RS-1` to `Delivering` and create a vehicle-tracking record.
+- **Status:** `ROOT CAUSE CONFIRMED + PRODUCTION FUNCTION V8 DEPLOYED + CANONICAL SOURCE COMMITTED / AUTHENTICATED E2E OPEN / PHOTO STORAGE CONTRACT OPEN / NOT CLOSED`.
+- **Next exact action:** in a fresh authenticated driver session, test `RS-1` once with a genuine meter reading; verify the state transition and natural vehicle-tracking record. If it succeeds, do not retry. If it fails, capture sanitized HTTP status/body and inspect the served artifact before another patch.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-29-546 — Delivery Driver Runsheet Assignment Fix
 
 - **Observed:** 2026-10-29; live Supabase Production SQL/RLS inspection, current and historical driver PWA comparison, and Git source verification.
