@@ -1,3 +1,21 @@
+# LAST VERIFIED EVENT — LVE-2026-10-29-549 — Delivery Driver Item Images + Vehicle Stock RLS Repair
+
+- **Observed:** 2026-10-29; current operational driver.html source inspection, direct read-only Production queries, live `pg_policies` inspection, and a read-only authenticated-role RLS simulation rolled back at the end.
+- **Authoritative report:** [Report549_DELIVERY_DRIVER_ITEM_IMAGES_AND_VEHICLE_STOCK_RLS_FIX_20261029.md](doc/Draft/Reprots/Report549_DELIVERY_DRIVER_ITEM_IMAGES_AND_VEHICLE_STOCK_RLS_FIX_20261029.md); report commit `5a56394681ec03330dd85d6bf1c456a175e7a522`.
+- **Root cause confirmed — vehicle tab:** `driver.html` reads `public.run_sheet_details`, but the previous SELECT policy allowed `runsheets`, `warehouse`, or `reports`, not the delivery permission. RLS silently returned no rows, which the UI displayed as “لا توجد أصناف محملة”.
+- **Root cause confirmed — item images:** the driver app populates `ITEMS_IMAGE_CACHE` from `public.items`; existing SELECT policies did not include the delivery permission. The item rows, `image_url`, and descriptions were therefore not visible to the driver through the current RLS contract.
+- **Production repair applied:** added two SELECT-only policies, `run_sheet_details_select_assigned_delivery` and `items_select_assigned_delivery`, scoped to the same company and the active authenticated delivery user’s own assigned runsheets/orders. No new table, RPC, Edge Function, or write permission was added.
+- **Canonical migration source:** `papamohammed77-glitch/erp-frontend/supabase/migrations/20261029_delivery_driver_vehicle_stock_and_item_images_select_policy.sql`; commit `6b65e3b8c32e3f4ddbcc61563bc8fb396a1b77ce`; blob `c5d42781ee33a8e403b4a1bc316ef7d10be9ba8a`.
+- **Live Production facts:** `RS-1` was already `Delivering`, assigned to `driver@rawaea.com`; five `run_sheet_details` rows have loaded quantities totaling 13, and all five match item rows with non-empty image URLs.
+- **RLS simulation:** using the driver's auth identity in an authenticated-role SQL context, the query saw 5 assigned run-sheet detail rows and 5 matching items with images, while seeing 0 detail rows for unassigned `RS-2`. The SQL transaction was rolled back; no business data was changed.
+- **Mutation ledger:** only two SELECT policies were added in Production. `companies/company-1/delivery/driver.html` and parent `main.html` were not edited. No runsheet, order, stock, accounting, or user records were changed.
+- **Unverified:** actual published browser/PostgREST E2E after this migration, and Cloudflare served-artifact identity. The RLS simulation is not a substitute for a real authenticated browser test.
+- **Safety:** `RS-1` was already `Delivering`; do not click start-trip again or create delivery/return transactions just to test.
+- **Status:** `ROOT CAUSE CONFIRMED + PRODUCTION RLS REPAIRED + AUTHENTICATED-RLS SIMULATION PASS / PUBLISHED UI E2E OPEN / NOT CLOSED`.
+- **Next exact action:** refresh the published driver app in a fresh authenticated session, open the existing `RS-1`, verify item images in order details and the five loaded stock rows in the vehicle tab, and do not start the trip again. If still broken, capture sanitized Network status/error for `items` and `run_sheet_details`, then verify the served artifact before another change.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-29-548 — Delivery Driver Assigned Orders RLS Fix
 
 - **Observed:** 2026-10-29; current GitHub source/blob verification, direct read-only Supabase Production queries, live `pg_policies` inspection after migration, and inline JavaScript syntax checks.
