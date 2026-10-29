@@ -21,11 +21,11 @@ Historical sources explain intent and prior behavior. They do not prove current 
 
 ## 2. CURRENT PROJECT IDENTITY
 - Project: RAWAEA ERP
-- Operational application-source repository: `papamohammed77-glitch/erp-frontend`, branch `main`; current verified HEAD at LVE-2026-10-23-484: `152e5b1d22aab94d2cf01070778b357df4701aff`.
-- Governance, continuity, and report repository: `papamohammed77-glitch/rawaie-erp-New`, branch `main`. Its HEAD advances when reports, CURRENT_STATE, or this ledger are committed; re-fetch live HEAD every run rather than storing a self-referential SHA here.
+- Operational application-source repository: `papamohammed77-glitch/erp-frontend`, branch `main`; current verified HEAD at LVE-2026-10-29-558: `416de1c1d829c48b7c82442242a2a039e3d7e48c`. Parent `companies/company-1/main.html` current Blob: `3a5d2e565a04262081d024f6e514e1372d372e84`; standalone Returns `main` Blob: `36c20e03c94dc734e015610dec1e8208697df32a`; current Driver Blob: `d7ace0b9be52c936aee1d5f5e1250b6d2e9a48f0`.
+- Governance, continuity, and report repository: `papamohammed77-glitch/rawaie-erp-New`, branch `main`. `CURRENT_STATE.md` is the operational checkpoint; its latest event is `LVE-2026-10-29-558`. HEAD advances when reports/state/memory are committed; re-fetch live HEAD each run rather than storing a self-referential SHA here.
 - Historical repository: `papamohammed77-glitch/rawaie-erp-review`.
-- Production: Supabase `SMART ERP`, ref `fiilmooggumokxanwiyx`, status `ACTIVE_HEALTHY`.
-- Staging: Supabase `rawaea-staging`, ref `hfzznsiprnwkpayskzhu`; live project metadata reports `INACTIVE` as of 2026-10-23.
+- Production: Supabase `SMART ERP`, ref `fiilmooggumokxanwiyx`, status `ACTIVE_HEALTHY`; live metadata reports PostgreSQL `17.6.1.121` as of LVE-558.
+- Staging: Supabase `rawaea-staging`, ref `hfzznsiprnwkpayskzhu`; current live project listing reports `ACTIVE_HEALTHY` as of LVE-558. No staging tests were run in this event.
 
 ## 3. MASTER COMMAND ADOPTION
 The full `doc/Draft/medhat/MASTER - RAWAEA ERP.md` command was read end-to-end through section 60.
@@ -204,7 +204,7 @@ Never repeat:
 13. Record material knowledge here.
 14. Reassess target after closure.
 
-## 21. LAST VERIFIED MEMORY EVENT
+## 21. HISTORICAL MEMORY BASELINE — LVE-2026-09-01-004
 - Event ID: `LVE-2026-09-01-004`
 - Event Type: `MASTER_CONTINUITY_MEMORY_RECONCILIATION_FINAL`
 - UTC: `2026-09-01T00:24:00Z` execution window
@@ -219,18 +219,15 @@ Never repeat:
 ## 22. CURRENT EXECUTION POSITION
 - Master continuity command: ACTIVE
 - 117-02 memory governance: ACTIVE
-- Current State: SYNCHRONIZED
-- Production: ACTIVE_HEALTHY
-- MAIN1 forensic contract: VERIFIED
-- New-main MAIN1 parity: OPEN
-- Target write: SAFETY LIMITATION
-- Security: OPEN
-- Consumer graph: PARTIAL / OPEN
-- Deployment lineage: PARTIAL / OPEN
-- New-main: candidate only
-- Main replacement: unauthorized
-- Latest active integration checkpoint from CURRENT_STATE LVE-2026-10-28-534: Delivery Supervisor → Parent assignment visibility remains OPEN. Current Parent source and live Production RPC/migration body are aligned; RS-1/RS-2 remain assigned and Loaded. Published artifact identity and fresh authenticated UI E2E are UNVERIFIED. This does not close the older MAIN1/security backlog above.
-
+- Current State: LVE-2026-10-29-558; source truth is revalidated from live GitHub/Supabase, not from this ledger.
+- Operational app repo: `erp-frontend/main`, HEAD `416de1c1d829c48b7c82442242a2a039e3d7e48c`.
+- Current target: standalone Returns eligibility and Parent/Returns CI/deployment verification. PR #8 is open/draft/unmerged; its primary pending-return filter exists only on the branch. Search micro-patches R8-S1-A/B passed in-memory full inline-script parsing and isolated logic checks but were not written to source.
+- Production: `RS-1` pending return quantity 0; `RS-2` pending return quantity 5; no current `Returning` rows in the inspected dataset. RLS remains enabled; no Production mutation occurred.
+- Parent: commit `0351897` is in current Main history, but the Main browser-E2E workflow still fails the stale Payroll assertion before JavaScript parsing. PR #7 has a corrected syntax gate but remains draft and is based on older HEAD. Parent full-file syntax and browser E2E remain UNVERIFIED.
+- Deployment: Cloudflare check-run status for `rawaea-erp` is success on Main `416de1c` and PR #8 Preview `3ad370c`; three other project checks fail. Failure causes and byte-identical served artifact remain UNKNOWN/UNVERIFIED.
+- Browser: the connected Browser tool required an originating browser context in LVE-558; no current dashboard/artifact read or authenticated E2E was possible.
+- Security / older MAIN1 backlog: OPEN; this event does not close or authorize unrelated historical work.
+- Status: RETURNS ROOT CAUSE CONFIRMED / OWNER PATCH READY / MAIN CI GATE STALE / DEPLOYED ARTIFACT + AUTHENTICATED E2E UNVERIFIED / NOT CLOSED.
 
 ## 23. LAST VERIFIED MEMORY EVENT — LVE-2026-10-23-473
 - Scope: Loader/Picker runsheet preview parity; owner-only patch to Picker.
@@ -378,3 +375,17 @@ Never repeat:
 - **Current diagnosis:** the source renders `d.runsheet_assignments` separately and the live RPC returns that projection; source/Production contract drift is not the current proven defect. Do not repeat the Parent patch, create `delivery_agents` records to mirror assignments, change SQL/ACL, or bump Service Worker without new evidence.
 - **Open gate:** exact Cloudflare-served artifact and fresh authenticated Parent DOM/Network/Console evidence remain UNVERIFIED because the available browser connector has no originating browser context and direct page fetch was unavailable.
 - **Next:** a normally authenticated published Parent session must capture the `delivery_logistics_query(p_view='agents')` response, confirm RS-1/RS-2 in `runsheet_assignments`, inspect the assignment-table DOM, and capture the first Console error if the payload has rows but the table is absent. Preserve the historical MAIN1/security backlog; this event does not close it.
+
+
+## LAST VERIFIED MEMORY EVENT — LVE-2026-10-29-558
+
+- **Authority:** `CURRENT_STATE.md` LVE-558 and Report558 are the current operational checkpoint; this ledger remains secondary continuity memory.
+- **Live source:** `papamohammed77-glitch/erp-frontend`, `main`, HEAD `416de1c1d829c48b7c82442242a2a039e3d7e48c`. Parent Blob `3a5d2e565a04262081d024f6e514e1372d372e84`; Returns main Blob `36c20e03c94dc734e015610dec1e8208697df32a`; PR #8 branch Blob `9cc013a419f6dac2c656471b72f0e629a622a5b6`, commit `3ad370c83f8f3c7880d7ace9ac24eabb5833f9cf`, open/draft/unmerged.
+- **Returns patch:** R8-S1-A/B applied only in memory after re-fetching the exact PR #8 Blob. Each replacement anchor was unique; the resulting inline JavaScript passed V8 syntax parsing; isolated eligibility fixture excluded RS-1 (pending=0), included RS-2 (pending=5), included same-handler Returning, and excluded another handler. No operational file write occurred.
+- **Production:** read-only SQL confirms RS-1 Delivered / 5 detail rows / pending 0; RS-2 Delivered / 7 detail rows / pending 5; no current Returning rows. RLS is enabled for runsheets/details; authenticated SELECT is granted; authenticated UPDATE on run_sheet_details is not granted. Active Edge functions start-return v4 and complete-return v26 were not modified.
+- **New CI finding:** Main workflow Blob `7f821b2afdcb8d15f205782218b427d06da03a6e` still contains the obsolete Payroll assertion. Run `40928363996` / job `123639862789` failed on commit `0351897` before Parent JavaScript syntax validation or Playwright. PR #7's workflow-only fix remains draft/unmerged and is based on older commit `626df80fae8101fa6b1fe0ba0b6bc8d4ae69f8ca`; it has not been proven against current Parent source.
+- **Deployment/runtime:** GitHub check-runs report `rawaea-erp` success on Main `416de1c` and Preview `3ad370c`; `erp-frontend`, `rawaea-store`, and `warehouse-supervisor` fail. Supabase logs at `2026-10-29T18:17:11Z` show old nested-count requests with HTTP 200, but Origin/Referer are blank. Browser connector could not access tabs without originating context; exact served bytes and authenticated E2E remain UNVERIFIED.
+- **Staging metadata correction:** current live Supabase project listing reports `rawaea-staging` ref `hfzznsiprnwkpayskzhu` as `ACTIVE_HEALTHY`, replacing the older LVE-484 `INACTIVE` observation. Staging was not used or changed.
+- **Mutation ledger:** no operational source, Production schema/RLS/grants/RPC/Edge functions, business data, stock/accounting, or Cloudflare configuration changed. No test data created.
+- **Next:** owner applies R8-S1-A/B to the PR #8 branch after rechecking SHA/boundaries, reruns full inline-script parsing and eligibility checks, and does not merge/close until the CI gate is current, Cloudflare failure logs are understood, the served artifact is identified, and authenticated E2E passes.
+- **Status:** ROOT CAUSE CONFIRMED / OWNER PATCH READY / MAIN CI GATE STALE / ARTIFACT + AUTHENTICATED E2E UNVERIFIED / NOT CLOSED.
