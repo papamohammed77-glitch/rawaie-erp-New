@@ -1,3 +1,21 @@
+# LAST VERIFIED EVENT — LVE-2026-10-29-548 — Delivery Driver Assigned Orders RLS Fix
+
+- **Observed:** 2026-10-29; current GitHub source/blob verification, direct read-only Supabase Production queries, live `pg_policies` inspection after migration, and inline JavaScript syntax checks.
+- **Authoritative report:** [Report548_DELIVERY_DRIVER_ASSIGNED_ORDERS_RLS_FIX_20261029.md](doc/Draft/Reprots/Report548_DELIVERY_DRIVER_ASSIGNED_ORDERS_RLS_FIX_20261029.md); documentation commit `47690048ec4758e31633928de3d25b35ce9f01de`.
+- **Confirmed root cause:** `orders` and `order_details` had active RLS but no SELECT policy for permission `delivery`. Existing read policies admitted `orders`, `runsheets`, `warehouse`, or `reports`; the active driver account has role `مندوب توصيل` and permission `delivery`. Therefore the runsheet could be visible while its order rows/details were hidden.
+- **Production fix applied:** migration `delivery_assigned_orders_select_policy_20261029` succeeded. Added `orders_select_assigned_delivery` and `order_details_select_assigned_delivery`, SELECT-only for `authenticated`, scoped to the active same-company delivery user and runsheets where `runsheets.deliverer_id` equals that user's `public.users.id`. No INSERT/UPDATE/DELETE permission was added.
+- **Canonical migration source:** `papamohammed77-glitch/erp-frontend/supabase/migrations/20261029_delivery_assigned_orders_select_policy.sql`, commit `d2fef9fa84d91dcec23e20d4b1c9a9f6b4d6194d`.
+- **Driver UI diagnostic patch:** `companies/company-1/delivery/driver.html` now checks `res.error` in `renderOrdersTab()`, logs sanitized query diagnostics and displays a clear failure state rather than silently converting a PostgREST error to an empty array. Commit `b7eed2b922e244c607f262979fda8e022ddabade`; blob `bba1fa3d77c328cb472b909a8358d384f824191b`. The order query, cancellation filter, session structure, buttons and order-detail workflow remain unchanged.
+- **Live business state at observation:** `RS-1` was `Delivering`; its `deliverer_id` matched active user `driver@rawaea.com`, while `driver_id` was NULL. Three non-cancelled orders `ORD-1001`–`ORD-1003` are linked to RS-1, with 11 order-detail rows. `RS-2` was `Loaded` with `deliverer_id IS NULL`; it must not be shown as assigned to this driver.
+- **Verification:** live `pg_policies` confirmed both new policies for `authenticated` and SELECT only. `has_table_privilege` confirmed authenticated SELECT=true and UPDATE=false on both orders and order_details. Inline JavaScript syntax check passed for both inline script blocks. Production order/run data was queried read-only.
+- **Mutation ledger:** only two SELECT policies were added and one local error-handling branch was inserted in driver.html. No order/order-detail/run-sheet data, assignment, inventory, accounting, Edge Function, parent `main.html`, or write privileges were changed in this round.
+- **Unverified:** Cloudflare served-artifact SHA, authenticated driver-browser/PostgREST E2E after the change, and visible order-detail confirmation. Database existence and policy definitions do not replace this UI test.
+- **Safety:** RS-1 is already `Delivering` at the latest observation; do not click start-trip again just to test. Do not alter RS-2 assignment without an operational decision.
+- **Status:** `PRODUCTION SELECT POLICIES APPLIED + CANONICAL MIGRATION COMMITTED + DRIVER ERROR HANDLING COMMITTED / AUTHENTICATED UI E2E OPEN / NOT CLOSED`.
+- **Next exact action:** in a fresh authenticated driver session, refresh the published app and verify RS-1 lists ORD-1001–ORD-1003 and that an order opens with its details. If still empty, capture sanitized Network status/error for `orders` and `order_details`, then verify served artifact identity before another patch.
+
+---
+
 # LAST VERIFIED EVENT — LVE-2026-10-29-547 — Delivery Driver Start-Trip Assignment Contract Fix
 
 - **Observed:** 2026-10-29; live Production SQL row verification, deployed Edge Function source inspection before/after, and GitHub source/report verification.
