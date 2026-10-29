@@ -21,7 +21,7 @@
 - المستودع التشغيلي: `papamohammed77-glitch/erp-frontend`.
 - مستودع الحالة والتقارير: `papamohammed77-glitch/rawaie-erp-New`.
 - Supabase Production: `fiilmooggumokxanwiyx`.
-- لا توجد تعديلات على `main.html) أو `driver.html) أو `returns.html) في هذا التقرير.
+- لا توجد تعديلات على `main.html` أو `driver.html` أو `returns.html` في هذا التقرير.
 
 ## 2. أدلة المصدر الحالي
 
