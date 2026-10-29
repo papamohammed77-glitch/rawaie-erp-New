@@ -115,3 +115,20 @@ After creating the initial Draft PR, a direct comparison with the prior `agents(
 - **PR files verified:** only `companies/company-1/main.html` and `supabase/migrations/20261029_delivery_logistics_unified_assignments_and_user_linking.sql`.
 
 This was corrected before declaring the PR ready for review; it was not deployed or merged.
+
+
+## 9. Execution governance correction and supersession — LVE-2026-10-29-545
+
+This addendum supersedes the earlier procedural direction in this report; it does not erase the earlier investigative evidence.
+
+- The Draft PR #5 mentioned above was **closed, not merged**, with title `SUPERSEDED — owner-only delivery assignment correction (do not merge)`. It directly changed the protected Parent HTML in a review branch and is not the approved implementation route. Do not merge it or apply its bundled route-RPC migration.
+- The approved frontend change is now an **Owner Surgical Change Set** in Report545. The Parent file was not edited by the assistant; its SHA remains `1f60ecc6eefba3a669a5aa01512da269453c9ed5`.
+- Three separate changes were applied to the existing Production RPCs and then recorded as canonical source migration files in `erp-frontend/supabase/migrations/`:
+  1. `delivery_agents_unregistered_users_read_contract_20261029`: add `unregistered_delivery_users` to the existing `agents` response.
+  2. `delivery_agent_user_link_company_guard_20261029`: reject a non-active or cross-company user ID in the existing `AGENT_CREATE` / `AGENT_UPDATE` commands.
+  3. `delivery_routes_use_runsheet_date_window_20261029`: align the existing `routes` view date predicate to `runsheets.run_date`.
+- These changes preserve the existing functions and execution ACL; no new function, table, Edge Function, or route/stop/agent business row was created. Post-change Production reads still show `RS-1` and `RS-2` in `runsheet_assignments`, `routes.rows=[]`, and zero `delivery_agents`, `delivery_route_plans`, and `delivery_route_stops`. The four active delivery-role accounts are now returned explicitly by `unregistered_delivery_users`.
+- Authoritative current procedure, exact Owner Change Set, tests, mutation ledger, and the new current-state event are in [Report545](Report545_GOVERNANCE_AUDIT_AND_DELIVERY_OWNER_PATCH_RESET_20261029.md).
+- Current closure status is not improved to “UI fixed”: the Production read contract is applied and verified, but the Parent owner patch is not applied, no UI deployment has been proven, and authenticated E2E remains open.
+
+**Corrected status:** `PRODUCTION READ/SECURITY/DATE CONTRACTS APPLIED AND VERIFIED — OWNER PARENT PATCH READY — NOT DEPLOYED — E2E OPEN — NOT CLOSED`.
