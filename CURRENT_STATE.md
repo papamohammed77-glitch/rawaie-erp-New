@@ -1,3 +1,22 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-10-29-553 — Parent Syntax Recovery + Returns Integration
+
+- **Observed:** 2026-10-29; live GitHub source/blob inspection, exact CI job log at the reported line, read-only Supabase Production queries, in-memory surgical-patch parse, and current Cloudflare dashboard deployment metadata.
+- **Authoritative report:** [Report553_PARENT_RETURNS_TAB_SYNTAX_RECOVERY_AND_INTEGRATION_20261029.md](doc/Draft/Reprots/Report553_PARENT_RETURNS_TAB_SYNTAX_RECOVERY_AND_INTEGRATION_20261029.md).
+- **Governance:** Report545 remains the binding rulebook. Parent companies/company-1/main.html is owner-only; the assistant prepares exact surgical replacements and does not write it directly. Do not overwrite historical reports or reuse older patches without fresh SHA/text checks.
+- **Operational repo:** papamohammed77-glitch/erp-frontend, branch main. Current HEAD observed: 626df80fae8101fa6b1fe0ba0b6bc8d4ae69f8ca.
+- **Parent source:** companies/company-1/main.html, current blob 18d02872a1b204b73fba112f7beb5d9ba95ac72b. This replaces the stale Blob SHA recorded in LVE-552. Commit 151f1ad2cd48645ef1f029b7df417e66d4141eec introduced the malformed _applyReturn HTML string and left duplicate old row markup.
+- **Confirmed fatal defect:** GitHub Actions run 40918600126, job 123605412173, failed the exact JavaScript syntax gate at line 15839 with SyntaxError: Invalid or unexpected token. Run 40918600056 failed the Mother browser-E2E syntax prerequisite before Playwright could start; run 40918599961 failed the inline JavaScript syntax gate. The Tailwind CDN warning is unrelated technical debt.
+- **Current correct behavior already present in source:** loadReturn includes Delivered in the filter and aggregates pending_return_qty as max(0, qty_loaded - qty_delivered - qty_returned). Do not reapply Report552 patches A/B or replace the entire loadReturn function.
+- **Required Owner Patch:** two small replacements inside current main.html: (C) replace the broken region starting at var statusLabel = r.status === 'Delivered'... and ending immediately before the callback-closing }); in _applyReturn; remove all duplicate stale td fragments and concatenate HTML strings. (D) replace the unique old one-line items.forEach inside _showReturnDetails so its row returns loaded, delivered, remaining, returned to match the existing five-column header. Exact old/new text and boundaries are in Report553.
+- **Static test:** on an in-memory copy only, the 6 inline JavaScript blocks went from one syntax error to zero after patches C/D; source was not written. This is not a deployment or browser-E2E pass.
+- **Production read-only facts:** RS-2.status=Delivered, 7 run-sheet detail rows, total pending return quantity 5; return_handler_id, return_start, return_end are NULL. RS-1.status=Delivered, 5 detail rows, pending return quantity 0. No Production rows were changed.
+- **Standalone Returns app:** source blob before review patch 36c20e03c94dc734e015610dec1e8208697df32a; PR #6 remains Draft/open/unmerged. Branch fix/returns-partial-delivery-visibility-20261029, commit 8a4589dc99a4fda418dd61d9508743d4097941d5; current branch file parses all 8 inline script blocks, and the patch removes run_sheet_details(count) from the two list queries and surfaces PostgREST errors. It is not deployed and has no authenticated browser E2E.
+- **No mutations:** no assistant write to Parent main.html, no Production SQL/DDL/RLS/ACL/function change, no runsheet/return/inventory/accounting change, and no driver.html/core.js change.
+- **Unknown/Open:** exact byte-for-byte Cloudflare served artifact comparison remains unverified; owner patch application and CI rerun are pending; deployment and authenticated Parent/Returns browser E2E are open.
+- **Next exact actions:** owner re-fetches main.html, verifies SHA 18d02872a1b204b73fba112f7beb5d9ba95ac72b, applies Report553 patches C/D only, runs the full JavaScript/CI gates, deploys only after PASS, verifies the served artifact and authenticated Parent tab (RS-2 must show 5 units pending), then reviews/merges PR #6 and tests the standalone Returns app. Keep status NOT CLOSED until those gates pass.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-10-29-552 — Partial Delivery → Warehouse Returns Visibility
 
 - **Observed:** 2026-10-29; read-only Supabase Production queries, isolated authenticated-role RLS simulation with ROLLBACK, current operational source inspection, and static JavaScript parsing of the review patch.
