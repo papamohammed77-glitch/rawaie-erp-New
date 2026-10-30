@@ -1,3 +1,62 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-10-30-565 — Returns Source / Production Recheck
+
+**LAST VERIFIED EVENT:** 2026-10-30T17:29:06Z — Production `complete-return` returned HTTP 200 for RS-2; the run sheet reached Returned and its credit-note, journal, inventory, and projection effects were observed.  
+**REVIEW CHECKPOINT:** 2026-10-30 19:49 UTC / 21:49 Cairo.  
+**AUTHORITATIVE STATE/REPORT REPOSITORY:** `papamohammed77-glitch/rawaie-erp-New`.  
+**OPERATIONAL SOURCE REPOSITORY:** `papamohammed77-glitch/erp-frontend`.
+
+## Current target
+
+Verify the current Cloudflare Production artifact for the standalone Returns application against the latest operational Main source, then perform authenticated Browser E2E. Do not declare the UI fix deployed or closed until the served artifact and runtime behavior are directly verified.
+
+## Current source state — CONFIRMED
+
+- Operational `main` HEAD: `5745f36cd1e4e3707b84cead4d35aaf8a9882e75`.
+- Returns source: `companies/company-1/warehouse/returns.html`, Blob `16d02fff2d00759451879204abf218202898f9c0`, 74,600 bytes / 1,309 lines.
+- App router: `companies/company-1/app.html`, Blob `ec75f89c11620f6e8b8ef5996cf1a3289dcf20b4`; active warehouse role `مرتجعات` routes to `warehouse/returns.html`.
+- Owner commits `671a4cf85d6fd59fb66f1f1c39941ab032053f89` and `5745f36cd1e4e3707b84cead4d35aaf8a9882e75` now contain the main-list eligibility filter, matching search filter, assigned-handler restriction, preview remaining-quantity logic, UUID-only return-handler comparison, image relation/helper, and query error handling.
+- Inline JavaScript parsing for Returns and app.html: PASS. This is static syntax validation only.
+- PR #8 remains Open/Draft/Unmerged; its head is `3ad370c83f8f3c7880d7ace9ac24eabb5833f9cf`. Its Returns blob does not contain the current Main search filter/image helper. Do not merge that stale branch; Main already contains later owner commits.
+- Report564 is a historical owner change set and is superseded by the live Main source. Do not reapply its patches.
+
+## Current Production state — CONFIRMED
+
+- Project `SMART ERP`, ref `fiilmooggumokxanwiyx`.
+- Edge Functions: `start-return` v5, `complete-return` v27, `cancel-return` v4; all ACTIVE and `verify_jwt=true`.
+- RS-1 is Delivered with 13 loaded / 13 delivered / 0 returned; pending return = 0.
+- RS-2 is Returned with 6 loaded / 1 delivered / 5 returned; pending return = 0. No current Returning runsheet.
+- The RS-2 event completed at 17:29:06Z. One Posted credit note totals 528.00; the Posted journal entry balances 528.00 debit / 528.00 credit; five SalesReturn inventory movements total five units.
+- Source/projection comparison across 12 runsheet-item groups: zero mismatches and zero one-sided groups.
+- The server start-return guard uses the same pending-quantity predicate as the current Main UI.
+
+## Open blockers / risks
+
+1. **Deployment — UNVERIFIED:** last Cloudflare source commit recorded in Report563 is `9e3fe1342abfc845a24014a3eec6fbe8abef5348`; Main is four commits ahead. The Returns file at that last recorded deployment commit lacks the new pending-eligibility filter. Current served bytes, build lineage, headers/cache, and live Cloudflare deployment were not accessible in this run.
+2. **Runtime UI — UNVERIFIED:** successful Edge calls prove backend return execution, not that the deployed UI list/search/preview is the current Main build. No authenticated Browser E2E was performed.
+3. **Local draft semantics — UNKNOWN intent:** `cancelReturn()` leaves Dexie `localChanges`; a later session reloads those records. `completeReturn()` deletes them after success. Owner must decide whether cancel is intended to preserve a resumable draft or discard it.
+4. **Draft write contract — CONFIRMED mismatch:** `saveReturnItem()` attempts a direct authenticated UPDATE on `run_sheet_details`, but Production grants no authenticated UPDATE and has no matching UPDATE policy. The call's result is ignored; the authoritative commit path is `complete-return` → `complete_sales_return_credit_note_atomic`.
+5. **Critical Production ACL gate — CONFIRMED OPEN:** categories has a public ALL policy with true predicates; stock_discrepancies has public SELECT and INSERT policies with true predicates; anon/authenticated retain TRUNCATE privileges on sensitive operational tables. No ACL changes were made.
+
+## Last verified closure
+
+The Returns eligibility changes are present in operational Git Main. This closes the source-edit portion only; it does **not** close deployment, UI runtime, cancellation semantics, or the Production ACL gate.
+
+## Next priority
+
+Obtain direct Cloudflare Production deployment lineage and served `returns.html` / `core.js` bytes plus response headers, compare them to Main `5745f36`, then run authenticated read-only Browser verification. Keep PR #8 untouched. Keep the ACL gate open and do not perform DDL/grant/RLS mutations without a consumer-impact and rollback plan.
+
+## Mutation ledger
+
+This review made no operational HTML changes, no PR changes, no Cloudflare deployment/config changes, no Supabase DDL/RLS/grant/Edge/RPC changes, and no business-data/stock/accounting writes. Only governance report/state/memory records are being updated.
+
+**Authoritative report:** `doc/Draft/Reprots/Report565_RETURNS_LIVE_RECHECK_DEPLOYMENT_AND_DATA_EFFECTS_20261030.md`  
+**Report commit:** `a39da3ea42f9df20d2c4faa1b4241bf007466a21`  
+**Report Blob:** `e4c51888822951bb3ba085e9ac5fdfff97f0cb63`  
+**Status:** SOURCE PATCH CONFIRMED ON MAIN / BACKEND RETURN TRANSACTION CONFIRMED / DEPLOYMENT + UI E2E UNVERIFIED / LOCAL CANCEL-DRAFT INTENT OPEN / CRITICAL ACL BLOCKER OPEN / NOT PRODUCTION READY / NOT CLOSED.
+
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-10-30-563 — Returns Delivered Eligibility
 
 - **LAST VERIFIED EVENT:** LVE-2026-10-30-563; forensic read of the standalone Returns application, current main source, Cloudflare deployment provenance, and current Production runsheet data.
