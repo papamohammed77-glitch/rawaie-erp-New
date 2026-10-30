@@ -1,4 +1,23 @@
-# LATEST VERIFIED CHECKPOINT — LVE-2026-10-29-560 — Returns eligibility source/Production recheck
+# LATEST VERIFIED CHECKPOINT — LVE-2026-10-30-562 — Data Entry candidate + critical Production ACL gate
+
+- **LAST VERIFIED EVENT:** `LVE-2026-10-30-562`; observed 2026-10-30.
+- **Authoritative report:** [Report562_DATA_ENTRY_MASTER_APP_OWNER_HANDOFF_20261030.md](doc/Draft/Reprots/Report562_DATA_ENTRY_MASTER_APP_OWNER_HANDOFF_20261030.md), report commit `20392c386cd8b125358875cb5ef8208ef3640bf5`.
+- **Starting point and governance:** Read CURRENT_STATE, permanent operational constitution, Report545, Report560, Report561, Report500, and operational memory. CURRENT_STATE had LVE-560 at the opening header while LVE-561 existed later in the file; this event promotes the current checkpoint and preserves prior blocks as history.
+- **Operational source:** `papamohammed77-glitch/erp-frontend`, branch `main`, latest observed HEAD `2e9777a23f44e1b009810c0936513a76e64cc741`. Parent `companies/company-1/main.html` Blob `3a5d2e565a04262081d024f6e514e1372d372e84`; shared `core.js` Blob `ff2f581d9900543c16f7cb026e13446520c0329d`. New Data app is absent from the operational repo.
+- **Parent Items baseline:** `RW_Items` is approximately lines 4881–6740 (93,585 characters; 1,860 lines) in the Parent blob. It contains item list, movement report, branch stock matrix, bulk Excel/CSV upload, three item form panels, category modal, product-image viewer, filters, sorting, pagination, and branch-cell movement navigation.
+- **Path resolution:** Existing warehouse apps use lowercase `companies/company-1/warehouse/`. Both `warehouse/Data.html` and `Warehouse/Data.html` were absent. Candidate and proposed menu route use `companies/company-1/warehouse/data.html`; do not create a parallel uppercase directory.
+- **Candidate artifact:** `/mnt/data/data.html`, SHA-256 `131b6655155ed353d7d1f766a0efc5b2b07de1579c406b60cbc5eb1ca1d9dd05`, 82,081 bytes. It reuses `../core.js`, `../manifest.json`, `../sw.js`, and existing Edge endpoints `save-item`, `delete-item`, `save-category`, `bulk-stock-adjustment`. No new table, Edge Function, or direct business-table write was added. The candidate is not committed to the operational repo.
+- **Static verification:** HTML parser PASS; Node `--check` for inline JavaScript PASS; static checks PASS for company-scoped reads, existing endpoints only, no direct DML to items/categories/stock_branches/inventory_log, image validation, bulk cost validation, stable bulk retry fingerprint, uncertain item-creation reconciliation, branch-to-movement navigation, and unique static IDs.
+- **CONFIRMED Production security blocker (read-only):** RLS is enabled on `items`, `categories`, `branches`, and `stock_branches`, but the privilege check showed anon has `TRUNCATE` on `items`, `categories`, and `branches`; authenticated also has `TRUNCATE` on those three tables. The `categories` policy `Allow all for all` applies to `{public}`, command `ALL`, `qual=true`; anon also has DML privileges on categories. RLS does not constrain TRUNCATE. No destructive test or privilege/policy change was performed.
+- **CONFIRMED contract mismatch guarded in candidate:** deployed `save-item` v15 uses `Number(item.reorder_point) || 5`, which silently turns zero into five; candidate blocks zero rather than silently changing it. Candidate also validates `store_display_qty` as an integer and verifies important fields by post-save readback.
+- **Owner-only changes:** No operational HTML or Parent file was modified. Owner still needs to add `data.html` and the exact minimal Parent navigation/action patch recorded in Report562, after verifying current SHA and unique anchors.
+- **UNKNOWN/UNVERIFIED:** authenticated browser runtime/E2E; deployed artifact for Data (does not yet exist); real-user permission behavior; complete business-data effect; and whether all non-target consumers can tolerate the required ACL hardening.
+- **Status:** `CANDIDATE GENERATED / STATIC CHECKS PASS / CRITICAL ACL EXPOSURE OPEN / OPERATIONAL HTML OWNER-ONLY / NO PRODUCTION MUTATION / NO DEPLOYMENT / NOT PRODUCTION READY / NOT CLOSED`.
+- **Next exact action:** perform a bounded, consumer-aware least-privilege review and rollback plan for anon/authenticated `TRUNCATE` and the public categories policy. Do not deploy Data or expose its entry point until the ACL issue is safely resolved. Then the owner applies the file and Parent menu patch and performs authenticated browser E2E.
+
+---
+
+# HISTORICAL CHECKPOINT — LVE-2026-10-29-560 — Returns eligibility source/Production recheck
 
 - **LAST VERIFIED EVENT:** `LVE-2026-10-29-560`; observed 2026-10-29.
 - **Authoritative report:** [Report560_RETURNS_ELIGIBILITY_OWNER_PATCH_DEPLOYMENT_RECHECK_20261029.md](doc/Draft/Reprots/Report560_RETURNS_ELIGIBILITY_OWNER_PATCH_DEPLOYMENT_RECHECK_20261029.md), report commit `8e60085e6e6e184b0b0ff4b5f35864a7301d2fe6`.
@@ -14,7 +33,9 @@
 - **Status:** `ROOT CAUSE CONFIRMED / CORE FIX IN DRAFT PR #8 / OWNER SEARCH PATCH REQUIRED / PRODUCTION READ-ONLY / SERVED ARTIFACT + AUTHENTICATED E2E UNVERIFIED / NOT CLOSED`.
 - **Next exact action:** owner re-fetches PR #8 and applies R8-S1-A/B to that branch only after SHA and unique-anchor checks; then runs full inline-JavaScript syntax validation and isolated eligibility tests. Inspect deployment failure logs, prove served artifact identity and authenticated Parent → Driver → Returns list/search/detail E2E before merge or closure.
 
+
 ---
+
 
 # HISTORICAL CHECKPOINT — LVE-2026-10-29-559 — Returns eligibility forensic revalidation
 
