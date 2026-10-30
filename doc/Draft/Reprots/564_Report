@@ -1,0 +1,552 @@
+سأرجع إلى الدستور التشغيلي نفسه وإلى تقرير مراجعة التقارير 400–500، ثم أستخرج منهما قالب التعديل الملزم: تحديد الموضع، النص الحالي، الاستبدال الحرفي، موضع الإدراج، الأثر، والاختبارات. بعد ذلك سأعيد صياغة تعديلات returns.html فقط وفق هذا القالب، مع فصل المؤكد عن البنود التي تحتاج تحققًا قبل اعتمادها.
+
+
+
+
+
+
+
+معك حق. الخطأ في ردي السابق لم يكن مجرد طريقة عرض؛ بل إنني لم أحوّل التشخيص إلى Owner Change Set وفق الدستور، وقدمت لك تعليمات عامة وبعضها غير دقيق. راجعت الآن الدستور وتقرير الحوكمة المقصود والتقارير الفنية المرتبطة بالصور والمرتجعات، وأعيد بناء التعليمات على المصدر الحالي.
+1. المراجع وهوية المصدر
+المراجع التي اعتمدت عليها:
+- الدستور التشغيلي الدائم.
+- Report545 — مراجعة حوكمة التقارير 400–500.
+- Report484 — تصحيح منهج عرض صور الأصناف وعزل الشركات.
+- Report561 — عقود المرتجعات وProduction.
+- Report563 — أهلية ظهور رانشيتات Delivered.
+تقرير Report545 يوضح أن نافذة التقارير 400–500 احتوت 114 ملفًا بسبب تكرار بعض الأرقام، وأن رقم التقرير وحده لا يكفي لتحديد المرجع. كما يقرر بوضوح ضرورة عدم تكرار تعديل موجود في Git، وتحديد نطاق كل رقعة وترتيبها، والفصل بين ما ينفذه المساعد وما يطبقه المالك.
+
+المصدر الذي بنيت عليه التعديلات الآن:
+العنصر	القيمة
+المستودع التشغيلي	papamohammed77-glitch/erp-frontend
+الفرع	main
+الملف	companies/company-1/warehouse/returns.html
+آخر Commit للملف	671a4cf85d6fd59fb66f1f1c39941ab032053f89
+Blob SHA الحالي	0fd2788442bb56b1891eafbec07ef99fab6c34b8
+حجم الملف	1,127 سطرًا
+
+2. أولًا: ما تم تطبيقه بالفعل — لا تكرره
+موجود بالفعل في Current Git
+التعديل الأخير في loadRunsheets() موجود في المصدر الحالي، وتحديدًا:
+
+الموضع: داخل App.loadRunsheets()، تقريبًا الأسطر 195–218.
+
+الاستعلام الحالي أصبح:
+var remainingPromise = rsIds.length > 0 ? supabase.from('run_sheet_details').select('runsheet_id, qty_loaded, qty_delivered, qty_returned').in('runsheet_id', rsIds) : Promise.resolve({ data: [] });
+
+
+والحساب الحالي:
+var loaded = Number(det.qty_loaded) || 0;
+var delivered = Number(det.qty_delivered) || 0;
+var returned = Number(det.qty_returned) || 0;
+
+if (Math.max(0, loaded - delivered - returned) > 0) {
+    remainingMap[det.runsheet_id] = (remainingMap[det.runsheet_id] || 0) + 1;
+}
+
+
+ثم الفلترة:
+available = available.filter(function(rs) {
+    return (remainingMap[rs.id] || 0) > 0;
+});
+
+
+القرار: لا تُعد تطبيق هذه التغييرات. هي موجودة بالفعل، ومهمتها تصفية قائمة Delivered الرئيسية حسب وجود صنف واحد على الأقل له كمية مرتجعة متبقية.
+
+لكنها لا تصلح البحث ولا المعاينة، ولا تعالج الصور.
+
+3. Owner Change Set — التعديلات المطلوب تطبيقها
+PATCH A — إصلاح مصدر صور الأصناف بطريقة لا تخلط صور الشركات
+خلل مصدر الصور مؤكد — ظهور المشكلة في Runtime غير متحقق بعد
+السبب الجذري
+في returns.html الحالي، داخل App.init()، يوجد هذا السطر:
+RW_ImageCache._cache = RW_ImageCache._cache || {};
+
+
+ثم يكتب التطبيق روابط الصور داخله.
+
+لكن في core.js الحالي، الكاش الحقيقي متغير داخلي خاص داخل وحدة RW_ImageCache، والدوال getImageHTML() وgetImageUrl() تقرآن هذا المتغير الداخلي، وليس الخاصية الخارجية _cache.
+
+إضافة إلى ذلك، RW_ImageCache.loadAll() في core.js يجلب الصور دون قيد company_id. وقد يؤدي الاعتماد عليه إلى إظهار صورة صنف من شركة أخرى عند تكرار item_code.
+
+لذلك أصحح اقتراحي السابق: لا تستخدم RW_ImageCache.loadAll() بديلًا عن الكود القديم؛ لأنه لا يحل عزل صور الشركات.
+
+الطريقة الصحيحة هنا هي تحميل صورة الصنف من سجل items المرتبط مباشرةً بسطر الرانشيت الحالي، باستخدام علاقة قاعدة البيانات المثبتة في Report484:
+items!run_sheet_details_item_id_fkey(image_url)
+
+
+A1 — إضافة مساعد عرض الصور المحلي
+الموضع: في بداية returns.html، بعد تعريف المتغيرات وقبل:
+var App = {
+
+
+النص الأصلي الحالي:
+var ALL_ITEMS_LIST = [];
+var RETURN_REASONS_LIST = [];
+
+
+استبدله بالنص التالي:
+var RETURN_REASONS_LIST = [];
+
+function returnItemImageHTML(item, widthClass, heightClass) {
+    var product = item && item.items ? item.items : {};
+    if (Array.isArray(product)) product = product[0] || {};
+
+    var rawUrl = String(
+        (product && product.image_url) ||
+        (item && item.image_url) ||
+        ''
+    ).trim();
+
+    function escapeAttr(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    var validUrl = /^https?:\/\/[^\s"'<>]+$/i.test(rawUrl) ||
+        /^\/(?!\/)[^\s"'<>]*$/.test(rawUrl);
+
+    var w = widthClass || 'w-14';
+    var h = heightClass || 'h-14';
+
+    var placeholder = '<div class="' + w + ' ' + h +
+        ' bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl ' +
+        'flex items-center justify-center text-slate-400">' +
+        '<i class="fa-solid fa-box"></i></div>';
+
+    if (!validUrl) return placeholder;
+
+    var itemName = (item && item.item_name) ||
+        (product && product.name) || '';
+
+    return '<img src="' + escapeAttr(rawUrl) +
+        '" alt="' + escapeAttr(itemName) +
+        '" class="' + w + ' ' + h +
+        ' rounded-2xl object-cover border-2 border-white shadow-sm" ' +
+        'onerror="this.onerror=null;this.classList.add(\'hidden\');' +
+        'this.nextElementSibling.classList.remove(\'hidden\')">' +
+        '<div class="hidden ' + w + ' ' + h +
+        ' bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl ' +
+        'flex items-center justify-center text-slate-400">' +
+        '<i class="fa-solid fa-box"></i></div>';
+}
+
+
+A2 — جلب الصورة مع تفاصيل الصنف من العلاقة الصحيحة
+الموضع: داخل App.openReturn()، عند استعلام تفاصيل الرانشيت، تقريبًا السطر 333.
+
+النص الأصلي:
+supabase.from('run_sheet_details').select('*').eq('runsheet_id', rs.id).then(function(detRes) {
+    var items = detRes.data || [];
+
+
+استبدل بداية هذا المقطع فقط بالتالي:
+supabase.from('run_sheet_details')
+    .select('*, items!run_sheet_details_item_id_fkey(image_url)')
+    .eq('runsheet_id', rs.id)
+    .then(function(detRes) {
+
+        if (detRes.error) {
+            console.error('[RW_Returns] runsheet details/images load failed:', detRes.error);
+            RW_UI.showError('تعذر تحميل تفاصيل الأصناف وصورها. لم يتم فتح المرتجعات.');
+            return;
+        }
+
+        var items = detRes.data || [];
+
+
+الأثر: تفاصيل كل صنف تحمل صورة سجل الصنف المرتبط به من خلال المفتاح الأجنبي، بدل الاعتماد على كاش عام يبحث باستخدام item_code.
+A3 — الاحتفاظ برابط الصورة عند بناء الجلسة النشطة
+الموضع: داخل الحلقة الموجودة في openReturn() التي تبدأ بهذا النص:
+for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+
+
+أضف مباشرة بعد var it = items[i];:
+var productImage = it.items;
+if (Array.isArray(productImage)) productImage = productImage[0] || {};
+
+
+ثم داخل كائن الصنف الذي يتم تمريره إلى self.session.items.push():
+
+أضف بعد:
+item_name: it.item_name || '',
+
+
+السطر التالي:
+image_url: (productImage && productImage.image_url) || '',
+
+
+لا تستبدل الحلقة ولا كائن الجلسة كاملًا.
+A4 — استبدال استدعاءات كاش الصور الخاطئة
+تم العثور على خمسة مواضع تستخدم RW_ImageCache.getImageHTML() داخل returns.html.
+
+استبدل كل موضع كما يلي:
+الموضع	النص الأصلي	النص البديل
+بطاقة المعاينة، قرب 410	RW_ImageCache.getImageHTML(it2.item_code, 'w-28', 'h-28')	returnItemImageHTML(it2, 'w-28', 'h-28')
+بطاقة الجلسة النشطة، قرب 583	RW_ImageCache.getImageHTML(it2.item_code, 'w-24', 'h-24')	returnItemImageHTML(it2, 'w-24', 'h-24')
+نتيجة البحث عن صنف، قرب 685	RW_ImageCache.getImageHTML(item.item_code, 'w-14', 'h-14')	returnItemImageHTML(item, 'w-14', 'h-14')
+مودال تعديل الصنف، قرب 791	RW_ImageCache.getImageHTML(it.item_code, 'w-full', 'h-280')	returnItemImageHTML(it, 'w-full', 'h-280')
+
+الموضع الخامس — نافذة تفاصيل الصنف showItemDetail()، قرب 421:
+
+هذا الموضع يستقبل code وليس كائن الصنف كاملًا، ولذلك لا يجوز استبدال استدعاء الصورة فيه باستدعاء المساعد على code مباشرة.
+
+استبدل:
+var imgHtml = RW_ImageCache.getImageHTML(code, 'w-full', 'h-280');
+
+
+بالمقطع:
+var imageItem = null;
+
+for (var i = 0; this._previewItems && i < this._previewItems.length; i++) {
+    if (this._previewItems[i].item_code === code) {
+        imageItem = this._previewItems[i];
+        break;
+    }
+}
+
+var imgHtml = returnItemImageHTML(
+    imageItem || { item_code: code },
+    'w-full',
+    'h-280'
+);
+
+
+A5 — إزالة جلب الأصناف القديم الذي لم يعد له استخدام
+الموضع: داخل App.init()، تقريبًا الأسطر 133–142.
+
+احذف هذا المقطع كاملًا فقط:
+// تحميل البيانات الأساسية
+supabase.from('items').select('item_code, name, unit, image_url, description').then(function(r) {
+    ALL_ITEMS_LIST = r.data || [];
+    for(var i = 0; i < ALL_ITEMS_LIST.length; i++) {
+        if(ALL_ITEMS_LIST[i].item_code) {
+            RW_ImageCache._cache = RW_ImageCache._cache || {};
+            RW_ImageCache._cache[ALL_ITEMS_LIST[i].item_code] = ALL_ITEMS_LIST[i].image_url || '';
+        }
+    }
+});
+
+
+لا تحذف استعلام return_reasons الذي يليه، ولا تحذف self.switchTab('pending').
+
+ما لا يتغير في هذه الرقعة:
+- لا تعديل في core.js.
+- لا تعديل في picker.html أو main.html.
+- لا تغيير في تخزين صور Supabase أو روابط Storage.
+- لا تغيير في دورة المرتجعات أو الكميات أو الحسابات.
+- لا استخدام لكاش صور عام غير مقيد بالشركة.
+
+PATCH B — عرض الأصناف التي لها كمية مرتجعة متبقية فقط في المعاينة
+الخلل مؤكد في المصدر الحالي
+الموضع: App.renderPreview()، الحلقة التي تبدأ قرب السطر 380.
+
+النص الأصلي:
+for (var k = 0; k < items.length; k++) {
+    var it = items[k];
+    var remaining = (Number(it.qty_loaded) || 0) - (Number(it.qty_delivered) || 0);
+    sortedItems.push({ item: it, remaining: remaining });
+    if (remaining > 0) remainingCount++;
+}
+
+
+استبدل الحلقة بهذا النص فقط:
+for (var k = 0; k < items.length; k++) {
+    var it = items[k];
+
+    var remaining = Math.max(
+        0,
+        (Number(it.qty_loaded) || 0) -
+        (Number(it.qty_delivered) || 0) -
+        (Number(it.qty_returned) || 0)
+    );
+
+    if (remaining > 0) {
+        sortedItems.push({
+            item: it,
+            remaining: remaining
+        });
+        remainingCount++;
+    }
+}
+
+
+النتيجة التشغيلية:
+
+المعادلة المعتمدة لأهلية الصنف في المعاينة:
+\[
+\text{Pending Return} =
+\max(0,\ \text{Loaded} - \text{Delivered} - \text{Returned})
+\]
+
+- الصنف الذي لا توجد له كمية مرتجعة متبقية لن تظهر له بطاقة.
+- الصنف الذي له كمية متبقية سيظهر بالكمية الصحيحة.
+- لا تتغير بيانات الرانشيت في قاعدة البيانات بسبب هذا التعديل.
+- لا تغيّر حساب progressPercent أو عدد الأصناف الإجمالي في بطاقة تقدم الرانشيت.
+تنبيه مهم: لا أطلب حذف الأصناف من self.session.items أو تصفية مصفوفة الجلسة نفسها. شاشة الجلسة النشطة تحتفظ بالأصناف التي تمت معالجة مرتجعاتها لتظهر حالتها «مكتمل» وتتيح مراجعتها قبل الإنهاء. حذفها من الجلسة قد يؤثر في مراجعة المرتجع وفي البيانات التي تُرسل عند الإكمال.
+
+والدليل أن renderActiveSession() يرشّح بالفعل الأصناف التي لا توجد لها كمية غير مسلّمة، وأن completeReturn() يتجاوز السطور التي تحقق qty_loaded - qty_delivered <= 0. لذلك لا نعيد كتابة هذين المسارين.
+
+PATCH C — إصلاح نتائج البحث لتتبع أهلية القائمة
+الخلل مؤكد في المصدر الحالي
+الموضع: داخل App.onSearchInput()، وتحديدًا كتلة استعلام Supabase الموجودة داخل setTimeout، قرب الأسطر 295–298.
+
+النص الأصلي الحالي:
+supabase.from('runsheets').select('runsheet_code, status, run_date, driver_id, return_handler_id, run_sheet_details(count)').in('status', ['Delivered', 'Returning']).ilike('runsheet_code', '%' + query.trim() + '%').limit(10).then(function(res) {
+    self.searchResults = res.data || [];
+    self.renderSearchDropdown();
+});
+
+
+استبدل كتلة الاستعلام هذه فقط، ولا تستبدل onSearchInput() كاملة:
+supabase.from('runsheets')
+    .select('id, runsheet_code, status, run_date, driver_id, return_handler_id')
+    .in('status', ['Delivered', 'Returning'])
+    .ilike('runsheet_code', '%' + query.trim() + '%')
+    .order('run_date', { ascending: false })
+    .limit(50)
+    .then(function(res) {
+
+        if (res.error) {
+            console.error('[RW_Returns] runsheet search failed:', res.error);
+            self.searchResults = [];
+            self.renderSearchDropdown();
+            return;
+        }
+
+        var rows = res.data || [];
+        var rsIds = [];
+
+        for (var i = 0; i < rows.length; i++) {
+            if (rows[i].id) rsIds.push(rows[i].id);
+        }
+
+        if (rsIds.length === 0) {
+            self.searchResults = [];
+            self.renderSearchDropdown();
+            return;
+        }
+
+        return supabase.from('run_sheet_details')
+            .select('runsheet_id, qty_loaded, qty_delivered, qty_returned')
+            .in('runsheet_id', rsIds)
+            .then(function(detailsRes) {
+
+                if (detailsRes.error) {
+                    console.error('[RW_Returns] search details failed:', detailsRes.error);
+                    self.searchResults = [];
+                    self.renderSearchDropdown();
+                    return;
+                }
+
+                var pendingCount = {};
+                var details = detailsRes.data || [];
+
+                for (var j = 0; j < details.length; j++) {
+                    var det = details[j];
+
+                    var remaining = Math.max(
+                        0,
+                        (Number(det.qty_loaded) || 0) -
+                        (Number(det.qty_delivered) || 0) -
+                        (Number(det.qty_returned) || 0)
+                    );
+
+                    if (remaining > 0) {
+                        pendingCount[det.runsheet_id] =
+                            (pendingCount[det.runsheet_id] || 0) + 1;
+                    }
+                }
+
+                self.searchResults = rows.filter(function(rs) {
+
+                    var itemCount = pendingCount[rs.id] || 0;
+                    rs.returnable_item_count = itemCount;
+
+                    if (rs.status === 'Delivered') {
+                        return itemCount > 0;
+                    }
+
+                    if (rs.status === 'Returning') {
+                        return !!self.currentUser &&
+                            !!self.currentUser.id &&
+                            rs.return_handler_id === self.currentUser.id;
+                    }
+
+                    return false;
+                });
+
+                self.renderSearchDropdown();
+            });
+
+    }).catch(function(error) {
+        console.error('[RW_Returns] unexpected search failure:', error);
+        self.searchResults = [];
+        self.renderSearchDropdown();
+    });
+
+
+تعديل مرتبط واحد في renderSearchDropdown()
+لأن البحث أصبح يحسب عدد الأصناف المؤهلة بدل عدد جميع أصناف الرانشيت، يجب ألا يعرض العدد القديم.
+
+النص الأصلي قرب السطر 313:
+var itemCount = (rs.run_sheet_details && rs.run_sheet_details.length > 0) ? rs.run_sheet_details[0].count : 0;
+
+
+استبدله بـ:
+var itemCount = Number(rs.returnable_item_count) || 0;
+
+
+الأثر:
+- Delivered غير المؤهل لا يظهر في البحث.
+- Returning لا يظهر لمستخدم آخر.
+- الرقم الظاهر بجوار نتيجة البحث هو عدد مجموعات الأصناف التي تحتاج إلى مرتجع، وليس مجموع أصناف الرانشيت كلها.
+- فشل استعلام التفاصيل لا يؤدي إلى عرض نتائج غير متحقق من أهليتها.
+
+PATCH D — توحيد هوية مسؤول المرتجعات مع نوع العمود UUID
+عدم اتساق مؤكد في المصدر
+أثبت Report561 أن runsheets.return_handler_id من نوع UUID ويخزن public.users.id، وأن RW_Auth يضع هذا المعرف في currentUser.id.
+
+لذلك لا ينبغي مقارنة العمود بالبريد الإلكتروني.
+
+الموضع الأول: داخل loadRunsheets() قرب السطر 182.
+
+الأصلي:
+.eq('return_handler_id', this.currentUser.id || this.currentUser.email)
+
+
+البديل:
+.eq('return_handler_id', this.currentUser.id)
+
+
+الموضع الثاني: داخل openReturn() قرب السطر 335.
+
+الأصلي:
+var isActive = (rs.status === 'Returning' && (rs.return_handler_id === self.currentUser.id || rs.return_handler_id === self.currentUser.email));
+
+
+البديل:
+var isActive = (rs.status === 'Returning' && rs.return_handler_id === self.currentUser.id);
+
+
+الموضع الثالث: داخل loadCompleted() قرب السطر 1038.
+
+الأصلي:
+.eq('return_handler_id', this.currentUser.id || this.currentUser.email)
+
+
+البديل:
+.eq('return_handler_id', this.currentUser.id)
+
+
+هذه ثلاثة استبدالات منفصلة، لا تستبدل أي دالة كاملة.
+
+PATCH E — منع عرض بيانات غير مكتملة عند فشل استعلام الكميات
+هذا تعديل صغير لكنه ضروري للمنطق الجديد. في Supabase، فشل الاستعلام قد يعود في result.error دون رفض الـPromise؛ لذلك لا يكفي الاعتماد على .catch() وحده.
+
+الموضع الأول: داخل loadRunsheets() مباشرة بعد:
+Promise.all([p1, p2]).then(function(results) {
+
+
+أضف:
+var listError =
+    (results[0] && results[0].error) ||
+    (results[1] && results[1].error);
+
+if (listError) {
+    console.error('[RW_Returns] runsheet list query failed:', listError);
+    RW_UI.showEmptyState(
+        'mainContent',
+        'تعذر تحميل قائمة المرتجعات. أعد المحاولة بعد التحقق من الاتصال والصلاحيات.',
+        '⚠️'
+    );
+    return;
+}
+
+
+الموضع الثاني: داخل:
+return Promise.all([driverPromise, remainingPromise]).then(function(extraResults) {
+
+
+أضف قبل بناء userMap:
+if (extraResults[1] && extraResults[1].error) {
+    console.error('[RW_Returns] remaining details query failed:', extraResults[1].error);
+    RW_UI.showEmptyState(
+        'mainContent',
+        'تعذر التحقق من الكميات المتبقية. لم يتم عرض مهام غير متحقق من أهليتها.',
+        '⚠️'
+    );
+    return;
+}
+
+if (extraResults[0] && extraResults[0].error) {
+    console.warn('[RW_Returns] driver names query failed:', extraResults[0].error);
+}
+
+
+بهذا لا تعرض الشاشة قائمة ناقصة وكأنها قائمة موثوقة، ولا تفشل بصمت عند تعذر قراءة الكميات.
+
+4. ما يجب أن يبقى دون تغيير
+هذه الحدود جزء من الرقعة، وليست تحسينات اختيارية:
+الجزء	القرار
+loadRunsheets() — استعلام qty_returned والفلترة الحالية	موجود بالفعل، لا تعِد تطبيقه
+renderActiveSession()	لا تستبدل الدالة؛ تحافظ على بطاقات حالة المرتجعات التي تمت معالجتها أثناء الجلسة
+self.session.items	لا تحذف منها أصنافًا بغرض تحسين العرض
+completeReturn()	لا تغيّر معادلات الكميات أو إجماليات العجز في هذه المهمة
+saveReturnItem()	لا تخلط إصلاحه مع تعديل الصور والعرض؛ توجد مشكلة منفصلة موثقة في مسار الكتابة المباشرة
+reopenReturn() وcancelReturn()	لا تغيّر عقودهما ضمن Owner Patch الحالي
+core.js	لا تعديل
+main.html وpicker.html	لا تعديل
+Edge Functions وRPC وProduction	لا تغيير مطلوب لهذه الرقعة المصدرية
+
+
+5. ترتيب تطبيق الرقع
+التطبيق يكون بهذا الترتيب لتجنب استخدام مساعد صورة قبل توفير مصدر الصورة:
+1. PATCH A1 ثم A2 ثم A3 ثم A4 ثم A5.
+2. PATCH B — فلترة المعاينة.
+3. PATCH C — البحث وعدد الأصناف المؤهلة في نتائجه.
+4. PATCH D — توحيد UUID.
+5. PATCH E — معالجة أخطاء استعلام القائمة والكميات.
+لا تطبق أي رقعة على نسخة تختلف عن Blob SHA المذكور دون إعادة مطابقة محدداتها الحرفية على المصدر الذي تعمل عليه.
+6. اختبارات القبول بعد تطبيق المالك
+الاختبار	النتيجة المطلوبة
+رانشيت Delivered بلا كمية متبقية	لا يظهر في القائمة
+رانشيت Delivered بصنف واحد متبقٍ	يظهر
+loaded=10, delivered=5, returned=2	المتبقي 3، والرانشيت مؤهل
+loaded=10, delivered=5, returned=5	لا يظهر باعتباره لا يملك مرتجعًا متبقيًا
+معاينة الرانشيت	لا تعرض بطاقات أصناف لا تحتاج إلى مرتجع
+البحث عن Delivered غير مؤهل	لا يعرض نتيجة
+البحث عن Returning لمستخدم آخر	لا يعرض نتيجة
+البحث عن Returning للمستخدم المسند إليه	يعرضه لمتابعة الجلسة
+صورة صنف موجودة	تظهر في بطاقة المعاينة وتفاصيل الصنف والجلسة النشطة والبحث ومودال التعديل
+صورة مفقودة أو رابط غير صالح	يظهر Placeholder بدل عنصر صورة مكسور
+تكرار item_code بين شركتين	تستخدم الواجهة الصورة المرتبطة بسطر الصنف في الرانشيت، لا كاش الشركة الأخرى
+فشل استعلام صور تفاصيل الرانشيت	تظهر رسالة خطأ ولا تفتح جلسة ببيانات ناقصة
+فشل استعلام الكميات	لا تظهر قائمة غير متحقق من أهليتها
+إنهاء المرتجعات	يظل الإرسال مقصورًا على أسطر الرانشيت التي لها كمية غير مسلّمة، وفق المسار الحالي
+
+الفحص الساكن المطلوب: فحص JavaScript للملف كاملًا بعد التعديلات، والتحقق من عدم تكرار تعريف المساعد، وعدم بقاء استدعاءات RW_ImageCache.getImageHTML() في returns.html.
+
+الاختبار التشغيلي المطلوب: اختبار مصادق عليه في المتصفح، ثم التأكد من أن Cloudflare يقدم النسخة الجديدة. ولا يُعتبر نجاح الفحص الساكن دليلًا على ظهور الصور أو نجاح عملية المرتجعات في Production.
+
+7. الحالة النهائية
+OWNER CHANGE SET — NOT CLOSED
+البند	الحكم
+فلترة Delivered في القائمة الرئيسية	CONFIRMED — موجودة بالفعل في Git
+البحث بنفس شروط أهلية المرتجع	CONFIRMED — ما زال يحتاج PATCH C
+عرض الأصناف المتبقية فقط في المعاينة	CONFIRMED — ما زال يحتاج PATCH B
+خلل استخدام _cache	CONFIRMED — كاش الصور المستخدم لا يطابق واجهة Core
+ربط الصورة بالصنف الصحيح ومنع خلط الشركات	PATCH A جاهز
+ظهور مشكلة الصور في النسخة المنشورة وسبب توقيتها	UNVERIFIED — يحتاج اختبار Artifact وBrowser
+أثر التعديلات على المخزون والحسابات	لا تغيير مقصود؛ يحتاج اختبار عدم التراجع
+
+Final Status:
+
+MAIN GRID ELIGIBILITY PATCH ALREADY PRESENT / SEARCH AND PREVIEW PATCHES READY / COMPANY-SAFE IMAGE PATCH READY / UUID FILTER CORRECTIONS READY / FULL-FILE STATIC + AUTHENTICATED BROWSER E2E + CLOUDFLARE ARTIFACT VERIFICATION PENDING / NOT CLOSED
+
+لم أعدّل ملف returns.html؛ هذه تعليمات Owner-only مبنية على بصمة المصدر الحالية. والأهم: لا تعِد تنفيذ تعديل qty_returned الموجود بالفعل، ولا تستخدم RW_ImageCache.loadAll()، ولا تستبدل الدوال كاملة حيث يكفي المقطع المحدد.
