@@ -432,3 +432,19 @@ Never repeat:
 - Governance: operational HTML remains owner-applied. Report562 records exact minimal Parent menu/action insertion and all evidence. Do not deploy the candidate until the ACL issue is reviewed and safely remediated with consumer impact and rollback checks.
 - Authoritative report: `doc/Draft/Reprots/Report562_DATA_ENTRY_MASTER_APP_OWNER_HANDOFF_20261030.md` (report commit `20392c386cd8b125358875cb5ef8208ef3640bf5`). CURRENT_STATE update commit: `75172e727da21f98f4c89621eb806e290046bc76`.
 - Status: `CANDIDATE GENERATED / STATIC PASS / CRITICAL ACL BLOCKER OPEN / OWNER PATCH PENDING / NO PRODUCTION MUTATION / NOT PRODUCTION READY / NOT CLOSED`.
+
+
+## LAST VERIFIED MEMORY EVENT — LVE-2026-10-30-565
+
+- **Authority:** Governance `CURRENT_STATE.md` LVE-565 and `Report565_RETURNS_LIVE_RECHECK_DEPLOYMENT_AND_DATA_EFFECTS_20261030.md`; this ledger is secondary.
+- **Operational source:** `papamohammed77-glitch/erp-frontend`, `main`, HEAD `5745f36cd1e4e3707b84cead4d35aaf8a9882e75`. Returns Blob `16d02fff2d00759451879204abf218202898f9c0`; app router Blob `ec75f89c11620f6e8b8ef5996cf1a3289dcf20b4`.
+- **Source status:** Owner commits `671a4cf` and `5745f36` now contain the Delivered pending-quantity filter, matching search filter, Returning assignment restriction, preview quantity logic, UUID identity, image relation/helper, and query error handling. Inline JS parsing PASS. No Browser E2E.
+- **PR #8:** still open/draft/unmerged at `3ad370c83f8f3c7880d7ace9ac24eabb5833f9cf`; its branch does not contain the current Main search/image updates. Do not merge or reapply its old patches.
+- **Production return event:** RS-2 completed on 2026-10-30 at 17:29:06Z; loaded 6, delivered 1, returned 5. Edge start/complete calls HTTP 200. One Posted credit note 528.00, balanced journal 528.00/528.00, five SalesReturn inventory movements, and 12/12 projection groups match. RS-1 is Delivered but has pending=0; RS-2 is Returned; no active Returning row.
+- **Deployment:** last recorded Cloudflare source commit `9e3fe134` is four commits behind current Main. Its Returns blob lacks the new pending filter. Current served artifact, headers, and build lineage remain UNVERIFIED; the successful backend event does not prove which UI build was served.
+- **Workflow contract:** authenticated UPDATE on `run_sheet_details` is not granted and no UPDATE RLS policy exists. `saveReturnItem` still attempts that update and ignores the result; drafts are device-local until `complete-return` commits through `complete_sales_return_credit_note_atomic`.
+- **Cancellation:** `cancelReturn` does not delete Dexie `localChanges`; later sessions reload them. Whether cancel should preserve or discard is UNKNOWN and requires owner decision.
+- **Security:** categories still has public ALL true/true; stock_discrepancies has public SELECT/INSERT true; anon/authenticated TRUNCATE privileges remain on sensitive operational tables. Critical ACL gate remains open; no grants/RLS changes.
+- **Mutation ledger:** only Report565, CURRENT_STATE and this memory ledger changed. No operational source, PR, Cloudflare, Production schema/permissions/functions, business data, stock or accounting were changed.
+- **Next:** verify Cloudflare Production commit/build lineage and served Returns/core bytes plus headers against Main `5745f36`, then authenticated read-only Browser E2E. Do not merge PR #8.
+- **Status:** SOURCE PATCH PRESENT / BACKEND RETURN TRANSACTION CONFIRMED / DEPLOYMENT + UI E2E UNVERIFIED / LOCAL CANCEL-DRAFT INTENT OPEN / CRITICAL ACL BLOCKER OPEN / NOT PRODUCTION READY / NOT CLOSED.
