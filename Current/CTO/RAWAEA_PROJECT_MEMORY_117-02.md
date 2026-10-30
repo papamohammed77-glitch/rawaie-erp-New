@@ -416,3 +416,19 @@ Never repeat:
 - **Mutation ledger:** only Report560, CURRENT_STATE and this ledger changed. No operational HTML, PR branch, Production, or Cloudflare settings changed.
 - **Next:** owner re-fetches PR #8 and verifies current Blob SHA/unique anchors before applying R8-S1-A/B on that branch only; run full inline-JavaScript syntax and eligibility tests, investigate actual failed build logs, prove served artifact identity and authenticated E2E before merge/closure.
 - **Status:** ROOT CAUSE CONFIRMED / OWNER SEARCH PATCH REQUIRED / PRODUCTION READ-ONLY / ARTIFACT + AUTHENTICATED E2E UNVERIFIED / NOT CLOSED.
+
+
+---
+
+## LVE-2026-10-30-562 — Data Entry Master App candidate and Production ACL gate
+
+- Read CURRENT_STATE first, the permanent operational constitution, Report545, Report500, Report560, Report561, and the current operational source. CURRENT_STATE previously had LVE-560 at the top while LVE-561 existed later in the same file; LVE-562 is now promoted to the opening checkpoint, preserving history.
+- Operational repository: `papamohammed77-glitch/erp-frontend`, `main`, latest observed HEAD `2e9777a23f44e1b009810c0936513a76e64cc741`. Parent `main.html` Blob `3a5d2e565a04262081d024f6e514e1372d372e84`; shared `core.js` Blob `ff2f581d9900543c16f7cb026e13446520c0329d`.
+- Studied Parent `RW_Items` module (approx. lines 4881–6740): list, filters/sort/pagination, 3-panel item form, category modal, product image viewer/upload, movement report, branch matrix, and Excel/CSV stock adjustment. Existing `picker.html` / `loader.html` are integration references, not an officially documented “golden/diamond” registry. Do not invent a formal gold-app list.
+- Candidate `/mnt/data/data.html`, SHA-256 `131b6655155ed353d7d1f766a0efc5b2b07de1579c406b60cbc5eb1ca1d9dd05`, 82,081 bytes. Intended canonical path `companies/company-1/warehouse/data.html`; current repo uses lowercase `warehouse/`, and no uppercase `Warehouse/` directory exists. Candidate reuses `core.js`, current manifest/service worker, and existing Edge Functions; no direct browser writes to business tables and no new Edge function/table.
+- Static HTML parse and Node inline-JavaScript syntax check PASS; static contract checks PASS. No browser E2E, deployment, operational HTML commit, or Production write occurred.
+- CRITICAL CONFIRMED Production ACL exposure: read-only SQL showed anon has `TRUNCATE` on `items`, `categories`, and `branches`; authenticated also has `TRUNCATE` on those tables. RLS is enabled but does not restrict TRUNCATE. The `categories` policy `Allow all for all` applies to `{public}`, command `ALL`, `qual=true`; anon also has category DML privileges. No destructive test or grant/RLS change was made.
+- Existing `save-item` v15 contract converts `reorder_point=0` to 5 due `Number(item.reorder_point) || 5`; candidate blocks zero to avoid silent mutation. Category update payload preserves `parent_id`, `image_url`, and `icon`. Bulk adjustment preview rejects nonzero inventory deltas where item cost is not configured and retains the operation fingerprint for safe retries.
+- Governance: operational HTML remains owner-applied. Report562 records exact minimal Parent menu/action insertion and all evidence. Do not deploy the candidate until the ACL issue is reviewed and safely remediated with consumer impact and rollback checks.
+- Authoritative report: `doc/Draft/Reprots/Report562_DATA_ENTRY_MASTER_APP_OWNER_HANDOFF_20261030.md` (report commit `20392c386cd8b125358875cb5ef8208ef3640bf5`). CURRENT_STATE update commit: `75172e727da21f98f4c89621eb806e290046bc76`.
+- Status: `CANDIDATE GENERATED / STATIC PASS / CRITICAL ACL BLOCKER OPEN / OWNER PATCH PENDING / NO PRODUCTION MUTATION / NOT PRODUCTION READY / NOT CLOSED`.
