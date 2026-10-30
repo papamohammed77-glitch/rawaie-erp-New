@@ -1,3 +1,23 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-10-30-563 — Returns Delivered Eligibility
+
+- **LAST VERIFIED EVENT:** LVE-2026-10-30-563; forensic read of the standalone Returns application, current main source, Cloudflare deployment provenance, and current Production runsheet data.
+- **Authoritative report:** [Report563_RETURNS_DELIVERED_ELIGIBILITY_ROOT_CAUSE_AND_OWNER_PATCH_20261030.md](doc/Draft/Reprots/Report563_RETURNS_DELIVERED_ELIGIBILITY_ROOT_CAUSE_AND_OWNER_PATCH_20261030.md), blob SHA \`d528ca736b7bc5701353824f996fb84fdfa3248c\`, commit \`6f0faa87e6cd30bc355ab3bb075a96ded56d6cb0\`.
+- **Governing constitution:** \`doc/Draft/Reprots/الدستور التشغيلي الدائم.md\`, blob SHA \`365a5178810d8da37f55dba64bf422f328a966bd\`. Preserve Owner-only rule for operational HTML: prepare exact owner patches; do not edit the live HTML directly.
+- **Operational repository:** \`papamohammed77-glitch/erp-frontend\`, main latest observed HEAD \`7727e8271085e009f49e7f0661984063ba7196a2\`.
+- **Target source:** \`companies/company-1/warehouse/returns.html\`, main blob SHA \`c284f88ba0c7d4c0373b66f826f8a3c8c11599b7\`, 1,123 lines. Current Cloudflare Production deployment source commit observed in its dashboard is \`9e3fe1342abfc845a24014a3eec6fbe8abef5348\`; fetching the target file at that commit returned the same blob SHA as current main. Exact served-byte retrieval was not available.
+- **Root cause CONFIRMED:** \`App.loadRunsheets()\` fetches Delivered without any eligibility predicate, details select omits \`qty_returned\`, remainingMap calculates only loaded minus delivered, and the unfiltered Delivered array is passed directly to \`renderRunsheetGrid()\`.
+- **Correct business predicate:** at least one run_sheet_details item with \`max(qty_loaded - qty_delivered - qty_returned,0) > 0\`.
+- **Production data (read-only):** RS-1 = Delivered, 5 item groups, 0 eligible item groups, 0 pending units; RS-2 = Delivered, 7 item groups, 5 eligible groups, 5 pending units. Correct Available list is RS-2 only.
+- **Source/projection validation:** current Delivered runsheet aggregates in \`run_sheet_details\` matched authoritative \`order_details\` for 12/12 item groups, zero mismatches. No database/Production business data, RPC, schema, RLS, ACL, or Edge Function was changed in this event.
+- **Owner patches in Report563:** replace App.loadRunsheets() to fetch qty_returned, calculate outstanding quantity and filter Available; replace onSearchInput() to enforce same eligibility and assignment rule; change renderPreview() formula; compare Returning assignment via public \`currentUser.id\` only. Existing \`Returning\` work assigned to the signed-in handler remains separately visible in “مهامي النشطة”.
+- **PR #8 caution:** old draft branch is 2 commits ahead / 23 behind current main. Do not merge or wholesale apply it; reconstruct only the validated patches against current target SHA.
+- **Validation:** Node --check passed on proposed loadRunsheets and onSearchInput snippets. SQL read-only evidence confirms the two live examples and 12/12 source/projection match. No authenticated browser E2E was run.
+- **Known scope caveat:** the prepared list patch retains the existing 50-Delivered-candidate limit. It cannot show an ineligible candidate, but may hide an older eligible runsheet beyond the newest 50; pagination is a separate scale/completeness enhancement.
+- **Owner action required:** apply Report563 patches against target SHA \`c284f88ba0c7d4c0373b66f826f8a3c8c11599b7\`, refetch source/recalculate SHA, verify RS-1 hidden and RS-2 visible, then verify search/preview and Cloudflare deployment in an authenticated browser.
+- **Closure:** \`ROOT CAUSE CONFIRMED / OWNER PATCH READY / PRODUCTION DATA HEALTHY / HTML APPLICATION + DEPLOYMENT + AUTHENTICATED E2E PENDING / NOT CLOSED\`.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-10-30-562 — Data Entry candidate + critical Production ACL gate
 
 - **LAST VERIFIED EVENT:** `LVE-2026-10-30-562`; observed 2026-10-30.
