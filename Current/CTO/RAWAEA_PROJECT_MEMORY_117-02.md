@@ -472,3 +472,18 @@ Never repeat:
 - Production data snapshot during audit: PR 0; PO 1 Draft; invoices 3; quotations 0; payments 0; returns 0; status_history 5.
 - Report: doc/Draft/Reprots/Report569_BUYER_PURCHASING_WORKFLOW_FORENSIC_AUDIT_20261031.md.
 - No app, Edge, RLS/ACL/RPC, migration, business-data, stock, accounting, or deployment change was made. Continue with backend authorization and contract repair before expanding Buyer UI. Treat Report569 as an audit checkpoint, not task closure.
+
+
+## LVE-2026-11-01-571 — Buyer Purchasing Integration / Production Contracts
+
+- Buyer file directly modified in papamohammed77-glitch/erp-frontend: companies/company-1/purchasing/buyer.html. Six-tab controller now calls the existing save-purchase-order Edge contract; no direct Supabase table queries in Buyer. Shell, CSS, shared core, main.html and other operational apps were not modified.
+- Buyer source blob: 8da37a94b24c86d4bba65fab81273263e6306eae. Latest operational HEAD at verification: c886554765af5b473513ab4d8ca25ce01145ce56.
+- save-purchase-order Edge v11 ACTIVE, verify_jwt=true, deployed SHA-256 c5e0dd68dd3bf42cd8271fd3a9672d9a09c512df7036e4553d464e527e9615aa; exact byte match with Git source.
+- Nine Production migrations applied and committed under supabase/migrations: company-scoped PR/Invoice/Quotation item lookup; dashboard anon/tenant/permission guard; supplier effective permissions; PR Submitted state and status history fixes; actor attribution; PO status history trigger; Receiver actor; audit_log receive action; wildcard permission alignment.
+- Rollback-only SQL tests passed: PR submit/approve/reject/RFQ conversion, RFQ send, quotation create/accept/convert, PO creation, Receiver receipt with +1 stock effect and correct audit actors, direct invoice Draft with no stock/journal effect, supplier RPC, and dashboard anon denial/service-role success.
+- All QA test writes rolled back. Final QA residue counts are zero; business entity counts match Report569 baseline.
+- Buyer supports Today, Suppliers, PR, PO, Custody placeholder, Account; quick purchase only creates Draft invoice. Supplier visits/ratings/classification/email, custody ledger, PO manual create/send/approval/expected delivery/terms, direct no-PO receiving, OCR/camera and payment method are still open contracts.
+- Lists are capped at 500 rows and client-side search; server pagination/search remains open.
+- Report: doc/Draft/Reprots/Report571_BUYER_PURCHASING_INTEGRATION_EXECUTION_20261101.md (commit 6c9fc6e48c8009fd551ad31c027e4e5eee8d5c49).
+- NOT VERIFIED: Cloudflare served artifact, authenticated browser E2E, multi-user HTTP Edge permission tests, and live PR/RFQ/PO Realtime.
+- Next priority: define and implement PO expected-delivery/terms/approval/supplier-dispatch contract without bypassing Receiver or accounting/inventory controls.
