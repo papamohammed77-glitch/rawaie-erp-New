@@ -1,3 +1,20 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-10-31-567A — CI False-Positive Repaired / Mother Smoke Passed
+
+**OPERATIONAL MAIN:** `papamohammed77-glitch/erp-frontend` commit `5237858665ae0be72f33d6c8deaa1b650cc19579`.  
+**CI RUN:** `41217202946` — `RAWAEA — Mother Inventory Forensic E2E`, completed SUCCESS.  
+**ADDITIONAL PUSH WORKFLOWS:** Mother Assembly Guard, forensic current Mother extract, and CTO Helper Files Forensic all completed SUCCESS on the same commit.  
+**AUTHORITATIVE REPORT:** Report567, latest update commit `390924da89fbcb1f9840bce8d23e5a65e98cdeba`.
+
+## CI root cause and repair
+- The earlier Mother Inventory E2E failure was a false positive: the workflow's unbounded `TODO|FIXME` regex matched `fm-odo` and `fm-nextodo` in the unchanged Parent vehicle-maintenance fields (Parent lines 30357–30358).
+- Corrected `.github/workflows/inventory_mother_forensic_e2e_20260916.yml` to use word boundaries around TODO/FIXME. Commit `5237858665ae0be72f33d6c8deaa1b650cc19579`.
+- Re-run confirmed Static Inventory Contract PASS, Source Map PASS, and Playwright Mother Browser Smoke PASS (`MOTHER_BROWSER_SMOKE=PASS`).
+- Scope: local file-based Mother shell smoke only. This is not Cloudflare deployment verification and not authenticated cross-app Realtime E2E.
+
+**GLOBAL REALTIME STATUS REMAINS OPEN:** the purchasing trio is wired to the operational shared core; other PWAs, Parent reconciliation, authenticated cross-app E2E, and Cloudflare deployment verification remain outstanding.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-10-31-567 — Operational Realtime Core + Purchasing App Wiring
 
 **DATE:** 2026-10-31  
