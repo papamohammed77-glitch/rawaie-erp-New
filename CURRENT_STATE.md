@@ -1,3 +1,13 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-10-31-566A — Canonical App Census Added
+
+**Follow-up verification:** Static scan of 28 `Current/PWA` HTML entry points found `core.js` in 25/28; no core in `picker.html`, `main.html`, or `New-main`. Existing Realtime handlers occur only in `vouchers.html` (3), `New-main` (1), and alternate `main.html` (1). The documented Parent mapping is `New-main`; the alternate `main.html` is not assumed to be the active source.
+**App dependency matrix:** Added to Report566 for all 28 pages. It is a static `.from()` scan, not a complete RPC/Edge/trigger dependency graph.
+**Post-migration Supabase advisors:** security 6 groups / 172 findings; performance 5 groups / 412 findings. No advisor group specifically references Realtime. These are pre-existing project-wide findings; no ACL/RLS/function/index changes were made.
+**Report update commit:** `465f9d339ee94602be49170dd48323fb00c5434f`.
+
+**Remaining:** per-app refresh-hook contracts and owner-applied HTML patches; Parent source/mirror reconciliation; deployment and authenticated E2E. Global realtime remains NOT CLOSED.
+
+---
 # LATEST VERIFIED CHECKPOINT — LVE-2026-10-31-566 — Realtime Foundation / Production Publication
 
 **LAST VERIFIED EVENT:** 2026-10-31T15:34:23Z — Production `supabase_realtime` publication contains 81 public tables; all nine newly added operational/master-data tables are present and migration registry entry is recorded.
