@@ -515,3 +515,53 @@ Never repeat:
 - Detailed Arabic report: `doc/Draft/Reprots/Report572_BUYER_REALTIME_AND_ROUTER_PERMISSION_REPAIR_20261101.md`, latest report commit `53789915a414fcbd3caea851a788653aab55e599`.
 - Realtime coverage limit: RW_Realtime subscribes INSERT/UPDATE only. Buyer’s 12 channels do not independently include all detail/history tables (e.g. purchase_request_details, purchase_rfq_details, purchase_quotation_details, purchase_invoice_details, purchase_payment_allocations, purchase_return_details, purchase_status_history). A detail-only change or DELETE is not guaranteed to trigger immediate UI refresh; parent-row change or 30s reconcile may refresh later. Live WebSocket remains UNVERIFIED.
 - Status: `PARTIAL REPAIRS CONFIRMED / EDGE v12 BYTE-MATCHED / RLS READ CONTRACTS HARDENED / SOURCE REALTIME WIRED / DEPLOYMENT + WEBSOCKET RUNTIME UNVERIFIED / BUSINESS CONTRACTS OPEN / NOT CLOSED`.
+
+
+
+## LVE-2026-11-01-573 — Buyer Custody / Auth / Realtime / Tailwind
+
+**Verified at:** 2026-11-01 Africa/Cairo.  
+**Operational repo HEAD:** `papamohammed77-glitch/erp-frontend/main` — `1db1db2927005d12a1531b7518d103c4c7b8140f`.  
+**Production Edge:** `save-purchase-order v18 ACTIVE`, `verify_jwt=true`, exact source byte match; deployed SHA-256 `e9fab386b72cc9e3d10b49931324117dea1e2df6828cb50d9e8d010e0923996f`.
+
+### Root cause and repair
+- Browser console's `PURCHASE_AUTH_REQUIRED` was traced to `purchase_get_dashboard` checking `current_setting('request.jwt.claim.role', true)`. Under the service-role RPC context that setting was NULL while `auth.role()` returned `service_role` and `auth.uid()` was NULL. The old test misclassified service_role as a normal authenticated user and raised `PURCHASE_AUTH_REQUIRED`.
+- The function now uses `auth.role()`; direct service-role dashboard test passes. Authenticated `finance_manager` dashboard test also passes.
+- Edge `GET_SUMMARY` now calls the RPC using the caller JWT through `profileClient`, retaining user/company/effective-permission checks rather than using service_role for this read.
+- Edge v18 dispatch and role gates include `finance` and `finance_manager` for custody administration and the required Buyer read surfaces.
+
+### Buyer employee custody contract
+- Added `buyer_custodies`, `buyer_custody_expenses`, `buyer_custody_settlements` with RLS and company/employee scope.
+- Workflow: finance records manual issuance; employee acknowledges receipt; employee submits PDF/image expense documents; finance approves/rejects; settlement waits until all submitted expenses are reviewed and the full unspent cash is manually received/recorded.
+- Enforced currency consistency, complete cash reconciliation before closure, and separation of duties (no self-approval or self-settlement).
+- New SECURITY DEFINER RPCs are executable by authenticated only; anon execute is false. Direct authenticated INSERT/UPDATE/DELETE on custody tables is false; SELECT is RLS-scoped.
+- Storage uses private `employee-documents`; path policies were corrected to qualify `storage.objects.name` (avoiding ambiguity with `users.name`), and an owner-only cleanup policy was added. Finance/finance_manager can read company custody documents.
+- Full SQL workflow test (issue 100 SAR → employee document metadata insert → expense 40 SAR → finance approval → cash return 60 SAR → settlement balance 0) passed inside ROLLBACK. Employee and finance document SELECT policy checks both passed. This validates SQL/RLS metadata path, not real browser binary upload/download or Storage API delete.
+- Buyer tab now supports employee submission and finance issue/review/settlement. Accountant and Finance Manager screens link to Buyer custody workspace. Parent `main.html` was not modified.
+
+### Realtime and Core
+- Buyer now subscribes to 26 tables covering PR/RFQ/quotation/PO, detail rows, invoices/payments/returns, history/attachments/document links/settings, custody, suppliers/items/branches/stock.
+- Production query confirms all 26 tables have RLS enabled, authenticated SELECT, a SELECT/ALL policy, and membership in `supabase_realtime`.
+- Shared `core.js` blob: `f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1`; normalizer supports per-table event selection while default remains INSERT/UPDATE.
+- Buyer debounce 400ms; reconcile 15s; tab-specific invalidation; MutationObserver drains pending refresh after modal closure.
+- DELETE is not subscribed; it is caught by reconciliation, so DELETE is not guaranteed instant. Live authenticated WebSocket delivery/reconnect E2E remains UNVERIFIED.
+
+### Production CSS and source
+- Buyer no longer references `cdn.tailwindcss.com`; it links local `buyer.tailwind.css` (blob `25b1b840e0a03c42d3de2593b08baf6af95d0f4b`, 15,038 chars).
+- GitHub Actions workflow `.github/workflows/buyer-tailwind-build.yml` compiles CSS; build commit `1fa7a3d73dc73645b1dc88b2ad33c41ecfe37bec`.
+- Buyer blob: `ee2fb5676a99a9c17371b3a7f44ab0b2bb320506`.
+- Edge source blob: `6d6b6ce45a18e6275f043b6e397da528d2c58124`.
+- Accountant blob: `74794dd24277eac92c652061b2540d5cb772425e`.
+- Finance Manager blob: `db8a5c4ef7029833ec7777dd4f992f737475e85f`.
+- Static JavaScript parse passed for Buyer, Core, Accountant and Finance Manager.
+- Eight new migrations are applied and committed under operational `supabase/migrations/`, versions from `20261031233331` through `20261031235057` covering custody, publication, separation of duties, finance-manager permissions, dashboard auth.role, storage path policies, and currency/reconciliation.
+
+### Unverified and open
+- Cloudflare Pages served commit/artifact and local CSS delivery remain UNVERIFIED.
+- Authenticated browser E2E, real Storage API file upload/download/delete, live WebSocket events and reconnect remain UNVERIFIED.
+- Core only emits INSERT/UPDATE; DELETE refresh is periodic (15s), not instant.
+- Business contracts still OPEN: PO expected delivery/payment terms/approval/send, supplier email/grade/rating/visits, payment_method in payment RPC, supplier invoice number persistence, direct no-PO receiving/OCR, PR department/received aggregates, and server-side paging/search beyond 500.
+- Security Advisor still has system-wide findings outside this task: 24 RLS-enabled/no-policy INFO, 1 mutable search_path outside Buyer, 19 anon SECURITY DEFINER, 121 authenticated SECURITY DEFINER, leaked-password protection warning. Do not claim global security closure.
+
+**Arabic report:** `doc/Draft/Reprots/Report573_BUYER_CUSTODY_AUTH_REALTIME_TAILWIND_20261101.md` (report commit `18577462ab54f7cf3f1dc8f9b4b42161f2730330`).  
+**Status:** `PARTIAL REPAIRS CONFIRMED / ROOT CAUSE CONFIRMED / CUSTODY SQL+RLS ROLLBACK-TESTED / EDGE v18 BYTE-MATCHED / 26 TABLES RLS+PUBLICATION VERIFIED / TAILWIND CDN REMOVED FROM SOURCE / CLOUDFLARE+RUNTIME E2E UNVERIFIED / BUSINESS CONTRACTS OPEN / NOT CLOSED`.
