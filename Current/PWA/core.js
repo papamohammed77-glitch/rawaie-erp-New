@@ -49,7 +49,7 @@ var RW_Auth = (function() {
             if (callback) callback(null, 'NO_USER');
             return;
         }
-        supabase.from('users').select('id, name, active_warehouse_role').eq('email', currentUser.email).maybeSingle().then(function(uRes) {
+        supabase.from('users').select('id, name, active_warehouse_role, company_id').eq('email', currentUser.email).maybeSingle().then(function(uRes) {
             var userData = uRes.data || {};
             pubUserId = userData.id || null;
             var meta = currentUser.user_metadata || {};
@@ -58,6 +58,8 @@ var RW_Auth = (function() {
                 id: pubUserId,
                 email: currentUser.email,
                 name: userData.name || meta.name || currentUser.email,
+                company_id: userData.company_id || meta.company_id || null,
+                companyId: userData.company_id || meta.company_id || null,
                 role: meta.role || 'موظف',
                 isOwner: isOwner,
                 permissions: meta.permissions || [],
@@ -71,6 +73,8 @@ var RW_Auth = (function() {
                 id: null,
                 email: currentUser.email,
                 name: meta.name || currentUser.email,
+                company_id: meta.company_id || meta.companyId || null,
+                companyId: meta.company_id || meta.companyId || null,
                 role: meta.role || 'موظف',
                 isOwner: isOwner,
                 permissions: meta.permissions || [],
