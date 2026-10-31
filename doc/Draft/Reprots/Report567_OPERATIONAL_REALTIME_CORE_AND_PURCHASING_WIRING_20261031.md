@@ -123,3 +123,20 @@ The other three of the 16 are the receiver, purchasing buyer, and purchasing sup
 - Obtain authenticated browser E2E and Cloudflare deployment evidence before claiming runtime or Production app-to-app synchronization.
 
 **STATUS:** `OPERATIONAL REALTIME CORE IMPLEMENTED / PURCHASING THREE-APP SOURCE WIRING IMPLEMENTED / 16 SUPABASE CLIENT OVERWRITES REMOVED / STATIC+MOCK CHECKS PASS / AUTHENTICATED E2E AND DEPLOYMENT UNVERIFIED / GLOBAL ERP INTEGRATION NOT CLOSED`
+
+
+## 9. CI failure diagnosis and repair — VERIFIED
+
+After the operational app commits, the existing workflow `RAWAEA — Mother Inventory Forensic E2E` failed on run `41216889587`. The failure was not caused by a missing inventory capability or by the app patches. The workflow used the unbounded regex `TODO|FIXME`, which matched the substring `odo` inside two legitimate vehicle-maintenance field identifiers in the unchanged Parent file:
+- Line 30357: `fm-odo`
+- Line 30358: `fm-nextodo`
+
+The exact Parent blob was re-read and contained exactly those two matches; neither was a TODO marker. The workflow scanner was corrected in `.github/workflows/inventory_mother_forensic_e2e_20260916.yml` to use word boundaries: `\\b(?:TODO|FIXME)\\b`. Commit: `5237858665ae0be72f33d6c8deaa1b650cc19579`.
+
+**Re-run on the corrected commit:** run `41217202946` completed successfully. Confirmed steps:
+- Static inventory contract audit: PASS.
+- Source map for surgical patching: PASS.
+- Mother system Playwright browser smoke: PASS (`MOTHER_BROWSER_SMOKE=PASS`).
+- The four push-triggered workflows on commit `5237858665ae0be72f33d6c8deaa1b650cc19579` all completed with `success`: Mother Inventory Forensic E2E, Mother Assembly Guard, forensic current Mother extract, and CTO Helper Files Forensic.
+
+**Scope qualification:** this workflow validates the unchanged Parent shell from current Git source using a local file-based browser smoke. It is not a Cloudflare deployment check and does not prove authenticated cross-app Realtime behavior.
