@@ -149,3 +149,11 @@ Supabase advisors were run after the publication migration. No advisor group men
 - Security: 6 lint groups / 172 findings (24 RLS-enabled/no-policy INFO; 3 SECURITY DEFINER views ERROR; 3 mutable search_path WARN; 20 anon SECURITY DEFINER execute WARN; 121 authenticated SECURITY DEFINER execute WARN; 1 leaked-password-protection WARN).
 - Performance: 5 lint groups / 412 findings (269 unindexed foreign keys INFO; 62 auth_rls_initplan WARN; 56 unused indexes INFO; 18 multiple permissive policies WARN; 7 duplicate indexes WARN).
 - These are project-wide findings; this migration did not modify the underlying policies, functions, or indexes. They remain separate security/performance workstreams.
+## 8. Follow-up core identity patch — CONFIRMED
+- Commit: `768ac81d5405ecaa1a06b5f59a2002839d62f826` (`Expose authenticated company identity for shared realtime scoping`), created `2026-10-31T15:38:47Z`.
+- `RW_Auth.checkWarehouseRole` now selects `company_id` from `public.users` and exposes both `company_id` and `companyId` in its returned user object, with auth metadata fallback.
+- This provides the company identity required by `RW_Realtime.start({companyId: ...})` for company-scoped subscriptions.
+- Re-fetched canonical `Current/PWA/core.js` at branch `main`: blob `b3d406c635b3cea716e90bf528488ae07be54515`, 33,935 bytes; `RW_Realtime` and company identity fields present; JavaScript parse check PASS.
+- Important caveat: this patch does not establish that every app calls `checkWarehouseRole` before starting subscriptions, nor does it prove that auth metadata fallback is trustworthy for every role. Each app must obtain the verified company ID from the authenticated database user record and fail closed if missing; do not start a subscription with an empty or guessed company scope.
+
+**Execution remains OPEN:** no app/Parent HTML integrations, no operational mirror transfer, no Cloudflare deployment, and no authenticated multi-company E2E.
