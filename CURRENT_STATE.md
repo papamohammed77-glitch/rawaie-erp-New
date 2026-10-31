@@ -13,7 +13,7 @@
 **LAST VERIFIED EVENT:** 2026-10-31T15:34:23Z — Production `supabase_realtime` publication contains 81 public tables; all nine newly added operational/master-data tables are present and migration registry entry is recorded.
 **Canonical source commit:** `c26a8326fee55a297331d1f636f86e160131679f` — `Current/PWA/core.js`, blob `685be76e4a61ef68de3182855f5e33ea04e9a435`.
 **Production migration:** `enable_realtime_core_master_data_tables_20261031`.
-**Authoritative report:** `doc/Draft/Reprots/Report566_GLOBAL_REALTIME_CORE_FIRST_EXECUTION_20261031.md`, commit `80094ee315e571acd0e995048506f9056cd580ed`.
+**Authoritative report:** `doc/Draft/Reprots/Report566_GLOBAL_REALTIME_CORE_FIRST_EXECUTION_20261031.md`, latest commit `465f9d339ee94602be49170dd48323fb00c5434f`, blob `264af1fc065a03eea3ac2b7a5f7b4b11eaebd931` (initial creation commit `80094ee315e571acd0e995048506f9056cd580ed`).
 
 ## Confirmed work
 - Added `branches`, `customer_ledger`, `customers`, `daily_settlements`, `items`, `purchase_order_details`, `purchase_orders`, `supplier_ledger`, `suppliers` to `supabase_realtime`; count increased 72 → 81.
