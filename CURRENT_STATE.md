@@ -1,3 +1,52 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-10-31-568 — Parent Realtime Authorization Contract
+
+**VERIFIED AT:** 2026-10-31 21:39 Africa/Cairo.  
+**OPERATIONAL MAIN:** `papamohammed77-glitch/erp-frontend`, branch `main`, live HEAD `65799d282acc79359b17a1a13dcd68f62859e1fb` (2026-10-31 17:23:29Z).  
+**PARENT SOURCE:** `companies/company-1/main.html`, blob `53b5a9e9d0433a785c3d5471a9c0d68c25497882`; shared `core.js` blob `a95ee6b29ff54b4a240ce4b81f9a535aa87686db`.  
+**REPORT568:** `doc/Draft/Reprots/Report568_REALTIME_PARENT_CHANNEL_PERMISSION_CONTRACT_AUDIT_20261031.md`, creation commit `8da5ba1d1ca622c0baffdd2ba35107a9ff74cb8d`.
+
+## CURRENT OBJECTIVE
+Continue Phase 3: resolve the four Parent Realtime channel incompatibilities using authenticated read APIs without weakening RLS or exposing service-role-only tables. Full page freshness classification, deployment parity, and authenticated E2E remain OPEN.
+
+## LAST VERIFIED EVENT / STARTING CHECKPOINT
+- Canonical governance state at start was LVE-2026-10-31-567B, commit `699acbfa3e08a174637a6304ca2e4b581e875476`, 16:03:06Z, recording operational HEAD `8140235b7460401f10abe117ce9358c88c38114a`.
+- The operational repository's own complete `CURRENT_STATE.md` is newer: its top handoff was last updated by `1f190a46d55929a3155ddb225dbb5bc15f40faf2` at 17:20:22Z and names Phase 3 Parent channel compatibility as active work.
+- Live operational HEAD is 26 commits beyond the canonical checkpoint. The final four commits version-control deployed Edge Function source snapshots; they do not modify Parent `main.html`.
+- The operational repository's `CURRENT_STATE.md` was not modified in this run because a write to the application-source `main` could trigger an uncontrolled Pages deployment while Cloudflare controls were unavailable. This canonical checkpoint and Report568 carry the new evidence.
+
+## CONFIRMED
+- Live Parent `main.html` has **11** direct `.channel(` call sites, not 8 as recorded in the operational handoff.
+- Four scoped Parent channels are incompatible with Production access: Sales Decision and Loyalty tables are absent from `supabase_realtime` and explicitly denied to anon/authenticated; Customer Payment and Commission tables are published but RLS permits only `service_role`.
+- Existing authenticated read APIs are present: `sales-decision-center` v1, `loyalty-engine` v1, `sales-payment-allocation` v2, and `commission-engine` v3. The first three source files match active Production sources byte-for-byte. Production `commission-engine` v3 has no source file in either GitHub repository.
+- Parent `main.html` does not load `core.js`, does not call `RW_Realtime` or `get_my_effective_profile`, and has no focus/visibility refresh listener. Its login reads only `users.permissions`; session restore uses JWT metadata permissions or defaults to `['*']`.
+- Production `get_my_effective_profile()` and operational `core.js` include `role_permissions`; Sales Decision/Loyalty and Finance/Commission Edge/RPC permission checks do not all use the same effective-permission contract.
+- Production has 21 `role_permissions` rows across 3 roles. At least one active auth-linked user relies on role_permissions alone for `finance`, `orders`, `pos`, `purchases`, and `warehouse`. Actual account behavior was not tested.
+- Production Realtime publication contains 81 tables. Migrations `20261031153418` and `20261031171715` are applied, but their corresponding migration files are absent from the current operational `supabase/migrations` directory.
+- Inventory-count Phase 3 tenant boundary remains in place: scoped SELECT policy, authenticated direct writes denied, `save-inventory-count` v5 source matches Git, inventory_counts currently has zero rows, and no active authenticated Counter user exists.
+- Active auth-linked users belong to one Production company only; two-company browser isolation cannot be proven from current Production identities.
+- Four workflows on current operational HEAD passed; no current authenticated Parent Realtime E2E ran. The earlier Warehouse Vouchers Browser E2E on `8140235` failed and was not rerun on `65799d2`.
+
+## CONFLICT
+- Canonical governance CURRENT_STATE at start was LVE-567B/HEAD `8140235`; operational source CURRENT_STATE had a later Phase 3 handoff; live source HEAD is newer again at `65799d2`.
+- Operational handoff says 8 Parent direct channels; live Parent source contains 11.
+- Parent, shared core, and Edge/RPC authorization paths do not share one effective-permission resolver.
+- Production has the two Realtime/inventory migrations applied, but no matching migration files are present in the operational migration directory.
+
+## UNKNOWN / UNVERIFIED
+- Exact status and row-event delivery of the four browser channels.
+- Cloudflare served artifact bytes, build lineage, cache headers, and authenticated runtime behavior.
+- Authenticated role_permissions-only user behavior.
+- Full 30-page freshness matrix and two-company E2E.
+- No browser or deployment test was performed in this event.
+
+## MUTATION LEDGER
+Read-only Production/catalog queries and GitHub source inspection only. No operational HTML, Edge Function, migration, RLS, grant, publication, business-data, stock, accounting, or deployment change was made.
+
+## NEXT SINGLE PRIORITY
+Reconcile Parent and Edge Function authorization with the effective-profile contract (including `role_permissions`) and version-control the active Commission v3 source. Only then prepare the owner-applied surgical Parent patch to replace the four invalid direct subscriptions with view-active refreshes through the existing authenticated Edge Function read APIs. Keep RLS and publication unchanged.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-10-31-567B — Canonical Auth Alignment + Warehouse Dashboard Consumers
 
 **OPERATIONAL MAIN:** `papamohammed77-glitch/erp-frontend`, latest code commit `8140235b7460401f10abe117ce9358c88c38114a`.  
