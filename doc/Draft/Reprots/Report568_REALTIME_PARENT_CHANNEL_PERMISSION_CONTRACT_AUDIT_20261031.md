@@ -1,180 +1,213 @@
-# Report568 — RAWAEA ERP Daily CTO Review
-## Parent Realtime channels, authorized refresh APIs, and permission-contract reconciliation
-**Date:** 2026-10-31  
-**Inspection time:** approximately 21:39 Africa/Cairo  
-**Production project:** SMART ERP — `fiilmooggumokxanwiyx`  
-**Operational source:** `papamohammed77-glitch/erp-frontend` / `main`  
-**Governance repository:** `papamohammed77-glitch/rawaie-erp-New` / `main`
+# Report568 — المراجعة اليومية لـ RAWAEA ERP
+## قنوات Realtime في النظام الأم، مسارات القراءة المصرّح بها، وتعارض عقد الصلاحيات
+
+**التاريخ:** 2026-10-31  
+**وقت الفحص:** نحو 21:39 بتوقيت القاهرة  
+**مشروع Production:** SMART ERP — `fiilmooggumokxanwiyx`  
+**مستودع المصدر التشغيلي:** `papamohammed77-glitch/erp-frontend` / الفرع `main`  
+**مستودع الحوكمة والتقارير:** `papamohammed77-glitch/rawaie-erp-New` / الفرع `main`
 
 ---
 
-## 1. Starting point — CURRENT_STATE first
+## 1. نقطة البداية — CURRENT_STATE أولاً
 
-The canonical governance repository was read first and in full. Its opening checkpoint was **LVE-2026-10-31-567B**, committed at 2026-10-31 16:03:06Z, and it recorded operational source HEAD `8140235b7460401f10abe117ce9358c88c38114a`.
+بدأت بقراءة ملف `CURRENT_STATE.md` كاملًا في مستودع الحوكمة. كان آخر checkpoint مسجل هو **LVE-2026-10-31-567B**، بعملية commit بتاريخ 2026-10-31 الساعة 16:03:06Z، وكان يسجل رأس مستودع المصدر التشغيلي عند:
 
-The operational source repository contains a second `CURRENT_STATE.md`. Its complete 472-line handoff was then read. Its current top checkpoint is **Phase 3 — resolve remaining parent Realtime channel incompatibilities and complete freshness classification**, updated by commit `1f190a46d55929a3155ddb225dbb5bc15f40faf2` at 17:20:22Z. It points to:
-- `REALTIME_SYNC_EXECUTION_20261031.md`, including section 8;
-- `REALTIME_SYNC_PHASE2_PARENT_BOOTSTRAP_20261031.md`;
+`8140235b7460401f10abe117ce9358c88c38114a`
+
+بعد ذلك اكتشفت وجود ملف `CURRENT_STATE.md` ثانٍ داخل مستودع المصدر التشغيلي نفسه، وقرأت ملفه كاملًا (472 سطرًا). هذا الملف أحدث؛ إذ يسجل أن العمل النشط هو:
+
+**Phase 3 — معالجة تعارض قنوات Realtime المتبقية في النظام الأم واستكمال تصنيف حداثة البيانات.**
+
+آخر تحديث لهذا الـhandoff كان بالـcommit:
+
+`1f190a46d55929a3155ddb225dbb5bc15f40faf2` — الساعة 17:20:22Z.
+
+ويحيل إلى:
+- `REALTIME_SYNC_EXECUTION_20261031.md`، وبالأخص القسم 8.
+- `REALTIME_SYNC_PHASE2_PARENT_BOOTSTRAP_20261031.md`.
 - `REALTIME_SYNC_PHASE3_INVENTORY_COUNTS_20261031.md`.
 
-The full master governance/continuity protocol and the current Phase 2/Phase 3 execution reports were read before investigation.
+كما تمت قراءة بروتوكول الحوكمة والاستمرارية الأساسي، وتقارير Phase 2 وPhase 3 قبل بدء التحقيق.
 
-**The operational source handoff is newer than the canonical governance checkpoint.** Live Git is newer again: operational `main` is now `65799d282acc79359b17a1a13dcd68f62859e1fb` (2026-10-31 17:23:29Z), 26 commits beyond the SHA recorded in the canonical LVE-567B checkpoint. The last four commits after the operational handoff add deployed Edge Function source snapshots; they do not change Parent `main.html`.
+**النتيجة:** ملف الحالة في مستودع المصدر أحدث من ملف الحالة في مستودع الحوكمة، ورأس Git الفعلي أحدث من الاثنين. رأس `erp-frontend/main` الحالي هو:
 
-### Today's target
-Continue the current Phase 3 objective: determine how the four Parent modules refresh through authenticated server-side read paths without weakening RLS or exposing service-role-only tables. Do not restart the earlier inventory-count remediation or claim all-app Realtime completion.
+`65799d282acc79359b17a1a13dcd68f62859e1fb` — بتاريخ 2026-10-31 الساعة 17:23:29Z، ومتقدم 26 commit على الرأس الذي سجله checkpoint 567B. آخر أربعة commits بعد تحديث handoff تضيف نسخًا مصدرية لدوال Edge المنشورة، ولم تغيّر ملف Parent `main.html`.
+
+### هدف المراجعة اليوم
+
+استكمال Phase 3 بتحديد طريقة تحديث الوحدات الأربع في النظام الأم عبر مسارات قراءة خلفية مصادق عليها، دون إضعاف RLS أو كشف جداول `service_role`. لم أعد فتح إصلاح `inventory_counts` المغلق، ولم أعتبر وجود كود أو قناة Realtime دليلًا على نجاح التشغيل.
 
 ---
 
-## 2. CONFIRMED
+## 2. CONFIRMED — حقائق مثبتة
 
-### 2.1 Live GitHub/source state
+### 2.1 حالة GitHub والمصدر الحي
 
-- Operational repository: `papamohammed77-glitch/erp-frontend`, branch `main`.
-- Current HEAD: `65799d282acc79359b17a1a13dcd68f62859e1fb`.
-- Parent `companies/company-1/main.html`: blob `53b5a9e9d0433a785c3d5471a9c0d68c25497882`, 33,358 lines.
-- Shared `companies/company-1/core.js`: blob `a95ee6b29ff54b4a240ce4b81f9a535aa87686db`, 1,002 lines.
-- Current operational handoff blob: `2f7b391c556a0118d418d0d1d4eb83c0e81ebf25`.
-- Current canonical governance state blob at start: `c0039234b93d009de67d26123a607472c4921b73`.
+- المستودع التشغيلي: `papamohammed77-glitch/erp-frontend`.
+- الفرع: `main`.
+- HEAD الحالي: `65799d282acc79359b17a1a13dcd68f62859e1fb`.
+- ملف النظام الأم `companies/company-1/main.html`: Blob `53b5a9e9d0433a785c3d5471a9c0d68c25497882`، وعدد أسطره 33,358.
+- المحرك المشترك `companies/company-1/core.js`: Blob `a95ee6b29ff54b4a240ce4b81f9a535aa87686db`، وعدد أسطره 1,002.
+- Blob ملف الحالة التشغيلي في مستودع المصدر: `2f7b391c556a0118d418d0d1d4eb83c0e81ebf25`.
+- Blob ملف الحالة المرجعي في مستودع الحوكمة عند بدء المراجعة: `c0039234b93d009de67d26123a607472c4921b73`.
 
-Parent source scan found **11 direct `.channel(` call sites**, not the 8 recorded in the operational handoff. The four channels in the active Phase 3 scope are:
+أظهر فحص ملف Parent وجود **11 موضعًا مباشرًا لاستدعاء `.channel(`**، وليس 8 كما ورد في handoff التشغيلي. القنوات الأربع محل Phase 3 هي:
 
-| Parent module | Source location | Direct tables subscribed |
+| الوحدة | موضع المصدر | الجداول التي تشترك مباشرة |
 |---|---:|---|
-| Sales Decision | `main.html:3488–3492` | `sales_decision_policies`, `sales_decision_evaluations`, `sales_decision_approvals` |
-| Loyalty | `main.html:4406–4409` | `loyalty_programs`, `loyalty_rewards`, `loyalty_accounts`, `loyalty_transactions` |
-| Customer Payments | `main.html:20362–20388` | `sales_payment_receipts`, `sales_payment_allocations` |
-| Commission | `main.html:21400–21405` | `commission_plans`, `commission_assignments`, `commission_runs`, `commission_run_lines` |
+| مركز قرار المبيعات | `main.html:3488–3492` | `sales_decision_policies`، `sales_decision_evaluations`، `sales_decision_approvals` |
+| الولاء | `main.html:4406–4409` | `loyalty_programs`، `loyalty_rewards`، `loyalty_accounts`، `loyalty_transactions` |
+| تحصيلات العملاء | `main.html:20362–20388` | `sales_payment_receipts`، `sales_payment_allocations` |
+| العمولات | `main.html:21400–21405` | `commission_plans`، `commission_assignments`، `commission_runs`، `commission_run_lines` |
 
-The Parent file contains no `core.js` script reference, no `RW_Realtime`, and no call to `get_my_effective_profile`. It has no `focus` listener or `visibilitychange` handler. The four modules therefore have no verified focus/visibility fallback when their channel cannot deliver events. Existing timers in other Parent modules do not establish refresh for these four modules.
-- A direct source scan found zero `.from()` reads of the 13 protected Sales Decision, Loyalty, Customer Payment, and Commission tables in Parent `main.html`; their data reads go through the existing Edge Function APIs. The direct channels are invalidation triggers, not the primary read path, so replacing them with authenticated API refresh is architecturally viable.
-- The Loyalty channel has no server-side `company_id` filter on its four subscriptions; it relies on a client-side `payload.new.company_id` check and skips that check when `payload.new` is absent (for example, a DELETE payload). Current RLS/publication prevents authorized row delivery, so no cross-tenant event was observed; do not make this channel active by broadening publication/RLS. Any future invalidation must be tenant-scoped server-side.
+ملف Parent:
+- لا يحمل `core.js`.
+- لا يستخدم `RW_Realtime`.
+- لا يستدعي `get_my_effective_profile`.
+- لا يحتوي على listener لـ`focus` أو `visibilitychange`.
 
-### 2.2 Production Realtime publication and RLS
+وبالتالي لا يوجد fallback مثبت لتحديث هذه الوحدات عند عودة المستخدم للصفحة أو ظهورها مجددًا. المؤقتات الموجودة في وحدات أخرى لا تثبت تحديث هذه الوحدات الأربع.
 
-Read-only catalog queries against SMART ERP confirmed:
+كما أثبت فحص المصدر عدم وجود أي استدعاء مباشر من نوع `.from()` لقراءة الجداول الثلاثة عشر الخاصة بالوحدات الأربع داخل Parent `main.html`. قراءاتها الأساسية تتم عبر Edge Functions القائمة؛ ولذلك فالقنوات المباشرة الحالية هي آليات invalidation فقط، وليست مسار القراءة الأساسي. هذا يجعل استبدالها بتحديث مصادق عليه عبر واجهات القراءة الحالية خيارًا معماريًا ممكنًا.
 
-- `supabase_realtime` contains 81 tables.
-- Sales Decision tables are **not** members of the publication. Their policies for `anon` and `authenticated` explicitly use `USING (false)` and `WITH CHECK (false)`.
-- Loyalty tables are **not** members of the publication. Their policies for `anon` and `authenticated` explicitly use `USING (false)` and `WITH CHECK (false)`.
-- Customer Payment tables are members of the publication, but their only table policies are `service_role`-only.
-- Commission tables are members of the publication, but their only table policies are `service_role`-only.
+**ملاحظة أمنية خاصة بقناة الولاء:** اشتراكات الجداول الأربعة لا تتضمن فلترًا خادميًا على `company_id`. يعتمد الكود على فحص `payload.new.company_id` داخل المتصفح، ويتجاوز الفحص عندما لا تكون `payload.new` موجودة، مثل بعض أحداث DELETE. لا يوجد دليل على وصول أحداث عابرة للشركات حاليًا لأن RLS والنشر يمنعان وصول الصفوف للمستخدم المصادق. لكن لا يجوز تفعيل هذه القناة بتوسيع RLS أو النشر؛ وأي invalidation مستقبلي يجب أن يكون tenant-scoped من جهة الخادم.
 
-Therefore the four browser subscriptions are incompatible with the current Production authorization/publication contract. This does **not** prove the exact browser channel status or event-delivery symptom; those require runtime observation. It does prove that the authenticated Parent client has no authorized row visibility for these four sets of tables. No RLS or publication change is justified.
+### 2.2 عقد Realtime وRLS في Production
 
-### 2.3 Existing authenticated server-side read paths
+استعلامات PostgreSQL للقراءة فقط على مشروع SMART ERP أثبتت:
 
-The Parent modules already use Edge Function APIs for their initial data and business operations:
+- منشور `supabase_realtime` يحتوي على 81 جدولًا.
+- جداول مركز قرار المبيعات **غير موجودة** في المنشور، وسياسات `anon` و`authenticated` عليها تستخدم صراحةً `USING (false)` و`WITH CHECK (false)`.
+- جداول الولاء **غير موجودة** في المنشور، وسياسات `anon` و`authenticated` عليها تستخدم صراحةً `USING (false)` و`WITH CHECK (false)`.
+- جداول تحصيلات العملاء موجودة في المنشور، لكن سياساتها المسموح بها مقتصرة على `service_role`.
+- جداول العمولات موجودة في المنشور، لكن سياساتها المسموح بها مقتصرة على `service_role`.
 
-| Module | Existing server-side path | Production status |
+إذًا القنوات الأربع غير متوافقة مع عقد الصلاحيات والنشر الحالي في Production. هذا يثبت عدم وجود صلاحية صفوف للمستخدم المصادق على هذه الجداول؛ لكنه لا يثبت وحده هل تعرض القناة في المتصفح `CHANNEL_ERROR` أم `SUBSCRIBED` دون أحداث أم حالة أخرى. ذلك يحتاج اختبار Runtime مباشرًا.
+
+**القرار:** لا توسّع RLS ولا تضف هذه الجداول إلى النشر بغرض جعل القنوات تعمل.
+
+### 2.3 مسارات القراءة الخلفية الموجودة بالفعل
+
+الوحدات الأربع تستخدم بالفعل Edge Functions لقراءة البيانات وتنفيذ العمليات:
+
+| الوحدة | المسار الخلفي الحالي | حالة Production |
 |---|---|---|
-| Sales Decision | `sales-decision-center` — `GET_POLICY`, `GET_PENDING_APPROVALS`, `VALIDATE_ORDER`, write operations | ACTIVE v1, `verify_jwt=true` |
-| Loyalty | `loyalty-engine` — `LIST_PROGRAMS`, `LIST_REWARDS`, `GET_ACCOUNT`, `LIST_TRANSACTIONS`, write operations | ACTIVE v1, `verify_jwt=true` |
-| Customer Payments | `sales-payment-allocation` — `catalog`, `open_orders`, `list`, `detail`, `create` | ACTIVE v2, `verify_jwt=true` |
-| Commission | `commission-engine` — `LIST_REPS`, `LIST_PLANS`, `LIST_RUNS`, and commission operations | ACTIVE v3, `verify_jwt=true` |
+| مركز قرار المبيعات | `sales-decision-center` — مثل `GET_POLICY` و`GET_PENDING_APPROVALS` و`VALIDATE_ORDER` | ACTIVE v1، و`verify_jwt=true` |
+| الولاء | `loyalty-engine` — مثل `LIST_PROGRAMS` و`LIST_REWARDS` و`GET_ACCOUNT` و`LIST_TRANSACTIONS` | ACTIVE v1، و`verify_jwt=true` |
+| تحصيلات العملاء | `sales-payment-allocation` — `catalog` و`open_orders` و`list` و`detail` و`create` | ACTIVE v2، و`verify_jwt=true` |
+| العمولات | `commission-engine` — `LIST_REPS` و`LIST_PLANS` و`LIST_RUNS` وعمليات العمولات | ACTIVE v3، و`verify_jwt=true` |
 
-The three Edge Function sources present in the operational Git repository match the corresponding Production `index.ts` source exactly:
-- `supabase/functions/sales-decision-center/index.ts` — blob `95dfc768b956d1b58990942cc5031d7359c6f4bf`;
-- `supabase/functions/loyalty-engine/index.ts` — blob `076b6f4b9618dfc66f15e8b92051040eeedddfb5`;
-- `supabase/functions/sales-payment-allocation/index.ts` — blob `1c6dd356284079e346196b37b1f9813154c535c8`.
+تمت مقارنة المصدر الفعلي في Git مع نسخة Production المنشورة byte-for-byte، وكانت المطابقة كاملة للثلاثة التالية:
+- `supabase/functions/sales-decision-center/index.ts` — Blob `95dfc768b956d1b58990942cc5031d7359c6f4bf`.
+- `supabase/functions/loyalty-engine/index.ts` — Blob `076b6f4b9618dfc66f15e8b92051040eeedddfb5`.
+- `supabase/functions/sales-payment-allocation/index.ts` — Blob `1c6dd356284079e346196b37b1f9813154c535c8`.
 
-**Commission provenance gap:** Production `commission-engine` v3 is ACTIVE with hash `5172830aa0de5bf51ee4b010d6503de675071fca0fc29001e5b6aaab430a3555`, but `supabase/functions` in the operational repository has no `commission-engine` directory. GitHub code search in both the operational and governance repositories found no source snapshot. The active Production function can be inspected, but it is not reproducibly version-controlled in the operational source repository.
+**فجوة مصدر العمولات:** دالة Production `commission-engine` الإصدار v3 نشطة، وهاش مصدرها المنشور:
 
-### 2.4 Permission-contract mismatch discovered
+`5172830aa0de5bf51ee4b010d6503de675071fca0fc29001e5b6aaab430a3555`
 
-Production `get_my_effective_profile()` returns the union of:
-1. `users.permissions`;
-2. `roles.permissions`;
-3. `role_permissions.permission_key`.
+لكن لا يوجد لها مجلد أو ملف مصدر في `supabase/functions` بالمستودع التشغيلي، ولم يظهر لها مصدر في مستودع الحوكمة. يمكن فحص النسخة المنشورة، لكن لا يمكن حاليًا مراجعتها أو إعادة إنتاجها من مصدر Git موثق.
 
-The operational shared `core.js` calls `supabase.rpc('get_my_effective_profile')` and normalizes the returned effective permissions.
+### 2.4 تعارض عقد الصلاحيات — اكتشاف جوهري
 
-Parent `main.html` does not use that contract:
-- Login path (`1268–1298`) reads only `users.permissions`.
-- Session-restore path (`33235–33250`) assigns `user_metadata.permissions || ['*']`; it does not re-read the effective profile or the database permissions before building the application state.
+الدالة المركزية في Production `get_my_effective_profile()` تجمع الصلاحيات من ثلاثة مصادر:
+1. `users.permissions`
+2. `roles.permissions`
+3. `role_permissions.permission_key`
 
-The four server-side paths are also inconsistent with the effective-profile resolver:
-- `sales-decision-center` checks only `users.permissions`; Production `sales_decision_actor_ok` also checks only `users.permissions`.
-- `loyalty_engine_atomic` checks only `actor.permissions` from the direct user row.
-- `sales-payment-allocation` combines direct user permissions and `roles.permissions`, but omits `role_permissions`.
-- Production `commission-engine` does the same: direct user permissions plus `roles.permissions`, but no `role_permissions`.
-- The payment and commission atomic RPCs are executable by `service_role`, not by `authenticated`; their Edge Function authorization is therefore the effective access gate.
+المحرك المشترك التشغيلي `core.js` يستدعي هذه الدالة ويستخدم الصلاحيات الفعالة الناتجة عنها.
 
-Read-only Production aggregation found 21 `role_permissions` rows across 3 roles. At least one active auth-linked user relies on `role_permissions` alone for each of these permission keys: `finance`, `orders`, `pos`, `purchases`, and `warehouse`. No identity data was emitted.
+أما Parent `main.html` فلا يستخدم هذا العقد:
+- مسار تسجيل الدخول في الأسطر `1268–1298` يقرأ `users.permissions` فقط.
+- مسار استعادة الجلسة في الأسطر `33235–33250` يأخذ الصلاحيات من JWT metadata أو يضع افتراضيًا `['*']`، ولا يعيد قراءة الصلاحيات الفعالة من قاعدة البيانات قبل بناء حالة التطبيق.
 
-This proves a real permission-contract mismatch: the effective-profile resolver can grant a permission that Parent and some Edge/RPC checks do not recognize. The actual experience of the affected account was not tested. Do not compensate by broadening RLS or granting direct table access.
+كما أن مسارات التفويض في Edge/RPC ليست موحدة:
+- `sales-decision-center` يفحص `users.permissions` المباشرة فقط، ودالة Production `sales_decision_actor_ok` تفحص المصدر المباشر نفسه فقط.
+- `loyalty_engine_atomic` يفحص `actor.permissions` من سجل المستخدم المباشر فقط.
+- `sales-payment-allocation` يجمع الصلاحيات المباشرة مع `roles.permissions`، لكنه لا يضم `role_permissions`.
+- `commission-engine` المنشور يفعل الشيء نفسه: الصلاحيات المباشرة مع `roles.permissions`، دون `role_permissions`.
+- دالتا RPC الخاصتان بالدفع والعمولات قابلتان للتنفيذ من `service_role` وليس `authenticated`؛ لذلك فإن فحص الصلاحية في Edge Function هو بوابة الوصول الفعلية لهاتين العمليتين.
 
-### 2.5 Inventory-count Phase 3 subtask recheck
+استعلام Production للقراءة فقط أثبت وجود 21 سجلًا في `role_permissions` موزعة على 3 أدوار. ويوجد مستخدم نشط واحد على الأقل مرتبط بـAuth يعتمد على `role_permissions` وحدها للحصول على كل صلاحية من المفاتيح التالية: `finance` و`orders` و`pos` و`purchases` و`warehouse`. لم يتم إظهار أي بيانات تعريفية عن الحساب.
 
-The previously completed tenant-boundary change remains present in Production:
-- migration `20261031171715` is applied;
-- `inventory_counts_select_company_authorized` is the scoped read policy;
-- anon direct SELECT/INSERT are false;
-- authenticated SELECT is true while direct INSERT/UPDATE/DELETE are false;
-- service_role write privileges remain;
-- `inventory_counts` currently has zero rows.
+هذا يثبت وجود اختلاف حقيقي بين عقد الصلاحيات الفعالة وبعض مسارات التفويض؛ فقد تمنح الدالة المركزية صلاحية لا تتعرف عليها واجهة Parent أو بعض Edge/RPC. لم يتم اختبار تجربة الحساب المتأثر فعليًا. لا تعالج هذا الاختلاف بمنح وصول مباشر للجداول أو بتوسيع RLS.
 
-Current source `warehouse/counter.html` blob `32d0dc8ca0edb7cc68660f0fbd6246408117498d` contains the corrected null general-count entity payload. Production `save-inventory-count` v5 source matches the Git source exactly. There are currently zero active auth-linked users with `active_warehouse_role='جرد'`, so Counter E2E remains blocked. Production has active auth-linked users for one company only; two-company browser isolation cannot be proved here.
+### 2.5 إعادة التحقق من إغلاق جزء Inventory Counts
+
+إصلاح حدود المستأجر الذي نُفذ في Phase 3 ما زال ظاهرًا في Production:
+- migration `20261031171715` مطبقة.
+- سياسة القراءة الحالية هي `inventory_counts_select_company_authorized`.
+- القراءة المباشرة من anon غير مسموحة.
+- authenticated لديه SELECT، بينما الكتابة المباشرة INSERT/UPDATE/DELETE غير مسموحة.
+- احتفظ `service_role` بصلاحيات الكتابة.
+- جدول `inventory_counts` يحتوي حاليًا على صفر صفوف.
+
+ملف `warehouse/counter.html` الحالي Blob `32d0dc8ca0edb7cc68660f0fbd6246408117498d` يحتوي على تصحيح إرسال `null` في حقل كيان الجرد العام. ومصدر Production `save-inventory-count` v5 مطابق لمصدر Git تمامًا.
+
+لا يوجد حاليًا مستخدم نشط مرتبط بـAuth يحمل `active_warehouse_role='جرد'`، ولذلك اختبار Counter الفعلي ما زال متعذرًا. كما أن المستخدمين النشطين المرتبطين بـAuth في Production يتبعون شركة واحدة فقط؛ فلا يمكن إثبات العزل بين شركتين في E2E حاليًا.
 
 ### 2.6 CI
 
-Current HEAD `65799d2` has four successful workflow runs. None is a current authenticated Parent Realtime E2E. The earlier `Warehouse Vouchers Browser E2E` run `41217489614` on commit `8140235` failed; its workflow path filter is focused on `warehouse/vouchers.html`, `core.js`, and `sw.js`, not the four Parent modules. It was not rerun on current HEAD.
+على HEAD الحالي `65799d2` توجد أربعة Workflow runs ناجحة. لكنها ليست اختبار Parent Realtime مصادقًا عليه.
+
+أما تشغيل `Warehouse Vouchers Browser E2E` رقم `41217489614` على commit `8140235` فقد انتهى بالفشل، ولم يُعد تشغيله على HEAD الحالي. كما أن شروط تشغيل الـworkflow تركز على `warehouse/vouchers.html` و`core.js` و`sw.js`، ولا تشمل وحدات Parent الأربع محل هذا التحقيق.
 
 ---
 
-## 3. UNKNOWN
+## 3. UNKNOWN — معلومات لا تكفي الأدلة لتحديدها
 
-- Exact browser channel state and whether each invalid subscription reports `CHANNEL_ERROR`, `SUBSCRIBED` without row events, or another runtime symptom.
-- Whether any authenticated user is currently viewing these four modules when an external write occurs.
-- Whether the role_permissions-only user has attempted Finance/Loyalty operations through the Parent or another consumer.
-- Full 30-page freshness classification; it remains open.
-- Exact Cloudflare production URL, served artifact bytes, commit/build lineage, cache headers, and runtime behavior.
+- الحالة الفعلية التي تعرضها القنوات الأربع في المتصفح، وهل تفشل عند الاشتراك أم تتصل دون تسليم أحداث.
+- هل يوجد مستخدم مصادق يشاهد إحدى الوحدات الأربع وقت حدوث تغيير من مستخدم آخر.
+- هل جرّب الحساب الذي يعتمد على `role_permissions` عمليات Finance أو Loyalty عبر Parent أو تطبيق آخر.
+- مصفوفة حداثة البيانات الكاملة لجميع صفحات التشغيل الثلاثين؛ ما زالت مفتوحة.
+- عنوان Cloudflare Production الحالي بصورة موثقة، وبايتات الـartifact الذي يقدمه الخادم، وسلسلة commit/build، وCache headers، وسلوك التشغيل الفعلي.
 
-## 4. CONFLICT
+## 4. CONFLICT — تعارضات مؤكدة
 
-1. **Two checkpoint files diverged:** canonical governance `CURRENT_STATE.md` still recorded LVE-567B and source HEAD `8140235`; operational `erp-frontend/CURRENT_STATE.md` recorded the later Phase 3 handoff at 17:20; live operational Git is `65799d2` at 17:23.
-2. **Parent channel count:** operational handoff says 8 direct channels; live Parent blob has 11 `.channel(` call sites.
-3. **Permission contract:** shared `core.js`/Production effective profile includes role_permissions; Parent and several Edge/RPC authorization paths do not.
-4. **Migration/source provenance:** Production confirms migrations `20261031153418` and `20261031171715` are applied, but the current operational `supabase/migrations` directory contains neither corresponding migration file.
+1. **ملفا حالة مختلفان:** ملف الحالة المرجعي في مستودع الحوكمة كان عند LVE-567B ويسجل HEAD `8140235`، بينما ملف الحالة داخل مستودع المصدر يسجل handoff أحدث لمرحلة Phase 3 عند 17:20، ثم تقدم Git الفعلي إلى `65799d2` عند 17:23.
+2. **عدد القنوات:** handoff التشغيلي يسجل 8 قنوات مباشرة في Parent، بينما المصدر الحالي يحتوي على 11 موضعًا لاستدعاء `.channel(`.
+3. **عقد الصلاحيات:** `core.js` والدالة المركزية يستخدمان الصلاحيات الفعالة التي تشمل `role_permissions`، بينما Parent وبعض مسارات Edge/RPC لا تستخدم العقد نفسه.
+4. **مصدر migrations:** Production يؤكد تطبيق migration `20261031153418` و`20261031171715`، لكن لا توجد ملفات مطابقة لهما داخل مجلد `supabase/migrations` الحالي في المستودع التشغيلي.
 
-## 5. UNVERIFIED
+## 5. UNVERIFIED — ادعاءات لم يجر اختبارها مباشرة
 
-- No deployed artifact was matched to Git HEAD.
-- No authenticated browser E2E or live Realtime event-delivery test was performed.
-- No two-company isolation test was performed.
-- No role_permissions-only account was used for an authenticated Edge Function test.
-- No business transaction or business-data effect was tested in this review.
+- لم تتم مطابقة أي artifact منشور على Cloudflare مع Git HEAD.
+- لم يتم إجراء Browser E2E بحساب مصادق عليه أو اختبار تسليم أحداث Realtime.
+- لم يتم اختبار عزل شركتين.
+- لم يتم اختبار الحساب الذي يعتمد على `role_permissions` وحدها عبر Edge Function.
+- لم يتم تنفيذ معاملة تجارية أو اختبار أثرها على المخزون أو الحسابات في هذه المراجعة.
 
-## 6. Verification matrix
+## 6. مصفوفة التحقق
 
-| Layer | Result | Evidence |
+| الطبقة | التصنيف | الدليل |
 |---|---|---|
-| GitHub/source | CONFIRMED | HEAD `65799d2`; Parent blob `53b5a9e`; Core blob `a95ee6b`; 11 channel call sites; three exact Edge source matches; Commission source absent |
-| Supabase Production | CONFIRMED | Publication membership, RLS policies, RPC execute privileges, Edge versions, role_permissions aggregation, applied migrations |
-| Deployed artifact | UNVERIFIED | Direct page fetch was inaccessible; no Cloudflare API connector available |
-| Runtime/E2E | UNVERIFIED | No originating browser context; no authenticated channel/event test |
-| Business-data effects | CONFIRMED: none in this run | Read-only SQL/catalog inspection only; no writes or fixtures |
+| GitHub / Source | CONFIRMED | HEAD `65799d2`، Blob Parent `53b5a9e`، Blob Core `a95ee6b`، 11 موضع قناة، ثلاثة مصادر Edge مطابقة، ومصدر Commission غير موجود في Git |
+| Supabase Production | CONFIRMED | عضوية Realtime، سياسات RLS، صلاحيات تنفيذ RPC، إصدارات Edge، بيانات role_permissions، وسجل migrations |
+| Deployed Artifact | UNVERIFIED | تعذر جلب صفحة التطبيق، ولا توجد وسيلة Cloudflare مباشرة متاحة في هذا التشغيل |
+| Runtime / E2E | UNVERIFIED | لا توجد جلسة متصفح للمستخدم، ولم ينفذ اختبار قناة أو حدث بحساب مصادق |
+| Business-data effects | CONFIRMED: لا توجد تغييرات في هذا التشغيل | فحص SQL/catalog للقراءة فقط؛ لا توجد كتابة أو fixtures أو معاملة تجارية |
 
-## 7. Work performed and mutation ledger
+## 7. ما تم فعليًا وسجل التغييرات
 
-Performed:
-- Read canonical `CURRENT_STATE.md` completely before other project actions.
-- Read the operational repository's complete `CURRENT_STATE.md`, the governing protocol, and the active Phase 2/Phase 3 reports.
-- Re-fetched live operational and governance Git HEADs, compared the operational source against the recorded checkpoint, and re-opened the current Parent/Core/Edge source.
-- Queried Production read-only for publication membership, RLS policies, RPC execute privileges, function definitions, migrations, active-user permission sources, and inventory-count state.
-- Compared the three version-controlled Edge Function source files byte-for-byte with the active Production versions.
-- Attempted to access the known Cloudflare Pages host paths; the web fetch was inaccessible.
+### ما تم
+- قراءة `CURRENT_STATE.md` المرجعي كاملًا قبل أي إجراء آخر.
+- قراءة ملف الحالة التشغيلي الكامل، وبروتوكول الحوكمة، وتقارير Phase 2 وPhase 3 وسجل التنفيذ الحالي.
+- إعادة جلب HEAD الفعلي للمستودعين، ومقارنة مصدر التشغيل مع checkpoint المسجل، وإعادة فتح Parent/Core ومصادر Edge الحالية.
+- تنفيذ استعلامات Production للقراءة فقط عن Realtime publication وRLS وRPC grants وتعريفات الدوال وmigrations ومصادر صلاحيات المستخدمين وحالة inventory_counts.
+- مقارنة مصادر Edge الثلاثة الموجودة في Git مع إصدارات Production النشطة byte-for-byte.
+- محاولة الوصول إلى مسارات Cloudflare Pages المعروفة؛ تعذر جلبها.
 
-Not performed:
-- No operational HTML or Edge Function source was changed.
-- No RLS, grants, publication, migration, RPC, Edge deployment, or business data was changed.
-- No PR, workflow, executor, or parallel architecture was created.
-- The operational repository's own `CURRENT_STATE.md` was not committed in this run because a write to the app-source `main` could trigger an uncontrolled Pages deployment; Cloudflare deployment controls were unavailable. The governance checkpoint is updated separately.
+### ما لم يتم
+- لم يتم تعديل أي HTML تشغيلي أو مصدر Edge Function.
+- لم يتم تعديل RLS أو grants أو publication أو migrations أو RPCs أو Edge deployments أو بيانات الأعمال.
+- لم يتم إنشاء PR أو Workflow أو Executor أو بنية موازية.
+- لم يتم تحديث ملف `CURRENT_STATE.md` داخل مستودع التطبيق التشغيلي؛ لأن الكتابة إلى فرع `main` قد تطلق نشر Pages غير مراقب، بينما أدوات التحكم في Cloudflare غير متاحة. تم تحديث ملف الحالة المرجعي في مستودع الحوكمة والتقرير والذاكرة بدلًا من ذلك.
 
-## 8. Root cause and next priority
+## 8. السبب الجذري والخطوة التالية
 
-The four channels are not a Realtime-publication problem to solve by opening tables. They are authenticated read-model consumers whose current direct subscriptions contradict the intended service-role-only RLS boundary.
+المشكلة ليست أن الجداول تحتاج إلى فتح RLS أو إضافتها جميعًا إلى Realtime. هذه الوحدات تقرأ بياناتها عبر Edge Functions مصادق عليها، لكن قنواتها المباشرة تحاول الاستماع إلى جداول لا تسمح للمستخدم المصادق برؤية صفوفها، أو غير موجودة في منشور Realtime أصلًا.
 
-**Next single priority:** reconcile the Parent and Edge Function authorization contract with `get_my_effective_profile` (including `role_permissions`), and version-control the active `commission-engine` v3 source. Only after that permission contract is proven should the owner apply a surgical Parent patch replacing the four invalid direct subscriptions with view-active, visibility/focus and bounded-interval refreshes through the existing authenticated Edge Function read APIs. Keep RLS and publication unchanged.
+**الأولوية التنفيذية التالية الواحدة:** توحيد تفويض Parent وEdge Functions مع عقد `get_my_effective_profile` بما يشمل `role_permissions`، مع حفظ مصدر `commission-engine` v3 في Git. بعد إثبات عقد الصلاحيات، يجهز المالك تعديلًا جراحيًا في Parent يستبدل القنوات الأربع غير الصالحة بتحديث عند عودة الصفحة/ظهورها، مع polling محدود أثناء عرض الوحدة، باستخدام Edge read APIs الحالية. تظل سياسات RLS وعضوية Realtime كما هي.
 
-**Exit decision:** Phase 3 Parent channel compatibility remains OPEN. No fix or production readiness is claimed.
+**قرار الإغلاق:** توافق قنوات Parent الأربع ما زال OPEN. لم يتم إعلان إصلاح أو جاهزية Production.
