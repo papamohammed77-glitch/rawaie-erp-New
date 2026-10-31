@@ -1,3 +1,36 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-10-31-567 — Operational Realtime Core + Purchasing App Wiring
+
+**DATE:** 2026-10-31  
+**PRODUCTION SNAPSHOT:** 2026-10-31T15:46:00Z — `supabase_realtime` contains 81 public tables, including all nine required tables.  
+**OPERATIONAL REPOSITORY:** `papamohammed77-glitch/erp-frontend`, latest verified main commit at this checkpoint: `5c9da931355b51d960dd757aaa9e25f241362560`.  
+**CANONICAL REPOSITORY:** `papamohammed77-glitch/rawaie-erp-New`.  
+**AUTHORITATIVE EXECUTION REPORT:** `doc/Draft/Reprots/Report567_OPERATIONAL_REALTIME_CORE_AND_PURCHASING_WIRING_20261031.md`, report commit `d7d09451da2b52e5a1105e8feca3ce95b1a7acd0`.
+
+## CONFIRMED IMPLEMENTATION
+- Operational `companies/company-1/core.js` now contains the shared `RW_Realtime` manager, ported without replacing its effective-profile-based `RW_Auth`. Blob: `41af5dc9d8a21f2f3fe5d3e9cfc31e8f5fffa90c`; source commit: `3d952ba1fdbfd8ed7a19792cbd9e7a654f6ed3b2`.
+- `RW_Realtime.start` rejects any `companyId` that does not exactly match `RW_Auth.getUser().company_id`. Mock verification confirmed wrong-tenant rejection, company filter on `purchase_orders`, minimized event payload, and channel cleanup.
+- Purchasing three-app source wiring is implemented:
+  - `warehouse/receiver.html` blob `3111b5e801d1bc021cf18fd66d633fbdc54ac0d6`, commit `5bad55f62da262971b0782e7b23e3ff8da5a7b0e`.
+  - `purchasing/buyer.html` blob `6ba510cff5250ba196528b14237ae400e544771a`, commit `ec9a81dc2a1157e38823827d8604bfdf5e1ed488`.
+  - `purchasing/supervisor.html` blob `d13e3ff72972641fa300fb956d1f5119e2019743`, commit `838ce197b92f5590a833ad43194c7adbd2327050`.
+- All three subscribe to company-scoped `purchase_orders`, refresh the relevant active view on INSERT/UPDATE, reconcile after reconnect/60 seconds, and clean up on logout.
+- A 30-entry operational HTML census found 16 pages overwriting the shared core Supabase client with the SDK namespace. The exact overwrite was removed from all 16 pages; inline script parse checks passed. The 13 additional pages are listed in Report567.
+- Production migration registry row `20261031153418` was confirmed. Matching canonical file `supabase/migrations/20261031153418_enable_realtime_core_master_data_tables.sql` was committed as `322f6bd102eddbea30f72864e3a5d8221e205599`. This records the already-applied Production migration; it does not reapply it.
+
+## STILL OPEN — DO NOT CLAIM GLOBAL CLOSURE
+- No authenticated browser E2E proving buyer → Production → receiver/supervisor refresh or cross-company isolation.
+- No Cloudflare deployment/runtime verification; Git commits are not deployment proof.
+- Parent source/mirror drift remains open: operational `companies/company-1/main.html` and canonical `Current/PWA/New-main` remain materially different; existing Parent subscriptions were not consolidated.
+- Only the purchasing trio is wired to the new manager. Remaining PWAs need verified per-app refresh hooks, tenant scope, and RLS contracts before subscription.
+- Operational and canonical `core.js` remain different. Canonical `Current/PWA/core.js` has not been synchronized with the stronger operational auth profile and Realtime manager.
+- DELETE events remain excluded from the shared client manager; secure authoritative reconciliation is required.
+
+**STATUS:** `OPERATIONAL REALTIME CORE IMPLEMENTED / PURCHASING THREE-APP SOURCE WIRING IMPLEMENTED / 16 CLIENT-OVERWRITE DEFECTS REPAIRED / STATIC+MOCK PASS / AUTHENTICATED E2E AND DEPLOYMENT UNVERIFIED / GLOBAL ERP INTEGRATION NOT CLOSED`
+
+**NEXT EXACT TASK:** Resume with the runsheet operational chain. First re-fetch current operational HEAD and each target file SHA; inspect current role, branch, RLS, and in-progress form state; then wire only safe refresh hooks. Do not rewrite Parent until source/mirror ownership is reconciled.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-10-31-566B — Company Identity for Realtime Scope
 
 **LAST VERIFIED EVENT:** 2026-10-31T15:38:47Z — canonical `Current/PWA/core.js` commit `768ac81d5405ecaa1a06b5f59a2002839d62f826` adds `company_id` to the authenticated user lookup and exposes `company_id` / `companyId` in the `RW_Auth` user object.
