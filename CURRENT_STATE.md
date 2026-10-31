@@ -3331,3 +3331,30 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 
 ## Closure
 \`START/COMPLETE/CANCEL EDGE GUARDS DEPLOYED + CURRENT EDGE SNAPSHOTS SYNCED / OWNER HTML PATCH PENDING / REOPEN + ZERO-QTY CORE CONTRACT OPEN / CLOUDFLARE MAIN DEPLOYMENT QUEUED / AUTHENTICATED BROWSER E2E UNVERIFIED / NOT CLOSED\`.
+
+
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-01-570 — Buyer Direct-Edit Gate & Current Contract Reconciliation
+
+**VERIFIED AT:** 2026-11-01 Africa/Cairo (current session).  
+**GOVERNING REPORT:** `doc/Draft/Reprots/Report570_BUYER_DIRECT_EDIT_GATE_AND_CURRENT_CONTRACT_RECONCILIATION_20261101.md` — report commit `bb322338c6236621f0bfdadb73fde9f17f8ef7e9`.  
+**OPERATIONAL REPO:** `papamohammed77-glitch/erp-frontend`, branch `main`, HEAD `65799d282acc79359b17a1a13dcd68f62859e1fb`.  
+**BUYER SOURCE:** `companies/company-1/purchasing/buyer.html`, blob `6ba510cff5250ba196528b14237ae400e544771a`, 15,051 chars / 137 lines.  
+**PRODUCTION EDGE:** `save-purchase-order` v7 ACTIVE, `verify_jwt=true`, SHA-256 `8e8c419c94796d8b802976ff8f3bb9717c039a8701a1523736cb531b2cc6a6cd`.
+
+## LAST VERIFIED EVENT / EXECUTION DECISION
+- Re-read CURRENT_STATE first, then Report545 governance review, Report569 Buyer forensic audit, Report500 architecture map, Report421 financial permission precedent, and finance/treasury references Reports425/426/431.
+- Report545 documents an inventory of 114 reports numbered 400–500, duplicates, and selected deep reads. It explicitly does not claim that all 114 report bodies were individually reread. Preserve this evidence boundary.
+- The user authorized direct editing of buyer.html in this task. This authorization was accepted; however, fresh source/Production comparison exposed material P0/P1 backend blockers. No HTML mutation was safe in this checkpoint.
+- Current Buyer remains three tabs (Orders / New Order / Suppliers). Existing submitPO still sends legacy {orderHeader, itemsList}; live Edge v7 requires {operation, payload}. Edge v7 has no CREATE_PO/SEND_PO/APPROVE_PO; the current PO path is accepted quotation → CONVERT_QUOTATION_TO_PO.
+- Live purchasing schema recheck: PR lacks department_id; PR details lack received_qty/remaining_qty; PO lacks expected_delivery_date/payment_terms/approved_by/sent_at; suppliers lacks email/A-B-C rating and visit/rating tables were not established by the inspected schema; buyer custody is not a verified dedicated lifecycle. purchase_attachments exists; items includes barcode/image_url.
+- Report569's direct source audit confirms v7 lacks server-side permission checks before service-role purchasing operations/GET_DATA. Effective-profile vs RLS helper mismatch and purchase_get_dashboard exposure/company-binding risks remain open. These are blockers before adding operational write buttons or broad sensitive reads.
+- **Mutation ledger:** only the governance report and this CURRENT_STATE append were written. buyer.html, main.html, core.js, Supabase schema/data/RPC/ACL/RLS/Edge, and Cloudflare deployment were not changed.
+- **Status:** `BUYER SOURCE + LIVE CONTRACT RECONCILED / SAFE UI EXPANSION BLOCKED BY AUTHORIZATION AND BUSINESS CONTRACT GAPS / NOT DEPLOYED / AUTHENTICATED E2E UNVERIFIED / NOT CLOSED`.
+
+## Next exact action
+1. Repair and verify server-side permission matrix on the existing purchasing Edge contract; do not create a new Edge Function unless the existing one cannot safely support it.
+2. Complete caller census and secure purchase_get_dashboard.
+3. Isolated-test PR status-history defect and company ownership checks.
+4. Resolve PO, supplier, payment-method, and buyer-custody business contracts.
+5. Then make incremental surgical edits to buyer.html against a freshly fetched blob, preserving RW_Auth, RW_Realtime, shared Core, and standalone app boundaries.
+6. Verify authenticated browser E2E and Cloudflare served artifact separately; do not infer either from GitHub or SQL.
