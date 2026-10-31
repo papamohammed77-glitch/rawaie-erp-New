@@ -193,20 +193,44 @@ function getDB(appName) {
 
     function syncDown(appName, callback) {
         var db = getDB(appName);
-        if (!db) {
-            if (callback) callback(false, 'Dexie غير مهيأ');
+        if (!db || !supabase) {
+            if (callback) callback(false, !db ? 'Dexie غير مهيأ' : 'Supabase غير مهيأ');
             return;
         }
+
+        // Fetch and validate every dataset before touching the local cache.
         Promise.all([
-            supabase.from('customers').select('*').then(function(r) { return db.customers.clear().then(function() { return db.customers.bulkPut(r.data || []); }); }),
-            supabase.from('items').select('*').then(function(r) { return db.items.clear().then(function() { return db.items.bulkPut(r.data || []); }); }),
-            supabase.from('stock_branches').select('*').then(function(r) { return db.stock.clear().then(function() { return db.stock.bulkPut(r.data || []); }); }),
-            supabase.from('branches').select('*').then(function(r) { return db.branches.clear().then(function() { return db.branches.bulkPut(r.data || []); }); })
-        ]).then(function() {
+            supabase.from('customers').select('*'),
+            supabase.from('items').select('*'),
+            supabase.from('stock_branches').select('*'),
+            supabase.from('branches').select('*')
+        ]).then(function(results) {
+            var names = ['customers', 'items', 'stock_branches', 'branches'];
+            var i;
+            for (i = 0; i < results.length; i++) {
+                if (!results[i] || results[i].error) {
+                    throw new Error('فشل تنزيل ' + names[i] + ': ' +
+                        (results[i] && results[i].error ? results[i].error.message : 'استجابة غير صالحة'));
+                }
+                if (!Array.isArray(results[i].data)) {
+                    throw new Error('بيانات ' + names[i] + ' غير صالحة؛ تم الاحتفاظ بالنسخة المحلية');
+                }
+            }
+
+            // One IndexedDB transaction prevents a partially replaced local snapshot.
+            return db.transaction('rw', db.customers, db.items, db.stock, db.branches, function() {
+                return Promise.all([
+                    db.customers.clear().then(function() { return db.customers.bulkPut(results[0].data); }),
+                    db.items.clear().then(function() { return db.items.bulkPut(results[1].data); }),
+                    db.stock.clear().then(function() { return db.stock.bulkPut(results[2].data); }),
+                    db.branches.clear().then(function() { return db.branches.bulkPut(results[3].data); })
+                ]);
+            });
+        }).then(function() {
             if (callback) callback(true, null);
         }).catch(function(e) {
-            console.error('❌ فشل syncDown:', e);
-            if (callback) callback(false, e.message);
+            console.error('❌ فشل syncDown؛ تم إلغاء استبدال اللقطة المحلية:', e);
+            if (callback) callback(false, e && e.message ? e.message : 'فشل المزامنة');
         });
     }
 
@@ -671,5 +695,208 @@ function esc(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// ============================================================
+// الوحدة ٧: RW_Realtime – محرك أحداث موحد للتطبيقات التشغيلية
+// لا يقرأ الحدث كحقيقة أعمال؛ كل مستهلك يعيد الجلب عبر RLS.
+// ============================================================
+var RW_Realtime = (function() {
+    var active = {};
+    var serial = 0;
+    var authListener = null;
+
+    function safePart(value) {
+        return String(value || '').replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 48);
+    }
+
+    function notifyStatus(state, status, error) {
+        state.status = status;
+        if (typeof state.onStatus === 'function') {
+            try { state.onStatus({ appId: state.appId, status: status, error: error || null }); }
+            catch (e) { console.error('[RW_Realtime] onStatus failed:', e); }
+        }
+    }
+
+    function reconcile(state, reason) {
+        if (state.stopped || typeof state.onReconcile !== 'function') return;
+        try {
+            Promise.resolve(state.onReconcile({ source: reason || 'reconcile', appId: state.appId }))
+                .catch(function(e) { console.error('[RW_Realtime] reconciliation failed:', e); });
+        } catch (e) {
+            console.error('[RW_Realtime] reconciliation failed:', e);
+        }
+    }
+
+    function queueEvent(state, table, eventName, payload) {
+        if (state.stopped) return;
+        if (typeof document !== 'undefined' && document.hidden) {
+            state.needsReconcile = true;
+            return;
+        }
+        if (state.pending[table]) clearTimeout(state.pending[table]);
+        state.pending[table] = setTimeout(function() {
+            delete state.pending[table];
+            if (state.stopped || typeof state.onEvent !== 'function') return;
+            try {
+                state.onEvent({
+                    table: table,
+                    event: eventName,
+                    commitTimestamp: payload && payload.commit_timestamp ? payload.commit_timestamp : null,
+                    source: 'realtime',
+                    appId: state.appId
+                });
+            } catch (e) {
+                console.error('[RW_Realtime] event consumer failed:', table, e);
+            }
+        }, state.debounceMs);
+    }
+
+    function normalizeTables(tables) {
+        var result = [];
+        var seen = {};
+        (tables || []).forEach(function(entry) {
+            var spec = typeof entry === 'string' ? { name: entry } : entry;
+            if (!spec || !/^[a-z][a-z0-9_]*$/.test(spec.name || '') || seen[spec.name]) return;
+            seen[spec.name] = true;
+            result.push({
+                name: spec.name,
+                companyColumn: spec.companyColumn !== false,
+                events: ['INSERT', 'UPDATE']
+            });
+        });
+        return result;
+    }
+
+    function start(config) {
+        config = config || {};
+        if (!supabase || typeof supabase.channel !== 'function') return false;
+        if (!config.appId || !config.companyId || typeof config.onEvent !== 'function') return false;
+
+        var tables = normalizeTables(config.tables);
+        if (!tables.length) return false;
+
+        var key = safePart(config.appId) + ':' + safePart(config.companyId);
+        if (active[key]) stop(key);
+
+        var state = {
+            key: key,
+            appId: String(config.appId),
+            companyId: String(config.companyId),
+            tables: tables,
+            onEvent: config.onEvent,
+            onStatus: config.onStatus,
+            onReconcile: config.onReconcile,
+            debounceMs: Math.max(100, Number(config.debounceMs) || 350),
+            reconcileMs: Math.max(15000, Number(config.reconcileMs) || 60000),
+            pending: {},
+            channel: null,
+            status: 'CONNECTING',
+            wasSubscribed: false,
+            needsReconcile: false,
+            stopped: false
+        };
+
+        if (!authListener && supabase.auth && typeof supabase.auth.onAuthStateChange === 'function') {
+            authListener = supabase.auth.onAuthStateChange(function(event, session) {
+                if (session && session.access_token && supabase.realtime &&
+                    typeof supabase.realtime.setAuth === 'function') {
+                    supabase.realtime.setAuth(session.access_token);
+                }
+                if (event === 'SIGNED_OUT') stopAll();
+            });
+        }
+
+        var channelName = 'rw-core-' + safePart(state.appId) + '-' +
+            safePart(state.companyId) + '-' + (++serial);
+        var channel = supabase.channel(channelName);
+
+        tables.forEach(function(spec) {
+            spec.events.forEach(function(eventName) {
+                var filter = {
+                    event: eventName,
+                    schema: 'public',
+                    table: spec.name
+                };
+                if (spec.companyColumn) {
+                    filter.filter = 'company_id=eq.' + state.companyId;
+                }
+                channel.on('postgres_changes', filter, function(payload) {
+                    queueEvent(state, spec.name, eventName, payload);
+                });
+            });
+        });
+
+        state.channel = channel;
+        active[key] = state;
+        channel.subscribe(function(status, error) {
+            if (state.stopped) return;
+            notifyStatus(state, status, error);
+            if (status === 'SUBSCRIBED') {
+                if (state.wasSubscribed || state.needsReconcile) reconcile(state, 'reconnected');
+                state.wasSubscribed = true;
+                state.needsReconcile = false;
+            }
+        });
+
+        if (typeof state.onReconcile === 'function') {
+            state.reconcileTimer = setInterval(function() {
+                if (!state.stopped && !(typeof document !== 'undefined' && document.hidden)) {
+                    reconcile(state, 'periodic');
+                } else {
+                    state.needsReconcile = true;
+                }
+            }, state.reconcileMs);
+        }
+
+        if (typeof document !== 'undefined' && !state.visibilityHandler) {
+            state.visibilityHandler = function() {
+                if (!document.hidden && state.needsReconcile) {
+                    state.needsReconcile = false;
+                    reconcile(state, 'visibility');
+                }
+            };
+            document.addEventListener('visibilitychange', state.visibilityHandler);
+        }
+
+        return key;
+    }
+
+    function stop(key) {
+        var state = active[key];
+        if (!state) return false;
+        state.stopped = true;
+        Object.keys(state.pending).forEach(function(table) {
+            clearTimeout(state.pending[table]);
+        });
+        if (state.reconcileTimer) clearInterval(state.reconcileTimer);
+        if (state.visibilityHandler && typeof document !== 'undefined') {
+            document.removeEventListener('visibilitychange', state.visibilityHandler);
+        }
+        delete active[key];
+        try {
+            if (state.channel && supabase && typeof supabase.removeChannel === 'function') {
+                supabase.removeChannel(state.channel);
+            }
+        } catch (e) {
+            console.warn('[RW_Realtime] channel cleanup failed:', e);
+        }
+        return true;
+    }
+
+    function stopAll() {
+        Object.keys(active).forEach(function(key) { stop(key); });
+    }
+
+    function getStatus(key) {
+        return active[key] ? active[key].status : 'STOPPED';
+    }
+
+    return {
+        start: start,
+        stop: stop,
+        stopAll: stopAll,
+        getStatus: getStatus
+    };
+})();
+
 console.log('✅ core.js – النواة المشتركة للروائع ERP – تم التحميل بنجاح');
-console.log('   RW_Auth | RW_DB | RW_API | RW_UI | RW_ImageCache | RW_SW');
+console.log('   RW_Auth | RW_DB | RW_API | RW_UI | RW_ImageCache | RW_SW | RW_Realtime');
