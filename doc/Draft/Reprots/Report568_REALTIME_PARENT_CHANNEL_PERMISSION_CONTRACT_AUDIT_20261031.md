@@ -47,6 +47,8 @@ Parent source scan found **11 direct `.channel(` call sites**, not the 8 recorde
 | Commission | `main.html:21400–21405` | `commission_plans`, `commission_assignments`, `commission_runs`, `commission_run_lines` |
 
 The Parent file contains no `core.js` script reference, no `RW_Realtime`, and no call to `get_my_effective_profile`. It has no `focus` listener or `visibilitychange` handler. The four modules therefore have no verified focus/visibility fallback when their channel cannot deliver events. Existing timers in other Parent modules do not establish refresh for these four modules.
+- A direct source scan found zero `.from()` reads of the 13 protected Sales Decision, Loyalty, Customer Payment, and Commission tables in Parent `main.html`; their data reads go through the existing Edge Function APIs. The direct channels are invalidation triggers, not the primary read path, so replacing them with authenticated API refresh is architecturally viable.
+- The Loyalty channel has no server-side `company_id` filter on its four subscriptions; it relies on a client-side `payload.new.company_id` check and skips that check when `payload.new` is absent (for example, a DELETE payload). Current RLS/publication prevents authorized row delivery, so no cross-tenant event was observed; do not make this channel active by broadening publication/RLS. Any future invalidation must be tenant-scoped server-side.
 
 ### 2.2 Production Realtime publication and RLS
 
