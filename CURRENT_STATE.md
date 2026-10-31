@@ -71,7 +71,8 @@ Verify Cloudflare Pages artifact parity for app.html and buyer.html, then authen
 
 ## 7. Evidence report / memory
 
-- Arabic execution report: `doc/Draft/Reprots/Report572_BUYER_REALTIME_AND_ROUTER_PERMISSION_REPAIR_20261101.md`; commit `c130bb9977d483ca5e9ead53cc40218d014ffbd7`.
+- Arabic execution report: `doc/Draft/Reprots/Report572_BUYER_REALTIME_AND_ROUTER_PERMISSION_REPAIR_20261101.md`; latest report commit `53789915a414fcbd3caea851a788653aab55e599`.
+- Realtime coverage limit: Core emits INSERT/UPDATE only; Buyer does not independently subscribe to every purchase detail/history table (including PR/RFQ/Quotation/Invoice/Payment/Return details and purchase_status_history). Detail-only changes and DELETE are not guaranteed to refresh immediately; parent writes and the 30s reconcile may refresh later. Treat full instant event coverage as OPEN until table-by-table contracts and authenticated WebSocket E2E pass.
 - Memory ledger appended under LVE-2026-11-01-572; commit `4a0dcb8403b3c1c51e1c67738c0598c7b187999c`.
 - Latest operational commits: Buyer/Edge/RLS/router changes are recorded in the report above.
 - Previous LVE-571 is preserved below as historical context; it is not current source/runtime proof.
