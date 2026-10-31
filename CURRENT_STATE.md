@@ -1,4 +1,86 @@
-# LATEST VERIFIED CHECKPOINT — LVE-2026-11-01-571 — Buyer Purchasing Integration
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-01-572 — Buyer Realtime / Effective Permissions / Edge Dispatch
+
+**VERIFIED AT:** 2026-11-01 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Buyer source repaired and committed; app router now uses the centralized effective profile; `save-purchase-order` Edge v12 deployed and byte-matches Git; six new Production migrations applied and their SQL committed; Realtime publication/RLS read contracts verified. Cloudflare Pages artifact, authenticated browser E2E, and live Realtime WebSocket delivery remain UNVERIFIED.  
+**STATUS:** PARTIAL REPAIRS CONFIRMED / NOT CLOSED.
+
+## 1. Current operational state
+
+- Operational source repo: `papamohammed77-glitch/erp-frontend`, branch `main`.
+- Verified operational HEAD: `511efd0cd032183515e5834027abe949d9e55649`.
+- Buyer: `companies/company-1/purchasing/buyer.html`; blob `996bb04ebe6e3c8b34586e2cef2c52ec01400fbb`.
+- Smart router: `companies/company-1/app.html`; blob `2e47a68fe83956e27d569e786a08dcee91af2924`.
+- Shared Core: `companies/company-1/core.js`; blob `a95ee6b29ff54b4a240ce4b81f9a535aa87686db`; existing `RW_Realtime` retained.
+- Parent: `companies/company-1/main.html` was not modified. User-owned parent edits remain separate.
+- Edge source: `supabase/functions/save-purchase-order/index.ts`; blob `508aee8b7941ef3d631d4a61ab60e336f1ed8836`.
+- Production Edge `save-purchase-order`: v12 ACTIVE, `verify_jwt=true`, deployed SHA-256 `4748aede3bd45c6fce4b251408f4ca91a6368e7abeae36a3d87e182e4e723d37`; exact deployed index.ts byte-matches Git. This confirms artifact parity, not authenticated operation runtime.
+
+## 2. CONFIRMED source repairs
+
+1. `SAVE_SUPPLIER` Edge dispatch no longer invokes the RPC before `call` and `data/error` declarations. Authorization preflight checks the effective purchasing/supplier permission, and the RPC executes after helper declarations. Commit: `91c1a20a90cd6372a811d7b8f46095aa2548b3d8`.
+2. Buyer displays approve/reject actions for PR `Submitted` as well as `PendingApproval`, matching the currently supported PR approval contract. Commit: `1ee5b4c53331c1f1b416750d519704411e87e7b7`.
+3. Buyer subscribes through existing `RW_Realtime` to 12 publication tables: purchase_requests, purchase_rfqs, purchase_quotations, purchase_orders, purchase_order_details, purchase_invoices, purchase_payments, purchase_returns, suppliers, items, branches, stock_branches. Child tables without company_id use `companyColumn:false` and rely on existing company-scoped RLS. Debounce 500ms; reconcile 30s; current tab routing invalidates/refetches Today, Suppliers, PR, PO, Account. Visible channel status indicator added. Commits: `cc1ac9d78db90d647c0ad324a66f66406eaa1310` and `9f6be17dca57a62ac175d4b178ae1691bf358f79`.
+4. `app.html` now reads `get_my_effective_profile()` rather than JWT `user_metadata.permissions` alone. It validates company/profile and routes on merged permissions from users, roles, role_permissions, active warehouse role and isOwner; failures are closed and displayed rather than falling back to stale JWT values. Commit: `9016396ab29c88a9014ecff9f602ed94c50c7023`. Smart router maps `purchases` to `purchasing/buyer.html`.
+5. Inline JavaScript syntax parse succeeded for the full Buyer embedded script (48,979 chars) and app router script (8,181 chars). This is static syntax validation, not runtime/E2E.
+
+## 3. CONFIRMED Production security / RLS / Realtime changes
+
+Production project: Supabase SMART ERP, ref `fiilmooggumokxanwiyx`.
+
+Six new migrations applied and committed under operational `supabase/migrations/`:
+
+- `20261031230252_buyer_realtime_read_permission_alignment_20261101`: effective permission helper (direct + role + role_permissions + wildcard); company-scoped SELECT policies on suppliers/items/branches/stock_branches allow effective purchases where operationally needed; no end-user write privileges opened.
+- `20261031230550_buyer_purchase_views_use_caller_rls_20261101`: supplier_ledger read policy uses effective purchasing permission within tenant; three purchase reporting views switched to security_invoker.
+- `20261031230557_buyer_purchase_requests_remove_end_user_truncate_20261101` and `20261031230603_buyer_purchase_remove_end_user_truncate_grants_20261101`: end-user TRUNCATE privileges removed on inspected purchasing objects.
+- `20261031230748_buyer_purchase_reporting_views_revoke_anon_select_20261101`: anon SELECT revoked from purchase_supplier_balance, purchase_invoice_aging and purchase_quotation_comparison.
+- `20261031231142_buyer_purchase_trigger_functions_pin_search_path_20261101`: empty search_path pinned for purchase_company_status_history and purchase_touch_updated_at.
+
+Verified read-only transaction results (all rolled back):
+- Direct purchaser and role_permissions-only purchaser have effective purchases permission and can read their company-scoped suppliers/items/branches/stock; role_permissions-only test returned supplier balance 4, invoice-aging 3, items 30, stock rows 57.
+- Anonymous access to suppliers/items/branches/stock returns no rows or is denied.
+- Anonymous SELECT on the three purchase reporting views is false; authenticated supplier-balance SELECT remains true.
+- TRUNCATE grants on inspected purchase tables/views: zero for anon and zero for authenticated.
+- purchase_company_status_history and purchase_touch_updated_at both show `search_path=""`; all 7 status-history triggers and all 7 updated_at triggers remain enabled.
+- Realtime publication contains all 12 Buyer source subscription tables.
+- No Production business DML, stock movement, invoice posting, payment posting, or journal entry was performed in this checkpoint.
+
+Security Advisor after the changes no longer reports the three purchase SECURITY DEFINER views or the two purchasing trigger functions as problems. System-wide findings remain: rls_enabled_no_policy INFO 24; mutable search_path WARN 1 outside purchasing; anon SECURITY DEFINER executable WARN 19; authenticated SECURITY DEFINER executable WARN 121; leaked-password protection WARN 1. Do not claim global security closure.
+
+## 4. OPEN business contracts — explicitly NOT closed
+
+- PO expected_delivery_date, payment_terms, approved_by, sent_at, manual create/edit/approve/send operations and controlled supplier transmission.
+- Supplier email, A/B/C classification, rating rubric and supplier visits with GPS/photo/voice.
+- Dedicated buyer custody/advance ledger, receipts/disbursements, approval and settlement. Do not repurpose treasury, cash_box or HR salary advances.
+- payment_method is not passed to current `purchase_post_payment_atomic` RPC; current signature omits it and defaults Cash.
+- Quick Purchase only creates Draft invoice. UI sends supplier_invoice_no but current invoice RPC does not persist it. Direct no-PO receiving, photo capture and OCR remain absent. Draft must not cause stock/journal effects before authorized posting.
+- PR department_id and explicit received/remaining aggregates.
+- Server-side paging/search beyond 500-row client limit.
+- No supplier visit/photo/voice storage contract established; do not create buckets/ACLs speculatively.
+
+## 5. UNKNOWN / UNVERIFIED
+
+- Cloudflare Pages served `app.html` and `buyer.html` identity, deployment commit/build lineage, HTTP headers/cache: UNVERIFIED.
+- Authenticated user redirect into Buyer and actual app runtime: UNVERIFIED.
+- Realtime WebSocket `SUBSCRIBED`, actual event delivery from a separate app/session, reconnect and visibility refresh: UNVERIFIED. Publication + RLS + source wiring are confirmed only.
+- Live authenticated Edge SAVE_SUPPLIER request: UNVERIFIED; v12 artifact exact byte-match is confirmed but no Edge invoke tool was available.
+- Existing PR→Receiver workflow E2E is supported by Report571 rollback-only SQL tests; it was not re-run in this checkpoint.
+
+## 6. Next single priority
+
+Verify Cloudflare Pages artifact parity for app.html and buyer.html, then authenticated browser E2E proving redirect, channel SUBSCRIBED, PR/PO event delivery into the correct Buyer tab, reconnect/reconcile behavior and zero side effects from view-only refresh. After that, define the PO lifecycle business contract before implementing new supplier/custody/OCR features.
+
+## 7. Evidence report / memory
+
+- Arabic execution report: `doc/Draft/Reprots/Report572_BUYER_REALTIME_AND_ROUTER_PERMISSION_REPAIR_20261101.md`; commit `c130bb9977d483ca5e9ead53cc40218d014ffbd7`.
+- Memory ledger appended under LVE-2026-11-01-572; commit `4a0dcb8403b3c1c51e1c67738c0598c7b187999c`.
+- Latest operational commits: Buyer/Edge/RLS/router changes are recorded in the report above.
+- Previous LVE-571 is preserved below as historical context; it is not current source/runtime proof.
+
+**CLOSURE STATUS:** `PARTIAL REPAIRS CONFIRMED / EDGE v12 BYTE-MATCHED / PRODUCTION READ CONTRACTS HARDENED / SOURCE REALTIME WIRED / CLOUDFLARE + WEBSOCKET RUNTIME UNVERIFIED / BUSINESS CONTRACTS OPEN / NOT CLOSED`.
+
+---
+
+# HISTORICAL CHECKPOINT — LVE-2026-11-01-571 — Buyer Purchasing Integration
 
 **VERIFIED AT:** 2026-11-01 (Africa/Cairo)  
 **LAST VERIFIED EVENT:** Buyer source committed; Supabase purchasing contracts repaired; Edge save-purchase-order v11 ACTIVE; PR→RFQ→Quotation→PO→Receiver SQL E2E passed inside a fully rolled-back transaction.  
