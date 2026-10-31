@@ -1,3 +1,55 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-10-31-569 — Buyer Purchasing Workflow Forensic Audit
+
+**VERIFIED AT:** 2026-10-31 23:28 Africa/Cairo.  
+**OPERATIONAL MAIN:** papamohammed77-glitch/erp-frontend, branch main, HEAD 65799d282acc79359b17a1a13dcd68f62859e1fb.  
+**BUYER SOURCE:** companies/company-1/purchasing/buyer.html, blob 6ba510cff5250ba196528b14237ae400e544771a, 15,051 chars / 137 lines.  
+**SHARED CORE:** companies/company-1/core.js, blob a95ee6b29ff54b4a240ce4b81f9a535aa87686db.  
+**PRODUCTION EDGE:** save-purchase-order v7 ACTIVE, verify_jwt=true, SHA-256 8e8c419c94796d8b802976ff8f3bb9717c039a8701a1523736cb531b2cc6a6cd.  
+**REPORT569:** doc/Draft/Reprots/Report569_BUYER_PURCHASING_WORKFLOW_FORENSIC_AUDIT_20261031.md.
+
+## LAST VERIFIED EVENT / CURRENT EXECUTION POINT
+- Previous checkpoint LVE-2026-10-31-568 concerned Parent Realtime authorization and remains a separate open workstream.
+- Current task is Buyer standalone purchasing PWA completion and business-contract integration.
+- Report545 governance method and Report567/568 current integration findings were reviewed. Relevant financial references Reports421/425/426/431 and Report500 were consulted.
+- Current Buyer source still has only Orders / New Order / Suppliers. It is wired to shared RW_Realtime for purchase_orders in Git, but no authenticated browser E2E or Cloudflare artifact verification exists.
+
+## CONFIRMED
+- Buyer source still sends legacy {orderHeader, itemsList}; Production save-purchase-order v7 requires {operation, payload}. The current save action is therefore contract-incompatible by static source comparison.
+- Canonical source Current/Edge_Functions/save-purchase-order (blob ade8ae3b34b55c00bb8c2e9986e2ec5b72013574) matches Production v7 byte-for-byte. The source is present in the governance repo but absent from the operational repo tree.
+- Edge v7 validates JWT and company context but has no role/permission enforcement before invoking service_role RPCs or GET_DATA.
+- purchase_get_dashboard(uuid) is SECURITY DEFINER and currently executable by PUBLIC/anon/authenticated; its body checks company existence but does not bind p_company_id to auth.uid() company context.
+- get_my_effective_profile includes role_permissions, but app_private.current_user_has_permission does not. Supplier/item RLS policies depend on the latter; Buyer gate checks purchases while directly querying suppliers/items.
+- purchase_submit_request_atomic attempts to insert changed_by/changed_at into purchase_status_history, whose actual columns are action/actor_email/created_at. Existing trg_purchase_requests_status_history already writes the correct history record. The explicit insert is invalid/redundant and should be removed after isolated test.
+- purchase_create_request_atomic and purchase_create_invoice_atomic item lookups do not include company_id; add a company ownership guard before permitting these workflows.
+- Production purchase schema contains PR/RFQ/quotation/PO/invoice/return/payment/settings/history/attachments/document-links. Direct invoice path exists: CREATE_INVOICE without PO then POST_INVOICE; current require_inventory_on_invoice=true and require_receiving_before_invoice=false. POST_INVOICE uses post_stock_movement, journal entry, and supplier ledger.
+- purchase_orders lacks expected_delivery_date/payment_terms/approved_by/sent_at. purchase_request_details lacks department_id and received_qty/remaining_qty. suppliers lacks email and explicit A/B/C rating; no supplier visit/rating or dedicated buyer custody table was found in the inspected public schema.
+- purchase_post_payment_atomic has no payment_method parameter; purchase_payments.payment_method defaults to Cash.
+- Production data snapshot at audit: PR 0; PO 1 Draft; invoices 3; quotations 0; payments 0; returns 0; status_history 5.
+
+## CONFLICT
+- Buyer legacy request payload vs Edge v7 contract.
+- Effective profile permission sources vs DB helper and RLS contract.
+- PR UI requirements vs actual PR and receipt data model.
+- Required supplier/PO/custody features vs current schema and Edge operations.
+
+## UNKNOWN / UNVERIFIED
+- Actual buyer account effective permissions and its RLS behavior.
+- Complete census of all direct callers of purchase_get_dashboard.
+- Cloudflare served artifact and authenticated browser E2E.
+- OCR service and supplier visit/rating storage paths.
+- Full Parent/Finance/Receiver runtime journey.
+- No external competitor benchmark was performed in this audit.
+
+## MUTATION LEDGER
+Read-only Git/Production inspection only, plus documentation/state updates in the governance repository. No Buyer HTML, Edge deployment, RLS, ACL, RPC, migration, business-data, stock, accounting, or Cloudflare change was made.
+
+## NEXT SINGLE PRIORITY
+Secure the purchasing backend contract before expanding Buyer UI: align and version-control Edge source in operational repo, add server-side permission matrix, resolve public purchase_get_dashboard execution, repair PR submit history and item-company guards, and run isolated negative/positive authorization tests. Then connect the six Buyer tabs and modals to the existing business engine.
+
+**STATUS:** BUYER FORENSIC AUDIT CONFIRMED / BACKEND SECURITY AND CONTRACT DEFECTS OPEN / UI COMPLETION NOT STARTED / DEPLOYMENT+E2E UNVERIFIED.
+ 
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-10-31-568 — Parent Realtime Authorization Contract
 
 **VERIFIED AT:** 2026-10-31 21:39 Africa/Cairo.  
