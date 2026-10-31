@@ -43,8 +43,8 @@ Parent source scan found **11 direct `.channel(` call sites**, not the 8 recorde
 |---|---:|---|
 | Sales Decision | `main.html:3488–3492` | `sales_decision_policies`, `sales_decision_evaluations`, `sales_decision_approvals` |
 | Loyalty | `main.html:4406–4409` | `loyalty_programs`, `loyalty_rewards`, `loyalty_accounts`, `loyalty_transactions` |
-| Customer Payments | `main.html:20352–20388` | `sales_payment_receipts`, `sales_payment_allocations` |
-| Commission | `main.html:21398–21405` | `commission_plans`, `commission_assignments`, `commission_runs`, `commission_run_lines` |
+| Customer Payments | `main.html:20362–20388` | `sales_payment_receipts`, `sales_payment_allocations` |
+| Commission | `main.html:21400–21405` | `commission_plans`, `commission_assignments`, `commission_runs`, `commission_run_lines` |
 
 The Parent file contains no `core.js` script reference, no `RW_Realtime`, and no call to `get_my_effective_profile`. It has no `focus` listener or `visibilitychange` handler. The four modules therefore have no verified focus/visibility fallback when their channel cannot deliver events. Existing timers in other Parent modules do not establish refresh for these four modules.
 
