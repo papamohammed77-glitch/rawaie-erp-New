@@ -1,3 +1,29 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-10-31-566 — Realtime Foundation / Production Publication
+
+**LAST VERIFIED EVENT:** 2026-10-31T15:34:23Z — Production `supabase_realtime` publication contains 81 public tables; all nine newly added operational/master-data tables are present and migration registry entry is recorded.
+**Canonical source commit:** `c26a8326fee55a297331d1f636f86e160131679f` — `Current/PWA/core.js`, blob `685be76e4a61ef68de3182855f5e33ea04e9a435`.
+**Production migration:** `enable_realtime_core_master_data_tables_20261031`.
+**Authoritative report:** `doc/Draft/Reprots/Report566_GLOBAL_REALTIME_CORE_FIRST_EXECUTION_20261031.md`, commit `80094ee315e571acd0e995048506f9056cd580ed`.
+
+## Confirmed work
+- Added `branches`, `customer_ledger`, `customers`, `daily_settlements`, `items`, `purchase_order_details`, `purchase_orders`, `supplier_ledger`, `suppliers` to `supabase_realtime`; count increased 72 → 81.
+- Added `RW_Realtime` to canonical `Current/PWA/core.js`: per-app/company channel lifecycle, company_id filters, child-table RLS mode, INSERT/UPDATE-only subscriptions, debounced invalidation callbacks, reconnect/visibility/periodic reconciliation hooks, auth token forwarding, and cleanup.
+- Reworked `RW_DB.syncDown` to validate all remote results before atomically replacing the four local Dexie tables.
+- JavaScript parse and mock contract checks passed. No authenticated browser E2E was run.
+
+## Mandatory open work
+- Operational HTML is owner-applied under the permanent constitution; no Parent or standalone app HTML was directly changed.
+- `Current/PWA/New-main` and operational `erp-frontend/companies/company-1/main.html` are materially different in size/hash and Realtime coverage (canonical source has one handler; operational mirror has 39). Reconcile source/mirror drift before any Parent patch/copy.
+- `erp-frontend/companies/company-1/core.js` is still an older mirror without `RW_Realtime`; `picker.html` does not load core; operational `receiver.html` still contains a Supabase client overwrite. Prepare exact owner patches and validate current SHAs before transfer.
+- No Cloudflare deployment was performed or verified.
+- Production publication is expanded, but global app-to-app and app-to-Parent live refresh is NOT CLOSED.
+- DELETE events are intentionally excluded from the shared client manager because Postgres Changes DELETE delivery is not RLS-filtered equivalently; reconcile deletions by secure authoritative refresh or a private Broadcast design.
+- Production security advisors also show pre-existing RLS-without-policy and SECURITY DEFINER findings on other tables; no RLS/ACL changes were made.
+- The Production migration is recorded in Supabase, but the matching repository migration file was not generated through the established CLI workflow.
+
+**STATUS:** `PRODUCTION PUBLICATION EXPANDED / CANONICAL CORE FOUNDATION COMMITTED / STATIC+MOCK PASS / APP HTML OWNER PATCHES PENDING / PARENT SOURCE-MIRROR DRIFT OPEN / DEPLOYMENT+AUTHENTICATED E2E UNVERIFIED / GLOBAL REALTIME NOT CLOSED`
+
+---
 # LATEST VERIFIED CHECKPOINT — LVE-2026-10-30-565 — Returns Source / Production Recheck
 
 **LAST VERIFIED EVENT:** 2026-10-30T17:29:06Z — Production `complete-return` returned HTTP 200 for RS-2; the run sheet reached Returned and its credit-note, journal, inventory, and projection effects were observed.  
