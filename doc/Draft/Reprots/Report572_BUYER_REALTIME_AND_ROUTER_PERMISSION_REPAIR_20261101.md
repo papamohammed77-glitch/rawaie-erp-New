@@ -104,6 +104,10 @@
 - `auth_leaked_password_protection`: WARN count 1.
 لا يجوز اعتبار أمان Supabase بالكامل مغلقًا بناءً على معالجة نطاق المشتريات وحده.
 
+
+### قيد تغطية Realtime — لا تعمم ضمان اللحظية
+محرك `RW_Realtime` الحالي يعرّف أحداث الجداول على أنها INSERT وUPDATE فقط. كما أن قنوات Buyer الـ12 لا تشمل بصورة مستقلة كل جداول تفاصيل المشتريات وسجل الحالة، مثل `purchase_request_details` و`purchase_rfq_details` و`purchase_quotation_details` و`purchase_invoice_details` و`purchase_payment_allocations` و`purchase_return_details` و`purchase_status_history`. لذلك فإن حدثًا على سجل تفصيلي لا يضمن وحده إعادة رسم Buyer فورًا إذا لم يصاحبه INSERT/UPDATE على أحد الجداول المشتركة. توجد مصالحة دورية كل 30 ثانية وإعادة تحقق عند الاشتراك/العودة، لكنها شبكة تعافٍ وليست بديلًا عن تغطية جميع الأحداث. يجب أن تُراجع قائمة الجداول وعقود النشر/RLS لهذه الجداول قبل إعلان المزامنة اللحظية الشاملة، كما لم يُختبر WebSocket فعليًا.
+
 ## 3. UNKNOWN
 
 1. هل Cloudflare Pages يخدم حاليًا `buyer.html` و`app.html` على آخر HEAD؟ لا توجد حتى الآن قراءة موثوقة للـartifact المنشور أو commit/build lineage أو Response Headers من مصدر Cloudflare.
