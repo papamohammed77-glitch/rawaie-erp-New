@@ -1,4 +1,123 @@
-# LATEST VERIFIED CHECKPOINT — LVE-2026-11-01-572 — Buyer Realtime / Effective Permissions / Edge Dispatch
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-01-573 — Buyer Custody / Auth / Realtime / Tailwind
+
+**VERIFIED AT:** 2026-11-01 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Confirmed the exact `PURCHASE_AUTH_REQUIRED` root cause and repaired dashboard authorization; added and rollback-tested the independent employee custody workflow; expanded Buyer/Core/Production Realtime contracts to 26 RLS-readable published tables; removed Tailwind CDN from Buyer source and generated local CSS; deployed `save-purchase-order` Edge v18 ACTIVE with exact Git byte match.  
+**STATUS:** PARTIAL REPAIRS CONFIRMED / NOT CLOSED.
+
+## 1. Current operational source state
+
+- Operational repository: `papamohammed77-glitch/erp-frontend`, branch `main`.
+- Verified operational HEAD: `1db1db2927005d12a1531b7518d103c4c7b8140f`.
+- Buyer: `companies/company-1/purchasing/buyer.html`, blob `ee2fb5676a99a9c17371b3a7f44ab0b2bb320506`.
+- Shared Core: `companies/company-1/core.js`, blob `f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1`. Core normalizer supports per-table event selection; default remains INSERT/UPDATE.
+- Smart router: `companies/company-1/app.html`, blob `2e47a68fe83956e27d569e786a08dcee91af2924`; not changed in this checkpoint.
+- Accountant link: `companies/company-1/office/accountant.html`, blob `74794dd24277eac92c652061b2540d5cb772425e`.
+- Finance Manager link: `companies/company-1/office/finance-manager.html`, blob `db8a5c4ef7029833ec7777dd4f992f737475e85f`.
+- Local production CSS: `companies/company-1/purchasing/buyer.tailwind.css`, blob `25b1b840e0a03c42d3de2593b08baf6af95d0f4b`, 15,038 chars. Buyer no longer contains `cdn.tailwindcss.com`; local CSS build workflow is `.github/workflows/buyer-tailwind-build.yml`, blob `b3f8cbfeac13b28cc3ae76f1ca9460b4a3dfbf20`.
+- Parent `companies/company-1/main.html` was not modified.
+
+## 2. CONFIRMED — Console error forensic diagnosis
+
+The old `purchase_get_dashboard` guard tested `current_setting('request.jwt.claim.role', true)`. Under the service-role RPC context, direct Production SQL verification showed this setting was NULL while `auth.role()` returned `service_role` and `auth.uid()` was NULL. The old predicate therefore entered the authenticated-user path and raised `PURCHASE_AUTH_REQUIRED`.
+
+Repairs:
+1. `purchase_get_dashboard` now detects service role using `auth.role()`.
+2. Edge `GET_SUMMARY` now invokes the RPC through the caller-JWT `profileClient`, preserving the actual user/company/effective-permission context.
+3. Dashboard permission accepts `purchases`, `finance`, `finance_manager`, owner or wildcard as applicable.
+4. Buyer now displays a recoverable error panel and retry action rather than leaving the main content stuck after a failed load.
+
+Verified:
+- Service-role dashboard test succeeds with `auth.role()='service_role'` and NULL `auth.uid()`.
+- Authenticated `finance_manager` dashboard test succeeds.
+- Edge v18 ACTIVE, `verify_jwt=true`, source blob `6d6b6ce45a18e6275f043b6e397da528d2c58124`; deployed SHA-256 `e9fab386b72cc9e3d10b49931324117dea1e2df6828cb50d9e8d010e0923996f`; exact deployed index.ts byte-match confirmed.
+
+## 3. CONFIRMED — Employee custody contract
+
+New dedicated tables:
+- `buyer_custodies`
+- `buyer_custody_expenses`
+- `buyer_custody_settlements`
+
+Workflow:
+- Finance manually records custody issuance to an active company employee, amount, currency, branch, purpose and issue reference.
+- Employee acknowledges receipt and submits PDF/image expense documents.
+- Finance reviews and approves/rejects each submitted expense.
+- Settlement is blocked while any expense remains Submitted; currency mismatch is rejected; cash returned must fully reconcile the unspent custody balance before closure.
+- No automatic Treasury, cash_box, supplier-ledger or journal posting was added. The custody register is intentionally separate, as requested.
+
+Security:
+- RLS enabled; authenticated SELECT only through employee/company or finance/finance_manager scope.
+- Direct authenticated INSERT/UPDATE/DELETE privileges on the three custody tables are false; anon SELECT and anon RPC EXECUTE are false.
+- Atomic RPCs enforce actor identity, company, role and separation of duties; employee cannot approve their own expense or settle their own custody.
+- Private `employee-documents` Storage policies use company/user/custody path scope. A discovered ambiguous `name` reference was corrected to `storage.objects.name`; owner cleanup policy added.
+
+Rollback-only workflow test:
+- Finance issued 100 SAR to a separate employee.
+- Employee storage metadata path passed INSERT RLS; employee and finance could SELECT the document.
+- Employee submitted 40 SAR expense; finance approved it; finance recorded 60 SAR cash return.
+- Settlement returned approved expenses 40, cash returned 60, balance due company 0.
+- Full transaction rolled back; no test custody, expense, settlement or object remains.
+- This tested SQL/RLS and Storage metadata path, not a real browser binary upload/download or Storage API deletion.
+
+## 4. CONFIRMED — Realtime and Core coverage
+
+Buyer subscribes to 26 tables:
+`purchase_requests`, `purchase_request_details`, `purchase_rfqs`, `purchase_rfq_details`, `purchase_rfq_suppliers`, `purchase_quotations`, `purchase_quotation_details`, `purchase_orders`, `purchase_order_details`, `purchase_invoices`, `purchase_invoice_details`, `purchase_payments`, `purchase_payment_allocations`, `purchase_returns`, `purchase_return_details`, `purchase_status_history`, `purchase_attachments`, `purchase_document_links`, `purchase_settings`, `buyer_custodies`, `buyer_custody_expenses`, `buyer_custody_settlements`, `suppliers`, `items`, `branches`, `stock_branches`.
+
+Production SQL confirmed for all 26: RLS enabled, authenticated SELECT privilege, SELECT/ALL policy, and membership in `supabase_realtime`. Child tables without company_id use `companyColumn:false` and rely on parent-scoped RLS.
+
+UI behavior:
+- debounce 400ms;
+- reconciliation every 15 seconds;
+- tab-specific cache invalidation/refetch;
+- pending refresh drains after SweetAlert closes via MutationObserver.
+
+Limit:
+- Core event support remains INSERT/UPDATE only. DELETE is not instant; it is covered by the 15-second reconciliation. Do not claim full instant DELETE synchronization.
+- User-provided console previously showed `[Buyer] Realtime connected`, but authenticated WebSocket delivery/reconnect after this 26-table change has not been independently tested.
+
+## 5. CONFIRMED — Tailwind production warning source
+
+- Removed `https://cdn.tailwindcss.com` from current Buyer source.
+- Generated local `buyer.tailwind.css` (15,038 chars) using GitHub Actions workflow `.github/workflows/buyer-tailwind-build.yml`.
+- CSS generation commit: `1fa7a3d73dc73645b1dc88b2ad33c41ecfe37bec`.
+- Current Buyer references local CSS; no CDN reference remains in Git source.
+- Cloudflare-served artifact/cache has not been inspected after the latest commit; Console warning removal in the live Pages artifact remains UNVERIFIED.
+
+## 6. Migrations applied and committed
+
+Supabase SMART ERP migrations, versions recorded in `supabase_migrations.schema_migrations`:
+1. `20261031233331_buyer_employee_custody_ledger_and_manual_settlement_20261101`
+2. `20261031233638_buyer_full_detail_realtime_publication_20261101`
+3. `20261031233923_buyer_custody_finance_separation_of_duties_20261101`
+4. `20261031234235_buyer_custody_finance_manager_permission_and_policy_20261101`
+5. `20261031234711_buyer_dashboard_effective_finance_manager_permission_20261101`
+6. `20261031234832_buyer_dashboard_use_auth_role_for_service_bypass_20261101`
+7. `20261031234921_buyer_custody_storage_path_qualification_and_cleanup_policy_20261101`
+8. `20261031235057_buyer_custody_currency_and_full_cash_reconciliation_20261101`
+
+All SQL is committed under operational `supabase/migrations/`.
+
+## 7. UNVERIFIED / OPEN
+
+- Cloudflare Pages production deployment commit, served Buyer HTML/CSS and cache: UNVERIFIED.
+- Authenticated browser E2E, real Storage API upload/download/delete, live WebSocket event delivery and reconnect: UNVERIFIED.
+- Full instant DELETE: not implemented; periodic reconcile only.
+- Remaining business contracts: PO expected delivery/payment terms/approval/supplier dispatch; supplier email/A-B-C/rating/visits; `payment_method` in payment RPC; supplier invoice number persistence; direct no-PO receiving/OCR; PR department and received/remaining aggregates; server-side paging/search beyond 500.
+- Security Advisor global warnings remain outside this task: 24 RLS-enabled/no-policy INFO, 1 mutable search_path outside Buyer, 19 anon SECURITY DEFINER, 121 authenticated SECURITY DEFINER, leaked-password protection warning. No global security closure claim.
+
+## 8. Evidence / continuity
+
+- Arabic report: `doc/Draft/Reprots/Report573_BUYER_CUSTODY_AUTH_REALTIME_TAILWIND_20261101.md`; report commit `18577462ab54f7cf3f1dc8f9b4b42161f2730330`.
+- Memory ledger appended under LVE-573; commit `1bf18d796de303ba94a9b199c6cff5aeb07c2e40`.
+- Current checkpoint commit will be recorded after this update.
+- Previous LVE-572 is preserved below as historical context; it is not current runtime proof.
+
+**CLOSURE STATUS:** `ROOT CAUSE CONFIRMED / CUSTODY SQL+RLS ROLLBACK-TESTED / EDGE v18 BYTE-MATCHED / 26 TABLES RLS+PUBLICATION VERIFIED / TAILWIND CDN REMOVED FROM SOURCE / CLOUDFLARE + BROWSER RUNTIME UNVERIFIED / OTHER BUSINESS CONTRACTS OPEN / NOT CLOSED`.
+
+---
+
+# HISTORICAL CHECKPOINT — LVE-2026-11-01-572 — Buyer Realtime / Effective Permissions / Edge Dispatch
 
 **VERIFIED AT:** 2026-11-01 Africa/Cairo.  
 **LAST VERIFIED EVENT:** Buyer source repaired and committed; app router now uses the centralized effective profile; `save-purchase-order` Edge v12 deployed and byte-matches Git; six new Production migrations applied and their SQL committed; Realtime publication/RLS read contracts verified. Cloudflare Pages artifact, authenticated browser E2E, and live Realtime WebSocket delivery remain UNVERIFIED.  
