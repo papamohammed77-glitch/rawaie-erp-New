@@ -1,3 +1,31 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-10-31-567B — Canonical Auth Alignment + Warehouse Dashboard Consumers
+
+**OPERATIONAL MAIN:** `papamohammed77-glitch/erp-frontend`, latest code commit `8140235b7460401f10abe117ce9358c88c38114a`.  
+**CANONICAL MAIN:** `papamohammed77-glitch/rawaie-erp-New`, canonical core commit `8b7033f2416dc2935778d687dc40591ed0a7b17e`.  
+**REPORT567:** latest report commit `9b5c00687a146b1929d008f9e2e5dda7e4ece47a`.
+
+## CONFIRMED
+- Operational `RW_Realtime` now reconciles once after the initial channel reaches `SUBSCRIBED`, closing the initial-fetch/channel-subscribe race. Mock test confirms initial and reconnect reconciliation.
+- Warehouse Manager dashboard is wired to company-scoped `stock_vouchers` and `purchase_orders`; Warehouse Supervisor dashboard is wired to company-scoped `purchase_orders`. Both stop channels on logout. Their current blobs and commits are in Report567.
+- Canonical `Current/PWA/core.js` now uses the same effective-profile `RW_Auth` contract as the operational core, while retaining its safer canonical `RW_DB.syncDown`. Canonical Realtime now rejects tenant IDs that do not match the verified profile and reconciles after initial subscription.
+- Production `get_my_effective_profile()` was inspected: SECURITY DEFINER, empty search_path, auth.uid()-bound public user row, company/effective permission return, EXECUTE granted to authenticated and not anon. No Production function/grant/RLS/data changes were made.
+- Mock test confirms profile-derived company scope, fail-closed behavior on RPC error, metadata cannot override tenant/owner identity, mismatched tenant rejection, company filter, and initial reconcile.
+
+## AUTOMATED CHECKS
+- On operational commit `5237858665ae0be72f33d6c8deaa1b650cc19579`, all four push workflows passed; Mother Inventory static contract and Playwright Mother browser smoke passed after correcting the false-positive TODO regex.
+- On operational commit `8140235b7460401f10abe117ce9358c88c38114a`, Mother Inventory E2E, Mother Assembly Guard, forensic Mother extract, and CTO Helper Files workflows passed. Warehouse Vouchers Browser E2E was still in progress at the time of this checkpoint; recheck its final status.
+
+## STILL OPEN
+- Authenticated browser E2E for buyer → Production → receiver / supervisor / warehouse dashboards, including cross-company isolation and reconnect.
+- Cloudflare deployment and runtime verification.
+- Parent source/mirror reconciliation; existing Parent subscriptions not consolidated.
+- Remaining PWAs still need individual refresh-hook and RLS-contract mapping; picker still has a separate auth/client path.
+- Canonical and operational cores are aligned on Auth/Reatime, but other modules (including DB cache behavior) are not yet byte-identical.
+
+**STATUS:** `SHARED REALTIME CORE HARDENED IN BOTH SOURCE TRACKS / FIVE OPERATIONAL CONSUMERS WIRED / CANONICAL AUTH TENANT SCOPE VERIFIED / STATIC+MOCK PASS / DEPLOYMENT AND AUTHENTICATED E2E OPEN / GLOBAL ERP INTEGRATION NOT CLOSED`
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-10-31-567A — CI False-Positive Repaired / Mother Smoke Passed
 
 **OPERATIONAL MAIN:** `papamohammed77-glitch/erp-frontend` commit `5237858665ae0be72f33d6c8deaa1b650cc19579`.  
