@@ -105,3 +105,47 @@ At the time of inspection, `erp-frontend/companies/company-1/core.js` was blob `
 
 ## Final status
 `PRODUCTION PUBLICATION EXPANDED / CANONICAL SHARED REALTIME MANAGER COMMITTED / CACHE SYNC SAFEGUARD COMMITTED / STATIC + MOCK TESTS PASS / APP INTEGRATION OPEN / PARENT SOURCE-MIRROR DRIFT OPEN / CLOUDflare DEPLOYMENT UNVERIFIED / AUTHENTICATED E2E OPEN / GLOBAL REALTIME = NOT CLOSED`
+## 6. Canonical PWA application census (source reads)
+Static scan covered 28 HTML entry points under `Current/PWA` (including both `main.html` and `New-main`; `New-main` is the documented operational Parent source mapping).
+- `core.js` is referenced by 25/28 pages.
+- No core reference: `picker.html`, `main.html`, `New-main`.
+- Existing Realtime pages: `vouchers.html` (3 Postgres-change handlers), `New-main` (1 handler on `orders`), and the alternate `main.html` (1 handler). All other 25 app pages have zero Postgres-change handlers in the scanned source.
+
+### App → directly referenced tables (static `.from()` scan)
+| App | Tables read directly |
+|---|---|
+| Returns | items, return_reasons, runsheets, users, run_sheet_details, stock_discrepancies |
+| accountant | users, treasury, chart_of_accounts, cash_box, journal_entries, journal_lines, driver_liabilities |
+| buyer | purchase_orders, suppliers, items |
+| buyers.supervisor | purchase_orders, suppliers |
+| counter | items, inventory_counts |
+| driver | users, items, app_settings, runsheets, orders, order_details, customers, credit_block_events, run_sheet_details, complaint_types, driver_liabilities, service_complaints |
+| driver.supervisor | runsheets, users |
+| finance-manager | treasury |
+| general-manager | orders, purchase_orders, treasury, customers, users |
+| hr | users |
+| loader | runsheets, run_sheet_details |
+| order-taker | customer_assignments, app_settings, customers, items, stock_branches, branches, orders, categories, order_details |
+| owner | orders, stock_branches, users, customers, runsheets, app_settings, audit_log |
+| picker | users, items, runsheets, run_sheet_details |
+| pos | app_settings, customers, items, stock_branches, branches, orders, order_details |
+| receiver | purchase_orders, purchase_order_details |
+| sales.manager | orders, users, order_details |
+| sales.supervisor | orders, users |
+| store.index | app_settings, items, coupons |
+| store.track | orders, order_details |
+| telesales | app_settings, customers, items, stock_branches, branches, orders, categories, order_details |
+| unloader | runsheets, run_sheet_details, stock_vouchers |
+| van-sales | customers, items, stock_branches, branches, app_settings, orders, order_details, driver_ledger |
+| vouchers | users, branches, vehicles, suppliers, purchase_orders, stock_branches, stock_vouchers, stock_voucher_details, audit_log, items |
+| warehouse.manager | users, stock_branches, items, runsheets, stock_vouchers, purchase_orders |
+| warehouse.supervisor | users, branches, purchase_orders, runsheets |
+| Parent `New-main` | users, companies, owner_profile, app_settings, workflow_rules, workflow_log, notification_templates, notifications, audit_log, items, customers, branches, suppliers, stock_branches, orders, chart_of_accounts, journal_entries, customer_ledger, supplier_ledger, treasury, purchase_orders, order_details, stock_vouchers, stock_voucher_details, categories, roles, customer_assignments, runsheets, vehicles, run_sheet_details, purchase_order_details, receiving, receiving_details, cost_centers, cash_box, budgets, inventory_log, journal_lines, daily_settlements, customer_followups |
+
+Static `.from()` discovery is not a complete dependency graph: tables accessed through RPC/Edge Functions, views, indirect triggers, or dynamic query construction require separate tracing. The list is therefore a baseline for owner patches, not proof of all consumers.
+
+## 7. Post-migration advisor recheck
+Supabase advisors were run after the publication migration. No advisor group mentioned Realtime specifically.
+- Security: 6 lint groups / 172 findings (24 RLS-enabled/no-policy INFO; 3 SECURITY DEFINER views ERROR; 3 mutable search_path WARN; 20 anon SECURITY DEFINER execute WARN; 121 authenticated SECURITY DEFINER execute WARN; 1 leaked-password-protection WARN).
+- Performance: 5 lint groups / 412 findings (269 unindexed foreign keys INFO; 62 auth_rls_initplan WARN; 56 unused indexes INFO; 18 multiple permissive policies WARN; 7 duplicate indexes WARN).
+- These are project-wide findings; this migration did not modify the underlying policies, functions, or indexes. They remain separate security/performance workstreams.
