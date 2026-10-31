@@ -1,3 +1,15 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-10-31-566B — Company Identity for Realtime Scope
+
+**LAST VERIFIED EVENT:** 2026-10-31T15:38:47Z — canonical `Current/PWA/core.js` commit `768ac81d5405ecaa1a06b5f59a2002839d62f826` adds `company_id` to the authenticated user lookup and exposes `company_id` / `companyId` in the `RW_Auth` user object.
+**Verified core blob:** `b3d406c635b3cea716e90bf528488ae07be54515`; 33,935 bytes; `RW_Realtime` present; JavaScript parse check PASS.
+**Report addendum commit:** `dc5522f2b63bb6763d238fb8211abe2928b73409`.
+
+**Security requirement:** each consumer must obtain company identity from the authenticated `public.users` row and fail closed if missing. Do not trust a guessed company ID or unverified metadata as the scope for a Realtime subscription.
+**Still OPEN:** no operational app HTML integrations; no Parent source/mirror reconciliation; no transfer of canonical core into operational `erp-frontend`; no Cloudflare deployment verification; no authenticated browser E2E. Production publication was expanded to 81 tables in the prior checkpoint; do not infer all application synchronization is live.
+
+**STATUS:** `PRODUCTION PUBLICATION EXPANDED / CANONICAL CORE + COMPANY SCOPE PREREQUISITE COMMITTED / APP INTEGRATION NOT COMPLETE / DEPLOYMENT UNVERIFIED / GLOBAL REALTIME NOT CLOSED`
+
+---
 # LATEST VERIFIED CHECKPOINT — LVE-2026-10-31-566A — Canonical App Census Added
 
 **Follow-up verification:** Static scan of 28 `Current/PWA` HTML entry points found `core.js` in 25/28; no core in `picker.html`, `main.html`, or `New-main`. Existing Realtime handlers occur only in `vouchers.html` (3), `New-main` (1), and alternate `main.html` (1). The documented Parent mapping is `New-main`; the alternate `main.html` is not assumed to be the active source.
