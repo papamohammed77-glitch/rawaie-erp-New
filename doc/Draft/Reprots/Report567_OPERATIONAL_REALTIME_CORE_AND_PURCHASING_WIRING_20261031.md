@@ -140,3 +140,34 @@ The exact Parent blob was re-read and contained exactly those two matches; neith
 - The four push-triggered workflows on commit `5237858665ae0be72f33d6c8deaa1b650cc19579` all completed with `success`: Mother Inventory Forensic E2E, Mother Assembly Guard, forensic current Mother extract, and CTO Helper Files Forensic.
 
 **Scope qualification:** this workflow validates the unchanged Parent shell from current Git source using a local file-based browser smoke. It is not a Cloudflare deployment check and does not prove authenticated cross-app Realtime behavior.
+
+
+## 10. Shared-core hardening and warehouse oversight consumers — IMPLEMENTED / MOCK VERIFIED
+
+### Initial subscription reconciliation
+Operational `companies/company-1/core.js` was further hardened at commit `8140235b7460401f10abe117ce9358c88c38114a`, blob `a95ee6b29ff54b4a240ce4b81f9a535aa87686db`: after the first `SUBSCRIBED` status, the manager now invokes `onReconcile('initial')`. This closes the race between an app's initial data fetch and establishment of its Realtime channel. Reconnect continues to invoke `onReconcile('reconnected')`. Mock test confirmed both initial and reconnect reconciliation paths.
+
+### Warehouse Manager dashboard
+- File: `companies/company-1/warehouse/manager.html`
+- Blob: `bb0ac2e05e749a3fc13088a9f3ff3309b5e92928`
+- Commit: `85c5276eaacb5d629efe34db5caad33fe5974b8c`
+- Subscribes to company-scoped `stock_vouchers` and `purchase_orders`; refreshes the active dashboard/report view and stops the channel on logout.
+
+### Warehouse Supervisor dashboard
+- File: `companies/company-1/warehouse/supervisor.html`
+- Blob: `2c89da54588f4f63a4477228463421b701b991a7`
+- Commit: `e0250a52a0e78a1a2f99f2cfc9c81907201c5aea`
+- Uses the company context resolved from the public user row; the shared manager independently checks it against the effective authenticated profile. Subscribes to company-scoped `purchase_orders` and refreshes the active dashboard; logout cleanup included.
+
+### Canonical core auth alignment
+Canonical `Current/PWA/core.js` was updated directly on canonical `main`:
+- Commit: `8b7033f2416dc2935778d687dc40591ed0a7b17e`
+- Blob: `a3494952e64873b60eeb2bfe7655678202356fb2`
+- Replaced only the `RW_Auth` module with the operational effective-profile implementation; preserved canonical `RW_DB.syncDown` and its atomic cache behavior.
+- Added the same verified-company guard to canonical `RW_Realtime.start` and the initial post-subscribe reconciliation.
+- Production function verification: `public.get_my_effective_profile()` exists, is SECURITY DEFINER with empty search_path, checks `auth.uid()` against `users.auth_id`, returns company and effective permissions, grants EXECUTE to `authenticated`, and does not grant EXECUTE to `anon`.
+- Mock verification: authenticated profile company is used; untrusted user metadata company and owner flags do not override the effective profile; RPC failure returns an auth error and leaves company scope null; mismatched tenant is rejected; verified tenant filter and initial reconciliation pass.
+- No database function, grant, RLS, or data change was made.
+
+### Workflow status on operational core commit
+On operational commit `8140235b7460401f10abe117ce9358c88c38114a`, the Mother Inventory E2E, Mother Assembly Guard, forensic Mother extract, and CTO Helper Files workflows passed. The Warehouse Vouchers Browser E2E was still running when this addendum was written; its final status must be checked before closure. These workflows are static/local-source checks, not authenticated cross-app Realtime E2E.
