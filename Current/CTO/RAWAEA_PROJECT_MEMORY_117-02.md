@@ -583,3 +583,41 @@ Never repeat:
 - Custody invoice approval currently requires PO-matching unit price with zero discount/tax until tax/discount accounting mappings are designed. Mismatches are rejected rather than silently posting an unsupported difference.
 - Arabic report: doc/Draft/Reprots/Report574_BUYER_CURRENCY_MODAL_PARITY_CUSTODY_PO_ACCOUNTING_20261101.md (commit 6e844f1f7557484178b40b4e3bc82f1478eeb161).
 - Current open gates: verify Cloudflare production deployment and live Buyer artifact; authenticated browser E2E for supplier/PO/invoice/custody top-up; real Storage API binary operations; tax/discount PO accounting design. Status remains PARTIAL / NOT CLOSED.
+
+
+---
+
+## LVE-2026-11-01-575 — Buyer Production Recheck / Migration Lineage / RLS / Supplier AP
+
+**Verified date:** 2026-11-01 Africa/Cairo.
+**Operational repo:** papamohammed77-glitch/erp-frontend, main, HEAD 488dfe79f6d9291e649ee0db78d1ffb3af70e91a (unchanged from LVE574).
+**Buyer blob:** 6c26444fa80b198d305727b70791f400839a6f75.
+**Edge source blob:** 49c85a4a4648bcef6892476d92037ca56745f633.
+**Production:** SMART ERP fiilmooggumokxanwiyx; app_settings.currency = EGP.
+**Production Edge:** save-purchase-order v21 ACTIVE, verify_jwt=true, deployed SHA-256 dab3eba49dd355080cadaa5bca4aea02056de19c4b6f3ba581f142cccfa0ea8c. The retrieved deployed index.ts matched current Git content exactly (21,007 chars).
+
+### Confirmed current contracts
+- Buyer CREATE_INVOICE calls save-purchase-order operation CREATE_INVOICE; Edge calls purchase_create_invoice_atomic_v2; Production wrapper delegates to purchase_create_invoice_atomic, which enforces company system currency from app_settings. Production has currency EGP.
+- Buyer manual CREATE_PO calls purchase_create_po_atomic using caller JWT. Production function exists, checks active user/company/effective purchases permission, idempotency, supplier/branch, app currency and status history.
+- Production custody add-advance / employee-acknowledgement / expense submit / finance review / settlement RPCs exist and were inspected. Add advance posts treasury accounting and increases issued_amount; employee must separately acknowledge the additional advance before it becomes spendable.
+- Custody tables have RLS, authenticated SELECT only and no direct end-user DML/TRUNCATE ACL. purchase_requests, purchase_invoices and purchase_invoice_details have anon/authenticated TRUNCATE denied.
+- Read-only supplier check: 4 suppliers, stored AP total 3,970 equals supplier_ledger net total 3,970; zero stored-vs-ledger mismatches.
+- buyer_custody_payments currently has zero rows and no orphan/cross-company references in the snapshot.
+
+### New conflicts and security findings — do not patch speculatively
+- Migration lineage conflict: Production records custody/auth migrations at versions 20261031233331..20261031235057, while current Git migration directory has corresponding logical files renumbered as 20261101010000..20261101018000. Production also records 20261101003853, 03952, 05159, 05218, 05616, 05849, and 10224, with no same-version/name SQL files in the inspected current migration directory. Production functions purchase_create_po_atomic and buyer_custody_add_advance_atomic were not defined by the inspected current Buyer migrations. Do not run supabase db push or new migrations until every applied version maps to its exact source file/blob/commit or its absence is explained.
+- Production policy buyer_custody_payments_scoped_select contains c.company_id = c.company_id, a tautology rather than a correlation to buyer_custody_payments.company_id. Malformed policy predicate is confirmed; actual cross-tenant exposure is unverified because the table is empty and effective RLS context also applies.
+- supplier_ledger has two active AFTER INSERT/UPDATE/DELETE triggers writing suppliers.accounts_payable: app_private.sync_supplier_accounts_payable() calculates SUM(credit-debit), and public.sync_supplier_accounts_payable_from_ledger() uses latest ledger balance. Current snapshot reconciles, but trigger order/behavior under ledger corrections or concurrent writes has not been tested. Neither trigger was changed.
+- public.suppliers grants TRUNCATE to anon and authenticated despite RLS. Grant is confirmed; HTTP/PostgREST exploitability was not tested. This is distinct from purchase tables whose TRUNCATE grants are already revoked.
+
+### Runtime and non-execution limits
+- Cloudflare Pages current served commit/artifact, headers/cache and deployment lineage remain UNKNOWN.
+- Authenticated Buyer browser E2E, Console/Network, actual Storage binary upload/download/delete, and Realtime WebSocket events/reconnect remain UNVERIFIED.
+- No Production DDL, RLS/grant/trigger change, Edge deployment or business-data write was made during LVE575. All SQL in this pass was SELECT/read-only. Prior LVE574 rollback test is historical evidence and was not repeated.
+
+### Required next step
+Migration Lineage Reconciliation first: map each Production-applied migration version to exact SQL path/blob/commit, restore missing SQL from trusted history or document its origin, and explain renumbered migration files without changing Production. No db push. After reconciliation, separately design and test the custody payment RLS correction, choose one authoritative Supplier AP trigger, and revoke excess suppliers TRUNCATE privilege under a reviewed rollback plan.
+
+**Arabic report:** doc/Draft/Reprots/Report575_BUYER_PRODUCTION_RERECHECK_MIGRATION_RLS_AP_20261101.md (latest update commit fff147ac5a22f5b8648f6495559594306f45d42d).
+**CURRENT_STATE update:** commit f48fb6d37ce4f9707ecdcbb083704fdd4cef0ffb; new blob d459658f080a5c952dca244b661790c0e3aae804.
+**Status:** LVE574 source/DB repairs remain present; Edge v21 source-byte-match confirmed; EGP confirmed; migration lineage conflict blocks safe migration; custody-payment RLS predicate defect confirmed; duplicate supplier AP triggers confirmed; suppliers TRUNCATE grant confirmed; Cloudflare/authenticated runtime UNVERIFIED; NOT CLOSED.
