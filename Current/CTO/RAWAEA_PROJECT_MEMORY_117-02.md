@@ -621,3 +621,40 @@ Migration Lineage Reconciliation first: map each Production-applied migration ve
 **Arabic report:** doc/Draft/Reprots/Report575_BUYER_PRODUCTION_RERECHECK_MIGRATION_RLS_AP_20261101.md (latest update commit fff147ac5a22f5b8648f6495559594306f45d42d).
 **CURRENT_STATE update:** commit f48fb6d37ce4f9707ecdcbb083704fdd4cef0ffb; new blob d459658f080a5c952dca244b661790c0e3aae804.
 **Status:** LVE574 source/DB repairs remain present; Edge v21 source-byte-match confirmed; EGP confirmed; migration lineage conflict blocks safe migration; custody-payment RLS predicate defect confirmed; duplicate supplier AP triggers confirmed; suppliers TRUNCATE grant confirmed; Cloudflare/authenticated runtime UNVERIFIED; NOT CLOSED.
+
+---
+
+## LVE-2026-11-01-578 — Buyer Migration Lineage Reconciled / Supplier AP Trigger Still Dual
+
+**Verified date:** 2026-11-01 Africa/Cairo.  
+**Operational repository:** papamohammed77-glitch/erp-frontend, main, HEAD 40bd00c91f8c52260d867f5cf020104c9e71c161 (tree 4b4b36a5ee73868a058f01dde00229c510a91cdc).  
+**Buyer blob:** 6c26444fa80b198d305727b70791f400839a6f75.  
+**Edge source blob:** 49c85a4a4648bcef6892476d92037ca56745f633.  
+**Production:** SMART ERP fiilmooggumokxanwiyx, ACTIVE_HEALTHY, PostgreSQL 17.6.1.121; app_settings.currency = EGP.  
+**Edge:** save-purchase-order ACTIVE v21, verify_jwt=true, SHA-256 dab3eba49dd355080cadaa5bca4aea02056de19c4b6f3ba581f142cccfa0ea8c; retrieved deployed source matches Git byte-for-byte (21,007 chars).
+
+### Confirmed changes since LVE575
+- Production and Git now match all 33 Buyer migration versions and names in scope 20261031222956 through 20261101144244. There are 0 Buyer applied versions missing from Git and 0 Buyer migration files unapplied.
+- Commits inspected: 8030364ebc53d33e02b971f30acda46f8b00c2ef (PO currency guard + custody payment policy); e9cda057f6168e9cf8304c0fc15d4996db8a3ccf (rename to applied version 20261101143644); 6f8b03ec5f79efb8fdb4fc5066f4654e33678ec3 (remove duplicate 20261101150000 file); caea2321c88bbb7640643be20672fe28aa9c502e (TRUNCATE revoke/default ACL); 40bd00c91f8c52260d867f5cf020104c9e71c161 (restore Buyer migration file/version alignment).
+- buyer_custody_payments_scoped_select now correlates c.company_id = buyer_custody_payments.company_id. The table is empty, so cross-company row visibility is not functionally exercised.
+- anon/authenticated have no TRUNCATE on any of 186 public tables; expanded public default ACL shows no TRUNCATE for these client roles.
+- All five Buyer custody tables have RLS and authenticated SELECT only; no direct authenticated DML/TRUNCATE. Custody RPC signatures align with Edge v21 and have anon EXECUTE=false, authenticated EXECUTE=true, SECURITY DEFINER, search_path empty.
+- Supplier AP remains numerically reconciled: 4 suppliers, stored AP 3,970, ledger net 3,970, 2 ledger rows, 0 running-balance mismatches.
+
+### Remaining confirmed issue
+- Two active triggers still update suppliers.accounts_payable:
+  1. supplier_ledger_sync_accounts_payable → app_private.sync_supplier_accounts_payable(), SUM(credit-debit), updates old and new suppliers on supplier_id change, search_path empty.
+  2. trg_sync_supplier_accounts_payable → public.sync_supplier_accounts_payable_from_ledger(), latest ledger balance, search_path=public, does not update the old supplier on supplier_id reassignment.
+- Both are AFTER INSERT/UPDATE/DELETE. The old function has only its trigger dependency and no other direct function-source reference was found. Migration 20261101120225 creates the new trigger but does not remove the old one.
+- Do not remove the legacy trigger in Production until insert/update/delete, supplier_id reassignment and concurrency behavior are tested and a rollback plan is prepared.
+
+### Scope and verification limits
+- Production ledger has 730 migration versions; current Git migrations directory has 43 files. The 33 Buyer files match; 10 additional Delivery files are outside this Buyer reconciliation. This does not establish that the full 730-version history is represented in Git. Do not run global db push.
+- save-purchase-order v21 logs for 2026-11-01 show 5,563 POST/200, 18 POST/401 and 5,488 OPTIONS/200 in the inspected window; 401 causes are unknown and HTTP 200 does not prove a business transaction.
+- Cloudflare Pages served artifact/commit, browser Console/Network, authenticated Buyer E2E, Storage binary operations and Realtime WebSocket behavior remain UNKNOWN/UNVERIFIED.
+- No Production DDL, grant/RLS/trigger change, business-data write, Edge deployment or operational source edit was performed during this event. SQL was read-only.
+- The previous LVE575 statement that Buyer migration lineage, custody-payment policy and suppliers TRUNCATE were still open is stale against current live evidence; CURRENT_STATE was superseded by LVE578.
+
+**Arabic report:** doc/Draft/Reprots/Report578_BUYER_MIGRATION_LINEAGE_RECONCILIATION_SUPPLIER_AP_TRIGGER_20261101.md.  
+**CURRENT_STATE:** updated to LVE-2026-11-01-578 in the governance/report repository.  
+**Status:** BUYER MIGRATION SLICE RECONCILED / PAYMENT RLS FIX CONFIRMED / PUBLIC TRUNCATE REVOKED / EDGE v21 BYTE-MATCHED / SUPPLIER AP DATA RECONCILED / DUPLICATE AP TRIGGER OPEN / CLOUDFLARE + AUTHENTICATED E2E UNVERIFIED / NOT CLOSED.
