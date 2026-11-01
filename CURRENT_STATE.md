@@ -11,7 +11,7 @@
 - Buyer: companies/company-1/purchasing/buyer.html, blob 6c26444fa80b198d305727b70791f400839a6f75; update commit 1904b620a62a6e8b07234752caf6d27ad934be0d.
 - Parent companies/company-1/main.html was not modified.
 - Applied Production migration: 20261101120225_buyer_currency_po_receipt_and_supplier_balance_reconciliation_20261101; migration file committed under supabase/migrations/20261101120225_buyer_currency_po_receipt_and_supplier_balance_reconciliation_20261101.sql.
-- Arabic report: doc/Draft/Reprots/Report574_BUYER_CURRENCY_MODAL_PARITY_CUSTODY_PO_ACCOUNTING_20261101.md; report commit 6e844f1f7557484178b40b4e3bc82f1478eeb161.
+- Arabic report: doc/Draft/Reprots/Report574_BUYER_CURRENCY_MODAL_PARITY_CUSTODY_PO_ACCOUNTING_20261101.md; report commit ca8a0991c7e9f1dc806ac85059a751e833cb5e6f.
 - Memory ledger appended LVE-574; commit 691e7704739a1e149ed1830310cfca644848fe11.
 
 ## 2. CONFIRMED — Currency root cause and correction
