@@ -565,3 +565,21 @@ Never repeat:
 
 **Arabic report:** `doc/Draft/Reprots/Report573_BUYER_CUSTODY_AUTH_REALTIME_TAILWIND_20261101.md` (report commit `18577462ab54f7cf3f1dc8f9b4b42161f2730330`).  
 **Status:** `PARTIAL REPAIRS CONFIRMED / ROOT CAUSE CONFIRMED / CUSTODY SQL+RLS ROLLBACK-TESTED / EDGE v18 BYTE-MATCHED / 26 TABLES RLS+PUBLICATION VERIFIED / TAILWIND CDN REMOVED FROM SOURCE / CLOUDFLARE+RUNTIME E2E UNVERIFIED / BUSINESS CONTRACTS OPEN / NOT CLOSED`.
+
+
+---
+
+## LVE-2026-11-01-574 — Buyer Currency / Modal Parity / Custody & PO Accounting
+
+**Verified date:** 2026-11-01 Africa/Cairo.  
+**Operational repository HEAD at checkpoint:** 488dfe79f6d9291e649ee0db78d1ffb3af70e91a.
+
+- Production database SMART ERP company currency is EGP. The observed Cloudflare Production dashboard snapshot was still serving commit 1db1db2, whose Buyer source used SAR as a currency fallback. This explains the SAR display as a stale deployed Buyer artifact, not a parent app_settings value. The current Buyer source removes the SAR fallback and refreshes GET_SETTINGS before currency-sensitive supplier, PO, custody issue and account flows. Latest deployment of 488dfe7 remains unverified.
+- Buyer source updated in commit 1904b620a62a6e8b07234752caf6d27ad934be0d; blob 6c26444fa80b198d305727b70791f400839a6f75. Inline JavaScript syntax parse PASS (100,666 chars). Supplier modal, purchase invoice draft modal and new PO modal are present; source-level layout/fields reviewed against parent main.html. Parent main.html was not modified.
+- Database migration 20261101120225_buyer_currency_po_receipt_and_supplier_balance_reconciliation_20261101 applied to SMART ERP and saved in operational repo under supabase/migrations/20261101120225_buyer_currency_po_receipt_and_supplier_balance_reconciliation_20261101.sql. It enforces app_settings currency on invoice creation, prevents PO-linked invoice posting from duplicating stock and supplier liability already recorded by receiving, revalidates custody invoice/receipt line details at finance approval, and synchronizes suppliers.accounts_payable from supplier_ledger via a restricted app_private trigger.
+- Custody workflow includes original cash issue, additional treasury-backed advances, employee acknowledgement per advance, supplier invoice + warehouse receipt documents, finance approval/payment journal and supplier-ledger debit, and exact cash-return settlement. Additional advances increase issued_amount and are not spendable until acknowledged. Authenticated end-to-end execution of this full top-up path and real Storage binary upload/download was not completed because no authenticated employee/finance browser session was available; do not claim it was tested.
+- SQL rollback E2E PASS for PO → warehouse receiving → linked invoice posting: SAR rejected; EGP accepted; stock quantity changed 1→2 on receiving and remained 2 after invoice posting; supplier accounts_payable and supplier_ledger both changed 0→10 on receiving and remained 10 after invoice posting; one receiving journal remained one (no duplicate posting). Entire transaction rolled back.
+- Supplier accounts_payable vs ledger read-only precheck: 4 suppliers, 0 mismatches. Test residue query: 0 E2E PO, invoices, receiving, custody, expenses or Storage objects.
+- Custody invoice approval currently requires PO-matching unit price with zero discount/tax until tax/discount accounting mappings are designed. Mismatches are rejected rather than silently posting an unsupported difference.
+- Arabic report: doc/Draft/Reprots/Report574_BUYER_CURRENCY_MODAL_PARITY_CUSTODY_PO_ACCOUNTING_20261101.md (commit 6e844f1f7557484178b40b4e3bc82f1478eeb161).
+- Current open gates: verify Cloudflare production deployment and live Buyer artifact; authenticated browser E2E for supplier/PO/invoice/custody top-up; real Storage API binary operations; tax/discount PO accounting design. Status remains PARTIAL / NOT CLOSED.
