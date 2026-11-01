@@ -1,3 +1,55 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-01-575 — Buyer Production Recheck / Migration Lineage / RLS / Supplier AP
+
+**VERIFIED AT:** 2026-11-01 Africa/Cairo.
+**LAST VERIFIED EVENT:** Re-fetched operational GitHub HEAD and Buyer source; confirmed Supabase Production company currency is EGP, Buyer invoice RPC chain and PO/custody contracts exist, and save-purchase-order Production v21 is byte-for-byte identical to Git. Identified a material mismatch between Production migration history and current Git migration filenames/versions, a malformed company predicate in buyer_custody_payments SELECT policy, two active Supplier AP triggers writing the same projection with different calculation methods, and an over-broad TRUNCATE grant on public.suppliers. No Production mutation or operational source edit was made.
+**STATUS:** SOURCE / EDGE v21 / CURRENCY / CORE RPC CONTRACTS CONFIRMED / MIGRATION LINEAGE CONFLICT / CUSTODY PAYMENT RLS DEFECT CONFIRMED / DUPLICATE SUPPLIER AP TRIGGERS CONFIRMED / SUPPLIERS TRUNCATE GRANT CONFIRMED / CLOUDFLARE + AUTHENTICATED RUNTIME UNVERIFIED / NOT CLOSED.
+
+## 1. Current operational state
+
+- Operational repository: papamohammed77-glitch/erp-frontend, branch main.
+- Operational HEAD rechecked: 488dfe79f6d9291e649ee0db78d1ffb3af70e91a (unchanged from LVE574).
+- Buyer: companies/company-1/purchasing/buyer.html, blob 6c26444fa80b198d305727b70791f400839a6f75.
+- Edge source: supabase/functions/save-purchase-order/index.ts, blob 49c85a4a4648bcef6892476d92037ca56745f633.
+- Supabase SMART ERP project: fiilmooggumokxanwiyx.
+- Production app_settings.currency: EGP.
+- Production save-purchase-order: ACTIVE v21, verify_jwt=true, deployed SHA-256 dab3eba49dd355080cadaa5bca4aea02056de19c4b6f3ba581f142cccfa0ea8c; retrieved deployed index.ts exactly matches the current Git file (21,007 characters).
+- Production functions purchase_create_invoice_atomic, purchase_create_invoice_atomic_v2, purchase_post_invoice_atomic, purchase_create_po_atomic, and custody issue/advance/acknowledgement/expense/review/settlement RPCs were inspected. Buyer invoice v2 delegates to the system-currency-guarded base function; PO and custody advance functions enforce active actor/company/effective permissions in the inspected definitions.
+- Latest report: doc/Draft/Reprots/Report575_BUYER_PRODUCTION_RERECHECK_MIGRATION_RLS_AP_20261101.md; latest report update commit fff147ac5a22f5b8648f6495559594306f45d42d; final report blob 87fde240c7d79103a9a95453bf3e099c3fb619b8.
+- Previous LVE574 remains below as historical checkpoint; it is not replaced or deleted.
+
+## 2. CONFIRMED
+
+- Production company currency is EGP.
+- Edge v21 artifact matches Git source byte-for-byte.
+- Relevant invoice/PO/custody RPC signatures and core guards are present in Production.
+- Custody tables have RLS; authenticated receives SELECT only and has no direct DML/TRUNCATE ACL on the five custody tables.
+- purchase_requests, purchase_invoices, and purchase_invoice_details have anon/authenticated TRUNCATE denied.
+- Read-only supplier reconciliation: 4 suppliers; accounts_payable total 3,970; supplier-ledger net total 3,970; 0 mismatches.
+- buyer_custody_payments currently contains 0 rows; no orphan/cross-company payment references in the read snapshot.
+
+## 3. CONFLICT / SECURITY FINDINGS
+
+1. **Migration lineage conflict:** Production records buyer migrations under versions 20261031233331 through 20261031235057 while the current Git migration directory contains corresponding logical files renumbered as 20261101010000 through 20261101018000. Production also records versions 20261101003853, 03952, 05159, 05218, 05616, 05849, and 10224; no files with these version/name pairs exist in the inspected current migration directory. The inspected current migration set does not contain source definitions for Production's purchase_create_po_atomic and buyer_custody_add_advance_atomic. **Do not run supabase db push or migrations before a version-to-file/blob/commit reconciliation.**
+2. **Custody payment SELECT policy:** buyer_custody_payments_scoped_select contains c.company_id = c.company_id, a tautology that fails to correlate the custody company to the payment row company. The malformed predicate is confirmed; actual cross-tenant exposure is not proven (table currently empty).
+3. **Supplier AP dual writer:** supplier_ledger has two active triggers writing suppliers.accounts_payable: app_private.sync_supplier_accounts_payable() calculates SUM(credit-debit), while public.sync_supplier_accounts_payable_from_ledger() uses the latest ledger row balance. Both are active; current data matches, but duplicate trigger ownership and behavior under correction/concurrency are not verified.
+4. **Supplier TRUNCATE privilege:** Production ACL gives both anon and authenticated TRUNCATE privilege on public.suppliers while RLS is enabled. RLS does not constrain TRUNCATE. Actual HTTP/PostgREST exploitability was not tested. Do not conflate this with purchase invoice/request tables, whose TRUNCATE grants are confirmed revoked.
+
+## 4. UNKNOWN / UNVERIFIED
+
+- Cloudflare Pages deployment commit, served artifact, headers and cache remain UNKNOWN.
+- Authenticated Buyer browser E2E, Console/Network, Storage binary upload/download/delete, and live Realtime WebSocket delivery/reconnect remain UNVERIFIED.
+- Real cross-company impact of the custody-payment policy defect and practical API exploitability of the suppliers TRUNCATE ACL are UNVERIFIED.
+- No write/rollback trigger test was run in this recheck; Report574's previous PO→Receiving→Invoice rollback test remains historical evidence only.
+
+## 5. Next step — one priority
+
+Perform **Migration Lineage Reconciliation**: map every Production-applied migration version to its exact SQL file/blob/commit; restore or locate missing source files from trusted Git history; explain renumbered files without changing Production. Do not use db push. Only after lineage is reconciled should a separately reviewed remediation be prepared for the custody-payment RLS predicate, Supplier AP dual trigger, and suppliers TRUNCATE grant.
+
+## 6. Evidence report
+
+See doc/Draft/Reprots/Report575_BUYER_PRODUCTION_RERECHECK_MIGRATION_RLS_AP_20261101.md for the complete 9-section evidence report, SQL observations, source references, limits, and blockers.
+
+---
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-01-574 — Buyer Currency / Modal Parity / Custody & PO Accounting
 
 **VERIFIED AT:** 2026-11-01 Africa/Cairo.  
