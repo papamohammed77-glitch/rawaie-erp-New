@@ -1,4 +1,75 @@
-# LATEST VERIFIED CHECKPOINT — LVE-2026-11-01-573 — Buyer Custody / Auth / Realtime / Tailwind
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-01-574 — Buyer Currency / Modal Parity / Custody & PO Accounting
+
+**VERIFIED AT:** 2026-11-01 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Identified the live SAR display as a stale Cloudflare Buyer artifact (commit 1db1db2), rebound the current Buyer currency-sensitive flows to parent GET_SETTINGS, confirmed source-level supplier/invoice/PO modal parity, applied database currency and PO-receipt accounting guards, added supplier AP synchronization, and passed a rollback-only PO → Receiving → Invoice accounting test.  
+**STATUS:** SOURCE + DATABASE REPAIRS CONFIRMED / SQL ROLLBACK E2E PASS / LIVE CLOUDFLARE + AUTHENTICATED CUSTODY E2E OPEN / NOT CLOSED.
+
+## 1. Current operational state
+
+- Operational repository: papamohammed77-glitch/erp-frontend, branch main.
+- Operational HEAD: 488dfe79f6d9291e649ee0db78d1ffb3af70e91a.
+- Buyer: companies/company-1/purchasing/buyer.html, blob 6c26444fa80b198d305727b70791f400839a6f75; update commit 1904b620a62a6e8b07234752caf6d27ad934be0d.
+- Parent companies/company-1/main.html was not modified.
+- Applied Production migration: 20261101120225_buyer_currency_po_receipt_and_supplier_balance_reconciliation_20261101; migration file committed under supabase/migrations/20261101120225_buyer_currency_po_receipt_and_supplier_balance_reconciliation_20261101.sql.
+- Arabic report: doc/Draft/Reprots/Report574_BUYER_CURRENCY_MODAL_PARITY_CUSTODY_PO_ACCOUNTING_20261101.md; report commit 6e844f1f7557484178b40b4e3bc82f1478eeb161.
+- Memory ledger appended LVE-574; commit 691e7704739a1e149ed1830310cfca644848fe11.
+
+## 2. CONFIRMED — Currency root cause and correction
+
+- Production app_settings.currency is EGP.
+- Cloudflare dashboard snapshot showed Production at commit 1db1db2. The Buyer artifact at that commit contains the fallback currency SAR. This is the direct reason SAR was displayed; it was not the parent setting.
+- Current Buyer source has no SAR fallback; buyerMoney uses App.currency, loadSystemCurrency reads GET_SETTINGS and validates the 3-letter code. Currency refresh is wired into suppliers, supplier modal, PO modal, custody issue and account view; invoice modal already loads GET_SETTINGS.
+- purchase_create_invoice_atomic now derives currency from app_settings and rejects a client currency that differs from the system currency.
+- The latest Cloudflare deployment after HEAD 488dfe7 has NOT been independently verified. Do not claim the live browser has already switched to EGP.
+
+## 3. CONFIRMED — Modal source parity
+
+- Supplier modal mirrors parent supplier modal structure and field contract: code, name, phone, area, address, type, payment terms, read-only accounts payable in system currency, contact, purchase representative search, notes. Save remains SAVE_SUPPLIER → save_supplier_atomic.
+- Purchase invoice modal mirrors parent invoice modal layout and supports supplier, branch, PO, due date, supplier invoice number, notes, item lines, quantity, price, discount, tax and totals. It creates a Draft invoice only.
+- New PO modal uses the parent new-purchase-request visual pattern, 980px width, supplier, branch, expected delivery, payment terms, item search, quantity, price, lines, totals and notes. It creates Draft PO via CREATE_PO → purchase_create_po_atomic.
+- Parent main.html was not changed.
+- Static inline Buyer JavaScript syntax parse PASS (100,666 chars). This is source validation, not authenticated browser interaction.
+
+## 4. CONFIRMED — Custody advance and evidence contract
+
+- Original custody and additional cash advances are treasury-backed and create cash/journal records.
+- Additional advance increments issued_amount and remains unavailable until employee acknowledgement of that advance.
+- Employee expense submission requires the supplier invoice document, a linked Draft purchase invoice/PO, the receiving operation and warehouse receipt document; DB validates company/user/custody path, currency, amount, invoice supplier and receipt item/quantity match.
+- Finance approval revalidates invoice and receipt details and posts supplier payment from employee custody: debit supplier liability, credit employee custody, supplier-ledger debit, buyer_custody_payments record, and invoice Paid.
+- Settlement requires every advance acknowledged, no Submitted expenses, and exact return of the unused cash to Treasury.
+- PO-linked custody payment currently rejects tax/discount or unit-price differences not represented by the PO receipt accounting. Do not bypass this guard; tax/discount mapping remains open.
+- Full authenticated top-up → employee acknowledgement → binary Storage upload → finance approval → settlement E2E was NOT completed because no authenticated employee/finance browser session was available. No JWT impersonation workaround was used.
+
+## 5. CONFIRMED — PO / Receiving / Invoice / Supplier accounting boundary
+
+- receive_purchase_atomic posts stock, a journal (inventory debit / supplier credit), and supplier_ledger credit at receipt.
+- purchase_post_invoice_atomic now treats a PO-linked invoice as a reference to the already-posted receipt: it validates supplier, receipt existence, item identity, received quantities, remaining un-invoiced quantities, PO unit prices, and total. It marks the invoice Posted without reposting stock or supplier liability.
+- Non-PO invoices retain their existing separate posting path.
+- app_private.sync_supplier_accounts_payable trigger recalculates suppliers.accounts_payable from supplier_ledger credit - debit after insert/update/delete. Function search_path is empty and direct execute is revoked.
+- Pre-migration supplier AP comparison: 4 suppliers, 0 mismatches.
+
+Rollback-only SQL E2E result:
+- SAR rejected; EGP accepted.
+- Stock qty: 1 before receipt → 2 after receipt → 2 after invoice posting.
+- Supplier accounts_payable: 0 before → 10 after receipt → 10 after invoice posting.
+- Supplier ledger net: 0 before → 10 after receipt → 10 after invoice posting.
+- Receipt journal count: 1 after receiving → 1 after invoice posting.
+- No duplicate stock movement, supplier liability or journal was created by linked invoice posting.
+- Transaction rolled back; residue query returned 0 E2E PO, invoice, receiving, custody, expense and Storage objects.
+
+## 6. UNVERIFIED / OPEN
+
+- Cloudflare production deployment and live Buyer artifact after commit 488dfe7.
+- Authenticated browser E2E for supplier creation, PO creation, invoice draft, custody top-up and employee acknowledgement.
+- Real Storage API binary upload/download/delete.
+- Tax/discount accounting treatment for PO-linked invoices and custody reimbursement.
+- Live WebSocket delivery/reconnect and other LVE-573 open items remain governed by their prior status; no closure claim is made.
+
+**CLOSURE STATUS:** EGP SOURCE + DB ENFORCED / SUPPLIER-INVOICE-PO SOURCE MODALS VERIFIED / CUSTODY ADVANCE CONTRACT CONFIRMED / PO RECEIPT-INVOICE DOUBLE-POST PREVENTED / SUPPLIER AP SYNC VERIFIED / SQL ROLLBACK E2E PASS / CLOUDFLARE + AUTHENTICATED CUSTODY E2E OPEN / NOT CLOSED.
+
+---
+
+# HISTORICAL CHECKPOINT — LVE-2026-11-01-573 — Buyer Custody / Auth / Realtime / Tailwind
 
 **VERIFIED AT:** 2026-11-01 Africa/Cairo.  
 **LAST VERIFIED EVENT:** Confirmed the exact `PURCHASE_AUTH_REQUIRED` root cause and repaired dashboard authorization; added and rollback-tested the independent employee custody workflow; expanded Buyer/Core/Production Realtime contracts to 26 RLS-readable published tables; removed Tailwind CDN from Buyer source and generated local CSS; deployed `save-purchase-order` Edge v18 ACTIVE with exact Git byte match.  
