@@ -1,3 +1,35 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-01-578 — Buyer Migration Lineage Reconciliation / Supplier AP Trigger
+
+**VERIFIED AT:** 2026-11-01 Africa/Cairo; latest Production SQL observation 2026-11-01 20:42:09 UTC.  
+**LAST VERIFIED EVENT:** Live recheck superseded LVE575: operational repo main HEAD is now 40bd00c91f8c52260d867f5cf020104c9e71c161; all 33 Buyer migration versions/names match Production; buyer_custody_payments policy is corrected; anon/authenticated TRUNCATE is absent from all 186 public tables and from the expanded public default ACL; save-purchase-order v21 matches Git byte-for-byte; supplier AP data still reconciles at 3,970. Two active Supplier AP triggers remain. No Production mutation or operational source edit was made in this run.  
+**STATUS:** BUYER MIGRATION SLICE RECONCILED / PAYMENT RLS FIX CONFIRMED / PUBLIC TRUNCATE REVOKED / EDGE v21 BYTE-MATCHED / SUPPLIER AP DATA RECONCILED / DUPLICATE AP TRIGGER OPEN / CLOUDFLARE + AUTHENTICATED E2E UNVERIFIED / NOT CLOSED.
+
+## 1. Current operational state
+
+- Operational repository: papamohammed77-glitch/erp-frontend, branch main.
+- Current operational HEAD: 40bd00c91f8c52260d867f5cf020104c9e71c161; tree 4b4b36a5ee73868a058f01dde00229c510a91cdc.
+- Buyer source: companies/company-1/purchasing/buyer.html, blob 6c26444fa80b198d305727b70791f400839a6f75.
+- Edge source: supabase/functions/save-purchase-order/index.ts, blob 49c85a4a4648bcef6892476d92037ca56745f633.
+- Supabase Production: SMART ERP, ref fiilmooggumokxanwiyx, ACTIVE_HEALTHY, PostgreSQL 17.6.1.121.
+- Production app_settings.currency: EGP.
+- Production save-purchase-order: ACTIVE v21, verify_jwt=true, deployed SHA-256 dab3eba49dd355080cadaa5bca4aea02056de19c4b6f3ba581f142cccfa0ea8c; deployed source equals Git source byte-for-byte.
+- Buyer migration reconciliation: 33/33 Buyer versions and names match Production schema_migrations; no Buyer version missing from Git and no Buyer migration file unapplied.
+- Current migrations directory contains 43 files; 10 additional files are Delivery scope. Production ledger contains 730 versions overall; the current folder is not the complete historical migration chain. Do not run a global db push.
+- Current Production buyer_custody_payments policy correlates custody.company_id to payment.company_id. No payment rows currently exist.
+- All 186 public tables checked have no anon/authenticated TRUNCATE; expanded public default ACL also has no TRUNCATE for those client roles.
+- Five custody tables have RLS and authenticated SELECT only; direct authenticated DML/TRUNCATE is absent.
+- Supplier AP snapshot: 4 suppliers, stored AP 3,970, ledger net 3,970, 2 ledger rows, 0 running-balance mismatches.
+- Two Supplier AP triggers remain active. The newer sum-based app_private trigger and older latest-balance public trigger both update suppliers.accounts_payable. Do not close until the legacy trigger is retired through a tested reversible migration.
+- Cloudflare Pages current served artifact/commit and authenticated Buyer E2E remain UNKNOWN/UNVERIFIED.
+- Latest Arabic report: doc/Draft/Reprots/Report578_BUYER_MIGRATION_LINEAGE_RECONCILIATION_SUPPLIER_AP_TRIGGER_20261101.md.
+- This checkpoint supersedes the LVE575 status summary below; LVE575 is retained as historical evidence, not current truth.
+
+## 2. Immediate next priority
+
+Prepare and test a reversible retirement of the legacy trigger trg_sync_supplier_accounts_payable while retaining supplier_ledger_sync_accounts_payable as the single AP writer. Test insert/update/delete, supplier_id reassignment and concurrency in staging or a controlled rollback transaction. Do not change Production until the tests and rollback plan are reviewed.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-01-575 — Buyer Production Recheck / Migration Lineage / RLS / Supplier AP
 
 **VERIFIED AT:** 2026-11-01 Africa/Cairo.
