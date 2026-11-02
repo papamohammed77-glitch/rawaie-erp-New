@@ -2604,3 +2604,48 @@ UNTIL RAWAEA ERP IS ACTUALLY COMPLETE.
 ```
 
 # END OF MASTER CTO GOVERNANCE & CONTINUOUS EXECUTION OS
+
+---
+
+# 77. OWNER APPROVAL GATE + PHYSICAL HANDOVER IS THE ONLY POSTING EVENT
+
+هذه إضافة حاكمة صادرة مباشرة من مالك RAWAEA ERP، وتعلو على أي توجيه تنفيذي سابق قد يُفهم منه أن على المساعد تنفيذ تعديل مؤثر فورًا دون مراجعة المالك.
+
+## 77.1 Physical Handover Principle
+
+لا ينشأ أثر فعلي في المخزون أو الخزينة/الصندوق أو حسابات العملاء أو الموردين أو القيود المحاسبية لمجرد إنشاء أو تحديث سجل إلكتروني أو مسودة أو طلب أو عرض سعر أو أمر شراء أو موافقة أو تجهيز أو إرسال أو تغيير حالة.
+
+**الأثر الفعلي يتطلب واقعة تسليم/استلام حقيقية مثبتة، يدًا بيد للنقدية أو للصنف، أو تسليم/استلام مستند مالي/فاتورة معتمدة تقوم مقام النقدية أو تثبت الاستحقاق بحسب نوع العملية، مع مستندات الإثبات والاعتماد المطلوبة.**
+
+افصل دائمًا بين:
+
+- Document lifecycle: Draft / Submitted / Approved / Posted / Cancelled.
+- Physical custody: cash or equivalent instrument actually handed over and acknowledged.
+- Inventory custody: goods physically received, issued, or delivered with quantities and branch/location evidence.
+- Customer/Supplier subledger: only the supported, authorized business event may create or change the balance.
+- General ledger: only the authorized posting event with its evidence and balanced journal.
+
+لا تفترض أن Invoice = Goods Received، أو Invoice = Cash Paid، أو PO = Stock Receipt، أو Payment Request = Cash Disbursement. ولا تستنتج من كلمة Posted وحدها أن واقعة التسليم الفعلي حدثت؛ افحص العقد والوثائق والتوقيعات وسجل الاستلام.
+
+يجب أن يثبت اختبار كل Closure Unit أمرين منفصلين:
+1. عدم تغير الأرصدة عند إنشاء المستندات والطلبات والمسودات والموافقات غير المصحوبة بتسليم/استلام فعلي.
+2. حدوث الأثر الصحيح مرة واحدة فقط بعد واقعة التسليم/الاستلام الفعلي الموثقة، مع مطابقة المخزون والخزينة ودفاتر الأطراف والقيود وسجل التدقيق.
+
+## 77.2 Mandatory Owner Review Before Risky Changes
+
+لا تنفذ أي كتابة أو تعديل أو Migration أو Trigger/RPC change أو نشر أو تغيير في التطبيق/العقد يمكن أن يمس Production أو البيانات أو الأرصدة أو مسارات المشتريات/المبيعات/التوصيل/المخزون/الخزينة/حسابات الأطراف قبل أن تعرض على المالك:
+
+1. ما هو مثبت حاليًا من Git / Source / Production / Database / Deployment.
+2. العنصر المحدد الذي تريد تغييره وسبب التغيير والأدلة.
+3. النص الكامل للتعديل أو SQL المقترح.
+4. الأثر المتوقع على المخزون والخزينة وحسابات العملاء والموردين والقيود وبقية التطبيقات.
+5. الاعتماديات والسيناريوهات التي قد تتعطل.
+6. اختبارات القبول وعدم التراجع وخطة rollback.
+
+ثم تنتظر موافقة صريحة على التغيير المعروض نفسه. لا تعتبر طلب تنفيذ المهمة تفويضًا مفتوحًا لتغيير كل ما تراه مناسبًا، ولا توسع الموافقة إلى تغييرات أخرى لم تُعرض.
+
+الفحص وقراءة Git/Production وقاعدة البيانات والاستعلامات التشخيصية read-only وإعداد المقترحات مسموحة دون تعديل. أما التنفيذ المؤثر فينتظر المراجعة والموافقة. لا تختبر ببيانات مالية/مخزنية حقيقية في Production؛ استخدم بيئة معزولة أو اختبارًا قابلًا للتراجع بعد موافقة المالك وخطة تنظيف مثبتة.
+
+## 77.3 Precedence and Preservation
+
+هذه القاعدة أحدث من أي صياغة سابقة في هذا الدستور أو التقارير توحي بالتنفيذ المباشر دون مراجعة المالك، وتُقرأ مع قواعد عدم لمس `companies/company-1/main.html`، وعدم إنشاء Edge Functions جديدة، والحفاظ على التطبيقات التشغيلية المستقلة. لا تُلغِ إصلاحًا سابقًا ولا تُرجع Migration سابقة لمجرد صدور هذه القاعدة؛ أي مراجعة أو rollback يحتاج تحقيقًا مستقلًا وموافقة المالك.
