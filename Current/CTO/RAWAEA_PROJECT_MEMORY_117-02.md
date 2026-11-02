@@ -1,3 +1,18 @@
+## LVE-592 — 2026-11-03 — Sales Authorization & Permission Source Contracts
+
+- confirm-order v4: JWT + active company + order status only; no orders/telesales permission. Parent main.html calls it.
+- create-runsheet v26 / append-to-runsheet v8: Parent main consumers; Edge/RPC validate company and state but not effective permission (reconfirmed from LVE-590).
+- delete-order v10 and update-order v6 enforce sales permissions; update-order combines user, roles and role_permissions.
+- save-customer v4/delete-customer v3 check customers permission.
+- sales-return-management RPCs check * or return; sales quotes use rawaea_quote_actor_ok (* or orders); sales-target-engine gateway has read/manage/approve tiers; save-sales-invoice and sales-payment-allocation enforce effective permissions.
+- Permission implementation divergence: some paths combine role-derived permissions; others check users.permissions only (customer, sales-return, quotes, sales-target). Divergence confirmed; effect for role-only users UNKNOWN pending role data/sync-trigger review.
+- Accountant UI retains pending cash voucher payload and operation_id in sessionStorage for retry; preserve this.
+- No unauthorized HTTP call or business write. No source/DB/Edge/PR/deployment mutation. PR #10 remains Draft.
+- Report: doc/Draft/Reprots/Report592_CTO_SALES_AUTHORIZATION_AND_PERMISSION_CONTRACT_AUDIT_20261103.md. Report commit 4f97a96672958bcd7bbf2d31c4275f3bf5946ca3. CURRENT_STATE commit 6bc6a9a7f9757a450830a7a8c8ff88f61d5b7807.
+- Next: owner-approved permission matrix and exact changes for confirm-order, create-runsheet, append-to-runsheet and role-derived permission consistency. Reuse existing effective permission helpers; no parallel engine.
+
+---
+
 ## LVE-591 — 2026-11-03 — Finance Authorization & Data Access
 
 - Audited high-impact financial Edge/RPC paths after LVE-590.
