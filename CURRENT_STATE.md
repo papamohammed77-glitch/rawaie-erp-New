@@ -1,3 +1,37 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-591 — Finance Authorization & Data Access
+
+**VERIFIED AT:** 2026-11-03.  
+**Starting LAST VERIFIED EVENT:** LVE-590.
+
+## 1. New finance findings
+
+- save-journal-entry v8: validates JWT and active company membership but no finance permission; uses service_role to call post_journal_entry.
+- save-payment-voucher v7: validates user/company/branch/treasury but no finance permission; calls finance_save_expense through userClient. Both finance_save_expense overloads are SECURITY DEFINER, EXECUTE is granted to authenticated, and the function checks company context/period/accounts but no finance permission. Direct RPC call is an additional path.
+- save-receipt-voucher v8: validates JWT and active company membership but no finance permission for generic receipt; uses service_role to call post_cash_receipt_atomic. The Van Sales branch is more restricted because post_van_sales_collection_atomic validates that the passed current user is a direct-sales driver and the customer is assigned.
+- save-transfer-voucher v4: validates JWT and active company membership but no finance permission; calls service_role-only post_treasury_transfer_atomic.
+- update-driver-ledger v2: validates JWT and active company membership but no finance/driver-ledger permission; calls service_role-only post_driver_ledger_entry.
+- get-cash-flow v1: Edge checks JWT only; get_cash_flow is executable by authenticated and scopes by current_user_company_id but has no finance permission check. Edge uses service_role client; whether it returns empty because auth.uid context is absent remains UNVERIFIED.
+- post_journal_entry, post_cash_receipt_atomic, post_treasury_transfer_atomic and post_driver_ledger_entry are service_role-only RPCs; their Edge wrappers are the effective security boundary and currently lack role/permission checks.
+- Positive patterns: save-sales-invoice v19 and sales-payment-allocation v2 calculate/check effective finance/sales permissions; preserve these patterns rather than creating a parallel permission system.
+
+## 2. Status and limits
+
+- Financial authorization gaps are CONFIRMED at Edge/RPC contract level; no HTTP exploit test or financial write was performed.
+- No journal, voucher, treasury transfer, driver-ledger, or cash-flow transaction was created.
+- No DDL, DML, grants, RLS, Edge deployment, merge, or Cloudflare change occurred.
+- Keep PR #10 Draft.
+- This finding extends LVE-590's warehouse/delivery/settlement and inventory findings; all runtime effects remain UNVERIFIED.
+
+## 3. Next priority
+
+Prepare a Finance Authorization Matrix with the owner, then exact server-side permission changes for manual journals, expenses, generic receipts, treasury transfers, driver ledger, and cash-flow access. Keep Van Sales collection as a separate operation with its driver/customer assignment checks. Present exact diffs/SQL, business effects, tests and rollback; wait for explicit approval under Master §77.2.
+
+**Arabic report:** doc/Draft/Reprots/Report591_CTO_FINANCE_AUTHORIZATION_AND_DATA_ACCESS_AUDIT_20261103.md  
+**Report commit:** 28926bbed61c39d39cff3d9e53a49b88ea8508c6  
+**Status:** FINANCIAL AUTHORIZATION GAPS CONFIRMED / RUNTIME UNVERIFIED / NOT CLOSED.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-590 — Cross-Module Authorization & Inventory Effects
 
 **VERIFIED AT:** 2026-11-03.  
