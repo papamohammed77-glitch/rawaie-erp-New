@@ -1,3 +1,63 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-02-584 — Buyer Tabs / Procurement Vehicle Custody / Cash Proof
+
+**VERIFIED AT:** 2026-11-02 Africa/Cairo.
+**LAST VERIFIED EVENT:** Re-read current Buyer/Driver/Edge and Supabase Production; confirmed all four requested tabs already exist, quotation comparison view exists but Buyer does not consume it, vehicle balance is only a driver-assignment placeholder, and current vehicle stock movements belong to delivery. Production currently has no buyer custody rows, no stock vouchers, no fleet vehicle assignments, and no purchase quotations. Procurement-specific Supplier→Vehicle→Warehouse and reverse Supplier Return custody stages are not in the current stock-voucher Core whitelist. Buyer custody finance RPCs currently post supplier payment/AP reduction and mark the invoice Paid at finance approval without a separate supplier cash-receipt proof. No operational source or Production mutation was made.
+**STATUS:** BUYER v22 SOURCE / PRODUCTION EDGE BYTE-MATCH CONFIRMED / EGP CONFIRMED / INVOICE TAB + QUOTATION + CUSTODY FOUNDATIONS PRESENT / COMPARISON VIEW NOT WIRED / PROCUREMENT VEHICLE CUSTODY CONTRACT MISSING / SUPPLIER CASH-RECEIPT PROOF GAP CONFIRMED / DRIVER STOCK MUST NOT BE REUSED / CLOUDFLARE + AUTHENTICATED BROWSER E2E UNVERIFIED / EXACT OWNER CHANGE APPROVAL REQUIRED / NOT CLOSED.
+
+## 1. Current operational state
+
+- Operational repo: papamohammed77-glitch/erp-frontend, branch main; latest main commit fetched: aa8cbffbfa8d42253726381080dcfc24eaea838b (build Buyer Tailwind CSS).
+- Buyer: companies/company-1/purchasing/buyer.html, blob 73d746571a10b1720bdd31631004abce0ac9afa1.
+- Driver: companies/company-1/delivery/driver.html, blob 92ae03678b6516345a61d30bb5967046096d8cce.
+- Router: companies/company-1/app.html, blob 2e47a68fe83956e27d569e786a08dcee91af2924; purchases and delivery resolve to separate Buyer and Driver apps.
+- Buyer Edge source: supabase/functions/save-purchase-order/index.ts, blob bc038be8c60a3d593f604c7b2ae445e807bacf57. Production save-purchase-order v22 ACTIVE / verify_jwt=true is byte-identical to this source; deployed SHA-256 a0885a8a636b0d57ef9ab54b476001be8e3dd1f4227b921f511b002f58642ffb.
+- Production app_settings.currency = EGP.
+- The four requested tabs already exist in Buyer: invoices, quotations, custody, vehicle. Invoice row-click detail modal remains from commit 37d4e95e030bf3085c232655bdec6f059a335ca1.
+- Latest detailed report: doc/Draft/Reprots/Report584_BUYER_TABS_PROCUREMENT_CUSTODY_EVIDENCE_20261102.md; latest report commit 725fa11d44468f7375b3163fdd987fdbe5460570; final blob afa845159f291cdd33657ec853979c9289de7c86.
+
+## 2. CONFIRMED
+
+- فواتيري already provides list/search/filter/detail and Draft-only edit/delete; do not rebuild it.
+- عروض أسعار already supports quotation create/list/detail/accept/convert-to-PO. Production view purchase_quotation_comparison exists, is security_invoker=true and tenant-scoped; Buyer has zero references to it, while Edge GET_DATA allow-list already permits it. Production quotation count currently 0.
+- عهدتي already supports issue, employee acknowledgement, top-up, expense documents, finance review and exact cash return settlement. However proof of supplier actual receipt of cash/instrument is not part of the current payment contract.
+- رصيد السيارة is only a placeholder. It resolves the vehicle through fleet_vehicle_assignments.driver_user_id, which is delivery driver identity, not procurement custodian identity.
+- Production snapshot: stock_vouchers=0, fleet_vehicle_assignments=0, buyer_custodies=0, purchase_quotations=0, purchase_invoices=3, mobile vehicles=2.
+- Vehicle inventory movements observed are delivery operations only: CHV-2025-01 Loading 15 rows/qty 39, Unloading 10 rows/qty 26; VHL-0422 DirectReturn 1 row/qty 1, Loading 12 rows/qty 12, Unloading 6 rows/qty 6. Do not expose these as buyer procurement stock.
+- Production stock-voucher Core whitelist is Transfer, DirectSale, DirectReturn, SupplierReturn; procurement Supplier→Vehicle/Buyer→Warehouse stages are not supported. Stock voucher rows already contain vehicle_id, custodian_user_id, purchase_order_id and purchase_invoice_id, but generic Edge wrapper cannot make an unsupported Core type work.
+- Existing Warehouse SupplierReturn Branch→Supplier contract was previously closed in Reports 342/343. Preserve that direct route; do not rebuild it or post supplier credit when goods merely leave the warehouse for buyer custody.
+- Buyer current PO schema has expected_delivery_date and payment_terms, but no approved_by/sent_at; Edge v22 has CREATE_PO but no SEND_PO/APPROVE_PO.
+- purchase_post_invoice_atomic blocks unlinked quick invoices until an approved receiving contract exists. PO-linked posting checks receiving/qty/price and avoids duplicate stock/AP posting.
+- buyer_custody_review_expense_atomic currently posts journal, inserts buyer_custody_payments, marks invoice Paid and debits supplier_ledger once Finance approves documents; reference is invoice_code, not a supplier cash receipt proof. This is a confirmed policy/contract gap against Owner Physical Handover requirements.
+- buyer_custody_issue_atomic and buyer_custody_add_advance_atomic call post_cash_payment_atomic before employee acknowledgement; references are optional. buyer_custody_settle_atomic posts cash receipt to treasury but finance_reference remains optional and no separate evidence file field is present.
+- purchase_payments.payment_method column exists with default Cash, but purchase_post_payment_atomic and Edge POST_PAYMENT do not accept/pass p_payment_method; selected payment method cannot currently flow end-to-end.
+- Supplier master lacks email/rating/grade and no supplier visit/rating tables were found in the inspected schema.
+- Recent migration ledger includes 20261102150516 and 20261102151137 while current Git files are named 20261102160000 and 20261102162000 respectively. Production behavior exists, but filename/version lineage needs reconciliation before db push.
+- Previous Report575 issues are no longer open: LVE579 retired duplicate Supplier AP trigger; live Production now shows one active trigger; suppliers TRUNCATE denied for anon/authenticated; buyer_custody_payments RLS company predicate is corrected.
+
+## 3. UNKNOWN / CONFLICT / UNVERIFIED
+
+- UNKNOWN: whether Procurement/Fleet manager assigns buyer-to-vehicle in advance or buyer chooses from authorized vehicles; what exact contractual point changes ownership/risk for goods handed to buyer; required supplier cash-receipt instrument/document.
+- CONFLICT: current Buyer vehicle placeholder uses driver assignment semantics, while procurement requires a distinct custodian identity; current custody approval posts supplier payment without explicit supplier handover proof; Core stock-voucher types do not represent purchase custody stages.
+- UNVERIFIED: Cloudflare Pages served artifact/commit, authenticated Buyer browser E2E, Storage binary operations, WebSocket events/reconnect, real quotation comparison with non-empty data, and complete Buyer supplier cash proof / vehicle custody workflows.
+
+## 4. Safety / non-regression constraints
+
+- Do not read delivery stock (mobile_branch_id/stock_branches) as Buyer custody.
+- Do not change existing SupplierReturn direct Branch→Supplier behavior, DirectSale, DirectReturn, Transfer, runsheets or Driver app.
+- Do not mark a supplier invoice Paid or reduce supplier AP from document approval alone; require actual cash/instrument handover proof and audit evidence.
+- Do not change inventory availability at Supplier→Buyer handover unless ownership/valuation policy and transit location contract are defined; accepted warehouse quantity posts once to sellable branch stock.
+- No new Edge Function. Restore the actual deployed stock-voucher endpoint sources to operational repo before modifying them; Current/Edge_Functions snapshots are historical and incomplete.
+- Master CTO Governance §77.2 requires showing exact code/SQL, impacts, dependencies, acceptance tests and rollback, then obtaining explicit approval on that exact changeset. Policy approval under §77.4 is not code/DDL approval.
+
+## 5. Next single priority
+
+Recover and reconcile the five deployed stock-voucher Edge function sources (create/send/receive/complete/cancel) into the operational repository, then prepare one exact Procurement Custody changeset for buyer-vehicle assignment, supplier handover, warehouse receiving, supplier return transit, cash proof and payment_method. Do not mutate Production or deploy until the exact SQL/diff and rollback/tests are presented and expressly approved.
+
+## 6. Evidence report
+
+Full 13-section report: doc/Draft/Reprots/Report584_BUYER_TABS_PROCUREMENT_CUSTODY_EVIDENCE_20261102.md.
+
+---
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-02-583 — Buyer Tabs / Vehicle Procurement Custody / Invoice Row Interaction
 
 **VERIFIED AT:** 2026-11-02 Africa/Cairo.  
