@@ -2649,3 +2649,16 @@ UNTIL RAWAEA ERP IS ACTUALLY COMPLETE.
 ## 77.3 Precedence and Preservation
 
 هذه القاعدة أحدث من أي صياغة سابقة في هذا الدستور أو التقارير توحي بالتنفيذ المباشر دون مراجعة المالك، وتُقرأ مع قواعد عدم لمس `companies/company-1/main.html`، وعدم إنشاء Edge Functions جديدة، والحفاظ على التطبيقات التشغيلية المستقلة. لا تُلغِ إصلاحًا سابقًا ولا تُرجع Migration سابقة لمجرد صدور هذه القاعدة؛ أي مراجعة أو rollback يحتاج تحقيقًا مستقلًا وموافقة المالك.
+
+
+# 77.4 OWNER EXPLICITLY ACCEPTED THE PROCUREMENT POLICY — 2026-11-02
+
+اعتمد المالك صراحةً عقد العمل المقترح للمشتريات:
+- Draft invoice: no inventory, treasury, supplier/customer balance, or journal effect.
+- Supplier quotation and PO lifecycle: no balance effect merely from creation, approval, acceptance, or conversion.
+- Quick invoice without PO: no stock/accounting posting until actual receipt and approved receiving evidence are proven.
+- Posted / PartiallyPaid / Paid invoices are not deletable; corrections require the approved cancellation/reversal and audit path.
+- Draft edit/delete remains permission- and status-controlled, through an approved central contract.
+- Payment posting affects treasury and supplier balances only after actual cash/instrument handover is proven and documented.
+
+هذا اعتماد للسياسة الملزمة وليس موافقة تنفيذية عامة على أي كود أو SQL أو Migration أو Production action. تظل بوابة المراجعة والموافقة المحددة في 77.2 نافذة لكل تغيير مؤثر. ولا يجوز تفسير هذا الاعتماد على أنه إقرار بأن مسارات Production الحالية متوافقة بالفعل؛ يجب إثبات ذلك بالتحقيق والاختبار.
