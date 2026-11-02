@@ -1,3 +1,44 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-592 — Sales Authorization & Permission Source Contracts
+
+**VERIFIED AT:** 2026-11-03.  
+**Starting LAST VERIFIED EVENT:** LVE-591.
+
+## 1. Sales authorization findings
+
+- confirm-order v4 validates JWT, active user, company and order status, then directly updates orders to Confirmed. It does not check orders/telesales permission. Parent main.html calls it. Source contract gap CONFIRMED; HTTP execution by unauthorized user UNVERIFIED.
+- create-runsheet v26 and append-to-runsheet v8 are consumed by Parent main.html. Their Edge wrappers and create_runsheet_atomic / append_orders_to_runsheet_atomic validate company/order/runsheet state but do not enforce effective permission. Reconfirmed from LVE-590.
+- delete-order v10 checks owner/manager/supervisor and draft-order permissions.
+- update-order v6 builds effective permissions from users.permissions + roles.permissions + role_permissions and checks orders/telesales.
+- save-customer v4 and delete-customer v3 check customers or *.
+- sales-return-management v2 delegates to RPCs that check active same-company actor and * or return.
+- sales-quotes v2 delegates to rawaea_quote_actor_ok, which checks * or orders.
+- sales-target-engine v2 delegates to gateway with read/manage/approve permission tiers.
+- save-sales-invoice v19 and sales-payment-allocation v2 enforce effective source/finance permissions.
+
+## 2. Permission-source conflict
+
+- Some paths build effective permissions from users + roles + role_permissions (e.g. update-order, save-sales-invoice).
+- Other paths check only users.permissions (e.g. save-customer/delete-customer, sales-return-management RPCs, rawaea_quote_actor_ok, sales_target_engine_gateway).
+- Implementation divergence CONFIRMED. Practical effect on users inheriting permissions only through roles is UNKNOWN until user/role data and synchronization triggers are reconciled.
+- Accountant cash voucher UI retains pending payload and operation_id in sessionStorage for retry; preserve this idempotency behavior while adding server-side finance permission.
+
+## 3. Status
+
+- No source, DB, Edge, PR, or deployment mutation occurred in LVE-592.
+- No unauthorized HTTP calls or business transactions were executed.
+- PR #10 remains Draft/unmerged.
+- Runtime behavior remains UNVERIFIED.
+
+## 4. Next priority
+
+Prepare one owner-reviewed permission matrix and exact source/RPC changes for confirm-order, create-runsheet, append-to-runsheet, and role-derived permission consistency. Preserve existing effective-permission helpers; do not create a parallel permission engine. Exact approval under Master §77.2 is required before any Production change.
+
+**Arabic report:** doc/Draft/Reprots/Report592_CTO_SALES_AUTHORIZATION_AND_PERMISSION_CONTRACT_AUDIT_20261103.md  
+**Report commit:** 4f97a96672958bcd7bbf2d31c4275f3bf5946ca3  
+**Status:** SALES AUTHORIZATION GAPS CONFIRMED / ROLE-INHERITANCE EFFECT UNKNOWN / RUNTIME UNVERIFIED / NOT CLOSED.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-591 — Finance Authorization & Data Access
 
 **VERIFIED AT:** 2026-11-03.  
