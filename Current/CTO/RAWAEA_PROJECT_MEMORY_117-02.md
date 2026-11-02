@@ -1,3 +1,37 @@
+## LVE-585 — 2026-11-02 — Owner correction: quick purchases, cash custody and purchasing-car stock
+
+**This is the latest verified business definition and supersedes conflicting interpretations in earlier summaries/reports.**
+
+### Owner-defined workflows
+- **Buyer vehicle balance:** all physical goods currently in the purchasing officer's car, by item and quantity, regardless of whether loaded from warehouse, bought in the market and handed to the buyer, or issued from warehouse for an operational/customer need. It is not Driver stock, Van Sales stock, a mobile branch, a runsheet, or financial driver settlement.
+- **Buyer cash custody:** money physically in the purchasing officer's possession and accountability. Quick purchase expense needs supplier invoice/proof of amount paid plus warehouse receipt. Fuel needs petrol-station receipt. Transport needs ticket/receipt. Other expenses need appropriate evidence. The display is advisory and must separate submitted/pending/approved/rejected/returned cash and the amount still accountable. Expense approval must not automatically be a supplier AP payment.
+- **Buyer "فواتيري":** buyer's quick market purchase invoices; include supplier invoice image, item lines, quantities/prices/specifications and item photos; search/filter/detail view like PO/Parent Purchase Invoices. Keep current Draft edit/delete safeguards and barcode lookup.
+
+### LVE-585 current source/Production evidence
+- Operational Buyer source blob: 73d746571a10b1720bdd31631004abce0ac9afa1. Its invoice list is generic supplier invoices and lacks the quick-purchase scope and private invoice/item evidence. Existing Draft protections and barcode item lookup are strengths to retain.
+- Receiver source blob: 3111b5e801d1bc021cf18fd66d633fbdc54ac0d6; only PO queue/receive by PO code; no invoice-based quick market receipt.
+- purchase_invoice_details.notes exists but the current invoice create/update Draft RPCs do not persist per-line notes.
+- purchase_invoices.supplier_id is NOT NULL/FK suppliers; status constraint currently Draft/Posted/PartiallyPaid/Paid/Cancelled; no explicit quick-purchase/payment-source marker. No-PO invoices must not all be presumed quick market purchases.
+- purchase_post_invoice_atomic still rejects no-PO invoice posting with PURCHASE_QUICK_INVOICE_RECEIPT_REQUIRED.
+- Current custody expense model has no expense_type and requires PO-linked Draft invoice + supplier + PO receipt docs. Current review RPC posts Dr supplier AP (211), Cr employee custody (127), marks invoice Paid, and reduces supplier ledger. This is not the correct path for quick purchases already paid from the buyer's cash custody.
+- purchase_attachments company-only policy and broad authenticated/anon DML grants are not safe for invoice privacy. Private employee-documents bucket has no verified buyer-purchase subpath; public product-images is not appropriate for private invoices.
+- Existing stock-voucher core types: Transfer, DirectSale, DirectReturn, SupplierReturn. Custodian trigger requires same-company active direct-sales rep + van-sales for DirectSale/DirectReturn; Transfer vehicle guard requires a same-company delivery driver. Both registered vehicles are Delivery (CHV-2025-01 and VHL-0422). These types/assignments must not be repurposed for buyer custody.
+- Existing Branch→Supplier SupplierReturn remains intact.
+- Active COA inspected includes 121 Treasury, 124 Inventory, 127 Employee Custody, 211 Suppliers, etc.; exact fuel/transport/other expense account mappings remain UNKNOWN.
+
+### Accountability and control
+- Earlier Production buyer/custody/purchase migrations are present, including 20261031233331, 20261031233923, 20261031234921, 20261031235057, 20261101003952, 20261101005616, 20261101005849, 20261101010224, 20261102150516 and 20261102151137. Migration existence does not itself prove exact owner approval. Do not claim approval without its evidence.
+- LVE-585 was read-only (source fetches and SELECT queries). No Production rows, DDL, RLS/grants, RPCs, triggers, Edge deployment, app source or Cloudflare deployment were changed.
+- Master §77.2 requires an exact source/SQL changeset with impacts, dependencies, failures, tests and rollback followed by explicit owner approval before production-sensitive writes. Operational source remains owner-applied under the project governance.
+
+**Latest report:** doc/Draft/Reprots/Report585_BUYER_QUICK_PURCHASE_CUSTODY_PURCHASING_VEHICLE_CORRECTED_DESIGN_20261102.md  
+**Report blob:** 1bf56c28ef76f2ef6987a9e2644271a59fcfc192  
+**Report commit:** 7feaa2f5675d95fe527fb32009e5b243db2e9f1c
+
+**Next work:** prepare the exact integrated changeset for Buyer invoice scope/media/specification, secure attachment storage, quick invoice receiving in Receiver, separate purchasing vehicle assignment and central stock movements, and custody expense categories PURCHASE/FUEL/TRANSPORT/OTHER. Preserve PO, existing SupplierReturn, Driver/mobile stock and Parent. Test idempotency, partial receiving, AP isolation, custody balance, tenant/RLS and regressions. No Production write/deploy before exact owner approval.
+
+---
+
 # RAWAEA ERP — PROJECT MEMORY LEDGER 117-02
 
 ## 0. PURPOSE
