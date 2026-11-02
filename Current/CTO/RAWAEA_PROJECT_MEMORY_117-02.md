@@ -1,3 +1,27 @@
+## LVE-589 — 2026-11-03 — CTO Initialization / Procurement Authorization & Contract Conflicts
+
+- Re-read CURRENT_STATE first; starting LAST VERIFIED EVENT was LVE-588. Read permanent constitution (293 lines), Master CTO Governance (2,665 lines), and reviewed all 114 report files present in range 400–500; numbering duplicates exist and 490/491 files were not present. Report499 is the final daily revalidation in the range; Report500 is a mind map, not Production closure.
+- Operational repo current main HEAD 7a14d51b4d4c225240b215879abf6b77b99888d3. PR #10 remains Draft/unmerged, head 209c318f2324d741e61b0dceaf5253f830af8c2e, 3 ahead / 2 behind, only Buyer HTML changed.
+- Retrieved full Parent main.html through Git blob API: blob 53b5a9e9d0433a785c3d5471a9c0d68c25497882, 1,800,879 chars / 33,358 lines. Structural scan: 46 RW_ modules, 1,016 functions, 48 literal table references, 41 RPC references, 48 Edge endpoint references. Parent has separate RW_Purchases and RW_PurchaseGold; RW_PurchaseGold replaces RW_Purchases.renderOrders, while legacy purchase-pos remains a separate visible route.
+- Current core.js blob f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1, 1,008 lines; modules RW_Auth, RW_DB, RW_API, RW_UI, RW_ImageCache, RW_SW, RW_Realtime.
+- Production: 186 public tables, 297 public functions, 186 RLS-enabled tables, 247 public policies, 304 public triggers, 734 migrations, 100 Edge Functions.
+- save-purchase-order v22 is ACTIVE/verify_jwt=true and byte-identical to Git source.
+- receive-purchase v12 is ACTIVE/verify_jwt=true but checks JWT and company membership without effective warehouse/purchasing permission before calling receive_purchase_atomic through service_role. Backend authorization gap confirmed at source/contract level; no HTTP exploit test performed. Its deploy source is not in operational supabase/functions.
+- Receiver source uses purchase_order_details.eq('po_code', code), but Production purchase_order_details has po_id and no po_code. Source/schema conflict confirmed; runtime behavior untested. Receiver uses parseInt on numeric qty_ordered; fractional-unit impact remains unverified.
+- Parent legacy purchase-pos route remains reachable and RW_Purchases.savePO sends old orderHeader/itemsList payload without operation, while save-purchase-order v22 requires operation. Source contract conflict confirmed; no runtime E2E.
+- purchase_invoices and purchase_invoice_details grant authenticated DML under company-only ALL RLS; current_user_company_id does not check purchases permission. Direct DML bypass of central gateway is confirmed at ACL/RLS level. purchase_attachments has similarly broad company-only policy; private storage lacks a verified buyer-purchase invoice path.
+- Buyer and Parent CREATE_INVOICE omit stable operation_id; duplicate Draft on a fresh retry key remains a contract risk, not runtime-tested.
+- Supplier AP duplicate trigger is now CLOSED in live Production: one projection trigger remains and stored AP equals supplier_ledger net (3,970; difference zero). Do not reopen without new evidence.
+- Production current counts: purchase_invoices=3, details=6, purchase_attachments=0, buyer_custodies=0, advances=0, expenses=0, payments=0, purchase_orders=1, PO_details=1, receiving=0, receiving_details=0. Existing invoice/PO rows are explicit QA/test references; do not delete.
+- Staging is ACTIVE_HEALTHY but has no purchase_invoices/details or save-purchase-order/receive-purchase; not Buyer E2E-ready.
+- Cloudflare bot comments: rawaea-erp preview for 209c318 reports success; erp-frontend, rawaea-store and warehouse-supervisor project builds report failure. Served HTML/headers/runtime/E2E remain UNVERIFIED.
+- Migration lineage: Production ledger versions 20261102150516/20261102151137; operational Git files are timestamped 20261102160000/20261102162000. Function bodies match after formatting normalization, but migration version/name lineage is not one-to-one. No db push.
+- No source, DB, Edge, PR, or deployment mutation in LVE-589. Only documentation report/state/memory updates.
+- Report: doc/Draft/Reprots/Report589_CTO_INITIALIZATION_AND_LIVE_RECONCILIATION_20261103.md. Report commit 846d960f92851dd39c5248b7d4567ba94bc816fe. CURRENT_STATE commit ae037108f62be375bbf7d200922d18b57f2accc6.
+- Next priority: owner-review package for receive-purchase server authorization, Receiver po_id/quantity contract, legacy purchase-pos payload, invoice DML hardening preserving reads, and stable invoice operation_id. Keep PR #10 Draft; no Production write before exact owner approval.
+
+---
+
 ## LVE-588 — 2026-11-02 — Buyer Workbench Live Revalidation / Invoice RLS-ACL Conflict
 
 - Revalidated operational repo live: main HEAD 7a14d51; PR #10 branch cto/buyer-field-workbench-lve-587 head 209c318; 3 ahead / 2 behind; PR remains Draft/unmerged. Two main commits after merge base are docs-only. The old 5ae94d7 / 2-ahead handoff is stale.
