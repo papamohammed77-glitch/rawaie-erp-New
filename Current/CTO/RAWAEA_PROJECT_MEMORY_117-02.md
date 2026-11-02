@@ -1,3 +1,16 @@
+## LVE-595 — 2026-11-03 — CTO Architecture & Operating Map
+
+- Consolidated the architecture from live source and Production: Parent ERP + 27 standalone PWAs + core.js + Supabase central DB/Edge/RPC + Cloudflare frontend hosting.
+- Current app repo main HEAD 7a14d51b4d4c225240b215879abf6b77b99888d3. 30 HTML files (index/app/main + 27 PWAs); core.js 1,008 lines/7 modules; main.html 33,358 lines/46 RW_ modules/1,016 functions/48 literal table refs/41 RPC refs/48 Edge refs.
+- Production: 186 public tables, 297 public functions, 186 RLS-enabled tables, 247 policies, 304 triggers, 734 migrations, 100 Edge Functions.
+- Table/function domain map consolidated in Report595: sales, procurement, inventory, warehouse, delivery, finance, HR, fleet, POS, loyalty, promotions, installments, commissions, assets, budgets, workflows, notifications and audit.
+- Critical open findings carried forward: LVE-589 procurement invoice RLS/Receiver/purchase-pos; LVE-590 warehouse/delivery/settlement permissions and vehicle stock; LVE-591 finance authorization; LVE-592 confirm-order/Runsheet permissions; LVE-593 stock voucher/van setup/customer is_owner schema; LVE-594 effective permission and Sales Quotes role mismatch.
+- No source, DB, Edge, PR, or deployment mutation.
+- Report: doc/Draft/Reprots/Report595_RAWAEA_ERP_CTO_ARCHITECTURE_AND_OPERATING_MAP_20261103.md. Report commit 1fe2b9e2d96c54a6290f2086651aac6d88158a19. CURRENT_STATE commit 4c562181f0573c155faf7bd5c1b178ce9dc436ae.
+- Phase 1 advanced but not complete. Remaining: full Edge/RPC consumer/data-effect graph, migration lineage, Staging parity, served Cloudflare artifact, safe E2E. Do not issue completion signal until these are resolved or explicitly bounded by owner.
+
+---
+
 ## LVE-594 — 2026-11-03 — Effective Permission Model & User Schema
 
 - public.get_my_effective_profile() SECURITY DEFINER unions users.permissions, roles.permissions, role_permissions.permission_key; isOwner is derived from auth metadata + owner_profile + wildcard. public.users has no is_owner.
