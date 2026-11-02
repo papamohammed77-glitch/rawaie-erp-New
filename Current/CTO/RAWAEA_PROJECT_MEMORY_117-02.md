@@ -1,3 +1,20 @@
+## LVE-588 — 2026-11-02 — Buyer Workbench Live Revalidation / Invoice RLS-ACL Conflict
+
+- Revalidated operational repo live: main HEAD 7a14d51; PR #10 branch cto/buyer-field-workbench-lve-587 head 209c318; 3 ahead / 2 behind; PR remains Draft/unmerged. Two main commits after merge base are docs-only. The old 5ae94d7 / 2-ahead handoff is stale.
+- Current Buyer blob 100987d; nine tab actions retained, zero cost_price references, one inline script parses, seven source-algorithm search cases pass against 30 active Production items. PO CREATE now sends operation_id from 209c318.
+- Buyer CREATE_INVOICE for a new invoice still sends no client operation_id; Edge generates a new UUID per request, so a retry with a new request key can create another Draft. The DB invoice operation_id unique index only deduplicates the same key.
+- Existing line editors turn blank price into 0 through Number(el.value); preConfirm does not revalidate each line, and DB accepts zero. This behavior is also present on main, so it is pre-existing, not introduced by PR.
+- Owner LVE-585 definition of «فواتيري» remains quick-market purchase register with invoice/item evidence and line specs. Current PR filters creator only; schema has no invoice_type/source marker, and no invoice photo or per-line notes path is implemented.
+- Critical Production conflict: purchase_invoices and purchase_invoice_details have permissive ALL company-only RLS policies and authenticated effective SELECT/INSERT/UPDATE/DELETE. current_user_company_id returns company_id for any non-Inactive user, without purchases permission check. This permits direct invoice DML outside the central Edge/RPC workflow and conflicts with owner §77.4. Do not change grants/RLS until full consumer scan and exact owner approval.
+- Parent main.html directly reads purchase_invoices and purchase_invoice_details for views/returns, but uses Edge API for invoice create/post; preserve SELECT if future DML hardening is approved.
+- Production Edge save-purchase-order v22 remains active and byte-identical to Git; currency EGP. Migration ledger has 734 entries, latest 20261102150516 and 20261102151137; matching SQL source files not located at expected paths.
+- Production logs: 11,637 HTTP 200 and two ~160s 504s in 24h, without execution_id/version or matching function error logs; root cause unknown.
+- rawaea-staging is active but not Buyer-ready: no save-purchase-order Edge function and no purchase_invoices/details tables. Cloudflare reports rawaea-erp preview build success for 209c318, but served artifact/browser E2E remain unverified.
+- No code, DB, RLS/grants, Edge, merge, or deployment writes in this run. PR #10 remains Draft. Next: exact owner-reviewed invoice contract remediation, consumer scan, staging parity, then E2E.
+- Report: doc/Draft/Reprots/Report588_BUYER_FIELD_WORKBENCH_DAILY_REVALIDATION_20261102.md
+
+---
+
 ## LVE-587 — 2026-11-02 — Buyer field workbench source patch
 
 - Recovered current governance, Buyer commit history and Reports569/570/571/585. Preserved LVE-582/583 invoice tabs/history/detail row handler, Draft edit/delete, currency, auth, gateway, realtime and all nine current tabs.
