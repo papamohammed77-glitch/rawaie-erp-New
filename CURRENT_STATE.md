@@ -1,3 +1,60 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-589 — CTO Initialization / Procurement Authorization & Contract Conflicts
+
+**VERIFIED AT:** 2026-11-03.  
+**LAST VERIFIED EVENT:** Re-read the permanent operating constitution and Master CTO Governance; fetched and reviewed the 114 report files present in range 400–500, Report500 mind map, Report585 owner definitions, Report588 current checkpoint, and project memory 117-02. Re-fetched operational Git, PR #10, Production SMART ERP, Staging, active Edge versions, schema/RLS/ACL, migration ledger, and Cloudflare bot comments. No operational or Production mutation was performed.
+
+## 1. Current objective and starting point
+
+- Starting checkpoint was LVE-2026-11-02-588 from this file.
+- Operational repo: papamohammed77-glitch/erp-frontend, main HEAD 7a14d51b4d4c225240b215879abf6b77b99888d3.
+- Governance/report repo: papamohammed77-glitch/rawaie-erp-New, main HEAD before this update 0df0738d308b8e77117ceca8889eeb9b2e1412f6.
+- PR #10 remains OPEN / DRAFT / UNMERGED; branch cto/buyer-field-workbench-lve-587 at 209c318f2324d741e61b0dceaf5253f830af8c2e; 3 ahead / 2 behind; only Buyer HTML changed.
+- Last completed Buyer micro-change retained: LVE-583 invoice row-click detail handler. Do not repeat it.
+
+## 2. Newly confirmed source/Production conflicts
+
+- receive-purchase v12 is ACTIVE / verify_jwt=true, but the Edge verifies user/company without checking effective warehouse/purchasing permission before invoking receive_purchase_atomic through service_role. The RPC is SECURITY DEFINER and direct execute is service_role-only. Server-side permission gap is CONFIRMED at source/contract level; HTTP exploit execution remains UNVERIFIED.
+- Receiver source companies/company-1/warehouse/receiver.html queries purchase_order_details.eq('po_code', code), but Production purchase_order_details has po_id and no po_code. Source/schema conflict CONFIRMED; runtime failure not directly tested.
+- Receiver parses received quantities with parseInt while Production qty_ordered is numeric. Fractional-unit truncation is a confirmed source behavior; business impact depends on whether fractional receiving is supported.
+- Parent main.html still exposes legacy purchase-pos. RW_Purchases.savePO sends legacy orderHeader/itemsList without operation, while deployed save-purchase-order v22 requires operation. Source contract conflict CONFIRMED; runtime behavior UNVERIFIED.
+- invoice header/details have authenticated SELECT/INSERT/UPDATE/DELETE privileges and company-only ALL RLS policies. current_user_company_id returns company_id for any non-Inactive authenticated user, without purchases permission. Direct DML bypass of central invoice workflow is CONFIRMED at ACL/RLS level; HTTP write execution was not attempted.
+- purchase_attachments has company-only ALL policy; private employee-documents storage has buyer-custody path rules but no verified buyer-purchases invoice path.
+- Buyer and Parent new invoice creation omit stable operation_id; Edge generates a fresh UUID per request. Duplicate draft after retry is possible at contract level; no retry write was tested.
+- Buyer «فواتيري» remains creator-filtered UI, not explicit quick-market source classification. Production purchase_invoices has no invoice_type/source/quick_market marker.
+
+## 3. Current Production facts and closed work
+
+- Production SMART ERP fiilmooggumokxanwiyx; 186 public tables, 297 public functions, 186 RLS-enabled tables, 247 public policies, 304 public triggers, 734 applied migrations, 100 Edge Functions.
+- save-purchase-order v22 is ACTIVE / verify_jwt=true and byte-identical to operational Git source.
+- receive-purchase v12 is ACTIVE / verify_jwt=true; source lineage is absent from operational supabase/functions and must be recovered/matched before any change.
+- Current system currency in app_settings and purchase_settings is EGP.
+- Current data snapshot: purchase_invoices=3; invoice_details=6; purchase_attachments=0; buyer_custodies=0; advances=0; expenses=0; payments=0; purchase_orders=1; PO_details=1; receiving=0; receiving_details=0. The existing invoice/PO rows are labeled QA/test references; do not delete them.
+- Supplier AP duplicate-trigger issue from LVE-578 is now closed in live Production: only supplier_ledger_sync_accounts_payable remains, and supplier accounts_payable matches supplier_ledger net at 3,970 with zero difference.
+- Staging hfzznsiprnwkpayskzhu is ACTIVE_HEALTHY but has 62 migrations, no purchase_invoices/details tables and no save-purchase-order/receive-purchase functions; not Buyer E2E-ready.
+- Production migration ledger latest: 20261102150516 and 20261102151137. Operational Git contains related function migrations under timestamps 20261102160000 and 20261102162000; function bodies match Production after formatting normalization, but version/name lineage is not one-to-one. Do not run db push.
+
+## 4. Deployment evidence and limits
+
+- GitHub Cloudflare bot reports rawaea-erp preview build success for commit 209c318 at https://d936b351.rawaea-erp.pages.dev.
+- The same commit has Cloudflare bot build-failed comments for erp-frontend, rawaea-store and warehouse-supervisor projects.
+- Served HTML, headers/cache, production origin mapping, Console/Network and authenticated Browser E2E remain UNVERIFIED. Browser context was unavailable; preview URL could not be opened with available web access.
+
+## 5. Procurement policy and change control
+
+- Owner policy Master §77.4 remains binding: Draft/PO lifecycle has no inventory/treasury/AP/GL effect merely from document creation; quick invoice without PO requires actual approved receipt before posting; Posted/PartiallyPaid/Paid cannot be deleted; cash payments require actual handover proof.
+- Master §77.2 requires the exact diff/SQL, business effects, dependencies, tests and rollback to be presented and explicitly approved before any Production-sensitive change.
+- No code, DDL, DML, RLS/grant, RPC, trigger, Edge deployment, merge or Cloudflare publish occurred in LVE-589.
+
+## 6. Next priority
+
+Prepare one owner-review package for procurement authorization and contract integrity: receive-purchase server-side permission check, Receiver po_id query/quantity contract, legacy purchase-pos payload compatibility, invoice DML hardening preserving SELECT consumers, and stable invoice operation_id. Keep PR #10 Draft. Do not execute the package before explicit owner approval.
+
+**Arabic report:** doc/Draft/Reprots/Report589_CTO_INITIALIZATION_AND_LIVE_RECONCILIATION_20261103.md  
+**Report commit:** 846d960f92851dd39c5248b7d4567ba94bc816fe  
+**Status:** INITIALIZATION ADVANCED / PROCUREMENT SECURITY & CONTRACT CONFLICTS OPEN / RUNTIME UNVERIFIED / NOT CLOSED.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-02-588 — Buyer Workbench Revalidation / Invoice RLS-ACL Conflict
 
 **VERIFIED AT:** 2026-11-02 Africa/Cairo.  
