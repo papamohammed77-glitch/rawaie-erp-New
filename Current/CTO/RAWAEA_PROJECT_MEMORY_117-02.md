@@ -1,3 +1,20 @@
+## LVE-591 — 2026-11-03 — Finance Authorization & Data Access
+
+- Audited high-impact financial Edge/RPC paths after LVE-590.
+- save-journal-entry v8: JWT + active company only; no finance permission; service_role calls post_journal_entry.
+- save-payment-voucher v7: JWT + company + branch + treasury only; no finance permission; userClient calls finance_save_expense. Both SECURITY DEFINER overloads of finance_save_expense are executable by authenticated and check company context/period/accounts but not finance permission.
+- save-receipt-voucher v8: generic receipt path has no finance permission and calls service_role-only post_cash_receipt_atomic. Van Sales collection path is more restricted because post_van_sales_collection_atomic validates current user's direct-sales role and customer assignment.
+- save-transfer-voucher v4: no finance permission; service_role-only post_treasury_transfer_atomic.
+- update-driver-ledger v2: no finance/driver-ledger permission; service_role-only post_driver_ledger_entry.
+- get-cash-flow v1: JWT only; get_cash_flow callable by authenticated, company scoped through current_user_company_id, no finance permission. Edge service_role context may return empty due missing auth.uid; Runtime not tested.
+- post_journal_entry, post_cash_receipt_atomic, post_treasury_transfer_atomic, post_driver_ledger_entry are service_role-only; their Edge wrappers are the effective security boundary.
+- Positive patterns: save-sales-invoice v19 and sales-payment-allocation v2 enforce effective permissions.
+- Findings CONFIRMED at source/RPC contract level; no HTTP exploit or financial write performed. No DDL/DML/ACL/Edge/deployment/merge.
+- Report: doc/Draft/Reprots/Report591_CTO_FINANCE_AUTHORIZATION_AND_DATA_ACCESS_AUDIT_20261103.md. Report commit 28926bbed61c39d39cff3d9e53a49b88ea8508c6. CURRENT_STATE commit c6278354deea37ec4ed5add81b862985490b716e.
+- Next priority: owner-approved Finance Authorization Matrix and exact permission changes for manual journals, expenses, generic receipts, treasury transfers, driver ledger, and cash-flow access; keep Van Sales collection separate. Explicit owner approval required.
+
+---
+
 ## LVE-590 — 2026-11-03 — Cross-Module Authorization & Inventory Effects
 
 - Starting point LVE-589. Reviewed high-impact Edge/RPC flows beyond Buyer.
