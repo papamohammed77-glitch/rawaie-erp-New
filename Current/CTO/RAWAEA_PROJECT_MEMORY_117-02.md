@@ -1,3 +1,18 @@
+## LVE-594 — 2026-11-03 — Effective Permission Model & User Schema
+
+- public.get_my_effective_profile() SECURITY DEFINER unions users.permissions, roles.permissions, role_permissions.permission_key; isOwner is derived from auth metadata + owner_profile + wildcard. public.users has no is_owner.
+- No trigger syncs role permissions into users.permissions; only roles updated_at trigger exists.
+- Active System Manager has users.permissions=["*"].
+- Active General Manager direct permissions omit finance/orders/pos/purchases/warehouse, but role_permissions adds those keys and get_my_effective_profile includes them.
+- rawaea_quote_actor_ok checks direct users.permissions for * or orders; therefore General Manager's effective orders permission is not recognized. Source/DB conflict confirmed; runtime denial untested.
+- Sales-return checks return directly (present), sales-target checks general_manager directly (present); do not overgeneralize.
+- Correction: save-customer v4/delete-customer v3 select public.users.is_owner, absent in Production; helper returns derived isOwner. Source/schema conflict confirmed; runtime untested.
+- No role/user permission data or source/DB changes.
+- Report: doc/Draft/Reprots/Report594_CTO_EFFECTIVE_PERMISSION_MODEL_AND_USER_SCHEMA_RECONCILIATION_20261103.md. Report commit 47031788182e8d1be33a29ae6b0c8e1c7e7fb922. CURRENT_STATE commit 2cffe5bdf5a259a717fafd745ffd251e550e187b.
+- Next: reconcile direct-permission consumers with get_my_effective_profile, starting with sales quotes and customer actor lookup; no new permission engine or is_owner column.
+
+---
+
 ## LVE-593 — 2026-11-03 — Stock Voucher & Van Setup Authorization
 
 - create-stock-voucher v17: legacy 10-arg create_manual_stock_voucher_atomic fallback (when operation_id and rep_id absent) accepts allowed_branch_ids NULL/empty/"*" without distinct stock-voucher permission. Current UI sends operation_id and uses stronger 12-arg overload; fallback remains callable.
