@@ -1,3 +1,46 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-595 — CTO Architecture & Operating Map
+
+**VERIFIED AT:** 2026-11-03.  
+**Starting LAST VERIFIED EVENT:** LVE-594.
+
+## 1. Consolidated architecture
+
+- RAWAEA is Parent ERP + 27 standalone operational PWAs + shared core.js + Supabase central DB/Edge/RPC + Cloudflare-hosted frontends.
+- Current operational repo: papamohammed77-glitch/erp-frontend, main HEAD 7a14d51b4d4c225240b215879abf6b77b99888d3.
+- 30 HTML files under companies/company-1: index/app/main + 27 standalone apps.
+- core.js: 1,008 lines, seven shared modules.
+- Parent main.html: 33,358 lines, 46 RW_ modules, 1,016 functions, 48 literal table refs, 41 RPC refs, 48 Edge refs (static scan only).
+- Production SMART ERP: 186 public tables, 297 public functions, 186 RLS-enabled tables, 247 policies, 304 triggers, 734 migrations, 100 Edge Functions.
+- Table/function domain map and current module architecture are documented in Report595.
+
+## 2. Project vision and operational flows
+
+- Multi-channel FMCG/hypermarket distribution ERP: POS, Telesales, Order Taker, Van Sales, Online Store, procurement, warehouse, delivery, finance, HR, fleet, branches, customers, suppliers.
+- Parent is central command; PWAs are role-specific clients, not isolated systems.
+- Inventory, treasury, customer/supplier/driver ledgers, and accounting must follow actual business events and remain auditable.
+- No source/DB/runtime change occurred in LVE-595.
+
+## 3. Critical unresolved findings
+
+- LVE-589: invoice DML ACL/RLS bypass, Receiver po_code schema mismatch, legacy purchase-pos payload mismatch, procurement authorization and custody issues.
+- LVE-590: loading/receiving/delivery/settlement server authorization gaps and vehicle stock delivery/return movement gap.
+- LVE-591: finance Edge/RPC permission gaps for journal, expense, generic receipt, treasury transfer, driver ledger, cash-flow.
+- LVE-592: confirm-order and Runsheet create/append authorization gaps.
+- LVE-593: stock voucher create/send/delete/complete/cancel authorization gaps, Van Setup actor/target mismatch, customer Edge is_owner schema conflict.
+- LVE-594: get_my_effective_profile is effective permission source; Sales Quotes direct permission check conflicts with General Manager role_permissions; users.is_owner does not exist.
+- LVE-595: architecture map consolidated; complete dependency graph and runtime verification remain open.
+
+## 4. Phase 1 status
+
+ADVANCED / NOT COMPLETE. Do not issue “تم الفهم الكامل للمشروع”.
+Remaining: trace all 100 Edge Functions and 297 public functions to consumers and data effects; map all migrations; complete staging parity; inspect served Cloudflare artifact/headers; execute safe E2E for Sales/Warehouse/Delivery/Settlement and Procurement; obtain owner decisions on authorization matrix. No Production mutation before exact approval under Master §77.2.
+
+**Arabic report:** doc/Draft/Reprots/Report595_RAWAEA_ERP_CTO_ARCHITECTURE_AND_OPERATING_MAP_20261103.md  
+**Report commit:** 1fe2b9e2d96c54a6290f2086651aac6d88158a19  
+**Status:** ARCHITECTURE MAP CONSOLIDATED / CRITICAL FINDINGS OPEN / INITIALIZATION NOT COMPLETE.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-594 — Effective Permission Model & User Schema
 
 **VERIFIED AT:** 2026-11-03.  
