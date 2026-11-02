@@ -1,3 +1,44 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-590 — Cross-Module Authorization & Inventory Effects
+
+**VERIFIED AT:** 2026-11-03.  
+**Starting LAST VERIFIED EVENT:** LVE-589.
+
+## 1. New critical findings
+
+- Cross-module server-side authorization gaps are confirmed at Edge/RPC contract level:
+  - create-runsheet v26 / create_runsheet_atomic: no effective permission check.
+  - append-to-runsheet v8 / append_orders_to_runsheet_atomic: no effective permission check.
+  - start-loading v6 / start_runsheet_loading: no warehouse/loader permission or assignment check.
+  - complete-loading v11 / complete_runsheet_loading: no loader_id/user match or permission check.
+  - unload-runsheet v6 / complete_runsheet_unloading: no unloader assignment or warehouse permission check.
+  - receive-purchase v12: no effective receiving/purchasing permission check.
+  - complete-delivery v4: no deliverer_id/permission check.
+  - complete-order-delivery v14 / complete_order_delivery_atomic: no deliverer assignment or effective delivery permission check.
+  - save-daily-settlement v4 / post_daily_settlement_atomic: no driver/settlement permission or assignment check.
+- Positive controls: start-picking v35 and complete-picking v18 check warehouse permission; start-return/complete-return check warehouse permission; save-sales-invoice v19 builds effective permissions; save-purchase-order v22 checks permission per operation; delivery_supervisor_assign_deliverer_atomic checks supervisor/fleet permission and target delivery permission.
+- cancel-delivery v5 checks driver_id, while delivery supervisor assignment and driver.html use deliverer_id. Source contract conflict confirmed.
+- Delivery completion path does not post a stock movement in complete_order_delivery_atomic; no relevant triggers on orders/order_details/run_sheet_details were found.
+- complete_return_atomic posts SalesReturn from NULL to main branch and does not decrement vehicle branch.
+- QA records: RS-1 Delivered with 13 loaded/13 delivered while its vehicle branch still holds 13; RS-2 Returned with 6 loaded/1 delivered/5 returned while its vehicle branch still holds 6. inventory_log has no Delivery/VanSale movement type. These are owner-created QA fixtures; do not treat as proven live business loss and do not delete them.
+- Runtime exploit tests and business E2E were not performed. Source/DB contract findings are CONFIRMED; actual runtime behavior is UNVERIFIED.
+
+## 2. Business impact and current state
+
+- Vehicle stock can remain overstated after delivery and may remain counted when returned stock is added to main; exact live impact must be validated against owner-approved fixture tests before any Production correction.
+- Daily settlement is a financial action; the UI's client-side driver_ledger check is not a substitute for server-side assignment/permission and ledger validation.
+- Deterministic payload-based operation keys prevent duplicate retries but can suppress a legitimate later partial receipt/delivery with identical payload. Require one stable operation_id per logical attempt, retained across retry and renewed for a new attempt.
+- No source, DB, Edge, data, PR or deployment mutation occurred in LVE-590; SELECT/read-only evidence only.
+
+## 3. Next priority
+
+Prepare owner-review package for Warehouse/Delivery/Settlement authorization and vehicle-stock reconciliation, alongside Procurement findings from LVE-589. Include server-side permission + assignment checks, cancel-delivery field alignment, atomic stock-out/return movements, stable idempotency keys, and isolated acceptance/rollback tests. Do not execute before explicit approval under Master §77.2.
+
+**Arabic report:** doc/Draft/Reprots/Report590_CTO_CROSS_MODULE_AUTHORIZATION_AND_INVENTORY_EFFECT_AUDIT_20261103.md  
+**Report commit:** 17ddb6567736ca14daf57df827bbcaf0af0654e0  
+**Status:** CRITICAL SOURCE/DB CONTRACT FINDINGS CONFIRMED / RUNTIME UNVERIFIED / NOT CLOSED.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-589 — CTO Initialization / Procurement Authorization & Contract Conflicts
 
 **VERIFIED AT:** 2026-11-03.  
