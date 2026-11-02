@@ -1,3 +1,46 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-02-587 — Buyer Field Workbench Source Patch
+
+**VERIFIED AT:** 2026-11-02 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Recovered Buyer source history and governing CTO files; read commits LVE-582/LVE-583 and related reports; re-read current Buyer and active purchasing Edge source; queried Production item/invoice schema and counts (SELECT only); committed a narrow Buyer HTML patch to feature branch and created Draft PR #10.
+
+**CONFIRMED SOURCE PATCH**
+- File: `companies/company-1/purchasing/buyer.html`
+- Base main HEAD: `aa8cbffbfa8d42253726381080dcfc24eaea838b`
+- Base Buyer blob: `73d746571a10b1720bdd31631004abce0ac9afa1`
+- Feature branch: `cto/buyer-field-workbench-lve-587`
+- Latest commit: `5ae94d769a22b540f852d235694ccf4969862cfc`
+- File blob: `ac8be3839e7c30689e757cb8ae61c2957a8063be`
+- Source length: 149,201 characters
+- Draft PR: https://github.com/papamohammed77-glitch/erp-frontend/pull/10
+
+**IMPLEMENTED ON FEATURE BRANCH**
+1. Mobile horizontal field navigation retains all nine original tab IDs/actions.
+2. Smart catalog search in quick invoice and PO forms uses existing company-scoped `items` cache: no empty-query list; Arabic normalization; name/code/barcode matching; exact barcode priority; up to 14 results; image/item-code/barcode/unit cards.
+3. Removed all `cost_price` references from Buyer. Actual unit purchase price is manually entered and required for line insertion; no automatic cost-price prefill.
+4. «فواتيري» client list now filters `purchase_invoices.created_by` against authenticated currentUser.email, consistent with Edge create-invoice assignment from user.email.
+5. Legacy quick-cart helper no longer displays or preloads `cost_price`.
+
+**VERIFIED**
+- All 6 inline JS blocks parse.
+- Zero `cost_price` references remain in Buyer.
+- Static checks: own-invoice creator filter; explicit manual-price validation; image card UI; blank-search guard; all tab IDs present; prior invoice row-click handler retained; Draft guards retained.
+- Actual Production item catalogue sample: 30 rows, all active, 20 barcodes, 29 images. Read-only test: one-character search matching only relevant items; full-name search finds canonical item; exact barcode resolves canonical record first; empty query returns no items.
+- Current invoice sample: 3 rows; `created_by` is text and sample creator is `owner@alrawae.com`.
+- Git compare: 2 commits ahead, 0 behind; exactly one changed file (Buyer HTML), 140 additions / 33 deletions.
+
+**NOT CHANGED**
+No main merge, deployment, Cloudflare publish, Browser E2E, Edge/RPC/SQL/RLS/ACL, production data, stock, treasury, supplier AP, GL, Receiver, parent main.html, or shared core.js change. No business balance effect.
+
+**KNOWN LIMITS / OPEN**
+- GET_DATA remains max 500; no server-side search/pagination in this patch.
+- Current «فواتيري» scope is Buyer display filtering; Edge still returns company-scoped invoices to authorized Buyer, not a new server-side owner-only endpoint.
+- Private invoice/item media, line specifications, quick-market seller contract, Receiver intake, buyer cash custody redesign and buyer-car canonical movement ledger remain open.
+- Exact patch is held in Draft PR #10 under Master CTO §77.2; do not merge/deploy before owner explicitly approves this exact changeset.
+
+**REPORT:** [Report587](doc/Draft/Reprots/Report587_BUYER_FIELD_WORKBENCH_EXECUTION_20261102.md)
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-02-586 — Buyer Gold/Diamond Field Product Upgrade Review
 
 **VERIFIED AT:** 2026-11-02 Africa/Cairo.
