@@ -1,3 +1,57 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-02-581 — Owner Approved Procurement Policy / Driver Balance & Vehicle Stock Read-Only Review
+
+**VERIFIED AT:** 2026-11-02 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Owner explicitly approved the six-part procurement posting policy. Read-only source review of delivery `driver.html` completed. No operational application, Edge Function, RPC, Production schema, or Production data was modified.  
+**STATUS:** PROCUREMENT POLICY OWNER-APPROVED / DRIVER SOURCE REVIEWED READ-ONLY / BUYER CUSTODY ALREADY EXISTS / OPERATIONAL CHANGES NOT AUTHORIZED BY THIS POLICY APPROVAL.
+
+## 1. Binding owner approval — CONFIRMED
+
+Owner approved:
+1. Draft invoices have no stock, treasury, supplier/customer balance, or journal effect.
+2. Supplier quotations and POs have no balance effect merely from creation, acceptance, approval, or conversion.
+3. Quick invoices without PO cannot post stock/accounting until actual physical receipt and approved receiving evidence.
+4. Posted / PartiallyPaid / Paid invoices cannot be deleted; corrections use approved cancellation/reversal with audit trail.
+5. Draft edit/delete is restricted by permissions, status, and central audited contract.
+6. Payment affects treasury/supplier balance only after actual cash or accepted equivalent instrument is handed over and evidenced.
+
+This is policy approval, not blanket approval for source, RPC, Edge, migration, deployment, or Production changes. Every consequential change still requires its own reviewed change set and explicit approval.
+
+Recorded in:
+- `doc/Draft/Reprots/الدستور التشغيلي الدائم.md` section 6.3.
+- `doc/Draft/Reprots/MASTER CTO GOVERNANCE & CONTINUOUS EXECUTION OS — RAWAEA ERP.md` section 77.4.
+- `doc/Draft/Reprots/Report581_DRIVER_BALANCE_VS_BUYER_CUSTODY_READ_ONLY_20261102.md`.
+
+## 2. Delivery Driver source review — CONFIRMED
+
+- File: `companies/company-1/delivery/driver.html`
+- Operational repo: `papamohammed77-glitch/erp-frontend`, branch `main`.
+- Blob SHA: `92ae03678b6516345a61d30bb5967046096d8cce`.
+- `رصيد السيارة` reads `run_sheet_details`; its displayed remaining quantity is `qty_loaded - qty_delivered`. It is a run-specific vehicle stock custody view, not branch stock.
+- `رصيدي` reads run-linked `orders` and `order_details`; calculates loaded/delivered/returned goods values and expected cash remittance for cash orders (delivered goods + delivery fee + tax), while separating credit and unknown payment types.
+- This `cashToSubmit` is calculated expectation, not evidence of actual cash receipt. It must not be posted to treasury merely because the UI displays it.
+- Some currency labels are hardcoded as EGP despite settings loading currency from `app_settings`; currency display consistency remains to be verified.
+- Driver file was read-only: no write, commit, DB mutation, or deployment.
+
+## 3. Buyer comparison — CONFIRMED from current Buyer source
+
+- Buyer already has `custody` tab and `renderCustody()`.
+- It represents actual employee cash custody: initial issue, acknowledged receipt, additional advances, supporting invoice + receiving document submission, finance review, and settlement/cash return.
+- This is conceptually related to driver accountability but not identical: Driver `رصيدي` is expected sales cash + goods reconciliation; Buyer `عهدتي` is cash actually advanced to employee, expense evidence, and return/settlement.
+- No duplicate custody tab should be created. Any future changes should build on the existing Buyer workflow and verify its Gateway/RPC contracts.
+
+## 4. Changes and tests
+
+- Governance documentation updated to record the owner's approval.
+- Read-only driver source review completed.
+- No changes to `driver.html`, `buyer.html`, `main.html`, Edge Functions, RPCs, triggers, Production schema, or Production business data.
+- No authenticated UI E2E or live reconciliation test was run.
+
+## 5. Next exact step
+
+Review the Buyer custody Gateway/RPC contracts (`GET_CUSTODY`, `ISSUE_CUSTODY`, `ADD_CUSTODY_ADVANCE`, `ACKNOWLEDGE_CUSTODY`, `SUBMIT_CUSTODY_EXPENSE`, `REVIEW_CUSTODY_EXPENSE`, `SETTLE_CUSTODY`) against the approved physical-handover policy. Prepare any source/Production change as a separate surgical change set and obtain explicit approval before execution.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-02-580 — Owner Approval Gate / Physical Handover Rule / Buyer Forensic Review
 
 **VERIFIED AT:** 2026-11-02 Africa/Cairo.  
