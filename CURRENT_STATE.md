@@ -1,3 +1,43 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-02-579 — Supplier AP Single Writer / Legacy Trigger Retirement
+
+**VERIFIED AT:** 2026-11-02 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Production migrations 20261102142016 and 20261102142201 applied; `supplier_ledger` now has one active AP trigger only, the canonical sum-based writer locks affected supplier rows in deterministic UUID order, and the orphaned legacy SECURITY DEFINER trigger function is dropped. SQL rollback E2E passed INSERT / UPDATE / supplier reassignment / DELETE; test residue 0. Supplier AP remains reconciled at 3,970.00 with 0 mismatches.  
+**STATUS:** SUPPLIER AP DUPLICATE WRITER CLOSED IN PRODUCTION / SINGLE WRITER CONFIRMED / SQL ROLLBACK E2E PASS / MULTI-SESSION CONCURRENCY UNVERIFIED / BUYER CLOUDFLARE + AUTHENTICATED UI E2E OPEN / NOT FULL BUYER CLOSURE.
+
+## 1. Current operational truth
+
+- Operational repository: `papamohammed77-glitch/erp-frontend`, branch `main`.
+- Current operational HEAD: `d03a2788447b78353d91a4ae7811e5ed28c6b991`.
+- Latest operational commit parent: `0b02a33d5c05cfb67c6254da589e4752047d4ab6`.
+- Parent of the first LVE-579 operational commit: `40bd00c91f8c52260d867f5cf020104c9e71c161` (LVE-578 verified HEAD).
+- Production project: SMART ERP — `fiilmooggumokxanwiyx`, ACTIVE_HEALTHY, PostgreSQL 17.6.1.121.
+- Production migration 20261102142016: `supplier_ap_single_writer_locking_and_legacy_trigger_retirement`.
+- Production migration 20261102142201: `drop_orphaned_legacy_supplier_ap_definer_function`.
+- Git migration files:
+  - `supabase/migrations/20261102142016_supplier_ap_single_writer_locking_and_legacy_trigger_retirement.sql`
+  - `supabase/migrations/20261102142201_drop_orphaned_legacy_supplier_ap_definer_function.sql`
+- Current Supplier AP trigger: exactly one — `supplier_ledger_sync_accounts_payable` → `app_private.sync_supplier_accounts_payable()`.
+- Old trigger `trg_sync_supplier_accounts_payable` is absent; old function `public.sync_supplier_accounts_payable_from_ledger()` is absent.
+- Canonical trigger function: SECURITY DEFINER, empty search_path, anon EXECUTE=false, authenticated EXECUTE=false; locks affected supplier rows in sorted UUID order before recalculating SUM(credit-debit).
+- Supplier AP snapshot after repair: stored total 3,970.00; ledger total 3,970.00; mismatches 0; test residue 0.
+- SQL rollback test passed INSERT, UPDATE, supplier_id reassignment (old and new suppliers), and DELETE.
+- No parent `main.html`, Buyer UI, Edge Function, stock, journal, or existing supplier transaction data was changed.
+- Staging project `rawaea-staging` does not contain the Supplier AP trigger contract; it was not treated as valid AP staging evidence.
+- Multi-session concurrency test remains UNVERIFIED; the locking algorithm is implemented but has not been exercised by two independent concurrent sessions.
+- Cloudflare Pages served artifact and authenticated Buyer browser E2E remain UNVERIFIED.
+- Supabase Production Security Advisors after cleanup: 24 RLS-enabled tables without policies; 18 anon-executable SECURITY DEFINER functions; 128 authenticated-executable SECURITY DEFINER functions; 1 mutable search_path function (`public.sales_decision_default_policy`); leaked-password protection disabled. These are project-wide findings requiring per-object contract review; do not apply blanket REVOKE/RLS changes.
+- Latest Arabic report: `doc/Draft/Reprots/Report579_SUPPLIER_AP_SINGLE_WRITER_LOCKING_RETIREMENT_20261102.md`.
+
+## 2. Immediate next execution
+
+1. Run true multi-session concurrency tests for same-supplier inserts and two-supplier reassignment using independent sessions; verify exact AP reconciliation and deadlock behavior.
+2. Triage Security Advisor findings individually, beginning with exposed SECURITY DEFINER functions and tables with RLS enabled but no policies. Never apply blanket changes.
+3. Verify Cloudflare Pages artifact and authenticated Buyer browser E2E, including PO → Receiving → Invoice → Supplier Ledger / Journal and the full custody workflow.
+4. Do not repeat Buyer migration lineage, custody-payment tenant policy, TRUNCATE, or Supplier AP duplicate-trigger fixes; those are closed by current evidence.
+5. Keep `companies/company-1/main.html` untouched. Any required UI source change must be delivered to the owner as a precise surgical replacement.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-01-578 — Buyer Migration Lineage Reconciliation / Supplier AP Trigger
 
 **VERIFIED AT:** 2026-11-01 Africa/Cairo; latest Production SQL observation 2026-11-01 20:42:09 UTC.  
