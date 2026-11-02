@@ -1,3 +1,46 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-594 — Effective Permission Model & User Schema
+
+**VERIFIED AT:** 2026-11-03.  
+**Starting LAST VERIFIED EVENT:** LVE-593.
+
+## 1. Permission source of truth
+
+- public.get_my_effective_profile() is SECURITY DEFINER and unions users.permissions, roles.permissions, and role_permissions.permission_key into effective permissions.
+- It derives isOwner from auth.users.raw_user_meta_data.isOwner plus owner_profile and wildcard permission.
+- public.users has no is_owner column.
+- No trigger on users/roles/role_permissions synchronizes role permissions into users.permissions; roles only has updated_at trigger.
+
+## 2. Current role data conflict
+
+- Active System Manager has users.permissions=["*"].
+- Active General Manager has direct users.permissions including general_manager/return/customers/items/branches, but lacks finance/orders/pos/purchases/warehouse.
+- Those missing keys are present in role_permissions for General Manager and are included by get_my_effective_profile.
+- sales-quotes RPC helper rawaea_quote_actor_ok checks users.permissions only for * or orders. Therefore the current General Manager's effective orders permission is not recognized by this RPC. Source/DB conflict confirmed; runtime denial not directly tested.
+- sales-return-management checks return directly, which General Manager has directly; sales-target-engine checks general_manager directly, which is present. Do not overgeneralize the conflict.
+
+## 3. Customer Edge correction
+
+- save-customer v4 and delete-customer v3 query public.users.is_owner.
+- Production public.users has no is_owner; helper returns isOwner as a derived field.
+- This source/schema conflict is confirmed; runtime request was not executed.
+
+## 4. Status
+
+- No permission data, user roles, RPC, Edge, source, PR or deployment changed.
+- No login or business operation test performed.
+- PR #10 remains Draft.
+- Runtime remains UNVERIFIED.
+
+## 5. Next priority
+
+Reconcile all direct-permission RPC/Edge consumers against get_my_effective_profile, starting with sales-quotes and customer Edge actor lookup. Do not add a new permission engine or is_owner column; reuse the existing effective-profile source after owner review.
+
+**Arabic report:** doc/Draft/Reprots/Report594_CTO_EFFECTIVE_PERMISSION_MODEL_AND_USER_SCHEMA_RECONCILIATION_20261103.md  
+**Report commit:** 47031788182e8d1be33a29ae6b0c8e1c7e7fb922  
+**Status:** EFFECTIVE PERMISSION MODEL CONFIRMED / ROLE-ONLY SALES QUOTE CONFLICT CONFIRMED / CUSTOMER SCHEMA CONFLICT CONFIRMED / RUNTIME UNVERIFIED.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-593 — Stock Voucher & Van Setup Authorization
 
 **VERIFIED AT:** 2026-11-03.  
