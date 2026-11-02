@@ -1,3 +1,20 @@
+## LVE-587 — 2026-11-02 — Buyer field workbench source patch
+
+- Recovered current governance, Buyer commit history and Reports569/570/571/585. Preserved LVE-582/583 invoice tabs/history/detail row handler, Draft edit/delete, currency, auth, gateway, realtime and all nine current tabs.
+- Changed only `companies/company-1/purchasing/buyer.html` on feature branch `cto/buyer-field-workbench-lve-587`; current main head remains base `aa8cbffbfa8d42253726381080dcfc24eaea838b`.
+- Latest commit `5ae94d769a22b540f852d235694ccf4969862cfc`; file blob `ac8be3839e7c30689e757cb8ae61c2957a8063be`.
+- Added mobile horizontal touch navigation; Picker-inspired image product cards; Arabic-normalized search of existing company-scoped items by name/code/barcode; exact barcode priority; empty query yields no list; up to 14 results.
+- Removed every `cost_price` reference from Buyer. Purchase price is manual in quick purchase invoice and PO entry; blank price is rejected.
+- «فواتيري» filters `created_by` against current authenticated email. Verified invoice creation passes user.email to DB created_by.
+- Production item sample: 30 active; 20 barcode, 29 images. All 6 inline scripts parse; zero cost_price refs; search checks pass for one-character, full name, exact barcode and empty query. Existing LVE-583 row details click and Draft guards retained.
+- Draft PR #10: https://github.com/papamohammed77-glitch/erp-frontend/pull/10.
+- No merge, Production deployment, Cloudflare publish, database/Edge/RPC/RLS/ACL, stock, custody or GL changes. Master CTO §77.2 approval gate remains in force. Current gateway GET_DATA still max 500; server-side pagination/search is not included.
+- Next: owner review of exact PR changeset, then browser/deployment verification after authorized merge. Subsequent separate units: invoice private media/specifications, backend catalog search/pagination, Receiver intake, cash custody and purchasing-car movement ledger.
+
+Report: `doc/Draft/Reprots/Report587_BUYER_FIELD_WORKBENCH_EXECUTION_20261102.md`
+
+---
+
 ## LVE-586 — 2026-11-02 — Buyer Gold/Diamond Field Product Upgrade
 
 **Status:** Review and product design documented; operational implementation not performed.
