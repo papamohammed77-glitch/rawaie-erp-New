@@ -1,3 +1,26 @@
+## LVE-590 — 2026-11-03 — Cross-Module Authorization & Inventory Effects
+
+- Starting point LVE-589. Reviewed high-impact Edge/RPC flows beyond Buyer.
+- Confirmed server-side permission/assignment gaps at contract level:
+  - create-runsheet v26 / create_runsheet_atomic: no effective permission check.
+  - append-to-runsheet v8 / append_orders_to_runsheet_atomic: no effective permission check.
+  - start-loading v6 / start_runsheet_loading: no warehouse/loader permission or assignment check.
+  - complete-loading v11 / complete_runsheet_loading: no loader assignment match or permission check.
+  - unload-runsheet v6 / complete_runsheet_unloading: no unloader assignment or warehouse permission check.
+  - receive-purchase v12: no effective receiving/purchasing permission check.
+  - complete-delivery v4: no deliverer assignment/permission check.
+  - complete-order-delivery v14 / complete_order_delivery_atomic: no deliverer assignment or effective delivery permission check.
+  - save-daily-settlement v4 / post_daily_settlement_atomic: no driver/settlement permission or assignment check.
+- Positive authorization patterns: start-picking v35, complete-picking v18, start-return/complete-return, save-sales-invoice v19, save-purchase-order v22, delivery_supervisor_assign_deliverer_atomic.
+- cancel-delivery v5 checks driver_id while driver.html and delivery_supervisor_assign_deliverer_atomic use deliverer_id.
+- complete_order_delivery_atomic changes delivered quantities but does not call post_stock_movement; complete_return_atomic posts SalesReturn from NULL to main branch and does not decrement vehicle branch. No compensating triggers were found on orders/order_details/run_sheet_details.
+- Production QA fixtures show RS-1 Delivered with 13 loaded/13 delivered while VAN-CHV branch retains 13; RS-2 Returned with 6 loaded/1 delivered/5 returned while VAN-VHL retains 6. inventory_log movement types have no Delivery/VanSale. Treat as QA evidence, not proven real business loss; do not delete.
+- Source/DB contract findings CONFIRMED; runtime exploit and E2E UNVERIFIED. No writes or operational changes.
+- Report: doc/Draft/Reprots/Report590_CTO_CROSS_MODULE_AUTHORIZATION_AND_INVENTORY_EFFECT_AUDIT_20261103.md. Report commit 17ddb6567736ca14daf57df827bbcaf0af0654e0. CURRENT_STATE commit ea1dd9fd2114457148e0f74c0072a20a280e0150.
+- Next priority: owner-review package for Warehouse/Delivery/Settlement authorization and vehicle stock reconciliation, alongside Procurement findings. Explicit owner approval required before any Production change.
+
+---
+
 ## LVE-589 — 2026-11-03 — CTO Initialization / Procurement Authorization & Contract Conflicts
 
 - Re-read CURRENT_STATE first; starting LAST VERIFIED EVENT was LVE-588. Read permanent constitution (293 lines), Master CTO Governance (2,665 lines), and reviewed all 114 report files present in range 400–500; numbering duplicates exist and 490/491 files were not present. Report499 is the final daily revalidation in the range; Report500 is a mind map, not Production closure.
