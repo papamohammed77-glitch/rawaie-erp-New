@@ -1,3 +1,44 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-593 — Stock Voucher & Van Setup Authorization
+
+**VERIFIED AT:** 2026-11-03.  
+**Starting LAST VERIFIED EVENT:** LVE-592.
+
+## 1. New stock authorization findings
+
+- create-stock-voucher v17 has a legacy 10-argument create_manual_stock_voucher_atomic path when both operation_id and rep_id are absent. That RPC treats allowed_branch_ids NULL/empty/"*" as sufficient access, without requiring a stock-voucher permission.
+- Production has one active user with role=موظف, permissions=[], allowed_branch_ids="*". This user satisfies the legacy branch-scope condition. Current warehouse/vouchers.html sends operation_id on create, so its normal create flow uses the stronger 12-argument overload; the legacy fallback remains callable by old/direct clients.
+- send-stock-voucher v20 calls send_stock_voucher_atomic, which similarly treats allowed_branch_ids="*" as sufficient for send. The same active employee row qualifies.
+- delete_manual_stock_voucher_atomic uses active company + Draft state + branch scope, without a distinct stock-voucher permission; the wildcard employee qualifies.
+- complete-stock-voucher v4 calls complete_manual_stock_voucher_atomic_core_20260828, which checks active company and voucher state but no effective permission/role. Completing SupplierReturn can post supplier ledger and journal.
+- cancel-stock-voucher v4 calls cancel_manual_stock_voucher_atomic_core_20260828, which checks active company and Draft state but no permission.
+- receive-stock-voucher has stronger controls: Transfer RECEIVE requires exact receiver_user_id; DirectReturn RECEIVE requires manager or warehouse keeper/active warehouse role plus branch scope.
+- setup-van-branch v3 verifies target driver is a same-company direct-sales user, but does not verify actor=driver_email and does not require fleet.manage/van-setup permission before updating vehicle/mobile branch and calling setup_van_stock. Van Sales UI passes the current user's own email, but Edge does not enforce self-only.
+- save-inventory-count/inventory_count_engine, inventory_stock_request_engine, bulk-stock-adjustment, save/delete item and save/delete branch have stronger role/permission checks in the paths inspected.
+
+## 2. Correction to LVE-592
+
+- save-customer v4 and delete-customer v3 select public.users.is_owner.
+- Production public.users has no is_owner column.
+- Source/schema conflict CONFIRMED; the actor query may fail before permission checks. Runtime not directly tested. Do not treat these two functions as positive permission controls until corrected/reconciled.
+
+## 3. Status
+
+- No stock voucher was created/sent/received/completed/cancelled/deleted.
+- No vehicle/mobile branch was created or modified.
+- No item/branch/stock/financial data, grants, RLS, RPC, Edge, PR or deployment changed.
+- Findings are Source/RPC contract level; no HTTP exploit or Browser E2E was performed.
+- PR #10 remains Draft.
+
+## 4. Next priority
+
+Owner-review package for stock voucher authorization and Van Setup: remove/secure legacy create overload; require explicit stock-voucher permission for send/delete/complete/cancel; preserve receiver assignment checks; require fleet.manage or self-only plus role for Van Setup; correct is_owner contract. Exact approval under Master §77.2 required before any change.
+
+**Arabic report:** doc/Draft/Reprots/Report593_CTO_STOCK_VOUCHER_AND_VAN_SETUP_AUTHORIZATION_AUDIT_20261103.md  
+**Report commit:** 92896914c6b5eb1a7a2ff190493c307b5e44b8d1  
+**Status:** STOCK AUTHORIZATION GAPS CONFIRMED / CUSTOMER EDGE-SCHEMA CONFLICT CONFIRMED / RUNTIME UNVERIFIED / NOT CLOSED.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-592 — Sales Authorization & Permission Source Contracts
 
 **VERIFIED AT:** 2026-11-03.  
