@@ -1,3 +1,51 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-02-588 — Buyer Workbench Revalidation / Invoice RLS-ACL Conflict
+
+**VERIFIED AT:** 2026-11-02 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Re-fetched CURRENT_STATE in full, read current governance, reconciled operational Git/PR #10 with Production SMART ERP and staging. Live branch head is 209c318, not 5ae94d7. Confirmed the PO operation_id patch is present, the Buyer source search/static checks pass, and a new Production conflict exists: authenticated DML is allowed directly on purchase_invoices and purchase_invoice_details under company-only permissive RLS, bypassing the central invoice workflow. No code, Production data, DDL, RLS/grants, Edge, or deployment changes were made.
+
+## 1. Current objective and checkpoint
+
+- Current target remains the narrow Buyer Field Workbench change in PR #10; do not restart LVE-583 row-click or other completed work.
+- Operational repo: papamohammed77-glitch/erp-frontend.
+- Current main HEAD: 7a14d51b4d4c225240b215879abf6b77b99888d3.
+- PR branch: cto/buyer-field-workbench-lve-587; live head: 209c318f2324d741e61b0dceaf5253f830af8c2e; Buyer blob: 100987d03c6ed94ff2e2acd1c623a63b80ffb471.
+- PR #10 remains OPEN / DRAFT / unmerged; current compare is 3 ahead / 2 behind, mergeable=true. The two main commits after merge base are documentation-only.
+- Last completed micro-change retained: LVE-583 invoice row-click detail handler, commit 37d4e95e030bf3085c232655bdec6f059a335ca1. Current LVE-587 slice is not closed.
+
+## 2. CONFIRMED
+
+- Buyer has nine tab IDs/actions, zero cost_price references, one inline JS block that parses; seven source-algorithm search cases passed against 30 active Production items (20 barcodes, 29 images).
+- Commit 209c318 adds a stable-per-modal operation_id to CREATE_PO; Production purchase_create_po_atomic accepts it and has a unique company/operation index.
+- Buyer CREATE_INVOICE for a new invoice still omits operation_id; Edge generates a fresh UUID per request. The DB invoice function has an operation_id duplicate guard and unique index, so a new UUID on retry does not deduplicate.
+- Existing PO/invoice line edit handlers convert blank numeric price to 0; preConfirm does not revalidate every line. DB accepts zero unit_price. This behavior also exists on main; it is pre-existing, not introduced by PR.
+- «فواتيري» filters created_by only in the client. GET_DATA returns company-scoped invoices; openInvoice has no owner recheck.
+- Owner definition from LVE-585 remains authoritative: «فواتيري» is the quick market purchase register with invoice/item evidence and line specifications, not a generic AP list. Production purchase_invoices has no invoice_type/source/quick_market marker; current PR does not implement this full scope.
+- Production save-purchase-order v22 ACTIVE / verify_jwt=true is byte-identical to Git source blob bc038be8c60a3d593f604c7b2ae445e807bacf57; deployed SHA-256 a0885a8a636b0d57ef9ab54b476001be8e3dd1f4227b921f511b002f58642ffb. Currency remains EGP.
+- Production invoice-header and invoice-detail RLS policies are permissive ALL and company-scoped only. authenticated has effective SELECT/INSERT/UPDATE/DELETE. app_private.current_user_company_id returns company_id for any user not Inactive, without a purchases permission check. Header triggers are status_history and updated_at only; no invoice-detail workflow triggers. This allows direct DML outside the central Edge/RPC workflow and conflicts with owner policy §77.4.
+- Production has 734 migrations; latest versions 20261102150516 and 20261102151137. Current PR has no DB migration.
+- Production snapshot: active_items 30; purchase_invoices 3; invoice_details 6; purchase_orders 1; PO_details 1; buyer_custodies 0; custody_expenses 0; stock_vouchers 0; inventory_log 76; treasury 4; cash_box 8; supplier_ledger 2; journal_entries 19.
+- Endpoint logs in the last 24h: 11,637 HTTP 200 and 2 HTTP 504 of about 160 seconds; both 504s lack execution_id/version and have no matching function error logs.
+- rawaea-staging is ACTIVE_HEALTHY but has only 62 migrations, no save-purchase-order function, and no purchase_invoices/purchase_invoice_details tables; it is not Buyer E2E-ready.
+- Cloudflare bot reports a successful rawaea-erp preview build for 209c318; direct artifact/headers/browser behavior were not verified.
+
+## 3. CONFLICT / UNKNOWN / UNVERIFIED
+
+- CONFLICT: canonical LVE-587 checkpoint and operational-repo handoff still record 5ae94d7 and 2 ahead/0 behind; live Git is 209c318 and 3 ahead/2 behind. The PO operation_id patch is now applied despite the stale handoff saying otherwise.
+- CONFLICT: owner §77.4 requires central, status/permission-controlled invoice workflow; Production RLS/ACL allows authenticated direct DML on invoice headers/details.
+- CONFLICT: owner LVE-585 defines «فواتيري» as quick-market purchases; current client filter only identifies creator and schema has no source/type marker.
+- UNKNOWN: whether «فواتيري» is intended as a privacy boundary or display convenience; source migration files matching the latest Production versions were not located at expected paths; root cause of 504s; full direct-DML consumer map across all apps; whether zero price is valid business data.
+- UNVERIFIED: served Cloudflare artifact/headers, authenticated browser E2E, positive PO/invoice writes, actual duplicate creation after retry, and actual runtime effect of blank-to-zero line editing.
+
+## 4. Change control and next step
+
+- No source changes, merge, DDL, RLS/grant changes, data writes, Edge deployment, or Cloudflare publish occurred.
+- Keep PR #10 Draft. Prepare one exact owner-review change set to resolve invoice source/type, direct table DML authorization while preserving Parent SELECT, stable Buyer CREATE_INVOICE operation_id, and per-line price validation. Complete consumer scan, staging schema/Edge parity, acceptance tests, and rollback before any Production action.
+- Do not modify main.html or create new Edge/Workflow/Executor/PR structures without a proven architectural need.
+- Full Arabic report: doc/Draft/Reprots/Report588_BUYER_FIELD_WORKBENCH_DAILY_REVALIDATION_20261102.md.
+
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-02-587 — Buyer Field Workbench Source Patch
 
 **VERIFIED AT:** 2026-11-02 Africa/Cairo.  
