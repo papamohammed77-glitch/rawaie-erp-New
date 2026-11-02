@@ -136,6 +136,19 @@ Production complete_manual_stock_voucher_atomic_core_20260828:
 - RPC purchase_post_payment_atomic لا يستقبل p_payment_method، وEdge POST_PAYMENT لا يمرر payment_method، لذلك القيمة المرسلة من الواجهة لا تصل إلى العقد وتظل Cash default.
 - RPC الحالي يرحل cash payment ويخفض supplier ledger؛ لا توجد في هذا المسار حزمة إثبات موحدة لطريقة الدفع/رقم التحويل/الشيك/إيصال المورد.
 
+### 2.8 Migration lineage للجزء الأحدث من LVE582
+
+- Production migration ledger يعرض:
+  - 20261102150516 — buyer_invoice_draft_edit_delete_atomic_20261102
+  - 20261102151137 — quick_invoice_post_requires_receipt_contract_20261102
+  - 20261102142016 — supplier_ap_single_writer_locking_and_legacy_trigger_retirement
+  - 20261102142201 — drop_orphaned_legacy_supplier_ap_definer_function
+- Git operational الحالي يحفظ المنطقين الأولين بملفين يحملان أرقامًا مختلفة:
+  - 20261102160000_buyer_invoice_draft_edit_delete_atomic.sql
+  - 20261102162000_quick_invoice_post_requires_receipt_contract.sql
+- Git history للملف الأول يظهر commit bc41949d ثم 1944ebb5؛ والثاني يظهر 7b64fcf5 ثم terminator fix 439d6017. لكن نسخ أسماء/أرقام Production registry لا تطابق أسماء الملفات الحالية حرفيًا.
+- Production definitions الحالية تؤكد أن دوال Draft update/delete موجودة، وأن quick invoice بلا PO يرفض POST بـ PURCHASE_QUICK_INVOICE_RECEIPT_REQUIRED؛ لذلك السلوك الحالي مثبت، لكن version-to-file lineage يحتاج توثيقًا قبل أي db push. لا تشغّل db push ولا تعِد تطبيق أي من هذه migrations لإغلاق هذا الفارق.
+
 ### 2.7 قاعدة الموردين والتكاملات المحيطة
 
 - suppliers الحالي يحتوي phone/location/address/supplier_type/payment_type/accounts_payable/contact_person/purchase_rep/notes/is_active؛ لا يوجد email أو supplier grade A/B/C أو rating fields.
@@ -300,4 +313,4 @@ Production complete_manual_stock_voucher_atomic_core_20260828:
 
 **استعادة المصدر الحي الكامل لخمسة stock-voucher Edge functions إلى operational repository والتحقق من lineage مع Production، ثم إعداد عقد Procurement Custody Change Set واحد** يربط assignment والرحلتين Supplier→Vehicle→Warehouse وWarehouse→Vehicle→Supplier والإثباتات المالية. هذا يزيل أكبر blocker قبل كتابة RPC أو UI، ويمنع تعديل نسخ Edge تاريخية/ناقصة أو كسر SupplierReturn/DirectSale/DirectReturn القائم.
 
-**الإغلاق:** FOUNDATIONS EXIST / FOUR TABS PRESENT / INVOICE ROW DETAIL PATCH RETAINED / QUOTATION COMPARISON VIEW EXISTS BUT UI DISCONNECTED / BUYER CASH CUSTODY PROOF GAP CONFIRMED / PROCUREMENT VEHICLE CUSTODY CONTRACT MISSING / DRIVER STOCK IS NOT BUYER STOCK / STOCK VOUCHER CORE NEEDS PROCUREMENT EXTENSION / EDGE v22 BYTE-MATCHED / CLOUDFARE + AUTHENTICATED BROWSER E2E UNVERIFIED / NO PRODUCTION MUTATION / OWNER EXACT-CHANGE APPROVAL REQUIRED / NOT CLOSED.
+**الإغلاق:** FOUNDATIONS EXIST / FOUR TABS PRESENT / INVOICE ROW DETAIL PATCH RETAINED / QUOTATION COMPARISON VIEW EXISTS BUT UI DISCONNECTED / BUYER CASH CUSTODY PROOF GAP CONFIRMED / PROCUREMENT VEHICLE CUSTODY CONTRACT MISSING / DRIVER STOCK IS NOT BUYER STOCK / STOCK VOUCHER CORE NEEDS PROCUREMENT EXTENSION / EDGE v22 BYTE-MATCHED / CLOUDFLARE + AUTHENTICATED BROWSER E2E UNVERIFIED / NO PRODUCTION MUTATION / OWNER EXACT-CHANGE APPROVAL REQUIRED / NOT CLOSED.
