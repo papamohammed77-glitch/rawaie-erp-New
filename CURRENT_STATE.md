@@ -1,3 +1,19 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-02-586 — Buyer Gold/Diamond Field Product Upgrade Review
+
+**VERIFIED AT:** 2026-11-02 Africa/Cairo.
+**LAST VERIFIED EVENT:** Re-fetched Buyer and Picker source from the operational repository; confirmed Buyer remains 139,419 characters and matches LVE-585 blob `73d746571a10b1720bdd31631004abce0ac9afa1`. Reviewed all nine Buyer tabs, the 500-row GET_DATA contract usage, product search/cart defaults, invoice list/detail, custody summary and vehicle balance logic. Confirmed quick item selection defaults unit price from `cost_price||0`; catalog loading is capped at 500 and client-side; `فواتيري` remains a generic supplier invoice list; custody UX text continues to describe supplier/AP effects; vehicle balance still filters `fleet_vehicle_assignments.driver_user_id` and displays a not-enabled ledger notice. Compared relevant field interaction patterns with Picker. Created Report586 with tab-by-tab product gaps, gold/diamond target UX, integration/accounting invariants, phases and acceptance matrix. No operational source, Production data/schema/policy/function, or deployment was changed.
+
+**CONFIRMED:** Report586 commit `7d65235207e399fb01c9167a9fc14e42599ae5f1`.
+**CONFIRMED:** The 500-row cap is present in `App.data(table)` via `GET_DATA({table,limit:500})`; Today and Invoices disclose the same cap. Quick search searches only the loaded item cache and shows up to 20 matches.
+**CONFIRMED:** Quick-add seeds `unit_price` from item `cost_price` and renders it without a reliability/source warning. Prior LVE-585 Production snapshot found 24 of 30 active items have zero cost_price; do not present zero as a trusted suggested market price.
+**CONFIRMED:** Picker remains a reference for touch targets, product imagery, immediate search, detail and progress patterns only; Buyer must retain shared `core.js`, RW_API, current authentication and authorized gateway.
+**NOT DONE:** Buyer UI implementation, Receiver changes, pagination/server-side catalog search, offline draft/sync, quick-market invoice media and line-specification contract, buyer custody redesign, buyer vehicle movement ledger, SQL/RPC/Edge work, browser E2E and deployment verification.
+**NEXT:** Phase A field UX foundation and catalog server-search contract investigation, then contract-dependent quick market invoice, Receiver, cash custody and purchasing vehicle phases. Do not repeat LVE-583 invoice row click/escaping fixes or LVE-585 conceptual corrections.
+
+**REPORT:** [Report586 — Buyer Gold/Diamond Field Product Upgrade Review](doc/Draft/Reprots/Report586_BUYER_GOLD_DIAMOND_FIELD_PRODUCT_UPGRADE_REVIEW_20261102.md)
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-02-585 — Owner Definition Correction: Buyer Quick Purchase / Cash Custody / Purchasing Vehicle
 
 **VERIFIED AT:** 2026-11-02 Africa/Cairo.
