@@ -1,3 +1,63 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-02-580 — Owner Approval Gate / Physical Handover Rule / Buyer Forensic Review
+
+**VERIFIED AT:** 2026-11-02 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Owner's new financial/inventory control principles were added to the permanent operating constitution and Master CTO Governance. Read-only forensic review of Buyer, parent purchasing tabs, Production schema/RPCs, and deployed `save-purchase-order` v21 completed. No operational source or Production business data was changed.  
+**STATUS:** GOVERNANCE RULES RECORDED / BUYER FORENSIC REVIEW COMPLETE / OPERATIONAL CHANGES HELD FOR OWNER REVIEW / QUICK-INVOICE POSTING CONFLICT CONFIRMED / NOT FUNCTIONALLY CLOSED.
+
+## 1. Owner's binding business rules
+
+- No electronic record alone (PR, RFQ, quotation, PO, draft invoice, approval, dispatch preparation, or status change) may automatically alter inventory, treasury/cash-box, customer/supplier balances, or accounting journals.
+- Inventory changes only after actual physical receipt/issue/delivery with item, quantity, branch/location, authorized supporting document, and audit trail.
+- Treasury/cash-box changes only after actual hand-to-hand cash receipt/disbursement or actual handover/receipt of an approved financial instrument/document that substitutes for cash, with evidence of amount, parties, date, responsible person, and document.
+- Customer/supplier balances change only after the relevant actual and/or approved documentary business event is proven, with supporting invoice/document and related handover/receipt evidence. A draft or mere electronic record is insufficient.
+- Document status, physical custody of cash/instruments, physical stock custody, subledger posting, and general-ledger posting must remain distinct states.
+- **Owner approval gate:** read-only forensic checks are allowed; any source, Production, database, migration, trigger, RPC, deployment, or workflow change that can affect data, balances, business rules, permissions, or integrations must be shown to the owner with exact diff/SQL, impact, dependencies, tests, and rollback plan, and must wait for explicit approval of that specific change.
+- Do not undo previous Production fixes automatically. No test data in real Production balances; use isolated or transaction-rollback testing with residue verification.
+- Full text recorded in `doc/Draft/Reprots/الدستور التشغيلي الدائم.md` sections 6.1–6.2 and `doc/Draft/Reprots/MASTER CTO GOVERNANCE & CONTINUOUS EXECUTION OS — RAWAEA ERP.md` section 77.
+
+## 2. Current Buyer forensic findings
+
+- Operational repository: `papamohammed77-glitch/erp-frontend`, branch `main`.
+- Operational HEAD: `d03a2788447b78353d91a4ae7811e5ed28c6b991`; parent `0b02a33d5c05cfb67c6254da589e4752047d4ab6`.
+- Buyer source blob: `6c26444fa80b198d305727b70791f400839a6f75`.
+- Parent main source blob: `53b5a9e9d0433a785c3d5471a9c0d68c25497882`.
+- Deployed `save-purchase-order` Edge Function v21 is byte-for-byte identical to Git `supabase/functions/save-purchase-order/index.ts`, blob `49c85a4a4648bcef6892476d92037ca56745f633`.
+- Buyer currently has tabs today / suppliers / requests / orders / custody / account; no dedicated invoice or quotation tabs.
+- Buyer already has `App.createPurchaseInvoice` (lines 568–617) and it creates a Draft through `CREATE_INVOICE`; it explicitly says no stock/accounting impact at draft creation. Do not rebuild this modal.
+- Buyer currently has no `renderInvoices`, `renderQuotations`, or `createQuotation`.
+- Existing Edge v21 supports `CREATE_INVOICE`, `CREATE_QUOTATION`, `ACCEPT_QUOTATION`, `CONVERT_QUOTATION_TO_PO`, `POST_INVOICE`, and `CANCEL_DOCUMENT`; it does not expose `UPDATE_INVOICE`, `DELETE_INVOICE`, `UPDATE_QUOTATION`, or `DELETE_QUOTATION`.
+- Parent `main.html` already contains `عروض الموردين` and `فواتير الشراء` tabs; do not modify `main.html`.
+- The parent quotation modal includes `currency: 'SAR'`, but Edge v21 resolves system currency from `app_settings`; any port to Buyer must use the current Gateway contract and must not copy SAR as authoritative currency.
+- Production currently has 1 Draft + 2 Posted purchase invoices, 6 invoice detail rows, and no purchase quotation rows. No test rows were created.
+
+## 3. Critical Production workflow conflict — confirmed, not changed
+
+`public.purchase_post_invoice_atomic(uuid,uuid,text)` has two distinct branches:
+- PO-linked invoice: requires a completed receiving record and validates received quantities/prices; then marks invoice Posted and returns `stock_posted_by_invoice=false` and `supplier_liability_posted_by_invoice=false`.
+- Quick invoice without PO: directly calls `post_stock_movement`, posts a journal via `post_journal_entry`, inserts into `supplier_ledger`, and marks the invoice Posted. The inspected function does not independently require a physical receipt document for this no-PO branch.
+
+This conflicts with the new owner rule unless the owner confirms a separate approved physical-receipt proof/contract for quick purchases. Do not change, disable, or invoke this path until the owner reviews the exact behavior and approves the repair contract. Also review actual cash handover evidence in `purchase_post_payment_atomic` before treating payment posting as compliant.
+
+## 4. Exact next step
+
+1. Read `doc/Draft/Reprots/Report580_OWNER_APPROVAL_PHYSICAL_HANDOVER_BUYER_FORENSIC_20261102.md`.
+2. Obtain the owner's decisions listed in that report, especially:
+   - Whether only Draft invoices may be edited/deleted, while Posted/PartiallyPaid/Paid must be reversed/cancelled with audit.
+   - What proves actual physical receipt for quick purchase invoices without PO.
+   - What evidence proves actual cash/instrument handover before `POST_PAYMENT`.
+   - Whether supplier quotations may be edited/deleted and under what status restrictions.
+3. After explicit approval only, prepare the exact surgical Buyer owner changeset. Do not touch `main.html`. Do not add Edge Functions. Reuse existing Gateway actions where their contract is adequate.
+4. Any Production RPC/trigger/migration change requires the exact proposed SQL and owner approval before execution.
+5. Test draft/no-op balance invariance first, then the approved physical receipt and actual cash handover flows in an isolated/rollback-safe environment.
+
+## 5. This session's documentation commits
+
+- Constitution: `20a67f9eae3fc6823e1c0834edc620ae3b201f4b`.
+- Master CTO Governance: `676a1e5aa5c75743bc077103b1b5c9adfc425685`.
+- Report 580: `82acf3980a49622cb8381c4bd22dea26b68c0d9d`.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-02-579 — Supplier AP Single Writer / Legacy Trigger Retirement
 
 **VERIFIED AT:** 2026-11-02 Africa/Cairo.  
