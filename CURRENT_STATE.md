@@ -1,3 +1,56 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-02-583 — Buyer Tabs / Vehicle Procurement Custody / Invoice Row Interaction
+
+**VERIFIED AT:** 2026-11-02 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Buyer invoice rows now open the invoice detail modal; current Buyer/Edge/Production contracts reconciled read-only. The procurement vehicle custody ledger is not implemented because current fleet assignments and stock movement contracts are delivery-specific and do not establish buyer custody.  
+**STATUS:** BUYER INVOICE + QUOTATION + CUSTODY FOUNDATIONS CONFIRMED / INVOICE ROW CLICK COMMITTED / VEHICLE PROCUREMENT LEDGER BLOCKED BY MISSING CUSTODY CONTRACT / CUSTODY PAYMENT PROOF GAPS CONFIRMED / NO PRODUCTION MUTATION / NOT CLOSED.
+
+## 1. Source and deployed contract
+
+- Operational repo: papamohammed77-glitch/erp-frontend, branch main.
+- Buyer: companies/company-1/purchasing/buyer.html, blob 73d746571a10b1720bdd31631004abce0ac9afa1.
+- Buyer change: commit 37d4e95e030bf3085c232655bdec6f059a335ca1 — click anywhere on an invoice row to open details; detail button remains and stops propagation.
+- Edge save-purchase-order: v22 ACTIVE, verify_jwt=true; Production source matches Git blob bc038be8c60a3d593f604c7b2ae445e807bacf57 byte-for-byte.
+- main.html and delivery/driver.html untouched.
+- No Edge function, RPC, migration, trigger, Production data, or Cloudflare deployment changed.
+
+## 2. Buyer tabs
+
+Buyer already has nine tabs: Today, Suppliers, PR Requests, Quotations, PO Orders, My Invoices, My Custody, Vehicle Balance, My Account.
+- Invoices: filters by invoice/system number, supplier invoice number/name/code, dates and status; Draft-only edit/delete; detail modal; row-click added in LVE-583.
+- Quotations: create/list/details/accept/convert-to-PO; comparison matrix is not wired to purchase_quotation_comparison.
+- Custody: issue, acknowledgement, advance, invoice+warehouse-receipt submission, finance review and settlement. See cash proof blockers below.
+- Vehicle Balance: current UI is an explicit placeholder, not a stock ledger. It filters fleet assignments by driver_user_id, does not load vehicle stock or movement ledger.
+
+## 3. Production evidence — read-only
+
+- save-purchase-order v22 is byte-identical to Git.
+- Existing stock voucher Edge functions are available (create v12, send v20, receive v22, complete v4, cancel v4); no new Edge Function is required in principle.
+- Two active vehicles have virtual VAN branches. Their current stock-branch balances are derived from delivery Loading/Unloading inventory-log events and are not buyer purchase custody.
+- fleet_vehicle_assignments: 0 rows; stock_vouchers: 0 rows; buyer_custodies: 0 rows; purchase_invoices: 3; purchase_quotations: 0.
+- Current stock voucher contracts support Transfer, DirectSale, DirectReturn, SupplierReturn; no supplier→vehicle or vehicle→supplier purchase-custody type.
+- purchase_post_invoice_atomic blocks posting quick invoices without PO until actual receipt contract exists.
+- purchase_orders has expected delivery date and payment terms; Edge v22 has CREATE_PO but not SEND_PO/APPROVE_PO.
+- Supplier visits/ratings tables and supplier email/rating fields were not found.
+- purchase_payments.payment_method defaults to Cash, but the current payment RPC/Edge path does not accept a method.
+- Custody issue/advance posts treasury cash movement at issue before employee acknowledgement and references are optional. Expense approval posts supplier payment and marks invoice Paid after invoice+warehouse receipt checks, but there is no separate supplier cash receipt proof attachment. Settlement also permits optional reference and has no receipt attachment.
+
+## 4. Binding owner policy
+
+Owner approved the six-part procurement posting policy in LVE-581. That approval does not authorize blanket Production changes. Each source/DB/Edge/financial change still requires its exact change set and explicit approval.
+
+## 5. Next exact step
+
+Prepare a separate owner change set for:
+1. Buyer-specific vehicle custody assignment (do not misuse driver_user_id).
+2. Purchase-specific vehicle stock voucher types and lifecycle: Supplier→Vehicle, Vehicle→Branch, Branch→Vehicle, Vehicle→Supplier, reusing existing stock voucher Edge functions.
+3. Mandatory supplier payment receipt proof before marking custody expense Paid / reducing supplier liability.
+4. Actual handover proof and correct posting timing for custody issue, top-up, and settlement.
+5. Payment method evidence and PO send/approval lifecycle.
+
+See doc/Draft/Reprots/Report583_BUYER_TABS_VEHICLE_CUSTODY_EXECUTION_20261102.md for complete evidence, competitor references, design, and owner decisions. Do not treat current vehicle branch totals as Buyer custody.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-02-581 — Owner Approved Procurement Policy / Driver Balance & Vehicle Stock Read-Only Review
 
 **VERIFIED AT:** 2026-11-02 Africa/Cairo.  
