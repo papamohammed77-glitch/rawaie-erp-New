@@ -1,3 +1,19 @@
+## LVE-586 — 2026-11-02 — Buyer Gold/Diamond Field Product Upgrade
+
+**Status:** Review and product design documented; operational implementation not performed.
+
+- Re-read current operational Buyer source and Picker reference. Buyer source remains the LVE-585 verified blob `73d746571a10b1720bdd31631004abce0ac9afa1`; do not claim broad UI changes are already committed.
+- Confirmed `App.data(table)` sends `GET_DATA` with `limit:500`; the app uses client-side cached data. Item quick search only sees the loaded catalog, returns up to 20 matches, and quick-add defaults price to `cost_price||0`. A zero/stale cost must be labeled as unreliable, never presented as a trustworthy market price.
+- Reviewed Today, Suppliers, PR, Quotations, Orders, فواتيري, عهدتي, رصيد السيارة and حسابي. Key product gap: current Buyer is largely a set of mobile-compressed data screens, not a cohesive field purchasing journey. Picker patterns to selectively adopt: image-led touch cards, instant search, readable details, visible progress. Preserve Buyer shared core/auth/gateway.
+- Report586 defines mobile-first navigation/action center, catalog search, quick market purchase journey, evidence capture, offline draft/sync states, supplier/quotation intelligence, cash reconciliation, purchasing vehicle custody and phased stock/accounting integration. It includes invariants and acceptance tests.
+- No operational Buyer/Receiver source, Production schema/data/RLS/Edge function, or deployment was changed in LVE-586.
+- Do not redo LVE-583 invoice-row click/escaping or LVE-585 definition correction. Next engineering slice: Phase A field UX foundation plus catalog server-side search contract investigation. Follow project approval gates before Production changes.
+
+Report: `doc/Draft/Reprots/Report586_BUYER_GOLD_DIAMOND_FIELD_PRODUCT_UPGRADE_REVIEW_20261102.md`
+Commit: `7d65235207e399fb01c9167a9fc14e42599ae5f1`
+
+---
+
 ## LVE-585 — 2026-11-02 — Owner correction: quick purchases, cash custody and purchasing-car stock
 
 **This is the latest verified business definition and supersedes conflicting interpretations in earlier summaries/reports.**
