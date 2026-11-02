@@ -1,3 +1,20 @@
+## LVE-593 — 2026-11-03 — Stock Voucher & Van Setup Authorization
+
+- create-stock-voucher v17: legacy 10-arg create_manual_stock_voucher_atomic fallback (when operation_id and rep_id absent) accepts allowed_branch_ids NULL/empty/"*" without distinct stock-voucher permission. Current UI sends operation_id and uses stronger 12-arg overload; fallback remains callable.
+- Production has one active role=موظف user with permissions=[] and allowed_branch_ids="*"; that user satisfies the legacy create and send branch-scope condition.
+- send-stock-voucher v20/send_stock_voucher_atomic similarly accepts branch wildcard without distinct stock-voucher permission.
+- delete_manual_stock_voucher_atomic permits Draft deletion based on active company + branch scope; wildcard user qualifies.
+- complete-stock-voucher v4 / complete_manual_stock_voucher_atomic_core_20260828 and cancel-stock-voucher v4 / cancel_manual_stock_voucher_atomic_core_20260828 check active company/state but no effective permission. SupplierReturn completion can post supplier ledger and journal.
+- receive-stock-voucher is stronger: Transfer receive requires exact receiver_user_id; DirectReturn receive requires manager or warehouse keeper/active warehouse role and branch scope.
+- setup-van-branch v3 verifies target is same-company direct-sales driver but not actor=driver_email and not fleet.manage/van-setup permission. Van Sales UI sends own email, but Edge does not enforce.
+- save-inventory-count, inventory_stock_request_engine, bulk-stock-adjustment, save/delete item, save/delete branch have stronger checks in inspected paths.
+- Correction to LVE-592: save-customer v4 and delete-customer v3 select public.users.is_owner, but Production public.users has no is_owner column. Source/schema conflict confirmed; runtime not tested. Do not count them as positive permission examples.
+- No stock voucher or vehicle setup mutation; no DB/source/Edge/PR/deployment changes.
+- Report: doc/Draft/Reprots/Report593_CTO_STOCK_VOUCHER_AND_VAN_SETUP_AUTHORIZATION_AUDIT_20261103.md. Report commit 92896914c6b5eb1a7a2ff190493c307b5e44b8d1. CURRENT_STATE commit 51ebdac02ee5812d5507201d21fcf85b8444f344.
+- Next: owner-approved stock voucher and Van Setup authorization changes; secure legacy create, send/delete/complete/cancel, enforce fleet/manage or self-only setup, correct is_owner schema contract. No changes before explicit approval.
+
+---
+
 ## LVE-592 — 2026-11-03 — Sales Authorization & Permission Source Contracts
 
 - confirm-order v4: JWT + active company + order status only; no orders/telesales permission. Parent main.html calls it.
