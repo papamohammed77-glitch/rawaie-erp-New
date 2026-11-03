@@ -1,3 +1,33 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-596 — Public Storefront Checkout & Pricing
+
+**VERIFIED AT:** 2026-11-03.  
+**Starting LAST VERIFIED EVENT:** LVE-595.
+
+## 1. Storefront facts
+
+- submit-online-order v11 intentionally supports Guest Checkout with verify_jwt=false, but requires a published storefront and company-scoped storefront_key.
+- submit_online_order_atomic recalculates pricing through resolve_sales_pricing_atomic from item master/commercial pricing/promotions; client-supplied price is not the final source.
+- Store UI persists operation_id by payload fingerprint in localStorage and sends it in body/header; retry key stability is implemented.
+- Order is created Pending; submit path does not deduct or reserve stock. Availability policy is UNKNOWN because it checks store_display_qty/max_qty_per_order, not stock_branches.available_qty.
+- Public guest checkout finds existing customer by phone and updates customer name/area without OTP/phone ownership verification, then passes customer_id to pricing engine. Customer identity/master-data risk CONFIRMED at source contract; actual misuse/impact UNVERIFIED.
+- Edge fallback generates random operation_id if client omits one; retry safety depends on client-supplied stable key. RPC does not compare payload hash for reused key.
+
+## 2. Status
+
+- No order created; no customer record modified; no HTTP tampering test or browser E2E.
+- No source, DB, Edge, PR, or deployment mutation.
+- PR #10 remains Draft.
+
+## 3. Next priority
+
+Owner decision on guest checkout identity, whether existing customer master may be updated without OTP, whether customer-specific pricing applies to guests, and whether Pending orders must check actual available stock. Preserve server-side pricing and client operation_id fingerprint behavior.
+
+**Arabic report:** doc/Draft/Reprots/Report596_CTO_ONLINE_STOREFRONT_PUBLIC_CHECKOUT_AND_PRICING_AUDIT_20261103.md  
+**Report commit:** 2ed1a7c179c57acad821102e1a50ab58d91fcb90  
+**Status:** PRICING CONTROL CONFIRMED / CUSTOMER IDENTITY RISK CONFIRMED / STOCK POLICY UNKNOWN / RUNTIME UNVERIFIED.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-595 — CTO Architecture & Operating Map
 
 **VERIFIED AT:** 2026-11-03.  
