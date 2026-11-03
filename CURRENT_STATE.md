@@ -4845,3 +4845,10 @@ doc/Draft/Reprots/Report471_LOADER_PICKER_PREVIEW_PARITY_LIVE_REVALIDATION_20261
 - **Open:** full invoice-table consumer scan; Cloudflare served-blob parity; authenticated browser E2E; quick market purchase workflow; buyer vehicle goods-custody ledger; supplier return acceptance/credit; complete cash-custody expense/payment/settlement E2E. Do not mark Buyer complete until all are verified.
 - **Next exact step:** finish repository-wide DML consumer scan for the three invoice tables, then verify Cloudflare deployment and execute safe authenticated E2E before moving to market purchase, vehicle custody, supplier returns, and cash settlement.
 - **Status:** P0 database controls applied; Buyer source committed; production/browser verification incomplete; overall Buyer work OPEN.
+
+
+## 2026-11-03 — Invoice DML consumer scan, tranche 1
+- Inspected current parent `main.html` (blob `53b5a9e9d0433a785c3d5471a9c0d68c25497882`): invoice table references are realtime/read paths and one invoice-details `.select()`; no direct DML found in this file.
+- Inspected current Buyer (blob `aee14e6a4edbccd5fb95dff24f21daf1c6d21fcc`): write operations route through central purchase operations; no direct invoice-table DML found in inspected source.
+- `accountant.html`, `finance-manager.html`, and `receiver.html` have no references to the three invoice tables.
+- Remaining company-1 HTML apps and JS/TS consumers are not yet scanned; P0-A consumer compatibility remains OPEN pending that scan and authenticated E2E.
