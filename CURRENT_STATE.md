@@ -1,3 +1,52 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-603 — Buyer Cumulative Return Integrity & Owner Change Gate
+
+**VERIFIED AT:** 2026-11-03 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Re-fetched operational Git HEAD/parent and Buyer/Core/Receiver blobs; rechecked Production migration ledger, active Edge Functions, purchase-return schema, constraints, triggers, grants/RLS policies, return RPC definitions, custody RPCs, and live business-data counts. Confirmed a cumulative purchase-return overrun gap: CREATE_RETURN validates each new quantity against original received_qty but does not subtract prior return quantities; POST_RETURN posts each return as SupplierReturn and reduces Supplier AP/inventory without proof of supplier acceptance. Confirmed authenticated client DML grants remain on purchase_returns/details and their ALL policies enforce company scope only, not purchasing/finance RBAC. Confirmed no current purchase-return or custody rows exist in Production. Created Report603 and updated project state; no operational source, Production schema/ACL/RPC/Edge, business data, or deployment was changed.
+
+## Current State
+
+- **Operational repository:** papamohammed77-glitch/erp-frontend / main.
+- **Operational HEAD / parent:** 743c9b170bf2314a9e4d64fd4d8104f2cc1aee8c / 2ce93c6d80ec4c38353bdf88880d06ae9e0abdde.
+- **Buyer source:** companies/company-1/purchasing/buyer.html; blob aee14e6a4edbccd5fb95dff24f21daf1c6d21fcc.
+- **Core / Receiver:** core.js blob f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1; warehouse/receiver.html blob 3111b5e801d1bc021cf18fd66d633fbdc54ac0d6.
+- **Production:** SMART ERP project fiilmooggumokxanwiyx; currency EGP; 737 migrations.
+- **Active existing Edge:** save-purchase-order v22; receive-purchase v13; both ACTIVE and verify_jwt=true. No new Edge Function.
+- **Already applied / do not repeat:** invoice writer boundary 20261103155029; receiving role/branch authorization 20261103155444; custody cash posting waits for employee acknowledgment 20261103160902.
+- **Report603:** doc/Draft/Reprots/Report603_BUYER_RETURN_INTEGRITY_DEPLOYMENT_RECHECK_AND_CHANGE_GATE_20261103.md.
+- **Report603 commit:** 7e9fe3e7be50e61d6e71145a6b2bffbdd63b3254.
+
+## CONFIRMED
+
+1. purchase_returns and purchase_return_details still grant authenticated client INSERT/UPDATE/DELETE and have ALL policies to PUBLIC scoped by current company only. This allows a same-company authenticated client to bypass the gateway's RBAC check at the table-privilege/policy layer. Anonymous grants exist, but actual anonymous RLS bypass is not proven.
+2. purchase_create_return_atomic checks each new line quantity > 0 and <= purchase_invoice_details.received_qty but does not aggregate previous returns. A new operation_id can therefore create a further return against already-returned quantities. purchase_post_return_atomic applies SupplierReturn stock movement, debits supplier AP (211), credits inventory (124), inserts supplier_ledger debit, and marks Posted.
+3. Production schema has no returned_qty/accepted_qty columns or aggregate return guard trigger. Return detail constraints are only key/FK, qty > 0 and unit_price >= 0. Header triggers only status history/updated_at.
+4. purchase_returns and purchase_return_details currently contain zero rows; no evidence of actual loss/overrun in Production dataset at the check.
+5. Supplier acceptance/partial acceptance is not represented in return tables or post RPC. Posting currently performs stock/AP effects without supplier acceptance proof.
+6. Buyer quickPurchase remains an alias to createPurchaseInvoice; Receiver remains PO-only; Buyer renderVehicleBalance explicitly says purchasing goods custody is not enabled and reads fleet assignments rather than a goods custody ledger.
+7. Buyer issueCustody UI lines 870/880 still misstates immediate cash/GL posting, while current Production requires employee acknowledgment before the effect.
+8. Custody expense contract currently routes only supplier purchase invoice + completed PO receipt with required attachments; buyer_custody_expenses has no FUEL/TRANSPORT/OTHER category/account mapping. Settlement has no dedicated cash-return proof attachment columns.
+9. Existing central writer, PO receiving authorization, and custody acknowledgment controls are already applied and must not be repeated.
+
+## UNKNOWN / UNVERIFIED
+
+- External consumers of return-table DML outside the inspected company-1 files remain unknown; run a complete consumer review before P0-D.
+- Cloudflare tab snapshot showed Production commit 7a14d51 while current Git is 743c9b; the snapshot predates HEAD, so current deployment lineage is unknown.
+- No authenticated Buyer browser E2E, runtime/console/network proof, or business-data effect test was run. No fixtures or transactions were inserted in Production.
+- Anonymous client ability to pass current_user_company_id RLS is unverified.
+- Full reports 400–500 directory review was not completed with available GitHub tools; do not claim it was read.
+
+## OWNER CHANGE GATES / NEXT EXECUTION
+
+1. **P0-D:** Complete external consumer review, then obtain explicit owner approval of the exact SQL in Report603 §8 to revoke client DML and retain authenticated company-scoped SELECT on purchase-return tables. Do not execute without exact approval under Master CTO §77.2.
+2. **P0-R:** Design and separately approve a complete cumulative-return/partial supplier acceptance contract; do not merely add a column. It must serialize by invoice line, account for prior eligible returns, support partial acceptance/rejection, and only post stock/AP for quantities the supplier actually accepts.
+3. Owner applies Buyer UI patch in Report603 §10 to correct custody issue wording/toast and add explicit physical-receipt confirmation in acknowledgeCustody. Assistant must re-fetch Buyer SHA after owner application.
+4. After an isolated test environment is available and exact changes are approved, run concurrent over-return tests, partial acceptance, custody acknowledgment, supplier/GL/inventory invariants, permission-denial and regression E2E; then verify Cloudflare artifact lineage/current runtime.
+5. Do not touch companies/company-1/main.html; do not create a new Edge Function; do not repurpose Fleet/Delivery Van Stock as purchasing vehicle custody.
+
+**STATUS:** cumulative return guard CONFIRMED GAP; return-table DML boundary CONFIRMED GAP / awaiting exact owner approval; supplier acceptance, market purchase, purchasing vehicle custody and expense categories OPEN; Buyer UI owner patch prepared but not applied; Cloudflare current Artifact UNKNOWN; runtime/E2E UNVERIFIED; overall Buyer OPEN / NOT PRODUCTION-READY.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-602 — Buyer Return ACL Exposure & Procurement Workflow Reconciliation
 
 **VERIFIED AT:** 2026-11-03 Africa/Cairo.  
