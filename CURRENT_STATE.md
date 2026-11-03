@@ -1,3 +1,54 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-605 — Buyer Quick Market Receipt, Goods Custody & Expense Contract
+
+**VERIFIED AT:** 2026-11-03 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Re-read Master CTO Governance §77, Report599, Report585 and current operational Buyer/Receiver/Warehouse Vouchers sources; inspected live Production purchase/receiving/custody/supplier-return RPCs, table schemas and triggers. Confirmed quick invoices can be drafted without PO but cannot currently be received through Receiver; Receiver is PO-only; its PO detail lookup references `po_code` although Production `purchase_order_details` uses `po_id`. Confirmed Buyer has no item-level goods-custody ledger; its current “vehicle balance” reads Fleet assignments. Confirmed SupplierReturn currently dispatches stock directly out of the branch, cannot retain a purchasing custodian because the trigger clears custodian_user_id for SupplierReturn, and completes full supplier financial posting without acceptance-quantity/evidence gates. Confirmed two supplier-return paths exist (`purchase_returns` and `stock_vouchers.SupplierReturn`) and need a single-writer integration contract. Confirmed current custody-expense approval is PO/supplier-payment-specific, not generic operating expense review. Added Report605 and advanced this state file. No operational source, Production schema/ACL/RPC/Edge, business data, or deployment was changed.
+
+## Current State — LVE-605
+
+- **Operational repository / HEAD:** `papamohammed77-glitch/erp-frontend` / `743c9b170bf2314a9e4d64fd4d8104f2cc1aee8c`.
+- **Buyer:** `companies/company-1/purchasing/buyer.html`, blob `aee14e6a4edbccd5fb95dff24f21daf1c6d21fcc`.
+- **Receiver:** `companies/company-1/warehouse/receiver.html`, blob `3111b5e801d1bc021cf18fd66d633fbdc54ac0d6`.
+- **Warehouse Vouchers:** `companies/company-1/warehouse/vouchers.html`, blob `85e709d0f41c189c6624a6160965d3b1a41960ba`.
+- **Production:** SMART ERP `fiilmooggumokxanwiyx`; PostgreSQL 17.6.1.121; system currency EGP.
+- **Active Edge:** `save-purchase-order` v22; `receive-purchase` v13. The latter is PO-only and its exact live source is not present in the operational repo.
+- **Report605:** `doc/Draft/Reprots/Report605_BUYER_QUICK_MARKET_RECEIVING_GOODS_CUSTODY_AND_EXPENSES_FORENSIC_20261103.md`; commit `ca57f8214708483efc24cc8f33f56353a7dbba21`; blob `3f3f58022cfec096272fd092ec92e9a780c1d6d9`.
+
+## CONFIRMED
+
+1. Buyer `quickPurchase()` is only an alias to `createPurchaseInvoice()`; supplier selection uses active central suppliers. The database distinguishes `supplier_type` from `payment_type`; `payment_type='نقدي'` exists, while no special `مورد كاش` value was found in the sampled supplier master values. Formal approval semantics of `is_active` remain UNKNOWN.
+2. `purchase_create_invoice_atomic` allows a no-PO Draft invoice and validates active supplier identity. `purchase_post_invoice_atomic` rejects no-PO invoices with `PURCHASE_QUICK_INVOICE_RECEIPT_REQUIRED`.
+3. Receiver reads only PO rows. `receive_purchase_atomic` accepts PO code only; `receiving` lacks `purchase_invoice_id/source_type`; `receiving_details` lacks invoice-line identity. A quick-market invoice cannot currently be received through the published Receiver workflow.
+4. Receiver `loadPODetails()` uses `.eq('po_code', code)` on `purchase_order_details`, while Production schema has `po_id`, not `po_code`. Source/schema mismatch confirmed; browser runtime impact remains UNVERIFIED.
+5. Buyer `renderVehicleBalance()` reads `fleet_vehicle_assignments` and `vehicles`; no item-level buyer-goods custody ledger is implemented. “رصيدي” must mean goods in the purchasing officer’s custody, independent of a vehicle and separate from cash custody.
+6. SupplierReturn stock-voucher UI is Branch → Supplier only. Production trigger `enforce_stock_voucher_custodian()` clears `custodian_user_id` for all types except DirectSale/DirectReturn. Current SupplierReturn cannot assign the purchasing officer as goods custodian.
+7. SupplierReturn SEND decreases branch stock; COMPLETE creates Supplier Ledger and Journal for the full return total. Current contract has no per-line supplier accepted/rejected quantities and no mandatory supplier receipt evidence. UI/RPC default currency SAR conflicts with system currency EGP.
+8. Two supplier-return paths exist: `purchase_returns` and `stock_vouchers.SupplierReturn`. Their atomic linkage and duplicate-effect prevention are not proven. Both tables currently have zero rows.
+9. Current `buyer_custody_review_expense_atomic` requires supplier + PO + Draft invoice + completed receiving; approval creates supplier payment, marks invoice Paid, debits Supplier Ledger and posts Dr Supplier AP / Cr Employee Custody. This is not a general operating-expense workflow.
+10. Current Buyer custody-expense UI filters PO-linked invoices. Generic fuel/transport/operating expense categories and expense-account mapping are absent from the inspected schema/UI.
+
+## OPEN / CONFLICT / UNVERIFIED
+
+- Formal supplier approval workflow: UNKNOWN; `is_active` semantics require confirmation from parent supplier administration.
+- Quick market invoice receiving and its correct accounting source: OPEN.
+- Single-writer integration of `purchase_returns` and `stock_vouchers.SupplierReturn`: OPEN.
+- Buyer goods custody ledger and partial supplier acceptance: OPEN.
+- Operating expense approval without AP/Payment: OPEN.
+- Receiver browser E2E and current deployed artifact parity: UNVERIFIED.
+- Existing custody acknowledgment backend gate remains applied; Buyer UI confirmation discrepancy is still documented in Report603 §10.
+- P0-D return-table ACL change from Reports603/604 remains separately gated; do not merge it into the new Buyer workstreams.
+
+## Next Exact Execution
+
+1. Prepare the full technical Change Set linking `purchase_returns` with SupplierReturn stock vouchers so branch stock is reduced once and supplier AP/GL is posted only for supplier-accepted quantities.
+2. Prepare a separate quick-market invoice receiving Change Set in Receiver, including source parity restoration of live `receive-purchase` v13 before extending the existing Edge (no new Edge).
+3. Prepare the item-level “رصيدي” goods-custody ledger and its atomic links to market receipt, warehouse receipt, supplier-return issue, supplier acceptance, and return-to-warehouse.
+4. Prepare the separate operating-expense review contract and preserve the existing central cash-custody entity for the later Accounts employee-custody view.
+5. Present each production-affecting Change Set in full and wait for explicit approval of that exact change under Master §77.2.
+
+**STATUS:** BUYER BUSINESS CONTRACT RECONCILED / GAPS CONFIRMED / TECHNICAL CHANGESETS OPEN / NO PRODUCTION OR OPERATIONAL SOURCE MUTATION / BUYER NOT PRODUCTION-READY.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-604 — Buyer Available-Repository Consumer Scan & P0-D Preflight Completion
 
 **VERIFIED AT:** 2026-11-03 Africa/Cairo.  
