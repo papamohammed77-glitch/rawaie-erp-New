@@ -393,3 +393,29 @@ No source HTML edit, Production DDL/RLS/ACL/RPC/data mutation, Edge deployment, 
 - Do not touch main.html; do not create new Edge Functions; do not repeat already-applied invoice writer, receiving authorization, or custody acknowledgement controls; do not test Production with financial/inventory fixtures.
 
 **STATUS:** return DML boundary and cumulative return guard are CONFIRMED gaps; supplier acceptance, market purchase, purchasing vehicle custody and general custody expense classification remain OPEN; Cloudflare artifact parity UNKNOWN; authenticated runtime/E2E UNVERIFIED; Buyer remains OPEN / NOT PRODUCTION-READY.
+
+
+---
+
+## 2026-11-03 — Buyer LVE-607: Safe Source Execution
+
+**Starting checkpoint:** LVE-2026-11-03-606.  
+**Operational HEAD / parent:** `5d7b10e4fd0fdf1bb2299c87805f9c86d381cc35` / `df7ad3aaa38b10dfaef6a3beb47780be4f5cfc9d`.  
+**Buyer blob:** `7f82fceb0b2c2470d1f112aefeaa1341de5b71a8`.
+
+### Executed
+- Buyer supplier directory is read-only; create/edit route removed and guarded; no SAVE_SUPPLIER call remains.
+- Supplier list and quotation/PO/invoice pickers require is_active=true. This is active status only, not proof of formal approval.
+- Vehicle balance tab renamed «رصيدي». It no longer reads Fleet/Delivery assignments and explicitly avoids showing a fabricated balance while the central goods-custody ledger is absent.
+- Parent main.html, Receiver, Core, DB and Production untouched.
+
+### Not executed / blockers
+- Quick Market invoice still Draft-only; no invoice-linked Receiver contract.
+- No goods custody ledger; no SupplierReturn single-writer/acceptance; no generic custody expense categories/account mapping.
+- No new Edge Function. Existing save-purchase-order v22 and receive-purchase v13 remain as-is.
+- No fixtures/E2E: current Staging lacks Buyer invoice/custody schema; Production not used for test data. No Cloudflare deploy or authenticated runtime verification.
+
+**Report607:** `doc/Draft/Reprots/Report607_BUYER_SAFE_SOURCE_EXECUTION_MASTER_SUPPLIER_AND_GOODS_CUSTODY_20261103.md` (commit `bb3a491bf30b8add280d8245b20f886d26ce2cb7`; blob `5f3164c10ede4584f142b28863251deb3ca871d8`).  
+**Current State:** LVE-607 at top of `CURRENT_STATE.md`; commit `2e535fc8a0ca152ec9d4ca49cb38fde7efd9358f`; blob `81b10a79e766a0fc09cf8395bb18ae81be816e56`.
+
+**STATUS:** Workstream A source-level complete; B–E open; overall Buyer OPEN / NOT PRODUCTION-READY.
