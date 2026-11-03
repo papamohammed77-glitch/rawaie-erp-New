@@ -180,3 +180,10 @@
 7. Re-run all affected regression checks, append exact evidence, and only then mark the Buyer program closed.
 
 **Checkpoint status:** P0 invoice-table boundary APPLIED; receiving role/branch guard APPLIED; custody cash acknowledgement gate APPLIED; Buyer source fixes COMMITTED; Cloudflare parity and authenticated E2E NOT VERIFIED; vehicle goods-custody and supplier-return closure NOT DONE; overall Buyer task OPEN.
+
+
+### Additional consumer-scan tranche — 2026-11-03
+- Current parent `companies/company-1/main.html` was inspected at blob `53b5a9e9d0433a785c3d5471a9c0d68c25497882` (1,800,879 bytes). Its six references to `purchase_invoices` / `purchase_invoice_details` are read-side uses: realtime subscription, `getData` reads, and a direct `.select(...)` for invoice details. No direct INSERT/UPDATE/DELETE of these invoice tables was found in the inspected parent source.
+- Current `buyer.html` was inspected at blob `aee14e6a4edbccd5fb95dff24f21daf1c6d21fcc`; it uses its data/read layer and central purchase operations for writes. The matching references found are table declarations, cache/realtime dependencies, and read paths; no direct invoice-table DML was found in the inspected Buyer source.
+- `office/accountant.html`, `office/finance-manager.html`, and `warehouse/receiver.html` had no references to these three invoice tables in their current source snapshots.
+- This is a first tranche, not a repository-wide closure: the remaining 25 company-1 HTML apps and any non-HTML JS/TS consumers still require scanning before claiming every consumer is compatible with the SELECT-only boundary.
