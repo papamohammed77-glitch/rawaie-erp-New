@@ -1,3 +1,57 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-604 — Buyer Available-Repository Consumer Scan & P0-D Preflight Completion
+
+**VERIFIED AT:** 2026-11-03 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Completed the previously missing read-only consumer scan for all Buyer/return consumers available in the connected GitHub account, including the 33,358-line Parent `main.html` via its Git blob; rechecked Production ACL/RLS/Realtime publication and exact RPC contracts. Confirmed Parent reads `purchase_returns` directly but writes through authenticated `save-purchase-order` Edge operations; no direct client DML consumer was found in the inspected active application files. Confirmed Realtime publication membership for both return tables and preserved the need for authenticated SELECT. Corrected a rollback omission in Report603: the original Production grants include `MAINTAIN` for anon/authenticated. Added Report604. No operational source, Production schema/ACL/RPC/Edge, business data, or deployment was changed.
+
+## Current State
+
+- **Operational repository:** `papamohammed77-glitch/erp-frontend` / `main`.
+- **Operational HEAD / parent:** `743c9b170bf2314a9e4d64fd4d8104f2cc1aee8c` / `2ce93c6d80ec4c38353bdf88880d06ae9e0abdde`.
+- **Buyer source:** `companies/company-1/purchasing/buyer.html`; blob `aee14e6a4edbccd5fb95dff24f21daf1c6d21fcc`.
+- **Parent source:** `companies/company-1/main.html`; blob `53b5a9e9d0433a785c3d5471a9c0d68c25497882` (1,800,879 characters / 33,358 lines read via Git blob).
+- **Production:** SMART ERP project `fiilmooggumokxanwiyx`; PostgreSQL 17.6.1.121; 737 recorded migrations; currency EGP.
+- **Active Edge:** `save-purchase-order` v22 and `receive-purchase` v13, both ACTIVE and `verify_jwt=true`.
+- **Already applied / do not repeat:** invoice writer boundary `20261103155029`; receiving authorization `20261103155444`; employee custody acknowledgement gate `20261103160902`.
+- **Previous report:** Report603 — cumulative return integrity / P0-D / Owner gate.
+- **New report:** `doc/Draft/Reprots/Report604_BUYER_AVAILABLE_REPOSITORY_CONSUMER_SCAN_P0D_PREFLIGHT_AND_EDGE_SOURCE_PARITY_20261103.md`.
+- **Report604 commit:** `5ffe8729302173d53e9cdf9ec41ab6a7f668a4b0`; blob `d39fa10664bf3d994f53c102f9314efa3c2c0eda`.
+
+## CONFIRMED
+
+1. **Parent is an active return-table consumer:** `main.html` reads `purchase_returns` directly through `supabase.from(table).select('*').eq('company_id',companyId())` in `getData`; subscribes to `purchase_returns` via `postgres_changes`; the table is in `supabase_realtime`. Parent creates/Posts returns through `api('CREATE_RETURN')` / `api('POST_RETURN')` → `save-purchase-order` Edge. No direct DML to either return table was found in the full Parent blob.
+2. **Buyer PWA:** both return tables are in its realtime/cache table list. Its operation writes use the central Edge; reads use `GET_DATA`. No direct DML consumer found.
+3. **Available-source scan:** all 34 company-1 HTML/JS/TS paths were inspected, including full Parent blob; the six current Edge directories were inspected. Only the central `save-purchase-order` Edge handles CREATE_RETURN/POST_RETURN/CANCEL_DOCUMENT.
+4. **Other accessible repositories:** connected GitHub exposed `erp-frontend`, `rawaie-erp-New`, and historical `rawaie-erp-review`. Relevant legacy Buyer/supervisor/warehouse-returns and old purchasing Edge files had no direct reference to the two purchase-return tables. Third-party systems or repositories not accessible to the connection remain UNKNOWN.
+5. **Production grants:** both return tables currently grant anon and authenticated SELECT/INSERT/UPDATE/DELETE/MAINTAIN/REFERENCES/TRIGGER. Neither anon nor authenticated has TRUNCATE in the captured ACL. service_role retains SELECT/INSERT/UPDATE/DELETE/TRUNCATE/MAINTAIN.
+6. **Policies:** both return-table policies are `ALL TO PUBLIC` with company-scoped predicates; RLS=ON, FORCE RLS=OFF. They do not implement purchases/finance RBAC.
+7. **Realtime:** both `purchase_returns` and `purchase_return_details` are members of `supabase_realtime`. P0-D must retain authenticated SELECT with company-scoped SELECT policies; do not remove publication membership.
+8. **Central Edge:** `save-purchase-order` v22 source in operational Git is byte-identical to active Production source. CREATE_RETURN requires purchases; POST_RETURN and purchase-return CANCEL_DOCUMENT require purchases+finance; writes call service-role RPC only after effective permission validation.
+9. **P0-R:** Parent UI computes each return-line max from original `received_qty`, does not subtract prior returns, and sends item_code rather than invoice_detail_id. Each API call generates a new Operation ID by default. Live `purchase_create_return_atomic` checks each request line against original received_qty but never aggregates prior returns. `purchase_post_return_atomic` moves stock via SupplierReturn, reduces Supplier AP and posts GL without supplier-acceptance evidence. Return tables remain at zero rows.
+10. **P0-D rollback correction:** Report603 §8.3 omitted `MAINTAIN`. The exact captured old ACL includes it for anon/authenticated; corrected rollback is in Report604 §7.1. Do not use Report603 §8.3 rollback verbatim.
+11. **Edge source reproducibility:** operational Git contains `save-purchase-order` but no `supabase/functions/receive-purchase` source path. Production receive-purchase v13 is active; the `Current/Edge_Functions/receive-purchase` snapshot in the governance repo is older and not byte-identical. This is a separate source reproducibility gap, not part of P0-D.
+12. **P0-D is now preflight-ready** for owner review within all accessible current repositories. The exact migration remains unapplied pending explicit approval under Master CTO §77.2.
+
+## UNKNOWN / UNVERIFIED
+
+- Third-party consumers or repositories outside those accessible through the linked GitHub connection.
+- Practical anon ability to satisfy current_user_company_id RLS.
+- Current Cloudflare artifact lineage beyond the older observed snapshot; current deployed Buyer byte identity remains unverified.
+- Authenticated Buyer/Parent E2E, Console/Network proof, real supplier handover/acceptance, and stock/ledger/GL effects.
+- P0-R final business/financial contract, schema, and complete approved migration/RPC implementation.
+- Full historical Reports 400–500 directory review was not completed; no claim of reading that full range is made.
+
+## OWNER CHANGE GATES / NEXT EXECUTION
+
+1. **P0-D:** Present Report603 §8.1 SQL together with Report604 §7 rollback correction and §7.2 acceptance. Await explicit approval of that exact SQL before any Production migration.
+2. **P0-R:** Separate design and approval for cumulative quantity guard, original invoice-detail linkage, serialized partial acceptance/rejection, supplier handover evidence, and posting only accepted quantities. Do not combine it implicitly with P0-D.
+3. Owner applies the Buyer issue-custody wording and acknowledge confirmation patch in Report603 §10; re-fetch SHA afterward.
+4. Do not touch `companies/company-1/main.html`; do not create a new Edge Function; do not use Production test fixtures; do not replace the live receive-purchase Edge until a separate source parity changeset is reviewed.
+5. After approved changes and isolated test environment: run role/tenant/branch, duplicate/retry, cumulative/concurrent return, partial acceptance, Realtime, Parent/Buyer regression, and stock/supplier/GL/cash invariants; verify current Cloudflare artifact and authenticated runtime.
+
+**STATUS:** AVAILABLE-REPOSITORY CONSUMER SCAN COMPLETE / P0-D READY FOR EXACT OWNER APPROVAL / P0-R CONFIRMED INTEGRITY GAP / RECEIVE-PURCHASE SOURCE PARITY GAP / NO PRODUCTION MUTATION / OVERALL BUYER OPEN — NOT PRODUCTION-READY.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-603 — Buyer Cumulative Return Integrity & Owner Change Gate
 
 **VERIFIED AT:** 2026-11-03 Africa/Cairo.  
