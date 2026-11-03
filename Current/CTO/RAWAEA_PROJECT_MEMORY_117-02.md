@@ -1,3 +1,19 @@
+## LVE-603 — 2026-11-03 — Buyer Cumulative Return Integrity & Supplier Acceptance
+
+- Revalidated operational Git: erp-frontend/main HEAD 743c9b170bf2314a9e4d64fd4d8104f2cc1aee8c, parent 2ce93c6d80ec4c38353bdf88880d06ae9e0abdde. Buyer blob aee14e6a4edbccd5fb95dff24f21daf1c6d21fcc; Core f4c6a0df441e0da9105d4fe7ce94ad2d7a1735e1; Receiver 3111b5e801d1bc021cf18fd66d633fbdc54ac0d6.
+- Production schema confirms purchase_create_return_atomic compares each return detail qty only against original purchase_invoice_details.received_qty; it does not subtract earlier returns. A separate operation_id can therefore create another return against the same original received quantity. purchase_post_return_atomic applies SupplierReturn stock movement, debits supplier AP 211, credits inventory 124, inserts supplier_ledger debit, and marks Posted.
+- purchase_returns/details have no returned_qty/accepted_qty or cumulative-return trigger. Their current constraints do not enforce aggregate limits. Header triggers are only status history and updated_at.
+- Production currently has purchase_returns=0 and purchase_return_details=0; no existing production over-return rows evidenced.
+- Direct DML to purchase_returns/details remains granted to authenticated (and anon grants also exist) with RLS ALL scoped by company only. This does not enforce purchasing/finance RBAC. Actual anonymous policy bypass remains unverified.
+- Supplier acceptance/partial acceptance is missing from the return schema and posting RPC. Physical supplier acceptance must precede SupplierReturn stock/AP posting; model separately from warehouse release to buyer vehicle and actual supplier handover.
+- Prior central controls already applied: invoice table writer boundary 20261103155029; receiver role/branch authorization 20261103155444; custody cash disbursement requires assigned employee acknowledgement 20261103160902. Do not repeat.
+- Buyer issueCustody text/toast at lines 870/880 contradict acknowledgement-gated Production behavior; acknowledgeCustody lines 907–910 lacks a clear user confirmation step. Owner patch in Report603 §10; not applied by assistant.
+- quickPurchase at line 762 is only an alias to createPurchaseInvoice; Receiver remains PO-only; no separate purchasing vehicle goods custody ledger; expense table lacks PURCHASE/FUEL/TRANSPORT/OTHER types and mapping; settlement has no dedicated cash return proof attachment fields.
+- Report603: doc/Draft/Reprots/Report603_BUYER_RETURN_INTEGRITY_DEPLOYMENT_RECHECK_AND_CHANGE_GATE_20261103.md; commit 7e9fe3e7be50e61d6e71145a6b2bffbdd63b3254.
+- No Production writes, DDL/ACL changes, source HTML edits, Edge deployments, test fixtures or authenticated E2E were performed. P0-D requires exact owner approval after external consumer review per Master CTO §77.2. P0-R cumulative guard + supplier acceptance requires its own approved design/SQL. Cloudflare snapshot is older than current HEAD; current artifact and runtime remain UNKNOWN/UNVERIFIED.
+
+---
+
 ## LVE-602 — 2026-11-03 — Buyer Return ACL & Physical Procurement Workflow
 
 - Operational repo `papamohammed77-glitch/erp-frontend/main` HEAD `743c9b170bf2314a9e4d64fd4d8104f2cc1aee8c`; parent `2ce93c6d80ec4c38353bdf88880d06ae9e0abdde`.
