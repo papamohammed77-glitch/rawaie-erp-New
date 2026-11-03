@@ -1,3 +1,51 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-607 — Buyer Safe Source Execution / Supplier Master & Goods Custody Naming
+
+**VERIFIED AT:** 2026-11-03 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Re-read LVE-606 and Reports603–606, current Buyer/Receiver/Core, Master CTO §§77.1–77.4, and live SMART ERP Production schema/RPC/Edge state. Executed source-only Buyer changes on operational main: supplier master becomes read-only in Buyer, supplier selection requires is_active=true, the former vehicle balance tab is renamed «رصيدي» and no longer reads Fleet/Delivery vehicle assignments. Verified Buyer source blob after commits. Created Report607. No Parent main.html/Receiver/Core edits, no SQL/DDL/ACL/RPC/Edge/Production data changes, no Cloudflare deploy, and no E2E fixtures.
+
+## Current State — LVE-607
+
+- **Operational repository / branch:** `papamohammed77-glitch/erp-frontend` / `main`.
+- **Operational HEAD / parent:** `5d7b10e4fd0fdf1bb2299c87805f9c86d381cc35` / `df7ad3aaa38b10dfaef6a3beb47780be4f5cfc9d`.
+- **Buyer source:** `companies/company-1/purchasing/buyer.html`; blob `7f82fceb0b2c2470d1f112aefeaa1341de5b71a8`.
+- **Parent:** `companies/company-1/main.html` — untouched.
+- **Receiver/Core:** untouched.
+- **Production:** SMART ERP `fiilmooggumokxanwiyx`; EGP; existing Edge `save-purchase-order` v22 and `receive-purchase` v13 remain ACTIVE/JWT. No new Edge.
+- **Report607:** `doc/Draft/Reprots/Report607_BUYER_SAFE_SOURCE_EXECUTION_MASTER_SUPPLIER_AND_GOODS_CUSTODY_20261103.md`; report blob `5f3164c10ede4584f142b28863251deb3ca871d8`; report commit `bb3a491bf30b8add280d8245b20f886d26ce2cb7`.
+
+## CONFIRMED — Buyer Source Changes
+
+1. Buyer no longer exposes supplier create/edit; no `SAVE_SUPPLIER` invocation remains. Supplier details are read-only. `supplierForm()` is a fail-closed guard.
+2. Supplier list, quotations, PO, and invoice selection require `is_active === true`.
+3. Tab label changed from «رصيد السيارة» to «رصيدي».
+4. The «رصيدي» view no longer reads Fleet/vehicles and does not fabricate a stock/custody balance. It explicitly states that the central goods-custody ledger is not yet present and describes the four physical custody handoffs.
+5. `quickPurchase()` remains an alias to draft invoice creation; no false claim of completed quick-market receipt/posting.
+6. Parent `main.html` remains untouched.
+
+## OPEN / NOT IMPLEMENTED
+
+- `is_active` is not proven to be formal supplier approval; schema has no `approval_status`. Buyer can enforce active-only, not invent central approval.
+- Quick Market Invoice remains Draft-only without PO; POST currently rejects no-PO invoices. Receiver and `receive_purchase_atomic` remain PO-only; receiving tables lack invoice header/line linkage. Receiver's `po_code` detail query conflicts with schema `po_id`.
+- No append-only Buyer goods custody ledger exists; no accepted/rejected partial Supplier Return handoff with supplier evidence exists.
+- `purchase_returns` and `stock_vouchers.SupplierReturn` remain dual paths without proven single-writer/idempotent link. Cumulative returned-qty concurrency gap remains open.
+- Custody expenses lack category/account/payee-kind fields; existing review RPC is PO/supplier-payment-specific. Fuel/transport/other expense account mapping remains unapproved.
+- Staging `rawaea-staging` has 62 migrations / 70 public tables and lacks Buyer invoice/custody tables; it is not a valid E2E environment.
+- Cloudflare artifact parity, authenticated Buyer/Receiver E2E, stock/AP/GL/Treasury reconciliation, and runtime remain UNVERIFIED.
+- No fixtures or Production transactions were created; no Production mutation occurred.
+
+## Next Execution
+
+1. Prepare full Change Set B for current receive-purchase v13 + authenticated receive RPC + invoice-linked receiving schema + Receiver PO bug fix; restore exact live Edge source parity in Git first.
+2. Prepare Change Set C for append-only goods custody and four physical handoffs, optional vehicle/manual delivery, partial quantities, evidence and one idempotent writer.
+3. Prepare Change Set D for SupplierReturn single-writer, cumulative/concurrent quantity control, acceptance/rejection evidence, and no duplicate stock/AP/GL.
+4. Prepare Change Set E for PURCHASE/FUEL/TRANSPORT/OTHER custody expenses and approved COA mapping, without duplicate AP/Payment/Treasury movements.
+5. Restore a valid isolated Staging schema or other approved test harness, then execute authenticated E2E, negative authorization, retry/concurrency, stock/ledger/GL/cash snapshots, and Cloudflare artifact/runtime checks.
+6. Do not create Edge Functions; extend existing functions only after exact change review. Do not edit `main.html`. Do not repeat P0 controls already applied in migrations `20261103155029`, `20261103155444`, `20261103160902`.
+
+**STATUS:** Workstream A source-level complete; «رصيدي» naming/semantics corrected but ledger not implemented; B–E OPEN; no DB/Production/E2E changes; overall Buyer OPEN / NOT PRODUCTION-READY.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-606 — Owner Procurement Clarifications & Buyer Execution Readiness
 
 **VERIFIED AT:** 2026-11-03 Africa/Cairo.  
