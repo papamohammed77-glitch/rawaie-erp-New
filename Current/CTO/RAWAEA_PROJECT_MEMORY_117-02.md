@@ -1,3 +1,17 @@
+## LVE-596 — 2026-11-03 — Public Storefront Checkout & Pricing
+
+- submit-online-order v11 supports Guest Checkout intentionally with verify_jwt=false but requires published storefront_key and maps to company_id.
+- submit_online_order_atomic calls resolve_sales_pricing_atomic; authoritative price comes from items.sales_price/commercial rules/promotions, not client cart price.
+- Store UI persists operation_id by payload fingerprint in localStorage and sends it in body and Idempotency-Key header.
+- Online order is Pending; submit path does not deduct/reserve stock. Availability policy UNKNOWN: checks store_display_qty/max_qty_per_order, not stock_branches.available_qty.
+- Public guest path finds existing customer by phone and updates name/area without OTP/phone ownership proof, then uses customer_id in pricing resolver. Customer identity/master-data risk CONFIRMED at source contract; actual misuse UNVERIFIED.
+- Edge generates random operation_id if client omits one; retry stability depends on current client behavior. RPC returns existing order for same operation_id without payload-hash conflict detection.
+- No order/customer mutation, HTTP tampering test, Browser E2E, source/DB/Edge/PR/deployment change.
+- Report: doc/Draft/Reprots/Report596_CTO_ONLINE_STOREFRONT_PUBLIC_CHECKOUT_AND_PRICING_AUDIT_20261103.md. Report commit 2ed1a7c179c57acad821102e1a50ab58d91fcb90. CURRENT_STATE commit 4e4f35b4695065525f1c3d50577946c5d1e5433e.
+- Next: owner decisions on guest identity/OTP, customer master update, customer-specific pricing, and available-stock policy.
+
+---
+
 ## LVE-595 — 2026-11-03 — CTO Architecture & Operating Map
 
 - Consolidated the architecture from live source and Production: Parent ERP + 27 standalone PWAs + core.js + Supabase central DB/Edge/RPC + Cloudflare frontend hosting.
