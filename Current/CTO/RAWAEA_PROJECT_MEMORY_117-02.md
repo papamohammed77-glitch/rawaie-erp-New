@@ -12,7 +12,7 @@
 - No source/Production mutations, no fixtures, no Edge/Cloudflare deploy, and no authenticated E2E this cycle. Cloudflare served-blob parity and runtime remain UNVERIFIED.
 - Exact P0-D revocation/SELECT-only policy change is documented in Report602; not applied pending explicit owner approval for the exact change and external consumer review. Market purchase, vehicle custody, supplier return acceptance, and expense categories remain open.
 - Report: `doc/Draft/Reprots/Report602_BUYER_CURRENT_SOURCE_PRODUCTION_FORENSIC_AND_CHANGESET_20261103.md` (commit 25b991849fb2d7c9fea28cff0e68962dcf34a50d; blob af43e480f35c72fbc5093a6607c36b4ea16747eb).
-- Current state: LVE-602 at top of `CURRENT_STATE.md`, commit 76a5a398866971f0ec5c4e350763eccd7fa7f815; blob 16fd2dbec898ae9ef0374789f1aa16255cccdc74.
+- Current state: LVE-602 at top of `CURRENT_STATE.md`, commit bc6dd6a42311a599123314adf1a3d6a4772f5f99; blob 18964899b45250a3bf92bec32d730b6457c1e199.
 - Next: check external return-table consumers; present P0-D for exact owner approval; then design Quick Market Purchase + independent goods custody + Supplier Return Acceptance through existing gateways only.
 
 ---
