@@ -359,3 +359,37 @@ No Buyer/Receiver/main source change, Production DDL/RLS/ACL/grant/RPC/data muta
 **Current state:** LVE-602 at top of `CURRENT_STATE.md`; state commit `bc6dd6a42311a599123314adf1a3d6a4772f5f99`; blob `18964899b45250a3bf92bec32d730b6457c1e199`.
 
 **STATUS:** P0 controls already present / return-table DML exposure confirmed / remediation awaiting exact owner approval / market purchase and vehicle custody open / Cloudflare-runtime E2E unverified / not closed.
+
+---
+
+## 2026-11-03 — Buyer LVE-603: Cumulative Return Integrity & Supplier Acceptance Forensic Review
+
+**Starting checkpoint:** LVE-2026-11-03-602.  
+**Operational Git:** erp-frontend/main HEAD 743c9b170bf2314a9e4d64fd4d8104f2cc1aee8c; parent 2ce93c6d80ec4c38353bdf88880d06ae9e0abdde.  
+**Buyer blob:** aee14e6a4edbccd5fb95dff24f21daf1c6d21fcc.  
+**Report:** doc/Draft/Reprots/Report603_BUYER_RETURN_INTEGRITY_DEPLOYMENT_RECHECK_AND_CHANGE_GATE_20261103.md.  
+**Report commit:** 7e9fe3e7be50e61d6e71145a6b2bffbdd63b3254.
+
+### Confirmed findings
+
+- Rechecked live Production return table columns, constraints, triggers, grants, RLS policies and RPC definitions.
+- purchase_create_return_atomic checks each new detail quantity against the original received_qty but does not subtract quantities already returned in earlier return documents. Separate operation_id values can therefore create new return quantities beyond the original received quantity.
+- purchase_post_return_atomic posts SupplierReturn stock movement, debits supplier AP (211), credits inventory (124), inserts supplier_ledger debit and marks Posted. It has no supplier acceptance/partial acceptance event.
+- No returned_qty/accepted_qty columns or cumulative return trigger exist in the current return schema. Header triggers only record status history/update timestamp.
+- purchase_returns and purchase_return_details have current authenticated direct DML privileges and ALL policies scoped only by current company, not role. Central Edge authorization can therefore be bypassed by a direct same-company authenticated table write.
+- Production counts show purchase_returns=0, purchase_return_details=0, custody rows=0. No current over-return rows are evidenced.
+- Buyer quickPurchase remains an alias to createPurchaseInvoice; Receiver remains PO-only; the Buyer vehicle panel explicitly says the purchasing goods custody ledger is not enabled.
+- Cash custody Production posting waits for the assigned employee acknowledgement; Buyer issueCustody text/toast lines 870/880 still imply immediate posting. Exact owner patch is in Report603 §10.
+
+### Verification boundary / work not performed
+
+No source HTML edit, Production DDL/RLS/ACL/RPC/data mutation, Edge deployment, Cloudflare deployment, fixture creation, or authenticated Browser E2E was performed. Cloudflare snapshot displayed Production commit 7a14d51, which predates the current operational HEAD; current deployment lineage is UNKNOWN. Runtime and business-data effect tests are UNVERIFIED. Full reports 400–500 folder review was not completed through available GitHub tool access.
+
+### Owner gates
+
+- **P0-D:** complete external consumer review; then obtain exact owner approval for Report603 §8 SQL to revoke anon/authenticated DML while retaining authenticated company-scoped SELECT and service_role writer access. Not applied.
+- **P0-R:** separately design and approve cumulative-return concurrency guard + supplier handover/acceptance/partial rejection lifecycle + correct stock/AP/GL posting. No migration drafted or applied.
+- Owner applies Buyer UI text/toast/acknowledgement patch in Report603 §10; re-fetch the file SHA afterward.
+- Do not touch main.html; do not create new Edge Functions; do not repeat already-applied invoice writer, receiving authorization, or custody acknowledgement controls; do not test Production with financial/inventory fixtures.
+
+**STATUS:** return DML boundary and cumulative return guard are CONFIRMED gaps; supplier acceptance, market purchase, purchasing vehicle custody and general custody expense classification remain OPEN; Cloudflare artifact parity UNKNOWN; authenticated runtime/E2E UNVERIFIED; Buyer remains OPEN / NOT PRODUCTION-READY.
