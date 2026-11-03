@@ -1,3 +1,56 @@
+# LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-601 — Owner Transaction-State & Physical-Event Invariant
+
+**VERIFIED AT:** 2026-11-03 Africa/Cairo.  
+**LAST VERIFIED EVENT:** Owner explicitly restated the controlling business rule: electronic workflow creation alone must not create a financial or inventory movement. Recorded a formal invariant and acceptance matrix in Report589 §19, separating operational state, document state, financial events, and inventory events. No operational source or Production object was changed.
+
+## Current State
+
+- **Governance/report repository:** papamohammed77-glitch/rawaie-erp-New / main.
+- **Buyer assessment:** doc/Draft/Reprots/Report589_BUYER_COMPREHENSIVE_APPLICATION_ASSESSMENT_20261103.md.
+- **New governing section:** Report589 §19, "الثابت الحاكم للفصل بين الحالة التشغيلية والمستندية والمالية والمخزنية (LVE-601)".
+- **New invariant:** A UI action, request, draft, approval, payment order, or preliminary collection is not proof of physical cash or goods movement. Financial and inventory effects require the actual economic/physical event, sufficient evidence, authorization, correct accounting treatment, and idempotent central posting.
+- **Four independent dimensions:** Operational State, Document State, Financial Event, Inventory Event. They may be linked but must not be collapsed into one status.
+- **Accounting qualification:** This does not prohibit accrual accounting. Actual receipt can require inventory plus GRNI/uninvoiced liability under approved policy; invoice posting must reconcile rather than duplicate the receipt. Cash changes only on actual verified payment/receipt.
+- **Acceptance matrix:** Report589 §19.7 now defines required tests for PR/PO/Draft Invoice, partial and rejected receipt, payment instruction vs actual disbursement, collection request vs actual receipt, returns, custody, market purchase, and vehicle goods custody.
+
+## Binding Design Decisions for All Future Work
+
+1. Create PR / PO / Draft Invoice without inventory, treasury, or supplier/customer ledger movement merely from document creation.
+2. Receipt increases inventory only for physically received, counted, inspected, accepted quantities; partial and rejected/damaged quantities remain distinct.
+3. Posting a supplier invoice linked to an already received PO must not duplicate stock or receipt accrual.
+4. A payment order/approval does not lower cash. Actual disbursement, evidenced by cash receipt signature or trusted bank/payment confirmation, does.
+5. A collection request or preliminary collection does not increase cash. Actual confirmed receipt/settlement does.
+6. Supplier/customer balances change only through eligible approved/posted ledger entries tied to a real business event and supporting documents.
+7. Custody balance increases only when cash is actually handed to and acknowledged by the custodian; expense settlement requires approved evidence and goods/service receipt where applicable.
+8. Vehicle/driver assignment does not prove goods transfer; purchasing vehicle custody requires physical handover evidence and its own traceable goods-custody ledger.
+9. Returns reverse stock only for goods physically received and accepted; refunds reverse cash only when actually paid.
+10. Use stable idempotency keys and immutable/reversal-based audit history for posted financial and inventory events.
+
+## Impact on Buyer Change Sets
+
+- P0-A and P0-B remain unexecuted. Their security/authorization changes must preserve this event-separation invariant.
+- P0-C must ensure saving Draft does not post any financial or stock effect; operation identity must be durable on retry.
+- Quick Market Purchase must capture seller, source document, payment method, actual receipt, accepted quantities, and custody evidence separately.
+- Custody expenses must not be mislabeled as supplier AP/payment unless the underlying event truly is supplier-credit settlement.
+- Purchasing vehicle goods custody remains distinct from Fleet driver assignment and Delivery van stock.
+- No code-level or production-level compliance is claimed by recording this rule; each live path requires inspection and E2E proof.
+
+## NOT DONE / NOT VERIFIED
+
+- No Buyer HTML or other operational source changed.
+- No SQL, DDL, RPC, Edge Function, RLS, ACL, grant, trigger, or Production data changed.
+- No Edge or Cloudflare deployment.
+- No real cash, inventory, supplier, or customer transaction was posted or tested.
+- No proof is added here that all existing workflows already comply; §19 supplies the controlling design rule and acceptance tests only.
+
+## Next Execution Point
+
+For each Buyer repair Change Set, trace the four dimensions separately from UI through the shared gateway to RPC/database journals and inventory logs. First produce a before/after event matrix for every relevant path. Then present exact implementation changes with consumer scan, authorization, idempotency, acceptance tests, and rollback as required by Master CTO §77.2. Do not infer physical events from UI/document statuses.
+
+**STATUS:** OWNER INVARIANT RECORDED / REPORT589 §19 ADDED / NO OPERATIONAL OR PRODUCTION CHANGE / LIVE COMPLIANCE NOT YET VERIFIED / NOT CLOSED.
+
+---
+
 # LATEST VERIFIED CHECKPOINT — LVE-2026-11-03-600 — Buyer Assessment Integration & Owner Change Gates
 
 **VERIFIED AT:** 2026-11-03 Africa/Cairo.  
